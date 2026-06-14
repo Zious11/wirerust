@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.4"
+version: "1.5"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -17,6 +17,7 @@ modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
   - "v1.3 (2026-05-28): W15 Pass-1 remediation — anchor line ranges reconciled (F-W15S051-P1-006); STORY-051 BC-prefixed companion tests added to Architecture Anchors test list (covers test rename + 2 new tests from Round 1 commit 920891e)."
   - "v1.4 (2026-05-28): W15 Pass-2 remediation — compute_ja3 line range synced to doc-block convention (92-151) matching STORY-051 v1.2 and BC-2.07.008 (F-W15S051-P2-002 sibling-sweep)."
+  - "v1.5: PG-ARP-F2-007 ss-07 full re-anchor — compute_ja3 doc+fn 92-151→93-152; format/Md5 at :149-150 unchanged — 2026-06-13"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -95,7 +96,7 @@ returns `(md5_hex, ja3_string)` as a pair.
 | L2 Capability | CAP-07 ("TLS traffic analysis") per domain/capabilities/cap-07-tls-analysis.md |
 | Capability Anchor Justification | CAP-07 ("TLS traffic analysis") per domain/capabilities/cap-07-tls-analysis.md -- JA3 string format is the algorithm defining the fingerprint output |
 | L2 Domain Invariants | INV-4 (raw-data/display-layer separation) |
-| Architecture Module | SS-07 (analyzer/tls.rs:92-151, C-13) -- compute_ja3 doc-block + function body (doc-block convention per STORY-051 v1.2 Architecture Mapping); format!/Md5::digest at 148-149 |
+| Architecture Module | SS-07 (analyzer/tls.rs:93-152, C-13) -- compute_ja3 doc-block + function body (doc-block convention per STORY-051 v1.2 Architecture Mapping); format!/Md5::digest at 149-150 |
 | Stories | STORY-051 |
 | Origin BC | BC-TLS-007 (pass-3 ingestion corpus, MEDIUM confidence) |
 
@@ -107,8 +108,8 @@ returns `(md5_hex, ja3_string)` as a pair.
 
 ## Architecture Anchors
 
-- `src/analyzer/tls.rs:92-151` -- `compute_ja3` doc-block + function body (doc-block convention per STORY-051 v1.2 Architecture Mapping)
-- `src/analyzer/tls.rs:148-149` -- `format!` string assembly and `Md5::digest` computation
+- `src/analyzer/tls.rs:93-152` -- `compute_ja3` doc-block + function body (doc-block convention per STORY-051 v1.2 Architecture Mapping)
+- `src/analyzer/tls.rs:149-150` -- `format!` string assembly and `Md5::digest` computation
 - `tests/tls_analyzer_tests.rs` -- test_BC_2_07_007_ja3_string_has_exactly_four_commas_five_fields
 - `tests/tls_analyzer_tests.rs` -- test_BC_2_07_007_canonical_771_no_cipher_no_extension_hash
 - `tests/tls_analyzer_tests.rs` -- test_BC_2_07_007_version_zero_emits_leading_zero_field
@@ -121,13 +122,13 @@ returns `(md5_hex, ja3_string)` as a pair.
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/analyzer/tls.rs:92-151` (compute_ja3 doc-block + body; format!/Md5::digest at lines 148-149) |
+| **Path** | `src/analyzer/tls.rs:93-152` (compute_ja3 doc-block + body; format!/Md5::digest at lines 149-150) |
 | **Confidence** | medium |
 | **Extraction Date** | 2026-05-20 |
 
 ## Evidence Types Used
 
-- **inferred**: format string `format!("{version},{cipher_str},{ext_ids},{curves_str},{pf_str}")` at tls.rs:148
+- **inferred**: format string `format!("{version},{cipher_str},{ext_ids},{curves_str},{pf_str}")` at tls.rs:149
 - **assertion**: proptest tests verify 5-field format, hex output, version prefix
 
 ## Purity Classification

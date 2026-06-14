@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.4"
+version: "1.5"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -15,8 +15,9 @@ lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
-  - "v1.3: Wave 9 STORY-016 adversarial pass-1 fix: F-3 — stale architecture-anchor line range corrected from segment.rs:199-212 to segment.rs:201-212 (line shift from Wave 8 STORY-019 test-seam additions) — 2026-05-26"
+  - "v1.3: Wave 9 STORY-016 adversarial pass-1 fix: F-3 — stale architecture-anchor line range corrected from segment.rs:199-212 to segment.rs:334-344 (line shift from Wave 8 STORY-019 test-seam additions) — 2026-05-26"
   - "v1.4: Wave 9 STORY-016 adv pass-2 F-7 (sibling-discipline regression of pass-1 F-3): invariant 1 prose anchor 'segment.rs:201' → 'segment.rs:204 (within block at 201-212)' (line 201 is comment, line 204 is the actual return) — 2026-05-26"
+  - "v1.5: PG-ARP-F2-007 ss-04-full re-anchor: segment.rs:334-344 → segment.rs:334-344 (!had_gap path); segment.rs:204 → segment.rs:335; segment.rs:286 → segment.rs:286. — 2026-06-13"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -52,10 +53,10 @@ handled by the same `fully_covered` check that handles single-segment coverage.
 
 ## Invariants
 
-1. The `fully_covered` computation (segment.rs:145) checks whether any single existing range
+1. The `fully_covered` computation (segment.rs:286) checks whether any single existing range
    covers `[new_start, new_end)` entirely: `es <= new_start && ee >= new_end`. Multi-segment
    union coverage is handled by the gap-computation path that produces an empty gaps vec,
-   which then falls through to the `!had_gap` return arm at segment.rs:204 (within the block at 201-212).
+   which then falls through to the `!had_gap` return arm at segment.rs:335 (within the block at 334-344).
 2. First-wins (INV-3) applies identically here: multi-segment union does not change the
    conflict detection or preservation semantics.
 
@@ -90,7 +91,7 @@ handled by the same `fully_covered` check that handles single-segment coverage.
 | L2 Capability | CAP-04 ("TCP stream reassembly") per domain/capabilities/cap-04-tcp-reassembly.md |
 | Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per domain/capabilities/cap-04-tcp-reassembly.md -- multi-segment coverage handling is part of the first-wins overlap policy completeness |
 | L2 Domain Invariants | INV-3 (First-wins overlap policy -- applies identically to multi-segment coverage as to single-segment coverage) |
-| Architecture Module | SS-04 (reassembly/segment.rs:201-212, C-8) |
+| Architecture Module | SS-04 (reassembly/segment.rs:334-344, C-8) |
 | Stories | STORY-016 |
 | Origin BC | BC-RAS-038 (pass-3 ingestion corpus, HIGH confidence) |
 
@@ -102,13 +103,13 @@ handled by the same `fully_covered` check that handles single-segment coverage.
 
 ## Architecture Anchors
 
-- `src/reassembly/segment.rs:201-212` -- the `!had_gap` path returning Duplicate or ConflictingOverlap
+- `src/reassembly/segment.rs:334-344` -- the `!had_gap` path returning Duplicate or ConflictingOverlap
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/reassembly/segment.rs:201-212` |
+| **Path** | `src/reassembly/segment.rs:334-344` |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 

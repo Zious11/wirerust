@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -16,6 +16,7 @@ introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
   - "v1.3: Wave 16 Pass-1 prose fix (F-W16-S052-P1-004) — line citation corrected: done check at tls.rs:721, early return at tls.rs:723 — 2026-05-28"
+  - "v1.4: PG-ARP-F2-007 ss-07 full re-anchor — on_data done-check 718-724→807-810 (done check at :807, if done at :808, return at :809); TlsFlowState::done() 290-293→298-300 — 2026-06-13"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -43,7 +44,7 @@ counter is incremented.
 
 ## Postconditions
 
-1. `on_data` returns immediately (tls.rs:723) once the `done` check (tls.rs:721) is true.
+1. `on_data` returns immediately (tls.rs:809) once the `done` check (tls.rs:807) is true.
 2. No bytes are appended to `client_buf` or `server_buf`.
 3. No counters are incremented (`parse_errors`, `handshakes_seen`, etc. all unchanged).
 4. No findings are emitted.
@@ -89,7 +90,7 @@ counter is incremented.
 | L2 Capability | CAP-07 ("TLS traffic analysis") per domain/capabilities/cap-07-tls-analysis.md |
 | Capability Anchor Justification | CAP-07 ("TLS traffic analysis") per domain/capabilities/cap-07-tls-analysis.md -- the done-short-circuit is the resource-bounding mechanism that prevents unbounded post-handshake buffering |
 | L2 Domain Invariants | INV-4 (raw-data/display-layer separation -- raw bytes are not stored after done) |
-| Architecture Module | SS-07 (analyzer/tls.rs:718-724, C-13) |
+| Architecture Module | SS-07 (analyzer/tls.rs:807-810, C-13) |
 | Stories | STORY-052 |
 | Origin BC | BC-TLS-003 (pass-3 ingestion corpus, HIGH confidence) |
 
@@ -101,15 +102,15 @@ counter is incremented.
 
 ## Architecture Anchors
 
-- `src/analyzer/tls.rs:718-724` -- `on_data` done-check and early return
-- `src/analyzer/tls.rs:290-293` -- `TlsFlowState::done()` predicate
+- `src/analyzer/tls.rs:807-810` -- `on_data` done-check and early return
+- `src/analyzer/tls.rs:298-300` -- `TlsFlowState::done()` predicate
 - `tests/tls_analyzer_tests.rs` -- test_stop_after_handshake
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/analyzer/tls.rs:718-724` (on_data done guard) |
+| **Path** | `src/analyzer/tls.rs:807-810` (on_data done guard) |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 

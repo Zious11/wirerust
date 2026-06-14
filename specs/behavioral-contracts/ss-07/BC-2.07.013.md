@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -13,7 +13,9 @@ subsystem: SS-07
 capability: CAP-07
 lifecycle_status: active
 introduced: v0.1.0-brownfield
-modified: ["v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"]
+modified:
+  - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
+  - "v1.3: PG-ARP-F2-007 ss-07 full re-anchor — arm 1 match 251-252→253; arm 1 handling 424-425→436 — 2026-06-13"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -92,7 +94,7 @@ arm 1 and produce no finding. Broader LDH compliance is out of scope (issue #54)
 | L2 Capability | CAP-07 ("TLS traffic analysis") per domain/capabilities/cap-07-tls-analysis.md |
 | Capability Anchor Justification | CAP-07 ("TLS traffic analysis") per domain/capabilities/cap-07-tls-analysis.md -- the no-finding arm of SNI classification defines the baseline TLS analysis behavior |
 | L2 Domain Invariants | INV-5 (SNI 4-way classification ordered match -- arm 1 is the no-finding path) |
-| Architecture Module | SS-07 (analyzer/tls.rs:251-252, C-13) |
+| Architecture Module | SS-07 (analyzer/tls.rs:253, C-13) |
 | Stories | STORY-055 |
 | Origin BC | BC-TLS-013 (pass-3 ingestion corpus, HIGH confidence) |
 
@@ -105,15 +107,15 @@ arm 1 and produce no finding. Broader LDH compliance is out of scope (issue #54)
 
 ## Architecture Anchors
 
-- `src/analyzer/tls.rs:251-252` -- arm 1 match in extract_sni
-- `src/analyzer/tls.rs:424-425` -- arm 1 handling in match sni block: `SniValue::Ascii(_) => {}`
+- `src/analyzer/tls.rs:253` -- arm 1 match in extract_sni
+- `src/analyzer/tls.rs:436` -- arm 1 handling in match sni block: `SniValue::Ascii(_) => {}`
 - `tests/tls_analyzer_tests.rs` -- test_ascii_sni_does_not_emit_non_utf8_finding
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/analyzer/tls.rs:251-252` |
+| **Path** | `src/analyzer/tls.rs:253` |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 

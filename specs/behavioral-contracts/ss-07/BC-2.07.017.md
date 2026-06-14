@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.4"
+version: "1.5"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -17,6 +17,7 @@ modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
   - "v1.3: anchor sweep — correct extract_sni arm-3/arm-4 line citations to 257-260/261-264 (PG-W16-003 sibling sweep from F-S056-P5-001/002/003) — 2026-05-29"
   - "v1.4: mitre_technique: Some(\"T1027\") → mitre_techniques: vec![\"T1027\"] in Postconditions (ARP-F2 P14 B6) — 2026-06-13"
+  - "v1.5: PG-ARP-F2-007 ss-07 full re-anchor — arm 3 extract_sni 257-260→258-261; NonAsciiUtf8 emission 449-467→461-492 — 2026-06-13"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -98,7 +99,7 @@ preserved in the finding (ADR 0003 / INV-4).
 | L2 Capability | CAP-07 ("TLS traffic analysis") per domain/capabilities/cap-07-tls-analysis.md |
 | Capability Anchor Justification | CAP-07 ("TLS traffic analysis") per domain/capabilities/cap-07-tls-analysis.md -- non-ASCII UTF-8 SNI detection is arm 3 of the SNI 4-way classification |
 | L2 Domain Invariants | INV-5 (SNI 4-way classification ordered match), INV-4 (raw-data/display-layer separation) |
-| Architecture Module | SS-07 (analyzer/tls.rs:257-260, 449-467, C-13) |
+| Architecture Module | SS-07 (analyzer/tls.rs:258-261, 461-492, C-13) |
 | Stories | STORY-056 |
 | Origin BC | BC-TLS-017 (pass-3 ingestion corpus, HIGH confidence) |
 
@@ -111,15 +112,15 @@ preserved in the finding (ADR 0003 / INV-4).
 
 ## Architecture Anchors
 
-- `src/analyzer/tls.rs:257-260` -- arm 3 in extract_sni match (`Ok(s) => SniValue::NonAsciiUtf8 { ... }`)
-- `src/analyzer/tls.rs:449-467` -- NonAsciiUtf8 finding push
+- `src/analyzer/tls.rs:258-261` -- arm 3 in extract_sni match (`Ok(s) => SniValue::NonAsciiUtf8 { ... }`)
+- `src/analyzer/tls.rs:461-492` -- NonAsciiUtf8 finding push
 - `tests/tls_analyzer_tests.rs` -- test_valid_utf8_non_ascii_sni_emits_finding
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/analyzer/tls.rs:257-260` (extract_sni arm 3), `src/analyzer/tls.rs:449-467` (emission) |
+| **Path** | `src/analyzer/tls.rs:258-261` (extract_sni arm 3), `src/analyzer/tls.rs:461-492` (emission) |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 

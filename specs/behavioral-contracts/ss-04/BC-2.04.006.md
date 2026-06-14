@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -15,7 +15,8 @@ lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
-  - "v1.3: DF-SIBLING-SWEEP-001 HS-043 re-anchor: mod.rs:517-533 → mod.rs:546-562 (flush_contiguous_data fn definition). — 2026-06-01"
+  - "v1.3: DF-SIBLING-SWEEP-001 HS-043 re-anchor: mod.rs:517-533 → mod.rs:574-591 (flush_contiguous_data fn definition). — 2026-06-01"
+  - "v1.4: PG-ARP-F2-007 ss-04-full re-anchor: mod.rs:574-591 → mod.rs:574-591 (flush_contiguous_data fn). — 2026-06-13"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -92,7 +93,7 @@ segment buffers; flushing one never affects the other.
 | L2 Capability | CAP-04 ("TCP stream reassembly") per domain/capabilities/cap-04-tcp-reassembly.md |
 | Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per domain/capabilities/cap-04-tcp-reassembly.md -- correct direction tagging is a fundamental correctness requirement for protocol analyzers that interpret stream content |
 | L2 Domain Invariants | INV-1 (FlowKey canonical ordering; direction tagging requires known initiator) |
-| Architecture Module | SS-04 (reassembly/mod.rs:546-562, flush_contiguous_data; flow.rs:214-220, direction()) |
+| Architecture Module | SS-04 (reassembly/mod.rs:574-591, flush_contiguous_data; flow.rs:214-220, direction()) |
 | Stories | STORY-015 |
 | Origin BC | BC-RAS-006 (pass-3 ingestion corpus, HIGH confidence) |
 
@@ -104,7 +105,7 @@ segment buffers; flushing one never affects the other.
 
 ## Architecture Anchors
 
-- `src/reassembly/mod.rs:546-562` -- flush_contiguous_data; on_data callback with dir
+- `src/reassembly/mod.rs:574-591` -- flush_contiguous_data; on_data callback with dir
 - `src/reassembly/flow.rs:214-220` -- TcpFlow::direction(src_ip, src_port)
 - `src/reassembly/handler.rs:49` -- StreamHandler::on_data signature
 
@@ -112,7 +113,7 @@ segment buffers; flushing one never affects the other.
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/reassembly/mod.rs:546-562` |
+| **Path** | `src/reassembly/mod.rs:574-591` |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 

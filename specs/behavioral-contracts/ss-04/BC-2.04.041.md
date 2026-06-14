@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.5"
+version: "1.6"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -18,6 +18,7 @@ modified:
   - "v1.3: F-002 remediation — Description corrected to document allowed==0 → DepthExceeded path; DF-SIBLING-SWEEP-001 — 2026-05-26"
   - "v1.4: W10-D13 fix — added forensic/security note to Postconditions documenting silent discard of bytes beyond max_depth. Intentional behavior; analyst-facing implication documented for parity with BC-2.04.015 PC-7 data-loss note style. — 2026-05-28"
   - "v1.5: F-DRIFT2A-001 — fixed stale domain/capabilities/cap-04-tcp-reassembly.md citation to domain/capabilities/cap-04-tcp-reassembly.md in L2 Capability and Capability Anchor Justification rows. — 2026-05-29"
+  - "v1.6: PG-ARP-F2-007 ss-04-full re-anchor: segment.rs:229-253 → segment.rs:229-253 (depth check + truncation); lifecycle.rs:135-158 → lifecycle.rs:135-158 (generate_truncated_finding); segment.rs:230-235 → segment.rs:230-235. — 2026-06-13"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -104,7 +105,7 @@ with `InsertResult::DepthExceeded` (see EC-004); no bytes are stored.**
 | L2 Capability | CAP-04 ("TCP Stream Reassembly") per domain/capabilities/cap-04-tcp-reassembly.md |
 | Capability Anchor Justification | CAP-04 ("TCP Stream Reassembly") per domain/capabilities/cap-04-tcp-reassembly.md -- depth truncation is the per-direction resource bound enforcement of TCP reassembly |
 | L2 Domain Invariants | INV-6 (bounded-resource design -- max_depth is the per-direction memory cap) |
-| Architecture Module | SS-04 (reassembly/segment.rs:79-104, C-8) |
+| Architecture Module | SS-04 (reassembly/segment.rs:229-253, C-8) |
 | Stories | STORY-018 |
 | Origin BC | BC-RAS-041 (pass-3 ingestion corpus, HIGH confidence) |
 
@@ -115,21 +116,21 @@ with `InsertResult::DepthExceeded` (see EC-004); no bytes are stored.**
 
 ## Architecture Anchors
 
-- `src/reassembly/segment.rs:79-104` -- depth check, truncation, and depth_exceeded flag
-- `src/reassembly/lifecycle.rs:120-136` -- generate_truncated_finding (called by engine on Truncated result)
+- `src/reassembly/segment.rs:229-253` -- depth check, truncation, and depth_exceeded flag
+- `src/reassembly/lifecycle.rs:135-158` -- generate_truncated_finding (called by engine on Truncated result)
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/reassembly/segment.rs:79-104` |
+| **Path** | `src/reassembly/segment.rs:229-253` |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 
 ## Evidence Types Used
 
 - **assertion**: test_depth_limit_truncation asserts Truncated result and correct partial storage
-- **guard clause**: `if remaining_depth == 0 { return DepthExceeded }` at segment.rs:82-86
+- **guard clause**: `if remaining_depth == 0 { return DepthExceeded }` at segment.rs:230-235
 
 ## Purity Classification
 

@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -16,6 +16,7 @@ introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
   - "v1.3: DF-SIBLING-SWEEP-001 — fix stale terminal.rs line anchors: Verdict/Confidence colorization match 203-213 → 209-220 (if self.use_color at 209, closing at 220); section() bold+underline 183-186 → 190-195 (fn section at 190, bold+underline at 192); Path row updated to match primary anchor; verified against HEAD cfe0112a — 2026-06-01"
+  - "v1.4: PG-ARP-F2-007 — fix stale terminal.rs colorization block range: :209-220 → :209-222 (if-else block closes at line 222 with `};`; line 220 is `} else {`, line 221 is plain `line`, line 222 is `};`); verified against current HEAD — 2026-06-13"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -99,7 +100,7 @@ packets warning use their own color rules.
 
 ## Architecture Anchors
 
-- `src/reporter/terminal.rs:209-220` -- Verdict/Confidence colorization match in render_finding_prefix
+- `src/reporter/terminal.rs:209-222` -- Verdict/Confidence colorization match in render_finding_prefix (if self.use_color at 209; match closes at 219; else-plain-text at 220-221; closing `};` at 222)
 - `src/reporter/terminal.rs:99-103` -- skipped_packets yellow colorization
 - `src/reporter/terminal.rs:190-195` -- section() bold+underline colorization (fn at 190, bold+underline at 192)
 
@@ -111,7 +112,7 @@ packets warning use their own color rules.
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/reporter/terminal.rs:209-220` |
+| **Path** | `src/reporter/terminal.rs:209-222` |
 | **Confidence** | medium |
 | **Extraction Date** | 2026-05-20 |
 

@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.7"
+version: "1.8"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -18,6 +18,7 @@ modified:
   - "v1.3: VP-016 proof-method cell unit→integration to match VP-016 frontmatter + VP-INDEX (Wave-21 wave-level consistency lens; SS-11 reporter VP family harmonization — sibling of VP-017 fix in 86113c2; DF-SIBLING-SWEEP-001)"
   - "v1.4: re-anchor Architecture-Anchor from legacy reporter_tests.rs to authoritative reporter_terminal_tests.rs mod story_078 formalization (F-W22-BC-ANCHOR) — 2026-05-31"
   - "v1.5: DF-SIBLING-SWEEP-001 — fix stale terminal.rs line anchors: render_findings_grouped range 253-297 → 260-304 (fn starts at 260, closes at 304), tactic loop :283 → :290; verified against HEAD cfe0112a — 2026-06-01"
+  - "v1.8: PG-ARP-F2-007 — fix stale terminal.rs line anchors shifted by F2 multi-tag additions (STORY-100): render_findings_grouped fn :260-304 → :272-323 (fn decl at 272, closing at 323); tactic loop :290 → :309; verified against current HEAD — 2026-06-13"
   - "v1.6: ADR-006 / Decision 13 §13.7 (F2 v0.3.0) — tactic-grouping uses mitre_techniques[0] as primary bucket key for multi-tag findings; empty vec -> Uncategorized (replaces None path); Precondition 3 updated; Invariant 2 updated; EC-006 added (multi-tag primary-tactic rule). — 2026-06-09"
   - "v1.7: v19 remap: T0855 → T1692.001 per MITRE ATT&CK for ICS v19.0 revocation. All T0855 technique ID references in Description, Invariant 2, EC-006, and Canonical Test Vectors updated to T1692.001. Tactic unchanged: IcsImpairProcessControl. Issue #222; audit: mitre-ics-v19-catalog-audit.md. — 2026-06-10"
 deprecated: null
@@ -69,7 +70,7 @@ approximation per ADR-006 §13.7; full multi-tactic display is a future enhancem
 ## Invariants
 
 1. `all_tactics_in_report_order()` is the authoritative iteration order; the terminal
-   reporter iterates it directly (terminal.rs:290).
+   reporter iterates it directly (terminal.rs:309).
 2. Tactic buckets use `HashMap<Option<MitreTactic>, Vec<...>>`; the bucket key is derived as:
    - If `mitre_techniques` is empty: key = `None` (Uncategorized)
    - If `mitre_techniques` is non-empty: key = `technique_tactic(mitre_techniques[0])`, which
@@ -131,8 +132,8 @@ approximation per ADR-006 §13.7; full multi-tactic display is a future enhancem
 
 ## Architecture Anchors
 
-- `src/reporter/terminal.rs:260-304` -- render_findings_grouped implementation
-- `src/reporter/terminal.rs:290` -- `for tactic in all_tactics_in_report_order()`
+- `src/reporter/terminal.rs:272-323` -- render_findings_grouped implementation
+- `src/reporter/terminal.rs:309` -- `for tactic in all_tactics_in_report_order()`
 - `tests/reporter_terminal_tests.rs` -- mod story_078 :: test_BC_2_11_013_tactic_headers_in_canonical_order
 
 ---
@@ -143,7 +144,7 @@ approximation per ADR-006 §13.7; full multi-tactic display is a future enhancem
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/reporter/terminal.rs:260-304` |
+| **Path** | `src/reporter/terminal.rs:272-323` |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 

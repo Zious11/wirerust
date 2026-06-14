@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -16,6 +16,7 @@ introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
   - "v1.3: FIX-P5-003 / ADV-IMPL-P06-HIGH-001 — tighten top_snis tiebreaker: count desc then SNI name ASC; determinism claim now covers sort key; add EC-004; add VP/anchor for test_summarize_top_snis_ties_broken_alphabetically — 2026-06-01"
+  - "v1.4: PG-ARP-F2-007 ss-07 full re-anchor — summarize 763-808→853-897; top_snis sort 771-773→861-862 — 2026-06-13"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -100,7 +101,7 @@ deterministic alphabetical key ordering in JSON output.
 | L2 Capability | CAP-07 ("TLS traffic analysis") per domain/capabilities/cap-07-tls-analysis.md |
 | Capability Anchor Justification | CAP-07 ("TLS traffic analysis") per domain/capabilities/cap-07-tls-analysis.md -- summarize is the statistics output method of TLS analysis |
 | L2 Domain Invariants | INV-4 (raw-data/display-layer separation -- SNI strings in summary are raw) |
-| Architecture Module | SS-07 (analyzer/tls.rs:763-808, C-13) |
+| Architecture Module | SS-07 (analyzer/tls.rs:853-897, C-13) |
 | Stories | STORY-058 |
 | Origin BC | BC-TLS-031 (pass-3 ingestion corpus, HIGH confidence) |
 
@@ -112,8 +113,8 @@ deterministic alphabetical key ordering in JSON output.
 
 ## Architecture Anchors
 
-- `src/analyzer/tls.rs:763-808` -- `summarize` implementation
-- `src/analyzer/tls.rs:771-773` -- top_snis sort: `sort_by(|a, b| b.1.cmp(a.1).then_with(|| a.0.cmp(b.0)))` then `.take(20)` (FIX-P5-003)
+- `src/analyzer/tls.rs:853-897` -- `summarize` implementation
+- `src/analyzer/tls.rs:861-862` -- top_snis sort: `sort_by(|a, b| b.1.cmp(a.1).then_with(|| a.0.cmp(b.0)))` then `.take(20)` (FIX-P5-003)
 - `tests/tls_analyzer_tests.rs::test_summarize_output` -- covers postcondition 1-9 (all required detail keys)
 - `tests/tls_analyzer_tests.rs::test_summarize_top_snis_ties_broken_alphabetically` -- covers postcondition 3 / invariant 2 / EC-004 (tiebreaker: SNI name ASC; determinism under reverse-insertion) (FIX-P5-003)
 
@@ -121,7 +122,7 @@ deterministic alphabetical key ordering in JSON output.
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/analyzer/tls.rs:763-808` |
+| **Path** | `src/analyzer/tls.rs:853-897` |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 

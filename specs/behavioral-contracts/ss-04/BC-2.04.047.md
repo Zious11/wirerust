@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.7"
+version: "1.8"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -15,11 +15,12 @@ lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
-  - "v1.3: Wave 9 STORY-016 adversarial pass-1 fix: F-2 — stale architecture-anchor line range corrected from segment.rs:194-198, 223-226 to segment.rs:196 and 225 (line shift from Wave 8 STORY-019 test-seam additions) — 2026-05-26"
-  - "v1.4: Wave 9 STORY-016 adv pass-2 F-6 (sibling-discipline regression of pass-1 F-2): flow.rs:171-176 → flow.rs:171-175 (line 176 is return expression, not part of debug_assert macro). Also added segment.rs line numbers to Traceability row (was bare 'reassembly/segment.rs') — 2026-05-26"
-  - "v1.5: W9-D1 fix — PC4 extended to include DepthExceeded in the buffered_bytes-unchanged list. DepthExceeded returns at segment.rs:85 and :97, both before any buffer mutation; confirmed against segment.rs:79-104. — 2026-05-28"
+  - "v1.3: Wave 9 STORY-016 adversarial pass-1 fix: F-2 — stale architecture-anchor line range corrected from segment.rs:194-198, 223-226 to segment.rs:358 and 225 (line shift from Wave 8 STORY-019 test-seam additions) — 2026-05-26"
+  - "v1.4: Wave 9 STORY-016 adv pass-2 F-6 (sibling-discipline regression of pass-1 F-2): flow.rs:171-176 → flow.rs:170-177 (line 176 is return expression, not part of debug_assert macro). Also added segment.rs line numbers to Traceability row (was bare 'reassembly/segment.rs') — 2026-05-26"
+  - "v1.5: W9-D1 fix — PC4 extended to include DepthExceeded in the buffered_bytes-unchanged list. DepthExceeded returns at segment.rs:230 and :97, both before any buffer mutation; confirmed against segment.rs:79-104. — 2026-05-28"
   - "v1.6: F-DRIFT2A-001 — fixed stale domain/capabilities/cap-04-tcp-reassembly.md citation to domain/capabilities/cap-04-tcp-reassembly.md in L2 Capability and Capability Anchor Justification rows. — 2026-05-29"
-  - "v1.7: DF-SIBLING-SWEEP-001 HS-043 re-anchor: invariant prose mod.rs:339,527 → mod.rs:368,556 (total_memory tracking sites, shifted by idle-expiry insertion). — 2026-06-01"
+  - "v1.7: DF-SIBLING-SWEEP-001 HS-043 re-anchor: invariant prose mod.rs:339,527 → mod.rs:376,556 (total_memory tracking sites, shifted by idle-expiry insertion). — 2026-06-01"
+  - "v1.8: PG-ARP-F2-007 ss-04-full re-anchor: segment.rs:358 → segment.rs:358 (buffered_bytes increment, no-overlap path); segment.rs:329 → segment.rs:329 (gap-loop increment); mod.rs:376 → mod.rs:376; mod.rs:585 → mod.rs:585; flow.rs:170-177 → flow.rs:170-177; segment.rs:230 → segment.rs:230; segment.rs:244 → segment.rs:244. — 2026-06-13"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -48,18 +49,18 @@ currently in the `segments` BTreeMap. After every insert, flush, or overlap oper
 3. After `insert_segment` (PartialOverlap path): `buffered_bytes` increases by gap bytes
    inserted only (not the full segment length).
 4. After `insert_segment` (Duplicate/ConflictingOverlap/OutOfWindow/IsnMissing/DepthExceeded):
-   `buffered_bytes` is unchanged. DepthExceeded returns at segment.rs:85 (remaining_depth==0
-   guard) and segment.rs:97 (allowed==0 inner check), both sites return before any buffer
+   `buffered_bytes` is unchanged. DepthExceeded returns at segment.rs:230 (remaining_depth==0
+   guard) and segment.rs:244 (allowed==0 inner check), both sites return before any buffer
    mutation occurs.
 5. After `flush_contiguous()` flush of N bytes: `buffered_bytes` decreases by N.
 
 ## Invariants
 
 1. `buffered_bytes` is NEVER negative (it is `usize`; underflow would panic in debug builds).
-2. The `debug_assert` at `flow.rs:171-175` fires in debug builds if the counter drifts.
+2. The `debug_assert` at `flow.rs:170-177` fires in debug builds if the counter drifts.
 3. The `total_memory` at the engine level (`mod.rs`) mirrors `sum of buffered_bytes across
    all active flows`, maintained by adding `bytes_added` on insert and subtracting flush
-   bytes on flush (mod.rs:368, 556).
+   bytes on flush (mod.rs:376, 556).
 
 ## Edge Cases
 
@@ -94,7 +95,7 @@ currently in the `segments` BTreeMap. After every insert, flush, or overlap oper
 | L2 Capability | CAP-04 ("TCP Stream Reassembly") per domain/capabilities/cap-04-tcp-reassembly.md |
 | Capability Anchor Justification | CAP-04 ("TCP Stream Reassembly") per domain/capabilities/cap-04-tcp-reassembly.md -- buffered_bytes accuracy is the foundation of the memory accounting invariant used by memcap eviction |
 | L2 Domain Invariants | INV-6 (bounded-resource design -- buffered_bytes feeds total_memory which is compared against memcap) |
-| Architecture Module | SS-04 (reassembly/flow.rs:170-177, C-7; reassembly/segment.rs:196,225, C-8) |
+| Architecture Module | SS-04 (reassembly/flow.rs:170-177, C-7; reassembly/segment.rs:358,225, C-8) |
 | Stories | STORY-016 |
 | Origin BC | BC-RAS-047 (pass-3 ingestion corpus, HIGH confidence) |
 
@@ -107,7 +108,7 @@ currently in the `segments` BTreeMap. After every insert, flush, or overlap oper
 ## Architecture Anchors
 
 - `src/reassembly/flow.rs:170-177` -- memory_used() with debug_assert for buffered_bytes consistency
-- `src/reassembly/segment.rs:196 and 225` -- buffered_bytes increment sites in insert_segment
+- `src/reassembly/segment.rs:358 and 225` -- buffered_bytes increment sites in insert_segment
 
 ## Source Evidence
 

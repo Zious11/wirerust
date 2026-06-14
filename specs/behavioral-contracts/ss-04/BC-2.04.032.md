@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -15,7 +15,8 @@ lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
-  - "v1.3: DF-SIBLING-SWEEP-001 sibling residual fix: invariant prose mod.rs:306-319 → mod.rs:335-349 (ISN-setting block in insert_payload_segment confirmed at HEAD e0451ef: New-flow on_data_without_syn at 335-341 + established-direction infer_isn fallback at 347-349) — product-owner 2026-06-01"
+  - "v1.3: DF-SIBLING-SWEEP-001 sibling residual fix: invariant prose mod.rs:306-319 → mod.rs:342-349 (ISN-setting block in insert_payload_segment confirmed at HEAD e0451ef: New-flow on_data_without_syn at 335-341 + established-direction infer_isn fallback at 347-349) — product-owner 2026-06-01"
+  - "v1.4: PG-ARP-F2-007 ss-04-full re-anchor: segment.rs:201-208 → segment.rs:201-208 (IsnMissing guard). — 2026-06-13"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -53,7 +54,7 @@ is set before invoking `insert_segment`.
 1. `ISN_MISSING_WARNED` is a `static AtomicBool` (segment.rs:16); once set to `true` it is
    never reset within the process lifetime (per ADR 0004 one-shot warning pattern).
 2. The IsnMissing result is a programming-error signal, not an expected runtime condition.
-   The engine in `insert_payload_segment` (mod.rs:335-349) should have set the ISN before
+   The engine in `insert_payload_segment` (mod.rs:342-349) should have set the ISN before
    calling insert_segment.
 
 ## Edge Cases
@@ -87,7 +88,7 @@ is set before invoking `insert_segment`.
 | L2 Capability | CAP-04 ("TCP stream reassembly") per domain/capabilities/cap-04-tcp-reassembly.md |
 | Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per domain/capabilities/cap-04-tcp-reassembly.md -- IsnMissing is the segment insertion contract's programming-error defensive guard |
 | L2 Domain Invariants | INV-6 (IsnMissing does not consume findings capacity; it is not a forensic finding) |
-| Architecture Module | SS-04 (reassembly/segment.rs:51-58, C-8) |
+| Architecture Module | SS-04 (reassembly/segment.rs:201-208, C-8) |
 | Stories | STORY-014 |
 | Origin BC | BC-RAS-032 (pass-3 ingestion corpus, HIGH confidence) |
 
@@ -99,13 +100,13 @@ is set before invoking `insert_segment`.
 ## Architecture Anchors
 
 - `src/reassembly/segment.rs:16` -- ISN_MISSING_WARNED AtomicBool
-- `src/reassembly/segment.rs:51-58` -- IsnMissing guard in insert_segment
+- `src/reassembly/segment.rs:201-208` -- IsnMissing guard in insert_segment
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/reassembly/segment.rs:51-58` |
+| **Path** | `src/reassembly/segment.rs:201-208` |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 

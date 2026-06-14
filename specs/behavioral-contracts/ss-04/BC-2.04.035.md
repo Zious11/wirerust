@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -15,6 +15,7 @@ lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
+  - "v1.3: PG-ARP-F2-007 ss-04-full re-anchor: segment.rs:286-303 → segment.rs:286-303 (fully_covered + has_conflict logic); segment.rs:286 → segment.rs:286. — 2026-06-13"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -47,7 +48,7 @@ normal TCP retransmission path.
 2. `self.segments` is unchanged (no new entries added, no existing entries modified).
 3. `self.buffered_bytes` is unchanged.
 4. `self.overlap_count` is incremented by 1 (overlapping segments always increment the
-   overlap counter, even duplicates -- see segment.rs:142).
+   overlap counter, even duplicates -- see segment.rs:286).
 5. `stats.segments_duplicates` is incremented by 1 (in mod.rs match arm).
 6. No finding is emitted.
 
@@ -92,7 +93,7 @@ normal TCP retransmission path.
 | L2 Capability | CAP-04 ("TCP stream reassembly") per domain/capabilities/cap-04-tcp-reassembly.md |
 | Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per domain/capabilities/cap-04-tcp-reassembly.md -- duplicate retransmission handling is part of the first-wins overlap policy |
 | L2 Domain Invariants | INV-3 (First-wins overlap policy -- Duplicate is the benign case where the first-wins bytes happen to match the retransmitted bytes) |
-| Architecture Module | SS-04 (reassembly/segment.rs:142-154, C-8) |
+| Architecture Module | SS-04 (reassembly/segment.rs:286-303, C-8) |
 | Stories | STORY-016 |
 | Origin BC | BC-RAS-035 (pass-3 ingestion corpus, HIGH confidence) |
 
@@ -104,20 +105,20 @@ normal TCP retransmission path.
 
 ## Architecture Anchors
 
-- `src/reassembly/segment.rs:142-154` -- fully_covered + has_conflict logic producing Duplicate
+- `src/reassembly/segment.rs:286-303` -- fully_covered + has_conflict logic producing Duplicate
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/reassembly/segment.rs:142-154` |
+| **Path** | `src/reassembly/segment.rs:286-303` |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 
 ## Evidence Types Used
 
 - **assertion**: test_retransmission_dedup asserts Duplicate result and unchanged buffer
-- **guard clause**: `fully_covered` check at segment.rs:145 gates the Duplicate/ConflictingOverlap return
+- **guard clause**: `fully_covered` check at segment.rs:286 gates the Duplicate/ConflictingOverlap return
 
 ## Purity Classification
 

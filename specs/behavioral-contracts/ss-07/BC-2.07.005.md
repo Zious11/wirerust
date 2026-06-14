@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.4"
+version: "1.5"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -17,6 +17,7 @@ modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
   - "v1.3: add buffer-cap observability note + residue-test back-refs; cap now literally verified (F-S058-P1-001) — 2026-05-29"
   - "v1.4: fix Architecture-Anchor off-by-one: tls.rs:726-748 → 726-747 (line 748 is blank; block closes at 747) — F-S058-P12-O1 — 2026-05-31"
+  - "v1.5: PG-ARP-F2-007 ss-07 full re-anchor — buffer-append logic 726-747→820-835; MAX_BUF const :29→:30 — 2026-06-13"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -116,7 +117,7 @@ with `payload_len > 18,432` trips the oversized-record guard (BC-2.07.004), whic
 | L2 Capability | CAP-07 ("TLS traffic analysis") per domain/capabilities/cap-07-tls-analysis.md |
 | Capability Anchor Justification | CAP-07 ("TLS traffic analysis") per domain/capabilities/cap-07-tls-analysis.md -- per-direction buffer cap is part of TLS analysis bounded-resource design (ARCH-INDEX Cross-Cutting Concerns) |
 | L2 Domain Invariants | INV-4 (raw-data/display-layer separation) |
-| Architecture Module | SS-07 (analyzer/tls.rs:726-747, C-13) |
+| Architecture Module | SS-07 (analyzer/tls.rs:820-835, C-13) |
 | Stories | STORY-058 |
 | Origin BC | BC-TLS-005 (pass-3 ingestion corpus; confidence upgraded to HIGH — cap literally proven via residue tests in STORY-058, F-S058-P1-001) |
 
@@ -127,8 +128,8 @@ with `payload_len > 18,432` trips the oversized-record guard (BC-2.07.004), whic
 
 ## Architecture Anchors
 
-- `src/analyzer/tls.rs:726-747` -- on_data buffer-append logic with remaining/to_copy cap
-- `src/analyzer/tls.rs:29` -- `const MAX_BUF: usize = 65_536`
+- `src/analyzer/tls.rs:820-835` -- on_data buffer-append logic with remaining/to_copy cap
+- `src/analyzer/tls.rs:30` -- `const MAX_BUF: usize = 65_536`
 - `tests/tls_analyzer_tests.rs` -- test_buffer_cap_appends_at_most_max_buf_literal_residue (residue proof)
 - `tests/tls_analyzer_tests.rs` -- test_buffer_full_append_noop_literal (no-op append proof)
 - `tests/tls_analyzer_tests.rs` -- test_buffer_cap_appends_at_most_max_buf (silence-variant coverage)
@@ -139,7 +140,7 @@ with `payload_len > 18,432` trips the oversized-record guard (BC-2.07.004), whic
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/analyzer/tls.rs:726-747` |
+| **Path** | `src/analyzer/tls.rs:820-835` |
 | **Confidence** | high (cap now literally proven via residue technique — see Observability Note) |
 | **Extraction Date** | 2026-05-20 |
 | **Confidence Upgraded** | 2026-05-29 (F-S058-P1-001): residue tests in STORY-058 worktree confirm the `.min(remaining)` clip fires and is not dead code |

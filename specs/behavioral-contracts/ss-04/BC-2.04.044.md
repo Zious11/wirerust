@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -15,6 +15,7 @@ lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
+  - "v1.3: PG-ARP-F2-007 ss-04-full re-anchor: segment.rs:220-222 → segment.rs:220-222 (segment-limit check on non-overlap path); segment.rs:220 → segment.rs:220. — 2026-06-13"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -51,7 +52,7 @@ is returned. No data is inserted and no counters other than `stats.segments_segm
 
 ## Invariants
 
-1. The segment-limit check (`self.segments.len() >= max_segments`) at segment.rs:70 runs
+1. The segment-limit check (`self.segments.len() >= max_segments`) at segment.rs:220 runs
    BEFORE the depth check. A segment that is both at the limit AND would exceed depth is
    rejected as SegmentLimitReached, not DepthExceeded.
 2. `max_segments` defaults to 10,000 (`max_segments_per_direction` in `ReassemblyConfig`),
@@ -86,7 +87,7 @@ is returned. No data is inserted and no counters other than `stats.segments_segm
 | L2 Capability | CAP-04 ("TCP stream reassembly") per domain/capabilities/cap-04-tcp-reassembly.md |
 | Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per domain/capabilities/cap-04-tcp-reassembly.md -- segment limit enforcement is the BTreeMap-overflow protection in the TCP reassembly buffer |
 | L2 Domain Invariants | INV-6 (bounded-resource design -- max_segments_per_direction caps the BTreeMap size) |
-| Architecture Module | SS-04 (reassembly/segment.rs:70-72, C-8) |
+| Architecture Module | SS-04 (reassembly/segment.rs:220-222, C-8) |
 | Stories | STORY-018 |
 | Origin BC | BC-RAS-044 (pass-3 ingestion corpus, HIGH confidence) |
 
@@ -98,13 +99,13 @@ is returned. No data is inserted and no counters other than `stats.segments_segm
 
 ## Architecture Anchors
 
-- `src/reassembly/segment.rs:70-72` -- segment-limit check on non-overlap path
+- `src/reassembly/segment.rs:220-222` -- segment-limit check on non-overlap path
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/reassembly/segment.rs:70-72` |
+| **Path** | `src/reassembly/segment.rs:220-222` |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 

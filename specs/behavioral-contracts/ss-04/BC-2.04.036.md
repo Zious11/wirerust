@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -15,7 +15,8 @@ lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
-  - "v1.3: Wave 9 STORY-016 adversarial pass-1 fix: F-4 — stale architecture-anchor line range corrected from segment.rs:156-212 to segment.rs:156-199 (line shift from Wave 8 STORY-019 test-seam additions) — 2026-05-26"
+  - "v1.3: Wave 9 STORY-016 adversarial pass-1 fix: F-4 — stale architecture-anchor line range corrected from segment.rs:156-212 to segment.rs:259-332 (line shift from Wave 8 STORY-019 test-seam additions) — 2026-05-26"
+  - "v1.4: PG-ARP-F2-007 ss-04-full re-anchor: segment.rs:259-332 → segment.rs:259-332 (gap computation and gap insertion loop). — 2026-06-13"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -95,7 +96,7 @@ No finding is emitted for partial overlaps.
 | L2 Capability | CAP-04 ("TCP stream reassembly") per domain/capabilities/cap-04-tcp-reassembly.md |
 | Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per domain/capabilities/cap-04-tcp-reassembly.md -- partial overlap gap-filling is the core of the first-wins TCP reassembly policy |
 | L2 Domain Invariants | INV-3 (First-wins overlap policy -- this BC is the primary implementation of that invariant for the partial overlap case) |
-| Architecture Module | SS-04 (reassembly/segment.rs:156-199, C-8) |
+| Architecture Module | SS-04 (reassembly/segment.rs:259-332, C-8) |
 | Stories | STORY-016 |
 | Origin BC | BC-RAS-036 (pass-3 ingestion corpus, HIGH confidence) |
 
@@ -107,13 +108,13 @@ No finding is emitted for partial overlaps.
 
 ## Architecture Anchors
 
-- `src/reassembly/segment.rs:156-199` -- gap computation and gap insertion loop
+- `src/reassembly/segment.rs:259-332` -- gap computation and gap insertion loop
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/reassembly/segment.rs:156-199` |
+| **Path** | `src/reassembly/segment.rs:259-332` |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 

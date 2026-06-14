@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -13,7 +13,9 @@ subsystem: SS-07
 capability: CAP-07
 lifecycle_status: active
 introduced: v0.1.0-brownfield
-modified: ["v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"]
+modified:
+  - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
+  - "v1.3: PG-ARP-F2-007 ss-07 full re-anchor — arm 1 match 253→253 — 2026-06-13"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -78,7 +80,7 @@ No finding is emitted.
 | L2 Capability | CAP-07 ("TLS traffic analysis") per domain/capabilities/cap-07-tls-analysis.md |
 | Capability Anchor Justification | CAP-07 ("TLS traffic analysis") per domain/capabilities/cap-07-tls-analysis.md -- degenerate empty SNI is an SNI edge case in TLS analysis |
 | L2 Domain Invariants | INV-5 (SNI 4-way classification -- arm 1 applies vacuously to empty string) |
-| Architecture Module | SS-07 (analyzer/tls.rs:251-252, C-13) |
+| Architecture Module | SS-07 (analyzer/tls.rs:253, C-13) |
 | Stories | STORY-057 |
 | Origin BC | BC-TLS-023 (pass-3 ingestion corpus, HIGH confidence) |
 
@@ -89,14 +91,14 @@ No finding is emitted.
 
 ## Architecture Anchors
 
-- `src/analyzer/tls.rs:251-252` -- arm 1 match clause handles empty string vacuously
+- `src/analyzer/tls.rs:253` -- arm 1 match clause handles empty string vacuously
 - `tests/tls_analyzer_tests.rs` -- test_sni_with_empty_hostname_bytes
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/analyzer/tls.rs:251-252` |
+| **Path** | `src/analyzer/tls.rs:253` |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 

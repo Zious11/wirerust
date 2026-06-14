@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.4"
+version: "1.5"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -17,6 +17,7 @@ modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
   - "v1.3 (2026-05-28): W15 Pass-1 remediation — anchor line ranges verified (F-W15S051-P1-006); STORY-051 BC-prefixed companion tests added to Architecture Anchors test list (covers test rename + 2 new tests from Round 1 commit 920891e)."
   - "v1.4: PATCH — Pass-19 B-10 anchor fix: format string tls.rs:171→:172; Md5::digest tls.rs:172→:173 (off-by-one). No functional postcondition change. — 2026-06-13"
+  - "v1.5: PG-ARP-F2-007 ss-07 full re-anchor — compute_ja3s doc+fn 153-173→154-174; ext GREASE filter 157-169→158-170 — 2026-06-13"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -84,7 +85,7 @@ The function returns only the MD5 hex string, not the underlying JA3S string.
 | L2 Capability | CAP-07 ("TLS traffic analysis") per domain/capabilities/cap-07-tls-analysis.md |
 | Capability Anchor Justification | CAP-07 ("TLS traffic analysis") per domain/capabilities/cap-07-tls-analysis.md -- JA3S is the server-side TLS fingerprint output of TLS analysis |
 | L2 Domain Invariants | INV-4 (raw-data/display-layer separation) |
-| Architecture Module | SS-07 (analyzer/tls.rs:153-173, C-13) |
+| Architecture Module | SS-07 (analyzer/tls.rs:154-174, C-13) |
 | Stories | STORY-051 |
 | Origin BC | BC-TLS-008 (pass-3 ingestion corpus, MEDIUM confidence) |
 
@@ -96,9 +97,9 @@ The function returns only the MD5 hex string, not the underlying JA3S string.
 
 ## Architecture Anchors
 
-- `src/analyzer/tls.rs:153-173` -- `compute_ja3s` function body
+- `src/analyzer/tls.rs:154-174` -- `compute_ja3s` function body (doc-block + fn)
 - `src/analyzer/tls.rs:172` -- format string `format!("{},{},{}", version, cipher.0, ext_ids)` and `Md5::digest` at 173
-- `src/analyzer/tls.rs:157-169` -- extension GREASE filtering in compute_ja3s
+- `src/analyzer/tls.rs:158-170` -- extension GREASE filtering in compute_ja3s
 - `tests/tls_analyzer_tests.rs` -- test_BC_2_07_008_ja3s_has_exactly_two_commas_three_fields
 - `tests/tls_analyzer_tests.rs` -- test_BC_2_07_008_ja3s_grease_extension_filtered_from_ext_field
 - `tests/tls_analyzer_tests.rs` -- test_BC_2_07_008_ja3s_hash_is_32_lowercase_hex_and_deterministic
@@ -110,7 +111,7 @@ The function returns only the MD5 hex string, not the underlying JA3S string.
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/analyzer/tls.rs:153-173` |
+| **Path** | `src/analyzer/tls.rs:154-174` |
 | **Confidence** | medium |
 | **Extraction Date** | 2026-05-20 |
 

@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.4"
+version: "1.5"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -17,6 +17,7 @@ modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
   - "v1.3: add VP back-ref for client version_name reachability test (F-S054-P3-003) — 2026-05-29"
   - "v1.4: mitre_technique: None → mitre_techniques: vec![] in Postconditions (ARP-F2 P14 B6) — 2026-06-13"
+  - "v1.5: PG-ARP-F2-007 ss-07 full re-anchor — deprecated client version 559-579→559-579 — 2026-06-13"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -96,7 +97,7 @@ There is no MITRE technique ID on this finding.
 | L2 Capability | CAP-07 ("TLS traffic analysis") per domain/capabilities/cap-07-tls-analysis.md |
 | Capability Anchor Justification | CAP-07 ("TLS traffic analysis") per domain/capabilities/cap-07-tls-analysis.md -- deprecated client protocol detection is one of the 7 TLS anomaly findings described in cap-07 |
 | L2 Domain Invariants | INV-4 (raw-data/display-layer separation) |
-| Architecture Module | SS-07 (analyzer/tls.rs:519-539, C-13) |
+| Architecture Module | SS-07 (analyzer/tls.rs:559-579, C-13) |
 | Stories | STORY-054 |
 | Origin BC | BC-TLS-011 (pass-3 ingestion corpus, HIGH confidence) |
 
@@ -107,20 +108,20 @@ There is no MITRE technique ID on this finding.
 
 ## Architecture Anchors
 
-- `src/analyzer/tls.rs:519-539` -- deprecated client version check and finding push
+- `src/analyzer/tls.rs:559-579` -- deprecated client version check and finding push
 - `tests/tls_integration_tests.rs` -- test_ssl30_pcap_generates_findings
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/analyzer/tls.rs:519-539` |
+| **Path** | `src/analyzer/tls.rs:559-579` |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 
 ## Evidence Types Used
 
-- **guard clause**: `if version <= 0x0300 { ... }` at tls.rs:519
+- **guard clause**: `if version <= 0x0300 { ... }` at tls.rs:559
 - **assertion**: test_ssl30_pcap_generates_findings (integration test)
 
 ## Purity Classification

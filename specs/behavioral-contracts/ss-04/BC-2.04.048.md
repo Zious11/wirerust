@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -15,6 +15,7 @@ lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - "v1.3: Wave 7 STORY-014 adv-pass-1 F-2 closure: explicit enforcement-mode notation on PC2 (atomic state via automated test; no-second-eprintln sub-property via code review, matching invariant 3 precedent). Added new PC for the `isn_missing_warned_for_testing` / `reset_isn_missing_warned_for_testing` test-seam accessors with the `#[doc(hidden)]` hygiene rationale. — 2026-05-25"
+  - "v1.4: PG-ARP-F2-007 ss-04-full re-anchor: segment.rs:201-208 → segment.rs:201-208 (swap-based one-shot guard, in Postconditions prose); segment.rs:204-207 → segment.rs:204-207 (Architecture Anchors). — 2026-06-13"
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
 deprecated: null
 deprecated_by: null
@@ -50,7 +51,7 @@ On subsequent IsnMissing encounters:
 2. No eprintln. (Enforcement: the atomic-state latching property is automated-test-verifiable via
    `isn_missing_warned_for_testing()` (see STORY-014 AC-014 combined test); the "no `eprintln!` on
    subsequent calls" sub-property is enforced structurally by the swap-guarded `if`-block at
-   `src/reassembly/segment.rs:51-58` and verified by code review, matching the BC-2.04.048
+   `src/reassembly/segment.rs:201-208` and verified by code review, matching the BC-2.04.048
    invariant 3 enforcement precedent.)
 3. Both paths return `InsertResult::IsnMissing`.
 
@@ -113,7 +114,7 @@ despite being on the `pub` API (required because integration tests are separate 
 ## Architecture Anchors
 
 - `src/reassembly/segment.rs:16` -- ISN_MISSING_WARNED AtomicBool declaration
-- `src/reassembly/segment.rs:53-57` -- swap-based one-shot guard
+- `src/reassembly/segment.rs:204-207` -- swap-based one-shot guard
 
 ## Source Evidence
 

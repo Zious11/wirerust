@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -13,7 +13,10 @@ subsystem: SS-07
 capability: CAP-07
 lifecycle_status: active
 introduced: v0.1.0-brownfield
-modified: ["v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21", "v1.3: correct invariant-2 arithmetic (parse_errors − truncated_records; F-S058-P3-002) — 2026-05-29"]
+modified:
+  - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
+  - "v1.3: correct invariant-2 arithmetic (parse_errors − truncated_records; F-S058-P3-002) — 2026-05-29"
+  - "v1.4: PG-ARP-F2-007 ss-07 full re-anchor — nom error match arms 783-790→783-790 — 2026-06-13"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -85,7 +88,7 @@ absorbed as a parse-error counter increment.
 | L2 Capability | CAP-07 ("TLS traffic analysis") per domain/capabilities/cap-07-tls-analysis.md |
 | Capability Anchor Justification | CAP-07 ("TLS traffic analysis") per domain/capabilities/cap-07-tls-analysis.md -- graceful parse-error handling is a robustness property of TLS analysis |
 | L2 Domain Invariants | INV-4 (raw-data/display-layer separation) |
-| Architecture Module | SS-07 (analyzer/tls.rs:700-712, C-13) |
+| Architecture Module | SS-07 (analyzer/tls.rs:783-790, C-13) |
 | Stories | STORY-058 |
 | Origin BC | BC-TLS-029 (pass-3 ingestion corpus, HIGH confidence) |
 
@@ -96,14 +99,14 @@ absorbed as a parse-error counter increment.
 
 ## Architecture Anchors
 
-- `src/analyzer/tls.rs:700-712` -- nom error match arms in try_parse_records
+- `src/analyzer/tls.rs:783-790` -- nom error match arms in try_parse_records
 - `tests/tls_analyzer_tests.rs` -- test_parse_error_counter
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/analyzer/tls.rs:700-712` |
+| **Path** | `src/analyzer/tls.rs:783-790` |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 

@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.5"
+version: "1.6"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -18,6 +18,7 @@ modified:
   - "v1.3: VP-016 proof-method cell unit→integration to match VP-016 frontmatter + VP-INDEX (Wave-21 wave-level consistency lens; SS-11 reporter VP family harmonization — sibling of VP-017 fix in 86113c2; DF-SIBLING-SWEEP-001)"
   - "v1.4: re-anchor Architecture-Anchor from legacy reporter_tests.rs to authoritative reporter_terminal_tests.rs mod story_078 formalization (F-W22-BC-ANCHOR) — 2026-05-31"
   - "v1.5: DF-SIBLING-SWEEP-001 — fix stale terminal.rs sort-closure anchor: 262-280 → 269-288 (verdict_rank/confidence_rank helpers at 269-282, sort_by_key call at 284-288); verified against HEAD cfe0112a — 2026-06-01"
+  - "v1.6: PG-ARP-F2-007 — fix stale terminal.rs line anchors shifted by F2 multi-tag additions (STORY-100): verdict_rank :269-275 → :287-293; confidence_rank :276-282 → :295-301; sort_by_key range :284-288 → :303-307; bucket push line 266 → 284; bounding range :269-288 → :287-307; verified against current HEAD — 2026-06-13"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -51,12 +52,12 @@ key). This ordering surfaces the highest-severity findings at the top of each ta
 ## Invariants
 
 1. Verdict ranks: Likely=0, Inconclusive=1, Unlikely=2 (defined by local `verdict_rank`
-   function in terminal.rs:269-275).
+   function in terminal.rs:287-293).
 2. Confidence ranks: High=0, Medium=1, Low=2 (defined by local `confidence_rank` function
-   in terminal.rs:276-282).
+   in terminal.rs:295-301).
 3. The sort key is `(verdict_rank, confidence_rank, original_index)` -- a 3-tuple
    sort that is stable (Rust's sort_by_key is stable).
-4. Original index is attached at bucket insertion time (line 266) as `(i, f)` via `buckets.entry(tactic).or_default().push((i, f))`.
+4. Original index is attached at bucket insertion time (line 284) as `(i, f)` via `buckets.entry(tactic).or_default().push((i, f))`.
 
 ## Edge Cases
 
@@ -99,7 +100,7 @@ key). This ordering surfaces the highest-severity findings at the top of each ta
 
 ## Architecture Anchors
 
-- `src/reporter/terminal.rs:269-288` -- sort closure and sort_by_key call (verdict_rank/confidence_rank helpers at 269-282; sort_by_key call at 284-288)
+- `src/reporter/terminal.rs:287-307` -- sort closure and sort_by_key call (verdict_rank helper at 287-293; confidence_rank helper at 295-301; sort_by_key call at 303-307)
 - `tests/reporter_terminal_tests.rs` -- mod story_078 :: test_BC_2_11_014_sort_by_verdict_within_bucket, test_BC_2_11_014_stable_emission_order_on_tie
 
 ---
@@ -110,7 +111,7 @@ key). This ordering surfaces the highest-severity findings at the top of each ta
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/reporter/terminal.rs:269-288` |
+| **Path** | `src/reporter/terminal.rs:287-307` |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 

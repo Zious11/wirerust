@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.6"
+version: "1.7"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -18,6 +18,7 @@ modified:
   - "v1.3: VP-016 proof-method cell unit→integration to match VP-016 frontmatter + VP-INDEX (Wave-21 wave-level consistency lens; SS-11 reporter VP family harmonization — sibling of VP-017 fix in 86113c2; DF-SIBLING-SWEEP-001)"
   - "v1.4: re-anchor Architecture-Anchor from legacy reporter_tests.rs to authoritative reporter_terminal_tests.rs mod story_078 formalization (F-W22-BC-ANCHOR) — 2026-05-31"
   - "v1.5: DF-SIBLING-SWEEP-001 — fix stale terminal.rs line anchors: render_finding_grouped 237-245 → 244-252 (fn at 244, None-arm at 249), Uncategorized bucket 291-296 → 298-303 (if let Some at 298); outer Path range 237-296 → 244-303; verified against HEAD cfe0112a — 2026-06-01"
+  - "v1.7: PG-ARP-F2-007 — fix stale terminal.rs line anchors shifted by F2 multi-tag additions (STORY-100): render_finding_grouped fn :244-252 → :247-263; None-arm (unknown label) :249 → :260; Uncategorized bucket :298-303 → :317-322; outer Path range :244-303 → :247-323; verified against current HEAD — 2026-06-13"
   - "v1.6: ADR-006 / Decision 13 §13.7 (F2 v0.3.0) — 'None' path replaced by 'empty vec' path; Precondition 2 updated; Postconditions 1/4 updated; Invariants 1/2 updated; EC-001 updated; no MITRE line rendered when vec is empty. — 2026-06-09"
 deprecated: null
 deprecated_by: null
@@ -118,8 +119,8 @@ due to an empty technique attribution or an unrecognized technique ID.
 
 ## Architecture Anchors
 
-- `src/reporter/terminal.rs:244-252` -- render_finding_grouped (fn decl at 244, closing brace at 252); None-arm `(unknown)` label at :249
-- `src/reporter/terminal.rs:298-303` -- Uncategorized bucket rendering (`if let Some(items) = buckets.get(&None)` at :298)
+- `src/reporter/terminal.rs:247-263` -- render_finding_grouped (fn decl at 247, closing brace at 263); None-arm `(unknown)` label at :260
+- `src/reporter/terminal.rs:317-322` -- Uncategorized bucket rendering (`if let Some(items) = buckets.get(&None)` at :317)
 - `tests/reporter_terminal_tests.rs` -- mod story_078 :: test_BC_2_11_015_none_technique_uncategorized
 
 ---
@@ -130,7 +131,7 @@ due to an empty technique attribution or an unrecognized technique ID.
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/reporter/terminal.rs:244-303` |
+| **Path** | `src/reporter/terminal.rs:247-323` |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 

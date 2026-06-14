@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.5"
+version: "1.6"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -16,7 +16,8 @@ introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
   - "v1.3: Wave 9 wave-level adv pass-2 F-W9P2-002 (sibling-regression of pass-1 F-W9P1-002): added PC-5 data-delivery semantics under MemoryPressure eviction; added canonical test vector row for memcap-trigger data-loss case — 2026-05-26"
-  - "v1.4: DF-SIBLING-SWEEP-001 HS-043 re-anchor: mod.rs:176-179 → mod.rs:205-208 (memcap check and evict_flows call in process_packet). — 2026-06-01"
+  - "v1.4: DF-SIBLING-SWEEP-001 HS-043 re-anchor: mod.rs:176-179 → mod.rs:208-210 (memcap check and evict_flows call in process_packet). — 2026-06-01"
+  - "v1.6: PG-ARP-F2-007 ss-04-full re-anchor: mod.rs:208-210 → mod.rs:208-210 (memcap check); lifecycle.rs:73-98 → lifecycle.rs:73-98 (evict_flows). — 2026-06-13"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -102,7 +103,7 @@ distinct from the max_flows-triggered path in `get_or_create_flow`. Both paths c
 | L2 Capability | CAP-04 ("TCP stream reassembly") per domain/capabilities/cap-04-tcp-reassembly.md |
 | Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per domain/capabilities/cap-04-tcp-reassembly.md -- memcap eviction bounds total memory use, a core resource constraint |
 | L2 Domain Invariants | None directly |
-| Architecture Module | SS-04 (reassembly/mod.rs:205-208, memcap check; lifecycle.rs:67-92, evict_flows) |
+| Architecture Module | SS-04 (reassembly/mod.rs:208-210, memcap check; lifecycle.rs:73-98, evict_flows) |
 | Stories | STORY-020 |
 | Origin BC | BC-RAS-016 (pass-3 ingestion corpus, HIGH confidence) |
 
@@ -114,14 +115,14 @@ distinct from the max_flows-triggered path in `get_or_create_flow`. Both paths c
 
 ## Architecture Anchors
 
-- `src/reassembly/mod.rs:205-208` -- memcap check and evict_flows call
-- `src/reassembly/lifecycle.rs:67-92` -- evict_flows implementation
+- `src/reassembly/mod.rs:208-210` -- memcap check and evict_flows call
+- `src/reassembly/lifecycle.rs:73-98` -- evict_flows implementation
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/reassembly/mod.rs:205-208` |
+| **Path** | `src/reassembly/mod.rs:208-210` |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 

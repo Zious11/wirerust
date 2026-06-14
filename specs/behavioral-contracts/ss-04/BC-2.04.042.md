@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -15,6 +15,7 @@ lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
+  - "v1.3: PG-ARP-F2-007 ss-04-full re-anchor: segment.rs:213-217 → segment.rs:213-217 (out-of-window check); segment.rs:213 → segment.rs:213. — 2026-06-13"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -48,7 +49,7 @@ prevent overflow when `base_offset + max_receive_window` would exceed `u64::MAX`
 
 ## Invariants
 
-1. The OutOfWindow check runs BEFORE the segment-limit and depth checks (segment.rs:63-67
+1. The OutOfWindow check runs BEFORE the segment-limit and depth checks (segment.rs:213-217
    is the first check after ISN validation). A segment that is both out-of-window AND would
    exceed the depth limit is rejected as OutOfWindow, not as DepthExceeded.
 2. `out_of_window_count` increments feed the cumulative threshold in `check_anomaly_thresholds`
@@ -86,7 +87,7 @@ prevent overflow when `base_offset + max_receive_window` would exceed `u64::MAX`
 | L2 Capability | CAP-04 ("TCP stream reassembly") per domain/capabilities/cap-04-tcp-reassembly.md |
 | Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per domain/capabilities/cap-04-tcp-reassembly.md -- out-of-window segment rejection enforces the forward receive window resource bound |
 | L2 Domain Invariants | INV-6 (bounded-resource design -- max_receive_window prevents accepting arbitrarily far-ahead segments) |
-| Architecture Module | SS-04 (reassembly/segment.rs:63-67, C-8) |
+| Architecture Module | SS-04 (reassembly/segment.rs:213-217, C-8) |
 | Stories | STORY-018 |
 | Origin BC | BC-RAS-042 (pass-3 ingestion corpus, HIGH confidence) |
 
@@ -97,20 +98,20 @@ prevent overflow when `base_offset + max_receive_window` would exceed `u64::MAX`
 
 ## Architecture Anchors
 
-- `src/reassembly/segment.rs:63-67` -- out-of-window check: `if offset > self.base_offset.saturating_add(max_receive_window as u64)`
+- `src/reassembly/segment.rs:213-217` -- out-of-window check: `if offset > self.base_offset.saturating_add(max_receive_window as u64)`
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/reassembly/segment.rs:63-67` |
+| **Path** | `src/reassembly/segment.rs:213-217` |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 
 ## Evidence Types Used
 
 - **assertion**: test_out_of_window_segment_rejected (segment tests); test_out_of_window_segment_rejected_by_engine (engine tests)
-- **guard clause**: explicit out-of-window guard at segment.rs:63
+- **guard clause**: explicit out-of-window guard at segment.rs:213
 
 ## Purity Classification
 

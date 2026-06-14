@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -15,7 +15,8 @@ lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
-  - "v1.3: DF-SIBLING-SWEEP-001 HS-043 re-anchor: mod.rs:557-591 → mod.rs:614-648 (finalize fn); mod.rs:558-561 → mod.rs:615-618 (finalized latch); mod.rs:573 → mod.rs:630 (unconditional push). — 2026-06-01"
+  - "v1.3: DF-SIBLING-SWEEP-001 HS-043 re-anchor: mod.rs:557-591 → mod.rs:643-677 (finalize fn); mod.rs:558-561 → mod.rs:644-647 (finalized latch); mod.rs:573 → mod.rs:659 (unconditional push). — 2026-06-01"
+  - "v1.4: PG-ARP-F2-007 ss-04-full re-anchor: mod.rs:643-677 → mod.rs:643-677 (finalize fn); mod.rs:644-647 → mod.rs:644-647 (finalized latch); mod.rs:659 → mod.rs:659 (unconditional push). — 2026-06-13"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -52,7 +53,7 @@ even during adversarial flooding scenarios.
 ## Invariants
 
 1. This is the ONLY code path that bypasses the MAX_FINDINGS guard.
-2. finalize() is idempotent: the latch at mod.rs:615-618 ensures subsequent calls are no-ops.
+2. finalize() is idempotent: the latch at mod.rs:644-647 ensures subsequent calls are no-ops.
 3. The maximum possible `findings.len()` after any run is MAX_FINDINGS + 1.
 
 ## Edge Cases
@@ -86,7 +87,7 @@ even during adversarial flooding scenarios.
 | L2 Capability | CAP-04 ("TCP stream reassembly") per domain/capabilities/cap-04-tcp-reassembly.md |
 | Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per domain/capabilities/cap-04-tcp-reassembly.md -- the finalize bypass is the lifecycle closure contract for the reassembly engine |
 | L2 Domain Invariants | INV-6 (MAX_FINDINGS cap -- this BC documents the sole exception), INV-7 (Finalize-once latch) |
-| Architecture Module | SS-04 (reassembly/mod.rs:614-648, C-6) |
+| Architecture Module | SS-04 (reassembly/mod.rs:643-677, C-6) |
 | Stories | STORY-021 |
 | Origin BC | BC-RAS-054 (pass-3 ingestion corpus, HIGH confidence) |
 
@@ -98,14 +99,14 @@ even during adversarial flooding scenarios.
 
 ## Architecture Anchors
 
-- `src/reassembly/mod.rs:630` -- unconditional push of finalize segment-limit finding
-- `src/reassembly/mod.rs:615-618` -- finalized latch
+- `src/reassembly/mod.rs:659` -- unconditional push of finalize segment-limit finding
+- `src/reassembly/mod.rs:644-647` -- finalized latch
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/reassembly/mod.rs:630` |
+| **Path** | `src/reassembly/mod.rs:659` |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-19 |
 

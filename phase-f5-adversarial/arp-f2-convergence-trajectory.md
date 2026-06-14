@@ -1302,6 +1302,48 @@ anchor audit PENDING before Pass 20).
 2. **Remaining BC subsystem audit** — ss-01/02/04-rest/08/11/12/13: spot-check for shifted-file
    anchors vs current src.
 
+#### Batch 2 (anchor-drift continuation) — 2026-06-13
+
+**ss-07 FULL re-anchor vs current tls.rs (35 BCs changed):**
+BC-2.07.001-015/017-029/031-037 re-anchored. BC-2.07.016 and BC-2.07.030 confirmed already
+clean (no change needed). Full ss-07 tls.rs re-anchor COMPLETE.
+
+**ss-04 PARTIAL re-anchor vs current reassembly src (21 BCs changed):**
+BCs changed: 029/030/032-038/040-048/051/052/054.
+BCs confirmed clean (no change): 001/003/004/009/031/039/049/050/053.
+BCs done earlier in P19: 020/024/055.
+REMAINING / UNVERIFIED ss-04 BCs: 002/005/010/011/013/015/016 + any of
+006-008/012/014/017-019/021-023/025-028/056+ not yet covered — defer to Pass-20 precise
+per-anchor src verification. Blind heuristic scans produce false positives on top-of-file
+symbols; adversary per-anchor src-verification is the reliable method.
+
+**ss-11 re-anchor vs current reporter src (10 BCs changed):**
+BC-2.11.009/013/014/015/016/017/018/021/022/024 re-anchored. 14 ss-11 BCs confirmed clean.
+(reporter csv.rs/terminal.rs shifted less than the analyzers.)
+
+**Confirmed clean (zero shifted-src citations):**
+ss-01/02/08/13 — all anchors verified correct vs current src.
+
+**Deferred to Pass-20 precise audit:**
+ss-12 BC-2.12.005 cites shifted src — NOT yet re-anchored.
+ss-04 remainder (~12-20 BCs) — precise per-anchor src verification required.
+
+**Lesson recorded:** Blind proactive anchor sweeps risk over-correction + incompleteness
+(ss-04 burst came back partial). The reliable method is adversary per-anchor src-verification
+followed by targeted fix. PG-ARP-F2-007 strongly motivates a mechanical file:line-anchor
+validation tool.
+
+**Anchor-drift status after Batch 2:**
+- ss-05 (dispatcher.rs): COMPLETE (P18)
+- ss-06 (http.rs): COMPLETE (P19 Batch 1)
+- ss-07 (tls.rs): COMPLETE (P19 Batch 2 — all 35 changed BCs re-anchored)
+- ss-09 (findings.rs): COMPLETE (P19 Batch 1)
+- ss-11 (reporter): COMPLETE (P19 Batch 2)
+- ss-01/02/08/13: CONFIRMED CLEAN (P19 Batch 2)
+- ss-04 (reassembly): PARTIAL — 21 BCs done Batch 2 + 3 earlier = ~24 total; ~12-20 remain
+- ss-12: NOT YET (BC-2.12.005 defer to Pass-20)
+- Estimated: ~85% of anchor-drift flushed; expect convergence approach once ss-04-remainder closed.
+
 #### Artifact versions post-Pass-19 checkpoint
 
 | Artifact | Version | Change |

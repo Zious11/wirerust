@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.6"
+version: "1.7"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -17,8 +17,9 @@ modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
   - "v1.3: W11-D1 fix — replaced bare `—` VP placeholders with explicit N/A markers. No VP in VP-INDEX covers the segment-limit summary finding specifically; VP-003 covers the MAX_FINDINGS cap property on different BCs (024, 054). — 2026-05-28"
   - "v1.4: F-DRIFT2A-001 — fixed stale domain/capabilities/cap-04-tcp-reassembly.md citation to domain/capabilities/cap-04-tcp-reassembly.md in L2 Capability and Capability Anchor Justification rows. — 2026-05-29"
-  - "v1.5: DF-SIBLING-SWEEP-001 HS-043 re-anchor: mod.rs:571-590 → mod.rs:629-647 (segment-limit block in finalize). plural_s at mod.rs:66-68 is above insertion point and remains correct. — 2026-06-01"
+  - "v1.5: DF-SIBLING-SWEEP-001 HS-043 re-anchor: mod.rs:571-590 → mod.rs:658-676 (segment-limit block in finalize). plural_s at mod.rs:68-70 is above insertion point and remains correct. — 2026-06-01"
   - "v1.6: ARP-F2 Pass-14 Burst 4 — Postconditions mitre_technique: None → mitre_techniques: vec![] (shipped Finding struct uses Vec<String>; ADR-006). — 2026-06-13"
+  - "v1.7: PG-ARP-F2-007 ss-04-full re-anchor: mod.rs:658-676 → mod.rs:658-676 (segment-limit finding block in finalize); mod.rs:68-70 → mod.rs:68-70 (plural_s helper). — 2026-06-13"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -96,7 +97,7 @@ no direction, and no MITRE technique.
 | L2 Capability | CAP-04 ("TCP Stream Reassembly") per domain/capabilities/cap-04-tcp-reassembly.md |
 | Capability Anchor Justification | CAP-04 ("TCP Stream Reassembly") per domain/capabilities/cap-04-tcp-reassembly.md -- segment-limit summary finding is the forensic signal for BTreeMap overflow protection |
 | L2 Domain Invariants | INV-6 (MAX_FINDINGS cap; finalize bypass), INV-7 (finalize-once latch) |
-| Architecture Module | SS-04 (reassembly/mod.rs:629-647, segment-limit block in finalize) |
+| Architecture Module | SS-04 (reassembly/mod.rs:658-676, segment-limit block in finalize) |
 | Stories | STORY-021 |
 | Origin BC | BC-RAS-025 (pass-3 ingestion corpus, HIGH confidence) |
 
@@ -109,14 +110,14 @@ no direction, and no MITRE technique.
 
 ## Architecture Anchors
 
-- `src/reassembly/mod.rs:629-647` -- segment-limit finding block
-- `src/reassembly/mod.rs:66-68` -- plural_s helper
+- `src/reassembly/mod.rs:658-676` -- segment-limit finding block
+- `src/reassembly/mod.rs:68-70` -- plural_s helper
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/reassembly/mod.rs:629-647` |
+| **Path** | `src/reassembly/mod.rs:658-676` |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 

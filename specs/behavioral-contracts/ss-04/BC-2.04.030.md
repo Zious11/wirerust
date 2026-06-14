@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.4"
+version: "1.5"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -16,7 +16,7 @@ introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
   - "v1.3: Wave 5 Ph3 per-story adversarial fix N-1: corrected internal anchor inconsistency — flush_contiguous_data bytes_reassembled increment is at mod.rs:530, not :531 — 2026-05-22"
-  - "v1.4: DF-SIBLING-SWEEP-001 HS-043 re-anchor: mod.rs:530 → mod.rs:559 (bytes_reassembled++ in flush_contiguous_data). — 2026-06-01"
+  - "v1.4: DF-SIBLING-SWEEP-001 HS-043 re-anchor: mod.rs:530 → mod.rs:588 (bytes_reassembled++ in flush_contiguous_data). — 2026-06-01"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -44,8 +44,8 @@ passed to every `handler.on_data` invocation across all flows, in both direction
 
 1. `stats().bytes_reassembled == sum of data.len() over all on_data(flow_key, dir, data, offset) calls`.
 2. The counter is incremented in two places:
-   - `flush_contiguous_data()` (mod.rs:559) on each segment flushed during live processing.
-   - `close_flow()` (lifecycle.rs:56) on each segment flushed during flow closure.
+   - `flush_contiguous_data()` (mod.rs:588) on each segment flushed during live processing.
+   - `close_flow()` (lifecycle.rs:62) on each segment flushed during flow closure.
 3. The counter is never decremented.
 4. Duplicate segments and out-of-window segments do NOT contribute to this count (they are
    discarded before flush).
@@ -89,7 +89,7 @@ passed to every `handler.on_data` invocation across all flows, in both direction
 | L2 Capability | CAP-04 ("TCP stream reassembly") per domain/capabilities/cap-04-tcp-reassembly.md |
 | Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per domain/capabilities/cap-04-tcp-reassembly.md -- bytes_reassembled is the primary accounting metric for data delivered by the TCP reassembly engine |
 | L2 Domain Invariants | (none -- pure accounting invariant) |
-| Architecture Module | SS-04 (reassembly/mod.rs:559, C-6; reassembly/lifecycle.rs:56, C-15) |
+| Architecture Module | SS-04 (reassembly/mod.rs:588, C-6; reassembly/lifecycle.rs:62, C-15) |
 | Stories | STORY-012 |
 | Origin BC | BC-RAS-030 (pass-3 ingestion corpus, HIGH confidence) |
 
@@ -101,14 +101,14 @@ passed to every `handler.on_data` invocation across all flows, in both direction
 
 ## Architecture Anchors
 
-- `src/reassembly/mod.rs:559` -- bytes_reassembled increment in flush_contiguous_data
-- `src/reassembly/lifecycle.rs:56` -- bytes_reassembled increment in close_flow
+- `src/reassembly/mod.rs:588` -- bytes_reassembled increment in flush_contiguous_data
+- `src/reassembly/lifecycle.rs:62` -- bytes_reassembled increment in close_flow
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/reassembly/mod.rs:559` and `src/reassembly/lifecycle.rs:56` |
+| **Path** | `src/reassembly/mod.rs:588` and `src/reassembly/lifecycle.rs:62` |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 

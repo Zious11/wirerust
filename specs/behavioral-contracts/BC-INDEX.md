@@ -75,59 +75,59 @@ traces_to: .factory/specs/prd.md
 | BC ID | Title | Priority | Status | Origin |
 |-------|-------|----------|--------|--------|
 | BC-2.04.001 | TcpReassembler::new Panics on Invalid Config | P1 | [WRITTEN] | BC-RAS-001 |
-| BC-2.04.002 | Non-TCP Packets Skipped; packets_skipped_non_tcp Increments | P1 | [WRITTEN] | BC-RAS-002 |
+| BC-2.04.002 | Non-TCP Packets Skipped; packets_skipped_non_tcp Increments | P1 | [WRITTEN] | BC-RAS-002 | <!-- PG-ARP-F2-007: ss-04 src re-anchor -->
 | BC-2.04.003 | Canonical FlowKey Ordering Ensures A->B and B->A Produce Identical Key | P0 | [WRITTEN] | BC-RAS-003 |
 | BC-2.04.004 | First SYN Sets Client ISN and Initiator | P0 | [WRITTEN] | BC-RAS-004 |
-| BC-2.04.005 | SYN+ACK Marks Server as Responder; State Transitions to Established | P0 | [WRITTEN] | BC-RAS-005 |
-| BC-2.04.006 | Bidirectional Data Delivered with Correct Direction Tag | P0 | [WRITTEN] | BC-RAS-006 |
-| BC-2.04.007 | In-Order Data Flushes Contiguously to Handler | P0 | [WRITTEN] | BC-RAS-007 |
-| BC-2.04.008 | Out-of-Order Segments Buffer Until Gap Filled Then Flush | P0 | [WRITTEN] | BC-RAS-008 |
+| BC-2.04.005 | SYN+ACK Marks Server as Responder; State Transitions to Established | P0 | [WRITTEN] | BC-RAS-005 | <!-- PG-ARP-F2-007: ss-04 src re-anchor -->
+| BC-2.04.006 | Bidirectional Data Delivered with Correct Direction Tag | P0 | [WRITTEN] | BC-RAS-006 | <!-- PG-ARP-F2-007: ss-04 src re-anchor -->
+| BC-2.04.007 | In-Order Data Flushes Contiguously to Handler | P0 | [WRITTEN] | BC-RAS-007 | <!-- PG-ARP-F2-007: ss-04 src re-anchor -->
+| BC-2.04.008 | Out-of-Order Segments Buffer Until Gap Filled Then Flush | P0 | [WRITTEN] | BC-RAS-008 | <!-- PG-ARP-F2-007: ss-04 src re-anchor -->
 | BC-2.04.009 | Mid-Stream Join Infers ISN from seq-1; Flow Marked Partial | P0 | [WRITTEN] | BC-RAS-009 |
-| BC-2.04.010 | RST Closes Flow Immediately with CloseReason::Rst | P0 | [WRITTEN] | BC-RAS-010 |
-| BC-2.04.011 | Both FINs Close Flow with CloseReason::Fin | P0 | [WRITTEN] | BC-RAS-011 |
-| BC-2.04.012 | finalize Flushes All Remaining Flows; Idempotent | P0 | [WRITTEN] | BC-RAS-012 |
-| BC-2.04.013 | expire_idle_by_timeout / expire_flows Closes Idle Flows Past flow_timeout_secs | P1 | [WRITTEN] | BC-RAS-013 |
-| BC-2.04.014 | total_memory Tracks Buffered Bytes; Decrements on Flush and Close | P1 | [WRITTEN] | BC-RAS-014 |
-| BC-2.04.015 | Flow Eviction on max_flows Hit Uses LRU Non-Established-First | P1 | [WRITTEN] | BC-RAS-015 |
-| BC-2.04.016 | Memory Pressure Eviction When total_memory Exceeds memcap | P1 | [WRITTEN] | BC-RAS-016 |
-| BC-2.04.017 | Eviction Sort -- Non-Established First, Then Oldest-Last-Seen | P1 | [WRITTEN] | BC-RAS-017 |
+| BC-2.04.010 | RST Closes Flow Immediately with CloseReason::Rst | P0 | [WRITTEN] | BC-RAS-010 | <!-- PG-ARP-F2-007: ss-04 src re-anchor -->
+| BC-2.04.011 | Both FINs Close Flow with CloseReason::Fin | P0 | [WRITTEN] | BC-RAS-011 | <!-- PG-ARP-F2-007: ss-04 src re-anchor -->
+| BC-2.04.012 | finalize Flushes All Remaining Flows; Idempotent | P0 | [WRITTEN] | BC-RAS-012 | <!-- PG-ARP-F2-007: ss-04 src re-anchor -->
+| BC-2.04.013 | expire_idle_by_timeout / expire_flows Closes Idle Flows Past flow_timeout_secs | P1 | [WRITTEN] | BC-RAS-013 | <!-- PG-ARP-F2-007: ss-04 src re-anchor -->
+| BC-2.04.014 | total_memory Tracks Buffered Bytes; Decrements on Flush and Close | P1 | [WRITTEN] | BC-RAS-014 | <!-- PG-ARP-F2-007: ss-04 src re-anchor -->
+| BC-2.04.015 | Flow Eviction on max_flows Hit Uses LRU Non-Established-First | P1 | [WRITTEN] | BC-RAS-015 | <!-- PG-ARP-F2-007: ss-04 src re-anchor -->
+| BC-2.04.016 | Memory Pressure Eviction When total_memory Exceeds memcap | P1 | [WRITTEN] | BC-RAS-016 | <!-- PG-ARP-F2-007: ss-04 src re-anchor -->
+| BC-2.04.017 | Eviction Sort -- Non-Established First, Then Oldest-Last-Seen | P1 | [WRITTEN] | BC-RAS-017 | <!-- PG-ARP-F2-007: ss-04 src re-anchor -->
 | BC-2.04.018 | Conflicting Overlap Emits Anomaly/Likely/High Finding with MITRE T1036 | P0 | [WRITTEN] | BC-RAS-018 | <!-- v1.5: mitre_technique→mitre_techniques vec![]; ARP-F2 P14 B4 -->
 | BC-2.04.019 | Excessive Overlaps Emit One-Shot T1036 Finding | P0 | [WRITTEN] | BC-RAS-019 | <!-- v1.7: mitre_technique→mitre_techniques vec![]; ARP-F2 P14 B4 -->
 | BC-2.04.020 | Excessive Small Segments Emit One-Shot Finding | P1 | [WRITTEN] | BC-RAS-020 | <!-- v1.6: P19 B-09 anchor fix: mod.rs:486-517→:506-538; :385-399→:402-405 -->
 | BC-2.04.021 | Excessive Out-of-Window Segments Emit One-Shot Low Finding | P1 | [WRITTEN] | BC-RAS-021 | <!-- v1.4: mitre_technique→mitre_techniques vec![]; ARP-F2 P14 B4 -->
-| BC-2.04.022 | Per-Direction Alert Fires At Most Once Per Flow (Sticky Latch) | P0 | [WRITTEN] | BC-RAS-022 |
+| BC-2.04.022 | Per-Direction Alert Fires At Most Once Per Flow (Sticky Latch) | P0 | [WRITTEN] | BC-RAS-022 | <!-- PG-ARP-F2-007: ss-04 src re-anchor -->
 | BC-2.04.023 | Truncated Segment Emits Anomaly/Inconclusive/Low Finding | P1 | [WRITTEN] | BC-RAS-023 | <!-- v1.4: mitre_technique→mitre_techniques vec![]; ARP-F2 P14 B4 -->
 | BC-2.04.024 | Total Findings Capped at MAX_FINDINGS=10000; Excess Silently Dropped | P0 | [WRITTEN] | BC-RAS-024 | <!-- v1.4: P19 B-09 anchor fix: MAX_FINDINGS mod.rs:54→:56; guards :461,495,524→:479,515,546 -->
 | BC-2.04.025 | finalize Emits Segment-Limit Summary Finding When Segments Dropped | P0 | [WRITTEN] | BC-RAS-025 | <!-- v1.6: mitre_technique→mitre_techniques vec![]; ARP-F2 P14 B4 -->
-| BC-2.04.026 | finalize Does NOT Emit Segment-Limit Finding When Counter is Zero | P0 | [WRITTEN] | BC-RAS-026 |
-| BC-2.04.027 | segments_depth_exceeded Tracks Fully-Rejected Segments After Depth Hit | P1 | [WRITTEN] | BC-RAS-027 |
-| BC-2.04.028 | summarize Returns AnalysisSummary with Reassembly Stats Detail Map | P1 | [WRITTEN] | BC-RAS-028 |
-| BC-2.04.029 | close_flow for Missing Key Logs One-Shot Process-Wide Warning | P2 | [WRITTEN] | BC-RAS-029 |
-| BC-2.04.030 | bytes_reassembled Equals Total Bytes Delivered to Handler | P1 | [WRITTEN] | BC-RAS-030 |
+| BC-2.04.026 | finalize Does NOT Emit Segment-Limit Finding When Counter is Zero | P0 | [WRITTEN] | BC-RAS-026 | <!-- PG-ARP-F2-007: ss-04 src re-anchor -->
+| BC-2.04.027 | segments_depth_exceeded Tracks Fully-Rejected Segments After Depth Hit | P1 | [WRITTEN] | BC-RAS-027 | <!-- PG-ARP-F2-007: ss-04 src re-anchor -->
+| BC-2.04.028 | summarize Returns AnalysisSummary with Reassembly Stats Detail Map | P1 | [WRITTEN] | BC-RAS-028 | <!-- PG-ARP-F2-007: ss-04 src re-anchor -->
+| BC-2.04.029 | close_flow for Missing Key Logs One-Shot Process-Wide Warning | P2 | [WRITTEN] | BC-RAS-029 | <!-- PG-ARP-F2-007: ss-04 src re-anchor -->
+| BC-2.04.030 | bytes_reassembled Equals Total Bytes Delivered to Handler | P1 | [WRITTEN] | BC-RAS-030 | <!-- PG-ARP-F2-007: ss-04 src re-anchor -->
 | BC-2.04.031 | ISN Set on First SYN; Inferred as seq-1 on Data-Without-SYN | P0 | [WRITTEN] | BC-RAS-031 |
-| BC-2.04.032 | insert_segment With No ISN Returns IsnMissing; Inserts Nothing | P0 | [WRITTEN] | BC-RAS-032 |
-| BC-2.04.033 | Single Segment Insertion Returns Inserted; Stored Under Offset Key | P0 | [WRITTEN] | BC-RAS-033 |
-| BC-2.04.034 | flush_contiguous Consumes Segments from base_offset in Order | P0 | [WRITTEN] | BC-RAS-034 |
-| BC-2.04.035 | Identical Retransmission Returns Duplicate; Does Not Double-Count | P0 | [WRITTEN] | BC-RAS-035 |
-| BC-2.04.036 | First-Wins Overlap: Gap Bytes Added, Existing Bytes Preserved | P0 | [WRITTEN] | BC-RAS-036 |
-| BC-2.04.037 | Same-Range Conflicting Overlap Returns ConflictingOverlap; Original Wins | P0 | [WRITTEN] | BC-RAS-037 |
-| BC-2.04.038 | Multi-Segment Full Coverage Returns Duplicate or ConflictingOverlap | P0 | [WRITTEN] | BC-RAS-038 |
+| BC-2.04.032 | insert_segment With No ISN Returns IsnMissing; Inserts Nothing | P0 | [WRITTEN] | BC-RAS-032 | <!-- PG-ARP-F2-007: ss-04 src re-anchor -->
+| BC-2.04.033 | Single Segment Insertion Returns Inserted; Stored Under Offset Key | P0 | [WRITTEN] | BC-RAS-033 | <!-- PG-ARP-F2-007: ss-04 src re-anchor -->
+| BC-2.04.034 | flush_contiguous Consumes Segments from base_offset in Order | P0 | [WRITTEN] | BC-RAS-034 | <!-- PG-ARP-F2-007: ss-04 src re-anchor -->
+| BC-2.04.035 | Identical Retransmission Returns Duplicate; Does Not Double-Count | P0 | [WRITTEN] | BC-RAS-035 | <!-- PG-ARP-F2-007: ss-04 src re-anchor -->
+| BC-2.04.036 | First-Wins Overlap: Gap Bytes Added, Existing Bytes Preserved | P0 | [WRITTEN] | BC-RAS-036 | <!-- PG-ARP-F2-007: ss-04 src re-anchor -->
+| BC-2.04.037 | Same-Range Conflicting Overlap Returns ConflictingOverlap; Original Wins | P0 | [WRITTEN] | BC-RAS-037 | <!-- PG-ARP-F2-007: ss-04 src re-anchor -->
+| BC-2.04.038 | Multi-Segment Full Coverage Returns Duplicate or ConflictingOverlap | P0 | [WRITTEN] | BC-RAS-038 | <!-- PG-ARP-F2-007: ss-04 src re-anchor -->
 | BC-2.04.039 | TCP Sequence Wraparound Across 32-bit Boundary Reassembles Correctly | P0 | [WRITTEN] | BC-RAS-039 |
-| BC-2.04.040 | Small-Segment Counter Increments Per Direction | P1 | [WRITTEN] | BC-RAS-040 |
-| BC-2.04.041 | Depth Truncation: Segment Crossing max_depth is Truncated | P0 | [WRITTEN] | BC-RAS-041 |
-| BC-2.04.042 | Segment Beyond max_receive_window Returns OutOfWindow | P1 | [WRITTEN] | BC-RAS-042 |
-| BC-2.04.043 | Adjacent Segments at Exact Boundary Do Not Count as Overlap | P0 | [WRITTEN] | BC-RAS-043 |
-| BC-2.04.044 | Segments Map Full: Non-Overlapping Insert Returns SegmentLimitReached | P0 | [WRITTEN] | BC-RAS-044 |
-| BC-2.04.045 | Segments Map Full: Overlapping Insert Returns SegmentLimitReached | P0 | [WRITTEN] | BC-RAS-045 |
-| BC-2.04.046 | Segments Map Fills Mid-Loop: Partial Insertion | P0 | [WRITTEN] | BC-RAS-046 |
-| BC-2.04.047 | buffered_bytes Mirrors Segment Size Sum After All Operations | P0 | [WRITTEN] | BC-RAS-047 |
-| BC-2.04.048 | ISN_MISSING_WARNED Atomic Prevents Repeated eprintln | P2 | [WRITTEN] | BC-RAS-048 |
+| BC-2.04.040 | Small-Segment Counter Increments Per Direction | P1 | [WRITTEN] | BC-RAS-040 | <!-- PG-ARP-F2-007: ss-04 src re-anchor -->
+| BC-2.04.041 | Depth Truncation: Segment Crossing max_depth is Truncated | P0 | [WRITTEN] | BC-RAS-041 | <!-- PG-ARP-F2-007: ss-04 src re-anchor -->
+| BC-2.04.042 | Segment Beyond max_receive_window Returns OutOfWindow | P1 | [WRITTEN] | BC-RAS-042 | <!-- PG-ARP-F2-007: ss-04 src re-anchor -->
+| BC-2.04.043 | Adjacent Segments at Exact Boundary Do Not Count as Overlap | P0 | [WRITTEN] | BC-RAS-043 | <!-- PG-ARP-F2-007: ss-04 src re-anchor -->
+| BC-2.04.044 | Segments Map Full: Non-Overlapping Insert Returns SegmentLimitReached | P0 | [WRITTEN] | BC-RAS-044 | <!-- PG-ARP-F2-007: ss-04 src re-anchor -->
+| BC-2.04.045 | Segments Map Full: Overlapping Insert Returns SegmentLimitReached | P0 | [WRITTEN] | BC-RAS-045 | <!-- PG-ARP-F2-007: ss-04 src re-anchor -->
+| BC-2.04.046 | Segments Map Fills Mid-Loop: Partial Insertion | P0 | [WRITTEN] | BC-RAS-046 | <!-- PG-ARP-F2-007: ss-04 src re-anchor -->
+| BC-2.04.047 | buffered_bytes Mirrors Segment Size Sum After All Operations | P0 | [WRITTEN] | BC-RAS-047 | <!-- PG-ARP-F2-007: ss-04 src re-anchor -->
+| BC-2.04.048 | ISN_MISSING_WARNED Atomic Prevents Repeated eprintln | P2 | [WRITTEN] | BC-RAS-048 | <!-- PG-ARP-F2-007: ss-04 src re-anchor -->
 | BC-2.04.049 | FlowKey::Display Uses U+2192 Arrow (Not ASCII ->) | P1 | [WRITTEN] | BC-RAS-049 |
 | BC-2.04.050 | Flow State Machine: New->SynSent->Established->Closing->Closed | P0 | [WRITTEN] | BC-RAS-050 |
-| BC-2.04.051 | RST Transitions State to Closed from Any Prior State | P0 | [WRITTEN] | BC-RAS-051 |
-| BC-2.04.052 | on_data_without_syn: New->Established; partial=true | P0 | [WRITTEN] | BC-RAS-052 |
+| BC-2.04.051 | RST Transitions State to Closed from Any Prior State | P0 | [WRITTEN] | BC-RAS-051 | <!-- PG-ARP-F2-007: ss-04 src re-anchor -->
+| BC-2.04.052 | on_data_without_syn: New->Established; partial=true | P0 | [WRITTEN] | BC-RAS-052 | <!-- PG-ARP-F2-007: ss-04 src re-anchor -->
 | BC-2.04.053 | TcpFlow::direction Returns ClientToServer When src Matches Initiator | P0 | [WRITTEN] | BC-RAS-053 |
-| BC-2.04.054 | finalize Unconditionally Bypasses MAX_FINDINGS Cap for Segment-Limit Finding | P0 | [WRITTEN] | BC-RAS-054 |
+| BC-2.04.054 | finalize Unconditionally Bypasses MAX_FINDINGS Cap for Segment-Limit Finding | P0 | [WRITTEN] | BC-RAS-054 | <!-- PG-ARP-F2-007: ss-04 src re-anchor -->
 | BC-2.04.055 | StreamHandler::on_data Carries Capture-Relative Timestamp Parameter | P1 | [WRITTEN] | feature-100-F2 | <!-- v1.0.3: P19 B-07 anchor fix; http.rs:501→:524; tls.rs:771→:798 -->
 
 ## ss-05: Content-First Protocol Dispatch (CAP-05)
@@ -215,7 +215,9 @@ traces_to: .factory/specs/prd.md
 | BC-2.07.034 | After Both Hellos Seen, on_data Short-Circuits | P0 | [WRITTEN] | BC-TLS-034 |
 | BC-2.07.035 | on_flow_close Drops Per-Flow TlsFlowState | P1 | [WRITTEN] | BC-TLS-035 |
 | BC-2.07.036 | Unknown Cipher IDs Render as Hex 0xNNNN Lowercase | P2 | [WRITTEN] | BC-TLS-036 |
-| BC-2.07.037 | SNI with Both Non-ASCII and C0 Control Bytes Fires Arm 3 (NonAsciiUtf8), Not Arm 2 | P0 | [WRITTEN] | BC-TLS-037 | <!-- v1.3: P19 B-10 anchor fix: extract_sni tls.rs:246→:247; match block :251-265→:252-269 -->
+| BC-2.07.037 | SNI with Both Non-ASCII and C0 Control Bytes Fires Arm 3 (NonAsciiUtf8), Not Arm 2 | P0 | [WRITTEN] | BC-TLS-037 | <!-- v1.3: P19 B-10 anchor fix: extract_sni tls.rs:246→:247; match block :251-265→:252-269; v1.4: PG-ARP-F2-007 arm 2/3 emission :426→:437/:449→:461 -->
+
+<!-- PG-ARP-F2-007 (2026-06-13): full ss-07 tls.rs re-anchor applied to ALL 37 BCs (001-037, except 016/030 already clean). Root cause: tls.rs shifted ~10-60 lines from F2 timestamp-wiring (STORY-097/098/099). BC versions bumped individually; all Architecture Module, Architecture Anchors, Source Evidence Path, and inline prose citations updated to HEAD. -->
 
 ## ss-08: DNS Traffic Analysis (CAP-08)
 
@@ -269,22 +271,22 @@ traces_to: .factory/specs/prd.md
 | BC-2.11.006 | TerminalReporter Shows Skipped: N Packets Only When N > 0 | P1 | [WRITTEN] | BC-RPT-006 |
 | BC-2.11.007 | TerminalReporter Escapes C0+DEL+C1+Backslash in Finding Summary and Evidence | P0 | [WRITTEN] | BC-RPT-007 |
 | BC-2.11.008 | TerminalReporter Escape Preserves Printable ASCII and UTF-8 | P0 | [WRITTEN] | BC-RPT-008 |
-| BC-2.11.009 | TerminalReporter Escapes C1 Codepoints U+0080-U+009F; U+00A0 Preserved | P0 | [WRITTEN] | BC-RPT-009 |
+| BC-2.11.009 | TerminalReporter Escapes C1 Codepoints U+0080-U+009F; U+00A0 Preserved | P0 | [WRITTEN] | BC-RPT-009 | <!-- v1.5: PG-ARP-F2-007 — test fn anchors: escapes_c1_nel_and_csi :375→:544; escapes_c1_range_boundaries :388→:556 -->
 | BC-2.11.010 | TerminalReporter Escapes Both Summary AND Each Evidence Line | P0 | [WRITTEN] | BC-RPT-010 |
 | BC-2.11.011 | TerminalReporter Escapes Analyzer-Summary Detail Values | P0 | [WRITTEN] | BC-RPT-011 |
 | BC-2.11.012 | TerminalReporter End-to-End: C1 CSI in Path-Traversal Finding Escaped | P0 | [WRITTEN] | BC-RPT-012 |
-| BC-2.11.013 | MITRE Grouping Emits Tactic Headers in Canonical Order; Uncategorized Last | P0 | [WRITTEN] | BC-RPT-013 |
-| BC-2.11.014 | Within Tactic Bucket: Sort by Verdict, Confidence, Emission Order | P1 | [WRITTEN] | BC-RPT-014 |
-| BC-2.11.015 | No-Technique or Unknown-ID Findings Land in Uncategorized | P0 | [WRITTEN] | BC-RPT-015 |
-| BC-2.11.016 | MITRE Grouping Expands Per-Finding Line with Em-Dash and Name | P1 | [WRITTEN] | BC-RPT-016 | <!-- v1.5: mitre_technique→mitre_techniques vec![]; ARP-F2 P14 B7 -->
-| BC-2.11.017 | Default Rendering Emits MITRE: <id(s)> Only (No Em-Dash) | P1 | [WRITTEN] | BC-RPT-017 | <!-- v1.5: multi-ID rendering "MITRE: T0855, T0836"; ADR-006 F2 revision; v1.6: example updated to T1692.001 (v19 remap) -->
-| BC-2.11.018 | TerminalReporter Colorization: Likely/High=Red Bold, etc. | P2 | [WRITTEN] | BC-RPT-018 |
+| BC-2.11.013 | MITRE Grouping Emits Tactic Headers in Canonical Order; Uncategorized Last | P0 | [WRITTEN] | BC-RPT-013 | <!-- v1.8: PG-ARP-F2-007 — render_findings_grouped anchor :260-304→:272-323; tactic loop :290→:309 -->
+| BC-2.11.014 | Within Tactic Bucket: Sort by Verdict, Confidence, Emission Order | P1 | [WRITTEN] | BC-RPT-014 | <!-- v1.6: PG-ARP-F2-007 — sort-closure anchors: verdict_rank :269-275→:287-293; confidence_rank :276-282→:295-301; sort_by_key :284-288→:303-307; bucket push line 266→284 -->
+| BC-2.11.015 | No-Technique or Unknown-ID Findings Land in Uncategorized | P0 | [WRITTEN] | BC-RPT-015 | <!-- v1.7: PG-ARP-F2-007 — render_finding_grouped :244-252→:247-263; Uncategorized bucket :298-303→:317-322 -->
+| BC-2.11.016 | MITRE Grouping Expands Per-Finding Line with Em-Dash and Name | P1 | [WRITTEN] | BC-RPT-016 | <!-- v1.5: mitre_technique→mitre_techniques vec![]; ARP-F2 P14 B7; v1.6: PG-ARP-F2-007 — expansion range :246-251→:249-261; em-dash literal :248→:259 -->
+| BC-2.11.017 | Default Rendering Emits MITRE: <id(s)> Only (No Em-Dash) | P1 | [WRITTEN] | BC-RPT-017 | <!-- v1.5: multi-ID rendering "MITRE: T0855, T0836"; ADR-006 F2 revision; v1.6: example updated to T1692.001 (v19 remap); v1.7: PG-ARP-F2-007 — render_finding_flat anchor :230-235→:232-238 -->
+| BC-2.11.018 | TerminalReporter Colorization: Likely/High=Red Bold, etc. | P2 | [WRITTEN] | BC-RPT-018 | <!-- v1.4: PG-ARP-F2-007 — colorization block :209-220→:209-222 (if-else block closes at 222) -->
 | BC-2.11.019 | TerminalReporter Renders Sections in Correct Order | P1 | [WRITTEN] | BC-RPT-019 |
 | BC-2.11.020 | CsvReporter Emits Exactly Nine Columns in Fixed Header Order | P0 | [WRITTEN] | pass-4 H-1 | <!-- v1.5: column-6 header renamed mitre_technique->mitre_techniques; ADR-006 F2 revision -->
-| BC-2.11.021 | CsvReporter Neutralizes CSV-Injection Trigger Characters with a Leading Single Quote | P0 | [WRITTEN] | pass-4 H-1 |
-| BC-2.11.022 | CsvReporter Joins Evidence Vec Elements with "; " into a Single Cell | P1 | [WRITTEN] | pass-4 H-1 |
+| BC-2.11.021 | CsvReporter Neutralizes CSV-Injection Trigger Characters with a Leading Single Quote | P0 | [WRITTEN] | pass-4 H-1 | <!-- v1.4: PG-ARP-F2-007 — neutralize application range :89-97→:92-103 (STORY-100 added mitre_techniques column) -->
+| BC-2.11.022 | CsvReporter Joins Evidence Vec Elements with "; " into a Single Cell | P1 | [WRITTEN] | pass-4 H-1 | <!-- v1.4: PG-ARP-F2-007 — evidence neutralize call :93→:98 (shifted by mitre_techniques column addition) -->
 | BC-2.11.023 | CsvReporter Implements Reporter Trait and Emits One Row per Finding; Summary and AnalysisSummary Are Ignored | P0 | [WRITTEN] | pass-4 H-1 |
-| BC-2.11.024 | CsvReporter Encodes Optional Fields as Empty Strings and mitre_techniques as Semicolon-Joined String | P1 | [WRITTEN] | pass-4 H-1 | <!-- v1.5: ADD-ON 2 — EC-015 added (consumer split guard for empty-cell); EC-001 strengthened (empty string not null/[]/N/A); Inv 4 explicit empty-string wording; v1.7: Pass-15 D-01: Evidence Types Used guard clause updated to current csv.rs:87-90 shape (Vec join + 3 Option unwrap_or_default) -->
+| BC-2.11.024 | CsvReporter Encodes Optional Fields as Empty Strings and mitre_techniques as Semicolon-Joined String | P1 | [WRITTEN] | pass-4 H-1 | <!-- v1.5: ADD-ON 2 — EC-015 added (consumer split guard for empty-cell); EC-001 strengthened (empty string not null/[]/N/A); Inv 4 explicit empty-string wording; v1.7: Pass-15 D-01: Evidence Types Updated; v1.8: PG-ARP-F2-007 — neutralize anchor :94-97→:99-102; pc1 clarified join@:87 vs neutralize@:99 -->
 
 
 ## ss-12: CLI and Entry Point (Cross-Cutting)

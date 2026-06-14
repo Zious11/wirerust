@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -15,6 +15,7 @@ lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
+  - "v1.3: PG-ARP-F2-007 ss-04-full re-anchor: lifecycle.rs:85-88 → lifecycle.rs:85-88 (sort_by comparator). — 2026-06-13"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -86,7 +87,7 @@ termination conditions are met. The sort is computed fresh on every `evict_flows
 | L2 Capability | CAP-04 ("TCP stream reassembly") per domain/capabilities/cap-04-tcp-reassembly.md |
 | Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per domain/capabilities/cap-04-tcp-reassembly.md -- eviction ordering policy is part of the memory management contract |
 | L2 Domain Invariants | None directly |
-| Architecture Module | SS-04 (reassembly/lifecycle.rs:78-84, sort comparator) |
+| Architecture Module | SS-04 (reassembly/lifecycle.rs:85-88, sort comparator) |
 | Stories | STORY-020 |
 | Origin BC | BC-RAS-017 (pass-3 ingestion corpus, HIGH confidence) |
 
@@ -97,13 +98,13 @@ termination conditions are met. The sort is computed fresh on every `evict_flows
 
 ## Architecture Anchors
 
-- `src/reassembly/lifecycle.rs:78-84` -- sort_by comparator: a.1.cmp(&b.1).then(a.2.cmp(&b.2))
+- `src/reassembly/lifecycle.rs:85-88` -- sort_by comparator: a.1.cmp(&b.1).then(a.2.cmp(&b.2))
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/reassembly/lifecycle.rs:78-84` |
+| **Path** | `src/reassembly/lifecycle.rs:85-88` |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 

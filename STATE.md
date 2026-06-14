@@ -1,7 +1,7 @@
 ---
 pipeline: FEATURE_MODE_ARP_ANALYZER
 phase: feature-F2-strict-whole-corpus-convergence
-phase_status: "0/3 — Pass 19 REMEDIATION IN PROGRESS (anchor-drift corpus-wide); ss-07-full + remaining-BC anchor audit PENDING before Pass 20"
+phase_status: "0/3 — Pass 19 anchor-remediation batch 2 done (ss-07-full/ss-04-partial/ss-11); ss-04-remainder + ss-12 deferred to Pass-20 precise audit"
 active_feature: "arp-analyzer"
 feature_arp_status: "F1 Delta Analysis PASSED (human-gated 2026-06-12) — DecodedFrame integration, ADR-008 planned, F2→F7 authorized; release target v0.7.0"
 feature_8_status: "v0.6.0 RELEASED 2026-06-12 — DNP3 TCP analyzer; F7 5-dim CONVERGED; tag v0.6.0 + 4 binaries"
@@ -39,8 +39,8 @@ dtu_clones_built: n/a
 dtu_services: []
 adversary_convergence_counter: 3/3  # Pass 14 CONVERGENCE_REACHED; clean-streak 3/3; ADVERSARY GATE SATISFIED
 convergence_trajectory: "P1-P14 greenfield GATE-SATISFIED; MITRE-222 3-pass CONVERGED. Detail: cycles/v0.1.0-greenfield-spec/convergence-trajectory.md"
-arp_f2_adversary_convergence_counter: 0/3  # STRICT WHOLE-CORPUS mode — zero findings any severity across entire spec corpus required; P19 0C/8H — corpus-wide src-anchor drift (PG-ARP-F2-007); ~62 files re-anchored (VPs+ss-09+ss-06+ss-04/07-partial+domain+prd-supp); ss-07-full + ss-01/02/08/11/12/13 anchor audit pending; remediation does not advance counter; trajectory P14-19: 2C5H/2C1H/0C0H/3C2H/0C3H/0C8H; REGRESSION at P19 HIGH; Decaying on CRITICAL (0 for 3 of last 4); Pass 20 via Claude adversary after pending remediation
-arp_f2_convergence_trajectory: "15→20→~8→~15→~6→~4→~4→~7→~4→~6→~5→~18→~8→~22(P14: 2C/5H NEW corpus-debt; trend broke; ARP delta clean 6th pass)→P15(8 findings: holdout-layer field-rename + regression; REMEDIATED)→P16(7: 0C/0H, sibling-sweep misses; REMEDIATED; Slice B CLEAN)→P17(10: holdout MITRE-counts + module-decomposition peer; REMEDIATED; Slice B CLEAN 2nd)→P18(9: ss-05 anchor-drift + indicatif + STORY-INDEX; 0C/3H; REMEDIATED; arp.rs+holdout pre-flush verified clean)→P19(15: corpus-wide anchor-drift; 0C/8H; PARTIAL — ss-07-full+remaining-BC pending) — 0/3 STRICT WHOLE-CORPUS; 19 passes; P14-P18 REMEDIATED; P19 REMEDIATION IN PROGRESS (15 findings: purity-boundary-map A-01/A-02; ss-09 6 BCs re-anchored+Possible-verdict gap; ss-06 ALL 26 BCs http.rs; ss-04 BC-2.04.055/024/020; ss-07 partial 3 BCs; HS-009 T1083→Discovery; nfr-catalog/nfr-story-map/inv-01 INV-2 dispatcher; domain straggler sweep; VP-sweep 9 files; ~62 files committed; ss-07-full+ss-01/02/04-rest/08/11/12/13 PENDING; trajectory P14-19: 2C5H/2C1H/0C0H/3C2H/0C3H/0C8H). Detail: phase-f5-adversarial/arp-f2-convergence-trajectory.md"
+arp_f2_adversary_convergence_counter: 0/3  # STRICT WHOLE-CORPUS mode — zero findings any severity across entire spec corpus required; P19 0C/8H — corpus-wide src-anchor drift (PG-ARP-F2-007); P19 anchor-remediation: VPs+ss-05/06/07/09 + ss-04-partial + ss-11 + domain + prd-supp DONE; ss-04-remainder(~12-20 BCs)+ss-12 pending Pass-20 precise audit; remediation does not advance counter; trajectory P14-19: 2C5H/2C1H/0C0H/3C2H/0C3H/0C8H; REGRESSION at P19 HIGH; Decaying on CRITICAL (0 for 3 of last 4); Pass 20 via Claude adversary after ss-04-remainder+ss-12 precise audit
+arp_f2_convergence_trajectory: "15→20→~8→~15→~6→~4→~4→~7→~4→~6→~5→~18→~8→~22(P14: 2C/5H NEW corpus-debt; trend broke; ARP delta clean 6th pass)→P15(8 findings: holdout-layer field-rename + regression; REMEDIATED)→P16(7: 0C/0H, sibling-sweep misses; REMEDIATED; Slice B CLEAN)→P17(10: holdout MITRE-counts + module-decomposition peer; REMEDIATED; Slice B CLEAN 2nd)→P18(9: ss-05 anchor-drift + indicatif + STORY-INDEX; 0C/3H; REMEDIATED; arp.rs+holdout pre-flush verified clean)→P19(15: corpus-wide anchor-drift; 0C/8H; PARTIAL — ss-07-full+remaining-BC pending)→ batch2: ss-07-full(35 BCs)+ss-04-partial(21 BCs)+ss-11(10 BCs); ss-01/02/08/13 CLEAN; ss-04-remainder+ss-12 to Pass-20 — 0/3 STRICT WHOLE-CORPUS; 19 passes; P14-P18 REMEDIATED; P19 REMEDIATION BATCH2 COMPLETE (ss-04-remainder+ss-12 pending Pass-20 precise audit). Detail: phase-f5-adversarial/arp-f2-convergence-trajectory.md"
 f7_convergence_trajectory: "6 fresh-context adversarial passes; final 3 consecutive CONVERGED (0 P0/CRITICAL/HIGH/MEDIUM)"
 consistency_audit: CONSISTENT
 input_drift_check: "MATCH=62 STALE=0 ERROR=1 (STORY-091 known); STORY-106 d0ef956 / STORY-109 cf0bb94 re-stamped"
@@ -50,7 +50,7 @@ input_drift_check: "MATCH=62 STALE=0 ERROR=1 (STORY-091 known); STORY-106 d0ef95
 
 ## Status
 
-**wirerust v0.6.0 RELEASED (DNP3 TCP analyzer, issue #8). Feature: ARP security analyzer + etherparse 0.16→0.20 migration (F1 PASSED 2026-06-12, D-066); release target v0.7.0. F2 spec evolution IN PROGRESS — adversarial convergence 0/3 STRICT WHOLE-CORPUS mode (human-elected 2026-06-13; 19 passes completed; Pass 19 REMEDIATION IN PROGRESS — 15 findings: PG-ARP-F2-007 corpus-wide anchor-drift confirmed; 0C/8H; ~62 files re-anchored (9 VPs + ss-09 6 BCs + Possible-verdict gap + ss-06 ALL 26 BCs + ss-04/ss-07-partial + domain + prd-supp + purity-boundary-map v1.5 + HS-009 T1083→Discovery); ss-07-full (~34 remaining BCs) + audit ss-01/02/04-rest/08/11/12/13 STILL PENDING before Pass 20; trajectory P14-19: 2C/5H→2C/1H→0C/0H→3C/2H→0C/3H→0C/8H; Decaying on CRITICAL (0 for 3 of last 4); REGRESSION at P19 HIGH).**
+**wirerust v0.6.0 RELEASED (DNP3 TCP analyzer, issue #8). Feature: ARP security analyzer + etherparse 0.16→0.20 migration (F1 PASSED 2026-06-12, D-066); release target v0.7.0. F2 spec evolution IN PROGRESS — adversarial convergence 0/3 STRICT WHOLE-CORPUS mode (human-elected 2026-06-13; 19 passes completed; Pass 19 remediation batch 2 DONE — ss-07-full 35 BCs + ss-04-partial 21 BCs + ss-11 10 BCs re-anchored; ss-01/02/08/13 CLEAN; ~85% anchor-drift flushed; ss-04-remainder (~12-20 BCs) + ss-12 BC-2.12.005 PENDING Pass-20 precise audit; trajectory P14-19: 2C/5H→2C/1H→0C/0H→3C/2H→0C/3H→0C/8H; Decaying on CRITICAL (0 for 3 of last 4); REGRESSION at P19 HIGH).**
 
 **Summary:** 63 stories (48 greenfield + 4 F-cycle + 11 F3-new), 400 pts. 268 BCs (244 pre-F2 + 24 SS-15), 23 VPs (22+VP-023 ALL LOCKED), 1496 tests green, holdout 0.967. develop HEAD 31d1231; main HEAD 3e29891 (v0.6.0). ARP feature: F1 approved — est. 18-24 new BCs (SS-16), 1 revised BC, VP-024, ADR-008, 5-6 stories (E-16), 3-5 holdout scenarios. MITRE T0830 (primary) + T1557.002 (secondary).
 
@@ -81,9 +81,9 @@ Post-release sweep 2026-06-12: 5 dep bumps merged (#203/#204/#207/#235/#206), #2
 | Release v0.6.0 | **RELEASED** 2026-06-12 | PR #234 (release/0.6.0 → main 3e29891); fixup fb3935c; tag v0.6.0; 4 binaries (release.yml); develop merge-back 04f8ccb |
 | Maintenance: Dependabot sweep (post-v0.6.0) | **COMPLETE** 2026-06-12 | 5 PRs merged (#203/#204/#207/#235/#206), 2 closed (#202 superseded, #205 deferred); develop 31d1231 |
 | Feature: ARP analyzer — F1 Delta Analysis | **PASSED** (human-gated 2026-06-12) | DecodedFrame{Ip,Arp} integration, ADR-008 planned, F2→F7 authorized; artifacts: `.factory/phase-f1-delta-analysis/arp-analyzer-delta-analysis.md` |
-| Feature: ARP analyzer — F2 Spec Evolution | **IN PROGRESS** — adversarial convergence 0/3 STRICT WHOLE-CORPUS (human-elected 2026-06-13); Pass 19 REMEDIATION IN PROGRESS; ss-07-full + remaining-BC anchor audit PENDING before Pass 20 | 4-slice method; 19 passes; ARP delta SETTLED (clean 6+ consecutive); P14-P18 REMEDIATED; P19 PARTIAL (15 findings: 0C/8H; PG-ARP-F2-007 corpus-wide anchor-drift; ~62 files re-anchored this checkpoint: purity-boundary-map v1.5 + 9 VP files + ss-09 6 BCs + Possible-verdict variant ADDED + ss-06 ALL 26 BCs + ss-04/ss-07 partial + HS-009 T1083→Discovery + nfr-catalog/nfr-story-map/inv-01 INV-2 + domain straggler; ss-07-full (~34 BCs) + ss-01/02/04-rest/08/11/12/13 PENDING; Slice D CLEAN); P14-19: 2C5H/2C1H/0C0H/3C2H/0C3H/0C8H; trajectory: `phase-f5-adversarial/arp-f2-convergence-trajectory.md` |
+| Feature: ARP analyzer — F2 Spec Evolution | **IN PROGRESS** — adversarial convergence 0/3 STRICT WHOLE-CORPUS (human-elected 2026-06-13); Pass 19 remediation batch 2 DONE; ss-04-remainder + ss-12 PENDING Pass-20 precise audit | 4-slice method; 19 passes; ARP delta SETTLED (clean 6+ consecutive); P14-P18 REMEDIATED; P19 BATCH2 DONE (ss-07-full 35 BCs + ss-04-partial 21 BCs + ss-11 10 BCs re-anchored; ss-01/02/08/13 CLEAN; ss-12 BC-2.12.005 + ss-04-remainder ~12-20 BCs to Pass-20); ~85% anchor-drift flushed; Slice D CLEAN; P14-19: 2C5H/2C1H/0C0H/3C2H/0C3H/0C8H; trajectory: `phase-f5-adversarial/arp-f2-convergence-trajectory.md` |
 
-## Session Resume Checkpoint (2026-06-13 — F2 STRICT WHOLE-CORPUS CONVERGENCE, Pass 19 REMEDIATION IN PROGRESS)
+## Session Resume Checkpoint (2026-06-13 — F2 STRICT WHOLE-CORPUS CONVERGENCE, Pass 19 remediation batch 2 DONE)
 
 **Previous checkpoint (2026-06-13 — Pass 18 REMEDIATED) archived to:
 `cycles/feature-arp-v0.7.0/session-checkpoints.md`**
@@ -99,15 +99,15 @@ Post-release sweep 2026-06-12: 5 dep bumps merged (#203/#204/#207/#235/#206), #2
 - **F2 adversarial convergence:** STRICT WHOLE-CORPUS mode (human-elected 2026-06-13).
   Bar = 3 consecutive passes with ZERO findings of ANY severity, including LOW, across the
   ENTIRE spec corpus — not just the ARP delta. Counter **0/3**.
-- **19 adversarial passes + 1 corpus consistency audit run. Pass 19 REMEDIATION IN PROGRESS.**
-  Pass 19 (15 findings; PARTIAL): PG-ARP-F2-007 corpus-wide anchor-drift confirmed. ~62 files
-  re-anchored in this checkpoint: purity-boundary-map v1.4→v1.5 (A-01/A-02); 9 VP files
-  re-anchored (vp-003/004/006/010/011/013/014/015/021); ss-09 6 BCs re-anchored + BC-2.09.003
-  Possible-verdict variant ADDED; ss-06 ALL 26 BCs http.rs re-anchored; ss-04 BC-2.04.055/024/020
-  corrected; ss-07 3 BCs partial (B-10); HS-009 T1083→Discovery (C-01); nfr-catalog/nfr-story-map/
-  inv-01 INV-2 dispatcher anchors; domain straggler sweep.
-  STILL PENDING: ss-07 FULL re-anchor (~34 remaining BCs vs tls.rs) + audit ss-01/02/04-rest/
-  08/11/12/13 for shifted-file anchors. Slice D CLEAN.
+- **19 adversarial passes + 1 corpus consistency audit run. Pass 19 remediation batch 2 DONE.**
+  Pass 19 (15 findings): PG-ARP-F2-007 corpus-wide anchor-drift confirmed + remediated in two
+  batches. Batch 1 (~62 files): purity-boundary-map v1.5, 9 VPs, ss-09 6 BCs + Possible-verdict
+  variant, ss-06 ALL 26 BCs, ss-04 BC-2.04.055/024/020, ss-07 3 BCs, HS-009 T1083→Discovery,
+  nfr-catalog/nfr-story-map/inv-01 INV-2 dispatcher, domain straggler sweep.
+  Batch 2 (~66 files): ss-07 FULL 35 BCs re-anchored vs tls.rs; ss-04 PARTIAL 21 BCs re-anchored
+  vs reassembly src; ss-11 10 BCs re-anchored vs reporter src; ss-01/02/08/13 CONFIRMED CLEAN.
+  STILL PENDING: ss-04-remainder (~12-20 BCs, precise per-anchor src-verification) + ss-12
+  BC-2.12.005. ~85% of anchor-drift flushed. Slice D CLEAN.
   Trajectory P14-19: 2C/5H→2C/1H→0C/0H→3C/2H→0C/3H→0C/8H. REGRESSION at P19 HIGH.
   agy headless print-mode UNUSABLE (3 failure modes documented).
 
@@ -140,11 +140,14 @@ Remaining findings are pre-existing corpus debt — dominated by src-line-anchor
 1. Run `vsdd-factory:factory-worktree-health`. **BLOCKING — do not proceed if this fails.**
 2. Read `STATE.md` (this file) + `.factory/phase-f5-adversarial/arp-f2-convergence-trajectory.md`.
 3. Confirm develop==origin/develop, working tree clean, no open PRs.
-4. **Next action (BEFORE Pass 20): complete P19 pending remediation.**
-   (1) ss-07 FULL tls.rs re-anchor: audit all ~34 remaining ss-07 BCs vs current tls.rs line
-       numbers (e.g., BC-2.07.031 tls.rs:771-773 top_snis-sort is stale; actual @860-862).
-   (2) Audit remaining BC subsystems for shifted-file anchors: ss-01/02/04-rest/08/11/12/13.
-   Commit the completion as a second burst (still pre-Pass-20).
+4. **Next action (BEFORE Pass 20): complete ss-04-remainder + ss-12 anchor audit.**
+   (a) COMPLETE ss-04 anchor audit: precisely verify every remaining ss-04 BC src-anchor vs
+       current reassembly src. Fix stale anchors only — avoid over-correcting correct top-of-file
+       anchors (blind heuristic produced false positives). Remaining: ~12-20 BCs from the set
+       002/005/010/011/013/015/016 + 006-008/012/014/017-019/021-023/025-028/056+ not yet covered.
+   (b) ss-12 BC-2.12.005: re-anchor vs current src.
+   (c) Re-verify: confirm ss-05/06/07/09/11 + VP + domain sweeps held (no over-correction
+       introduced in Batch 2). Counter remains 0/3.
 5. **Then: whole-corpus Pass 20 via Claude vsdd-factory:adversary (4 slices, STRICT).**
    agy headless print-mode is currently UNUSABLE (3 documented failure modes; use Claude).
    Dispatch 4 FRESH-CONTEXT slices in parallel, STRICT mode (report EVERY finding of ANY
@@ -197,7 +200,11 @@ Remaining findings are pre-existing corpus debt — dominated by src-line-anchor
 - **HS-009 T1083→Discovery:** MITRE-fact corrected (Pass-19 C-01). Do NOT re-flag T1083 mapping.
 - **nfr-catalog/nfr-story-map dispatcher anchors:** corrected (Pass-19 C-02). Do NOT re-flag.
 - **inv-01 INV-2 dispatcher anchors:** corrected (Pass-19 C-03). Do NOT re-flag.
-- **ss-07 FULL re-anchor (PENDING):** ~34 remaining ss-07 BCs cite tls.rs with stale anchors. DO flag any stale tls.rs anchors in remaining ss-07 BCs — they have NOT been corrected yet.
+- **ss-07 FULL re-anchor (COMPLETE — P19 Batch 2):** All 35 changed ss-07 BCs re-anchored vs tls.rs. BC-2.07.016/030 confirmed already clean. Do NOT re-flag tls.rs anchors in ss-07 using pre-Batch-2 line numbers.
+- **ss-11 re-anchor (COMPLETE — P19 Batch 2):** BC-2.11.009/013/014/015/016/017/018/021/022/024 re-anchored vs reporter src. 14 BCs confirmed clean. Do NOT re-flag ss-11 anchors using pre-Batch-2 line numbers.
+- **ss-01/02/08/13 (CONFIRMED CLEAN — P19 Batch 2):** Zero shifted-src citations. Do NOT flag as needing anchor correction.
+- **ss-04-remainder (PENDING — Pass-20 precise audit):** ~12-20 ss-04 BCs not yet per-anchor verified vs reassembly src. DO flag any stale ss-04 anchors not in the confirmed-clean or already-fixed sets.
+- **ss-12 BC-2.12.005 (PENDING — defer to Pass-20):** Cites shifted src. DO flag if still stale at Pass 20.
 
 ### RECURRING DEFECT CLASSES (sweep proactively before each pass)
 

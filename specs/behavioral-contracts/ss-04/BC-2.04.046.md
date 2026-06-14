@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -15,6 +15,7 @@ lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
+  - "v1.3: PG-ARP-F2-007 ss-04-full re-anchor: segment.rs:308-332 → segment.rs:308-332 (gap-insertion loop with mid-loop limit check); segment.rs:311 → segment.rs:311. — 2026-06-13"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -39,7 +40,7 @@ equals `max_segments`.
 1. `self.isn` is `Some(isn)`.
 2. The new segment has two or more gap intervals relative to existing segments.
 3. After inserting some gap intervals, `self.segments.len() == max_segments` (the limit is
-   hit mid-loop at the segment-limit check inside the loop at segment.rs:178).
+   hit mid-loop at the segment-limit check inside the loop at segment.rs:311).
 
 ## Postconditions
 
@@ -84,7 +85,7 @@ equals `max_segments`.
 | L2 Capability | CAP-04 ("TCP stream reassembly") per domain/capabilities/cap-04-tcp-reassembly.md |
 | Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per domain/capabilities/cap-04-tcp-reassembly.md -- mid-loop partial insertion is an edge case of the segment buffer overflow protection |
 | L2 Domain Invariants | INV-6 (bounded-resource design -- max_segments caps BTreeMap size even mid-loop) |
-| Architecture Module | SS-04 (reassembly/segment.rs:175-199, C-8) |
+| Architecture Module | SS-04 (reassembly/segment.rs:308-332, C-8) |
 | Stories | STORY-018 |
 | Origin BC | BC-RAS-046 (pass-3 ingestion corpus, HIGH confidence) |
 
@@ -96,13 +97,13 @@ equals `max_segments`.
 
 ## Architecture Anchors
 
-- `src/reassembly/segment.rs:175-199` -- gap-insertion loop with mid-loop limit check
+- `src/reassembly/segment.rs:308-332` -- gap-insertion loop with mid-loop limit check
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/reassembly/segment.rs:175-199` |
+| **Path** | `src/reassembly/segment.rs:308-332` |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 

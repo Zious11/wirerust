@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.4"
+version: "1.5"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -17,6 +17,7 @@ modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
   - "v1.3: anchor sweep — correct extract_sni arm-3/arm-4 line citations to 257-260/261-264 (PG-W16-003 sibling sweep from F-S056-P5-001/002/003) — 2026-05-29"
   - "v1.4: mitre_technique: Some(\"T1027\") → mitre_techniques: vec![\"T1027\"] in Postconditions (ARP-F2 P14 B6) — 2026-06-13"
+  - "v1.5: PG-ARP-F2-007 ss-07 full re-anchor — arm 4 extract_sni 261-264→262-265; key selection 410-415→421-426; NonUtf8 emission 469-488→494-514 — 2026-06-13"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -96,7 +97,7 @@ with `Anomaly/Inconclusive/Low` and MITRE T1027.
 | L2 Capability | CAP-07 ("TLS traffic analysis") per domain/capabilities/cap-07-tls-analysis.md |
 | Capability Anchor Justification | CAP-07 ("TLS traffic analysis") per domain/capabilities/cap-07-tls-analysis.md -- non-UTF-8 SNI detection is arm 4 of the SNI 4-way classification |
 | L2 Domain Invariants | INV-5 (SNI 4-way classification), INV-4 (raw-data/display-layer separation) |
-| Architecture Module | SS-07 (analyzer/tls.rs:261-264, 410-415, 469-488, C-13) |
+| Architecture Module | SS-07 (analyzer/tls.rs:262-265, 421-426, 494-514, C-13) |
 | Stories | STORY-056 |
 | Origin BC | BC-TLS-019 (pass-3 ingestion corpus, HIGH confidence) |
 
@@ -108,16 +109,16 @@ with `Anomaly/Inconclusive/Low` and MITRE T1027.
 
 ## Architecture Anchors
 
-- `src/analyzer/tls.rs:261-264` -- arm 4 match in extract_sni (`Err(_) => SniValue::NonUtf8 { ... }`)
-- `src/analyzer/tls.rs:410-415` -- sni_counts key selection for NonUtf8
-- `src/analyzer/tls.rs:469-488` -- NonUtf8 finding push
+- `src/analyzer/tls.rs:262-265` -- arm 4 match in extract_sni (`Err(_) => SniValue::NonUtf8 { ... }`)
+- `src/analyzer/tls.rs:421-426` -- sni_counts key selection for NonUtf8
+- `src/analyzer/tls.rs:494-514` -- NonUtf8 finding push
 - `tests/tls_analyzer_tests.rs` -- test_non_utf8_sni_emits_finding_and_counts_under_hex_key
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/analyzer/tls.rs:261-264` (arm 4), `src/analyzer/tls.rs:469-488` (emission) |
+| **Path** | `src/analyzer/tls.rs:262-265` (arm 4), `src/analyzer/tls.rs:494-514` (emission) |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 

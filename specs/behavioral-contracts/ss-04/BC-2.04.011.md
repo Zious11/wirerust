@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.6"
+version: "1.7"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -18,7 +18,8 @@ modified:
   - "v1.3: Wave 7 wave-level adv-pass-2 F-2 HIGH: comprehensive SS-04 anchor sweep (W4.1 axis #3). Corrected on_fin reference from flow.rs:248-256 (pre-Wave-6, also semantically colliding with on_data_without_syn) to flow.rs:255-262 (post-Wave-6). Fixed in both Traceability Architecture Module row and Architecture Anchors section. — 2026-05-25"
   - "v1.4: Wave 7 wave-level adv-pass-4 F-2 (process-gap): mega-sweep false-CORRECT — closing brace at mod.rs:174 not included in cited range 166-173; corrected to 165-174. — 2026-05-25"
   - "v1.5: Wave 8 wave-level adv-pass-1 F-1 HIGH closure (S-7.01 sibling-BC propagation, W7.2 recurrence #5): PC4 enforcement-mode notation — \"remaining contiguous data flushed in close_flow\" is structurally a defense-in-depth invariant (per-packet flush at mod.rs:162 drains buffer pre-close); enforced via code-review of close_flow flush loop body at lifecycle.rs:52-59. Mirrors BC-2.04.010 v1.5 PC2 + BC-2.04.029 v1.4 + BC-2.04.048 v1.3 / ADR-0004 amendment precedent. — 2026-05-26"
-  - "v1.6: DF-SIBLING-SWEEP-001 HS-043 re-anchor: mod.rs:165-174 → mod.rs:196-203 (FIN-close is_some_and detection block); mod.rs:281-287 → mod.rs:310-316 (FIN flag block in apply_handshake_flags); mod.rs:162 → mod.rs:191 (flush_contiguous_data call in process_packet). — 2026-06-01"
+  - "v1.6: DF-SIBLING-SWEEP-001 HS-043 re-anchor: mod.rs:165-174 → mod.rs:198-205 (FIN-close is_some_and detection block); mod.rs:281-287 → mod.rs:313-319 (FIN flag block in apply_handshake_flags); mod.rs:162 → mod.rs:193 (flush_contiguous_data call in process_packet). — 2026-06-01"
+  - "v1.7: PG-ARP-F2-007 ss-04-full re-anchor: mod.rs:198-205 → mod.rs:198-205 (FIN-close detection block); mod.rs:313-319 → mod.rs:313-319 (FIN flag block); mod.rs:193 → mod.rs:193 (flush_contiguous_data call). All prose, Architecture Module, Architecture Anchors, and Source Evidence updated. — 2026-06-13"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -51,7 +52,7 @@ FIN also transitions the state toward `Closing`.
 3. `stats.flows_fin` increments by 1.
 4. Any remaining contiguous data in both directions is flushed to handler.
    (Enforcement: in the current engine architecture, the per-packet flush at
-   `src/reassembly/mod.rs:191` (unconditional `flush_contiguous_data` after every
+   `src/reassembly/mod.rs:193` (unconditional `flush_contiguous_data` after every
    `insert_payload_segment`) already delivers all contiguous-prefix data BEFORE any close path
    runs. The `flush_contiguous` loop at `src/reassembly/lifecycle.rs:52-59` inside `close_flow`
    is therefore structurally a defense-in-depth invariant — it CAN deliver if a future refactor
@@ -102,7 +103,7 @@ FIN also transitions the state toward `Closing`.
 | L2 Capability | CAP-04 ("TCP stream reassembly") per domain/capabilities/cap-04-tcp-reassembly.md |
 | Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per domain/capabilities/cap-04-tcp-reassembly.md -- FIN-based flow close is required for correct TCP lifecycle management |
 | L2 Domain Invariants | None directly |
-| Architecture Module | SS-04 (reassembly/mod.rs:196-203, FIN-close detection; mod.rs:310-316, FIN flag block; flow.rs:255-262, on_fin) |
+| Architecture Module | SS-04 (reassembly/mod.rs:198-205, FIN-close detection; mod.rs:313-319, FIN flag block; flow.rs:255-262, on_fin) |
 | Stories | STORY-019 |
 | Origin BC | BC-RAS-011 (pass-3 ingestion corpus, HIGH confidence) |
 
@@ -114,15 +115,15 @@ FIN also transitions the state toward `Closing`.
 
 ## Architecture Anchors
 
-- `src/reassembly/mod.rs:196-203` -- process_packet: if state==Closed after payload, close_flow(Fin)
-- `src/reassembly/mod.rs:310-316` -- FIN flag block: set fin_seen, call on_fin
+- `src/reassembly/mod.rs:198-205` -- process_packet: if state==Closed after payload, close_flow(Fin)
+- `src/reassembly/mod.rs:313-319` -- FIN flag block: set fin_seen, call on_fin
 - `src/reassembly/flow.rs:255-262` -- on_fin: fin_count++; state transitions
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/reassembly/mod.rs:196-203` |
+| **Path** | `src/reassembly/mod.rs:198-205` |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 

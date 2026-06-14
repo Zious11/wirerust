@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -16,6 +16,7 @@ introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
   - "v1.3: proof_method disjunction 'unit / proptest'→'unit' in VP table (DF-SIBLING-SWEEP-001; CSV-reporter family sweep completion — sibling of BC-2.11.020 v1.4 / BC-2.11.021 v1.3; STORY-079 P8 finding)"
+  - "v1.4: PG-ARP-F2-007 — fix stale csv.rs line anchor in Postcondition 4: evidence neutralize call :93 → :98 (after STORY-100 added mitre_techniques column, evidence neutralize shifted from position 5 at :93 to :98 within the write_record block at :92-:103); verified against current HEAD — 2026-06-13"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -49,7 +50,7 @@ applies RFC 4180 quoting if the joined string contains commas, quotes, or newlin
 3. If `f.evidence` has exactly one element, the result is that element with no separator
    appended or prepended.
 4. The joined string is subsequently processed by `neutralize_csv_injection` before the
-   csv write (csv.rs:93 applies `neutralize_csv_injection(&evidence)`).
+   csv write (csv.rs:98 applies `neutralize_csv_injection(&evidence)`).
 5. The entire joined-and-neutralized value occupies exactly one CSV cell (column 5);
    it never spans multiple columns.
 
@@ -113,7 +114,7 @@ applies RFC 4180 quoting if the joined string contains commas, quotes, or newlin
 ## Architecture Anchors
 
 - `src/reporter/csv.rs:81` -- `let evidence = f.evidence.join("; ");`
-- `src/reporter/csv.rs:93` -- `neutralize_csv_injection(&evidence)` applied to joined string
+- `src/reporter/csv.rs:98` -- `neutralize_csv_injection(&evidence)` applied to joined string
 
 ## Story Anchor
 

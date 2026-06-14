@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.6"
+version: "1.7"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -17,6 +17,7 @@ modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
   - "v1.3: re-anchor Architecture-Anchor from legacy reporter_tests.rs to authoritative reporter_terminal_tests.rs mod story_078 formalization (F-W22-BC-ANCHOR) — 2026-05-31"
   - "v1.4: DF-SIBLING-SWEEP-001 — fix stale terminal.rs line anchor: render_finding_flat 223-228 → 230-235 (fn at 230, closing at 235); verified against HEAD cfe0112a — 2026-06-01"
+  - "v1.7: PG-ARP-F2-007 — fix stale terminal.rs line anchors shifted by F2 multi-tag additions (STORY-100): render_finding_flat :230-235 → :232-238 (fn decl at 232, closing at 238); Invariant 1 fn ref :230-235 → :232-238; Source Evidence path updated; verified against current HEAD — 2026-06-13"
   - "v1.5: ADR-006 / Decision 13 §13.7 (F2 v0.3.0) — multi-tag rendering: single ID emits 'MITRE: T1036'; multi-tag emits 'MITRE: T0855, T0836' (comma-space separated); empty vec emits no MITRE line. Precondition 2 and EC-003 updated; EC-005/EC-006 added. — 2026-06-09"
   - "v1.6: v19 remap: T0855 → T1692.001 per MITRE ATT&CK for ICS v19.0 revocation. All T0855 technique ID references in Description, Postconditions, EC-005, EC-006, and Canonical Test Vectors updated to T1692.001. Tactic unchanged: IcsImpairProcessControl. Issue #222; audit: mitre-ics-v19-catalog-audit.md. — 2026-06-10"
 deprecated: null
@@ -67,7 +68,7 @@ order with no tactic bucketing or sorting.
 
 ## Invariants
 
-1. Default mode uses `render_finding_flat` (terminal.rs:230-235) which iterates
+1. Default mode uses `render_finding_flat` (terminal.rs:232-238) which iterates
    `mitre_techniques` and joins IDs with `", "`. If empty, skips the MITRE line entirely.
 2. `render_finding_flat` never calls `technique_name()` or `technique_tactic()`.
 3. This mode is the "no --mitre flag" case; grouping requires the `--mitre` CLI flag.
@@ -117,7 +118,7 @@ order with no tactic bucketing or sorting.
 
 ## Architecture Anchors
 
-- `src/reporter/terminal.rs:230-235` -- render_finding_flat (default path)
+- `src/reporter/terminal.rs:232-238` -- render_finding_flat (default path)
 - `tests/reporter_terminal_tests.rs` -- mod story_078 :: test_BC_2_11_017_default_mode_bare_mitre_id
 
 ---
@@ -128,7 +129,7 @@ order with no tactic bucketing or sorting.
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/reporter/terminal.rs:230-235` |
+| **Path** | `src/reporter/terminal.rs:232-238` |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 

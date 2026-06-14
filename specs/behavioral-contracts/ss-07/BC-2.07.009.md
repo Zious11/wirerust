@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -16,6 +16,7 @@ introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
   - "v1.3: mitre_technique: None → mitre_techniques: vec![] in Postconditions (ARP-F2 P14 B6) — 2026-06-13"
+  - "v1.4: PG-ARP-F2-007 ss-07 full re-anchor — is_weak_cipher 56-64→57-65; weak-cipher collection+push 497-517→530-556 — 2026-06-13"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -66,7 +67,7 @@ cardinality.
    `TlsCipherSuite::from_id(id.0)` returns `None` for GREASE values (they are not
    in the cipher suite database), and `is_weak_cipher` returns `false` for `None`.
    There is NO explicit GREASE pre-filter on the weak-cipher scan; the scan operates
-   on the raw `ch.ciphers` list (lines 497-502). GREASE immunity is a consequence of
+   on the raw `ch.ciphers` list (lines 530-536). GREASE immunity is a consequence of
    the `None`-returns-false branch, not an explicit filter.
 2. If `TlsCipherSuite::from_id(id.0)` returns None (unknown cipher), `is_weak_cipher`
    returns false -- unknown ciphers do NOT trigger the finding.
@@ -107,7 +108,7 @@ cardinality.
 | L2 Capability | CAP-07 ("TLS traffic analysis") per domain/capabilities/cap-07-tls-analysis.md |
 | Capability Anchor Justification | CAP-07 ("TLS traffic analysis") per domain/capabilities/cap-07-tls-analysis.md -- weak client cipher detection is one of the 7 TLS anomaly findings described in cap-07 |
 | L2 Domain Invariants | INV-4 (raw-data/display-layer separation -- cipher names stored as raw strings) |
-| Architecture Module | SS-07 (analyzer/tls.rs:497-517, C-13) |
+| Architecture Module | SS-07 (analyzer/tls.rs:530-556, C-13) |
 | Stories | STORY-054 |
 | Origin BC | BC-TLS-009 (pass-3 ingestion corpus, HIGH confidence) |
 
@@ -118,15 +119,15 @@ cardinality.
 
 ## Architecture Anchors
 
-- `src/analyzer/tls.rs:56-64` -- `is_weak_cipher` function (NULL/ANON/EXPORT check)
-- `src/analyzer/tls.rs:497-517` -- weak cipher collection and finding push in handle_client_hello
+- `src/analyzer/tls.rs:57-65` -- `is_weak_cipher` function (NULL/ANON/EXPORT check)
+- `src/analyzer/tls.rs:530-556` -- weak cipher collection and finding push in handle_client_hello
 - `tests/tls_analyzer_tests.rs` -- test_weak_cipher_finding_client
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/analyzer/tls.rs:497-517` |
+| **Path** | `src/analyzer/tls.rs:530-556` |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 

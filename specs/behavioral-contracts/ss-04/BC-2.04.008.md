@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -15,6 +15,7 @@ lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
+  - "v1.3: PG-ARP-F2-007 ss-04-full re-anchor: segment.rs:348-364 → segment.rs:348-364 (no-overlap insert); segment.rs:369-381 → segment.rs:369-381 (flush_contiguous). — 2026-06-13"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -90,7 +91,7 @@ the core out-of-order reassembly behavior.
 | L2 Capability | CAP-04 ("TCP stream reassembly") per domain/capabilities/cap-04-tcp-reassembly.md |
 | Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per domain/capabilities/cap-04-tcp-reassembly.md -- out-of-order buffering is the primary function that justifies the BTreeMap segment store |
 | L2 Domain Invariants | None directly |
-| Architecture Module | SS-04 (reassembly/segment.rs:214-231, no-overlap insert; segment.rs:236-248, flush_contiguous) |
+| Architecture Module | SS-04 (reassembly/segment.rs:348-364, no-overlap insert; segment.rs:369-381, flush_contiguous) |
 | Stories | STORY-015 |
 | Origin BC | BC-RAS-008 (pass-3 ingestion corpus, HIGH confidence) |
 
@@ -103,14 +104,14 @@ the core out-of-order reassembly behavior.
 
 ## Architecture Anchors
 
-- `src/reassembly/segment.rs:214-231` -- no-overlap insert path: stores in BTreeMap
-- `src/reassembly/segment.rs:236-248` -- flush_contiguous: delivers contiguous prefix
+- `src/reassembly/segment.rs:348-364` -- no-overlap insert path: stores in BTreeMap
+- `src/reassembly/segment.rs:369-381` -- flush_contiguous: delivers contiguous prefix
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/reassembly/segment.rs:214-231` |
+| **Path** | `src/reassembly/segment.rs:348-364` |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 

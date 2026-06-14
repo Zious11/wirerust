@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -15,7 +15,8 @@ lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
-  - "v1.3: DF-SIBLING-SWEEP-001 HS-043 re-anchor: mod.rs:379-381 → mod.rs:408-410 (ConflictingOverlap engine match arm). — 2026-06-01"
+  - "v1.3: DF-SIBLING-SWEEP-001 HS-043 re-anchor: mod.rs:379-381 → mod.rs:416-418 (ConflictingOverlap engine match arm). — 2026-06-01"
+  - "v1.4: PG-ARP-F2-007 ss-04-full re-anchor: segment.rs:286-303 → segment.rs:286-303 (fully_covered + has_conflict gate); segment.rs:286 → segment.rs:286; mod.rs:416-418 → mod.rs:416-418 (ConflictingOverlap engine match arm). — 2026-06-13"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -57,7 +58,7 @@ in `mod.rs` then emits an `Anomaly/Likely/High` finding tagged T1036.
    buffered bytes are authoritative.
 2. `ConflictingOverlap` is distinct from `Duplicate` (same range, same bytes) and
    `PartialOverlap` (partial coverage with some new bytes).
-3. The T1036 finding is emitted by the engine match arm (lifecycle.rs via mod.rs:408-410),
+3. The T1036 finding is emitted by the engine match arm (lifecycle.rs via mod.rs:416-418),
    not inside `insert_segment` itself. `insert_segment` only classifies the result.
 
 ## Edge Cases
@@ -92,7 +93,7 @@ in `mod.rs` then emits an `Anomaly/Likely/High` finding tagged T1036.
 | L2 Capability | CAP-04 ("TCP stream reassembly") per domain/capabilities/cap-04-tcp-reassembly.md |
 | Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per domain/capabilities/cap-04-tcp-reassembly.md -- ConflictingOverlap detection is the primary forensic signal of TCP evasion in the reassembly engine |
 | L2 Domain Invariants | INV-3 (First-wins overlap policy -- ConflictingOverlap is the canonical enforcement point) |
-| Architecture Module | SS-04 (reassembly/segment.rs:142-154, C-8) |
+| Architecture Module | SS-04 (reassembly/segment.rs:286-303, C-8) |
 | Stories | STORY-017 |
 | Origin BC | BC-RAS-037 (pass-3 ingestion corpus, HIGH confidence) |
 
@@ -104,21 +105,21 @@ in `mod.rs` then emits an `Anomaly/Likely/High` finding tagged T1036.
 
 ## Architecture Anchors
 
-- `src/reassembly/segment.rs:142-154` -- fully_covered + has_conflict gate for ConflictingOverlap/Duplicate return
-- `src/reassembly/mod.rs:408-410` -- engine match arm calling generate_conflicting_overlap_finding
+- `src/reassembly/segment.rs:286-303` -- fully_covered + has_conflict gate for ConflictingOverlap/Duplicate return
+- `src/reassembly/mod.rs:416-418` -- engine match arm calling generate_conflicting_overlap_finding
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/reassembly/segment.rs:142-154` |
+| **Path** | `src/reassembly/segment.rs:286-303` |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 
 ## Evidence Types Used
 
 - **assertion**: test_overlap_conflicting_data_detected asserts ConflictingOverlap result
-- **guard clause**: `if fully_covered { return if has_conflict { ConflictingOverlap } else { Duplicate } }` at segment.rs:148
+- **guard clause**: `if fully_covered { return if has_conflict { ConflictingOverlap } else { Duplicate } }` at segment.rs:286
 
 ## Purity Classification
 

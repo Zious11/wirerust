@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -15,6 +15,7 @@ lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
+  - "v1.3: PG-ARP-F2-007 ss-04-full re-anchor: segment.rs:369-381 → segment.rs:369-381 (flush_contiguous implementation). — 2026-06-13"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -90,7 +91,7 @@ ascending offset order.
 | L2 Capability | CAP-04 ("TCP stream reassembly") per domain/capabilities/cap-04-tcp-reassembly.md |
 | Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per domain/capabilities/cap-04-tcp-reassembly.md -- flush_contiguous is the mechanism by which reassembled data is delivered; it is the output contract of TCP stream reassembly |
 | L2 Domain Invariants | INV-3 (First-wins overlap policy -- data flushed is the already-buffered first-wins bytes) |
-| Architecture Module | SS-04 (reassembly/segment.rs:234-248, C-8) |
+| Architecture Module | SS-04 (reassembly/segment.rs:369-381, C-8) |
 | Stories | STORY-015 |
 | Origin BC | BC-RAS-034 (pass-3 ingestion corpus, HIGH confidence) |
 
@@ -102,13 +103,13 @@ ascending offset order.
 
 ## Architecture Anchors
 
-- `src/reassembly/segment.rs:234-248` -- flush_contiguous implementation
+- `src/reassembly/segment.rs:369-381` -- flush_contiguous implementation
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/reassembly/segment.rs:234-248` |
+| **Path** | `src/reassembly/segment.rs:369-381` |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 

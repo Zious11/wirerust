@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -16,6 +16,7 @@ introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
   - "v1.3: Wave 9 STORY-016 adv pass-2 F-5: removed 'Wait -- re-check' drafting artifact from invariant 1 prose; replaced with concise canonical statement — 2026-05-26"
+  - "v1.4: PG-ARP-F2-007 ss-04-full re-anchor: segment.rs:43 → segment.rs:43 (ranges_overlap fn, half-open interval test). — 2026-06-13"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -88,7 +89,7 @@ segment ends does NOT trigger `has_overlap = true` and is inserted cleanly.
 | L2 Capability | CAP-04 ("TCP stream reassembly") per domain/capabilities/cap-04-tcp-reassembly.md |
 | Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per domain/capabilities/cap-04-tcp-reassembly.md -- correct boundary handling prevents false-positive overlap detection in normal sequential TCP flows |
 | L2 Domain Invariants | INV-3 (First-wins overlap policy -- adjacency is not overlap; this BC ensures the policy is not over-triggered) |
-| Architecture Module | SS-04 (reassembly/segment.rs:118, C-8) |
+| Architecture Module | SS-04 (reassembly/segment.rs:43, C-8) |
 | Stories | STORY-016 |
 | Origin BC | BC-RAS-043 (pass-3 ingestion corpus, HIGH confidence) |
 
@@ -100,13 +101,13 @@ segment ends does NOT trigger `has_overlap = true` and is inserted cleanly.
 
 ## Architecture Anchors
 
-- `src/reassembly/segment.rs:118` -- overlap check: `new_start < existing_end && new_end > existing_offset`
+- `src/reassembly/segment.rs:43` -- overlap check: `new_start < existing_end && new_end > existing_offset`
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/reassembly/segment.rs:118` |
+| **Path** | `src/reassembly/segment.rs:43` |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 

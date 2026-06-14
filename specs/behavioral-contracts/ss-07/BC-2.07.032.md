@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.4"
+version: "1.5"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -15,8 +15,9 @@ lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
-  - "v1.3: Wave 16 Pass-2 (F-W16-S052-P2-001, F-W16-S052-P2-003) — add discriminating unit test as primary VP citation for invariant 1; tighten anchor ranges 383-387 → 386-387 — 2026-05-28"
+  - "v1.3: Wave 16 Pass-2 (F-W16-S052-P2-001, F-W16-S052-P2-003) — add discriminating unit test as primary VP citation for invariant 1; tighten anchor ranges 383-387 → 397-398 — 2026-05-28"
   - "v1.4: DF-SIBLING-SWEEP-001 — fix stale test-file line anchor: tls_analyzer_tests.rs:2677 → 4406 (test_BC_2_07_032_inv1_supported_versions_not_inspected); verified against HEAD cfe0112a — 2026-06-01"
+  - "v1.5: PG-ARP-F2-007 ss-07 full re-anchor — version/increment 397-398→397-398 — 2026-06-13"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -82,7 +83,7 @@ extension.
 | L2 Capability | CAP-07 ("TLS traffic analysis") per domain/capabilities/cap-07-tls-analysis.md |
 | Capability Anchor Justification | CAP-07 ("TLS traffic analysis") per domain/capabilities/cap-07-tls-analysis.md -- TLS 1.3 legacy_version handling is part of TLS analysis version recording |
 | L2 Domain Invariants | INV-4 (raw-data/display-layer separation) |
-| Architecture Module | SS-07 (analyzer/tls.rs:386-387, C-13) |
+| Architecture Module | SS-07 (analyzer/tls.rs:397-398, C-13) |
 | Stories | STORY-052 |
 | Origin BC | BC-TLS-032 (pass-3 ingestion corpus, HIGH confidence) |
 
@@ -94,7 +95,7 @@ extension.
 
 ## Architecture Anchors
 
-- `src/analyzer/tls.rs:386-387` -- `let version = ch.version.0; Self::increment(&mut self.version_counts, version, ...)`
+- `src/analyzer/tls.rs:397-398` -- `let version = ch.version.0; Self::increment(&mut self.version_counts, version, ...)`
 - `tests/tls_analyzer_tests.rs:4406` -- test_BC_2_07_032_inv1_supported_versions_not_inspected (primary discriminating unit test)
 - `tests/tls_integration_tests.rs` -- test_tls13_pcap_version_and_ja3 (companion integration test; vacuous for invariant 1 isolation)
 
@@ -102,7 +103,7 @@ extension.
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/analyzer/tls.rs:386-387` |
+| **Path** | `src/analyzer/tls.rs:397-398` |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 

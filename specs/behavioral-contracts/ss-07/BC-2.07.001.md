@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.5"
+version: "1.6"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -18,6 +18,7 @@ modified:
   - "v1.3: Wave 16 Pass-2 sibling sweep (F-W16-S052-P2-003) — tighten architecture anchor 379-387 → 384-387 (fn signature excluded; body starts at 384) — 2026-05-28"
   - "v1.4: Wave 16 Pass-4 (F-W16-S052-P4-002) — add VP table rows for invariant 2 (version_counts / ja3_counts bounded at MAX_MAP_ENTRIES) citing discriminating tests at tests/tls_analyzer_tests.rs:2747 and :2811 — 2026-05-28"
   - "v1.5: DF-SIBLING-SWEEP-001 — fix stale test-file line anchors: tls_analyzer_tests.rs:2747 → 4476 (test_BC_2_07_001_inv2_version_counts_bounded_at_max_map_entries), :2811 → 4540 (test_BC_2_07_001_inv2_ja3_counts_bounded_at_max_map_entries); verified against HEAD cfe0112a — 2026-06-01"
+  - "v1.6: PG-ARP-F2-007 ss-07 full re-anchor — handle_client_hello range 379-540→389-580 (fn sig 389-394, body 395-580); handshakes_seen++ at 395; version count at 398; JA3 compute at 519; SNI extraction 413-515; weak-cipher 530-556; deprecated 559-579 — 2026-06-13"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -110,7 +111,7 @@ processed.
 | L2 Capability | CAP-07 ("TLS traffic analysis") per domain/capabilities/cap-07-tls-analysis.md |
 | Capability Anchor Justification | CAP-07 ("TLS traffic analysis") per domain/capabilities/cap-07-tls-analysis.md -- this BC is the primary ClientHello processing entry point for all TLS analysis |
 | L2 Domain Invariants | INV-5 (SNI 4-way classification), INV-4 (raw-data/display-layer separation) |
-| Architecture Module | SS-07 (analyzer/tls.rs:379-540, C-13) |
+| Architecture Module | SS-07 (analyzer/tls.rs:389-580, C-13) |
 | Stories | STORY-052 |
 | Origin BC | BC-TLS-001 (pass-3 ingestion corpus, HIGH confidence) |
 
@@ -125,17 +126,17 @@ processed.
 
 ## Architecture Anchors
 
-- `src/analyzer/tls.rs:379-540` -- `handle_client_hello` implementation
-- `src/analyzer/tls.rs:384-387` -- `handshakes_seen` increment and version count (fn body; 379-383 is the fn signature)
-- `src/analyzer/tls.rs:493` -- JA3 computation and count
-- `src/analyzer/tls.rs:402-490` -- SNI extraction and finding emission
+- `src/analyzer/tls.rs:389-580` -- `handle_client_hello` implementation (fn sig 389-394, body 395-580)
+- `src/analyzer/tls.rs:395-398` -- `handshakes_seen` increment (395) and `version_counts` update (398)
+- `src/analyzer/tls.rs:519` -- JA3 computation and count
+- `src/analyzer/tls.rs:413-515` -- SNI extraction and finding emission
 - `tests/tls_analyzer_tests.rs` -- test_parse_client_hello
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/analyzer/tls.rs:379-540` (`handle_client_hello`) |
+| **Path** | `src/analyzer/tls.rs:389-580` (`handle_client_hello`) |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 

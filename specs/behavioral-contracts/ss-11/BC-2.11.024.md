@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.7"
+version: "1.8"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -20,6 +20,7 @@ modified:
   - "v1.5: ADD-ON 2 (research-backed, f2-multitag-schema.md §3) — clarify empty-cell is EMPTY STRING not null/[]/none; EC-001 updated; EC-015 added for consumer split guard (str.split(';') on empty produces [''] not [] — consumers must guard). — 2026-06-09"
   - "v1.6: v19 remap: T0855 → T1692.001 per MITRE ATT&CK for ICS v19.0 revocation. All T0855 technique ID references in Description, Postconditions, Invariants, EC-013, EC-014, Canonical Test Vectors, and Architecture Anchors updated to T1692.001. Tactic unchanged: IcsImpairProcessControl. Issue #222; audit: mitre-ics-v19-catalog-audit.md. — 2026-06-10"
   - "v1.7: Pass-15 D-01: Evidence Types Used section updated — guard clause description corrected from stale pre-v0.3.0 'four Option fields / csv.rs:82-85' to current shape: mitre_techniques Vec<String> via .join(\";\") at csv.rs:87, three Option fields (source_ip, direction, timestamp) via unwrap_or_default() at csv.rs:88-90. — 2026-06-13"
+  - "v1.8: PG-ARP-F2-007 — fix stale csv.rs neutralize anchor: Architecture Anchor :94-97 → :99-102 (neutralize_csv_injection on mitre at :99, source_ip at :100, direction at :101, timestamp at :102); Postcondition 1 text clarified: join at csv.rs:87; neutralize on mitre at csv.rs:99; Postcondition 5 neutralize range updated from :94-97 → :99-102; Invariant 4 neutralize reference updated; verified against current HEAD — 2026-06-13"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -68,7 +69,7 @@ All derived strings (including the joined techniques string) are processed throu
    - `vec![]` (empty) → empty string `""`
    - `vec!["T1036"]` (singleton) → `"T1036"` (same as pre-F2 `Some("T1036")` output)
    - `vec!["T1692.001", "T0836"]` (multi) → `"T1692.001;T0836"` (semicolon-joined, no spaces)
-   The joined string is passed through `neutralize_csv_injection` at csv.rs:87.
+   The techniques are joined at csv.rs:87; the joined string is passed through `neutralize_csv_injection` at csv.rs:99.
 2. `source_ip` cell (column 7): if `None`, empty string `""`; if `Some(ip)`, `ip.to_string()`
    (decimal-dotted for IPv4, colon-hex for IPv6) at csv.rs:88.
 3. `direction` cell (column 8): if `None`, empty string `""`; if `Some(d)`, `format!("{d:?}")`
@@ -79,7 +80,7 @@ All derived strings (including the joined techniques string) are processed throu
    `chrono::DateTime<Utc>::to_rfc3339()` always emits the `+00:00` offset form, never
    a bare `Z` suffix.
 5. All four derived strings (joined-techniques, source_ip_str, direction_str, timestamp_str)
-   are individually passed through `neutralize_csv_injection` at csv.rs:94-97 before write.
+   are individually passed through `neutralize_csv_injection` at csv.rs:99-102 before write.
 6. The CSV cell is always present (may be empty); absent/empty values are NEVER represented
    by omitting the column.
 
@@ -91,8 +92,9 @@ All derived strings (including the joined techniques string) are processed throu
 3. The timestamp encoding is `to_rfc3339()`; the output is always a valid RFC 3339 string
    when not empty (UTC timezone designation included).
 4. Empty-to-empty-string conversion uses `join(";")` on an empty vec producing `""` (csv.rs:87),
-   and `unwrap_or_default()` for the three Option fields (csv.rs:88-90); no sentinel values
-   like `"null"`, `"N/A"`, or `"-"` are used. The empty cell is ALWAYS an empty string
+   and `unwrap_or_default()` for the three Option fields (csv.rs:88-90); the neutralize calls
+   on these four derived strings are at csv.rs:99-102 within the write_record block; no sentinel
+   values like `"null"`, `"N/A"`, or `"-"` are used. The empty cell is ALWAYS an empty string
    (`""`); it is NEVER the literal text `"null"` or `"[]"`. Consumers MUST guard against
    the split-on-empty-cell false-positive (see EC-015); wirerust does not insert any
    separator value into an empty cell to work around the consumer language's split behavior.
@@ -152,7 +154,7 @@ All derived strings (including the joined techniques string) are processed throu
 | L2 Capability | CAP-11 ("Reporting and Output") per domain/capabilities/cap-11-reporting-output.md |
 | Capability Anchor Justification | CAP-11 ("Reporting and Output") per domain/capabilities/cap-11-reporting-output.md -- this BC defines the encoding convention for optional Finding fields in the CSV channel, directly determining what analysts see in their spreadsheet for absent data |
 | L2 Domain Invariants | INV-4 (Raw-Data/Display-Layer Separation -- direction and timestamp are formatted at render time; the raw Finding carries Option<T>) |
-| Architecture Module | SS-11 (reporter/csv.rs:87-97) |
+| Architecture Module | SS-11 (reporter/csv.rs:87-102) |
 | Stories | STORY-080 |
 | Origin BC | BC-RPT (brownfield extraction, adversarial-review pass-4 finding H-1) |
 
@@ -168,7 +170,7 @@ All derived strings (including the joined techniques string) are processed throu
 - `src/reporter/csv.rs:88` -- `f.source_ip.map(|ip| ip.to_string()).unwrap_or_default()`
 - `src/reporter/csv.rs:89` -- `f.direction.map(|d| format!("{d:?}")).unwrap_or_default()`
 - `src/reporter/csv.rs:90` -- `f.timestamp.map(|t| t.to_rfc3339()).unwrap_or_default()`
-- `src/reporter/csv.rs:94-97` -- `neutralize_csv_injection` applied to all four optional-derived strings including the joined techniques string
+- `src/reporter/csv.rs:99-102` -- `neutralize_csv_injection` applied to all four optional-derived strings (mitre at :99, source_ip at :100, direction at :101, timestamp at :102) within the write_record block at :92-:103
 
 ## Story Anchor
 
@@ -192,7 +194,7 @@ STORY-080 -- CsvReporter implementation (LESSON-P2.03)
 
 #### Evidence Types Used
 
-- **guard clause**: `mitre_techniques.join(";")` at csv.rs:87 for the Vec<String> field (empty vec → ""); `unwrap_or_default()` calls at csv.rs:88-90 for the three Option fields (source_ip, direction, timestamp)
+- **guard clause**: `mitre_techniques.join(";")` at csv.rs:87 for the Vec<String> field (empty vec → ""); `unwrap_or_default()` calls at csv.rs:88-90 for the three Option fields (source_ip, direction, timestamp); neutralize_csv_injection applied to these four derived strings at csv.rs:99-102
 - **type constraint**: `Direction` does not implement `Display`; `format!("{d:?}")` is the only available string conversion, making Debug the mandated format
 - **documentation**: `Direction` doc comment at handler.rs:22 confirms CamelCase serde representation ("ClientToServer", "ServerToClient")
 

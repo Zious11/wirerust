@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.5"
+version: "1.6"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -18,6 +18,7 @@ modified:
   - "v1.3: tls-parser-0.12 reachability correction (F-S054-P1-002) — 2026-05-29: SSL 2.0 and sub-0x0200 ServerHello version_name arms are defensive/unreachable under tls-parser 0.12; pin test documented"
   - "v1.4: reconcile pin-test rename (ec004_ec005) + correct BC-2.07.011 EC cross-ref (EC-001/EC-003, not EC-006/EC-007) — F-S054-P3-001 — 2026-05-29"
   - "v1.5: mitre_technique: None → mitre_techniques: vec![] in Postconditions (ARP-F2 P14 B6) — 2026-06-13"
+  - "v1.6: PG-ARP-F2-007 ss-07 full re-anchor — deprecated server version 584-604→630-650; version_name match 586-590→631-635 — 2026-06-13"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -93,7 +94,7 @@ and sub-0x0200 ClientHello records, so those arms ARE reachable client-side.
 
 > **Upgrade guard (EC-004 / EC-005):** If tls-parser is upgraded to a version that
 > accepts SSL 2.0 ServerHello records, EC-004 and EC-005 transition from "parser
-> rejection" to "positive finding" behavior. The production code at `tls.rs:586-590`
+> rejection" to "positive finding" behavior. The production code at `tls.rs:631-635`
 > already handles both arms correctly. In that case, convert
 > `test_BC_2_07_012_ec004_ec005_server_hello_legacy_parse_rejection_pin` from a pin test
 > to an assertion test matching the BC-2.07.011 EC-001/EC-003 client-side pattern
@@ -122,7 +123,7 @@ and sub-0x0200 ClientHello records, so those arms ARE reachable client-side.
 | L2 Capability | CAP-07 ("TLS traffic analysis") per domain/capabilities/cap-07-tls-analysis.md |
 | Capability Anchor Justification | CAP-07 ("TLS traffic analysis") per domain/capabilities/cap-07-tls-analysis.md -- deprecated server protocol detection is one of the 7 TLS anomaly findings described in cap-07 |
 | L2 Domain Invariants | INV-4 (raw-data/display-layer separation) |
-| Architecture Module | SS-07 (analyzer/tls.rs:584-604, C-13) |
+| Architecture Module | SS-07 (analyzer/tls.rs:630-650, C-13) |
 | Stories | STORY-054 |
 | Origin BC | BC-TLS-012 (pass-3 ingestion corpus, MEDIUM confidence -- no independent server-side test at ingestion; EC-004/EC-005 reachability corrected by F-S054-P1-002 probe) |
 
@@ -133,22 +134,22 @@ and sub-0x0200 ClientHello records, so those arms ARE reachable client-side.
 
 ## Architecture Anchors
 
-- `src/analyzer/tls.rs:584-604` -- deprecated server version check and finding push
-- `src/analyzer/tls.rs:586-590` -- version_name match arms (0x0200 and catchall are defensive/unreachable under tls-parser 0.12)
+- `src/analyzer/tls.rs:630-650` -- deprecated server version check and finding push
+- `src/analyzer/tls.rs:631-635` -- version_name match arms (0x0200 and catchall are defensive/unreachable under tls-parser 0.12)
 - `tests/tls_analyzer_tests.rs` -- test_BC_2_07_012_ec004_ec005_server_hello_legacy_parse_rejection_pin (EC-004/EC-005 pin; asserts parse_errors=1 when ServerHello version=0x0200)
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/analyzer/tls.rs:584-604` |
+| **Path** | `src/analyzer/tls.rs:630-650` |
 | **Confidence** | high (EC-001/EC-002/EC-003); pin-documented (EC-004/EC-005) |
 | **Extraction Date** | 2026-05-20 |
 | **Reachability Probe Date** | 2026-05-29 (F-S054-P1-002) |
 
 ## Evidence Types Used
 
-- **guard clause**: `if version <= 0x0300 { ... }` at tls.rs:584
+- **guard clause**: `if version <= 0x0300 { ... }` at tls.rs:630
 - **pin test**: test_BC_2_07_012_ec004_ec005_server_hello_legacy_parse_rejection_pin — empirically confirms 0x0200 ServerHello rejected at record layer under tls-parser 0.12
 - **documentation**: EC-004/EC-005 server-side arms are defensive; client-side equivalents (BC-2.07.011 EC-001/EC-003 = STORY-054 EC-006/EC-007) ARE reachable
 

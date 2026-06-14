@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -13,7 +13,9 @@ subsystem: SS-07
 capability: CAP-07
 lifecycle_status: active
 introduced: v0.1.0-brownfield
-modified: ["v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"]
+modified:
+  - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
+  - "v1.3: PG-ARP-F2-007 ss-07 full re-anchor — list.first() guard 249-251→249-251 — 2026-06-13"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -77,7 +79,7 @@ degenerate case of an SNI extension header present but with an empty name list.
 | L2 Capability | CAP-07 ("TLS traffic analysis") per domain/capabilities/cap-07-tls-analysis.md |
 | Capability Anchor Justification | CAP-07 ("TLS traffic analysis") per domain/capabilities/cap-07-tls-analysis.md -- empty SNI list handling is an SNI edge case in TLS analysis |
 | L2 Domain Invariants | INV-5 (SNI 4-way classification -- None return is outside the 4 arms) |
-| Architecture Module | SS-07 (analyzer/tls.rs:247-249, C-13) |
+| Architecture Module | SS-07 (analyzer/tls.rs:249-251, C-13) |
 | Stories | STORY-057 |
 | Origin BC | BC-TLS-022 (pass-3 ingestion corpus, HIGH confidence) |
 
@@ -88,14 +90,14 @@ degenerate case of an SNI extension header present but with an empty name list.
 
 ## Architecture Anchors
 
-- `src/analyzer/tls.rs:247-249` -- `list.first()` guard in extract_sni
+- `src/analyzer/tls.rs:249-251` -- `list.first()` guard in extract_sni
 - `tests/tls_analyzer_tests.rs` -- test_sni_extension_with_empty_hostname_list
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/analyzer/tls.rs:247-249` |
+| **Path** | `src/analyzer/tls.rs:249-251` |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 

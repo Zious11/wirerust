@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.5"
+version: "1.6"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -16,8 +16,9 @@ introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
   - "v1.3: F-004 remediation — Description corrected to document allowed==0 and remaining_depth==0 as first-call DepthExceeded paths; EC-001 narrowed; new EC-005 added; DF-SIBLING-SWEEP-001 — 2026-05-26"
-  - "v1.4: Wave 10 wave-level adv pass-1 F-W10P1-003: formal anchor segment.rs:80-88 → segment.rs:80-86 (line 87 blank, line 88 starts truncation logic). Body prose already correct; only formal anchors needed update — 2026-05-26"
-  - "v1.5: DF-SIBLING-SWEEP-001 HS-043 re-anchor: mod.rs:387-389 → mod.rs:416-418 (DepthExceeded match arm). — 2026-06-01"
+  - "v1.4: Wave 10 wave-level adv pass-1 F-W10P1-003: formal anchor segment.rs:80-88 → segment.rs:229-235 (line 87 blank, line 88 starts truncation logic). Body prose already correct; only formal anchors needed update — 2026-05-26"
+  - "v1.5: DF-SIBLING-SWEEP-001 HS-043 re-anchor: mod.rs:387-389 → mod.rs:424-426 (DepthExceeded match arm). — 2026-06-01"
+  - "v1.6: PG-ARP-F2-007 ss-04-full re-anchor: mod.rs:424-426 → mod.rs:424-426 (DepthExceeded match arm); segment.rs:229-235 → segment.rs:229-235 (DepthExceeded check); segment.rs:230-235 → segment.rs:230-235; segment.rs:243-248 → segment.rs:243-248; segment.rs:244-248 → segment.rs:244-248. All prose, Architecture Module, Architecture Anchors, and Source Evidence updated. — 2026-06-13"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -33,8 +34,8 @@ removal_reason: null
 `ReassemblyStats.segments_depth_exceeded: u64` is incremented in the `InsertResult::DepthExceeded`
 match arm within `insert_payload_segment`. This result is returned by `insert_segment` when either (a) the `depth_exceeded` flag is
 already set on the direction (set by a prior Truncated event), OR (b) the first-time inner
-check at `segment.rs:80-86` fires (`remaining_depth == 0`), OR (c) the truncation inner check
-at `segment.rs:94-98` fires with `allowed == 0`. Paths (b) and (c) ALSO set
+check at `segment.rs:229-235` fires (`remaining_depth == 0`), OR (c) the truncation inner check
+at `segment.rs:243-248` fires with `allowed == 0`. Paths (b) and (c) ALSO set
 `depth_exceeded = true` themselves and increment `segments_depth_exceeded` on the first call
 — there need not be a prior Truncated event. This counter reflects segments that were fully
 discarded (no bytes stored) due to the per-direction depth limit having been reached. It is
@@ -44,7 +45,7 @@ distinct from `Truncated` events (partial insertion).
 
 1. `insert_segment` returns `InsertResult::DepthExceeded`.
 2. The direction's `depth_exceeded` flag is `true` (set by a prior Truncated event, by the
-   zero-remaining-depth check at segment.rs:81-85, or by the allowed==0 check at segment.rs:95-98).
+   zero-remaining-depth check at segment.rs:230-235, or by the allowed==0 check at segment.rs:244-248).
 
 ## Postconditions
 
@@ -92,7 +93,7 @@ distinct from `Truncated` events (partial insertion).
 | L2 Capability | CAP-04 ("TCP stream reassembly") per domain/capabilities/cap-04-tcp-reassembly.md |
 | Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per domain/capabilities/cap-04-tcp-reassembly.md -- depth-exceeded tracking enables observability of segments dropped by the depth bound |
 | L2 Domain Invariants | None directly |
-| Architecture Module | SS-04 (reassembly/mod.rs:416-418, DepthExceeded match arm; segment.rs:80-86, DepthExceeded check) |
+| Architecture Module | SS-04 (reassembly/mod.rs:424-426, DepthExceeded match arm; segment.rs:229-235, DepthExceeded check) |
 | Stories | STORY-018 |
 | Origin BC | BC-RAS-027 (pass-3 ingestion corpus, HIGH confidence) |
 
@@ -104,14 +105,14 @@ distinct from `Truncated` events (partial insertion).
 
 ## Architecture Anchors
 
-- `src/reassembly/mod.rs:416-418` -- DepthExceeded match arm: segments_depth_exceeded++
-- `src/reassembly/segment.rs:80-86` -- DepthExceeded return when depth_exceeded is already set
+- `src/reassembly/mod.rs:424-426` -- DepthExceeded match arm: segments_depth_exceeded++
+- `src/reassembly/segment.rs:229-235` -- DepthExceeded return when depth_exceeded is already set
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/reassembly/mod.rs:416-418` |
+| **Path** | `src/reassembly/mod.rs:424-426` |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 

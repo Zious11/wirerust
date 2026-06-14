@@ -14,6 +14,163 @@ changes, invariant rewrites).
 
 ---
 
+## [pg-arp-f2-007-ss11-full-reanchor-2026-06-13] — 2026-06-13
+
+### PATCH: PG-ARP-F2-007 — comprehensive ss-11 (reporting/output) src-line re-anchor, affected BCs
+
+Root cause: STORY-100 (F2 multi-tag mitre_techniques column) added one column to csv.rs
+write_record and added render_finding_grouped / render_finding_flat MITRE expansion logic
+to terminal.rs, shifting downstream line numbers. Previous DF-SIBLING-SWEEP-001 pass
+(2026-06-01) corrected lines through HEAD cfe0112a but did not account for STORY-100
+additions that landed after. This pass re-anchors all stale ss-11 BC citations to verified
+current HEAD.
+
+**Clean (no change needed): BC-2.11.001..006, 007, 008, 010, 011, 012, 019, 020, 023**
+- json.rs BCs (001-005): no changes to json.rs structure
+- terminal.rs anchors already correct for: escape_for_terminal fn (:44), C1 predicate (:52),
+  skipped_packets guard (:94), render_finding_prefix (:203-226), analyzer detail loop
+  (:165-181), section() fn (:190-195), render full body (:83-186), section ordering (:113/125/138/149/165)
+- csv.rs BCs: header write (:62-73), neutralize fn (:40-45), Reporter impl (:51-106) correct
+
+**Changed BCs (10 files):**
+
+| BC | Old anchor(s) | New anchor(s) | Root cause |
+|----|---------------|---------------|-----------|
+| BC-2.11.009 v1.4→v1.5 | test fns :375/:388, range :367-396 | test fns :544/:556, range :544-565 | test block shifted by ~170 lines (proptest suite additions + new test fns added in STORY-100/F2 passes) |
+| BC-2.11.013 v1.7→v1.8 | render_findings_grouped :260-304; tactic loop :290 | :272-323; :309 | render_finding_grouped fn (22 lines) inserted above render_findings_grouped in STORY-100 multi-tag impl |
+| BC-2.11.014 v1.5→v1.6 | verdict_rank :269-275; confidence_rank :276-282; sort_by_key :284-288; bucket push line 266 | :287-293; :295-301; :303-307; line 284 | same insertion above render_findings_grouped |
+| BC-2.11.015 v1.6→v1.7 | render_finding_grouped :244-252; unknown arm :249; Uncategorized :298-303; Path :244-303 | :247-263; :260; :317-322; :247-323 | render_finding_grouped expanded from simple to multi-tag form; Uncategorized shifted by full grouped fn expansion |
+| BC-2.11.016 v1.5→v1.6 | expansion range :246-251; em-dash :248 | :249-261; :259 | render_finding_grouped body rewritten with ids join + first-technique name lookup (multi-tag logic) |
+| BC-2.11.017 v1.6→v1.7 | render_finding_flat :230-235 | :232-238 | render_finding_flat fn decl shifted by 2 lines (render_finding_prefix body expanded for multi-tag evidence loop) |
+| BC-2.11.018 v1.3→v1.4 | colorization block :209-220 | :209-222 (if-else closes at 222) | block end was off by 2 lines (else branch at 220-221 + closing at 222 not counted) |
+| BC-2.11.021 v1.3→v1.4 | neutralize write_record :89-97 | :92-103 | STORY-100 added mitre_techniques column (9th column); write_record data-row block expanded; neutralize calls now at :94-:102 |
+| BC-2.11.022 v1.3→v1.4 | evidence neutralize pc4 :93 | :98 | evidence moved from column 5 to column 5 (unchanged position) but csv.rs line shifted from :93 to :98 as mitre column inserted before it |
+| BC-2.11.024 v1.7→v1.8 | neutralize optional-derived strings :94-97; pc1 "neutralize at csv.rs:87" | :99-102; clarified join@:87 vs neutralize@:99 | same column-addition shift; mitre neutralize :99, source_ip :100, direction :101, timestamp :102 |
+
+**H1 titles: ALL UNCHANGED** — this pass corrects line anchors only; no semantic content modified.
+
+**BC-INDEX updated:** inline annotations added for all 10 changed BCs.
+
+**Files touched:** BC-2.11.009, BC-2.11.013, BC-2.11.014, BC-2.11.015, BC-2.11.016,
+BC-2.11.017, BC-2.11.018, BC-2.11.021, BC-2.11.022, BC-2.11.024, BC-INDEX.md,
+spec-changelog.md
+
+| Artifact | Version | Notes |
+|----------|---------|-------|
+| BC-2.11.009 | 1.4→1.5 | test fn anchors re-anchored |
+| BC-2.11.013 | 1.7→1.8 | render_findings_grouped + tactic loop re-anchored |
+| BC-2.11.014 | 1.5→1.6 | sort-closure range + bucket push line re-anchored |
+| BC-2.11.015 | 1.6→1.7 | render_finding_grouped + Uncategorized bucket re-anchored |
+| BC-2.11.016 | 1.5→1.6 | MITRE expansion range + em-dash literal re-anchored |
+| BC-2.11.017 | 1.6→1.7 | render_finding_flat range re-anchored |
+| BC-2.11.018 | 1.3→1.4 | colorization block end corrected |
+| BC-2.11.021 | 1.3→1.4 | neutralize write_record range re-anchored |
+| BC-2.11.022 | 1.3→1.4 | evidence neutralize line re-anchored |
+| BC-2.11.024 | 1.7→1.8 | optional-derived neutralize range re-anchored; pc1 clarified |
+| BC-INDEX.md | — | inline annotations added for 10 changed BCs |
+| spec-changelog.md | — | this entry |
+
+---
+
+## [pg-arp-f2-007-ss04-full-reanchor-2026-06-13] — 2026-06-13
+
+### PATCH: PG-ARP-F2-007 — comprehensive ss-04 (TCP reassembly) src-line re-anchor, all BCs
+
+**Root cause:** `src/reassembly/mod.rs`, `segment.rs`, `lifecycle.rs`, and `flow.rs` shifted substantially due to F2 timestamp-wiring refactors (STORY-097/098/099) and prior HS-043 idle-expiry wiring (DF-SIBLING-SWEEP-001, +29 lines at process_packet entry). The DF-SIBLING-SWEEP-001 corrected mod.rs anchors for a subset of BCs; F2 then shifted segment.rs by ~139 lines (insert_segment relocated from ~line 50 to line 189). All remaining ss-04 BCs had stale Architecture Module, Architecture Anchors, Source Evidence Path, and inline prose citations.
+
+**Scope:** BC-2.04.002 through BC-2.04.054. Skipped: BC-2.04.020, BC-2.04.024, BC-2.04.055 (already corrected in Pass-19 B-07/B-09). Clean (no anchor changes needed): BC-2.04.001, BC-2.04.003, BC-2.04.004, BC-2.04.009, BC-2.04.029, BC-2.04.031, BC-2.04.039, BC-2.04.049, BC-2.04.050, BC-2.04.053.
+
+**Key line mappings applied (mod.rs):**
+- `process_packet` fn: 144-211 (packets_processed++ at 150, extract_tcp_context at 174, insert_payload_segment call at 191 → 193, FIN removal 198-205, memcap eviction 208-210)
+- `extract_tcp_context`: 217-244 (non-TCP skip at 219)
+- `get_or_create_flow`: 250-273
+- `apply_handshake_flags`: 279-321 (SYN 289-294, SYN+ACK 297-302, RST 305-310, FIN 313-319)
+- `insert_payload_segment`: 332-445 (on_data_without_syn block 342-349, small_segment_run update 393-407)
+- `check_anomaly_thresholds`: 461-566 (overlap guard 477-499, small-segment guard 506-538, OOW guard 540-565)
+- `flush_contiguous_data`: 574-591 (total_memory-= at 585, bytes_reassembled++ at 588, on_data at 589)
+- `expire_idle_by_timeout`: 604-619
+- `expire_flows` (pub): 622-638
+- `finalize`: 643-677 (finalized latch at 644-647, count check at 658, unconditional push at 659-676)
+- `plural_s` fn: 68-70
+- `summarize`: 735-773
+- `impl Drop`: 1038-1052
+- ConflictingOverlap match arm: 416-418
+- DepthExceeded match arm: 424-426
+- `total_memory` tracking: mod.rs:376 (add bytes_added), mod.rs:585 (subtract flush)
+
+**Key line mappings applied (segment.rs):**
+- `ranges_overlap` fn (half-open interval test): line 43
+- `segment_overlap` fn: 57-84
+- `select_gaps` fn: 140-184
+- `insert_segment` fn: 189-365
+  - empty data return: 197-199
+  - ISN check (IsnMissing guard): 201-208 (swap at 204)
+  - out-of-window check: 213-217
+  - segment limit check (early guard): 220-222
+  - remaining_depth check: 229-235
+  - truncation logic: 238-253
+  - overlap detection loop: 259-284
+  - fully_covered / has_conflict returns: 286-303
+  - gap insertion loop: 308-332 (mid-loop limit guard at 311-313)
+  - !had_gap return arm: 334-344 (actual return at 335)
+  - no-overlap insert path: 348-364 (buffered_bytes += at 358)
+- `flush_contiguous` fn: 369-381
+
+**Key line mappings applied (lifecycle.rs):**
+- `close_flow` fn: 38-68 (let-else 44-52, close_timestamp at 56, flush loop 58-65, bytes_reassembled++ at 62)
+- `evict_flows`: 73-98 (sort_by comparator at 85-88)
+- `generate_conflicting_overlap_finding`: 105-128 (guard 111-114, push 115-127)
+- `generate_truncated_finding`: 135-158 (guard 141-144, push 145-157)
+
+**Files changed:**
+- BC-2.04.002, 005, 006, 007, 008, 010, 011, 012, 013, 014, 015, 016, 017, 018, 019, 021, 022, 023, 025, 026, 027, 028, 030 (prior session)
+- BC-2.04.029, 032, 033, 034, 035, 036, 037, 038, 040, 041, 042, 043, 044, 045, 046, 047, 048, 051, 052, 054 (this session)
+- `.factory/specs/behavioral-contracts/BC-INDEX.md` — PG-ARP-F2-007 annotations added for all changed ss-04 BCs
+
+---
+
+## [pg-arp-f2-007-ss07-full-reanchor-2026-06-13] — 2026-06-13
+
+### PATCH: PG-ARP-F2-007 — comprehensive ss-07 (TLS analyzer) src-line re-anchor, all 37 BCs
+
+**Root cause:** `src/analyzer/tls.rs` (1385 lines) shifted 10-60 lines due to F2 timestamp-wiring refactors (STORY-097/098/099). The Pass-19 B-10 fix only corrected BC-2.07.008/016/037. All remaining 34 BCs had stale Architecture Module, Architecture Anchors, Source Evidence Path, and inline prose citations.
+
+**Scope:** BC-2.07.001 through BC-2.07.037. BC-016 and BC-030 were already clean (no changes); all others updated.
+
+**Key line mappings applied:**
+- `handle_client_hello` fn: 379-540 → 389-580
+- `handle_server_hello` fn: 542-604 → 586-651
+- Deprecated client version: 519-539 → 559-579
+- Deprecated server version: 584-604 → 630-650
+- Weak cipher client: 497-517 → 530-556
+- Weak cipher server: 570-582 → 615-627
+- `summarize` fn: 763-808 → 853-897
+- `on_flow_close` fn: 752-754 → 841-843
+- `on_data` done-check: 718-724 → 807-810
+- Non-handshake skip: 678-682 → 718-736
+- nom error arms: 700-712 → 783-790
+- MAX_RECORD_PAYLOAD guard: 641-653 / 643-653 → 689-699
+- `extract_sni` fn: 246/247 (already correct from P19 B-10)
+- SNI match block: 251-265 → 252-266 (arm 1: 253; arm 3: 258-261; arm 4: 262-265)
+- AsciiWithControl emission: 424-447 / 426 → 437-459 / 437
+- NonAsciiUtf8 emission: 449-467 → 461-492
+- NonUtf8 emission: 469-488 → 494-514
+- Key selection block: 402-416 / 410-415 → 421-427
+- `TlsAnalyzer::increment`: 372-376 → 379-383
+- `compute_ja3` fn: 92-151 → 93-152 (already correct from P19 B-10)
+- `compute_ja3s` fn: 153-173 → 154-174 (already correct from P19 B-10)
+- GREASE filter sub-regions: 50-52 → 51-53; 100-143 → 102-144 (already correct from P19 B-10)
+- `cipher_name` fn: 77-83 → 79-84
+- version/increment lines: 386-387 → 397-398
+- `is_weak_cipher`: 56-64 → 57-65 (already correct)
+- `is_weak_server_cipher`: 66-75 → 68-76 (already correct)
+
+**Files changed:**
+- BC-2.07.001 through BC-2.07.037 (35 files updated; 016, 030 unchanged)
+- `.factory/specs/behavioral-contracts/BC-INDEX.md` — PG-ARP-F2-007 annotation added
+
+---
+
 ## [pass-19-straggler-domain-reanchor-2026-06-13] — 2026-06-13
 
 ### PATCH: P19 straggler — comprehensive domain + prd-supplement src-line anchor sweep (PG-ARP-F2-007)

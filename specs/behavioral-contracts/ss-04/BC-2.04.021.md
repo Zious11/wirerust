@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.4"
+version: "1.5"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -15,8 +15,9 @@ lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
-  - "v1.3: DF-SIBLING-SWEEP-001 HS-043 re-anchor: mod.rs:489-512 → mod.rs:518-541 (out-of-window threshold block). — 2026-06-01"
+  - "v1.3: DF-SIBLING-SWEEP-001 HS-043 re-anchor: mod.rs:489-512 → mod.rs:540-565 (out-of-window threshold block). — 2026-06-01"
   - "v1.4: ARP-F2 Pass-14 Burst 4 — Postconditions mitre_technique: None → mitre_techniques: vec![] (shipped Finding struct uses Vec<String>; ADR-006). — 2026-06-13"
+  - "v1.5: PG-ARP-F2-007 ss-04-full re-anchor: mod.rs:540-565 → mod.rs:540-565 (out-of-window threshold block); segment.rs:213-217 → segment.rs:213-217 (out_of_window_count increment). — 2026-06-13"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -90,7 +91,7 @@ same as for overlap and small-segment alerts (LESSON-P1.01).
 | L2 Capability | CAP-04 ("TCP stream reassembly") per domain/capabilities/cap-04-tcp-reassembly.md |
 | Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per domain/capabilities/cap-04-tcp-reassembly.md -- out-of-window detection bounds segment buffering and detects potential evasion |
 | L2 Domain Invariants | INV-6 (MAX_FINDINGS cap) |
-| Architecture Module | SS-04 (reassembly/mod.rs:518-541, out-of-window threshold block) |
+| Architecture Module | SS-04 (reassembly/mod.rs:540-565, out-of-window threshold block) |
 | Stories | STORY-017 |
 | Origin BC | BC-RAS-021 (pass-3 ingestion corpus, HIGH confidence) |
 
@@ -102,14 +103,14 @@ same as for overlap and small-segment alerts (LESSON-P1.01).
 
 ## Architecture Anchors
 
-- `src/reassembly/mod.rs:518-541` -- out-of-window threshold check and emission
-- `src/reassembly/segment.rs:63-67` -- out_of_window_count increment in insert_segment
+- `src/reassembly/mod.rs:540-565` -- out-of-window threshold check and emission
+- `src/reassembly/segment.rs:213-217` -- out_of_window_count increment in insert_segment
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/reassembly/mod.rs:518-541` |
+| **Path** | `src/reassembly/mod.rs:540-565` |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 

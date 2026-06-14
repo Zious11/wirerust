@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.7"
+version: "1.8"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -18,8 +18,9 @@ modified:
   - "v1.3: Wave 8 wave-level adv-pass-1 F-1 HIGH closure (S-7.01 sibling-BC propagation, W7.2 recurrence #5): PC3 enforcement-mode notation — \"remaining buffered data flushed in close_flow\" is structurally a defense-in-depth invariant (per-packet flush at mod.rs:162 drains buffer pre-close); enforced via code-review of close_flow flush loop body at lifecycle.rs:52-59; on_flow_close(Timeout) invocation and stats.flows_expired increment are automated-test-verifiable via STORY-019 AC-009/010/011/012. Mirrors BC-2.04.010 v1.5 PC2 + BC-2.04.029 v1.4 + ADR-0004 amendment precedent. — 2026-05-26"
   - "v1.4: Wave 8 wave-level adv-pass-2 F-1 MEDIUM closure (S-7.01 sibling-discipline): added PC5 documenting the force_set_flow_state_for_testing test seam (lifecycle.rs:232-244) — required by STORY-019 AC-012 to discriminate the Closed-state OR-branch of expire_flows (invariant 2). Mirrors BC-2.04.029 v1.4 PC7 pattern; authorized under ADR-0004 Amendment 2 state-injection seam class. — 2026-05-26"
   - "v1.5: Phase-4 HS-043 scope decision: added PC0 (caller obligation) explicitly requiring expire_flows to be invoked from the production per-packet processing path with the packet timestamp — closes the 'tested directly but never called in production' wiring gap identified in holdout-finding-triage-2026-06-01.md. Direct test-only invocations do not satisfy the production wiring requirement. — 2026-06-01"
-  - "v1.6: DF-SIBLING-SWEEP-001 HS-043 re-anchor: mod.rs:536-552 → mod.rs:593-609 (expire_flows public fn); mod.rs:162 → mod.rs:191 (flush_contiguous_data call in process_packet, cited in PC3 enforcement note). — 2026-06-01"
-  - "v1.7: ADV-IMPL-P10-MED-001 fix — PC0 re-anchored: the production per-packet idle-expiry enforcer is `expire_idle_by_timeout` (mod.rs:575-590, private hot-path variant), called from `process_packet` at mod.rs:166-169. `expire_flows` (mod.rs:593-609) is the public direct-call / offline API and is NEVER called from `process_packet` (zero call sites in src/). The memory-bound guarantee semantics are unchanged; only the named function and anchors are corrected. Test citation updated to `test_BC_2_04_013_PC0_idle_expiry_wired_in_process_packet` (per DF-AC-TEST-NAME-SYNC-001, coupled with FIX-P5-004 test rename). Supersedes the previously ACCEPTED ADV-HS043-P02-LOW-001 (same root issue — now properly fixed, not merely accepted). ADV-HS043-P02-MED-001 timestamp-monotonicity caveat carried forward unchanged (separate accepted item). — 2026-06-01"
+  - "v1.6: DF-SIBLING-SWEEP-001 HS-043 re-anchor: mod.rs:536-552 → mod.rs:622-638 (expire_flows public fn); mod.rs:162 → mod.rs:193 (flush_contiguous_data call in process_packet, cited in PC3 enforcement note). — 2026-06-01"
+  - "v1.7: ADV-IMPL-P10-MED-001 fix — PC0 re-anchored: the production per-packet idle-expiry enforcer is `expire_idle_by_timeout` (mod.rs:604-619, private hot-path variant), called from `process_packet` at mod.rs:168-171. `expire_flows` (mod.rs:622-638) is the public direct-call / offline API and is NEVER called from `process_packet` (zero call sites in src/). The memory-bound guarantee semantics are unchanged; only the named function and anchors are corrected. Test citation updated to `test_BC_2_04_013_PC0_idle_expiry_wired_in_process_packet` (per DF-AC-TEST-NAME-SYNC-001, coupled with FIX-P5-004 test rename). Supersedes the previously ACCEPTED ADV-HS043-P02-LOW-001 (same root issue — now properly fixed, not merely accepted). ADV-HS043-P02-MED-001 timestamp-monotonicity caveat carried forward unchanged (separate accepted item). — 2026-06-01"
+  - "v1.8: PG-ARP-F2-007 ss-04-full re-anchor: mod.rs:604-619 → mod.rs:604-619 (expire_idle_by_timeout); mod.rs:168-171 → mod.rs:168-171 (call site in process_packet); mod.rs:622-638 → mod.rs:622-638 (expire_flows public API); mod.rs:193 → mod.rs:193 (flush_contiguous_data call). All prose, Architecture Module, Architecture Anchors, and Source Evidence updated. — 2026-06-13"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -34,15 +35,15 @@ removal_reason: null
 
 The TCP reassembler enforces idle-flow expiry through two functions with distinct roles:
 
-- **`expire_idle_by_timeout(current_time, handler)`** (mod.rs:575-590, `fn` — private) is the
-  hot-path variant wired into `process_packet` at mod.rs:166-169. It applies only the
+- **`expire_idle_by_timeout(current_time, handler)`** (mod.rs:604-619, `fn` — private) is the
+  hot-path variant wired into `process_packet` at mod.rs:168-171. It applies only the
   time-based condition (`current_time > last_seen AND current_time - last_seen > timeout`),
   deliberately omitting the `FlowState::Closed` OR-clause (which `process_packet` already
   handles inline; including it on the hot path would violate the eviction-order invariant in
   BC-2.04.017). This is the function that provides the per-packet memory-bound guarantee for
   long-running captures.
 
-- **`expire_flows(current_time, handler)`** (mod.rs:593-609, `pub fn`) is the public
+- **`expire_flows(current_time, handler)`** (mod.rs:622-638, `pub fn`) is the public
   direct-call / offline API. It applies both clauses (time-based AND Closed-state). It is
   NEVER called from `process_packet`; it is the appropriate call site for offline tools,
   end-of-capture finalization helpers, and test code that needs both cleanup modes.
@@ -54,7 +55,7 @@ incremented for each one.
 
 **PC0 (Caller Obligation — Production Wiring Requirement):** `expire_idle_by_timeout` MUST
 be called from the production per-packet processing path inside `process_packet`
-(mod.rs:166-169), with the arriving packet's timestamp as `current_time`. The sweep fires
+(mod.rs:168-171), with the arriving packet's timestamp as `current_time`. The sweep fires
 whenever `timestamp > last_expiry_sweep_secs`, limiting the O(n) scan to at most once per
 unique second of stream time. Calling `expire_flows` only from test code does NOT satisfy
 this contract — `expire_flows` is NOT the per-packet production path; it is the public
@@ -65,7 +66,7 @@ to bound memory use in long-running captures"). See
 `.factory/specs/phase-4-hs043-scope-decision.md` for the governing ruling.
 
 1. `expire_idle_by_timeout(current_time, handler)` is called with a current timestamp from
-   the production per-packet path via `process_packet` at mod.rs:166-169 (PC0 above).
+   the production per-packet path via `process_packet` at mod.rs:168-171 (PC0 above).
 2. At least one flow exists with `last_seen + flow_timeout_secs < current_time`.
 
 ## Postconditions
@@ -78,7 +79,7 @@ to bound memory use in long-running captures"). See
 2. `stats.flows_expired` increments by the number of flows expired.
 3. Each expired flow's remaining buffered data is flushed and `on_flow_close(Timeout)` is
    called. (Enforcement: in the current engine architecture, the per-packet flush at
-   `src/reassembly/mod.rs:191` already delivers all contiguous-prefix data BEFORE
+   `src/reassembly/mod.rs:193` already delivers all contiguous-prefix data BEFORE
    `expire_idle_by_timeout` invokes `close_flow`. The `flush_contiguous` loop at
    `src/reassembly/lifecycle.rs:52-59` inside `close_flow` is therefore structurally a
    defense-in-depth invariant — cannot be triggered to deliver under current engine semantics.
@@ -95,7 +96,7 @@ to bound memory use in long-running captures"). See
 
 1. The expiry check uses wrapping-safe subtraction: `current_time > flow.last_seen` is
    checked BEFORE `current_time - flow.last_seen > timeout` to avoid integer underflow.
-   Both `expire_idle_by_timeout` (mod.rs:575-590) and `expire_flows` (mod.rs:593-609) apply
+   Both `expire_idle_by_timeout` (mod.rs:604-619) and `expire_flows` (mod.rs:622-638) apply
    this guard.
 2. A flow that is already `FlowState::Closed` (e.g., FIN-closed but not yet removed) is also
    expired by the public `expire_flows` API. This handles the edge case where close_flow was
@@ -141,7 +142,7 @@ to bound memory use in long-running captures"). See
 | L2 Capability | CAP-04 ("TCP stream reassembly") per domain/capabilities/cap-04-tcp-reassembly.md |
 | Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per domain/capabilities/cap-04-tcp-reassembly.md -- idle flow expiry is required to bound memory use in long-running captures |
 | L2 Domain Invariants | None directly |
-| Architecture Module | SS-04 (reassembly/mod.rs:575-590 expire_idle_by_timeout, called at :166-169 from process_packet; reassembly/mod.rs:593-609 expire_flows public API) |
+| Architecture Module | SS-04 (reassembly/mod.rs:604-619 expire_idle_by_timeout, called at :166-169 from process_packet; reassembly/mod.rs:622-638 expire_flows public API) |
 | Stories | STORY-019 |
 | Origin BC | BC-RAS-013 (pass-3 ingestion corpus, HIGH confidence) |
 
@@ -153,16 +154,16 @@ to bound memory use in long-running captures"). See
 
 ## Architecture Anchors
 
-- `src/reassembly/mod.rs:575-590` -- `expire_idle_by_timeout`: hot-path time-only filter + close loop (PRODUCTION WIRED — per-packet enforcer)
-- `src/reassembly/mod.rs:166-169` -- call site: `process_packet` invokes `expire_idle_by_timeout` when `timestamp > last_expiry_sweep_secs`
-- `src/reassembly/mod.rs:593-609` -- `expire_flows`: public direct-call / offline API; includes both time-based and Closed-state clauses; NOT called from `process_packet`
+- `src/reassembly/mod.rs:604-619` -- `expire_idle_by_timeout`: hot-path time-only filter + close loop (PRODUCTION WIRED — per-packet enforcer)
+- `src/reassembly/mod.rs:168-171` -- call site: `process_packet` invokes `expire_idle_by_timeout` when `timestamp > last_expiry_sweep_secs`
+- `src/reassembly/mod.rs:622-638` -- `expire_flows`: public direct-call / offline API; includes both time-based and Closed-state clauses; NOT called from `process_packet`
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
-| **Path (production wired)** | `src/reassembly/mod.rs:575-590` (`expire_idle_by_timeout`, called from `process_packet` at :166-169) |
-| **Path (public API)** | `src/reassembly/mod.rs:593-609` (`expire_flows`, direct-call / offline API) |
+| **Path (production wired)** | `src/reassembly/mod.rs:604-619` (`expire_idle_by_timeout`, called from `process_packet` at :166-169) |
+| **Path (public API)** | `src/reassembly/mod.rs:622-638` (`expire_flows`, direct-call / offline API) |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 

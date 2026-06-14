@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -16,6 +16,7 @@ introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
   - "v1.3: proof_method proptest→unit for VP-020 row to match VP-020 file + VP-INDEX (STORY-079 P6 finding; sibling-sweep of the 2026-05-30 VP-020 manual→unit correction)"
+  - "v1.4: PG-ARP-F2-007 — fix stale csv.rs anchor: neutralize application range :89-97 → :92-103 (write_record data-row block: category neutralize at :94, evidence at :98, mitre at :99, source_ip at :100, direction at :101, timestamp at :102; full write_record call at :92-:103); also Precondition 3 reference updated; verified against current HEAD — 2026-06-13"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -39,7 +40,7 @@ Sheets) from interpreting attacker-controlled packet payload bytes as formula di
 1. A cell value derived from a `Finding` field is about to be written to the CSV output.
 2. The cell value is a `&str` slice of a valid UTF-8 `String`.
 3. All nine column values are individually processed through `neutralize_csv_injection`
-   before the `write_record` call at csv.rs:88-98.
+   before the `write_record` call at csv.rs:92-103.
 
 ## Postconditions
 
@@ -53,7 +54,7 @@ Sheets) from interpreting attacker-controlled packet payload bytes as formula di
 ## Invariants
 
 1. The neutralization function is applied to ALL nine column values for EVERY data row
-   without exception (csv.rs:89-97 calls it on each field individually).
+   without exception (csv.rs:92-103 calls it on each field individually within the write_record call).
 2. The function does not inspect or alter any character after the first.
 3. The function does not alter bytes mid-string or strip any content; it only prepends.
 4. The `csv` crate's own RFC 4180 quoting is applied AFTER neutralization, so the `'`
@@ -118,7 +119,7 @@ Sheets) from interpreting attacker-controlled packet payload bytes as formula di
 ## Architecture Anchors
 
 - `src/reporter/csv.rs:40-45` -- `neutralize_csv_injection` function definition
-- `src/reporter/csv.rs:89-97` -- application of `neutralize_csv_injection` to all nine data columns
+- `src/reporter/csv.rs:92-103` -- application of `neutralize_csv_injection` to all nine data columns (within write_record call; category at :94, summary at :97, evidence at :98, mitre at :99, source_ip at :100, direction at :101, timestamp at :102)
 - `src/reporter/csv.rs:18-31` -- module doc comment describing the OWASP CSV injection threat model
 
 ## Story Anchor
@@ -145,7 +146,7 @@ STORY-079 -- CsvReporter implementation (LESSON-P2.03)
 
 - **guard clause**: `neutralize_csv_injection` at csv.rs:40-45 uses an explicit `match` on `s.chars().next()` with the six trigger characters listed as a pattern arm
 - **documentation**: module doc comment at csv.rs:18-31 states the OWASP rationale and names all six trigger characters
-- **assertion**: function is called on all nine columns at csv.rs:89-97 with no bypass path
+- **assertion**: function is called on all nine columns at csv.rs:92-103 with no bypass path
 
 #### Purity Classification
 
