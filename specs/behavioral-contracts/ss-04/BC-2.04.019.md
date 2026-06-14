@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.8"
+version: "1.9"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -21,6 +21,7 @@ modified:
   - "v1.6: DF-SIBLING-SWEEP-001 HS-043 re-anchor: mod.rs:430-450 → mod.rs:477-499 (overlap block); mod.rs:413-419 → mod.rs:452-458 (LESSON-P1.01 doc-comment). — 2026-06-01"
   - "v1.7: ARP-F2 Pass-14 Burst 4 — Postconditions mitre_technique: Some(\"T1036\") → mitre_techniques: vec![\"T1036\"] (shipped Finding struct uses Vec<String>; ADR-006). — 2026-06-13"
   - "v1.8: PG-ARP-F2-007 ss-04-full re-anchor: mod.rs:477-499 → mod.rs:477-499 (overlap threshold block); mod.rs:452-458 → mod.rs:452-458 (LESSON-P1.01 doc-comment). — 2026-06-13"
+  - "v1.9: F3-convergence consistency-sweep: de-pinned all mod.rs line-number anchors to drift-proof symbol anchors across Architecture Anchors, Traceability, Source Evidence (3 sites). Live src verified: LESSON-P1.01@450, overlap_count>overlap_threshold block@477. — 2026-06-14"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -106,7 +107,7 @@ separate, per-event mechanism. This threshold alert is a cumulative count-based 
 | L2 Capability | CAP-04 ("TCP Stream Reassembly") per domain/capabilities/cap-04-tcp-reassembly.md |
 | Capability Anchor Justification | CAP-04 ("TCP Stream Reassembly") per domain/capabilities/cap-04-tcp-reassembly.md -- cumulative overlap detection is part of the evasion detection contract |
 | L2 Domain Invariants | INV-6 (MAX_FINDINGS cap) |
-| Architecture Module | SS-04 (reassembly/mod.rs:477-499, check_anomaly_thresholds overlap block) |
+| Architecture Module | SS-04 (reassembly/mod.rs `overlap_count > overlap_threshold` block in check_anomaly_thresholds) |
 | Stories | STORY-017 |
 | Origin BC | BC-RAS-019 (pass-3 ingestion corpus, HIGH confidence) |
 
@@ -118,14 +119,14 @@ separate, per-event mechanism. This threshold alert is a cumulative count-based 
 
 ## Architecture Anchors
 
-- `src/reassembly/mod.rs:477-499` -- overlap threshold check and finding emission
-- `src/reassembly/mod.rs:452-458` -- LESSON-P1.01 comment explaining latch-before-cap design
+- `src/reassembly/mod.rs` `overlap_count > overlap_threshold` block (overlap threshold check and finding emission)
+- `src/reassembly/mod.rs` `LESSON-P1.01` comment (latch-before-cap design explanation)
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/reassembly/mod.rs:477-499` |
+| **Path** | `src/reassembly/mod.rs` (`overlap_count > overlap_threshold` block) |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 

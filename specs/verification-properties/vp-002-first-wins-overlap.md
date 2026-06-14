@@ -1,7 +1,7 @@
 ---
 document_type: verification-property
 level: L4
-version: "2.0"
+version: "2.1"
 status: verified
 producer: architect
 timestamp: 2026-05-20T00:00:00Z
@@ -31,6 +31,7 @@ lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - "v2.0: Phase-6 verification locked 2026-06-02 @ develop 0855f25. status→verified, verification_lock→true, proof_file_hash set. Formal coverage boundary documented: overlap predicates + select_gaps Kani-PROVEN; BTreeMap orchestration test-covered."
+  - "v2.1 (2026-06-14, F3-convergence FIX-3): De-pinned stale line anchor 'segment.rs:39-46' (that range is ranges_overlap, a private helper). Changed to symbol anchor 'src/reassembly/segment.rs `insert_segment`' (live src verified: insert_segment at segment.rs:189). DF-SIBLING-SWEEP-001: no other stale line pins found in this file."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -80,7 +81,7 @@ TCP evasion attack detection. A conflicting overlap is always surfaced as an
 
 ## Proof Harness Skeleton
 
-// Real signature (src/reassembly/segment.rs:39-46):
+// Real signature (src/reassembly/segment.rs `insert_segment`):
 //   pub fn insert_segment(
 //       &mut self,
 //       seq: u32,

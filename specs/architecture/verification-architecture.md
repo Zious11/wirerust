@@ -2,7 +2,7 @@
 artifact: architecture-section
 section: verification-architecture
 traces_to: ARCH-INDEX.md
-version: "1.7"
+version: "1.8"
 status: verified
 producer: architect
 timestamp: 2026-05-20T00:00:00Z
@@ -43,6 +43,9 @@ modified:
   - date: 2026-06-14
     actor: architect
     reason: "Pass-22 F3-convergence FIX-1: VP-024 Module cell in Should Prove table updated from 'analyzer/arp.rs' to 'analyzer/arp.rs + decoder.rs [a]' to match VP-INDEX.md:76 authoritative module listing and align with verification-coverage-matrix.md footnote [a] documenting the Sub-A dual-module split (extract_arp_frame lives in src/decoder.rs). Footnote [a] added below Should Prove table. FIX-2: VP-008 proof harness skeleton annotated with forward-reference note mirroring VP-008 v2.2: current signature is pre-STORY-111; STORY-111 changes return type to Result<DecodedFrame>. FIX-3: VP-008 fuzz target filename corrected from decode_packet.rs to fuzz_decode_packet.rs to match delivered harness (VP-008 v1.1, STORY-003 AC-011)."
+  - date: 2026-06-14
+    actor: architect
+    reason: "F3-convergence sweep FIX-1: VP-006 row moved from Must Prove table to Should Prove table — VP-INDEX is authoritative (VP-006=P1); Must Prove table is now 8 rows (P0 VPs only), consistent with P0 enumeration list. FIX-2: Tooling Selection proptest row updated VP-006..014 (6) → VP-006, VP-010..014, VP-021 (7) to match VP-INDEX proptest_count=7. Version bump 1.7→1.8."
 ---
 
 # Verification Architecture
@@ -58,7 +61,6 @@ modified:
 | VP-003 | MAX_FINDINGS cap: reassembler never holds more than MAX_FINDINGS+1 findings (the +1 is finalize bypass per INV-6) | INV-6 | reassembly/mod.rs | Kani |
 | VP-004 | Content-first dispatch precedence: TLS signature always wins over port; HTTP method prefix wins over port; DispatchTarget::None is NOT inserted into `routes` before the per-flow classification-attempt counter reaches `max_classification_attempts` (default 8); at the cap it is inserted permanently and reclassification stops | INV-2 | dispatcher.rs | Kani |
 | VP-005 | SNI 4-way ordered match: given any byte slice, exactly one arm fires; arm 3 (NonAsciiUtf8) fires when valid UTF-8 + non-ASCII + C0 present (INV-5 boundary case) | INV-5 | analyzer/tls.rs | Kani |
-| VP-006 | HTTP poison monotonicity: `request_poisoned` / `response_poisoned` fields transition only false->true within a flow's lifetime | INV-8 | analyzer/http.rs | proptest |
 | VP-007 | MITRE technique ID format: every ID emitted by analyzers resolves in technique_info; format matches T[0-9]{4}(\.[0-9]{3})? (covers Enterprise techniques, Enterprise sub-techniques, ICS techniques, and ICS sub-techniques including T1692.001/T1692.002 remapped from revoked T0855/T0856 per issue #222) | INV-9 | mitre.rs | Kani |
 | VP-008 | decode_packet never panics on arbitrary input bytes: any byte slice returns Ok or Err, never unwinds | (no-panic invariant) | decoder.rs | cargo-fuzz |
 | VP-009 | FlowState machine: no transition reaches an undefined state; RST transitions to Closed from any prior state | (state machine) | reassembly/flow.rs | Kani |
@@ -67,6 +69,7 @@ modified:
 
 | VP-ID | Property | Invariant | Module | Tool |
 |-------|----------|-----------|--------|------|
+| VP-006 | HTTP poison monotonicity: `request_poisoned` / `response_poisoned` fields transition only false->true within a flow's lifetime | INV-8 | analyzer/http.rs | proptest |
 | VP-010 | buffered_bytes mirrors segment BTreeMap size sum after every insert/flush/overlap operation | INV-6 related | reassembly/segment.rs | proptest |
 | VP-011 | flush_contiguous is monotonic: base_offset strictly advances with each call; no byte delivered twice | (correctness) | reassembly/segment.rs | proptest |
 | VP-012 | escape_for_terminal: no C0/DEL/C1 byte survives unescaped; all non-ASCII Unicode > U+009F passes through | ADR 0003 | reporter/terminal.rs | proptest |
@@ -127,7 +130,7 @@ See `tooling-selection.md` for full rationale. Summary:
 | Tool | Target Properties | Scope |
 |------|-----------------|-------|
 | Kani (model checker) | State machine reachability, arithmetic overflow, pointer safety | VP-001, VP-002, VP-003, VP-004, VP-005, VP-007, VP-009, VP-015, VP-022, VP-023, VP-024 |
-| proptest | Property-based: generate random inputs, check invariants | VP-006, VP-010..014 |
+| proptest | Property-based: generate random inputs, check invariants | VP-006, VP-010..014, VP-021 |
 | cargo-fuzz (libFuzzer) | No-panic for parser entry points | VP-008 |
 | cargo-mutants | Mutation coverage for domain logic | SS-06, SS-07, SS-08, SS-10 |
 

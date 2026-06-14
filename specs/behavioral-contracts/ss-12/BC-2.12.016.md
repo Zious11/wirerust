@@ -16,6 +16,7 @@ introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
   - "v1.3: DF-SIBLING-SWEEP-001 — fix stale main.rs line anchors: resolve_format 304-320 → 316-324 (fn at 316, closing at 324); reporter selection match 222-240 → 225-245; capability anchor ref updated; verified against HEAD cfe0112a — 2026-06-01"
+  - "v1.4: F3-convergence de-pin — removed numeric line anchors for resolve_format and reporter-selection match; replaced with symbol/concept anchors (drift-proof); verified live src: resolve_format at main.rs:392, reporter match at ~301 — 2026-06-14"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -87,7 +88,7 @@ any unhandled variant) -> `TerminalReporter`.
 | Field | Value |
 |-------|-------|
 | L2 Capability | CAP-12 ("CLI Orchestration / Entry Point") per domain/capabilities/cap-12-cli-orchestration.md |
-| Capability Anchor Justification | CAP-12 ("CLI Orchestration / Entry Point") per domain/capabilities/cap-12-cli-orchestration.md -- resolve_format (main.rs:316-324) is CAP-12's output-channel selection step; it reads CLI flag state and returns the reporter variant to instantiate; this is entry-point orchestration (choosing which reporter to create), not the reporter's own rendering logic |
+| Capability Anchor Justification | CAP-12 ("CLI Orchestration / Entry Point") per domain/capabilities/cap-12-cli-orchestration.md -- `resolve_format` in main.rs is CAP-12's output-channel selection step; it reads CLI flag state and returns the reporter variant to instantiate; this is entry-point orchestration (choosing which reporter to create), not the reporter's own rendering logic |
 | L2 Domain Invariants | None directly |
 | Architecture Module | SS-12 (main.rs, C-1) |
 | Stories | STORY-089 |
@@ -101,8 +102,8 @@ any unhandled variant) -> `TerminalReporter`.
 
 ## Architecture Anchors
 
-- `src/main.rs:316-324` -- resolve_format function
-- `src/main.rs:225-245` -- reporter selection match in run_analyze
+- `src/main.rs` `resolve_format` function
+- `src/main.rs` reporter-selection match in `run_analyze`
 
 ---
 
@@ -112,7 +113,7 @@ any unhandled variant) -> `TerminalReporter`.
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/main.rs:316-324` |
+| **Path** | `src/main.rs` `resolve_format` |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 

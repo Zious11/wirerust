@@ -16,6 +16,7 @@ introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
   - "v1.3: DF-SIBLING-SWEEP-001 — fix stale cli.rs line anchor: targets field 116-118 → 132-134 (Commands::Analyze enum variant shifted due to Cli struct growing); verified against HEAD cfe0112a — 2026-06-01"
+  - "v1.4: F3-convergence de-pin — removed numeric line anchor for targets field; replaced with symbol anchor (drift-proof); verified live src: cli.rs Analyze.targets at :136 — 2026-06-14"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -91,7 +92,7 @@ may be file paths or directory paths (directory expansion is handled in `resolve
 
 ## Architecture Anchors
 
-- `src/cli.rs:132-134` -- targets field (doc comment + required arg attr + Vec<PathBuf> field) in Commands::Analyze
+- `src/cli.rs` `Analyze.targets` field (Vec<PathBuf> with required = true in Commands::Analyze)
 - `tests/cli_tests.rs` -- test_multiple_targets
 
 ---
@@ -102,7 +103,7 @@ may be file paths or directory paths (directory expansion is handled in `resolve
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/cli.rs:132-134` |
+| **Path** | `src/cli.rs` `Analyze.targets` field |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 

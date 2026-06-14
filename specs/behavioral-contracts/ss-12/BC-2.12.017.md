@@ -16,6 +16,7 @@ introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
   - "v1.3: DF-SIBLING-SWEEP-001 — fix stale main.rs line anchors: write_output fn 322-338 → 331-342, file-write arms 329-332 → 333-336, stdout fallback 333-337 → 337-341; capability anchor ref updated; verified against HEAD cfe0112a — 2026-06-01"
+  - "v1.4: F3-convergence de-pin — removed all numeric line anchors for write_output and its sub-arms; replaced with symbol anchors (drift-proof); verified live src: fn write_output at main.rs:407 — 2026-06-14"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -86,7 +87,7 @@ the remediation cycle.
 | Field | Value |
 |-------|-------|
 | L2 Capability | CAP-12 ("CLI Orchestration / Entry Point") per domain/capabilities/cap-12-cli-orchestration.md |
-| Capability Anchor Justification | CAP-12 ("CLI Orchestration / Entry Point") per domain/capabilities/cap-12-cli-orchestration.md -- write_output (main.rs:331-342) routes the already-rendered string to a file or stdout based on CLI flag state; this delivery-routing decision is CAP-12's output-channel responsibility, distinct from CAP-11's rendering of the string itself |
+| Capability Anchor Justification | CAP-12 ("CLI Orchestration / Entry Point") per domain/capabilities/cap-12-cli-orchestration.md -- `fn write_output` in main.rs routes the already-rendered string to a file or stdout based on CLI flag state; this delivery-routing decision is CAP-12's output-channel responsibility, distinct from CAP-11's rendering of the string itself |
 | L2 Domain Invariants | None directly |
 | Architecture Module | SS-12 (main.rs, C-1) |
 | Stories | STORY-089 |
@@ -98,9 +99,9 @@ the remediation cycle.
 
 ## Architecture Anchors
 
-- `src/main.rs:331-342` -- write_output function
-- `src/main.rs:333-336` -- file-write arms for --json <FILE> and --csv <FILE>
-- `src/main.rs:337-341` -- stdout fallback via println!
+- `src/main.rs` `fn write_output`
+- `src/main.rs` file-write arms for --json <FILE> and --csv <FILE> in `write_output`
+- `src/main.rs` stdout fallback via `println!` in `write_output`
 
 ---
 
@@ -110,7 +111,7 @@ the remediation cycle.
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/main.rs:331-342` |
+| **Path** | `src/main.rs` `fn write_output` |
 | **Confidence** | medium |
 | **Extraction Date** | 2026-05-20 |
 

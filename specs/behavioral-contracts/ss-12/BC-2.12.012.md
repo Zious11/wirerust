@@ -16,6 +16,7 @@ introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
   - "v1.3: DF-SIBLING-SWEEP-001 — fix stale main.rs line anchor: bail! at :359 → :363 (anyhow::bail!(\"Target not found...\") in resolve_targets); inline refs updated in description and capability anchor justification; verified against HEAD cfe0112a — 2026-06-01"
+  - "v1.4: F3-convergence de-pin — removed numeric line anchor for bail!(\"Target not found\"); replaced with symbol anchor (drift-proof); verified live src: bail! in run_analyze at main.rs:439 — 2026-06-14"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -44,7 +45,7 @@ outer pipeline in `run_analyze` / `run_summary`.
    `"Target not found: <path-display>"`.
 2. The error propagates via `?` up to `run_analyze` / `run_summary`.
 3. In `run_analyze`, the error is captured in the IIFE `capture_result` and eventually
-   returned after `finalize()` completes (main.rs:197).
+   returned after `finalize()` completes (see `capture_result?` after `reasm.finalize` in main.rs).
 
 ## Invariants
 
@@ -79,7 +80,7 @@ outer pipeline in `run_analyze` / `run_summary`.
 | Field | Value |
 |-------|-------|
 | L2 Capability | CAP-12 ("CLI Orchestration / Entry Point") per domain/capabilities/cap-12-cli-orchestration.md |
-| Capability Anchor Justification | CAP-12 ("CLI Orchestration / Entry Point") per domain/capabilities/cap-12-cli-orchestration.md -- the bail! on an invalid target path (main.rs:363) is part of resolve_targets, which is CAP-12's target-resolution step; input validation at the entry point before any packet reading is precisely the orchestration concern CAP-12 owns |
+| Capability Anchor Justification | CAP-12 ("CLI Orchestration / Entry Point") per domain/capabilities/cap-12-cli-orchestration.md -- the `bail!("Target not found")` in `run_analyze` in main.rs is part of resolve_targets, which is CAP-12's target-resolution step; input validation at the entry point before any packet reading is precisely the orchestration concern CAP-12 owns |
 | L2 Domain Invariants | None directly |
 | Architecture Module | SS-12 (main.rs, C-1) |
 | Stories | STORY-088 |
@@ -91,7 +92,7 @@ outer pipeline in `run_analyze` / `run_summary`.
 
 ## Architecture Anchors
 
-- `src/main.rs:363` -- `anyhow::bail!("Target not found: {}", target.display())`
+- `src/main.rs` `bail!("Target not found")` in `run_analyze`
 
 ---
 
@@ -101,7 +102,7 @@ outer pipeline in `run_analyze` / `run_summary`.
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/main.rs:363` |
+| **Path** | `src/main.rs` `bail!("Target not found")` in `run_analyze` |
 | **Confidence** | medium |
 | **Extraction Date** | 2026-05-20 |
 

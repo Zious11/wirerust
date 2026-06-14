@@ -1,7 +1,7 @@
 ---
 document_type: prd
 level: L3
-version: "1.24"
+version: "1.25"
 status: draft
 producer: product-owner
 timestamp: 2026-06-14T00:00:00Z
@@ -1010,7 +1010,7 @@ Rust source files, 3,868 source LOC, 282 tests, single crate, Rust 2024 edition,
 | BC ID | Title | Priority | Origin |
 |-------|-------|----------|--------|
 | BC-2.15.008 | Transport FIR=1 first-fragment gates application-layer FC extraction | P0 | feature-008-F2 |
-| BC-2.15.009 | is_non_dnp3 desync-safe bail — flow silenced after no valid sync in first 16 bytes | P0 | feature-008-F2 |
+| BC-2.15.009 | is_non_dnp3 Desync-Safe Bail — Flow Silenced on Initial-Delivery No-Sync (One-Shot, First Delivery Only) | P0 | feature-008-F2 |
 
 #### 2.15.D Finding Emission: Detection (Direct Techniques)
 
@@ -1032,7 +1032,7 @@ Rust source files, 3,868 source LOC, 282 tests, single crate, Rust 2024 edition,
 
 | BC ID | Title | Priority | Origin |
 |-------|-------|----------|--------|
-| BC-2.15.016 | Per-flow state and carry buffer — ≤292 bytes, bounded across all flows | P0 | feature-008-F2 |
+| BC-2.15.016 | Per-Flow State Bounds — Carry Buffer ≤292 B, master_addrs ≤64, pending_requests ≤256 | P0 | feature-008-F2 |
 | BC-2.15.017 | --dnp3-direct-operate-threshold CLI flag controls control-command detection window | P0 | feature-008-F2 |
 
 #### 2.15.G Anomaly Detection

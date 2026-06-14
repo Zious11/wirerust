@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.4"
+version: "1.5"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -17,6 +17,7 @@ modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
   - "v1.3: Wave 7 wave-level adv-pass-1 F-1: corrected on_data_without_syn anchor from flow.rs:241-246 to flow.rs:248-253 (Wave 6 fin_count addition shifted lines +7; W4.1 recurrence). Verified mod.rs:305-311 → 305-312 anchor against current source. — 2026-05-25"
   - "v1.4: DF-SIBLING-SWEEP-001 HS-043 re-anchor: mod.rs:305-312 → mod.rs:335-341 (on_data_without_syn block in insert_payload_segment; HS-043 inserted 29 lines at process_packet entry). — 2026-06-01"
+  - "v1.5: F3-convergence consistency-sweep: de-pinned all mod.rs and flow.rs line-number anchors to drift-proof symbol anchors (Architecture Anchors, Traceability, Source Evidence). Live src verified: on_data_without_syn@344, FlowState::New guard@343, infer_isn@143, on_data_without_syn(flow.rs)@248. — 2026-06-14"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -90,7 +91,7 @@ reassembly logic proceeds identically to a fully-handshaked flow.
 | L2 Capability | CAP-04 ("TCP stream reassembly") per domain/capabilities/cap-04-tcp-reassembly.md |
 | Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per domain/capabilities/cap-04-tcp-reassembly.md -- mid-stream join is required for forensic analysis of captures that begin mid-connection |
 | L2 Domain Invariants | None directly |
-| Architecture Module | SS-04 (reassembly/mod.rs:335-341, insert_payload_segment; flow.rs:248-253, on_data_without_syn; flow.rs:143-148, infer_isn) |
+| Architecture Module | SS-04 (reassembly/mod.rs `on_data_without_syn`/`set_initiator`/`infer_isn` FlowState::New branch; flow.rs `on_data_without_syn`; flow.rs `infer_isn`) |
 | Stories | STORY-014 |
 | Origin BC | BC-RAS-009 (pass-3 ingestion corpus, HIGH confidence) |
 
@@ -102,15 +103,15 @@ reassembly logic proceeds identically to a fully-handshaked flow.
 
 ## Architecture Anchors
 
-- `src/reassembly/mod.rs:335-341` -- on_data_without_syn + set_initiator + infer_isn block
-- `src/reassembly/flow.rs:248-253` -- on_data_without_syn: state=Established, partial=true
-- `src/reassembly/flow.rs:143-148` -- infer_isn: wrapping_sub(1), base_offset=1
+- `src/reassembly/mod.rs` `on_data_without_syn`/`set_initiator`/`infer_isn` (FlowState::New branch)
+- `src/reassembly/flow.rs` `on_data_without_syn` (state=Established, partial=true)
+- `src/reassembly/flow.rs` `infer_isn` (wrapping_sub(1), base_offset=1)
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/reassembly/mod.rs:335-341` |
+| **Path** | `src/reassembly/mod.rs` (`on_data_without_syn`/`set_initiator`/`infer_isn`, FlowState::New branch) |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 

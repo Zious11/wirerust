@@ -2,7 +2,7 @@
 document_type: story
 story_id: "STORY-077"
 epic_id: "E-8"
-version: "1.3"
+version: "1.4"
 status: completed
 producer: story-writer
 timestamp: 2026-06-08T00:00:00Z
@@ -128,10 +128,10 @@ End-to-end: an HTTP path-traversal `Finding` whose `summary` contains U+009B pro
 
 | Component | Module | Pure/Effectful |
 |-----------|--------|---------------|
-| escape_for_terminal | src/reporter/terminal.rs:44-61 | pure |
-| TerminalReporter::render (header section) | src/reporter/terminal.rs:83-110 | pure |
-| render_finding_prefix | src/reporter/terminal.rs:196-218 | pure |
-| analyzer summary detail loop | src/reporter/terminal.rs:164-174 | pure |
+| escape_for_terminal | src/reporter/terminal.rs `escape_for_terminal` | pure |
+| TerminalReporter::render (header section) | src/reporter/terminal.rs `TerminalReporter::render` header section | pure |
+| render_finding_prefix | src/reporter/terminal.rs `render_finding_prefix` | pure |
+| analyzer summary detail loop | src/reporter/terminal.rs analyzer-summary detail loop in `render` | pure |
 
 ## Edge Cases
 
@@ -176,9 +176,9 @@ End-to-end: an HTTP path-traversal `Finding` whose `summary` contains U+009B pro
 3. [ ] Verify `src/reporter/terminal.rs` already satisfies all ACs (brownfield confirm)
 4. [ ] Confirm `escape_for_terminal` predicate: `c.is_ascii_control() || ('\u{80}'..='\u{9f}').contains(&c) || c == '\\'`
 5. [ ] Confirm `escape_for_terminal` has exactly ONE production call site (TerminalReporter only)
-6. [ ] Confirm skipped_packets guard is `if summary.skipped_packets > 0` at terminal.rs:94
-7. [ ] Confirm escape called at render_finding_prefix for summary (line 197) and evidence (line 216)
-8. [ ] Confirm escape called at analyzer detail loop line 172 (`escape_for_terminal(&val.to_string())`)
+6. [ ] Confirm skipped_packets guard is `if summary.skipped_packets > 0` in terminal.rs `TerminalReporter::render` header section
+7. [ ] Confirm escape called in `render_finding_prefix` for summary (`escaped_summary`) and evidence (loop over `f.evidence`)
+8. [ ] Confirm escape called in analyzer-summary detail loop (`escape_for_terminal(&val.to_string())`)
 9. [ ] Run `cargo test --all-targets` to confirm green
 
 ## Previous Story Intelligence (MANDATORY)
@@ -192,9 +192,9 @@ End-to-end: an HTTP path-traversal `Finding` whose `summary` contains U+009B pro
 | Rule | Source | Enforcement |
 |------|--------|-------------|
 | `escape_for_terminal` has exactly ONE production call site — inside TerminalReporter | BC-2.11.007 invariant 1 | Grep codebase for `escape_for_terminal`; only terminal.rs may contain production call sites |
-| C1 predicate is `('\u{80}'..='\u{9f}').contains(&c)` — inclusive on both ends | BC-2.11.009 invariant 1 | Code review of terminal.rs:52 |
+| C1 predicate is `('\u{80}'..='\u{9f}').contains(&c)` — inclusive on both ends | BC-2.11.009 invariant 1 | Code review of C1 range predicate in `escape_for_terminal` (terminal.rs) |
 | `escape_for_terminal` is applied to BOTH `f.summary` AND each entry in `f.evidence` | BC-2.11.010 invariant 2 | Code review: two separate call sites in render_finding_prefix |
-| `escape_for_terminal` is applied to `val.to_string()` for ALL analyzer detail values | BC-2.11.011 invariant 1 | Code review: terminal.rs:172 |
+| `escape_for_terminal` is applied to `val.to_string()` for ALL analyzer detail values | BC-2.11.011 invariant 1 | Code review: analyzer-summary detail loop in `render` (terminal.rs `escape_for_terminal(&val.to_string())`) |
 | No C1 exception exists within U+0080-U+009F — the ENTIRE range is escaped | BC-2.11.007 postcondition 3 | Test boundary values: U+0080, U+009F, U+00A0 |
 
 ## Library & Framework Requirements (MANDATORY)
@@ -208,7 +208,7 @@ End-to-end: an HTTP path-traversal `Finding` whose `summary` contains U+009B pro
 
 | File | Action | Purpose |
 |------|--------|---------|
-| src/reporter/terminal.rs | verify/modify | escape_for_terminal (lines 44-61), render (83-178), render_finding_prefix (196-218), detail loop (164-174) |
+| src/reporter/terminal.rs | verify/modify | `escape_for_terminal`, `TerminalReporter::render` (skipped_packets guard + detail loop), `render_finding_prefix` (summary + evidence escape) |
 | tests/reporter_terminal_tests.rs | create or modify | AC-001 through AC-014 tests |
 
 ## Revision History
@@ -216,3 +216,5 @@ End-to-end: an HTTP path-traversal `Finding` whose `summary` contains U+009B pro
 | Version | Date | Change |
 |---------|------|--------|
 | v1.2 | 2026-05-30 | corrected test-file citation reporter_tests.rs → reporter_terminal_tests.rs (FSR + Token Budget rows); Wave-21 wave-level traceability finding F-W21-TRACE-001 |
+| v1.3 | (prior) | (see prior changelog entry in repository) |
+| v1.4 | 2026-06-14 | F3-convergence consistency-sweep: de-pinned all stale terminal.rs line-numbers. Architecture Mapping: `44-61`/`83-110`/`196-218`/`164-174` → symbol/concept anchors. Tasks 6-8: `terminal.rs:94/197/216/172` → symbol anchors. Architecture Compliance: `terminal.rs:52` → concept anchor; `terminal.rs:172` → concept anchor. FSR: line ranges removed. DF-SIBLING-SWEEP-001 clear. |

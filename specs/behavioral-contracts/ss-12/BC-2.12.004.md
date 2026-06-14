@@ -16,6 +16,7 @@ introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
   - "v1.3: DF-SIBLING-SWEEP-001 — fix stale cli.rs line anchor: output_format field 47-49 → 57-59; verified against HEAD cfe0112a — 2026-06-01"
+  - "v1.4: F3-convergence de-pin — removed numeric line anchors for output_format field and resolve_format; replaced with symbol anchors (drift-proof); verified live src: cli.rs output_format at :61, main.rs resolve_format at :392 — 2026-06-14"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -95,8 +96,8 @@ The `--output-format` global flag accepts a `ValueEnum` variant: `json` or `csv`
 
 ## Architecture Anchors
 
-- `src/cli.rs:57-59` -- output_format field on Cli
-- `src/main.rs:316-324` -- resolve_format function
+- `src/cli.rs` `Analyze.output_format` field
+- `src/main.rs` `resolve_format` function
 - `tests/cli_tests.rs` -- test_summary_subcommand
 
 ---
@@ -107,7 +108,7 @@ The `--output-format` global flag accepts a `ValueEnum` variant: `json` or `csv`
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/cli.rs:57-59` |
+| **Path** | `src/cli.rs` `Analyze.output_format` field |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 

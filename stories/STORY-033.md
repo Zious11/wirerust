@@ -2,7 +2,7 @@
 document_type: story
 story_id: "STORY-033"
 epic_id: "E-3"
-version: "1.4"
+version: "1.5"
 status: completed
 producer: story-writer
 timestamp: 2026-06-08T00:00:00Z
@@ -94,9 +94,9 @@ Each flow contributes its close event to exactly one destination: one analyzer (
 
 | Component | Module | Pure/Effectful |
 |-----------|--------|---------------|
-| on_flow_close | src/dispatcher.rs:171-194 | effectful-shell (removes from routes and classification_attempts; mutates unclassified_flows; calls downstream analyzer) |
-| early-return guard | src/dispatcher.rs:121-123 | effectful-shell (early return in on_data) |
-| unclassified_flows counter | src/dispatcher.rs:188-191 | effectful-shell |
+| on_flow_close | src/dispatcher.rs `on_flow_close` | effectful-shell (removes from routes and classification_attempts; mutates unclassified_flows; calls downstream analyzer) |
+| early-return guard | src/dispatcher.rs early-return guard in `on_data` | effectful-shell (early return in on_data) |
+| unclassified_flows counter | src/dispatcher.rs `unclassified_flows` increment in `on_flow_close` | effectful-shell |
 
 ## Edge Cases
 
@@ -123,7 +123,7 @@ Each flow contributes its close event to exactly one destination: one analyzer (
 | Context Source | Estimated Tokens |
 |---------------|-----------------|
 | This story spec | ~2,500 |
-| Referenced code (dispatcher.rs:121-123, 171-194) | ~2,000 |
+| Referenced code (dispatcher.rs `on_data` early-return guard + `on_flow_close`) | ~2,000 |
 | Test files (dispatcher_tests.rs) | ~30,000 |
 | BC files (3 BCs) | ~3,000 |
 | Tool outputs overhead | ~1,500 |
@@ -136,9 +136,9 @@ Each flow contributes its close event to exactly one destination: one analyzer (
 0. [ ] Confirm brownfield-formalization invariant: src/dispatcher.rs is byte-identical to develop (no production-behavior changes)
 1. [ ] Write failing tests for AC-001 through AC-009 (test-writer)
 2. [ ] Verify Red Gate: all tests fail before implementation
-3. [ ] Verify `on_flow_close` behavior per BC-2.05.009 at dispatcher.rs:171-194 (unconditional attempts.remove + routes.remove, match on returned target, forward to correct analyzer or increment unclassified_flows)
-4. [ ] Verify `unclassified_flows` increment guard per BC-2.05.007 at dispatcher.rs:188-191 (only when analyzer configured; only for None/unclassified flows)
-5. [ ] Verify no-analyzer early-return guard per BC-2.05.008 at dispatcher.rs:121-123 (first statement in on_data; not in on_flow_close)
+3. [ ] Verify `on_flow_close` behavior per BC-2.05.009 in dispatcher.rs `on_flow_close` (unconditional attempts.remove + routes.remove, match on returned target, forward to correct analyzer or increment unclassified_flows)
+4. [ ] Verify `unclassified_flows` increment guard per BC-2.05.007 in dispatcher.rs `unclassified_flows` increment branch of `on_flow_close` (only when analyzer configured; only for None/unclassified flows)
+5. [ ] Verify no-analyzer early-return guard per BC-2.05.008 in dispatcher.rs `on_data` early-return guard (first statement in on_data; not in on_flow_close)
 6. [ ] Verify close forwarding uses safe `if let Some` pattern (no panic when analyzer is None) — already present in develop
 7. [ ] Run all tests; verify all pass
 8. [ ] Update STATE.md
@@ -157,7 +157,7 @@ Each flow contributes its close event to exactly one destination: one analyzer (
 | `classification_attempts.remove()` is always called in on_flow_close, unconditionally | BC-2.05.009 invariant 1 | Code review: confirm remove() before the match |
 | `routes.remove()` is always called in on_flow_close, unconditionally | BC-2.05.009 invariant 1 | Code review: confirm remove() before the match |
 | unclassified_flows guard: only increments when `self.http.is_some() || self.tls.is_some()` | BC-2.05.007 invariant 3 | Unit test: AC-006 (no-analyzer dispatcher) |
-| Early-return guard in on_data is the FIRST statement (before route lookup) | BC-2.05.008 invariant 1 | Code review: confirm position at dispatcher.rs:121-123 |
+| Early-return guard in on_data is the FIRST statement (before route lookup) | BC-2.05.008 invariant 1 | Code review: confirm position of early-return guard in dispatcher.rs `on_data` |
 
 ## Library & Framework Requirements (MANDATORY)
 
@@ -169,10 +169,10 @@ Each flow contributes its close event to exactly one destination: one analyzer (
 
 | File | Action | Purpose |
 |------|--------|---------|
-| src/dispatcher.rs | modify | on_flow_close (171-194): unconditional cleanup, match on target, analyzer forwarding, unclassified_flows increment; on_data early-return guard (121-123) |
+| src/dispatcher.rs | modify | `on_flow_close`: unconditional cleanup, match on target, analyzer forwarding, unclassified_flows increment; `on_data` early-return guard |
 | tests/dispatcher_tests.rs | modify | Add: test_BC_2_05_007_unclassified_flows_counter, test_BC_2_05_007_classified_flow_not_counted_as_unclassified, test_BC_2_05_008_no_analyzer_dispatcher_early_returns, test_BC_2_05_008_single_analyzer_not_early_returned, test_BC_2_05_009_flow_close_forwards_to_http_analyzer, test_BC_2_05_009_flow_close_for_unknown_flow_key |
-| src/analyzer/http.rs | modify | Add `#[doc(hidden)] pub fn active_flows_len_for_testing(&self) -> usize` at line 640-651 (AC-007 indirect-observability seam for HttpAnalyzer.on_flow_close → flows.remove proof) |
-| src/analyzer/tls.rs | modify | Add `#[doc(hidden)] pub fn active_flows_len_for_testing(&self) -> usize` at line 847-858 (AC-007 indirect-observability seam for TlsAnalyzer.on_flow_close → flows.remove proof) |
+| src/analyzer/http.rs | modify | Add `#[doc(hidden)] pub fn active_flows_len_for_testing(&self) -> usize` (symbol: `active_flows_len_for_testing` — AC-007 indirect-observability seam for HttpAnalyzer.on_flow_close → flows.remove proof) |
+| src/analyzer/tls.rs | modify | Add `#[doc(hidden)] pub fn active_flows_len_for_testing(&self) -> usize` (symbol: `active_flows_len_for_testing` — AC-007 indirect-observability seam for TlsAnalyzer.on_flow_close → flows.remove proof) |
 
 **Note**: HttpAnalyzer and TlsAnalyzer expose no public accessor for self.flows.len(); AC-007 requires observation of post-close flow-state cleanup. Two minimal `#[doc(hidden)] pub fn _for_testing` seams were added per the W11 STORY-021 / DF-SIBLING-SWEEP-001 v3 doctrine — these are pre-existing test-only patterns, additive only, with zero production-behavior impact.
 
@@ -185,3 +185,4 @@ Each flow contributes its close event to exactly one destination: one analyzer (
 | v1.2 | 2026-05-28 | DF-SIBLING-SWEEP-001 v4 propagation — BC-2.05.008 v1.4 (EC-002 wording disambiguated); input-hash recomputed: `9610207` → `4aa119d` (sha256 over sorted cited-BC files BC-2.05.007/008/009, first 7 chars). No AC citation changes required. | story-writer |
 | v1.3 | 2026-05-29 | Drift remediation F-DRIFT-S-001: status reconciled from `in-progress` to `completed` (STORY-033 was merged in Wave 14 PR #137; frontmatter not updated at wave-close). | state-manager |
 | v1.4 | 2026-05-29 | state-manager | input-hash corrected via canonical bin/compute-input-hash --update (prior value `4aa119d` was hand-computed sha256 over sorted inputs-file list; tool uses MD5 over inputs-order file list). New value: `9610207`. |
+| v1.5 | 2026-06-14 | story-writer | F3-convergence consistency-sweep: de-pinned all stale src line-numbers. FSR http.rs/tls.rs: `640-651`/`847-858` → symbol anchor `active_flows_len_for_testing` (live: http.rs:681, tls.rs:944). All dispatcher.rs:NNN pins de-pinned to symbol/concept anchors (on_flow_close, on_data early-return guard, unclassified_flows increment). DF-SIBLING-SWEEP-001 clear. |
