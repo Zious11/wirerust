@@ -62,7 +62,7 @@ concept anchors referencing the IcsImpact display obligation in HS-008. The stri
 
 | Artifact | Change |
 |----------|--------|
-| `.factory/holdout-scenarios/wave-40-44-holdout.md` | FIX-1: 3 occurrences of "D14" → "BC-2.16.014"; FIX-2: de-pinned STORY-113:293 stale line cite; tightened HS-W44-ARP-D3 Scenario A frame-count narrative (frame 50, not 101) |
+| `.factory/feature/wave-holdout-scenarios/wave-40-44-holdout.md` | FIX-1: 3 occurrences of "D14" → "BC-2.16.014"; FIX-2: de-pinned STORY-113:293 stale line cite; tightened HS-W44-ARP-D3 Scenario A frame-count narrative (frame 50, not 101) |
 | `.factory/stories/STORY-114.md` | FIX-3: 2 stale HS-008:75 line citations → stable concept anchors |
 
 ---
@@ -119,7 +119,7 @@ This matches BC-2.16.010.md H1 and BC-INDEX verbatim. No BC content changed; no 
 
 | Artifact | Change |
 |----------|--------|
-| `.factory/specs/behavioral-contracts/ss-16/BC-2.15.017.md` | v1.3→v1.4: 3 occurrences of `DNP3_DIRECT_OPERATE_THRESHOLD_DEFAULT` reverted to `DNPXX_DIRECT_OPERATE_THRESHOLD_DEFAULT`; v1.4 modified-log entry added |
+| `.factory/specs/behavioral-contracts/ss-15/BC-2.15.017.md` | v1.3→v1.4: 3 occurrences of `DNP3_DIRECT_OPERATE_THRESHOLD_DEFAULT` reverted to `DNPXX_DIRECT_OPERATE_THRESHOLD_DEFAULT`; v1.4 modified-log entry added |
 | `.factory/specs/prd.md` | v1.24 delta note added; §2.16.F BC-2.16.010 row title enriched with "(11 Keys)" |
 
 ---

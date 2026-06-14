@@ -1,7 +1,7 @@
 ---
 document_type: wave-schedule
 level: ops
-version: "1.1"
+version: "1.2"
 status: draft
 producer: story-writer
 timestamp: 2026-06-13T00:00:00Z
@@ -28,7 +28,7 @@ cycles:
   - v0.7.0-arp        # Waves 40-44 — E-16 ARP Security Analyzer
 ---
 
-# Wave Schedule: Feature #7 — Modbus Analyzer + Multi-Tag Schema
+# Wave Schedule: Feature #7 Modbus Analyzer + Multi-Tag Schema; Feature #9 ARP Security Analyzer (Waves 40-44)
 
 > **Context:** Feature #7 (GitHub issue #7) introduces two release increments:
 > v0.3.0 ships the multi-tag Finding schema migration (E-13); v0.4.0 ships
