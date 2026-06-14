@@ -1,7 +1,7 @@
 ---
 document_type: prd
 level: L3
-version: "1.18"
+version: "1.19"
 status: draft
 producer: product-owner
 timestamp: 2026-06-12T02:00:00Z
@@ -240,11 +240,45 @@ supplements:
 >   T0830 [ICS] + T1557.002 [Enterprise] new ARP F2".
 > Total BC count: 283 (unchanged). See `spec-changelog.md` §[arp-f2-pass4-remediation-2026-06-12].
 
+> **Version 1.13 delta (2026-06-12 — F2 adversarial Pass 8 remediation):**
+> F-D8-M01: §2.2 BC-2.02.009 row title updated from stale v1.4 title to canonical v1.5 H1/BC-INDEX
+> title ("decode_packet routes lax ARP to extract_arp_frame"). No new BCs; no BC count change.
+> See `spec-changelog.md` §[arp-f2-pass8-remediation-2026-06-12].
+
+> **Version 1.14 delta (2026-06-12 — F2 adversarial Pass 10 remediation):**
+> F-D10-M01: §2.10 O-04 note corrected T0885/T1692.002 label from "(Enterprise)" to "(ICS)";
+> arithmetic 12E+13I unaffected. No new BCs; no BC count change.
+> See `spec-changelog.md` §[arp-f2-pass10-remediation-2026-06-12].
+
+> **Version 1.15 delta (2026-06-12 — F2 adversarial Pass 11 remediation):**
+> F-D11-H01: BC-2.04.055 and BC-2.09.007 rows added to §2.4, §2.9, and §7 RTM (issue-#100 F2
+> additions already counted in the 283-total derivation but missing from the index tables).
+> F-D11-M01: §2.9 range note corrected. O-D11-02: T0846 added to §1 technique enumeration.
+> No new BCs; total remains 283. See `spec-changelog.md` §[arp-f2-pass11-remediation-2026-06-12].
+
+> **Version 1.16 delta (2026-06-13 — ARP-F2 Pass-13 slice-D fix):**
+> Slice-D: BC-2.16.008 citation EC-008 → EC-002 (same-second storm denominator edge case).
+> No new BCs; no BC count change. See `spec-changelog.md` §[pass-13-2026-06-13].
+
 > **Version 1.17 delta (2026-06-13 — ARP-F2 Pass-14 PO Burst 2 remediation):**
 > D-01 (HIGH): BC-2.14.004 row §2.14.A corrected reject range from "[2, 253]" to "[2, 254]".
 > Canonical range per BC-2.14.004 H1, ECs, VP-022:117, and BC-INDEX:344. Length field=254 is
 > valid (unit-id byte + 253-byte PDU); len=255 is the first invalid value. No BC count change.
 > See `spec-changelog.md` §[arp-f2-pass-14-po-burst-2-2026-06-13].
+
+> **Version 1.18 delta (2026-06-13 — ARP-F2 Pass-14 PO Burst 9, O-01 CLOSED):**
+> Three residual O-01 stale current-state claims removed from prd.md: §1.5 Out of Scope
+> timestamp note, §2.9 ss-09 "timestamp always None" note, §8 Domain Debt Index O-01 row
+> struck through. Domain-debt O-01 (Finding.timestamp always None) is CLOSED — timestamp
+> wired by STORY-097/098/099 across all 21/22 applicable emission sites; BC-2.04.054 retains
+> timestamp:None by design as the sole exception. No new BCs; no BC count change.
+> See `spec-changelog.md` §[arp-f2-pass-14-po-burst-9-2026-06-13].
+
+> **Version 1.19 delta (2026-06-13 — Pass-21 ledger hygiene sync):**
+> B-01: Added concise body delta notes for versions 1.13/1.14/1.15/1.16/1.18 (previously absent
+> from the inline version history). Version history is now contiguous from 1.1 through 1.19.
+> No behavioral changes; no BC count change.
+> See `spec-changelog.md` §[pass-21-fixes-2026-06-13].
 
 > **Supplement Model:** Sections 3-5 reference extracted supplement files under
 > `prd-supplements/`. These supplements are produced in a SEPARATE burst (Phase 1b).

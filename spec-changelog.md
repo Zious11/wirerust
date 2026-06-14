@@ -14,6 +14,52 @@ changes, invariant rewrites).
 
 ---
 
+## [pass-21-fixes-2026-06-13] — 2026-06-13
+
+### PATCH: Pass-21 ledger hygiene (B-01, D-01, D-02, D-03, D-04)
+
+Five targeted fixes across three artifacts. No behavioral changes; table formatting, historical
+path/slug corrections, and version-history sync only.
+
+**B-01 MED — BC-INDEX.md: stray blank line inside ss-11 table deleted (v1.24 → v1.25)**
+
+A blank line between the BC-2.11.001 row and the BC-2.11.002 row split the Markdown table,
+causing BC-2.11.002..024 to render without a header. The blank line was removed; the ss-11
+table is now one contiguous block.
+
+**D-01 MED — spec-changelog.md Pass-13 ledger: ARCH-INDEX path corrected**
+
+Historical Pass-13 architect-burst row cited `specs/behavioral-contracts/ARCH-INDEX.md`.
+Correct path is `specs/architecture/ARCH-INDEX.md`. Corrected to match sibling rows at
+changelog lines ~2117 and ~2158 which already used the right directory.
+
+**D-02 MED — spec-changelog.md Pass-13 ledger: vp-005 slug corrected**
+
+Historical Pass-13 architect-burst row cited `specs/verification-properties/vp-005-no-panic-guarantee.md`.
+Real file is `vp-005-sni-four-way-classification.md`. Corrected.
+
+**D-03 MED — spec-changelog.md Pass-13 ledger: vp-008 slug corrected**
+
+Historical Pass-13 architect-burst row cited `specs/verification-properties/vp-008-all-analyzers-pure.md`.
+Real file is `vp-008-decode-packet-no-panic.md`. Corrected.
+
+**D-04 LOW — prd.md: missing body delta notes for versions 1.13/1.14/1.15/1.16/1.18 added (v1.18 → v1.19)**
+
+The inline version history jumped from 1.12 → 1.17 with no delta notes for versions 1.13, 1.14,
+1.15, 1.16, or 1.18 — all real bumps per changelog. Added concise delta notes for each, sourced
+from the corresponding spec-changelog entries. Version 1.19 delta note added for this sync fix.
+Version history is now contiguous from 1.1 through 1.19.
+
+**Artifacts changed:**
+
+| Artifact | Change |
+|----------|--------|
+| `.factory/specs/behavioral-contracts/BC-INDEX.md` | `version: 1.24 → 1.25`; stray blank line inside ss-11 table removed |
+| `.factory/spec-changelog.md` | Pass-13 architect-burst table: ARCH-INDEX path corrected (D-01), vp-005 slug corrected (D-02), vp-008 slug corrected (D-03) |
+| `.factory/specs/prd.md` | `version: 1.18 → 1.19`; body delta notes added for versions 1.13/1.14/1.15/1.16/1.18/1.19 |
+
+---
+
 ## [pass-20-fixes-2026-06-13] — 2026-06-13
 
 ### PATCH: Pass-20 small anchor/version stragglers (D-01, B-01..B-05)
@@ -2063,10 +2109,10 @@ BC-INDEX bumped v1.18→v1.19 (absorbs F-D13-001 + Slice-B).
 | Document | Old Version | New Version | Change |
 |----------|-------------|-------------|--------|
 | `specs/architecture/decisions/ADR-007-binary-ics-protocol-integration-dnp3-tcp.md` | (modified entry) | v2.1 | Architect Pass-13 burst |
-| `specs/verification-properties/vp-005-no-panic-guarantee.md` | 2.0 | 2.1 | Architect Pass-13 burst |
+| `specs/verification-properties/vp-005-sni-four-way-classification.md` | 2.0 | 2.1 | Architect Pass-13 burst |
 | `specs/architecture/verification-architecture.md` | 1.4 | 1.5 | Architect Pass-13 burst |
-| `specs/verification-properties/vp-008-all-analyzers-pure.md` | 2.0 | 2.1 | Architect Pass-13 burst |
-| `specs/behavioral-contracts/ARCH-INDEX.md` | 1.3 | 1.4 | Architect Pass-13 burst |
+| `specs/verification-properties/vp-008-decode-packet-no-panic.md` | 2.0 | 2.1 | Architect Pass-13 burst |
+| `specs/architecture/ARCH-INDEX.md` | 1.3 | 1.4 | Architect Pass-13 burst |
 
 **PO-owned documents updated:**
 

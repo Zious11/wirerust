@@ -1,7 +1,7 @@
 ---
 pipeline: FEATURE_MODE_ARP_ANALYZER
 phase: feature-F2-strict-whole-corpus-convergence
-phase_status: "0/3 — Pass 20 REMEDIATED; anchor-drift class FLUSHED; resume = Pass 21 (Claude adversary) — strong first-clean-pass candidate"
+phase_status: "0/3 — Pass 21 REMEDIATED (cosmetic only, 0C/0H); resume = Pass 22 (Claude) — first-clean candidate"
 active_feature: "arp-analyzer"
 feature_arp_status: "F1 Delta Analysis PASSED (human-gated 2026-06-12) — DecodedFrame integration, ADR-008 planned, F2→F7 authorized; release target v0.7.0"
 feature_8_status: "v0.6.0 RELEASED 2026-06-12 — DNP3 TCP analyzer; F7 5-dim CONVERGED; tag v0.6.0 + 4 binaries"
@@ -39,8 +39,8 @@ dtu_clones_built: n/a
 dtu_services: []
 adversary_convergence_counter: 3/3  # Pass 14 CONVERGENCE_REACHED; clean-streak 3/3; ADVERSARY GATE SATISFIED
 convergence_trajectory: "P1-P14 greenfield GATE-SATISFIED; MITRE-222 3-pass CONVERGED. Detail: cycles/v0.1.0-greenfield-spec/convergence-trajectory.md"
-arp_f2_adversary_convergence_counter: 0/3  # STRICT WHOLE-CORPUS mode — zero findings any severity across entire spec corpus required; P20 0C/1H/3M/3L — anchor-drift FLUSHED (ss-04/ss-12 closed; over-correction spot-check PASSED; Slices A+C CLEAN); PG-ARP-F2-007 FLUSHED corpus-wide; remediation does not advance counter; trajectory P14-20: 2C5H/2C1H/0C0H/3C2H/0C3H/0C8H/0C1H; DECAYING strongly; next Pass 21 candidate for first clean
-arp_f2_convergence_trajectory: "15→20→~8→~15→~6→~4→~4→~7→~4→~6→~5→~18→~8→~22(P14: 2C/5H NEW corpus-debt; trend broke; ARP delta clean 6th pass)→P15(8 findings: holdout-layer field-rename + regression; REMEDIATED)→P16(7: 0C/0H, sibling-sweep misses; REMEDIATED; Slice B CLEAN)→P17(10: holdout MITRE-counts + module-decomposition peer; REMEDIATED; Slice B CLEAN 2nd)→P18(9: ss-05 anchor-drift + indicatif + STORY-INDEX; 0C/3H; REMEDIATED; arp.rs+holdout pre-flush verified clean)→P19(15: corpus-wide anchor-drift; 0C/8H; PARTIAL — ss-07-full+remaining-BC pending)→ batch2: ss-07-full(35 BCs)+ss-04-partial(21 BCs)+ss-11(10 BCs); ss-01/02/08/13 CLEAN; ss-04-remainder+ss-12 to Pass-20 — REMEDIATED → P20(7: anchor-drift flushed, ss-04/ss-12 closed; 0C/1H; Slices A+C CLEAN; REMEDIATED) — 0/3 STRICT WHOLE-CORPUS; 20 passes; P14-P20 ALL REMEDIATED; PG-ARP-F2-007 FLUSHED. Detail: phase-f5-adversarial/arp-f2-convergence-trajectory.md"
+arp_f2_adversary_convergence_counter: 0/3  # STRICT WHOLE-CORPUS mode — zero findings any severity across entire spec corpus required; P21 0C/0H (5 cosmetic: table/changelog-slug/PRD-history); Slices A+C CLEAN 2nd consecutive; converging; remediation does not advance counter; trajectory P14-21: 2C5H/2C1H/0C0H/3C2H/0C3H/0C8H/0C1H/0C0H; DECAYING strongly; next Pass 22 first-clean candidate
+arp_f2_convergence_trajectory: "15→20→~8→~15→~6→~4→~4→~7→~4→~6→~5→~18→~8→~22(P14: 2C/5H NEW corpus-debt; trend broke; ARP delta clean 6th pass)→P15(8 findings: holdout-layer field-rename + regression; REMEDIATED)→P16(7: 0C/0H, sibling-sweep misses; REMEDIATED; Slice B CLEAN)→P17(10: holdout MITRE-counts + module-decomposition peer; REMEDIATED; Slice B CLEAN 2nd)→P18(9: ss-05 anchor-drift + indicatif + STORY-INDEX; 0C/3H; REMEDIATED; arp.rs+holdout pre-flush verified clean)→P19(15: corpus-wide anchor-drift; 0C/8H; PARTIAL — ss-07-full+remaining-BC pending)→ batch2: ss-07-full(35 BCs)+ss-04-partial(21 BCs)+ss-11(10 BCs); ss-01/02/08/13 CLEAN; ss-04-remainder+ss-12 to Pass-20 — REMEDIATED → P20(7: anchor-drift flushed, ss-04/ss-12 closed; 0C/1H; Slices A+C CLEAN; REMEDIATED) → P21(5 cosmetic; 0C/0H; A+C CLEAN; REMEDIATED) — 0/3 STRICT WHOLE-CORPUS; 21 passes; P14-P21 ALL REMEDIATED; PG-ARP-F2-007 FLUSHED. Detail: phase-f5-adversarial/arp-f2-convergence-trajectory.md"
 f7_convergence_trajectory: "6 fresh-context adversarial passes; final 3 consecutive CONVERGED (0 P0/CRITICAL/HIGH/MEDIUM)"
 consistency_audit: CONSISTENT
 input_drift_check: "MATCH=62 STALE=0 ERROR=1 (STORY-091 known); STORY-106 d0ef956 / STORY-109 cf0bb94 re-stamped"
@@ -50,7 +50,7 @@ input_drift_check: "MATCH=62 STALE=0 ERROR=1 (STORY-091 known); STORY-106 d0ef95
 
 ## Status
 
-**wirerust v0.6.0 RELEASED (DNP3 TCP analyzer, issue #8). Feature: ARP security analyzer + etherparse 0.16→0.20 migration (F1 PASSED 2026-06-12, D-066); release target v0.7.0. F2 spec evolution IN PROGRESS — adversarial convergence 0/3 STRICT WHOLE-CORPUS mode (human-elected 2026-06-13; 20 passes completed; Pass 20 REMEDIATED — cap-09 version straggler + ss-04 BC-2.04.012/013/014 + ss-12 BC-2.12.005 + ADR-008 T0830 matrix-label; anchor-drift class PG-ARP-F2-007 FLUSHED corpus-wide; Slices A+C CLEAN; over-correction spot-check PASSED; trajectory P14-20: 2C/5H→2C/1H→0C/0H→3C/2H→0C/3H→0C/8H→0C/1H; DECAYING strongly; Pass 21 is first-clean-pass candidate).**
+**wirerust v0.6.0 RELEASED (DNP3 TCP analyzer, issue #8). Feature: ARP security analyzer + etherparse 0.16→0.20 migration (F1 PASSED 2026-06-12, D-066); release target v0.7.0. F2 spec evolution IN PROGRESS — adversarial convergence 0/3 STRICT WHOLE-CORPUS mode (human-elected 2026-06-13; 21 passes completed; Pass 21 REMEDIATED — cosmetic only: ss-11 table blank-line split (BC-INDEX v1.25), 3 changelog phantom slugs/paths (Pass-13 ledger), PRD version-history gap 1.13-1.16/1.18 (prd.md v1.19); 0C/0H; Slices A+C CLEAN 2nd consecutive; trajectory P14-21: 2C/5H→2C/1H→0C/0H→3C/2H→0C/3H→0C/8H→0C/1H→0C/0H; DECAYING strongly; Pass 22 is first-clean candidate).**
 
 **Summary:** 63 stories (48 greenfield + 4 F-cycle + 11 F3-new), 400 pts. 268 BCs (244 pre-F2 + 24 SS-15), 23 VPs (22+VP-023 ALL LOCKED), 1496 tests green, holdout 0.967. develop HEAD 31d1231; main HEAD 3e29891 (v0.6.0). ARP feature: F1 approved — est. 18-24 new BCs (SS-16), 1 revised BC, VP-024, ADR-008, 5-6 stories (E-16), 3-5 holdout scenarios. MITRE T0830 (primary) + T1557.002 (secondary).
 
@@ -81,11 +81,11 @@ Post-release sweep 2026-06-12: 5 dep bumps merged (#203/#204/#207/#235/#206), #2
 | Release v0.6.0 | **RELEASED** 2026-06-12 | PR #234 (release/0.6.0 → main 3e29891); fixup fb3935c; tag v0.6.0; 4 binaries (release.yml); develop merge-back 04f8ccb |
 | Maintenance: Dependabot sweep (post-v0.6.0) | **COMPLETE** 2026-06-12 | 5 PRs merged (#203/#204/#207/#235/#206), 2 closed (#202 superseded, #205 deferred); develop 31d1231 |
 | Feature: ARP analyzer — F1 Delta Analysis | **PASSED** (human-gated 2026-06-12) | DecodedFrame{Ip,Arp} integration, ADR-008 planned, F2→F7 authorized; artifacts: `.factory/phase-f1-delta-analysis/arp-analyzer-delta-analysis.md` |
-| Feature: ARP analyzer — F2 Spec Evolution | **IN PROGRESS** — adversarial convergence 0/3 STRICT WHOLE-CORPUS (human-elected 2026-06-13); Pass 20 REMEDIATED; anchor-drift class (PG-ARP-F2-007) FLUSHED corpus-wide; next = Pass 21 (first-clean-pass candidate) | 4-slice method; 20 passes; ARP delta SETTLED (clean 6+ consecutive); P14-P20 ALL REMEDIATED; P20: cap-09 version straggler + ss-04 BC-2.04.012/013/014 + ss-12 BC-2.12.005 + ADR-008 T0830 prose; anchor-drift FLUSHED; Slices A+C CLEAN; over-correction spot-check PASSED; P14-20: 2C5H/2C1H/0C0H/3C2H/0C3H/0C8H/0C1H; DECAYING strongly; trajectory: `phase-f5-adversarial/arp-f2-convergence-trajectory.md` |
+| Feature: ARP analyzer — F2 Spec Evolution | **IN PROGRESS** — adversarial convergence 0/3 STRICT WHOLE-CORPUS (human-elected 2026-06-13); Pass 21 REMEDIATED (cosmetic only, 0C/0H); next = Pass 22 (first-clean candidate) | 4-slice method; 21 passes; ARP delta SETTLED (clean 6+ consecutive); P14-P21 ALL REMEDIATED; P21: ss-11 table blank-line (BC-INDEX v1.25) + 3 changelog phantom slugs/paths + PRD version-history gap (prd.md v1.19); 0C/0H; Slices A+C CLEAN 2nd consecutive; P14-21: 2C5H/2C1H/0C0H/3C2H/0C3H/0C8H/0C1H/0C0H; DECAYING strongly; trajectory: `phase-f5-adversarial/arp-f2-convergence-trajectory.md` |
 
-## Session Resume Checkpoint (2026-06-13 — F2 STRICT WHOLE-CORPUS CONVERGENCE, Pass 20 REMEDIATED; anchor-drift FLUSHED)
+## Session Resume Checkpoint (2026-06-13 — F2 STRICT WHOLE-CORPUS CONVERGENCE, Pass 21 REMEDIATED; 0C/0H cosmetic; Slices A+C CLEAN 2nd consecutive)
 
-**Previous checkpoint (2026-06-13 — Pass 19 remediation batch 2 DONE) archived to:
+**Previous checkpoint (2026-06-13 — Pass 20 REMEDIATED; anchor-drift FLUSHED) archived to:
 `cycles/feature-arp-v0.7.0/session-checkpoints.md`**
 
 ### POSITION
@@ -99,18 +99,17 @@ Post-release sweep 2026-06-12: 5 dep bumps merged (#203/#204/#207/#235/#206), #2
 - **F2 adversarial convergence:** STRICT WHOLE-CORPUS mode (human-elected 2026-06-13).
   Bar = 3 consecutive passes with ZERO findings of ANY severity, including LOW, across the
   ENTIRE spec corpus — not just the ARP delta. Counter **0/3**.
-- **20 adversarial passes + 1 corpus consistency audit run. Pass 20 REMEDIATED.**
-  Pass 20 (7 findings): 0C/1H/3M/3L. D-01 HIGH (PO): cap-09 frontmatter version stuck at
-  1.1 though changelog/body were at 1.2 (unapplied bump from P19 straggler sweep) — bumped
-  to v1.2. B-01 LOW (PO): BC-2.04.012 Invariant-1 prose "finalized=true @618"→@647.
-  B-02 MED (PO): BC-2.04.013 expire call-site :166-169→:168-171 (2 fields). B-03 MED (PO):
-  BC-2.04.014 lifecycle.rs:60→:66 (total_memory decrement). B-04 MED (PO): BC-2.12.005
-  main.rs reassembly-config :87-122→:139-166 / :104-117→:147-161. B-05 LOW (PO): BC-2.12.005
-  cli.rs reassembly-flag block :71-122→:73-124. D-02 LOW (architect): ADR-008 T0830
-  ICS-vs-Enterprise matrix-label adjacent-sentence reconciliation (no mapping change) — v1.9.
-  Anchor-drift class PG-ARP-F2-007 FLUSHED corpus-wide. Slices A and C CLEAN.
-  Over-correction spot-check PASSED (all P19 bulk sweeps verified correct; ss-04/ss-12 now COMPLETE).
-  Trajectory P14-20: 2C/5H→2C/1H→0C/0H→3C/2H→0C/3H→0C/8H→0C/1H. DECAYING strongly.
+- **21 adversarial passes + 1 corpus consistency audit run. Pass 21 REMEDIATED.**
+  Pass 21 (5 findings): 0C/0H; all cosmetic/ledger hygiene. B-01 LOW (PO): BC-INDEX ss-11
+  table stray blank line between BC-2.11.001 and BC-2.11.002 split the Markdown table —
+  removed (BC-INDEX v1.24→v1.25). D-01 MED (PO): spec-changelog Pass-13 ledger cited
+  `specs/behavioral-contracts/ARCH-INDEX.md` — corrected to `specs/architecture/ARCH-INDEX.md`.
+  D-02 MED (PO): spec-changelog Pass-13 ledger cited `vp-005-no-panic-guarantee.md` — corrected
+  to `vp-005-sni-four-way-classification.md`. D-03 MED (PO): spec-changelog Pass-13 ledger cited
+  `vp-008-all-analyzers-pure.md` — corrected to `vp-008-decode-packet-no-panic.md`. D-04 LOW (PO):
+  PRD body version-history missing delta notes for 1.13/1.14/1.15/1.16/1.18; notes added (prd.md
+  v1.18→v1.19). Slices A+C CLEAN (2nd consecutive clean for both slices).
+  Trajectory P14-21: 2C/5H→2C/1H→0C/0H→3C/2H→0C/3H→0C/8H→0C/1H→0C/0H. DECAYING strongly.
 
 ### VERIFIED SHAs (re-verify live on resume — do NOT trust as current-HEAD values)
 
@@ -141,7 +140,7 @@ domain, prd-supp) re-anchored vs develop HEAD 31d1231. No known anchor-drift poc
 1. Run `vsdd-factory:factory-worktree-health`. **BLOCKING — do not proceed if this fails.**
 2. Read `STATE.md` (this file) + `.factory/phase-f5-adversarial/arp-f2-convergence-trajectory.md`.
 3. Confirm develop==origin/develop, working tree clean, no open PRs.
-4. **Next action: whole-corpus Pass 21 via Claude vsdd-factory:adversary (4 slices, STRICT).**
+4. **Next action: whole-corpus Pass 22 via Claude vsdd-factory:adversary (4 slices, STRICT) — first-clean candidate.**
    agy headless print-mode is currently UNUSABLE (3 documented failure modes; use Claude).
    Dispatch 4 FRESH-CONTEXT slices in parallel, STRICT mode (report EVERY finding of ANY
    severity), each covering its whole-corpus partition:
@@ -200,6 +199,11 @@ domain, prd-supp) re-anchored vs develop HEAD 31d1231. No known anchor-drift poc
 - **ss-12 BC-2.12.005 (COMPLETE — Pass-20):** main.rs + cli.rs anchors corrected. Do NOT re-flag these anchors.
 - **cap-09 version field (COMPLETE — Pass-20 D-01):** Frontmatter version: "1.1"→"1.2". Do NOT re-flag.
 - **ADR-008 T0830 matrix-label prose (COMPLETE — Pass-20 D-02):** v1.8→v1.9 prose reconciliation. Do NOT re-flag T0830 tactic assignment (correct, unchanged: ICS TA0109 LateralMovement).
+- **BC-INDEX ss-11 table blank line (COMPLETE — Pass-21 B-01):** Stray blank line between BC-2.11.001 and BC-2.11.002 removed; table now contiguous (v1.24→v1.25). Do NOT re-flag.
+- **spec-changelog Pass-13 ARCH-INDEX path (COMPLETE — Pass-21 D-01):** `behavioral-contracts/ARCH-INDEX.md` corrected to `architecture/ARCH-INDEX.md`. Do NOT re-flag.
+- **spec-changelog Pass-13 vp-005 slug (COMPLETE — Pass-21 D-02):** `vp-005-no-panic-guarantee.md` corrected to `vp-005-sni-four-way-classification.md`. Do NOT re-flag.
+- **spec-changelog Pass-13 vp-008 slug (COMPLETE — Pass-21 D-03):** `vp-008-all-analyzers-pure.md` corrected to `vp-008-decode-packet-no-panic.md`. Do NOT re-flag.
+- **PRD version-history 1.13/1.14/1.15/1.16/1.18 gap (COMPLETE — Pass-21 D-04):** Delta notes added for each missing version; prd.md v1.18→v1.19. Do NOT re-flag.
 
 ### RECURRING DEFECT CLASSES (sweep proactively before each pass)
 

@@ -1,7 +1,7 @@
 ---
 document_type: bc-index
 level: L3
-version: "1.24"
+version: "1.25"
 status: draft
 producer: product-owner
 timestamp: 2026-06-13T00:00:00Z
@@ -263,7 +263,6 @@ traces_to: .factory/specs/prd.md
 | BC ID | Title | Priority | Status | Origin |
 |-------|-------|----------|--------|--------|
 | BC-2.11.001 | JsonReporter Renders JSON Object with summary/findings/analyzers/mitre_domain/mitre_attack_version Keys | P0 | [WRITTEN] | BC-RPT-001 | <!-- v1.5: ADD-ON 1 — envelope fields mitre_domain + mitre_attack_version added; mitre_attack_version placeholder "ics-attack-v15" flagged for F4 to pin -->
-
 | BC-2.11.002 | JsonReporter Includes skipped_packets in Summary | P1 | [WRITTEN] | BC-RPT-002 |
 | BC-2.11.003 | JsonReporter Escapes C0 Control Bytes per RFC 8259 via serde | P0 | [WRITTEN] | BC-RPT-003 |
 | BC-2.11.004 | JsonReporter Preserves Non-ASCII Unicode in Readable Form | P1 | [WRITTEN] | BC-RPT-004 |
