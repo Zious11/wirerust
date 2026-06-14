@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.5"
+version: "1.6"
 status: draft
 producer: product-owner
 timestamp: 2026-06-10T00:00:00Z
@@ -18,6 +18,7 @@ modified:
   - "v1.2: EC-007 resync policy updated — drain-1 (STORY-107 v1 behavior) replaced by byte-walk-forward resync (STORY-109 realization of the STORY-107 explicitly deferred resync). STORY-107 in-code comment stated: 'Byte-walk resync on mid-carry sync-loss is deferred to a later detection story'; STORY-109 is that story. EC-007 now specifies: after the LENGTH gate increments parse_errors and malformed_in_window, the carry head is repositioned by scanning from index 1 for the next [0x05,0x64] sync word; bytes before it are drained; if none found, carry is cleared. No postcondition or invariant logic changed — this is an EC-007 navigation-detail clarification only. Authorized by STORY-109-resync-adjudication.md Decision 2. — 2026-06-11. Additionally (per ADJ-001-A): Canonical Test Vectors 'Carry overflow (adversarial)' row clarified to note that the frame-walk subsequently runs post-overflow and, if no [0x05,0x64] sync word is found, byte-walk-forward resync clears the carry (final carry may be empty); the 292-cap proof rests on the parse_errors increment, not residual carry length."
   - "v1.3: F5-R2 changes (F-F5-001 REVISION 2 + F-F5-003 REVISION 2) — (A1) Postcondition 5 corrected: DIR bit is bit 7 (mask 0x80) per IEEE 1815 DNP3 link-layer framing — the previous text implied mask 0x10 (bit 4, FCV/DFC), which is wrong; CTRL=0xC4 canonical master frame now correctly returns is_master_frame=true. Architecture Anchors updated to note the 0x80 mask. (B7) EC-007 inline-resync-location clarification added: the LENGTH-gate arm performs byte-walk-forward resync INLINE before continue, so the loop's next iteration begins with a valid sync head or empty carry; the sync-check arm is NOT entered as a consequence of a LENGTH-gate drain. (B8) EC-004 Edge Cases row and Canonical Test Vectors 'Carry overflow (adversarial)' row updated to reflect that the overflow arm now performs INLINE resync (identical to Change 2) — a recoverable valid head frame is preserved; carry is cleared only if no [0x05,0x64] sync word is found; the frame-walk then runs on the repositioned carry; the sync-check arm is NOT entered as a consequence of the overflow. (B9) EC-009 added (new): junk-at-clean-boundary counted as one structural malformed event via the sync-check arm. — 2026-06-12"
   - "v1.5: F3 story-anchor back-fill. — 2026-06-14"
+  - "v1.6: F3-convergence consistency-sweep FIX B: Related BCs: added BC-2.15.010 reciprocal citation (BC-2.15.010 already cites BC-2.15.016 at Related BCs line 211 — composes with master_addrs_seen populated by PC5; used by EC-009/EC-010 unexpected-source detection). — 2026-06-14"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -136,6 +137,7 @@ These three bounds collectively prevent unbounded memory growth under adversaria
 
 - BC-2.15.007 — depends on (`compute_dnp3_frame_len` determines carry consume boundary)
 - BC-2.15.009 — composes with (bailed flow does not grow carry)
+- BC-2.15.010 — composes with (master_addrs_seen populated by Postcondition 5; used by unexpected-source detection EC-009/EC-010)
 - BC-2.15.014 — composes with (pending_requests is populated by BC-2.15.014 request tracking; BC-2.15.016 enforces the MAX_PENDING_REQUESTS=256 cap with oldest-eviction)
 - BC-2.15.022 — composes with (MAX_FINDINGS cap; this BC defines the carry/address/pending-request caps)
 

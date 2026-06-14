@@ -126,6 +126,47 @@ reset set — sibling sweep CLEAN. REMEDIATED.
 
 **clean-streak 0/3.** NEXT = Pass 34 (clean-streak attempt 1/3).
 
+### Post-Pass-33 SS-15 Proactive Consistency Flush (2026-06-14)
+
+**NOT an adversary pass.** Proactive pre-Pass-34 flush targeting recurring SS-15 Related-BCs
+/ counter-semantics residue class. clean-streak UNCHANGED at 0/3. NEXT = Pass 34.
+
+**6 findings remediated:**
+
+**FIX A [MED] — BC-2.15.014 → v2.0: EC-006 + Invariant 7 four-field → six-field reset:**
+EC-006 and Invariant 7 enumerated only four windowed fields being reset at 300s expiry
+(`restart_event_count`, `block_event_count`, `block_finding_emitted_this_window`,
+`loss_of_control_emitted`). BC-2.15.015 v1.5 (Invariant 6) added `malformed_in_window` and
+`malformed_anomaly_emitted` to the reset set; BC-2.15.014's EC-006 and Invariant 7 were never
+updated. Corrected to the canonical SIX windowed fields. `parse_errors` explicitly noted as
+LIFETIME/monotonic (NOT reset). Verified against BC-2.15.015 Inv 6 and
+src/analyzer/dnp3.rs maybe_expire_correlation_window lines 984-991.
+
+**FIX B [MED] — BC-2.15.014 → v2.0: reciprocal Related-BC → BC-2.15.016 added:**
+BC-2.15.016 already cites BC-2.15.014; reciprocal citation in BC-2.15.014 was missing.
+
+**FIX C [MED] — BC-2.15.016 → v1.6: reciprocal Related-BC → BC-2.15.010 added:**
+BC-2.15.010 already cites BC-2.15.016; reciprocal citation in BC-2.15.016 was missing.
+
+**FIX D [MED] — BC-2.15.015 → v1.9: reciprocal Related-BC → BC-2.15.024 added:**
+BC-2.15.024 already cites BC-2.15.015; reciprocal citation in BC-2.15.015 was missing.
+
+**FIX E [MED] — BC-2.15.022 → v1.4: reciprocal Related-BC → BC-2.15.016 added:**
+BC-2.15.016 already cites BC-2.15.022; reciprocal citation in BC-2.15.022 was missing.
+
+**FIX F [LOW] — BC-2.15.012 → v1.4 + BC-2.15.023 → v1.6: FC 0x13 SAVE_CONFIG → SAVE_CONFIGURATION:**
+IEEE 1815-2012 canonical name for FC 0x13 is SAVE_CONFIGURATION (full name). The abbreviated
+SAVE_CONFIG label was introduced in BC-2.15.023 v1.5 (Pass-27 fix from STOP_APPL). Sibling FCs
+0x14 ENABLE_UNSOLICITED and 0x15 DISABLE_UNSOLICITED are already unabbreviated throughout.
+No shipped `SAVE_CONFIG` symbol in src/ (grep confirmed zero hits). Sealed v1.5 changelog
+history entry in BC-2.15.023 retained verbatim (records the STOP_APPL→SAVE_CONFIG correction
+— immutable audit trail; not updated).
+
+**Sweep classes checked (CLEAN):**
+- Class 3 (frame arithmetic): CLEAN
+- Class 4 (constants/labels): CLEAN (SAVE_CONFIGURATION correction applied above; no other FC abbreviation drift found)
+- Class 6 (version/changelog sync): CLEAN
+
 ---
 
 ## Summary Table
@@ -148,3 +189,4 @@ reset set — sibling sweep CLEAN. REMEDIATED.
 | 31 | ZERO | ZERO | ZERO | ZERO | 0 | **1/3** | FULLY CLEAN — first of 3 needed |
 | 32 | ZERO | ZERO | 1 MED | ZERO | 1 | 0/3 | STORY-115 field storm_findings_count→storm_findings; REMEDIATED |
 | 33 | ZERO | 1 MED | ZERO | ZERO | 1 | 0/3 | BC-2.15.024 reset-set cross-ref parse_errors→malformed_in_window; REMEDIATED v1.7 |
+| POST-P33 SS-15 FLUSH | — | — | — | — | 6 | 0/3 (UNCHANGED) | PROACTIVE pre-Pass-34 flush: BC-2.15.014 v2.0 four→six-field reset (EC-006+Inv7); reciprocal Related-BCs 014↔016/016↔010/015↔024/022↔016; FC 0x13 SAVE_CONFIGURATION in BC-2.15.012 v1.4+BC-2.15.023 v1.6. Sweep classes 3/4/6 CLEAN. NOT an adversary pass; clean-streak UNCHANGED 0/3; NEXT = Pass 34. |

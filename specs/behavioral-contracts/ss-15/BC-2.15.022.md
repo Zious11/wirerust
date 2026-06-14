@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: product-owner
 timestamp: 2026-06-10T00:00:00Z
@@ -15,6 +15,7 @@ lifecycle_status: active
 introduced: v0.6.0-feature-008
 modified:
   - "v1.3: F3 story-anchor back-fill. — 2026-06-14"
+  - "v1.4: F3-convergence consistency-sweep FIX B: Related BCs: added BC-2.15.016 reciprocal citation (BC-2.15.016 already cites BC-2.15.022 at Related BCs line 140 — composes with, MAX_FINDINGS cap). — 2026-06-14"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -109,6 +110,7 @@ pattern from BC-2.14.022.
 
 - BC-2.15.010 through BC-2.15.015 — all depend on (MAX_FINDINGS cap guard is a precondition for each detection BC)
 - BC-2.15.013 — composes with (co-emission ordering ensures most-specific finding is pushed first before cap is reached)
+- BC-2.15.016 — composes with (carry-buffer/master-address/pending-request caps in BC-2.15.016 work alongside the MAX_FINDINGS=10000 cap)
 
 ## Architecture Anchors
 

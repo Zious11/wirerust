@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.9"
+version: "2.0"
 status: draft
 producer: product-owner
 timestamp: 2026-06-10T00:00:00Z
@@ -22,6 +22,7 @@ modified:
   - "v1.6: F-P3-001 correction — per-request format also not producible without structural change. The v1.5 per-request format 'dest={dest:#06X} app_seq={seq} ts={ts}' assumed all 3 timed-out requests would be available in a single scan_block_timeouts call. In practice, scan_block_timeouts is called per-packet: each of the 3 control requests times out in a separate scan (seq=0 at ts=11, seq=1 at ts=22, seq=2 at ts=33), and the T1691.001 finding fires only when block_event_count reaches 3 (the 3rd scan). At that point only the current scan's timed-out entry is available; prior entries were already remove()d. Collecting all 3 would require a new windowed accumulator field (block_timeout_evidence: Vec<(u16,u8,u32)>), a growth bound, and amendment of BC-2.15.015's six-field reset set — a structural change that violates the producibility-without-structural-change criterion (option A chosen over option B). FINAL canonical format: single-entry summary 'block_event_count={count} in correlation window; threshold={threshold}' — fully producible from block_event_count and BLOCK_CMD_THRESHOLD at emission time, no new fields, parallels BC-2.15.024 malformed evidence. — 2026-06-11"
   - "v1.8: F3 story-anchor back-fill. — 2026-06-14"
   - "v1.9: Pass-28 F3-convergence Slice-B FIX 2: removed stale '(NEW; to be added in F4)' from Architecture Anchors T1691.001 arm — shipped in STORY-109 (src/mitre.rs:174 confirmed). — 2026-06-14"
+  - "v2.0: F3-convergence consistency-sweep FIX A + FIX B: (A) EC-006 and Invariant 7 updated to the canonical SIX-field reset set (restart_event_count, block_event_count, block_finding_emitted_this_window, loss_of_control_emitted, malformed_in_window, malformed_anomaly_emitted) per BC-2.15.015 v1.5 Invariant 6 and src/analyzer/dnp3.rs maybe_expire_correlation_window lines 984-991. The old four-field enumeration predated BC-2.15.015 v1.5 which added malformed_in_window and malformed_anomaly_emitted. parse_errors is a LIFETIME counter and is NOT added to the reset set. (B) Related BCs: added BC-2.15.016 reciprocal citation (BC-2.15.016 already cites BC-2.15.014 at line 139). — 2026-06-14"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -112,7 +113,7 @@ The human should confirm whether 10s timeout and 3-of-300s threshold are appropr
 4. **Sustained pattern guard**: `BLOCK_CMD_THRESHOLD = 3` events in `CORRELATION_WINDOW_SECS = 300s` **[F2-GATE: human to confirm]** prevents single-packet-loss false positives. (Changed from 120s in v1.1 to 300s in v1.2 to eliminate window-reset contradiction — see Description for rationale.)
 5. **block_event_count feeds T0827 unconditionally**: `block_event_count` is incremented on EVERY block-timeout (Postcondition 1), not only when a T1691.001 finding is emitted. This ensures the T0827 accumulator in BC-2.15.015 sees all block events, including the first two that are below the T1691.001 emission threshold. After the threshold is crossed, subsequent timeouts still increment `block_event_count` (feeding the T0827 accumulator) but do not emit additional T1691.001 findings (`block_finding_emitted_this_window` guard).
 6. **Separate counter from finding guard**: `block_event_count` (the accumulator) and `block_finding_emitted_this_window` (the one-shot guard) are distinct state fields. The counter is always updated; the guard prevents finding flooding. BC-2.15.015 reads `block_event_count`, not the one-shot guard.
-7. **Single shared 300s correlation window**: `block_event_count` and `block_finding_emitted_this_window` are part of the shared per-flow correlation state (`correlation_window_start_ts: u32`). They reset to 0 / false ONLY when `now_ts.wrapping_sub(correlation_window_start_ts) >= CORRELATION_WINDOW_SECS = 300s` — together with `restart_event_count` and `loss_of_control_emitted`. There is NO separate BLOCK_CMD_WINDOW_SECS timer. The single reset owner is the window-expiry handler in BC-2.15.015. This eliminates the contradiction where block events spaced 120–300s apart would be silently dropped by a 120s sub-window expiry before T0827 could see them.
+7. **Single shared 300s correlation window**: `block_event_count` and `block_finding_emitted_this_window` are part of the shared per-flow correlation state (`correlation_window_start_ts: u32`). They reset to 0 / false ONLY when `now_ts.wrapping_sub(correlation_window_start_ts) >= CORRELATION_WINDOW_SECS = 300s` — together with `restart_event_count`, `loss_of_control_emitted`, `malformed_in_window`, and `malformed_anomaly_emitted` (BC-2.15.015 Invariant 6 six-field reset set; see BC-2.15.024). There is NO separate BLOCK_CMD_WINDOW_SECS timer. The single reset owner is the window-expiry handler in BC-2.15.015. This eliminates the contradiction where block events spaced 120–300s apart would be silently dropped by a 120s sub-window expiry before T0827 could see them.
 8. **DoS-bounded**: `pending_requests` is a `HashMap<(u16, u8), u32>` bounded to `MAX_PENDING_REQUESTS = 256` entries — when full, the oldest entry (minimum `request_ts`) is evicted before a new insert (see BC-2.15.016 Postconditions 8–10 and Invariant 5 for the full eviction spec). `block_event_count` is `u64` (no practical overflow). `block_finding_emitted_this_window` is a bool one-shot guard.
 
 ## Edge Cases
@@ -125,7 +126,7 @@ The human should confirm whether 10s timeout and 3-of-300s threshold are appropr
 | EC-004 | 3rd timeout (threshold met: `block_event_count` reaches 3 after increment) | `block_event_count` incremented to 3 (Postcondition 1). Precondition 5 met; T1691.001 finding emitted (Postcondition 3). `block_finding_emitted_this_window = true`. |
 | EC-007 | 4th timeout (same window, `block_finding_emitted_this_window = true`) | `block_event_count` incremented to 4 (feeds T0827 accumulator); NO additional T1691.001 finding (one-shot guard). |
 | EC-005 | Capture gap (packet loss) causes response to appear lost | T1691.001 may fire at threshold; this is an accepted false positive per the passive-analyzer caveat |
-| EC-006 | Window reset (300s elapsed since `correlation_window_start_ts`) | `block_event_count` resets to 0; `block_finding_emitted_this_window` resets to `false`; `restart_event_count` resets to 0; `loss_of_control_emitted` resets to `false` — all four fields reset together by the single reset owner. Threshold re-accumulates from 0 in new window. |
+| EC-006 | Window reset (300s elapsed since `correlation_window_start_ts`) | All six windowed correlation fields reset together by the single reset owner (BC-2.15.015): `restart_event_count=0`, `block_event_count=0`, `block_finding_emitted_this_window=false`, `loss_of_control_emitted=false`, `malformed_in_window=0`, `malformed_anomaly_emitted=false` (BC-2.15.015 Invariant 6; verified src/analyzer/dnp3.rs maybe_expire_correlation_window lines 984-991). `parse_errors` is a LIFETIME counter and is NOT reset. Threshold re-accumulates from 0 in new window. |
 | EC-008 | 2 block timeouts at t=0 and t=150s, then 1 restart at t=200s | Both block timeouts within 300s window; `block_event_count=2` at t=150s. Restart at t=200s: `restart_event_count=1`. Combined=3 ≥ T0827_THRESHOLD → T0827 fires. (Key test: under old 120s model, block_event_count would reset at t=120s and T0827 would NOT fire.) |
 
 ## Canonical Test Vectors
@@ -162,6 +163,7 @@ The human should confirm whether 10s timeout and 3-of-300s threshold are appropr
 - BC-2.15.006 — depends on (Control-class FC classification; FC 0x06 exclusion)
 - BC-2.15.008 — depends on (FIR=1 gate enables request tracking)
 - BC-2.15.015 — composes with (block_event_count feeds T0827 derived-impact accumulator; shares single 300s CORRELATION_WINDOW_SECS and reset owner)
+- BC-2.15.016 — composes with (MAX_PENDING_REQUESTS=256 cap and oldest-eviction; block-timeout tracking depends on BC-2.15.016 PC8–10 and Invariant 5)
 - BC-2.15.022 — depends on (MAX_FINDINGS cap)
 
 ## Architecture Anchors

@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: product-owner
 timestamp: 2026-06-10T00:00:00Z
@@ -15,6 +15,7 @@ lifecycle_status: active
 introduced: v0.6.0-feature-008
 modified:
   - "v1.3: F3 story-anchor back-fill. — 2026-06-14"
+  - "v1.4: F3-convergence FC-name normalization — changed FC 0x13 label from SAVE_CONFIG to SAVE_CONFIGURATION (IEEE 1815-2012 canonical name) in body line ~71 and canonical test vector table line ~102. Sibling FCs 0x14/0x15 already unabbreviated (ENABLE_UNSOLICITED/DISABLE_UNSOLICITED). No shipped SAVE_CONFIG symbol in src/ (grep confirmed zero hits). Behavioral classification (Management/out-of-scope for v1) unchanged. — 2026-06-14"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -68,7 +69,7 @@ Detection is per-occurrence: one finding per observed WRITE FC. ADR-007 Decision
 2. **T0836 is the correct v19.1 technique** [MITRE: dnp3-research.md §6]: T0836 "Modify
    Parameter" is active and unchanged in ics-attack-19.1. Tactic: IcsImpairProcessControl.
 3. **FC 0x02 only**: only WRITE maps to `Dnp3FcClass::Write`. Other write-like operations
-   (IMMED_FREEZE, SAVE_CONFIG) map to `Management` and do NOT trigger T0836 in v1.
+   (IMMED_FREEZE, SAVE_CONFIGURATION) map to `Management` and do NOT trigger T0836 in v1.
 4. **No T1692.001 co-tag on WRITE**: unlike Modbus where write-class FCs get both T1692.001
    and T0836, DNP3 WRITE emits T0836 only. T1692.001 is emitted by Control-class FCs
    (BC-2.15.010). This separation is intentional — DNP3's WRITE is a configuration/setpoint
@@ -99,7 +100,7 @@ Expected: `Finding { mitre_techniques: ["T0836"], confidence: Medium, summary: "
 |----------|------|-------------------------------------|
 | `0x02` | WRITE | `["T0836"]` |
 | `0x14` | ENABLE_UNSOLICITED | (no T0836 finding) |
-| `0x13` | SAVE_CONFIG | (no T0836 finding; Management class) |
+| `0x13` | SAVE_CONFIGURATION | (no T0836 finding; Management class) |
 
 ## Verification Properties
 

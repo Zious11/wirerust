@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.5"
+version: "1.6"
 status: draft
 producer: product-owner
 timestamp: 2026-06-10T00:00:00Z
@@ -17,6 +17,7 @@ modified:
   - "v1.3: F3 story-anchor back-fill; corrected canonical DISABLE_UNSOLICITED frame App Control byte from 0x82 (FIR=1,FIN=0,CON=0,UNS=0,SEQ=2 — inconsistent with a single complete request) to 0x81 (FIR=1,FIN=0,CON=0,UNS=0,SEQ=1) matching sibling single-frame vectors (BC-2.15.008, BC-2.15.010, BC-2.15.011). Added explicit bit-breakdown annotation to the canonical test vector. — 2026-06-14"
   - "v1.4: F3 Pass-23: canonical-frame LEN reconciled to user-octet count — 05 64 09→08 (3 user octets: transport+app_ctrl+app_fc = 5+3=8). Verified against shipped build_detection_frame (dnp3_detection_tests.rs:64, dnp3_correlation_tests.rs:58: length_byte=8). Sibling to BC-2.15.011 fix (DF-SIBLING-SWEEP-001). — 2026-06-14"
   - "v1.5: F3-convergence Pass-27 — corrected FC 0x13 label in canonical test vector table from STOP_APPL to SAVE_CONFIG (IEEE 1815-2012: FC 0x13 = SAVE_CONFIGURATION; STOP_APPLICATION = 0x12). Naming-consistency fix only; behavioral classification (Management/out-of-scope for v1) unchanged. Verified against sibling BC-2.15.012 line ~102 (SAVE_CONFIG label). DF-SIBLING-SWEEP-001 confirmed no other BCs carry the STOP_APPL mislabel. — 2026-06-14"
+  - "v1.6: F3-convergence FC-name normalization — changed FC 0x13 label from SAVE_CONFIG to SAVE_CONFIGURATION (IEEE 1815-2012 canonical name) in canonical test vector table. Sealed v1.5 changelog entry retained verbatim (it records the prior fix from STOP_APPL; changing it would falsify history). No shipped SAVE_CONFIG symbol in src/ (grep confirmed zero hits). Sibling FCs 0x14/0x15 already unabbreviated (ENABLE_UNSOLICITED/DISABLE_UNSOLICITED) throughout this file. — 2026-06-14"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -164,7 +165,7 @@ Expected: `Finding { mitre_techniques: ["T0814"], verdict: Possible, confidence:
 |----------|------|--------------------|-----------------------|-----------------------------|
 | `0x15` | DISABLE_UNSOLICITED | Likely | Medium | `["T0814"]` |
 | `0x14` | ENABLE_UNSOLICITED | Possible | Low | `["T0814"]` |
-| `0x13` | SAVE_CONFIG (optional/v2) | (no finding — not in scope for v1) | N/A | N/A |
+| `0x13` | SAVE_CONFIGURATION (optional/v2) | (no finding — not in scope for v1) | N/A | N/A |
 
 ## Verification Properties
 

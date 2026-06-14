@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.8"
+version: "1.9"
 status: draft
 producer: product-owner
 timestamp: 2026-06-10T00:00:00Z
@@ -21,6 +21,7 @@ modified:
   - "v1.5: Adversarial finding C-2 companion fix: extended the window-expiry reset set to include the two new BC-2.15.024 windowed fields: malformed_in_window=0 and malformed_anomaly_emitted=false. parse_errors (BC-2.15.024 lifetime counter) is explicitly NOT in the reset set — it is a monotonic lifetime counter consumed by BC-2.15.020 summarize(). Updated Description reset list, Postcondition 3 reset list, and Invariant 6 to name SIX fields reset at window expiry (restart_event_count, block_event_count, block_finding_emitted_this_window, loss_of_control_emitted, malformed_in_window, malformed_anomaly_emitted; plus correlation_window_start_ts updated to now_ts). Added Architecture Anchors for the two new fields. — 2026-06-10"
   - "v1.7: F3 story-anchor back-fill. — 2026-06-14"
   - "v1.8: Pass-28 F3-convergence Slice-B FIX 2: removed stale '(NEW...)' qualifiers from Architecture Anchors and Invariant 2 — all symbols shipped in STORY-109: MitreTactic::IcsImpact (src/mitre.rs:69), technique_info(\"T0827\") (src/mitre.rs:178), malformed_in_window (src/analyzer/dnp3.rs:235), malformed_anomaly_emitted (src/analyzer/dnp3.rs:237). — 2026-06-14"
+  - "v1.9: F3-convergence consistency-sweep FIX B: Related BCs: added BC-2.15.024 reciprocal citation (BC-2.15.024 already cites BC-2.15.015 at Related BCs line 343 — composes with, malformed_in_window and malformed_anomaly_emitted owned by BC-2.15.024 and reset here at 300s expiry). — 2026-06-14"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -257,6 +258,7 @@ No T0827 in either window; first window expired before threshold reached.
 - BC-2.15.014 — composes with (block-timeout increments block_event_count; shares single 300s window owned here)
 - BC-2.15.013 — composes with (emission ordering: T0827 last, after triggering finding)
 - BC-2.15.022 — depends on (MAX_FINDINGS cap)
+- BC-2.15.024 — composes with (malformed_in_window and malformed_anomaly_emitted are owned by BC-2.15.024; this BC is the single reset owner for both at 300s CORRELATION_WINDOW_SECS expiry)
 
 ## Architecture Anchors
 

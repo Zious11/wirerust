@@ -1,7 +1,7 @@
 ---
 pipeline: FEATURE_MODE_ARP_ANALYZER
 phase: feature-F3-story-decomposition-adversarial-convergence
-phase_status: "F3 IN PROGRESS — story decomposition complete (STORY-111..115 created); adversarial convergence STRICT 3/3 IN PROGRESS; PASS-33 NOT CLEAN (Slices A/C/D ZERO; Slice B 1 MED: BC-2.15.024 reset-set cross-ref parse_errors→malformed_in_window; REMEDIATED BC-2.15.024 v1.7). clean-streak 0/3. NEXT = Pass 34 (clean-streak attempt 1/3)."
+phase_status: "F3 IN PROGRESS — story decomposition complete (STORY-111..115 created); adversarial convergence STRICT 3/3 IN PROGRESS; POST-P33 SS-15 consistency flush COMPLETE (6 findings remediated: BC-2.15.014 six-field reset enumeration corrected to SIX windowed fields v2.0; reciprocal Related-BCs ×4: 014↔016/016↔010/015↔024/022↔016; FC 0x13 SAVE_CONFIGURATION in BC-2.15.012 v1.4 + BC-2.15.023 v1.6). clean-streak UNCHANGED 0/3. NEXT = Pass 34 (clean-streak attempt 1/3)."
 active_feature: "arp-analyzer"
 feature_arp_status: "F1 Delta Analysis PASSED (human-gated 2026-06-12) — DecodedFrame integration, ADR-008 planned, F2→F7 authorized; release target v0.7.0"
 feature_8_status: "v0.6.0 RELEASED 2026-06-12 — DNP3 TCP analyzer; F7 5-dim CONVERGED; tag v0.6.0 + 4 binaries"
@@ -41,7 +41,7 @@ adversary_convergence_counter: 3/3  # Pass 14 CONVERGENCE_REACHED; clean-streak 
 convergence_trajectory: "P1-P14 greenfield GATE-SATISFIED; MITRE-222 3-pass CONVERGED. Detail: cycles/v0.1.0-greenfield-spec/convergence-trajectory.md"
 arp_f2_adversary_convergence_counter: 3/3 CONVERGED  # Pass 31/32/33 consecutive CLEAN; F2 strict-whole-corpus adversarial gate SATISFIED
 arp_f2_convergence_trajectory: "15→20→~8→~15→~6→~4→~4→~7→~4→~6→~5→~18→~8→~22(P14: 2C/5H NEW corpus-debt; trend broke; ARP delta clean 6th pass)→P15(8 findings: holdout-layer field-rename + regression; REMEDIATED)→P16(7: 0C/0H, sibling-sweep misses; REMEDIATED; Slice B CLEAN)→P17(10: holdout MITRE-counts + module-decomposition peer; REMEDIATED; Slice B CLEAN 2nd)→P18(9: ss-05 anchor-drift + indicatif + STORY-INDEX; 0C/3H; REMEDIATED; arp.rs+holdout pre-flush verified clean)→P19(15: corpus-wide anchor-drift; 0C/8H; PARTIAL — ss-07-full+remaining-BC pending)→ batch2: ss-07-full(35 BCs)+ss-04-partial(21 BCs)+ss-11(10 BCs); ss-01/02/08/13 CLEAN; ss-04-remainder+ss-12 to Pass-20 — REMEDIATED → P20(7: anchor-drift flushed, ss-04/ss-12 closed; 0C/1H; Slices A+C CLEAN; REMEDIATED) → P21(5 cosmetic; 0C/0H; A+C CLEAN; REMEDIATED) → P22(5 valid; 0C/0H; cosmetic; version-pin hardened; REMEDIATED) → P23(5; B/C/D CLEAN; Slice-A only; 0C/0H; REMEDIATED) → P24(4: D-01 DNP3-C24 sweep genuine + 3 self-induced; 0C/1H; B+C CLEAN; REMEDIATED) → P25(2; A/B/C CLEAN; changelog-path flush; 0C/0H; REMEDIATED) → P26 CLEAN 1/3 (all 4 slices zero findings; corpus-wide debt flushed P14-25) → P27 reset 1/3→0/3 (HS-008 kill-chain + HS-INDEX pin; holdout-pin-hardened) → P28 CLEAN 1/3 (restart after P27 reset) → P29 reset 1/3→0/3 (DNP3 T1692.001 + PRD FC-0x17 content gaps; REMEDIATED) → P30 (4 HIGH genuine: FlowKey accessor + STORY input-hash dup + ADR-006 FC0x17; REMEDIATED) → P31 CLEAN 1/3 (restart; P30 HIGH fixes held; all 4 slices zero findings) → P32 CLEAN 2/3 (2nd consecutive) → P33 CLEAN 3/3 CONVERGED (F2 strict-whole-corpus gate satisfied after 33 passes). Detail: phase-f5-adversarial/arp-f2-convergence-trajectory.md"
-f3_convergence_trajectory: "F3 STRICT WHOLE-CORPUS IN PROGRESS. Full per-pass detail P1-P33: phase-f5-adversarial/arp-f3-convergence-trajectory.md. P31 FULLY CLEAN (all 4 slices ZERO; clean-streak 0/3→1/3). P32 NOT CLEAN (Slice C 1 MED: STORY-115 storm_findings_count→storm_findings; REMEDIATED; clean-streak RESET 1/3→0/3). P33 NOT CLEAN (Slice B 1 MED: BC-2.15.024 reset-set parse_errors→malformed_in_window; REMEDIATED v1.7; clean-streak 0/3). NEXT = Pass 34 (clean-streak attempt 1/3)."
+f3_convergence_trajectory: "F3 STRICT WHOLE-CORPUS IN PROGRESS. Full per-pass detail P1-P33 + post-P33 flush: phase-f5-adversarial/arp-f3-convergence-trajectory.md. P31 FULLY CLEAN (all 4 slices ZERO; clean-streak 0/3→1/3). P32 NOT CLEAN (Slice C 1 MED: STORY-115 storm_findings_count→storm_findings; REMEDIATED; clean-streak RESET 1/3→0/3). P33 NOT CLEAN (Slice B 1 MED: BC-2.15.024 reset-set parse_errors→malformed_in_window; REMEDIATED v1.7; clean-streak 0/3). POST-P33 SS-15 FLUSH: 6 findings — BC-2.15.014 four→six-field reset v2.0, reciprocal Related-BCs ×4, FC 0x13 SAVE_CONFIGURATION ×2. clean-streak UNCHANGED 0/3. NEXT = Pass 34 (clean-streak attempt 1/3)."
 f7_convergence_trajectory: "6 fresh-context adversarial passes; final 3 consecutive CONVERGED (0 P0/CRITICAL/HIGH/MEDIUM)"
 consistency_audit: CONSISTENT
 input_drift_check: "MATCH=23 STALE=44 ERROR=1 (STORY-091 known); ARP stories STORY-111..115 MATCH (d5bda72/268f53f/a767d96/e2f1c95/5ca9835); STALE=44 are pre-existing older greenfield/feature stories whose BC inputs evolved — expected, non-blocking for F3; scan 2026-06-14"
@@ -51,7 +51,7 @@ input_drift_check: "MATCH=23 STALE=44 ERROR=1 (STORY-091 known); ARP stories STO
 
 ## Status
 
-**wirerust v0.6.0 RELEASED (DNP3 TCP analyzer, issue #8). Feature: ARP security analyzer + etherparse 0.16→0.20 migration (F1 PASSED 2026-06-12, D-066); release target v0.7.0. F2 CONVERGED (P33 CLEAN; 3/3 strict-whole-corpus). F3 ARP story decomposition: STORY-111..115 CREATED (epic E-16, 47 pts). D-068/D-069 applied post-F2. F3 adversarial convergence STRICT 3/3 IN PROGRESS: PASS-33 NOT CLEAN — Slices A/C/D ZERO; Slice B 1 MED (BC-2.15.024 reset-set cross-ref parse_errors→malformed_in_window; Slice D 3rd-consec ZERO); REMEDIATED BC-2.15.024 v1.7. clean-streak 0/3. NEXT = Pass 34 (clean-streak attempt 1/3).**
+**wirerust v0.6.0 RELEASED (DNP3 TCP analyzer, issue #8). Feature: ARP security analyzer + etherparse 0.16→0.20 migration (F1 PASSED 2026-06-12, D-066); release target v0.7.0. F2 CONVERGED (P33 CLEAN; 3/3 strict-whole-corpus). F3 ARP story decomposition: STORY-111..115 CREATED (epic E-16, 47 pts). D-068/D-069 applied post-F2. F3 adversarial convergence STRICT 3/3 IN PROGRESS: POST-P33 SS-15 focused cross-ref/counter-semantics consistency-flush COMPLETE — 6 findings remediated (BC-2.15.014 four→six-field reset enumeration v2.0; reciprocal Related-BCs ×4: 014↔016/016↔010/015↔024/022↔016; FC 0x13 SAVE_CONFIGURATION in BC-2.15.012 v1.4 + BC-2.15.023 v1.6). Flush preempts recurring one-per-pass SS-15 Related-BCs/counter residue. clean-streak UNCHANGED 0/3. NEXT = Pass 34 (clean-streak attempt 1/3).**
 
 **Summary:** 68 stories (48 greenfield + 1 tooling + 19 feature-cycle), 457 pts. 283 BCs (244 pre-F2 + 24 SS-15 + 15 SS-16 ARP), 24 VPs (23 locked + VP-024 ARP draft), 1496 tests green, holdout 0.967. develop HEAD 31d1231; main HEAD 3e29891 (v0.6.0). ARP feature: F1 approved — SS-16 (18-24 new BCs), VP-024, ADR-008, E-16 (5-6 stories). MITRE T0830+T1557.002. Post-release sweep 2026-06-12: 5 dep bumps merged (#203/#204/#207/#235/#206), #202/#205 closed; etherparse 0.20 folded into ARP cycle (IN-PROGRESS).
 
@@ -155,8 +155,8 @@ input_drift_check: "MATCH=23 STALE=44 ERROR=1 (STORY-091 known); ARP stories STO
 | BC-2.16.004 | v1.7 |
 | BC-2.15.007 | v1.5 (Pass-28: Related-BC cross-ref corrected .020→.016; BC-2.15.016 is carry-buffer mgmt BC) |
 | BC-2.15.009 | v1.6 (Pass-28: Related-BC cross-ref corrected .020→.016; carry-buffer BC = .016 not .020) |
-| BC-2.15.014 | v1.9 (Pass-28: stale '(NEW; to be added in F4)' markers removed; code shipped STORY-109: T1691.001 arm src/mitre.rs:174) |
-| BC-2.15.015 | v1.8 (Pass-28: stale '(NEW v1.5)'/'(NEW field)' markers removed; code shipped STORY-109: IcsImpact src/mitre.rs:69, T0827 arm :178) |
+| BC-2.15.014 | v2.0 (post-P33 flush: EC-006 + Invariant 7 corrected to canonical SIX-field reset set; reciprocal Related-BC → BC-2.15.016 added) |
+| BC-2.15.015 | v1.9 (post-P33 flush: reciprocal Related-BC → BC-2.15.024 added) |
 | BC-2.15.024 | v1.7 (Pass-33: Related-BCs descriptor corrected parse_errors→malformed_in_window in reset-set reference; parse_errors is LIFETIME counter per Inv 1, NEVER reset; malformed_in_window + malformed_anomaly_emitted are the windowed fields reset by BC-2.15.015) |
 | BC-2.16.007 | v1.3 |
 | BC-2.16.010 | v1.7 |
@@ -173,7 +173,9 @@ input_drift_check: "MATCH=23 STALE=44 ERROR=1 (STORY-091 known); ARP stories STO
 | HS-INDEX.md | v1.7 (Pass-29: HS-W39-007 VP-023 Kani BC scope corrected BC-2.15.001..008→.001..007; BC-2.15.008 is unit-test-only, no Kani harness) |
 | BC-2.15.011 | v1.5 (canonical-frame LEN 9→8; verified against shipped build_detection_frame length_byte=8) |
 | BC-2.15.017 | v1.4 (REVERT Pass-22 erroneous rename: DNPXX_DIRECT_OPERATE_THRESHOLD_DEFAULT is canonical shipped name per src/analyzer/dnp3.rs:169 + cli.rs:16/183 + main.rs:192 + STORY-110; broken v1.3 "DNP3_" rename superseded) |
-| BC-2.15.023 | v1.5 (Pass-27: FC 0x13 label STOP_APPL→SAVE_CONFIG; IEEE 1815-2012 name fix; no behavioral impact) |
+| BC-2.15.016 | v1.6 (post-P33 flush: reciprocal Related-BC → BC-2.15.010 added) |
+| BC-2.15.022 | v1.4 (post-P33 flush: reciprocal Related-BC → BC-2.15.016 added) |
+| BC-2.15.023 | v1.6 (post-P33 flush: FC 0x13 SAVE_CONFIG→SAVE_CONFIGURATION; IEEE 1815-2012 canonical full name; SAVE_CONFIG retained only in sealed v1.5 changelog history) |
 | BC-2.15.001..024 | all 24 story-anchors back-filled to STORY-106..110 |
 | STORY-INDEX.md | v1.5 (total_points 447→457, wave-TOTAL 442→452, epic-TOTAL 447→457, pre-ARP 400→410; all 68 per-story rows verified 0 mismatches) |
 | dependency-graph.md | updated (Total story points 442/447 → 452/457) |
@@ -194,78 +196,26 @@ STORY-114 inputs include BC-2.16.007 (cross-story). All 16 SS-16 + 24 SS-15 BC s
   storm_counters (STORY-113) is OUT OF F3 SCOPE — carry to F4 implementer.
 - BC-INDEX inline version-comments are informational; only the title column is load-bearing.
 - arp-delta §7 changelog has an enforced ascending-order convention.
-- **ThreatCategory::Suspicious is a VALID enum variant** (10 variants total; Suspicious + Impact
-  added in STORY-109, src/findings.rs:122). BC-2.15.018 (broadcast anomaly, dnp3.rs:1077) and
-  BC-2.15.019 (unsolicited anomaly, dnp3.rs:1207) both use ThreatCategory::Suspicious correctly.
-  BC-2.15.013/018/019 category assignments are CORRECT — do NOT flag as invalid. (Pass-23 Slice B
-  Finding 1 adjudicated FALSE POSITIVE 2026-06-14.)
-- **DNPXX_DIRECT_OPERATE_THRESHOLD_DEFAULT is the CANONICAL SHIPPED constant name**
-  (src/analyzer/dnp3.rs:169, cli.rs:16/183, main.rs:192, STORY-110:91/133/158). "DNPXX" is an
-  odd-but-real shipped symbol, NOT a typo for "DNP3". Do NOT flag it as a placeholder and do NOT
-  rename it in spec — spec must match code. Pass-22 adversary asserted DNPXX→DNP3 typo without
-  checking src; remediation renamed without checking src; the 2-pass self-induced regression was
-  caught and reverted at Pass-24. (Pass-24 Slice B Finding 1, BC-2.15.017 v1.4, 2026-06-14.)
-- **prd.md immutable-history prose** at §~298 quotes a previously-corrected non-existent anchor
-  `§[pass-13-2026-06-13]`; this is documented historical prose, NOT a live dangling anchor. Do
-  NOT flag as a defect — it is intentional immutable-history preservation.
-- **wave-40-44-holdout.md "D14" references corrected to BC-2.16.014** (Pass-25 burst). "D14" was a
-  non-existent detection alias reintroduced by a sibling-sweep miss in the F-ARP-C2 purge. All
-  three occurrences now read BC-2.16.014 (canonical BC identifier). NOTE: `mitre-arp-additional-detections.md`
-  DOES legitimately contain a different "D14" = deferred 'Unicast ARP request' candidate — that
-  entry is CORRECT and must NOT be flagged. The wave-40-44-holdout.md instances were the incorrect
-  ones; those are now fixed.
-- **All PRD §[changelog anchors] resolve as of Pass-25 burst.** spec-changelog.md now contains
-  both [pass-24-f3-convergence-2026-06-14] and [pass-25-f3-convergence-2026-06-14] entries.
-  All 19 live PRD §[anchor] citations verified to resolve (excluding the intentional sealed-history
-  quote at prd.md:298). Zero dangling anchors.
-- **Src citations corpus-wide are now SYMBOL-ANCHORED** (e.g. `src/mitre.rs \`all_tactics_in_report_order\``) not line-pinned — do NOT flag missing line numbers; do NOT 're-add' line numbers. SS-04/SS-12/VP-002/VP-016/STORY-033/STORY-077 all de-pinned this burst (post-P26 consistency-flush 2026-06-14). Drift class permanently eliminated for these files.
-- **VP-006 is P1 (Should Prove)**; verification-architecture.md Must-Prove table = 8 rows (P0 VPs only: VP-001..005, VP-007..009). proptest tool row = 7 VPs (VP-006, VP-010..014, VP-021). PRD §2.15 BC-2.15.009 = "Initial-Delivery No-Sync (One-Shot, First Delivery Only)" (removed stale "first 16 bytes" from title). PRD §2.15 BC-2.15.016 includes master_addrs ≤64 and pending_requests ≤256 bounds in H1. All CORRECT as of prd.md v1.25.
-- **Canonical point total = 457 (410 pre-ARP E-1..E-15 + 47 E-16 ARP); wave-table excl
-  STORY-091 = 452; STORY-091 tooling = 5.** Prior values 447/442/400 were stale (pre-ARP grand
-  total was 10 low; propagated before ARP +47 was added). Do NOT flag 457/452/410 as incorrect.
-  All 68 per-story points-cells verified to match story files (0 mismatches; Pass-26 Slice D).
-- **SS-15 is fully de-NEW-ed (Pass-28):** zero live '(NEW)'/'to be added' markers remain in any
-  SS-15 BC. All SS-15 BC anchors describe shipped reality (STORY-106..110). Remaining grep hits
-  for '(NEW)' or 'to be added' in SS-15 files are sealed changelog/history entries only — do NOT
-  flag the absence of NEW markers, and do NOT flag sealed-history prose as stale.
-- **feature/wave-schedule.md uses canonical T1692.001 (not revoked T0855) as of v1.3
-  (Pass-28).** Revoked techniques T0855/T0803/T0856 appear ONLY in sealed remap-history prose
-  and enforcement-rule corpus-wide (HS-INDEX:322 enforcement rule was also corrected at Pass-28).
-  Do NOT flag sealed remap-history rows that mention T0855/T0856 by name — those are immutable
-  audit trail documenting what was revoked. Only live detection/trigger prose must use canonical IDs.
-- **BC-2.15.007/009 carry-buffer cross-ref = BC-2.15.016 (not .020).** BC-2.15.016 is the
-  carry-buffer management BC; BC-2.15.020 is the summarize() stats BC. Related-BCs field in
-  BC-2.15.007 and BC-2.15.009 corrected at Pass-28 (v1.5/v1.6). Reciprocal link in BC-2.15.016
-  confirmed present. Do NOT flag this cross-ref as pointing to a wrong BC.
-- **VP-023 Kani Verified-BCs scope = BC-2.15.001 through BC-2.15.007 ONLY.** BC-2.15.008
-  (Transport FIR=1 Gating) and BC-2.15.009 (Desync Bail) are unit-test-only BCs — no Kani
-  harness exists or is required for them (VP-INDEX:75 + footnote:131/135). HS-W39-007 seed
-  citation corrected from ".001..008" to ".001..007" at Pass-29 (HS-INDEX→v1.7). BC-2.15.008
-  is correctly handled standalone at HS-W35-007. Do NOT re-flag HS-W39-007 VP-023 BC scope
-  as over- or under-scoped — .001..007 is CORRECT as of v1.7.
-- **PRD frontmatter version 1.25** is backed by a 'Version 1.25 delta' body note and
-  spec-changelog entry [prd-v1.25-ss15-titlesync-2026-06-14]. The anchor resolves. Do NOT
-  re-flag the v1.25 bump as untracked — the ledger is COMPLETE as of Pass-30 remediation.
-- **dnp3-architecture-delta.md canonically lives at `.factory/phase-f2-spec-evolution/`**
-  (NOT `.factory/specs/architecture/`). BC-2.15.017:122 path
-  `.factory/phase-f2-spec-evolution/dnp3-architecture-delta.md` is CORRECT. Do NOT flag
-  this path as phantom or wrong-directory.
-- **BC-2.15.017 v1.3 sealed changelog** now accurately describes the erroneous-then-reverted
-  DNPXX_→DNP3_ rename as: 'renamed DNPXX_→DNP3_ (erroneous; REVERTED in v1.4)'. Do NOT
-  re-flag the v1.3 entry as a tautology — it was corrected at Pass-30.
-- **ArpAnalyzer aggregate counter field canonical name = `storm_findings`** (matches
-  BC-2.16.010 summarize key + STORY-113:254 declaration `storm_findings: u64` + sibling fields).
-  STORY-115 v1.1 uses `storm_findings` (not `storm_findings_count`) — CORRECT as of Pass-32
-  remediation. Do NOT re-flag as a naming inconsistency. Sibling sweep confirmed ZERO live
-  `storm_findings_count` in corpus after STORY-115 v1.1. (Pass-32 Slice C finding.)
-- **SS-15 correlation-window reset set = SIX windowed fields:** `restart_event_count`,
-  `block_event_count`, `block_finding_emitted_this_window`, `loss_of_control_emitted`,
-  `malformed_in_window`, `malformed_anomaly_emitted`. `parse_errors` is the LIFETIME/monotonic
-  counter (Invariant 1 in BC-2.15.024) — it is NEVER in any reset set and is NEVER reset at
-  window expiry. BC-2.15.024 v1.7 corrected the Related-BCs descriptor for BC-2.15.015 to
-  reflect this. Backed by dnp3.rs:984-995 (resets six windowed fields only), BC-2.15.015, and
-  BC-2.15.024 Inv 1/PC5/Arch-Anchors. Do NOT re-flag parse_errors as a windowed/reset field.
-  (Pass-33 Slice B finding; sibling sweep CLEAN.)
+- **ThreatCategory::Suspicious is VALID** (10 variants; BC-2.15.013/018/019 CORRECT — P23 FALSE POSITIVE).
+- **DNPXX_DIRECT_OPERATE_THRESHOLD_DEFAULT** is the canonical shipped constant (not a typo for DNP3; BC-2.15.017 v1.4). Do NOT rename in spec — spec must match src.
+- **prd.md §~298 `§[pass-13-2026-06-13]`** is intentional immutable-history prose — NOT a dangling anchor.
+- **wave-40-44-holdout.md "D14" = BC-2.16.014** (three corrected occurrences). `mitre-arp-additional-detections.md` "D14" = deferred Unicast ARP candidate — CORRECT, do NOT flag.
+- **All 19 live PRD §[anchor] citations resolve** (zero dangling; sealed §[pass-13-...] quote at :298 is intentional).
+- **Src citations are SYMBOL-ANCHORED** — do NOT flag missing line numbers; do NOT re-add them (SS-04/SS-12/VP-002/VP-016/STORY-033/STORY-077 de-pinned post-P26).
+- **VP-006 is P1 (Should Prove)**; Must-Prove table = 8 rows (P0 only); proptest = 7 VPs. prd.md v1.25: BC-2.15.009 title correct; BC-2.15.016 H1 bounds correct. All CORRECT.
+- **Canonical point total = 457** (410 pre-ARP + 47 ARP); wave-table excl STORY-091 = 452; tooling = 5. Do NOT flag 457/452/410.
+- **SS-15 fully de-NEW-ed (P28):** zero live '(NEW)'/'to be added' in any SS-15 BC body. Sealed changelog hits are immutable history.
+- **T1692.001 is canonical** (not revoked T0855). Revoked IDs appear ONLY in sealed remap-history prose — do NOT flag.
+- **BC-2.15.007/009 carry-buffer cross-ref = BC-2.15.016** (not .020). BC-2.15.016 = carry-buffer mgmt BC. Reciprocal present. Do NOT flag.
+- **VP-023 Kani scope = BC-2.15.001..007 ONLY** (BC-2.15.008 unit-test-only; HS-W39-007 corrected at P29 v1.7). CORRECT.
+- **PRD v1.25 ledger COMPLETE** — body delta-note + changelog [prd-v1.25-ss15-titlesync-2026-06-14] both present and resolve. Do NOT re-flag.
+- **dnp3-architecture-delta.md lives at `.factory/phase-f2-spec-evolution/`** (NOT specs/architecture/). BC-2.15.017:122 path is CORRECT.
+- **BC-2.15.017 v1.3 sealed changelog** describes erroneous DNPXX_→DNP3_ rename as '(erroneous; REVERTED in v1.4)' — CORRECT. Do NOT re-flag as tautology.
+- **`storm_findings` is the canonical ArpAnalyzer field** (STORY-113:254 + BC-2.16.010 summarize key). STORY-115 v1.1 uses `storm_findings` (not `storm_findings_count`) — CORRECT (P32).
+- **SS-15 correlation-window reset set = SIX windowed fields** (restart_event_count, block_event_count, block_finding_emitted_this_window, loss_of_control_emitted, malformed_in_window, malformed_anomaly_emitted). `parse_errors` is LIFETIME/monotonic — NEVER in the reset set. Backed by dnp3.rs:984-991 + BC-2.15.015 + BC-2.15.024 Inv 1. Do NOT re-flag parse_errors as windowed. (P33 + post-P33 flush.)
+- **BC-2.15.014 EC-006 + Invariant 7 enumerate SIX fields** (corrected from stale four in v2.0 post-P33 flush). `parse_errors` explicitly LIFETIME-excluded. All SS-15 BC reset-set descriptors now name exactly these six fields — do NOT re-flag as under/over-specified.
+- **SS-15 FC 0x13 = SAVE_CONFIGURATION** (IEEE 1815-2012 full name; BC-2.15.012 v1.4 + BC-2.15.023 v1.6). SAVE_CONFIG appears ONLY in BC-2.15.023 v1.5 sealed changelog (immutable history) — do NOT flag.
+- **Reciprocal Related-BCs complete (post-P33 flush):** BC-2.15.014↔016, 016↔010, 015↔024, 022↔016 — all four pairs symmetric. Do NOT flag as asymmetric.
 
 ### F. PROCESS-GAP CODIFICATION BACKLOG (for cycle-close)
 
@@ -355,6 +305,10 @@ STORY-114 inputs include BC-2.16.007 (cross-story). All 16 SS-16 + 24 SS-15 BC s
    DO NOT re-run F1/F2 (converged). DO NOT revert D-068/D-069.
    Pass-33: Slices A/C/D ZERO; Slice B 1 MED (BC-2.15.024 reset-set cross-ref parse_errors→
    malformed_in_window) REMEDIATED (BC-2.15.024 v1.7). Sibling sweep CLEAN.
+   POST-P33 PROACTIVE FLUSH (pre-Pass-34): 6 SS-15 cross-ref/counter-semantics findings
+   remediated (BC-2.15.014 v2.0 six-field reset; reciprocal Related-BCs ×4;
+   BC-2.15.012 v1.4 + BC-2.15.023 v1.6 SAVE_CONFIGURATION). Clean-streak UNCHANGED 0/3.
+   Durable scope notes for all six items added to Section E — feed to each adversary dispatch.
    CRITICAL: Slice C dispatch MUST include a worktree-mount verification guard —
    Glob `.factory/stories/STORY-*`; if empty or only .gitkeep, STOP and report, do NOT
    confabulate. See PG-ARP-F3-ADVERSARY-MOUNT.
