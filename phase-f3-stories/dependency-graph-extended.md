@@ -1,24 +1,37 @@
 ---
 document_type: dependency-graph-extended
-version: "1.0"
+version: "1.1"
 status: draft
 producer: story-writer
 timestamp: 2026-06-09T00:00:00Z
+superseded_by: .factory/stories/dependency-graph.md
 base_graph: .factory/stories/dependency-graph.md
 extension_stories: [STORY-100, STORY-101, STORY-102, STORY-103, STORY-104, STORY-105]
 new_epics: [E-13, E-14]
 total_stories_pre_extension: 51
 total_stories_post_extension: 57
 total_edges_pre_extension: 79
-total_edges_post_extension: 86
+total_edges_post_extension: 84
 acyclic: true
 traces_to:
   - .factory/stories/dependency-graph.md
   - .factory/phase-f2-spec-evolution/prd-delta.md
   - .factory/research/f2-decomposition-sequencing.md
+version_history:
+  - version: "1.0"
+    date: 2026-06-09
+    author: story-writer
+    note: Initial E-13/E-14 extension graph (STORY-100..105).
+  - version: "1.1"
+    date: 2026-06-14
+    author: story-writer
+    note: "Corrected total_edges_post_extension from 86 to 84 (body arithmetic 79+5=84 was correct; frontmatter was wrong). Added superseded_by field and SUPERSEDED banner — this file is a historical draft; canonical graph is .factory/stories/dependency-graph.md (67 stories, 91 edges, includes E-15 DNP3 and E-16 ARP)."
 ---
 
 # wirerust Extended Dependency Graph (F3 Stories: E-13 + E-14)
+
+> **SUPERSEDED — HISTORICAL DRAFT**
+> HISTORICAL — this E-13/E-14 extension graph (STORY-100..105) is superseded by the canonical `.factory/stories/dependency-graph.md`, which is the authoritative graph for all epics including E-15 (DNP3) and E-16 (ARP). Retained for history.
 
 This document extends the base dependency graph at `.factory/stories/dependency-graph.md`
 (51 stories, 79 edges, 30 waves) with 6 new stories across two new epics (E-13, E-14).

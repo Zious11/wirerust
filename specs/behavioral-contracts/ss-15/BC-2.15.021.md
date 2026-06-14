@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-06-10T00:00:00Z
@@ -13,7 +13,8 @@ subsystem: SS-15
 capability: CAP-15
 lifecycle_status: active
 introduced: v0.6.0-feature-008
-modified: []
+modified:
+  - "v1.3: F3 story-anchor back-fill. — 2026-06-14"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -106,7 +107,7 @@ dispatcher routes a flow to `DispatchTarget::Dnp3`.
 | Capability Anchor Justification | CAP-15 ("DNP3/ICS Analysis") per ARCH-INDEX.md §SS-15 — correct port-20000 dispatch is the entry gate for the DNP3/ICS analyzer capability; without Rule 6, no DNP3 flows reach the analyzer regardless of protocol content |
 | L2 Domain Invariants | INV-2 (Content-First Dispatch Precedence — Rule 6 is a port-fallback rule that fires AFTER all content rules, preserving INV-2) |
 | Architecture Module | SS-15 (analyzer/dnp3.rs, C-24) + SS-05 (dispatcher.rs); ADR-007 Decision 1 |
-| Stories | TBD (F3 decomposition) |
+| Stories | STORY-110 |
 | Feature | issue-008-dnp3-analyzer |
 | MITRE Techniques | (none — dispatch routing BC; no finding emission) |
 
@@ -125,7 +126,7 @@ dispatcher routes a flow to `DispatchTarget::Dnp3`.
 
 ## Story Anchor
 
-TBD (F3 story decomposition)
+STORY-110
 
 ## VP Anchors
 

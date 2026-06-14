@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.4"
+version: "1.5"
 status: draft
 producer: product-owner
 timestamp: 2026-06-10T00:00:00Z
@@ -53,6 +53,7 @@ modified:
     (B4) Architecture Anchors increment-site bullet updated to three-path list. (B5) EC-006
     confirmed correct as-is (no change). (B6) 'one per sync-loss event' language deleted;
     Principle 1 language added; fake-sync-flood T0814 note added. — 2026-06-12"
+  - "v1.5: F3 story-anchor back-fill. — 2026-06-14"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -307,7 +308,7 @@ Kani formal verification target.
 | Capability Anchor Justification | CAP-15 ("DNP3/ICS Analysis") per ARCH-INDEX.md §SS-15 — surfacing malformed/structural DNP3 anomalies is a required DNP3/ICS threat-detection capability: the Crain-Sistrunk "Project Robus" class (~28-30 DNP3 vulns, 16+ ICS-CERT advisories) is caused entirely by structurally malformed frames that crash outstations via DoS; the parser's existing reject paths already detect these conditions but previously discarded them silently; this BC surfaces them as a low-confidence T0814 signal [VERIFIED: dnp3-f2-scope-threshold-validation.md §Q1 GAP-2] |
 | L2 Domain Invariants | INV-2 (Content-First Dispatch Precedence — findings emitted only on port-20000 flows that reached the DNP3 parser) |
 | Architecture Module | SS-15 (analyzer/dnp3.rs, C-24); ADR-007 Decision 5 |
-| Stories | TBD (F3 decomposition) |
+| Stories | STORY-109 |
 | Feature | issue-008-dnp3-analyzer |
 | MITRE Techniques | T0814 — Denial of Service (ICS; Inhibit Response Function tactic TA0107; active in v19.1). No new technique: T0814 is already seeded and emitted. Catalog counts 23/15/8 unchanged. |
 | Research Source | dnp3-f2-scope-threshold-validation.md §Q1 GAP-2 [VERIFIED gap, JUDGMENT on v1 scoping]: "passive analyzer blind to the single most-documented DNP3 attack class of the last decade"; §Q1(c): "Crain/Sistrunk frames carry *correct* CRCs — CRC validation would NOT have caught them"; Crain & Sistrunk S4x14 [VERIFIED]: ~28-30 vulns, 16+ ICS-CERT advisories, ASDUs too short, LENGTH/block-count mismatch, invalid parser states |
@@ -340,7 +341,7 @@ Kani formal verification target.
 
 ## Story Anchor
 
-TBD (F3 story decomposition)
+STORY-109
 
 ## VP Anchors
 

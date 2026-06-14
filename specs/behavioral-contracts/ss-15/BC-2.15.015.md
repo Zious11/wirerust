@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.6"
+version: "1.7"
 status: draft
 producer: product-owner
 timestamp: 2026-06-10T00:00:00Z
@@ -19,6 +19,7 @@ modified:
   - "v1.3: Pass-3 adversarial fix HIGH-3: changed all four plain `now_ts - flow.correlation_window_start_ts` subtractions to `now_ts.wrapping_sub(flow.correlation_window_start_ts)` to prevent panic under overflow-checks=true when timestamps go backward (out-of-order pcap replay, explicitly a valid confound per BC-2.15.014 Inv 2). Rationale: u32 second timestamps wrap at ~136 years — effectively never, policy kept. Matches BC-2.15.010 and Modbus BC-2.14.017 convention. — 2026-06-10"
   - "v1.4: Research threshold clarification (dnp3-f2-scope-threshold-validation.md §Q3): added Invariant 7 and clarification note to Precondition 1 that the ≥3 combined events must be DISTINCT impact events — a distinct restart event and/or a distinct sustained-block finding — not a single incident double-counted (e.g. one block_event_count increment that also satisfies the T1691.001 threshold does not count as two separate events toward T0827). The current implementation is already correct because restart_event_count and block_event_count are incremented by independent code paths (BC-2.15.011 and BC-2.15.014 respectively) and a single underlying incident can increment at most one of the two counters per occurrence. This clarification makes the invariant explicit for reviewers. — 2026-06-10"
   - "v1.5: Adversarial finding C-2 companion fix: extended the window-expiry reset set to include the two new BC-2.15.024 windowed fields: malformed_in_window=0 and malformed_anomaly_emitted=false. parse_errors (BC-2.15.024 lifetime counter) is explicitly NOT in the reset set — it is a monotonic lifetime counter consumed by BC-2.15.020 summarize(). Updated Description reset list, Postcondition 3 reset list, and Invariant 6 to name SIX fields reset at window expiry (restart_event_count, block_event_count, block_finding_emitted_this_window, loss_of_control_emitted, malformed_in_window, malformed_anomaly_emitted; plus correlation_window_start_ts updated to now_ts). Added Architecture Anchors for the two new fields. — 2026-06-10"
+  - "v1.7: F3 story-anchor back-fill. — 2026-06-14"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -245,7 +246,7 @@ No T0827 in either window; first window expired before threshold reached.
 | Capability Anchor Justification | CAP-15 ("DNP3/ICS Analysis") per ARCH-INDEX.md §SS-15 — T0827 derived-impact finding is the correlated consequence detection for sustained ICS disruption; it elevates isolated T0814/T1691.001 signals into a higher-confidence impact assessment when they co-occur on the same flow, providing operators with an actionable Impact-tactic alert |
 | L2 Domain Invariants | INV-2 (Content-First Dispatch Precedence — findings emitted only on valid DNP3 port-20000 flows) |
 | Architecture Module | SS-15 (analyzer/dnp3.rs, C-24); ADR-007 Decision 5 |
-| Stories | TBD (F3 decomposition) |
+| Stories | STORY-109 |
 | Feature | issue-008-dnp3-analyzer |
 | MITRE Techniques | T0827 — Loss of Control (ICS Impact tactic TA0105; active in v19.1; new `MitreTactic::IcsImpact` variant required — ADR-007 Decision 5) |
 
@@ -273,7 +274,7 @@ No T0827 in either window; first window expired before threshold reached.
 
 ## Story Anchor
 
-TBD (F3 story decomposition)
+STORY-109
 
 ## VP Anchors
 

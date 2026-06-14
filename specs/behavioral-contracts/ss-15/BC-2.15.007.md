@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-06-10T00:00:00Z
@@ -15,6 +15,7 @@ lifecycle_status: active
 introduced: v0.6.0-feature-008
 modified:
   - "v1.1: Pass-1 adversarial fix I-1: EC-004 corrected from Some(12) to Some(13) — correct arithmetic is U=1, blocks=ceil(1/16)=1, frame_len=5+6+2*1=13. Removed embedded exploratory-chain prose ('...wait:') from EC-004 cell. — 2026-06-10"
+  - "v1.3: F3 story-anchor back-fill. — 2026-06-14"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -131,7 +132,7 @@ frame consumption boundaries in the carry buffer loop.
 | Capability Anchor Justification | CAP-15 ("DNP3/ICS Analysis") per ARCH-INDEX.md §SS-15 — the frame_len arithmetic determines the carry-buffer consumption boundary in `Dnp3Analyzer::on_data`; an incorrect formula causes over-read (out-of-bounds panic) or under-read (frame misalignment and missed detections); this is the safety foundation for all frame-parsing in the DNP3/ICS analyzer capability |
 | L2 Domain Invariants | INV-2 (Content-First Dispatch Precedence — carry-buffer safety prevents panic on adversarial/malformed DNP3 traffic arriving on port 20000) |
 | Architecture Module | SS-15 (analyzer/dnp3.rs, C-24); ADR-007 Decision 2 (frame_len formula), Decision 3 (CRC-block-skip) |
-| Stories | TBD (F3 decomposition) |
+| Stories | STORY-106 |
 | Feature | issue-008-dnp3-analyzer |
 | MITRE Techniques | (none — pure arithmetic function; no finding emission) |
 
@@ -151,7 +152,7 @@ frame consumption boundaries in the carry buffer loop.
 
 ## Story Anchor
 
-TBD (F3 story decomposition)
+STORY-106
 
 ## VP Anchors
 

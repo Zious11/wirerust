@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-06-10T00:00:00Z
@@ -13,7 +13,8 @@ subsystem: SS-15
 capability: CAP-15
 lifecycle_status: active
 introduced: v0.6.0-feature-008
-modified: []
+modified:
+  - "v1.3: F3 story-anchor back-fill. — 2026-06-14"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -128,7 +129,7 @@ SRC `[0x01, 0x00]` little-endian = 0x0001 (master address 1).
 | Capability Anchor Justification | CAP-15 ("DNP3/ICS Analysis") per ARCH-INDEX.md §SS-15 — this BC defines the foundational parse-accept postconditions for the DNP3 data-link header decoder, which is the entry point for all DNP3 protocol analysis in the ICS/OT analyzer capability |
 | L2 Domain Invariants | INV-2 (Content-First Dispatch Precedence — DNP3 flows are only routed after TLS/HTTP content rules fail, ensuring this BC never fires on non-DNP3 flows) |
 | Architecture Module | SS-15 (analyzer/dnp3.rs, C-24 Dnp3Analyzer); ADR-007 Decision 2 |
-| Stories | TBD (F3 decomposition) |
+| Stories | STORY-106 |
 | Feature | issue-008-dnp3-analyzer |
 | MITRE Techniques | (none — pure parse function; no finding emission) |
 
@@ -147,7 +148,7 @@ SRC `[0x01, 0x00]` little-endian = 0x0001 (master address 1).
 
 ## Story Anchor
 
-TBD (F3 story decomposition)
+STORY-106
 
 ## VP Anchors
 

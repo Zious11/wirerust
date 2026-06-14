@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-06-10T00:00:00Z
@@ -15,6 +15,7 @@ lifecycle_status: active
 introduced: v0.6.0-feature-008
 modified:
   - "v1.1: Pass-1 adversarial fix I-4: added explicit ordering/dedup rule to Invariant 4 — broadcast anomaly finding (BC-2.15.018) is pushed FIRST; BC-2.15.010 burst finding pushed second if/when threshold crossed in same call. Both T1692.001 findings are RETAINED (distinct observations). Implementation must not deduplicate by technique ID alone. Cross-reference BC-2.15.013 added to Related BCs. — 2026-06-10"
+  - "v1.3: F3 story-anchor back-fill. — 2026-06-14"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -146,7 +147,7 @@ Expected: `Finding { category: Suspicious, verdict: Possible, confidence: Medium
 | Capability Anchor Justification | CAP-15 ("DNP3/ICS Analysis") per ARCH-INDEX.md §SS-15 — broadcast control command detection is an anomaly detection capability of the DNP3/ICS analyzer; sending SELECT/OPERATE/DIRECT_OPERATE to all outstations simultaneously is operationally abnormal and a signal of adversarial ICS manipulation |
 | L2 Domain Invariants | INV-2 (Content-First Dispatch Precedence — anomaly findings emitted only on valid DNP3 port-20000 flows) |
 | Architecture Module | SS-15 (analyzer/dnp3.rs, C-24); ADR-007 Decision 5 |
-| Stories | TBD (F3 decomposition) |
+| Stories | STORY-109 |
 | Feature | issue-008-dnp3-analyzer |
 | MITRE Techniques | T1692.001 — Unauthorized Message: Command Message (broadcast control is an unauthorized command by nature) |
 
@@ -165,7 +166,7 @@ Expected: `Finding { category: Suspicious, verdict: Possible, confidence: Medium
 
 ## Story Anchor
 
-TBD (F3 story decomposition)
+STORY-109
 
 ## VP Anchors
 

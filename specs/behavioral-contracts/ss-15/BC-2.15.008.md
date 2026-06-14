@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-06-10T00:00:00Z
@@ -13,7 +13,8 @@ subsystem: SS-15
 capability: CAP-15
 lifecycle_status: active
 introduced: v0.6.0-feature-008
-modified: []
+modified:
+  - "v1.3: F3 story-anchor back-fill; Invariant 4 grammar fix ('must not be descend into' → 'must not be descended into') and link-FC 0x0 PRM-bit disambiguation. — 2026-06-14"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -73,8 +74,9 @@ Continuation segments (FIR=0) are counted but not re-parsed as new requests.
    (`octet & 0xC0 == 0xC0`), the fragment is complete in one link frame. This is the common
    case for typical control commands. [SPEC]
 4. **Link FC guard**: the transport+application layer is only present in CONFIRMED_USER_DATA
-   (0x03) and UNCONFIRMED_USER_DATA (0x04) link frames. Other link FCs (e.g., RESET_LINK=0x0,
-   ACK=0x0) carry no transport octet and must not be descend into. [SPEC: dnp3-research.md §1.2]
+   (0x03) and UNCONFIRMED_USER_DATA (0x04) link frames. Other link FCs (e.g., RESET_LINK =
+   primary link-FC 0x0; ACK = secondary link-FC 0x0, disambiguated by the PRM bit) carry no
+   transport octet and must not be descended into. [SPEC: dnp3-research.md §1.2]
 
 ## Edge Cases
 
@@ -121,7 +123,7 @@ app_fc          = 0x05 → DIRECT_OPERATE → classify_dnp3_fc(0x05) = Control
 | Capability Anchor Justification | CAP-15 ("DNP3/ICS Analysis") per ARCH-INDEX.md §SS-15 — FIR=1 gating is the mechanism by which the DNP3/ICS analyzer extracts application function codes from reassembled TCP streams; without this gate, the analyzer would incorrectly parse continuation data as new FC bytes, producing false-positive detections |
 | L2 Domain Invariants | INV-2 (Content-First Dispatch Precedence — FIR=1 gating ensures application-layer parsing only fires on structurally valid application fragment starts) |
 | Architecture Module | SS-15 (analyzer/dnp3.rs, C-24 `on_data`); ADR-007 Decision 4 |
-| Stories | TBD (F3 decomposition) |
+| Stories | STORY-106 |
 | Feature | issue-008-dnp3-analyzer |
 | MITRE Techniques | (none — gating logic; detection BCs BC-2.15.010–013 are the emitters) |
 
@@ -143,7 +145,7 @@ app_fc          = 0x05 → DIRECT_OPERATE → classify_dnp3_fc(0x05) = Control
 
 ## Story Anchor
 
-TBD (F3 story decomposition)
+STORY-106
 
 ## VP Anchors
 

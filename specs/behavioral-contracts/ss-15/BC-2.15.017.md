@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-06-10T00:00:00Z
@@ -13,7 +13,8 @@ subsystem: SS-15
 capability: CAP-15
 lifecycle_status: active
 introduced: v0.6.0-feature-008
-modified: []
+modified:
+  - "v1.3: F3 story-anchor back-fill; fixed DNP3_DIRECT_OPERATE_THRESHOLD_DEFAULT placeholder to DNP3_DIRECT_OPERATE_THRESHOLD_DEFAULT (three occurrences). — 2026-06-14"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -50,7 +51,7 @@ activity, a value as low as 3–5 may be more appropriate.
 
 1. The user invokes `wirerust analyze` with `--dnp3-direct-operate-threshold <N>` where N is a
    valid `u32` (0..=4_294_967_295).
-2. OR the user omits the flag, in which case the compiled default (`DNPXX_DIRECT_OPERATE_THRESHOLD_DEFAULT`) is used.
+2. OR the user omits the flag, in which case the compiled default (`DNP3_DIRECT_OPERATE_THRESHOLD_DEFAULT`) is used.
 
 ## Postconditions
 
@@ -105,7 +106,7 @@ activity, a value as low as 3–5 may be more appropriate.
 | Capability Anchor Justification | CAP-15 ("DNP3/ICS Analysis") per ARCH-INDEX.md §SS-15 — the threshold CLI flag makes the DNP3/ICS analyzer tunable to the sensitivity requirements of specific OT environments, a key usability requirement for a threat-detection tool in industrial deployments where control-command rates vary widely by segment type |
 | L2 Domain Invariants | INV-2 (Content-First Dispatch Precedence — flag controls detection sensitivity; does not affect frame classification) |
 | Architecture Module | SS-15 (analyzer/dnp3.rs, C-24); ADR-007 Decision 6; SS-12 (CLI, cli.rs) |
-| Stories | TBD (F3 decomposition) |
+| Stories | STORY-110 |
 | Feature | issue-008-dnp3-analyzer |
 | MITRE Techniques | (none — CLI configuration BC; detection is in BC-2.15.010) |
 
@@ -115,14 +116,14 @@ activity, a value as low as 3–5 may be more appropriate.
 
 ## Architecture Anchors
 
-- `src/cli.rs` — `Commands::Analyze.dnp3_direct_operate_threshold: u32` field with `#[arg(long, default_value_t = DNPXX_DIRECT_OPERATE_THRESHOLD_DEFAULT)]`
+- `src/cli.rs` — `Commands::Analyze.dnp3_direct_operate_threshold: u32` field with `#[arg(long, default_value_t = DNP3_DIRECT_OPERATE_THRESHOLD_DEFAULT)]`
 - `src/analyzer/dnp3.rs` — `Dnp3Analyzer.direct_operate_threshold: u32`
-- `.factory/phase-f2-spec-evolution/dnp3-architecture-delta.md §10` — CLI delta; `DNPXX_DIRECT_OPERATE_THRESHOLD_DEFAULT`
+- `.factory/phase-f2-spec-evolution/dnp3-architecture-delta.md §10` — CLI delta; `DNP3_DIRECT_OPERATE_THRESHOLD_DEFAULT`
 - `.factory/specs/architecture/decisions/ADR-007-binary-ics-protocol-integration-dnp3-tcp.md §Decision 6`
 
 ## Story Anchor
 
-TBD (F3 story decomposition)
+STORY-110
 
 ## VP Anchors
 

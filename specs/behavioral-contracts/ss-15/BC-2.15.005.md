@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: product-owner
 timestamp: 2026-06-10T00:00:00Z
@@ -15,6 +15,7 @@ lifecycle_status: active
 introduced: v0.6.0-feature-008
 modified:
   - "v1.2: STORY-106 adversarial Pass-1 F1: lock 0x00 CONFIRM → Management; reconcile VP-023 Sub-B with BC-2.15.005. EC-001 hedged 'Management OR Unknown depending on F3 implementation choice' — replaced with locked decision: 0x00 CONFIRM → Management (aligns with canonical test vector table, impl match arm 0x00 | 0x07..=0x0C | 0x0F..=0x1A, and VP-023 Sub-B updated Management set). Ambiguity removed. — 2026-06-11"
+  - "v1.4: F3 story-anchor back-fill. — 2026-06-14"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -112,7 +113,7 @@ variants and never panics.
 | Capability Anchor Justification | CAP-15 ("DNP3/ICS Analysis") per ARCH-INDEX.md §SS-15 — `classify_dnp3_fc` totality is the foundational safety guarantee for all FC-based detection logic in the DNP3/ICS analyzer; a non-total classifier can panic on unexpected FC bytes in real ICS traffic, causing analyzer failure |
 | L2 Domain Invariants | INV-2 (Content-First Dispatch Precedence — panic freedom in the pure-core classifier ensures analyzer stability on adversarial traffic) |
 | Architecture Module | SS-15 (analyzer/dnp3.rs, C-24); ADR-007 Decision 2 |
-| Stories | TBD (F3 decomposition) |
+| Stories | STORY-106 |
 | Feature | issue-008-dnp3-analyzer |
 | MITRE Techniques | (none — pure classification function; no finding emission) |
 
@@ -129,7 +130,7 @@ variants and never panics.
 
 ## Story Anchor
 
-TBD (F3 story decomposition)
+STORY-106
 
 ## VP Anchors
 

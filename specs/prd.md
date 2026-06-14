@@ -1,10 +1,10 @@
 ---
 document_type: prd
 level: L3
-version: "1.21"
+version: "1.22"
 status: draft
 producer: product-owner
-timestamp: 2026-06-12T02:00:00Z
+timestamp: 2026-06-14T00:00:00Z
 phase: 1a
 origin: brownfield
 inputs:
@@ -281,8 +281,11 @@ supplements:
 > See `spec-changelog.md` §[pass-21-fixes-2026-06-13].
 
 > **Version 1.20 delta (2026-06-13 — Pass-24 DNP3 component mislabel sweep):**
-> D-01 (HIGH): All ss-15 (DNP3) BCs updated C-23 → C-24 (Dnp3Analyzer; C-23 was MbapFramer, a
-> Modbus component). §2.15 group header corrected C-26 → C-24. No new BCs; no BC count change.
+> D-01 (HIGH): All ss-15 (DNP3) BCs updated C-23 → C-24 (Dnp3Analyzer; C-23 was previously
+> assigned to SS-15/DNP3, which was renumbered to C-24 when the ARP analyzer claimed C-23).
+> §2.15 group header corrected C-26 → C-24. No new BCs; no BC count change.
+> [Prose corrected in v1.22 per DRIFT-PRD-V120-MBAPFRAMER-001: original text erroneously stated
+> "C-23 was MbapFramer, a Modbus component" — no MbapFramer component ever existed.]
 > See `spec-changelog.md` §[pass-24-fixes-2026-06-13].
 
 > **Version 1.21 delta (2026-06-13 — Pass-29 PRD findings D-01 + D-02):**
@@ -295,6 +298,36 @@ supplements:
 > purity-boundary-map, module-criticality (per architect P29 A-01 burst).
 > No new BCs; no BC count change.
 > See `spec-changelog.md` §[pass-29-fixes-2026-06-13].
+
+> **Version 1.22 delta (2026-06-14 — Pass-22 F3-convergence PRD reconciliation):**
+> Three defects remediated (F3 Pass-22):
+>
+> - **FIX-1 (HIGH) — ARP holdout seed count reconciliation (26→28):** The v1.10 and v1.11 delta
+>   notes recorded the ARP seed count as 26 (24 P0, 2 P1) and HS-W44-001 as P1. These notes were
+>   accurate for the HS-INDEX state at that time (v1.2–v1.3). The HS-INDEX was subsequently
+>   expanded to v1.6, adding HS-W44-004 through HS-W44-007 (7 seeds in wave 44 vs. the prior 3)
+>   and reclassifying HS-W44-001 from P1 to P0. The canonical HS-INDEX v1.6 values are:
+>   **Total ARP feature holdout seeds = 28 (27 P0, 1 P1)**; the single P1 seed is
+>   **HS-W44-003** (--arp-storm-rate override) ONLY; **HS-W44-001 is P0** (D3 storm detection).
+>   frontmatter `arp_waves_40_44 = 28`. Wave breakdown: W40=4, W41=4, W42=8, W43=5, W44=7.
+>   The v1.10/v1.11 historical notes are preserved as-is (immutable history); this note is the
+>   authoritative reconciliation record. DRIFT-PRD-ARP-SEED-COUNT-001 CLOSED.
+>
+> - **FIX-2 (LOW) — BC-2.02.009 version annotation:** The v1.13 delta note cites
+>   "canonical v1.5 H1/BC-INDEX title" for BC-2.02.009. That title was subsequently superseded:
+>   BC-2.02.009 was further revised to v1.6 (per BC-INDEX.md:28/:63, ARCH-INDEX ADR-008, and
+>   spec-changelog). The v1.13 historical note is preserved; this annotation records that
+>   BC-2.02.009 was subsequently bumped to v1.6 after the v1.13 pass.
+>   The §2.2 live-body row title (line ~454) already reflects the current BC-INDEX H1 — no
+>   live-body change required.
+>
+> - **FIX-3 (LOW) — v1.20 MbapFramer prose corrected:** The v1.20 delta note (Pass-24) stated
+>   "C-23 was MbapFramer, a Modbus component." This is factually incorrect — no MbapFramer
+>   component ever existed in the architecture. The correct history is that C-23 was previously
+>   assigned to SS-15/DNP3 (Dnp3Analyzer), and SS-15/DNP3 was renumbered from C-23 to C-24 when
+>   the ARP analyzer (SS-16/ArpAnalyzer) claimed C-23. The v1.20 prose error is corrected in the
+>   v1.20 delta text below. DRIFT-PRD-V120-MBAPFRAMER-001 CLOSED.
+> No new BCs; no BC count change. See `spec-changelog.md` §[pass-22-f3-convergence-2026-06-14].
 
 > **Supplement Model:** Sections 3-5 reference extracted supplement files under
 > `prd-supplements/`. These supplements are produced in a SEPARATE burst (Phase 1b).

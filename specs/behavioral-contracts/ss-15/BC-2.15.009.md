@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.4"
+version: "1.5"
 status: draft
 producer: product-owner
 timestamp: 2026-06-10T00:00:00Z
@@ -16,6 +16,7 @@ introduced: v0.6.0-feature-008
 modified:
   - "v1.2: F5-R2 change (F-C-006) — Related BCs: added reciprocal cross-reference to BC-2.15.024 with explicit statement that is_non_dnp3 bail is NOT a parse_errors source per this BC's PC3, consistent with BC-2.15.024 v1.3 F-F5-004 reconciliation. — 2026-06-12"
   - "v1.3: F7 F-S1-001 reconciliation — Invariant 1/Precondition 3/EC-004 corrected to match ADJ-001 initial-delivery-only is_non_dnp3 semantics (cross-segment 16-byte accumulation bail was never implemented and is architecturally rejected per ADJ-001 Addendum Q1; established-flow misalignment handled by byte-walk-forward resync per BC-2.15.016 EC-007). Vestige cleanup (same F7 F-S1-001 reconciliation): EC-002 reframed from '16-byte window' phrasing to initial-delivery-only semantics (carry empty, data.len()>=2, no offset-0 sync); Canonical Test Vectors column header changed from 'First 16 bytes (hex)' to 'First delivery (hex)'; vector rows annotated with carry-state context to match initial-delivery model. — 2026-06-12"
+  - "v1.5: F3 story-anchor back-fill. — 2026-06-14"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -128,7 +129,7 @@ desync state).
 | Capability Anchor Justification | CAP-15 ("DNP3/ICS Analysis") per ARCH-INDEX.md §SS-15 — the desync bail is the false-positive prevention mechanism for port-only classification, ensuring the DNP3/ICS analyzer does not emit erroneous ICS threat findings for non-DNP3 protocols on port 20000 |
 | L2 Domain Invariants | INV-2 (Content-First Dispatch Precedence — the bail maintains the invariant that ICS findings are only emitted for flows carrying actual DNP3 protocol content) |
 | Architecture Module | SS-15 (analyzer/dnp3.rs, C-24 `Dnp3FlowState.is_non_dnp3`); ADR-007 Decision 2 |
-| Stories | TBD (F3 decomposition) |
+| Stories | STORY-106 |
 | Feature | issue-008-dnp3-analyzer |
 | MITRE Techniques | (none — safety/bail logic; no finding emission) |
 
@@ -147,7 +148,7 @@ desync state).
 
 ## Story Anchor
 
-TBD (F3 story decomposition)
+STORY-106
 
 ## VP Anchors
 

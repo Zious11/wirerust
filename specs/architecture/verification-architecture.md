@@ -40,6 +40,9 @@ modified:
   - date: 2026-06-13
     actor: architect
     reason: "Pass-23 A-03: VP-005 proof harness skeleton Markdown fencing corrected — block was missing opening ```rust fence and closing ``` fence; now properly fenced to match sibling VP-001 and VP-002 skeletons. Proof logic unchanged. Version bump 1.6→1.7."
+  - date: 2026-06-14
+    actor: architect
+    reason: "Pass-22 F3-convergence FIX-1: VP-024 Module cell in Should Prove table updated from 'analyzer/arp.rs' to 'analyzer/arp.rs + decoder.rs [a]' to match VP-INDEX.md:76 authoritative module listing and align with verification-coverage-matrix.md footnote [a] documenting the Sub-A dual-module split (extract_arp_frame lives in src/decoder.rs). Footnote [a] added below Should Prove table. FIX-2: VP-008 proof harness skeleton annotated with forward-reference note mirroring VP-008 v2.2: current signature is pre-STORY-111; STORY-111 changes return type to Result<DecodedFrame>. FIX-3: VP-008 fuzz target filename corrected from decode_packet.rs to fuzz_decode_packet.rs to match delivered harness (VP-008 v1.1, STORY-003 AC-011)."
 ---
 
 # Verification Architecture
@@ -72,7 +75,13 @@ modified:
 | VP-015 | TCP sequence wraparound: segment at seq=isn+1=0xFFFF_FFFF (ISN=0xFFFF_FFFE, offset 1) crossing 32-bit boundary reassembles correctly | (arithmetic) | reassembly/segment.rs | Kani |
 | VP-022 | Modbus MBAP parse safety and function-code boundary classification: (A) parse_mbap_header never panics and returns None for <8-byte inputs; (B) classify_fc is total over all 256 FC values; (C) exception detection iff fc >= 0x80 | (no-panic + boundary) | analyzer/modbus.rs | Kani |
 | VP-023 | DNP3 data-link frame parse safety and FC classification: (A) parse_dnp3_dl_header never panics, None for <10-byte inputs; (B) classify_dnp3_fc total over all 256 FC values, Control/Restart/Write sets correct; (C) validity gate true iff sync==0x0564 and LENGTH>=5; (D) compute_dnp3_frame_len correct over all LENGTH 5..=255, result in [10,292] | (no-panic + boundary + arithmetic) | analyzer/dnp3.rs | Kani |
-| VP-024 | ARP frame parse safety and binding-table invariant: (A) extract_arp_frame never panics on any valid ArpPacketSlice input; Some(ArpFrame) for Eth/IPv4, None otherwise; (B) GARP detection total: is_gratuitous_arp(f)==(f.sender_ip==f.target_ip) for all ArpFrame; (C) binding-table last-write-wins determinism and no-duplicate-key; (D) MAX_ARP_BINDINGS cap never exceeded | (no-panic + GARP totality + binding-table invariant) | analyzer/arp.rs | Kani |
+| VP-024 | ARP frame parse safety and binding-table invariant: (A) extract_arp_frame never panics on any valid ArpPacketSlice input; Some(ArpFrame) for Eth/IPv4, None otherwise; (B) GARP detection total: is_gratuitous_arp(f)==(f.sender_ip==f.target_ip) for all ArpFrame; (C) binding-table last-write-wins determinism and no-duplicate-key; (D) MAX_ARP_BINDINGS cap never exceeded | (no-panic + GARP totality + binding-table invariant) | analyzer/arp.rs + decoder.rs [a] | Kani |
+
+[a] VP-024 umbrella is anchored to `analyzer/arp.rs` (Sub-B/C/D targets). Sub-A Kani harnesses
+(`verify_extract_arp_frame_safety`, `verify_extract_arp_frame_eth_ipv4_correctness`,
+`verify_extract_arp_frame_none_on_bad_size`) are authored in the `src/decoder.rs` `#[cfg(kani)]`
+block because `extract_arp_frame` lives in `src/decoder.rs` (per vp-024-arp-parse-safety.md
+§Proof Harness Skeleton and arp-architecture-delta §6 STORY-112). Mirrors verification-coverage-matrix.md footnote [a].
 
 ### Test Sufficient (UI logic, non-critical defaults)
 
@@ -202,9 +211,11 @@ fn verify_sni_classification_exhaustive() {
 ### VP-008: decode_packet No-Panic (cargo-fuzz)
 
 ```rust
-// fuzz_target in fuzz/fuzz_targets/decode_packet.rs:
+// fuzz_target in fuzz/fuzz_targets/fuzz_decode_packet.rs:
 // Real signature (src/decoder.rs:128):
 //   pub fn decode_packet(data: &[u8], datalink: DataLink) -> Result<ParsedPacket>
+// NOTE: pre-STORY-111 current signature; STORY-111 changes return type to
+//   Result<DecodedFrame> — see VP-008 §Property Statement (vp-008-decode-packet-no-panic.md v2.2).
 libfuzzer_sys::fuzz_target!(|data: &[u8]| {
     // try all supported link types (DataLink::IPV6 accepted per decoder.rs:134)
     for datalink in [

@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.7"
+version: "1.8"
 status: draft
 producer: product-owner
 timestamp: 2026-06-10T00:00:00Z
@@ -20,6 +20,7 @@ modified:
   - "v1.4: Research validation confirmation (dnp3-f2-scope-threshold-validation.md §Q2 Threshold-2): DIRECT_OPERATE_NR (0x06) exclusion from the block-command timeout count is explicitly confirmed as a required guard by the research pass [VERIFIED]. The exclusion is already present in Precondition 1 and Invariant 1 (since v1.0). This entry records the explicit research-backed validation. No behavioral change. — 2026-06-10"
   - "v1.5: Adversarial Pass-3 fix F-P3-001 (MEDIUM): PC3 evidence format reconciled to producible form. The original format 'FC=0x{fc:02X} dest={dest:#06X} app_seq={seq} ts={ts}' required an FC byte that is NOT retained in pending_requests (keyed (dest_addr, app_seq) → request_ts only; FC was deliberately excluded from the value type in STORY-107). Additionally, all entries in pending_requests are Control-class by construction (only FC 0x03/0x04/0x05 are inserted; FC 0x06 DIRECT_OPERATE_NR is excluded at insert), so the FC byte adds no discriminating value. New canonical format: one entry per timed-out request, 'dest={dest:#06X} app_seq={seq} ts={ts}' — producible from the (dest, app_seq) key and request_ts value available at removal time in scan_block_timeouts. — 2026-06-11"
   - "v1.6: F-P3-001 correction — per-request format also not producible without structural change. The v1.5 per-request format 'dest={dest:#06X} app_seq={seq} ts={ts}' assumed all 3 timed-out requests would be available in a single scan_block_timeouts call. In practice, scan_block_timeouts is called per-packet: each of the 3 control requests times out in a separate scan (seq=0 at ts=11, seq=1 at ts=22, seq=2 at ts=33), and the T1691.001 finding fires only when block_event_count reaches 3 (the 3rd scan). At that point only the current scan's timed-out entry is available; prior entries were already remove()d. Collecting all 3 would require a new windowed accumulator field (block_timeout_evidence: Vec<(u16,u8,u32)>), a growth bound, and amendment of BC-2.15.015's six-field reset set — a structural change that violates the producibility-without-structural-change criterion (option A chosen over option B). FINAL canonical format: single-entry summary 'block_event_count={count} in correlation window; threshold={threshold}' — fully producible from block_event_count and BLOCK_CMD_THRESHOLD at emission time, no new fields, parallels BC-2.15.024 malformed evidence. — 2026-06-11"
+  - "v1.8: F3 story-anchor back-fill. — 2026-06-14"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -151,7 +152,7 @@ The human should confirm whether 10s timeout and 3-of-300s threshold are appropr
 | Capability Anchor Justification | CAP-15 ("DNP3/ICS Analysis") per ARCH-INDEX.md §SS-15 — T1691.001 block-command inference is a distinctive capability of the DNP3/ICS analyzer that detects the Ukraine 2015 (Sandworm) technique of blocking control commands to prevent operators from restoring tripped circuit breakers |
 | L2 Domain Invariants | INV-2 (Content-First Dispatch Precedence — findings emitted only on valid DNP3 port-20000 flows) |
 | Architecture Module | SS-15 (analyzer/dnp3.rs, C-24); ADR-007 Decision 5 |
-| Stories | TBD (F3 decomposition) |
+| Stories | STORY-109 |
 | Feature | issue-008-dnp3-analyzer |
 | MITRE Techniques | T1691.001 — Block Operational Technology Message: Command Message (ICS sub-technique, v19.1; tactic: IcsInhibitResponseFunction TA0107; replaces revoked T0803) |
 
@@ -174,7 +175,7 @@ The human should confirm whether 10s timeout and 3-of-300s threshold are appropr
 
 ## Story Anchor
 
-TBD (F3 story decomposition)
+STORY-109
 
 ## VP Anchors
 

@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.6"
+version: "1.7"
 status: draft
 producer: product-owner
 timestamp: 2026-06-10T00:00:00Z
@@ -40,6 +40,7 @@ modified:
     was absent from the H1. Title now reads: 'Unauthorized Control Command — Unexpected
     Source (count=1) or Control-Class FC Exceeding Threshold Emits T1692.001'.
     No postcondition/invariant/EC content changed. — 2026-06-12"
+  - "v1.7: F3 story-anchor back-fill. — 2026-06-14"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -198,7 +199,7 @@ App FC:      0x05 → DIRECT_OPERATE → Dnp3FcClass::Control
 | Capability Anchor Justification | CAP-15 ("DNP3/ICS Analysis") per ARCH-INDEX.md §SS-15 — detecting unauthorized control commands is the primary threat-detection objective of the DNP3/ICS analyzer; T1692.001 is the MITRE v19.1 technique for unauthorized command messages in ICS environments |
 | L2 Domain Invariants | INV-2 (Content-First Dispatch Precedence — DNP3 findings are only emitted for flows that passed port-20000 classification AND the validity gate) |
 | Architecture Module | SS-15 (analyzer/dnp3.rs, C-24); ADR-007 Decision 5 |
-| Stories | TBD (F3 decomposition) |
+| Stories | STORY-108 |
 | Feature | issue-008-dnp3-analyzer |
 | MITRE Techniques | T1692.001 — Unauthorized Message: Command Message (ICS sub-technique, v19.1; tactic: IcsImpairProcessControl; replaces revoked T0855) |
 
@@ -223,7 +224,7 @@ App FC:      0x05 → DIRECT_OPERATE → Dnp3FcClass::Control
 
 ## Story Anchor
 
-TBD (F3 story decomposition)
+STORY-108
 
 ## VP Anchors
 

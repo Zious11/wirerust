@@ -19,6 +19,9 @@ modified:
   - date: 2026-06-13
     actor: architect
     reason: "Pass-16 A-01: proptest 'Properties targeted' list expanded from 6 to 7 VPs — added VP-021 (timestamp provenance threading; integration+proptest; counted under proptest per VP-INDEX convention). proptest count now = 7, matching VP-INDEX proptest_count=7."
+  - date: 2026-06-14
+    actor: architect
+    reason: "Pass-22 F3-convergence FIX-3: cargo-fuzz Setup line corrected — fuzz target filename changed from decode_packet.rs to fuzz_decode_packet.rs and run command updated to match. Canonical filename established in VP-008 v1.1 and STORY-003 AC-011; also corrected in verification-architecture.md VP-008 skeleton in same burst."
 ---
 
 # Tooling Selection
@@ -82,8 +85,8 @@ proptest (type-guided) will generate in practice.
 
 **Properties targeted:** VP-008 (decode_packet no-panic)
 
-**Setup:** `cargo install cargo-fuzz`; create `fuzz/fuzz_targets/decode_packet.rs`.
-Run with `cargo fuzz run decode_packet`. Corpus stored in `fuzz/corpus/`.
+**Setup:** `cargo install cargo-fuzz`; create `fuzz/fuzz_targets/fuzz_decode_packet.rs`.
+Run with `cargo fuzz run fuzz_decode_packet`. Corpus stored in `fuzz/corpus/`.
 
 **Scope for wirerust:** Primary target is `decoder.rs` (C-5). Secondary targets
 are `analyzer/tls.rs` and `analyzer/http.rs` entry points (`on_data`).

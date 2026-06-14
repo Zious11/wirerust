@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-06-10T00:00:00Z
@@ -13,7 +13,8 @@ subsystem: SS-15
 capability: CAP-15
 lifecycle_status: active
 introduced: v0.6.0-feature-008
-modified: []
+modified:
+  - "v1.3: F3 story-anchor back-fill. — 2026-06-14"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -95,7 +96,7 @@ populated. The function never panics for any input length, including zero-length
 | Capability Anchor Justification | CAP-15 ("DNP3/ICS Analysis") per ARCH-INDEX.md §SS-15 — this BC defines the truncation-safety reject postcondition for the DNP3 header parser, which is essential for memory-safe processing of incomplete TCP segments in the ICS/OT analyzer capability |
 | L2 Domain Invariants | INV-2 (Content-First Dispatch Precedence — panic freedom and truncation safety prevent false findings on non-DNP3 traffic routed via port 20000) |
 | Architecture Module | SS-15 (analyzer/dnp3.rs, C-24 Dnp3Analyzer); ADR-007 Decision 2 |
-| Stories | TBD (F3 decomposition) |
+| Stories | STORY-106 |
 | Feature | issue-008-dnp3-analyzer |
 | MITRE Techniques | (none — pure parse reject path; no finding emission) |
 
@@ -113,7 +114,7 @@ populated. The function never panics for any input length, including zero-length
 
 ## Story Anchor
 
-TBD (F3 story decomposition)
+STORY-106
 
 ## VP Anchors
 

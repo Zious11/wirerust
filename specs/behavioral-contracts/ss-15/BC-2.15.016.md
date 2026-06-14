@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.4"
+version: "1.5"
 status: draft
 producer: product-owner
 timestamp: 2026-06-10T00:00:00Z
@@ -17,6 +17,7 @@ modified:
   - "v1.1: Pass-3 adversarial fix HIGH-2: added pending_requests DoS bound — MAX_PENDING_REQUESTS=256 entries. On insert when at cap, evict the OLDEST entry (minimum request_ts). Postconditions 8–10 added; Invariant 5 added; EC-008 added; canonical test vector added; Architecture Anchors and Description updated. BC-2.15.014 Invariant 8 now correctly cross-references this BC for the pending_requests cap. — 2026-06-10"
   - "v1.2: EC-007 resync policy updated — drain-1 (STORY-107 v1 behavior) replaced by byte-walk-forward resync (STORY-109 realization of the STORY-107 explicitly deferred resync). STORY-107 in-code comment stated: 'Byte-walk resync on mid-carry sync-loss is deferred to a later detection story'; STORY-109 is that story. EC-007 now specifies: after the LENGTH gate increments parse_errors and malformed_in_window, the carry head is repositioned by scanning from index 1 for the next [0x05,0x64] sync word; bytes before it are drained; if none found, carry is cleared. No postcondition or invariant logic changed — this is an EC-007 navigation-detail clarification only. Authorized by STORY-109-resync-adjudication.md Decision 2. — 2026-06-11. Additionally (per ADJ-001-A): Canonical Test Vectors 'Carry overflow (adversarial)' row clarified to note that the frame-walk subsequently runs post-overflow and, if no [0x05,0x64] sync word is found, byte-walk-forward resync clears the carry (final carry may be empty); the 292-cap proof rests on the parse_errors increment, not residual carry length."
   - "v1.3: F5-R2 changes (F-F5-001 REVISION 2 + F-F5-003 REVISION 2) — (A1) Postcondition 5 corrected: DIR bit is bit 7 (mask 0x80) per IEEE 1815 DNP3 link-layer framing — the previous text implied mask 0x10 (bit 4, FCV/DFC), which is wrong; CTRL=0xC4 canonical master frame now correctly returns is_master_frame=true. Architecture Anchors updated to note the 0x80 mask. (B7) EC-007 inline-resync-location clarification added: the LENGTH-gate arm performs byte-walk-forward resync INLINE before continue, so the loop's next iteration begins with a valid sync head or empty carry; the sync-check arm is NOT entered as a consequence of a LENGTH-gate drain. (B8) EC-004 Edge Cases row and Canonical Test Vectors 'Carry overflow (adversarial)' row updated to reflect that the overflow arm now performs INLINE resync (identical to Change 2) — a recoverable valid head frame is preserved; carry is cleared only if no [0x05,0x64] sync word is found; the frame-walk then runs on the repositioned carry; the sync-check arm is NOT entered as a consequence of the overflow. (B9) EC-009 added (new): junk-at-clean-boundary counted as one structural malformed event via the sync-check arm. — 2026-06-12"
+  - "v1.5: F3 story-anchor back-fill. — 2026-06-14"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -127,7 +128,7 @@ These three bounds collectively prevent unbounded memory growth under adversaria
 | Capability Anchor Justification | CAP-15 ("DNP3/ICS Analysis") per ARCH-INDEX.md §SS-15 — bounded carry buffer, master-address tracking, and pending-request table are the three memory-safety foundations of the DNP3/ICS analyzer; unbounded growth in any of the three would allow an attacker to exhaust analyzer memory by sending adversarial DNP3 traffic (partial frames, spoofed source addresses, or unanswered control floods respectively) |
 | L2 Domain Invariants | INV-2 (Content-First Dispatch Precedence — memory bounds ensure analyzer stability under adversarial DNP3 traffic; pending_requests cap enforces DoS safety for the request/response correlation table) |
 | Architecture Module | SS-15 (analyzer/dnp3.rs, C-24 `Dnp3FlowState`); ADR-007 Decision 2 |
-| Stories | TBD (F3 decomposition) |
+| Stories | STORY-107 |
 | Feature | issue-008-dnp3-analyzer |
 | MITRE Techniques | (none — state management BC; no finding emission) |
 
@@ -152,7 +153,7 @@ These three bounds collectively prevent unbounded memory growth under adversaria
 
 ## Story Anchor
 
-TBD (F3 story decomposition)
+STORY-107
 
 ## VP Anchors
 

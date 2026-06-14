@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: product-owner
 timestamp: 2026-06-10T00:00:00Z
@@ -16,6 +16,7 @@ introduced: v0.6.0-feature-008
 modified:
   - "v1.1: Pass-2 adversarial fix CRITICAL-2: collapsed dual-window model (120s BLOCK_CMD_WINDOW + 300s T0827_WINDOW) into a single shared CORRELATION_WINDOW_SECS=300s [F2-GATE]. restart_event_count incremented unconditionally; both restart_event_count and block_event_count reset ONLY at shared 300s window expiry (reset owner: BC-2.15.015 / window-expiry handler). Added correlation_window_start_ts reference to Architecture Anchors. Verified '2 block + 1 restart → T0827' trace fires correctly under single-window model. — 2026-06-10"
   - "v1.2: Pass-3 adversarial fix LOW: EC-007 wording corrected from '2 block events (120–300s apart)' (imprecise) to 'both within the same 300s correlation window (e.g. 150s apart)'. The old wording implied events must be 120–300s apart; the correct invariant is simply that both are within the same 300s window. Also updates matching table entry in Canonical Test Vectors trace note. — 2026-06-10"
+  - "v1.4: F3 story-anchor back-fill. — 2026-06-14"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -146,7 +147,7 @@ This trace verifies that block events both within the same 300s correlation wind
 | Capability Anchor Justification | CAP-15 ("DNP3/ICS Analysis") per ARCH-INDEX.md §SS-15 — detecting COLD_RESTART and WARM_RESTART abuse is a core DNP3/ICS threat-detection capability; these commands are the primary mechanism for denial-of-service against DNP3 outstations (Ukraine 2015: Sandworm forced outstation restarts to remove relay visibility) |
 | L2 Domain Invariants | INV-2 (Content-First Dispatch Precedence — findings emitted only on port-20000 flows with valid DNP3 frames) |
 | Architecture Module | SS-15 (analyzer/dnp3.rs, C-24); ADR-007 Decision 5 |
-| Stories | TBD (F3 decomposition) |
+| Stories | STORY-108 |
 | Feature | issue-008-dnp3-analyzer |
 | MITRE Techniques | T0814 — Denial of Service (ICS; Inhibit Response Function tactic TA0107; active in v19.1) |
 
@@ -168,7 +169,7 @@ This trace verifies that block events both within the same 300s correlation wind
 
 ## Story Anchor
 
-TBD (F3 story decomposition)
+STORY-108
 
 ## VP Anchors
 

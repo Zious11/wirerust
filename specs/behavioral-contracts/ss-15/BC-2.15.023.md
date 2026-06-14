@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-06-10T00:00:00Z
@@ -13,7 +13,8 @@ subsystem: SS-15
 capability: CAP-15
 lifecycle_status: active
 introduced: v0.6.0-feature-008
-modified: []
+modified:
+  - "v1.3: F3 story-anchor back-fill; corrected canonical DISABLE_UNSOLICITED frame App Control byte from 0x82 (FIR=1,FIN=0,CON=0,UNS=0,SEQ=2 — inconsistent with a single complete request) to 0x81 (FIR=1,FIN=0,CON=0,UNS=0,SEQ=1) matching sibling single-frame vectors (BC-2.15.008, BC-2.15.010, BC-2.15.011). Added explicit bit-breakdown annotation to the canonical test vector. — 2026-06-14"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -137,11 +138,16 @@ to the global MAX_FINDINGS cap (Precondition 6).
 
 **DISABLE_UNSOLICITED frame (master 1 to outstation 3):**
 ```
-DNP3 frame:  05 64 09 C4 03 00 01 00 [hdr-crc]  C0 82 15  [data-crc]
+DNP3 frame:  05 64 09 C4 03 00 01 00 [hdr-crc]  C0 81 15  [data-crc]
 Link:        START=0x0564, LEN=9, CTRL=0xC4 (DIR=1, PRM=1, FC=4=UNCONFIRMED_USER_DATA)
              DEST=0x0003, SRC=0x0001
 Transport:   0xC0 (FIR=1, FIN=1, SEQ=0)
-App Control: 0x82
+App Control: 0x81  // bit7=FIR=1, bit6=FIN=0, bit5=CON=0, bit4=UNS=0, bits0-3=SEQ=1
+             // Matches sibling single-frame master-request vectors (BC-2.15.008, BC-2.15.010,
+             // BC-2.15.011). FIN=0 is normal for master requests; only outstation RESPONSE
+             // and UNSOLICITED_RESPONSE conventionally set FIN=1 in single-fragment exchanges.
+             // The previous value 0x82 (FIR=1,FIN=0,UNS=0,SEQ=2) used SEQ=2 without
+             // justification — corrected to SEQ=1 for consistency with sibling vectors.
 App FC:      0x15 → DISABLE_UNSOLICITED → raw match, NOT via classify_dnp3_fc
 ```
 Expected: `Finding { mitre_techniques: ["T0814"], verdict: Likely, confidence: Medium, summary: "DNP3 DISABLE_UNSOLICITED observed: FC 0x15 from src=0x0001 to dest=0x0003 — alarm suppression / event-blinding primitive" }`
@@ -178,7 +184,7 @@ directly) is appropriate here.
 | Capability Anchor Justification | CAP-15 ("DNP3/ICS Analysis") per ARCH-INDEX.md §SS-15 — detecting DISABLE_UNSOLICITED (0x15) and ENABLE_UNSOLICITED (0x14) abuse is a DNP3/ICS threat-detection requirement: these FCs are the control-plane mechanism for silencing outstation event reporting (alarm suppression), which is a recognized ICS attack primitive documented in Crain/Sistrunk research and the DNP3 attack surface literature [VERIFIED: dnp3-f2-scope-threshold-validation.md §Q1 GAP-1] |
 | L2 Domain Invariants | INV-2 (Content-First Dispatch Precedence — findings emitted only on port-20000 flows that passed the validity gate) |
 | Architecture Module | SS-15 (analyzer/dnp3.rs, C-24); ADR-007 Decision 5 |
-| Stories | TBD (F3 decomposition) |
+| Stories | STORY-109 |
 | Feature | issue-008-dnp3-analyzer |
 | MITRE Techniques | T0814 — Denial of Service (ICS; Inhibit Response Function tactic TA0107; active in v19.1). No new technique: T0814 is already seeded (BC-2.15.011) and in EMITTED set. Catalog counts 23/15/8 unchanged. |
 | Research Source | dnp3-f2-scope-threshold-validation.md §Q1 GAP-1 [VERIFIED gap, JUDGMENT on severity]: "DISABLE_UNSOLICITED (0x15) is the classic alarm-suppression / event-blinding primitive"; Chipkin DNP3 Quick Reference FC table: 0x14=Enable unsolicited, 0x15=Disable unsolicited [VERIFIED]; Crain/Sistrunk: "disproportionate share [of vulns] in unsolicited response functions" [VERIFIED] |
@@ -202,7 +208,7 @@ directly) is appropriate here.
 
 ## Story Anchor
 
-TBD (F3 story decomposition)
+STORY-109
 
 ## VP Anchors
 

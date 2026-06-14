@@ -2003,3 +2003,56 @@ current src.
   PG-ARP-F2-001 above). This file captures the distilled per-pass summary.
 - The SLICED method is proving effective at surfacing cross-doc consistency issues (Slice D)
   that monolithic passes miss — passes 2-4 all had their largest finding cluster in Slice D.
+
+---
+
+## F3 Story Decomposition Adversarial Convergence (Strict Whole-Corpus; passes continue from F2)
+
+**Phase:** F3 Story Decomposition. Scope extended: STRICT WHOLE-CORPUS (same zero-any-severity
+bar as F2; human-directed continuation 2026-06-14). Pass numbering continues from F2 P33.
+F3 adversarial passes are labeled P1..PN within F3 context (distinct from F2 P1-P33).
+
+| Pass (F3) | Date | Total | CRIT | HIGH | MED | LOW | Notes | Counter | Verdict |
+|-----------|------|-------|------|------|-----|-----|-------|---------|---------|
+| F3-P1..P21 | 2026-06-14 | varies | 0 | 0 | varies | varies | See STATE.md inline trajectory | 0/3 | NOT_CLEAN→REMEDIATED |
+| F3-P22 | 2026-06-14 | 10 | 0 | 1 | 2 | 7 | 1H PRD seed-count 26→28+HS-W44-001 P0/P1; 2 MED VP-INDEX 5-BC + dep-graph-extended 86→84; 7 LOW SS-15 anchors/DNPXX/byte-vec/grammar/VP-008/fuzz-filename/MbapFramer; ALL REMEDIATED | 0/3 | NOT_CLEAN→REMEDIATED |
+
+### F3-P22 Remediation Detail (2026-06-14)
+
+**10 findings (1H / 2M / 7L); ALL REMEDIATED in this burst.**
+
+**HIGH:**
+- H-01 (PO): PRD ARP holdout seed-count stated as 26; HS-INDEX wave-40-44 contains 28 seeds
+  (27 P0 + 1 P1 = HS-W44-003; HS-W44-001 was P0, not P1 as previously noted). PRD v1.22
+  delta note added reconciling authoritative count to 28 (supersedes sealed v1.10/v1.11 notes
+  citing 26); BC-2.02.009 v1.6 annotation added; MbapFramer historical prose corrected
+  (DRIFT-PRD-V120-MBAPFRAMER-001 CLOSED).
+
+**MEDIUM:**
+- M-01 (architect): VP-INDEX Pass-15 A-01 note cited "5 BCs" but listed only the wrong
+  subset — corrected to "BC-2.16.001, .002, .003, .005, .006 (5 BCs; .004 excluded)".
+- M-02 (story-writer): dependency-graph-extended.md edge count stated as 86; correct count
+  is 84 (2 phantom edges removed). SUPERSEDED banner + superseded_by pointer to
+  .factory/stories/dependency-graph.md added (historical E-13/E-14 draft context).
+
+**LOW (7):**
+- L-01..L-24 (product-owner ×2): All 24 SS-15 DNP3 BC files (BC-2.15.001..024) lacked
+  story-anchor back-fill — `story:` frontmatter field set to STORY-106..110 per delivery
+  assignment. Version bumps in-place.
+- L-25 (product-owner): BC-2.15.008 Invariant-4 grammar ambiguity (RESET_LINK/ACK PRM-bit)
+  and DNPXX→DNP3 (3 occurrences in BC-2.15.017) corrected.
+- L-26 (product-owner): BC-2.15.023 canonical-frame App Control byte corrected 0x82→0x81
+  (FIR=1/FIN=0/SEQ=1, matches sibling vectors; adjudicated against dnp3-research.md §3.1).
+- L-27 (architect): verification-architecture.md VP-024 Module entry updated to
+  `analyzer/arp.rs + decoder.rs [a]` (with footnote and modified-log); VP-008 skeleton
+  forward-ref note (ParsedPacket→DecodedFrame) added; fuzz target name corrected
+  `decode_packet.rs`→`fuzz_decode_packet.rs`.
+- L-28 (architect): tooling-selection.md fuzz target + `cargo fuzz run` name updated to
+  `fuzz_decode_packet` (was `decode_packet`).
+- L-29 (PO): DRIFT-PRD-V120-MBAPFRAMER-001 — PRD v1.20 delta:285 "C-23 was MbapFramer"
+  corrected in PRD v1.22 (CLOSED — no longer deferred).
+
+**Counter: 0/3.** Remediation does NOT advance counter.
+**Next = F3 Pass 23 (whole-corpus, 4 slices STRICT; clean-streak attempt 1/3).**
+Trajectory after F3-P22: all 10 findings remediated; DRIFT-PRD-V120-MBAPFRAMER-001 CLOSED;
+SS-15 24 BCs now have complete story-anchors; dep-graph-extended marked superseded.

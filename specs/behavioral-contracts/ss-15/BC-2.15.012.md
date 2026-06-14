@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-06-10T00:00:00Z
@@ -13,7 +13,8 @@ subsystem: SS-15
 capability: CAP-15
 lifecycle_status: active
 introduced: v0.6.0-feature-008
-modified: []
+modified:
+  - "v1.3: F3 story-anchor back-fill. — 2026-06-14"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -115,7 +116,7 @@ Expected: `Finding { mitre_techniques: ["T0836"], confidence: Medium, summary: "
 | Capability Anchor Justification | CAP-15 ("DNP3/ICS Analysis") per ARCH-INDEX.md §SS-15 — detecting WRITE-command parameter modification is a core capability of the DNP3/ICS analyzer; T0836 is the MITRE technique for attackers writing arbitrary values to ICS device setpoints, limits, or configuration |
 | L2 Domain Invariants | INV-2 (Content-First Dispatch Precedence — findings emitted only on valid DNP3 port-20000 flows) |
 | Architecture Module | SS-15 (analyzer/dnp3.rs, C-24); ADR-007 Decision 5 |
-| Stories | TBD (F3 decomposition) |
+| Stories | STORY-108 |
 | Feature | issue-008-dnp3-analyzer |
 | MITRE Techniques | T0836 — Modify Parameter (ICS; Impair Process Control tactic TA0106; active in v19.1) |
 
@@ -134,7 +135,7 @@ Expected: `Finding { mitre_techniques: ["T0836"], confidence: Medium, summary: "
 
 ## Story Anchor
 
-TBD (F3 story decomposition)
+STORY-108
 
 ## VP Anchors
 

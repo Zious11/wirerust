@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-06-10T00:00:00Z
@@ -13,7 +13,8 @@ subsystem: SS-15
 capability: CAP-15
 lifecycle_status: active
 introduced: v0.6.0-feature-008
-modified: []
+modified:
+  - "v1.3: F3 story-anchor back-fill. — 2026-06-14"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -101,7 +102,7 @@ issue #8 AC: function-code distribution + control-operation counts in summarize(
 | Capability Anchor Justification | CAP-15 ("DNP3/ICS Analysis") per ARCH-INDEX.md §SS-15 — function-code distribution and control-operation counts are an explicit acceptance criterion for the DNP3/ICS analyzer capability (issue #8 AC), providing operators with situational awareness data beyond individual findings |
 | L2 Domain Invariants | INV-2 (Content-First Dispatch Precedence — summary stats only cover flows actually routed to the DNP3 analyzer) |
 | Architecture Module | SS-15 (analyzer/dnp3.rs, C-24 `finalize()`); ADR-007 Decision 2 |
-| Stories | TBD (F3 decomposition) |
+| Stories | STORY-108 |
 | Feature | issue-008-dnp3-analyzer |
 | MITRE Techniques | (none — statistics/summary BC; no finding emission) |
 
@@ -120,7 +121,7 @@ issue #8 AC: function-code distribution + control-operation counts in summarize(
 
 ## Story Anchor
 
-TBD (F3 story decomposition)
+STORY-108
 
 ## VP Anchors
 

@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-06-10T00:00:00Z
@@ -15,6 +15,7 @@ lifecycle_status: active
 introduced: v0.6.0-feature-008
 modified:
   - "v1.1: Pass-1 adversarial fix I-2: retitled H1 from 'Most-Specific-Rule Co-Emission Ordering — T0814 and T1692.001 When Both Conditions Present' (misleading — T0814 and T1692.001 cannot co-occur on one FC) to 'Co-Emission Ordering — Direct Finding (T0814/T1692.001) Precedes Derived T0827' (accurate — real co-emission is direct T0814/T1692.001 → derived T0827). Added I-4 dedup rule for broadcast-anomaly (018↔010 T1692.001 double-count). — 2026-06-10"
+  - "v1.3: F3 story-anchor back-fill. — 2026-06-14"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -120,7 +121,7 @@ Modbus most-specific rule established in BC-2.14.013. ADR-007 Decision 5.
 | Capability Anchor Justification | CAP-15 ("DNP3/ICS Analysis") per ARCH-INDEX.md §SS-15 — the co-emission ordering and cap policy ensures that the most operationally meaningful findings are preserved when the MAX_FINDINGS cap is reached during sustained adversarial traffic against DNP3 outstations |
 | L2 Domain Invariants | INV-2 (Content-First Dispatch Precedence — findings ordering mirrors the most-specific rule pattern established across all analyzers) |
 | Architecture Module | SS-15 (analyzer/dnp3.rs, C-24 `on_data`); ADR-007 Decision 5 |
-| Stories | TBD (F3 decomposition) |
+| Stories | STORY-108 |
 | Feature | issue-008-dnp3-analyzer |
 | MITRE Techniques | (policy BC — governs emission ordering; techniques are emitted by BC-2.15.010, 011, 012, 015) |
 
@@ -140,7 +141,7 @@ Modbus most-specific rule established in BC-2.14.013. ADR-007 Decision 5.
 
 ## Story Anchor
 
-TBD (F3 story decomposition)
+STORY-108
 
 ## VP Anchors
 
