@@ -14,6 +14,70 @@ changes, invariant rewrites).
 
 ---
 
+## [pass-24-fixes-2026-06-13] — 2026-06-13
+
+### PATCH: Pass-24 remediation (D-01 HIGH, D-02 MED, D-03 MED) + architect A-01 bump logging
+
+Three targeted fixes. No behavioral changes; component ID correction, phantom path corrections only.
+
+**D-01 HIGH — DNP3 component mislabel sweep: C-23 → C-24 in all ss-15 BCs + prd.md (v1.19 → v1.20)**
+
+The ARP analyzer (Feature #9) claimed C-23 as its component ID (ArpAnalyzer), which displaced the
+DNP3 analyzer (Feature #8, Dnp3Analyzer) to C-24. This renumbering was never propagated to the 24
+ss-15 behavioral contracts or to prd.md §2.15. Every Architecture Module traceability row in
+BC-2.15.001..024 incorrectly cited "C-23" for the DNP3 component; prd.md §2.15 cited "C-26" (a
+phantom that has never existed). All 24 ss-15 BCs corrected C-23 → C-24; prd.md corrected
+C-26 → C-24. No legitimate C-23 (ArpAnalyzer) or C-22 (ModbusAnalyzer) references were touched —
+all C-23 hits in ss-15 were exclusively "analyzer/dnp3.rs, C-23" mislabels. H1 titles unchanged.
+
+**Architect A-01 note (Pass-23, previously unlogged):** arp-architecture-delta.md §7 table row
+reorder was applied by architect in Pass-23 (A-05 ledger entry). Architect bumped
+`.factory/specs/architecture/arp-architecture-delta.md` v1.10 → v1.11 as part of that pass.
+That bump is now recorded in the corrected P23 ledger row (D-03 fix below).
+
+**D-02 MED — spec-changelog.md Pass-23 ledger: phantom path corrected**
+
+Row for A-04 cited `.factory/specs/architecture/module-criticality.md` (no such path). Corrected
+to `.factory/specs/module-criticality.md` (verified to exist).
+
+**D-03 MED — spec-changelog.md Pass-23 ledger: phantom path corrected**
+
+Row for A-05 cited `.factory/phase-f2-spec-evolution/arp-architecture-delta.md` (no such path).
+Corrected to `.factory/specs/architecture/arp-architecture-delta.md` (verified to exist).
+
+**Artifacts changed:**
+
+| Artifact | Change |
+|----------|--------|
+| `.factory/specs/prd.md` | `version: 1.19 → 1.20`; §2.15 C-26 → C-24 Dnp3Analyzer (D-01) |
+| `.factory/specs/behavioral-contracts/ss-15/BC-2.15.001.md` | `version: 1.1 → 1.2`; Architecture Module C-23 → C-24 (D-01) |
+| `.factory/specs/behavioral-contracts/ss-15/BC-2.15.002.md` | `version: 1.1 → 1.2`; Architecture Module C-23 → C-24 (D-01) |
+| `.factory/specs/behavioral-contracts/ss-15/BC-2.15.003.md` | `version: 1.1 → 1.2`; Architecture Module C-23 → C-24 (D-01) |
+| `.factory/specs/behavioral-contracts/ss-15/BC-2.15.004.md` | `version: 1.1 → 1.2`; Architecture Module C-23 → C-24 (D-01) |
+| `.factory/specs/behavioral-contracts/ss-15/BC-2.15.005.md` | `version: 1.2 → 1.3`; Architecture Module C-23 → C-24 (D-01) |
+| `.factory/specs/behavioral-contracts/ss-15/BC-2.15.006.md` | `version: 1.1 → 1.2`; Architecture Module C-23 → C-24 (D-01) |
+| `.factory/specs/behavioral-contracts/ss-15/BC-2.15.007.md` | `version: 1.1 → 1.2`; Architecture Module C-23 → C-24 (D-01) |
+| `.factory/specs/behavioral-contracts/ss-15/BC-2.15.008.md` | `version: 1.1 → 1.2`; Architecture Module C-23 → C-24 (D-01) |
+| `.factory/specs/behavioral-contracts/ss-15/BC-2.15.009.md` | `version: 1.3 → 1.4`; Architecture Module C-23 → C-24 (D-01) |
+| `.factory/specs/behavioral-contracts/ss-15/BC-2.15.010.md` | `version: 1.5 → 1.6`; Architecture Module C-23 → C-24 (D-01) |
+| `.factory/specs/behavioral-contracts/ss-15/BC-2.15.011.md` | `version: 1.2 → 1.3`; Architecture Module C-23 → C-24 (D-01) |
+| `.factory/specs/behavioral-contracts/ss-15/BC-2.15.012.md` | `version: 1.1 → 1.2`; Architecture Module C-23 → C-24 (D-01) |
+| `.factory/specs/behavioral-contracts/ss-15/BC-2.15.013.md` | `version: 1.1 → 1.2`; Architecture Module C-23 → C-24 (D-01) |
+| `.factory/specs/behavioral-contracts/ss-15/BC-2.15.014.md` | `version: 1.6 → 1.7`; Architecture Module C-23 → C-24 (D-01) |
+| `.factory/specs/behavioral-contracts/ss-15/BC-2.15.015.md` | `version: 1.5 → 1.6`; Architecture Module C-23 → C-24 (D-01) |
+| `.factory/specs/behavioral-contracts/ss-15/BC-2.15.016.md` | `version: 1.3 → 1.4`; Architecture Module C-23 → C-24 (D-01) |
+| `.factory/specs/behavioral-contracts/ss-15/BC-2.15.017.md` | `version: 1.1 → 1.2`; Architecture Module C-23 → C-24 (D-01) |
+| `.factory/specs/behavioral-contracts/ss-15/BC-2.15.018.md` | `version: 1.1 → 1.2`; Architecture Module C-23 → C-24 (D-01) |
+| `.factory/specs/behavioral-contracts/ss-15/BC-2.15.019.md` | `version: 1.1 → 1.2`; Architecture Module C-23 → C-24 (D-01) |
+| `.factory/specs/behavioral-contracts/ss-15/BC-2.15.020.md` | `version: 1.1 → 1.2`; Architecture Module C-23 → C-24 (D-01) |
+| `.factory/specs/behavioral-contracts/ss-15/BC-2.15.021.md` | `version: 1.1 → 1.2`; Architecture Module C-23 → C-24 (D-01) |
+| `.factory/specs/behavioral-contracts/ss-15/BC-2.15.022.md` | `version: 1.1 → 1.2`; Architecture Module C-23 → C-24 (D-01) |
+| `.factory/specs/behavioral-contracts/ss-15/BC-2.15.023.md` | `version: 1.1 → 1.2`; Architecture Module C-23 → C-24 (D-01) |
+| `.factory/specs/behavioral-contracts/ss-15/BC-2.15.024.md` | `version: 1.3 → 1.4`; Architecture Module C-23 → C-24 (D-01) |
+| `.factory/spec-changelog.md` | P23 ledger rows A-04/A-05 phantom paths corrected (D-02/D-03); P24-fixes entry added |
+
+---
+
 ## [pass-23-fixes-2026-06-13] — 2026-06-13
 
 ### PATCH: Pass-23 Slice-A architect bumps (A-01 through A-05) — Slices B/C/D CLEAN
@@ -61,8 +125,8 @@ adversary passes from re-flagging it as unfinished.
 |----------|--------|
 | `.factory/specs/architecture/verification-coverage-matrix.md` | `version: 1.5 → 1.6`; VP-024 lock-note STORY-112→STORY-113 (A-01); decoder.rs Sub-A footnote added (A-02) |
 | `.factory/specs/architecture/verification-architecture.md` | `version: 1.6 → 1.7`; VP-005 harness skeleton code-fence fixed (A-03) |
-| `.factory/specs/architecture/module-criticality.md` | `version: 1.2 → 1.3`; C-22 Modbus technique enumeration harmonized with C-23/C-24 (A-04) |
-| `.factory/phase-f2-spec-evolution/arp-architecture-delta.md` | `version: 1.10 → 1.11`; §6 draft-as-authoritative intentionality note added (A-05) |
+| `.factory/specs/module-criticality.md` | `version: 1.2 → 1.3`; C-22 Modbus technique enumeration harmonized with C-23/C-24 (A-04) |
+| `.factory/specs/architecture/arp-architecture-delta.md` | `version: 1.10 → 1.11`; §6 draft-as-authoritative intentionality note added (A-05) |
 | `.factory/spec-changelog.md` | P23-fixes entry added; all architect P23 bumps recorded |
 
 ---

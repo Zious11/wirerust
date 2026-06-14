@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: product-owner
 timestamp: 2026-06-10T00:00:00Z
@@ -114,7 +114,7 @@ LE decode:
 | L2 Capability | CAP-15 ("DNP3/ICS Analysis") per ARCH-INDEX.md §SS-15 |
 | Capability Anchor Justification | CAP-15 ("DNP3/ICS Analysis") per ARCH-INDEX.md §SS-15 — correct LE address decoding is required by all downstream detection BCs (broadcast anomaly BC-2.15.018, unauthorized control source attribution in BC-2.15.010) which depend on accurate DEST/SRC address values |
 | L2 Domain Invariants | INV-2 (Content-First Dispatch Precedence — address correctness ensures findings are attributed to the correct source address) |
-| Architecture Module | SS-15 (analyzer/dnp3.rs, C-23); ADR-007 Decision 2 |
+| Architecture Module | SS-15 (analyzer/dnp3.rs, C-24); ADR-007 Decision 2 |
 | Stories | TBD (F3 decomposition) |
 | Feature | issue-008-dnp3-analyzer |
 | MITRE Techniques | (none — pure parse function; no finding emission) |

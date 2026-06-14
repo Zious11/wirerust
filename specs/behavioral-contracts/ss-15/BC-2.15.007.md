@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: product-owner
 timestamp: 2026-06-10T00:00:00Z
@@ -130,7 +130,7 @@ frame consumption boundaries in the carry buffer loop.
 | L2 Capability | CAP-15 ("DNP3/ICS Analysis") per ARCH-INDEX.md §SS-15 |
 | Capability Anchor Justification | CAP-15 ("DNP3/ICS Analysis") per ARCH-INDEX.md §SS-15 — the frame_len arithmetic determines the carry-buffer consumption boundary in `Dnp3Analyzer::on_data`; an incorrect formula causes over-read (out-of-bounds panic) or under-read (frame misalignment and missed detections); this is the safety foundation for all frame-parsing in the DNP3/ICS analyzer capability |
 | L2 Domain Invariants | INV-2 (Content-First Dispatch Precedence — carry-buffer safety prevents panic on adversarial/malformed DNP3 traffic arriving on port 20000) |
-| Architecture Module | SS-15 (analyzer/dnp3.rs, C-23); ADR-007 Decision 2 (frame_len formula), Decision 3 (CRC-block-skip) |
+| Architecture Module | SS-15 (analyzer/dnp3.rs, C-24); ADR-007 Decision 2 (frame_len formula), Decision 3 (CRC-block-skip) |
 | Stories | TBD (F3 decomposition) |
 | Feature | issue-008-dnp3-analyzer |
 | MITRE Techniques | (none — pure arithmetic function; no finding emission) |

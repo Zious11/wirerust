@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.6"
+version: "1.7"
 status: draft
 producer: product-owner
 timestamp: 2026-06-10T00:00:00Z
@@ -150,7 +150,7 @@ The human should confirm whether 10s timeout and 3-of-300s threshold are appropr
 | L2 Capability | CAP-15 ("DNP3/ICS Analysis") per ARCH-INDEX.md §SS-15 |
 | Capability Anchor Justification | CAP-15 ("DNP3/ICS Analysis") per ARCH-INDEX.md §SS-15 — T1691.001 block-command inference is a distinctive capability of the DNP3/ICS analyzer that detects the Ukraine 2015 (Sandworm) technique of blocking control commands to prevent operators from restoring tripped circuit breakers |
 | L2 Domain Invariants | INV-2 (Content-First Dispatch Precedence — findings emitted only on valid DNP3 port-20000 flows) |
-| Architecture Module | SS-15 (analyzer/dnp3.rs, C-23); ADR-007 Decision 5 |
+| Architecture Module | SS-15 (analyzer/dnp3.rs, C-24); ADR-007 Decision 5 |
 | Stories | TBD (F3 decomposition) |
 | Feature | issue-008-dnp3-analyzer |
 | MITRE Techniques | T1691.001 — Block Operational Technology Message: Command Message (ICS sub-technique, v19.1; tactic: IcsInhibitResponseFunction TA0107; replaces revoked T0803) |

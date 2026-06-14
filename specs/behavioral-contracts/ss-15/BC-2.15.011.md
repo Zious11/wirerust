@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-06-10T00:00:00Z
@@ -145,7 +145,7 @@ This trace verifies that block events both within the same 300s correlation wind
 | L2 Capability | CAP-15 ("DNP3/ICS Analysis") per ARCH-INDEX.md §SS-15 |
 | Capability Anchor Justification | CAP-15 ("DNP3/ICS Analysis") per ARCH-INDEX.md §SS-15 — detecting COLD_RESTART and WARM_RESTART abuse is a core DNP3/ICS threat-detection capability; these commands are the primary mechanism for denial-of-service against DNP3 outstations (Ukraine 2015: Sandworm forced outstation restarts to remove relay visibility) |
 | L2 Domain Invariants | INV-2 (Content-First Dispatch Precedence — findings emitted only on port-20000 flows with valid DNP3 frames) |
-| Architecture Module | SS-15 (analyzer/dnp3.rs, C-23); ADR-007 Decision 5 |
+| Architecture Module | SS-15 (analyzer/dnp3.rs, C-24); ADR-007 Decision 5 |
 | Stories | TBD (F3 decomposition) |
 | Feature | issue-008-dnp3-analyzer |
 | MITRE Techniques | T0814 — Denial of Service (ICS; Inhibit Response Function tactic TA0107; active in v19.1) |

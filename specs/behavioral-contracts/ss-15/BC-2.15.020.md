@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: product-owner
 timestamp: 2026-06-10T00:00:00Z
@@ -100,7 +100,7 @@ issue #8 AC: function-code distribution + control-operation counts in summarize(
 | L2 Capability | CAP-15 ("DNP3/ICS Analysis") per ARCH-INDEX.md §SS-15 |
 | Capability Anchor Justification | CAP-15 ("DNP3/ICS Analysis") per ARCH-INDEX.md §SS-15 — function-code distribution and control-operation counts are an explicit acceptance criterion for the DNP3/ICS analyzer capability (issue #8 AC), providing operators with situational awareness data beyond individual findings |
 | L2 Domain Invariants | INV-2 (Content-First Dispatch Precedence — summary stats only cover flows actually routed to the DNP3 analyzer) |
-| Architecture Module | SS-15 (analyzer/dnp3.rs, C-23 `finalize()`); ADR-007 Decision 2 |
+| Architecture Module | SS-15 (analyzer/dnp3.rs, C-24 `finalize()`); ADR-007 Decision 2 |
 | Stories | TBD (F3 decomposition) |
 | Feature | issue-008-dnp3-analyzer |
 | MITRE Techniques | (none — statistics/summary BC; no finding emission) |

@@ -108,3 +108,32 @@ ATT&CK v19.1.
 | develop HEAD | 31d1231 | — |
 | main HEAD | 3e29891 | chore: release v0.6.0 |
 | factory-artifacts HEAD | re-verify live | `git -C .factory log -1 --format='%h %s'` |
+
+---
+
+## Archived Checkpoint: 2026-06-13 — F2 STRICT WHOLE-CORPUS CONVERGENCE, Pass 23 REMEDIATED; 0C/0H; 6th consecutive; B/C/D CLEAN
+
+**Archived from STATE.md on:** 2026-06-13 (replaced by "Pass 24 REMEDIATED; 0C/1H; 7th consecutive 0-CRIT; B+C CLEAN" checkpoint)
+
+### POSITION
+
+- **23 adversarial passes + 1 corpus consistency audit run. Pass 23 REMEDIATED.**
+- F2 adversarial convergence: STRICT WHOLE-CORPUS mode. Counter 0/3.
+- Pass 23 (5 findings; Slices B/C/D all CLEAN; Slice A only): 0C/0H. A-01 MED (verification-
+  coverage-matrix: VP-024 lock-note cited STORY-112/F6 — self-induced from P22 A-02; corrected
+  to STORY-113/F6; v1.5→v1.6). A-02 LOW (verification-coverage-matrix: decoder.rs Sub-A
+  attribution footnote; v1.5→v1.6). A-03 LOW (verification-architecture: VP-005 harness skeleton
+  code-fence fixed; v1.6→v1.7). A-04 LOW (module-criticality: C-22 Modbus technique enumeration
+  harmonized with C-23/C-24; v1.2→v1.3). A-05 LOW (arp-architecture-delta: §6 draft-as-
+  authoritative note added; v1.10→v1.11). KEY: A-01 was self-induced churn. 3 of 4 slices CLEAN.
+  Substantively + cosmetically near-converged. 6th consecutive 0-CRIT/HIGH.
+  Trajectory P21-23: 0C/0H → 0C/0H → 0C/0H. DECAYING strongly.
+- Next action at time of archival: whole-corpus Pass 24 via Claude (strong first-clean candidate).
+
+### VERIFIED SHAs at archival time
+
+| Ref | Value | Notes |
+|-----|-------|-------|
+| develop HEAD | 31d1231 | — |
+| main HEAD | 3e29891 | chore: release v0.6.0 |
+| factory-artifacts HEAD | re-verify live | `git -C .factory log -1 --format='%h %s'` |

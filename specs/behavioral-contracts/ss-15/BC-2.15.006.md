@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: product-owner
 timestamp: 2026-06-10T00:00:00Z
@@ -131,7 +131,7 @@ set-membership assertions over all 256 FC values.
 | L2 Capability | CAP-15 ("DNP3/ICS Analysis") per ARCH-INDEX.md §SS-15 |
 | Capability Anchor Justification | CAP-15 ("DNP3/ICS Analysis") per ARCH-INDEX.md §SS-15 — correct FC-to-class mapping is the direct prerequisite for all MITRE technique detection in the DNP3/ICS analyzer; a misclassified Control FC produces no T1692.001 finding (false negative); a misclassified Management FC produces a spurious T1692.001 finding (false positive) |
 | L2 Domain Invariants | INV-2 (Content-First Dispatch Precedence — correct FC classification ensures findings are emitted only for the correct protocol operations) |
-| Architecture Module | SS-15 (analyzer/dnp3.rs, C-23); ADR-007 Decision 2 |
+| Architecture Module | SS-15 (analyzer/dnp3.rs, C-24); ADR-007 Decision 2 |
 | Stories | TBD (F3 decomposition) |
 | Feature | issue-008-dnp3-analyzer |
 | MITRE Techniques | (none — pure classification function; detection BCs BC-2.15.010–019 are the emitters) |

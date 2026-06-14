@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: product-owner
 timestamp: 2026-06-10T00:00:00Z
@@ -127,7 +127,7 @@ SRC `[0x01, 0x00]` little-endian = 0x0001 (master address 1).
 | L2 Capability | CAP-15 ("DNP3/ICS Analysis") per ARCH-INDEX.md §SS-15 |
 | Capability Anchor Justification | CAP-15 ("DNP3/ICS Analysis") per ARCH-INDEX.md §SS-15 — this BC defines the foundational parse-accept postconditions for the DNP3 data-link header decoder, which is the entry point for all DNP3 protocol analysis in the ICS/OT analyzer capability |
 | L2 Domain Invariants | INV-2 (Content-First Dispatch Precedence — DNP3 flows are only routed after TLS/HTTP content rules fail, ensuring this BC never fires on non-DNP3 flows) |
-| Architecture Module | SS-15 (analyzer/dnp3.rs, C-23 Dnp3Analyzer); ADR-007 Decision 2 |
+| Architecture Module | SS-15 (analyzer/dnp3.rs, C-24 Dnp3Analyzer); ADR-007 Decision 2 |
 | Stories | TBD (F3 decomposition) |
 | Feature | issue-008-dnp3-analyzer |
 | MITRE Techniques | (none — pure parse function; no finding emission) |

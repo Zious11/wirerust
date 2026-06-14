@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: product-owner
 timestamp: 2026-06-10T00:00:00Z
@@ -126,7 +126,7 @@ These three bounds collectively prevent unbounded memory growth under adversaria
 | L2 Capability | CAP-15 ("DNP3/ICS Analysis") per ARCH-INDEX.md §SS-15 |
 | Capability Anchor Justification | CAP-15 ("DNP3/ICS Analysis") per ARCH-INDEX.md §SS-15 — bounded carry buffer, master-address tracking, and pending-request table are the three memory-safety foundations of the DNP3/ICS analyzer; unbounded growth in any of the three would allow an attacker to exhaust analyzer memory by sending adversarial DNP3 traffic (partial frames, spoofed source addresses, or unanswered control floods respectively) |
 | L2 Domain Invariants | INV-2 (Content-First Dispatch Precedence — memory bounds ensure analyzer stability under adversarial DNP3 traffic; pending_requests cap enforces DoS safety for the request/response correlation table) |
-| Architecture Module | SS-15 (analyzer/dnp3.rs, C-23 `Dnp3FlowState`); ADR-007 Decision 2 |
+| Architecture Module | SS-15 (analyzer/dnp3.rs, C-24 `Dnp3FlowState`); ADR-007 Decision 2 |
 | Stories | TBD (F3 decomposition) |
 | Feature | issue-008-dnp3-analyzer |
 | MITRE Techniques | (none — state management BC; no finding emission) |

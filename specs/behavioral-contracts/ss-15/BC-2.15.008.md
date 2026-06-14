@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: product-owner
 timestamp: 2026-06-10T00:00:00Z
@@ -120,7 +120,7 @@ app_fc          = 0x05 → DIRECT_OPERATE → classify_dnp3_fc(0x05) = Control
 | L2 Capability | CAP-15 ("DNP3/ICS Analysis") per ARCH-INDEX.md §SS-15 |
 | Capability Anchor Justification | CAP-15 ("DNP3/ICS Analysis") per ARCH-INDEX.md §SS-15 — FIR=1 gating is the mechanism by which the DNP3/ICS analyzer extracts application function codes from reassembled TCP streams; without this gate, the analyzer would incorrectly parse continuation data as new FC bytes, producing false-positive detections |
 | L2 Domain Invariants | INV-2 (Content-First Dispatch Precedence — FIR=1 gating ensures application-layer parsing only fires on structurally valid application fragment starts) |
-| Architecture Module | SS-15 (analyzer/dnp3.rs, C-23 `on_data`); ADR-007 Decision 4 |
+| Architecture Module | SS-15 (analyzer/dnp3.rs, C-24 `on_data`); ADR-007 Decision 4 |
 | Stories | TBD (F3 decomposition) |
 | Feature | issue-008-dnp3-analyzer |
 | MITRE Techniques | (none — gating logic; detection BCs BC-2.15.010–013 are the emitters) |

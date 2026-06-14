@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: product-owner
 timestamp: 2026-06-10T00:00:00Z
@@ -99,7 +99,7 @@ pattern from BC-2.14.022.
 | L2 Capability | CAP-15 ("DNP3/ICS Analysis") per ARCH-INDEX.md §SS-15 |
 | Capability Anchor Justification | CAP-15 ("DNP3/ICS Analysis") per ARCH-INDEX.md §SS-15 — the MAX_FINDINGS bound is a safety requirement of the DNP3/ICS analyzer capability; without it, an adversary could exhaust analyzer memory by sending a large number of valid-looking DNP3 control commands on port 20000 |
 | L2 Domain Invariants | INV-2 (Content-First Dispatch Precedence — DoS protection applies to all flows routed to the DNP3 analyzer) |
-| Architecture Module | SS-15 (analyzer/dnp3.rs, C-23); ADR-007 Decision 2 |
+| Architecture Module | SS-15 (analyzer/dnp3.rs, C-24); ADR-007 Decision 2 |
 | Stories | TBD (F3 decomposition) |
 | Feature | issue-008-dnp3-analyzer |
 | MITRE Techniques | (none — safety/cap BC; no finding emission) |

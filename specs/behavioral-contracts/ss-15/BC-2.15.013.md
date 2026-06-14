@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: product-owner
 timestamp: 2026-06-10T00:00:00Z
@@ -119,7 +119,7 @@ Modbus most-specific rule established in BC-2.14.013. ADR-007 Decision 5.
 | L2 Capability | CAP-15 ("DNP3/ICS Analysis") per ARCH-INDEX.md §SS-15 |
 | Capability Anchor Justification | CAP-15 ("DNP3/ICS Analysis") per ARCH-INDEX.md §SS-15 — the co-emission ordering and cap policy ensures that the most operationally meaningful findings are preserved when the MAX_FINDINGS cap is reached during sustained adversarial traffic against DNP3 outstations |
 | L2 Domain Invariants | INV-2 (Content-First Dispatch Precedence — findings ordering mirrors the most-specific rule pattern established across all analyzers) |
-| Architecture Module | SS-15 (analyzer/dnp3.rs, C-23 `on_data`); ADR-007 Decision 5 |
+| Architecture Module | SS-15 (analyzer/dnp3.rs, C-24 `on_data`); ADR-007 Decision 5 |
 | Stories | TBD (F3 decomposition) |
 | Feature | issue-008-dnp3-analyzer |
 | MITRE Techniques | (policy BC — governs emission ordering; techniques are emitted by BC-2.15.010, 011, 012, 015) |

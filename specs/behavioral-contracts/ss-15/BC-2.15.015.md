@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.5"
+version: "1.6"
 status: draft
 producer: product-owner
 timestamp: 2026-06-10T00:00:00Z
@@ -244,7 +244,7 @@ No T0827 in either window; first window expired before threshold reached.
 | L2 Capability | CAP-15 ("DNP3/ICS Analysis") per ARCH-INDEX.md §SS-15 |
 | Capability Anchor Justification | CAP-15 ("DNP3/ICS Analysis") per ARCH-INDEX.md §SS-15 — T0827 derived-impact finding is the correlated consequence detection for sustained ICS disruption; it elevates isolated T0814/T1691.001 signals into a higher-confidence impact assessment when they co-occur on the same flow, providing operators with an actionable Impact-tactic alert |
 | L2 Domain Invariants | INV-2 (Content-First Dispatch Precedence — findings emitted only on valid DNP3 port-20000 flows) |
-| Architecture Module | SS-15 (analyzer/dnp3.rs, C-23); ADR-007 Decision 5 |
+| Architecture Module | SS-15 (analyzer/dnp3.rs, C-24); ADR-007 Decision 5 |
 | Stories | TBD (F3 decomposition) |
 | Feature | issue-008-dnp3-analyzer |
 | MITRE Techniques | T0827 — Loss of Control (ICS Impact tactic TA0105; active in v19.1; new `MitreTactic::IcsImpact` variant required — ADR-007 Decision 5) |

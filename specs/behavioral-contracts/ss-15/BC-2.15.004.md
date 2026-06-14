@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: product-owner
 timestamp: 2026-06-10T00:00:00Z
@@ -113,7 +113,7 @@ emitting findings.
 | L2 Capability | CAP-15 ("DNP3/ICS Analysis") per ARCH-INDEX.md §SS-15 |
 | Capability Anchor Justification | CAP-15 ("DNP3/ICS Analysis") per ARCH-INDEX.md §SS-15 — the three-point validity gate is the compensating control for port-only DNP3 classification (ADR-007 Decision 1), preventing false ICS findings from non-DNP3 binary traffic on port 20000; it is a prerequisite for every detection BC in the DNP3/ICS analyzer capability |
 | L2 Domain Invariants | INV-2 (Content-First Dispatch Precedence — the validity gate ensures port-classified DNP3 flows do not produce findings unless the frame is structurally valid DNP3) |
-| Architecture Module | SS-15 (analyzer/dnp3.rs, C-23); ADR-007 Decision 2 (three-point validity gate) |
+| Architecture Module | SS-15 (analyzer/dnp3.rs, C-24); ADR-007 Decision 2 (three-point validity gate) |
 | Stories | TBD (F3 decomposition) |
 | Feature | issue-008-dnp3-analyzer |
 | MITRE Techniques | (none — pure gate function; no finding emission) |

@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.5"
+version: "1.6"
 status: draft
 producer: product-owner
 timestamp: 2026-06-10T00:00:00Z
@@ -197,7 +197,7 @@ App FC:      0x05 → DIRECT_OPERATE → Dnp3FcClass::Control
 | L2 Capability | CAP-15 ("DNP3/ICS Analysis") per ARCH-INDEX.md §SS-15 |
 | Capability Anchor Justification | CAP-15 ("DNP3/ICS Analysis") per ARCH-INDEX.md §SS-15 — detecting unauthorized control commands is the primary threat-detection objective of the DNP3/ICS analyzer; T1692.001 is the MITRE v19.1 technique for unauthorized command messages in ICS environments |
 | L2 Domain Invariants | INV-2 (Content-First Dispatch Precedence — DNP3 findings are only emitted for flows that passed port-20000 classification AND the validity gate) |
-| Architecture Module | SS-15 (analyzer/dnp3.rs, C-23); ADR-007 Decision 5 |
+| Architecture Module | SS-15 (analyzer/dnp3.rs, C-24); ADR-007 Decision 5 |
 | Stories | TBD (F3 decomposition) |
 | Feature | issue-008-dnp3-analyzer |
 | MITRE Techniques | T1692.001 — Unauthorized Message: Command Message (ICS sub-technique, v19.1; tactic: IcsImpairProcessControl; replaces revoked T0855) |

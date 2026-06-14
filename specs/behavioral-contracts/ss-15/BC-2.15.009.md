@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: product-owner
 timestamp: 2026-06-10T00:00:00Z
@@ -127,7 +127,7 @@ desync state).
 | L2 Capability | CAP-15 ("DNP3/ICS Analysis") per ARCH-INDEX.md §SS-15 |
 | Capability Anchor Justification | CAP-15 ("DNP3/ICS Analysis") per ARCH-INDEX.md §SS-15 — the desync bail is the false-positive prevention mechanism for port-only classification, ensuring the DNP3/ICS analyzer does not emit erroneous ICS threat findings for non-DNP3 protocols on port 20000 |
 | L2 Domain Invariants | INV-2 (Content-First Dispatch Precedence — the bail maintains the invariant that ICS findings are only emitted for flows carrying actual DNP3 protocol content) |
-| Architecture Module | SS-15 (analyzer/dnp3.rs, C-23 `Dnp3FlowState.is_non_dnp3`); ADR-007 Decision 2 |
+| Architecture Module | SS-15 (analyzer/dnp3.rs, C-24 `Dnp3FlowState.is_non_dnp3`); ADR-007 Decision 2 |
 | Stories | TBD (F3 decomposition) |
 | Feature | issue-008-dnp3-analyzer |
 | MITRE Techniques | (none — safety/bail logic; no finding emission) |

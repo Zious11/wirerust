@@ -63,17 +63,18 @@ Minimum 3 consecutive clean passes required for convergence gate (same as F5 sta
 | 21 (whole-corpus, Claude) | 2026-06-13 | 5 | 0 | 0 | 4 | 1 | LOW | 0/3 | NOT_CLEAN→REMEDIATED |
 | 22 (whole-corpus, Claude) | 2026-06-13 | 5 | 0 | 0 | 1 | 4 | LOW | 0/3 | NOT_CLEAN→REMEDIATED |
 | 23 (whole-corpus, Claude) | 2026-06-13 | 5 | 0 | 0 | 1 | 4 | LOW | 0/3 | NOT_CLEAN→REMEDIATED |
+| 24 (whole-corpus, Claude) | 2026-06-13 | 4 | 0 | 1 | 2 | 1 | LOW | 0/3 | NOT_CLEAN→REMEDIATED |
 
 ## Trajectory Shorthand
 
-`15→20→~8→~15→~6→~4→~4→~7→~4→~6→~5→~18→~8→~22(P14: 2C/5H NEW corpus-debt; trend broke; ARP delta clean 6th pass)→P15(8 findings: holdout-layer field-rename + regression; REMEDIATED)→P16(7: 0C/0H, sibling-sweep misses; REMEDIATED; Slice B CLEAN all 283 BCs + field-rename verified)→P17(10: holdout MITRE-counts + module-decomposition peer; REMEDIATED; Slice B CLEAN 2nd)→P18(9: ss-05 anchor-drift + indicatif + STORY-INDEX; 0C/3H; REMEDIATED; arp.rs+holdout pre-flush verified clean)→P19(15: corpus-wide anchor-drift; 0C/8H; PARTIAL — ss-07-full+remaining-BC pending)→ P20(7: anchor-drift flushed, ss-04/ss-12 closed; 0C/1H; Slices A+C CLEAN; REMEDIATED)→P21(5 cosmetic; 0C/0H; A+C CLEAN 2nd consecutive; REMEDIATED)→P22(5 valid; 0C/0H; cosmetic; version-pin hardened; REMEDIATED)→P23(5; B/C/D CLEAN; Slice-A only; 0C/0H; REMEDIATED)`
+`15→20→~8→~15→~6→~4→~4→~7→~4→~6→~5→~18→~8→~22(P14: 2C/5H NEW corpus-debt; trend broke; ARP delta clean 6th pass)→P15(8 findings: holdout-layer field-rename + regression; REMEDIATED)→P16(7: 0C/0H, sibling-sweep misses; REMEDIATED; Slice B CLEAN all 283 BCs + field-rename verified)→P17(10: holdout MITRE-counts + module-decomposition peer; REMEDIATED; Slice B CLEAN 2nd)→P18(9: ss-05 anchor-drift + indicatif + STORY-INDEX; 0C/3H; REMEDIATED; arp.rs+holdout pre-flush verified clean)→P19(15: corpus-wide anchor-drift; 0C/8H; PARTIAL — ss-07-full+remaining-BC pending)→ P20(7: anchor-drift flushed, ss-04/ss-12 closed; 0C/1H; Slices A+C CLEAN; REMEDIATED)→P21(5 cosmetic; 0C/0H; A+C CLEAN 2nd consecutive; REMEDIATED)→P22(5 valid; 0C/0H; cosmetic; version-pin hardened; REMEDIATED)→P23(5; B/C/D CLEAN; Slice-A only; 0C/0H; REMEDIATED)→P24(4: D-01 DNP3-C24 sweep genuine + 3 self-induced; 0C/1H; B+C CLEAN; REMEDIATED)`
 
-Severity profile: CRITICAL count: 4→5→0→0→0→0→0→0→0→0→0→0→0→2→2→0→3→0→0→0→0→0 — DECAYING on CRITICAL
-(0 for 6 of last 7 passes: P16+P18+P19+P20+P21+P22+P23).
-HIGH count: 8→7→~6→~5→1→2→~4→2→0→1→1→0→0→5→1→0→2→3→8→1→0→0→0 — DECAYING; P21+P22+P23 consecutive 0H
-(P19 REGRESSION at 8H fully flushed; 6th consecutive 0-CRIT/HIGH as of P23).
-MEDIUM count: 3→8→~2→~10→~5→2→0→4→~4→~5→~4→~18→~8→~11→3→5→2→2→2→3→4→1 — P23 Slice-A only;
-Slices B/C/D CLEAN. Substantively + cosmetically near-converged.
+Severity profile: CRITICAL count: 4→5→0→0→0→0→0→0→0→0→0→0→0→2→2→0→3→0→0→0→0→0→0 — DECAYING on CRITICAL
+(0 for 7 of last 8 passes: P16+P18+P19+P20+P21+P22+P23+P24).
+HIGH count: 8→7→~6→~5→1→2→~4→2→0→1→1→0→0→5→1→0→2→3→8→1→0→0→0→1 — P21+P22+P23 consecutive 0H;
+P24 1H (D-01 genuine DNP3 systematic mislabel; 7th consecutive 0-CRIT).
+MEDIUM count: 3→8→~2→~10→~5→2→0→4→~4→~5→~4→~18→~8→~11→3→5→2→2→2→3→4→1→2 — P24 B+C CLEAN;
+Slices B+C clean; D-01 genuine systematic sweep. Substantively converged.
 Trend BROKE at Pass 14 — Passes 12-13 showed 0 CRIT/0 HIGH; Pass 14 surfaced 2 CRITICAL + 5 HIGH.
 DECAYING P14→P16: 2C/5H → 2C/1H → 0C/0H. NON-MONOTONIC at P17: 3C/2H (new corpus corner:
 holdout-scenarios MITRE-catalog count assertions; module-decomposition never deep-reviewed for
@@ -163,6 +164,23 @@ A-05 LOW: arp-architecture-delta §6 draft-as-authoritative intentionality note 
 re-flagging. All 5 findings architect-routed (Slice A). Trajectory P21-P23: 0C/0H → 0C/0H → 0C/0H.
 Substantively and cosmetically near-converged. Counter 0/3. Next = whole-corpus Pass 24 via Claude
 adversary — strong first-clean candidate (B/C/D were clean in P23).
+
+Pass 24 REMEDIATED (4 findings; Slices B+C CLEAN; 0C/1H). 3 of 4 findings were self-induced
+churn from P23 (PG-ARP-F2-008). D-01 HIGH (PO, genuine, substantive): systematic DNP3 component
+mislabel — ALL 24 ss-15 BCs labeled DNP3 analyzer component as C-23 (canonical C-24; C-23 is the
+PLANNED ARP analyzer) + prd.md §2.15 cited "C-26" (phantom component). Root cause: the
+ARP-cycle component renumbering (ARP→C-23, DNP3→C-24) was never propagated to ss-15 BCs or PRD.
+Fixed: all 24 ss-15 BCs (C-23→C-24) + prd C-26→C-24 (prd v1.19→v1.20). A-01 LOW (architect,
+self-induced from P23 A-05): arp-architecture-delta §7 changelog rows out of ascending order
+(1.11 before 1.10) — reordered (no version bump, cosmetic only). D-02 MED (PO, self-induced
+from P23 commit): spec-changelog Pass-23 ledger row had phantom path
+specs/architecture/module-criticality.md → corrected to specs/module-criticality.md. D-03 MED
+(PO, self-induced from P23 commit): spec-changelog Pass-23 ledger row had phantom path
+phase-f2-spec-evolution/arp-architecture-delta.md → corrected to
+specs/architecture/arp-architecture-delta.md. KEY mitigation: A-01 reorder took NO version
+bump (eliminates one class of self-induced churn); D-02/D-03 changelog paths verified-to-resolve
+before writing (prevents phantom-path class). 7th consecutive 0-CRIT. Counter 0/3.
+Trajectory P22-P24: 0C/0H → 0C/0H → 0C/1H. Next = whole-corpus Pass 25 via Claude adversary.
 
 ## Core Semantics — Confirmed Clean (Settled)
 

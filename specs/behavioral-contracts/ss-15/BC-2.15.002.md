@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: product-owner
 timestamp: 2026-06-10T00:00:00Z
@@ -94,7 +94,7 @@ populated. The function never panics for any input length, including zero-length
 | L2 Capability | CAP-15 ("DNP3/ICS Analysis") per ARCH-INDEX.md §SS-15 |
 | Capability Anchor Justification | CAP-15 ("DNP3/ICS Analysis") per ARCH-INDEX.md §SS-15 — this BC defines the truncation-safety reject postcondition for the DNP3 header parser, which is essential for memory-safe processing of incomplete TCP segments in the ICS/OT analyzer capability |
 | L2 Domain Invariants | INV-2 (Content-First Dispatch Precedence — panic freedom and truncation safety prevent false findings on non-DNP3 traffic routed via port 20000) |
-| Architecture Module | SS-15 (analyzer/dnp3.rs, C-23 Dnp3Analyzer); ADR-007 Decision 2 |
+| Architecture Module | SS-15 (analyzer/dnp3.rs, C-24 Dnp3Analyzer); ADR-007 Decision 2 |
 | Stories | TBD (F3 decomposition) |
 | Feature | issue-008-dnp3-analyzer |
 | MITRE Techniques | (none — pure parse reject path; no finding emission) |

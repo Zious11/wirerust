@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: product-owner
 timestamp: 2026-06-10T00:00:00Z
@@ -104,7 +104,7 @@ activity, a value as low as 3–5 may be more appropriate.
 | L2 Capability | CAP-15 ("DNP3/ICS Analysis") per ARCH-INDEX.md §SS-15 |
 | Capability Anchor Justification | CAP-15 ("DNP3/ICS Analysis") per ARCH-INDEX.md §SS-15 — the threshold CLI flag makes the DNP3/ICS analyzer tunable to the sensitivity requirements of specific OT environments, a key usability requirement for a threat-detection tool in industrial deployments where control-command rates vary widely by segment type |
 | L2 Domain Invariants | INV-2 (Content-First Dispatch Precedence — flag controls detection sensitivity; does not affect frame classification) |
-| Architecture Module | SS-15 (analyzer/dnp3.rs, C-23); ADR-007 Decision 6; SS-12 (CLI, cli.rs) |
+| Architecture Module | SS-15 (analyzer/dnp3.rs, C-24); ADR-007 Decision 6; SS-12 (CLI, cli.rs) |
 | Stories | TBD (F3 decomposition) |
 | Feature | issue-008-dnp3-analyzer |
 | MITRE Techniques | (none — CLI configuration BC; detection is in BC-2.15.010) |

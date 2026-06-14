@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: product-owner
 timestamp: 2026-06-10T00:00:00Z
@@ -306,7 +306,7 @@ Kani formal verification target.
 | L2 Capability | CAP-15 ("DNP3/ICS Analysis") per ARCH-INDEX.md §SS-15 |
 | Capability Anchor Justification | CAP-15 ("DNP3/ICS Analysis") per ARCH-INDEX.md §SS-15 — surfacing malformed/structural DNP3 anomalies is a required DNP3/ICS threat-detection capability: the Crain-Sistrunk "Project Robus" class (~28-30 DNP3 vulns, 16+ ICS-CERT advisories) is caused entirely by structurally malformed frames that crash outstations via DoS; the parser's existing reject paths already detect these conditions but previously discarded them silently; this BC surfaces them as a low-confidence T0814 signal [VERIFIED: dnp3-f2-scope-threshold-validation.md §Q1 GAP-2] |
 | L2 Domain Invariants | INV-2 (Content-First Dispatch Precedence — findings emitted only on port-20000 flows that reached the DNP3 parser) |
-| Architecture Module | SS-15 (analyzer/dnp3.rs, C-23); ADR-007 Decision 5 |
+| Architecture Module | SS-15 (analyzer/dnp3.rs, C-24); ADR-007 Decision 5 |
 | Stories | TBD (F3 decomposition) |
 | Feature | issue-008-dnp3-analyzer |
 | MITRE Techniques | T0814 — Denial of Service (ICS; Inhibit Response Function tactic TA0107; active in v19.1). No new technique: T0814 is already seeded and emitted. Catalog counts 23/15/8 unchanged. |

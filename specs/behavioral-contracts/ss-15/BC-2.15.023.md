@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: product-owner
 timestamp: 2026-06-10T00:00:00Z
@@ -177,7 +177,7 @@ directly) is appropriate here.
 | L2 Capability | CAP-15 ("DNP3/ICS Analysis") per ARCH-INDEX.md §SS-15 |
 | Capability Anchor Justification | CAP-15 ("DNP3/ICS Analysis") per ARCH-INDEX.md §SS-15 — detecting DISABLE_UNSOLICITED (0x15) and ENABLE_UNSOLICITED (0x14) abuse is a DNP3/ICS threat-detection requirement: these FCs are the control-plane mechanism for silencing outstation event reporting (alarm suppression), which is a recognized ICS attack primitive documented in Crain/Sistrunk research and the DNP3 attack surface literature [VERIFIED: dnp3-f2-scope-threshold-validation.md §Q1 GAP-1] |
 | L2 Domain Invariants | INV-2 (Content-First Dispatch Precedence — findings emitted only on port-20000 flows that passed the validity gate) |
-| Architecture Module | SS-15 (analyzer/dnp3.rs, C-23); ADR-007 Decision 5 |
+| Architecture Module | SS-15 (analyzer/dnp3.rs, C-24); ADR-007 Decision 5 |
 | Stories | TBD (F3 decomposition) |
 | Feature | issue-008-dnp3-analyzer |
 | MITRE Techniques | T0814 — Denial of Service (ICS; Inhibit Response Function tactic TA0107; active in v19.1). No new technique: T0814 is already seeded (BC-2.15.011) and in EMITTED set. Catalog counts 23/15/8 unchanged. |

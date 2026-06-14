@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-06-10T00:00:00Z
@@ -111,7 +111,7 @@ variants and never panics.
 | L2 Capability | CAP-15 ("DNP3/ICS Analysis") per ARCH-INDEX.md §SS-15 |
 | Capability Anchor Justification | CAP-15 ("DNP3/ICS Analysis") per ARCH-INDEX.md §SS-15 — `classify_dnp3_fc` totality is the foundational safety guarantee for all FC-based detection logic in the DNP3/ICS analyzer; a non-total classifier can panic on unexpected FC bytes in real ICS traffic, causing analyzer failure |
 | L2 Domain Invariants | INV-2 (Content-First Dispatch Precedence — panic freedom in the pure-core classifier ensures analyzer stability on adversarial traffic) |
-| Architecture Module | SS-15 (analyzer/dnp3.rs, C-23); ADR-007 Decision 2 |
+| Architecture Module | SS-15 (analyzer/dnp3.rs, C-24); ADR-007 Decision 2 |
 | Stories | TBD (F3 decomposition) |
 | Feature | issue-008-dnp3-analyzer |
 | MITRE Techniques | (none — pure classification function; no finding emission) |

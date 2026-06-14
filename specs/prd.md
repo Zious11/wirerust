@@ -1,7 +1,7 @@
 ---
 document_type: prd
 level: L3
-version: "1.19"
+version: "1.20"
 status: draft
 producer: product-owner
 timestamp: 2026-06-12T02:00:00Z
@@ -858,7 +858,7 @@ Rust source files, 3,868 source LOC, 282 tests, single crate, Rust 2024 edition,
 > purely additive at v0.6.0.
 
 > **Feature Mode F2 addition (v1.5).** 24 BCs covering the DNP3 TCP protocol analyzer (SS-15,
-> C-26 Dnp3Analyzer). Analyzer detects 5 MITRE ATT&CK for ICS techniques directly and 2 via
+> C-24 Dnp3Analyzer). Analyzer detects 5 MITRE ATT&CK for ICS techniques directly and 2 via
 > correlation: T1692.001 (unauthorized control command — direct), T0814 (restart/DoS — direct),
 > T0836 (write FC — direct), T1691.001 (inferred block-command, ICS sub-technique — per-flow
 > inference), T0827 (derived loss-of-control — correlated across events).
