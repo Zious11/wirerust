@@ -1,7 +1,7 @@
 ---
 pipeline: FEATURE_MODE_ARP_ANALYZER
 phase: feature-F2-strict-whole-corpus-convergence
-phase_status: "0/3 — Pass 24 REMEDIATED (B/C CLEAN; D-01 genuine DNP3-C-24 sweep + 3 self-induced from P23); resume = Pass 25 (Claude)"
+phase_status: "0/3 — Pass 25 REMEDIATED (A/B/C CLEAN; Slice-D changelog-path phantoms flushed); resume = Pass 26 (Claude) — strong first-clean candidate"
 active_feature: "arp-analyzer"
 feature_arp_status: "F1 Delta Analysis PASSED (human-gated 2026-06-12) — DecodedFrame integration, ADR-008 planned, F2→F7 authorized; release target v0.7.0"
 feature_8_status: "v0.6.0 RELEASED 2026-06-12 — DNP3 TCP analyzer; F7 5-dim CONVERGED; tag v0.6.0 + 4 binaries"
@@ -39,8 +39,8 @@ dtu_clones_built: n/a
 dtu_services: []
 adversary_convergence_counter: 3/3  # Pass 14 CONVERGENCE_REACHED; clean-streak 3/3; ADVERSARY GATE SATISFIED
 convergence_trajectory: "P1-P14 greenfield GATE-SATISFIED; MITRE-222 3-pass CONVERGED. Detail: cycles/v0.1.0-greenfield-spec/convergence-trajectory.md"
-arp_f2_adversary_convergence_counter: 0/3  # STRICT WHOLE-CORPUS mode — zero findings any severity across entire spec corpus required; P24 0C/1H — D-01 systematic DNP3 C-23→C-24 mislabel (24 ss-15 BCs + prd C-26) genuine; A-01/D-02/D-03 self-induced from P23; 7th consecutive 0-CRIT; B+C CLEAN; mitigations applied (no-bump reorders, verified changelog paths)
-arp_f2_convergence_trajectory: "15→20→~8→~15→~6→~4→~4→~7→~4→~6→~5→~18→~8→~22(P14: 2C/5H NEW corpus-debt; trend broke; ARP delta clean 6th pass)→P15(8 findings: holdout-layer field-rename + regression; REMEDIATED)→P16(7: 0C/0H, sibling-sweep misses; REMEDIATED; Slice B CLEAN)→P17(10: holdout MITRE-counts + module-decomposition peer; REMEDIATED; Slice B CLEAN 2nd)→P18(9: ss-05 anchor-drift + indicatif + STORY-INDEX; 0C/3H; REMEDIATED; arp.rs+holdout pre-flush verified clean)→P19(15: corpus-wide anchor-drift; 0C/8H; PARTIAL — ss-07-full+remaining-BC pending)→ batch2: ss-07-full(35 BCs)+ss-04-partial(21 BCs)+ss-11(10 BCs); ss-01/02/08/13 CLEAN; ss-04-remainder+ss-12 to Pass-20 — REMEDIATED → P20(7: anchor-drift flushed, ss-04/ss-12 closed; 0C/1H; Slices A+C CLEAN; REMEDIATED) → P21(5 cosmetic; 0C/0H; A+C CLEAN; REMEDIATED) → P22(5 valid; 0C/0H; cosmetic; version-pin hardened; REMEDIATED) → P23(5; B/C/D CLEAN; Slice-A only; 0C/0H; REMEDIATED) → P24(4: D-01 DNP3-C24 sweep genuine + 3 self-induced; 0C/1H; B+C CLEAN; REMEDIATED) — 0/3 STRICT WHOLE-CORPUS; 24 passes; P14-P24 ALL REMEDIATED; PG-ARP-F2-007 FLUSHED. Detail: phase-f5-adversarial/arp-f2-convergence-trajectory.md"
+arp_f2_adversary_convergence_counter: 0/3  # STRICT WHOLE-CORPUS mode — zero findings any severity across entire spec corpus required; P25 0C/0H — A/B/C CLEAN, Slice-D 2 MED changelog-path phantoms (VP-022/VP-023 truncated slugs; comprehensively flushed); 8th consecutive 0-CRIT; very near convergence
+arp_f2_convergence_trajectory: "15→20→~8→~15→~6→~4→~4→~7→~4→~6→~5→~18→~8→~22(P14: 2C/5H NEW corpus-debt; trend broke; ARP delta clean 6th pass)→P15(8 findings: holdout-layer field-rename + regression; REMEDIATED)→P16(7: 0C/0H, sibling-sweep misses; REMEDIATED; Slice B CLEAN)→P17(10: holdout MITRE-counts + module-decomposition peer; REMEDIATED; Slice B CLEAN 2nd)→P18(9: ss-05 anchor-drift + indicatif + STORY-INDEX; 0C/3H; REMEDIATED; arp.rs+holdout pre-flush verified clean)→P19(15: corpus-wide anchor-drift; 0C/8H; PARTIAL — ss-07-full+remaining-BC pending)→ batch2: ss-07-full(35 BCs)+ss-04-partial(21 BCs)+ss-11(10 BCs); ss-01/02/08/13 CLEAN; ss-04-remainder+ss-12 to Pass-20 — REMEDIATED → P20(7: anchor-drift flushed, ss-04/ss-12 closed; 0C/1H; Slices A+C CLEAN; REMEDIATED) → P21(5 cosmetic; 0C/0H; A+C CLEAN; REMEDIATED) → P22(5 valid; 0C/0H; cosmetic; version-pin hardened; REMEDIATED) → P23(5; B/C/D CLEAN; Slice-A only; 0C/0H; REMEDIATED) → P24(4: D-01 DNP3-C24 sweep genuine + 3 self-induced; 0C/1H; B+C CLEAN; REMEDIATED) → P25(2; A/B/C CLEAN; changelog-path flush; 0C/0H; REMEDIATED) — 0/3 STRICT WHOLE-CORPUS; 25 passes; P14-P25 ALL REMEDIATED; PG-ARP-F2-007 FLUSHED. Detail: phase-f5-adversarial/arp-f2-convergence-trajectory.md"
 f7_convergence_trajectory: "6 fresh-context adversarial passes; final 3 consecutive CONVERGED (0 P0/CRITICAL/HIGH/MEDIUM)"
 consistency_audit: CONSISTENT
 input_drift_check: "MATCH=62 STALE=0 ERROR=1 (STORY-091 known); STORY-106 d0ef956 / STORY-109 cf0bb94 re-stamped"
@@ -50,7 +50,7 @@ input_drift_check: "MATCH=62 STALE=0 ERROR=1 (STORY-091 known); STORY-106 d0ef95
 
 ## Status
 
-**wirerust v0.6.0 RELEASED (DNP3 TCP analyzer, issue #8). Feature: ARP security analyzer + etherparse 0.16→0.20 migration (F1 PASSED 2026-06-12, D-066); release target v0.7.0. F2 spec evolution IN PROGRESS — adversarial convergence 0/3 STRICT WHOLE-CORPUS mode (human-elected 2026-06-13; 24 passes completed; Pass 24 REMEDIATED — 0C/1H, 7th consecutive 0-CRIT; Slices B+C CLEAN; 4 findings: D-01 HIGH genuine systematic DNP3 C-23→C-24 mislabel (all 24 ss-15 BCs + prd §2.15 C-26→C-24; prd v1.19→v1.20); A-01 LOW self-induced row-order (no bump); D-02/D-03 MED self-induced changelog paths from P23 commit; 3 of 4 findings self-induced churn (PG-ARP-F2-008); mitigations: no-bump reorders, verified changelog paths now standard).**
+**wirerust v0.6.0 RELEASED (DNP3 TCP analyzer, issue #8). Feature: ARP security analyzer + etherparse 0.16→0.20 migration (F1 PASSED 2026-06-12, D-066); release target v0.7.0. F2 spec evolution IN PROGRESS — adversarial convergence 0/3 STRICT WHOLE-CORPUS mode (human-elected 2026-06-13; 25 passes completed; Pass 25 REMEDIATED — 0C/0H, 8th consecutive 0-CRIT; Slices A/B/C CLEAN; 2 findings: D-01/D-02 MED Slice-D only — spec-changelog File column phantom slugs VP-022/VP-023 (truncated; comprehensive changelog-path flush performed; changelog-path debt class FLUSHED); strong first-clean candidate for Pass 26).**
 
 **Summary:** 63 stories (48 greenfield + 4 F-cycle + 11 F3-new), 400 pts. 268 BCs (244 pre-F2 + 24 SS-15), 23 VPs (22+VP-023 ALL LOCKED), 1496 tests green, holdout 0.967. develop HEAD 31d1231; main HEAD 3e29891 (v0.6.0). ARP feature: F1 approved — est. 18-24 new BCs (SS-16), 1 revised BC, VP-024, ADR-008, 5-6 stories (E-16), 3-5 holdout scenarios. MITRE T0830 (primary) + T1557.002 (secondary).
 
@@ -81,11 +81,11 @@ Post-release sweep 2026-06-12: 5 dep bumps merged (#203/#204/#207/#235/#206), #2
 | Release v0.6.0 | **RELEASED** 2026-06-12 | PR #234 (release/0.6.0 → main 3e29891); fixup fb3935c; tag v0.6.0; 4 binaries (release.yml); develop merge-back 04f8ccb |
 | Maintenance: Dependabot sweep (post-v0.6.0) | **COMPLETE** 2026-06-12 | 5 PRs merged (#203/#204/#207/#235/#206), 2 closed (#202 superseded, #205 deferred); develop 31d1231 |
 | Feature: ARP analyzer — F1 Delta Analysis | **PASSED** (human-gated 2026-06-12) | DecodedFrame{Ip,Arp} integration, ADR-008 planned, F2→F7 authorized; artifacts: `.factory/phase-f1-delta-analysis/arp-analyzer-delta-analysis.md` |
-| Feature: ARP analyzer — F2 Spec Evolution | **IN PROGRESS** — adversarial convergence 0/3 STRICT WHOLE-CORPUS (human-elected 2026-06-13); Pass 24 REMEDIATED (0C/1H, 7th consecutive 0-CRIT; B+C CLEAN); next = Pass 25 (Claude) | 4-slice method; 24 passes; ARP delta SETTLED; P14-P24 ALL REMEDIATED; P24: B+C CLEAN; D-01 genuine DNP3 C-23→C-24 systematic sweep (24 ss-15 BCs + prd C-26→C-24) + 3 self-induced from P23 (A-01 row-order no-bump, D-02/D-03 changelog paths); self-induced-churn mitigations now standard; trajectory: `phase-f5-adversarial/arp-f2-convergence-trajectory.md` |
+| Feature: ARP analyzer — F2 Spec Evolution | **IN PROGRESS** — adversarial convergence 0/3 STRICT WHOLE-CORPUS (human-elected 2026-06-13); Pass 25 REMEDIATED (0C/0H, 8th consecutive 0-CRIT; A/B/C CLEAN; changelog-path debt class FLUSHED); next = Pass 26 (Claude) — strong first-clean candidate | 4-slice method; 25 passes; ARP delta SETTLED; P14-P25 ALL REMEDIATED; P25: A/B/C CLEAN; Slice-D only 2 MED phantom changelog slugs (VP-022/VP-023) comprehensively flushed; trajectory: `phase-f5-adversarial/arp-f2-convergence-trajectory.md` |
 
-## Session Resume Checkpoint (2026-06-13 — F2 STRICT WHOLE-CORPUS CONVERGENCE, Pass 24 REMEDIATED; 0C/1H; 7th consecutive 0-CRIT; B+C CLEAN)
+## Session Resume Checkpoint (2026-06-13 — F2 STRICT WHOLE-CORPUS CONVERGENCE, Pass 25 REMEDIATED; 0C/0H; 8th consecutive 0-CRIT; A/B/C CLEAN; changelog-path class FLUSHED)
 
-**Previous checkpoint (2026-06-13 — Pass 23 REMEDIATED; 0C/0H; 6th consecutive; B/C/D CLEAN) archived to:
+**Previous checkpoint (2026-06-13 — Pass 24 REMEDIATED; 0C/1H; 7th consecutive; B+C CLEAN) archived to:
 `cycles/feature-arp-v0.7.0/session-checkpoints.md`**
 
 ### POSITION
@@ -99,20 +99,17 @@ Post-release sweep 2026-06-12: 5 dep bumps merged (#203/#204/#207/#235/#206), #2
 - **F2 adversarial convergence:** STRICT WHOLE-CORPUS mode (human-elected 2026-06-13).
   Bar = 3 consecutive passes with ZERO findings of ANY severity, including LOW, across the
   ENTIRE spec corpus — not just the ARP delta. Counter **0/3**.
-- **24 adversarial passes + 1 corpus consistency audit run. Pass 24 REMEDIATED.**
-  Pass 24 (4 findings; Slices B+C CLEAN). D-01 HIGH (PO, genuine): systematic DNP3 component
-  mislabel — all 24 ss-15 BCs labeled DNP3 as C-23 (canonical C-24; C-23 is PLANNED ARP);
-  prd.md §2.15 cited "C-26" (phantom). Fixed: 24 ss-15 BCs (C-23→C-24) + prd (C-26→C-24;
-  v1.19→v1.20). A-01 LOW (architect, self-induced from P23 A-05): arp-architecture-delta §7
-  changelog rows out of ascending order (1.11 before 1.10) — reordered, NO version bump.
-  D-02 MED (PO, self-induced from P23): spec-changelog P23 ledger phantom path
-  specs/architecture/module-criticality.md → corrected to specs/module-criticality.md.
-  D-03 MED (PO, self-induced from P23): spec-changelog P23 ledger phantom path
-  phase-f2-spec-evolution/arp-architecture-delta.md → corrected to
-  specs/architecture/arp-architecture-delta.md. KEY: 3 of 4 findings self-induced churn
-  (PG-ARP-F2-008). D-01 was a genuine pre-existing systematic mislabel. 7th consecutive 0-CRIT.
-  Mitigations applied: no-bump reorders + verified changelog paths now standard practice.
-  Trajectory P22-P24: 0C/0H → 0C/0H → 0C/1H.
+- **25 adversarial passes + 1 corpus consistency audit run. Pass 25 REMEDIATED.**
+  Pass 25 (2 findings; Slices A/B/C CLEAN; Slice D only). D-01 MED (PO): spec-changelog
+  File column for VP-023 row cited truncated slug vp-023.md → corrected to
+  vp-023-dnp3-parse-safety.md. D-02 MED (PO): spec-changelog File column for VP-022 row
+  cited truncated slug vp-022.md → corrected to vp-022-modbus-parse-safety.md.
+  REMEDIATION: comprehensive changelog-path-phantom flush — scanned ALL .factory/*.md paths
+  in spec-changelog.md; found 4 non-resolving paths; fixed 2 active File-column refs
+  (VP-022/VP-023 truncated slugs); other 2 remain in corrected-from audit prose only
+  (correctly preserved). Zero active ledger refs now point at non-resolving paths.
+  Changelog-path debt class FLUSHED. 8th consecutive 0-CRIT.
+  Trajectory P23-P25: 0C/0H → 0C/1H → 0C/0H.
 
 ### VERIFIED SHAs (re-verify live on resume — do NOT trust as current-HEAD values)
 
@@ -151,7 +148,7 @@ corrected to C-24 (prd v1.19→v1.20). Do NOT re-flag C-24 in ss-15 BCs.
 1. Run `vsdd-factory:factory-worktree-health`. **BLOCKING — do not proceed if this fails.**
 2. Read `STATE.md` (this file) + `.factory/phase-f5-adversarial/arp-f2-convergence-trajectory.md`.
 3. Confirm develop==origin/develop, working tree clean, no open PRs.
-4. **Next action: whole-corpus Pass 25 via Claude vsdd-factory:adversary (4 slices, STRICT).**
+4. **Next action: whole-corpus Pass 26 via Claude vsdd-factory:adversary (4 slices, STRICT).**
    agy headless print-mode is currently UNUSABLE (3 documented failure modes; use Claude).
    Dispatch 4 FRESH-CONTEXT slices in parallel, STRICT mode (report EVERY finding of ANY
    severity), each covering its whole-corpus partition:
@@ -229,6 +226,7 @@ corrected to C-24 (prd v1.19→v1.20). Do NOT re-flag C-24 in ss-15 BCs.
 - **ss-15 DNP3 component label C-23→C-24 (COMPLETE — Pass-24 D-01):** All 24 ss-15 BCs corrected from C-23 (planned ARP) to C-24 (canonical DNP3 analyzer). PRD §2.15 phantom C-26 corrected to C-24 (prd v1.19→v1.20). Do NOT re-flag C-24 in ss-15 BCs as mislabel.
 - **spec-changelog Pass-23 ledger paths (COMPLETE — Pass-24 D-02/D-03):** P23 ledger row phantom path specs/architecture/module-criticality.md corrected to specs/module-criticality.md; phantom path phase-f2-spec-evolution/arp-architecture-delta.md corrected to specs/architecture/arp-architecture-delta.md. Do NOT re-flag these paths.
 - **arp-architecture-delta §7 changelog row order (COMPLETE — Pass-24 A-01):** Rows reordered to ascending (1.10 before 1.11). No version bump (cosmetic reorder). Do NOT re-flag.
+- **spec-changelog VP-022/VP-023 File-column slugs (COMPLETE — Pass-25 D-01/D-02):** File column for VP-023 row corrected from truncated vp-023.md to vp-023-dnp3-parse-safety.md; VP-022 row corrected from vp-022.md to vp-022-modbus-parse-safety.md. Comprehensive changelog-path flush performed — all .factory/*.md path refs in spec-changelog.md scanned; only corrected-from audit prose retains now-irrelevant paths. Changelog-path debt class FLUSHED. Do NOT re-flag VP-022/VP-023 slugs.
 
 ### RECURRING DEFECT CLASSES (sweep proactively before each pass)
 

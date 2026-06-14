@@ -115,6 +115,8 @@ ATT&CK v19.1.
 
 **Archived from STATE.md on:** 2026-06-13 (replaced by "Pass 24 REMEDIATED; 0C/1H; 7th consecutive 0-CRIT; B+C CLEAN" checkpoint)
 
+_(This checkpoint was further superseded by the Pass-25 REMEDIATED checkpoint archived below.)_
+
 ### POSITION
 
 - **23 adversarial passes + 1 corpus consistency audit run. Pass 23 REMEDIATED.**
@@ -129,6 +131,34 @@ ATT&CK v19.1.
   Substantively + cosmetically near-converged. 6th consecutive 0-CRIT/HIGH.
   Trajectory P21-23: 0C/0H → 0C/0H → 0C/0H. DECAYING strongly.
 - Next action at time of archival: whole-corpus Pass 24 via Claude (strong first-clean candidate).
+
+### VERIFIED SHAs at archival time
+
+| Ref | Value | Notes |
+|-----|-------|-------|
+| develop HEAD | 31d1231 | — |
+| main HEAD | 3e29891 | chore: release v0.6.0 |
+| factory-artifacts HEAD | re-verify live | `git -C .factory log -1 --format='%h %s'` |
+
+---
+
+## Archived Checkpoint: 2026-06-13 — F2 STRICT WHOLE-CORPUS CONVERGENCE, Pass 24 REMEDIATED; 0C/1H; 7th consecutive 0-CRIT; B+C CLEAN
+
+**Archived from STATE.md on:** 2026-06-13 (replaced by "Pass 25 REMEDIATED; 0C/0H; 8th consecutive 0-CRIT; A/B/C CLEAN" checkpoint)
+
+### POSITION
+
+- **24 adversarial passes + 1 corpus consistency audit run. Pass 24 REMEDIATED.**
+- F2 adversarial convergence: STRICT WHOLE-CORPUS mode. Counter 0/3.
+- Pass 24 (4 findings; Slices B+C CLEAN): 0C/1H. D-01 HIGH genuine (PO): systematic DNP3
+  component mislabel — all 24 ss-15 BCs labeled DNP3 as C-23 (canonical C-24; C-23 is PLANNED
+  ARP); prd.md §2.15 cited "C-26" (phantom). Fixed: 24 ss-15 BCs (C-23→C-24) + prd
+  (C-26→C-24; v1.19→v1.20). A-01 LOW self-induced (arp-architecture-delta §7 row order;
+  no bump). D-02/D-03 MED self-induced changelog paths from P23 commit. 3 of 4 findings
+  self-induced churn (PG-ARP-F2-008). Mitigations: no-bump reorders + verified changelog
+  paths now standard. 7th consecutive 0-CRIT.
+  Trajectory P22-P24: 0C/0H → 0C/0H → 0C/1H.
+- Next action at time of archival: whole-corpus Pass 25 via Claude.
 
 ### VERIFIED SHAs at archival time
 

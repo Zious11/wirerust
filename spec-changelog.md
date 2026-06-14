@@ -14,6 +14,59 @@ changes, invariant rewrites).
 
 ---
 
+## [pass-25-changelog-path-flush-2026-06-13] — 2026-06-13
+
+### PATCH: Pass-25 comprehensive phantom-path flush in spec-changelog.md (D-01, D-02 + residual historical rows)
+
+Four non-resolving paths were identified across spec-changelog.md. Two were active ledger "File"
+column references (D-01 VP-023, D-02 VP-022); two were residual phantom strings appearing only
+inside "corrected-from" audit-trail prose in the pass-24-fixes entry (D-03 arp-architecture-delta,
+D-04 module-criticality). The corrected-from prose rows were preserved intact — they correctly
+document the prior corrections; erasing them would destroy the audit trail.
+
+**D-01 MED — spec-changelog.md: phantom VP-023 path corrected in DNP3 Feature #8 artifact table**
+
+Active "File" column reference at the DNP3 burst entry cited
+`.factory/specs/verification-properties/VP-023.md` (no such path). Corrected to
+`.factory/specs/verification-properties/vp-023-dnp3-parse-safety.md` (verified to exist).
+
+**D-02 MED — spec-changelog.md: phantom VP-022 path corrected in Modbus Feature #7 artifact table**
+
+Active "File" column reference at the Modbus burst entry cited
+`.factory/specs/verification-properties/VP-022.md` (pending) (no such path; file was authored
+with kebab-case slug). Corrected to `.factory/specs/verification-properties/vp-022-modbus-parse-safety.md`
+(verified to exist). The "(pending)" annotation was removed as the file now exists.
+
+**D-03 PRESERVED — pass-24-fixes entry: arp-architecture-delta phantom string in corrected-from prose**
+
+The pass-24 D-03 fix description references `.factory/phase-f2-spec-evolution/arp-architecture-delta.md`
+as the OLD (phantom) value in a "no such path → corrected to" audit entry. This is corrected-from
+prose, not an active ledger reference. Preserved without change; the correct path
+`.factory/specs/architecture/arp-architecture-delta.md` is already cited as the fixed target.
+
+**D-04 PRESERVED — pass-24-fixes entry: module-criticality phantom string in corrected-from prose**
+
+The pass-24 D-02 fix description references `.factory/specs/architecture/module-criticality.md`
+as the OLD (phantom) value in a "no such path → corrected to" audit entry. This is corrected-from
+prose, not an active ledger reference. Preserved without change; the correct path
+`.factory/specs/module-criticality.md` is already cited as the fixed target.
+
+**Verification:**
+
+- `.factory/specs/verification-properties/vp-022-modbus-parse-safety.md` — confirmed exists
+- `.factory/specs/verification-properties/vp-023-dnp3-parse-safety.md` — confirmed exists
+- `.factory/specs/module-criticality.md` — confirmed exists
+- `.factory/specs/architecture/arp-architecture-delta.md` — confirmed exists
+- Zero remaining active "File" column references point at non-resolving paths.
+
+**Artifacts changed:**
+
+| Artifact | Change |
+|----------|--------|
+| `.factory/spec-changelog.md` | Pass-25 path flush: 2 active phantom VP paths corrected (D-01 VP-023, D-02 VP-022); 2 corrected-from prose occurrences preserved (D-03, D-04) |
+
+---
+
 ## [pass-24-fixes-2026-06-13] — 2026-06-13
 
 ### PATCH: Pass-24 remediation (D-01 HIGH, D-02 MED, D-03 MED) + architect A-01 bump logging
@@ -3818,7 +3871,7 @@ The catalogue-only count is unchanged because both new techniques are immediatel
 | BC-2.10.003 | v1.2 → v1.3: Slice length 16→17; element [16] = IcsImpact; description, postconditions, invariants, edge cases, test vectors, VP-016 updated | `.factory/specs/behavioral-contracts/ss-10/BC-2.10.003.md` |
 | BC-2.10.004 | v1.2 → v1.3: Variant count 16→17; description, postconditions, invariants, edge cases, test vectors updated | `.factory/specs/behavioral-contracts/ss-10/BC-2.10.004.md` |
 | ADR-007 | Created (binary ICS protocol integration decision for DNP3 TCP) | `.factory/specs/architecture/decisions/ADR-007-binary-ics-protocol-integration-dnp3-tcp.md` |
-| VP-023 | Designed (parse_dnp3_dl_header, classify_dnp3_fc, is_valid_dnp3_frame_header, compute_dnp3_frame_len) | `.factory/specs/verification-properties/VP-023.md` |
+| VP-023 | Designed (parse_dnp3_dl_header, classify_dnp3_fc, is_valid_dnp3_frame_header, compute_dnp3_frame_len) | `.factory/specs/verification-properties/vp-023-dnp3-parse-safety.md` |
 
 **New MITRE ATT&CK for ICS techniques (2 total, Feature #8):**
 - T1691.001 — Block Operational Technology Message: Command Message (IcsInhibitResponseFunction, v19 ICS sub-technique)
@@ -4240,7 +4293,7 @@ ICS technique mappings.
 | BC-2.14.025 | Created (Group H: StreamDispatcher port-502 Rule 5 classification) | `.factory/specs/behavioral-contracts/ss-14/BC-2.14.025.md` |
 | Architecture Delta | Created | `.factory/phase-f2-spec-evolution/architecture-delta.md` |
 | PRD Delta | Created | `.factory/phase-f2-spec-evolution/prd-delta.md` |
-| VP-022 | Designed (to be authored by formal-verifier in parallel) | `.factory/specs/verification-properties/VP-022.md` (pending) |
+| VP-022 | Designed (to be authored by formal-verifier in parallel) | `.factory/specs/verification-properties/vp-022-modbus-parse-safety.md` |
 | ADR-005 | Created (binary ICS protocol integration decision) | `.factory/specs/architecture/decisions/ADR-005-binary-ics-protocol-integration-modbus-tcp.md` |
 
 **New MITRE ATT&CK for ICS techniques (6 total):**

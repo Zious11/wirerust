@@ -64,10 +64,11 @@ Minimum 3 consecutive clean passes required for convergence gate (same as F5 sta
 | 22 (whole-corpus, Claude) | 2026-06-13 | 5 | 0 | 0 | 1 | 4 | LOW | 0/3 | NOT_CLEAN→REMEDIATED |
 | 23 (whole-corpus, Claude) | 2026-06-13 | 5 | 0 | 0 | 1 | 4 | LOW | 0/3 | NOT_CLEAN→REMEDIATED |
 | 24 (whole-corpus, Claude) | 2026-06-13 | 4 | 0 | 1 | 2 | 1 | LOW | 0/3 | NOT_CLEAN→REMEDIATED |
+| 25 (whole-corpus, Claude) | 2026-06-13 | 2 | 0 | 0 | 2 | 0 | LOW | 0/3 | NOT_CLEAN→REMEDIATED |
 
 ## Trajectory Shorthand
 
-`15→20→~8→~15→~6→~4→~4→~7→~4→~6→~5→~18→~8→~22(P14: 2C/5H NEW corpus-debt; trend broke; ARP delta clean 6th pass)→P15(8 findings: holdout-layer field-rename + regression; REMEDIATED)→P16(7: 0C/0H, sibling-sweep misses; REMEDIATED; Slice B CLEAN all 283 BCs + field-rename verified)→P17(10: holdout MITRE-counts + module-decomposition peer; REMEDIATED; Slice B CLEAN 2nd)→P18(9: ss-05 anchor-drift + indicatif + STORY-INDEX; 0C/3H; REMEDIATED; arp.rs+holdout pre-flush verified clean)→P19(15: corpus-wide anchor-drift; 0C/8H; PARTIAL — ss-07-full+remaining-BC pending)→ P20(7: anchor-drift flushed, ss-04/ss-12 closed; 0C/1H; Slices A+C CLEAN; REMEDIATED)→P21(5 cosmetic; 0C/0H; A+C CLEAN 2nd consecutive; REMEDIATED)→P22(5 valid; 0C/0H; cosmetic; version-pin hardened; REMEDIATED)→P23(5; B/C/D CLEAN; Slice-A only; 0C/0H; REMEDIATED)→P24(4: D-01 DNP3-C24 sweep genuine + 3 self-induced; 0C/1H; B+C CLEAN; REMEDIATED)`
+`15→20→~8→~15→~6→~4→~4→~7→~4→~6→~5→~18→~8→~22(P14: 2C/5H NEW corpus-debt; trend broke; ARP delta clean 6th pass)→P15(8 findings: holdout-layer field-rename + regression; REMEDIATED)→P16(7: 0C/0H, sibling-sweep misses; REMEDIATED; Slice B CLEAN all 283 BCs + field-rename verified)→P17(10: holdout MITRE-counts + module-decomposition peer; REMEDIATED; Slice B CLEAN 2nd)→P18(9: ss-05 anchor-drift + indicatif + STORY-INDEX; 0C/3H; REMEDIATED; arp.rs+holdout pre-flush verified clean)→P19(15: corpus-wide anchor-drift; 0C/8H; PARTIAL — ss-07-full+remaining-BC pending)→ P20(7: anchor-drift flushed, ss-04/ss-12 closed; 0C/1H; Slices A+C CLEAN; REMEDIATED)→P21(5 cosmetic; 0C/0H; A+C CLEAN 2nd consecutive; REMEDIATED)→P22(5 valid; 0C/0H; cosmetic; version-pin hardened; REMEDIATED)→P23(5; B/C/D CLEAN; Slice-A only; 0C/0H; REMEDIATED)→P24(4: D-01 DNP3-C24 sweep genuine + 3 self-induced; 0C/1H; B+C CLEAN; REMEDIATED)→P25(2; A/B/C CLEAN; changelog-path flush; 0C/0H; REMEDIATED)`
 
 Severity profile: CRITICAL count: 4→5→0→0→0→0→0→0→0→0→0→0→0→2→2→0→3→0→0→0→0→0→0 — DECAYING on CRITICAL
 (0 for 7 of last 8 passes: P16+P18+P19+P20+P21+P22+P23+P24).
@@ -181,6 +182,21 @@ specs/architecture/arp-architecture-delta.md. KEY mitigation: A-01 reorder took 
 bump (eliminates one class of self-induced churn); D-02/D-03 changelog paths verified-to-resolve
 before writing (prevents phantom-path class). 7th consecutive 0-CRIT. Counter 0/3.
 Trajectory P22-P24: 0C/0H → 0C/0H → 0C/1H. Next = whole-corpus Pass 25 via Claude adversary.
+
+Pass 25 REMEDIATED (2 findings; Slices A/B/C CLEAN; 0C/0H). 8th consecutive 0-CRIT pass.
+Only Slice D found issues: D-01 MED (PO): spec-changelog "File" column for VP-023 row cited
+truncated slug vp-023.md → corrected to vp-023-dnp3-parse-safety.md (pre-existing historical
+phantom path). D-02 MED (PO): spec-changelog "File" column for VP-022 row cited truncated slug
+vp-022.md → corrected to vp-022-modbus-parse-safety.md (pre-existing historical phantom path).
+REMEDIATION: comprehensive changelog-path-phantom flush — scanned ALL .factory/*.md paths
+referenced in spec-changelog.md; found 4 distinct non-resolving paths; fixed the 2 active
+"File"-column references (VP-022/VP-023 truncated slugs); the other 2 (arp-architecture-delta,
+module-criticality) remain only in "corrected-from" audit prose (correctly preserved as audit
+trail, not active ledger entries). Zero active ledger references now point at non-resolving
+paths. Changelog-path debt class FLUSHED. KEY: Slices A, B, C ALL CLEAN — 3 of 4 slices
+clean for 2nd consecutive pass. Counter 0/3 (remediation does not advance counter).
+Trajectory P23-P25: 0C/0H → 0C/1H → 0C/0H. Next = whole-corpus Pass 26 via Claude adversary
+(strong first-clean candidate; A/B/C clean in P25; changelog-path class flushed).
 
 ## Core Semantics — Confirmed Clean (Settled)
 
