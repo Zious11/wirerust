@@ -65,10 +65,11 @@ Minimum 3 consecutive clean passes required for convergence gate (same as F5 sta
 | 23 (whole-corpus, Claude) | 2026-06-13 | 5 | 0 | 0 | 1 | 4 | LOW | 0/3 | NOT_CLEAN→REMEDIATED |
 | 24 (whole-corpus, Claude) | 2026-06-13 | 4 | 0 | 1 | 2 | 1 | LOW | 0/3 | NOT_CLEAN→REMEDIATED |
 | 25 (whole-corpus, Claude) | 2026-06-13 | 2 | 0 | 0 | 2 | 0 | LOW | 0/3 | NOT_CLEAN→REMEDIATED |
+| 26 (whole-corpus, Claude) | 2026-06-13 | 0 | 0 | 0 | 0 | 0 | NONE | **1/3** | **CLEAN** |
 
 ## Trajectory Shorthand
 
-`15→20→~8→~15→~6→~4→~4→~7→~4→~6→~5→~18→~8→~22(P14: 2C/5H NEW corpus-debt; trend broke; ARP delta clean 6th pass)→P15(8 findings: holdout-layer field-rename + regression; REMEDIATED)→P16(7: 0C/0H, sibling-sweep misses; REMEDIATED; Slice B CLEAN all 283 BCs + field-rename verified)→P17(10: holdout MITRE-counts + module-decomposition peer; REMEDIATED; Slice B CLEAN 2nd)→P18(9: ss-05 anchor-drift + indicatif + STORY-INDEX; 0C/3H; REMEDIATED; arp.rs+holdout pre-flush verified clean)→P19(15: corpus-wide anchor-drift; 0C/8H; PARTIAL — ss-07-full+remaining-BC pending)→ P20(7: anchor-drift flushed, ss-04/ss-12 closed; 0C/1H; Slices A+C CLEAN; REMEDIATED)→P21(5 cosmetic; 0C/0H; A+C CLEAN 2nd consecutive; REMEDIATED)→P22(5 valid; 0C/0H; cosmetic; version-pin hardened; REMEDIATED)→P23(5; B/C/D CLEAN; Slice-A only; 0C/0H; REMEDIATED)→P24(4: D-01 DNP3-C24 sweep genuine + 3 self-induced; 0C/1H; B+C CLEAN; REMEDIATED)→P25(2; A/B/C CLEAN; changelog-path flush; 0C/0H; REMEDIATED)`
+`15→20→~8→~15→~6→~4→~4→~7→~4→~6→~5→~18→~8→~22(P14: 2C/5H NEW corpus-debt; trend broke; ARP delta clean 6th pass)→P15(8 findings: holdout-layer field-rename + regression; REMEDIATED)→P16(7: 0C/0H, sibling-sweep misses; REMEDIATED; Slice B CLEAN all 283 BCs + field-rename verified)→P17(10: holdout MITRE-counts + module-decomposition peer; REMEDIATED; Slice B CLEAN 2nd)→P18(9: ss-05 anchor-drift + indicatif + STORY-INDEX; 0C/3H; REMEDIATED; arp.rs+holdout pre-flush verified clean)→P19(15: corpus-wide anchor-drift; 0C/8H; PARTIAL — ss-07-full+remaining-BC pending)→ P20(7: anchor-drift flushed, ss-04/ss-12 closed; 0C/1H; Slices A+C CLEAN; REMEDIATED)→P21(5 cosmetic; 0C/0H; A+C CLEAN 2nd consecutive; REMEDIATED)→P22(5 valid; 0C/0H; cosmetic; version-pin hardened; REMEDIATED)→P23(5; B/C/D CLEAN; Slice-A only; 0C/0H; REMEDIATED)→P24(4: D-01 DNP3-C24 sweep genuine + 3 self-induced; 0C/1H; B+C CLEAN; REMEDIATED)→P25(2; A/B/C CLEAN; changelog-path flush; 0C/0H; REMEDIATED)→ P26 CLEAN 1/3 (all 4 slices zero findings; corpus-wide debt flushed P14-25)`
 
 Severity profile: CRITICAL count: 4→5→0→0→0→0→0→0→0→0→0→0→0→2→2→0→3→0→0→0→0→0→0 — DECAYING on CRITICAL
 (0 for 7 of last 8 passes: P16+P18+P19+P20+P21+P22+P23+P24).
@@ -95,10 +96,10 @@ ss-01/02/04-rest/08/11/12/13 STILL PENDING before Pass 20. Counter 0/3.
 
 ## Convergence Counter
 
-**0/3** consecutive clean passes.
+**1/3** consecutive clean passes. **CONVERGENCE STREAK STARTED.**
 **STRICT WHOLE-CORPUS mode** (human-elected 2026-06-12; scope extended 2026-06-13): zero
 findings of ANY severity (including LOW) across the ENTIRE spec corpus (not just ARP delta)
-required for 3 consecutive clean passes. 22 passes run. Pass 14 REMEDIATED (22 findings:
+required for 3 consecutive clean passes. 26 passes run. Pass 14 REMEDIATED (22 findings:
 mitre_techniques field-rename corpus sweep + O-01 closure propagation + architect ×2 + PO ×10
 bursts + consistency audit CONSISTENT). Pass 15 REMEDIATED (8 findings: holdout-scenarios
 field-rename sweep [C-01/02/03, 16 files] + inv-01 YAML regression [C-04] + VP-024 scope
@@ -197,6 +198,19 @@ paths. Changelog-path debt class FLUSHED. KEY: Slices A, B, C ALL CLEAN — 3 of
 clean for 2nd consecutive pass. Counter 0/3 (remediation does not advance counter).
 Trajectory P23-P25: 0C/0H → 0C/1H → 0C/0H. Next = whole-corpus Pass 26 via Claude adversary
 (strong first-clean candidate; A/B/C clean in P25; changelog-path class flushed).
+
+Pass 26 CLEAN — **FIRST FULLY-CLEAN WHOLE-CORPUS PASS. Convergence streak STARTED: 1/3.**
+All 4 slices (A/B/C/D) returned ZERO findings of ANY severity. Slice B confirmed factory HEAD
+b008b178 via git guard. This is the first pass across 26 total where every slice was clean
+simultaneously, reflecting the corpus-wide debt flush completed across P14-P25 (field-rename,
+O-01, MITRE counts, anchor-drift PG-ARP-F2-007, version-pins, changelog-paths, DNP3 component
+IDs). No remediation performed — clean pass advances counter.
+Counter **1/3**. Need 2 more consecutive all-4-slice-clean passes for convergence gate.
+Trajectory P24-P26: 0C/1H → 0C/0H → 0 (CLEAN).
+Next = whole-corpus Pass 27 via Claude adversary (4 slices STRICT). If Pass 27 clean → 2/3;
+if Pass 28 also clean → 3/3 CONVERGED → F2→F3 human gate. NO remediation between clean
+passes — only run consecutive passes. If any pass finds something → remediate, counter resets
+to 0/3.
 
 ## Core Semantics — Confirmed Clean (Settled)
 
@@ -1573,6 +1587,42 @@ anchored to develop HEAD 31d1231. Anchor-drift class is CLOSED.
 | ADR-008 | v1.9 | T0830 matrix-label adjacent-sentence reconciliation (D-02) |
 | BC-INDEX | updated | Version pin annotations for BC-2.04.012/013/014 + BC-2.12.005 |
 | spec-changelog | updated | All P20 version bumps recorded |
+
+---
+
+### Pass 26 — 2026-06-13 (Claude adversary; CLEAN — 1/3)
+
+**Method:** Whole-corpus fresh-context pass; Claude vsdd-factory:adversary per human direction.
+4 parallel fresh-context slices (A/B/C/D). STRICT mode — report ANY finding of ANY severity.
+**Factory-artifacts HEAD reviewed (Slice B git guard):** b008b178.
+**Findings:** 0 total — 0 CRITICAL, 0 HIGH, 0 MEDIUM, 0 LOW.
+**Novelty:** NONE — first fully-clean whole-corpus pass.
+**Convergence counter:** **1/3** (first clean pass advances streak; 2 more consecutive clean
+passes required for F2 convergence gate).
+**Verdict:** **CLEAN.**
+
+#### Slice verdicts
+
+| Slice | Scope | Verdict |
+|-------|-------|---------|
+| A | Architecture + verification-properties | CLEAN — 0 findings |
+| B | BC-INDEX + all ss-01..ss-16 BC bodies (283 BCs) | CLEAN — 0 findings; git guard confirmed b008b178 |
+| C | Domain + prd-supplements + HS-INDEX + ss-10 + STORY-INDEX | CLEAN — 0 findings |
+| D | PRD + all indexes + spec-changelog + cross-doc counts | CLEAN — 0 findings |
+
+#### Significance
+
+This is the first pass in 26 total where all 4 slices simultaneously returned zero findings.
+The corpus-wide debt flush across passes 14-25 eliminated all known defect classes:
+- Field-rename propagation (pass 14-15)
+- O-01 closure propagation (pass 14)
+- MITRE counts in holdout scenarios (pass 17)
+- Anchor-drift PG-ARP-F2-007 across all subsystems (passes 18-20, FLUSHED)
+- Version-pin lag / self-induced churn (pass 22, hardened)
+- changelog-path phantom slugs (passes 21, 24, 25, class FLUSHED)
+- DNP3 component IDs C-23/C-24 (pass 24)
+
+No remediation performed this pass. Clean count advances: **1/3**.
 
 ---
 

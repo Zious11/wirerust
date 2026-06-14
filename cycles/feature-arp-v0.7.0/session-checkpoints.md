@@ -167,3 +167,33 @@ _(This checkpoint was further superseded by the Pass-25 REMEDIATED checkpoint ar
 | develop HEAD | 31d1231 | — |
 | main HEAD | 3e29891 | chore: release v0.6.0 |
 | factory-artifacts HEAD | re-verify live | `git -C .factory log -1 --format='%h %s'` |
+
+---
+
+## Archived Checkpoint: 2026-06-13 — F2 STRICT WHOLE-CORPUS CONVERGENCE, Pass 25 REMEDIATED; 0C/0H; 8th consecutive 0-CRIT; A/B/C CLEAN; changelog-path class FLUSHED
+
+**Archived from STATE.md on:** 2026-06-13 (replaced by "Pass 26 CLEAN; 1/3; ALL 4 SLICES ZERO FINDINGS; CONVERGENCE STREAK STARTED" checkpoint)
+
+### POSITION
+
+- **25 adversarial passes + 1 corpus consistency audit run. Pass 25 REMEDIATED.**
+- F2 adversarial convergence: STRICT WHOLE-CORPUS mode. Counter 0/3.
+- Pass 25 (2 findings; Slices A/B/C CLEAN; Slice D only): 0C/0H. D-01 MED (PO): spec-changelog
+  File column for VP-023 row cited truncated slug vp-023.md → corrected to
+  vp-023-dnp3-parse-safety.md. D-02 MED (PO): spec-changelog File column for VP-022 row
+  cited truncated slug vp-022.md → corrected to vp-022-modbus-parse-safety.md.
+  REMEDIATION: comprehensive changelog-path-phantom flush — scanned ALL .factory/*.md paths
+  in spec-changelog.md; found 4 non-resolving paths; fixed 2 active File-column refs
+  (VP-022/VP-023 truncated slugs); other 2 remain in corrected-from audit prose only
+  (correctly preserved as audit trail). Zero active ledger refs now point at non-resolving
+  paths. Changelog-path debt class FLUSHED. 8th consecutive 0-CRIT.
+  Trajectory P23-P25: 0C/0H → 0C/1H → 0C/0H.
+- Next action at time of archival: whole-corpus Pass 26 via Claude (strong first-clean candidate).
+
+### VERIFIED SHAs at archival time
+
+| Ref | Value | Notes |
+|-----|-------|-------|
+| develop HEAD | 31d1231 | — |
+| main HEAD | 3e29891 | chore: release v0.6.0 |
+| factory-artifacts HEAD | re-verify live | `git -C .factory log -1 --format='%h %s'` |
