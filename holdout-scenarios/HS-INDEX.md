@@ -1,7 +1,7 @@
 ---
 document_type: holdout-scenario-index
 level: ops
-version: "1.6"
+version: "1.7"  # F3-Pass-29 Slice-D: corrected HS-W39-007 VP-023 BC scope from BC-2.15.001..008 to BC-2.15.001..007 (BC-2.15.008 is unit-test-only, excluded from Kani obligation per VP-INDEX:131,135)
 status: draft
 producer: product-owner
 timestamp: 2026-06-14T00:00:00Z
@@ -376,7 +376,7 @@ None detected. All checks passed for the greenfield set:
 | HS-W39-004 | --dnp3-direct-operate-threshold CLI Flag — Override Changes Firing Point | P0 | BC-2.15.017 |
 | HS-W39-005 | End-to-End — Crafted DNP3 Synthetic PCAP with Full Detection Surface | P0 | BC-2.15.021 + all wave 37-38 detections |
 | HS-W39-006 | Regression on Existing Analyzers After Waves 35-39 | P0 | VP-004, VP-007, VP-022, VP-023 |
-| HS-W39-007 | VP-023 Kani Four Sub-Properties — All Pass | P0 | VP-023 (BC-2.15.001 through BC-2.15.008) |
+| HS-W39-007 | VP-023 Kani Four Sub-Properties — All Pass | P0 | VP-023 (BC-2.15.001 through BC-2.15.007) |
 
 ### Feature Holdout Summary
 
