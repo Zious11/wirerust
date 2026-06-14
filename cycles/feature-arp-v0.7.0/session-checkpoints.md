@@ -197,3 +197,28 @@ _(This checkpoint was further superseded by the Pass-25 REMEDIATED checkpoint ar
 | develop HEAD | 31d1231 | — |
 | main HEAD | 3e29891 | chore: release v0.6.0 |
 | factory-artifacts HEAD | re-verify live | `git -C .factory log -1 --format='%h %s'` |
+
+---
+
+## Archived Checkpoint: 2026-06-13 — Pass 27 NOT_CLEAN→REMEDIATED; counter reset 0/3; holdout-pin-hardened
+
+**Archived from STATE.md on:** 2026-06-13 (replaced by "Pass 28 CLEAN; counter 1/3; streak restarted" checkpoint)
+
+### POSITION
+
+- Pipeline phase: Feature Mode F2 (Spec Evolution) — adversarial convergence, IN PROGRESS.
+- F2 adversarial convergence: STRICT WHOLE-CORPUS mode. Counter **0/3** (reset from 1/3 at Pass 27).
+- 27 adversarial passes + 1 corpus consistency audit run. Pass 27 NOT_CLEAN→REMEDIATED.
+  Pass 27: Slices A+B CLEAN; C-01 MED (HS-008 kill-chain order corrected — C2 between
+  Collection and Exfiltration); D-01 MED (HS-INDEX BC-2.02.009 "v1.5" pin dropped;
+  holdout layer swept — 1 active pin flushed). Both genuine; fresh-context variance.
+  PG-ARP-F2-008: holdout BC-version-pin lag class hardened.
+- Next action at time of archival: whole-corpus Pass 28 via Claude adversary.
+
+### VERIFIED SHAs at archival time (Pass 27 checkpoint)
+
+| Ref | Value | Notes |
+|-----|-------|-------|
+| develop HEAD | 31d1231 | — |
+| main HEAD | 3e29891 | chore: release v0.6.0 |
+| factory-artifacts HEAD | re-verify live | `git -C .factory log -1 --format='%h %s'` |
