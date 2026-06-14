@@ -14,6 +14,33 @@ changes, invariant rewrites).
 
 ---
 
+## [prd-v1.25-ss15-titlesync-2026-06-14] — 2026-06-14
+
+### PATCH: PRD v1.24→v1.25 — §2.15 BC Index Title-Sync (post-Pass-26 consistency flush)
+
+**Scope:** `prd.md` §2.15 BC index rows BC-2.15.009 and BC-2.15.016 synced to their
+canonical H1 headings. No BC files modified; no BC count change (still 283).
+
+#### FIX-1 — §2.15.C BC-2.15.009 row title synced to H1
+
+The PRD §2.15.C index row subtitle had drifted from the canonical BC H1. The stale
+"first 16 bytes" framing was replaced with the correct H1 wording:
+"Initial-Delivery No-Sync (One-Shot, First Delivery Only)".
+
+#### FIX-2 — §2.15.F BC-2.15.016 row title synced to H1
+
+The PRD §2.15.F index row for BC-2.15.016 was missing the "master_addrs ≤64,
+pending_requests ≤256" bounds that appear in the canonical BC H1. The row title has
+been updated to include these bounds.
+
+**Context:** This title-sync is part of the broader post-Pass-26 full-corpus consistency
+flush, which also covered: VP-006 Must→Should table correction, src-citation
+symbol-anchoring across multiple BCs, and removal of stale line-pin references. Only
+the PRD §2.15 title-sync rows constitute the 1.24→1.25 bump; the other flush items were
+committed in the same burst under their own version records.
+
+---
+
 ## [pass-25-f3-convergence-2026-06-14] — 2026-06-14
 
 ### PATCH: Pass-25 F3-Convergence Remediation (holdout/story layer)

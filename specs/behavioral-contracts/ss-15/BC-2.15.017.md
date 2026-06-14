@@ -14,7 +14,7 @@ capability: CAP-15
 lifecycle_status: active
 introduced: v0.6.0-feature-008
 modified:
-  - "v1.3: F3 story-anchor back-fill; fixed DNP3_DIRECT_OPERATE_THRESHOLD_DEFAULT placeholder to DNP3_DIRECT_OPERATE_THRESHOLD_DEFAULT (three occurrences). — 2026-06-14"
+  - "v1.3: F3 story-anchor back-fill; renamed DNPXX_→DNP3_ (erroneous; REVERTED in v1.4 — DNPXX_ is the canonical shipped name per src/analyzer/dnp3.rs:169). — 2026-06-14"
   - "v1.4: REVERT erroneous Pass-22 rename — restore canonical shipped constant name DNPXX_DIRECT_OPERATE_THRESHOLD_DEFAULT (matches src/analyzer/dnp3.rs:169 + STORY-110); prior v1.3 'DNP3_' rename was a spec<->code mis-anchor (F3-convergence Pass-24 FIX-1). — 2026-06-14"
 deprecated: null
 deprecated_by: null

@@ -373,6 +373,21 @@ supplements:
 >
 > No new BCs; no BC count change. See `spec-changelog.md` §[pass-24-f3-convergence-2026-06-14].
 
+> **Version 1.25 delta (2026-06-14 — Pass-26 post-consistency-flush §2.15 title-sync):**
+> Two §2.15 BC index rows synced to their canonical H1 headings (part of the post-Pass-26
+> full-corpus consistency flush; same burst also covered VP-006 Must→Should table,
+> src-citation symbol-anchoring, and line-pin de-pins):
+>
+> - **§2.15.C BC-2.15.009 row title synced:** Updated subtitle to match H1 "Initial-Delivery
+>   No-Sync (One-Shot, First Delivery Only)"; removed stale "first 16 bytes" framing that had
+>   drifted from the canonical H1 wording.
+>
+> - **§2.15.F BC-2.15.016 row title synced:** Added "master_addrs ≤64, pending_requests ≤256"
+>   bounds to the row title to match the canonical BC H1 (which carried these bounds
+>   post-feature-008-F2).
+>
+> No new BCs; no BC count change (283). See `spec-changelog.md` §[prd-v1.25-ss15-titlesync-2026-06-14].
+
 > **Supplement Model:** Sections 3-5 reference extracted supplement files under
 > `prd-supplements/`. These supplements are produced in a SEPARATE burst (Phase 1b).
 > Entries in those sections are summary stubs until the supplement burst completes.
