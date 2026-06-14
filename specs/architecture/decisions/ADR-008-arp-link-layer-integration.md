@@ -12,6 +12,7 @@ modified:
   - "v1.6 (2026-06-12): Pass 8 remediation — (HIGH-01) Decision 3: specified ARP early-extraction in BOTH the strict Ok(slice) arm AND the lax Err(SliceError::Len(_)) arm. The lax arm previously had LaxNetSlice::Arp(_) => unreachable!(...) which is reachable for snaplen-truncated ARP frames (etherparse 0.20 yields Some(LaxNetSlice::Arp(_)) on truncation), violating VP-008/VP-024 Sub-A no-panic. Fixed: lax arm routes Some(LaxNetSlice::Arp(arp)) to DecodedFrame::Arp via extract_arp_frame (truncated body still yields outer MAC + opcode; extract_arp_frame returns None on bad size → mapped to Err). Removed unreachable! from lax_ip_triple ARP arm; replaced with explicit handling. (HIGH-02) Confirmed-API list: Ethernet2Slice::source() confirmed to return [u8; 6] by value (docs.rs etherparse 0.20.1 fetch 2026-06-12); added to confirmed-API list; Some(eth.source()) in Decision 3 routing snippet is correct as written, no dereference needed."
   - "v1.7 (2026-06-12): F-B9-M02 — Decision 7 key 11: struck 'or etherparse parse failure' from malformed_frames definition. malformed_frames counts only frames that reach extract_arp_frame and return None (bad hw/proto sizes / non-Eth-IPv4). Etherparse parse failures (truncated/garbage ARP that never produce an ArpPacketSlice) are handled by the existing decode error path and are NOT counted in malformed_frames (see BC-2.16.009 EC-007). Aligns ADR to BC-2.16.009 EC-007 and BC-2.16.010 key 11."
   - "v1.8 (2026-06-12): F-B10-L01 — Decision 5 detection table D11 trigger cell: removed 'or etherparse rejects the frame'. D11 covers only frames that produced an ArpPacketSlice and then failed the hw_addr_size/proto_addr_size (or non-Ethernet/IPv4 hw/proto type) check inside extract_arp_frame. Etherparse-reject frames never produce an ArpPacketSlice and are NOT D11 — they are handled by the existing decode error path (BC-2.16.009 EC-007). Aligns Decision 5 D11 trigger with Decision 7 key 11 (fixed in v1.7) and BC-2.16.009 EC-007."
+  - "v1.9 (2026-06-13): Pass-20 D-02 (LOW) — Decision 6 MitreTactic enum assessment paragraph: reconciled inconsistent labeling of T0830's tactic source. Both the opening sentence and the bullet now consistently state that T0830's home matrix is ICS (TA0109 Lateral Movement), and that the wirerust code maps it to the shared MitreTactic::LateralMovement variant (no separate ICS variant exists) via the merge-by-name policy. Previously the opening sentence said 'ICS matrix (TA0109)' while the bullet said 'Enterprise Lateral Movement variant', creating an apparent contradiction. No mapping change — tactic assignment is unchanged."
 subsystems_affected:
   - SS-02
   - SS-10
@@ -453,15 +454,20 @@ Both IDs are confirmed current and non-revoked in ATT&CK v19.1 (validated by res
 in `.factory/phase-f1-delta-analysis/mitre-arp-research.md` §2, 2026-06-12).
 
 **MitreTactic enum assessment (resolved — no placeholder):** T0830 belongs to tactic
-"Lateral Movement" in the ICS matrix (TA0109). T1557.002 belongs to "Credential Access" in
-Enterprise (TA0006). The inline merge-by-name comment in `technique_info` (lines 145–148) explicitly states the
-merge-by-name policy: "we intentionally merge by name so a single grouped report has one
-section per tactic name regardless of source matrix." Consistent with this policy, ICS
-Discovery techniques (T0846, T0888) already map to `MitreTactic::Discovery` (the Enterprise
-variant), not to a separate `IcsDiscovery`. The same rule applies here:
+"Lateral Movement" in the ICS matrix (TA0109); the wirerust `MitreTactic` enum has no
+separate ICS-specific variant for this tactic and instead reuses the shared
+`MitreTactic::LateralMovement` variant (the merge-by-name policy collapses ICS TA0109
+"Lateral Movement" and Enterprise TA0008 "Lateral Movement" into one variant). T1557.002
+belongs to "Credential Access" in Enterprise (TA0006). The inline merge-by-name comment in
+`technique_info` (lines 145–148) explicitly states the merge-by-name policy: "we
+intentionally merge by name so a single grouped report has one section per tactic name
+regardless of source matrix." Consistent with this policy, ICS Discovery techniques (T0846,
+T0888) already map to `MitreTactic::Discovery` (the shared variant), not to a separate
+`IcsDiscovery`. The same rule applies here:
 
-- **T0830 → `MitreTactic::LateralMovement`** (Enterprise Lateral Movement variant, already
-  present in the enum; ICS TA0109 "Lateral Movement" merges with Enterprise TA0008 by name).
+- **T0830 → `MitreTactic::LateralMovement`** (shared variant used for both ICS TA0109 and
+  Enterprise TA0008 "Lateral Movement"; T0830's home matrix is ICS, mapped here via the
+  merge-by-name policy — no separate ICS enum variant exists or is needed).
 - **T1557.002 → `MitreTactic::CredentialAccess`** (Enterprise Credential Access, already
   present in the enum).
 

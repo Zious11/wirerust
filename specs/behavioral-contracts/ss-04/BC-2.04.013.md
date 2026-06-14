@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.8"
+version: "1.9"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -21,6 +21,7 @@ modified:
   - "v1.6: DF-SIBLING-SWEEP-001 HS-043 re-anchor: mod.rs:536-552 → mod.rs:622-638 (expire_flows public fn); mod.rs:162 → mod.rs:193 (flush_contiguous_data call in process_packet, cited in PC3 enforcement note). — 2026-06-01"
   - "v1.7: ADV-IMPL-P10-MED-001 fix — PC0 re-anchored: the production per-packet idle-expiry enforcer is `expire_idle_by_timeout` (mod.rs:604-619, private hot-path variant), called from `process_packet` at mod.rs:168-171. `expire_flows` (mod.rs:622-638) is the public direct-call / offline API and is NEVER called from `process_packet` (zero call sites in src/). The memory-bound guarantee semantics are unchanged; only the named function and anchors are corrected. Test citation updated to `test_BC_2_04_013_PC0_idle_expiry_wired_in_process_packet` (per DF-AC-TEST-NAME-SYNC-001, coupled with FIX-P5-004 test rename). Supersedes the previously ACCEPTED ADV-HS043-P02-LOW-001 (same root issue — now properly fixed, not merely accepted). ADV-HS043-P02-MED-001 timestamp-monotonicity caveat carried forward unchanged (separate accepted item). — 2026-06-01"
   - "v1.8: PG-ARP-F2-007 ss-04-full re-anchor: mod.rs:604-619 → mod.rs:604-619 (expire_idle_by_timeout); mod.rs:168-171 → mod.rs:168-171 (call site in process_packet); mod.rs:622-638 → mod.rs:622-638 (expire_flows public API); mod.rs:193 → mod.rs:193 (flush_contiguous_data call). All prose, Architecture Module, Architecture Anchors, and Source Evidence updated. — 2026-06-13"
+  - "v1.9: P20 B-02 fix: Architecture Module and Source Evidence cited stale expire call-site :166-169 (two occurrences); correct is :168-171 per verified mod.rs. Fixed both. — 2026-06-13"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -142,7 +143,7 @@ to bound memory use in long-running captures"). See
 | L2 Capability | CAP-04 ("TCP stream reassembly") per domain/capabilities/cap-04-tcp-reassembly.md |
 | Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per domain/capabilities/cap-04-tcp-reassembly.md -- idle flow expiry is required to bound memory use in long-running captures |
 | L2 Domain Invariants | None directly |
-| Architecture Module | SS-04 (reassembly/mod.rs:604-619 expire_idle_by_timeout, called at :166-169 from process_packet; reassembly/mod.rs:622-638 expire_flows public API) |
+| Architecture Module | SS-04 (reassembly/mod.rs:604-619 expire_idle_by_timeout, called at :168-171 from process_packet; reassembly/mod.rs:622-638 expire_flows public API) |
 | Stories | STORY-019 |
 | Origin BC | BC-RAS-013 (pass-3 ingestion corpus, HIGH confidence) |
 
@@ -162,7 +163,7 @@ to bound memory use in long-running captures"). See
 
 | Property | Value |
 |----------|-------|
-| **Path (production wired)** | `src/reassembly/mod.rs:604-619` (`expire_idle_by_timeout`, called from `process_packet` at :166-169) |
+| **Path (production wired)** | `src/reassembly/mod.rs:604-619` (`expire_idle_by_timeout`, called from `process_packet` at :168-171) |
 | **Path (public API)** | `src/reassembly/mod.rs:622-638` (`expire_flows`, direct-call / offline API) |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |

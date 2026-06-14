@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.4"
+version: "1.5"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -17,6 +17,7 @@ modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
   - "v1.3: FIX-P5-002 / ADV-IMPL-P04-MED-001 — --reassembly-depth and --reassembly-memcap now require >= 1; 0 rejected at parse time via parse_nonzero_usize value_parser (exit 2, ValueValidation). Corrects implicit 0-accepted assumption. Test citations corrected to match committed names (DF-AC-TEST-NAME-SYNC-001). 2026-06-01"
   - "v1.4: DF-SIBLING-SWEEP-001 — fix stale cli.rs line anchor: reassembly flags range 61-106 → 71-122 (additional flags --overlap-threshold, --small-segment-*, --out-of-window-threshold, --flow-timeout added between old line 67 and Commands; new range is 71 to 122); verified against HEAD cfe0112a — 2026-06-01"
+  - "v1.5: P20 B-04+B-05 fix: (B-04) Invariant 4 main.rs:104-117 → 147-161 (CLI override application block); Architecture Anchor main.rs:87-122 → 139-166 (full ReassemblyConfig construction+overrides+TcpReassembler::new block). (B-05) Architecture Anchor + Source Evidence cli.rs:71-122 → 73-124 (line 71 is --csv tail; --reassemble block starts at 73, ends at flow_timeout field at 124). All verified against current src. — 2026-06-13"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -68,7 +69,7 @@ This prevents 0 from reaching `TcpReassembler::new`'s defensive `assert!(max_dep
 2. `--reassemble` and `--no-reassemble` are mutually exclusive (BC-2.12.007).
 3. `--small-segment-ignore-ports` is `Option<Vec<u16>>` with `value_delimiter = ','`.
 4. When threshold overrides are `Some`, main.rs applies them to `ReassemblyConfig` after
-   construction (main.rs:104-117).
+   construction (main.rs:147-161).
 
 ## Edge Cases
 
@@ -124,8 +125,8 @@ This prevents 0 from reaching `TcpReassembler::new`'s defensive `assert!(max_dep
 
 ## Architecture Anchors
 
-- `src/cli.rs:71-122` -- reassembly flags on Cli struct; `parse_nonzero_usize` value_parser enforces depth >= 1 and memcap >= 1
-- `src/main.rs:87-122` -- reassembly configuration applied in run_analyze
+- `src/cli.rs:73-124` -- reassembly flags on Cli struct; `parse_nonzero_usize` value_parser enforces depth >= 1 and memcap >= 1
+- `src/main.rs:139-166` -- ReassemblyConfig construction (struct 140-144), CLI override application (147-161), flow_timeout_secs wire (165), TcpReassembler::new (166)
 - `src/reassembly/mod.rs:115-125` -- TcpReassembler::new defensive asserts (backstop; parse_nonzero_usize prevents 0 from reaching here in production)
 - `tests/cli_story_087_tests.rs` -- test_reassembly_flags, test_no_reassemble_flag, test_EC_001_reassembly_depth_zero_rejected, test_EC_001_reassembly_memcap_zero_rejected, test_analyze_reassembly_depth_zero_exits_usage_error, test_analyze_reassembly_memcap_zero_exits_usage_error
 
@@ -137,7 +138,7 @@ This prevents 0 from reaching `TcpReassembler::new`'s defensive `assert!(max_dep
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/cli.rs:71-122` |
+| **Path** | `src/cli.rs:73-124` |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 

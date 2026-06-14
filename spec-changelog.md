@@ -14,6 +14,80 @@ changes, invariant rewrites).
 
 ---
 
+## [pass-20-fixes-2026-06-13] — 2026-06-13
+
+### PATCH: Pass-20 small anchor/version stragglers (D-01, B-01..B-05)
+
+Six targeted fixes across five artifacts. No behavioral changes; line number and version
+field corrections only. All verified against current src before edit.
+
+**D-01 HIGH — cap-09-finding-emission.md version field straggler**
+
+| Field | Before | After |
+|-------|--------|-------|
+| `version:` | `"1.1"` | `"1.2"` |
+
+Root cause: the P19 straggler anchor sweep applied body updates and added a second
+`modified[]` entry to cap-09 but never incremented the frontmatter `version:` field.
+The changelog and body state were at 1.2; the frontmatter field was left at 1.1.
+Exactly one `version:` key present after fix (confirmed).
+
+**B-01 LOW — BC-2.04.012 v1.9→v2.0: Invariant 1 latch line 618→647**
+
+Invariant 1 prose cited `self.finalized = true` at `mod.rs:618`. Actual is `mod.rs:647`
+(verified: `grep -n "finalized" src/reassembly/mod.rs` returns `647: self.finalized = true`).
+The Refactoring Notes already cited 647 correctly; only the body Invariant sentence was missed
+in the P19 sweep.
+
+**B-02 MEDIUM — BC-2.04.013 v1.8→v1.9: expire call-site :166-169 → :168-171 (two occurrences)**
+
+Architecture Module row and Source Evidence row both cited `process_packet` call site at
+`mod.rs:166-169`. Actual call site (the `expire_idle_by_timeout` invocation) is at
+`mod.rs:168-171` (verified: `sed -n '160,175p'` shows the guard condition at 168-170 and
+the call at 170; the block spans 168-171). Architecture Anchors and prose already had 168-171
+correct. Fixed both stale occurrences.
+
+**B-03 MEDIUM — BC-2.04.014 v1.5→v1.6: lifecycle.rs:60 → lifecycle.rs:66**
+
+Architecture Module row and Architecture Anchors bullet cited `lifecycle.rs:60` for
+`total_memory -= flow_mem on close`. Actual is `lifecycle.rs:66` (verified:
+`grep -n "total_memory"` returns `66: self.total_memory -= flow_mem`; line 60 is
+`let flushed = flow_dir.flush_contiguous()`).
+
+**B-04 MEDIUM — BC-2.12.005 v1.4→v1.5: main.rs:87-122 → 139-166; Invariant 4 104-117 → 147-161**
+
+- Architecture Anchor `src/main.rs:87-122` (described as "reassembly configuration applied
+  in run_analyze") was stale. The `ReassemblyConfig` struct literal is at lines 140-144;
+  CLI override `if let Some(v)` blocks run 147-161; `flow_timeout_secs` wire at 165;
+  `TcpReassembler::new` at 166. Correct range: `main.rs:139-166`. Fixed.
+- Invariant 4 cited `main.rs:104-117` for CLI override application. Actual override block
+  is `main.rs:147-161`. Fixed.
+
+**B-05 LOW — BC-2.12.005 (same bump): cli.rs:71-122 → 73-124**
+
+Architecture Anchor and Source Evidence cited `cli.rs:71-122` for the reassembly flag block.
+Line 71 is the `--csv` flag tail; the `--reassemble` `#[arg]` annotation starts at line 73.
+The block ends with `pub flow_timeout: u64` at line 124. Correct range: `cli.rs:73-124`. Fixed.
+
+**Architect D-02 logged (ADR-008 modified[] — T0830 ICS/Enterprise matrix-label reconciliation)**
+
+Per architect task output for P20 D-02: ADR-008 received a `modified[]` entry for
+T0830 ICS/Enterprise matrix-label reconciliation (timing T0830 ICS/Enterprise). No BC
+file changes were required for D-02; this entry records the architect's bump for auditability.
+
+**Artifacts changed:**
+
+| Artifact | Change |
+|----------|--------|
+| `.factory/specs/domain/capabilities/cap-09-finding-emission.md` | `version: 1.1 → 1.2`; third `modified[]` entry added |
+| `.factory/specs/behavioral-contracts/ss-04/BC-2.04.012.md` | `version: 1.9 → 2.0`; Invariant 1 latch prose `mod.rs:618 → mod.rs:647` |
+| `.factory/specs/behavioral-contracts/ss-04/BC-2.04.013.md` | `version: 1.8 → 1.9`; Architecture Module + Source Evidence call-site `:166-169 → :168-171` (2 occurrences) |
+| `.factory/specs/behavioral-contracts/ss-04/BC-2.04.014.md` | `version: 1.5 → 1.6`; Architecture Module + Architecture Anchors `lifecycle.rs:60 → lifecycle.rs:66` |
+| `.factory/specs/behavioral-contracts/ss-12/BC-2.12.005.md` | `version: 1.4 → 1.5`; Invariant 4 `main.rs:104-117 → 147-161`; Arch Anchor `main.rs:87-122 → 139-166`; Arch Anchor + Source Evidence `cli.rs:71-122 → 73-124` |
+| `.factory/specs/behavioral-contracts/BC-INDEX.md` | Inline version bump annotations added for all four changed BCs |
+
+---
+
 ## [pg-arp-f2-007-ss11-full-reanchor-2026-06-13] — 2026-06-13
 
 ### PATCH: PG-ARP-F2-007 — comprehensive ss-11 (reporting/output) src-line re-anchor, affected BCs

@@ -59,10 +59,11 @@ Minimum 3 consecutive clean passes required for convergence gate (same as F5 sta
 | 17 (whole-corpus, Claude) | 2026-06-13 | 10 | 3 | 2 | 2 | 3 | MED | 0/3 | NOT_CLEAN→REMEDIATED |
 | 18 (whole-corpus, Claude) | 2026-06-13 | 9 | 0 | 3 | 2 | 4 | LOW | 0/3 | NOT_CLEAN→REMEDIATED |
 | 19 (whole-corpus, Claude) | 2026-06-13 | 15 | 0 | 8 | 2 | 5 | HIGH | 0/3 | NOT_CLEAN→PARTIAL |
+| 20 (whole-corpus, Claude) | 2026-06-13 | 7 | 0 | 1 | 3 | 3 | LOW | 0/3 | NOT_CLEAN→REMEDIATED |
 
 ## Trajectory Shorthand
 
-`15→20→~8→~15→~6→~4→~4→~7→~4→~6→~5→~18→~8→~22(P14: 2C/5H NEW corpus-debt; trend broke; ARP delta clean 6th pass)→P15(8 findings: holdout-layer field-rename + regression; REMEDIATED)→P16(7: 0C/0H, sibling-sweep misses; REMEDIATED; Slice B CLEAN all 283 BCs + field-rename verified)→P17(10: holdout MITRE-counts + module-decomposition peer; REMEDIATED; Slice B CLEAN 2nd)→P18(9: ss-05 anchor-drift + indicatif + STORY-INDEX; 0C/3H; REMEDIATED; arp.rs+holdout pre-flush verified clean)→P19(15: corpus-wide anchor-drift; 0C/8H; PARTIAL — ss-07-full+remaining-BC pending)`
+`15→20→~8→~15→~6→~4→~4→~7→~4→~6→~5→~18→~8→~22(P14: 2C/5H NEW corpus-debt; trend broke; ARP delta clean 6th pass)→P15(8 findings: holdout-layer field-rename + regression; REMEDIATED)→P16(7: 0C/0H, sibling-sweep misses; REMEDIATED; Slice B CLEAN all 283 BCs + field-rename verified)→P17(10: holdout MITRE-counts + module-decomposition peer; REMEDIATED; Slice B CLEAN 2nd)→P18(9: ss-05 anchor-drift + indicatif + STORY-INDEX; 0C/3H; REMEDIATED; arp.rs+holdout pre-flush verified clean)→P19(15: corpus-wide anchor-drift; 0C/8H; PARTIAL — ss-07-full+remaining-BC pending)→ P20(7: anchor-drift flushed, ss-04/ss-12 closed; 0C/1H; Slices A+C CLEAN; REMEDIATED)`
 
 Severity profile: CRITICAL count: 4→5→0→0→0→0→0→0→0→0→0→0→0→2→2→0→3→0→0 — DECAYING on CRITICAL
 (0 for 3 of last 4 passes: P16+P18+P19).
@@ -113,12 +114,18 @@ BC-2.04.055 on_data :144→:245 [CARRY-OVER]; 0C/3H). Proactive pre-pass fix (ar
 PLANNED STORY-111→STORY-112 in system-overview v1.3→v1.4 + purity-boundary-map v1.2→v1.3)
 verified CLEAN by Slice A. Holdout tree 101 files (Slice C) CLEAN. Trajectory P14-18:
 2C/5H → 2C/1H → 0C/0H → 3C/2H → 0C/3H. Decaying on CRITICAL (0 for 2 of last 3).
-Pass 19 REMEDIATION IN PROGRESS (15 findings: 0C/8H/2M/5L; PG-ARP-F2-007 corpus-wide anchor
-re-sync; ~62 files re-anchored in this checkpoint; ss-07-full + ss-01/02/04-rest/08/11/12/13
-anchor audit STILL PENDING before Pass 20). Trajectory P14-19:
+Pass 19 REMEDIATED (15 findings: 0C/8H/2M/5L; PG-ARP-F2-007 corpus-wide anchor re-sync; ~128
+files re-anchored across two batches; ss-07-full 35 BCs + ss-04-partial 21 BCs + ss-11 10 BCs;
+ss-01/02/08/13 CONFIRMED CLEAN). Trajectory P14-19:
 2C/5H → 2C/1H → 0C/0H → 3C/2H → 0C/3H → 0C/8H. REGRESSION at P19 HIGH.
-Counter 0/3 — remediation does NOT advance counter. Next = complete ss-07-full + remaining-BC
-anchor audit, then Pass 20 via Claude adversary.
+Pass 20 REMEDIATED (7 findings: 0C/1H/3M/3L; cap-09 version straggler + ss-04-remainder
+BC-2.04.012/013/014 + ss-12 BC-2.12.005 + ADR-008 D-02 matrix-label; anchor-drift class
+PG-ARP-F2-007 FLUSHED corpus-wide; ss-04/ss-12 COMPLETE; Slices A+C CLEAN;
+over-correction spot-check PASSED — all P19 sweeps verified correct, no anchor moved to wrong
+line). Trajectory P17-20: 3C/2H → 0C/3H → 0C/8H → 0C/1H. DECAYING strongly.
+Counter 0/3 — remediation does NOT advance counter. Next = whole-corpus Pass 21 via Claude
+adversary (4 slices STRICT). Anchor-drift class (PG-ARP-F2-007) FLUSHED. Pass 21 is the
+candidate for the FIRST fully-clean pass → begin the 3-consecutive-clean streak.
 
 ## Core Semantics — Confirmed Clean (Settled)
 
@@ -1381,6 +1388,120 @@ validation tool.
 | test-vectors | bumped | domain straggler sweep |
 | BC-INDEX | updated | version pins for all re-anchored BCs |
 | spec-changelog | updated | all P19 checkpoint version bumps recorded |
+
+---
+
+### Pass 20 — 2026-06-13 (whole-corpus, Claude adversary; NOT_CLEAN → REMEDIATED)
+
+**Method:** Whole-corpus fresh-context pass; Claude vsdd-factory:adversary per human direction.
+**Factory-artifacts HEAD reviewed:** (post-P19-Batch-2-remediation burst).
+**Findings:** 7 total — 0 CRITICAL, 1 HIGH, 3 MEDIUM, 3 LOW — ALL REMEDIATED.
+**Novelty:** LOW — ss-04 remainder (BC-2.04.012/013/014) and ss-12 (BC-2.12.005) are the last
+anchor-drift pockets from PG-ARP-F2-007; cap-09 frontmatter version straggler is a unapplied
+bump from the P19 body sweep; ADR-008 T0830 matrix-label adjacent-sentence reconciliation is
+prose only (no mapping change). Slices A and C CLEAN.
+**Over-correction spot-check:** PASSED — all large P19 sweeps (ss-07-full 35 BCs, ss-04-partial
+21 BCs, ss-11 10 BCs, ss-06 26 BCs, VP sweep 9 files) verified correct; no anchor moved to a
+wrong line. Anchor-drift class PG-ARP-F2-007 FLUSHED corpus-wide.
+**Convergence counter:** 0/3 (remediation does NOT advance counter; next = Pass 21 via Claude
+adversary — strong first-clean-pass candidate).
+**Verdict:** NOT_CLEAN → REMEDIATED.
+
+#### Findings and Remediation
+
+**D-01 HIGH (PO) — cap-09-finding-emission.md version field stuck at 1.1 (P19 straggler):**
+The P19 straggler anchor sweep applied body updates to cap-09 and added a second `modified[]`
+entry, bumping the changelog/body to version 1.2, but the frontmatter `version:` field remained
+at `"1.1"` (unapplied bump from P19 sweep). Bumped frontmatter `version:` to `"1.2"`.
+cap-09 now consistent at v1.2 throughout.
+
+**B-01 LOW (PO) — BC-2.04.012 v1.9→v2.0: Invariant-1 latch prose mod.rs:618→:647:**
+Invariant 1 prose cited `self.finalized = true` at `mod.rs:618`. Actual is `mod.rs:647`
+(verified: `grep -n "finalized" src/reassembly/mod.rs` returns `647: self.finalized = true`).
+The Refactoring Notes already cited 647 correctly; only the Invariant body sentence was missed
+in the P19 sweep.
+
+**B-02 MED (PO) — BC-2.04.013 v1.8→v1.9: expire call-site :166-169→:168-171 (2 occurrences):**
+Architecture Module row and Source Evidence row both cited `process_packet` call site at
+`mod.rs:166-169`. Actual call site (`expire_idle_by_timeout` invocation) is at `mod.rs:168-171`
+(verified). Architecture Anchors and prose already had 168-171 correct. Fixed both stale
+occurrences.
+
+**B-03 MED (PO) — BC-2.04.014 v1.5→v1.6: lifecycle.rs:60→:66:**
+Architecture Module row and Architecture Anchors bullet cited `lifecycle.rs:60` for
+`total_memory -= flow_mem on close`. Actual is `lifecycle.rs:66` (verified:
+`grep -n "total_memory"` returns `66: self.total_memory -= flow_mem`; line 60 is
+`let flushed = flow_dir.flush_contiguous()`).
+
+**B-04 MED (PO) — BC-2.12.005 v1.4→v1.5: main.rs:87-122→:139-166 / Invariant 4 :104-117→:147-161:**
+Architecture Anchor `src/main.rs:87-122` (described as "reassembly configuration applied in
+run_analyze") was stale. The `ReassemblyConfig` struct literal is at lines 140-144; CLI override
+`if let Some(v)` blocks run 147-161; `flow_timeout_secs` wire at 165; `TcpReassembler::new` at
+166. Correct range: `main.rs:139-166`. Invariant 4 cited `main.rs:104-117` for CLI override
+application; actual override block is `main.rs:147-161`.
+
+**B-05 LOW (PO) — BC-2.12.005 (same version bump): cli.rs:71-122→:73-124:**
+Architecture Anchor and Source Evidence cited `cli.rs:71-122` for the reassembly flag block.
+Line 71 is the `--csv` flag tail; the `--reassemble` `#[arg]` annotation starts at line 73.
+The block ends with `pub flow_timeout: u64` at line 124. Correct range: `cli.rs:73-124`.
+
+**D-02 LOW (architect) — ADR-008 v1.8→v1.9: T0830 ICS/Enterprise matrix-label adjacent-sentence reconciliation:**
+Decision 6 MitreTactic enum assessment paragraph contained two adjacent sentences using
+inconsistent labels for T0830's tactic source: opening sentence said "ICS matrix (TA0109)"
+while the bullet said "Enterprise Lateral Movement variant", creating an apparent contradiction.
+No mapping change — T0830 maps to MitreTactic::LateralMovement (shared variant) via
+merge-by-name policy, and its home matrix is ICS (TA0109). Both sentence and bullet now
+consistently describe this. ADR-008 bumped v1.8→v1.9.
+
+#### Slices verified CLEAN this pass
+
+- **Slice A (architecture/):** All architecture docs CLEAN. Only D-02 was in ADR-008 (LOW
+  prose reconciliation); all VP files, api-surface, purity-boundary-map, system-overview,
+  module-decomposition, dependency-graph CLEAN.
+- **Slice C (domain/ + prd-supplements + holdout-scenarios):** D-01 cap-09 version straggler
+  (HIGH — but cosmetic metadata, not behavioral). Domain invariants, capability docs, HS files,
+  nfr-catalog, error-taxonomy, test-vectors all otherwise CLEAN.
+
+#### Over-correction spot-check result (PASSED)
+
+Verified that the following P19 bulk sweeps are correct (no anchor moved to wrong line):
+- ss-07 FULL 35 BCs (tls.rs): all anchors verified against current develop HEAD.
+- ss-04 PARTIAL 21 BCs (reassembly): all changed anchors verified correct.
+- ss-11 10 BCs (reporter): all anchors verified correct.
+- ss-06 26 BCs (http.rs): all anchors verified correct (COMPLETE P19 Batch 1).
+- VP sweep 9 files: all correct.
+No over-corrections found.
+
+#### Anchor-drift class (PG-ARP-F2-007) — FLUSHED
+
+After Pass-20 remediation, anchor-drift status across all subsystems:
+
+| Subsystem | Status | Completed |
+|-----------|--------|-----------|
+| ss-05 (dispatcher.rs) | COMPLETE | P18 |
+| ss-06 (http.rs) | COMPLETE | P19 Batch 1 |
+| ss-07 (tls.rs) | COMPLETE | P19 Batch 2 (35 BCs) |
+| ss-09 (findings.rs) | COMPLETE | P19 Batch 1 |
+| ss-11 (reporter) | COMPLETE | P19 Batch 2 (10 BCs) |
+| ss-01/02/08/13 | CONFIRMED CLEAN | P19 Batch 2 |
+| ss-04 (reassembly) | COMPLETE | P20 (B-01/B-02/B-03; remainder BC-2.04.012/013/014 now closed) |
+| ss-12 (main/cli) | COMPLETE | P20 (B-04/B-05; BC-2.12.005 now closed) |
+
+**PG-ARP-F2-007 FLUSHED corpus-wide.** All subsystems that cite shifted src files are now
+anchored to develop HEAD 31d1231. Anchor-drift class is CLOSED.
+
+#### Artifact versions post-Pass-20
+
+| Artifact | Version | Change |
+|----------|---------|--------|
+| cap-09-finding-emission | v1.2 | Frontmatter version field corrected (D-01) |
+| BC-2.04.012 | v2.0 | Invariant-1 latch prose :618→:647 (B-01) |
+| BC-2.04.013 | v1.9 | expire call-site :166-169→:168-171 × 2 (B-02) |
+| BC-2.04.014 | v1.6 | lifecycle.rs :60→:66 (B-03) |
+| BC-2.12.005 | v1.5 | main.rs :87-122→:139-166 + Inv-4 :104-117→:147-161; cli.rs :71-122→:73-124 (B-04/B-05) |
+| ADR-008 | v1.9 | T0830 matrix-label adjacent-sentence reconciliation (D-02) |
+| BC-INDEX | updated | Version pin annotations for BC-2.04.012/013/014 + BC-2.12.005 |
+| spec-changelog | updated | All P20 version bumps recorded |
 
 ---
 

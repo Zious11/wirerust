@@ -5,7 +5,7 @@ cap_id: CAP-09
 title: Forensic Finding Emission
 status: descriptive (brownfield) -- reconciled against develop HEAD 0082a0c
 reconciled: 2026-05-20
-version: "1.1"
+version: "1.2"
 modified:
   - date: 2026-06-13
     actor: product-owner
@@ -13,6 +13,9 @@ modified:
   - date: 2026-06-13
     actor: product-owner
     reason: "P19 straggler anchor sweep: all 22 emission site line numbers updated for F2 shift (Modbus/DNP3/timestamp/mitre-tag). Verified against src/analyzer/http.rs, src/analyzer/tls.rs, src/reassembly/mod.rs, src/reassembly/lifecycle.rs."
+  - date: 2026-06-13
+    actor: product-owner
+    reason: "P20 D-01 fix: bumped version 1.1→1.2. The P19 straggler sweep applied body changes and added the second modified[] entry but left the version: field at 1.1. No body changes in this bump."
 ---
 
 # CAP-09: Forensic Finding Emission

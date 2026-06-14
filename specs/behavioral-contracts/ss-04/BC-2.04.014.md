@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.5"
+version: "1.6"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -18,6 +18,7 @@ modified:
   - "v1.3: Wave 9 wave-level adv pass-1 F-W9P1-003: lifecycle.rs:51 → lifecycle.rs:60 in 2 occurrences — 2026-05-26"
   - "v1.4: DF-SIBLING-SWEEP-001 HS-043 re-anchor: mod.rs:337-340 → mod.rs:375-376 (total_memory += bytes_added); mod.rs:525-527 → mod.rs:585 (total_memory -= flushed bytes). — 2026-06-01"
   - "v1.5: PG-ARP-F2-007 ss-04-full re-anchor: mod.rs:375-376 → mod.rs:375-376 (total_memory += bytes_added); mod.rs:585 → mod.rs:585 (total_memory -= flushed bytes). — 2026-06-13"
+  - "v1.6: P20 B-03 fix: Architecture Anchor cited lifecycle.rs:60 for `total_memory -= flow_mem on close`; actual is lifecycle.rs:66 (line 60 is `flush_contiguous` call). Fixed 60→66. — 2026-06-13"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -90,7 +91,7 @@ This counter drives the memcap eviction check after each packet.
 | L2 Capability | CAP-04 ("TCP stream reassembly") per domain/capabilities/cap-04-tcp-reassembly.md |
 | Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per domain/capabilities/cap-04-tcp-reassembly.md -- total_memory tracking is the measurement mechanism for the memcap eviction policy |
 | L2 Domain Invariants | None directly |
-| Architecture Module | SS-04 (reassembly/mod.rs:375-376, insert; mod.rs:585, flush; lifecycle.rs:60, close_flow) |
+| Architecture Module | SS-04 (reassembly/mod.rs:375-376, insert; mod.rs:585, flush; lifecycle.rs:66, close_flow) |
 | Stories | STORY-020 |
 | Origin BC | BC-RAS-014 (pass-3 ingestion corpus, HIGH confidence) |
 
@@ -104,7 +105,7 @@ This counter drives the memcap eviction check after each packet.
 
 - `src/reassembly/mod.rs:375-376` -- total_memory += bytes_added after insert
 - `src/reassembly/mod.rs:585` -- total_memory -= flushed bytes
-- `src/reassembly/lifecycle.rs:60` -- total_memory -= flow_mem on close
+- `src/reassembly/lifecycle.rs:66` -- total_memory -= flow_mem on close
 
 ## Source Evidence
 

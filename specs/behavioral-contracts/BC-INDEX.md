@@ -85,9 +85,9 @@ traces_to: .factory/specs/prd.md
 | BC-2.04.009 | Mid-Stream Join Infers ISN from seq-1; Flow Marked Partial | P0 | [WRITTEN] | BC-RAS-009 |
 | BC-2.04.010 | RST Closes Flow Immediately with CloseReason::Rst | P0 | [WRITTEN] | BC-RAS-010 | <!-- PG-ARP-F2-007: ss-04 src re-anchor -->
 | BC-2.04.011 | Both FINs Close Flow with CloseReason::Fin | P0 | [WRITTEN] | BC-RAS-011 | <!-- PG-ARP-F2-007: ss-04 src re-anchor -->
-| BC-2.04.012 | finalize Flushes All Remaining Flows; Idempotent | P0 | [WRITTEN] | BC-RAS-012 | <!-- PG-ARP-F2-007: ss-04 src re-anchor -->
-| BC-2.04.013 | expire_idle_by_timeout / expire_flows Closes Idle Flows Past flow_timeout_secs | P1 | [WRITTEN] | BC-RAS-013 | <!-- PG-ARP-F2-007: ss-04 src re-anchor -->
-| BC-2.04.014 | total_memory Tracks Buffered Bytes; Decrements on Flush and Close | P1 | [WRITTEN] | BC-RAS-014 | <!-- PG-ARP-F2-007: ss-04 src re-anchor -->
+| BC-2.04.012 | finalize Flushes All Remaining Flows; Idempotent | P0 | [WRITTEN] | BC-RAS-012 | <!-- PG-ARP-F2-007: ss-04 src re-anchor --> <!-- P20-B-01: v1.9→v2.0 latch line 618→647 -->
+| BC-2.04.013 | expire_idle_by_timeout / expire_flows Closes Idle Flows Past flow_timeout_secs | P1 | [WRITTEN] | BC-RAS-013 | <!-- PG-ARP-F2-007: ss-04 src re-anchor --> <!-- P20-B-02: v1.8→v1.9 expire call-site :166-169→:168-171 -->
+| BC-2.04.014 | total_memory Tracks Buffered Bytes; Decrements on Flush and Close | P1 | [WRITTEN] | BC-RAS-014 | <!-- PG-ARP-F2-007: ss-04 src re-anchor --> <!-- P20-B-03: v1.5→v1.6 lifecycle.rs:60→:66 close_flow -->
 | BC-2.04.015 | Flow Eviction on max_flows Hit Uses LRU Non-Established-First | P1 | [WRITTEN] | BC-RAS-015 | <!-- PG-ARP-F2-007: ss-04 src re-anchor -->
 | BC-2.04.016 | Memory Pressure Eviction When total_memory Exceeds memcap | P1 | [WRITTEN] | BC-RAS-016 | <!-- PG-ARP-F2-007: ss-04 src re-anchor -->
 | BC-2.04.017 | Eviction Sort -- Non-Established First, Then Oldest-Last-Seen | P1 | [WRITTEN] | BC-RAS-017 | <!-- PG-ARP-F2-007: ss-04 src re-anchor -->
@@ -297,7 +297,7 @@ traces_to: .factory/specs/prd.md
 | BC-2.12.002 | summary Subcommand Parses Targets and --hosts Flag | P1 | [WRITTEN] | BC-CLI-002 |
 | BC-2.12.003 | Global Flag --no-color Parsed and Stored | P1 | [WRITTEN] | BC-CLI-003 |
 | BC-2.12.004 | --output-format json Parses to Some(OutputFormat::Json) | P0 | [WRITTEN] | BC-CLI-004 |
-| BC-2.12.005 | Reassembly CLI Flags: --reassemble/--no-reassemble, depth, memcap, and five anomaly-threshold flags | P0 | [WRITTEN] | BC-CLI-005 |
+| BC-2.12.005 | Reassembly CLI Flags: --reassemble/--no-reassemble, depth, memcap, and five anomaly-threshold flags | P0 | [WRITTEN] | BC-CLI-005 | <!-- P20-B-04+B-05: v1.4→v1.5 main.rs:87-122→139-166, inv4 104-117→147-161, cli.rs:71-122→73-124 -->
 | BC-2.12.006 | Multiple Positional Targets Accepted in analyze | P1 | [WRITTEN] | BC-CLI-006 |
 | BC-2.12.007 | --reassemble and --no-reassemble are Mutually Exclusive (clap conflicts_with) | P0 | [WRITTEN] | BC-CLI-007 |
 | BC-2.12.008 | --all Enables dns/http/tls Together | P1 | [WRITTEN] | BC-CLI-008 |

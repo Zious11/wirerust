@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.9"
+version: "2.0"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -22,6 +22,7 @@ modified:
   - "v1.7: F-DRIFT2A-001 — fixed stale domain/capabilities/cap-04-tcp-reassembly.md citation to domain/capabilities/cap-04-tcp-reassembly.md in L2 Capability and Capability Anchor Justification rows. — 2026-05-29"
   - "v1.8: DF-SIBLING-SWEEP-001 HS-043 re-anchor: mod.rs:557-591 → mod.rs:643-677 (finalize fn); mod.rs:794-808 → mod.rs:1038-1052 (impl Drop); latch prose mod.rs:561 → mod.rs:647. — 2026-06-01"
   - "v1.9: PG-ARP-F2-007 ss-04-full re-anchor: mod.rs:643-677 → mod.rs:643-677 (finalize fn); mod.rs:1038-1052 → mod.rs:1038-1052 (impl Drop); latch prose mod.rs:647 → mod.rs:647. All Traceability, Architecture Anchors, Source Evidence, and Refactoring Notes updated. — 2026-06-13"
+  - "v2.0: P20 B-01 fix: Invariant 1 prose cited stale line 618 for `self.finalized = true`; actual is mod.rs:647 (verified). Fixed 618→647. — 2026-06-13"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -61,7 +62,7 @@ the reassembler is dropped without finalize having been called.
 
 1. The `finalized` latch is set to `true` before any flow-closing work; this prevents
    re-entrancy if close_flow triggers a panic.
-   The source confirms `self.finalized = true` is set at line 618 before the
+   The source confirms `self.finalized = true` is set at line 647 before the
    flow loop, ensuring idempotency.
 2. The segment-limit finding push in finalize is the ONLY path that bypasses MAX_FINDINGS.
 3. `impl Drop` is a DIAGNOSTIC ONLY -- it cannot flush flows because `Drop::drop` has no
