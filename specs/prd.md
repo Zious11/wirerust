@@ -1,7 +1,7 @@
 ---
 document_type: prd
 level: L3
-version: "1.23"
+version: "1.24"
 status: draft
 producer: product-owner
 timestamp: 2026-06-14T00:00:00Z
@@ -352,6 +352,26 @@ supplements:
 >   the F-ARP-O4 delta note (v1.10) have been corrected to reflect this. RTM row for
 >   BC-2.16.004 (unit+proptest) was already correct; no RTM change required.
 > No new BCs; no BC count change. See `spec-changelog.md` §[pass-22-f3-convergence-2026-06-14].
+
+> **Version 1.24 delta (2026-06-14 — Pass-24 F3-convergence two-defect remediation):**
+> Two defects remediated (F3 Pass-24 convergence):
+>
+> - **FIX-1 (CRITICAL) — BC-2.15.017 spec<->code mis-anchor reverted:** The Pass-22 rename of
+>   `DNPXX_DIRECT_OPERATE_THRESHOLD_DEFAULT` → `DNP3_DIRECT_OPERATE_THRESHOLD_DEFAULT` in
+>   BC-2.15.017 was erroneous. `DNPXX_` is the actual shipped constant name
+>   (src/analyzer/dnp3.rs:169, src/cli.rs:16+183, STORY-110). All three live occurrences in
+>   BC-2.15.017 (Precondition 2, Architecture Anchor cli.rs ref, Architecture Anchor
+>   dnp3-architecture-delta.md ref) have been restored to `DNPXX_DIRECT_OPERATE_THRESHOLD_DEFAULT`.
+>   BC-2.15.017 bumped to v1.4. The sealed historical v1.3 changelog entry is preserved as-is.
+>   Note for orchestrator: the `DNPXX_` source symbol name is a code-quality tech-debt candidate
+>   for a future code-cleanup pass; it is NOT an F3 fix target.
+>
+> - **FIX-2 (LOW) — §2.16.F BC-2.16.010 title-sync "(11 Keys)" enrichment:** The §2.16.F index
+>   row title has been updated from "ArpAnalyzer::summarize() returns AnalysisSummary with
+>   required keys" to "ArpAnalyzer::summarize() returns AnalysisSummary with required keys
+>   (11 Keys)" to match the canonical BC H1 (BC-2.16.010.md) and BC-INDEX per Criterion-75.
+>
+> No new BCs; no BC count change. See `spec-changelog.md` §[pass-24-f3-convergence-2026-06-14].
 
 > **Supplement Model:** Sections 3-5 reference extracted supplement files under
 > `prd-supplements/`. These supplements are produced in a SEPARATE burst (Phase 1b).
@@ -1140,7 +1160,7 @@ Rust source files, 3,868 source LOC, 282 tests, single crate, Rust 2024 edition,
 
 | BC ID | Title | Priority | Origin |
 |-------|-------|----------|--------|
-| BC-2.16.010 | ArpAnalyzer::summarize() returns AnalysisSummary with required keys | P1 | feature-009-F2 |
+| BC-2.16.010 | ArpAnalyzer::summarize() returns AnalysisSummary with required keys (11 Keys) | P1 | feature-009-F2 |
 
 #### 2.16.G CLI Integration (Group G)
 

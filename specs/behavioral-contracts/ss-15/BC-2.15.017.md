@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: product-owner
 timestamp: 2026-06-10T00:00:00Z
@@ -15,6 +15,7 @@ lifecycle_status: active
 introduced: v0.6.0-feature-008
 modified:
   - "v1.3: F3 story-anchor back-fill; fixed DNP3_DIRECT_OPERATE_THRESHOLD_DEFAULT placeholder to DNP3_DIRECT_OPERATE_THRESHOLD_DEFAULT (three occurrences). — 2026-06-14"
+  - "v1.4: REVERT erroneous Pass-22 rename — restore canonical shipped constant name DNPXX_DIRECT_OPERATE_THRESHOLD_DEFAULT (matches src/analyzer/dnp3.rs:169 + STORY-110); prior v1.3 'DNP3_' rename was a spec<->code mis-anchor (F3-convergence Pass-24 FIX-1). — 2026-06-14"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -51,7 +52,7 @@ activity, a value as low as 3–5 may be more appropriate.
 
 1. The user invokes `wirerust analyze` with `--dnp3-direct-operate-threshold <N>` where N is a
    valid `u32` (0..=4_294_967_295).
-2. OR the user omits the flag, in which case the compiled default (`DNP3_DIRECT_OPERATE_THRESHOLD_DEFAULT`) is used.
+2. OR the user omits the flag, in which case the compiled default (`DNPXX_DIRECT_OPERATE_THRESHOLD_DEFAULT`) is used.
 
 ## Postconditions
 
@@ -116,9 +117,9 @@ activity, a value as low as 3–5 may be more appropriate.
 
 ## Architecture Anchors
 
-- `src/cli.rs` — `Commands::Analyze.dnp3_direct_operate_threshold: u32` field with `#[arg(long, default_value_t = DNP3_DIRECT_OPERATE_THRESHOLD_DEFAULT)]`
+- `src/cli.rs` — `Commands::Analyze.dnp3_direct_operate_threshold: u32` field with `#[arg(long, default_value_t = DNPXX_DIRECT_OPERATE_THRESHOLD_DEFAULT)]`
 - `src/analyzer/dnp3.rs` — `Dnp3Analyzer.direct_operate_threshold: u32`
-- `.factory/phase-f2-spec-evolution/dnp3-architecture-delta.md §10` — CLI delta; `DNP3_DIRECT_OPERATE_THRESHOLD_DEFAULT`
+- `.factory/phase-f2-spec-evolution/dnp3-architecture-delta.md §10` — CLI delta; `DNPXX_DIRECT_OPERATE_THRESHOLD_DEFAULT`
 - `.factory/specs/architecture/decisions/ADR-007-binary-ics-protocol-integration-dnp3-tcp.md §Decision 6`
 
 ## Story Anchor
