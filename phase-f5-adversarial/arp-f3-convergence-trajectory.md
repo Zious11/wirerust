@@ -227,6 +227,18 @@ together eliminated the asymptotic Slice-D/B churn that had persisted through P3
 
 **Clean-streak 0/3 → 1/3.** NEXT = Pass 37 (clean-streak attempt 2/3 — need 2 more consecutive).
 
+### Pass 37 (2026-06-14)
+
+Slice A: ZERO [16th-consec]. Slice B: ZERO [converged]. Slice C: ZERO [converged].
+Slice D: ZERO. ALL 4 SLICES ZERO. Mount-guards PASSED. FULLY CLEAN.
+
+**Finding:** ZERO findings total. FULLY CLEAN pass. No remediation required.
+
+P36 + P37 = 2 consecutive fully-clean passes. Clean-streak advances 1/3 → **2/3**.
+ONE more consecutive clean pass (Pass 38) satisfies the F3 strict 3/3 gate.
+
+**Clean-streak 1/3 → 2/3.** NEXT = Pass 38 (clean-streak attempt 3/3 — final pass needed for F3 gate).
+
 ---
 
 ## Summary Table
@@ -253,3 +265,4 @@ together eliminated the asymptotic Slice-D/B churn that had persisted through P3
 | 34 | ZERO (13th-consec) | ZERO (converged) | ZERO (10th-consec) | 1 LOW | 1 | 0/3 | Slice D 1 LOW: spec-changelog [prd-v1.25-ss15-titlesync-2026-06-14] entry missing Artifacts-changed table (presentational sibling-consistency gap vs all peer ACTIVE entries). REMEDIATED: table added to spec-changelog.md. Corpus substantively converged — only presentational LOW surfaced. NEXT = Pass 35 (clean-streak attempt 1/3). |
 | 35 | ZERO (14th-consec) | ZERO (converged) | ZERO (converged) | 1 LOW | 1 | 0/3 | Slice D 1 LOW: d-069 changelog entry [d-069-icsimpact-display-impact-ics-2026-06-14] carried stale PRD raw line-pins in Artifacts table (§882→"PRD §2.15 'New ICS tactic variant' note (IcsImpact)" and §85→"PRD v1.5 delta note"). REMEDIATED: both rows de-pinned to §-section/concept anchors in spec-changelog.md. Swept all 2026-06-12+ ACTIVE entries — no other drifted live-state spec line-pins found (remaining numerics are sealed historical correction records, src refs, §-anchors, ~approximates, or intra-BC audit notes). Recurring Slice-D changelog line-pin drift class flushed via de-pin sweep. Note: P33/P34/P35 all had A/B/C ZERO with only a single Slice-D LOW each (asymptotic changelog-cosmetic churn) — now flushed. clean-streak 0/3. NEXT = Pass 36 (clean-streak attempt 1/3). |
 | 36 | ZERO (15th-consec) | ZERO (converged) | ZERO (converged) | ZERO | 0 | **1/3** | FULLY CLEAN — all 4 slices ZERO; mount-guards PASSED. Post-P35 changelog de-pin flush + SS-15 flush eliminated the recurring Slice-D/B churn. 2nd fully-clean pass overall (P31 was first, reset by P32 storm_findings). Clean-streak 0/3→1/3. NEXT = Pass 37 (clean-streak attempt 2/3 — need 2 more consecutive). |
+| 37 | ZERO (16th-consec) | ZERO (converged) | ZERO (converged) | ZERO | 0 | **2/3** | FULLY CLEAN — all 4 slices ZERO; mount-guards PASSED. A 16th-consecutive Slice-A ZERO; B/C/D all converged. No remediation required. P36+P37 consecutive clean passes. Clean-streak 1/3→2/3. ONE more consecutive clean pass (Pass 38) satisfies the F3 strict 3/3 gate. NEXT = Pass 38 (clean-streak attempt 3/3 — final pass needed for F3 gate). |

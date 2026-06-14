@@ -459,3 +459,29 @@ fully-clean pass. Passes 18-22 each surfaced+remediated genuine items.
 | develop HEAD | 31d1231 | — |
 | main HEAD | 3e29891 | chore: release v0.6.0 |
 | factory-artifacts HEAD | 6993e6a | factory(F3): post-P33 SS-15 flush — BC-2.15.014 six-field reset, reciprocal Related-BCs ×4, FC 0x13 SAVE_CONFIGURATION ×2 |
+
+---
+
+## Archived Checkpoint: 2026-06-14 — F3 ARP adversarial convergence — Pass-36 FULLY CLEAN; all 4 slices ZERO; clean-streak 1/3; strict 3/3 in progress
+
+**Archived from STATE.md on:** 2026-06-14 (replaced by Pass-37 checkpoint)
+
+### POSITION at archival time
+
+- F1 PASSED (human-gated 2026-06-12, D-066). F2 CONVERGED (P33 CLEAN; 3/3). D-068/D-069 applied post-F2.
+- F3: STORY-111..115 created (E-16, 47 pts). All 5 ARP stories MATCH (d5bda72/268f53f/a767d96/e2f1c95/5ca9835).
+- F3 Adversarial Convergence: STRICT WHOLE-CORPUS, IN PROGRESS.
+  Pass-36 FULLY CLEAN — all 4 slices ZERO (A 15th-consec, B converged, C converged, D converged);
+  mount-guards PASSED. Post-P35 changelog de-pin flush + SS-15 flush eliminated the recurring
+  Slice-D/B churn. 2nd fully-clean pass overall (P31 was first, reset by P32 storm_findings).
+  Clean-streak 0/3→1/3.
+  USER DIRECTIVE: CONTINUE STRICT 3/3 indefinitely.
+  NEXT ACTION at archival: Run Pass 37 (clean-streak attempt 2/3).
+
+### VERIFIED SHAs at archival time
+
+| Ref | Value | Notes |
+|-----|-------|-------|
+| develop HEAD | 31d1231 | — |
+| main HEAD | 3e29891 | chore: release v0.6.0 |
+| factory-artifacts HEAD | verify live | run: git -C .factory log -1 --format='%h %s' |
