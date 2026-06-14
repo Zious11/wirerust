@@ -1,7 +1,7 @@
 ---
 pipeline: FEATURE_MODE_ARP_ANALYZER
 phase: feature-F2-strict-whole-corpus-convergence
-phase_status: "F2 CONVERGED (3/3 strict-whole-corpus, Pass 33); next = consistency-validator final audit → F2→F3 human gate"
+phase_status: "F2 CONVERGED (3/3 strict-whole-corpus, Pass 33); D-067 adjudicated (IcsImpact Display = 'Impact', code deviant src/mitre.rs:91, fix folded into STORY-114, NO F2 spec change); F2→F3 gate condition SATISFIED; next = F3 ARP story decomposition (STORY-111..115)"
 active_feature: "arp-analyzer"
 feature_arp_status: "F1 Delta Analysis PASSED (human-gated 2026-06-12) — DecodedFrame integration, ADR-008 planned, F2→F7 authorized; release target v0.7.0"
 feature_8_status: "v0.6.0 RELEASED 2026-06-12 — DNP3 TCP analyzer; F7 5-dim CONVERGED; tag v0.6.0 + 4 binaries"
@@ -50,7 +50,7 @@ input_drift_check: "MATCH=62 STALE=0 ERROR=1 (STORY-091 known); STORY-106 d0ef95
 
 ## Status
 
-**wirerust v0.6.0 RELEASED (DNP3 TCP analyzer, issue #8). Feature: ARP security analyzer + etherparse 0.16→0.20 migration (F1 PASSED 2026-06-12, D-066); release target v0.7.0. F2 ARP spec evolution CONVERGED — 3/3 strict-whole-corpus adversarial gate SATISFIED (Pass 33 CLEAN; 33 passes total; P31/P32/P33 consecutive CLEAN). Next = consistency-validator final audit → F2→F3 human gate (ARP story decomposition STORY-111..115).**
+**wirerust v0.6.0 RELEASED (DNP3 TCP analyzer, issue #8). Feature: ARP security analyzer + etherparse 0.16→0.20 migration (F1 PASSED 2026-06-12, D-066); release target v0.7.0. F2 ARP spec evolution CONVERGED — 3/3 strict-whole-corpus adversarial gate SATISFIED (Pass 33 CLEAN; 33 passes total; P31/P32/P33 consecutive CLEAN). D-067 adjudicated: IcsImpact Display canonical = "Impact"; src/mitre.rs:91 "Impact (ICS)" is deviant; fix folded into STORY-114; NO F2 spec change — F2 3/3 convergence preserved. F2→F3 gate condition SATISFIED. Next = F3 ARP story decomposition (STORY-111..115).**
 
 **Summary:** 63 stories (48 greenfield + 4 F-cycle + 11 F3-new), 400 pts. 268 BCs (244 pre-F2 + 24 SS-15), 23 VPs (22+VP-023 ALL LOCKED), 1496 tests green, holdout 0.967. develop HEAD 31d1231; main HEAD 3e29891 (v0.6.0). ARP feature: F1 approved — est. 18-24 new BCs (SS-16), 1 revised BC, VP-024, ADR-008, 5-6 stories (E-16), 3-5 holdout scenarios. MITRE T0830 (primary) + T1557.002 (secondary).
 
@@ -83,7 +83,7 @@ Post-release sweep 2026-06-12: 5 dep bumps merged (#203/#204/#207/#235/#206), #2
 | Feature: ARP analyzer — F1 Delta Analysis | **PASSED** (human-gated 2026-06-12) | DecodedFrame{Ip,Arp} integration, ADR-008 planned, F2→F7 authorized; artifacts: `.factory/phase-f1-delta-analysis/arp-analyzer-delta-analysis.md` |
 | Feature: ARP analyzer — F2 Spec Evolution | **CONVERGED 3/3** (Pass 33, 2026-06-13); 33 passes total; P31/P32/P33 consecutive CLEAN; F2 strict-whole-corpus adversarial gate SATISFIED | 4-slice method; ARP delta SETTLED P9+; corpus-wide debt flushed P14-25; P26/P28/P31/P32/P33 CLEAN; P27/P29/P30 reset cycles surfaced+fixed genuine defects; trajectory: `phase-f5-adversarial/arp-f2-convergence-trajectory.md` |
 
-## Session Resume Checkpoint (2026-06-13 — F2 STRICT-WHOLE-CORPUS CONVERGED; Pass 33 CLEAN; counter 3/3)
+## Session Resume Checkpoint (2026-06-13 — F2 CONVERGED 3/3; D-067 adjudicated; F2→F3 gate SATISFIED)
 
 **Previous checkpoint (2026-06-13 — Pass 32 CLEAN; counter 2/3) archived to:
 `cycles/feature-arp-v0.7.0/session-checkpoints.md`**
@@ -122,7 +122,7 @@ develop == origin/develop at checkpoint. No open PRs. Working tree clean.
 
 ### HOW TO RESUME
 
-**F2 CONVERGED. Next actions (strict order):**
+**F2 CONVERGED. D-067 adjudicated. F2→F3 gate condition SATISFIED. Next actions (strict order):**
 
 1. Run `vsdd-factory:factory-worktree-health`. BLOCKING — do not proceed if this fails.
 2. **(1) Run `vsdd-factory:consistency-validator` final full-corpus audit.**
@@ -132,6 +132,8 @@ develop == origin/develop at checkpoint. No open PRs. Working tree clean.
    Confirm ARP story decomposition scope (STORY-111..115 per arp-architecture-delta §6).
 4. **(3) On human approval → F3 story decomposition (STORY-111..115).**
    5 stories target (E-16); estimate 18-24 ARP BCs (SS-16); strict linear chain.
+   D-067 obligations carried into F3: STORY-114 must fix src/mitre.rs:91 "Impact (ICS)"→"Impact",
+   update HS-008:75, and add Display+bucket unit tests (see Drift Items F3-OBL-STORY114-*).
 
 **PG-ARP-F2-003..009 codification follow-up:** Each process-gap finding has a follow-up story
 or justified deferral recorded in the Drift Items table. Detailed codification deferred to
@@ -148,9 +150,11 @@ maintenance sweep. Does NOT block F2→F3.
   src/analyzer/arp.rs yet; ADR-008 status proposed; VP-024 status draft. These are correct —
   the code is implemented in F4/STORY-114, NOT in F2. PLANNED markers are in
   BC-2.10.005/007/008, cap-10, arp-architecture-delta §5.0.
-- **Brownfield IcsImpact display obligation:** src/mitre.rs:91 IcsImpact Display "Impact (ICS)"
-  vs spec canonical "Impact" — tracked for STORY-114 F4 adjudication (arp-architecture-delta
-  §5.0 brownfield-debt table; ADR-007 drift-note). NON-BLOCKING in F2.
+- **Brownfield IcsImpact display obligation (D-067 ADJUDICATED):** src/mitre.rs:91 IcsImpact
+  Display "Impact (ICS)" vs spec canonical "Impact" — ADJUDICATED 2026-06-13 (D-067): spec is
+  correct, code is deviant; " (ICS)" suffix does NOT break report bucketing (keyed on enum
+  variant, not Display string); severity LOW (terminal section-header label only). Fix folded
+  into STORY-114. F2 NO SPEC CHANGE — convergence preserved. See Drift Items F3-OBL-STORY114-*.
 - **system-overview.md decode_packet diagrams:** now carry PLANNED→DecodedFrame/STORY-111 markers
   (Pass-16 A-02 fix). Do NOT re-flag as inconsistent.
 - **api-surface.md decode_packet PLANNED anchor:** now cites STORY-111 (Pass-16 A-03 fix).
@@ -289,6 +293,7 @@ D-047..D-054 full text archived: `cycles/v0.1.0-greenfield-spec/decisions-archiv
 | D-064 | v0.6.0 RELEASED — gitflow release/0.6.0 → PR #234 → main 3e29891; fixup fb3935c; tag v0.6.0; GitHub Release WITH 4 binaries (release.yml auto-build); develop merge-back 04f8ccb. DNP3 TCP analyzer is the headline feature. | 2026-06-12 |
 | D-065 | Dependabot sweep post-v0.6.0 COMPLETE — #203 serde_json/#204 assert_cmd/#207 clap/#206 rayon routine bumps merged; #235 manual SHA-pin actions/checkout 6.0.3 (replacing tag-ref #202); #205 etherparse 0.16→0.20 closed and deferred as migration story (new drift DRIFT-ETHERPARSE-0.20-MIGRATION-001). develop 31d1231. | 2026-06-12 |
 | D-066 | Feature ARP analyzer F1 gate APPROVED — full F1-F7, release target v0.7.0. Integration via DecodedFrame{Ip,Arp} enum from decode_packet (new ADR-008); ArpAnalyzer owns bounded IP↔MAC binding table; zero structural impact on existing 5 analyzers/reassembly/dispatcher. etherparse 0.20 migration is sub-delta A (SliceError::Len removed; 2 non-exhaustive NetSlice/LaxNetSlice match breaks; DecodedFrame return-type change). Estimate: 18-24 new BCs (SS-16), 1 revised BC (BC-2.02.009), VP-024, ADR-008, 5-6 stories (E-16), 3-5 holdout scenarios. MITRE: T0830 (ICS AiTM, primary) + T1557.002 (Enterprise ARP Cache Poisoning, secondary) — validated ATT&CK v19.1. Detections approved: ARP spoof/cache-poisoning + gratuitous ARP + ARP storm/rate anomaly + research-agent pass for additional detections. DRIFT-ETHERPARSE-0.20-MIGRATION-001 folded into this cycle (IN-PROGRESS). | 2026-06-12 |
+| D-067 | IcsImpact Display adjudication — canonical Display = "Impact" (spec correct; BC-2.10.002 PC3/PC4, PRD §85/823, cap-10, spec-changelog unanimous). src/mitre.rs:91 "Impact (ICS)" is DEVIANT (introduced F-F5-002 as "No BC change" tactical test fix). " (ICS)" suffix does NOT break merge-by-name report bucketing (terminal.rs render_findings_grouped keys on MitreTactic enum variant, not Display string); severity LOW (terminal section-header label only). F2 SPEC CHANGE: NONE — F2 3/3 strict-whole-corpus convergence preserved unaffected. Fix folded into STORY-114 (obligations: 1-line mitre.rs:91 fix; HS-008:75 "Impact (ICS)"→"Impact"; Display unit test; two-bucket enum-level report test). F2→F3 gate condition SATISFIED. | 2026-06-13 |
 
 ## Blocking Issues
 
@@ -339,6 +344,9 @@ Full tech-debt register: `.factory/tech-debt-register.md`.
 | PG-ARP-F2-008 | Under STRICT zero-any-severity whole-corpus, each remediation burst can introduce ~1-2 new trivial propagation/whitespace items (version-pin lag, blank-line residue) the next pass flags — asymptotic. Mitigation: drop brittle current-state version-pins (done P22 D-01), and treat sustained 0 CRIT/HIGH/MED as practical convergence if LOW-cosmetic churn persists. (Human elected strict 3/3; continuing per directive.) Corpus substantively converged as of P22. | NOTED — asymptotic LOW churn; version-pin hardening done |
 | PG-ARP-F2-009 | F5 FlowKey-accessor fix (v2.2) swept 5 of 7 ss-14 direction-resolution BCs but missed 018/020; sibling-sweep completeness for code-vs-spec API fixes must enumerate ALL sibling BCs in same subsystem before closing. STORY input-hash dup-key (TBD placeholder + real hash both present) is a new frontmatter-validity defect class — pre-commit dup-key lint recommended. Caught at Pass 30; REMEDIATED. | DEFERRED — policy codification |
 | DRIFT-PRD-V120-MBAPFRAMER-001 | PRD v1.20 delta:285 "C-23 was MbapFramer" historical rationale is factually wrong — no MbapFramer component ever existed; ss-15/DNP3 was renumbered C-23→C-24 when ARP took C-23. Non-blocking (corrected-from-prose exemption; P33 Slice D). Cosmetic cleanup only. | DEFERRED LOW — fix in F3 cycle or maintenance |
+| F3-OBL-STORY114-001 | D-067 carry-forward: STORY-114 must fix src/mitre.rs:91 — change `MitreTactic::IcsImpact => "Impact (ICS)"` to `MitreTactic::IcsImpact => "Impact"` (1-line fix; adjudicated 2026-06-13). | OPEN — target STORY-114 (F4) |
+| F3-OBL-STORY114-002 | D-067 carry-forward: when STORY-114 fixes src/mitre.rs:91, also update `.factory/holdout-scenarios/HS-008-*.md:75` — change `"Impact (ICS)"` → `"Impact"` to align holdout assertion with corrected code. | OPEN — target STORY-114 (F4) |
+| F3-OBL-STORY114-003 | D-067 carry-forward: STORY-114 test obligations — (a) Display unit test: `assert_eq!(format!("{}", MitreTactic::IcsImpact), "Impact")`; (b) two-bucket report test confirming Impact vs IcsImpact bucket distinctly despite identical Display string (keyed on enum variant); (c) HS-008:75 alignment verified by test. Attach to STORY-114 acceptance criteria in F3 decomposition. | OPEN — target STORY-114 (F3 story authoring) |
 
 ## Deferred Next-Work Backlog
 
