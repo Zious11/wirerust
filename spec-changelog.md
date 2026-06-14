@@ -14,6 +14,116 @@ changes, invariant rewrites).
 
 ---
 
+## [pass-25-f3-convergence-2026-06-14] — 2026-06-14
+
+### PATCH: Pass-25 F3-Convergence Remediation (holdout/story layer)
+
+**Scope:** wave-40-44-holdout.md (3 corrections); STORY-114 (1 correction). Performed by
+story-writer in the same burst as Pass-25 spec-changelog creation. No new BCs; no BC count
+change (still 283).
+
+#### FIX-1 (HIGH) — wave-40-44-holdout.md: Remove re-introduced non-existent detection ID "D14"
+
+Three occurrences of the non-existent detection ID "D14" had been re-introduced into
+`wave-40-44-holdout.md`, contradicting the canonical F-ARP-C2 correction that removed "D14"
+in a prior burst. This was a sibling-sweep miss: the F-ARP-C2 fix removed "D14" from some
+locations but not all three occurrences.
+
+**Corrections applied (3 occurrences):**
+- First occurrence: `"D14"` → `"BC-2.16.014"` (canonical detection reference)
+- Second occurrence: `"D14"` → `"BC-2.16.014"` (canonical detection reference)
+- Third occurrence: `"(D2 + D14)"` → `"(D2 + BC-2.16.014)"` (canonical compound reference)
+
+All three corrections align with the F-ARP-C2 canonical form: detection IDs use the full
+BC-S.SS.NNN identifier, not shorthand aliases like "D14".
+
+#### FIX-2 (LOW) — wave-40-44-holdout.md: De-pin stale cross-file line citation + tighten storm frame-count narrative
+
+Two related issues in `wave-40-44-holdout.md` HS-W44-ARP-D3 Scenario A:
+
+1. **Stale cross-file line citation removed:** `STORY-113:293` pinned to a specific line
+   number was stale (story files move as content evolves). Replaced with stable concept anchor
+   referencing the STORY-113 storm-detection implementation section — no line number.
+
+2. **Storm frame-count narrative tightened:** The Scenario A description stated the finding
+   fires at "frame 101" which was inconsistent with the canonical D3 storm detection behavior.
+   Corrected to "frame 50" — the finding fires when the storm threshold is crossed at frame 50,
+   not after a full 101-frame sequence.
+
+#### FIX-3 (LOW) — STORY-114: De-pin stale HS-008 line citations
+
+`STORY-114` contained two stale ":75" line-number citations referencing
+`HS-008-mitre-tactic-display-and-kill-chain-order.md:75`. Line citations to holdout scenario
+files are brittle (scenario files evolve independently). Replaced both ":75" pins with stable
+concept anchors referencing the IcsImpact display obligation in HS-008. The string
+`"Impact (ICS)"` is confirmed correct and unchanged per D-069.
+
+**Artifacts changed in this burst:**
+
+| Artifact | Change |
+|----------|--------|
+| `.factory/holdout-scenarios/wave-40-44-holdout.md` | FIX-1: 3 occurrences of "D14" → "BC-2.16.014"; FIX-2: de-pinned STORY-113:293 stale line cite; tightened HS-W44-ARP-D3 Scenario A frame-count narrative (frame 50, not 101) |
+| `.factory/stories/STORY-114.md` | FIX-3: 2 stale HS-008:75 line citations → stable concept anchors |
+
+---
+
+## [pass-24-f3-convergence-2026-06-14] — 2026-06-14
+
+### PATCH: Pass-24 F3-Convergence Remediation (FIX-1, FIX-2)
+
+**Scope:** BC-2.15.017 v1.3→v1.4 (CRITICAL spec↔code mis-anchor revert);
+PRD §2.16.F BC-2.16.010 title-sync enrichment (LOW). No new BCs; no BC count change (still 283).
+
+#### FIX-1 (CRITICAL) — BC-2.15.017 v1.3→v1.4: Revert erroneous Pass-22 constant rename
+
+The Pass-22 F3-convergence burst erroneously renamed the DNP3 direct-operate threshold
+constant in BC-2.15.017 from `DNPXX_DIRECT_OPERATE_THRESHOLD_DEFAULT` to
+`DNP3_DIRECT_OPERATE_THRESHOLD_DEFAULT`. This rename was a spec↔code mis-anchor:
+`DNPXX_` is the actual shipped constant name in the codebase, not `DNP3_`.
+
+**Source-of-truth verification:**
+- `src/analyzer/dnp3.rs:169` — defines `DNPXX_DIRECT_OPERATE_THRESHOLD_DEFAULT`
+- `src/cli.rs:16` and `src/cli.rs:183` — references `DNPXX_DIRECT_OPERATE_THRESHOLD_DEFAULT`
+- `STORY-110` — implements using `DNPXX_DIRECT_OPERATE_THRESHOLD_DEFAULT`
+
+The `DNPXX_` prefix is intentional in the shipped code (the prefix reflects the DNP3
+protocol's cross-protocol abbreviation convention). It is NOT a typo; the `DNP3_` form
+does not exist in the codebase. The Pass-22 rename introduced a false divergence between
+spec and code.
+
+**Fix:** All three live occurrences in BC-2.15.017 restored to `DNPXX_DIRECT_OPERATE_THRESHOLD_DEFAULT`:
+- Precondition 2
+- Architecture Anchor: cli.rs reference
+- Architecture Anchor: dnp3-architecture-delta.md reference
+
+BC-2.15.017 bumped v1.3 → v1.4. The sealed historical v1.3 changelog entry is preserved as-is.
+
+**Note for orchestrator:** The `DNPXX_` prefix is a code-quality tech-debt candidate for a
+future code-cleanup pass (the prefix is non-standard for a DNP3-only constant). It is NOT
+an F3 fix target — changing it would require coordinated source + spec + story updates.
+
+#### FIX-2 (LOW) — PRD §2.16.F BC-2.16.010 title-sync "(11 Keys)" enrichment
+
+The §2.16.F index row for BC-2.16.010 had title:
+> "ArpAnalyzer::summarize() returns AnalysisSummary with required keys"
+
+The canonical BC H1 (BC-2.16.010.md) and BC-INDEX both include the "(11 Keys)" enrichment
+per Criterion-75 (BC H1 is title source of truth). The PRD index row was out of sync.
+
+**Fix:** PRD §2.16.F BC-2.16.010 index row title updated to:
+> "ArpAnalyzer::summarize() returns AnalysisSummary with required keys (11 Keys)"
+
+This matches BC-2.16.010.md H1 and BC-INDEX verbatim. No BC content changed; no BC count change.
+
+**Artifacts changed in this burst:**
+
+| Artifact | Change |
+|----------|--------|
+| `.factory/specs/behavioral-contracts/ss-16/BC-2.15.017.md` | v1.3→v1.4: 3 occurrences of `DNP3_DIRECT_OPERATE_THRESHOLD_DEFAULT` reverted to `DNPXX_DIRECT_OPERATE_THRESHOLD_DEFAULT`; v1.4 modified-log entry added |
+| `.factory/specs/prd.md` | v1.24 delta note added; §2.16.F BC-2.16.010 row title enriched with "(11 Keys)" |
+
+---
+
 ## [pass-22-f3-convergence-2026-06-14] — 2026-06-14
 
 ### PATCH: Pass-22 F3-Convergence PRD Reconciliation (FIX-1, FIX-2, FIX-3)

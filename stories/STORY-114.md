@@ -2,7 +2,8 @@
 document_type: story
 story_id: STORY-114
 epic_id: E-16
-version: "1.0"
+version: "1.1"
+version_note: "1.1 (2026-06-14): F3-convergence Pass-25 Slice-C — de-pinned 4x HS-008-*.md:75 line citations to concept anchor 'HS-008 Verification Approach step 1'; input-hash will be recomputed by orchestrator (--write)"
 status: draft
 producer: story-writer
 timestamp: 2026-06-13T00:00:00Z
@@ -57,7 +58,7 @@ input-hash: "e2f1c95"
 **D-069 is the authoritative decision.** D-067 carry-forward obligations F3-OBL-STORY114-001, -002, and -003 are REVOKED as of D-069. The prior obligations (IcsImpact Display change, HS-008 update, and associated Display-string tests) are NO LONGER required. Specifically:
 
 - **F3-OBL-STORY114-001 REVOKED:** `src/mitre.rs:91` reads `MitreTactic::IcsImpact => "Impact (ICS)"`. This is CORRECT and MUST NOT be changed. BC-2.10.002 was revised to v1.5 confirming `"Impact (ICS)"` as the canonical Display string (distinct from the Enterprise `"Impact"` tactic, preserving the ICS matrix identity).
-- **F3-OBL-STORY114-002 REVOKED:** `.factory/holdout-scenarios/HS-008-*.md:75` already reads `"Impact (ICS)"`. This is correct and MUST NOT be changed. The F5 DNP3 tests `test_ics_impact_display_distinct_from_impact` and `test_reporter_renders_distinct_impact_sections` correctly assert `"Impact (ICS)" != "Impact"` and remain green.
+- **F3-OBL-STORY114-002 REVOKED:** `.factory/holdout-scenarios/HS-008-*.md` (HS-008 Verification Approach step 1) already reads `"Impact (ICS)"`. This is correct and MUST NOT be changed. The F5 DNP3 tests `test_ics_impact_display_distinct_from_impact` and `test_reporter_renders_distinct_impact_sections` correctly assert `"Impact (ICS)" != "Impact"` and remain green.
 - **F3-OBL-STORY114-003 REVOKED:** The Display-string-equals-"Impact" assertion tests are NOT required. Any test asserting `format!("{}", MitreTactic::IcsImpact) == "Impact"` would be WRONG under D-069.
 
 **What this story DOES require (D-069 aligned):** The VP-007 5-part atomic update (AC-011, AC-012) and the ARP spoof/escalation/GARP-conflict detection (AC-001 through AC-010, AC-016) are unchanged. The only obligation from the old OBL-003 that survives is the enum-variant-distinctness test: `MitreTactic::Impact != MitreTactic::IcsImpact` as enum values (AC-014) — this is still correct and harmless because it tests enum identity, not Display strings.
@@ -177,8 +178,8 @@ The F5 DNP3 tests `test_ics_impact_display_distinct_from_impact` and `test_repor
 - **Test:** `test_impact_vs_ics_impact_variants_distinct()`
 
 ### AC-015 (traces to BC-2.10.002 v1.5 / D-069 — HS-008 already correct)
-`.factory/holdout-scenarios/HS-008-*.md:75` already reads `"Impact (ICS)"`. This is canonical under D-069 and MUST NOT be changed by STORY-114. No HS-008 file modification is required in this story.
-- **No new test required for this AC** — HS-008 holdout evaluation at Phase 4 exercises it directly.
+`.factory/holdout-scenarios/HS-008-*.md` (HS-008 Verification Approach step 1) already reads `"Impact (ICS)"`. This is canonical under D-069 and MUST NOT be changed by STORY-114. No HS-008 file modification is required in this story.
+- **No new test required for this AC** — HS-008 (HS-008 Verification Approach step 1) holdout evaluation at Phase 4 exercises it directly.
 
 > **Consumer References (verify-only, non-owned):** AC-013, AC-014, and AC-015 trace to BC-2.10.002 v1.5 (SS-10 MITRE tactic Display and enum-variant contracts). BC-2.10.002 is owned by STORY-071 and does NOT appear in this story's `behavioral_contracts:` frontmatter or `inputs:` list — STORY-114 is a verify-only consumer under D-069 adjudication, not the contract owner. No code change to `src/mitre.rs:91` is required or permitted. This verify-only consumer relationship does not affect the input-hash computation.
 
@@ -245,7 +246,7 @@ Architecture section references: `architecture/module-decomposition.md` (SS-16 C
 4. **Apply VP-007 5-part functional atomic update to `src/mitre.rs`** (all four functional sites in §(a) above; verified line numbers from arp-architecture-delta.md §5.0).
 5. **Apply all stale-comment updates** to `src/mitre.rs` (all six sites in §(b) above).
 6. **Verify IcsImpact Display is "Impact (ICS)"** (D-069): confirm `src/mitre.rs:91` reads `MitreTactic::IcsImpact => "Impact (ICS)"` — no change required. Do NOT revert to `"Impact"`.
-7. **Verify HS-008 holdout scenario is correct** (D-069): confirm `.factory/holdout-scenarios/HS-008-*.md:75` reads `"Impact (ICS)"` — no change required.
+7. **Verify HS-008 holdout scenario is correct** (D-069): confirm `.factory/holdout-scenarios/HS-008-*.md` (HS-008 Verification Approach step 1) reads `"Impact (ICS)"` — no change required.
 8. **Run `cargo test vp007_catalog_drift_guard`**: MUST pass before PR is opened.
 9. **Add `--arp-spoof-threshold` CLI flag**: `#[arg(long, default_value_t = 3)] arp_spoof_threshold: u32` in `src/cli.rs`. This flag is STORY-114's primary deliverable per BC-2.16.012 — it is NOT added in STORY-113. Wire it to `ArpAnalyzer::new(spoof_threshold, storm_rate)` in `src/main.rs`, passing `ARP_STORM_RATE_DEFAULT` (= 50) as `storm_rate` — `--arp-storm-rate` does not exist until STORY-115; using the constant keeps STORY-114 standalone-compilable.
 10. **Write unit tests** for AC-001 through AC-016.
@@ -294,7 +295,7 @@ Derived from arp-architecture-delta.md §5, ADR-008 Decision 6, BC-2.16.004 post
 2. **All five `src/mitre.rs` functional sites must be updated in one commit** — partial updates cause `vp007_catalog_drift_guard` to fail. The drift guard mechanically enforces consistency.
 3. **MitreTactic enum requires NO new variants** — T0830 → `LateralMovement` (existing variant), T1557.002 → `CredentialAccess` (existing variant). Confirmed per ADR-008 Decision 6.
 4. **IcsImpact Display is "Impact (ICS)" — DO NOT change** — `src/mitre.rs:91` already reads `MitreTactic::IcsImpact => "Impact (ICS)"`. This is canonical under D-069 (BC-2.10.002 v1.5). The ICS matrix suffix preserves the distinct tactic identity and prevents erroneous merge-by-name grouping with the Enterprise `"Impact"` tactic. Any test or code change asserting `"Impact"` for IcsImpact is WRONG under D-069.
-5. **HS-008 is already correct at "Impact (ICS)"** — `.factory/holdout-scenarios/HS-008-*.md:75` must not be changed. The F5 DNP3 tests asserting `"Impact (ICS)" != "Impact"` are correct and remain green. STORY-114 must not contradict them.
+5. **HS-008 is already correct at "Impact (ICS)"** — `.factory/holdout-scenarios/HS-008-*.md` (HS-008 Verification Approach step 1) must not be changed. The F5 DNP3 tests asserting `"Impact (ICS)" != "Impact"` are correct and remain green. STORY-114 must not contradict them.
 
 ## Library & Framework Requirements
 

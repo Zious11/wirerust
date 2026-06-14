@@ -31,7 +31,7 @@ forward_declarations:
 > assignments and implementation code exists for evaluation.
 >
 > **Purpose:** Validates that the ARP Security Analyzer (SS-16) correctly detects ARP
-> cache poisoning (D1, T0830/T1557.002), gratuitous ARP / GARP-conflicts (D2/D14), ARP
+> cache poisoning (D1, T0830/T1557.002), gratuitous ARP / GARP-conflicts (D2 + BC-2.16.014), ARP
 > storm rate anomalies (D3), and malformed/L2-L3 mismatch frames (D11/D12). Verifies
 > that the etherparse 0.20 decode-path changes (STORY-111) introduce no regressions and
 > that the ArpAnalyzer lifecycle (binding table, per-MAC storm counters, summarize) operates
@@ -134,7 +134,7 @@ ARP_FLAP_WINDOW_SECS = 60). The binding table is empty at start (ts = T0).
 
 ---
 
-## HS-W42-ARP-D2: GARP Detection and GARP-Conflicts Escalation (D2/D14)
+## HS-W42-ARP-D2: GARP Detection and GARP-Conflicts Escalation (D2 + BC-2.16.014)
 
 **Detection:** D2 Gratuitous ARP (BC-2.16.003) + GARP-that-conflicts escalation (BC-2.16.014)
 **Scope:** STORY-113 for D2 baseline (wave 42); STORY-114 for D2+D1 interaction (wave 43)
@@ -205,12 +205,12 @@ sender_mac=AA:BB:CC:DD:EE:FF (attacker impersonating 192.168.1.1).
 - Rate = 101 / max(1, 0) = 101 / 1 = 101 fps (exceeds threshold 50).
 
 **Assertions:**
-1. After processing frame 101: exactly one D3 storm finding emitted (one-shot per window).
+1. At frame 50 (count=50 >= threshold=50): exactly one D3 storm finding emitted (one-shot per window fires at first breach of threshold).
 2. Finding confidence: MEDIUM.
 3. Finding summary contains sender MAC "AA:BB:CC:DD:EE:01" and rate/threshold reference.
 4. Finding carries NO MITRE techniques (T0814 deferred).
-5. `storm_emitted == true` for MAC AA:BB:CC:DD:EE:01 after first emission.
-6. Frames 102+ (same MAC, same window): zero additional findings emitted (one-shot guard active).
+5. `storm_emitted == true` for MAC AA:BB:CC:DD:EE:01 after frame 50 emission.
+6. Frames 51-101 (same MAC, same window): zero additional findings emitted (one-shot guard active after frame 50).
 
 ### Scenario B — Same-second denominator safety (no divide-by-zero)
 
@@ -309,7 +309,7 @@ ARP payload with hlen=8, plen=16 (not Ethernet/IPv4 format).
 > At wave 42, STORY-113 DETECTS D12 and emits the finding, but the src/mitre.rs catalog is
 > not yet seeded. The MITRE attachment (T0830, T1557.002) is applied in STORY-114 (wave 43),
 > co-committed with catalog seeding. See Scenario C below for the wave-43 MITRE assertion.
-> This mirrors the D1 deferral pattern already documented in STORY-113:293.
+> This mirrors the D1 deferral pattern already documented in STORY-113 'Crucial boundary' D1-deferral note.
 
 **Assertions (per BC-2.16.007, wave-42 intermediate state):**
 1. `frame.outer_src_mac == Some([0xEE, 0xFF, 0x00, 0x11, 0x22, 0x33])`.
@@ -460,7 +460,7 @@ wirerust analyze --http --tls --dns <known-good-ip-traffic-pcap>
 | Scenario ID | Detection | Wave | Story | BCs | Priority |
 |-------------|-----------|------|-------|-----|----------|
 | HS-W43-ARP-D1 | D1 ARP Spoof / Cache Poisoning (MEDIUM→HIGH escalation) | 43 | STORY-114 | BC-2.16.004, BC-2.16.012 | P0 |
-| HS-W42-ARP-D2 | D2 GARP (benign + GARP-conflicts escalation D14) | 42, 43 | STORY-113, STORY-114 | BC-2.16.003, BC-2.16.014, BC-2.16.004 | P0 |
+| HS-W42-ARP-D2 | D2 GARP (benign + GARP-conflicts escalation BC-2.16.014) | 42, 43 | STORY-113, STORY-114 | BC-2.16.003, BC-2.16.014, BC-2.16.004 | P0 |
 | HS-W44-ARP-D3 | D3 ARP Storm Rate Detection (Scenarios A+B: core storm, P0; Scenario C: --arp-storm-rate override, P1) | 44 | STORY-115 | BC-2.16.008 (P0), BC-2.16.013 (P1), BC-2.16.010 | P0/P1 (split — see scenario priorities) |
 | HS-W42-ARP-D11D12 | D11 Malformed + D12 L2/L3 Mismatch | 42 | STORY-113 | BC-2.16.009, BC-2.16.007 | P0 |
 | HS-W44-ARP-CORPUS | Real-world corpus (known-good + known-problematic + regression) | 44 | STORY-115 | BC-2.16.004, BC-2.16.010, VP-008, VP-004, VP-007 | P0 |
