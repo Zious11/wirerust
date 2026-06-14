@@ -62,18 +62,18 @@ Minimum 3 consecutive clean passes required for convergence gate (same as F5 sta
 | 20 (whole-corpus, Claude) | 2026-06-13 | 7 | 0 | 1 | 3 | 3 | LOW | 0/3 | NOT_CLEAN→REMEDIATED |
 | 21 (whole-corpus, Claude) | 2026-06-13 | 5 | 0 | 0 | 4 | 1 | LOW | 0/3 | NOT_CLEAN→REMEDIATED |
 | 22 (whole-corpus, Claude) | 2026-06-13 | 5 | 0 | 0 | 1 | 4 | LOW | 0/3 | NOT_CLEAN→REMEDIATED |
+| 23 (whole-corpus, Claude) | 2026-06-13 | 5 | 0 | 0 | 1 | 4 | LOW | 0/3 | NOT_CLEAN→REMEDIATED |
 
 ## Trajectory Shorthand
 
-`15→20→~8→~15→~6→~4→~4→~7→~4→~6→~5→~18→~8→~22(P14: 2C/5H NEW corpus-debt; trend broke; ARP delta clean 6th pass)→P15(8 findings: holdout-layer field-rename + regression; REMEDIATED)→P16(7: 0C/0H, sibling-sweep misses; REMEDIATED; Slice B CLEAN all 283 BCs + field-rename verified)→P17(10: holdout MITRE-counts + module-decomposition peer; REMEDIATED; Slice B CLEAN 2nd)→P18(9: ss-05 anchor-drift + indicatif + STORY-INDEX; 0C/3H; REMEDIATED; arp.rs+holdout pre-flush verified clean)→P19(15: corpus-wide anchor-drift; 0C/8H; PARTIAL — ss-07-full+remaining-BC pending)→ P20(7: anchor-drift flushed, ss-04/ss-12 closed; 0C/1H; Slices A+C CLEAN; REMEDIATED)→P21(5 cosmetic; 0C/0H; A+C CLEAN 2nd consecutive; REMEDIATED)→P22(5 valid; 0C/0H; cosmetic; version-pin hardened; REMEDIATED)`
+`15→20→~8→~15→~6→~4→~4→~7→~4→~6→~5→~18→~8→~22(P14: 2C/5H NEW corpus-debt; trend broke; ARP delta clean 6th pass)→P15(8 findings: holdout-layer field-rename + regression; REMEDIATED)→P16(7: 0C/0H, sibling-sweep misses; REMEDIATED; Slice B CLEAN all 283 BCs + field-rename verified)→P17(10: holdout MITRE-counts + module-decomposition peer; REMEDIATED; Slice B CLEAN 2nd)→P18(9: ss-05 anchor-drift + indicatif + STORY-INDEX; 0C/3H; REMEDIATED; arp.rs+holdout pre-flush verified clean)→P19(15: corpus-wide anchor-drift; 0C/8H; PARTIAL — ss-07-full+remaining-BC pending)→ P20(7: anchor-drift flushed, ss-04/ss-12 closed; 0C/1H; Slices A+C CLEAN; REMEDIATED)→P21(5 cosmetic; 0C/0H; A+C CLEAN 2nd consecutive; REMEDIATED)→P22(5 valid; 0C/0H; cosmetic; version-pin hardened; REMEDIATED)→P23(5; B/C/D CLEAN; Slice-A only; 0C/0H; REMEDIATED)`
 
-Severity profile: CRITICAL count: 4→5→0→0→0→0→0→0→0→0→0→0→0→2→2→0→3→0→0→0→0 — DECAYING on CRITICAL
-(0 for 5 of last 6 passes: P16+P18+P19+P20+P21+P22).
-HIGH count: 8→7→~6→~5→1→2→~4→2→0→1→1→0→0→5→1→0→2→3→8→1→0→0 — DECAYING; P21+P22 consecutive 0H
-(P19 REGRESSION at 8H fully flushed; 5th consecutive 0-CRIT/HIGH as of P22).
-MEDIUM count: 3→8→~2→~10→~5→2→0→4→~4→~5→~4→~18→~8→~11→3→5→2→2→2→3→4 — propagation hygiene and
-ledger-formatting drift; P21 findings all cosmetic (table formatting, historical slug corrections,
-version-history gap).
+Severity profile: CRITICAL count: 4→5→0→0→0→0→0→0→0→0→0→0→0→2→2→0→3→0→0→0→0→0 — DECAYING on CRITICAL
+(0 for 6 of last 7 passes: P16+P18+P19+P20+P21+P22+P23).
+HIGH count: 8→7→~6→~5→1→2→~4→2→0→1→1→0→0→5→1→0→2→3→8→1→0→0→0 — DECAYING; P21+P22+P23 consecutive 0H
+(P19 REGRESSION at 8H fully flushed; 6th consecutive 0-CRIT/HIGH as of P23).
+MEDIUM count: 3→8→~2→~10→~5→2→0→4→~4→~5→~4→~18→~8→~11→3→5→2→2→2→3→4→1 — P23 Slice-A only;
+Slices B/C/D CLEAN. Substantively + cosmetically near-converged.
 Trend BROKE at Pass 14 — Passes 12-13 showed 0 CRIT/0 HIGH; Pass 14 surfaced 2 CRITICAL + 5 HIGH.
 DECAYING P14→P16: 2C/5H → 2C/1H → 0C/0H. NON-MONOTONIC at P17: 3C/2H (new corpus corner:
 holdout-scenarios MITRE-catalog count assertions; module-decomposition never deep-reviewed for
@@ -152,6 +152,17 @@ now dropped. Future version-lag churn minimized. PG-ARP-F2-008 noted: 5th consec
 0C/1H → 0C/0H → 0C/0H. 5th consecutive 0-CRIT/HIGH pass.
 Counter 0/3 — remediation does NOT advance counter. Next = whole-corpus Pass 23 via Claude
 adversary (4 slices STRICT) — first-clean candidate. If clean → 1/3 streak begins.
+
+Pass 23 REMEDIATED (5 findings; Slices B/C/D CLEAN; Slice A only; 0C/0H). KEY: 3 of 4 slices
+returned CLEAN — first pass with majority-clean slices. A-01 MED was self-induced churn from
+P22 A-02 (VP-024 lock-note cited wrong story STORY-112→STORY-113; now correct per §6).
+A-02 LOW: decoder.rs Sub-A attribution footnote in verification-coverage-matrix. A-03 LOW:
+VP-005 harness skeleton markdown code-fence missing closing backticks in verification-architecture.
+A-04 LOW: C-22 Modbus technique enumeration in module-criticality harmonized with C-23/C-24 style.
+A-05 LOW: arp-architecture-delta §6 draft-as-authoritative intentionality note added to prevent
+re-flagging. All 5 findings architect-routed (Slice A). Trajectory P21-P23: 0C/0H → 0C/0H → 0C/0H.
+Substantively and cosmetically near-converged. Counter 0/3. Next = whole-corpus Pass 24 via Claude
+adversary — strong first-clean candidate (B/C/D were clean in P23).
 
 ## Core Semantics — Confirmed Clean (Settled)
 

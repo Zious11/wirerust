@@ -14,6 +14,59 @@ changes, invariant rewrites).
 
 ---
 
+## [pass-23-fixes-2026-06-13] — 2026-06-13
+
+### PATCH: Pass-23 Slice-A architect bumps (A-01 through A-05) — Slices B/C/D CLEAN
+
+Five architect-owned fixes in Slice A only. Slices B, C, D all returned CLEAN. No behavioral
+changes; coverage-matrix attribution, footnote, code-fence, technique enumeration, and
+draft-as-authoritative note only.
+
+**A-01 MED — verification-coverage-matrix.md: VP-024 lock-note STORY-112/F6 → STORY-113/F6 (v1.5 → v1.6)**
+
+The VP-024 draft lock-pending note added at Pass-22 (A-02) cited STORY-112/F6 as the expected
+locking story. The correct story for VP-024 formal verification is STORY-113/F6 (ARP Kani
+proofs). STORY-112 is the ArpAnalyzer implementation story; STORY-113 is the formal hardening
+story. Attribution corrected to STORY-113/F6. NOTE: this finding is self-induced churn — the
+P22 A-02 fix introduced the incorrect STORY number; this corrects it. Underlying VP-024 draft
+status and lock-pending semantics are unchanged.
+
+**A-02 LOW — verification-coverage-matrix.md: decoder.rs Sub-A attribution footnote added (v1.5 → v1.6)**
+
+Decoder.rs etherparse migration (Sub-A) is tested under VP-024 coverage but was not mentioned
+in the matrix row. Added a footnote clarifying decoder.rs Sub-A scope within the VP-024 entry.
+(Combined with A-01 in the same v1.6 bump.)
+
+**A-03 LOW — verification-architecture.md: VP-005 harness skeleton markdown code-fence fixed (v1.6 → v1.7)**
+
+The VP-005 harness skeleton section contained a malformed markdown code-fence (missing closing
+triple-backtick). Fixed to properly fence the skeleton block.
+
+**A-04 LOW — module-criticality.md: C-22 Modbus emitted technique-ID enumeration harmonized with C-23/C-24 (v1.2 → v1.3)**
+
+C-22 (ModbusAnalyzer) entry listed the emitted technique IDs in a format inconsistent with the
+C-23 (ArpAnalyzer) and C-24 (Dnp3Analyzer) sibling entries. Enumeration prose harmonized
+to match the C-23/C-24 style.
+
+**A-05 LOW — arp-architecture-delta.md: §6 draft-as-authoritative intentionality note added (v1.10 → v1.11)**
+
+Section 6 of arp-architecture-delta uses future-tense/draft language for STORY-111..115
+implementation obligations. Added a brief note clarifying that this section is intentionally
+draft-as-authoritative (F2 spec forward-declarations for F4 implementation) to prevent future
+adversary passes from re-flagging it as unfinished.
+
+**Artifacts changed:**
+
+| Artifact | Change |
+|----------|--------|
+| `.factory/specs/architecture/verification-coverage-matrix.md` | `version: 1.5 → 1.6`; VP-024 lock-note STORY-112→STORY-113 (A-01); decoder.rs Sub-A footnote added (A-02) |
+| `.factory/specs/architecture/verification-architecture.md` | `version: 1.6 → 1.7`; VP-005 harness skeleton code-fence fixed (A-03) |
+| `.factory/specs/architecture/module-criticality.md` | `version: 1.2 → 1.3`; C-22 Modbus technique enumeration harmonized with C-23/C-24 (A-04) |
+| `.factory/phase-f2-spec-evolution/arp-architecture-delta.md` | `version: 1.10 → 1.11`; §6 draft-as-authoritative intentionality note added (A-05) |
+| `.factory/spec-changelog.md` | P23-fixes entry added; all architect P23 bumps recorded |
+
+---
+
 ## [pass-22-fixes-2026-06-13] — 2026-06-13
 
 ### PATCH: Pass-22 remediation (C-01, D-01, B-01) + architect P22 bumps (A-01, A-02) + proactive version-citation hardening

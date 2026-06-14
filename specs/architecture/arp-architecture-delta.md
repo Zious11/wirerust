@@ -1,7 +1,7 @@
 ---
 document_type: architecture-delta
 feature: arp-security-analyzer
-version: "1.10"
+version: "1.11"
 status: draft
 producer: architect
 timestamp: 2026-06-12T00:00:00Z
@@ -364,6 +364,13 @@ No `MitreTactic` enum change is needed.
 
 ## 6. Canonical Story Decomposition (authoritative — F3 consumes this table)
 
+> **Note on document status:** The `status: draft` in this document's frontmatter is
+> intentional and reflects that the ARP F2 feature cycle is in-flight (not yet shipped).
+> This section is nonetheless the authoritative story-decomposition reference for the
+> current cycle: HS-INDEX and product-owner MUST follow §6 as written. Draft-as-authoritative
+> is a deliberate factory pattern for in-flight feature cycles; it does not indicate
+> provisional or uncertain content.
+
 This is the single authoritative story→BC/detection/VP decomposition. HS-INDEX waves 40–44
 MUST be rewritten by product-owner to match this table exactly (see product-owner hand-off
 below). The dependency chain runs STORY-111 → 112 → 113 → 114 → 115 strictly; no story
@@ -400,4 +407,5 @@ analyzer/B/C/D (STORY-113) → spoof escalation/MITRE/VP-007 (STORY-114) → sto
 | 1.7 | 2026-06-12 | F-B6 adversarial Pass 6 remediation — OBS-1: §4.1 Cargo.toml line reference corrected from "lines 22–27" to "~lines 21–26". |
 | 1.8 | 2026-06-12 | Pass 8 remediation — (HIGH-01) §2.2: replaced `lax_ip_triple` `LaxNetSlice::Arp(_) => unreachable!(...)` arm with explicit ARP routing. Snaplen-truncated ARP frames yield `Some(LaxNetSlice::Arp(_))` from the lax parser; that arm is reachable at runtime — unreachable! would panic, violating VP-008/VP-024 Sub-A. Full lax decode_packet arm spec added (mirrors strict arm; extract_arp_frame used for both). STORY-111 and STORY-112 scope rows in §6 updated accordingly: STORY-111 now explicitly notes the lax_ip_triple arm is NOT unreachable; STORY-112 now covers ARP early-extraction in both strict and lax decode paths. (HIGH-02) §5.0 pre-existing brownfield debt table added: src/mitre.rs:91 IcsImpact Display "Impact (ICS)" contradicts BC-2.10.002 PC3 canonical "Impact"; STORY-114 must adjudicate. (Ethernet2Slice::source() return type [u8; 6] by value confirmed — see ADR-008 v1.6 Source/Origin; no change needed to snippet.) |
 | 1.9 | 2026-06-12 | F-B9-M02 — §7 v1.6 row: dropped stale doc-internal line number parentheticals ("line 265", "rows 266/267") that no longer resolve after §5.0 table moved; stable src/mitre.rs target line numbers 301/302/339 retained in the body text where applicable. F-SA9-LOW-01 — reordered §7 rows to strict ascending 1.0→1.9 (1.2 was misplaced after 1.5); row content unchanged. F-SA9-LOW-02 — corrected typo "Ethereum2Slice" → "Ethernet2Slice" in v1.8 changelog row. |
+| 1.11 | 2026-06-13 | Pass-23 A-05: §6 header annotated to clarify that `status: draft` is intentional for the in-flight ARP F2 cycle and §6 is authoritative for the current cycle's story decomposition (draft-as-authoritative is deliberate, not an oversight). |
 | 1.10 | 2026-06-13 | F-SA11-MED-01 (Pass-12 corpus debt cleanup — F-4) — §7 changelog row added for the 1.9→1.10 promotion. The v1.10 content change itself was the Some()-double-wrap fix in §5.0 stale-count comment table (Pass-11 remediation): the incorrect `Some(eth.source())` reference in the v1.8 migration snippet was verified correct (Ethernet2Slice::source() returns [u8; 6] by value in etherparse 0.20.1 — no dereference needed, Some() wraps a [u8; 6] value); frontmatter was bumped to 1.10 at that pass. This row-add completes the §7 audit trail without further version change. |

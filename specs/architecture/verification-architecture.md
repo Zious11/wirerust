@@ -2,7 +2,7 @@
 artifact: architecture-section
 section: verification-architecture
 traces_to: ARCH-INDEX.md
-version: "1.6"
+version: "1.7"
 status: verified
 producer: architect
 timestamp: 2026-05-20T00:00:00Z
@@ -37,6 +37,9 @@ modified:
   - date: 2026-06-13
     actor: architect
     reason: "Pass-13 anchor correction (F-A13-003, label-only — proof unaffected): VP-005 harness skeleton line references updated: fn extract_sni 246→247; 4-way match range 251-265→252-266. Verified against live src/analyzer/tls.rs."
+  - date: 2026-06-13
+    actor: architect
+    reason: "Pass-23 A-03: VP-005 proof harness skeleton Markdown fencing corrected — block was missing opening ```rust fence and closing ``` fence; now properly fenced to match sibling VP-001 and VP-002 skeletons. Proof logic unchanged. Version bump 1.6→1.7."
 ---
 
 # Verification Architecture
@@ -156,6 +159,7 @@ fn verify_first_wins_overlap() {
 
 ### VP-005: SNI 4-way Ordered Match (Kani)
 
+```rust
 // Real signature (src/analyzer/tls.rs:247):
 //   fn extract_sni(extensions: &[TlsExtension<'_>]) -> Option<SniValue>
 //
@@ -193,6 +197,7 @@ fn verify_sni_classification_exhaustive() {
         }
     }
 }
+```
 
 ### VP-008: decode_packet No-Panic (cargo-fuzz)
 

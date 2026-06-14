@@ -78,4 +78,33 @@ ATT&CK v19.1.
 |-----|-------|-------|
 | develop HEAD | 31d1231 | — |
 | main HEAD | 3e29891 | chore: release v0.6.0 |
+
+---
+
+## Archived Checkpoint: 2026-06-13 — F2 STRICT WHOLE-CORPUS CONVERGENCE, Pass 22 REMEDIATED; 0C/0H; 5th consecutive; version-pin hardened
+
+**Archived from STATE.md on:** 2026-06-13 (replaced by "Pass 23 REMEDIATED; B/C/D CLEAN" checkpoint)
+
+### POSITION
+
+- **22 adversarial passes + 1 corpus consistency audit run. Pass 22 REMEDIATED.**
+- F2 adversarial convergence: STRICT WHOLE-CORPUS mode. Counter 0/3.
+- Pass 22 (8 raw findings; 3 discarded no-action/NON-BLOCKING; 5 valid): 0C/0H. C-01 MED
+  (domain-debt O-04: "21 IDs"→"23 IDs" — Feature #8 DNP3 +2; domain-debt v1.2→v1.3). A-01 LOW
+  (verification-architecture: Pass-22 modified entry wording hardened; v1.5→v1.6). A-02 LOW
+  (verification-coverage-matrix: VP-024 draft Coverage Note added; v1.4→v1.5). D-01 LOW
+  (BC-INDEX: PRD version-pin dropped for robustness — self-induced lag from P21 prd v1.19 bump;
+  now version-agnostic; v1.25→v1.26). B-01 LOW (BC-INDEX: double-blank before ss-12 removed;
+  v1.25→v1.26). Proactive version-citation robustness sweep run — only 1 current-state cross-doc
+  version-pin found; now dropped. PG-ARP-F2-008 noted: 5th consecutive 0-CRIT/HIGH; corpus
+  substantively converged; remaining churn cosmetic.
+  Trajectory P14-22: 2C/5H→2C/1H→0C/0H→3C/2H→0C/3H→0C/8H→0C/1H→0C/0H→0C/0H. DECAYING strongly.
+- Next action at time of archival: whole-corpus Pass 23 via Claude (first-clean candidate).
+
+### VERIFIED SHAs at archival time
+
+| Ref | Value | Notes |
+|-----|-------|-------|
+| develop HEAD | 31d1231 | — |
+| main HEAD | 3e29891 | chore: release v0.6.0 |
 | factory-artifacts HEAD | re-verify live | `git -C .factory log -1 --format='%h %s'` |
