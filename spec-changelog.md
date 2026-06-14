@@ -14,6 +14,47 @@ changes, invariant rewrites).
 
 ---
 
+## [pass-29-fixes-2026-06-13] — 2026-06-13
+
+### PATCH: Pass-29 PRD findings D-01 (MED FC 0x17 omitted from write-set) + D-02 (LOW broken changelog anchor)
+
+**D-01 MED — PRD omits FC 0x17 from BC-2.14.014 holding-register write set**
+
+BC-2.14.014 v2.1 (BC-DISCREPANCY-001 reconciliation) defines the holding-register write set as
+{0x06, 0x10, 0x16, 0x17}. FC 0x17 (Read/Write Multiple Registers) was added at v2.1 with ruling:
+"0x17 writes holding registers → Modify Parameter (T0836)." The PRD listed only 0x06/0x10/0x16 in
+four locations, omitting 0x17. All four locations corrected:
+
+- §2 v2 co-emission box: `0x06/0x10/0x16` → `0x06/0x10/0x16/0x17`
+- §2.14.D group header: `Holding-register FCs (0x06/0x10/0x16)` → `(0x06/0x10/0x16/0x17)`
+- §2.14.D BC-2.14.014 index row title: `Write FC 0x06/0x10/0x16` → `Write FC 0x06/0x10/0x16/0x17`
+- §6.5 KD-005 BC-2.14.014 row: `Holding-register writes (0x06/0x10/0x16)` → `(0x06/0x10/0x16/0x17)`
+
+Verified against BC-2.14.014 v2.3 H1 (`# BC-2.14.014: Write FC 0x06/0x10/0x16/0x17 ...`),
+Description §57-58, Precondition 3, Invariant 1, and Invariant 4 — all confirm the 4-FC set.
+MITRE tags unchanged: `["T1692.001","T0836"]`.
+
+**D-02 LOW — broken changelog anchor in v1.16 delta note (prd.md:~261)**
+
+The v1.16 delta cited `spec-changelog.md §[pass-13-2026-06-13]` — a slug that does not exist.
+The resolving slug is `[pass-13-corpus-cleanup-2026-06-13]` (spec-changelog.md line 2366, confirmed).
+Corrected to the resolving slug.
+
+**Architect P29 A-01 architecture doc bumps (logged per task):**
+module-decomposition, system-overview, purity-boundary-map, module-criticality bumped per architect
+P29 A-01 burst. Version numbers per architect report.
+
+**prd.md:** v1.20 → v1.21 (v1.20 delta note also backfilled — it was missing from inline history).
+
+**Artifacts changed:**
+
+| Artifact | Change |
+|----------|--------|
+| `.factory/specs/prd.md` | D-01: 0x17 added to write-set in 4 locations; D-02: anchor slug corrected; v1.21 delta note added; v1.20 delta note backfilled; frontmatter v1.20 → v1.21 |
+| `.factory/spec-changelog.md` | This entry |
+
+---
+
 ## [pass-27-fixes-2026-06-13] — 2026-06-13
 
 ### PATCH: Pass-27 holdout layer fixes (C-01 MED kill-chain order, D-01 MED BC-version-pin flush)

@@ -2,7 +2,7 @@
 artifact: architecture-section
 section: module-decomposition
 traces_to: ARCH-INDEX.md
-version: "1.7"
+version: "1.8"
 status: verified
 producer: architect
 timestamp: 2026-05-20T00:00:00Z
@@ -31,6 +31,9 @@ modified:
   - date: 2026-06-13
     actor: architect
     reason: "Pass-17 A-01/A-02/A-03 remediation: C-5 row corrected from forward-declared PLANNED state to accurate current state (etherparse 0.16, Result<ParsedPacket>) with explicit PLANNED marker for STORY-111/ADR-008 migration; modified-log entry for 2026-06-12 clarified to mark C-23 addition and C-5 update as PLANNED/forward-declared targets; C-23 table row and Component Inventory preamble both receive explicit [PLANNED — STORY-112/ADR-008; not yet in src tree] markers matching peer docs. Version bump 1.6→1.7."
+  - date: 2026-06-13
+    actor: architect
+    reason: "Pass-29 A-01: C-24 DNP3 analyzer technique set corrected — T1692.001 was omitted, leaving set incomplete as T1691.001/T0827/T0836/T0814. Canonical 5-ID set (ADR-007 Decision 5 + dnp3.rs lines 782/1092/1159/823/862/934/1044) is T1692.001/T1691.001/T0814/T0836/T0827. Version bump 1.7→1.8."
 ---
 
 # Module Decomposition
@@ -80,7 +83,7 @@ All 20 components from the ingestion pass plus C-21 (StreamDispatcher, added by 
 | C-17 | src/summary.rs | SS-12 | `Summary`: per-packet accumulator; `ingest`, `unique_hosts`, serialization | Pure core |
 | C-22 | src/analyzer/modbus.rs | SS-14 | `ModbusAnalyzer`: `StreamHandler` + `StreamAnalyzer`; per-flow `HashMap<FlowKey, ModbusFlowState>`; MBAP parse + 3-point validity gate; function-code classification; transaction correlation table; write-burst rate detection; findings for T1692.001/T0836/T0814/T0806/T0835/T0831/T0888 (T0888 = recon FC 0x11/0x12/0x2B, Remote System Information Discovery; ADR-005 D12) | Pure core |
 | C-23 | src/analyzer/arp.rs | SS-16 | **[PLANNED — STORY-112/ADR-008; not yet in src tree]** `ArpAnalyzer`: direct `process_arp(&ArpFrame)` method (not ProtocolAnalyzer/StreamAnalyzer); binding table (HashMap<[u8;4], BindingEntry>, LRU-bounded); D1 spoof, D2 GARP, D3 storm, D11 malformed, D12 L2/L3 mismatch detection; T0830+T1557.002 findings (ADR-008) | Pure core |
-| C-24 | src/analyzer/dnp3.rs | SS-15 | `Dnp3Analyzer`: `StreamHandler`; carry-buffer + CRC-block-skip parse; FIR=1-only app-layer extract; function-code classification; ICS MITRE findings T1691.001/T0827/T0836/T0814; per-flow master-address tracking (MAX_MASTER_ADDRS); VP-023 Kani obligation (ADR-007). **Note — non-chronological C-ID:** DNP3 shipped before ARP (v0.6.0 vs v0.7.0-planned) but C-IDs are assigned by factory-registration order; C-22 (Modbus) and C-23 (ARP) were registered first. DNP3 receives C-24 by registration sequence, not deployment sequence. Do not renumber C-23 — it is cited in arp-architecture-delta, ARCH-INDEX, module-criticality, and BC-INDEX. | Pure core |
+| C-24 | src/analyzer/dnp3.rs | SS-15 | `Dnp3Analyzer`: `StreamHandler`; carry-buffer + CRC-block-skip parse; FIR=1-only app-layer extract; function-code classification; ICS MITRE findings T1692.001/T1691.001/T0814/T0836/T0827; per-flow master-address tracking (MAX_MASTER_ADDRS); VP-023 Kani obligation (ADR-007). **Note — non-chronological C-ID:** DNP3 shipped before ARP (v0.6.0 vs v0.7.0-planned) but C-IDs are assigned by factory-registration order; C-22 (Modbus) and C-23 (ARP) were registered first. DNP3 receives C-24 by registration sequence, not deployment sequence. Do not renumber C-23 — it is cited in arp-architecture-delta, ARCH-INDEX, module-criticality, and BC-INDEX. | Pure core |
 
 ### L4 Output Layer
 

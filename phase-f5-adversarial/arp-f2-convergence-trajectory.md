@@ -68,10 +68,11 @@ Minimum 3 consecutive clean passes required for convergence gate (same as F5 sta
 | 26 (whole-corpus, Claude) | 2026-06-13 | 0 | 0 | 0 | 0 | 0 | NONE | **1/3** | **CLEAN** |
 | 27 (whole-corpus, Claude) | 2026-06-13 | 2 | 0 | 0 | 2 | 0 | MED | **0/3 (reset from 1/3)** | NOT_CLEAN→REMEDIATED |
 | 28 (whole-corpus, Claude) | 2026-06-13 | 0 | 0 | 0 | 0 | 0 | NONE | **1/3** | **CLEAN** |
+| 29 (whole-corpus, Claude) | 2026-06-13 | 3 | 0 | 0 | 2 | 1 | MED | **0/3 (reset from 1/3)** | NOT_CLEAN→REMEDIATED |
 
 ## Trajectory Shorthand
 
-`15→20→~8→~15→~6→~4→~4→~7→~4→~6→~5→~18→~8→~22(P14: 2C/5H NEW corpus-debt; trend broke; ARP delta clean 6th pass)→P15(8 findings: holdout-layer field-rename + regression; REMEDIATED)→P16(7: 0C/0H, sibling-sweep misses; REMEDIATED; Slice B CLEAN all 283 BCs + field-rename verified)→P17(10: holdout MITRE-counts + module-decomposition peer; REMEDIATED; Slice B CLEAN 2nd)→P18(9: ss-05 anchor-drift + indicatif + STORY-INDEX; 0C/3H; REMEDIATED; arp.rs+holdout pre-flush verified clean)→P19(15: corpus-wide anchor-drift; 0C/8H; PARTIAL — ss-07-full+remaining-BC pending)→ P20(7: anchor-drift flushed, ss-04/ss-12 closed; 0C/1H; Slices A+C CLEAN; REMEDIATED)→P21(5 cosmetic; 0C/0H; A+C CLEAN 2nd consecutive; REMEDIATED)→P22(5 valid; 0C/0H; cosmetic; version-pin hardened; REMEDIATED)→P23(5; B/C/D CLEAN; Slice-A only; 0C/0H; REMEDIATED)→P24(4: D-01 DNP3-C24 sweep genuine + 3 self-induced; 0C/1H; B+C CLEAN; REMEDIATED)→P25(2; A/B/C CLEAN; changelog-path flush; 0C/0H; REMEDIATED)→ P26 CLEAN 1/3 (all 4 slices zero findings; corpus-wide debt flushed P14-25) → P27 reset 1/3→0/3 (HS-008 kill-chain + HS-INDEX pin; holdout-pin-hardened) → P28 CLEAN 1/3 (restart after P27 reset; all 4 slices zero findings; on post-P27 corpus with holdout kill-chain + version-pin fixes)`
+`15→20→~8→~15→~6→~4→~4→~7→~4→~6→~5→~18→~8→~22(P14: 2C/5H NEW corpus-debt; trend broke; ARP delta clean 6th pass)→P15(8 findings: holdout-layer field-rename + regression; REMEDIATED)→P16(7: 0C/0H, sibling-sweep misses; REMEDIATED; Slice B CLEAN all 283 BCs + field-rename verified)→P17(10: holdout MITRE-counts + module-decomposition peer; REMEDIATED; Slice B CLEAN 2nd)→P18(9: ss-05 anchor-drift + indicatif + STORY-INDEX; 0C/3H; REMEDIATED; arp.rs+holdout pre-flush verified clean)→P19(15: corpus-wide anchor-drift; 0C/8H; PARTIAL — ss-07-full+remaining-BC pending)→ P20(7: anchor-drift flushed, ss-04/ss-12 closed; 0C/1H; Slices A+C CLEAN; REMEDIATED)→P21(5 cosmetic; 0C/0H; A+C CLEAN 2nd consecutive; REMEDIATED)→P22(5 valid; 0C/0H; cosmetic; version-pin hardened; REMEDIATED)→P23(5; B/C/D CLEAN; Slice-A only; 0C/0H; REMEDIATED)→P24(4: D-01 DNP3-C24 sweep genuine + 3 self-induced; 0C/1H; B+C CLEAN; REMEDIATED)→P25(2; A/B/C CLEAN; changelog-path flush; 0C/0H; REMEDIATED)→ P26 CLEAN 1/3 (all 4 slices zero findings; corpus-wide debt flushed P14-25) → P27 reset 1/3→0/3 (HS-008 kill-chain + HS-INDEX pin; holdout-pin-hardened) → P28 CLEAN 1/3 (restart after P27 reset; all 4 slices zero findings; on post-P27 corpus with holdout kill-chain + version-pin fixes) → P29(3: DNP3 T1692.001 + PRD FC-0x17 + anchor; reset 1/3→0/3; REMEDIATED)`
 
 Severity profile: CRITICAL count: 4→5→0→0→0→0→0→0→0→0→0→0→0→2→2→0→3→0→0→0→0→0→0 — DECAYING on CRITICAL
 (0 for 7 of last 8 passes: P16+P18+P19+P20+P21+P22+P23+P24).
@@ -98,10 +99,10 @@ ss-01/02/04-rest/08/11/12/13 STILL PENDING before Pass 20. Counter 0/3.
 
 ## Convergence Counter
 
-**1/3** consecutive clean passes. **Counter RESTARTED at Pass 28 (after P27 reset).**
+**0/3** consecutive clean passes. **Counter RESET at Pass 29 (from 1/3).**
 **STRICT WHOLE-CORPUS mode** (human-elected 2026-06-12; scope extended 2026-06-13): zero
 findings of ANY severity (including LOW) across the ENTIRE spec corpus (not just ARP delta)
-required for 3 consecutive clean passes. 28 passes run. Pass 14 REMEDIATED (22 findings:
+required for 3 consecutive clean passes. 29 passes run. Pass 14 REMEDIATED (22 findings:
 mitre_techniques field-rename corpus sweep + O-01 closure propagation + architect ×2 + PO ×10
 bursts + consistency audit CONSISTENT). Pass 15 REMEDIATED (8 findings: holdout-scenarios
 field-rename sweep [C-01/02/03, 16 files] + inv-01 YAML regression [C-04] + VP-024 scope
@@ -226,6 +227,25 @@ its read-only profile; actual HEAD is d0a392f; all four slices reviewed the curr
 content and returned zero findings — verdict CLEAN stands.
 Counter **1/3** after Pass 28. Need 2 more consecutive all-4-slice-clean passes for convergence gate.
 Trajectory P26-P28: 0 (CLEAN 1/3) → 2 (NOT_CLEAN→REMEDIATED) → 0 (CLEAN 1/3 restart).
+
+Pass 29 NOT_CLEAN→REMEDIATED — **STREAK BROKEN; counter reset 1/3→0/3.**
+Slices B+C CLEAN. A-01 MED (architect): DNP3 emitted technique-set omitted T1692.001 in 4
+module-inventory docs — module-decomposition.md, system-overview.md, purity-boundary-map.md,
+and module-criticality.md each listed only 4 DNP3 techniques, missing T1692.001
+(T0855→T1692.001 MITRE v19 remap, propagated to ADR-007 but not all inventory docs).
+Canonical 5-ID emitted set {T1692.001, T1691.001, T0814, T0836, T0827} per dnp3.rs and ADR-007;
+all 4 docs corrected. D-01 MED (PO): PRD BC-2.14.014 write-set enumeration omitted FC 0x17
+in 4 locations within PRD §2.14 / BC-2.14.014 prose; canonical Modbus write-set is
+{0x06, 0x10, 0x16, 0x17} (FC 0x16 = Mask Write Register; FC 0x17 = Read/Write Multiple
+Registers); all 4 locations corrected. D-02 LOW (PO): PRD version-history changelog anchor
+slug at PRD:261 used [pass-13-2026-06-13] which does not match the actual heading slug
+[pass-13-corpus-cleanup-2026-06-13]; corrected. Additionally, PRD v1.20 delta row (DNP3 C-23→C-24
+and PRD C-26→C-24 fix from P24 D-01) was missing from the version-history table; backfilled.
+Both A-01 and D-01 are GENUINE content defects (incomplete technique set / dropped FC), not
+cosmetics — fresh-context variance surfaced real gaps that P26 and P28 overlooked. Pattern:
+alternating clean(P26/P28)/found(P27/P29); each fix improves corpus correctness.
+Counter **0/3** after Pass 29 reset. Next = whole-corpus Pass 30 via Claude adversary.
+Trajectory P27-P29: 2 (NOT_CLEAN→REMEDIATED) → 0 (CLEAN 1/3 restart) → 3 (NOT_CLEAN→REMEDIATED).
 
 ## Core Semantics — Confirmed Clean (Settled)
 

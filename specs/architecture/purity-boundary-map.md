@@ -2,7 +2,7 @@
 artifact: architecture-section
 section: purity-boundary-map
 traces_to: ARCH-INDEX.md
-version: "1.5"
+version: "1.6"
 status: verified
 producer: architect
 timestamp: 2026-05-20T00:00:00Z
@@ -22,6 +22,9 @@ modified:
   - date: 2026-06-13
     actor: architect
     reason: "Pass-19 A-01/A-02: (A-01) Implications for Verification arp.rs bullet: corrected VP-024 sub-letter for binding-table cap from sub-C to sub-D (Kani); added sub-C (proptest, last-write-wins determinism) as separate clause per VP-024 anchor table. (A-02) dispatcher.rs bullet: re-anchored None-caching source location from dispatcher.rs:146-148 (inside take_tls_analyzer doc-comment) to dispatcher.rs:279-282 (actual if *count >= self.max_classification_attempts / routes.insert None block). Version bump 1.4→1.5."
+  - date: 2026-06-13
+    actor: architect
+    reason: "Pass-29 A-01: C-24 Dnp3Analyzer row in purity boundary table corrected — T1692.001 omitted from technique set. Full emitted set is T1692.001/T1691.001/T0814/T0836/T0827 (ADR-007 Decision 5; dnp3.rs verified). Also extended dnp3.rs bullet in Implications for Verification with the full technique set (was VP-023 sub-A/B only, now also enumerates emitted IDs for completeness). Version bump 1.5→1.6."
 ---
 
 # Purity Boundary Map
@@ -61,7 +64,7 @@ The pure portions are extracted for verification; the effectful portions are int
 | src/analyzer/http.rs | **Pure core** | Stream-level; all state per-instance; no global side effects; `httparse` is deterministic. Formally verifiable. |
 | src/analyzer/tls.rs | **Pure core** | Stream-level; all state per-instance; `md5` is deterministic; `extract_sni` is a pure function (INV-5). Formally verifiable. |
 | src/analyzer/modbus.rs | **Pure core** | Stream-level; all state per-instance `HashMap<FlowKey, ModbusFlowState>`; pure core functions (`parse_mbap_header`, `classify_fc`, `is_valid_modbus_adu`) are Kani-verifiable (VP-022); no global side effects. Formally verifiable for core parse/classify path. [C-22, SS-14] |
-| src/analyzer/dnp3.rs | **Pure core** | Stream-level; carry-buffer + CRC-block-skip parse; FIR=1-only app-layer extract; FC classification; ICS findings T1691.001/T0827/T0836/T0814; per-flow master-address tracking; VP-023 Kani obligation (ADR-007). No global side effects. Formally verifiable for core parse/classify path. [C-24, SS-15, SHIPPED v0.6.0] |
+| src/analyzer/dnp3.rs | **Pure core** | Stream-level; carry-buffer + CRC-block-skip parse; FIR=1-only app-layer extract; FC classification; ICS findings T1692.001/T1691.001/T0814/T0836/T0827; per-flow master-address tracking; VP-023 Kani obligation (ADR-007). No global side effects. Formally verifiable for core parse/classify path. [C-24, SS-15, SHIPPED v0.6.0] |
 | src/analyzer/arp.rs | **Pure core** | [PLANNED — STORY-112/ADR-008; src/analyzer/arp.rs not yet in Cargo.toml-shipped tree; etherparse pins 0.16] Binding table (LRU-bounded); D1 spoof, D2 GARP, D3 storm, D11 malformed, D12 L2/L3 mismatch; MITRE T0830+T1557.002. When shipped: no global side effects; formally verifiable. [C-23, SS-16] |
 | src/findings.rs | Pure core | Data struct + Display impls; no I/O |
 | src/mitre.rs | **Pure core** | Static match table; pure lookup functions (INV-9). Formally verifiable. |
@@ -127,7 +130,7 @@ proptest. Key formally-verifiable properties:
 - `analyzer/tls.rs`: SNI 4-way ordered match (INV-5); JA3 GREASE filter correctness
 - `analyzer/http.rs`: HTTP poison monotonicity (INV-8); cross-flow state isolation
 - `analyzer/modbus.rs`: MBAP parse safety (VP-022 sub-A); function-code classification totality (VP-022 sub-B); exception detection correctness (VP-022 sub-C) [SS-14]
-- `analyzer/dnp3.rs`: DNP3 DL header parse safety (VP-023 sub-A); FC classification totality (VP-023 sub-B); no-panic on malformed frames [C-24, SS-15, SHIPPED v0.6.0]
+- `analyzer/dnp3.rs`: DNP3 DL header parse safety (VP-023 sub-A); FC classification totality (VP-023 sub-B); no-panic on malformed frames; findings T1692.001/T1691.001/T0814/T0836/T0827 [C-24, SS-15, SHIPPED v0.6.0]
 - `analyzer/arp.rs`: ARP frame parse safety — extract_arp_frame no-panic on malformed input (VP-024 sub-A); GARP detection totality (VP-024 sub-B); binding-table last-write-wins determinism (VP-024 sub-C, proptest); binding-table cap enforcement (VP-024 sub-D, Kani) [C-23, SS-16, PLANNED — STORY-112; VP-024 status=draft]
 - `mitre.rs`: technique_id format invariant (INV-9); all_tactics_in_report_order completeness; ICS-matrix technique resolution (T0836/T0814/T0806/T0835/T0831/T0888/T1691.001/T0827)
 

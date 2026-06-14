@@ -1,7 +1,7 @@
 ---
 document_type: prd
 level: L3
-version: "1.20"
+version: "1.21"
 status: draft
 producer: product-owner
 timestamp: 2026-06-12T02:00:00Z
@@ -258,7 +258,7 @@ supplements:
 
 > **Version 1.16 delta (2026-06-13 — ARP-F2 Pass-13 slice-D fix):**
 > Slice-D: BC-2.16.008 citation EC-008 → EC-002 (same-second storm denominator edge case).
-> No new BCs; no BC count change. See `spec-changelog.md` §[pass-13-2026-06-13].
+> No new BCs; no BC count change. See `spec-changelog.md` §[pass-13-corpus-cleanup-2026-06-13].
 
 > **Version 1.17 delta (2026-06-13 — ARP-F2 Pass-14 PO Burst 2 remediation):**
 > D-01 (HIGH): BC-2.14.004 row §2.14.A corrected reject range from "[2, 253]" to "[2, 254]".
@@ -279,6 +279,22 @@ supplements:
 > from the inline version history). Version history is now contiguous from 1.1 through 1.19.
 > No behavioral changes; no BC count change.
 > See `spec-changelog.md` §[pass-21-fixes-2026-06-13].
+
+> **Version 1.20 delta (2026-06-13 — Pass-24 DNP3 component mislabel sweep):**
+> D-01 (HIGH): All ss-15 (DNP3) BCs updated C-23 → C-24 (Dnp3Analyzer; C-23 was MbapFramer, a
+> Modbus component). §2.15 group header corrected C-26 → C-24. No new BCs; no BC count change.
+> See `spec-changelog.md` §[pass-24-fixes-2026-06-13].
+
+> **Version 1.21 delta (2026-06-13 — Pass-29 PRD findings D-01 + D-02):**
+> D-01 (MED): FC 0x17 added to holding-register write set in 4 locations: §2 v2 co-emission box
+> (0x06/0x10/0x16 → 0x06/0x10/0x16/0x17), §2.14.D group header, §2.14.D BC-2.14.014 index row,
+> §6.5 KD-005 BC-2.14.014 row. Canonical write-set {0x06, 0x10, 0x16, 0x17} per BC-2.14.014 v2.1
+> (BC-DISCREPANCY-001 reconciliation). D-02 (LOW): v1.16 delta changelog anchor corrected from
+> §[pass-13-2026-06-13] (non-existent) to §[pass-13-corpus-cleanup-2026-06-13] (resolving).
+> Architect P29 A-01 architecture doc bumps: module-decomposition, system-overview,
+> purity-boundary-map, module-criticality (per architect P29 A-01 burst).
+> No new BCs; no BC count change.
+> See `spec-changelog.md` §[pass-29-fixes-2026-06-13].
 
 > **Supplement Model:** Sections 3-5 reference extracted supplement files under
 > `prd-supplements/`. These supplements are produced in a SEPARATE burst (Phase 1b).
@@ -758,7 +774,7 @@ Rust source files, 3,868 source LOC, 282 tests, single crate, Rust 2024 edition,
 >
 > **v2 co-emission model (Decision 13, ADR-006):** One finding per write-class PDU carrying
 > ALL applicable technique tags (`mitre_techniques: Vec<String>`). No tag-suppression.
-> Write FCs 0x06/0x10/0x16 → `["T1692.001","T0836"]`; coil FCs 0x05/0x0F → `["T1692.001","T0835"]`;
+> Write FCs 0x06/0x10/0x16/0x17 → `["T1692.001","T0836"]`; coil FCs 0x05/0x0F → `["T1692.001","T0835"]`;
 > burst/sustained rate findings → `["T0806","T1692.001"]`; T0831 co-tagged inline on per-PDU write finding → `["T1692.001","T0836","T0831"]` (no separate T0831 Finding object).
 >
 > **v2 dual-window burst detection (Decision 11):** Two independent CLI-configurable windows:
@@ -807,14 +823,14 @@ Rust source files, 3,868 source LOC, 282 tests, single crate, Rust 2024 edition,
 #### 2.14.D Finding Emission: Write-Class Events
 
 > **v2 co-emission model (ADR-006, Decision 13):** One finding per write-class PDU carrying
-> ALL applicable technique tags. No tag-suppression. Holding-register FCs (0x06/0x10/0x16) →
+> ALL applicable technique tags. No tag-suppression. Holding-register FCs (0x06/0x10/0x16/0x17) →
 > `["T1692.001","T0836"]`; coil FCs (0x05/0x0F) → `["T1692.001","T0835"]`; other write FCs →
 > `["T1692.001"]`. Volume control via burst aggregation (BC-2.14.017), not tag-suppression.
 
 | BC ID | Title | Priority | Origin |
 |-------|-------|----------|--------|
 | BC-2.14.013 | Write-class FC in request direction emits multi-tag finding carrying T1692.001 and applicable technique tags; one finding per write PDU | P0 | feature-007-F2 |
-| BC-2.14.014 | Write FC 0x06/0x10/0x16 in request direction emits finding tagged ["T1692.001","T0836"]; single multi-tag finding per PDU | P0 | feature-007-F2 |
+| BC-2.14.014 | Write FC 0x06/0x10/0x16/0x17 in request direction emits finding tagged ["T1692.001","T0836"]; single multi-tag finding per PDU | P0 | feature-007-F2 |
 | BC-2.14.015 | Write FC to coil output only (0x05/0x0F) emits finding tagged ["T1692.001","T0835"]; single multi-tag finding per PDU | P0 | feature-007-F2 |
 
 #### 2.14.E Finding Emission: Coordinated Write (T0831) and Dual-Window Write-Burst Detection (T0806/T1692.001)
@@ -1187,7 +1203,7 @@ See `prd-supplements/error-taxonomy.md` for the complete E-xxx-NNN catalog.
 | BC-2.11.015 | Uncategorized bucket for empty `mitre_techniques` vec or all-unknown IDs |
 | BC-2.11.016 | Per-finding MITRE expansion with em-dash and name |
 | BC-2.14.013 | T1692.001 co-included in multi-tag finding vec for every write-class FC (ADR-006); not standalone |
-| BC-2.14.014 | Holding-register writes (0x06/0x10/0x16) emit `["T1692.001","T0836"]` single multi-tag finding |
+| BC-2.14.014 | Holding-register writes (0x06/0x10/0x16/0x17) emit `["T1692.001","T0836"]` single multi-tag finding |
 | BC-2.14.015 | Coil-only writes (0x05/0x0F) emit `["T1692.001","T0835"]` single multi-tag finding |
 | BC-2.14.016 | T0831 co-tagged inline on per-PDU write finding as `["T1692.001","T0836","T0831"]`; no separate T0831 Finding object (per-PDU write finding already carries T1692.001+T0836) |
 | BC-2.14.017 | Burst/sustained rate detection emits `["T0806","T1692.001"]` — dual-window model (1s burst + >=2s sustained) |
