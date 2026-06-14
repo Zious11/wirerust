@@ -1,7 +1,7 @@
 ---
 pipeline: FEATURE_MODE_ARP_ANALYZER
 phase: feature-F3-story-decomposition-adversarial-convergence
-phase_status: "F3 IN PROGRESS — story decomposition complete (STORY-111..115 created); adversarial convergence STRICT 3/3 IN PROGRESS; Pass-35 NOT CLEAN (Slices A/B/C ZERO [A 14th-consec, B converged, C converged]; Slice D 1 LOW [d-069 changelog stale line-pin §882→§2.15 concept anchor]; REMEDIATED + active-zone changelog line-pins de-pinned; clean-streak UNCHANGED 0/3). NEXT = Pass 36 (clean-streak attempt 1/3)."
+phase_status: "F3 IN PROGRESS — story decomposition complete (STORY-111..115 created); adversarial convergence STRICT 3/3 IN PROGRESS; Pass-36 FULLY CLEAN (all 4 slices ZERO; A 15th-consec ZERO, B converged, C converged, D converged; mount-guards PASSED; post-P35 changelog de-pin flush eliminated recurring Slice-D churn; clean-streak 0/3→1/3). NEXT = Pass 37 (clean-streak attempt 2/3)."
 active_feature: "arp-analyzer"
 feature_arp_status: "F1 Delta Analysis PASSED (human-gated 2026-06-12) — DecodedFrame integration, ADR-008 planned, F2→F7 authorized; release target v0.7.0"
 feature_8_status: "v0.6.0 RELEASED 2026-06-12 — DNP3 TCP analyzer; F7 5-dim CONVERGED; tag v0.6.0 + 4 binaries"
@@ -41,7 +41,7 @@ adversary_convergence_counter: 3/3  # Pass 14 CONVERGENCE_REACHED; clean-streak 
 convergence_trajectory: "P1-P14 greenfield GATE-SATISFIED; MITRE-222 3-pass CONVERGED. Detail: cycles/v0.1.0-greenfield-spec/convergence-trajectory.md"
 arp_f2_adversary_convergence_counter: 3/3 CONVERGED  # Pass 31/32/33 consecutive CLEAN; F2 strict-whole-corpus adversarial gate SATISFIED
 arp_f2_convergence_trajectory: "15→20→~8→~15→~6→~4→~4→~7→~4→~6→~5→~18→~8→~22(P14: 2C/5H NEW corpus-debt; trend broke; ARP delta clean 6th pass)→P15(8 findings: holdout-layer field-rename + regression; REMEDIATED)→P16(7: 0C/0H, sibling-sweep misses; REMEDIATED; Slice B CLEAN)→P17(10: holdout MITRE-counts + module-decomposition peer; REMEDIATED; Slice B CLEAN 2nd)→P18(9: ss-05 anchor-drift + indicatif + STORY-INDEX; 0C/3H; REMEDIATED; arp.rs+holdout pre-flush verified clean)→P19(15: corpus-wide anchor-drift; 0C/8H; PARTIAL — ss-07-full+remaining-BC pending)→ batch2: ss-07-full(35 BCs)+ss-04-partial(21 BCs)+ss-11(10 BCs); ss-01/02/08/13 CLEAN; ss-04-remainder+ss-12 to Pass-20 — REMEDIATED → P20(7: anchor-drift flushed, ss-04/ss-12 closed; 0C/1H; Slices A+C CLEAN; REMEDIATED) → P21(5 cosmetic; 0C/0H; A+C CLEAN; REMEDIATED) → P22(5 valid; 0C/0H; cosmetic; version-pin hardened; REMEDIATED) → P23(5; B/C/D CLEAN; Slice-A only; 0C/0H; REMEDIATED) → P24(4: D-01 DNP3-C24 sweep genuine + 3 self-induced; 0C/1H; B+C CLEAN; REMEDIATED) → P25(2; A/B/C CLEAN; changelog-path flush; 0C/0H; REMEDIATED) → P26 CLEAN 1/3 (all 4 slices zero findings; corpus-wide debt flushed P14-25) → P27 reset 1/3→0/3 (HS-008 kill-chain + HS-INDEX pin; holdout-pin-hardened) → P28 CLEAN 1/3 (restart after P27 reset) → P29 reset 1/3→0/3 (DNP3 T1692.001 + PRD FC-0x17 content gaps; REMEDIATED) → P30 (4 HIGH genuine: FlowKey accessor + STORY input-hash dup + ADR-006 FC0x17; REMEDIATED) → P31 CLEAN 1/3 (restart; P30 HIGH fixes held; all 4 slices zero findings) → P32 CLEAN 2/3 (2nd consecutive) → P33 CLEAN 3/3 CONVERGED (F2 strict-whole-corpus gate satisfied after 33 passes). Detail: phase-f5-adversarial/arp-f2-convergence-trajectory.md"
-f3_convergence_trajectory: "F3 STRICT WHOLE-CORPUS IN PROGRESS. Full per-pass detail P1-P35: phase-f5-adversarial/arp-f3-convergence-trajectory.md. P31 FULLY CLEAN (all 4 slices ZERO; clean-streak 0/3→1/3). P32 NOT CLEAN (Slice C 1 MED: STORY-115 storm_findings_count→storm_findings; REMEDIATED; clean-streak RESET 1/3→0/3). P33 NOT CLEAN (Slice B 1 MED: BC-2.15.024 reset-set parse_errors→malformed_in_window; REMEDIATED v1.7; clean-streak 0/3). POST-P33 SS-15 FLUSH: 6 findings — BC-2.15.014 four→six-field reset v2.0, reciprocal Related-BCs ×4, FC 0x13 SAVE_CONFIGURATION ×2. P34 NOT CLEAN (Slice A ZERO 13th-consec, B ZERO converged, C ZERO 10th; Slice D 1 LOW [prd-v1.25 changelog entry missing Artifacts-changed table]; REMEDIATED; clean-streak 0/3). P35 NOT CLEAN (Slice A ZERO 14th-consec, B ZERO converged, C ZERO converged; Slice D 1 LOW [d-069 changelog stale line-pins §882/§85 → concept anchors]; REMEDIATED + active-zone de-pin sweep; clean-streak 0/3). Note: P33/P34/P35 all A/B/C ZERO with single Slice-D LOW each (asymptotic changelog-cosmetic churn now flushed). NEXT = Pass 36 (clean-streak attempt 1/3)."
+f3_convergence_trajectory: "F3 STRICT WHOLE-CORPUS IN PROGRESS. Full per-pass detail P1-P36: phase-f5-adversarial/arp-f3-convergence-trajectory.md. P31 FULLY CLEAN (all 4 slices ZERO; clean-streak 0/3→1/3). P32 NOT CLEAN (Slice C 1 MED: STORY-115 storm_findings_count→storm_findings; REMEDIATED; clean-streak RESET 1/3→0/3). P33 NOT CLEAN (Slice B 1 MED: BC-2.15.024 reset-set parse_errors→malformed_in_window; REMEDIATED v1.7; clean-streak 0/3). POST-P33 SS-15 FLUSH: 6 findings — BC-2.15.014 four→six-field reset v2.0, reciprocal Related-BCs ×4, FC 0x13 SAVE_CONFIGURATION ×2. P34 NOT CLEAN (Slice A ZERO 13th-consec, B ZERO converged, C ZERO 10th; Slice D 1 LOW [prd-v1.25 changelog entry missing Artifacts-changed table]; REMEDIATED; clean-streak 0/3). P35 NOT CLEAN (Slice A ZERO 14th-consec, B ZERO converged, C ZERO converged; Slice D 1 LOW [d-069 changelog stale line-pins §882/§85 → concept anchors]; REMEDIATED + active-zone de-pin sweep; clean-streak 0/3). P36 FULLY CLEAN (all 4 slices ZERO; A 15th-consec, B converged, C converged, D converged; mount-guards PASSED; clean-streak 0/3→1/3; post-P35 changelog de-pin flush eliminated recurring Slice-D churn). NEXT = Pass 37 (clean-streak attempt 2/3)."
 f7_convergence_trajectory: "6 fresh-context adversarial passes; final 3 consecutive CONVERGED (0 P0/CRITICAL/HIGH/MEDIUM)"
 consistency_audit: CONSISTENT
 input_drift_check: "MATCH=23 STALE=44 ERROR=1 (STORY-091 known); ARP stories STORY-111..115 MATCH (d5bda72/268f53f/a767d96/e2f1c95/5ca9835); STALE=44 are pre-existing older greenfield/feature stories whose BC inputs evolved — expected, non-blocking for F3; scan 2026-06-14"
@@ -51,7 +51,7 @@ input_drift_check: "MATCH=23 STALE=44 ERROR=1 (STORY-091 known); ARP stories STO
 
 ## Status
 
-**wirerust v0.6.0 RELEASED (DNP3 TCP analyzer, issue #8). Feature: ARP security analyzer + etherparse 0.16→0.20 migration (F1 PASSED 2026-06-12, D-066); release target v0.7.0. F2 CONVERGED (P33 CLEAN; 3/3 strict-whole-corpus). F3 ARP story decomposition: STORY-111..115 CREATED (epic E-16, 47 pts). D-068/D-069 applied post-F2. F3 adversarial convergence STRICT 3/3 IN PROGRESS: Pass-35 NOT CLEAN (Slices A/B/C ZERO [A 14th-consec, B converged, C converged]; Slice D 1 LOW [d-069 changelog stale line-pin §882→§2.15 concept anchor]; REMEDIATED + active-zone changelog de-pin sweep applied; clean-streak 0/3). Corpus substantively converged — P33/34/35 each a single Slice-D LOW (asymptotic changelog-cosmetic churn now flushed via de-pin sweep). NEXT = Pass 36 (clean-streak attempt 1/3).**
+**wirerust v0.6.0 RELEASED (DNP3 TCP analyzer, issue #8). Feature: ARP security analyzer + etherparse 0.16→0.20 migration (F1 PASSED 2026-06-12, D-066); release target v0.7.0. F2 CONVERGED (P33 CLEAN; 3/3 strict-whole-corpus). F3 ARP story decomposition: STORY-111..115 CREATED (epic E-16, 47 pts). D-068/D-069 applied post-F2. F3 adversarial convergence STRICT 3/3 IN PROGRESS: Pass-36 FULLY CLEAN (all 4 slices ZERO; A 15th-consec ZERO, B converged, C converged, D converged; mount-guards PASSED). Post-P35 changelog de-pin flush + SS-15 flush eliminated the asymptotic Slice-D/B churn. clean-streak 0/3→1/3. NEXT = Pass 37 (clean-streak attempt 2/3 — need 2 more consecutive clean).**
 
 **Summary:** 68 stories (48 greenfield + 1 tooling + 19 feature-cycle), 457 pts. 283 BCs (244 pre-F2 + 24 SS-15 + 15 SS-16 ARP), 24 VPs (23 locked + VP-024 ARP draft), 1496 tests green, holdout 0.967. develop HEAD 31d1231; main HEAD 3e29891 (v0.6.0). ARP feature: F1 approved — SS-16 (18-24 new BCs), VP-024, ADR-008, E-16 (5-6 stories). MITRE T0830+T1557.002. Post-release sweep 2026-06-12: 5 dep bumps merged (#203/#204/#207/#235/#206), #202/#205 closed; etherparse 0.20 folded into ARP cycle (IN-PROGRESS).
 
@@ -81,11 +81,11 @@ input_drift_check: "MATCH=23 STALE=44 ERROR=1 (STORY-091 known); ARP stories STO
 | Maintenance: Dependabot sweep (post-v0.6.0) | **COMPLETE** 2026-06-12 | 5 PRs merged (#203/#204/#207/#235/#206), 2 closed (#202 superseded, #205 deferred); develop 31d1231 |
 | Feature: ARP analyzer — F1 Delta Analysis | **PASSED** (human-gated 2026-06-12) | DecodedFrame{Ip,Arp} integration, ADR-008 planned, F2→F7 authorized; artifacts: `.factory/phase-f1-delta-analysis/arp-analyzer-delta-analysis.md` |
 | Feature: ARP analyzer — F2 Spec Evolution | **CONVERGED 3/3** (Pass 33, 2026-06-13); 33 passes total; P31/P32/P33 consecutive CLEAN; F2 strict-whole-corpus adversarial gate SATISFIED | 4-slice method; ARP delta SETTLED P9+; corpus-wide debt flushed P14-25; P26/P28/P31/P32/P33 CLEAN; P27/P29/P30 reset cycles surfaced+fixed genuine defects; trajectory: `phase-f5-adversarial/arp-f2-convergence-trajectory.md` |
-| Feature: ARP analyzer — F3 Story Decomposition | **IN PROGRESS** — stories created; adversarial convergence STRICT 3/3 in progress; Pass-35 NOT CLEAN (Slice D 1 LOW: d-069 changelog stale line-pin §882→§2.15 concept anchor; REMEDIATED + active-zone de-pin sweep); clean-streak **0/3**; NEXT = Pass 36 (attempt 1/3) | STORY-111..115 (E-16, 47 pts, linear chain); 15 SS-16 BCs; waves 40-44 holdouts; HS-INDEX v1.7; wave-schedule v1.3; SS-15 fully de-NEW-ed; corpus canonical 457 pts; trajectory: phase-f5-adversarial/arp-f3-convergence-trajectory.md |
+| Feature: ARP analyzer — F3 Story Decomposition | **IN PROGRESS** — stories created; adversarial convergence STRICT 3/3 in progress; Pass-36 FULLY CLEAN (all 4 slices ZERO; mount-guards PASSED); clean-streak **1/3**; NEXT = Pass 37 (attempt 2/3) | STORY-111..115 (E-16, 47 pts, linear chain); 15 SS-16 BCs; waves 40-44 holdouts; HS-INDEX v1.7; wave-schedule v1.3; SS-15 fully de-NEW-ed; corpus canonical 457 pts; trajectory: phase-f5-adversarial/arp-f3-convergence-trajectory.md |
 
-## Session Resume Checkpoint (2026-06-14 — F3 ARP adversarial convergence — Pass-35 NOT CLEAN; d-069 changelog line-pin §882 de-pinned + active-zone de-pin sweep; clean-streak 0/3; strict 3/3 in progress)
+## Session Resume Checkpoint (2026-06-14 — F3 ARP adversarial convergence — Pass-36 FULLY CLEAN; all 4 slices ZERO; clean-streak 1/3; strict 3/3 in progress)
 
-**Previous checkpoint (2026-06-14 — F3 ARP adversarial convergence — Pass-34 NOT CLEAN; spec-changelog Artifacts-changed table REMEDIATED; clean-streak 0/3; strict 3/3 in progress) archived to:
+**Previous checkpoint (2026-06-14 — F3 ARP adversarial convergence — Pass-35 NOT CLEAN; d-069 changelog line-pin §882 de-pinned + active-zone de-pin sweep; clean-streak 0/3; strict 3/3 in progress) archived to:
 `cycles/feature-arp-v0.7.0/session-checkpoints.md`**
 
 ### A. EXACT PIPELINE POSITION
@@ -101,9 +101,9 @@ input_drift_check: "MATCH=23 STALE=44 ERROR=1 (STORY-091 known); ARP stories STO
   updated. All 5 ARP stories MATCH: STORY-111=d5bda72, STORY-112=268f53f, STORY-113=a767d96,
   STORY-114=e2f1c95, STORY-115=5ca9835.
 - **F3 Adversarial Convergence:** STRICT WHOLE-CORPUS, IN PROGRESS.
-  **Pass-35 NOT CLEAN — Slices A/B/C ZERO (A 14th-consec, B converged, C converged); Slice D 1 LOW (d-069 changelog entry stale line-pin §882/§85 → de-pinned to §2.15 concept anchor / PRD v1.5 delta note; active-zone changelog de-pin sweep applied). clean-streak 0/3.**
+  **Pass-36 FULLY CLEAN — all 4 slices ZERO (A 15th-consec, B converged, C converged, D converged); mount-guards PASSED. clean-streak 0/3→1/3. Post-P35 changelog de-pin flush + SS-15 flush eliminated the asymptotic Slice-D/B churn. 2nd fully-clean pass overall (P31 was first, reset by P32 storm_findings).**
   **USER DIRECTIVE (2026-06-14): CONTINUE STRICT 3/3 indefinitely.**
-  **NEXT ACTION: Run Pass 36 (clean-streak attempt 1/3).**
+  **NEXT ACTION: Run Pass 37 (clean-streak attempt 2/3).**
 
 ### B. F3 CONVERGENCE STATUS
 
@@ -138,7 +138,11 @@ input_drift_check: "MATCH=23 STALE=44 ERROR=1 (STORY-091 known); ARP stories STO
   de-pinned to §-section/concept anchors; recurring Slice-D changelog line-pin drift class flushed]).
   Note: P33/P34/P35 all had A/B/C ZERO with only a single Slice-D LOW each (asymptotic
   changelog-cosmetic churn) — now flushed via de-pin sweep. clean-streak 0/3.
-  NEXT = Pass 36 (clean-streak attempt 1/3).
+  **Pass-36 FULLY CLEAN** (A ZERO 15th-consec; B ZERO [converged]; C ZERO [converged];
+  D ZERO; ALL 4 slices ZERO; mount-guards PASSED). Post-P35 changelog de-pin flush +
+  SS-15 flush eliminated the asymptotic Slice-D/B churn. 2nd fully-clean pass overall
+  (P31 was first, reset by P32 storm_findings). Clean-streak 0/3→**1/3**.
+  NEXT = Pass 37 (clean-streak attempt 2/3).
 - Canonical corpus facts (feed to each adversary dispatch):
   - BCs: 283 total (244 pre-F2 + 24 SS-15 + 15 SS-16 ARP)
   - VPs: 24 total (22 pre-F2 + VP-023 DNP3 + VP-024 ARP draft)
@@ -319,14 +323,13 @@ STORY-114 inputs include BC-2.16.007 (cross-story). All 16 SS-16 + 24 SS-15 BC s
 3. `git rev-parse --short HEAD` on develop (expect `31d1231` or newer, clean).
 4. `python3 /Users/zious/Documents/GITHUB/wirerust/bin/compute-input-hash --scan` —
    confirm STORY-111..115 MATCH (d5bda72/268f53f/a767d96/e2f1c95/5ca9835).
-5. **Resume: dispatch Pass 36 = 4 fresh-context adversary slices (strict whole-corpus,
-   zero-any-severity); clean-streak 0/3 (P31 clean; P32/P33/P34/P35 each not clean — need 3 consecutive).**
+5. **Resume: dispatch Pass 37 = 4 fresh-context adversary slices (strict whole-corpus,
+   zero-any-severity); clean-streak 1/3 (P36 fully clean — need 2 more consecutive).**
    DO NOT re-run F1/F2 (converged). DO NOT revert D-068/D-069.
-   Pass-35: Slices A/B/C ZERO (A 14th-consec, B converged, C converged); Slice D 1 LOW
-   (d-069 changelog entry stale line-pins §882/§85 → de-pinned to concept anchors)
-   REMEDIATED (spec-changelog.md de-pinned; active-zone sweep applied — recurring Slice-D
-   changelog line-pin drift class flushed).
-   Durable scope note for active-zone de-pin sweep added to Section E.
+   Pass-36: ALL 4 slices ZERO (A 15th-consec, B converged, C converged, D converged);
+   mount-guards PASSED. FULLY CLEAN. No remediation required.
+   Post-P35 changelog de-pin flush + SS-15 flush eliminated the asymptotic Slice-D/B churn.
+   Clean-streak 0/3→1/3.
    CRITICAL: Slice C dispatch MUST include a worktree-mount verification guard —
    Glob `.factory/stories/STORY-*`; if empty or only .gitkeep, STOP and report, do NOT
    confabulate. See PG-ARP-F3-ADVERSARY-MOUNT.

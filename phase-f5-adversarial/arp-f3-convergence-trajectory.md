@@ -212,6 +212,21 @@ changelog-cosmetic churn). This de-pin sweep eliminates the drift class at its r
 
 **clean-streak 0/3.** NEXT = Pass 36 (clean-streak attempt 1/3).
 
+### Pass 36 (2026-06-14)
+
+Slice A: ZERO [15th-consec]. Slice B: ZERO [converged]. Slice C: ZERO [converged].
+Slice D: ZERO. ALL 4 SLICES ZERO. Mount-guards PASSED. FULLY CLEAN.
+
+**Finding:** ZERO findings total. FULLY CLEAN pass. No remediation required.
+
+Post-P35 changelog de-pin flush (active-zone 2026-06-12+ line-pins removed) + SS-15 proactive
+consistency flush (post-P33: six-field reset set, reciprocal Related-BCs, SAVE_CONFIGURATION)
+together eliminated the asymptotic Slice-D/B churn that had persisted through P33/P34/P35.
+
+2nd fully-clean pass overall (P31 was first; P32 reset the streak with STORY-115 storm_findings field drift).
+
+**Clean-streak 0/3 → 1/3.** NEXT = Pass 37 (clean-streak attempt 2/3 — need 2 more consecutive).
+
 ---
 
 ## Summary Table
@@ -237,3 +252,4 @@ changelog-cosmetic churn). This de-pin sweep eliminates the drift class at its r
 | POST-P33 SS-15 FLUSH | — | — | — | — | 6 | 0/3 (UNCHANGED) | PROACTIVE pre-Pass-34 flush: BC-2.15.014 v2.0 four→six-field reset (EC-006+Inv7); reciprocal Related-BCs 014↔016/016↔010/015↔024/022↔016; FC 0x13 SAVE_CONFIGURATION in BC-2.15.012 v1.4+BC-2.15.023 v1.6. Sweep classes 3/4/6 CLEAN. NOT an adversary pass; clean-streak UNCHANGED 0/3; NEXT = Pass 34. |
 | 34 | ZERO (13th-consec) | ZERO (converged) | ZERO (10th-consec) | 1 LOW | 1 | 0/3 | Slice D 1 LOW: spec-changelog [prd-v1.25-ss15-titlesync-2026-06-14] entry missing Artifacts-changed table (presentational sibling-consistency gap vs all peer ACTIVE entries). REMEDIATED: table added to spec-changelog.md. Corpus substantively converged — only presentational LOW surfaced. NEXT = Pass 35 (clean-streak attempt 1/3). |
 | 35 | ZERO (14th-consec) | ZERO (converged) | ZERO (converged) | 1 LOW | 1 | 0/3 | Slice D 1 LOW: d-069 changelog entry [d-069-icsimpact-display-impact-ics-2026-06-14] carried stale PRD raw line-pins in Artifacts table (§882→"PRD §2.15 'New ICS tactic variant' note (IcsImpact)" and §85→"PRD v1.5 delta note"). REMEDIATED: both rows de-pinned to §-section/concept anchors in spec-changelog.md. Swept all 2026-06-12+ ACTIVE entries — no other drifted live-state spec line-pins found (remaining numerics are sealed historical correction records, src refs, §-anchors, ~approximates, or intra-BC audit notes). Recurring Slice-D changelog line-pin drift class flushed via de-pin sweep. Note: P33/P34/P35 all had A/B/C ZERO with only a single Slice-D LOW each (asymptotic changelog-cosmetic churn) — now flushed. clean-streak 0/3. NEXT = Pass 36 (clean-streak attempt 1/3). |
+| 36 | ZERO (15th-consec) | ZERO (converged) | ZERO (converged) | ZERO | 0 | **1/3** | FULLY CLEAN — all 4 slices ZERO; mount-guards PASSED. Post-P35 changelog de-pin flush + SS-15 flush eliminated the recurring Slice-D/B churn. 2nd fully-clean pass overall (P31 was first, reset by P32 storm_findings). Clean-streak 0/3→1/3. NEXT = Pass 37 (clean-streak attempt 2/3 — need 2 more consecutive). |
