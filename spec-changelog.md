@@ -39,6 +39,13 @@ symbol-anchoring across multiple BCs, and removal of stale line-pin references. 
 the PRD §2.15 title-sync rows constitute the 1.24→1.25 bump; the other flush items were
 committed in the same burst under their own version records.
 
+**Artifacts changed:**
+
+| Artifact | Change |
+|----------|--------|
+| `.factory/specs/prd.md` | §2.15.C BC-2.15.009 row title synced to H1 ("Initial-Delivery No-Sync (One-Shot, First Delivery Only)"; removed stale "first 16 bytes" framing) [FIX-1]; §2.15.F BC-2.15.016 row title synced to H1 (added master_addrs ≤64 / pending_requests ≤256 bounds) [FIX-2]; "Version 1.25 delta" note added; frontmatter v1.24→v1.25 |
+| `.factory/spec-changelog.md` | this entry |
+
 ---
 
 ## [pass-25-f3-convergence-2026-06-14] — 2026-06-14

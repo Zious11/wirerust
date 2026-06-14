@@ -430,3 +430,32 @@ fully-clean pass. Passes 18-22 each surfaced+remediated genuine items.
 | develop HEAD | 31d1231 | — |
 | main HEAD | 3e29891 | chore: release v0.6.0 |
 | factory-artifacts HEAD | bed0906 | factory(F3): Pass-32 remediation — STORY-115 storm_findings field-name (clean-streak reset 0/3); STATE compaction |
+
+---
+
+## Archived Checkpoint: 2026-06-14 — F3 ARP adversarial convergence — Pass-33 NOT CLEAN; BC-2.15.024 v1.7 REMEDIATED; clean-streak 0/3; strict 3/3 in progress
+
+**Archived from STATE.md on:** 2026-06-14 (replaced by Pass-34 checkpoint)
+
+### POSITION at archival time
+
+- F1 PASSED (human-gated 2026-06-12, D-066). F2 CONVERGED (P33 CLEAN; 3/3). D-068/D-069 applied post-F2.
+- F3: STORY-111..115 created (E-16, 47 pts). All 5 ARP stories MATCH (d5bda72/268f53f/a767d96/e2f1c95/5ca9835).
+- F3 Adversarial Convergence: STRICT WHOLE-CORPUS, IN PROGRESS.
+  Pass-33 NOT CLEAN — Slices A/C/D ZERO (Slice D 3rd-consec ZERO); Slice B 1 MED
+  (BC-2.15.024 Related-BCs descriptor: `parse_errors` wrongly listed in reset set —
+  corrected to `malformed_in_window` per Inv 1/PC5/Arch-Anchors + BC-2.15.015 +
+  dnp3.rs:984-995). REMEDIATED BC-2.15.024 v1.7. Sibling sweep CLEAN.
+  POST-P33 SS-15 proactive flush COMPLETE: 6 findings remediated (BC-2.15.014 v2.0 six-field
+  reset; reciprocal Related-BCs ×4: 014↔016/016↔010/015↔024/022↔016;
+  BC-2.15.012 v1.4 + BC-2.15.023 v1.6 SAVE_CONFIGURATION). clean-streak UNCHANGED 0/3.
+  USER DIRECTIVE: CONTINUE STRICT 3/3 indefinitely.
+  NEXT ACTION at archival: Run Pass 34 (clean-streak attempt 1/3).
+
+### VERIFIED SHAs at archival time
+
+| Ref | Value | Notes |
+|-----|-------|-------|
+| develop HEAD | 31d1231 | — |
+| main HEAD | 3e29891 | chore: release v0.6.0 |
+| factory-artifacts HEAD | 6993e6a | factory(F3): post-P33 SS-15 flush — BC-2.15.014 six-field reset, reciprocal Related-BCs ×4, FC 0x13 SAVE_CONFIGURATION ×2 |

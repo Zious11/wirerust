@@ -167,6 +167,23 @@ history entry in BC-2.15.023 retained verbatim (records the STOP_APPL→SAVE_CON
 - Class 4 (constants/labels): CLEAN (SAVE_CONFIGURATION correction applied above; no other FC abbreviation drift found)
 - Class 6 (version/changelog sync): CLEAN
 
+### Pass 34 (2026-06-14)
+
+Slice A: ZERO [13th-consec]. Slice B: ZERO [converged]. Slice C: ZERO [10th-consec].
+Slice D: 1 LOW [spec-changelog entry [prd-v1.25-ss15-titlesync-2026-06-14] missing
+Artifacts-changed table — presentational sibling-consistency gap; all other recent ACTIVE
+entries carry the table in the standard Artifact/Change format].
+
+**Finding:** 1 LOW total (Slice D). NOT a clean pass.
+
+**Remediation:** spec-changelog.md [prd-v1.25-ss15-titlesync-2026-06-14] entry updated —
+Artifacts-changed table added matching pass-29 entry format (2 rows: prd.md + spec-changelog.md).
+Paths resolve on disk. Sibling sweep: all other recent ACTIVE entries already carry the table —
+CLEAN. Corpus substantively converged: Slices A/B/C achieved ZERO for 13th/converged/10th
+consecutive pass respectively; only presentational LOW surfaced at Slice D. REMEDIATED.
+
+**clean-streak 0/3.** NEXT = Pass 35 (clean-streak attempt 1/3).
+
 ---
 
 ## Summary Table
@@ -190,3 +207,4 @@ history entry in BC-2.15.023 retained verbatim (records the STOP_APPL→SAVE_CON
 | 32 | ZERO | ZERO | 1 MED | ZERO | 1 | 0/3 | STORY-115 field storm_findings_count→storm_findings; REMEDIATED |
 | 33 | ZERO | 1 MED | ZERO | ZERO | 1 | 0/3 | BC-2.15.024 reset-set cross-ref parse_errors→malformed_in_window; REMEDIATED v1.7 |
 | POST-P33 SS-15 FLUSH | — | — | — | — | 6 | 0/3 (UNCHANGED) | PROACTIVE pre-Pass-34 flush: BC-2.15.014 v2.0 four→six-field reset (EC-006+Inv7); reciprocal Related-BCs 014↔016/016↔010/015↔024/022↔016; FC 0x13 SAVE_CONFIGURATION in BC-2.15.012 v1.4+BC-2.15.023 v1.6. Sweep classes 3/4/6 CLEAN. NOT an adversary pass; clean-streak UNCHANGED 0/3; NEXT = Pass 34. |
+| 34 | ZERO (13th-consec) | ZERO (converged) | ZERO (10th-consec) | 1 LOW | 1 | 0/3 | Slice D 1 LOW: spec-changelog [prd-v1.25-ss15-titlesync-2026-06-14] entry missing Artifacts-changed table (presentational sibling-consistency gap vs all peer ACTIVE entries). REMEDIATED: table added to spec-changelog.md. Corpus substantively converged — only presentational LOW surfaced. NEXT = Pass 35 (clean-streak attempt 1/3). |
