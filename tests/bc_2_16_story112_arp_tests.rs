@@ -23,10 +23,11 @@
 //!     valid Ethernet/IPv4 ARP frames; decode_packet routes ARP to
 //!     Ok(DecodedFrame::Arp(...)); non-Eth/IPv4 ARP yields
 //!     Err("Non-Ethernet/IPv4 ARP frame").
-//!   AC-008: PASSES — ArpAnalyzer::process_arp no-op stub is the deliverable.
-//!   AC-009: PASSES — structural assertion that the ARP arm in main.rs does not
-//!     call dispatcher.on_data; verified by calling process_arp on a known ArpFrame
-//!     and confirming it returns vec![].
+//!   AC-008: PASSES — the specific test frame (outer_src_mac == sender_mac, new IP)
+//!     produces no findings: not GARP (outer matches sender), no D1 history, no D12.
+//!   AC-009: PASSES — the specific reply frame (outer_src_mac == sender_mac, new IP)
+//!     produces no findings; process_arp is a full implementation (post-STORY-114)
+//!     but this particular frame legitimately triggers no detections.
 //!
 //! Test naming: `test_BC_S_SS_NNN_xxx` per factory convention.
 //! `#![allow(non_snake_case)]` is required because BC IDs use uppercase letters.
@@ -632,15 +633,19 @@ fn test_BC_2_16_015_decode_packet_lax_arm_truncated_arp_non_panic() {
 }
 
 // ---------------------------------------------------------------------------
-// AC-008: ArpAnalyzer::process_arp stub is called and returns vec![]
+// AC-008: ArpAnalyzer::process_arp is callable without panic
 // BC-2.16.015 postconditions 5/6
-// GREEN BY DESIGN: the no-op stub is the STORY-112 deliverable.
-// This test locks the contract so future implementation can't accidentally
-// break the stub-wiring signature or change the no-op to panic.
+// Originally (STORY-112): the no-op stub was the deliverable; this test
+// locked the wiring signature and confirmed no-panic behavior.
+// Post-STORY-114: process_arp is a full implementation. This test frame
+// (outer_src_mac == sender_mac → not GARP; new IP → no D1 history) still
+// legitimately produces no findings, so the is_empty() assertion remains correct.
 // ---------------------------------------------------------------------------
 
 /// AC-008 (BC-2.16.015 PC5/6): ArpAnalyzer::process_arp is callable and
-/// returns vec![] (no-op stub). Locks the wiring contract.
+/// produces no findings for a request frame where outer_src_mac equals
+/// sender_mac (not GARP) and the sender IP has no prior binding (no D1).
+/// Locks the wiring signature established in STORY-112.
 #[test]
 fn test_BC_2_16_015_main_arp_arm_calls_process_arp_stub() {
     let mut analyzer = ArpAnalyzer::new(3, 50);
@@ -657,13 +662,14 @@ fn test_BC_2_16_015_main_arp_arm_calls_process_arp_stub() {
     };
     let timestamp_secs: u32 = 1_700_000_000;
 
-    // Call process_arp — must not panic, must return vec![].
+    // Call process_arp — must not panic; this specific frame produces no findings:
+    // outer_src_mac == sender_mac (not GARP), new IP (no D1 history), no D12 trigger.
     let findings = analyzer.process_arp(&frame, timestamp_secs);
 
     assert!(
         findings.is_empty(),
-        "AC-008 / BC-2.16.015 PC5/6: ArpAnalyzer::process_arp stub must return \
-         vec![] (no findings in STORY-112 stub). Got {} findings.",
+        "AC-008 / BC-2.16.015 PC5/6: this ARP request frame (outer_src_mac == \
+         sender_mac, no prior binding) must produce no findings. Got {} findings.",
         findings.len()
     );
 }
@@ -671,28 +677,28 @@ fn test_BC_2_16_015_main_arp_arm_calls_process_arp_stub() {
 // ---------------------------------------------------------------------------
 // AC-009: DecodedFrame::Arp never reaches StreamDispatcher
 // BC-2.16.015 invariant 2
-// GREEN BY DESIGN at the unit level: process_arp returns vec![] and the
-// main.rs Arp arm does not call dispatcher.on_data. We verify this
-// structurally by calling process_arp and asserting the return is empty
-// (no IP pipeline side-effects occur). A spy-based integration approach
-// is not available without refactoring the binary, so we assert the
-// structural contract via the ArpAnalyzer return value and the fact
-// that the ARP arm does not call any dispatcher method (verified by
-// inspecting main.rs structure and confirming the empty findings list).
+// Originally (STORY-112): process_arp was a no-op stub; the structural proof
+// was that it returned vec![] and the ARP arm did not call dispatcher.on_data.
+// Post-STORY-114: process_arp is a full implementation. This test frame
+// (operation=2 reply, outer_src_mac == sender_mac → not GARP, new IP → no D1
+// history) still produces no findings, confirming the ARP arm does not
+// enter the IP pipeline. A spy-based integration approach is not available
+// without refactoring the binary; the ARP arm separation is verified by
+// inspecting main.rs structure (no dispatcher.on_data call in the Arp branch).
 // ---------------------------------------------------------------------------
 
 /// AC-009 (BC-2.16.015 Invariant 2): an ArpFrame processed through the
 /// main-loop ARP arm never invokes dispatcher.on_data or any IP-pipeline
-/// method. Verified structurally: process_arp returns vec![] (no findings
-/// propagated through the IP pipeline) and the ARP arm is separate from
-/// the IP arm.
+/// method. This specific reply frame (outer_src_mac == sender_mac, new IP)
+/// produces no findings; the ARP arm remains separate from the IP arm.
 #[test]
 fn test_BC_2_16_015_arp_frame_never_reaches_stream_dispatcher() {
     // Structural verification: construct an ArpFrame and call process_arp.
-    // The stub returns vec![]; no dispatcher interaction occurs.
-    // If dispatcher.on_data were called for ARP frames, IP-pipeline findings
-    // would be interleaved with ARP findings — the empty vec![] return and
-    // the ArpAnalyzer not-implementing-ProtocolAnalyzer is the structural proof.
+    // This reply frame has outer_src_mac == sender_mac (not GARP) and a new
+    // sender IP (no D1 history), so process_arp produces no findings.
+    // The ARP arm in main.rs does not call dispatcher.on_data; if it did,
+    // IP-pipeline findings would be interleaved — ArpAnalyzer does not
+    // implement ProtocolAnalyzer, making that wiring structurally impossible.
     let mut analyzer = ArpAnalyzer::new(3, 50);
 
     let arp_frame = ArpFrame {
@@ -705,15 +711,15 @@ fn test_BC_2_16_015_arp_frame_never_reaches_stream_dispatcher() {
         packet_len: REPLY_PKT_LEN,
     };
 
-    // Call process_arp. The return being vec![] and the call not panicking
-    // confirms the ARP arm terminates without entering the IP pipeline.
+    // Call process_arp. This specific reply frame (outer_src_mac == sender_mac,
+    // new IP) legitimately produces no findings; the call must not panic.
     let findings = analyzer.process_arp(&arp_frame, 0);
 
     assert!(
         findings.is_empty(),
-        "AC-009 / BC-2.16.015 Invariant 2: process_arp must return vec![] \
-         in the STORY-112 stub — no IP-pipeline findings must be produced. \
-         Got {} findings.",
+        "AC-009 / BC-2.16.015 Invariant 2: this ARP reply frame (outer_src_mac == \
+         sender_mac, no prior binding) must produce no findings — no IP-pipeline \
+         findings must be produced. Got {} findings.",
         findings.len()
     );
 

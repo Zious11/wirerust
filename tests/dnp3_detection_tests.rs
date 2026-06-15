@@ -1,12 +1,13 @@
-//! Tests for STORY-108: DNP3 Direct Detection Emissions — GREEN.
+//! Failing tests for STORY-108: DNP3 Direct Detection Emissions.
 //!
 //! Covers AC-001..AC-012 and edge cases EC-001..EC-008 from the STORY-108 spec.
 //! Traces to behavioral contracts: BC-2.15.010, BC-2.15.011, BC-2.15.012,
 //! BC-2.15.013, BC-2.15.020, BC-2.15.022.
 //!
-//! Originally written as a Red Gate suite (tests panicked via todo!() stubs in
-//! `detect_control_class_burst`, `detect_restart`, `detect_write`, `summarize()`).
-//! STORY-108 is complete and all tests pass.
+//! RED GATE: ALL tests in this file MUST FAIL (todo!() panics) before
+//! any production logic is added.  Tests compile clean and panic only on
+//! the `todo!()` stubs in `detect_control_class_burst`, `detect_restart`,
+//! `detect_write`, and `summarize()`.
 //!
 //! Test naming convention: `test_BC_S_SS_NNN_xxx` / `test_EC_NNN_xxx`
 //! following the project TDD standard (DF-TEST-NAMESPACE-001).
@@ -479,8 +480,11 @@ mod story_108 {
 
     /// AC-005c: FC 0x0F (INITIALIZE_DATA) is Management-class → no T0814 finding.
     ///
-    /// First verifies that COLD_RESTART (0x0D) DOES increment restart_event_count
-    /// (detect_restart implemented), then verifies INITIALIZE_DATA (0x0F) does NOT.
+    /// This test has a RED GATE anchor: it first verifies that COLD_RESTART (0x0D)
+    /// DOES increment restart_event_count (requiring detect_restart to be implemented),
+    /// then verifies INITIALIZE_DATA (0x0F) does NOT.  Without the implementation,
+    /// the COLD_RESTART counter assertion fails first (count stays 0), anchoring
+    /// the Red Gate.
     ///
     /// Traces to: BC-2.15.011 EC-004; BC-2.15.006 EC-009; STORY-108 AC-005.
     #[test]
@@ -495,7 +499,8 @@ mod story_108 {
         let mut analyzer = Dnp3Analyzer::new(10);
         let key = test_flow_key();
 
-        // FIRST: deliver a genuine COLD_RESTART (0x0D) — must emit T0814 and increment counter.
+        // FIRST: deliver a genuine COLD_RESTART (0x0D) — must emit T0814 and increment counter
+        // RED GATE ANCHOR: the stub detect_restart() is todo!(), so this will panic.
         let cold_frame = build_detection_frame(0x0D, 0x0003, 0x0001);
         analyzer.on_data(key.clone(), &cold_frame, 500);
 
@@ -1105,9 +1110,13 @@ mod story_108 {
 
     /// EC-002: Control FC at exactly threshold (count=10, threshold=10) → no finding.
     ///
-    /// Guards both conditions:
+    /// This test guards both conditions:
     ///   a) no T1692.001 at count=10 (threshold not exceeded)
-    ///   b) direct_operate_count IS 10 (counter incremented correctly by detect_control_class_burst)
+    ///   b) direct_operate_count IS 10 (counter incremented correctly)
+    ///
+    /// Condition (b) is the Red Gate anchor: until detect_control_class_burst is
+    /// implemented, direct_operate_count will be 0 (stub does not mutate state),
+    /// causing this test to fail on the counter assertion.
     ///
     /// Traces to: BC-2.15.010 EC-002; STORY-108 EC-002.
     #[test]
@@ -1128,14 +1137,14 @@ mod story_108 {
             "EC-002: at count=10 (==threshold=10) no finding expected (10 > 10 is false)"
         );
 
-        // (b) Counter must actually be 10 (incremented by detect_control_class_burst).
+        // (b) Counter must actually be 10 — RED GATE: todo!() stub leaves count=0
         let flow = analyzer
             .flows
             .get(&key)
             .expect("flow must exist after 10 on_data calls");
         assert_eq!(
             flow.direct_operate_count, 10,
-            "EC-002: direct_operate_count must be 10 after 10 SELECT FCs"
+            "EC-002: direct_operate_count must be 10 after 10 SELECT FCs (Red Gate: stub leaves 0)"
         );
     }
 

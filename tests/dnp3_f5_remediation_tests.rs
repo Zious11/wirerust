@@ -39,10 +39,10 @@
 //! junk-at-clean-boundary, no-double-count, flood threshold, overflow-head-preserved,
 //! fake-sync-flood.
 //!
-//! ## Red Gate Contract (historical — now GREEN)
+//! ## Red Gate Contract
 //!
-//! Originally: all new/corrected tests MUST FAIL before implementation (behavioral
-//! reasons, not compile errors). The Red Gate phase is complete; all tests pass.
+//! ALL new/corrected tests MUST FAIL before implementation (they fail for
+//! behavioral reasons, NOT compile errors). The suite MUST compile clean.
 //!
 //! Traces to:
 //!   BC-2.15.010 Invariant 5 (unexpected-source check)

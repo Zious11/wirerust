@@ -1732,7 +1732,10 @@ fn test_dropped_findings_key_present_in_summarize() {
 // doc comment.
 // ---------------------------------------------------------------------------
 
-// ---- Formerly RED GATE stubs (replaced with real assertions after the Red Gate phase). ----
+// ---- RED GATE stubs — #[should_panic] tests use an empty body so that
+//      the should_panic contract is NOT satisfied (test fails because no
+//      panic is raised).  Regular tests use panic!("RED GATE: ...").
+// ---- After RED GATE is verified, stubs are replaced with real assertions.
 
 /// AC-001 / EC-001 (BC-2.04.001 postcondition 1)
 /// Postcondition: if config.max_depth == 0, constructor panics with a
@@ -4784,8 +4787,8 @@ fn test_BC_2_04_048_isn_missing_warned_fires_once_then_suppressed() {
 //
 // AC-001..AC-015 (engine-level lifecycle tests) + 10 Edge Cases.
 //
-// PART A: originally stub-only bodies (panic!("STORY-019 stub — Red Gate"));
-// now replaced with real assertions.
+// PART A: stub-only bodies — panic!("STORY-019 stub — Red Gate").
+// All stubs MUST fail before Part B fills real assertions.
 //
 // CLOSE_FLOW_MISSING_WARNED serialization: AC-013/014 are combined into one
 // test (CLOSE_FLOW_MISSING_WARNED_LOCK held for duration) mirroring the
@@ -8031,7 +8034,8 @@ fn test_BC_2_04_039_ec008_isn_near_max_btreemap_keys_monotonic() {
 // ACs: AC-001..AC-013 (13 tests)
 // ECs: EC-001..EC-011 (11 tests); + 1 proptest (AC-004)
 //
-// Originally stub-only bodies (panicked to satisfy the Red Gate); now all assertions are live.
+// All stubs panic to satisfy the Red Gate: every test must FAIL before
+// implementation. Do NOT add #[ignore].
 //
 // Part B note: AC-004 requires asserting `total_memory == sum(flow.memory_used())`
 // over the private `flows` map. The existing `total_memory()` public accessor
@@ -13235,7 +13239,7 @@ fn test_story_017_ec009_duplicate_overlap_increments_count_no_finding() {
 //      2.04.040 (small_segment_run update rules)
 // ACs: 004, 005, 006, 007, 008, 009, 013, 014, 015
 // ECs: 008 (truncated at MAX_FINDINGS cap)
-// All tests pass (Part A stubs replaced with real assertions).
+// All test bodies panic — Red Gate (Part A stubs).
 // ====================================================================================
 
 // --- AC-004 (BC-2.04.023 postcondition 1) ---

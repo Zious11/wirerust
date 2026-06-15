@@ -111,7 +111,9 @@ fn test_flow_direction_new() {
 // or invariant being exercised.
 // ---------------------------------------------------------------------------
 
-// ---- Formerly RED GATE stubs; replaced with real assertions after the Red Gate phase. ----
+// ---- RED GATE stubs — all bodies are panic!("RED GATE: ...") so every
+//      test fails before implementation verification begins.
+// ---- After RED GATE is verified, stubs are replaced with real assertions.
 
 /// AC-008 (BC-2.04.003 postcondition 1)
 /// Postcondition: FlowKey::new stores the endpoint where (ip, port) <=
@@ -582,7 +584,7 @@ mod proptest_flowkey {
 // Test names are prescribed by the story spec (W1.4 decision).
 // ---------------------------------------------------------------------------
 
-// ---- AC-001 to AC-016: (formerly Red Gate stubs, now passing tests) ----
+// ---- AC-001 to AC-016: RED GATE stubs ----
 
 /// AC-001 (BC-2.04.004 postcondition 1)
 /// Postcondition: after set_initiator(src_ip, src_port) (called by apply_handshake_flags
@@ -1904,7 +1906,7 @@ fn test_BC_2_04_053_ec010_direction_none_initiator_returns_server_to_client() {
 // EC-004 (STORY-019)             — FIN on New flow state path
 // EC-005 (STORY-019)             — FIN + data ordering at flow level
 //
-// (Originally PART A stub-only bodies; now replaced with real assertions.)
+// PART A: stub-only bodies — panic!("STORY-019 stub — Red Gate").
 // ---------------------------------------------------------------------------
 
 /// AC-005 flow-level (BC-2.04.011 invariant 1)

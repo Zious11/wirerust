@@ -1,8 +1,7 @@
-//! Tests for STORY-102: Modbus MBAP Parse + FC Classification (Pure Core) — GREEN.
+//! Failing tests for STORY-102: Modbus MBAP Parse + FC Classification (Pure Core).
 //!
 //! Covers BC-2.14.001 through BC-2.14.008 and the desync-bail contract (AC-013).
-//! Originally written as a Red Gate suite (all tests must fail before implementation);
-//! STORY-102 is complete and all tests pass.
+//! All tests MUST FAIL (todo!() panic) before implementation — Red Gate per BC-5.38.001.
 //!
 //! ## Spec Note: Length Range Boundary
 //! BC-2.14.004 canonical test vectors state `length=254` → `is_valid_modbus_adu = true`
