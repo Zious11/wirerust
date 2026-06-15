@@ -660,3 +660,28 @@ fully-clean pass. Passes 18-22 each surfaced+remediated genuine items.
 | main HEAD | 3e29891 | v0.6.0 |
 | STORY-112 worktree HEAD | c68964d | final converged HEAD; Step-4.5 CONVERGED + DEMO-RECORDED |
 | open PRs | STORY-112 PR pending | pr-manager 9-step dispatch pending |
+
+---
+
+## Checkpoint Archived 2026-06-15 — F4 wave-level adversarial GATE SATISFIED 3/3 CONVERGED; NEXT = F4 holdout evaluation
+
+**Archived reason:** replaced by new checkpoint (F4 holdout GATE PASS; D-075/076/077 remediated; re-streak RESET 0/3 on 6abcd8f).
+
+### A. PIPELINE POSITION AT ARCHIVAL
+
+- F4 Delta-Implementation: COMPLETE (STORY-111..115 ALL DELIVERED; develop fee71ee post-PR #242).
+- F4 Wave-Level Adversarial Convergence: GATE SATISFIED (3/3 CONVERGED, 2026-06-15).
+  - Pass 1 NOT CLEAN (F-ARP-F4P1-001 MEDIUM threshold-0) → D-074 + PR #242 fee71ee; counter reset.
+  - Clean-streak restart on fee71ee: Pass 1/3 CLEAN, Pass 2/3 CLEAN, Pass 3/3 CLEAN.
+  - Final full-corpus consistency: CONSISTENT, zero gaps.
+- develop HEAD: fee71ee == origin/develop (verified 2026-06-15).
+- Decisions active: D-047..D-074.
+- NEXT = F4 holdout evaluation (ARP wave-40-44 holdout scenarios).
+
+### VERIFIED SHAs at archival time (2026-06-15)
+
+| Ref | Value | Notes |
+|-----|-------|-------|
+| develop HEAD | fee71ee | PR #242 D-074 merged |
+| main HEAD | 3e29891 | v0.6.0 |
+| open PRs | none | all ARP PRs + #237 chrono + #242 D-074 merged |

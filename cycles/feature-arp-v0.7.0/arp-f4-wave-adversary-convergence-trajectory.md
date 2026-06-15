@@ -91,11 +91,84 @@ durable scope note for future audit.
 
 ---
 
+---
+
+## F4 Holdout Evaluation (2026-06-15)
+
+**Develop HEAD:** fee71ee (pre-D-075)
+
+### Summary
+
+Initial run mean 0.997. G1 (D1 ARP-spoof verdict field) scored 0.95 — D1 HIGH finding was
+emitting `Verdict::Possible` instead of `Verdict::Likely` (BC-2.16.004 L45/L74/L118).
+The static adversary (3/3 scenarios) flagged Likely; consistency-validator missed it (checked
+structure, not field value).
+
+D-075 issued (2026-06-15): D1 HIGH finding carries `Verdict::Likely`. PR #243 (merge 4ee7a9d).
+G1 re-run = 1.0 post-fix.
+
+Full corpus 15/15 post-D-075: mean 1.0. RFC-826 canonical frame scenario: PASS.
+Non-D1 verdicts: unregressed.
+
+### Holdout Gate Verdict: PASS
+
+D-076 (PR #244 merge 52437f8): D-075 regression-test doc-comments corrected from present-tense
+RED prose to past-tense regression-guard framing. Recurrence of
+PG-ARP-F4-REDTEST-DOC-TENSE despite codification — agent-prompt/hook strengthening needed
+(recorded as PG-ARP-F4-REDTEST-DOC-TENSE-RECURRENCE in drift items).
+
+---
+
+## Post-Holdout Human-Directed 3-Pass Adversary Re-Streak (2026-06-15)
+
+**Develop HEAD during re-streak:** 4ee7a9d / 52437f8 → culminating in 6abcd8f after D-077.
+
+The orchestrator directed a focused 3-pass re-streak to probe the D-077 security boundary
+(hw/proto type-reject in `extract_arp_frame`), surfacing a CRITICAL defect invisible to 4
+prior adversary passes and holdout.
+
+### Re-Streak Finding — D-077 CRITICAL
+
+**BC-2.16.001 PC2/PC3 + BC-2.16.009 PC3a/3b/EC-001/EC-002:**
+`extract_arp_frame` admitted crafted valid-size/wrong-type ARP frames (non-Ethernet hw type
+or non-IPv4 proto type) into the detection pipeline instead of returning `Err`.
+Root cause: half-implemented D11 security boundary. Implementation + unit tests + (deferred)
+Kani harness all consistently omitted the type-field check, making the omission self-consistent
+and invisible to structural review across 4 prior adversary passes AND holdout.
+
+This is the strongest evidence yet for the "holdout + multi-pass fresh-context re-streak catches
+what single-perimeter review misses" principle.
+
+**Remediation:** PR #245 (merge 6abcd8f): `extract_arp_frame` now rejects non-Ethernet
+hw_addr_type and non-IPv4 proto_addr_type with `Err`. Security review PASS (CWE-20,
+panic-free). F-2 LOW also fixed: GARP-conflict summary now states "with binding conflict"
+(BC-2.16.014 PC1).
+
+D-077 issued (2026-06-15). Adversary convergence counter RESET to 0/3.
+
+### Process Gaps Recorded
+
+- **PG-ARP-F4-REDTEST-DOC-TENSE-RECURRENCE:** PG-ARP-F4-REDTEST-DOC-TENSE recurred in D-075
+  regression test despite codification; codified policy text alone insufficient. Agent-prompt /
+  hook strengthening needed. Self-improvement epic opened.
+- **PG-ARP-F4-TYPE-BRANCH-NARROWING:** Self-consistent omission of reject-branch invisible to
+  structural review. DF-BC-COMPLETENESS-SWEEP must cross-check EACH BC's FULL
+  precondition/edge-case set (negative/reject branches), not just happy-path + present structure.
+- **VP-024 Sub-A Kani (F6 note):** When filled, harness MUST cover type-field rejection (not
+  just size). See PG-ARP-F4-TYPE-BRANCH-NARROWING.
+
+---
+
 ## Current Status
 
-**arp_f4_wave_adversary_convergence_counter: 3/3 CONVERGED — F4 wave-level adversarial gate SATISFIED**
+**arp_f4_wave_adversary_convergence_counter: 0/3 — RE-STREAK RESTARTED on 6abcd8f (IN PROGRESS)**
 
-Trajectory shorthand: `1M→(remediated)→P1/3-CLEAN→P2/3-CLEAN→P3/3-CLEAN-GATE-SATISFIED`
+Prior 3/3 CONVERGED (fee71ee) invalidated by post-convergence D-075 holdout catch + D-077
+CRITICAL surfaced by human-directed 3-pass re-streak. Counter reset to 0/3.
 
-Next action: F4 holdout evaluation against ARP holdout scenarios
-(`.factory/holdout-scenarios/wave-scenarios/wave-40-44-holdout.md`).
+Trajectory shorthand:
+`1M→(remediated)→P1/3-CLEAN→P2/3-CLEAN→P3/3-CLEAN-GATE-SATISFIED→[HOLDOUT-PASS;D-075;D-076;D-077-CRITICAL]→RESET-0/3-6abcd8f`
+
+Next action: 3 fresh-context adversary passes on develop 6abcd8f. Mandatory per-pass checks:
+field-value verification (`Verdict::Likely` in D1 HIGH) AND reject-path verification
+(non-Ethernet hw type + non-IPv4 proto type → `Err` return).
