@@ -53,6 +53,7 @@ use wirerust::decoder::{ArpFrame, DecodedFrame, decode_packet, extract_arp_frame
 ///   bytes 14-17: sender protocol address (IPv4)
 ///   bytes 18-23: target hardware address (MAC)
 ///   bytes 24-27: target protocol address (IPv4)
+#[allow(clippy::too_many_arguments)]
 fn make_arp_payload(
     htype: u16,
     ptype: u16,
@@ -73,22 +74,22 @@ fn make_arp_payload(
     // Sender hw addr (hlen bytes) — caller ensures hlen matches sender_mac length or uses custom
     buf.extend_from_slice(&sender_mac[..hlen.min(6) as usize]);
     if hlen > 6 {
-        buf.extend(std::iter::repeat(0u8).take((hlen - 6) as usize));
+        buf.extend(std::iter::repeat_n(0u8, (hlen - 6) as usize));
     }
     // Sender proto addr (plen bytes)
     buf.extend_from_slice(&sender_ip[..plen.min(4) as usize]);
     if plen > 4 {
-        buf.extend(std::iter::repeat(0u8).take((plen - 4) as usize));
+        buf.extend(std::iter::repeat_n(0u8, (plen - 4) as usize));
     }
     // Target hw addr (hlen bytes)
     buf.extend_from_slice(&target_mac[..hlen.min(6) as usize]);
     if hlen > 6 {
-        buf.extend(std::iter::repeat(0u8).take((hlen - 6) as usize));
+        buf.extend(std::iter::repeat_n(0u8, (hlen - 6) as usize));
     }
     // Target proto addr (plen bytes)
     buf.extend_from_slice(&target_ip[..plen.min(4) as usize]);
     if plen > 4 {
-        buf.extend(std::iter::repeat(0u8).take((plen - 4) as usize));
+        buf.extend(std::iter::repeat_n(0u8, (plen - 4) as usize));
     }
     buf
 }
@@ -101,22 +102,21 @@ fn make_standard_arp_payload(
     target_mac: [u8; 6],
     target_ip: [u8; 4],
 ) -> Vec<u8> {
-    make_arp_payload(0x0001, 0x0800, 6, 4, oper, sender_mac, sender_ip, target_mac, target_ip)
+    make_arp_payload(
+        0x0001, 0x0800, 6, 4, oper, sender_mac, sender_ip, target_mac, target_ip,
+    )
 }
 
 /// Build a full 42-byte Ethernet frame containing an ARP payload.
 ///
 /// Layout: 14-byte Ethernet header + 28-byte ARP payload.
 /// The `src_mac` goes into bytes 6..12 of the Ethernet header.
-fn make_eth_arp_frame(
-    eth_src_mac: [u8; 6],
-    arp_payload: &[u8],
-) -> Vec<u8> {
+fn make_eth_arp_frame(eth_src_mac: [u8; 6], arp_payload: &[u8]) -> Vec<u8> {
     let mut frame = Vec::new();
     // Ethernet header (14 bytes)
     frame.extend_from_slice(&[0xff, 0xff, 0xff, 0xff, 0xff, 0xff]); // dst MAC broadcast
-    frame.extend_from_slice(&eth_src_mac);                            // src MAC
-    frame.extend_from_slice(&[0x08, 0x06]);                          // EtherType: ARP
+    frame.extend_from_slice(&eth_src_mac); // src MAC
+    frame.extend_from_slice(&[0x08, 0x06]); // EtherType: ARP
     frame.extend_from_slice(arp_payload);
     frame
 }
@@ -243,15 +243,13 @@ fn test_BC_2_16_001_extract_arp_frame_request_field_copy_fidelity() {
     );
     // BC-2.16.001 PC7: outer_src_mac == parameter passed in unchanged
     assert_eq!(
-        frame.outer_src_mac,
-        outer_src_mac,
+        frame.outer_src_mac, outer_src_mac,
         "AC-002 / BC-2.16.001 PC7: ArpFrame.outer_src_mac must equal the \
          outer_src_mac parameter passed in unchanged"
     );
     // BC-2.16.001 PC8: packet_len == parameter passed in unchanged
     assert_eq!(
-        frame.packet_len,
-        REQUEST_PKT_LEN,
+        frame.packet_len, REQUEST_PKT_LEN,
         "AC-002 / BC-2.16.001 PC8: ArpFrame.packet_len must equal the \
          packet_len parameter passed in unchanged"
     );
@@ -317,15 +315,13 @@ fn test_BC_2_16_002_extract_arp_frame_reply_returns_some_with_correct_fields() {
     );
     // BC-2.16.002 PC7: outer_src_mac passed through unchanged
     assert_eq!(
-        frame.outer_src_mac,
-        outer_src_mac,
+        frame.outer_src_mac, outer_src_mac,
         "AC-003 / BC-2.16.002 PC7: ArpFrame.outer_src_mac must equal the \
          outer_src_mac parameter"
     );
     // BC-2.16.002 PC8: packet_len passed through unchanged
     assert_eq!(
-        frame.packet_len,
-        REPLY_PKT_LEN,
+        frame.packet_len, REPLY_PKT_LEN,
         "AC-003 / BC-2.16.002 PC8: ArpFrame.packet_len must equal the \
          packet_len parameter"
     );
@@ -353,11 +349,11 @@ fn test_BC_2_16_001_extract_arp_frame_none_on_hw_addr_size_8() {
     // htype=0x0001 (Ethernet type field), but hlen=8 (non-standard).
     // Total ARP payload size: 8 + 8*2 + 4*2 = 32 bytes.
     let payload = make_arp_payload(
-        0x0001, // htype: still claims Ethernet hardware type
-        0x0800, // ptype: IPv4
-        8,      // hlen: 8 — non-Ethernet (EC-007)
-        4,      // plen: 4 — IPv4 OK
-        1,      // oper: Request
+        0x0001,                               // htype: still claims Ethernet hardware type
+        0x0800,                               // ptype: IPv4
+        8,                                    // hlen: 8 — non-Ethernet (EC-007)
+        4,                                    // plen: 4 — IPv4 OK
+        1,                                    // oper: Request
         [0xDE, 0xAD, 0xBE, 0xEF, 0x00, 0x00], // sender hw (6 bytes, padded to 8 in builder)
         [10, 0, 0, 1],
         [0x00; 6], // target hw
@@ -390,20 +386,24 @@ fn test_BC_2_16_001_extract_arp_frame_none_on_proto_addr_size_16() {
     // Build an ARP payload with proto_addr_size=16 (IPv6 address length).
     // Total ARP payload size: 8 + 6*2 + 16*2 = 52 bytes.
     let payload = make_arp_payload(
-        0x0001, // htype: Ethernet
-        0x0800, // ptype: IPv4 — but plen=16 contradicts it
-        6,      // hlen: 6 — Ethernet OK
-        16,     // plen: 16 — non-IPv4 (EC-008)
-        1,      // oper: Request
+        0x0001,                               // htype: Ethernet
+        0x0800,                               // ptype: IPv4 — but plen=16 contradicts it
+        6,                                    // hlen: 6 — Ethernet OK
+        16,                                   // plen: 16 — non-IPv4 (EC-008)
+        1,                                    // oper: Request
         [0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF], // sender hw
-        [192, 168, 1, 10],                      // only first 4 bytes used; builder pads
-        [0x00; 6],                              // target hw
-        [192, 168, 1, 1],                       // only first 4 bytes used; builder pads
+        [192, 168, 1, 10],                    // only first 4 bytes used; builder pads
+        [0x00; 6],                            // target hw
+        [192, 168, 1, 1],                     // only first 4 bytes used; builder pads
     );
     let arp = parse_arp_slice(&payload);
 
     // Confirm proto_addr_size == 16.
-    assert_eq!(arp.proto_addr_size(), 16, "test-setup check: plen must be 16");
+    assert_eq!(
+        arp.proto_addr_size(),
+        16,
+        "test-setup check: plen must be 16"
+    );
 
     let result = std::panic::catch_unwind(|| extract_arp_frame(&arp, None, payload.len()));
     assert!(
@@ -447,8 +447,7 @@ fn test_BC_2_16_001_extract_arp_frame_outer_src_mac_none_passthrough() {
     );
 
     assert_eq!(
-        frame.outer_src_mac,
-        None,
+        frame.outer_src_mac, None,
         "AC-005 / BC-2.16.001 EC-003: ArpFrame.outer_src_mac must be None \
          when None is passed in (outer_src_mac is passed through unchanged)"
     );
@@ -477,7 +476,11 @@ fn test_BC_2_16_015_decode_packet_routes_arp_to_decoded_frame_arp() {
         REQUEST_TARGET_IP,
     );
     let frame_bytes = make_eth_arp_frame(REQUEST_SENDER_MAC, &arp_payload);
-    assert_eq!(frame_bytes.len(), 42, "pre-condition: Ethernet/ARP frame is 42 bytes");
+    assert_eq!(
+        frame_bytes.len(),
+        42,
+        "pre-condition: Ethernet/ARP frame is 42 bytes"
+    );
 
     let result = decode_packet(&frame_bytes, DataLink::ETHERNET);
 
@@ -587,9 +590,7 @@ fn test_BC_2_16_015_decode_packet_lax_arm_truncated_arp_non_panic() {
     );
 
     // The key assertion: no panic.
-    let outcome = std::panic::catch_unwind(|| {
-        decode_packet(&frame_bytes, DataLink::ETHERNET)
-    });
+    let outcome = std::panic::catch_unwind(|| decode_packet(&frame_bytes, DataLink::ETHERNET));
 
     assert!(
         outcome.is_ok(),
@@ -610,7 +611,8 @@ fn test_BC_2_16_015_decode_packet_lax_arm_truncated_arp_non_panic() {
             // "ARP extraction not yet implemented" (stub — Red Gate failure signal).
             let msg = e.to_string();
             assert!(
-                msg.contains("truncated ARP frame") || msg.contains("ARP extraction not yet implemented"),
+                msg.contains("truncated ARP frame")
+                    || msg.contains("ARP extraction not yet implemented"),
                 "AC-007 / BC-2.16.015: Err from truncated ARP path must contain \
                  'truncated ARP frame' (post-implementation) or \
                  'ARP extraction not yet implemented' (stub transitional). \
@@ -837,8 +839,7 @@ fn test_BC_2_16_001_invariant_zero_target_mac_copied_faithfully() {
     );
 
     assert_eq!(
-        frame.target_mac,
-        [0x00; 6],
+        frame.target_mac, [0x00; 6],
         "BC-2.16.001 EC-002: zero target_mac must be copied faithfully into ArpFrame"
     );
 }
@@ -849,11 +850,11 @@ fn test_BC_2_16_001_invariant_zero_target_mac_copied_faithfully() {
 fn test_BC_2_16_002_invariant_garp_reply_extractor_agnostic() {
     let garp_ip: [u8; 4] = [10, 0, 0, 1];
     let payload = make_standard_arp_payload(
-        2,                    // op=2: Reply
+        2, // op=2: Reply
         REPLY_SENDER_MAC,
-        garp_ip,              // sender_ip == target_ip (GARP)
+        garp_ip, // sender_ip == target_ip (GARP)
         REPLY_TARGET_MAC,
-        garp_ip,              // target_ip == sender_ip
+        garp_ip, // target_ip == sender_ip
     );
     let arp = parse_arp_slice(&payload);
 
@@ -906,8 +907,7 @@ fn test_BC_2_16_001_invariant_outer_src_mac_mismatch_passthrough() {
          when it differs from sender_mac (D12 mismatch is analyzer's concern)"
     );
     assert_eq!(
-        frame.sender_mac,
-        REQUEST_SENDER_MAC,
+        frame.sender_mac, REQUEST_SENDER_MAC,
         "BC-2.16.001 EC-004: sender_mac is still correctly extracted from \
          arp.sender_hw_addr() regardless of outer_src_mac"
     );

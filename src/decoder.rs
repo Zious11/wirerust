@@ -54,6 +54,7 @@ use anyhow::{Result, anyhow};
 // present and unchanged in 0.20.1+ — `test_decode_snaplen_truncated_ipv6_recovers_via_lax_parsing`
 // and `test_decode_structurally_corrupt_packet_is_rejected_not_lax_recovered`
 // act as the contract tests for it.
+use etherparse::err::Layer;
 use etherparse::err::packet::SliceError;
 use etherparse::{
     ArpPacketSlice, EtherType, IpNumber, LaxNetSlice, LaxSlicedPacket, NetSlice, SlicedPacket,
@@ -195,10 +196,9 @@ pub fn decode_packet(data: &[u8], datalink: DataLink) -> Result<DecodedFrame> {
                 });
                 match extract_arp_frame(arp, outer_src_mac, data.len()) {
                     Some(f) => Ok(DecodedFrame::Arp(f)),
-                    // STORY-111 transitional: placeholder always returns None here.
-                    // STORY-112 replaces "not yet implemented" with the real routing:
-                    // None => Err(anyhow!("Non-Ethernet/IPv4 ARP frame"))
-                    None => Err(anyhow!("ARP extraction not yet implemented")),
+                    // AC-012 / BC-2.16.015: non-Eth/IPv4 ARP (hw_addr_size!=6 or
+                    // proto_addr_size!=4) → decode-layer Err with diagnostic string.
+                    None => Err(anyhow!("Non-Ethernet/IPv4 ARP frame")),
                 }
             }
             Some(net) => Ok(DecodedFrame::Ip(build_parsed(
@@ -240,9 +240,9 @@ pub fn decode_packet(data: &[u8], datalink: DataLink) -> Result<DecodedFrame> {
                     });
                     match extract_arp_frame(arp, outer_src_mac, data.len()) {
                         Some(f) => Ok(DecodedFrame::Arp(f)),
-                        // STORY-111 transitional: placeholder always returns None.
-                        // STORY-112 replaces with: None => Err(anyhow!("truncated ARP frame"))
-                        None => Err(anyhow!("ARP extraction not yet implemented")),
+                        // AC-007 / BC-2.16.015 lax arm: truncated or non-Eth/IPv4 ARP
+                        // via the lax parse path → Err with diagnostic string.
+                        None => Err(anyhow!("truncated ARP frame")),
                     }
                 }
                 Some(net) => Ok(DecodedFrame::Ip(build_parsed(
@@ -250,8 +250,23 @@ pub fn decode_packet(data: &[u8], datalink: DataLink) -> Result<DecodedFrame> {
                     &lax.transport,
                     data.len(),
                 ))),
-                // Truncated past the IP header itself — undecodable.
-                None => Err(anyhow!("No IP layer found")),
+                // Lax parser could not reconstruct a net layer slice.
+                // If the stop_err indicates the ARP layer failed (e.g. a
+                // snaplen-truncated ARP frame where even the lax slicer cannot
+                // recover the ARP payload), return "truncated ARP frame" per
+                // AC-007 / BC-2.16.015. For any other non-IP frame return the
+                // standard "No IP layer found" error.
+                None => {
+                    let is_arp_truncation = lax
+                        .stop_err
+                        .as_ref()
+                        .is_some_and(|(_, layer)| *layer == Layer::Arp);
+                    if is_arp_truncation {
+                        Err(anyhow!("truncated ARP frame"))
+                    } else {
+                        Err(anyhow!("No IP layer found"))
+                    }
+                }
             }
         }
         // Any other strict error is genuine structural corruption (bad
@@ -264,28 +279,65 @@ pub fn decode_packet(data: &[u8], datalink: DataLink) -> Result<DecodedFrame> {
 
 /// Extract an [`ArpFrame`] from an etherparse `ArpPacketSlice`.
 ///
-/// Returns `Some(ArpFrame)` for Ethernet/IPv4 ARP (hw_addr_size=6, proto_addr_size=4,
-/// hw_type=0x0001, proto_type=0x0800); returns `None` for non-Ethernet/IPv4 ARP frames
-/// (signals the caller to return `Err("Non-Ethernet/IPv4 ARP frame")`).
+/// Returns `Some(ArpFrame)` when `hw_addr_size == 6` and `proto_addr_size == 4`
+/// (Ethernet/IPv4 ARP); returns `None` for any other hw/proto address size
+/// (signals the caller to return `Err("Non-Ethernet/IPv4 ARP frame")` for the
+/// strict path, or `Err("truncated ARP frame")` for the lax path).
 ///
-/// **STORY-111 non-panicking placeholder** (AC-005b / BC-2.02.009 Invariant 5 / VP-008):
-/// this body always returns `None` — no panicking macro is used. The caller maps `None`
-/// to a temporary `Err("ARP extraction not yet implemented")`.
-/// STORY-112 replaces this placeholder body with the full implementation that reads
-/// `arp` fields and validates hw/proto sizes. The `Some(f) => Ok(DecodedFrame::Arp(f))`
-/// mapping in the caller is already wired; STORY-112 only needs to fill in this body.
+/// This function is a **pure core** function (BC-2.16.015, VP-024 Sub-A):
+/// - No I/O, no global state, no panic for any valid `ArpPacketSlice` input.
+/// - All field copies are byte-exact from the `ArpPacketSlice` accessors.
+/// - `outer_src_mac` and `packet_len` are passed through unchanged.
+/// - Extraction is opcode-agnostic (BC-2.16.001 Invariant 4): any operation
+///   value (1=Request, 2=Reply, 0=undefined, other) extracts successfully as
+///   long as hw/proto sizes pass the size guard.
 ///
 /// **Forbidden:** `src/decoder.rs` MUST NOT import `src/analyzer/arp.rs` (AC-010 /
 /// arp-architecture-delta §2.1 decode-vs-analysis separation boundary).
 pub fn extract_arp_frame(
-    _arp: &ArpPacketSlice<'_>,
-    _outer_src_mac: Option<[u8; 6]>,
-    _packet_len: usize,
+    arp: &ArpPacketSlice<'_>,
+    outer_src_mac: Option<[u8; 6]>,
+    packet_len: usize,
 ) -> Option<ArpFrame> {
-    // STORY-111: non-panicking placeholder. Returns None so the caller emits a
-    // transitional Err("ARP extraction not yet implemented"). STORY-112 implements
-    // the real logic here (hw/proto size validation + ArpFrame field extraction).
-    None
+    // Guard: only Ethernet (hlen=6) / IPv4 (plen=4) ARP is supported.
+    // Non-standard sizes return None (BC-2.16.001 EC-007/EC-008, VP-024 Sub-A).
+    // No panic: the size fields are just u8 comparisons.
+    if arp.hw_addr_size() != 6 || arp.proto_addr_size() != 4 {
+        return None;
+    }
+
+    // At this point from_slice has already validated that the slice is at least
+    // 8 + 6*2 + 4*2 = 28 bytes, so sender_hw_addr() yields exactly 6 bytes,
+    // sender_protocol_addr() yields exactly 4 bytes, and so on. The try_from
+    // conversions cannot fail here (the sizes are guaranteed by the hw/proto
+    // size check above and by ArpPacketSlice's own length validation).
+    // We use expect() with an actionable message (not unwrap) per coding rules;
+    // in practice these are provably infallible given the size guard above.
+    let sender_mac_bytes = arp.sender_hw_addr();
+    let sender_ip_bytes = arp.sender_protocol_addr();
+    let target_mac_bytes = arp.target_hw_addr();
+    let target_ip_bytes = arp.target_protocol_addr();
+
+    // Convert &[u8] slices to fixed-size arrays. These are provably infallible:
+    // hw_addr_size()==6 and proto_addr_size()==4 guarantee the slice lengths.
+    let sender_mac = <[u8; 6]>::try_from(sender_mac_bytes)
+        .expect("sender_hw_addr is guaranteed 6 bytes when hw_addr_size==6");
+    let sender_ip = <[u8; 4]>::try_from(sender_ip_bytes)
+        .expect("sender_protocol_addr is guaranteed 4 bytes when proto_addr_size==4");
+    let target_mac = <[u8; 6]>::try_from(target_mac_bytes)
+        .expect("target_hw_addr is guaranteed 6 bytes when hw_addr_size==6");
+    let target_ip = <[u8; 4]>::try_from(target_ip_bytes)
+        .expect("target_protocol_addr is guaranteed 4 bytes when proto_addr_size==4");
+
+    Some(ArpFrame {
+        operation: arp.operation().0,
+        sender_mac,
+        sender_ip,
+        target_mac,
+        target_ip,
+        outer_src_mac,
+        packet_len,
+    })
 }
 
 /// Re-parse a frame with `etherparse`'s lax slicer, which clamps header

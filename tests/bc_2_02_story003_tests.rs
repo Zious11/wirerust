@@ -669,39 +669,31 @@ fn test_BC_2_02_008_unsupported_link_type_error() {
 // ---------------------------------------------------------------------------
 // AC-009 / BC-2.02.009 postcondition 3 (Path 3: non-IP non-ARP unchanged)
 //
-// STORY-111 reconciliation (BC-2.02.009 v1.6): this test previously asserted
-// that an Ethernet ARP frame (EtherType 0x0806) returns Err("No IP layer found").
-// Under the revised BC-2.02.009, ARP frames are now routed to the ARP dispatch
-// arm in STORY-111 and return the TRANSITIONAL Err("ARP extraction not yet
-// implemented") — NOT "No IP layer found". The assertion has been updated to
-// reflect STORY-111's transitional behavior. Non-panic is the primary invariant
-// here; Ok(DecodedFrame::Arp(...)) is asserted in STORY-112 (AC-006).
-// (BC-2.02.009 v1.6 / STORY-111 transitional scope.)
+// STORY-112 update (BC-2.16.015 AC-006): The STORY-111 transitional behavior
+// (Err("ARP extraction not yet implemented")) is now superseded. A valid
+// Ethernet/IPv4 ARP frame (hlen=6, plen=4) now produces Ok(DecodedFrame::Arp)
+// per BC-2.16.015 postcondition 1 and STORY-112 AC-006. The old transitional
+// Err assertion is replaced with the STORY-112 real-routing assertion.
+// (BC-2.02.009 v1.6 → STORY-112 final behavior.)
 // ---------------------------------------------------------------------------
 #[test]
 fn test_BC_2_02_009_non_ip_frame_rejected() {
     let data = make_ethernet_arp();
+    // STORY-112 AC-006 / BC-2.16.015 PC1: valid Ethernet/IPv4 ARP frames now
+    // produce Ok(DecodedFrame::Arp) — not Err (supersedes STORY-111 transitional).
     let result = decode_packet(&data, DataLink::ETHERNET);
-    // ARP frames must not panic (VP-008 / BC-2.02.009 Invariant 5).
-    assert!(
-        result.is_err(),
-        "STORY-111: ARP frame must return Err (transitional); got Ok"
+    // Must not panic (VP-008 / BC-2.02.009 Invariant 5 — no panic guarantee persists).
+    // Result is Ok(DecodedFrame::Arp) for a valid Eth/IPv4 ARP frame.
+    let decoded = result.expect(
+        "STORY-112 AC-006: valid Ethernet/IPv4 ARP frame must return Ok(DecodedFrame::Arp)",
     );
-    let msg = result.unwrap_err().to_string();
-    // STORY-111 transitional: extract_arp_frame placeholder always returns None;
-    // caller maps None to this temporary Err. STORY-112 replaces with real routing.
-    assert!(
-        msg.contains("ARP extraction not yet implemented"),
-        "STORY-111 transitional: ARP frame error must contain \
-         'ARP extraction not yet implemented'; got: {msg}"
-    );
-    // Must not return the pre-revision error — ARP is now handled by the ARP arm
-    // (BC-2.02.009 v1.6 supersedes the old "No IP layer found" behavior for ARP).
-    assert!(
-        !msg.contains("No IP layer found"),
-        "STORY-111: ARP frame must NOT return 'No IP layer found' \
-         (BC-2.02.009 v1.6 retired this behavior for ARP frames); got: {msg}"
-    );
+    // Must be the Arp variant — not Ip.
+    match decoded {
+        DecodedFrame::Arp(_) => {} // correct
+        DecodedFrame::Ip(_) => {
+            panic!("STORY-112 AC-006: Ethernet ARP frame must produce DecodedFrame::Arp, not Ip")
+        }
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -744,39 +736,32 @@ fn test_BC_2_02_009_strict_path_sll_arp_no_ip() {
         0xa8, 0x01, 0x0a, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xc0, 0xa8, 0x01, 0x01,
     ]);
 
-    // Must not panic (VP-008 / BC-2.02.009 Invariant 5).
+    // Must not panic (VP-008 / BC-2.02.009 Invariant 5 — no-panic guarantee persists).
     let result = std::panic::catch_unwind(|| decode_packet(&frame, DataLink::LINUX_SLL));
     assert!(
         result.is_ok(),
-        "STORY-111: SLL ARP frame must NOT panic (VP-008 / BC-2.02.009 Invariant 5); \
+        "STORY-112: SLL ARP frame must NOT panic (VP-008 / BC-2.02.009 Invariant 5); \
          got a panic"
     );
     let inner = result.unwrap();
-    // STORY-111 transitional: placeholder returns None → transitional Err.
-    assert!(
-        inner.is_err(),
-        "STORY-111: SLL ARP frame must return Err in transitional state; got Ok"
-    );
-    let msg = inner.unwrap_err().to_string();
-    // In etherparse 0.20, SLL/ARP frames yield NetSlice::Arp — the ARP arm fires,
-    // not the strict-path No-IP arm. The STORY-111 transitional Err is returned.
-    // STORY-112 replaces this with the real routing and final error strings.
-    assert!(
-        msg.contains("ARP extraction not yet implemented"),
-        "STORY-111 transitional: SLL ARP frame must return \
-         Err('ARP extraction not yet implemented') (BC-2.02.009 v1.6); got: {msg}"
-    );
-    // Must not produce "No IP layer found" — ARP frames are now handled by the
-    // ARP arm, not the strict-path None arm (BC-2.02.009 v1.6 supersedes old behavior).
-    assert!(
-        !msg.contains("No IP layer found"),
-        "STORY-111: SLL ARP frame must NOT return 'No IP layer found' \
-         (BC-2.02.009 v1.6 retired this behavior for ARP frames); got: {msg}"
-    );
-    assert!(
-        !msg.contains("Parse error:"),
-        "STORY-111: SLL ARP frame must not produce 'Parse error:'; got: {msg}"
-    );
+    // STORY-112 update (BC-2.16.015 AC-006): A valid Ethernet/IPv4 ARP frame
+    // (hlen=6, plen=4) via SLL now produces Ok(DecodedFrame::Arp) — supersedes
+    // the STORY-111 transitional Err("ARP extraction not yet implemented").
+    // outer_src_mac is None for SLL captures (no Ethernet2 link header).
+    let decoded =
+        inner.expect("STORY-112: SLL ARP frame (hlen=6, plen=4) must return Ok(DecodedFrame::Arp)");
+    match decoded {
+        DecodedFrame::Arp(f) => {
+            // outer_src_mac is None for SLL (no Ethernet2 header in SLL captures).
+            assert_eq!(
+                f.outer_src_mac, None,
+                "STORY-112: SLL ARP frame outer_src_mac must be None (no Ethernet2 header)"
+            );
+        }
+        DecodedFrame::Ip(_) => {
+            panic!("STORY-112: SLL ARP frame must produce DecodedFrame::Arp, not Ip")
+        }
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -1014,20 +999,19 @@ fn test_BC_2_02_008_ec005_ieee802_11_rejected() {
 #[test]
 fn test_BC_2_02_009_ec006_arp_ethernet_no_ip_layer() {
     let data = make_ethernet_arp();
+    // STORY-112 update (BC-2.16.015 AC-006): a valid Ethernet/IPv4 ARP frame
+    // (hlen=6, plen=4) now returns Ok(DecodedFrame::Arp) — the STORY-111
+    // transitional Err("ARP extraction not yet implemented") is superseded.
     let result = decode_packet(&data, DataLink::ETHERNET);
-    // Must not panic (VP-008 / BC-2.02.009 Invariant 5).
-    assert!(
-        result.is_err(),
-        "EC-006: Ethernet ARP frame must return Err in STORY-111 transitional state; got Ok"
+    let decoded = result.expect(
+        "EC-006 (STORY-112): valid Ethernet/IPv4 ARP frame must return Ok(DecodedFrame::Arp)",
     );
-    let msg = result.unwrap_err().to_string();
-    // STORY-111 transitional: placeholder returns None → transitional Err.
-    // STORY-112 replaces this with the real routing and the final error strings.
-    assert!(
-        msg.contains("ARP extraction not yet implemented"),
-        "EC-006 (STORY-111 transitional): Ethernet ARP error must contain \
-         'ARP extraction not yet implemented' (BC-2.02.009 v1.6); got: {msg}"
-    );
+    match decoded {
+        DecodedFrame::Arp(_) => {} // correct per BC-2.16.015 AC-006
+        DecodedFrame::Ip(_) => {
+            panic!("EC-006 (STORY-112): Ethernet ARP frame must produce DecodedFrame::Arp, not Ip")
+        }
+    }
 }
 
 // ---------------------------------------------------------------------------
