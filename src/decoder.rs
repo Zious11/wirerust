@@ -221,10 +221,14 @@ pub fn decode_packet(data: &[u8], datalink: DataLink) -> Result<DecodedFrame> {
             let lax = lax_parse(data, datalink)?;
             match &lax.net {
                 // Lax ARP routing arm — NOT unreachable! (BC-2.02.009 Invariant 2,
-                // ADR-008 Decision 3 v1.6). Snaplen-truncated ARP frames yield
-                // Some(LaxNetSlice::Arp(_)) from the lax parser and reach this arm.
-                // outer_src_mac extracted from lax.link; extract_arp_frame is the
-                // non-panicking STORY-111 placeholder (always returns None).
+                // ADR-008 Decision 3 v2.1; arp-architecture-delta §2.2 v1.16).
+                // This decode_packet lax arm IS reachable (live routing):
+                // decode_packet intercepts Some(LaxNetSlice::Arp(_)) here before
+                // calling lax_ip_triple, which carries the unreachable! arm.
+                // Snaplen-truncated ARP frames yield Some(LaxNetSlice::Arp(_)) from
+                // the lax parser and reach this arm. outer_src_mac extracted from
+                // lax.link; extract_arp_frame is the non-panicking STORY-111
+                // placeholder (always returns None).
                 // STORY-112 replaces the temporary Err string with the real routing.
                 Some(LaxNetSlice::Arp(arp)) => {
                     let outer_src_mac: Option<[u8; 6]> = lax.link.as_ref().and_then(|l| {

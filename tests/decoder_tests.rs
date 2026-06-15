@@ -479,8 +479,8 @@ fn test_decode_arp_shaped_input_does_not_panic() {
         // ARP payload (28 bytes)
         0x00, 0x01, // htype: Ethernet (1)
         0x08, 0x00, // ptype: IPv4 (0x0800)
-        0x06,       // hlen: 6
-        0x04,       // plen: 4
+        0x06, // hlen: 6
+        0x04, // plen: 4
         0x00, 0x01, // oper: Request (1)
         0x00, 0x11, 0x22, 0x33, 0x44, 0x55, // sender hw addr
         0xc0, 0xa8, 0x01, 0x0a, // sender proto addr: 192.168.1.10
@@ -493,9 +493,7 @@ fn test_decode_arp_shaped_input_does_not_panic() {
     // On the stub (4e22ef9), this PANICS (Red Gate — test must fail).
     // After the implementer ships the non-panicking placeholder, the call
     // returns Ok or Err without panic and this test passes.
-    let result = std::panic::catch_unwind(|| {
-        decode_packet(&arp_frame, DataLink::ETHERNET)
-    });
+    let result = std::panic::catch_unwind(|| decode_packet(&arp_frame, DataLink::ETHERNET));
     assert!(
         result.is_ok(),
         "AC-005b / VP-008: decode_packet must NOT panic on a well-formed ARP \

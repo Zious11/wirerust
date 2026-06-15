@@ -65,10 +65,12 @@ fn bench_summary(c: &mut Criterion) {
         let parsed: Vec<_> = source
             .packets
             .iter()
-            .filter_map(|raw| match decode_packet(&raw.data, source.datalink).ok()? {
-                DecodedFrame::Ip(p) => Some(p),
-                DecodedFrame::Arp(_) => None,
-            })
+            .filter_map(
+                |raw| match decode_packet(&raw.data, source.datalink).ok()? {
+                    DecodedFrame::Ip(p) => Some(p),
+                    DecodedFrame::Arp(_) => None,
+                },
+            )
             .collect();
         group.bench_function(fixture, |b| {
             b.iter(|| {
@@ -93,12 +95,12 @@ fn bench_reassembly(c: &mut Criterion) {
         let parsed: Vec<_> = source
             .packets
             .iter()
-            .filter_map(|raw| {
-                match decode_packet(&raw.data, source.datalink).ok()? {
+            .filter_map(
+                |raw| match decode_packet(&raw.data, source.datalink).ok()? {
                     DecodedFrame::Ip(p) => Some((p, raw.timestamp_secs)),
                     DecodedFrame::Arp(_) => None,
-                }
-            })
+                },
+            )
             .collect();
         group.bench_function(fixture, |b| {
             b.iter(|| {
