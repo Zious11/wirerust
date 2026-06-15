@@ -1,7 +1,8 @@
-//! TDD failing tests for STORY-100 + STORY-101: Multi-Tag Finding Schema Migration
+//! Tests for STORY-100 + STORY-101: Multi-Tag Finding Schema Migration
 //! and Reporter Serialization Add-Ons (v0.3.0 atomic delivery).
 //!
-//! Every test in this file MUST FAIL until the implementer completes the migration:
+//! Originally written as a Red Gate suite; all tests pass in the GREEN state.
+//! The STORY-100/101 migration delivered:
 //!   - `Finding.mitre_technique: Option<String>` → `mitre_techniques: Vec<String>`
 //!   - MITRE catalog seeded to 21 IDs (6 new ICS arms)
 //!   - EMITTED_IDS updated to 13 (6 Enterprise + 7 ICS)
@@ -10,9 +11,8 @@
 //!   - Terminal renders `"MITRE: T1692.001, T0836"` for multi-element vecs
 //!   - Terminal tactic-grouping uses `mitre_techniques[0]`
 //!
-//! Red Gate: `cargo build` fails on this file today because `mitre_techniques`
-//! does not exist as a field on `Finding`. That is the intended compile error
-//! that proves the Red Gate is intact.
+//! (The original Red Gate compile error was `mitre_techniques` absent from `Finding`.
+//! That field now exists; the file compiles and all tests pass.)
 //!
 //! Test naming: `test_BC_S_SS_NNN_xxx()` per TDD Iron Law.
 //!   - BC-2.09.001/006 → `test_BC_2_09_001_*` / `test_BC_2_09_006_*`
@@ -94,7 +94,8 @@ fn csv_first_data_row(csv: &str) -> Vec<String> {
 
 /// BC-2.09.001 postcondition 1, AC-001 (STORY-100):
 /// `Finding` can be constructed with `mitre_techniques: vec!["T1692.001", "T0836"]`
-/// (multi-tag co-attributed). This is the primary Red Gate compile error.
+/// (multi-tag co-attributed). This was the primary Red Gate compile error before
+/// the multi-tag migration; the field now exists and tests compile and pass.
 #[test]
 fn test_BC_2_09_001_constructs_finding_with_multi_technique_vec() {
     let f = make_finding_multitag(vec!["T1692.001", "T0836"]);

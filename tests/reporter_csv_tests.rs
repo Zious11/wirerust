@@ -881,9 +881,9 @@ mod story_079 {
 //
 // implementation_strategy: brownfield-formalization
 // tdd_mode: strict
-// RED GATE stub phase completed: all 12 stubs confirmed FAIL (see red-gate-log.md).
-// This block contains the final discriminating assertions against the existing
-// CsvReporter implementation.
+// The Red Gate stub phase for story_080 is complete (all 12 stubs confirmed FAIL before
+// implementation, per red-gate-log.md). This block contains the passing assertions
+// against the CsvReporter implementation.
 mod story_080 {
     use super::*;
     use std::net::IpAddr;

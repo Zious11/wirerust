@@ -1,4 +1,4 @@
-//! STORY-112 TDD Red Gate test suite.
+//! STORY-112 test suite (originally written as a Red Gate; now GREEN).
 //!
 //! Exercises the behavioral contracts for:
 //!   BC-2.16.001 — ARP Request Frame Correctly Parsed from ArpPacketSlice

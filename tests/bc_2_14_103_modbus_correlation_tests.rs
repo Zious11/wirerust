@@ -1,9 +1,9 @@
-//! Failing tests for STORY-103: Modbus Flow State + Transaction Correlation.
+//! Tests for STORY-103: Modbus Flow State + Transaction Correlation — GREEN.
 //!
 //! Covers BC-2.14.009 (request insert), BC-2.14.010 (response match),
 //! BC-2.14.011 (exception attribution), BC-2.14.012 (pending-table bound).
 //!
-//! RED GATE: all tests must fail (todo!() panics) before implementation begins.
+//! Originally a Red Gate suite; STORY-103 is complete and all tests pass.
 //! Test naming follows `test_BC_S_SS_NNN_xxx` pattern for full traceability.
 //!
 //! Canonical test vectors used verbatim from BC documents.

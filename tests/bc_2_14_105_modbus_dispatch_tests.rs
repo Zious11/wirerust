@@ -1,28 +1,13 @@
-//! Failing tests for STORY-105: Modbus Dispatcher Integration + CLI
+//! Tests for STORY-105: Modbus Dispatcher Integration + CLI — GREEN.
 //!
 //! Covers BC-2.14.023, BC-2.14.024, BC-2.14.025, and VP-004 oracle extension.
 //!
-//! All tests in this file are designed to FAIL (Red Gate) until the
-//! implementation in dispatcher.rs, cli.rs, and main.rs is complete.
+//! Originally written as a Red Gate suite (all tests designed to FAIL until
+//! implementation in dispatcher.rs, cli.rs, and main.rs was complete).
+//! STORY-105 is complete and all tests pass.
 //!
 //! Test naming follows BC-prefixed convention per TDD methodology:
 //!   `test_BC_2_14_NNN_…` for behavioral contract coverage.
-//!
-//! ## Red Gate Guarantee
-//!
-//! Tests that exercise `StreamDispatcher::on_data` with port-502 flows
-//! will panic (via `todo!()` in the dispatcher stub) because
-//! `ModbusAnalyzer::on_data` is not yet implemented.
-//!
-//! Tests that exercise `take_modbus_analyzer()` / `findings()` will
-//! either panic or return wrong results because ModbusAnalyzer does not
-//! yet implement StreamHandler.
-//!
-//! CLI tests for threshold-zero rejection will fail because the
-//! `wirerust` binary invoked via assert_cmd will exit non-zero and print
-//! the error — but those tests actually pass at build time since the
-//! validation code IS in main.rs. So the CLI-level stub IS wired.
-//! The DISPATCHER-level tests (on_data routing) are the Red Gate.
 
 // BC-prefixed test names use non-snake-case identifiers (project-wide convention).
 #![allow(non_snake_case)]
@@ -379,9 +364,8 @@ mod story_105 {
     /// Without --modbus or --all, the output must NOT contain a Modbus section.
     /// This tests the default-off invariant.
     ///
-    /// RED GATE: This test currently PASSES because --modbus is default-off
-    /// and no Modbus analysis section appears. (It's a negative test.)
-    /// It exists to guard against future regressions.
+    /// Passes because --modbus is default-off and no Modbus analysis section appears.
+    /// Guards against future regressions (negative test).
     #[test]
     fn test_BC_2_14_023_modbus_disabled_by_default() {
         let tmp = tempfile::tempdir().expect("tempdir");
@@ -420,18 +404,8 @@ mod story_105 {
     ///
     /// With --modbus on an empty PCAP, the output MUST contain a Modbus section
     /// (even with zero PDUs — summarize() returns all-zero stats).
-    ///
-    /// RED GATE: This test FAILS because when a port-502 flow delivers data,
-    /// the dispatcher hits todo!(). On an empty PCAP with no TCP flows,
-    /// on_data() is never called, so the test may PASS on the empty fixture.
-    /// BUT — the test asserts a Modbus section is in the output, which requires
-    /// take_modbus_analyzer() to be called in main.rs AND ModbusAnalyzer::summarize()
-    /// to produce a section. The post-finalize collection IS wired (via
-    /// `modbus.all_findings` and `modbus.summarize()`), so this should PASS
-    /// even with the stub — the modbus summary key "modbus" should appear.
-    ///
-    /// If PASSES: that's correct stub behavior (empty PCAP → no flows → no panic).
-    /// If FAILS: the main.rs wiring is not complete.
+    /// take_modbus_analyzer() is called in main.rs; ModbusAnalyzer::summarize() produces
+    /// the section.
     #[test]
     fn test_BC_2_14_023_modbus_flag_enables_analyzer_empty_pcap() {
         let tmp = tempfile::tempdir().expect("tempdir");
@@ -475,8 +449,8 @@ mod story_105 {
     ///
     /// With --all, the Modbus analyzer is included. Same as AC-001 but with --all.
     ///
-    /// RED GATE: Same analysis as AC-001 — may PASS on empty-ish fixture
-    /// if no port-502 TCP flows exist. We test the section presence only.
+    /// With --all, the Modbus analyzer section appears even with no port-502 TCP flows
+    /// (summarize() produces the zero-stats section).
     #[test]
     fn test_BC_2_14_023_all_flag_enables_modbus() {
         let tmp = tempfile::tempdir().expect("tempdir");
@@ -687,9 +661,8 @@ mod story_105 {
     /// Modbus PDUs are processed — but the modbus section should appear with
     /// pdu_count = 0 (confirming reassembly ran and the analyzer was created).
     ///
-    /// RED GATE: If PASSES (modbus section present, pdu_count=0), the
-    /// needs_reassembly wiring is correct. If FAILS, needs_reassembly is
-    /// missing the || enable_modbus term.
+    /// Verifies needs_reassembly wiring: modbus section appears with pdu_count=0,
+    /// confirming reassembly ran and the analyzer was created.
     #[test]
     fn test_BC_2_14_023_modbus_alone_triggers_reassembly() {
         let tmp = tempfile::tempdir().expect("tempdir");

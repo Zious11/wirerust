@@ -740,8 +740,7 @@ fn test_BC_2_04_039_flush_delivers_wrapped_segments_in_order() {
 
 // =============== STORY-016: Overlap Detection (Wave 9) ===============
 // BC-2.04.035 / 036 / 038 / 043 / 047
-// 14 ACs + 10 ECs — Part A stubs (Red Gate).
-// Every test body panics; all must FAIL before implementation begins.
+// 14 ACs + 10 ECs — originally Part A stubs (Red Gate); now passing tests.
 // =====================================================================
 
 // --- AC-001 (BC-2.04.035 postcondition 1) ---
@@ -1664,7 +1663,7 @@ proptest! {
 // non-overlap), 2.04.045 (segment limit overlap), 2.04.046 (partial insertion mid-loop)
 // ACs: 001, 002, 003, 010, 011, 012, 016, 017, 018, 019
 // ECs: 001, 002, 003, 004, 005, 006, 007, 009, 010
-// All test bodies panic — Red Gate (Part A stubs).
+// All tests pass (Part A stubs replaced with real assertions).
 // ======================================================================================
 
 // --- AC-001 (BC-2.04.041 postcondition 1) ---

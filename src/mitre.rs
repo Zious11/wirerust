@@ -251,7 +251,7 @@ mod kani_proofs {
 
     /// Sub-property A: format invariant `T[0-9]{4}` or `T[0-9]{4}.[0-9]{3}`.
     ///
-    /// BOUND/SOUNDNESS: the seeded set is a finite closed enumeration (23 IDs);
+    /// BOUND/SOUNDNESS: the seeded set is a finite closed enumeration (25 IDs);
     /// the harness checks every one against the regex-equivalent byte predicate.
     /// No symbolic input is needed — the property is universal over a fixed set,
     /// so enumeration is exhaustive and sound.
@@ -286,7 +286,7 @@ mod kani_proofs {
     /// projections and never panics.
     ///
     /// BOUND/SOUNDNESS: `technique_info` is a closed match whose only catch-all
-    /// arm is `_ => None`; any string outside the 23 seeded literals takes it.
+    /// arm is `_ => None`; any string outside the 25 seeded literals takes it.
     /// A single representative unknown ID ("T9999") exercises that arm. "T9999"
     /// is deliberately a VALIDLY-FORMATTED (`T[0-9]{4}`) but UNREGISTERED ID, so
     /// this proves the "unknown" branch — not merely a malformed-string reject.

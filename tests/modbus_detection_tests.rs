@@ -1,10 +1,9 @@
-//! Failing tests for STORY-104: Modbus Detection Emissions + Summary.
+//! Tests for STORY-104: Modbus Detection Emissions + Summary (originally RED Gate, now GREEN).
 //!
 //! Covers BC-2.14.013 through BC-2.14.022 — all seven detection rules, the
 //! MAX_FINDINGS cap, and the `summarize()` six-key contract.
 //!
-//! RED GATE: ALL tests must fail (todo!() panics) before implementation begins.
-//! Test naming follows `test_BC_S_SS_NNN_xxx` pattern for full traceability.
+//! All tests pass. Test naming follows `test_BC_S_SS_NNN_xxx` pattern for full traceability.
 //!
 //! Canonical test vectors used verbatim from BC documents where available.
 

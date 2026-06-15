@@ -1,31 +1,35 @@
-//! ARP security analyzer — STORY-113 full implementation (GREEN) + STORY-114 stubs.
+//! ARP security analyzer — STORY-113 + STORY-114 full implementation (GREEN).
 //!
 //! This module defines [`ArpAnalyzer`], a stateful ARP-frame processor that
 //! maintains a bounded binding table (IP→MAC with LRU eviction), detects
 //! Gratuitous ARP (D2), D11 malformed ARP, D12 L2/L3 sender-MAC mismatch,
 //! and exposes a `summarize()` method returning eleven canonical summary keys.
 //!
-//! All STORY-113 method bodies are implemented and all STORY-113 tests pass (GREEN).
+//! STORY-113 and STORY-114 are both fully implemented and all tests pass (GREEN).
+//! `process_arp` emits D1 spoof findings (BC-2.16.004): MEDIUM on rebind, escalating
+//! to HIGH after `spoof_threshold` rebinds within `ARP_FLAP_WINDOW_SECS`. GARP-conflict
+//! frames upgrade the GARP finding to MEDIUM and co-emit a D1 finding (BC-2.16.014).
+//! D12 L2/L3 mismatch findings carry `mitre_techniques: ["T0830", "T1557.002"]`
+//! (BC-2.16.007 PC1). `src/mitre.rs` was updated atomically (VP-007): SEEDED=25, EMITTED=17.
+//!
 //! The VP-024 Sub-B/Sub-D Kani harness bodies (`verify_classify_garp_total`,
 //! `verify_binding_table_cap`) remain `todo!()` pending the F6 formal-hardening gate —
-//! that is the only intentional `todo!()` in this module for STORY-113 functions.
+//! those are the only intentional `todo!()` entries in this module.
 //!
-//! ## STORY-114 scaffold (Red Gate)
+//! ## STORY-114 deliverables (implemented)
 //! - `ArpAnalyzer::new(spoof_threshold, storm_rate)` — signature extended.
 //! - `SPOOF_REBIND_ESCALATION_DEFAULT`, `ARP_FLAP_WINDOW_SECS`, `ARP_STORM_RATE_DEFAULT`
-//!   constants added.
-//! - `--arp-spoof-threshold` CLI flag wired (BC-2.16.012 primary deliverable).
-//! - `emit_d1_spoof_finding` and `apply_garp_conflict_escalation` helpers added as
-//!   uncalled `todo!()` stubs — NOT yet wired into `process_arp`. The implementer
-//!   wires these in the Green step.
-//! - `process_arp` retains STORY-113 behaviour (no D1 emission, GARP stays LOW).
-//! - `src/mitre.rs` is untouched (SEEDED=23, EMITTED=15); VP-007 5-part atomic
-//!   update is the implementer's Green step.
+//!   constants.
+//! - `--arp-spoof-threshold` CLI flag wired (BC-2.16.012).
+//! - `emit_d1_spoof_finding` and `apply_garp_conflict_escalation` fully wired into
+//!   `process_arp` (BC-2.16.004 / BC-2.16.014).
+//! - VP-007 5-part atomic catalog update: T0830 + T1557.002 seeded and emitted.
 //!
 //! ## Scope boundary
-//! - D1 spoof EMISSION (BC-2.16.004) is STORY-114 (stubs here, impl in Green step).
+//! - D1 spoof detection (BC-2.16.004) and GARP-conflict escalation (BC-2.16.014):
+//!   fully implemented in STORY-114.
 //! - D3 storm detection (BC-2.16.013) is NOT in this story → STORY-115.
-//! - `spoof_findings` and `storm_findings` summary keys will be 0 after STORY-113.
+//! - `storm_findings` summary key remains 0 until STORY-115.
 //!
 //! ## Forbidden dependencies
 //! This module MUST NOT import `crate::dispatcher`, `crate::analyzer::modbus`,
@@ -866,7 +870,8 @@ impl ArpAnalyzer {
 #[cfg(test)]
 #[allow(unreachable_code)]
 mod tests {
-    //! STORY-113 TDD Red Gate test suite — unit + proptest tests.
+    //! STORY-113 test suite — unit + proptest tests (originally RED in the stub phase,
+    //! now fully GREEN).
     //!
     //! These tests exercise the behavioral contracts for:
     //!   BC-2.16.003 — Gratuitous ARP Detection (AC-001/002/003/004)
@@ -2011,16 +2016,17 @@ mod tests {
 }
 
 // ---------------------------------------------------------------------------
-// STORY-114 TDD Red Gate tests (BC-2.16.004, BC-2.16.014, BC-2.16.007 MITRE)
+// STORY-114 tests (BC-2.16.004, BC-2.16.014, BC-2.16.007 MITRE)
 // ---------------------------------------------------------------------------
 
-/// STORY-114 Red Gate test suite.
+/// STORY-114 test suite (originally RED in the stub phase, now fully GREEN).
 ///
-/// Every test in this module MUST FAIL before the Green step because:
-///   - D1 spoof findings are not yet emitted (emit_d1_spoof_finding stub uncalled).
-///   - T0830/T1557.002 are not yet in src/mitre.rs (SEEDED=23, EMITTED=15).
-///   - GARP-conflict escalation is not yet wired (apply_garp_conflict_escalation uncalled).
-///   - D12 finding still carries mitre_techniques=[] (will carry T0830+T1557.002 after update).
+/// Each test verifies a behavioral contract delivered by STORY-114:
+///   - `process_arp` emits D1 spoof findings with correct confidence, category, MITRE
+///     techniques, and evidence (BC-2.16.004).
+///   - GARP-conflict frames escalate GARP to MEDIUM and co-emit a D1 finding (BC-2.16.014).
+///   - D12 mismatch findings carry mitre_techniques=["T0830","T1557.002"] (BC-2.16.007 PC1).
+///   - T0830 and T1557.002 are seeded in src/mitre.rs (SEEDED=25, EMITTED=17, VP-007 atomic).
 ///
 /// DF-TEST-NAMESPACE-001: wrapped in `mod story_114` per per-story namespace rule.
 /// DF-AC-TEST-NAME-SYNC-001: function names exactly match the Test Plan fn-name column.
@@ -2097,7 +2103,7 @@ mod story_114 {
     ///   - category: Anomaly
     ///   - mitre_techniques: exactly ["T0830", "T1557.002"]
     ///
-    /// Red Gate: fails because emit_d1_spoof_finding is an uncalled todo!() stub.
+    /// Verifies D1 first rebind emits MEDIUM with T0830/T1557.002 and IP+old+new MAC evidence.
     /// Canonical test vector: binding {10.0.0.1 → AA:AA, rebind=0} → frame with BB:BB
     /// Expected: MEDIUM Finding + T0830+T1557.002 (BC-2.16.004 test vector row 3).
     #[test]
@@ -2121,7 +2127,7 @@ mod story_114 {
                 || f.summary.to_lowercase().contains("d1")
         });
 
-        // This assert_is_some IS the Red Gate — it will fail because no D1 finding is emitted
+        // Assert a D1 spoof finding is present in the returned findings.
         assert!(
             d1.is_some(),
             "AC-001 / BC-2.16.004 PC1: process_arp must emit a D1 spoof Finding on first \
@@ -2170,7 +2176,8 @@ mod story_114 {
     /// AC-002 (BC-2.16.004 PC1.c): after 3 rebinds within 60s (default threshold=3),
     /// the 3rd rebind emits HIGH confidence. spoof_high_emitted is set to true.
     ///
-    /// Red Gate: fails because D1 emission is not wired (stub uncalled).
+    /// Verifies D1 escalates to HIGH at the rebind threshold; rebind=1 and rebind=2
+    /// emit MEDIUM; rebind=3 emits HIGH (spoof_high_emitted → true).
     /// Canonical test vectors (BC-2.16.004 table rows 3-5):
     ///   rebind=0 → MEDIUM; rebind=1 → MEDIUM; rebind=2 (count=3) → HIGH.
     #[test]
@@ -2257,7 +2264,8 @@ mod story_114 {
     /// AC-003 (BC-2.16.004 PC4): after spoof_high_emitted=true, subsequent rebinds
     /// within the same flap window emit MEDIUM (not HIGH again).
     ///
-    /// Red Gate: fails because D1 emission is not wired.
+    /// Verifies the one-shot HIGH guard: once HIGH is emitted, further rebinds within
+    /// the same flap window produce MEDIUM, never a second HIGH.
     #[test]
     #[allow(non_snake_case)]
     fn test_d1_high_guard_prevents_second_high() {
@@ -2316,7 +2324,8 @@ mod story_114 {
     /// since first_rebind_ts, the window resets: rebind_count→0, first_rebind_ts→None,
     /// spoof_high_emitted→false. The next rebind is treated as the first (MEDIUM).
     ///
-    /// Red Gate: fails because D1 emission is not wired.
+    /// Verifies the flap window resets after 60 s: rebind after 61 s emits MEDIUM
+    /// as rebind_count=1 (fresh window).
     /// EC-007: rebind after 61s → window reset → MEDIUM (rebind_count=1).
     #[test]
     #[allow(non_snake_case)]
@@ -2387,7 +2396,7 @@ mod story_114 {
     /// Step 1: rebind_count→1; Step 2: first_rebind_ts=ts (elapsed=0); Step 3:
     ///   1 >= 1 AND 0 <= 60 AND !spoof_high_emitted → HIGH.
     ///
-    /// Red Gate: fails because D1 emission is not wired.
+    /// Verifies that spoof_threshold=1 causes the first rebind to emit HIGH immediately.
     #[test]
     #[allow(non_snake_case)]
     fn test_d1_threshold_1_high_on_first_rebind() {
@@ -2434,7 +2443,8 @@ mod story_114 {
     /// AC-007 (BC-2.16.014 PC1): when is_gratuitous_arp=true AND binding conflict exists,
     /// the GARP finding is upgraded from LOW to MEDIUM and carries T0830+T1557.002.
     ///
-    /// Red Gate: fails because apply_garp_conflict_escalation is an uncalled stub.
+    /// Verifies that a GARP frame conflicting with the binding table upgrades the GARP
+    /// finding from LOW to MEDIUM and attaches T0830+T1557.002 (BC-2.16.014 PC1).
     #[test]
     #[allow(non_snake_case)]
     fn test_garp_conflicts_garp_finding_upgrades_to_medium() {
@@ -2500,8 +2510,8 @@ mod story_114 {
     /// AC-008 (BC-2.16.014 PC2/PC5): for a GARP-that-conflicts frame, process_arp
     /// returns exactly 2 findings: one GARP MEDIUM and one D1 (MEDIUM for first rebind).
     ///
-    /// Red Gate: fails because apply_garp_conflict_escalation is an uncalled stub
-    /// (currently only 1 finding — the original LOW GARP — is returned).
+    /// Verifies that a GARP-that-conflicts frame produces exactly 2 findings:
+    /// GARP upgraded to MEDIUM and D1 co-emitted (BC-2.16.014 PC2/PC5 Invariant 2).
     #[test]
     #[allow(non_snake_case)]
     fn test_garp_conflicts_d1_also_emitted() {
@@ -2591,7 +2601,8 @@ mod story_114 {
     /// AC-009 (BC-2.16.014 EC-004): when the GARP-that-conflicts is the 3rd rebind
     /// within 60s, D1 is HIGH; GARP remains MEDIUM. 2 findings total.
     ///
-    /// Red Gate: fails because stub not wired.
+    /// Verifies that when a GARP-that-conflicts frame is the rebind-threshold hit,
+    /// D1 escalates to HIGH while GARP stays MEDIUM (BC-2.16.014 EC-004).
     /// Canonical test vector (BC-2.16.014 table row 3):
     ///   binding {10.0.0.1 → BB:BB, rebind=2, first_rebind_ts=5} + GARP at ts=30 → GARP MEDIUM + D1 HIGH
     #[test]
@@ -2726,7 +2737,8 @@ mod story_114 {
     /// the old MAC (from binding before update), and the new MAC (from frame.sender_mac).
     /// Applies regardless of MEDIUM or HIGH severity.
     ///
-    /// Red Gate: fails because D1 emission is not wired.
+    /// Verifies D1 evidence contains the conflicting IP, old MAC, and new MAC
+    /// (BC-2.16.004 PC1.e; applies at both MEDIUM and HIGH confidence).
     #[test]
     #[allow(non_snake_case)]
     fn test_d1_finding_evidence_contains_ips_and_macs() {
@@ -2782,16 +2794,16 @@ mod story_114 {
     // AC-017 — BC-2.16.007 PC1 D12 MITRE back-fill
     // -----------------------------------------------------------------------
 
-    /// AC-017 (BC-2.16.007 PC1): after the VP-007 5-part atomic update, D12 mismatch
-    /// findings carry mitre_techniques: ["T0830", "T1557.002"] AND retain
-    /// confidence=MEDIUM, category=Anomaly, and evidence fields eth_mac + arp_sender_mac + sender_ip.
+    /// AC-017 (BC-2.16.007 PC1): D12 mismatch findings carry
+    /// mitre_techniques: ["T0830", "T1557.002"] AND retain confidence=MEDIUM,
+    /// category=Anomaly, and evidence fields eth_mac + arp_sender_mac + sender_ip.
     ///
-    /// This test UPDATES the STORY-113 assertion (which expected mitre_techniques=[])
-    /// to the STORY-114 final state (mitre_techniques=["T0830","T1557.002"]).
+    /// This test supersedes the STORY-113 assertion (which expected mitre_techniques=[]).
+    /// The VP-007 5-part atomic update (co-committed with STORY-114) added T0830+T1557.002
+    /// to src/mitre.rs and wired them into the D12 emission branch.
     ///
-    /// Red Gate: fails now because D12 still emits mitre_techniques=[] until the
-    /// VP-007 5-part atomic update adds T0830+T1557.002 to src/mitre.rs and wires
-    /// the mitre vec in the D12 emission branch.
+    /// Verifies D12 L2/L3 mismatch finding carries T0830+T1557.002 after the VP-007
+    /// catalog update (BC-2.16.007 PC1; SEEDED=25, EMITTED=17).
     #[test]
     #[allow(non_snake_case)]
     fn test_d12_mismatch_carries_mitre_after_catalog() {

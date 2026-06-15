@@ -1,13 +1,12 @@
-//! STORY-114 integration test suite.
+//! STORY-114 integration test suite (originally RED in the stub phase, now fully GREEN).
 //!
 //! Exercises:
-//!   AC-011 — T0830 and T1557.002 resolve in the MITRE catalog (after VP-007 atomic update)
+//!   AC-011 — T0830 and T1557.002 resolve in the MITRE catalog (VP-007 atomic update delivered)
 //!   AC-012 — VP-007: SEEDED=25, EMITTED=17; vp007_catalog_drift_guard passes
 //!   AC-006 — --arp-spoof-threshold CLI flag parsed and defaulted correctly
 //!
-//! All tests here MUST FAIL before the Green step because:
-//!   - T0830 and T1557.002 are not yet in src/mitre.rs (SEEDED=23, EMITTED=15).
-//!   - The count assertions (25/17) fail against current values (23/15).
+//! All tests pass in the current GREEN state: T0830 and T1557.002 are seeded in
+//! src/mitre.rs (SEEDED=25, EMITTED=17), count assertions pass.
 //!
 //! DF-TEST-NAMESPACE-001: all tests wrapped per-story mod.
 //! DF-AC-TEST-NAME-SYNC-001: function names match the Story Test Plan exactly.
@@ -21,15 +20,14 @@
 mod story_114_mitre {
     use wirerust::mitre::{MitreTactic, technique_name, technique_tactic};
 
-    /// AC-011 (BC-2.16.004 Invariant 4 / VP-007): after the VP-007 5-part atomic update,
-    /// technique_info("T0830") returns ("Adversary-in-the-Middle", MitreTactic::LateralMovement)
-    /// and technique_info("T1557.002") returns ("Adversary-in-the-Middle: ARP Cache Poisoning",
-    /// MitreTactic::CredentialAccess). Both are resolvable via technique_name and technique_tactic
-    /// (not returning None / "Unknown").
+    /// AC-011 (BC-2.16.004 Invariant 4 / VP-007): technique_info("T0830") returns
+    /// ("Adversary-in-the-Middle", MitreTactic::LateralMovement) and
+    /// technique_info("T1557.002") returns ("Adversary-in-the-Middle: ARP Cache Poisoning",
+    /// MitreTactic::CredentialAccess). Both resolve via technique_name and technique_tactic.
     ///
-    /// Red Gate: fails now because T0830 and T1557.002 return None from technique_info
-    /// (they are absent from src/mitre.rs at SEEDED=23, EMITTED=15 baseline).
-    /// EC-012: "technique_info("T0830") returned None before; returns Some(...) after 5-part update".
+    /// Verifies that T0830 and T1557.002 are seeded in the MITRE catalog following the
+    /// VP-007 5-part atomic update (SEEDED=25, EMITTED=17; originally absent at SEEDED=23).
+    /// EC-012: T0830 and T1557.002 resolve to Some after the 5-part update.
     #[test]
     fn test_t0830_and_t1557_002_resolves_in_catalog() {
         // T0830: "Adversary-in-the-Middle", MitreTactic::LateralMovement
@@ -101,16 +99,16 @@ mod story_114_mitre {
     // AC-012 — VP-007: SEEDED=25, EMITTED=17 (replaces old 23/15 count test)
     // -----------------------------------------------------------------------
 
-    /// AC-012 (VP-007 / STORY-114): after the 5-part atomic update, the catalog has
-    /// SEEDED=25 and EMITTED=17 entries. Specifically:
+    /// AC-012 (VP-007 / STORY-114): the catalog has SEEDED=25 and EMITTED=17 entries.
+    /// Specifically:
     ///   - All 25 seeded IDs resolve via technique_name (non-None, non-empty).
     ///   - technique_name never returns "" (the sentinel "Unknown" pattern from old code).
     ///   - vp007_catalog_drift_guard passes (that in-crate unit test is the mechanical gate;
     ///     this integration test provides the public-API view).
     ///
-    /// Red Gate: fails now because only 23 IDs are seeded (T0830 and T1557.002 missing).
-    /// This test REPLACES the old test_technique_name_resolves_all_21_seeded_ids for the
-    /// 25-entry post-STORY-114 state.
+    /// Verifies the full post-STORY-114 catalog state: SEEDED=25, EMITTED=17.
+    /// This test supersedes the old test_technique_name_resolves_all_21_seeded_ids
+    /// (which covered the 21-entry pre-STORY-109 era).
     #[test]
     fn test_vp007_seeded_25_emitted_17() {
         // All 25 seeded IDs post-STORY-114 atomic update (11 Enterprise + 10 ICS + 2 ARP):
@@ -266,7 +264,8 @@ mod story_114_mitre {
     /// resolve in the catalog. This is the public-API counterpart to the
     /// kani_proofs::EMITTED_IDS check inside src/mitre.rs.
     ///
-    /// Red Gate: T0830 and T1557.002 return None until the atomic update.
+    /// Verifies all 17 emitted IDs (including T0830 and T1557.002 added by STORY-114)
+    /// resolve via technique_name after the VP-007 atomic catalog update.
     #[test]
     fn test_vp007_all_17_emitted_ids_resolve() {
         // IDs actually emitted by analyzers (grep -rn 'mitre_techniques: vec!' src/):
@@ -336,7 +335,6 @@ mod story_114_cli {
     /// With the http-ooo.pcap fixture (no ARP frames), no spoof findings are emitted, but
     /// the flag must be accepted without error.
     ///
-    /// Note: This may PASS already if the flag is declared in cli.rs (it is in the scaffold).
     /// The behavioral assertion is that the flag is wired through to ArpAnalyzer::new()
     /// and the CLI exits success. We also assert via JSON that arp_spoof_threshold=1 has
     /// no effect on a no-ARP capture (spoof_findings remains 0).

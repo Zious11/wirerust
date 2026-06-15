@@ -844,8 +844,8 @@ mod story_107 {
     /// CORRECTED per F-A-001 REVISION 2: DIR is bit 7 (mask 0x80) per IEEE 1815 DNP3
     /// link-layer framing. The previous version incorrectly tested bit 4 (mask 0x10 = FCV/DFC).
     ///
-    /// RED GATE: this test asserts the CORRECT 0x80-mask behavior. It fails until
-    /// `is_master_frame` is fixed from `control & 0x10 != 0` to `control & 0x80 != 0`.
+    /// Asserts the CORRECT 0x80-mask behavior: `is_master_frame` uses `control & 0x80 != 0`
+    /// (DIR bit 7 per IEEE 1815). (Originally failed in the stub which used 0x10 = FCV/DFC.)
     ///
     /// Traces to: BC-2.15.016 postcondition 5 (corrected); F-A-001 REVISION 2 §R2-1.
     #[test]
