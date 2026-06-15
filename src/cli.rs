@@ -182,6 +182,12 @@ pub enum Commands {
         /// BC-2.15.017). Default: 10.
         #[arg(long, default_value_t = DNPXX_DIRECT_OPERATE_THRESHOLD_DEFAULT)]
         dnp3_direct_operate_threshold: u32,
+
+        /// Analyze ARP traffic for spoofing, GARP anomalies, malformed frames, and
+        /// L2/L3 sender-MAC mismatch (BC-2.16.011 — default-off; included by --all).
+        /// --arp-spoof-threshold is added in STORY-114; --arp-storm-rate in STORY-115.
+        #[arg(long)]
+        arp: bool,
     },
 
     /// Generate a triage summary of PCAP files
