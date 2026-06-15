@@ -11,6 +11,22 @@ Archived per content-routing rules (STATE.md keeps only the LATEST checkpoint).
 
 ---
 
+## Archived Checkpoint: 2026-06-15 — F4 ARP DELTA-IMPLEMENTATION; STORY-114 DELIVERED PR #240 7c0f453; NEXT = STORY-115
+
+**Archived from STATE.md on:** 2026-06-15 (replaced by "STORY-115 Step-4.5 CONVERGED; NEXT = demo-recorder → pr-manager → F4 wave-level convergence" checkpoint)
+
+### POSITION
+
+- STORY-111 DELIVERED (PR #236 cced898). STORY-112 DELIVERED (PR #238 10e4472).
+- STORY-113 DELIVERED (PR #239 7b7dbb2). STORY-114 DELIVERED (PR #240 7c0f453; pr-reviewer APPROVE, zero blocking; 9 CI checks green).
+- develop HEAD 7c0f453. src/mitre.rs on develop: SEEDED=25, EMITTED=17.
+- Input-hash: all 5 ARP stories MATCH (STORY-115=2e0eca2 verified 2026-06-15).
+- Wave 44 / STORY-115: NOT STARTED. Branches from develop HEAD 7c0f453.
+- PG-ARP-F4-GREEN-DOC-TENSE codified (lessons.md); PG-ARP-F4-PRMGR-MERGE-SHORTSTOP recurrence #5 logged.
+- NEXT: STORY-115 (D3 storm detection + --arp-storm-rate + storm_findings value + final new() arg).
+
+---
+
 ## Archived Checkpoint: 2026-06-15 — F4 ARP DELTA-IMPLEMENTATION; STORY-113 Step-4.5 CONVERGED (0437be6; 1535 tests); NEXT = demo-recorder → pr-manager → STORY-114
 
 **Archived from STATE.md on:** 2026-06-15 (replaced by "STORY-113 DELIVERED PR #239 7b7dbb2; NEXT = STORY-114" checkpoint)

@@ -993,6 +993,110 @@ policies:
       after 34 per-story passes; found F5 holistic delta scan; codified 2026-06-12;
       lessons.md IP-2 / PG-F4-F5-002)
 
+  - id: DF-GREEN-DOC-TENSE-SWEEP
+    name: green-step-doc-tense-sweep-mandatory
+    description: >
+      TDD-phase doc-comments written during RED-gate/scaffold/stub phases MUST be
+      converted to GREEN/past-tense accurate language at the implementer's Green step,
+      BEFORE committing and BEFORE adversary dispatch. Stale RED-state prose on a
+      passing implementation is a MEDIUM adversarial finding — it misleads reviewers
+      about implementation state and constitutes a specification accuracy defect.
+
+      Mandatory practices:
+
+      (a) Implementer GREEN-step sweep (mandatory before GREEN commit):
+        - Grep ALL files in the story's own diff (git diff develop..HEAD --name-only)
+          for: "scaffold", "Red Gate", "RED GATE", "RED gate", "todo!()", "stub",
+          "uncalled", "skeleton", and any stale counts that this story changes.
+        - Every matching doc-comment MUST be converted to accurate GREEN or
+          past-tense provenance language before commit.
+        - Exception: doc-comments that describe genuinely-deferred artifacts
+          (e.g., F6 Kani stubs, explicitly-deferred ACs) may retain future-tense
+          prose — those MUST name the deferral target (e.g., "F6 deferred").
+
+      (b) Regression-test authoring sub-rule (PG-ARP-F4-REDTEST-DOC-TENSE):
+        - When a fix commit ADDS new regression/RED tests simultaneously with fixing
+          the code, the test-writer MUST author all test doc-comments in
+          REGRESSION-GUARD framing FROM THE START — before committing.
+        - The failing assertion IS the RED signal; the prose must read as accurate at
+          GREEN time.
+
+          PREFERRED framing: "This test guards against regression of X. It FAILS if a
+          future refactor removes Y."
+
+          FORBIDDEN framing: "This test currently fails / the code currently lacks X /
+          this MUST FAIL until X is fixed."
+
+        - The GREEN-step doc sweep MUST re-read every doc-comment in any
+          newly-added test function and verify it reads as accurate at GREEN time,
+          not at the RED moment when the test was mentally authored. Newly-added test
+          files are diff files and are in scope for the sweep.
+
+      (c) Stub-architect and test-writer authoring guidance:
+        - SHOULD author provenance prose in past tense or clearly-future-gated form
+          from the start: "This function body is deferred to F6 (todo!())" rather
+          than "RED GATE — stubs uncalled". This eliminates the entire class at
+          the source.
+        - Where present-tense transitional language is unavoidable in RED phase,
+          annotate: "// TODO-GREEN: update this comment at GREEN step."
+
+      (d) Adversary doc-accuracy axis:
+        - MUST explicitly flag surviving "scaffold / Red Gate / stub / todo!() /
+          uncalled" module-level, test-banner, or in-test doc-comment language as
+          MEDIUM (not LOW cosmetic).
+        - MUST flag stale count references (e.g., "23 IDs" after a 23→25 bump) as
+          MEDIUM regardless of proximity to functional correctness issues.
+        - MUST flag present-tense-false RED prose on a PASSING test as MEDIUM —
+          e.g., "this test currently fails / must fail until X" when the test is
+          green.
+
+    severity: HIGH
+    scope:
+      - implementer
+      - test-writer
+      - stub-architect
+      - adversary
+      - dispatch-templates
+    rationale: >
+      HIGH RECURRENCE (~7x across ARP feature cycle STORY-112 through STORY-115).
+      Each recurrence required a fix commit and a full adversarial-pass restart,
+      costing at minimum one extra adversarial dispatch per story.
+
+      Affected artifact classes across recurrences:
+        - STORY-112: per-test section banners (RED-gate present-tense) — PG-ARP-F4-REDBANNER-SWEEP
+        - STORY-113 O-4: module header + integration-test doc-comments ("skeleton/Red-Gate stubs") — PG-ARP-F4-STALE-SKELETON-DOC
+        - STORY-114 F-1: arp.rs module header ("scaffold / Red Gate / uncalled todo!() stubs / mitre untouched 23/15")
+        - STORY-114 F-2: test-module banners + per-test RED-gate doc-comments
+        - STORY-114 F-3: mitre.rs Kani-proofs section ("23 IDs" stale count post-bump)
+        - STORY-115: newly-added GARP-flood regression test doc-comment
+        - STORY-115: newly-added LRU guard regression test doc-comment
+
+      The STORY-115 sub-class (PG-ARP-F4-REDTEST-DOC-TENSE) is a new variant:
+      the fix commit adds a regression test with present-tense RED prose, the
+      GREEN-step sweep misses the just-added test's own comments, and two successive
+      "fix the doc on the newly-added test" commits are required. This variant was
+      missed by DF-GREEN-DOC-TENSE-SWEEP's original formulation because the sweep
+      focused on pre-existing files in the diff, not test functions added within
+      the same fix commit.
+    enforcement: >
+      Orchestrator MUST inject the GREEN-step sweep mandate into every implementer and
+      test-writer dispatch: "Before committing the GREEN implementation, run a doc-tense
+      sweep over ALL files in `git diff develop..HEAD --name-only`, INCLUDING any
+      newly-added test functions. Grep for: scaffold, Red Gate, RED GATE, todo!(),
+      stub, uncalled, skeleton, and any stale count values this story changes. Fix ALL
+      hits. Only F6-deferred or explicitly-named-deferred comments may retain
+      future-tense prose." Adversary MUST flag surviving stale RED prose as MEDIUM,
+      not LOW. The three-pass requirement (BC-5.39.001) is retained: STORY-115 evidence
+      confirms that pass 1 missed a whole-attack-class bypass (GARP-storm detection
+      unreachable) that passes 2 and 3 caught via fresh-context + BC-completeness sweep.
+    added: "2026-06-15"
+    version: v1
+    derived-from: >
+      PG-ARP-F4-REDBANNER-SWEEP (STORY-112); PG-ARP-F4-STALE-SKELETON-DOC (STORY-113);
+      STORY-114 Step-4.5 F-1/F-2/F-3 (codified 2026-06-15 in lessons.md);
+      PG-ARP-F4-REDTEST-DOC-TENSE sub-rule (STORY-115 Step-4.5; newly-added regression
+      test doc-comment missed by GREEN-step sweep; codified 2026-06-15)
+
   - id: DF-CONSISTENCY-AUDIT-POST-FIXBURST-001
     name: consistency-audit-after-fix-burst-or-bc-enrichment
     description: >

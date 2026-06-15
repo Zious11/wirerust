@@ -402,6 +402,97 @@ STORY-115 remediation dispatches.
 
 ---
 
+## [process-gap] PG-ARP-F4-REDTEST-DOC-TENSE (EXTENDS DF-GREEN-DOC-TENSE-SWEEP)
+
+**Source:** STORY-115 Step-4.5 adversarial convergence (two successive doc-fix rounds;
+recurrence in STORY-113 and STORY-114 as well).
+
+**Observation:** Newly-added RED/regression tests in STORY-115 were authored with present-tense
+transitional prose: "this test currently fails", "the code lacks the guard",
+"MUST FAIL until X is fixed". This language became false immediately after the Green fix
+landed (commits 38933c5 for GARP-flood, 8d5be0c for LRU guard). The implementer's
+GREEN-step doc-tense sweep, as codified in DF-GREEN-DOC-TENSE-SWEEP, was applied to the
+PRE-EXISTING files in the diff — but MISSED the newly-added regression tests' OWN
+doc-comments, because those tests were added AS PART OF the fix commit and the sweep
+did not loop back over them.
+
+This produced TWO successive "fix the doc on the just-added test" commits in the
+convergence journey, one after each regression test was added. The same pattern occurred
+in STORY-113 and STORY-114 adversarial passes.
+
+**Root cause:** The existing DF-GREEN-DOC-TENSE-SWEEP policy mandates a sweep of diff
+files before the GREEN commit. However, when a fix commit ADDS new tests simultaneously
+with fixing the code, the "newly-added test file" is the diff, and its own in-test
+prose is often written in present-tense RED-gate voice by reflex ("this test verifies
+that the code CURRENTLY lacks X"). The implementer completes the code fix, adds the
+test, and commits — without noticing the test's own prose is already stale at the
+moment of commit.
+
+**Proposed policy extension (sub-rule of DF-GREEN-DOC-TENSE-SWEEP):**
+
+Test-writer / implementer MUST author RED/regression-test doc-comments in
+REGRESSION-GUARD framing FROM THE START — before the fix is committed. The failing
+assertion IS the RED signal; the prose must read as accurate at GREEN time:
+
+  PREFERRED: "This test guards against regression of the GARP-storm detection bypass.
+  It FAILS if a future refactor moves detect_storm after the GARP early-return."
+
+  FORBIDDEN: "This test currently fails because detect_storm is unreachable for GARP /
+  the code lacks the contains_key guard / this MUST FAIL until X is fixed."
+
+The adversary DF-GREEN-DOC-TENSE-SWEEP axis MUST flag any present-tense-false RED prose
+on a PASSING test as MEDIUM (regardless of where the comment is — module header,
+per-test doc-comment, or inline comment adjacent to an assertion).
+
+**Scope:** This sub-rule extends DF-GREEN-DOC-TENSE-SWEEP; it applies whenever a
+fix-commit adds new regression tests. The GREEN-step doc sweep MUST re-read every
+doc-comment in any newly-added test function and verify it reads as accurate at GREEN
+time, not at the RED moment when the test was mentally authored.
+
+**Evidence for multi-pass value:** The GARP-storm bypass (C1/F1-GARP above) was
+MISSED by pass 1 but CAUGHT by passes 2 and 3 via the DF-BC-COMPLETENESS-SWEEP +
+GARP/D3 interaction analysis. This is direct evidence that the 3-fresh-pass requirement
+plus BC-completeness sweep catches real attack-class gaps that a single pass would miss.
+A single pass would have shipped the bypass silently.
+
+**Status:** PROPOSED EXTENSION — requires addition to `DF-GREEN-DOC-TENSE-SWEEP` in
+`.factory/policies.yaml` as a named sub-rule. Apply proactively from next story onward.
+
+---
+
+## [positive-lesson] PG-ARP-F4-MULTIPASS-VALUE
+
+**Source:** STORY-115 Step-4.5 adversarial convergence (GARP-storm detection bypass
+caught at passes 2 and 3; missed by pass 1).
+
+**Observation:** The GARP-storm detection bypass (C1/F1-GARP) — a complete
+attack-class gap where a GARP-flood DoS could never trigger a D3 storm finding —
+was NOT caught by pass 1 of the Step-4.5 adversarial convergence. Pass 1 reviewed
+the detection path in isolation and found it correct. Passes 2 and 3, using fresh
+context and the DF-BC-COMPLETENESS-SWEEP + explicit GARP/D3 interaction axis,
+identified the bypass.
+
+**Significance:** This is a concrete case where:
+  1. The per-story pass-1 result was "clean" but the implementation had a
+     whole-attack-class gap (all GARP-flood traffic was invisible to storm detection).
+  2. The gap was not a subtle correctness nuance — it was a structural call-site
+     ordering error (detect_storm called AFTER the GARP early-return).
+  3. A single-pass convergence policy would have shipped the bypass.
+  4. The 3-pass requirement, combined with fresh context on each pass, surfaced the
+     gap without any change to the analysis methodology beyond "look again with fresh eyes."
+
+**Conclusion:** The 3-fresh-pass convergence requirement (BC-5.39.001) provides genuine
+defect-detection value beyond pass 1 in at least this concrete case. The DF-BC-COMPLETENESS-SWEEP
++ explicit interaction-axis enumeration (GARP/detection interaction, LRU guard discipline,
+one-shot guard invariant) is the specific mechanism that caught the gap. These two
+requirements should be retained and reinforced for future per-story convergence cycles.
+
+**Status:** POSITIVE LESSON — no policy change required. Reinforces existing BC-5.39.001
+and DF-BC-COMPLETENESS-SWEEP-001 policies. Reference when justifying the 3-pass requirement
+to future stakeholders.
+
+---
+
 ## [process-gap] PG-ARP-F4-PRMGR-MERGE-SHORTSTOP (RECURRENCE #5)
 
 **Source:** STORY-114 PR #240 delivery (2026-06-15). Fifth recurrence this feature cycle.
