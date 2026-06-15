@@ -488,7 +488,7 @@ fully-clean pass. Passes 18-22 each surfaced+remediated genuine items.
 
 ---
 
-## Checkpoint: 2026-06-14 — F3 ARP adversarial convergence — Pass-37 FULLY CLEAN; all 4 slices ZERO; clean-streak 2/3; strict 3/3 in progress
+## Archived Checkpoint: 2026-06-14 — F3 ARP adversarial convergence — Pass-37 FULLY CLEAN; all 4 slices ZERO; clean-streak 2/3; strict 3/3 in progress
 
 **Archived from STATE.md on 2026-06-14 when Pass-38 completed and F3 gate was satisfied.**
 
@@ -508,3 +508,33 @@ fully-clean pass. Passes 18-22 each surfaced+remediated genuine items.
 | develop HEAD | 31d1231 | — |
 | main HEAD | 3e29891 | chore: release v0.6.0 |
 | factory-artifacts HEAD | 1b33aae | factory(F3): Pass 37 FULLY CLEAN — all 4 slices ZERO; clean-streak 2/3 |
+
+---
+
+## Archived Checkpoint: 2026-06-14 — F4 ARP DELTA-IMPLEMENTATION IN PROGRESS; STORY-111 DELIVERED PR #236 cced898; NEXT = STORY-112 delivery
+
+**Archived from STATE.md on 2026-06-14 (replaced by durable cold-resume checkpoint post STORY-112 stub in-progress).**
+
+### Pipeline Position
+
+- Mode: FEATURE. Active feature: ARP security analyzer + etherparse 0.16→0.20. Issue #9. Release target: v0.7.0.
+- F1 PASSED (human-gated 2026-06-12, D-066). F2 CONVERGED 3/3 (Passes 31/32/33). F3 CONVERGED 3/3 (Passes 36/37/38). F3 human gate PASSED (D-070, 2026-06-14).
+- F4 Delta-Implementation: IN PROGRESS — AUTHORIZED (D-070).
+  - STORY-111 DELIVERED — PR #236 MERGED to develop (merge commit cced898; wave 40 COMPLETE; D-073).
+    etherparse 0.20 migration + DecodedFrame{Ip,Arp} enum + ArpFrame struct + decode_packet→Result<DecodedFrame> +
+    symmetric-unreachable ARP decode (D-072) + non-panicking extract_arp_frame placeholder + BC-2.02.009 v1.7 +
+    VP-008 fuzz-harness return-type update. 53 test suites green; clippy/fmt clean.
+    CI Format failure fixed by aligning local toolchain to CI rolling-stable (rustfmt 1.8.0→1.9.0). pr-reviewer APPROVE.
+  - STORY-112 IN PROGRESS NEXT (wave 41): stub-architect/test-writer → implementer → Step-4.5 (3/3) → demo → pr-manager 9-step PR.
+- D-068/D-069/D-071/D-072/D-073 all active. F3-OBL-STORY114-001/002/003 REVOKED (D-069).
+- Key input-hashes at archival: STORY-111=d05149f, STORY-112=8a4d566, STORY-113=a767d96, STORY-114=e2f1c95, STORY-115=5ca9835.
+  Note: STORY-113/114/115 went STALE after arp-architecture-delta v1.16 (D-072) — re-stamp before STORY-113 delivery.
+
+### VERIFIED SHAs at archival time
+
+| Ref | Value | Notes |
+|-----|-------|-------|
+| develop HEAD | cced898 | PR #236 merge commit; local == origin/develop |
+| main HEAD | 3e29891 | v0.6.0 |
+| factory-artifacts HEAD | c429c92 | factory(F4): STORY-111 DELIVERED (D-073) — PR #236 merged develop cced898; NEXT STORY-112 |
+| open PRs | none | gh pr list --state open |
