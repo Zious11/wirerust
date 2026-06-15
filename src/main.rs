@@ -22,6 +22,7 @@ use clap::Parser;
 use indicatif::{ProgressBar, ProgressStyle};
 
 use wirerust::analyzer::ProtocolAnalyzer;
+use wirerust::analyzer::arp::ArpAnalyzer;
 use wirerust::analyzer::dnp3::Dnp3Analyzer;
 use wirerust::analyzer::dns::DnsAnalyzer;
 use wirerust::analyzer::http::HttpAnalyzer;
@@ -106,6 +107,11 @@ fn run_analyze(
 
     let mut summary = Summary::new();
     let mut dns_analyzer = DnsAnalyzer::new();
+    // STORY-112: ArpAnalyzer stub — parameterless new() per AC-010.
+    // --arp flag-gating is added in STORY-113 (BC-2.16.011).
+    // --arp-spoof-threshold is added in STORY-114.
+    // --arp-storm-rate is added in STORY-115.
+    let mut arp_analyzer = ArpAnalyzer::new();
     let mut all_findings = Vec::new();
     let mut total_decode_errors: u64 = 0;
 
@@ -231,9 +237,16 @@ fn run_analyze(
                                 reasm.process_packet(&parsed, raw.timestamp_secs, &mut dispatcher);
                             }
                         }
-                        // STORY-111 stub: ARP frames decoded but not yet dispatched.
-                        // STORY-112/113 will wire ArpAnalyzer::process_arp here.
-                        Ok(DecodedFrame::Arp(_arp_frame)) => {}
+                        // STORY-112: ArpAnalyzer stub wiring (AC-008, BC-2.16.015 PC5/6).
+                        // process_arp is a no-op stub returning vec![] — the real detection
+                        // logic (binding table, GARP, D11, D12) is implemented in STORY-113.
+                        // ARP frames NEVER reach StreamDispatcher (AC-009, BC-2.16.015 Inv 2).
+                        // --arp flag-gating (args.arp) is added in STORY-113 (BC-2.16.011).
+                        Ok(DecodedFrame::Arp(arp_frame)) => {
+                            let ts = raw.timestamp_secs;
+                            let _findings = arp_analyzer.process_arp(&arp_frame, ts);
+                            // STORY-113: extend all_findings with _findings once detection is real.
+                        }
                         Err(e) => {
                             if total_decode_errors == 0 {
                                 eprintln!(
