@@ -1,17 +1,29 @@
-//! ARP security analyzer — STORY-113 full implementation (GREEN).
+//! ARP security analyzer — STORY-113 full implementation (GREEN) + STORY-114 stubs.
 //!
 //! This module defines [`ArpAnalyzer`], a stateful ARP-frame processor that
 //! maintains a bounded binding table (IP→MAC with LRU eviction), detects
 //! Gratuitous ARP (D2), D11 malformed ARP, D12 L2/L3 sender-MAC mismatch,
 //! and exposes a `summarize()` method returning eleven canonical summary keys.
 //!
-//! All method bodies are implemented and all STORY-113 tests pass (GREEN).
+//! All STORY-113 method bodies are implemented and all STORY-113 tests pass (GREEN).
 //! The VP-024 Sub-B/Sub-D Kani harness bodies (`verify_classify_garp_total`,
 //! `verify_binding_table_cap`) remain `todo!()` pending the F6 formal-hardening gate —
-//! that is the only intentional `todo!()` in this module.
+//! that is the only intentional `todo!()` in this module for STORY-113 functions.
+//!
+//! ## STORY-114 scaffold (Red Gate)
+//! - `ArpAnalyzer::new(spoof_threshold, storm_rate)` — signature extended.
+//! - `SPOOF_REBIND_ESCALATION_DEFAULT`, `ARP_FLAP_WINDOW_SECS`, `ARP_STORM_RATE_DEFAULT`
+//!   constants added.
+//! - `--arp-spoof-threshold` CLI flag wired (BC-2.16.012 primary deliverable).
+//! - `emit_d1_spoof_finding` and `apply_garp_conflict_escalation` helpers added as
+//!   uncalled `todo!()` stubs — NOT yet wired into `process_arp`. The implementer
+//!   wires these in the Green step.
+//! - `process_arp` retains STORY-113 behaviour (no D1 emission, GARP stays LOW).
+//! - `src/mitre.rs` is untouched (SEEDED=23, EMITTED=15); VP-007 5-part atomic
+//!   update is the implementer's Green step.
 //!
 //! ## Scope boundary
-//! - D1 spoof EMISSION (BC-2.16.004) is NOT in this story → STORY-114.
+//! - D1 spoof EMISSION (BC-2.16.004) is STORY-114 (stubs here, impl in Green step).
 //! - D3 storm detection (BC-2.16.013) is NOT in this story → STORY-115.
 //! - `spoof_findings` and `storm_findings` summary keys will be 0 after STORY-113.
 //!
@@ -43,6 +55,29 @@ pub const MAX_ARP_BINDINGS: usize = 65_536;
 /// harness iterate cap+1 = 9 times with `#[kani::unwind(12)]`.
 #[cfg(any(kani, test))]
 pub const TEST_MAX_ARP_BINDINGS: usize = 8;
+
+// ---------------------------------------------------------------------------
+// STORY-114 constants (BC-2.16.004 / BC-2.16.012 / BC-2.16.013)
+// ---------------------------------------------------------------------------
+
+/// Default rebind count threshold at which D1 spoof finding escalates to HIGH.
+///
+/// BC-2.16.004 postcondition 1.c; BC-2.16.012 default.
+/// CLI flag `--arp-spoof-threshold` overrides this value per AC-006.
+pub const SPOOF_REBIND_ESCALATION_DEFAULT: u32 = 3;
+
+/// Detection window in seconds for D1 spoof escalation (also shared with D3 storm, STORY-115).
+///
+/// BC-2.16.004 postcondition 1.c (flap window); BC-2.16.013 (storm window).
+pub const ARP_FLAP_WINDOW_SECS: u32 = 60;
+
+/// Default ARP storm rate threshold (frames/second per sender MAC) for D3 detection.
+///
+/// D3 storm logic is STORY-115. This constant is defined here so
+/// `ArpAnalyzer::new(spoof_threshold, storm_rate)` has a canonical default
+/// for the `storm_rate` parameter at the STORY-114 call site in `src/main.rs`
+/// (standalone-compile: `--arp-storm-rate` flag does not exist until STORY-115).
+pub const ARP_STORM_RATE_DEFAULT: u32 = 50;
 
 // ---------------------------------------------------------------------------
 // Data types
@@ -219,14 +254,27 @@ pub fn insert_binding_lru_btree(
 /// (BC-2.16.003), D11 malformed ARP (BC-2.16.009), D12 L2/L3 mismatch
 /// (BC-2.16.007), and `summarize()` with all 11 canonical keys (BC-2.16.010).
 ///
-/// D1 spoof EMISSION is STORY-114. D3 storm detection is STORY-115.
-/// `--arp` is parameterless in this story (Architecture Compliance Rule 3).
+/// STORY-114 extends `new(spoof_threshold, storm_rate)` and wires
+/// `--arp-spoof-threshold` (BC-2.16.012). D1 emission + GARP-conflict
+/// helpers are stubs until the Green step.
+///
+/// D3 storm detection is STORY-115.
 pub struct ArpAnalyzer {
     /// IP→MAC binding table. Cap enforced at MAX_ARP_BINDINGS via LRU eviction.
     /// Production substrate per Architecture Compliance Rule 2.
     pub bindings: HashMap<[u8; 4], BindingEntry>,
     /// Per-sender-MAC storm tracking (stub; D3 logic in STORY-115).
     pub storm_counters: HashMap<[u8; 6], StormCounter>,
+
+    // --- STORY-114 threshold fields (BC-2.16.012 / BC-2.16.013) ---
+    /// D1 spoof escalation threshold: number of rebinds within ARP_FLAP_WINDOW_SECS
+    /// before a HIGH finding is emitted. Overridable via `--arp-spoof-threshold`.
+    /// BC-2.16.012; default = SPOOF_REBIND_ESCALATION_DEFAULT = 3.
+    pub spoof_threshold: u32,
+    /// ARP storm rate threshold (frames/second per sender MAC) for D3 detection.
+    /// Stub field; D3 logic is STORY-115. Stored here for `new()` API completeness.
+    /// Default = ARP_STORM_RATE_DEFAULT = 50.
+    pub storm_rate: u32,
 
     // --- per-capture counters ---
     /// Total ARP frames processed by `process_arp` (excludes malformed frames).
@@ -252,18 +300,25 @@ pub struct ArpAnalyzer {
 }
 
 impl ArpAnalyzer {
-    /// Construct a zeroed `ArpAnalyzer`.
+    /// Construct a zeroed `ArpAnalyzer` with caller-supplied thresholds.
     ///
-    /// Parameterless in STORY-113 per Architecture Compliance Rule 3:
-    /// - `--arp-spoof-threshold` is added in STORY-114 (BC-2.16.012).
-    /// - `--arp-storm-rate` is added in STORY-115 (BC-2.16.013).
+    /// `spoof_threshold` — rebind count at which D1 escalates to HIGH
+    ///   (BC-2.16.004 postcondition 1.c; BC-2.16.012).
+    ///   Pass `SPOOF_REBIND_ESCALATION_DEFAULT` (= 3) when no CLI override.
+    ///
+    /// `storm_rate` — ARP frames/second threshold for D3 storm detection
+    ///   (BC-2.16.013; STORY-115). Pass `ARP_STORM_RATE_DEFAULT` (= 50)
+    ///   until STORY-115 wires `args.arp_storm_rate`.
     ///
     /// GREEN-BY-DESIGN: zero branching, no I/O, no non-trivial helpers, 3 lines.
-    /// Returns a fully-zeroed struct — no implementer work is required for this body.
-    pub fn new() -> Self {
+    /// Returns a fully-zeroed struct with the given thresholds — no implementer
+    /// work is required for this body.
+    pub fn new(spoof_threshold: u32, storm_rate: u32) -> Self {
         Self {
             bindings: HashMap::new(),
             storm_counters: HashMap::new(),
+            spoof_threshold,
+            storm_rate,
             frames_analyzed: 0,
             request_count: 0,
             reply_count: 0,
@@ -525,12 +580,95 @@ impl ArpAnalyzer {
             detail,
         }
     }
+
+    // -----------------------------------------------------------------------
+    // STORY-114 detection helpers — uncalled stubs (Red Gate, BC-5.38.001)
+    //
+    // These helpers carry the D1 spoof escalation and GARP-that-conflicts
+    // logic as `todo!()` bodies. They are NOT called from `process_arp` in
+    // this scaffold — calling them is the implementer's Green step. Until
+    // they are wired, all STORY-113 tests continue to pass and STORY-114
+    // tests fail by ABSENCE of the expected findings.
+    //
+    // BC-5.38.005 self-check applied:
+    //   "If I include this real implementation, will the test for this
+    //   function pass trivially without any implementer work?"
+    //   YES for both helpers — therefore todo!() is mandatory per BC-5.38.001.
+    // -----------------------------------------------------------------------
+
+    /// Evaluate and emit a D1 ARP Spoof finding for a rebind event.
+    ///
+    /// Implements BC-2.16.004 postcondition 1, Steps 1–3 exactly:
+    ///   Step 1: increment `entry.rebind_count`.
+    ///   Step 2: set `entry.first_rebind_ts` if currently `None`.
+    ///   Step 3: evaluate HIGH vs MEDIUM:
+    ///     - If `rebind_count >= spoof_threshold`
+    ///       AND `timestamp_secs - first_rebind_ts <= ARP_FLAP_WINDOW_SECS`
+    ///       AND `!entry.spoof_high_emitted` → emit HIGH; set `spoof_high_emitted = true`.
+    ///     - Else if flap window expired (elapsed > ARP_FLAP_WINDOW_SECS) → reset window,
+    ///       emit MEDIUM (counts as new first rebind after reset).
+    ///     - Else → emit MEDIUM.
+    ///   Step 4 (MAC update) is performed by `process_arp` AFTER this helper returns.
+    ///
+    /// Attaches `mitre_techniques: ["T0830", "T1557.002"]` to the emitted finding
+    /// (requires VP-007 5-part atomic update in src/mitre.rs — implementer's Green step).
+    ///
+    /// Evidence includes: old_mac (binding before update), new_mac (frame.sender_mac),
+    /// and sender_ip (AC-016).
+    ///
+    /// STORY-114 Red Gate stub — NOT called from process_arp.
+    /// BC-5.38.001: todo!() is mandatory (non-trivial branching logic).
+    #[allow(dead_code)] // STORY-114: uncalled stub — wired by implementer in Green step.
+    fn emit_d1_spoof_finding(
+        &mut self,
+        _entry: &mut BindingEntry,
+        _sender_ip: [u8; 4],
+        _new_mac: [u8; 6],
+        _timestamp_secs: u32,
+    ) -> Finding {
+        todo!(
+            "STORY-114: implement D1 spoof finding emission with escalation \
+             (BC-2.16.004 postcondition 1, Steps 1–3; AC-001/AC-002/AC-003/AC-004/AC-005)"
+        )
+    }
+
+    /// Apply GARP-that-conflicts escalation and co-emit a D1 finding.
+    ///
+    /// Called when `is_gratuitous_arp(frame) == true` AND the binding table
+    /// already contains `sender_ip` with a different MAC (conflict).
+    ///
+    /// BC-2.16.014 postcondition 1/2:
+    ///   - Upgrades the GARP finding from LOW to MEDIUM and attaches
+    ///     `mitre_techniques: ["T0830", "T1557.002"]`.
+    ///   - Co-emits a D1 spoof finding (delegating to `emit_d1_spoof_finding`
+    ///     for Steps 1–3 severity evaluation).
+    ///
+    /// Returns a tuple `(upgraded_garp_finding, d1_finding)` so that
+    /// `process_arp` can append both to the output `Vec<Finding>`.
+    ///
+    /// STORY-114 Red Gate stub — NOT called from process_arp.
+    /// BC-5.38.001: todo!() is mandatory (non-trivial branching + delegation).
+    #[allow(dead_code)] // STORY-114: uncalled stub — wired by implementer in Green step.
+    fn apply_garp_conflict_escalation(
+        &mut self,
+        _garp_finding: Finding,
+        _entry: &mut BindingEntry,
+        _sender_ip: [u8; 4],
+        _new_mac: [u8; 6],
+        _timestamp_secs: u32,
+    ) -> (Finding, Finding) {
+        todo!(
+            "STORY-114: implement GARP-that-conflicts escalation (BC-2.16.014 postcondition 1/2; \
+             AC-007/AC-008/AC-009)"
+        )
+    }
 }
 
 impl Default for ArpAnalyzer {
-    /// GREEN-BY-DESIGN: delegates to `new()` — zero branching, no I/O, no helpers, 1 line.
+    /// GREEN-BY-DESIGN: delegates to `new(SPOOF_REBIND_ESCALATION_DEFAULT, ARP_STORM_RATE_DEFAULT)`.
+    /// Zero branching, no I/O, no non-trivial helpers, 1 line.
     fn default() -> Self {
-        Self::new()
+        Self::new(SPOOF_REBIND_ESCALATION_DEFAULT, ARP_STORM_RATE_DEFAULT)
     }
 }
 
@@ -542,13 +680,14 @@ impl Default for ArpAnalyzer {
 impl ArpAnalyzer {
     /// Construct an `ArpAnalyzer` for use in unit tests.
     ///
-    /// In STORY-113 this is identical to `new()`. STORY-114/115 may add
-    /// threshold parameters to the production `new()` while keeping
-    /// `new_for_test()` parameterless for Sub-C proptest compatibility.
+    /// Uses default thresholds (`SPOOF_REBIND_ESCALATION_DEFAULT = 3`,
+    /// `ARP_STORM_RATE_DEFAULT = 50`) so STORY-113 tests are unaffected
+    /// by the STORY-114 signature extension to `new(spoof_threshold, storm_rate)`.
+    /// Kept parameterless for VP-024 Sub-C proptest compatibility.
     ///
     /// ADR-008 Decision 4; VP-024 Sub-C anchor (BC-2.16.005).
     pub fn new_for_test() -> Self {
-        Self::new()
+        Self::new(SPOOF_REBIND_ESCALATION_DEFAULT, ARP_STORM_RATE_DEFAULT)
     }
 
     /// Process a frame using a fixed-cap binding table for Sub-C/Sub-D tests.

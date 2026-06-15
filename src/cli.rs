@@ -185,9 +185,15 @@ pub enum Commands {
 
         /// Analyze ARP traffic for spoofing, GARP anomalies, malformed frames, and
         /// L2/L3 sender-MAC mismatch (BC-2.16.011 — default-off; included by --all).
-        /// --arp-spoof-threshold is added in STORY-114; --arp-storm-rate in STORY-115.
         #[arg(long)]
         arp: bool,
+
+        /// D1 spoof escalation threshold: number of MAC rebinds within
+        /// ARP_FLAP_WINDOW_SECS (60 s) before a HIGH severity finding is emitted.
+        /// Default: 3. Set to 1 to fire HIGH on the very first rebind.
+        /// BC-2.16.012 primary deliverable (STORY-114). --arp-storm-rate is STORY-115.
+        #[arg(long, default_value_t = 3)]
+        arp_spoof_threshold: u32,
     },
 
     /// Generate a triage summary of PCAP files

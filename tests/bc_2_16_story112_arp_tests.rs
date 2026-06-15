@@ -643,7 +643,7 @@ fn test_BC_2_16_015_decode_packet_lax_arm_truncated_arp_non_panic() {
 /// returns vec![] (no-op stub). Locks the wiring contract.
 #[test]
 fn test_BC_2_16_015_main_arp_arm_calls_process_arp_stub() {
-    let mut analyzer = ArpAnalyzer::new();
+    let mut analyzer = ArpAnalyzer::new(3, 50);
 
     // Construct a minimal ArpFrame with known values.
     let frame = ArpFrame {
@@ -693,7 +693,7 @@ fn test_BC_2_16_015_arp_frame_never_reaches_stream_dispatcher() {
     // If dispatcher.on_data were called for ARP frames, IP-pipeline findings
     // would be interleaved with ARP findings — the empty vec![] return and
     // the ArpAnalyzer not-implementing-ProtocolAnalyzer is the structural proof.
-    let mut analyzer = ArpAnalyzer::new();
+    let mut analyzer = ArpAnalyzer::new(3, 50);
 
     let arp_frame = ArpFrame {
         operation: 2,
