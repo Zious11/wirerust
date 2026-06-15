@@ -2,7 +2,7 @@
 document_type: story
 story_id: STORY-111
 epic_id: E-16
-version: "1.2"
+version: "1.3"
 status: draft
 producer: story-writer
 timestamp: 2026-06-13T00:00:00Z
@@ -25,6 +25,11 @@ github_issue: 9
 # v1.1 changelog: F4-surfaced decomposition fix: re-scoped ACs to §6 scaffolding boundary
 #   (extract_arp_frame end-to-end behavior is STORY-112); added non-panicking placeholder AC
 #   for VP-008 (AC-005b); AC-001/002/004/007/008 removed (covered by STORY-112 AC-006/007/004/012).
+# v1.3 changelog: F4 confirming-review LOW residuals:
+#   coverage-map 'Removed test rows' AC-004→AC-012 sibling-list sync
+#     (AC-006/AC-007/AC-004 → AC-006/AC-012/AC-007, matching Coverage Mapping table);
+#   File-Structure test-name aligned to AC-003/Test-Plan
+#     (rename test_decode_non_ip_frame_returns_error → test_decode_non_ip_non_arp_frame_returns_no_ip_error).
 # v1.2 changelog: F4 scoped-adversarial remediation:
 #   AC-005 seam pinning — strict Some(NetSlice::Arp) arm maps placeholder None to TEMPORARY
 #     Err("ARP extraction not yet implemented"), not "Non-Ethernet/IPv4 ARP frame" (STORY-112 AC-012);
@@ -197,7 +202,7 @@ Architecture section references: `architecture/module-decomposition.md` (SS-02 d
 **Removed test rows (covered by STORY-112):**
 - AC-001 → STORY-112 `test_decode_packet_routes_arp_to_decoded_frame_arp`
 - AC-002 → STORY-112 `test_decode_packet_arp_non_eth_ipv4_returns_error` (AC-012, NEW)
-- AC-004 → STORY-112 AC-006/AC-007/AC-004
+- AC-004 → STORY-112 AC-006/AC-012/AC-007
 - AC-007 → STORY-112 `test_decode_packet_lax_arm_truncated_arp_non_panic`
 - AC-008 → STORY-112 `test_decode_packet_lax_arm_truncated_arp_non_panic`
 
@@ -236,7 +241,7 @@ Derived from arp-architecture-delta.md §2.1, §2.2, ADR-008 Decisions 1–3, BC
 | `Cargo.toml` | Modify | `etherparse = "0.16"` → `etherparse = "0.20"`; update version-pin comment ~lines 21–26 |
 | `src/decoder.rs` | Modify | Add `DecodedFrame` enum, `ArpFrame` struct; update `decode_packet` return type; add `NetSlice::Arp` dispatch arm (strict path) + `LaxNetSlice::Arp` routing arm (lax path); add non-panicking `extract_arp_frame` placeholder (returns `None` — signature matches STORY-112 expectation); prose-sweep both comment blocks to 0.20 |
 | `fuzz/fuzz_targets/decode_packet_fuzz.rs` (or equivalent VP-008 harness) | Modify | Update return type from `Result<ParsedPacket>` to `Result<DecodedFrame>`; handle both `Ip` and `Arp` variants as non-panic outcomes |
-| `src/decoder.rs` tests module | Modify | Add AC-003, AC-005, AC-005b, AC-006, AC-009, AC-010 tests; update existing ARP subtest in `test_decode_non_ip_frame_returns_error` to remove ARP clause (ARP tests are STORY-112); `extract_arp_frame` entry = non-panicking placeholder (full impl in STORY-112) |
+| `src/decoder.rs` tests module | Modify | Add AC-003, AC-005, AC-005b, AC-006, AC-009, AC-010 tests; update + rename existing `test_decode_non_ip_frame_returns_error` → `test_decode_non_ip_non_arp_frame_returns_no_ip_error` (remove the ARP subtest clause; ARP assertions move to STORY-112); `extract_arp_frame` entry = non-panicking placeholder (full impl in STORY-112) |
 
 ## Token Budget Estimate
 

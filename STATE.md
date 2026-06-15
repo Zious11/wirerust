@@ -1,7 +1,7 @@
 ---
 pipeline: FEATURE_MODE_ARP_ANALYZER
 phase: feature-F4-delta-implementation
-phase_status: "F4 IN PROGRESS — F3 human gate PASSED (D-070); STORY-111 v1.2 + STORY-112 v1.2 + BC-2.16.015 v1.2 remediated (D-071 sub-note: 7 findings all remediated, STORY-112 input-hash 268f53f→c8c1a64); NEXT = confirming scoped re-review of STORY-111/112/BC-2.16.015 in progress; on clean → resume STORY-111 TDD (re-align worktree stub extract_arp_frame→non-panicking None placeholder → test-writer re-scoped ACs → implementer → Step-4.5 → demo → PR)."
+phase_status: "F4 IN PROGRESS — F3 human gate PASSED (D-070); STORY-111 v1.3 + STORY-112 v1.2 + BC-2.16.015 v1.2 remediated (D-071 sub-note: 7 findings + 2 LOW residuals all remediated; STORY-112 input-hash 268f53f→c8c1a64); NEXT = confirming scoped re-review of STORY-111/112/BC-2.16.015 in progress; on clean → resume STORY-111 TDD (re-align worktree stub extract_arp_frame→non-panicking None placeholder → test-writer re-scoped ACs → implementer → Step-4.5 → demo → PR)."
 active_feature: "arp-analyzer"
 feature_arp_status: "F1 Delta Analysis PASSED (human-gated 2026-06-12) — DecodedFrame integration, ADR-008 planned, F2→F7 authorized; release target v0.7.0"
 feature_8_status: "v0.6.0 RELEASED 2026-06-12 — DNP3 TCP analyzer; F7 5-dim CONVERGED; tag v0.6.0 + 4 binaries"
