@@ -854,7 +854,9 @@ impl ArpAnalyzer {
     /// One-in-one-out: `storm_counters.len()` never exceeds `MAX_STORM_COUNTERS`.
     /// BC-2.16.008 PC5; BC-2.16.008 Invariant 6.
     fn insert_storm_counter_lru(&mut self, source_mac: [u8; 6], timestamp_secs: u32) {
-        if self.storm_counters.len() >= MAX_STORM_COUNTERS {
+        if !self.storm_counters.contains_key(&source_mac)
+            && self.storm_counters.len() >= MAX_STORM_COUNTERS
+        {
             // Evict the entry with the minimum window_start_ts (LRU heuristic).
             let oldest_mac = self
                 .storm_counters
