@@ -1,7 +1,7 @@
 ---
 document_type: verification-property
 level: L4
-version: "1.7"
+version: "1.8"
 status: draft
 producer: architect
 timestamp: 2026-06-12T00:00:00Z
@@ -32,6 +32,7 @@ modified:
   - "v1.5 (2026-06-13): F-A-01/F-A-02 remediation (Pass-1 adversarial F3) — Sub-C primary anchor corrected to BC-2.16.005 (last-write-wins) only. BC-2.16.004 (D1 ARP spoof) removed from bcs: frontmatter array and from Sub-C's anchor list; it is INDIRECTLY supported by Sub-C (the last-write-wins substrate BC-2.16.004 depends upon) but is not a VP-024 formally-verified BC. Its primary story is STORY-114 (wave 43), which runs after STORY-113 where Sub-C is implemented. Sub-C anchor table row updated: PRIMARY=BC-2.16.005, INDIRECT=BC-2.16.004 with explicit scope note. Source Contract BC-2.16.004 line changed from 'Related' to 'Indirectly supported'. VP-INDEX Verified-BCs catalog row updated (BC-2.16.004 removed); [^vp024-bc-scope] footnote rewritten to explain primary/indirect anchor split."
   - "v1.6 (2026-06-14): F-P16-A-02 remediation (Pass-16 semantic-anchor) — frontmatter module: field corrected from src/analyzer/arp.rs (singular) to src/analyzer/arp.rs + src/decoder.rs, aligning frontmatter with VP body (Sub-A target extract_arp_frame resides in src/decoder.rs) and VP-INDEX catalog row. No property or anchor content changed."
   - "v1.7 (2026-06-14, F3 ARP VP-layer audit title-sync): Source Contract 'Indirectly supported BC' BC-2.16.004 wording corrected: 'MEDIUM or HIGH finding' → 'MEDIUM then HIGH finding' to mirror BC-2.16.004 H1 v1.5 (sequential escalation). No proof-method, postcondition, or anchor content changed."
+  - "v1.8 (2026-06-15): O-1 remediation (F4 re-streak finding) — Sub-A negative harness widened to cover the FULL reject contract matching decoder.rs:312-315 (hw_addr_type != ETHERNET || proto_addr_type != IPV4 || hw_addr_size != 6 || proto_addr_size != 4 → None). HTYPE/PTYPE bytes made symbolic (no longer pinned to Ethernet/IPv4). kani::assume updated to the 4-part OR condition. Harness renamed verify_extract_arp_frame_none_on_bad_size → verify_extract_arp_frame_none_on_invalid_header. Property Statement point 3 and symbolic-input summary table updated accordingly. Harness-comment prose corrected. Cross-references to BC-2.16.001 PC2-PC5 and BC-2.16.009 PC3a-3d are unchanged. Decision D-077 is the triggering change (type-rejection guard added to extract_arp_frame)."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -67,9 +68,12 @@ is well-formed per etherparse's own validation):
    - `sender_ip`  = first 4 bytes of `sender_protocol_addr()`
    - `target_ip`  = first 4 bytes of `target_protocol_addr()`
    - `operation`  = raw u16 from `operation().0`
-3. When `hw_addr_size() != 6` or `proto_addr_size() != 4` or hw/proto type is not Ethernet/IPv4,
-   the function returns `None` (no panic — graceful rejection). This is explicitly verified by
-   the `verify_extract_arp_frame_none_on_bad_size` Kani harness below.
+3. When `hw_addr_type() != ETHERNET` or `proto_addr_type() != IPV4` or `hw_addr_size() != 6`
+   or `proto_addr_size() != 4` (any of the four conditions in the combined guard at
+   decoder.rs:312-315), the function returns `None` (no panic — graceful rejection). This is
+   explicitly verified by the `verify_extract_arp_frame_none_on_invalid_header` Kani harness
+   below, which makes HTYPE, PTYPE, HLEN, and PLEN fully symbolic and constrains the symbolic
+   domain to the rejection region via `kani::assume(htype != ETHERNET || ptype != IPV4 || hlen != 6 || plen != 4)`.
 
 **Sub-property B — GARP detection totality** (`is_gratuitous_arp` or equivalent detection
 function, anchors BC-2.16.003):
@@ -158,7 +162,7 @@ ArpAnalyzer detections) both touch `mitre.rs` and must not break VP-007's drift 
 
 | Sub-property | Concern | Anchored BCs |
 |---|---|---|
-| A — ARP frame extraction parse safety | `extract_arp_frame` panic/OOB-freedom; `None` for non-Eth/IPv4; `Some(correctly-decoded)` for Eth/IPv4 | BC-2.16.001 (ARP Request parse), BC-2.16.002 (ARP Reply parse) |
+| A — ARP frame extraction parse safety | `extract_arp_frame` panic/OOB-freedom; `None` for any frame failing the combined type-or-size guard (hw_addr_type != ETHERNET OR proto_addr_type != IPV4 OR hw_addr_size != 6 OR proto_addr_size != 4); `Some(correctly-decoded)` for Eth/IPv4 | BC-2.16.001 (ARP Request parse), BC-2.16.002 (ARP Reply parse) |
 | B — GARP detection totality | GARP iff sender_ip==target_ip; both op==1 and op==2 forms; no panic | BC-2.16.003 (GARP detection) |
 | C — Binding-table determinism | last-write-wins; no duplicate keys; proptest sequence | **Primary:** BC-2.16.005 (binding-table update semantics — last-seen MAC wins for a given IP). **Indirect:** BC-2.16.004 (D1 ARP spoof/rebind escalation, primary STORY-114) depends on the last-write-wins property as its substrate; Sub-C discharges BC-2.16.005 directly and supports BC-2.16.004 indirectly. BC-2.16.004 is NOT in VP-024's formal verified-BC scope. |
 | D — MAX_ARP_BINDINGS cap | table.len() never > cap; eviction removes exactly one entry on overflow (min-last_seen_ts heuristic NOT proven — only len<=cap is Kani-proven) | BC-2.16.006 (binding-table bounded resource) |
@@ -189,7 +193,7 @@ Additional BC-2.16.007 (D12 L2/L3 sender mismatch detection) is verified by unit
 
 | Method | Tool | Bounded? | Coverage |
 |---|---|---|---|
-| Model checking | Kani | Yes — Sub-A: three harnesses: (1) fully-symbolic `[u8;28]` for no-panic; (2) Eth/IPv4-fixed buffer with symbolic OPER+addrs for field correctness; (3) bad-HLEN/PLEN buffer for None-on-bad-size negative assertion. Sub-B: symbolic `ArpFrame` with `operation: kani::any()` — covers all 65,536 u16 operation values, opcode-agnostic biconditional. Sub-D: BTreeMap surrogate, 9-iteration sequence, scaled cap proof. | All parse outcomes; full GARP domain (opcode-agnostic, 4B×4B IP space); None-on-bad-size negative path; cap-boundary transitions |
+| Model checking | Kani | Yes — Sub-A: three harnesses: (1) fully-symbolic `[u8;28]` for no-panic; (2) Eth/IPv4-fixed buffer with symbolic OPER+addrs for field correctness; (3) fully-symbolic HTYPE/PTYPE/HLEN/PLEN buffer constrained to the full rejection region (hw_addr_type != ETHERNET OR proto_addr_type != IPV4 OR hw_addr_size != 6 OR proto_addr_size != 4) for None-on-invalid-header negative assertion. Sub-B: symbolic `ArpFrame` with `operation: kani::any()` — covers all 65,536 u16 operation values, opcode-agnostic biconditional. Sub-D: BTreeMap surrogate, 9-iteration sequence, scaled cap proof. | All parse outcomes; full GARP domain (opcode-agnostic, 4B×4B IP space); None-on-invalid-header negative path (type AND size rejection); cap-boundary transitions |
 | Property-based testing | proptest | Yes — Sub-C: arbitrary `Vec<ArpFrame>` sequences up to 1000 entries; 1000 test cases | Binding-table determinism and no-duplicate-key invariant across arbitrary frame sequences |
 
 Kani is the primary counted tool for VP-024 (per VP-INDEX: Kani). proptest for Sub-C is
@@ -294,47 +298,61 @@ mod kani_proofs {
         // Do NOT ship to F6 lock without resolving the F4 reachability obligation above.
     }
 
-    // Sub-property A negative assertion: None returned when hw_addr_size != 6 or
-    // proto_addr_size != 4 (BC-2.16.001/BC-2.16.002 — the parse-safety postcondition
-    // requires graceful None for non-Ethernet/IPv4 address sizes; panic is forbidden).
+    // Sub-property A negative assertion: None returned when the combined reject guard fires —
+    // i.e., when ANY of the four conditions at decoder.rs:312-315 is true:
+    //   hw_addr_type() != ETHERNET  OR  proto_addr_type() != IPV4
+    //   OR  hw_addr_size() != 6     OR  proto_addr_size() != 4
+    // (BC-2.16.001/BC-2.16.002 — the parse-safety postcondition requires graceful None
+    // for any frame failing type or size validation; panic is forbidden.)
     //
-    // Note: D11 finding-emission (BC-2.16.009) is separately unit-tested in STORY-113;
-    // this harness only proves extract_arp_frame returns None (no panic) when HLEN != 6
-    // or PLEN != 4. The finding-emission path is out of scope for VP-024 formal proofs.
+    // Note: D11 finding-emission (BC-2.16.009 PC3a-3d) is separately unit-tested in
+    // STORY-113; this harness only proves extract_arp_frame returns None (no panic) when
+    // the reject guard fires. The finding-emission path is out of scope for VP-024 formal
+    // proofs. Decision D-077 added the type-rejection branches (HTYPE != ETHERNET,
+    // PTYPE != IPV4); this harness covers them alongside the pre-existing size branches.
     //
-    // Strategy: construct a 28-byte buffer with HTYPE=Ethernet and PTYPE=IPv4
-    // but with HLEN or PLEN forced to a value != 6 / != 4. Assert that
-    // extract_arp_frame returns None (graceful rejection, no panic).
+    // Strategy: construct a 28-byte buffer with ALL of HTYPE, PTYPE, HLEN, PLEN left
+    // fully symbolic (kani::any()). Use kani::assume to restrict the symbolic domain to
+    // the rejection region:
+    //   HTYPE != ETHERNET  OR  PTYPE != IPV4  OR  HLEN != 6  OR  PLEN != 4
+    // Assert that extract_arp_frame returns None (graceful rejection, no panic).
+    // This covers type-only rejection (e.g. HTYPE=0x0006/Token Ring, valid HLEN/PLEN),
+    // size-only rejection (HTYPE=Ethernet, PTYPE=IPv4, bad HLEN/PLEN), and mixed cases.
     #[kani::proof]
-    fn verify_extract_arp_frame_none_on_bad_size() {
+    fn verify_extract_arp_frame_none_on_invalid_header() {
         let mut buf: [u8; 28] = kani::any();
-        buf[0] = 0x00; buf[1] = 0x01; // HTYPE = Ethernet
-        buf[2] = 0x08; buf[3] = 0x00; // PTYPE = IPv4
-        // Force at least one of HLEN/PLEN to be wrong.
-        // Use kani::assume to restrict to the bad-size region:
-        //   HLEN != 6  OR  PLEN != 4.
+        // HTYPE bytes (0-1), PTYPE bytes (2-3), HLEN byte (4), PLEN byte (5) are all
+        // left symbolic (kani::any() applies to the whole buf). Only the reject-region
+        // constraint is applied via kani::assume below.
+        let htype = u16::from_be_bytes([buf[0], buf[1]]);
+        let ptype = u16::from_be_bytes([buf[2], buf[3]]);
         let hlen = buf[4];
         let plen = buf[5];
-        kani::assume(hlen != 6 || plen != 4);
+        // Restrict to the full rejection region — mirrors the guard at decoder.rs:312-315:
+        //   hw_addr_type != ETHERNET (0x0001)  OR  proto_addr_type != IPV4 (0x0800)
+        //   OR  hw_addr_size != 6              OR  proto_addr_size != 4
+        kani::assume(htype != 0x0001 || ptype != 0x0800 || hlen != 6 || plen != 4);
 
-        // F4 OBLIGATION: Confirm that a bad-HLEN/PLEN 28-byte buffer actually reaches the
-        // Ok(arp_slice) arm so the is_none() assertion is exercised (not vacuously satisfied).
-        // If etherparse::ArpPacketSlice::from_slice rejects the buffer with a length error
-        // (Err path), the assert!(result.is_none()) is never reached and the harness passes
-        // vacuously without testing the None postcondition. F4 must either:
-        //   (a) confirm that from_slice accepts a 28-byte buffer with arbitrary HLEN/PLEN
-        //       (i.e., from_slice does not validate HLEN/PLEN against actual payload length
-        //       for a fixed 28-byte packet), making the Ok arm reachable; OR
+        // F4 OBLIGATION: Confirm that a buffer satisfying the rejection-region assume
+        // actually reaches the Ok(arp_slice) arm so the is_none() assertion is exercised
+        // (not vacuously satisfied). If etherparse::ArpPacketSlice::from_slice rejects the
+        // buffer with a length error on the Err path, assert!(result.is_none()) is never
+        // reached and the harness passes vacuously without testing the None postcondition.
+        // F4 must either:
+        //   (a) confirm that from_slice accepts 28-byte buffers with arbitrary HTYPE/PTYPE/
+        //       HLEN/PLEN (i.e., from_slice does not validate header fields against actual
+        //       payload length for a fixed 28-byte packet), making the Ok arm reachable; OR
         //   (b) restructure the harness to assert reachability explicitly, e.g.:
-        //       kani::cover!(from_slice_result.is_ok(), "bad-size buffer must reach Ok arm");
+        //       kani::cover!(from_slice_result.is_ok(), "reject-region buffer reaches Ok arm");
         //       and then assert is_none() unconditionally inside the Ok branch.
         // Do NOT ship this harness to F6 without resolving the vacuous-satisfiability risk.
         if let Ok(arp_slice) = etherparse::ArpPacketSlice::from_slice(&buf) {
             let outer_mac: Option<[u8; 6]> = kani::any();
             let result = extract_arp_frame(&arp_slice, outer_mac, 28);
-            // When hw_addr_size != 6 or proto_addr_size != 4, must return None.
+            // When the combined reject guard fires (type OR size mismatch), must return None.
             assert!(result.is_none(),
-                "extract_arp_frame must return None when HLEN != 6 or PLEN != 4");
+                "extract_arp_frame must return None when hw_addr_type != ETHERNET \
+                 or proto_addr_type != IPV4 or HLEN != 6 or PLEN != 4");
         }
         // If from_slice rejects the buffer, no-panic is satisfied implicitly.
     }
@@ -414,7 +432,7 @@ mod kani_proofs {
 |---|---|---|---|---|
 | A (safety) | `verify_extract_arp_frame_safety` | `[u8; 28]` fully symbolic; only valid slices tested (from_slice Ok path) | none (no loop) | no panic |
 | A (correctness) | `verify_extract_arp_frame_eth_ipv4_correctness` | `[u8; 28]` with HTYPE/PTYPE/HLEN/PLEN fixed; OPER+addrs symbolic | none | Some returned; all field values exact |
-| A (negative) | `verify_extract_arp_frame_none_on_bad_size` | `[u8; 28]` with HTYPE/PTYPE=Eth/IPv4; HLEN or PLEN forced ≠ 6/4 | none | `result.is_none()` — no panic; graceful None |
+| A (negative) | `verify_extract_arp_frame_none_on_invalid_header` | `[u8; 28]` fully symbolic (HTYPE, PTYPE, HLEN, PLEN all symbolic); constrained to rejection region via `kani::assume(htype != 0x0001 \|\| ptype != 0x0800 \|\| hlen != 6 \|\| plen != 4)` | none | `result.is_none()` — no panic; graceful None for type OR size mismatch |
 | B (totality) | `verify_classify_garp_total` | symbolic `ArpFrame` (all fields symbolic, `operation: kani::any()`) | none (straight-line) | `is_garp == (sender_ip == target_ip)` for ALL operation values |
 | D (cap) | `verify_binding_table_cap` | deterministic IPs (0..=8); symbolic MACs; BTreeMap surrogate | `#[kani::unwind(12)]` | `bindings.len() <= TEST_MAX_ARP_BINDINGS` after every insert |
 
