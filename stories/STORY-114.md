@@ -23,7 +23,7 @@ subsystems: [SS-16]
 estimated_days: 5
 feature_id: issue-009-arp-security-analyzer
 github_issue: 9
-# BC status: BC-2.16.004 v1.5, BC-2.16.012 v1.1, BC-2.16.014 v1.5 — authored 2026-06-12
+# BC status: BC-2.16.004 v1.5, BC-2.16.012 v1.3, BC-2.16.014 v1.5 — authored 2026-06-12 (BC-2.16.012 updated to v1.3 per D-074 cosmetic sync 2026-06-15)
 # VP-007 5-part atomic update: SEEDED 23→25 / EMITTED 15→17; vp007_catalog_drift_guard must pass
 # D-069 supersedes D-067: IcsImpact Display = "Impact (ICS)" is canonical; src/mitre.rs:91 stays unchanged; HS-008 stays "Impact (ICS)". See D-069 supersession note below.
 # PLANNED: BC-2.10.005 and BC-2.10.008 carry "PLANNED — implemented in STORY-114; current code 23/15" markers until this story merges

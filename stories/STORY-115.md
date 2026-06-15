@@ -23,7 +23,7 @@ subsystems: [SS-16]
 estimated_days: 3
 feature_id: issue-009-arp-security-analyzer
 github_issue: 9
-# BC status: BC-2.16.008 v1.6, BC-2.16.013 v1.1 — authored 2026-06-12
+# BC status: BC-2.16.008 v1.8, BC-2.16.013 v1.3 — authored 2026-06-12 (updated to v1.8/v1.3 per D-074 cosmetic sync 2026-06-15)
 # BC-2.16.010 cross-story extension: wires storm_findings VALUE (key already defined by STORY-113); primary owner is STORY-113
 # No Kani/proptest for D3: unit-tested only. T0814 MITRE tag deferred per DF-VALIDATION-001.
 # NOTE: verification_properties: [] because D3 is not a VP-024 formal target; no new VP in this story.

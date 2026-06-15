@@ -11,6 +11,25 @@ Archived per content-routing rules (STATE.md keeps only the LATEST checkpoint).
 
 ---
 
+## Archived Checkpoint: 2026-06-15 — F4 wave-level adversarial Pass 1 NOT CLEAN; D-074 REMEDIATED via PR #242; NEXT = fresh F4 wave-level adversarial Pass 1
+
+**Archived from STATE.md on:** 2026-06-15 (replaced by "F4 wave-level adversarial GATE SATISFIED 3/3; NEXT = holdout eval" checkpoint)
+
+### POSITION
+
+- F4 per-story delivery COMPLETE. All 5 ARP stories delivered to develop fee71ee.
+- F4 wave-level adversarial convergence IN PROGRESS (0/3 at time of archival).
+  - Pass 1 (2026-06-15): NOT CLEAN — F-ARP-F4P1-001 MEDIUM (threshold-0 not rejected).
+  - D-074 adjudicated (research-agent HIGH confidence). PR #242 merged fee71ee.
+  - BC-2.16.008 v1.7→v1.8; BC-2.16.012 v1.2→v1.3; BC-2.16.013 v1.2→v1.3.
+  - STORY-114 v1.1→v1.2; STORY-115 v1.1→v1.2. Input-hashes restamped.
+  - Consistency-validator: CONSISTENT. Counter reset to 0/3. Next = fresh Pass 1.
+- develop HEAD: fee71ee. develop == origin/develop.
+- Decisions active: D-047..D-074; do NOT re-adjudicate D-068/D-069/D-071/D-072/D-073/D-074.
+- F3-OBL-STORY114-001/002/003 REVOKED (D-069).
+
+---
+
 ## Archived Checkpoint: 2026-06-15 — F4 ARP DELTA-IMPLEMENTATION; STORY-115 Step-4.5 CONVERGED; NEXT = demo-recorder → pr-manager → F4 wave-level convergence
 
 **Archived from STATE.md on:** 2026-06-15 (replaced by "STORY-115 Step-4.5 CONVERGED + DEMO-RECORDED; NEXT = pr-manager" checkpoint)
