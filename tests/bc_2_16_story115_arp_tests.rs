@@ -1,4 +1,4 @@
-//! STORY-115 integration and CLI test suite (Red Gate — tests written before D3 implementation).
+//! STORY-115 integration and CLI test suite (D3 implementation complete; tests verified GREEN).
 //!
 //! Exercises:
 //!   AC-011 — --arp-storm-rate CLI flag parsed correctly and defaults to 50
@@ -23,8 +23,6 @@ mod story_115_cli {
     /// Verifies that --arp-storm-rate 10 is parsed correctly from the CLI surface,
     /// producing arp_storm_rate=10 in the parsed Commands::Analyze variant
     /// (BC-2.16.013 PC1; src/cli.rs `#[arg(long, default_value_t = 50)] arp_storm_rate: u32`).
-    ///
-    /// Turns GREEN when the flag is declared in src/cli.rs and consumed in src/main.rs.
     #[test]
     fn test_cli_arp_storm_rate_parsed() {
         // AC-011: parse --arp-storm-rate 10 and assert the value is 10
@@ -37,8 +35,8 @@ mod story_115_cli {
             "10",
         ])
         .expect(
-            "AC-011 / BC-2.16.013 PC1: CLI must accept --arp-storm-rate 10 without error. \
-             Turns GREEN when arp_storm_rate flag is declared in src/cli.rs.",
+            "AC-011 / BC-2.16.013 PC1: CLI must accept --arp-storm-rate 10 without error \
+             (arp_storm_rate flag is declared in src/cli.rs).",
         );
 
         match cli.command {
@@ -59,14 +57,12 @@ mod story_115_cli {
 
     /// Verifies that when --arp-storm-rate is absent, the default value is 50
     /// (BC-2.16.013 PC2; `default_value_t = 50`; ARP_STORM_RATE_DEFAULT).
-    ///
-    /// Turns GREEN when the flag is declared with default_value_t = 50 in src/cli.rs.
     #[test]
     fn test_cli_arp_storm_rate_default_50() {
         // AC-011: omit --arp-storm-rate; default must be 50
         let cli = Cli::try_parse_from(["wirerust", "analyze", "test.pcap", "--arp"]).expect(
-            "AC-011 / BC-2.16.013 PC2: CLI must accept --arp without --arp-storm-rate. \
-                 Default of 50 must apply.",
+            "AC-011 / BC-2.16.013 PC2: CLI must accept --arp without --arp-storm-rate \
+                 (default of 50 applies).",
         );
 
         match cli.command {
@@ -95,8 +91,6 @@ mod story_115_cli {
     ///
     /// This test verifies CLI-level acceptance only; behavioral no-op with --arp absent
     /// is enforced by the --arp gate in main.rs (which never calls process_arp).
-    ///
-    /// Turns GREEN when arp_storm_rate is declared without requires("arp") in src/cli.rs.
     #[test]
     fn test_storm_rate_flag_accepted_without_arp_flag() {
         // AC-012: --arp-storm-rate without --arp must not produce a parse error
@@ -106,8 +100,8 @@ mod story_115_cli {
         assert!(
             result.is_ok(),
             "AC-012 / BC-2.16.013 EC-006: --arp-storm-rate 25 must be accepted by the CLI \
-             even when --arp is absent (no parse error). Got: {:?}. \
-             Turns GREEN when arp_storm_rate has no requires() constraint.",
+             even when --arp is absent (no parse error; arp_storm_rate has no requires() \
+             constraint). Got: {:?}.",
             result.err()
         );
 
@@ -227,9 +221,6 @@ mod story_115_integration {
     /// The synthetic pcap contains 10 identical ARP Request frames from one source MAC
     /// (AA:BB:CC:DD:EE:FF) all at timestamp_secs=100. With storm_rate=10:
     /// rate = 10 / max(1, 100-100) = 10/1 = 10 >= 10 → D3 storm finding emitted.
-    ///
-    /// Turns GREEN when D3 storm detection is wired into the full analyze pipeline
-    /// and --arp-storm-rate is consumed by main.rs.
     #[test]
     fn test_integration_arp_storm_end_to_end() {
         // Build synthetic pcap: 10 ARP Request frames from STORM_MAC at ts=100
@@ -309,8 +300,7 @@ mod story_115_integration {
             panic!(
                 "AC-015 / BC-2.16.008: a D3 storm finding with confidence=MEDIUM must appear \
                  in the JSON output after processing 10 ARP frames at ts=100 with \
-                 --arp-storm-rate 10 (rate=10/1=10 >= 10). Got findings: {findings:?}. \
-                 Turns GREEN when detect_storm is wired into the analyze pipeline."
+                 --arp-storm-rate 10 (rate=10/1=10 >= 10). Got findings: {findings:?}."
             )
         });
 
