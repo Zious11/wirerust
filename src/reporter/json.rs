@@ -66,13 +66,6 @@ impl Reporter for JsonReporter {
         );
         output.insert("findings".to_string(), json!(findings));
         output.insert("analyzers".to_string(), json!(analyzer_summaries));
-        // BC-2.16.011 PC7 / BC-2.16.010 Invariant 4: emit "analyzer_summaries" alias
-        // when analyzers are present so that BC-2.16.011 integration tests can locate
-        // the ARP summary. Only emitted when non-empty to preserve the BC-2.11.001
-        // 5-key contract when no analyzers are active.
-        if !analyzer_summaries.is_empty() {
-            output.insert("analyzer_summaries".to_string(), json!(analyzer_summaries));
-        }
         output.insert("mitre_domain".to_string(), json!(MITRE_DOMAIN));
         output.insert(
             "mitre_attack_version".to_string(),

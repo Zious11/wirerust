@@ -80,12 +80,14 @@ mod story_113_cli {
         let written = std::fs::read_to_string(&out_path).expect("output JSON file must exist");
 
         // BC-2.16.011 PC3: no ARP AnalysisSummary must be appended when --arp absent.
-        // The JSON output's "analyzer_summaries" array must NOT contain an entry
-        // with analyzer_name == "ARP".
+        // The JSON output's "analyzers" array (BC-2.11.001 — one of the 5 top-level keys)
+        // must NOT contain an entry with analyzer_name == "ARP".
+        // Note: the in-memory Rust collection is named `analyzer_summaries`
+        // (the render() parameter); the JSON key is "analyzers".
         let json: serde_json::Value =
             serde_json::from_str(&written).expect("output must be valid JSON");
 
-        let summaries = json.get("analyzer_summaries").and_then(|v| v.as_array());
+        let summaries = json.get("analyzers").and_then(|v| v.as_array());
         if let Some(summaries) = summaries {
             let arp_summary_present = summaries.iter().any(|s| {
                 s.get("analyzer_name")
@@ -96,13 +98,13 @@ mod story_113_cli {
             assert!(
                 !arp_summary_present,
                 "AC-015 / BC-2.16.011 PC3: ARP AnalysisSummary must NOT be present \
-                 in analyzer_summaries when --arp flag is absent. Found ARP entry: {:?}",
+                 in the \"analyzers\" array when --arp flag is absent. Found ARP entry: {:?}",
                 summaries
                     .iter()
                     .find(|s| s.get("analyzer_name").and_then(|n| n.as_str()) == Some("ARP"))
             );
         }
-        // If "analyzer_summaries" key is absent entirely, that also satisfies AC-015 PC3.
+        // If "analyzers" key is absent or empty, that also satisfies AC-015 PC3.
     }
 
     // ---------------------------------------------------------------------------
@@ -111,15 +113,17 @@ mod story_113_cli {
 
     /// AC-016 (BC-2.16.011 PC5-8): when --arp is present, process_arp IS called for
     /// every DecodedFrame::Arp frame, and ArpAnalyzer::summarize() is called at end of
-    /// capture and appended to analyzer_summaries.
+    /// capture and appended to the in-memory `analyzer_summaries` collection.
     ///
     /// RED Gate behavior: with --arp present, summarize() is called at end of capture.
     /// The summarize() stub body is todo!("STORY-113: implement eleven-key AnalysisSummary
     /// return"), which panics. The binary will panic and this test will FAIL (non-zero exit)
     /// until summarize() is implemented. This is the primary RED signal for AC-016.
     ///
-    /// Post-implementation assertion: the JSON output must contain an "analyzer_summaries"
-    /// entry with analyzer_name="ARP" and all eleven canonical keys.
+    /// Post-implementation assertion: the JSON output's "analyzers" array (BC-2.11.001 —
+    /// the existing top-level key) must contain an entry with analyzer_name="ARP" and all
+    /// eleven canonical keys. The in-memory Rust collection is named `analyzer_summaries`;
+    /// the JSON key it serializes under is "analyzers" (BC-2.16.010 Invariant 4).
     #[test]
     fn test_BC_2_16_011_main_arp_flag_present_summarize_appended() {
         let tmp = tempfile::tempdir().expect("tempdir");
@@ -145,14 +149,13 @@ mod story_113_cli {
         let json: serde_json::Value =
             serde_json::from_str(&written).expect("output must be valid JSON");
 
-        // BC-2.16.011 PC7: ARP AnalysisSummary must be appended to analyzer_summaries.
-        let summaries = json
-            .get("analyzer_summaries")
-            .and_then(|v| v.as_array())
-            .expect(
-                "AC-016 / BC-2.16.011 PC7: 'analyzer_summaries' key must be present \
+        // BC-2.16.011 PC7: ARP AnalysisSummary must be appended to the in-memory
+        // `analyzer_summaries` collection and serialized under the "analyzers" JSON key
+        // (BC-2.11.001 / BC-2.16.010 Invariant 4 — no new reporter keys are introduced).
+        let summaries = json.get("analyzers").and_then(|v| v.as_array()).expect(
+            "AC-016 / BC-2.16.011 PC7: 'analyzers' key must be present \
                  in JSON output when --arp is active.",
-            );
+        );
 
         let arp_summary = summaries
             .iter()
@@ -164,7 +167,7 @@ mod story_113_cli {
             })
             .expect(
                 "AC-016 / BC-2.16.011 PC7: ARP AnalysisSummary must be present in \
-                 analyzer_summaries when --arp flag is active. No 'ARP' entry found.",
+                 the \"analyzers\" array when --arp flag is active. No 'ARP' entry found.",
             );
 
         // BC-2.16.010 PC1: the ARP summary must contain all eleven canonical keys.
