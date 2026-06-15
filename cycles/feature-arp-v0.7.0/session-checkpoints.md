@@ -538,3 +538,35 @@ fully-clean pass. Passes 18-22 each surfaced+remediated genuine items.
 | main HEAD | 3e29891 | v0.6.0 |
 | factory-artifacts HEAD | c429c92 | factory(F4): STORY-111 DELIVERED (D-073) — PR #236 merged develop cced898; NEXT STORY-112 |
 | open PRs | none | gh pr list --state open |
+
+---
+
+## Archived Checkpoint: 2026-06-15 — F4 ARP DELTA-IMPLEMENTATION IN PROGRESS; STORY-112 Step-4.5 CONVERGED + DEMO-RECORDED; NEXT = pr-manager (STORY-112 9-step PR)
+
+**Archived from STATE.md on 2026-06-15 (replaced by "STORY-112 DELIVERED PR #238 10e4472; NEXT = STORY-113" checkpoint).**
+
+### Pipeline Position
+
+- Mode: FEATURE. Active feature: ARP security analyzer + etherparse 0.16→0.20. Issue #9. Release target: v0.7.0.
+- F1 PASSED (human-gated 2026-06-12, D-066). F2 CONVERGED 3/3 (Passes 31/32/33). F3 CONVERGED 3/3 (Passes 36/37/38). F3 human gate PASSED (D-070, 2026-06-14).
+- F4 Delta-Implementation: IN PROGRESS — AUTHORIZED (D-070).
+  - STORY-111 DELIVERED — PR #236 merged to develop (merge commit cced898; wave 40 COMPLETE; D-073).
+  - STORY-112 Step-4.5 CONVERGED + DEMO-RECORDED — final HEAD c68964d on branch
+    `worktree-issue-9-story-112-arp-extract-frame` (base cced898). 3/3 clean logic passes
+    (frozen diff at 365dbeb); 1512 tests passed / 0 failed; rustfmt 1.9.0-stable (CI-matched).
+    All 10 AC banners GREEN. 4 comment-only fix commits resolved non-blocking findings
+    (F-1/F-2/F-3/Residual-F-1). VP-024 Sub-A Kani harnesses deferred to F6 (todo!()
+    skeletons; verification_lock:false; D-062 precedent). STORY-112.md v1.4 committed
+    (92797a2). input-hash: 8a4d566 (unchanged). Demo recordings in `.factory/demo-evidence/STORY-112/`.
+    skipped_packets 73→69 (dns-remoteshell.pcap); 0 decode warnings (one-decode-error.pcap).
+    NEXT = pr-manager (9-step PR).
+  - STORY-113/114/115: NOT STARTED.
+
+### VERIFIED SHAs at archival time
+
+| Ref | Value | Notes |
+|-----|-------|-------|
+| develop HEAD | cced898 | before STORY-112 PR merge |
+| main HEAD | 3e29891 | v0.6.0 |
+| STORY-112 worktree HEAD | c68964d | final converged HEAD; Step-4.5 CONVERGED + DEMO-RECORDED |
+| open PRs | STORY-112 PR pending | pr-manager 9-step dispatch pending |

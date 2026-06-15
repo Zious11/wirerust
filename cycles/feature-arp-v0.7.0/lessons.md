@@ -92,3 +92,64 @@ of a function is not a reliable discriminator after the stub commit."
 
 **Status:** DEFERRED — extend DF-ADVERSARY-CHECKOUT-GUARD-001 (engine agent-prompt
 note or policy codification follow-up).
+
+---
+
+## [process-gap] PG-ARP-F4-DEMO-LEAK
+
+**Source:** STORY-112 pre-PR diff inspection (2026-06-15)
+
+**Observation:** The demo-recorder agent committed 4 gif+webm+tape recording sets
+(demo binaries) to the develop-bound worktree branch under `.factory-demos/STORY-112/`.
+This dodged the `.factory/` worktree ignore rule because `.factory-demos/` is a
+different directory name — not covered by the develop branch's `.gitignore` entry.
+
+The leak was caught by a pre-PR diff inspection. Commit 76bdf16 (demo binary commit
+on the worktree branch) was dropped, and `.factory-demos/` was added to `.gitignore`
+via commit bec7a76, which shipped on develop in PR #238.
+
+**Root cause:** The demo-recorder dispatch template targeted a develop-bound worktree
+path (`.factory-demos/`) rather than the factory-artifacts branch (`.factory/demo-evidence/`).
+Demo evidence is factory-artifacts-only content.
+
+**Lesson:** Demo evidence belongs ONLY on the factory-artifacts branch under
+`.factory/demo-evidence/`. The demo-recorder MUST NOT commit demo artifacts
+(gif/webm/tape/binary) to develop-bound worktree branches.
+
+**Candidate fix:**
+1. Demo-recorder dispatch template must target `.factory/demo-evidence/` on the
+   factory-artifacts worktree, OR commit evidence to a fully gitignored path that
+   is never staged to a develop-bound branch.
+2. The orchestrator MUST run a pre-PR diff check for binary/demo artifacts
+   (gif, webm, tape, mp4, png above a threshold) before dispatching pr-manager.
+   Any such artifact detected on a develop-bound branch is a hard STOP.
+
+**Status:** DEFERRED — demo-recorder dispatch template update + orchestrator
+pre-PR binary-leak check (candidate for next engine sprint).
+
+---
+
+## [process-gap] PG-ARP-F4-PRMGR-MERGE-SHORTSTOP (RECURRENCE #3)
+
+**Source:** STORY-112 PR #238 delivery (2026-06-15). Third recurrence this feature cycle.
+
+**Observation:** pr-manager again halted at step 6 (APPROVE) without executing steps
+7-9 (merge + confirm + consolidated report). Required an orchestrator "merge NOW"
+SendMessage to complete. The exact same pattern occurred at STORY-111 (PR #236)
+and at the DNP3 F5 cycle.
+
+**Root cause:** pr-manager interprets its mandate as obtaining approval rather than
+driving the PR to a merged state. The 9-step protocol is not self-enforcing.
+
+**Escalation note:** Three recurrences in one feature cycle (STORY-111, STORY-112,
+and at least one DNP3 F5 PR). This has crossed the threshold for engine-level
+escalation. DF-PR-MANAGER-COMPLETE-001 (HIGH) is already filed; this recurrence
+should be referenced when that policy is enforced or escalated to CRITICAL.
+
+**Candidate fix:** The pr-manager dispatch template must include an explicit
+"DO NOT STOP AT APPROVE — execute steps 7-9 (merge, confirm CI green, consolidated
+report) before returning" instruction, and the orchestrator should verify merge
+completion before declaring the PR cycle closed.
+
+**Status:** DEFERRED — engine dispatch template hardening; escalate
+DF-PR-MANAGER-COMPLETE-001 recurrence count to 3 in policy registry.
