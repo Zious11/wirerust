@@ -3019,671 +3019,6 @@ mod story_114 {
     }
 
     // -----------------------------------------------------------------------
-    // STORY-115 — D3 ARP Storm Detection, --arp-storm-rate, storm_findings
-    // BC-2.16.008, BC-2.16.013, BC-2.16.010 cross-story extension
-    // -----------------------------------------------------------------------
-
-    /// Per-story namespace wrapper per DF-TEST-NAMESPACE-001.
-    /// All STORY-115 unit tests live in this sub-module.
-    mod story_115 {
-        use super::*;
-
-        // -------------------------------------------------------------------
-        // Frame builder helpers for storm tests
-        // -------------------------------------------------------------------
-
-        /// Build a normal ARP Request from the given sender MAC and sender IP.
-        ///
-        /// Uses RFC 826 canonical values: op=1 (Request), htype=0x0001, ptype=0x0800,
-        /// hlen=6, plen=4. outer_src_mac matches sender_mac (no D12 mismatch).
-        fn storm_request(sender_mac: [u8; 6], sender_ip: [u8; 4]) -> ArpFrame {
-            ArpFrame {
-                operation: 1,
-                sender_mac,
-                sender_ip,
-                target_mac: [0u8; 6],
-                target_ip: [192, 168, 0, 1],
-                outer_src_mac: Some(sender_mac),
-                packet_len: 42,
-            }
-        }
-
-        /// Canonical storm source MAC used across AC-001..014 tests.
-        const STORM_MAC: [u8; 6] = [0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF];
-        /// Canonical storm source IP used across tests.
-        const STORM_IP: [u8; 4] = [10, 0, 0, 1];
-        /// Alternate storm source MAC used for AC-011 custom-rate test.
-        const ALT_MAC: [u8; 6] = [0x11, 0x22, 0x33, 0x44, 0x55, 0x66];
-        /// Alternate storm source IP.
-        const ALT_IP: [u8; 4] = [10, 0, 0, 2];
-
-        // -------------------------------------------------------------------
-        // AC-001 — BC-2.16.008 PC1 first-observation initializes StormCounter
-        // -------------------------------------------------------------------
-
-        /// Verifies that the first frame from a never-before-seen source MAC initializes
-        /// a StormCounter with count_in_window=1 and emits no storm finding because
-        /// count=1 < storm_rate=50 (BC-2.16.008 PC1, Step 1 first-observation path).
-        ///
-        /// Turns GREEN when D3 storm detection (detect_storm / insert_storm_counter_lru)
-        /// is wired into process_arp.
-        #[test]
-        fn test_storm_first_observation_no_finding() {
-            let mut analyzer = ArpAnalyzer::new(SPOOF_REBIND_ESCALATION_DEFAULT, 50);
-            let frame = storm_request(STORM_MAC, STORM_IP);
-            let findings = analyzer.process_arp(&frame, 100);
-
-            // No storm finding on first observation: count=1 < rate=50.
-            let storm_findings: Vec<_> = findings
-                .iter()
-                .filter(|f| {
-                    matches!(f.confidence, Confidence::Medium)
-                        && matches!(f.category, ThreatCategory::Anomaly)
-                        && (f.summary.to_lowercase().contains("storm")
-                            || f.summary.to_lowercase().contains("d3"))
-                })
-                .collect();
-            assert!(
-                storm_findings.is_empty(),
-                "AC-001 / BC-2.16.008 PC1: no storm finding must be emitted on the first \
-                 observation of a source MAC (count=1 < rate=50). Got {} storm-like finding(s). \
-                 Turns GREEN when detect_storm is wired into process_arp.",
-                storm_findings.len()
-            );
-
-            // storm_counters must have exactly 1 entry for the new MAC.
-            assert_eq!(
-                analyzer.storm_counters.len(),
-                1,
-                "AC-001 / BC-2.16.008 PC1: storm_counters must have 1 entry after first \
-                 observation. Got {}. Turns GREEN when insert_storm_counter_lru is wired.",
-                analyzer.storm_counters.len()
-            );
-        }
-
-        // -------------------------------------------------------------------
-        // AC-002 — BC-2.16.008 PC2 window-active increment
-        // -------------------------------------------------------------------
-
-        /// Verifies that a second frame from the same source MAC within the 60-second window
-        /// increments count_in_window by 1 via Step 2 (BC-2.16.008 PC2).
-        ///
-        /// Turns GREEN when D3 storm detection is wired into process_arp.
-        #[test]
-        fn test_storm_in_window_increments_count() {
-            let mut analyzer = ArpAnalyzer::new(SPOOF_REBIND_ESCALATION_DEFAULT, 50);
-            let frame = storm_request(STORM_MAC, STORM_IP);
-
-            // First frame at ts=100 — initializes counter (count=1)
-            let _ = analyzer.process_arp(&frame, 100);
-            // Second frame at ts=100 (still in-window) — must increment to count=2
-            let _ = analyzer.process_arp(&frame, 100);
-
-            let entry = analyzer.storm_counters.get(&STORM_MAC).expect(
-                "AC-002 / BC-2.16.008 PC2: storm_counters must contain entry for STORM_MAC \
-                 after two frames. Turns GREEN when detect_storm is wired.",
-            );
-            assert_eq!(
-                entry.count_in_window, 2,
-                "AC-002 / BC-2.16.008 PC2: count_in_window must be 2 after two frames in \
-                 the same window (first=1 init + 1 increment). Got {}. \
-                 Turns GREEN when detect_storm is wired.",
-                entry.count_in_window
-            );
-        }
-
-        // -------------------------------------------------------------------
-        // AC-003 — BC-2.16.008 PC3 storm finding emitted at threshold
-        // -------------------------------------------------------------------
-
-        /// Verifies a D3 storm finding is emitted at the rate threshold with
-        /// confidence=MEDIUM, category=Anomaly, and mitre_techniques=[] (empty).
-        /// Evidence must contain source_mac, frame_count, window_secs, rate_pps.
-        ///
-        /// Canonical vector: 50 frames all at ts=100 → rate=50/max(1,0)=50/1=50 >= 50.
-        /// Turns GREEN when detect_storm is wired into process_arp.
-        #[test]
-        fn test_storm_finding_emitted_at_threshold() {
-            let mut analyzer = ArpAnalyzer::new(SPOOF_REBIND_ESCALATION_DEFAULT, 50);
-            let frame = storm_request(STORM_MAC, STORM_IP);
-
-            let mut storm_finding: Option<crate::findings::Finding> = None;
-            for _ in 0..50 {
-                let findings = analyzer.process_arp(&frame, 100);
-                for f in findings {
-                    if matches!(f.confidence, Confidence::Medium)
-                        && matches!(f.category, ThreatCategory::Anomaly)
-                        && (f.summary.to_lowercase().contains("storm")
-                            || f.summary.to_lowercase().contains("d3"))
-                    {
-                        storm_finding = Some(f);
-                    }
-                }
-            }
-
-            let f = storm_finding.expect(
-                "AC-003 / BC-2.16.008 PC3: a D3 storm finding must be emitted after 50 frames \
-                 at ts=100 (rate=50/1=50 >= storm_rate=50). Got None. \
-                 Turns GREEN when detect_storm is wired.",
-            );
-
-            // confidence == MEDIUM (BC-2.16.008 PC3)
-            assert_eq!(
-                f.confidence,
-                Confidence::Medium,
-                "AC-003 / BC-2.16.008 PC3: D3 storm finding must have confidence=MEDIUM. \
-                 Got {:?}",
-                f.confidence
-            );
-
-            // category == Anomaly (BC-2.16.008 PC3)
-            assert!(
-                matches!(f.category, ThreatCategory::Anomaly),
-                "AC-003 / BC-2.16.008 PC3: D3 storm finding must have category=Anomaly. \
-                 Got {:?}",
-                f.category
-            );
-
-            // mitre_techniques == [] (DF-VALIDATION-001 — T0814 withheld)
-            assert!(
-                f.mitre_techniques.is_empty(),
-                "AC-003 / BC-2.16.008 PC3 / DF-VALIDATION-001: D3 storm finding must have \
-                 mitre_techniques=[] (empty). T0814 is withheld. Got: {:?}",
-                f.mitre_techniques
-            );
-
-            // Evidence must contain source_mac, frame_count, window_secs, rate_pps
-            let ev = f.evidence.join(" ");
-            assert!(
-                ev.to_lowercase().contains("source_mac")
-                    || ev.to_lowercase().contains("aa:bb:cc:dd:ee:ff")
-                    || ev.to_lowercase().contains("aa-bb-cc-dd-ee-ff"),
-                "AC-003 / BC-2.16.008 PC3: D3 finding evidence must contain source_mac. \
-                 Got: {:?}",
-                f.evidence
-            );
-            assert!(
-                ev.to_lowercase().contains("frame_count") || ev.to_lowercase().contains("count"),
-                "AC-003 / BC-2.16.008 PC3: D3 finding evidence must contain frame_count. \
-                 Got: {:?}",
-                f.evidence
-            );
-            assert!(
-                ev.to_lowercase().contains("window_secs") || ev.to_lowercase().contains("window"),
-                "AC-003 / BC-2.16.008 PC3: D3 finding evidence must contain window_secs. \
-                 Got: {:?}",
-                f.evidence
-            );
-            assert!(
-                ev.to_lowercase().contains("rate_pps") || ev.to_lowercase().contains("rate"),
-                "AC-003 / BC-2.16.008 PC3: D3 finding evidence must contain rate_pps. \
-                 Got: {:?}",
-                f.evidence
-            );
-        }
-
-        // -------------------------------------------------------------------
-        // AC-004 — BC-2.16.008 PC4 one-shot guard prevents second finding
-        // -------------------------------------------------------------------
-
-        /// Verifies that after storm_emitted=true, additional frames from the same MAC
-        /// in the same window do NOT trigger further storm findings (BC-2.16.008 PC4,
-        /// Invariant 1 — one-shot per window).
-        ///
-        /// Turns GREEN when detect_storm is wired into process_arp.
-        #[test]
-        fn test_storm_one_shot_guard_prevents_second_finding() {
-            let mut analyzer = ArpAnalyzer::new(SPOOF_REBIND_ESCALATION_DEFAULT, 50);
-            let frame = storm_request(STORM_MAC, STORM_IP);
-
-            // Send 60 frames at ts=100 (first storm fires at frame 50; frames 51-60 must
-            // not produce additional storm findings due to one-shot guard).
-            let mut storm_count = 0usize;
-            for _ in 0..60 {
-                let findings = analyzer.process_arp(&frame, 100);
-                for f in &findings {
-                    if matches!(f.confidence, Confidence::Medium)
-                        && matches!(f.category, ThreatCategory::Anomaly)
-                        && (f.summary.to_lowercase().contains("storm")
-                            || f.summary.to_lowercase().contains("d3"))
-                    {
-                        storm_count += 1;
-                    }
-                }
-            }
-
-            assert_eq!(
-                storm_count, 1,
-                "AC-004 / BC-2.16.008 PC4 / Invariant 1: exactly 1 storm finding must be \
-                 emitted for 60 frames in the same window (one-shot guard). Got {storm_count}. \
-                 Turns GREEN when detect_storm sets storm_emitted=true."
-            );
-        }
-
-        // -------------------------------------------------------------------
-        // AC-005 — BC-2.16.008 PC1 Step-1 window expiry resets counter
-        // -------------------------------------------------------------------
-
-        /// Verifies that when timestamp_secs - window_start_ts > ARP_FLAP_WINDOW_SECS=60,
-        /// the counter resets: count_in_window=1, window_start_ts=new_ts,
-        /// storm_emitted=false (BC-2.16.008 PC1 window-expiry branch).
-        ///
-        /// Turns GREEN when detect_storm is wired into process_arp.
-        #[test]
-        fn test_storm_window_expiry_resets_counter() {
-            let mut analyzer = ArpAnalyzer::new(SPOOF_REBIND_ESCALATION_DEFAULT, 50);
-            let frame = storm_request(STORM_MAC, STORM_IP);
-
-            // Send 30 frames at ts=100 (count=30, no storm yet)
-            for _ in 0..30 {
-                let _ = analyzer.process_arp(&frame, 100);
-            }
-
-            // Now send 1 frame at ts=162 (elapsed = 162-100=62 > 60 → window expired)
-            let _ = analyzer.process_arp(&frame, 162);
-
-            let entry = analyzer.storm_counters.get(&STORM_MAC).expect(
-                "AC-005 / BC-2.16.008 PC1: storm_counters must contain STORM_MAC entry. \
-                 Turns GREEN when detect_storm is wired.",
-            );
-
-            assert_eq!(
-                entry.count_in_window, 1,
-                "AC-005 / BC-2.16.008 PC1: after window expiry (elapsed=62 > 60), \
-                 count_in_window must reset to 1. Got {}. Turns GREEN when wired.",
-                entry.count_in_window
-            );
-            assert_eq!(
-                entry.window_start_ts, 162,
-                "AC-005 / BC-2.16.008 PC1: after window expiry, window_start_ts must \
-                 reset to the new timestamp (162). Got {}.",
-                entry.window_start_ts
-            );
-            assert!(
-                !entry.storm_emitted,
-                "AC-005 / BC-2.16.008 PC1: after window expiry, storm_emitted must \
-                 reset to false."
-            );
-        }
-
-        // -------------------------------------------------------------------
-        // AC-006 — BC-2.16.008 PC3 Note: same-second denominator is max(1,0)=1
-        // -------------------------------------------------------------------
-
-        /// Verifies the rate formula uses max(1, ts - window_start_ts): when all 50
-        /// frames arrive at ts=100 (same second as window_start_ts), the denominator
-        /// is max(1,0)=1, giving rate=50/1=50 >= 50, which triggers the finding.
-        /// No divide-by-zero occurs (ARP-AMB-003 RESOLVED; BC-2.16.008 PC3 Note 6).
-        ///
-        /// Turns GREEN when detect_storm is wired with the correct denominator formula.
-        #[test]
-        fn test_storm_same_second_denominator_is_1() {
-            let mut analyzer = ArpAnalyzer::new(SPOOF_REBIND_ESCALATION_DEFAULT, 50);
-            let frame = storm_request(STORM_MAC, STORM_IP);
-
-            // All 50 frames at ts=100 (same second as window_start_ts=100)
-            let mut got_storm = false;
-            for _ in 0..50 {
-                let findings = analyzer.process_arp(&frame, 100);
-                for f in &findings {
-                    if matches!(f.confidence, Confidence::Medium)
-                        && matches!(f.category, ThreatCategory::Anomaly)
-                        && (f.summary.to_lowercase().contains("storm")
-                            || f.summary.to_lowercase().contains("d3"))
-                    {
-                        got_storm = true;
-                    }
-                }
-            }
-
-            assert!(
-                got_storm,
-                "AC-006 / BC-2.16.008 PC3 Note: 50 frames all at ts=100 must trigger a \
-                 storm finding (rate=50/max(1,0)=50/1=50 >= 50). The denominator guard \
-                 max(1,...) prevents divide-by-zero AND allows same-second burst detection. \
-                 Got no storm finding. Turns GREEN when detect_storm uses correct formula."
-            );
-        }
-
-        // -------------------------------------------------------------------
-        // AC-007 — BC-2.16.008 EC-001/EC-002: 49 below threshold, 50 at threshold
-        // -------------------------------------------------------------------
-
-        /// Verifies that 49 frames at ts=100 (rate=49/1=49 < 50) produce no storm
-        /// finding, and that 50 frames at ts=100 (rate=50/1=50 >= 50) produce one
-        /// (BC-2.16.008 EC-001 and EC-002 canonical vectors).
-        ///
-        /// Turns GREEN when detect_storm is wired with the exact rate comparison.
-        #[test]
-        fn test_storm_49_below_threshold_50_at_threshold() {
-            // --- 49 frames: no storm ---
-            let mut analyzer = ArpAnalyzer::new(SPOOF_REBIND_ESCALATION_DEFAULT, 50);
-            let frame = storm_request(STORM_MAC, STORM_IP);
-
-            let mut got_storm_49 = false;
-            for _ in 0..49 {
-                let findings = analyzer.process_arp(&frame, 100);
-                for f in &findings {
-                    if matches!(f.confidence, Confidence::Medium)
-                        && (f.summary.to_lowercase().contains("storm")
-                            || f.summary.to_lowercase().contains("d3"))
-                    {
-                        got_storm_49 = true;
-                    }
-                }
-            }
-            assert!(
-                !got_storm_49,
-                "AC-007 / BC-2.16.008 EC-001: 49 frames at ts=100 must NOT trigger a storm \
-                 finding (rate=49/1=49 < 50). Turns GREEN when detect_storm uses >= comparison."
-            );
-
-            // --- 50 frames: storm fires on the 50th ---
-            let mut analyzer2 = ArpAnalyzer::new(SPOOF_REBIND_ESCALATION_DEFAULT, 50);
-            let mut got_storm_50 = false;
-            for _ in 0..50 {
-                let findings = analyzer2.process_arp(&frame, 100);
-                for f in &findings {
-                    if matches!(f.confidence, Confidence::Medium)
-                        && (f.summary.to_lowercase().contains("storm")
-                            || f.summary.to_lowercase().contains("d3"))
-                    {
-                        got_storm_50 = true;
-                    }
-                }
-            }
-            assert!(
-                got_storm_50,
-                "AC-007 / BC-2.16.008 EC-002: 50 frames at ts=100 must trigger a storm \
-                 finding (rate=50/1=50 >= 50). Turns GREEN when detect_storm is wired."
-            );
-        }
-
-        // -------------------------------------------------------------------
-        // AC-008 — BC-2.16.008 EC-009/EC-010: window boundary exact 60 and 61
-        // -------------------------------------------------------------------
-
-        /// Verifies the window boundary condition: elapsed=60 is still in-window (<=60),
-        /// elapsed=61 triggers a reset (>60) (BC-2.16.008 EC-009 and EC-010).
-        ///
-        /// Turns GREEN when detect_storm uses the correct > (not >=) expiry comparison.
-        #[test]
-        fn test_storm_window_boundary_60_in_window_61_expired() {
-            let frame = storm_request(STORM_MAC, STORM_IP);
-
-            // --- elapsed=60: still in-window, count continues accumulating ---
-            let mut analyzer_60 = ArpAnalyzer::new(SPOOF_REBIND_ESCALATION_DEFAULT, 50);
-            // First frame at ts=100: window_start_ts=100, count=1
-            let _ = analyzer_60.process_arp(&frame, 100);
-            // Frame at ts=160: elapsed=60 <= 60 → still in-window; increment to count=2
-            let _ = analyzer_60.process_arp(&frame, 160);
-            let entry_60 = analyzer_60
-                .storm_counters
-                .get(&STORM_MAC)
-                .expect("AC-008: storm_counters must contain STORM_MAC. Turns GREEN when wired.");
-            assert_eq!(
-                entry_60.window_start_ts, 100,
-                "AC-008 / BC-2.16.008 EC-009: elapsed=60 must NOT reset the window; \
-                 window_start_ts must remain 100. Got {}.",
-                entry_60.window_start_ts
-            );
-            assert_eq!(
-                entry_60.count_in_window, 2,
-                "AC-008 / BC-2.16.008 EC-009: elapsed=60 is still in-window; \
-                 count_in_window must be 2 (1 init + 1 increment). Got {}.",
-                entry_60.count_in_window
-            );
-
-            // --- elapsed=61: window expired, counter resets ---
-            let mut analyzer_61 = ArpAnalyzer::new(SPOOF_REBIND_ESCALATION_DEFAULT, 50);
-            // Prime counter to a high count to demonstrate expiry discards it
-            for _ in 0..30 {
-                let _ = analyzer_61.process_arp(&frame, 100);
-            }
-            // Frame at ts=161: elapsed=61 > 60 → window expired; resets to count=1
-            let _ = analyzer_61.process_arp(&frame, 161);
-            let entry_61 = analyzer_61
-                .storm_counters
-                .get(&STORM_MAC)
-                .expect("AC-008: storm_counters must contain STORM_MAC after expiry frame.");
-            assert_eq!(
-                entry_61.count_in_window, 1,
-                "AC-008 / BC-2.16.008 EC-010: elapsed=61 > 60 must reset count_in_window to 1. \
-                 Got {}.",
-                entry_61.count_in_window
-            );
-            assert_eq!(
-                entry_61.window_start_ts, 161,
-                "AC-008 / BC-2.16.008 EC-010: elapsed=61 must reset window_start_ts to 161. \
-                 Got {}.",
-                entry_61.window_start_ts
-            );
-        }
-
-        // -------------------------------------------------------------------
-        // AC-009 — BC-2.16.008 EC-011 / Invariant 2: late-burst suppression
-        // -------------------------------------------------------------------
-
-        /// Verifies that 49 frames at ts=100 followed by 50 frames at ts=159 (same window,
-        /// window_start_ts=100) produce NO storm finding: at ts=159, count=99,
-        /// elapsed=59, rate=99/59≈1.68 < 50 (BC-2.16.008 Invariant 2 — accepted limitation).
-        ///
-        /// Documents the average-since-window-start limitation. Turns GREEN when
-        /// detect_storm uses rate = count / max(1, ts - window_start_ts) correctly.
-        #[test]
-        fn test_storm_late_burst_suppression_accepted_limitation() {
-            let mut analyzer = ArpAnalyzer::new(SPOOF_REBIND_ESCALATION_DEFAULT, 50);
-            let frame = storm_request(STORM_MAC, STORM_IP);
-
-            // 49 frames at ts=100 (count=49, rate=49/1=49 < 50 — no storm)
-            let mut got_storm = false;
-            for _ in 0..49 {
-                let findings = analyzer.process_arp(&frame, 100);
-                for f in &findings {
-                    if matches!(f.confidence, Confidence::Medium)
-                        && (f.summary.to_lowercase().contains("storm")
-                            || f.summary.to_lowercase().contains("d3"))
-                    {
-                        got_storm = true;
-                    }
-                }
-            }
-
-            // 50 more frames at ts=159 (count=99, elapsed=59, rate≈1.68 < 50 — no storm)
-            for _ in 0..50 {
-                let findings = analyzer.process_arp(&frame, 159);
-                for f in &findings {
-                    if matches!(f.confidence, Confidence::Medium)
-                        && (f.summary.to_lowercase().contains("storm")
-                            || f.summary.to_lowercase().contains("d3"))
-                    {
-                        got_storm = true;
-                    }
-                }
-            }
-
-            assert!(
-                !got_storm,
-                "AC-009 / BC-2.16.008 EC-011 / Invariant 2: 49 frames at ts=100 + 50 frames \
-                 at ts=159 must NOT trigger a storm finding (rate=99/59≈1.68 < 50). \
-                 This is the accepted average-since-window-start limitation. \
-                 Turns GREEN when detect_storm uses correct formula."
-            );
-        }
-
-        // -------------------------------------------------------------------
-        // AC-010 — BC-2.16.008 PC5: storm counter cap MAX_STORM_COUNTERS=4096
-        // -------------------------------------------------------------------
-
-        /// Verifies that storm_counters.len() never exceeds MAX_STORM_COUNTERS=4096
-        /// when 4097 distinct source MACs each send one frame (BC-2.16.008 PC5,
-        /// Invariant 5 — LRU eviction analogous to binding table).
-        ///
-        /// Turns GREEN when insert_storm_counter_lru is wired into detect_storm.
-        #[test]
-        fn test_storm_counter_cap_enforced() {
-            let mut analyzer = ArpAnalyzer::new(SPOOF_REBIND_ESCALATION_DEFAULT, 50);
-
-            for i in 0u32..=4096u32 {
-                // Build a unique MAC from i (4097 distinct MACs: i=0..=4096)
-                let mac: [u8; 6] = [
-                    0xDE,
-                    0xAD,
-                    ((i >> 24) & 0xFF) as u8,
-                    ((i >> 16) & 0xFF) as u8,
-                    ((i >> 8) & 0xFF) as u8,
-                    (i & 0xFF) as u8,
-                ];
-                let frame = storm_request(mac, [10, 1, (i >> 8) as u8, (i & 0xFF) as u8]);
-                let _ = analyzer.process_arp(&frame, i);
-
-                assert!(
-                    analyzer.storm_counters.len() <= MAX_STORM_COUNTERS,
-                    "AC-010 / BC-2.16.008 PC5: storm_counters.len() must never exceed \
-                     MAX_STORM_COUNTERS={} at any point. After {} MACs, len={}. \
-                     Turns GREEN when insert_storm_counter_lru is wired.",
-                    MAX_STORM_COUNTERS,
-                    i + 1,
-                    analyzer.storm_counters.len()
-                );
-            }
-
-            assert_eq!(
-                analyzer.storm_counters.len(),
-                MAX_STORM_COUNTERS,
-                "AC-010 / BC-2.16.008 PC5: after 4097 distinct MACs, storm_counters.len() \
-                 must equal MAX_STORM_COUNTERS={} (one eviction on the 4097th). Got {}.",
-                MAX_STORM_COUNTERS,
-                analyzer.storm_counters.len()
-            );
-        }
-
-        // -------------------------------------------------------------------
-        // AC-011 — BC-2.16.013 PC1/2: ArpAnalyzer::new uses storm_rate parameter
-        // -------------------------------------------------------------------
-
-        /// Verifies that ArpAnalyzer::new(spoof_threshold, storm_rate=10) uses storm_rate=10
-        /// for D3 detection: 10 frames at ts=200 → rate=10/1=10 >= 10 → storm finding
-        /// (BC-2.16.013 PC1, EC-001; canonical vector row 6 from BC-2.16.008).
-        ///
-        /// Turns GREEN when detect_storm uses self.storm_rate instead of a hardcoded 50.
-        #[test]
-        fn test_storm_custom_rate_10() {
-            let mut analyzer = ArpAnalyzer::new(SPOOF_REBIND_ESCALATION_DEFAULT, 10);
-            let frame = storm_request(ALT_MAC, ALT_IP);
-
-            let mut got_storm = false;
-            for _ in 0..10 {
-                let findings = analyzer.process_arp(&frame, 200);
-                for f in &findings {
-                    if matches!(f.confidence, Confidence::Medium)
-                        && matches!(f.category, ThreatCategory::Anomaly)
-                        && (f.summary.to_lowercase().contains("storm")
-                            || f.summary.to_lowercase().contains("d3"))
-                    {
-                        got_storm = true;
-                    }
-                }
-            }
-
-            assert!(
-                got_storm,
-                "AC-011 / BC-2.16.013 PC1: with storm_rate=10, 10 frames at ts=200 must \
-                 trigger a storm finding (rate=10/max(1,0)=10/1=10 >= 10). Got no storm. \
-                 Turns GREEN when detect_storm uses self.storm_rate."
-            );
-        }
-
-        // -------------------------------------------------------------------
-        // AC-013 — BC-2.16.010 cross-story: storm_findings key non-zero after D3
-        // -------------------------------------------------------------------
-
-        /// Verifies that after a D3 storm finding is emitted, summarize()["storm_findings"] > 0
-        /// (BC-2.16.010 cross-story extension: storm_findings VALUE wired in STORY-115).
-        ///
-        /// Turns GREEN when storm_findings is incremented in process_arp upon D3 emission.
-        #[test]
-        fn test_summarize_storm_findings_key_non_zero_after_detection() {
-            let mut analyzer = ArpAnalyzer::new(SPOOF_REBIND_ESCALATION_DEFAULT, 50);
-            let frame = storm_request(STORM_MAC, STORM_IP);
-
-            // Send 50 frames at ts=100 to trigger D3 (rate=50/1=50 >= 50)
-            for _ in 0..50 {
-                let _ = analyzer.process_arp(&frame, 100);
-            }
-
-            let summary = analyzer.summarize();
-            let storm_val = summary
-                .detail
-                .get("storm_findings")
-                .and_then(|v| v.as_u64())
-                .expect(
-                    "AC-013 / BC-2.16.010: summarize() must contain 'storm_findings' key. \
-                     Key is missing.",
-                );
-
-            assert!(
-                storm_val > 0,
-                "AC-013 / BC-2.16.010 cross-story: storm_findings must be > 0 after a D3 \
-                 detection fires (50 frames at ts=100 → rate=50 >= threshold=50). Got \
-                 {storm_val}. Turns GREEN when storm_findings is incremented in process_arp."
-            );
-        }
-
-        // -------------------------------------------------------------------
-        // AC-014 — BC-2.16.008 Invariant 3 / DF-VALIDATION-001: empty MITRE
-        // -------------------------------------------------------------------
-
-        /// Verifies that every D3 storm finding has mitre_techniques=[] and that
-        /// T0814 is explicitly NOT present (BC-2.16.008 Invariant 3, DF-VALIDATION-001).
-        ///
-        /// Turns GREEN when detect_storm emits findings with mitre_techniques: vec![].
-        #[test]
-        fn test_d3_finding_has_empty_mitre_techniques() {
-            let mut analyzer = ArpAnalyzer::new(SPOOF_REBIND_ESCALATION_DEFAULT, 50);
-            let frame = storm_request(STORM_MAC, STORM_IP);
-
-            let mut d3_findings: Vec<crate::findings::Finding> = Vec::new();
-            for _ in 0..50 {
-                let findings = analyzer.process_arp(&frame, 100);
-                for f in findings {
-                    if matches!(f.confidence, Confidence::Medium)
-                        && matches!(f.category, ThreatCategory::Anomaly)
-                        && (f.summary.to_lowercase().contains("storm")
-                            || f.summary.to_lowercase().contains("d3"))
-                    {
-                        d3_findings.push(f);
-                    }
-                }
-            }
-
-            assert!(
-                !d3_findings.is_empty(),
-                "AC-014 / BC-2.16.008 Invariant 3: at least one D3 storm finding must be \
-                 emitted (50 frames at ts=100 → rate=50 >= 50). Got none. \
-                 Turns GREEN when detect_storm is wired."
-            );
-
-            for f in &d3_findings {
-                assert!(
-                    f.mitre_techniques.is_empty(),
-                    "AC-014 / BC-2.16.008 Invariant 3 / DF-VALIDATION-001: D3 finding \
-                     mitre_techniques must be [] (empty). T0814 is withheld per \
-                     DF-VALIDATION-001. Got: {:?}",
-                    f.mitre_techniques
-                );
-
-                assert!(
-                    !f.mitre_techniques.iter().any(|t| t == "T0814"),
-                    "AC-014 / BC-2.16.008 Invariant 3 / DF-VALIDATION-001: T0814 must NOT \
-                     be present in any D3 storm finding's mitre_techniques. Got: {:?}",
-                    f.mitre_techniques
-                );
-            }
-        }
-    } // mod story_115
-
-    // -----------------------------------------------------------------------
     // AC-014 — BC-2.10.002 v1.5: enum-variant distinctness (VERIFY test)
     // -----------------------------------------------------------------------
 
@@ -3726,6 +3061,674 @@ mod story_114 {
         );
     }
 }
+
+// ---------------------------------------------------------------------------
+// STORY-115 — D3 ARP Storm Detection, --arp-storm-rate, storm_findings
+// BC-2.16.008, BC-2.16.013, BC-2.16.010 cross-story extension
+// ---------------------------------------------------------------------------
+
+/// Per-story namespace wrapper per DF-TEST-NAMESPACE-001.
+/// All STORY-115 unit tests live in this module (sibling of story_114).
+#[cfg(test)]
+mod story_115 {
+    use super::*;
+    use crate::decoder::ArpFrame;
+    use crate::findings::{Confidence, ThreatCategory};
+
+    // -----------------------------------------------------------------------
+    // Frame builder helpers for storm tests
+    // -----------------------------------------------------------------------
+
+    /// Build a normal ARP Request from the given sender MAC and sender IP.
+    ///
+    /// Uses RFC 826 canonical values: op=1 (Request), htype=0x0001, ptype=0x0800,
+    /// hlen=6, plen=4. outer_src_mac matches sender_mac (no D12 mismatch).
+    fn storm_request(sender_mac: [u8; 6], sender_ip: [u8; 4]) -> ArpFrame {
+        ArpFrame {
+            operation: 1,
+            sender_mac,
+            sender_ip,
+            target_mac: [0u8; 6],
+            target_ip: [192, 168, 0, 1],
+            outer_src_mac: Some(sender_mac),
+            packet_len: 42,
+        }
+    }
+
+    /// Canonical storm source MAC used across AC-001..014 tests.
+    const STORM_MAC: [u8; 6] = [0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF];
+    /// Canonical storm source IP used across tests.
+    const STORM_IP: [u8; 4] = [10, 0, 0, 1];
+    /// Alternate storm source MAC used for AC-011 custom-rate test.
+    const ALT_MAC: [u8; 6] = [0x11, 0x22, 0x33, 0x44, 0x55, 0x66];
+    /// Alternate storm source IP.
+    const ALT_IP: [u8; 4] = [10, 0, 0, 2];
+
+    // -----------------------------------------------------------------------
+    // AC-001 — BC-2.16.008 PC1 first-observation initializes StormCounter
+    // -----------------------------------------------------------------------
+
+    /// Verifies that the first frame from a never-before-seen source MAC initializes
+    /// a StormCounter with count_in_window=1 and emits no storm finding because
+    /// count=1 < storm_rate=50 (BC-2.16.008 PC1, Step 1 first-observation path).
+    ///
+    /// Turns GREEN when D3 storm detection (detect_storm / insert_storm_counter_lru)
+    /// is wired into process_arp.
+    #[test]
+    fn test_storm_first_observation_no_finding() {
+        let mut analyzer = ArpAnalyzer::new(SPOOF_REBIND_ESCALATION_DEFAULT, 50);
+        let frame = storm_request(STORM_MAC, STORM_IP);
+        let findings = analyzer.process_arp(&frame, 100);
+
+        // No storm finding on first observation: count=1 < rate=50.
+        let storm_findings: Vec<_> = findings
+            .iter()
+            .filter(|f| {
+                matches!(f.confidence, Confidence::Medium)
+                    && matches!(f.category, ThreatCategory::Anomaly)
+                    && (f.summary.to_lowercase().contains("storm")
+                        || f.summary.to_lowercase().contains("d3"))
+            })
+            .collect();
+        assert!(
+            storm_findings.is_empty(),
+            "AC-001 / BC-2.16.008 PC1: no storm finding must be emitted on the first \
+             observation of a source MAC (count=1 < rate=50). Got {} storm-like finding(s). \
+             Turns GREEN when detect_storm is wired into process_arp.",
+            storm_findings.len()
+        );
+
+        // storm_counters must have exactly 1 entry for the new MAC.
+        assert_eq!(
+            analyzer.storm_counters.len(),
+            1,
+            "AC-001 / BC-2.16.008 PC1: storm_counters must have 1 entry after first \
+             observation. Got {}. Turns GREEN when insert_storm_counter_lru is wired.",
+            analyzer.storm_counters.len()
+        );
+    }
+
+    // -----------------------------------------------------------------------
+    // AC-002 — BC-2.16.008 PC2 window-active increment
+    // -----------------------------------------------------------------------
+
+    /// Verifies that a second frame from the same source MAC within the 60-second window
+    /// increments count_in_window by 1 via Step 2 (BC-2.16.008 PC2).
+    ///
+    /// Turns GREEN when D3 storm detection is wired into process_arp.
+    #[test]
+    fn test_storm_in_window_increments_count() {
+        let mut analyzer = ArpAnalyzer::new(SPOOF_REBIND_ESCALATION_DEFAULT, 50);
+        let frame = storm_request(STORM_MAC, STORM_IP);
+
+        // First frame at ts=100 — initializes counter (count=1)
+        let _ = analyzer.process_arp(&frame, 100);
+        // Second frame at ts=100 (still in-window) — must increment to count=2
+        let _ = analyzer.process_arp(&frame, 100);
+
+        let entry = analyzer.storm_counters.get(&STORM_MAC).expect(
+            "AC-002 / BC-2.16.008 PC2: storm_counters must contain entry for STORM_MAC \
+             after two frames. Turns GREEN when detect_storm is wired.",
+        );
+        assert_eq!(
+            entry.count_in_window, 2,
+            "AC-002 / BC-2.16.008 PC2: count_in_window must be 2 after two frames in \
+             the same window (first=1 init + 1 increment). Got {}. \
+             Turns GREEN when detect_storm is wired.",
+            entry.count_in_window
+        );
+    }
+
+    // -----------------------------------------------------------------------
+    // AC-003 — BC-2.16.008 PC3 storm finding emitted at threshold
+    // -----------------------------------------------------------------------
+
+    /// Verifies a D3 storm finding is emitted at the rate threshold with
+    /// confidence=MEDIUM, category=Anomaly, and mitre_techniques=[] (empty).
+    /// Evidence must contain source_mac, frame_count, window_secs, rate_pps.
+    ///
+    /// Canonical vector: 50 frames all at ts=100 → rate=50/max(1,0)=50/1=50 >= 50.
+    /// Turns GREEN when detect_storm is wired into process_arp.
+    #[test]
+    fn test_storm_finding_emitted_at_threshold() {
+        let mut analyzer = ArpAnalyzer::new(SPOOF_REBIND_ESCALATION_DEFAULT, 50);
+        let frame = storm_request(STORM_MAC, STORM_IP);
+
+        let mut storm_finding: Option<crate::findings::Finding> = None;
+        for _ in 0..50 {
+            let findings = analyzer.process_arp(&frame, 100);
+            for f in findings {
+                if matches!(f.confidence, Confidence::Medium)
+                    && matches!(f.category, ThreatCategory::Anomaly)
+                    && (f.summary.to_lowercase().contains("storm")
+                        || f.summary.to_lowercase().contains("d3"))
+                {
+                    storm_finding = Some(f);
+                }
+            }
+        }
+
+        let f = storm_finding.expect(
+            "AC-003 / BC-2.16.008 PC3: a D3 storm finding must be emitted after 50 frames \
+             at ts=100 (rate=50/1=50 >= storm_rate=50). Got None. \
+             Turns GREEN when detect_storm is wired.",
+        );
+
+        // confidence == MEDIUM (BC-2.16.008 PC3)
+        assert_eq!(
+            f.confidence,
+            Confidence::Medium,
+            "AC-003 / BC-2.16.008 PC3: D3 storm finding must have confidence=MEDIUM. \
+             Got {:?}",
+            f.confidence
+        );
+
+        // category == Anomaly (BC-2.16.008 PC3)
+        assert!(
+            matches!(f.category, ThreatCategory::Anomaly),
+            "AC-003 / BC-2.16.008 PC3: D3 storm finding must have category=Anomaly. \
+             Got {:?}",
+            f.category
+        );
+
+        // mitre_techniques == [] (DF-VALIDATION-001 — T0814 withheld)
+        assert!(
+            f.mitre_techniques.is_empty(),
+            "AC-003 / BC-2.16.008 PC3 / DF-VALIDATION-001: D3 storm finding must have \
+             mitre_techniques=[] (empty). T0814 is withheld. Got: {:?}",
+            f.mitre_techniques
+        );
+
+        // Evidence must contain source_mac, frame_count, window_secs, rate_pps
+        let ev = f.evidence.join(" ");
+        assert!(
+            ev.to_lowercase().contains("source_mac")
+                || ev.to_lowercase().contains("aa:bb:cc:dd:ee:ff")
+                || ev.to_lowercase().contains("aa-bb-cc-dd-ee-ff"),
+            "AC-003 / BC-2.16.008 PC3: D3 finding evidence must contain source_mac. \
+             Got: {:?}",
+            f.evidence
+        );
+        assert!(
+            ev.to_lowercase().contains("frame_count") || ev.to_lowercase().contains("count"),
+            "AC-003 / BC-2.16.008 PC3: D3 finding evidence must contain frame_count. \
+             Got: {:?}",
+            f.evidence
+        );
+        assert!(
+            ev.to_lowercase().contains("window_secs") || ev.to_lowercase().contains("window"),
+            "AC-003 / BC-2.16.008 PC3: D3 finding evidence must contain window_secs. \
+             Got: {:?}",
+            f.evidence
+        );
+        assert!(
+            ev.to_lowercase().contains("rate_pps") || ev.to_lowercase().contains("rate"),
+            "AC-003 / BC-2.16.008 PC3: D3 finding evidence must contain rate_pps. \
+             Got: {:?}",
+            f.evidence
+        );
+    }
+
+    // -----------------------------------------------------------------------
+    // AC-004 — BC-2.16.008 PC4 one-shot guard prevents second finding
+    // -----------------------------------------------------------------------
+
+    /// Verifies that after storm_emitted=true, additional frames from the same MAC
+    /// in the same window do NOT trigger further storm findings (BC-2.16.008 PC4,
+    /// Invariant 1 — one-shot per window).
+    ///
+    /// Turns GREEN when detect_storm is wired into process_arp.
+    #[test]
+    fn test_storm_one_shot_guard_prevents_second_finding() {
+        let mut analyzer = ArpAnalyzer::new(SPOOF_REBIND_ESCALATION_DEFAULT, 50);
+        let frame = storm_request(STORM_MAC, STORM_IP);
+
+        // Send 60 frames at ts=100 (first storm fires at frame 50; frames 51-60 must
+        // not produce additional storm findings due to one-shot guard).
+        let mut storm_count = 0usize;
+        for _ in 0..60 {
+            let findings = analyzer.process_arp(&frame, 100);
+            for f in &findings {
+                if matches!(f.confidence, Confidence::Medium)
+                    && matches!(f.category, ThreatCategory::Anomaly)
+                    && (f.summary.to_lowercase().contains("storm")
+                        || f.summary.to_lowercase().contains("d3"))
+                {
+                    storm_count += 1;
+                }
+            }
+        }
+
+        assert_eq!(
+            storm_count, 1,
+            "AC-004 / BC-2.16.008 PC4 / Invariant 1: exactly 1 storm finding must be \
+             emitted for 60 frames in the same window (one-shot guard). Got {storm_count}. \
+             Turns GREEN when detect_storm sets storm_emitted=true."
+        );
+    }
+
+    // -----------------------------------------------------------------------
+    // AC-005 — BC-2.16.008 PC1 Step-1 window expiry resets counter
+    // -----------------------------------------------------------------------
+
+    /// Verifies that when timestamp_secs - window_start_ts > ARP_FLAP_WINDOW_SECS=60,
+    /// the counter resets: count_in_window=1, window_start_ts=new_ts,
+    /// storm_emitted=false (BC-2.16.008 PC1 window-expiry branch).
+    ///
+    /// Turns GREEN when detect_storm is wired into process_arp.
+    #[test]
+    fn test_storm_window_expiry_resets_counter() {
+        let mut analyzer = ArpAnalyzer::new(SPOOF_REBIND_ESCALATION_DEFAULT, 50);
+        let frame = storm_request(STORM_MAC, STORM_IP);
+
+        // Send 30 frames at ts=100 (count=30, no storm yet)
+        for _ in 0..30 {
+            let _ = analyzer.process_arp(&frame, 100);
+        }
+
+        // Now send 1 frame at ts=162 (elapsed = 162-100=62 > 60 → window expired)
+        let _ = analyzer.process_arp(&frame, 162);
+
+        let entry = analyzer.storm_counters.get(&STORM_MAC).expect(
+            "AC-005 / BC-2.16.008 PC1: storm_counters must contain STORM_MAC entry. \
+             Turns GREEN when detect_storm is wired.",
+        );
+
+        assert_eq!(
+            entry.count_in_window, 1,
+            "AC-005 / BC-2.16.008 PC1: after window expiry (elapsed=62 > 60), \
+             count_in_window must reset to 1. Got {}. Turns GREEN when wired.",
+            entry.count_in_window
+        );
+        assert_eq!(
+            entry.window_start_ts, 162,
+            "AC-005 / BC-2.16.008 PC1: after window expiry, window_start_ts must \
+             reset to the new timestamp (162). Got {}.",
+            entry.window_start_ts
+        );
+        assert!(
+            !entry.storm_emitted,
+            "AC-005 / BC-2.16.008 PC1: after window expiry, storm_emitted must \
+             reset to false."
+        );
+    }
+
+    // -----------------------------------------------------------------------
+    // AC-006 — BC-2.16.008 PC3 Note: same-second denominator is max(1,0)=1
+    // -----------------------------------------------------------------------
+
+    /// Verifies the rate formula uses max(1, ts - window_start_ts): when all 50
+    /// frames arrive at ts=100 (same second as window_start_ts), the denominator
+    /// is max(1,0)=1, giving rate=50/1=50 >= 50, which triggers the finding.
+    /// No divide-by-zero occurs (ARP-AMB-003 RESOLVED; BC-2.16.008 PC3 Note 6).
+    ///
+    /// Turns GREEN when detect_storm is wired with the correct denominator formula.
+    #[test]
+    fn test_storm_same_second_denominator_is_1() {
+        let mut analyzer = ArpAnalyzer::new(SPOOF_REBIND_ESCALATION_DEFAULT, 50);
+        let frame = storm_request(STORM_MAC, STORM_IP);
+
+        // All 50 frames at ts=100 (same second as window_start_ts=100)
+        let mut got_storm = false;
+        for _ in 0..50 {
+            let findings = analyzer.process_arp(&frame, 100);
+            for f in &findings {
+                if matches!(f.confidence, Confidence::Medium)
+                    && matches!(f.category, ThreatCategory::Anomaly)
+                    && (f.summary.to_lowercase().contains("storm")
+                        || f.summary.to_lowercase().contains("d3"))
+                {
+                    got_storm = true;
+                }
+            }
+        }
+
+        assert!(
+            got_storm,
+            "AC-006 / BC-2.16.008 PC3 Note: 50 frames all at ts=100 must trigger a \
+             storm finding (rate=50/max(1,0)=50/1=50 >= 50). The denominator guard \
+             max(1,...) prevents divide-by-zero AND allows same-second burst detection. \
+             Got no storm finding. Turns GREEN when detect_storm uses correct formula."
+        );
+    }
+
+    // -----------------------------------------------------------------------
+    // AC-007 — BC-2.16.008 EC-001/EC-002: 49 below threshold, 50 at threshold
+    // -----------------------------------------------------------------------
+
+    /// Verifies that 49 frames at ts=100 (rate=49/1=49 < 50) produce no storm
+    /// finding, and that 50 frames at ts=100 (rate=50/1=50 >= 50) produce one
+    /// (BC-2.16.008 EC-001 and EC-002 canonical vectors).
+    ///
+    /// Turns GREEN when detect_storm is wired with the exact rate comparison.
+    #[test]
+    fn test_storm_49_below_threshold_50_at_threshold() {
+        // --- 49 frames: no storm ---
+        let mut analyzer = ArpAnalyzer::new(SPOOF_REBIND_ESCALATION_DEFAULT, 50);
+        let frame = storm_request(STORM_MAC, STORM_IP);
+
+        let mut got_storm_49 = false;
+        for _ in 0..49 {
+            let findings = analyzer.process_arp(&frame, 100);
+            for f in &findings {
+                if matches!(f.confidence, Confidence::Medium)
+                    && (f.summary.to_lowercase().contains("storm")
+                        || f.summary.to_lowercase().contains("d3"))
+                {
+                    got_storm_49 = true;
+                }
+            }
+        }
+        assert!(
+            !got_storm_49,
+            "AC-007 / BC-2.16.008 EC-001: 49 frames at ts=100 must NOT trigger a storm \
+             finding (rate=49/1=49 < 50). Turns GREEN when detect_storm uses >= comparison."
+        );
+
+        // --- 50 frames: storm fires on the 50th ---
+        let mut analyzer2 = ArpAnalyzer::new(SPOOF_REBIND_ESCALATION_DEFAULT, 50);
+        let mut got_storm_50 = false;
+        for _ in 0..50 {
+            let findings = analyzer2.process_arp(&frame, 100);
+            for f in &findings {
+                if matches!(f.confidence, Confidence::Medium)
+                    && (f.summary.to_lowercase().contains("storm")
+                        || f.summary.to_lowercase().contains("d3"))
+                {
+                    got_storm_50 = true;
+                }
+            }
+        }
+        assert!(
+            got_storm_50,
+            "AC-007 / BC-2.16.008 EC-002: 50 frames at ts=100 must trigger a storm \
+             finding (rate=50/1=50 >= 50). Turns GREEN when detect_storm is wired."
+        );
+    }
+
+    // -----------------------------------------------------------------------
+    // AC-008 — BC-2.16.008 EC-009/EC-010: window boundary exact 60 and 61
+    // -----------------------------------------------------------------------
+
+    /// Verifies the window boundary condition: elapsed=60 is still in-window (<=60),
+    /// elapsed=61 triggers a reset (>60) (BC-2.16.008 EC-009 and EC-010).
+    ///
+    /// Turns GREEN when detect_storm uses the correct > (not >=) expiry comparison.
+    #[test]
+    fn test_storm_window_boundary_60_in_window_61_expired() {
+        let frame = storm_request(STORM_MAC, STORM_IP);
+
+        // --- elapsed=60: still in-window, count continues accumulating ---
+        let mut analyzer_60 = ArpAnalyzer::new(SPOOF_REBIND_ESCALATION_DEFAULT, 50);
+        // First frame at ts=100: window_start_ts=100, count=1
+        let _ = analyzer_60.process_arp(&frame, 100);
+        // Frame at ts=160: elapsed=60 <= 60 → still in-window; increment to count=2
+        let _ = analyzer_60.process_arp(&frame, 160);
+        let entry_60 = analyzer_60
+            .storm_counters
+            .get(&STORM_MAC)
+            .expect("AC-008: storm_counters must contain STORM_MAC. Turns GREEN when wired.");
+        assert_eq!(
+            entry_60.window_start_ts, 100,
+            "AC-008 / BC-2.16.008 EC-009: elapsed=60 must NOT reset the window; \
+             window_start_ts must remain 100. Got {}.",
+            entry_60.window_start_ts
+        );
+        assert_eq!(
+            entry_60.count_in_window, 2,
+            "AC-008 / BC-2.16.008 EC-009: elapsed=60 is still in-window; \
+             count_in_window must be 2 (1 init + 1 increment). Got {}.",
+            entry_60.count_in_window
+        );
+
+        // --- elapsed=61: window expired, counter resets ---
+        let mut analyzer_61 = ArpAnalyzer::new(SPOOF_REBIND_ESCALATION_DEFAULT, 50);
+        // Prime counter to a high count to demonstrate expiry discards it
+        for _ in 0..30 {
+            let _ = analyzer_61.process_arp(&frame, 100);
+        }
+        // Frame at ts=161: elapsed=61 > 60 → window expired; resets to count=1
+        let _ = analyzer_61.process_arp(&frame, 161);
+        let entry_61 = analyzer_61
+            .storm_counters
+            .get(&STORM_MAC)
+            .expect("AC-008: storm_counters must contain STORM_MAC after expiry frame.");
+        assert_eq!(
+            entry_61.count_in_window, 1,
+            "AC-008 / BC-2.16.008 EC-010: elapsed=61 > 60 must reset count_in_window to 1. \
+             Got {}.",
+            entry_61.count_in_window
+        );
+        assert_eq!(
+            entry_61.window_start_ts, 161,
+            "AC-008 / BC-2.16.008 EC-010: elapsed=61 must reset window_start_ts to 161. \
+             Got {}.",
+            entry_61.window_start_ts
+        );
+    }
+
+    // -----------------------------------------------------------------------
+    // AC-009 — BC-2.16.008 EC-011 / Invariant 2: late-burst suppression
+    // -----------------------------------------------------------------------
+
+    /// Verifies that 49 frames at ts=100 followed by 50 frames at ts=159 (same window,
+    /// window_start_ts=100) produce NO storm finding: at ts=159, count=99,
+    /// elapsed=59, rate=99/59≈1.68 < 50 (BC-2.16.008 Invariant 2 — accepted limitation).
+    ///
+    /// Documents the average-since-window-start limitation. Turns GREEN when
+    /// detect_storm uses rate = count / max(1, ts - window_start_ts) correctly.
+    #[test]
+    fn test_storm_late_burst_suppression_accepted_limitation() {
+        let mut analyzer = ArpAnalyzer::new(SPOOF_REBIND_ESCALATION_DEFAULT, 50);
+        let frame = storm_request(STORM_MAC, STORM_IP);
+
+        // 49 frames at ts=100 (count=49, rate=49/1=49 < 50 — no storm)
+        let mut got_storm = false;
+        for _ in 0..49 {
+            let findings = analyzer.process_arp(&frame, 100);
+            for f in &findings {
+                if matches!(f.confidence, Confidence::Medium)
+                    && (f.summary.to_lowercase().contains("storm")
+                        || f.summary.to_lowercase().contains("d3"))
+                {
+                    got_storm = true;
+                }
+            }
+        }
+
+        // 50 more frames at ts=159 (count=99, elapsed=59, rate≈1.68 < 50 — no storm)
+        for _ in 0..50 {
+            let findings = analyzer.process_arp(&frame, 159);
+            for f in &findings {
+                if matches!(f.confidence, Confidence::Medium)
+                    && (f.summary.to_lowercase().contains("storm")
+                        || f.summary.to_lowercase().contains("d3"))
+                {
+                    got_storm = true;
+                }
+            }
+        }
+
+        assert!(
+            !got_storm,
+            "AC-009 / BC-2.16.008 EC-011 / Invariant 2: 49 frames at ts=100 + 50 frames \
+             at ts=159 must NOT trigger a storm finding (rate=99/59≈1.68 < 50). \
+             This is the accepted average-since-window-start limitation. \
+             Turns GREEN when detect_storm uses correct formula."
+        );
+    }
+
+    // -----------------------------------------------------------------------
+    // AC-010 — BC-2.16.008 PC5: storm counter cap MAX_STORM_COUNTERS=4096
+    // -----------------------------------------------------------------------
+
+    /// Verifies that storm_counters.len() never exceeds MAX_STORM_COUNTERS=4096
+    /// when 4097 distinct source MACs each send one frame (BC-2.16.008 PC5,
+    /// Invariant 5 — LRU eviction analogous to binding table).
+    ///
+    /// Turns GREEN when insert_storm_counter_lru is wired into detect_storm.
+    #[test]
+    fn test_storm_counter_cap_enforced() {
+        let mut analyzer = ArpAnalyzer::new(SPOOF_REBIND_ESCALATION_DEFAULT, 50);
+
+        for i in 0u32..=4096u32 {
+            // Build a unique MAC from i (4097 distinct MACs: i=0..=4096)
+            let mac: [u8; 6] = [
+                0xDE,
+                0xAD,
+                ((i >> 24) & 0xFF) as u8,
+                ((i >> 16) & 0xFF) as u8,
+                ((i >> 8) & 0xFF) as u8,
+                (i & 0xFF) as u8,
+            ];
+            let frame = storm_request(mac, [10, 1, (i >> 8) as u8, (i & 0xFF) as u8]);
+            let _ = analyzer.process_arp(&frame, i);
+
+            assert!(
+                analyzer.storm_counters.len() <= MAX_STORM_COUNTERS,
+                "AC-010 / BC-2.16.008 PC5: storm_counters.len() must never exceed \
+                 MAX_STORM_COUNTERS={} at any point. After {} MACs, len={}. \
+                 Turns GREEN when insert_storm_counter_lru is wired.",
+                MAX_STORM_COUNTERS,
+                i + 1,
+                analyzer.storm_counters.len()
+            );
+        }
+
+        assert_eq!(
+            analyzer.storm_counters.len(),
+            MAX_STORM_COUNTERS,
+            "AC-010 / BC-2.16.008 PC5: after 4097 distinct MACs, storm_counters.len() \
+             must equal MAX_STORM_COUNTERS={} (one eviction on the 4097th). Got {}.",
+            MAX_STORM_COUNTERS,
+            analyzer.storm_counters.len()
+        );
+    }
+
+    // -----------------------------------------------------------------------
+    // AC-011 — BC-2.16.013 PC1/2: ArpAnalyzer::new uses storm_rate parameter
+    // -----------------------------------------------------------------------
+
+    /// Verifies that ArpAnalyzer::new(spoof_threshold, storm_rate=10) uses storm_rate=10
+    /// for D3 detection: 10 frames at ts=200 → rate=10/1=10 >= 10 → storm finding
+    /// (BC-2.16.013 PC1, EC-001; canonical vector row 6 from BC-2.16.008).
+    ///
+    /// Turns GREEN when detect_storm uses self.storm_rate instead of a hardcoded 50.
+    #[test]
+    fn test_storm_custom_rate_10() {
+        let mut analyzer = ArpAnalyzer::new(SPOOF_REBIND_ESCALATION_DEFAULT, 10);
+        let frame = storm_request(ALT_MAC, ALT_IP);
+
+        let mut got_storm = false;
+        for _ in 0..10 {
+            let findings = analyzer.process_arp(&frame, 200);
+            for f in &findings {
+                if matches!(f.confidence, Confidence::Medium)
+                    && matches!(f.category, ThreatCategory::Anomaly)
+                    && (f.summary.to_lowercase().contains("storm")
+                        || f.summary.to_lowercase().contains("d3"))
+                {
+                    got_storm = true;
+                }
+            }
+        }
+
+        assert!(
+            got_storm,
+            "AC-011 / BC-2.16.013 PC1: with storm_rate=10, 10 frames at ts=200 must \
+             trigger a storm finding (rate=10/max(1,0)=10/1=10 >= 10). Got no storm. \
+             Turns GREEN when detect_storm uses self.storm_rate."
+        );
+    }
+
+    // -----------------------------------------------------------------------
+    // AC-013 — BC-2.16.010 cross-story: storm_findings key non-zero after D3
+    // -----------------------------------------------------------------------
+
+    /// Verifies that after a D3 storm finding is emitted, summarize()["storm_findings"] > 0
+    /// (BC-2.16.010 cross-story extension: storm_findings VALUE wired in STORY-115).
+    ///
+    /// Turns GREEN when storm_findings is incremented in process_arp upon D3 emission.
+    #[test]
+    fn test_summarize_storm_findings_key_non_zero_after_detection() {
+        let mut analyzer = ArpAnalyzer::new(SPOOF_REBIND_ESCALATION_DEFAULT, 50);
+        let frame = storm_request(STORM_MAC, STORM_IP);
+
+        // Send 50 frames at ts=100 to trigger D3 (rate=50/1=50 >= 50)
+        for _ in 0..50 {
+            let _ = analyzer.process_arp(&frame, 100);
+        }
+
+        let summary = analyzer.summarize();
+        let storm_val = summary
+            .detail
+            .get("storm_findings")
+            .and_then(|v| v.as_u64())
+            .expect(
+                "AC-013 / BC-2.16.010: summarize() must contain 'storm_findings' key. \
+                 Key is missing.",
+            );
+
+        assert!(
+            storm_val > 0,
+            "AC-013 / BC-2.16.010 cross-story: storm_findings must be > 0 after a D3 \
+             detection fires (50 frames at ts=100 → rate=50 >= threshold=50). Got \
+             {storm_val}. Turns GREEN when storm_findings is incremented in process_arp."
+        );
+    }
+
+    // -----------------------------------------------------------------------
+    // AC-014 — BC-2.16.008 Invariant 3 / DF-VALIDATION-001: empty MITRE
+    // -----------------------------------------------------------------------
+
+    /// Verifies that every D3 storm finding has mitre_techniques=[] and that
+    /// T0814 is explicitly NOT present (BC-2.16.008 Invariant 3, DF-VALIDATION-001).
+    ///
+    /// Turns GREEN when detect_storm emits findings with mitre_techniques: vec![].
+    #[test]
+    fn test_d3_finding_has_empty_mitre_techniques() {
+        let mut analyzer = ArpAnalyzer::new(SPOOF_REBIND_ESCALATION_DEFAULT, 50);
+        let frame = storm_request(STORM_MAC, STORM_IP);
+
+        let mut d3_findings: Vec<crate::findings::Finding> = Vec::new();
+        for _ in 0..50 {
+            let findings = analyzer.process_arp(&frame, 100);
+            for f in findings {
+                if matches!(f.confidence, Confidence::Medium)
+                    && matches!(f.category, ThreatCategory::Anomaly)
+                    && (f.summary.to_lowercase().contains("storm")
+                        || f.summary.to_lowercase().contains("d3"))
+                {
+                    d3_findings.push(f);
+                }
+            }
+        }
+
+        assert!(
+            !d3_findings.is_empty(),
+            "AC-014 / BC-2.16.008 Invariant 3: at least one D3 storm finding must be \
+             emitted (50 frames at ts=100 → rate=50 >= 50). Got none. \
+             Turns GREEN when detect_storm is wired."
+        );
+
+        for f in &d3_findings {
+            assert!(
+                f.mitre_techniques.is_empty(),
+                "AC-014 / BC-2.16.008 Invariant 3 / DF-VALIDATION-001: D3 finding \
+                 mitre_techniques must be [] (empty). T0814 is withheld per \
+                 DF-VALIDATION-001. Got: {:?}",
+                f.mitre_techniques
+            );
+
+            assert!(
+                !f.mitre_techniques.iter().any(|t| t == "T0814"),
+                "AC-014 / BC-2.16.008 Invariant 3 / DF-VALIDATION-001: T0814 must NOT \
+                 be present in any D3 storm finding's mitre_techniques. Got: {:?}",
+                f.mitre_techniques
+            );
+        }
+    }
+} // mod story_115
 
 // ---------------------------------------------------------------------------
 // Kani formal-verification harnesses (VP-024 Sub-B and Sub-D)
