@@ -176,6 +176,13 @@ pub fn technique_info(id: &str) -> Option<(&'static str, MitreTactic)> {
             MitreTactic::IcsInhibitResponseFunction,
         ),
         "T0827" => ("Loss of Control", MitreTactic::IcsImpact),
+        // STORY-114 / VP-007 atomic obligation — seeded together with the
+        // T0830 and T1557.002 emission branches (D1/D12/GARP-conflict ARP spoof).
+        "T0830" => ("Adversary-in-the-Middle", MitreTactic::LateralMovement),
+        "T1557.002" => (
+            "Adversary-in-the-Middle: ARP Cache Poisoning",
+            MitreTactic::CredentialAccess,
+        ),
         _ => return None,
     };
     Some(info)
@@ -201,7 +208,7 @@ pub fn technique_tactic(id: &str) -> Option<MitreTactic> {
 // resolves in `technique_info` (both name and tactic Some).
 // Corollary (BC-2.10.006): unknown IDs return None without panicking.
 //
-// The catalogue is a closed-world static match; the seeded set is finite (23)
+// The catalogue is a closed-world static match; the seeded set is finite (25)
 // so the harness enumerates it exhaustively — fully sound, no abstraction.
 //
 // To audit the emitted IDs: `grep -rn 'mitre_techniques: vec!' src/`
@@ -209,13 +216,13 @@ pub fn technique_tactic(id: &str) -> Option<MitreTactic> {
 mod kani_proofs {
     use super::*;
 
-    /// All 23 seeded IDs (mirrors `technique_info`, this file). If `technique_info`
+    /// All 25 seeded IDs (mirrors `technique_info`, this file). If `technique_info`
     /// gains/loses an entry, the completeness proof here will diverge from the
     /// table and must be updated in lockstep with the VP.
     const SEEDED_IDS: &[&str] = super::SEEDED_TECHNIQUE_IDS;
 
     /// IDs actually emitted by analyzers today (`grep -rn 'mitre_techniques: vec!' src/`).
-    /// 6 Enterprise + 7 ICS + 2 STORY-109 = 15 emitted IDs (BC-2.10.008 postcondition 1).
+    /// 6 Enterprise + 7 ICS + 2 STORY-109 + 2 ARP (STORY-114) = 17 emitted IDs (BC-2.10.008 postcondition 1).
     /// T0846 is seeded but NOT emitted; T0888 IS emitted (Modbus recon).
     /// Sub-property B's emitter half: each must resolve in the catalogue.
     const EMITTED_IDS: &[&str] = &[
@@ -237,6 +244,9 @@ mod kani_proofs {
         // STORY-109 (2) — VP-007 atomic obligation; implemented in STORY-109.
         "T1691.001", // Block OT Message: Command Message (BC-2.15.014; IcsInhibitResponseFunction)
         "T0827",     // Loss of Control (BC-2.15.015; IcsImpact)
+        // STORY-114 (2) — VP-007 atomic obligation; ARP D1/D12/GARP-conflict spoof detection.
+        "T0830",     // Adversary-in-the-Middle (BC-2.16.004; LateralMovement)
+        "T1557.002", // ARP Cache Poisoning (BC-2.16.004; CredentialAccess)
     ];
 
     /// Sub-property A: format invariant `T[0-9]{4}` or `T[0-9]{4}.[0-9]{3}`.
@@ -298,8 +308,9 @@ mod kani_proofs {
 /// or loses a Some-returning entry without this list (and
 /// [`SEEDED_TECHNIQUE_ID_COUNT`]) being updated in lockstep — preventing the
 /// completeness proofs from silently going stale (CR-005).
-/// Post-F2 (STORY-100): 11 Enterprise + 10 ICS = 21 total (BC-2.10.005 inv3).
+/// Post-F2 (STORY-100): 11 Enterprise + 10 ICS = 21 total (pre-STORY-109 subtotal)
 /// STORY-109 (VP-007 atomic obligation): +2 ICS (T1691.001, T0827) = 23 total.
+/// + 2 ARP (STORY-114): T0830 (ICS LateralMovement) + T1557.002 (Enterprise CredentialAccess) = 25 total
 /// ICS v19 remap (issue #222): T0855→T1692.001, T0856→T1692.002.
 #[cfg(any(kani, test))]
 const SEEDED_TECHNIQUE_IDS: &[&str] = &[
@@ -330,15 +341,18 @@ const SEEDED_TECHNIQUE_IDS: &[&str] = &[
     // ICS STORY-109 (2) — VP-007 atomic obligation
     "T1691.001",
     "T0827",
+    // ARP STORY-114 (2) — VP-007 atomic obligation
+    "T0830",
+    "T1557.002",
 ];
 
 /// Expected number of Some-returning arms in [`technique_info`]. Declared
 /// separately from `SEEDED_TECHNIQUE_IDS.len()` so the drift guard catches BOTH
 /// directions of accidental edit: bumping this without adding an ID (or vice
 /// versa) fails the test. Must equal the count of `=> (...)` arms in
-/// `technique_info` (currently 23: 21 post-F2/STORY-100 + 2 STORY-109 additions).
+/// `technique_info` (currently 25: 21 post-F2/STORY-100 + 2 STORY-109 + 2 ARP/STORY-114 additions).
 #[cfg(any(kani, test))]
-const SEEDED_TECHNIQUE_ID_COUNT: usize = 23;
+const SEEDED_TECHNIQUE_ID_COUNT: usize = 25;
 
 /// Validates MITRE technique-ID format: `T[0-9]{4}` (parent) or
 /// `T[0-9]{4}.[0-9]{3}` (sub-technique). Used by the VP-007 format proof; gated
