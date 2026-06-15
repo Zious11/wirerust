@@ -1116,51 +1116,98 @@ mod tests {
     }
 
     // -----------------------------------------------------------------------
-    // AC-011 — BC-2.16.009 PC3: D11 malformed ARP emits LOW/Anomaly finding
+    // AC-011 — BC-2.16.009 PC3: D11 malformed ARP emits LOW/Anomaly Finding
+    // (F-113-01): strengthened to assert Finding shape + evidence, not just counter.
+    // Interface: record_malformed(&mut self, packet_len: usize) -> Vec<Finding>
     // -----------------------------------------------------------------------
 
-    /// AC-011 (BC-2.16.009 PC3): record_malformed(packet_len) emits one LOW/Anomaly finding
-    /// with mitre_techniques=[] and evidence including the packet_len.
+    /// AC-011 (BC-2.16.009 PC3): record_malformed(packet_len) returns exactly one
+    /// LOW/Anomaly Finding with mitre_techniques=[] and evidence containing both
+    /// the canonical error string "Non-Ethernet/IPv4 ARP frame" and the packet_len
+    /// value.
+    ///
+    /// F-113-01 (HIGH): the previous test only asserted a counter increment and
+    /// passed against a non-conformant impl. This test asserts the complete Finding
+    /// shape so it FAILS against the current impl (RED for F-113-01 / BC-2.16.009 PC3).
+    ///
+    /// Interface: `record_malformed(&mut self, packet_len: usize) -> Vec<Finding>`,
+    /// mirroring `process_arp`'s return pattern so main.rs can do:
+    ///   `all_findings.extend(arp_analyzer.record_malformed(packet_len));`
+    ///
+    /// Canonical test vector: packet_len = 36 (non-standard ARP payload length).
     #[test]
     #[allow(non_snake_case)]
     fn test_BC_2_16_009_d11_malformed_arp_emits_low_finding() {
         let mut analyzer = ArpAnalyzer::new_for_test();
-        let packet_len: usize = 36; // non-standard ARP payload length
+        let packet_len: usize = 36; // canonical test vector — non-standard ARP payload length
 
-        // record_malformed is the mechanism for D11 (BC-2.16.009 PC6 / AC-012 architecture note)
-        // The stub unconditionally emits + increments (the --arp gate is in main.rs).
-        // ArpAnalyzer::record_malformed always emits because it IS the --arp-gated path.
-        analyzer.record_malformed(packet_len);
+        // record_malformed must return Vec<Finding> (target interface).
+        // Current impl returns () → compile error is the intended RED (F-113-01).
+        let findings = analyzer.record_malformed(packet_len);
 
-        // The finding must be accessible via the analyzer's state or returned inline.
-        // Per the stub signature, record_malformed is void — findings accumulated internally.
-        // We verify via summarize() that malformed_findings == 1.
-        let summary = analyzer.summarize();
-        let malformed_findings_count = summary
-            .detail
-            .get("malformed_findings")
-            .and_then(|v| v.as_u64())
-            .expect(
-                "AC-011 / BC-2.16.009 PC3: summarize() must have 'malformed_findings' key \
-                 after record_malformed() call.",
-            );
-
+        // PC3: exactly one Finding emitted
         assert_eq!(
-            malformed_findings_count, 1,
-            "AC-011 / BC-2.16.009 PC3: record_malformed must increment malformed_findings \
-             to 1 after one call. Got {malformed_findings_count}."
+            findings.len(),
+            1,
+            "AC-011 / BC-2.16.009 PC3: record_malformed({packet_len}) must return exactly \
+             1 Finding (D11 malformed ARP). Got {} finding(s).",
+            findings.len()
         );
 
-        // malformed_frames must also be 1
-        let malformed_frames_count = summary
-            .detail
-            .get("malformed_frames")
-            .and_then(|v| v.as_u64())
-            .expect("summarize() must have 'malformed_frames' key");
+        let f = &findings[0];
+
+        // PC3: confidence == LOW
         assert_eq!(
-            malformed_frames_count, 1,
-            "AC-011 / BC-2.16.009 PC3: record_malformed must increment malformed_frames \
-             to 1. Got {malformed_frames_count}."
+            f.confidence,
+            Confidence::Low,
+            "AC-011 / BC-2.16.009 PC3: D11 Finding must have confidence=LOW. Got {:?}",
+            f.confidence
+        );
+
+        // PC3: finding_type == Anomaly
+        assert!(
+            matches!(f.category, ThreatCategory::Anomaly),
+            "AC-011 / BC-2.16.009 PC3: D11 Finding must have finding_type=Anomaly. \
+             Got {:?}",
+            f.category
+        );
+
+        // PC3: description indicates malformed ARP frame
+        let summary_lower = f.summary.to_lowercase();
+        assert!(
+            summary_lower.contains("malformed")
+                || summary_lower.contains("non-ethernet")
+                || summary_lower.contains("d11"),
+            "AC-011 / BC-2.16.009 PC3: D11 Finding description must indicate malformed ARP \
+             frame. Got: {:?}",
+            f.summary
+        );
+
+        // PC3: mitre_techniques == [] (T0814 withheld per DF-VALIDATION-001 / BC-2.16.009 Invariant 3)
+        assert!(
+            f.mitre_techniques.is_empty(),
+            "AC-011 / BC-2.16.009 PC3: D11 Finding mitre_techniques must be [] \
+             (T0814 withheld per DF-VALIDATION-001). Got: {:?}",
+            f.mitre_techniques
+        );
+
+        // PC3 evidence clause (a): canonical error string from decode_packet Err path (BC-2.02.009)
+        let evidence_joined = f.evidence.join("\n");
+        assert!(
+            evidence_joined.contains("Non-Ethernet/IPv4 ARP frame"),
+            "AC-011 / BC-2.16.009 PC3: D11 Finding evidence must contain the error string \
+             \"Non-Ethernet/IPv4 ARP frame\" (from decode_packet Err path). Evidence: {:?}",
+            f.evidence
+        );
+
+        // PC3 evidence clause (b): packet_len present in evidence (catches discarded _packet_len)
+        let packet_len_str = packet_len.to_string();
+        assert!(
+            evidence_joined.contains(&packet_len_str),
+            "AC-011 / BC-2.16.009 PC3: D11 Finding evidence must contain packet_len \
+             value ({packet_len}). This is the F-113-01 RED signal — current impl discards \
+             _packet_len and never emits a Finding. Evidence: {:?}",
+            f.evidence
         );
     }
 
@@ -1169,9 +1216,12 @@ mod tests {
     // -----------------------------------------------------------------------
 
     /// AC-012 (BC-2.16.009 PC4): frames_analyzed NOT incremented for malformed frames.
-    /// malformed_frames increments unconditionally. malformed_findings increments with
-    /// record_malformed (the --arp gate is enforced in main.rs; record_malformed itself
-    /// always emits because it is the --arp-gated code path per BC-2.16.009 PC6 note).
+    /// malformed_frames increments unconditionally on each record_malformed call.
+    /// malformed_findings increments with record_malformed (--arp gate enforced in
+    /// main.rs; record_malformed is the --arp-gated path per BC-2.16.009 PC6 note).
+    ///
+    /// Uses `let _ = analyzer.record_malformed(...)` to handle the Vec<Finding> return
+    /// value introduced by the F-113-01 interface fix (record_malformed -> Vec<Finding>).
     #[test]
     #[allow(non_snake_case)]
     fn test_BC_2_16_009_d11_malformed_counter_semantics() {
@@ -1181,10 +1231,10 @@ mod tests {
         let valid_frame = make_normal_reply([10, 0, 0, 1], [0xAA; 6], [10, 0, 0, 2]);
         let _ = analyzer.process_arp_for_test(&valid_frame, 1_000);
 
-        // Now record 3 malformed frames
-        analyzer.record_malformed(28);
-        analyzer.record_malformed(32);
-        analyzer.record_malformed(20);
+        // Now record 3 malformed frames; discard returned findings (counter test only)
+        let _ = analyzer.record_malformed(28);
+        let _ = analyzer.record_malformed(32);
+        let _ = analyzer.record_malformed(20);
 
         let summary = analyzer.summarize();
 
@@ -1208,6 +1258,17 @@ mod tests {
             malformed_frames, 3,
             "AC-012 / BC-2.16.009 PC4: malformed_frames must equal 3 (unconditional \
              increment per malformed frame). Got {malformed_frames}."
+        );
+
+        let malformed_findings = summary
+            .detail
+            .get("malformed_findings")
+            .and_then(|v| v.as_u64())
+            .expect("summarize() must have 'malformed_findings' key");
+        assert_eq!(
+            malformed_findings, 3,
+            "AC-012 / BC-2.16.009 PC4: malformed_findings must equal 3 when record_malformed \
+             is called 3 times on the --arp-active path. Got {malformed_findings}."
         );
     }
 
@@ -1372,7 +1433,7 @@ mod tests {
         let _ = analyzer.process_arp_for_test(&other_frame, 3_000);
 
         // Malformed frames must NOT affect frames_analyzed
-        analyzer.record_malformed(20);
+        let _ = analyzer.record_malformed(20);
 
         let summary = analyzer.summarize();
 
