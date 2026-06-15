@@ -22,7 +22,7 @@ use clap::Parser;
 use indicatif::{ProgressBar, ProgressStyle};
 
 use wirerust::analyzer::ProtocolAnalyzer;
-use wirerust::analyzer::arp::{ARP_STORM_RATE_DEFAULT, ArpAnalyzer};
+use wirerust::analyzer::arp::ArpAnalyzer;
 use wirerust::analyzer::dnp3::Dnp3Analyzer;
 use wirerust::analyzer::dns::DnsAnalyzer;
 use wirerust::analyzer::http::HttpAnalyzer;
@@ -60,6 +60,7 @@ fn main() -> Result<()> {
             dnp3_direct_operate_threshold,
             arp,
             arp_spoof_threshold,
+            arp_storm_rate,
         } => {
             run_analyze(
                 targets,
@@ -73,6 +74,7 @@ fn main() -> Result<()> {
                 *dnp3_direct_operate_threshold,
                 *arp || *all,
                 *arp_spoof_threshold,
+                *arp_storm_rate,
                 *mitre,
                 use_color,
                 &cli,
@@ -99,6 +101,7 @@ fn run_analyze(
     dnp3_direct_operate_threshold: u32,
     enable_arp: bool,
     arp_spoof_threshold: u32,
+    arp_storm_rate: u32,
     show_mitre_grouping: bool,
     use_color: bool,
     cli: &Cli,
@@ -113,12 +116,12 @@ fn run_analyze(
 
     let mut summary = Summary::new();
     let mut dns_analyzer = DnsAnalyzer::new();
-    // STORY-114: ArpAnalyzer::new(spoof_threshold, storm_rate).
+    // STORY-115: ArpAnalyzer::new(spoof_threshold, storm_rate).
     // arp_spoof_threshold is wired from --arp-spoof-threshold (BC-2.16.012).
-    // ARP_STORM_RATE_DEFAULT is used for storm_rate until STORY-115 wires
-    // --arp-storm-rate (standalone-compile: args.arp_storm_rate does not exist yet).
+    // arp_storm_rate is wired from --arp-storm-rate (BC-2.16.013; STORY-115).
+    // Default 50 applies when flag is absent (clap default_value_t = 50).
     // --arp flag-gating is wired below (BC-2.16.011).
-    let mut arp_analyzer = ArpAnalyzer::new(arp_spoof_threshold, ARP_STORM_RATE_DEFAULT);
+    let mut arp_analyzer = ArpAnalyzer::new(arp_spoof_threshold, arp_storm_rate);
     let mut all_findings = Vec::new();
     let mut total_decode_errors: u64 = 0;
 
