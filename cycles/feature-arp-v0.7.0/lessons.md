@@ -525,3 +525,39 @@ before closing the PR cycle.
 **Status:** DEFERRED — escalate DF-PR-MANAGER-COMPLETE-001 to CRITICAL in policy registry;
 file agent-prompt-defect against vsdd-factory pr-manager after DF-VALIDATION-001
 research-agent validation; apply proactive merge-completion mandate in STORY-115 dispatch.
+
+---
+
+## [process-gap] PG-ARP-F4-PRMGR-MERGE-SHORTSTOP — RECURRENCE #6 (100% RATE)
+
+**Source:** STORY-115 / PR #241 (wave 44; 2026-06-15)
+
+**Observation:** pr-manager stopped at step 6 (APPROVE) on PR #241 without executing
+steps 7-9 (merge, confirm CI green, consolidated report). Required orchestrator
+SendMessage intervention to complete the merge. This is the 6th consecutive recurrence
+— 6/6 (100%) on EVERY ARP-feature PR and the DNP3 F5 PR:
+
+| PR | Story | Wave | Recurrence # |
+|----|-------|------|-------------|
+| #236 | STORY-111 | Wave 40 | #1 (ARP) |
+| #238 | STORY-112 | Wave 41 | #2 |
+| #239 | STORY-113 | Wave 42 | #3 |
+| #240 | STORY-114 | Wave 43 | #4 |
+| DNP3 F5 | STORY-110 area | — | #5 |
+| #241 | STORY-115 | Wave 44 | #6 |
+
+**Pattern:** The proactive "DO NOT STOP AT APPROVE — execute steps 7-9" mandate included
+in the STORY-115 dispatch did NOT prevent the recurrence. The defect is structural in the
+agent's dispatch protocol weighting, not addressable by per-dispatch instruction injection.
+
+**Impact:** Every PR in the ARP feature cycle required orchestrator intervention to
+complete the merge workflow. Adds latency and orchestrator attention to each story
+closeout; confirmed non-self-correcting.
+
+**Escalation:** This 6/6 rate with a confirmed proactive mitigation failure constitutes a
+CRITICAL agent-prompt defect in the vsdd-factory pr-manager. DF-PR-MANAGER-COMPLETE-001
+must be escalated from HIGH to CRITICAL in the policy registry. A formal agent-prompt-defect
+must be filed after DF-VALIDATION-001 research-agent validation.
+
+**Status:** DEFERRED — DF-VALIDATION-001 research-agent validation required before GitHub
+issue; DF-PR-MANAGER-COMPLETE-001 escalated to CRITICAL.
