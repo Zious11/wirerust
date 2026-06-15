@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.12"
+version: "1.13"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -25,6 +25,7 @@ modified:
   - "v1.10: Pass-3 remediation F-C3/F-C4/F-C6/F-C1(b): EC-017 technique_name corrected to 'Adversary-in-the-Middle: ARP Cache Poisoning' (authoritative name from arch-delta §5 + mitre-arp-research.md); T1557.002 reclassified Enterprise (not ICS); Enterprise/ICS split corrected 6E+11I→7E+10I; Architecture Anchors re-anchored to current mitre.rs line numbers (T0885:158, _ => return None:179); 'all 13 emitted IDs' corrected to '17 emitted IDs'; PLANNED forward-declaration marker added. — 2026-06-12"
   - "v1.11: Pass-4 remediation F-C-P4-HIGH-002/F-D4-I2: Description reconciliation parenthetical added (pre-F2: 6E; Modbus: 7I; DNP3: +2I; ARP: +1E+1I → 7E+10I=17); PLANNED marker augmented with current→target values (23/15→25/17); Source Evidence path corrected 123-154→128-181. — 2026-06-12"
   - "v1.12: Pass-10 remediation F-C-P10-003: src/analyzer/arp.rs emission bullet lead-in changed from 'verified via grep' (implied current) to explicit PLANNED qualifier — 'Emission sites after F2 ARP (Modbus/DNP3 verified via grep; arp.rs PLANNED STORY-114)'; arp.rs bullet appended '(F2 Feature #9 PLANNED — STORY-114)'. arp.rs does not exist in develop HEAD until STORY-114 lands. — 2026-06-12"
+  - "v1.13: Post-STORY-114-merge governance update: PLANNED markers resolved to landed status (PR #240, develop HEAD 7c0f453). SEEDED=25/EMITTED=17 confirmed in src/mitre.rs. T0830 (ICS LateralMovement) and T1557.002 (Enterprise CredentialAccess) emitted from src/analyzer/arp.rs (landed). Emission sites lead-in and arp.rs bullet de-PLANNED. Architecture Anchors updated. — 2026-06-15"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -57,10 +58,11 @@ distinct IDs: 7 Enterprise + 10 ICS. Reconciliation:
 No emitted ID may return None from the lookup — that would cause the terminal reporter to display
 `<id> (unknown)` for a Finding produced by current analyzers.
 
-PLANNED — implemented in STORY-114; current code 23 seeded / 15 emitted → target 25 seeded / 17 emitted after STORY-114 5-part atomic update. src/mitre.rs remains at SEEDED=23/EMITTED=15
-until STORY-114 lands; vp007_catalog_drift_guard enforces consistency at implementation time.
+LANDED — STORY-114 merged (PR #240, develop HEAD 7c0f453). src/mitre.rs is now at SEEDED=25/EMITTED=17.
+T0830 (ICS LateralMovement) and T1557.002 (Enterprise CredentialAccess) are emitted from src/analyzer/arp.rs;
+vp007_catalog_drift_guard enforces consistency at runtime.
 
-Emission sites after F2 ARP (Modbus/DNP3 verified via grep; arp.rs PLANNED STORY-114):
+Emission sites after F2 ARP (all verified in develop HEAD post-PR #240):
 - `src/analyzer/tls.rs` — `vec!["T1027"]` x3
 - `src/analyzer/http.rs` — `vec!["T1083"]`, `vec!["T1505.003"]`, `vec!["T1046"]`, `vec!["T1499.002"]` x2
 - `src/reassembly/mod.rs` — `vec!["T1036"]`
@@ -70,7 +72,7 @@ Emission sites after F2 ARP (Modbus/DNP3 verified via grep; arp.rs PLANNED STORY
 - `src/analyzer/dnp3.rs` (F2 Feature #8 new) — `vec!["T1692.001"]` (control threshold),
   `vec!["T0814"]` (restart DoS), `vec!["T0836"]` (write FC), `vec!["T1691.001"]` (block-command
   inferred, BC-2.15.014), `vec!["T0827"]` (derived loss-of-control, BC-2.15.015)
-- `src/analyzer/arp.rs` (F2 Feature #9 PLANNED — STORY-114) — `vec!["T0830","T1557.002"]` (D1 spoof,
+- `src/analyzer/arp.rs` (F2 Feature #9, landed STORY-114 PR #240) — `vec!["T0830","T1557.002"]` (D1 spoof,
   D2 GARP-that-conflicts escalation path per BC-2.16.014, D12 mismatch paths;
   D2 benign GARP emits mitre_techniques=[] per D-068; see BC-2.16.003, BC-2.16.004, BC-2.16.007, BC-2.16.014)
 
@@ -163,14 +165,14 @@ all IDs in all vecs must resolve.
 ## Architecture Anchors
 
 - `src/mitre.rs:128` -- `pub fn technique_info(id: &str)` function declaration
-- `src/mitre.rs:129-181` -- technique_info match table covering all 17 emitted IDs (T0885 at :158; `_ => return None` at :179; T0830 and T1557.002 arms PLANNED in STORY-114 — not yet in source)
+- `src/mitre.rs:129-181` -- technique_info match table covering all 17 emitted IDs (T0885 at :158; `_ => return None` at :179; T0830 and T1557.002 arms landed in STORY-114, PR #240)
 - Emitted sites (pre-F2 baseline; F2 sites to be added at implementation):
   - `src/analyzer/tls.rs:443` (T1027), `src/analyzer/tls.rs:463` (T1027), `src/analyzer/tls.rs:483` (T1027)
   - `src/analyzer/http.rs:198` (T1083), `src/analyzer/http.rs:228` (T1505.003), `src/analyzer/http.rs:244` (T1046), `src/analyzer/http.rs:423` (T1499.002), `src/analyzer/http.rs:482` (T1499.002)
   - `src/reassembly/mod.rs:471` (T1036)
   - `src/reassembly/lifecycle.rs:111` (T1036)
   - `src/analyzer/modbus.rs` — multiple sites (T1692.001, T0836, T0814, T0806, T0835, T0831, T0888; exact lines TBD at F3 implementation)
-  - `src/analyzer/arp.rs` (F2 Feature #9 PLANNED in STORY-114) — `vec!["T0830","T1557.002"]` (D1 spoof, D2 GARP-that-conflicts per BC-2.16.014, D12 mismatch paths; D2 benign GARP emits mitre_techniques=[] per D-068)
+  - `src/analyzer/arp.rs` (F2 Feature #9, landed STORY-114 PR #240) — `vec!["T0830","T1557.002"]` (D1 spoof, D2 GARP-that-conflicts per BC-2.16.014, D12 mismatch paths; D2 benign GARP emits mitre_techniques=[] per D-068)
 
 ## Source Evidence
 

@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.10"
+version: "1.11"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -23,6 +23,7 @@ modified:
   - "v1.8: Feature #9 ARP analyzer (F2). Added 2 new techniques: T0830 (ICS: Adversary-in-the-Middle, LateralMovement) + T1557.002 (Enterprise: Adversary-in-the-Middle: ARP Cache Poisoning, CredentialAccess). SEEDED count 23→25 (12 Enterprise + 13 ICS). EMITTED count 15→17. H1 title updated 23→25. — 2026-06-12 (F-D-C1 pass-2 remediation)"
   - "v1.9: Pass-3 remediation F-C4/F-C5/F-C6/F-C1(b): T1557.002 reclassified Enterprise (not ICS); Enterprise/ICS split corrected 11E+14I→12E+13I in Description, Postcondition 3, Invariants, and changelog; EC-011/012 added for T0830/T1557.002; canonical vectors for T0830/T1557.002 added; VP table 'All 23 seeded IDs'→'All 25 seeded IDs'; Architecture Anchors re-anchored to current mitre.rs line numbers (T0885:158, _ => return None:179); PLANNED forward-declaration marker added. — 2026-06-12"
   - "v1.10: Pass-4 remediation F-C-P4-HIGH-003: PLANNED marker augmented with current→target values (23/15→25/17 after STORY-114 5-part atomic update). — 2026-06-12"
+  - "v1.11: Post-STORY-114-merge governance update: PLANNED marker resolved to landed status (PR #240, develop HEAD 7c0f453). SEEDED=25/EMITTED=17 confirmed in src/mitre.rs (SEEDED_TECHNIQUE_ID_COUNT=25; EMITTED_IDS array=17 entries; T0830+T1557.002 arms present). Architecture Anchors updated: T0830/T1557.002 arms no longer PLANNED. — 2026-06-15"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -68,8 +69,9 @@ analyzers. The catalog grows from 23 (post-Feature #8 DNP3, 11 Enterprise + 12 I
 (12 Enterprise + 13 ICS) as part of Feature #9 (ARP security analyzer, ADR-008):
 T1557.002 is an Enterprise sub-technique (CredentialAccess); T0830 is an ICS technique (LateralMovement).
 
-PLANNED — implemented in STORY-114; current code 23 seeded / 15 emitted → target 25 seeded / 17 emitted after STORY-114 5-part atomic update. src/mitre.rs remains at SEEDED=23/EMITTED=15
-until STORY-114 lands; vp007_catalog_drift_guard enforces consistency at implementation time.
+LANDED — STORY-114 merged (PR #240, develop HEAD 7c0f453). src/mitre.rs is now at SEEDED=25/EMITTED=17.
+T0830 (ICS LateralMovement) and T1557.002 (Enterprise CredentialAccess) arms are present in technique_info;
+vp007_catalog_drift_guard enforces consistency at runtime.
 
 ## Preconditions
 
@@ -163,7 +165,7 @@ until STORY-114 lands; vp007_catalog_drift_guard enforces consistency at impleme
 ## Architecture Anchors
 
 - `src/mitre.rs:128` -- `pub fn technique_info(id: &str)` function declaration
-- `src/mitre.rs:129-181` -- static match table (T1027 at :131, T0885 at :158, `_ => return None` at :179; T0830 and T1557.002 arms PLANNED in STORY-114 — not yet in source)
+- `src/mitre.rs:129-181` -- static match table (T1027 at :131, T0885 at :158, `_ => return None` at :179; T0830 and T1557.002 arms landed in STORY-114, PR #240)
 
 ## Source Evidence
 
