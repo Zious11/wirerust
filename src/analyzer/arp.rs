@@ -108,8 +108,8 @@ pub struct StormCounter {
 /// logic that requires test-driven discovery; it is literally the definition of GARP per
 /// RFC 5227 and BC-2.16.003). This is a GREEN-BY-DESIGN function per BC-5.38.002: zero
 /// branching, no I/O, no non-trivial helpers, 1 line. Listed in stub commit report.
-pub fn is_gratuitous_arp(_frame: &ArpFrame) -> bool {
-    todo!("STORY-113: implement — return frame.sender_ip == frame.target_ip")
+pub fn is_gratuitous_arp(frame: &ArpFrame) -> bool {
+    frame.sender_ip == frame.target_ip
 }
 
 /// Insert or update a binding entry in the production HashMap binding table.
