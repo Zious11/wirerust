@@ -1,7 +1,8 @@
-//! TDD failing tests for STORY-100 + STORY-101: Multi-Tag Finding Schema Migration
+//! Tests for STORY-100 + STORY-101: Multi-Tag Finding Schema Migration
 //! and Reporter Serialization Add-Ons (v0.3.0 atomic delivery).
 //!
-//! Every test in this file MUST FAIL until the implementer completes the migration:
+//! Originally written as a Red Gate suite; all tests pass in the GREEN state.
+//! The STORY-100/101 migration delivered:
 //!   - `Finding.mitre_technique: Option<String>` → `mitre_techniques: Vec<String>`
 //!   - MITRE catalog seeded to 21 IDs (6 new ICS arms)
 //!   - EMITTED_IDS updated to 13 (6 Enterprise + 7 ICS)
@@ -10,9 +11,8 @@
 //!   - Terminal renders `"MITRE: T1692.001, T0836"` for multi-element vecs
 //!   - Terminal tactic-grouping uses `mitre_techniques[0]`
 //!
-//! Red Gate: `cargo build` fails on this file today because `mitre_techniques`
-//! does not exist as a field on `Finding`. That is the intended compile error
-//! that proves the Red Gate is intact.
+//! (The original Red Gate compile error was `mitre_techniques` absent from `Finding`.
+//! That field now exists; the file compiles and all tests pass.)
 //!
 //! Test naming: `test_BC_S_SS_NNN_xxx()` per TDD Iron Law.
 //!   - BC-2.09.001/006 → `test_BC_2_09_001_*` / `test_BC_2_09_006_*`
@@ -42,8 +42,8 @@ use wirerust::summary::Summary;
 // Helpers
 // ─────────────────────────────────────────────────────────────────────────────
 
-/// Build a minimal Finding using the NEW Vec<String> field.
-/// This constructor will NOT compile until STORY-100 renames the field.
+/// Build a minimal Finding using the `mitre_techniques` Vec<String> field
+/// (renamed from `mitre_technique` in STORY-100; field exists and compiles as of STORY-100).
 fn make_finding_multitag(techniques: Vec<&str>) -> Finding {
     Finding {
         category: ThreatCategory::Anomaly,
@@ -51,7 +51,6 @@ fn make_finding_multitag(techniques: Vec<&str>) -> Finding {
         confidence: Confidence::High,
         summary: "multitag test finding".into(),
         evidence: vec![],
-        // RED GATE: `mitre_techniques` does not exist yet — compile error here
         mitre_techniques: techniques.into_iter().map(|s| s.to_string()).collect(),
         source_ip: None,
         timestamp: None,
@@ -95,7 +94,8 @@ fn csv_first_data_row(csv: &str) -> Vec<String> {
 
 /// BC-2.09.001 postcondition 1, AC-001 (STORY-100):
 /// `Finding` can be constructed with `mitre_techniques: vec!["T1692.001", "T0836"]`
-/// (multi-tag co-attributed). This is the primary Red Gate compile error.
+/// (multi-tag co-attributed). This was the primary Red Gate compile error before
+/// the multi-tag migration; the field now exists and tests compile and pass.
 #[test]
 fn test_BC_2_09_001_constructs_finding_with_multi_technique_vec() {
     let f = make_finding_multitag(vec!["T1692.001", "T0836"]);
@@ -265,14 +265,18 @@ fn test_BC_2_09_006_no_scalar_mitre_technique_key_in_json() {
 // ─────────────────────────────────────────────────────────────────────────────
 
 /// BC-2.10.005 postcondition 3, AC-005 (STORY-100):
-/// All 21 seeded IDs return Some from technique_name after F2 catalog expansion.
-/// Fails today because the 6 new ICS arms are missing (T0836, T0814, T0806,
-/// T0835, T0831, T0888 return None against the current 15-entry catalog).
+/// All 21 STORY-100-era seeded IDs return Some from technique_name. This test
+/// verifies the original 21-ID subset established at STORY-100 (11 Enterprise +
+/// 10 ICS); the current catalog contains 25 seeded IDs (STORY-109 added 2 ICS,
+/// STORY-114 added T0830 ICS + T1557.002 Enterprise). All 21 IDs in this test
+/// resolve in the current green catalog — the former 15-entry catalog limitation
+/// no longer applies.
 #[test]
 fn test_BC_2_10_005_technique_name_resolves_all_21_seeded_ids() {
-    // BC-2.10.005 postcondition 3: 11 Enterprise + 10 ICS = 21 total.
+    // BC-2.10.005 postcondition 3: the 21 STORY-100-era seeded IDs (11 Enterprise + 10 ICS),
+    // a stable subset of the current 25-entry catalog. All resolve to Some.
     let all_21_seeded: &[&str] = &[
-        // Enterprise (11)
+        // Enterprise (11) — STORY-100 era
         "T1027",
         "T1036",
         "T1040",
@@ -289,7 +293,7 @@ fn test_BC_2_10_005_technique_name_resolves_all_21_seeded_ids() {
         "T1692.001",
         "T1692.002",
         "T0885",
-        // ICS — NEW F2 (6): RED GATE — these return None today
+        // ICS — F2 additions (6): all resolve in the current catalog (GREEN)
         "T0836",
         "T0814",
         "T0806",
@@ -336,25 +340,50 @@ fn test_BC_2_10_005_technique_name_resolves_t0836_modify_parameter() {
 
 /// BC-2.10.005 invariant 3 (seeded count):
 /// STORY-109 adds T1691.001 and T0827 (VP-007 atomic obligation), bringing the
-/// total from 21 (post-F2 / STORY-100) to 23.  The SEEDED_TECHNIQUE_ID_COUNT
-/// constant in src/mitre.rs must reflect the current count.
+/// total from 21 (post-F2 / STORY-100) to 23.
+/// STORY-114 adds T0830 and T1557.002 (VP-007 ARP atomic obligation), bringing the
+/// total to 25.  The SEEDED_TECHNIQUE_ID_COUNT constant in src/mitre.rs must reflect
+/// the current count.
 /// Verified via the vp007_catalog_drift_guard sweeping test, but this
 /// test directly reads the source constant so drift is caught immediately.
+///
+/// Strict guard: asserts EXACTLY 25 — fails for 21, 23, 24, 26, or any other value.
+/// (Renamed from _is_21 which was a non-guard accepting 21/23/25 permissively.)
 #[test]
-fn test_BC_2_10_005_seeded_technique_id_count_is_21() {
+fn test_BC_2_10_005_seeded_technique_id_count_is_25() {
     let src = std::fs::read_to_string("src/mitre.rs")
         .expect("src/mitre.rs must be readable from the worktree root");
-    // STORY-109: count updated from 21 → 23 (+T1691.001 +T0827, VP-007 obligation).
-    // Locate the const declaration line; accept either 21 (pre-STORY-109 baseline)
-    // or 23 (post-STORY-109 stub addition).
-    let found = src.lines().any(|line| {
-        line.contains("SEEDED_TECHNIQUE_ID_COUNT") && (line.contains("23") || line.contains("21"))
+    // Locate the exact const declaration line. The canonical form is:
+    //   const SEEDED_TECHNIQUE_ID_COUNT: usize = 25;
+    // We match only lines that start (after optional whitespace) with `const` and also
+    // contain `SEEDED_TECHNIQUE_ID_COUNT`, so doc-comment lines are excluded.
+    // We assert the line contains `: usize = 25` (not a bare "25" substring)
+    // so the test fails if the value is anything other than 25.
+    let decl_line = src.lines().find(|line| {
+        let trimmed = line.trim_start();
+        trimmed.starts_with("const ") && trimmed.contains("SEEDED_TECHNIQUE_ID_COUNT")
+    });
+    let decl_line = decl_line.unwrap_or_else(|| {
+        panic!(
+            "BC-2.10.005 invariant 3: SEEDED_TECHNIQUE_ID_COUNT const declaration not found \
+             in src/mitre.rs"
+        )
     });
     assert!(
-        found,
-        "BC-2.10.005 invariant 3: SEEDED_TECHNIQUE_ID_COUNT must equal 23 in src/mitre.rs \
-         (21 post-F2/STORY-100 + 2 STORY-109 additions: T1691.001, T0827)."
+        decl_line.contains(": usize = 25"),
+        "BC-2.10.005 invariant 3: SEEDED_TECHNIQUE_ID_COUNT must be exactly 25 in \
+         src/mitre.rs (21 post-F2/STORY-100 + 2 STORY-109 + 2 STORY-114 ARP additions: \
+         T0830, T1557.002). Found declaration: {decl_line:?}"
     );
+    // Negative guard: ensure no stale value (21, 23, 24, 26) appears on the same line.
+    for stale in ["= 21", "= 22", "= 23", "= 24", "= 26"] {
+        assert!(
+            !decl_line.contains(stale),
+            "BC-2.10.005 invariant 3: SEEDED_TECHNIQUE_ID_COUNT declaration contains \
+             stale/wrong value ({stale}) — expected exactly 25. \
+             Declaration: {decl_line:?}"
+        );
+    }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -362,13 +391,14 @@ fn test_BC_2_10_005_seeded_technique_id_count_is_21() {
 // ─────────────────────────────────────────────────────────────────────────────
 
 /// BC-2.10.007 postcondition 2, AC-006 (STORY-100):
-/// All 21 seeded IDs return the correct MitreTactic.
-/// Fails today for the 6 new ICS IDs whose arms don't exist yet.
+/// All 21 STORY-100-era seeded IDs return the correct MitreTactic. This test
+/// covers the original 21-ID subset; the current catalog contains 25 seeded IDs.
+/// All 21 IDs resolve in the current green catalog.
 #[test]
 fn test_BC_2_10_007_technique_tactic_correct_for_all_21_seeded_ids() {
-    // BC-2.10.007 postcondition 2: exhaustive tactic table.
+    // BC-2.10.007 postcondition 2: exhaustive tactic table for the 21 STORY-100-era seeded IDs.
     let assignments: &[(&str, MitreTactic)] = &[
-        // Enterprise (11) — unchanged from pre-F2
+        // Enterprise (11) — STORY-100 era
         ("T1027", MitreTactic::DefenseEvasion),
         ("T1036", MitreTactic::DefenseEvasion),
         ("T1040", MitreTactic::CredentialAccess),
@@ -380,12 +410,12 @@ fn test_BC_2_10_007_technique_tactic_correct_for_all_21_seeded_ids() {
         ("T1499.002", MitreTactic::Impact),
         ("T1505.003", MitreTactic::Persistence),
         ("T1573", MitreTactic::CommandAndControl),
-        // ICS pre-F2 (4) — unchanged
+        // ICS pre-F2 (4)
         ("T0846", MitreTactic::Discovery),
         ("T1692.001", MitreTactic::IcsImpairProcessControl),
         ("T1692.002", MitreTactic::IcsImpairProcessControl),
         ("T0885", MitreTactic::CommandAndControl),
-        // ICS NEW F2 (6) — RED GATE: these return None today
+        // ICS F2 additions (6): all resolve in the current catalog (GREEN)
         ("T0836", MitreTactic::IcsImpairProcessControl),
         ("T0814", MitreTactic::IcsInhibitResponseFunction),
         ("T0806", MitreTactic::IcsImpairProcessControl),

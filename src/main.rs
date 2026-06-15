@@ -22,7 +22,7 @@ use clap::Parser;
 use indicatif::{ProgressBar, ProgressStyle};
 
 use wirerust::analyzer::ProtocolAnalyzer;
-use wirerust::analyzer::arp::ArpAnalyzer;
+use wirerust::analyzer::arp::{ARP_STORM_RATE_DEFAULT, ArpAnalyzer};
 use wirerust::analyzer::dnp3::Dnp3Analyzer;
 use wirerust::analyzer::dns::DnsAnalyzer;
 use wirerust::analyzer::http::HttpAnalyzer;
@@ -59,6 +59,7 @@ fn main() -> Result<()> {
             dnp3,
             dnp3_direct_operate_threshold,
             arp,
+            arp_spoof_threshold,
         } => {
             run_analyze(
                 targets,
@@ -71,6 +72,7 @@ fn main() -> Result<()> {
                 *dnp3 || *all,
                 *dnp3_direct_operate_threshold,
                 *arp || *all,
+                *arp_spoof_threshold,
                 *mitre,
                 use_color,
                 &cli,
@@ -96,6 +98,7 @@ fn run_analyze(
     enable_dnp3: bool,
     dnp3_direct_operate_threshold: u32,
     enable_arp: bool,
+    arp_spoof_threshold: u32,
     show_mitre_grouping: bool,
     use_color: bool,
     cli: &Cli,
@@ -110,10 +113,12 @@ fn run_analyze(
 
     let mut summary = Summary::new();
     let mut dns_analyzer = DnsAnalyzer::new();
-    // STORY-113: ArpAnalyzer — parameterless new() per Architecture Compliance Rule 3.
+    // STORY-114: ArpAnalyzer::new(spoof_threshold, storm_rate).
+    // arp_spoof_threshold is wired from --arp-spoof-threshold (BC-2.16.012).
+    // ARP_STORM_RATE_DEFAULT is used for storm_rate until STORY-115 wires
+    // --arp-storm-rate (standalone-compile: args.arp_storm_rate does not exist yet).
     // --arp flag-gating is wired below (BC-2.16.011).
-    // --arp-spoof-threshold is added in STORY-114; --arp-storm-rate in STORY-115.
-    let mut arp_analyzer = ArpAnalyzer::new();
+    let mut arp_analyzer = ArpAnalyzer::new(arp_spoof_threshold, ARP_STORM_RATE_DEFAULT);
     let mut all_findings = Vec::new();
     let mut total_decode_errors: u64 = 0;
 
