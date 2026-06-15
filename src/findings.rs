@@ -61,7 +61,12 @@ impl fmt::Display for Verdict {
 /// LESSON-P2.10: `#[non_exhaustive]` so a future "VeryHigh" or
 /// "Negligible" tier can be added without breaking downstream
 /// pattern matches.
+///
+/// Serialized as SCREAMING_SNAKE_CASE in JSON output (e.g. "MEDIUM", "HIGH",
+/// "LOW") so the machine-readable JSON surface matches the Display output
+/// (BC-2.16.008 AC-015; BC-2.09.004).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 #[non_exhaustive]
 pub enum Confidence {
     /// Strong signal — false-positive rate is expected to be low.

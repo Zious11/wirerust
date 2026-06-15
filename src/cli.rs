@@ -191,9 +191,17 @@ pub enum Commands {
         /// D1 spoof escalation threshold: number of MAC rebinds within
         /// ARP_FLAP_WINDOW_SECS (60 s) before a HIGH severity finding is emitted.
         /// Default: 3. Set to 1 to fire HIGH on the very first rebind.
-        /// BC-2.16.012 primary deliverable (STORY-114). --arp-storm-rate is STORY-115.
+        /// BC-2.16.012 primary deliverable (STORY-114).
         #[arg(long, default_value_t = 3)]
         arp_spoof_threshold: u32,
+
+        /// D3 storm rate threshold: frames/second per source MAC above which a
+        /// MEDIUM/Anomaly storm finding is emitted. Default: 50 (wirerust engineering
+        /// default — not derived from any external standard). ICS/OT operators with
+        /// PLCs or RTUs should typically lower this to 5–20/s (BC-2.16.013).
+        /// BC-2.16.013 primary deliverable (STORY-115).
+        #[arg(long, default_value_t = 50)]
+        arp_storm_rate: u32,
     },
 
     /// Generate a triage summary of PCAP files
