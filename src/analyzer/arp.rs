@@ -3821,17 +3821,17 @@ mod story_115 {
     }
 
     // -----------------------------------------------------------------------
-    // F-1 RED — spurious-eviction regression: insert_storm_counter_lru lacks
-    // contains_key guard, so re-initialising an ALREADY-PRESENT MAC at cap
-    // evicts an innocent (min-window_start_ts) MAC.
+    // F-1 Regression guard (GREEN): insert_storm_counter_lru HAS a contains_key
+    // guard (mirroring insert_binding_lru), so re-initialising an ALREADY-PRESENT
+    // MAC at cap does NOT evict an innocent (min-window_start_ts) MAC.
     // -----------------------------------------------------------------------
 
-    /// RED regression test: `insert_storm_counter_lru` (arp.rs) has no `contains_key`
-    /// guard, unlike `insert_binding_lru`. When the map is at MAX_STORM_COUNTERS and
+    /// Regression guard (GREEN): `insert_storm_counter_lru` (arp.rs) HAS a `contains_key`
+    /// guard, mirroring `insert_binding_lru`. When the map is at MAX_STORM_COUNTERS and
     /// detect_storm calls `insert_storm_counter_lru` to re-initialize an already-present
-    /// MAC whose window has expired, the function evicts the min-window_start_ts entry
-    /// (the LRU "innocent" MAC) even though the insert is a key-overwrite that would not
-    /// grow the map. This test exposes that bug.
+    /// MAC whose window has expired, the function performs an in-place overwrite and does
+    /// NOT evict the min-window_start_ts entry (the LRU "innocent" MAC). This test asserts
+    /// the guard holds; it would FAIL if a regression removed the contains_key check.
     ///
     /// Setup:
     ///   1. Fill storm_counters to exactly MAX_STORM_COUNTERS=4096 distinct source MACs,
@@ -3842,15 +3842,15 @@ mod story_115 {
     ///      at timestamp_secs = window_start_ts + ARP_FLAP_WINDOW_SECS + 1, so its window
     ///      has expired and detect_storm calls insert_storm_counter_lru.
     ///
-    /// Expected (correct behaviour, implemented by the F-1 fix):
+    /// Expected (correct behaviour, enforced by the contains_key guard):
     ///   (a) storm_counters.len() == MAX_STORM_COUNTERS (no net growth or shrinkage).
     ///   (b) The innocent min-window_start_ts MAC is STILL present (NOT evicted).
     ///
-    /// Against current (unfixed) code this test FAILS at assertion (b): the re-init
-    /// of the already-present MAC triggers eviction of the innocent min-window_start_ts MAC
-    /// even though the insert did not need to grow the map.
+    /// A regression that removed the contains_key guard would cause assertion (b) to FAIL:
+    /// the re-init of the already-present MAC would trigger spurious eviction of the innocent
+    /// min-window_start_ts MAC even though the insert did not need to grow the map.
     ///
-    /// BC-2.16.008 PC5 / Invariant 6 — spurious eviction bug.
+    /// BC-2.16.008 PC5 / Invariant 6 — spurious-eviction regression guard.
     #[test]
     fn test_storm_lru_no_spurious_eviction_on_existing_mac_reinit() {
         let mut analyzer = ArpAnalyzer::new(SPOOF_REBIND_ESCALATION_DEFAULT, 50);
@@ -3936,8 +3936,9 @@ mod story_115 {
         );
 
         // Assertion (b): the innocent min-window_start_ts MAC must still be present.
-        // Against unfixed code this assertion FAILS: insert_storm_counter_lru evicts the
-        // innocent MAC because it lacks a contains_key guard (unlike insert_binding_lru).
+        // Regression guard: if the contains_key guard were removed, this assertion would FAIL
+        // because insert_storm_counter_lru would evict the innocent MAC instead of overwriting
+        // in place (unlike insert_binding_lru which has always had the guard).
         assert!(
             analyzer.storm_counters.contains_key(&innocent_mac),
             "F-1 spurious-eviction regression / BC-2.16.008 PC5: the innocent \
