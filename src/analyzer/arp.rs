@@ -3090,10 +3090,11 @@ mod story_114 {
     /// Canonical test vector: threshold=3, rebind_count=3 within 60 s →
     ///   confidence=High, verdict=Likely.
     ///
-    /// The LOAD-BEARING ASSERTION below currently FAILS because
-    /// `emit_d1_spoof_finding_impl` (src/analyzer/arp.rs:774) hardcodes
-    /// `Verdict::Possible` for all D1 findings regardless of confidence.
-    /// This test will pass once the fix routes HIGH confidence to Verdict::Likely.
+    /// Regression guard for D-075 / BC-2.16.004: a HIGH-confidence D1 ARP-spoof
+    /// finding MUST carry `Verdict::Likely` (MEDIUM carries `Verdict::Possible`).
+    /// The fix (merged in D-075) introduced the conditional in
+    /// `emit_d1_spoof_finding_impl`. This test FAILS if a future refactor routes
+    /// HIGH confidence back to `Verdict::Possible`.
     #[test]
     #[allow(non_snake_case)]
     fn test_BC_2_16_004_d1_high_confidence_carries_verdict_likely() {
@@ -3137,11 +3138,11 @@ mod story_114 {
             d1.confidence
         );
 
-        // LOAD-BEARING ASSERTION (BC-2.16.004 lines 74/118):
-        // A HIGH D1 finding MUST carry Verdict::Likely (displays \"LIKELY\", serializes \"Likely\").
-        // This assertion currently FAILS because emit_d1_spoof_finding_impl hardcodes
-        // Verdict::Possible (src/analyzer/arp.rs:774) for all D1 findings.
-        // The test passes once the fix sets verdict=Verdict::Likely when confidence=High.
+        // Regression guard (BC-2.16.004 lines 74/118):
+        // A HIGH D1 finding MUST carry Verdict::Likely (displays "LIKELY", serializes "Likely").
+        // D-075 introduced the conditional in emit_d1_spoof_finding_impl that routes
+        // HIGH confidence to Verdict::Likely. This FAILS if that conditional is removed
+        // or a refactor reverts HIGH-confidence D1 findings to Verdict::Possible.
         assert_eq!(
             d1.verdict,
             Verdict::Likely,
