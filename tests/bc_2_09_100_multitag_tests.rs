@@ -42,8 +42,8 @@ use wirerust::summary::Summary;
 // Helpers
 // ─────────────────────────────────────────────────────────────────────────────
 
-/// Build a minimal Finding using the NEW Vec<String> field.
-/// This constructor will NOT compile until STORY-100 renames the field.
+/// Build a minimal Finding using the `mitre_techniques` Vec<String> field
+/// (renamed from `mitre_technique` in STORY-100; field exists and compiles as of STORY-100).
 fn make_finding_multitag(techniques: Vec<&str>) -> Finding {
     Finding {
         category: ThreatCategory::Anomaly,
@@ -51,7 +51,6 @@ fn make_finding_multitag(techniques: Vec<&str>) -> Finding {
         confidence: Confidence::High,
         summary: "multitag test finding".into(),
         evidence: vec![],
-        // RED GATE: `mitre_techniques` does not exist yet — compile error here
         mitre_techniques: techniques.into_iter().map(|s| s.to_string()).collect(),
         source_ip: None,
         timestamp: None,
@@ -265,14 +264,18 @@ fn test_BC_2_09_006_no_scalar_mitre_technique_key_in_json() {
 // ─────────────────────────────────────────────────────────────────────────────
 
 /// BC-2.10.005 postcondition 3, AC-005 (STORY-100):
-/// All 21 seeded IDs return Some from technique_name after F2 catalog expansion.
-/// Fails today because the 6 new ICS arms are missing (T0836, T0814, T0806,
-/// T0835, T0831, T0888 return None against the current 15-entry catalog).
+/// All 21 STORY-100-era seeded IDs return Some from technique_name. This test
+/// verifies the original 21-ID subset established at STORY-100 (11 Enterprise +
+/// 10 ICS); the current catalog contains 25 seeded IDs (STORY-109 added 2 ICS,
+/// STORY-114 added T0830 ICS + T1557.002 Enterprise). All 21 IDs in this test
+/// resolve in the current green catalog — the former 15-entry catalog limitation
+/// no longer applies.
 #[test]
 fn test_BC_2_10_005_technique_name_resolves_all_21_seeded_ids() {
-    // BC-2.10.005 postcondition 3: 11 Enterprise + 10 ICS = 21 total.
+    // BC-2.10.005 postcondition 3: the 21 STORY-100-era seeded IDs (11 Enterprise + 10 ICS),
+    // a stable subset of the current 25-entry catalog. All resolve to Some.
     let all_21_seeded: &[&str] = &[
-        // Enterprise (11)
+        // Enterprise (11) — STORY-100 era
         "T1027",
         "T1036",
         "T1040",
@@ -289,7 +292,7 @@ fn test_BC_2_10_005_technique_name_resolves_all_21_seeded_ids() {
         "T1692.001",
         "T1692.002",
         "T0885",
-        // ICS — NEW F2 (6): RED GATE — these return None today
+        // ICS — F2 additions (6): all resolve in the current catalog (GREEN)
         "T0836",
         "T0814",
         "T0806",
@@ -387,13 +390,14 @@ fn test_BC_2_10_005_seeded_technique_id_count_is_25() {
 // ─────────────────────────────────────────────────────────────────────────────
 
 /// BC-2.10.007 postcondition 2, AC-006 (STORY-100):
-/// All 21 seeded IDs return the correct MitreTactic.
-/// Fails today for the 6 new ICS IDs whose arms don't exist yet.
+/// All 21 STORY-100-era seeded IDs return the correct MitreTactic. This test
+/// covers the original 21-ID subset; the current catalog contains 25 seeded IDs.
+/// All 21 IDs resolve in the current green catalog.
 #[test]
 fn test_BC_2_10_007_technique_tactic_correct_for_all_21_seeded_ids() {
-    // BC-2.10.007 postcondition 2: exhaustive tactic table.
+    // BC-2.10.007 postcondition 2: exhaustive tactic table for the 21 STORY-100-era seeded IDs.
     let assignments: &[(&str, MitreTactic)] = &[
-        // Enterprise (11) — unchanged from pre-F2
+        // Enterprise (11) — STORY-100 era
         ("T1027", MitreTactic::DefenseEvasion),
         ("T1036", MitreTactic::DefenseEvasion),
         ("T1040", MitreTactic::CredentialAccess),
@@ -405,12 +409,12 @@ fn test_BC_2_10_007_technique_tactic_correct_for_all_21_seeded_ids() {
         ("T1499.002", MitreTactic::Impact),
         ("T1505.003", MitreTactic::Persistence),
         ("T1573", MitreTactic::CommandAndControl),
-        // ICS pre-F2 (4) — unchanged
+        // ICS pre-F2 (4)
         ("T0846", MitreTactic::Discovery),
         ("T1692.001", MitreTactic::IcsImpairProcessControl),
         ("T1692.002", MitreTactic::IcsImpairProcessControl),
         ("T0885", MitreTactic::CommandAndControl),
-        // ICS NEW F2 (6) — RED GATE: these return None today
+        // ICS F2 additions (6): all resolve in the current catalog (GREEN)
         ("T0836", MitreTactic::IcsImpairProcessControl),
         ("T0814", MitreTactic::IcsInhibitResponseFunction),
         ("T0806", MitreTactic::IcsImpairProcessControl),
