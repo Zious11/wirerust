@@ -13,9 +13,12 @@
 //! UDP transports surface their port / flag tuple, ICMP is reported as the
 //! parent protocol with no transport detail, and everything else is reported
 //! as `Protocol::Other(proto_num)` with no transport info. ARP frames
-//! (EtherType 0x0806) with Ethernet/IPv4 format return `DecodedFrame::Arp`;
-//! non-Ethernet/IPv4 ARP frames return `Err("Non-Ethernet/IPv4 ARP frame")`;
-//! non-IP non-ARP frames return `Err("No IP layer found")`.
+//! (EtherType 0x0806) are routed to the non-panicking `extract_arp_frame`
+//! placeholder, which in STORY-111 returns `None`; the caller maps this to a
+//! transitional `Err("ARP extraction not yet implemented")`. (STORY-112
+//! implements real extraction: `Ok(DecodedFrame::Arp(...))` for Ethernet/IPv4
+//! ARP, `Err("Non-Ethernet/IPv4 ARP frame")` otherwise.)
+//! Non-IP non-ARP frames return `Err("No IP layer found")`.
 //!
 //! ## Snaplen-truncated captures
 //!
@@ -141,9 +144,11 @@ pub struct ArpFrame {
 
 /// The result of a successful `decode_packet` call.
 ///
-/// IP frames (IPv4 and IPv6) become `Ip(ParsedPacket)`; Ethernet/IPv4 ARP
-/// frames become `Arp(ArpFrame)`. Non-Ethernet/IPv4 ARP frames and non-IP
-/// non-ARP frames are both errors, not `Ok` variants.
+/// IP frames (IPv4 and IPv6) become `Ip(ParsedPacket)`. The `Arp(ArpFrame)`
+/// variant is produced starting in STORY-112; in STORY-111 the ARP decode
+/// path returns a transitional `Err("ARP extraction not yet implemented")`
+/// because `extract_arp_frame` is a `None`-returning placeholder. Non-IP
+/// non-ARP frames are errors, not `Ok` variants.
 #[derive(Debug, Clone)]
 pub enum DecodedFrame {
     Ip(ParsedPacket),
