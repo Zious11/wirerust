@@ -1,0 +1,41 @@
+Extracted from full cargo test --all-targets run (see cargo-test-all-targets.log for complete output)
+
+=== decoder_tests (tests/decoder_tests.rs) ===
+     Running tests/decoder_tests.rs (target/debug/deps/decoder_tests-454b0676054c69cb)
+
+running 16 tests
+test test_decode_arp_shaped_input_does_not_panic ... ok          <-- AC-005b
+test test_decode_invalid_packet ... ok
+test test_decode_ipv4_linktype_uses_from_ip ... ok
+test test_decode_ipv6_tcp_packet ... ok
+test test_decode_non_ip_non_arp_frame_returns_no_ip_error ... ok <-- AC-003
+test test_decode_raw_ip_tcp_packet ... ok
+test test_decode_linux_sll_tcp_packet ... ok
+test test_decode_snaplen_truncated_clamps_payload_to_captured_bytes ... ok
+test test_decode_snaplen_truncated_ethernet_recovers_via_lax_parsing ... ok
+test test_decode_snaplen_truncated_ipv6_recovers_via_lax_parsing ... ok    <-- AC-009 contract test 1
+test test_decode_snaplen_truncated_raw_ip_recovers_via_lax_parsing ... ok
+test test_decode_snaplen_truncated_linux_sll_recovers_via_lax_parsing ... ok
+test test_decode_structurally_corrupt_packet_is_rejected_not_lax_recovered ... ok  <-- AC-009 contract test 2
+test test_decode_tcp_packet ... ok
+test test_decode_truncation_inside_tcp_header_degrades_to_other ... ok
+test test_decode_udp_dns_packet ... ok
+
+test result: ok. 16 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+=== bc_2_02_story003 ARP tests (tests/bc_2_02_story003_tests.rs) ===
+     Running tests/bc_2_02_story003_tests.rs (target/debug/deps/bc_2_02_story003_tests-9ab69454d016b5fc)
+
+running 21 tests
+[... IP/SLL tests omitted for brevity ...]
+test test_BC_2_02_009_ec006_arp_ethernet_no_ip_layer ... ok      <-- BC-2.02.009 reconciled ARP test 1
+test test_BC_2_02_009_ec007_custom_ethertype_no_ip_layer ... ok  <-- BC-2.02.009 reconciled ARP test 2
+test test_BC_2_02_009_non_ip_frame_rejected ... ok               <-- BC-2.02.009 reconciled ARP test 3
+test test_BC_2_02_009_strict_path_sll_arp_no_ip ... ok           <-- BC-2.02.009 reconciled ARP test 4
+test test_VP_008_fuzz_harness_exists ... ok                      <-- AC-009 (VP-008 harness)
+
+test result: ok. 21 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+=== TOTALS ===
+53 test suites run
+0 failures across all suites

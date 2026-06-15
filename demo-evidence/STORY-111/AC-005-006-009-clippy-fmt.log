@@ -1,0 +1,8 @@
+$ cargo clippy --all-targets -- -D warnings
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.10s
+
+EXIT CODE: 0 (success — zero warnings, zero errors)
+
+$ cargo fmt --check
+
+EXIT CODE: 0 (success — no formatting violations)

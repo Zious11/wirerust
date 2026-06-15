@@ -1,0 +1,13 @@
+$ grep etherparse /Users/zious/Documents/GITHUB/wirerust/.worktrees/STORY-111/Cargo.toml
+etherparse = "0.20"
+
+$ cargo build --release
+   Compiling proc-macro2 v1.0.106
+   Compiling quote v1.0.45
+   Compiling unicode-ident v1.0.24
+   [... deps compiled ...]
+   Compiling etherparse v0.20.2
+   Compiling wirerust v0.6.0 (/Users/zious/Documents/GITHUB/wirerust/.worktrees/STORY-111)
+    Finished `release` profile [optimized] target(s) in 7.46s
+
+EXIT CODE: 0 (success)

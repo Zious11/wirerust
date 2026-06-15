@@ -1,7 +1,7 @@
 ---
 pipeline: FEATURE_MODE_ARP_ANALYZER
 phase: feature-F4-delta-implementation
-phase_status: "F4 IN PROGRESS — STORY-111 Step-4.5 CONVERGED (3/3); worktree commit 9cf7bca (branch worktree-issue-9-story-111-arp-etherparse-decodedframe); 3 independent fresh-context passes (A/B/C) ZERO FINDINGS on frozen diff. NEXT = STORY-111 demo evidence → push → pr-manager 9-step PR to develop → worktree cleanup; then STORY-112."
+phase_status: "F4 IN PROGRESS — STORY-111 demo evidence captured (.factory/demo-evidence/STORY-111/; 53 suites green, clippy/fmt clean, 6 ACs mapped); NEXT = pr-manager 9-step PR to develop (in progress)."
 active_feature: "arp-analyzer"
 feature_arp_status: "F1 Delta Analysis PASSED (human-gated 2026-06-12) — DecodedFrame integration, ADR-008 planned, F2→F7 authorized; release target v0.7.0"
 feature_8_status: "v0.6.0 RELEASED 2026-06-12 — DNP3 TCP analyzer; F7 5-dim CONVERGED; tag v0.6.0 + 4 binaries"
@@ -85,7 +85,7 @@ input_drift_check: "MATCH=23 STALE=44 ERROR=1 (STORY-091 known); ARP stories STO
 | Feature: ARP analyzer — F3 Story Decomposition | **CONVERGED 3/3** (Passes 36/37/38, 38 passes total incl. post-P26/P33 consistency flushes); F3 STRICT WHOLE-CORPUS ADVERSARIAL GATE SATISFIED; F3 human gate PASSED (D-070, 2026-06-14) | STORY-111..115 (E-16, 47 pts, linear chain); 15 SS-16 BCs; waves 40-44 holdouts; HS-INDEX v1.7; wave-schedule v1.3; SS-15 fully de-NEW-ed; corpus canonical 457 pts; trajectory: phase-f5-adversarial/arp-f3-convergence-trajectory.md |
 | Feature: ARP analyzer — F4 Delta Implementation | **IN PROGRESS** — STORY-111 implementation GREEN + Step-4.5 CONVERGED (3/3 ZERO; worktree commit 9cf7bca; branch worktree-issue-9-story-111-arp-etherparse-decodedframe); D-071 AC re-scope + D-072 symmetric-unreachable design F4-surfaced+resolved; commit chain 4e22ef9→549b769→27f51ba→9e07423→9cf7bca; NEXT = demo + PR → STORY-112 | per-story TDD; waves 40-44; v0.7.0 target |
 
-## Session Resume Checkpoint (2026-06-14 — F4 ARP DELTA-IMPLEMENTATION IN PROGRESS; STORY-111 Step-4.5 CONVERGED 3/3; NEXT = demo + PR → STORY-112)
+## Session Resume Checkpoint (2026-06-14 — F4 ARP DELTA-IMPLEMENTATION IN PROGRESS; STORY-111 Step-4.5 CONVERGED 3/3 + demo evidence committed; NEXT = pr-manager 9-step PR to develop → STORY-112)
 
 **Previous checkpoint (2026-06-14 — F3 ARP adversarial convergence — Pass-37 FULLY CLEAN; all 4 slices ZERO; clean-streak 2/3; strict 3/3 in progress) archived to:
 `cycles/feature-arp-v0.7.0/session-checkpoints.md`**
@@ -105,7 +105,7 @@ input_drift_check: "MATCH=23 STALE=44 ERROR=1 (STORY-091 known); ARP stories STO
 - **F3 Adversarial Convergence:** STRICT WHOLE-CORPUS, **CONVERGED 3/3 — GATE SATISFIED.**
   **Pass-38 FULLY CLEAN — all 4 slices ZERO (A 17th-consec, B converged, C converged, D converged); mount-guards PASSED. clean-streak 2/3→3/3. Passes 36/37/38 = 3 consecutive CLEAN. F3 STRICT WHOLE-CORPUS ADVERSARIAL GATE SATISFIED.**
 - **F3 Human Gate:** PASSED (2026-06-14, D-070) — STORY-111..115 accepted as-is; no changes requested.
-- **F4 Delta-Implementation:** IN PROGRESS — AUTHORIZED (D-070). **STORY-111 TDD GREEN + Step-4.5 CONVERGED (3/3 ZERO FINDINGS, passes A/B/C fresh-context). All 7 checks pass: AC conformance (AC-003/005/005b/006/009/010), symmetric-unreachable design (D-072), VP-008 no-panic, scope discipline (non-panicking extract_arp_frame None placeholder, transitional Err, no STORY-112 over-implementation), no forbidden decoder→analyzer/arp dependency, test reconciliation (4 bc_2_02_story003 ARP tests → transitional behavior), code quality (etherparse 0.20 API, accurate docs). Frozen diff commit: 9cf7bca. Branch: worktree-issue-9-story-111-arp-etherparse-decodedframe (off develop 31d1231). Commit chain: 4e22ef9 (stub) → 549b769 (tests) → 27f51ba (impl) → 9e07423 (test reconcile) → 9cf7bca (doc-prose fix). cargo test --all-targets green (53 suites), clippy -D warnings clean, fmt clean. NEXT ACTION: STORY-111 demo-recorder evidence → push branch → pr-manager (9-step PR to develop) → cleanup; then STORY-112 (extract_arp_frame + VP-024 Sub-A).**
+- **F4 Delta-Implementation:** IN PROGRESS — AUTHORIZED (D-070). **STORY-111 TDD GREEN + Step-4.5 CONVERGED (3/3 ZERO FINDINGS, passes A/B/C fresh-context). All 7 checks pass: AC conformance (AC-003/005/005b/006/009/010), symmetric-unreachable design (D-072), VP-008 no-panic, scope discipline (non-panicking extract_arp_frame None placeholder, transitional Err, no STORY-112 over-implementation), no forbidden decoder→analyzer/arp dependency, test reconciliation (4 bc_2_02_story003 ARP tests → transitional behavior), code quality (etherparse 0.20 API, accurate docs). Frozen diff commit: 9cf7bca. Branch: worktree-issue-9-story-111-arp-etherparse-decodedframe (off develop 31d1231). Commit chain: 4e22ef9 (stub) → 549b769 (tests) → 27f51ba (impl) → 9e07423 (test reconcile) → 9cf7bca (doc-prose fix). cargo test --all-targets green (53 suites), clippy -D warnings clean, fmt clean. DEMO EVIDENCE COMMITTED: `.factory/demo-evidence/STORY-111/` (17 artifacts: 4 .gif + 4 .webm + 4 .tape + cargo-test-all-targets.log [53 suites green] + per-AC key-test-results log + build/clippy/fmt logs + evidence-report.md). NEXT ACTION: push branch worktree-issue-9-story-111-arp-etherparse-decodedframe → pr-manager (9-step PR to develop) → worktree cleanup; then STORY-112 (extract_arp_frame + VP-024 Sub-A).**
 
 ### B. F3 CONVERGENCE STATUS
 
@@ -348,8 +348,8 @@ recorded above with its deferral target. F3 gate SATISFIED; cycle can close.
 3. `git rev-parse --short HEAD` on develop (expect `31d1231` or newer, clean).
 4. `python3 /Users/zious/Documents/GITHUB/wirerust/bin/compute-input-hash --scan` —
    confirm STORY-111..115 MATCH (d05149f/8a4d566/a767d96/e2f1c95/5ca9835).
-5. **F4 IN PROGRESS — STORY-111 Step-4.5 CONVERGED (3/3 ZERO, passes A/B/C; frozen diff 9cf7bca).
-   NEXT = STORY-111 demo-recorder evidence → push branch worktree-issue-9-story-111-arp-etherparse-decodedframe → pr-manager 9-step PR to develop → worktree cleanup; then STORY-112 (extract_arp_frame + VP-024 Sub-A).**
+5. **F4 IN PROGRESS — STORY-111 Step-4.5 CONVERGED (3/3 ZERO, passes A/B/C; frozen diff 9cf7bca). Demo evidence committed to factory-artifacts (`.factory/demo-evidence/STORY-111/`; 53 suites green, 6 ACs mapped).
+   NEXT = push branch worktree-issue-9-story-111-arp-etherparse-decodedframe → pr-manager 9-step PR to develop → worktree cleanup; then STORY-112 (extract_arp_frame + VP-024 Sub-A).**
    DO NOT re-run F1/F2/F3 adversarial (all converged). DO NOT revert D-068/D-069/D-071/D-072. DO NOT re-run Step-4.5 for STORY-111 (already CONVERGED).
 
 ### I. KEY ARTIFACT POINTERS
