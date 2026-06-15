@@ -157,7 +157,9 @@ const REPLY_PKT_LEN: usize = 42;
 // ---------------------------------------------------------------------------
 // AC-001: extract_arp_frame returns Some for a valid ARP Request
 // BC-2.16.001 postcondition 1
-// RED GATE: FAILS — extract_arp_frame always returns None on stub.
+// GREEN (STORY-112): extract_arp_frame returns Some(ArpFrame) for a valid
+// Ethernet/IPv4 ARP Request (htype=0x0001, ptype=0x0800, hlen=6, plen=4).
+// Originally RED in STORY-111 (extract_arp_frame was a None-returning placeholder).
 // ---------------------------------------------------------------------------
 
 /// AC-001 (BC-2.16.001 PC1): valid Ethernet/IPv4 ARP Request yields Some(ArpFrame).
@@ -186,9 +188,9 @@ fn test_BC_2_16_001_extract_arp_frame_request_returns_some() {
 // ---------------------------------------------------------------------------
 // AC-002: field copy fidelity for ARP Request
 // BC-2.16.001 postconditions 2–8
-// RED GATE: FAILS — extract_arp_frame returns None so field assertions are
-// never reached. When extract_arp_frame is implemented the None unwrap will
-// fail first; once implemented, all field assertions must hold.
+// GREEN (STORY-112): extract_arp_frame returns Some(ArpFrame) with all fields
+// byte-exactly copied from the ArpPacketSlice. Originally RED in STORY-111
+// (extract_arp_frame returned None so field assertions were never reached).
 // ---------------------------------------------------------------------------
 
 /// AC-002 (BC-2.16.001 PC2-8): ARP Request ArpFrame field copy fidelity.
@@ -259,7 +261,9 @@ fn test_BC_2_16_001_extract_arp_frame_request_field_copy_fidelity() {
 // ---------------------------------------------------------------------------
 // AC-003: ARP Reply extraction returns Some with correct fields
 // BC-2.16.002 postconditions 1–8
-// RED GATE: FAILS — extract_arp_frame returns None.
+// GREEN (STORY-112): extract_arp_frame returns Some(ArpFrame { operation: 2, ... })
+// with all fields byte-exactly copied from the ArpPacketSlice.
+// Originally RED in STORY-111 (extract_arp_frame returned None).
 // ---------------------------------------------------------------------------
 
 /// AC-003 (BC-2.16.002 PC1-8): valid Ethernet/IPv4 ARP Reply yields
@@ -424,8 +428,10 @@ fn test_BC_2_16_001_extract_arp_frame_none_on_proto_addr_size_16() {
 // ---------------------------------------------------------------------------
 // AC-005: outer_src_mac=None is passed through unchanged
 // BC-2.16.001 EC-003
-// RED GATE: FAILS — extract_arp_frame returns None, never reaching the
-// ArpFrame { outer_src_mac: None } assertion.
+// GREEN (STORY-112): extract_arp_frame returns Some(ArpFrame { outer_src_mac: None, ... })
+// when None is passed in (SLL capture — no Ethernet header).
+// Originally RED in STORY-111 (extract_arp_frame returned None, never reaching
+// the ArpFrame { outer_src_mac: None } assertion).
 // ---------------------------------------------------------------------------
 
 /// AC-005 (BC-2.16.001 EC-003): extract_arp_frame(arp, None, len) →
@@ -457,9 +463,10 @@ fn test_BC_2_16_001_extract_arp_frame_outer_src_mac_none_passthrough() {
 // ---------------------------------------------------------------------------
 // AC-006: decode_packet routes ARP to Ok(DecodedFrame::Arp(...))
 // BC-2.16.015 postconditions 1 and 2
-// RED GATE: FAILS — the strict Ok arm maps None → Err("ARP extraction not yet
-// implemented"), not Ok(DecodedFrame::Arp(...)). After implementation this
-// returns Ok(DecodedFrame::Arp(frame)) with outer_src_mac from Ethernet header.
+// GREEN (STORY-112): decode_packet returns Ok(DecodedFrame::Arp(frame)) for a
+// well-formed Ethernet/IPv4 ARP frame, with outer_src_mac extracted from the
+// Ethernet source MAC. Originally RED in STORY-111 (strict arm mapped None →
+// Err("ARP extraction not yet implemented")).
 // ---------------------------------------------------------------------------
 
 /// AC-006 (BC-2.16.015 PC1/2): decode_packet on a well-formed Ethernet/IPv4
@@ -488,8 +495,8 @@ fn test_BC_2_16_015_decode_packet_routes_arp_to_decoded_frame_arp() {
     // Must be Ok(DecodedFrame::Arp(...)), not Err.
     let decoded = result.expect(
         "AC-006 / BC-2.16.015 PC1: decode_packet must return Ok(DecodedFrame::Arp) \
-         for a valid Ethernet/IPv4 ARP Request — got Err (stub returns transitional \
-         Err('ARP extraction not yet implemented'))",
+         for a valid Ethernet/IPv4 ARP Request — got Err (regression: extract_arp_frame \
+         must return Some(ArpFrame) for valid Ethernet/IPv4 ARP)",
     );
 
     // Must be the Arp variant.
@@ -520,9 +527,10 @@ fn test_BC_2_16_015_decode_packet_routes_arp_to_decoded_frame_arp() {
 // ---------------------------------------------------------------------------
 // AC-007: lax arm handles truncated ARP without panic
 // BC-2.16.015 postcondition — lax arm also routes ARP
-// RED GATE: FAILS — the lax arm maps None → Err("ARP extraction not yet
-// implemented"). After implementation it maps Some(f) → Ok(DecodedFrame::Arp(f))
-// or None → Err("truncated ARP frame").
+// GREEN (STORY-112): the lax arm maps Some(f) → Ok(DecodedFrame::Arp(f)) or
+// None → Err("truncated ARP frame"). No panic for truncated ARP input.
+// Originally RED in STORY-111 (lax arm mapped None → Err("ARP extraction not
+// yet implemented")).
 //
 // Strategy: build a well-formed 42-byte ARP frame, then inflate the IPv4-
 // total_length-equivalent field. ARP frames don't have that field, so we
@@ -542,7 +550,7 @@ fn test_BC_2_16_015_decode_packet_routes_arp_to_decoded_frame_arp() {
 // frame with a fake length-checked field. Since pure ARP-in-Ethernet has
 // no such field, we test the non-panic guarantee using catch_unwind and
 // assert that any result is Ok(Arp) or Err containing "truncated ARP frame"
-// — not a panic, and not Err("ARP extraction not yet implemented").
+// — not a panic, and not a stale STORY-111 stub error.
 //
 // Alternative: provide a raw ARP-over-SLL or use a frame where the
 // strict parser yields SliceError::Len. The simplest reliable approach is
@@ -608,24 +616,12 @@ fn test_BC_2_16_015_decode_packet_lax_arm_truncated_arp_non_panic() {
             // This is the correct post-implementation outcome.
         }
         Err(e) => {
-            // Either "truncated ARP frame" (post-implementation correct) or
-            // "ARP extraction not yet implemented" (stub — Red Gate failure signal).
+            // The implemented error string for a truncated ARP frame is "truncated ARP frame".
             let msg = e.to_string();
             assert!(
-                msg.contains("truncated ARP frame")
-                    || msg.contains("ARP extraction not yet implemented"),
-                "AC-007 / BC-2.16.015: Err from truncated ARP path must contain \
-                 'truncated ARP frame' (post-implementation) or \
-                 'ARP extraction not yet implemented' (stub transitional). \
-                 Got: {msg}"
-            );
-            // Assert that on the IMPLEMENTED path the message is "truncated ARP frame".
-            // This assertion fails on the stub, locking the Red Gate.
-            assert!(
                 msg.contains("truncated ARP frame"),
-                "AC-007 / BC-2.16.015 RED GATE: stub emits 'ARP extraction not yet \
-                 implemented'; the implemented path must emit 'truncated ARP frame'. \
-                 Got: {msg}"
+                "AC-007 / BC-2.16.015: Err from truncated ARP path must contain \
+                 'truncated ARP frame'. Got: {msg}"
             );
         }
         Ok(DecodedFrame::Ip(_)) => {
@@ -734,9 +730,9 @@ fn test_BC_2_16_015_arp_frame_never_reaches_stream_dispatcher() {
 // AC-012: decode_packet returns Err containing "Non-Ethernet/IPv4 ARP frame"
 //         for ARP frames where extract_arp_frame returns None
 // BC-2.16.015 postcondition (malformed ARP decode_packet-level error)
-// RED GATE: FAILS — the strict arm currently emits "ARP extraction not yet
-// implemented", not "Non-Ethernet/IPv4 ARP frame". After implementation
-// the real routing changes None → Err(anyhow!("Non-Ethernet/IPv4 ARP frame")).
+// GREEN (STORY-112): the strict arm maps None → Err("Non-Ethernet/IPv4 ARP frame").
+// Originally RED in STORY-111 (strict arm emitted "ARP extraction not yet
+// implemented", not "Non-Ethernet/IPv4 ARP frame").
 // ---------------------------------------------------------------------------
 
 /// AC-012 (BC-2.16.015 PC7): decode_packet returns Err containing
@@ -778,13 +774,11 @@ fn test_BC_2_16_015_decode_packet_arp_non_eth_ipv4_returns_error() {
     );
 
     // The error string must contain "Non-Ethernet/IPv4 ARP frame".
-    // RED GATE: on the stub this contains "ARP extraction not yet implemented",
-    // causing this assertion to fail — the Red Gate holds.
     assert!(
         err.to_string().contains("Non-Ethernet/IPv4 ARP frame"),
-        "AC-012 / BC-2.16.015 PC7 RED GATE: decode_packet must return \
+        "AC-012 / BC-2.16.015 PC7: decode_packet must return \
          Err containing 'Non-Ethernet/IPv4 ARP frame' for a non-Eth/IPv4 ARP \
-         frame. On the stub it returns 'ARP extraction not yet implemented'. \
+         frame (hw_addr_size=8 causes extract_arp_frame to return None). \
          Got: '{}'",
         err
     );
@@ -797,7 +791,8 @@ fn test_BC_2_16_015_decode_packet_arp_non_eth_ipv4_returns_error() {
 
 /// Invariant check: extract_arp_frame is opcode-agnostic (BC-2.16.001 Invariant 4).
 /// EC-006: op=0 (undefined opcode) → Some(ArpFrame { operation: 0, ... }).
-/// RED GATE: FAILS — extract_arp_frame returns None.
+/// GREEN (STORY-112): returns Some(ArpFrame { operation: 0, ... }) — opcode-agnostic extraction.
+/// Originally RED in STORY-111 (extract_arp_frame returned None).
 #[test]
 fn test_BC_2_16_001_invariant_opcode_agnostic_op_zero() {
     let payload = make_standard_arp_payload(
@@ -822,7 +817,8 @@ fn test_BC_2_16_001_invariant_opcode_agnostic_op_zero() {
 }
 
 /// BC-2.16.001 EC-002: target_mac all-zero in ARP Request is copied faithfully.
-/// RED GATE: FAILS — extract_arp_frame returns None.
+/// GREEN (STORY-112): returns Some(ArpFrame { target_mac: [0x00; 6], ... }).
+/// Originally RED in STORY-111 (extract_arp_frame returned None).
 #[test]
 fn test_BC_2_16_001_invariant_zero_target_mac_copied_faithfully() {
     let payload = make_standard_arp_payload(
@@ -846,7 +842,8 @@ fn test_BC_2_16_001_invariant_zero_target_mac_copied_faithfully() {
 }
 
 /// BC-2.16.002 EC-002: GARP Reply (sender_ip == target_ip) — extractor is agnostic.
-/// RED GATE: FAILS — extract_arp_frame returns None.
+/// GREEN (STORY-112): returns Some(ArpFrame) with both IPs faithfully copied.
+/// Originally RED in STORY-111 (extract_arp_frame returned None).
 #[test]
 fn test_BC_2_16_002_invariant_garp_reply_extractor_agnostic() {
     let garp_ip: [u8; 4] = [10, 0, 0, 1];
@@ -882,7 +879,8 @@ fn test_BC_2_16_002_invariant_garp_reply_extractor_agnostic() {
 
 /// BC-2.16.001 EC-004: outer_src_mac != sender_mac is passed through unchanged
 /// (D12 mismatch is the analyzer's concern, not the extractor's).
-/// RED GATE: FAILS — extract_arp_frame returns None.
+/// GREEN (STORY-112): returns Some(ArpFrame { outer_src_mac: Some(different_mac), ... }).
+/// Originally RED in STORY-111 (extract_arp_frame returned None).
 #[test]
 fn test_BC_2_16_001_invariant_outer_src_mac_mismatch_passthrough() {
     let payload = make_standard_arp_payload(
