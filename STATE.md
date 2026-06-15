@@ -1,7 +1,7 @@
 ---
 pipeline: FEATURE_MODE_ARP_ANALYZER
 phase: feature-F4-delta-implementation
-phase_status: "F4 IN PROGRESS — STORY-111 DELIVERED (develop cced898); STORY-112 (wave 41) STUB COMMITTED 0227d9c (Red Gate: extract_arp_frame None placeholder; cargo check green, 301 tests green); NEXT = test-writer (STORY-112 AC-001..012 failing tests)."
+phase_status: "F4 IN PROGRESS — STORY-111 DELIVERED (PR #236 cced898); STORY-112 (wave 41) Step-4.5 CONVERGED (3/3 clean logic passes; 1512 tests green; final HEAD c68964d; PR pending); NEXT = demo-recorder → pr-manager (STORY-112 PR)."
 active_feature: "arp-analyzer"
 feature_arp_status: "F1 Delta Analysis PASSED (human-gated 2026-06-12) — DecodedFrame integration, ADR-008 planned, F2→F7 authorized; release target v0.7.0"
 feature_8_status: "v0.6.0 RELEASED 2026-06-12 — DNP3 TCP analyzer; F7 5-dim CONVERGED; tag v0.6.0 + 4 binaries"
@@ -52,7 +52,7 @@ input_drift_check: "MATCH=23 STALE=44 ERROR=1 (STORY-091 known); ARP stories: ST
 
 ## Status
 
-**wirerust v0.6.0 RELEASED (DNP3 TCP analyzer, issue #8). Feature: ARP security analyzer + etherparse 0.16→0.20 migration (F1 PASSED 2026-06-12, D-066); release target v0.7.0. F2 CONVERGED (P33 CLEAN; 3/3 strict-whole-corpus). F3 CONVERGED 3/3 (Passes 36/37/38). F4 IN PROGRESS — STORY-111 DELIVERED (PR #236 cced898; wave 40 complete; D-073). NEXT = STORY-112.**
+**wirerust v0.6.0 RELEASED (DNP3 TCP analyzer, issue #8). Feature: ARP security analyzer + etherparse 0.16→0.20 migration (F1 PASSED 2026-06-12, D-066); release target v0.7.0. F2 CONVERGED (P33 CLEAN; 3/3 strict-whole-corpus). F3 CONVERGED 3/3 (Passes 36/37/38). F4 IN PROGRESS — STORY-111 DELIVERED (PR #236 cced898; wave 40; D-073); STORY-112 Step-4.5 CONVERGED (c68964d; 1512 tests green; PR pending). NEXT = demo-recorder → pr-manager (STORY-112).**
 
 **Summary:** 68 stories (48 greenfield + 1 tooling + 19 feature-cycle), 457 pts. 283 BCs (244 pre-F2 + 24 SS-15 + 15 SS-16 ARP), 24 VPs (23 locked + VP-024 ARP draft), 1496 tests green, holdout 0.967. develop HEAD cced898; main HEAD 3e29891 (v0.6.0). ARP feature: F1 approved — SS-16 (18-24 new BCs), VP-024, ADR-008, E-16 (5-6 stories). MITRE T0830+T1557.002. F4 wave 40 (STORY-111): etherparse 0.20 + DecodedFrame + ArpFrame + symmetric-unreachable design + non-panicking extract_arp_frame placeholder delivered PR #236.
 
@@ -83,11 +83,11 @@ input_drift_check: "MATCH=23 STALE=44 ERROR=1 (STORY-091 known); ARP stories: ST
 | Feature: ARP analyzer — F1 Delta Analysis | **PASSED** (human-gated 2026-06-12) | DecodedFrame{Ip,Arp} integration, ADR-008 planned, F2→F7 authorized; artifacts: `.factory/phase-f1-delta-analysis/arp-analyzer-delta-analysis.md` |
 | Feature: ARP analyzer — F2 Spec Evolution | **CONVERGED 3/3** (Pass 33, 2026-06-13); 33 passes total; P31/P32/P33 consecutive CLEAN; F2 strict-whole-corpus adversarial gate SATISFIED | 4-slice method; ARP delta SETTLED P9+; corpus-wide debt flushed P14-25; P26/P28/P31/P32/P33 CLEAN; P27/P29/P30 reset cycles surfaced+fixed genuine defects; trajectory: `phase-f5-adversarial/arp-f2-convergence-trajectory.md` |
 | Feature: ARP analyzer — F3 Story Decomposition | **CONVERGED 3/3** (Passes 36/37/38, 38 passes total incl. post-P26/P33 consistency flushes); F3 STRICT WHOLE-CORPUS ADVERSARIAL GATE SATISFIED; F3 human gate PASSED (D-070, 2026-06-14) | STORY-111..115 (E-16, 47 pts, linear chain); 15 SS-16 BCs; waves 40-44 holdouts; HS-INDEX v1.7; wave-schedule v1.3; SS-15 fully de-NEW-ed; corpus canonical 457 pts; trajectory: phase-f5-adversarial/arp-f3-convergence-trajectory.md |
-| Feature: ARP analyzer — F4 Delta Implementation | **IN PROGRESS** — STORY-111 DELIVERED (PR #236 cced898; wave 40); STORY-112 STUB COMMITTED (0227d9c; wave 41; Red Gate: extract_arp_frame None placeholder; cargo check green, 301 tests green); NEXT = test-writer (AC-001..012 failing tests) | per-story TDD; waves 40-44; v0.7.0 target |
+| Feature: ARP analyzer — F4 Delta Implementation | **IN PROGRESS** — STORY-111 DELIVERED (PR #236 cced898; wave 40); STORY-112 Step-4.5 CONVERGED (final HEAD c68964d; 1512 tests green; 3/3 clean logic passes; BC-5.39.001; PR pending; wave 41); NEXT = demo-recorder → pr-manager (STORY-112) | per-story TDD; waves 40-44; v0.7.0 target |
 
-## Session Resume Checkpoint (2026-06-14 — F4 ARP DELTA-IMPLEMENTATION; STORY-111 DELIVERED; STORY-112 STUB COMMITTED 0227d9c; NEXT = test-writer)
+## Session Resume Checkpoint (2026-06-15 — F4 ARP DELTA-IMPLEMENTATION; STORY-112 Step-4.5 CONVERGED c68964d; NEXT = demo-recorder → pr-manager)
 
-**Previous checkpoint (2026-06-14 — F4 IN PROGRESS; STORY-111 DELIVERED PR #236 cced898; NEXT STORY-112) archived to:
+**Previous checkpoint (2026-06-14 — F4 IN PROGRESS; STORY-111 DELIVERED PR #236 cced898; STORY-112 STUB COMMITTED 0227d9c; NEXT = test-writer) archived to:
 `cycles/feature-arp-v0.7.0/session-checkpoints.md`**
 
 ### A. EXACT PIPELINE POSITION
@@ -105,17 +105,13 @@ input_drift_check: "MATCH=23 STALE=44 ERROR=1 (STORY-091 known); ARP stories: ST
     symmetric-unreachable ARP decode (D-072), non-panicking extract_arp_frame placeholder,
     BC-2.02.009 v1.7, VP-008 fuzz-harness return-type update. 53 suites green; clippy/fmt clean.
     Worktree for STORY-111 removed.
-  - **Wave 41 / STORY-112: STUB COMMITTED at 0227d9c (worktree clean; cargo check --all-targets
-    green; 301 tests green).** Worktree at
-    `/Users/zious/Documents/GITHUB/wirerust/.worktrees/STORY-112` on branch
-    `worktree-issue-9-story-112-arp-extract-frame` (base cced898). Stub delivers:
-    `src/analyzer/arp.rs` (ArpAnalyzer no-op: `new()`/`default()`/`process_arp→vec![]`);
-    `pub mod arp` in `src/analyzer/mod.rs`; `main.rs` wires `DecodedFrame::Arp(frame)→
-    arp_analyzer.process_arp`; 3 VP-024 Sub-A Kani harness skeletons (`#[cfg(kani)] todo!()`
-    bodies, invisible to stable cargo check/test). `extract_arp_frame` is still the `None`
-    placeholder; `decode_packet` strict/lax ARP arms still return transitional
-    `Err("ARP extraction not yet implemented")`. Red Gate holds — real-extraction ACs will fail
-    once test-writer adds them. NEXT = test-writer (AC-001..012 failing tests).
+  - **Wave 41 / STORY-112: Step-4.5 CONVERGED.** Final HEAD `c68964d` on branch
+    `worktree-issue-9-story-112-arp-extract-frame` (base `cced898`). 3/3 clean logic passes
+    (frozen diff at 365dbeb); 1512 tests passed / 0 failed; rustfmt 1.9.0-stable (CI-matched).
+    All 10 AC banners GREEN. 4 comment-only fix commits resolved non-blocking findings
+    (F-1/F-2/F-3/Residual-F-1). VP-024 Sub-A Kani harnesses deferred to F6 (todo!()
+    skeletons; verification_lock:false; D-062 precedent). STORY-112.md v1.4 committed
+    (92797a2). input-hash: 8a4d566 (unchanged). **NEXT = demo-recorder → pr-manager (9-step PR).**
   - STORY-113/114/115: NOT STARTED.
 - **Decisions active: D-047..D-073; do NOT re-adjudicate D-068/D-069/D-071/D-072/D-073.**
 - **F3-OBL-STORY114-001/002/003 REVOKED** (D-069).
@@ -182,23 +178,19 @@ gh pr list --state open
 # expect: none (OR a STORY-112 PR if work advanced since checkpoint)
 ```
 
-**Step 3 — STORY-112 stub verification (confirm committed state; source of truth = git):**
+**Step 3 — STORY-112 convergence verification (source of truth = git):**
 ```
 git -C /Users/zious/Documents/GITHUB/wirerust/.worktrees/STORY-112 log --oneline -3
-# expect: 0227d9c stub(STORY-112): ArpAnalyzer no-op stub + pub mod arp + main.rs DecodedFrame::Arp wiring + VP-024 Sub-A Kani skeletons (Red Gate)
+# expect: c68964d (or later) — final HEAD after all comment-fix commits
 git -C /Users/zious/Documents/GITHUB/wirerust/.worktrees/STORY-112 status --short
 # expect: clean (no output)
-cd /Users/zious/Documents/GITHUB/wirerust/.worktrees/STORY-112 && cargo check --all-targets
-# expect: green
+cd /Users/zious/Documents/GITHUB/wirerust/.worktrees/STORY-112 && cargo test --all-targets
+# expect: 1512 passed / 0 failed
 ```
-- STUB COMMITTED at 0227d9c (worktree clean; cargo check green; 301 tests green).
-  NEXT = **test-writer** (failing AC-001..012 tests, Red Gate) → **implementer** (real
-  `extract_arp_frame` per BC-2.16.001/002; `decode_packet` strict `None→Err("Non-Ethernet/IPv4
-  ARP frame")` [AC-012] + `Some→Ok(DecodedFrame::Arp)`; lax `None→Err("truncated ARP frame")`;
-  VP-024 Sub-A Kani harness bodies at F6) → **Step-4.5 adversarial 3/3** → **demo-recorder** →
-  **pr-manager 9-step PR** → cleanup.
-- If git log/status/cargo check diverge from above → re-verify live state before dispatching
-  test-writer.
+- Step-4.5 CONVERGED at c68964d (3/3 clean logic passes; 1512 tests green).
+  NEXT = **demo-recorder** → **pr-manager 9-step PR** → worktree cleanup.
+- If git log/status/cargo test diverge from above → re-verify live state before dispatching
+  demo-recorder.
 
 **Step 4 — Before STORY-113 delivery:**
 - Re-stamp STORY-113/114/115 input-hashes:
@@ -304,6 +296,9 @@ Full tech-debt register: `.factory/tech-debt-register.md`.
 | DNPXX-SOURCE-RENAME-001 | src constant `DNPXX_DIRECT_OPERATE_THRESHOLD_DEFAULT` is an ugly placeholder-style name shipped in v0.6.0; candidate code-cleanup rename DNPXX_→DNP3_ (6 files: dnp3.rs/cli.rs/main.rs/tests + arp-delta + STORY-110) — OUT OF F3 SCOPE (spec/story only); defer to a code-quality maintenance sweep. Requires DF-VALIDATION-001 research-agent validation before GitHub issue filing. | DEFERRED LOW |
 | DF-SIBLING-SWEEP-CROSS-SS-001 | F-cycle BC-invariant corrections that change routing semantics shared across subsystems (e.g., strict/lax unreachable! vs explicit-routing pattern in SS-02+SS-16) MUST sweep cross-subsystem sibling BCs, not only the originating subsystem. BC-2.02.009 v1.6 sibling-sweep missed BC-2.16.015 SS-16 sibling; caught at F4 scoped re-review as HIGH would-be-panic. Candidate: extend DF-SIBLING-SWEEP-001 with a cross-subsystem enumeration rule for shared decode-architecture invariants. (PG-ARP-F4-SIBLING-SWEEP-CROSS-SUBSYSTEM) | DEFERRED — policy codification |
 | DRIFT-ARP-STORY-113-115-HASH-STALE | STORY-113/114/115 input-hashes stale after arp-architecture-delta v1.16 (D-072): stored a767d96/e2f1c95/5ca9835 vs computed 7c61bae/5705a10/2e0eca2. Re-stamp with `bin/compute-input-hash --write` before STORY-113 delivery; verify no stale "lax NOT unreachable" framing first. Non-blocking for STORY-112. | OPEN — pre-STORY-113 gate action |
+| PG-ARP-F4-REDBANNER-SWEEP | RED-gate banner sibling-sweep missed across 3 successive comment-fix bursts (module docstring fixed but per-test banners + AC-004 block left stale). Recurrence of DF-SIBLING-SWEEP-001 in the doc-comment dimension. Candidate: extend sibling-sweep checklist to enumerate per-test section banners + doc-comments as explicit targets when module-level status changes. Detail: `cycles/feature-arp-v0.7.0/lessons.md`. | DEFERRED — policy codification follow-up |
+| PG-ARP-F4-PRECLEAR-PROPAGATION | Orchestrator propagated a prior adversary pass's "leave as-is" pre-clearance into a fix dispatch (AC-004 banner), which a later fresh pass overturned as HIGH. Lesson: fix dispatches MUST NOT pre-clear regions based on an earlier pass's judgment; each fresh adversary examines the full perimeter pre-clearance-free. Candidate: DF-ADVERSARY-METHODOLOGY-001 language extension. Detail: `cycles/feature-arp-v0.7.0/lessons.md`. | DEFERRED — policy codification follow-up |
+| PG-ARP-F4-GUARD-WORDING | Checkout-guard premise "main repo does NOT have this function" was inaccurate (main repo has the STORY-111 None placeholder). Guard must key on BODY CONTENT (placeholder None vs real extraction) / the transitional error string, not function presence. Candidate: extend DF-ADVERSARY-CHECKOUT-GUARD-001. Detail: `cycles/feature-arp-v0.7.0/lessons.md`. | DEFERRED — extend DF-ADVERSARY-CHECKOUT-GUARD-001 |
 
 ## Deferred Next-Work Backlog
 
