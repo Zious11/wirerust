@@ -2,7 +2,7 @@
 document_type: story
 story_id: STORY-113
 epic_id: E-16
-version: "1.0"
+version: "1.1"
 status: draft
 producer: story-writer
 timestamp: 2026-06-13T00:00:00Z
@@ -27,7 +27,7 @@ estimated_days: 5
 feature_id: issue-009-arp-security-analyzer
 github_issue: 9
 # BC status: all 7 BCs authored 2026-06-12. Primary owner of BC-2.16.010 (summarize keys introduced here).
-# VP-024 Sub-B (verify_classify_garp_total Kani), Sub-C (test_binding_table_last_write_wins proptest), Sub-D (verify_binding_table_cap Kani) land here.
+# VP-024 Sub-B (verify_classify_garp_total Kani), Sub-C (test_BC_2_16_005_binding_table_last_write_wins proptest), Sub-D (verify_binding_table_cap Kani) land here.
 # NOTE: D1 spoof EMISSION (BC-2.16.004) is NOT in this story. Binding table infrastructure is built here, but D1 findings are emitted in STORY-114.
 inputs:
   - .factory/specs/architecture/arp-architecture-delta.md
@@ -70,9 +70,9 @@ input-hash: "7c61bae"
 
 **verify_classify_garp_total (Sub-B):** Kani harness. Symbolic `ArpFrame` with all fields symbolic; assert `is_gratuitous_arp(frame) == (frame.sender_ip == frame.target_ip)` for all symbolic inputs. Never panics. Targets the biconditional invariant in BC-2.16.003 Invariant 1.
 
-**test_binding_table_last_write_wins (Sub-C):** proptest. Arbitrary `Vec<(IP, MAC, opcode)>` sequences up to 1000 entries; after processing all frames, assert `bindings[ip].mac == mac_from_last_frame_with_that_ip` for every IP. Uses `new_for_test()`, `process_arp_for_test()`, `bindings_snapshot()` test affordances (BC-2.16.005 Architecture Anchors, ADR-008 Decision 4 extensions).
+**test_BC_2_16_005_binding_table_last_write_wins (Sub-C):** proptest. Arbitrary `Vec<(IP, MAC, opcode)>` sequences up to 1000 entries; after processing all frames, assert `bindings[ip].mac == mac_from_last_frame_with_that_ip` for every IP. Uses `new_for_test()`, `process_arp_for_test()`, `bindings_snapshot()` test affordances (BC-2.16.005 Architecture Anchors, ADR-008 Decision 4 extensions).
 
-> **Sub-C anchor adjudication (PO, 2026-06-13):** VP-024 Sub-C (test_binding_table_last_write_wins proptest) has BC-2.16.005 as its primary anchor. BC-2.16.004 (D1 spoof escalation, STORY-114) indirectly depends on this last-write-wins substrate; Sub-C does not formally discharge BC-2.16.004.
+> **Sub-C anchor adjudication (PO, 2026-06-13):** VP-024 Sub-C (test_BC_2_16_005_binding_table_last_write_wins proptest) has BC-2.16.005 as its primary anchor. BC-2.16.004 (D1 spoof escalation, STORY-114) indirectly depends on this last-write-wins substrate; Sub-C does not formally discharge BC-2.16.004.
 
 **verify_binding_table_cap (Sub-D):** Kani harness using `insert_binding_lru_btree` (BTreeMap surrogate gated under `#[cfg(any(kani, test))]`). `TEST_MAX_ARP_BINDINGS = 8`; 9-iteration loop (cap+1); `#[kani::unwind(12)]`; assert `len <= 8` after each insert. Production type remains `HashMap`.
 
@@ -82,12 +82,12 @@ input-hash: "7c61bae"
 `fn is_gratuitous_arp(frame: &ArpFrame) -> bool` returns `true` if and only if
 `frame.sender_ip == frame.target_ip` (byte-wise). Returns `false` if and only if
 `frame.sender_ip != frame.target_ip`. No other field affects the return value.
-- **Test:** `test_is_gratuitous_arp_true_when_sender_eq_target_ip()`, `test_is_gratuitous_arp_false_when_sender_ne_target_ip()`
+- **Test:** `test_BC_2_16_003_is_gratuitous_arp_true_when_sender_eq_target_ip`, `test_BC_2_16_003_is_gratuitous_arp_false_when_sender_ne_target_ip`
 
 ### AC-002 (traces to BC-2.16.003 postcondition 3 — opcode agnosticism)
 `is_gratuitous_arp` returns `true` for both op=1 (Request GARP) and op=2 (Reply GARP) when
 sender_ip == target_ip. The function does not inspect the operation field.
-- **Test:** `test_is_gratuitous_arp_opcode_agnostic()`
+- **Test:** `test_BC_2_16_003_is_gratuitous_arp_opcode_agnostic`
 
 ### AC-003 (traces to BC-2.16.003 postcondition 5 — GARP finding at LOW/Anomaly)
 When `is_gratuitous_arp` returns `true` AND there is no binding conflict (benign GARP),
@@ -97,35 +97,35 @@ clarified §3.3 D2 rule: benign GARP emits no MITRE techniques; T0830 and T1557.
 attached only on GARP-conflicts (which escalate to D1 and are handled by STORY-114 via
 BC-2.16.014). This is consistent with the Scope Boundary note above and Architecture
 Compliance Rule 4.
-- **Test:** `test_process_arp_garp_emits_low_anomaly_finding()` (asserts `mitre_techniques` is empty)
+- **Test:** `test_BC_2_16_003_process_arp_garp_emits_low_anomaly_finding` (asserts `mitre_techniques` is empty)
 
 ### AC-004 (traces to BC-2.16.003 postcondition 6 — one GARP finding per GARP frame)
 Exactly one GARP finding is emitted per frame where `is_gratuitous_arp` returns `true`.
 There is no cross-frame one-shot guard for GARP (unlike D1 and D3). Each GARP frame
 produces its own finding.
-- **Test:** `test_process_arp_garp_emits_per_frame()` (10 consecutive GARP frames → 10 findings)
+- **Test:** `test_BC_2_16_003_process_arp_garp_emits_per_frame` (10 consecutive GARP frames → 10 findings)
 
 ### AC-005 (traces to BC-2.16.005 postcondition 1 — last-write-wins binding update)
 After `process_arp(frame, ts)` completes, `bindings[frame.sender_ip].mac == frame.sender_mac`.
 For non-zero, non-broadcast sender IPs, the binding table holds the MAC from the most recently
 processed frame with that sender IP.
-- **Test:** `test_binding_table_last_write_wins_basic()`
+- **Test:** `test_BC_2_16_005_binding_table_last_write_wins_basic`
 
 ### AC-006 (traces to BC-2.16.005 postcondition 4/invariant 3 — first-time observation initializes entry)
 When a sender_ip is seen for the first time, a new binding is inserted with `rebind_count = 0`,
 `first_rebind_ts = None`, `spoof_high_emitted = false`. No finding is emitted on first observation.
-- **Test:** `test_binding_first_observation_no_finding()`
+- **Test:** `test_BC_2_16_005_binding_first_observation_no_finding`
 
 ### AC-007 (traces to BC-2.16.005 invariant 5 — zero and broadcast sender IPs filtered)
 `process_arp` does NOT insert a binding entry for `sender_ip = [0, 0, 0, 0]` (zero) or
 `sender_ip = [255, 255, 255, 255]` (broadcast). No spoof finding is emitted for these values.
-- **Test:** `test_binding_zero_sender_ip_filtered()`, `test_binding_broadcast_sender_ip_filtered()`
+- **Test:** `test_BC_2_16_005_binding_zero_sender_ip_filtered`, `test_BC_2_16_005_binding_broadcast_sender_ip_filtered`
 
 ### AC-008 (traces to BC-2.16.006 postcondition 2 — binding table cap enforced)
 `bindings.len()` NEVER exceeds `MAX_ARP_BINDINGS = 65_536` at any point during processing.
 When a new IP would cause overflow, `insert_binding_lru` evicts the entry with the minimum
 `last_seen_ts` before inserting.
-- **Test:** `test_binding_table_cap_enforced()` (insert 65,537 distinct IPs; assert `bindings.len() == 65_536` after each insert past cap)
+- **Test:** `test_BC_2_16_006_binding_table_cap_enforced` (insert 65,537 distinct IPs; assert `bindings.len() == 65_536` after each insert past cap)
 
 ### AC-009 (traces to BC-2.16.007 postcondition 1 — D12 mismatch finding emitted)
 When `frame.outer_src_mac == Some(eth_mac)` and `eth_mac != frame.sender_mac`, `process_arp`
@@ -135,13 +135,13 @@ are attached in STORY-114 wave 43, co-committed with the VP-007 5-part atomic up
 BC-2.16.007's cross-story delivery note — analogous to the D1 deferral in STORY-113's 'Crucial boundary' note and
 the BC-2.16.010 storm_findings value-wiring). Evidence includes eth_mac, arp_sender_mac, and
 sender_ip.
-- **Test:** `test_d12_mismatch_emits_medium_finding()` (asserts `mitre_techniques` is empty at wave 42)
+- **Test:** `test_BC_2_16_007_d12_mismatch_emits_medium_finding` (asserts `mitre_techniques` is empty at wave 42)
 
 ### AC-010 (traces to BC-2.16.007 postcondition 4/5 — D12 skipped for None or matching MACs)
 When `frame.outer_src_mac == None`, no D12 finding is emitted. When
 `frame.outer_src_mac == Some(mac)` and `mac == frame.sender_mac`, no D12 finding is emitted.
 D12 is stateless: no binding table state is updated.
-- **Test:** `test_d12_skipped_when_outer_src_mac_none()`, `test_d12_skipped_when_macs_match()`
+- **Test:** `test_BC_2_16_007_d12_skipped_when_outer_src_mac_none`, `test_BC_2_16_007_d12_skipped_when_macs_match`
 
 ### AC-011 (traces to BC-2.16.009 postcondition 3 — D11 malformed ARP finding emitted)
 When `main.rs` calls `arp_analyzer.record_malformed(packet_len)` (or equivalent mechanism)
@@ -149,46 +149,46 @@ after receiving `Err("Non-Ethernet/IPv4 ARP frame")` from `decode_packet`, `ArpA
 emits one `Finding` with `confidence: LOW`, `finding_type: Anomaly`, description indicating
 malformed ARP frame, `mitre_techniques: []` (empty — T0814 withheld per DF-VALIDATION-001),
 and evidence including the packet_len.
-- **Test:** `test_d11_malformed_arp_emits_low_finding()`
+- **Test:** `test_BC_2_16_009_d11_malformed_arp_emits_low_finding`
 
 ### AC-012 (traces to BC-2.16.009 postcondition 4 — malformed counters)
 `frames_analyzed` is NOT incremented for malformed frames. `malformed_frames` increments
 unconditionally on every malformed frame event (even when `--arp` is absent). `malformed_findings`
 increments only when `--arp` is active (one-shot with each `record_malformed` call under the `--arp` gate).
-- **Test:** `test_d11_malformed_counter_semantics()`
+- **Test:** `test_BC_2_16_009_d11_malformed_counter_semantics`
 
 ### AC-013 (traces to BC-2.16.010 postcondition 1 — all eleven summary keys present)
 `ArpAnalyzer::summarize()` returns an `AnalysisSummary` containing exactly these eleven keys
 (exact string names): `"frames_analyzed"`, `"request_count"`, `"reply_count"`, `"other_opcode_count"`, `"bindings_tracked"`, `"spoof_findings"`, `"garp_findings"`, `"storm_findings"`, `"mismatch_findings"`, `"malformed_findings"`, `"malformed_frames"`. All values are `u64` (or compatible numeric). All keys present with value 0 when no frames processed (BC-2.16.010 EC-001).
-- **Test:** `test_summarize_zero_frames_all_eleven_keys_zero()`, `test_summarize_key_names_exact()`
+- **Test:** `test_BC_2_16_010_summarize_zero_frames_all_eleven_keys_zero`, `test_BC_2_16_010_summarize_key_names_exact`
 
 ### AC-014 (traces to BC-2.16.010 invariant 3 — reconciliation invariant)
 `request_count + reply_count + other_opcode_count == frames_analyzed` holds after every
 `process_arp` call. Malformed frames (incrementing `malformed_frames`) do NOT contribute to
 `frames_analyzed`.
-- **Test:** `test_summarize_reconciliation_invariant()`
+- **Test:** `test_BC_2_16_010_summarize_reconciliation_invariant`
 
 ### AC-015 (traces to BC-2.16.011 postconditions 1–4 — --arp absent: no analysis)
 When `args.arp` is false (flag absent), `process_arp` is NOT called on any ARP frame in
 `main.rs`. No ARP findings are emitted. No ARP summary is appended to `analyzer_summaries`.
-- **Test:** `test_main_arp_flag_absent_no_findings_no_summary()` (integration)
+- **Test:** `test_BC_2_16_011_main_arp_flag_absent_no_findings_no_summary` (integration, tests/bc_2_16_story113_arp_tests.rs)
 
 ### AC-016 (traces to BC-2.16.011 postconditions 5–8 — --arp present: analysis active)
 When `args.arp` is true, `process_arp` is called for every `DecodedFrame::Arp` frame.
 `ArpAnalyzer::summarize()` is called at end of capture and appended to `analyzer_summaries`
 (following the Modbus/DNP3 pattern in `main.rs`). The `--arp` flag is declared as
 `#[arg(long)] arp: bool` on `Commands::Analyze` in `src/cli.rs`.
-- **Test:** `test_main_arp_flag_present_summarize_appended()` (integration)
+- **Test:** `test_BC_2_16_011_main_arp_flag_present_summarize_appended` (integration, tests/bc_2_16_story113_arp_tests.rs)
 
 ### AC-017 (traces to BC-2.16.003/VP-024 Sub-B — verify_classify_garp_total Kani harness)
 `verify_classify_garp_total` Kani harness asserts the biconditional `is_gratuitous_arp(frame) == (frame.sender_ip == frame.target_ip)` for all symbolic `ArpFrame` inputs. Reports `VERIFICATION:- SUCCESSFUL`.
 - **Kani:** Run at F6 formal-hardening gate.
 
-### AC-018 (traces to BC-2.16.005/VP-024 Sub-C — test_binding_table_last_write_wins proptest)
-`test_binding_table_last_write_wins` proptest verifies that for any arbitrary sequence of
+### AC-018 (traces to BC-2.16.005/VP-024 Sub-C — test_BC_2_16_005_binding_table_last_write_wins proptest)
+`test_BC_2_16_005_binding_table_last_write_wins` proptest verifies that for any arbitrary sequence of
 `Vec<ArpFrame>` up to 1000 entries, `bindings[ip].mac == mac_from_last_frame_with_that_ip`
 for every IP in the sequence. Uses `new_for_test()`, `process_arp_for_test()`, `bindings_snapshot()`.
-- **Test:** proptest in `src/analyzer/arp.rs` tests module; runs at `cargo test`.
+- **Test:** `test_BC_2_16_005_binding_table_last_write_wins` proptest in `src/analyzer/arp.rs` tests module; runs at `cargo test`.
 
 ### AC-019 (traces to BC-2.16.006/VP-024 Sub-D — verify_binding_table_cap Kani harness)
 `verify_binding_table_cap` Kani harness using `insert_binding_lru_btree` (BTreeMap surrogate,
@@ -197,11 +197,11 @@ for every IP in the sequence. Uses `new_for_test()`, `process_arp_for_test()`, `
 
 ### AC-020 (traces to BC-2.16.007 invariant 3 / EC-004 — D12 and D2 co-emit on a single frame)
 A single ARP frame where `sender_ip == target_ip` (GARP condition) AND `outer_src_mac != sender_mac` (D12 mismatch condition) causes `process_arp` to emit exactly two findings in the same call: one D12 `Finding` (MEDIUM/Anomaly, `mitre_techniques: []`) and one D2 GARP `Finding` (LOW/Anomaly, `mitre_techniques: []`). The two detections are independent and both fire. D1 co-emit (GARP-that-conflicts) is out of scope for this story — that escalation requires the binding conflict check and is STORY-114's responsibility.
-- **Test:** `test_d12_and_garp_coemit_on_single_frame()`
+- **Test:** `test_BC_2_16_007_d12_and_garp_coemit_on_single_frame`
 
 ### AC-021 (traces to BC-2.16.005 postcondition 5 — same-MAC re-observation advances last_seen_ts)
 When `process_arp` processes a frame where `sender_ip` already has a binding entry AND `frame.sender_mac == bindings[sender_ip].mac` (no MAC change — no rebind), the binding entry's `last_seen_ts` is still updated to the current `timestamp_secs`. `rebind_count` remains unchanged. This ensures LRU eviction correctly identifies the most-recently-seen entry regardless of whether a rebind occurred.
-- **Test:** `test_binding_same_mac_touches_last_seen_ts()`
+- **Test:** `test_BC_2_16_005_binding_same_mac_touches_last_seen_ts`
 
 ## Architecture Mapping
 
@@ -264,7 +264,7 @@ Architecture section references: `architecture/module-decomposition.md` (SS-16 C
 11. **Update `src/main.rs`**: call `arp_analyzer.summarize()` and append to `analyzer_summaries` when `args.arp` is true; wire `record_malformed` for `Err("Non-Ethernet/IPv4 ARP frame")` catch.
 12. **Implement test affordances** (`#[cfg(test)]`): `new_for_test()`, `process_arp_for_test()`, `bindings_snapshot()`.
 13. **Write VP-024 Sub-B Kani harness** (`verify_classify_garp_total`) in `src/analyzer/arp.rs` `#[cfg(kani)]` mod.
-14. **Write VP-024 Sub-C proptest** (`test_binding_table_last_write_wins`) in `src/analyzer/arp.rs` tests module.
+14. **Write VP-024 Sub-C proptest** (`test_BC_2_16_005_binding_table_last_write_wins`) in `src/analyzer/arp.rs` tests module.
 15. **Write VP-024 Sub-D Kani harness** (`verify_binding_table_cap`) using `insert_binding_lru_btree`.
 16. **Run `cargo test --all-targets`**: all tests green (including proptest Sub-C).
 17. **Run `cargo clippy --all-targets -- -D warnings`**: clean.
@@ -273,27 +273,27 @@ Architecture section references: `architecture/module-decomposition.md` (SS-16 C
 
 | AC | Test | Type |
 |----|------|------|
-| AC-001 | `test_is_gratuitous_arp_true/false` | Unit |
-| AC-002 | `test_is_gratuitous_arp_opcode_agnostic` | Unit |
-| AC-003 | `test_process_arp_garp_emits_low_anomaly_finding` | Unit |
-| AC-004 | `test_process_arp_garp_emits_per_frame` | Unit |
-| AC-005 | `test_binding_table_last_write_wins_basic` | Unit |
-| AC-006 | `test_binding_first_observation_no_finding` | Unit |
-| AC-007 | `test_binding_zero_sender_ip_filtered`, `test_binding_broadcast_sender_ip_filtered` | Unit |
-| AC-008 | `test_binding_table_cap_enforced` | Unit |
-| AC-009 | `test_d12_mismatch_emits_medium_finding` | Unit |
-| AC-010 | `test_d12_skipped_when_outer_src_mac_none`, `test_d12_skipped_when_macs_match` | Unit |
-| AC-011 | `test_d11_malformed_arp_emits_low_finding` | Unit |
-| AC-012 | `test_d11_malformed_counter_semantics` | Unit |
-| AC-013 | `test_summarize_zero_frames_all_eleven_keys_zero`, `test_summarize_key_names_exact` | Unit |
-| AC-014 | `test_summarize_reconciliation_invariant` | Unit |
-| AC-015 | `test_main_arp_flag_absent_no_findings_no_summary` | Integration |
-| AC-016 | `test_main_arp_flag_present_summarize_appended` | Integration |
+| AC-001 | `test_BC_2_16_003_is_gratuitous_arp_true_when_sender_eq_target_ip`, `test_BC_2_16_003_is_gratuitous_arp_false_when_sender_ne_target_ip` | Unit |
+| AC-002 | `test_BC_2_16_003_is_gratuitous_arp_opcode_agnostic` | Unit |
+| AC-003 | `test_BC_2_16_003_process_arp_garp_emits_low_anomaly_finding` | Unit |
+| AC-004 | `test_BC_2_16_003_process_arp_garp_emits_per_frame` | Unit |
+| AC-005 | `test_BC_2_16_005_binding_table_last_write_wins_basic` | Unit |
+| AC-006 | `test_BC_2_16_005_binding_first_observation_no_finding` | Unit |
+| AC-007 | `test_BC_2_16_005_binding_zero_sender_ip_filtered`, `test_BC_2_16_005_binding_broadcast_sender_ip_filtered` | Unit |
+| AC-008 | `test_BC_2_16_006_binding_table_cap_enforced` | Unit |
+| AC-009 | `test_BC_2_16_007_d12_mismatch_emits_medium_finding` | Unit |
+| AC-010 | `test_BC_2_16_007_d12_skipped_when_outer_src_mac_none`, `test_BC_2_16_007_d12_skipped_when_macs_match` | Unit |
+| AC-011 | `test_BC_2_16_009_d11_malformed_arp_emits_low_finding` | Unit |
+| AC-012 | `test_BC_2_16_009_d11_malformed_counter_semantics` | Unit |
+| AC-013 | `test_BC_2_16_010_summarize_zero_frames_all_eleven_keys_zero`, `test_BC_2_16_010_summarize_key_names_exact` | Unit |
+| AC-014 | `test_BC_2_16_010_summarize_reconciliation_invariant` | Unit |
+| AC-015 | `test_BC_2_16_011_main_arp_flag_absent_no_findings_no_summary` | Integration (tests/bc_2_16_story113_arp_tests.rs) |
+| AC-016 | `test_BC_2_16_011_main_arp_flag_present_summarize_appended` | Integration (tests/bc_2_16_story113_arp_tests.rs) |
 | AC-017 | `verify_classify_garp_total` | Kani (F6) |
-| AC-018 | `test_binding_table_last_write_wins` | proptest (`cargo test`) |
+| AC-018 | `test_BC_2_16_005_binding_table_last_write_wins` | proptest (`cargo test`) |
 | AC-019 | `verify_binding_table_cap` | Kani (F6) |
-| AC-020 | `test_d12_and_garp_coemit_on_single_frame` | Unit |
-| AC-021 | `test_binding_same_mac_touches_last_seen_ts` | Unit |
+| AC-020 | `test_BC_2_16_007_d12_and_garp_coemit_on_single_frame` | Unit |
+| AC-021 | `test_BC_2_16_005_binding_same_mac_touches_last_seen_ts` | Unit |
 
 ## Previous Story Intelligence
 
@@ -355,3 +355,7 @@ This is the largest story in E-16. At ~31k tokens it approaches the 20–30% con
 
 - `depends_on: [STORY-112]` — STORY-112 delivers working `extract_arp_frame`, the `ArpAnalyzer` stub, and the `main.rs` `DecodedFrame` pattern-match. The full implementation in STORY-113 cannot proceed without the stub's method signatures and the working extraction function.
 - `blocks: [STORY-114]` — STORY-114 implements D1 spoof escalation, GARP-that-conflicts (BC-2.16.014), and the VP-007 MITRE atomic update. All of these depend on the binding table (BC-2.16.005/BC-2.16.006) and GARP detection (BC-2.16.003) from this story.
+
+## Changelog
+
+- v1.1: F-3 pre-empt — AC **Test:** + Test Plan citations synced to exact BC-prefixed test fn names (DF-AC-TEST-NAME-SYNC-001). Source: test-writer commit 01a67c0. input-hash unchanged at 7c61bae.
