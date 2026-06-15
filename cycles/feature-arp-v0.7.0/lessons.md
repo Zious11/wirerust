@@ -399,3 +399,38 @@ do NOT edit in this burst."
 
 **Status:** DEFERRED — remediation dispatch template hardening; apply proactively in
 STORY-115 remediation dispatches.
+
+---
+
+## [process-gap] PG-ARP-F4-PRMGR-MERGE-SHORTSTOP (RECURRENCE #5)
+
+**Source:** STORY-114 PR #240 delivery (2026-06-15). Fifth recurrence this feature cycle.
+
+**Observation:** pr-manager again stopped at step 6 (APPROVE) on PR #240 without
+executing steps 7-9 (merge + confirm CI + consolidated report). Required an orchestrator
+SendMessage to complete the merge. This is now the 5th consecutive recurrence across
+every ARP-feature PR (PRs #236 STORY-111, #238 STORY-112, #239 STORY-113, #240 STORY-114,
+plus the DNP3 F5 instance that seeded the pattern) — a 100% recurrence rate on every
+ARP-feature PR.
+
+**Pattern confirmed at 100% recurrence rate:** Every ARP-feature PR has required manual
+merge-completion intervention. The pr-manager agent consistently interprets its mandate as
+obtaining APPROVE, not as driving the PR through to a merged and confirmed state. The 9-step
+dispatch protocol is structurally under-weighted toward completion (steps 7-9) relative to
+the review loop (steps 1-6).
+
+**Escalation note:** Five consecutive recurrences across one full feature cycle with zero
+passes constitutes a confirmed agent-prompt defect in the vsdd-factory pr-manager. The
+codified policy DF-PR-MANAGER-COMPLETE-001 has been active since recurrence #1 (DNP3 F5)
+without correction. This defect requires escalation to CRITICAL priority and a formal
+agent-prompt-defect filing after DF-VALIDATION-001 research-agent validation.
+
+**Proactive mitigation for STORY-115:** The orchestrator MUST explicitly include in the
+pr-manager dispatch message: "DO NOT STOP AT APPROVE — you MUST execute steps 7-9 (merge,
+confirm CI green, consolidated report) before returning to orchestrator. Steps 7-9 are not
+optional and are part of this dispatch." The orchestrator MUST verify merge completion
+before closing the PR cycle.
+
+**Status:** DEFERRED — escalate DF-PR-MANAGER-COMPLETE-001 to CRITICAL in policy registry;
+file agent-prompt-defect against vsdd-factory pr-manager after DF-VALIDATION-001
+research-agent validation; apply proactive merge-completion mandate in STORY-115 dispatch.
