@@ -23,7 +23,7 @@ use criterion::{Criterion, criterion_group, criterion_main};
 
 use wirerust::analyzer::http::HttpAnalyzer;
 use wirerust::analyzer::tls::TlsAnalyzer;
-use wirerust::decoder::decode_packet;
+use wirerust::decoder::{DecodedFrame, decode_packet};
 use wirerust::dispatcher::StreamDispatcher;
 use wirerust::reader::PcapSource;
 use wirerust::reassembly::{ReassemblyConfig, TcpReassembler};
@@ -60,10 +60,15 @@ fn bench_summary(c: &mut Criterion) {
     for fixture in ["segmented.pcap", "dns-remoteshell.pcap"] {
         let source = load(fixture);
         // Pre-decode once so the benchmark isolates `Summary::ingest`.
+        // STORY-111: decode_packet now returns Result<DecodedFrame>; extract
+        // only IP frames for the summary benchmark (ARP frames have no IP stats).
         let parsed: Vec<_> = source
             .packets
             .iter()
-            .filter_map(|raw| decode_packet(&raw.data, source.datalink).ok())
+            .filter_map(|raw| match decode_packet(&raw.data, source.datalink).ok()? {
+                DecodedFrame::Ip(p) => Some(p),
+                DecodedFrame::Arp(_) => None,
+            })
             .collect();
         group.bench_function(fixture, |b| {
             b.iter(|| {
@@ -84,13 +89,15 @@ fn bench_reassembly(c: &mut Criterion) {
     let mut group = c.benchmark_group("reassembly");
     for fixture in ["segmented.pcap", "tls.pcap"] {
         let source = load(fixture);
+        // STORY-111: filter to IP frames only; ARP frames are not reassembled.
         let parsed: Vec<_> = source
             .packets
             .iter()
             .filter_map(|raw| {
-                decode_packet(&raw.data, source.datalink)
-                    .ok()
-                    .map(|p| (p, raw.timestamp_secs))
+                match decode_packet(&raw.data, source.datalink).ok()? {
+                    DecodedFrame::Ip(p) => Some((p, raw.timestamp_secs)),
+                    DecodedFrame::Arp(_) => None,
+                }
             })
             .collect();
         group.bench_function(fixture, |b| {

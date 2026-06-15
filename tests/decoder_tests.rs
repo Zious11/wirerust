@@ -1,7 +1,7 @@
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 
 use pcap_file::DataLink;
-use wirerust::decoder::{Protocol, TransportInfo, decode_packet};
+use wirerust::decoder::{DecodedFrame, Protocol, TransportInfo, decode_packet};
 
 fn make_tcp_packet() -> Vec<u8> {
     vec![
@@ -54,7 +54,9 @@ fn make_raw_ip_tcp_packet() -> Vec<u8> {
 #[test]
 fn test_decode_tcp_packet() {
     let data = make_tcp_packet();
-    let parsed = decode_packet(&data, DataLink::ETHERNET).unwrap();
+    let DecodedFrame::Ip(parsed) = decode_packet(&data, DataLink::ETHERNET).unwrap() else {
+        panic!("expected IP DecodedFrame")
+    };
 
     assert_eq!(parsed.src_ip, IpAddr::V4(Ipv4Addr::new(192, 168, 1, 10)));
     assert_eq!(parsed.dst_ip, IpAddr::V4(Ipv4Addr::new(192, 168, 1, 1)));
@@ -75,7 +77,9 @@ fn test_decode_tcp_packet() {
 #[test]
 fn test_decode_udp_dns_packet() {
     let data = make_udp_packet();
-    let parsed = decode_packet(&data, DataLink::ETHERNET).unwrap();
+    let DecodedFrame::Ip(parsed) = decode_packet(&data, DataLink::ETHERNET).unwrap() else {
+        panic!("expected IP DecodedFrame")
+    };
 
     assert_eq!(parsed.src_ip, IpAddr::V4(Ipv4Addr::new(10, 0, 0, 1)));
     assert_eq!(parsed.dst_ip, IpAddr::V4(Ipv4Addr::new(10, 0, 0, 2)));
@@ -101,7 +105,9 @@ fn test_decode_invalid_packet() {
 #[test]
 fn test_decode_raw_ip_tcp_packet() {
     let data = make_raw_ip_tcp_packet();
-    let parsed = decode_packet(&data, DataLink::RAW).unwrap();
+    let DecodedFrame::Ip(parsed) = decode_packet(&data, DataLink::RAW).unwrap() else {
+        panic!("expected IP DecodedFrame")
+    };
 
     assert_eq!(parsed.src_ip, IpAddr::V4(Ipv4Addr::new(192, 168, 1, 10)));
     assert_eq!(parsed.dst_ip, IpAddr::V4(Ipv4Addr::new(192, 168, 1, 1)));
@@ -121,7 +127,9 @@ fn test_decode_raw_ip_tcp_packet() {
 fn test_decode_ipv4_linktype_uses_from_ip() {
     // DataLink::IPV4 should use from_ip(), same as RAW
     let data = make_raw_ip_tcp_packet();
-    let parsed = decode_packet(&data, DataLink::IPV4).unwrap();
+    let DecodedFrame::Ip(parsed) = decode_packet(&data, DataLink::IPV4).unwrap() else {
+        panic!("expected IP DecodedFrame")
+    };
     assert_eq!(parsed.src_ip, IpAddr::V4(Ipv4Addr::new(192, 168, 1, 10)));
     assert_eq!(parsed.protocol, Protocol::Tcp);
 }
@@ -147,7 +155,9 @@ fn make_raw_ipv6_tcp_packet() -> Vec<u8> {
 #[test]
 fn test_decode_ipv6_tcp_packet() {
     let data = make_raw_ipv6_tcp_packet();
-    let parsed = decode_packet(&data, DataLink::IPV6).unwrap();
+    let DecodedFrame::Ip(parsed) = decode_packet(&data, DataLink::IPV6).unwrap() else {
+        panic!("expected IP DecodedFrame")
+    };
 
     assert_eq!(
         parsed.src_ip,
@@ -199,7 +209,9 @@ fn make_linux_sll_tcp_packet() -> Vec<u8> {
 #[test]
 fn test_decode_linux_sll_tcp_packet() {
     let data = make_linux_sll_tcp_packet();
-    let parsed = decode_packet(&data, DataLink::LINUX_SLL).unwrap();
+    let DecodedFrame::Ip(parsed) = decode_packet(&data, DataLink::LINUX_SLL).unwrap() else {
+        panic!("expected IP DecodedFrame")
+    };
 
     assert_eq!(parsed.src_ip, IpAddr::V4(Ipv4Addr::new(10, 0, 0, 1)));
     assert_eq!(parsed.dst_ip, IpAddr::V4(Ipv4Addr::new(10, 0, 0, 2)));
@@ -236,8 +248,11 @@ fn make_snaplen_truncated_eth_tcp() -> Vec<u8> {
 #[test]
 fn test_decode_snaplen_truncated_ethernet_recovers_via_lax_parsing() {
     let data = make_snaplen_truncated_eth_tcp();
-    let parsed = decode_packet(&data, DataLink::ETHERNET)
-        .expect("snaplen-truncated Ethernet frame must decode via the lax fallback");
+    let DecodedFrame::Ip(parsed) = decode_packet(&data, DataLink::ETHERNET)
+        .expect("snaplen-truncated Ethernet frame must decode via the lax fallback")
+    else {
+        panic!("expected IP DecodedFrame")
+    };
 
     assert_eq!(parsed.src_ip, IpAddr::V4(Ipv4Addr::new(192, 168, 1, 10)));
     assert_eq!(parsed.dst_ip, IpAddr::V4(Ipv4Addr::new(192, 168, 1, 1)));
@@ -259,8 +274,11 @@ fn test_decode_snaplen_truncated_raw_ip_recovers_via_lax_parsing() {
     let mut data = make_raw_ip_tcp_packet();
     data[2] = 0x05;
     data[3] = 0xdc;
-    let parsed = decode_packet(&data, DataLink::RAW)
-        .expect("snaplen-truncated raw-IP frame must decode via the lax fallback");
+    let DecodedFrame::Ip(parsed) = decode_packet(&data, DataLink::RAW)
+        .expect("snaplen-truncated raw-IP frame must decode via the lax fallback")
+    else {
+        panic!("expected IP DecodedFrame")
+    };
 
     assert_eq!(parsed.src_ip, IpAddr::V4(Ipv4Addr::new(192, 168, 1, 10)));
     assert_eq!(parsed.protocol, Protocol::Tcp);
@@ -275,8 +293,11 @@ fn test_decode_snaplen_truncated_linux_sll_recovers_via_lax_parsing() {
     let mut data = make_linux_sll_tcp_packet();
     data[18] = 0x05;
     data[19] = 0xdc;
-    let parsed = decode_packet(&data, DataLink::LINUX_SLL)
-        .expect("snaplen-truncated SLL frame must decode via the lax fallback");
+    let DecodedFrame::Ip(parsed) = decode_packet(&data, DataLink::LINUX_SLL)
+        .expect("snaplen-truncated SLL frame must decode via the lax fallback")
+    else {
+        panic!("expected IP DecodedFrame")
+    };
 
     assert_eq!(parsed.src_ip, IpAddr::V4(Ipv4Addr::new(10, 0, 0, 1)));
     assert_eq!(parsed.dst_ip, IpAddr::V4(Ipv4Addr::new(10, 0, 0, 2)));
@@ -293,7 +314,10 @@ fn test_decode_snaplen_truncated_clamps_payload_to_captured_bytes() {
     data.extend_from_slice(&[0xde, 0xad, 0xbe, 0xef, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06]);
     data[16] = 0x05;
     data[17] = 0xdc;
-    let parsed = decode_packet(&data, DataLink::ETHERNET).expect("must decode");
+    let DecodedFrame::Ip(parsed) = decode_packet(&data, DataLink::ETHERNET).expect("must decode")
+    else {
+        panic!("expected IP DecodedFrame")
+    };
 
     assert_eq!(
         parsed.payload.len(),
@@ -313,8 +337,11 @@ fn test_decode_snaplen_truncated_ipv6_recovers_via_lax_parsing() {
     let mut data = make_raw_ipv6_tcp_packet();
     data[4] = 0x05;
     data[5] = 0xdc; // payload_length = 1500, far past the captured bytes
-    let parsed = decode_packet(&data, DataLink::IPV6)
-        .expect("snaplen-truncated IPv6 frame must decode via the lax fallback");
+    let DecodedFrame::Ip(parsed) = decode_packet(&data, DataLink::IPV6)
+        .expect("snaplen-truncated IPv6 frame must decode via the lax fallback")
+    else {
+        panic!("expected IP DecodedFrame")
+    };
 
     assert_eq!(parsed.protocol, Protocol::Tcp);
     match parsed.transport {
@@ -339,8 +366,11 @@ fn test_decode_truncation_inside_tcp_header_degrades_to_other() {
     // that lands within the transport header rather than the payload.
     let full = make_tcp_packet();
     let truncated = &full[..44];
-    let parsed = decode_packet(truncated, DataLink::ETHERNET)
-        .expect("a frame truncated mid-TCP-header must still decode its IP layer");
+    let DecodedFrame::Ip(parsed) = decode_packet(truncated, DataLink::ETHERNET)
+        .expect("a frame truncated mid-TCP-header must still decode its IP layer")
+    else {
+        panic!("expected IP DecodedFrame")
+    };
 
     assert_eq!(parsed.src_ip, IpAddr::V4(Ipv4Addr::new(192, 168, 1, 10)));
     assert_eq!(

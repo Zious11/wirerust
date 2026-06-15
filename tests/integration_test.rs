@@ -2,7 +2,7 @@ use std::io::Cursor;
 
 use wirerust::analyzer::ProtocolAnalyzer;
 use wirerust::analyzer::dns::DnsAnalyzer;
-use wirerust::decoder::decode_packet;
+use wirerust::decoder::{DecodedFrame, decode_packet};
 use wirerust::reader::PcapSource;
 use wirerust::reporter::Reporter;
 use wirerust::reporter::json::JsonReporter;
@@ -48,8 +48,11 @@ fn test_full_pipeline() {
     let mut all_findings = Vec::new();
 
     for raw in &source.packets {
-        let parsed = decode_packet(&raw.data, source.datalink)
-            .expect("test fixture packet should decode successfully");
+        let DecodedFrame::Ip(parsed) = decode_packet(&raw.data, source.datalink)
+            .expect("test fixture packet should decode successfully")
+        else {
+            continue;
+        };
         summary.ingest(&parsed);
         if dns_analyzer.can_decode(&parsed) {
             let findings = dns_analyzer.analyze(&parsed);

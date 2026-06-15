@@ -28,7 +28,7 @@ use wirerust::analyzer::http::HttpAnalyzer;
 use wirerust::analyzer::modbus::ModbusAnalyzer;
 use wirerust::analyzer::tls::TlsAnalyzer;
 use wirerust::cli::{Cli, Commands, OutputFormat};
-use wirerust::decoder::decode_packet;
+use wirerust::decoder::{DecodedFrame, decode_packet};
 use wirerust::dispatcher::StreamDispatcher;
 use wirerust::reader::PcapSource;
 use wirerust::reassembly::handler::StreamAnalyzer;
@@ -221,7 +221,7 @@ fn run_analyze(
 
                 for raw in &source.packets {
                     match decode_packet(&raw.data, source.datalink) {
-                        Ok(parsed) => {
+                        Ok(DecodedFrame::Ip(parsed)) => {
                             summary.ingest(&parsed);
                             if enable_dns && dns_analyzer.can_decode(&parsed) {
                                 let findings = dns_analyzer.analyze(&parsed);
@@ -231,6 +231,9 @@ fn run_analyze(
                                 reasm.process_packet(&parsed, raw.timestamp_secs, &mut dispatcher);
                             }
                         }
+                        // STORY-111 stub: ARP frames decoded but not yet dispatched.
+                        // STORY-112/113 will wire ArpAnalyzer::process_arp here.
+                        Ok(DecodedFrame::Arp(_arp_frame)) => {}
                         Err(e) => {
                             if total_decode_errors == 0 {
                                 eprintln!(
@@ -340,9 +343,12 @@ fn run_summary(
                 .with_context(|| format!("Failed to read {}", path.display()))?;
             for raw in &source.packets {
                 match decode_packet(&raw.data, source.datalink) {
-                    Ok(parsed) => {
+                    Ok(DecodedFrame::Ip(parsed)) => {
                         summary.ingest(&parsed);
                     }
+                    // STORY-111 stub: ARP frames not yet dispatched in summary path.
+                    // STORY-112/113 will wire ArpAnalyzer here.
+                    Ok(DecodedFrame::Arp(_arp_frame)) => {}
                     Err(e) => {
                         if total_decode_errors == 0 {
                             eprintln!(

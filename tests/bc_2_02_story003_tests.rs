@@ -19,7 +19,7 @@
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 
 use pcap_file::DataLink;
-use wirerust::decoder::{Protocol, TransportInfo, decode_packet};
+use wirerust::decoder::{DecodedFrame, Protocol, TransportInfo, decode_packet};
 
 // ---------------------------------------------------------------------------
 // Frame-construction helpers
@@ -232,9 +232,11 @@ fn test_BC_2_02_006_linux_sll_ipv4_tcp() {
     assert!(
         result.is_ok(),
         "SLL IPv4 TCP frame must decode to Ok; got: {:?}",
-        result.unwrap_err()
+        result.as_ref().unwrap_err()
     );
-    let pkt = result.unwrap();
+    let DecodedFrame::Ip(pkt) = result.unwrap() else {
+        panic!("expected IP frame")
+    };
 
     // BC-2.02.006 postcondition 1: IP addresses populated correctly
     assert_eq!(
@@ -280,9 +282,11 @@ fn test_BC_2_02_006_linux_sll_ipv6_tcp() {
     assert!(
         result.is_ok(),
         "SLL IPv6 TCP frame must decode to Ok; got: {:?}",
-        result.unwrap_err()
+        result.as_ref().unwrap_err()
     );
-    let pkt = result.unwrap();
+    let DecodedFrame::Ip(pkt) = result.unwrap() else {
+        panic!("expected IP frame")
+    };
 
     // src/dst must be V6 variants
     assert!(
@@ -323,9 +327,11 @@ fn test_BC_2_02_006_linux_sll_ipv6_udp() {
     assert!(
         result.is_ok(),
         "SLL IPv6 UDP frame must decode to Ok; got: {:?}",
-        result.unwrap_err()
+        result.as_ref().unwrap_err()
     );
-    let pkt = result.unwrap();
+    let DecodedFrame::Ip(pkt) = result.unwrap() else {
+        panic!("expected IP frame")
+    };
 
     // Both addresses must be V6 variants.
     assert!(
@@ -381,9 +387,11 @@ fn test_BC_2_02_006_linux_sll_snaplen_truncated_lax_recovery() {
     assert!(
         result.is_ok(),
         "snaplen-truncated SLL frame must recover via lax path; got: {:?}",
-        result.unwrap_err()
+        result.as_ref().unwrap_err()
     );
-    let pkt = result.unwrap();
+    let DecodedFrame::Ip(pkt) = result.unwrap() else {
+        panic!("expected IP frame")
+    };
 
     // IP addresses must be recovered despite truncation
     assert_eq!(
@@ -804,8 +812,9 @@ fn test_VP_008_fuzz_harness_exists() {
 #[test]
 fn test_BC_2_02_006_ec001_sll_ipv4_tcp_strict_path() {
     let data = make_sll_ipv4_tcp();
-    let pkt = decode_packet(&data, DataLink::LINUX_SLL)
-        .expect("EC-001: SLL IPv4 TCP must decode via strict path");
+    let DecodedFrame::Ip(pkt) = decode_packet(&data, DataLink::LINUX_SLL)
+        .expect("EC-001: SLL IPv4 TCP must decode via strict path")
+else { panic!("expected IP DecodedFrame") };
 
     // Protocol::Tcp is the key invariant from the strict path.
     assert_eq!(pkt.protocol, Protocol::Tcp, "EC-001: protocol must be Tcp");
@@ -841,9 +850,11 @@ fn test_BC_2_02_006_ec002_sll_snaplen_lax_invoked() {
     assert!(
         result.is_ok(),
         "EC-002: mid-TCP-header-truncated SLL frame must be recovered by lax path; got: {:?}",
-        result.unwrap_err()
+        result.as_ref().unwrap_err()
     );
-    let pkt = result.unwrap();
+    let DecodedFrame::Ip(pkt) = result.unwrap() else {
+        panic!("expected IP DecodedFrame")
+    };
 
     // IP layer was captured in full — addresses must be correct.
     assert_eq!(

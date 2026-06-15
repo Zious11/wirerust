@@ -1,5 +1,5 @@
 use wirerust::analyzer::http::HttpAnalyzer;
-use wirerust::decoder::decode_packet;
+use wirerust::decoder::{DecodedFrame, decode_packet};
 use wirerust::reader::PcapSource;
 use wirerust::reassembly::handler::StreamAnalyzer;
 use wirerust::reassembly::{ReassemblyConfig, TcpReassembler};
@@ -14,7 +14,7 @@ fn test_http_analysis_with_fixture() {
     let mut http_analyzer = HttpAnalyzer::new();
 
     for raw in &source.packets {
-        if let Ok(parsed) = decode_packet(&raw.data, source.datalink) {
+        if let Ok(DecodedFrame::Ip(parsed)) = decode_packet(&raw.data, source.datalink) {
             reassembler.process_packet(&parsed, raw.timestamp_secs, &mut http_analyzer);
         }
     }

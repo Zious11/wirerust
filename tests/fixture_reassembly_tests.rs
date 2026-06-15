@@ -20,7 +20,7 @@
 //! Fixture provenance and licensing: see `tests/fixtures/README.md`.
 
 use wirerust::analyzer::http::HttpAnalyzer;
-use wirerust::decoder::decode_packet;
+use wirerust::decoder::{DecodedFrame, decode_packet};
 use wirerust::reader::PcapSource;
 use wirerust::reassembly::{ReassemblyConfig, TcpReassembler};
 
@@ -34,7 +34,7 @@ fn reassemble_fixture(path: &str) -> TcpReassembler {
     // tests assert on the reassembler's own stats, not analyzer output.
     let mut sink = HttpAnalyzer::new();
     for raw in &source.packets {
-        if let Ok(parsed) = decode_packet(&raw.data, source.datalink) {
+        if let Ok(DecodedFrame::Ip(parsed)) = decode_packet(&raw.data, source.datalink) {
             reassembler.process_packet(&parsed, raw.timestamp_secs, &mut sink);
         }
     }
