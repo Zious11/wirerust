@@ -303,3 +303,99 @@ refactors separate from test-alignment edits avoids this.
 
 **Status:** NOTED — informational. No policy change required; absorbed into
 PG-ARP-F4-INVERTED-TDD lesson.
+
+---
+
+## [process-gap] PG-ARP-F4-GREEN-DOC-TENSE (HIGH RECURRENCE — ~5x this feature cycle)
+
+**Source:** STORY-114 Step-4.5 adversarial convergence (pass-1 batch: F-1, F-2, F-3).
+Prior occurrences: STORY-112 (PG-ARP-F4-REDBANNER-SWEEP), STORY-113 (O-4
+PG-ARP-F4-STALE-SKELETON-DOC). Cumulative ~5 occurrences across the ARP feature cycle.
+
+**Observation:** TDD-phase doc-comments written during RED-gate/scaffold phases (by
+stub-architect and test-writer) were NOT converted to GREEN/past-tense at the
+implementer's Green step. Affected artifact classes across recurrences:
+
+- STORY-112: per-test section banners in test file (RED-gate present-tense)
+- STORY-113 O-4: module header + integration-test doc-comments ("skeleton/Red-Gate stubs")
+- STORY-114 F-1: `arp.rs` module header ("scaffold / Red Gate / uncalled todo!() stubs / mitre untouched 23/15")
+- STORY-114 F-2: test-module banners + per-test RED-gate doc-comments
+- STORY-114 F-3: `mitre.rs` Kani-proofs section ("23 IDs" stale count post-bump)
+
+Each recurrence required a fix commit and a full adversarial-pass restart, costing
+at minimum one extra adversarial dispatch per story.
+
+**Root cause (dual):**
+1. *Implementer:* GREEN-commit checklist does not include an explicit doc-tense sweep
+   step. Implementer focuses on code correctness and test passage, not doc-layer currency.
+2. *Stub-architect / test-writer:* Authors doc-comments in present-tense transitional
+   language ("scaffold", "Red Gate", "todo!() stubs uncalled") that is appropriate for
+   the RED phase but becomes stale immediately upon GREEN implementation landing.
+
+**Codification (proposed policy DF-GREEN-DOC-TENSE-SWEEP — apply PROACTIVELY in STORY-115):**
+
+(a) **Implementer MUST**, as the final step before committing the GREEN implementation,
+    run a doc-tense sweep over ALL files in the story's own diff (grep for: "scaffold",
+    "Red Gate", "RED GATE", "RED gate", "todo!()", "stub", "uncalled", stale counts
+    that the story changes). Every matching doc-comment MUST be converted to accurate
+    GREEN or explicitly past-tense provenance language before commit. Only doc-comments
+    that describe genuinely-deferred artifacts (F6 Kani stubs, explicitly-deferred ACs)
+    may retain future-tense prose — and those MUST name the deferral target (e.g., "F6").
+
+(b) **Stub-architect and test-writer SHOULD** author provenance prose in past tense or
+    clearly-future-gated form from the start: "This function body is deferred to F6
+    (todo!())" rather than "RED GATE — stubs uncalled". This eliminates the entire
+    class at the source. Where present-tense transitional language is unavoidable in
+    RED phase, annotate with `// TODO-GREEN: update this comment at GREEN step`.
+
+(c) **Adversary doc-accuracy axis** (already present as a named axis) MUST explicitly
+    flag surviving "scaffold / Red Gate / stub / todo!()" module-level or test-banner
+    language as MEDIUM, and stale count references (e.g., "23 IDs" post a 23→25 bump)
+    as MEDIUM regardless of their proximity to functional correctness issues. These are
+    not cosmetic LOW — they mislead reviewers about the implementation state.
+
+**Apply proactively in STORY-115:** Before committing the GREEN implementation of D3
+storm detection, the implementer MUST run the doc-tense sweep over all 7 (or N) diff
+files. Do not dispatch adversary without completing the sweep.
+
+**Candidate policy:** `DF-GREEN-DOC-TENSE-SWEEP` (new policy). Severity: HIGH.
+Scope: implementer GREEN step, stub-architect/test-writer authoring practice,
+adversary doc-accuracy axis.
+
+**Status:** CODIFIED here. Requires addition to `.factory/policies.yaml` (DF-GREEN-DOC-TENSE-SWEEP)
+and to the Governance Policy table in `STATE.md`. Apply proactively in STORY-115.
+
+---
+
+## [process-gap] PG-ARP-F4-DOCSWEEP-OVERREACH
+
+**Source:** STORY-114 Step-4.5 adversarial convergence (doc-sweep remediation burst)
+
+**Observation:** A remediation doc-sweep dispatch expanded to 13 out-of-scope test files
+(modbus/dnp3/reassembly/csv: `bc_2_15_110`, `bc_2_14_105`, `bc_2_14_103`, `modbus_detection`,
+`modbus_parse`, `dnp3_detection`, `dnp3_parse_core`, `dnp3_flow_state`, `dnp3_f5_remediation`,
+`reassembly_engine`, `reassembly_flow`, `reassembly_segment`, `reporter_csv`) in addition to
+the 7 story-scoped files. These files carry legitimate stale RED-gate prose from prior
+feature cycles — not errors introduced by STORY-114. The over-reach was reverted (commit
+`24b4b07`); scope restored to the story's own diff files.
+
+**Root cause:** The remediation dispatch did not explicitly scope its grep + edit commands
+to `git diff develop..HEAD -- <files>` (the story's own diff). A repo-wide grep for
+RED-gate language naturally surfaced all prior-cycle doc-debt, which the sweep then
+attempted to fix opportunistically. This is scope creep that (a) increases the diff
+beyond story scope, (b) introduces risk of inadvertent semantic change in untested files,
+and (c) contaminates the convergence snapshot with out-of-scope changes.
+
+**Lesson:** Doc-sweep and any remediation dispatch MUST scope all greps and edits
+to the story's own diff files — specifically those listed in `git diff develop..HEAD
+--name-only`. Files outside this set MUST NOT be edited, even if they contain
+identical-pattern doc debt. Out-of-scope doc debt is registered as a follow-up
+(FU-REPO-WIDE-DOC-DEBT) for a standalone chore PR.
+
+**Candidate fix:** Adversary dispatch template and remediation dispatch template MUST
+include explicit instruction: "Scope all file edits to the story's own diff. Files
+outside `git diff develop..HEAD --name-only` are OUT OF SCOPE — register as follow-up,
+do NOT edit in this burst."
+
+**Status:** DEFERRED — remediation dispatch template hardening; apply proactively in
+STORY-115 remediation dispatches.

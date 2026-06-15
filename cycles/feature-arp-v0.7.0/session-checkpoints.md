@@ -555,6 +555,33 @@ fully-clean pass. Passes 18-22 each surfaced+remediated genuine items.
 
 ---
 
+## Archived Checkpoint: 2026-06-15 — F4 ARP DELTA-IMPLEMENTATION; STORY-113 DELIVERED (PR #239 7b7dbb2); NEXT = STORY-114
+
+**Archived from STATE.md on 2026-06-15 (replaced by "STORY-114 Step-4.5 CONVERGED; NEXT = demo-recorder → pr-manager → STORY-115" checkpoint).**
+
+### Pipeline Position
+
+- Mode: FEATURE. Active feature: ARP security analyzer + etherparse 0.16→0.20. Issue #9. Release target: v0.7.0.
+- F1 PASSED (human-gated 2026-06-12, D-066). F2 CONVERGED 3/3 (Passes 31/32/33). F3 CONVERGED 3/3 (Passes 36/37/38). F3 human gate PASSED (D-070, 2026-06-14).
+- F4 Delta-Implementation: IN PROGRESS — AUTHORIZED (D-070).
+  - STORY-111 DELIVERED — PR #236 merged to develop (merge commit cced898; wave 40 COMPLETE; D-073).
+  - STORY-112 DELIVERED — PR #238 merged to develop (merge commit 10e4472; wave 41). pr-reviewer APPROVE (cycle 1). 1512 tests. Step-4.5 CONVERGED BC-5.39.001.
+  - STORY-113 DELIVERED — PR #239 merged to develop (merge commit 7b7dbb2; wave 42). pr-reviewer APPROVE; 2 non-blocking items fixed pre-merge (a73fbd6). 1535 tests. Step-4.5 CONVERGED BC-5.39.001 (3/3 clean passes ad044181/ae1383274/ad2223ab). F-113-01 HIGH RESOLVED.
+  - STORY-114: worktree established; TDD IN PROGRESS at time of archival.
+- develop HEAD: 7b7dbb2. STORY-114 branches from 7b7dbb2.
+- Input-hash: STORY-113=7c61bae MATCH (DELIVERED), STORY-114=5705a10 MATCH, STORY-115=2e0eca2 MATCH.
+- BC-2.16.010-PC2-SIGNATURE watch-item OPEN (expected resolution at STORY-114 delivery of 2-param new()).
+
+### VERIFIED SHAs at archival time
+
+| Ref | Value | Notes |
+|-----|-------|-------|
+| develop HEAD | 7b7dbb2 | STORY-113 PR #239 merge commit |
+| main HEAD | 3e29891 | v0.6.0 |
+| open PRs | none | all delivered |
+
+---
+
 ## Archived Checkpoint: 2026-06-15 — F4 ARP DELTA-IMPLEMENTATION IN PROGRESS; STORY-112 Step-4.5 CONVERGED + DEMO-RECORDED; NEXT = pr-manager (STORY-112 9-step PR)
 
 **Archived from STATE.md on 2026-06-15 (replaced by "STORY-112 DELIVERED PR #238 10e4472; NEXT = STORY-113" checkpoint).**
