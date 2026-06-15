@@ -542,13 +542,24 @@ mod kani_proofs {
         )
     }
 
-    /// VP-024 Sub-A harness 3: `extract_arp_frame` returns `None` (no panic) when
-    /// `hw_addr_size != 6` or `proto_addr_size != 4`. BC-2.16.001 EC-007/EC-008.
+    /// VP-024 Sub-A harness 3: `extract_arp_frame` returns `None` (no panic) for any
+    /// ARP frame that fails the full four-part type+size guard introduced by D-077:
+    ///
+    /// - `hw_addr_type() != ArpHardwareId::ETHERNET` (non-Ethernet hardware type), OR
+    /// - `proto_addr_type() != EtherType::IPV4` (non-IPv4 protocol type), OR
+    /// - `hw_addr_size() != 6` (bad hardware address length), OR
+    /// - `proto_addr_size() != 4` (bad protocol address length).
+    ///
+    /// The harness name predates D-077 (which widened the reject contract beyond size
+    /// checks to also cover type rejection); the name is retained per VP-024 v1.9
+    /// scope note to avoid churn on the harness identifier.
+    ///
+    /// References: BC-2.16.001 PC2-PC5, BC-2.16.009 PC3a-PC3d, EC-007/EC-008.
     ///
     /// Body is `todo!()` — real harness body filled by formal-verifier at F6 gate.
-    /// F4 obligation: confirm `from_slice` accepts bad-HLEN/PLEN buffers (Ok arm
-    /// reachable) or restructure to use `kani::cover!` before F6 lock
-    /// (see VP-024 v1.2 vacuous-satisfiability note).
+    /// F4 obligation: confirm `from_slice` accepts non-Ethernet/non-IPv4 buffers (Ok
+    /// arm reachable) or restructure to use `kani::cover!` before F6 lock
+    /// (see VP-024 v1.9 vacuous-satisfiability note).
     #[kani::proof]
     fn verify_extract_arp_frame_none_on_bad_size() {
         todo!(
