@@ -31,7 +31,7 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-16/BC-2.16.008.md
   - .factory/specs/behavioral-contracts/ss-16/BC-2.16.013.md
   - .factory/specs/behavioral-contracts/ss-16/BC-2.16.010.md
-input-hash: "5ca9835"
+input-hash: "2e0eca2"
 ---
 
 # STORY-115: D3 ARP Storm Detection + --arp-storm-rate CLI Flag + storm_findings Summary Key
