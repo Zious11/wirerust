@@ -1202,11 +1202,20 @@ mod tests {
             "AC-009 / BC-2.16.007 PC1: D12 Finding must have confidence=MEDIUM."
         );
 
-        // mitre_techniques: [] (wave 42 intermediate state per BC-2.16.007 cross-story note)
-        assert!(
-            mismatch_finding.mitre_techniques.is_empty(),
-            "AC-009 / BC-2.16.007 PC1 (wave 42): D12 Finding mitre_techniques must be [] \
-             at STORY-113 wave 42. T0830/T1557.002 are attached in STORY-114. Got: {:?}",
+        // mitre_techniques: ["T0830", "T1557.002"] (wave 43 / STORY-114 back-fill;
+        // BC-2.16.007 cross-story delivery note — see AC-017 / STORY-114 test_d12_mismatch_carries_mitre_after_catalog).
+        // STORY-113 TDD sibling-sweep update: this assertion is updated from mitre=[] (wave 42)
+        // to mitre=["T0830","T1557.002"] (wave 43 final state). It now FAILS until the
+        // VP-007 5-part atomic update is applied (RED for STORY-114 D12 MITRE back-fill).
+        let mut d12_techs = mismatch_finding.mitre_techniques.clone();
+        d12_techs.sort();
+        assert_eq!(
+            d12_techs,
+            vec!["T0830".to_string(), "T1557.002".to_string()],
+            "AC-009 / BC-2.16.007 PC1 (wave 43 sibling-sweep): D12 Finding mitre_techniques \
+             must be [\"T0830\", \"T1557.002\"] after STORY-114 VP-007 5-part atomic update. \
+             Currently [] (wave 42 intermediate). RED until VP-007 atomic update applied. \
+             Got: {:?}",
             mismatch_finding.mitre_techniques
         );
 
@@ -1840,6 +1849,878 @@ mod tests {
             "AC-021 / BC-2.16.005 PC5: last_seen_ts must be updated to the most \
              recent frame's timestamp (2_000). Got {}.",
             entry_after.last_seen_ts
+        );
+    }
+}
+
+// ---------------------------------------------------------------------------
+// STORY-114 TDD Red Gate tests (BC-2.16.004, BC-2.16.014, BC-2.16.007 MITRE)
+// ---------------------------------------------------------------------------
+
+/// STORY-114 Red Gate test suite.
+///
+/// Every test in this module MUST FAIL before the Green step because:
+///   - D1 spoof findings are not yet emitted (emit_d1_spoof_finding stub uncalled).
+///   - T0830/T1557.002 are not yet in src/mitre.rs (SEEDED=23, EMITTED=15).
+///   - GARP-conflict escalation is not yet wired (apply_garp_conflict_escalation uncalled).
+///   - D12 finding still carries mitre_techniques=[] (will carry T0830+T1557.002 after update).
+///
+/// DF-TEST-NAMESPACE-001: wrapped in `mod story_114` per per-story namespace rule.
+/// DF-AC-TEST-NAME-SYNC-001: function names exactly match the Test Plan fn-name column.
+/// DF-CANONICAL-FRAME-HOLDOUT-001: all frames use RFC 826 values (op 1/2, htype 0x0001).
+/// PG-ARP-F4-PROXY-COUNTER-TEST: all finding-emission tests assert the Finding object
+///   fields (confidence, category, mitre_techniques, evidence content), never a bare counter.
+#[cfg(test)]
+mod story_114 {
+    use super::*;
+    use crate::decoder::ArpFrame;
+    use crate::findings::{Confidence, ThreatCategory};
+
+    // -----------------------------------------------------------------------
+    // Shared frame builders (RFC 826 canonical values)
+    // -----------------------------------------------------------------------
+
+    /// Build a normal (non-GARP) ARP Reply (op=2) with matching outer_src_mac.
+    fn make_reply(sender_ip: [u8; 4], sender_mac: [u8; 6]) -> ArpFrame {
+        ArpFrame {
+            operation: 2,
+            sender_mac,
+            sender_ip,
+            target_mac: [0u8; 6],
+            target_ip: [10, 0, 0, 100],
+            outer_src_mac: Some(sender_mac),
+            packet_len: 42,
+        }
+    }
+
+    /// Build a GARP Reply (op=2, sender_ip == target_ip) with matching outer_src_mac.
+    fn make_garp(ip: [u8; 4], mac: [u8; 6]) -> ArpFrame {
+        ArpFrame {
+            operation: 2,
+            sender_mac: mac,
+            sender_ip: ip,
+            target_mac: [0u8; 6],
+            target_ip: ip,
+            outer_src_mac: Some(mac),
+            packet_len: 42,
+        }
+    }
+
+    // -----------------------------------------------------------------------
+    // Canonical test vector constants (BC-2.16.004 Test Vectors table)
+    // -----------------------------------------------------------------------
+
+    const IP_A: [u8; 4] = [10, 0, 0, 1];
+    const MAC_A: [u8; 6] = [0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA];
+    const MAC_B: [u8; 6] = [0xBB, 0xBB, 0xBB, 0xBB, 0xBB, 0xBB];
+    const MAC_C: [u8; 6] = [0xCC, 0xCC, 0xCC, 0xCC, 0xCC, 0xCC];
+    const MAC_D: [u8; 6] = [0xDD, 0xDD, 0xDD, 0xDD, 0xDD, 0xDD];
+    const MAC_E: [u8; 6] = [0xEE, 0xEE, 0xEE, 0xEE, 0xEE, 0xEE];
+
+    /// Helper: seed an initial binding for IP_A → MAC_A (first observation; no finding).
+    fn seed_binding(analyzer: &mut ArpAnalyzer, ts: u32) {
+        let frame = make_reply(IP_A, MAC_A);
+        let findings = analyzer.process_arp_for_test(&frame, ts);
+        assert!(
+            findings.iter().all(|f| {
+                !f.summary.to_lowercase().contains("spoof")
+                    && !f.mitre_techniques.iter().any(|t| t == "T0830")
+            }),
+            "seed_binding: first observation must not emit a spoof finding"
+        );
+    }
+
+    // -----------------------------------------------------------------------
+    // AC-001 — BC-2.16.004 PC1.a-1.e: first rebind emits MEDIUM D1 finding
+    // -----------------------------------------------------------------------
+
+    /// AC-001 (BC-2.16.004 PC1.a–1.e): when sender_ip is in binding table with a
+    /// different MAC (first rebind), process_arp emits exactly one D1 Finding with:
+    ///   - confidence: MEDIUM
+    ///   - category: Anomaly
+    ///   - mitre_techniques: exactly ["T0830", "T1557.002"]
+    ///
+    /// Red Gate: fails because emit_d1_spoof_finding is an uncalled todo!() stub.
+    /// Canonical test vector: binding {10.0.0.1 → AA:AA, rebind=0} → frame with BB:BB
+    /// Expected: MEDIUM Finding + T0830+T1557.002 (BC-2.16.004 test vector row 3).
+    #[test]
+    #[allow(non_snake_case)]
+    fn test_d1_first_rebind_emits_medium() {
+        let mut analyzer = ArpAnalyzer::new(SPOOF_REBIND_ESCALATION_DEFAULT, ARP_STORM_RATE_DEFAULT);
+        // Seed initial binding: 10.0.0.1 → MAC_A at ts=0
+        seed_binding(&mut analyzer, 0);
+
+        // First rebind: MAC_A → MAC_B at ts=2
+        let frame = make_reply(IP_A, MAC_B);
+        let findings = analyzer.process_arp_for_test(&frame, 2);
+
+        // PRIMARY assertion: find the D1 spoof finding
+        let d1 = findings
+            .iter()
+            .find(|f| {
+                f.mitre_techniques.contains(&"T0830".to_string())
+                    || f.mitre_techniques.contains(&"T1557.002".to_string())
+                    || f.summary.to_lowercase().contains("spoof")
+                    || f.summary.to_lowercase().contains("rebind")
+                    || f.summary.to_lowercase().contains("d1")
+            });
+
+        // This assert_is_some IS the Red Gate — it will fail because no D1 finding is emitted
+        assert!(
+            d1.is_some(),
+            "AC-001 / BC-2.16.004 PC1: process_arp must emit a D1 spoof Finding on first \
+             rebind (MAC_A → MAC_B). Got {} finding(s): {:?}. \
+             RED: emit_d1_spoof_finding stub is not wired into process_arp.",
+            findings.len(),
+            findings.iter().map(|f| (&f.confidence, &f.summary)).collect::<Vec<_>>()
+        );
+
+        let d1 = d1.unwrap();
+
+        // confidence: MEDIUM (BC-2.16.004 PC1.d — escalation condition NOT met: rebind=1 < threshold=3)
+        assert_eq!(
+            d1.confidence,
+            Confidence::Medium,
+            "AC-001 / BC-2.16.004 PC1.d: first rebind must emit MEDIUM confidence. Got {:?}",
+            d1.confidence
+        );
+
+        // category: Anomaly
+        assert!(
+            matches!(d1.category, ThreatCategory::Anomaly),
+            "AC-001 / BC-2.16.004 PC1.e: D1 finding must have category=Anomaly. Got {:?}",
+            d1.category
+        );
+
+        // mitre_techniques: exactly ["T0830", "T1557.002"] (BC-2.16.004 PC1.e; VP-007)
+        let mut techniques = d1.mitre_techniques.clone();
+        techniques.sort();
+        assert_eq!(
+            techniques,
+            vec!["T0830".to_string(), "T1557.002".to_string()],
+            "AC-001 / BC-2.16.004 PC1.e: D1 finding mitre_techniques must be EXACTLY \
+             [\"T0830\", \"T1557.002\"]. Got: {:?}",
+            d1.mitre_techniques
+        );
+    }
+
+    // -----------------------------------------------------------------------
+    // AC-002 — BC-2.16.004 PC1.c: third rebind within 60s escalates to HIGH
+    // -----------------------------------------------------------------------
+
+    /// AC-002 (BC-2.16.004 PC1.c): after 3 rebinds within 60s (default threshold=3),
+    /// the 3rd rebind emits HIGH confidence. spoof_high_emitted is set to true.
+    ///
+    /// Red Gate: fails because D1 emission is not wired (stub uncalled).
+    /// Canonical test vectors (BC-2.16.004 table rows 3-5):
+    ///   rebind=0 → MEDIUM; rebind=1 → MEDIUM; rebind=2 (count=3) → HIGH.
+    #[test]
+    #[allow(non_snake_case)]
+    fn test_d1_escalates_to_high_at_threshold() {
+        let mut analyzer = ArpAnalyzer::new(SPOOF_REBIND_ESCALATION_DEFAULT, ARP_STORM_RATE_DEFAULT);
+        // Seed: 10.0.0.1 → MAC_A at ts=0
+        seed_binding(&mut analyzer, 0);
+
+        // Rebind 1: MAC_A → MAC_B at ts=2 (rebind_count → 1, MEDIUM expected)
+        let f1 = analyzer.process_arp_for_test(&make_reply(IP_A, MAC_B), 2);
+        let d1_1 = f1.iter().find(|f| {
+            f.mitre_techniques.contains(&"T0830".to_string())
+                || f.summary.to_lowercase().contains("spoof")
+        });
+        assert!(
+            d1_1.is_some(),
+            "AC-002 / BC-2.16.004: rebind 1 must emit D1 finding. RED: stub not wired."
+        );
+        assert_eq!(
+            d1_1.unwrap().confidence,
+            Confidence::Medium,
+            "AC-002 / BC-2.16.004: rebind 1 of 3 must be MEDIUM (count=1 < threshold=3)"
+        );
+
+        // Rebind 2: MAC_B → MAC_C at ts=5 (rebind_count → 2, MEDIUM expected)
+        let f2 = analyzer.process_arp_for_test(&make_reply(IP_A, MAC_C), 5);
+        let d1_2 = f2.iter().find(|f| {
+            f.mitre_techniques.contains(&"T0830".to_string())
+                || f.summary.to_lowercase().contains("spoof")
+        });
+        assert!(
+            d1_2.is_some(),
+            "AC-002 / BC-2.16.004: rebind 2 must emit D1 finding. RED: stub not wired."
+        );
+        assert_eq!(
+            d1_2.unwrap().confidence,
+            Confidence::Medium,
+            "AC-002 / BC-2.16.004: rebind 2 of 3 must be MEDIUM (count=2 < threshold=3)"
+        );
+
+        // Rebind 3: MAC_C → MAC_D at ts=8 — count reaches threshold=3, HIGH expected
+        let f3 = analyzer.process_arp_for_test(&make_reply(IP_A, MAC_D), 8);
+        let d1_3 = f3.iter().find(|f| {
+            f.mitre_techniques.contains(&"T0830".to_string())
+                || f.summary.to_lowercase().contains("spoof")
+        });
+        assert!(
+            d1_3.is_some(),
+            "AC-002 / BC-2.16.004: rebind 3 must emit D1 finding. RED: stub not wired."
+        );
+        assert_eq!(
+            d1_3.unwrap().confidence,
+            Confidence::High,
+            "AC-002 / BC-2.16.004 PC1.c: 3rd rebind within 60s must escalate to HIGH \
+             (rebind_count=3 >= threshold=3, elapsed=8s <= 60s, spoof_high_emitted=false). \
+             Got {:?}",
+            d1_3.unwrap().confidence
+        );
+
+        // Verify spoof_high_emitted is now true in the binding table
+        let bindings = analyzer.bindings_snapshot();
+        let entry = bindings.get(&IP_A).expect("binding must exist");
+        assert!(
+            entry.spoof_high_emitted,
+            "AC-002 / BC-2.16.004 PC4: spoof_high_emitted must be true after HIGH finding emitted"
+        );
+
+        // Verify mitre on the HIGH finding
+        let mut techs = d1_3.unwrap().mitre_techniques.clone();
+        techs.sort();
+        assert_eq!(
+            techs,
+            vec!["T0830".to_string(), "T1557.002".to_string()],
+            "AC-002: HIGH D1 finding must carry T0830+T1557.002"
+        );
+    }
+
+    // -----------------------------------------------------------------------
+    // AC-003 — BC-2.16.004 PC4: one-shot HIGH guard prevents second HIGH
+    // -----------------------------------------------------------------------
+
+    /// AC-003 (BC-2.16.004 PC4): after spoof_high_emitted=true, subsequent rebinds
+    /// within the same flap window emit MEDIUM (not HIGH again).
+    ///
+    /// Red Gate: fails because D1 emission is not wired.
+    #[test]
+    #[allow(non_snake_case)]
+    fn test_d1_high_guard_prevents_second_high() {
+        let mut analyzer = ArpAnalyzer::new(SPOOF_REBIND_ESCALATION_DEFAULT, ARP_STORM_RATE_DEFAULT);
+        seed_binding(&mut analyzer, 0);
+
+        // Drive to threshold: 3 rebinds within 60s
+        let _ = analyzer.process_arp_for_test(&make_reply(IP_A, MAC_B), 2);
+        let _ = analyzer.process_arp_for_test(&make_reply(IP_A, MAC_C), 5);
+        let f_high = analyzer.process_arp_for_test(&make_reply(IP_A, MAC_D), 8);
+
+        // Verify the 3rd is HIGH
+        let high_finding = f_high.iter().find(|f| {
+            f.mitre_techniques.contains(&"T0830".to_string())
+                || f.summary.to_lowercase().contains("spoof")
+        });
+        assert!(
+            high_finding.is_some(),
+            "AC-003 setup: rebind 3 must emit D1 finding. RED: stub not wired."
+        );
+        // Only proceed to AC-003 proper if setup D1 finding was emitted
+        // (if it wasn't, the earlier assert will have failed)
+        if let Some(hf) = high_finding {
+            assert_eq!(hf.confidence, Confidence::High, "AC-003 setup: 3rd rebind must be HIGH");
+        }
+
+        // 4th rebind (EC-006): MAC_D → MAC_E at ts=10 — spoof_high_emitted=true → MEDIUM
+        let f4 = analyzer.process_arp_for_test(&make_reply(IP_A, MAC_E), 10);
+        let d1_4 = f4.iter().find(|f| {
+            f.mitre_techniques.contains(&"T0830".to_string())
+                || f.summary.to_lowercase().contains("spoof")
+        });
+        assert!(
+            d1_4.is_some(),
+            "AC-003 / BC-2.16.004 PC4: 4th rebind must emit D1 finding. RED: stub not wired."
+        );
+        assert_eq!(
+            d1_4.unwrap().confidence,
+            Confidence::Medium,
+            "AC-003 / BC-2.16.004 PC4 (one-shot HIGH guard): 4th rebind must emit MEDIUM, \
+             not HIGH, because spoof_high_emitted=true. Got {:?}",
+            d1_4.unwrap().confidence
+        );
+    }
+
+    // -----------------------------------------------------------------------
+    // AC-004 — BC-2.16.004 PC5: flap window reset after 60s
+    // -----------------------------------------------------------------------
+
+    /// AC-004 (BC-2.16.004 PC5): after ARP_FLAP_WINDOW_SECS=60 seconds have elapsed
+    /// since first_rebind_ts, the window resets: rebind_count→0, first_rebind_ts→None,
+    /// spoof_high_emitted→false. The next rebind is treated as the first (MEDIUM).
+    ///
+    /// Red Gate: fails because D1 emission is not wired.
+    /// EC-007: rebind after 61s → window reset → MEDIUM (rebind_count=1).
+    #[test]
+    #[allow(non_snake_case)]
+    fn test_d1_flap_window_reset() {
+        let mut analyzer = ArpAnalyzer::new(SPOOF_REBIND_ESCALATION_DEFAULT, ARP_STORM_RATE_DEFAULT);
+        seed_binding(&mut analyzer, 0);
+
+        // Drive to HIGH (3 rebinds within 60s starting at ts=2)
+        let _ = analyzer.process_arp_for_test(&make_reply(IP_A, MAC_B), 2);  // rebind_count→1, first_rebind_ts=2
+        let _ = analyzer.process_arp_for_test(&make_reply(IP_A, MAC_C), 5);  // rebind_count→2
+        let f3 = analyzer.process_arp_for_test(&make_reply(IP_A, MAC_D), 8); // rebind_count→3 → HIGH
+
+        let high_d1 = f3.iter().find(|f| {
+            f.mitre_techniques.contains(&"T0830".to_string())
+                || f.summary.to_lowercase().contains("spoof")
+        });
+        // RED: will fail if stub not wired
+        assert!(high_d1.is_some(), "AC-004 setup: 3rd rebind must emit D1. RED: stub not wired.");
+
+        // Now process a rebind at ts=2+61=63 → elapsed = 63 - 2 = 61 > 60s → window RESET
+        // After reset: rebind_count=0, first_rebind_ts=None, spoof_high_emitted=false
+        // Then Step 1: rebind_count→1, Step 2: first_rebind_ts=63 (elapsed=0), Step 3: MEDIUM
+        let f_after_reset = analyzer.process_arp_for_test(&make_reply(IP_A, MAC_E), 63);
+
+        let d1_after_reset = f_after_reset.iter().find(|f| {
+            f.mitre_techniques.contains(&"T0830".to_string())
+                || f.summary.to_lowercase().contains("spoof")
+        });
+        assert!(
+            d1_after_reset.is_some(),
+            "AC-004 / BC-2.16.004 PC5: rebind after window reset (ts=63, elapsed=61s > 60s) \
+             must emit D1 finding. RED: stub not wired."
+        );
+        assert_eq!(
+            d1_after_reset.unwrap().confidence,
+            Confidence::Medium,
+            "AC-004 / BC-2.16.004 PC5: first rebind after window reset must emit MEDIUM \
+             (rebind_count resets to 1; spoof_high_emitted resets to false). Got {:?}",
+            d1_after_reset.unwrap().confidence
+        );
+
+        // After reset, binding state should reflect fresh window
+        let bindings = analyzer.bindings_snapshot();
+        let entry = bindings.get(&IP_A).expect("binding must still exist");
+        assert_eq!(
+            entry.rebind_count, 1,
+            "AC-004 / BC-2.16.004 PC5: after window reset, rebind_count must be 1 \
+             (fresh start). Got {}",
+            entry.rebind_count
+        );
+        assert!(
+            !entry.spoof_high_emitted,
+            "AC-004 / BC-2.16.004 PC5: after window reset, spoof_high_emitted must be false. \
+             Got {}",
+            entry.spoof_high_emitted
+        );
+    }
+
+    // -----------------------------------------------------------------------
+    // AC-005 — BC-2.16.004 EC-008: threshold=1 → HIGH on first rebind
+    // -----------------------------------------------------------------------
+
+    /// AC-005 (BC-2.16.004 EC-008): with spoof_threshold=1, the first rebind emits HIGH.
+    /// Step 1: rebind_count→1; Step 2: first_rebind_ts=ts (elapsed=0); Step 3:
+    ///   1 >= 1 AND 0 <= 60 AND !spoof_high_emitted → HIGH.
+    ///
+    /// Red Gate: fails because D1 emission is not wired.
+    #[test]
+    #[allow(non_snake_case)]
+    fn test_d1_threshold_1_high_on_first_rebind() {
+        // Use threshold=1 (EC-008: any rebind → HIGH immediately)
+        let mut analyzer = ArpAnalyzer::new(1, ARP_STORM_RATE_DEFAULT);
+        seed_binding(&mut analyzer, 0);
+
+        // First rebind at ts=100: threshold=1 → rebind_count=1 >= 1, elapsed=0 → HIGH
+        let frame = make_reply(IP_A, MAC_B);
+        let findings = analyzer.process_arp_for_test(&frame, 100);
+
+        let d1 = findings.iter().find(|f| {
+            f.mitre_techniques.contains(&"T0830".to_string())
+                || f.summary.to_lowercase().contains("spoof")
+        });
+        assert!(
+            d1.is_some(),
+            "AC-005 / BC-2.16.004 EC-008: threshold=1 first rebind must emit D1 finding. \
+             RED: stub not wired."
+        );
+        assert_eq!(
+            d1.unwrap().confidence,
+            Confidence::High,
+            "AC-005 / BC-2.16.004 EC-008: with threshold=1, first rebind must immediately \
+             escalate to HIGH (rebind_count=1 >= threshold=1, elapsed=0 <= 60s, \
+             spoof_high_emitted=false). Got {:?}",
+            d1.unwrap().confidence
+        );
+
+        // mitre check
+        let mut techs = d1.unwrap().mitre_techniques.clone();
+        techs.sort();
+        assert_eq!(
+            techs,
+            vec!["T0830".to_string(), "T1557.002".to_string()],
+            "AC-005: HIGH D1 finding must carry T0830+T1557.002"
+        );
+    }
+
+    // -----------------------------------------------------------------------
+    // AC-007 — BC-2.16.014 PC1: GARP-that-conflicts upgrades GARP to MEDIUM
+    // -----------------------------------------------------------------------
+
+    /// AC-007 (BC-2.16.014 PC1): when is_gratuitous_arp=true AND binding conflict exists,
+    /// the GARP finding is upgraded from LOW to MEDIUM and carries T0830+T1557.002.
+    ///
+    /// Red Gate: fails because apply_garp_conflict_escalation is an uncalled stub.
+    #[test]
+    #[allow(non_snake_case)]
+    fn test_garp_conflicts_garp_finding_upgrades_to_medium() {
+        let mut analyzer = ArpAnalyzer::new(SPOOF_REBIND_ESCALATION_DEFAULT, ARP_STORM_RATE_DEFAULT);
+        // Seed binding: 10.0.0.1 → MAC_A
+        seed_binding(&mut analyzer, 0);
+
+        // GARP frame with MAC_B (conflicts with existing MAC_A binding)
+        // BC-2.16.014 EC-001: GARP Reply, sender_ip=target_ip=10.0.0.1, sender_mac=MAC_B
+        let garp_frame = make_garp(IP_A, MAC_B);
+        let findings = analyzer.process_arp_for_test(&garp_frame, 10);
+
+        // Find the GARP finding
+        let garp_finding = findings.iter().find(|f| {
+            f.summary.to_lowercase().contains("garp")
+                || f.summary.to_lowercase().contains("gratuitous")
+        });
+
+        assert!(
+            garp_finding.is_some(),
+            "AC-007 / BC-2.16.014 PC1: process_arp must emit a GARP finding when \
+             sender_ip==target_ip. Got {} finding(s).",
+            findings.len()
+        );
+
+        let gf = garp_finding.unwrap();
+
+        // PRIMARY assertion: GARP finding MUST be MEDIUM (upgraded from LOW due to conflict)
+        assert_eq!(
+            gf.confidence,
+            Confidence::Medium,
+            "AC-007 / BC-2.16.014 PC1: GARP finding must be upgraded from LOW to MEDIUM \
+             when binding conflict exists (MAC_A in table, frame has MAC_B). Got {:?}. \
+             RED: apply_garp_conflict_escalation stub not wired.",
+            gf.confidence
+        );
+
+        // GARP finding mitre: ["T0830", "T1557.002"] (BC-2.16.014 PC1)
+        let mut techs = gf.mitre_techniques.clone();
+        techs.sort();
+        assert_eq!(
+            techs,
+            vec!["T0830".to_string(), "T1557.002".to_string()],
+            "AC-007 / BC-2.16.014 PC1: GARP-conflict finding must carry T0830+T1557.002. \
+             Got: {:?}",
+            gf.mitre_techniques
+        );
+
+        // category: Anomaly
+        assert!(
+            matches!(gf.category, ThreatCategory::Anomaly),
+            "AC-007 / BC-2.16.014 PC1: GARP-conflict finding must have category=Anomaly. \
+             Got {:?}",
+            gf.category
+        );
+    }
+
+    // -----------------------------------------------------------------------
+    // AC-008 — BC-2.16.014 PC2/5: GARP-that-conflicts also emits D1 (2 findings total)
+    // -----------------------------------------------------------------------
+
+    /// AC-008 (BC-2.16.014 PC2/PC5): for a GARP-that-conflicts frame, process_arp
+    /// returns exactly 2 findings: one GARP MEDIUM and one D1 (MEDIUM for first rebind).
+    ///
+    /// Red Gate: fails because apply_garp_conflict_escalation is an uncalled stub
+    /// (currently only 1 finding — the original LOW GARP — is returned).
+    #[test]
+    #[allow(non_snake_case)]
+    fn test_garp_conflicts_d1_also_emitted() {
+        let mut analyzer = ArpAnalyzer::new(SPOOF_REBIND_ESCALATION_DEFAULT, ARP_STORM_RATE_DEFAULT);
+        seed_binding(&mut analyzer, 0);
+
+        // First GARP-that-conflicts: binding=MAC_A, frame=MAC_B → 2 findings
+        let garp_frame = make_garp(IP_A, MAC_B);
+        let findings = analyzer.process_arp_for_test(&garp_frame, 10);
+
+        // BC-2.16.014 PC5 / Invariant 2: exactly 2 findings for GARP-that-conflicts
+        assert_eq!(
+            findings.len(),
+            2,
+            "AC-008 / BC-2.16.014 PC5: GARP-that-conflicts must produce exactly 2 findings \
+             (GARP MEDIUM + D1 MEDIUM). Got {} finding(s): {:?}. \
+             RED: apply_garp_conflict_escalation stub not wired.",
+            findings.len(),
+            findings.iter().map(|f| (&f.confidence, &f.summary)).collect::<Vec<_>>()
+        );
+
+        // One finding must be the GARP finding at MEDIUM
+        let garp_f = findings.iter().find(|f| {
+            f.summary.to_lowercase().contains("garp")
+                || f.summary.to_lowercase().contains("gratuitous")
+        });
+        assert!(
+            garp_f.is_some(),
+            "AC-008 / BC-2.16.014: one of the 2 findings must be a GARP finding"
+        );
+        assert_eq!(
+            garp_f.unwrap().confidence,
+            Confidence::Medium,
+            "AC-008 / BC-2.16.014 PC1: GARP finding in pair must be MEDIUM. Got {:?}",
+            garp_f.unwrap().confidence
+        );
+
+        // The other finding must be D1 at MEDIUM (first rebind, count=1 < threshold=3)
+        let d1_f = findings.iter().find(|f| {
+            f.mitre_techniques.contains(&"T0830".to_string())
+                && !(f.summary.to_lowercase().contains("garp")
+                    || f.summary.to_lowercase().contains("gratuitous"))
+        });
+        // Fallback: find by spoof/rebind keyword
+        let d1_f = d1_f.or_else(|| {
+            findings.iter().find(|f| {
+                f.summary.to_lowercase().contains("spoof")
+                    || f.summary.to_lowercase().contains("rebind")
+                    || f.summary.to_lowercase().contains("d1")
+            })
+        });
+        assert!(
+            d1_f.is_some(),
+            "AC-008 / BC-2.16.014 PC2: one of the 2 findings must be a D1 spoof finding"
+        );
+        assert_eq!(
+            d1_f.unwrap().confidence,
+            Confidence::Medium,
+            "AC-008 / BC-2.16.014 PC2: D1 finding in pair must be MEDIUM (first rebind, \
+             rebind_count=1 < threshold=3). Got {:?}",
+            d1_f.unwrap().confidence
+        );
+
+        // Both findings carry T0830+T1557.002 (BC-2.16.014 PC1/PC2 + Invariant 4)
+        for f in &findings {
+            let mut techs = f.mitre_techniques.clone();
+            techs.sort();
+            assert_eq!(
+                techs,
+                vec!["T0830".to_string(), "T1557.002".to_string()],
+                "AC-008 / BC-2.16.014 Invariant 4: both findings must carry T0830+T1557.002. \
+                 Finding {:?} has mitre: {:?}",
+                f.summary,
+                f.mitre_techniques
+            );
+        }
+    }
+
+    // -----------------------------------------------------------------------
+    // AC-009 — BC-2.16.014 EC-004: GARP-that-conflicts at HIGH threshold
+    // -----------------------------------------------------------------------
+
+    /// AC-009 (BC-2.16.014 EC-004): when the GARP-that-conflicts is the 3rd rebind
+    /// within 60s, D1 is HIGH; GARP remains MEDIUM. 2 findings total.
+    ///
+    /// Red Gate: fails because stub not wired.
+    /// Canonical test vector (BC-2.16.014 table row 3):
+    ///   binding {10.0.0.1 → BB:BB, rebind=2, first_rebind_ts=5} + GARP at ts=30 → GARP MEDIUM + D1 HIGH
+    #[test]
+    #[allow(non_snake_case)]
+    fn test_garp_conflicts_d1_high_at_threshold() {
+        let mut analyzer = ArpAnalyzer::new(SPOOF_REBIND_ESCALATION_DEFAULT, ARP_STORM_RATE_DEFAULT);
+        seed_binding(&mut analyzer, 0); // 10.0.0.1 → MAC_A
+
+        // Drive rebind_count to 2 via normal (non-GARP) frames within 60s
+        let _ = analyzer.process_arp_for_test(&make_reply(IP_A, MAC_B), 5);  // rebind=1, first_rebind_ts=5
+        let _ = analyzer.process_arp_for_test(&make_reply(IP_A, MAC_C), 10); // rebind=2
+
+        // 3rd rebind is a GARP-that-conflicts (ts=30, within 60s of first_rebind_ts=5)
+        // BC-2.16.014 EC-004: rebind_count→3 >= threshold=3 → D1 HIGH; GARP stays MEDIUM
+        let garp_frame = make_garp(IP_A, MAC_D);
+        let findings = analyzer.process_arp_for_test(&garp_frame, 30);
+
+        // Exactly 2 findings
+        assert_eq!(
+            findings.len(),
+            2,
+            "AC-009 / BC-2.16.014 EC-004: GARP-that-conflicts at 3rd rebind must produce \
+             exactly 2 findings. Got {} finding(s). RED: stub not wired.",
+            findings.len()
+        );
+
+        // GARP finding: MEDIUM
+        let garp_f = findings.iter().find(|f| {
+            f.summary.to_lowercase().contains("garp")
+                || f.summary.to_lowercase().contains("gratuitous")
+        });
+        assert!(garp_f.is_some(), "AC-009: must have a GARP finding");
+        assert_eq!(
+            garp_f.unwrap().confidence,
+            Confidence::Medium,
+            "AC-009 / BC-2.16.014 EC-004: GARP finding must remain MEDIUM (regardless of \
+             D1 escalation). Got {:?}",
+            garp_f.unwrap().confidence
+        );
+
+        // D1 finding: HIGH
+        let d1_f = findings.iter().find(|f| {
+            !(f.summary.to_lowercase().contains("garp")
+                || f.summary.to_lowercase().contains("gratuitous"))
+                && (f.mitre_techniques.contains(&"T0830".to_string())
+                    || f.summary.to_lowercase().contains("spoof")
+                    || f.summary.to_lowercase().contains("d1"))
+        });
+        assert!(d1_f.is_some(), "AC-009: must have a D1 finding");
+        assert_eq!(
+            d1_f.unwrap().confidence,
+            Confidence::High,
+            "AC-009 / BC-2.16.014 EC-004: D1 finding at 3rd rebind must be HIGH. Got {:?}",
+            d1_f.unwrap().confidence
+        );
+    }
+
+    // -----------------------------------------------------------------------
+    // AC-010 — BC-2.16.014 PC6: GARP without conflict → LOW only, no D1
+    // (regression from STORY-113 behavior)
+    // -----------------------------------------------------------------------
+
+    /// AC-010 (BC-2.16.014 PC6): a GARP frame where sender_ip is NOT in the binding
+    /// table (no conflict) produces exactly one GARP finding at LOW. No D1 finding.
+    /// mitre_techniques: [] (D-068 adjudication for benign GARP).
+    ///
+    /// This is a regression test: STORY-113 behavior must be preserved.
+    /// This test is expected to PASS now (benign GARP already emits LOW).
+    /// We include it here as a RED anchor for AC-010 to verify it does NOT
+    /// accidentally acquire mitre or a second finding after STORY-114 impl.
+    #[test]
+    #[allow(non_snake_case)]
+    fn test_garp_no_conflict_low_only() {
+        let mut analyzer = ArpAnalyzer::new(SPOOF_REBIND_ESCALATION_DEFAULT, ARP_STORM_RATE_DEFAULT);
+
+        // GARP for IP_A with MAC_A — no prior binding for IP_A
+        // EC-009 / BC-2.16.014 EC-003: no conflict → LOW only
+        let garp_frame = make_garp(IP_A, MAC_A);
+        let findings = analyzer.process_arp_for_test(&garp_frame, 10);
+
+        // Exactly 1 finding (LOW GARP)
+        assert_eq!(
+            findings.len(),
+            1,
+            "AC-010 / BC-2.16.014 PC6: GARP without binding conflict must produce exactly \
+             1 finding (LOW GARP). Got {} finding(s): {:?}",
+            findings.len(),
+            findings.iter().map(|f| (&f.confidence, &f.summary)).collect::<Vec<_>>()
+        );
+
+        let garp_f = &findings[0];
+
+        // Must be LOW
+        assert_eq!(
+            garp_f.confidence,
+            Confidence::Low,
+            "AC-010 / BC-2.16.014 PC6: benign GARP (no conflict) must be LOW. Got {:?}",
+            garp_f.confidence
+        );
+
+        // mitre_techniques: [] (D-068: no AiTM attribution for benign GARP)
+        assert!(
+            garp_f.mitre_techniques.is_empty(),
+            "AC-010 / BC-2.16.014 PC6: benign GARP mitre_techniques must be [] (empty). \
+             Got: {:?}",
+            garp_f.mitre_techniques
+        );
+
+        // No D1 finding
+        let d1 = findings.iter().find(|f| {
+            f.mitre_techniques.contains(&"T0830".to_string())
+                || f.summary.to_lowercase().contains("spoof")
+        });
+        assert!(
+            d1.is_none(),
+            "AC-010 / BC-2.16.014 PC6: no D1 finding must be emitted for benign GARP \
+             (no binding conflict). Found: {:?}",
+            d1.map(|f| (&f.confidence, &f.summary))
+        );
+    }
+
+    // -----------------------------------------------------------------------
+    // AC-016 — BC-2.16.004 PC1.e: D1 evidence contains IP + old MAC + new MAC
+    // -----------------------------------------------------------------------
+
+    /// AC-016 (BC-2.16.004 PC1.e): D1 finding evidence must include the conflicting IP,
+    /// the old MAC (from binding before update), and the new MAC (from frame.sender_mac).
+    /// Applies regardless of MEDIUM or HIGH severity.
+    ///
+    /// Red Gate: fails because D1 emission is not wired.
+    #[test]
+    #[allow(non_snake_case)]
+    fn test_d1_finding_evidence_contains_ips_and_macs() {
+        let mut analyzer = ArpAnalyzer::new(SPOOF_REBIND_ESCALATION_DEFAULT, ARP_STORM_RATE_DEFAULT);
+        // Seed: 10.0.0.1 → AA:AA:AA:AA:AA:AA
+        seed_binding(&mut analyzer, 0);
+
+        // Rebind: old=MAC_A (AA:AA), new=MAC_B (BB:BB), sender_ip=10.0.0.1
+        let frame = make_reply(IP_A, MAC_B);
+        let findings = analyzer.process_arp_for_test(&frame, 2);
+
+        let d1 = findings.iter().find(|f| {
+            f.mitre_techniques.contains(&"T0830".to_string())
+                || f.summary.to_lowercase().contains("spoof")
+                || f.summary.to_lowercase().contains("rebind")
+        });
+        assert!(
+            d1.is_some(),
+            "AC-016 / BC-2.16.004 PC1.e: D1 finding must be emitted. RED: stub not wired."
+        );
+        let d1 = d1.unwrap();
+        let evidence_joined = d1.evidence.join(" ");
+
+        // Evidence must contain the sender_ip: "10.0.0.1"
+        assert!(
+            evidence_joined.contains("10.0.0.1"),
+            "AC-016 / BC-2.16.004 PC1.e: D1 evidence must contain the conflicting IP \
+             '10.0.0.1'. Evidence: {:?}",
+            d1.evidence
+        );
+
+        // Evidence must contain the OLD MAC: AA:AA:AA:AA:AA:AA
+        // (case-insensitive: the impl may use upper or lower hex)
+        let evidence_upper = evidence_joined.to_uppercase();
+        assert!(
+            evidence_upper.contains("AA:AA:AA:AA:AA:AA"),
+            "AC-016 / BC-2.16.004 PC1.e: D1 evidence must contain the OLD MAC \
+             (AA:AA:AA:AA:AA:AA — binding before update). Evidence: {:?}",
+            d1.evidence
+        );
+
+        // Evidence must contain the NEW MAC: BB:BB:BB:BB:BB:BB
+        assert!(
+            evidence_upper.contains("BB:BB:BB:BB:BB:BB"),
+            "AC-016 / BC-2.16.004 PC1.e: D1 evidence must contain the NEW MAC \
+             (BB:BB:BB:BB:BB:BB — frame.sender_mac). Evidence: {:?}",
+            d1.evidence
+        );
+    }
+
+    // -----------------------------------------------------------------------
+    // AC-017 — BC-2.16.007 PC1 D12 MITRE back-fill
+    // -----------------------------------------------------------------------
+
+    /// AC-017 (BC-2.16.007 PC1): after the VP-007 5-part atomic update, D12 mismatch
+    /// findings carry mitre_techniques: ["T0830", "T1557.002"] AND retain
+    /// confidence=MEDIUM, category=Anomaly, and evidence fields eth_mac + arp_sender_mac + sender_ip.
+    ///
+    /// This test UPDATES the STORY-113 assertion (which expected mitre_techniques=[])
+    /// to the STORY-114 final state (mitre_techniques=["T0830","T1557.002"]).
+    ///
+    /// Red Gate: fails now because D12 still emits mitre_techniques=[] until the
+    /// VP-007 5-part atomic update adds T0830+T1557.002 to src/mitre.rs and wires
+    /// the mitre vec in the D12 emission branch.
+    #[test]
+    #[allow(non_snake_case)]
+    fn test_d12_mismatch_carries_mitre_after_catalog() {
+        let mut analyzer = ArpAnalyzer::new(SPOOF_REBIND_ESCALATION_DEFAULT, ARP_STORM_RATE_DEFAULT);
+        let eth_mac: [u8; 6] = [0x11, 0x22, 0x33, 0x44, 0x55, 0x66];
+        let arp_mac: [u8; 6] = [0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF];
+        let sender_ip: [u8; 4] = [192, 168, 1, 1];
+
+        // D12 mismatch frame: eth_mac != arp_mac
+        let frame = ArpFrame {
+            operation: 2,
+            sender_mac: arp_mac,
+            sender_ip,
+            target_mac: [0u8; 6],
+            target_ip: [192, 168, 1, 2],
+            outer_src_mac: Some(eth_mac),
+            packet_len: 42,
+        };
+
+        let findings = analyzer.process_arp_for_test(&frame, 1_000);
+
+        let d12 = findings
+            .iter()
+            .find(|f| {
+                matches!(f.confidence, Confidence::Medium)
+                    && matches!(f.category, ThreatCategory::Anomaly)
+            })
+            .expect(
+                "AC-017 / BC-2.16.007 PC1: D12 mismatch must emit MEDIUM/Anomaly finding. \
+                 Got 0 matching findings."
+            );
+
+        // PRIMARY assertion: mitre_techniques must be ["T0830", "T1557.002"] after STORY-114
+        // This FAILS now because D12 still emits mitre_techniques=[] at wave 42.
+        let mut techs = d12.mitre_techniques.clone();
+        techs.sort();
+        assert_eq!(
+            techs,
+            vec!["T0830".to_string(), "T1557.002".to_string()],
+            "AC-017 / BC-2.16.007 PC1: D12 finding must carry mitre_techniques \
+             [\"T0830\", \"T1557.002\"] after STORY-114 VP-007 atomic update. \
+             Currently [] (wave 42). RED: requires both catalog seeding AND \
+             mitre vec wiring in D12 emission branch. Got: {:?}",
+            d12.mitre_techniques
+        );
+
+        // Retained invariants: confidence=MEDIUM, category=Anomaly
+        assert_eq!(d12.confidence, Confidence::Medium, "D12 must retain MEDIUM");
+        assert!(matches!(d12.category, ThreatCategory::Anomaly), "D12 must retain Anomaly");
+
+        // Evidence: eth_mac, arp_sender_mac, sender_ip (BC-2.16.007 PC1)
+        let ev = d12.evidence.join(" ");
+        assert!(
+            ev.contains("eth_src_mac=11:22:33:44:55:66"),
+            "AC-017: D12 evidence must contain eth_src_mac. Got: {:?}",
+            d12.evidence
+        );
+        assert!(
+            ev.contains("arp_sender_mac=AA:BB:CC:DD:EE:FF"),
+            "AC-017: D12 evidence must contain arp_sender_mac. Got: {:?}",
+            d12.evidence
+        );
+        assert!(
+            ev.contains("sender_ip=192.168.1.1"),
+            "AC-017: D12 evidence must contain sender_ip. Got: {:?}",
+            d12.evidence
+        );
+    }
+
+    // -----------------------------------------------------------------------
+    // AC-014 — BC-2.10.002 v1.5: enum-variant distinctness (VERIFY test)
+    // -----------------------------------------------------------------------
+
+    /// AC-014 (BC-2.10.002 v1.5 / D-069): MitreTactic::Impact != MitreTactic::IcsImpact
+    /// as enum values (distinct variants). Display strings also differ:
+    /// "Impact" vs "Impact (ICS)".
+    ///
+    /// This test may already PASS (enum distinctness is correct as-is under D-069).
+    /// It is included here as a verify test to prevent future regression.
+    #[test]
+    #[allow(non_snake_case)]
+    fn test_impact_vs_ics_impact_variants_distinct() {
+        use crate::mitre::MitreTactic;
+
+        // Enum variants must be distinct (D-069: IcsImpact is a different variant)
+        assert_ne!(
+            MitreTactic::Impact,
+            MitreTactic::IcsImpact,
+            "AC-014 / BC-2.10.002 v1.5: MitreTactic::Impact and MitreTactic::IcsImpact \
+             must be distinct enum variants (D-069)."
+        );
+
+        // Display strings must be distinct (D-069: IcsImpact = "Impact (ICS)", not "Impact")
+        let impact_str = format!("{}", MitreTactic::Impact);
+        let ics_impact_str = format!("{}", MitreTactic::IcsImpact);
+
+        assert_eq!(
+            impact_str, "Impact",
+            "MitreTactic::Impact Display must be \"Impact\". Got: {impact_str:?}",
+        );
+        assert_eq!(
+            ics_impact_str, "Impact (ICS)",
+            "MitreTactic::IcsImpact Display must be \"Impact (ICS)\" (D-069 canonical; \
+             src/mitre.rs:91 MUST NOT be changed). Got: {ics_impact_str:?}",
+        );
+        assert_ne!(
+            impact_str, ics_impact_str,
+            "AC-014 / BC-2.10.002 v1.5: Display strings of Impact and IcsImpact must differ \
+             (\"Impact\" vs \"Impact (ICS)\"). D-069 preservation check."
         );
     }
 }
