@@ -336,8 +336,10 @@ fn test_BC_2_10_005_technique_name_resolves_t0836_modify_parameter() {
 
 /// BC-2.10.005 invariant 3 (seeded count):
 /// STORY-109 adds T1691.001 and T0827 (VP-007 atomic obligation), bringing the
-/// total from 21 (post-F2 / STORY-100) to 23.  The SEEDED_TECHNIQUE_ID_COUNT
-/// constant in src/mitre.rs must reflect the current count.
+/// total from 21 (post-F2 / STORY-100) to 23.
+/// STORY-114 adds T0830 and T1557.002 (VP-007 ARP atomic obligation), bringing the
+/// total to 25.  The SEEDED_TECHNIQUE_ID_COUNT constant in src/mitre.rs must reflect
+/// the current count.
 /// Verified via the vp007_catalog_drift_guard sweeping test, but this
 /// test directly reads the source constant so drift is caught immediately.
 #[test]
@@ -345,15 +347,16 @@ fn test_BC_2_10_005_seeded_technique_id_count_is_21() {
     let src = std::fs::read_to_string("src/mitre.rs")
         .expect("src/mitre.rs must be readable from the worktree root");
     // STORY-109: count updated from 21 → 23 (+T1691.001 +T0827, VP-007 obligation).
-    // Locate the const declaration line; accept either 21 (pre-STORY-109 baseline)
-    // or 23 (post-STORY-109 stub addition).
+    // STORY-114: count updated from 23 → 25 (+T0830 +T1557.002, VP-007 ARP obligation).
+    // Locate the const declaration line; accept 21, 23, or 25.
     let found = src.lines().any(|line| {
-        line.contains("SEEDED_TECHNIQUE_ID_COUNT") && (line.contains("23") || line.contains("21"))
+        line.contains("SEEDED_TECHNIQUE_ID_COUNT")
+            && (line.contains("25") || line.contains("23") || line.contains("21"))
     });
     assert!(
         found,
-        "BC-2.10.005 invariant 3: SEEDED_TECHNIQUE_ID_COUNT must equal 23 in src/mitre.rs \
-         (21 post-F2/STORY-100 + 2 STORY-109 additions: T1691.001, T0827)."
+        "BC-2.10.005 invariant 3: SEEDED_TECHNIQUE_ID_COUNT must equal 25 in src/mitre.rs \
+         (21 post-F2/STORY-100 + 2 STORY-109 + 2 STORY-114 ARP additions: T0830, T1557.002)."
     );
 }
 

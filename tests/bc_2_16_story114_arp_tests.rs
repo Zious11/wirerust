@@ -116,35 +116,95 @@ mod story_114_mitre {
         // All 25 seeded IDs post-STORY-114 atomic update (11 Enterprise + 10 ICS + 2 ARP):
         // Enterprise (11)
         let seeded_25: &[(&str, &str, MitreTactic)] = &[
-            ("T1027", "Obfuscated Files or Information", MitreTactic::DefenseEvasion),
+            (
+                "T1027",
+                "Obfuscated Files or Information",
+                MitreTactic::DefenseEvasion,
+            ),
             ("T1036", "Masquerading", MitreTactic::DefenseEvasion),
             ("T1040", "Network Sniffing", MitreTactic::CredentialAccess),
             ("T1046", "Network Service Discovery", MitreTactic::Discovery),
-            ("T1071", "Application Layer Protocol", MitreTactic::CommandAndControl),
+            (
+                "T1071",
+                "Application Layer Protocol",
+                MitreTactic::CommandAndControl,
+            ),
             ("T1071.001", "Web Protocols", MitreTactic::CommandAndControl),
             ("T1071.004", "DNS", MitreTactic::CommandAndControl),
-            ("T1083", "File and Directory Discovery", MitreTactic::Discovery),
+            (
+                "T1083",
+                "File and Directory Discovery",
+                MitreTactic::Discovery,
+            ),
             ("T1499.002", "Service Exhaustion Flood", MitreTactic::Impact),
             ("T1505.003", "Web Shell", MitreTactic::Persistence),
             ("T1573", "Encrypted Channel", MitreTactic::CommandAndControl),
             // ICS pre-F2 (4)
             ("T0846", "Remote System Discovery", MitreTactic::Discovery),
-            ("T1692.001", "Unauthorized Message: Command Message", MitreTactic::IcsImpairProcessControl),
-            ("T1692.002", "Unauthorized Message: Reporting Message", MitreTactic::IcsImpairProcessControl),
-            ("T0885", "Commonly Used Port", MitreTactic::CommandAndControl),
+            (
+                "T1692.001",
+                "Unauthorized Message: Command Message",
+                MitreTactic::IcsImpairProcessControl,
+            ),
+            (
+                "T1692.002",
+                "Unauthorized Message: Reporting Message",
+                MitreTactic::IcsImpairProcessControl,
+            ),
+            (
+                "T0885",
+                "Commonly Used Port",
+                MitreTactic::CommandAndControl,
+            ),
             // ICS new F2 — STORY-100 (6)
-            ("T0836", "Modify Parameter", MitreTactic::IcsImpairProcessControl),
-            ("T0814", "Denial of Service", MitreTactic::IcsInhibitResponseFunction),
-            ("T0806", "Brute Force I/O", MitreTactic::IcsImpairProcessControl),
-            ("T0835", "Manipulate I/O Image", MitreTactic::IcsImpairProcessControl),
-            ("T0831", "Manipulation of Control", MitreTactic::IcsImpairProcessControl),
-            ("T0888", "Remote System Information Discovery", MitreTactic::Discovery),
+            (
+                "T0836",
+                "Modify Parameter",
+                MitreTactic::IcsImpairProcessControl,
+            ),
+            (
+                "T0814",
+                "Denial of Service",
+                MitreTactic::IcsInhibitResponseFunction,
+            ),
+            (
+                "T0806",
+                "Brute Force I/O",
+                MitreTactic::IcsImpairProcessControl,
+            ),
+            (
+                "T0835",
+                "Manipulate I/O Image",
+                MitreTactic::IcsImpairProcessControl,
+            ),
+            (
+                "T0831",
+                "Manipulation of Control",
+                MitreTactic::IcsImpairProcessControl,
+            ),
+            (
+                "T0888",
+                "Remote System Information Discovery",
+                MitreTactic::Discovery,
+            ),
             // STORY-109 (2)
-            ("T1691.001", "Block Operational Technology Message: Command Message", MitreTactic::IcsInhibitResponseFunction),
+            (
+                "T1691.001",
+                "Block Operational Technology Message: Command Message",
+                MitreTactic::IcsInhibitResponseFunction,
+            ),
             ("T0827", "Loss of Control", MitreTactic::IcsImpact),
             // STORY-114 ARP (2) — the additions that make this test RED until impl
-            ("T0830", "Adversary-in-the-Middle", MitreTactic::LateralMovement),
-            ("T1557.002", "Adversary-in-the-Middle: ARP Cache Poisoning", MitreTactic::CredentialAccess),
+            (
+                "T0830",
+                "Adversary-in-the-Middle",
+                MitreTactic::LateralMovement,
+            ),
+            (
+                "T1557.002",
+                "Adversary-in-the-Middle: ARP Cache Poisoning",
+                MitreTactic::CredentialAccess,
+            ),
         ];
 
         // Verify count is exactly 25
@@ -308,7 +368,7 @@ mod story_114_cli {
 
         // Behavioral check: --arp must be active (ARP summary present in output)
         let summaries = json.get("analyzers").and_then(|v| v.as_array()).expect(
-            "AC-006 / BC-2.16.012: 'analyzers' key must be present in JSON output with --arp"
+            "AC-006 / BC-2.16.012: 'analyzers' key must be present in JSON output with --arp",
         );
         let arp_summary = summaries.iter().find(|s| {
             s.get("analyzer_name")
@@ -361,15 +421,15 @@ mod story_114_cli {
             .assert()
             .success();
 
-        let written =
-            std::fs::read_to_string(&out_path_default).expect("output JSON must exist");
+        let written = std::fs::read_to_string(&out_path_default).expect("output JSON must exist");
         let json: serde_json::Value =
             serde_json::from_str(&written).expect("output must be valid JSON");
 
         // ARP summary must still be present (--arp is active)
-        let summaries = json.get("analyzers").and_then(|v| v.as_array()).expect(
-            "AC-006b / BC-2.16.012 PC2: 'analyzers' key must be present"
-        );
+        let summaries = json
+            .get("analyzers")
+            .and_then(|v| v.as_array())
+            .expect("AC-006b / BC-2.16.012 PC2: 'analyzers' key must be present");
         let arp_summary = summaries.iter().find(|s| {
             s.get("analyzer_name")
                 .and_then(|n| n.as_str())
