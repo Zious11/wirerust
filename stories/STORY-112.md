@@ -2,7 +2,7 @@
 document_type: story
 story_id: STORY-112
 epic_id: E-16
-version: "1.0"
+version: "1.2"
 status: draft
 producer: story-writer
 timestamp: 2026-06-13T00:00:00Z
@@ -22,16 +22,26 @@ subsystems: [SS-02, SS-16]
 estimated_days: 3
 feature_id: issue-009-arp-security-analyzer
 github_issue: 9
-# BC status: BC-2.16.001 v1.0, BC-2.16.002 v1.0, BC-2.16.015 v1.0 — authored 2026-06-12
+# BC status: BC-2.16.001 v1.0, BC-2.16.002 v1.0, BC-2.16.015 v1.2 — BC-2.16.015 updated 2026-06-14
 # VP-024 Sub-A: 3 Kani harnesses land in this story (safety, eth_ipv4_correctness, none_on_bad_size)
 # ArpAnalyzer stub: new, process_arp no-op, for main.rs pattern-match wiring only
+# v1.1 changelog: F4-surfaced decomposition fix: added AC-012 to explicitly cover
+#   decode_packet-level Err("Non-Ethernet/IPv4 ARP frame") for non-Eth/IPv4 ARP at the
+#   decode layer. This behavior was previously implicit (covered by Task 2 prose + AC-004),
+#   but lacked a named AC. Added to close coverage gap surfaced when STORY-111
+#   AC-002 was removed and mapped here.
+# v1.2 changelog: F4 scoped-adversarial remediation:
+#   File Structure AC count — changed "AC-001..AC-011" to "AC-001..AC-012" to include AC-012
+#     (Task 10 and Test Plan already referenced AC-012; only this prose row lagged);
+#   Input-hash recomputed — BC-2.16.015 updated to v1.2 (lax_ip_triple ARP arm is explicit
+#     routing, NOT unreachable); input-hash restamped to reflect new BC-2.16.015 content.
 inputs:
   - .factory/specs/architecture/arp-architecture-delta.md
   - .factory/specs/behavioral-contracts/ss-16/BC-2.16.001.md
   - .factory/specs/behavioral-contracts/ss-16/BC-2.16.002.md
   - .factory/specs/behavioral-contracts/ss-16/BC-2.16.015.md
   - .factory/specs/verification-properties/vp-024-arp-parse-safety.md
-input-hash: "268f53f"
+input-hash: "c8c1a64"
 ---
 
 # STORY-112: extract_arp_frame + decode_packet ARP Routing (Both Paths) + ArpAnalyzer Stub + VP-024 Sub-A
@@ -137,6 +147,19 @@ with `cargo check` and passes `cargo clippy --all-targets -- -D warnings`.
 Three Kani harnesses (`verify_extract_arp_frame_safety`, `verify_extract_arp_frame_eth_ipv4_correctness`, `verify_extract_arp_frame_none_on_bad_size`) are written in `src/decoder.rs`'s `#[cfg(kani)] mod kani_proofs` (or equivalent). All three report `VERIFICATION:- SUCCESSFUL` when run individually with `cargo kani --harness <name>`.
 - **Kani:** Run at F6 formal-hardening gate for wave 40. Not a `cargo test` prerequisite.
 
+### AC-012 (traces to BC-2.16.015 postcondition 1 — decode_packet returns Err for non-Eth/IPv4 ARP at decode layer)
+`decode_packet(data, datalink)` returns `Err(...)` containing "Non-Ethernet/IPv4 ARP frame" when
+`data` is an ARP frame where `extract_arp_frame` returns `None` (i.e., hw_addr_size != 6, or
+proto_addr_size != 4, or hw_type != 0x0001, or proto_type != 0x0800). No panic occurs.
+This is the decode_packet-level error string produced by the strict `Ok(slice)` arm when
+`extract_arp_frame` returns `None` (per Task 2: `None => Err(anyhow!("Non-Ethernet/IPv4 ARP frame"))`).
+- **Test:** `test_decode_packet_arp_non_eth_ipv4_returns_error()` — calls `decode_packet` with a
+  raw byte sequence for an ARP frame with hw_addr_size=8 (or hw_type != 0x0001); asserts the
+  result is `Err(e)` where `e.to_string()` contains "Non-Ethernet/IPv4 ARP frame".
+- **Coverage note:** This AC was added in v1.1 to close the coverage gap created when STORY-111
+  AC-002 was removed. AC-004 covers `extract_arp_frame` returning `None`; this AC covers the
+  resulting `decode_packet`-level error string (the two together close the full decode path).
+
 ## Architecture Mapping
 
 | Component | Module | Pure/Effectful |
@@ -182,7 +205,7 @@ Architecture section references: `architecture/module-decomposition.md` (SS-02 d
 7. **Write VP-024 Sub-A Kani harnesses** in `#[cfg(kani)] mod kani_proofs` in `src/decoder.rs`: `verify_extract_arp_frame_safety`, `verify_extract_arp_frame_eth_ipv4_correctness`, `verify_extract_arp_frame_none_on_bad_size`.
 8. **Run `cargo test --all-targets`**: all tests green; no new failures.
 9. **Run `cargo clippy --all-targets -- -D warnings`**: clean.
-10. **Write unit tests** for AC-001 through AC-010.
+10. **Write unit tests** for AC-001 through AC-012 (AC-012 added in v1.1: `test_decode_packet_arp_non_eth_ipv4_returns_error`).
 
 ## Test Plan
 
@@ -199,6 +222,7 @@ Architecture section references: `architecture/module-decomposition.md` (SS-02 d
 | AC-009 | `test_arp_frame_never_reaches_stream_dispatcher` | Unit |
 | AC-010 | `cargo check`, `cargo clippy` | Build |
 | AC-011 | `verify_extract_arp_frame_safety`, `verify_extract_arp_frame_eth_ipv4_correctness`, `verify_extract_arp_frame_none_on_bad_size` | Kani (F6 gate) |
+| AC-012 | `test_decode_packet_arp_non_eth_ipv4_returns_error` | Unit |
 
 ## Previous Story Intelligence
 
@@ -236,7 +260,7 @@ Derived from arp-architecture-delta.md §2.1, §2.2, ADR-008 Decisions 2–3, BC
 | `src/analyzer/arp.rs` | Create | `ArpAnalyzer` stub: `new`, `process_arp` (no-op) |
 | `src/analyzer/mod.rs` | Modify | Add `pub mod arp;` |
 | `src/main.rs` | Modify | `DecodedFrame` pattern-match; `ArpAnalyzer::new()` instantiation (parameterless stub); unconditional `process_arp` call (--arp gate added in STORY-113) |
-| `src/decoder.rs` tests module | Modify | Add AC-001..AC-011 unit tests |
+| `src/decoder.rs` tests module | Modify | Add AC-001..AC-012 unit tests |
 
 ## Token Budget Estimate
 
