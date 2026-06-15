@@ -1,7 +1,7 @@
 ---
 pipeline: FEATURE_MODE_ARP_ANALYZER
 phase: feature-F4-delta-implementation
-phase_status: "F4 IN PROGRESS — STORY-111 demo evidence captured (.factory/demo-evidence/STORY-111/; 53 suites green, clippy/fmt clean, 6 ACs mapped); NEXT = pr-manager 9-step PR to develop (in progress)."
+phase_status: "F4 IN PROGRESS — STORY-111 DELIVERED (PR #236 merged develop cced898; wave 40 complete); NEXT = STORY-112 per-story delivery (worktree off develop; test-writer → implementer → Step-4.5 → demo → PR)."
 active_feature: "arp-analyzer"
 feature_arp_status: "F1 Delta Analysis PASSED (human-gated 2026-06-12) — DecodedFrame integration, ADR-008 planned, F2→F7 authorized; release target v0.7.0"
 feature_8_status: "v0.6.0 RELEASED 2026-06-12 — DNP3 TCP analyzer; F7 5-dim CONVERGED; tag v0.6.0 + 4 binaries"
@@ -18,7 +18,7 @@ phase_5_completed: "2026-06-01"
 phase_6_completed: "2026-06-02"
 phase_7_to_release_gate: "PASSED (human-approved 2026-06-09 — D-045)"
 adversary_gate: SATISFIED
-develop_head: 31d1231
+develop_head: cced898
 main_head: 3e29891
 released_version: v0.6.0
 released_at: "2026-06-12"
@@ -52,9 +52,9 @@ input_drift_check: "MATCH=23 STALE=44 ERROR=1 (STORY-091 known); ARP stories STO
 
 ## Status
 
-**wirerust v0.6.0 RELEASED (DNP3 TCP analyzer, issue #8). Feature: ARP security analyzer + etherparse 0.16→0.20 migration (F1 PASSED 2026-06-12, D-066); release target v0.7.0. F2 CONVERGED (P33 CLEAN; 3/3 strict-whole-corpus). F3 ARP story decomposition: STORY-111..115 CREATED (epic E-16, 47 pts). D-068/D-069 applied post-F2. F3 adversarial convergence: CONVERGED 3/3 — Passes 36/37/38 consecutive CLEAN; F3 strict-whole-corpus ADVERSARIAL GATE SATISFIED. STORY-111..115 ready. NEXT = F3 human approval gate, then F4 delta-implementation (TDD on STORY-111..115).**
+**wirerust v0.6.0 RELEASED (DNP3 TCP analyzer, issue #8). Feature: ARP security analyzer + etherparse 0.16→0.20 migration (F1 PASSED 2026-06-12, D-066); release target v0.7.0. F2 CONVERGED (P33 CLEAN; 3/3 strict-whole-corpus). F3 CONVERGED 3/3 (Passes 36/37/38). F4 IN PROGRESS — STORY-111 DELIVERED (PR #236 cced898; wave 40 complete; D-073). NEXT = STORY-112.**
 
-**Summary:** 68 stories (48 greenfield + 1 tooling + 19 feature-cycle), 457 pts. 283 BCs (244 pre-F2 + 24 SS-15 + 15 SS-16 ARP), 24 VPs (23 locked + VP-024 ARP draft), 1496 tests green, holdout 0.967. develop HEAD 31d1231; main HEAD 3e29891 (v0.6.0). ARP feature: F1 approved — SS-16 (18-24 new BCs), VP-024, ADR-008, E-16 (5-6 stories). MITRE T0830+T1557.002. Post-release sweep 2026-06-12: 5 dep bumps merged (#203/#204/#207/#235/#206), #202/#205 closed; etherparse 0.20 folded into ARP cycle (IN-PROGRESS).
+**Summary:** 68 stories (48 greenfield + 1 tooling + 19 feature-cycle), 457 pts. 283 BCs (244 pre-F2 + 24 SS-15 + 15 SS-16 ARP), 24 VPs (23 locked + VP-024 ARP draft), 1496 tests green, holdout 0.967. develop HEAD cced898; main HEAD 3e29891 (v0.6.0). ARP feature: F1 approved — SS-16 (18-24 new BCs), VP-024, ADR-008, E-16 (5-6 stories). MITRE T0830+T1557.002. F4 wave 40 (STORY-111): etherparse 0.20 + DecodedFrame + ArpFrame + symmetric-unreachable design + non-panicking extract_arp_frame placeholder delivered PR #236.
 
 ## Phase Progress
 
@@ -83,9 +83,9 @@ input_drift_check: "MATCH=23 STALE=44 ERROR=1 (STORY-091 known); ARP stories STO
 | Feature: ARP analyzer — F1 Delta Analysis | **PASSED** (human-gated 2026-06-12) | DecodedFrame{Ip,Arp} integration, ADR-008 planned, F2→F7 authorized; artifacts: `.factory/phase-f1-delta-analysis/arp-analyzer-delta-analysis.md` |
 | Feature: ARP analyzer — F2 Spec Evolution | **CONVERGED 3/3** (Pass 33, 2026-06-13); 33 passes total; P31/P32/P33 consecutive CLEAN; F2 strict-whole-corpus adversarial gate SATISFIED | 4-slice method; ARP delta SETTLED P9+; corpus-wide debt flushed P14-25; P26/P28/P31/P32/P33 CLEAN; P27/P29/P30 reset cycles surfaced+fixed genuine defects; trajectory: `phase-f5-adversarial/arp-f2-convergence-trajectory.md` |
 | Feature: ARP analyzer — F3 Story Decomposition | **CONVERGED 3/3** (Passes 36/37/38, 38 passes total incl. post-P26/P33 consistency flushes); F3 STRICT WHOLE-CORPUS ADVERSARIAL GATE SATISFIED; F3 human gate PASSED (D-070, 2026-06-14) | STORY-111..115 (E-16, 47 pts, linear chain); 15 SS-16 BCs; waves 40-44 holdouts; HS-INDEX v1.7; wave-schedule v1.3; SS-15 fully de-NEW-ed; corpus canonical 457 pts; trajectory: phase-f5-adversarial/arp-f3-convergence-trajectory.md |
-| Feature: ARP analyzer — F4 Delta Implementation | **IN PROGRESS** — STORY-111 implementation GREEN + Step-4.5 CONVERGED (3/3 ZERO; worktree commit 9cf7bca; branch worktree-issue-9-story-111-arp-etherparse-decodedframe); D-071 AC re-scope + D-072 symmetric-unreachable design F4-surfaced+resolved; commit chain 4e22ef9→549b769→27f51ba→9e07423→9cf7bca; NEXT = demo + PR → STORY-112 | per-story TDD; waves 40-44; v0.7.0 target |
+| Feature: ARP analyzer — F4 Delta Implementation | **IN PROGRESS** — STORY-111 DELIVERED (PR #236 cced898; wave 40); etherparse 0.20 + DecodedFrame{Ip,Arp}/ArpFrame + symmetric-unreachable (D-072) + BC-2.02.009 v1.7 + non-panicking extract_arp_frame placeholder; 53 suites green; CI Format fixed (toolchain alignment); STORY-112 IN PROGRESS NEXT | per-story TDD; waves 40-44; v0.7.0 target |
 
-## Session Resume Checkpoint (2026-06-14 — F4 ARP DELTA-IMPLEMENTATION IN PROGRESS; STORY-111 Step-4.5 CONVERGED 3/3 + demo evidence committed; NEXT = pr-manager 9-step PR to develop → STORY-112)
+## Session Resume Checkpoint (2026-06-14 — F4 ARP DELTA-IMPLEMENTATION IN PROGRESS; STORY-111 DELIVERED PR #236 cced898; NEXT = STORY-112 delivery)
 
 **Previous checkpoint (2026-06-14 — F3 ARP adversarial convergence — Pass-37 FULLY CLEAN; all 4 slices ZERO; clean-streak 2/3; strict 3/3 in progress) archived to:
 `cycles/feature-arp-v0.7.0/session-checkpoints.md`**
@@ -105,7 +105,7 @@ input_drift_check: "MATCH=23 STALE=44 ERROR=1 (STORY-091 known); ARP stories STO
 - **F3 Adversarial Convergence:** STRICT WHOLE-CORPUS, **CONVERGED 3/3 — GATE SATISFIED.**
   **Pass-38 FULLY CLEAN — all 4 slices ZERO (A 17th-consec, B converged, C converged, D converged); mount-guards PASSED. clean-streak 2/3→3/3. Passes 36/37/38 = 3 consecutive CLEAN. F3 STRICT WHOLE-CORPUS ADVERSARIAL GATE SATISFIED.**
 - **F3 Human Gate:** PASSED (2026-06-14, D-070) — STORY-111..115 accepted as-is; no changes requested.
-- **F4 Delta-Implementation:** IN PROGRESS — AUTHORIZED (D-070). **STORY-111 TDD GREEN + Step-4.5 CONVERGED (3/3 ZERO FINDINGS, passes A/B/C fresh-context). All 7 checks pass: AC conformance (AC-003/005/005b/006/009/010), symmetric-unreachable design (D-072), VP-008 no-panic, scope discipline (non-panicking extract_arp_frame None placeholder, transitional Err, no STORY-112 over-implementation), no forbidden decoder→analyzer/arp dependency, test reconciliation (4 bc_2_02_story003 ARP tests → transitional behavior), code quality (etherparse 0.20 API, accurate docs). Frozen diff commit: 9cf7bca. Branch: worktree-issue-9-story-111-arp-etherparse-decodedframe (off develop 31d1231). Commit chain: 4e22ef9 (stub) → 549b769 (tests) → 27f51ba (impl) → 9e07423 (test reconcile) → 9cf7bca (doc-prose fix). cargo test --all-targets green (53 suites), clippy -D warnings clean, fmt clean. DEMO EVIDENCE COMMITTED: `.factory/demo-evidence/STORY-111/` (17 artifacts: 4 .gif + 4 .webm + 4 .tape + cargo-test-all-targets.log [53 suites green] + per-AC key-test-results log + build/clippy/fmt logs + evidence-report.md). NEXT ACTION: push branch worktree-issue-9-story-111-arp-etherparse-decodedframe → pr-manager (9-step PR to develop) → worktree cleanup; then STORY-112 (extract_arp_frame + VP-024 Sub-A).**
+- **F4 Delta-Implementation:** IN PROGRESS — AUTHORIZED (D-070). **STORY-111 DELIVERED (PR #236 MERGED to develop cced898; wave 40 COMPLETE; D-073). etherparse 0.16→0.20 migration + DecodedFrame{Ip,Arp} enum + ArpFrame struct + decode_packet→Result<DecodedFrame> + symmetric-unreachable ARP decode (D-072) + non-panicking extract_arp_frame placeholder + BC-2.02.009 v1.7 + VP-008 fuzz-harness return-type update. 53 suites green; clippy/fmt clean. CI Format failure fixed by aligning local toolchain to CI rolling-stable (rustfmt 1.8.0→1.9.0). pr-reviewer APPROVE. NEXT ACTION: STORY-112 delivery — stub-architect/test-writer (extract_arp_frame real impl per BC-2.16.001/002, ArpAnalyzer stub, main.rs DecodedFrame wiring, VP-024 Sub-A Kani) → implementer → Step-4.5 (3/3) → demo → pr-manager 9-step PR → cleanup.**
 
 ### B. F3 CONVERGENCE STATUS
 
@@ -296,6 +296,8 @@ STORY-114 inputs include BC-2.16.007 (cross-story). All 16 SS-16 + 24 SS-15 BC s
   codification: add Artifacts-changed table check to spec-changelog authoring checklist and
   PO/state-manager write discipline.
 
+- **PG-ARP-F4-CI-FMT-TOOLCHAIN (2026-06-14, STORY-111):** local rustfmt (1.8.0-stable, 2026-03-02) was ~3 months behind CI's rolling dtolnay/rust-toolchain@stable (1.9.0, 2026-05) → agents reported 'cargo fmt clean' locally but CI `cargo fmt --all --check` failed (benches/pipeline.rs + test closure wrapping). Mitigation: before declaring fmt clean / opening a PR, run `rustup update stable` + `cargo fmt --all --check` to match CI rolling-stable. Related DF-ADVERSARY-TOOLCHAIN-PAIRING-001. DEFER → engine devops checklist.
+- **PG-ARP-F4-PRMGR-MERGE-SHORTSTOP (2026-06-14, STORY-111):** pr-manager returned twice without completing the merge (1st: stopped at pr-reviewer APPROVE; 2nd: set up a Monitor and exited) — orchestrator had to verify CI + re-dispatch with explicit 'merge now'. Reinforces DF-PR-MANAGER-COMPLETE-001 / DRIFT-ENGINE-PRMGR-REPORT-001: pr-manager must complete steps 7-9 and emit a consolidated report. DEFER → engine pr-manager agent-prompt note.
 - **PG-ARP-F4-SPEC-TYPE-IMPLEMENTABILITY (2026-06-14, D-072):** arch/BC design snippets must be
   type-checked for implementability at F2/F3 (lax_ip_triple→IpTriple cannot route a DecodedFrame;
   the §2.2 BLOCK-1 design was un-implementable and internally contradicted BLOCK-2 yet survived
@@ -307,7 +309,9 @@ PG-ARP-F3-ANCHOR ×4, PG-ARP-F3-SIBLING-SKELETON, PG-ARP-F3-INDEX-TOTAL, PG-ARP-
 PG-ARP-F3-CHANGELOG-VERSION-LOCKSTEP, PG-ARP-F3-CHANGELOG-PHANTOM-PATH,
 PG-ARP-F3-ADVERSARY-MOUNT, PG-ARP-F3-CHANGELOG-TABLE) are JUSTIFIED DEFERRALS — engine/process
 improvements appropriately deferred to a self-improvement epic / next feature cycle. Each is
-recorded above with its deferral target. F3 gate SATISFIED; cycle can close.
+recorded above with its deferral target. F3 gate SATISFIED; cycle can close. F4 in progress: 2
+additional process-gaps recorded above (PG-ARP-F4-CI-FMT-TOOLCHAIN, PG-ARP-F4-PRMGR-MERGE-SHORTSTOP)
+as JUSTIFIED DEFERRALS — deferred to engine devops checklist / pr-manager agent-prompt.
 
 - **PG-ARP-F4-AC-SCOPE-FEASIBILITY (2026-06-14, D-071):** F3 adversarial convergence (38 strict
   whole-corpus passes) did not catch STORY-111's over-scoped ACs because the adversary rubric
@@ -345,12 +349,12 @@ recorded above with its deferral target. F3 gate SATISFIED; cycle can close.
 
 1. `vsdd-factory:factory-worktree-health` (BLOCKING — do not proceed if fails).
 2. `git -C /Users/zious/Documents/GITHUB/wirerust/.factory log -1 --format='%h %s'` (confirm factory HEAD).
-3. `git rev-parse --short HEAD` on develop (expect `31d1231` or newer, clean).
+3. `git rev-parse --short HEAD` on develop (expect `cced898` or newer, clean).
 4. `python3 /Users/zious/Documents/GITHUB/wirerust/bin/compute-input-hash --scan` —
    confirm STORY-111..115 MATCH (d05149f/8a4d566/a767d96/e2f1c95/5ca9835).
-5. **F4 IN PROGRESS — STORY-111 Step-4.5 CONVERGED (3/3 ZERO, passes A/B/C; frozen diff 9cf7bca). Demo evidence committed to factory-artifacts (`.factory/demo-evidence/STORY-111/`; 53 suites green, 6 ACs mapped).
-   NEXT = push branch worktree-issue-9-story-111-arp-etherparse-decodedframe → pr-manager 9-step PR to develop → worktree cleanup; then STORY-112 (extract_arp_frame + VP-024 Sub-A).**
-   DO NOT re-run F1/F2/F3 adversarial (all converged). DO NOT revert D-068/D-069/D-071/D-072. DO NOT re-run Step-4.5 for STORY-111 (already CONVERGED).
+5. **F4 IN PROGRESS — STORY-111 DELIVERED (PR #236 merged cced898; wave 40 COMPLETE; D-073).
+   NEXT = STORY-112 delivery: stub-architect/test-writer (extract_arp_frame real impl per BC-2.16.001/002, ArpAnalyzer stub, main.rs DecodedFrame wiring, VP-024 Sub-A Kani) → implementer → Step-4.5 (3/3) → demo → pr-manager 9-step PR → cleanup.**
+   DO NOT re-run F1/F2/F3 adversarial (all converged). DO NOT revert D-068/D-069/D-071/D-072. DO NOT re-deliver STORY-111 (merged cced898).
 
 ### I. KEY ARTIFACT POINTERS
 
@@ -364,7 +368,7 @@ recorded above with its deferral target. F3 gate SATISFIED; cycle can close.
 
 | Ref | Value at checkpoint | Re-verify command |
 |-----|--------------------|--------------------|
-| develop HEAD | `31d1231` | `git rev-parse --short HEAD` (on develop) |
+| develop HEAD | `cced898` | `git rev-parse --short HEAD` (on develop) |
 | main HEAD | `3e29891` | `git log main -1 --format='%h %s'` |
 | tag v0.6.0 | annotated → commit `3e29891` | `git show v0.6.0 --format='%h' -s` |
 | factory-artifacts HEAD | verify live | `git -C /Users/zious/Documents/GITHUB/wirerust/.factory log -1 --format='%h %s'` |
@@ -394,6 +398,7 @@ D-001..D-054 archived: `cycles/v0.1.0-greenfield-spec/decisions-archive.md` (D-0
 | D-068 | Benign gratuitous ARP emits mitre_techniques: [] (LOW/Anomaly severity); T0830 + T1557.002 apply ONLY when GARP conflicts with binding table (BC-2.16.014). Research-backed: MITRE ATT&CK v19.1 T1557.002/DET0387 + T0830; arpwatch/Zeek/Suricata all gate techniques on conflict-detection. Corrected latent over-tagging defect in BC-2.16.003 (→v1.7) and ADR-008 (→v2.0). Propagated to §3.3/STORY-113 AC-003, holdouts, and error-taxonomy. | 2026-06-14 |
 | D-069 | IcsImpact Display canonical = "Impact (ICS)" (distinct from Enterprise "Impact" TA0040). SUPERSEDES D-067. Research-backed: MITRE TA0040 (Enterprise Impact) vs TA0105 (ICS Impact) are distinct tactic families; WCAG 2.4.6 requires unique headings/labels. src/mitre.rs:91 "Impact (ICS)" is CORRECT — not deviant. STORY-114 D-067 revert obligations (F3-OBL-STORY114-001/002/003) REVOKED. 2 shipped DNP3 F5 distinctness tests preserved (they test enum-variant identity, not Display string equality). Spec side corrected: BC-2.10.002 (→v1.5), PRD §85/882, ADR-007, arp-architecture-delta §5.0. | 2026-06-14 |
 | D-070 | Feature ARP F3 human gate PASSED (2026-06-14) — STORY-111..115 (E-16, 47 pts) accepted as-is; F3 strict whole-corpus adversarial convergence SATISFIED (3/3, Passes 36/37/38; 38 passes total + 3 consistency flushes). F4 delta-implementation AUTHORIZED: per-story TDD on the linear chain STORY-111→112→113→114→115; release target v0.7.0. etherparse 0.16→0.20 migration folded into STORY-111 (sub-delta A). Human review questions (scope/MITRE/linear-chain/etherparse) — no changes requested; approved as-is. | 2026-06-14 |
+| D-073 | STORY-111 DELIVERED — PR #236 MERGED to develop (merge commit cced898; repo allows merge-commits only). etherparse 0.20 migration + DecodedFrame{Ip,Arp} enum + ArpFrame struct + decode_packet→Result<DecodedFrame> + symmetric-unreachable ARP decode (D-072) + non-panicking extract_arp_frame placeholder + BC-2.02.009 v1.7 + VP-008 fuzz-harness return-type update. 53 test suites green; clippy/fmt clean; Step-4.5 adversarial 3/3. CI Format failure fixed by aligning local toolchain to CI rolling-stable (rustfmt 1.8.0→1.9.0). pr-reviewer APPROVE. Wave 40 complete. NEXT = STORY-112 (extract_arp_frame + ArpAnalyzer stub + main.rs DecodedFrame wiring + VP-024 Sub-A Kani). | 2026-06-14 |
 | D-072 | F4-surfaced ARP decode design inconsistency (2026-06-14) — STORY-111 implementation revealed arp-architecture-delta §2.2 contained an internally-inconsistent + non-type-implementable lax design (BLOCK 1 'lax_ip_triple routes ARP / NOT unreachable!' vs authoritative BLOCK 2 'decode_packet intercepts ARP'). lax_ip_triple returns IpTriple and cannot route ARP. Architect ruled SYMMETRIC design authoritative: decode_packet routes ARP in both strict Ok(slice) and lax Err(SliceError::Len) arms; both strict_ip_triple AND lax_ip_triple have provably-dead unreachable! ARP arms; VP-008/VP-024 Sub-A no-panic via decode_packet interception + panic-free extract_arp_frame. Reconciled: arp-architecture-delta v1.16, ADR-008 Decision 3 v2.1, BC-2.02.009 v1.7, BC-2.16.015 v1.3, STORY-111 v1.4 (hash d05149f), STORY-112 v1.3 (hash 8a4d566). SUPERSEDES BC-2.16.015 v1.2 'lax NOT unreachable' fix (which had aligned to the inconsistent BLOCK-1 prose). STORY-111 GREEN implementation was correct throughout and matches the reconciled design — no code change. 2nd F4-surfaced spec defect after D-071; reinforces strict-TDD value. | 2026-06-14 |
 | D-071 | F4-surfaced STORY-111 decomposition fix (2026-06-14) — strict-TDD stub-architect Red-Gate (BC-5.38.005 self-check) caught that STORY-111 ACs (001/002/004/007/008) asserted STORY-112's extract_arp_frame end-to-end ARP-decode behavior, unsatisfiable within STORY-111's §6 scaffolding scope and duplicative of STORY-112 AC-006/007/004. Re-scoped STORY-111→v1.1 (scaffolding-only ACs AC-003/005/005b/006/009/010 + AC-005b non-panicking extract_arp_frame placeholder preserving VP-008); added STORY-112 AC-012→v1.1 (decode_packet-level Err("Non-Ethernet/IPv4 ARP frame")) closing the one coverage gap. BC-2.02.009 unedited (primary STORY-111; ARP-Ok postcondition behaviorally satisfied in STORY-112 — story-level framing). Both stories input-hash MATCH (d5bda72/268f53f — body-only edits). 38 strict F3 passes did not catch this (AC-satisfiable-within-dependency-scope feasibility check, not spec-internal-consistency) — validates strict-TDD value. Scoped adversarial re-review of STORY-111/112 in progress before resuming TDD. Worktree stub commit 4e22ef9 was based on old over-scoped STORY-111 and must be re-aligned (extract_arp_frame todo!()→non-panicking placeholder). **F4 scoped post-fix adversarial re-review (2026-06-14) surfaced 7 findings (1 HIGH: BC-2.16.015 lax_ip_triple unreachable! mis-anchor — sibling-propagation gap from BC-2.02.009 v1.6 correction, would have caused a reachable VP-008/VP-024 Sub-A violating panic; 2 MED + 4 LOW: AC-seam/type/count issues). ALL 7 remediated: BC-2.16.015→v1.2 (lax unreachable! → explicit routing; Architecture Anchors corrected), STORY-111→v1.2 (AC-005 seam + AC-005b type + Task-8 + coverage-map), STORY-112→v1.2 (AC count AC-001..AC-011→AC-001..AC-012; input-hash 268f53f→c8c1a64). BC-2.02.009 anchoring judged coherent — no BC split needed. BC-2.16.015 lax-unreachable mis-anchor shows the BC-2.02.009 v1.6 sibling-sweep did not reach SS-16 sibling BCs — cross-subsystem sibling sweep gap. Confirming scoped re-review in progress; on clean → resume STORY-111 TDD.** | 2026-06-14 |
 
