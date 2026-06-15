@@ -251,11 +251,18 @@ fn run_analyze(
                             }
                         }
                         Err(ref e) if e.to_string().contains("Non-Ethernet/IPv4 ARP frame") => {
-                            // STORY-113: D11 malformed ARP notification (BC-2.16.009 PC6).
-                            // malformed_frames is always incremented (AC-012).
-                            // record_malformed handles the finding-emission gate internally;
-                            // the caller unconditionally notifies the analyzer per BC-2.16.009.
-                            arp_analyzer.record_malformed(raw.data.len());
+                            // STORY-113: D11 malformed ARP notification (BC-2.16.009 PC3/PC4).
+                            // malformed_frames increments unconditionally (BC-2.16.009 PC4).
+                            // When --arp active: record_malformed emits D11 Finding and
+                            // increments both malformed_frames and malformed_findings (AC-012).
+                            // When --arp absent: only malformed_frames increments; no finding
+                            // emitted and malformed_findings unchanged (BC-2.16.009 PC4, ADR-008
+                            // Decision 7, BC-2.16.010 key 11).
+                            if enable_arp {
+                                all_findings.extend(arp_analyzer.record_malformed(raw.data.len()));
+                            } else {
+                                arp_analyzer.malformed_frames += 1;
+                            }
                         }
                         Err(e) => {
                             if total_decode_errors == 0 {

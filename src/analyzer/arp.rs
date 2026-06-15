@@ -417,14 +417,34 @@ impl ArpAnalyzer {
     ///   in main.rs decides whether to call the finding-emission variant or bare counter.
     ///
     /// `packet_len` is included in the finding evidence (BC-2.16.009 PC3).
-    pub fn record_malformed(&mut self, _packet_len: usize) {
+    pub fn record_malformed(&mut self, packet_len: usize) -> Vec<Finding> {
+        use crate::findings::{Confidence, ThreatCategory, Verdict};
+
         // Always increment malformed_frames (BC-2.16.009 PC4; AC-012).
         self.malformed_frames += 1;
 
         // Increment malformed_findings — this method is only called from the
-        // --arp-gated path in main.rs (BC-2.16.009 PC6; AC-012). Findings are
-        // counted here; the D11 LOW/Anomaly Finding emission is tracked by the counter.
+        // --arp-gated path in main.rs (BC-2.16.009 PC3/PC4; AC-012).
         self.malformed_findings += 1;
+
+        // Construct and return the D11 LOW/Anomaly Finding (BC-2.16.009 PC3).
+        // mitre_techniques: [] — T0814 withheld per DF-VALIDATION-001 / BC-2.16.009 Invariant 3.
+        vec![Finding {
+            category: ThreatCategory::Anomaly,
+            verdict: Verdict::Possible,
+            confidence: Confidence::Low,
+            summary: "D11: Malformed ARP frame — Non-Ethernet/IPv4 ARP frame (non-standard \
+                      HW/proto address sizes or types)"
+                .to_string(),
+            evidence: vec![
+                "Non-Ethernet/IPv4 ARP frame".to_string(),
+                format!("packet_len={packet_len}"),
+            ],
+            mitre_techniques: vec![],
+            source_ip: None,
+            timestamp: None,
+            direction: None,
+        }]
     }
 
     /// Produce the eleven-key `AnalysisSummary` for this capture.
