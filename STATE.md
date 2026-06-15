@@ -1,7 +1,7 @@
 ---
 pipeline: FEATURE_MODE_ARP_ANALYZER
 phase: feature-F4-delta-implementation
-phase_status: "F4 IN PROGRESS — STORY-111 DELIVERED (PR #236 cced898); STORY-112 DELIVERED (PR #238 10e4472; pr-reviewer APPROVE cycle 1, zero blocking; 9 CI checks green; Step-4.5 CONVERGED BC-5.39.001); STORY-113/114/115 input-hashes re-stamped (7c61bae/5705a10/2e0eca2; commit 68885d4); STORY-113 worktree READY (branch worktree-issue-9-story-113-arp-analyzer-full, base 10e4472, baseline build+tests green); NEXT = STORY-113 TDD implementation."
+phase_status: "F4 IN PROGRESS — STORY-111 DELIVERED (PR #236 cced898); STORY-112 DELIVERED (PR #238 10e4472; pr-reviewer APPROVE cycle 1, zero blocking; 9 CI checks green; Step-4.5 CONVERGED BC-5.39.001); STORY-113 Step-4.5 CONVERGED (BC-5.39.001; 3/3 clean passes; frozen diff 0437be6; 1535 tests; demo-recording + PR pending); NEXT = demo-recorder → pr-manager (STORY-113)."
 active_feature: "arp-analyzer"
 feature_arp_status: "F1 Delta Analysis PASSED (human-gated 2026-06-12) — DecodedFrame integration, ADR-008 planned, F2→F7 authorized; release target v0.7.0"
 feature_8_status: "v0.6.0 RELEASED 2026-06-12 — DNP3 TCP analyzer; F7 5-dim CONVERGED; tag v0.6.0 + 4 binaries"
@@ -45,7 +45,7 @@ arp_f2_convergence_trajectory: "15→20→~8→~15→~6→~4→~4→~7→~4→~6
 f3_convergence_trajectory: "F3 STRICT WHOLE-CORPUS CONVERGED 3/3 — GATE SATISFIED. Full per-pass detail P1-P38: phase-f5-adversarial/arp-f3-convergence-trajectory.md. P31 FULLY CLEAN (clean-streak 0/3→1/3). P32 reset (STORY-115 storm_findings field; REMEDIATED). P33 reset (BC-2.15.024 parse_errors→malformed_in_window; REMEDIATED). POST-P33 SS-15 FLUSH (6 findings). P34 reset (changelog Artifacts table; REMEDIATED). P35 reset (changelog line-pins; de-pin sweep). P36 FULLY CLEAN (clean-streak 0/3→1/3). P37 FULLY CLEAN (clean-streak 1/3→2/3). P38 FULLY CLEAN — all 4 slices ZERO; A 17th-consec, B converged, C converged, D converged; mount-guards PASSED; clean-streak 2/3→3/3. **F3 STRICT WHOLE-CORPUS ADVERSARIAL GATE SATISFIED** (Passes 36/37/38 consecutive CLEAN). Total: 38 passes."
 f7_convergence_trajectory: "6 fresh-context adversarial passes; final 3 consecutive CONVERGED (0 P0/CRITICAL/HIGH/MEDIUM)"
 consistency_audit: CONSISTENT
-input_drift_check: "MATCH=23 STALE=44 ERROR=1 (STORY-091 known); ARP stories: STORY-111=d05149f MATCH, STORY-112=8a4d566 MATCH, STORY-113=7c61bae MATCH (re-stamped 2026-06-15 commit 68885d4), STORY-114=5705a10 MATCH (re-stamped 2026-06-15), STORY-115=2e0eca2 MATCH (re-stamped 2026-06-15); scan 2026-06-14."
+input_drift_check: "MATCH=23 STALE=44 ERROR=1 (STORY-091 known); ARP stories: STORY-111=d05149f MATCH (DELIVERED), STORY-112=8a4d566 MATCH (DELIVERED), STORY-113=7c61bae MATCH (Step-4.5 CONVERGED), STORY-114=5705a10 MATCH (re-stamped 2026-06-15), STORY-115=2e0eca2 MATCH (re-stamped 2026-06-15); scan 2026-06-14."
 ---
 
 # VSDD Pipeline State — wirerust
@@ -83,11 +83,11 @@ input_drift_check: "MATCH=23 STALE=44 ERROR=1 (STORY-091 known); ARP stories: ST
 | Feature: ARP analyzer — F1 Delta Analysis | **PASSED** (human-gated 2026-06-12) | DecodedFrame{Ip,Arp} integration, ADR-008 planned, F2→F7 authorized; artifacts: `.factory/phase-f1-delta-analysis/arp-analyzer-delta-analysis.md` |
 | Feature: ARP analyzer — F2 Spec Evolution | **CONVERGED 3/3** (Pass 33, 2026-06-13); 33 passes total; P31/P32/P33 consecutive CLEAN; F2 strict-whole-corpus adversarial gate SATISFIED | 4-slice method; ARP delta SETTLED P9+; corpus-wide debt flushed P14-25; P26/P28/P31/P32/P33 CLEAN; P27/P29/P30 reset cycles surfaced+fixed genuine defects; trajectory: `phase-f5-adversarial/arp-f2-convergence-trajectory.md` |
 | Feature: ARP analyzer — F3 Story Decomposition | **CONVERGED 3/3** (Passes 36/37/38, 38 passes total incl. post-P26/P33 consistency flushes); F3 STRICT WHOLE-CORPUS ADVERSARIAL GATE SATISFIED; F3 human gate PASSED (D-070, 2026-06-14) | STORY-111..115 (E-16, 47 pts, linear chain); 15 SS-16 BCs; waves 40-44 holdouts; HS-INDEX v1.7; wave-schedule v1.3; SS-15 fully de-NEW-ed; corpus canonical 457 pts; trajectory: phase-f5-adversarial/arp-f3-convergence-trajectory.md |
-| Feature: ARP analyzer — F4 Delta Implementation | **IN PROGRESS** — STORY-111 DELIVERED (PR #236 cced898; wave 40; D-073); STORY-112 DELIVERED (PR #238 10e4472; wave 41; Step-4.5 CONVERGED BC-5.39.001); STORY-113 worktree READY (base 10e4472; input-hashes re-stamped commit 68885d4); STORY-113 TDD IN PROGRESS | per-story TDD; waves 40-44; v0.7.0 target |
+| Feature: ARP analyzer — F4 Delta Implementation | **IN PROGRESS** — STORY-111 DELIVERED (PR #236 cced898; wave 40; D-073); STORY-112 DELIVERED (PR #238 10e4472; wave 41; Step-4.5 CONVERGED BC-5.39.001); STORY-113 Step-4.5 CONVERGED (BC-5.39.001; 3/3 clean passes ad044181/ae1383274/ad2223ab; frozen diff 0437be6; 1535 tests; F-113-01 HIGH resolved; PR pending); NEXT = demo-recorder → pr-manager | per-story TDD; waves 40-44; v0.7.0 target |
 
-## Session Resume Checkpoint (2026-06-15 — F4 ARP DELTA-IMPLEMENTATION; STORY-112 DELIVERED PR #238 10e4472; input-hashes re-stamped 68885d4; STORY-113 worktree READY; NEXT = STORY-113 TDD)
+## Session Resume Checkpoint (2026-06-15 — F4 ARP DELTA-IMPLEMENTATION; STORY-113 Step-4.5 CONVERGED (0437be6; 1535 tests); NEXT = demo-recorder → pr-manager → STORY-114)
 
-**Previous checkpoint (2026-06-15 — F4 IN PROGRESS; STORY-112 Step-4.5 CONVERGED + DEMO-RECORDED; NEXT = pr-manager) archived to:
+**Previous checkpoint (2026-06-15 — F4 IN PROGRESS; STORY-113 TDD IN PROGRESS; NEXT = STORY-113 Step-4.5 adversarial convergence) archived to:
 `cycles/feature-arp-v0.7.0/session-checkpoints.md`**
 
 ### A. EXACT PIPELINE POSITION
@@ -110,9 +110,14 @@ input_drift_check: "MATCH=23 STALE=44 ERROR=1 (STORY-091 known); ARP stories: ST
     to F6 (todo!() skeletons; verification_lock:false; D-062 precedent). .factory-demos/ added
     to .gitignore (bec7a76) via PR #238 (PG-ARP-F4-DEMO-LEAK). Worktree removed.
     Follow-up items registered: FU-ARP-113-AC012-TYPECHECK, FU-ARP-113-LAXNONE-TEST.
-  - STORY-113: WORKTREE READY — branch `worktree-issue-9-story-113-arp-analyzer-full`, base 10e4472, baseline build+19 test-binary suites green. Input-hash re-stamped 7c61bae (commit 68885d4). TDD IN PROGRESS.
+  - **Wave 42 / STORY-113: Step-4.5 CONVERGED** — 3/3 clean passes (ad044181/ae1383274/ad2223ab)
+    on frozen diff 0437be6. 1535 tests. F-113-01 HIGH (record_malformed no Finding) RESOLVED.
+    Inverted-TDD reporter alias RESOLVED (json.rs = develop baseline; reverted 601eeb6/6aa9835).
+    O-4 stale-skeleton doc RESOLVED (0437be6). Worktree HEAD 0437be6; develop HEAD 10e4472 (no
+    merge yet). Process gaps logged: PG-ARP-F4-INVERTED-TDD, PG-ARP-F4-PROXY-COUNTER-TEST,
+    PG-ARP-F4-STALE-SKELETON-DOC, PG-ARP-F4-VESTIGIAL-REFACTOR. NEXT = demo-recorder + PR.
   - STORY-114/115: NOT STARTED.
-- **develop HEAD: 10e4472** (was cced898 after STORY-111; next story STORY-113 branches from 10e4472).
+- **develop HEAD: 10e4472** (unchanged; STORY-113 merge pending).
 - **Decisions active: D-047..D-073; do NOT re-adjudicate D-068/D-069/D-071/D-072/D-073.**
 - **F3-OBL-STORY114-001/002/003 REVOKED** (D-069).
 
@@ -122,25 +127,25 @@ input_drift_check: "MATCH=23 STALE=44 ERROR=1 (STORY-091 known); ARP stories: ST
 |-------|--------|----------|--------|
 | STORY-111 | d05149f | d05149f | MATCH — DELIVERED |
 | STORY-112 | 8a4d566 | 8a4d566 | MATCH — DELIVERED |
-| STORY-113 | ~~a767d96~~ | 7c61bae | MATCH — re-stamped 2026-06-15 (commit 68885d4) |
-| STORY-114 | ~~e2f1c95~~ | 5705a10 | MATCH — re-stamped 2026-06-15 (commit 68885d4) |
-| STORY-115 | ~~5ca9835~~ | 2e0eca2 | MATCH — re-stamped 2026-06-15 (commit 68885d4) |
+| STORY-113 | 7c61bae | 7c61bae | MATCH — Step-4.5 CONVERGED; PR pending |
+| STORY-114 | 5705a10 | 5705a10 | MATCH — re-stamped 2026-06-15 (commit 68885d4) |
+| STORY-115 | 2e0eca2 | 2e0eca2 | MATCH — re-stamped 2026-06-15 (commit 68885d4) |
 
-Input-hash re-stamp COMPLETE. All three ARP stories now MATCH. Gate cleared.
+Input-hash re-stamp COMPLETE. All ARP stories MATCH.
 
-### C. STORY-113 FOLLOW-UP ITEMS (registered from PR #238 pr-reviewer non-blocking observations)
-
-These items must be picked up during STORY-113 delivery (do not modify STORY-113.md here):
+### C. STORY-113 FOLLOW-UP ITEMS (open — outside ArpAnalyzer scope; register for F5/F6)
 
 - **FU-ARP-113-AC012-TYPECHECK:** AC-012 prose lists htype!=0x0001 / ptype!=0x0800 as None
   conditions, but `extract_arp_frame` only checks hw_addr_size/proto_addr_size (defensible:
   etherparse routes by EtherType 0x0806). BC-2.16.001 EC-007/EC-008 define only size-mismatch
-  None paths. STORY-113 (or BC author) should clarify intended behavior for htype!=0x0001
-  with hlen==6, and add a test if a type-check is intended.
+  None paths. Scope: decoder/BC-2.16.001; outside STORY-113 ArpAnalyzer scope. OPEN for F5/F6.
 - **FU-ARP-113-LAXNONE-TEST:** The lax-arm `None` branch with `stop_err == Layer::Arp`
   (decode_packet, severely-truncated ARP <8 bytes ARP header) has no dedicated unit test;
-  AC-007 exercises the `Some(LaxNetSlice::Arp)` path instead. Add a unit test for this
-  sub-path in STORY-113.
+  AC-007 exercises the `Some(LaxNetSlice::Arp)` path instead. Scope: decoder; outside STORY-113
+  ArpAnalyzer scope. OPEN for F5/F6.
+- **BC-2.16.010-PC2-SIGNATURE:** BC-2.16.010 PC2 references `ArpAnalyzer::new(spoof_threshold, storm_rate)`
+  while STORY-113 uses parameterless `new()` (Arch Rule 3). End-state forward-reference; params land in
+  STORY-114/115. Confirm BC-2.16.010 PC2 matches `new()`'s actual final signature after STORY-115.
 
 ### D. DECISIONS CONFIRMED ACTIVE (do not re-adjudicate)
 
@@ -190,10 +195,10 @@ gh pr list --state open
 ```
 
 **Step 3 — COMPLETE (2026-06-15):**
-- Input-hash re-stamp DONE: STORY-113=7c61bae, STORY-114=5705a10, STORY-115=2e0eca2. Commit 68885d4 pushed to factory-artifacts.
-- STORY-113 worktree created: branch `worktree-issue-9-story-113-arp-analyzer-full`, base 10e4472, baseline green.
-- Incorporate STORY-113 follow-up items (FU-ARP-113-AC012-TYPECHECK, FU-ARP-113-LAXNONE-TEST)
-  into STORY-113 delivery scope (still required).
+- Input-hash re-stamp DONE: STORY-113=7c61bae, STORY-114=5705a10, STORY-115=2e0eca2. Commit 68885d4.
+- STORY-113 Step-4.5 CONVERGED: 3/3 clean passes (ad044181/ae1383274/ad2223ab) on frozen diff 0437be6.
+  1535 tests. F-113-01 HIGH RESOLVED. json.rs = develop baseline. Process gaps logged.
+- NEXT: demo-recorder → pr-manager (STORY-113). Then STORY-114.
 
 **Step 4 — CI/toolchain note (PG-ARP-F4-CI-FMT-TOOLCHAIN):**
 Before opening any PR, run `rustup update stable` + `cargo fmt --all --check` to match CI
@@ -213,6 +218,7 @@ STORY-111 or STORY-112. Do NOT revert D-070/D-071/D-072/D-073.
 - F3 convergence trajectory (38 passes): `.factory/phase-f5-adversarial/arp-f3-convergence-trajectory.md`
 - F1 delta analysis: `.factory/phase-f1-delta-analysis/arp-analyzer-delta-analysis.md`
 - STORY-112: `.factory/stories/STORY-112.md` — DELIVERED (PR #238 10e4472)
+- STORY-113 Step-4.5 convergence report: `.factory/convergence/STORY-113-step45.md`
 - Archived checkpoints: `.factory/cycles/feature-arp-v0.7.0/session-checkpoints.md`
 
 ## Decisions Log
@@ -299,6 +305,9 @@ Full tech-debt register: `.factory/tech-debt-register.md`.
 | PG-ARP-F4-GUARD-WORDING | Checkout-guard premise "main repo does NOT have this function" was inaccurate (main repo has the STORY-111 None placeholder). Guard must key on BODY CONTENT (placeholder None vs real extraction) / the transitional error string, not function presence. Candidate: extend DF-ADVERSARY-CHECKOUT-GUARD-001. Detail: `cycles/feature-arp-v0.7.0/lessons.md`. | DEFERRED — extend DF-ADVERSARY-CHECKOUT-GUARD-001 |
 | PG-ARP-F4-DEMO-LEAK | Demo-recorder committed 4 gif+webm+tape sets to the develop-bound worktree branch under `.factory-demos/STORY-112/`, dodging the `.factory/` gitignore (different dir name). Caught by pre-PR diff inspection; commit 76bdf16 dropped; `.factory-demos/` added to .gitignore (bec7a76, PR #238). Lesson: demo evidence belongs ONLY on factory-artifacts (.factory/demo-evidence/). Demo-recorder dispatch must not commit demo artifacts to develop-bound branches. Orchestrator must run pre-PR binary-leak diff check. Detail: `cycles/feature-arp-v0.7.0/lessons.md`. | DEFERRED — demo-recorder template + orchestrator pre-PR check |
 | PG-ARP-F4-PRMGR-MERGE-SHORTSTOP | RECURRENCE #3 this feature cycle: pr-manager again halted at step 6 (APPROVE) without executing steps 7-9; required orchestrator "merge NOW" SendMessage. Reinforces DF-PR-MANAGER-COMPLETE-001 (HIGH). Three recurrences crosses escalation threshold. Candidate: harden pr-manager dispatch template with explicit "DO NOT STOP AT APPROVE" instruction + orchestrator merge-completion verification. Detail: `cycles/feature-arp-v0.7.0/lessons.md`. | DEFERRED — engine dispatch template hardening; escalate DF-PR-MANAGER-COMPLETE-001 to CRITICAL |
+| PG-ARP-F4-INVERTED-TDD | STORY-113: implementer changed production reporter (json.rs) to satisfy a mis-named test instead of flagging and stopping. Correct response: if a test demands a production change that contradicts a BC, STOP and surface it — do NOT change production. Caught by orchestrator reading BC-2.11.001/BC-2.16.010 Inv4 before adversary dispatch. Candidate: implementer prompt mandate. Detail: `cycles/feature-arp-v0.7.0/lessons.md`. | DEFERRED — implementer dispatch template note |
+| PG-ARP-F4-PROXY-COUNTER-TEST | STORY-113 F-113-01: AC-011 finding-emission verified via proxy counter (malformed_findings increment) that passed against an impl emitting no Finding. Candidate: adversary/review axis requiring finding-emission ACs to assert on Finding object (confidence/category/evidence), not a proxy counter. RISK: could recur in STORY-114/115 D1/D3 finding-emission ACs — apply proactively. Detail: `cycles/feature-arp-v0.7.0/lessons.md`. | DEFERRED — adversary dispatch template axis; apply to STORY-114/115 |
+| PG-ARP-F4-STALE-SKELETON-DOC | STORY-113 O-4: stale "skeleton/Red-Gate stubs/todo!()-bodies" doc-comments survived into GREEN commit (recurrence of PG-ARP-F4-REDBANNER-SWEEP from STORY-112). Candidate: GREEN-commit checklist step to sweep module/test-file headers from transitional language; adversary doc-accuracy axis enumeration. Detail: `cycles/feature-arp-v0.7.0/lessons.md`. | DEFERRED — implementer GREEN-commit checklist; adversary doc axis |
 
 ## Deferred Next-Work Backlog
 

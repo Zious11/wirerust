@@ -153,3 +153,112 @@ completion before declaring the PR cycle closed.
 
 **Status:** DEFERRED — engine dispatch template hardening; escalate
 DF-PR-MANAGER-COMPLETE-001 recurrence count to 3 in policy registry.
+
+---
+
+## [process-gap] PG-ARP-F4-INVERTED-TDD
+
+**Source:** STORY-113 Step-4.5 adversarial convergence (caught pre-convergence by
+orchestrator BC verification)
+
+**Observation:** The implementer added a conditional `"analyzer_summaries"` JSON key
+to `src/reporter/json.rs` to satisfy a mis-named test, rather than fixing the test.
+This violated BC-2.11.001 (5-key output schema) and BC-2.16.010 Inv4 (no reporter
+changes in STORY-113 scope). The correct response when a test appears to demand a
+production change that contradicts a BC is to STOP and surface it — not to bend
+production code to fit the test.
+
+The error was caught by the orchestrator reading BC-2.11.001 and BC-2.16.010 Inv4
+before routing to adversary dispatch, not by the adversary itself.
+
+**Root cause:** The implementer treated a failing test as an authoritative
+specification of the correct production behavior, without verifying the test name
+and BC alignment first. The mis-named test (`"analyzer_summaries"`) was the defect;
+the production schema (`"analyzers"`) was correct.
+
+**Candidate fix:** Implementer agent prompt should mandate: "If a failing test
+appears to require a production change that contradicts a BC or a declared
+invariant (e.g., Inv4 / no-reporter-change), STOP and surface the test as a
+candidate defect — do NOT change production code to match the test. The test must
+be reviewed against the BC before any production edit is made."
+
+**Status:** DEFERRED — implementer dispatch template language; candidate engine
+agent-prompt note.
+
+---
+
+## [process-gap] PG-ARP-F4-PROXY-COUNTER-TEST
+
+**Source:** STORY-113 Step-4.5 adversarial convergence (F-113-01 HIGH; adversary
+OBS-3 classification)
+
+**Observation:** AC-011 (record_malformed finding emission) was verified by asserting
+a proxy counter (`malformed_findings` increment count) rather than asserting on the
+actual `Finding` object (confidence, category, evidence fields). This proxy-counter
+test passed against an implementation that emitted no `Finding` at all — the counter
+tracked an internal bookkeeping value, not the externally-observable BC-2.16.009 PC3
+artifact.
+
+**Root cause:** Finding-emission acceptance criteria (ACs) are satisfied when the
+implementation produces a `Finding` with the correct shape. Asserting a bookkeeping
+counter is a weaker proxy that cannot detect a missing or malformed Finding.
+
+**Risk of recurrence:** This pattern could recur for STORY-114 (D1 / spoof detections)
+and STORY-115 (D3 / storm detections), which also carry finding-emission ACs. Recommend
+applying the stronger assertion pattern proactively in those stories.
+
+**Candidate fix:** Add a review/test axis to the per-story adversarial dispatch template
+requiring that finding-emission ACs assert on the Finding object itself (at minimum:
+confidence, category, at least one evidence field), NOT a proxy counter or count-only
+assertion.
+
+**Status:** DEFERRED — adversary dispatch template + per-story test-axis guidance;
+apply proactively to STORY-114 and STORY-115.
+
+---
+
+## [process-gap] PG-ARP-F4-STALE-SKELETON-DOC
+
+**Source:** STORY-113 Step-4.5 adversarial convergence (O-4 doc drift finding;
+recurrence of PG-ARP-F4-REDBANNER-SWEEP from STORY-112)
+
+**Observation:** Stale "skeleton / Red-Gate stubs / todo!()-bodies" language
+survived into the GREEN commit (0437be6 predecessor). Module and integration-test
+doc-comments still described the implementation state as scaffolding/stub even after
+the full ArpAnalyzer implementation landed. This mirrors the per-test RED-banner
+sweep gap observed in STORY-112.
+
+**Root cause:** The implementer/test-writer updated the implementation without
+sweeping the doc-comment layer (module headers, integration-test file headers)
+from transitional RED-state language to GREEN-state accurate language. Only the
+F6-Kani-todo notes (which are accurate — those stubs genuinely remain) should
+have been preserved.
+
+**Candidate fix:**
+1. Make doc-comment header update an explicit checklist item for the GREEN commit:
+   "Sweep all module-level docstrings and test-file headers; replace skeleton/stub
+   language with GREEN-state language; only F6-deferred `todo!()` notes may remain."
+2. The adversary doc-accuracy axis should specifically target module-level and
+   test-file-header transitional language as an enumerated check.
+
+**Status:** DEFERRED — implementer GREEN-commit checklist; adversary doc-accuracy
+axis enumeration (candidate DF-SIBLING-SWEEP-001 sub-rule for doc-comment layer).
+
+---
+
+## [info] PG-ARP-F4-VESTIGIAL-REFACTOR
+
+**Source:** STORY-113 Step-4.5 pre-convergence (json.rs serde_json::Map refactor)
+
+**Observation:** During the Inverted-TDD detour, `src/reporter/json.rs` was
+refactored to use `serde_json::Map` internally as part of implementing the
+`"analyzer_summaries"` alias. When the revert was applied (commit `6aa9835`),
+this refactor was also reverted — it was vestigial churn from the alias detour,
+not a deliberate improvement.
+
+**Lesson (informational):** Vestigial refactors inside an inverted-TDD detour add
+noise to the revert and increase the risk of incomplete revert. Keeping production
+refactors separate from test-alignment edits avoids this.
+
+**Status:** NOTED — informational. No policy change required; absorbed into
+PG-ARP-F4-INVERTED-TDD lesson.
