@@ -130,7 +130,7 @@ impl ParsedPacket {
 /// (STORY-113). It is `None` for non-Ethernet (SLL) captures.
 #[derive(Debug, Clone, PartialEq)]
 pub struct ArpFrame {
-    pub operation: u16,               // 1 = Request, 2 = Reply
+    pub operation: u16, // 1 = Request, 2 = Reply
     pub sender_mac: [u8; 6],
     pub sender_ip: [u8; 4],
     pub target_mac: [u8; 6],
@@ -173,12 +173,28 @@ pub fn decode_packet(data: &[u8], datalink: DataLink) -> Result<DecodedFrame> {
     match strict {
         // Strict succeeded with a usable IP layer — the common path.
         Ok(slice) => match &slice.net {
-            Some(NetSlice::Arp(_arp)) => {
-                // STORY-111 stub: ARP three-way dispatch — real routing is
-                // implemented in STORY-112 (extract_arp_frame full impl).
-                // The outer_src_mac extraction from slice.link and the call
-                // to extract_arp_frame are STORY-112's job.
-                todo!("STORY-111: ARP extraction in strict Ok arm — implement in STORY-112")
+            // AC-005 / BC-2.02.009 Invariant 1 — ARP three-way dispatch arm.
+            // outer_src_mac is extracted from slice.link for D12 mismatch detection
+            // (STORY-113). extract_arp_frame is the non-panicking placeholder (STORY-111)
+            // that always returns None; STORY-112 replaces it with the full implementation.
+            // None → temporary Err("ARP extraction not yet implemented") here;
+            // STORY-112 changes this to Err("Non-Ethernet/IPv4 ARP frame").
+            // (ADR-008 Decision 3; BC-2.02.009 v1.6 Invariant 1.)
+            Some(NetSlice::Arp(arp)) => {
+                let outer_src_mac: Option<[u8; 6]> = slice.link.as_ref().and_then(|l| {
+                    if let etherparse::LinkSlice::Ethernet2(eth) = l {
+                        Some(eth.source())
+                    } else {
+                        None
+                    }
+                });
+                match extract_arp_frame(arp, outer_src_mac, data.len()) {
+                    Some(f) => Ok(DecodedFrame::Arp(f)),
+                    // STORY-111 transitional: placeholder always returns None here.
+                    // STORY-112 replaces "not yet implemented" with the real routing:
+                    // None => Err(anyhow!("Non-Ethernet/IPv4 ARP frame"))
+                    None => Err(anyhow!("ARP extraction not yet implemented")),
+                }
             }
             Some(net) => Ok(DecodedFrame::Ip(build_parsed(
                 strict_ip_triple(net),
@@ -199,12 +215,26 @@ pub fn decode_packet(data: &[u8], datalink: DataLink) -> Result<DecodedFrame> {
         Err(SliceError::Len(_)) => {
             let lax = lax_parse(data, datalink)?;
             match &lax.net {
-                Some(LaxNetSlice::Arp(_arp)) => {
-                    // STORY-111 stub: lax ARP routing — full impl is STORY-112.
-                    // Per arp-architecture-delta §2.2, outer_src_mac is extracted
-                    // from lax.link, then extract_arp_frame is called. This arm
-                    // is NOT unreachable! — truncated ARP yields LaxNetSlice::Arp.
-                    todo!("STORY-111: lax ARP routing in Err(SliceError::Len) arm — implement in STORY-112")
+                // Lax ARP routing arm — NOT unreachable! (BC-2.02.009 Invariant 2,
+                // ADR-008 Decision 3 v1.6). Snaplen-truncated ARP frames yield
+                // Some(LaxNetSlice::Arp(_)) from the lax parser and reach this arm.
+                // outer_src_mac extracted from lax.link; extract_arp_frame is the
+                // non-panicking STORY-111 placeholder (always returns None).
+                // STORY-112 replaces the temporary Err string with the real routing.
+                Some(LaxNetSlice::Arp(arp)) => {
+                    let outer_src_mac: Option<[u8; 6]> = lax.link.as_ref().and_then(|l| {
+                        if let etherparse::LinkSlice::Ethernet2(eth) = l {
+                            Some(eth.source())
+                        } else {
+                            None
+                        }
+                    });
+                    match extract_arp_frame(arp, outer_src_mac, data.len()) {
+                        Some(f) => Ok(DecodedFrame::Arp(f)),
+                        // STORY-111 transitional: placeholder always returns None.
+                        // STORY-112 replaces with: None => Err(anyhow!("truncated ARP frame"))
+                        None => Err(anyhow!("ARP extraction not yet implemented")),
+                    }
                 }
                 Some(net) => Ok(DecodedFrame::Ip(build_parsed(
                     lax_ip_triple(net),
@@ -229,16 +259,24 @@ pub fn decode_packet(data: &[u8], datalink: DataLink) -> Result<DecodedFrame> {
 /// hw_type=0x0001, proto_type=0x0800); returns `None` for non-Ethernet/IPv4 ARP frames
 /// (signals the caller to return `Err("Non-Ethernet/IPv4 ARP frame")`).
 ///
-/// STORY-111 stub: body is `todo!()`. Full implementation is STORY-112.
-/// BC-5.38.005 self-check: if this body were real, AC-001 and AC-002 tests would pass
-/// trivially — therefore todo!() is required here to maintain the Red Gate.
-#[allow(dead_code)]
+/// **STORY-111 non-panicking placeholder** (AC-005b / BC-2.02.009 Invariant 5 / VP-008):
+/// this body always returns `None` — no panicking macro is used. The caller maps `None`
+/// to a temporary `Err("ARP extraction not yet implemented")`.
+/// STORY-112 replaces this placeholder body with the full implementation that reads
+/// `arp` fields and validates hw/proto sizes. The `Some(f) => Ok(DecodedFrame::Arp(f))`
+/// mapping in the caller is already wired; STORY-112 only needs to fill in this body.
+///
+/// **Forbidden:** `src/decoder.rs` MUST NOT import `src/analyzer/arp.rs` (AC-010 /
+/// arp-architecture-delta §2.1 decode-vs-analysis separation boundary).
 pub fn extract_arp_frame(
     _arp: &ArpPacketSlice<'_>,
     _outer_src_mac: Option<[u8; 6]>,
     _packet_len: usize,
 ) -> Option<ArpFrame> {
-    todo!("STORY-111 stub: extract_arp_frame — implement in STORY-112")
+    // STORY-111: non-panicking placeholder. Returns None so the caller emits a
+    // transitional Err("ARP extraction not yet implemented"). STORY-112 implements
+    // the real logic here (hw/proto size validation + ArpFrame field extraction).
+    None
 }
 
 /// Re-parse a frame with `etherparse`'s lax slicer, which clamps header
@@ -321,14 +359,19 @@ fn lax_ip_triple(net: &LaxNetSlice<'_>) -> IpTriple {
                 ipv6.payload().ip_number,
             )
         }
-        // Explicit routing arm — NOT unreachable! Snaplen-truncated ARP frames
-        // yield LaxNetSlice::Arp from etherparse 0.20's lax parser and DO reach
-        // this function. An unreachable! here would be a reachable runtime panic,
-        // violating VP-008/VP-024 Sub-A (ADR-008 Decision 3 v1.6, BC-2.02.009
-        // Invariant 2, AC-007). STORY-112 replaces this todo! with real routing.
-        LaxNetSlice::Arp(_) => {
-            todo!("STORY-111 lax ARP routing — implement real routing to extract_arp_frame in STORY-112")
-        }
+        // This arm is a compile-exhaustiveness guard only.
+        // In practice, decode_packet's Err(SliceError::Len(_)) arm matches
+        // Some(LaxNetSlice::Arp(_)) BEFORE calling lax_ip_triple (see above),
+        // so lax_ip_triple is never called with an ARP slice at runtime.
+        // The arm exists so the match is exhaustive under all possible inputs
+        // (AC-005 / BC-2.02.009 Invariant 2 — lax ARP is handled in decode_packet,
+        // not here). This is a code-logic invariant: if this arm executes it
+        // indicates a caller error, but it is provably unreachable via decode_packet.
+        LaxNetSlice::Arp(_) => unreachable!(
+            "ARP frames are routed in decode_packet's Err(SliceError::Len) arm \
+             before lax_ip_triple is called — this arm is a compile-safety guard \
+             (BC-2.02.009 Invariant 2; arp-architecture-delta §2.2)"
+        ),
     }
 }
 
