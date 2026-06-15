@@ -113,6 +113,16 @@ fn run_analyze(
     if modbus_write_sustained_threshold == 0 {
         anyhow::bail!("--modbus-write-sustained-threshold must be >= 1 (got 0)");
     }
+    // BC-2.16.008 EC-006 / BC-2.16.012 EC-004 / BC-2.16.013 EC-004 / D-074:
+    // Reject zero thresholds before constructing the ARP analyzer, mirroring
+    // the modbus guards above.  Value 0 is rejected here so that the D3 storm
+    // detector and spoof detector never operate with degenerate parameters.
+    if arp_storm_rate == 0 {
+        anyhow::bail!("--arp-storm-rate must be >= 1 (got 0)");
+    }
+    if arp_spoof_threshold == 0 {
+        anyhow::bail!("--arp-spoof-threshold must be >= 1 (got 0)");
+    }
 
     let mut summary = Summary::new();
     let mut dns_analyzer = DnsAnalyzer::new();
