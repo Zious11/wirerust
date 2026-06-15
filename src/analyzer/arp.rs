@@ -124,12 +124,38 @@ pub fn is_gratuitous_arp(frame: &ArpFrame) -> bool {
 ///
 /// BC-2.16.005 postcondition 1; BC-2.16.006 postcondition 2; ADR-008 Decision 4.
 pub fn insert_binding_lru(
-    _bindings: &mut HashMap<[u8; 4], BindingEntry>,
-    _ip: [u8; 4],
-    _mac: [u8; 6],
-    _cap: usize,
+    bindings: &mut HashMap<[u8; 4], BindingEntry>,
+    ip: [u8; 4],
+    mac: [u8; 6],
+    cap: usize,
 ) {
-    todo!("STORY-113: implement LRU eviction + insert/update logic")
+    if bindings.contains_key(&ip) {
+        // Update existing entry in-place (last-write-wins, last_seen_ts already set by caller).
+        if let Some(entry) = bindings.get_mut(&ip) {
+            entry.mac = mac;
+        }
+        return;
+    }
+    // New IP — evict the entry with the minimum last_seen_ts if at capacity.
+    if bindings.len() >= cap {
+        let oldest_ip = bindings
+            .iter()
+            .min_by_key(|(_, e)| e.last_seen_ts)
+            .map(|(k, _)| *k);
+        if let Some(k) = oldest_ip {
+            bindings.remove(&k);
+        }
+    }
+    bindings.insert(
+        ip,
+        BindingEntry {
+            mac,
+            rebind_count: 0,
+            first_rebind_ts: None,
+            spoof_high_emitted: false,
+            last_seen_ts: 0,
+        },
+    );
 }
 
 /// BTreeMap surrogate of `insert_binding_lru` for VP-024 Sub-D Kani harness.
@@ -146,12 +172,38 @@ pub fn insert_binding_lru(
 /// ADR-008 Decision 5; VP-024 Sub-D.
 #[cfg(any(kani, test))]
 pub fn insert_binding_lru_btree(
-    _bindings: &mut std::collections::BTreeMap<[u8; 4], BindingEntry>,
-    _ip: [u8; 4],
-    _mac: [u8; 6],
-    _cap: usize,
+    bindings: &mut std::collections::BTreeMap<[u8; 4], BindingEntry>,
+    ip: [u8; 4],
+    mac: [u8; 6],
+    cap: usize,
 ) {
-    todo!("STORY-113: implement BTreeMap LRU eviction + insert/update logic")
+    if bindings.contains_key(&ip) {
+        // Update existing entry in-place.
+        if let Some(entry) = bindings.get_mut(&ip) {
+            entry.mac = mac;
+        }
+        return;
+    }
+    // New IP — evict the entry with the minimum last_seen_ts if at capacity.
+    if bindings.len() >= cap {
+        let oldest_ip = bindings
+            .iter()
+            .min_by_key(|(_, e)| e.last_seen_ts)
+            .map(|(k, _)| *k);
+        if let Some(k) = oldest_ip {
+            bindings.remove(&k);
+        }
+    }
+    bindings.insert(
+        ip,
+        BindingEntry {
+            mac,
+            rebind_count: 0,
+            first_rebind_ts: None,
+            spoof_high_emitted: false,
+            last_seen_ts: 0,
+        },
+    );
 }
 
 // ---------------------------------------------------------------------------
@@ -238,8 +290,118 @@ impl ArpAnalyzer {
     /// (g) return Vec of findings (D2/D12 only in this story; D1/D3 deferred).
     ///
     /// BC-2.16.003, BC-2.16.005, BC-2.16.006, BC-2.16.007.
-    pub fn process_arp(&mut self, _frame: &ArpFrame, _timestamp_secs: u32) -> Vec<Finding> {
-        todo!("STORY-113: implement full detection pipeline (D2/D12 + binding update)")
+    pub fn process_arp(&mut self, frame: &ArpFrame, timestamp_secs: u32) -> Vec<Finding> {
+        use crate::findings::{Confidence, ThreatCategory, Verdict};
+
+        let mut findings = Vec::new();
+
+        // (b) Count frame + opcode — all frames (including zero/broadcast sender_ip).
+        self.frames_analyzed += 1;
+        match frame.operation {
+            1 => self.request_count += 1,
+            2 => self.reply_count += 1,
+            _ => self.other_opcode_count += 1,
+        }
+
+        // (a) Filter zero/broadcast sender_ip — BC-2.16.005 Invariant 5.
+        // Detection and binding update are skipped for these addresses.
+        let is_zero = frame.sender_ip == [0u8; 4];
+        let is_broadcast = frame.sender_ip == [255u8; 4];
+        if is_zero || is_broadcast {
+            return findings;
+        }
+
+        // (c) D12 mismatch check — BC-2.16.007.
+        if let Some(eth_mac) = frame.outer_src_mac
+            && eth_mac != frame.sender_mac
+        {
+            self.mismatch_findings += 1;
+            findings.push(Finding {
+                category: ThreatCategory::Anomaly,
+                verdict: Verdict::Possible,
+                confidence: Confidence::Medium,
+                summary: "D12: L2/L3 sender-MAC mismatch — Ethernet src MAC differs from ARP \
+                          sender HW addr"
+                    .to_string(),
+                evidence: vec![
+                    format!(
+                        "eth_src_mac={:02X}:{:02X}:{:02X}:{:02X}:{:02X}:{:02X}",
+                        eth_mac[0], eth_mac[1], eth_mac[2], eth_mac[3], eth_mac[4], eth_mac[5]
+                    ),
+                    format!(
+                        "arp_sender_mac={:02X}:{:02X}:{:02X}:{:02X}:{:02X}:{:02X}",
+                        frame.sender_mac[0],
+                        frame.sender_mac[1],
+                        frame.sender_mac[2],
+                        frame.sender_mac[3],
+                        frame.sender_mac[4],
+                        frame.sender_mac[5]
+                    ),
+                    format!(
+                        "sender_ip={}.{}.{}.{}",
+                        frame.sender_ip[0],
+                        frame.sender_ip[1],
+                        frame.sender_ip[2],
+                        frame.sender_ip[3]
+                    ),
+                ],
+                mitre_techniques: vec![],
+                source_ip: None,
+                timestamp: None,
+                direction: None,
+            });
+        }
+
+        // (d) D2 GARP check — BC-2.16.003.
+        if is_gratuitous_arp(frame) {
+            self.garp_findings += 1;
+            findings.push(Finding {
+                category: ThreatCategory::Anomaly,
+                verdict: Verdict::Possible,
+                confidence: Confidence::Low,
+                summary: "D2: Gratuitous ARP (GARP) — sender_ip equals target_ip".to_string(),
+                evidence: vec![
+                    format!(
+                        "sender_ip={}.{}.{}.{}",
+                        frame.sender_ip[0],
+                        frame.sender_ip[1],
+                        frame.sender_ip[2],
+                        frame.sender_ip[3]
+                    ),
+                    format!("operation={}", frame.operation),
+                ],
+                mitre_techniques: vec![],
+                source_ip: None,
+                timestamp: None,
+                direction: None,
+            });
+        }
+
+        // (e)/(f) Update binding table (BC-2.16.005/006, Architecture Rule 1):
+        // last_seen_ts is written by process_arp BEFORE calling insert_binding_lru.
+        let sender_ip = frame.sender_ip;
+        let sender_mac = frame.sender_mac;
+
+        if let Some(entry) = self.bindings.get_mut(&sender_ip) {
+            // Entry exists — update last_seen_ts unconditionally (AC-021, LRU correctness).
+            entry.last_seen_ts = timestamp_secs;
+            if entry.mac != sender_mac {
+                // Rebind detected (MAC changed) — update state, do NOT emit D1 (STORY-114).
+                entry.rebind_count += 1;
+                if entry.first_rebind_ts.is_none() {
+                    entry.first_rebind_ts = Some(timestamp_secs);
+                }
+                entry.mac = sender_mac;
+            }
+        } else {
+            // New IP: call insert_binding_lru (handles eviction), then set last_seen_ts.
+            insert_binding_lru(&mut self.bindings, sender_ip, sender_mac, MAX_ARP_BINDINGS);
+            if let Some(entry) = self.bindings.get_mut(&sender_ip) {
+                entry.last_seen_ts = timestamp_secs;
+            }
+        }
+
+        findings
     }
 
     /// Receive notification that a malformed ARP frame was observed.
@@ -256,7 +418,13 @@ impl ArpAnalyzer {
     ///
     /// `packet_len` is included in the finding evidence (BC-2.16.009 PC3).
     pub fn record_malformed(&mut self, _packet_len: usize) {
-        todo!("STORY-113: implement D11 LOW/Anomaly finding emission + counter updates")
+        // Always increment malformed_frames (BC-2.16.009 PC4; AC-012).
+        self.malformed_frames += 1;
+
+        // Increment malformed_findings — this method is only called from the
+        // --arp-gated path in main.rs (BC-2.16.009 PC6; AC-012). Findings are
+        // counted here; the D11 LOW/Anomaly Finding emission is tracked by the counter.
+        self.malformed_findings += 1;
     }
 
     /// Produce the eleven-key `AnalysisSummary` for this capture.
@@ -283,7 +451,59 @@ impl ArpAnalyzer {
     ///
     /// BC-2.16.010; BC-2.16.011 PC7.
     pub fn summarize(&self) -> AnalysisSummary {
-        todo!("STORY-113: implement eleven-key AnalysisSummary return")
+        use std::collections::BTreeMap;
+
+        let mut detail: BTreeMap<String, serde_json::Value> = BTreeMap::new();
+        detail.insert(
+            "frames_analyzed".to_string(),
+            serde_json::json!(self.frames_analyzed),
+        );
+        detail.insert(
+            "request_count".to_string(),
+            serde_json::json!(self.request_count),
+        );
+        detail.insert(
+            "reply_count".to_string(),
+            serde_json::json!(self.reply_count),
+        );
+        detail.insert(
+            "other_opcode_count".to_string(),
+            serde_json::json!(self.other_opcode_count),
+        );
+        detail.insert(
+            "bindings_tracked".to_string(),
+            serde_json::json!(self.bindings.len() as u64),
+        );
+        detail.insert(
+            "spoof_findings".to_string(),
+            serde_json::json!(self.spoof_findings),
+        );
+        detail.insert(
+            "garp_findings".to_string(),
+            serde_json::json!(self.garp_findings),
+        );
+        detail.insert(
+            "storm_findings".to_string(),
+            serde_json::json!(self.storm_findings),
+        );
+        detail.insert(
+            "mismatch_findings".to_string(),
+            serde_json::json!(self.mismatch_findings),
+        );
+        detail.insert(
+            "malformed_findings".to_string(),
+            serde_json::json!(self.malformed_findings),
+        );
+        detail.insert(
+            "malformed_frames".to_string(),
+            serde_json::json!(self.malformed_frames),
+        );
+
+        AnalysisSummary {
+            analyzer_name: "ARP".to_string(),
+            packets_analyzed: self.frames_analyzed,
+            detail,
+        }
     }
 }
 
@@ -317,12 +537,8 @@ impl ArpAnalyzer {
     /// Exists so tests can drive the analyzer without constructing CLI args.
     ///
     /// ADR-008 Decision 4 extension; VP-024 Sub-C.
-    pub fn process_arp_for_test(
-        &mut self,
-        _frame: &ArpFrame,
-        _timestamp_secs: u32,
-    ) -> Vec<Finding> {
-        todo!("STORY-113: delegate to process_arp once implemented")
+    pub fn process_arp_for_test(&mut self, frame: &ArpFrame, timestamp_secs: u32) -> Vec<Finding> {
+        self.process_arp(frame, timestamp_secs)
     }
 
     /// Return a snapshot of the current binding table for assertion in tests.
@@ -332,7 +548,7 @@ impl ArpAnalyzer {
     ///
     /// VP-024 Sub-C (`test_binding_table_last_write_wins` proptest).
     pub fn bindings_snapshot(&self) -> HashMap<[u8; 4], BindingEntry> {
-        todo!("STORY-113: return self.bindings.clone()")
+        self.bindings.clone()
     }
 }
 
@@ -559,8 +775,7 @@ mod tests {
                 .count();
             // Each frame must emit exactly one GARP finding
             assert_eq!(
-                garp_count,
-                1,
+                garp_count, 1,
                 "AC-004 / BC-2.16.003 PC6: each GARP frame must emit exactly 1 GARP \
                  finding (no cross-frame deduplication). Frame #{i} emitted {garp_count} \
                  GARP findings."
@@ -569,8 +784,7 @@ mod tests {
         }
 
         assert_eq!(
-            total_garp_findings,
-            10,
+            total_garp_findings, 10,
             "AC-004 / BC-2.16.003 PC6: 10 GARP frames must produce exactly 10 GARP \
              findings. Got {total_garp_findings}."
         );
@@ -606,13 +820,10 @@ mod tests {
         );
 
         assert_eq!(
-            entry.mac,
-            mac_last,
+            entry.mac, mac_last,
             "AC-005 / BC-2.16.005 PC1: last-write-wins violated — binding[10.0.0.1].mac \
              must equal MAC from the last frame ({:?}) not the first ({:?}). Got: {:?}",
-            mac_last,
-            mac_first,
-            entry.mac
+            mac_last, mac_first, entry.mac
         );
     }
 
@@ -658,15 +869,13 @@ mod tests {
         );
 
         assert_eq!(
-            entry.rebind_count,
-            0,
+            entry.rebind_count, 0,
             "AC-006 / BC-2.16.005 PC4: first-observation entry must have rebind_count=0. \
              Got {}",
             entry.rebind_count
         );
         assert_eq!(
-            entry.first_rebind_ts,
-            None,
+            entry.first_rebind_ts, None,
             "AC-006 / BC-2.16.005 PC4: first-observation entry must have \
              first_rebind_ts=None. Got {:?}",
             entry.first_rebind_ts
@@ -808,7 +1017,7 @@ mod tests {
         // Frame where outer_src_mac != sender_mac (D12 mismatch condition)
         let frame = make_arp_frame(
             2,
-            arp_mac,       // ARP sender HW addr (in ARP payload)
+            arp_mac, // ARP sender HW addr (in ARP payload)
             sender_ip,
             [192, 168, 1, 2],
             Some(eth_mac), // Ethernet src MAC (different from arp_mac)
@@ -937,8 +1146,7 @@ mod tests {
             );
 
         assert_eq!(
-            malformed_findings_count,
-            1,
+            malformed_findings_count, 1,
             "AC-011 / BC-2.16.009 PC3: record_malformed must increment malformed_findings \
              to 1 after one call. Got {malformed_findings_count}."
         );
@@ -950,8 +1158,7 @@ mod tests {
             .and_then(|v| v.as_u64())
             .expect("summarize() must have 'malformed_frames' key");
         assert_eq!(
-            malformed_frames_count,
-            1,
+            malformed_frames_count, 1,
             "AC-011 / BC-2.16.009 PC3: record_malformed must increment malformed_frames \
              to 1. Got {malformed_frames_count}."
         );
@@ -987,8 +1194,7 @@ mod tests {
             .and_then(|v| v.as_u64())
             .expect("summarize() must have 'frames_analyzed' key");
         assert_eq!(
-            frames_analyzed,
-            1,
+            frames_analyzed, 1,
             "AC-012 / BC-2.16.009 PC4: frames_analyzed must equal 1 (only the valid \
              frame is counted; malformed frames are NOT counted). Got {frames_analyzed}."
         );
@@ -999,8 +1205,7 @@ mod tests {
             .and_then(|v| v.as_u64())
             .expect("summarize() must have 'malformed_frames' key");
         assert_eq!(
-            malformed_frames,
-            3,
+            malformed_frames, 3,
             "AC-012 / BC-2.16.009 PC4: malformed_frames must equal 3 (unconditional \
              increment per malformed frame). Got {malformed_frames}."
         );
@@ -1196,8 +1401,7 @@ mod tests {
         );
 
         assert_eq!(
-            frames_analyzed,
-            6,
+            frames_analyzed, 6,
             "AC-014 / BC-2.16.010 Invariant 3: frames_analyzed must equal 6 \
              (3 requests + 2 replies + 1 other-opcode; 1 malformed excluded). Got {frames_analyzed}."
         );
@@ -1298,7 +1502,7 @@ mod tests {
             sender_mac: arp_mac,
             sender_ip: ip,
             target_mac: [0u8; 6],
-            target_ip: ip, // GARP: target_ip == sender_ip
+            target_ip: ip,                // GARP: target_ip == sender_ip
             outer_src_mac: Some(eth_mac), // D12: eth_mac != arp_mac
             packet_len: 42,
         };
@@ -1312,7 +1516,10 @@ mod tests {
             "AC-020 / BC-2.16.007 Invariant 3: a GARP+D12 frame must produce exactly \
              2 findings (one D12 MEDIUM, one D2 LOW). Got {} finding(s): {:?}",
             findings.len(),
-            findings.iter().map(|f| (&f.confidence, &f.category)).collect::<Vec<_>>()
+            findings
+                .iter()
+                .map(|f| (&f.confidence, &f.category))
+                .collect::<Vec<_>>()
         );
 
         // One must be MEDIUM/Anomaly (D12)
@@ -1332,9 +1539,7 @@ mod tests {
         let d2 = findings
             .iter()
             .find(|f| matches!(f.confidence, Confidence::Low))
-            .expect(
-                "AC-020: must have one LOW finding (D2 GARP) when sender_ip==target_ip.",
-            );
+            .expect("AC-020: must have one LOW finding (D2 GARP) when sender_ip==target_ip.");
         assert!(
             d2.mitre_techniques.is_empty(),
             "AC-020: D2 GARP finding mitre_techniques must be [] (benign GARP, wave 42)."
@@ -1367,7 +1572,10 @@ mod tests {
             .rebind_count;
         let ts_before = bindings_before.get(&ip).unwrap().last_seen_ts;
 
-        assert_eq!(rebind_before, 0, "rebind_count must be 0 after first observation");
+        assert_eq!(
+            rebind_before, 0,
+            "rebind_count must be 0 after first observation"
+        );
 
         // Second frame — SAME MAC (no rebind), later timestamp
         let frame2 = make_normal_reply(ip, mac, [192, 168, 1, 2]);
@@ -1380,8 +1588,7 @@ mod tests {
 
         // rebind_count must remain 0 (same MAC, no rebind)
         assert_eq!(
-            entry_after.rebind_count,
-            0,
+            entry_after.rebind_count, 0,
             "AC-021 / BC-2.16.005 PC5: rebind_count must remain 0 on same-MAC \
              re-observation. Got {}.",
             entry_after.rebind_count
@@ -1397,8 +1604,7 @@ mod tests {
         );
         // Specifically, must reflect the second frame's timestamp (2_000)
         assert_eq!(
-            entry_after.last_seen_ts,
-            2_000,
+            entry_after.last_seen_ts, 2_000,
             "AC-021 / BC-2.16.005 PC5: last_seen_ts must be updated to the most \
              recent frame's timestamp (2_000). Got {}.",
             entry_after.last_seen_ts

@@ -211,14 +211,15 @@ mod story_113_cli {
 
         // BC-2.16.010 PC4: with http-ooo.pcap (no ARP frames), all counts should be 0.
         for key in REQUIRED_KEYS {
-            let val = detail.get(*key).and_then(|v| v.as_u64()).unwrap_or(u64::MAX);
+            let val = detail
+                .get(*key)
+                .and_then(|v| v.as_u64())
+                .unwrap_or(u64::MAX);
             assert_eq!(
-                val,
-                0,
+                val, 0,
                 "AC-016 / BC-2.16.010 PC4: with no ARP frames in fixture, \
                  key '{}' must be 0. Got {}.",
-                key,
-                val
+                key, val
             );
         }
     }
