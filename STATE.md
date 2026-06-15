@@ -201,7 +201,11 @@ gh pr list --state open
 - STORY-113 DELIVERED (PR #239 7b7dbb2). develop HEAD now 7b7dbb2.
 - Input-hash status: STORY-113=7c61bae MATCH (DELIVERED), STORY-114=5705a10 MATCH, STORY-115=2e0eca2 MATCH.
 - PG-ARP-F4-PRMGR-MERGE-SHORTSTOP recurrence #4 logged; apply STORY-114 proactively.
-- NEXT: STORY-114 TDD (D1 spoof escalation + MITRE seeding + --arp-spoof-threshold; branches from 7b7dbb2).
+- STORY-114 worktree ESTABLISHED: `/Users/zious/Documents/GITHUB/wirerust/.worktrees/STORY-114`
+  branch: `worktree-issue-9-story-114-arp-d1-spoof` (base 7b7dbb2). Baseline build clean;
+  full test suite pass (1535 tests). vp007_catalog_drift_guard ok. story_110::test_vp007_seeded_23_emitted_15 ok.
+  SEEDED_TECHNIQUE_ID_COUNT=23 at src/mitre.rs:341 (STORY-114 bumps to 25).
+- NEXT: STORY-114 TDD (D1 spoof escalation + MITRE seeding + --arp-spoof-threshold; worktree ready).
 
 **Step 4 — CI/toolchain note (PG-ARP-F4-CI-FMT-TOOLCHAIN):**
 Before opening any PR, run `rustup update stable` + `cargo fmt --all --check` to match CI
