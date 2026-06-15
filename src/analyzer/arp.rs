@@ -62,10 +62,12 @@ impl ArpAnalyzer {
     /// GARP detection, D11 malformed finding emission, D12 mismatch detection).
     ///
     /// GREEN-BY-DESIGN: returns `vec![]` — zero branching, no I/O, no helpers,
-    /// 1 line. Tests asserting `vec![]` will pass immediately; this is intentional
-    /// because the no-op is itself the specified STORY-112 behavior. The real-logic
-    /// ACs (AC-001..AC-007, AC-012) test `extract_arp_frame` and `decode_packet`,
-    /// which remain as None-returning placeholders, keeping those tests RED.
+    /// 1 line. Tests asserting `vec![]` pass immediately; this is intentional
+    /// because the no-op is itself the specified STORY-112 behavior.
+    /// `extract_arp_frame` and `decode_packet` are fully implemented and GREEN
+    /// in STORY-112; `process_arp` is an intentional no-op stub here because
+    /// the full ARP detection logic (binding table, GARP, D11/D12) lands in
+    /// STORY-113.
     pub fn process_arp(&mut self, _frame: &ArpFrame, _timestamp_secs: u32) -> Vec<Finding> {
         vec![]
     }

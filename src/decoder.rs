@@ -13,11 +13,13 @@
 //! UDP transports surface their port / flag tuple, ICMP is reported as the
 //! parent protocol with no transport detail, and everything else is reported
 //! as `Protocol::Other(proto_num)` with no transport info. ARP frames
-//! (EtherType 0x0806) are routed to the non-panicking `extract_arp_frame`
-//! placeholder, which in STORY-111 returns `None`; the caller maps this to a
-//! transitional `Err("ARP extraction not yet implemented")`. (STORY-112
-//! implements real extraction: `Ok(DecodedFrame::Arp(...))` for Ethernet/IPv4
-//! ARP, `Err("Non-Ethernet/IPv4 ARP frame")` otherwise.)
+//! (EtherType 0x0806) are routed to `extract_arp_frame`, which is fully
+//! implemented in STORY-112: a size-guard checks the 28-byte minimum, then all
+//! 7 fields (hardware type, protocol type, hardware/protocol length, operation,
+//! sender/target MAC and IP) are extracted. Strict Ethernet/IPv4 ARP produces
+//! `Ok(DecodedFrame::Arp(...))`, a truncated frame produces
+//! `Err("truncated ARP frame")`, and any non-Ethernet/IPv4 ARP combination
+//! produces `Err("Non-Ethernet/IPv4 ARP frame")`.
 //! Non-IP non-ARP frames return `Err("No IP layer found")`.
 //!
 //! ## Snaplen-truncated captures
@@ -146,10 +148,11 @@ pub struct ArpFrame {
 /// The result of a successful `decode_packet` call.
 ///
 /// IP frames (IPv4 and IPv6) become `Ip(ParsedPacket)`. The `Arp(ArpFrame)`
-/// variant is produced starting in STORY-112; in STORY-111 the ARP decode
-/// path returns a transitional `Err("ARP extraction not yet implemented")`
-/// because `extract_arp_frame` is a `None`-returning placeholder. Non-IP
-/// non-ARP frames are errors, not `Ok` variants.
+/// variant is produced by the fully-implemented `extract_arp_frame` introduced
+/// in STORY-112: strict Ethernet/IPv4 ARP yields `Ok(DecodedFrame::Arp(...))`,
+/// truncated frames yield `Err("truncated ARP frame")`, and non-Ethernet/IPv4
+/// ARP yields `Err("Non-Ethernet/IPv4 ARP frame")`. Non-IP non-ARP frames are
+/// errors, not `Ok` variants.
 #[derive(Debug, Clone)]
 pub enum DecodedFrame {
     Ip(ParsedPacket),
@@ -181,10 +184,9 @@ pub fn decode_packet(data: &[u8], datalink: DataLink) -> Result<DecodedFrame> {
         Ok(slice) => match &slice.net {
             // AC-005 / BC-2.02.009 Invariant 1 — ARP three-way dispatch arm.
             // outer_src_mac is extracted from slice.link for D12 mismatch detection
-            // (STORY-113). extract_arp_frame is the non-panicking placeholder (STORY-111)
-            // that always returns None; STORY-112 replaces it with the full implementation.
-            // None → temporary Err("ARP extraction not yet implemented") here;
-            // STORY-112 changes this to Err("Non-Ethernet/IPv4 ARP frame").
+            // (STORY-113). extract_arp_frame is fully implemented in STORY-112:
+            // size-guard + 7-field extraction; Some(f) → Ok(DecodedFrame::Arp(f));
+            // None (non-Ethernet/IPv4 ARP) → Err("Non-Ethernet/IPv4 ARP frame").
             // (ADR-008 Decision 3; BC-2.02.009 v1.6 Invariant 1.)
             Some(NetSlice::Arp(arp)) => {
                 let outer_src_mac: Option<[u8; 6]> = slice.link.as_ref().and_then(|l| {
@@ -226,10 +228,10 @@ pub fn decode_packet(data: &[u8], datalink: DataLink) -> Result<DecodedFrame> {
                 // decode_packet intercepts Some(LaxNetSlice::Arp(_)) here before
                 // calling lax_ip_triple, which carries the unreachable! arm.
                 // Snaplen-truncated ARP frames yield Some(LaxNetSlice::Arp(_)) from
-                // the lax parser and reach this arm. outer_src_mac extracted from
-                // lax.link; extract_arp_frame is the non-panicking STORY-111
-                // placeholder (always returns None).
-                // STORY-112 replaces the temporary Err string with the real routing.
+                // the lax parser and reach this arm. outer_src_mac is extracted from
+                // lax.link; extract_arp_frame is fully implemented in STORY-112:
+                // Some(f) → Ok(DecodedFrame::Arp(f)); None (truncated/non-Eth/IPv4)
+                // → Err("truncated ARP frame") per AC-007 / BC-2.16.015.
                 Some(LaxNetSlice::Arp(arp)) => {
                     let outer_src_mac: Option<[u8; 6]> = lax.link.as_ref().and_then(|l| {
                         if let etherparse::LinkSlice::Ethernet2(eth) = l {
