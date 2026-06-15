@@ -19,6 +19,8 @@ phase_6_completed: "2026-06-02"
 phase_7_to_release_gate: "PASSED (human-approved 2026-06-09 — D-045)"
 adversary_gate: SATISFIED
 develop_head: d038711
+develop_head_confirmed: d038711 == origin/develop (verified 2026-06-15)
+factory_artifacts_head: 910a77f  # local == origin/factory-artifacts (verified 2026-06-15)
 main_head: 3e29891
 released_version: v0.6.0
 released_at: "2026-06-12"
@@ -164,36 +166,112 @@ Non-ARP stories: MATCH=8 STALE=54 ERROR=1 (STORY-091 known) — pre-existing; do
 - PG-ARP-F4-DOCSWEEP-OVERREACH: Remediation greps+edits MUST be scoped to `git diff develop..HEAD --name-only` only.
 - PG-ARP-F4-PRMGR-MERGE-SHORTSTOP: 6/6 (100%) recurrence across ALL ARP-feature PRs (#236/#238/#239/#240/#241 + DNP3 F5). Confirmed agent-prompt defect. DF-PR-MANAGER-COMPLETE-001 escalated to CRITICAL. Requires DF-VALIDATION-001 research-agent validation before GitHub issue.
 
-### F. RESUME PROCEDURE
+### F. RESUME PROCEDURE (COLD-RESUME READY — SESSION-CLEAR SAFE 2026-06-15)
+
+**This checkpoint is self-sufficient. A brand-new session with NO prior context can resume
+from here by following Steps 1-6 below.**
+
+---
+
+**CONTEXT FOR FRESH SESSION:**
+- **Project:** wirerust. Mode: FEATURE MODE. Active feature: ARP Security Analyzer
+  + etherparse 0.16→0.20 migration. GitHub issue #9. Release target: **v0.7.0**.
+- **Epoch:** F4 Delta-Implementation COMPLETE. ARP feature (E-16) CODE-COMPLETE on develop.
+- **develop HEAD:** d038711 == origin/develop (verified 2026-06-15; STORY-115 merge commit).
+- **factory-artifacts HEAD:** 910a77f == origin/factory-artifacts (verified 2026-06-15).
+- **main HEAD:** 3e29891 (v0.6.0, DNP3 TCP analyzer — released 2026-06-12).
+- **Active worktrees:** EXACTLY 2 — main repo (develop) + .factory (factory-artifacts). NO
+  per-story worktrees exist; all .worktrees/STORY-* entries removed.
+- **Nothing in-flight.** All 5 ARP PRs merged. No open PRs for this feature.
+
+---
 
 **Step 1 (BLOCKING):** `vsdd-factory:factory-worktree-health`
 
-**Step 2 — Verify SHAs (ground truth; re-verify live):**
-```
-git -C /Users/zious/Documents/GITHUB/wirerust rev-parse --short HEAD
-# expect: d038711
+**Step 2 — Verify SHAs (ground truth; must match before proceeding):**
+```bash
+git -C /Users/zious/Documents/GITHUB/wirerust fetch
+git -C /Users/zious/Documents/GITHUB/wirerust rev-parse HEAD
+# MUST output: d038711518ac9ac28560f78d6de5f6cd4e83a647
+
+git -C /Users/zious/Documents/GITHUB/wirerust rev-parse origin/develop
+# MUST output: d038711518ac9ac28560f78d6de5f6cd4e83a647 (same — develop == origin)
+
 git -C /Users/zious/Documents/GITHUB/wirerust/.factory log -1 --format='%h %s'
-# expect: this commit or newer
+# expect: this commit SHA or newer (local == origin/factory-artifacts)
+
+git -C /Users/zious/Documents/GITHUB/wirerust worktree list
+# MUST show exactly 2 entries: main repo (develop) + .factory (factory-artifacts)
+# NO .worktrees/STORY-* entries
+
 gh pr list --state open
-# expect: no STORY-115 PR (all 5 ARP PRs merged)
+# MUST show NO open STORY-11x PRs (all 5 ARP PRs merged)
 ```
 
-**Step 3 — COMPLETE (2026-06-15):**
-- ALL 5 ARP STORIES DELIVERED to develop d038711.
-- ARP Security Analyzer (E-16, issue #9) CODE-COMPLETE on develop.
-- F4 per-story delivery wave COMPLETE (waves 40-44; 5 PRs; 9 CI checks each).
+**Step 3 — WHAT IS COMPLETE (do NOT re-do any of this):**
+- F1 PASSED (human-gated 2026-06-12, D-066).
+- F2 CONVERGED 3/3 — Passes 31/32/33 consecutive CLEAN; strict whole-corpus gate SATISFIED.
+- F3 CONVERGED 3/3 — Passes 36/37/38 consecutive CLEAN; 38 passes total; gate SATISFIED.
+  F3 human gate PASSED (2026-06-14, D-070).
+- F4 per-story delivery wave COMPLETE — ALL 5 ARP STORIES DELIVERED:
+  - STORY-111 → PR #236 → develop cced898 (wave 40)
+  - STORY-112 → PR #238 → develop 10e4472 (wave 41)
+  - STORY-113 → PR #239 → develop 7b7dbb2 (wave 42; 9 CI green)
+  - STORY-114 → PR #240 → develop 7c0f453 (wave 43; D1 spoof+MITRE 25/17+--arp-spoof-threshold)
+  - STORY-115 → PR #241 → develop d038711 (wave 44; Step-4.5 CONVERGED 3/3; D3 storm+--arp-storm-rate+storm_findings; FINAL E-16 story)
 - Input-hash scan (2026-06-15): ARP stories 111-115 ALL MATCH. Phase-4 gate CLEAR.
-- PG-ARP-F4-PRMGR-MERGE-SHORTSTOP RECURRENCE #6 logged (100%; all 5 ARP PRs + DNP3 F5).
-- NEXT = F4 wave-level adversarial convergence (3 fresh-context passes over full ARP delta, covering develop d038711 vs baseline 31d1231) + fresh-context consistency-validator audit; then F4 holdout evaluation (ARP wave-40-44-holdout.md scenarios); then F5/F6/F7 → v0.7.0 release.
+- DO NOT re-deliver STORY-111..115. DO NOT re-adjudicate D-068/D-069/D-070/D-071/D-072/D-073.
 
-**Step 4 — F4 wave-level convergence scope:**
-- Adversary target: develop d038711 full ARP delta (src/analyzer/arp.rs, src/decoder.rs, src/findings.rs, src/cli.rs, src/main.rs, src/mitre.rs, associated test files).
-- Holdout evaluation: `.factory/holdout-scenarios/wave-scenarios/wave-40-44-holdout.md`.
-- F6 obligations: VP-024 Sub-A/B/C/D Kani harness bodies + cargo-fuzz.
+**Step 4 — NEXT ACTIONS IN ORDER (start here after Steps 1-3 clear):**
 
-**Step 5 — Mid-cycle policy:**
-User directed strict per-story adversarial convergence (Step-4.5, 3/3). Do NOT re-deliver
-STORY-111..115. Do NOT revert D-068/D-069/D-070/D-071/D-072/D-073.
+1. **F4 wave-level adversarial convergence** — 3 clean fresh-context passes over the FULL ARP
+   feature delta on develop d038711 (vs baseline 31d1231). Each pass MUST run
+   DF-BC-COMPLETENESS-SWEEP over the entire SS-16 BC set (BC-2.16.*). Plus a fresh-context
+   consistency-validator full-corpus audit (re-run `vsdd-factory:consistency-validation`).
+   Files in scope: src/analyzer/arp.rs, src/decoder.rs, src/findings.rs, src/cli.rs,
+   src/main.rs, src/mitre.rs, associated tests, plus ALL SS-16 spec BCs.
+
+2. **F4 holdout evaluation** against ARP holdout scenarios
+   (`.factory/holdout-scenarios/wave-scenarios/wave-40-44-holdout.md`).
+   Gate: mean satisfaction >= 0.85, must-pass >= 0.6.
+   MUST include canonical-frame holdout per DF-CANONICAL-FRAME-HOLDOUT-001 (RFC 826).
+   Relevant scenarios: HS-008 et al.; check HS-INDEX for full ARP wave-40-44 set.
+
+3. **F5 scoped-adversarial** (`vsdd-factory:phase-f5-scoped-adversarial`).
+
+4. **F6 formal hardening** — FILL AND RUN the deferred VP-024 Kani harnesses:
+   - VP-024 Sub-A (STORY-112): harness body currently `todo!()` in src/analyzer/arp.rs
+   - VP-024 Sub-B + Sub-D (STORY-113): harness bodies currently `todo!()` in src/analyzer/arp.rs
+   - cargo-fuzz VP-008: harness in src/decoder.rs (verification_lock: false; deferred to F6
+     per DNP3 D-062 precedent).
+   Run `cargo kani` + `cargo fuzz` to lock VP-024. Update verification_lock to true.
+
+5. **F7 7-dimensional convergence** (`vsdd-factory:phase-f7-delta-convergence`).
+
+6. **v0.7.0 release** — gitflow release/0.7.0 → PR → main; tag v0.7.0; 4 binaries.
+
+**Step 5 — OPEN FOLLOW-UPS (action before or at v0.7.0 release):**
+- **FU-JSON-CASING:** Align Confidence/Verdict/ThreatCategory serde to uppercase (matching
+  Display/BC-2.09.004). Update BC-2.11.001 + BC-2.09.004 + ADR note. Currently PascalCase
+  — improvement, not blocking defect, but should close before release.
+- **FU-BC-2.10.007-MARKER:** Verify/update BC-2.10.007 PLANNED marker for technique_tactic
+  now that STORY-114 made T0830/T1557.002 resolvable.
+- **FU-REPO-WIDE-DOC-DEBT:** 13 test files carry stale RED-gate prose from prior feature
+  cycles. Schedule standalone docs chore PR (do NOT bundle into ARP story).
+- **FU-STORM-NEW-ATTR:** src/analyzer/arp.rs ~line 272 doc mis-attributes storm_rate param
+  to STORY-114; storm_rate is STORY-115's deliverable. Minor doc cleanup.
+- **BC-2.10-COUNT-POSTMERGE:** BC-2.10.005 / BC-2.10.008 "23/15" markers need update to
+  "25/17" post-STORY-114 merge. PO update task still open.
+- **STORY-111 convention gap (NON-BLOCKING):** `.factory/convergence/STORY-111-step45.md`
+  absent — STORY-111 pre-dated the convergence-dir convention; DELIVERED via D-073; non-blocking.
+
+**Step 6 — KEY PROCESS GAP (memorize before dispatching any agent):**
+- **PG-ARP-F4-PRMGR-MERGE-SHORTSTOP — 100% RECURRENCE (6/6):** pr-manager halts at
+  APPROVE (step 6) and does NOT execute steps 7-9 (merge + verify + worktree-cleanup).
+  Occurred on ALL ARP PRs (#236/#238/#239/#240/#241) + DNP3 F5. Confirmed agent-prompt
+  defect. DF-PR-MANAGER-COMPLETE-001 escalated CRITICAL. Mitigation: orchestrator/dispatcher
+  MUST drive steps 7-9 via explicit SendMessage after APPROVE. Do NOT assume pr-manager
+  will self-complete.
 
 ### G. KEY ARTIFACT POINTERS
 
