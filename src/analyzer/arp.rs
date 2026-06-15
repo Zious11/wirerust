@@ -1,14 +1,14 @@
-//! ARP security analyzer — STORY-113 full-impl skeleton (Red Gate stubs).
+//! ARP security analyzer — STORY-113 full implementation (GREEN).
 //!
 //! This module defines [`ArpAnalyzer`], a stateful ARP-frame processor that
 //! maintains a bounded binding table (IP→MAC with LRU eviction), detects
 //! Gratuitous ARP (D2), D11 malformed ARP, D12 L2/L3 sender-MAC mismatch,
 //! and exposes a `summarize()` method returning eleven canonical summary keys.
 //!
-//! **STORY-113 stub state:** All non-trivial method bodies are `todo!()` per
-//! BC-5.38.001. The skeleton compiles so that test-writer can write RED tests
-//! that drive the implementer. `new()` and `Default::default()` are GREEN-BY-DESIGN
-//! (zero branching, no I/O, no non-trivial helpers, ≤3 lines each).
+//! All method bodies are implemented and all STORY-113 tests pass (GREEN).
+//! The VP-024 Sub-B/Sub-D Kani harness bodies (`verify_classify_garp_total`,
+//! `verify_binding_table_cap`) remain `todo!()` pending the F6 formal-hardening gate —
+//! that is the only intentional `todo!()` in this module.
 //!
 //! ## Scope boundary
 //! - D1 spoof EMISSION (BC-2.16.004) is NOT in this story → STORY-114.
@@ -107,7 +107,7 @@ pub struct StormCounter {
 /// implementer work. However, this function IS the specified behavior (it is not domain
 /// logic that requires test-driven discovery; it is literally the definition of GARP per
 /// RFC 5227 and BC-2.16.003). This is a GREEN-BY-DESIGN function per BC-5.38.002: zero
-/// branching, no I/O, no non-trivial helpers, 1 line. Listed in stub commit report.
+/// branching, no I/O, no non-trivial helpers, 1 line.
 pub fn is_gratuitous_arp(frame: &ArpFrame) -> bool {
     frame.sender_ip == frame.target_ip
 }
@@ -590,7 +590,7 @@ mod tests {
     //!   BC-2.16.010 — summarize() 11 keys (AC-013/014)
     //!   VP-024 Sub-C — last-write-wins proptest (AC-018)
     //!
-    //! All tests are RED (todo!() stubs panic). CLI integration tests for
+    //! All tests pass (GREEN). CLI integration tests for
     //! AC-015/AC-016 live in tests/bc_2_16_story113_arp_tests.rs.
     //!
     //! DF-TEST-NAMESPACE-001: all tests are within this `mod tests` block.
@@ -654,7 +654,7 @@ mod tests {
             result,
             "BC-2.16.003 PC1: is_gratuitous_arp must return true when \
              sender_ip == target_ip ([192,168,1,1] == [192,168,1,1]). \
-             Got false — is_gratuitous_arp stub not yet implemented (todo!())."
+             Got false."
         );
     }
 
@@ -675,7 +675,7 @@ mod tests {
             !result,
             "BC-2.16.003 PC2: is_gratuitous_arp must return false when \
              sender_ip != target_ip ([192,168,1,1] != [192,168,1,2]). \
-             Got true — is_gratuitous_arp stub not yet implemented (todo!())."
+             Got true."
         );
     }
 
@@ -731,7 +731,7 @@ mod tests {
             .expect(
                 "AC-003 / BC-2.16.003 PC5: process_arp must emit a Finding with \
                  finding_type=Anomaly for a GARP frame (sender_ip==target_ip). \
-                 Got 0 findings — process_arp stub not yet implemented.",
+                 Got 0 findings.",
             );
 
         // confidence: LOW (BC-2.16.003 PC5)
