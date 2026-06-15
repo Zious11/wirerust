@@ -771,7 +771,11 @@ impl ArpAnalyzer {
         // Build evidence: sender_ip, old_mac, new_mac (AC-016 / BC-2.16.004 PC1.e).
         Finding {
             category: ThreatCategory::Anomaly,
-            verdict: Verdict::Possible,
+            verdict: if confidence == Confidence::High {
+                Verdict::Likely
+            } else {
+                Verdict::Possible
+            },
             confidence,
             summary: format!(
                 "D1: ARP Spoof — IP→MAC rebind detected for sender_ip={}.{}.{}.{}",
@@ -2185,7 +2189,7 @@ mod tests {
 mod story_114 {
     use super::*;
     use crate::decoder::ArpFrame;
-    use crate::findings::{Confidence, ThreatCategory};
+    use crate::findings::{Confidence, ThreatCategory, Verdict};
 
     // -----------------------------------------------------------------------
     // Shared frame builders (RFC 826 canonical values)
@@ -3065,6 +3069,144 @@ mod story_114 {
             impact_str, ics_impact_str,
             "AC-014 / BC-2.10.002 v1.5: Display strings of Impact and IcsImpact must differ \
              (\"Impact\" vs \"Impact (ICS)\"). D-069 preservation check."
+        );
+    }
+
+    // -----------------------------------------------------------------------
+    // G1 / D-075 — BC-2.16.004 lines 45/74/118: HIGH D1 finding carries
+    // Verdict::Likely (not Verdict::Possible).
+    // -----------------------------------------------------------------------
+
+    /// G1 / D-075 (BC-2.16.004 lines 45/74/118): a D1 ARP-spoof finding that
+    /// escalates to HIGH confidence MUST carry `verdict: Verdict::Likely`.
+    ///
+    /// BC-2.16.004 line 45  (precondition): rebind_count >= spoof_threshold AND
+    ///   elapsed <= ARP_FLAP_WINDOW_SECS AND !spoof_high_emitted
+    ///   is the HIGH escalation condition.
+    /// BC-2.16.004 line 74  (postcondition): HIGH confidence finding has
+    ///   `verdict = Verdict::Likely`.
+    /// BC-2.16.004 line 118 (invariant): verdict=Likely iff confidence=High on D1.
+    ///
+    /// Canonical test vector: threshold=3, rebind_count=3 within 60 s →
+    ///   confidence=High, verdict=Likely.
+    ///
+    /// The LOAD-BEARING ASSERTION below currently FAILS because
+    /// `emit_d1_spoof_finding_impl` (src/analyzer/arp.rs:774) hardcodes
+    /// `Verdict::Possible` for all D1 findings regardless of confidence.
+    /// This test will pass once the fix routes HIGH confidence to Verdict::Likely.
+    #[test]
+    #[allow(non_snake_case)]
+    fn test_BC_2_16_004_d1_high_confidence_carries_verdict_likely() {
+        let mut analyzer =
+            ArpAnalyzer::new(SPOOF_REBIND_ESCALATION_DEFAULT, ARP_STORM_RATE_DEFAULT);
+        // Seed initial binding: 10.0.0.1 → MAC_A at ts=0
+        seed_binding(&mut analyzer, 0);
+
+        // Rebind 1 (count→1, MEDIUM — below threshold=3)
+        let _ = analyzer.process_arp_for_test(&make_reply(IP_A, MAC_B), 2);
+        // Rebind 2 (count→2, MEDIUM — below threshold=3)
+        let _ = analyzer.process_arp_for_test(&make_reply(IP_A, MAC_C), 5);
+        // Rebind 3 (count→3, HIGH — count == threshold=3, elapsed=8s <= 60s)
+        let findings = analyzer.process_arp_for_test(&make_reply(IP_A, MAC_D), 8);
+
+        // Locate the D1 spoof finding (mitre T0830 or "spoof" in summary)
+        let d1 = findings.iter().find(|f| {
+            f.mitre_techniques.contains(&"T0830".to_string())
+                || f.summary.to_lowercase().contains("spoof")
+                || f.summary.to_lowercase().contains("rebind")
+        });
+        assert!(
+            d1.is_some(),
+            "G1 / D-075 / BC-2.16.004 PC1.c: 3rd rebind must emit a D1 spoof finding. \
+             Got {} finding(s): {:?}.",
+            findings.len(),
+            findings
+                .iter()
+                .map(|f| (&f.confidence, &f.summary))
+                .collect::<Vec<_>>()
+        );
+        let d1 = d1.unwrap();
+
+        // Regression guard: confidence must be HIGH (verifies escalation path is exercised).
+        // This assertion is GREEN: the escalation logic is already correct for confidence.
+        assert_eq!(
+            d1.confidence,
+            Confidence::High,
+            "G1 / D-075 setup assertion: 3rd rebind at threshold=3 must produce HIGH confidence \
+             (BC-2.16.004 PC1.c). Got {:?}.",
+            d1.confidence
+        );
+
+        // LOAD-BEARING ASSERTION (BC-2.16.004 lines 74/118):
+        // A HIGH D1 finding MUST carry Verdict::Likely (displays \"LIKELY\", serializes \"Likely\").
+        // This assertion currently FAILS because emit_d1_spoof_finding_impl hardcodes
+        // Verdict::Possible (src/analyzer/arp.rs:774) for all D1 findings.
+        // The test passes once the fix sets verdict=Verdict::Likely when confidence=High.
+        assert_eq!(
+            d1.verdict,
+            Verdict::Likely,
+            "G1 / D-075 / BC-2.16.004 line 74+118: HIGH D1 finding must carry \
+             Verdict::Likely. Got {:?}. \
+             Root cause: emit_d1_spoof_finding_impl hardcodes Verdict::Possible (line 774) \
+             for both HIGH and MEDIUM D1 findings.",
+            d1.verdict
+        );
+    }
+
+    /// G1 / D-075 regression guard (BC-2.16.004 line 118):
+    /// a D1 finding at MEDIUM confidence (below threshold) must carry
+    /// `verdict: Verdict::Possible`.
+    ///
+    /// This assertion is GREEN now and must remain GREEN after the HIGH-path fix.
+    /// It guards against overcorrection (raising all D1 verdicts to Likely).
+    ///
+    /// Canonical test vector: threshold=3, rebind_count=1 → confidence=Medium,
+    /// verdict=Possible.
+    #[test]
+    #[allow(non_snake_case)]
+    fn test_BC_2_16_004_d1_medium_confidence_carries_verdict_possible() {
+        let mut analyzer =
+            ArpAnalyzer::new(SPOOF_REBIND_ESCALATION_DEFAULT, ARP_STORM_RATE_DEFAULT);
+        // Seed initial binding: 10.0.0.1 → MAC_A at ts=0
+        seed_binding(&mut analyzer, 0);
+
+        // Rebind 1 (count→1, MEDIUM — below threshold=3)
+        let findings = analyzer.process_arp_for_test(&make_reply(IP_A, MAC_B), 2);
+
+        let d1 = findings.iter().find(|f| {
+            f.mitre_techniques.contains(&"T0830".to_string())
+                || f.summary.to_lowercase().contains("spoof")
+                || f.summary.to_lowercase().contains("rebind")
+        });
+        assert!(
+            d1.is_some(),
+            "G1 / D-075 regression guard: first rebind must emit a D1 spoof finding. \
+             Got {} finding(s): {:?}.",
+            findings.len(),
+            findings
+                .iter()
+                .map(|f| (&f.confidence, &f.summary))
+                .collect::<Vec<_>>()
+        );
+        let d1 = d1.unwrap();
+
+        // Confidence must be MEDIUM (below threshold).
+        assert_eq!(
+            d1.confidence,
+            Confidence::Medium,
+            "G1 / D-075 regression guard: first rebind must be MEDIUM (count=1 < threshold=3). \
+             Got {:?}.",
+            d1.confidence
+        );
+
+        // Verdict must be Possible for MEDIUM D1 findings (BC-2.16.004 line 118 invariant).
+        // This assertion is GREEN now and must remain GREEN after the HIGH fix.
+        assert_eq!(
+            d1.verdict,
+            Verdict::Possible,
+            "G1 / D-075 regression guard / BC-2.16.004 line 118: MEDIUM D1 finding must \
+             carry Verdict::Possible (not Likely). Got {:?}.",
+            d1.verdict
         );
     }
 }
