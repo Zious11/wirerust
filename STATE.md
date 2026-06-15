@@ -1,7 +1,7 @@
 ---
 pipeline: FEATURE_MODE_ARP_ANALYZER
 phase: feature-F4-delta-implementation
-phase_status: "F4 IN PROGRESS — STORY-111 DELIVERED (PR #236 cced898); STORY-112 DELIVERED (PR #238 10e4472); STORY-113 DELIVERED (PR #239 7b7dbb2; pr-reviewer APPROVE, 2 non-blocking items fixed pre-merge a73fbd6; 9 CI checks green; Step-4.5 CONVERGED BC-5.39.001); STORY-114 Step-4.5 CONVERGED (BC-5.39.001; 3/3 clean passes a506d33f/abd03925/ac62481c; final HEAD 24b4b07; 1552 tests; D1 spoof escalation + MITRE 25/17 + --arp-spoof-threshold DELIVERED). NEXT = demo-recorder → pr-manager → STORY-115 (D3 storm)."
+phase_status: "F4 IN PROGRESS — STORY-111 DELIVERED (PR #236 cced898); STORY-112 DELIVERED (PR #238 10e4472); STORY-113 DELIVERED (PR #239 7b7dbb2; pr-reviewer APPROVE, 2 non-blocking items fixed pre-merge a73fbd6; 9 CI checks green; Step-4.5 CONVERGED BC-5.39.001); STORY-114 Step-4.5 CONVERGED + DEMO-RECORDED (BC-5.39.001; final HEAD 24b4b07; 1552 tests; 17 demo artifacts commit 556016d; D1 spoof escalation + MITRE 25/17 + --arp-spoof-threshold DELIVERED). NEXT = pr-manager → STORY-115 (D3 storm)."
 active_feature: "arp-analyzer"
 feature_arp_status: "F1 Delta Analysis PASSED (human-gated 2026-06-12) — DecodedFrame integration, ADR-008 planned, F2→F7 authorized; release target v0.7.0"
 feature_8_status: "v0.6.0 RELEASED 2026-06-12 — DNP3 TCP analyzer; F7 5-dim CONVERGED; tag v0.6.0 + 4 binaries"
@@ -83,11 +83,11 @@ input_drift_check: "MATCH=23 STALE=44 ERROR=1 (STORY-091 known); ARP stories: ST
 | Feature: ARP analyzer — F1 Delta Analysis | **PASSED** (human-gated 2026-06-12) | DecodedFrame{Ip,Arp} integration, ADR-008 planned, F2→F7 authorized; artifacts: `.factory/phase-f1-delta-analysis/arp-analyzer-delta-analysis.md` |
 | Feature: ARP analyzer — F2 Spec Evolution | **CONVERGED 3/3** (Pass 33, 2026-06-13); 33 passes total; P31/P32/P33 consecutive CLEAN; F2 strict-whole-corpus adversarial gate SATISFIED | 4-slice method; ARP delta SETTLED P9+; corpus-wide debt flushed P14-25; P26/P28/P31/P32/P33 CLEAN; P27/P29/P30 reset cycles surfaced+fixed genuine defects; trajectory: `phase-f5-adversarial/arp-f2-convergence-trajectory.md` |
 | Feature: ARP analyzer — F3 Story Decomposition | **CONVERGED 3/3** (Passes 36/37/38, 38 passes total incl. post-P26/P33 consistency flushes); F3 STRICT WHOLE-CORPUS ADVERSARIAL GATE SATISFIED; F3 human gate PASSED (D-070, 2026-06-14) | STORY-111..115 (E-16, 47 pts, linear chain); 15 SS-16 BCs; waves 40-44 holdouts; HS-INDEX v1.7; wave-schedule v1.3; SS-15 fully de-NEW-ed; corpus canonical 457 pts; trajectory: phase-f5-adversarial/arp-f3-convergence-trajectory.md |
-| Feature: ARP analyzer — F4 Delta Implementation | **IN PROGRESS** — STORY-111 DELIVERED (PR #236 cced898; wave 40; D-073); STORY-112 DELIVERED (PR #238 10e4472; wave 41; Step-4.5 CONVERGED BC-5.39.001); STORY-113 DELIVERED (PR #239 7b7dbb2; wave 42; pr-reviewer APPROVE, 2 non-blocking fixed a73fbd6; 9 CI checks green; Step-4.5 CONVERGED BC-5.39.001); STORY-114 Step-4.5 CONVERGED (BC-5.39.001; 3/3 passes a506d33f/abd03925/ac62481c; final HEAD 24b4b07; 1552 tests; D1+MITRE 25/17+--arp-spoof-threshold; PR pending); NEXT = demo-recorder → pr-manager → STORY-115 (D3 storm) | per-story TDD; waves 40-44; v0.7.0 target |
+| Feature: ARP analyzer — F4 Delta Implementation | **IN PROGRESS** — STORY-111 DELIVERED (PR #236 cced898; wave 40; D-073); STORY-112 DELIVERED (PR #238 10e4472; wave 41; Step-4.5 CONVERGED BC-5.39.001); STORY-113 DELIVERED (PR #239 7b7dbb2; wave 42; pr-reviewer APPROVE, 2 non-blocking fixed a73fbd6; 9 CI checks green; Step-4.5 CONVERGED BC-5.39.001); STORY-114 Step-4.5 CONVERGED + DEMO-RECORDED (BC-5.39.001; final HEAD 24b4b07; 1552 tests; 17 demo artifacts 556016d; D1+MITRE 25/17+--arp-spoof-threshold; PR pending); NEXT = pr-manager → STORY-115 (D3 storm) | per-story TDD; waves 40-44; v0.7.0 target |
 
-## Session Resume Checkpoint (2026-06-15 — F4 ARP DELTA-IMPLEMENTATION; STORY-114 Step-4.5 CONVERGED (24b4b07; 1552 tests); NEXT = demo-recorder → pr-manager → STORY-115)
+## Session Resume Checkpoint (2026-06-15 — F4 ARP DELTA-IMPLEMENTATION; STORY-114 Step-4.5 CONVERGED + DEMO-RECORDED; NEXT = pr-manager → STORY-115)
 
-**Previous checkpoint (2026-06-15 — F4 ARP DELTA-IMPLEMENTATION; STORY-113 DELIVERED PR #239 7b7dbb2; NEXT = STORY-114) archived to:
+**Previous checkpoint (2026-06-15 — F4 ARP DELTA-IMPLEMENTATION; STORY-114 Step-4.5 CONVERGED 24b4b07; NEXT = demo-recorder → pr-manager → STORY-115) archived to:
 `cycles/feature-arp-v0.7.0/session-checkpoints.md`**
 
 ### A. EXACT PIPELINE POSITION
@@ -102,7 +102,7 @@ input_drift_check: "MATCH=23 STALE=44 ERROR=1 (STORY-091 known); ARP stories: ST
   - **Wave 40 / STORY-111: DELIVERED** — PR #236 merged to develop (merge commit cced898; D-073). Worktree removed.
   - **Wave 41 / STORY-112: DELIVERED** — PR #238 merged to develop (merge commit 10e4472). 1512 tests. Worktree removed.
   - **Wave 42 / STORY-113: DELIVERED** — PR #239 merged to develop (merge commit 7b7dbb2). 1535 tests. Worktree removed.
-  - **Wave 43 / STORY-114: Step-4.5 CONVERGED** — 3/3 clean passes (a506d33f/abd03925/ac62481c) on frozen diff 24b4b07. 1552 tests. Branch: `worktree-issue-9-story-114-arp-d1-spoof` (base 7b7dbb2). Deliverables: D1 spoof escalation (4-step ordering + MAC-update-last + flap-window reset + one-shot HIGH guard + saturating_sub); GARP-that-conflicts co-emission (BC-2.16.014, 2 findings); MITRE T0830/T1557.002 attached; D12 MITRE back-fill (BC-2.16.007); VP-007 SEEDED 23→25, EMITTED 15→17; --arp-spoof-threshold flag + new(spoof_threshold, storm_rate). BC-2.16.010-PC2-SIGNATURE watch-item RESOLVED. NEXT = demo-recorder → pr-manager.
+  - **Wave 43 / STORY-114: Step-4.5 CONVERGED + DEMO-RECORDED** — 3/3 clean passes (a506d33f/abd03925/ac62481c) on frozen diff 24b4b07. 1552 tests. Branch: `worktree-issue-9-story-114-arp-d1-spoof` (base 7b7dbb2). Deliverables: D1 spoof escalation (4-step ordering + MAC-update-last + flap-window reset + one-shot HIGH guard + saturating_sub); GARP-that-conflicts co-emission (BC-2.16.014, 2 findings); MITRE T0830/T1557.002 attached; D12 MITRE back-fill (BC-2.16.007); VP-007 SEEDED 23→25, EMITTED 15→17; --arp-spoof-threshold flag + new(spoof_threshold, storm_rate). BC-2.16.010-PC2-SIGNATURE watch-item RESOLVED. 17 demo artifacts in `.factory/demo-evidence/STORY-114/` (commit 556016d). NEXT = pr-manager (9-step).
   - STORY-115: NOT STARTED.
 - **develop HEAD: 7b7dbb2** (STORY-113 merged; STORY-114 PR pending). STORY-114 branches from 7b7dbb2.
 - **Decisions active: D-047..D-073; do NOT re-adjudicate D-068/D-069/D-071/D-072/D-073.**
@@ -174,7 +174,7 @@ gh pr list --state open
 **Step 3 — COMPLETE (2026-06-15):**
 - STORY-111 DELIVERED (PR #236 cced898). STORY-112 DELIVERED (PR #238 10e4472).
 - STORY-113 DELIVERED (PR #239 7b7dbb2). develop HEAD 7b7dbb2.
-- STORY-114 Step-4.5 CONVERGED (24b4b07; 1552 tests). NEXT = demo-recorder → pr-manager (9-step).
+- STORY-114 Step-4.5 CONVERGED + DEMO-RECORDED (24b4b07; 1552 tests; 556016d). NEXT = pr-manager (9-step).
 - BC-2.16.010-PC2-SIGNATURE watch-item RESOLVED (new(spoof_threshold, storm_rate) 2-param signature landed in STORY-114).
 - Input-hash: all 5 ARP stories MATCH.
 - PG-ARP-F4-GREEN-DOC-TENSE codified (lessons.md); apply proactively in STORY-115.
@@ -196,8 +196,9 @@ STORY-111, STORY-112, or STORY-113. Do NOT revert D-070/D-071/D-072/D-073.
 - F2 convergence trajectory (33 passes): `.factory/phase-f5-adversarial/arp-f2-convergence-trajectory.md`
 - F3 convergence trajectory (38 passes): `.factory/phase-f5-adversarial/arp-f3-convergence-trajectory.md`
 - F1 delta analysis: `.factory/phase-f1-delta-analysis/arp-analyzer-delta-analysis.md`
-- STORY-114: `.factory/stories/STORY-114.md` — Step-4.5 CONVERGED (PR pending; worktree HEAD 24b4b07)
+- STORY-114: `.factory/stories/STORY-114.md` — Step-4.5 CONVERGED + DEMO-RECORDED (PR pending; worktree HEAD 24b4b07)
 - STORY-114 Step-4.5 convergence report: `.factory/convergence/STORY-114-step45.md`
+- STORY-114 demo evidence: `.factory/demo-evidence/STORY-114/` (17 artifacts; commit 556016d)
 - STORY-113 Step-4.5 convergence report: `.factory/convergence/STORY-113-step45.md`
 - Archived checkpoints: `.factory/cycles/feature-arp-v0.7.0/session-checkpoints.md`
 
