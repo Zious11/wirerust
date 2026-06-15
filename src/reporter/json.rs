@@ -52,26 +52,20 @@ impl Reporter for JsonReporter {
             .map(|(k, v)| (k.clone(), *v))
             .collect();
 
-        let mut output = serde_json::Map::new();
-        output.insert(
-            "summary".to_string(),
-            json!({
+        let output = json!({
+            "summary": {
                 "total_packets": summary.total_packets,
                 "total_bytes": summary.total_bytes,
                 "skipped_packets": summary.skipped_packets,
                 "unique_hosts": summary.unique_hosts(),
                 "protocols": protocols,
                 "services": services,
-            }),
-        );
-        output.insert("findings".to_string(), json!(findings));
-        output.insert("analyzers".to_string(), json!(analyzer_summaries));
-        output.insert("mitre_domain".to_string(), json!(MITRE_DOMAIN));
-        output.insert(
-            "mitre_attack_version".to_string(),
-            json!(MITRE_ATTACK_VERSION),
-        );
-
-        serde_json::to_string_pretty(&serde_json::Value::Object(output)).unwrap()
+            },
+            "findings": findings,
+            "analyzers": analyzer_summaries,
+            "mitre_domain": MITRE_DOMAIN,
+            "mitre_attack_version": MITRE_ATTACK_VERSION,
+        });
+        serde_json::to_string_pretty(&output).unwrap()
     }
 }
