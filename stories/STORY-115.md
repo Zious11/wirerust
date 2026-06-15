@@ -2,8 +2,9 @@
 document_type: story
 story_id: STORY-115
 epic_id: E-16
-version: "1.1"
+version: "1.2"
 # Pass-32: align analyzer field name storm_findings_count→storm_findings (matches STORY-113 declaration + sibling convention + BC-2.16.010 summarize key)
+# v1.2 (2026-06-15): D-074 back-propagation — EC-011 updated from "clamp to 1 or CLI error" to "rejected at CLI parse time"; AC-011 extended with 0-rejection requirement and test_cli_arp_storm_rate_0_rejected (BC-2.16.008 EC-006 / BC-2.16.013 EC-004)
 status: draft
 producer: story-writer
 timestamp: 2026-06-13T00:00:00Z
@@ -31,7 +32,7 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-16/BC-2.16.008.md
   - .factory/specs/behavioral-contracts/ss-16/BC-2.16.013.md
   - .factory/specs/behavioral-contracts/ss-16/BC-2.16.010.md
-input-hash: "2e0eca2"
+input-hash: "bb1d83a"
 ---
 
 # STORY-115: D3 ARP Storm Detection + --arp-storm-rate CLI Flag + storm_findings Summary Key
@@ -121,13 +122,15 @@ This is the documented average-since-window-start limitation (BC-2.16.008 Invari
 binding table. A 4097th distinct MAC's counter is inserted after evicting the oldest entry.
 - **Test:** `test_storm_counter_cap_enforced()` (4097 distinct MACs; assert len ≤ 4096)
 
-### AC-011 (traces to BC-2.16.013 postcondition 1/2 — --arp-storm-rate wiring)
+### AC-011 (traces to BC-2.16.013 postcondition 1/2/EC-004 — --arp-storm-rate wiring; 0 rejected)
 `ArpAnalyzer::new(spoof_threshold, storm_rate)` uses the `storm_rate` parameter in D3
 detection. `src/cli.rs` declares `#[arg(long, default_value_t = 50)] arp_storm_rate: u32`
 on `Commands::Analyze`. `src/main.rs` passes `args.arp_storm_rate` to `ArpAnalyzer::new`.
 When flag is absent, default 50 applies. When `--arp-storm-rate 10` is set, storm triggers
-at 10 frames/sec.
-- **Test:** `test_cli_arp_storm_rate_parsed()`, `test_cli_arp_storm_rate_default_50()`, `test_storm_custom_rate_10()`
+at 10 frames/sec. `--arp-storm-rate 0` MUST be rejected at CLI parse time with a fail-fast
+error (`--arp-storm-rate must be >= 1 (got 0)`); 0 is not clamped (D-074 / BC-2.16.013 EC-004).
+ARP comparisons are inclusive (`>=`), so a threshold of 0 would make the condition always true.
+- **Test:** `test_cli_arp_storm_rate_parsed()`, `test_cli_arp_storm_rate_default_50()`, `test_storm_custom_rate_10()`, `test_cli_arp_storm_rate_0_rejected()`
 
 ### AC-012 (traces to BC-2.16.013 EC-006 — flag accepted without --arp)
 `--arp-storm-rate N` is accepted by the CLI without `--arp` (no parse error). When `--arp`
@@ -184,7 +187,7 @@ Architecture section references: `architecture/module-decomposition.md` (SS-16 C
 | EC-008 | Late-burst suppression: 49 at ts=100, 50 at ts=159 | rate=99/59≈1.68 < 50; no storm (accepted limitation) |
 | EC-009 | 4097 distinct MACs | LRU eviction at 4097th; len ≤ 4096 |
 | EC-010 | `--arp-storm-rate 10`; 10 frames in 1s | Storm finding at 10/1=10 >= threshold=10 |
-| EC-011 | `--arp-storm-rate 0` | Clamp to 1 or CLI error (F3 implementation decision) |
+| EC-011 | `--arp-storm-rate 0` | Rejected at CLI parse time with error: `--arp-storm-rate must be >= 1 (got 0)` (D-074 / BC-2.16.008 EC-006 / BC-2.16.013 EC-004) |
 | EC-012 | D3 finding examined | `mitre_techniques: []` — T0814 absent |
 
 ## Tasks
@@ -214,7 +217,7 @@ Architecture section references: `architecture/module-decomposition.md` (SS-16 C
 | AC-008 | `test_storm_window_boundary_60_in_window_61_expired` | Unit |
 | AC-009 | `test_storm_late_burst_suppression_accepted_limitation` | Unit (documents limitation) |
 | AC-010 | `test_storm_counter_cap_enforced` | Unit |
-| AC-011 | `test_cli_arp_storm_rate_parsed`, `test_cli_arp_storm_rate_default_50`, `test_storm_custom_rate_10` | Unit |
+| AC-011 | `test_cli_arp_storm_rate_parsed`, `test_cli_arp_storm_rate_default_50`, `test_storm_custom_rate_10`, `test_cli_arp_storm_rate_0_rejected` | Unit |
 | AC-012 | `test_storm_rate_flag_accepted_without_arp_flag` | Unit |
 | AC-013 | `test_summarize_storm_findings_key_non_zero_after_detection` | Unit |
 | AC-014 | `test_d3_finding_has_empty_mitre_techniques` | Unit |

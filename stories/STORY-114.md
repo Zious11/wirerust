@@ -2,8 +2,8 @@
 document_type: story
 story_id: STORY-114
 epic_id: E-16
-version: "1.1"
-version_note: "1.1 (2026-06-14): F3-convergence Pass-25 Slice-C — de-pinned 4x HS-008-*.md:75 line citations to concept anchor 'HS-008 Verification Approach step 1'; input-hash will be recomputed by orchestrator (--write)"
+version: "1.2"
+version_note: "1.2 (2026-06-15): D-074 back-propagation — AC-006 extended with threshold-0 rejection requirement and test_cli_arp_spoof_threshold_0_rejected; EC-014 added (BC-2.16.012 EC-004 / BC-2.16.012 v1.3 PC2). 1.1 (2026-06-14): F3-convergence Pass-25 Slice-C — de-pinned 4x HS-008-*.md:75 line citations to concept anchor 'HS-008 Verification Approach step 1'; input-hash will be recomputed by orchestrator (--write)"
 status: draft
 producer: story-writer
 timestamp: 2026-06-13T00:00:00Z
@@ -34,7 +34,7 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-16/BC-2.16.012.md
   - .factory/specs/behavioral-contracts/ss-16/BC-2.16.014.md
   - .factory/specs/verification-properties/vp-007-mitre-technique-id-format.md
-input-hash: "5705a10"
+input-hash: "1325d69"
 ---
 
 # STORY-114: D1 ARP Spoof Escalation + GARP-that-Conflicts (D2+D1) + MITRE Attribution + VP-007 5-Part Atomic Update
@@ -125,15 +125,19 @@ rebind_count=1, Step 2 sets first_rebind_ts=timestamp_secs (elapsed=0), Step 3 e
 `rebind_count=1 >= threshold=1 AND elapsed=0 <= 60 AND !spoof_high_emitted` → HIGH.
 - **Test:** `test_d1_threshold_1_high_on_first_rebind()`
 
-### AC-006 (traces to BC-2.16.012 postcondition 1/2 — --arp-spoof-threshold wiring)
+### AC-006 (traces to BC-2.16.012 postcondition 1/2/EC-004 — --arp-spoof-threshold wiring; 0 rejected)
 `ArpAnalyzer::new(spoof_threshold, storm_rate)` uses the `spoof_threshold` parameter in
 D1 escalation logic. `src/cli.rs` declares `#[arg(long, default_value_t = 3)] arp_spoof_threshold: u32`
 on `Commands::Analyze`. `src/main.rs` passes `args.arp_spoof_threshold` to `ArpAnalyzer::new`.
-When flag is absent, default 3 applies. **Standalone-compile note:** `--arp-storm-rate` does not
+When flag is absent, default 3 applies. `--arp-spoof-threshold 0` MUST be rejected at CLI
+parse time with a fail-fast error (`--arp-spoof-threshold must be >= 1 (got 0)`); 0 is not
+clamped (D-074 / BC-2.16.012 EC-004). ARP comparisons are inclusive (`>=`), so a threshold of
+0 would trigger HIGH escalation on the very first rebind unconditionally.
+**Standalone-compile note:** `--arp-storm-rate` does not
 exist in STORY-114 (that flag is STORY-115's deliverable); the `storm_rate` argument at the
 `src/main.rs` call site MUST be `ARP_STORM_RATE_DEFAULT` (= 50) until STORY-115 wires
 `args.arp_storm_rate`. STORY-115 replaces this constant with `args.arp_storm_rate`.
-- **Test:** `test_cli_arp_spoof_threshold_parsed()`, `test_cli_arp_spoof_threshold_default_3()`
+- **Test:** `test_cli_arp_spoof_threshold_parsed()`, `test_cli_arp_spoof_threshold_default_3()`, `test_cli_arp_spoof_threshold_0_rejected()`
 
 ### AC-007 (traces to BC-2.16.014 postcondition 1 — GARP-that-conflicts: GARP upgrades to MEDIUM)
 When `is_gratuitous_arp(frame) == true` AND `bindings[sender_ip].mac != frame.sender_mac`
@@ -237,6 +241,7 @@ Architecture section references: `architecture/module-decomposition.md` (SS-16 C
 | EC-011 | GARP + binding conflict, 3rd rebind within 60s | GARP MEDIUM + D1 HIGH |
 | EC-012 | T0830 not in catalog before STORY-114 | technique_info("T0830") returned None before; returns Some(...) after 5-part update |
 | EC-013 | IcsImpact Display (D-069 canonical) | "Impact (ICS)" — correct as-is; src/mitre.rs:91 MUST NOT be changed |
+| EC-014 | `--arp-spoof-threshold 0` | Rejected at CLI parse time with error: `--arp-spoof-threshold must be >= 1 (got 0)` (D-074 / BC-2.16.012 EC-004) |
 
 ## Tasks
 
@@ -262,7 +267,7 @@ Architecture section references: `architecture/module-decomposition.md` (SS-16 C
 | AC-003 | `test_d1_high_guard_prevents_second_high` | Unit |
 | AC-004 | `test_d1_flap_window_reset` | Unit |
 | AC-005 | `test_d1_threshold_1_high_on_first_rebind` | Unit |
-| AC-006 | `test_cli_arp_spoof_threshold_parsed`, `test_cli_arp_spoof_threshold_default_3` | Unit |
+| AC-006 | `test_cli_arp_spoof_threshold_parsed`, `test_cli_arp_spoof_threshold_default_3`, `test_cli_arp_spoof_threshold_0_rejected` | Unit |
 | AC-007 | `test_garp_conflicts_garp_finding_upgrades_to_medium` | Unit |
 | AC-008 | `test_garp_conflicts_d1_also_emitted` | Unit |
 | AC-009 | `test_garp_conflicts_d1_high_at_threshold` | Unit |
