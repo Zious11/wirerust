@@ -3701,19 +3701,16 @@ mod story_115 {
         }
     }
     // -----------------------------------------------------------------------
-    // F1/C1 — RED regression: GARP flood must trigger D3 storm (gap exposed by adversary)
+    // F1/C1 — Regression guard: GARP flood must trigger D3 storm (GREEN — detect_storm
+    // runs before the GARP branch in process_arp, so GARP floods are covered)
     // -----------------------------------------------------------------------
 
-    /// RED regression test: BC-2.16.008 keys D3 storm detection on frame.sender_mac for
-    /// ALL ARP frames with no GARP exclusion. However, detect_storm is called at arp.rs
-    /// after the GARP branch, which returns early — so a GARP flood never triggers D3.
-    ///
-    /// This test exposes the gap: 50 GARP frames from one source MAC at ts=100
-    /// (sender_ip == target_ip, same sender_mac, rate=50/max(1,0)=50 >= storm_rate=50)
-    /// MUST produce a D3 MEDIUM/Anomaly storm finding per BC-2.16.008.
-    ///
-    /// The test MUST FAIL until the implementer hoists detect_storm above (or into) the
-    /// GARP branch so it runs for all ARP frames regardless of GARP classification.
+    /// Regression guard (BC-2.16.008 keys D3 on sender_mac for ALL ARP frames, no GARP
+    /// exclusion): detect_storm runs before the GARP branch in process_arp, so GARP floods
+    /// are covered. This test asserts that a 50-GARP flood at ts=100 emits a D3
+    /// MEDIUM/Anomaly finding (sender_ip == target_ip, same sender_mac,
+    /// rate=50/max(1,0)=50 >= storm_rate=50). If this test regresses it means the
+    /// call-site ordering in process_arp was changed so that GARP frames bypass detect_storm.
     #[test]
     fn test_storm_detected_for_garp_flood() {
         // Construct 50 GARP frames: sender_ip == target_ip (GARP condition),
@@ -3753,14 +3750,16 @@ mod story_115 {
         }
 
         // Assert the D3 storm finding IS emitted.
-        // This will FAIL until detect_storm is hoisted to run for GARP frames.
+        // Regression: if this fails, the call-site ordering in process_arp was changed so
+        // that GARP frames no longer reach detect_storm, re-introducing the GARP exclusion
+        // that BC-2.16.008 forbids.
         let d3 = d3_storm_finding.expect(
-            "F1/C1 / BC-2.16.008 regression: a D3 storm finding (confidence=MEDIUM, \
+            "Regression / BC-2.16.008: a D3 storm finding (confidence=MEDIUM, \
              category=Anomaly, storm keyword) must be emitted after 50 GARP frames from \
              one source MAC at ts=100 (rate=50/1=50 >= storm_rate=50). \
              BC-2.16.008 specifies no GARP exclusion from storm detection. \
-             Currently FAILS because detect_storm is called after the GARP early-return \
-             in process_arp, so GARP floods bypass D3.",
+             Failure means process_arp was changed so GARP floods no longer reach \
+             detect_storm, breaking BC-2.16.008 coverage for GARP frames.",
         );
 
         // Verify confidence == MEDIUM.
@@ -3816,6 +3815,134 @@ mod story_115 {
             "F1/C1 / BC-2.16.008: D3 finding evidence must contain rate_pps. \
              Got: {:?}.",
             d3.evidence
+        );
+    }
+
+    // -----------------------------------------------------------------------
+    // F-1 RED — spurious-eviction regression: insert_storm_counter_lru lacks
+    // contains_key guard, so re-initialising an ALREADY-PRESENT MAC at cap
+    // evicts an innocent (min-window_start_ts) MAC.
+    // -----------------------------------------------------------------------
+
+    /// RED regression test: `insert_storm_counter_lru` (arp.rs) has no `contains_key`
+    /// guard, unlike `insert_binding_lru`. When the map is at MAX_STORM_COUNTERS and
+    /// detect_storm calls `insert_storm_counter_lru` to re-initialize an already-present
+    /// MAC whose window has expired, the function evicts the min-window_start_ts entry
+    /// (the LRU "innocent" MAC) even though the insert is a key-overwrite that would not
+    /// grow the map. This test exposes that bug.
+    ///
+    /// Setup:
+    ///   1. Fill storm_counters to exactly MAX_STORM_COUNTERS=4096 distinct source MACs,
+    ///      one frame each, with varied window_start_ts so the entries have a clear LRU
+    ///      ordering. The first MAC inserted (ts=0) is the "innocent" min-window_start_ts
+    ///      victim and is deliberately DISTINCT from the MAC we will re-initialize.
+    ///   2. Pick one ALREADY-PRESENT MAC (NOT the innocent one) and send it another frame
+    ///      at timestamp_secs = window_start_ts + ARP_FLAP_WINDOW_SECS + 1, so its window
+    ///      has expired and detect_storm calls insert_storm_counter_lru.
+    ///
+    /// Expected (correct behaviour, implemented by the F-1 fix):
+    ///   (a) storm_counters.len() == MAX_STORM_COUNTERS (no net growth or shrinkage).
+    ///   (b) The innocent min-window_start_ts MAC is STILL present (NOT evicted).
+    ///
+    /// Against current (unfixed) code this test FAILS at assertion (b): the re-init
+    /// of the already-present MAC triggers eviction of the innocent min-window_start_ts MAC
+    /// even though the insert did not need to grow the map.
+    ///
+    /// BC-2.16.008 PC5 / Invariant 6 — spurious eviction bug.
+    #[test]
+    fn test_storm_lru_no_spurious_eviction_on_existing_mac_reinit() {
+        let mut analyzer = ArpAnalyzer::new(SPOOF_REBIND_ESCALATION_DEFAULT, 50);
+
+        // Step 1: populate storm_counters to exactly MAX_STORM_COUNTERS=4096 distinct
+        // source MACs. Each MAC gets one frame at ts=i, giving varied window_start_ts.
+        // MAC i=0 will have window_start_ts=0, i.e. the minimum — it is the LRU victim.
+        //
+        // We use the same scheme as test_storm_counter_cap_enforced (AC-010):
+        //   mac = [0xDE, 0xAD, byte3, byte2, byte1, byte0] derived from i.
+        //
+        // MAC i=0 ([0xDE,0xAD,0x00,0x00,0x00,0x00]) → "innocent" LRU victim (ts=0).
+        // MAC i=1 ([0xDE,0xAD,0x00,0x00,0x00,0x01]) → the MAC we will re-initialize.
+        //
+        // Use distinct sender IPs per MAC to avoid binding-table interactions.
+        let innocent_mac: [u8; 6] = [0xDE, 0xAD, 0x00, 0x00, 0x00, 0x00];
+        let reinit_mac: [u8; 6] = [0xDE, 0xAD, 0x00, 0x00, 0x00, 0x01];
+
+        for i in 0u32..(MAX_STORM_COUNTERS as u32) {
+            let mac: [u8; 6] = [
+                0xDE,
+                0xAD,
+                ((i >> 24) & 0xFF) as u8,
+                ((i >> 16) & 0xFF) as u8,
+                ((i >> 8) & 0xFF) as u8,
+                (i & 0xFF) as u8,
+            ];
+            // Unique IP per MAC (avoids binding conflicts).
+            let ip: [u8; 4] = [
+                10,
+                ((i >> 16) & 0xFF) as u8,
+                ((i >> 8) & 0xFF) as u8,
+                (i & 0xFF) as u8,
+            ];
+            let frame = storm_request(mac, ip);
+            let _ = analyzer.process_arp(&frame, i);
+        }
+
+        // Confirm the map is exactly at cap.
+        assert_eq!(
+            analyzer.storm_counters.len(),
+            MAX_STORM_COUNTERS,
+            "Setup: storm_counters must be at MAX_STORM_COUNTERS={} before the re-init \
+             step. Got {}.",
+            MAX_STORM_COUNTERS,
+            analyzer.storm_counters.len()
+        );
+
+        // Confirm the innocent MAC (i=0, ts=0) is present — it is the LRU victim.
+        assert!(
+            analyzer.storm_counters.contains_key(&innocent_mac),
+            "Setup: innocent MAC {innocent_mac:?} must be present in storm_counters before \
+             re-init.",
+        );
+
+        // Confirm reinit_mac (i=1, ts=1) is present with window_start_ts=1.
+        let reinit_entry_ts = analyzer
+            .storm_counters
+            .get(&reinit_mac)
+            .expect("Setup: reinit_mac must be present in storm_counters.")
+            .window_start_ts;
+
+        // Step 2: send reinit_mac another frame at timestamp = window_start_ts + ARP_FLAP_WINDOW_SECS + 1
+        // so the window has expired (elapsed > ARP_FLAP_WINDOW_SECS=60).
+        // detect_storm takes the !in_window path and calls insert_storm_counter_lru.
+        // The map is at cap (4096), so the buggy code evicts innocent_mac (min ts=0)
+        // even though reinit_mac is already present and the insert is a key-overwrite.
+        let expired_ts = reinit_entry_ts + ARP_FLAP_WINDOW_SECS + 1;
+        let reinit_ip: [u8; 4] = [10, 0, 0, 1];
+        let reinit_frame = storm_request(reinit_mac, reinit_ip);
+        let _ = analyzer.process_arp(&reinit_frame, expired_ts);
+
+        // Assertion (a): map length must still be MAX_STORM_COUNTERS (re-init is an
+        // in-place overwrite; the innocent MAC must not have been evicted to make room).
+        assert_eq!(
+            analyzer.storm_counters.len(),
+            MAX_STORM_COUNTERS,
+            "F-1 spurious-eviction regression / BC-2.16.008 PC5: re-initialising an \
+             already-present MAC at cap must not change storm_counters.len(). Expected \
+             {}, got {}.",
+            MAX_STORM_COUNTERS,
+            analyzer.storm_counters.len()
+        );
+
+        // Assertion (b): the innocent min-window_start_ts MAC must still be present.
+        // Against unfixed code this assertion FAILS: insert_storm_counter_lru evicts the
+        // innocent MAC because it lacks a contains_key guard (unlike insert_binding_lru).
+        assert!(
+            analyzer.storm_counters.contains_key(&innocent_mac),
+            "F-1 spurious-eviction regression / BC-2.16.008 PC5: the innocent \
+             min-window_start_ts MAC {innocent_mac:?} was spuriously evicted when \
+             re-initialising already-present MAC {reinit_mac:?} at cap. \
+             insert_storm_counter_lru must check contains_key before evicting, as \
+             insert_binding_lru does.",
         );
     }
 } // mod story_115
