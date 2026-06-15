@@ -11,6 +11,20 @@ Archived per content-routing rules (STATE.md keeps only the LATEST checkpoint).
 
 ---
 
+## Archived Checkpoint: 2026-06-15 — F4 ARP DELTA-IMPLEMENTATION; STORY-115 Step-4.5 CONVERGED; NEXT = demo-recorder → pr-manager → F4 wave-level convergence
+
+**Archived from STATE.md on:** 2026-06-15 (replaced by "STORY-115 Step-4.5 CONVERGED + DEMO-RECORDED; NEXT = pr-manager" checkpoint)
+
+### POSITION
+
+- STORY-111/112/113/114 ALL DELIVERED to develop 7c0f453.
+- Wave 44 / STORY-115: Step-4.5 CONVERGED — HEAD dcdbf95; base 7c0f453; 1571 tests; 3 clean passes (a6f45a32/acbe2f5b/a58db908). D3 storm + --arp-storm-rate + storm_findings value. FINAL E-16 story. PR pending.
+- develop HEAD: 7c0f453.
+- DF-GREEN-DOC-TENSE-SWEEP v1 added to policies.yaml; PG-ARP-F4-REDTEST-DOC-TENSE sub-rule codified; PG-ARP-F4-MULTIPASS-VALUE positive lesson documented.
+- NEXT: demo-recorder → pr-manager (merge STORY-115) → F4-wave-level convergence + holdout eval → F5/F6/F7.
+
+---
+
 ## Archived Checkpoint: 2026-06-15 — F4 ARP DELTA-IMPLEMENTATION; STORY-114 DELIVERED PR #240 7c0f453; NEXT = STORY-115
 
 **Archived from STATE.md on:** 2026-06-15 (replaced by "STORY-115 Step-4.5 CONVERGED; NEXT = demo-recorder → pr-manager → F4 wave-level convergence" checkpoint)

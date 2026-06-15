@@ -85,9 +85,9 @@ input_drift_check: "MATCH=23 STALE=44 ERROR=1 (STORY-091 known); ARP stories: ST
 | Feature: ARP analyzer — F3 Story Decomposition | **CONVERGED 3/3** (Passes 36/37/38, 38 passes total incl. post-P26/P33 consistency flushes); F3 STRICT WHOLE-CORPUS ADVERSARIAL GATE SATISFIED; F3 human gate PASSED (D-070, 2026-06-14) | STORY-111..115 (E-16, 47 pts, linear chain); 15 SS-16 BCs; waves 40-44 holdouts; HS-INDEX v1.7; wave-schedule v1.3; SS-15 fully de-NEW-ed; corpus canonical 457 pts; trajectory: phase-f5-adversarial/arp-f3-convergence-trajectory.md |
 | Feature: ARP analyzer — F4 Delta Implementation | **IN PROGRESS** — STORY-111 DELIVERED (PR #236 cced898; wave 40; D-073); STORY-112 DELIVERED (PR #238 10e4472; wave 41; Step-4.5 CONVERGED BC-5.39.001); STORY-113 DELIVERED (PR #239 7b7dbb2; wave 42; pr-reviewer APPROVE, 2 non-blocking fixed a73fbd6; 9 CI checks green; Step-4.5 CONVERGED BC-5.39.001); STORY-114 DELIVERED (PR #240 7c0f453; wave 43; pr-reviewer APPROVE, zero blocking; 9 CI checks green; Step-4.5 CONVERGED; D1+MITRE 25/17+--arp-spoof-threshold; SEEDED=25/EMITTED=17 on develop); **STORY-115 CONVERGED Step-4.5** (wave 44; HEAD dcdbf95; base 7c0f453; 3 clean passes a6f45a32/acbe2f5b/a58db908; D3 storm+--arp-storm-rate+storm_findings; FINAL E-16 story; PR pending); NEXT = demo-recorder → pr-manager → F4-wave-level convergence + holdout eval → F5/F6/F7 | per-story TDD; waves 40-44; v0.7.0 target |
 
-## Session Resume Checkpoint (2026-06-15 — F4 ARP DELTA-IMPLEMENTATION; STORY-115 Step-4.5 CONVERGED; NEXT = demo-recorder → pr-manager → F4 wave-level convergence)
+## Session Resume Checkpoint (2026-06-15 — F4 ARP DELTA-IMPLEMENTATION; STORY-115 Step-4.5 CONVERGED + DEMO-RECORDED; NEXT = pr-manager → F4 wave-level convergence)
 
-**Previous checkpoint (2026-06-15 — F4 ARP DELTA-IMPLEMENTATION; STORY-114 DELIVERED PR #240 7c0f453; NEXT = STORY-115) archived to:
+**Previous checkpoint (2026-06-15 — F4 ARP DELTA-IMPLEMENTATION; STORY-115 Step-4.5 CONVERGED; NEXT = demo-recorder → pr-manager → F4 wave-level convergence) archived to:
 `cycles/feature-arp-v0.7.0/session-checkpoints.md`**
 
 ### A. EXACT PIPELINE POSITION
@@ -103,7 +103,7 @@ input_drift_check: "MATCH=23 STALE=44 ERROR=1 (STORY-091 known); ARP stories: ST
   - **Wave 41 / STORY-112: DELIVERED** — PR #238 merged to develop (merge commit 10e4472). 1512 tests. Worktree removed.
   - **Wave 42 / STORY-113: DELIVERED** — PR #239 merged to develop (merge commit 7b7dbb2). 1535 tests. Worktree removed.
   - **Wave 43 / STORY-114: DELIVERED** — PR #240 merged to develop (merge commit 7c0f453). 1552 tests. Worktree removed.
-  - **Wave 44 / STORY-115: Step-4.5 CONVERGED** — HEAD dcdbf95 on branch `worktree-issue-9-story-115-arp-d3-storm`. Base 7c0f453. 1571 tests. 3 clean passes a6f45a32/acbe2f5b/a58db908. D3 storm + --arp-storm-rate + storm_findings value. FINAL E-16 story. **PR pending.**
+  - **Wave 44 / STORY-115: Step-4.5 CONVERGED + DEMO-RECORDED** — HEAD dcdbf95 on branch `worktree-issue-9-story-115-arp-d3-storm`. Base 7c0f453. 1571 tests. 3 clean passes a6f45a32/acbe2f5b/a58db908. D3 storm + --arp-storm-rate + storm_findings value. FINAL E-16 story. Demo evidence: `.factory/demo-evidence/STORY-115/` (9 artifacts: 3 tape/gif/webm sets; commit 660b6e4). Anti-leak PG-ARP-F4-DEMO-LEAK confirmed: worktree branch clean. **PR pending.**
 - **develop HEAD: 7c0f453** (STORY-114 merged). STORY-115 worktree at dcdbf95, not yet merged.
 - **Decisions active: D-047..D-073; do NOT re-adjudicate D-068/D-069/D-071/D-072/D-073.**
 - **F3-OBL-STORY114-001/002/003 REVOKED** (D-069).
@@ -178,9 +178,10 @@ gh pr list --state open
 **Step 3 — COMPLETE (2026-06-15):**
 - STORY-111/112/113/114 ALL DELIVERED to develop 7c0f453.
 - STORY-115 Step-4.5 CONVERGED (HEAD dcdbf95; 1571 tests; 3 clean passes; FINAL E-16 story).
+- STORY-115 DEMO-RECORDED (9 artifacts; commit 660b6e4; worktree branch clean — PG-ARP-F4-DEMO-LEAK satisfied).
 - DF-GREEN-DOC-TENSE-SWEEP extended with PG-ARP-F4-REDTEST-DOC-TENSE sub-rule (policies.yaml + lessons.md).
 - PG-ARP-F4-MULTIPASS-VALUE positive lesson documented (lessons.md).
-- NEXT = demo-recorder → pr-manager (merge STORY-115) → F4-wave-level convergence + holdout eval → F5/F6/F7.
+- NEXT = pr-manager (merge STORY-115 PR) → F4-wave-level convergence + holdout eval → F5/F6/F7.
 
 **Step 4 — CI/toolchain note (PG-ARP-F4-CI-FMT-TOOLCHAIN):**
 Before opening any PR, run `rustup update stable` + `cargo fmt --all --check` to match CI
@@ -199,8 +200,9 @@ STORY-111/112/113/114. Do NOT revert D-068/D-069/D-070/D-071/D-072/D-073.
 - F2 convergence trajectory (33 passes): `.factory/phase-f5-adversarial/arp-f2-convergence-trajectory.md`
 - F3 convergence trajectory (38 passes): `.factory/phase-f5-adversarial/arp-f3-convergence-trajectory.md`
 - F1 delta analysis: `.factory/phase-f1-delta-analysis/arp-analyzer-delta-analysis.md`
-- STORY-115: `.factory/stories/STORY-115.md` — Step-4.5 CONVERGED (HEAD dcdbf95; 3/3 passes; PR pending)
+- STORY-115: `.factory/stories/STORY-115.md` — Step-4.5 CONVERGED + DEMO-RECORDED (HEAD dcdbf95; 3/3 passes; PR pending)
 - STORY-115 Step-4.5 convergence report: `.factory/convergence/STORY-115-step45.md`
+- STORY-115 demo evidence: `.factory/demo-evidence/STORY-115/` (9 artifacts: AC-011-012/AC-003-013/AC-TEST sets; commit 660b6e4)
 - STORY-114 Step-4.5 convergence report: `.factory/convergence/STORY-114-step45.md`
 - STORY-114 demo evidence: `.factory/demo-evidence/STORY-114/` (17 artifacts; commit 556016d)
 - STORY-113 Step-4.5 convergence report: `.factory/convergence/STORY-113-step45.md`
