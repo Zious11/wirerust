@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-06-12T00:00:00Z
@@ -16,6 +16,7 @@ introduced: v0.7.0-feature-arp
 modified:
   - "v1.1: F3 story-anchor back-fill. — 2026-06-14"
   - "v1.2: F4 scoped-adversarial remediation — sibling-propagation gap from BC-2.02.009 v1.6 correction. Invariant 2 and Architecture Anchors wrongly attributed unreachable! to lax_ip_triple / LaxNetSlice::Arp arm. ADR-008 Decision 3 v1.6 and arp-architecture-delta.md §2.2 state unambiguously: strict_ip_triple NetSlice::Arp arm = compile-safety unreachable! (ARP routed out before strict_ip_triple is called); lax_ip_triple LaxNetSlice::Arp arm = explicit routing to extract_arp_frame (NOT unreachable!) — truncated ARP reaches lax_ip_triple at runtime; unreachable! there would be a VP-008/VP-024 Sub-A violating panic. EC-007 (strict_ip_triple only) was already correct and is now consistent with the fixed Invariant 2. — 2026-06-14"
+  - "v1.3: F4 architect ruling supersedes v1.2 'explicit routing NOT unreachable' framing (ADR-008 Decision 3 v2.1; arp-architecture-delta.md §2.2 v1.16): the design is SYMMETRIC. decode_packet intercepts Some(LaxNetSlice::Arp(_)) in the Err(SliceError::Len(_)) arm BEFORE calling lax_ip_triple, routing it to extract_arp_frame. lax_ip_triple returns IpTriple and cannot route ARP; its LaxNetSlice::Arp(_) arm IS unreachable! (compile-safety guard, symmetric to strict_ip_triple). Invariant 2 and Architecture Anchor for lax_ip_triple updated to symmetric unreachable! framing. — 2026-06-14"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -75,17 +76,19 @@ it specifies the structural pipeline guarantee rather than a security finding.
    well-formed Ethernet/IPv4 ARP. Analysis is conditional on `--arp`. This prevents the
    decode path from being dead code that breaks under etherparse 0.20's non-exhaustive
    `NetSlice` enum, regardless of user flags.
-2. **ARP bypasses IP pipeline entirely**: well-formed Ethernet/IPv4 ARP frames exit
-   `decode_packet` as `DecodedFrame::Arp` via the strict `Ok(slice)` arm before
-   `strict_ip_triple` is ever called; snaplen-truncated ARP frames reach `decode_packet`'s
-   lax `Err(SliceError::Len(_))` arm and are routed explicitly in `lax_ip_triple`. In neither
-   case do ARP frames reach `StreamDispatcher`, TCP reassembly, or any `ProtocolAnalyzer`.
-   The `unreachable!` arm in `strict_ip_triple` (ADR-008 Decision 3) is a compile-safety net,
-   never reached at runtime. The `lax_ip_triple` ARP arm is EXPLICIT ROUTING to
-   `extract_arp_frame`, NOT `unreachable!` — a snaplen-truncated ARP frame yields
-   `Some(LaxNetSlice::Arp(_))` from etherparse 0.20's lax parser and DOES reach
-   `lax_ip_triple`; an `unreachable!` there would be a VP-008/VP-024 Sub-A violating panic
-   (see BC-2.02.009 Invariant 2, arp-architecture-delta.md §2.2).
+2. **ARP bypasses IP pipeline entirely — both IP-triple helpers carry symmetric unreachable!
+   ARP arms**: well-formed Ethernet/IPv4 ARP frames exit `decode_packet` as `DecodedFrame::Arp`
+   via the strict `Ok(slice)` arm before `strict_ip_triple` is ever called; snaplen-truncated
+   ARP frames are intercepted by `decode_packet`'s `Err(SliceError::Len(_))` arm before
+   `lax_ip_triple` is ever called, routing them to `extract_arp_frame`. In neither case do ARP
+   frames reach `StreamDispatcher`, TCP reassembly, or any `ProtocolAnalyzer`. The
+   `lax_ip_triple` ARP arm IS `unreachable!` — a compile-safety guard, symmetric to
+   `strict_ip_triple`'s `NetSlice::Arp(_) => unreachable!` arm, and equally provably dead.
+   `decode_packet`'s `Err(SliceError::Len(_))` arm intercepts `Some(LaxNetSlice::Arp(_))`
+   BEFORE calling `lax_ip_triple`, routing it to `extract_arp_frame`. `lax_ip_triple` returns
+   `IpTriple` and is never called with an ARP slice at runtime. The VP-008/VP-024 Sub-A
+   no-panic guarantee is provided by `decode_packet`'s interception and panic-free
+   `extract_arp_frame`. (ADR-008 Decision 3 v2.1; arp-architecture-delta.md §2.2 v1.16.)
 3. **BC-2.02.009 revision embodied here**: the old BC-2.02.009 postcondition (ARP frames →
    `Err("No IP layer found")`) is superseded. This BC and the revised BC-2.02.009 together
    describe the complete decoder ARP postcondition set.
@@ -145,7 +148,7 @@ it specifies the structural pipeline guarantee rather than a security finding.
 - `src/decoder.rs` — `pub enum DecodedFrame { Ip(ParsedPacket), Arp(ArpFrame) }` — the enum that embodies decode-vs-analysis separation
 - `src/decoder.rs` — `decode_packet` routing: `NetSlice::Arp(arp) => { match extract_arp_frame(...) { Some(f) => Ok(DecodedFrame::Arp(f)), None => Err(...) } }`
 - `src/decoder.rs` — `NetSlice::Arp(_) => unreachable!(...)` in `strict_ip_triple` ONLY (compile-safety arm; never reached at runtime — ARP frames are routed out of decode_packet's strict Ok arm before strict_ip_triple is ever called)
-- `src/decoder.rs` — `LaxNetSlice::Arp(arp) => /* explicit routing to extract_arp_frame */` in `lax_ip_triple` (NOT unreachable! — snaplen-truncated ARP frames yield Some(LaxNetSlice::Arp(_)) from etherparse 0.20's lax parser and DO reach lax_ip_triple at runtime; unreachable! there would be a VP-008/VP-024 Sub-A violating panic; see arp-architecture-delta.md §2.2)
+- `src/decoder.rs` — `LaxNetSlice::Arp(_) => unreachable!(...)` in `lax_ip_triple` (compile-safety guard, provably dead — symmetric to `strict_ip_triple`'s `NetSlice::Arp(_) => unreachable!` arm; `decode_packet`'s `Err(SliceError::Len(_))` arm intercepts `Some(LaxNetSlice::Arp(_))` BEFORE calling `lax_ip_triple`, routing it to `extract_arp_frame`; `lax_ip_triple` returns `IpTriple` and cannot route ARP; ADR-008 Decision 3 v2.1; arp-architecture-delta.md §2.2 v1.16)
 - `src/main.rs` — `Ok(DecodedFrame::Ip(p)) => { /* existing IP pipeline */ }` / `Ok(DecodedFrame::Arp(a)) => { if args.arp { arp_analyzer.process_arp(&a, ts); } }`
 - `.factory/specs/architecture/decisions/ADR-008-arp-link-layer-integration.md §Decision 1` (decode_packet return type change) and §Decision 3 (unreachable! arms)
 - `.factory/specs/architecture/arp-architecture-delta.md §2.1, §2.2` — DecodedFrame enum and match-site additions

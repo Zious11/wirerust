@@ -2,7 +2,7 @@
 document_type: story
 story_id: STORY-112
 epic_id: E-16
-version: "1.2"
+version: "1.3"
 status: draft
 producer: story-writer
 timestamp: 2026-06-13T00:00:00Z
@@ -30,18 +30,22 @@ github_issue: 9
 #   decode layer. This behavior was previously implicit (covered by Task 2 prose + AC-004),
 #   but lacked a named AC. Added to close coverage gap surfaced when STORY-111
 #   AC-002 was removed and mapped here.
+# v1.3 changelog: F4 symmetric-unreachable! alignment (D-072):
+#   Frontmatter changelog stale framing removed — prior v1.2 note referencing
+#     "lax_ip_triple ARP arm is explicit routing, NOT unreachable" is superseded by
+#     architect v1.16 / ADR-008 Decision 3 v2.1 ruling (symmetric-unreachable!).
+#   Input-hash recomputed for BC-2.16.015 v1.3 + arp-architecture-delta v1.16.
 # v1.2 changelog: F4 scoped-adversarial remediation:
 #   File Structure AC count — changed "AC-001..AC-011" to "AC-001..AC-012" to include AC-012
 #     (Task 10 and Test Plan already referenced AC-012; only this prose row lagged);
-#   Input-hash recomputed — BC-2.16.015 updated to v1.2 (lax_ip_triple ARP arm is explicit
-#     routing, NOT unreachable); input-hash restamped to reflect new BC-2.16.015 content.
+#   Input-hash restamped to reflect new BC-2.16.015 content.
 inputs:
   - .factory/specs/architecture/arp-architecture-delta.md
   - .factory/specs/behavioral-contracts/ss-16/BC-2.16.001.md
   - .factory/specs/behavioral-contracts/ss-16/BC-2.16.002.md
   - .factory/specs/behavioral-contracts/ss-16/BC-2.16.015.md
   - .factory/specs/verification-properties/vp-024-arp-parse-safety.md
-input-hash: "c8c1a64"
+input-hash: "8a4d566"
 ---
 
 # STORY-112: extract_arp_frame + decode_packet ARP Routing (Both Paths) + ArpAnalyzer Stub + VP-024 Sub-A

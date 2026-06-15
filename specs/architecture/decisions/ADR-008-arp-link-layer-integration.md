@@ -14,6 +14,7 @@ modified:
   - "v1.8 (2026-06-12): F-B10-L01 — Decision 5 detection table D11 trigger cell: removed 'or etherparse rejects the frame'. D11 covers only frames that produced an ArpPacketSlice and then failed the hw_addr_size/proto_addr_size (or non-Ethernet/IPv4 hw/proto type) check inside extract_arp_frame. Etherparse-reject frames never produce an ArpPacketSlice and are NOT D11 — they are handled by the existing decode error path (BC-2.16.009 EC-007). Aligns Decision 5 D11 trigger with Decision 7 key 11 (fixed in v1.7) and BC-2.16.009 EC-007."
   - "v1.9 (2026-06-13): Pass-20 D-02 (LOW) — Decision 6 MitreTactic enum assessment paragraph: reconciled inconsistent labeling of T0830's tactic source. Both the opening sentence and the bullet now consistently state that T0830's home matrix is ICS (TA0109 Lateral Movement), and that the wirerust code maps it to the shared MitreTactic::LateralMovement variant (no separate ICS variant exists) via the merge-by-name policy. Previously the opening sentence said 'ICS matrix (TA0109)' while the bullet said 'Enterprise Lateral Movement variant', creating an apparent contradiction. No mapping change — tactic assignment is unchanged."
   - "v2.0 (2026-06-14): D-068 — Conditional GARP MITRE attribution. A benign gratuitous ARP (sender_ip == target_ip, no conflict with a prior IP↔MAC binding) is normal traffic and must NOT be attributed to T0830/T1557.002 (research-backed: ATT&CK T1557.002 DET0387, T0830, arpwatch/Zeek/Suricata convention). Three loci corrected: (1) Decision 5 D2 GARP row MITRE column changed from unconditional 'T0830 + T1557.002' to conditional — benign GARP (D2 alone) emits NO MITRE (LOW/Anomaly only); conflicting GARP (D2+D1 / BC-2.16.014 co-fires) emits T0830 + T1557.002. (2) Decision 6 opening paragraph now states the conditionality explicitly with arpwatch/Zeek/Suricata rationale. (3) Decision 6 Emission summary table rows for T0830 and T1557.002 updated from 'D2 GARP' to 'D2 conflicting-GARP only'. Aligns with corrected BC-2.16.003 (parallel burst), arch-delta §3.3, and STORY-113 AC-003. Research source: .factory/research/arp-garp-mitre-attribution.md."
+  - "v2.1 (2026-06-14): F4-surfaced §2.2 inconsistency adjudicated. Decision 3 corrected: removed 'MUST NOT use unreachable!' framing for lax_ip_triple and removed the fictional LaxNetArpSignal sentinel. The symmetric design is authoritative: BOTH strict_ip_triple AND lax_ip_triple carry provably-dead unreachable! compile-safety guards for their ARP arms. ARP routing lives exclusively in decode_packet (return type Result<DecodedFrame>) — the helpers return IpTriple and cannot produce DecodedFrame::Arp. VP-008/VP-024 Sub-A no-panic guarantee is provided by decode_packet's interception in the Err(SliceError::Len(_)) arm before calling lax_ip_triple. VP-008 no-panic guarantee text updated to reflect this. Aligns with STORY-111 GREEN implementation and arp-architecture-delta.md v1.16."
 subsystems_affected:
   - SS-02
   - SS-10
@@ -172,23 +173,27 @@ out before `strict_ip_triple` is ever called — this arm is a compile-safety ne
 NetSlice::Arp(_) => unreachable!("ARP frames are routed before strict_ip_triple"),
 ```
 
-`lax_ip_triple` MUST NOT use `unreachable!`. The lax fallback path is taken when
-`from_ethernet` returns `Err(SliceError::Len(_))` — i.e., a snaplen-truncated packet.
-In etherparse 0.20, a truncated ARP frame can yield `Some(LaxNetSlice::Arp(_))` from
-the lax parser. That `Some(LaxNetSlice::Arp(_))` arm reaches `lax_ip_triple` before
-any ARP early-exit occurs; an `unreachable!` there would panic at runtime, violating
-VP-008 and VP-024 Sub-A. The arm is therefore handled explicitly:
+`lax_ip_triple` uses `unreachable!` — **symmetric to `strict_ip_triple`** — because
+`decode_packet`'s `Err(SliceError::Len(_))` arm matches `Some(LaxNetSlice::Arp(_))`
+FIRST (routing to `extract_arp_frame`) before calling `lax_ip_triple` in the subsequent
+`Some(net)` arm. `lax_ip_triple` is therefore never called with an ARP slice at runtime;
+the `unreachable!` is a compile-exhaustiveness guard, provably dead:
 
 ```rust
-// lax_ip_triple
-LaxNetSlice::Arp(arp) => return Err(LaxNetArpSignal(arp)),
+// lax_ip_triple — compile-safety guard; provably dead at runtime.
+// decode_packet intercepts Some(LaxNetSlice::Arp(_)) in its Err(SliceError::Len(_))
+// arm before calling lax_ip_triple. Symmetric to strict_ip_triple's arm above.
+LaxNetSlice::Arp(_) => unreachable!(
+    "ARP frames are routed in decode_packet's Err(SliceError::Len) arm \
+     before lax_ip_triple is called — this arm is a compile-safety guard"
+),
 ```
 
-where `LaxNetArpSignal` is a private sentinel (or equivalent mechanism) that causes
-the caller to route to `extract_arp_frame` with the truncated `arp` slice. A truncated
-ARP body still yields the outer Ethernet frame source MAC and the ARP opcode in the
-fixed-offset header fields; `extract_arp_frame` returns `None` if the address-size
-fields are unreadable, mapping to `Err("truncated ARP frame")`.
+**Why routing cannot live in `lax_ip_triple`:** Both helper functions return `IpTriple`
+(a tuple of IP source, destination, and protocol). They have no way to produce a
+`DecodedFrame::Arp`; that return type lives only in `decode_packet` (return type
+`Result<DecodedFrame>`). Routing ARP inside the helpers does not type-check. All ARP
+interception — both for complete and truncated frames — must occur in `decode_packet`.
 
 The routing logic in `decode_packet` extracts the ARP variant in **both** the strict
 `Ok(slice)` arm and the lax `Err(SliceError::Len(_))` arm:
@@ -250,10 +255,13 @@ Err(SliceError::Len(_)) => {
 }
 ```
 
-**VP-008 and VP-024 Sub-A no-panic guarantee:** With this two-arm design, no reachable
-`unreachable!` exists in the decode path for any `LaxNetSlice` variant. Every ARP frame
-— truncated or complete — is routed to `extract_arp_frame`, which is itself panic-free
-(Sub-A postcondition). The no-panic invariant of VP-008 is restored.
+**VP-008 and VP-024 Sub-A no-panic guarantee:** The no-panic guarantee is provided by
+`decode_packet`'s interception of `Some(LaxNetSlice::Arp(_))` in the `Err(SliceError::Len(_))`
+arm BEFORE calling `lax_ip_triple`. Every ARP frame — complete or snaplen-truncated — is
+routed to `extract_arp_frame` from within `decode_packet`, which is itself panic-free
+(Sub-A postcondition). The `unreachable!` arms in both `strict_ip_triple` and
+`lax_ip_triple` are provably dead and are never executed at runtime; they exist as
+compile-exhaustiveness guards only. The no-panic invariant of VP-008 is preserved.
 
 ### Decision 4: `ArpAnalyzer` struct — binding table and detection state
 

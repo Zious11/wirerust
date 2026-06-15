@@ -2,7 +2,7 @@
 document_type: story
 story_id: STORY-111
 epic_id: E-16
-version: "1.3"
+version: "1.4"
 status: draft
 producer: story-writer
 timestamp: 2026-06-13T00:00:00Z
@@ -25,6 +25,13 @@ github_issue: 9
 # v1.1 changelog: F4-surfaced decomposition fix: re-scoped ACs to §6 scaffolding boundary
 #   (extract_arp_frame end-to-end behavior is STORY-112); added non-panicking placeholder AC
 #   for VP-008 (AC-005b); AC-001/002/004/007/008 removed (covered by STORY-112 AC-006/007/004/012).
+# v1.4 changelog: F4 symmetric-unreachable! alignment (D-072):
+#   lax_ip_triple ARP arm reframed to symmetric-unreachable (NOT "explicit routing")
+#     per architect v1.16 / ADR-008 Decision 3 v2.1 ruling; decode_packet intercepts
+#     LaxNetSlice::Arp in its Err(SliceError::Len(_)) arm before lax_ip_triple is called;
+#     lax_ip_triple returns IpTriple and cannot route ARP; unreachable! is correct compile-
+#     safety guard symmetric to strict_ip_triple. Architecture Compliance Rule 2 inverted
+#     accordingly. Input-hash recomputed for BC-2.02.009 v1.7 + arp-architecture-delta v1.16.
 # v1.3 changelog: F4 confirming-review LOW residuals:
 #   coverage-map 'Removed test rows' AC-004→AC-012 sibling-list sync
 #     (AC-006/AC-007/AC-004 → AC-006/AC-012/AC-007, matching Coverage Mapping table);
@@ -42,7 +49,7 @@ inputs:
   - .factory/specs/architecture/arp-architecture-delta.md
   - .factory/specs/behavioral-contracts/ss-02/BC-2.02.009.md
   - .factory/specs/verification-properties/vp-008-decode-packet-no-panic.md
-input-hash: "d5bda72"
+input-hash: "d05149f"
 ---
 
 # STORY-111: etherparse 0.20 Migration + DecodedFrame/ArpFrame Types + BC-2.02.009 Revision
@@ -50,7 +57,7 @@ input-hash: "d5bda72"
 ## Narrative
 
 - **As a** wirerust maintainer
-- **I want** to upgrade etherparse from 0.16 to 0.20, introduce the `DecodedFrame` enum and `ArpFrame` struct in `src/decoder.rs`, change the `decode_packet` return type to `Result<DecodedFrame>`, add the `strict_ip_triple` compile-safety arm for `NetSlice::Arp`, add the `lax_ip_triple` explicit-routing arm for `LaxNetSlice::Arp` (NOT unreachable), and ship a non-panicking `extract_arp_frame` placeholder
+- **I want** to upgrade etherparse from 0.16 to 0.20, introduce the `DecodedFrame` enum and `ArpFrame` struct in `src/decoder.rs`, change the `decode_packet` return type to `Result<DecodedFrame>`, add the `strict_ip_triple` compile-safety arm for `NetSlice::Arp`, add the `lax_ip_triple` compile-safety arm for `LaxNetSlice::Arp` (also `unreachable!` — symmetric to strict; decode_packet intercepts LaxNetSlice::Arp before lax_ip_triple is called), and ship a non-panicking `extract_arp_frame` placeholder
 - **So that** the decode pipeline compiles with the new three-way dispatch structure, all existing IP-pipeline tests remain green, the VP-008 no-panic invariant holds across the new return type and ARP-shaped fuzz inputs, and STORY-112 can implement the real `extract_arp_frame` on top of these scaffolding types
 
 ## Behavioral Contracts
@@ -151,7 +158,7 @@ not an explicit AC in STORY-112. A new AC-012 has been added to STORY-112 to cov
 | `pub struct ArpFrame { operation, sender_mac, sender_ip, target_mac, target_ip, outer_src_mac, packet_len }` | `src/decoder.rs` | Data type (NEW) |
 | `decode_packet` return type change | `src/decoder.rs` | Effectful shell (reads bytes) |
 | `strict_ip_triple` `NetSlice::Arp(_)` arm | `src/decoder.rs` | Compile-safety; unreachable at runtime |
-| `lax_ip_triple` `LaxNetSlice::Arp` arm | `src/decoder.rs` | Explicit routing; NOT unreachable |
+| `lax_ip_triple` `LaxNetSlice::Arp` arm | `src/decoder.rs` | `unreachable!` compile-safety guard (provably dead; decode_packet intercepts LaxNetSlice::Arp in Err(SliceError::Len) arm before lax_ip_triple is called) — symmetric to strict_ip_triple |
 | `Err(SliceError::Len(_))` lax arm, ARP branch | `src/decoder.rs` | Effectful shell |
 | VP-008 cargo-fuzz harness | `fuzz/fuzz_targets/` | Effectful (reads arbitrary bytes) |
 
@@ -181,7 +188,7 @@ Architecture section references: `architecture/module-decomposition.md` (SS-02 d
 4. **Add `ArpFrame` struct** to `src/decoder.rs` with all seven fields exactly as specified in arp-architecture-delta.md §2.1 (operation: u16, sender_mac: [u8;6], sender_ip: [u8;4], target_mac: [u8;6], target_ip: [u8;4], outer_src_mac: Option<[u8;6]>, packet_len: usize).
 5. **Update `decode_packet` return type** from `Result<ParsedPacket>` to `Result<DecodedFrame>`.
 6. **Add `NetSlice::Arp(_) => unreachable!()` arm** to `strict_ip_triple` (compile-safety; never reached) (AC-006).
-7. **Add `LaxNetSlice::Arp(arp) => ...` arm** to `lax_ip_triple` — explicit routing sentinel (NOT unreachable!); see arp-architecture-delta.md §2.2 for the exact code pattern (AC-005).
+7. **Add `LaxNetSlice::Arp(_) => unreachable!(...)` arm** to `lax_ip_triple` — compile-safety guard symmetric to the strict_ip_triple arm; provably dead because decode_packet intercepts `Some(LaxNetSlice::Arp(_))` in its `Err(SliceError::Len(_))` arm before lax_ip_triple is ever called; lax_ip_triple returns IpTriple and cannot route ARP; see arp-architecture-delta.md §2.2 (ADR-008 Decision 3 v2.1) (AC-005).
 8. **Add non-panicking `extract_arp_frame` placeholder** in `src/decoder.rs`: the signature is fixed to `fn extract_arp_frame(arp: &ArpPacketSlice<'_>, outer_src_mac: Option<[u8; 6]>, packet_len: usize) -> Option<ArpFrame>` (matching STORY-112's expectation — the `Option<ArpFrame>` return type is not a choice, it is fixed). The placeholder body returns `None`. MUST NOT use `todo!()`, `unimplemented!()`, or any other panicking macro. The `decode_packet` ARP arm (`Some(NetSlice::Arp(arp))`) maps this `None` to a temporary `Err(anyhow!("ARP extraction not yet implemented"))`. STORY-112 replaces both the placeholder body and the temporary mapping with the real implementation (AC-005b).
 9. **Update `Err(SliceError::Len(_))` lax arm** in `decode_packet` to handle `Some(LaxNetSlice::Arp(_))` by calling the non-panicking `extract_arp_frame` placeholder. This arm must not panic (AC-005, AC-005b).
 10. **Update VP-008 fuzz harness** return type from `Result<ParsedPacket>` to `Result<DecodedFrame>`; handle both `Ip` and `Arp` variants as non-panic outcomes (AC-009).
@@ -220,7 +227,7 @@ N/A for direct previous-story intelligence within E-16 (this is the first E-16 s
 Derived from arp-architecture-delta.md §2.1, §2.2, ADR-008 Decisions 1–3, BC-2.02.009 v1.6:
 
 1. **strict_ip_triple ARP arm: `unreachable!` is correct** — ARP frames are routed out of the strict `Ok(slice)` arm before `strict_ip_triple` is ever called. This is a compile-safety net, never reached at runtime (ADR-008 Decision 3).
-2. **lax_ip_triple ARP arm: `unreachable!` is FORBIDDEN** — snaplen-truncated ARP frames yield `Some(LaxNetSlice::Arp(_))` from etherparse 0.20's lax parser and DO reach `lax_ip_triple` at runtime. An `unreachable!` here would be a reachable panic, violating VP-008/VP-024 Sub-A (ADR-008 Decision 3 v1.6).
+2. **lax_ip_triple ARP arm: `unreachable!` is CORRECT (compile-safety guard, provably dead)** — decode_packet intercepts `Some(LaxNetSlice::Arp(_))` in its `Err(SliceError::Len(_))` arm before lax_ip_triple is called; lax_ip_triple returns IpTriple and cannot route ARP; routing lives in decode_packet. VP-008/VP-024 Sub-A no-panic is guaranteed by decode_packet interception + panic-free extract_arp_frame (ADR-008 Decision 3 v2.1; arp-architecture-delta §2.2 v1.16). Symmetric to strict_ip_triple.
 3. **`DecodedFrame` and `ArpFrame` live in `src/decoder.rs`** — not in `src/analyzer/arp.rs`. The decoder is the extraction boundary.
 4. **`outer_src_mac` field is `Option<[u8; 6]>`** — `None` for non-Ethernet (SLL) captures, `Some([u8; 6])` for Ethernet. This field is required for D12 mismatch detection in STORY-113.
 5. **Cargo.toml version comment** must be updated alongside the version pin — stale comments were a finding class in prior stories.

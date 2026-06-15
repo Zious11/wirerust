@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.6"
+version: "1.7"
 status: draft
 producer: product-owner
 timestamp: 2026-06-12T00:00:00Z
@@ -19,6 +19,7 @@ modified:
   - v1.4: Reclassify lax-path None arm (decoder.rs:163) as structurally unreachable; reword Invariant 2, EC-003, and Architecture Anchor for :163 to reflect etherparse 0.16 analysis — 2026-05-22
   - "v1.5: F2 ARP delta revision (ADR-008 Decision 1): decode_packet return type changed from Result<ParsedPacket> to Result<DecodedFrame>. ARP frames (EtherType 0x0806, Ethernet/IPv4 format) now return Ok(DecodedFrame::Arp(...)) instead of Err('No IP layer found'). Non-Ethernet/IPv4 ARP frames return Err('Non-Ethernet/IPv4 ARP frame'). Non-IP non-ARP frames continue to return Err('No IP layer found'). Postconditions, Preconditions, Invariants, Edge Cases, Test Vectors, and VP section updated to reflect three-way postcondition. VP-008 obligation noted (fuzz harness return type update required). — 2026-06-12"
   - "v1.6: Pass-10 remediation F-D10-M03: Description (line ~41-42) incorrectly stated both strict and lax ARP arms are unreachable!. ADR-008 Decision 3 v1.6+ corrects this: strict_ip_triple NetSlice::Arp arm = compile-safety unreachable! (ARP routed out before strict_ip_triple is called); lax_ip_triple LaxNetSlice::Arp arm = explicit routing to extract_arp_frame (NOT unreachable!) — truncated ARP reaches lax_ip_triple, explicit routing to Err on bad size, no panic; VP-008/VP-024 Sub-A no-panic preserved. Description, Invariants 2-4, and Architecture Anchors updated to canonical wording. — 2026-06-12"
+  - "v1.7: F4 architect ruling supersedes v1.6 framing (ADR-008 Decision 3 v2.1; arp-architecture-delta.md §2.2 v1.16): the decode ARP design is SYMMETRIC. decode_packet routes ARP out in BOTH the strict Ok(slice) arm (NetSlice::Arp → extract_arp_frame) AND the lax Err(SliceError::Len(_)) arm (LaxNetSlice::Arp → extract_arp_frame), BEFORE calling the pure IP-triple helpers. Therefore BOTH strict_ip_triple AND lax_ip_triple have unreachable! ARP arms (compile-safety guards, provably dead). The prior v1.6 'lax_ip_triple MUST NOT use unreachable! / explicit routing' framing was based on an internally-inconsistent, non-type-implementable §2.2 block and is superseded. Invariant 2, Invariant 3, and Architecture Anchor for lax_ip_triple updated accordingly. — 2026-06-14"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -39,13 +40,17 @@ values return `Err("Non-Ethernet/IPv4 ARP frame")`. (3) Non-IP, non-ARP frames (
 AppleTalk, EtherType 0x9000) continue to return `Err("No IP layer found")`.
 
 The previous behavior — ARP frames returning `Err("No IP layer found")` — is retired.
-`strict_ip_triple` ARP arm: compile-safety `unreachable!` (ARP frames are routed out of the
-strict `Ok(slice)` arm before `strict_ip_triple` is ever called — this arm is a compile-safety
-net only, never reached at runtime). `lax_ip_triple` ARP arm: explicit routing (NOT
-`unreachable!`) — a snaplen-truncated ARP frame can yield `Some(LaxNetSlice::Arp(_))` from
-the lax parser and does reach `lax_ip_triple`; an `unreachable!` there would panic, violating
-VP-008/VP-024 Sub-A no-panic. The lax arm is therefore handled explicitly: truncated ARP →
-`Err` (no panic). (ADR-008 Decision 3, v1.6+.)
+The design is SYMMETRIC: `decode_packet` routes ARP out BEFORE calling either IP-triple helper,
+so BOTH `strict_ip_triple` and `lax_ip_triple` carry `unreachable!` ARP arms as compile-safety
+guards (provably dead code). `strict_ip_triple`'s `NetSlice::Arp(_) => unreachable!` arm is
+never reached because `decode_packet`'s strict `Ok(slice)` arm intercepts `Some(NetSlice::Arp(_))`
+and calls `extract_arp_frame` before `strict_ip_triple` is ever called. `lax_ip_triple`'s
+`LaxNetSlice::Arp(_) => unreachable!` arm is equally provably dead because `decode_packet`'s
+`Err(SliceError::Len(_))` arm intercepts `Some(LaxNetSlice::Arp(_))` and routes it to
+`extract_arp_frame` before `lax_ip_triple` is ever called. `lax_ip_triple` returns `IpTriple`
+and cannot route ARP. VP-008/VP-024 Sub-A no-panic is guaranteed by `decode_packet`'s
+interception and panic-free `extract_arp_frame` (None → Err, not panic).
+(ADR-008 Decision 3 v2.1; arp-architecture-delta.md §2.2 v1.16.)
 
 ## Preconditions
 
@@ -83,20 +88,20 @@ VP-008/VP-024 Sub-A no-panic. The lax arm is therefore handled explicitly: trunc
    cases: `Some(NetSlice::Arp(arp))` → extract_arp_frame → Ok(DecodedFrame::Arp) or Err;
    `Some(other_net)` → strict_ip_triple → Ok(DecodedFrame::Ip); `None` → Err("No IP layer
    found"). This is a minimal, additive change to the existing two-arm dispatch.
-2. **strict_ip_triple ARP arm: compile-safety unreachable!; lax_ip_triple ARP arm: explicit
-   routing (NOT unreachable!)**: `strict_ip_triple` receives a compile-safety `unreachable!`
-   for `NetSlice::Arp(_)` because ARP frames are routed out of `decode_packet`'s strict
-   `Ok(slice)` arm before `strict_ip_triple` is ever called — this arm is never reached at
-   runtime. `lax_ip_triple` MUST NOT use `unreachable!`: a snaplen-truncated ARP frame yields
-   `Some(LaxNetSlice::Arp(_))` from etherparse 0.20's lax parser and DOES reach `lax_ip_triple`;
-   a panic there would violate VP-008/VP-024 Sub-A no-panic. The lax arm is therefore handled
-   explicitly via explicit routing to `extract_arp_frame`; truncated ARP body → `Err` without
-   panic. (ADR-008 Decision 3, v1.6+.)
-3. **Lax retry handles ARP via explicit routing**: the `Err(SliceError::Len(_))` lax-retry
-   path is affected by ARP in etherparse 0.20. A snaplen-truncated ARP frame can enter the lax
-   path and yield `Some(LaxNetSlice::Arp(_))`; `lax_ip_triple` routes this explicitly to
-   `extract_arp_frame`. Complete (non-truncated) ARP frames succeed on the strict path and
-   never enter the lax retry arm.
+2. **Both IP-triple helpers carry symmetric unreachable! ARP arms (compile-safety guards,
+   provably dead)**: `lax_ip_triple`'s `LaxNetSlice::Arp(_)` arm IS `unreachable!` — a
+   compile-safety guard, symmetric to `strict_ip_triple`'s `NetSlice::Arp(_) => unreachable!`
+   arm. It is provably dead because `decode_packet`'s `Err(SliceError::Len(_))` arm intercepts
+   `Some(LaxNetSlice::Arp(_))` BEFORE calling `lax_ip_triple`. `lax_ip_triple` returns
+   `IpTriple` and cannot route ARP. The VP-008/VP-024 Sub-A no-panic guarantee is provided by
+   `decode_packet`'s interception and panic-free `extract_arp_frame` (None → Err, not panic).
+   (ADR-008 Decision 3 v2.1; arp-architecture-delta.md §2.2 v1.16.)
+3. **Lax retry intercepts ARP in decode_packet before lax_ip_triple is called**: the
+   `Err(SliceError::Len(_))` lax-retry path is affected by ARP in etherparse 0.20. A
+   snaplen-truncated ARP frame can enter the lax path and yield `Some(LaxNetSlice::Arp(_))`.
+   `decode_packet`'s `Err(SliceError::Len(_))` arm intercepts `Some(LaxNetSlice::Arp(_))`
+   BEFORE calling `lax_ip_triple`; `lax_ip_triple` is not involved in ARP routing. Complete
+   (non-truncated) ARP frames succeed on the strict path and never enter the lax retry arm.
 4. **lax-path None arm (decoder.rs, lax path) remains structurally unreachable** for non-ARP
    content: the analysis from v1.4 regarding the `None` arm of `lax_ip_triple` is unchanged.
    The `LaxNetSlice::Arp` arm is explicit routing (not `unreachable!`); the `None` arm for
@@ -157,7 +162,7 @@ VP-008/VP-024 Sub-A no-panic. The lax arm is therefore handled explicitly: trunc
 - `src/decoder.rs` — `decode_packet` ARP routing: `Some(NetSlice::Arp(arp)) => { match extract_arp_frame(arp, outer_mac, data.len()) { Some(f) => Ok(DecodedFrame::Arp(f)), None => Err(anyhow!("Non-Ethernet/IPv4 ARP frame")) } }`
 - `src/decoder.rs` — `None => Err(anyhow!("No IP layer found"))` (Path 3, unchanged, strict path)
 - `src/decoder.rs` — `NetSlice::Arp(_) => unreachable!(...)` in `strict_ip_triple` (compile-safety; never reached at runtime — ARP routed out before this function is called)
-- `src/decoder.rs` — `LaxNetSlice::Arp(arp) => return Err(LaxNetArpSignal(arp))` in `lax_ip_triple` (explicit routing, NOT unreachable! — truncated ARP reaches lax_ip_triple; explicit routing to extract_arp_frame; Err on bad size, no panic; VP-008/VP-024 Sub-A no-panic preserved)
+- `src/decoder.rs` — `LaxNetSlice::Arp(_) => unreachable!(...)` in `lax_ip_triple` (compile-safety guard, provably dead — symmetric to `strict_ip_triple`; `decode_packet` intercepts `Some(LaxNetSlice::Arp(_))` in `Err(SliceError::Len(_))` arm before `lax_ip_triple` is called; ADR-008 Decision 3 v2.1)
 - ADR-008 Decision 1 (return type change), Decision 2 (extract_arp_frame None → Err), Decision 3 (unreachable! arms)
 
 ## Source Evidence

@@ -1,7 +1,7 @@
 ---
 document_type: architecture-delta
 feature: arp-security-analyzer
-version: "1.15"
+version: "1.16"
 status: draft
 producer: architect
 timestamp: 2026-06-12T00:00:00Z
@@ -79,41 +79,54 @@ except the single call site in `main.rs`.
 
 ### 2.2 Match site additions in `src/decoder.rs`
 
-`strict_ip_triple` gains one new arm that uses `unreachable!` — this is correct because
-the `Ok(slice)` strict path routes `NetSlice::Arp` out before `strict_ip_triple` is
-ever called:
+**Authoritative symmetric design (F4-confirmed):** Both `strict_ip_triple` AND
+`lax_ip_triple` carry a `LaxNetSlice::Arp` / `NetSlice::Arp` arm that is `unreachable!`
+(compile-safety guard, provably dead). This is symmetric because `decode_packet` routes
+ARP frames out BEFORE calling either helper, in BOTH the strict `Ok(slice)` arm AND the
+lax `Err(SliceError::Len(_))` arm. Neither helper is ever called with an ARP slice at
+runtime. The helpers return `IpTriple` and cannot route ARP; routing lives exclusively
+in `decode_packet` (return type `Result<DecodedFrame>`).
+
+`strict_ip_triple` gains one new arm that uses `unreachable!` — correct because the
+`Ok(slice)` arm routes `NetSlice::Arp` out before `strict_ip_triple` is ever called:
 
 ```rust
-// strict_ip_triple (NetSlice) — compile-safety arm; never reached at runtime:
+// strict_ip_triple (NetSlice) — compile-safety guard; provably dead at runtime:
 NetSlice::Arp(_) => unreachable!("ARP frames are routed before strict_ip_triple"),
 ```
 
-`lax_ip_triple` gains one new arm that **must NOT use `unreachable!`**. The lax decode
-path is taken for `Err(SliceError::Len(_))` (snaplen-truncated packets). In etherparse
-0.20, a truncated ARP frame yields `Some(LaxNetSlice::Arp(_))` from the lax parser,
-which then reaches `lax_ip_triple`. An `unreachable!` here would be a **reachable
-runtime panic**, violating VP-008 (decode_packet no-panic) and VP-024 Sub-A.
-
-ARP early-extraction is therefore specified in **both** the strict `Ok` arm and the lax
-`Err(SliceError::Len(_))` arm of `decode_packet`. The lax arm mirrors the strict arm's
-`outer_src_mac` extraction from `lax.link` and routes to `extract_arp_frame`:
+`lax_ip_triple` gains one new arm that also uses `unreachable!` — **symmetric to
+`strict_ip_triple`** and equally provably dead. The `Err(SliceError::Len(_))` lax arm
+in `decode_packet` matches `Some(LaxNetSlice::Arp(_))` FIRST (routing to
+`extract_arp_frame`) before calling `lax_ip_triple` in the subsequent `Some(net)` arm.
+`lax_ip_triple` therefore can never be called with an ARP slice at runtime. The
+`unreachable!` is a compile-exhaustiveness guard, not a reachable panic:
 
 ```rust
-// lax_ip_triple (LaxNetSlice) — explicit ARP routing arm; NOT unreachable!:
-// This arm is reached for snaplen-truncated ARP frames.
-// Return a sentinel / early-exit so the caller routes to extract_arp_frame.
-// See decode_packet lax arm spec in ADR-008 Decision 3 (v1.6).
-LaxNetSlice::Arp(arp) => /* route to extract_arp_frame — see ADR-008 Decision 3 */,
+// lax_ip_triple (LaxNetSlice) — compile-safety guard; provably dead at runtime:
+// decode_packet's Err(SliceError::Len(_)) arm routes Some(LaxNetSlice::Arp(_))
+// to extract_arp_frame BEFORE calling lax_ip_triple. This arm is symmetric to
+// strict_ip_triple's NetSlice::Arp(_) => unreachable! arm.
+LaxNetSlice::Arp(_) => unreachable!(
+    "ARP frames are routed in decode_packet's Err(SliceError::Len) arm \
+     before lax_ip_triple is called — this arm is a compile-safety guard"
+),
 ```
 
-**decode_packet lax arm (complete spec — authoritative in ADR-008 Decision 3 v1.6):**
+**Why the routing MUST live in `decode_packet`, not in the helpers:** `strict_ip_triple`
+and `lax_ip_triple` both return `IpTriple` (a tuple of IP source, destination, and
+protocol). They have no way to return a `DecodedFrame::Arp` or to route ARP — that
+return type lives only in `decode_packet` (return type `Result<DecodedFrame>`). Any
+design that routes ARP inside the helpers does not type-check.
+
+**decode_packet lax arm (complete spec — authoritative):**
 ```rust
 Err(SliceError::Len(_)) => {
     let lax = lax_parse(...);
     match &lax.net {
         Some(LaxNetSlice::Arp(arp)) => {
-            // Truncated ARP: same extraction path as strict arm.
-            // outer_src_mac extracted from lax.link (Ethernet2Slice::source()
+            // Truncated ARP: intercepted HERE in decode_packet BEFORE lax_ip_triple
+            // is called. outer_src_mac extracted from lax.link (Ethernet2Slice::source()
             // returns [u8; 6] by value — confirmed docs.rs 0.20.1, 2026-06-12).
             let outer_src_mac: Option<[u8; 6]> = lax.link.as_ref().and_then(|l| {
                 if let etherparse::LinkSlice::Ethernet2(eth) = l {
@@ -127,16 +140,20 @@ Err(SliceError::Len(_)) => {
                 None        => Err(anyhow!("truncated ARP frame")),
             }
         }
+        // lax_ip_triple is only called from this arm — with a non-ARP net slice.
+        // lax_ip_triple's LaxNetSlice::Arp(_) arm is therefore provably dead.
         Some(net) => Ok(DecodedFrame::Ip(lax_ip_triple(net)...)),
         None      => Err(anyhow!("No IP layer found (truncated)")),
     }
 }
 ```
 
-**VP-008 / VP-024 Sub-A guarantee:** No reachable `unreachable!` remains in the decode
-path. All `LaxNetSlice::Arp` inputs are routed to `extract_arp_frame`, which is
-panic-free by Sub-A postcondition. `extract_arp_frame` returns `None` on a truncated
-or malformed body; `None` maps to `Err(...)`, not a panic.
+**VP-008 / VP-024 Sub-A no-panic guarantee:** The no-panic guarantee is provided by
+`decode_packet`'s interception of `Some(LaxNetSlice::Arp(_))` BEFORE calling
+`lax_ip_triple`. `extract_arp_frame` is panic-free by Sub-A postcondition; it returns
+`None` on a truncated or malformed body, which maps to `Err(...)`, not a panic. The
+`unreachable!` arms in both `strict_ip_triple` and `lax_ip_triple` are provably dead
+and are never executed at runtime — they guard compile-exhaustiveness only.
 
 ### 2.3 etherparse 0.20.1 migration: `Cargo.toml` and `SlicedPacket.link_exts`
 
@@ -385,7 +402,7 @@ may begin until its predecessor's PR has merged.
 
 | Story | Scope | BCs covered | VPs touched | Dependencies |
 |-------|-------|-------------|-------------|--------------|
-| STORY-111 | etherparse 0.20 migration (`Cargo.toml` bump); `DecodedFrame` enum + `ArpFrame` struct (with `outer_src_mac`) in `src/decoder.rs`; `strict_ip_triple` `NetSlice::Arp` unreachable arm (compile-safety only — strict path routes ARP out before this function is called); `lax_ip_triple` `LaxNetSlice::Arp` explicit-routing arm (NOT unreachable! — truncated ARP frames reach lax_ip_triple via the Err(SliceError::Len) path; see ADR-008 Decision 3 v1.6 and §2.2); BC-2.02.009 postcondition revision; `SliceError::Len` contract tests green | BC-2.02.009 (decode_packet three-way postcondition — revised) | VP-008 fuzz harness return-type update (no-panic invariant unchanged) | STORY-110 (post-Wave-39) |
+| STORY-111 | etherparse 0.20 migration (`Cargo.toml` bump); `DecodedFrame` enum + `ArpFrame` struct (with `outer_src_mac`) in `src/decoder.rs`; `strict_ip_triple` `NetSlice::Arp` unreachable! arm (compile-safety guard — strict path routes ARP out of decode_packet before strict_ip_triple is ever called); `lax_ip_triple` `LaxNetSlice::Arp` unreachable! arm (compile-safety guard — symmetric to strict_ip_triple; decode_packet's Err(SliceError::Len(_)) arm intercepts Some(LaxNetSlice::Arp(_)) BEFORE calling lax_ip_triple; see §2.2 and ADR-008 Decision 3 v2.1); BC-2.02.009 postcondition revision; `SliceError::Len` contract tests green | BC-2.02.009 (decode_packet three-way postcondition — revised) | VP-008 fuzz harness return-type update (no-panic invariant unchanged) | STORY-110 (post-Wave-39) |
 | STORY-112 | `extract_arp_frame(arp, outer_src_mac, packet_len)` implementation in `src/decoder.rs`; `decode_packet` routing: ARP early-extraction in **both** the strict `Ok(slice)` arm (`NetSlice::Arp` early-exit with `outer_src_mac` from `slice.link`) and the lax `Err(SliceError::Len(_))` arm (`LaxNetSlice::Arp` explicit routing with `outer_src_mac` from `lax.link`); `main.rs` `DecodedFrame` pattern-match wiring; `ArpAnalyzer` stub (`new`, `process_arp` no-op); VP-024 Sub-A Kani harnesses (safety, correctness, none-on-bad-size) | BC-2.16.001 (ARP Request frame extraction), BC-2.16.002 (ARP Reply frame extraction), BC-2.16.015 (decode-vs-analysis separation — DecodedFrame::Arp always produced) | VP-024 Sub-A (Kani: verify_extract_arp_frame_safety, verify_extract_arp_frame_eth_ipv4_correctness, verify_extract_arp_frame_none_on_bad_size) | STORY-111 |
 | STORY-113 | `ArpAnalyzer` full implementation: binding table (`HashMap<[u8;4], BindingEntry>` + `insert_binding_lru`), GARP detection D2 (`is_gratuitous_arp`), D11 malformed finding emission, D12 mismatch detection; `summarize()` method (keys introduced here); `--arp` CLI flag; VP-024 Sub-B and Sub-D Kani harnesses; VP-024 Sub-C proptest | BC-2.16.003 (D2 Gratuitous ARP detection — opcode-agnostic), BC-2.16.005 (binding-table last-write-wins), BC-2.16.006 (binding-table cap — MAX_ARP_BINDINGS), BC-2.16.007 (D12 L2/L3 sender-MAC mismatch), BC-2.16.009 (D11 malformed ARP), BC-2.16.010 (ArpAnalyzer::summarize() AnalysisSummary keys — primary owner, keys introduced here), BC-2.16.011 (--arp CLI flag gates analysis) | VP-024 Sub-B (Kani: verify_classify_garp_total), VP-024 Sub-C (proptest: test_binding_table_last_write_wins), VP-024 Sub-D (Kani: verify_binding_table_cap) | STORY-112 |
 | STORY-114 | D1 ARP spoof escalation (MEDIUM→HIGH on rebind_count >= SPOOF_REBIND_ESCALATION_DEFAULT within ARP_FLAP_WINDOW_SECS); GARP-that-conflicts escalation rule (D2+D1 interaction); MITRE emission (T0830, T1557.002) on D1/D2/D12 findings; VP-007 5-part atomic update (`technique_info` arms + SEEDED 23→25 + SEEDED_TECHNIQUE_ID_COUNT 23→25 + EMITTED_IDS +2 + `cargo test mitre` green) | BC-2.16.004 (D1 ARP spoof detection / rebind escalation), BC-2.16.014 (GARP-that-conflicts upgrade — triggers D1), BC-2.16.012 (--arp-spoof-threshold override); extends BC-2.16.007 (D12 MITRE back-fill at wave 43 — cross-story extension, primary owner STORY-113) | VP-007 (5-part atomic update must be co-committed; `vp007_catalog_drift_guard` test must pass) | STORY-113 |
@@ -420,5 +437,6 @@ analyzer/B/C/D (STORY-113) → spoof escalation/MITRE/VP-007 (STORY-114) → sto
 | 1.13 | 2026-06-14 | LOW clarity fix — §4.1 forward-reference tagging. Added a block-level forward-reference note at the top of §4.1 and inline tags on three src code-line anchors that point to code not yet on develop HEAD: `src/decoder.rs` `src lines ~1-10` (module-doc update, STORY-111 addition), `src/decoder.rs` `src lines ~42-48` (SliceError import comment block update, STORY-111 addition), and `Cargo.toml` `~lines 21–26` (0.20 version pin comment, STORY-111 addition). The `src/mitre.rs` line anchors in §5.0 (lines 178-179, 204, 212, 218, 221-240, 301, 302, 305-333, 339, 341) and `src/mitre.rs:91` in §5.0 are verified actuals on develop HEAD and were NOT relabeled. No architectural decision, BC reference, or §6 decomposition was changed. STORY-111..115 input hashes require re-stamping (story-writer obligation). |
 | 1.14 | 2026-06-14 | F-P10-SC-002 coherence fix — §6 STORY-115 Scope column: corrected imprecise "adds `storm_findings` key" framing. BC-2.16.010 PC1 already defines `storm_findings` as canonical key 8 of its 11-key set (from STORY-113); STORY-115 does NOT add the key — it wires the VALUE (the D3 storm-detection count). Rewording: Scope now reads "summarize() storm_findings VALUE wiring — STORY-115 populates the existing BC-2.16.010 storm_findings key (key 8 of the canonical 11, defined by BC-2.16.010 from STORY-113) with the D3 storm-detection count; STORY-115 does not add a new key; BC-2.16.010 primary owner remains STORY-113". BCs column: "adds storm_findings key to AnalysisSummary" corrected to "populates existing storm_findings key value". No BC assignments, §6 ownership BC columns, or any decision changed. STORY-111..115 input hashes require re-stamping (story-writer obligation). |
 | 1.15 | 2026-06-14 | F-P20-D-001 — §6 STORY-114 BCs-covered column: appended cross-story extension annotation for BC-2.16.007 (D12 MITRE back-fill). STORY-114 inputs BC-2.16.007, carries a "BC-2.16.007 Cross-Story Extension (D12 MITRE)" section + AC-017, and BC-2.16.007's cross-story note names STORY-114 as the D12 MITRE back-fill owner — structurally identical to the existing STORY-115/BC-2.16.010 annotation. STORY-114 primary BC ownership (BC-2.16.004/012/014) unchanged. |
+| 1.16 | 2026-06-14 | F4-surfaced §2.2 inconsistency adjudicated and corrected. BLOCK 1 (lax_ip_triple routes ARP / must NOT use unreachable!) was not type-implementable (lax_ip_triple returns IpTriple, cannot produce DecodedFrame::Arp) and was contradicted by the authoritative BLOCK 2 (decode_packet intercepts ARP in its Err(SliceError::Len(_)) arm before calling lax_ip_triple). Corrected to the symmetric design: BOTH strict_ip_triple AND lax_ip_triple carry provably-dead unreachable! compile-safety guards for their respective ARP arms; decode_packet routes ARP in both the Ok(slice) arm (NetSlice::Arp) and the Err(SliceError::Len(_)) arm (LaxNetSlice::Arp) before calling either helper. VP-008 / VP-024 Sub-A no-panic guarantee is provided by decode_packet's interception + panic-free extract_arp_frame, not by lax_ip_triple routing. Supersedes the prior "lax must not be unreachable" framing (v1.6/v1.8). BC-2.02.009 Invariant 2 + BC-2.16.015 Invariant 2 + Architecture Anchors to be realigned by PO (they currently assert the now-superseded NOT-unreachable framing; corrected wording: lax_ip_triple's LaxNetSlice::Arp(_) arm IS unreachable! — symmetric to strict_ip_triple). STORY-111 GREEN implementation follows the corrected design. ADR-008 Decision 3 simultaneously corrected (v2.1). |
 
 > **Convention (enforced):** new changelog rows MUST be appended in strictly ascending version order. Never insert a row above an existing row with a higher version number. This table has regressed twice (F-SA9-LOW-01 at v1.9; Pass-21 at v1.15); ordering is checked on every adversarial pass.
