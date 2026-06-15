@@ -2,7 +2,7 @@
 document_type: story
 story_id: STORY-112
 epic_id: E-16
-version: "1.3"
+version: "1.4"
 status: draft
 producer: story-writer
 timestamp: 2026-06-13T00:00:00Z
@@ -30,6 +30,10 @@ github_issue: 9
 #   decode layer. This behavior was previously implicit (covered by Task 2 prose + AC-004),
 #   but lacked a named AC. Added to close coverage gap surfaced when STORY-111
 #   AC-002 was removed and mapped here.
+# v1.4 changelog: F-3 citation-exactness fix (DF-AC-TEST-NAME-SYNC-001 v2, pass 2):
+#   All AC `**Test:**` citations updated from unprefixed names to exact BC-prefixed
+#   fn names as they appear in tests/bc_2_16_story112_arp_tests.rs. Test Plan table
+#   updated to match. No semantic or AC changes; body-only edit.
 # v1.3 changelog: F4 symmetric-unreachable! alignment (D-072):
 #   Frontmatter changelog stale framing removed — prior v1.2 note referencing
 #     "lax_ip_triple ARP arm is explicit routing, NOT unreachable" is superseded by
@@ -81,7 +85,7 @@ Three Kani harnesses are written in this story, all targeting `extract_arp_frame
 ### AC-001 (traces to BC-2.16.001 postcondition 1 — ARP Request extraction returns Some)
 `extract_arp_frame(arp, outer_src_mac, packet_len)` returns `Some(ArpFrame { ... })` when
 given an `ArpPacketSlice` from a valid 28-byte (minimum) Ethernet/IPv4 ARP Request (hw_type=0x0001, proto_type=0x0800, hlen=6, plen=4, op=1).
-- **Test:** `test_extract_arp_frame_request_returns_some()`
+- **Test:** `test_BC_2_16_001_extract_arp_frame_request_returns_some`
 
 ### AC-002 (traces to BC-2.16.001 postconditions 2–8 — field copy fidelity, Request)
 For an ARP Request, the returned `ArpFrame` has: `operation == 1`; `sender_mac` equals
@@ -89,30 +93,30 @@ For an ARP Request, the returned `ArpFrame` has: `operation == 1`; `sender_mac` 
 exactly; `target_mac` equals `arp.target_hw_addr()[..6]` exactly; `target_ip` equals
 `arp.target_protocol_addr()[..4]` exactly; `outer_src_mac` equals the parameter passed in;
 `packet_len` equals the parameter passed in.
-- **Test:** `test_extract_arp_frame_request_field_copy_fidelity()`
+- **Test:** `test_BC_2_16_001_extract_arp_frame_request_field_copy_fidelity`
 
 ### AC-003 (traces to BC-2.16.002 postcondition 1 and 2 — ARP Reply extraction returns Some with operation=2)
 `extract_arp_frame(arp, outer_src_mac, packet_len)` returns `Some(ArpFrame { operation: 2, ... })`
 when given a valid Ethernet/IPv4 ARP Reply (op=2). All seven fields are copied exactly (same
 field-copy assertions as AC-002 with operation=2).
-- **Test:** `test_extract_arp_frame_reply_returns_some_with_correct_fields()`
+- **Test:** `test_BC_2_16_002_extract_arp_frame_reply_returns_some_with_correct_fields`
 
 ### AC-004 (traces to BC-2.16.001 EC-007/EC-008 — None on bad hw/proto size)
 `extract_arp_frame` returns `None` when `hw_addr_size != 6` (e.g., 8) or `proto_addr_size != 4`
 (e.g., 16). No panic. This is the D11 malformed path (finding emission is STORY-113's responsibility — this story only ensures None is returned).
-- **Test:** `test_extract_arp_frame_none_on_hw_addr_size_8()`, `test_extract_arp_frame_none_on_proto_addr_size_16()`
+- **Test:** `test_BC_2_16_001_extract_arp_frame_none_on_hw_addr_size_8`, `test_BC_2_16_001_extract_arp_frame_none_on_proto_addr_size_16`
 
 ### AC-005 (traces to BC-2.16.001 EC-003 — outer_src_mac=None passthrough)
 `extract_arp_frame(arp, None, pkt_len)` returns `Some(ArpFrame { outer_src_mac: None, ... })`.
 The function passes `outer_src_mac` through unchanged regardless of its value.
-- **Test:** `test_extract_arp_frame_outer_src_mac_none_passthrough()`
+- **Test:** `test_BC_2_16_001_extract_arp_frame_outer_src_mac_none_passthrough`
 
 ### AC-006 (traces to BC-2.16.015 postcondition 1/2 — decode always produces DecodedFrame::Arp for valid frames)
 `decode_packet` routes `NetSlice::Arp(arp)` in the strict `Ok(slice)` arm to `extract_arp_frame`,
 producing `Ok(DecodedFrame::Arp(frame))` for valid Ethernet/IPv4 ARP. The `outer_src_mac` is
 extracted from `slice.link` (Ethernet2Slice::source() by value in etherparse 0.20.1). This
 routing is unconditional — it does not depend on the `--arp` flag.
-- **Test:** `test_decode_packet_routes_arp_to_decoded_frame_arp()`
+- **Test:** `test_BC_2_16_015_decode_packet_routes_arp_to_decoded_frame_arp`
 
 ### AC-007 (traces to BC-2.16.015 postcondition — lax arm also routes ARP)
 `decode_packet`'s `Err(SliceError::Len(_))` lax arm handles `Some(LaxNetSlice::Arp(arp))` via
@@ -120,7 +124,7 @@ routing is unconditional — it does not depend on the `--arp` flag.
 returns `Some(frame)`, the lax arm returns `Ok(DecodedFrame::Arp(frame))`; when it returns
 `None`, the lax arm returns `Err(anyhow!("truncated ARP frame"))`. No panic for truncated input.
 (Completes the stub left in STORY-111 task 8.)
-- **Test:** `test_decode_packet_lax_arm_truncated_arp_non_panic()`
+- **Test:** `test_BC_2_16_015_decode_packet_lax_arm_truncated_arp_non_panic`
 
 ### AC-008 (traces to BC-2.16.015 postconditions 5/6 — unconditional ArpAnalyzer stub wiring in main.rs)
 `main.rs` pattern-matches on `DecodedFrame::Arp(frame)` and calls
@@ -129,13 +133,13 @@ The `--arp` flag does NOT exist in this story; `args.arp` flag-gating is added i
 (BC-2.16.011). The `DecodedFrame::Ip(p)` arm remains unchanged, routing `p` to the existing
 IP pipeline. ARP frames NEVER reach `StreamDispatcher`.
 - **Note:** `--arp-spoof-threshold` is added in STORY-114; `--arp-storm-rate` is added in STORY-115.
-- **Test:** `test_main_arp_arm_calls_process_arp_stub()` (verifies `process_arp` is called and returns `vec![]`)
+- **Test:** `test_BC_2_16_015_main_arp_arm_calls_process_arp_stub` (verifies `process_arp` is called and returns `vec![]`)
 
 ### AC-009 (traces to BC-2.16.015 invariant 2 — ARP bypasses IP pipeline)
 An `Ok(DecodedFrame::Arp(_))` result from `decode_packet` never reaches `StreamDispatcher`,
 the TCP reassembler, or any `ProtocolAnalyzer`. The `DecodedFrame::Arp` arm in `main.rs` exits
 the match without calling `dispatcher.on_data(...)` or any IP-pipeline method.
-- **Test:** `test_arp_frame_never_reaches_stream_dispatcher()` — processes a `DecodedFrame::Arp` through the main-loop dispatch path and asserts via spy/counter that `dispatcher.on_data` (or equivalent IP-pipeline entry) is never invoked.
+- **Test:** `test_BC_2_16_015_arp_frame_never_reaches_stream_dispatcher` — processes a `DecodedFrame::Arp` through the main-loop dispatch path and asserts via spy/counter that `dispatcher.on_data` (or equivalent IP-pipeline entry) is never invoked.
 
 ### AC-010 (traces to BC-2.16.015 — ArpAnalyzer stub: process_arp no-op)
 `src/analyzer/arp.rs` is created with `pub struct ArpAnalyzer` and `impl ArpAnalyzer`:
@@ -157,7 +161,7 @@ Three Kani harnesses (`verify_extract_arp_frame_safety`, `verify_extract_arp_fra
 proto_addr_size != 4, or hw_type != 0x0001, or proto_type != 0x0800). No panic occurs.
 This is the decode_packet-level error string produced by the strict `Ok(slice)` arm when
 `extract_arp_frame` returns `None` (per Task 2: `None => Err(anyhow!("Non-Ethernet/IPv4 ARP frame"))`).
-- **Test:** `test_decode_packet_arp_non_eth_ipv4_returns_error()` — calls `decode_packet` with a
+- **Test:** `test_BC_2_16_015_decode_packet_arp_non_eth_ipv4_returns_error` — calls `decode_packet` with a
   raw byte sequence for an ARP frame with hw_addr_size=8 (or hw_type != 0x0001); asserts the
   result is `Err(e)` where `e.to_string()` contains "Non-Ethernet/IPv4 ARP frame".
 - **Coverage note:** This AC was added in v1.1 to close the coverage gap created when STORY-111
@@ -209,24 +213,24 @@ Architecture section references: `architecture/module-decomposition.md` (SS-02 d
 7. **Write VP-024 Sub-A Kani harnesses** in `#[cfg(kani)] mod kani_proofs` in `src/decoder.rs`: `verify_extract_arp_frame_safety`, `verify_extract_arp_frame_eth_ipv4_correctness`, `verify_extract_arp_frame_none_on_bad_size`.
 8. **Run `cargo test --all-targets`**: all tests green; no new failures.
 9. **Run `cargo clippy --all-targets -- -D warnings`**: clean.
-10. **Write unit tests** for AC-001 through AC-012 (AC-012 added in v1.1: `test_decode_packet_arp_non_eth_ipv4_returns_error`).
+10. **Write unit tests** for AC-001 through AC-012 (AC-012 added in v1.1: `test_BC_2_16_015_decode_packet_arp_non_eth_ipv4_returns_error`).
 
 ## Test Plan
 
 | AC | Test | Type |
 |----|------|------|
-| AC-001 | `test_extract_arp_frame_request_returns_some` | Unit |
-| AC-002 | `test_extract_arp_frame_request_field_copy_fidelity` | Unit |
-| AC-003 | `test_extract_arp_frame_reply_returns_some_with_correct_fields` | Unit |
-| AC-004 | `test_extract_arp_frame_none_on_hw_addr_size_8`, `test_extract_arp_frame_none_on_proto_addr_size_16` | Unit |
-| AC-005 | `test_extract_arp_frame_outer_src_mac_none_passthrough` | Unit |
-| AC-006 | `test_decode_packet_routes_arp_to_decoded_frame_arp` | Unit |
-| AC-007 | `test_decode_packet_lax_arm_truncated_arp_non_panic` | Unit |
-| AC-008 | `test_main_arp_arm_calls_process_arp_stub` | Integration/unit |
-| AC-009 | `test_arp_frame_never_reaches_stream_dispatcher` | Unit |
+| AC-001 | `test_BC_2_16_001_extract_arp_frame_request_returns_some` | Unit |
+| AC-002 | `test_BC_2_16_001_extract_arp_frame_request_field_copy_fidelity` | Unit |
+| AC-003 | `test_BC_2_16_002_extract_arp_frame_reply_returns_some_with_correct_fields` | Unit |
+| AC-004 | `test_BC_2_16_001_extract_arp_frame_none_on_hw_addr_size_8`, `test_BC_2_16_001_extract_arp_frame_none_on_proto_addr_size_16` | Unit |
+| AC-005 | `test_BC_2_16_001_extract_arp_frame_outer_src_mac_none_passthrough` | Unit |
+| AC-006 | `test_BC_2_16_015_decode_packet_routes_arp_to_decoded_frame_arp` | Unit |
+| AC-007 | `test_BC_2_16_015_decode_packet_lax_arm_truncated_arp_non_panic` | Unit |
+| AC-008 | `test_BC_2_16_015_main_arp_arm_calls_process_arp_stub` | Integration/unit |
+| AC-009 | `test_BC_2_16_015_arp_frame_never_reaches_stream_dispatcher` | Unit |
 | AC-010 | `cargo check`, `cargo clippy` | Build |
 | AC-011 | `verify_extract_arp_frame_safety`, `verify_extract_arp_frame_eth_ipv4_correctness`, `verify_extract_arp_frame_none_on_bad_size` | Kani (F6 gate) |
-| AC-012 | `test_decode_packet_arp_non_eth_ipv4_returns_error` | Unit |
+| AC-012 | `test_BC_2_16_015_decode_packet_arp_non_eth_ipv4_returns_error` | Unit |
 
 ## Previous Story Intelligence
 
