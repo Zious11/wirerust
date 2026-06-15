@@ -355,15 +355,19 @@ impl ArpAnalyzer {
     /// (a) filter zero/broadcast sender_ip (BC-2.16.005 Invariant 5);
     /// (b) count frame + opcode (frames_analyzed, request/reply/other_opcode);
     /// (c) check D12 mismatch (outer_src_mac vs sender_mac — BC-2.16.007);
-    /// (d) check D2 GARP (is_gratuitous_arp — BC-2.16.003);
+    /// (d) D3 storm detection — BC-2.16.008. Runs for every frame that passes the
+    ///     zero/broadcast sender_ip filter above, keyed on sender_mac. Executed BEFORE
+    ///     the GARP/D1/D12 branching so that GARP floods are covered uniformly with
+    ///     all other frame types. Exactly one call per frame.
+    /// (e) check D2 GARP (is_gratuitous_arp — BC-2.16.003);
     ///     - if GARP AND binding conflict (BC-2.16.014): escalate GARP LOW→MEDIUM,
     ///       attach T0830/T1557.002, co-emit D1 finding (Steps 1–3 via emit_d1_spoof_finding);
     ///       Step 4 (MAC update) occurs after both findings are produced.
     ///     - if GARP with no binding conflict: LOW finding, no D1, no MITRE.
-    /// (e)/(f) For non-GARP frames: update binding table; if rebind (MAC change),
+    /// (f)/(g) For non-GARP frames: update binding table; if rebind (MAC change),
     ///     emit D1 finding via emit_d1_spoof_finding (Steps 1–3);
     ///     Step 4 (MAC update) occurs last — Architecture Compliance Rule 1.
-    /// (g) return Vec of findings (D2/D12/D1 per this story; D3 deferred).
+    /// (h) return Vec of findings (D2/D12/D1/D3).
     ///
     /// BC-2.16.003, BC-2.16.004, BC-2.16.005, BC-2.16.006, BC-2.16.007, BC-2.16.014.
     pub fn process_arp(&mut self, frame: &ArpFrame, timestamp_secs: u32) -> Vec<Finding> {
@@ -432,7 +436,16 @@ impl ArpAnalyzer {
         let sender_ip = frame.sender_ip;
         let sender_mac = frame.sender_mac;
 
-        // (d) D2 GARP check — BC-2.16.003 / BC-2.16.014.
+        // (d) D3 storm detection — BC-2.16.008.
+        // Runs for every frame that passes the zero/broadcast sender_ip filter above,
+        // keyed on sender_mac. Executed before the GARP/D1 branching so GARP floods
+        // are detected uniformly with all other ARP frame types (BC-2.16.008 PC1).
+        if let Some(storm_finding) = self.detect_storm(sender_mac, timestamp_secs) {
+            self.storm_findings += 1;
+            findings.push(storm_finding);
+        }
+
+        // (e) D2 GARP check — BC-2.16.003 / BC-2.16.014.
         if is_gratuitous_arp(frame) {
             // Determine whether there is a binding conflict.
             let has_conflict = self
@@ -564,14 +577,6 @@ impl ArpAnalyzer {
             if let Some(entry) = self.bindings.get_mut(&sender_ip) {
                 entry.last_seen_ts = timestamp_secs;
             }
-        }
-
-        // (g) D3 storm detection — BC-2.16.008.
-        // Runs for every frame that passes the zero/broadcast sender_ip filter above.
-        // source MAC is frame.sender_mac (BC-2.16.008 PC1).
-        if let Some(storm_finding) = self.detect_storm(sender_mac, timestamp_secs) {
-            self.storm_findings += 1;
-            findings.push(storm_finding);
         }
 
         findings
