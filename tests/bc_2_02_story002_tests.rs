@@ -26,7 +26,7 @@ use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 
 use pcap_file::DataLink;
 use proptest::prelude::*;
-use wirerust::decoder::{Protocol, TransportInfo, decode_packet};
+use wirerust::decoder::{DecodedFrame, Protocol, TransportInfo, decode_packet};
 
 // ---------------------------------------------------------------------------
 // Frame builders — synthetic packet bytes constructed inline.
@@ -351,8 +351,11 @@ fn test_BC_2_02_001_ethernet_ipv4_tcp_decode() {
         &payload,
     );
 
-    let parsed = decode_packet(&data, DataLink::ETHERNET)
-        .expect("valid Ethernet/IPv4/TCP frame must decode without error");
+    let DecodedFrame::Ip(parsed) = decode_packet(&data, DataLink::ETHERNET)
+        .expect("valid Ethernet/IPv4/TCP frame must decode without error")
+    else {
+        panic!("expected IP frame")
+    };
 
     // BC-2.02.001 postcondition 2: IpAddr::V4 matching IPv4 header
     assert_eq!(
@@ -426,8 +429,11 @@ fn test_BC_2_02_001_packet_len_is_total_frame_length() {
             payload,
         );
         let expected_len = data.len();
-        let parsed = decode_packet(&data, DataLink::ETHERNET)
-            .unwrap_or_else(|e| panic!("decode failed for {label}: {e}"));
+        let DecodedFrame::Ip(parsed) = decode_packet(&data, DataLink::ETHERNET)
+            .unwrap_or_else(|e| panic!("decode failed for {label}: {e}"))
+        else {
+            panic!("expected IP frame for {label}")
+        };
         assert_eq!(
             parsed.packet_len, expected_len,
             "packet_len must equal data.len() ({expected_len}) for {label}"
@@ -453,8 +459,11 @@ fn test_BC_2_02_002_udp_dns_port_hint() {
         b"dns-query-bytes",
     );
 
-    let parsed = decode_packet(&data, DataLink::ETHERNET)
-        .expect("Ethernet/IPv4/UDP frame must decode successfully");
+    let DecodedFrame::Ip(parsed) = decode_packet(&data, DataLink::ETHERNET)
+        .expect("Ethernet/IPv4/UDP frame must decode successfully")
+    else {
+        panic!("expected IP frame")
+    };
 
     // BC-2.02.002 postcondition 2: Protocol::Udp
     assert_eq!(parsed.protocol, Protocol::Udp, "protocol must be Udp");
@@ -500,8 +509,11 @@ fn test_BC_2_02_002_udp_dns_src_port_hint() {
         b"dns-response-bytes",
     );
 
-    let parsed = decode_packet(&data, DataLink::ETHERNET)
-        .expect("DNS response frame must decode successfully");
+    let DecodedFrame::Ip(parsed) = decode_packet(&data, DataLink::ETHERNET)
+        .expect("DNS response frame must decode successfully")
+    else {
+        panic!("expected IP frame")
+    };
 
     assert_eq!(parsed.protocol, Protocol::Udp);
 
@@ -540,8 +552,11 @@ fn test_BC_2_02_003_raw_ipv4_tcp_decode() {
         &payload,
     );
 
-    let parsed =
-        decode_packet(&data, DataLink::RAW).expect("RAW IPv4 TCP frame must decode successfully");
+    let DecodedFrame::Ip(parsed) =
+        decode_packet(&data, DataLink::RAW).expect("RAW IPv4 TCP frame must decode successfully")
+    else {
+        panic!("expected IP frame")
+    };
 
     // BC-2.02.003 postcondition 2: IpAddr::V4 values
     assert_eq!(
@@ -603,8 +618,16 @@ fn test_BC_2_02_004_raw_and_ipv4_identical() {
         b"some-payload",
     );
 
-    let from_raw = decode_packet(&data, DataLink::RAW).expect("RAW decode must succeed");
-    let from_ipv4 = decode_packet(&data, DataLink::IPV4).expect("IPV4 decode must succeed");
+    let DecodedFrame::Ip(from_raw) =
+        decode_packet(&data, DataLink::RAW).expect("RAW decode must succeed")
+    else {
+        panic!("expected IP frame")
+    };
+    let DecodedFrame::Ip(from_ipv4) =
+        decode_packet(&data, DataLink::IPV4).expect("IPV4 decode must succeed")
+    else {
+        panic!("expected IP frame")
+    };
 
     // BC-2.02.004 postcondition 2: field-for-field identical results
     assert_eq!(
@@ -678,8 +701,11 @@ fn test_BC_2_02_005_raw_ipv6_tcp_decode() {
 
     let data = make_raw_ipv6_tcp(src_segs, dst_segs, 50000, 443, 1, TCP_SYN, &[]);
 
-    let parsed =
-        decode_packet(&data, DataLink::RAW).expect("RAW IPv6 TCP frame must decode successfully");
+    let DecodedFrame::Ip(parsed) =
+        decode_packet(&data, DataLink::RAW).expect("RAW IPv6 TCP frame must decode successfully")
+    else {
+        panic!("expected IP frame")
+    };
 
     // BC-2.02.005 postcondition 2: src_ip is IpAddr::V6
     match parsed.src_ip {
@@ -721,8 +747,11 @@ fn test_BC_2_02_005_ipv6_tcp_transport() {
         src_segs, dst_segs, src_port, dst_port, seq, TCP_SYN, b"hello",
     );
 
-    let parsed =
-        decode_packet(&data, DataLink::RAW).expect("RAW IPv6 TCP frame must decode successfully");
+    let DecodedFrame::Ip(parsed) =
+        decode_packet(&data, DataLink::RAW).expect("RAW IPv6 TCP frame must decode successfully")
+    else {
+        panic!("expected IP frame")
+    };
 
     // BC-2.02.005 postcondition 4: Protocol::Tcp
     assert_eq!(
@@ -817,9 +846,11 @@ proptest! {
         prop_assert!(
             result.is_ok(),
             "decode_packet must succeed for well-formed frame (path={path}): {:?}",
-            result.unwrap_err()
+            result.as_ref().unwrap_err()
         );
-        let parsed = result.unwrap();
+        let DecodedFrame::Ip(parsed) = result.unwrap() else {
+            panic!("expected IP frame")
+        };
         prop_assert_eq!(
             parsed.packet_len,
             expected_len,
@@ -850,7 +881,11 @@ fn test_BC_2_02_001_ec001_tcp_syn_only_flags() {
         &[],
     );
 
-    let parsed = decode_packet(&data, DataLink::ETHERNET).expect("SYN frame must decode");
+    let DecodedFrame::Ip(parsed) =
+        decode_packet(&data, DataLink::ETHERNET).expect("SYN frame must decode")
+    else {
+        panic!("expected IP DecodedFrame")
+    };
 
     match &parsed.transport {
         TransportInfo::Tcp {
@@ -879,8 +914,11 @@ fn test_BC_2_02_001_ec003_tcp_pure_ack_empty_payload() {
         &[],
     );
 
-    let parsed = decode_packet(&data, DataLink::ETHERNET)
-        .expect("EC-002: pure ACK frame must decode successfully (Ok returned)");
+    let DecodedFrame::Ip(parsed) = decode_packet(&data, DataLink::ETHERNET)
+        .expect("EC-002: pure ACK frame must decode successfully (Ok returned)")
+    else {
+        panic!("expected IP DecodedFrame")
+    };
 
     assert_eq!(
         parsed.payload,
@@ -912,8 +950,11 @@ fn test_BC_2_02_002_ec003_udp_port_80_http_hint() {
         b"get-request",
     );
 
-    let parsed =
-        decode_packet(&data, DataLink::ETHERNET).expect("EC-003: UDP port 80 frame must decode");
+    let DecodedFrame::Ip(parsed) =
+        decode_packet(&data, DataLink::ETHERNET).expect("EC-003: UDP port 80 frame must decode")
+    else {
+        panic!("expected IP frame")
+    };
 
     assert_eq!(
         parsed.app_protocol_hint(),
@@ -933,8 +974,11 @@ fn test_BC_2_02_002_ec004_udp_unknown_port_no_hint() {
         b"some-data",
     );
 
-    let parsed = decode_packet(&data, DataLink::ETHERNET)
-        .expect("EC-004: UDP frame with unknown port must decode");
+    let DecodedFrame::Ip(parsed) = decode_packet(&data, DataLink::ETHERNET)
+        .expect("EC-004: UDP frame with unknown port must decode")
+    else {
+        panic!("expected IP DecodedFrame")
+    };
 
     assert_eq!(
         parsed.app_protocol_hint(),
@@ -956,8 +1000,16 @@ fn test_BC_2_02_004_ec005_ipv4_datalink_identical_to_raw() {
         b"payload-ec005",
     );
 
-    let from_raw = decode_packet(&data, DataLink::RAW).expect("EC-005: RAW must decode");
-    let from_ipv4 = decode_packet(&data, DataLink::IPV4).expect("EC-005: IPV4 must decode");
+    let DecodedFrame::Ip(from_raw) =
+        decode_packet(&data, DataLink::RAW).expect("EC-005: RAW must decode")
+    else {
+        panic!("expected IP DecodedFrame")
+    };
+    let DecodedFrame::Ip(from_ipv4) =
+        decode_packet(&data, DataLink::IPV4).expect("EC-005: IPV4 must decode")
+    else {
+        panic!("expected IP DecodedFrame")
+    };
 
     // BC-2.02.004 postcondition 3: zero observable difference
     assert_eq!(
@@ -990,8 +1042,11 @@ fn test_BC_2_02_005_ec006_ipv6_loopback_decoded_normally() {
 
     let data = make_raw_ipv6_tcp(loopback, loopback, 12345, 8080, 1, TCP_SYN, &[]);
 
-    let parsed = decode_packet(&data, DataLink::RAW)
-        .expect("EC-006: IPv6 loopback frame must decode normally");
+    let DecodedFrame::Ip(parsed) = decode_packet(&data, DataLink::RAW)
+        .expect("EC-006: IPv6 loopback frame must decode normally")
+    else {
+        panic!("expected IP DecodedFrame")
+    };
 
     match parsed.src_ip {
         IpAddr::V6(addr) => {
@@ -1091,8 +1146,11 @@ fn test_BC_2_02_005_ec007_ipv6_extension_headers_tcp_surfaced() {
     // TCP header
     frame.extend_from_slice(&tcp);
 
-    let parsed = decode_packet(&frame, DataLink::RAW)
-        .expect("EC-007: IPv6 frame with HBH extension header must decode successfully");
+    let DecodedFrame::Ip(parsed) = decode_packet(&frame, DataLink::RAW)
+        .expect("EC-007: IPv6 frame with HBH extension header must decode successfully")
+    else {
+        panic!("expected IP DecodedFrame")
+    };
 
     // etherparse traverses extension headers; TCP must be surfaced
     assert_eq!(
@@ -1139,8 +1197,11 @@ fn test_BC_2_02_002_app_protocol_hint_full_port_table() {
     for (port, expected_hint) in port_hints {
         // Use UDP dst_port for each entry; src-port checking is covered by AC-004.
         let data = make_eth_ipv4_udp([10, 0, 0, 1], [10, 0, 0, 2], 55000, *port, b"probe");
-        let parsed = decode_packet(&data, DataLink::ETHERNET)
-            .unwrap_or_else(|e| panic!("port {port} frame decode failed: {e}"));
+        let DecodedFrame::Ip(parsed) = decode_packet(&data, DataLink::ETHERNET)
+            .unwrap_or_else(|e| panic!("port {port} frame decode failed: {e}"))
+        else {
+            panic!("expected IP frame for port {port}")
+        };
 
         assert_eq!(
             parsed.app_protocol_hint(),
@@ -1169,8 +1230,11 @@ fn test_BC_2_02_005_ec002_raw_ipv6_udp_dns_hint() {
 
     let data = make_raw_ipv6_udp(src_segs, dst_segs, 55555, 53, b"dns-query");
 
-    let parsed = decode_packet(&data, DataLink::RAW)
-        .expect("BC-2.02.005 EC-002: RAW IPv6/UDP frame must decode successfully");
+    let DecodedFrame::Ip(parsed) = decode_packet(&data, DataLink::RAW)
+        .expect("BC-2.02.005 EC-002: RAW IPv6/UDP frame must decode successfully")
+    else {
+        panic!("expected IP DecodedFrame")
+    };
 
     // BC-2.02.005 postcondition 2: src_ip is IpAddr::V6
     match parsed.src_ip {
@@ -1242,8 +1306,11 @@ fn test_BC_2_02_005_ec003_raw_ipv6_icmpv6_protocol_icmp() {
 
     let data = make_raw_ipv6_icmpv6(src_segs, dst_segs);
 
-    let parsed = decode_packet(&data, DataLink::RAW)
-        .expect("BC-2.02.005 EC-003: RAW IPv6/ICMPv6 frame must decode successfully");
+    let DecodedFrame::Ip(parsed) = decode_packet(&data, DataLink::RAW)
+        .expect("BC-2.02.005 EC-003: RAW IPv6/ICMPv6 frame must decode successfully")
+    else {
+        panic!("expected IP DecodedFrame")
+    };
 
     // src/dst must be IpAddr::V6
     assert!(
@@ -1300,8 +1367,11 @@ fn test_BC_2_02_001_ec002_tcp_syn_ack_flags() {
         &[],
     );
 
-    let parsed = decode_packet(&data, DataLink::ETHERNET)
-        .expect("BC-2.02.001 EC-002: SYN-ACK frame must decode successfully");
+    let DecodedFrame::Ip(parsed) = decode_packet(&data, DataLink::ETHERNET)
+        .expect("BC-2.02.001 EC-002: SYN-ACK frame must decode successfully")
+    else {
+        panic!("expected IP DecodedFrame")
+    };
 
     match &parsed.transport {
         TransportInfo::Tcp {
@@ -1341,8 +1411,11 @@ fn test_BC_2_02_001_tcp_rst_flag_positively_asserted() {
         &[],
     );
 
-    let parsed = decode_packet(&data, DataLink::ETHERNET)
-        .expect("BC-2.02.001 invariant 2: RST frame must decode successfully");
+    let DecodedFrame::Ip(parsed) = decode_packet(&data, DataLink::ETHERNET)
+        .expect("BC-2.02.001 invariant 2: RST frame must decode successfully")
+    else {
+        panic!("expected IP DecodedFrame")
+    };
 
     match &parsed.transport {
         TransportInfo::Tcp {
@@ -1380,8 +1453,11 @@ fn test_BC_2_02_001_tcp_fin_flag_positively_asserted() {
         &[],
     );
 
-    let parsed = decode_packet(&data, DataLink::ETHERNET)
-        .expect("BC-2.02.001 invariant 2: FIN-ACK frame must decode successfully");
+    let DecodedFrame::Ip(parsed) = decode_packet(&data, DataLink::ETHERNET)
+        .expect("BC-2.02.001 invariant 2: FIN-ACK frame must decode successfully")
+    else {
+        panic!("expected IP DecodedFrame")
+    };
 
     match &parsed.transport {
         TransportInfo::Tcp {
@@ -1453,9 +1529,11 @@ fn test_BC_2_02_005_invariant1_lax_path_recovers_ipv6_addresses() {
 
     // The lax fallback must still recover the IP layer and extract the IPv6
     // src/dst addresses — this is the assertion that exercises lax_ip_triple.
-    let parsed = decode_packet(&data, DataLink::RAW).expect(
+    let DecodedFrame::Ip(parsed) = decode_packet(&data, DataLink::RAW).expect(
         "BC-2.02.005 invariant 1: snaplen-truncated IPv6 frame must decode via lax fallback",
-    );
+    ) else {
+        panic!("expected IP DecodedFrame")
+    };
 
     // BC-2.02.005 invariant 1: lax_ip_triple's IPv6 arm must produce IpAddr::V6.
     match parsed.src_ip {

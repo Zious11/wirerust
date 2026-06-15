@@ -18,7 +18,7 @@
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 
 use pcap_file::DataLink;
-use wirerust::decoder::{ParsedPacket, Protocol, TransportInfo, decode_packet};
+use wirerust::decoder::{DecodedFrame, ParsedPacket, Protocol, TransportInfo, decode_packet};
 
 // ---------------------------------------------------------------------------
 // Frame-building helpers
@@ -249,8 +249,11 @@ fn none_transport_packet(protocol: Protocol) -> ParsedPacket {
 #[test]
 fn test_BC_2_02_010_icmpv4_protocol_icmp() {
     let data = make_icmpv4_echo_request_eth();
-    let pkt = decode_packet(&data, DataLink::ETHERNET)
-        .expect("ICMPv4 echo-request Ethernet frame must decode successfully");
+    let DecodedFrame::Ip(pkt) = decode_packet(&data, DataLink::ETHERNET)
+        .expect("ICMPv4 echo-request Ethernet frame must decode successfully")
+    else {
+        panic!("expected IP DecodedFrame")
+    };
 
     assert_eq!(
         pkt.protocol,
@@ -287,8 +290,11 @@ fn test_BC_2_02_010_icmpv4_protocol_icmp() {
 fn test_BC_2_02_010_icmpv4_and_icmpv6_both_produce_protocol_icmp() {
     // ICMPv4 over Ethernet
     let icmpv4_data = make_icmpv4_echo_request_eth();
-    let icmpv4_pkt =
-        decode_packet(&icmpv4_data, DataLink::ETHERNET).expect("ICMPv4 frame must decode");
+    let DecodedFrame::Ip(icmpv4_pkt) =
+        decode_packet(&icmpv4_data, DataLink::ETHERNET).expect("ICMPv4 frame must decode")
+    else {
+        panic!("expected IP DecodedFrame")
+    };
 
     assert_eq!(
         icmpv4_pkt.protocol,
@@ -299,7 +305,11 @@ fn test_BC_2_02_010_icmpv4_and_icmpv6_both_produce_protocol_icmp() {
 
     // ICMPv6 over raw IPv6
     let icmpv6_data = make_icmpv6_echo_request_raw();
-    let icmpv6_pkt = decode_packet(&icmpv6_data, DataLink::IPV6).expect("ICMPv6 frame must decode");
+    let DecodedFrame::Ip(icmpv6_pkt) =
+        decode_packet(&icmpv6_data, DataLink::IPV6).expect("ICMPv6 frame must decode")
+    else {
+        panic!("expected IP DecodedFrame")
+    };
 
     assert_eq!(
         icmpv6_pkt.protocol,
@@ -325,7 +335,11 @@ fn test_BC_2_02_010_icmpv4_and_icmpv6_both_produce_protocol_icmp() {
 #[test]
 fn test_BC_2_02_010_icmp_app_protocol_hint_none() {
     let data = make_icmpv4_echo_request_eth();
-    let pkt = decode_packet(&data, DataLink::ETHERNET).expect("ICMPv4 frame must decode");
+    let DecodedFrame::Ip(pkt) =
+        decode_packet(&data, DataLink::ETHERNET).expect("ICMPv4 frame must decode")
+    else {
+        panic!("expected IP DecodedFrame")
+    };
 
     assert!(
         matches!(pkt.transport, TransportInfo::None),
@@ -347,8 +361,11 @@ fn test_BC_2_02_010_icmp_app_protocol_hint_none() {
 #[test]
 fn test_BC_2_02_011_gre_protocol_other() {
     let data = make_gre_eth();
-    let pkt = decode_packet(&data, DataLink::ETHERNET)
-        .expect("GRE Ethernet frame must decode successfully");
+    let DecodedFrame::Ip(pkt) = decode_packet(&data, DataLink::ETHERNET)
+        .expect("GRE Ethernet frame must decode successfully")
+    else {
+        panic!("expected IP DecodedFrame")
+    };
 
     assert_eq!(
         pkt.protocol,
@@ -384,7 +401,11 @@ fn test_BC_2_02_011_gre_protocol_other() {
 #[test]
 fn test_BC_2_02_011_protocol_other_preserves_byte() {
     let gre_data = make_gre_eth();
-    let gre_pkt = decode_packet(&gre_data, DataLink::ETHERNET).expect("GRE frame must decode");
+    let DecodedFrame::Ip(gre_pkt) =
+        decode_packet(&gre_data, DataLink::ETHERNET).expect("GRE frame must decode")
+    else {
+        panic!("expected IP DecodedFrame")
+    };
     assert_eq!(
         gre_pkt.protocol,
         Protocol::Other(47),
@@ -392,7 +413,11 @@ fn test_BC_2_02_011_protocol_other_preserves_byte() {
     );
 
     let esp_data = make_esp_eth();
-    let esp_pkt = decode_packet(&esp_data, DataLink::ETHERNET).expect("ESP frame must decode");
+    let DecodedFrame::Ip(esp_pkt) =
+        decode_packet(&esp_data, DataLink::ETHERNET).expect("ESP frame must decode")
+    else {
+        panic!("expected IP DecodedFrame")
+    };
     assert_eq!(
         esp_pkt.protocol,
         Protocol::Other(50),
@@ -550,8 +575,11 @@ fn test_BC_2_02_013_transport_none_returns_none_hint() {
 #[test]
 fn test_BC_2_02_010_EC_001_icmpv4_echo_reply_protocol_icmp() {
     let data = make_icmpv4_echo_reply_eth();
-    let pkt =
-        decode_packet(&data, DataLink::ETHERNET).expect("ICMPv4 echo-reply frame must decode");
+    let DecodedFrame::Ip(pkt) =
+        decode_packet(&data, DataLink::ETHERNET).expect("ICMPv4 echo-reply frame must decode")
+    else {
+        panic!("expected IP DecodedFrame")
+    };
 
     assert_eq!(pkt.protocol, Protocol::Icmp);
     assert!(matches!(pkt.transport, TransportInfo::None));
@@ -567,8 +595,11 @@ fn test_BC_2_02_010_EC_001_icmpv4_echo_reply_protocol_icmp() {
 #[test]
 fn test_BC_2_02_010_EC_002_icmpv6_neighbor_solicitation_protocol_icmp() {
     let data = make_icmpv6_neighbor_solicitation_raw();
-    let pkt = decode_packet(&data, DataLink::IPV6)
-        .expect("ICMPv6 neighbor-solicitation frame must decode");
+    let DecodedFrame::Ip(pkt) = decode_packet(&data, DataLink::IPV6)
+        .expect("ICMPv6 neighbor-solicitation frame must decode")
+    else {
+        panic!("expected IP DecodedFrame")
+    };
 
     assert_eq!(
         pkt.protocol,
@@ -597,7 +628,11 @@ fn test_BC_2_02_010_EC_002_icmpv6_neighbor_solicitation_protocol_icmp() {
 #[test]
 fn test_BC_2_02_011_EC_003_gre_protocol_other_47() {
     let data = make_gre_eth();
-    let pkt = decode_packet(&data, DataLink::ETHERNET).expect("GRE frame must decode");
+    let DecodedFrame::Ip(pkt) =
+        decode_packet(&data, DataLink::ETHERNET).expect("GRE frame must decode")
+    else {
+        panic!("expected IP DecodedFrame")
+    };
 
     assert_eq!(pkt.protocol, Protocol::Other(47));
     assert!(matches!(pkt.transport, TransportInfo::None));
@@ -612,7 +647,11 @@ fn test_BC_2_02_011_EC_003_gre_protocol_other_47() {
 #[test]
 fn test_BC_2_02_011_EC_004_esp_protocol_other_50() {
     let data = make_esp_eth();
-    let pkt = decode_packet(&data, DataLink::ETHERNET).expect("ESP frame must decode");
+    let DecodedFrame::Ip(pkt) =
+        decode_packet(&data, DataLink::ETHERNET).expect("ESP frame must decode")
+    else {
+        panic!("expected IP DecodedFrame")
+    };
 
     assert_eq!(pkt.protocol, Protocol::Other(50));
     assert!(matches!(pkt.transport, TransportInfo::None));
