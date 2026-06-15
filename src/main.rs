@@ -383,8 +383,8 @@ fn run_summary(
                     Ok(DecodedFrame::Ip(parsed)) => {
                         summary.ingest(&parsed);
                     }
-                    // STORY-111 stub: ARP frames not yet dispatched in summary path.
-                    // STORY-112/113 will wire ArpAnalyzer here.
+                    // ArpAnalyzer is not wired in the summary subcommand path;
+                    // ARP security analysis runs only under `analyze --arp`.
                     Ok(DecodedFrame::Arp(_arp_frame)) => {}
                     Err(e) => {
                         if total_decode_errors == 0 {

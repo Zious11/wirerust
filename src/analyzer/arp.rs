@@ -1071,15 +1071,27 @@ mod tests {
             mismatch_finding.mitre_techniques
         );
 
-        // Evidence must reference the MAC addresses and IP (BC-2.16.007 PC1 evidence clause)
+        // Evidence must reference the MAC addresses and IP (BC-2.16.007 PC1 evidence clause).
+        // Assert on the actual content, not just non-emptiness (anti-proxy-assertion).
         let evidence_joined = mismatch_finding.evidence.join(" ");
         assert!(
-            !mismatch_finding.evidence.is_empty(),
-            "AC-009 / BC-2.16.007 PC1: D12 Finding evidence must be non-empty \
-             (must include eth_mac, arp_sender_mac, sender_ip)."
+            evidence_joined.contains("eth_src_mac=11:22:33:44:55:66"),
+            "AC-009 / BC-2.16.007 PC1: D12 Finding evidence must contain \
+             'eth_src_mac=11:22:33:44:55:66' (Ethernet src MAC). Got: {:?}",
+            mismatch_finding.evidence
         );
-        // At least one evidence entry must reference some MAC or IP data
-        let _ = evidence_joined; // used in assertion above; suppress unused warning
+        assert!(
+            evidence_joined.contains("arp_sender_mac=AA:BB:CC:DD:EE:FF"),
+            "AC-009 / BC-2.16.007 PC1: D12 Finding evidence must contain \
+             'arp_sender_mac=AA:BB:CC:DD:EE:FF' (ARP sender HW addr). Got: {:?}",
+            mismatch_finding.evidence
+        );
+        assert!(
+            evidence_joined.contains("sender_ip=192.168.1.1"),
+            "AC-009 / BC-2.16.007 PC1: D12 Finding evidence must contain \
+             'sender_ip=192.168.1.1' (ARP sender protocol addr). Got: {:?}",
+            mismatch_finding.evidence
+        );
     }
 
     // -----------------------------------------------------------------------
