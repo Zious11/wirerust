@@ -33,9 +33,9 @@
 //! observed format and fail the assertion.
 //!
 //! Fixtures used:
-//!   dns-remoteshell.pcap — 58 total packets, 73 decode errors (non-IP frames
+//!   dns-remoteshell.pcap — 58 total packets, 69 decode errors (non-IP frames
 //!     fail decode_packet with "No IP layer found"). Produces exactly ONE
-//!     "Warning: failed to decode packet" line on stderr; skipped_packets=73.
+//!     "Warning: failed to decode packet" line on stderr; skipped_packets=69.
 //!     With analyze --http --json: unclassified_flows=8 (non-zero, kills
 //!     hardcode-to-zero mutations). Used for AC-001..004, AC-005, EC-001, EC-005
 //!     and all run_summary decode-error / format / routing tests.
@@ -54,9 +54,9 @@ mod story_089 {
     // Fixture constants (verified by binary run before authoring)
     // -----------------------------------------------------------------------
 
-    /// dns-remoteshell.pcap: 58 total packets, 73 decode errors (non-IP frames
+    /// dns-remoteshell.pcap: 58 total packets, 69 decode errors (non-IP frames
     /// fail decode_packet). Produces exactly ONE "Warning: failed to decode
-    /// packet" line on stderr. skipped_packets=73 in --json output.
+    /// packet" line on stderr. skipped_packets=69 in --json output.
     /// analyze --http --json → unclassified_flows=8 (non-zero).
     /// Used for AC-001..005, EC-001, EC-005, and all run_summary tests.
     const DNS_REMOTE_FIXTURE: &str = "tests/fixtures/dns-remoteshell.pcap";
@@ -125,7 +125,7 @@ mod story_089 {
 
     /// AC-002 (BC-2.12.014 postcondition 2): After the first decode error,
     /// subsequent errors are counted silently — no additional warning lines
-    /// are emitted. dns-remoteshell.pcap has 73 decode errors across 58 total
+    /// are emitted. dns-remoteshell.pcap has 69 decode errors across 58 total
     /// packets; only 1 warning line appears (the count assertion in AC-004 is
     /// the mutation-resistant form; this test verifies the positive case from
     /// the BC postcondition).
@@ -133,7 +133,7 @@ mod story_089 {
     /// Discriminating assertions:
     ///   Positive: stderr does NOT contain a second warning line (the line
     ///     appears exactly once, not twice or more).
-    ///   Positive: skipped_packets in JSON output == 73 (all errors counted).
+    ///   Positive: skipped_packets in JSON output == 69 (all errors counted).
     ///   Positive: command exits 0.
     #[test]
     fn test_subsequent_decode_errors_silent() {
@@ -150,7 +150,7 @@ mod story_089 {
             .lines()
             .filter(|l| l.contains("Warning: failed to decode packet"))
             .count();
-        // 73 decode errors → exactly 1 warning (subsequent are silent)
+        // 69 decode errors → exactly 1 warning (subsequent are silent)
         assert_eq!(
             warning_count, 1,
             "expected exactly 1 warning line; got {warning_count}. stderr: {stderr}"
@@ -177,12 +177,12 @@ mod story_089 {
     /// `--json` output's `summary.skipped_packets` field equals the number of
     /// malformed packets in the fixture.
     ///
-    /// dns-remoteshell.pcap has 73 decode failures (non-IP packets).
+    /// dns-remoteshell.pcap has 69 decode failures (non-IP packets).
     /// Canonical test vector from BC-2.12.014: 0 valid/5 decode errors → 5.
-    /// Here: 73 decode errors → skipped_packets == 73.
+    /// Here: 69 decode errors → skipped_packets == 69.
     ///
     /// Discriminating assertions:
-    ///   Positive: stdout JSON contains "\"skipped_packets\": 73".
+    ///   Positive: stdout JSON contains "\"skipped_packets\": 69".
     ///   Positive: command exits 0.
     ///   Negative: http-ooo.pcap (0 decode errors) → skipped_packets == 0.
     #[test]
@@ -216,7 +216,7 @@ mod story_089 {
     /// mutation-resistant formalization: we count warning occurrences in stderr
     /// and assert count == 1 (not just .contains(), which would miss duplicates).
     ///
-    /// dns-remoteshell.pcap: 73 decode errors → exactly 1 warning line.
+    /// dns-remoteshell.pcap: 69 decode errors → exactly 1 warning line.
     ///
     /// Method: capture stderr as string, count occurrences of the warning
     /// prefix "Warning: failed to decode packet" → must equal exactly 1.
@@ -225,7 +225,7 @@ mod story_089 {
     ///   Positive: warning prefix appears exactly 1 time in stderr.
     ///   Positive: command exits 0.
     ///   Negative: if the guard `if total_decode_errors == 0` were removed,
-    ///     73 warning lines would appear and count > 1 would fail.
+    ///     69 warning lines would appear and count > 1 would fail.
     #[test]
     fn test_decode_error_warning_printed_at_most_once() {
         let output = Command::cargo_bin("wirerust")

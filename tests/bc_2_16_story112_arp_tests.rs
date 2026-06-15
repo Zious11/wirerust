@@ -18,10 +18,11 @@
 //!   AC-009  test_arp_frame_never_reaches_stream_dispatcher
 //!   AC-012  test_decode_packet_arp_non_eth_ipv4_returns_error
 //!
-//! RED GATE STATUS (as of STORY-112 HEAD 0227d9c — stub committed):
-//!   AC-001..007, AC-012: MUST FAIL — extract_arp_frame returns None (placeholder);
-//!     the Ok(slice) and Err(SliceError::Len) ARP arms emit
-//!     Err("ARP extraction not yet implemented"), not the real routing.
+//! GREEN STATUS (STORY-112 implemented):
+//!   AC-001..007, AC-012: PASS — extract_arp_frame returns Some(ArpFrame) for
+//!     valid Ethernet/IPv4 ARP frames; decode_packet routes ARP to
+//!     Ok(DecodedFrame::Arp(...)); non-Eth/IPv4 ARP yields
+//!     Err("Non-Ethernet/IPv4 ARP frame").
 //!   AC-008: PASSES — ArpAnalyzer::process_arp no-op stub is the deliverable.
 //!   AC-009: PASSES — structural assertion that the ARP arm in main.rs does not
 //!     call dispatcher.on_data; verified by calling process_arp on a known ArpFrame
