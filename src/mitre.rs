@@ -308,9 +308,10 @@ mod kani_proofs {
 /// or loses a Some-returning entry without this list (and
 /// [`SEEDED_TECHNIQUE_ID_COUNT`]) being updated in lockstep — preventing the
 /// completeness proofs from silently going stale (CR-005).
-/// Post-F2 (STORY-100): 11 Enterprise + 10 ICS = 21 total (pre-STORY-109 subtotal)
-/// STORY-109 (VP-007 atomic obligation): +2 ICS (T1691.001, T0827) = 23 total.
-/// + 2 ARP (STORY-114): T0830 (ICS LateralMovement) + T1557.002 (Enterprise CredentialAccess) = 25 total
+///
+/// Count history: Post-F2 (STORY-100) 11 Enterprise + 10 ICS = 21 total (pre-STORY-109 subtotal).
+/// STORY-109 (VP-007 atomic obligation) +2 ICS (T1691.001, T0827) = 23 total.
+/// STORY-114 (VP-007 ARP obligation) +2 ARP (T0830 LateralMovement, T1557.002 CredentialAccess) = 25 total.
 /// ICS v19 remap (issue #222): T0855→T1692.001, T0856→T1692.002.
 #[cfg(any(kani, test))]
 const SEEDED_TECHNIQUE_IDS: &[&str] = &[

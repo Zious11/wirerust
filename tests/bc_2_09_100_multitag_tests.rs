@@ -342,22 +342,44 @@ fn test_BC_2_10_005_technique_name_resolves_t0836_modify_parameter() {
 /// the current count.
 /// Verified via the vp007_catalog_drift_guard sweeping test, but this
 /// test directly reads the source constant so drift is caught immediately.
+///
+/// Strict guard: asserts EXACTLY 25 — fails for 21, 23, 24, 26, or any other value.
+/// (Renamed from _is_21 which was a non-guard accepting 21/23/25 permissively.)
 #[test]
-fn test_BC_2_10_005_seeded_technique_id_count_is_21() {
+fn test_BC_2_10_005_seeded_technique_id_count_is_25() {
     let src = std::fs::read_to_string("src/mitre.rs")
         .expect("src/mitre.rs must be readable from the worktree root");
-    // STORY-109: count updated from 21 → 23 (+T1691.001 +T0827, VP-007 obligation).
-    // STORY-114: count updated from 23 → 25 (+T0830 +T1557.002, VP-007 ARP obligation).
-    // Locate the const declaration line; accept 21, 23, or 25.
-    let found = src.lines().any(|line| {
-        line.contains("SEEDED_TECHNIQUE_ID_COUNT")
-            && (line.contains("25") || line.contains("23") || line.contains("21"))
+    // Locate the exact const declaration line. The canonical form is:
+    //   const SEEDED_TECHNIQUE_ID_COUNT: usize = 25;
+    // We match only lines that start (after optional whitespace) with `const` and also
+    // contain `SEEDED_TECHNIQUE_ID_COUNT`, so doc-comment lines are excluded.
+    // We assert the line contains `: usize = 25` (not a bare "25" substring)
+    // so the test fails if the value is anything other than 25.
+    let decl_line = src.lines().find(|line| {
+        let trimmed = line.trim_start();
+        trimmed.starts_with("const ") && trimmed.contains("SEEDED_TECHNIQUE_ID_COUNT")
+    });
+    let decl_line = decl_line.unwrap_or_else(|| {
+        panic!(
+            "BC-2.10.005 invariant 3: SEEDED_TECHNIQUE_ID_COUNT const declaration not found \
+             in src/mitre.rs"
+        )
     });
     assert!(
-        found,
-        "BC-2.10.005 invariant 3: SEEDED_TECHNIQUE_ID_COUNT must equal 25 in src/mitre.rs \
-         (21 post-F2/STORY-100 + 2 STORY-109 + 2 STORY-114 ARP additions: T0830, T1557.002)."
+        decl_line.contains(": usize = 25"),
+        "BC-2.10.005 invariant 3: SEEDED_TECHNIQUE_ID_COUNT must be exactly 25 in \
+         src/mitre.rs (21 post-F2/STORY-100 + 2 STORY-109 + 2 STORY-114 ARP additions: \
+         T0830, T1557.002). Found declaration: {decl_line:?}"
     );
+    // Negative guard: ensure no stale value (21, 23, 24, 26) appears on the same line.
+    for stale in ["= 21", "= 22", "= 23", "= 24", "= 26"] {
+        assert!(
+            !decl_line.contains(stale),
+            "BC-2.10.005 invariant 3: SEEDED_TECHNIQUE_ID_COUNT declaration contains \
+             stale/wrong value ({stale}) — expected exactly 25. \
+             Declaration: {decl_line:?}"
+        );
+    }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
