@@ -58,6 +58,9 @@ fn main() -> Result<()> {
             modbus_write_sustained_threshold,
             dnp3,
             dnp3_direct_operate_threshold,
+            arp,
+            arp_spoof_threshold,
+            arp_storm_rate,
         } => {
             run_analyze(
                 targets,
@@ -69,6 +72,9 @@ fn main() -> Result<()> {
                 *modbus_write_sustained_threshold,
                 *dnp3 || *all,
                 *dnp3_direct_operate_threshold,
+                *arp || *all,
+                *arp_spoof_threshold,
+                *arp_storm_rate,
                 *mitre,
                 use_color,
                 &cli,
@@ -93,6 +99,9 @@ fn run_analyze(
     modbus_write_sustained_threshold: u32,
     enable_dnp3: bool,
     dnp3_direct_operate_threshold: u32,
+    enable_arp: bool,
+    arp_spoof_threshold: u32,
+    arp_storm_rate: u32,
     show_mitre_grouping: bool,
     use_color: bool,
     cli: &Cli,
@@ -107,11 +116,12 @@ fn run_analyze(
 
     let mut summary = Summary::new();
     let mut dns_analyzer = DnsAnalyzer::new();
-    // STORY-112: ArpAnalyzer stub — parameterless new() per AC-010.
-    // --arp flag-gating is added in STORY-113 (BC-2.16.011).
-    // --arp-spoof-threshold is added in STORY-114.
-    // --arp-storm-rate is added in STORY-115.
-    let mut arp_analyzer = ArpAnalyzer::new();
+    // STORY-115: ArpAnalyzer::new(spoof_threshold, storm_rate).
+    // arp_spoof_threshold is wired from --arp-spoof-threshold (BC-2.16.012).
+    // arp_storm_rate is wired from --arp-storm-rate (BC-2.16.013; STORY-115).
+    // Default 50 applies when flag is absent (clap default_value_t = 50).
+    // --arp flag-gating is wired below (BC-2.16.011).
+    let mut arp_analyzer = ArpAnalyzer::new(arp_spoof_threshold, arp_storm_rate);
     let mut all_findings = Vec::new();
     let mut total_decode_errors: u64 = 0;
 
@@ -237,15 +247,30 @@ fn run_analyze(
                                 reasm.process_packet(&parsed, raw.timestamp_secs, &mut dispatcher);
                             }
                         }
-                        // STORY-112: ArpAnalyzer stub wiring (AC-008, BC-2.16.015 PC5/6).
-                        // process_arp is a no-op stub returning vec![] — the real detection
-                        // logic (binding table, GARP, D11, D12) is implemented in STORY-113.
-                        // ARP frames NEVER reach StreamDispatcher (AC-009, BC-2.16.015 Inv 2).
-                        // --arp flag-gating (args.arp) is added in STORY-113 (BC-2.16.011).
+                        // STORY-113: ArpAnalyzer wiring (BC-2.16.011; AC-015/AC-016).
+                        // ARP frames NEVER reach StreamDispatcher (Forbidden Dependency;
+                        // arp-architecture-delta.md §1; BC-2.16.015 Invariant 2).
+                        // process_arp is called only when --arp is active (enable_arp gate).
                         Ok(DecodedFrame::Arp(arp_frame)) => {
-                            let ts = raw.timestamp_secs;
-                            let _findings = arp_analyzer.process_arp(&arp_frame, ts);
-                            // STORY-113: extend all_findings with _findings once detection is real.
+                            if enable_arp {
+                                let ts = raw.timestamp_secs;
+                                let findings = arp_analyzer.process_arp(&arp_frame, ts);
+                                all_findings.extend(findings);
+                            }
+                        }
+                        Err(ref e) if e.to_string().contains("Non-Ethernet/IPv4 ARP frame") => {
+                            // STORY-113: D11 malformed ARP notification (BC-2.16.009 PC3/PC4).
+                            // malformed_frames increments unconditionally (BC-2.16.009 PC4).
+                            // When --arp active: record_malformed emits D11 Finding and
+                            // increments both malformed_frames and malformed_findings (AC-012).
+                            // When --arp absent: only malformed_frames increments; no finding
+                            // emitted and malformed_findings unchanged (BC-2.16.009 PC4, ADR-008
+                            // Decision 7, BC-2.16.010 key 11).
+                            if enable_arp {
+                                all_findings.extend(arp_analyzer.record_malformed(raw.data.len()));
+                            } else {
+                                arp_analyzer.malformed_frames += 1;
+                            }
                         }
                         Err(e) => {
                             if total_decode_errors == 0 {
@@ -314,6 +339,13 @@ fn run_analyze(
         analyzer_summaries.push(dnp3.summarize());
     }
 
+    // STORY-113: ARP post-capture summary (BC-2.16.011 PC7/8; AC-016).
+    // summarize() and push to analyzer_summaries only when --arp is active.
+    // Mirrors the Modbus/DNP3 pattern per BC-2.16.010 Invariant 4.
+    if enable_arp {
+        analyzer_summaries.push(arp_analyzer.summarize());
+    }
+
     let resolved_format = resolve_format(cli);
     let output = match resolved_format {
         Some(OutputFormat::Json) => {
@@ -359,8 +391,8 @@ fn run_summary(
                     Ok(DecodedFrame::Ip(parsed)) => {
                         summary.ingest(&parsed);
                     }
-                    // STORY-111 stub: ARP frames not yet dispatched in summary path.
-                    // STORY-112/113 will wire ArpAnalyzer here.
+                    // ArpAnalyzer is not wired in the summary subcommand path;
+                    // ARP security analysis runs only under `analyze --arp`.
                     Ok(DecodedFrame::Arp(_arp_frame)) => {}
                     Err(e) => {
                         if total_decode_errors == 0 {
