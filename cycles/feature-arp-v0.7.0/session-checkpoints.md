@@ -685,3 +685,33 @@ fully-clean pass. Passes 18-22 each surfaced+remediated genuine items.
 | develop HEAD | fee71ee | PR #242 D-074 merged |
 | main HEAD | 3e29891 | v0.6.0 |
 | open PRs | none | all ARP PRs + #237 chrono + #242 D-074 merged |
+
+---
+
+## Checkpoint Archived 2026-06-15 — F4 holdout GATE PASS; D-075/076/077 remediated; re-streak RESET 0/3 on 6abcd8f; re-streak IN PROGRESS
+
+**Archived reason:** replaced by new checkpoint (F4 re-streak 3/3 CONVERGED on bcb1bd6 — F4 COMPLETE; NEXT = F5 scoped-adversarial).
+
+### A. PIPELINE POSITION AT ARCHIVAL
+
+- F4 Delta-Implementation: COMPLETE (STORY-111..115 ALL DELIVERED; develop fee71ee).
+- F4 Holdout Evaluation: GATE PASS (2026-06-15).
+  - Initial run mean 0.997 (G1=0.95: D1 HIGH verdict defect `Verdict::Possible` → `Verdict::Likely`).
+  - D-075 issued; PR #243 (merge 4ee7a9d); G1 re-run = 1.0.
+  - Full corpus 15/15 mean 1.0; RFC-826 canonical frame scenario PASS; non-D1 verdicts unregressed.
+  - D-076 (PR #244 merge 52437f8): regression-test doc-comments corrected (PG-ARP-F4-REDTEST-DOC-TENSE recurrence).
+  - D-077 CRITICAL (PR #245 merge 6abcd8f): `extract_arp_frame` now rejects non-Ethernet hw type + non-IPv4 proto type.
+- F4 Post-Convergence Adversary Re-Streak: 0/3 IN PROGRESS (reset after D-077).
+  - Prior 3/3 CONVERGED (fee71ee) invalidated by D-075 holdout catch + D-077 CRITICAL.
+  - Re-streak restarted on 6abcd8f. Field-value + reject-path verification mandatory each pass.
+- develop HEAD: 6abcd8f == origin/develop (verified 2026-06-15).
+- Decisions active: D-047..D-077; do NOT re-adjudicate D-068/D-069/D-071/D-072/D-073/D-074/D-075/D-076/D-077.
+- F3-OBL-STORY114-001/002/003 REVOKED (D-069).
+
+### VERIFIED SHAs at archival time (2026-06-15)
+
+| Ref | Value | Notes |
+|-----|-------|-------|
+| develop HEAD | 6abcd8f | PR #245 D-077 CRITICAL merged |
+| main HEAD | 3e29891 | v0.6.0 |
+| open PRs | none | — |

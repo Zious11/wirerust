@@ -159,16 +159,65 @@ D-077 issued (2026-06-15). Adversary convergence counter RESET to 0/3.
 
 ---
 
+## Re-Streak (3/3 CONVERGED — bcb1bd6 + specs f9eaccd / VP-024 v1.9)
+
+**Develop HEAD during re-streak:** bcb1bd6 (origin/develop; PR #246 rename-revert + VP-024 v1.9)
+**Factory-artifacts HEAD at re-streak start:** f9eaccd
+
+The counter was reset to 0/3 after D-077. A second full re-streak was run on bcb1bd6. Three
+independent fresh-context passes each verified:
+1. Per-finding field VALUES vs BC (e.g., D1 HIGH → `Verdict::Likely`; BC-2.16.004 L45/L74/L118).
+2. The 4-part `extract_arp_frame` reject path (non-Ethernet hw type + non-IPv4 proto type → `Err`).
+3. All 15 BCs' (BC-2.16.001..015) full precondition/edge-case sets including negative/reject branches.
+
+Pass 3/3 ran solo for strict independence.
+
+### Re-Streak Pass Summary
+
+| Pass | Date | Findings | Counter | Outcome |
+|------|------|----------|---------|---------|
+| Re-streak Pass 1/3 | 2026-06-15 | 0 | 1/3 | PASS CLEAN — fresh-context; field-value + reject-path verified |
+| Re-streak Pass 2/3 | 2026-06-15 | 0 | 2/3 | PASS CLEAN — fresh-context; all 15 BCs' full precondition sets |
+| Re-streak Pass 3/3 | 2026-06-15 | 0 | 3/3 | PASS CLEAN — solo run, strict independence; field-value + reject-path verified |
+
+### Re-Streak Remediation Context (this cycle)
+
+| Item | Description | PR | Develop SHA |
+|------|-------------|-----|-------------|
+| D-074 | Reject `--arp-storm-rate 0` / `--arp-spoof-threshold 0` at CLI | #242 | fee71ee |
+| D-075 | D1 HIGH finding carries `Verdict::Likely` (holdout-caught) | #243 | 4ee7a9d |
+| D-076 | D-075 regression-test doc-comments corrected (doc-tense) | #244 | 52437f8 |
+| D-077 | CRITICAL: `extract_arp_frame` type-reject security boundary | #245 | 6abcd8f |
+| O-1 | VP-024 v1.8 harness rename reverted (propagation fix; v1.9 retained widening) | #246 | bcb1bd6 |
+
+### New Process Gaps (this cycle)
+
+- **PG-ARP-FIXBURST-CONSUMER-SWEEP (NEW):** VP-024 v1.8 harness rename didn't sweep its 11
+  consuming artifacts (DF-CONSISTENCY-AUDIT-POST-FIXBURST-001 dim 3 not applied at the rename
+  burst); resolved by reverting the rename (PR #246). Lesson: any canonical-symbol rename must
+  grep+update ALL consumers in the same burst, or avoid cosmetic renames entirely. OPEN.
+
+### Gate Verdict
+
+**F4 WAVE-LEVEL ADVERSARIAL CONVERGENCE GATE SATISFIED (re-streak 3/3 CLEAN on bcb1bd6).**
+
+Note on earlier 3/3 (fee71ee): the initial gate was satisfied, then post-convergence work (D-075
+holdout catch + human-directed re-streak surfacing D-077 CRITICAL) required a second full re-streak.
+The gate is now definitively satisfied on bcb1bd6.
+
+---
+
 ## Current Status
 
-**arp_f4_wave_adversary_convergence_counter: 0/3 — RE-STREAK RESTARTED on 6abcd8f (IN PROGRESS)**
+**arp_f4_wave_adversary_convergence_counter: 3/3 CONVERGED (re-streak on bcb1bd6) — F4 WAVE-LEVEL ADVERSARIAL GATE SATISFIED**
 
-Prior 3/3 CONVERGED (fee71ee) invalidated by post-convergence D-075 holdout catch + D-077
-CRITICAL surfaced by human-directed 3-pass re-streak. Counter reset to 0/3.
+**F4 PHASE COMPLETE:**
+- Delta-implementation: 5 stories (STORY-111..115) ALL DELIVERED.
+- Wave-level adversarial convergence: 3/3 GATE SATISFIED (re-streak on bcb1bd6).
+- Holdout evaluation: GATE PASS (15/15 mean 1.0; RFC-826 canonical PASS).
+- PRs this convergence cycle: #242 / #243 / #244 / #245 / #246.
 
-Trajectory shorthand:
-`1M→(remediated)→P1/3-CLEAN→P2/3-CLEAN→P3/3-CLEAN-GATE-SATISFIED→[HOLDOUT-PASS;D-075;D-076;D-077-CRITICAL]→RESET-0/3-6abcd8f`
+Trajectory shorthand (complete):
+`1M→(remediated D-074)→P1/3-CLEAN→P2/3-CLEAN→P3/3-CLEAN-GATE-SATISFIED(fee71ee)→[HOLDOUT-PASS;D-075;D-076;D-077-CRITICAL-RESET]→ReStreak-P1/3-CLEAN→ReStreak-P2/3-CLEAN→ReStreak-P3/3-CLEAN-GATE-SATISFIED(bcb1bd6)`
 
-Next action: 3 fresh-context adversary passes on develop 6abcd8f. Mandatory per-pass checks:
-field-value verification (`Verdict::Likely` in D1 HIGH) AND reject-path verification
-(non-Ethernet hw type + non-IPv4 proto type → `Err` return).
+**Next phase:** F5 scoped-adversarial (`vsdd-factory:phase-f5-scoped-adversarial`).

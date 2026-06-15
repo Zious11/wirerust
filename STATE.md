@@ -1,7 +1,7 @@
 ---
 pipeline: FEATURE_MODE_ARP_ANALYZER
 phase: feature-F4-delta-implementation
-phase_status: "F4 COMPLETE — F4 holdout GATE PASS (15/15 mean 1.0; RFC-826 canonical PASS; D-075+D-076+D-077 remediated). F4 adversary re-streak RESET to 0/3 on 6abcd8f after D-077 CRITICAL (hw/proto type-reject branch). Re-streak IN PROGRESS (not yet converged). Trajectory detail: cycles/feature-arp-v0.7.0/arp-f4-wave-adversary-convergence-trajectory.md"
+phase_status: "F4 COMPLETE — 5 stories delivered + holdout GATE PASS (15/15 mean 1.0) + wave-level adversarial convergence 3/3 GATE SATISFIED (re-streak on bcb1bd6). PRs this cycle: #242/#243/#244/#245/#246. Next = F5 scoped-adversarial."
 active_feature: "arp-analyzer"
 feature_arp_status: "F1 Delta Analysis PASSED (human-gated 2026-06-12) — DecodedFrame integration, ADR-008 planned, F2→F7 authorized; release target v0.7.0"
 feature_8_status: "v0.6.0 RELEASED 2026-06-12 — DNP3 TCP analyzer; F7 5-dim CONVERGED; tag v0.6.0 + 4 binaries"
@@ -18,9 +18,9 @@ phase_5_completed: "2026-06-01"
 phase_6_completed: "2026-06-02"
 phase_7_to_release_gate: "PASSED (human-approved 2026-06-09 — D-045)"
 adversary_gate: SATISFIED
-develop_head: 6abcd8f
-develop_head_confirmed: 6abcd8f == origin/develop (verified 2026-06-15)
-factory_artifacts_head: 910a77f  # local == origin/factory-artifacts (verified 2026-06-15)
+develop_head: bcb1bd6
+develop_head_confirmed: bcb1bd6 == origin/develop (verified 2026-06-15)
+factory_artifacts_head: see git -C .factory log -1  # updated by this burst
 main_head: 3e29891
 released_version: v0.6.0
 released_at: "2026-06-12"
@@ -40,7 +40,7 @@ dtu_assessment: 2026-05-20
 dtu_clones_built: n/a
 dtu_services: []
 adversary_convergence_counter: 3/3  # Pass 14 CONVERGENCE_REACHED; clean-streak 3/3; ADVERSARY GATE SATISFIED
-arp_f4_wave_adversary_convergence_counter: 0/3 (re-streak restarted on 6abcd8f after D-077 CRITICAL fix; field-value + reject-path verification now mandatory each pass)  # Prior 3/3 CONVERGED (fee71ee) invalidated by post-convergence D-075 holdout catch + D-077 3-pass human-directed re-streak; re-streak IN PROGRESS
+arp_f4_wave_adversary_convergence_counter: 3/3 CONVERGED (re-streak on bcb1bd6) — F4 wave-level adversarial gate SATISFIED  # Initial 3/3 (fee71ee) invalidated by post-convergence findings; re-streak on bcb1bd6 definitively satisfied the gate
 convergence_trajectory: "P1-P14 greenfield GATE-SATISFIED; MITRE-222 3-pass CONVERGED. Detail: cycles/v0.1.0-greenfield-spec/convergence-trajectory.md"
 arp_f2_adversary_convergence_counter: 3/3 CONVERGED  # Pass 31/32/33 consecutive CLEAN; F2 strict-whole-corpus adversarial gate SATISFIED
 arp_f3_adversary_convergence_counter: 3/3 CONVERGED  # Passes 36/37/38 consecutive CLEAN; F3 strict-whole-corpus adversarial gate SATISFIED
@@ -55,7 +55,7 @@ input_drift_check: "ARP stories post-D-074-recompute (2026-06-15): STORY-111=d05
 
 ## Status
 
-**wirerust v0.6.0 RELEASED (DNP3 TCP analyzer, issue #8). Feature: ARP security analyzer + etherparse 0.16→0.20 migration (F1 PASSED 2026-06-12, D-066); release target v0.7.0. F2 CONVERGED (P33 CLEAN; 3/3). F3 CONVERGED 3/3 (Passes 36/37/38). F4 COMPLETE — ALL 5 ARP STORIES DELIVERED (STORY-111..115; develop 6abcd8f). F4 HOLDOUT GATE PASS — initial run mean 0.997 (G1=0.95 → D-075 fix G1 re-run=1.0); full corpus 15/15 mean 1.0; RFC-826 canonical PASS. PRs this session: #237 #242 #243 (D-075) #244 (D-076) #245 (D-077). D-077 CRITICAL: extract_arp_frame now rejects non-Ethernet hw type + non-IPv4 proto type (BC-2.16.001 PC2/PC3, BC-2.16.009 PC3a/3b/EC-001/002); security review PASS (CWE-20, panic-free). F4 ADVERSARY RE-STREAK: was 3/3 CONVERGED on fee71ee, then reset to 0/3 on 6abcd8f after D-077 CRITICAL. RE-STREAK IN PROGRESS (not converged). NEXT = complete re-streak (3 fresh passes on 6abcd8f) → F5/F6/F7 → v0.7.0.**
+**wirerust v0.6.0 RELEASED (DNP3 TCP analyzer, issue #8). Feature: ARP security analyzer + etherparse 0.16→0.20 migration (F1 PASSED 2026-06-12, D-066); release target v0.7.0. F2 CONVERGED (P33 CLEAN; 3/3). F3 CONVERGED 3/3 (Passes 36/37/38). F4 COMPLETE — ALL 5 STORIES DELIVERED (STORY-111..115) + HOLDOUT GATE PASS (15/15 mean 1.0; RFC-826 PASS) + WAVE-LEVEL ADVERSARIAL CONVERGENCE 3/3 GATE SATISFIED (re-streak on bcb1bd6). Remediation cycle: D-074 PR #242, D-075 PR #243, D-076 PR #244, D-077 CRITICAL PR #245, O-1/rename-revert PR #246. develop HEAD bcb1bd6. NEXT = F5 scoped-adversarial → F6 formal hardening → F7 delta convergence → v0.7.0.**
 
 **Summary:** 68 stories (48 greenfield + 1 tooling + 19 feature-cycle), 457 pts. 283 BCs (244 pre-F2 + 24 SS-15 + 15 SS-16 ARP), 24 VPs (23 locked + VP-024 ARP draft), 1571 tests green (worktree dcdbf95; develop 7c0f453 = 1552), holdout 0.967. develop HEAD 7c0f453; main HEAD 3e29891 (v0.6.0). ARP feature: F1 approved — SS-16 (18-24 new BCs), VP-024, ADR-008, E-16 (5-6 stories). MITRE T0830+T1557.002. SEEDED=25, EMITTED=17 (on develop 7c0f453). F4 wave 44 (STORY-115): D3 storm detection + --arp-storm-rate + storm_findings VALUE; Step-4.5 CONVERGED 3/3; FINAL E-16 story; PR pending. Wave 43 (STORY-114): D1 spoof escalation + GARP-conflicts + MITRE + VP-007 + --arp-spoof-threshold; DELIVERED PR #240 7c0f453. Wave 42 (STORY-113): full ArpAnalyzer (malformed+GARP+storm) delivered PR #239. Wave 41 (STORY-112): extract_arp_frame + stub + main.rs wiring delivered PR #238. Wave 40 (STORY-111): etherparse 0.20 + DecodedFrame + ArpFrame + symmetric-unreachable delivered PR #236. DF-GREEN-DOC-TENSE-SWEEP v1 added to policies.yaml; sub-rule PG-ARP-F4-REDTEST-DOC-TENSE codified; PG-ARP-F4-MULTIPASS-VALUE positive lesson documented (GARP-storm bypass missed pass 1, caught passes 2+3).
 
@@ -89,11 +89,11 @@ input_drift_check: "ARP stories post-D-074-recompute (2026-06-15): STORY-111=d05
 | Feature: ARP analyzer — F4 Delta Implementation | **COMPLETE** — ALL 5 STORIES DELIVERED. STORY-111 (PR #236 cced898; wave 40); STORY-112 (PR #238 10e4472; wave 41); STORY-113 (PR #239 7b7dbb2; wave 42; 9 CI green); STORY-114 (PR #240 7c0f453; wave 43; D1 spoof+MITRE 25/17+--arp-spoof-threshold); STORY-115 (PR #241 d038711; wave 44; pr-reviewer APPROVE zero blocking; 9 CI green; Step-4.5 CONVERGED; D3 storm+--arp-storm-rate+storm_findings; FINAL E-16 story). develop HEAD fee71ee. ARP Security Analyzer (E-16, issue #9) CODE-COMPLETE. | per-story TDD; waves 40-44; v0.7.0 target |
 | Feature: ARP analyzer — F4 Wave-Level Adversarial Convergence | **CONVERGED 3/3 — GATE SATISFIED** (2026-06-15). Pass 1 NOT clean → D-074 + PR #242 fee71ee → clean-streak restart: P1/3 CLEAN, P2/3 CLEAN, P3/3 CLEAN (fee71ee; fresh-context; DF-BC-COMPLETENESS-SWEEP all 15 SS-16 BCs; policy rubric). Final full-corpus consistency: CONSISTENT. Trajectory: `1M→(remediated)→P1/3→P2/3→P3/3-GATE-SATISFIED`. Detail: `cycles/feature-arp-v0.7.0/arp-f4-wave-adversary-convergence-trajectory.md` | GATE SATISFIED (superseded by re-streak below) |
 | Feature: ARP analyzer — F4 Holdout Evaluation | **GATE PASS** (2026-06-15). Initial run mean 0.997 (G1=0.95: D1 HIGH verdict defect → D-075 PR #243); G1 re-run = 1.0 post-fix; full corpus 15/15 mean 1.0; canonical RFC-826 frame scenario PASS; non-D1 verdicts unregressed. | PASSED |
-| Feature: ARP analyzer — F4 Post-Convergence Adversary Re-Streak | **IN PROGRESS — 0/3** (re-streak restarted on 6abcd8f after D-077 CRITICAL). Trajectory appended in `cycles/feature-arp-v0.7.0/arp-f4-wave-adversary-convergence-trajectory.md`. Prior 3/3 CONVERGED (fee71ee) invalidated by holdout D-075 + human-directed 3-pass re-streak D-077 (hw/proto type-reject). Field-value + reject-path verification mandatory each pass. | IN PROGRESS |
+| Feature: ARP analyzer — F4 Post-Convergence Adversary Re-Streak | **CONVERGED 3/3 — GATE SATISFIED** (re-streak on bcb1bd6; 2026-06-15). Three independent fresh-context passes; each verified field VALUES (D1 HIGH → `Verdict::Likely`) + reject path (non-Ethernet hw/proto → `Err`; D-077) + all 15 BCs' full precondition sets. Pass 3/3 solo for strict independence. Trajectory: `cycles/feature-arp-v0.7.0/arp-f4-wave-adversary-convergence-trajectory.md`. Open LOW: arp.rs:2501 `// RED: will fail if stub not wired` comment on passing STORY-114 test — fold into FU-REPO-WIDE-DOC-DEBT. | GATE SATISFIED |
 
-## Session Resume Checkpoint (2026-06-15 — F4 holdout GATE PASS; D-075/076/077 remediated; re-streak RESET 0/3 on 6abcd8f; re-streak IN PROGRESS)
+## Session Resume Checkpoint (2026-06-15 — F4 COMPLETE; re-streak 3/3 CONVERGED on bcb1bd6; NEXT = F5 scoped-adversarial)
 
-**Previous checkpoint (2026-06-15 — F4 wave-level adversarial GATE SATISFIED 3/3 CONVERGED; NEXT = F4 holdout evaluation) archived to:
+**Previous checkpoint (2026-06-15 — F4 holdout GATE PASS; D-075/076/077 remediated; re-streak RESET 0/3 on 6abcd8f) archived to:
 `cycles/feature-arp-v0.7.0/session-checkpoints.md`**
 
 ### A. EXACT PIPELINE POSITION
@@ -108,19 +108,19 @@ input_drift_check: "ARP stories post-D-074-recompute (2026-06-15): STORY-111=d05
   STORY-111 PR #236 cced898 / STORY-112 PR #238 10e4472 / STORY-113 PR #239 7b7dbb2 /
   STORY-114 PR #240 7c0f453 / STORY-115 PR #241 d038711. Chrono PR #237. D-074 PR #242 fee71ee.
 - **F4 Holdout Evaluation: GATE PASS** (2026-06-15).
-  - Initial run mean 0.997 (G1=0.95: D1 HIGH verdict defect `Verdict::Possible` → should be `Verdict::Likely`).
+  - Initial run mean 0.997 (G1=0.95: D1 HIGH verdict defect `Verdict::Possible` → `Verdict::Likely`).
   - D-075 issued; PR #243 (merge 4ee7a9d); G1 re-run = 1.0.
   - Full corpus 15/15 mean 1.0; RFC-826 canonical frame scenario PASS; non-D1 verdicts unregressed.
   - D-076 (PR #244 merge 52437f8): regression-test doc-comments corrected (PG-ARP-F4-REDTEST-DOC-TENSE recurrence).
   - D-077 CRITICAL (PR #245 merge 6abcd8f): `extract_arp_frame` now rejects non-Ethernet hw type + non-IPv4 proto type. BC-2.16.001 PC2/PC3, BC-2.16.009 PC3a/3b/EC-001/002. Security review PASS (CWE-20).
-- **F4 Post-Convergence Adversary Re-Streak: 0/3 IN PROGRESS.**
-  - Prior 3/3 CONVERGED (fee71ee) invalidated by holdout D-075 + human-directed 3-pass re-streak surfacing D-077 CRITICAL.
-  - Re-streak RESET to 0/3; restarted on 6abcd8f. Field-value + reject-path verification mandatory each pass.
-  - Trajectory appended: `cycles/feature-arp-v0.7.0/arp-f4-wave-adversary-convergence-trajectory.md`.
-- **develop HEAD: 6abcd8f** == origin/develop (verified 2026-06-15).
-- **Decisions active: D-047..D-077; do NOT re-adjudicate D-068/D-069/D-071/D-072/D-073/D-074/D-075/D-076/D-077.**
+  - O-1 rename-revert (PR #246 merge bcb1bd6): VP-024 v1.8 harness rename reverted; type+size coverage widening retained (v1.9). 11 consuming artifacts spared propagation gap.
+- **F4 Wave-Level Adversarial Convergence Re-Streak: 3/3 GATE SATISFIED** (re-streak on bcb1bd6; 2026-06-15).
+  - Three independent fresh-context passes; each verified: D1 HIGH `Verdict::Likely`, 4-part reject-path, all 15 BCs' full precondition sets. Pass 3/3 solo for strict independence.
+  - Trajectory: `cycles/feature-arp-v0.7.0/arp-f4-wave-adversary-convergence-trajectory.md`.
+- **develop HEAD: bcb1bd6** == origin/develop (verified 2026-06-15).
+- **Decisions active: D-047..D-077 (D-078 not separately issued; O-1/rename tracked in drift items); do NOT re-adjudicate D-068/D-069/D-071/D-072/D-073/D-074/D-075/D-076/D-077.**
 - **F3-OBL-STORY114-001/002/003 REVOKED** (D-069).
-- **PRs merged this session:** #237 (chrono), #242 (D-074), #243 (D-075), #244 (D-076), #245 (D-077).
+- **PRs merged this convergence cycle:** #242 (D-074), #243 (D-075), #244 (D-076), #245 (D-077), #246 (O-1 rename-revert).
 
 ### B. INPUT-HASH STATUS (scan 2026-06-15; ARP scope = Phase-4 gate)
 
@@ -138,11 +138,11 @@ Non-ARP stories: MATCH=8 STALE=54 ERROR=1 (STORY-091 known) — pre-existing; do
 ### C. FOLLOW-UP ITEMS (open)
 
 - **FU-ARP-113-LAXNONE-TEST:** Lax-arm `None` branch for severely-truncated ARP lacks dedicated unit test. OPEN for F5/F6.
-- **FU-REPO-WIDE-DOC-DEBT:** Stale RED-gate prose in 13+ test files — schedule standalone docs chore PR.
+- **FU-REPO-WIDE-DOC-DEBT:** Stale RED-gate prose in 13+ test files + arp.rs:2501 `// RED: will fail if stub not wired` comment (STORY-114 test; now PASSING) — schedule standalone docs chore PR. Do NOT spin a separate PR now.
 - **BC-2.10.005 / BC-2.10.008 count markers:** Update "23/15" markers to "25/17" — PO dispatch pending.
 - **FU-JSON-CASING:** Align Confidence/Verdict/ThreatCategory serde to uppercase — deferred.
 - **FU-BC-2.10.007-MARKER:** Verify/update BC-2.10.007 PLANNED marker for technique_tactic.
-- **FU-STORM-NEW-ATTR:** arp.rs ~line 272 doc mis-attributes storm_rate param to STORY-114; doc cleanup.
+- **FU-STORM-NEW-ATTR:** arp.rs ~line 272 doc mis-attributes storm_rate param to STORY-114; fold into chore.
 - **PG-ARP-F4-REDTEST-DOC-TENSE-RECURRENCE:** Agent-prompt/hook strengthening needed — open self-improvement epic.
 - **VP-024 Sub-A Kani (F6):** MUST cover type-field rejection (not just size) per D-077/PG-ARP-F4-TYPE-BRANCH-NARROWING.
 
@@ -180,7 +180,8 @@ Non-ARP stories: MATCH=8 STALE=54 ERROR=1 (STORY-091 known) — pre-existing; do
 - DF-GREEN-DOC-TENSE-SWEEP: GREEN-step doc sweep MUST cover ALL diff files INCLUDING newly-added test functions.
 - PG-ARP-F4-DOCSWEEP-OVERREACH: Remediation greps+edits MUST be scoped to `git diff develop..HEAD --name-only` only.
 - PG-ARP-F4-PRMGR-MERGE-SHORTSTOP: 6/6 (100%) recurrence across ALL ARP-feature PRs. Requires DF-VALIDATION-001 research-agent validation before GitHub issue.
-- **D-077 KEY:** `extract_arp_frame` now rejects non-Ethernet hw type + non-IPv4 proto type. Adversary MUST verify reject-path coverage (negative BCs) in each re-streak pass.
+- **D-077 KEY:** `extract_arp_frame` now rejects non-Ethernet hw type + non-IPv4 proto type. F5 adversary MUST verify reject-path coverage in the scoped review.
+- **PG-ARP-FIXBURST-CONSUMER-SWEEP:** Any canonical-symbol rename must grep+update ALL consumers in the same burst, or avoid cosmetic renames. VP-024 v1.8 rename reverted via PR #246 because 11 consumers were not swept.
 
 ### F. RESUME PROCEDURE (COLD-RESUME READY — SESSION-CLEAR SAFE 2026-06-15)
 
@@ -192,9 +193,9 @@ from here by following Steps 1-5 below.**
 **CONTEXT FOR FRESH SESSION:**
 - **Project:** wirerust. Mode: FEATURE MODE. Active feature: ARP Security Analyzer
   + etherparse 0.16→0.20 migration. GitHub issue #9. Release target: **v0.7.0**.
-- **Epoch:** F4 holdout GATE PASS (D-075/076/077 remediated). F4 re-streak RESET 0/3 on 6abcd8f. Re-streak IN PROGRESS.
-- **develop HEAD:** 6abcd8f == origin/develop (verified 2026-06-15).
-- **factory-artifacts HEAD:** see `git -C .factory log -1 --format='%h %s'` (updated by this burst).
+- **Epoch:** F4 COMPLETE. Re-streak 3/3 CONVERGED on bcb1bd6. NEXT = F5 scoped-adversarial.
+- **develop HEAD:** bcb1bd6 == origin/develop (verified 2026-06-15).
+- **factory-artifacts HEAD:** see `git -C .factory log -1 --format='%h %s'`
 - **main HEAD:** 3e29891 (v0.6.0, DNP3 TCP analyzer — released 2026-06-12).
 - **Active worktrees:** EXACTLY 2 — main repo (develop) + .factory (factory-artifacts). No open PRs.
 
@@ -206,7 +207,7 @@ from here by following Steps 1-5 below.**
 ```bash
 git -C /Users/zious/Documents/GITHUB/wirerust fetch
 git -C /Users/zious/Documents/GITHUB/wirerust rev-parse HEAD
-# MUST output 6abcd8f prefix (D-077 merge)
+# MUST output bcb1bd6 prefix (PR #246 rename-revert + VP-024 v1.9)
 
 git -C /Users/zious/Documents/GITHUB/wirerust/.factory log -1 --format='%h %s'
 # expect: this burst commit or newer
@@ -217,33 +218,29 @@ gh pr list --state open
 
 **Step 3 — WHAT IS COMPLETE (do NOT re-do any of this):**
 - F1 PASSED (D-066). F2 CONVERGED 3/3. F3 CONVERGED 3/3 (D-070). F4 delivery COMPLETE (5 stories).
-- D-074 (PR #242 fee71ee). D-075 (PR #243 4ee7a9d). D-076 (PR #244 52437f8). D-077 (PR #245 6abcd8f).
+- D-074 (PR #242 fee71ee). D-075 (PR #243 4ee7a9d). D-076 (PR #244 52437f8). D-077 (PR #245 6abcd8f). O-1 rename-revert (PR #246 bcb1bd6).
 - F4 holdout GATE PASS (15/15 mean 1.0; RFC-826 PASS).
+- F4 wave-level adversarial re-streak 3/3 CONVERGED on bcb1bd6. GATE SATISFIED.
 - DO NOT re-deliver STORY-111..115. DO NOT re-adjudicate D-068..D-077.
 
 **Step 4 — NEXT ACTIONS IN ORDER:**
 
-1. **F4 post-convergence adversary re-streak** — 3 fresh-context passes on develop 6abcd8f.
-   Mandatory per-pass: field-value verification (`Verdict::Likely` in D1 HIGH finding) AND
-   reject-path verification (non-Ethernet hw type + non-IPv4 proto type → `Err` return, D-077).
-   Counter currently 0/3. Gate: 3/3 consecutive clean.
+1. **F5 scoped-adversarial** (`vsdd-factory:phase-f5-scoped-adversarial`).
 
-2. **F5 scoped-adversarial** (`vsdd-factory:phase-f5-scoped-adversarial`).
-
-3. **F6 formal hardening** — FILL AND RUN deferred VP-024 Kani harnesses:
-   - VP-024 Sub-A (STORY-112): harness body currently `todo!()` — MUST cover type-field rejection.
+2. **F6 formal hardening** — FILL AND RUN deferred VP-024 Kani harnesses:
+   - VP-024 Sub-A (STORY-112): harness body currently `todo!()` — MUST cover type-field rejection (D-077/PG-ARP-F4-TYPE-BRANCH-NARROWING).
    - VP-024 Sub-B + Sub-D (STORY-113): harness bodies currently `todo!()`.
    - cargo-fuzz VP-008: harness in src/decoder.rs (verification_lock: false; deferred to F6).
 
-4. **F7 7-dimensional convergence** (`vsdd-factory:phase-f7-delta-convergence`).
+3. **F7 7-dimensional convergence** (`vsdd-factory:phase-f7-delta-convergence`).
 
-5. **v0.7.0 release** — gitflow release/0.7.0 → PR → main; tag v0.7.0; 4 binaries.
+4. **v0.7.0 release** — gitflow release/0.7.0 → PR → main; tag v0.7.0; 4 binaries.
 
 **Step 5 — KEY PROCESS GAPS (memorize before dispatching any agent):**
 - **PG-ARP-F4-PRMGR-MERGE-SHORTSTOP — 100% RECURRENCE (6/6):** pr-manager halts at
   APPROVE (step 6) and does NOT execute steps 7-9. Orchestrator MUST drive steps 7-9.
-- **PG-ARP-F4-TYPE-BRANCH-NARROWING:** Adversary MUST verify reject-path (negative BCs) coverage
-  in each re-streak pass, not just happy-path. Self-consistent omission is invisible to structural review.
+- **PG-ARP-F4-TYPE-BRANCH-NARROWING:** F5 adversary MUST verify reject-path (negative BCs) coverage, not just happy-path.
+- **PG-ARP-FIXBURST-CONSUMER-SWEEP:** Any canonical-symbol rename must grep+update ALL consumers in the same burst, or avoid cosmetic renames.
 
 ### G. KEY ARTIFACT POINTERS
 
@@ -357,6 +354,7 @@ Full tech-debt register: `.factory/tech-debt-register.md`.
 | PG-ARP-F4-DOCSWEEP-OVERREACH | STORY-114 remediation doc-sweep over-reached to 13 out-of-scope files (modbus/dnp3/reassembly/csv). Reverted; scope restored to 7 story-scoped diff files. Lesson: remediation dispatches MUST scope greps+edits to `git diff develop..HEAD --name-only` only. Detail: `cycles/feature-arp-v0.7.0/lessons.md`. | DEFERRED — remediation dispatch template hardening |
 | FU-REPO-WIDE-DOC-DEBT | 13 test files (bc_2_15_110, bc_2_14_105, bc_2_14_103, modbus_detection, modbus_parse, dnp3_detection, dnp3_parse_core, dnp3_flow_state, dnp3_f5_remediation, reassembly_engine, reassembly_flow, reassembly_segment, reporter_csv) carry stale RED-gate prose from prior feature cycles. Schedule standalone docs chore PR after STORY-114 merges. Do NOT bundle into a feature story. | REGISTERED — post-STORY-114-merge chore |
 | BC-2.10-COUNT-POSTMERGE | BC-2.10.005 / BC-2.10.008 "PLANNED — implemented in STORY-114; current code 23/15" markers must be updated to 25/17 after STORY-114 merges to develop. Post-merge TODO; do NOT edit in STORY-114 or STORY-115 dispatch. | OPEN — post-STORY-114-merge PO update |
+| PG-ARP-FIXBURST-CONSUMER-SWEEP | NEW [fixburst-consumer-sweep]: VP-024 v1.8 harness rename (O-1) didn't sweep its 11 consuming artifacts (DF-CONSISTENCY-AUDIT-POST-FIXBURST-001 dim 3 not applied at the rename burst); resolved by reverting rename via PR #246. Lesson: any canonical-symbol rename must grep+update ALL consumers in the same burst, or avoid cosmetic renames entirely. | OPEN — policy codification follow-up |
 
 ## Deferred Next-Work Backlog
 
