@@ -335,16 +335,14 @@ fn test_BC_2_16_002_extract_arp_frame_reply_returns_some_with_correct_fields() {
 // ---------------------------------------------------------------------------
 // AC-004: extract_arp_frame returns None for non-standard hw/proto sizes
 // BC-2.16.001 EC-007 (hw_addr_size=8) and EC-008 (proto_addr_size=16)
-// RED GATE: FAILS — extract_arp_frame returns None for ALL inputs (stub),
-// but for the wrong reason; the test still fails because the stub returns
-// None unconditionally, which happens to be the right answer here.
-// IMPORTANT: These tests will PASS on the stub (extract_arp_frame always
-// returns None), but they must NOT pass for the wrong reason — they exercise
-// the rejection path which should remain None after real implementation.
-// After implementation they will continue to pass correctly.
-// NOTE: The story specifies these as RED Gate tests. They may PASS on the
-// stub because None is returned unconditionally. That is acceptable; the
-// tests lock the contract regardless.
+// GREEN (STORY-112): extract_arp_frame returns None specifically for
+// non-Ethernet/IPv4 hardware/protocol sizes (hw_addr_size != 6 or
+// proto_addr_size != 4) via the size guard at decoder.rs:307-342.
+// AC-004a/AC-004b assert this rejection path returns None for the RIGHT
+// reason (size mismatch), not by accident.
+// Originally RED in STORY-111 (extract_arp_frame returned None
+// unconditionally for all inputs — a None-returning placeholder — so these
+// tests happened to pass vacuously without exercising the real size guard).
 // ---------------------------------------------------------------------------
 
 /// AC-004a (BC-2.16.001 EC-007): hw_addr_size=8 yields None, no panic.
