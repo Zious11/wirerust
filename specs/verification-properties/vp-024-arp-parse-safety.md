@@ -1,10 +1,10 @@
 ---
 document_type: verification-property
 level: L4
-version: "1.8"
+version: "1.9"
 status: draft
 producer: architect
-timestamp: 2026-06-12T00:00:00Z
+timestamp: 2026-06-15T00:00:00Z
 phase: f2
 traces_to: .factory/specs/architecture/ARCH-INDEX.md
 source_bc: BC-2.16.001
@@ -33,6 +33,7 @@ modified:
   - "v1.6 (2026-06-14): F-P16-A-02 remediation (Pass-16 semantic-anchor) — frontmatter module: field corrected from src/analyzer/arp.rs (singular) to src/analyzer/arp.rs + src/decoder.rs, aligning frontmatter with VP body (Sub-A target extract_arp_frame resides in src/decoder.rs) and VP-INDEX catalog row. No property or anchor content changed."
   - "v1.7 (2026-06-14, F3 ARP VP-layer audit title-sync): Source Contract 'Indirectly supported BC' BC-2.16.004 wording corrected: 'MEDIUM or HIGH finding' → 'MEDIUM then HIGH finding' to mirror BC-2.16.004 H1 v1.5 (sequential escalation). No proof-method, postcondition, or anchor content changed."
   - "v1.8 (2026-06-15): O-1 remediation (F4 re-streak finding) — Sub-A negative harness widened to cover the FULL reject contract matching decoder.rs:312-315 (hw_addr_type != ETHERNET || proto_addr_type != IPV4 || hw_addr_size != 6 || proto_addr_size != 4 → None). HTYPE/PTYPE bytes made symbolic (no longer pinned to Ethernet/IPv4). kani::assume updated to the 4-part OR condition. Harness renamed verify_extract_arp_frame_none_on_bad_size → verify_extract_arp_frame_none_on_invalid_header. Property Statement point 3 and symbolic-input summary table updated accordingly. Harness-comment prose corrected. Cross-references to BC-2.16.001 PC2-PC5 and BC-2.16.009 PC3a-3d are unchanged. Decision D-077 is the triggering change (type-rejection guard added to extract_arp_frame)."
+  - "v1.9 (2026-06-15): O-1 propagation fix (adversarial F4 re-streak finding, MEDIUM) — reverted the v1.8 cosmetic rename (verify_extract_arp_frame_none_on_bad_size → verify_extract_arp_frame_none_on_invalid_header) to eliminate an 11-site cross-artifact propagation liability across src/decoder.rs, BC-2.16.009, three architecture docs, dependency-graph.md, wave-schedule.md, STORY-112, and sealed changelogs. The substantive 4-part coverage widening from v1.8 (HTYPE/PTYPE bytes made symbolic, kani::assume covering the full hw_addr_type != ETHERNET OR proto_addr_type != IPV4 OR hw_addr_size != 6 OR proto_addr_size != 4 rejection region, property-statement and symbolic-input table updated accordingly) is RETAINED intact. The harness function name reverts to verify_extract_arp_frame_none_on_bad_size; a clarifying scope note has been added to the harness comment and Property Statement point 3 explaining that despite the '_bad_size' name the harness now verifies the full type-or-size reject contract per D-077 (name retained to avoid cross-artifact churn per this decision)."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -71,9 +72,12 @@ is well-formed per etherparse's own validation):
 3. When `hw_addr_type() != ETHERNET` or `proto_addr_type() != IPV4` or `hw_addr_size() != 6`
    or `proto_addr_size() != 4` (any of the four conditions in the combined guard at
    decoder.rs:312-315), the function returns `None` (no panic — graceful rejection). This is
-   explicitly verified by the `verify_extract_arp_frame_none_on_invalid_header` Kani harness
+   explicitly verified by the `verify_extract_arp_frame_none_on_bad_size` Kani harness
    below, which makes HTYPE, PTYPE, HLEN, and PLEN fully symbolic and constrains the symbolic
    domain to the rejection region via `kani::assume(htype != ETHERNET || ptype != IPV4 || hlen != 6 || plen != 4)`.
+   Note: the harness name predates decision D-077; despite '_bad_size', it now verifies the
+   FULL type-or-size reject contract (hw/proto type AND size) per D-077 — the name is retained
+   to avoid cross-artifact churn across delivered stories and architecture docs.
 
 **Sub-property B — GARP detection totality** (`is_gratuitous_arp` or equivalent detection
 function, anchors BC-2.16.003):
@@ -311,6 +315,10 @@ mod kani_proofs {
     // proofs. Decision D-077 added the type-rejection branches (HTYPE != ETHERNET,
     // PTYPE != IPV4); this harness covers them alongside the pre-existing size branches.
     //
+    // Note: the harness name predates decision D-077; despite '_bad_size', it now verifies
+    // the FULL type-or-size reject contract (hw/proto type AND size) per D-077 — the name
+    // is retained to avoid cross-artifact churn across delivered stories and architecture docs.
+    //
     // Strategy: construct a 28-byte buffer with ALL of HTYPE, PTYPE, HLEN, PLEN left
     // fully symbolic (kani::any()). Use kani::assume to restrict the symbolic domain to
     // the rejection region:
@@ -319,7 +327,7 @@ mod kani_proofs {
     // This covers type-only rejection (e.g. HTYPE=0x0006/Token Ring, valid HLEN/PLEN),
     // size-only rejection (HTYPE=Ethernet, PTYPE=IPv4, bad HLEN/PLEN), and mixed cases.
     #[kani::proof]
-    fn verify_extract_arp_frame_none_on_invalid_header() {
+    fn verify_extract_arp_frame_none_on_bad_size() {
         let mut buf: [u8; 28] = kani::any();
         // HTYPE bytes (0-1), PTYPE bytes (2-3), HLEN byte (4), PLEN byte (5) are all
         // left symbolic (kani::any() applies to the whole buf). Only the reject-region
@@ -432,7 +440,7 @@ mod kani_proofs {
 |---|---|---|---|---|
 | A (safety) | `verify_extract_arp_frame_safety` | `[u8; 28]` fully symbolic; only valid slices tested (from_slice Ok path) | none (no loop) | no panic |
 | A (correctness) | `verify_extract_arp_frame_eth_ipv4_correctness` | `[u8; 28]` with HTYPE/PTYPE/HLEN/PLEN fixed; OPER+addrs symbolic | none | Some returned; all field values exact |
-| A (negative) | `verify_extract_arp_frame_none_on_invalid_header` | `[u8; 28]` fully symbolic (HTYPE, PTYPE, HLEN, PLEN all symbolic); constrained to rejection region via `kani::assume(htype != 0x0001 \|\| ptype != 0x0800 \|\| hlen != 6 \|\| plen != 4)` | none | `result.is_none()` — no panic; graceful None for type OR size mismatch |
+| A (negative) | `verify_extract_arp_frame_none_on_bad_size` | `[u8; 28]` fully symbolic (HTYPE, PTYPE, HLEN, PLEN all symbolic); constrained to rejection region via `kani::assume(htype != 0x0001 \|\| ptype != 0x0800 \|\| hlen != 6 \|\| plen != 4)` | none | `result.is_none()` — no panic; graceful None for type OR size mismatch (name predates D-077; covers full type+size reject contract per v1.9 clarification) |
 | B (totality) | `verify_classify_garp_total` | symbolic `ArpFrame` (all fields symbolic, `operation: kani::any()`) | none (straight-line) | `is_garp == (sender_ip == target_ip)` for ALL operation values |
 | D (cap) | `verify_binding_table_cap` | deterministic IPs (0..=8); symbolic MACs; BTreeMap surrogate | `#[kani::unwind(12)]` | `bindings.len() <= TEST_MAX_ARP_BINDINGS` after every insert |
 
