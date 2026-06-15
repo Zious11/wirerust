@@ -11,6 +11,20 @@ Archived per content-routing rules (STATE.md keeps only the LATEST checkpoint).
 
 ---
 
+## Archived Checkpoint: 2026-06-15 — F4 ARP DELTA-IMPLEMENTATION; STORY-113 Step-4.5 CONVERGED (0437be6; 1535 tests); NEXT = demo-recorder → pr-manager → STORY-114
+
+**Archived from STATE.md on:** 2026-06-15 (replaced by "STORY-113 DELIVERED PR #239 7b7dbb2; NEXT = STORY-114" checkpoint)
+
+### POSITION
+
+- STORY-111 DELIVERED (PR #236 cced898). STORY-112 DELIVERED (PR #238 10e4472).
+- Wave 42 / STORY-113: Step-4.5 CONVERGED — 3/3 clean passes (ad044181/ae1383274/ad2223ab) on frozen diff 0437be6. 1535 tests. F-113-01 HIGH RESOLVED. json.rs = develop baseline.
+- develop HEAD: 10e4472 (STORY-113 merge pending at time of checkpoint).
+- Input-hash: STORY-113=7c61bae MATCH, STORY-114=5705a10 MATCH, STORY-115=2e0eca2 MATCH (re-stamped 68885d4).
+- NEXT: demo-recorder → pr-manager (STORY-113). Then STORY-114.
+
+---
+
 ## Archived Checkpoint: 2026-06-12 — ARP Feature F1 PASSED / F2 PENDING
 
 **Archived from STATE.md on:** 2026-06-13 (replaced by "F2 STRICT WHOLE-CORPUS CONVERGENCE, mid-loop" checkpoint)

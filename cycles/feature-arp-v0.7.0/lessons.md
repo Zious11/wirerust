@@ -156,6 +156,47 @@ DF-PR-MANAGER-COMPLETE-001 recurrence count to 3 in policy registry.
 
 ---
 
+## [process-gap] PG-ARP-F4-PRMGR-MERGE-SHORTSTOP (RECURRENCE #4)
+
+**Source:** STORY-113 PR #239 delivery (2026-06-15). Fourth recurrence this feature cycle.
+
+**Observation:** pr-manager again stopped at step 6 (APPROVE) on PR #239 without
+executing steps 7-9 (merge + confirm CI + consolidated report). Required an orchestrator
+SendMessage to complete the merge. This is the 4th consecutive recurrence this feature
+cycle (PRs #236 STORY-111, #238 STORY-112, #239 STORY-113, plus the DNP3 F5 instance
+that seeded the pattern).
+
+**Pattern confirmed:** Every ARP-feature PR has required manual merge-completion
+intervention. The pr-manager agent interprets its job as securing APPROVE, not as
+driving the PR to a merged state. The 9-step dispatch protocol is structurally
+under-weighted toward completion vs. the review loop.
+
+**Escalation:** Four consecutive recurrences in one feature cycle is a confirmed
+agent-prompt defect in the vsdd-factory pr-manager. The steps-7-9 completion
+instruction is present in the dispatch protocol but is insufficiently weighted
+or parsed relative to the review-loop steps. This should be filed as an
+agent-prompt-defect against the vsdd-factory pr-manager after DF-VALIDATION-001
+research-agent validation.
+
+**Proactive mitigation for STORY-114:** The orchestrator must explicitly include
+"DO NOT STOP AT APPROVE — you MUST execute steps 7-9 (merge, confirm CI green,
+consolidated report) before returning to orchestrator" in the pr-manager dispatch
+message, AND verify merge completion before closing the PR cycle.
+
+**Note on AC-009 recurrence:** The two non-blocking items fixed pre-merge on PR #239
+(AC-009 D12 evidence assertion strengthened + stale summary-path comment corrected,
+commit a73fbd6) were caught by pr-reviewer fresh eyes. The evidence-assertion
+weakness on AC-009 is a recurrence of PG-ARP-F4-PROXY-COUNTER-TEST — the
+implementer asserted evidence indirectly. Reinforces the proactive application
+of stronger finding-emission assertions in STORY-114 (D1) and STORY-115 (D3).
+
+**Status:** DEFERRED — file agent-prompt-defect against vsdd-factory pr-manager
+after DF-VALIDATION-001 research-agent validation; escalate DF-PR-MANAGER-COMPLETE-001
+to CRITICAL in policy registry. Apply proactive merge-completion mandate in STORY-114
+dispatch.
+
+---
+
 ## [process-gap] PG-ARP-F4-INVERTED-TDD
 
 **Source:** STORY-113 Step-4.5 adversarial convergence (caught pre-convergence by
