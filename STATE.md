@@ -1,7 +1,7 @@
 ---
 pipeline: FEATURE_MODE_ARP_ANALYZER
 phase: feature-F4-delta-implementation
-phase_status: "F4 IN PROGRESS — F3 human gate PASSED (D-070); per-story TDD delivery on STORY-111..115 (linear chain, waves 40-44); NEXT = STORY-111 delivery (etherparse 0.20 migration + DecodedFrame, BC-2.02.009, VP-008)."
+phase_status: "F4 IN PROGRESS — F3 human gate PASSED (D-070); STORY-111 re-scoped v1.1 (D-071: F4-surfaced decomposition fix; scoped adversarial re-review of STORY-111/112 in progress); NEXT = after scoped adversarial re-review of STORY-111/112 → re-align worktree stub (extract_arp_frame todo!()→non-panicking placeholder per AC-005b, commit 4e22ef9 based on old over-scoped STORY-111) → test-writer (re-scoped ACs: AC-003/005/005b/006/009/010) → implementer → Step-4.5 → demo → PR."
 active_feature: "arp-analyzer"
 feature_arp_status: "F1 Delta Analysis PASSED (human-gated 2026-06-12) — DecodedFrame integration, ADR-008 planned, F2→F7 authorized; release target v0.7.0"
 feature_8_status: "v0.6.0 RELEASED 2026-06-12 — DNP3 TCP analyzer; F7 5-dim CONVERGED; tag v0.6.0 + 4 binaries"
@@ -300,6 +300,18 @@ PG-ARP-F3-ADVERSARY-MOUNT, PG-ARP-F3-CHANGELOG-TABLE) are JUSTIFIED DEFERRALS �
 improvements appropriately deferred to a self-improvement epic / next feature cycle. Each is
 recorded above with its deferral target. F3 gate SATISFIED; cycle can close.
 
+- **PG-ARP-F4-AC-SCOPE-FEASIBILITY (2026-06-14, D-071):** F3 adversarial convergence (38 strict
+  whole-corpus passes) did not catch STORY-111's over-scoped ACs because the adversary rubric
+  tests spec-internal-consistency only — not "is each AC satisfiable within the story's own
+  declared scope + dependency boundary (no reliance on a blocked/later story's deliverables)?"
+  The over-scoped ACs (AC-001/002/004/007/008 asserting extract_arp_frame end-to-end behavior
+  belonging to STORY-112) survived F3 and were only caught by the strict-TDD stub-architect
+  Red-Gate phase (BC-5.38.005 self-check) at F4 entry. Candidate improvements: (a) add an
+  AC-scope-feasibility axis to the adversary spec-review rubric — for each AC, verify it can be
+  satisfied without invoking deliverables of a story not yet in the dependency chain; (b) add a
+  stub-architect-style BC-5.38.005 dry-run check at F3 gate or as a pre-convergence step.
+  DEFER → engine adversary-rubric + F3-gate enhancement.
+
 ### G. DEFERRED ITEMS (must not be lost)
 
 - Process-gap codification backlog PG-ARP-F2-003..009 — tracked in Drift Items table (STATE.md); deferred to next feature cycle.
@@ -363,6 +375,7 @@ D-001..D-054 archived: `cycles/v0.1.0-greenfield-spec/decisions-archive.md` (D-0
 | D-068 | Benign gratuitous ARP emits mitre_techniques: [] (LOW/Anomaly severity); T0830 + T1557.002 apply ONLY when GARP conflicts with binding table (BC-2.16.014). Research-backed: MITRE ATT&CK v19.1 T1557.002/DET0387 + T0830; arpwatch/Zeek/Suricata all gate techniques on conflict-detection. Corrected latent over-tagging defect in BC-2.16.003 (→v1.7) and ADR-008 (→v2.0). Propagated to §3.3/STORY-113 AC-003, holdouts, and error-taxonomy. | 2026-06-14 |
 | D-069 | IcsImpact Display canonical = "Impact (ICS)" (distinct from Enterprise "Impact" TA0040). SUPERSEDES D-067. Research-backed: MITRE TA0040 (Enterprise Impact) vs TA0105 (ICS Impact) are distinct tactic families; WCAG 2.4.6 requires unique headings/labels. src/mitre.rs:91 "Impact (ICS)" is CORRECT — not deviant. STORY-114 D-067 revert obligations (F3-OBL-STORY114-001/002/003) REVOKED. 2 shipped DNP3 F5 distinctness tests preserved (they test enum-variant identity, not Display string equality). Spec side corrected: BC-2.10.002 (→v1.5), PRD §85/882, ADR-007, arp-architecture-delta §5.0. | 2026-06-14 |
 | D-070 | Feature ARP F3 human gate PASSED (2026-06-14) — STORY-111..115 (E-16, 47 pts) accepted as-is; F3 strict whole-corpus adversarial convergence SATISFIED (3/3, Passes 36/37/38; 38 passes total + 3 consistency flushes). F4 delta-implementation AUTHORIZED: per-story TDD on the linear chain STORY-111→112→113→114→115; release target v0.7.0. etherparse 0.16→0.20 migration folded into STORY-111 (sub-delta A). Human review questions (scope/MITRE/linear-chain/etherparse) — no changes requested; approved as-is. | 2026-06-14 |
+| D-071 | F4-surfaced STORY-111 decomposition fix (2026-06-14) — strict-TDD stub-architect Red-Gate (BC-5.38.005 self-check) caught that STORY-111 ACs (001/002/004/007/008) asserted STORY-112's extract_arp_frame end-to-end ARP-decode behavior, unsatisfiable within STORY-111's §6 scaffolding scope and duplicative of STORY-112 AC-006/007/004. Re-scoped STORY-111→v1.1 (scaffolding-only ACs AC-003/005/005b/006/009/010 + AC-005b non-panicking extract_arp_frame placeholder preserving VP-008); added STORY-112 AC-012→v1.1 (decode_packet-level Err("Non-Ethernet/IPv4 ARP frame")) closing the one coverage gap. BC-2.02.009 unedited (primary STORY-111; ARP-Ok postcondition behaviorally satisfied in STORY-112 — story-level framing). Both stories input-hash MATCH (d5bda72/268f53f — body-only edits). 38 strict F3 passes did not catch this (AC-satisfiable-within-dependency-scope feasibility check, not spec-internal-consistency) — validates strict-TDD value. Scoped adversarial re-review of STORY-111/112 in progress before resuming TDD. Worktree stub commit 4e22ef9 was based on old over-scoped STORY-111 and must be re-aligned (extract_arp_frame todo!()→non-panicking placeholder). | 2026-06-14 |
 
 ## Blocking Issues
 
