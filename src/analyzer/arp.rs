@@ -461,7 +461,10 @@ impl ArpAnalyzer {
                     category: ThreatCategory::Anomaly,
                     verdict: Verdict::Possible,
                     confidence: Confidence::Low,
-                    summary: "D2: Gratuitous ARP (GARP) — sender_ip equals target_ip".to_string(),
+                    summary: "D2: Gratuitous ARP (GARP) with binding conflict — \
+                              sender_ip equals target_ip and conflicts with an existing \
+                              IP\u{2192}MAC binding"
+                        .to_string(),
                     evidence: vec![
                         format!(
                             "sender_ip={}.{}.{}.{}",

@@ -59,8 +59,8 @@ use anyhow::{Result, anyhow};
 use etherparse::err::Layer;
 use etherparse::err::packet::SliceError;
 use etherparse::{
-    ArpPacketSlice, EtherType, IpNumber, LaxNetSlice, LaxSlicedPacket, NetSlice, SlicedPacket,
-    TransportSlice,
+    ArpHardwareId, ArpPacketSlice, EtherType, IpNumber, LaxNetSlice, LaxSlicedPacket, NetSlice,
+    SlicedPacket, TransportSlice,
 };
 use pcap_file::DataLink;
 use serde::Serialize;
@@ -198,8 +198,9 @@ pub fn decode_packet(data: &[u8], datalink: DataLink) -> Result<DecodedFrame> {
                 });
                 match extract_arp_frame(arp, outer_src_mac, data.len()) {
                     Some(f) => Ok(DecodedFrame::Arp(f)),
-                    // AC-012 / BC-2.16.015: non-Eth/IPv4 ARP (hw_addr_size!=6 or
-                    // proto_addr_size!=4) → decode-layer Err with diagnostic string.
+                    // AC-012 / BC-2.16.015 / BC-2.16.009 PC3: non-Eth/IPv4 ARP
+                    // (hw_addr_type!=ETHERNET, proto_addr_type!=IPv4, hw_addr_size!=6,
+                    // or proto_addr_size!=4) → decode-layer Err with diagnostic string.
                     None => Err(anyhow!("Non-Ethernet/IPv4 ARP frame")),
                 }
             }
@@ -281,8 +282,9 @@ pub fn decode_packet(data: &[u8], datalink: DataLink) -> Result<DecodedFrame> {
 
 /// Extract an [`ArpFrame`] from an etherparse `ArpPacketSlice`.
 ///
-/// Returns `Some(ArpFrame)` when `hw_addr_size == 6` and `proto_addr_size == 4`
-/// (Ethernet/IPv4 ARP); returns `None` for any other hw/proto address size
+/// Returns `Some(ArpFrame)` when `hw_addr_type == ETHERNET`, `proto_addr_type == IPV4`,
+/// `hw_addr_size == 6`, and `proto_addr_size == 4` (Ethernet/IPv4 ARP); returns `None`
+/// for any frame that fails either the type check or the size check
 /// (signals the caller to return `Err("Non-Ethernet/IPv4 ARP frame")` for the
 /// strict path, or `Err("truncated ARP frame")` for the lax path).
 ///
@@ -301,10 +303,17 @@ pub fn extract_arp_frame(
     outer_src_mac: Option<[u8; 6]>,
     packet_len: usize,
 ) -> Option<ArpFrame> {
-    // Guard: only Ethernet (hlen=6) / IPv4 (plen=4) ARP is supported.
-    // Non-standard sizes return None (BC-2.16.001 EC-007/EC-008, VP-024 Sub-A).
-    // No panic: the size fields are just u8 comparisons.
-    if arp.hw_addr_size() != 6 || arp.proto_addr_size() != 4 {
+    // Guard: only Ethernet/IPv4 ARP is admitted (BC-2.16.001 PC2-PC5,
+    // BC-2.16.009 PC3a/PC3b, EC-007/EC-008, VP-024 Sub-A).
+    // hw_addr_type must be ETHERNET (0x0001); proto_addr_type must be IPv4 (0x0800);
+    // hw_addr_size must be 6; proto_addr_size must be 4.
+    // Any frame failing either the type check or the size check returns None.
+    // No panic: all comparisons are on u8/newtype fields.
+    if arp.hw_addr_type() != ArpHardwareId::ETHERNET
+        || arp.proto_addr_type() != EtherType::IPV4
+        || arp.hw_addr_size() != 6
+        || arp.proto_addr_size() != 4
+    {
         return None;
     }
 
