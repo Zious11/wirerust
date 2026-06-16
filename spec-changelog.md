@@ -14,6 +14,60 @@ changes, invariant rewrites).
 
 ---
 
+## [bc-2.16.009-015-d078-lax-malformed-d11-2026-06-15] — 2026-06-15
+
+### PATCH: BC-2.16.009 v1.4→v1.5 + BC-2.16.015 v1.3→v1.4 — D-078 lax-built malformed ARP routes to D11 (F5 O-A fix)
+
+**Decision:** D-078 (F5 finding O-A, human-adjudicated FIX). Spec-layer only; no code changes.
+
+**Root cause:** The lax `Err(SliceError::Len(_))` arm in `decode_packet` handles two sub-cases
+that were previously conflated. When the lax parser builds a `LaxNetSlice::Arp(arp)` slice but
+`extract_arp_frame` returns `None` (because the 4-part type/size guard fails), this is a **D11
+malformed condition** — the same as the strict path. But the code was emitting
+`Err("truncated ARP frame")` for this sub-case, which is NOT routed to `record_malformed` (D11).
+The correct behavior: `Err("Non-Ethernet/IPv4 ARP frame")` → D11 malformed finding, regardless
+of which decode arm (strict or lax) built the `ArpPacketSlice`.
+
+The ONLY genuine truncation case (→ `"truncated ARP frame"`, NOT D11) is when the lax parser
+cannot build an `ArpPacketSlice` at all (`lax.net == None`, `stop_err == Layer::Arp`). That
+path is unchanged.
+
+#### BC-2.16.009 changes (v1.4 → v1.5)
+
+- **Precondition 2 clarified:** Now states explicitly that `extract_arp_frame` receives an
+  `ArpPacketSlice` from either the strict path or the lax path — path-independence is normative.
+- **Precondition 3 (new D-078 note):** Added `**Path-independence (D-078)**` paragraph stating
+  that the D11 condition applies regardless of which decode arm produced the slice.
+- **EC-008 added:** "Snaplen-truncated ARP capture where lax parser builds an `ArpPacketSlice`
+  but `extract_arp_frame` returns `None` (bad type/size fields) → D11 malformed finding
+  (Err("Non-Ethernet/IPv4 ARP frame") + record_malformed). Distinct from EC-007 where lax parser
+  cannot build a slice at all."
+
+#### BC-2.16.015 changes (v1.3 → v1.4)
+
+- **Postcondition 7 (formerly a single bullet) split into PC-7a and PC-7b:**
+  - **(7a) Lax-built slice, extract fails → D11:** `Err("Non-Ethernet/IPv4 ARP frame")` →
+    `record_malformed` → LOW D11 finding. (Old behavior: incorrectly said "truncated ARP frame".)
+  - **(7b) Lax parser cannot build a slice → generic decode-error (NOT D11):**
+    `Err("truncated ARP frame")` → existing generic decode-error handling, no D11 finding.
+  - Added `**The distinction (D-078)**` paragraph: error string is the routing key.
+- **EC-008 added:** Lax-built-slice + extract None sub-case → Err("Non-Ethernet/IPv4 ARP frame")
+  → D11 (PC-7a). Documents the case that was previously absorbed as a generic decode-error.
+
+**Stories referencing old behavior:** STORY-112 (AC-007/AC-008 reference `"truncated ARP frame"`
+for the lax `None` case; these ACs must be updated to reflect the PC-7a/7b split). Story-writer
+dispatch required for STORY-112 AC propagation.
+
+**Artifacts changed:**
+
+| Artifact | Change |
+|----------|--------|
+| `.factory/specs/behavioral-contracts/ss-16/BC-2.16.009.md` | v1.4→v1.5; PC-2 and PC-3 path-independence note; EC-008 added |
+| `.factory/specs/behavioral-contracts/ss-16/BC-2.16.015.md` | v1.3→v1.4; PC-7 split into PC-7a/PC-7b; EC-008 added |
+| `.factory/spec-changelog.md` | this entry |
+
+---
+
 ## [prd-v1.25-ss15-titlesync-2026-06-14] — 2026-06-14
 
 ### PATCH: PRD v1.24→v1.25 — §2.15 BC Index Title-Sync (post-Pass-26 consistency flush)

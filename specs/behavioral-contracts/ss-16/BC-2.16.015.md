@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: product-owner
 timestamp: 2026-06-12T00:00:00Z
@@ -17,6 +17,7 @@ modified:
   - "v1.1: F3 story-anchor back-fill. — 2026-06-14"
   - "v1.2: F4 scoped-adversarial remediation — sibling-propagation gap from BC-2.02.009 v1.6 correction. Invariant 2 and Architecture Anchors wrongly attributed unreachable! to lax_ip_triple / LaxNetSlice::Arp arm. ADR-008 Decision 3 v1.6 and arp-architecture-delta.md §2.2 state unambiguously: strict_ip_triple NetSlice::Arp arm = compile-safety unreachable! (ARP routed out before strict_ip_triple is called); lax_ip_triple LaxNetSlice::Arp arm = explicit routing to extract_arp_frame (NOT unreachable!) — truncated ARP reaches lax_ip_triple at runtime; unreachable! there would be a VP-008/VP-024 Sub-A violating panic. EC-007 (strict_ip_triple only) was already correct and is now consistent with the fixed Invariant 2. — 2026-06-14"
   - "v1.3: F4 architect ruling supersedes v1.2 'explicit routing NOT unreachable' framing (ADR-008 Decision 3 v2.1; arp-architecture-delta.md §2.2 v1.16): the design is SYMMETRIC. decode_packet intercepts Some(LaxNetSlice::Arp(_)) in the Err(SliceError::Len(_)) arm BEFORE calling lax_ip_triple, routing it to extract_arp_frame. lax_ip_triple returns IpTriple and cannot route ARP; its LaxNetSlice::Arp(_) arm IS unreachable! (compile-safety guard, symmetric to strict_ip_triple). Invariant 2 and Architecture Anchor for lax_ip_triple updated to symmetric unreachable! framing. — 2026-06-14"
+  - "v1.4: D-078 (F5 finding O-A, human-adjudicated FIX) — PC-7 split into two sub-cases: (7a) lax-built ArpPacketSlice + extract_arp_frame returns None (bad type/size) → Err(\"Non-Ethernet/IPv4 ARP frame\") → D11 malformed finding; (7b) lax parser cannot build ArpPacketSlice at all (stop_err == Layer::Arp, lax.net == None) → Err(\"truncated ARP frame\") → generic decode-error (not D11). Old PC-7 incorrectly described both lax-None sub-cases as Err(\"truncated ARP frame\"). EC-008 added to document the lax-built-slice D11 sub-case explicitly. — 2026-06-15"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -65,10 +66,32 @@ it specifies the structural pipeline guarantee rather than a security finding.
 6. In neither case does the `DecodedFrame::Arp` arm fall through to the IP pipeline; ARP frames
    never reach `StreamDispatcher`, the reassembler, or any `ProtocolAnalyzer`.
 
-**Malformed ARP frames (non-Ethernet/IPv4):**
-7. When `extract_arp_frame` returns `None` (malformed per BC-2.16.009 precondition):
-   `decode_packet` returns `Err("Non-Ethernet/IPv4 ARP frame")`. This is not a `DecodedFrame::Arp`
-   — the malformed frame is an error, not a successfully decoded frame.
+**Malformed ARP frames and genuine truncation (lax path disambiguation — D-078):**
+7. The lax `Err(SliceError::Len(_))` arm handles two distinct sub-cases. They MUST NOT be
+   conflated; they route differently:
+
+   **(7a) Lax-built slice, extract fails — D11 malformed finding:**
+   When the lax parser successfully builds a `LaxNetSlice::Arp(arp)` slice but
+   `extract_arp_frame(arp, ...)` returns `None` (because the 4-part type/size guard fails:
+   hw_addr_type, proto_addr_type, hw_addr_size, or proto_addr_size is non-standard),
+   `decode_packet` returns `Err("Non-Ethernet/IPv4 ARP frame")`. This is the **same D11
+   malformed path** as the strict decode arm. `main.rs` routes this error string to
+   `arp_analyzer.record_malformed(packet_len)`, emitting a D11 LOW/Anomaly finding (per
+   BC-2.16.009). This is not a `DecodedFrame::Arp` — the malformed frame is an error, not
+   a successfully decoded frame.
+
+   **(7b) Lax parser cannot build a slice — generic decode-error (NOT D11):**
+   When the lax parser itself cannot build an `ArpPacketSlice` (i.e., `lax.net == None` or
+   `stop_err == Layer::Arp` — the ARP frame is too truncated even for the lax parser),
+   `decode_packet` returns `Err("truncated ARP frame")`. This is a genuine truncation
+   error. It is NOT routed to `record_malformed` and does NOT produce a D11 finding. It
+   is absorbed into the existing generic decode-error handling path (same as pre-D-078
+   behavior for this specific sub-case).
+
+   **The distinction (D-078):** Sub-case 7a has a slice (etherparse built it) but the
+   ARP field values are malformed → D11. Sub-case 7b has no slice (etherparse could not
+   build it) → generic decode-error. The error string is the routing key: `main.rs`
+   dispatches `"Non-Ethernet/IPv4 ARP frame"` → D11; `"truncated ARP frame"` → no D11.
 
 ## Invariants
 
@@ -107,6 +130,7 @@ it specifies the structural pipeline guarantee rather than a security finding.
 | EC-005 | IPv4 frame (EtherType 0x0800) | `Ok(DecodedFrame::Ip(ParsedPacket))` (IP path, unchanged) |
 | EC-006 | IPv6 frame (EtherType 0x86DD) | `Ok(DecodedFrame::Ip(ParsedPacket))` (IP path, unchanged) |
 | EC-007 | NetSlice::Arp in strict_ip_triple | `unreachable!("ARP frames are routed before strict_ip_triple")` — compile-safety arm, never reached at runtime |
+| EC-008 | Snaplen-truncated ARP capture: lax parser builds `LaxNetSlice::Arp(arp)` but `extract_arp_frame` returns `None` (bad type/size fields) | `Err("Non-Ethernet/IPv4 ARP frame")` — D11 malformed path (PC-7a); routes to `record_malformed` → LOW finding. NOT a "truncated ARP frame" error. Added by D-078. |
 
 ## Canonical Test Vectors
 

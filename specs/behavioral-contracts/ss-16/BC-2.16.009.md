@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.4"
+version: "1.5"
 status: draft
 producer: product-owner
 timestamp: 2026-06-12T00:00:00Z
@@ -17,6 +17,7 @@ modified:
   - "v1.2: Pass-4 remediation F-B4-M05: PC4 'increment together' contradiction resolved — reworded to clarify: when --arp active, malformed_findings increments with malformed_frames; when --arp absent, malformed_frames still increments but no finding emitted (malformed_findings unchanged), per BC-2.16.010 key 11 and ADR-008 Decision 7. — 2026-06-12"
   - "v1.3: Pass-8 remediation F-B8-L02: PC4 clarified — note added explaining that the --arp-absent clause in PC4 describes counter behavior that operates outside the --arp-active gate stated in Precondition 4; PC4's --arp-absent sub-clause is not a contradiction of PC4's position within a contract whose outer precondition requires --arp active, but rather a specification of how malformed_frames still increments even without the active gate. — 2026-06-12"
   - "v1.4: F3 story-anchor back-fill. — 2026-06-14"
+  - "v1.5: D-078 (F5 finding O-A, human-adjudicated FIX) — Precondition 3 clarified: the 4-part type/size guard failure that triggers the D11 path occurs regardless of which decode arm (strict or lax) built the ArpPacketSlice. A lax-built slice that fails extract_arp_frame is a D11 malformed condition (same error string, same D11 routing) — not a generic decode-error. EC-008 added: lax-built-slice + extract_arp_frame None case explicitly documented as D11. The ONLY case that remains a generic decode-error (not D11) is when the lax parser cannot build an ArpPacketSlice at all (stop_err == Layer::Arp, lax.net == None). — 2026-06-15"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -47,12 +48,21 @@ validation that has not been performed (same rationale as D3).
 ## Preconditions
 
 1. An Ethernet frame with EtherType 0x0806 was parsed by etherparse 0.20.
-2. etherparse successfully constructed an `ArpPacketSlice` from the frame.
+2. etherparse constructed an `ArpPacketSlice` from the frame — via either the strict decode
+   path (`Ok(NetSlice::Arp(arp))`) or the lax decode path (`Some(LaxNetSlice::Arp(arp))` in
+   the `Err(SliceError::Len(_))` arm). Both paths produce a valid `ArpPacketSlice` that is
+   then passed to `extract_arp_frame`. (The lax path handles snaplen-truncated captures where
+   etherparse can still build the ARP slice despite the packet being truncated overall.)
 3. `extract_arp_frame` returned `None` because at least one of the following holds:
    a. `hw_addr_type != ArpHardwareId::ETHERNET` (hardware type is not 0x0001)
    b. `proto_addr_type != EtherType::IPV4` (protocol type is not 0x0800)
    c. `hw_addr_size != 6` (hardware address length is not 6 bytes)
    d. `proto_addr_size != 4` (protocol address length is not 4 bytes)
+
+   **Path-independence (D-078):** This D11 condition applies regardless of which decode
+   arm produced the `ArpPacketSlice`. Whether the slice came from the strict path or the lax
+   path, a `None` return from `extract_arp_frame` always means the 4-part type/size guard
+   failed — the frame is malformed, and D11 routing applies in both cases.
 4. `--arp` flag is active (analysis gate per BC-2.16.011).
 
 ## Postconditions
@@ -122,6 +132,7 @@ validation that has not been performed (same rationale as D3).
 | EC-005 | proto_addr_size=0 (zero-length protocol address) | `None`; malformed D11 finding |
 | EC-006 | hw_addr_type=Ethernet, proto_addr_type=IPv4, hw_addr_size=6, proto_addr_size=4 (all correct) | `Some(ArpFrame { ... })` — NOT malformed; normal path (BC-2.16.001 / BC-2.16.002) |
 | EC-007 | etherparse rejects the frame entirely (malformed EtherType, truncated payload) | etherparse returns Err (not ArpPacketSlice); the frame never reaches extract_arp_frame; handled by existing decode error path (not D11) |
+| EC-008 | Snaplen-truncated ARP capture where lax parser builds an `ArpPacketSlice` but `extract_arp_frame` returns `None` (bad type/size fields) | **D11 malformed finding** (same as strict path) — `decode_packet` returns `Err("Non-Ethernet/IPv4 ARP frame")`, routes to `record_malformed` (D11). Distinct from EC-007 where lax parser cannot build a slice at all (that is a generic decode-error, not D11). Added by D-078. |
 
 ## Canonical Test Vectors
 
