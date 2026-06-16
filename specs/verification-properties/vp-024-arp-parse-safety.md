@@ -1,7 +1,7 @@
 ---
 document_type: verification-property
 level: L4
-version: "2.1"
+version: "2.2"
 status: verified
 producer: architect
 timestamp: 2026-06-16T00:00:00Z
@@ -36,6 +36,7 @@ modified:
   - "v1.9 (2026-06-15): O-1 propagation fix (adversarial F4 re-streak finding, MEDIUM) — reverted the v1.8 cosmetic rename (verify_extract_arp_frame_none_on_bad_size → verify_extract_arp_frame_none_on_invalid_header) to eliminate an 11-site cross-artifact propagation liability across src/decoder.rs, BC-2.16.009, three architecture docs, dependency-graph.md, wave-schedule.md, STORY-112, and sealed changelogs. The substantive 4-part coverage widening from v1.8 (HTYPE/PTYPE bytes made symbolic, kani::assume covering the full hw_addr_type != ETHERNET OR proto_addr_type != IPV4 OR hw_addr_size != 6 OR proto_addr_size != 4 rejection region, property-statement and symbolic-input table updated accordingly) is RETAINED intact. The harness function name reverts to verify_extract_arp_frame_none_on_bad_size; a clarifying scope note has been added to the harness comment and Property Statement point 3 explaining that despite the '_bad_size' name the harness now verifies the full type-or-size reject contract per D-077 (name retained to avoid cross-artifact churn per this decision)."
   - "v2.0 (2026-06-16): F6 LOCK — All five Kani harnesses prove VERIFICATION:- SUCCESSFUL. verification_lock set to true; status draft→verified; phase f2→f6; proof_completed_date set to 2026-06-16. Sub-D Proof Method narrative corrected: insert_binding_lru_btree reference replaced with insert_binding_lru_array (fixed-capacity array surrogate behind #[cfg(any(kani, test))]). Reason for surrogate: CBMC cannot symbolically execute std::collections::BTreeMap — runs out of memory even at 3 inserts with no resolution after 45+ minutes at any cap scale. The array surrogate reproduces the identical 3-branch eviction algorithm (update-in-place / evict-min-last_seen_ts / append) used by the production insert_binding_lru (HashMap). Branch fidelity confirmed by a branch-fidelity test asserting surrogate matches production behavior. The cap invariant proof (len <= cap) remains sound for the production HashMap path by the map-implementation-independence argument: cap invariance is a purely arithmetic property independent of map implementation. Sub-A F4 obligation notes (vacuity risk on Ok-arm reachability) resolved: kani::cover! reachability assertions were added in F4 and confirmed non-vacuous. proof_file_hash and verified_at_commit left null pending develop HEAD after F6 PR merges — do not populate from speculative values."
   - "v2.1 (2026-06-16): F6 anchor population — verified_at_commit populated with 6e9f2cc (develop HEAD at F6 PR #250 merge, 2026-06-16; all 46/46 project-wide Kani harnesses VERIFICATION:- SUCCESSFUL). proof_file_hash deferred: no canonical recomputation method defined for VP-024 proof files; follow-up recorded as FU-F6-KANI-CLEANUP (define method, e.g. SHA-256 of kani_proofs modules in src/decoder.rs + src/analyzer/arp.rs, then populate). Patch bump only — no property, proof-method, or postcondition content changed."
+  - "v2.2 (2026-06-16): F7 consistency F2 — harness skeleton block for Sub-D (verify_binding_table_cap) synced to shipped insert_binding_lru_array signature: entries type corrected from [Option<([u8;4], BindingEntry)>; N] to [([u8; 4], [u8; 6], u32); CAP] (array-of-tuples, no Option wrapper); separate len: &mut usize counter added; assert updated from .filter(|e| e.is_some()).count() <= CAP to len <= CAP; loop rewritten as while i <= CAP as u8 to match shipped harness. Symbolic-input summary table Sub-D row updated to reflect new entries/len signature. Surrounding narrative (NOTE ON SUBSTRATE, soundness argument) was already correct in v2.0 — only the code block skeleton was stale. Patch bump only — verification_lock, status, and all proof properties unchanged."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -461,19 +462,24 @@ mod kani_proofs {
     #[kani::proof]
     #[kani::unwind(12)] // TEST_MAX_ARP_BINDINGS + 3 overhead; covers 0..=8 (9 iterations)
     fn verify_binding_table_cap() {
+        const CAP: usize = TEST_MAX_ARP_BINDINGS; // 8
         // insert_binding_lru_array is a #[cfg(any(kani, test))] fixed-capacity array
         // surrogate implementing the identical 3-branch eviction algorithm as production
         // insert_binding_lru (HashMap). See surrogate rationale in NOTE ON SUBSTRATE above.
-        let mut entries: [Option<([u8; 4], BindingEntry)>; TEST_MAX_ARP_BINDINGS] =
-            [None; TEST_MAX_ARP_BINDINGS];
+        // Signature: entries: &mut [([u8; 4], [u8; 6], u32); N], len: &mut usize,
+        //            ip: [u8; 4], mac: [u8; 6], cap: usize
+        // Entries are (ip, mac, last_seen_ts) tuples; len tracks occupied count separately.
+        let mut entries: [([u8; 4], [u8; 6], u32); CAP] = [([0u8; 4], [0u8; 6], 0u32); CAP];
+        let mut len: usize = 0;
         // Process TEST_MAX_ARP_BINDINGS + 1 frames with distinct IPs.
         // After each insertion, assert the cap holds.
-        for i in 0u8..=(TEST_MAX_ARP_BINDINGS as u8) {
+        let mut i = 0u8;
+        while i <= (CAP as u8) {
             let ip: [u8; 4] = [0, 0, 0, i]; // distinct IP per iteration
             let mac: [u8; 6] = kani::any();
-            insert_binding_lru_array(&mut entries, ip, mac, TEST_MAX_ARP_BINDINGS);
-            let occupied = entries.iter().filter(|e| e.is_some()).count();
-            assert!(occupied <= TEST_MAX_ARP_BINDINGS);
+            insert_binding_lru_array(&mut entries, &mut len, ip, mac, CAP);
+            assert!(len <= CAP);
+            i += 1;
         }
     }
 }
@@ -487,7 +493,7 @@ mod kani_proofs {
 | A (correctness) | `verify_extract_arp_frame_eth_ipv4_correctness` | `[u8; 28]` with HTYPE/PTYPE/HLEN/PLEN fixed; OPER+addrs symbolic | none | Some returned; all field values exact |
 | A (negative) | `verify_extract_arp_frame_none_on_bad_size` | `[u8; 28]` fully symbolic (HTYPE, PTYPE, HLEN, PLEN all symbolic); constrained to rejection region via `kani::assume(htype != 0x0001 \|\| ptype != 0x0800 \|\| hlen != 6 \|\| plen != 4)` | none | `result.is_none()` — no panic; graceful None for type OR size mismatch (name predates D-077; covers full type+size reject contract per v1.9 clarification) |
 | B (totality) | `verify_classify_garp_total` | symbolic `ArpFrame` (all fields symbolic, `operation: kani::any()`) | none (straight-line) | `is_garp == (sender_ip == target_ip)` for ALL operation values |
-| D (cap) | `verify_binding_table_cap` | deterministic IPs (0..=8); symbolic MACs; array surrogate `insert_binding_lru_array` (`#[cfg(any(kani, test))]`; BTreeMap infeasible — CBMC OOM; see Proof Method) | `#[kani::unwind(12)]` | occupied entry count `<= TEST_MAX_ARP_BINDINGS` (=8) after every insert |
+| D (cap) | `verify_binding_table_cap` | deterministic IPs (0..=8); symbolic MACs; array surrogate `insert_binding_lru_array` (`#[cfg(any(kani, test))]`; BTreeMap infeasible — CBMC OOM; see Proof Method); entries: `[([u8; 4], [u8; 6], u32); CAP]`, separate `len: usize` counter | `#[kani::unwind(12)]` | `len <= CAP` (=8) after every insert |
 
 **Sub-property C proptest sketch:**
 

@@ -1,7 +1,7 @@
 ---
 document_type: architecture-delta
 feature: arp-security-analyzer
-version: "1.16"
+version: "1.17"
 status: draft
 producer: architect
 timestamp: 2026-06-12T00:00:00Z
@@ -35,7 +35,7 @@ The module exposes:
 - `impl ArpAnalyzer { pub fn process_arp(&mut self, frame: &ArpFrame, timestamp_secs: u32) -> Vec<Finding> }` — called from `main.rs` for every `DecodedFrame::Arp`
 - `impl ArpAnalyzer { pub fn summarize(&self) -> AnalysisSummary }` — called at end of capture
 - `fn is_gratuitous_arp(frame: &ArpFrame) -> bool` — free pure-core function; VP-024 Sub-B target
-- `fn insert_binding_lru(bindings: &mut HashMap<[u8;4], BindingEntry>, ip: [u8;4], mac: [u8;6], cap: usize)` — free pure-core function; VP-024 Sub-D target (production type; Kani Sub-D proof uses BTreeMap surrogate per ADR-008 Decision 4)
+- `fn insert_binding_lru(bindings: &mut HashMap<[u8;4], BindingEntry>, ip: [u8;4], mac: [u8;6], cap: usize)` — free pure-core function; VP-024 Sub-D target (production type; Kani Sub-D proof uses fixed-capacity array surrogate `insert_binding_lru_array` per ADR-008 Decision 4 — CBMC cannot symbolically execute BTreeMap without OOM; array surrogate reproduces identical 3-branch eviction algorithm; cap invariant proof valid by map-implementation-independence)
 
 `ArpAnalyzer` does NOT implement `ProtocolAnalyzer` (which requires `&ParsedPacket`) or
 `StreamAnalyzer` (which requires reassembled TCP bytes). It receives `&ArpFrame` directly
@@ -191,10 +191,16 @@ the smallest `last_seen_ts` is evicted when the table reaches `MAX_ARP_BINDINGS`
 new one. This is O(N) on overflow only; N ≤ MAX_ARP_BINDINGS = 65,536. Accepted cost.
 
 **Kani proof surrogate (VP-024 Sub-D):** `HashMap` with `RandomState` is incompatible
-with Kani (platform RNG FFI). The Sub-D harness calls `insert_binding_lru_btree` — a
-`#[cfg(any(kani, test))]`-gated wrapper over the same eviction logic parameterized on
-`BTreeMap<[u8;4], BindingEntry>`. The cap invariant is arithmetic and holds for both map
-types. Production type remains `HashMap`.
+with Kani (platform RNG FFI). `BTreeMap` was nominated as an alternative surrogate
+(`insert_binding_lru_btree`) but CBMC cannot symbolically execute `std::collections::BTreeMap`
+— exhausts memory at 3 inserts after 45+ minutes with no resolution at any cap scale.
+The shipped Sub-D harness calls `insert_binding_lru_array` — a `#[cfg(any(kani, test))]`-gated
+fixed-capacity array surrogate with signature
+`fn insert_binding_lru_array<const N: usize>(entries: &mut [([u8; 4], [u8; 6], u32); N], len: &mut usize, ip: [u8; 4], mac: [u8; 6], cap: usize)`
+implementing the IDENTICAL 3-branch eviction algorithm (update-in-place / evict-min-last_seen_ts /
+append). The cap invariant (`len <= cap`) is a purely arithmetic property independent of the
+underlying data structure, valid for the production `HashMap` by map-implementation-independence.
+Production type remains `HashMap`.
 
 `StormCounter` tracks: `count_in_window: u64`, `window_start_ts: u32`, `storm_emitted: bool`.
 
@@ -438,5 +444,6 @@ analyzer/B/C/D (STORY-113) → spoof escalation/MITRE/VP-007 (STORY-114) → sto
 | 1.14 | 2026-06-14 | F-P10-SC-002 coherence fix — §6 STORY-115 Scope column: corrected imprecise "adds `storm_findings` key" framing. BC-2.16.010 PC1 already defines `storm_findings` as canonical key 8 of its 11-key set (from STORY-113); STORY-115 does NOT add the key — it wires the VALUE (the D3 storm-detection count). Rewording: Scope now reads "summarize() storm_findings VALUE wiring — STORY-115 populates the existing BC-2.16.010 storm_findings key (key 8 of the canonical 11, defined by BC-2.16.010 from STORY-113) with the D3 storm-detection count; STORY-115 does not add a new key; BC-2.16.010 primary owner remains STORY-113". BCs column: "adds storm_findings key to AnalysisSummary" corrected to "populates existing storm_findings key value". No BC assignments, §6 ownership BC columns, or any decision changed. STORY-111..115 input hashes require re-stamping (story-writer obligation). |
 | 1.15 | 2026-06-14 | F-P20-D-001 — §6 STORY-114 BCs-covered column: appended cross-story extension annotation for BC-2.16.007 (D12 MITRE back-fill). STORY-114 inputs BC-2.16.007, carries a "BC-2.16.007 Cross-Story Extension (D12 MITRE)" section + AC-017, and BC-2.16.007's cross-story note names STORY-114 as the D12 MITRE back-fill owner — structurally identical to the existing STORY-115/BC-2.16.010 annotation. STORY-114 primary BC ownership (BC-2.16.004/012/014) unchanged. |
 | 1.16 | 2026-06-14 | F4-surfaced §2.2 inconsistency adjudicated and corrected. BLOCK 1 (lax_ip_triple routes ARP / must NOT use unreachable!) was not type-implementable (lax_ip_triple returns IpTriple, cannot produce DecodedFrame::Arp) and was contradicted by the authoritative BLOCK 2 (decode_packet intercepts ARP in its Err(SliceError::Len(_)) arm before calling lax_ip_triple). Corrected to the symmetric design: BOTH strict_ip_triple AND lax_ip_triple carry provably-dead unreachable! compile-safety guards for their respective ARP arms; decode_packet routes ARP in both the Ok(slice) arm (NetSlice::Arp) and the Err(SliceError::Len(_)) arm (LaxNetSlice::Arp) before calling either helper. VP-008 / VP-024 Sub-A no-panic guarantee is provided by decode_packet's interception + panic-free extract_arp_frame, not by lax_ip_triple routing. Supersedes the prior "lax must not be unreachable" framing (v1.6/v1.8). BC-2.02.009 Invariant 2 + BC-2.16.015 Invariant 2 + Architecture Anchors to be realigned by PO (they currently assert the now-superseded NOT-unreachable framing; corrected wording: lax_ip_triple's LaxNetSlice::Arp(_) arm IS unreachable! — symmetric to strict_ip_triple). STORY-111 GREEN implementation follows the corrected design. ADR-008 Decision 3 simultaneously corrected (v2.1). |
+| 1.17 | 2026-06-16 | F7 consistency F2 — §1 insert_binding_lru bullet and §3.1 Kani proof surrogate narrative corrected: stale `insert_binding_lru_btree` / BTreeMap references replaced with `insert_binding_lru_array` (fixed-capacity array surrogate). CBMC-vs-BTreeMap OOM limitation documented. Shipped signature recorded: `entries: &mut [([u8; 4], [u8; 6], u32); N], len: &mut usize, ip: [u8; 4], mac: [u8; 6], cap: usize`. Surrogate correctness sanctioned by map-implementation-independence (cap invariant is a purely arithmetic property independent of map implementation). |
 
 > **Convention (enforced):** new changelog rows MUST be appended in strictly ascending version order. Never insert a row above an existing row with a higher version number. This table has regressed twice (F-SA9-LOW-01 at v1.9; Pass-21 at v1.15); ordering is checked on every adversarial pass.

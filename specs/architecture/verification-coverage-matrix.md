@@ -2,7 +2,7 @@
 artifact: architecture-section
 section: verification-coverage-matrix
 traces_to: ARCH-INDEX.md
-version: "1.6"
+version: "1.7"
 status: verified
 producer: architect
 timestamp: 2026-05-20T00:00:00Z
@@ -40,6 +40,9 @@ modified:
   - date: 2026-06-13
     actor: architect
     reason: "Pass-23 Slice-A fixes: A-01 — VP-024 coverage note story corrected STORY-112/F6→STORY-113/F6 (Sub-A Kani only lands STORY-112; Sub-B/C/D land STORY-113; full VP-024 lock earliest at STORY-113/F6 per arp-architecture-delta §6). A-02 — VP-024 arp.rs row annotated: Sub-A harnesses authored in decoder.rs #[cfg(kani)] block while umbrella VP anchors arp.rs. Version bump 1.5→1.6."
+  - date: 2026-06-16
+    actor: architect
+    reason: "F7 consistency F1 — VP-024 locked/verified at F6 (all 5 Kani harnesses Sub-A ×3 + Sub-B + Sub-D VERIFICATION:- SUCCESSFUL @ develop 6e9f2cc, 2026-06-16); propagate lock: Status draft→verified in VP-to-Module table; coverage note replaced with verified-lock evidence matching VP-022/VP-023 entry style. Version bump 1.6→1.7."
 ---
 
 # Verification Coverage Matrix
@@ -71,7 +74,7 @@ modified:
 | VP-021 | Timestamp provenance threading | reassembly/mod.rs | integration+proptest | test-sufficient | verified |
 | VP-022 | Modbus MBAP parse safety + FC boundary classification | analyzer/modbus.rs | Kani | P1 | verified |
 | VP-023 | DNP3 DL frame parse safety + FC classification + frame_len arithmetic | analyzer/dnp3.rs | Kani | P1 | verified |
-| VP-024 | ARP frame parse safety (extract_arp_frame) + GARP totality + binding-table cap | analyzer/arp.rs | Kani | P1 | draft |
+| VP-024 | ARP frame parse safety (extract_arp_frame) + GARP totality + binding-table cap | analyzer/arp.rs | Kani | P1 | verified |
 
 
 ## Per-Module Coverage Totals
@@ -113,11 +116,14 @@ modified:
 - VP-023 is `verified` — locked at F6 formal hardening gate (2026-06-12 @ develop e685664). verification_lock=true.
   Proof evidence: Kani harnesses SUCCESSFUL (DNP3 DL header parse safety, FC classification totality, validity gate
   biconditional, frame_len arithmetic). See vp-023-dnp3-parse-safety.md frontmatter (verified_at_commit: e685664).
-- VP-024 (ARP parse safety) is `draft` — formal lock pending at STORY-113/F6 (earliest).
-  Sub-A Kani harnesses (verify_extract_arp_frame_safety/correctness/none_on_bad_size) land in
-  STORY-112; Sub-B (verify_classify_garp_total), Sub-C (proptest determinism), and Sub-D
-  (verify_binding_table_cap) land in STORY-113. All four sub-properties must exist before the
-  VP-024 lock can be declared. ARP not yet shipped; src/analyzer/arp.rs absent.
+- VP-024 is `verified` — locked at F6 formal hardening gate (2026-06-16 @ develop 6e9f2cc). verification_lock=true.
+  Proof evidence: all 5 Kani harnesses VERIFICATION:- SUCCESSFUL: Sub-A ×3
+  (verify_extract_arp_frame_safety, verify_extract_arp_frame_eth_ipv4_correctness,
+  verify_extract_arp_frame_none_on_bad_size in src/decoder.rs #[cfg(kani)]) + Sub-B
+  (verify_classify_garp_total) + Sub-D (verify_binding_table_cap, array surrogate
+  insert_binding_lru_array) in src/analyzer/arp.rs #[cfg(kani)]. Sub-C (proptest
+  test_binding_table_last_write_wins) is test-sufficient. See vp-024-arp-parse-safety.md
+  frontmatter (verified_at_commit: 6e9f2cc). See .factory/phase-f6-hardening/kani-results.md.
   [a] VP-024 umbrella is anchored to analyzer/arp.rs (Sub-B/C/D targets). Sub-A Kani harnesses
   (verify_extract_arp_frame_safety, verify_extract_arp_frame_eth_ipv4_correctness,
   verify_extract_arp_frame_none_on_bad_size) are authored in the src/decoder.rs #[cfg(kani)]
