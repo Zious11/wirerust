@@ -2,7 +2,7 @@
 document_type: story
 story_id: STORY-111
 epic_id: E-16
-version: "1.4"
+version: "1.5"
 status: draft
 producer: story-writer
 timestamp: 2026-06-13T00:00:00Z
@@ -25,6 +25,10 @@ github_issue: 9
 # v1.1 changelog: F4-surfaced decomposition fix: re-scoped ACs to §6 scaffolding boundary
 #   (extract_arp_frame end-to-end behavior is STORY-112); added non-panicking placeholder AC
 #   for VP-008 (AC-005b); AC-001/002/004/007/008 removed (covered by STORY-112 AC-006/007/004/012).
+# v1.5 changelog: D-078 annotation in Library & Framework Requirements (bc_array_changes_propagate_to_body_and_acs):
+#   Annotated that "Non-Ethernet/IPv4 ARP frame" and "truncated ARP frame" now map to
+#   distinct conditions per D-078: the former is PC-7a (D11 malformed, lax-built slice
+#   + extract_None); the latter is PC-7b (genuinely unbuildable truncated ARP only).
 # v1.4 changelog: F4 symmetric-unreachable! alignment (D-072):
 #   lax_ip_triple ARP arm reframed to symmetric-unreachable (NOT "explicit routing")
 #     per architect v1.16 / ADR-008 Decision 3 v2.1 ruling; decode_packet intercepts
@@ -142,7 +146,7 @@ added STORY-112 AC.
 | AC-002 | `decode_packet` returns `Err("Non-Ethernet/IPv4 ARP frame")` for non-Eth/IPv4 ARP at decode layer | AC-012 (NEW — added to STORY-112; see below) |
 | AC-004 | No panic on all three ARP decode paths (via extract_arp_frame) | AC-006 (strict Ok path), AC-012 (strict None→Err path), AC-007 (lax path) |
 | AC-007 | `lax_ip_triple` routes `LaxNetSlice::Arp` to `extract_arp_frame`; no panic on truncated ARP | AC-007 (`test_decode_packet_lax_arm_truncated_arp_non_panic`) |
-| AC-008 | Lax `Err(SliceError::Len)` arm maps `extract_arp_frame` `Some(f)→Ok(DecodedFrame::Arp)`, `None→Err("truncated ARP frame")` | AC-007 (`test_decode_packet_lax_arm_truncated_arp_non_panic`) |
+| AC-008 | Lax `Err(SliceError::Len)` arm maps `extract_arp_frame` results: `Some(f)→Ok(DecodedFrame::Arp)`; `None` (bad type/size) → `Err("Non-Ethernet/IPv4 ARP frame")` (D11, PC-7a); lax-unbuildable → `Err("truncated ARP frame")` (PC-7b) — per D-078 | AC-007 (`test_decode_packet_lax_arm_truncated_arp_non_panic`) |
 
 **Note on AC-002 gap:** STORY-112 AC-004 covers `extract_arp_frame` returning `None` for bad
 hw/proto size, and STORY-112 Task 2 documents the `None → Err(anyhow!("Non-Ethernet/IPv4 ARP frame"))`
@@ -238,7 +242,7 @@ Derived from arp-architecture-delta.md §2.1, §2.2, ADR-008 Decisions 1–3, BC
 | Library | Version | Notes |
 |---------|---------|-------|
 | `etherparse` | 0.20 (specifically 0.20.1 confirmed) | `SlicedPacket.link_exts` replaces `.vlan`; `SliceError::Len` unchanged; `Ethernet2Slice::source()` returns `[u8; 6]` by value (no dereference needed) |
-| `anyhow` | same as existing | `anyhow!("Non-Ethernet/IPv4 ARP frame")`, `anyhow!("truncated ARP frame")` |
+| `anyhow` | same as existing | Two distinct error strings per D-078: `anyhow!("Non-Ethernet/IPv4 ARP frame")` (PC-7a — D11 malformed finding; lax-built slice where `extract_arp_frame` returns `None` for bad type/size); `anyhow!("truncated ARP frame")` (PC-7b — decode-error; genuinely unbuildable truncated ARP where `lax.net == None`). Previously these were conflated into a single "truncated ARP frame" path. |
 | `cargo-fuzz` | same as existing | VP-008 harness; return type annotation update only |
 
 ## File Structure Requirements

@@ -2,7 +2,7 @@
 document_type: story
 story_id: STORY-112
 epic_id: E-16
-version: "1.4"
+version: "1.5"
 status: draft
 producer: story-writer
 timestamp: 2026-06-13T00:00:00Z
@@ -30,6 +30,12 @@ github_issue: 9
 #   decode layer. This behavior was previously implicit (covered by Task 2 prose + AC-004),
 #   but lacked a named AC. Added to close coverage gap surfaced when STORY-111
 #   AC-002 was removed and mapped here.
+# v1.5 changelog: D-078 lax-malformed→D11 routing propagation (bc_array_changes_propagate_to_body_and_acs):
+#   AC-007 split to distinguish lax-built + extract_None (bad type/size) → D11
+#     Err("Non-Ethernet/IPv4 ARP frame") [PC-7a, BC-2.16.015 v1.4] from
+#     lax-unbuildable truncation (lax.net==None, stop_err==Layer::Arp) →
+#     Err("truncated ARP frame") [PC-7b]. The old AC-007 incorrectly merged both
+#     into a single "truncated ARP frame" branch. EC-007 and Task 3 updated to match.
 # v1.4 changelog: F-3 citation-exactness fix (DF-AC-TEST-NAME-SYNC-001 v2, pass 2):
 #   All AC `**Test:**` citations updated from unprefixed names to exact BC-prefixed
 #   fn names as they appear in tests/bc_2_16_story112_arp_tests.rs. Test Plan table
@@ -118,11 +124,19 @@ extracted from `slice.link` (Ethernet2Slice::source() by value in etherparse 0.2
 routing is unconditional — it does not depend on the `--arp` flag.
 - **Test:** `test_BC_2_16_015_decode_packet_routes_arp_to_decoded_frame_arp`
 
-### AC-007 (traces to BC-2.16.015 postcondition — lax arm also routes ARP)
+### AC-007 (traces to BC-2.16.015 postcondition — lax arm also routes ARP; D-078)
 `decode_packet`'s `Err(SliceError::Len(_))` lax arm handles `Some(LaxNetSlice::Arp(arp))` via
-`extract_arp_frame` with `outer_src_mac` extracted from `lax.link`. When `extract_arp_frame`
-returns `Some(frame)`, the lax arm returns `Ok(DecodedFrame::Arp(frame))`; when it returns
-`None`, the lax arm returns `Err(anyhow!("truncated ARP frame"))`. No panic for truncated input.
+`extract_arp_frame` with `outer_src_mac` extracted from `lax.link`. Three sub-cases apply
+(D-078 — lax-malformed→D11 routing decision):
+- `extract_arp_frame` returns `Some(frame)` → lax arm returns `Ok(DecodedFrame::Arp(frame))`.
+- `extract_arp_frame` returns `None` (lax built the slice but bad type/size guard failed in
+  `extract_arp_frame`) → lax arm returns `Err(anyhow!("Non-Ethernet/IPv4 ARP frame"))` → D11
+  malformed finding (PC-7a, BC-2.16.015 v1.4 postcondition). A malformed ARP is a D11 finding
+  regardless of whether it arrived via the strict or lax decode path.
+- `lax.net == None` with `stop_err == Layer::Arp` (genuinely UNBUILDABLE truncated ARP — packet
+  too short even for lax slicing) → lax arm returns `Err(anyhow!("truncated ARP frame"))` →
+  generic decode-error (PC-7b). This is the ONLY remaining "truncated ARP frame" case.
+No panic for any of these inputs.
 (Completes the stub left in STORY-111 task 8.)
 - **Test:** `test_BC_2_16_015_decode_packet_lax_arm_truncated_arp_non_panic`
 
@@ -199,14 +213,14 @@ Architecture section references: `architecture/module-decomposition.md` (SS-02 d
 | EC-004 | hw_addr_size=8 (non-standard) | None; no panic |
 | EC-005 | proto_addr_size=16 (IPv6 proto) | None; no panic |
 | EC-006 | op=0 (undefined opcode) | Some(ArpFrame { operation: 0 }); extractor is opcode-agnostic |
-| EC-007 | Snaplen-truncated ARP (lax path) | Ok(DecodedFrame::Arp) if truncated but hw/proto correct; Err("truncated ARP frame") if extract returns None |
+| EC-007 | Snaplen-truncated ARP (lax path) | (D-078) Three sub-cases: (a) lax-built slice, extract returns Some → Ok(DecodedFrame::Arp); (b) lax-built slice, extract returns None (bad type/size) → Err("Non-Ethernet/IPv4 ARP frame") → D11 [PC-7a]; (c) lax cannot build slice (lax.net==None, stop_err==Layer::Arp) → Err("truncated ARP frame") [PC-7b] |
 | EC-008 | DecodedFrame::Arp arm in main.rs; stub unconditionally calls process_arp (returns vec![]) | Stub wiring verified; --arp flag-gating added in STORY-113 |
 
 ## Tasks
 
 1. **Implement `extract_arp_frame`** in `src/decoder.rs`: check hw_addr_type, proto_addr_type, hw_addr_size, proto_addr_size; return `None` if any check fails; copy all six address fields and operation into `ArpFrame`; pass `outer_src_mac` and `packet_len` through unchanged.
 2. **Complete the strict `Ok(slice)` arm** in `decode_packet`: replace the STORY-111 placeholder with the full `NetSlice::Arp(arp) => { let outer_src_mac = slice.link.as_ref().and_then(|l| if let etherparse::LinkSlice::Ethernet2(eth) = l { Some(eth.source()) } else { None }); match extract_arp_frame(arp, outer_src_mac, data.len()) { Some(f) => Ok(DecodedFrame::Arp(f)), None => Err(anyhow!("Non-Ethernet/IPv4 ARP frame")) } }`. Note: use the inline closure directly (no `extract_outer_src_mac` helper — that function is not defined anywhere); `eth.source()` returns `[u8; 6]` by value (etherparse 0.20.1, confirmed).
-3. **Complete the lax `Err(SliceError::Len(_))` arm** in `decode_packet`: replace the STORY-111 stub with the full lax ARP routing per arp-architecture-delta.md §2.2 (extract `outer_src_mac` from `lax.link` via `if let etherparse::LinkSlice::Ethernet2(eth) = l { Some(eth.source()) } else { None }`; call `extract_arp_frame`; map `Some(f) → Ok(DecodedFrame::Arp(f))`, `None → Err(anyhow!("truncated ARP frame"))`).
+3. **Complete the lax `Err(SliceError::Len(_))` arm** in `decode_packet`: replace the STORY-111 stub with the full lax ARP routing per arp-architecture-delta.md §2.2 and D-078. Structure: (a) if `lax.net == Some(LaxNetSlice::Arp(arp))`: extract `outer_src_mac` from `lax.link` via `if let etherparse::LinkSlice::Ethernet2(eth) = l { Some(eth.source()) } else { None }`; call `extract_arp_frame`; map `Some(f) → Ok(DecodedFrame::Arp(f))`, `None → Err(anyhow!("Non-Ethernet/IPv4 ARP frame"))` (D11, PC-7a — a lax-built but type/size-invalid ARP is malformed, not merely truncated); (b) if `lax.net == None` with `stop_err == Layer::Arp` (genuinely unbuildable): `Err(anyhow!("truncated ARP frame"))` (PC-7b). Previously this arm incorrectly used `"truncated ARP frame"` for the `extract_arp_frame`-returns-None case; D-078 corrects this.
 4. **Create `src/analyzer/arp.rs`** with `ArpAnalyzer` stub: `new()` (parameterless — `--arp-spoof-threshold`/`--arp-storm-rate` flags are not yet defined; those parameters are added when STORY-114/115 land their CLI flags) and `process_arp(&mut self, frame: &ArpFrame, ts: u32) -> Vec<Finding>` returning `vec![]`.
 5. **Add `pub mod arp;`** to `src/analyzer/mod.rs`.
 6. **Update `src/main.rs`** to pattern-match on `DecodedFrame`: `Ok(DecodedFrame::Ip(p)) => { existing IP pipeline }` / `Ok(DecodedFrame::Arp(a)) => { arp_analyzer.process_arp(&a, ts); }` (unconditional — `args.arp` flag-gating is added in STORY-113 per BC-2.16.011; `args.arp_spoof_threshold` in STORY-114; `args.arp_storm_rate` in STORY-115). Instantiate `ArpAnalyzer::new()` (parameterless stub).
