@@ -43,6 +43,45 @@ collection: <https://www.netresec.com/?page=PCAP4SICS>. Per the source's
 request, **credit CS3Sthlm / 4SICS** if these captures are redistributed or
 used in training material. They are not redistributed via this repo.
 
+## ARP captures (D1 spoof / D2 GARP / D3 storm / D12 MAC mismatch)
+
+These captures exercise the v0.7.0 ARP Security Analyzer. Validated with
+`target/release/wirerust analyze --arp <file>` (default flags unless noted).
+They live gitignored under `tests/fixtures/local-samples/` — never committed.
+
+### Captures
+
+| File | Size | sha256 | Source | Protocols | Validates |
+|------|------|--------|--------|-----------|-----------|
+| `arp-storm.pcap` | 46 KB | `dc101ea9bfda59f56b54bfb949195c3f169032c045b47f98e6952a86933c1b8d` | [Wireshark SampleCaptures](https://wiki.wireshark.org/SampleCaptures) | ARP (622 req, 0 reply) | D3 storm fires at `--arp-storm-rate 10` (1 finding, source MAC `00:07:0D:AF:F4:54`); silent at default 50 fps threshold — burst rate in this cable-modem storm is ~10 fps |
+| `gratuitous-arp-hsrp.cap` | 480 B | `e2fcc1276f31535d7e6bc5305e979ca1d5b83c7a0db1967d6334cd9b98afe7ad` | [PacketLife backup (epiecs/packetlife-backup)](https://github.com/epiecs/packetlife-backup) | ARP (6 GARP reply) | D2: 6 GARP findings fire (HSRP active-router sends sender_ip=10.0.0.6 in op=2 replies); no D1/D3 noise |
+| `arpspoof.pcap` | 14 MB | `0ce605556689edec01ef50703df7cc88c97a0d1731c4938d54cabcb28a71837a` | [researcher111/ARP-pcap-files](https://github.com/researcher111/ARP-pcap-files) | ARP (50 pkts), TCP/TLS/UDP/ICMP (16 234 total) | D1: 2 spoof findings (IP→MAC rebind for 192.168.1.1); D12: 5 L2/L3 MAC mismatch findings; 1 decode-error skipped; no D2/D3 |
+| `ppa-arp.pcap` | 144 B | `ea22826b52c96a2038d1c44eb0e7c35dbf40335f82a20cf94ef70bb821033f65` | [markofu/pcaps (PracticalPacketAnalysis)](https://github.com/markofu/pcaps) | ARP (1 req + 1 reply) | Benign baseline: 0 findings, 2 bindings tracked — no false positives on clean ARP request/reply pair |
+| `arp-baseline-16pkt.cap` | 2.2 KB | `d931e3c27cfb27d006dc6e912671443c88c243efd69b4671f900e0c06cf9ae25` | [PacketLife backup (epiecs/packetlife-backup)](https://github.com/epiecs/packetlife-backup) | ARP (pcapng wrapped in .cap extension) | **Format note:** wirerust rejects this file (`wrong magic number`) — it is a pcapng file despite the `.cap` extension. Wirerust's reader requires pcap-format magic; pcapng is not yet supported. File is retained for future pcapng support testing. |
+
+### Direct download URLs (ARP captures)
+
+| File | URL |
+|------|-----|
+| `arp-storm.pcap` | `https://gitlab.com/wireshark/wireshark/-/wikis/uploads/__moin_import__/attachments/SampleCaptures/arp-storm.pcap` |
+| `gratuitous-arp-hsrp.cap` | `https://raw.githubusercontent.com/epiecs/packetlife-backup/master/pcaps/gratuitous%20arp%20hsrp.cap` |
+| `arpspoof.pcap` | `https://raw.githubusercontent.com/researcher111/ARP-pcap-files/master/arpspoof.pcap` |
+| `ppa-arp.pcap` | `https://raw.githubusercontent.com/markofu/pcaps/master/PracticalPacketAnalysis/ppa-capture-files/arp.pcap` |
+| `arp-baseline-16pkt.cap` | `https://raw.githubusercontent.com/epiecs/packetlife-backup/master/pcaps/arp_pcap.pcapng.cap` |
+
+### Attribution
+
+- **`arp-storm.pcap`**: Wireshark Foundation public SampleCaptures collection. No per-file
+  license stated; distributed as a public sample. Credit: Wireshark Foundation.
+- **`gratuitous-arp-hsrp.cap`** and **`arp-baseline-16pkt.cap`**: PacketLife.net captures by
+  Jeremy Stretch, mirrored via `epiecs/packetlife-backup` (no explicit license in mirror repo).
+  Used locally for validation only — not redistributed. Credit: PacketLife.net / Jeremy Stretch.
+- **`ppa-arp.pcap`**: Practical Packet Analysis sample by Chris Sanders, re-hosted in
+  `markofu/pcaps` (no explicit license). Used locally for validation only — not redistributed.
+  Credit: Chris Sanders.
+- **`arpspoof.pcap`**: `researcher111/ARP-pcap-files` (no LICENSE file — all-rights-reserved).
+  Used locally for validation only — not redistributed. Credit: researcher111 (GitHub).
+
 ## Adding a capture
 
 1. Drop the `.pcap` in `tests/fixtures/local-samples/` (gitignored).
