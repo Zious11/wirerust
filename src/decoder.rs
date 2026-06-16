@@ -16,10 +16,13 @@
 //! (EtherType 0x0806) are routed to `extract_arp_frame`, which is fully
 //! implemented in STORY-112: a size-guard checks the 28-byte minimum, then all
 //! 7 fields (hardware type, protocol type, hardware/protocol length, operation,
-//! sender/target MAC and IP) are extracted. Strict Ethernet/IPv4 ARP produces
-//! `Ok(DecodedFrame::Arp(...))`, a truncated frame produces
-//! `Err("truncated ARP frame")`, and any non-Ethernet/IPv4 ARP combination
-//! produces `Err("Non-Ethernet/IPv4 ARP frame")`.
+//! sender/target MAC and IP) are extracted. Ethernet/IPv4 ARP produces
+//! `Ok(DecodedFrame::Arp(...))`. Any non-Ethernet/IPv4 ARP (malformed header
+//! fields) produces `Err("Non-Ethernet/IPv4 ARP frame")` on **both** the strict
+//! and lax paths (D-078/D-078b, BC-2.16.009 v1.6 — path-independence, D11).
+//! `Err("truncated ARP frame")` is reserved exclusively for genuine snaplen
+//! truncation: valid Ethernet/IPv4 header fields present but variable section
+//! cut short, or frame too short to read the fixed header at all.
 //! Non-IP non-ARP frames return `Err("No IP layer found")`.
 //!
 //! ## Snaplen-truncated captures
@@ -149,10 +152,12 @@ pub struct ArpFrame {
 ///
 /// IP frames (IPv4 and IPv6) become `Ip(ParsedPacket)`. The `Arp(ArpFrame)`
 /// variant is produced by the fully-implemented `extract_arp_frame` introduced
-/// in STORY-112: strict Ethernet/IPv4 ARP yields `Ok(DecodedFrame::Arp(...))`,
-/// truncated frames yield `Err("truncated ARP frame")`, and non-Ethernet/IPv4
-/// ARP yields `Err("Non-Ethernet/IPv4 ARP frame")`. Non-IP non-ARP frames are
-/// errors, not `Ok` variants.
+/// in STORY-112: Ethernet/IPv4 ARP yields `Ok(DecodedFrame::Arp(...))`;
+/// non-Ethernet/IPv4 (malformed) ARP yields `Err("Non-Ethernet/IPv4 ARP frame")`
+/// on both strict and lax paths (D-078/D-078b, BC-2.16.009 v1.6 — D11);
+/// genuine snaplen truncation (valid fixed-header fields, short variable section)
+/// yields `Err("truncated ARP frame")`. Non-IP non-ARP frames are errors, not
+/// `Ok` variants.
 #[derive(Debug, Clone)]
 pub enum DecodedFrame {
     Ip(ParsedPacket),
@@ -355,9 +360,12 @@ pub fn decode_packet(data: &[u8], datalink: DataLink) -> Result<DecodedFrame> {
 ///
 /// Returns `Some(ArpFrame)` when `hw_addr_type == ETHERNET`, `proto_addr_type == IPV4`,
 /// `hw_addr_size == 6`, and `proto_addr_size == 4` (Ethernet/IPv4 ARP); returns `None`
-/// for any frame that fails either the type check or the size check
-/// (signals the caller to return `Err("Non-Ethernet/IPv4 ARP frame")` for the
-/// strict path, or `Err("truncated ARP frame")` for the lax path).
+/// for any frame that fails the type or size check. `None` signals a non-Ethernet/IPv4
+/// (malformed) frame: **both** the strict and lax call-sites return
+/// `Err("Non-Ethernet/IPv4 ARP frame")` → D11 (BC-2.16.009 v1.6, D-078/D-078b
+/// path-independence). `Err("truncated ARP frame")` is returned by the lax path
+/// only for genuine truncation (valid fixed-header fields but unreadable/short
+/// variable section), which never reaches this function.
 ///
 /// This function is a **pure core** function (BC-2.16.015, VP-024 Sub-A):
 /// - No I/O, no global state, no panic for any valid `ArpPacketSlice` input.
