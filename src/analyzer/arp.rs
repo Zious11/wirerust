@@ -256,6 +256,74 @@ pub fn insert_binding_lru_btree(
     );
 }
 
+/// Fixed-capacity array surrogate of `insert_binding_lru` for the VP-024 Sub-D
+/// Kani cap-invariant harness.
+///
+/// **Why an array and not the `BTreeMap` surrogate (`insert_binding_lru_btree`)
+/// in the Kani harness:** CBMC (Kani's backend) cannot symbolically execute
+/// `std::collections::BTreeMap` within a practical resource budget. Empirically
+/// (Kani 0.67 / CBMC, this environment), even *three* plain `BTreeMap::insert`
+/// calls with no eviction exhaust CBMC's memory during SSA conversion
+/// (`VERIFICATION:- FAILED`, "CBMC appears to have run out of memory"); the full
+/// `insert_binding_lru_btree` cap+1 sequence was unresolved after 45+ minutes.
+/// The std B-tree's raw-pointer node machinery and rebalancing loops are the
+/// bottleneck — incidental to the property under proof, which is the pure
+/// arithmetic cap invariant `len <= cap`. VP-024 explicitly states the cap
+/// invariant "is a purely arithmetic property independent of which
+/// ordered/unordered map is used; the proof is valid for the production
+/// `HashMap` by substitution." This surrogate substitutes a CBMC-tractable
+/// fixed-capacity array for the same arithmetic invariant.
+///
+/// **Algorithmic fidelity:** this function reproduces the exact three-branch
+/// decision logic of `insert_binding_lru` / `insert_binding_lru_btree`:
+///   1. key already present  → update MAC in place, length unchanged;
+///   2. else, length >= cap  → evict the entry with the minimum `last_seen_ts`
+///      (one removal), then insert (net length unchanged);
+///   3. else                 → insert (length + 1).
+///
+/// `len` therefore never exceeds `cap`. Entries are stored as
+/// `(ip, mac, last_seen_ts)` triples in a `[_; N]` backing array with an explicit
+/// `len`; new entries initialize `last_seen_ts = 0`, matching `BindingEntry`.
+///
+/// `N` is the array capacity (must be >= `cap`). Gated `#[cfg(any(kani, test))]`
+/// — NOT present in the production binary. ADR-008 Decision 5; VP-024 Sub-D.
+#[cfg(any(kani, test))]
+pub fn insert_binding_lru_array<const N: usize>(
+    entries: &mut [([u8; 4], [u8; 6], u32); N],
+    len: &mut usize,
+    ip: [u8; 4],
+    mac: [u8; 6],
+    cap: usize,
+) {
+    // Branch 1: key already present → update MAC in place (length unchanged).
+    let mut j = 0usize;
+    while j < *len {
+        if entries[j].0 == ip {
+            entries[j].1 = mac;
+            return;
+        }
+        j += 1;
+    }
+    // Branch 2: new key at capacity → evict the min-last_seen_ts entry.
+    if *len >= cap {
+        // Find the index of the minimum last_seen_ts among the first `len` entries.
+        let mut min_idx = 0usize;
+        let mut k = 1usize;
+        while k < *len {
+            if entries[k].2 < entries[min_idx].2 {
+                min_idx = k;
+            }
+            k += 1;
+        }
+        // Remove by swapping the last live entry into the evicted slot.
+        entries[min_idx] = entries[*len - 1];
+        *len -= 1;
+    }
+    // Branch 3 (and the post-eviction insert): append the new entry.
+    entries[*len] = (ip, mac, 0);
+    *len += 1;
+}
+
 // ---------------------------------------------------------------------------
 // ArpAnalyzer
 // ---------------------------------------------------------------------------
@@ -1463,6 +1531,44 @@ mod tests {
             cap + 1,
             cap,
             bindings.len()
+        );
+    }
+
+    /// AC-008 (BC-2.16.006 PC2), array surrogate: `insert_binding_lru_array` — the
+    /// CBMC-tractable fixed-capacity surrogate exercised by the VP-024 Sub-D Kani
+    /// harness `verify_binding_table_cap` — enforces the same `len <= cap`
+    /// invariant as `insert_binding_lru_btree`, and agrees with it on the final
+    /// length after a cap+1 distinct-IP insertion sequence. This concrete test
+    /// keeps the array surrogate honest (algorithmic parity with the BTreeMap
+    /// surrogate) and prevents it from being dead code under `cargo test`.
+    #[test]
+    #[allow(non_snake_case)]
+    fn test_BC_2_16_006_binding_table_cap_enforced_array_surrogate() {
+        const CAP: usize = TEST_MAX_ARP_BINDINGS; // 8
+        let mut entries: [([u8; 4], [u8; 6], u32); CAP] = [([0u8; 4], [0u8; 6], 0u32); CAP];
+        let mut len: usize = 0;
+
+        for i in 0u8..=(CAP as u8) {
+            let ip: [u8; 4] = [10, 0, 0, i + 1];
+            let mac: [u8; 6] = [i; 6];
+            insert_binding_lru_array(&mut entries, &mut len, ip, mac, CAP);
+            // Stamp a distinct last_seen_ts so the eviction min-scan is deterministic.
+            if len > 0 {
+                entries[len - 1].2 = i as u32;
+            }
+            assert!(
+                len <= CAP,
+                "array surrogate: len must NEVER exceed cap={CAP}. After {} inserts, len={len}.",
+                i + 1,
+            );
+        }
+        // After cap+1 insertions, length must be exactly cap (one eviction occurred),
+        // matching insert_binding_lru_btree's behavior in the test above.
+        assert_eq!(
+            len,
+            CAP,
+            "array surrogate: after inserting cap+1={} distinct IPs, len must equal cap={CAP}.",
+            CAP + 1,
         );
     }
 
@@ -4114,20 +4220,81 @@ mod kani_proofs {
     /// Body is `todo!()` per BC-5.38.001 — filled by formal-verifier at F6.
     #[kani::proof]
     fn verify_classify_garp_total() {
-        todo!("STORY-113 implements is_gratuitous_arp — harness body filled at F6 gate")
+        let frame = ArpFrame {
+            operation: kani::any(),
+            sender_mac: kani::any(),
+            sender_ip: kani::any(),
+            target_mac: kani::any(),
+            target_ip: kani::any(),
+            outer_src_mac: kani::any(),
+            packet_len: kani::any(),
+        };
+        // No panic for any symbolic ArpFrame (pure boolean predicate).
+        let is_garp = is_gratuitous_arp(&frame);
+        // Biconditional totality: GARP iff sender_ip == target_ip, for ALL
+        // operation values (opcode-agnostic — operation is fully symbolic).
+        assert!(is_garp == (frame.sender_ip == frame.target_ip));
     }
 
     /// VP-024 Sub-D: binding table cap invariant (BC-2.16.006).
     ///
-    /// Uses `insert_binding_lru_btree` (BTreeMap surrogate, cfg-gated).
-    /// `TEST_MAX_ARP_BINDINGS = 8`; 9-iteration loop (cap+1).
-    /// Asserts `bindings.len() <= TEST_MAX_ARP_BINDINGS` after each insert.
+    /// Asserts `len <= cap` after each insert, including the cap→cap+1 boundary
+    /// where LRU eviction fires. `TEST_MAX_ARP_BINDINGS = 8`; cap+1 = 9 inserts
+    /// (0..=8), matching the VP-024 Sub-D skeleton's iteration count.
+    ///
+    /// CONTAINER SUBSTITUTION (CBMC tractability — documented deviation from the
+    /// skeleton's `insert_binding_lru_btree`): CBMC cannot symbolically execute
+    /// `std::collections::BTreeMap` within a practical resource budget. A probe
+    /// confirmed that even three plain `BTreeMap::insert` calls exhaust CBMC's
+    /// memory during SSA conversion ("CBMC appears to have run out of memory");
+    /// the `insert_binding_lru_btree` sequence did not resolve after 45+ minutes.
+    /// This harness therefore exercises `insert_binding_lru_array`, a CBMC-
+    /// tractable fixed-capacity-array surrogate that reproduces the IDENTICAL
+    /// three-branch eviction algorithm (update-in-place / evict-min-last_seen_ts /
+    /// append). VP-024 Proof Method authorizes this: the cap invariant "is a
+    /// purely arithmetic property independent of which ordered/unordered map is
+    /// used; the proof is valid for the production HashMap by substitution."
+    /// `insert_binding_lru_btree` remains in the tree and is exercised by the
+    /// concrete unit test `test_BC_2_16_006_binding_table_cap_enforced`.
+    ///
+    /// SYMBOLIC INPUTS: MACs are symbolic (`kani::any()`), per the VP-024
+    /// symbolic-input table. IPs are distinct per iteration (every insert is a
+    /// genuine new key reaching the eviction boundary). `last_seen_ts` is set to a
+    /// distinct per-iteration value so the min-scan eviction is well-defined; the
+    /// proved obligation is the count invariant `len <= cap`, independent of which
+    /// entry is chosen for eviction (LRU target-correctness is unit-tested, not
+    /// Kani-proven — VP-024 Sub-D scope note).
+    ///
+    /// UNWIND BOUND: `#[kani::unwind(12)]` bounds the cap+1 = 9-iteration outer
+    /// loop and the inner min-scan / lookup loops (each <= cap = 8 iterations).
     ///
     /// AC-019; runs at F6 formal-hardening gate.
-    /// Body is `todo!()` per BC-5.38.001 — filled by formal-verifier at F6.
     #[kani::proof]
     #[kani::unwind(12)]
     fn verify_binding_table_cap() {
-        todo!("STORY-113 implements insert_binding_lru_btree — harness body filled at F6 gate")
+        const CAP: usize = TEST_MAX_ARP_BINDINGS; // 8
+        // Backing array sized to cap (the surrogate never holds more than `cap`
+        // live entries, so capacity == cap is sufficient).
+        let mut entries: [([u8; 4], [u8; 6], u32); CAP] = [([0u8; 4], [0u8; 6], 0u32); CAP];
+        let mut len: usize = 0;
+        // Insert cap+1 = 9 frames with distinct IPs. The cap invariant must hold
+        // after every insert, including the boundary transition at cap and cap+1
+        // where LRU eviction fires.
+        let mut i = 0u8;
+        while i <= (CAP as u8) {
+            let ip: [u8; 4] = [0, 0, 0, i];
+            let mac: [u8; 6] = kani::any();
+            // Distinct, increasing last_seen_ts so the eviction min-scan is total.
+            insert_binding_lru_array(&mut entries, &mut len, ip, mac, CAP);
+            // Stamp the freshly-inserted/updated entry's last_seen_ts to keep the
+            // LRU ordering well-defined (mirrors process_arp writing last_seen_ts
+            // after insert). The cap invariant does not depend on this value.
+            if len > 0 {
+                entries[len - 1].2 = i as u32;
+            }
+            // BC-2.16.006: table never exceeds the cap.
+            assert!(len <= CAP);
+            i += 1;
+        }
     }
 }
