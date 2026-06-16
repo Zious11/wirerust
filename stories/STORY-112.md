@@ -66,7 +66,7 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-16/BC-2.16.002.md
   - .factory/specs/behavioral-contracts/ss-16/BC-2.16.015.md
   - .factory/specs/verification-properties/vp-024-arp-parse-safety.md
-input-hash: "8a4d566"
+input-hash: "8c03924"
 ---
 
 # STORY-112: extract_arp_frame + decode_packet ARP Routing (Both Paths) + ArpAnalyzer Stub + VP-024 Sub-A

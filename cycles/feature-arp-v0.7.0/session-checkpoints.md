@@ -715,3 +715,35 @@ fully-clean pass. Passes 18-22 each surfaced+remediated genuine items.
 | develop HEAD | 6abcd8f | PR #245 D-077 CRITICAL merged |
 | main HEAD | 3e29891 | v0.6.0 |
 | open PRs | none | — |
+
+---
+
+## Archived Checkpoint: 2026-06-15 — F4 COMPLETE; re-streak 3/3 CONVERGED on bcb1bd6; NEXT = F5 scoped-adversarial
+
+**Archived from STATE.md on:** 2026-06-16 (replaced by "D-078/D-078b burst; F5 IN PROGRESS reset 0/3 on 2d2fadf" checkpoint)
+
+### POSITION
+
+- **Epoch:** F4 COMPLETE. Re-streak 3/3 CONVERGED on bcb1bd6.
+- **develop HEAD:** bcb1bd6 == origin/develop (verified 2026-06-15).
+- F1 PASSED (D-066). F2 CONVERGED 3/3. F3 CONVERGED 3/3 (D-070). F4 delivery COMPLETE (5 stories).
+- D-074 PR #242 fee71ee. D-075 PR #243 4ee7a9d. D-076 PR #244 52437f8. D-077 PR #245 6abcd8f. O-1 PR #246 bcb1bd6.
+- F4 holdout GATE PASS (15/15 mean 1.0; RFC-826 PASS).
+- F4 wave-level adversarial re-streak 3/3 CONVERGED on bcb1bd6. GATE SATISFIED.
+- Decisions active: D-047..D-077. Do NOT re-adjudicate D-068..D-077.
+- ARP input-hash status (post-D-074): STORY-111..115 ALL MATCH.
+
+### NEXT (as of this checkpoint)
+
+1. F5 scoped-adversarial (`vsdd-factory:phase-f5-scoped-adversarial`).
+2. F6 formal hardening (VP-024 Sub-A/B/D Kani harnesses; cargo-fuzz VP-008).
+3. F7 delta convergence.
+4. v0.7.0 release.
+
+### VERIFIED SHAs at archival time (2026-06-15)
+
+| Ref | Value | Notes |
+|-----|-------|-------|
+| develop HEAD | bcb1bd6 | PR #246 O-1 rename-revert + VP-024 v1.9 |
+| main HEAD | 3e29891 | v0.6.0 |
+| open PRs | none | — |

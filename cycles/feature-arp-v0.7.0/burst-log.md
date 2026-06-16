@@ -99,3 +99,49 @@ MEDIUM remediated via PR #242 + D-074; consistency CONSISTENT; next = fresh Pass
 restart).
 
 ---
+
+## Burst: D-078 / D-078b F5 Remediation + State Update (2026-06-15/16)
+
+### Context
+
+F5 scoped-adversarial P1 (bcb1bd6) surfaced observation O-A (LOW detection-semantics seam):
+lax `None` arm silently dropped malformed ARP frames without emitting D11. Human adjudicated
+as FIX. Spec was corrected, PRs opened, and both lax arms addressed in two PRs. develop HEAD
+advanced to 2d2fadf. F5 streak reset to 0/3.
+
+### Agents / Actions
+
+1. **Spec-writer (PO)** — BC-2.16.009 v1.4→v1.6, BC-2.16.015 v1.3→v1.5 (corrected twice as
+   mechanism hypothesis was refined).
+2. **Story-writer** — STORY-111 v1.4→v1.6, STORY-112 v1.4→v1.6.
+3. **Implementer** — PR #247 D-078 (lax None arm raw 8-byte peek + D11); PR #248 D-078b
+   (lax Some(LaxNetSlice::Arp) arm D11 + decoder.rs doc sweep).
+4. **state-manager (this burst)** — input-hash recompute (STORY-112 8a4d566→8c03924,
+   STORY-113 7c61bae→a05b724); STATE.md update; F5 trajectory file created; burst-log append;
+   session checkpoint archived + new checkpoint written; factory-artifacts commit.
+
+### Develop SHA Progression
+
+| Event | develop SHA |
+|-------|-------------|
+| F5 P1/P2 CLEAN (pre-fix) | bcb1bd6 |
+| D-078 merged | 92c1561 |
+| D-078b merged | 2d2fadf |
+
+### Files Touched (factory-artifacts)
+
+- `.factory/STATE.md` — develop_head, phase_status, F5 counter, input_drift_check,
+  decisions D-078/D-078b, PG-ARP-FIX-MECHANISM-FIRST drift item, session checkpoint replaced.
+- `.factory/stories/STORY-112.md` — input-hash recomputed 8a4d566→8c03924.
+- `.factory/stories/STORY-113.md` — input-hash recomputed 7c61bae→a05b724.
+- `.factory/cycles/feature-arp-v0.7.0/arp-f5-scoped-adversarial-trajectory.md` — CREATED.
+- `.factory/cycles/feature-arp-v0.7.0/burst-log.md` — this entry.
+- `.factory/cycles/feature-arp-v0.7.0/session-checkpoints.md` — prior checkpoint archived.
+
+### Outcome
+
+F5 streak reset to 0/3. Input-hashes for STORY-111..115 ALL MATCH post-recompute.
+PG-ARP-FIX-MECHANISM-FIRST process gap recorded OPEN.
+Next = F5 scoped-adversarial re-run on develop 2d2fadf.
+
+---
