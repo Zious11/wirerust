@@ -802,3 +802,31 @@ F5 scoped-adversarial re-run on 079013d. Counter 0/3; need 3 fresh-context CLEAN
 | develop HEAD | 079013d | PR #249 F-1 VLAN-offset fix |
 | main HEAD | 3e29891 | v0.6.0 |
 | open PRs | none | — |
+
+---
+
+## Archived Checkpoint: 2026-06-16 — F5 GATE SATISFIED 3/3 on 079013d; NEXT = F6 formal hardening
+
+**Archived from STATE.md on:** 2026-06-16 (replaced by "F6 TARGETED HARDENING COMPLETE; NEXT = F7 delta convergence" checkpoint)
+
+### POSITION
+
+- **Epoch:** F5 GATE SATISFIED 3/3 (2026-06-16, develop 079013d). NEXT = F6 formal hardening.
+- **develop HEAD:** 079013d == origin/develop (verified 2026-06-16).
+- F1 PASSED (human-gated 2026-06-12, D-066). F2 CONVERGED 3/3. F3 CONVERGED 3/3 (D-070). F4 delivery COMPLETE (STORY-111..115; PRs #236..#246). F4 Holdout GATE PASS (15/15 mean 1.0). F4 Wave Adversary Re-Streak 3/3 GATE SATISFIED (bcb1bd6). F5 Scoped Adversarial: 3/3 GATE SATISFIED (079013d; implementation-robustness/security lens; F-1 VLAN-offset fix verified robust).
+- Input-hash scan 2026-06-16 (post-F-1 recompute): STORY-111 d05149f MATCH | STORY-112 292b3b8 MATCH | STORY-113 3438b9d MATCH | STORY-114 1325d69 MATCH | STORY-115 bb1d83a MATCH.
+- Decisions active: D-047..D-F1. F3-OBL-STORY114-001/002/003 REVOKED (D-069).
+- Open follow-ups: O-2/FU-ARP-QINQ-MACSEC-TEST; FU-REPO-WIDE-DOC-DEBT; FU-JSON-CASING; FU-BC-2.10.007-MARKER; FU-STORM-NEW-ATTR; BC-2.10-COUNT-POSTMERGE.
+
+### NEXT (at archival time)
+
+F6 formal hardening: fill+prove 5 VP-024 Kani harness bodies; cargo-fuzz VP-008; cargo-mutants ARP delta; cargo-audit/clippy.
+
+### VERIFIED SHAs at archival time (2026-06-16)
+
+| Ref | Value | Notes |
+|-----|-------|-------|
+| develop HEAD | 079013d | PR #249 F-1 VLAN-offset fix |
+| main HEAD | 3e29891 | v0.6.0 |
+| factory-artifacts HEAD | 2bec42a | factory(f5→f6): F5 GATE SATISFIED 3/3 on 079013d; F6 entry |
+| open PRs | none | — |

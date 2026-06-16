@@ -73,7 +73,7 @@ integration_unit_count: 5
 | VP-021 | Timestamp Provenance Threading | reassembly/mod.rs | integration+proptest | test-sufficient | verified | BC-2.09.007, BC-2.04.055 |
 | VP-022 | Modbus MBAP Parse Safety and Function-Code Boundary Classification | analyzer/modbus.rs | Kani | P1 | verified | BC-2.14.001, BC-2.14.002, BC-2.14.003, BC-2.14.004, BC-2.14.005, BC-2.14.006, BC-2.14.007, BC-2.14.008 |
 | VP-023 | DNP3 Data-Link Frame Parse Safety and Function-Code Classification | analyzer/dnp3.rs | Kani | P1 | verified | BC-2.15.001, BC-2.15.002, BC-2.15.003, BC-2.15.004, BC-2.15.005, BC-2.15.006, BC-2.15.007 [^vp023-bc-scope] |
-| VP-024 | ARP Frame Parse Safety and Binding-Table Invariant | analyzer/arp.rs + decoder.rs | Kani | P1 | draft | BC-2.16.001, BC-2.16.002, BC-2.16.003, BC-2.16.005, BC-2.16.006 [^vp024-bc-scope] |
+| VP-024 | ARP Frame Parse Safety and Binding-Table Invariant | analyzer/arp.rs + decoder.rs | Kani | P1 | verified | BC-2.16.001, BC-2.16.002, BC-2.16.003, BC-2.16.005, BC-2.16.006 [^vp024-bc-scope] |
 
 ## P0 Properties (required before Phase 5 gate)
 
@@ -155,7 +155,7 @@ itself did not change totals; the subsequent VP-024 addition did.
 - VP-INDEX total (24) must equal verification-architecture.md row count (24)
 - VP-INDEX total (24) must equal verification-coverage-matrix.md VP row count (24)
 - verification-coverage-matrix.md Totals row: Kani(11) + proptest(7) + fuzz(1) + integration/unit(5) = 24
-- P0 count (8) + P1 count (10) + test-sufficient (6) = 24; draft count 1 (VP-024); verified 23
+- P0 count (8) + P1 count (10) + test-sufficient (6) = 24; draft count 0; verified 24
 
 ## File Naming Convention
 

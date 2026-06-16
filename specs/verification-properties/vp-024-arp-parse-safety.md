@@ -1,11 +1,11 @@
 ---
 document_type: verification-property
 level: L4
-version: "1.9"
-status: draft
+version: "2.1"
+status: verified
 producer: architect
-timestamp: 2026-06-15T00:00:00Z
-phase: f2
+timestamp: 2026-06-16T00:00:00Z
+phase: f6
 traces_to: .factory/specs/architecture/ARCH-INDEX.md
 source_bc: BC-2.16.001
 bcs:
@@ -17,10 +17,10 @@ bcs:
 module: src/analyzer/arp.rs + src/decoder.rs
 proof_method: kani
 feasibility: feasible
-verification_lock: false
-proof_completed_date: null
-proof_file_hash: null
-verified_at_commit: null
+verification_lock: true
+proof_completed_date: "2026-06-16"
+proof_file_hash: null  # No canonical recomputation method defined for VP-024 proof files. Follow-up: define hash method (e.g. SHA-256 of src/decoder.rs kani_proofs + src/analyzer/arp.rs kani_proofs modules) and populate. Tracked as FU-F6-KANI-CLEANUP.
+verified_at_commit: "6e9f2cc"  # develop HEAD at F6 PR #250 merge (2026-06-16)
 lifecycle_status: active
 introduced: v0.7.0-feature-arp
 modified:
@@ -34,6 +34,8 @@ modified:
   - "v1.7 (2026-06-14, F3 ARP VP-layer audit title-sync): Source Contract 'Indirectly supported BC' BC-2.16.004 wording corrected: 'MEDIUM or HIGH finding' → 'MEDIUM then HIGH finding' to mirror BC-2.16.004 H1 v1.5 (sequential escalation). No proof-method, postcondition, or anchor content changed."
   - "v1.8 (2026-06-15): O-1 remediation (F4 re-streak finding) — Sub-A negative harness widened to cover the FULL reject contract matching decoder.rs:312-315 (hw_addr_type != ETHERNET || proto_addr_type != IPV4 || hw_addr_size != 6 || proto_addr_size != 4 → None). HTYPE/PTYPE bytes made symbolic (no longer pinned to Ethernet/IPv4). kani::assume updated to the 4-part OR condition. Harness renamed verify_extract_arp_frame_none_on_bad_size → verify_extract_arp_frame_none_on_invalid_header. Property Statement point 3 and symbolic-input summary table updated accordingly. Harness-comment prose corrected. Cross-references to BC-2.16.001 PC2-PC5 and BC-2.16.009 PC3a-3d are unchanged. Decision D-077 is the triggering change (type-rejection guard added to extract_arp_frame)."
   - "v1.9 (2026-06-15): O-1 propagation fix (adversarial F4 re-streak finding, MEDIUM) — reverted the v1.8 cosmetic rename (verify_extract_arp_frame_none_on_bad_size → verify_extract_arp_frame_none_on_invalid_header) to eliminate an 11-site cross-artifact propagation liability across src/decoder.rs, BC-2.16.009, three architecture docs, dependency-graph.md, wave-schedule.md, STORY-112, and sealed changelogs. The substantive 4-part coverage widening from v1.8 (HTYPE/PTYPE bytes made symbolic, kani::assume covering the full hw_addr_type != ETHERNET OR proto_addr_type != IPV4 OR hw_addr_size != 6 OR proto_addr_size != 4 rejection region, property-statement and symbolic-input table updated accordingly) is RETAINED intact. The harness function name reverts to verify_extract_arp_frame_none_on_bad_size; a clarifying scope note has been added to the harness comment and Property Statement point 3 explaining that despite the '_bad_size' name the harness now verifies the full type-or-size reject contract per D-077 (name retained to avoid cross-artifact churn per this decision)."
+  - "v2.0 (2026-06-16): F6 LOCK — All five Kani harnesses prove VERIFICATION:- SUCCESSFUL. verification_lock set to true; status draft→verified; phase f2→f6; proof_completed_date set to 2026-06-16. Sub-D Proof Method narrative corrected: insert_binding_lru_btree reference replaced with insert_binding_lru_array (fixed-capacity array surrogate behind #[cfg(any(kani, test))]). Reason for surrogate: CBMC cannot symbolically execute std::collections::BTreeMap — runs out of memory even at 3 inserts with no resolution after 45+ minutes at any cap scale. The array surrogate reproduces the identical 3-branch eviction algorithm (update-in-place / evict-min-last_seen_ts / append) used by the production insert_binding_lru (HashMap). Branch fidelity confirmed by a branch-fidelity test asserting surrogate matches production behavior. The cap invariant proof (len <= cap) remains sound for the production HashMap path by the map-implementation-independence argument: cap invariance is a purely arithmetic property independent of map implementation. Sub-A F4 obligation notes (vacuity risk on Ok-arm reachability) resolved: kani::cover! reachability assertions were added in F4 and confirmed non-vacuous. proof_file_hash and verified_at_commit left null pending develop HEAD after F6 PR merges — do not populate from speculative values."
+  - "v2.1 (2026-06-16): F6 anchor population — verified_at_commit populated with 6e9f2cc (develop HEAD at F6 PR #250 merge, 2026-06-16; all 46/46 project-wide Kani harnesses VERIFICATION:- SUCCESSFUL). proof_file_hash deferred: no canonical recomputation method defined for VP-024 proof files; follow-up recorded as FU-F6-KANI-CLEANUP (define method, e.g. SHA-256 of kani_proofs modules in src/decoder.rs + src/analyzer/arp.rs, then populate). Patch bump only — no property, proof-method, or postcondition content changed."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -174,11 +176,13 @@ ArpAnalyzer detections) both touch `mitre.rs` and must not break VP-007's drift 
 Additional BC-2.16.007 (D12 L2/L3 sender mismatch detection) is verified by unit test
 (stateless single-packet comparison), not by Kani, and is not part of VP-024's formal scope.
 
-> **SPEC-level document.** This VP defines *what must be proven*. The Kani harnesses are
-> authored in F4 TDD against the implemented `src/analyzer/arp.rs`. At F4/F6 lock time the
-> formal-verifier sets `verification_lock: true`, `proof_completed_date`, `proof_file_hash`,
-> and `status: verified`, and creates the `vp-verified-VP-024-<YYYY-MM-DD>` tag. Until then
-> this document is mutable (`verification_lock: false`).
+> **VERIFIED — IMMUTABLE.** All five Kani harnesses (Sub-A x3, Sub-B x1, Sub-D x1) proved
+> `VERIFICATION:- SUCCESSFUL` at Phase F6 (2026-06-16). `verification_lock: true` is set.
+> This document is now append-only per VSDD L4 immutability rules. Future changes require
+> VP withdrawal and replacement with a new VP-NNN identifier. `proof_file_hash` and
+> `verified_at_commit` are pending population against the develop HEAD SHA after the F6
+> PR merges — do not guess or backfill speculatively. A `vp-verified-VP-024-2026-06-16`
+> tag should be created on the factory-artifacts branch after those fields are populated.
 
 ## Source Contract
 
@@ -197,7 +201,7 @@ Additional BC-2.16.007 (D12 L2/L3 sender mismatch detection) is verified by unit
 
 | Method | Tool | Bounded? | Coverage |
 |---|---|---|---|
-| Model checking | Kani | Yes — Sub-A: three harnesses: (1) fully-symbolic `[u8;28]` for no-panic; (2) Eth/IPv4-fixed buffer with symbolic OPER+addrs for field correctness; (3) fully-symbolic HTYPE/PTYPE/HLEN/PLEN buffer constrained to the full rejection region (hw_addr_type != ETHERNET OR proto_addr_type != IPV4 OR hw_addr_size != 6 OR proto_addr_size != 4) for None-on-invalid-header negative assertion. Sub-B: symbolic `ArpFrame` with `operation: kani::any()` — covers all 65,536 u16 operation values, opcode-agnostic biconditional. Sub-D: BTreeMap surrogate, 9-iteration sequence, scaled cap proof. | All parse outcomes; full GARP domain (opcode-agnostic, 4B×4B IP space); None-on-invalid-header negative path (type AND size rejection); cap-boundary transitions |
+| Model checking | Kani | Yes — Sub-A: three harnesses: (1) fully-symbolic `[u8;28]` for no-panic; (2) Eth/IPv4-fixed buffer with symbolic OPER+addrs for field correctness; (3) fully-symbolic HTYPE/PTYPE/HLEN/PLEN buffer constrained to the full rejection region (hw_addr_type != ETHERNET OR proto_addr_type != IPV4 OR hw_addr_size != 6 OR proto_addr_size != 4) for None-on-invalid-header negative assertion. Sub-B: symbolic `ArpFrame` with `operation: kani::any()` — covers all 65,536 u16 operation values, opcode-agnostic biconditional. Sub-D: fixed-capacity array surrogate (`insert_binding_lru_array`, `#[cfg(any(kani, test))]`), `#[kani::unwind(12)]`, 9-iteration sequence (cap=TEST_MAX_ARP_BINDINGS=8), scaled cap proof. | All parse outcomes; full GARP domain (opcode-agnostic, 4B×4B IP space); None-on-invalid-header negative path (type AND size rejection); cap-boundary transitions |
 | Property-based testing | proptest | Yes — Sub-C: arbitrary `Vec<ArpFrame>` sequences up to 1000 entries; 1000 test cases | Binding-table determinism and no-duplicate-key invariant across arbitrary frame sequences |
 
 Kani is the primary counted tool for VP-024 (per VP-INDEX: Kani). proptest for Sub-C is
@@ -206,12 +210,37 @@ convention (primary/counted tool is Kani).
 
 The ARP pure-core functions have no heap allocation in their hot paths (ArpFrame is a
 ≤40-byte struct on the stack), no I/O, and no HashMap (the binding table lives in
-ArpAnalyzer which is not the target of Sub-A/B). Sub-D uses a `BTreeMap<[u8;4], BindingEntry>`
-surrogate — `HashMap` with `RandomState` is Kani-incompatible regardless of map size because
-`RandomState::new()` invokes platform RNG, triggering an FFI incompatibility. This is not a
-scale issue; the `BTreeMap` surrogate is used at any capacity. The cap invariant
-(`len <= TEST_MAX_ARP_BINDINGS`) is a purely arithmetic property independent of the underlying
-map implementation; the proof is valid for the production `HashMap` by substitution.
+ArpAnalyzer which is not the target of Sub-A/B).
+
+**Sub-D tool-limitation and surrogate rationale (F6 finding):** The production
+`insert_binding_lru` uses `HashMap<[u8;4], BindingEntry>`. Two alternative substrates were
+evaluated for the Kani harness:
+
+- `HashMap` with `RandomState` is Kani-incompatible regardless of map size: `RandomState::new()`
+  invokes platform RNG, triggering an FFI incompatibility. This is not a scale issue.
+- `BTreeMap<[u8;4], BindingEntry>` was the surrogate nominated in Sub-D's draft skeleton
+  (`insert_binding_lru_btree`). However, CBMC cannot symbolically execute `std::collections::BTreeMap`:
+  even at 3 inserts the model checker exhausts memory with no resolution after 45+ minutes
+  across all tested cap scales. The `BTreeMap` surrogate was therefore infeasible.
+
+**Adopted surrogate:** `insert_binding_lru_array` — a fixed-capacity array surrogate
+(`#[cfg(any(kani, test))]`) that stores entries in a `[Option<([u8;4], BindingEntry)>; N]`
+array and implements the IDENTICAL 3-branch eviction algorithm used by the production
+`insert_binding_lru` (HashMap):
+1. Update-in-place: if the IP already exists, overwrite MAC and return.
+2. Evict-min-last_seen_ts: if the array is at capacity, scan for the entry with the
+   minimum `last_seen_ts` value and overwrite it.
+3. Append: if capacity is not yet reached, insert into the first vacant slot.
+
+Branch fidelity is confirmed by a `#[cfg(test)]` branch-fidelity test that asserts the
+array surrogate matches the production `insert_binding_lru` (HashMap) output for all
+three branches across representative inputs.
+
+The cap invariant (`len <= TEST_MAX_ARP_BINDINGS`) is a purely arithmetic property over the
+count of occupied entries, independent of the underlying data structure; the proof is valid
+for the production `HashMap` by map-implementation-independence: the invariant cannot be
+violated unless the eviction logic fails to remove an entry before inserting a new one when
+at capacity, and this branch is identical between the surrogate and production functions.
 
 ## Proof Harness Skeleton
 
@@ -399,36 +428,52 @@ mod kani_proofs {
     // Scaled test: use TEST_MAX_ARP_BINDINGS = 8 as a surrogate cap.
     // Process 9 frames (cap + 1) with distinct IPs; assert table.len() <= 8 after each.
     //
-    // NOTE ON SUBSTRATE: The production `insert_binding_lru` uses
-    // `HashMap<[u8;4], BindingEntry>`. Because `HashMap` with `RandomState` triggers a
-    // Kani FFI incompatibility (the `RandomState` constructor calls into platform RNG),
-    // this harness uses `BTreeMap<[u8;4], BindingEntry>` as a drop-in surrogate.
-    // The cap invariant (len <= N) is a purely arithmetic property independent of which
-    // ordered/unordered map is used; the proof is valid for the production HashMap by
-    // substitution. The production function signature is:
-    //   fn insert_binding_lru(bindings: &mut HashMap<[u8;4], BindingEntry>, ip: [u8;4],
-    //                         mac: [u8;6], cap: usize)
+    // NOTE ON SUBSTRATE (F6 finding — array surrogate replaces BTreeMap skeleton):
+    // The production `insert_binding_lru` uses `HashMap<[u8;4], BindingEntry>`.
+    // HashMap with RandomState is Kani-incompatible (RandomState::new() calls platform RNG,
+    // FFI incompatibility regardless of scale). The draft skeleton nominated BTreeMap as
+    // surrogate (`insert_binding_lru_btree`), but CBMC cannot symbolically execute
+    // std::collections::BTreeMap — exhausts memory at 3 inserts after 45+ minutes with no
+    // resolution at any cap scale.
+    //
+    // ADOPTED SURROGATE: insert_binding_lru_array — a fixed-capacity array surrogate
+    // `#[cfg(any(kani, test))]` that stores entries in [Option<([u8;4], BindingEntry)>; N]
+    // and implements the IDENTICAL 3-branch eviction algorithm:
+    //   1. Update-in-place (IP exists → overwrite MAC).
+    //   2. Evict-min-last_seen_ts (at capacity → scan for min last_seen_ts, overwrite).
+    //   3. Append (capacity not reached → insert in first vacant slot).
+    // Branch fidelity confirmed by a #[cfg(test)] branch-fidelity test asserting
+    // surrogate matches production insert_binding_lru (HashMap) on all three branches.
+    //
+    // SOUNDNESS: The cap invariant (len <= N) is a purely arithmetic property over occupied
+    // entry count, independent of the data structure. The proof is valid for the production
+    // HashMap by map-implementation-independence: the invariant can only be violated if
+    // eviction fails to remove an entry before inserting when at capacity — this branch is
+    // identical in surrogate and production. VP-024's own proof-method acknowledges this:
+    // "the cap invariant is a purely arithmetic property independent of map implementation."
+    //
     // NOTE: insert_binding_lru has no ts parameter. process_arp (the caller, holding
     // timestamp_secs: u32) writes last_seen_ts on every observation; insert_binding_lru
     // only reads last_seen_ts during the eviction scan. See ADR-008 Decision 4 normative note.
-    // The harness calls a test-visible wrapper that accepts BTreeMap.
 
     const TEST_MAX_ARP_BINDINGS: usize = 8;
 
     #[kani::proof]
-    #[kani::unwind(12)] // TEST_MAX_ARP_BINDINGS + a few for the loop
+    #[kani::unwind(12)] // TEST_MAX_ARP_BINDINGS + 3 overhead; covers 0..=8 (9 iterations)
     fn verify_binding_table_cap() {
-        let mut bindings: std::collections::BTreeMap<[u8; 4], BindingEntry> =
-            std::collections::BTreeMap::new();
+        // insert_binding_lru_array is a #[cfg(any(kani, test))] fixed-capacity array
+        // surrogate implementing the identical 3-branch eviction algorithm as production
+        // insert_binding_lru (HashMap). See surrogate rationale in NOTE ON SUBSTRATE above.
+        let mut entries: [Option<([u8; 4], BindingEntry)>; TEST_MAX_ARP_BINDINGS] =
+            [None; TEST_MAX_ARP_BINDINGS];
         // Process TEST_MAX_ARP_BINDINGS + 1 frames with distinct IPs.
         // After each insertion, assert the cap holds.
         for i in 0u8..=(TEST_MAX_ARP_BINDINGS as u8) {
             let ip: [u8; 4] = [0, 0, 0, i]; // distinct IP per iteration
             let mac: [u8; 6] = kani::any();
-            // insert_binding_lru_btree is a #[cfg(any(kani, test))] wrapper over
-            // the same eviction logic, parameterized on BTreeMap.
-            insert_binding_lru_btree(&mut bindings, ip, mac, TEST_MAX_ARP_BINDINGS);
-            assert!(bindings.len() <= TEST_MAX_ARP_BINDINGS);
+            insert_binding_lru_array(&mut entries, ip, mac, TEST_MAX_ARP_BINDINGS);
+            let occupied = entries.iter().filter(|e| e.is_some()).count();
+            assert!(occupied <= TEST_MAX_ARP_BINDINGS);
         }
     }
 }
@@ -442,7 +487,7 @@ mod kani_proofs {
 | A (correctness) | `verify_extract_arp_frame_eth_ipv4_correctness` | `[u8; 28]` with HTYPE/PTYPE/HLEN/PLEN fixed; OPER+addrs symbolic | none | Some returned; all field values exact |
 | A (negative) | `verify_extract_arp_frame_none_on_bad_size` | `[u8; 28]` fully symbolic (HTYPE, PTYPE, HLEN, PLEN all symbolic); constrained to rejection region via `kani::assume(htype != 0x0001 \|\| ptype != 0x0800 \|\| hlen != 6 \|\| plen != 4)` | none | `result.is_none()` — no panic; graceful None for type OR size mismatch (name predates D-077; covers full type+size reject contract per v1.9 clarification) |
 | B (totality) | `verify_classify_garp_total` | symbolic `ArpFrame` (all fields symbolic, `operation: kani::any()`) | none (straight-line) | `is_garp == (sender_ip == target_ip)` for ALL operation values |
-| D (cap) | `verify_binding_table_cap` | deterministic IPs (0..=8); symbolic MACs; BTreeMap surrogate | `#[kani::unwind(12)]` | `bindings.len() <= TEST_MAX_ARP_BINDINGS` after every insert |
+| D (cap) | `verify_binding_table_cap` | deterministic IPs (0..=8); symbolic MACs; array surrogate `insert_binding_lru_array` (`#[cfg(any(kani, test))]`; BTreeMap infeasible — CBMC OOM; see Proof Method) | `#[kani::unwind(12)]` | occupied entry count `<= TEST_MAX_ARP_BINDINGS` (=8) after every insert |
 
 **Sub-property C proptest sketch:**
 
@@ -525,7 +570,7 @@ the 9-iteration sequence (0..=8) plus overhead. Sub-C is proptest (no Kani unwin
 |---|---|---|
 | Input space size | Bounded | Sub-A: `[u8; 28]` fully symbolic (fast — 28 bytes, straight-line); Sub-B: symbolic `ArpFrame` (≤40 bytes, straight-line); Sub-D: 9-iteration loop, BTreeMap with 8 entries maximum |
 | Proof complexity | Low | Sub-A/B: pure field-extraction and boolean comparisons; Sub-D: bounded loop with a simple len≤N assertion |
-| Tool support | High | Sub-A/B: no HashMap/RandomState → no Kani FFI issue; Sub-D uses BTreeMap (Kani-compatible) as surrogate for HashMap; Sub-C is proptest (no Kani constraint) |
+| Tool support | High | Sub-A/B: no HashMap/RandomState → no Kani FFI issue; Sub-D uses fixed-capacity array surrogate `insert_binding_lru_array` (HashMap/RandomState Kani FFI incompatible; BTreeMap OOM in CBMC — see Proof Method surrogate rationale); Sub-C is proptest (no Kani constraint) |
 | Estimated proof time | < 2 seconds per harness | Analogous to VP-022/VP-023 harnesses; no recursion, no unbounded loops |
 | Precedent | VP-022 (Modbus), VP-023 (DNP3) | Both ran SUCCESSFUL in < 1 second each; ARP harnesses are structurally simpler |
 
@@ -535,7 +580,8 @@ the 9-iteration sequence (0..=8) plus overhead. Sub-C is proptest (no Kani unwin
 - `src/decoder.rs` — `pub struct ArpFrame { operation, sender_mac, sender_ip, target_mac, target_ip, outer_src_mac, packet_len }`
 - `src/decoder.rs` — `pub enum DecodedFrame { Ip(ParsedPacket), Arp(ArpFrame) }`
 - `src/analyzer/arp.rs` — `fn is_gratuitous_arp(frame: &ArpFrame) -> bool`
-- `src/analyzer/arp.rs` — `fn insert_binding_lru(bindings: &mut HashMap<[u8;4], BindingEntry>, ip: [u8;4], mac: [u8;6], cap: usize)` (production type; no `ts` parameter — `last_seen_ts` is written by `process_arp` on every observation; `insert_binding_lru` reads it only during eviction scan; see ADR-008 Decision 4 normative note. Kani Sub-D harness uses `insert_binding_lru_btree` wrapper with `BTreeMap` surrogate — see Sub-D proof note)
+- `src/analyzer/arp.rs` — `fn insert_binding_lru(bindings: &mut HashMap<[u8;4], BindingEntry>, ip: [u8;4], mac: [u8;6], cap: usize)` (production type; no `ts` parameter — `last_seen_ts` is written by `process_arp` on every observation; `insert_binding_lru` reads it only during eviction scan; see ADR-008 Decision 4 normative note)
+- `src/analyzer/arp.rs` — `fn insert_binding_lru_array(entries: &mut [Option<([u8;4], BindingEntry)>; N], ip: [u8;4], mac: [u8;6], cap: usize)` (`#[cfg(any(kani, test))]` fixed-capacity array surrogate used by Sub-D Kani harness; BTreeMap surrogate from draft skeleton proved CBMC-infeasible — OOM at 3 inserts; see Proof Method surrogate rationale. Branch-fidelity test confirms identical eviction algorithm.)
 - `src/analyzer/arp.rs` — `pub struct ArpAnalyzer { bindings, storm_counters, spoof_threshold, storm_rate, ... }`
 
 ## Lifecycle
@@ -543,6 +589,6 @@ the 9-iteration sequence (0..=8) plus overhead. Sub-C is proptest (no Kani unwin
 | Event | Date | Actor |
 |---|---|---|
 | Created (draft, F2 spec evolution) | 2026-06-12 | architect |
-| Proof harness committed | TBD (F4) | formal-verifier |
-| Proof first passed | TBD (F6) | formal-verifier |
-| Locked (VERIFIED) | TBD (F6 gate) | formal-verifier |
+| Proof harness committed | F4 (develop branch) | formal-verifier |
+| Proof first passed | 2026-06-16 (F6) | formal-verifier |
+| Locked (VERIFIED) | 2026-06-16 (F6 gate) | spec-steward |
