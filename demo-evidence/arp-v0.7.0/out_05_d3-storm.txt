@@ -1,0 +1,31 @@
+WIRERUST TRIAGE REPORT
+────────────────────────────────────────
+  Packets: 0  Bytes: 0  Hosts: 0
+
+PROTOCOLS
+────────────────────────────────────────
+
+FINDINGS
+────────────────────────────────────────
+  [Anomaly] POSSIBLE (MEDIUM) - D3: ARP storm detected — high ARP frame rate from source MAC DE:AD:BE:EF:00:01
+    > source_mac=DE:AD:BE:EF:00:01
+    > frame_count=10
+    > window_secs=0
+    > rate_pps=10
+
+ANALYZER: ARP
+────────────────────────────────────────
+  Packets analyzed: 12
+  bindings_tracked: 12
+  frames_analyzed: 12
+  garp_findings: 0
+  malformed_findings: 0
+  malformed_frames: 0
+  mismatch_findings: 0
+  other_opcode_count: 0
+  reply_count: 0
+  request_count: 12
+  spoof_findings: 0
+  storm_findings: 1
+
+

@@ -1,0 +1,23 @@
+WIRERUST TRIAGE REPORT
+────────────────────────────────────────
+  Packets: 0  Bytes: 0  Hosts: 0
+
+PROTOCOLS
+────────────────────────────────────────
+
+ANALYZER: ARP
+────────────────────────────────────────
+  Packets analyzed: 1
+  bindings_tracked: 1
+  frames_analyzed: 1
+  garp_findings: 0
+  malformed_findings: 0
+  malformed_frames: 0
+  mismatch_findings: 0
+  other_opcode_count: 0
+  reply_count: 0
+  request_count: 1
+  spoof_findings: 0
+  storm_findings: 0
+
+

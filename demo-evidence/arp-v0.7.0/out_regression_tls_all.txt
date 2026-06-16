@@ -1,0 +1,113 @@
+WIRERUST TRIAGE REPORT
+────────────────────────────────────────
+  Packets: 58  Bytes: 24105  Hosts: 1
+
+PROTOCOLS
+────────────────────────────────────────
+  Tcp: 58
+
+SERVICES
+────────────────────────────────────────
+  TLS: 58
+
+FINDINGS
+────────────────────────────────────────
+  [Anomaly] LIKELY (HIGH) - ServerHello negotiated deprecated protocol (SSL 3.0, RFC 7568 prohibits SSLv3)
+    > Version: 0x0300 (SSL 3.0)
+  [Anomaly] LIKELY (HIGH) - ClientHello offers weak cipher suites (NULL/anonymous/export)
+    > TLS_RSA_EXPORT1024_WITH_RC4_56_SHA
+    > TLS_RSA_EXPORT1024_WITH_DES_CBC_SHA
+    > TLS_RSA_EXPORT_WITH_RC4_40_MD5
+    > TLS_RSA_EXPORT_WITH_RC2_CBC_40_MD5
+  [Anomaly] LIKELY (HIGH) - ClientHello uses deprecated protocol (SSL 3.0, RFC 7568 prohibits SSLv3)
+    > Version: 0x0300 (SSL 3.0)
+  [Anomaly] LIKELY (HIGH) - ServerHello negotiated deprecated protocol (SSL 3.0, RFC 7568 prohibits SSLv3)
+    > Version: 0x0300 (SSL 3.0)
+
+ANALYZER: TCP Reassembly
+────────────────────────────────────────
+  Packets analyzed: 58
+  bytes_reassembled: 20245
+  dropped_findings: 0
+  evictions: 0
+  flows_completed: 0
+  flows_expired: 0
+  flows_fin: 0
+  flows_partial: 0
+  flows_rst: 0
+  flows_total: 2
+  packets_processed: 58
+  packets_skipped_non_tcp: 0
+  segments_depth_exceeded: 0
+  segments_duplicates: 0
+  segments_inserted: 33
+  segments_out_of_window: 0
+  segments_overlaps: 0
+  segments_segment_limit: 0
+  unclassified_flows: 0
+
+ANALYZER: DNS
+────────────────────────────────────────
+  Packets analyzed: 0
+  dns_queries: 0
+  dns_responses: 0
+
+ANALYZER: HTTP
+────────────────────────────────────────
+  Packets analyzed: 0
+  methods: {}
+  non_http_flows: 0
+  parse_errors: 0
+  poisoned_bytes_skipped: 0
+  recent_uris: []
+  status_codes: {}
+  top_hosts: []
+  transactions: 0
+  user_agents: {}
+
+ANALYZER: TLS
+────────────────────────────────────────
+  Packets analyzed: 1
+  cipher_suites: {"TLS_RSA_WITH_3DES_EDE_CBC_SHA":1,"TLS_RSA_WITH_AES_256_CBC_SHA":1}
+  ja3_hashes: {"081ce213243f802c8cc8fcfe683309de":1}
+  ja3s_hashes: {"5fc1e64fcf8c49653b0de9e53d0bf3a3":1,"beee243d749b8f43c283eeaf7517600d":1}
+  parse_errors: 7
+  tls_versions: {"768":3}
+  top_snis: []
+  truncated_records: 0
+
+ANALYZER: modbus
+────────────────────────────────────────
+  Packets analyzed: 0
+  dropped_findings: 0
+  exception_count: 0
+  function_code_distribution: {}
+  parse_errors: 0
+  pdu_count: 0
+  write_count: 0
+
+ANALYZER: DNP3
+────────────────────────────────────────
+  Packets analyzed: 0
+  control_operation_counts: {}
+  flows_analyzed: 0
+  function_code_distribution: {}
+  total_frames: 0
+  total_parse_errors: 0
+
+ANALYZER: ARP
+────────────────────────────────────────
+  Packets analyzed: 0
+  bindings_tracked: 0
+  frames_analyzed: 0
+  garp_findings: 0
+  malformed_findings: 0
+  malformed_frames: 0
+  mismatch_findings: 0
+  other_opcode_count: 0
+  reply_count: 0
+  request_count: 0
+  spoof_findings: 0
+  storm_findings: 0
+
+

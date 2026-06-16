@@ -1,0 +1,78 @@
+{
+  "analyzers": [
+    {
+      "analyzer_name": "ARP",
+      "detail": {
+        "bindings_tracked": 1,
+        "frames_analyzed": 4,
+        "garp_findings": 0,
+        "malformed_findings": 0,
+        "malformed_frames": 0,
+        "mismatch_findings": 0,
+        "other_opcode_count": 0,
+        "reply_count": 4,
+        "request_count": 0,
+        "spoof_findings": 3,
+        "storm_findings": 0
+      },
+      "packets_analyzed": 4
+    }
+  ],
+  "findings": [
+    {
+      "category": "Anomaly",
+      "confidence": "Medium",
+      "evidence": [
+        "sender_ip=192.168.1.10",
+        "old_mac=AA:BB:CC:DD:EE:01",
+        "new_mac=AA:BB:CC:DD:EE:02"
+      ],
+      "mitre_techniques": [
+        "T0830",
+        "T1557.002"
+      ],
+      "summary": "D1: ARP Spoof — IP→MAC rebind detected for sender_ip=192.168.1.10",
+      "verdict": "Possible"
+    },
+    {
+      "category": "Anomaly",
+      "confidence": "Medium",
+      "evidence": [
+        "sender_ip=192.168.1.10",
+        "old_mac=AA:BB:CC:DD:EE:02",
+        "new_mac=AA:BB:CC:DD:EE:03"
+      ],
+      "mitre_techniques": [
+        "T0830",
+        "T1557.002"
+      ],
+      "summary": "D1: ARP Spoof — IP→MAC rebind detected for sender_ip=192.168.1.10",
+      "verdict": "Possible"
+    },
+    {
+      "category": "Anomaly",
+      "confidence": "High",
+      "evidence": [
+        "sender_ip=192.168.1.10",
+        "old_mac=AA:BB:CC:DD:EE:03",
+        "new_mac=AA:BB:CC:DD:EE:04"
+      ],
+      "mitre_techniques": [
+        "T0830",
+        "T1557.002"
+      ],
+      "summary": "D1: ARP Spoof — IP→MAC rebind detected for sender_ip=192.168.1.10",
+      "verdict": "Likely"
+    }
+  ],
+  "mitre_attack_version": "ics-attack-19.1",
+  "mitre_domain": "ics-attack",
+  "summary": {
+    "protocols": {},
+    "services": {},
+    "skipped_packets": 0,
+    "total_bytes": 0,
+    "total_packets": 0,
+    "unique_hosts": []
+  }
+}

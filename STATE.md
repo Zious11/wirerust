@@ -7,7 +7,7 @@ feature_arp_status: "v0.7.0 RELEASED 2026-06-16 — ARP Security Analyzer (E-16,
 feature_8_status: "v0.6.0 RELEASED 2026-06-12 — DNP3 TCP analyzer; F7 5-dim CONVERGED; tag v0.6.0 + 4 binaries"
 product: wirerust
 mode: brownfield
-timestamp: 2026-06-16T00:00:00Z
+timestamp: 2026-06-16T12:00:00Z
 bootstrapped: 2026-05-19T16:56:48Z
 phase_0_completed: 2026-05-19T20:00:00Z
 phase_1_completed: "2026-05-21"
@@ -99,9 +99,9 @@ input_drift_check: "F7-followup-dispositions burst (2026-06-16): STORY-071=6b408
 | Feature: ARP analyzer — F7 Delta Convergence | **CONVERGED — 5-dim COMPLETE** (2026-06-16, develop e37ec38). (1) Regression GREEN (build/clippy/fmt clean, 1592 tests/0 fail); (2) Verification GREEN (VP-024 v2.3 LOCKED, 5/5 Kani SUCCESSFUL, fuzz 16.2M/0, mutants 98.9%); (3) Implementation/spec convergence (F4 3/3 + holdout); (4) Robustness (F5 3/3); (5) Documentation/coherence (F7 consistency CONSISTENT — 4 gaps + VP-024 v2.3 residual ALL REMEDIATED; holistic adversary PASS CLEAN). Final input-hashes: 111=3eefa35 112=26fb42d 113=f35bcfc 114=02da9e7 115=80be67e ALL MATCH. | CONVERGED |
 | Release v0.7.0 | **RELEASED 2026-06-16** — PR #256 (release/0.7.0 → main); merge commit dd8e142; tag v0.7.0; GitHub Release https://github.com/Zious11/wirerust/releases/tag/v0.7.0; 4 binaries (aarch64-apple-darwin, x86_64-apple-darwin, x86_64-pc-windows-msvc, x86_64-unknown-linux-gnu); release.yml run 27645784901 SUCCESS. ARP Security Analyzer (E-16, issue #9). develop merge-back: dd8e142 (branch-protection bypass; gitflow sync; CI-verified via PR #256). | **RELEASED** |
 
-## Session Resume Checkpoint (2026-06-16 — v0.7.0 post-release audit-trail burst; IDLE)
+## Session Resume Checkpoint (2026-06-16 — demo relocation burst; IDLE)
 
-**Previous checkpoint (2026-06-16 — v0.7.0 RELEASED; ARP cycle CLOSED; IDLE) archived to:
+**Previous checkpoint (2026-06-16 — v0.7.0 post-release audit-trail burst; IDLE) archived to:
 `cycles/feature-arp-v0.7.0/session-checkpoints.md`**
 
 ### A. EXACT PIPELINE POSITION
@@ -119,12 +119,18 @@ input_drift_check: "F7-followup-dispositions burst (2026-06-16): STORY-071=6b408
 
 ### B. POST-RELEASE AUDIT-TRAIL BURST (2026-06-16)
 
-Committed to factory-artifacts in this burst:
+Committed to factory-artifacts in prior burst:
 - `research/arp-pcap-sources.md` — research backing for PR #257 / tests/fixtures/E2E-PCAPS.md (ARP e2e pcap source index).
 - `research/arp-followups-validation.md` — DF-VALIDATION-001 audit trail validating filed issues #252/#253/#254/#255; required by CLAUDE.md policy before findings become GitHub issues.
 
-Untracked item pending human disposition (PG-ARP-F4-DEMO-LEAK candidate):
-- `demo-out/arp-v0.7.0` showcase exists on the develop worktree — relocate to `.factory/demo-evidence/` vs delete vs keep. NOT committed here; requires human decision.
+### B2. DEMO RELOCATION BURST (2026-06-16 — PG-ARP-F4-DEMO-LEAK REMEDIATED)
+
+Previously-pending disposition RESOLVED:
+- `demo-out/arp-v0.7.0` (30 files, 128K) relocated from develop worktree to
+  `.factory/demo-evidence/arp-v0.7.0/` and committed to factory-artifacts.
+- `demo-out/` removed from develop worktree per human authorization (was untracked `??`; no tracked files deleted).
+- develop worktree: CLEAN (no untracked items remaining from this burst).
+- PG-ARP-F4-DEMO-LEAK remediation: COMPLETE.
 
 ### C. CARRY-FORWARD (post-release open items)
 

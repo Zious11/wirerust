@@ -1,0 +1,48 @@
+{
+  "analyzers": [
+    {
+      "analyzer_name": "ARP",
+      "detail": {
+        "bindings_tracked": 1,
+        "frames_analyzed": 1,
+        "garp_findings": 0,
+        "malformed_findings": 0,
+        "malformed_frames": 0,
+        "mismatch_findings": 1,
+        "other_opcode_count": 0,
+        "reply_count": 1,
+        "request_count": 0,
+        "spoof_findings": 0,
+        "storm_findings": 0
+      },
+      "packets_analyzed": 1
+    }
+  ],
+  "findings": [
+    {
+      "category": "Anomaly",
+      "confidence": "Medium",
+      "evidence": [
+        "eth_src_mac=DE:AD:00:00:00:01",
+        "arp_sender_mac=BE:EF:00:00:00:02",
+        "sender_ip=192.168.7.7"
+      ],
+      "mitre_techniques": [
+        "T0830",
+        "T1557.002"
+      ],
+      "summary": "D12: L2/L3 sender-MAC mismatch — Ethernet src MAC differs from ARP sender HW addr",
+      "verdict": "Possible"
+    }
+  ],
+  "mitre_attack_version": "ics-attack-19.1",
+  "mitre_domain": "ics-attack",
+  "summary": {
+    "protocols": {},
+    "services": {},
+    "skipped_packets": 0,
+    "total_bytes": 0,
+    "total_packets": 0,
+    "unique_hosts": []
+  }
+}

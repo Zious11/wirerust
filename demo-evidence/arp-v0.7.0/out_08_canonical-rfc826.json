@@ -1,0 +1,32 @@
+{
+  "analyzers": [
+    {
+      "analyzer_name": "ARP",
+      "detail": {
+        "bindings_tracked": 1,
+        "frames_analyzed": 1,
+        "garp_findings": 0,
+        "malformed_findings": 0,
+        "malformed_frames": 0,
+        "mismatch_findings": 0,
+        "other_opcode_count": 0,
+        "reply_count": 0,
+        "request_count": 1,
+        "spoof_findings": 0,
+        "storm_findings": 0
+      },
+      "packets_analyzed": 1
+    }
+  ],
+  "findings": [],
+  "mitre_attack_version": "ics-attack-19.1",
+  "mitre_domain": "ics-attack",
+  "summary": {
+    "protocols": {},
+    "services": {},
+    "skipped_packets": 0,
+    "total_bytes": 0,
+    "total_packets": 0,
+    "unique_hosts": []
+  }
+}

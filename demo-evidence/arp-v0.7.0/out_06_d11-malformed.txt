@@ -1,0 +1,29 @@
+WIRERUST TRIAGE REPORT
+────────────────────────────────────────
+  Packets: 0  Bytes: 0  Hosts: 0
+
+PROTOCOLS
+────────────────────────────────────────
+
+FINDINGS
+────────────────────────────────────────
+  [Anomaly] POSSIBLE (LOW) - D11: Malformed ARP frame — Non-Ethernet/IPv4 ARP frame (non-standard HW/proto address sizes or types)
+    > Non-Ethernet/IPv4 ARP frame
+    > packet_len=46
+
+ANALYZER: ARP
+────────────────────────────────────────
+  Packets analyzed: 0
+  bindings_tracked: 0
+  frames_analyzed: 0
+  garp_findings: 0
+  malformed_findings: 1
+  malformed_frames: 1
+  mismatch_findings: 0
+  other_opcode_count: 0
+  reply_count: 0
+  request_count: 0
+  spoof_findings: 0
+  storm_findings: 0
+
+

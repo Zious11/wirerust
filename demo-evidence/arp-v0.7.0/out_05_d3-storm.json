@@ -1,0 +1,45 @@
+{
+  "analyzers": [
+    {
+      "analyzer_name": "ARP",
+      "detail": {
+        "bindings_tracked": 12,
+        "frames_analyzed": 12,
+        "garp_findings": 0,
+        "malformed_findings": 0,
+        "malformed_frames": 0,
+        "mismatch_findings": 0,
+        "other_opcode_count": 0,
+        "reply_count": 0,
+        "request_count": 12,
+        "spoof_findings": 0,
+        "storm_findings": 1
+      },
+      "packets_analyzed": 12
+    }
+  ],
+  "findings": [
+    {
+      "category": "Anomaly",
+      "confidence": "Medium",
+      "evidence": [
+        "source_mac=DE:AD:BE:EF:00:01",
+        "frame_count=10",
+        "window_secs=0",
+        "rate_pps=10"
+      ],
+      "summary": "D3: ARP storm detected — high ARP frame rate from source MAC DE:AD:BE:EF:00:01",
+      "verdict": "Possible"
+    }
+  ],
+  "mitre_attack_version": "ics-attack-19.1",
+  "mitre_domain": "ics-attack",
+  "summary": {
+    "protocols": {},
+    "services": {},
+    "skipped_packets": 0,
+    "total_bytes": 0,
+    "total_packets": 0,
+    "unique_hosts": []
+  }
+}

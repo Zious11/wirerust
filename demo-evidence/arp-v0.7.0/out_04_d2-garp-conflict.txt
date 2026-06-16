@@ -1,0 +1,35 @@
+WIRERUST TRIAGE REPORT
+────────────────────────────────────────
+  Packets: 0  Bytes: 0  Hosts: 0
+
+PROTOCOLS
+────────────────────────────────────────
+
+FINDINGS
+────────────────────────────────────────
+  [Anomaly] POSSIBLE (MEDIUM) - D2: Gratuitous ARP (GARP) with binding conflict — sender_ip equals target_ip and conflicts with an existing IP→MAC binding
+    > sender_ip=192.168.5.1
+    > operation=1
+    MITRE: T0830, T1557.002
+  [Anomaly] POSSIBLE (MEDIUM) - D1: ARP Spoof — IP→MAC rebind detected for sender_ip=192.168.5.1
+    > sender_ip=192.168.5.1
+    > old_mac=AA:BB:CC:DD:EE:0A
+    > new_mac=AA:BB:CC:DD:EE:0B
+    MITRE: T0830, T1557.002
+
+ANALYZER: ARP
+────────────────────────────────────────
+  Packets analyzed: 2
+  bindings_tracked: 1
+  frames_analyzed: 2
+  garp_findings: 1
+  malformed_findings: 0
+  malformed_frames: 0
+  mismatch_findings: 0
+  other_opcode_count: 0
+  reply_count: 1
+  request_count: 1
+  spoof_findings: 1
+  storm_findings: 0
+
+

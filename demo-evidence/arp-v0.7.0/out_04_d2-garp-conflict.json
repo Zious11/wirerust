@@ -1,0 +1,62 @@
+{
+  "analyzers": [
+    {
+      "analyzer_name": "ARP",
+      "detail": {
+        "bindings_tracked": 1,
+        "frames_analyzed": 2,
+        "garp_findings": 1,
+        "malformed_findings": 0,
+        "malformed_frames": 0,
+        "mismatch_findings": 0,
+        "other_opcode_count": 0,
+        "reply_count": 1,
+        "request_count": 1,
+        "spoof_findings": 1,
+        "storm_findings": 0
+      },
+      "packets_analyzed": 2
+    }
+  ],
+  "findings": [
+    {
+      "category": "Anomaly",
+      "confidence": "Medium",
+      "evidence": [
+        "sender_ip=192.168.5.1",
+        "operation=1"
+      ],
+      "mitre_techniques": [
+        "T0830",
+        "T1557.002"
+      ],
+      "summary": "D2: Gratuitous ARP (GARP) with binding conflict — sender_ip equals target_ip and conflicts with an existing IP→MAC binding",
+      "verdict": "Possible"
+    },
+    {
+      "category": "Anomaly",
+      "confidence": "Medium",
+      "evidence": [
+        "sender_ip=192.168.5.1",
+        "old_mac=AA:BB:CC:DD:EE:0A",
+        "new_mac=AA:BB:CC:DD:EE:0B"
+      ],
+      "mitre_techniques": [
+        "T0830",
+        "T1557.002"
+      ],
+      "summary": "D1: ARP Spoof — IP→MAC rebind detected for sender_ip=192.168.5.1",
+      "verdict": "Possible"
+    }
+  ],
+  "mitre_attack_version": "ics-attack-19.1",
+  "mitre_domain": "ics-attack",
+  "summary": {
+    "protocols": {},
+    "services": {},
+    "skipped_packets": 0,
+    "total_bytes": 0,
+    "total_packets": 0,
+    "unique_hosts": []
+  }
+}
