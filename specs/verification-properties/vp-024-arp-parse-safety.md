@@ -1,7 +1,7 @@
 ---
 document_type: verification-property
 level: L4
-version: "2.2"
+version: "2.3"
 status: verified
 producer: architect
 timestamp: 2026-06-16T00:00:00Z
@@ -37,6 +37,7 @@ modified:
   - "v2.0 (2026-06-16): F6 LOCK — All five Kani harnesses prove VERIFICATION:- SUCCESSFUL. verification_lock set to true; status draft→verified; phase f2→f6; proof_completed_date set to 2026-06-16. Sub-D Proof Method narrative corrected: insert_binding_lru_btree reference replaced with insert_binding_lru_array (fixed-capacity array surrogate behind #[cfg(any(kani, test))]). Reason for surrogate: CBMC cannot symbolically execute std::collections::BTreeMap — runs out of memory even at 3 inserts with no resolution after 45+ minutes at any cap scale. The array surrogate reproduces the identical 3-branch eviction algorithm (update-in-place / evict-min-last_seen_ts / append) used by the production insert_binding_lru (HashMap). Branch fidelity confirmed by a branch-fidelity test asserting surrogate matches production behavior. The cap invariant proof (len <= cap) remains sound for the production HashMap path by the map-implementation-independence argument: cap invariance is a purely arithmetic property independent of map implementation. Sub-A F4 obligation notes (vacuity risk on Ok-arm reachability) resolved: kani::cover! reachability assertions were added in F4 and confirmed non-vacuous. proof_file_hash and verified_at_commit left null pending develop HEAD after F6 PR merges — do not populate from speculative values."
   - "v2.1 (2026-06-16): F6 anchor population — verified_at_commit populated with 6e9f2cc (develop HEAD at F6 PR #250 merge, 2026-06-16; all 46/46 project-wide Kani harnesses VERIFICATION:- SUCCESSFUL). proof_file_hash deferred: no canonical recomputation method defined for VP-024 proof files; follow-up recorded as FU-F6-KANI-CLEANUP (define method, e.g. SHA-256 of kani_proofs modules in src/decoder.rs + src/analyzer/arp.rs, then populate). Patch bump only — no property, proof-method, or postcondition content changed."
   - "v2.2 (2026-06-16): F7 consistency F2 — harness skeleton block for Sub-D (verify_binding_table_cap) synced to shipped insert_binding_lru_array signature: entries type corrected from [Option<([u8;4], BindingEntry)>; N] to [([u8; 4], [u8; 6], u32); CAP] (array-of-tuples, no Option wrapper); separate len: &mut usize counter added; assert updated from .filter(|e| e.is_some()).count() <= CAP to len <= CAP; loop rewritten as while i <= CAP as u8 to match shipped harness. Symbolic-input summary table Sub-D row updated to reflect new entries/len signature. Surrounding narrative (NOTE ON SUBSTRATE, soundness argument) was already correct in v2.0 — only the code block skeleton was stale. Patch bump only — verification_lock, status, and all proof properties unchanged."
+  - "v2.3 (2026-06-16): F7 consistency re-audit residual — supplementary surrogate-signature prose (lines ~228/441/590) synced to shipped [([u8;4],[u8;6],u32);N] + separate len counter. Three narrative locations that still described the surrogate element type as [Option<([u8;4], BindingEntry)>; N] (Option-wrapped, BindingEntry, no separate len): (1) Proof Method 'Adopted surrogate' paragraph; (2) NOTE ON SUBSTRATE comment inside harness skeleton block; (3) Source Location forward-reference for insert_binding_lru_array (signature corrected, len: &mut usize parameter added). The code block skeleton (already corrected in v2.2), normative proof spec, BC cross-refs, and assertions are unchanged. Patch bump only — verification_lock, status, and all proof properties unchanged."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -225,9 +226,10 @@ evaluated for the Kani harness:
   across all tested cap scales. The `BTreeMap` surrogate was therefore infeasible.
 
 **Adopted surrogate:** `insert_binding_lru_array` — a fixed-capacity array surrogate
-(`#[cfg(any(kani, test))]`) that stores entries in a `[Option<([u8;4], BindingEntry)>; N]`
-array and implements the IDENTICAL 3-branch eviction algorithm used by the production
-`insert_binding_lru` (HashMap):
+(`#[cfg(any(kani, test))]`) that stores entries in a `[([u8; 4], [u8; 6], u32); N]`
+array (plain tuples: IP, MAC, last_seen_ts — no Option wrapper) with a separate
+`len: &mut usize` counter tracking occupied entry count, and implements the IDENTICAL
+3-branch eviction algorithm used by the production `insert_binding_lru` (HashMap):
 1. Update-in-place: if the IP already exists, overwrite MAC and return.
 2. Evict-min-last_seen_ts: if the array is at capacity, scan for the entry with the
    minimum `last_seen_ts` value and overwrite it.
@@ -438,8 +440,10 @@ mod kani_proofs {
     // resolution at any cap scale.
     //
     // ADOPTED SURROGATE: insert_binding_lru_array — a fixed-capacity array surrogate
-    // `#[cfg(any(kani, test))]` that stores entries in [Option<([u8;4], BindingEntry)>; N]
-    // and implements the IDENTICAL 3-branch eviction algorithm:
+    // `#[cfg(any(kani, test))]` that stores entries in [([u8; 4], [u8; 6], u32); N]
+    // (plain tuples: IP, MAC, last_seen_ts — no Option wrapper) with a separate
+    // len: &mut usize counter tracking occupied entry count, and implements the
+    // IDENTICAL 3-branch eviction algorithm:
     //   1. Update-in-place (IP exists → overwrite MAC).
     //   2. Evict-min-last_seen_ts (at capacity → scan for min last_seen_ts, overwrite).
     //   3. Append (capacity not reached → insert in first vacant slot).
@@ -587,7 +591,7 @@ the 9-iteration sequence (0..=8) plus overhead. Sub-C is proptest (no Kani unwin
 - `src/decoder.rs` — `pub enum DecodedFrame { Ip(ParsedPacket), Arp(ArpFrame) }`
 - `src/analyzer/arp.rs` — `fn is_gratuitous_arp(frame: &ArpFrame) -> bool`
 - `src/analyzer/arp.rs` — `fn insert_binding_lru(bindings: &mut HashMap<[u8;4], BindingEntry>, ip: [u8;4], mac: [u8;6], cap: usize)` (production type; no `ts` parameter — `last_seen_ts` is written by `process_arp` on every observation; `insert_binding_lru` reads it only during eviction scan; see ADR-008 Decision 4 normative note)
-- `src/analyzer/arp.rs` — `fn insert_binding_lru_array(entries: &mut [Option<([u8;4], BindingEntry)>; N], ip: [u8;4], mac: [u8;6], cap: usize)` (`#[cfg(any(kani, test))]` fixed-capacity array surrogate used by Sub-D Kani harness; BTreeMap surrogate from draft skeleton proved CBMC-infeasible — OOM at 3 inserts; see Proof Method surrogate rationale. Branch-fidelity test confirms identical eviction algorithm.)
+- `src/analyzer/arp.rs` — `fn insert_binding_lru_array(entries: &mut [([u8; 4], [u8; 6], u32); N], len: &mut usize, ip: [u8;4], mac: [u8;6], cap: usize)` (`#[cfg(any(kani, test))]` fixed-capacity array surrogate used by Sub-D Kani harness; entries are plain (IP, MAC, last_seen_ts) tuples — no Option wrapper; separate `len` counter tracks occupied entry count; BTreeMap surrogate from draft skeleton proved CBMC-infeasible — OOM at 3 inserts; see Proof Method surrogate rationale. Branch-fidelity test confirms identical eviction algorithm.)
 - `src/analyzer/arp.rs` — `pub struct ArpAnalyzer { bindings, storm_counters, spoof_threshold, storm_rate, ... }`
 
 ## Lifecycle
