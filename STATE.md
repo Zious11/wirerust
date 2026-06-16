@@ -18,8 +18,8 @@ phase_5_completed: "2026-06-01"
 phase_6_completed: "2026-06-02"
 phase_7_to_release_gate: "PASSED (human-approved 2026-06-09 — D-045)"
 adversary_gate: SATISFIED
-develop_head: dd8e142
-develop_head_confirmed: dd8e142 == origin/develop (verified 2026-06-16; v0.7.0 merge-back from main — release/0.7.0 PR #256 merged; develop now contains 0.7.0 version + CHANGELOG; branch-protection bypass used for gitflow sync; commits CI-verified via PR #256)
+develop_head: 480f8ae
+develop_head_confirmed: 480f8ae == origin/develop (verified 2026-06-16; PR #257 "docs(fixtures): index ARP e2e pcap sources" MERGED 2026-06-16T21:23:54Z — tests/fixtures/E2E-PCAPS.md landed on develop; HEAD == origin/develop confirmed)
 arp_f6_hardening_status: "COMPLETE — 5/5 Kani SUCCESSFUL (46/46 project-wide), VP-024 v2.3 LOCKED, fuzz VP-008 16.2M/0, mutants 98.9%"
 arp_f7_convergence_status: "CONVERGED — 5-dim met; awaiting v0.7.0 release human gate"
 arp_followups_status: "DISPOSITIONED — item 5 fixed (BC-2.10.007 v1.8 de-PLANNED 25/17); issues #252-255 filed (post-release); CR-001/CR-002/FU-STORM-NEW-ATTR/BC-2.10-COUNT-POSTMERGE dropped/resolved. RELEASE-READY."
@@ -61,7 +61,7 @@ input_drift_check: "F7-followup-dispositions burst (2026-06-16): STORY-071=6b408
 
 **wirerust v0.7.0 RELEASED 2026-06-16 — ARP Security Analyzer (E-16, issue #9). F1..F7 ALL CONVERGED AND RELEASED. PR #256 (release/0.7.0 → main); merge commit dd8e142; tag v0.7.0; GitHub Release 4 binaries; release.yml run 27645784901 SUCCESS. ARP feature cycle CLOSED. Next = steady-state or new feature.**
 
-**Summary:** 68 stories (48 greenfield + 1 tooling + 19 feature-cycle), 457 pts. 283 BCs (244 pre-F2 + 24 SS-15 + 15 SS-16 ARP), 24 VPs (VP-024 LOCKED v2.3). STORY-111..115 ALL DELIVERED (PRs #236/#238/#239/#240/#241). Carry-forward open issues: #252 (proof_file_hash), #253 (QinQ/MACsec fixtures), #254 (doc-debt), #255 (JSON snake_case). Process gaps codified: PG-ARP-FIX-MECHANISM-FIRST / PG-ARP-FIXBURST-CONSUMER-SWEEP / PG-ARP-F4-REDTEST-DOC-TENSE-RECURRENCE. develop HEAD dd8e142; main HEAD dd8e142 (fast-forwarded/merged-back). develop merge-back used branch-protection bypass (standard gitflow sync; commits CI-verified via PR #256 — recorded for audit).
+**Summary:** 68 stories (48 greenfield + 1 tooling + 19 feature-cycle), 457 pts. 283 BCs (244 pre-F2 + 24 SS-15 + 15 SS-16 ARP), 24 VPs (VP-024 LOCKED v2.3). STORY-111..115 ALL DELIVERED (PRs #236/#238/#239/#240/#241). Carry-forward open issues: #252 (proof_file_hash), #253 (QinQ/MACsec fixtures), #254 (doc-debt), #255 (JSON snake_case). Process gaps codified: PG-ARP-FIX-MECHANISM-FIRST / PG-ARP-FIXBURST-CONSUMER-SWEEP / PG-ARP-F4-REDTEST-DOC-TENSE-RECURRENCE. develop HEAD 480f8ae (PR #257 docs landed post-release); main HEAD dd8e142 (v0.7.0). Post-release audit-trail burst: research/arp-pcap-sources.md + research/arp-followups-validation.md committed to factory-artifacts.
 
 ## Phase Progress
 
@@ -99,9 +99,9 @@ input_drift_check: "F7-followup-dispositions burst (2026-06-16): STORY-071=6b408
 | Feature: ARP analyzer — F7 Delta Convergence | **CONVERGED — 5-dim COMPLETE** (2026-06-16, develop e37ec38). (1) Regression GREEN (build/clippy/fmt clean, 1592 tests/0 fail); (2) Verification GREEN (VP-024 v2.3 LOCKED, 5/5 Kani SUCCESSFUL, fuzz 16.2M/0, mutants 98.9%); (3) Implementation/spec convergence (F4 3/3 + holdout); (4) Robustness (F5 3/3); (5) Documentation/coherence (F7 consistency CONSISTENT — 4 gaps + VP-024 v2.3 residual ALL REMEDIATED; holistic adversary PASS CLEAN). Final input-hashes: 111=3eefa35 112=26fb42d 113=f35bcfc 114=02da9e7 115=80be67e ALL MATCH. | CONVERGED |
 | Release v0.7.0 | **RELEASED 2026-06-16** — PR #256 (release/0.7.0 → main); merge commit dd8e142; tag v0.7.0; GitHub Release https://github.com/Zious11/wirerust/releases/tag/v0.7.0; 4 binaries (aarch64-apple-darwin, x86_64-apple-darwin, x86_64-pc-windows-msvc, x86_64-unknown-linux-gnu); release.yml run 27645784901 SUCCESS. ARP Security Analyzer (E-16, issue #9). develop merge-back: dd8e142 (branch-protection bypass; gitflow sync; CI-verified via PR #256). | **RELEASED** |
 
-## Session Resume Checkpoint (2026-06-16 — v0.7.0 RELEASED; ARP cycle CLOSED; IDLE)
+## Session Resume Checkpoint (2026-06-16 — v0.7.0 post-release audit-trail burst; IDLE)
 
-**Previous checkpoint (2026-06-16 — F7 DELTA CONVERGENCE COMPLETE; NEXT = v0.7.0 release gate) archived to:
+**Previous checkpoint (2026-06-16 — v0.7.0 RELEASED; ARP cycle CLOSED; IDLE) archived to:
 `cycles/feature-arp-v0.7.0/session-checkpoints.md`**
 
 ### A. EXACT PIPELINE POSITION
@@ -111,13 +111,22 @@ input_drift_check: "F7-followup-dispositions burst (2026-06-16): STORY-071=6b408
 - **F1..F7 ALL CONVERGED AND CLOSED.** STORY-111..115 DELIVERED (PRs #236/#238/#239/#240/#241).
 - **Release:** PR #256 (release/0.7.0 → main); merge commit dd8e142; tag v0.7.0;
   GitHub Release 4 binaries; release.yml run 27645784901 SUCCESS.
-- **develop HEAD: dd8e142** == origin/develop (v0.7.0 merge-back; branch-protection bypass; gitflow sync; CI-verified via PR #256 — recorded for audit).
-- **main HEAD: dd8e142.**
+- **develop HEAD: 480f8ae** == origin/develop (PR #257 "docs(fixtures): index ARP e2e pcap sources" MERGED 2026-06-16T21:23:54Z; tests/fixtures/E2E-PCAPS.md now on develop).
+- **main HEAD: dd8e142 (v0.7.0).**
 - **factory-artifacts HEAD:** see `git -C .factory log -1 --format='%h %s'`
 - **Active worktrees:** EXACTLY 2 — main repo (develop) + .factory (factory-artifacts).
 - **Open PRs:** None.
 
-### B. CARRY-FORWARD (post-release open items)
+### B. POST-RELEASE AUDIT-TRAIL BURST (2026-06-16)
+
+Committed to factory-artifacts in this burst:
+- `research/arp-pcap-sources.md` — research backing for PR #257 / tests/fixtures/E2E-PCAPS.md (ARP e2e pcap source index).
+- `research/arp-followups-validation.md` — DF-VALIDATION-001 audit trail validating filed issues #252/#253/#254/#255; required by CLAUDE.md policy before findings become GitHub issues.
+
+Untracked item pending human disposition (PG-ARP-F4-DEMO-LEAK candidate):
+- `demo-out/arp-v0.7.0` showcase exists on the develop worktree — relocate to `.factory/demo-evidence/` vs delete vs keep. NOT committed here; requires human decision.
+
+### C. CARRY-FORWARD (post-release open items)
 
 - **#252** VP-024 proof_file_hash + re-lock (post-release).
 - **#253** QinQ/MACsec decoder fixtures (post-release; fuzz 16.2M/0 adequate interim).
@@ -125,11 +134,11 @@ input_drift_check: "F7-followup-dispositions burst (2026-06-16): STORY-071=6b408
 - **#255** JSON enum casing → snake_case (post-release; maintainer chose snake_case).
 - **PG-ARP-FIX-MECHANISM-FIRST / PG-ARP-FIXBURST-CONSUMER-SWEEP / PG-ARP-F4-REDTEST-DOC-TENSE-RECURRENCE** — codified in drift items / lessons.md; policy codification pending next cycle.
 
-### C. RESUME PROCEDURE (COLD-RESUME READY — SESSION-CLEAR SAFE 2026-06-16)
+### D. RESUME PROCEDURE (COLD-RESUME READY — SESSION-CLEAR SAFE 2026-06-16)
 
 **CONTEXT FOR FRESH SESSION:**
 - **Project:** wirerust. Mode: STEADY-STATE. No active feature. Latest release: v0.7.0 (ARP Security Analyzer).
-- **develop HEAD:** dd8e142 == origin/develop.
+- **develop HEAD:** 480f8ae == origin/develop (PR #257 docs landed post-release).
 - **main HEAD:** dd8e142 (v0.7.0).
 - **factory-artifacts HEAD:** see `git -C .factory log -1 --format='%h %s'`
 
@@ -137,13 +146,14 @@ input_drift_check: "F7-followup-dispositions burst (2026-06-16): STORY-071=6b408
 
 **Step 2 — Verify SHAs:**
 ```bash
-git -C /Users/zious/Documents/GITHUB/wirerust rev-parse HEAD  # expect dd8e142 prefix
+git -C /Users/zious/Documents/GITHUB/wirerust rev-parse HEAD  # expect 480f8ae prefix
 gh pr list --state open                                        # expect none
 ```
 
 **Step 3 — WHAT IS COMPLETE (do NOT re-do):**
-v0.7.0 RELEASED. ARP feature cycle CLOSED. All post-release dispositions recorded.
-Open issues: #252/#253/#254/#255 (tracked; post-release).
+v0.7.0 RELEASED. ARP feature cycle CLOSED. Post-release audit-trail burst committed
+(research/arp-pcap-sources.md + research/arp-followups-validation.md). Open issues:
+#252/#253/#254/#255 (tracked; post-release). demo-out/arp-v0.7.0 pending human disposition.
 
 **Step 4 — NEXT ACTION:**
 Await next feature selection or steady-state maintenance task (Dependabot, doc debt, etc.).
