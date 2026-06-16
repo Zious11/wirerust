@@ -1572,6 +1572,52 @@ mod tests {
         );
     }
 
+    /// Production `insert_binding_lru` (HashMap) eviction-boundary fidelity.
+    ///
+    /// The existing cap test uses the BTreeMap surrogate; `process_arp` only drives
+    /// the production HashMap function at the real cap (MAX_ARP_BINDINGS = 65_536),
+    /// which is infeasible to exercise at the boundary in a unit test. This test
+    /// calls `insert_binding_lru` directly with a small cap so its eviction branch
+    /// (`bindings.len() >= cap`) and last-write-wins update branch are observably
+    /// covered — exact-state assertions on which key is evicted and which MAC wins.
+    #[test]
+    fn test_insert_binding_lru_hashmap_eviction_boundary() {
+        const CAP: usize = 3;
+        let mut bindings: HashMap<[u8; 4], BindingEntry> = HashMap::new();
+        let ip = |n: u8| [10, 0, 0, n];
+        let mac = |n: u8| [n; 6];
+
+        // Fill to cap with distinct IPs; stamp ascending last_seen_ts (ip(0) oldest).
+        for n in 0u8..3 {
+            insert_binding_lru(&mut bindings, ip(n), mac(n), CAP);
+            bindings.get_mut(&ip(n)).unwrap().last_seen_ts = n as u32;
+        }
+        assert_eq!(bindings.len(), CAP, "filled to cap");
+
+        // Last-write-wins: re-insert an existing IP updates MAC, len unchanged.
+        insert_binding_lru(&mut bindings, ip(1), mac(88), CAP);
+        assert_eq!(bindings.len(), CAP, "update-in-place keeps len");
+        assert_eq!(
+            bindings.get(&ip(1)).map(|e| e.mac),
+            Some(mac(88)),
+            "MAC updated"
+        );
+
+        // New key at capacity evicts the minimum-last_seen_ts entry (ip(0), ts=0).
+        insert_binding_lru(&mut bindings, ip(9), mac(9), CAP);
+        assert_eq!(bindings.len(), CAP, "eviction keeps len at cap");
+        assert!(
+            !bindings.contains_key(&ip(0)),
+            "ip(0) (min ts) must be evicted"
+        );
+        assert!(
+            bindings.contains_key(&ip(9)),
+            "new key present after eviction"
+        );
+        assert!(bindings.contains_key(&ip(1)), "non-min ip(1) survives");
+        assert!(bindings.contains_key(&ip(2)), "non-min ip(2) survives");
+    }
+
     /// Array-surrogate algorithmic fidelity: exercises all three branches of
     /// `insert_binding_lru_array` with exact-state assertions, so the lookup-loop
     /// bound, the eviction-trigger comparison, and the min-scan loop bound are all
@@ -1637,6 +1683,41 @@ mod tests {
         // The non-minimum entries (ip(1) updated, ip(2)) must NOT be evicted.
         assert!(entries[..len].iter().any(|e| e.0 == ip(1)));
         assert!(entries[..len].iter().any(|e| e.0 == ip(2)));
+
+        // Branch 2, minimum at a NON-ZERO index: the min-scan loop must actually
+        // iterate (`while k < len`) and compare (`entries[k].2 < entries[min_idx].2`)
+        // to locate it. A fresh table is built so that the smallest last_seen_ts sits
+        // at index 1, NOT index 0 — this distinguishes a correct scan from one whose
+        // loop bound or comparison is mutated (which would leave min_idx = 0 and
+        // evict the wrong entry).
+        let mut e2: [([u8; 4], [u8; 6], u32); CAP] = [([0u8; 4], [0u8; 6], 0u32); CAP];
+        let mut l2 = 0usize;
+        // ts layout by index: [0]=5, [1]=1 (the minimum), [2]=3.
+        let ts = [5u32, 1u32, 3u32];
+        for n in 0u8..3 {
+            insert_binding_lru_array(&mut e2, &mut l2, ip(n), mac(n), CAP);
+            e2[l2 - 1].2 = ts[n as usize];
+        }
+        // Insert a new key at capacity: the minimum-ts entry (index 1, ip(1)) must be
+        // evicted; ip(0) and ip(2) must survive.
+        insert_binding_lru_array(&mut e2, &mut l2, ip(8), mac(8), CAP);
+        assert_eq!(l2, 3, "eviction keeps len at cap (min at non-zero index)");
+        assert!(
+            !e2[..l2].iter().any(|e| e.0 == ip(1)),
+            "the minimum-last_seen_ts entry at index 1 (ip(1)) must be evicted"
+        );
+        assert!(
+            e2[..l2].iter().any(|e| e.0 == ip(0)),
+            "ip(0) (ts=5, not the min) must survive"
+        );
+        assert!(
+            e2[..l2].iter().any(|e| e.0 == ip(2)),
+            "ip(2) (ts=3, not the min) must survive"
+        );
+        assert!(
+            e2[..l2].iter().any(|e| e.0 == ip(8)),
+            "newly inserted ip(8) must be present"
+        );
     }
 
     // -----------------------------------------------------------------------
