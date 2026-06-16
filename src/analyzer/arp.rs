@@ -16,8 +16,8 @@
 //! (T0814 withheld per DF-VALIDATION-001) when source MAC rate exceeds `storm_rate` threshold.
 //!
 //! The VP-024 Sub-B/Sub-D Kani harness bodies (`verify_classify_garp_total`,
-//! `verify_binding_table_cap`) remain `todo!()` pending the F6 formal-hardening gate —
-//! those are the only intentional `todo!()` entries in this module.
+//! `verify_binding_table_cap`) were filled and formally proven at the F6
+//! formal-hardening gate (VP-024 v2.0, verification_lock: true).
 //!
 //! ## STORY-114 deliverables (implemented)
 //! - `ArpAnalyzer::new(spoof_threshold, storm_rate)` — signature extended.
@@ -4365,7 +4365,8 @@ mod kani_proofs {
     /// for ALL symbolic inputs. Never panics.
     ///
     /// AC-017; runs at F6 formal-hardening gate.
-    /// Body is `todo!()` per BC-5.38.001 — filled by formal-verifier at F6.
+    /// Body filled and proven at the F6 formal-hardening gate (VP-024 v2.0,
+    /// verification_lock: true).
     #[kani::proof]
     fn verify_classify_garp_total() {
         let frame = ArpFrame {

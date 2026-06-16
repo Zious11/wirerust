@@ -593,11 +593,11 @@ fn build_parsed(
     }
 }
 
-/// VP-024 Sub-A Kani harness skeletons — STORY-112 (AC-011).
+/// VP-024 Sub-A Kani harness bodies — STORY-112 (AC-011), proven at F6 gate.
 ///
 /// All three harnesses target `extract_arp_frame` directly (pure-core function).
-/// Bodies are `todo!()` per BC-5.38.001 — the real bodies are the formal-verifier's
-/// work at the F6 gate (VP-024 verification_lock: false until then).
+/// Bodies were filled and formally proven at the F6 formal-hardening gate
+/// (VP-024 v2.0, verification_lock: true).
 ///
 /// These blocks are only compiled under `cargo kani` (the `kani` cfg is registered
 /// in `Cargo.toml` [lints.rust] so `cargo check --all-targets` on the stable
@@ -611,8 +611,7 @@ mod kani_proofs {
     /// VP-024 Sub-A harness 1: `extract_arp_frame` never panics for any valid
     /// `ArpPacketSlice` and any `outer_src_mac`. Proves no-panic / OOB-freedom.
     /// BC-2.16.001 postcondition 1 (safety), BC-2.16.002 postcondition 1 (safety).
-    ///
-    /// Body is `todo!()` — real harness body filled by formal-verifier at F6 gate.
+    /// Filled and proven at the F6 formal-hardening gate (VP-024 v2.0).
     #[kani::proof]
     fn verify_extract_arp_frame_safety() {
         // Fully-symbolic 28-byte buffer (minimum Ethernet/IPv4 ARP wire length).
@@ -637,10 +636,9 @@ mod kani_proofs {
     /// VP-024 Sub-A harness 2: for a well-formed Ethernet/IPv4 ARP buffer,
     /// `extract_arp_frame` returns `Some(ArpFrame)` with fields byte-exactly copied
     /// from the `ArpPacketSlice` accessors. BC-2.16.001 postconditions 2–8.
-    ///
-    /// Body is `todo!()` — real harness body filled by formal-verifier at F6 gate.
-    /// F4 obligation: add `kani::cover!` reachability assertion before F6 lock
-    /// (see VP-024 v1.4 vacuous-satisfiability note).
+    /// Filled and proven at the F6 formal-hardening gate (VP-024 v2.0); includes
+    /// `kani::cover!` reachability assertion satisfying the VP-024 v1.4
+    /// vacuous-satisfiability obligation.
     #[kani::proof]
     fn verify_extract_arp_frame_eth_ipv4_correctness() {
         // Canonical 28-byte Ethernet/IPv4 ARP buffer:
@@ -699,11 +697,10 @@ mod kani_proofs {
     /// scope note to avoid churn on the harness identifier.
     ///
     /// References: BC-2.16.001 PC2-PC5, BC-2.16.009 PC3a-PC3d, EC-007/EC-008.
-    ///
-    /// Body is `todo!()` — real harness body filled by formal-verifier at F6 gate.
-    /// F4 obligation: confirm `from_slice` accepts non-Ethernet/non-IPv4 buffers (Ok
-    /// arm reachable) or restructure to use `kani::cover!` before F6 lock
-    /// (see VP-024 v1.9 vacuous-satisfiability note).
+    /// Filled and proven at the F6 formal-hardening gate (VP-024 v2.0); the
+    /// vacuous-satisfiability obligation from VP-024 v1.9 is resolved by the
+    /// `kani::cover!` + `kani::assume(hlen+plen<=10)` guard in the harness body,
+    /// confirming the Ok arm is genuinely reachable for the full rejection region.
     #[kani::proof]
     fn verify_extract_arp_frame_none_on_bad_size() {
         // Fully-symbolic 28-byte buffer: HTYPE (0-1), PTYPE (2-3), HLEN (4),
