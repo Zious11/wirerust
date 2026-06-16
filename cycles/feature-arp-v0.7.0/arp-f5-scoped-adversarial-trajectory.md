@@ -120,15 +120,77 @@ Recorded OPEN. To be added to the factory Cycle-Closing Checklist.
 
 ---
 
+## F-1 — VLAN-Offset Regression (Second Streak Reset)
+
+### F5 Pass 1/3 Re-Run (2026-06-16, on 2d2fadf)
+
+**Develop HEAD:** 2d2fadf (PR #248 D-078b)
+**Adversary stance:** fresh-context, ARP delta scope (scoped to STORY-111..115 + D-077/D-078/D-078b paths)
+
+**Findings:** 1 MEDIUM finding — **F-1: VLAN-offset false-positive D11**
+
+**F-1 [MEDIUM] — lax None-arm arp_offset hard-codes Ethernet2 baseline (offset 14), ignoring `lax.link_exts`:**
+
+The D-078 fix raw-peeks the ARP fixed header at byte offset 14 (standard Ethernet2 frame
+header = 14 bytes). For VLAN-tagged ARP (802.1Q), the frame has an additional 4-byte tag
+between the Ethernet header and the payload — so the ARP fixed header starts at offset 18,
+not 14. The fix read the 802.1Q TCI bytes (bytes 14-15) as the ARP hw_type field, which
+contains the VLAN priority + CFI + VLAN ID — values that never match ETHERNET (0x0001) —
+causing a false-positive D11 "Non-Ethernet/IPv4 ARP frame" for every VLAN-tagged ARP frame.
+
+**Root cause:** D-078 fix hand-rolled offset/parsing (raw byte peek) without accounting for
+the library's link extension model (`lax.link_exts`). The correct offset is
+`14 + lax.link_exts.iter().map(|ext| ext.header_len()).sum()`, which correctly handles:
+- Standard Ethernet2: offset 14 (no extensions)
+- Single VLAN (802.1Q): offset 18 (+4 bytes)
+- QinQ (802.1Q + 802.1ad): offset 22 (+8 bytes)
+- MACsec: offset varies per ext header_len()
+
+**Security review:** CLEAN. No security regression (false-positive D11 is a detection-quality
+defect, not a security evasion).
+
+**Adjudication:** FIX.
+
+**Fix:**
+- `arp_offset = 14 + lax.link_exts.iter().map(|ext| ext.header_len()).sum::<usize>()`
+- BC-2.16.015 v1.5 → v1.6 (VLAN-offset clause added to lax-None path invariant)
+- BC-2.16.009 v1.6 → v1.7 (VLAN-offset computation documented in lax-None arm EC)
+- New tests: `tests/bc_2_16_d078_vlan_offset_tests.rs` (4 tests: standard/single-VLAN/QinQ/MACsec)
+
+**PR:** #249 (merge 079013d)
+
+**Counter:** F5 streak reset AGAIN to 0/3 by code change.
+
+---
+
+### Meta-Lesson (D-F1)
+
+This is the third streak reset in F5, and the second caused by a fix-induced regression:
+- O-A (LOW) found on bcb1bd6 → FIX → D-078 + D-078b (2 PRs, streak reset #1)
+- D-078 fix introduced F-1 MEDIUM → FIX → PR #249 (1 more PR, streak reset #2)
+- Total: 1 LOW O-A observation → 3 PRs + 1 MEDIUM regression
+
+**Lesson for PG-ARP-FIX-MECHANISM-FIRST:** A fix that hand-rolls offset/parsing logic (vs
+delegating to the library's abstraction) MUST be stress-tested against the library's full
+input model BEFORE shipping. In this case, `lax.link_exts` is the correct abstraction;
+raw peeking at offset 14 without it is library-model-ignorant.
+
+**Meta-lesson for adjudication:** LOW-severity observations should be evaluated against
+fix-induced-regression risk before adjudicating FIX. When a fix requires hand-rolling
+logic that mirrors what a library already abstracts, the risk of offset/size drift is high.
+Documentation of the risk (vs fix) is a valid alternative adjudication path for LOW findings.
+
+---
+
 ## Current Status
 
-**arp_f5_scoped_adversary_convergence_counter: 0/3 (re-run pending on 2d2fadf)**
+**arp_f5_scoped_adversary_convergence_counter: 0/3 (re-run in progress on 079013d after F-1/VLAN fix)**
 
-Next action: F5 scoped-adversarial re-run on develop HEAD 2d2fadf.
+Next action: F5 scoped-adversarial re-run on develop HEAD 079013d.
 - Counter starts at 0/3.
 - Scope: full ARP delta (STORY-111..115) + D-077 type-reject path + D-078/D-078b lax-arm D11
-  paths + all 16 SS-16 BCs (BC-2.16.001..015 + any version bumps).
-- Pass file: append to this document as "Pass 1/3 (2d2fadf restart)" etc.
+  paths + F-1 VLAN-offset fix + all 16 SS-16 BCs (BC-2.16.001..015 v1.7/v1.6 current).
+- Pass file: append to this document as "Pass 1/3 (079013d restart)" etc.
 
-Trajectory shorthand (pre-reset + post-reset):
-`P1-CLEAN(bcb1bd6;O-A-obs)→P2-CLEAN(bcb1bd6)→[D-078+D-078b RESET]→0/3-pending(2d2fadf)`
+Trajectory shorthand (full history):
+`P1-CLEAN(bcb1bd6;O-A-obs)→P2-CLEAN(bcb1bd6)→[D-078+D-078b RESET]→F-1-MEDIUM(2d2fadf)→[F-1-fix RESET]→0/3-pending(079013d)`

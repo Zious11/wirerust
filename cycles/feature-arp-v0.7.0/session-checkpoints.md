@@ -718,6 +718,36 @@ fully-clean pass. Passes 18-22 each surfaced+remediated genuine items.
 
 ---
 
+## Archived Checkpoint: 2026-06-16 — D-078/D-078b burst; F5 IN PROGRESS reset 0/3 on 2d2fadf; NEXT = F5 scoped-adversarial re-run
+
+**Archived from STATE.md on:** 2026-06-16 (replaced by "F-1 VLAN-offset fix; F5 reset 0/3 on 079013d; NEXT = F5 scoped-adversarial re-run" checkpoint)
+
+### POSITION
+
+- **Epoch:** D-078 + D-078b burst complete. F5 streak RESET to 0/3 after code changes.
+- **develop HEAD:** 2d2fadf == origin/develop (verified 2026-06-16).
+- F1 PASSED (D-066). F2 CONVERGED 3/3. F3 CONVERGED 3/3 (D-070). F4 delivery COMPLETE (5 stories).
+- D-078 (PR #247 92c1561): lax None arm bounds-checked-peeks raw 8-byte ARP fixed header; bad type/size → D11.
+- D-078b (PR #248 2d2fadf): sibling lax Some(LaxNetSlice::Arp) arm → D11 path-independence; decoder.rs doc sweep.
+- BC-2.16.009 v1.4→v1.6, BC-2.16.015 v1.3→v1.5. Input-hashes: STORY-112 8a4d566→8c03924, STORY-113 7c61bae→a05b724.
+- F5 streak VOIDED by code change. Counter RESET to 0/3.
+- Decisions active: D-047..D-078b. Do NOT re-adjudicate D-068..D-078b.
+- ARP input-hash status: STORY-111..115 ALL MATCH post-D-078 recompute.
+
+### NEXT (as of this checkpoint)
+
+1. F5 scoped-adversarial re-run on 2d2fadf (`vsdd-factory:phase-f5-scoped-adversarial`).
+
+### VERIFIED SHAs at archival time (2026-06-16)
+
+| Ref | Value | Notes |
+|-----|-------|-------|
+| develop HEAD | 2d2fadf | PR #248 D-078b merged |
+| main HEAD | 3e29891 | v0.6.0 |
+| open PRs | none | — |
+
+---
+
 ## Archived Checkpoint: 2026-06-15 — F4 COMPLETE; re-streak 3/3 CONVERGED on bcb1bd6; NEXT = F5 scoped-adversarial
 
 **Archived from STATE.md on:** 2026-06-16 (replaced by "D-078/D-078b burst; F5 IN PROGRESS reset 0/3 on 2d2fadf" checkpoint)
