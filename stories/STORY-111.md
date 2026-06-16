@@ -2,7 +2,7 @@
 document_type: story
 story_id: STORY-111
 epic_id: E-16
-version: "1.5"
+version: "1.6"
 status: draft
 producer: story-writer
 timestamp: 2026-06-13T00:00:00Z
@@ -25,10 +25,15 @@ github_issue: 9
 # v1.1 changelog: F4-surfaced decomposition fix: re-scoped ACs to §6 scaffolding boundary
 #   (extract_arp_frame end-to-end behavior is STORY-112); added non-panicking placeholder AC
 #   for VP-008 (AC-005b); AC-001/002/004/007/008 removed (covered by STORY-112 AC-006/007/004/012).
+# v1.6 changelog: D-078 mechanism correction in Library & Framework Requirements (BC-2.16.015 v1.5):
+#   Corrected the anyhow PC-7a description: the "Non-Ethernet/IPv4 ARP frame" path does NOT
+#   arise from a lax-built slice + extract_arp_frame returning None. The correct mechanism is
+#   the None-arm fixed-header peek in decode_packet (lax.net==None, from_slice failed before
+#   building any slice). See STORY-112 v1.6 for the full mechanism description.
 # v1.5 changelog: D-078 annotation in Library & Framework Requirements (bc_array_changes_propagate_to_body_and_acs):
 #   Annotated that "Non-Ethernet/IPv4 ARP frame" and "truncated ARP frame" now map to
-#   distinct conditions per D-078: the former is PC-7a (D11 malformed, lax-built slice
-#   + extract_None); the latter is PC-7b (genuinely unbuildable truncated ARP only).
+#   distinct conditions per D-078: the former was described as PC-7a (D11 malformed, lax-built
+#   slice + extract_None) — this description was incorrect (see v1.6 correction above).
 # v1.4 changelog: F4 symmetric-unreachable! alignment (D-072):
 #   lax_ip_triple ARP arm reframed to symmetric-unreachable (NOT "explicit routing")
 #     per architect v1.16 / ADR-008 Decision 3 v2.1 ruling; decode_packet intercepts
@@ -242,7 +247,7 @@ Derived from arp-architecture-delta.md §2.1, §2.2, ADR-008 Decisions 1–3, BC
 | Library | Version | Notes |
 |---------|---------|-------|
 | `etherparse` | 0.20 (specifically 0.20.1 confirmed) | `SlicedPacket.link_exts` replaces `.vlan`; `SliceError::Len` unchanged; `Ethernet2Slice::source()` returns `[u8; 6]` by value (no dereference needed) |
-| `anyhow` | same as existing | Two distinct error strings per D-078: `anyhow!("Non-Ethernet/IPv4 ARP frame")` (PC-7a — D11 malformed finding; lax-built slice where `extract_arp_frame` returns `None` for bad type/size); `anyhow!("truncated ARP frame")` (PC-7b — decode-error; genuinely unbuildable truncated ARP where `lax.net == None`). Previously these were conflated into a single "truncated ARP frame" path. |
+| `anyhow` | same as existing | Two distinct error strings per D-078 (BC-2.16.015 v1.5): `anyhow!("Non-Ethernet/IPv4 ARP frame")` (PC-7a — D11 malformed finding; arises from the None-arm fixed-header peek in `decode_packet` when `lax.net==None` and the peeked ARP fixed header reveals non-Ethernet/IPv4 type/size — NOT from a lax-built slice where `extract_arp_frame` returns `None`); `anyhow!("truncated ARP frame")` (PC-7b — decode-error; genuinely truncated ARP where the fixed-header peek would OOB or the variable address section is truncated). Full mechanism in STORY-112 v1.6 Task 3. |
 | `cargo-fuzz` | same as existing | VP-008 harness; return type annotation update only |
 
 ## File Structure Requirements
