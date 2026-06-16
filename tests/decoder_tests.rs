@@ -1,7 +1,7 @@
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 
 use pcap_file::DataLink;
-use wirerust::decoder::{Protocol, TransportInfo, decode_packet};
+use wirerust::decoder::{DecodedFrame, Protocol, TransportInfo, decode_packet};
 
 fn make_tcp_packet() -> Vec<u8> {
     vec![
@@ -54,7 +54,9 @@ fn make_raw_ip_tcp_packet() -> Vec<u8> {
 #[test]
 fn test_decode_tcp_packet() {
     let data = make_tcp_packet();
-    let parsed = decode_packet(&data, DataLink::ETHERNET).unwrap();
+    let DecodedFrame::Ip(parsed) = decode_packet(&data, DataLink::ETHERNET).unwrap() else {
+        panic!("expected IP DecodedFrame")
+    };
 
     assert_eq!(parsed.src_ip, IpAddr::V4(Ipv4Addr::new(192, 168, 1, 10)));
     assert_eq!(parsed.dst_ip, IpAddr::V4(Ipv4Addr::new(192, 168, 1, 1)));
@@ -75,7 +77,9 @@ fn test_decode_tcp_packet() {
 #[test]
 fn test_decode_udp_dns_packet() {
     let data = make_udp_packet();
-    let parsed = decode_packet(&data, DataLink::ETHERNET).unwrap();
+    let DecodedFrame::Ip(parsed) = decode_packet(&data, DataLink::ETHERNET).unwrap() else {
+        panic!("expected IP DecodedFrame")
+    };
 
     assert_eq!(parsed.src_ip, IpAddr::V4(Ipv4Addr::new(10, 0, 0, 1)));
     assert_eq!(parsed.dst_ip, IpAddr::V4(Ipv4Addr::new(10, 0, 0, 2)));
@@ -101,7 +105,9 @@ fn test_decode_invalid_packet() {
 #[test]
 fn test_decode_raw_ip_tcp_packet() {
     let data = make_raw_ip_tcp_packet();
-    let parsed = decode_packet(&data, DataLink::RAW).unwrap();
+    let DecodedFrame::Ip(parsed) = decode_packet(&data, DataLink::RAW).unwrap() else {
+        panic!("expected IP DecodedFrame")
+    };
 
     assert_eq!(parsed.src_ip, IpAddr::V4(Ipv4Addr::new(192, 168, 1, 10)));
     assert_eq!(parsed.dst_ip, IpAddr::V4(Ipv4Addr::new(192, 168, 1, 1)));
@@ -121,7 +127,9 @@ fn test_decode_raw_ip_tcp_packet() {
 fn test_decode_ipv4_linktype_uses_from_ip() {
     // DataLink::IPV4 should use from_ip(), same as RAW
     let data = make_raw_ip_tcp_packet();
-    let parsed = decode_packet(&data, DataLink::IPV4).unwrap();
+    let DecodedFrame::Ip(parsed) = decode_packet(&data, DataLink::IPV4).unwrap() else {
+        panic!("expected IP DecodedFrame")
+    };
     assert_eq!(parsed.src_ip, IpAddr::V4(Ipv4Addr::new(192, 168, 1, 10)));
     assert_eq!(parsed.protocol, Protocol::Tcp);
 }
@@ -147,7 +155,9 @@ fn make_raw_ipv6_tcp_packet() -> Vec<u8> {
 #[test]
 fn test_decode_ipv6_tcp_packet() {
     let data = make_raw_ipv6_tcp_packet();
-    let parsed = decode_packet(&data, DataLink::IPV6).unwrap();
+    let DecodedFrame::Ip(parsed) = decode_packet(&data, DataLink::IPV6).unwrap() else {
+        panic!("expected IP DecodedFrame")
+    };
 
     assert_eq!(
         parsed.src_ip,
@@ -199,7 +209,9 @@ fn make_linux_sll_tcp_packet() -> Vec<u8> {
 #[test]
 fn test_decode_linux_sll_tcp_packet() {
     let data = make_linux_sll_tcp_packet();
-    let parsed = decode_packet(&data, DataLink::LINUX_SLL).unwrap();
+    let DecodedFrame::Ip(parsed) = decode_packet(&data, DataLink::LINUX_SLL).unwrap() else {
+        panic!("expected IP DecodedFrame")
+    };
 
     assert_eq!(parsed.src_ip, IpAddr::V4(Ipv4Addr::new(10, 0, 0, 1)));
     assert_eq!(parsed.dst_ip, IpAddr::V4(Ipv4Addr::new(10, 0, 0, 2)));
@@ -236,8 +248,11 @@ fn make_snaplen_truncated_eth_tcp() -> Vec<u8> {
 #[test]
 fn test_decode_snaplen_truncated_ethernet_recovers_via_lax_parsing() {
     let data = make_snaplen_truncated_eth_tcp();
-    let parsed = decode_packet(&data, DataLink::ETHERNET)
-        .expect("snaplen-truncated Ethernet frame must decode via the lax fallback");
+    let DecodedFrame::Ip(parsed) = decode_packet(&data, DataLink::ETHERNET)
+        .expect("snaplen-truncated Ethernet frame must decode via the lax fallback")
+    else {
+        panic!("expected IP DecodedFrame")
+    };
 
     assert_eq!(parsed.src_ip, IpAddr::V4(Ipv4Addr::new(192, 168, 1, 10)));
     assert_eq!(parsed.dst_ip, IpAddr::V4(Ipv4Addr::new(192, 168, 1, 1)));
@@ -259,8 +274,11 @@ fn test_decode_snaplen_truncated_raw_ip_recovers_via_lax_parsing() {
     let mut data = make_raw_ip_tcp_packet();
     data[2] = 0x05;
     data[3] = 0xdc;
-    let parsed = decode_packet(&data, DataLink::RAW)
-        .expect("snaplen-truncated raw-IP frame must decode via the lax fallback");
+    let DecodedFrame::Ip(parsed) = decode_packet(&data, DataLink::RAW)
+        .expect("snaplen-truncated raw-IP frame must decode via the lax fallback")
+    else {
+        panic!("expected IP DecodedFrame")
+    };
 
     assert_eq!(parsed.src_ip, IpAddr::V4(Ipv4Addr::new(192, 168, 1, 10)));
     assert_eq!(parsed.protocol, Protocol::Tcp);
@@ -275,8 +293,11 @@ fn test_decode_snaplen_truncated_linux_sll_recovers_via_lax_parsing() {
     let mut data = make_linux_sll_tcp_packet();
     data[18] = 0x05;
     data[19] = 0xdc;
-    let parsed = decode_packet(&data, DataLink::LINUX_SLL)
-        .expect("snaplen-truncated SLL frame must decode via the lax fallback");
+    let DecodedFrame::Ip(parsed) = decode_packet(&data, DataLink::LINUX_SLL)
+        .expect("snaplen-truncated SLL frame must decode via the lax fallback")
+    else {
+        panic!("expected IP DecodedFrame")
+    };
 
     assert_eq!(parsed.src_ip, IpAddr::V4(Ipv4Addr::new(10, 0, 0, 1)));
     assert_eq!(parsed.dst_ip, IpAddr::V4(Ipv4Addr::new(10, 0, 0, 2)));
@@ -293,7 +314,10 @@ fn test_decode_snaplen_truncated_clamps_payload_to_captured_bytes() {
     data.extend_from_slice(&[0xde, 0xad, 0xbe, 0xef, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06]);
     data[16] = 0x05;
     data[17] = 0xdc;
-    let parsed = decode_packet(&data, DataLink::ETHERNET).expect("must decode");
+    let DecodedFrame::Ip(parsed) = decode_packet(&data, DataLink::ETHERNET).expect("must decode")
+    else {
+        panic!("expected IP DecodedFrame")
+    };
 
     assert_eq!(
         parsed.payload.len(),
@@ -313,8 +337,11 @@ fn test_decode_snaplen_truncated_ipv6_recovers_via_lax_parsing() {
     let mut data = make_raw_ipv6_tcp_packet();
     data[4] = 0x05;
     data[5] = 0xdc; // payload_length = 1500, far past the captured bytes
-    let parsed = decode_packet(&data, DataLink::IPV6)
-        .expect("snaplen-truncated IPv6 frame must decode via the lax fallback");
+    let DecodedFrame::Ip(parsed) = decode_packet(&data, DataLink::IPV6)
+        .expect("snaplen-truncated IPv6 frame must decode via the lax fallback")
+    else {
+        panic!("expected IP DecodedFrame")
+    };
 
     assert_eq!(parsed.protocol, Protocol::Tcp);
     match parsed.transport {
@@ -339,8 +366,11 @@ fn test_decode_truncation_inside_tcp_header_degrades_to_other() {
     // that lands within the transport header rather than the payload.
     let full = make_tcp_packet();
     let truncated = &full[..44];
-    let parsed = decode_packet(truncated, DataLink::ETHERNET)
-        .expect("a frame truncated mid-TCP-header must still decode its IP layer");
+    let DecodedFrame::Ip(parsed) = decode_packet(truncated, DataLink::ETHERNET)
+        .expect("a frame truncated mid-TCP-header must still decode its IP layer")
+    else {
+        panic!("expected IP DecodedFrame")
+    };
 
     assert_eq!(parsed.src_ip, IpAddr::V4(Ipv4Addr::new(192, 168, 1, 10)));
     assert_eq!(
@@ -361,28 +391,120 @@ fn test_decode_truncation_inside_tcp_header_degrades_to_other() {
 // These tests pin both the non-IP-frame branch and the
 // corruption-is-rejected branch.
 
+// ---------------------------------------------------------------------------
+// AC-003 / BC-2.02.009 postcondition 3 (Path 3: non-IP non-ARP unchanged)
+//
+// STORY-111 v1.3 — renamed from `test_decode_arp_frame_reports_no_ip_layer`.
+// The old test included an ARP subtest which is now STORY-112 territory.
+// This test exercises ONLY non-IP non-ARP frames (LLDP EtherType 0x88CC and
+// custom EtherType 0x9000). Both must return Err containing "No IP layer found".
+// ARP frames (EtherType 0x0806) are excluded: their routing is handled by the
+// STORY-111 ARP arm stub; their full behavioral assertion belongs to STORY-112.
+//
+// BC-2.02.009 postcondition 3 (Path 3): when slice.net == None after a
+// successful strict parse of a non-IP non-ARP frame, decode_packet returns
+// Err(anyhow!("No IP layer found")).
+// ---------------------------------------------------------------------------
 #[test]
-fn test_decode_arp_frame_reports_no_ip_layer() {
-    // An ARP frame (ethertype 0x0806) parses cleanly at the link layer
-    // but has no IP layer. `decode_packet` must reject it with
-    // "No IP layer found" — not attempt a lax recovery.
-    let mut frame = vec![
+fn test_decode_non_ip_non_arp_frame_returns_no_ip_error() {
+    // LLDP frame: EtherType 0x88CC — non-IP, non-ARP. etherparse parses the
+    // Ethernet header cleanly but net == None; the strict-path None arm fires.
+    let lldp_frame = vec![
+        0x01, 0x80, 0xc2, 0x00, 0x00, 0x0e, // dst mac (LLDP multicast)
+        0x00, 0x11, 0x22, 0x33, 0x44, 0x55, // src mac
+        0x88, 0xcc, // EtherType: LLDP (0x88CC)
+        // Minimal LLDP TLV payload (4 bytes — enough to form a parseable frame)
+        0x02, 0x07, 0x04, 0x00, // Chassis ID TLV (type=1, length=7 truncated here)
+    ];
+    let lldp_err = decode_packet(&lldp_frame, DataLink::ETHERNET).unwrap_err();
+    assert!(
+        lldp_err.to_string().contains("No IP layer found"),
+        "AC-003: LLDP frame (EtherType 0x88CC) must return Err containing \
+         'No IP layer found' (BC-2.02.009 Path 3); got: {lldp_err}"
+    );
+
+    // Custom EtherType 0x9000 — non-IP, non-ARP. etherparse parses the
+    // Ethernet header (14 bytes MAC+EtherType) and sets net=None.
+    let custom_frame = vec![
         0xff, 0xff, 0xff, 0xff, 0xff, 0xff, // dst mac (broadcast)
         0x00, 0x11, 0x22, 0x33, 0x44, 0x55, // src mac
-        0x08, 0x06, // ethertype: ARP
+        0x90, 0x00, // EtherType: 0x9000 (custom, non-IP, non-ARP)
+        0x01, 0x02, 0x03, 0x04, // arbitrary payload
     ];
-    frame.extend_from_slice(&[
-        0x00, 0x01, 0x08, 0x00, 0x06, 0x04, 0x00, 0x01, // htype/ptype/hlen/plen/oper
-        0x00, 0x11, 0x22, 0x33, 0x44, 0x55, // sender mac
-        0xc0, 0xa8, 0x01, 0x0a, // sender ip
-        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // target mac
-        0xc0, 0xa8, 0x01, 0x01, // target ip
-    ]);
-    let err = decode_packet(&frame, DataLink::ETHERNET).unwrap_err();
+    let custom_err = decode_packet(&custom_frame, DataLink::ETHERNET).unwrap_err();
     assert!(
-        err.to_string().contains("No IP layer found"),
-        "an ARP frame must report 'No IP layer found'; got: {err}"
+        custom_err.to_string().contains("No IP layer found"),
+        "AC-003: custom EtherType 0x9000 frame must return Err containing \
+         'No IP layer found' (BC-2.02.009 Path 3); got: {custom_err}"
     );
+}
+
+// ---------------------------------------------------------------------------
+// AC-005b / BC-2.02.009 invariant 5 / VP-008
+//
+// STORY-111 v1.3 — NEW test (Red Gate for AC-005b).
+//
+// Verifies that `decode_packet` does NOT panic when called with a well-formed
+// Ethernet/IPv4 ARP frame (EtherType 0x0806, htype=Ethernet, ptype=IPv4,
+// hlen=6, plen=4). The result value is NOT asserted — any Ok or Err outcome
+// is acceptable. Only a runtime panic constitutes a failure here.
+//
+// RED GATE: This test FAILS on the stub (commit 4e22ef9) because
+// `extract_arp_frame` is `todo!()` which panics, and the strict Ok arm also
+// has a `todo!()`. The implementer makes this test pass by replacing both
+// `todo!()` bodies with non-panicking code (the placeholder `extract_arp_frame`
+// returns `None`; the ARP arm maps `None` to a temporary
+// `Err(anyhow!("ARP extraction not yet implemented"))`).
+//
+// Do NOT assert Ok(DecodedFrame::Arp(...)) with real field values — that is
+// STORY-112 scope.
+//
+// Canonical test vector: EC-001 from STORY-111.md — 42-byte Ethernet/IPv4
+// ARP Request input to `decode_packet`. BC-2.02.009 Invariant 5 / VP-008.
+// ---------------------------------------------------------------------------
+#[test]
+fn test_decode_arp_shaped_input_does_not_panic() {
+    // Well-formed 42-byte Ethernet/IPv4 ARP Request.
+    // Layout:
+    //   [0..6]   dst MAC (broadcast)
+    //   [6..12]  src MAC (00:11:22:33:44:55)
+    //   [12..14] EtherType: ARP (0x0806)
+    //   [14..42] ARP payload: htype=0x0001 (Ethernet), ptype=0x0800 (IPv4),
+    //            hlen=6, plen=4, oper=1 (Request), sender hw+ip, target hw+ip
+    let arp_frame = vec![
+        // Ethernet header (14 bytes)
+        0xff, 0xff, 0xff, 0xff, 0xff, 0xff, // dst: broadcast
+        0x00, 0x11, 0x22, 0x33, 0x44, 0x55, // src: 00:11:22:33:44:55
+        0x08, 0x06, // EtherType: ARP
+        // ARP payload (28 bytes)
+        0x00, 0x01, // htype: Ethernet (1)
+        0x08, 0x00, // ptype: IPv4 (0x0800)
+        0x06, // hlen: 6
+        0x04, // plen: 4
+        0x00, 0x01, // oper: Request (1)
+        0x00, 0x11, 0x22, 0x33, 0x44, 0x55, // sender hw addr
+        0xc0, 0xa8, 0x01, 0x0a, // sender proto addr: 192.168.1.10
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // target hw addr (unknown in Request)
+        0xc0, 0xa8, 0x01, 0x01, // target proto addr: 192.168.1.1
+    ];
+    assert_eq!(arp_frame.len(), 42, "pre-condition: ARP frame is 42 bytes");
+
+    // Use catch_unwind to detect a panic from the todo!() stub.
+    // On the stub (4e22ef9), this PANICS (Red Gate — test must fail).
+    // After the implementer ships the non-panicking placeholder, the call
+    // returns Ok or Err without panic and this test passes.
+    let result = std::panic::catch_unwind(|| decode_packet(&arp_frame, DataLink::ETHERNET));
+    assert!(
+        result.is_ok(),
+        "AC-005b / VP-008: decode_packet must NOT panic on a well-formed ARP \
+         frame (EtherType 0x0806, htype=Ethernet, ptype=IPv4, hlen=6, plen=4). \
+         The STORY-111 non-panicking placeholder must route this to a non-panic \
+         Err('ARP extraction not yet implemented'). \
+         Got a panic: {:?}",
+        result.unwrap_err()
+    );
+    // The result value is intentionally not asserted — any Ok or Err is acceptable.
+    // Ok(DecodedFrame::Arp(...)) with real field values is STORY-112 territory.
 }
 
 #[test]

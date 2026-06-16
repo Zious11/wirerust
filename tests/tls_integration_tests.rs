@@ -1,5 +1,5 @@
 use wirerust::analyzer::tls::TlsAnalyzer;
-use wirerust::decoder::decode_packet;
+use wirerust::decoder::{DecodedFrame, decode_packet};
 use wirerust::dispatcher::StreamDispatcher;
 use wirerust::reader::PcapSource;
 use wirerust::reassembly::handler::StreamAnalyzer;
@@ -13,7 +13,7 @@ fn analyze_pcap(path: &str) -> TlsAnalyzer {
     let mut dispatcher = StreamDispatcher::new(None, Some(TlsAnalyzer::new()), None, None);
 
     for raw in &source.packets {
-        if let Ok(parsed) = decode_packet(&raw.data, source.datalink) {
+        if let Ok(DecodedFrame::Ip(parsed)) = decode_packet(&raw.data, source.datalink) {
             reasm.process_packet(&parsed, raw.timestamp_secs, &mut dispatcher);
         }
     }

@@ -15,7 +15,7 @@
 #![allow(non_snake_case)]
 
 use pcap_file::DataLink;
-use wirerust::decoder::{ParsedPacket, TransportInfo, decode_packet};
+use wirerust::decoder::{DecodedFrame, ParsedPacket, TransportInfo, decode_packet};
 
 // ---------------------------------------------------------------------------
 // Frame builders — synthetic packet bytes constructed inline.
@@ -197,8 +197,11 @@ fn test_BC_2_02_014_packet_len_equals_data_len() {
         );
         let expected_len = data.len();
 
-        let parsed = decode_packet(&data, DataLink::ETHERNET)
-            .unwrap_or_else(|e| panic!("decode failed for {label}: {e}"));
+        let DecodedFrame::Ip(parsed) = decode_packet(&data, DataLink::ETHERNET)
+            .unwrap_or_else(|e| panic!("decode failed for {label}: {e}"))
+        else {
+            panic!("expected IP DecodedFrame")
+        };
 
         // BC-2.02.014 postcondition 1: packet_len == data.len()
         assert_eq!(
@@ -270,12 +273,14 @@ fn test_BC_2_02_014_packet_len_equals_data_len() {
 
         let expected_len = frame.len(); // must be 98
 
-        let parsed = decode_packet(&frame, DataLink::ETHERNET).unwrap_or_else(|e| {
+        let DecodedFrame::Ip(parsed) = decode_packet(&frame, DataLink::ETHERNET).unwrap_or_else(|e| {
             panic!(
                 "AC-001 variable-header sub-case: IPv4-with-options frame (IHL=6, {expected_len} bytes) \
                  must decode successfully, but got: {e}"
             )
-        });
+        }) else {
+            panic!("expected IP DecodedFrame")
+        };
 
         // BC-2.02.014 postcondition 1 + invariant 1: packet_len == data.len() == 98,
         // not 40 (payload length) nor 84 (ip_total) nor any header-derived partial value.
@@ -318,8 +323,11 @@ fn test_BC_2_02_014_packet_len_set_on_both_strict_and_lax_paths() {
     );
     let strict_expected = strict_data.len();
 
-    let strict_parsed = decode_packet(&strict_data, DataLink::ETHERNET)
-        .expect("AC-002: strict-path frame must decode successfully");
+    let DecodedFrame::Ip(strict_parsed) = decode_packet(&strict_data, DataLink::ETHERNET)
+        .expect("AC-002: strict-path frame must decode successfully")
+    else {
+        panic!("expected IP DecodedFrame")
+    };
 
     // BC-2.02.014 postcondition 2 (strict path): packet_len == data.len()
     assert_eq!(
@@ -343,8 +351,11 @@ fn test_BC_2_02_014_packet_len_set_on_both_strict_and_lax_paths() {
     );
     let lax_expected = lax_data.len(); // must be 100
 
-    let lax_parsed = decode_packet(&lax_data, DataLink::ETHERNET)
-        .expect("AC-002: lax-path truncated frame must decode successfully via lax fallback");
+    let DecodedFrame::Ip(lax_parsed) = decode_packet(&lax_data, DataLink::ETHERNET)
+        .expect("AC-002: lax-path truncated frame must decode successfully via lax fallback")
+    else {
+        panic!("expected IP DecodedFrame")
+    };
 
     // BC-2.02.014 postcondition 2 (lax path): packet_len == captured data.len(), not IP total_length
     assert_eq!(
@@ -399,8 +410,11 @@ fn test_BC_2_02_014_snaplen_truncated_packet_len() {
         "builder must produce exactly {captured_len} bytes"
     );
 
-    let parsed = decode_packet(&data, DataLink::ETHERNET)
-        .expect("AC-003: snaplen-truncated frame must decode via lax fallback");
+    let DecodedFrame::Ip(parsed) = decode_packet(&data, DataLink::ETHERNET)
+        .expect("AC-003: snaplen-truncated frame must decode via lax fallback")
+    else {
+        panic!("expected IP DecodedFrame")
+    };
 
     // BC-2.02.014 invariant 2: packet_len == captured length, not on-wire length.
     // IP-datagram on-wire = 1500; Ethernet-frame on-wire = 1514. packet_len must be
@@ -455,7 +469,11 @@ fn test_BC_2_02_015_tcp_syn_flags() {
         &[],
     );
 
-    let parsed = decode_packet(&data, DataLink::ETHERNET).expect("AC-004: SYN frame must decode");
+    let DecodedFrame::Ip(parsed) =
+        decode_packet(&data, DataLink::ETHERNET).expect("AC-004: SYN frame must decode")
+    else {
+        panic!("expected IP DecodedFrame")
+    };
 
     match &parsed.transport {
         TransportInfo::Tcp {
@@ -493,8 +511,11 @@ fn test_BC_2_02_015_tcp_syn_ack_flags() {
         &[],
     );
 
-    let parsed =
-        decode_packet(&data, DataLink::ETHERNET).expect("AC-005: SYN-ACK frame must decode");
+    let DecodedFrame::Ip(parsed) =
+        decode_packet(&data, DataLink::ETHERNET).expect("AC-005: SYN-ACK frame must decode")
+    else {
+        panic!("expected IP DecodedFrame")
+    };
 
     match &parsed.transport {
         TransportInfo::Tcp { syn, ack, .. } => {
@@ -530,8 +551,11 @@ fn test_BC_2_02_015_tcp_rst_and_fin_ack_flags() {
         &[],
     );
 
-    let rst_parsed =
-        decode_packet(&rst_data, DataLink::ETHERNET).expect("AC-006: RST frame must decode");
+    let DecodedFrame::Ip(rst_parsed) =
+        decode_packet(&rst_data, DataLink::ETHERNET).expect("AC-006: RST frame must decode")
+    else {
+        panic!("expected IP DecodedFrame")
+    };
 
     match &rst_parsed.transport {
         TransportInfo::Tcp {
@@ -558,8 +582,11 @@ fn test_BC_2_02_015_tcp_rst_and_fin_ack_flags() {
         &[],
     );
 
-    let fin_ack_parsed = decode_packet(&fin_ack_data, DataLink::ETHERNET)
-        .expect("AC-006: FIN-ACK frame must decode");
+    let DecodedFrame::Ip(fin_ack_parsed) = decode_packet(&fin_ack_data, DataLink::ETHERNET)
+        .expect("AC-006: FIN-ACK frame must decode")
+    else {
+        panic!("expected IP DecodedFrame")
+    };
 
     match &fin_ack_parsed.transport {
         TransportInfo::Tcp {
@@ -603,8 +630,11 @@ fn test_BC_2_02_015_tcp_seq_number_extracted() {
         &[],
     );
 
-    let parsed = decode_packet(&data, DataLink::ETHERNET)
-        .expect("AC-007: frame with known seq_number must decode");
+    let DecodedFrame::Ip(parsed) = decode_packet(&data, DataLink::ETHERNET)
+        .expect("AC-007: frame with known seq_number must decode")
+    else {
+        panic!("expected IP DecodedFrame")
+    };
 
     match &parsed.transport {
         TransportInfo::Tcp { seq_number, .. } => {
@@ -628,8 +658,11 @@ fn test_BC_2_02_015_tcp_seq_number_extracted() {
         TCP_SYN,
         &[],
     );
-    let parsed2 =
-        decode_packet(&data2, DataLink::ETHERNET).expect("AC-007: seq=1 frame must decode");
+    let DecodedFrame::Ip(parsed2) =
+        decode_packet(&data2, DataLink::ETHERNET).expect("AC-007: seq=1 frame must decode")
+    else {
+        panic!("expected IP DecodedFrame")
+    };
     match &parsed2.transport {
         TransportInfo::Tcp { seq_number, .. } => {
             assert_eq!(
@@ -669,8 +702,11 @@ fn test_BC_2_02_015_tcp_payload_bytes() {
         &known_payload,
     );
 
-    let parsed_with = decode_packet(&data_with_payload, DataLink::ETHERNET)
-        .expect("AC-008: frame with 50-byte payload must decode");
+    let DecodedFrame::Ip(parsed_with) = decode_packet(&data_with_payload, DataLink::ETHERNET)
+        .expect("AC-008: frame with 50-byte payload must decode")
+    else {
+        panic!("expected IP DecodedFrame")
+    };
 
     // BC-2.02.015 postcondition 8: payload == TCP segment data bytes
     assert_eq!(
@@ -695,8 +731,11 @@ fn test_BC_2_02_015_tcp_payload_bytes() {
         &[], // no payload
     );
 
-    let parsed_ack = decode_packet(&pure_ack_data, DataLink::ETHERNET)
-        .expect("AC-008: pure ACK frame must decode");
+    let DecodedFrame::Ip(parsed_ack) = decode_packet(&pure_ack_data, DataLink::ETHERNET)
+        .expect("AC-008: pure ACK frame must decode")
+    else {
+        panic!("expected IP DecodedFrame")
+    };
 
     // BC-2.02.015 postcondition 8: empty payload for pure ACK
     assert_eq!(
@@ -740,8 +779,11 @@ fn test_BC_2_02_015_psh_urg_not_in_transport_info() {
         b"psh-urg-payload",
     );
 
-    let parsed =
-        decode_packet(&data, DataLink::ETHERNET).expect("AC-009: PSH+URG frame must decode");
+    let DecodedFrame::Ip(parsed) =
+        decode_packet(&data, DataLink::ETHERNET).expect("AC-009: PSH+URG frame must decode")
+    else {
+        panic!("expected IP DecodedFrame")
+    };
 
     // BC-2.02.015 invariant 3: exhaustive struct match — only the seven documented
     // fields exist. If psh/urg are ever added this match becomes non-exhaustive and
@@ -813,8 +855,11 @@ fn test_BC_2_02_014_ec001_1500_byte_frame_packet_len() {
         "EC-001: frame builder must produce exactly 1500 bytes"
     );
 
-    let parsed =
-        decode_packet(&data, DataLink::ETHERNET).expect("EC-001: 1500-byte frame must decode");
+    let DecodedFrame::Ip(parsed) =
+        decode_packet(&data, DataLink::ETHERNET).expect("EC-001: 1500-byte frame must decode")
+    else {
+        panic!("expected IP DecodedFrame")
+    };
 
     // BC-2.02.014 EC-001: packet_len == 1500
     assert_eq!(
@@ -846,8 +891,11 @@ fn test_BC_2_02_014_ec002_54_byte_pure_ack() {
         "EC-002: frame builder must produce exactly 54 bytes for header-only TCP"
     );
 
-    let parsed = decode_packet(&data, DataLink::ETHERNET)
-        .expect("EC-002: 54-byte pure ACK frame must decode");
+    let DecodedFrame::Ip(parsed) = decode_packet(&data, DataLink::ETHERNET)
+        .expect("EC-002: 54-byte pure ACK frame must decode")
+    else {
+        panic!("expected IP DecodedFrame")
+    };
 
     // BC-2.02.014 EC-004: packet_len == 54
     assert_eq!(
@@ -889,8 +937,11 @@ fn test_BC_2_02_014_ec003_snaplen_truncated_at_100() {
         "EC-003: builder must produce exactly 100 captured bytes"
     );
 
-    let parsed = decode_packet(&data, DataLink::ETHERNET)
-        .expect("EC-003: snaplen-truncated frame must decode via lax fallback");
+    let DecodedFrame::Ip(parsed) = decode_packet(&data, DataLink::ETHERNET)
+        .expect("EC-003: snaplen-truncated frame must decode via lax fallback")
+    else {
+        panic!("expected IP DecodedFrame")
+    };
 
     // BC-2.02.014 EC-003: packet_len == 100 (captured), not 1500 (on-wire)
     assert_eq!(
@@ -917,8 +968,11 @@ fn test_BC_2_02_015_ec004_seq_number_max_u32() {
         &[],
     );
 
-    let parsed =
-        decode_packet(&data, DataLink::ETHERNET).expect("EC-004: max seq_number frame must decode");
+    let DecodedFrame::Ip(parsed) =
+        decode_packet(&data, DataLink::ETHERNET).expect("EC-004: max seq_number frame must decode")
+    else {
+        panic!("expected IP DecodedFrame")
+    };
 
     match &parsed.transport {
         TransportInfo::Tcp { seq_number, .. } => {
@@ -953,8 +1007,11 @@ fn test_BC_2_02_015_ec005_all_four_flags_set() {
         &[],
     );
 
-    let parsed =
-        decode_packet(&data, DataLink::ETHERNET).expect("EC-005: all-flags-set frame must decode");
+    let DecodedFrame::Ip(parsed) =
+        decode_packet(&data, DataLink::ETHERNET).expect("EC-005: all-flags-set frame must decode")
+    else {
+        panic!("expected IP DecodedFrame")
+    };
 
     match &parsed.transport {
         TransportInfo::Tcp {
@@ -987,8 +1044,11 @@ fn test_BC_2_02_015_ec006_no_flags_set() {
         b"data-segment-no-flags",
     );
 
-    let parsed = decode_packet(&data, DataLink::ETHERNET)
-        .expect("EC-006: zero-flags data segment must decode");
+    let DecodedFrame::Ip(parsed) = decode_packet(&data, DataLink::ETHERNET)
+        .expect("EC-006: zero-flags data segment must decode")
+    else {
+        panic!("expected IP DecodedFrame")
+    };
 
     match &parsed.transport {
         TransportInfo::Tcp {
@@ -1056,8 +1116,11 @@ fn test_BC_2_02_014_ec007_60_byte_padded_frame() {
         "EC-007: padded frame must be exactly 60 bytes"
     );
 
-    let parsed = decode_packet(&frame, DataLink::ETHERNET)
-        .expect("EC-007: 60-byte padded Ethernet frame must decode");
+    let DecodedFrame::Ip(parsed) = decode_packet(&frame, DataLink::ETHERNET)
+        .expect("EC-007: 60-byte padded Ethernet frame must decode")
+    else {
+        panic!("expected IP DecodedFrame")
+    };
 
     // (a) packet_len == 60: equals data.len(), the full padded frame.
     assert_eq!(

@@ -8,6 +8,13 @@
 //! matching arm in `lax_parse` — paths that are unreachable when only
 //! whitelisted variants are exercised.
 //!
+//! Return type: `decode_packet` returns `Result<DecodedFrame>` (updated from
+//! `Result<ParsedPacket>` in STORY-111, etherparse 0.20 migration). Both
+//! `Ok(DecodedFrame::Ip(_))` and `Ok(DecodedFrame::Arp(_))` are non-panic
+//! outcomes and are acceptable to this harness (both discarded via `let _`).
+//! Only a runtime panic constitutes a fuzz finding. (VP-008 / BC-2.02.009
+//! Invariant 5 / arp-architecture-delta §4.3.)
+//!
 //! BC-2.02.008 ("Reject Unsupported Link Types") is a source contract for
 //! VP-008; BC-2.02.007 invariant 1 lists "Unsupported link type:" as a
 //! reachable error prefix. Both are fuzzed here.

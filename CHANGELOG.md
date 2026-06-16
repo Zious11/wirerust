@@ -7,6 +7,45 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-06-16
+
+### Added
+
+- **ARP Security Analyzer** (issue #9, epic E-16) for link-layer and OT network forensics.
+  Detects five threat classes with MITRE ATT&CK attribution:
+
+  - **D1 ARP spoofing** — binding-conflict detection with MEDIUM→HIGH severity escalation
+    (configurable `--arp-spoof-threshold`, default 3 conflicts). Attributed to **T0830
+    Adversary-in-the-Middle** and **T1557.002 ARP Cache Poisoning**.
+  - **D2 Gratuitous ARP (GARP)** — unsolicited GARP frames flagged as Possible; binding-conflict
+    GARP (GARP where the announced MAC differs from the established binding) escalated to Likely.
+  - **D3 ARP storms** — high-rate ARP flood detection (configurable `--arp-storm-rate`, default
+    50 frames/window). Attributed to **T0830**.
+  - **D11 Malformed ARP frames** — strict + lax/snaplen-truncated ARP parsing; frames that fail
+    both passes are flagged as malformed-protocol anomalies.
+  - **D12 L2/L3 MAC mismatch** — Ethernet source MAC vs. ARP sender hardware address mismatch
+    detection, flagging potential header spoofing.
+
+  New CLI flags: `--arp` (enable; also included in `-a`/`--all`), `--arp-spoof-threshold N`,
+  `--arp-storm-rate N`. Binding-table LRU cap: 65 536 entries; storm-counter LRU cap: 4 096
+  entries.
+
+  Implemented across STORY-111..115 (PRs #236, #238, #239, #240, #241) with formal hardening
+  in PRs #242–#251.
+
+### Changed
+
+- Migrated the packet decoder from **etherparse 0.16 to 0.20** (`DecodedFrame{Ip,Arp}` model).
+  Strict and lax/snaplen-truncated ARP parsing added; VLAN/QinQ/MACsec link-extension offset
+  handling included.
+- Bumped **chrono 0.4.44 → 0.4.45** (#237).
+
+### Verified
+
+- **VP-024 ARP parse-safety and binding-cap** formally verified: 5 Kani proof harnesses proven
+  correct, cargo-fuzz 16.2 M executions / 0 crashes, cargo-mutants 98.9 % kill rate on the
+  ARP delta.
+
 ## [0.6.0] - 2026-06-12
 
 ### Added

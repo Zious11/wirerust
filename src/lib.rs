@@ -6,8 +6,11 @@
 //! ## Pipeline
 //!
 //! 1. **[`reader`]** parses pcap-format capture files into raw frames.
-//! 2. **[`decoder`]** turns each frame into a [`decoder::ParsedPacket`]
-//!    (link-layer → IP → TCP/UDP, no application-layer parsing).
+//! 2. **[`decoder`]** turns each frame into a [`decoder::DecodedFrame`] —
+//!    either a [`decoder::DecodedFrame::Ip`] wrapping a [`decoder::ParsedPacket`]
+//!    (link-layer → IP → TCP/UDP) or a [`decoder::DecodedFrame::Arp`] wrapping
+//!    an [`decoder::ArpFrame`] (link-layer → ARP, for EtherType 0x0806 frames).
+//!    No application-layer parsing is done here.
 //! 3. **[`summary`]** accumulates capture-level totals (packets, bytes, hosts,
 //!    services, protocols).
 //! 4. **[`reassembly`]** drives TCP stream reassembly with overlap / out-of-window

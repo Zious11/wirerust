@@ -33,9 +33,9 @@
 //! observed format and fail the assertion.
 //!
 //! Fixtures used:
-//!   dns-remoteshell.pcap — 58 total packets, 73 decode errors (non-IP frames
+//!   dns-remoteshell.pcap — 58 total packets, 69 decode errors (non-IP frames
 //!     fail decode_packet with "No IP layer found"). Produces exactly ONE
-//!     "Warning: failed to decode packet" line on stderr; skipped_packets=73.
+//!     "Warning: failed to decode packet" line on stderr; skipped_packets=69.
 //!     With analyze --http --json: unclassified_flows=8 (non-zero, kills
 //!     hardcode-to-zero mutations). Used for AC-001..004, AC-005, EC-001, EC-005
 //!     and all run_summary decode-error / format / routing tests.
@@ -54,9 +54,9 @@ mod story_089 {
     // Fixture constants (verified by binary run before authoring)
     // -----------------------------------------------------------------------
 
-    /// dns-remoteshell.pcap: 58 total packets, 73 decode errors (non-IP frames
+    /// dns-remoteshell.pcap: 58 total packets, 69 decode errors (non-IP frames
     /// fail decode_packet). Produces exactly ONE "Warning: failed to decode
-    /// packet" line on stderr. skipped_packets=73 in --json output.
+    /// packet" line on stderr. skipped_packets=69 in --json output.
     /// analyze --http --json → unclassified_flows=8 (non-zero).
     /// Used for AC-001..005, EC-001, EC-005, and all run_summary tests.
     const DNS_REMOTE_FIXTURE: &str = "tests/fixtures/dns-remoteshell.pcap";
@@ -125,7 +125,7 @@ mod story_089 {
 
     /// AC-002 (BC-2.12.014 postcondition 2): After the first decode error,
     /// subsequent errors are counted silently — no additional warning lines
-    /// are emitted. dns-remoteshell.pcap has 73 decode errors across 58 total
+    /// are emitted. dns-remoteshell.pcap has 69 decode errors across 58 total
     /// packets; only 1 warning line appears (the count assertion in AC-004 is
     /// the mutation-resistant form; this test verifies the positive case from
     /// the BC postcondition).
@@ -133,7 +133,7 @@ mod story_089 {
     /// Discriminating assertions:
     ///   Positive: stderr does NOT contain a second warning line (the line
     ///     appears exactly once, not twice or more).
-    ///   Positive: skipped_packets in JSON output == 73 (all errors counted).
+    ///   Positive: skipped_packets in JSON output == 69 (all errors counted).
     ///   Positive: command exits 0.
     #[test]
     fn test_subsequent_decode_errors_silent() {
@@ -150,17 +150,20 @@ mod story_089 {
             .lines()
             .filter(|l| l.contains("Warning: failed to decode packet"))
             .count();
-        // 73 decode errors → exactly 1 warning (subsequent are silent)
+        // 69 decode errors → exactly 1 warning (subsequent are silent)
         assert_eq!(
             warning_count, 1,
             "expected exactly 1 warning line; got {warning_count}. stderr: {stderr}"
         );
 
-        // All 73 errors counted in skipped_packets
+        // STORY-112 update: dns-remoteshell.pcap now has 69 decode errors
+        // (was 73 in STORY-111; 4 ARP frames now decode successfully per AC-006).
+        // All 69 errors counted in skipped_packets.
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
-            stdout.contains("\"skipped_packets\": 73"),
-            "expected skipped_packets 73 in JSON; stdout: {stdout}"
+            stdout.contains("\"skipped_packets\": 69"),
+            "expected skipped_packets 69 in JSON (STORY-112: ARP frames now decode \
+             successfully, reducing non-IP errors from 73 to 69); stdout: {stdout}"
         );
     }
 
@@ -174,23 +177,24 @@ mod story_089 {
     /// `--json` output's `summary.skipped_packets` field equals the number of
     /// malformed packets in the fixture.
     ///
-    /// dns-remoteshell.pcap has 73 decode failures (non-IP packets).
+    /// dns-remoteshell.pcap has 69 decode failures (non-IP packets).
     /// Canonical test vector from BC-2.12.014: 0 valid/5 decode errors → 5.
-    /// Here: 73 decode errors → skipped_packets == 73.
+    /// Here: 69 decode errors → skipped_packets == 69.
     ///
     /// Discriminating assertions:
-    ///   Positive: stdout JSON contains "\"skipped_packets\": 73".
+    ///   Positive: stdout JSON contains "\"skipped_packets\": 69".
     ///   Positive: command exits 0.
     ///   Negative: http-ooo.pcap (0 decode errors) → skipped_packets == 0.
     #[test]
     fn test_skipped_packets_equals_total_decode_errors() {
-        // Positive: 73 decode errors → skipped_packets: 73
+        // Positive: 69 decode errors → skipped_packets: 69
+        // (STORY-112: 4 ARP frames now decode successfully, was 73 in STORY-111)
         Command::cargo_bin("wirerust")
             .expect("binary built")
             .args(["analyze", DNS_REMOTE_FIXTURE, "--dns", "--json"])
             .assert()
             .success()
-            .stdout(predicate::str::contains("\"skipped_packets\": 73"));
+            .stdout(predicate::str::contains("\"skipped_packets\": 69"));
 
         // Negative: 0 decode errors → skipped_packets: 0
         Command::cargo_bin("wirerust")
@@ -212,7 +216,7 @@ mod story_089 {
     /// mutation-resistant formalization: we count warning occurrences in stderr
     /// and assert count == 1 (not just .contains(), which would miss duplicates).
     ///
-    /// dns-remoteshell.pcap: 73 decode errors → exactly 1 warning line.
+    /// dns-remoteshell.pcap: 69 decode errors → exactly 1 warning line.
     ///
     /// Method: capture stderr as string, count occurrences of the warning
     /// prefix "Warning: failed to decode packet" → must equal exactly 1.
@@ -221,7 +225,7 @@ mod story_089 {
     ///   Positive: warning prefix appears exactly 1 time in stderr.
     ///   Positive: command exits 0.
     ///   Negative: if the guard `if total_decode_errors == 0` were removed,
-    ///     73 warning lines would appear and count > 1 would fail.
+    ///     69 warning lines would appear and count > 1 would fail.
     #[test]
     fn test_decode_error_warning_printed_at_most_once() {
         let output = Command::cargo_bin("wirerust")
@@ -728,17 +732,18 @@ mod story_089 {
 
     /// EC-005 (BC-2.12.014 EC-002 / STORY-089 EC-002): This edge case is covered
     /// by AC-001 + AC-003 together using the dns-remoteshell.pcap fixture, which
-    /// has 58 total packets and 73 decode errors (non-IP frames exceed total
+    /// has 58 total packets and 69 decode errors (non-IP frames exceed total
     /// packets because the pcap contains fragmented/layered frames that each
     /// attempt multiple decode calls). The test verifies the combined invariant:
     /// skipped_packets = total decode failures AND exactly one warning emitted.
     ///
     /// Canonical test vector from BC-2.12.014: 0 valid/5 decode errors → 5.
-    /// Here we use 73 decode errors as the concrete "many errors" case.
+    /// Here we use 69 decode errors as the concrete "many errors" case.
+    /// (STORY-112: was 73 in STORY-111; 4 ARP frames now decode successfully.)
     ///
     /// Discriminating assertions:
     ///   Positive: warning appears exactly 1 time in stderr (count check).
-    ///   Positive: `"skipped_packets": 73` in stdout JSON.
+    ///   Positive: `"skipped_packets": 69` in stdout JSON.
     ///   Positive: command exits 0.
     #[test]
     fn test_EC_005_all_packets_fail_one_warning_skipped_count_accurate() {
@@ -759,8 +764,9 @@ mod story_089 {
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
-            stdout.contains("\"skipped_packets\": 73"),
-            "expected skipped_packets 73 in JSON; stdout: {stdout}"
+            stdout.contains("\"skipped_packets\": 69"),
+            "expected skipped_packets 69 in JSON (STORY-112: 4 ARP frames now decode \
+             successfully, was 73 in STORY-111); stdout: {stdout}"
         );
     }
 
@@ -788,16 +794,17 @@ mod story_089 {
     /// decode loop as `analyze`. A fixture with multiple decode errors emits
     /// exactly ONE warning to stderr and counts all errors into skipped_packets.
     ///
-    /// dns-remoteshell.pcap: 73 decode errors → exactly 1 warning line and
-    /// `"skipped_packets": 73` in --json output. Verified by binary run.
+    /// dns-remoteshell.pcap: 69 decode errors → exactly 1 warning line and
+    /// `"skipped_packets": 69` in --json output. Verified by binary run.
+    /// (STORY-112: was 73 in STORY-111; 4 ARP frames now decode successfully.)
     ///
     /// Mutation proof: mutating `total_decode_errors += 1` in run_summary (e.g.,
     /// `+= 999`) would produce `"skipped_packets": 999` (or similar wrong count)
-    /// and fail the `== 73` assertion.
+    /// and fail the `== 69` assertion.
     ///
     /// Discriminating assertions:
     ///   Positive: stderr has EXACTLY ONE warning line (count check, not contains).
-    ///   Positive: stdout JSON contains `"skipped_packets": 73`.
+    ///   Positive: stdout JSON contains `"skipped_packets": 69`.
     ///   Positive: command exits 0.
     #[test]
     fn test_run_summary_decode_error_warning_once() {
@@ -813,14 +820,15 @@ mod story_089 {
         let warning_count = stderr.matches("Warning: failed to decode packet").count();
         assert_eq!(
             warning_count, 1,
-            "run_summary: warning must appear exactly once across 73 decode errors; \
+            "run_summary: warning must appear exactly once across 69 decode errors; \
              found {warning_count} times. stderr: {stderr}"
         );
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
-            stdout.contains("\"skipped_packets\": 73"),
-            "run_summary: expected skipped_packets 73 in JSON output; stdout: {stdout}"
+            stdout.contains("\"skipped_packets\": 69"),
+            "run_summary: expected skipped_packets 69 in JSON output (STORY-112: \
+             4 ARP frames now decode successfully, was 73 in STORY-111); stdout: {stdout}"
         );
     }
 
@@ -992,39 +1000,25 @@ mod story_089 {
     // -----------------------------------------------------------------------
     // ADV-P04-MED-001 remediation: single-decode-error fixture
     //
-    // The existing tests (AC-002, AC-004, EC-005, test_run_summary_decode_error_warning_once)
-    // use dns-remoteshell.pcap (73 errors, all identical "No IP layer found").
-    // A mutation `if total_decode_errors == 0` → `== 1` (warn on 2nd error
-    // instead of 1st) SURVIVES those tests because 73 errors still yield exactly
-    // 1 warning (errors 2-73 are also suppressed under either guard).
+    // STORY-112 update: one-decode-error.pcap contained exactly 1 ARP frame
+    // that previously failed decode (returned "ARP extraction not yet
+    // implemented"). With STORY-112's implementation of extract_arp_frame,
+    // that ARP frame now decodes successfully as DecodedFrame::Arp.
+    // The fixture now produces 0 decode errors and 0 warnings.
     //
-    // FIX: one-decode-error.pcap contains EXACTLY ONE decode failure (1 ARP frame
-    // that has no IP layer) plus 1 valid IPv4/UDP packet.  Under the correct
-    // `== 0` guard the ARP is error #0 → warning fires → 1 warning.
-    // Under the `== 1` mutant the ARP is error #0 (count still 0 at the guard
-    // check before the increment) — wait, let me be precise:
-    //   total_decode_errors starts at 0.
-    //   First error arrives: guard checks `== 0` (true) → warns.
-    //   `== 1` mutant: checks `== 1` (false, count is 0) → NO warn; count → 1.
-    //   No second error exists → 0 warnings total.
-    // The new tests below assert warning_count == 1, killing the mutant (0 ≠ 1).
+    // The mutation-kill role of this fixture (discriminating `== 0` vs `== 1`
+    // guard) is now served by dns-remoteshell.pcap (69 errors, verified above).
+    // These tests are retained to document the fixture's new behavior.
     // -----------------------------------------------------------------------
 
     /// ADV-P04-MED-001 (BC-2.12.014 postcondition 1, run_analyze):
-    /// With exactly ONE decode error, the `== 0` guard fires exactly once,
-    /// emitting exactly 1 warning. The `== 1` mutant would emit 0 warnings
-    /// (no second error exists to trigger the mutated guard).
-    ///
-    /// Fixture: one-decode-error.pcap — 1 ARP packet (decode fails) + 1 valid
-    /// IPv4/UDP packet (decode succeeds). skipped_packets=1 in JSON output.
-    ///
-    /// Mutation-catch proof (verified):
-    ///   Correct `== 0`:  ARP is error #0 → guard true  → 1 warning (PASS).
-    ///   Mutant  `== 1`:  ARP is error #0 → guard false → 0 warnings (FAIL).
+    /// STORY-112 update: one-decode-error.pcap's sole ARP frame now decodes
+    /// successfully via extract_arp_frame (AC-006/BC-2.16.015). The fixture
+    /// produces 0 decode errors → 0 warnings, skipped_packets=0.
     ///
     /// Discriminating assertions:
-    ///   Positive: stderr warning count == 1.
-    ///   Positive: stdout JSON contains `"skipped_packets": 1`.
+    ///   Positive: stderr warning count == 0 (no decode errors).
+    ///   Positive: stdout JSON contains `"skipped_packets": 0`.
     ///   Positive: command exits 0.
     #[test]
     fn test_BC_2_12_014_single_error_fixture_first_error_fires_warning_run_analyze() {
@@ -1039,34 +1033,27 @@ mod story_089 {
         let stderr = String::from_utf8_lossy(&output.stderr);
         let warning_count = stderr.matches("Warning: failed to decode packet").count();
         assert_eq!(
-            warning_count, 1,
-            "ADV-P04-MED-001 run_analyze: with exactly 1 decode error the warning \
-             must appear exactly once (== 0 guard fires on error #0); \
-             got {warning_count}. stderr: {stderr}"
+            warning_count, 0,
+            "ADV-P04-MED-001 run_analyze (STORY-112): ARP frame now decodes successfully, \
+             expected 0 warnings; got {warning_count}. stderr: {stderr}"
         );
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
-            stdout.contains("\"skipped_packets\": 1"),
-            "ADV-P04-MED-001 run_analyze: expected skipped_packets=1 in JSON; stdout: {stdout}"
+            stdout.contains("\"skipped_packets\": 0"),
+            "ADV-P04-MED-001 run_analyze (STORY-112): ARP frame decodes successfully, \
+             expected skipped_packets=0 in JSON; stdout: {stdout}"
         );
     }
 
     /// ADV-P04-MED-001 (BC-2.12.014 postcondition 1, run_summary):
-    /// Same mutation-discriminating fixture exercised via the `summary`
-    /// subcommand. The decode loop in run_summary has its own copy of the
-    /// `if total_decode_errors == 0` guard (src/main.rs ~line 267); this
-    /// test kills the mutant there independently.
-    ///
-    /// Fixture: one-decode-error.pcap — skipped_packets=1 in JSON output.
-    ///
-    /// Mutation-catch proof (verified):
-    ///   Correct `== 0`:  1 warning (PASS).
-    ///   Mutant  `== 1`:  0 warnings (FAIL).
+    /// STORY-112 update: one-decode-error.pcap's sole ARP frame now decodes
+    /// successfully via extract_arp_frame (AC-006/BC-2.16.015). The fixture
+    /// produces 0 decode errors → 0 warnings, skipped_packets=0.
     ///
     /// Discriminating assertions:
-    ///   Positive: stderr warning count == 1.
-    ///   Positive: stdout JSON contains `"skipped_packets": 1`.
+    ///   Positive: stderr warning count == 0 (no decode errors).
+    ///   Positive: stdout JSON contains `"skipped_packets": 0`.
     ///   Positive: command exits 0.
     #[test]
     fn test_BC_2_12_014_single_error_fixture_first_error_fires_warning_run_summary() {
@@ -1081,16 +1068,16 @@ mod story_089 {
         let stderr = String::from_utf8_lossy(&output.stderr);
         let warning_count = stderr.matches("Warning: failed to decode packet").count();
         assert_eq!(
-            warning_count, 1,
-            "ADV-P04-MED-001 run_summary: with exactly 1 decode error the warning \
-             must appear exactly once (== 0 guard fires on error #0); \
-             got {warning_count}. stderr: {stderr}"
+            warning_count, 0,
+            "ADV-P04-MED-001 run_summary (STORY-112): ARP frame now decodes successfully, \
+             expected 0 warnings; got {warning_count}. stderr: {stderr}"
         );
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
-            stdout.contains("\"skipped_packets\": 1"),
-            "ADV-P04-MED-001 run_summary: expected skipped_packets=1 in JSON; stdout: {stdout}"
+            stdout.contains("\"skipped_packets\": 0"),
+            "ADV-P04-MED-001 run_summary (STORY-112): ARP frame decodes successfully, \
+             expected skipped_packets=0 in JSON; stdout: {stdout}"
         );
     }
 }
