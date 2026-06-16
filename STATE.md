@@ -22,6 +22,7 @@ develop_head: e37ec38
 develop_head_confirmed: e37ec38 == origin/develop (verified 2026-06-16; no code change — F7 consistency fixes are doc/spec only)
 arp_f6_hardening_status: "COMPLETE — 5/5 Kani SUCCESSFUL (46/46 project-wide), VP-024 v2.3 LOCKED, fuzz VP-008 16.2M/0, mutants 98.9%"
 arp_f7_convergence_status: "CONVERGED — 5-dim met; awaiting v0.7.0 release human gate"
+arp_followups_status: "DISPOSITIONED — item 5 fixed (BC-2.10.007 v1.8 de-PLANNED 25/17); issues #252-255 filed (post-release); CR-001/CR-002/FU-STORM-NEW-ATTR/BC-2.10-COUNT-POSTMERGE dropped/resolved. RELEASE-READY."
 factory_artifacts_head: see git -C .factory log -1  # updated by this burst
 main_head: 3e29891
 released_version: v0.6.0
@@ -51,7 +52,7 @@ arp_f2_convergence_trajectory: "15→20→~8→~15→~6→~4→~4→~7→~4→~6
 f3_convergence_trajectory: "F3 STRICT WHOLE-CORPUS CONVERGED 3/3 — GATE SATISFIED. Full per-pass detail P1-P38: phase-f5-adversarial/arp-f3-convergence-trajectory.md. P31 FULLY CLEAN (clean-streak 0/3→1/3). P32 reset (STORY-115 storm_findings field; REMEDIATED). P33 reset (BC-2.15.024 parse_errors→malformed_in_window; REMEDIATED). POST-P33 SS-15 FLUSH (6 findings). P34 reset (changelog Artifacts table; REMEDIATED). P35 reset (changelog line-pins; de-pin sweep). P36 FULLY CLEAN (clean-streak 0/3→1/3). P37 FULLY CLEAN (clean-streak 1/3→2/3). P38 FULLY CLEAN — all 4 slices ZERO; A 17th-consec, B converged, C converged, D converged; mount-guards PASSED; clean-streak 2/3→3/3. **F3 STRICT WHOLE-CORPUS ADVERSARIAL GATE SATISFIED** (Passes 36/37/38 consecutive CLEAN). Total: 38 passes."
 f7_convergence_trajectory: "6 fresh-context adversarial passes; final 3 consecutive CONVERGED (0 P0/CRITICAL/HIGH/MEDIUM)"
 consistency_audit: CONSISTENT  # post-F7-consistency-remediation; F1-F4 ALL REMEDIATED 2026-06-16
-input_drift_check: "ARP stories post-F7-final-closeout (2026-06-16): STORY-111=3eefa35 MATCH, STORY-112=26fb42d MATCH (re-drifted by VP-024 v2.3+arp-arch-delta v1.17; recomputed), STORY-113=f35bcfc MATCH (re-drifted by VP-024 v2.3+arp-arch-delta v1.17; recomputed), STORY-114=02da9e7 MATCH, STORY-115=80be67e MATCH. ALL 5 ARP STORIES MATCH. Non-ARP STALE pre-existing; does NOT block F7."
+input_drift_check: "F7-followup-dispositions burst (2026-06-16): STORY-071=6b40879 MATCH (recomputed; BC-2.10.007 v1.8 input), STORY-100=bc08fb1 MATCH (recomputed; BC-2.10.007 v1.8 input), STORY-111=3eefa35 MATCH, STORY-112=26fb42d MATCH, STORY-113=f35bcfc MATCH, STORY-114=02da9e7 MATCH, STORY-115=80be67e MATCH. ALL 7 MATCH. Non-ARP/non-BC-2.10.007 STALE pre-existing; does NOT block release."
 ---
 
 # VSDD Pipeline State — wirerust
@@ -131,16 +132,19 @@ input_drift_check: "ARP stories post-F7-final-closeout (2026-06-16): STORY-111=3
 
 ### B. INPUT-HASH STATUS (post-F7-final-closeout — ALL MATCH)
 
-STORY-111=3eefa35 MATCH | STORY-112=26fb42d MATCH (recomputed this burst) | STORY-113=f35bcfc MATCH (recomputed this burst) | STORY-114=02da9e7 MATCH | STORY-115=80be67e MATCH. Non-ARP STALE pre-existing; does NOT block release.
+STORY-071=6b40879 MATCH (recomputed; BC-2.10.007 v1.8) | STORY-100=bc08fb1 MATCH (recomputed; BC-2.10.007 v1.8) | STORY-111=3eefa35 MATCH | STORY-112=26fb42d MATCH | STORY-113=f35bcfc MATCH | STORY-114=02da9e7 MATCH | STORY-115=80be67e MATCH. Non-ARP/non-.007 STALE pre-existing; does NOT block release.
 
-### C. FOLLOW-UP ITEMS (carry to release gate / post-release)
+### C. FOLLOW-UP ITEMS — DISPOSITIONED (2026-06-16 F7-followup burst)
 
 - **Sub-D Kani array-surrogate (insert_binding_lru_array):** sanctioned deviation; surface at release gate.
-- **FU-F6-KANI-CLEANUP:** CR-001 (missing kani::cover! on safety harness non-vacuous); CR-002 (cap>0 doc); CR-003 (proof_file_hash deferred).
-- **O-2 / FU-ARP-QINQ-MACSEC-TEST:** F6 fuzz 16.2M partially addresses; explicit fixture tests open.
-- **FU-REPO-WIDE-DOC-DEBT:** arp.rs:2501 // RED comment + ~13 test files. Standalone chore PR.
-- **FU-JSON-CASING, FU-BC-2.10.007-MARKER, FU-STORM-NEW-ATTR, BC-2.10-COUNT-POSTMERGE:** all deferred.
-- **Process gaps:** PG-ARP-FIX-MECHANISM-FIRST, PG-ARP-FIXBURST-CONSUMER-SWEEP, PG-ARP-F4-REDTEST-DOC-TENSE-RECURRENCE — policy codification open.
+- **#252 VP-024 proof_file_hash + re-lock** (post-release). CR-001/CR-002 DROPPED (cosmetic).
+- **#253 QinQ/MACsec decoder fixtures** (post-release). Fuzz 16.2M/0 adequate interim.
+- **#254 Repo-wide RED-prose doc cleanup** (post-release). 71 occurrences / 5 test files + ~13 arp.rs.
+- **#255 JSON enum casing → snake_case** (post-release; maintainer chose snake_case).
+- **FU-BC-2.10.007-MARKER:** FIXED before v0.7.0 — BC-2.10.007 v1.8 de-PLANNED 23→25 (factory-artifacts commit 147aa63).
+- **FU-STORM-NEW-ATTR:** DROPPED (not genuine — already correct).
+- **BC-2.10-COUNT-POSTMERGE:** RESOLVED (.005 v1.11/.008 v1.13 already at 25/17; .007 fixed above).
+- **Process gaps (internal lessons — no GitHub issues):** PG-ARP-FIX-MECHANISM-FIRST, PG-ARP-FIXBURST-CONSUMER-SWEEP, PG-ARP-F4-REDTEST-DOC-TENSE-RECURRENCE — OPEN in drift items / lessons.md. Policy codification pending next cycle.
 
 ### D. DECISIONS CONFIRMED ACTIVE (do not re-adjudicate)
 
@@ -179,12 +183,13 @@ gh pr list --state open                                        # expect NO open 
 ```
 
 **Step 3 — WHAT IS COMPLETE (do NOT re-do):**
-F1..F7 ALL COMPLETE. STORY-111..115 DELIVERED. VP-024 v2.3 LOCKED. Input-hashes ALL MATCH. D-066..D-F1 ACTIVE.
+F1..F7 ALL COMPLETE. STORY-111..115 DELIVERED. VP-024 v2.3 LOCKED. Input-hashes ALL MATCH (STORY-071=6b40879, STORY-100=bc08fb1, STORY-111=3eefa35, 112=26fb42d, 113=f35bcfc, 114=02da9e7, 115=80be67e). D-066..D-F1 ACTIVE. F7 follow-up dispositions COMPLETE (#252-255 filed; item-5 fixed; drops/resolves done).
 
 **Step 4 — NEXT ACTION:**
 
 1. **v0.7.0 release** — gitflow release/0.7.0 branch → PR → main; tag v0.7.0; 4 binaries (release.yml).
    - Surface Sub-D Kani array-surrogate sanctioned deviation at release gate.
+   - Open post-release issues tracked as #252/#253/#254/#255 on GitHub.
 
 **Step 5 — KEY PROCESS GAPS:**
 - **PG-ARP-F4-PRMGR-MERGE-SHORTSTOP — 100% RECURRENCE (6/6):** pr-manager halts at APPROVE; orchestrator MUST drive steps 7-9.
@@ -299,12 +304,12 @@ Full tech-debt register: `.factory/tech-debt-register.md`.
 | PG-ARP-F4-REDTEST-DOC-TENSE-RECURRENCE | PG-ARP-F4-REDTEST-DOC-TENSE recurred in D-075 regression test (PR #243) despite codification. Codified policy text alone insufficient — needs agent-prompt/hook strengthening: test-writer must write regression-guard framing from the start; implementer GREEN-sweep must check the fix's OWN new test comments. Open self-improvement epic or justified deferral. | OPEN — agent-prompt/hook strengthening needed; self-improvement epic |
 | PG-ARP-F4-TYPE-BRANCH-NARROWING | NEW [type-branch-narrowing]: impl + unit tests + (deferred) Kani harness consistently omitted hw/proto type-reject branch (D-077), making the omission self-consistent and invisible to structural review across 4 adversary passes AND holdout. Lesson: DF-BC-COMPLETENESS-SWEEP must cross-check EACH BC's FULL precondition/edge-case set against code (negative/reject branches), not just happy-path + present structure. Strongest evidence yet for holdout + multi-pass fresh-context re-streak catching what single-perimeter review misses. VP-024 Sub-A Kani harness (currently todo!()) MUST cover type-field rejection (not just size) when filled in F6. | OPEN — DF-BC-COMPLETENESS-SWEEP policy extension; Kani note for F6 |
 | PG-ARP-F4-MULTIPASS-VALUE | POSITIVE LESSON: GARP-storm bypass (C1 in STORY-115; whole-attack-class gap, detect_storm unreachable for all GARP) was MISSED by pass 1 but CAUGHT by passes 2 and 3 via DF-BC-COMPLETENESS-SWEEP + GARP/D3 interaction analysis. Direct evidence for retaining 3-fresh-pass requirement (BC-5.39.001) + BC-completeness sweep. Detail: lessons.md PG-ARP-F4-MULTIPASS-VALUE. | DOCUMENTED — positive lesson; no policy change |
-| FU-JSON-CASING | Align Confidence/Verdict/ThreatCategory serde to uppercase (matching Display/BC-2.09.004) as governed cross-cutting JSON-contract change; update BC-2.11.001 + BC-2.09.004 scope + ADR note. Currently JSON envelope is internally consistent PascalCase — improvement, not defect. | REGISTERED — do NOT action in STORY-115; deferred |
-| FU-BC-2.10.007-MARKER | Verify/update BC-2.10.007 PLANNED marker for technique_tactic now that STORY-114 made T0830/T1557.002 resolvable via technique_tactic. | REGISTERED — deferred post-STORY-115 |
-| FU-STORM-NEW-ATTR | src/analyzer/arp.rs ~line 272 doc mis-attributes storm_rate param to STORY-114; storm_rate is STORY-115's deliverable. Minor doc cleanup; fold into standalone chore. | REGISTERED — deferred |
+| FU-JSON-CASING | Align serde enum casing to snake_case (ECS/OCSF best-practice; maintainer chose snake_case). Governed cross-cutting JSON-contract change; touches BC-2.09.004 / BC-2.11.001 / ADR-0003. | FILED #255 — post-release |
+| FU-BC-2.10.007-MARKER | BC-2.10.007 PLANNED marker for technique_tactic; siblings .005/.008 already at 25/17. | FIXED — BC-2.10.007 v1.8 de-PLANNED 23→25; factory-artifacts commit 147aa63 (2026-06-16) |
+| FU-STORM-NEW-ATTR | src/analyzer/arp.rs ~line 272 doc mis-attributes storm_rate param. | DROPPED — NOT GENUINE; every storm_rate reference already correctly attributes to STORY-115 (validated 2026-06-16) |
 | PG-ARP-F4-DOCSWEEP-OVERREACH | STORY-114 remediation doc-sweep over-reached to 13 out-of-scope files (modbus/dnp3/reassembly/csv). Reverted; scope restored to 7 story-scoped diff files. Lesson: remediation dispatches MUST scope greps+edits to `git diff develop..HEAD --name-only` only. Detail: `cycles/feature-arp-v0.7.0/lessons.md`. | DEFERRED — remediation dispatch template hardening |
 | FU-REPO-WIDE-DOC-DEBT | 13 test files (bc_2_15_110, bc_2_14_105, bc_2_14_103, modbus_detection, modbus_parse, dnp3_detection, dnp3_parse_core, dnp3_flow_state, dnp3_f5_remediation, reassembly_engine, reassembly_flow, reassembly_segment, reporter_csv) carry stale RED-gate prose from prior feature cycles. Schedule standalone docs chore PR after STORY-114 merges. Do NOT bundle into a feature story. | REGISTERED — post-STORY-114-merge chore |
-| BC-2.10-COUNT-POSTMERGE | BC-2.10.005 / BC-2.10.008 "PLANNED — implemented in STORY-114; current code 23/15" markers must be updated to 25/17 after STORY-114 merges to develop. Post-merge TODO; do NOT edit in STORY-114 or STORY-115 dispatch. | OPEN — post-STORY-114-merge PO update |
+| BC-2.10-COUNT-POSTMERGE | BC-2.10.005 / BC-2.10.008 25/17 markers; BC-2.10.007 PLANNED residual. | RESOLVED — .005 v1.11/.008 v1.13 already at 25/17; .007 fixed via FU-BC-2.10.007-MARKER above (2026-06-16) |
 | PG-ARP-FIXBURST-CONSUMER-SWEEP | NEW [fixburst-consumer-sweep]: VP-024 v1.8 harness rename (O-1) didn't sweep its 11 consuming artifacts (DF-CONSISTENCY-AUDIT-POST-FIXBURST-001 dim 3 not applied at the rename burst); resolved by reverting rename via PR #246. Lesson: any canonical-symbol rename must grep+update ALL consumers in the same burst, or avoid cosmetic renames entirely. | OPEN — policy codification follow-up |
 | PG-ARP-FIX-MECHANISM-FIRST | F5 O-A adjudication: spec for D-078 was written from incorrect mechanism hypothesis ("lax builds slice + extract None" is impossible) before code mechanism was verified; caused two rounds of spec+story correction (BC v1.4→v1.6) and sibling-seam (D-078b) discovered only at PR review. F-1 (PR #249) strengthens the lesson: a fix that hand-rolls offset/parsing logic (vs delegating to the library) MUST be stress-tested against the library's full input model (here: lax.link_exts / VLAN). Meta-lesson: LOW-severity O-A fix cascaded into 3 PRs + MEDIUM regression — fix-induced-regression risk should weigh into whether a LOW finding is worth fixing vs documenting. | OPEN — process-gap codification; Cycle-Closing Checklist candidate |
 | PG-CONSISTENCY-AUDIT-CONSUMER-SWEEP | [process-gap] F6 lock + Sub-D surrogate rename did NOT propagate to all consuming artifacts (verification-coverage-matrix v1.6 still "draft", arp-architecture-delta v1.16 + VP-024 v2.1 + STORY-113 still named "btree"). Same DF-CONSISTENCY-AUDIT-POST-FIXBURST-001 class as PG-ARP-FIXBURST-CONSUMER-SWEEP. Fresh F7 consistency-validator caught all 4 gaps; F7 holistic adversary missed them. Strengthening needed: (a) post-fixburst consumer-sweep checklist must include verification-coverage-matrix + all consuming stories; (b) holistic adversary prompt must cross-check canonical symbol names across all consumers in same burst. | OPEN — policy strengthening DF-CONSISTENCY-AUDIT-POST-FIXBURST-001 + adversary dispatch template |
