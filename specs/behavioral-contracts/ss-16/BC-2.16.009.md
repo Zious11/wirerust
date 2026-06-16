@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.6"
+version: "1.7"
 status: draft
 producer: product-owner
 timestamp: 2026-06-12T00:00:00Z
@@ -19,6 +19,7 @@ modified:
   - "v1.4: F3 story-anchor back-fill. — 2026-06-14"
   - "v1.5: D-078 (F5 finding O-A, human-adjudicated FIX) — Precondition 3 clarified: the 4-part type/size guard failure that triggers the D11 path occurs regardless of which decode arm (strict or lax) built the ArpPacketSlice. A lax-built slice that fails extract_arp_frame is a D11 malformed condition (same error string, same D11 routing) — not a generic decode-error. EC-008 added: lax-built-slice + extract_arp_frame None case explicitly documented as D11. The ONLY case that remains a generic decode-error (not D11) is when the lax parser cannot build an ArpPacketSlice at all (stop_err == Layer::Arp, lax.net == None). — 2026-06-15"
   - "v1.6: D-078 mechanism correction — peek-in-None-arm, not lax-built-slice. The v1.5 description of the lax-path D11 mechanism was based on an incorrect hypothesis. etherparse's ArpPacketSlice::from_slice validates len >= 8 + 2*hlen + 2*plen BEFORE building any slice — strict and lax both fail together on length. A malformed-AND-short ARP therefore never yields a LaxNetSlice::Arp to inspect. The ACTUAL mechanism (commit 9228e34): a malformed ARP that is also too short fails from_slice entirely and lands in decode_packet's lax None arm (lax.net == None, stop_err == Layer::Arp). That None arm then performs a raw fixed-header peek (8 bytes) from the raw bytes using the ARP payload offset derived from lax.link (Ethernet2 only — offset 14; other/None link → conservative truncation path). If the peeked htype (BE u16) != 0x0001 OR ptype (BE u16) != 0x0800 OR hlen (u8) != 6 OR plen (u8) != 4 → Err(\"Non-Ethernet/IPv4 ARP frame\") → record_malformed → D11. If the 8-byte fixed header is valid Ethernet/IPv4 (but the variable section is truncated or the frame is too short to even contain the 8-byte header) OR the link layer is non-Ethernet → Err(\"truncated ARP frame\") → generic decode-error. Preconditions 2–3 and EC-008 updated to describe this peek mechanism. Observable D11 outcome unchanged. — 2026-06-15"
+  - "v1.7: D-078 F-1 fix — VLAN/link-extension offset correction. The v1.6 text stated the ARP payload offset was derived from lax.link (Ethernet2 only — offset 14). This was an oversimplification: VLAN-tagged (802.1Q/802.1ad) and MACsec frames carry extension headers in lax.link_exts. The actual offset is now: Ethernet2 base header length (from lax.link) PLUS the summed byte-lengths of all headers in lax.link_exts. A VLAN-tagged ARP with non-standard type/size fields is therefore read at the correct offset and classified as D11 (no false-negative). A genuinely truncated VLAN ARP with a valid 8-byte fixed header is classified as the conservative 'truncated ARP frame' path (no false-positive D11). Only genuinely non-Ethernet link layers (lax.link not Ethernet2 or None) remain on the conservative path. Precondition 2 lax-path description and EC-008 updated accordingly. Observable D11 outcome unchanged for non-VLAN frames. — 2026-06-15"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -42,10 +43,13 @@ proto_addr_size ≠ 4), `decode_packet` returns `Err("Non-Ethernet/IPv4 ARP fram
 BC-2.02.009 revised postcondition), triggering Detection D11. The guard is applied via
 `extract_arp_frame`'s `None` return for the strict decode path, and via a raw fixed-header
 peek in `decode_packet`'s lax `None` arm for frames that are also too short for etherparse
-to build any `ArpPacketSlice` (D-078 mechanism — see Preconditions). `ArpAnalyzer` receives
-notification of this malformed frame and emits a LOW/Anomaly Finding. No MITRE technique is
-attached to D11; tagging with T0814 requires live DF-VALIDATION-001 validation that has not
-been performed (same rationale as D3).
+to build any `ArpPacketSlice` (D-078 mechanism — see Preconditions). The lax-path peek
+derives the ARP payload offset from the Ethernet2 base header PLUS the summed lengths of any
+link-extension headers (VLAN 802.1Q/802.1ad, MACsec) in `lax.link_exts`, ensuring correct
+classification for VLAN-tagged ARP captures. `ArpAnalyzer` receives notification of this
+malformed frame and emits a LOW/Anomaly Finding. No MITRE technique is attached to D11;
+tagging with T0814 requires live DF-VALIDATION-001 validation that has not been performed
+(same rationale as D3).
 
 ## Preconditions
 
@@ -61,15 +65,19 @@ been performed (same rationale as D3).
    strict and lax paths both fail together. The frame lands in `decode_packet`'s lax `None` arm
    (`lax.net == None`, `stop_err == Layer::Arp`). In that `None` arm, `decode_packet` performs
    a **raw fixed-header peek** (8 bytes) from the raw packet bytes:
-   - The ARP payload offset is derived from `lax.link`: Ethernet2 link → offset 14; other or
-     `None` link layer → conservative path (see Precondition 3d).
+   - The ARP payload offset is derived from `lax.link` (Ethernet2 base header length) PLUS
+     the summed byte-lengths of all link-extension headers in `lax.link_exts` (VLAN
+     802.1Q/802.1ad, MACsec, etc.). For a plain Ethernet2 frame with no extensions this is
+     14 bytes; for a single 802.1Q VLAN tag it is 18 bytes; and so on. If `lax.link` is not
+     Ethernet2 (or is `None`) the ARP payload base offset is unknown → conservative path
+     (see Precondition 3d).
    - Bytes are peeked at offsets [0..2] = htype (BE u16), [2..4] = ptype (BE u16),
      [4] = hlen (u8), [5] = plen (u8) relative to the ARP payload start.
    - If all four values match Ethernet/IPv4 defaults (htype 0x0001, ptype 0x0800, hlen 6,
      plen 4) but the variable section is truncated → `Err("truncated ARP frame")` (not D11).
    - If any of the four values is non-standard → `Err("Non-Ethernet/IPv4 ARP frame")` → D11.
-   - If the frame is too short to contain even the 8-byte fixed header → same as valid-header
-     truncation → `Err("truncated ARP frame")` (not D11, conservative path).
+   - If the frame is too short to contain even the 8-byte fixed header at the derived offset →
+     same as valid-header truncation → `Err("truncated ARP frame")` (not D11, conservative path).
 
 3. The D11 condition (which routes to `Err("Non-Ethernet/IPv4 ARP frame")`) is triggered when
    at least one of the following holds:
@@ -154,7 +162,7 @@ been performed (same rationale as D3).
 | EC-005 | proto_addr_size=0 (zero-length protocol address) | `None`; malformed D11 finding |
 | EC-006 | hw_addr_type=Ethernet, proto_addr_type=IPv4, hw_addr_size=6, proto_addr_size=4 (all correct) | `Some(ArpFrame { ... })` — NOT malformed; normal path (BC-2.16.001 / BC-2.16.002) |
 | EC-007 | etherparse rejects the frame entirely (malformed EtherType, truncated payload where lax parser also cannot build any slice) | `lax.net == None`, `stop_err == Layer::Arp`; `decode_packet` performs raw fixed-header peek; if peeked header reveals non-Ethernet/IPv4 type/size fields → `Err("Non-Ethernet/IPv4 ARP frame")` → D11. If peek reveals valid Ethernet/IPv4 fixed header (truncated variable section) OR frame too short for the 8-byte fixed header OR non-Ethernet link → `Err("truncated ARP frame")` → generic decode-error (not D11). |
-| EC-008 | Malformed-AND-short ARP capture: frame has non-standard htype/ptype/hlen/plen AND is too short for `ArpPacketSlice::from_slice` to build a slice (both strict and lax fail together on length validation) | **D11 malformed finding** (observable outcome unchanged from v1.5). MECHANISM (corrected D-078): the frame lands in `decode_packet`'s lax `None` arm; `decode_packet` performs a raw fixed-header peek at offset 14 (Ethernet2 link) from the raw bytes; the peeked non-standard type/size values trigger `Err("Non-Ethernet/IPv4 ARP frame")` → `record_malformed` → D11 LOW/Anomaly finding. A `LaxNetSlice::Arp` slice is NEVER built for this case — `ArpPacketSlice::from_slice` fails before constructing any slice. Non-Ethernet link → conservative `Err("truncated ARP frame")` (not D11). Added by D-078; mechanism corrected v1.6. |
+| EC-008 | Malformed-AND-short ARP capture: frame has non-standard htype/ptype/hlen/plen AND is too short for `ArpPacketSlice::from_slice` to build a slice (both strict and lax fail together on length validation); Ethernet2 link layer with or without VLAN/802.1Q/802.1ad/MACsec extension headers in lax.link_exts | **D11 malformed finding** (observable outcome unchanged from v1.5). MECHANISM (corrected D-078, offset extended v1.7 F-1 fix): the frame lands in `decode_packet`'s lax `None` arm; `decode_packet` performs a raw fixed-header peek at the offset derived from the Ethernet2 base header length PLUS the summed lengths of all headers in lax.link_exts (e.g. offset 14 for untagged, 18 for single 802.1Q VLAN) from the raw bytes; the peeked non-standard type/size values trigger `Err("Non-Ethernet/IPv4 ARP frame")` → `record_malformed` → D11 LOW/Anomaly finding. A `LaxNetSlice::Arp` slice is NEVER built for this case — `ArpPacketSlice::from_slice` fails before constructing any slice. VLAN-tagged malformed ARP is now classified correctly. Non-Ethernet link layer (lax.link not Ethernet2 or None) → conservative `Err("truncated ARP frame")` (not D11). Added by D-078; mechanism corrected v1.6; offset extended to VLAN/link-extensions v1.7. |
 
 ## Canonical Test Vectors
 
