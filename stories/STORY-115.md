@@ -2,8 +2,9 @@
 document_type: story
 story_id: STORY-115
 epic_id: E-16
-version: "1.3"
+version: "1.4"
 # Pass-32: align analyzer field name storm_findings_count→storm_findings (matches STORY-113 declaration + sibling convention + BC-2.16.010 summarize key)
+# v1.4 (2026-06-16): F7 consistency F4 — EC-011 table row corrected from 'at CLI parse time' to 'at startup (in run_analyze)' (matching AC-011 fix from v1.3 and BC-2.16.008 v1.9 / BC-2.16.013 v1.4).
 # v1.3 (2026-06-16): F7 consistency F3 — AC-011 threshold-0 rejection mechanism corrected from 'at CLI parse time' to 'at startup (in run_analyze), before any packet processing — via a fail-fast anyhow::bail! error (exit code 1), not a clap value_parser range' (BC-2.16.008 v1.9 / BC-2.16.013 v1.4).
 # v1.2 (2026-06-15): D-074 back-propagation — EC-011 updated from "clamp to 1 or CLI error" to "rejected at CLI parse time"; AC-011 extended with 0-rejection requirement and test_cli_arp_storm_rate_0_rejected (BC-2.16.008 EC-006 / BC-2.16.013 EC-004)
 status: draft
@@ -33,7 +34,7 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-16/BC-2.16.008.md
   - .factory/specs/behavioral-contracts/ss-16/BC-2.16.013.md
   - .factory/specs/behavioral-contracts/ss-16/BC-2.16.010.md
-input-hash: "bb1d83a"
+input-hash: "80be67e"
 ---
 
 # STORY-115: D3 ARP Storm Detection + --arp-storm-rate CLI Flag + storm_findings Summary Key
@@ -190,7 +191,7 @@ Architecture section references: `architecture/module-decomposition.md` (SS-16 C
 | EC-008 | Late-burst suppression: 49 at ts=100, 50 at ts=159 | rate=99/59≈1.68 < 50; no storm (accepted limitation) |
 | EC-009 | 4097 distinct MACs | LRU eviction at 4097th; len ≤ 4096 |
 | EC-010 | `--arp-storm-rate 10`; 10 frames in 1s | Storm finding at 10/1=10 >= threshold=10 |
-| EC-011 | `--arp-storm-rate 0` | Rejected at CLI parse time with error: `--arp-storm-rate must be >= 1 (got 0)` (D-074 / BC-2.16.008 EC-006 / BC-2.16.013 EC-004) |
+| EC-011 | `--arp-storm-rate 0` | Rejected at startup (in run_analyze), before any packet processing — via a fail-fast anyhow::bail! error (exit code 1): `--arp-storm-rate must be >= 1 (got 0)` (D-074 / BC-2.16.008 EC-006 / BC-2.16.013 EC-004 / BC-2.16.008 v1.9) |
 | EC-012 | D3 finding examined | `mitre_techniques: []` — T0814 absent |
 
 ## Tasks

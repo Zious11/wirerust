@@ -58,7 +58,7 @@ inputs:
   - .factory/specs/architecture/arp-architecture-delta.md
   - .factory/specs/behavioral-contracts/ss-02/BC-2.02.009.md
   - .factory/specs/verification-properties/vp-008-decode-packet-no-panic.md
-input-hash: "d05149f"
+input-hash: "3eefa35"
 ---
 
 # STORY-111: etherparse 0.20 Migration + DecodedFrame/ArpFrame Types + BC-2.02.009 Revision

@@ -2,8 +2,8 @@
 document_type: story
 story_id: STORY-114
 epic_id: E-16
-version: "1.3"
-version_note: "1.3 (2026-06-16): F7 consistency F3 — AC-006 threshold-0 rejection mechanism corrected from 'at CLI parse time' to 'at startup (in run_analyze), before any packet processing — via a fail-fast anyhow::bail! error (exit code 1), not a clap value_parser range' (BC-2.16.012 v1.4). 1.2 (2026-06-15): D-074 back-propagation — AC-006 extended with threshold-0 rejection requirement and test_cli_arp_spoof_threshold_0_rejected; EC-014 added (BC-2.16.012 EC-004 / BC-2.16.012 v1.3 PC2). 1.1 (2026-06-14): F3-convergence Pass-25 Slice-C — de-pinned 4x HS-008-*.md:75 line citations to concept anchor 'HS-008 Verification Approach step 1'; input-hash will be recomputed by orchestrator (--write)"
+version: "1.4"
+version_note: "1.4 (2026-06-16): F7 consistency F4 — EC-014 table row corrected from 'at CLI parse time' to 'at startup (in run_analyze)' (matching AC-006 fix from v1.3 and BC-2.16.012 v1.4). 1.3 (2026-06-16): F7 consistency F3 — AC-006 threshold-0 rejection mechanism corrected from 'at CLI parse time' to 'at startup (in run_analyze), before any packet processing — via a fail-fast anyhow::bail! error (exit code 1), not a clap value_parser range' (BC-2.16.012 v1.4). 1.2 (2026-06-15): D-074 back-propagation — AC-006 extended with threshold-0 rejection requirement and test_cli_arp_spoof_threshold_0_rejected; EC-014 added (BC-2.16.012 EC-004 / BC-2.16.012 v1.3 PC2). 1.1 (2026-06-14): F3-convergence Pass-25 Slice-C — de-pinned 4x HS-008-*.md:75 line citations to concept anchor 'HS-008 Verification Approach step 1'; input-hash will be recomputed by orchestrator (--write)"
 status: draft
 producer: story-writer
 timestamp: 2026-06-13T00:00:00Z
@@ -34,7 +34,7 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-16/BC-2.16.012.md
   - .factory/specs/behavioral-contracts/ss-16/BC-2.16.014.md
   - .factory/specs/verification-properties/vp-007-mitre-technique-id-format.md
-input-hash: "1325d69"
+input-hash: "02da9e7"
 ---
 
 # STORY-114: D1 ARP Spoof Escalation + GARP-that-Conflicts (D2+D1) + MITRE Attribution + VP-007 5-Part Atomic Update
@@ -242,7 +242,7 @@ Architecture section references: `architecture/module-decomposition.md` (SS-16 C
 | EC-011 | GARP + binding conflict, 3rd rebind within 60s | GARP MEDIUM + D1 HIGH |
 | EC-012 | T0830 not in catalog before STORY-114 | technique_info("T0830") returned None before; returns Some(...) after 5-part update |
 | EC-013 | IcsImpact Display (D-069 canonical) | "Impact (ICS)" — correct as-is; src/mitre.rs:91 MUST NOT be changed |
-| EC-014 | `--arp-spoof-threshold 0` | Rejected at CLI parse time with error: `--arp-spoof-threshold must be >= 1 (got 0)` (D-074 / BC-2.16.012 EC-004) |
+| EC-014 | `--arp-spoof-threshold 0` | Rejected at startup (in run_analyze), before any packet processing — via a fail-fast anyhow::bail! error (exit code 1): `--arp-spoof-threshold must be >= 1 (got 0)` (D-074 / BC-2.16.012 EC-004 / BC-2.16.012 v1.4) |
 
 ## Tasks
 
