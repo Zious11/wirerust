@@ -1572,6 +1572,73 @@ mod tests {
         );
     }
 
+    /// Array-surrogate algorithmic fidelity: exercises all three branches of
+    /// `insert_binding_lru_array` with exact-state assertions, so the lookup-loop
+    /// bound, the eviction-trigger comparison, and the min-scan loop bound are all
+    /// observably tested (mutation-kill coverage for the surrogate the VP-024
+    /// Sub-D Kani harness depends on).
+    #[test]
+    fn test_insert_binding_lru_array_branch_fidelity() {
+        const CAP: usize = 3;
+        let mut entries: [([u8; 4], [u8; 6], u32); CAP] = [([0u8; 4], [0u8; 6], 0u32); CAP];
+        let mut len = 0usize;
+
+        let ip = |n: u8| [10, 0, 0, n];
+        let mac = |n: u8| [n; 6];
+
+        // Branch 3 (append): three distinct IPs fill the table to cap, last_seen_ts
+        // ascending (entry 0 is the oldest).
+        for n in 0u8..3 {
+            insert_binding_lru_array(&mut entries, &mut len, ip(n), mac(n), CAP);
+            entries[len - 1].2 = n as u32; // ts = 0,1,2
+        }
+        assert_eq!(len, 3, "three distinct inserts must fill to cap");
+        // Each inserted IP is present with its MAC (kills the lookup `j < len` bound:
+        // a broken lookup loop would mis-route a later re-insert).
+        for n in 0u8..3 {
+            let found = entries[..len].iter().find(|e| e.0 == ip(n));
+            assert_eq!(
+                found.map(|e| e.1),
+                Some(mac(n)),
+                "ip {n} must map to mac {n}"
+            );
+        }
+
+        // Branch 1 (update-in-place): re-insert an EXISTING IP with a new MAC. len
+        // must stay 3 and only the MAC changes. Kills the lookup-loop bound and the
+        // early-return: without a correct `while j < len` scan the existing key is
+        // not found and a spurious eviction+append would occur.
+        insert_binding_lru_array(&mut entries, &mut len, ip(1), mac(99), CAP);
+        assert_eq!(len, 3, "update-in-place must not change len");
+        let updated = entries[..len].iter().find(|e| e.0 == ip(1));
+        assert_eq!(updated.map(|e| e.1), Some(mac(99)), "in-place MAC update");
+        // No IP was evicted: all three originals still present.
+        for n in 0u8..3 {
+            assert!(
+                entries[..len].iter().any(|e| e.0 == ip(n)),
+                "ip {n} must survive an in-place update of another key"
+            );
+        }
+
+        // Branch 2 (evict min-last_seen_ts): a NEW IP at capacity evicts the entry
+        // with the smallest last_seen_ts. Entry for ip(0) has ts=0 (the minimum), so
+        // it must be the one evicted. Kills the eviction-trigger `>= cap` and the
+        // min-scan `k < len` / `<` comparison.
+        insert_binding_lru_array(&mut entries, &mut len, ip(7), mac(7), CAP);
+        assert_eq!(len, 3, "eviction keeps len at cap");
+        assert!(
+            !entries[..len].iter().any(|e| e.0 == ip(0)),
+            "min-last_seen_ts entry ip(0) must be evicted"
+        );
+        assert!(
+            entries[..len].iter().any(|e| e.0 == ip(7)),
+            "newly inserted ip(7) must be present after eviction"
+        );
+        // The non-minimum entries (ip(1) updated, ip(2)) must NOT be evicted.
+        assert!(entries[..len].iter().any(|e| e.0 == ip(1)));
+        assert!(entries[..len].iter().any(|e| e.0 == ip(2)));
+    }
+
     // -----------------------------------------------------------------------
     // AC-009 — BC-2.16.007 PC1: D12 mismatch emits MEDIUM/Anomaly finding
     // -----------------------------------------------------------------------
