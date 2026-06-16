@@ -286,9 +286,13 @@ pub fn decode_packet(data: &[u8], datalink: DataLink) -> Result<DecodedFrame> {
                 //       → Err("truncated ARP frame").
                 //
                 // Offset derivation: for Ethernet2 link frames the ARP payload
-                // starts at byte 14 (6+6+2 Ethernet header).  We confirm via
-                // lax.link; non-Ethernet or absent link layers use conservative
-                // case (c) rather than assuming an offset.
+                // starts at byte 14 (6+6+2 Ethernet header) PLUS the sum of all
+                // link-extension header lengths from `lax.link_exts` (F-1 /
+                // BC-2.16.015 v1.6 / BC-2.16.009 v1.7 / D-078 VLAN-offset fix).
+                // A single 802.1Q VLAN tag adds 4 bytes (TCI + inner EtherType),
+                // QinQ adds 8, and MACsec adds its variable header length — all
+                // handled via `LaxLinkExtSlice::header_len()` without hardcoding.
+                // Non-Ethernet or absent link layers use conservative case (c).
                 //
                 // All byte accesses use bounds-checked .get() — no panics on
                 // attacker-controlled frame lengths.
@@ -299,11 +303,22 @@ pub fn decode_packet(data: &[u8], datalink: DataLink) -> Result<DecodedFrame> {
                         .is_some_and(|(_, layer)| *layer == Layer::Arp);
                     if is_arp_truncation {
                         // Determine the ARP payload offset from the link header.
-                        // Only Ethernet2 frames have a known fixed link-header size (14 bytes).
+                        //
+                        // F-1 / BC-2.16.015 v1.6 / BC-2.16.009 v1.7 / D-078 VLAN-offset fix:
+                        // For Ethernet2 frames the ARP payload starts at the Ethernet2 base
+                        // (14 bytes: 6 dst + 6 src + 2 EtherType) PLUS the summed on-wire
+                        // header length of all link-extension headers in `lax.link_exts`
+                        // (e.g. 4 bytes per 802.1Q/802.1ad VLAN tag, variable for MACsec).
+                        // Using `LaxLinkExtSlice::header_len()` is correct for QinQ (two
+                        // 4-byte tags → +8) and MACsec (variable length) without hardcoding.
                         // For any other link layer, fall back to conservative truncation (case c).
                         let arp_offset: Option<usize> =
                             lax.link.as_ref().and_then(|link| match link {
-                                etherparse::LinkSlice::Ethernet2(_) => Some(14),
+                                etherparse::LinkSlice::Ethernet2(_) => {
+                                    let link_exts_len: usize =
+                                        lax.link_exts.iter().map(|ext| ext.header_len()).sum();
+                                    Some(14 + link_exts_len)
+                                }
                                 // `_` covers any future LinkSlice variants added by etherparse;
                                 // conservatively treat as unreadable (case c).
                                 _ => None,
