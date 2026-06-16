@@ -776,4 +776,29 @@ fully-clean pass. Passes 18-22 each surfaced+remediated genuine items.
 |-----|-------|-------|
 | develop HEAD | bcb1bd6 | PR #246 O-1 rename-revert + VP-024 v1.9 |
 | main HEAD | 3e29891 | v0.6.0 |
+
+---
+
+## Archived Checkpoint: 2026-06-16 — F-1 VLAN-offset fix; F5 reset 0/3 on 079013d; NEXT = F5 scoped-adversarial re-run
+
+**Archived from STATE.md on:** 2026-06-16 (replaced by "F5 GATE SATISFIED 3/3; NEXT = F6 formal hardening" checkpoint)
+
+### POSITION
+
+- F5 IN PROGRESS — RESET to 0/3. develop HEAD 079013d (PR #249 F-1 VLAN-offset fix merged).
+- D-078 (PR #247 92c1561): lax None arm bounds-checked-peeks raw 8-byte ARP header; bad type/size → D11. BC-2.16.009 v1.4→v1.6, BC-2.16.015 v1.3→v1.5.
+- D-078b (PR #248 2d2fadf): lax Some(LaxNetSlice::Arp) arm → D11 path-independence. Streak VOIDED; reset to 0/3.
+- F-1 MEDIUM (PR #249 079013d): D-078 fix hard-coded offset 14, ignoring lax.link_exts. Fix: arp_offset = 14 + lax.link_exts.iter().map(|ext| ext.header_len()).sum(). BC-2.16.009 v1.6→v1.7, BC-2.16.015 v1.5→v1.6. 4 new tests bc_2_16_d078_vlan_offset_tests.rs. Streak reset again to 0/3.
+- All 5 ARP input-hashes MATCH post-F-1 recompute (STORY-112 292b3b8; STORY-113 3438b9d).
+
+### NEXT (at archival time)
+
+F5 scoped-adversarial re-run on 079013d. Counter 0/3; need 3 fresh-context CLEAN passes.
+
+### VERIFIED SHAs at archival time (2026-06-16)
+
+| Ref | Value | Notes |
+|-----|-------|-------|
+| develop HEAD | 079013d | PR #249 F-1 VLAN-offset fix |
+| main HEAD | 3e29891 | v0.6.0 |
 | open PRs | none | — |

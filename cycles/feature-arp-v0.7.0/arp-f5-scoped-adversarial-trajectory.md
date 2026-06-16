@@ -182,15 +182,61 @@ Documentation of the risk (vs fix) is a valid alternative adjudication path for 
 
 ---
 
+## 079013d Re-Run — GATE SATISFIED 3/3
+
+### Pass 1/3 (2026-06-16, on 079013d)
+
+**Develop HEAD:** 079013d (PR #249 F-1 VLAN-offset fix)
+**Adversary stance:** fresh-context, ARP delta scope, implementation-robustness/security lens
+**Scope verified:** D-078 lax-None raw-peek + F-1 VLAN-offset fix (`arp_offset = 14 + lax.link_exts sum`) + D-077 non-Ethernet/IPv4 type-reject path + D-078b lax-Some unreachable arm + all 15 SS-16 BCs (BC-2.16.001..015 v1.7/v1.6 current).
+
+**Findings:** 0
+
+**Areas checked CLEAN:** panic-safety (no unwrap/expect on decode paths); DoS/LRU caps (storm_counter_lru bounded, binding_table_lru bounded per BC-2.16.011/012/013); integration (strict + lax paths both route ARP correctly; symmetric-unreachable invariant holds); etherparse-migration (0.20 API usage correct; NetSlice/LaxNetSlice Arp variants handled exhaustively); silent-failure (lax None arm emits D11 for bad type/size; no silent drops); F-1 VLAN-offset fix verified robust (standard Ethernet2/single-VLAN/QinQ/MACsec all compute correct offset via link_exts sum; 4 new tests in bc_2_16_d078_vlan_offset_tests.rs cover all four configs).
+
+**Counter:** 1/3
+
+---
+
+### Pass 2/3 (2026-06-16, on 079013d)
+
+**Develop HEAD:** 079013d
+**Adversary stance:** fresh-context (independent — no context from Pass 1), ARP delta scope, implementation-robustness/security lens
+
+**Findings:** 0
+
+**Areas checked CLEAN:** All five lenses (panic-safety, DoS/LRU caps, integration, etherparse-migration, silent-failure). F-1 VLAN-offset fix independently verified: `arp_offset` computation via `lax.link_exts.iter().map(|ext| ext.header_len()).sum()` is correct for all link extension configurations. D-077 type-reject path verified via reject tests. D-078b structurally-unreachable arm documented and confirmed non-security-impacting.
+
+**Counter:** 2/3
+
+---
+
+### Pass 3/3 (2026-06-16, on 079013d)
+
+**Develop HEAD:** 079013d
+**Adversary stance:** fresh-context (independent — no context from Passes 1 or 2), ARP delta scope, implementation-robustness/security lens; strict solo independence (BC-5.39.001)
+
+**Findings:** 0
+
+**Areas checked CLEAN:** All five lenses independently verified. F-1 VLAN-offset fix confirmed correct and robust. All 15 SS-16 BCs (BC-2.16.001..015) satisfied. D-077 reject path (non-Ethernet hw/non-IPv4 proto → Err) verified. D-078 lax-None D11 path verified (covers bad type AND bad size, at correct offset). D-078b structurally-unreachable arm confirmed. LRU caps enforced at insertion. No panics on any decode path. etherparse 0.20 API usage correct.
+
+**Counter:** 3/3 — CONVERGED
+
+---
+
+## GATE STATUS: SATISFIED
+
+**F5 scoped-adversarial gate SATISFIED (2026-06-16).**
+- 3 independent fresh-context passes PASS CLEAN on develop 079013d.
+- Implementation-robustness/security lens: panic-safety, DoS/LRU caps, integration, etherparse-migration, silent-failure — all CLEAN.
+- F-1 VLAN-offset fix verified robust across all link_exts configurations.
+- NEXT = F6 formal hardening (phase-f6-targeted-hardening).
+
+---
+
 ## Current Status
 
-**arp_f5_scoped_adversary_convergence_counter: 0/3 (re-run in progress on 079013d after F-1/VLAN fix)**
-
-Next action: F5 scoped-adversarial re-run on develop HEAD 079013d.
-- Counter starts at 0/3.
-- Scope: full ARP delta (STORY-111..115) + D-077 type-reject path + D-078/D-078b lax-arm D11
-  paths + F-1 VLAN-offset fix + all 16 SS-16 BCs (BC-2.16.001..015 v1.7/v1.6 current).
-- Pass file: append to this document as "Pass 1/3 (079013d restart)" etc.
+**arp_f5_scoped_adversary_convergence_counter: 3/3 CONVERGED — F5 scoped-adversarial gate SATISFIED**
 
 Trajectory shorthand (full history):
-`P1-CLEAN(bcb1bd6;O-A-obs)→P2-CLEAN(bcb1bd6)→[D-078+D-078b RESET]→F-1-MEDIUM(2d2fadf)→[F-1-fix RESET]→0/3-pending(079013d)`
+`P1-CLEAN(bcb1bd6;O-A-obs)→P2-CLEAN(bcb1bd6)→[D-078+D-078b RESET]→F-1-MEDIUM(2d2fadf)→[F-1-fix RESET]→P1/3-CLEAN(079013d)→P2/3-CLEAN(079013d)→P3/3-CLEAN(079013d)→GATE-SATISFIED`

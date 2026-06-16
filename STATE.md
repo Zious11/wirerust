@@ -1,7 +1,7 @@
 ---
 pipeline: FEATURE_MODE_ARP_ANALYZER
-phase: feature-F4-delta-implementation
-phase_status: "F5 IN PROGRESS (re-run on 079013d) — F-1 VLAN-offset regression REMEDIATED (PR #249 merge 079013d). D-078 fix hard-coded offset 14 (Ethernet2), ignoring lax.link_exts; VLAN-tagged ARP mis-read 802.1Q TCI as ARP htype → false-positive D11. Fix: arp_offset = 14 + lax.link_exts.iter().map(|ext| ext.header_len()).sum(). BC-2.16.015 v1.5→v1.6, BC-2.16.009 v1.6→v1.7. F5 counter reset 0/3 (re-run in progress on 079013d after F-1/VLAN fix). PRs this sub-cycle: #247 (D-078), #248 (D-078b), #249 (F-1 VLAN). Next = F5 scoped-adversarial re-run on 079013d."
+phase: feature-F6-targeted-hardening
+phase_status: "F5 GATE SATISFIED 3/3 on 079013d (2026-06-16) — 3 independent fresh-context passes PASS CLEAN; panic-safety/DoS-LRU/integration/etherparse-migration/silent-failure all clean; F-1 VLAN-offset fix verified robust across all link_exts configs. NEXT = F6 formal hardening (phase-f6-targeted-hardening): fill+prove 5 VP-024 Kani harness bodies (Sub-A ×3 decoder.rs ~615/628/653; Sub-B+Sub-D arp.rs ~4114/4127); cargo-fuzz VP-008 decoder (covers O-2 QinQ/MACsec); cargo-mutants ARP delta; cargo-audit/clippy security scan."
 active_feature: "arp-analyzer"
 feature_arp_status: "F1 Delta Analysis PASSED (human-gated 2026-06-12) — DecodedFrame integration, ADR-008 planned, F2→F7 authorized; release target v0.7.0"
 feature_8_status: "v0.6.0 RELEASED 2026-06-12 — DNP3 TCP analyzer; F7 5-dim CONVERGED; tag v0.6.0 + 4 binaries"
@@ -41,7 +41,7 @@ dtu_clones_built: n/a
 dtu_services: []
 adversary_convergence_counter: 3/3  # Pass 14 CONVERGENCE_REACHED; clean-streak 3/3; ADVERSARY GATE SATISFIED
 arp_f4_wave_adversary_convergence_counter: 3/3 CONVERGED (re-streak on bcb1bd6) — F4 wave-level adversarial gate SATISFIED  # Initial 3/3 (fee71ee) invalidated by post-convergence findings; re-streak on bcb1bd6 definitively satisfied the gate
-arp_f5_scoped_adversary_convergence_counter: "0/3 (re-run in progress on 079013d after F-1/VLAN fix)  # P1+P2 CLEAN on bcb1bd6 voided by D-078/D-078b; F-1 MEDIUM regression (PR #249) reset again; F5 IN PROGRESS NOT converged"
+arp_f5_scoped_adversary_convergence_counter: "3/3 CONVERGED — F5 scoped-adversarial gate SATISFIED (2026-06-16, develop 079013d; 3 independent fresh-context passes PASS CLEAN)"
 convergence_trajectory: "P1-P14 greenfield GATE-SATISFIED; MITRE-222 3-pass CONVERGED. Detail: cycles/v0.1.0-greenfield-spec/convergence-trajectory.md"
 arp_f2_adversary_convergence_counter: 3/3 CONVERGED  # Pass 31/32/33 consecutive CLEAN; F2 strict-whole-corpus adversarial gate SATISFIED
 arp_f3_adversary_convergence_counter: 3/3 CONVERGED  # Passes 36/37/38 consecutive CLEAN; F3 strict-whole-corpus adversarial gate SATISFIED
@@ -56,7 +56,7 @@ input_drift_check: "ARP stories post-F-1-recompute (2026-06-16): STORY-111=d0514
 
 ## Status
 
-**wirerust v0.6.0 RELEASED (DNP3 TCP analyzer, issue #8). Feature: ARP security analyzer + etherparse 0.16→0.20 migration (F1 PASSED 2026-06-12, D-066); release target v0.7.0. F2 CONVERGED (P33 CLEAN; 3/3). F3 CONVERGED 3/3 (Passes 36/37/38). F4 COMPLETE. F5 IN PROGRESS — F-1 MEDIUM regression REMEDIATED (PR #249 merge 079013d): D-078 hard-coded offset 14 caused false-positive D11 on VLAN-tagged ARP; fixed via lax.link_exts sum. BC-2.16.009 v1.6→v1.7, BC-2.16.015 v1.5→v1.6. Input-hashes recomputed: STORY-112 8c03924→292b3b8, STORY-113 a05b724→3438b9d. develop HEAD 079013d. F5 counter = 0/3 (re-run in progress on 079013d). NEXT = F5 scoped-adversarial re-run on 079013d.**
+**wirerust v0.6.0 RELEASED (DNP3 TCP analyzer, issue #8). Feature: ARP security analyzer + etherparse 0.16→0.20 migration (F1 PASSED 2026-06-12, D-066); release target v0.7.0. F2 CONVERGED 3/3. F3 CONVERGED 3/3. F4 COMPLETE. F5 GATE SATISFIED 3/3 (2026-06-16, develop 079013d) — 3 independent fresh-context passes PASS CLEAN; panic-safety/DoS/integration/etherparse-migration/silent-failure all clean; F-1 VLAN-offset fix verified robust. develop HEAD 079013d. NEXT = F6 formal hardening (VP-024 Kani ×5 harnesses; cargo-fuzz VP-008; cargo-mutants; cargo-audit/clippy).**
 
 **Summary:** 68 stories (48 greenfield + 1 tooling + 19 feature-cycle), 457 pts. 283 BCs (244 pre-F2 + 24 SS-15 + 15 SS-16 ARP), 24 VPs (23 locked + VP-024 ARP draft), 1571 tests green (worktree dcdbf95; develop 7c0f453 = 1552), holdout 0.967. develop HEAD 7c0f453; main HEAD 3e29891 (v0.6.0). ARP feature: F1 approved — SS-16 (18-24 new BCs), VP-024, ADR-008, E-16 (5-6 stories). MITRE T0830+T1557.002. SEEDED=25, EMITTED=17 (on develop 7c0f453). F4 wave 44 (STORY-115): D3 storm detection + --arp-storm-rate + storm_findings VALUE; Step-4.5 CONVERGED 3/3; FINAL E-16 story; PR pending. Wave 43 (STORY-114): D1 spoof escalation + GARP-conflicts + MITRE + VP-007 + --arp-spoof-threshold; DELIVERED PR #240 7c0f453. Wave 42 (STORY-113): full ArpAnalyzer (malformed+GARP+storm) delivered PR #239. Wave 41 (STORY-112): extract_arp_frame + stub + main.rs wiring delivered PR #238. Wave 40 (STORY-111): etherparse 0.20 + DecodedFrame + ArpFrame + symmetric-unreachable delivered PR #236. DF-GREEN-DOC-TENSE-SWEEP v1 added to policies.yaml; sub-rule PG-ARP-F4-REDTEST-DOC-TENSE codified; PG-ARP-F4-MULTIPASS-VALUE positive lesson documented (GARP-storm bypass missed pass 1, caught passes 2+3).
 
@@ -91,11 +91,12 @@ input_drift_check: "ARP stories post-F-1-recompute (2026-06-16): STORY-111=d0514
 | Feature: ARP analyzer — F4 Wave-Level Adversarial Convergence | **CONVERGED 3/3 — GATE SATISFIED** (2026-06-15). Pass 1 NOT clean → D-074 + PR #242 fee71ee → clean-streak restart: P1/3 CLEAN, P2/3 CLEAN, P3/3 CLEAN (fee71ee; fresh-context; DF-BC-COMPLETENESS-SWEEP all 15 SS-16 BCs; policy rubric). Final full-corpus consistency: CONSISTENT. Trajectory: `1M→(remediated)→P1/3→P2/3→P3/3-GATE-SATISFIED`. Detail: `cycles/feature-arp-v0.7.0/arp-f4-wave-adversary-convergence-trajectory.md` | GATE SATISFIED (superseded by re-streak below) |
 | Feature: ARP analyzer — F4 Holdout Evaluation | **GATE PASS** (2026-06-15). Initial run mean 0.997 (G1=0.95: D1 HIGH verdict defect → D-075 PR #243); G1 re-run = 1.0 post-fix; full corpus 15/15 mean 1.0; canonical RFC-826 frame scenario PASS; non-D1 verdicts unregressed. | PASSED |
 | Feature: ARP analyzer — F4 Post-Convergence Adversary Re-Streak | **CONVERGED 3/3 — GATE SATISFIED** (re-streak on bcb1bd6; 2026-06-15). Three independent fresh-context passes; each verified field VALUES (D1 HIGH → `Verdict::Likely`) + reject path (non-Ethernet hw/proto → `Err`; D-077) + all 15 BCs' full precondition sets. Pass 3/3 solo for strict independence. Trajectory: `cycles/feature-arp-v0.7.0/arp-f4-wave-adversary-convergence-trajectory.md`. Open LOW: arp.rs:2501 `// RED: will fail if stub not wired` comment on passing STORY-114 test — fold into FU-REPO-WIDE-DOC-DEBT. | GATE SATISFIED |
-| Feature: ARP analyzer — F5 Scoped Adversarial | **IN PROGRESS — RESET** (0/3 re-run in progress on 079013d). D-078/D-078b reset streak; F-1 MEDIUM regression (PR #249 079013d) — D-078 VLAN-offset bug fixed, BC-2.16.009 v1.7 + BC-2.16.015 v1.6, new tests. Trajectory: `cycles/feature-arp-v0.7.0/arp-f5-scoped-adversarial-trajectory.md`. | IN PROGRESS |
+| Feature: ARP analyzer — F5 Scoped Adversarial | **GATE SATISFIED 3/3** (2026-06-16, develop 079013d). Full F5 journey: P1+P2 CLEAN on bcb1bd6 → O-A LOW → human FIX → D-078 (PR #247) + D-078b (PR #248) → re-run P1 on 2d2fadf found F-1 MEDIUM VLAN false-positive → PR #249 (079013d) → 3 consecutive fresh-context CLEAN passes on 079013d. Lens: implementation-robustness/security; panic-safety, DoS/LRU caps, integration, etherparse-migration, silent-failure all CLEAN; F-1 VLAN-offset fix verified robust across all link_exts configs. Trajectory: `cycles/feature-arp-v0.7.0/arp-f5-scoped-adversarial-trajectory.md`. | GATE SATISFIED |
+| Feature: ARP analyzer — F6 Formal Hardening | **IN PROGRESS** (2026-06-16). Fill + prove 5 VP-024 Kani harness bodies: Sub-A ×3 (src/decoder.rs ~615/628/653: verify_extract_arp_frame_safety, _eth_ipv4_correctness, _none_on_bad_size — must cover full 4-part type+size reject per VP-024 v1.9); Sub-B verify_classify_garp_total + Sub-D verify_binding_table_cap (src/analyzer/arp.rs ~4114/4127). Also: cargo-fuzz VP-008 on decoder (time-boxed; covers O-2 QinQ/MACsec paths); cargo-mutants on ARP delta; cargo-audit/clippy security scan (semgrep not installed). Open follow-ups for F6/release: O-2 (FU-ARP-QINQ-MACSEC-TEST), FU-REPO-WIDE-DOC-DEBT, FU-JSON-CASING, FU-BC-2.10.007-MARKER, FU-STORM-NEW-ATTR, BC-2.10-COUNT-POSTMERGE. | IN PROGRESS |
 
-## Session Resume Checkpoint (2026-06-16 — F-1 VLAN-offset fix; F5 reset 0/3 on 079013d; NEXT = F5 scoped-adversarial re-run)
+## Session Resume Checkpoint (2026-06-16 — F5 GATE SATISFIED 3/3 on 079013d; NEXT = F6 formal hardening)
 
-**Previous checkpoint (2026-06-16 — D-078/D-078b burst; F5 IN PROGRESS reset 0/3 on 2d2fadf) archived to:
+**Previous checkpoint (2026-06-16 — F-1 VLAN-offset fix; F5 reset 0/3 on 079013d) archived to:
 `cycles/feature-arp-v0.7.0/session-checkpoints.md`**
 
 ### A. EXACT PIPELINE POSITION
@@ -105,162 +106,108 @@ input_drift_check: "ARP stories post-F-1-recompute (2026-06-16): STORY-111=d0514
 - **F1 PASSED** (human-gated 2026-06-12, D-066).
 - **F2 CONVERGED 3/3** — Passes 31/32/33 consecutive CLEAN; strict whole-corpus gate SATISFIED.
 - **F3 CONVERGED 3/3** — Passes 36/37/38 consecutive CLEAN; 38 passes total; gate SATISFIED.
-  F3 human gate PASSED (2026-06-14, D-070) — STORY-111..115 accepted as-is.
-- **F4 Delta-Implementation: COMPLETE.** Linear chain STORY-111→112→113→114→115 ALL DELIVERED.
-  D-074 PR #242 fee71ee / D-075 PR #243 4ee7a9d / D-076 PR #244 52437f8 / D-077 CRITICAL PR #245 6abcd8f / O-1 PR #246 bcb1bd6.
+  F3 human gate PASSED (2026-06-14, D-070).
+- **F4 Delta-Implementation: COMPLETE.** STORY-111..115 ALL DELIVERED; PRs #236..#246.
 - **F4 Holdout Evaluation: GATE PASS** (15/15 mean 1.0; RFC-826 PASS).
-- **F4 Wave-Level Adversarial Re-Streak: 3/3 GATE SATISFIED** (on bcb1bd6; 2026-06-15).
-- **F5 Scoped Adversarial: IN PROGRESS — RESET to 0/3.**
-  - F5 P1 (O-A LOW) CLEAN on bcb1bd6. P2 CLEAN on bcb1bd6. Human adjudicated O-A as FIX.
-  - **D-078 (PR #247, merge 92c1561):** lax `None` arm bounds-checked-peeks raw 8-byte ARP fixed header; bad type/size → D11. BC-2.16.009 v1.4→v1.6, BC-2.16.015 v1.3→v1.5.
-  - **D-078b (PR #248, merge 2d2fadf):** sibling lax `Some(LaxNetSlice::Arp)` arm → D11 path-independence. Streak VOIDED; reset to 0/3.
-  - **F-1 MEDIUM (PR #249, merge 079013d):** D-078 fix hard-coded offset 14 (Ethernet2), ignoring `lax.link_exts`; VLAN-tagged ARP peeked 802.1Q TCI as ARP htype → false-positive D11. Fix: `arp_offset = 14 + lax.link_exts.iter().map(|ext| ext.header_len()).sum()`. BC-2.16.009 v1.6→v1.7, BC-2.16.015 v1.5→v1.6. Security review CLEAN. New tests: tests/bc_2_16_d078_vlan_offset_tests.rs (4). Streak reset AGAIN to 0/3.
+- **F4 Wave-Level Adversarial Re-Streak: 3/3 GATE SATISFIED** (on bcb1bd6).
+- **F5 Scoped Adversarial: GATE SATISFIED 3/3** (2026-06-16, develop 079013d).
+  - Full journey: P1+P2 CLEAN on bcb1bd6 → O-A LOW → human FIX → D-078 (PR #247) + D-078b (PR #248) → re-run P1 on 2d2fadf found F-1 MEDIUM VLAN false-positive → PR #249 (079013d) → **3 consecutive fresh-context CLEAN passes on 079013d** (implementation-robustness/security lens; panic-safety, DoS/LRU caps, integration, etherparse-migration, silent-failure all clean; F-1 VLAN-offset fix verified robust across all link_exts configs).
 - **develop HEAD: 079013d** == origin/develop (verified 2026-06-16).
 - **Decisions active: D-047..D-F1; do NOT re-adjudicate D-068..D-F1.**
 - **F3-OBL-STORY114-001/002/003 REVOKED** (D-069).
-- **PRs merged this sub-cycle:** #247 (D-078), #248 (D-078b), #249 (F-1 VLAN-offset).
 
-### B. INPUT-HASH STATUS (scan 2026-06-16; post-F-1 recompute)
+### B. INPUT-HASH STATUS (scan 2026-06-16; post-F-1 recompute — all MATCH)
 
-| Story | Stored | Status |
-|-------|--------|--------|
-| STORY-111 | d05149f | MATCH — DELIVERED (PR #236 cced898) |
-| STORY-112 | 292b3b8 | MATCH — recomputed (was 8c03924; BC-2.16.009 v1.7 + BC-2.16.015 v1.6 bumped) |
-| STORY-113 | 3438b9d | MATCH — recomputed (was a05b724; BC-2.16.009 v1.7 bumped) |
-| STORY-114 | 1325d69 | MATCH — DELIVERED (PR #240 7c0f453) |
-| STORY-115 | bb1d83a | MATCH — DELIVERED (PR #241 d038711) |
+STORY-111 d05149f MATCH | STORY-112 292b3b8 MATCH | STORY-113 3438b9d MATCH | STORY-114 1325d69 MATCH | STORY-115 bb1d83a MATCH. Non-ARP STALE pre-existing; does NOT block F6.
 
-**ALL 5 ARP STORIES MATCH post-F-1 recompute.**
-Non-ARP STALE pre-existing; does NOT block ARP F5.
+### C. FOLLOW-UP ITEMS (open for F6/release)
 
-### C. FOLLOW-UP ITEMS (open)
-
-- **FU-ARP-113-LAXNONE-TEST:** ADDRESSED by D-078 + D-078b + F-1 VLAN fix. Verify fully closed in F5 re-run.
-- **FU-REPO-WIDE-DOC-DEBT:** Stale RED-gate prose in 13+ test files + arp.rs:2501 stale comment — schedule standalone docs chore PR. Do NOT spin now.
-- **BC-2.10.005 / BC-2.10.008 count markers:** Update "23/15" markers to "25/17" — PO dispatch pending.
+- **O-2 / FU-ARP-QINQ-MACSEC-TEST:** Add QinQ/MACsec decoder fixtures; F6 fuzz covers it.
+- **FU-REPO-WIDE-DOC-DEBT:** Stale RED-gate prose in 13+ test files + arp.rs:2501 stale comment — standalone docs chore PR.
 - **FU-JSON-CASING:** Align Confidence/Verdict/ThreatCategory serde to uppercase — deferred.
 - **FU-BC-2.10.007-MARKER:** Verify/update BC-2.10.007 PLANNED marker for technique_tactic.
 - **FU-STORM-NEW-ATTR:** arp.rs ~line 272 doc mis-attributes storm_rate param to STORY-114; fold into chore.
-- **PG-ARP-F4-REDTEST-DOC-TENSE-RECURRENCE:** Agent-prompt/hook strengthening needed — open self-improvement epic.
-- **VP-024 Sub-A Kani (F6):** MUST cover type-field rejection (D-077), lax-None D11 path (D-078), AND VLAN-offset correct computation (F-1).
-- **PG-ARP-FIX-MECHANISM-FIRST:** Strengthen — hand-rolled offset/parsing logic MUST be stress-tested against library's full input model (lax.link_exts / VLAN). Meta-lesson: LOW O-A fix cascaded 3 PRs + MEDIUM regression. OPEN.
+- **BC-2.10-COUNT-POSTMERGE:** BC-2.10.005 / BC-2.10.008 "23/15" markers → "25/17" — PO dispatch pending.
 
 ### D. DECISIONS CONFIRMED ACTIVE (do not re-adjudicate)
 
-- **D-068:** Benign GARP emits `mitre_techniques: []`; T0830/T1557.002 only on GARP-that-conflicts (BC-2.16.014).
-- **D-069:** IcsImpact Display = "Impact (ICS)" — CORRECT. SUPERSEDES D-067. src/mitre.rs:91 CORRECT; HS-008 untouched.
-- **D-072:** Symmetric-unreachable design authoritative. arp-architecture-delta v1.16, ADR-008 v2.1, BC-2.02.009 v1.7, BC-2.16.015 v1.6.
+- **D-068:** Benign GARP emits `mitre_techniques: []`; T0830/T1557.002 only on GARP-that-conflicts.
+- **D-069:** IcsImpact Display = "Impact (ICS)" — CORRECT. SUPERSEDES D-067.
+- **D-072:** Symmetric-unreachable design authoritative. arp-architecture-delta v1.16, ADR-008 v2.1.
 - **D-074:** Reject `--arp-storm-rate 0` / `--arp-spoof-threshold 0` at CLI. PR #242 fee71ee.
-- **D-075:** D1 HIGH finding carries `Verdict::Likely`. BC-2.16.004 L45/74/118. PR #243 4ee7a9d.
+- **D-075:** D1 HIGH finding carries `Verdict::Likely`. PR #243 4ee7a9d.
 - **D-076:** D-075 regression-test doc-comments → regression-guard framing. PR #244 52437f8.
 - **D-077:** CRITICAL — `extract_arp_frame` rejects non-Ethernet hw + non-IPv4 proto types. PR #245 6abcd8f.
-- **D-078:** Lax `None` arm bounds-checked-peeks raw 8-byte ARP fixed header; bad type/size → D11. BC-2.16.009 v1.7, BC-2.16.015 v1.6. PR #247 92c1561.
-- **D-078b:** Lax `Some(LaxNetSlice::Arp)` arm extract-None → D11 (defensive; structurally unreachable). Decoder.rs doc sweep. PR #248 2d2fadf.
-- **D-F1:** VLAN-offset fix — D-078 hard-coded offset 14 ignored `lax.link_exts`; VLAN false-positive D11. Fixed `arp_offset = 14 + lax.link_exts.iter().map(|ext| ext.header_len()).sum()`. BC-2.16.015 v1.6, BC-2.16.009 v1.7. PR #249 079013d.
+- **D-078:** Lax `None` arm bounds-checked-peeks raw 8-byte ARP fixed header; bad type/size → D11. PR #247 92c1561.
+- **D-078b:** Lax `Some(LaxNetSlice::Arp)` arm → D11 (defensive; structurally unreachable). PR #248 2d2fadf.
+- **D-F1:** VLAN-offset fix — arp_offset = 14 + lax.link_exts sum. BC-2.16.015 v1.6, BC-2.16.009 v1.7. PR #249 079013d.
 
-### E. DURABLE MITIGATIONS / SCOPE NOTES (preserved for adversary dispatches)
+### E. DURABLE MITIGATIONS / SCOPE NOTES (preserved for F6 dispatches)
 
 - BC-note citations are intentionally version-less — do not flag missing versions.
-- vp-007 numeric "25 seeded / 17 emitted" = post-STORY-114 src (DELIVERED). SEEDED_TECHNIQUE_ID_COUNT=25 at src/mitre.rs.
+- vp-007 numeric "25 seeded / 17 emitted" = post-STORY-114 src. SEEDED_TECHNIQUE_ID_COUNT=25 at src/mitre.rs.
 - `storm_findings` is the canonical ArpAnalyzer field (STORY-113:254 + BC-2.16.010).
 - STORY-115 v1.2 uses `storm_findings` (not `storm_findings_count`) — CORRECT.
 - `ThreatCategory::Suspicious` is VALID (10 variants; P23 FALSE POSITIVE).
 - `DNPXX_DIRECT_OPERATE_THRESHOLD_DEFAULT` is canonical shipped constant — do NOT rename in spec.
 - `prd.md §~298 §[pass-13-2026-06-13]` is intentional immutable-history prose.
-- `wave-40-44-holdout.md "D14" = BC-2.16.014`. `mitre-arp-additional-detections.md "D14"` = deferred Unicast ARP candidate — do NOT flag.
-- Canonical point total = 457 (410 pre-ARP + 47 ARP); wave-table excl STORY-091 = 452; tooling = 5.
+- Canonical point total = 457 (410 pre-ARP + 47 ARP).
 - SS-15 reset set = SIX windowed fields; `parse_errors` is LIFETIME-only — NEVER in reset set.
-- BC-2.15.014 EC-006 + Invariant 7 enumerate exactly SIX fields (post-P33 flush v2.0).
-- SS-15 FC 0x13 = SAVE_CONFIGURATION (IEEE 1815-2012); SAVE_CONFIG only in sealed changelog.
-- Reciprocal Related-BCs complete (post-P33): BC-2.15.014↔016, 016↔010, 015↔024, 022↔016.
-- Src citations are SYMBOL-ANCHORED — do NOT flag missing line numbers; do NOT re-add them.
-- All spec-changelog ACTIVE-zone (2026-06-12+) entries carry Artifacts-changed tables (P34 flush).
-- All spec-changelog ACTIVE-zone entries are de-pinned — remaining numerics are sealed history/src-refs.
-- T1692.001 is canonical (not T0855). T0855 appears only in sealed remap-history prose.
-- VP-023 Kani scope = BC-2.15.001..007 ONLY (BC-2.15.008 is unit-test-only; no Kani harness).
+- T1692.001 is canonical (not T0855).
+- VP-023 Kani scope = BC-2.15.001..007 ONLY.
 - Finding-emission ACs MUST assert on the Finding object (confidence/category/evidence), NOT a proxy counter.
 - DF-GREEN-DOC-TENSE-SWEEP: GREEN-step doc sweep MUST cover ALL diff files INCLUDING newly-added test functions.
 - PG-ARP-F4-DOCSWEEP-OVERREACH: Remediation greps+edits MUST be scoped to `git diff develop..HEAD --name-only` only.
-- PG-ARP-F4-PRMGR-MERGE-SHORTSTOP: 6/6 (100%) recurrence across ALL ARP-feature PRs. Requires DF-VALIDATION-001 research-agent validation before GitHub issue.
-- **D-077 KEY:** `extract_arp_frame` now rejects non-Ethernet hw type + non-IPv4 proto type. F5 adversary MUST verify reject-path coverage.
-- **D-078 KEY:** Lax `None` arm bounds-checked-peeks raw 8-byte ARP fixed header. arp_offset accounts for link_exts (F-1 fix). Spec corrected twice (BC v1.4→v1.7 across D-078 + F-1).
-- **D-078b KEY:** Lax `Some(LaxNetSlice::Arp)` arm is structurally unreachable via integration; D11 routing defensive only.
-- **F-1 KEY:** arp_offset MUST use `14 + lax.link_exts.iter().map(|ext| ext.header_len()).sum()` — NOT hardcoded 14. VLAN frame is 18 bytes; QinQ is 22 bytes. Covered by tests/bc_2_16_d078_vlan_offset_tests.rs (4 tests).
-- **PG-ARP-FIXBURST-CONSUMER-SWEEP:** Any canonical-symbol rename must grep+update ALL consumers in the same burst, or avoid cosmetic renames.
-- **PG-ARP-FIX-MECHANISM-FIRST:** Verify ACTUAL code mechanism BEFORE writing fix specs. Hand-rolled offset/parsing MUST be stress-tested against library's full input model (lax.link_exts / VLAN). LOW-fix cascading to MEDIUM regression is a real risk.
+- **D-077 KEY:** `extract_arp_frame` rejects non-Ethernet hw type + non-IPv4 proto type. VP-024 Sub-A Kani MUST cover this.
+- **D-078 KEY:** Lax `None` arm raw-peeks at `arp_offset = 14 + lax.link_exts sum` (F-1 fix). Spec BC v1.4→v1.7.
+- **D-078b KEY:** Lax `Some(LaxNetSlice::Arp)` arm structurally unreachable via integration.
+- **F-1 KEY:** arp_offset MUST use `14 + lax.link_exts.iter().map(|ext| ext.header_len()).sum()`. Covered by tests/bc_2_16_d078_vlan_offset_tests.rs (4 tests). VP-024 Sub-A Kani MUST cover this.
+- **PG-ARP-FIX-MECHANISM-FIRST:** Hand-rolled offset/parsing MUST be stress-tested against library's full input model. OPEN.
 
 ### F. RESUME PROCEDURE (COLD-RESUME READY — SESSION-CLEAR SAFE 2026-06-16)
 
-**This checkpoint is self-sufficient. A brand-new session with NO prior context can resume
-from here by following Steps 1-5 below.**
-
----
-
 **CONTEXT FOR FRESH SESSION:**
-- **Project:** wirerust. Mode: FEATURE MODE. Active feature: ARP Security Analyzer
-  + etherparse 0.16→0.20 migration. GitHub issue #9. Release target: **v0.7.0**.
-- **Epoch:** F-1 VLAN-offset fix complete (PR #249 079013d). F5 streak RESET to 0/3. NEXT = F5 scoped-adversarial re-run on 079013d.
-- **develop HEAD:** 079013d == origin/develop (verified 2026-06-16).
+- **Project:** wirerust. Mode: FEATURE MODE. Active feature: ARP Security Analyzer. GitHub issue #9. Release target: v0.7.0.
+- **Epoch:** F5 GATE SATISFIED 3/3 (079013d). NEXT = F6 formal hardening.
+- **develop HEAD:** 079013d == origin/develop.
 - **factory-artifacts HEAD:** see `git -C .factory log -1 --format='%h %s'`
-- **main HEAD:** 3e29891 (v0.6.0, DNP3 TCP analyzer — released 2026-06-12).
+- **main HEAD:** 3e29891 (v0.6.0).
 - **Active worktrees:** EXACTLY 2 — main repo (develop) + .factory (factory-artifacts). No open PRs.
-
----
 
 **Step 1 (BLOCKING):** `vsdd-factory:factory-worktree-health`
 
-**Step 2 — Verify SHAs (ground truth; must match before proceeding):**
+**Step 2 — Verify SHAs:**
 ```bash
-git -C /Users/zious/Documents/GITHUB/wirerust fetch
-git -C /Users/zious/Documents/GITHUB/wirerust rev-parse HEAD
-# MUST output 079013d prefix (PR #249 F-1 VLAN-offset fix)
-
-git -C /Users/zious/Documents/GITHUB/wirerust/.factory log -1 --format='%h %s'
-# expect: this burst commit or newer
-
-gh pr list --state open
-# MUST show NO open STORY-11x PRs
+git -C /Users/zious/Documents/GITHUB/wirerust rev-parse HEAD  # expect 079013d prefix
+gh pr list --state open                                        # expect NO open STORY-11x PRs
 ```
 
-**Step 3 — WHAT IS COMPLETE (do NOT re-do any of this):**
-- F1 PASSED (D-066). F2 CONVERGED 3/3. F3 CONVERGED 3/3 (D-070). F4 delivery COMPLETE (5 stories).
-- D-074 (PR #242). D-075 (PR #243). D-076 (PR #244). D-077 CRITICAL (PR #245). O-1 (PR #246). D-078 (PR #247 92c1561). D-078b (PR #248 2d2fadf). D-F1 (PR #249 079013d).
-- F4 holdout GATE PASS (15/15 mean 1.0; RFC-826 PASS).
-- F4 wave-level adversarial re-streak 3/3 CONVERGED on bcb1bd6. GATE SATISFIED.
-- DO NOT re-deliver STORY-111..115. DO NOT re-adjudicate D-068..D-F1.
+**Step 3 — WHAT IS COMPLETE (do NOT re-do):**
+F1..F5 ALL COMPLETE. STORY-111..115 DELIVERED. D-066..D-F1 ACTIVE — do NOT re-adjudicate.
 
 **Step 4 — NEXT ACTIONS IN ORDER:**
 
-1. **F5 scoped-adversarial re-run on 079013d** (`vsdd-factory:phase-f5-scoped-adversarial`).
-   - Counter starts at 0/3. Need 3 fresh-context CLEAN passes.
-   - Key scope: D-078/D-078b lax-arm D11 paths + F-1 VLAN-offset fix + D-077 type-reject + all 16 SS-16 BCs.
-   - Trajectory: `cycles/feature-arp-v0.7.0/arp-f5-scoped-adversarial-trajectory.md`.
+1. **F6 formal hardening** (`vsdd-factory:phase-f6-targeted-hardening`):
+   - Fill + prove VP-024 Sub-A ×3 (src/decoder.rs ~615/628/653: verify_extract_arp_frame_safety, _eth_ipv4_correctness, _none_on_bad_size; MUST cover 4-part type+size reject per VP-024 v1.9).
+   - Fill + prove VP-024 Sub-B verify_classify_garp_total + Sub-D verify_binding_table_cap (src/analyzer/arp.rs ~4114/4127).
+   - cargo-fuzz VP-008 on decoder (time-boxed; also covers O-2 QinQ/MACsec paths).
+   - cargo-mutants on ARP delta.
+   - cargo-audit/clippy security scan (semgrep not installed).
 
-2. **F6 formal hardening** — FILL AND RUN deferred VP-024 Kani harnesses:
-   - VP-024 Sub-A (STORY-112): MUST cover type-field rejection (D-077), lax-None D11 path (D-078), and VLAN-offset correct computation (F-1).
-   - VP-024 Sub-B + Sub-D (STORY-113): harness bodies currently `todo!()`.
-   - cargo-fuzz VP-008: harness in src/decoder.rs (verification_lock: false; deferred to F6).
+2. **F7 7-dimensional convergence** (`vsdd-factory:phase-f7-delta-convergence`).
 
-3. **F7 7-dimensional convergence** (`vsdd-factory:phase-f7-delta-convergence`).
+3. **v0.7.0 release** — gitflow release/0.7.0 → PR → main; tag v0.7.0; 4 binaries.
 
-4. **v0.7.0 release** — gitflow release/0.7.0 → PR → main; tag v0.7.0; 4 binaries.
-
-**Step 5 — KEY PROCESS GAPS (memorize before dispatching any agent):**
-- **PG-ARP-F4-PRMGR-MERGE-SHORTSTOP — 100% RECURRENCE (6/6):** pr-manager halts at
-  APPROVE (step 6) and does NOT execute steps 7-9. Orchestrator MUST drive steps 7-9.
-- **PG-ARP-F4-TYPE-BRANCH-NARROWING:** F5 adversary MUST verify reject-path (negative BCs) coverage, not just happy-path.
-- **PG-ARP-FIX-MECHANISM-FIRST:** Hand-rolled offset/parsing logic MUST be stress-tested against library's full input model. LOW-fix cascading to MEDIUM regression is a documented risk.
-- **PG-ARP-FIXBURST-CONSUMER-SWEEP:** Any canonical-symbol rename must grep+update ALL consumers in the same burst, or avoid cosmetic renames.
+**Step 5 — KEY PROCESS GAPS:**
+- **PG-ARP-F4-PRMGR-MERGE-SHORTSTOP — 100% RECURRENCE (6/6):** pr-manager halts at APPROVE; orchestrator MUST drive steps 7-9.
+- **PG-ARP-FIX-MECHANISM-FIRST:** Hand-rolled offset/parsing MUST be stress-tested against library's full input model.
 
 ### G. KEY ARTIFACT POINTERS
 
 - ARP architecture delta: `.factory/specs/architecture/arp-architecture-delta.md` (v1.16)
 - ADR-008: `.factory/specs/architecture/adr-008.md` (Decision 3 v2.1)
-- F2 convergence trajectory (33 passes): `.factory/phase-f5-adversarial/arp-f2-convergence-trajectory.md`
-- F3 convergence trajectory (38 passes): `.factory/phase-f5-adversarial/arp-f3-convergence-trajectory.md`
-- F4 wave-level + re-streak convergence trajectory: `.factory/cycles/feature-arp-v0.7.0/arp-f4-wave-adversary-convergence-trajectory.md`
-- **F5 scoped-adversarial trajectory: `.factory/cycles/feature-arp-v0.7.0/arp-f5-scoped-adversarial-trajectory.md`**
-- F1 delta analysis: `.factory/phase-f1-delta-analysis/arp-analyzer-delta-analysis.md`
+- F5 trajectory: `.factory/cycles/feature-arp-v0.7.0/arp-f5-scoped-adversarial-trajectory.md`
+- F4 wave-level trajectory: `.factory/cycles/feature-arp-v0.7.0/arp-f4-wave-adversary-convergence-trajectory.md`
 - ARP holdout scenarios: `.factory/holdout-scenarios/wave-scenarios/wave-40-44-holdout.md`
 - Archived checkpoints: `.factory/cycles/feature-arp-v0.7.0/session-checkpoints.md`
 
