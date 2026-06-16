@@ -2,8 +2,8 @@
 document_type: story
 story_id: STORY-114
 epic_id: E-16
-version: "1.2"
-version_note: "1.2 (2026-06-15): D-074 back-propagation — AC-006 extended with threshold-0 rejection requirement and test_cli_arp_spoof_threshold_0_rejected; EC-014 added (BC-2.16.012 EC-004 / BC-2.16.012 v1.3 PC2). 1.1 (2026-06-14): F3-convergence Pass-25 Slice-C — de-pinned 4x HS-008-*.md:75 line citations to concept anchor 'HS-008 Verification Approach step 1'; input-hash will be recomputed by orchestrator (--write)"
+version: "1.3"
+version_note: "1.3 (2026-06-16): F7 consistency F3 — AC-006 threshold-0 rejection mechanism corrected from 'at CLI parse time' to 'at startup (in run_analyze), before any packet processing — via a fail-fast anyhow::bail! error (exit code 1), not a clap value_parser range' (BC-2.16.012 v1.4). 1.2 (2026-06-15): D-074 back-propagation — AC-006 extended with threshold-0 rejection requirement and test_cli_arp_spoof_threshold_0_rejected; EC-014 added (BC-2.16.012 EC-004 / BC-2.16.012 v1.3 PC2). 1.1 (2026-06-14): F3-convergence Pass-25 Slice-C — de-pinned 4x HS-008-*.md:75 line citations to concept anchor 'HS-008 Verification Approach step 1'; input-hash will be recomputed by orchestrator (--write)"
 status: draft
 producer: story-writer
 timestamp: 2026-06-13T00:00:00Z
@@ -129,10 +129,11 @@ rebind_count=1, Step 2 sets first_rebind_ts=timestamp_secs (elapsed=0), Step 3 e
 `ArpAnalyzer::new(spoof_threshold, storm_rate)` uses the `spoof_threshold` parameter in
 D1 escalation logic. `src/cli.rs` declares `#[arg(long, default_value_t = 3)] arp_spoof_threshold: u32`
 on `Commands::Analyze`. `src/main.rs` passes `args.arp_spoof_threshold` to `ArpAnalyzer::new`.
-When flag is absent, default 3 applies. `--arp-spoof-threshold 0` MUST be rejected at CLI
-parse time with a fail-fast error (`--arp-spoof-threshold must be >= 1 (got 0)`); 0 is not
-clamped (D-074 / BC-2.16.012 EC-004). ARP comparisons are inclusive (`>=`), so a threshold of
-0 would trigger HIGH escalation on the very first rebind unconditionally.
+When flag is absent, default 3 applies. `--arp-spoof-threshold 0` MUST be rejected at startup
+(in run_analyze), before any packet processing — via a fail-fast `anyhow::bail!` error (exit
+code 1), not a clap value_parser range — with error message `--arp-spoof-threshold must be
+>= 1 (got 0)`; 0 is not clamped (D-074 / BC-2.16.012 EC-004). ARP comparisons are inclusive
+(`>=`), so a threshold of 0 would trigger HIGH escalation on the very first rebind unconditionally.
 **Standalone-compile note:** `--arp-storm-rate` does not
 exist in STORY-114 (that flag is STORY-115's deliverable); the `storm_rate` argument at the
 `src/main.rs` call site MUST be `ARP_STORM_RATE_DEFAULT` (= 50) until STORY-115 wires

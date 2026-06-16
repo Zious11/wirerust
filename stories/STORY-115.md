@@ -2,8 +2,9 @@
 document_type: story
 story_id: STORY-115
 epic_id: E-16
-version: "1.2"
+version: "1.3"
 # Pass-32: align analyzer field name storm_findings_count→storm_findings (matches STORY-113 declaration + sibling convention + BC-2.16.010 summarize key)
+# v1.3 (2026-06-16): F7 consistency F3 — AC-011 threshold-0 rejection mechanism corrected from 'at CLI parse time' to 'at startup (in run_analyze), before any packet processing — via a fail-fast anyhow::bail! error (exit code 1), not a clap value_parser range' (BC-2.16.008 v1.9 / BC-2.16.013 v1.4).
 # v1.2 (2026-06-15): D-074 back-propagation — EC-011 updated from "clamp to 1 or CLI error" to "rejected at CLI parse time"; AC-011 extended with 0-rejection requirement and test_cli_arp_storm_rate_0_rejected (BC-2.16.008 EC-006 / BC-2.16.013 EC-004)
 status: draft
 producer: story-writer
@@ -127,9 +128,11 @@ binding table. A 4097th distinct MAC's counter is inserted after evicting the ol
 detection. `src/cli.rs` declares `#[arg(long, default_value_t = 50)] arp_storm_rate: u32`
 on `Commands::Analyze`. `src/main.rs` passes `args.arp_storm_rate` to `ArpAnalyzer::new`.
 When flag is absent, default 50 applies. When `--arp-storm-rate 10` is set, storm triggers
-at 10 frames/sec. `--arp-storm-rate 0` MUST be rejected at CLI parse time with a fail-fast
-error (`--arp-storm-rate must be >= 1 (got 0)`); 0 is not clamped (D-074 / BC-2.16.013 EC-004).
-ARP comparisons are inclusive (`>=`), so a threshold of 0 would make the condition always true.
+at 10 frames/sec. `--arp-storm-rate 0` MUST be rejected at startup (in run_analyze), before
+any packet processing — via a fail-fast `anyhow::bail!` error (exit code 1), not a clap
+value_parser range — with error message `--arp-storm-rate must be >= 1 (got 0)`; 0 is not
+clamped (D-074 / BC-2.16.013 EC-004). ARP comparisons are inclusive (`>=`), so a threshold
+of 0 would make the condition always true.
 - **Test:** `test_cli_arp_storm_rate_parsed()`, `test_cli_arp_storm_rate_default_50()`, `test_storm_custom_rate_10()`, `test_cli_arp_storm_rate_0_rejected()`
 
 ### AC-012 (traces to BC-2.16.013 EC-006 — flag accepted without --arp)

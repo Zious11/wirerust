@@ -2,7 +2,7 @@
 document_type: story
 story_id: STORY-113
 epic_id: E-16
-version: "1.1"
+version: "1.2"
 status: draft
 producer: story-writer
 timestamp: 2026-06-13T00:00:00Z
@@ -74,7 +74,7 @@ input-hash: "3438b9d"
 
 > **Sub-C anchor adjudication (PO, 2026-06-13):** VP-024 Sub-C (test_BC_2_16_005_binding_table_last_write_wins proptest) has BC-2.16.005 as its primary anchor. BC-2.16.004 (D1 spoof escalation, STORY-114) indirectly depends on this last-write-wins substrate; Sub-C does not formally discharge BC-2.16.004.
 
-**verify_binding_table_cap (Sub-D):** Kani harness using `insert_binding_lru_btree` (BTreeMap surrogate gated under `#[cfg(any(kani, test))]`). `TEST_MAX_ARP_BINDINGS = 8`; 9-iteration loop (cap+1); `#[kani::unwind(12)]`; assert `len <= 8` after each insert. Production type remains `HashMap`.
+**verify_binding_table_cap (Sub-D):** Kani harness using `insert_binding_lru_array` (array surrogate gated under `#[cfg(any(kani, test))]`; signature: `entries: &mut [([u8; 4], [u8; 6], u32); CAP], len: &mut usize, ip, mac, cap`). The array surrogate is required because CBMC/Kani cannot model `HashMap` symbolically; it reproduces the production 3-branch eviction logic over a fixed-size array. `TEST_MAX_ARP_BINDINGS = 8`; 9-iteration loop (cap+1); `#[kani::unwind(12)]`; assert `len <= 8` after each insert. Sanctioned by VP-024 map-implementation-independence (VP-024 v2.2 + arp-architecture-delta v1.17). Production type remains `HashMap`.
 
 ## Acceptance Criteria
 
@@ -191,8 +191,8 @@ for every IP in the sequence. Uses `new_for_test()`, `process_arp_for_test()`, `
 - **Test:** `test_BC_2_16_005_binding_table_last_write_wins` proptest in `src/analyzer/arp.rs` tests module; runs at `cargo test`.
 
 ### AC-019 (traces to BC-2.16.006/VP-024 Sub-D — verify_binding_table_cap Kani harness)
-`verify_binding_table_cap` Kani harness using `insert_binding_lru_btree` (BTreeMap surrogate,
-`#[cfg(any(kani, test))]`-gated); `TEST_MAX_ARP_BINDINGS = 8`; 9-iteration loop; `#[kani::unwind(12)]`; assert `len <= 8` after each call. Production type remains `HashMap`.
+`verify_binding_table_cap` Kani harness using `insert_binding_lru_array` (array surrogate,
+`#[cfg(any(kani, test))]`-gated; signature: `entries: &mut [([u8; 4], [u8; 6], u32); CAP], len: &mut usize, ip, mac, cap`); array surrogate used because CBMC/Kani cannot model `HashMap` symbolically; reproduces the production 3-branch eviction logic; sanctioned by VP-024 map-implementation-independence. `TEST_MAX_ARP_BINDINGS = 8`; 9-iteration loop; `#[kani::unwind(12)]`; assert `len <= 8` after each call. Production type remains `HashMap`.
 - **Kani:** Run at F6 formal-hardening gate.
 
 ### AC-020 (traces to BC-2.16.007 invariant 3 / EC-004 — D12 and D2 co-emit on a single frame)
@@ -212,7 +212,7 @@ When `process_arp` processes a frame where `sender_ip` already has a binding ent
 | `struct StormCounter { count_in_window, window_start_ts, storm_emitted }` | `src/analyzer/arp.rs` | Data type (stub; fields only — D3 logic in STORY-115) |
 | `fn is_gratuitous_arp(frame: &ArpFrame) -> bool` | `src/analyzer/arp.rs` | Pure core (VP-024 Sub-B Kani target) |
 | `fn insert_binding_lru(bindings: &mut HashMap<[u8;4], BindingEntry>, ip, mac, cap)` | `src/analyzer/arp.rs` | Pure core (VP-024 Sub-D production substrate) |
-| `fn insert_binding_lru_btree(bindings: &mut BTreeMap<[u8;4], BindingEntry>, ip, mac, cap)` | `src/analyzer/arp.rs` `#[cfg(any(kani, test))]` | Kani surrogate for Sub-D |
+| `fn insert_binding_lru_array(entries: &mut [([u8;4], [u8;6], u32); CAP], len: &mut usize, ip, mac, cap)` | `src/analyzer/arp.rs` `#[cfg(any(kani, test))]` | Array surrogate for Sub-D (CBMC/Kani cannot model HashMap symbolically; reproduces production 3-branch eviction; sanctioned by VP-024 map-implementation-independence) |
 | `impl ArpAnalyzer::new()` (parameterless — `spoof_threshold` added in STORY-114; `storm_rate` added in STORY-115) | `src/analyzer/arp.rs` | Constructor |
 | `impl ArpAnalyzer::process_arp` (full: D2/D11/D12 + binding update) | `src/analyzer/arp.rs` | Pure core (stateful) |
 | `impl ArpAnalyzer::record_malformed(packet_len)` | `src/analyzer/arp.rs` | Notification method |
@@ -256,7 +256,7 @@ Architecture section references: `architecture/module-decomposition.md` (SS-16 C
 3. **Define `StormCounter` struct**: `count_in_window: u64`, `window_start_ts: u32`, `storm_emitted: bool` (stub for STORY-115).
 4. **Implement `is_gratuitous_arp(frame: &ArpFrame) -> bool`**: single expression `frame.sender_ip == frame.target_ip`.
 5. **Implement `insert_binding_lru`** (production, HashMap): scan for min `last_seen_ts` entry when `bindings.len() >= cap`; evict; insert new entry.
-6. **Implement `insert_binding_lru_btree`** (`#[cfg(any(kani, test))]`, BTreeMap surrogate): same eviction logic parameterized on BTreeMap for VP-024 Sub-D Kani harness.
+6. **Implement `insert_binding_lru_array`** (`#[cfg(any(kani, test))]`, array surrogate; signature: `entries: &mut [([u8; 4], [u8; 6], u32); CAP], len: &mut usize, ip, mac, cap`): same 3-branch eviction logic over a fixed-size array for VP-024 Sub-D Kani harness. Array surrogate is required because CBMC/Kani cannot model `HashMap` symbolically; sanctioned by VP-024 map-implementation-independence.
 7. **Implement `process_arp`** full logic: (a) filter zero/broadcast sender_ip; (b) count frame (frames_analyzed, request_count/reply_count/other_opcode_count); (c) check D12 mismatch (outer_src_mac vs sender_mac); (d) check GARP (is_gratuitous_arp); (e) update binding table via `insert_binding_lru` (updating `last_seen_ts`); (f) detect rebind (MAC change) — update `rebind_count` and `first_rebind_ts`, but do NOT emit D1 finding (that is STORY-114); (g) return Vec of findings (D2/D12 only in this story).
 8. **Implement `record_malformed(packet_len: usize)`**: increment `malformed_frames`; if `--arp` active, emit D11 LOW finding and increment `malformed_findings`. The mechanism for routing malformed notification to ArpAnalyzer from `main.rs` is an F3 implementation decision per BC-2.16.009 PC6 (e.g., a `process_malformed_arp` method or equivalent).
 9. **Implement `summarize(&self)`**: return `AnalysisSummary` with all eleven canonical keys in their exact string names.
@@ -265,7 +265,7 @@ Architecture section references: `architecture/module-decomposition.md` (SS-16 C
 12. **Implement test affordances** (`#[cfg(test)]`): `new_for_test()`, `process_arp_for_test()`, `bindings_snapshot()`.
 13. **Write VP-024 Sub-B Kani harness** (`verify_classify_garp_total`) in `src/analyzer/arp.rs` `#[cfg(kani)]` mod.
 14. **Write VP-024 Sub-C proptest** (`test_BC_2_16_005_binding_table_last_write_wins`) in `src/analyzer/arp.rs` tests module.
-15. **Write VP-024 Sub-D Kani harness** (`verify_binding_table_cap`) using `insert_binding_lru_btree`.
+15. **Write VP-024 Sub-D Kani harness** (`verify_binding_table_cap`) using `insert_binding_lru_array`.
 16. **Run `cargo test --all-targets`**: all tests green (including proptest Sub-C).
 17. **Run `cargo clippy --all-targets -- -D warnings`**: clean.
 
@@ -312,7 +312,7 @@ Modbus/DNP3 pattern precedent (STORY-096, STORY-105, STORY-110): the `summarize(
 Derived from arp-architecture-delta.md §1, §3.1–§3.3, ADR-008 Decisions 4–5, BC-2.16.010 Invariant 4:
 
 1. **`insert_binding_lru` has NO `ts` parameter** — `last_seen_ts` is written by `process_arp` on every observation BEFORE calling `insert_binding_lru`; the eviction function reads it during the scan (ADR-008 Decision 4 normative note). Do not add `ts` as a parameter to `insert_binding_lru`.
-2. **BTreeMap surrogate is `#[cfg(any(kani, test))]` only** — the `insert_binding_lru_btree` function is not in the production binary. Production substrate is `HashMap`.
+2. **Array surrogate is `#[cfg(any(kani, test))]` only** — the `insert_binding_lru_array` function is not in the production binary. It uses a fixed-size array (`[([u8; 4], [u8; 6], u32); CAP]`) because CBMC/Kani cannot model `HashMap` symbolically; it reproduces the production 3-branch eviction logic and is sanctioned by VP-024 map-implementation-independence. Production substrate is `HashMap`.
 3. **`ArpAnalyzer::new()` is parameterless in this story** — neither `spoof_threshold` nor `storm_rate` is consumed by STORY-113's detections (D2/D11/D12 have no configurable threshold). `spoof_threshold` is introduced in STORY-114 when D1 escalation lands (BC-2.16.012); `storm_rate` is introduced in STORY-115 when D3 detection lands (BC-2.16.013). STORY-113 adds ONLY the `--arp` bool flag (BC-2.16.011). Test affordances `new_for_test()`, `process_arp_for_test()`, and `bindings_snapshot()` are used for VP-024 Sub-C/D — they do not require constructor params.
 4. **GARP-that-conflicts escalation (BC-2.16.014) is STORY-114** — when GARP + binding conflict is detected in STORY-113, emit GARP LOW only. The escalation to MEDIUM and the D1 finding emission are STORY-114's responsibility.
 5. **Eleven keys exactly** — the exact string key names from BC-2.16.010 postcondition 1 are the contract. Any deviation (e.g., `"garp_count"` instead of `"garp_findings"`) fails the summary contract test.
@@ -323,7 +323,7 @@ Derived from arp-architecture-delta.md §1, §3.1–§3.3, ADR-008 Decisions 4�
 | Library | Version | Notes |
 |---------|---------|-------|
 | `std::collections::HashMap` | std | Production binding table and storm_counters substrate |
-| `std::collections::BTreeMap` | std | Kani surrogate only (`#[cfg(any(kani, test))]`) |
+| Fixed-size array `[([u8; 4], [u8; 6], u32); CAP]` | std | Array surrogate only (`#[cfg(any(kani, test))]`) — no BTreeMap dependency |
 | `proptest` | same as existing (check Cargo.toml) | VP-024 Sub-C proptest; `proptest::prelude::*` |
 | `kani` | via cargo-kani | VP-024 Sub-B and Sub-D harnesses |
 | `clap` | same as existing | `#[arg(long)] arp: bool` only — `--arp-spoof-threshold` is added in STORY-114; `--arp-storm-rate` is added in STORY-115 |
@@ -358,4 +358,5 @@ This is the largest story in E-16. At ~31k tokens it approaches the 20–30% con
 
 ## Changelog
 
+- v1.2: F7 consistency F2 — Sub-D surrogate renamed from `insert_binding_lru_btree` (BTreeMap) to `insert_binding_lru_array` (array; signature `entries: &mut [([u8; 4], [u8; 6], u32); CAP], len: &mut usize, ip, mac, cap`). All six loci updated: Sub-D description (§VP-024 Sub-B/C/D), AC-019, Architecture Mapping table, Task 6, Task 15, Architecture Compliance Rule 2, Library table. Matches F6 implementation; sanctioned by VP-024 v2.2 + arp-architecture-delta v1.17.
 - v1.1: F-3 pre-empt — AC **Test:** + Test Plan citations synced to exact BC-prefixed test fn names (DF-AC-TEST-NAME-SYNC-001). Source: test-writer commit 01a67c0. input-hash unchanged at 7c61bae.
