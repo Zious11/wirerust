@@ -615,10 +615,23 @@ mod kani_proofs {
     /// Body is `todo!()` — real harness body filled by formal-verifier at F6 gate.
     #[kani::proof]
     fn verify_extract_arp_frame_safety() {
-        todo!(
-            "VP-024 Sub-A safety harness — body filled by formal-verifier at F6 gate \
-             (STORY-112 stub: AC-011)"
-        )
+        // Fully-symbolic 28-byte buffer (minimum Ethernet/IPv4 ARP wire length).
+        // Only the slices that etherparse accepts (Ok path) are exercised; the
+        // property under proof is *absence of panic* for any valid ArpPacketSlice
+        // and any outer_src_mac. With a fixed 28-byte buffer, from_slice succeeds
+        // iff 8 + 2*hw_addr_size + 2*proto_addr_size <= 28 (i.e. hlen + plen <= 10);
+        // for all such slices extract_arp_frame must not panic, regardless of
+        // whether the type/size guard admits or rejects the frame.
+        let buf: [u8; ARP_ETH_IPV4_LEN] = kani::any();
+        if let Ok(arp_slice) = etherparse::ArpPacketSlice::from_slice(&buf) {
+            let outer_mac: Option<[u8; 6]> = kani::any();
+            // No panic for any valid ArpPacketSlice and any outer_mac. The result
+            // is intentionally discarded — reaching this point without an unwind
+            // is the proof obligation.
+            let _ = extract_arp_frame(&arp_slice, outer_mac, ARP_ETH_IPV4_LEN);
+        }
+        // If from_slice returns Err (buf encodes hlen+plen > 10), the harness
+        // terminates with no extract_arp_frame call — that path also cannot panic.
     }
 
     /// VP-024 Sub-A harness 2: for a well-formed Ethernet/IPv4 ARP buffer,
@@ -630,10 +643,47 @@ mod kani_proofs {
     /// (see VP-024 v1.4 vacuous-satisfiability note).
     #[kani::proof]
     fn verify_extract_arp_frame_eth_ipv4_correctness() {
-        todo!(
-            "VP-024 Sub-A correctness harness — body filled by formal-verifier at F6 gate \
-             (STORY-112 stub: AC-011). F4 obligation: add kani::cover! reachability check."
-        )
+        // Canonical 28-byte Ethernet/IPv4 ARP buffer:
+        //   bytes 0-1  HTYPE = 0x0001 (Ethernet)
+        //   bytes 2-3  PTYPE = 0x0800 (IPv4)
+        //   byte  4    HLEN  = 6
+        //   byte  5    PLEN  = 4
+        //   bytes 6-7  OPER  = symbolic (covers Request/Reply/any u16)
+        //   bytes 8-13   sender MAC (symbolic)
+        //   bytes 14-17  sender IP  (symbolic)
+        //   bytes 18-23  target MAC (symbolic)
+        //   bytes 24-27  target IP  (symbolic)
+        let mut buf: [u8; 28] = kani::any();
+        buf[0] = 0x00;
+        buf[1] = 0x01; // HTYPE = Ethernet
+        buf[2] = 0x08;
+        buf[3] = 0x00; // PTYPE = IPv4
+        buf[4] = 6; // HLEN
+        buf[5] = 4; // PLEN
+
+        let from_slice_result = etherparse::ArpPacketSlice::from_slice(&buf);
+        // VACUITY GUARD: with HLEN=6/PLEN=4, min_len = 8 + 12 + 8 = 28 == buf.len(),
+        // so from_slice MUST accept. kani::cover! proves the Ok arm is reachable,
+        // so the field-correctness assertions below are NOT vacuously satisfied.
+        kani::cover!(
+            from_slice_result.is_ok(),
+            "Eth/IPv4 28-byte ARP buffer must reach the Ok arm"
+        );
+        if let Ok(arp_slice) = from_slice_result {
+            let outer_mac: Option<[u8; 6]> = kani::any();
+            let result = extract_arp_frame(&arp_slice, outer_mac, 28);
+            // Eth/IPv4 ARP with valid sizes must decode to Some.
+            let frame = result.expect("Ethernet/IPv4 ARP must produce Some(ArpFrame)");
+            // Byte-exact field copies from the slice accessors.
+            assert!(frame.sender_mac == <[u8; 6]>::try_from(&buf[8..14]).unwrap());
+            assert!(frame.sender_ip == <[u8; 4]>::try_from(&buf[14..18]).unwrap());
+            assert!(frame.target_mac == <[u8; 6]>::try_from(&buf[18..24]).unwrap());
+            assert!(frame.target_ip == <[u8; 4]>::try_from(&buf[24..28]).unwrap());
+            assert!(frame.operation == u16::from_be_bytes([buf[6], buf[7]]));
+            // Pass-through fields preserved exactly.
+            assert!(frame.outer_src_mac == outer_mac);
+            assert!(frame.packet_len == 28);
+        }
     }
 
     /// VP-024 Sub-A harness 3: `extract_arp_frame` returns `None` (no panic) for any
@@ -656,9 +706,50 @@ mod kani_proofs {
     /// (see VP-024 v1.9 vacuous-satisfiability note).
     #[kani::proof]
     fn verify_extract_arp_frame_none_on_bad_size() {
-        todo!(
-            "VP-024 Sub-A negative harness — body filled by formal-verifier at F6 gate \
-             (STORY-112 stub: AC-011). F4 obligation: resolve vacuous-satisfiability risk."
-        )
+        // Fully-symbolic 28-byte buffer: HTYPE (0-1), PTYPE (2-3), HLEN (4),
+        // PLEN (5) are all symbolic via kani::any().
+        let mut buf: [u8; 28] = kani::any();
+        let htype = u16::from_be_bytes([buf[0], buf[1]]);
+        let ptype = u16::from_be_bytes([buf[2], buf[3]]);
+        let hlen = buf[4];
+        let plen = buf[5];
+
+        // VACUITY GUARD (resolves the v1.9 vacuous-satisfiability obligation):
+        // With a fixed 28-byte buffer, etherparse::ArpPacketSlice::from_slice
+        // accepts iff min_len = 8 + 2*hlen + 2*plen <= 28, i.e. hlen + plen <= 10.
+        // We constrain HLEN and PLEN into that window so from_slice ALWAYS lands
+        // on the Ok arm — the Err path is made unreachable, so the is_none()
+        // assertion below can never be vacuously skipped. HTYPE/PTYPE remain
+        // FULLY symbolic (the full u16 domain), and HLEN/PLEN still range over
+        // values that violate the ==6 / ==4 size requirement (e.g. 6+3, 5+4,
+        // 0+0, 10+0), so the size-rejection sub-region is genuinely covered.
+        kani::assume((hlen as usize) + (plen as usize) <= 10);
+
+        // Restrict to the FULL four-part rejection region (mirrors the combined
+        // guard at decoder.rs:406-409):
+        //   hw_addr_type != ETHERNET (0x0001) OR proto_addr_type != IPV4 (0x0800)
+        //   OR hw_addr_size != 6 OR proto_addr_size != 4
+        kani::assume(htype != 0x0001 || ptype != 0x0800 || hlen != 6 || plen != 4);
+
+        let from_slice_result = etherparse::ArpPacketSlice::from_slice(&buf);
+        // Prove the Ok arm is reachable for the reject-region domain so the
+        // None assertion is exercised, not vacuously satisfied.
+        kani::cover!(
+            from_slice_result.is_ok(),
+            "reject-region buffer must reach the Ok arm"
+        );
+        // Under the hlen+plen<=10 assume, from_slice cannot return Err here, so
+        // the assertion runs for every symbolic buffer in the reject region.
+        if let Ok(arp_slice) = from_slice_result {
+            let outer_mac: Option<[u8; 6]> = kani::any();
+            let result = extract_arp_frame(&arp_slice, outer_mac, 28);
+            // When ANY of the four type-or-size conditions fails, must return None
+            // (graceful rejection — no panic).
+            assert!(
+                result.is_none(),
+                "extract_arp_frame must return None when hw_addr_type != ETHERNET \
+                 or proto_addr_type != IPV4 or HLEN != 6 or PLEN != 4"
+            );
+        }
     }
 }
