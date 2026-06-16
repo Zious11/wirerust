@@ -231,8 +231,9 @@ pub fn decode_packet(data: &[u8], datalink: DataLink) -> Result<DecodedFrame> {
                 // Snaplen-truncated ARP frames yield Some(LaxNetSlice::Arp(_)) from
                 // the lax parser and reach this arm. outer_src_mac is extracted from
                 // lax.link; extract_arp_frame is fully implemented in STORY-112:
-                // Some(f) → Ok(DecodedFrame::Arp(f)); None (truncated/non-Eth/IPv4)
-                // → Err("truncated ARP frame") per AC-007 / BC-2.16.015.
+                // Some(f) → Ok(DecodedFrame::Arp(f)); None (non-Eth/IPv4 type)
+                // → Err("Non-Ethernet/IPv4 ARP frame") per D-078b / BC-2.16.009 PC3
+                // (path-independence: same D11-trigger string as the strict arm).
                 Some(LaxNetSlice::Arp(arp)) => {
                     let outer_src_mac: Option<[u8; 6]> = lax.link.as_ref().and_then(|l| {
                         if let etherparse::LinkSlice::Ethernet2(eth) = l {
@@ -243,9 +244,11 @@ pub fn decode_packet(data: &[u8], datalink: DataLink) -> Result<DecodedFrame> {
                     });
                     match extract_arp_frame(arp, outer_src_mac, data.len()) {
                         Some(f) => Ok(DecodedFrame::Arp(f)),
-                        // AC-007 / BC-2.16.015 lax arm: truncated or non-Eth/IPv4 ARP
-                        // via the lax parse path → Err with diagnostic string.
-                        None => Err(anyhow!("truncated ARP frame")),
+                        // D-078b / BC-2.16.009 v1.6 PC3: non-Eth/IPv4 ARP via the lax
+                        // parse path must produce the same D11-trigger string as the
+                        // strict arm (path-independence). "Non-Ethernet/IPv4 ARP frame"
+                        // is matched by main.rs → record_malformed → D11 finding.
+                        None => Err(anyhow!("Non-Ethernet/IPv4 ARP frame")),
                     }
                 }
                 Some(net) => Ok(DecodedFrame::Ip(build_parsed(
