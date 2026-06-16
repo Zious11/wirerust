@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.7"
+version: "1.8"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -20,6 +20,7 @@ modified:
   - "v1.5: Feature #8 DNP3 analyzer (F2). Added 2 new tactic assignments: T1691.001 → IcsInhibitResponseFunction (same parent tactic as T0814 Denial of Service), T0827 → IcsImpact (new ICS-unique tactic variant). Postcondition 2 extended. Seeded count 21→23; all_tactics_in_report_order must include new IcsImpact variant (see BC-2.10.002 update). — 2026-06-10"
   - "v1.6: Pass-1 adversarial fix C-1: corrected T1691.001 technique name in EC-007 from fabricated 'Unauthorized Message: Inhibit Response Function' to authoritative 'Block Operational Technology Message: Command Message' (parent T1691, tactic IcsInhibitResponseFunction). — 2026-06-10"
   - "v1.7: Pass-12 corpus-cleanup F-C-P12-002/F-C-P12-003: technique_tactic src anchor re-anchored from stale :166-168 to current :192-194 (Architecture Anchors + Source Evidence). PLANNED forward-declaration marker added: STORY-114 adds T0830→LateralMovement and T1557.002→CredentialAccess arms, raising seeded count 23→25 (mirrors BC-2.10.005/008). — 2026-06-13"
+  - "v1.8: Post-STORY-114-merge governance update (F7 follow-up item 5, validated by research DF-VALIDATION-001; report .factory/research/arp-followups-validation.md item 5): PLANNED marker resolved to landed status (PR #240, develop HEAD 7c0f453). SEEDED=25/EMITTED=17 confirmed in src/mitre.rs (SEEDED_TECHNIQUE_ID_COUNT=25; T0830→LateralMovement and T1557.002→CredentialAccess arms present, Kani-proven T0830/T1557.002). Postcondition 1 count 23→25. Tactic rows for T0830 and T1557.002 added. VP-007 count 23→25. EC-009/EC-010 added. Canonical vectors for T0830/T1557.002 added. Architecture Anchors updated. — 2026-06-16"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -41,13 +42,16 @@ removal_reason: null
 
 ## Description
 
-`technique_tactic(id)` returns `Some(MitreTactic)` for each of the 23 seeded technique IDs
-(post-F2 DNP3), and the returned tactic is the correct parent tactic from MITRE ATT&CK
+`technique_tactic(id)` returns `Some(MitreTactic)` for each of the 25 seeded technique IDs
+(post-F2 ARP), and the returned tactic is the correct parent tactic from MITRE ATT&CK
 (Enterprise or ICS). Like `technique_name`, it is a thin projection over `technique_info`. The
 tactic assignments match the ATT&CK matrix assignments (e.g., T1027 => DefenseEvasion, T0888
-=> Discovery, T0806 => IcsImpairProcessControl, T0827 => IcsImpact).
+=> Discovery, T0806 => IcsImpairProcessControl, T0827 => IcsImpact, T0830 => LateralMovement,
+T1557.002 => CredentialAccess).
 
-PLANNED — implemented in STORY-114; current code 23 seeded → target 25 seeded after STORY-114 5-part atomic update. T0830→LateralMovement and T1557.002→CredentialAccess tactic arms added in STORY-114. src/mitre.rs remains at SEEDED=23 until STORY-114 lands; vp007_catalog_drift_guard enforces consistency at implementation time.
+LANDED — STORY-114 merged (PR #240, develop HEAD 7c0f453). src/mitre.rs is now at SEEDED=25/EMITTED=17.
+T0830 (ICS LateralMovement) and T1557.002 (Enterprise CredentialAccess) tactic arms are present in technique_info;
+vp007_catalog_drift_guard enforces consistency at runtime.
 
 ## Preconditions
 
@@ -55,7 +59,7 @@ PLANNED — implemented in STORY-114; current code 23 seeded → target 25 seede
 
 ## Postconditions
 
-1. Returns `Some(MitreTactic)` for all 23 seeded IDs.
+1. Returns `Some(MitreTactic)` for all 25 seeded IDs.
 2. The tactic assignments are:
    - T1027 => MitreTactic::DefenseEvasion
    - T1036 => MitreTactic::DefenseEvasion
@@ -80,6 +84,8 @@ PLANNED — implemented in STORY-114; current code 23 seeded → target 25 seede
    - T0888 => MitreTactic::Discovery  [NEW F2 — replaces T0846 as Modbus recon emitter per Decision 12]
    - T1691.001 => MitreTactic::IcsInhibitResponseFunction  [NEW F2 DNP3 — inferred block-command]
    - T0827 => MitreTactic::IcsImpact  [NEW F2 DNP3 — derived loss-of-control correlated finding]
+   - T0830 => MitreTactic::LateralMovement  [NEW F2 ARP — Adversary-in-the-Middle, ICS technique]
+   - T1557.002 => MitreTactic::CredentialAccess  [NEW F2 ARP — Adversary-in-the-Middle: ARP Cache Poisoning, Enterprise]
 3. Returns `None` for any ID not in the seeded set.
 
 ## Invariants
@@ -106,6 +112,8 @@ PLANNED — implemented in STORY-114; current code 23 seeded → target 25 seede
 | EC-006 | T0814 | Some(IcsInhibitResponseFunction) -- Denial of Service; emitted by Force Listen Only FC |
 | EC-007 | T1691.001 | Some(IcsInhibitResponseFunction) -- Block Operational Technology Message: Command Message; DNP3 inferred block-command |
 | EC-008 | T0827 | Some(IcsImpact) -- Loss of Control; DNP3 derived correlated finding |
+| EC-009 | T0830 | Some(LateralMovement) -- Adversary-in-the-Middle; ARP spoof/mismatch paths (ICS LateralMovement) |
+| EC-010 | T1557.002 | Some(CredentialAccess) -- Adversary-in-the-Middle: ARP Cache Poisoning; Enterprise CredentialAccess |
 
 ## Canonical Test Vectors
 
@@ -119,13 +127,15 @@ PLANNED — implemented in STORY-114; current code 23 seeded → target 25 seede
 | technique_tactic("T0814") | Some(IcsInhibitResponseFunction) | happy-path (new F2) |
 | technique_tactic("T1691.001") | Some(IcsInhibitResponseFunction) | happy-path (new F2 DNP3) |
 | technique_tactic("T0827") | Some(IcsImpact) | happy-path (new F2 DNP3) |
+| technique_tactic("T0830") | Some(LateralMovement) | happy-path (new F2 ARP, ICS) |
+| technique_tactic("T1557.002") | Some(CredentialAccess) | happy-path (new F2 ARP, Enterprise) |
 | technique_tactic("T9999") | None | edge-case |
 
 ## Verification Properties
 
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| VP-007 | All 23 seeded IDs return correct tactic | unit: exhaustive tactic-assignment assertions |
+| VP-007 | All 25 seeded IDs return correct tactic | unit: exhaustive tactic-assignment assertions |
 
 ## Traceability
 
@@ -145,13 +155,13 @@ PLANNED — implemented in STORY-114; current code 23 seeded → target 25 seede
 
 ## Architecture Anchors
 
-- `src/mitre.rs:192-194` -- technique_tactic thin wrapper
+- `src/mitre.rs:192-194` -- technique_tactic thin wrapper (T0830 and T1557.002 tactic arms landed in STORY-114, PR #240)
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/mitre.rs:192-194` |
+| **Path** | `src/mitre.rs:192-194` (T0830 and T1557.002 arms landed in STORY-114, PR #240) |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 
