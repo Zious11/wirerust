@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.8"
+version: "1.9"
 status: draft
 producer: product-owner
 timestamp: 2026-06-12T02:00:00Z
@@ -18,7 +18,8 @@ modified:
   - "v1.5: Pass-5 remediation F-B5-L02 (explicit ordered step sequence for intra-frame processing: Step 1=window-expiry check, Step 2=increment, Step 3=rate evaluation — mirrors BC-2.16.004 Step pattern); F-B5-L01 (PC2 extended: first-observation of a never-before-seen MAC initializes count_in_window=1, window_start_ts=timestamp_secs, storm_emitted=false, symmetric to Invariant 6); (LOW) Description 'per-MAC sliding window counter' corrected to 'per-MAC 60-second flap-window counter' to avoid contradiction with Invariant 2. — 2026-06-12"
   - "v1.6: Pass-12 corpus-cleanup F-B12-003: ARP_FLAP_WINDOW_SECS anchor added to Architecture Anchors (BC-2.16.008 uses ARP_FLAP_WINDOW_SECS but the const was previously undeclared in this BC's anchors; defined in BC-2.16.004 and shared). — 2026-06-13"
   - "v1.7: F3 story-anchor back-fill. — 2026-06-14"
-  - "v1.8: F4-P1 remediation F-ARP-F4P1-001 (D-074): EC-006 resolved — `--arp-storm-rate 0` is REJECTED at CLI parse time with error `--arp-storm-rate must be >= 1 (got 0)`; replaces open 'clamp to 1 or document as invalid' wording. Rationale: ARP storm detection uses inclusive comparison (`count/elapsed >= storm_rate`), so 0 degenerates to always-true; reject-at-CLI matches modbus precedent and the latent invariant (accept 0 only where comparison is strict `>`). Validated by research-agent (arp-threshold-zero-convention.md, HIGH confidence). — 2026-06-15"
+  - "v1.8: F4-P1 remediation F-ARP-F4P1-001 (D-074): EC-006 resolved — `--arp-storm-rate 0` is REJECTED at startup (in run_analyze), before any packet processing — via a fail-fast anyhow error with message `--arp-storm-rate must be >= 1 (got 0)`; replaces open 'clamp to 1 or document as invalid' wording. Rationale: ARP storm detection uses inclusive comparison (`count/elapsed >= storm_rate`), so 0 degenerates to always-true; startup bail! matches modbus precedent and the latent invariant (accept 0 only where comparison is strict `>`). Validated by research-agent (arp-threshold-zero-convention.md, HIGH confidence). — 2026-06-15"
+  - "v1.9: F7 consistency F3 — corrected EC-006 mechanism wording: rejection occurs after CLI parsing but before packet processing (not a clap value_parser range check); implemented via anyhow::bail! in run_analyze() (src/main.rs:120-122). Functional contract unchanged. — 2026-06-16"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -144,7 +145,7 @@ and is therefore withheld until validated.
 | EC-003 | Source MAC sends 51st frame within same window (storm_emitted=true) | No additional storm finding (one-shot guard active) |
 | EC-004 | Storm window expires (>60s since first frame) | Window resets; storm_emitted=false; counter resets |
 | EC-005 | `--arp-storm-rate 10` set: storm threshold lowered | Storm triggers at 10 frames/sec instead of 50 |
-| EC-006 | `--arp-storm-rate 0` set (edge case) | REJECTED at CLI parse time before any packet processing; error: `--arp-storm-rate must be >= 1 (got 0)`; non-zero exit code; detection never runs. Rationale (D-074): the storm comparison is inclusive (`count/elapsed >= storm_rate`), so 0 degenerates to always-true — not a coherent "alert-on-all" sentinel. Matches modbus precedent; consistent with latent codebase invariant (reject 0 where comparison is `>=`; accept only where `>`). Validated by research-agent arp-threshold-zero-convention.md (HIGH confidence). |
+| EC-006 | `--arp-storm-rate 0` set (edge case) | REJECTED at startup (in run_analyze), before any packet processing — via a fail-fast anyhow::bail! error (src/main.rs:120-122); error: `--arp-storm-rate must be >= 1 (got 0)`; non-zero exit code (1); detection never runs. Note: rejection occurs AFTER clap parsing (not a clap value_parser range check) — exit code is 1 (anyhow) not 2 (clap). Rationale (D-074): the storm comparison is inclusive (`count/elapsed >= storm_rate`), so 0 degenerates to always-true — not a coherent "alert-on-all" sentinel. Matches modbus precedent; consistent with latent codebase invariant (reject 0 where comparison is `>=`; accept only where `>`). Validated by research-agent arp-threshold-zero-convention.md (HIGH confidence). |
 | EC-007 | 4,097 distinct MACs each sending frames | MAX_STORM_COUNTERS cap: LRU eviction on 4,097th MAC; oldest MAC counter evicted; no storm finding for evicted MAC even if it later storms |
 | EC-008 | Same MAC, all frames in same second (ts==window_start_ts) | Rate calculated as count/1; avoids divide-by-zero; finding emits if count >= storm_rate |
 | EC-009 | ts - window_start_ts == 60 exactly (boundary): frame at ts=160, window_start_ts=100, count_in_window=50 | `160-100=60 <= ARP_FLAP_WINDOW_SECS=60`; still in-window per the <= boundary; no reset; rate=50/60≈0.83 < 50; no storm finding |

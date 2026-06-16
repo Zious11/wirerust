@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: product-owner
 timestamp: 2026-06-12T00:00:00Z
@@ -16,7 +16,8 @@ introduced: v0.7.0-feature-arp
 modified:
   - "v1.1: Pass-4 remediation F-B4-H02: PC3 storm formula retired ('count_in_window / window_duration_secs') → cross-reference to BC-2.16.008 PC3 / Note 6 formula ('count_in_window / max(1, timestamp_secs - window_start_ts) >= storm_rate'); eliminates divide-by-zero risk from independent restatement. — 2026-06-12"
   - "v1.2: F3 story-anchor back-fill. — 2026-06-14"
-  - "v1.3: F4-P1 remediation F-ARP-F4P1-001 (D-074): EC-004 and Precondition 2 resolved — `--arp-storm-rate 0` is REJECTED at CLI parse time with error `--arp-storm-rate must be >= 1 (got 0)`; replaces open 'Clamp to 1 or CLI error — F3 implementation decision' wording. Rationale: ARP storm detection uses inclusive comparison (`count/elapsed >= storm_rate`), so 0 degenerates to always-true; reject-at-CLI matches modbus precedent and latent invariant. Validated by research-agent (arp-threshold-zero-convention.md, HIGH confidence). — 2026-06-15"
+  - "v1.3: F4-P1 remediation F-ARP-F4P1-001 (D-074): EC-004 and Precondition 2 resolved — `--arp-storm-rate 0` is REJECTED at startup (in run_analyze), before any packet processing — via a fail-fast anyhow error with message `--arp-storm-rate must be >= 1 (got 0)`; replaces open 'Clamp to 1 or CLI error — F3 implementation decision' wording. Rationale: ARP storm detection uses inclusive comparison (`count/elapsed >= storm_rate`), so 0 degenerates to always-true; startup bail! matches modbus precedent and latent invariant. Validated by research-agent (arp-threshold-zero-convention.md, HIGH confidence). — 2026-06-15"
+  - "v1.4: F7 consistency F3 — corrected Precondition 2 and EC-004 mechanism wording: rejection occurs after CLI parsing but before packet processing (not a clap value_parser range check); implemented via anyhow::bail! in run_analyze() (src/main.rs:120-122). Functional contract unchanged. — 2026-06-16"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -46,13 +47,14 @@ external standard.
 ## Preconditions
 
 1. The CLI command includes `--arp --arp-storm-rate <N>` where N is a valid u32.
-2. `N >= 1`; passing `0` is REJECTED at CLI parse time with error
-   `--arp-storm-rate must be >= 1 (got 0)` before any packet processing.
-   Rationale (D-074): the storm comparison is inclusive (`count/elapsed >= storm_rate`),
-   so `0` degenerates to always-true — not a coherent "alert-on-all" sentinel.
-   Matches modbus precedent; consistent with latent codebase invariant (reject 0 where
-   comparison is `>=`). Validated by research-agent arp-threshold-zero-convention.md
-   (HIGH confidence).
+2. `N >= 1`; passing `0` is REJECTED at startup (in run_analyze), before any packet
+   processing — via a fail-fast anyhow::bail! (src/main.rs:120-122), NOT a clap value_parser
+   range check. Error message: `--arp-storm-rate must be >= 1 (got 0)`; exit code 1
+   (anyhow), not 2 (clap). Rationale (D-074): the storm comparison is inclusive
+   (`count/elapsed >= storm_rate`), so `0` degenerates to always-true — not a coherent
+   "alert-on-all" sentinel. Matches modbus precedent; consistent with latent codebase invariant
+   (reject 0 where comparison is `>=`). Validated by research-agent
+   arp-threshold-zero-convention.md (HIGH confidence).
 
 ## Postconditions
 
@@ -84,7 +86,7 @@ external standard.
 | EC-001 | `--arp-storm-rate 10` | Storm triggers at 10 frames/sec per source MAC |
 | EC-002 | `--arp-storm-rate 50` (same as default) | Behavior identical to omitting the flag |
 | EC-003 | `--arp-storm-rate 1` | Any MAC sending ≥1 frame/sec triggers storm |
-| EC-004 | `--arp-storm-rate 0` | REJECTED at CLI parse time before any packet processing; error: `--arp-storm-rate must be >= 1 (got 0)`; non-zero exit code. Rationale (D-074): storm comparison is inclusive (`count/elapsed >= storm_rate`), so 0 is degenerate always-true; matches modbus precedent and latent codebase invariant. |
+| EC-004 | `--arp-storm-rate 0` | REJECTED at startup (in run_analyze), before any packet processing — via anyhow::bail! (src/main.rs:120-122); NOT a clap value_parser range check. Error: `--arp-storm-rate must be >= 1 (got 0)`; exit code 1 (anyhow, not 2/clap). Rationale (D-074): storm comparison is inclusive (`count/elapsed >= storm_rate`), so 0 is degenerate always-true; matches modbus precedent and latent codebase invariant. |
 | EC-005 | Flag absent | storm_rate = 50 (ARP_STORM_RATE_DEFAULT) |
 | EC-006 | `--arp-storm-rate` present but `--arp` absent | Flag accepted by CLI; has no effect |
 

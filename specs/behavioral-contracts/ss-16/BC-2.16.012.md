@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: product-owner
 timestamp: 2026-06-12T00:00:00Z
@@ -16,7 +16,8 @@ introduced: v0.7.0-feature-arp
 modified:
   - "v1.1: Pass-5 remediation F-B5-M01: PC3 citation corrected from 'BC-2.16.004 Postcondition 5' (flap-window reset) to 'BC-2.16.004 Postcondition 1 (Step 3 / 1.c — escalation evaluation)'. — 2026-06-12"
   - "v1.2: F3 story-anchor back-fill. — 2026-06-14"
-  - "v1.3: F4-P1 remediation F-ARP-F4P1-001 (D-074): EC-004 and Precondition 2 resolved — `--arp-spoof-threshold 0` is REJECTED at CLI parse time with error `--arp-spoof-threshold must be >= 1 (got 0)`; replaces open 'clamped to 1 — F3 implementation detail' and 'Clamp to 1 or return CLI error — F3 implementation decision' wording. Rationale: escalation comparison is inclusive (`rebind_count >= spoof_threshold`), so 0 degenerates to always-escalate; reject-at-CLI matches modbus precedent. Validated by research-agent (arp-threshold-zero-convention.md, HIGH confidence). — 2026-06-15"
+  - "v1.3: F4-P1 remediation F-ARP-F4P1-001 (D-074): EC-004 and Precondition 2 resolved — `--arp-spoof-threshold 0` is REJECTED at startup (in run_analyze), before any packet processing — via a fail-fast anyhow error with message `--arp-spoof-threshold must be >= 1 (got 0)`; replaces open 'clamped to 1 — F3 implementation detail' and 'Clamp to 1 or return CLI error — F3 implementation decision' wording. Rationale: escalation comparison is inclusive (`rebind_count >= spoof_threshold`), so 0 degenerates to always-escalate; startup bail! matches modbus precedent. Validated by research-agent (arp-threshold-zero-convention.md, HIGH confidence). — 2026-06-15"
+  - "v1.4: F7 consistency F3 — corrected Precondition 2 and EC-004 mechanism wording: rejection occurs after CLI parsing but before packet processing (not a clap value_parser range check); implemented via anyhow::bail! in run_analyze() (src/main.rs:123-125). Functional contract unchanged. — 2026-06-16"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -44,13 +45,14 @@ The flag is only meaningful when `--arp` is also active.
 ## Preconditions
 
 1. The CLI command includes `--arp --arp-spoof-threshold <N>` where N is a valid u32.
-2. `N >= 1`; passing `0` is REJECTED at CLI parse time with error
-   `--arp-spoof-threshold must be >= 1 (got 0)` before any packet processing.
-   Rationale (D-074): the escalation comparison is inclusive (`rebind_count >= spoof_threshold`),
-   so `0` degenerates to always-escalate, not a coherent "fire on first rebind" sentinel.
-   Matches modbus precedent; consistent with latent codebase invariant (reject 0 where
-   comparison is `>=`). Validated by research-agent arp-threshold-zero-convention.md
-   (HIGH confidence).
+2. `N >= 1`; passing `0` is REJECTED at startup (in run_analyze), before any packet
+   processing — via a fail-fast anyhow::bail! (src/main.rs:123-125), NOT a clap value_parser
+   range check. Error message: `--arp-spoof-threshold must be >= 1 (got 0)`; exit code 1
+   (anyhow), not 2 (clap). Rationale (D-074): the escalation comparison is inclusive
+   (`rebind_count >= spoof_threshold`), so `0` degenerates to always-escalate, not a coherent
+   "fire on first rebind" sentinel. Matches modbus precedent; consistent with latent codebase
+   invariant (reject 0 where comparison is `>=`). Validated by research-agent
+   arp-threshold-zero-convention.md (HIGH confidence).
 
 ## Postconditions
 
@@ -81,7 +83,7 @@ The flag is only meaningful when `--arp` is also active.
 | EC-001 | `--arp-spoof-threshold 1` | Any single rebind escalates to HIGH immediately |
 | EC-002 | `--arp-spoof-threshold 3` (same as default) | Behavior identical to omitting the flag |
 | EC-003 | `--arp-spoof-threshold 100` | No HIGH findings unless 100 rebinds in 60s |
-| EC-004 | `--arp-spoof-threshold 0` | REJECTED at CLI parse time before any packet processing; error: `--arp-spoof-threshold must be >= 1 (got 0)`; non-zero exit code. Rationale (D-074): escalation comparison is inclusive (`rebind_count >= spoof_threshold`), so 0 is a degenerate always-escalate value; matches modbus precedent and latent codebase invariant. |
+| EC-004 | `--arp-spoof-threshold 0` | REJECTED at startup (in run_analyze), before any packet processing — via anyhow::bail! (src/main.rs:123-125); NOT a clap value_parser range check. Error: `--arp-spoof-threshold must be >= 1 (got 0)`; exit code 1 (anyhow, not 2/clap). Rationale (D-074): escalation comparison is inclusive (`rebind_count >= spoof_threshold`), so 0 is a degenerate always-escalate value; matches modbus precedent and latent codebase invariant. |
 | EC-005 | Flag absent | spoof_threshold = 3 (SPOOF_REBIND_ESCALATION_DEFAULT) |
 | EC-006 | `--arp-spoof-threshold` present but `--arp` absent | Flag accepted by CLI; has no effect (process_arp is never called) |
 
