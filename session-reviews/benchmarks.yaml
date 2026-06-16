@@ -1,0 +1,67 @@
+---
+document_type: session-review-benchmarks
+producer: session-reviewer
+created: 2026-06-16
+note: >
+  Seeded from first dedicated session review (feature-arp-v0.7.0).
+  Single entry — no trends computable yet. Update after each cycle.
+---
+
+runs:
+
+  - cycle: feature-arp-v0.7.0
+    released_version: v0.7.0
+    released_at: "2026-06-16"
+    pipeline_path: feature-mode F4→F7 + release (resumed mid-F4)
+    stories_in_cycle: 5  # STORY-111..115
+    story_points: 47
+    prs_delivered: 15  # #237, #242-#251, #256
+
+    quality:
+      holdout_mean_final: 1.0
+      holdout_scenarios: 15
+      mutation_kill_rate_pct: 98.9
+      kani_successful: 5
+      kani_total: 5
+      fuzz_executions_millions: 16.2
+      fuzz_crashes: 0
+      test_count_at_release: 1592
+      security_findings_exploitable: 0
+
+    convergence:
+      f4_wave_adversary_passes_total: 7
+      f4_adversary_initial_streak_passes: 3
+      f4_adversary_restreak_passes: 4
+      f4_holdout_initial_mean: 0.997
+      f4_holdout_final_mean: 1.0
+      f4_defects_found_post_initial_gate: 2  # D-075 (holdout), D-077 (human re-streak)
+      f5_adversary_total_passes: 8
+      f5_streak_resets: 3
+      f5_fix_induced_regressions: 1  # O-A LOW → F-1 MEDIUM
+      f7_consistency_gaps_initial: 4
+      f7_holistic_adversary_fresh_passes: 1
+      f7_consistency_audit_fresh_passes: 2  # initial + post-remediation
+
+    efficiency:
+      doc_tense_recurrences: 7
+      doc_tense_extra_adversary_restarts: 7  # estimated 1 per recurrence
+      pr_manager_shortstop_rate_pct: 100  # 5/5 ARP PRs required intervention
+      scope_overreach_reverts: 1  # STORY-114 doc-sweep revert
+      demo_artifact_leak_reverts: 1  # STORY-112 binary commit dropped
+      fix_adjudication_spec_rewrites: 2  # D-078 spec v1.4→v1.5→v1.6
+
+    gate_first_try:
+      total_gates: 10
+      passed_first_try: 6
+      rate_pct: 60
+      non_first_try_gates:
+        - F4 wave Pass 1 (D-074 MEDIUM)
+        - F4 Holdout G1 (D-075 verdict)
+        - F5 Pass 1 (O-A LOW adjudicated FIX)
+        - F5 Post-D-078 Pass 1 (F-1 MEDIUM)
+
+    proposals_generated: 12
+    proposals_p1: 2
+    proposals_p2: 5
+    proposals_p3: 3
+    proposals_p4: 2

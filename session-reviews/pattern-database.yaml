@@ -1,0 +1,167 @@
+---
+document_type: session-review-pattern-database
+producer: session-reviewer
+created: 2026-06-16
+note: >
+  Seeded from first dedicated session review (feature-arp-v0.7.0).
+  No prior baseline — all entries are first-observed instances.
+---
+
+patterns:
+
+  - id: PAT-001
+    name: pr-manager-shortstop
+    description: >
+      pr-manager agent stops at step 6 (APPROVE) without executing steps 7-9
+      (merge + confirm CI + consolidated report). Requires orchestrator
+      SendMessage intervention to complete.
+    first_observed: "feature-arp-v0.7.0"
+    occurrences:
+      - cycle: "feature-8-dnp3-v0.5.0"
+        count: 1
+        notes: "DNP3 F5 PR — seeded the pattern"
+      - cycle: "feature-arp-v0.7.0"
+        count: 5
+        notes: "PRs #236/#238/#239/#240/#241 — 5/5 ARP story PRs"
+    total_occurrences: 6
+    recurrence_rate: "100% (6/6 PRs in scope)"
+    proactive_mitigation_tried: true
+    mitigation_effective: false
+    mitigation_notes: >
+      Explicit 'DO NOT STOP AT APPROVE' instruction in STORY-115 dispatch
+      did not prevent recurrence #6. Structural prompt change required.
+    severity: CRITICAL
+    proposal: PROP-01
+    status: OPEN
+
+  - id: PAT-002
+    name: doc-tense-recurrence
+    description: >
+      RED-gate / scaffold / stub / todo!() doc-comments written in TDD RED
+      phase survive into adversary-surfaced GREEN commits. Recurs after
+      policy-text codification (DF-GREEN-DOC-TENSE-SWEEP), confirming that
+      policy text alone does not change agent behavior.
+    first_observed: "feature-arp-v0.7.0"
+    occurrences:
+      - cycle: "feature-arp-v0.7.0"
+        count: 7
+        notes: >
+          STORY-112 (PG-ARP-F4-REDBANNER-SWEEP), STORY-113 (O-4),
+          STORY-114 F-1/F-2/F-3, STORY-115 C1/F-1 regression tests,
+          D-075 regression test (post-codification recurrence)
+    total_occurrences: 7
+    policy_codified: true
+    policy_id: DF-GREEN-DOC-TENSE-SWEEP
+    policy_effective: false
+    notes: >
+      Policy was codified before STORY-115 began; recurred immediately
+      in D-075 regression test. Requires agent-prompt injection.
+    severity: HIGH
+    proposal: PROP-02
+    status: OPEN
+
+  - id: PAT-003
+    name: fix-induced-regression-from-low
+    description: >
+      A LOW-severity finding adjudicated FIX without assessing
+      fix-induced-regression risk. The fix requires hand-rolling logic
+      that the library already abstracts, introducing a MEDIUM regression.
+    first_observed: "feature-arp-v0.7.0"
+    occurrences:
+      - cycle: "feature-arp-v0.7.0"
+        finding: "O-A (LOW) → D-078/D-078b + F-1 (MEDIUM)"
+        cost: "3 PRs (#247/#248/#249) + 2 F5 streak resets + 1 MEDIUM regression"
+    total_occurrences: 1
+    severity: HIGH
+    proposal: PROP-03
+    status: OPEN
+
+  - id: PAT-004
+    name: consumer-sweep-gap-post-fixburst
+    description: >
+      A rename or canonical-symbol update in a BC/VP/spec does not propagate
+      to all consuming artifacts. Gap caught reactively by consistency-validator
+      rather than proactively by fix agent.
+    first_observed: "feature-arp-v0.7.0"
+    occurrences:
+      - cycle: "feature-arp-v0.7.0"
+        instance: "VP-024 v1.8 harness rename (PG-ARP-FIXBURST-CONSUMER-SWEEP)"
+        resolution: "revert rename via PR #246"
+      - cycle: "feature-arp-v0.7.0"
+        instance: "F6 lock + Sub-D surrogate name (PG-CONSISTENCY-AUDIT-CONSUMER-SWEEP)"
+        resolution: "caught by F7 consistency-validator; 4 gaps remediated"
+    total_occurrences: 2
+    severity: HIGH
+    proposal: PROP-04
+    status: OPEN
+
+  - id: PAT-005
+    name: holdout-catches-value-semantics-misses
+    description: >
+      Holdout evaluation catches field-value semantics defects (e.g., Verdict::Possible
+      vs Verdict::Likely) that consistency-validator misses because the validator
+      checks structure, not value. Demonstrates tool complementarity.
+    first_observed: "feature-arp-v0.7.0"
+    occurrences:
+      - cycle: "feature-arp-v0.7.0"
+        finding: "D-075 — D1 verdict Possible vs Likely; caught by holdout static scenarios"
+        missed_by: ["consistency-validator", "4 prior adversary passes"]
+    total_occurrences: 1
+    severity: HIGH
+    proposal: null
+    notes: >
+      Positive validation of holdout design; no workflow change needed.
+      Reference when justifying holdout overhead.
+    status: DOCUMENTED-POSITIVE
+
+  - id: PAT-006
+    name: multipass-adversary-catches-single-pass-misses
+    description: >
+      Multi-pass adversarial convergence (3 fresh-context passes) catches whole-attack-class
+      structural gaps that single-pass review misses. Provides concrete evidence for
+      retaining 3-pass requirement.
+    first_observed: "feature-arp-v0.7.0"
+    occurrences:
+      - cycle: "feature-arp-v0.7.0"
+        finding: "GARP-storm bypass (C1 in STORY-115) — missed by pass 1, found by passes 2/3"
+        mechanism: "DF-BC-COMPLETENESS-SWEEP + GARP/D3 interaction axis"
+      - cycle: "feature-arp-v0.7.0"
+        finding: "D-077 CRITICAL — missed by 4 passes + holdout; found by human-directed re-streak"
+    total_occurrences: 2
+    severity: HIGH
+    proposal: null
+    notes: >
+      Positive validation of 3-pass and BC-completeness-sweep requirements.
+      Reference when justifying adversary convergence overhead.
+    status: DOCUMENTED-POSITIVE
+
+---
+
+benchmarks:
+
+  - cycle: "feature-arp-v0.7.0"
+    released_version: "v0.7.0"
+    released_at: "2026-06-16"
+    quality_signals:
+      holdout_mean: 1.0
+      holdout_scenarios: 15
+      mutation_kill_rate: 98.9
+      kani_harnesses_successful: 5
+      kani_harnesses_total: 5
+      fuzz_executions: 16200000
+      fuzz_crashes: 0
+      test_count: 1592
+      test_failures: 0
+    convergence:
+      f4_wave_adversary_passes: 7  # includes initial 3 clean + 4 re-streak passes
+      f4_holdout_mean_initial: 0.997
+      f5_adversary_passes: 8  # 5 effective passes + 3 streak resets
+      f7_consistency_gaps_found: 4
+    gate_outcomes:
+      total_gates: 10
+      first_try_pass: 6
+      first_try_pass_rate_pct: 60
+    pr_count_f4_through_release: 15  # PRs #237, #242-251, #256 (post-F4-delivery)
+    doc_tense_recurrences: 7
+    pr_manager_shortstop_count: 5  # ARP-specific (excl. DNP3 F5 prior instance)
+    fix_induced_regressions: 1  # O-A → F-1 MEDIUM
