@@ -830,3 +830,48 @@ F6 formal hardening: fill+prove 5 VP-024 Kani harness bodies; cargo-fuzz VP-008;
 | main HEAD | 3e29891 | v0.6.0 |
 | factory-artifacts HEAD | 2bec42a | factory(f5→f6): F5 GATE SATISFIED 3/3 on 079013d; F6 entry |
 | open PRs | none | — |
+
+---
+
+## Checkpoint: 2026-06-16 — F7 CONSISTENCY AUDIT REMEDIATED; NEXT = consistency-validator reconfirmation → v0.7.0 release gate
+
+**Archived from STATE.md during F7 final closeout burst (F4 hash recompute + F7 CONVERGED record).**
+
+### A. EXACT PIPELINE POSITION
+
+- Project: wirerust. Mode: FEATURE. Active feature: ARP security analyzer + etherparse 0.16→0.20 migration. GitHub issue #9. Release target: v0.7.0.
+- F1 PASSED (human-gated 2026-06-12, D-066).
+- F2 CONVERGED 3/3 (Passes 31/32/33; strict whole-corpus gate SATISFIED).
+- F3 CONVERGED 3/3 (Passes 36/37/38; 38 passes total; gate SATISFIED; D-070).
+- F4 Delta-Implementation: COMPLETE. STORY-111..115 ALL DELIVERED; PRs #236..#246.
+- F4 Holdout Evaluation: GATE PASS (15/15 mean 1.0; RFC-826 PASS).
+- F4 Wave-Level Adversarial Re-Streak: 3/3 GATE SATISFIED (bcb1bd6).
+- F5 Scoped Adversarial: GATE SATISFIED 3/3 (2026-06-16, develop 079013d).
+- F6 Targeted Hardening: COMPLETE (PR #250, develop 6e9f2cc, 2026-06-16).
+  - 5/5 VP-024 Kani harnesses VERIFICATION:- SUCCESSFUL (46/46 project-wide).
+  - VP-024 v2.2 LOCKED; verified_at_commit=6e9f2cc; Sub-D surrogate = insert_binding_lru_array.
+  - Fuzz VP-008: 16.2M execs / 0 crashes. Mutants ARP delta: 98.9% kill (1 benign MISSED by design).
+  - Security: cargo-audit 1 allowed RUSTSEC-2026-0097 (transitive BUILD-dep); clippy+fmt CLEAN.
+- F7 Consistency Audit: ALL 4 FINDINGS REMEDIATED (2026-06-16 — doc/spec only, zero code change).
+  - F1 MAJOR: VP-024 coverage-matrix v1.7 — status "verified" (was "draft").
+  - F2 MAJOR: Sub-D surrogate rename arp-architecture-delta v1.17 + VP-024 v2.2 + STORY-113 v1.2.
+  - F3 MINOR: BC-2.16.008 v1.9/012 v1.4/013 v1.4 + STORY-114 v1.4/115 v1.4 (AC + EC-table fix).
+  - F4 MINOR: Input-hashes recomputed (111=3eefa35 112=6115929 113=4069c39 114=02da9e7 115=80be67e ALL MATCH at time of archive; re-drifted by VP-024 v2.3+arp-arch-delta v1.17 in this burst).
+  - F7 holistic adversary: PASS CLEAN (zero findings, 6 dimensions CONVERGED).
+  - Regression: GREEN (develop e37ec38: build/clippy/fmt clean, 1592 tests/0 fail).
+- develop HEAD: e37ec38 (no code change — F7 consistency fixes are doc/spec only).
+- Decisions active: D-047..D-F1; do NOT re-adjudicate D-068..D-F1.
+- F3-OBL-STORY114-001/002/003 REVOKED (D-069).
+
+### B. INPUT-HASH STATUS (at archive time — pre-final-recompute)
+
+STORY-111=3eefa35 MATCH | STORY-112=6115929 MATCH (stale re-drift caught in closeout burst) | STORY-113=4069c39 MATCH (stale re-drift caught in closeout burst) | STORY-114=02da9e7 MATCH | STORY-115=80be67e MATCH.
+
+### C. SHA TABLE (at archive time)
+
+| Item | SHA | Notes |
+|------|-----|-------|
+| develop HEAD | e37ec38 | No code change — all doc/spec |
+| main HEAD | 3e29891 | v0.6.0 |
+| factory-artifacts HEAD | see git -C .factory log -1 | — |
+| open PRs | none | — |

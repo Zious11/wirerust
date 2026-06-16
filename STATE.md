@@ -1,7 +1,7 @@
 ---
 pipeline: FEATURE_MODE_ARP_ANALYZER
 phase: feature-F7-delta-convergence
-phase_status: "F7 CONSISTENCY AUDIT REMEDIATED (2026-06-16) — F1(coverage-matrix VP-024 verified), F2(Sub-D rename STORY-113+arp-arch-delta v1.17+VP-024 v2.2), F3(BC-2.16.008 v1.9/012 v1.4/013 v1.4 + STORY-114 v1.4/115 v1.4 EC-table fix), F4(input-hashes recomputed: 111=3eefa35 112=6115929 113=4069c39 114=02da9e7 115=80be67e). develop HEAD e37ec38 (no code change — all doc/spec). NEXT = re-run consistency-validator → F7 5-dim convergence COMPLETE → v0.7.0 release gate."
+phase_status: "F7 DELTA CONVERGENCE COMPLETE (2026-06-16) — 5-dim convergence achieved. F7 consistency audit: 4 gaps ALL REMEDIATED (F1 VP-024 coverage-matrix v1.7; F2 arp-arch-delta v1.17+VP-024 v2.3+STORY-113; F3 BCs+STORY-114/115; F4 input-hashes). VP-024 v2.3 residual surrogate prose REMEDIATED. Final input-hashes: 111=3eefa35 112=26fb42d 113=f35bcfc 114=02da9e7 115=80be67e ALL MATCH. Holistic adversary PASS CLEAN (zero findings, 6 dimensions CONVERGED). NEXT = v0.7.0 release gate (human)."
 active_feature: "arp-analyzer"
 feature_arp_status: "F1 Delta Analysis PASSED (human-gated 2026-06-12) — DecodedFrame integration, ADR-008 planned, F2→F7 authorized; release target v0.7.0"
 feature_8_status: "v0.6.0 RELEASED 2026-06-12 — DNP3 TCP analyzer; F7 5-dim CONVERGED; tag v0.6.0 + 4 binaries"
@@ -20,7 +20,8 @@ phase_7_to_release_gate: "PASSED (human-approved 2026-06-09 — D-045)"
 adversary_gate: SATISFIED
 develop_head: e37ec38
 develop_head_confirmed: e37ec38 == origin/develop (verified 2026-06-16; no code change — F7 consistency fixes are doc/spec only)
-arp_f6_hardening_status: "COMPLETE — 5/5 Kani SUCCESSFUL (46/46 project-wide), VP-024 v2.1 LOCKED, fuzz VP-008 16.2M/0, mutants 98.9%; NEXT = F7 delta convergence"
+arp_f6_hardening_status: "COMPLETE — 5/5 Kani SUCCESSFUL (46/46 project-wide), VP-024 v2.3 LOCKED, fuzz VP-008 16.2M/0, mutants 98.9%"
+arp_f7_convergence_status: "CONVERGED — 5-dim met; awaiting v0.7.0 release human gate"
 factory_artifacts_head: see git -C .factory log -1  # updated by this burst
 main_head: 3e29891
 released_version: v0.6.0
@@ -50,14 +51,14 @@ arp_f2_convergence_trajectory: "15→20→~8→~15→~6→~4→~4→~7→~4→~6
 f3_convergence_trajectory: "F3 STRICT WHOLE-CORPUS CONVERGED 3/3 — GATE SATISFIED. Full per-pass detail P1-P38: phase-f5-adversarial/arp-f3-convergence-trajectory.md. P31 FULLY CLEAN (clean-streak 0/3→1/3). P32 reset (STORY-115 storm_findings field; REMEDIATED). P33 reset (BC-2.15.024 parse_errors→malformed_in_window; REMEDIATED). POST-P33 SS-15 FLUSH (6 findings). P34 reset (changelog Artifacts table; REMEDIATED). P35 reset (changelog line-pins; de-pin sweep). P36 FULLY CLEAN (clean-streak 0/3→1/3). P37 FULLY CLEAN (clean-streak 1/3→2/3). P38 FULLY CLEAN — all 4 slices ZERO; A 17th-consec, B converged, C converged, D converged; mount-guards PASSED; clean-streak 2/3→3/3. **F3 STRICT WHOLE-CORPUS ADVERSARIAL GATE SATISFIED** (Passes 36/37/38 consecutive CLEAN). Total: 38 passes."
 f7_convergence_trajectory: "6 fresh-context adversarial passes; final 3 consecutive CONVERGED (0 P0/CRITICAL/HIGH/MEDIUM)"
 consistency_audit: CONSISTENT  # post-F7-consistency-remediation; F1-F4 ALL REMEDIATED 2026-06-16
-input_drift_check: "ARP stories post-F7-consistency-remediation (2026-06-16): STORY-111=3eefa35 MATCH, STORY-112=6115929 MATCH, STORY-113=4069c39 MATCH, STORY-114=02da9e7 MATCH (v1.4; EC-014 table fix), STORY-115=80be67e MATCH (v1.4; EC-011 table fix). ALL 5 ARP STORIES MATCH. Non-ARP STALE pre-existing; does NOT block F7. Prior F-1-recompute values superseded."
+input_drift_check: "ARP stories post-F7-final-closeout (2026-06-16): STORY-111=3eefa35 MATCH, STORY-112=26fb42d MATCH (re-drifted by VP-024 v2.3+arp-arch-delta v1.17; recomputed), STORY-113=f35bcfc MATCH (re-drifted by VP-024 v2.3+arp-arch-delta v1.17; recomputed), STORY-114=02da9e7 MATCH, STORY-115=80be67e MATCH. ALL 5 ARP STORIES MATCH. Non-ARP STALE pre-existing; does NOT block F7."
 ---
 
 # VSDD Pipeline State — wirerust
 
 ## Status
 
-**wirerust v0.6.0 RELEASED (DNP3 TCP analyzer, issue #8). Feature: ARP security analyzer + etherparse 0.16→0.20 migration (F1 PASSED 2026-06-12, D-066); release target v0.7.0. F2 CONVERGED 3/3. F3 CONVERGED 3/3. F4 COMPLETE. F5 GATE SATISFIED 3/3. F6 COMPLETE (PR #250, develop 6e9f2cc). F7 CONSISTENCY AUDIT: initial audit found 4 gaps (F1+F2 MAJOR, F3+F4 MINOR) — ALL doc/spec drift, implementation correct. ALL REMEDIATED 2026-06-16. F7 holistic adversary PASS CLEAN (zero findings, 6 dimensions CONVERGED). develop HEAD e37ec38 (no code change). NEXT = re-run consistency-validator → F7 5-dim convergence COMPLETE → v0.7.0 release gate.**
+**wirerust v0.6.0 RELEASED (DNP3 TCP analyzer, issue #8). Feature: ARP security analyzer + etherparse 0.16→0.20 migration (F1 PASSED 2026-06-12, D-066); release target v0.7.0. F2 CONVERGED 3/3. F3 CONVERGED 3/3. F4 COMPLETE. F5 GATE SATISFIED 3/3. F6 COMPLETE (PR #250, develop 6e9f2cc). F7 DELTA CONVERGENCE COMPLETE (2026-06-16) — 5-dim convergence achieved. VP-024 v2.3 LOCKED. All input-hashes MATCH (111=3eefa35 112=26fb42d 113=f35bcfc 114=02da9e7 115=80be67e). NEXT = v0.7.0 release gate (human).**
 
 **Summary:** 68 stories (48 greenfield + 1 tooling + 19 feature-cycle), 457 pts. 283 BCs (244 pre-F2 + 24 SS-15 + 15 SS-16 ARP), 24 VPs (23 locked + VP-024 ARP draft), 1571 tests green (worktree dcdbf95; develop 7c0f453 = 1552), holdout 0.967. develop HEAD 7c0f453; main HEAD 3e29891 (v0.6.0). ARP feature: F1 approved — SS-16 (18-24 new BCs), VP-024, ADR-008, E-16 (5-6 stories). MITRE T0830+T1557.002. SEEDED=25, EMITTED=17 (on develop 7c0f453). F4 wave 44 (STORY-115): D3 storm detection + --arp-storm-rate + storm_findings VALUE; Step-4.5 CONVERGED 3/3; FINAL E-16 story; PR pending. Wave 43 (STORY-114): D1 spoof escalation + GARP-conflicts + MITRE + VP-007 + --arp-spoof-threshold; DELIVERED PR #240 7c0f453. Wave 42 (STORY-113): full ArpAnalyzer (malformed+GARP+storm) delivered PR #239. Wave 41 (STORY-112): extract_arp_frame + stub + main.rs wiring delivered PR #238. Wave 40 (STORY-111): etherparse 0.20 + DecodedFrame + ArpFrame + symmetric-unreachable delivered PR #236. DF-GREEN-DOC-TENSE-SWEEP v1 added to policies.yaml; sub-rule PG-ARP-F4-REDTEST-DOC-TENSE codified; PG-ARP-F4-MULTIPASS-VALUE positive lesson documented (GARP-storm bypass missed pass 1, caught passes 2+3).
 
@@ -94,11 +95,11 @@ input_drift_check: "ARP stories post-F7-consistency-remediation (2026-06-16): ST
 | Feature: ARP analyzer — F4 Post-Convergence Adversary Re-Streak | **CONVERGED 3/3 — GATE SATISFIED** (re-streak on bcb1bd6; 2026-06-15). Three independent fresh-context passes; each verified field VALUES (D1 HIGH → `Verdict::Likely`) + reject path (non-Ethernet hw/proto → `Err`; D-077) + all 15 BCs' full precondition sets. Pass 3/3 solo for strict independence. Trajectory: `cycles/feature-arp-v0.7.0/arp-f4-wave-adversary-convergence-trajectory.md`. Open LOW: arp.rs:2501 `// RED: will fail if stub not wired` comment on passing STORY-114 test — fold into FU-REPO-WIDE-DOC-DEBT. | GATE SATISFIED |
 | Feature: ARP analyzer — F5 Scoped Adversarial | **GATE SATISFIED 3/3** (2026-06-16, develop 079013d). Full F5 journey: P1+P2 CLEAN on bcb1bd6 → O-A LOW → human FIX → D-078 (PR #247) + D-078b (PR #248) → re-run P1 on 2d2fadf found F-1 MEDIUM VLAN false-positive → PR #249 (079013d) → 3 consecutive fresh-context CLEAN passes on 079013d. Lens: implementation-robustness/security; panic-safety, DoS/LRU caps, integration, etherparse-migration, silent-failure all CLEAN; F-1 VLAN-offset fix verified robust across all link_exts configs. Trajectory: `cycles/feature-arp-v0.7.0/arp-f5-scoped-adversarial-trajectory.md`. | GATE SATISFIED |
 | Feature: ARP analyzer — F6 Formal Hardening | **COMPLETE** (PR #250, develop 6e9f2cc, 2026-06-16). 5/5 VP-024 Kani harnesses VERIFICATION:- SUCCESSFUL (Sub-A ×3, Sub-B ×1, Sub-D ×1); 46/46 project-wide; VP-024 v2.1 LOCKED (verified_at_commit=6e9f2cc; proof_file_hash deferred — FU-F6-KANI-CLEANUP). Sub-D array surrogate confirmed FAITHFUL + branch-fidelity test ADEQUATE + cfg-gate compliant (zero production-binary impact). Fuzz VP-008 decoder: 16.2M execs/0 crashes (covers O-2 QinQ/MACsec paths). Mutants ARP delta: 98.9% kill (1 benign MISSED — `<` vs `<=` tie-break in array surrogate, out of Sub-D Kani scope, by design). Security: cargo-audit 1 allowed warning (RUSTSEC-2026-0097 rand — BUILD-dep via tls-parser/phf_codegen, not runtime, not exploitable); clippy+fmt CLEAN. Code review APPROVE; security PASS. Open follow-ups recorded: FU-F6-KANI-CLEANUP (CR-001/002/003), O-2 (fuzz 16.2M partially addresses it). | COMPLETE |
-| Feature: ARP analyzer — F7 Consistency Audit + Remediation | **ALL REMEDIATED** (2026-06-16, develop e37ec38 — no code change; all doc/spec drift). Initial consistency audit (develop e37ec38) found 4 gaps: F1 MAJOR (VP-024 coverage-matrix status still "draft" → fixed to "verified" in verification-coverage-matrix.md v1.7); F2 MAJOR (Sub-D surrogate name mismatch: "insert_binding_lru_btree" in arp-architecture-delta/VP-024/STORY-113 vs "insert_binding_lru_array" in code → fixed in arp-architecture-delta v1.17 + VP-024 v2.2 + STORY-113 v1.2); F3 MINOR (BC-2.16.008 v1.9/012 v1.4/013 v1.4 + STORY-114 v1.3/115 v1.3 AC bodies fixed + EC-014/EC-011 table rows fixed to v1.4 in this burst); F4 MINOR (input-hashes recomputed: 111=3eefa35 112=6115929 113=4069c39 114=02da9e7 115=80be67e ALL MATCH). F7 holistic convergence adversary PASS CLEAN — ARP feature CONVERGED (zero findings, all 6 dimensions). Regression: GREEN (build/clippy/fmt clean, 1592 tests/0 fail on develop e37ec38). NEXT = re-run consistency-validator to confirm CONSISTENT → F7 5-dim convergence COMPLETE → v0.7.0 release gate. | REMEDIATED — awaiting consistency-validator reconfirmation |
+| Feature: ARP analyzer — F7 Delta Convergence | **CONVERGED — 5-dim COMPLETE** (2026-06-16, develop e37ec38). (1) Regression GREEN (build/clippy/fmt clean, 1592 tests/0 fail); (2) Verification GREEN (VP-024 v2.3 LOCKED, 5/5 Kani SUCCESSFUL, fuzz 16.2M/0, mutants 98.9%); (3) Implementation/spec convergence (F4 3/3 + holdout); (4) Robustness (F5 3/3); (5) Documentation/coherence (F7 consistency CONSISTENT — 4 gaps + VP-024 v2.3 residual ALL REMEDIATED; holistic adversary PASS CLEAN). Final input-hashes: 111=3eefa35 112=26fb42d 113=f35bcfc 114=02da9e7 115=80be67e ALL MATCH. NEXT = v0.7.0 release gate (human). | CONVERGED — awaiting v0.7.0 release human gate |
 
-## Session Resume Checkpoint (2026-06-16 — F7 CONSISTENCY AUDIT REMEDIATED; NEXT = consistency-validator reconfirmation → v0.7.0 release gate)
+## Session Resume Checkpoint (2026-06-16 — F7 DELTA CONVERGENCE COMPLETE; NEXT = v0.7.0 release gate)
 
-**Previous checkpoint (2026-06-16 — F6 TARGETED HARDENING COMPLETE; NEXT = F7 delta convergence) archived to:
+**Previous checkpoint (2026-06-16 — F7 CONSISTENCY AUDIT REMEDIATED) archived to:
 `cycles/feature-arp-v0.7.0/session-checkpoints.md`**
 
 ### A. EXACT PIPELINE POSITION
@@ -114,34 +115,32 @@ input_drift_check: "ARP stories post-F7-consistency-remediation (2026-06-16): ST
 - **F5 Scoped Adversarial: GATE SATISFIED 3/3** (2026-06-16, develop 079013d).
 - **F6 Targeted Hardening: COMPLETE** (PR #250, develop 6e9f2cc, 2026-06-16).
   - 5/5 VP-024 Kani harnesses VERIFICATION:- SUCCESSFUL (46/46 project-wide).
-  - VP-024 v2.2 LOCKED; verified_at_commit=6e9f2cc; Sub-D surrogate = insert_binding_lru_array.
+  - VP-024 v2.3 LOCKED; verified_at_commit=6e9f2cc; Sub-D surrogate = insert_binding_lru_array.
   - Fuzz VP-008: 16.2M execs / 0 crashes. Mutants ARP delta: 98.9% kill (1 benign MISSED by design).
   - Security: cargo-audit 1 allowed RUSTSEC-2026-0097 (transitive BUILD-dep); clippy+fmt CLEAN.
-- **F7 Consistency Audit: ALL 4 FINDINGS REMEDIATED** (2026-06-16 — doc/spec only, zero code change).
-  - F1 MAJOR: VP-024 coverage-matrix v1.7 → status "verified" (was "draft").
-  - F2 MAJOR: Sub-D surrogate rename arp-architecture-delta v1.17 + VP-024 v2.2 + STORY-113 v1.2.
-  - F3 MINOR: BC-2.16.008 v1.9/012 v1.4/013 v1.4 + STORY-114 v1.4/115 v1.4 (AC + EC-table fix).
-  - F4 MINOR: Input-hashes recomputed (all 5 ARP stories MATCH — see §B).
-  - F7 holistic adversary: PASS CLEAN (zero findings, 6 dimensions CONVERGED).
-  - Regression: GREEN (develop e37ec38: build/clippy/fmt clean, 1592 tests/0 fail).
-- **develop HEAD: e37ec38** (no code change — F7 consistency fixes are doc/spec only).
+- **F7 Delta Convergence: COMPLETE — 5-dim convergence achieved** (2026-06-16).
+  - (1) Regression GREEN (build/clippy/fmt clean, 1592 tests/0 fail on develop e37ec38).
+  - (2) Verification GREEN (VP-024 v2.3 LOCKED, 5/5 Kani SUCCESSFUL, fuzz 16.2M/0, mutants 98.9%).
+  - (3) Implementation/spec convergence (F4 3/3 + holdout 15/15 mean 1.0).
+  - (4) Robustness (F5 3/3 — panic-safety, DoS/LRU caps, VLAN-offset, integration all CLEAN).
+  - (5) Documentation/coherence (F7 consistency CONSISTENT — 4 initial gaps + VP-024 v2.3 residual ALL REMEDIATED; holistic adversary PASS CLEAN, zero findings, 6 dimensions CONVERGED).
+  - STORY-112/113 re-drifted (VP-024 v2.3 + arp-arch-delta v1.17 prose sync); recomputed in this burst.
+- **develop HEAD: e37ec38** (no code change — all doc/spec).
 - **Decisions active: D-047..D-F1; do NOT re-adjudicate D-068..D-F1.**
 - **F3-OBL-STORY114-001/002/003 REVOKED** (D-069).
 
-### B. INPUT-HASH STATUS (post-F7-consistency-remediation — all MATCH)
+### B. INPUT-HASH STATUS (post-F7-final-closeout — ALL MATCH)
 
-STORY-111=3eefa35 MATCH | STORY-112=6115929 MATCH | STORY-113=4069c39 MATCH | STORY-114=02da9e7 MATCH (v1.4) | STORY-115=80be67e MATCH (v1.4). Non-ARP STALE pre-existing; does NOT block F7.
+STORY-111=3eefa35 MATCH | STORY-112=26fb42d MATCH (recomputed this burst) | STORY-113=f35bcfc MATCH (recomputed this burst) | STORY-114=02da9e7 MATCH | STORY-115=80be67e MATCH. Non-ARP STALE pre-existing; does NOT block release.
 
-### C. FOLLOW-UP ITEMS (open for release)
+### C. FOLLOW-UP ITEMS (carry to release gate / post-release)
 
-- **FU-F6-KANI-CLEANUP:** CR-001/002/003; define proof_file_hash recomputation method for VP-024.
-- **O-2 / FU-ARP-QINQ-MACSEC-TEST:** F6 fuzz (16.2M) partially addresses; formal fixture tests open.
-- **FU-REPO-WIDE-DOC-DEBT:** Stale RED-gate prose in 13+ test files + arp.rs:2501 + 7 Kani doc-comments. Standalone chore PR.
-- **FU-JSON-CASING:** Align serde to uppercase — deferred.
-- **FU-BC-2.10.007-MARKER:** Verify/update BC-2.10.007 PLANNED marker.
-- **FU-STORM-NEW-ATTR:** arp.rs ~line 272 doc mis-attribution — fold into chore.
-- **BC-2.10-COUNT-POSTMERGE:** BC-2.10.005/008 "23/15" markers → "25/17" — PO dispatch pending.
-- **PG-CONSISTENCY-AUDIT-CONSUMER-SWEEP (OPEN):** F6 lock + Sub-D surrogate switch did NOT propagate to all consuming artifacts (verification-coverage-matrix, arp-architecture-delta, STORY-113) — same DF-CONSISTENCY-AUDIT-POST-FIXBURST-001 class. Fresh consistency-validator caught what holistic adversary missed. Policy/process strengthening OPEN — see drift items.
+- **Sub-D Kani array-surrogate (insert_binding_lru_array):** sanctioned deviation; surface at release gate.
+- **FU-F6-KANI-CLEANUP:** CR-001 (missing kani::cover! on safety harness non-vacuous); CR-002 (cap>0 doc); CR-003 (proof_file_hash deferred).
+- **O-2 / FU-ARP-QINQ-MACSEC-TEST:** F6 fuzz 16.2M partially addresses; explicit fixture tests open.
+- **FU-REPO-WIDE-DOC-DEBT:** arp.rs:2501 // RED comment + ~13 test files. Standalone chore PR.
+- **FU-JSON-CASING, FU-BC-2.10.007-MARKER, FU-STORM-NEW-ATTR, BC-2.10-COUNT-POSTMERGE:** all deferred.
+- **Process gaps:** PG-ARP-FIX-MECHANISM-FIRST, PG-ARP-FIXBURST-CONSUMER-SWEEP, PG-ARP-F4-REDTEST-DOC-TENSE-RECURRENCE — policy codification open.
 
 ### D. DECISIONS CONFIRMED ACTIVE (do not re-adjudicate)
 
@@ -159,14 +158,14 @@ STORY-111=3eefa35 MATCH | STORY-112=6115929 MATCH | STORY-113=4069c39 MATCH | ST
 - Canonical point total = 457 (410 pre-ARP + 47 ARP).
 - SS-15 reset set = SIX windowed fields; `parse_errors` is LIFETIME-only — NEVER in reset set.
 - VP-024 Sub-D: 1 benign MISSED mutant (`<` vs `<=` tie-break in array surrogate) is OUT OF SCOPE by design.
-- Sub-D surrogate function name = `insert_binding_lru_array` (array, not BTreeMap — F2 fix).
+- Sub-D surrogate function name = `insert_binding_lru_array` (array, not BTreeMap).
 
 ### F. RESUME PROCEDURE (COLD-RESUME READY — SESSION-CLEAR SAFE 2026-06-16)
 
 **CONTEXT FOR FRESH SESSION:**
 - **Project:** wirerust. Mode: FEATURE MODE. Active feature: ARP Security Analyzer. GitHub issue #9. Release target: v0.7.0.
-- **Epoch:** F7 CONSISTENCY AUDIT REMEDIATED. NEXT = consistency-validator reconfirmation → v0.7.0 release.
-- **develop HEAD:** e37ec38 == origin/develop (no code change from F7 consistency fixes).
+- **Epoch:** F7 DELTA CONVERGENCE COMPLETE. NEXT = v0.7.0 release gate (human).
+- **develop HEAD:** e37ec38 == origin/develop (no code change).
 - **factory-artifacts HEAD:** see `git -C .factory log -1 --format='%h %s'`
 - **main HEAD:** 3e29891 (v0.6.0).
 - **Active worktrees:** EXACTLY 2 — main repo (develop) + .factory (factory-artifacts). No open PRs.
@@ -180,23 +179,22 @@ gh pr list --state open                                        # expect NO open 
 ```
 
 **Step 3 — WHAT IS COMPLETE (do NOT re-do):**
-F1..F6 ALL COMPLETE. F7 consistency audit ALL REMEDIATED. STORY-111..115 DELIVERED. VP-024 v2.2 LOCKED. D-066..D-F1 ACTIVE.
+F1..F7 ALL COMPLETE. STORY-111..115 DELIVERED. VP-024 v2.3 LOCKED. Input-hashes ALL MATCH. D-066..D-F1 ACTIVE.
 
-**Step 4 — NEXT ACTIONS IN ORDER:**
+**Step 4 — NEXT ACTION:**
 
-1. **Re-run consistency-validator** to confirm CONSISTENT post-F1-F4 fixes.
-2. **F7 5-dim convergence COMPLETE** → declare F7 gate PASSED.
-3. **v0.7.0 release** — gitflow release/0.7.0 → PR → main; tag v0.7.0; 4 binaries.
+1. **v0.7.0 release** — gitflow release/0.7.0 branch → PR → main; tag v0.7.0; 4 binaries (release.yml).
+   - Surface Sub-D Kani array-surrogate sanctioned deviation at release gate.
 
 **Step 5 — KEY PROCESS GAPS:**
 - **PG-ARP-F4-PRMGR-MERGE-SHORTSTOP — 100% RECURRENCE (6/6):** pr-manager halts at APPROVE; orchestrator MUST drive steps 7-9.
-- **PG-CONSISTENCY-AUDIT-CONSUMER-SWEEP:** F6-fixburst consumer propagation gap caught by consistency-validator (not holistic adversary) — strengthen policy DF-CONSISTENCY-AUDIT-POST-FIXBURST-001.
+- **PG-CONSISTENCY-AUDIT-CONSUMER-SWEEP:** F6-fixburst consumer propagation gap — strengthen policy DF-CONSISTENCY-AUDIT-POST-FIXBURST-001.
 
 ### G. KEY ARTIFACT POINTERS
 
 - ARP architecture delta: `.factory/specs/architecture/arp-architecture-delta.md` (v1.17)
 - ADR-008: `.factory/specs/architecture/adr-008.md` (Decision 3 v2.1)
-- VP-024: `.factory/specs/verification-properties/vp-024-arp-parse-safety.md` (v2.2 LOCKED; verified_at_commit=6e9f2cc; Sub-D=insert_binding_lru_array)
+- VP-024: `.factory/specs/verification-properties/vp-024-arp-parse-safety.md` (v2.3 LOCKED; verified_at_commit=6e9f2cc; Sub-D=insert_binding_lru_array)
 - Verification coverage matrix: `.factory/specs/architecture/verification-coverage-matrix.md` (v1.7; VP-024 verified)
 - F6 hardening artifacts: `.factory/phase-f6-hardening/` (kani-results, fuzz-results, mutation-results, security-scan-results)
 - F5 trajectory: `.factory/cycles/feature-arp-v0.7.0/arp-f5-scoped-adversarial-trajectory.md`
