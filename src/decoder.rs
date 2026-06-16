@@ -254,18 +254,86 @@ pub fn decode_packet(data: &[u8], datalink: DataLink) -> Result<DecodedFrame> {
                     data.len(),
                 ))),
                 // Lax parser could not reconstruct a net layer slice.
-                // If the stop_err indicates the ARP layer failed (e.g. a
-                // snaplen-truncated ARP frame where even the lax slicer cannot
-                // recover the ARP payload), return "truncated ARP frame" per
-                // AC-007 / BC-2.16.015. For any other non-IP frame return the
-                // standard "No IP layer found" error.
+                //
+                // D-078 / BC-2.16.009 PC3 / BC-2.16.015 PC-7a/7b:
+                // When stop_err == Layer::Arp, the lax slicer failed at
+                // ArpPacketSlice::from_slice — the ARP payload was too short
+                // for the declared hw/proto sizes.  Two distinct situations
+                // arrive here:
+                //
+                //   (a) MALFORMED: the ARP fixed header (8 bytes) is readable
+                //       and reveals bad field values (hlen != 6 or plen != 4
+                //       or htype != 0x0001 or ptype != 0x0800).  The frame is
+                //       structurally invalid and must route to D11:
+                //       → Err("Non-Ethernet/IPv4 ARP frame").
+                //
+                //   (b) GENUINE TRUNCATION: the fixed header declares valid
+                //       Ethernet/IPv4 field values but the variable section
+                //       was cut short by snaplen.  Must stay a decode-error:
+                //       → Err("truncated ARP frame").
+                //
+                //   (c) HEADER NOT READABLE: the frame is so short that even
+                //       the 8-byte fixed header cannot be read (no field info
+                //       available).  Treat conservatively as truncation:
+                //       → Err("truncated ARP frame").
+                //
+                // Offset derivation: for Ethernet2 link frames the ARP payload
+                // starts at byte 14 (6+6+2 Ethernet header).  We confirm via
+                // lax.link; non-Ethernet or absent link layers use conservative
+                // case (c) rather than assuming an offset.
+                //
+                // All byte accesses use bounds-checked .get() — no panics on
+                // attacker-controlled frame lengths.
                 None => {
                     let is_arp_truncation = lax
                         .stop_err
                         .as_ref()
                         .is_some_and(|(_, layer)| *layer == Layer::Arp);
                     if is_arp_truncation {
-                        Err(anyhow!("truncated ARP frame"))
+                        // Determine the ARP payload offset from the link header.
+                        // Only Ethernet2 frames have a known fixed link-header size (14 bytes).
+                        // For any other link layer, fall back to conservative truncation (case c).
+                        let arp_offset: Option<usize> =
+                            lax.link.as_ref().and_then(|link| match link {
+                                etherparse::LinkSlice::Ethernet2(_) => Some(14),
+                                // `_` covers any future LinkSlice variants added by etherparse;
+                                // conservatively treat as unreadable (case c).
+                                _ => None,
+                            });
+
+                        // Attempt to read the 8-byte ARP fixed header and classify the frame.
+                        //
+                        // ARP fixed header layout (RFC 826):
+                        //   [0..2]  htype  — hardware address type (0x0001 = Ethernet)
+                        //   [2..4]  ptype  — protocol address type (0x0800 = IPv4)
+                        //   [4]     hlen   — hardware address length (6 for Ethernet MAC)
+                        //   [5]     plen   — protocol address length (4 for IPv4)
+                        //   [6..8]  oper   — operation (not inspected here)
+                        //
+                        // If offset is known and frame has >= offset+8 bytes, peek the header.
+                        let malformed = arp_offset.is_some_and(|offset| {
+                            data.get(offset..offset + 8).is_some_and(|arp_hdr| {
+                                let htype = u16::from_be_bytes([arp_hdr[0], arp_hdr[1]]);
+                                let ptype = u16::from_be_bytes([arp_hdr[2], arp_hdr[3]]);
+                                let hlen = arp_hdr[4];
+                                let plen = arp_hdr[5];
+                                // Non-Ethernet/IPv4 field values indicate a malformed frame
+                                // (case a). All-valid values with short variable section is
+                                // genuine truncation (case b) — not malformed.
+                                htype != 0x0001 || ptype != 0x0800 || hlen != 6 || plen != 4
+                            })
+                        });
+
+                        if malformed {
+                            // Case (a): bad fixed-header field(s) visible → D11 (BC-2.16.009
+                            // PC3 / D-078).  Same error string as the strict path so that the
+                            // single main.rs dispatch condition covers both paths.
+                            Err(anyhow!("Non-Ethernet/IPv4 ARP frame"))
+                        } else {
+                            // Case (b) or (c): valid fields or unreadable header → decode-error
+                            // (BC-2.16.015 PC-7b / AC-007).
+                            Err(anyhow!("truncated ARP frame"))
+                        }
                     } else {
                         Err(anyhow!("No IP layer found"))
                     }
