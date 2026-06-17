@@ -1,7 +1,7 @@
 ---
 document_type: architecture-delta
 feature: arp-security-analyzer
-version: "1.17"
+version: "1.19"
 status: draft
 producer: architect
 timestamp: 2026-06-12T00:00:00Z
@@ -137,7 +137,7 @@ Err(SliceError::Len(_)) => {
             });
             match extract_arp_frame(arp, outer_src_mac, data.len()) {
                 Some(frame) => Ok(DecodedFrame::Arp(frame)),
-                None        => Err(anyhow!("truncated ARP frame")),
+                None        => Err(anyhow!("Non-Ethernet/IPv4 ARP frame")),
             }
         }
         // lax_ip_triple is only called from this arm — with a non-ARP net slice.
@@ -147,6 +147,20 @@ Err(SliceError::Len(_)) => {
     }
 }
 ```
+
+> **Spec note (D-078b path-independence, v1.5 correction):** The `None` arm of
+> `extract_arp_frame` returns `Err("Non-Ethernet/IPv4 ARP frame")` — the same D11-trigger
+> string as the strict decode arm — so that a lax-built `ArpPacketSlice` whose 4-part
+> type/size guard fails routes to D11 by the same error-string match, not to the generic
+> decode-error path. This was corrected in BC-2.16.009 v1.5 and BC-2.16.015 v1.4; the
+> "authoritative" snippet above was updated to match in v1.19 (DF-CONSISTENCY-AUDIT).
+>
+> Note also that a malformed-AND-short ARP that etherparse cannot build into any
+> `ArpPacketSlice` lands in the `None` arm of `lax.net` (not `Some(LaxNetSlice::Arp(...))`),
+> where `decode_packet` performs a raw fixed-header peek from the packet bytes at the ARP
+> payload offset derived from `lax.link` plus `Σ lax.link_exts.header_len()`. That peek
+> mechanism is documented in BC-2.16.009 v1.6 / BC-2.16.015 v1.5 and is not shown in
+> this snippet, which covers only the `Some(LaxNetSlice::Arp(_))` (lax-built slice) arm.
 
 **VP-008 / VP-024 Sub-A no-panic guarantee:** The no-panic guarantee is provided by
 `decode_packet`'s interception of `Some(LaxNetSlice::Arp(_))` BEFORE calling
@@ -445,5 +459,7 @@ analyzer/B/C/D (STORY-113) → spoof escalation/MITRE/VP-007 (STORY-114) → sto
 | 1.15 | 2026-06-14 | F-P20-D-001 — §6 STORY-114 BCs-covered column: appended cross-story extension annotation for BC-2.16.007 (D12 MITRE back-fill). STORY-114 inputs BC-2.16.007, carries a "BC-2.16.007 Cross-Story Extension (D12 MITRE)" section + AC-017, and BC-2.16.007's cross-story note names STORY-114 as the D12 MITRE back-fill owner — structurally identical to the existing STORY-115/BC-2.16.010 annotation. STORY-114 primary BC ownership (BC-2.16.004/012/014) unchanged. |
 | 1.16 | 2026-06-14 | F4-surfaced §2.2 inconsistency adjudicated and corrected. BLOCK 1 (lax_ip_triple routes ARP / must NOT use unreachable!) was not type-implementable (lax_ip_triple returns IpTriple, cannot produce DecodedFrame::Arp) and was contradicted by the authoritative BLOCK 2 (decode_packet intercepts ARP in its Err(SliceError::Len(_)) arm before calling lax_ip_triple). Corrected to the symmetric design: BOTH strict_ip_triple AND lax_ip_triple carry provably-dead unreachable! compile-safety guards for their respective ARP arms; decode_packet routes ARP in both the Ok(slice) arm (NetSlice::Arp) and the Err(SliceError::Len(_)) arm (LaxNetSlice::Arp) before calling either helper. VP-008 / VP-024 Sub-A no-panic guarantee is provided by decode_packet's interception + panic-free extract_arp_frame, not by lax_ip_triple routing. Supersedes the prior "lax must not be unreachable" framing (v1.6/v1.8). BC-2.02.009 Invariant 2 + BC-2.16.015 Invariant 2 + Architecture Anchors to be realigned by PO (they currently assert the now-superseded NOT-unreachable framing; corrected wording: lax_ip_triple's LaxNetSlice::Arp(_) arm IS unreachable! — symmetric to strict_ip_triple). STORY-111 GREEN implementation follows the corrected design. ADR-008 Decision 3 simultaneously corrected (v2.1). |
 | 1.17 | 2026-06-16 | F7 consistency F2 — §1 insert_binding_lru bullet and §3.1 Kani proof surrogate narrative corrected: stale `insert_binding_lru_btree` / BTreeMap references replaced with `insert_binding_lru_array` (fixed-capacity array surrogate). CBMC-vs-BTreeMap OOM limitation documented. Shipped signature recorded: `entries: &mut [([u8; 4], [u8; 6], u32); N], len: &mut usize, ip: [u8; 4], mac: [u8; 6], cap: usize`. Surrogate correctness sanctioned by map-implementation-independence (cap invariant is a purely arithmetic property independent of map implementation). |
+| 1.18 | 2026-06-16 | E-17 F2 spec evolution — QinQ/MACsec stacked-link-extension offset-correctness confirmation and EC-009 documented-limitation recorded. No decoder source code change results from E-17: the offset formula `14 + Σ ext.header_len()` at `src/decoder.rs:315-325` is correct as shipped for all reachable variants. Per-variant offset table (confirmed by E-17 research, BC-2.16.009 v1.8, BC-2.16.015 v1.7, and both E-17 test files): no-extension Ethernet2 = 14, single 802.1Q = 18, QinQ (outer 0x88a8 + inner 0x8100) = 22, MACsec Unmodified/no-SCI = 22 [empirically confirmed: `tests/bc_2_16_e17_macsec_offset_tests.rs` `test_BC_2_16_015_macsec_no_sci_unmodified_arp_truncated_offset_22` asserts `arp_offset == 22`; source: etherparse 0.20.2 `macsec_header_slice.rs:246-248` `header_len() = 6 + sci?8:0 + unmodified?2:0` with sci=false yields 8; 14+8=22], MACsec Unmodified/SCI-present = 30 [empirically confirmed: `tests/bc_2_16_e17_macsec_offset_tests.rs` `test_BC_2_16_015_macsec_sci_present_unmodified_arp_truncated_offset_30` asserts `arp_offset == 30`; source: same formula with sci=true yields 16; 14+16=30]. Additional source citations: upstream proptest at `macsec_header.rs:340-347`, stacked-extension conformance test `lax_packet_headers.rs:1371-1419`. (Row refined within v1.18 to add empirical test citations for both documented offset values; no version bump.) Encrypted/Modified MACsec payloads are safe by construction: `stop_err == Layer::Arp` is unreachable for those variants (`lax_packet_headers.rs:364-373` `return result` early exit before inner-ARP block). Documented-unverified boundary: no public on-wire MACsec-over-ARP PCAP exists; MACsec decapsulation commonly occurs at the NIC before pcap capture. This boundary is EC-009 DOCUMENTED-UNVERIFIED; no code change is planned until a failing real-world test demonstrates a defect. BC cross-references: BC-2.16.009 v1.8 (EC-008 updated, EC-009 added) and BC-2.16.015 v1.7 (PC-7a confirmed offsets, EC-008/EC-009 updated). VP-024 status: LOCKED v2.3; this cycle adds a lifecycle append-note only — the QinQ/MACsec offset path is outside VP-024's proof scope (lax-path behavioral observation, not a pure-core function invariant). E-17 test delta: 10 tests across 2 files — `tests/bc_2_16_qinq_macsec_offset_tests.rs` (4 tests: QinQ behavioral, QinQ model-pin, QinQ malformed→D11, and MACsec observe-only probe `test_BC_2_16_015_macsec_arp_lax_parse_probe` which asserts no offset); `tests/bc_2_16_e17_macsec_offset_tests.rs` (6 tests: `test_BC_2_16_015_macsec_no_sci_unmodified_arp_truncated_offset_22`, `test_BC_2_16_015_macsec_sci_present_unmodified_arp_truncated_offset_30`, malformed→D11 for no-SCI/SCI, Modified/opaque-unreachable security guards). The offset==22 and offset==30 assertions reside ONLY in `bc_2_16_e17_macsec_offset_tests.rs`; the qinq file's MACsec test is observe-only and asserts no offset value. Combined with cargo-fuzz VP-008 (16.2M/0 panics), coverage is sufficient. No new Kani harness warranted (lax etherparse path is not a tractable Kani target). |
+| 1.19 | 2026-06-16 | DF-CONSISTENCY-AUDIT (E-17 F2 adversarial finding H-1) — §2.2 "authoritative" decode_packet snippet corrected: `None` arm of `extract_arp_frame` changed from `Err(anyhow!("truncated ARP frame"))` to `Err(anyhow!("Non-Ethernet/IPv4 ARP frame"))` to match the shipped code (commit 9228e34 D-078b path-independence fix) and BC-2.16.009 v1.5 / BC-2.16.015 v1.4. The stale string would have misled an implementer reading the "authoritative" snippet into routing a lax-built slice's extract_arp_frame failure to the generic decode-error path instead of D11. A spec note was also added immediately after the snippet clarifying: (a) the D-078b path-independence correction; (b) that the `None` arm of `lax.net` (peek mechanism, not shown in the `Some(LaxNetSlice::Arp)` snippet) is separately documented in the BCs. No architectural decision, §6 story decomposition, or VP changed. |
 
 > **Convention (enforced):** new changelog rows MUST be appended in strictly ascending version order. Never insert a row above an existing row with a higher version number. This table has regressed twice (F-SA9-LOW-01 at v1.9; Pass-21 at v1.15); ordering is checked on every adversarial pass.

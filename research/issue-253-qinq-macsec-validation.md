@@ -186,6 +186,8 @@ the issue is pure coverage.
 | MACsec (no SCI) | `0x88e5` → (SecTAG) → `0x0806` | 1 × Macsec | **8 + 2 = 10** (see B.5) | **24** (see warning) |
 | MACsec + SCI | `0x88e5` → (SecTAG+SCI) → `0x0806` | 1 × Macsec | **16 + 2 = 18** (see B.5) | **32** (see warning) |
 
+**CORRECTION (E-17 F2):** the offset values 24/32 in the MACsec rows above double-count the 2-byte next-EtherType; the empirically-confirmed values are 22 (no-SCI) and 30 (SCI) — see e17-macsec-offset-deep-dive.md Fact 2/Fact 4 and tests/bc_2_16_e17_macsec_offset_tests.rs. This pre-empirical file is superseded by the deep-dive on these values.
+
 Classification per BC text: at the **correct** offset, `hlen != 6` (or any other non-standard
 fixed-header field) → **D11 malformed**; a valid 8-byte fixed header with a short variable
 section → **truncated** (not D11).

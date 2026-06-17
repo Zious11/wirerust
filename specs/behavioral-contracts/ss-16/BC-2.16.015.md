@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.6"
+version: "1.8"
 status: draft
 producer: product-owner
 timestamp: 2026-06-12T00:00:00Z
@@ -20,6 +20,8 @@ modified:
   - "v1.4: D-078 (F5 finding O-A, human-adjudicated FIX) — PC-7 split into two sub-cases: (7a) lax-built ArpPacketSlice + extract_arp_frame returns None (bad type/size) → Err(\"Non-Ethernet/IPv4 ARP frame\") → D11 malformed finding; (7b) lax parser cannot build ArpPacketSlice at all (stop_err == Layer::Arp, lax.net == None) → Err(\"truncated ARP frame\") → generic decode-error (not D11). Old PC-7 incorrectly described both lax-None sub-cases as Err(\"truncated ARP frame\"). EC-008 added to document the lax-built-slice D11 sub-case explicitly. — 2026-06-15"
   - "v1.5: D-078 mechanism correction — peek-in-None-arm, not lax-built-slice. PC-7a mechanism was based on an incorrect hypothesis: etherparse's ArpPacketSlice::from_slice validates len >= 8 + 2*hlen + 2*plen BEFORE building any slice, so strict and lax both fail together on length. A malformed-AND-short ARP never yields a LaxNetSlice::Arp to inspect. ACTUAL mechanism (commit 9228e34): such frames land in the lax None arm (lax.net == None, stop_err == Layer::Arp); decode_packet derives the ARP payload offset from lax.link (Ethernet2 → offset 14; other/None → conservative truncation path), then bounds-checked-peeks the 8-byte ARP fixed header from raw bytes; non-standard htype/ptype/hlen/plen → Err(\"Non-Ethernet/IPv4 ARP frame\") → D11; valid Ethernet/IPv4 fixed header but truncated variable section, OR too short for 8-byte peek, OR non-Ethernet link → Err(\"truncated ARP frame\") → generic decode-error. PC-7a and PC-7b rewritten; EC-008 updated. Observable D11 outcome unchanged. — 2026-06-15"
   - "v1.6: D-078 F-1 fix — VLAN/link-extension offset correction. The v1.5 text stated the ARP payload offset was derived from lax.link (Ethernet2 → offset 14) with non-Ethernet links falling to the conservative truncation path. This was an oversimplification: VLAN-tagged (802.1Q/802.1ad) and MACsec frames carry link-extension headers in lax.link_exts, which were not accounted for. The actual offset is now: base Ethernet2 header length (from lax.link) PLUS the summed byte-lengths of all link-extension headers in lax.link_exts. A VLAN-tagged ARP is therefore read at the correct offset and classified correctly (non-standard htype/ptype/hlen/plen in a VLAN ARP → D11; genuinely truncated VLAN ARP → conservative truncation path, no false-positive D11). Only genuinely non-Ethernet link layers (e.g. raw/other, where lax.link is not Ethernet2 or is None) still fall to the conservative 'truncated ARP frame' path. PC-7a, PC-7b, and EC-008 updated. Observable D11 outcome and classification logic unchanged for non-VLAN frames. — 2026-06-15"
+  - "v1.7: E-17 F2 spec evolution — QinQ confirmed offset and MACsec documented-limitation clause. PC-7a updated with confirmed offset values for QinQ (+8) and MACsec Unmodified (no-SCI +8 / SCI +16). EC-008 updated with the confirmed offset table. EC-009 added mirroring BC-2.16.009 v1.8 EC-009: MACsec offset correctness proven for all reachable variants; Encrypted/Modified MACsec payloads are safe by construction (unreachable via Layer::Arp); DOCUMENTED-UNVERIFIED boundary for absence of real-traffic fixture. DF-SIBLING-SWEEP with BC-2.16.009 v1.8. — 2026-06-16. EC-009 citation reconciliation to canonical test file bc_2_16_e17_macsec_offset_tests.rs (E-17 F2, DF-SIBLING-SWEEP): no-SCI offset==22 now cites test_BC_2_16_015_macsec_no_sci_unmodified_arp_truncated_offset_22; SCI-present offset==30 now cites test_BC_2_16_015_macsec_sci_present_unmodified_arp_truncated_offset_30; both in tests/bc_2_16_e17_macsec_offset_tests.rs. Replaces previously cited non-existent names from bc_2_16_qinq_macsec_offset_tests.rs. DF-SIBLING-SWEEP: identical change applied to BC-2.16.009 v1.8. EC-008 completeness note (combined/triple-stack untested; formula generalizes) — E-17 F2 Pass-1 remediation. DF-SIBLING-SWEEP: identical change applied to BC-2.16.009. F-2 symbol-pair clarification + O-1 notation fix + O-3 version-pin note — E-17 F2 Pass remediation. DF-SIBLING-SWEEP: identical change applied to BC-2.16.009."
+  - "v1.8: DF-CONSISTENCY-AUDIT (E-17 F2 adversarial finding M-1) — PC-7a QinQ offset-22 citation corrected: added `test_BC_2_16_015_qinq_truncated_benign_arp_no_false_positive_d11` as the test that confirms the actual offset-22 ARP byte-read; `test_BC_2_16_015_qinq_link_exts_offset_formula_pin` retained as the citation for the +8 link-exts-sum invariant only. input-hash field set to null (BCs are not covered by the story input-hash mechanism per CLAUDE.md). DF-SIBLING-SWEEP: BC-2.16.009 receives no corresponding change (it cited only the offset value without citing the pin test by name). — 2026-06-16"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -29,7 +31,7 @@ removal_reason: null
 inputs:
   - .factory/specs/architecture/decisions/ADR-008-arp-link-layer-integration.md
   - .factory/specs/architecture/arp-architecture-delta.md
-input-hash: TBD
+input-hash: null  # BC files are not covered by the story input-hash drift-check mechanism (see CLAUDE.md)
 ---
 
 # BC-2.16.015: Decode-vs-Analysis Separation — DecodedFrame::Arp Always Produced; Analysis Gated on --arp
@@ -81,17 +83,26 @@ it specifies the structural pipeline guarantee rather than a security finding.
    **(7a) Non-standard fixed-header fields detected via raw peek — D11 malformed finding:**
    When `lax.net == None` and `stop_err == Layer::Arp`, `decode_packet` derives the ARP
    payload offset from `lax.link` (Ethernet2 base header length) PLUS the summed byte-lengths
-   of all link-extension headers present in `lax.link_exts` (VLAN 802.1Q/802.1ad, MACsec, etc.).
-   For a plain Ethernet2 frame with no extensions this equals 14; for a single 802.1Q VLAN tag
-   it equals 18; and so on. It then bounds-checked-peeks the 8-byte ARP fixed header from the
+   of all link-extension headers present in `lax.link_exts` via `LaxLinkExtSlice::header_len()`.
+   Confirmed offset values: no-extension Ethernet2 = 14; single 802.1Q VLAN = 18 (14+4); QinQ
+   (outer 0x88a8 + inner 0x8100, two Vlan link_exts) = 22 (14+4+4; the +8
+   link-exts sum is confirmed by `test_BC_2_16_015_qinq_link_exts_offset_formula_pin`;
+   the full offset-22 ARP byte-read is confirmed by
+   `test_BC_2_16_015_qinq_truncated_benign_arp_no_false_positive_d11`); MACsec
+   Unmodified/no-SCI = 22
+   (14+8, `header_len()` == 8: 6-byte SecTag + 2-byte next-EtherType); MACsec
+   Unmodified/SCI-present = 30 (14+16, `header_len()` == 16: 6-byte SecTag + 8-byte SCI +
+   2-byte next-EtherType). It then bounds-checked-peeks the 8-byte ARP fixed header from the
    raw packet bytes at that derived offset: htype (BE u16 at [0..2]), ptype (BE u16 at [2..4]),
    hlen (u8 at [4]), plen (u8 at [5]). If any peeked value is non-standard (`htype != 0x0001`
    OR `ptype != 0x0800` OR `hlen != 6` OR `plen != 4`), `decode_packet` returns
    `Err("Non-Ethernet/IPv4 ARP frame")`. `main.rs` routes this error string to
    `arp_analyzer.record_malformed(packet_len)`, emitting a D11 LOW/Anomaly finding (per
-   BC-2.16.009). This is the **same D11 malformed path** as the strict decode arm, and now
-   applies correctly to VLAN-tagged ARP captures. A `LaxNetSlice::Arp` slice was NEVER built —
-   the detection happens via raw-byte peek in the `None` arm.
+   BC-2.16.009). This is the **same D11 malformed path** as the strict decode arm, and applies
+   correctly to VLAN-tagged, QinQ, and MACsec Unmodified ARP captures. A `LaxNetSlice::Arp`
+   slice was NEVER built — the detection happens via raw-byte peek in the `None` arm. For
+   MACsec: only the Unmodified payload variant can produce `stop_err == Layer::Arp`; see EC-009
+   for the full MACsec documented-limitation clause.
 
    **(7b) Valid fixed-header but truncated variable section, or non-Ethernet link — generic decode-error (NOT D11):**
    When `lax.net == None` and `stop_err == Layer::Arp` AND one of:
@@ -107,16 +118,18 @@ it specifies the structural pipeline guarantee rather than a security finding.
    produce a D11 finding. It is absorbed into the existing generic decode-error handling
    path.
 
-   **The distinction (D-078, updated for VLAN/link-extension frames — F-1 fix):** Sub-case 7a:
-   peek reveals non-standard type/size → D11. Sub-case 7b: peek reveals valid Ethernet/IPv4
-   header (truncated body), or peek cannot be performed (too short / non-Ethernet link) →
-   generic decode-error. The error string is the routing key: `main.rs` dispatches
-   `"Non-Ethernet/IPv4 ARP frame"` → D11; `"truncated ARP frame"` → no D11. The
-   D11/decode-error distinction is attempted for Ethernet2 link-layer captures (including
-   VLAN-tagged and MACsec-wrapped frames where `lax.link_exts` carries the extension headers),
-   with enough bytes for the 8-byte fixed-header peek at the correctly-computed offset. Only
-   genuinely non-Ethernet link layers (e.g. raw/other, where `lax.link` is not `Ethernet2` or
-   is `None`) always take the conservative "truncated ARP frame" path.
+   **The distinction (D-078, updated for VLAN/QinQ/MACsec link-extension frames — F-1 fix,
+   confirmed E-17):** Sub-case 7a: peek reveals non-standard type/size → D11. Sub-case 7b:
+   peek reveals valid Ethernet/IPv4 header (truncated body), or peek cannot be performed (too
+   short / non-Ethernet link) → generic decode-error. The error string is the routing key:
+   `main.rs` dispatches `"Non-Ethernet/IPv4 ARP frame"` → D11; `"truncated ARP frame"` → no
+   D11. The D11/decode-error distinction is attempted for Ethernet2 link-layer captures
+   (including VLAN-tagged, QinQ double-tagged, and MACsec Unmodified-wrapped frames where
+   `lax.link_exts` carries the extension headers), with enough bytes for the 8-byte
+   fixed-header peek at the correctly-computed offset. Only genuinely non-Ethernet link layers
+   (e.g. raw/other, where `lax.link` is not `Ethernet2` or is `None`) always take the
+   conservative "truncated ARP frame" path. For MACsec Encrypted/Modified frames, see EC-009:
+   these never produce `stop_err == Layer::Arp` and therefore never enter sub-case 7a or 7b.
 
 ## Invariants
 
@@ -155,7 +168,8 @@ it specifies the structural pipeline guarantee rather than a security finding.
 | EC-005 | IPv4 frame (EtherType 0x0800) | `Ok(DecodedFrame::Ip(ParsedPacket))` (IP path, unchanged) |
 | EC-006 | IPv6 frame (EtherType 0x86DD) | `Ok(DecodedFrame::Ip(ParsedPacket))` (IP path, unchanged) |
 | EC-007 | NetSlice::Arp in strict_ip_triple | `unreachable!("ARP frames are routed before strict_ip_triple")` — compile-safety arm, never reached at runtime |
-| EC-008 | Malformed-AND-short ARP capture: non-standard htype/ptype/hlen/plen AND frame too short for `ArpPacketSlice::from_slice` to build any slice (lax.net == None, stop_err == Layer::Arp); Ethernet2 link layer (with or without VLAN/802.1Q/802.1ad/MACsec link-extension headers in lax.link_exts) | `Err("Non-Ethernet/IPv4 ARP frame")` — D11 malformed path (PC-7a); raw fixed-header peek at offset derived from Ethernet2 base header + summed lax.link_exts lengths detects non-standard type/size values; routes to `record_malformed` → LOW finding. A `LaxNetSlice::Arp` slice is NEVER built. NOT a "truncated ARP frame" error. VLAN-tagged malformed ARP is classified correctly (no false-positive). Observable D11 outcome unchanged from v1.4/D-078; mechanism corrected in v1.5; offset extended to VLAN/link-extensions in v1.6 (F-1 fix). |
+| EC-008 | Malformed-AND-short ARP capture: non-standard htype/ptype/hlen/plen AND frame too short for `ArpPacketSlice::from_slice` to build any slice (lax.net == None, stop_err == Layer::Arp); Ethernet2 link layer (with or without VLAN/802.1Q/802.1ad/MACsec Unmodified link-extension headers in lax.link_exts) | `Err("Non-Ethernet/IPv4 ARP frame")` — D11 malformed path (PC-7a); raw fixed-header peek at offset derived from Ethernet2 base header + summed lax.link_exts `header_len()` values detects non-standard type/size values. Confirmed offsets: 14 (untagged), 18 (single 802.1Q), 22 (QinQ, confirmed by pin test), 22 (MACsec Unmodified/no-SCI), 30 (MACsec Unmodified/SCI-present). Routes to `record_malformed` → LOW finding. A `LaxNetSlice::Arp` slice is NEVER built. NOT a "truncated ARP frame" error. VLAN-tagged and QinQ malformed ARP is classified correctly (no false-positive). For MACsec Encrypted/Modified: see EC-009 — these never produce `stop_err == Layer::Arp`. Observable D11 outcome unchanged from v1.4/D-078; mechanism corrected in v1.5; offset extended to VLAN/link-extensions in v1.6 (F-1 fix); QinQ and MACsec offset values confirmed in v1.7 (E-17). Combined/triple-stacked extensions (QinQ + MACsec, or ≥3 stacked tags) and MACsec-with-non-ARP-inner are not individually tested; the offset formula 14 + Σ link_exts.header_len() generalizes to them by construction, and the real-on-wire-traffic boundary is per EC-009 part (c). |
+| EC-009 | **MACsec (802.1AE) stacked over ARP — DOCUMENTED-LIMITATION (E-17, DF-SIBLING-SWEEP with BC-2.16.009 v1.8 EC-009).** (a) OFFSET CORRECTNESS — Offset arithmetic is proven (source + proptest + synthetic probe); only real-world traffic existence is unverified (part c). `LaxLinkExtSlice::header_len()` returns the correct SecTag byte count for all reachable MACsec variants: 8 for Unmodified/no-SCI (6-byte SecTag + 2-byte next-EtherType), 16 for Unmodified/SCI-present (6-byte SecTag + 8-byte SCI + 2-byte next-EtherType). The SCI bytes ARE included (etherparse `macsec_header_slice.rs:246-248`) (etherparse 0.20.2 internal line numbers; re-verify on any etherparse version bump — runtime header_len()==8/16 assertions in the e17 tests guard the behavior regardless of line drift). Confirmed arp_offset values for a single MACsec Unmodified tag over Ethernet2: 22 (no-SCI) and 30 (SCI-present). These land exactly on ARP byte 0. Proof sources: etherparse upstream proptest (`macsec_header.rs:340-347`); conformance test asserting `layer_start_offset == Σ header lengths` for stacked extensions (`lax_packet_headers.rs:1371-1419`); wirerust regression test `test_BC_2_16_015_macsec_no_sci_unmodified_arp_truncated_offset_22` in `tests/bc_2_16_e17_macsec_offset_tests.rs` (confirms no-SCI offset == 22); wirerust regression test `test_BC_2_16_015_macsec_sci_present_unmodified_arp_truncated_offset_30` in `tests/bc_2_16_e17_macsec_offset_tests.rs` (confirms SCI-present offset == 30). Both documented offsets (22 and 30) are empirically confirmed by wirerust synthetic tests, not solely by source analysis. (b) ENCRYPTED/MODIFIED PAYLOADS — SAFE BY CONSTRUCTION: Only the Unmodified MACsec payload variant (inner EtherType=ARP exposed) can produce `stop_err == Layer::Arp` and enter the D11/truncation arm. Modified, Encrypted, and EncryptedUnmodified MACsec payloads are opaque. The phenomenon manifests at two layers — these are the same safety property described at different abstraction levels, not a contradiction. At the link-extension layer: etherparse's lax driver matches `LaxMacsecPayloadSlice::Modified { incomplete, payload }` (etherparse-0.20.2 `src/link/lax_macsec_payload_slice.rs:9` — the link-extension payload variant for modified/encrypted MACsec content) and executes `return result` in that arm (`lax_packet_headers.rs:364-373`) before the inner-ARP parse block. At the top-level packet result layer: the overall packet decode result becomes `LaxPayloadSlice::MacsecModified { payload, incomplete }` (etherparse-0.20.2 `src/lax_payload_slice.rs:15`, set by the lax driver at `src/lax_packet_headers.rs:368` — the top-level result for a packet whose MACsec payload is modified/encrypted). The security-guard tests `test_BC_2_16_015_macsec_no_sci_modified_opaque_payload_unreachable` and `test_BC_2_16_015_macsec_sci_present_modified_opaque_payload_unreachable` (in `tests/bc_2_16_e17_macsec_offset_tests.rs`) match on `LaxMacsecPayloadSlice::Modified` to prove that the opaque payload never reaches `Layer::Arp`. `stop_err == Layer::Arp` is unreachable for these variants. This is a security property: treating ciphertext as ARP fields would be semantically wrong. (c) DOCUMENTED-UNVERIFIED BOUNDARY: No public on-wire MACsec-over-ARP PCAP exists (deep web sweep: Wireshark SampleCaptures wiki, packetlife, cloudshark, GitHub fixtures — none carry Unmodified MACsec with inner ARP). The offset arithmetic is proven by etherparse source, upstream proptests, and wirerust synthetic probe tests (parts a above); what remains unverified is solely the existence and behavior of MACsec-over-ARP in real captured traffic. MACsec decapsulation commonly occurs at the NIC before pcap capture, so MACsec-tagged frames may not appear in practice. This boundary is DOCUMENTED-UNVERIFIED; no code change is planned until a failing real-world test demonstrates a defect. |
 
 ## Canonical Test Vectors
 

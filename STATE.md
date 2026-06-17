@@ -98,53 +98,47 @@ input_drift_check: "F7-followup-dispositions burst (2026-06-16): STORY-071=6b408
 | Feature: ARP analyzer — F6 Formal Hardening | **COMPLETE** (PR #250, develop 6e9f2cc, 2026-06-16). 5/5 VP-024 Kani harnesses VERIFICATION:- SUCCESSFUL (Sub-A ×3, Sub-B ×1, Sub-D ×1); 46/46 project-wide; VP-024 v2.1 LOCKED (verified_at_commit=6e9f2cc; proof_file_hash deferred — FU-F6-KANI-CLEANUP). Sub-D array surrogate confirmed FAITHFUL + branch-fidelity test ADEQUATE + cfg-gate compliant (zero production-binary impact). Fuzz VP-008 decoder: 16.2M execs/0 crashes (covers O-2 QinQ/MACsec paths). Mutants ARP delta: 98.9% kill (1 benign MISSED — `<` vs `<=` tie-break in array surrogate, out of Sub-D Kani scope, by design). Security: cargo-audit 1 allowed warning (RUSTSEC-2026-0097 rand — BUILD-dep via tls-parser/phf_codegen, not runtime, not exploitable); clippy+fmt CLEAN. Code review APPROVE; security PASS. Open follow-ups recorded: FU-F6-KANI-CLEANUP (CR-001/002/003), O-2 (fuzz 16.2M partially addresses it). | COMPLETE |
 | Feature: ARP analyzer — F7 Delta Convergence | **CONVERGED — 5-dim COMPLETE** (2026-06-16, develop e37ec38). (1) Regression GREEN (build/clippy/fmt clean, 1592 tests/0 fail); (2) Verification GREEN (VP-024 v2.3 LOCKED, 5/5 Kani SUCCESSFUL, fuzz 16.2M/0, mutants 98.9%); (3) Implementation/spec convergence (F4 3/3 + holdout); (4) Robustness (F5 3/3); (5) Documentation/coherence (F7 consistency CONSISTENT — 4 gaps + VP-024 v2.3 residual ALL REMEDIATED; holistic adversary PASS CLEAN). Final input-hashes: 111=3eefa35 112=26fb42d 113=f35bcfc 114=02da9e7 115=80be67e ALL MATCH. | CONVERGED |
 | Release v0.7.0 | **RELEASED 2026-06-16** — PR #256 (release/0.7.0 → main); merge commit dd8e142; tag v0.7.0; GitHub Release https://github.com/Zious11/wirerust/releases/tag/v0.7.0; 4 binaries (aarch64-apple-darwin, x86_64-apple-darwin, x86_64-pc-windows-msvc, x86_64-unknown-linux-gnu); release.yml run 27645784901 SUCCESS. ARP Security Analyzer (E-16, issue #9). develop merge-back: dd8e142 (branch-protection bypass; gitflow sync; CI-verified via PR #256). | **RELEASED** |
+| E-17: ARP QinQ/MACsec offset hardening (issue #253) — F1 Delta Analysis | **PASSED** (human-gated 2026-06-16) — MACsec offset investigated → NO code bug; documented-limitation evidence-backed. Full F1-F7 rigor authorized; v0.7.1 target. Artifacts: `.factory/phase-f1-delta-analysis/` | PASSED |
+| E-17: ARP QinQ/MACsec offset hardening (issue #253) — F2 Spec Evolution | **ADVERSARIAL STREAK IN PROGRESS** (1 full CLEAN pass achieved; literal 3-consecutive-clean-pass streak in progress on git-frozen baseline; human elected full rigor). Committed: BC-2.16.009 v1.9, BC-2.16.015 v1.8, arp-architecture-delta v1.19, VP-024 v2.4 governance-note, verification-coverage-matrix updated, spec-changelog E-17 entry. Process gaps: 2 runaway-agent incidents + 2 hung-adversary process incidents — [process-gap] for cycle-close lessons. | IN-PROGRESS (streak 1/3) |
 
-## Session Resume Checkpoint (2026-06-16 — demo relocation burst; IDLE)
+## Session Resume Checkpoint (2026-06-16 — E-17 F2 spec-evolution freeze burst)
 
-**Previous checkpoint (2026-06-16 — v0.7.0 post-release audit-trail burst; IDLE) archived to:
+**Previous checkpoint (2026-06-16 — demo relocation burst; IDLE) archived to:
 `cycles/feature-arp-v0.7.0/session-checkpoints.md`**
 
 ### A. EXACT PIPELINE POSITION
 
-- **Project:** wirerust. Mode: STEADY-STATE (idle — no active feature). Last release: v0.7.0.
-- **ARP Security Analyzer (E-16, issue #9): COMPLETE AND RELEASED** 2026-06-16.
-- **F1..F7 ALL CONVERGED AND CLOSED.** STORY-111..115 DELIVERED (PRs #236/#238/#239/#240/#241).
-- **Release:** PR #256 (release/0.7.0 → main); merge commit dd8e142; tag v0.7.0;
-  GitHub Release 4 binaries; release.yml run 27645784901 SUCCESS.
-- **develop HEAD: 480f8ae** == origin/develop (PR #257 "docs(fixtures): index ARP e2e pcap sources" MERGED 2026-06-16T21:23:54Z; tests/fixtures/E2E-PCAPS.md now on develop).
+- **Project:** wirerust. Mode: STEADY-STATE (top-level pipeline IDLE; E-17 sub-cycle IN PROGRESS).
+- **E-17 "ARP QinQ/MACsec offset hardening" (issue #253): CYCLE OPEN.**
+- **E-17 F1:** PASSED (human-gated 2026-06-16). MACsec investigated → NO code bug; documented-limitation; full F1-F7 rigor; v0.7.1 target.
+- **E-17 F2:** Adversarial streak IN PROGRESS (1/3 CLEAN passes achieved; literal 3-consecutive-clean-pass streak on git-frozen baseline; human elected full rigor). Spec-evolution committed: BC-2.16.009 v1.9, BC-2.16.015 v1.8, arp-architecture-delta v1.19, VP-024 v2.4 governance-note, verification-coverage-matrix updated, spec-changelog E-17 entry.
+- **Process incidents:** 2 runaway-agent + 2 hung-adversary process incidents during F2 — [process-gap] recorded for cycle-close lessons.
+- **develop HEAD: 480f8ae** == origin/develop.
 - **main HEAD: dd8e142 (v0.7.0).**
 - **factory-artifacts HEAD:** see `git -C .factory log -1 --format='%h %s'`
 - **Active worktrees:** EXACTLY 2 — main repo (develop) + .factory (factory-artifacts).
-- **Open PRs:** None.
+- **Open PRs:** None (E-17 F2 is spec-only; no source PR yet).
 
-### B. POST-RELEASE AUDIT-TRAIL BURST (2026-06-16)
+### B. E-17 F2 FREEZE BURST (2026-06-16)
 
-Committed to factory-artifacts in prior burst:
-- `research/arp-pcap-sources.md` — research backing for PR #257 / tests/fixtures/E2E-PCAPS.md (ARP e2e pcap source index).
-- `research/arp-followups-validation.md` — DF-VALIDATION-001 audit trail validating filed issues #252/#253/#254/#255; required by CLAUDE.md policy before findings become GitHub issues.
+Committed to factory-artifacts in this burst:
+- Modified specs: BC-2.16.009 v1.9, BC-2.16.015 v1.8, arp-architecture-delta v1.19, VP-024 v2.4, verification-coverage-matrix (updated).
+- New files under `phase-f1-delta-analysis/` and `research/` (E-17 F1 delta analysis + research artifacts).
+- STATE.md: E-17 cycle opened; F1 PASSED + F2 streak 1/3 recorded; DRIFT-VP024-BTREEMAP-PROSE-001 drift item added.
+- VP-024: out-of-scope v2.5 stray entry removed (reverted to v2.4 as final entry; v2.4 frontmatter preserved).
 
-### B2. DEMO RELOCATION BURST (2026-06-16 — PG-ARP-F4-DEMO-LEAK REMEDIATED)
+### C. CARRY-FORWARD (open items)
 
-Previously-pending disposition RESOLVED:
-- `demo-out/arp-v0.7.0` (30 files, 128K) relocated from develop worktree to
-  `.factory/demo-evidence/arp-v0.7.0/` and committed to factory-artifacts.
-- `demo-out/` removed from develop worktree per human authorization (was untracked `??`; no tracked files deleted).
-- develop worktree: CLEAN (no untracked items remaining from this burst).
-- PG-ARP-F4-DEMO-LEAK remediation: COMPLETE.
-
-### C. CARRY-FORWARD (post-release open items)
-
+- **E-17 F2 adversarial streak:** 2 more consecutive CLEAN passes needed to satisfy gate (currently 1/3 on frozen baseline).
 - **#252** VP-024 proof_file_hash + re-lock (post-release).
-- **#253** QinQ/MACsec decoder fixtures (post-release; fuzz 16.2M/0 adequate interim).
 - **#254** Repo-wide RED-prose doc cleanup (post-release; 71 occurrences).
 - **#255** JSON enum casing → snake_case (post-release; maintainer chose snake_case).
-- **PG-ARP-FIX-MECHANISM-FIRST / PG-ARP-FIXBURST-CONSUMER-SWEEP / PG-ARP-F4-REDTEST-DOC-TENSE-RECURRENCE** — codified in drift items / lessons.md; policy codification pending next cycle.
 
-### D. RESUME PROCEDURE (COLD-RESUME READY — SESSION-CLEAR SAFE 2026-06-16)
+### D. RESUME PROCEDURE (E-17 F2 STREAK — SESSION-CLEAR SAFE 2026-06-16)
 
 **CONTEXT FOR FRESH SESSION:**
-- **Project:** wirerust. Mode: STEADY-STATE. No active feature. Latest release: v0.7.0 (ARP Security Analyzer).
-- **develop HEAD:** 480f8ae == origin/develop (PR #257 docs landed post-release).
+- **Project:** wirerust. Mode: STEADY-STATE (top-level). E-17 sub-cycle IN PROGRESS at F2.
+- **develop HEAD:** 480f8ae == origin/develop.
 - **main HEAD:** dd8e142 (v0.7.0).
 - **factory-artifacts HEAD:** see `git -C .factory log -1 --format='%h %s'`
 
@@ -157,19 +151,18 @@ gh pr list --state open                                        # expect none
 ```
 
 **Step 3 — WHAT IS COMPLETE (do NOT re-do):**
-v0.7.0 RELEASED. ARP feature cycle CLOSED. Post-release audit-trail burst committed
-(research/arp-pcap-sources.md + research/arp-followups-validation.md). Open issues:
-#252/#253/#254/#255 (tracked; post-release). demo-out/arp-v0.7.0 pending human disposition.
+E-17 F1 PASSED. E-17 F2 spec-evolution committed and frozen. F2 adversarial streak at 1/3 CLEAN.
+VP-024 v2.4 is the authoritative final entry (stray v2.5 removed). DRIFT-VP024-BTREEMAP-PROSE-001 recorded.
 
 **Step 4 — NEXT ACTION:**
-Await next feature selection or steady-state maintenance task (Dependabot, doc debt, etc.).
-Candidate: pick up one of open issues #252/#253/#254/#255 or roadmap items in Deferred Next-Work Backlog.
+Resume E-17 F2 adversarial streak: dispatch 2 more consecutive fresh-context adversarial passes on the frozen factory-artifacts baseline. On 3/3 CLEAN, declare F2 gate SATISFIED and proceed to F3 story decomposition.
 
-### D. KEY ARTIFACT POINTERS
+### E. KEY ARTIFACT POINTERS
 
-- ARP architecture delta: `.factory/specs/architecture/arp-architecture-delta.md` (v1.17)
-- VP-024: `.factory/specs/verification-properties/vp-024-arp-parse-safety.md` (v2.3 LOCKED; verified_at_commit=6e9f2cc)
-- Verification coverage matrix: `.factory/specs/architecture/verification-coverage-matrix.md` (v1.7)
+- ARP architecture delta: `.factory/specs/architecture/arp-architecture-delta.md` (v1.19)
+- VP-024: `.factory/specs/verification-properties/vp-024-arp-parse-safety.md` (v2.4 LOCKED; verified_at_commit=6e9f2cc)
+- Verification coverage matrix: `.factory/specs/architecture/verification-coverage-matrix.md`
+- E-17 F1 delta analysis: `.factory/phase-f1-delta-analysis/`
 - ARP cycle artifacts: `.factory/cycles/feature-arp-v0.7.0/`
 - Archived checkpoints: `.factory/cycles/feature-arp-v0.7.0/session-checkpoints.md`
 
@@ -280,6 +273,7 @@ Full tech-debt register: `.factory/tech-debt-register.md`.
 | PG-ARP-FIXBURST-CONSUMER-SWEEP | NEW [fixburst-consumer-sweep]: VP-024 v1.8 harness rename (O-1) didn't sweep its 11 consuming artifacts (DF-CONSISTENCY-AUDIT-POST-FIXBURST-001 dim 3 not applied at the rename burst); resolved by reverting rename via PR #246. Lesson: any canonical-symbol rename must grep+update ALL consumers in the same burst, or avoid cosmetic renames entirely. | OPEN — policy codification follow-up |
 | PG-ARP-FIX-MECHANISM-FIRST | F5 O-A adjudication: spec for D-078 was written from incorrect mechanism hypothesis ("lax builds slice + extract None" is impossible) before code mechanism was verified; caused two rounds of spec+story correction (BC v1.4→v1.6) and sibling-seam (D-078b) discovered only at PR review. F-1 (PR #249) strengthens the lesson: a fix that hand-rolls offset/parsing logic (vs delegating to the library) MUST be stress-tested against the library's full input model (here: lax.link_exts / VLAN). Meta-lesson: LOW-severity O-A fix cascaded into 3 PRs + MEDIUM regression — fix-induced-regression risk should weigh into whether a LOW finding is worth fixing vs documenting. | OPEN — process-gap codification; Cycle-Closing Checklist candidate |
 | PG-CONSISTENCY-AUDIT-CONSUMER-SWEEP | [process-gap] F6 lock + Sub-D surrogate rename did NOT propagate to all consuming artifacts (verification-coverage-matrix v1.6 still "draft", arp-architecture-delta v1.16 + VP-024 v2.1 + STORY-113 still named "btree"). Same DF-CONSISTENCY-AUDIT-POST-FIXBURST-001 class as PG-ARP-FIXBURST-CONSUMER-SWEEP. Fresh F7 consistency-validator caught all 4 gaps; F7 holistic adversary missed them. Strengthening needed: (a) post-fixburst consumer-sweep checklist must include verification-coverage-matrix + all consuming stories; (b) holistic adversary prompt must cross-check canonical symbol names across all consumers in same burst. | OPEN — policy strengthening DF-CONSISTENCY-AUDIT-POST-FIXBURST-001 + adversary dispatch template |
+| DRIFT-VP024-BTREEMAP-PROSE-001 | VP-024 Feasibility Assessment 'Input space size' row (~line 582) still reads 'BTreeMap with 8 entries maximum'; shipped Sub-D substrate is the insert_binding_lru_array fixed-capacity array surrogate (v2.3). Append-only erratum needed in a dedicated VP-maintenance pass; out of E-17 scope. Requires DF-VALIDATION-001 before any issue. | DEFERRED LOW |
 
 ## Deferred Next-Work Backlog
 

@@ -14,6 +14,64 @@ changes, invariant rewrites).
 
 ---
 
+## [e17-f2-qinq-macsec-documented-limitation-2026-06-16] — 2026-06-16
+
+### PATCH: BC-2.16.009 v1.7→v1.8 + BC-2.16.015 v1.6→v1.7 — E-17 QinQ/MACsec offset confirmed + MACsec documented-limitation clause
+
+**Feature cycle:** E-17 "ARP Decoder VLAN/QinQ/MACsec Offset Hardening" (issue #253)
+**F1 human gate outcome:** PASSED — documented-limitation, no src/ production change, v0.7.1 patch target.
+**Evidence base:** etherparse 0.20.2 source (`macsec_header_slice.rs:246-248`); etherparse upstream
+proptest (`macsec_header.rs:340-347`); etherparse conformance test (`lax_packet_headers.rs:1371-1419`);
+wirerust observe-only probe test `test_BC_2_16_015_macsec_arp_lax_parse_probe` in
+`tests/bc_2_16_qinq_macsec_offset_tests.rs` (PR #258, 4 tests: QinQ behavioral, QinQ model-pin,
+QinQ malformed→D11, MACsec observe-only probe — no offset assertion); wirerust offset-assertion
+tests `test_BC_2_16_015_macsec_no_sci_unmodified_arp_truncated_offset_22` and
+`test_BC_2_16_015_macsec_sci_present_unmodified_arp_truncated_offset_30` in
+`tests/bc_2_16_e17_macsec_offset_tests.rs` (6 tests, branch test/arp-qinq-macsec-fixtures,
+extends PR #258, committed in F4). The offset==22 and offset==30 arithmetic assertions reside
+ONLY in `bc_2_16_e17_macsec_offset_tests.rs`; the qinq file's MACsec test is observe-only.
+
+**Summary of changes:**
+
+Both BCs receive an incremental documented-limitation clause for stacked link extensions
+covering QinQ and MACsec, satisfying the F2 spec-evolution obligation from the F1 delta
+analysis (§2.2 and §3.4). No observable D11 outcome or precondition gate is changed.
+
+**New EC-009 in both BCs (identical substance; DF-SIBLING-SWEEP):**
+
+> For MACsec-tagged ARP frames (EtherType 0x88E5):
+> (a) Offset correctness — PROVEN: `LaxLinkExtSlice::header_len()` returns 8 for Unmodified/no-SCI
+> (6-byte SecTag + 2-byte next-EtherType) and 16 for Unmodified/SCI-present (6-byte SecTag +
+> 8-byte SCI + 2-byte next-EtherType). The SCI bytes ARE included. Confirmed arp_offset values
+> over Ethernet2: 22 (no-SCI) and 30 (SCI-present), landing exactly on ARP byte 0.
+> (b) Encrypted/Modified payloads — safe by construction: `stop_err == Layer::Arp` is unreachable
+> for Modified, Encrypted, and EncryptedUnmodified MACsec variants (etherparse lax driver executes
+> `return result` before the inner-ARP parse block). These fall to the generic decode path — a
+> security property, not a gap.
+> (c) DOCUMENTED-UNVERIFIED: no public on-wire MACsec-over-ARP PCAP exists; correctness is proven
+> by etherparse source + upstream proptest + synthetic probe test, not real-traffic fixture. No code
+> change planned until a failing real-world test demonstrates a defect.
+
+**Confirmed QinQ offset (also added):** QinQ (outer 0x88a8 + inner 0x8100, two Vlan link_exts)
+= offset 22 (14+4+4); the +8 link-exts sum is confirmed by
+`test_BC_2_16_015_qinq_link_exts_offset_formula_pin`; the full offset-22 ARP byte-read is
+confirmed by `test_BC_2_16_015_qinq_truncated_benign_arp_no_false_positive_d11`.
+(Citation corrected in E-17 F2 adversarial finding M-1.)
+
+**Artifacts affected:**
+
+| Artifact | Change | File |
+|----------|--------|------|
+| BC-2.16.009 | v1.7 → v1.8: Precondition 2 lax-path updated with confirmed QinQ/MACsec offset values; EC-008 updated with full offset table and MACsec Encrypted/Modified note; EC-009 added (documented-limitation clause) | `.factory/specs/behavioral-contracts/ss-16/BC-2.16.009.md` |
+| BC-2.16.015 | v1.6 → v1.7: PC-7a updated with confirmed offset values (QinQ=22, MACsec Unmodified/no-SCI=22, MACsec Unmodified/SCI=30); 7b distinction note updated to name QinQ/MACsec explicitly; EC-008 updated with confirmed offset table; EC-009 added (identical substance to BC-2.16.009 v1.8 EC-009; DF-SIBLING-SWEEP) | `.factory/specs/behavioral-contracts/ss-16/BC-2.16.015.md` |
+
+**No other BCs, stories, VPs, or architecture documents changed in this burst.**
+Story-writer handoff: no story frontmatter `bcs:` array changes (EC additions are additive,
+no existing BC IDs changed). Architect handoff: `arp-architecture-delta.md` v1.17 → v1.18
+(E-17 changelog reference) is architect scope — separate dispatch.
+
+---
+
 ## [bc-2.16.009-015-d078-lax-malformed-d11-2026-06-15] — 2026-06-15
 
 ### PATCH: BC-2.16.009 v1.4→v1.5 + BC-2.16.015 v1.3→v1.4 — D-078 lax-built malformed ARP routes to D11 (F5 O-A fix)
