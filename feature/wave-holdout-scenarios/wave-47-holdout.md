@@ -1,6 +1,6 @@
 ---
 document_type: holdout-scenario
-version: "1.3"  # F-PB-001: absent-UA → present-but-empty UA trigger; F-C-03: [Uncategorized] → ## Uncategorized; F-O-02: drop HTTP/1.1 from evidence examples; F-E-01: HS-W47-006 re-grounded on real path-traversal emission; F-H-001: --output json/csv → --json/--csv throughout
+version: "1.4"  # F-PB-001: absent-UA → present-but-empty UA trigger; F-C-03: [Uncategorized] → ## Uncategorized; F-O-02: drop HTTP/1.1 from evidence examples; F-E-01: HS-W47-006 re-grounded on real path-traversal emission; F-H-001: --output json/csv → --json/--csv throughout; F-K-001: HS-W47-005 reframed as reporter-boundary synthetic (empty evidence not HTTP-producible); F-K-002: HS-W47-010 reframed as reporter-boundary synthetic (divergent MITRE not HTTP-producible)
 status: draft
 producer: product-owner
 timestamp: 2026-06-17T00:00:00Z
@@ -256,7 +256,17 @@ wirerust analyze --http <pcap>
 
 ### Setup
 
-A finding-set of 5 identical-key findings arranged so that:
+**REPORTER-BOUNDARY SYNTHETIC — NOT producible via `--http`.** Every real HTTP
+analyzer finding emits a non-empty single-element evidence vec (`evidence: vec![format!(...)]`
+at every emission site in `src/analyzer/http.rs`); no pcap can yield `evidence = []` from
+the HTTP analyzer. This scenario validates the collapse transform's no-slide logic directly
+at the `TerminalReporter` boundary, mirroring unit AC-015
+(`test_BC_2_11_027_evidence_drawn_from_first_k_members`). The evaluator constructs the
+finding-set synthetically (e.g., via `TerminalReporter` unit test with
+`push_finding_for_testing`, or by constructing a `Vec<Finding>` directly) rather than
+driving it through a pcap.
+
+Synthetic finding-set of 5 identical-key findings arranged so that:
 - `members[0].evidence = []` (empty — no evidence)
 - `members[1].evidence = ["GET /b"]`
 - `members[2].evidence = ["GET /c"]`
@@ -270,11 +280,13 @@ Members[3] and members[4] are never inspected.
 
 **Abstractly:** A 5-member group where the first member has empty evidence.
 
-### Command
+### Evaluation Method
 
-```
-wirerust analyze --http <pcap>
-```
+Invoke `TerminalReporter::render` directly with the synthetic findings slice (unit or
+integration test level). Capture the returned `String` and assert on its content per the
+assertions below. The observable output contract is identical whether driven from a pcap
+or from a synthetic slice — the collapse transform is pure and the assertions are on the
+rendered string only.
 
 ### Expected Assertions
 
@@ -503,7 +515,19 @@ grouped render path."
 
 ### Setup
 
-A finding-set of 3 identical-key findings (same category/verdict/confidence/summary) where:
+**REPORTER-BOUNDARY SYNTHETIC — NOT producible via `--http`.** In the real HTTP
+analyzer each summary string is bound to a fixed `mitre_techniques` array at the emission
+site (e.g., path-traversal always emits `["T1083"]`, empty-UA always emits `[]`). There
+is no HTTP finding type that holds its summary constant across 3 instances while varying
+`mitre_techniques`. T1036 and T1059 are not emitted by the HTTP analyzer at all. This
+scenario validates the collapse transform's "representative finding = group_members[0]"
+MITRE-sourcing rule directly at the `TerminalReporter` boundary, mirroring unit AC-023
+(`test_BC_2_11_026_mitre_line_from_representative_finding`). The evaluator constructs the
+finding-set synthetically (e.g., via `TerminalReporter` unit test with
+`push_finding_for_testing`, or by constructing a `Vec<Finding>` directly).
+
+Synthetic finding-set of 3 identical-key findings (same category/verdict/confidence/summary)
+where:
 - `members[0].mitre_techniques = ["T1036"]`
 - `members[1].mitre_techniques = []`
 - `members[2].mitre_techniques = ["T1059"]`
@@ -512,11 +536,12 @@ All three share the same 4-field collapse key. Collapse is enabled (default).
 
 **Abstractly:** A 3-member collapse group with divergent MITRE technique arrays.
 
-### Command
+### Evaluation Method
 
-```
-wirerust analyze --http <pcap>
-```
+Invoke `TerminalReporter::render` directly with the synthetic findings slice (unit or
+integration test level) for the terminal assertion. Invoke `JsonReporter::render` with the
+same slice for the JSON assertion (assertion 5). The observable output contract is on the
+rendered strings only.
 
 ### Expected Assertions
 

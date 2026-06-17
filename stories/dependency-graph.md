@@ -1,6 +1,6 @@
 ---
 document_type: dependency-graph
-version: "1.6"
+version: "1.7"
 status: draft
 producer: story-writer
 phase: 3
@@ -9,6 +9,7 @@ modified:
   - "2026-06-17 v1.4: Feature #253 (issue #253) — added STORY-116..117 linear chain (E-17 ARP VLAN/QinQ/MACsec offset hardening). total_stories 67→69 (product; STORY-091 tooling separate). total_edges 91→93 (+2: +1 intra (STORY-116→117) + 1 cross-epic (STORY-115→116)). number_of_waves 44→46."
   - "2026-06-17 v1.5: Feature #259 (issue #259, finding-collapse) — added STORY-118 (E-18, wave 47) + STORY-119 (E-18, deferred/unscheduled). total_stories 69→71 (product). total_edges 93→94 (+1 intra: STORY-118→119). number_of_waves 46→47 (STORY-119 unscheduled). STORY-118 depends_on=[] (reporter-only; no new predecessor). STORY-119 depends_on=[STORY-118] (deferred stub)."
   - "2026-06-17 v1.6: Adversarial Burst 2 remediation — corrected subheading Intra-Epic Edges (74→75 edges) to match intra_epic_edges: 75 frontmatter (no edge list changes)."
+  - "2026-06-17 v1.7: Adversarial Burst 5 remediation — stale 69→71 in two live current-state prose assertions (brownfield context note line ~28; acyclicity proof line ~254)."
 total_stories: 71  # product stories only (excludes STORY-091 tooling; all-stories total = 72)
 total_edges: 94
 intra_epic_edges: 75
@@ -25,8 +26,8 @@ traces_to:
 # wirerust Story Dependency Graph
 
 > **Brownfield context:** wirerust is a single-crate offline pcap forensic triage CLI.
-> All 69 product stories formalize behavioral contracts for existing and new shipped code
-> (48 greenfield + F2/F7/F8/F9 feature additions across E-14, E-15, E-16).
+> All 71 product stories formalize behavioral contracts for existing and new shipped code
+> (48 greenfield + F2/F7/F8/F9/F18 feature additions across E-14, E-15, E-16, E-18).
 > Cross-epic dependencies reflect the architecture pipeline layering
 > (L1 Ingest -> L2 Stream -> L3 Domain -> L4 Output -> L0 Entry) defined in
 > `architecture/dependency-graph.md` and `architecture/module-decomposition.md`.
@@ -251,7 +252,7 @@ Waves are computed as `wave(story) = max(wave(dependency)) + 1` (longest-path /
 critical-path method). Stories in the same wave have no dependency between them
 and can be dispatched in parallel.
 
-> **Graph is acyclic:** Kahn's algorithm processes all 69 product stories. No cycle detected.
+> **Graph is acyclic:** Kahn's algorithm processes all 71 product stories. No cycle detected.
 
 ### Wave 1 — 2 stories | Epics: E-1, E-7
 
