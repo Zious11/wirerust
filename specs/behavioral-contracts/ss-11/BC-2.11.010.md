@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.7"
+version: "1.8"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -20,6 +20,7 @@ modified:
   - "v1.5: issue-#259 F2 integrate (v0.8.0 collapse feature) — extend Invariant 3 and add Invariant 4; add EC-006 and EC-007 for collapse-interaction: when collapse_findings=true, evidence rendering for a collapsed group is bounded to at most K=3 representative lines per BC-2.11.027; escape_for_terminal invariant is unchanged and applies identically to each sampled evidence line through the same code path. Added cross-references BC-2.11.025/BC-2.11.027/BC-2.11.029. ADR-0003 (display-layer aggregation subsection) cited. — 2026-06-17"
   - "v1.6 2026-06-17: F2 adversarial pass-3 — fix Invariant 4 and EC-007: change false 'same call site in render_finding_prefix' claim to correct 'same escape_for_terminal FUNCTION' claim; the flat collapse wrapper calls escape_for_terminal directly, NOT via render_finding_prefix's evidence loop (F-F2X-01)"
   - "v1.7 2026-06-17: F2 adversarial pass-4 — F-F2-O01: anchor :203-226 → :203-227; Source Evidence path updated to :203-227"
+  - "v1.8 2026-06-17: F2 adversarial pass-5 — F1: remove residual 'path-(b)' label from Invariant 4 body (BC-2.11.026 path-(b)) → 'The flat collapse wrapper calls...'"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -62,8 +63,9 @@ summary line or any supporting evidence detail -- cannot inject terminal control
    rendering for a collapsed group is bounded to at most K=3 representative lines (BC-2.11.027).
    The `escape_for_terminal` FUNCTION invariant is unchanged: every evidence line that IS
    rendered — whether from a collapsed group or a singleton — goes through `escape_for_terminal`.
-   The flat collapse wrapper (BC-2.11.026 path-(b)) calls `escape_for_terminal` on each sampled
-   evidence line DIRECTLY; it does NOT delegate to `render_finding_prefix`'s evidence loop,
+   The flat collapse wrapper calls `escape_for_terminal` on each sampled
+   evidence line directly (per BC-2.11.026 PC-4 observable line-order contract); it does NOT
+   delegate to `render_finding_prefix`'s evidence loop,
    because that loop renders all entries of a single finding whereas the collapse path samples
    `evidence[0]` across up to K members from different findings (BC-2.11.027 positional model).
    The escape GUARANTEE is preserved — only the structural call path differs. The K-sample cap

@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.4"
+version: "1.5"
 status: draft
 producer: product-owner
 timestamp: 2026-06-17T00:00:00Z
@@ -12,7 +12,7 @@ subsystem: SS-11
 capability: CAP-11
 lifecycle_status: active
 introduced: v0.8.0
-modified: ["v1.1 2026-06-17: F2 adversarial pass-1 — relax suffix colorization: (xN) suffix IS colorized with the header line (no seam for uncolorized suffix in render_finding_prefix); update Invariant 4, PC-4, EC-008 (F-259-02)", "v1.2 2026-06-17: F2 adversarial pass-2 — path-(b) collapse-aware wrapper prescribed as canonical in PC-4 (F-A03); dispatch anchor 149-160→149-162 (F-A05); EC-005 test vector added (F-A06)", "v1.3 2026-06-17: F2 adversarial pass-3 — add evidence emission sentence to PC-4 (F-F2X-03); fix EC row order EC-009/EC-008 → EC-008/EC-009 monotonic (F-F2X-02); fix arch anchor: remove stale 'appended here' alternative", "v1.4 2026-06-17: F2 adversarial pass-4 — F-F2-A01: convert PC-4 from internal-call-structure prescription to observable-behavior contract; remove 'path-(b) function-call graph' normative language; add non-normative implementation note; F-F2-O01: anchor :203-226 → :203-227; update EC-007 STRUCTURAL guarantee to observable-behavior form"]
+modified: ["v1.1 2026-06-17: F2 adversarial pass-1 — relax suffix colorization: (xN) suffix IS colorized with the header line (no seam for uncolorized suffix in render_finding_prefix); update Invariant 4, PC-4, EC-008 (F-259-02)", "v1.2 2026-06-17: F2 adversarial pass-2 — path-(b) collapse-aware wrapper prescribed as canonical in PC-4 (F-A03); dispatch anchor 149-160→149-162 (F-A05); EC-005 test vector added (F-A06)", "v1.3 2026-06-17: F2 adversarial pass-3 — add evidence emission sentence to PC-4 (F-F2X-03); fix EC row order EC-009/EC-008 → EC-008/EC-009 monotonic (F-F2X-02); fix arch anchor: remove stale 'appended here' alternative", "v1.4 2026-06-17: F2 adversarial pass-4 — F-F2-A01: convert PC-4 from internal-call-structure prescription to observable-behavior contract; remove 'path-(b) function-call graph' normative language; add non-normative implementation note; F-F2-O01: anchor :203-226 → :203-227; update EC-007 STRUCTURAL guarantee to observable-behavior form", "v1.5 2026-06-17: F2 adversarial pass-5 — F1: remove residual 'path-(b) separation' label from EC-009 body; reword to observable-behavior form"]
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -102,7 +102,7 @@ attacker-controlled bytes; it does not require additional escaping.
 | EC-006 | collapse_findings=false (opt-out) | No collapse pass runs; no count suffix on any finding; behavior per BC-2.11.028 |
 | EC-007 | show_mitre_grouping=true, multiple identical-key findings | Collapse pass not applied; no count suffix on any finding regardless of group sizes. OBSERVABLE GUARANTEE: no ` (xN)` suffix appears in the terminal output for any grouped-mode finding, at any input volume. This is the same guarantee as BC-2.11.013 Invariant 4 |
 | EC-008 | Group with N=2 and use_color=true | Complete header line (including ` (x2)` suffix) colored per verdict/confidence — the suffix is part of the pre-color `line` string and is colorized together with the summary text |
-| EC-009 | show_mitre_grouping=true, N=100 identical-key findings | 100 individual lines, none with a ` (xN)` suffix — suffix-free guarantee enforced by path-(b) separation even at large N |
+| EC-009 | show_mitre_grouping=true, N=100 identical-key findings | 100 individual lines, none with a ` (xN)` suffix — suffix-free guarantee enforced by the grouped path being structurally suffix-free (it never appends a count suffix), even at large N |
 
 ## Canonical Test Vectors
 

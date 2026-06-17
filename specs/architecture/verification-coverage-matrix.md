@@ -2,7 +2,7 @@
 artifact: architecture-section
 section: verification-coverage-matrix
 traces_to: ARCH-INDEX.md
-version: "1.10"
+version: "1.11"
 status: verified
 producer: architect
 timestamp: 2026-05-20T00:00:00Z
@@ -48,10 +48,13 @@ modified:
     reason: "E-17 F2 governance note — VP-024 row and coverage note unchanged (no new VP, no count change, no tool/phase/module reassignment). E-17 confirmed the QinQ/MACsec lax-path offset formula is outside VP-024 proof scope; existing cargo-fuzz VP-008 coverage (16.2M/0) + 10 new behavioral tests across 2 files (bc_2_16_qinq_macsec_offset_tests.rs: 4 tests incl. MACsec observe-only probe; bc_2_16_e17_macsec_offset_tests.rs: 6 tests incl. offset==22/30 assertions) are sufficient. These behavioral tests are not counted in VP totals (which track formal proof harnesses only). E-17 note added to Coverage Notes. Version bump 1.7→1.8."
   - date: 2026-06-17
     actor: product-owner
-    reason: "Issue #259 F2 integrate (v0.8.0 collapse feature): 5 new BCs BC-2.11.025–029 added (test-sufficient per F1 analysis — no new formal VP). reporter/terminal.rs row unit count grows 1→6 (new collapse unit tests per BC-2.11.025–029 Verification Properties); integration/unit count unchanged (VP-016 unchanged). VP totals unchanged: Kani 11 / proptest 7 / fuzz 1 / integration-unit 5 = 24. Coverage note added. Version bump 1.8→1.9."
+    reason: "Issue #259 F2 integrate (v0.8.0 collapse feature): 5 new BCs BC-2.11.025–029 added (test-sufficient per F1 analysis — no new formal VP). reporter/terminal.rs gains ~5 collapse UNIT TESTS (test-sufficient, not new formal VPs); VP-row total unchanged at 2 (VP-012 + VP-016); total VPs unchanged at 24 (Kani 11 / proptest 7 / fuzz 1 / integration-unit 5 = 24). Coverage note added. Version bump 1.8→1.9."
   - date: 2026-06-17
     actor: product-owner
     reason: "F2 adversarial pass-4 (F-F2-A02): fix stale 'collapse path calls same render_finding_prefix code path' claim in Issue #259 coverage note — corrected to reflect that terminal safety = escape_for_terminal FUNCTION invariant (VP-012); collapse path calls escape_for_terminal directly on each sampled evidence line, does NOT delegate to render_finding_prefix's evidence loop. Citations updated: BC-2.11.010 v1.7 / BC-2.11.027 v1.3 / ADR-0003. Version bump 1.9→1.10."
+  - date: 2026-06-17
+    actor: product-owner
+    reason: "F2 adversarial pass-5 (F2): fix prose nit in Issue #259 v1.8→v1.9 reason field — 'reporter/terminal.rs row unit count grows 1→6' misstated the formal VP row; corrected to: '~5 collapse UNIT TESTS (test-sufficient, not new formal VPs); VP-row total unchanged at 2 (VP-012 + VP-016); total VPs unchanged at 24.' Version bump 1.10→1.11."
 ---
 
 # Verification Coverage Matrix

@@ -14,6 +14,61 @@ changes, invariant rewrites).
 
 ---
 
+## [issue-259-collapse-advpass5-remediation-2026-06-17] — 2026-06-17
+
+### PATCH: Issue #259 F2 Adversarial Pass-5 Remediation — 1 MEDIUM + 1 LOW resolved
+
+**Trigger:** F2 adversarial pass-5 found 1 MEDIUM + 1 LOW (last loose threads from pass-4
+observable-behavior refactor). Corpus near-converged. All remediated in one burst.
+total_bcs=288 unchanged. SS-11=29 unchanged.
+
+#### Finding Dispositions
+
+| Finding | Severity | BC(s) Changed | Resolution |
+|---------|----------|--------------|-----------|
+| F1 | MEDIUM | BC-2.11.010 v1.7→v1.8, BC-2.11.026 v1.4→v1.5, ADR-0003 | Residual "path-(b)" label references removed from 3 normative-body locations: (1) BC-2.11.010 Invariant 4: "(BC-2.11.026 path-(b))" parenthetical deleted — sentence now reads "The flat collapse wrapper calls `escape_for_terminal` on each sampled evidence line directly (per BC-2.11.026 PC-4 observable line-order contract)"; (2) BC-2.11.026 EC-009: "enforced by path-(b) separation" → "enforced by the grouped path being structurally suffix-free (it never appends a count suffix)"; (3) ADR-0003 line 276: "The collapse wrapper (path-(b), BC-2.11.026 PC-4)" → "The collapse path (per BC-2.11.026 PC-4 observable line-order contract)". |
+| F2 | LOW | verification-coverage-matrix.md v1.10→v1.11 | `modified:` reason field for v1.8→v1.9 entry said "reporter/terminal.rs row unit count grows 1→6" — misstated the formal VP row count (VP row stays 2: VP-012 + VP-016; the new tests are test-sufficient unit tests, not formal VPs). Corrected to: "reporter/terminal.rs gains ~5 collapse UNIT TESTS (test-sufficient, not new formal VPs); VP-row total unchanged at 2 (VP-012 + VP-016); total VPs unchanged at 24." |
+
+#### BC Version Summary
+
+| BC/Doc | Before | After |
+|--------|--------|-------|
+| BC-2.11.010 | v1.7 | v1.8 |
+| BC-2.11.026 | v1.4 | v1.5 |
+| verification-coverage-matrix.md | v1.10 | v1.11 |
+
+#### Sibling Sweep Result (path-(a)/path-(b) — COMPLETE)
+
+Full grep across `.factory/specs/` and `docs/adr/0003*` for:
+`path-(b)`, `path (b)`, `path-b`, `path-(a)`, `path (a)`, `path-a`
+
+| Location | Hit | Verdict |
+|----------|-----|---------|
+| `prd.md:381` | "adv-pass-2 path-(b) EC-007" | SAFE — `modified:` history delta note |
+| `prd.md:382` | "adv-pass-2 path-(b))" | SAFE — `modified:` history delta note |
+| `BC-INDEX.md:278` BC-2.11.013 comment | "structural suffix-free guarantee via path-(b)" | SAFE — HTML comment changelog annotation |
+| `BC-INDEX.md:282` BC-2.11.017 comment | "Invariant 5 aligned to path-(b) wrapper" | SAFE — HTML comment changelog annotation |
+| `BC-INDEX.md:291` BC-2.11.026 comment | "path-(b) wrapper canonical in PC-4" + "remove 'path-(b) function-call graph'" | SAFE — HTML comment changelog annotations |
+| `BC-2.11.010.md:65` (Invariant 4) | "The flat collapse wrapper (BC-2.11.026 path-(b))" | FIXED → "The flat collapse wrapper calls...directly (per BC-2.11.026 PC-4 observable line-order contract)" |
+| `BC-2.11.013.md:25` (`modified:` array) | "via path-(b) wrapper" | SAFE — `modified:` history entry |
+| `BC-2.11.026.md:15` (`modified:` array) | multiple "path-(b)" refs | SAFE — `modified:` history entries |
+| `BC-2.11.026.md:105` (EC-009 body) | "enforced by path-(b) separation" | FIXED → "enforced by the grouped path being structurally suffix-free" |
+| `BC-2.11.017.md:25` (`modified:` array) | "path-(b) collapse-aware wrapper" | SAFE — `modified:` history entry |
+| `docs/adr/0003:276` | "The collapse wrapper (path-(b), BC-2.11.026 PC-4)" | FIXED → "The collapse path (per BC-2.11.026 PC-4 observable line-order contract)" |
+
+ZERO normative-body residuals remain after this burst.
+
+#### Files Changed
+
+- `.factory/specs/behavioral-contracts/ss-11/BC-2.11.010.md` (v1.7 → v1.8)
+- `.factory/specs/behavioral-contracts/ss-11/BC-2.11.026.md` (v1.4 → v1.5)
+- `.factory/specs/architecture/verification-coverage-matrix.md` (v1.10 → v1.11)
+- `docs/adr/0003-reporting-pipeline-layering.md` (path-(b) label removed from escape-reuse paragraph)
+- `.factory/specs/behavioral-contracts/BC-INDEX.md` (v1.32 → v1.33; BC-010/026 row annotations updated)
+- `.factory/specs/prd.md` (delta block: BC-2.11.010 pair v1.4→v1.8; BC-2.11.026 pair v1.0→v1.5)
+
+---
+
 ## [issue-259-collapse-advpass4-remediation-2026-06-17] — 2026-06-17
 
 ### PATCH: Issue #259 F2 Adversarial Pass-4 Remediation — 2 HIGH + 2 LOW resolved
