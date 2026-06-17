@@ -2,7 +2,7 @@
 artifact: architecture-section
 section: verification-coverage-matrix
 traces_to: ARCH-INDEX.md
-version: "1.8"
+version: "1.9"
 status: verified
 producer: architect
 timestamp: 2026-05-20T00:00:00Z
@@ -46,6 +46,9 @@ modified:
   - date: 2026-06-16
     actor: architect
     reason: "E-17 F2 governance note — VP-024 row and coverage note unchanged (no new VP, no count change, no tool/phase/module reassignment). E-17 confirmed the QinQ/MACsec lax-path offset formula is outside VP-024 proof scope; existing cargo-fuzz VP-008 coverage (16.2M/0) + 10 new behavioral tests across 2 files (bc_2_16_qinq_macsec_offset_tests.rs: 4 tests incl. MACsec observe-only probe; bc_2_16_e17_macsec_offset_tests.rs: 6 tests incl. offset==22/30 assertions) are sufficient. These behavioral tests are not counted in VP totals (which track formal proof harnesses only). E-17 note added to Coverage Notes. Version bump 1.7→1.8."
+  - date: 2026-06-17
+    actor: product-owner
+    reason: "Issue #259 F2 integrate (v0.8.0 collapse feature): 5 new BCs BC-2.11.025–029 added (test-sufficient per F1 analysis — no new formal VP). reporter/terminal.rs row unit count grows 1→6 (new collapse unit tests per BC-2.11.025–029 Verification Properties); integration/unit count unchanged (VP-016 unchanged). VP totals unchanged: Kani 11 / proptest 7 / fuzz 1 / integration-unit 5 = 24. Coverage note added. Version bump 1.8→1.9."
 ---
 
 # Verification Coverage Matrix
@@ -135,6 +138,17 @@ modified:
   correct for the umbrella VP; the harness file split is a Sub-A implementation detail.
 
 - E-17 (2026-06-16) QinQ/MACsec offset governance note: VP-024 row, tool assignment, phase, and status are unchanged. E-17 confirmed the stacked-link-extension offset formula (`14 + Σ ext.header_len()` in `decode_packet`'s lax-None arm) is outside VP-024's proof scope — it is an effectful etherparse lax-parse path, not a pure-core function target for Kani. Existing coverage is sufficient: cargo-fuzz VP-008 (16.2M iterations / 0 panics, covering `decode_packet` including the lax-None ARP arm) + 10 new behavioral/assertion tests across 2 files (E-17 test delta — NOT counted in the VP-unit totals above, which track formally-verified VP proof harnesses only): `tests/bc_2_16_qinq_macsec_offset_tests.rs` (4 tests: QinQ behavioral, QinQ model-pin, QinQ malformed→D11, and MACsec observe-only probe `test_BC_2_16_015_macsec_arp_lax_parse_probe` — asserts no offset value) and `tests/bc_2_16_e17_macsec_offset_tests.rs` (6 tests: `test_BC_2_16_015_macsec_no_sci_unmodified_arp_truncated_offset_22` asserts arp_offset==22, `test_BC_2_16_015_macsec_sci_present_unmodified_arp_truncated_offset_30` asserts arp_offset==30, malformed→D11 for no-SCI/SCI, Modified/opaque-unreachable security guards; branch test/arp-qinq-macsec-fixtures, extends PR #258, committed in F4). The offset==22 and offset==30 arithmetic assertions reside ONLY in `bc_2_16_e17_macsec_offset_tests.rs`; the qinq file's MACsec test is observe-only. These 10 behavioral tests are separate from the VP proof-harness count; the VP totals (Kani 11 / proptest 7 / fuzz 1 / integration-unit 5 = 24) are unchanged. No new VP warranted. BC cross-references: BC-2.16.009 v1.8 EC-009, BC-2.16.015 v1.7 EC-009. arp-architecture-delta.md bumped to v1.18 with the per-variant offset table and etherparse source citations.
+
+- Issue #259 (v0.8.0 terminal finding collapse): 5 new BCs (BC-2.11.025–029) are
+  **test-sufficient** — no new formal VP warranted per F1 delta analysis §8 rationale:
+  (1) count correctness = Vec.len(), unit test sufficient; (2) no-loss invariant (JSON/CSV
+  unchanged) = enforced by code structure (collapse is private to TerminalReporter) + integration
+  test; (3) terminal safety (escape_for_terminal) = VP-012 unchanged, collapse path calls same
+  render_finding_prefix code path. New unit tests mandated by BC-2.11.025–029 Verification
+  Properties sections (test_BC_2_11_025_*, test_BC_2_11_026_*, test_BC_2_11_027_*,
+  test_BC_2_11_028_*, test_BC_2_11_029_*). These are behavioral unit tests, NOT formal VP
+  harnesses; they are not counted in the VP totals above. VP-012 (proptest, P1, verified) is
+  the sole formal VP touching reporter/terminal.rs; its scope is unchanged.
 
 - `module-criticality.md` defines kill-rate targets that constrain the minimum proof
   depth for each module. CRITICAL modules (reassembly/segment.rs, reassembly/flow.rs,

@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.7"
+version: "1.8"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -20,6 +20,7 @@ modified:
   - "v1.7: PG-ARP-F2-007 — fix stale terminal.rs line anchors shifted by F2 multi-tag additions (STORY-100): render_finding_flat :230-235 → :232-238 (fn decl at 232, closing at 238); Invariant 1 fn ref :230-235 → :232-238; Source Evidence path updated; verified against current HEAD — 2026-06-13"
   - "v1.5: ADR-006 / Decision 13 §13.7 (F2 v0.3.0) — multi-tag rendering: single ID emits 'MITRE: T1036'; multi-tag emits 'MITRE: T0855, T0836' (comma-space separated); empty vec emits no MITRE line. Precondition 2 and EC-003 updated; EC-005/EC-006 added. — 2026-06-09"
   - "v1.6: v19 remap: T0855 → T1692.001 per MITRE ATT&CK for ICS v19.0 revocation. All T0855 technique ID references in Description, Postconditions, EC-005, EC-006, and Canonical Test Vectors updated to T1692.001. Tactic unchanged: IcsImpairProcessControl. Issue #222; audit: mitre-ics-v19-catalog-audit.md. — 2026-06-10"
+  - "v1.8: issue-#259 F2 integrate (v0.8.0 collapse feature) — extend Description and add Invariant 5 and EC-007: when collapse_findings=true (default in v0.8.0), render_finding_flat is called per collapsed group with the collapsed representative Finding, and the header line appends a (xN) count suffix per BC-2.11.026; when N=1 (singleton), the header line is byte-identical to the pre-v0.8.0 output; when collapse_findings=false (--no-collapse), all existing postconditions remain byte-identical to pre-v0.8.0. Cross-references BC-2.11.025/026/028/029. ADR-0003 (display-layer aggregation subsection) cited. — 2026-06-17"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -51,6 +52,14 @@ For multi-element vecs the output is `MITRE: T1692.001, T0836`. Findings with em
 `mitre_techniques` produce no MITRE line. Findings are rendered in their original emission
 order with no tactic bucketing or sorting.
 
+**v0.8.0 collapse interaction (BC-2.11.025/BC-2.11.026):** When `collapse_findings = true`
+(the v0.8.0 default), `render_finding_flat` is called once per collapsed group (not once per
+raw finding). The representative Finding for the group provides the MITRE line content
+unchanged. The header line of the collapsed group gains a ` (xN)` suffix per BC-2.11.026.
+When N=1 (singleton group), the header line is byte-identical to the pre-v0.8.0 output.
+When `collapse_findings = false` (`--no-collapse`), all postconditions in this BC remain
+byte-identical to the pre-v0.8.0 behavior.
+
 ## Preconditions
 
 1. `TerminalReporter.show_mitre_grouping = false` (default).
@@ -73,6 +82,13 @@ order with no tactic bucketing or sorting.
 2. `render_finding_flat` never calls `technique_name()` or `technique_tactic()`.
 3. This mode is the "no --mitre flag" case; grouping requires the `--mitre` CLI flag.
 4. The join separator is `", "` (comma followed by single space). No trailing separator.
+5. **v0.8.0 collapse path (BC-2.11.026):** When `collapse_findings = true`, the call site in
+   the flat dispatch block invokes `render_finding_flat` once per collapsed group (passing the
+   group's representative `&Finding`) and appends the ` (xN)` count suffix to the header line
+   per BC-2.11.026 Postcondition 1. The MITRE line produced by `render_finding_flat` is
+   unchanged; the suffix is appended to the `render_finding_prefix` header line, not to the MITRE
+   line. When `collapse_findings = false` (`--no-collapse`), the flat dispatch block calls
+   `render_finding_flat` once per raw finding, identical to the pre-v0.8.0 code path.
 
 ## Edge Cases
 
@@ -84,6 +100,8 @@ order with no tactic bucketing or sorting.
 | EC-004 | show_mitre_grouping=false, multiple findings | Rendered in emission order |
 | EC-005 | Finding with mitre_techniques=["T1692.001","T0836"] (multi-tag, Modbus register write; T1692.001 = v19 ICS sub-technique, successor to revoked T0855) | "MITRE: T1692.001, T0836\n" (both IDs, comma-space separated) |
 | EC-006 | Finding with mitre_techniques=["T0806","T1692.001"] (burst finding) | "MITRE: T0806, T1692.001\n" |
+| EC-007 | collapse_findings=true, group of N=5 identical findings, mitre_techniques=["T1036"] | Header line: `  [Category] VERDICT (CONFIDENCE) - summary (x5)\n`; MITRE line (from representative finding): `    MITRE: T1036\n`; count suffix appears on the header line, not on the MITRE line |
+| EC-008 | collapse_findings=false (--no-collapse), N=5 identical findings | 5 individual header lines, each without suffix; each with `    MITRE: T1036\n`; byte-identical to pre-v0.8.0 output |
 
 ## Canonical Test Vectors
 
@@ -115,6 +133,9 @@ order with no tactic bucketing or sorting.
 
 - BC-2.11.016 -- contrasts with (grouped mode adds em-dash + name)
 - BC-2.11.013 -- contrasts with (grouped mode adds tactic headers; default mode has none)
+- BC-2.11.025 -- composes with (v0.8.0 collapse: flat dispatch block routes through collapsed groups when collapse=true; this BC governs the MITRE line format per group representative)
+- BC-2.11.026 -- composes with (v0.8.0 collapse: (xN) count suffix on the header line; this BC governs the MITRE line which is a separate output line below the header)
+- BC-2.11.028 -- depends on (--no-collapse opt-out; when flag present, collapse=false and this BC's postconditions are byte-identical to pre-v0.8.0)
 
 ## Architecture Anchors
 

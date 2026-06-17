@@ -1,10 +1,10 @@
 ---
 document_type: prd
 level: L3
-version: "1.25"
+version: "1.26"
 status: draft
 producer: product-owner
-timestamp: 2026-06-14T00:00:00Z
+timestamp: 2026-06-17T00:00:00Z
 phase: 1a
 origin: brownfield
 inputs:
@@ -48,7 +48,7 @@ supplements:
 > ADR-005). Updated Section 1.5 Out of Scope (T0855/T1692.001 and 5 other ICS techniques now emitted).
 > Updated Section 6 KD-005 and KD-003 with Modbus-specific BC references. Added SS-14 rows to
 > Section 7 RTM. Total BC count: 244 (was 219).
-> **→ Current total after all deltas: 283 BCs.**
+> **→ Current total after all deltas: 288 BCs.**
 >
 > **Version 1.2 delta (2026-06-09 — F2 Modbus revision):** Adopts three approved decisions from
 > `f2-fix-directives.md` v2 (Decisions 11, 12, 13). **BREAKING CHANGE targeting v0.3.0:**
@@ -373,6 +373,20 @@ supplements:
 >
 > No new BCs; no BC count change. See `spec-changelog.md` §[pass-24-f3-convergence-2026-06-14].
 
+> **Version 1.26 delta (2026-06-17 — Feature #259 terminal finding collapse, issue #259, v0.8.0):**
+> Added 5 new BCs (BC-2.11.025..029) for the terminal finding collapse feature. Extended 4 existing
+> BCs (BC-2.11.010 v1.4→v1.5, BC-2.11.013 v1.8→v1.9, BC-2.11.017 v1.7→v1.8, BC-2.11.019 v1.4→v1.5)
+> with collapse-interaction clauses. §2.11 index table updated with 5 new rows and a group note.
+> Total BC count: 288 (was 283).
+> Key design decisions (F1-gated, non-negotiable):
+> - OQ-1: DEFAULT-ON collapse; `--no-collapse` opt-out flag (BC-2.11.028).
+> - OQ-2: ALWAYS collapse, no threshold; N=1 singletons render without suffix (BC-2.11.026).
+> - OQ-3: FLAT-MODE ONLY for v0.8.0; grouped/`--mitre` mode deferred to STORY-119 (BC-2.11.013 v1.9 Invariant 4).
+> - OQ-4: K=3 evidence lines per collapsed group; hardcoded constant (BC-2.11.027).
+> No new VP: collapse feature is test-sufficient per F1 analysis; VP-012 (`escape_for_terminal`) unchanged.
+> ADR-0003 extended by architect (display-layer aggregation subsection); cited in all new/extended BCs.
+> See `spec-changelog.md` §[issue-259-collapse-f2-2026-06-17].
+>
 > **Version 1.25 delta (2026-06-14 — Pass-26 post-consistency-flush §2.15 title-sync):**
 > Two §2.15 BC index rows synced to their canonical H1 headings (part of the post-Pass-26
 > full-corpus consistency flush; same burst also covered VP-006 Must→Should table,
@@ -798,9 +812,15 @@ Rust source files, 3,868 source LOC, 282 tests, single crate, Rust 2024 edition,
 | BC-2.11.022 | CsvReporter Joins Evidence Vec Elements with "; " into a Single Cell | P1 | BC-RPT (brownfield extraction, adversarial-review pass-4 finding H-1) |
 | BC-2.11.023 | CsvReporter Implements Reporter Trait and Emits One Row per Finding; Summary and AnalysisSummary Are Ignored | P0 | BC-RPT (brownfield extraction, adversarial-review pass-4 finding H-1) |
 | BC-2.11.024 | CsvReporter Encodes Optional Fields as Empty Strings and mitre_techniques as Semicolon-Joined String | P1 | BC-RPT (brownfield extraction, adversarial-review pass-4 finding H-1) |
+| BC-2.11.025 | Flat-Mode Collapse Groups Findings by (category, verdict, confidence, summary) Key; First-Occurrence Order; Deterministic | P0 | issue-#259 greenfield (v0.8.0) |
+| BC-2.11.026 | Collapsed Group of N≥2 Renders Header with (xN) Suffix; Singleton (N=1) Renders Without Suffix | P0 | issue-#259 greenfield (v0.8.0) |
+| BC-2.11.027 | Collapsed Group Retains at Most K=3 Representative Evidence Lines; Remainder Elided from Terminal Display | P1 | issue-#259 greenfield (v0.8.0) |
+| BC-2.11.028 | --no-collapse Opt-Out Flag Disables Terminal Collapse and Restores One-Line-Per-Finding Rendering; JSON/CSV Unaffected | P0 | issue-#259 greenfield (v0.8.0) |
+| BC-2.11.029 | Collapse is Display-Layer Only; JSON/CSV Reporters Receive Unmodified findings Slice; Non-Repeated Findings Individually Visible in All Outputs | P0 | issue-#259 greenfield (v0.8.0) |
 
-> Full contracts: `behavioral-contracts/ss-11/BC-2.11.001.md` through `BC-2.11.024.md`
-> (BC-2.11.020–024 added adversarial-review pass-4: CsvReporter coverage gap H-1)
+> Full contracts: `behavioral-contracts/ss-11/BC-2.11.001.md` through `BC-2.11.029.md`
+> (BC-2.11.020–024 added adversarial-review pass-4: CsvReporter coverage gap H-1;
+> BC-2.11.025–029 added Feature Mode F2 issue #259: terminal finding collapse, v0.8.0)
 
 ### 2.12 CLI and Entry Point (CAP-12 / CLI Orchestration)
 

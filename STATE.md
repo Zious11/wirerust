@@ -1,13 +1,13 @@
 ---
 pipeline: STEADY_STATE
-phase: released
-phase_status: "v0.7.1 RELEASED + maint-2026-06-17 COMPLETE + reactive fix #220 CLOSED (PR #263 merged; develop 5ed8077). Pipeline STEADY_STATE/IDLE."
-active_feature: "none — E-17 closed"
+phase: feature-f2
+phase_status: "v0.7.1 RELEASED + maint-2026-06-17 COMPLETE + reactive fix #220 CLOSED (PR #263 merged; develop 5ed8077). Feature #259 (finding-collapse) F2 SPEC EVOLUTION COMPLETE — 5 new BCs (2.11.025-029) + 4 extended + ADR-0003 ext + PRD v1.26 (288 BCs). FROZEN BASELINE for F5 adversarial convergence passes."
+active_feature: "E-8 #259 finding-collapse (v0.8.0 target) — F2 FROZEN"
 feature_arp_status: "v0.7.0 RELEASED 2026-06-16 — ARP Security Analyzer (E-16, issue #9); PR #256 dd8e142; tag v0.7.0; 4 binaries (aarch64-apple-darwin, x86_64-apple-darwin, x86_64-pc-windows-msvc, x86_64-unknown-linux-gnu)"
 feature_8_status: "v0.6.0 RELEASED 2026-06-12 — DNP3 TCP analyzer; F7 5-dim CONVERGED; tag v0.6.0 + 4 binaries"
 product: wirerust
 mode: brownfield
-timestamp: 2026-06-17T21:30:00Z
+timestamp: 2026-06-17T22:00:00Z
 maintenance_run: COMPLETE
 maintenance_run_id: maint-2026-06-17
 maintenance_started_at: "2026-06-17"
@@ -94,7 +94,9 @@ input_drift_check: "F7-followup-dispositions burst (2026-06-16): STORY-071=6b408
 
 **Reactive fix #220 CLOSED 2026-06-17 — Modbus write-burst "0s window" cosmetic display bug. PR #263 `fix(modbus): report burst window width not elapsed span in summary` merged to develop (5ed8077). 9/9 CI green; security APPROVE (0 findings); code review APPROVE (3 LOW non-blocking notes); pr-reviewer APPROVE. Scoped cosmetic fix: burst summary string "elapsed_secs" → "window_secs" (`WRITE_BURST_WINDOW_SECS`); no behavioral change; no finding-count/threshold change. BC-2.14.017 bumped to v2.6 (PC1 + new EC-011 same-second/elapsed==0 case). Spec commit 8d5446d on factory-artifacts. Regression test `test_BC_2_14_017_burst_summary_reports_window_width_not_elapsed` added.**
 
-**Summary:** 68 stories (48 greenfield + 1 tooling + 19 feature-cycle), 457 pts. 283 BCs (244 pre-F2 + 24 SS-15 + 15 SS-16 ARP), 24 VPs (VP-024 LOCKED v2.3). STORY-111..115 ALL DELIVERED (PRs #236/#238/#239/#240/#241). Carry-forward open issues: #252 (proof_file_hash), #253 (QinQ/MACsec fixtures), #254 (doc-debt), #255 (JSON snake_case). Process gaps codified: PG-ARP-FIX-MECHANISM-FIRST / PG-ARP-FIXBURST-CONSUMER-SWEEP / PG-ARP-F4-REDTEST-DOC-TENSE-RECURRENCE. develop HEAD 480f8ae (PR #257 docs landed post-release); main HEAD dd8e142 (v0.7.0). Post-release audit-trail burst: research/arp-pcap-sources.md + research/arp-followups-validation.md committed to factory-artifacts.
+**Feature #259 (finding-collapse) F1 PASSED human-gated 2026-06-17 (OQ-1 default-on/--no-collapse; OQ-2 always-collapse; OQ-3 flat-only, grouped→STORY-119; OQ-4 K=3). F2 spec delta written + frozen for adversarial convergence. 5 new BCs (BC-2.11.025-029) + 4 extended (BC-2.11.010/013/017/019) + ADR-0003 extension (display-layer aggregation, Rule 4) + PRD v1.26 + BC-INDEX v1.27 (288 BCs total). Target v0.8.0, epic E-8. ADR-0003 develop-tree change staged as uncommitted working-tree change (rides STORY-118 impl PR in F4). NEXT = F5 adversarial spec convergence passes on frozen baseline.**
+
+**Summary:** 68 stories (48 greenfield + 1 tooling + 19 feature-cycle), 457 pts. 288 BCs (283 prior + 5 new SS-11 #259 collapse), 24 VPs (VP-024 LOCKED v2.3). STORY-111..115 ALL DELIVERED (PRs #236/#238/#239/#240/#241). Carry-forward open issues: #252 (proof_file_hash), #253 (QinQ/MACsec fixtures), #255 (JSON snake_case). #254 CLOSED. Feature #259 (finding-collapse) F2 spec FROZEN — 5 new BCs (BC-2.11.025-029) + 4 extended (BC-2.11.010/013/017/019) + ADR-0003 ext + PRD v1.26. develop HEAD 5ed8077; main HEAD b98a72f (v0.7.1). Target v0.8.0, epic E-8.
 
 ## Maintenance Run (maint-2026-06-17)
 
@@ -187,6 +189,8 @@ ADR-0007 Decision 2 prose-clarity nit — arithmetic-walk thinking artifact; fol
 | E-17: ARP QinQ/MACsec offset hardening (issue #253) — F7 Delta Convergence | **CONVERGED — 5-dim ALL MET** (2026-06-17, PR #258 @ cb2bf06). (1) Regression CI 9/9 GREEN (consistency-validator audit a5e0c652); (2) Verification PASS (VP-024 5/5 Kani SUCCESSFUL + fuzz 6.19M/0 + audit CLEAN + VP counts 24 consistent); (3) Impl/spec convergence (F4 delta 3/3 + holdout 1.00 + AC traces); (4) Robustness (F5 3/3); (5) Documentation/coherence whole-corpus CONSISTENT. F7 HOLISTIC ADVERSARIAL GATE SATISFIED 3/3 — three verified fresh-context CLEAN release-readiness passes on cb2bf06: ad2442cd (P1), acdf40b1 (P2), afeb0e8e (P3); each zero MEDIUM+; all four lenses (coherence/completeness/ship-safety/MACsec-limitation-honesty) confirmed. Delta = PR #258 @ cb2bf06 (test-only, 2 files +1841/-0, zero src/). E-17 cycle F1..F7 CONVERGED. RELEASE-READY for v0.7.1. | **CONVERGED** |
 | Release v0.7.1 | **RELEASED 2026-06-17 — CONFIRMED** — PR #258 (E-17 tests) merged to develop (b94aa6c); PR #260 (release/0.7.1 → main b98a72f); tag v0.7.1 (annotated → b98a72f); release.yml run 27694602320 COMPLETED conclusion=success; 4 binaries PUBLISHED (aarch64-apple-darwin, x86_64-apple-darwin, x86_64-pc-windows-msvc, x86_64-unknown-linux-gnu); GitHub Release isDraft=false https://github.com/Zious11/wirerust/releases/tag/v0.7.1. E-17 ARP VLAN/QinQ/MACsec offset regression hardening (issue #253); test-only; NO runtime behavior change. develop merge-back e1273c8; E-17 cycle CLOSED. Process-gaps ENGINE-NOTE DEFERRED (see Drift Items). | **RELEASED** |
 | Reactive fix: issue #220 Modbus burst-window display | **CLOSED 2026-06-17** — PR #263 `fix(modbus): report burst window width not elapsed span in summary` MERGED to develop (5ed8077). Cosmetic fix: `elapsed_secs` → `window_secs` in burst summary string. No behavioral change; no finding-count/threshold/window-logic change. BC-2.14.017 v2.6 (PC1 + EC-011). Spec commit 8d5446d. 9/9 CI green; security APPROVE (0 findings); code review APPROVE (3 LOW non-blocking); pr-reviewer APPROVE. | **CLOSED** |
+| Feature #259 (finding-collapse, E-8) — F1 Delta Analysis | **PASSED** (human-gated 2026-06-17) — OQ-1 default-on/--no-collapse; OQ-2 always-collapse; OQ-3 flat-only (grouped→STORY-119); OQ-4 K=3. ADR-0003 extension planned (display-layer aggregation, Rule 4). Full F2-F7 authorized; v0.8.0 target, epic E-8. Artifact: `.factory/phase-f1-delta-analysis/issue-259-finding-collapse-delta-analysis.md` | **PASSED** |
+| Feature #259 (finding-collapse, E-8) — F2 Spec Evolution | **COMPLETE — FROZEN BASELINE 2026-06-17** — 5 new BCs (BC-2.11.025 collapse-toggle, .026 always-collapse, .027 flat-only, .028 key-ordering, .029 count-annotation); 4 extended (BC-2.11.010 v1.5, .013 v1.9, .017 v1.8, .019 v1.5); ADR-0003 extension (display-layer aggregation, Rule 4); PRD v1.26; BC-INDEX v1.27 (288 total BCs); verification-coverage-matrix v1.9. FROZEN for F5 adversarial convergence passes. ADR-0003 develop-tree change left uncommitted (rides STORY-118 impl PR in F4). | **FROZEN — AWAITING F5 ADVERSARIAL** |
 
 ## Session Resume Checkpoint (2026-06-17 — reactive fix #220 CLOSED; pipeline STEADY_STATE/IDLE)
 

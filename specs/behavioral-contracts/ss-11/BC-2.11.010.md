@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.4"
+version: "1.5"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -17,6 +17,7 @@ modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
   - "v1.3: Wave-21 wave-level consistency lens — SS-11 reporter VP proof-method family harmonization (DF-SIBLING-SWEEP-001; sibling of the 2026-05-30 VP-020 correction): VP-012 VP-table Proof Method cells corrected unit→proptest; VP-012 proof_method=proptest is authoritative (unbounded Unicode input space) — 2026-05-30"
   - "v1.4: DF-SIBLING-SWEEP-001 — fix stale terminal.rs range anchor: 196-218 → 203-226 (render_finding_prefix fn starts at 203, closes at 226); inline line refs updated: summary escape :197 → :204, evidence escape :215-216 → :222-223; verified against HEAD cfe0112a — 2026-06-01"
+  - "v1.5: issue-#259 F2 integrate (v0.8.0 collapse feature) — extend Invariant 3 and add Invariant 4; add EC-006 and EC-007 for collapse-interaction: when collapse_findings=true, evidence rendering for a collapsed group is bounded to at most K=3 representative lines per BC-2.11.027; escape_for_terminal invariant is unchanged and applies identically to each sampled evidence line through the same code path. Added cross-references BC-2.11.025/BC-2.11.027/BC-2.11.029. ADR-0003 (display-layer aggregation subsection) cited. — 2026-06-17"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -55,6 +56,13 @@ summary line or any supporting evidence detail -- cannot inject terminal control
 2. Both the summary call site and the evidence loop call site use the same `escape_for_terminal`
    function.
 3. This contract applies in both default (flat) and MITRE-grouped rendering modes.
+4. Under the v0.8.0 collapse feature (BC-2.11.025, `collapse_findings = true`), evidence
+   rendering for a collapsed group is bounded to at most K=3 representative lines (BC-2.11.027).
+   The `escape_for_terminal` invariant is unchanged: every evidence line that IS rendered —
+   whether from a collapsed group or a singleton — goes through `escape_for_terminal` via the
+   same call site in `render_finding_prefix`. The K-sample cap reduces the number of evidence
+   lines rendered; it does not bypass or weaken the escape requirement for those that are
+   rendered. The full `Finding.evidence` vec is never mutated (BC-2.11.029).
 
 ## Edge Cases
 
@@ -65,6 +73,8 @@ summary line or any supporting evidence detail -- cannot inject terminal control
 | EC-003 | Control bytes in both summary and evidence | Both escaped independently |
 | EC-004 | Evidence is empty vec | No evidence lines rendered; no crash |
 | EC-005 | Evidence with multiple entries, each with ESC | Each entry independently escaped |
+| EC-006 | collapse_findings=true, group of N>3 findings, each with 1 evidence entry containing ESC | At most 3 evidence lines rendered; each of the 3 rendered lines is individually escaped; evidence from findings 4..N is elided from terminal but remains in raw slice (BC-2.11.027/BC-2.11.029) |
+| EC-007 | collapse_findings=true, representative evidence line contains C1 codepoint | C1 codepoint escaped via escape_for_terminal through the same render_finding_prefix path; collapse path does not bypass the C1 escape |
 
 ## Canonical Test Vectors
 
@@ -97,6 +107,9 @@ summary line or any supporting evidence detail -- cannot inject terminal control
 - BC-2.11.007 -- composes with (BC-007 establishes the escape function; this BC establishes which fields it applies to)
 - BC-2.11.011 -- composes with (analyzer-summary detail values are the third field class that gets escaped)
 - BC-2.09.005 -- depends on (raw bytes in Finding.summary and Finding.evidence are what get escaped here)
+- BC-2.11.025 -- composes with (v0.8.0 collapse: groups findings by key; this BC's escape invariant applies to each sampled evidence line in a collapsed group)
+- BC-2.11.027 -- composes with (v0.8.0 collapse: evidence sampling bounds the evidence lines rendered; escape applies to each rendered line)
+- BC-2.11.029 -- depends on (the raw Finding.evidence vec is never mutated by the collapse pass; escape operates on unmodified evidence strings)
 
 ## Architecture Anchors
 

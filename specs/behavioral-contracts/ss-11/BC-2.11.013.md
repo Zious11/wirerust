@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.8"
+version: "1.9"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -21,6 +21,7 @@ modified:
   - "v1.8: PG-ARP-F2-007 — fix stale terminal.rs line anchors shifted by F2 multi-tag additions (STORY-100): render_findings_grouped fn :260-304 → :272-323 (fn decl at 272, closing at 323); tactic loop :290 → :309; verified against current HEAD — 2026-06-13"
   - "v1.6: ADR-006 / Decision 13 §13.7 (F2 v0.3.0) — tactic-grouping uses mitre_techniques[0] as primary bucket key for multi-tag findings; empty vec -> Uncategorized (replaces None path); Precondition 3 updated; Invariant 2 updated; EC-006 added (multi-tag primary-tactic rule). — 2026-06-09"
   - "v1.7: v19 remap: T0855 → T1692.001 per MITRE ATT&CK for ICS v19.0 revocation. All T0855 technique ID references in Description, Invariant 2, EC-006, and Canonical Test Vectors updated to T1692.001. Tactic unchanged: IcsImpairProcessControl. Issue #222; audit: mitre-ics-v19-catalog-audit.md. — 2026-06-10"
+  - "v1.9: issue-#259 F2 integrate (v0.8.0 collapse feature) — add Invariant 4 and EC-007 explicitly scoping collapse interaction: when show_mitre_grouping=true, the collapse pass (BC-2.11.025) is NOT applied regardless of collapse_findings field value. Grouped mode renders each finding individually. Collapse within grouped/--mitre mode is DEFERRED to STORY-119 (future cycle). Cross-references BC-2.11.025/028/029. ADR-0003 (display-layer aggregation subsection) cited. — 2026-06-17"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -84,6 +85,13 @@ approximation per ADR-006 §13.7; full multi-tactic display is a future enhancem
    on runtime sorting. The reporter does NOT sort `mitre_techniques` before bucketing.
 3. A tactic section is SKIPPED if no findings belong to it. This prevents empty section
    headers in the output.
+4. **v0.8.0 collapse scoping boundary (BC-2.11.025 Invariant 5):** When
+   `show_mitre_grouping = true`, the collapse pass introduced in v0.8.0 (BC-2.11.025) is NOT
+   applied regardless of the `collapse_findings` field value. Grouped mode renders each finding
+   individually, one per `render_finding_grouped` call, with no count suffix. Collapse within
+   grouped/`--mitre` mode is deferred to STORY-119 (future cycle). This invariant preserves the
+   existing BC-2.11.013 behavior exactly when `--mitre` is active, even after v0.8.0 ships the
+   default-on collapse feature for flat mode.
 
 ## Edge Cases
 
@@ -95,6 +103,7 @@ approximation per ADR-006 §13.7; full multi-tactic display is a future enhancem
 | EC-004 | Mix: known + unknown + empty mitre_techniques | Named sections + ## Uncategorized last |
 | EC-005 | Empty findings slice | No FINDINGS section rendered at all (not grouping-mode specific) |
 | EC-006 | Finding with mitre_techniques=["T1692.001","T0836"] (multi-tag) | Groups under MitreTactic::IcsImpairProcessControl (T1692.001's tactic); T0836 visible in inline rendering but does not create a second bucket |
+| EC-007 | show_mitre_grouping=true AND collapse_findings=true (both flags active) | Collapse pass NOT applied; each finding rendered individually per render_finding_grouped; no (xN) count suffix on any finding; grouped-mode behavior unchanged from pre-v0.8.0 (Invariant 4 scoping boundary) |
 
 ## Canonical Test Vectors
 
@@ -129,6 +138,9 @@ approximation per ADR-006 §13.7; full multi-tactic display is a future enhancem
 - BC-2.11.015 -- composes with (None/unknown bucket definition)
 - BC-2.11.016 -- composes with (per-finding line format in grouped mode)
 - BC-2.10.003 -- depends on (all_tactics_in_report_order provides the canonical iteration)
+- BC-2.11.025 -- contrasts with (BC-025 collapse key contract; Invariant 4 here establishes that BC-025 collapse pass is not applied when show_mitre_grouping=true)
+- BC-2.11.028 -- contrasts with (--no-collapse opt-out flag; in grouped mode collapse is already suppressed by show_mitre_grouping guard; --no-collapse has no additional effect)
+- BC-2.11.029 -- composes with (JSON/CSV raw-stream invariant; grouped mode does not affect JSON/CSV unmodified-slice guarantee)
 
 ## Architecture Anchors
 

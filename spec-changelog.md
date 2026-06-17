@@ -14,6 +14,74 @@ changes, invariant rewrites).
 
 ---
 
+## [issue-259-collapse-f2-2026-06-17] — 2026-06-17
+
+### MINOR: Feature #259 — Terminal Finding Collapse (v0.8.0) — F2 Spec Evolution Complete
+
+**Feature:** Collapse repeated identical terminal findings into counted summary lines.
+**Issue:** GitHub #259. **Release target:** v0.8.0. **Epic:** E-8 (Reporting and Output Formats).
+**Stories:** STORY-118 (primary), STORY-119 (grouped-mode extension, deferred).
+
+#### Locked Design Decisions (F1-gated)
+
+| Decision | Choice | Governing BC |
+|----------|--------|--------------|
+| OQ-1: Default-on vs opt-in | DEFAULT-ON; `--no-collapse` opt-out | BC-2.11.028 |
+| OQ-2: Threshold vs always-collapse | ALWAYS-COLLAPSE; N=1 singleton renders without suffix | BC-2.11.026 |
+| OQ-3: Grouped-mode interaction | FLAT-MODE ONLY v0.8.0; grouped/`--mitre` bypasses collapse | BC-2.11.013 v1.9 Invariant 4 |
+| OQ-4: Evidence sample count | K=3 hardcoded constant | BC-2.11.027 |
+
+#### New BCs (5 greenfield, BC-2.11.025–029)
+
+| BC ID | Title | Priority |
+|-------|-------|---------|
+| BC-2.11.025 | Flat-Mode Collapse Groups Findings by (category, verdict, confidence, summary) Key; First-Occurrence Order; Deterministic | P0 |
+| BC-2.11.026 | Collapsed Group of N≥2 Renders Header with (xN) Suffix; Singleton (N=1) Renders Without Suffix | P0 |
+| BC-2.11.027 | Collapsed Group Retains at Most K=3 Representative Evidence Lines; Remainder Elided from Terminal Display | P1 |
+| BC-2.11.028 | --no-collapse Opt-Out Flag Disables Terminal Collapse and Restores One-Line-Per-Finding Rendering; JSON/CSV Unaffected | P0 |
+| BC-2.11.029 | Collapse is Display-Layer Only; JSON/CSV Reporters Receive Unmodified findings Slice; Non-Repeated Findings Individually Visible in All Outputs | P0 |
+
+#### Extended BCs (4 sibling BCs bumped)
+
+| BC ID | Old Version | New Version | Extension Summary |
+|-------|------------|------------|-------------------|
+| BC-2.11.010 | v1.4 | v1.5 | Invariant 4 + EC-006/EC-007: evidence sampling under collapse bounded to K=3; escape_for_terminal invariant unchanged |
+| BC-2.11.013 | v1.8 | v1.9 | Invariant 4 + EC-007: show_mitre_grouping=true suppresses collapse pass; grouped-mode collapse deferred to STORY-119 |
+| BC-2.11.017 | v1.7 | v1.8 | Description updated + Invariant 5 + EC-007/EC-008: render_finding_flat called per collapsed group; (xN) suffix on header line only |
+| BC-2.11.019 | v1.4 | v1.5 | Postcondition 9 + Invariant 7 + EC-008/EC-009: flat FINDINGS dispatch routes through collapse pass; section ordering unchanged |
+
+#### Verification
+
+**No new formal VP.** Feature is test-sufficient per F1 §8:
+- New unit tests required per BC-2.11.025–029 Verification Properties sections.
+- VP-012 (`escape_for_terminal`, proptest, P1) unchanged.
+- Integration test mandate: N identical findings → terminal 1 collapsed + JSON N objects (BC-2.11.029).
+
+#### Architecture
+
+ADR-0003 extended by architect (display-layer aggregation subsection). Not changed by this burst.
+Aggregation key: `(category, verdict, confidence, summary)`. Evidence/mitre_techniques/source_ip/
+timestamp/direction are NOT key fields. Collapse is private to TerminalReporter; JSON/CSV reporters
+receive unmodified slice per ADR-0003 binding rule.
+
+#### Files Changed
+
+- `.factory/specs/behavioral-contracts/ss-11/BC-2.11.025.md` (new)
+- `.factory/specs/behavioral-contracts/ss-11/BC-2.11.026.md` (new)
+- `.factory/specs/behavioral-contracts/ss-11/BC-2.11.027.md` (new)
+- `.factory/specs/behavioral-contracts/ss-11/BC-2.11.028.md` (new)
+- `.factory/specs/behavioral-contracts/ss-11/BC-2.11.029.md` (new)
+- `.factory/specs/behavioral-contracts/ss-11/BC-2.11.010.md` (v1.4 → v1.5)
+- `.factory/specs/behavioral-contracts/ss-11/BC-2.11.013.md` (v1.8 → v1.9)
+- `.factory/specs/behavioral-contracts/ss-11/BC-2.11.017.md` (v1.7 → v1.8)
+- `.factory/specs/behavioral-contracts/ss-11/BC-2.11.019.md` (v1.4 → v1.5)
+- `.factory/specs/behavioral-contracts/BC-INDEX.md` (v1.26 → v1.27; 283→288 total)
+- `.factory/specs/prd.md` (v1.25 → v1.26; §2.11 + delta note + 288 total)
+- `.factory/specs/architecture/verification-coverage-matrix.md` (v1.8 → v1.9; issue-#259 coverage note)
+- `.factory/spec-changelog.md` (this entry)
+
+---
+
 ## [bc-2.14.017-v2.6-burst-summary-window-width-2026-06-17] — 2026-06-17
 
 ### PATCH: BC-2.14.017 v2.5→v2.6 — Burst summary string: elapsed span → configured window width (issue #220)

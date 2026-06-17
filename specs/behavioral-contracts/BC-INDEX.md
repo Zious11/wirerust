@@ -1,10 +1,10 @@
 ---
 document_type: bc-index
 level: L3
-version: "1.26"
+version: "1.27"
 status: draft
 producer: product-owner
-timestamp: 2026-06-13T00:00:00Z
+timestamp: 2026-06-17T00:00:00Z
 phase: 1a
 traces_to: .factory/specs/prd.md
 ---
@@ -31,9 +31,9 @@ traces_to: .factory/specs/prd.md
 > total to 283 active L3 BCs.
 >
 > **Status as of Phase 1a (current):**
-> - Fully written: 283 BCs (all body files verified on disk)
+> - Fully written: 288 BCs (all body files verified on disk; 283 prior + 5 new BC-2.11.025–029 for issue #259 v0.8.0 collapse feature)
 > - Remaining: 0 BCs
-> - PRD index (prd.md): UPDATED -- all 283 L3 BC IDs are registered
+> - PRD index (prd.md): UPDATED -- all 288 L3 BC IDs are registered
 
 ## ss-01: PCAP File Ingestion (CAP-01)
 
@@ -271,21 +271,26 @@ traces_to: .factory/specs/prd.md
 | BC-2.11.007 | TerminalReporter Escapes C0+DEL+C1+Backslash in Finding Summary and Evidence | P0 | [WRITTEN] | BC-RPT-007 |
 | BC-2.11.008 | TerminalReporter Escape Preserves Printable ASCII and UTF-8 | P0 | [WRITTEN] | BC-RPT-008 |
 | BC-2.11.009 | TerminalReporter Escapes C1 Codepoints U+0080-U+009F; U+00A0 Preserved | P0 | [WRITTEN] | BC-RPT-009 | <!-- v1.5: PG-ARP-F2-007 — test fn anchors: escapes_c1_nel_and_csi :375→:544; escapes_c1_range_boundaries :388→:556 -->
-| BC-2.11.010 | TerminalReporter Escapes Both Summary AND Each Evidence Line | P0 | [WRITTEN] | BC-RPT-010 |
+| BC-2.11.010 | TerminalReporter Escapes Both Summary AND Each Evidence Line | P0 | [WRITTEN] | BC-RPT-010 | <!-- v1.5: issue-#259 F2 — Invariant 4 + EC-006/EC-007: collapse-interaction: evidence sampling bounded to K=3 per BC-2.11.027; escape_for_terminal invariant unchanged; cross-refs BC-2.11.025/027/029 -->
 | BC-2.11.011 | TerminalReporter Escapes Analyzer-Summary Detail Values | P0 | [WRITTEN] | BC-RPT-011 |
 | BC-2.11.012 | TerminalReporter End-to-End: C1 CSI in Path-Traversal Finding Escaped | P0 | [WRITTEN] | BC-RPT-012 |
-| BC-2.11.013 | MITRE Grouping Emits Tactic Headers in Canonical Order; Uncategorized Last | P0 | [WRITTEN] | BC-RPT-013 | <!-- v1.8: PG-ARP-F2-007 — render_findings_grouped anchor :260-304→:272-323; tactic loop :290→:309 -->
+| BC-2.11.013 | MITRE Grouping Emits Tactic Headers in Canonical Order; Uncategorized Last | P0 | [WRITTEN] | BC-RPT-013 | <!-- v1.8: PG-ARP-F2-007 — render_findings_grouped anchor :260-304→:272-323; tactic loop :290→:309; v1.9: issue-#259 F2 — Invariant 4 + EC-007: show_mitre_grouping=true suppresses collapse pass; grouped-mode collapse deferred to STORY-119; cross-refs BC-2.11.025/028/029 -->
 | BC-2.11.014 | Within Tactic Bucket: Sort by Verdict, Confidence, Emission Order | P1 | [WRITTEN] | BC-RPT-014 | <!-- v1.6: PG-ARP-F2-007 — sort-closure anchors: verdict_rank :269-275→:287-293; confidence_rank :276-282→:295-301; sort_by_key :284-288→:303-307; bucket push line 266→284 -->
 | BC-2.11.015 | No-Technique or Unknown-ID Findings Land in Uncategorized | P0 | [WRITTEN] | BC-RPT-015 | <!-- v1.7: PG-ARP-F2-007 — render_finding_grouped :244-252→:247-263; Uncategorized bucket :298-303→:317-322 -->
 | BC-2.11.016 | MITRE Grouping Expands Per-Finding Line with Em-Dash and Name | P1 | [WRITTEN] | BC-RPT-016 | <!-- v1.5: mitre_technique→mitre_techniques vec![]; ARP-F2 P14 B7; v1.6: PG-ARP-F2-007 — expansion range :246-251→:249-261; em-dash literal :248→:259 -->
-| BC-2.11.017 | Default Rendering Emits MITRE: <id(s)> Only (No Em-Dash) | P1 | [WRITTEN] | BC-RPT-017 | <!-- v1.5: multi-ID rendering "MITRE: T0855, T0836"; ADR-006 F2 revision; v1.6: example updated to T1692.001 (v19 remap); v1.7: PG-ARP-F2-007 — render_finding_flat anchor :230-235→:232-238 -->
+| BC-2.11.017 | Default Rendering Emits MITRE: <id(s)> Only (No Em-Dash) | P1 | [WRITTEN] | BC-RPT-017 | <!-- v1.5: multi-ID rendering "MITRE: T0855, T0836"; ADR-006 F2 revision; v1.6: example updated to T1692.001 (v19 remap); v1.7: PG-ARP-F2-007 — render_finding_flat anchor :230-235→:232-238; v1.8: issue-#259 F2 — Invariant 5 + EC-007/EC-008: collapse path invokes render_finding_flat per group; (xN) suffix on header line; N=1 byte-identical to pre-v0.8.0; cross-refs BC-2.11.025/026/028 -->
 | BC-2.11.018 | TerminalReporter Colorization: Likely/High=Red Bold, etc. | P2 | [WRITTEN] | BC-RPT-018 | <!-- v1.4: PG-ARP-F2-007 — colorization block :209-220→:209-222 (if-else block closes at 222) -->
-| BC-2.11.019 | TerminalReporter Renders Sections in Correct Order | P1 | [WRITTEN] | BC-RPT-019 |
+| BC-2.11.019 | TerminalReporter Renders Sections in Correct Order | P1 | [WRITTEN] | BC-RPT-019 | <!-- v1.5: issue-#259 F2 — Postcondition 9 + Invariant 7 + EC-008/EC-009: flat FINDINGS dispatch routes through collapse pass when collapse_findings=true; section ordering unchanged; cross-refs BC-2.11.025/026/027/028/029 -->
 | BC-2.11.020 | CsvReporter Emits Exactly Nine Columns in Fixed Header Order | P0 | [WRITTEN] | pass-4 H-1 | <!-- v1.5: column-6 header renamed mitre_technique->mitre_techniques; ADR-006 F2 revision -->
 | BC-2.11.021 | CsvReporter Neutralizes CSV-Injection Trigger Characters with a Leading Single Quote | P0 | [WRITTEN] | pass-4 H-1 | <!-- v1.4: PG-ARP-F2-007 — neutralize application range :89-97→:92-103 (STORY-100 added mitre_techniques column) -->
 | BC-2.11.022 | CsvReporter Joins Evidence Vec Elements with "; " into a Single Cell | P1 | [WRITTEN] | pass-4 H-1 | <!-- v1.4: PG-ARP-F2-007 — evidence neutralize call :93→:98 (shifted by mitre_techniques column addition) -->
 | BC-2.11.023 | CsvReporter Implements Reporter Trait and Emits One Row per Finding; Summary and AnalysisSummary Are Ignored | P0 | [WRITTEN] | pass-4 H-1 |
 | BC-2.11.024 | CsvReporter Encodes Optional Fields as Empty Strings and mitre_techniques as Semicolon-Joined String | P1 | [WRITTEN] | pass-4 H-1 | <!-- v1.5: ADD-ON 2 — EC-015 added (consumer split guard for empty-cell); EC-001 strengthened (empty string not null/[]/N/A); Inv 4 explicit empty-string wording; v1.7: Pass-15 D-01: Evidence Types Updated; v1.8: PG-ARP-F2-007 — neutralize anchor :94-97→:99-102; pc1 clarified join@:87 vs neutralize@:99 -->
+| BC-2.11.025 | Flat-Mode Collapse Groups Findings by (category, verdict, confidence, summary) Key; First-Occurrence Order; Deterministic | P0 | [WRITTEN] | issue-#259 greenfield |
+| BC-2.11.026 | Collapsed Group of N≥2 Renders Header with (xN) Suffix; Singleton (N=1) Renders Without Suffix | P0 | [WRITTEN] | issue-#259 greenfield |
+| BC-2.11.027 | Collapsed Group Retains at Most K=3 Representative Evidence Lines; Remainder Elided from Terminal Display | P1 | [WRITTEN] | issue-#259 greenfield |
+| BC-2.11.028 | --no-collapse Opt-Out Flag Disables Terminal Collapse and Restores One-Line-Per-Finding Rendering; JSON/CSV Unaffected | P0 | [WRITTEN] | issue-#259 greenfield |
+| BC-2.11.029 | Collapse is Display-Layer Only; JSON/CSV Reporters Receive Unmodified findings Slice; Non-Repeated Findings Individually Visible in All Outputs | P0 | [WRITTEN] | issue-#259 greenfield |
 
 ## ss-12: CLI and Entry Point (Cross-Cutting)
 
@@ -463,6 +468,7 @@ traces_to: .factory/specs/prd.md
 | BC-MIT-001..009 | 9 | BC-2.10.001..009 |
 | BC-RPT-001..019 | 19 | BC-2.11.001..019 |
 | pass-4 H-1 (CsvReporter) | 5 | BC-2.11.020..024 |
+| feature-259-F2 collapse (greenfield) | 5 | BC-2.11.025..029 |
 | BC-CLI-001..017 | 17 | BC-2.12.001..017 |
 | BC-SUM-001..004 | 4 | BC-2.12.018..021 |
 | BC-ABS-001..010 | 10 | BC-2.13.001..004 (6 ABS retired by remediation cycle) |
@@ -470,7 +476,7 @@ traces_to: .factory/specs/prd.md
 | feature-008-F2 DNP3/ICS (greenfield) | 24 | BC-2.15.001..024 |
 | feature-009-F2 ARP security (greenfield) | 15 | BC-2.16.001..015 |
 
-**Total BCs: 283. Canonical derivation: 218 draft ingestion BCs produced − 6 retired (BC-ABS-004..009) = 212 active from ingestion; + 5 post-ingestion pass-4 additions (BC-2.11.020..024) = 217; + 2 Feature Mode F2 additions (BC-2.04.055, BC-2.09.007) for issue #100 = 219 active BCs; + 25 Feature Mode F2 additions (BC-2.14.001..025) for issue #7 Modbus/ICS analyzer = 244 active BCs; + 22 Feature Mode F2 additions (BC-2.15.001..022) for issue #8 DNP3/ICS analyzer = 266 active BCs; + 2 research must-add additions (BC-2.15.023..024) for issue #8 post-gate F2 scope validation = 268 active BCs; + 15 Feature Mode F2 additions (BC-2.16.001..015) for issue #9 ARP security analyzer = 283 active BCs. BC-2.02.009 was revised to v1.6 (ADR-008 Decision 1, three-way postcondition) — a revision, not a new BC; count unchanged at each prior step. The mapping table above has 223 physical rows (218 ingestion-batch rows + 5 pass-4 rows) for pre-Modbus BCs; SS-14 adds 25 greenfield rows not in the ingestion batch; SS-15 adds 24 greenfield rows; SS-16 adds 15 greenfield rows.**
+**Total BCs: 288. Canonical derivation: 218 draft ingestion BCs produced − 6 retired (BC-ABS-004..009) = 212 active from ingestion; + 5 post-ingestion pass-4 additions (BC-2.11.020..024) = 217; + 2 Feature Mode F2 additions (BC-2.04.055, BC-2.09.007) for issue #100 = 219 active BCs; + 25 Feature Mode F2 additions (BC-2.14.001..025) for issue #7 Modbus/ICS analyzer = 244 active BCs; + 22 Feature Mode F2 additions (BC-2.15.001..022) for issue #8 DNP3/ICS analyzer = 266 active BCs; + 2 research must-add additions (BC-2.15.023..024) for issue #8 post-gate F2 scope validation = 268 active BCs; + 15 Feature Mode F2 additions (BC-2.16.001..015) for issue #9 ARP security analyzer = 283 active BCs; + 5 Feature Mode F2 additions (BC-2.11.025..029) for issue #259 terminal finding collapse (v0.8.0) = 288 active BCs. BC-2.02.009 was revised to v1.6 (ADR-008 Decision 1, three-way postcondition) — a revision, not a new BC; count unchanged at each prior step. The mapping table above has 223 physical rows (218 ingestion-batch rows + 5 pass-4 rows) for pre-Modbus BCs; SS-14 adds 25 greenfield rows not in the ingestion batch; SS-15 adds 24 greenfield rows; SS-16 adds 15 greenfield rows; issue-#259 adds 5 greenfield rows to SS-11.**
 
 Note: BC-ABS-004 (--hosts unwired), BC-ABS-005 (--services unwired), BC-ABS-006 (--json
 file unwired), BC-ABS-007 (CSV unwired), BC-ABS-009 (no e2e CLI tests) are RETIRED --
