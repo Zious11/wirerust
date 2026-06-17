@@ -1,6 +1,6 @@
 ---
 document_type: holdout-scenario
-version: "1.4"  # F-PB-001: absent-UA → present-but-empty UA trigger; F-C-03: [Uncategorized] → ## Uncategorized; F-O-02: drop HTTP/1.1 from evidence examples; F-E-01: HS-W47-006 re-grounded on real path-traversal emission; F-H-001: --output json/csv → --json/--csv throughout; F-K-001: HS-W47-005 reframed as reporter-boundary synthetic (empty evidence not HTTP-producible); F-K-002: HS-W47-010 reframed as reporter-boundary synthetic (divergent MITRE not HTTP-producible)
+version: "1.5"  # F-PB-001: absent-UA → present-but-empty UA trigger; F-C-03: [Uncategorized] → ## Uncategorized; F-O-02: drop HTTP/1.1 from evidence examples; F-E-01: HS-W47-006 re-grounded on real path-traversal emission; F-H-001: --output json/csv → --json/--csv throughout; F-K-001/K-002: HS-W47-005/010 reframed as reporter-boundary synthetic; F-W47-003-COLOR-01: add --no-color to HS-W47-003 command so exact plain-header assertion 2 is deterministically producible
 status: draft
 producer: product-owner
 timestamp: 2026-06-17T00:00:00Z
@@ -176,7 +176,7 @@ User-Agent header that is **present but empty** (`User-Agent:\r\n`). The finding
 ### Command
 
 ```
-wirerust analyze --http <pcap>
+wirerust analyze --http --no-color <pcap>
 ```
 
 ### Expected Assertions
@@ -187,7 +187,7 @@ wirerust analyze --http <pcap>
    `  [Anomaly] INCONCLUSIVE (LOW) - Empty User-Agent header`
 3. The single evidence line `    > GET /single` is rendered below the header.
 4. The overall FINDINGS section output is byte-identical to what v0.7.x would have
-   produced for the same single-finding input.
+   produced for the same single-finding input with `--no-color`.
 5. The tool exits with code 0.
 
 ### Evaluation Rubric
