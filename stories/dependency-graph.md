@@ -1,6 +1,6 @@
 ---
 document_type: dependency-graph
-version: "1.5"
+version: "1.6"
 status: draft
 producer: story-writer
 phase: 3
@@ -8,6 +8,7 @@ timestamp: 2026-05-21T00:00:00Z
 modified:
   - "2026-06-17 v1.4: Feature #253 (issue #253) — added STORY-116..117 linear chain (E-17 ARP VLAN/QinQ/MACsec offset hardening). total_stories 67→69 (product; STORY-091 tooling separate). total_edges 91→93 (+2: +1 intra (STORY-116→117) + 1 cross-epic (STORY-115→116)). number_of_waves 44→46."
   - "2026-06-17 v1.5: Feature #259 (issue #259, finding-collapse) — added STORY-118 (E-18, wave 47) + STORY-119 (E-18, deferred/unscheduled). total_stories 69→71 (product). total_edges 93→94 (+1 intra: STORY-118→119). number_of_waves 46→47 (STORY-119 unscheduled). STORY-118 depends_on=[] (reporter-only; no new predecessor). STORY-119 depends_on=[STORY-118] (deferred stub)."
+  - "2026-06-17 v1.6: Adversarial Burst 2 remediation — corrected subheading Intra-Epic Edges (74→75 edges) to match intra_epic_edges: 75 frontmatter (no edge list changes)."
 total_stories: 71  # product stories only (excludes STORY-091 tooling; all-stories total = 72)
 total_edges: 94
 intra_epic_edges: 75
@@ -69,7 +70,7 @@ Dependencies in this graph respect the layer rules from
 
 ## Dependencies (Edge List)
 
-### Intra-Epic Edges (74 edges)
+### Intra-Epic Edges (75 edges)
 
 #### Epic E-1: PCAP Ingestion and Packet Decoding
 

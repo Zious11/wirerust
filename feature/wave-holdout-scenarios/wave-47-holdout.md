@@ -1,6 +1,6 @@
 ---
 document_type: holdout-scenario
-version: "1.0"
+version: "1.1"  # F-PB-001: absent-UA → present-but-empty UA trigger; F-C-03: [Uncategorized] → ## Uncategorized; F-O-02: drop HTTP/1.1 from evidence examples
 status: draft
 producer: product-owner
 timestamp: 2026-06-17T00:00:00Z
@@ -42,12 +42,14 @@ confirmed_constants:
 > JSON/CSV text) and the holdout assertions below.
 >
 > **Empty-UA canonical grounding:** The canonical finding tested in HS-W47-001 mirrors
-> the exact emission from `src/analyzer/http.rs` (around line 359-371 in v0.7.x): each
-> HTTP request with an absent User-Agent header emits one `(Anomaly, Inconclusive, Low,
-> "Empty User-Agent header")` finding with `evidence: [<request_line>]`,
-> `source_ip: None`, `mitre_techniques: []`, per-request distinct evidence URIs. No two
-> requests share an evidence string (each carries its own unique request line). Timestamps
-> may differ across requests.
+> the exact emission from `src/analyzer/http.rs` (around line 359-371 in v0.7.x). The
+> trigger is `parsed.user_agent.as_deref() == Some("")` — a User-Agent header that is
+> **PRESENT with an empty value** (wire bytes: `User-Agent:\r\n`). An ABSENT User-Agent
+> header (header omitted entirely) returns `None` and is deliberately ignored by the
+> analyzer. Each matching request emits one `(Anomaly, Inconclusive, Low, "Empty
+> User-Agent header")` finding with `evidence: [<method> <uri>]` (e.g., `"GET /path"`
+> — method + space + URI, NO ` HTTP/1.1` version suffix), `source_ip: None`,
+> `mitre_techniques: []`. Evidence strings are distinct per request. Timestamps may differ.
 
 ---
 
@@ -67,12 +69,14 @@ confirmed_constants:
 
 ### Setup
 
-A capture file contains 50 HTTP requests, each with an absent User-Agent header sent to
-a single server. The analyzer emits 50 `(Anomaly, Inconclusive, Low, "Empty User-Agent
-header")` findings, one per request, each with a distinct evidence URI
-(e.g., `"GET /req/0001 HTTP/1.1"` through `"GET /req/0050 HTTP/1.1"`). All four
-collapse-key fields are identical across all 50 findings: category=Anomaly,
-verdict=Inconclusive, confidence=Low, summary="Empty User-Agent header".
+A capture file contains 50 HTTP requests, each carrying a User-Agent header that is
+**present but empty** (wire bytes: `User-Agent:\r\n` — value is the empty string, which
+produces `parsed.user_agent.as_deref() == Some("")` at the analyzer). The analyzer emits
+50 `(Anomaly, Inconclusive, Low, "Empty User-Agent header")` findings, one per request,
+each with a distinct evidence string (e.g., `"GET /req/0001"` through `"GET /req/0050"`)
+in `method + space + URI` format. All four collapse-key fields are identical across all
+50 findings: category=Anomaly, verdict=Inconclusive, confidence=Low,
+summary="Empty User-Agent header".
 
 **Abstractly:** A finding-set with 50 identical-key findings and distinct evidence URIs.
 
@@ -93,7 +97,7 @@ wirerust analyze --http <pcap>
    format ` (x50)` (space, open-paren, x, integer, close-paren).
 3. Exactly 3 evidence lines appear under that header, each prefixed `    > `. No fourth
    evidence line appears. The 3 evidence lines are from the first 3 findings in emission
-   order (e.g., `/req/0001`, `/req/0002`, `/req/0003`).
+   order (e.g., `GET /req/0001`, `GET /req/0002`, `GET /req/0003`).
 4. No other FINDINGS count suffix ` (xN)` appears elsewhere in the terminal output.
 5. The tool exits with code 0.
 
@@ -162,9 +166,10 @@ terminal still showed collapsed output with (x50) suffix instead of 50 individua
 
 ### Setup
 
-A capture file that produces exactly ONE unique finding: one HTTP request with an absent
-User-Agent header. The finding is `(Anomaly, Inconclusive, Low, "Empty User-Agent
-header")` with evidence `["GET /single HTTP/1.1"]` and no MITRE techniques.
+A capture file that produces exactly ONE unique finding: one HTTP request carrying a
+User-Agent header that is **present but empty** (`User-Agent:\r\n`). The finding is
+`(Anomaly, Inconclusive, Low, "Empty User-Agent header")` with evidence
+`["GET /single"]` and no MITRE techniques.
 
 **Abstractly:** A finding-set containing exactly one finding (no repetition).
 
@@ -180,7 +185,7 @@ wirerust analyze --http <pcap>
 2. That header line does NOT contain any `(x1)` or `(xN)` suffix in any form. The line
    matches the exact pre-v0.8.0 format:
    `  [Anomaly] INCONCLUSIVE (LOW) - Empty User-Agent header`
-3. The single evidence line `    > GET /single HTTP/1.1` is rendered below the header.
+3. The single evidence line `    > GET /single` is rendered below the header.
 4. The overall FINDINGS section output is byte-identical to what v0.7.x would have
    produced for the same single-finding input.
 5. The tool exits with code 0.
@@ -208,8 +213,8 @@ wirerust analyze --http <pcap>
 ### Setup
 
 A finding-set of 5 identical-key findings where each finding has exactly one evidence
-line, distinct per finding: `evidence[0]="GET /path/a HTTP/1.1"`,
-`evidence[1]="GET /path/b HTTP/1.1"`, ..., `evidence[4]="GET /path/e HTTP/1.1"`.
+line, distinct per finding: `evidence[0]="GET /path/a"`,
+`evidence[1]="GET /path/b"`, ..., `evidence[4]="GET /path/e"`.
 The findings appear in the input slice in the order a, b, c, d, e (alphabetical by path).
 
 **Abstractly:** A 5-member collapse group where every member has exactly 1 evidence line.
@@ -224,9 +229,9 @@ wirerust analyze --http <pcap>
 
 1. The FINDINGS section contains exactly one collapsed group with a `(x5)` suffix.
 2. Exactly 3 evidence lines appear under that header, prefixed `    > `:
-   - Line 1: `    > GET /path/a HTTP/1.1`
-   - Line 2: `    > GET /path/b HTTP/1.1`
-   - Line 3: `    > GET /path/c HTTP/1.1`
+   - Line 1: `    > GET /path/a`
+   - Line 2: `    > GET /path/b`
+   - Line 3: `    > GET /path/c`
 3. Evidence lines for `/path/d` and `/path/e` do NOT appear in the terminal output.
 4. A fourth evidence line (of any form) does NOT appear.
 
@@ -253,10 +258,10 @@ wirerust analyze --http <pcap>
 
 A finding-set of 5 identical-key findings arranged so that:
 - `members[0].evidence = []` (empty — no evidence)
-- `members[1].evidence = ["GET /b HTTP/1.1"]`
-- `members[2].evidence = ["GET /c HTTP/1.1"]`
-- `members[3].evidence = ["GET /d HTTP/1.1"]`
-- `members[4].evidence = ["GET /e HTTP/1.1"]`
+- `members[1].evidence = ["GET /b"]`
+- `members[2].evidence = ["GET /c"]`
+- `members[3].evidence = ["GET /d"]`
+- `members[4].evidence = ["GET /e"]`
 
 The positional window inspects the first min(5, 3) = 3 members: member[0], member[1],
 member[2]. Member[0] contributes 0 lines (empty vec). Member[1] contributes 1 line.
@@ -275,8 +280,8 @@ wirerust analyze --http <pcap>
 
 1. The FINDINGS section contains exactly one collapsed group with a `(x5)` suffix.
 2. Exactly 2 evidence lines appear under the header:
-   - `    > GET /b HTTP/1.1`
-   - `    > GET /c HTTP/1.1`
+   - `    > GET /b`
+   - `    > GET /c`
 3. Evidence from `/d` and `/e` does NOT appear. No "slide" from member[0]'s empty vec
    to member[3] occurs.
 4. No blank `    > ` line appears for member[0]'s empty evidence.
@@ -462,7 +467,8 @@ wirerust analyze --http --mitre <pcap>
    ` (x100)`, not ` (x2)`, not any variant.
 3. The output is byte-identical to what would have been rendered by `--mitre` in v0.7.x
    (grouped path is structurally unmodified by STORY-118).
-4. Tactic section headers (e.g., `[Uncategorized]`) appear as usual in the grouped output.
+4. Tactic section headers (e.g., `## Uncategorized` — the `## <Tactic>` markdown-style
+   header emitted by `render_findings_grouped`) appear as usual in the grouped output.
 5. The tool exits with code 0.
 
 ### Evaluation Rubric
@@ -637,14 +643,18 @@ panic, or the collapse feature corrupted the output structure on clean traffic."
 
 ### Corpus
 
-**Source:** A crafted or captured pcap representing an HTTP scanning tool that sends many
-requests without a User-Agent header. Examples include:
-- A capture from tools like `curl` with `--no-user-agent` making 20+ requests
-- A capture from a web scanner (e.g., nikto, dirb, or similar) that omits User-Agent
-- A synthetically generated pcap with 20–500 HTTP requests all lacking User-Agent
+**Source:** A crafted or captured pcap where many HTTP requests carry a User-Agent header
+that is **present but empty** (wire bytes: `User-Agent:\r\n` — the value is the empty
+string `""`). This is the `Some("")` trigger at `http.rs:359`; requests that omit the
+header entirely (`None`) do NOT trigger this finding and must NOT be used. Suitable
+sources include:
+- A synthetically generated pcap (e.g., via scapy or a raw socket harness) with 20–500
+  HTTP/1.1 requests each including `User-Agent:\r\n` in the header block
+- A capture from any HTTP client configured to send an empty User-Agent value
+  (not `--no-user-agent` / omit, but explicitly `User-Agent:` with empty value)
 
 **Expected finding profile:** 20+ identical `(Anomaly, Inconclusive, Low, "Empty
-User-Agent header")` findings, each with a distinct evidence URI.
+User-Agent header")` findings, each with a distinct evidence string (`"GET <uri>"` format).
 
 ### Command
 
@@ -662,7 +672,8 @@ wirerust analyze --http <pcap>
 4. The overall noise reduction is measurable: instead of 20+ lines, exactly one header
    line with a count annotation is visible — the core UX goal of issue #259 is achieved.
 5. Running the same command with `--output json` produces N individual JSON objects (N =
-   the actual number of requests with absent User-Agent), confirming forensic completeness.
+   the actual number of requests with a present-but-empty User-Agent header), confirming
+   forensic completeness.
 
 ### Evaluation Rubric
 

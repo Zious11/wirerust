@@ -2,7 +2,7 @@
 document_type: story
 story_id: STORY-118
 epic_id: E-18
-version: "1.0"
+version: "1.1"
 status: draft
 producer: story-writer
 timestamp: 2026-06-17T00:00:00Z
@@ -152,6 +152,8 @@ suffix-free at any input volume.
 
 - **Test:** `test_BC_2_11_025_grouped_mode_bypasses_collapse`
   (in `tests/reporter_terminal_tests.rs`)
+- **Test:** `test_BC_2_11_013_grouped_mode_suffix_free`
+  (in `tests/reporter_terminal_tests.rs`)
 
 ---
 
@@ -245,6 +247,12 @@ test.
 
 - **Test:** `test_BC_2_11_026_color_ladder_inconclusive_cyan`
   (in `tests/reporter_terminal_tests.rs`)
+- **Test:** `test_BC_2_11_026_color_ladder_likely_other_yellow`
+  (in `tests/reporter_terminal_tests.rs`)
+- **Test:** `test_BC_2_11_026_color_ladder_possible_yellow`
+  (in `tests/reporter_terminal_tests.rs`)
+- **Test:** `test_BC_2_11_026_color_ladder_unlikely_dimmed`
+  (in `tests/reporter_terminal_tests.rs`)
 
 ---
 
@@ -322,8 +330,14 @@ Given `collapse_findings=false` (i.e., `--no-collapse` flag present) and 5
 identical-key findings, the terminal output contains 5 individual header lines,
 no ` (x5)` suffix appears anywhere, and all evidence is rendered in full per finding.
 The output is byte-identical to pre-v0.8.0 terminal output for the same input.
+When `collapse_findings=true` (default) and `collapse_findings=false` (opt-out) are
+compared against the same 5-finding identical-key input, the two outputs are observably
+different: the default output has 1 header with ` (x5)` and 3 evidence lines; the
+opt-out output has 5 individual headers each with their own evidence.
 
 - **Test:** `test_BC_2_11_028_no_collapse_flag_one_line_per_finding`
+  (in `tests/reporter_terminal_tests.rs`)
+- **Test:** `test_BC_2_11_028_default_vs_opt_out_output_difference`
   (in `tests/reporter_terminal_tests.rs`)
 
 ---
@@ -331,10 +345,13 @@ The output is byte-identical to pre-v0.8.0 terminal output for the same input.
 ### AC-019 — --no-collapse flag is wired: no_collapse=true → collapse_findings=false
 *(traces to BC-2.11.028 postcondition 1 / invariant 1 / BC-2.11.028 precondition 3)*
 
-The `no_collapse: bool` field on `Commands::Analyze` in `src/cli.rs` is wired in
-`src/main.rs` `run_analyze` as `collapse_findings: !args.no_collapse`. An unwired
-flag (one that appears in `cli.rs` but is never referenced in `main.rs`) is a spec
-violation per BC-2.11.028 invariant 6 / LESSON-P1.04.
+The `no_collapse: bool` field on `Commands::Analyze` in `src/cli.rs` is wired via
+the following pattern: `no_collapse` is destructured from `Commands::Analyze` in
+`main()` (main.rs:49-64), threaded as a new positional `bool` parameter into
+`run_analyze`, and set as `collapse_findings: !no_collapse` at the `TerminalReporter
+{ … }` construction site (main.rs:370-376). This mirrors exactly how `*mitre` becomes
+`show_mitre_grouping`. An unwired flag (one that appears in `cli.rs` but is never
+referenced in `main.rs`) is a spec violation per BC-2.11.028 invariant 6 / LESSON-P1.04.
 
 - **Test:** `test_BC_2_11_028_flag_wired_to_reporter_field`
   (in `tests/reporter_terminal_tests.rs`)
@@ -380,6 +397,21 @@ group behavior — BC-2.11.026 postcondition 2).
 
 ---
 
+### AC-027 — --no-collapse flag does NOT affect JSON or CSV output
+*(traces to BC-2.11.029 postcondition 5)*
+
+Given the same `findings` slice rendered to JSON and CSV reporters, the presence or
+absence of `--no-collapse` (i.e., `collapse_findings=true` vs `collapse_findings=false`)
+has no observable effect on JSON or CSV output. Both formats always emit all N finding
+objects/rows regardless of the terminal collapse setting. The `collapse_findings` field
+is an attribute of `TerminalReporter` only and is not consulted by `JsonReporter` or
+`CsvReporter`.
+
+- **Test:** `test_BC_2_11_029_no_collapse_flag_json_invariant`
+  (in `tests/reporter_terminal_tests.rs` or `tests/reporter_json_tests.rs`)
+
+---
+
 ### AC-023 — MITRE line sources group_members[0]; other members' MITRE elided from terminal
 *(traces to BC-2.11.026 postcondition 7 / BC-2.11.017 postcondition 6)*
 
@@ -391,6 +423,8 @@ Given 3 findings all sharing the same collapse key where `members[0].mitre_techn
 `mitre_techniques` are preserved in JSON/CSV output (BC-2.11.029).
 
 - **Test:** `test_BC_2_11_026_mitre_line_from_representative_finding`
+  (in `tests/reporter_terminal_tests.rs`)
+- **Test:** `test_BC_2_11_017_collapsed_mitre_line_from_representative`
   (in `tests/reporter_terminal_tests.rs`)
 
 ---
@@ -448,7 +482,7 @@ Evidence for `/d` and `/e` is elided from terminal output.
 | Flat FINDINGS dispatch block (extended) | `src/reporter/terminal.rs:149-162` | Pure core |
 | `escape_for_terminal` function (existing; called directly by collapse wrapper) | `src/reporter/terminal.rs` | Pure |
 | `--no-collapse` flag: `no_collapse: bool` on `Commands::Analyze` (new) | `src/cli.rs` | Effectful (CLI parsing) |
-| `collapse_findings: !args.no_collapse` wiring (new) | `src/main.rs` `run_analyze` | Effectful (glue) |
+| `collapse_findings: !no_collapse` wiring (new) — `no_collapse` destructured from `Commands::Analyze` in `main()`, threaded as positional bool into `run_analyze` | `src/main.rs` | Effectful (glue) |
 | `JsonReporter::render` (unchanged) | `src/reporter/json.rs` | Pure |
 | `CsvReporter::render` (unchanged) | `src/reporter/csv.rs` | Pure |
 
@@ -521,9 +555,12 @@ to split into a separate SS-12 story.
    per the color-ladder including the suffix); (2) up to K=3 sampled evidence lines calling
    `escape_for_terminal` directly; (3) MITRE line from `group_members[0]` if
    `mitre_techniques` is non-empty (BC-2.11.026 PC-4 observable line order).
-8. **[F4 scope — GREEN — main.rs]** Wire `collapse_findings: !args.no_collapse` at the
-   `TerminalReporter` construction site in `run_analyze` (BC-2.11.028 precondition 3 /
-   invariant 6). This is the only `main.rs` change.
+8. **[F4 scope — GREEN — main.rs]** Destructure `no_collapse` from `Commands::Analyze`
+   in `main()` (main.rs:49-64), add it as a new positional `bool` parameter to
+   `run_analyze`, and set `collapse_findings: !no_collapse` at the `TerminalReporter
+   { … }` construction site (main.rs:370-376). This mirrors exactly how `*mitre`
+   becomes `show_mitre_grouping` (BC-2.11.028 precondition 3 / invariant 6).
+   This is the only `main.rs` change.
 9. **[ADR obligation]** STORY-118's implementation PR MUST include the uncommitted
    `docs/adr/0003-reporting-pipeline-layering.md` "Display-Layer Aggregation" section
    addition. This change currently exists uncommitted on `develop`. It must ride the
@@ -618,9 +655,9 @@ BC-2.11.029 invariants 1-3:
 |------|--------|-------|
 | `src/reporter/terminal.rs` | **Modify** | Add `collapse_findings: bool` field to `TerminalReporter`; add `COLLAPSE_EVIDENCE_SAMPLES` const; add private `collapse_findings_pass` function; extend flat FINDINGS dispatch block (terminal.rs:149-162) |
 | `src/cli.rs` | **Modify** | Add `#[arg(long)] no_collapse: bool` to `Commands::Analyze` (following cli.rs:150-152 mitre/dns precedent) |
-| `src/main.rs` | **Modify** | Wire `collapse_findings: !args.no_collapse` at `TerminalReporter` construction in `run_analyze` |
+| `src/main.rs` | **Modify** | Destructure `no_collapse` from `Commands::Analyze` in `main()` (main.rs:49-64); thread it as a new positional `bool` parameter into `run_analyze`; set `collapse_findings: !no_collapse` at `TerminalReporter { … }` construction (main.rs:370-376), mirroring how `*mitre` becomes `show_mitre_grouping` |
 | `docs/adr/0003-reporting-pipeline-layering.md` | **Modify (must ride this PR)** | Add "Display-Layer Aggregation" section documenting the collapse feature design decision |
-| `tests/reporter_terminal_tests.rs` | **Modify** | Add `mod story_118` block with all 26 test functions named in ACs above |
+| `tests/reporter_terminal_tests.rs` | **Modify** | Add `mod story_118` block with all test functions named in ACs above (27 ACs post-Fix; see BC cross-check section for full test inventory) |
 | `src/reporter/json.rs` | **No change** | JsonReporter is unaffected |
 | `src/reporter/csv.rs` | **No change** | CsvReporter is unaffected |
 | `src/findings.rs` | **No change** | Finding struct is unaffected |
@@ -651,12 +688,34 @@ Every BC in the `behavioral_contracts:` frontmatter array is cited by at least o
 - BC-2.11.026: AC-008, AC-009, AC-010, AC-011, AC-012, AC-023
 - BC-2.11.027: AC-013, AC-014, AC-015, AC-016, AC-017
 - BC-2.11.028: AC-018, AC-019
-- BC-2.11.029: AC-020, AC-021, AC-022
+- BC-2.11.029: AC-020, AC-021, AC-022, AC-027
 - BC-2.11.010: AC-016
 - BC-2.11.013: AC-005
 - BC-2.11.017: AC-023
 - BC-2.11.019: AC-025
 
 Every AC cites a BC trace clause. All 9 BCs appear in both frontmatter and body.
+
+DF-AC-TEST-NAME-SYNC-001 per-BC own-prefix test inventory (post-Fix-4):
+- BC-2.11.025: test_BC_2_11_025_* (9 tests)
+- BC-2.11.026: test_BC_2_11_026_* (9 tests: suffix_colorized_inside_span_red_bold,
+  color_ladder_inconclusive_cyan, color_ladder_likely_other_yellow,
+  color_ladder_possible_yellow, color_ladder_unlikely_dimmed, singleton_no_suffix,
+  count_suffix_for_n_ge_2, large_count_exact, suffix_format,
+  mitre_line_from_representative_finding)
+- BC-2.11.027: test_BC_2_11_027_* (5 tests)
+- BC-2.11.028: test_BC_2_11_028_* (3 tests: no_collapse_flag_one_line_per_finding,
+  default_vs_opt_out_output_difference, flag_wired_to_reporter_field)
+- BC-2.11.029: test_BC_2_11_029_* (3 tests: json_receives_full_findings,
+  csv_receives_full_findings, non_repeated_finding_no_suffix,
+  no_collapse_flag_json_invariant)
+- BC-2.11.010: test_BC_2_11_010_* (via AC-016: test_BC_2_11_027_escape_preserved_in_sampled_evidence
+  covers the invariant; BC-2.11.010 is also covered by test_BC_2_11_027_escape_preserved_in_sampled_evidence
+  since AC-016 traces to both — implementer MUST add test_BC_2_11_010_escape_in_collapse_path
+  as a direct BC-010-prefixed test in the test suite)
+- BC-2.11.013: test_BC_2_11_013_grouped_mode_suffix_free (AC-005)
+- BC-2.11.017: test_BC_2_11_017_collapsed_mitre_line_from_representative (AC-023)
+- BC-2.11.019: test_BC_2_11_019_section_order_unchanged_with_collapse (AC-025)
+
 Verification_properties: VP-012 (escape_for_terminal correctness — extended by collapse
 path, AC-016).
