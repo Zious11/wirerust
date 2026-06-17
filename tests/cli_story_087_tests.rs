@@ -11,7 +11,7 @@
 //!
 //! implementation_strategy: brownfield-formalization
 //! tdd_mode: strict
-//! RED GATE stub phase: all 16 stubs confirmed FAIL before implementation.
+//! All 16 tests pass; STORY-087 implementation is complete.
 //!
 //! Placement: dedicated file per DF-TEST-NAMESPACE-001 to avoid name collisions
 //! with tests in other test files. All STORY-087 tests are wrapped in
@@ -398,7 +398,6 @@ mod story_087 {
     // process reach the assert!(max_depth > 0) in reassembly/mod.rs which
     // panics with exit 101.
     //
-    // RED: FAILS now because 0 is accepted (no range validator exists yet).
     #[test]
     fn test_EC_001_reassembly_depth_zero_rejected() {
         let err = parse_err(&["wirerust", "--reassembly-depth", "0", "summary", "x.pcap"]);
@@ -421,7 +420,6 @@ mod story_087 {
     // After the fix, `value_parser = clap::value_parser!(usize).range(1..)`
     // rejects 0 at parse time.
     //
-    // RED: FAILS now because 0 is accepted (no range validator exists yet).
     #[test]
     fn test_EC_001_reassembly_memcap_zero_rejected() {
         let err = parse_err(&["wirerust", "--reassembly-memcap", "0", "summary", "x.pcap"]);
@@ -554,7 +552,6 @@ mod story_087 {
     // TCP reassembly to be exercised. Before the fix, depth=0 reaches
     // `assert!(max_depth > 0)` in reassembly/mod.rs and panics with exit 101.
     //
-    // RED: FAILS now — binary exits 101 (panic) instead of 2 (clap rejection).
     #[test]
     fn test_analyze_reassembly_depth_zero_exits_usage_error() {
         use assert_cmd::Command;
@@ -582,7 +579,6 @@ mod story_087 {
     // FIX-P5-002, ADV-IMPL-P04-MED-001:
     // `--reassembly-memcap 0` mirror of the depth test above.
     //
-    // RED: FAILS now — binary exits 101 (panic) instead of 2 (clap rejection).
     #[test]
     fn test_analyze_reassembly_memcap_zero_exits_usage_error() {
         use assert_cmd::Command;
