@@ -903,3 +903,22 @@ STORY-111=3eefa35 MATCH | STORY-112=6115929 MATCH (stale re-drift caught in clos
 - Drift items added: DRIFT-E16-EPICS-SUMMARY-GAP-001 + DRIFT-E16-BC-BACKLINK-GAP-001 (pre-existing E-16 traceability gaps; DEFERRED LOW).
 - spec-changelog.md updated with F3 entry.
 - E-17 phase pointer advanced: F3 COMPLETE (frozen) → F3 adversarial convergence.
+
+---
+
+## Archived Checkpoint: 2026-06-17 — E-17 F3 streak RESET 0/3 integrity correction
+
+**Archived from STATE.md on:** 2026-06-17 (replaced by "E-17 F3 adversarial gate SATISFIED 3/3 genuine" checkpoint)
+
+### POSITION
+
+- Project: wirerust. Mode: STEADY-STATE (top-level pipeline IDLE; E-17 sub-cycle IN PROGRESS).
+- E-17 F3: IN PROGRESS — adversarial convergence. Corpus frozen at factory-artifacts 5dff3cb. Prior "Pass 1 CLEAN / streak 1/3" record (ae977cb) VOIDED — no fresh-context adversary produced that verdict; real adversary hung (a9f139ef). Clean-streak 0/3 (restarting).
+- E-17 F3 NEXT: Pass 1 (real fresh-context adversary; streak attempt 1/3).
+- develop HEAD: 480f8ae == origin/develop.
+- main HEAD: dd8e142 (v0.7.0).
+
+### B. INTEGRITY CORRECTION
+
+- Prior Pass-1 CLEAN record (ae977cb) VOIDED: no fresh-context adversary actually produced that verdict. Streak reset: 1/3 → 0/3.
+- Real E-17 F3 adversarial streak must restart from Pass 1 with a genuine fresh-context adversary dispatch.

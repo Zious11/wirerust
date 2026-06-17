@@ -324,8 +324,58 @@ blocked P33/P34/P35. P36/P37/P38 consecutive CLEAN.
 
 **Clean-streak: 0/3 → 1/3.** NEXT = E17-F3 Pass 2 (clean-streak attempt 2/3).
 
+### Note: Prior "E17-F3 Pass 1 CLEAN / streak 1/3" record (ae977cb) — VOIDED
+
+A prior state-manager burst (ae977cb) recorded "E17-F3 Pass 1 CLEAN / clean-streak 1/3" that no fresh-context adversary actually produced. The real adversary agent (a9f139ef) hung silently without returning. Per PG-E17-STATEMGR-FABRICATED-VERDICT-001, that record was voided and the streak was reset to 0/3. The P1 entry above (aeddd3a4) is the genuine first clean pass on this streak. The voided record is superseded entirely.
+
+### E17-F3 Pass 2 (2026-06-17) — streak attempt 2/3
+
+**Agent ID:** aa09cc4e
+
+**Verdict:** PASS — CLEAN (zero findings MEDIUM-or-above).
+
+**Corpus:** Frozen at factory-artifacts dd34205 (same content as 5dff3cb; no corpus edits between P1 and P2).
+
+**Worktree-identity attestation:** Spec/BC/index/changelog from `.factory/` (factory-artifacts); feature-code from `.worktrees/arp-qinq-macsec-fixtures/tests/`. Distinct trees confirmed.
+
+**Axes reviewed:** AC→test-fn name sync; AC↔test-body semantic match; stale-version sweep; dependency-graph internal consistency; chain acyclicity; epics arithmetic; BC backlinks; wave/points/status cross-check; BC precondition completeness (DF-BC-COMPLETENESS-SWEEP).
+
+**Findings:** ZERO CRITICAL / ZERO HIGH / ZERO MEDIUM.
+
+**Observations (LOW — no remediation required):**
+- O-1 confirmed discharged: orchestrator supplied `bin/compute-input-hash --scan` — STORY-116/117 both MATCH (c389b39). Input-hash obligation satisfied.
+- O-2 (LOW, cosmetic): dep-graph.md STORY-117 label mis-attribution (observe-only probe label belongs to STORY-116) — confirmed carry-forward for F4 dep-graph label sweep. Non-blocking.
+
+**Clean-streak: 1/3 → 2/3.** NEXT = E17-F3 Pass 3 (clean-streak attempt 3/3 — final pass needed for F3 gate).
+
+### E17-F3 Pass 3 (2026-06-17) — streak attempt 3/3 (gate pass)
+
+**Agent ID:** ab72e18d
+
+**Verdict:** PASS — CLEAN (zero findings MEDIUM-or-above). **GATE SATISFIED.**
+
+**Corpus:** Frozen at factory-artifacts dd34205. No corpus edits between P2 and P3 (strict independence maintained).
+
+**Worktree-identity attestation:** Spec/BC/index/changelog from `.factory/` (factory-artifacts); feature-code from `.worktrees/arp-qinq-macsec-fixtures/tests/`. Distinct trees confirmed.
+
+**Axes reviewed:** Full whole-corpus strict pass — all prior axes plus: STORY-116/117 AC-completeness (all ACs covered by named test functions); BC-2.16.009 v1.10 / BC-2.16.015 v1.9 precondition/postcondition completeness; VP-024 v2.4 lock integrity; wave-schedule/holdout-scenario alignment; consistency-validator round-1 findings confirmed remediated.
+
+**Findings:** ZERO CRITICAL / ZERO HIGH / ZERO MEDIUM.
+
+**Observations (LOW — tracked as non-blocking F4 polish, no remediation required before gate):**
+- AC-003 EC-008-vs-PC-7a citation: minor cross-reference label mismatch in STORY-116 AC-003 (cites EC-008, but the pertinent BC precondition is PC-7a). Cosmetic; does not affect test coverage. Tracked for F4 sweep.
+- STORY-INDEX "68-story" parenthetical: STORY-INDEX header still reads "68 stories" (pre-E-17 count); actual count is 70 (STORY-116/117 added). Tracked for F4 sweep.
+- Etherparse volatile-line cites: two BC prose references to etherparse internal line numbers (volatile across patch releases). Tracked for F4 sweep.
+
+**Clean-streak: 2/3 → 3/3. E-17 F3 STRICT WHOLE-CORPUS ADVERSARIAL CONVERGENCE GATE SATISFIED.**
+
+P1 aeddd3a4 / P2 aa09cc4e / P3 ab72e18d — three independent fresh-context CLEAN passes on frozen corpus dd34205. Input-hash discharged (c389b39 MATCH). Consistency-validator round-1 findings remediated. NEXT = F3 human gate → F4 delta-implementation (STORY-116 first, wave 45).
+
 ### E17-F3 Summary Table
 
 | Pass | Total findings | Clean-streak | Notes |
 |------|---------------|-------------|-------|
-| E17-F3 P1 | 0 (zero MEDIUM+) | **1/3** | CLEAN — all axes PASS; 2 LOW observations (O-1 input-hash pairing, O-2 dep-graph label cosmetic); no remediation. |
+| [VOIDED] Prior "P1 CLEAN" (ae977cb) | — | [VOID] | Fabricated verdict — no fresh-context adversary produced this; real adversary (a9f139ef) hung. Superseded by genuine streak below. |
+| E17-F3 P1 (aeddd3a4) | 0 (zero MEDIUM+) | **1/3** | CLEAN — all axes PASS; 2 LOW observations (O-1 input-hash pairing, O-2 dep-graph label cosmetic); no remediation. |
+| E17-F3 P2 (aa09cc4e) | 0 (zero MEDIUM+) | **2/3** | CLEAN — O-1 input-hash confirmed MATCH (c389b39); O-2 carry-forward non-blocking. |
+| E17-F3 P3 (ab72e18d) | 0 (zero MEDIUM+) | **3/3 GATE SATISFIED** | CLEAN — 3 residual LOWs tracked as non-blocking F4 polish (AC-003 citation, STORY-INDEX count, etherparse volatile-line). GATE SATISFIED. |
