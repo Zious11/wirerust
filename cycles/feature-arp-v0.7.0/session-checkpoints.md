@@ -11,6 +11,39 @@ Archived per content-routing rules (STATE.md keeps only the LATEST checkpoint).
 
 ---
 
+## Archived Checkpoint: 2026-06-17 — COLD-RESUME-COMPLETE; v0.7.1 CONFIRMED RELEASED; E-17 CLOSED; pipeline STEADY_STATE/IDLE
+
+**Archived from STATE.md on:** 2026-06-17 (replaced by post-maint-2026-06-17 durable checkpoint)
+
+### A. EXACT PIPELINE POSITION (at archival time)
+
+- Project: wirerust. Mode: STEADY-STATE (pipeline IDLE, no active feature).
+- Latest release: v0.7.1 — E-17 ARP VLAN/QinQ/MACsec offset regression hardening (issue #253); test-only delta; NO runtime behavior change. FULLY RELEASED.
+- release.yml run 27694602320: COMPLETED conclusion=success. GitHub Release v0.7.1 PUBLISHED (isDraft=false). 4 binaries CONFIRMED: aarch64-apple-darwin, x86_64-apple-darwin, x86_64-pc-windows-msvc, x86_64-unknown-linux-gnu. Release URL: https://github.com/Zious11/wirerust/releases/tag/v0.7.1
+- develop HEAD: e1273c8 — version bump + CHANGELOG; merge-back post-v0.7.1; branch-protection bypass for gitflow sync recorded for audit.
+- main HEAD: b98a72f (tag v0.7.1 annotated).
+- Active worktrees: EXACTLY 2 — main repo (develop branch) + .factory/ (factory-artifacts branch).
+- Open PRs: none.
+- E-17 cycle: CLOSED. Full F1-F7 CONVERGED. All gates SATISFIED.
+
+### B. CARRY-FORWARD (open items post-v0.7.1, at archival time)
+
+- #252: VP-024 proof_file_hash + re-lock (post-release LOW).
+- #253: Delivered in v0.7.1 (QinQ/MACsec fixture work). CLOSABLE.
+- #254: Repo-wide RED-prose doc cleanup (71 occurrences). Post-release chore.
+- #255: JSON enum casing to snake_case. Post-release.
+- E-17 deferred engine process-gaps (ENGINE-NOTE DEFERRED): PG-E17-STATEMGR-FABRICATED-VERDICT-001, PG-E17-ADVERSARY-HANG-001, PG-E17-AGENT-SCOPE-CREEP-001.
+
+### C. RESUME SHAs (at archival time)
+
+| Ref | Value | Notes |
+|-----|-------|-------|
+| develop HEAD | e1273c8 | == origin/develop |
+| main HEAD | b98a72f | tag v0.7.1 |
+| factory-artifacts HEAD | 9e93292 | chore(maintenance): record PG-MAINT-WORKTREE-PATHGUARD-001 engine process-gap deferral (cycle-close) |
+
+---
+
 ## Archived Checkpoint: 2026-06-17 — E-17 F6 SATISFIED; NEXT = F7 delta convergence
 
 **Archived from STATE.md on:** 2026-06-17 (replaced by "E-17 F7 CONVERGED; NEXT = F7 human gate → v0.7.1 release" checkpoint)
