@@ -7,7 +7,7 @@ feature_arp_status: "v0.7.0 RELEASED 2026-06-16 — ARP Security Analyzer (E-16,
 feature_8_status: "v0.6.0 RELEASED 2026-06-12 — DNP3 TCP analyzer; F7 5-dim CONVERGED; tag v0.6.0 + 4 binaries"
 product: wirerust
 mode: brownfield
-timestamp: 2026-06-16T12:00:00Z
+timestamp: 2026-06-16T18:00:00Z
 bootstrapped: 2026-05-19T16:56:48Z
 phase_0_completed: 2026-05-19T20:00:00Z
 phase_1_completed: "2026-05-21"
@@ -99,11 +99,12 @@ input_drift_check: "F7-followup-dispositions burst (2026-06-16): STORY-071=6b408
 | Feature: ARP analyzer — F7 Delta Convergence | **CONVERGED — 5-dim COMPLETE** (2026-06-16, develop e37ec38). (1) Regression GREEN (build/clippy/fmt clean, 1592 tests/0 fail); (2) Verification GREEN (VP-024 v2.3 LOCKED, 5/5 Kani SUCCESSFUL, fuzz 16.2M/0, mutants 98.9%); (3) Implementation/spec convergence (F4 3/3 + holdout); (4) Robustness (F5 3/3); (5) Documentation/coherence (F7 consistency CONSISTENT — 4 gaps + VP-024 v2.3 residual ALL REMEDIATED; holistic adversary PASS CLEAN). Final input-hashes: 111=3eefa35 112=26fb42d 113=f35bcfc 114=02da9e7 115=80be67e ALL MATCH. | CONVERGED |
 | Release v0.7.0 | **RELEASED 2026-06-16** — PR #256 (release/0.7.0 → main); merge commit dd8e142; tag v0.7.0; GitHub Release https://github.com/Zious11/wirerust/releases/tag/v0.7.0; 4 binaries (aarch64-apple-darwin, x86_64-apple-darwin, x86_64-pc-windows-msvc, x86_64-unknown-linux-gnu); release.yml run 27645784901 SUCCESS. ARP Security Analyzer (E-16, issue #9). develop merge-back: dd8e142 (branch-protection bypass; gitflow sync; CI-verified via PR #256). | **RELEASED** |
 | E-17: ARP QinQ/MACsec offset hardening (issue #253) — F1 Delta Analysis | **PASSED** (human-gated 2026-06-16) — MACsec offset investigated → NO code bug; documented-limitation evidence-backed. Full F1-F7 rigor authorized; v0.7.1 target. Artifacts: `.factory/phase-f1-delta-analysis/` | PASSED |
-| E-17: ARP QinQ/MACsec offset hardening (issue #253) — F2 Spec Evolution | **ADVERSARIAL STREAK IN PROGRESS** (1 full CLEAN pass achieved; literal 3-consecutive-clean-pass streak in progress on git-frozen baseline; human elected full rigor). Committed: BC-2.16.009 v1.9, BC-2.16.015 v1.8, arp-architecture-delta v1.19, VP-024 v2.4 governance-note, verification-coverage-matrix updated, spec-changelog E-17 entry. Process gaps: 2 runaway-agent incidents + 2 hung-adversary process incidents — [process-gap] for cycle-close lessons. | IN-PROGRESS (streak 1/3) |
+| E-17: ARP QinQ/MACsec offset hardening (issue #253) — F2 Spec Evolution | **SATISFIED 3/3 COMPLETE** (2026-06-16) — 3 consecutive fresh-context CLEAN passes (zero MEDIUM-or-above) on frozen baseline factory-artifacts 39f57ea. Each pass corroborated: etherparse 0.20.2 citations vs vendored source, all 10 test names, VP-024 v2.4 lock integrity, EC-009 sibling identity, §2.2 snippet-vs-shipped-code parity. Full trajectory: HIGH mis-anchor (4 governance docs) → MEDIUM symbol/tense → MEDIUM changelog traceability gap → 3/3 CLEAN. Final F2 corpus versions: BC-2.16.009 v1.9, BC-2.16.015 v1.8, arp-architecture-delta v1.19, VP-024 v2.4, verification-coverage-matrix v1.8. | COMPLETE |
+| E-17: ARP QinQ/MACsec offset hardening (issue #253) — F3 Story Decomposition | **PENDING** — STORY-116 QinQ coverage, STORY-117 MACsec documented-limitation; F3 human gate required before F4. | PENDING |
 
-## Session Resume Checkpoint (2026-06-16 — E-17 F2 spec-evolution freeze burst)
+## Session Resume Checkpoint (2026-06-16 — E-17 F2 gate closure)
 
-**Previous checkpoint (2026-06-16 — demo relocation burst; IDLE) archived to:
+**Previous checkpoint (2026-06-16 — E-17 F2 spec-evolution freeze burst; streak 1/3) archived to:
 `cycles/feature-arp-v0.7.0/session-checkpoints.md`**
 
 ### A. EXACT PIPELINE POSITION
@@ -111,33 +112,33 @@ input_drift_check: "F7-followup-dispositions burst (2026-06-16): STORY-071=6b408
 - **Project:** wirerust. Mode: STEADY-STATE (top-level pipeline IDLE; E-17 sub-cycle IN PROGRESS).
 - **E-17 "ARP QinQ/MACsec offset hardening" (issue #253): CYCLE OPEN.**
 - **E-17 F1:** PASSED (human-gated 2026-06-16). MACsec investigated → NO code bug; documented-limitation; full F1-F7 rigor; v0.7.1 target.
-- **E-17 F2:** Adversarial streak IN PROGRESS (1/3 CLEAN passes achieved; literal 3-consecutive-clean-pass streak on git-frozen baseline; human elected full rigor). Spec-evolution committed: BC-2.16.009 v1.9, BC-2.16.015 v1.8, arp-architecture-delta v1.19, VP-024 v2.4 governance-note, verification-coverage-matrix updated, spec-changelog E-17 entry.
-- **Process incidents:** 2 runaway-agent + 2 hung-adversary process incidents during F2 — [process-gap] recorded for cycle-close lessons.
+- **E-17 F2:** COMPLETE — adversarial gate SATISFIED 3/3 (2026-06-16) on frozen baseline factory-artifacts 39f57ea. 3 consecutive fresh-context CLEAN passes; zero MEDIUM-or-above in all three. Final corpus: BC-2.16.009 v1.9, BC-2.16.015 v1.8, arp-architecture-delta v1.19, VP-024 v2.4, verification-coverage-matrix v1.8.
+- **E-17 F3:** NEXT — story decomposition (STORY-116 QinQ coverage, STORY-117 MACsec documented-limitation). F3 human gate required before F4.
 - **develop HEAD: 480f8ae** == origin/develop.
 - **main HEAD: dd8e142 (v0.7.0).**
 - **factory-artifacts HEAD:** see `git -C .factory log -1 --format='%h %s'`
 - **Active worktrees:** EXACTLY 2 — main repo (develop) + .factory (factory-artifacts).
 - **Open PRs:** None (E-17 F2 is spec-only; no source PR yet).
 
-### B. E-17 F2 FREEZE BURST (2026-06-16)
+### B. E-17 F2 GATE CLOSURE BURST (2026-06-16)
 
-Committed to factory-artifacts in this burst:
-- Modified specs: BC-2.16.009 v1.9, BC-2.16.015 v1.8, arp-architecture-delta v1.19, VP-024 v2.4, verification-coverage-matrix (updated).
-- New files under `phase-f1-delta-analysis/` and `research/` (E-17 F1 delta analysis + research artifacts).
-- STATE.md: E-17 cycle opened; F1 PASSED + F2 streak 1/3 recorded; DRIFT-VP024-BTREEMAP-PROSE-001 drift item added.
-- VP-024: out-of-scope v2.5 stray entry removed (reverted to v2.4 as final entry; v2.4 frontmatter preserved).
+Recorded in this burst:
+- E-17 F2 adversarial gate SATISFIED 3/3 on frozen baseline 39f57ea.
+- Drift items added: DRIFT-E17-VERSIONLABEL-LAG-001 (cosmetic version-label lag in verification-coverage-matrix and e17 test doc-comments; F4-deferred).
+- Process gaps added: PG-E17-AGENT-SCOPE-CREEP-001 (runaway sub-agent edits) + PG-E17-ADVERSARY-HANG-001 (silent adversary hang incidents).
+- E-17 phase pointer advanced: F2 COMPLETE → F3 story decomposition.
 
 ### C. CARRY-FORWARD (open items)
 
-- **E-17 F2 adversarial streak:** 2 more consecutive CLEAN passes needed to satisfy gate (currently 1/3 on frozen baseline).
+- **E-17 F3 story decomposition:** STORY-116 (QinQ coverage) + STORY-117 (MACsec documented-limitation). Dispatch decompose-stories; F3 human gate; then F4 authorized.
 - **#252** VP-024 proof_file_hash + re-lock (post-release).
 - **#254** Repo-wide RED-prose doc cleanup (post-release; 71 occurrences).
 - **#255** JSON enum casing → snake_case (post-release; maintainer chose snake_case).
 
-### D. RESUME PROCEDURE (E-17 F2 STREAK — SESSION-CLEAR SAFE 2026-06-16)
+### D. RESUME PROCEDURE (E-17 F3 STORY DECOMPOSITION — SESSION-CLEAR SAFE 2026-06-16)
 
 **CONTEXT FOR FRESH SESSION:**
-- **Project:** wirerust. Mode: STEADY-STATE (top-level). E-17 sub-cycle IN PROGRESS at F2.
+- **Project:** wirerust. Mode: STEADY-STATE (top-level). E-17 sub-cycle IN PROGRESS at F3.
 - **develop HEAD:** 480f8ae == origin/develop.
 - **main HEAD:** dd8e142 (v0.7.0).
 - **factory-artifacts HEAD:** see `git -C .factory log -1 --format='%h %s'`
@@ -151,11 +152,10 @@ gh pr list --state open                                        # expect none
 ```
 
 **Step 3 — WHAT IS COMPLETE (do NOT re-do):**
-E-17 F1 PASSED. E-17 F2 spec-evolution committed and frozen. F2 adversarial streak at 1/3 CLEAN.
-VP-024 v2.4 is the authoritative final entry (stray v2.5 removed). DRIFT-VP024-BTREEMAP-PROSE-001 recorded.
+E-17 F1 PASSED. E-17 F2 spec-evolution committed/frozen and adversarial gate SATISFIED 3/3 on 39f57ea. VP-024 v2.4 is the authoritative final entry. DRIFT-VP024-BTREEMAP-PROSE-001 and DRIFT-E17-VERSIONLABEL-LAG-001 recorded (both F4-deferred, non-blocking).
 
 **Step 4 — NEXT ACTION:**
-Resume E-17 F2 adversarial streak: dispatch 2 more consecutive fresh-context adversarial passes on the frozen factory-artifacts baseline. On 3/3 CLEAN, declare F2 gate SATISFIED and proceed to F3 story decomposition.
+Dispatch F3 story decomposition: STORY-116 (QinQ coverage) + STORY-117 (MACsec documented-limitation). After decomposition commits, present stories for F3 human gate. On human-gate PASSED, F4 delta-implementation authorized.
 
 ### E. KEY ARTIFACT POINTERS
 
@@ -274,6 +274,9 @@ Full tech-debt register: `.factory/tech-debt-register.md`.
 | PG-ARP-FIX-MECHANISM-FIRST | F5 O-A adjudication: spec for D-078 was written from incorrect mechanism hypothesis ("lax builds slice + extract None" is impossible) before code mechanism was verified; caused two rounds of spec+story correction (BC v1.4→v1.6) and sibling-seam (D-078b) discovered only at PR review. F-1 (PR #249) strengthens the lesson: a fix that hand-rolls offset/parsing logic (vs delegating to the library) MUST be stress-tested against the library's full input model (here: lax.link_exts / VLAN). Meta-lesson: LOW-severity O-A fix cascaded into 3 PRs + MEDIUM regression — fix-induced-regression risk should weigh into whether a LOW finding is worth fixing vs documenting. | OPEN — process-gap codification; Cycle-Closing Checklist candidate |
 | PG-CONSISTENCY-AUDIT-CONSUMER-SWEEP | [process-gap] F6 lock + Sub-D surrogate rename did NOT propagate to all consuming artifacts (verification-coverage-matrix v1.6 still "draft", arp-architecture-delta v1.16 + VP-024 v2.1 + STORY-113 still named "btree"). Same DF-CONSISTENCY-AUDIT-POST-FIXBURST-001 class as PG-ARP-FIXBURST-CONSUMER-SWEEP. Fresh F7 consistency-validator caught all 4 gaps; F7 holistic adversary missed them. Strengthening needed: (a) post-fixburst consumer-sweep checklist must include verification-coverage-matrix + all consuming stories; (b) holistic adversary prompt must cross-check canonical symbol names across all consumers in same burst. | OPEN — policy strengthening DF-CONSISTENCY-AUDIT-POST-FIXBURST-001 + adversary dispatch template |
 | DRIFT-VP024-BTREEMAP-PROSE-001 | VP-024 Feasibility Assessment 'Input space size' row (~line 582) still reads 'BTreeMap with 8 entries maximum'; shipped Sub-D substrate is the insert_binding_lru_array fixed-capacity array surrogate (v2.3). Append-only erratum needed in a dedicated VP-maintenance pass; out of E-17 scope. Requires DF-VALIDATION-001 before any issue. | DEFERRED LOW |
+| DRIFT-E17-VERSIONLABEL-LAG-001 | verification-coverage-matrix lines ~48/137 and e17 test-file doc-comments cite initial-burst BC versions (v1.8/v1.7) rather than final v1.9/v1.8. EC-009 content is version-stable so citations resolve correctly; cosmetic label lag only. Sweep during F4. Non-blocking; F4-deferred. | DEFERRED LOW — F4 sweep |
+| PG-E17-AGENT-SCOPE-CREEP-001 | [process-gap] Two sub-agents (a test-writer and an architect/state-manager dispatched for narrow tasks) made unrequested out-of-scope edits to the spec corpus mid-adversarial-pass, repeatedly breaking the frozen-corpus premise. Mitigated by git-freezing the baseline and scope-locked dispatch instructions. Engine-level candidate: agent-prompt/runtime scope-enforcement. | DEFERRED — engine [process-gap] |
+| PG-E17-ADVERSARY-HANG-001 | [process-gap] Two adversarial-pass sub-agents hung silently (~60 min each, no completion notification); detected via transcript-mtime inspection and re-dispatched. Engine-level candidate: adversary sub-agent timeout + liveness notification. | DEFERRED — engine [process-gap] |
 
 ## Deferred Next-Work Backlog
 
