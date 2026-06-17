@@ -16,7 +16,7 @@ changes, invariant rewrites).
 
 ## [e17-f2-qinq-macsec-documented-limitation-2026-06-16] — 2026-06-16
 
-### PATCH: BC-2.16.009 v1.7→v1.8 + BC-2.16.015 v1.6→v1.7 — E-17 QinQ/MACsec offset confirmed + MACsec documented-limitation clause
+### PATCH: BC-2.16.009 v1.7→v1.9 + BC-2.16.015 v1.6→v1.8 — E-17 QinQ/MACsec offset confirmed + MACsec documented-limitation clause (final versions after DF-CONSISTENCY-AUDIT follow-on bumps)
 
 **Feature cycle:** E-17 "ARP Decoder VLAN/QinQ/MACsec Offset Hardening" (issue #253)
 **F1 human gate outcome:** PASSED — documented-limitation, no src/ production change, v0.7.1 patch target.
@@ -62,13 +62,36 @@ confirmed by `test_BC_2_16_015_qinq_truncated_benign_arp_no_false_positive_d11`.
 
 | Artifact | Change | File |
 |----------|--------|------|
-| BC-2.16.009 | v1.7 → v1.8: Precondition 2 lax-path updated with confirmed QinQ/MACsec offset values; EC-008 updated with full offset table and MACsec Encrypted/Modified note; EC-009 added (documented-limitation clause) | `.factory/specs/behavioral-contracts/ss-16/BC-2.16.009.md` |
-| BC-2.16.015 | v1.6 → v1.7: PC-7a updated with confirmed offset values (QinQ=22, MACsec Unmodified/no-SCI=22, MACsec Unmodified/SCI=30); 7b distinction note updated to name QinQ/MACsec explicitly; EC-008 updated with confirmed offset table; EC-009 added (identical substance to BC-2.16.009 v1.8 EC-009; DF-SIBLING-SWEEP) | `.factory/specs/behavioral-contracts/ss-16/BC-2.16.015.md` |
+| BC-2.16.009 | v1.7 → v1.9: Precondition 2 lax-path updated with confirmed QinQ/MACsec offset values; EC-008 updated with full offset table and MACsec Encrypted/Modified note; EC-009 added (documented-limitation clause) [v1.8 = initial E-17 burst; v1.9 = DF-CONSISTENCY-AUDIT follow-on — see sub-note below] | `.factory/specs/behavioral-contracts/ss-16/BC-2.16.009.md` |
+| BC-2.16.015 | v1.6 → v1.8: PC-7a updated with confirmed offset values (QinQ=22, MACsec Unmodified/no-SCI=22, MACsec Unmodified/SCI=30); 7b distinction note updated to name QinQ/MACsec explicitly; EC-008 updated with confirmed offset table; EC-009 added (identical substance to BC-2.16.009 v1.9 EC-009; DF-SIBLING-SWEEP) [v1.7 = initial E-17 burst; v1.8 = DF-CONSISTENCY-AUDIT follow-on — see sub-note below] | `.factory/specs/behavioral-contracts/ss-16/BC-2.16.015.md` |
+| arp-architecture-delta.md | v1.17 → v1.19: v1.18 = initial E-17 changelog reference (architect burst); v1.19 = DF-CONSISTENCY-AUDIT §2.2 None-arm snippet corrected to `Err(anyhow!("Non-Ethernet/IPv4 ARP frame"))` matching shipped src/decoder.rs:209/256 (adversarial finding H-1) | `.factory/specs/architecture/arp-architecture-delta.md` |
+| VP-024 (vp-024-arp-parse-safety.md) | v2.4 (final after DF-CONSISTENCY-AUDIT follow-on bumps) | `.factory/specs/verification-properties/vp-024-arp-parse-safety.md` |
+| verification-coverage-matrix.md | v1.8 (final after DF-CONSISTENCY-AUDIT follow-on bumps — E-17 governance note added to VP-024 row; Coverage Notes updated) | `.factory/specs/architecture/verification-coverage-matrix.md` |
 
-**No other BCs, stories, VPs, or architecture documents changed in this burst.**
-Story-writer handoff: no story frontmatter `bcs:` array changes (EC additions are additive,
-no existing BC IDs changed). Architect handoff: `arp-architecture-delta.md` v1.17 → v1.18
-(E-17 changelog reference) is architect scope — separate dispatch.
+**DF-CONSISTENCY-AUDIT follow-on bumps (previously unlogged):**
+
+The initial E-17 burst (above) recorded BC-2.16.009 at v1.8 and BC-2.16.015 at v1.7. A
+subsequent DF-CONSISTENCY-AUDIT pass produced additional incremental bumps that were not
+propagated to this central changelog entry until now (adversarial finding F-1):
+
+(a) **BC-2.16.009 v1.8→v1.9 and BC-2.16.015 v1.7→v1.8:** input-hash TBD→null. BC files are
+    exempt from the story input-hash mechanism per CLAUDE.md (input-hash tracks story source
+    inputs, not BC artifacts themselves).
+
+(b) **BC-2.16.015 PC-7a QinQ offset-22 citation split:** The QinQ offset-22 confirmation was
+    split into two distinct test citations — `test_BC_2_16_015_qinq_link_exts_offset_formula_pin`
+    (the +8 link-exts-sum arithmetic) and
+    `test_BC_2_16_015_qinq_truncated_benign_arp_no_false_positive_d11` (the byte-read at
+    offset 22 confirming no false-positive D11). Each citation is now anchored to exactly one
+    test function.
+
+(c) **arch-delta v1.18→v1.19:** §2.2 authoritative code snippet corrected — the None-arm
+    return value was shown as `None`; corrected to `Err(anyhow!("Non-Ethernet/IPv4 ARP frame"))`
+    to match shipped `src/decoder.rs:209/256` (adversarial finding H-1). This is a documentation
+    correction to the architecture delta document only; no source code was changed.
+
+**Story-writer handoff:** no story frontmatter `bcs:` array changes (EC additions are additive,
+no existing BC IDs changed). Architect handoff consolidated above.
 
 ---
 
