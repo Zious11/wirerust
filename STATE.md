@@ -1,7 +1,7 @@
 ---
 pipeline: STEADY_STATE
 phase: feature-f3
-phase_status: "v0.7.1 RELEASED + maint-2026-06-17 COMPLETE + reactive fix #220 CLOSED (PR #263 merged; develop 5ed8077). Feature #259 (finding-collapse) F3 STORY DECOMPOSITION COMPLETE — STORY-118 (flat collapse, wave 47) + STORY-119 (grouped, deferred); 13 P0 holdouts; F3 adversarial pass-6 (P/Q/R): Q CLEAN, R CLEAN, P 1 MED (escape notation \\x1b vs genuine \\u{1b}) → REMEDIATED across story+BC+ADR (notation class closed); corpus re-frozen; F3 streak 0/3 → 3 parallel passes next. NEXT = F3 adversarial story convergence (3 parallel passes)."
+phase_status: "v0.7.1 RELEASED + maint-2026-06-17 COMPLETE + reactive fix #220 CLOSED (PR #263 merged; develop 5ed8077). Feature #259 (finding-collapse) F3 STORY DECOMPOSITION COMPLETE — STORY-118 (flat collapse, wave 47) + STORY-119 (grouped, deferred); 13 P0 holdouts; F3 adversarial pass-7 (S/T/U): 3 distinct MED — T Host-confound (holdout false-fail), S BC-2.11.025 HTTP/1.1 evidence residue, U dep-graph BC-027 version drift → all REMEDIATED; BC-2.11.025→v1.6, STORY-118 input-hash→77d97c6; corpus re-frozen; F3 streak 0/3 → 3 parallel passes next. NEXT = F3 adversarial story convergence (3 parallel passes)."
 active_feature: "E-8 #259 finding-collapse (v0.8.0 target) — F2 FROZEN"
 feature_arp_status: "v0.7.0 RELEASED 2026-06-16 — ARP Security Analyzer (E-16, issue #9); PR #256 dd8e142; tag v0.7.0; 4 binaries (aarch64-apple-darwin, x86_64-apple-darwin, x86_64-pc-windows-msvc, x86_64-unknown-linux-gnu)"
 feature_8_status: "v0.6.0 RELEASED 2026-06-12 — DNP3 TCP analyzer; F7 5-dim CONVERGED; tag v0.6.0 + 4 binaries"
@@ -199,19 +199,20 @@ ADR-0007 Decision 2 prose-clarity nit — arithmetic-walk thinking artifact; fol
 | Feature #259 (finding-collapse, E-8) — F3 Adversarial Pass-4 Remediation (J/K/L) | F3 adversarial pass-4 (J/K/L): J CLEAN, K 2 MED (HS-W47-005/010 not CLI-producible via --http), L 1 MED (dep-graph stale 69 product-story count) → all REMEDIATED; wave-47-holdout v1.3→v1.4 (HS-W47-005/010 reframed as reporter-boundary synthetic vectors; blind-CLI command removed; Evaluation Method added; producibility classification 11 CLI / 2 synthetic); dependency-graph v1.6→v1.7 (stale 69→71 in brownfield context note + acyclicity proof); corpus re-frozen; F3 streak 0/3 → 3 parallel passes next. | **REMEDIATED** — corpus re-frozen; F3 streak 0/3 → 3 parallel passes next |
 | Feature #259 (finding-collapse, E-8) — F3 Adversarial Pass-5 Remediation (M/N/O) | F3 adversarial pass-5 (M/N/O): M CLEAN, O CLEAN, N 1 MED (HS-W47-003 exact-plain-header assertion 2 false-fail — command lacked --no-color; default color codes corrupt byte-identity check) → REMEDIATED; wave-47-holdout v1.4→v1.5 (HS-W47-003 command `wirerust analyze --http <pcap>` → `wirerust analyze --http --no-color <pcap>`; full 13-scenario color-assertion audit: no siblings affected; assertion 2 byte-identity precondition restored deterministically); corpus re-frozen; F3 streak 0/3 → 3 parallel passes next. | **REMEDIATED** — corpus re-frozen; F3 streak 0/3 → 3 parallel passes next |
 | Feature #259 (finding-collapse, E-8) — F3 Adversarial Pass-6 Remediation (P/Q/R) | F3 adversarial pass-6 (P/Q/R): Q CLEAN, R CLEAN, P 1 MED (escape notation `\x1b` vs genuine `\u{1b}` — `char::escape_default` form) → REMEDIATED across STORY-118 v1.3→v1.4 (AC-016/AC-028 examples corrected to `\u{1b}` form; input-hash 432f43e UNCHANGED) + BC-2.11.027 v1.3→v1.4 (EC-007 + canonical test vector `\x1b`→`\u{1b}`) + BC-INDEX v1.36→v1.37; spec-changelog entry [issue-259-collapse-escape-notation-fix-2026-06-17]; notation class closed; corpus re-frozen; F3 streak 0/3 → 3 parallel passes next. | **REMEDIATED** — corpus re-frozen; F3 streak 0/3 → 3 parallel passes next |
+| Feature #259 (finding-collapse, E-8) — F3 Adversarial Pass-7 Remediation (S/T/U) | F3 adversarial pass-7 (S/T/U): 3 distinct MED — T Host-confound (holdout false-fail: wave-47-holdout.md v1.5→v1.6, Host-header constraint added to all CLI-producible flood scenarios so detection #5 HTTP/1.1 missing/empty-Host anomaly does not co-fire; per-scenario detection audit), S BC-2.11.025 HTTP/1.1 evidence residue (canonical-vector evidence HTTP/1.1 token dropped to match http.rs:365; v1.5→v1.6), U dep-graph BC version drift (BC-2.11.027 v1.3→v1.4 and BC-2.11.025 v1.5→v1.6 matrix stamps; v1.7→v1.9) → all REMEDIATED; BC-INDEX v1.37→v1.38; STORY-118 v1.4→v1.5 (BC-2.11.025 citation v1.6; input-hash 432f43e→77d97c6 via bin/compute-input-hash --scan MATCH); STORY-119 BC table stamp v1.5→v1.6; spec-changelog entries present; corpus re-frozen; F3 streak 0/3 → 3 parallel passes next. | **REMEDIATED** — corpus re-frozen; F3 streak 0/3 → 3 parallel passes next |
 
-## Session Resume Checkpoint (2026-06-17 — F3 adversarial pass-6 REMEDIATED; escape notation class closed; corpus re-frozen; streak 0/3 → 3 parallel passes next)
+## Session Resume Checkpoint (2026-06-17 — F3 adversarial pass-7 REMEDIATED; Host-header constraint + BC-2.11.025 evidence drop + dep-graph BC stamps; STORY-118 input-hash 432f43e→77d97c6; corpus re-frozen; streak 0/3 → 3 parallel passes next)
 
-**Previous checkpoint (2026-06-17 — F2 adversarial gate SATISFIED 3/3; Passes 15/16/17 CLEAN on 4231b6b; → F3) archived to:
+**Previous checkpoint (2026-06-17 — F3 adversarial pass-6 REMEDIATED; escape notation class closed; corpus re-frozen; streak 0/3 → 3 parallel passes next) archived to:
 `.factory/cycles/feature-arp-v0.7.0/session-checkpoints.md`**
 
 ### A. EXACT PIPELINE POSITION
 
 - **Project:** wirerust. **Mode:** FEATURE-MODE F3 (#259 finding-collapse).
 - **Latest release:** v0.7.1 — E-17 ARP VLAN/QinQ/MACsec offset regression hardening (issue #253); FULLY RELEASED. Tag v0.7.1 on main b98a72f.
-- **Active feature:** #259 finding-collapse, E-8, v0.8.0 target — F3 story decomposition COMPLETE; 6 adversarial passes run; pass-6 REMEDIATED.
-- **F3 adversarial state:** pass-6 (P/Q/R) REMEDIATED — Q CLEAN, R CLEAN, P 1 MED (escape notation `\x1b` vs genuine `\u{1b}` — char::escape_default form). STORY-118 v1.4, BC-2.11.027 v1.4, BC-INDEX v1.37. Input-hash 432f43e UNCHANGED. Notation class closed. F3 streak reset 0/3 → dispatch 3 parallel passes next.
-- **Frozen F3 corpus (re-frozen this burst):** STORY-118 v1.4 + STORY-119 (stub, deferred) + wave-47-holdout v1.5 + STORY-INDEX v1.8 + dependency-graph v1.7 + epics.md v1.4 + HS-INDEX v1.9; BC-2.11.010 v1.8/.013 v1.11/.017 v1.13/.019 v1.6/.025 v1.5/.026 v1.8/.027 v1.4/.028 v1.4/.029 v1.2; BC-INDEX v1.37; PRD v1.28 (288 BCs, SS-11=29); verification-coverage-matrix v1.12.
+- **Active feature:** #259 finding-collapse, E-8, v0.8.0 target — F3 story decomposition COMPLETE; 7 adversarial passes run; pass-7 REMEDIATED.
+- **F3 adversarial state:** pass-7 (S/T/U) REMEDIATED — 3 distinct MED: T Host-confound (holdout false-fail), S BC-2.11.025 HTTP/1.1 evidence residue, U dep-graph BC-027 version drift. All REMEDIATED. STORY-118 v1.5, BC-2.11.025 v1.6, BC-INDEX v1.38. Input-hash 77d97c6 (was 432f43e). F3 streak reset 0/3 → dispatch 3 parallel passes next.
+- **Frozen F3 corpus (re-frozen this burst):** STORY-118 v1.5 (input-hash 77d97c6) + STORY-119 (stub, deferred) + wave-47-holdout v1.6 + STORY-INDEX v1.8 + dependency-graph v1.9 + epics.md v1.4 + HS-INDEX v1.9; BC-2.11.010 v1.8/.013 v1.11/.017 v1.13/.019 v1.6/.025 v1.6/.026 v1.8/.027 v1.4/.028 v1.4/.029 v1.2; BC-INDEX v1.38; PRD v1.28 (288 BCs, SS-11=29); verification-coverage-matrix v1.12.
 - **develop HEAD:** 5ed8077 == origin/develop. Working tree: docs/adr/0003-reporting-pipeline-layering.md has uncommitted change (subcommand-scoping + color-ladder prose added; rides STORY-118 F4 impl PR — do NOT commit to develop until F4).
 - **main HEAD:** b98a72f (tag v0.7.1 annotated).
 - **factory-artifacts HEAD:** run `git -C .factory log -1 --format='%H'` (this burst).
@@ -237,11 +238,11 @@ ADR-0007 Decision 2 prose-clarity nit — arithmetic-walk thinking artifact; fol
 - maint-2026-06-17: COMPLETE — PRs #261/#262 merged; 5 TD items registered; gate PASS.
 - Issue #220: CLOSED — PR #263 merged; BC-2.14.017 v2.6; cosmetic fix only; no pipeline phase impact.
 - Feature #259 F2 adversarial: ALL 17 PASSES COMPLETE. Passes 1-14 ALL REMEDIATED. Passes 15/16/17 CLEAN in parallel on 4231b6b = GATE SATISFIED 3/3. Pipeline advances to F3.
-- Feature #259 F3: story decomposition COMPLETE. 6 adversarial passes run. Pass-6 escape-notation class remediated. STORY-118 v1.4. BC-2.11.027 v1.4. BC-INDEX v1.37.
+- Feature #259 F3: story decomposition COMPLETE. 7 adversarial passes run. Pass-7 REMEDIATED. STORY-118 v1.5, input-hash 77d97c6. BC-2.11.025 v1.6. BC-INDEX v1.38. wave-47-holdout v1.6. dependency-graph v1.9.
 - ADR-0003 develop-tree: HAS uncommitted change (docs/adr/0003-reporting-pipeline-layering.md — subcommand-scoping + color-ladder prose added) — this is intentional; rides STORY-118 F4 impl PR. Do NOT commit on develop until F4.
 
 **Step 4 — NEXT ACTIONS:**
-- Dispatch F3 adversarial story convergence — 3 parallel passes on frozen corpus (STORY-118 v1.4 + STORY-119 + wave-47-holdout v1.5 + STORY-INDEX/dependency-graph/epics/HS-INDEX). Frozen baseline = this burst SHA (run `git -C .factory log -1 --format='%H'`).
+- Dispatch F3 adversarial story convergence — 3 parallel passes on frozen corpus (STORY-118 v1.5 + STORY-119 + wave-47-holdout v1.6 + STORY-INDEX/dependency-graph v1.9/epics/HS-INDEX). Frozen baseline = this burst SHA (run `git -C .factory log -1 --format='%H'`).
 - ADR-0003 develop-tree change stays uncommitted until F4 STORY-118 PR.
 
 ### C. KEY ARTIFACT POINTERS
@@ -252,7 +253,7 @@ ADR-0007 Decision 2 prose-clarity nit — arithmetic-walk thinking artifact; fol
 - E-17 cycle artifacts: `.factory/cycles/feature-arp-v0.7.0/` (lessons.md, session-checkpoints.md, adversarial-reviews/)
 - ARP/E-17 specs: `.factory/specs/behavioral-contracts/` (BC-2.16.*), `.factory/specs/verification-properties/vp-024-arp-parse-safety.md`
 - Modbus fix: `.factory/specs/behavioral-contracts/bc-2-14-017-modbus-write-burst.md` (BC-2.14.017 v2.6; spec commit 8d5446d)
-- #259 F2 BCs: `.factory/specs/behavioral-contracts/bc-2-11-*.md` (BC-2.11.010/.013/.017/.019/.025/.026/.027/.028/.029)
+- #259 F2/F3 BCs: `.factory/specs/behavioral-contracts/bc-2-11-*.md` (BC-2.11.010/.013/.017/.019/.025/.026/.027/.028/.029)
 
 ## Decisions Log
 

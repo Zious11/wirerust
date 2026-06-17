@@ -1,6 +1,6 @@
 ---
 document_type: dependency-graph
-version: "1.7"
+version: "1.9"
 status: draft
 producer: story-writer
 phase: 3
@@ -10,6 +10,8 @@ modified:
   - "2026-06-17 v1.5: Feature #259 (issue #259, finding-collapse) — added STORY-118 (E-18, wave 47) + STORY-119 (E-18, deferred/unscheduled). total_stories 69→71 (product). total_edges 93→94 (+1 intra: STORY-118→119). number_of_waves 46→47 (STORY-119 unscheduled). STORY-118 depends_on=[] (reporter-only; no new predecessor). STORY-119 depends_on=[STORY-118] (deferred stub)."
   - "2026-06-17 v1.6: Adversarial Burst 2 remediation — corrected subheading Intra-Epic Edges (74→75 edges) to match intra_epic_edges: 75 frontmatter (no edge list changes)."
   - "2026-06-17 v1.7: Adversarial Burst 5 remediation — stale 69→71 in two live current-state prose assertions (brownfield context note line ~28; acyclicity proof line ~254)."
+  - "2026-06-17 v1.8: Adversarial Burst 6 remediation — BC-2.11.027 version stamp in BC-to-Stories matrix row (line ~740) updated v1.3→v1.4 (escape-notation fix bump). All other 8 BC version stamps confirmed MATCH vs live frontmatter."
+  - "2026-06-17 v1.9: DF-INPUT-HASH-CANONICAL-001 — BC-2.11.025 bumped v1.5→v1.6 by BC-PO (canonical-vector evidence HTTP/1.1 fix); updated BC-2.11.025 stamp in BC-to-Stories matrix (v1.5→v1.6). STORY-118 input-hash recomputed: 432f43e → 77d97c6."
 total_stories: 71  # product stories only (excludes STORY-091 tooling; all-stories total = 72)
 total_edges: 94
 intra_epic_edges: 75
@@ -737,7 +739,7 @@ iteratively. Result:
 | BC-2.16.008, BC-2.16.013 (+BC-2.16.010 extension) | STORY-115 | E-16 | SS-02, SS-16 |
 | BC-2.16.009 (EC-008 QinQ offset 22, EC-009 MACsec observe-only probe — v1.10 additions) | STORY-116, STORY-117 | E-17 | SS-16 |
 | BC-2.16.015 (PC-7a QinQ offset 22, EC-008, EC-009 — v1.9 additions) | STORY-116, STORY-117 | E-17 | SS-16 |
-| BC-2.11.025 (v1.5), BC-2.11.026 (v1.8), BC-2.11.027 (v1.3), BC-2.11.028 (v1.4), BC-2.11.029 (v1.2) | STORY-118 | E-18 | SS-11 |
+| BC-2.11.025 (v1.6), BC-2.11.026 (v1.8), BC-2.11.027 (v1.4), BC-2.11.028 (v1.4), BC-2.11.029 (v1.2) | STORY-118 | E-18 | SS-11 |
 | BC-2.11.010 (v1.8, collapse escape-path extension), BC-2.11.013 (v1.11, grouped-mode bypass), BC-2.11.017 (v1.13, MITRE line from group_members[0]), BC-2.11.019 (v1.6, flat dispatch routing) | STORY-118 | E-18 | SS-11 |
 | BC-2.11.013 (Invariant 4 forward-ref), BC-2.11.025 (Invariant 5 forward-ref), BC-2.11.026 (PC-4 grouped suffix-free guarantee) | STORY-119 (deferred stub) | E-18 | SS-11 |
 

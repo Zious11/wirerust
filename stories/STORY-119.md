@@ -88,7 +88,7 @@ story will extend collapse into the grouped path in a future cycle.
 | BC | Version | Forward-Reference Clause |
 |----|---------|--------------------------|
 | BC-2.11.013 | v1.11 | Invariant 4: "Collapse within grouped/`--mitre` mode is deferred to STORY-119 (future cycle)" |
-| BC-2.11.025 | v1.5 | Invariant 5: "Grouped-mode collapse is deferred to a future cycle (see STORY-119)" |
+| BC-2.11.025 | v1.6 | Invariant 5: "Grouped-mode collapse is deferred to a future cycle (see STORY-119)" |
 | BC-2.11.026 | v1.8 | Postcondition 4: "The grouped/`--mitre` path MUST NOT emit a ` (xN)` suffix on any finding, regardless of group size (BC-2.11.013 Invariant 4)" |
 
 Additional BCs governing grouped-mode collapse behavior will be authored at full

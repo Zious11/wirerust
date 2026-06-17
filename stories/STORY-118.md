@@ -2,7 +2,7 @@
 document_type: story
 story_id: STORY-118
 epic_id: E-18
-version: "1.4"
+version: "1.5"
 status: draft
 producer: story-writer
 timestamp: 2026-06-17T00:00:00Z
@@ -29,7 +29,7 @@ estimated_days: 2
 feature_id: e18-finding-collapse
 github_issue: 259
 wave: 47
-# BC status: BC-2.11.025 v1.5, BC-2.11.026 v1.8, BC-2.11.027 v1.4, BC-2.11.028 v1.4,
+# BC status: BC-2.11.025 v1.6, BC-2.11.026 v1.8, BC-2.11.027 v1.4, BC-2.11.028 v1.4,
 #             BC-2.11.029 v1.2, BC-2.11.010 v1.8, BC-2.11.013 v1.11, BC-2.11.017 v1.13,
 #             BC-2.11.019 v1.6 — all authored and CONVERGED (F2 passes 1-14).
 # Subsystem anchor: SS-11 owns this story's scope because terminal finding-collapse
@@ -52,7 +52,7 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-11/BC-2.11.028.md
   - .factory/specs/behavioral-contracts/ss-11/BC-2.11.029.md
   - .factory/phase-f1-delta-analysis/issue-259-finding-collapse-delta-analysis.md
-input-hash: "432f43e"
+input-hash: "77d97c6"
 ---
 
 # STORY-118: Terminal Finding-Collapse — Flat Mode (v0.8.0)
@@ -71,7 +71,7 @@ input-hash: "432f43e"
 
 | BC | Version | Title |
 |----|---------|-------|
-| BC-2.11.025 | v1.5 | Flat-Mode Collapse Groups Findings by (category, verdict, confidence, summary) Key; First-Occurrence Order; Deterministic |
+| BC-2.11.025 | v1.6 | Flat-Mode Collapse Groups Findings by (category, verdict, confidence, summary) Key; First-Occurrence Order; Deterministic |
 | BC-2.11.026 | v1.8 | Collapsed Group of N≥2 Renders Header with (xN) Suffix; Singleton (N=1) Renders Without Suffix |
 | BC-2.11.027 | v1.4 | Collapsed Group Retains at Most K=3 Representative Evidence Lines; Remainder Elided from Terminal Display |
 | BC-2.11.028 | v1.4 | --no-collapse Opt-Out Flag Disables Terminal Collapse and Restores One-Line-Per-Finding Rendering; JSON/CSV Unaffected |

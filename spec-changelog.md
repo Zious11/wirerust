@@ -14,6 +14,37 @@ changes, invariant rewrites).
 
 ---
 
+## [issue-259-collapse-bc025-evidence-fix-2026-06-17] — 2026-06-17
+
+### PATCH: Issue #259 BC-2.11.025 Evidence Format Accuracy Fix (F-F3-001)
+
+**Trigger:** BC-2.11.025 canonical flood vector specified evidence as `["GET /a HTTP/1.1"]` but `http.rs:365` emits `format!("{} {}", parsed.method, parsed.uri)` → `"GET /a"` (method + URI only, no HTTP version token). Self-contradiction with "mirroring http.rs" annotation. Partial fix from F-O-02 missed BC-2.11.025. total_bcs=288 unchanged.
+
+#### Finding Dispositions
+
+| Finding | Severity | File(s) Changed | Resolution |
+|---------|----------|----------------|-----------|
+| F-F3-001 | MEDIUM | BC-2.11.025 v1.5→v1.6 | Flood canonical test vector evidence: `["GET /a HTTP/1.1"]`…`["GET /e HTTP/1.1"]` → `["GET /a"]`…`["GET /e"]`. Added annotation: `format!("{} {}", parsed.method, parsed.uri)` → method+URI only, NO HTTP version token. |
+
+#### BC Version Summary
+
+| BC/Doc | Before | After |
+|--------|--------|-------|
+| BC-2.11.025 | v1.5 | v1.6 |
+| BC-INDEX.md | v1.37 | v1.38 |
+
+#### HTTP Version String Sweep — All 29 ss-11 BCs
+
+| File | Line | Hit | Verdict |
+|------|------|-----|---------|
+| BC-2.11.025:155 | `["GET /a HTTP/1.1"]`…`["GET /e HTTP/1.1"]` | EVIDENCE-RESIDUE — **FIXED** → `["GET /a"]`…`["GET /e"]` |
+| BC-2.11.019:117 | `DNS/HTTP/Modbus/SSH=5 each` | PROSE/WIRE — SAFE (service name in count table) |
+| All other BC-2.11.001..029 | (no hits) | SAFE |
+
+No evidence-residue remains. All ss-11 BC evidence examples now use `"{method} {uri}"` format.
+
+---
+
 ## [issue-259-collapse-escape-notation-fix-2026-06-17] — 2026-06-17
 
 ### PATCH: Issue #259 BC-2.11.027 Escape Notation Accuracy Fix

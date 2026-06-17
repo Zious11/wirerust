@@ -1,6 +1,6 @@
 ---
 document_type: holdout-scenario
-version: "1.5"  # F-PB-001: absent-UA → present-but-empty UA trigger; F-C-03: [Uncategorized] → ## Uncategorized; F-O-02: drop HTTP/1.1 from evidence examples; F-E-01: HS-W47-006 re-grounded on real path-traversal emission; F-H-001: --output json/csv → --json/--csv throughout; F-K-001/K-002: HS-W47-005/010 reframed as reporter-boundary synthetic; F-W47-003-COLOR-01: add --no-color to HS-W47-003 command so exact plain-header assertion 2 is deterministically producible
+version: "1.6"  # F-PB-001: absent-UA → present-but-empty UA trigger; F-C-03: [Uncategorized] → ## Uncategorized; F-O-02: drop HTTP/1.1 from evidence examples; F-E-01: HS-W47-006 re-grounded on real path-traversal emission; F-H-001: --output json/csv → --json/--csv throughout; F-K-001/K-002: HS-W47-005/010 reframed as reporter-boundary synthetic; F-W47-003-COLOR-01: add --no-color to HS-W47-003 command; F-W47-HOST-CONFOUND-001: add present-non-empty Host header constraint to grounding note + all CLI-producible flood scenarios (HS-W47-001/002/003/004/006/007/008/009/011/013) to prevent co-emission of HTTP/1.1 missing-Host anomaly finding
 status: draft
 producer: product-owner
 timestamp: 2026-06-17T00:00:00Z
@@ -50,6 +50,16 @@ confirmed_constants:
 > User-Agent header")` finding with `evidence: [<method> <uri>]` (e.g., `"GET /path"`
 > — method + space + URI, NO ` HTTP/1.1` version suffix), `source_ip: None`,
 > `mitre_techniques: []`. Evidence strings are distinct per request. Timestamps may differ.
+>
+> **Host-header constraint (applies to ALL CLI-producible scenarios):** Detection #5 in
+> `src/analyzer/http.rs:298-316` fires on every HTTP/1.1 request where `host` is `None`
+> or `Some("")`, emitting a SECOND finding `(Anomaly, Inconclusive, Medium,
+> "HTTP/1.1 request without Host header")`. To prevent this co-emission from perturbing
+> exact group-count and line-count assertions, every HTTP/1.1 request in every
+> CLI-producible holdout pcap **MUST carry a present, non-empty `Host` header**
+> (wire bytes: `Host: example.com\r\n`). With a valid Host header, detection #5 takes
+> the `Some(_)` branch and emits nothing. The intended finding type (empty-UA or
+> path-traversal) is then the ONLY finding each request emits.
 
 ---
 
@@ -69,14 +79,19 @@ confirmed_constants:
 
 ### Setup
 
-A capture file contains 50 HTTP requests, each carrying a User-Agent header that is
-**present but empty** (wire bytes: `User-Agent:\r\n` — value is the empty string, which
-produces `parsed.user_agent.as_deref() == Some("")` at the analyzer). The analyzer emits
-50 `(Anomaly, Inconclusive, Low, "Empty User-Agent header")` findings, one per request,
-each with a distinct evidence string (e.g., `"GET /req/0001"` through `"GET /req/0050"`)
-in `method + space + URI` format. All four collapse-key fields are identical across all
-50 findings: category=Anomaly, verdict=Inconclusive, confidence=Low,
-summary="Empty User-Agent header".
+A capture file contains 50 HTTP/1.1 requests, each carrying:
+- A User-Agent header that is **present but empty** (wire bytes: `User-Agent:\r\n` —
+  value is the empty string, which produces `parsed.user_agent.as_deref() == Some("")`
+  at the analyzer), AND
+- A **present, non-empty `Host` header** (wire bytes: `Host: example.com\r\n`) so that
+  detection #5 (`src/analyzer/http.rs:298-316`) takes the `Some(_)` branch and emits
+  **no** Host-anomaly finding.
+
+The analyzer emits exactly 50 `(Anomaly, Inconclusive, Low, "Empty User-Agent header")`
+findings, one per request, each with a distinct evidence string (e.g., `"GET /req/0001"`
+through `"GET /req/0050"`) in `method + space + URI` format. All four collapse-key fields
+are identical across all 50 findings: category=Anomaly, verdict=Inconclusive, confidence=Low,
+summary="Empty User-Agent header". No other finding type is emitted by these requests.
 
 **Abstractly:** A finding-set with 50 identical-key findings and distinct evidence URIs.
 
@@ -125,7 +140,9 @@ cap was not enforced."
 ### Setup
 
 Same input as HS-W47-001: 50 identical-key `(Anomaly, Inconclusive, Low, "Empty
-User-Agent header")` findings, each with a distinct evidence URI.
+User-Agent header")` findings, each with a distinct evidence URI. Each request carries a
+present, non-empty `Host: example.com\r\n` header (per HS-W47-001 Host-header constraint)
+so no Host-anomaly co-emission occurs.
 
 ### Command
 
@@ -166,10 +183,13 @@ terminal still showed collapsed output with (x50) suffix instead of 50 individua
 
 ### Setup
 
-A capture file that produces exactly ONE unique finding: one HTTP request carrying a
-User-Agent header that is **present but empty** (`User-Agent:\r\n`). The finding is
-`(Anomaly, Inconclusive, Low, "Empty User-Agent header")` with evidence
-`["GET /single"]` and no MITRE techniques.
+A capture file that produces exactly ONE unique finding: one HTTP/1.1 request carrying:
+- A User-Agent header that is **present but empty** (`User-Agent:\r\n`), AND
+- A **present, non-empty `Host: example.com\r\n`** header to suppress the Host-anomaly
+  co-emission (detection #5 at `src/analyzer/http.rs:298-316`).
+
+The finding is `(Anomaly, Inconclusive, Low, "Empty User-Agent header")` with evidence
+`["GET /single"]` and no MITRE techniques. No other finding is emitted.
 
 **Abstractly:** A finding-set containing exactly one finding (no repetition).
 
@@ -212,10 +232,14 @@ wirerust analyze --http --no-color <pcap>
 
 ### Setup
 
-A finding-set of 5 identical-key findings where each finding has exactly one evidence
-line, distinct per finding: `evidence[0]="GET /path/a"`,
-`evidence[1]="GET /path/b"`, ..., `evidence[4]="GET /path/e"`.
-The findings appear in the input slice in the order a, b, c, d, e (alphabetical by path).
+A finding-set of 5 identical-key `(Anomaly, Inconclusive, Low, "Empty User-Agent
+header")` findings produced by 5 HTTP/1.1 requests, each with a distinct URI path and
+each carrying a **present, non-empty `Host: example.com\r\n`** header (to suppress the
+Host-anomaly co-emission per detection #5 at `src/analyzer/http.rs:298-316`). Each
+finding has exactly one evidence line, distinct per finding:
+`evidence[0]="GET /path/a"`, `evidence[1]="GET /path/b"`, ...,
+`evidence[4]="GET /path/e"`. The findings appear in input slice order a, b, c, d, e.
+No other finding type is emitted by these requests.
 
 **Abstractly:** A 5-member collapse group where every member has exactly 1 evidence line.
 
@@ -321,9 +345,14 @@ instead of stopping at 2 lines."
 
 ### Setup
 
-A capture file contains 3 HTTP requests each with URI `/../../etc/passwd`, triggering
-the path-traversal detector at `src/analyzer/http.rs:200-217`. Each request produces a
-finding with the identical 4-field collapse key:
+A capture file contains 3 HTTP/1.1 requests each with URI `/../../etc/passwd`, triggering
+the path-traversal detector at `src/analyzer/http.rs:200-217`. Each request carries a
+**present, non-empty `Host: example.com\r\n`** header so that detection #5
+(`src/analyzer/http.rs:298-316`) takes the `Some(_)` branch and emits **no**
+Host-anomaly finding. Method is `GET` (not in the unusual-methods list). URI length is
+17 chars (well under the 2048-char long-URI threshold). No other finding type fires.
+
+Each request produces a finding with the identical 4-field collapse key:
 - `category: Reconnaissance`
 - `verdict: Likely`
 - `confidence: High`
@@ -378,9 +407,12 @@ appeared outside the red-bold color span."
 
 ### Setup
 
-A finding-set (or capture with HTTP flood) that produces exactly 1000 identical-key
-`(Anomaly, Inconclusive, Low, "Empty User-Agent header")` findings. The terminal
-collapse feature is enabled (default).
+A capture with 1000 HTTP/1.1 requests each carrying a **present-but-empty
+`User-Agent:\r\n`** header and a **present, non-empty `Host: example.com\r\n`** header.
+The Host header suppresses detection #5 (`src/analyzer/http.rs:298-316`) so no
+Host-anomaly finding co-fires. The analyzer emits exactly 1000 identical-key
+`(Anomaly, Inconclusive, Low, "Empty User-Agent header")` findings and no others.
+The terminal collapse feature is enabled (default).
 
 **Abstractly:** A large identical-key group, checked against JSON output.
 
@@ -428,8 +460,11 @@ findings array contained aggregation artifacts."
 
 ### Setup
 
-A finding-set with exactly 5 identical-key `(Anomaly, Inconclusive, Low, "Empty UA")`
-findings, each with one distinct evidence URI.
+A capture with exactly 5 HTTP/1.1 requests each carrying a **present-but-empty
+`User-Agent:\r\n`** header and a **present, non-empty `Host: example.com\r\n`** header
+(to suppress the Host-anomaly co-emission per detection #5). The analyzer emits exactly
+5 identical-key `(Anomaly, Inconclusive, Low, "Empty User-Agent header")` findings, each
+with one distinct evidence URI, and no other findings.
 
 ### Command
 
@@ -470,8 +505,11 @@ suggesting collapse was incorrectly applied to the CSV reporter."
 
 ### Setup
 
-A finding-set with 100 identical-key `(Anomaly, Inconclusive, Low, "Empty User-Agent
-header")` findings. Collapse is enabled by default.
+A capture with 100 HTTP/1.1 requests each carrying a **present-but-empty
+`User-Agent:\r\n`** header and a **present, non-empty `Host: example.com\r\n`** header
+(to suppress the Host-anomaly co-emission per detection #5). The analyzer emits exactly
+100 identical-key `(Anomaly, Inconclusive, Low, "Empty User-Agent header")` findings
+and no others. Collapse is enabled by default.
 
 **Abstractly:** A 100-member identical-key group rendered in grouped (MITRE) mode.
 
@@ -580,9 +618,15 @@ techniques (not group_members[0]), or member[2]'s T1059 appeared in terminal out
 
 ### Setup
 
-A finding-set with 5 groups of 3 findings each, interleaved in the input slice
-(e.g., order A, B, C, A, D, B, E, C, A, D, B, E, C, D, E — where A–E are distinct
-collapse keys). Each group has 3 members. Collapse is enabled.
+A capture producing a finding-set with 5 groups of 3 findings each, interleaved in the
+input slice (e.g., order A, B, C, A, D, B, E, C, A, D, B, E, C, D, E — where A–E are
+distinct collapse keys). Each group has 3 members. Collapse is enabled.
+
+**Pcap construction note:** Every HTTP/1.1 request in the capture MUST carry a
+**present, non-empty `Host: example.com\r\n`** header to suppress the Host-anomaly
+co-emission (detection #5). Without this, each request would emit a second finding that
+collapses into a sixth group, breaking the "5 collapsed groups" assertion. The five
+intended collapse keys must be the ONLY finding types emitted.
 
 **Abstractly:** A multi-group input with interleaved members; run twice identically.
 
@@ -686,6 +730,13 @@ sources include:
   HTTP/1.1 requests each including `User-Agent:\r\n` in the header block
 - A capture from any HTTP client configured to send an empty User-Agent value
   (not `--no-user-agent` / omit, but explicitly `User-Agent:` with empty value)
+
+**Host-header requirement:** Every request in the pcap MUST carry a **present, non-empty
+`Host: example.com\r\n`** header (or equivalent non-empty value). This suppresses the
+Host-anomaly co-emission (detection #5 at `src/analyzer/http.rs:298-316`), ensuring the
+empty-UA finding is the ONLY finding type emitted and the FINDINGS section contains exactly
+one collapsed group. A pcap lacking Host headers on HTTP/1.1 requests would produce a
+second group for the Host-anomaly finding, breaking assertion 1.
 
 **Expected finding profile:** 20+ identical `(Anomaly, Inconclusive, Low, "Empty
 User-Agent header")` findings, each with a distinct evidence string (`"GET <uri>"` format).
