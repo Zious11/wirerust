@@ -5,9 +5,9 @@ status: draft
 producer: story-writer
 phase: 3
 timestamp: 2026-05-21T00:00:00Z
-modified: "2026-06-17: Feature #253 (issue #253) — added STORY-116..117 linear chain (E-17 ARP VLAN/QinQ/MACsec offset hardening). total_stories 67→69 (product; STORY-091 tooling separate). total_edges 91→92 (+1 delta: 1 intra E-17 STORY-116→STORY-117). number_of_waves 44→46."
+modified: "2026-06-17: Feature #253 (issue #253) — added STORY-116..117 linear chain (E-17 ARP VLAN/QinQ/MACsec offset hardening). total_stories 67→69 (product; STORY-091 tooling separate). total_edges 91→93 (+2: +1 intra (STORY-116→117) + 1 cross-epic (STORY-115→116)). number_of_waves 44→46."
 total_stories: 69
-total_edges: 92
+total_edges: 93
 intra_epic_edges: 74
 cross_epic_edges: 19
 number_of_waves: 46
@@ -22,7 +22,7 @@ traces_to:
 # wirerust Story Dependency Graph
 
 > **Brownfield context:** wirerust is a single-crate offline pcap forensic triage CLI.
-> All 67 product stories formalize behavioral contracts for existing and new shipped code
+> All 69 product stories formalize behavioral contracts for existing and new shipped code
 > (48 greenfield + F2/F7/F8/F9 feature additions across E-14, E-15, E-16).
 > Cross-epic dependencies reflect the architecture pipeline layering
 > (L1 Ingest -> L2 Stream -> L3 Domain -> L4 Output -> L0 Entry) defined in
@@ -35,7 +35,7 @@ traces_to:
 | Metric | Value |
 |--------|-------|
 | Total stories | 69 (product; +STORY-091 tooling = 70) |
-| Total dependency edges | 92 |
+| Total dependency edges | 93 |
 | Intra-epic edges | 74 |
 | Cross-epic edges | 19 |
 | Number of parallel waves | 46 |
@@ -205,7 +205,7 @@ Dependencies in this graph respect the layer rules from
 
 ---
 
-### Cross-Epic Edges (18 edges)
+### Cross-Epic Edges (19 edges)
 
 > **Note:** The E-17 intra-epic edge (STORY-116 → STORY-117) is listed under Intra-Epic Edges above. The E-16 → E-17 boundary edge (STORY-115 → STORY-116) appears in the table below.
 
@@ -242,7 +242,7 @@ Waves are computed as `wave(story) = max(wave(dependency)) + 1` (longest-path /
 critical-path method). Stories in the same wave have no dependency between them
 and can be dispatched in parallel.
 
-> **Graph is acyclic:** Kahn's algorithm processes all 67 product stories. No cycle detected.
+> **Graph is acyclic:** Kahn's algorithm processes all 69 product stories. No cycle detected.
 
 ### Wave 1 — 2 stories | Epics: E-1, E-7
 
@@ -575,7 +575,7 @@ and can be dispatched in parallel.
 
 | Story | Epic | Points | Subsystem | Description |
 |-------|------|--------|-----------|-------------|
-| STORY-116 | E-17 | 3 | SS-16 | ARP VLAN/QinQ Offset Fixture Coverage — EC-008 (QinQ 22-byte offset) + VLAN 18-byte regression tests |
+| STORY-116 | E-17 | 3 | SS-16 | ARP QinQ (Double-Tag) Decoder Offset Coverage — QinQ 22-byte offset (EC-008) regression + MACsec observe-only probe |
 
 > **Note:** STORY-116 depends on STORY-115 (cross-epic: E-16 ARP decode-time logic must be fully shipped before offset regression tests can be authored against it). Root of the E-17 linear chain. tdd_mode: facade — delivers test files only, no production code change.
 

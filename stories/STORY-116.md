@@ -22,8 +22,8 @@ estimated_days: 1
 feature_id: e17-arp-qinq-macsec-offset-hardening
 github_issue: 253
 wave: 45
-# BC status: BC-2.16.009 v1.9 (EC-008 QinQ offset, EC-009 MACsec observe-only probe),
-#             BC-2.16.015 v1.8 (PC-7a QinQ offset 22, EC-008, EC-009) — authored 2026-06-16.
+# BC status: BC-2.16.009 v1.10 (EC-008 QinQ offset, EC-009 MACsec observe-only probe),
+#             BC-2.16.015 v1.9 (PC-7a QinQ offset 22, EC-008, EC-009) — authored 2026-06-16.
 # tdd_mode: facade — this story delivers existing test files (no production code change);
 #   delivery = merge PR #258 (test/arp-qinq-macsec-fixtures) after CI green. No todo!() stubs.
 # Subsystem anchor: SS-16 owns this story's scope because QinQ ARP offset coverage
@@ -178,7 +178,7 @@ story adds regression tests to prevent future regressions; it does not fix a def
 
 ## Architecture Compliance Rules
 
-Derived from `arp-architecture-delta.md` §2.2 and BC-2.16.015 v1.8 PC-7a/7b:
+Derived from `arp-architecture-delta.md` §2.2 and BC-2.16.015 v1.9 PC-7a/7b:
 
 1. **Offset formula is `14 + Σ link_exts.header_len()`** — not hardcoded per tag type.
    The formula generalizes over any `LaxLinkExtSlice` chain. Tests must verify the sum,
@@ -189,7 +189,7 @@ Derived from `arp-architecture-delta.md` §2.2 and BC-2.16.015 v1.8 PC-7a/7b:
    `mitre_techniques: []` (same rules as D-078 single-VLAN tests).
 4. **MACsec probe is observe-only in this file** — offset assertions for MACsec belong
    exclusively to `tests/bc_2_16_e17_macsec_offset_tests.rs` (STORY-117).
-5. **VP-024 is LOCKED (v2.3)** — this story appends a lifecycle note to VP-024 to record
+5. **VP-024 is LOCKED (v2.4)** — this story appends a lifecycle note to VP-024 to record
    that QinQ tests cover the lax-path offset formula that VP-024 Sub-A does not directly
    exercise. No proof-level change. Do NOT modify VP-024 proof content.
 
@@ -213,7 +213,7 @@ Derived from `arp-architecture-delta.md` §2.2 and BC-2.16.015 v1.8 PC-7a/7b:
 | Component | Estimated Tokens |
 |-----------|-----------------|
 | Story spec (this file) | ~3,500 |
-| BC files (2 BCs: BC-2.16.009 v1.9, BC-2.16.015 v1.8) | ~6,000 |
+| BC files (2 BCs: BC-2.16.009 v1.10, BC-2.16.015 v1.9) | ~6,000 |
 | F1 delta analysis §2.1 + §6 | ~2,000 |
 | `tests/bc_2_16_qinq_macsec_offset_tests.rs` (4 tests) | ~3,000 |
 | `src/decoder.rs` lax-path (reference read) | ~1,500 |

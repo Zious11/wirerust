@@ -22,7 +22,7 @@ estimated_days: 1
 feature_id: e17-arp-qinq-macsec-offset-hardening
 github_issue: 253
 wave: 46
-# BC status: BC-2.16.009 v1.9 (EC-009 MACsec documented-limitation), BC-2.16.015 v1.8 (EC-009)
+# BC status: BC-2.16.009 v1.10 (EC-009 MACsec documented-limitation), BC-2.16.015 v1.9 (EC-009)
 #             — authored 2026-06-16.
 # tdd_mode: facade — this story delivers existing test files (no production code change);
 #   delivery = merge PR #258 (test/arp-qinq-macsec-fixtures) after CI green. No todo!() stubs.
@@ -79,7 +79,7 @@ A MACsec Unmodified/no-SCI frame (EtherType 0x88E5, `header_len() == 8`) carryin
 benign truncated ARP payload (htype=0x0001, hlen=6, no variable section) yields
 `decode_packet` result `Err("truncated ARP frame")` and `malformed_findings == 0`.
 
-The computed `arp_offset = 14 + 8 = 22` (BC-2.16.015 v1.8 EC-009 documented value).
+The computed `arp_offset = 14 + 8 = 22` (BC-2.16.015 v1.9 EC-009 documented value).
 `Σ link_exts.header_len() == 8` confirms the no-SCI formula. The ARP bytes at offset 22
 have `htype == 0x0001` and `hlen == 6`, so genuine truncation is correctly identified.
 
@@ -98,13 +98,13 @@ produces `Err("Non-Ethernet/IPv4 ARP frame")`, `malformed_findings >= 1`, D11 fi
 A MACsec Unmodified/SCI-present frame (`sci = Some(u64)`, `header_len() == 16`) carrying a
 benign truncated ARP payload yields `Err("truncated ARP frame")` and `malformed_findings == 0`.
 
-The computed `arp_offset = 14 + 16 = 30` (BC-2.16.015 v1.8 EC-009 documented value).
+The computed `arp_offset = 14 + 16 = 30` (BC-2.16.015 v1.9 EC-009 documented value).
 `Σ link_exts.header_len() == 16` confirms the SCI-present formula (6 SecTag + 8 SCI +
 2 next-EtherType). The 8 SCI bytes at frame[22..30] do NOT read as `htype == 0x0001`
 (off-by-8 guard): if `header_len()` returned 8 instead of 16, the decoder would read SCI
 bytes as ARP and produce a false D11.
 
-**This is the spec-backing test for BC-2.16.015 v1.8 EC-009 offset=30.**
+**This is the spec-backing test for BC-2.16.015 v1.9 EC-009 offset=30.**
 
 - **Test:** `test_BC_2_16_015_macsec_sci_present_unmodified_arp_truncated_offset_30`
   (in `tests/bc_2_16_e17_macsec_offset_tests.rs`)
@@ -140,8 +140,8 @@ SCI-present variant. `Σ link_exts.header_len() == 14` (6 SecTag + 8 SCI, no nex
 
 ## Documented Limitation (EC-009(c))
 
-The following limitation is explicitly recorded in BC-2.16.009 v1.9 EC-009(c) and
-BC-2.16.015 v1.8 EC-009(c):
+The following limitation is explicitly recorded in BC-2.16.009 v1.10 EC-009(c) and
+BC-2.16.015 v1.9 EC-009(c):
 
 > No public on-wire MACsec-over-ARP PCAP capture exists (deep web sweep: Wireshark
 > SampleCaptures wiki, packetlife, cloudshark, GitHub fixtures — none carry Unmodified
@@ -198,8 +198,9 @@ lax-path ARP routing); `arp-architecture-delta.md` §2.2 (MACsec offset formula,
 3. Confirm `cargo clippy --all-targets -- -D warnings` clean.
 4. Confirm `cargo fmt --check` clean.
 5. Merge PR #258 after review approval and CI green (this is the shared delivery with STORY-116).
-6. (Post-merge) Update `arp-architecture-delta.md` to v1.18 with E-17 changelog entry
-   (records that MACsec documented-limitation is now formally stated in BCs).
+6. (Post-merge) ~~Update `arp-architecture-delta.md` to v1.18~~ — NO-OP: arch-delta is already
+   at v1.19; the E-17 MACsec documented-limitation changelog entry was recorded in the F2/F3
+   backlink burst. No further update required.
 7. (Post-merge) Compute and update `input-hash:` in this story file via
    `bin/compute-input-hash --write .factory/stories/STORY-117.md`.
 
@@ -227,7 +228,7 @@ STORY-116 (predecessor in E-17) established:
 **Key lesson from the E-17 F3 decomposition:** The MACsec correctness question was the
 central adjudication of E-17 F1. The outcome is DOCUMENTED-LIMITATION (no code change).
 This story's AC-003 is the most critical test — it guards against the off-by-8 SCI
-accounting risk and empirically backs the BC-2.16.015 v1.8 EC-009 offset=30 claim.
+accounting risk and empirically backs the BC-2.16.015 v1.9 EC-009 offset=30 claim.
 
 **No MITRE tagging:** D11 findings from MACsec-framed malformed ARP carry
 `mitre_techniques: []` for the same reason as all D11 findings — DF-VALIDATION-001
@@ -235,7 +236,7 @@ requires live validation before attaching T0814 or any other technique.
 
 ## Architecture Compliance Rules
 
-Derived from `arp-architecture-delta.md` §2.2 and BC-2.16.009 v1.9 / BC-2.16.015 v1.8 EC-009:
+Derived from `arp-architecture-delta.md` §2.2 and BC-2.16.009 v1.10 / BC-2.16.015 v1.9 EC-009:
 
 1. **Offset formula `14 + Σ header_len()` is correct for all reachable MACsec variants** —
    no-SCI Unmodified: `header_len() == 8` (6 SecTag + 2 next-EtherType); SCI-present Unmodified:
@@ -246,7 +247,7 @@ Derived from `arp-architecture-delta.md` §2.2 and BC-2.16.009 v1.9 / BC-2.16.01
    `stop_err == Layer::Arp` is unreachable for these variants. AC-005 and AC-006 guard this.
 3. **D11 quality parity** — MACsec D11 findings must have `category == Anomaly` and
    `mitre_techniques: []` (same rules as all other D11/malformed tests).
-4. **VP-024 is LOCKED (v2.3)** — lifecycle append note only. The Kani harnesses are not
+4. **VP-024 is LOCKED (v2.4)** — lifecycle append note only. The Kani harnesses are not
    re-run (no `src/decoder.rs` change). VP-024 LOCKED status is not affected.
 5. **etherparse line numbers are volatile** — references to `macsec_header_slice.rs:246-248`
    and `lax_packet_headers.rs:364-373` are for citation only. Tests guard runtime behavior
@@ -266,14 +267,14 @@ Derived from `arp-architecture-delta.md` §2.2 and BC-2.16.009 v1.9 / BC-2.16.01
 | `tests/bc_2_16_e17_macsec_offset_tests.rs` | **Deliver as-is** (already on PR #258 branch) | 6 tests: AC-001 through AC-006 |
 | `src/decoder.rs` | No change | MACsec offset formula already correct |
 | `src/analyzer/arp.rs` | No change | `record_malformed()` already implemented |
-| `arp-architecture-delta.md` | Changelog entry v1.18 (post-merge) | Records E-17 MACsec documented-limitation |
+| `arp-architecture-delta.md` | No change (already at v1.19 — E-17 entry recorded in F3 backlink burst) | NO-OP |
 
 ## Token Budget Estimate
 
 | Component | Estimated Tokens |
 |-----------|-----------------|
 | Story spec (this file) | ~4,000 |
-| BC files (2 BCs: BC-2.16.009 v1.9, BC-2.16.015 v1.8) | ~6,000 |
+| BC files (2 BCs: BC-2.16.009 v1.10, BC-2.16.015 v1.9) | ~6,000 |
 | F1 delta analysis §3 + §6 (MACsec adjudication + story preview) | ~3,000 |
 | `tests/bc_2_16_e17_macsec_offset_tests.rs` (6 tests) | ~5,000 |
 | `src/decoder.rs` lax-path (reference read, MACsec section) | ~1,500 |

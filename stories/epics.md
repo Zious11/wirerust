@@ -5,7 +5,7 @@ status: draft
 producer: story-writer
 phase: 2
 timestamp: 2026-05-21T00:00:00Z
-total_bcs: 268
+total_bcs: 283
 traces_to:
   - .factory/specs/prd.md
   - .factory/specs/behavioral-contracts/BC-INDEX.md
@@ -278,7 +278,8 @@ the same test vehicle (CLI invocation with obsolete flag).
 | E-13: Multi-Tag Finding Schema Migration | SS-09, SS-10, SS-11 | BC-2.09.001/006 (extensions), BC-2.10.005/007/008 (extensions), BC-2.11.001/013/015/017/020/024 (extensions) | 0 (extensions, not new BCs) |
 | E-14: Modbus TCP Analyzer | SS-14 (new), SS-05, SS-12 | BC-2.14.001..025 | 25 |
 | E-15: DNP3/ICS Analyzer | SS-15 (new), SS-05, SS-12 | BC-2.15.001..024 | 24 |
-| **TOTAL** | | | **268** |
+| E-16: ARP Security Analyzer | SS-16 (new) | BC-2.16.001..015 | 15 |
+| **TOTAL** | | | **283** |
 
 ### Arithmetic Verification
 
@@ -298,8 +299,9 @@ E-12: 2 (BC-2.04.055, BC-2.09.007) = 2
                       219 (pre-feature subtotal)
 E-14: 25 (SS-14, BC-2.14.001..025) = 25
 E-15: 24 (SS-15, BC-2.15.001..024) = 24
+E-16: 15 (SS-16, BC-2.16.001..015) = 15
                       --------
-                      268 / 268  ✓
+                      283 / 283  ✓
 ```
 
 Note: E-11 (Tooling) has 0 BCs authored yet (STORY-091 pending). E-12 BCs are feature-mode
@@ -330,8 +332,8 @@ non-overlapping. No BC appears in more than one epic row above.
 | SS-12 | CLI / Entry | E-9 |
 | SS-13 | Absent Behaviors | E-10 |
 
-**Coverage confirmed: 268 / 268 BCs assigned, 0 unassigned, 0 double-assigned.**
-(219 pre-feature + 25 E-14 Modbus + 24 E-15 DNP3 = 268)
+**Coverage confirmed: 283 / 283 BCs assigned, 0 unassigned, 0 double-assigned.**
+(219 pre-feature + 25 E-14 Modbus + 24 E-15 DNP3 + 15 E-16 ARP = 283)
 
 ---
 
@@ -405,13 +407,13 @@ with no parallelism (each story builds on the previous one's produced types and 
 
 ## Epic E-17: ARP Decoder VLAN/QinQ/MACsec Offset Hardening (issue #253)
 
-- **Goal:** A forensic analyst running wirerust against pcaps containing 802.1Q-tagged
-  (VLAN), QinQ double-tagged, or MACsec-encapsulated Ethernet frames sees correct ARP
-  detection behavior: VLAN-tagged ARP frames are decoded at the correct 18-byte offset,
-  QinQ double-tagged ARP frames are decoded at the 22-byte offset, and MACsec-encapsulated
-  frames are documented as a known limitation (observe-only probe, no silent
-  misclassification) — with regression tests and fixture pcaps ensuring no offset
-  regression when etherparse is upgraded.
+- **Goal:** A forensic analyst running wirerust against pcaps containing QinQ double-tagged
+  or MACsec-encapsulated Ethernet frames has regression coverage for ARP offset arithmetic:
+  QinQ double-tagged ARP frames are verified at the 22-byte offset (EC-008), and
+  MACsec-encapsulated frames are documented as a known limitation (observe-only probe,
+  no silent misclassification) — with fixture pcaps and regression tests ensuring no
+  offset regression when etherparse is upgraded. Single-VLAN (18-byte offset) handling
+  is pre-existing baseline behavior shipped in E-16, not a new E-17 test.
 - **BCs:**
   BC-2.16.009, BC-2.16.015
 - **Subsystems touched:** SS-16 (ARP analyzer, lax-path offset handling)
@@ -450,5 +452,6 @@ probe test. The two stories are strictly linear (STORY-116 → STORY-117). Both 
 | E-13 | 2           |
 | E-14 | 4           |
 | E-15 | 5           |
+| E-16 | 5           |
 | E-17 | 2           |
-| **Total** | **65** |
+| **Total** | **70** |
