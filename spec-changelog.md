@@ -14,6 +14,43 @@ changes, invariant rewrites).
 
 ---
 
+## [issue-259-collapse-advpass12-14-remediation-2026-06-17] — 2026-06-17
+
+### PATCH: Issue #259 F2 Adversarial Passes 12-14 Remediation — 3 MEDIUM resolved
+
+**Trigger:** 3 parallel passes each found 1 distinct MEDIUM. All remediated in one burst.
+total_bcs=288 unchanged. SS-11=29 unchanged.
+
+#### Finding Dispositions
+
+| Finding | Severity | File(s) Changed | Resolution |
+|---------|----------|----------------|-----------|
+| F-PA-A01 | MEDIUM | BC-2.11.026 v1.7→v1.8; BC-2.11.017 v1.12→v1.13; BC-2.11.025 v1.4→v1.5 | Defined "representative finding" as `group_members[0]` (first in emission order) for all N≥1. Added normative PC-7 to BC-2.11.026 and updated BC-2.11.017 PC-6 + EC-007 to cite group_members[0]. BC-2.11.025 Invariant 6 generalized from N=1 singleton to all N≥1. Canonical test vector added to both BC-2.11.026 and BC-2.11.017: member[0].mitre=["T1036"], member[1].mitre=[], member[2].mitre=["T1059"] → MITRE line reads "MITRE: T1036"; others elided from terminal but preserved in JSON/CSV. |
+| F-PB-01 | MEDIUM | BC-2.11.028 v1.3→v1.4 | Dropped "--no-color/--no-reassemble convention" citation (those are global flags on Cli; no_collapse is subcommand-scoped). Replaced with correct precedent: `#[arg(long)] mitre: bool` / `dns: bool` on `Commands::Analyze` (cli.rs:150-152), destructured as args.no_collapse. Fixed stale Architecture Anchor: cli.rs:151-153 no_reassemble → cli.rs:150-152 mitre: bool. Precondition 3 (args.no_collapse) and Invariant 4 (summary has no no_collapse field) confirmed consistent with subcommand-scoped model. |
+| F-C01 | MEDIUM | verification-coverage-matrix.md v1.11→v1.12 | Current-state coverage note at matrix:155 cited "BC-2.11.010 v1.7"; live BC-2.11.010 is v1.8. Updated to v1.8. Frozen dated changelog reason fields (matrix:54) left unchanged. |
+
+#### BC Version Summary
+
+| BC/Doc | Before | After |
+|--------|--------|-------|
+| BC-2.11.017 | v1.12 | v1.13 |
+| BC-2.11.025 | v1.4 | v1.5 |
+| BC-2.11.026 | v1.7 | v1.8 |
+| BC-2.11.028 | v1.3 | v1.4 |
+| verification-coverage-matrix.md | v1.11 | v1.12 |
+| BC-INDEX.md | v1.35 | v1.36 |
+| prd.md | v1.27 | v1.28 |
+
+#### Sibling Sweep Results
+
+**Sweep 1 — "representative":** BC-2.11.025 Invariant 6, BC-2.11.026 PC-7, BC-2.11.017 PC-6/EC-007 now all consistently define/cite group_members[0] for N≥2; no remaining undefined use of "representative" for multi-member groups.
+
+**Sweep 2 — no_reassemble/no_color/global/Commands::Analyze:** Stale "no_color/no_reassemble convention" and cli.rs:151-153 anchor removed from BC-2.11.028. Replaced with correct cli.rs:150-152 mitre: bool subcommand-scoped precedent. ADR-0003 line 294 already uses "Commands::Analyze" correctly; no change needed there.
+
+**Sweep 3 — current-state BC version citations:** verification-coverage-matrix.md:155 updated BC-2.11.010 v1.7→v1.8. No other current-state BC version stamps found to lag. Verified: .010 v1.8 ✓, .013 v1.11 ✓, .017 v1.13 ✓, .025 v1.5 ✓, .026 v1.8 ✓, .027 v1.3 ✓, .028 v1.4 ✓, .029 v1.2 ✓, .019 v1.6 ✓.
+
+---
+
 ## [issue-259-collapse-advpass9-remediation-2026-06-17] — 2026-06-17
 
 ### PATCH: Issue #259 F2 Adversarial Pass-9 Remediation — 1 MEDIUM + 2 LOW resolved

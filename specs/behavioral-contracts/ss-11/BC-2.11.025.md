@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.4"
+version: "1.5"
 status: draft
 producer: product-owner
 timestamp: 2026-06-17T00:00:00Z
@@ -12,7 +12,7 @@ subsystem: SS-11
 capability: CAP-11
 lifecycle_status: active
 introduced: v0.8.0
-modified: ["v1.1 2026-06-17: F2 adversarial pass-1 — add singleton immutability invariant (F-259-03), severity-agnostic postcondition (F-259-04), input-order determinism assumption (F-259-06), raw-key vs escaped-display postcondition and test vector (F-259-09)", "v1.2 2026-06-17: F2 adversarial pass-2 — Vec-accumulator canonical (F-A01); strengthen primary flood test vector (F-A04); fix dispatch anchor 149-160→149-162 (F-A05)", "v1.3 2026-06-17: F2 adversarial pass-4 — F-F2-A01: Invariant 6 singleton claim converted from 'byte-identical to calling render_finding_flat directly' to observable-behavior form; F-F2-O01: anchor :203-226 → :203-227; F-F2-O02: flood vector timestamp updated to 'differing per-request timestamps (non-key field)' to reflect real empty-UA emission pattern", "v1.4 2026-06-17: F2 adversarial pass-9 — F-PA-02: soften flood-vector timestamp claim: 'DIFFERING per-request timestamps' → 'timestamps MAY differ across requests/flows (timestamp is a NON-KEY field; collapse is invariant to it regardless)' to avoid implying timestamps always differ"]
+modified: ["v1.1 2026-06-17: F2 adversarial pass-1 — add singleton immutability invariant (F-259-03), severity-agnostic postcondition (F-259-04), input-order determinism assumption (F-259-06), raw-key vs escaped-display postcondition and test vector (F-259-09)", "v1.2 2026-06-17: F2 adversarial pass-2 — Vec-accumulator canonical (F-A01); strengthen primary flood test vector (F-A04); fix dispatch anchor 149-160→149-162 (F-A05)", "v1.3 2026-06-17: F2 adversarial pass-4 — F-F2-A01: Invariant 6 singleton claim converted from 'byte-identical to calling render_finding_flat directly' to observable-behavior form; F-F2-O01: anchor :203-226 → :203-227; F-F2-O02: flood vector timestamp updated to 'differing per-request timestamps (non-key field)' to reflect real empty-UA emission pattern", "v1.4 2026-06-17: F2 adversarial pass-9 — F-PA-02: soften flood-vector timestamp claim: 'DIFFERING per-request timestamps' → 'timestamps MAY differ across requests/flows (timestamp is a NON-KEY field; collapse is invariant to it regardless)' to avoid implying timestamps always differ", "v1.5 2026-06-17: F2 adversarial passes 12-14 — F-PA-A01: generalize Invariant 6 'representative' definition from N=1 singleton to all N≥1 (group representative = group_members[0] for all N); cross-reference BC-2.11.026 PC-7 for the display consequence"]
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -106,14 +106,19 @@ is deferred to a future cycle (see STORY-119).
    (BC-2.11.029).
 5. This invariant is scoped to flat mode. When `show_mitre_grouping = true`, the collapse
    pass is not applied regardless of the `collapse_findings` field value.
-6. For a singleton group (N=1), the representative rendered is the ORIGINAL `&Finding`
-   element from the input slice (same field values, full untruncated `evidence` vec). The
-   collapse pass MUST NOT clone, reorder, or modify a singleton's fields. The N=1 output is
-   byte-identical to the pre-v0.8.0 terminal output for the same finding — no ` (x1)` suffix,
-   no evidence truncation, no reordering. This invariant is referenced by BC-2.11.026 (singleton
-   has no suffix) and BC-2.11.029 (singleton renders identically to pre-v0.8.0). Any future
-   refactor that handles the N=1 path differently MUST verify byte-identity against the
-   pre-v0.8.0 output.
+6. **Group representative definition (all N≥1):** The "representative finding" of any group is
+   `group_members[0]` — the first `&Finding` element in emission order that established the
+   group's collapse key. This definition holds for all N≥1:
+   - For N=1 (singleton): `group_members[0]` is the sole member; it is the ORIGINAL `&Finding`
+     from the input slice (same field values, full untruncated `evidence` vec). The collapse
+     pass MUST NOT clone, reorder, or modify it. Output is byte-identical to pre-v0.8.0 for
+     that finding.
+   - For N≥2: `group_members[0]` is the first member by first-occurrence order. Its
+     `mitre_techniques` is used for the MITRE line (BC-2.11.026 PC-7 / BC-2.11.017 PC-6).
+     Other members' `mitre_techniques` are elided from terminal output but preserved in the
+     raw `findings` slice passed to JSON/CSV reporters (BC-2.11.029).
+   The `group_members[0]` representative definition is consistent with the evidence sampling
+   model (BC-2.11.027): both operate on the group in positional order from member[0] forward.
 7. The collapse grouping structure MUST be a `Vec<(CollapseKey, Vec<&Finding>)>` accumulator
    with linear-scan `PartialEq` matching. This is the CANONICAL implementation structure for
    v0.8.0 because `ThreatCategory`, `Verdict`, and `Confidence` derive only `PartialEq` (not

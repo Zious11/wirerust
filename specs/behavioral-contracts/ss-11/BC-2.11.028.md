@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: product-owner
 timestamp: 2026-06-17T00:00:00Z
@@ -12,7 +12,7 @@ subsystem: SS-11
 capability: CAP-11
 lifecycle_status: active
 introduced: v0.8.0
-modified: ["v1.1 2026-06-17: fix Related BCs stale cross-ref BC-2.13.001 (--threats) → BC-2.13.004 (--verbose absent) (consistency audit remediation)", "v1.2 2026-06-17: F2 adversarial pass-1 — change PC-3 from indicative to imperative (code does not exist yet); mark Architecture Anchors as insertion targets pending STORY-118 (F-259-08)", "v1.3 2026-06-17: F2 adversarial pass-9 — F-PA-03: add EC-010 (--no-collapse absent, default --output terminal → collapse applies, default-on)"]
+modified: ["v1.1 2026-06-17: fix Related BCs stale cross-ref BC-2.13.001 (--threats) → BC-2.13.004 (--verbose absent) (consistency audit remediation)", "v1.2 2026-06-17: F2 adversarial pass-1 — change PC-3 from indicative to imperative (code does not exist yet); mark Architecture Anchors as insertion targets pending STORY-118 (F-259-08)", "v1.3 2026-06-17: F2 adversarial pass-9 — F-PA-03: add EC-010 (--no-collapse absent, default --output terminal → collapse applies, default-on)", "v1.4 2026-06-17: F2 adversarial passes 12-14 — F-PB-01: drop '--no-color/--no-reassemble convention' citation (those are global flags; no_collapse is subcommand-scoped); replace with correct subcommand-scoped precedent (#[arg(long)] mitre: bool / dns: bool on Commands::Analyze); fix stale Architecture Anchor cli.rs:151-153 no_reassemble → cli.rs:150-152 mitre: bool (subcommand-scoped boolean precedent)"]
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -37,16 +37,20 @@ Both machine-readable formats always emit every finding individually regardless 
 because the collapse pass is a private detail of `TerminalReporter` and is never applied to
 `JsonReporter` or `CsvReporter`.
 
-The flag follows the existing `--no-color`, `--no-reassemble` negation convention in the
-wirerust CLI. It is scoped to the `analyze` subcommand only; it has no effect on the
-`summary` subcommand (which has no findings section).
+The flag is scoped to the `analyze` subcommand only; it has no effect on the `summary`
+subcommand (which has no findings section). It follows the same subcommand-scoped boolean
+pattern as `--mitre` and `--dns` on `Commands::Analyze` (cli.rs:150-152), not the global-flag
+pattern of `--no-color` or `--no-reassemble` (those are global flags on the top-level `Cli`
+struct and are unrelated to subcommand-scoped opt-outs).
 
 ## Preconditions
 
 1. The user invokes `wirerust analyze <pcap> [--no-collapse]` (or omits the flag for default
    behavior).
 2. The flag is defined as `#[arg(long)]` `no_collapse: bool` on `Commands::Analyze` in
-   `src/cli.rs`, following the `--no-color` / `--no-reassemble` pattern.
+   `src/cli.rs`, following the same subcommand-scoped boolean precedent as `#[arg(long)]
+   mitre: bool` / `dns: bool` on `Commands::Analyze` (cli.rs:150-152), destructured in
+   `run_analyze` (main.rs:54-64) as `args.no_collapse`.
 3. The `no_collapse` field MUST be wired in `src/main.rs` `run_analyze` by STORY-118:
    `collapse_findings: !args.no_collapse` at the `TerminalReporter` construction site
    (insertion target: ~main.rs `run_analyze` function; the `TerminalReporter` struct and the
@@ -143,7 +147,7 @@ wirerust CLI. It is scoped to the `analyze` subcommand only; it has no effect on
 
 ## Architecture Anchors
 
-- `src/cli.rs:151-153` -- `#[arg(long)] no_reassemble: bool` pattern to follow for `no_collapse` (existing code; reference only)
+- `src/cli.rs:150-152` -- `#[arg(long)] mitre: bool` (subcommand-scoped boolean precedent on `Commands::Analyze`; pattern to follow for `no_collapse`) (existing code; reference only)
 - `src/main.rs:~run_analyze` -- **INSERTION TARGET (code TBD by STORY-118):** `collapse_findings: !args.no_collapse` at TerminalReporter construction. The `collapse_findings` field does NOT exist on TerminalReporter yet; line numbers will be determined when STORY-118 adds the field. The ~370-375 range is a pre-story approximation.
 - `src/reporter/terminal.rs:63-75` -- **INSERTION TARGET (code TBD by STORY-118):** `collapse_findings: bool` field to be added to TerminalReporter struct. Currently the struct has only `use_color`, `show_mitre_grouping`, `show_hosts_breakdown` — `collapse_findings` is not yet present.
 

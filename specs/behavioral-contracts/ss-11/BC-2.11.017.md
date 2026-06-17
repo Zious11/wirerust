@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.12"
+version: "1.13"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -25,6 +25,7 @@ modified:
   - "v1.10 2026-06-17: F2 adversarial pass-2 — align Invariant 5 to path-(b) collapse-aware wrapper (F-A03): the flat collapse path uses a wrapper that builds the header with suffix; render_finding_prefix itself is unchanged; grouped mode is structurally suffix-free"
   - "v1.11 2026-06-17: F2 adversarial pass-4 — F-F2-A01: convert Invariant 5 and Description collapse paragraph from internal-call-structure prescription to observable-behavior contract; add MITRE line observable-behavior postcondition (PC-6); remove 'render_finding_flat is called once per group via this wrapper' call-graph claim; add non-normative implementation note per adjudicated model"
   - "v1.12 2026-06-17: F2 adversarial pass-9 — F-PA-01: add cross-reference to BC-2.11.026 PC-6 in Invariant 5 for the full color-ladder requirement; the (xN) suffix colorization is governed by BC-2.11.026 PC-6"
+  - "v1.13 2026-06-17: F2 adversarial passes 12-14 — F-PA-A01: define 'representative finding' for N≥2 groups = group_members[0] (first in emission order); update PC-6 and EC-007 to reference group_members[0] explicitly; add canonical test vector for divergent-mitre case (member[0].mitre=[T1036], member[1].mitre=[], member[2].mitre=[T1059] → MITRE: T1036 from member[0])"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -83,9 +84,11 @@ remain byte-identical to the pre-v0.8.0 behavior.
 6. **v0.8.0 collapse path:** When `collapse_findings = true`, for each collapsed group the
    MITRE line (if `mitre_techniques` non-empty) is emitted after the header line and after
    the K-sampled evidence lines, using the same `mitre_techniques.join(", ")` format as
-   Postconditions 1–2. The MITRE line content comes from the representative finding of the
-   group. The MITRE line does NOT carry the ` (xN)` suffix — the count suffix appears only
-   on the header line (BC-2.11.026 Invariant 2 / EC-007).
+   Postconditions 1–2. The MITRE line content comes from `group_members[0]` — the first
+   finding in emission order that established the group's key (the representative finding per
+   BC-2.11.026 PC-7). Other members' `mitre_techniques` are elided from terminal output but
+   preserved in JSON/CSV (BC-2.11.029). The MITRE line does NOT carry the ` (xN)` suffix —
+   the count suffix appears only on the header line (BC-2.11.026 Invariant 2 / EC-007).
 
 ## Invariants
 
@@ -121,7 +124,7 @@ remain byte-identical to the pre-v0.8.0 behavior.
 | EC-004 | show_mitre_grouping=false, multiple findings | Rendered in emission order |
 | EC-005 | Finding with mitre_techniques=["T1692.001","T0836"] (multi-tag, Modbus register write; T1692.001 = v19 ICS sub-technique, successor to revoked T0855) | "MITRE: T1692.001, T0836\n" (both IDs, comma-space separated) |
 | EC-006 | Finding with mitre_techniques=["T0806","T1692.001"] (burst finding) | "MITRE: T0806, T1692.001\n" |
-| EC-007 | collapse_findings=true, group of N=5 identical findings, mitre_techniques=["T1036"] | Header line: `  [Category] VERDICT (CONFIDENCE) - summary (x5)\n`; MITRE line (from representative finding): `    MITRE: T1036\n`; count suffix appears on the header line, not on the MITRE line |
+| EC-007 | collapse_findings=true, group of N=5 identical findings, mitre_techniques=["T1036"] | Header line: `  [Category] VERDICT (CONFIDENCE) - summary (x5)\n`; MITRE line (from group_members[0]): `    MITRE: T1036\n`; count suffix appears on the header line, not on the MITRE line |
 | EC-008 | collapse_findings=false (--no-collapse), N=5 identical findings | 5 individual header lines, each without suffix; each with `    MITRE: T1036\n`; byte-identical to pre-v0.8.0 output |
 
 ## Canonical Test Vectors
@@ -132,6 +135,7 @@ remain byte-identical to the pre-v0.8.0 behavior.
 | Finding with mitre_techniques=["T1692.001","T0836"], show_mitre_grouping=false | Output contains "MITRE: T1692.001, T0836" | happy-path (multi-tag) |
 | Finding with mitre_techniques=[], show_mitre_grouping=false | No "MITRE:" line in output for that finding | edge-case (empty) |
 | Findings rendered flat | No "## Defense Evasion" header present | happy-path |
+| 3 findings all same collapse key, collapse_findings=true, member[0].mitre_techniques=["T1036"], member[1].mitre_techniques=[], member[2].mitre_techniques=["T1059"] | MITRE line reads `    MITRE: T1036\n` (from group_members[0]); member[1] and member[2] mitre_techniques are elided from terminal output; all 3 findings' full mitre_techniques preserved in JSON/CSV output (BC-2.11.029) | representative-finding (F-PA-A01 divergent-mitre case) |
 
 ## Verification Properties
 

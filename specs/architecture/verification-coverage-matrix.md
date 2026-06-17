@@ -2,7 +2,7 @@
 artifact: architecture-section
 section: verification-coverage-matrix
 traces_to: ARCH-INDEX.md
-version: "1.11"
+version: "1.12"
 status: verified
 producer: architect
 timestamp: 2026-05-20T00:00:00Z
@@ -55,6 +55,9 @@ modified:
   - date: 2026-06-17
     actor: product-owner
     reason: "F2 adversarial pass-5 (F2): fix prose nit in Issue #259 v1.8→v1.9 reason field — 'reporter/terminal.rs row unit count grows 1→6' misstated the formal VP row; corrected to: '~5 collapse UNIT TESTS (test-sufficient, not new formal VPs); VP-row total unchanged at 2 (VP-012 + VP-016); total VPs unchanged at 24.' Version bump 1.10→1.11."
+  - date: 2026-06-17
+    actor: product-owner
+    reason: "F2 adversarial passes 12-14 (F-C01): sync BC-2.11.010 citation in Issue #259 coverage note from v1.7 → v1.8 (live BC is v1.8; prior stamp was stale). Version bump 1.11→1.12."
 ---
 
 # Verification Coverage Matrix
@@ -152,7 +155,7 @@ modified:
   test; (3) terminal safety (escape_for_terminal) = VP-012 unchanged; the `escape_for_terminal`
   FUNCTION invariant is unchanged — the collapse path calls `escape_for_terminal` directly on
   each sampled evidence line and does NOT delegate to `render_finding_prefix`'s evidence loop
-  (BC-2.11.010 v1.7 / BC-2.11.027 v1.3 / ADR-0003). New unit tests mandated by BC-2.11.025–029 Verification
+  (BC-2.11.010 v1.8 / BC-2.11.027 v1.3 / ADR-0003). New unit tests mandated by BC-2.11.025–029 Verification
   Properties sections (test_BC_2_11_025_*, test_BC_2_11_026_*, test_BC_2_11_027_*,
   test_BC_2_11_028_*, test_BC_2_11_029_*). These are behavioral unit tests, NOT formal VP
   harnesses; they are not counted in the VP totals above. VP-012 (proptest, P1, verified) is

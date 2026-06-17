@@ -1,7 +1,7 @@
 ---
 document_type: prd
 level: L3
-version: "1.27"
+version: "1.28"
 status: draft
 producer: product-owner
 timestamp: 2026-06-17T00:00:00Z
@@ -373,18 +373,18 @@ supplements:
 >
 > No new BCs; no BC count change. See `spec-changelog.md` §[pass-24-f3-convergence-2026-06-14].
 
-> **Version 1.26–1.27 delta (2026-06-17 — Feature #259 terminal finding collapse, issue #259, v0.8.0; v1.27 adv-pass-9 remediation):**
+> **Version 1.26–1.28 delta (2026-06-17 — Feature #259 terminal finding collapse, issue #259, v0.8.0; v1.27 adv-pass-9 remediation; v1.28 adv-passes-12-14 remediation):**
 > Added 5 new BCs (BC-2.11.025..029) for the terminal finding collapse feature. Extended 4 existing
 > BCs (BC-2.11.010 v1.4→v1.8, BC-2.11.013 v1.8→v1.11, BC-2.11.017 v1.7→v1.11, BC-2.11.019 v1.4→v1.6)
 > with collapse-interaction clauses; further bumped by adversarial pass-1/2/3/4/5 remediation:
 > BC-2.11.010 v1.5 (F2-integrate) → v1.6 (adv-pass-3) → v1.7 (adv-pass-4 anchor) → v1.8 (adv-pass-5: remove residual 'path-(b)' label from Invariant 4);
 > BC-2.11.013 v1.9 (F2-integrate) → v1.10 (adv-pass-2) → v1.11 (adv-pass-4 EC-007 observable-behavior);
-> BC-2.11.017 v1.8 (F2-integrate) → v1.9 (adv-pass-1) → v1.10 (adv-pass-2) → v1.11 (adv-pass-4 observable-behavior + PC-6) → v1.12 (adv-pass-9 F-PA-01: cross-ref BC-2.11.026 PC-6 in Invariant 5);
+> BC-2.11.017 v1.8 (F2-integrate) → v1.9 (adv-pass-1) → v1.10 (adv-pass-2) → v1.11 (adv-pass-4 observable-behavior + PC-6) → v1.12 (adv-pass-9 F-PA-01: cross-ref BC-2.11.026 PC-6 in Invariant 5) → v1.13 (adv-passes-12-14 F-PA-A01: representative = group_members[0]; PC-6 + EC-007 updated; divergent-mitre test vector);
 > BC-2.11.019 v1.5 (F2-integrate) → v1.6 (adv-pass-2 anchor fix);
 > New greenfield BCs: BC-2.11.025 v1.0→v1.3, BC-2.11.026 v1.0→v1.6, BC-2.11.027 v1.0→v1.3, BC-2.11.028 v1.0→v1.2, BC-2.11.029 v1.0→v1.2;
-> BC-2.11.025 v1.2 → v1.3 (adv-pass-4: Invariant 6 observable-behavior; anchor; flood vector timestamp fix) → v1.4 (adv-pass-9 F-PA-02: soften timestamp claim to MAY differ);
-> BC-2.11.026 v1.3 → v1.4 (adv-pass-4) → v1.5 (adv-pass-5: remove 'path-(b) separation') → v1.6 (adv-passes-6-8: red-bold test vector LOW-1) → v1.7 (adv-pass-9 F-PA-01: normative PC-6 color-ladder);
-> BC-2.11.028 v1.2 → v1.3 (adv-pass-9 F-PA-03: add EC-010 default-output default-on);
+> BC-2.11.025 v1.2 → v1.3 (adv-pass-4: Invariant 6 observable-behavior; anchor; flood vector timestamp fix) → v1.4 (adv-pass-9 F-PA-02: soften timestamp claim to MAY differ) → v1.5 (adv-passes-12-14 F-PA-A01: generalize representative definition to all N≥1 = group_members[0]);
+> BC-2.11.026 v1.3 → v1.4 (adv-pass-4) → v1.5 (adv-pass-5: remove 'path-(b) separation') → v1.6 (adv-passes-6-8: red-bold test vector LOW-1) → v1.7 (adv-pass-9 F-PA-01: normative PC-6 color-ladder) → v1.8 (adv-passes-12-14 F-PA-A01: normative PC-7 representative = group_members[0]; divergent-mitre test vector);
+> BC-2.11.028 v1.2 → v1.3 (adv-pass-9 F-PA-03: add EC-010 default-output default-on) → v1.4 (adv-passes-12-14 F-PB-01: drop global-flag convention citation; fix cli.rs anchor; correct subcommand-scoped precedent);
 > with collapse-interaction clauses. §2.11 index table updated with 5 new rows and a group note.
 > Total BC count: 288 (was 283).
 > Key design decisions (F1-gated, non-negotiable):
