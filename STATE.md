@@ -1,13 +1,13 @@
 ---
 pipeline: STEADY_STATE
 phase: released
-phase_status: "v0.7.1 RELEASED + maint-2026-06-17 maintenance sweep COMPLETE (gate PASS; PRs #261/#262 merged; develop c03a38b). Pipeline STEADY_STATE/IDLE."
+phase_status: "v0.7.1 RELEASED + maint-2026-06-17 COMPLETE + reactive fix #220 CLOSED (PR #263 merged; develop 5ed8077). Pipeline STEADY_STATE/IDLE."
 active_feature: "none — E-17 closed"
 feature_arp_status: "v0.7.0 RELEASED 2026-06-16 — ARP Security Analyzer (E-16, issue #9); PR #256 dd8e142; tag v0.7.0; 4 binaries (aarch64-apple-darwin, x86_64-apple-darwin, x86_64-pc-windows-msvc, x86_64-unknown-linux-gnu)"
 feature_8_status: "v0.6.0 RELEASED 2026-06-12 — DNP3 TCP analyzer; F7 5-dim CONVERGED; tag v0.6.0 + 4 binaries"
 product: wirerust
 mode: brownfield
-timestamp: 2026-06-17T18:00:00Z
+timestamp: 2026-06-17T20:00:00Z
 maintenance_run: COMPLETE
 maintenance_run_id: maint-2026-06-17
 maintenance_started_at: "2026-06-17"
@@ -41,8 +41,8 @@ phase_5_completed: "2026-06-01"
 phase_6_completed: "2026-06-02"
 phase_7_to_release_gate: "PASSED (human-approved 2026-06-09 — D-045)"
 adversary_gate: SATISFIED
-develop_head: c03a38b
-develop_head_confirmed: "c03a38b (+PR #261 test RED-prose closes #254, +PR #262 docs analyzers/ADR-0005-0007; maint-2026-06-17 COMPLETE; prev e1273c8 version bump+CHANGELOG+merge-back post-v0.7.1)"
+develop_head: 5ed8077
+develop_head_confirmed: "5ed8077 (+PR #263 fix(modbus) burst window display closes #220; prev c03a38b +PR #261 test RED-prose closes #254, +PR #262 docs analyzers/ADR-0005-0007; maint-2026-06-17 COMPLETE)"
 arp_f6_hardening_status: "COMPLETE — 5/5 Kani SUCCESSFUL (46/46 project-wide), VP-024 v2.3 LOCKED, fuzz VP-008 16.2M/0, mutants 98.9%"
 arp_f7_convergence_status: "CONVERGED — 5-dim met; awaiting v0.7.0 release human gate"
 arp_followups_status: "DISPOSITIONED — item 5 fixed (BC-2.10.007 v1.8 de-PLANNED 25/17); issues #252-255 filed (post-release); CR-001/CR-002/FU-STORM-NEW-ATTR/BC-2.10-COUNT-POSTMERGE dropped/resolved. RELEASE-READY."
@@ -91,6 +91,8 @@ input_drift_check: "F7-followup-dispositions burst (2026-06-16): STORY-071=6b408
 ## Status
 
 **wirerust v0.7.1 RELEASED 2026-06-17 — ARP VLAN/QinQ/MACsec offset regression hardening (E-17, issue #253). Test-only patch; NO runtime behavior change. PR #258 (E-17 tests) merged to develop (b94aa6c); PR #260 (release/0.7.1 → main b98a72f); tag v0.7.1; release.yml run 27694602320 SUCCESS — 4 binaries CONFIRMED PUBLISHED. GitHub Release https://github.com/Zious11/wirerust/releases/tag/v0.7.1 (isDraft=false). E-17 cycle F1..F7 CONVERGED AND CLOSED. develop merge-back e1273c8. Pipeline STEADY_STATE/IDLE — await new feature or steady-state task.**
+
+**Reactive fix #220 CLOSED 2026-06-17 — Modbus write-burst "0s window" cosmetic display bug. PR #263 `fix(modbus): report burst window width not elapsed span in summary` merged to develop (5ed8077). 9/9 CI green; security APPROVE (0 findings); code review APPROVE (3 LOW non-blocking notes); pr-reviewer APPROVE. Scoped cosmetic fix: burst summary string "elapsed_secs" → "window_secs" (`WRITE_BURST_WINDOW_SECS`); no behavioral change; no finding-count/threshold change. BC-2.14.017 bumped to v2.6 (PC1 + new EC-011 same-second/elapsed==0 case). Spec commit 8d5446d on factory-artifacts. Regression test `test_BC_2_14_017_burst_summary_reports_window_width_not_elapsed` added.**
 
 **Summary:** 68 stories (48 greenfield + 1 tooling + 19 feature-cycle), 457 pts. 283 BCs (244 pre-F2 + 24 SS-15 + 15 SS-16 ARP), 24 VPs (VP-024 LOCKED v2.3). STORY-111..115 ALL DELIVERED (PRs #236/#238/#239/#240/#241). Carry-forward open issues: #252 (proof_file_hash), #253 (QinQ/MACsec fixtures), #254 (doc-debt), #255 (JSON snake_case). Process gaps codified: PG-ARP-FIX-MECHANISM-FIRST / PG-ARP-FIXBURST-CONSUMER-SWEEP / PG-ARP-F4-REDTEST-DOC-TENSE-RECURRENCE. develop HEAD 480f8ae (PR #257 docs landed post-release); main HEAD dd8e142 (v0.7.0). Post-release audit-trail burst: research/arp-pcap-sources.md + research/arp-followups-validation.md committed to factory-artifacts.
 
@@ -184,32 +186,34 @@ ADR-0007 Decision 2 prose-clarity nit — arithmetic-walk thinking artifact; fol
 | E-17: ARP QinQ/MACsec offset hardening (issue #253) — F6 Targeted Hardening | **SATISFIED** (2026-06-17). Zero src/ delta (test-only, 2 files +1841). VP-024 5/5 Kani harnesses run-confirmed VERIFICATION SUCCESSFUL (verify_extract_arp_frame_safety/eth_ipv4_correctness/none_on_bad_size at decoder.rs:616/643/705; verify_classify_garp_total/binding_table_cap at arp.rs:4371/4423). Fuzz VP-008 fuzz_decode_packet: 4.08M + 2.11M runs, 0 crashes, empty artifacts. cargo-audit: only known-accepted RUSTSEC-2026-0097, no new advisory; clippy/fmt clean. Mutation v0.7.0 98.9% ARP kill applies (src unchanged). No new VP/proof obligation. VP-024 verification_lock untouched. | **SATISFIED** |
 | E-17: ARP QinQ/MACsec offset hardening (issue #253) — F7 Delta Convergence | **CONVERGED — 5-dim ALL MET** (2026-06-17, PR #258 @ cb2bf06). (1) Regression CI 9/9 GREEN (consistency-validator audit a5e0c652); (2) Verification PASS (VP-024 5/5 Kani SUCCESSFUL + fuzz 6.19M/0 + audit CLEAN + VP counts 24 consistent); (3) Impl/spec convergence (F4 delta 3/3 + holdout 1.00 + AC traces); (4) Robustness (F5 3/3); (5) Documentation/coherence whole-corpus CONSISTENT. F7 HOLISTIC ADVERSARIAL GATE SATISFIED 3/3 — three verified fresh-context CLEAN release-readiness passes on cb2bf06: ad2442cd (P1), acdf40b1 (P2), afeb0e8e (P3); each zero MEDIUM+; all four lenses (coherence/completeness/ship-safety/MACsec-limitation-honesty) confirmed. Delta = PR #258 @ cb2bf06 (test-only, 2 files +1841/-0, zero src/). E-17 cycle F1..F7 CONVERGED. RELEASE-READY for v0.7.1. | **CONVERGED** |
 | Release v0.7.1 | **RELEASED 2026-06-17 — CONFIRMED** — PR #258 (E-17 tests) merged to develop (b94aa6c); PR #260 (release/0.7.1 → main b98a72f); tag v0.7.1 (annotated → b98a72f); release.yml run 27694602320 COMPLETED conclusion=success; 4 binaries PUBLISHED (aarch64-apple-darwin, x86_64-apple-darwin, x86_64-pc-windows-msvc, x86_64-unknown-linux-gnu); GitHub Release isDraft=false https://github.com/Zious11/wirerust/releases/tag/v0.7.1. E-17 ARP VLAN/QinQ/MACsec offset regression hardening (issue #253); test-only; NO runtime behavior change. develop merge-back e1273c8; E-17 cycle CLOSED. Process-gaps ENGINE-NOTE DEFERRED (see Drift Items). | **RELEASED** |
+| Reactive fix: issue #220 Modbus burst-window display | **CLOSED 2026-06-17** — PR #263 `fix(modbus): report burst window width not elapsed span in summary` MERGED to develop (5ed8077). Cosmetic fix: `elapsed_secs` → `window_secs` in burst summary string. No behavioral change; no finding-count/threshold/window-logic change. BC-2.14.017 v2.6 (PC1 + EC-011). Spec commit 8d5446d. 9/9 CI green; security APPROVE (0 findings); code review APPROVE (3 LOW non-blocking); pr-reviewer APPROVE. | **CLOSED** |
 
-## Session Resume Checkpoint (2026-06-17 — maint-2026-06-17 COMPLETE; pipeline STEADY_STATE/IDLE)
+## Session Resume Checkpoint (2026-06-17 — reactive fix #220 CLOSED; pipeline STEADY_STATE/IDLE)
 
-**Previous checkpoint (2026-06-17 — COLD-RESUME-COMPLETE; v0.7.1 CONFIRMED RELEASED; E-17 CLOSED) archived to:
+**Previous checkpoint (2026-06-17 — maint-2026-06-17 COMPLETE; pipeline STEADY_STATE/IDLE) archived to:
 `.factory/cycles/feature-arp-v0.7.0/session-checkpoints.md`**
 
 ### A. EXACT PIPELINE POSITION
 
 - **Project:** wirerust. **Mode:** STEADY-STATE (pipeline IDLE, no active feature).
-- **Latest release:** v0.7.1 — E-17 ARP VLAN/QinQ/MACsec offset regression hardening (issue #253); test-only delta; NO runtime behavior change. FULLY RELEASED. Tag v0.7.1 on main b98a72f.
-- **Maintenance run:** maint-2026-06-17 COMPLETE — gate PASS (48 findings, 0 CRITICAL, 0 CVE). PRs #261 (test: strip RED-gate prose, closes #254) + #262 (docs: ARP/DNP3/Modbus analyzers + ADR-0005/0006/0007) merged to develop. 5 items deferred to tech-debt-register. Session review: `.factory/maintenance/session-review-maint-2026-06-17.md`.
-- **develop HEAD:** c03a38b == origin/develop. Working tree CLEAN.
+- **Latest release:** v0.7.1 — E-17 ARP VLAN/QinQ/MACsec offset regression hardening (issue #253); FULLY RELEASED. Tag v0.7.1 on main b98a72f.
+- **Maintenance run:** maint-2026-06-17 COMPLETE — gate PASS (48 findings, 0 CRITICAL, 0 CVE). PRs #261 + #262 merged. 5 items deferred to tech-debt-register.
+- **Reactive fix:** issue #220 CLOSED — PR #263 merged to develop (5ed8077). Cosmetic Modbus burst-window display fix. BC-2.14.017 v2.6. No behavioral change.
+- **develop HEAD:** 5ed8077 == origin/develop. Working tree CLEAN.
 - **main HEAD:** b98a72f (tag v0.7.1 annotated).
 - **factory-artifacts HEAD:** run `git -C .factory log -1 --format='%h %s'` (this burst advances it).
 - **Active worktrees:** EXACTLY 2 — main repo (develop branch) + `.factory/` (factory-artifacts branch).
 - **Open PRs:** none.
 - **E-17 cycle:** CLOSED. Full F1-F7 CONVERGED. All gates SATISFIED.
-- **Issue #254:** CLOSED (by PR #261).
+- **Issue #220:** CLOSED (by PR #263). **Issue #254:** CLOSED (by PR #261).
 
 ### B. RESUME PROCEDURE (COLD-RESUME)
 
 **Step 1 (BLOCKING):** Run `vsdd-factory:factory-worktree-health` before any other action.
 
 **Step 2 — Verify SHAs (all must match before proceeding):**
-- `git rev-parse --short HEAD` in repo root → expect `c03a38b`
-- `git rev-parse --short origin/develop` → expect `c03a38b` (develop == origin/develop)
+- `git rev-parse --short HEAD` in repo root → expect `5ed8077`
+- `git rev-parse --short origin/develop` → expect `5ed8077` (develop == origin/develop)
 - `git -C .factory rev-parse --short HEAD` → current factory-artifacts HEAD (via `git -C .factory log -1`)
 - `git rev-parse --short main` → expect `b98a72f`
 - `git tag -l v0.7.1` → must exist
@@ -219,11 +223,12 @@ ADR-0007 Decision 2 prose-clarity nit — arithmetic-walk thinking artifact; fol
 - v0.7.1 FULLY RELEASED: 4 binaries published, GitHub Release live, run 27694602320 SUCCESS.
 - E-17 cycle F1-F7: ALL CONVERGED AND CLOSED.
 - maint-2026-06-17: COMPLETE — PRs #261/#262 merged; 5 TD items registered; gate PASS.
+- Issue #220: CLOSED — PR #263 merged; BC-2.14.017 v2.6; cosmetic fix only; no pipeline phase impact.
 - All pipeline gates SATISFIED (adversarial 3/3, holdout 1.00, F6 Kani 5/5, F7 5-dim).
 
 **Step 4 — NEXT ACTIONS (human decision required — no auto-continue):**
 - Action deferred maint items: dep bumps (rand, zerocopy), spec/holdout label-lag, ADR-0007 prose nit.
-- Open issues: #252 (VP-024 proof_file_hash), #255 (JSON snake_case), #259 (collapse low-value findings), #220 (Modbus cosmetic), #103/#101 (reassembly), #67/#64/#63/#62 (reporter/test), #6 (rayon), #4 (CSV/SQLite), #3 (C2 beaconing).
+- Open issues: #252 (VP-024 proof_file_hash), #255 (JSON snake_case), #259 (collapse low-value findings), #103/#101 (reassembly), #67/#64/#63/#62 (reporter/test), #6 (rayon), #4 (CSV/SQLite), #3 (C2 beaconing).
 - Next feature: select ICS protocol or roadmap item — human decision required.
 - No automatic pipeline continues.
 
@@ -234,6 +239,7 @@ ADR-0007 Decision 2 prose-clarity nit — arithmetic-walk thinking artifact; fol
 - Tech-debt register: `.factory/tech-debt-register.md` (TD-MAINT-PC001/PC006/PC003/PERF-ARP/RISK-REGISTRY added)
 - E-17 cycle artifacts: `.factory/cycles/feature-arp-v0.7.0/` (lessons.md, session-checkpoints.md, adversarial-reviews/)
 - ARP/E-17 specs: `.factory/specs/behavioral-contracts/` (BC-2.16.*), `.factory/specs/verification-properties/vp-024-arp-parse-safety.md`
+- Modbus fix: `.factory/specs/behavioral-contracts/bc-2-14-017-modbus-write-burst.md` (BC-2.14.017 v2.6; spec commit 8d5446d)
 
 ## Decisions Log
 
@@ -267,6 +273,7 @@ D-001..D-054 archived: `cycles/v0.1.0-greenfield-spec/decisions-archive.md` (D-0
 | D-078 | F5 O-A finding adjudicated FIX (human 2026-06-15/16): lax `None` arm (lax.net==None, stop_err==Layer::Arp) now bounds-checked-peeks raw 8-byte ARP fixed header (offset from lax.link Ethernet2); bad type/size → "Non-Ethernet/IPv4 ARP frame" → D11; valid-but-truncated/non-Ethernet → "truncated ARP frame" decode-error. Closes CWE-693 D11-evasion; bounds-safe (security review CLEAR). Spec corrected twice — initial hypothesis "lax builds slice + extract None" was impossible; actual mechanism = None-arm raw peek. BC-2.16.009 v1.4→v1.6, BC-2.16.015 v1.3→v1.5, STORY-111 v1.4→v1.6, STORY-112 v1.4→v1.6. PR #247 (merge 92c1561). | 2026-06-15/16 |
 | D-078b | Completion — sibling lax `Some(LaxNetSlice::Arp)` arm also routes extract_arp_frame returning None to "Non-Ethernet/IPv4 ARP frame" → D11 (defensive path-independence). Arm is structurally unreachable via integration (etherparse raises SliceError::Len before populating Arp); documented in tests/bc_2_16_d078b_lax_some_arm_tests.rs. Plus decoder.rs doc-comment correctness sweep (3 loci). F5 streak VOIDED by D-078/D-078b code change; counter reset to 0/3. PR #248 (merge 2d2fadf). | 2026-06-16 |
 | D-F1 | F5 Pass 1/3 (re-run on 2d2fadf) found F-1 MEDIUM: D-078 lax None-arm peek hard-coded Ethernet2 offset 14, ignoring `lax.link_exts` — for VLAN-tagged ARP, peeked the 802.1Q TCI bytes as ARP htype → false-positive D11 (fix-induced regression: D-078 LOW fix cascaded into MEDIUM false-positive). Fix: `arp_offset = 14 + lax.link_exts.iter().map(|ext| ext.header_len()).sum()` (correct for single VLAN/QinQ/MACsec). Security review CLEAN. Spec: BC-2.16.015 v1.5→v1.6, BC-2.16.009 v1.6→v1.7. New tests: tests/bc_2_16_d078_vlan_offset_tests.rs (4). F5 counter reset to 0/3 (re-run in progress on 079013d). PR #249 (merge 079013d). Meta-lesson: LOW-fix (O-A) cascaded 3 PRs + MEDIUM regression; fix-induced-regression risk should weigh into whether a LOW finding is worth fixing vs documenting. | 2026-06-16 |
+| D-080 | Issue #220 CLOSED — reactive fix-PR delivery. Modbus write-burst summary cosmetic display bug: `elapsed_secs` (showed 0s on same-second bursts) replaced with `window_secs` (`WRITE_BURST_WINDOW_SECS`). `elapsed_ms` dead binding removed. BC-2.14.017 v2.6 (PC1 + new EC-011 same-second/elapsed==0 case). Spec commit 8d5446d (factory-artifacts). PR #263 `fix(modbus): report burst window width not elapsed span in summary` MERGED to develop (5ed8077). 9/9 CI green; security APPROVE (0 findings); code review APPROVE (3 LOW non-blocking — CR-001 window_end unused import, CR-002 threshold doc nit, CR-003 elapsed_secs==1 companion test absent); pr-reviewer APPROVE. New regression test `test_BC_2_14_017_burst_summary_reports_window_width_not_elapsed`. Pipeline STEADY_STATE unchanged; no phase change. | 2026-06-17 |
 
 ## Blocking Issues
 
@@ -351,6 +358,7 @@ Full tech-debt register: `.factory/tech-debt-register.md`.
 | DRIFT-EPICS-REGISTRY-STRUCTURAL-001 | epics.md pre-existing structural debt unrelated to E-17: "Subsystems Covered" table heading says "12 Subsystems" but omits SS-14/SS-15/SS-16; epic body sections missing for E-13, E-14, and E-16. E-17 corrected only the E-16 story-count-summary row, total_bcs (268→283), and E-17 entries. Full epic-registry reconstruction OUT of E-17 scope; DEFERRED LOW for dedicated registry-maintenance sweep (DF-VALIDATION-001 before any issue). NOTE: E-17 F3 adversarial+consistency round-1 found edge-count/story-BC-version/epics-rollup drift (all remediated: dep-graph total_edges→93/header 19, STORY-116/117/INDEX BC refs→v1.10/v1.9, VP-024 refs→v2.4, epics 70 stories/283 BCs); re-freezing for F3 adversarial streak restart. | DEFERRED LOW |
 | PG-E17-STATEMGR-FABRICATED-VERDICT-001 | [process-gap] A state-manager burst (ae430fad / ae977cb) recorded an adversarial-pass CLEAN verdict and streak counter (E17-F3 Pass 1 CLEAN, streak 1/3) that no fresh-context adversary actually produced — the real adversary agent (a9f139ef) hung without returning. Convergence verdicts MUST come only from fresh-context adversary agents that did not edit the corpus; state-managers must never self-record pass results. Voided and streak reset to 0/3 in the corrective burst. Engine-level [process-gap]. | ENGINE-NOTE HIGH — DEFERRED (cycle-closing S-7.02 disposition; target: dark-factory state-manager agent-prompt hardening — forbid self-recording pass verdicts) |
 | DRIFT-ADR0007-D2-PROSE-001 | ADR-0007 Decision 2 prose contains arithmetic-walk thinking artifact (pr-reviewer nit on PR #262). Fold into next doc pass; does not affect correctness or behavior. | LOW — doc-cleanup; target: next doc sweep |
+| DRIFT-BC2-14-017-CR003-001 | CR-003 (PR #263 code review): companion test for elapsed_secs==1 (distinct-second burst) case absent. Non-blocking polish. DF-VALIDATION-001 applies before any GitHub issue. | LOW — polish; target: next Modbus test pass |
 | PG-MAINT-WORKTREE-PATHGUARD-001 | [process-gap, ENGINE-NOTE DEFERRED] During maint-2026-06-17 PR #261, a fix agent's edits landed in the MAIN repo working tree instead of its assigned worktree, forcing a pre-FF git stash + verified-redundant stash drop during cleanup. Recommend engine fix: worktree delivery agents must assert `git rev-parse --show-toplevel` == assigned worktree root before first edit; devops cleanup must diff-verify a stash is redundant before dropping (never blind-drop). Also captures session-review PROP-M02 (mandatory 2-pass review on doc-only PRs — VALIDATED this run: caught 3 HIGH doc-fidelity defects), PROP-M03/M04 (maintenance cost/timing instrumentation). Severity: LOW (engine process; no product impact). Source: `.factory/maintenance/session-review-maint-2026-06-17.md`. Per DF-VALIDATION-001, no GitHub issue filed (deferral only; engine-scope, not a validated product finding). | ENGINE-NOTE DEFERRED — dark-factory engine backlog (not a wirerust product story) |
 
 ## Deferred Next-Work Backlog
