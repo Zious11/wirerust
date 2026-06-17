@@ -28,32 +28,34 @@ The classification decision is cached per flow in a `HashMap<FlowKey, DispatchTa
 ```rust
 pub struct StreamDispatcher {
     routes: HashMap<FlowKey, DispatchTarget>,
+    /// Retry counter per flow before permanently stamping as None.
+    classification_attempts: HashMap<FlowKey, u32>,
+    max_classification_attempts: u32,
     http: Option<HttpAnalyzer>,
     tls: Option<TlsAnalyzer>,
+    modbus: Option<ModbusAnalyzer>,  // Rule 5: port-502 flows (ADR-005)
+    dnp3: Option<Dnp3Analyzer>,      // Rule 6: port-20000 flows (ADR-007)
+    unclassified_flows: u64,
 }
 
 enum DispatchTarget {
     Http,
     Tls,
+    Modbus,
+    Dnp3,
     None,
 }
-
-impl StreamHandler for StreamDispatcher {
-    fn on_data(&mut self, flow_key: &FlowKey, direction: Direction, data: &[u8], offset: u64) {
-        let target = self.routes.entry(flow_key.clone()).or_insert_with(|| {
-            classify(data, flow_key)
-        });
-        match target {
-            DispatchTarget::Http => { /* forward to self.http */ }
-            DispatchTarget::Tls => { /* forward to self.tls */ }
-            DispatchTarget::None => {}
-        }
-    }
-    fn on_flow_close(&mut self, flow_key: &FlowKey, reason: CloseReason) {
-        // forward to cached analyzer, remove route entry
-    }
-}
 ```
+
+Classification rule order (see module-level comment in `src/dispatcher.rs`):
+
+1. TLS content signature (`0x16 0x03 ...`, len >= 5) → `Tls`
+2. HTTP method token → `Http`
+3. Port 443/8443 → `Tls`
+4. Port 80/8080 → `Http`
+5. Port 502 → `Modbus`
+6. Port 20000 → `Dnp3`
+7. No match → `None`
 
 ## Alternatives Considered
 
@@ -91,10 +93,10 @@ Check port first (fast path), content detection only for unknown ports.
 
 ## Consequences
 
-- **New struct:** `StreamDispatcher` in `src/reassembly/handler.rs` or `src/dispatcher.rs`.
-- **main.rs changes:** Replace direct `HttpAnalyzer` handler with `StreamDispatcher` wrapping both `Option<HttpAnalyzer>` and `Option<TlsAnalyzer>`.
+- **New struct:** `StreamDispatcher` in `src/dispatcher.rs`.
+- **main.rs changes:** Replace direct `HttpAnalyzer` handler with `StreamDispatcher` wrapping `Option<HttpAnalyzer>`, `Option<TlsAnalyzer>`, `Option<ModbusAnalyzer>`, and `Option<Dnp3Analyzer>`.
 - **Per-flow routing map:** Small memory overhead (~64 bytes per flow for the HashMap entry). Cleaned up on `on_flow_close`.
-- **Future analyzers** register content signatures in the dispatcher rather than changing the reassembly engine.
+- **New analyzers** add an `Option<FooAnalyzer>` field, a port rule in the classify function, and a new `DispatchTarget` variant. No change to the reassembly engine.
 - **Edge case:** If the first `on_data` delivery has < 5 bytes (extremely rare — requires pathological TCP segmentation), the dispatcher falls back to port hints. This matches Zeek's approach with its `dpd_buffer_size` parameter, though Zeek buffers up to 1024 bytes. For wirerust v1, single-delivery classification with port fallback is sufficient.
 
 ## Validation
