@@ -40,7 +40,7 @@
 //!   control gives `Σ == 4`.  This pins the etherparse data-model assumption so
 //!   a future version bump that changes the representation fails loudly.
 //!
-//! ### Test 4 — MACsec parse probe (OBSERVE, do not assert offset correctness)
+//! ### Test 4 — MACsec parse probe (observe-only for this file; offset asserted in e17 file)
 //!
 //! `test_BC_2_16_015_macsec_arp_lax_parse_probe`
 //!
@@ -48,17 +48,20 @@
 //!   etherparse's `MacsecHeader` builder.  Runs `LaxSlicedPacket::from_ethernet`
 //!   and records the observed `link_exts` shape and `header_len()` value.
 //!
-//!   ASSERTS ONLY that the frame parses without panic (no crash guarantee).
-//!   Does NOT assert that the offset computed by the decoder is correct for
-//!   MACsec-encapsulated ARP.
+//!   ASSERTS: no panic, exactly one `Macsec` entry in `link_exts`, and the
+//!   observed `header_len()` equals the pre-computed `MacsecHeader::header_len()`
+//!   value (8 without SCI, 16 with SCI).  Offset correctness — that
+//!   `arp_offset = 14 + link_exts_sum` correctly positions the ARP payload —
+//!   is synthetically asserted in `bc_2_16_e17_macsec_offset_tests.rs`
+//!   (`test_BC_2_16_015_macsec_no_sci_unmodified_arp_truncated_offset_22` and
+//!   `test_BC_2_16_015_macsec_sci_present_unmodified_arp_truncated_offset_30`).
 //!
-//!   IMPORTANT CAVEAT (see comment in test body):
-//!   The MACsec offset correctness is UNVERIFIED pending empirical confirmation
-//!   against real-world captures.  `header_len()` includes the 2-byte
-//!   `next_ether_type` field for `Unmodified` payloads (SecTag 6 + ET 2 = 8
-//!   without SCI), which may shift the ARP payload window unexpectedly.
-//!   Encrypted/modified MACsec payloads never expose a readable inner ARP, so
-//!   the decoder's truncation fallback (case c) would apply there anyway.
+//!   What remains unverified is the existence/behavior of MACsec-over-ARP in
+//!   REAL on-wire captured traffic (BC-2.16.009/015 EC-009 part c).  That gap
+//!   is a real-world fixture gap, not an offset-formula gap.  This probe is
+//!   intentionally observe-only within this file so that MACsec shape/no-panic
+//!   coverage lives here and offset-correctness assertions live exclusively in
+//!   the e17 file, keeping the two concerns cleanly separated.
 //!
 //! ## Wire layouts
 //!
@@ -571,40 +574,43 @@ mod qinq_macsec_offset {
     }
 
     // -------------------------------------------------------------------------
-    // Test 4 — MACsec probe (OBSERVE ONLY — offset correctness unverified)
+    // Test 4 — MACsec probe (observe-only shape guard; offset asserted in e17 file)
     // -------------------------------------------------------------------------
 
-    /// MACsec ARP lax parse probe — OBSERVE and record etherparse behavior only.
+    /// MACsec ARP lax parse probe — no-panic and shape regression guard.
     ///
     /// Builds an Ethernet / MACsec(Unmodified, ptype=ARP) / ARP frame using
     /// etherparse's `MacsecHeader` builder with a minimal SecTag (no SCI, ptype
-    /// Unmodified(ARP)) and verifies only that:
-    ///   1. `LaxSlicedPacket::from_ethernet` does not panic (no crash guarantee).
+    /// Unmodified(ARP)) and guards:
+    ///   1. `LaxSlicedPacket::from_ethernet` does not panic.
     ///   2. `lax.link_exts` contains exactly one `Macsec` entry.
-    ///   3. The observed `header_len()` value is recorded via the assertion message.
+    ///   3. The observed `header_len()` matches `MacsecHeader::header_len()` (8 without SCI).
     ///
-    /// IMPORTANT — OFFSET CORRECTNESS IS UNVERIFIED:
+    /// ### Offset arithmetic — synthetic assertions live in the e17 file
     ///
     /// The MACsec `header_len()` for an Unmodified payload without SCI is 8:
     ///
     ///   - 6 bytes: SecTag (TCI-AN + SL + PN, 4-byte packet number)
     ///   - 2 bytes: next EtherType (present only for Unmodified payloads)
-    ///   - Total: 6 + 2 = 8 bytes (no SCI; with SCI it would be 6 + 8 + 2 = 16)
+    ///   - Total: 6 + 2 = 8 bytes (no SCI; with SCI: 6 + 8 + 2 = 16)
     ///
-    /// This means the decoder would compute `arp_offset = 14 + 8 = 22` for this
-    /// specific MACsec variant, placing the ARP payload at offset 22.  However:
+    /// The decoder therefore computes `arp_offset = 14 + 8 = 22` (no SCI) or
+    /// `arp_offset = 14 + 16 = 30` (SCI present).  These offset values are
+    /// synthetically asserted in `bc_2_16_e17_macsec_offset_tests.rs`:
+    ///   - `test_BC_2_16_015_macsec_no_sci_unmodified_arp_truncated_offset_22`
+    ///   - `test_BC_2_16_015_macsec_sci_present_unmodified_arp_truncated_offset_30`
     ///
-    ///   a) We have not verified this against real-world MACsec+ARP captures.
-    ///   b) With SCI present, `header_len() = 16` → `arp_offset = 30`.
-    ///   c) Modified/encrypted MACsec payloads are opaque — no inner ARP is
-    ///      readable — so the decoder's case (c) truncation fallback applies
-    ///      there regardless of offset.  In that case `lax.net` would be None
-    ///      with a MACsec stop_err, not an ARP stop_err, so the lax None arm's
-    ///      ARP truncation branch would not be reached.
+    /// This probe is intentionally observe-only for offset within this file so that
+    /// offset-correctness assertions are owned by the e17 file, not duplicated here.
     ///
-    /// The goal of this test is to SURFACE any discrepancy, not to hide it.
-    /// DO NOT strengthen assertions here to cover offset correctness until
-    /// real-world MACsec+ARP capture data confirms the expected offset value.
+    /// ### Remaining real-world gap (EC-009 part c)
+    ///
+    /// What is NOT yet verified is the existence and behavior of MACsec-over-ARP
+    /// in REAL on-wire captured traffic (BC-2.16.009/015 EC-009 part c).  That is
+    /// a real-world fixture gap, not an offset-formula gap.  Modified/encrypted
+    /// MACsec payloads are opaque — no inner ARP is readable — so the decoder's
+    /// truncation fallback applies there regardless of offset; `lax.net` would be
+    /// None with a MACsec stop_err, not an ARP stop_err.
     ///
     /// If constructing a MACsec frame that etherparse parses as a Macsec
     /// link_ext proves impossible (e.g., etherparse rejects the byte sequence),
@@ -719,12 +725,12 @@ mod qinq_macsec_offset {
         // Assert the observed header_len matches the expected value (8).
         // This pins the formula: 6 SecTag + 2 next_EtherType (Unmodified, no SCI).
         //
-        // IMPORTANT: this assertion verifies only the HEADER parse, not offset
-        // correctness end-to-end.  The decoder uses `lax.link_exts.header_len()`
-        // to add to the base offset; if etherparse reports 8, the decoder computes
-        // arp_offset = 14 + 8 = 22, which is consistent with the actual ARP
-        // position in this frame.  But this has NOT been validated against a real
-        // capture — the SecTag may be parsed differently in production frames.
+        // This assertion guards the HEADER parse.  The decoder uses
+        // `lax.link_exts.header_len()` to compute `arp_offset = 14 + 8 = 22`,
+        // which is consistent with the actual ARP position in this synthetic frame.
+        // The full end-to-end offset correctness (offset 22 no-SCI / offset 30 SCI)
+        // is asserted in bc_2_16_e17_macsec_offset_tests.rs.  What remains an open
+        // gap is validation against REAL on-wire MACsec+ARP captures (EC-009 part c).
         let observed = observed_macsec_hdr_len.unwrap_or(0);
         assert_eq!(
             observed, expected_hdr_len,
@@ -736,17 +742,18 @@ mod qinq_macsec_offset {
         );
 
         // Record the full observed state for diagnostic purposes.
-        // These values inform future work when real MACsec+ARP captures are available.
+        // Synthetic offset assertions (22 no-SCI / 30 SCI) are owned by
+        // bc_2_16_e17_macsec_offset_tests.rs and confirmed green there.
         //
         //   Observed link_exts_sum  : {link_exts_sum}
         //   Observed macsec hdr_len : {observed}
         //   lax.net                 : {:?}
         //   lax.stop_err            : {:?}
         //
-        // UNVERIFIED: whether arp_offset = 14 + link_exts_sum correctly points to
-        // the ARP payload in real-world MACsec+ARP frames.  Encrypted/modified
-        // MACsec payloads are always opaque and would never produce an ARP stop_err,
-        // so decoder case (c) already handles those safely.
+        // Remaining gap: real on-wire MACsec+ARP captures (EC-009 part c) are not
+        // yet available.  Encrypted/modified MACsec payloads are always opaque and
+        // would never produce an ARP stop_err, so decoder case (c) handles those
+        // safely regardless.
         let _ = (link_exts_sum, &lax.net, &lax.stop_err); // suppress unused-variable warnings
     }
 }
