@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "2.5"
+version: "2.6"
 status: draft
 producer: product-owner
 timestamp: 2026-06-09T00:00:00Z
@@ -32,6 +32,9 @@ modified:
   - version: "2.5"
     date: 2026-06-13
     change: "ARP-F2 Pass-14 Burst-3 (B-01): MITRE Techniques traceability field: corrected stale revoked-T0855 display name 'Unauthorized Command Message' → canonical ATT&CK v19 name 'Unauthorized Message: Command Message' for T1692.001. Technique ID unchanged. Verified against BC-2.14.013/014/016 siblings."
+  - version: "2.6"
+    date: 2026-06-17
+    change: "Issue #220 / D-043 elapsed_ms→seconds lineage: BURST detector Postcondition 1 summary string changed from '{count} writes in {elapsed_secs}s window' to '{count} writes within {window_secs}s window', where {window_secs} is the constant WRITE_BURST_WINDOW_SECS (= 1). Motivation: when ≥(threshold+1) writes share the same integer-second pcap timestamp, elapsed_secs = now_ts.wrapping_sub(window_start_ts) = 0, producing the misleading display '21 writes in 0s window'. The configured window WIDTH is always 1s regardless of the elapsed span from first-write to triggering-write; reporting the constant is correct and non-misleading. Detection math unchanged — this is a display-string fix only. EC-011 added to document the same-second / elapsed==0 case explicitly. SUSTAINED detector postcondition ('{count} writes over {elapsed_s}s window') is unchanged — it legitimately reports elapsed span and is not affected by this issue."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -114,10 +117,13 @@ Targets v0.3.0.
    - `category: ThreatCategory::Execution`
    - `verdict: Verdict::Likely`
    - `confidence: Confidence::High` — burst patterns are high-confidence Brute Force I/O.
-   - `summary`: `"Modbus write burst: {count} writes in {elapsed_secs}s window (unit {unit_id}, threshold {threshold}/s)"`
-     where `{count}` is `flow.window_write_count`, `{elapsed_secs}` is
-     `now_ts.wrapping_sub(flow.window_start_ts)` (seconds, per BC-2.09.007 — no /1000),
+   - `summary`: `"Modbus write burst: {count} writes within {window_secs}s window (unit {unit_id}, threshold {threshold}/s)"`
+     where `{count}` is `flow.window_write_count`, `{window_secs}` is the constant
+     `WRITE_BURST_WINDOW_SECS` (= 1 — the configured window width, not the elapsed span),
      `{unit_id}` is the MBAP Unit ID, and `{threshold}` is `self.write_burst_threshold`.
+     Rationale: reporting the constant window WIDTH avoids the misleading "0s window" display
+     when ≥(threshold+1) writes share the same integer-second pcap timestamp
+     (elapsed_secs = 0 in that case). See EC-011.
    - `evidence`: one entry — `"Burst threshold exceeded: {count} write FCs in 1s window; window_write_count={count} window_start_ts={start_ts} threshold={threshold} FC=0x{fc:02X} UnitID={unit_id}"`.
    - `mitre_techniques: vec!["T0806", "T1692.001"]`
    - `source_ip: Some(<client/initiator endpoint>)` — resolved from the TCP `direction` arg
@@ -297,6 +303,7 @@ and `write_sustained_threshold >= 1` holds at the analyzer struct level.
 | EC-008 | `all_findings.len() == MAX_FINDINGS - 1` when burst fires | Per-PDU finding fills last slot (pushed first). Burst finding NOT pushed. `window_burst_emitted` still set to true. |
 | EC-009 | Read FC (0x03) in high volume | Read FCs do NOT increment `window_write_count` or `sustained_window_write_count`. No T0806. Rate gates are write-class-only. |
 | EC-010 | now_ts < window_start_ts (u32 second-timestamp out-of-order or wrap) | `now_ts.wrapping_sub(window_start_ts)` gives a large u32 value (≫ any window threshold). Both burst and sustained detectors treat this as window-expired: reset. Rollover at ~136 years — effectively never in practice. Correct and evasion-resistant. |
+| EC-011 | ≥(threshold+1) write ADUs share the same integer-second pcap timestamp (e.g., 21 writes all at ts=1000s in a single pcap flush) | `elapsed_secs = now_ts.wrapping_sub(window_start_ts) = 0`. Burst detection FIRES correctly (count > threshold). Summary string reports `WRITE_BURST_WINDOW_SECS` (= 1) as `{window_secs}`, producing "21 writes within 1s window …" — NOT "21 writes in 0s window". Reporting the configured window WIDTH rather than the elapsed span prevents the misleading zero display. Detection math is unchanged; only the display string changed in v2.6. Root cause of same-timestamp ADUs: sub-second pcap-timestamp precision is a deferred enhancement (same-flush ADUs carry one shared second-granularity timestamp). |
 
 ## Canonical Test Vectors
 
@@ -306,7 +313,7 @@ All timestamps are in SECONDS (timestamp_secs per BC-2.09.007; the pipeline deli
 |-------|----------------|----------|
 | `write_burst_threshold=20`; 20 write PDUs (FC=0x06) at ts=1000s..1000s (same second) — same flow | No burst finding after 20 writes; `window_write_count=20`. Per-PDU findings with `["T1692.001","T0836"]` each. | edge-case (at burst threshold, not over) |
 | Same + 21st write at ts=1000s (still within 1-second burst window) | ONE burst Finding `{mitre_techniques=["T0806","T1692.001"], evidence contains "Burst threshold exceeded"}` emitted; `window_burst_emitted=true` | happy-path (burst threshold crossed) |
-| `write_burst_threshold=20`; 25 writes within elapsed_secs=0 (same second) | Burst fires on 21st write; writes 22–25: no additional burst finding (`burst_emitted=true`). 25 per-PDU findings + 1 burst finding. | happy-path (burst caps at once) |
+| `write_burst_threshold=20`; 25 writes within elapsed_secs=0 (same second — all writes share the same integer-second pcap timestamp) | Burst fires on 21st write; writes 22–25: no additional burst finding (`burst_emitted=true`). 25 per-PDU findings + 1 burst finding. Burst Finding summary: `"Modbus write burst: 21 writes within 1s window (unit <uid>, threshold 20/s)"` — reports window WIDTH (1), NOT elapsed span (0). See EC-011. | happy-path (burst caps at once; same-second / elapsed==0 display correctness) |
 | `write_sustained_threshold=7`; 16 writes accumulated; elapsed_secs=2 (window boundary hit) | elapsed_secs=2 >= 2; check: 16 > 7*2=14 → FIRES. ONE sustained Finding `{mitre_techniques=["T0806","T1692.001"], evidence="Sustained write rate exceeded: 16 writes over 2 seconds (>7/s average)"}` | happy-path (low-and-slow sustained detection) |
 | `write_sustained_threshold=10`; 22 writes accumulated at elapsed_secs=2 | Check: 22 > 10*2=20 → FIRES sustained finding. | happy-path (sustained at default threshold) |
 | `write_sustained_threshold=10`; 20 writes at elapsed_secs=2 (exactly at threshold) | Check: 20 > 10*2=20? No (strict >). NOT fired. | edge-case (exactly at threshold; strict > required) |

@@ -14,6 +14,42 @@ changes, invariant rewrites).
 
 ---
 
+## [bc-2.14.017-v2.6-burst-summary-window-width-2026-06-17] — 2026-06-17
+
+### PATCH: BC-2.14.017 v2.5→v2.6 — Burst summary string: elapsed span → configured window width (issue #220)
+
+**Trigger:** GitHub issue #220 — Modbus write-burst "0s window" cosmetic display bug.
+**Root cause:** When ≥(threshold+1) writes share the same integer-second pcap timestamp (single
+pcap flush), `elapsed_secs = now_ts.wrapping_sub(window_start_ts) = 0`, producing the misleading
+display "21 writes in 0s window". Detection math is correct; only the display string was wrong.
+**D-043 lineage:** This is the display-string leg of the elapsed_ms→seconds correction chain
+started in v2.2 (D-043). The elapsed span was always unreliable as a window-width proxy when
+same-second writes occur; v2.6 severs the dependency by reporting the constant instead.
+
+**Changes:**
+
+- **BC-2.14.017 Postcondition 1 (Burst finding summary string):** Changed from
+  `"Modbus write burst: {count} writes in {elapsed_secs}s window (unit {unit_id}, threshold {threshold}/s)"`
+  to
+  `"Modbus write burst: {count} writes within {window_secs}s window (unit {unit_id}, threshold {threshold}/s)"`
+  where `{window_secs}` is the constant `WRITE_BURST_WINDOW_SECS` (= 1). The `{elapsed_secs}`
+  variable is removed from the summary string entirely. Detection logic is unchanged.
+- **BC-2.14.017 EC-011 (new):** Documents the same-second / elapsed==0 case explicitly — confirms
+  the burst detection FIRES correctly on same-timestamp writes and the summary correctly reports
+  the window width (1), not the elapsed span (0).
+- **BC-2.14.017 Canonical test vector updated:** The `elapsed_secs=0` happy-path row now includes
+  the expected summary string verbatim and cross-references EC-011.
+- **SUSTAINED detector postcondition:** UNCHANGED — `"Modbus write burst: {count} writes over
+  {elapsed_s}s window"` legitimately reports elapsed span and is not affected.
+- **BC-INDEX.md:** BC-2.14.017 comment annotation updated to note v2.6 change.
+
+**Files changed:**
+- `.factory/specs/behavioral-contracts/ss-14/BC-2.14.017.md` (v2.5 → v2.6)
+- `.factory/specs/behavioral-contracts/BC-INDEX.md` (BC-2.14.017 annotation)
+- `.factory/spec-changelog.md` (this entry)
+
+---
+
 ## [e17-f3-story-backlink-update-2026-06-17] — 2026-06-17
 
 ### PATCH: BC-2.16.009 v1.9→v1.10 + BC-2.16.015 v1.8→v1.9 — E-17 F3 story-backlink update (BC Backlink Update Obligation)
