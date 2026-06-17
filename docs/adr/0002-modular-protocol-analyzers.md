@@ -143,4 +143,7 @@ Analyzers register themselves in a global registry (e.g., via `inventory` crate)
 |----------|-------|------|-------|
 | DNS | `ProtocolAnalyzer` | `src/analyzer/dns.rs` | v0.1.0 |
 | HTTP | `StreamAnalyzer` | `src/analyzer/http.rs` | v0.1.0 |
-| TLS | `StreamAnalyzer` | `src/analyzer/tls.rs` | Issue #2 (planned) |
+| TLS | `StreamAnalyzer` | `src/analyzer/tls.rs` | v0.1.0 |
+| Modbus | `StreamAnalyzer` | `src/analyzer/modbus.rs` | v0.4.0 |
+| DNP3 | `StreamAnalyzer` | `src/analyzer/dnp3.rs` | v0.6.0 |
+| ARP | `ProtocolAnalyzer` (packet-level) | `src/analyzer/arp.rs` | v0.7.0 |

@@ -178,7 +178,7 @@ Add a `Finding::display_summary()` method that returns the escaped form, and hav
 | File | Change |
 |------|--------|
 | `src/reporter/terminal.rs` | Add a private `escape_for_terminal(s: &str) -> String` helper at file scope that iterates `s.chars()`, applies `char::escape_default()` for chars that are ASCII controls (C0 + DEL), C1 controls (`U+0080..=U+009F`), or backslash, and passes all other chars through. Apply it to `f.summary` (line ~65, where `f.summary` is interpolated into the line `format!`) and to each `ev` in `f.evidence` (line ~81) before writing to the output buffer. The helper is private to the terminal reporter — other reporters that need it (e.g., a future CSV reporter) implement at their own boundary, since each output medium has different escaping rules. |
-| `src/analyzer/tls.rs` | Replace `{hostname:?}` (line ~349) and `{lossy:?}` (line ~369) with `{hostname}` / `{lossy}`. Update the inline doc comments that explain *why* the Debug formatter was used; replace them with a pointer to this ADR. |
+| `src/analyzer/tls.rs` | **Done.** Raw hostname/lossy interpolation (`{hostname}` / `{lossy}`) is already in place. Inline doc comments reference this ADR at the emission sites. |
 | `src/findings.rs` | Add a `///` doc comment on `impl Display for Finding` noting that it produces RAW text and is NOT safe for terminal display; consumers wanting safe display should go through the terminal reporter. |
 | `src/analyzer/http.rs` | **No changes required.** Existing raw interpolations are now correct under the new policy. |
 | `src/analyzer/dns.rs` | **No changes required.** DNS analyzer's `analyze()` returns `Vec::new()` — emits no findings. |
