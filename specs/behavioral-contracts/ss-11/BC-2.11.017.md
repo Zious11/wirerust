@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.9"
+version: "1.10"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -22,6 +22,7 @@ modified:
   - "v1.6: v19 remap: T0855 → T1692.001 per MITRE ATT&CK for ICS v19.0 revocation. All T0855 technique ID references in Description, Postconditions, EC-005, EC-006, and Canonical Test Vectors updated to T1692.001. Tactic unchanged: IcsImpairProcessControl. Issue #222; audit: mitre-ics-v19-catalog-audit.md. — 2026-06-10"
   - "v1.8: issue-#259 F2 integrate (v0.8.0 collapse feature) — extend Description and add Invariant 5 and EC-007: when collapse_findings=true (default in v0.8.0), render_finding_flat is called per collapsed group with the collapsed representative Finding, and the header line appends a (xN) count suffix per BC-2.11.026; when N=1 (singleton), the header line is byte-identical to the pre-v0.8.0 output; when collapse_findings=false (--no-collapse), all existing postconditions remain byte-identical to pre-v0.8.0. Cross-references BC-2.11.025/026/028/029. ADR-0003 (display-layer aggregation subsection) cited. — 2026-06-17"
   - "v1.9 2026-06-17: F2 adversarial pass-1 — update Invariant 5: (xN) suffix is colorized identically with the header line (no uncolorized suffix; suffix appended to pre-color line string before colorization) (F-259-02)"
+  - "v1.10 2026-06-17: F2 adversarial pass-2 — align Invariant 5 to path-(b) collapse-aware wrapper (F-A03): the flat collapse path uses a wrapper that builds the header with suffix; render_finding_prefix itself is unchanged; grouped mode is structurally suffix-free"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -83,14 +84,16 @@ byte-identical to the pre-v0.8.0 behavior.
 2. `render_finding_flat` never calls `technique_name()` or `technique_tactic()`.
 3. This mode is the "no --mitre flag" case; grouping requires the `--mitre` CLI flag.
 4. The join separator is `", "` (comma followed by single space). No trailing separator.
-5. **v0.8.0 collapse path (BC-2.11.026):** When `collapse_findings = true`, the call site in
-   the flat dispatch block invokes `render_finding_flat` once per collapsed group (passing the
-   group's representative `&Finding`) and appends the ` (xN)` count suffix to the header line
-   per BC-2.11.026 Postcondition 1. The MITRE line produced by `render_finding_flat` is
-   unchanged; the suffix is appended to the `render_finding_prefix` header line, not to the MITRE
-   line. The ` (xN)` suffix is part of the pre-color `line` string and is therefore colorized
-   identically with the header line — there is no uncolorized suffix in the output (F-259-02
-   adjudication; verified against render_finding_prefix terminal.rs:205-222). When
+5. **v0.8.0 collapse path (BC-2.11.026 path-(b)):** When `collapse_findings = true`, the flat
+   dispatch block uses a collapse-aware FLAT-ONLY wrapper function (NOT `render_finding_prefix`
+   directly) that builds the header line with the ` (xN)` suffix when N≥2, then colorizes the
+   complete line including the suffix. `render_finding_flat` is called once per collapsed group
+   (passing the group's representative `&Finding`) via this wrapper. The MITRE line produced by
+   `render_finding_flat` is unchanged; the suffix appears only on the header line, not on the
+   MITRE line. `render_finding_prefix` itself is NOT modified — it continues to be called
+   unchanged by `render_finding_grouped` for grouped mode, preserving the structural suffix-free
+   guarantee for grouped/`--mitre` output (BC-2.11.013 Invariant 4). The suffix is colorized
+   identically with the header line (F-259-02 adjudication; F-A03 path-(b) prescription). When
    `collapse_findings = false` (`--no-collapse`), the flat dispatch block calls
    `render_finding_flat` once per raw finding, identical to the pre-v0.8.0 code path.
 

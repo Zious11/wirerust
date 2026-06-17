@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: product-owner
 timestamp: 2026-06-17T00:00:00Z
@@ -12,7 +12,7 @@ subsystem: SS-11
 capability: CAP-11
 lifecycle_status: active
 introduced: v0.8.0
-modified: ["v1.1 2026-06-17: F2 adversarial pass-1 — add singleton immutability invariant (F-259-03), severity-agnostic postcondition (F-259-04), input-order determinism assumption (F-259-06), raw-key vs escaped-display postcondition and test vector (F-259-09)"]
+modified: ["v1.1 2026-06-17: F2 adversarial pass-1 — add singleton immutability invariant (F-259-03), severity-agnostic postcondition (F-259-04), input-order determinism assumption (F-259-06), raw-key vs escaped-display postcondition and test vector (F-259-09)", "v1.2 2026-06-17: F2 adversarial pass-2 — Vec-accumulator canonical (F-A01); strengthen primary flood test vector (F-A04); fix dispatch anchor 149-160→149-162 (F-A05)"]
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -80,10 +80,14 @@ is deferred to a future cycle (see STORY-119).
    raw bytes; they form two groups even though both render visually as `"x"` after escaping
    (the first displays as `"x\u{1b}"`).
 9. Collapse determinism is CONDITIONAL on the input `findings` slice order being stable. The
-   collapse pass itself introduces NO additional non-determinism: it MUST use an
-   insertion-ordered grouping structure (e.g., `IndexMap` or a `Vec`-based accumulator), NOT
-   a `HashMap` whose iteration order is non-deterministic. Input slice-order stability is
-   upstream's responsibility and is out of scope for this BC.
+   collapse pass itself introduces NO additional non-determinism: it MUST use a
+   `Vec<(CollapseKey, Vec<&Finding>)>` insertion-ordered accumulator with linear-scan
+   `PartialEq` matching (since `ThreatCategory`, `Verdict`, and `Confidence` derive `PartialEq`
+   but NOT `Hash`, and `Cargo.toml` does not add `indexmap` in v0.8.0). An `IndexMap` is only
+   viable if `Hash` is derived on all three key enums AND the `indexmap` crate is added — NOT
+   done in v0.8.0; the Vec accumulator is canonical. Using a `HashMap` whose iteration order
+   is non-deterministic is prohibited. Input slice-order stability is upstream's responsibility
+   and is out of scope for this BC.
 
 ## Invariants
 
@@ -110,11 +114,14 @@ is deferred to a future cycle (see STORY-119).
    (singleton renders identically to pre-v0.8.0). Any future refactor that handles the N=1
    path differently from a direct passthrough MUST verify byte-identity against the pre-v0.8.0
    output.
-7. The collapse grouping structure MUST be insertion-ordered (e.g., `IndexMap` from the
-   `indexmap` crate, or a `Vec<(Key, Vec<&Finding>)>` accumulator). Using a `HashMap` whose
-   iteration order is non-deterministic would violate Postcondition 9 (determinism) and
-   Postcondition 2 (first-occurrence order). This is an implementation constraint, not just a
-   behavioral contract point.
+7. The collapse grouping structure MUST be a `Vec<(CollapseKey, Vec<&Finding>)>` accumulator
+   with linear-scan `PartialEq` matching. This is the CANONICAL implementation structure for
+   v0.8.0 because `ThreatCategory`, `Verdict`, and `Confidence` derive only `PartialEq` (not
+   `Hash`), and the `indexmap` crate is not a dependency. (`IndexMap` would be viable only if
+   `Hash` were derived on all three key enums AND `indexmap` added to `Cargo.toml` — neither
+   is done in v0.8.0.) Using a `HashMap` (non-deterministic iteration order) is prohibited and
+   would violate Postcondition 2 (first-occurrence order) and Postcondition 9 (determinism).
+   This is an implementation constraint enforced at the spec level.
 
 ## Edge Cases
 
@@ -140,7 +147,7 @@ is deferred to a future cycle (see STORY-119).
 
 | Input | Expected Output | Category |
 |-------|----------------|----------|
-| 5 findings all `(Anomaly, Inconclusive, Low, "Empty User-Agent header")` | FINDINGS section contains exactly 1 display group for that key | happy-path (flood collapse) |
+| 5 findings all `(Anomaly, Inconclusive, Low, "Empty User-Agent header")`, IDENTICAL 4-tuple key, same timestamp, each with a DISTINCT evidence URI (e.g., `["GET /a HTTP/1.1"]`, `["GET /b HTTP/1.1"]`, ..., `["GET /e HTTP/1.1"]`) — mirroring `src/analyzer/http.rs:359-371` empty-UA emission pattern | FINDINGS section contains exactly 1 display group for that key; group count = 5; evidence sampled per BC-2.11.027 positional first-K-members (first min(5,3)=3 evidence lines rendered) | happy-path (flood collapse — canonical empty-UA case) |
 | 1 finding `(Anomaly, Inconclusive, Low, "Empty UA")` + 1 finding `(Reconnaissance, Likely, High, "Port scan")` | 2 display groups in input order | happy-path (distinct keys) |
 | 3 findings: key A at index 0, key B at index 1, key A at index 2 | Output: group A first, group B second (first-occurrence order) | happy-path (ordering) |
 | 2 findings same key but evidence=["req1"] vs evidence=["req2"] | 1 collapsed group (evidence differs; key matches) | edge-case (EC-003) |
@@ -180,7 +187,7 @@ is deferred to a future cycle (see STORY-119).
 
 ## Architecture Anchors
 
-- `src/reporter/terminal.rs:149-160` -- FINDINGS dispatch block (flat vs grouped branch) where the collapse pass will be inserted
+- `src/reporter/terminal.rs:149-162` -- FINDINGS dispatch block (flat vs grouped branch) where the collapse pass will be inserted (includes `out.push('\n')` at :161 and block close at :162)
 - `src/reporter/terminal.rs:203-226` -- render_finding_prefix (escape applied; called per collapsed group representative)
 - `src/reporter/terminal.rs:232-238` -- render_finding_flat (called per collapsed group in the new collapse path)
 - `src/findings.rs:136-162` -- Finding struct: category, verdict, confidence, summary fields (key fields); evidence, mitre_techniques, source_ip, timestamp, direction (non-key fields)

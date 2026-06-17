@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: product-owner
 timestamp: 2026-06-17T00:00:00Z
@@ -12,7 +12,7 @@ subsystem: SS-11
 capability: CAP-11
 lifecycle_status: active
 introduced: v0.8.0
-modified: ["v1.1 2026-06-17: F2 adversarial pass-1 — relax suffix colorization: (xN) suffix IS colorized with the header line (no seam for uncolorized suffix in render_finding_prefix); update Invariant 4, PC-4, EC-008 (F-259-02)"]
+modified: ["v1.1 2026-06-17: F2 adversarial pass-1 — relax suffix colorization: (xN) suffix IS colorized with the header line (no seam for uncolorized suffix in render_finding_prefix); update Invariant 4, PC-4, EC-008 (F-259-02)", "v1.2 2026-06-17: F2 adversarial pass-2 — path-(b) collapse-aware wrapper prescribed as canonical in PC-4 (F-A03); dispatch anchor 149-160→149-162 (F-A05); EC-005 test vector added (F-A06)"]
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -60,14 +60,17 @@ attacker-controlled bytes; it does not require additional escaping.
 3. The count value `N` equals `Vec.len()` of the findings grouped under that key; it is
    always a positive integer (N≥1 by construction; empty groups are never created).
 4. The ` (xN)` suffix is appended after `escaped_summary`, forming part of the header line
-   before colorization. The suffix is colorized identically to the rest of the header line:
-   `render_finding_prefix` (or its collapse-aware extension) appends ` (xN)` to the
-   pre-color `line` string when N≥2, and the ENTIRE line including the suffix is then
-   colorized together via the verdict/confidence color match. There is no seam in the current
-   `render_finding_prefix` implementation for an uncolorized suffix. The implementation path:
-   either `render_finding_prefix` receives a count parameter and builds `line` as
-   `"  [Cat] VERDICT (CONF) - {escaped_summary} (xN)"` before colorizing, or a
-   collapse-aware sibling function builds the line with the suffix before the color match.
+   before colorization. The suffix is colorized identically to the rest of the header line.
+   **CANONICAL implementation path (b):** A collapse-aware FLAT-ONLY wrapper function (NOT
+   `render_finding_prefix` itself) builds the header line with the ` (xN)` suffix when N≥2
+   and then colorizes the complete line. `render_finding_prefix` is left STRUCTURALLY
+   UNCHANGED — it is still called by `render_finding_grouped` for grouped mode, which MUST
+   remain suffix-free (BC-2.11.013 Invariant 4). Because `render_finding_prefix` is shared
+   between flat and grouped paths, modifying it to accept a count parameter (non-canonical
+   path (a)) is prohibited unless the grouped call site passes an explicit no-suffix sentinel
+   (N=0 or `None`) — which would make the implementation error-prone and the contract harder
+   to audit. Path (b) enforces structural separation: grouped mode is incapable of emitting a
+   suffix because it never calls the collapse-aware wrapper.
 5. The count suffix is not subject to `escape_for_terminal`; it is a hardcoded format string
    and contains no attacker-controlled content.
 
@@ -97,7 +100,8 @@ attacker-controlled bytes; it does not require additional escaping.
 | EC-004 | Group with N=10000 | Header line ends with ` (x10000)` (no truncation, no abbreviation) |
 | EC-005 | Summary ends with whitespace before suffix | Suffix appended directly after the whitespace; one space before `(x...)`; result may have double space — acceptable, no trimming |
 | EC-006 | collapse_findings=false (opt-out) | No collapse pass runs; no count suffix on any finding; behavior per BC-2.11.028 |
-| EC-007 | show_mitre_grouping=true | Collapse pass not applied; no count suffix regardless of group sizes |
+| EC-007 | show_mitre_grouping=true, multiple identical-key findings | Collapse pass not applied; no count suffix on any finding regardless of group sizes. STRUCTURAL guarantee: `render_finding_prefix` is called unchanged by `render_findings_grouped`; the collapse-aware wrapper (path-(b)) is only invoked from the flat dispatch block; grouped mode is structurally unable to emit a suffix |
+| EC-009 | show_mitre_grouping=true, N=100 identical-key findings | 100 individual lines, none with a ` (xN)` suffix — suffix-free guarantee enforced by path-(b) separation even at large N |
 | EC-008 | Group with N=2 and use_color=true | Complete header line (including ` (x2)` suffix) colored per verdict/confidence — the suffix is part of the pre-color `line` string and is colorized together with the summary text |
 
 ## Canonical Test Vectors
@@ -109,6 +113,7 @@ attacker-controlled bytes; it does not require additional escaping.
 | 3142 findings all `(Anomaly, Inconclusive, Low, "Empty User-Agent header")` | Header line ends with `"Empty User-Agent header (x3142)"` | happy-path (large count) |
 | 1 unique finding + 5 identical findings | Unique finding: no suffix; identical group: `(x5)` suffix | mixed scenario |
 | 2 findings same key, use_color=false | Header `"  [Anomaly] INCONCLUSIVE (LOW) - Empty UA (x2)\n"` | happy-path (no color) |
+| 2 findings with summary=`"Empty UA "` (trailing space), collapse_findings=true | Header line ends with `"Empty UA  (x2)\n"` — two spaces before `(x2)` (one from summary trailing space, one from the suffix's leading space); no trimming applied | edge-case (EC-005 — trailing whitespace, double-space pinned) |
 
 ## Verification Properties
 
@@ -141,7 +146,7 @@ attacker-controlled bytes; it does not require additional escaping.
 ## Architecture Anchors
 
 - `src/reporter/terminal.rs:203-226` -- render_finding_prefix (summary escape + header line construction; the (xN) suffix is appended here or in a new wrapper function for collapsed groups)
-- `src/reporter/terminal.rs:149-160` -- FINDINGS dispatch block (flat path where count-annotated render replaces the direct render_finding_flat call when collapse=true)
+- `src/reporter/terminal.rs:149-162` -- FINDINGS dispatch block (flat path where count-annotated render replaces the direct render_finding_flat call when collapse=true; includes `out.push('\n')` at :161 and block close at :162)
 
 ## Story Anchor
 

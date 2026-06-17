@@ -14,6 +14,54 @@ changes, invariant rewrites).
 
 ---
 
+## [issue-259-collapse-advpass2-remediation-2026-06-17] — 2026-06-17
+
+### PATCH: Issue #259 F2 Adversarial Pass-2 Remediation — 4 MEDIUM + 3 LOW resolved
+
+**Trigger:** F2 adversarial pass-2 found 4 MEDIUM + 3 LOW findings (no CRITICAL/HIGH — pass-1
+CRITICAL confirmed fixed). All remediated in one burst. No F1 locked decisions changed.
+total_bcs=288 unchanged. SS-11=29 unchanged.
+
+#### Finding Dispositions
+
+| Finding | Severity | BC(s) Changed | Resolution |
+|---------|----------|--------------|-----------|
+| F-A01 | MEDIUM | BC-2.11.025 v1.1→v1.2 | `Vec<(CollapseKey, Vec<&Finding>)>` accumulator is now CANONICAL in PC-9 and Invariant 7. `IndexMap` demoted to parenthetical: "only viable if Hash derived AND indexmap crate added — NOT done in v0.8.0." Key enums derive only PartialEq; Vec accumulator uses linear-scan PartialEq matching. |
+| F-A02 | MEDIUM | prd.md v1.26 delta block | BC-2.11.017 pair corrected `v1.7→v1.8` → `v1.7→v1.10`; all greenfield BC pairs corrected to v1.2; BC-2.11.013 corrected to v1.10; BC-2.11.019 corrected to v1.6. Notes added for pass-1 and pass-2 bumps. |
+| F-A03 | MEDIUM | BC-2.11.026 v1.1→v1.2, BC-2.11.017 v1.9→v1.10, BC-2.11.013 v1.9→v1.10 | Path-(b) CANONICAL: collapse-aware FLAT-ONLY wrapper; `render_finding_prefix` unchanged; grouped mode structurally suffix-free. Non-canonical path-(a) prohibited unless sentinel used. EC-007/EC-009 in BC-2.11.026 and EC-007 in BC-2.11.013 assert structural suffix-free guarantee. |
+| F-A04 | MEDIUM | BC-2.11.025 v1.1→v1.2 | Primary flood test vector strengthened: specifies IDENTICAL 4-tuple, DISTINCT evidence URIs per finding (mirrors http.rs:359-371 empty-UA emission), cross-links to BC-2.11.027 for evidence sampling. |
+| F-A05 | LOW | BC-2.11.025 v1.1→v1.2, BC-2.11.026 v1.1→v1.2, BC-2.11.019 v1.5→v1.6 | All three `terminal.rs:149-160` anchor citations updated to `terminal.rs:149-162`. |
+| F-A06 | LOW | BC-2.11.026 v1.1→v1.2 | EC-005 canonical test vector added: summary=`"Empty UA "` (trailing space) + 2 findings → header ends with `"Empty UA  (x2)\n"` (double-space, no trimming). Decision pinned. |
+| F-A07 | LOW | prd.md | Resolved by F-A02 (PRD per-feature delta block now in fix-burst propagation target set). No additional spec change. |
+
+#### BC Version Summary
+
+| BC | Before | After |
+|----|--------|-------|
+| BC-2.11.013 | v1.9 | v1.10 |
+| BC-2.11.017 | v1.9 | v1.10 |
+| BC-2.11.019 | v1.5 | v1.6 |
+| BC-2.11.025 | v1.1 | v1.2 |
+| BC-2.11.026 | v1.1 | v1.2 |
+
+#### ADR-0003 Check
+
+No changes needed. ADR-0003 has no IndexMap/grouping-structure prose (F-A01 is spec-only).
+ADR-0003 does not describe render_finding_prefix implementation details (F-A03 is spec-only).
+
+#### Files Changed
+
+- `.factory/specs/behavioral-contracts/ss-11/BC-2.11.013.md` (v1.9 → v1.10)
+- `.factory/specs/behavioral-contracts/ss-11/BC-2.11.017.md` (v1.9 → v1.10)
+- `.factory/specs/behavioral-contracts/ss-11/BC-2.11.019.md` (v1.5 → v1.6)
+- `.factory/specs/behavioral-contracts/ss-11/BC-2.11.025.md` (v1.1 → v1.2)
+- `.factory/specs/behavioral-contracts/ss-11/BC-2.11.026.md` (v1.1 → v1.2)
+- `.factory/specs/behavioral-contracts/BC-INDEX.md` (v1.29 → v1.30; 5 BC row annotations updated)
+- `.factory/specs/prd.md` (delta block updated: BC-2.11.017 pair and greenfield BC pairs corrected)
+- `.factory/spec-changelog.md` (this entry)
+
+---
+
 ## [issue-259-collapse-advpass1-remediation-2026-06-17] — 2026-06-17
 
 ### PATCH: Issue #259 F2 Adversarial Pass-1 Remediation — 9 findings resolved
