@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.6"
+version: "1.7"
 status: draft
 producer: product-owner
 timestamp: 2026-06-17T00:00:00Z
@@ -12,7 +12,7 @@ subsystem: SS-11
 capability: CAP-11
 lifecycle_status: active
 introduced: v0.8.0
-modified: ["v1.1 2026-06-17: F2 adversarial pass-1 — relax suffix colorization: (xN) suffix IS colorized with the header line (no seam for uncolorized suffix in render_finding_prefix); update Invariant 4, PC-4, EC-008 (F-259-02)", "v1.2 2026-06-17: F2 adversarial pass-2 — path-(b) collapse-aware wrapper prescribed as canonical in PC-4 (F-A03); dispatch anchor 149-160→149-162 (F-A05); EC-005 test vector added (F-A06)", "v1.3 2026-06-17: F2 adversarial pass-3 — add evidence emission sentence to PC-4 (F-F2X-03); fix EC row order EC-009/EC-008 → EC-008/EC-009 monotonic (F-F2X-02); fix arch anchor: remove stale 'appended here' alternative", "v1.4 2026-06-17: F2 adversarial pass-4 — F-F2-A01: convert PC-4 from internal-call-structure prescription to observable-behavior contract; remove 'path-(b) function-call graph' normative language; add non-normative implementation note; F-F2-O01: anchor :203-226 → :203-227; update EC-007 STRUCTURAL guarantee to observable-behavior form", "v1.5 2026-06-17: F2 adversarial pass-5 — F1: remove residual 'path-(b) separation' label from EC-009 body; reword to observable-behavior form", "v1.6 2026-06-17: F2 adversarial passes 6-8 — LOW-1: add red-bold (Likely/High) canonical test vector to confirm (xN) suffix is inside the red-bold colorization span for that branch"]
+modified: ["v1.1 2026-06-17: F2 adversarial pass-1 — relax suffix colorization: (xN) suffix IS colorized with the header line (no seam for uncolorized suffix in render_finding_prefix); update Invariant 4, PC-4, EC-008 (F-259-02)", "v1.2 2026-06-17: F2 adversarial pass-2 — path-(b) collapse-aware wrapper prescribed as canonical in PC-4 (F-A03); dispatch anchor 149-160→149-162 (F-A05); EC-005 test vector added (F-A06)", "v1.3 2026-06-17: F2 adversarial pass-3 — add evidence emission sentence to PC-4 (F-F2X-03); fix EC row order EC-009/EC-008 → EC-008/EC-009 monotonic (F-F2X-02); fix arch anchor: remove stale 'appended here' alternative", "v1.4 2026-06-17: F2 adversarial pass-4 — F-F2-A01: convert PC-4 from internal-call-structure prescription to observable-behavior contract; remove 'path-(b) function-call graph' normative language; add non-normative implementation note; F-F2-O01: anchor :203-226 → :203-227; update EC-007 STRUCTURAL guarantee to observable-behavior form", "v1.5 2026-06-17: F2 adversarial pass-5 — F1: remove residual 'path-(b) separation' label from EC-009 body; reword to observable-behavior form", "v1.6 2026-06-17: F2 adversarial passes 6-8 — LOW-1: add red-bold (Likely/High) canonical test vector to confirm (xN) suffix is inside the red-bold colorization span for that branch", "v1.7 2026-06-17: F2 adversarial pass-9 — F-PA-01: add explicit normative PC-6 color-ladder requirement: same Likely+High→red().bold()/Likely+other→yellow/Possible→yellow/Inconclusive→cyan/Unlikely→dimmed logic applied to pre-suffix string BEFORE colorization; appending suffix after ANSI reset is NON-CONFORMANT"]
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -75,6 +75,18 @@ attacker-controlled bytes; it does not require additional escaping.
    BC-2.11.027, and every evidence line passes through `escape_for_terminal`.
 5. The count suffix is not subject to `escape_for_terminal`; it is a hardcoded format string
    and contains no attacker-controlled content.
+6. **COLOR-LADDER REQUIREMENT (normative):** The collapse header path MUST apply the same
+   verdict/confidence color-selection logic as `terminal.rs:209-221` to a pre-color string
+   that ALREADY INCLUDES the ` (xN)` suffix. The ladder is:
+   - `Likely` + `High` → `red().bold()`
+   - `Likely` + any other confidence → `yellow`
+   - `Possible` (any confidence) → `yellow`
+   - `Inconclusive` (any confidence) → `cyan`
+   - `Unlikely` (any confidence) → `dimmed`
+   The ` (xN)` suffix MUST be part of the string that is passed to the color function — i.e.,
+   the suffix MUST be appended BEFORE colorization is applied. Appending the suffix after the
+   ANSI color-reset sequence (i.e., constructing the suffix outside the color span) is
+   NON-CONFORMANT and violates EC-008 and the test vector for the red-bold branch.
 
 ## Invariants
 

@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-06-17T00:00:00Z
@@ -12,7 +12,7 @@ subsystem: SS-11
 capability: CAP-11
 lifecycle_status: active
 introduced: v0.8.0
-modified: ["v1.1 2026-06-17: fix Related BCs stale cross-ref BC-2.13.001 (--threats) → BC-2.13.004 (--verbose absent) (consistency audit remediation)", "v1.2 2026-06-17: F2 adversarial pass-1 — change PC-3 from indicative to imperative (code does not exist yet); mark Architecture Anchors as insertion targets pending STORY-118 (F-259-08)"]
+modified: ["v1.1 2026-06-17: fix Related BCs stale cross-ref BC-2.13.001 (--threats) → BC-2.13.004 (--verbose absent) (consistency audit remediation)", "v1.2 2026-06-17: F2 adversarial pass-1 — change PC-3 from indicative to imperative (code does not exist yet); mark Architecture Anchors as insertion targets pending STORY-118 (F-259-08)", "v1.3 2026-06-17: F2 adversarial pass-9 — F-PA-03: add EC-010 (--no-collapse absent, default --output terminal → collapse applies, default-on)"]
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -102,6 +102,7 @@ wirerust CLI. It is scoped to the `analyze` subcommand only; it has no effect on
 | EC-007 | --no-collapse with --output csv | CSV output is identical to --no-collapse absent with --output csv; the flag has no effect on CsvReporter |
 | EC-008 | summary subcommand invoked (no --no-collapse field) | No error; summary subcommand has no findings section and no no_collapse field; unaffected |
 | EC-009 | --no-collapse present, no findings in pcap | Empty FINDINGS section (or absent section) as usual; no error |
+| EC-010 | --no-collapse absent, default --output (terminal) | Collapse applies (default-on); TerminalReporter.collapse_findings=true; collapsed groups with (xN) suffixes rendered per BC-2.11.025/026 |
 
 ## Canonical Test Vectors
 

@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.11"
+version: "1.12"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -24,6 +24,7 @@ modified:
   - "v1.9 2026-06-17: F2 adversarial pass-1 — update Invariant 5: (xN) suffix is colorized identically with the header line (no uncolorized suffix; suffix appended to pre-color line string before colorization) (F-259-02)"
   - "v1.10 2026-06-17: F2 adversarial pass-2 — align Invariant 5 to path-(b) collapse-aware wrapper (F-A03): the flat collapse path uses a wrapper that builds the header with suffix; render_finding_prefix itself is unchanged; grouped mode is structurally suffix-free"
   - "v1.11 2026-06-17: F2 adversarial pass-4 — F-F2-A01: convert Invariant 5 and Description collapse paragraph from internal-call-structure prescription to observable-behavior contract; add MITRE line observable-behavior postcondition (PC-6); remove 'render_finding_flat is called once per group via this wrapper' call-graph claim; add non-normative implementation note per adjudicated model"
+  - "v1.12 2026-06-17: F2 adversarial pass-9 — F-PA-01: add cross-reference to BC-2.11.026 PC-6 in Invariant 5 for the full color-ladder requirement; the (xN) suffix colorization is governed by BC-2.11.026 PC-6"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -99,8 +100,11 @@ remain byte-identical to the pre-v0.8.0 behavior.
    (2) up to K=3 sampled evidence lines each passed through `escape_for_terminal`,
    (3) the MITRE line using `mitre_techniques.join(", ")` format from Postconditions 1–2
    IF `mitre_techniques` is non-empty. The ` (xN)` suffix is colorized identically with
-   the rest of the header line. When `show_mitre_grouping = true`, the collapse pass is NOT
-   applied and all existing postconditions hold unchanged (BC-2.11.025 Invariant 5).
+   the rest of the header line (see BC-2.11.026 PC-6 for the full color-ladder requirement:
+   Likely+High→red().bold(), Likely+other→yellow, Possible→yellow, Inconclusive→cyan,
+   Unlikely→dimmed; the suffix MUST be inside the color span). When `show_mitre_grouping = true`,
+   the collapse pass is NOT applied and all existing postconditions hold unchanged
+   (BC-2.11.025 Invariant 5).
    **Implementation note (non-normative; F4 decides):** F4 MAY reimplement the flat-render
    inline in a collapse-aware wrapper OR factor a shared header/MITRE helper — the internal
    function call graph is unconstrained PROVIDED the observable line order above holds, the

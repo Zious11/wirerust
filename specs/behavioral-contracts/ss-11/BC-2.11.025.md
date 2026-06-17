@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: product-owner
 timestamp: 2026-06-17T00:00:00Z
@@ -12,7 +12,7 @@ subsystem: SS-11
 capability: CAP-11
 lifecycle_status: active
 introduced: v0.8.0
-modified: ["v1.1 2026-06-17: F2 adversarial pass-1 — add singleton immutability invariant (F-259-03), severity-agnostic postcondition (F-259-04), input-order determinism assumption (F-259-06), raw-key vs escaped-display postcondition and test vector (F-259-09)", "v1.2 2026-06-17: F2 adversarial pass-2 — Vec-accumulator canonical (F-A01); strengthen primary flood test vector (F-A04); fix dispatch anchor 149-160→149-162 (F-A05)", "v1.3 2026-06-17: F2 adversarial pass-4 — F-F2-A01: Invariant 6 singleton claim converted from 'byte-identical to calling render_finding_flat directly' to observable-behavior form; F-F2-O01: anchor :203-226 → :203-227; F-F2-O02: flood vector timestamp updated to 'differing per-request timestamps (non-key field)' to reflect real empty-UA emission pattern"]
+modified: ["v1.1 2026-06-17: F2 adversarial pass-1 — add singleton immutability invariant (F-259-03), severity-agnostic postcondition (F-259-04), input-order determinism assumption (F-259-06), raw-key vs escaped-display postcondition and test vector (F-259-09)", "v1.2 2026-06-17: F2 adversarial pass-2 — Vec-accumulator canonical (F-A01); strengthen primary flood test vector (F-A04); fix dispatch anchor 149-160→149-162 (F-A05)", "v1.3 2026-06-17: F2 adversarial pass-4 — F-F2-A01: Invariant 6 singleton claim converted from 'byte-identical to calling render_finding_flat directly' to observable-behavior form; F-F2-O01: anchor :203-226 → :203-227; F-F2-O02: flood vector timestamp updated to 'differing per-request timestamps (non-key field)' to reflect real empty-UA emission pattern", "v1.4 2026-06-17: F2 adversarial pass-9 — F-PA-02: soften flood-vector timestamp claim: 'DIFFERING per-request timestamps' → 'timestamps MAY differ across requests/flows (timestamp is a NON-KEY field; collapse is invariant to it regardless)' to avoid implying timestamps always differ"]
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -147,7 +147,7 @@ is deferred to a future cycle (see STORY-119).
 
 | Input | Expected Output | Category |
 |-------|----------------|----------|
-| 5 findings all `(Anomaly, Inconclusive, Low, "Empty User-Agent header")`, IDENTICAL 4-tuple key, DIFFERING per-request timestamps (non-key field, excluded from collapse key), each with a DISTINCT evidence URI (e.g., `["GET /a HTTP/1.1"]`, `["GET /b HTTP/1.1"]`, ..., `["GET /e HTTP/1.1"]`) — mirroring `src/analyzer/http.rs:359-371` empty-UA emission pattern where each per-request `timestamp` differs | FINDINGS section contains exactly 1 display group for that key; group count = 5; evidence sampled per BC-2.11.027 positional first-K-members (first min(5,3)=3 evidence lines rendered); timestamp variance does NOT prevent collapse because timestamp is not a key field | happy-path (flood collapse — canonical empty-UA case) |
+| 5 findings all `(Anomaly, Inconclusive, Low, "Empty User-Agent header")`, IDENTICAL 4-tuple key, each with a DISTINCT evidence URI (e.g., `["GET /a HTTP/1.1"]`, `["GET /b HTTP/1.1"]`, ..., `["GET /e HTTP/1.1"]`), timestamps MAY differ across requests/flows (timestamp is a NON-KEY field; collapse is invariant to it regardless) — mirroring `src/analyzer/http.rs:359-371` empty-UA emission pattern | FINDINGS section contains exactly 1 display group for that key; group count = 5; evidence sampled per BC-2.11.027 positional first-K-members (first min(5,3)=3 evidence lines rendered); timestamp variance does NOT prevent collapse because timestamp is not a key field | happy-path (flood collapse — canonical empty-UA case) |
 | 1 finding `(Anomaly, Inconclusive, Low, "Empty UA")` + 1 finding `(Reconnaissance, Likely, High, "Port scan")` | 2 display groups in input order | happy-path (distinct keys) |
 | 3 findings: key A at index 0, key B at index 1, key A at index 2 | Output: group A first, group B second (first-occurrence order) | happy-path (ordering) |
 | 2 findings same key but evidence=["req1"] vs evidence=["req2"] | 1 collapsed group (evidence differs; key matches) | edge-case (EC-003) |

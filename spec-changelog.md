@@ -14,6 +14,35 @@ changes, invariant rewrites).
 
 ---
 
+## [issue-259-collapse-advpass9-remediation-2026-06-17] — 2026-06-17
+
+### PATCH: Issue #259 F2 Adversarial Pass-9 Remediation — 1 MEDIUM + 2 LOW resolved
+
+**Trigger:** Passes 10 and 11 came back clean; pass 9 found 1 MEDIUM (implicit colorization requirement)
+and 2 LOW (timestamp claim softening; default-output edge case). All remediated in one burst.
+total_bcs=288 unchanged. SS-11=29 unchanged.
+
+#### Finding Dispositions
+
+| Finding | Severity | File(s) Changed | Resolution |
+|---------|----------|----------------|-----------|
+| F-PA-01 | MEDIUM | BC-2.11.026 v1.6→v1.7; BC-2.11.017 v1.11→v1.12 | Added normative PC-6 to BC-2.11.026 making the color-ladder requirement explicit: the collapse header path MUST apply terminal.rs:209-221 color-selection logic (Likely+High→red().bold(), Likely+other→yellow, Possible→yellow, Inconclusive→cyan, Unlikely→dimmed) to the pre-color string AFTER the ` (xN)` suffix has been appended. Appending the suffix after the ANSI reset is NON-CONFORMANT. BC-2.11.017 Invariant 5 cross-references BC-2.11.026 PC-6 for the full ladder. |
+| F-PA-02 | LOW | BC-2.11.025 v1.3→v1.4 | Softened flood canonical test vector timestamp claim from "DIFFERING per-request timestamps" (implying they always differ) to "timestamps MAY differ across requests/flows (timestamp is a NON-KEY field; collapse is invariant to it regardless)." The real http.rs:368 code uses flow's `last_ts`; same-flow findings can share timestamp. |
+| F-PA-03 | LOW | BC-2.11.028 v1.2→v1.3 | Added EC-010: "--no-collapse absent, default --output (terminal) → collapse applies (default-on), TerminalReporter.collapse_findings=true." Explicit EC covering the most common invocation path was missing. |
+
+#### BC Version Summary
+
+| BC/Doc | Before | After |
+|--------|--------|-------|
+| BC-2.11.017 | v1.11 | v1.12 |
+| BC-2.11.025 | v1.3 | v1.4 |
+| BC-2.11.026 | v1.6 | v1.7 |
+| BC-2.11.028 | v1.2 | v1.3 |
+| BC-INDEX.md | v1.34 | v1.35 |
+| prd.md | v1.26 | v1.27 |
+
+---
+
 ## [issue-259-collapse-advpass6-8-remediation-2026-06-17] — 2026-06-17
 
 ### PATCH: Issue #259 F2 Adversarial Passes 6-8 Remediation — 1 MEDIUM + 2 LOW resolved
