@@ -2,7 +2,7 @@
 document_type: story
 story_id: STORY-118
 epic_id: E-18
-version: "1.3"
+version: "1.4"
 status: draft
 producer: story-writer
 timestamp: 2026-06-17T00:00:00Z
@@ -29,7 +29,7 @@ estimated_days: 2
 feature_id: e18-finding-collapse
 github_issue: 259
 wave: 47
-# BC status: BC-2.11.025 v1.5, BC-2.11.026 v1.8, BC-2.11.027 v1.3, BC-2.11.028 v1.4,
+# BC status: BC-2.11.025 v1.5, BC-2.11.026 v1.8, BC-2.11.027 v1.4, BC-2.11.028 v1.4,
 #             BC-2.11.029 v1.2, BC-2.11.010 v1.8, BC-2.11.013 v1.11, BC-2.11.017 v1.13,
 #             BC-2.11.019 v1.6 — all authored and CONVERGED (F2 passes 1-14).
 # Subsystem anchor: SS-11 owns this story's scope because terminal finding-collapse
@@ -73,7 +73,7 @@ input-hash: "432f43e"
 |----|---------|-------|
 | BC-2.11.025 | v1.5 | Flat-Mode Collapse Groups Findings by (category, verdict, confidence, summary) Key; First-Occurrence Order; Deterministic |
 | BC-2.11.026 | v1.8 | Collapsed Group of N≥2 Renders Header with (xN) Suffix; Singleton (N=1) Renders Without Suffix |
-| BC-2.11.027 | v1.3 | Collapsed Group Retains at Most K=3 Representative Evidence Lines; Remainder Elided from Terminal Display |
+| BC-2.11.027 | v1.4 | Collapsed Group Retains at Most K=3 Representative Evidence Lines; Remainder Elided from Terminal Display |
 | BC-2.11.028 | v1.4 | --no-collapse Opt-Out Flag Disables Terminal Collapse and Restores One-Line-Per-Finding Rendering; JSON/CSV Unaffected |
 | BC-2.11.029 | v1.2 | Collapse is Display-Layer Only; JSON/CSV Reporters Receive Unmodified findings Slice; Non-Repeated Findings Individually Visible in All Outputs |
 | BC-2.11.010 | v1.8 | TerminalReporter Escapes Both Summary AND Each Evidence Line |
@@ -302,9 +302,9 @@ inspected.
 *(traces to BC-2.11.027 postcondition 6 / BC-2.11.010 invariant 4)*
 
 Given an evidence line containing a raw ESC byte (`"\x1b[31m"`), when rendered in
-a collapsed group, the output is `> \\x1b[31m` (escaped). The collapse wrapper calls
-`escape_for_terminal` directly on each sampled line — the function-level escape
-guarantee is preserved.
+a collapsed group, the output is `> \u{1b}[31m` (escaped via `char::escape_default`;
+ESC byte → `\u{1b}`). The collapse wrapper calls `escape_for_terminal` directly on
+each sampled line — the function-level escape guarantee is preserved.
 
 - **Test:** `test_BC_2_11_027_escape_preserved_in_sampled_evidence`
   (in `tests/reporter_terminal_tests.rs`)
@@ -416,11 +416,11 @@ is an attribute of `TerminalReporter` only and is not consulted by `JsonReporter
 *(traces to BC-2.11.010 invariant 4)*
 
 Given a collapsed group where one of the first K=3 member findings has an evidence line
-containing a raw ESC byte (`"\x1b[31minjected\x1b[0m"`), when `collapse_findings=true`,
-the rendered evidence line for that member is `> \x1b[31minjected\x1b[0m` (escaped —
-raw ESC bytes replaced with their `\xNN` representation). The collapse path calls
-`escape_for_terminal` directly on each sampled evidence line; the function-level
-escape guarantee (BC-2.11.010 invariant 4) is not weakened by the collapse wrapper.
+containing raw ESC bytes (`"\x1b[31minjected\x1b[0m"`), when `collapse_findings=true`,
+the rendered evidence line for that member is `> \u{1b}[31minjected\u{1b}[0m` (escaped —
+raw ESC bytes transformed to their `\u{NN}` (char::escape_default) form; e.g. ESC → `\u{1b}`).
+The collapse path calls `escape_for_terminal` directly on each sampled evidence line; the
+function-level escape guarantee (BC-2.11.010 invariant 4) is not weakened by the collapse wrapper.
 
 - **Test:** `test_BC_2_11_010_escape_in_collapse_path`
   (in `tests/reporter_terminal_tests.rs`)

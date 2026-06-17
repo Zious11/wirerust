@@ -14,6 +14,40 @@ changes, invariant rewrites).
 
 ---
 
+## [issue-259-collapse-escape-notation-fix-2026-06-17] — 2026-06-17
+
+### PATCH: Issue #259 BC-2.11.027 Escape Notation Accuracy Fix
+
+**Trigger:** BC-2.11.027 EC-007 and canonical test vector used `\x1b` for the escaped ESC byte output. Ground truth from `terminal.rs` `escapes_esc_byte` test: `escape_for_terminal("\x1b[31mRED\x1b[0m") == "\u{1b}[31mRED\u{1b}[0m"` — `char::escape_default` renders ESC byte as `\u{1b}`, not `\x1b`. Root of STORY-118 AC-028 defect. total_bcs=288 unchanged.
+
+#### Finding Dispositions
+
+| Finding | Severity | File(s) Changed | Resolution |
+|---------|----------|----------------|-----------|
+| Escape notation accuracy | BC accuracy | BC-2.11.027 v1.3→v1.4 | EC-007: added "ESC byte `0x1b` renders as `\u{1b}` via `char::escape_default`; full line `> \u{1b}[31m` — NOT `> \x1b[31m`". Canonical test vector: `> \\x1b[31m` → `> \u{1b}[31m`. |
+
+#### BC Version Summary
+
+| BC/Doc | Before | After |
+|--------|--------|-------|
+| BC-2.11.027 | v1.3 | v1.4 |
+| BC-INDEX.md | v1.36 | v1.37 |
+
+#### Escape Notation Sibling Sweep
+
+| File | Line | Hit | Verdict |
+|------|------|-----|---------|
+| BC-2.11.027:128 | `> \\x1b[31m` (escaped output form) | FIXED → `> \u{1b}[31m` |
+| BC-2.11.027:116 | EC-007 (no explicit output form) | FIXED → added `\u{1b}` output form |
+| BC-2.11.010:92-94 | `"\x1bESC"`, `["\x1b", "\x07"]` | SAFE — raw INPUT literals (before escaping) |
+| BC-2.11.025:79,149,161 | `summary="x\x1b"` | SAFE — raw collapse key input value |
+| ADR-0003:17,152,190 | `\x1b[31m...` | SAFE — attack vector / input byte sequences |
+| ADR-0003:75,197 | `\u{1b}` | SAFE — already correct output form |
+
+Verified against `terminal.rs:481-484` (`escapes_esc_byte` test).
+
+---
+
 ## [issue-259-collapse-advpass12-14-remediation-2026-06-17] — 2026-06-17
 
 ### PATCH: Issue #259 F2 Adversarial Passes 12-14 Remediation — 3 MEDIUM resolved

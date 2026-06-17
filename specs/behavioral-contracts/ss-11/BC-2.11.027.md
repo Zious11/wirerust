@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: product-owner
 timestamp: 2026-06-17T00:00:00Z
@@ -12,7 +12,7 @@ subsystem: SS-11
 capability: CAP-11
 lifecycle_status: active
 introduced: v0.8.0
-modified: ["v1.1 2026-06-17: fix N=1 singleton model — K-cap does NOT apply to singletons; evidence renders unchanged per BC-2.11.010 (consistency audit remediation)", "v1.2 2026-06-17: F2 adversarial pass-1 — fix CRITICAL F-259-01: enforce positional first-K-members model throughout (PC-2/Invariant-2/PC-5/EC-004/test vectors); fix EC-004 total=2 not 3; add N=3/N=4 boundary vectors (F-259-07)", "v1.3 2026-06-17: F2 adversarial pass-3 — fix PC-1/PC-6/Invariant-5: change false 'existing render_finding_prefix format/same code path' claims to correct 'same escape_for_terminal FUNCTION, called directly by collapse wrapper' (F-F2X-01)"]
+modified: ["v1.1 2026-06-17: fix N=1 singleton model — K-cap does NOT apply to singletons; evidence renders unchanged per BC-2.11.010 (consistency audit remediation)", "v1.2 2026-06-17: F2 adversarial pass-1 — fix CRITICAL F-259-01: enforce positional first-K-members model throughout (PC-2/Invariant-2/PC-5/EC-004/test vectors); fix EC-004 total=2 not 3; add N=3/N=4 boundary vectors (F-259-07)", "v1.3 2026-06-17: F2 adversarial pass-3 — fix PC-1/PC-6/Invariant-5: change false 'existing render_finding_prefix format/same code path' claims to correct 'same escape_for_terminal FUNCTION, called directly by collapse wrapper' (F-F2X-01)", "v1.4 2026-06-17: escape-notation accuracy fix — EC-007 clarify escaped output form; canonical test vector: \\x1b → \\u{1b} (char::escape_default form verified by terminal.rs escapes_esc_byte test)"]
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -113,7 +113,7 @@ configurable via CLI flag. Future cycles may expose K as `--collapse-evidence-sa
 | EC-004 | Group with N=5 members, members[0] has empty evidence, others have 1 each | Positional window inspects members[0], members[1], members[2] (first min(5,3)=3 members). member[0] contributes 0 lines (empty vec; window does NOT slide). member[1] + member[2] each contribute 1 line. **Total = 2 lines.** members[3] and members[4] are never inspected. |
 | EC-005 | Group with N=5 members, all have empty evidence | Zero evidence lines rendered |
 | EC-006 | Group with N=3 members, member[0] has 2 evidence lines, others have 1 each | Only evidence[0] from member[0] is used; total = 3 lines (one per member, first entry only) |
-| EC-007 | Evidence line contains ESC byte | Escaped via escape_for_terminal before output; escape invariant preserved |
+| EC-007 | Evidence line contains ESC byte (e.g., `"\x1b[31m"` as raw input) | Escaped via `escape_for_terminal` before output; a raw ESC byte (`0x1b`) renders as `\u{1b}` (via `char::escape_default`); full line rendered as `> \u{1b}[31m` — NOT `> \x1b[31m` |
 | EC-008 | collapse_findings=false | No collapse pass; evidence rendered in full per finding per pre-v0.8.0 behavior (BC-2.11.010 unchanged) |
 | EC-009 | Group with N=10000, each finding has evidence | Exactly 3 evidence lines in terminal output; JSON reporter receives 10000 complete findings each with full evidence |
 
@@ -125,7 +125,7 @@ configurable via CLI flag. Future cycles may expose K as `--collapse-evidence-sa
 | 2 identical-key findings each with 1 evidence line | Both evidence lines rendered (N≤K; no elision) | happy-path (below cap) |
 | 5 identical-key findings, all evidence=[] | Zero evidence lines rendered (no blank `>` lines) | edge-case (empty evidence) |
 | 3 identical-key findings: member[0].evidence=["a","b"], member[1].evidence=["c"], member[2].evidence=["d","e"] | 3 evidence lines: `> a`, `> c`, `> d` (evidence[0] from each of the first 3 members in emission order; member[0].evidence[1]="b" and member[2].evidence[1]="e" elided) | edge-case (N=K=3, evidence[0]-from-first-3-members pattern) |
-| Evidence line containing "\x1b[31m" (ANSI escape) | Rendered as `> \\x1b[31m` (escaped) | edge-case (EC-007) |
+| Evidence line containing raw input `"\x1b[31m"` (ANSI escape bytes) | Rendered as `> \u{1b}[31m` (escaped via `char::escape_default`; ESC byte `0x1b` → `\u{1b}`; NOT `\x1b`) | edge-case (EC-007) |
 | N=3 identical-key findings, each with exactly 1 evidence line (evidence=["e0"], ["e1"], ["e2"]) | Header `(x3)`, exactly 3 evidence lines: `> e0`, `> e1`, `> e2` — NO elision (N≤K boundary: N=K=3, all members inspected, all contribute) | N≤K boundary (F-259-07) |
 | N=4 identical-key findings, each with exactly 1 evidence line (evidence=["e0"], ["e1"], ["e2"], ["e3"]) | Header `(x4)`, exactly 3 evidence lines: `> e0`, `> e1`, `> e2` — member[3] evidence elided (N>K boundary: N=4>K=3, only first 3 members inspected) | N>K boundary (F-259-07) |
 
