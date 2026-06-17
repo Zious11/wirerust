@@ -1,18 +1,19 @@
 ---
 document_type: holdout-scenario-index
 level: ops
-version: "1.7"  # F3-Pass-29 Slice-D: corrected HS-W39-007 VP-023 BC scope from BC-2.15.001..008 to BC-2.15.001..007 (BC-2.15.008 is unit-test-only, excluded from Kani obligation per VP-INDEX:131,135)
+version: "1.9"  # F3-Phase-47 v1.8: added wave-47 finding-collapse feature holdouts (13 scenarios, HS-W47-001..013, P0 all, STORY-118 / issue-259). v1.9: docs-only — add all-namespace total note per F3 audit (greenfield=100, feature DNP3=32 + ARP=28 + collapse=13 = 73, all-namespace=173).
 status: draft
 producer: product-owner
-timestamp: 2026-06-14T00:00:00Z
+timestamp: 2026-06-17T00:00:00Z
 phase: 2
-total_scenarios: 100
+total_scenarios: 100  # greenfield namespace only; all-namespace total = 173 (see feature_holdout_seeds + Totals table)
 must_pass_count: 99
 should_pass_count: 1
 total_waves: 27
 feature_holdout_seeds:
   dnp3_waves_35_39: 32
   arp_waves_40_44: 28
+  finding_collapse_wave_47: 13
 traces_to:
   - .factory/specs/prd.md
   - .factory/specs/behavioral-contracts/BC-INDEX.md
@@ -21,7 +22,8 @@ traces_to:
 
 # wirerust Holdout Scenario Index
 
-> **Authoritative registry of all 100 holdout scenarios for the v0.1.0-greenfield-spec cycle.**
+> **Authoritative registry of all 100 holdout scenarios for the v0.1.0-greenfield-spec cycle,**
+> **plus feature holdouts for DNP3 (waves 35-39), ARP (waves 40-44), and Finding-Collapse (wave 47).**
 > Holdout scenarios are sealed evaluations used by the holdout-evaluator agent only.
 > They must NEVER be shown to implementer or test-writer agents.
 >
@@ -51,10 +53,14 @@ traces_to:
 
 | Metric | Count |
 |--------|-------|
-| Total scenarios | 100 |
+| Total scenarios (greenfield namespace) | 100 |
 | must-pass (`must_pass: true`) | 99 |
 | should-pass (`must_pass: false`) | 1 |
 | Categories | 5 |
+| Feature holdouts — DNP3 (waves 35-39) | 32 |
+| Feature holdouts — ARP (waves 40-44) | 28 |
+| Feature holdouts — finding-collapse (wave 47) | 13 |
+| **All-namespace total** | **173** |
 
 ### By Category
 
@@ -546,3 +552,56 @@ None detected. All checks passed for the greenfield set:
 > ARP-AMB-004 RESOLVED: malformed frames excluded from frames_analyzed; tracked in malformed_frames.
 > ARP-AMB-001/002/005/006 remain legitimate F3 implementation choices.
 > HS-W40-003 depends on ARP-AMB-002 resolution. HS-W42-003 depends on ARP-AMB-001 resolution.
+
+---
+
+## Feature Holdouts (SS-11 Finding-Collapse, wave 47)
+
+> **Source file:** `.factory/feature/wave-holdout-scenarios/wave-47-holdout.md`
+>
+> These holdouts belong to the v0.8.0 finding-collapse feature cycle (issue-259-finding-collapse).
+> They use the `HS-W47-NNN` namespace consistent with the DNP3/ARP holdout convention.
+> All 13 scenarios are FULLY AUTHORED — not seeds — with complete setup descriptions,
+> commands, and expected assertion lists. They are ready for Phase 4 holdout evaluation
+> immediately after STORY-118 delivers.
+> The HS-001..HS-100 completeness assertions above are scoped to the greenfield set only.
+>
+> **Story:** STORY-118 (wave 47). BCs: BC-2.11.025, BC-2.11.026, BC-2.11.027, BC-2.11.028,
+> BC-2.11.029, BC-2.11.013, BC-2.11.017.
+>
+> **Information asymmetry discipline:** The holdout-evaluator MUST NOT read any STORY-118
+> implementation source (terminal.rs, cli.rs, main.rs, test files). Evaluation is black-box
+> against the CLI + JSON/CSV public surface only.
+>
+> **Canonical empty-UA grounding:** HS-W47-001 and HS-W47-013 are grounded in the actual
+> `src/analyzer/http.rs` empty-UA emission pattern (per-request distinct evidence URIs,
+> `source_ip: None`, `mitre_techniques: []`), making them concrete against the real analyzer.
+
+### Wave 47 — Terminal Finding-Collapse, Default-ON, --no-collapse, K=3 Cap, JSON/CSV Invariant (STORY-118)
+
+| HS ID | Title | Priority | BCs |
+|-------|-------|----------|-----|
+| HS-W47-001 | Flood Collapse — Empty-UA Flood Collapses to One Annotated Group | P0 | BC-2.11.025 PC-1, BC-2.11.026 PC-1, BC-2.11.027 PC-2 |
+| HS-W47-002 | --no-collapse Restores One-Line-Per-Finding | P0 | BC-2.11.028 PC-2, BC-2.11.026 Inv-2 |
+| HS-W47-003 | Singleton (N=1) Unchanged — No (xN) Suffix, Full Evidence | P0 | BC-2.11.026 PC-2, BC-2.11.027 Inv-6, BC-2.11.029 PC-3 |
+| HS-W47-004 | K=3 Evidence Cap — N=5 Group Shows Exactly 3 Evidence Lines, First K Positional | P0 | BC-2.11.027 PC-2, Inv-2 |
+| HS-W47-005 | Empty First Member — Window Does Not Slide; Total Evidence = 2 | P0 | BC-2.11.027 PC-2, Inv-2 no-slide |
+| HS-W47-006 | Severity-Agnostic Collapse — Likely/High Identical Findings Collapse | P0 | BC-2.11.025 PC-7, EC-014 |
+| HS-W47-007 | JSON Output Unaffected — N=1000 Identical Findings, Terminal Collapses, JSON Has 1000 Objects | P0 | BC-2.11.029 PC-1, Inv-1/3 |
+| HS-W47-008 | CSV Output Unaffected — N=5 Identical Findings Produce 5 CSV Rows | P0 | BC-2.11.029 PC-2 |
+| HS-W47-009 | Grouped Mode (--mitre) Bypasses Collapse — No (xN) Suffix in Grouped Output | P0 | BC-2.11.025 Inv-5, BC-2.11.026 EC-007/EC-009 |
+| HS-W47-010 | MITRE Line Sources group_members[0] — Divergent mitre_techniques Across Group | P0 | BC-2.11.026 PC-7, BC-2.11.017 PC-6 |
+| HS-W47-011 | Determinism — Same Input Produces Byte-Identical Output on Repeated Runs | P0 | BC-2.11.025 PC-9, Inv-7 |
+| HS-W47-012 | Real-World Corpus — Known-Good HTTP Traffic (Low False-Positive Rate for Collapse) | P0 | BC-2.11.025, BC-2.11.029; regression guard |
+| HS-W47-013 | Real-World Corpus — Known-Problematic HTTP Traffic (Empty-UA Flood Detected) | P0 | BC-2.11.025 canonical vector, BC-2.11.027 PC-2 |
+
+### Finding-Collapse Feature Holdout Summary
+
+| Metric | Count |
+|--------|-------|
+| Total finding-collapse feature holdouts | 13 |
+| P0 must-pass | 13 |
+| P1 nice-to-have | 0 |
+| Wave covered | 47 |
+| Story covered | STORY-118 |
+| Source file | `.factory/feature/wave-holdout-scenarios/wave-47-holdout.md` |

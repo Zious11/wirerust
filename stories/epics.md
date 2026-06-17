@@ -1,11 +1,12 @@
 ---
 document_type: epics
-version: "1.1"
+version: "1.2"
 status: draft
 producer: story-writer
 phase: 2
 timestamp: 2026-05-21T00:00:00Z
-total_bcs: 283
+modified: "2026-06-17: E-18 Terminal Finding-Collapse (issue #259) added — STORY-118 + STORY-119 (deferred). total_bcs 283→288 (+5 new BC-2.11.025–029; 4 existing BCs extended/versioned — count unchanged)."
+total_bcs: 288
 traces_to:
   - .factory/specs/prd.md
   - .factory/specs/behavioral-contracts/BC-INDEX.md
@@ -433,6 +434,31 @@ probe test. The two stories are strictly linear (STORY-116 → STORY-117). Both 
 
 ---
 
+## Epic E-18: Terminal Finding-Collapse (issue #259, v0.8.0)
+
+- **Goal:** A network security analyst running `wirerust analyze` on a high-volume pcap
+  (e.g., an empty-User-Agent flood of 10,000 requests) sees repeated identical findings
+  collapsed into a single annotated group with a ` (xN)` count suffix in the terminal
+  output, reducing noise and improving triage velocity. JSON and CSV output remain
+  unaffected (display-layer only). An explicit `--no-collapse` flag on the `analyze`
+  subcommand restores per-finding output for scripting or detailed triage. Grouped/`--mitre`
+  mode bypasses collapse in v0.8.0 (deferred to STORY-119).
+- **BCs:**
+  BC-2.11.025, BC-2.11.026, BC-2.11.027, BC-2.11.028, BC-2.11.029 (new — E-18);
+  BC-2.11.010 v1.8, BC-2.11.013 v1.11, BC-2.11.017 v1.13, BC-2.11.019 v1.6 (extended)
+- **Subsystems touched:** SS-11 (reporter/terminal.rs), SS-12 (cli.rs, main.rs — thin wiring)
+- **Estimated stories:** 2 (STORY-118 scheduled Wave 47; STORY-119 deferred)
+
+**Rationale:** The collapse feature is a pure display-layer transform confined to
+`src/reporter/terminal.rs`. It shares no subsystem boundary with JSON/CSV reporters
+(BC-2.11.029 invariant 1). The `--no-collapse` CLI flag follows the established
+subcommand-scoped boolean pattern (`--mitre`, `--dns`), making it a thin wiring addition
+to SS-12. The scope is narrow enough for a single story (STORY-118, 8 points). STORY-119
+(grouped-mode collapse) is deferred to a future cycle because grouped mode renders
+findings individually in v0.8.0 and the BC forward-references are satisfied by the stub.
+
+---
+
 ## Estimated Story Count Summary
 
 | Epic | Stories Est. |
@@ -444,7 +470,7 @@ probe test. The two stories are strictly linear (STORY-116 → STORY-117). Both 
 | E-5  | 8           |
 | E-6  | 1           |
 | E-7  | 3           |
-| E-8  | 5           |
+| E-8  | 7           |
 | E-9  | 5           |
 | E-10 | 1           |
 | E-11 | 1           |
@@ -454,4 +480,5 @@ probe test. The two stories are strictly linear (STORY-116 → STORY-117). Both 
 | E-15 | 5           |
 | E-16 | 5           |
 | E-17 | 2           |
-| **Total** | **70** |
+| E-18 | 2           |
+| **Total** | **72** |
