@@ -7,7 +7,12 @@ feature_arp_status: "v0.7.0 RELEASED 2026-06-16 — ARP Security Analyzer (E-16,
 feature_8_status: "v0.6.0 RELEASED 2026-06-12 — DNP3 TCP analyzer; F7 5-dim CONVERGED; tag v0.6.0 + 4 binaries"
 product: wirerust
 mode: brownfield
-timestamp: 2026-06-17T12:00:00Z
+timestamp: 2026-06-17T14:00:00Z
+maintenance_run: STARTED
+maintenance_run_id: maint-2026-06-17
+maintenance_started_at: "2026-06-17"
+maintenance_sweep_progress: {}
+maintenance_findings_count: 0
 bootstrapped: 2026-05-19T16:56:48Z
 phase_0_completed: 2026-05-19T20:00:00Z
 phase_1_completed: "2026-05-21"
@@ -70,6 +75,25 @@ input_drift_check: "F7-followup-dispositions burst (2026-06-16): STORY-071=6b408
 **wirerust v0.7.1 RELEASED 2026-06-17 — ARP VLAN/QinQ/MACsec offset regression hardening (E-17, issue #253). Test-only patch; NO runtime behavior change. PR #258 (E-17 tests) merged to develop (b94aa6c); PR #260 (release/0.7.1 → main b98a72f); tag v0.7.1; release.yml run 27694602320 SUCCESS — 4 binaries CONFIRMED PUBLISHED. GitHub Release https://github.com/Zious11/wirerust/releases/tag/v0.7.1 (isDraft=false). E-17 cycle F1..F7 CONVERGED AND CLOSED. develop merge-back e1273c8. Pipeline STEADY_STATE/IDLE — await new feature or steady-state task.**
 
 **Summary:** 68 stories (48 greenfield + 1 tooling + 19 feature-cycle), 457 pts. 283 BCs (244 pre-F2 + 24 SS-15 + 15 SS-16 ARP), 24 VPs (VP-024 LOCKED v2.3). STORY-111..115 ALL DELIVERED (PRs #236/#238/#239/#240/#241). Carry-forward open issues: #252 (proof_file_hash), #253 (QinQ/MACsec fixtures), #254 (doc-debt), #255 (JSON snake_case). Process gaps codified: PG-ARP-FIX-MECHANISM-FIRST / PG-ARP-FIXBURST-CONSUMER-SWEEP / PG-ARP-F4-REDTEST-DOC-TENSE-RECURRENCE. develop HEAD 480f8ae (PR #257 docs landed post-release); main HEAD dd8e142 (v0.7.0). Post-release audit-trail burst: research/arp-pcap-sources.md + research/arp-followups-validation.md committed to factory-artifacts.
+
+## Maintenance Run (maint-2026-06-17)
+
+**Started:** 2026-06-17. **Status:** IN PROGRESS. **Pipeline:** STEADY_STATE/IDLE — no phase change; background quality sweep only.
+
+Sweeps applicable to a Rust CLI:
+- `dependency-audit` — cargo-audit advisory scan, Cargo.lock freshness
+- `doc-drift` — stale doc-comments, README/CHANGELOG coherence
+- `pattern-consistency` — clippy, naming conventions, code patterns
+- `holdout-freshness` — holdout scenario coverage vs current implementation
+- `performance-regression` — benchmark / perf budget check
+- `spec-coherence` — BC/VP/story cross-document consistency
+- `tech-debt-register` — review open tech-debt items against current codebase
+- `risk-assumption-monitoring` — deferred risks and assumptions validity check
+
+N/A sweeps (skipped):
+- `DTU-fidelity` — skipped: `dtu_required: false`
+- `accessibility` — skipped: no UI component
+- `design-drift` — skipped: no UI component
 
 ## Phase Progress
 
