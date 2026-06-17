@@ -113,7 +113,8 @@ To satisfy VP-023 Kani formal verification:
 
 ## Consequences
 
-- `src/analyzer/dnp3.rs`: implements `StreamAnalyzer`. Pure-core functions are free `fn`s.
+- `src/analyzer/dnp3.rs`: exposes a custom `on_data(flow_key, data, ts)` / `on_flow_close` interface;
+  does **not** implement `StreamAnalyzer` or `StreamHandler`. Pure-core functions are free `fn`s.
   `Dnp3FlowState` carries the 292-byte carry buffer, per-flow master address set, pending
   request table, and six windowed counters. `Dnp3Analyzer` aggregates findings and per-flow
   state across all flows.

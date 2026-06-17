@@ -87,17 +87,22 @@ rather than explicit fields and match arms in `StreamDispatcher`.
   are almost never used for other protocols in real OT network captures.
 - **Minimal change surface.** Each new ICS protocol adds ~10 lines to `dispatcher.rs` and one
   new `Option` field. No changes to the reassembly engine, trait definitions, or reporter.
-- **Consistent with ADR 0002.** The `StreamAnalyzer` trait, per-flow state, bounded-resource
-  constants, and `summarize()` / `findings()` interface are identical for Modbus and DNP3.
+- **Consistent with ADR 0002 for Modbus.** `ModbusAnalyzer` implements the `StreamAnalyzer` trait
+  with per-flow state, bounded-resource constants, and `summarize()` / `findings()` interface.
+  `Dnp3Analyzer` follows the same per-flow state and bounded-resource patterns but uses a custom
+  direct-dispatch interface rather than the `StreamAnalyzer` trait (see ADR-0007).
 
 ## Consequences
 
 - `src/dispatcher.rs`: `DispatchTarget` enum grows one variant per ICS protocol. `StreamDispatcher`
   struct gains one `Option<Analyzer>` field per ICS protocol. Classification function appends one
   port-match branch per ICS protocol. `on_data` and `on_flow_close` delegate to the new field.
-- `src/analyzer/modbus.rs`, `src/analyzer/dnp3.rs`: implement `StreamAnalyzer`. Port-specific
-  parsing (MBAP header for Modbus; data-link frame-walk with carry buffer for DNP3) is encapsulated
-  within each analyzer module.
+- `src/analyzer/modbus.rs`: implements `StreamAnalyzer`. Port-specific MBAP header parsing is
+  encapsulated within the module.
+- `src/analyzer/dnp3.rs`: exposes a custom `on_data(flow_key, data, ts)` / `on_flow_close`
+  interface called directly by the dispatcher (not via the `StreamAnalyzer` / `StreamHandler`
+  traits). Data-link frame-walk with carry buffer is encapsulated within the module. See ADR-0007
+  for the rationale.
 - The dispatcher comment block at the top of `src/dispatcher.rs` documents the rule order
   (Rules 1–7) and cross-references this ADR and ADR 0007 for traceability.
 - Future binary protocols (e.g., DNP3 on a non-standard port, IEC 60870-5-104 on port 2404)

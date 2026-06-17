@@ -41,9 +41,13 @@ Key sub-decisions:
    Findings with one technique produce `"mitre_techniques": ["T1027"]` (an array, not a scalar).
 
 3. **Canonical emission order per analyzer** — each analyzer defines a stable ordering for its
-   multi-technique vecs. For Modbus write findings the canonical order is:
-   T0806 > T1692.001 > T0836 > T0835 > T0831 > T0814 > T0888 (threat severity descending,
-   with T1692.001 always first for per-PDU write findings when T0806 is not co-emitted).
+   multi-technique vecs. For Modbus write findings the full precedence order is:
+   T0806 > T1692.001 > T0836 > T0835 > T0831 > T0814 > T0888 (threat severity descending).
+   In practice this produces two cases:
+   - **T0806 co-emitted** (burst/sustained-rate threshold exceeded): `vec!["T0806", "T1692.001"]` —
+     T0806 leads, T1692.001 follows.
+   - **T0806 not co-emitted** (single per-PDU write finding): T1692.001 is first (e.g.,
+     `vec!["T1692.001", "T0836"]`), because T0806 is absent.
    This ordering is documented in inline comments at each emission site (ADR-006 §13.7 sub-decision 3).
 
 4. **CSV: semicolon-join for multi-technique cells** — the CSV reporter joins the vec with `";"`,

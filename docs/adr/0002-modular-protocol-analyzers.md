@@ -145,5 +145,25 @@ Analyzers register themselves in a global registry (e.g., via `inventory` crate)
 | HTTP | `StreamAnalyzer` | `src/analyzer/http.rs` | v0.1.0 |
 | TLS | `StreamAnalyzer` | `src/analyzer/tls.rs` | v0.1.0 |
 | Modbus | `StreamAnalyzer` | `src/analyzer/modbus.rs` | v0.4.0 |
-| DNP3 | `StreamAnalyzer` | `src/analyzer/dnp3.rs` | v0.6.0 |
-| ARP | `ProtocolAnalyzer` (packet-level) | `src/analyzer/arp.rs` | v0.7.0 |
+| DNP3 | custom dispatch interface (see ADR-0007) | `src/analyzer/dnp3.rs` | v0.6.0 |
+| ARP | custom packet-level interface (see ADR-0007) | `src/analyzer/arp.rs` | v0.7.0 |
+
+### Deviations from generic traits (DNP3 and ARP)
+
+`Dnp3Analyzer` and `ArpAnalyzer` do **not** implement `StreamAnalyzer` or `ProtocolAnalyzer`.
+Their actual interfaces are:
+
+- **`Dnp3Analyzer`** — exposes `on_data(flow_key, data, ts)` and `on_flow_close(flow_key, reason)`
+  as plain inherent methods. `src/dispatcher.rs` calls them directly (not via the `StreamHandler`
+  trait). The dispatcher comment at line 347 documents this explicitly: "Dnp3Analyzer does not
+  implement StreamHandler". See ADR-0007 for the rationale (Kani formal-verification requirements
+  mandate that pure-core parse functions be free `fn`s, which is incompatible with the trait's
+  required method signatures).
+
+- **`ArpAnalyzer`** — exposes `process_arp(frame: &ArpFrame, timestamp_secs: u32) -> Vec<Finding>`
+  as a plain inherent method. Only `DnsAnalyzer` implements `ProtocolAnalyzer`. The ARP analyzer
+  operates at the packet level but is dispatched directly from the frame loop in `main.rs` without
+  going through the trait interface.
+
+The "Adding a New Analyzer" steps above describe the standard generic-trait path. For DNP3 and
+ARP, step 2 is replaced by direct inherent-method dispatch as described in ADR-0007.

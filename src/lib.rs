@@ -19,7 +19,8 @@
 //! 5. **[`dispatcher`]** classifies each TCP stream by content peek (TLS `0x16
 //!    0x03` vs HTTP method prefix) and routes data to the matching protocol
 //!    analyzer.
-//! 6. **[`analyzer`]** (DNS / HTTP / TLS / Modbus / DNP3 / ARP) emits per-flow [`findings::Finding`]s.
+//! 6. **[`analyzer`]** (DNS / HTTP / TLS / Modbus / DNP3 / ARP) emits
+//!    [`findings::Finding`]s — packet-level (DNS, ARP) or stream-level (HTTP, TLS, Modbus, DNP3).
 //! 7. **[`reporter`]** renders the aggregate [`summary::Summary`] +
 //!    `Vec<Finding>` + per-analyzer summaries to either a terminal table or
 //!    JSON ([`reporter::Reporter`] is the trait; ADR 0003 governs the

@@ -187,7 +187,7 @@ Detections emitted:
 |-----------|-----------|--------|---------|
 | ARP spoofing (D1) | T0830, T1557.002 | Adversary-in-the-Middle | MAC rebind for an existing IP→MAC binding; escalates from MEDIUM to HIGH after `--arp-spoof-threshold` rebinds within 60s |
 | Gratuitous ARP (D2) | — | Anomaly | Unsolicited GARP frame observed; escalates to MEDIUM and co-emits a D1 finding when the announced MAC conflicts with an established binding |
-| ARP storm (D3) | T0830 | Anomaly | Source MAC ARP rate exceeds `--arp-storm-rate` frames/second |
+| ARP storm (D3) | — [^1] | Anomaly | Source MAC ARP rate exceeds `--arp-storm-rate` frames/second |
 | Malformed ARP frame (D11) | — | Anomaly | Frame fails both strict and lax/snaplen-truncated ARP parse |
 | L2/L3 sender-MAC mismatch (D12) | T0830, T1557.002 | Adversary-in-the-Middle | Ethernet source MAC differs from ARP sender hardware address |
 
@@ -195,6 +195,9 @@ CLI flags:
 - `--arp` — enable ARP analysis (also included in `-a`/`--all`; default-off)
 - `--arp-spoof-threshold N` — MAC-rebind escalation threshold within the 60s window (default: 3)
 - `--arp-storm-rate N` — frames/second per source MAC above which a storm finding is emitted (default: 50)
+
+[^1]: D3 storm findings emit `mitre_techniques: []` (no technique attributed). T0814 attribution
+is pending validation per DF-VALIDATION-001 / BC-2.16.008 Invariant 3.
 
 ## Supported Link Types
 
