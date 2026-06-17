@@ -362,6 +362,57 @@ mod qinq_macsec_offset {
              If 'Non-Ethernet/IPv4 ARP frame' was returned, the ARP offset formula \
              is reading the wrong bytes — THIS IS A PRODUCTION BUG."
         );
+
+        // ---- Negative-offset diagnostic: guards against off-by-4 and off-by-8 under-count bugs ----
+        //
+        // If the decoder's link_exts header_len()-sum were wrong, it would compute the
+        // wrong ARP offset and read non-ARP bytes as the ARP header:
+        //
+        //   • off-by-8 (both VLAN tags omitted, sum=0):  arp_offset = 14 + 0 = 14
+        //     frame[14..16] = outer TCI = 0x00, 0x20 → htype = 0x0020 (NOT 0x0001)
+        //     frame[14+4]   = frame[18] = inner TCI high byte = 0x00 (NOT valid hlen 6)
+        //
+        //   • off-by-4 (one VLAN tag omitted, sum=4):    arp_offset = 14 + 4 = 18
+        //     frame[18..20] = inner TCI = 0x00, 0x64 → htype = 0x0064 (NOT 0x0001)
+        //     frame[18+4]   = frame[22] = ARP htype high byte = 0x00 (NOT valid hlen 6)
+        //
+        // Both wrong-offset values are known by construction from make_qinq_benign_truncated_arp().
+        // These assertions make this test independently sufficient to pin the offset formula
+        // without relying on Test 3 (the offset-formula probe).
+        const WRONG_OFFSET_OFF8: usize = ETH2_LEN; // 14: both VLAN tags omitted
+        const WRONG_OFFSET_OFF4: usize = ETH2_LEN + VLAN_TAG_LEN; // 18: one VLAN tag omitted
+
+        // off-by-8: frame[14..16] = outer TCI bytes = 0x00, 0x20
+        let htype_at_wrong_off8 =
+            u16::from_be_bytes([frame[WRONG_OFFSET_OFF8], frame[WRONG_OFFSET_OFF8 + 1]]);
+        assert_ne!(
+            htype_at_wrong_off8,
+            0x0001,
+            "QinQ negative-offset diagnostic (off-by-8): frame bytes at wrong offset {} \
+             (both VLAN tags omitted) must NOT read as ARP htype=0x0001. \
+             By construction frame[{}..{}] = outer TCI [0x00, 0x20] → htype=0x0020. \
+             Got 0x{:04X}. If this fails, the frame fixture changed; update this assertion.",
+            WRONG_OFFSET_OFF8,
+            WRONG_OFFSET_OFF8,
+            WRONG_OFFSET_OFF8 + 2,
+            htype_at_wrong_off8
+        );
+
+        // off-by-4: frame[18..20] = inner TCI bytes = 0x00, 0x64
+        let htype_at_wrong_off4 =
+            u16::from_be_bytes([frame[WRONG_OFFSET_OFF4], frame[WRONG_OFFSET_OFF4 + 1]]);
+        assert_ne!(
+            htype_at_wrong_off4,
+            0x0001,
+            "QinQ negative-offset diagnostic (off-by-4): frame bytes at wrong offset {} \
+             (one VLAN tag omitted) must NOT read as ARP htype=0x0001. \
+             By construction frame[{}..{}] = inner TCI [0x00, 0x64] → htype=0x0064. \
+             Got 0x{:04X}. If this fails, the frame fixture changed; update this assertion.",
+            WRONG_OFFSET_OFF4,
+            WRONG_OFFSET_OFF4,
+            WRONG_OFFSET_OFF4 + 2,
+            htype_at_wrong_off4
+        );
     }
 
     // -------------------------------------------------------------------------

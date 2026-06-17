@@ -380,6 +380,51 @@ mod macsec_offset {
             "BC-2.16.015 PC-7b V1: decode_packet must return 'truncated ARP frame'. \
              Got: '{err_msg}'."
         );
+
+        // ---- Negative-offset diagnostic: guards against off-by-8 under-count bug ----
+        //
+        // If the decoder's header_len()-sum were wrong by 8 (e.g., MACsec header
+        // counted as 0 bytes instead of 8), it would compute arp_offset = 14 + 0 = 14
+        // and read frame[14..] as the ARP header — that is the SecTag's TCI-AN and SL
+        // bytes (both 0x00 for no-SCI, AN=0, short_len=0).
+        //
+        // By construction: frame[14] = TCI-AN = 0x00, frame[15] = SL = 0x00
+        //   → u16 BE = 0x0000, which is NOT a valid ARP htype (0x0001).
+        //   → frame[18] = PN byte 4 = 0x00, which is NOT a valid hlen (6).
+        //
+        // This assertion independently rules out an off-by-8 offset bug: if the
+        // decoder read at the wrong offset, it would NOT see valid ARP header fields
+        // and would return a different error (not "truncated ARP frame"), causing
+        // the primary assert above to fail.  This diagnostic makes V1 independently
+        // sufficient to pin the correct offset without relying on other variants.
+        const WRONG_OFFSET_V1: usize = ETH2_LEN; // = 14: off-by-8 under-count (no MACsec header)
+        let htype_at_wrong_offset_v1 =
+            u16::from_be_bytes([frame[WRONG_OFFSET_V1], frame[WRONG_OFFSET_V1 + 1]]);
+        let hlen_at_wrong_offset_v1 = frame[WRONG_OFFSET_V1 + 4];
+        assert_ne!(
+            htype_at_wrong_offset_v1,
+            0x0001,
+            "V1 negative-offset diagnostic: frame bytes at wrong offset {} (off-by-8 \
+             under-count) must NOT read as ARP htype=0x0001. By construction, frame[{}..{}] \
+             are the SecTag TCI-AN (0x00) and SL (0x00) bytes — u16 BE = 0x{:04X}. \
+             If this assertion fails, the diagnostic is inconclusive and the SCI fixture \
+             bytes changed — review the frame construction.",
+            WRONG_OFFSET_V1,
+            WRONG_OFFSET_V1,
+            WRONG_OFFSET_V1 + 2,
+            htype_at_wrong_offset_v1
+        );
+        assert_ne!(
+            hlen_at_wrong_offset_v1,
+            6,
+            "V1 negative-offset diagnostic: frame bytes at wrong offset {}+4={} (off-by-8 \
+             under-count) must NOT read as valid hlen=6. By construction, frame[{}] is the \
+             PN byte (0x00). Got {}.",
+            WRONG_OFFSET_V1,
+            WRONG_OFFSET_V1 + 4,
+            WRONG_OFFSET_V1 + 4,
+            hlen_at_wrong_offset_v1
+        );
     }
 
     // -------------------------------------------------------------------------
@@ -612,16 +657,42 @@ mod macsec_offset {
         // Diagnostic: show what would be read at the WRONG offset (22) if SCI were omitted.
         // At frame[22..30]: the 8 SCI bytes — not ARP bytes.  Reading those as ARP htype
         // would produce a garbage value and a false D11.
+        //
+        // OBS-1 HARDENING: The SCI value is sci_value = 0x0102_0304_0506_0708.
+        // SecTag occupies frame[14..20] (6 bytes: TCI-AN, SL, PN[4]).
+        // SCI occupies frame[20..28] (8 bytes, big-endian): 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08.
+        // Therefore frame[22] = SCI byte 2 = 0x03, frame[23] = SCI byte 3 = 0x04.
+        // u16 BE of frame[22..24] = 0x0304, which is pinned != 0x0001 by construction.
+        // The next_EtherType bytes at frame[26..28] = 0x08, 0x06.
+        //
+        // If a future test author changes sci_value, they MUST ensure frame[22..24] still
+        // does not equal 0x0001 (i.e., the SCI high bytes [2..4] must not be 0x00, 0x01).
+        // The assertion below is unconditional; there is no "inconclusive" path.
+        let sci_bytes_at_22_23: [u8; 2] = [frame[22], frame[23]];
+        assert_eq!(
+            sci_bytes_at_22_23,
+            [0x03, 0x04],
+            "V3 OBS-1 pre-condition: frame[22..24] must be SCI bytes 2-3 = [0x03, 0x04] \
+             (from sci_value=0x0102_0304_0506_0708). Got {:?}. \
+             If sci_value changed, verify that the new SCI bytes at positions [22..24] \
+             are still != 0x00, 0x01 (which would make the negative-offset diagnostic \
+             inconclusive). Recheck the frame layout and update this assertion.",
+            sci_bytes_at_22_23
+        );
         let htype_at_wrong_offset = u16::from_be_bytes([frame[22], frame[23]]);
         let htype_at_correct_offset = u16::from_be_bytes([
             frame[ARP_OFFSET_MACSEC_SCI],
             frame[ARP_OFFSET_MACSEC_SCI + 1],
         ]);
+        // This assert_ne is now unconditionally non-trivial: 0x0304 != 0x0001 is guaranteed
+        // by the sci_bytes_at_22_23 pre-condition assertion above.
         assert_ne!(
             htype_at_wrong_offset, 0x0001,
-            "V3 diagnostic: frame bytes at wrong offset 22 must NOT read as htype=0x0001 \
-             (they are SCI bytes). If they happen to be 0x0001 this diagnostic is inconclusive. \
-             Got 0x{:04X}.",
+            "V3 negative-offset diagnostic: frame bytes at wrong offset 22 (SCI bytes) \
+             must NOT read as ARP htype=0x0001. By construction frame[22..24] = [0x03, 0x04] \
+             (SCI value 0x0102_0304_0506_0708 bytes 2-3), giving htype=0x0304. \
+             Got 0x{:04X}. This is non-trivial: the SCI byte pre-condition above ensures \
+             this diagnostic is never inconclusive.",
             htype_at_wrong_offset
         );
         assert_eq!(
