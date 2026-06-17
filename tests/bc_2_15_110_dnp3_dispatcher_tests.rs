@@ -133,15 +133,13 @@ mod story_110 {
     /// as DispatchTarget::Dnp3. This drives Rule 6 (after content rules 1-2
     /// and port fallback rules 3-5).
     ///
-    /// RED GATE: panics via `todo!()` in `classify()` until Rule-6 is implemented.
     #[test]
     fn test_port_20000_dispatches_to_dnp3() {
         let dnp3 = Dnp3Analyzer::new(DNPXX_DIRECT_OPERATE_THRESHOLD_DEFAULT);
         let mut dispatcher = StreamDispatcher::new(None, None, None, Some(dnp3));
         let key = flow_key(12345, 20000);
         let frame = minimal_dnp3_frame();
-        // If Rule 6 is not wired: todo!() panics → test FAILS (RED).
-        // When Rule 6 is implemented: on_data routes to Dnp3Analyzer; no panic.
+        // Rule 6 routes port-20000 data to Dnp3Analyzer.
         dispatcher.on_data(&key, Direction::ClientToServer, &frame, 0, 1_700_000_000);
         // Verify the frame was passed to the DNP3 analyzer (flow map has the entry).
         let dnp3 = dispatcher.take_dnp3_analyzer().unwrap();
@@ -162,29 +160,8 @@ mod story_110 {
     ///
     /// A flow on port 20000 carrying a TLS ClientHello signature (0x16 0x03 ...)
     /// MUST route to DispatchTarget::Tls (Rule 1) — NOT DNP3 (Rule 6).
-    ///
-    /// RED GATE: panics via `todo!()` because the port-20000 branch fires before
-    /// the TLS content check in the un-implemented state. Once Rule 6 is placed
-    /// AFTER content checks 1-2, this test will PASS.
-    ///
-    /// NOTE: currently the todo!() arm is reached for ANY port-20000 data
-    /// (content checks are BEFORE the port arm but the todo!() is in the port
-    /// arm that is reached only when content checks don't match). For TLS data
-    /// that starts with 0x16 0x03, content check Rule 1 fires BEFORE reaching
-    /// Rule 6 — so this test will PASS once Rule 6 uses `return DispatchTarget::Dnp3`
-    /// (the TLS check short-circuits before reaching the todo!()). Until then,
-    /// with the stub routing the TLS branch correctly (Rule 1 fires first), this
-    /// test should NOT panic — it tests that TLS content still wins after Rule 6 is added.
-    ///
-    /// RED behavior: this test will PANIC (todo!() reached) only if the TLS
-    /// content check fails to fire before reaching the port-20000 branch, which
-    /// would be a regression. In the current stub, Rule 1 fires first (correct),
-    /// so this test PASSES structurally. We include it to pin the content-first
-    /// invariant post-implementation.
-    ///
-    /// To make this clearly RED: we test that the DNP3 analyzer gets NO data
-    /// when TLS content is present on port 20000, asserting the content-first
-    /// invariant (which will hold correctly once Rule 6 is implemented).
+    /// Rule 1 (TLS content) fires before Rule 6 (port fallback), so DNP3 receives
+    /// no data when TLS content is present on port 20000.
     #[test]
     fn test_tls_on_port_20000_routes_to_tls() {
         let dnp3 = Dnp3Analyzer::new(DNPXX_DIRECT_OPERATE_THRESHOLD_DEFAULT);
@@ -381,9 +358,9 @@ mod story_110 {
     /// This test verifies the wiring by constructing Dnp3Analyzer directly with
     /// a custom value and confirming the field.
     ///
-    /// The BEHAVIORAL RED GATE for wiring is in the integration tests
+    /// The behavioral wiring is verified in the integration tests
     /// (test_threshold_0_fires_immediately, test_threshold_echoed_in_t1692_summary).
-    /// This unit test will PASS immediately (it tests Dnp3Analyzer::new directly).
+    /// This unit test passes directly (tests Dnp3Analyzer::new directly).
     #[test]
     fn test_BC_2_15_021_threshold_stored_in_dnp3_analyzer() {
         let analyzer = Dnp3Analyzer::new(5);
@@ -411,7 +388,6 @@ mod story_110 {
     /// via the dispatcher (port-20000 routing). This test is RED until Rule 6 is
     /// implemented.
     ///
-    /// RED GATE: panics via `todo!()` in classify() (port-20000 arm).
     #[test]
     fn test_threshold_0_fires_immediately() {
         let dnp3 = Dnp3Analyzer::new(0); // threshold=0 → any Control FC fires immediately
@@ -419,8 +395,7 @@ mod story_110 {
         let key = flow_key(54321, 20000);
 
         let (frame, ts) = dnp3_direct_operate_frame(1_700_000_000);
-        // Rule 6 must route to DNP3 → detection branch fires (count=1 > 0).
-        // RED: panics via todo!() until Rule 6 is implemented.
+        // Rule 6 routes to DNP3 → detection branch fires (count=1 > 0).
         dispatcher.on_data(&key, Direction::ClientToServer, &frame, 0, ts);
 
         let dnp3 = dispatcher.take_dnp3_analyzer().unwrap();
@@ -446,7 +421,6 @@ mod story_110 {
     /// When `direct_operate_threshold = u32::MAX`, no burst finding fires because
     /// `count > u32::MAX` is never true (overflow-safe via saturating_add).
     ///
-    /// RED GATE: panics via `todo!()` in classify() (port-20000 arm).
     #[test]
     fn test_threshold_max_never_fires() {
         let dnp3 = Dnp3Analyzer::new(u32::MAX); // threshold=u32::MAX → never fires
@@ -456,7 +430,6 @@ mod story_110 {
         // Deliver 5 Control FC frames — even 5 < u32::MAX so no finding expected.
         for i in 0..5u64 {
             let (frame, _) = dnp3_direct_operate_frame(1_700_000_000 + i as u32);
-            // RED: panics via todo!() until Rule 6 is implemented.
             dispatcher.on_data(
                 &key,
                 Direction::ClientToServer,
@@ -489,7 +462,6 @@ mod story_110 {
     ///
     /// This tests the `detect_control_class_burst_split` format string.
     ///
-    /// RED GATE: panics via `todo!()` in classify() (port-20000 arm).
     #[test]
     fn test_threshold_echoed_in_t1692_summary() {
         let threshold = 3u32;
@@ -500,7 +472,6 @@ mod story_110 {
         // Deliver threshold+1 = 4 Control FC frames to trigger the burst finding.
         for i in 0..=(threshold as u64) {
             let (frame, _) = dnp3_direct_operate_frame(1_700_000_000 + i as u32);
-            // RED: panics via todo!() until Rule 6 is implemented.
             dispatcher.on_data(
                 &key,
                 Direction::ClientToServer,
@@ -544,7 +515,6 @@ mod story_110 {
     /// When the flag is omitted, threshold defaults to DNPXX_DIRECT_OPERATE_THRESHOLD_DEFAULT (10).
     /// After 11 Control FCs, the finding summary must contain "(threshold 10)".
     ///
-    /// RED GATE: panics via `todo!()` in classify() (port-20000 arm).
     #[test]
     fn test_threshold_default_10_echoed_in_t1692_summary() {
         let threshold = DNPXX_DIRECT_OPERATE_THRESHOLD_DEFAULT; // = 10
@@ -556,7 +526,6 @@ mod story_110 {
         for i in 0..=(threshold as u64) {
             let (frame, _) = dnp3_direct_operate_frame(1_700_000_000);
             // All at same timestamp to stay within DETECTION_WINDOW_SECS.
-            // RED: panics via todo!() until Rule 6 is implemented.
             dispatcher.on_data(
                 &key,
                 Direction::ClientToServer,
@@ -851,7 +820,6 @@ mod story_110 {
     /// (once Rule 6 is implemented), but the on_data DNP3 arm is a no-op
     /// (`if let Some(ref mut dnp3) = self.dnp3` is None).
     ///
-    /// RED GATE: panics via `todo!()` in classify() until Rule 6 is implemented.
     #[test]
     fn test_ec007_dnp3_disabled_port_20000_flow_is_noop() {
         // No DNP3 analyzer — dnp3=None
@@ -895,7 +863,6 @@ mod story_110 {
     /// Once Rule 6 is implemented, such data is routed to Dnp3Analyzer which sets
     /// `is_non_dnp3 = true` on the flow and produces no findings.
     ///
-    /// RED GATE: panics via `todo!()` in classify() until Rule 6 is implemented.
     #[test]
     fn test_ec001_non_dnp3_content_on_port_20000_desync_bail() {
         let dnp3 = Dnp3Analyzer::new(DNPXX_DIRECT_OPERATE_THRESHOLD_DEFAULT);
@@ -903,7 +870,6 @@ mod story_110 {
         let key = flow_key(12345, 20000);
         // Data that starts with 0xAB 0xCD — NOT the DNP3 sync word [0x05, 0x64].
         let non_dnp3_data = [0xABu8, 0xCD, 0xEF, 0x01, 0x23, 0x45, 0x67, 0x89];
-        // RED: panics via todo!() until Rule 6 is implemented.
         dispatcher.on_data(
             &key,
             Direction::ClientToServer,
@@ -935,7 +901,6 @@ mod story_110 {
     /// Two concatenated minimal DNP3 sync-only chunks on port 20000 must both be
     /// processed by the Dnp3Analyzer (frame_count == 2 or >= 1, depending on validity).
     ///
-    /// RED GATE: panics via `todo!()` in classify() until Rule 6 is implemented.
     #[test]
     fn test_ec002_multiple_frames_in_one_on_data_call() {
         let dnp3 = Dnp3Analyzer::new(DNPXX_DIRECT_OPERATE_THRESHOLD_DEFAULT);
@@ -948,7 +913,6 @@ mod story_110 {
         let mut combined = frame1.clone();
         combined.extend_from_slice(&frame2);
 
-        // RED: panics via todo!() until Rule 6 is implemented.
         dispatcher.on_data(&key, Direction::ClientToServer, &combined, 0, 1_700_000_000);
 
         let dnp3 = dispatcher.take_dnp3_analyzer().unwrap();
@@ -966,7 +930,6 @@ mod story_110 {
     /// First call delivers only 5 bytes (less than the minimum 10-byte header).
     /// Second call delivers the rest. Frame-walk processes after the full frame arrives.
     ///
-    /// RED GATE: panics via `todo!()` in classify() (first call) until Rule 6 is implemented.
     #[test]
     fn test_ec003_partial_frame_split_across_two_on_data_calls() {
         let dnp3 = Dnp3Analyzer::new(DNPXX_DIRECT_OPERATE_THRESHOLD_DEFAULT);
@@ -977,7 +940,6 @@ mod story_110 {
         let (first_chunk, second_chunk) = full_frame.split_at(5);
 
         // First call: 5 bytes — partial, stashed in carry.
-        // RED: panics via todo!() until Rule 6 is implemented.
         dispatcher.on_data(
             &key,
             Direction::ClientToServer,

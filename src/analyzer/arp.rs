@@ -2541,7 +2541,7 @@ mod story_114 {
             d1.is_some(),
             "AC-001 / BC-2.16.004 PC1: process_arp must emit a D1 spoof Finding on first \
              rebind (MAC_A → MAC_B). Got {} finding(s): {:?}. \
-             RED: emit_d1_spoof_finding stub is not wired into process_arp.",
+             D1 spoof finding must be emitted via emit_d1_spoof_finding.",
             findings.len(),
             findings
                 .iter()
@@ -2605,7 +2605,7 @@ mod story_114 {
         });
         assert!(
             d1_1.is_some(),
-            "AC-002 / BC-2.16.004: rebind 1 must emit D1 finding. RED: stub not wired."
+            "AC-002 / BC-2.16.004: rebind 1 must emit D1 finding."
         );
         assert_eq!(
             d1_1.unwrap().confidence,
@@ -2621,7 +2621,7 @@ mod story_114 {
         });
         assert!(
             d1_2.is_some(),
-            "AC-002 / BC-2.16.004: rebind 2 must emit D1 finding. RED: stub not wired."
+            "AC-002 / BC-2.16.004: rebind 2 must emit D1 finding."
         );
         assert_eq!(
             d1_2.unwrap().confidence,
@@ -2637,7 +2637,7 @@ mod story_114 {
         });
         assert!(
             d1_3.is_some(),
-            "AC-002 / BC-2.16.004: rebind 3 must emit D1 finding. RED: stub not wired."
+            "AC-002 / BC-2.16.004: rebind 3 must emit D1 finding."
         );
         assert_eq!(
             d1_3.unwrap().confidence,
@@ -2694,7 +2694,7 @@ mod story_114 {
         });
         assert!(
             high_finding.is_some(),
-            "AC-003 setup: rebind 3 must emit D1 finding. RED: stub not wired."
+            "AC-003 setup: rebind 3 must emit D1 finding."
         );
         // Only proceed to AC-003 proper if setup D1 finding was emitted
         // (if it wasn't, the earlier assert will have failed)
@@ -2714,7 +2714,7 @@ mod story_114 {
         });
         assert!(
             d1_4.is_some(),
-            "AC-003 / BC-2.16.004 PC4: 4th rebind must emit D1 finding. RED: stub not wired."
+            "AC-003 / BC-2.16.004 PC4: 4th rebind must emit D1 finding."
         );
         assert_eq!(
             d1_4.unwrap().confidence,
@@ -2752,11 +2752,7 @@ mod story_114 {
             f.mitre_techniques.contains(&"T0830".to_string())
                 || f.summary.to_lowercase().contains("spoof")
         });
-        // RED: will fail if stub not wired
-        assert!(
-            high_d1.is_some(),
-            "AC-004 setup: 3rd rebind must emit D1. RED: stub not wired."
-        );
+        assert!(high_d1.is_some(), "AC-004 setup: 3rd rebind must emit D1.");
 
         // Now process a rebind at ts=2+61=63 → elapsed = 63 - 2 = 61 > 60s → window RESET
         // After reset: rebind_count=0, first_rebind_ts=None, spoof_high_emitted=false
@@ -2770,7 +2766,7 @@ mod story_114 {
         assert!(
             d1_after_reset.is_some(),
             "AC-004 / BC-2.16.004 PC5: rebind after window reset (ts=63, elapsed=61s > 60s) \
-             must emit D1 finding. RED: stub not wired."
+             must emit D1 finding."
         );
         assert_eq!(
             d1_after_reset.unwrap().confidence,
@@ -2823,8 +2819,7 @@ mod story_114 {
         });
         assert!(
             d1.is_some(),
-            "AC-005 / BC-2.16.004 EC-008: threshold=1 first rebind must emit D1 finding. \
-             RED: stub not wired."
+            "AC-005 / BC-2.16.004 EC-008: threshold=1 first rebind must emit D1 finding."
         );
         assert_eq!(
             d1.unwrap().confidence,
@@ -2887,8 +2882,7 @@ mod story_114 {
             gf.confidence,
             Confidence::Medium,
             "AC-007 / BC-2.16.014 PC1: GARP finding must be upgraded from LOW to MEDIUM \
-             when binding conflict exists (MAC_A in table, frame has MAC_B). Got {:?}. \
-             RED: apply_garp_conflict_escalation stub not wired.",
+             when binding conflict exists (MAC_A in table, frame has MAC_B). Got {:?}.",
             gf.confidence
         );
 
@@ -2937,8 +2931,7 @@ mod story_114 {
             findings.len(),
             2,
             "AC-008 / BC-2.16.014 PC5: GARP-that-conflicts must produce exactly 2 findings \
-             (GARP MEDIUM + D1 MEDIUM). Got {} finding(s): {:?}. \
-             RED: apply_garp_conflict_escalation stub not wired.",
+             (GARP MEDIUM + D1 MEDIUM). Got {} finding(s): {:?}.",
             findings.len(),
             findings
                 .iter()
@@ -3035,7 +3028,7 @@ mod story_114 {
             findings.len(),
             2,
             "AC-009 / BC-2.16.014 EC-004: GARP-that-conflicts at 3rd rebind must produce \
-             exactly 2 findings. Got {} finding(s). RED: stub not wired.",
+             exactly 2 findings. Got {} finding(s).",
             findings.len()
         );
 
@@ -3167,7 +3160,7 @@ mod story_114 {
         });
         assert!(
             d1.is_some(),
-            "AC-016 / BC-2.16.004 PC1.e: D1 finding must be emitted. RED: stub not wired."
+            "AC-016 / BC-2.16.004 PC1.e: D1 finding must be emitted."
         );
         let d1 = d1.unwrap();
         let evidence_joined = d1.evidence.join(" ");
@@ -3247,16 +3240,14 @@ mod story_114 {
             );
 
         // PRIMARY assertion: mitre_techniques must be ["T0830", "T1557.002"] after STORY-114
-        // This FAILS now because D12 still emits mitre_techniques=[] at wave 42.
         let mut techs = d12.mitre_techniques.clone();
         techs.sort();
         assert_eq!(
             techs,
             vec!["T0830".to_string(), "T1557.002".to_string()],
             "AC-017 / BC-2.16.007 PC1: D12 finding must carry mitre_techniques \
-             [\"T0830\", \"T1557.002\"] after STORY-114 VP-007 atomic update. \
-             Currently [] (wave 42). RED: requires both catalog seeding AND \
-             mitre vec wiring in D12 emission branch. Got: {:?}",
+             [\"T0830\", \"T1557.002\"] (STORY-114 VP-007 atomic update: catalog seeding \
+             and mitre vec wiring in D12 emission branch). Got: {:?}",
             d12.mitre_techniques
         );
 

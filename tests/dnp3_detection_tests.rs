@@ -215,7 +215,6 @@ mod story_108 {
         //   lower_port == 20000 (server port) → lower endpoint is outstation, upper is master.
         // Expected source_ip = upper_ip = 10.0.0.2 (the master/initiator).
         //
-        // Failing RED: the impl currently sets source_ip: None.
         let expected_source_ip = IpAddr::V4(Ipv4Addr::new(10, 0, 0, 2));
         assert_eq!(
             f.source_ip,
@@ -227,8 +226,6 @@ mod story_108 {
 
         // BC-2.15.010 PC3: timestamp must be Some(<pcap-relative capture timestamp>).
         // The 11th frame was delivered with ts=10; expected = DateTime::from_timestamp(10, 0).
-        //
-        // Failing RED: the impl currently sets timestamp: None.
         let expected_ts = DateTime::from_timestamp(10i64, 0);
         assert_eq!(
             f.timestamp, expected_ts,
@@ -415,8 +412,6 @@ mod story_108 {
         //   upper_ip = 10.0.0.2 (master, port 20000)
         // COLD_RESTART frames come from the master (DIR=1 / PRM=1 in CTRL=0xC4).
         // Expected source_ip = upper_ip = 10.0.0.2.
-        //
-        // Failing RED: the impl currently sets source_ip: None.
         let expected_source_ip = IpAddr::V4(Ipv4Addr::new(10, 0, 0, 2));
         assert_eq!(
             f.source_ip,
@@ -427,8 +422,6 @@ mod story_108 {
 
         // BC-2.15.011 PC1: timestamp must be Some(<pcap-relative capture timestamp>).
         // The COLD_RESTART frame was delivered with ts=1000.
-        //
-        // Failing RED: the impl currently sets timestamp: None.
         let expected_ts = DateTime::from_timestamp(1000i64, 0);
         assert_eq!(
             f.timestamp, expected_ts,
@@ -500,7 +493,6 @@ mod story_108 {
         let key = test_flow_key();
 
         // FIRST: deliver a genuine COLD_RESTART (0x0D) — must emit T0814 and increment counter
-        // RED GATE ANCHOR: the stub detect_restart() is todo!(), so this will panic.
         let cold_frame = build_detection_frame(0x0D, 0x0003, 0x0001);
         analyzer.on_data(key.clone(), &cold_frame, 500);
 
@@ -606,8 +598,6 @@ mod story_108 {
         //   upper_ip = 10.0.0.2 (master, port 20000)
         // WRITE frames come from the master (DIR=1 / PRM=1 in CTRL=0xC4).
         // Expected source_ip = upper_ip = 10.0.0.2.
-        //
-        // Failing RED: the impl currently sets source_ip: None.
         let expected_source_ip = IpAddr::V4(Ipv4Addr::new(10, 0, 0, 2));
         assert_eq!(
             f.source_ip,
@@ -618,8 +608,6 @@ mod story_108 {
 
         // BC-2.15.012 PC1: timestamp must be Some(<pcap-relative capture timestamp>).
         // The WRITE frame was delivered with ts=1000.
-        //
-        // Failing RED: the impl currently sets timestamp: None.
         let expected_ts = DateTime::from_timestamp(1000i64, 0);
         assert_eq!(
             f.timestamp, expected_ts,
