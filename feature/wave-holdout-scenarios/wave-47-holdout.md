@@ -1,6 +1,6 @@
 ---
 document_type: holdout-scenario
-version: "1.1"  # F-PB-001: absent-UA → present-but-empty UA trigger; F-C-03: [Uncategorized] → ## Uncategorized; F-O-02: drop HTTP/1.1 from evidence examples
+version: "1.2"  # F-PB-001: absent-UA → present-but-empty UA trigger; F-C-03: [Uncategorized] → ## Uncategorized; F-O-02: drop HTTP/1.1 from evidence examples; F-E-01: HS-W47-006 re-grounded on real path-traversal emission (Reconnaissance/Likely/High)
 status: draft
 producer: product-owner
 timestamp: 2026-06-17T00:00:00Z
@@ -309,30 +309,39 @@ instead of stopping at 2 lines."
 
 ### Setup
 
-A finding-set containing 3 identical-key findings all with
-`(Reconnaissance, Likely, High, "Suspicious port scan pattern")`. Each finding has a
-distinct evidence string.
+A capture file contains 3 HTTP requests each with URI `/../../etc/passwd`, triggering
+the path-traversal detector at `src/analyzer/http.rs:200-217`. Each request produces a
+finding with the identical 4-field collapse key:
+- `category: Reconnaissance`
+- `verdict: Likely`
+- `confidence: High`
+- `summary: "Path traversal in URI: /../../etc/passwd"`
 
-**Abstractly:** A 3-member high-severity collapse group.
+Each finding's evidence is `"URI: /../../etc/passwd"` (all three are identical — evidence
+identity does not prevent collapse, only the 4-field key governs grouping per BC-2.11.025).
+Each finding carries `mitre_techniques: ["T1083"]`.
+
+**Abstractly:** A 3-member Likely/High collapse group — the highest-severity finding the
+HTTP analyzer emits — confirming collapse is severity-agnostic.
 
 ### Command
 
 ```
 wirerust analyze --http <pcap>
 ```
-(or whatever analyzer flag causes these findings to emit)
 
 ### Expected Assertions
 
 1. The FINDINGS section contains exactly one collapsed group with a `(x3)` suffix.
 2. The header line contains the substring `"(x3)"`.
 3. The header is rendered in red bold color (if the terminal supports ANSI and --no-color
-   is not set): the Likely+High color ladder branch fires.
+   is not set): the Likely+High color ladder branch fires (terminal.rs:212:
+   `Likely + High → red().bold()`).
 4. The `(x3)` suffix is visually inside the red-bold color span (the suffix is colorized
    with the rest of the header, not appended after the color reset).
 5. Alternatively, if the evaluator runs with `--no-color`: the header line reads
-   `  [Reconnaissance] LIKELY (HIGH) - Suspicious port scan pattern (x3)` with no ANSI
-   codes, confirming the suffix is part of the pre-colorization string.
+   `  [Reconnaissance] LIKELY (HIGH) - Path traversal in URI: /../../etc/passwd (x3)`
+   with no ANSI codes, confirming the suffix is part of the pre-colorization string.
 
 ### Evaluation Rubric
 
@@ -344,8 +353,8 @@ wirerust analyze --http <pcap>
 ### Failure Guidance
 
 "HOLDOUT LOW: HS-W47-006 (satisfaction: 0.XX) — severity-agnostic collapse did not fire
-for Likely/High findings; either no collapse occurred, or the (x3) suffix appeared outside
-the color span."
+for Likely/High path-traversal findings; either no collapse occurred, or the (x3) suffix
+appeared outside the red-bold color span."
 
 ---
 

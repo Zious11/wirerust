@@ -2,7 +2,7 @@
 document_type: story
 story_id: STORY-118
 epic_id: E-18
-version: "1.1"
+version: "1.2"
 status: draft
 producer: story-writer
 timestamp: 2026-06-17T00:00:00Z
@@ -412,6 +412,21 @@ is an attribute of `TerminalReporter` only and is not consulted by `JsonReporter
 
 ---
 
+### AC-028 — escape_for_terminal is called on each sampled evidence line in the collapse path
+*(traces to BC-2.11.010 invariant 4)*
+
+Given a collapsed group where one of the first K=3 member findings has an evidence line
+containing a raw ESC byte (`"\x1b[31minjected\x1b[0m"`), when `collapse_findings=true`,
+the rendered evidence line for that member is `> \x1b[31minjected\x1b[0m` (escaped —
+raw ESC bytes replaced with their `\xNN` representation). The collapse path calls
+`escape_for_terminal` directly on each sampled evidence line; the function-level
+escape guarantee (BC-2.11.010 invariant 4) is not weakened by the collapse wrapper.
+
+- **Test:** `test_BC_2_11_010_escape_in_collapse_path`
+  (in `tests/reporter_terminal_tests.rs`)
+
+---
+
 ### AC-023 — MITRE line sources group_members[0]; other members' MITRE elided from terminal
 *(traces to BC-2.11.026 postcondition 7 / BC-2.11.017 postcondition 6)*
 
@@ -460,10 +475,11 @@ header (`FINDINGS\n`) and the `if !findings.is_empty()` guard are preserved.
 *(traces to BC-2.11.025 canonical test vector / BC-2.11.027 postcondition 2)*
 
 Given 5 findings all `(Anomaly, Inconclusive, Low, "Empty User-Agent header")` with
-distinct evidence URIs `["GET /a HTTP/1.1"]`, ..., `["GET /e HTTP/1.1"]` and
-timestamps that MAY differ (timestamp is a non-key field), when `collapse_findings=true`,
+distinct evidence strings `["GET /a"]`, ..., `["GET /e"]` (format: `method + " " + uri`,
+no HTTP version token — per `src/analyzer/http.rs:365` `format!("{} {}", method, uri)`)
+and timestamps that MAY differ (timestamp is a non-key field), when `collapse_findings=true`,
 the FINDINGS section contains exactly 1 display group with count 5. Exactly 3 evidence
-lines are rendered: `> GET /a HTTP/1.1`, `> GET /b HTTP/1.1`, `> GET /c HTTP/1.1`.
+lines are rendered: `> GET /a`, `> GET /b`, `> GET /c`.
 Evidence for `/d` and `/e` is elided from terminal output.
 
 - **Test:** `test_BC_2_11_025_flood_canonical_empty_ua_five_findings`
@@ -560,7 +576,12 @@ to split into a separate SS-12 story.
    `run_analyze`, and set `collapse_findings: !no_collapse` at the `TerminalReporter
    { … }` construction site (main.rs:370-376). This mirrors exactly how `*mitre`
    becomes `show_mitre_grouping` (BC-2.11.028 precondition 3 / invariant 6).
-   This is the only `main.rs` change.
+   - **Second construction site (run_summary, ~main.rs:432):** adding `collapse_findings`
+     to `TerminalReporter` requires the `run_summary` construction site to also initialize
+     the new field (Rust requires all struct fields). Set `collapse_findings: true` there
+     (the value is inert — `run_summary` emits no FINDINGS section; BC-2.11.028 Invariant 4
+     is analyze-scoped). This is the only `run_summary` change; the field is initialized
+     for completeness, not to enable collapse behavior in the summary path.
 9. **[ADR obligation]** STORY-118's implementation PR MUST include the uncommitted
    `docs/adr/0003-reporting-pipeline-layering.md` "Display-Layer Aggregation" section
    addition. This change currently exists uncommitted on `develop`. It must ride the
@@ -689,7 +710,7 @@ Every BC in the `behavioral_contracts:` frontmatter array is cited by at least o
 - BC-2.11.027: AC-013, AC-014, AC-015, AC-016, AC-017
 - BC-2.11.028: AC-018, AC-019
 - BC-2.11.029: AC-020, AC-021, AC-022, AC-027
-- BC-2.11.010: AC-016
+- BC-2.11.010: AC-016, AC-028
 - BC-2.11.013: AC-005
 - BC-2.11.017: AC-023
 - BC-2.11.019: AC-025
@@ -698,7 +719,7 @@ Every AC cites a BC trace clause. All 9 BCs appear in both frontmatter and body.
 
 DF-AC-TEST-NAME-SYNC-001 per-BC own-prefix test inventory (post-Fix-4):
 - BC-2.11.025: test_BC_2_11_025_* (9 tests)
-- BC-2.11.026: test_BC_2_11_026_* (9 tests: suffix_colorized_inside_span_red_bold,
+- BC-2.11.026: test_BC_2_11_026_* (10 tests: suffix_colorized_inside_span_red_bold,
   color_ladder_inconclusive_cyan, color_ladder_likely_other_yellow,
   color_ladder_possible_yellow, color_ladder_unlikely_dimmed, singleton_no_suffix,
   count_suffix_for_n_ge_2, large_count_exact, suffix_format,
@@ -706,13 +727,12 @@ DF-AC-TEST-NAME-SYNC-001 per-BC own-prefix test inventory (post-Fix-4):
 - BC-2.11.027: test_BC_2_11_027_* (5 tests)
 - BC-2.11.028: test_BC_2_11_028_* (3 tests: no_collapse_flag_one_line_per_finding,
   default_vs_opt_out_output_difference, flag_wired_to_reporter_field)
-- BC-2.11.029: test_BC_2_11_029_* (3 tests: json_receives_full_findings,
+- BC-2.11.029: test_BC_2_11_029_* (4 tests: json_receives_full_findings,
   csv_receives_full_findings, non_repeated_finding_no_suffix,
   no_collapse_flag_json_invariant)
-- BC-2.11.010: test_BC_2_11_010_* (via AC-016: test_BC_2_11_027_escape_preserved_in_sampled_evidence
-  covers the invariant; BC-2.11.010 is also covered by test_BC_2_11_027_escape_preserved_in_sampled_evidence
-  since AC-016 traces to both — implementer MUST add test_BC_2_11_010_escape_in_collapse_path
-  as a direct BC-010-prefixed test in the test suite)
+- BC-2.11.010: test_BC_2_11_010_* (1 test: escape_in_collapse_path — AC-028; additionally
+  AC-016 traces to BC-2.11.010 via test_BC_2_11_027_escape_preserved_in_sampled_evidence
+  as a cross-trace; the own-prefix test is test_BC_2_11_010_escape_in_collapse_path)
 - BC-2.11.013: test_BC_2_11_013_grouped_mode_suffix_free (AC-005)
 - BC-2.11.017: test_BC_2_11_017_collapsed_mitre_line_from_representative (AC-023)
 - BC-2.11.019: test_BC_2_11_019_section_order_unchanged_with_collapse (AC-025)

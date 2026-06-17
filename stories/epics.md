@@ -1,11 +1,13 @@
 ---
 document_type: epics
-version: "1.2"
+version: "1.3"
 status: draft
 producer: story-writer
 phase: 2
 timestamp: 2026-05-21T00:00:00Z
-modified: "2026-06-17: E-18 Terminal Finding-Collapse (issue #259) added — STORY-118 + STORY-119 (deferred). total_bcs 283→288 (+5 new BC-2.11.025–029; 4 existing BCs extended/versioned — count unchanged)."
+modified:
+  - "2026-06-17 v1.2: E-18 Terminal Finding-Collapse (issue #259) added — STORY-118 + STORY-119 (deferred). total_bcs 283→288 (+5 new BC-2.11.025–029; 4 existing BCs extended/versioned — count unchanged)."
+  - "2026-06-17 v1.3: Adversarial Burst 3 remediation — E-8 story count 7→5 (Estimated Story Count Summary table; actual E-8 roster is STORY-076..080 = 5 stories). Column sum now 72, matching Total row."
 total_bcs: 288
 traces_to:
   - .factory/specs/prd.md
@@ -470,7 +472,7 @@ findings individually in v0.8.0 and the BC forward-references are satisfied by t
 | E-5  | 8           |
 | E-6  | 1           |
 | E-7  | 3           |
-| E-8  | 7           |
+| E-8  | 5           |
 | E-9  | 5           |
 | E-10 | 1           |
 | E-11 | 1           |
