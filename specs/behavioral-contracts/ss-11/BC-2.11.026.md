@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.0"
+version: "1.1"
 status: draft
 producer: product-owner
 timestamp: 2026-06-17T00:00:00Z
@@ -12,7 +12,7 @@ subsystem: SS-11
 capability: CAP-11
 lifecycle_status: active
 introduced: v0.8.0
-modified: []
+modified: ["v1.1 2026-06-17: F2 adversarial pass-1 — relax suffix colorization: (xN) suffix IS colorized with the header line (no seam for uncolorized suffix in render_finding_prefix); update Invariant 4, PC-4, EC-008 (F-259-02)"]
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -59,8 +59,15 @@ attacker-controlled bytes; it does not require additional escaping.
    single-finding rendering produced by `render_finding_prefix`.
 3. The count value `N` equals `Vec.len()` of the findings grouped under that key; it is
    always a positive integer (N≥1 by construction; empty groups are never created).
-4. The ` (xN)` suffix is appended after `escaped_summary` and before the newline `\n`.
-   There is exactly one space between the escaped summary text and the opening parenthesis.
+4. The ` (xN)` suffix is appended after `escaped_summary`, forming part of the header line
+   before colorization. The suffix is colorized identically to the rest of the header line:
+   `render_finding_prefix` (or its collapse-aware extension) appends ` (xN)` to the
+   pre-color `line` string when N≥2, and the ENTIRE line including the suffix is then
+   colorized together via the verdict/confidence color match. There is no seam in the current
+   `render_finding_prefix` implementation for an uncolorized suffix. The implementation path:
+   either `render_finding_prefix` receives a count parameter and builds `line` as
+   `"  [Cat] VERDICT (CONF) - {escaped_summary} (xN)"` before colorizing, or a
+   collapse-aware sibling function builds the line with the suffix before the color match.
 5. The count suffix is not subject to `escape_for_terminal`; it is a hardcoded format string
    and contains no attacker-controlled content.
 
@@ -72,9 +79,11 @@ attacker-controlled bytes; it does not require additional escaping.
    intentional: it avoids noise and preserves backward compatibility for unique findings.
 3. The count is computed as the exact group size from the collapse pass; it is never rounded,
    truncated, or represented as a range.
-4. Color styling (from `use_color`) is applied to the base header line (up to and including
-   `escaped_summary`) via the `render_finding_prefix` path. The ` (xN)` suffix is appended
-   after the color escape codes have been closed; the suffix itself is not colorized.
+4. Color styling (from `use_color`) is applied to the COMPLETE header line including the
+   ` (xN)` suffix. The ` (xN)` suffix is appended to the pre-color `line` string BEFORE the
+   color match is applied, so it is colorized identically to the summary text. The
+   `render_finding_prefix` implementation builds `line` atomically — colorizing the whole
+   thing — with no seam to attach an uncolorized suffix after the color codes are closed.
 5. Evidence lines (from `Finding.evidence`) are rendered after the header line, under the
    same count-annotated header. Evidence sampling rules are governed by BC-2.11.027.
 
@@ -89,7 +98,7 @@ attacker-controlled bytes; it does not require additional escaping.
 | EC-005 | Summary ends with whitespace before suffix | Suffix appended directly after the whitespace; one space before `(x...)`; result may have double space — acceptable, no trimming |
 | EC-006 | collapse_findings=false (opt-out) | No collapse pass runs; no count suffix on any finding; behavior per BC-2.11.028 |
 | EC-007 | show_mitre_grouping=true | Collapse pass not applied; no count suffix regardless of group sizes |
-| EC-008 | Group with N=2 and use_color=true | Base header line colored per verdict/confidence; ` (x2)` suffix appended in default terminal color (not colorized) |
+| EC-008 | Group with N=2 and use_color=true | Complete header line (including ` (x2)` suffix) colored per verdict/confidence — the suffix is part of the pre-color `line` string and is colorized together with the summary text |
 
 ## Canonical Test Vectors
 

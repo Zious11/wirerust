@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.0"
+version: "1.1"
 status: draft
 producer: product-owner
 timestamp: 2026-06-17T00:00:00Z
@@ -12,7 +12,7 @@ subsystem: SS-11
 capability: CAP-11
 lifecycle_status: active
 introduced: v0.8.0
-modified: []
+modified: ["v1.1 2026-06-17: F2 adversarial pass-1 — add singleton immutability invariant (F-259-03), severity-agnostic postcondition (F-259-04), input-order determinism assumption (F-259-06), raw-key vs escaped-display postcondition and test vector (F-259-09)"]
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -66,6 +66,24 @@ is deferred to a future cycle (see STORY-119).
 6. The collapse pass is applied strictly inside `TerminalReporter::render`; the `findings`
    slice passed to `render()` is never modified or pre-filtered upstream of the multi-reporter
    dispatch.
+7. Collapse is SEVERITY-AGNOSTIC. It applies to every group sharing the four-tuple key
+   regardless of `verdict`, `confidence`, or `category`. There is NO "low-value" filter; the
+   issue-#259 title "Collapse repeated low-value findings" describes the motivating case
+   (empty-UA flood), not a gating condition on verdict or confidence. Two `Likely/High`
+   identical findings collapse into a group of N=2 with a ` (x2)` suffix just as two
+   `Inconclusive/Low` findings would.
+8. Because the key uses RAW-byte `summary` equality (byte-exact string comparison) while the
+   terminal display applies `escape_for_terminal`, two findings whose escaped summaries are
+   visually identical on the terminal but whose raw `summary` fields differ form two DISTINCT
+   groups, each with its own count. This is intentional: forensic fidelity takes precedence
+   over visual deduplication. Example: `summary = "x\x1b"` and `summary = "x"` have different
+   raw bytes; they form two groups even though both render visually as `"x"` after escaping
+   (the first displays as `"x\u{1b}"`).
+9. Collapse determinism is CONDITIONAL on the input `findings` slice order being stable. The
+   collapse pass itself introduces NO additional non-determinism: it MUST use an
+   insertion-ordered grouping structure (e.g., `IndexMap` or a `Vec`-based accumulator), NOT
+   a `HashMap` whose iteration order is non-deterministic. Input slice-order stability is
+   upstream's responsibility and is out of scope for this BC.
 
 ## Invariants
 
@@ -84,6 +102,19 @@ is deferred to a future cycle (see STORY-119).
    (BC-2.11.029).
 5. This invariant is scoped to flat mode. When `show_mitre_grouping = true`, the collapse
    pass is not applied regardless of the `collapse_findings` field value.
+6. For a singleton group (N=1), the representative rendered is the ORIGINAL `&Finding`
+   element from the input slice (same field values, full untruncated `evidence` vec). The
+   collapse pass MUST NOT clone, reorder, or modify a singleton's fields. The N=1 render path
+   is byte-identical to calling `render_finding_flat(&original_finding)` directly. This
+   invariant is referenced by BC-2.11.026 (singleton has no suffix) and BC-2.11.029
+   (singleton renders identically to pre-v0.8.0). Any future refactor that handles the N=1
+   path differently from a direct passthrough MUST verify byte-identity against the pre-v0.8.0
+   output.
+7. The collapse grouping structure MUST be insertion-ordered (e.g., `IndexMap` from the
+   `indexmap` crate, or a `Vec<(Key, Vec<&Finding>)>` accumulator). Using a `HashMap` whose
+   iteration order is non-deterministic would violate Postcondition 9 (determinism) and
+   Postcondition 2 (first-occurrence order). This is an implementation constraint, not just a
+   behavioral contract point.
 
 ## Edge Cases
 
@@ -102,6 +133,8 @@ is deferred to a future cycle (see STORY-119).
 | EC-011 | show_mitre_grouping=true, collapse_findings=true | Collapse pass NOT applied; findings rendered individually via grouped path (scoping boundary) |
 | EC-012 | Summary contains attacker-controlled bytes (C0/ESC) | Key comparison operates on raw bytes; escape_for_terminal applied at render time per BC-2.11.010, not during key construction |
 | EC-013 | Mixed: 3 findings with key A, 2 with key B, 1 with key C; input order A,B,A,C,B,A | Output groups in order: A (count 3), B (count 2), C (count 1) — first-occurrence position of A is index 0, B is index 1, C is index 3 |
+| EC-014 | Two findings identical except verdict=Likely and confidence=High (high-severity pair), same summary | Collapsed into one group with ` (x2)` suffix — collapse is severity-agnostic; no "low-value" gating condition |
+| EC-015 | summary="x\x1b" (raw ESC byte) vs summary="x" (no ESC) | Two distinct groups — raw-byte key comparison distinguishes them even though both render visually similar after escape_for_terminal; key operates on raw bytes before any display escaping |
 
 ## Canonical Test Vectors
 
@@ -112,6 +145,8 @@ is deferred to a future cycle (see STORY-119).
 | 3 findings: key A at index 0, key B at index 1, key A at index 2 | Output: group A first, group B second (first-occurrence order) | happy-path (ordering) |
 | 2 findings same key but evidence=["req1"] vs evidence=["req2"] | 1 collapsed group (evidence differs; key matches) | edge-case (EC-003) |
 | 2 findings differ in verdict (Likely vs Unlikely), same other fields | 2 distinct groups | edge-case (EC-007) |
+| 2 findings both `(Reconnaissance, Likely, High, "Port scan")` (identical key, high severity) | 1 collapsed group with ` (x2)` suffix — severity-agnostic collapse (EC-014) | edge-case (F-259-04) |
+| 2 findings: summary="x\x1b" (ESC byte) vs summary="x" | 2 distinct groups (raw-byte key; escape_for_terminal applied at render time only) | edge-case (EC-015, F-259-09) |
 
 ## Verification Properties
 

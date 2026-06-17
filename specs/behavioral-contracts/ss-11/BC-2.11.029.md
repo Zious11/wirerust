@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: product-owner
 timestamp: 2026-06-17T00:00:00Z
@@ -12,7 +12,7 @@ subsystem: SS-11
 capability: CAP-11
 lifecycle_status: active
 introduced: v0.8.0
-modified: ["v1.1 2026-06-17: fix Postcondition 3 — remove misleading 'N=1 ≤ K=3' reasoning; singleton renders identically to pre-v0.8.0 (consistency audit remediation)"]
+modified: ["v1.1 2026-06-17: fix Postcondition 3 — remove misleading 'N=1 ≤ K=3' reasoning; singleton renders identically to pre-v0.8.0 (consistency audit remediation)", "v1.2 2026-06-17: F2 adversarial pass-1 — add precise csv.rs line anchors (csv.rs:40 neutralize, csv.rs:76 render loop); mark terminal.rs:63-75 as insertion target (F-259-05, F-259-08)"]
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -145,9 +145,10 @@ frames are intact in all machine-readable outputs; aggregation is a display-laye
 
 - `src/reporter/mod.rs` -- `Reporter` trait signature (`fn render(&self, ..., findings: &[Finding], ...) -> String`); immutable slice reference enforces no-mutation at the trait boundary
 - `src/reporter/json.rs` -- JsonReporter::render iterates every finding in the slice; no collapse path
-- `src/reporter/csv.rs` -- CsvReporter::render iterates every finding in the slice; no collapse path
-- `src/main.rs:370-375` -- TerminalReporter construction site (run_analyze); findings slice passed to all reporters
-- `src/reporter/terminal.rs:63-75` -- TerminalReporter struct; collapse_findings: bool is the only new field; collapse pass is private
+- `src/reporter/csv.rs:40` -- `neutralize_csv_injection(s: &str) -> String` (confirmed present at csv.rs:40); called for every field of every finding
+- `src/reporter/csv.rs:76` -- `for f in findings { ... }` render loop (confirmed present at csv.rs:76); iterates every finding in the slice; no collapse path
+- `src/main.rs:~run_analyze` -- **INSERTION TARGET (code TBD by STORY-118):** TerminalReporter construction site; `collapse_findings` field will be added here. Pre-story line-range approximation: ~370-375.
+- `src/reporter/terminal.rs:63-75` -- **INSERTION TARGET (code TBD by STORY-118):** TerminalReporter struct; `collapse_findings: bool` field does NOT exist yet (current struct has only `use_color`, `show_mitre_grouping`, `show_hosts_breakdown`); collapse pass will be a private method added by STORY-118
 
 ## Story Anchor
 

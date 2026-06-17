@@ -14,6 +14,58 @@ changes, invariant rewrites).
 
 ---
 
+## [issue-259-collapse-advpass1-remediation-2026-06-17] — 2026-06-17
+
+### PATCH: Issue #259 F2 Adversarial Pass-1 Remediation — 9 findings resolved
+
+**Trigger:** F2 adversarial pass-1 found 9 findings (1 CRITICAL, 4 HIGH, 4 MEDIUM). All
+remediated in one burst. No F1 locked decisions changed. total_bcs=288 unchanged.
+
+#### Finding Dispositions
+
+| Finding | Severity | BC(s) Changed | Resolution |
+|---------|----------|--------------|-----------|
+| F-259-01 | CRITICAL | BC-2.11.027 v1.1→v1.2, ADR-0003 | Positional first-K-members model enforced everywhere. EC-004 corrected: N=5/member[0]-empty → 2 lines (not 3). PC-2, Invariant-2, PC-5 rewritten to state the model unambiguously. No sliding window. |
+| F-259-02 | HIGH | BC-2.11.026 v1.0→v1.1, BC-2.11.017 v1.8→v1.9 | `(xN)` suffix IS colorized with header line. Updated Invariant 4, PC-4, EC-008 in BC-2.11.026; updated Invariant 5 in BC-2.11.017. Unimplementable "not colorized" language removed. |
+| F-259-03 | HIGH | BC-2.11.025 v1.0→v1.1 | Added Invariant 6: singleton ORIGINAL `&Finding` is passed unchanged; collapse pass MUST NOT clone/reorder/modify singleton. N=1 render is byte-identical to `render_finding_flat(&original_finding)`. |
+| F-259-04 | HIGH | BC-2.11.025 v1.0→v1.1 | Added PC-7: collapse is SEVERITY-AGNOSTIC — no "low-value" filter. Added EC-014 and test vector: two `Likely/High` identical findings → `(x2)`. |
+| F-259-05 | LOW | BC-2.11.029 v1.1→v1.2 | CSV Architecture Anchors updated with precise line refs: csv.rs:40 (`neutralize_csv_injection`) and csv.rs:76 (findings render loop). Both confirmed in source. |
+| F-259-06 | MEDIUM | BC-2.11.025 v1.0→v1.1 | Added PC-9: determinism conditional on input slice order; implementation MUST use insertion-ordered structure (not HashMap). Added as Invariant 7. |
+| F-259-07 | MEDIUM | BC-2.11.027 v1.1→v1.2 | Added N=3 (N≤K boundary) and N=4 (N>K boundary) canonical test vectors. |
+| F-259-08 | MEDIUM | BC-2.11.028 v1.1→v1.2, BC-2.11.029 v1.1→v1.2 | PC-3 in BC-2.11.028 changed from indicative to imperative. Architecture Anchors for `collapse_findings` field and main.rs wiring marked "INSERTION TARGET (code TBD by STORY-118)". `collapse_findings` confirmed absent from TerminalReporter struct. |
+| F-259-09 | MEDIUM | BC-2.11.025 v1.0→v1.1 | Added PC-8: raw-byte key vs escaped-display divergence is intentional (forensic fidelity). Added EC-015 and test vector: `summary="x\x1b"` vs `summary="x"` → two distinct groups. |
+
+#### ADR-0003 Prose Fix
+
+Evidence sampling section updated: "first min(N, K) findings" clarified to state the
+positional algorithm — empty-evidence member contributes 0 lines, window does NOT slide.
+Example added: N=5, member[0] empty → 2 lines (not 3).
+
+#### BC Version Summary
+
+| BC | Before | After |
+|----|--------|-------|
+| BC-2.11.025 | v1.0 | v1.1 |
+| BC-2.11.026 | v1.0 | v1.1 |
+| BC-2.11.027 | v1.1 | v1.2 |
+| BC-2.11.028 | v1.1 | v1.2 |
+| BC-2.11.029 | v1.1 | v1.2 |
+| BC-2.11.017 | v1.8 | v1.9 |
+
+#### Files Changed
+
+- `.factory/specs/behavioral-contracts/ss-11/BC-2.11.025.md` (v1.0 → v1.1)
+- `.factory/specs/behavioral-contracts/ss-11/BC-2.11.026.md` (v1.0 → v1.1)
+- `.factory/specs/behavioral-contracts/ss-11/BC-2.11.027.md` (v1.1 → v1.2)
+- `.factory/specs/behavioral-contracts/ss-11/BC-2.11.028.md` (v1.1 → v1.2)
+- `.factory/specs/behavioral-contracts/ss-11/BC-2.11.029.md` (v1.1 → v1.2)
+- `.factory/specs/behavioral-contracts/ss-11/BC-2.11.017.md` (v1.8 → v1.9)
+- `.factory/specs/behavioral-contracts/BC-INDEX.md` (v1.28 → v1.29; all 6 BC row annotations updated)
+- `docs/adr/0003-reporting-pipeline-layering.md` (evidence sampling prose clarified)
+- `.factory/spec-changelog.md` (this entry)
+
+---
+
 ## [issue-259-collapse-remediation-2026-06-17] — 2026-06-17
 
 ### PATCH: Issue #259 F2 Consistency Audit Remediation — BC-2.11.027/028/029 v1.0→v1.1

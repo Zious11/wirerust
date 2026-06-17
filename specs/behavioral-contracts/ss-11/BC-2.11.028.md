@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: product-owner
 timestamp: 2026-06-17T00:00:00Z
@@ -12,7 +12,7 @@ subsystem: SS-11
 capability: CAP-11
 lifecycle_status: active
 introduced: v0.8.0
-modified: ["v1.1 2026-06-17: fix Related BCs stale cross-ref BC-2.13.001 (--threats) → BC-2.13.004 (--verbose absent) (consistency audit remediation)"]
+modified: ["v1.1 2026-06-17: fix Related BCs stale cross-ref BC-2.13.001 (--threats) → BC-2.13.004 (--verbose absent) (consistency audit remediation)", "v1.2 2026-06-17: F2 adversarial pass-1 — change PC-3 from indicative to imperative (code does not exist yet); mark Architecture Anchors as insertion targets pending STORY-118 (F-259-08)"]
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -47,8 +47,11 @@ wirerust CLI. It is scoped to the `analyze` subcommand only; it has no effect on
    behavior).
 2. The flag is defined as `#[arg(long)]` `no_collapse: bool` on `Commands::Analyze` in
    `src/cli.rs`, following the `--no-color` / `--no-reassemble` pattern.
-3. The flag is wired in `src/main.rs` `run_analyze`: `collapse_findings: !args.no_collapse`
-   at the `TerminalReporter` construction site (lines ~370-375).
+3. The `no_collapse` field MUST be wired in `src/main.rs` `run_analyze` by STORY-118:
+   `collapse_findings: !args.no_collapse` at the `TerminalReporter` construction site
+   (insertion target: ~main.rs `run_analyze` function; the `TerminalReporter` struct and the
+   `collapse_findings` field do not exist yet in the codebase as of this spec — they are
+   created by STORY-118). Per LESSON-P1.04, an unwired flag is a spec violation.
 
 ## Postconditions
 
@@ -139,9 +142,9 @@ wirerust CLI. It is scoped to the `analyze` subcommand only; it has no effect on
 
 ## Architecture Anchors
 
-- `src/cli.rs:151-153` -- `#[arg(long)] no_reassemble: bool` pattern to follow for `no_collapse`
-- `src/main.rs:370-375` -- TerminalReporter construction site in run_analyze; `collapse_findings: !args.no_collapse` to be added here
-- `src/reporter/terminal.rs:63-75` -- TerminalReporter struct; `collapse_findings: bool` field to be added
+- `src/cli.rs:151-153` -- `#[arg(long)] no_reassemble: bool` pattern to follow for `no_collapse` (existing code; reference only)
+- `src/main.rs:~run_analyze` -- **INSERTION TARGET (code TBD by STORY-118):** `collapse_findings: !args.no_collapse` at TerminalReporter construction. The `collapse_findings` field does NOT exist on TerminalReporter yet; line numbers will be determined when STORY-118 adds the field. The ~370-375 range is a pre-story approximation.
+- `src/reporter/terminal.rs:63-75` -- **INSERTION TARGET (code TBD by STORY-118):** `collapse_findings: bool` field to be added to TerminalReporter struct. Currently the struct has only `use_color`, `show_mitre_grouping`, `show_hosts_breakdown` — `collapse_findings` is not yet present.
 
 ## Story Anchor
 

@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.8"
+version: "1.9"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -21,6 +21,7 @@ modified:
   - "v1.5: ADR-006 / Decision 13 §13.7 (F2 v0.3.0) — multi-tag rendering: single ID emits 'MITRE: T1036'; multi-tag emits 'MITRE: T0855, T0836' (comma-space separated); empty vec emits no MITRE line. Precondition 2 and EC-003 updated; EC-005/EC-006 added. — 2026-06-09"
   - "v1.6: v19 remap: T0855 → T1692.001 per MITRE ATT&CK for ICS v19.0 revocation. All T0855 technique ID references in Description, Postconditions, EC-005, EC-006, and Canonical Test Vectors updated to T1692.001. Tactic unchanged: IcsImpairProcessControl. Issue #222; audit: mitre-ics-v19-catalog-audit.md. — 2026-06-10"
   - "v1.8: issue-#259 F2 integrate (v0.8.0 collapse feature) — extend Description and add Invariant 5 and EC-007: when collapse_findings=true (default in v0.8.0), render_finding_flat is called per collapsed group with the collapsed representative Finding, and the header line appends a (xN) count suffix per BC-2.11.026; when N=1 (singleton), the header line is byte-identical to the pre-v0.8.0 output; when collapse_findings=false (--no-collapse), all existing postconditions remain byte-identical to pre-v0.8.0. Cross-references BC-2.11.025/026/028/029. ADR-0003 (display-layer aggregation subsection) cited. — 2026-06-17"
+  - "v1.9 2026-06-17: F2 adversarial pass-1 — update Invariant 5: (xN) suffix is colorized identically with the header line (no uncolorized suffix; suffix appended to pre-color line string before colorization) (F-259-02)"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -87,7 +88,10 @@ byte-identical to the pre-v0.8.0 behavior.
    group's representative `&Finding`) and appends the ` (xN)` count suffix to the header line
    per BC-2.11.026 Postcondition 1. The MITRE line produced by `render_finding_flat` is
    unchanged; the suffix is appended to the `render_finding_prefix` header line, not to the MITRE
-   line. When `collapse_findings = false` (`--no-collapse`), the flat dispatch block calls
+   line. The ` (xN)` suffix is part of the pre-color `line` string and is therefore colorized
+   identically with the header line — there is no uncolorized suffix in the output (F-259-02
+   adjudication; verified against render_finding_prefix terminal.rs:205-222). When
+   `collapse_findings = false` (`--no-collapse`), the flat dispatch block calls
    `render_finding_flat` once per raw finding, identical to the pre-v0.8.0 code path.
 
 ## Edge Cases

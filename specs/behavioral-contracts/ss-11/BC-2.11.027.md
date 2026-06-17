@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: product-owner
 timestamp: 2026-06-17T00:00:00Z
@@ -12,7 +12,7 @@ subsystem: SS-11
 capability: CAP-11
 lifecycle_status: active
 introduced: v0.8.0
-modified: ["v1.1 2026-06-17: fix N=1 singleton model — K-cap does NOT apply to singletons; evidence renders unchanged per BC-2.11.010 (consistency audit remediation)"]
+modified: ["v1.1 2026-06-17: fix N=1 singleton model — K-cap does NOT apply to singletons; evidence renders unchanged per BC-2.11.010 (consistency audit remediation)", "v1.2 2026-06-17: F2 adversarial pass-1 — fix CRITICAL F-259-01: enforce positional first-K-members model throughout (PC-2/Invariant-2/PC-5/EC-004/test vectors); fix EC-004 total=2 not 3; add N=3/N=4 boundary vectors (F-259-07)"]
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -51,16 +51,20 @@ configurable via CLI flag. Future cycles may expose K as `--collapse-evidence-sa
 1. The terminal output for a collapsed group contains at most K=3 evidence lines
    (rendered as `    > <escaped_evidence_line>\n` per the existing render_finding_prefix
    format).
-2. Evidence lines are drawn from the first min(N, K) distinct findings in the group, in
-   original emission order. From each selected finding, the first evidence entry
-   (`finding.evidence[0]`) is used as the representative sample line.
+2. Evidence lines are drawn from the FIRST min(N, K) members in the group (by position in
+   the original emission order — purely positional). For each of these inspected members, if
+   `finding.evidence` is non-empty, `finding.evidence[0]` is emitted as the representative
+   line; if `finding.evidence` is empty, that member contributes 0 lines and the window does
+   NOT slide to the next member. The total number of rendered evidence lines is therefore
+   at most min(N, K) but may be less if any inspected member has an empty evidence vec.
 3. When N≥1 and all N findings have empty `evidence` vecs, zero evidence lines are rendered
    (no blank `> ` lines). This matches the pre-collapse behavior for findings with no evidence.
 4. When the group has N>K findings, exactly K evidence lines appear in the terminal output
    (assuming all K selected findings have at least one evidence entry). No "N-K more evidence
    lines elided" annotation or similar indicator is emitted.
-5. When the group has N≤K findings, all available evidence is rendered (one line per finding
-   that has at least one evidence entry). The K cap is not reached.
+5. When the group has N≤K findings, all N members are inspected (since min(N,K)=N). Evidence
+   is rendered as one line per member that has a non-empty evidence vec. The K cap is not
+   reached; the positional window covers all members.
 6. Each rendered evidence line is passed through `escape_for_terminal` before output,
    identical to the existing per-finding evidence rendering (BC-2.11.010).
 
@@ -68,9 +72,13 @@ configurable via CLI flag. Future cycles may expose K as `--collapse-evidence-sa
 
 1. K=3 is a compile-time named constant (e.g., `const COLLAPSE_EVIDENCE_SAMPLES: usize = 3`).
    It is not configurable by the caller or by any CLI flag in v0.8.0.
-2. Evidence sampling draws from the first K members in group order (i.e., the first K findings
-   in the input slice that share the collapse key). It does NOT select "most representative",
-   "highest confidence", or otherwise reorder by any criterion — it is purely positional.
+2. Evidence sampling is POSITIONAL: inspect the first min(N,K) members in group order (the
+   first min(N,K) findings in the input slice that share the collapse key). From each
+   inspected member, take `evidence[0]` IF the vec is non-empty; otherwise contribute 0 lines.
+   The window does NOT slide past empty-evidence members — if member[0] has empty evidence,
+   member[K] (index K) is still NOT inspected. The algorithm never "skips" an empty member to
+   find the next non-empty one. It does NOT select "most representative", "highest confidence",
+   or otherwise reorder by any criterion — it is purely positional, purely bounded, no sliding.
 3. The evidence cap applies only to the terminal display. The `Finding.evidence` field on
    every finding in the group is never truncated or mutated.
 4. Elision is silent: no elision marker (e.g., "... and N more") is rendered in v0.8.0.
@@ -91,7 +99,7 @@ configurable via CLI flag. Future cycles may expose K as `--collapse-evidence-sa
 | EC-001 | Group with N=1 member (singleton), 5 evidence lines | All 5 evidence lines rendered, unchanged from pre-v0.8.0 behavior (K-cap does NOT apply to singletons; singleton passes through unmodified per BC-2.11.010) |
 | EC-002 | Group with N=5 members, each with 1 evidence line | 3 evidence lines rendered (from members[0], members[1], members[2]); members[3] and members[4] evidence elided |
 | EC-003 | Group with N=2 members, 1 evidence line each | Both evidence lines rendered (N≤K, no elision) |
-| EC-004 | Group with N=5 members, members[0] has empty evidence, others have 1 each | members[0] contributes 0 lines; members[1], members[2], members[3] each contribute 1 line; total = 3 lines (K cap reached counting non-empty contributions) |
+| EC-004 | Group with N=5 members, members[0] has empty evidence, others have 1 each | Positional window inspects members[0], members[1], members[2] (first min(5,3)=3 members). member[0] contributes 0 lines (empty vec; window does NOT slide). member[1] + member[2] each contribute 1 line. **Total = 2 lines.** members[3] and members[4] are never inspected. |
 | EC-005 | Group with N=5 members, all have empty evidence | Zero evidence lines rendered |
 | EC-006 | Group with N=3 members, member[0] has 2 evidence lines, others have 1 each | Only evidence[0] from member[0] is used; total = 3 lines (one per member, first entry only) |
 | EC-007 | Evidence line contains ESC byte | Escaped via escape_for_terminal before output; escape invariant preserved |
@@ -107,6 +115,8 @@ configurable via CLI flag. Future cycles may expose K as `--collapse-evidence-sa
 | 5 identical-key findings, all evidence=[] | Zero evidence lines rendered (no blank `>` lines) | edge-case (empty evidence) |
 | 3 identical-key findings: member[0].evidence=["a","b"], member[1].evidence=["c"], member[2].evidence=["d","e"] | 3 evidence lines: `> a`, `> c`, `> d` (evidence[0] from each of the first 3 members in emission order; member[0].evidence[1]="b" and member[2].evidence[1]="e" elided) | edge-case (N=K=3, evidence[0]-from-first-3-members pattern) |
 | Evidence line containing "\x1b[31m" (ANSI escape) | Rendered as `> \\x1b[31m` (escaped) | edge-case (EC-007) |
+| N=3 identical-key findings, each with exactly 1 evidence line (evidence=["e0"], ["e1"], ["e2"]) | Header `(x3)`, exactly 3 evidence lines: `> e0`, `> e1`, `> e2` — NO elision (N≤K boundary: N=K=3, all members inspected, all contribute) | N≤K boundary (F-259-07) |
+| N=4 identical-key findings, each with exactly 1 evidence line (evidence=["e0"], ["e1"], ["e2"], ["e3"]) | Header `(x4)`, exactly 3 evidence lines: `> e0`, `> e1`, `> e2` — member[3] evidence elided (N>K boundary: N=4>K=3, only first 3 members inspected) | N>K boundary (F-259-07) |
 
 ## Verification Properties
 
