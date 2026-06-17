@@ -7,7 +7,7 @@ feature_arp_status: "v0.7.0 RELEASED 2026-06-16 — ARP Security Analyzer (E-16,
 feature_8_status: "v0.6.0 RELEASED 2026-06-12 — DNP3 TCP analyzer; F7 5-dim CONVERGED; tag v0.6.0 + 4 binaries"
 product: wirerust
 mode: brownfield
-timestamp: 2026-06-17T20:00:00Z
+timestamp: 2026-06-17T21:30:00Z
 maintenance_run: COMPLETE
 maintenance_run_id: maint-2026-06-17
 maintenance_started_at: "2026-06-17"
@@ -228,7 +228,7 @@ ADR-0007 Decision 2 prose-clarity nit — arithmetic-walk thinking artifact; fol
 
 **Step 4 — NEXT ACTIONS (human decision required — no auto-continue):**
 - Action deferred maint items: dep bumps (rand, zerocopy), spec/holdout label-lag, ADR-0007 prose nit.
-- Open issues: #252 (VP-024 proof_file_hash), #255 (JSON snake_case), #259 (collapse low-value findings), #103/#101 (reassembly), #67/#64/#63/#62 (reporter/test), #6 (rayon), #4 (CSV/SQLite), #3 (C2 beaconing).
+- Open issues: #252 (VP-024 proof_file_hash — DF-VALIDATION-001 GENUINE), #255 (JSON snake_case — DF-VALIDATION-001 GENUINE), #259 (finding-collapse — DF-VALIDATION-001 GENUINE; report `.factory/research/issue-259-finding-collapse-validation.md`), #103/#101 (reassembly), #67/#64/#63/#62 (reporter/test), #6 (rayon), #4 (CSV/SQLite), #3 (C2 beaconing).
 - Next feature: select ICS protocol or roadmap item — human decision required.
 - No automatic pipeline continues.
 
@@ -274,6 +274,7 @@ D-001..D-054 archived: `cycles/v0.1.0-greenfield-spec/decisions-archive.md` (D-0
 | D-078b | Completion — sibling lax `Some(LaxNetSlice::Arp)` arm also routes extract_arp_frame returning None to "Non-Ethernet/IPv4 ARP frame" → D11 (defensive path-independence). Arm is structurally unreachable via integration (etherparse raises SliceError::Len before populating Arp); documented in tests/bc_2_16_d078b_lax_some_arm_tests.rs. Plus decoder.rs doc-comment correctness sweep (3 loci). F5 streak VOIDED by D-078/D-078b code change; counter reset to 0/3. PR #248 (merge 2d2fadf). | 2026-06-16 |
 | D-F1 | F5 Pass 1/3 (re-run on 2d2fadf) found F-1 MEDIUM: D-078 lax None-arm peek hard-coded Ethernet2 offset 14, ignoring `lax.link_exts` — for VLAN-tagged ARP, peeked the 802.1Q TCI bytes as ARP htype → false-positive D11 (fix-induced regression: D-078 LOW fix cascaded into MEDIUM false-positive). Fix: `arp_offset = 14 + lax.link_exts.iter().map(|ext| ext.header_len()).sum()` (correct for single VLAN/QinQ/MACsec). Security review CLEAN. Spec: BC-2.16.015 v1.5→v1.6, BC-2.16.009 v1.6→v1.7. New tests: tests/bc_2_16_d078_vlan_offset_tests.rs (4). F5 counter reset to 0/3 (re-run in progress on 079013d). PR #249 (merge 079013d). Meta-lesson: LOW-fix (O-A) cascaded 3 PRs + MEDIUM regression; fix-induced-regression risk should weigh into whether a LOW finding is worth fixing vs documenting. | 2026-06-16 |
 | D-080 | Issue #220 CLOSED — reactive fix-PR delivery. Modbus write-burst summary cosmetic display bug: `elapsed_secs` (showed 0s on same-second bursts) replaced with `window_secs` (`WRITE_BURST_WINDOW_SECS`). `elapsed_ms` dead binding removed. BC-2.14.017 v2.6 (PC1 + new EC-011 same-second/elapsed==0 case). Spec commit 8d5446d (factory-artifacts). PR #263 `fix(modbus): report burst window width not elapsed span in summary` MERGED to develop (5ed8077). 9/9 CI green; security APPROVE (0 findings); code review APPROVE (3 LOW non-blocking — CR-001 window_end unused import, CR-002 threshold doc nit, CR-003 elapsed_secs==1 companion test absent); pr-reviewer APPROVE. New regression test `test_BC_2_14_017_burst_summary_reports_window_width_not_elapsed`. Pipeline STEADY_STATE unchanged; no phase change. | 2026-06-17 |
+| D-081 | Steady-state issue triage 2026-06-17 — 12 open issues surveyed; 3 new issues validated GENUINE via DF-VALIDATION-001: #259 finding-collapse (research-agent GENUINE/HIGH — terminal reporter aggregation; report at `.factory/research/issue-259-finding-collapse-validation.md`); #255 JSON snake_case (arp-followups-validation.md item 4 GENUINE — improvement not defect); #252 VP-024 proof_file_hash (arp-followups-validation.md item 1a GENUINE — governance/traceability). Labels applied: #259 → `enhancement`,`reporter`; #255 → `+reporter`; #252 → `+protocol:arp`. New GitHub label `protocol:arp` (#1D76DB) created — fills ARP protocol:* gap (ARP shipped v0.7.0 had no protocol label). Pipeline STEADY_STATE/IDLE; no phase change. | 2026-06-17 |
 
 ## Blocking Issues
 
