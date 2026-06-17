@@ -11,6 +11,21 @@ Archived per content-routing rules (STATE.md keeps only the LATEST checkpoint).
 
 ---
 
+## Archived Checkpoint: 2026-06-17 — E-17 F4 COMPLETE; NEXT = F5 scoped adversarial
+
+**Archived from STATE.md on:** 2026-06-17 (replaced by "E-17 F5 GATE SATISFIED 3/3; NEXT = F6 targeted hardening" checkpoint)
+
+### POSITION
+
+- E-17 F1 PASSED. E-17 F2 adversarial gate SATISFIED 3/3. E-17 F3 COMPLETE and frozen (dd34205). E-17 F3 adversarial gate SATISFIED 3/3.
+- E-17 F4 Delta Implementation: COMPLETE — 10 tests (4 QinQ + 6 MACsec) committed cb2bf06 on PR #258; local+CI green; no src/ delta; clippy/fmt CLEAN.
+- E-17 F4 Wave-Level Adversarial Convergence: GATE SATISFIED 3/3 (cb2bf06 — P1 a2c9149c / P2 afec0575 / P3 a6c3e1ba); each zero MEDIUM+.
+- E-17 F4 Holdout Evaluation: PASS — NO REGRESSION. Mean 1.00 (13/13; critical-min 1.00). Zero src/ delta confirmed. All v0.7.0 ARP detections + flags unchanged. 53 ARP-matched tests pass.
+- E-17 F4 COMPLETE. NEXT = F5 scoped adversarial.
+- develop HEAD: 480f8ae == origin/develop. main HEAD: dd8e142 (v0.7.0). PR #258 open; CI green.
+
+---
+
 ## Archived Checkpoint: 2026-06-15 — F4 wave-level adversarial Pass 1 NOT CLEAN; D-074 REMEDIATED via PR #242; NEXT = fresh F4 wave-level adversarial Pass 1
 
 **Archived from STATE.md on:** 2026-06-15 (replaced by "F4 wave-level adversarial GATE SATISFIED 3/3; NEXT = holdout eval" checkpoint)

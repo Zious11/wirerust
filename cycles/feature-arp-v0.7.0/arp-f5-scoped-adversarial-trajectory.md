@@ -234,9 +234,44 @@ Documentation of the risk (vs fix) is a valid alternative adjudication path for 
 
 ---
 
-## Current Status
+## Current Status (ARP E-16 F5)
 
-**arp_f5_scoped_adversary_convergence_counter: 3/3 CONVERGED — F5 scoped-adversarial gate SATISFIED**
+**arp_f5_scoped_adversary_convergence_counter: 3/3 CONVERGED — E-16 F5 scoped-adversarial gate SATISFIED (develop 079013d)**
 
 Trajectory shorthand (full history):
 `P1-CLEAN(bcb1bd6;O-A-obs)→P2-CLEAN(bcb1bd6)→[D-078+D-078b RESET]→F-1-MEDIUM(2d2fadf)→[F-1-fix RESET]→P1/3-CLEAN(079013d)→P2/3-CLEAN(079013d)→P3/3-CLEAN(079013d)→GATE-SATISFIED`
+
+---
+
+## E-17 F5 Scoped Adversarial — QinQ/MACsec Fixture Delta (cb2bf06)
+
+**Gate:** 3 consecutive fresh-context passes with zero MEDIUM+ findings over the E-17 delta
+(PR #258 branch test/arp-qinq-macsec-fixtures, commit cb2bf06: 10 tests, 4 QinQ + 6 MACsec,
+test-only, no src/ delta). Security/robustness lens.
+
+### Pass Summary Table
+
+| Pass | SHA | Date | Findings (MEDIUM+) | Counter | Outcome |
+|------|-----|------|--------------------|---------|---------|
+| P1 | a4b70a59 | 2026-06-17 | 0 | 1/3 | CLEAN |
+| P2 | a97d26e3 | 2026-06-17 | 0 | 2/3 | CLEAN |
+| P3 | ac72bce2 | 2026-06-17 | 0 | 3/3 | CONVERGED |
+
+### Scope Verified (all three passes)
+
+- Delta: test-only (no unsafe/panic/unbounded-alloc/non-determinism introduced).
+- V5/V6 MACsec ciphertext-opaque property (CWE-693): asserted correct-polarity AND non-vacuous.
+  Corroborated via etherparse lax_macsec_slice.rs — `Layer::Arp` is structurally unreachable
+  for MACsec-Modified payloads (etherparse does not expose inner decrypted bytes), confirming
+  the property is genuinely exercised, not vacuously true.
+- Decoder bounds-safety: unchanged from v0.7.0; no new decode paths added.
+- No silent-failure: all malformed paths emit appropriate diagnostics.
+- Residual LOWs (V5/V6 under-count-only diagnostics): tracked non-blocking; do not affect MEDIUM+ gate.
+
+### Gate Status
+
+**E-17 F5 scoped-adversarial gate SATISFIED 3/3 (2026-06-17, cb2bf06).**
+
+**e17_f5_scoped_adversary_convergence_counter: 3/3 SATISFIED (cb2bf06; a4b70a59/a97d26e3/ac72bce2)**
+
+NEXT = F6 targeted hardening (`vsdd-factory:phase-f6-targeted-hardening`).
