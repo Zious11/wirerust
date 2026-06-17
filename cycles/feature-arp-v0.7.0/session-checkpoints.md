@@ -11,6 +11,23 @@ Archived per content-routing rules (STATE.md keeps only the LATEST checkpoint).
 
 ---
 
+## Archived Checkpoint: 2026-06-17 — E-17 F6 SATISFIED; NEXT = F7 delta convergence
+
+**Archived from STATE.md on:** 2026-06-17 (replaced by "E-17 F7 CONVERGED; NEXT = F7 human gate → v0.7.1 release" checkpoint)
+
+### POSITION
+
+- E-17 F1 PASSED. E-17 F2 adversarial gate SATISFIED 3/3. E-17 F3 COMPLETE and frozen (dd34205). E-17 F3 adversarial gate SATISFIED 3/3.
+- E-17 F4 Delta Implementation: COMPLETE — 10 tests (4 QinQ + 6 MACsec) committed cb2bf06 on PR #258; local+CI green; no src/ delta; clippy/fmt CLEAN.
+- E-17 F4 Wave-Level Adversarial Convergence: GATE SATISFIED 3/3 (cb2bf06 — P1 a2c9149c / P2 afec0575 / P3 a6c3e1ba); each zero MEDIUM+.
+- E-17 F4 Holdout Evaluation: PASS — NO REGRESSION. Mean 1.00 (13/13; critical-min 1.00). Zero src/ delta confirmed. 53 ARP-matched tests pass.
+- E-17 F5 Scoped Adversarial: GATE SATISFIED 3/3 (2026-06-17, cb2bf06; P1 a4b70a59 / P2 a97d26e3 / P3 ac72bce2; each zero MEDIUM+).
+- E-17 F6 Targeted Hardening: SATISFIED (2026-06-17). VP-024 5/5 Kani VERIFICATION SUCCESSFUL (verify_extract_arp_frame_safety/eth_ipv4_correctness/none_on_bad_size at decoder.rs:616/643/705; verify_classify_garp_total/binding_table_cap at arp.rs:4371/4423). Fuzz 6.19M/0. audit CLEAN. No new proof obligation.
+- develop HEAD: 480f8ae == origin/develop. main HEAD: dd8e142 (v0.7.0). PR #258 open; CI green.
+- NEXT = F7 delta convergence.
+
+---
+
 ## Archived Checkpoint: 2026-06-17 — E-17 F4 COMPLETE; NEXT = F5 scoped adversarial
 
 **Archived from STATE.md on:** 2026-06-17 (replaced by "E-17 F5 GATE SATISFIED 3/3; NEXT = F6 targeted hardening" checkpoint)

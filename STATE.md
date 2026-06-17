@@ -36,7 +36,7 @@ prior_release_tag: v0.6.0
 prior_release_commit: 3e29891
 current_cycle: v0.1.0-greenfield-spec
 current_wave: 27 (FINAL — CLOSED)
-stories_delivered: 57
+stories_delivered: 70  # STORY-INDEX total_stories: 70 (68 merged + STORY-116/117 pending merge on PR #258)
 wave_history_detail: "cycles/phase-3-tdd/wave-history.md (all waves 1-27)"
 dtu_required: false
 dtu_assessment: 2026-05-20
@@ -54,6 +54,7 @@ e17_f4_wave_adversary_convergence_counter: "3/3 SATISFIED — GATE SATISFIED (cb
 e17_f4_holdout_status: "PASS — NO REGRESSION; mean 1.00 (13/13); critical-min 1.00; zero src/ delta confirmed; all v0.7.0 ARP detections + flags byte-identical; 53 ARP-matched tests pass; MACsec no-regression validated; QinQ/VLAN benign/malformed scenario discrimination confirmed"
 e17_f5_scoped_adversary_convergence_counter: "3/3 SATISFIED (cb2bf06; a4b70a59/a97d26e3/ac72bce2) — E-17 F5 scoped-adversarial gate SATISFIED 2026-06-17; test-only delta (no unsafe/panic/unbounded-alloc/non-determinism); V5/V6 MACsec ciphertext-opaque property (CWE-693) correct-polarity + non-vacuous (corroborated etherparse lax_macsec_slice.rs — Layer::Arp structurally unreachable for Modified payloads); decoder bounds-safety unchanged from v0.7.0; no silent-failure; residual LOWs all fenced/non-blocking"
 e17_f6_hardening_status: "SATISFIED — VP-024 5/5 Kani run-confirmed, fuzz 6.2M+/0, audit clean, no new proof obligation (test-only)"
+e17_f7_convergence_status: "CONVERGED — 5-dim MET; F7 holistic adversarial 3/3 (cb2bf06; ad2442cd/acdf40b1/afeb0e8e); release-ready v0.7.1"
 arp_f2_convergence_trajectory: "15→20→~8→~15→~6→~4→~4→~7→~4→~6→~5→~18→~8→~22(P14: 2C/5H NEW corpus-debt; trend broke; ARP delta clean 6th pass)→P15(8 findings: holdout-layer field-rename + regression; REMEDIATED)→P16(7: 0C/0H, sibling-sweep misses; REMEDIATED; Slice B CLEAN)→P17(10: holdout MITRE-counts + module-decomposition peer; REMEDIATED; Slice B CLEAN 2nd)→P18(9: ss-05 anchor-drift + indicatif + STORY-INDEX; 0C/3H; REMEDIATED; arp.rs+holdout pre-flush verified clean)→P19(15: corpus-wide anchor-drift; 0C/8H; PARTIAL — ss-07-full+remaining-BC pending)→ batch2: ss-07-full(35 BCs)+ss-04-partial(21 BCs)+ss-11(10 BCs); ss-01/02/08/13 CLEAN; ss-04-remainder+ss-12 to Pass-20 — REMEDIATED → P20(7: anchor-drift flushed, ss-04/ss-12 closed; 0C/1H; Slices A+C CLEAN; REMEDIATED) → P21(5 cosmetic; 0C/0H; A+C CLEAN; REMEDIATED) → P22(5 valid; 0C/0H; cosmetic; version-pin hardened; REMEDIATED) → P23(5; B/C/D CLEAN; Slice-A only; 0C/0H; REMEDIATED) → P24(4: D-01 DNP3-C24 sweep genuine + 3 self-induced; 0C/1H; B+C CLEAN; REMEDIATED) → P25(2; A/B/C CLEAN; changelog-path flush; 0C/0H; REMEDIATED) → P26 CLEAN 1/3 (all 4 slices zero findings; corpus-wide debt flushed P14-25) → P27 reset 1/3→0/3 (HS-008 kill-chain + HS-INDEX pin; holdout-pin-hardened) → P28 CLEAN 1/3 (restart after P27 reset) → P29 reset 1/3→0/3 (DNP3 T1692.001 + PRD FC-0x17 content gaps; REMEDIATED) → P30 (4 HIGH genuine: FlowKey accessor + STORY input-hash dup + ADR-006 FC0x17; REMEDIATED) → P31 CLEAN 1/3 (restart; P30 HIGH fixes held; all 4 slices zero findings) → P32 CLEAN 2/3 (2nd consecutive) → P33 CLEAN 3/3 CONVERGED (F2 strict-whole-corpus gate satisfied after 33 passes). Detail: phase-f5-adversarial/arp-f2-convergence-trajectory.md"
 f3_convergence_trajectory: "F3 STRICT WHOLE-CORPUS CONVERGED 3/3 — GATE SATISFIED (E-16, STORY-111..115). Full per-pass detail P1-P38: phase-f5-adversarial/arp-f3-convergence-trajectory.md. P36/P37/P38 consecutive CLEAN. Total: 38 passes. E-17 ROUND-2 STREAK: GATE SATISFIED 3/3 (genuine, dd34205) — P1 aeddd3a4 / P2 aa09cc4e / P3 ab72e18d, all CLEAN on dd34205, each zero MEDIUM+; input-hash discharged (c389b39 MATCH). Prior 'E17-F3 Pass 1 CLEAN / clean-streak 1/3' record (ae977cb) VOIDED (unbacked; real adversary hung, a9f139ef). Detail: arp-f3-convergence-trajectory.md §E-17 F3 section."
 f7_convergence_trajectory: "6 fresh-context adversarial passes; final 3 consecutive CONVERGED (0 P0/CRITICAL/HIGH/MEDIUM)"
@@ -112,59 +113,60 @@ input_drift_check: "F7-followup-dispositions burst (2026-06-16): STORY-071=6b408
 | E-17: ARP QinQ/MACsec offset hardening (issue #253) — F4 Holdout Evaluation | **PASS — NO REGRESSION** (2026-06-17). Mean satisfaction 1.00 (13/13 scenarios at 1.0; critical-min 1.00). Zero src/ delta confirmed (develop...HEAD = 2 test files, +1841/-0, zero src/); analyzer runtime behavior byte-identical to v0.7.0. CLI-exercised: benign VLAN/QinQ ARP → no false D11; genuine malformed (D11) + mismatch (D12, incl. QinQ double-tag) still fire; D1 spoof works through VLAN tags; all v0.7.0 ARP detections + flags unchanged. MACsec test-validated (no public on-wire fixture). 53 ARP-matched tests pass. **F4 COMPLETE** (delta + wave-adversarial 3/3 + holdout all done). NEXT = F5 scoped adversarial. | **PASSED** |
 | E-17: ARP QinQ/MACsec offset hardening (issue #253) — F5 Scoped Adversarial | **GATE SATISFIED 3/3** (2026-06-17, cb2bf06). Three verified fresh-context CLEAN passes (security/robustness lens) on the E-17 delta: a4b70a59 (P1), a97d26e3 (P2), ac72bce2 (P3); each zero MEDIUM+. Test-only delta confirmed (no unsafe/panic/unbounded-alloc/non-determinism). V5/V6 MACsec ciphertext-opaque property (CWE-693) asserted correct-polarity + non-vacuous (corroborated etherparse lax_macsec_slice.rs — Layer::Arp structurally unreachable for Modified payloads). Decoder bounds-safety unchanged from v0.7.0. No silent-failure. Residual LOWs all fenced/non-blocking. Trajectory: `cycles/feature-arp-v0.7.0/arp-f5-scoped-adversarial-trajectory.md` §E-17 F5. NEXT = F6 targeted hardening. | **GATE SATISFIED** |
 | E-17: ARP QinQ/MACsec offset hardening (issue #253) — F6 Targeted Hardening | **SATISFIED** (2026-06-17). Zero src/ delta (test-only, 2 files +1841). VP-024 5/5 Kani harnesses run-confirmed VERIFICATION SUCCESSFUL (verify_extract_arp_frame_safety/eth_ipv4_correctness/none_on_bad_size at decoder.rs:616/643/705; verify_classify_garp_total/binding_table_cap at arp.rs:4371/4423). Fuzz VP-008 fuzz_decode_packet: 4.08M + 2.11M runs, 0 crashes, empty artifacts. cargo-audit: only known-accepted RUSTSEC-2026-0097, no new advisory; clippy/fmt clean. Mutation v0.7.0 98.9% ARP kill applies (src unchanged). No new VP/proof obligation. VP-024 verification_lock untouched. | **SATISFIED** |
+| E-17: ARP QinQ/MACsec offset hardening (issue #253) — F7 Delta Convergence | **CONVERGED — 5-dim ALL MET** (2026-06-17, PR #258 @ cb2bf06). (1) Regression CI 9/9 GREEN (consistency-validator audit a5e0c652); (2) Verification PASS (VP-024 5/5 Kani SUCCESSFUL + fuzz 6.19M/0 + audit CLEAN + VP counts 24 consistent); (3) Impl/spec convergence (F4 delta 3/3 + holdout 1.00 + AC traces); (4) Robustness (F5 3/3); (5) Documentation/coherence whole-corpus CONSISTENT. F7 HOLISTIC ADVERSARIAL GATE SATISFIED 3/3 — three verified fresh-context CLEAN release-readiness passes on cb2bf06: ad2442cd (P1), acdf40b1 (P2), afeb0e8e (P3); each zero MEDIUM+; all four lenses (coherence/completeness/ship-safety/MACsec-limitation-honesty) confirmed. Delta = PR #258 @ cb2bf06 (test-only, 2 files +1841/-0, zero src/). E-17 cycle F1..F7 CONVERGED. RELEASE-READY for v0.7.1. | **CONVERGED** |
 
-## Session Resume Checkpoint (2026-06-17 — E-17 F6 SATISFIED; NEXT = F7 delta convergence)
+## Session Resume Checkpoint (2026-06-17 — E-17 F7 CONVERGED; NEXT = F7 human gate → v0.7.1 release)
 
-**Previous checkpoint (2026-06-17 — E-17 F5 GATE SATISFIED 3/3; NEXT = F6 targeted hardening) archived to:
+**Previous checkpoint (2026-06-17 — E-17 F6 SATISFIED; NEXT = F7 delta convergence) archived to:
 `cycles/feature-arp-v0.7.0/session-checkpoints.md`**
 
 ### A. EXACT PIPELINE POSITION
 
-- **Project:** wirerust. Mode: STEADY-STATE (top-level pipeline IDLE; E-17 sub-cycle IN PROGRESS).
-- **E-17 "ARP QinQ/MACsec offset hardening" (issue #253): CYCLE OPEN.**
+- **Project:** wirerust. Mode: STEADY-STATE (top-level pipeline IDLE; E-17 sub-cycle CONVERGED).
+- **E-17 "ARP QinQ/MACsec offset hardening" (issue #253): F1..F7 ALL CONVERGED — awaiting human release gate.**
 - **E-17 F1:** PASSED (human-gated 2026-06-16).
 - **E-17 F2:** COMPLETE — adversarial gate SATISFIED 3/3 (2026-06-16).
-- **E-17 F3:** ADVERSARIAL GATE SATISFIED 3/3 (genuine, dd34205) — F3 human gate PASSED (F4 authorized).
-- **E-17 F4 Delta Implementation:** COMPLETE — 10 tests (4 QinQ + 6 MACsec) committed cb2bf06 on PR #258 branch test/arp-qinq-macsec-fixtures; local+CI green; no src/ delta; clippy/fmt CLEAN.
+- **E-17 F3:** ADVERSARIAL GATE SATISFIED 3/3 (genuine, dd34205) — F3 human gate PASSED.
+- **E-17 F4 Delta Implementation:** COMPLETE — 10 tests (4 QinQ + 6 MACsec) committed cb2bf06 on PR #258; local+CI green; no src/ delta; clippy/fmt CLEAN.
 - **E-17 F4 Wave-Level Adversarial Convergence:** GATE SATISFIED 3/3 (cb2bf06 — P1 a2c9149c / P2 afec0575 / P3 a6c3e1ba); each zero MEDIUM+.
 - **E-17 F4 Holdout Evaluation:** PASS — NO REGRESSION. Mean 1.00 (13/13; critical-min 1.00). Zero src/ delta confirmed. All v0.7.0 ARP detections + flags unchanged. 53 ARP-matched tests pass.
-- **E-17 F4: COMPLETE** (delta + wave-adversarial 3/3 + holdout all done).
-- **E-17 F5 Scoped Adversarial:** GATE SATISFIED 3/3 (2026-06-17, cb2bf06). Three verified fresh-context CLEAN passes: a4b70a59 (P1), a97d26e3 (P2), ac72bce2 (P3); each zero MEDIUM+. Security/robustness lens: no unsafe/panic/unbounded-alloc/non-determinism; V5/V6 MACsec CWE-693 correct-polarity + non-vacuous; decoder bounds-safety unchanged; no silent-failure. Residual LOWs non-blocking.
-- **E-17 F6 Targeted Hardening:** SATISFIED (2026-06-17). Zero src/ delta (test-only, 2 files +1841). VP-024 5/5 Kani harnesses run-confirmed VERIFICATION SUCCESSFUL (verify_extract_arp_frame_safety/eth_ipv4_correctness/none_on_bad_size at decoder.rs:616/643/705; verify_classify_garp_total/binding_table_cap at arp.rs:4371/4423). Fuzz VP-008 fuzz_decode_packet: 4.08M + 2.11M runs, 0 crashes, empty artifacts. cargo-audit: only known-accepted RUSTSEC-2026-0097, no new advisory; clippy/fmt clean. Mutation v0.7.0 98.9% ARP kill applies (src unchanged). No new VP/proof obligation. VP-024 verification_lock untouched.
-- **E-17 NEXT: F7 delta convergence.**
+- **E-17 F5 Scoped Adversarial:** GATE SATISFIED 3/3 (2026-06-17, cb2bf06; P1 a4b70a59 / P2 a97d26e3 / P3 ac72bce2; each zero MEDIUM+).
+- **E-17 F6 Targeted Hardening:** SATISFIED (2026-06-17). VP-024 5/5 Kani VERIFICATION SUCCESSFUL. Fuzz 6.19M/0. audit CLEAN. No new proof obligation.
+- **E-17 F7 Delta Convergence:** CONVERGED — 5-dim ALL MET. F7 holistic adversarial gate SATISFIED 3/3 (cb2bf06): ad2442cd (P1), acdf40b1 (P2), afeb0e8e (P3); each zero MEDIUM+; all four lenses (coherence/completeness/ship-safety/MACsec-limitation-honesty) confirmed. RELEASE-READY for v0.7.1.
 - **develop HEAD: 480f8ae** == origin/develop.
 - **main HEAD: dd8e142 (v0.7.0).**
-- **PR #258:** Open on branch test/arp-qinq-macsec-fixtures (commit cb2bf06); CI green.
+- **PR #258:** Open on branch test/arp-qinq-macsec-fixtures (commit cb2bf06); CI green. Awaiting human merge approval for v0.7.1.
 - **factory-artifacts HEAD:** see `git -C .factory log -1 --format='%h %s'`
 - **Active worktrees:** EXACTLY 2 — main repo (develop) + .factory (factory-artifacts).
 
-### B. GATE RESULT (2026-06-17)
+### B. GATE RESULT (2026-06-17 — E-17 F7 CONVERGED)
 
-- E-17 F6 targeted hardening: SATISFIED.
-- Delta under review: cb2bf06 (10 tests: 4 QinQ + 6 MACsec; test-only, no src/ change).
-- VP-024 5/5 Kani harnesses: VERIFICATION SUCCESSFUL (verify_extract_arp_frame_safety / eth_ipv4_correctness / none_on_bad_size at decoder.rs:616/643/705; verify_classify_garp_total / binding_table_cap at arp.rs:4371/4423).
-- Fuzz VP-008 fuzz_decode_packet: 4.08M + 2.11M runs (6.19M total), 0 crashes, empty artifacts.
-- cargo-audit: only known-accepted RUSTSEC-2026-0097 (rand — build-dep transitive, not runtime), no new advisory.
-- clippy/fmt: CLEAN.
-- Mutation: v0.7.0 98.9% ARP kill applies (src/ unchanged).
-- No new VP or proof obligation introduced. VP-024 verification_lock untouched.
+- **E-17 F7 delta convergence: CONVERGED.**
+- Delta: PR #258 @ cb2bf06 (10 tests: 4 QinQ + 6 MACsec; test-only, 2 files +1841/-0, zero src/).
+- 5-dimension check ALL MET:
+  1. Regression CI 9/9 GREEN (consistency-validator audit a5e0c652)
+  2. Verification PASS (VP-024 5/5 Kani SUCCESSFUL + fuzz 6.19M/0 + audit CLEAN + VP counts 24 consistent)
+  3. Impl/spec convergence (F4 delta 3/3 + holdout 1.00 + AC traces)
+  4. Robustness (F5 3/3)
+  5. Documentation/coherence whole-corpus CONSISTENT
+- F7 holistic adversarial 3/3 (cb2bf06): ad2442cd (P1) / acdf40b1 (P2) / afeb0e8e (P3); each zero MEDIUM+.
+- All four lenses confirmed: coherence, completeness, ship-safety, MACsec-limitation-honesty.
 
 ### C. CARRY-FORWARD (open items)
 
-- **E-17 F7 delta convergence:** NEXT STEP — run `vsdd-factory:phase-f7-delta-convergence` scoped to E-17 (PR #258, cb2bf06).
+- **E-17 NEXT STEP:** F7 human gate — human reviews PR #258 and approves release disposition. On approval: merge PR #258 → develop, cut release/0.7.1 branch, open PR → main, tag v0.7.1, GitHub Release.
 - **Residual LOWs (V5/V6):** Under-count-only diagnostics, non-blocking.
 - **O-2 (deferred LOW):** dep-graph.md lines 204/586 STORY-117 label fix — schedule in a dep-graph label sweep.
-- **Non-blocking F4 polish:** AC-003 EC-008-vs-PC-7a citation, STORY-INDEX "68-story" parenthetical, etherparse volatile-line cites.
 - **#252** VP-024 proof_file_hash + re-lock (post-release).
 - **#254** Repo-wide RED-prose doc cleanup (post-release; 71 occurrences).
 - **#255** JSON enum casing → snake_case (post-release).
 
-### D. RESUME PROCEDURE (E-17 F7 DELTA CONVERGENCE — SESSION-CLEAR SAFE 2026-06-17)
+### D. RESUME PROCEDURE (F7 HUMAN GATE → v0.7.1 — SESSION-CLEAR SAFE 2026-06-17)
 
 **CONTEXT FOR FRESH SESSION:**
-- **Project:** wirerust. Mode: STEADY-STATE (top-level). E-17 sub-cycle IN PROGRESS at F7 delta convergence.
+- **Project:** wirerust. Mode: STEADY-STATE (top-level). E-17 F1..F7 ALL CONVERGED. Awaiting human release gate for v0.7.1.
 - **develop HEAD:** 480f8ae == origin/develop.
-- **PR #258:** test/arp-qinq-macsec-fixtures (cb2bf06); CI green.
+- **PR #258:** test/arp-qinq-macsec-fixtures (cb2bf06); CI green; READY TO MERGE.
 - **main HEAD:** dd8e142 (v0.7.0).
 - **factory-artifacts HEAD:** see `git -C .factory log -1 --format='%h %s'`
 
@@ -177,10 +179,10 @@ gh pr list --state open                                        # expect PR #258
 ```
 
 **Step 3 — WHAT IS COMPLETE (do NOT re-do):**
-E-17 F1 PASSED. E-17 F2 adversarial gate SATISFIED 3/3. E-17 F3 story decomposition COMPLETE and frozen (dd34205). E-17 F3 adversarial gate SATISFIED 3/3. E-17 F4 delta implementation COMPLETE (cb2bf06, PR #258, CI green). E-17 F4 wave-adversarial gate SATISFIED 3/3 (cb2bf06 — P1 a2c9149c / P2 afec0575 / P3 a6c3e1ba). E-17 F4 holdout PASS — NO REGRESSION, mean 1.00 (13/13). E-17 F5 scoped-adversarial gate SATISFIED 3/3 (cb2bf06 — P1 a4b70a59 / P2 a97d26e3 / P3 ac72bce2; each zero MEDIUM+). E-17 F6 targeted hardening SATISFIED (VP-024 5/5 Kani VERIFICATION SUCCESSFUL, fuzz 6.2M/0, audit clean, no new proof obligation).
+E-17 F1..F7 ALL COMPLETE AND CONVERGED. PR #258 @ cb2bf06 is the delivery artifact. 5-dim ALL MET. F7 holistic adversarial 3/3 GATE SATISFIED. RELEASE-READY for v0.7.1. No further pipeline phases to run.
 
 **Step 4 — NEXT ACTION:**
-Run E-17 F7 delta convergence on PR #258 delta (10 tests: 4 QinQ + 6 MACsec). Use `vsdd-factory:phase-f7-delta-convergence`.
+Human gate: review PR #258 and approve. On approval, follow gitflow release procedure: merge PR #258 → develop, cut release/0.7.1 from develop, bump Cargo.toml version to 0.7.1, open release PR → main, merge after CI green, tag v0.7.1, publish GitHub Release.
 
 ### E. KEY ARTIFACT POINTERS
 
@@ -191,9 +193,9 @@ Run E-17 F7 delta convergence on PR #258 delta (10 tests: 4 QinQ + 6 MACsec). Us
 - STORY-116: `.factory/stories/STORY-116.md` (wave 45, QinQ coverage)
 - STORY-117: `.factory/stories/STORY-117.md` (wave 46, MACsec documented-limitation)
 - ARP cycle artifacts: `.factory/cycles/feature-arp-v0.7.0/`
+- F7 holistic adversarial passes: `.factory/cycles/feature-arp-v0.7.0/arp-f5-scoped-adversarial-trajectory.md` §E-17 F7
 - F5 scoped-adversarial trajectory: `.factory/cycles/feature-arp-v0.7.0/arp-f5-scoped-adversarial-trajectory.md` §E-17 F5
 - F4 convergence trajectory: `.factory/cycles/feature-arp-v0.7.0/arp-f4-wave-adversary-convergence-trajectory.md` §E-17 F4
-- F3 convergence trajectory: `.factory/phase-f5-adversarial/arp-f3-convergence-trajectory.md` §E-17 F3 section
 - Archived checkpoints: `.factory/cycles/feature-arp-v0.7.0/session-checkpoints.md`
 
 ## Decisions Log

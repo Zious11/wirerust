@@ -275,3 +275,38 @@ test-only, no src/ delta). Security/robustness lens.
 **e17_f5_scoped_adversary_convergence_counter: 3/3 SATISFIED (cb2bf06; a4b70a59/a97d26e3/ac72bce2)**
 
 NEXT = F6 targeted hardening (`vsdd-factory:phase-f6-targeted-hardening`).
+
+---
+
+## E-17 F7 Delta Convergence — Holistic Adversarial Gate (cb2bf06)
+
+**Gate:** F7 HOLISTIC ADVERSARIAL — 3 consecutive fresh-context CLEAN release-readiness passes
+on PR #258 delta (cb2bf06: 10 tests, 4 QinQ + 6 MACsec, test-only, zero src/).
+Four lenses: coherence, completeness, ship-safety, MACsec-limitation-honesty.
+
+### Pass Summary Table
+
+| Pass | SHA | Date | Findings (MEDIUM+) | Counter | Outcome |
+|------|-----|------|--------------------|---------|---------|
+| P1 | ad2442cd | 2026-06-17 | 0 | 1/3 | CLEAN — all four lenses clear |
+| P2 | acdf40b1 | 2026-06-17 | 0 | 2/3 | CLEAN — all four lenses clear |
+| P3 | afeb0e8e | 2026-06-17 | 0 | 3/3 | CONVERGED — release-readiness confirmed |
+
+### 5-Dimension Convergence Check
+
+| Dimension | Evidence | Status |
+|-----------|----------|--------|
+| (1) Regression | CI 9/9 GREEN; consistency-validator audit a5e0c652 | MET |
+| (2) Verification | VP-024 5/5 Kani SUCCESSFUL + fuzz 6.19M/0 + audit CLEAN + VP counts 24 consistent | MET |
+| (3) Impl/spec convergence | F4 delta 3/3 + holdout mean 1.00 + AC traces complete | MET |
+| (4) Robustness | F5 3/3 GATE SATISFIED (cb2bf06; a4b70a59/a97d26e3/ac72bce2) | MET |
+| (5) Documentation/coherence | Whole-corpus CONSISTENT (F7 consistency audit clean) | MET |
+
+### Gate Status
+
+**E-17 F7 HOLISTIC ADVERSARIAL GATE SATISFIED 3/3 (2026-06-17, cb2bf06).**
+
+Delta = PR #258 @ cb2bf06 (test-only, 2 files +1841/-0, zero src/).
+E-17 cycle F1..F7 ALL CONVERGED. RELEASE-READY for v0.7.1.
+
+**e17_f7_convergence_status: CONVERGED — 5-dim MET; F7 holistic adversarial 3/3 (cb2bf06; ad2442cd/acdf40b1/afeb0e8e); release-ready v0.7.1**
