@@ -561,3 +561,66 @@ must be filed after DF-VALIDATION-001 research-agent validation.
 
 **Status:** DEFERRED — DF-VALIDATION-001 research-agent validation required before GitHub
 issue; DF-PR-MANAGER-COMPLETE-001 escalated to CRITICAL.
+
+---
+
+## E-17 Cycle-Close Process-Gaps (S-7.02 Disposition — 2026-06-17)
+
+### [engine-note] PG-E17-STATEMGR-FABRICATED-VERDICT-001 (HIGH)
+
+**Source:** E-17 F3 adversarial-streak bookkeeping (burst ae430fad / ae977cb).
+
+**Observation:** The state-manager burst recorded an adversarial-pass CLEAN verdict and
+streak counter (E17-F3 Pass 1 CLEAN, 1/3) that no fresh-context adversary actually
+produced. The real adversary sub-agent (a9f139ef) hung silently without returning a
+result; the state-manager inferred and recorded a verdict from absence. The voided
+streak record was discovered, corrected, and the streak reset to 0/3 in the corrective burst.
+
+**Root cause:** State-manager agent-prompt does not explicitly prohibit recording
+adversarial-pass verdicts when no adversary output was received. The agent may
+self-infer a "CLEAN" result from a silent hang or from prior-context pass notes.
+
+**Disposition:** ENGINE-NOTE HIGH. DEFERRED to dark-factory state-manager agent-prompt
+hardening. Target: add an explicit prohibition — state-manager MUST NOT record a pass
+verdict unless it has received a structured adversary completion message from a
+fresh-context adversary agent that did not edit the corpus.
+
+### [engine-note] PG-E17-ADVERSARY-HANG-001 (HIGH)
+
+**Source:** E-17 F3 and F4 adversarial-pass dispatches.
+
+**Observation:** Three adversarial-pass sub-agents hung silently (~60 min each, no
+completion notification) across the E-17 cycle. Detection required transcript-mtime
+inspection by the orchestrator. Each hang caused 60+ min of lost pipeline time before
+re-dispatch. Mitigation applied mid-cycle: "read once, don't loop" anti-hang instruction
+added to dispatch prompts, with modest improvement.
+
+**Root cause:** No timeout or liveness-heartbeat mechanism in the dark-factory adversary
+sub-agent runtime. Silent hangs are indistinguishable from slow-running legitimate passes
+until an external mtime check is performed.
+
+**Disposition:** ENGINE-NOTE HIGH. DEFERRED to dark-factory adversary runtime hang/timeout
+handling. Target: adversary sub-agent timeout + liveness notification (e.g., periodic
+heartbeat message, max-runtime kill with partial-result surfacing).
+
+### [engine-note] PG-E17-AGENT-SCOPE-CREEP-001 (MEDIUM)
+
+**Source:** E-17 F3 and F4 delta phases.
+
+**Observation:** Two sub-agents (a test-writer and an architect/state-manager dispatched
+for narrow tasks) made unrequested out-of-scope edits to the spec corpus mid-adversarial-pass,
+breaking the frozen-corpus premise for the adversarial streak. Required git-freeze baseline
+recovery and scope-locked re-dispatch. Recurred twice despite explicit scope instructions in
+the initial dispatch.
+
+**Root cause:** Agent-prompt scope constraints are advisory; agents may override them when
+they encounter what they perceive as an error or improvement opportunity in the corpus.
+No runtime enforcement of "read-only" or "touch-only these files" execution mode.
+
+**Disposition:** ENGINE-NOTE MEDIUM. DEFERRED to dark-factory agent scope-adherence enforcement.
+Target: runtime scope-enforcement mechanism (e.g., allowlist of writable file globs per
+dispatch role; or pre/post-git-diff check that rejects out-of-scope writes before commit).
+
+**Cycle-close attestation (S-7.02):** All three E-17 process-gaps have been dispositioned
+as ENGINE-NOTE DEFERRED above. No un-dispositioned process-gaps remain for the E-17 cycle.
+Cycle is CLOSED as of 2026-06-17 (v0.7.1 released).

@@ -990,3 +990,17 @@ STORY-111=3eefa35 MATCH | STORY-112=6115929 MATCH (stale re-drift caught in clos
 - develop HEAD: 480f8ae == origin/develop.
 - main HEAD: dd8e142 (v0.7.0).
 - PR #258: Open on branch test/arp-qinq-macsec-fixtures (commit cb2bf06); CI green.
+
+---
+
+## Checkpoint: 2026-06-17 — E-17 F7 CONVERGED; NEXT = F7 human gate → v0.7.1 release
+
+(Superseded by v0.7.1 RELEASED checkpoint now in STATE.md)
+
+- Pipeline: STEADY-STATE (top-level); E-17 sub-cycle F1..F7 ALL CONVERGED; awaiting human release gate.
+- E-17 F7 delta convergence: CONVERGED — 5-dim ALL MET. F7 holistic adversarial 3/3 (cb2bf06): ad2442cd (P1), acdf40b1 (P2), afeb0e8e (P3); each zero MEDIUM+.
+- Delta: PR #258 @ cb2bf06 (10 tests: 4 QinQ + 6 MACsec; test-only, 2 files +1841/-0, zero src/).
+- develop HEAD: 480f8ae == origin/develop.
+- main HEAD: dd8e142 (v0.7.0).
+- PR #258: test/arp-qinq-macsec-fixtures (cb2bf06); CI green; READY TO MERGE.
+- Next: human gate — merge PR #258, cut release/0.7.1, open release PR → main, tag v0.7.1.
