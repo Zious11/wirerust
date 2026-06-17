@@ -7,6 +7,22 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.7.1] - 2026-06-17
+
+### Added
+
+- Regression test coverage for VLAN / QinQ (802.1ad double-tag) / MACsec link-extension ARP
+  offset handling — 10 tests across `tests/bc_2_16_qinq_macsec_offset_tests.rs` and
+  `tests/bc_2_16_e17_macsec_offset_tests.rs` (issue #253, STORY-116/117). Includes an
+  off-by-8 SCI-accounting guard for MACsec-tagged ARP.
+
+### Notes
+
+- No runtime behavior change: the VLAN/QinQ/MACsec offset handling itself shipped in 0.7.0;
+  this release adds regression guards. MACsec-over-ARP offset correctness is proven by
+  etherparse source + upstream proptests + synthetic tests and is documented as an
+  evidence-backed limitation (no public on-wire MACsec+ARP capture exists).
+
 ## [0.7.0] - 2026-06-16
 
 ### Added
@@ -349,7 +365,9 @@ Downstream consumers of wirerust JSON or CSV output must update for this release
 - Output sanitization in the terminal reporter guards against C1 control bytes
   in packet-derived strings.
 
-[Unreleased]: https://github.com/Zious11/wirerust/compare/v0.6.0...HEAD
+[Unreleased]: https://github.com/Zious11/wirerust/compare/v0.7.1...HEAD
+[0.7.1]: https://github.com/Zious11/wirerust/compare/v0.7.0...v0.7.1
+[0.7.0]: https://github.com/Zious11/wirerust/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/Zious11/wirerust/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/Zious11/wirerust/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/Zious11/wirerust/compare/v0.3.0...v0.4.0
