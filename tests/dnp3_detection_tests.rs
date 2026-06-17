@@ -4,9 +4,8 @@
 //! Traces to behavioral contracts: BC-2.15.010, BC-2.15.011, BC-2.15.012,
 //! BC-2.15.013, BC-2.15.020, BC-2.15.022.
 //!
-//! RED GATE: ALL tests in this file MUST FAIL (todo!() panics) before
-//! any production logic is added.  Tests compile clean and panic only on
-//! the `todo!()` stubs in `detect_control_class_burst`, `detect_restart`,
+//! STORY-108 is complete; all tests in this file pass (GREEN).
+//! Tests cover `detect_control_class_burst`, `detect_restart`,
 //! `detect_write`, and `summarize()`.
 //!
 //! Test naming convention: `test_BC_S_SS_NNN_xxx` / `test_EC_NNN_xxx`
@@ -473,11 +472,10 @@ mod story_108 {
 
     /// AC-005c: FC 0x0F (INITIALIZE_DATA) is Management-class → no T0814 finding.
     ///
-    /// This test has a RED GATE anchor: it first verifies that COLD_RESTART (0x0D)
-    /// DOES increment restart_event_count (requiring detect_restart to be implemented),
-    /// then verifies INITIALIZE_DATA (0x0F) does NOT.  Without the implementation,
-    /// the COLD_RESTART counter assertion fails first (count stays 0), anchoring
-    /// the Red Gate.
+    /// This test verifies two conditions: COLD_RESTART (0x0D) increments
+    /// restart_event_count (requiring detect_restart to be implemented),
+    /// then INITIALIZE_DATA (0x0F) does NOT increment it (Management class,
+    /// not Restart class).
     ///
     /// Traces to: BC-2.15.011 EC-004; BC-2.15.006 EC-009; STORY-108 AC-005.
     #[test]
@@ -499,7 +497,7 @@ mod story_108 {
         assert_eq!(
             analyzer.all_findings.len(),
             1,
-            "AC-005c pre-condition: COLD_RESTART must emit one T0814 finding (Red Gate: stub panics)"
+            "AC-005c pre-condition: COLD_RESTART must emit one T0814 finding"
         );
 
         {
@@ -1102,9 +1100,8 @@ mod story_108 {
     ///   a) no T1692.001 at count=10 (threshold not exceeded)
     ///   b) direct_operate_count IS 10 (counter incremented correctly)
     ///
-    /// Condition (b) is the Red Gate anchor: until detect_control_class_burst is
-    /// implemented, direct_operate_count will be 0 (stub does not mutate state),
-    /// causing this test to fail on the counter assertion.
+    /// Condition (b) guards the counter: detect_control_class_burst must increment
+    /// direct_operate_count, so it reflects the actual number of Control FCs seen.
     ///
     /// Traces to: BC-2.15.010 EC-002; STORY-108 EC-002.
     #[test]
@@ -1125,14 +1122,14 @@ mod story_108 {
             "EC-002: at count=10 (==threshold=10) no finding expected (10 > 10 is false)"
         );
 
-        // (b) Counter must actually be 10 — RED GATE: todo!() stub leaves count=0
+        // (b) Counter must actually be 10 — verifies detect_control_class_burst increments it
         let flow = analyzer
             .flows
             .get(&key)
             .expect("flow must exist after 10 on_data calls");
         assert_eq!(
             flow.direct_operate_count, 10,
-            "EC-002: direct_operate_count must be 10 after 10 SELECT FCs (Red Gate: stub leaves 0)"
+            "EC-002: direct_operate_count must be 10 after 10 SELECT FCs"
         );
     }
 

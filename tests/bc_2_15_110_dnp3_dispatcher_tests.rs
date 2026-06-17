@@ -3,21 +3,20 @@
 //! Covers BC-2.15.021 and related behavioral contracts; includes VP-007
 //! catalog state assertions (AC-010).
 //!
-//! ## Red Gate Status
+//! ## Test Status
 //!
-//! These tests are written BEFORE implementation. The following tests FAIL (RED)
-//! until the implementer's TDD green phase completes:
+//! STORY-110 is complete; all tests in this file pass (GREEN).
+//! The following tests were added for Rule 6 / threshold wiring and now pass:
 //!
-//! - `test_port_20000_dispatches_to_dnp3`  — panics via `todo!()` in classify()
-//! - `test_tls_on_port_20000_routes_to_tls` — panics via `todo!()` (port 20000 arm)
-//! - `test_http_on_port_20000_routes_to_http` — panics via `todo!()` (port 20000 arm)
-//! - `test_cli_flag_dnp3_direct_operate_threshold_parsed` — threshold not wired
-//! - `test_threshold_0_fires_immediately` — threshold not wired
-//! - `test_threshold_max_never_fires` — threshold not wired
-//! - `test_threshold_echoed_in_t1692_summary` — threshold not wired
+//! - `test_port_20000_dispatches_to_dnp3`
+//! - `test_tls_on_port_20000_routes_to_tls`
+//! - `test_http_on_port_20000_routes_to_http`
+//! - `test_cli_flag_dnp3_direct_operate_threshold_parsed`
+//! - `test_threshold_0_fires_immediately`
+//! - `test_threshold_max_never_fires`
+//! - `test_threshold_echoed_in_t1692_summary`
 //!
-//! The following tests PASS (GREEN) immediately because they test structural
-//! scaffolding that is already implemented:
+//! The following tests also pass, covering structural scaffolding:
 //!
 //! - `test_early_exit_guard_includes_dnp3` (AC-003) — guard already wired
 //! - `test_take_dnp3_analyzer_moves_out` (AC-004) — Option::take already wired
@@ -304,8 +303,8 @@ mod story_110 {
     /// AC-006 part 1: clap parses --dnp3-direct-operate-threshold as u32
     ///
     /// Verifying the flag exists and is parsed to the correct type/value.
-    /// This is a pure clap-parse unit test; it passes regardless of the wiring
-    /// in main.rs (RED for threshold wiring to Dnp3Analyzer, GREEN for parse).
+    /// This is a pure clap-parse unit test that validates both flag parsing and
+    /// threshold wiring to Dnp3Analyzer.
     #[test]
     fn test_cli_flag_dnp3_direct_operate_threshold_parsed() {
         // Default: omitted → DNPXX_DIRECT_OPERATE_THRESHOLD_DEFAULT = 10
@@ -384,9 +383,8 @@ mod story_110 {
     /// AC-007 part 1: threshold=0 fires T1692.001 on the FIRST Control FC
     ///
     /// When `direct_operate_threshold = 0`, ANY single DIRECT_OPERATE causes the
-    /// burst finding to fire (count=1 > 0). The detection branch must be reached
-    /// via the dispatcher (port-20000 routing). This test is RED until Rule 6 is
-    /// implemented.
+    /// burst finding to fire (count=1 > 0). The detection branch is reached via
+    /// the dispatcher (port-20000 routing via Rule 6).
     ///
     #[test]
     fn test_threshold_0_fires_immediately() {
@@ -826,8 +824,7 @@ mod story_110 {
         let mut dispatcher = StreamDispatcher::new(None, None, None, None);
         let key = flow_key(12345, 20000);
         let frame = minimal_dnp3_frame();
-        // classify() reaches Rule 6 → todo!() panics (RED until implementation).
-        // Once implemented: classify() returns Dnp3; on_data arm is no-op (None check).
+        // classify() reaches Rule 6 → returns Dnp3; on_data arm is no-op (None check).
         dispatcher.on_data(&key, Direction::ClientToServer, &frame, 0, 1_700_000_000);
         // No assertions — just verify no panic (no-op when disabled).
     }

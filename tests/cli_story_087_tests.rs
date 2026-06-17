@@ -11,7 +11,7 @@
 //!
 //! implementation_strategy: brownfield-formalization
 //! tdd_mode: strict
-//! RED GATE stub phase: all 16 stubs confirmed FAIL before implementation.
+//! All 16 tests pass; STORY-087 implementation is complete.
 //!
 //! Placement: dedicated file per DF-TEST-NAMESPACE-001 to avoid name collisions
 //! with tests in other test files. All STORY-087 tests are wrapped in
