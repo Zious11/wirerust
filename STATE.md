@@ -8,11 +8,26 @@ feature_8_status: "v0.6.0 RELEASED 2026-06-12 — DNP3 TCP analyzer; F7 5-dim CO
 product: wirerust
 mode: brownfield
 timestamp: 2026-06-17T14:00:00Z
-maintenance_run: STARTED
+maintenance_run: COMPLETE
 maintenance_run_id: maint-2026-06-17
 maintenance_started_at: "2026-06-17"
-maintenance_sweep_progress: {}
-maintenance_findings_count: 0
+maintenance_completed_at: "2026-06-17"
+maintenance_findings_count: 48
+maintenance_critical_count: 0
+maintenance_blocking: false
+maintenance_report: ".factory/maintenance/sweep-report-2026-06-17.md"
+maintenance_sweep_progress:
+  dependency-audit: COMPLETE
+  doc-drift: COMPLETE
+  pattern-consistency: COMPLETE
+  holdout-freshness: COMPLETE
+  performance-regression: COMPLETE
+  spec-coherence: COMPLETE
+  tech-debt-register: COMPLETE
+  risk-assumption-monitoring: COMPLETE
+  DTU-fidelity: N/A
+  accessibility-regression: N/A
+  design-drift: N/A
 bootstrapped: 2026-05-19T16:56:48Z
 phase_0_completed: 2026-05-19T20:00:00Z
 phase_1_completed: "2026-05-21"
@@ -78,22 +93,21 @@ input_drift_check: "F7-followup-dispositions burst (2026-06-16): STORY-071=6b408
 
 ## Maintenance Run (maint-2026-06-17)
 
-**Started:** 2026-06-17. **Status:** IN PROGRESS. **Pipeline:** STEADY_STATE/IDLE — no phase change; background quality sweep only.
+**Started:** 2026-06-17. **Completed:** 2026-06-17. **Status:** COMPLETE. **Pipeline:** STEADY_STATE/IDLE — no phase change; background quality sweep only.
+**Overall verdict:** NON-BLOCKING — 48 findings (~5 dep + 14 doc + 12 pattern + 2 holdout + 5 perf + 7 spec + 3 risk), zero CRITICAL, zero CVEs, zero security blockers.
+**Report:** `.factory/maintenance/sweep-report-2026-06-17.md`
 
-Sweeps applicable to a Rust CLI:
-- `dependency-audit` — cargo-audit advisory scan, Cargo.lock freshness
-- `doc-drift` — stale doc-comments, README/CHANGELOG coherence
-- `pattern-consistency` — clippy, naming conventions, code patterns
-- `holdout-freshness` — holdout scenario coverage vs current implementation
-- `performance-regression` — benchmark / perf budget check
-- `spec-coherence` — BC/VP/story cross-document consistency
-- `tech-debt-register` — review open tech-debt items against current codebase
-- `risk-assumption-monitoring` — deferred risks and assumptions validity check
+Sweeps run (8 applicable, 3 N/A):
+- `dependency-audit` COMPLETE — 5 findings (0 CRITICAL, 1 LOW advisory; AUTO-FIX available for rand+zerocopy)
+- `doc-drift` COMPLETE — 14 findings (4 HIGH: ARP/CSV/ADR-0002 gaps; AUTO-FIX candidates)
+- `pattern-consistency` COMPLETE — 12 findings (3 HIGH: DNP3 StreamHandler, cosmetics)
+- `holdout-freshness` COMPLETE — 2 stale (HS-008/009 counts), 1 schema gap (HS-018)
+- `performance-regression` COMPLETE — 4 WARNING regressions (no NFR targets; informational)
+- `spec-coherence` COMPLETE — PASS; 3 MAJOR pre-existing/tracked, 4 MINOR
+- `tech-debt-register` COMPLETE — 3 OVERDUE items; 3 closures; 11 new recommended
+- `risk-assumption-monitoring` COMPLETE — STRUCTURAL GAP (no formal ASM/R registry)
 
-N/A sweeps (skipped):
-- `DTU-fidelity` — skipped: `dtu_required: false`
-- `accessibility` — skipped: no UI component
-- `design-drift` — skipped: no UI component
+N/A sweeps (skipped): `DTU-fidelity` (dtu_required:false), `accessibility` (no UI), `design-drift` (no UI)
 
 ## Phase Progress
 
