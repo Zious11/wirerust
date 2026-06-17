@@ -201,7 +201,7 @@ ADR-0007 Decision 2 prose-clarity nit — arithmetic-walk thinking artifact; fol
 - **Reactive fix:** issue #220 CLOSED — PR #263 merged to develop (5ed8077). Cosmetic Modbus burst-window display fix. BC-2.14.017 v2.6. No behavioral change.
 - **develop HEAD:** 5ed8077 == origin/develop. Working tree CLEAN.
 - **main HEAD:** b98a72f (tag v0.7.1 annotated).
-- **factory-artifacts HEAD:** run `git -C .factory log -1 --format='%h %s'` (this burst advances it).
+- **factory-artifacts HEAD:** eaedc88 (chore(factory): archive PR #263 description artifact (#220 fix)).
 - **Active worktrees:** EXACTLY 2 — main repo (develop branch) + `.factory/` (factory-artifacts branch).
 - **Open PRs:** none.
 - **E-17 cycle:** CLOSED. Full F1-F7 CONVERGED. All gates SATISFIED.
@@ -214,7 +214,7 @@ ADR-0007 Decision 2 prose-clarity nit — arithmetic-walk thinking artifact; fol
 **Step 2 — Verify SHAs (all must match before proceeding):**
 - `git rev-parse --short HEAD` in repo root → expect `5ed8077`
 - `git rev-parse --short origin/develop` → expect `5ed8077` (develop == origin/develop)
-- `git -C .factory rev-parse --short HEAD` → current factory-artifacts HEAD (via `git -C .factory log -1`)
+- `git -C .factory rev-parse --short HEAD` → expect `eaedc88`
 - `git rev-parse --short main` → expect `b98a72f`
 - `git tag -l v0.7.1` → must exist
 - `gh pr list --state open` → expect empty
