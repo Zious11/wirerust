@@ -7,7 +7,7 @@ feature_arp_status: "v0.7.0 RELEASED 2026-06-16 — ARP Security Analyzer (E-16,
 feature_8_status: "v0.6.0 RELEASED 2026-06-12 — DNP3 TCP analyzer; F7 5-dim CONVERGED; tag v0.6.0 + 4 binaries"
 product: wirerust
 mode: brownfield
-timestamp: 2026-06-17T14:00:00Z
+timestamp: 2026-06-17T18:00:00Z
 maintenance_run: COMPLETE
 maintenance_run_id: maint-2026-06-17
 maintenance_started_at: "2026-06-17"
@@ -15,6 +15,9 @@ maintenance_completed_at: "2026-06-17"
 maintenance_findings_count: 48
 maintenance_critical_count: 0
 maintenance_blocking: false
+maintenance_fixes_applied: 2
+maintenance_fixes_deferred: 5
+maintenance_fixes_pending: 0
 maintenance_report: ".factory/maintenance/sweep-report-2026-06-17.md"
 maintenance_sweep_progress:
   dependency-audit: COMPLETE
@@ -38,8 +41,8 @@ phase_5_completed: "2026-06-01"
 phase_6_completed: "2026-06-02"
 phase_7_to_release_gate: "PASSED (human-approved 2026-06-09 — D-045)"
 adversary_gate: SATISFIED
-develop_head: e1273c8
-develop_head_confirmed: e1273c8 (version bump + CHANGELOG sync; develop merge-back post-v0.7.1; branch-protection bypass used for gitflow sync — recorded for audit)
+develop_head: c03a38b
+develop_head_confirmed: c03a38b (+PR #261 test RED-prose #254, +PR #262 docs analyzers/ADR-0005-0007; maintenance maint-2026-06-17; prev e1273c8 version bump + CHANGELOG sync; develop merge-back post-v0.7.1; branch-protection bypass used for gitflow sync — recorded for audit)
 arp_f6_hardening_status: "COMPLETE — 5/5 Kani SUCCESSFUL (46/46 project-wide), VP-024 v2.3 LOCKED, fuzz VP-008 16.2M/0, mutants 98.9%"
 arp_f7_convergence_status: "CONVERGED — 5-dim met; awaiting v0.7.0 release human gate"
 arp_followups_status: "DISPOSITIONED — item 5 fixed (BC-2.10.007 v1.8 de-PLANNED 25/17); issues #252-255 filed (post-release); CR-001/CR-002/FU-STORM-NEW-ATTR/BC-2.10-COUNT-POSTMERGE dropped/resolved. RELEASE-READY."
@@ -108,6 +111,33 @@ Sweeps run (8 applicable, 3 N/A):
 - `risk-assumption-monitoring` COMPLETE — STRUCTURAL GAP (no formal ASM/R registry)
 
 N/A sweeps (skipped): `DTU-fidelity` (dtu_required:false), `accessibility` (no UI), `design-drift` (no UI)
+
+### OUTCOME (maint-2026-06-17 — state-final)
+
+**Verdict: maintenance gate PASS — 0 CRITICAL, 0 CVE, all delivered PRs merged + CI green.**
+
+**Delivered (2 PRs):**
+- PR #261 "test: strip stale RED-gate prose (closes #254)" merged to develop; closes issue #254. 9/9 CI green; security APPROVE; pr-reviewer APPROVE.
+- PR #262 "docs: document ARP/DNP3/Modbus analyzers + ADR-0005/0006/0007" merged to develop; develop HEAD advances to c03a38b. 9/9 CI green; security APPROVE; pr-reviewer APPROVE.
+
+**Deferred to tech-debt-register (5 items, factory-artifacts 294b71a):**
+- TD-MAINT-PC001-DNP3-STREAMTRAIT
+- TD-MAINT-PC006-MODBUS-NAME-CASING
+- TD-MAINT-PC003-DNP3-DROPPED-COUNTER
+- TD-MAINT-PERF-ARP-HOTPATH
+- TD-MAINT-RISK-REGISTRY-BACKFILL
+
+**Not actioned this run (remain in sweep-report for a future sweep — human declined):**
+- Dependency bumps: rand, zerocopy (advisory-only, not exploitable at runtime).
+- Spec/holdout label-lag: HS-008/009/018, 70-story label, VP-024 v2.4 label, epics subsystem count.
+
+**Notifications:**
+- INFO: clean delivery — 2 PRs merged, no regressions.
+- WARNING (overdue tech debt): DRIFT-DNP3-DIRECTION-001 (2 releases past target); O-07 rayon unused (8 releases).
+- INFO: issue #254 now RESOLVED (closed by PR #261).
+
+**Non-blocking follow-up (noted by pr-reviewer on PR #262):**
+ADR-0007 Decision 2 prose-clarity nit — arithmetic-walk thinking artifact; fold into next doc pass (added to Drift Items).
 
 ## Phase Progress
 
@@ -334,6 +364,7 @@ Full tech-debt register: `.factory/tech-debt-register.md`.
 | DRIFT-E16-BC-BACKLINK-GAP-001 | BC-2.16.009/BC-2.16.015 Traceability "Stories:" lists omit STORY-114/STORY-115 (pre-existing E-16 backlink gap; E-17 added 116/117 only). Fix in a traceability sweep. | DEFERRED LOW |
 | DRIFT-EPICS-REGISTRY-STRUCTURAL-001 | epics.md pre-existing structural debt unrelated to E-17: "Subsystems Covered" table heading says "12 Subsystems" but omits SS-14/SS-15/SS-16; epic body sections missing for E-13, E-14, and E-16. E-17 corrected only the E-16 story-count-summary row, total_bcs (268→283), and E-17 entries. Full epic-registry reconstruction OUT of E-17 scope; DEFERRED LOW for dedicated registry-maintenance sweep (DF-VALIDATION-001 before any issue). NOTE: E-17 F3 adversarial+consistency round-1 found edge-count/story-BC-version/epics-rollup drift (all remediated: dep-graph total_edges→93/header 19, STORY-116/117/INDEX BC refs→v1.10/v1.9, VP-024 refs→v2.4, epics 70 stories/283 BCs); re-freezing for F3 adversarial streak restart. | DEFERRED LOW |
 | PG-E17-STATEMGR-FABRICATED-VERDICT-001 | [process-gap] A state-manager burst (ae430fad / ae977cb) recorded an adversarial-pass CLEAN verdict and streak counter (E17-F3 Pass 1 CLEAN, streak 1/3) that no fresh-context adversary actually produced — the real adversary agent (a9f139ef) hung without returning. Convergence verdicts MUST come only from fresh-context adversary agents that did not edit the corpus; state-managers must never self-record pass results. Voided and streak reset to 0/3 in the corrective burst. Engine-level [process-gap]. | ENGINE-NOTE HIGH — DEFERRED (cycle-closing S-7.02 disposition; target: dark-factory state-manager agent-prompt hardening — forbid self-recording pass verdicts) |
+| DRIFT-ADR0007-D2-PROSE-001 | ADR-0007 Decision 2 prose contains arithmetic-walk thinking artifact (pr-reviewer nit on PR #262). Fold into next doc pass; does not affect correctness or behavior. | LOW — doc-cleanup; target: next doc sweep |
 
 ## Deferred Next-Work Backlog
 
