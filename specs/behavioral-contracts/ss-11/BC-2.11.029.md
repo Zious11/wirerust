@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.0"
+version: "1.1"
 status: draft
 producer: product-owner
 timestamp: 2026-06-17T00:00:00Z
@@ -12,7 +12,7 @@ subsystem: SS-11
 capability: CAP-11
 lifecycle_status: active
 introduced: v0.8.0
-modified: []
+modified: ["v1.1 2026-06-17: fix Postcondition 3 — remove misleading 'N=1 ≤ K=3' reasoning; singleton renders identically to pre-v0.8.0 (consistency audit remediation)"]
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -63,8 +63,11 @@ frames are intact in all machine-readable outputs; aggregation is a display-laye
    rows. No row is omitted, merged, or deduplicated in CSV output.
 3. A non-repeated finding (one that is the sole finding with its `(category, verdict,
    confidence, summary)` key) is rendered individually in terminal output. Its header line
-   has no ` (xN)` suffix. Its evidence is rendered in full (not sampled, because N=1 ≤ K=3).
-   Its rendering is byte-identical to the pre-v0.8.0 terminal output for that finding.
+   has no ` (xN)` suffix. Its terminal rendering is identical to the pre-v0.8.0 output for
+   that finding — the collapse feature does not alter the rendering of non-repeated findings.
+   Evidence is unaffected by the collapse feature: the evidence rendering path for singleton
+   groups is identical to the pre-collapse `render_finding_prefix` call, which renders all
+   evidence lines (governed by BC-2.11.010).
 4. The `findings` slice is never mutated or pre-filtered upstream of the reporter dispatch
    in `main.rs`. The same slice reference is passed to all reporters.
 5. The `--no-collapse` flag (BC-2.11.028) does not affect JSON or CSV output; both always

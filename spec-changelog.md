@@ -14,6 +14,59 @@ changes, invariant rewrites).
 
 ---
 
+## [issue-259-collapse-remediation-2026-06-17] — 2026-06-17
+
+### PATCH: Issue #259 F2 Consistency Audit Remediation — BC-2.11.027/028/029 v1.0→v1.1
+
+**Trigger:** Fresh-context consistency audit on the #259 F2 delta found three specification
+defects introduced during BC creation. All defects remediated in one burst per adjudicated
+N=1/N≥2 model. **No design decisions changed.**
+
+#### Adjudicated Model (authoritative, non-negotiable)
+
+- **N=1 (singleton):** Renders BYTE-IDENTICALLY to current non-collapse behavior. The K=3 cap
+  does NOT apply. Evidence renders exactly as existing `render_finding_prefix` (BC-2.11.010,
+  unchanged). A singleton with 5 evidence lines shows all 5 lines, same as pre-v0.8.0.
+- **N≥2 (collapsed group):** K=3 cap applies. Render shared header with `(xN)`, then at most
+  K=3 representative evidence lines: `evidence[0]` from each of the first min(N,3) distinct
+  member findings, in original emission order.
+
+#### Defects Fixed
+
+| BC | Finding | Fix |
+|----|---------|-----|
+| BC-2.11.027 | Invariant 6 said "up to K lines capped, but N=1 so at most 1 evidence line" — implies K-cap framework applies to singletons (WRONG) | Rewritten: K-cap NOT applied to singletons; evidence renders identically to pre-v0.8.0 `render_finding_prefix` |
+| BC-2.11.027 | EC-001 said "Group with N=1 member, 5 evidence lines → At most K=3 evidence lines rendered" — explicitly wrong | Fixed: "All 5 evidence lines rendered, unchanged from pre-v0.8.0 behavior (K-cap does NOT apply to singletons)" |
+| BC-2.11.027 | Last test vector "1 finding with evidence=[a,b,c,d] → at most K=3 rendered" — wrong per adjudicated model | Removed; replaced with correct N≥2 test vector demonstrating evidence[0]-from-first-3-members pattern |
+| BC-2.11.029 | Postcondition 3: "Its evidence is rendered in full (not sampled, because N=1 ≤ K=3)" — misleading; implies K-cap was evaluated and happened not to truncate | Rewritten: "Its terminal rendering is identical to the pre-v0.8.0 output for that finding — the collapse feature does not alter the rendering of non-repeated findings" |
+| BC-2.11.028 | Related BCs listed "BC-2.13.001 -- context (--verbose is absent/rejected; ...)" — BC-2.13.001 is `--threats` absent, NOT `--verbose`; `--verbose` absent is BC-2.13.004 | Fixed: BC-2.13.001 → BC-2.13.004 |
+
+#### BC-INDEX.md Fix
+
+- SS-11 section header: stale "24 BCs total; 24 fully written" → "29 BCs total; 29 fully written"
+- BCs 025-029 description line added to header block
+- BC-2.11.027/028/029 row annotations bumped to note v1.1 and audit fix
+
+#### Sibling Sweep Results (DF-SIBLING-SWEEP-001)
+
+All other touched BCs confirmed clean:
+- BC-2.11.025/026: no evidence-sampling claims; CLEAN
+- BC-2.11.010: Invariant 4 correctly scoped to "collapsed group"; CLEAN
+- BC-2.11.013/017/019: no evidence-sampling claims; CLEAN
+- BC-INDEX.md: SS-15 section header "24 BCs" is correct (DNP3, independent subsystem); not changed
+- prd.md: CLEAN
+- verification-coverage-matrix.md: CLEAN
+
+#### Files Changed
+
+- `.factory/specs/behavioral-contracts/ss-11/BC-2.11.027.md` (v1.0 → v1.1)
+- `.factory/specs/behavioral-contracts/ss-11/BC-2.11.028.md` (v1.0 → v1.1)
+- `.factory/specs/behavioral-contracts/ss-11/BC-2.11.029.md` (v1.0 → v1.1)
+- `.factory/specs/behavioral-contracts/BC-INDEX.md` (v1.27 → v1.28; SS-11 header 24→29 + row annotations)
+- `.factory/spec-changelog.md` (this entry)
+
+---
+
 ## [issue-259-collapse-f2-2026-06-17] — 2026-06-17
 
 ### MINOR: Feature #259 — Terminal Finding Collapse (v0.8.0) — F2 Spec Evolution Complete

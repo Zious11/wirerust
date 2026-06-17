@@ -1,7 +1,7 @@
 ---
 document_type: bc-index
 level: L3
-version: "1.27"
+version: "1.28"
 status: draft
 producer: product-owner
 timestamp: 2026-06-17T00:00:00Z
@@ -256,9 +256,10 @@ traces_to: .factory/specs/prd.md
 
 ## ss-11: Reporting and Output (CAP-11)
 
-> 24 BCs total; 24 fully written; 0 planned.
+> 29 BCs total; 29 fully written; 0 planned.
 > BCs 001-019: JsonReporter / TerminalReporter / MITRE grouping (brownfield ingestion).
 > BCs 020-024: CsvReporter (added pass-4, adversarial finding H-1).
+> BCs 025-029: terminal finding collapse (greenfield, issue #259, v0.8.0).
 
 | BC ID | Title | Priority | Status | Origin |
 |-------|-------|----------|--------|--------|
@@ -288,9 +289,9 @@ traces_to: .factory/specs/prd.md
 | BC-2.11.024 | CsvReporter Encodes Optional Fields as Empty Strings and mitre_techniques as Semicolon-Joined String | P1 | [WRITTEN] | pass-4 H-1 | <!-- v1.5: ADD-ON 2 — EC-015 added (consumer split guard for empty-cell); EC-001 strengthened (empty string not null/[]/N/A); Inv 4 explicit empty-string wording; v1.7: Pass-15 D-01: Evidence Types Updated; v1.8: PG-ARP-F2-007 — neutralize anchor :94-97→:99-102; pc1 clarified join@:87 vs neutralize@:99 -->
 | BC-2.11.025 | Flat-Mode Collapse Groups Findings by (category, verdict, confidence, summary) Key; First-Occurrence Order; Deterministic | P0 | [WRITTEN] | issue-#259 greenfield |
 | BC-2.11.026 | Collapsed Group of N≥2 Renders Header with (xN) Suffix; Singleton (N=1) Renders Without Suffix | P0 | [WRITTEN] | issue-#259 greenfield |
-| BC-2.11.027 | Collapsed Group Retains at Most K=3 Representative Evidence Lines; Remainder Elided from Terminal Display | P1 | [WRITTEN] | issue-#259 greenfield |
-| BC-2.11.028 | --no-collapse Opt-Out Flag Disables Terminal Collapse and Restores One-Line-Per-Finding Rendering; JSON/CSV Unaffected | P0 | [WRITTEN] | issue-#259 greenfield |
-| BC-2.11.029 | Collapse is Display-Layer Only; JSON/CSV Reporters Receive Unmodified findings Slice; Non-Repeated Findings Individually Visible in All Outputs | P0 | [WRITTEN] | issue-#259 greenfield |
+| BC-2.11.027 | Collapsed Group Retains at Most K=3 Representative Evidence Lines; Remainder Elided from Terminal Display | P1 | [WRITTEN] | issue-#259 greenfield | <!-- v1.1 2026-06-17: fix N=1 singleton model — K-cap NOT applied to singletons; Invariant 6 + EC-001 + last test vector corrected per adjudicated model (consistency audit) -->
+| BC-2.11.028 | --no-collapse Opt-Out Flag Disables Terminal Collapse and Restores One-Line-Per-Finding Rendering; JSON/CSV Unaffected | P0 | [WRITTEN] | issue-#259 greenfield | <!-- v1.1 2026-06-17: fix Related BCs stale cross-ref BC-2.13.001 (--threats) → BC-2.13.004 (--verbose absent) (consistency audit) -->
+| BC-2.11.029 | Collapse is Display-Layer Only; JSON/CSV Reporters Receive Unmodified findings Slice; Non-Repeated Findings Individually Visible in All Outputs | P0 | [WRITTEN] | issue-#259 greenfield | <!-- v1.1 2026-06-17: fix Postcondition 3 — remove misleading 'N=1 ≤ K=3' reasoning; singleton renders identically to pre-v0.8.0 (consistency audit) -->
 
 ## ss-12: CLI and Entry Point (Cross-Cutting)
 

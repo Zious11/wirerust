@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.0"
+version: "1.1"
 status: draft
 producer: product-owner
 timestamp: 2026-06-17T00:00:00Z
@@ -12,7 +12,7 @@ subsystem: SS-11
 capability: CAP-11
 lifecycle_status: active
 introduced: v0.8.0
-modified: []
+modified: ["v1.1 2026-06-17: fix Related BCs stale cross-ref BC-2.13.001 (--threats) → BC-2.13.004 (--verbose absent) (consistency audit remediation)"]
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -135,7 +135,7 @@ wirerust CLI. It is scoped to the `analyze` subcommand only; it has no effect on
 - BC-2.11.025 -- depends on (the collapse pass this flag disables)
 - BC-2.11.026 -- depends on (the count suffix rendering this flag suppresses when off)
 - BC-2.11.029 -- composes with (JSON/CSV raw-stream invariant; this flag does not affect those reporters)
-- BC-2.13.001 -- context (--verbose is absent/rejected; --no-collapse is the new negation flag in this family)
+- BC-2.13.004 -- context (--verbose Does Not Exist is BC-2.13.004; --no-collapse is the new negation flag in this family, following the same absent-flag documentation pattern)
 
 ## Architecture Anchors
 

@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.0"
+version: "1.1"
 status: draft
 producer: product-owner
 timestamp: 2026-06-17T00:00:00Z
@@ -12,7 +12,7 @@ subsystem: SS-11
 capability: CAP-11
 lifecycle_status: active
 introduced: v0.8.0
-modified: []
+modified: ["v1.1 2026-06-17: fix N=1 singleton model — K-cap does NOT apply to singletons; evidence renders unchanged per BC-2.11.010 (consistency audit remediation)"]
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -78,15 +78,17 @@ configurable via CLI flag. Future cycles may expose K as `--collapse-evidence-sa
 5. The `escape_for_terminal` invariant (BC-2.11.010) is preserved: every evidence line
    rendered by a collapsed group goes through `escape_for_terminal`, via the same code path
    used for non-collapsed rendering.
-6. For a singleton group (N=1), evidence sampling is a no-op: the single finding's evidence
-   is rendered in full (up to K lines capped, but N=1 so at most 1 evidence line, which is
-   less than K regardless).
+6. For a singleton group (N=1), the collapse feature does not alter evidence rendering in any
+   way. The K-cap does NOT apply to singletons. The finding's evidence renders identically to
+   the pre-v0.8.0 `render_finding_prefix` output — all evidence lines shown, governed by
+   BC-2.11.010. A finding with 5 or 100 evidence lines will show all 5 or 100 lines when it
+   is a singleton group, just as it did before v0.8.0.
 
 ## Edge Cases
 
 | ID | Description | Expected Behavior |
 |----|-------------|-------------------|
-| EC-001 | Group with N=1 member, 5 evidence lines | At most K=3 evidence lines rendered (cap applies to evidence entries per single finding) |
+| EC-001 | Group with N=1 member (singleton), 5 evidence lines | All 5 evidence lines rendered, unchanged from pre-v0.8.0 behavior (K-cap does NOT apply to singletons; singleton passes through unmodified per BC-2.11.010) |
 | EC-002 | Group with N=5 members, each with 1 evidence line | 3 evidence lines rendered (from members[0], members[1], members[2]); members[3] and members[4] evidence elided |
 | EC-003 | Group with N=2 members, 1 evidence line each | Both evidence lines rendered (N≤K, no elision) |
 | EC-004 | Group with N=5 members, members[0] has empty evidence, others have 1 each | members[0] contributes 0 lines; members[1], members[2], members[3] each contribute 1 line; total = 3 lines (K cap reached counting non-empty contributions) |
@@ -103,7 +105,7 @@ configurable via CLI flag. Future cycles may expose K as `--collapse-evidence-sa
 | 5 identical-key findings each with evidence=["req_001"], ..., ["req_005"] | Terminal: 3 evidence lines (`> req_001`, `> req_002`, `> req_003`); evidence for members 4-5 elided | happy-path (evidence sampling) |
 | 2 identical-key findings each with 1 evidence line | Both evidence lines rendered (N≤K; no elision) | happy-path (below cap) |
 | 5 identical-key findings, all evidence=[] | Zero evidence lines rendered (no blank `>` lines) | edge-case (empty evidence) |
-| 1 finding with evidence=["a","b","c","d"] | At most K=3 rendered: `> a`, `> b`, `> c`; `> d` elided | edge-case (single finding, many evidence lines) |
+| 3 identical-key findings: member[0].evidence=["a","b"], member[1].evidence=["c"], member[2].evidence=["d","e"] | 3 evidence lines: `> a`, `> c`, `> d` (evidence[0] from each of the first 3 members in emission order; member[0].evidence[1]="b" and member[2].evidence[1]="e" elided) | edge-case (N=K=3, evidence[0]-from-first-3-members pattern) |
 | Evidence line containing "\x1b[31m" (ANSI escape) | Rendered as `> \\x1b[31m` (escaped) | edge-case (EC-007) |
 
 ## Verification Properties
