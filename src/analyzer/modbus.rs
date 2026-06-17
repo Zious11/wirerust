@@ -604,17 +604,15 @@ impl ModbusAnalyzer {
                                     && !flow.window_burst_emitted
                                 {
                                     flow.window_burst_emitted = true;
-                                    // elapsed is in seconds; display as whole seconds.
-                                    let elapsed_ms = burst_elapsed;
                                     // Burst finding: SEPARATE from per-PDU finding (BC-2.14.013 inv5).
                                     local_findings.push(Finding {
                                         category: crate::findings::ThreatCategory::Execution,
                                         verdict: crate::findings::Verdict::Likely,
                                         confidence: crate::findings::Confidence::High,
                                         summary: format!(
-                                            "Modbus write burst: {} writes in {}s window (unit {}, threshold {}/s)",
+                                            "Modbus write burst: {} writes within {}s window (unit {}, threshold {}/s)",
                                             flow.window_write_count,
-                                            elapsed_ms,
+                                            WRITE_BURST_WINDOW_SECS,
                                             header.unit_id,
                                             self.write_burst_threshold
                                         ),
