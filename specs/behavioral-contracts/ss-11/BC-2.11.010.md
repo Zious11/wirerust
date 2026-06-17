@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.6"
+version: "1.7"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -19,6 +19,7 @@ modified:
   - "v1.4: DF-SIBLING-SWEEP-001 — fix stale terminal.rs range anchor: 196-218 → 203-226 (render_finding_prefix fn starts at 203, closes at 226); inline line refs updated: summary escape :197 → :204, evidence escape :215-216 → :222-223; verified against HEAD cfe0112a — 2026-06-01"
   - "v1.5: issue-#259 F2 integrate (v0.8.0 collapse feature) — extend Invariant 3 and add Invariant 4; add EC-006 and EC-007 for collapse-interaction: when collapse_findings=true, evidence rendering for a collapsed group is bounded to at most K=3 representative lines per BC-2.11.027; escape_for_terminal invariant is unchanged and applies identically to each sampled evidence line through the same code path. Added cross-references BC-2.11.025/BC-2.11.027/BC-2.11.029. ADR-0003 (display-layer aggregation subsection) cited. — 2026-06-17"
   - "v1.6 2026-06-17: F2 adversarial pass-3 — fix Invariant 4 and EC-007: change false 'same call site in render_finding_prefix' claim to correct 'same escape_for_terminal FUNCTION' claim; the flat collapse wrapper calls escape_for_terminal directly, NOT via render_finding_prefix's evidence loop (F-F2X-01)"
+  - "v1.7 2026-06-17: F2 adversarial pass-4 — F-F2-O01: anchor :203-226 → :203-227; Source Evidence path updated to :203-227"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -119,7 +120,7 @@ summary line or any supporting evidence detail -- cannot inject terminal control
 
 ## Architecture Anchors
 
-- `src/reporter/terminal.rs:203-226` -- render_finding_prefix (escape applied to summary line 204 and evidence lines 222-223)
+- `src/reporter/terminal.rs:203-227` -- render_finding_prefix (escape applied to summary line 204 and evidence lines 222-223)
 
 ---
 
@@ -129,7 +130,7 @@ summary line or any supporting evidence detail -- cannot inject terminal control
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/reporter/terminal.rs:203-226` |
+| **Path** | `src/reporter/terminal.rs:203-227` |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 

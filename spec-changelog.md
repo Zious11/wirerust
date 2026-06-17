@@ -14,6 +14,80 @@ changes, invariant rewrites).
 
 ---
 
+## [issue-259-collapse-advpass4-remediation-2026-06-17] — 2026-06-17
+
+### PATCH: Issue #259 F2 Adversarial Pass-4 Remediation — 2 HIGH + 2 LOW resolved
+
+**Trigger:** F2 adversarial pass-4 found 2 HIGH + 2 LOW findings (0 CRITICAL). All remediated
+in one burst. META-FIX: pass-4 exposed that the spec was over-specifying INTERNAL CALL
+STRUCTURE (render_finding_flat / render_finding_prefix call graph). All such claims converted
+to observable-behavior contracts with non-normative implementation notes per adjudicated model.
+total_bcs=288 unchanged. SS-11=29 unchanged.
+
+#### Finding Dispositions
+
+| Finding | Severity | BC(s) Changed | Resolution |
+|---------|----------|--------------|-----------|
+| F-F2-A01 | HIGH | BC-2.11.017 v1.10→v1.11, BC-2.11.026 v1.3→v1.4, BC-2.11.025 v1.2→v1.3, BC-2.11.013 v1.10→v1.11 | Conflicting normative internal-call-structure claims removed throughout. BC-2.11.017 Invariant 5 rewritten as OBSERVABLE LINE ORDER (header → K-sampled evidence → MITRE line); PC-6 added (MITRE line contract for collapse path); Description paragraph updated to match. BC-2.11.026 PC-4 rewritten as OBSERVABLE LINE ORDER + non-normative note: "F4 MAY reimplement... provided observable line order holds, suffix flat-only, evidence K-capped, every evidence line through escape_for_terminal." BC-2.11.026 PC-2 singleton ref updated to drop "render_finding_prefix" name; Invariant 4 render_finding_prefix implementation detail removed; EC-007 converted from STRUCTURAL GUARANTEE to OBSERVABLE GUARANTEE. BC-2.11.013 EC-007 converted from "STRUCTURAL guarantee: render_finding_prefix itself is UNCHANGED; the collapse-aware flat wrapper is never called from the grouped path" to OBSERVABLE GUARANTEE matching BC-2.11.026 EC-007. BC-2.11.025 Invariant 6 "byte-identical to calling render_finding_flat directly" converted to output-observable form. |
+| F-F2-A02 | HIGH | verification-coverage-matrix.md v1.9→v1.10 | Stale "collapse path calls same render_finding_prefix code path" claim corrected to: "the escape_for_terminal FUNCTION invariant is unchanged — the collapse path calls escape_for_terminal directly on each sampled evidence line and does NOT delegate to render_finding_prefix's evidence loop (BC-2.11.010 v1.7 / BC-2.11.027 v1.3 / ADR-0003)." |
+| F-F2-O01 | LOW | BC-2.11.025 v1.2→v1.3, BC-2.11.026 v1.3→v1.4, BC-2.11.010 v1.6→v1.7, BC-2.11.012 v1.5→v1.6 | anchor `terminal.rs:203-226` → `terminal.rs:203-227` in all four files (confirmed against source: fn opens at :203, closing brace at :227). Source Evidence path in BC-2.11.010 also updated. BC-2.11.012 discovered via sibling sweep. |
+| F-F2-O02 | LOW | BC-2.11.025 v1.2→v1.3 | Canonical flood test vector: "same timestamp" → "DIFFERING per-request timestamps (non-key field, excluded from collapse key)" — mirrors actual empty-UA emission at http.rs:359-371 where each request has a distinct timestamp; expected output (1 group, count 5) unchanged; this demonstrates timestamp variance does NOT block collapse. |
+
+#### BC Version Summary
+
+| BC/Doc | Before | After |
+|--------|--------|-------|
+| BC-2.11.010 | v1.6 | v1.7 |
+| BC-2.11.012 | v1.5 | v1.6 |
+| BC-2.11.013 | v1.10 | v1.11 |
+| BC-2.11.017 | v1.10 | v1.11 |
+| BC-2.11.025 | v1.2 | v1.3 |
+| BC-2.11.026 | v1.3 | v1.4 |
+| verification-coverage-matrix.md | v1.9 | v1.10 |
+
+#### ADR-0003 Check
+
+No additional changes needed. ADR-0003 was already corrected in pass-3 for the escape-reuse prose. The call-structure claims in ADR-0003 are now consistent with the updated observable-behavior BCs.
+
+#### Sibling Sweep Result (COMPLETE)
+
+Full grep across `.factory/specs/` and `docs/adr/0003*` for:
+`render_finding_flat`, `render_finding_prefix`, `call site`, `same code path`, `calls same`,
+`is called once per`, `replaces the direct`, `via this wrapper`, `same call`
+
+Normative call-structure claims eliminated:
+- `BC-2.11.017:88-98` — Invariant 5 "render_finding_flat is called once per collapsed group via this wrapper" → REMOVED; replaced with observable line order + non-normative note
+- `BC-2.11.026:64-78` (PC-4) — "path-(b) wrapper / path-(a) prohibited / CANONICAL implementation" call graph → REMOVED; replaced with observable line order + non-normative note
+- `BC-2.11.026:93-94` (Invariant 4) — "render_finding_prefix implementation builds line atomically" → REMOVED
+- `BC-2.11.026:108` (EC-007) — "STRUCTURAL guarantee: render_finding_prefix UNCHANGED; wrapper never called from grouped path" → CONVERTED to OBSERVABLE GUARANTEE
+- `BC-2.11.026:153-154` (Arch Anchors) — "count-annotated render replaces the direct render_finding_flat call" → REMOVED; plain anchor only
+- `BC-2.11.013:107` (EC-007) — "STRUCTURAL guarantee: render_finding_prefix itself is UNCHANGED; the collapse-aware flat wrapper is never called from the grouped path" → CONVERTED to OBSERVABLE GUARANTEE
+- `BC-2.11.025:112` (Invariant 6) — "byte-identical to calling render_finding_flat directly" → CONVERTED to output-observable form (no function name)
+- `BC-2.11.025:191-192` (Arch Anchors) — "called per collapsed group representative" removed from render_finding_prefix anchor comment
+- `verification-coverage-matrix.md:146-147` — "collapse path calls same render_finding_prefix code path" → CORRECTED (F-F2-A02)
+
+Remaining `render_finding_prefix` / `render_finding_flat` occurrences after the sweep are all:
+(a) Architecture Anchor lines pointing to the function (not normative call-structure claims), OR
+(b) Invariant/Postcondition descriptions of GROUPED MODE behavior (e.g., "called by render_finding_grouped" — true and must stay), OR
+(c) Historical `modified:` frontmatter entries recording what was wrong/fixed.
+None of these are normative claims about the collapse path's internal call structure.
+
+`escape_for_terminal` guarantee confirmed PRESERVED in BC-2.11.010 Invariant 4, BC-2.11.027 PC-1/PC-6/Invariant-5, and ADR-0003.
+
+#### Files Changed
+
+- `.factory/specs/behavioral-contracts/ss-11/BC-2.11.010.md` (v1.6 → v1.7)
+- `.factory/specs/behavioral-contracts/ss-11/BC-2.11.012.md` (v1.5 → v1.6)
+- `.factory/specs/behavioral-contracts/ss-11/BC-2.11.013.md` (v1.10 → v1.11)
+- `.factory/specs/behavioral-contracts/ss-11/BC-2.11.017.md` (v1.10 → v1.11)
+- `.factory/specs/behavioral-contracts/ss-11/BC-2.11.025.md` (v1.2 → v1.3)
+- `.factory/specs/behavioral-contracts/ss-11/BC-2.11.026.md` (v1.3 → v1.4)
+- `.factory/specs/architecture/verification-coverage-matrix.md` (v1.9 → v1.10)
+- `.factory/specs/behavioral-contracts/BC-INDEX.md` (v1.31 → v1.32; BC-010/012/013/017/025/026 row annotations updated)
+- `.factory/specs/prd.md` (delta block: all affected BC pairs updated to final adv-pass-4 versions)
+
+---
+
 ## [issue-259-collapse-advpass3-remediation-2026-06-17] — 2026-06-17
 
 ### PATCH: Issue #259 F2 Adversarial Pass-3 Remediation — 1 HIGH + 2 LOW resolved

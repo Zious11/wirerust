@@ -2,7 +2,7 @@
 artifact: architecture-section
 section: verification-coverage-matrix
 traces_to: ARCH-INDEX.md
-version: "1.9"
+version: "1.10"
 status: verified
 producer: architect
 timestamp: 2026-05-20T00:00:00Z
@@ -49,6 +49,9 @@ modified:
   - date: 2026-06-17
     actor: product-owner
     reason: "Issue #259 F2 integrate (v0.8.0 collapse feature): 5 new BCs BC-2.11.025–029 added (test-sufficient per F1 analysis — no new formal VP). reporter/terminal.rs row unit count grows 1→6 (new collapse unit tests per BC-2.11.025–029 Verification Properties); integration/unit count unchanged (VP-016 unchanged). VP totals unchanged: Kani 11 / proptest 7 / fuzz 1 / integration-unit 5 = 24. Coverage note added. Version bump 1.8→1.9."
+  - date: 2026-06-17
+    actor: product-owner
+    reason: "F2 adversarial pass-4 (F-F2-A02): fix stale 'collapse path calls same render_finding_prefix code path' claim in Issue #259 coverage note — corrected to reflect that terminal safety = escape_for_terminal FUNCTION invariant (VP-012); collapse path calls escape_for_terminal directly on each sampled evidence line, does NOT delegate to render_finding_prefix's evidence loop. Citations updated: BC-2.11.010 v1.7 / BC-2.11.027 v1.3 / ADR-0003. Version bump 1.9→1.10."
 ---
 
 # Verification Coverage Matrix
@@ -143,8 +146,10 @@ modified:
   **test-sufficient** — no new formal VP warranted per F1 delta analysis §8 rationale:
   (1) count correctness = Vec.len(), unit test sufficient; (2) no-loss invariant (JSON/CSV
   unchanged) = enforced by code structure (collapse is private to TerminalReporter) + integration
-  test; (3) terminal safety (escape_for_terminal) = VP-012 unchanged, collapse path calls same
-  render_finding_prefix code path. New unit tests mandated by BC-2.11.025–029 Verification
+  test; (3) terminal safety (escape_for_terminal) = VP-012 unchanged; the `escape_for_terminal`
+  FUNCTION invariant is unchanged — the collapse path calls `escape_for_terminal` directly on
+  each sampled evidence line and does NOT delegate to `render_finding_prefix`'s evidence loop
+  (BC-2.11.010 v1.7 / BC-2.11.027 v1.3 / ADR-0003). New unit tests mandated by BC-2.11.025–029 Verification
   Properties sections (test_BC_2_11_025_*, test_BC_2_11_026_*, test_BC_2_11_027_*,
   test_BC_2_11_028_*, test_BC_2_11_029_*). These are behavioral unit tests, NOT formal VP
   harnesses; they are not counted in the VP totals above. VP-012 (proptest, P1, verified) is

@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.10"
+version: "1.11"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -23,6 +23,7 @@ modified:
   - "v1.7: v19 remap: T0855 → T1692.001 per MITRE ATT&CK for ICS v19.0 revocation. All T0855 technique ID references in Description, Invariant 2, EC-006, and Canonical Test Vectors updated to T1692.001. Tactic unchanged: IcsImpairProcessControl. Issue #222; audit: mitre-ics-v19-catalog-audit.md. — 2026-06-10"
   - "v1.9: issue-#259 F2 integrate (v0.8.0 collapse feature) — add Invariant 4 and EC-007 explicitly scoping collapse interaction: when show_mitre_grouping=true, the collapse pass (BC-2.11.025) is NOT applied regardless of collapse_findings field value. Grouped mode renders each finding individually. Collapse within grouped/--mitre mode is DEFERRED to STORY-119 (future cycle). Cross-references BC-2.11.025/028/029. ADR-0003 (display-layer aggregation subsection) cited. — 2026-06-17"
   - "v1.10 2026-06-17: F2 adversarial pass-2 — strengthen EC-007: assert structural suffix-free guarantee via path-(b) wrapper (render_finding_prefix unchanged; grouped path structurally unable to emit suffix) (F-A03)"
+  - "v1.11 2026-06-17: F2 adversarial pass-4 — F-F2-A01: EC-007 STRUCTURAL guarantee converted to OBSERVABLE GUARANTEE form; remove call-graph prescription 'render_finding_prefix itself is UNCHANGED; the collapse-aware flat wrapper that appends suffixes is never called from the grouped path'"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -104,7 +105,7 @@ approximation per ADR-006 §13.7; full multi-tactic display is a future enhancem
 | EC-004 | Mix: known + unknown + empty mitre_techniques | Named sections + ## Uncategorized last |
 | EC-005 | Empty findings slice | No FINDINGS section rendered at all (not grouping-mode specific) |
 | EC-006 | Finding with mitre_techniques=["T1692.001","T0836"] (multi-tag) | Groups under MitreTactic::IcsImpairProcessControl (T1692.001's tactic); T0836 visible in inline rendering but does not create a second bucket |
-| EC-007 | show_mitre_grouping=true AND collapse_findings=true (both flags active) | Collapse pass NOT applied; each finding rendered individually per render_finding_grouped; no (xN) count suffix on any finding; grouped-mode behavior unchanged from pre-v0.8.0 (Invariant 4 scoping boundary). STRUCTURAL guarantee per BC-2.11.026 PC-4 path-(b): `render_finding_prefix` itself is UNCHANGED; the collapse-aware flat wrapper that appends suffixes is never called from the grouped path; grouped mode is structurally incapable of emitting a suffix, not merely policy-gated |
+| EC-007 | show_mitre_grouping=true AND collapse_findings=true (both flags active) | Collapse pass NOT applied; each finding rendered individually; no (xN) count suffix on any finding; grouped-mode behavior unchanged from pre-v0.8.0 (Invariant 4 scoping boundary). OBSERVABLE GUARANTEE: no ` (xN)` suffix appears in the terminal output for any grouped-mode finding, at any input volume — this is the same guarantee as BC-2.11.026 EC-007 and BC-2.11.025 Invariant 5 |
 
 ## Canonical Test Vectors
 

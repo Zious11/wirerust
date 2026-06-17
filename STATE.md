@@ -1,7 +1,7 @@
 ---
 pipeline: STEADY_STATE
 phase: feature-f2
-phase_status: "v0.7.1 RELEASED + maint-2026-06-17 COMPLETE + reactive fix #220 CLOSED (PR #263 merged; develop 5ed8077). Feature #259 (finding-collapse) F2 SPEC EVOLUTION COMPLETE — 5 new BCs (2.11.025-029) + 4 extended + ADR-0003 ext + PRD v1.26 (288 BCs). F2 adversarial Pass 1 NOT CLEAN (9 findings) REMEDIATED; corpus re-frozen; streak restarts 0/3 for Pass 2. F2 adversarial Pass 2 NOT CLEAN (4 MED/3 LOW) REMEDIATED; corpus re-frozen; streak still 0/3 → Pass 3 next. F2 adversarial Pass 3 NOT CLEAN (1 HIGH/2 LOW) → REMEDIATED; corpus re-frozen; streak still 0/3 → Pass 4 next (first of 3 consecutive-clean attempts)."
+phase_status: "v0.7.1 RELEASED + maint-2026-06-17 COMPLETE + reactive fix #220 CLOSED (PR #263 merged; develop 5ed8077). Feature #259 (finding-collapse) F2 SPEC EVOLUTION COMPLETE — 5 new BCs (2.11.025-029) + 4 extended + ADR-0003 ext + PRD v1.26 (288 BCs). F2 adversarial Pass 1 NOT CLEAN (9 findings) REMEDIATED; corpus re-frozen; streak restarts 0/3 for Pass 2. F2 adversarial Pass 2 NOT CLEAN (4 MED/3 LOW) REMEDIATED; corpus re-frozen; streak still 0/3 → Pass 3 next. F2 adversarial Pass 3 NOT CLEAN (1 HIGH/2 LOW) → REMEDIATED; corpus re-frozen; streak still 0/3 → Pass 4 next (first of 3 consecutive-clean attempts). F2 adversarial Pass 4 NOT CLEAN (2 HIGH/2 LOW) → REMEDIATED via observable-behavior refactor (call-structure claim class eliminated); corpus re-frozen; streak 0/3 → Pass 5 next."
 active_feature: "E-8 #259 finding-collapse (v0.8.0 target) — F2 FROZEN"
 feature_arp_status: "v0.7.0 RELEASED 2026-06-16 — ARP Security Analyzer (E-16, issue #9); PR #256 dd8e142; tag v0.7.0; 4 binaries (aarch64-apple-darwin, x86_64-apple-darwin, x86_64-pc-windows-msvc, x86_64-unknown-linux-gnu)"
 feature_8_status: "v0.6.0 RELEASED 2026-06-12 — DNP3 TCP analyzer; F7 5-dim CONVERGED; tag v0.6.0 + 4 binaries"
@@ -190,25 +190,24 @@ ADR-0007 Decision 2 prose-clarity nit — arithmetic-walk thinking artifact; fol
 | Release v0.7.1 | **RELEASED 2026-06-17 — CONFIRMED** — PR #258 (E-17 tests) merged to develop (b94aa6c); PR #260 (release/0.7.1 → main b98a72f); tag v0.7.1 (annotated → b98a72f); release.yml run 27694602320 COMPLETED conclusion=success; 4 binaries PUBLISHED (aarch64-apple-darwin, x86_64-apple-darwin, x86_64-pc-windows-msvc, x86_64-unknown-linux-gnu); GitHub Release isDraft=false https://github.com/Zious11/wirerust/releases/tag/v0.7.1. E-17 ARP VLAN/QinQ/MACsec offset regression hardening (issue #253); test-only; NO runtime behavior change. develop merge-back e1273c8; E-17 cycle CLOSED. Process-gaps ENGINE-NOTE DEFERRED (see Drift Items). | **RELEASED** |
 | Reactive fix: issue #220 Modbus burst-window display | **CLOSED 2026-06-17** — PR #263 `fix(modbus): report burst window width not elapsed span in summary` MERGED to develop (5ed8077). Cosmetic fix: `elapsed_secs` → `window_secs` in burst summary string. No behavioral change; no finding-count/threshold/window-logic change. BC-2.14.017 v2.6 (PC1 + EC-011). Spec commit 8d5446d. 9/9 CI green; security APPROVE (0 findings); code review APPROVE (3 LOW non-blocking); pr-reviewer APPROVE. | **CLOSED** |
 | Feature #259 (finding-collapse, E-8) — F1 Delta Analysis | **PASSED** (human-gated 2026-06-17) — OQ-1 default-on/--no-collapse; OQ-2 always-collapse; OQ-3 flat-only (grouped→STORY-119); OQ-4 K=3. ADR-0003 extension planned (display-layer aggregation, Rule 4). Full F2-F7 authorized; v0.8.0 target, epic E-8. Artifact: `.factory/phase-f1-delta-analysis/issue-259-finding-collapse-delta-analysis.md` | **PASSED** |
-| Feature #259 (finding-collapse, E-8) — F2 Spec Evolution | **COMPLETE — FROZEN BASELINE 2026-06-17** — 5 new BCs (BC-2.11.025 collapse-toggle, .026 always-collapse, .027 flat-only, .028 key-ordering, .029 count-annotation); 4 extended (BC-2.11.010 v1.5, .013 v1.9, .017 v1.8, .019 v1.5); ADR-0003 extension (display-layer aggregation, Rule 4); PRD v1.26; BC-INDEX v1.27 (288 total BCs); verification-coverage-matrix v1.9. FROZEN for F5 adversarial convergence passes. ADR-0003 develop-tree change left uncommitted (rides STORY-118 impl PR in F4). **F2 CONSISTENCY AUDIT REMEDIATED 2026-06-17** — 4 defects found (3 blocking: BC-2.11.027 singleton/K-cap model, EC-001 wrong, test vector wrong; 1 non-blocking: BC-2.11.028 xref BC-2.13.001→BC-2.13.004); BC-2.11.027/028/029 v1.0→v1.1; BC-INDEX v1.27→v1.28; corpus RE-FROZEN. **F2 adversarial Pass 1 NOT CLEAN (9 findings: 1 CRIT/4 HIGH/4 MED) — REMEDIATED 2026-06-17; positional first-K evidence model, colorized (xN), severity-agnostic collapse (BC-2.11.025-029, .017 v1.9; BC-INDEX v1.29); corpus RE-FROZEN; streak 0/3 for Pass 2. F2 adversarial Pass 2 NOT CLEAN (4 MED/3 LOW, 0 CRIT/HIGH) — REMEDIATED 2026-06-18; Vec-accumulator canonical, path-(b) flat-only suffix wrapper, PRD version-pair resync (BC-2.11.013/017/019/025/026 v1.10/v1.10/v1.6/v1.2/v1.2; BC-INDEX v1.30); corpus RE-FROZEN; streak still 0/3 → Pass 3 next. F2 adversarial Pass 3 NOT CLEAN (1 HIGH/2 LOW) → REMEDIATED 2026-06-17; escape-reuse wording corrected to function-level (escape_for_terminal, not render_finding_prefix call-site) (BC-2.11.010 v1.6, BC-2.11.026 v1.3, BC-2.11.027 v1.3; BC-INDEX v1.31); corpus RE-FROZEN; streak still 0/3 → Pass 4 next (first of 3 consecutive-clean attempts).** | **FROZEN — AWAITING F5 ADVERSARIAL (Pass 4)** |
+| Feature #259 (finding-collapse, E-8) — F2 Spec Evolution | **COMPLETE — FROZEN BASELINE 2026-06-17** — 5 new BCs (BC-2.11.025 collapse-toggle, .026 always-collapse, .027 flat-only, .028 key-ordering, .029 count-annotation); 4 extended (BC-2.11.010 v1.5, .013 v1.9, .017 v1.8, .019 v1.5); ADR-0003 extension (display-layer aggregation, Rule 4); PRD v1.26; BC-INDEX v1.27 (288 total BCs); verification-coverage-matrix v1.9. FROZEN for F5 adversarial convergence passes. ADR-0003 develop-tree change left uncommitted (rides STORY-118 impl PR in F4). **F2 CONSISTENCY AUDIT REMEDIATED 2026-06-17** — 4 defects found (3 blocking: BC-2.11.027 singleton/K-cap model, EC-001 wrong, test vector wrong; 1 non-blocking: BC-2.11.028 xref BC-2.13.001→BC-2.13.004); BC-2.11.027/028/029 v1.0→v1.1; BC-INDEX v1.27→v1.28; corpus RE-FROZEN. **F2 adversarial Pass 1 NOT CLEAN (9 findings: 1 CRIT/4 HIGH/4 MED) — REMEDIATED 2026-06-17; positional first-K evidence model, colorized (xN), severity-agnostic collapse (BC-2.11.025-029, .017 v1.9; BC-INDEX v1.29); corpus RE-FROZEN; streak 0/3 for Pass 2. F2 adversarial Pass 2 NOT CLEAN (4 MED/3 LOW, 0 CRIT/HIGH) — REMEDIATED 2026-06-18; Vec-accumulator canonical, path-(b) flat-only suffix wrapper, PRD version-pair resync (BC-2.11.013/017/019/025/026 v1.10/v1.10/v1.6/v1.2/v1.2; BC-INDEX v1.30); corpus RE-FROZEN; streak still 0/3 → Pass 3 next. F2 adversarial Pass 3 NOT CLEAN (1 HIGH/2 LOW) → REMEDIATED 2026-06-17; escape-reuse wording corrected to function-level (escape_for_terminal, not render_finding_prefix call-site) (BC-2.11.010 v1.6, BC-2.11.026 v1.3, BC-2.11.027 v1.3; BC-INDEX v1.31); corpus RE-FROZEN; streak still 0/3 → Pass 4 next (first of 3 consecutive-clean attempts). F2 adversarial Pass 4 NOT CLEAN (2 HIGH/2 LOW) → REMEDIATED via observable-behavior refactor (call-structure claim class eliminated); normative internal-call-structure claims eliminated (observable line-order contract + non-normative F4 note); matrix escape-reuse fix (BC-2.11.010 v1.7, BC-2.11.012 v1.6, BC-2.11.013 v1.11, BC-2.11.017 v1.11, BC-2.11.025 v1.3, BC-2.11.026 v1.4; BC-INDEX v1.32); corpus RE-FROZEN; streak 0/3 → Pass 5 next.** | **FROZEN — AWAITING F5 ADVERSARIAL (Pass 5)** |
 
-## Session Resume Checkpoint (2026-06-17 — reactive fix #220 CLOSED; pipeline STEADY_STATE/IDLE)
+## Session Resume Checkpoint (2026-06-17 — F2 adversarial Pass 4 REMEDIATED; corpus re-frozen for Pass 5)
 
-**Previous checkpoint (2026-06-17 — maint-2026-06-17 COMPLETE; pipeline STEADY_STATE/IDLE) archived to:
+**Previous checkpoint (2026-06-17 — reactive fix #220 CLOSED; pipeline STEADY_STATE/IDLE) archived to:
 `.factory/cycles/feature-arp-v0.7.0/session-checkpoints.md`**
 
 ### A. EXACT PIPELINE POSITION
 
-- **Project:** wirerust. **Mode:** STEADY-STATE (pipeline IDLE, no active feature).
+- **Project:** wirerust. **Mode:** FEATURE-MODE F2 (mid-cycle, #259 finding-collapse).
 - **Latest release:** v0.7.1 — E-17 ARP VLAN/QinQ/MACsec offset regression hardening (issue #253); FULLY RELEASED. Tag v0.7.1 on main b98a72f.
-- **Maintenance run:** maint-2026-06-17 COMPLETE — gate PASS (48 findings, 0 CRITICAL, 0 CVE). PRs #261 + #262 merged. 5 items deferred to tech-debt-register.
-- **Reactive fix:** issue #220 CLOSED — PR #263 merged to develop (5ed8077). Cosmetic Modbus burst-window display fix. BC-2.14.017 v2.6. No behavioral change.
-- **develop HEAD:** 5ed8077 == origin/develop. Working tree CLEAN.
+- **Active feature:** #259 finding-collapse, E-8, v0.8.0 target — F2 adversarial convergence in progress.
+- **F2 adversarial state:** Pass 4 NOT CLEAN (2 HIGH/2 LOW) → REMEDIATED via observable-behavior refactor (call-structure claim class eliminated); corpus re-frozen; streak 0/3 → Pass 5 next.
+- **develop HEAD:** 5ed8077 == origin/develop. Working tree: docs/adr/0003-reporting-pipeline-layering.md has uncommitted change (rides STORY-118 F4 impl PR — do NOT commit to develop until F4).
 - **main HEAD:** b98a72f (tag v0.7.1 annotated).
-- **factory-artifacts HEAD:** eaedc88 (chore(factory): archive PR #263 description artifact (#220 fix)).
+- **factory-artifacts HEAD:** run `git -C .factory log -1 --format='%H'` (this burst).
 - **Active worktrees:** EXACTLY 2 — main repo (develop branch) + `.factory/` (factory-artifacts branch).
 - **Open PRs:** none.
-- **E-17 cycle:** CLOSED. Full F1-F7 CONVERGED. All gates SATISFIED.
 - **Issue #220:** CLOSED (by PR #263). **Issue #254:** CLOSED (by PR #261).
 
 ### B. RESUME PROCEDURE (COLD-RESUME)
@@ -218,7 +217,7 @@ ADR-0007 Decision 2 prose-clarity nit — arithmetic-walk thinking artifact; fol
 **Step 2 — Verify SHAs (all must match before proceeding):**
 - `git rev-parse --short HEAD` in repo root → expect `5ed8077`
 - `git rev-parse --short origin/develop` → expect `5ed8077` (develop == origin/develop)
-- `git -C .factory rev-parse --short HEAD` → expect `eaedc88`
+- `git -C .factory rev-parse --short HEAD` → this burst SHA (run `git -C .factory log -1 --format='%h'`)
 - `git rev-parse --short main` → expect `b98a72f`
 - `git tag -l v0.7.1` → must exist
 - `gh pr list --state open` → expect empty
@@ -228,13 +227,12 @@ ADR-0007 Decision 2 prose-clarity nit — arithmetic-walk thinking artifact; fol
 - E-17 cycle F1-F7: ALL CONVERGED AND CLOSED.
 - maint-2026-06-17: COMPLETE — PRs #261/#262 merged; 5 TD items registered; gate PASS.
 - Issue #220: CLOSED — PR #263 merged; BC-2.14.017 v2.6; cosmetic fix only; no pipeline phase impact.
-- All pipeline gates SATISFIED (adversarial 3/3, holdout 1.00, F6 Kani 5/5, F7 5-dim).
+- Feature #259 F2 adversarial Passes 1-4: ALL REMEDIATED. Pass 4 delta: BC-2.11.010 v1.7, .012 v1.6, .013 v1.11, .017 v1.11, .025 v1.3, .026 v1.4; BC-INDEX v1.32; PRD resynced; verification-coverage-matrix v1.10; spec-changelog entry [issue-259-collapse-advpass4-remediation-2026-06-17].
+- ADR-0003 develop-tree: HAS uncommitted change (docs/adr/0003-reporting-pipeline-layering.md modified ~145 lines) — this is intentional; rides STORY-118 F4 impl PR. Do NOT commit on develop until F4.
 
-**Step 4 — NEXT ACTIONS (human decision required — no auto-continue):**
-- Action deferred maint items: dep bumps (rand, zerocopy), spec/holdout label-lag, ADR-0007 prose nit.
-- Open issues: #252 (VP-024 proof_file_hash — DF-VALIDATION-001 GENUINE), #255 (JSON snake_case — DF-VALIDATION-001 GENUINE), #259 (finding-collapse — DF-VALIDATION-001 GENUINE; report `.factory/research/issue-259-finding-collapse-validation.md`), #103/#101 (reassembly), #67/#64/#63/#62 (reporter/test), #6 (rayon), #4 (CSV/SQLite), #3 (C2 beaconing).
-- Next feature: select ICS protocol or roadmap item — human decision required.
-- No automatic pipeline continues.
+**Step 4 — NEXT ACTIONS:**
+- Dispatch F2 adversarial Pass 5 (fresh-context adversary on re-frozen corpus). Streak counter: 0/3.
+- ADR-0003 develop-tree change stays uncommitted until F4 STORY-118 PR.
 
 ### C. KEY ARTIFACT POINTERS
 

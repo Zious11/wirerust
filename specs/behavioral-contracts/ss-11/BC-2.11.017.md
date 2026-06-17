@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.10"
+version: "1.11"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -23,6 +23,7 @@ modified:
   - "v1.8: issue-#259 F2 integrate (v0.8.0 collapse feature) — extend Description and add Invariant 5 and EC-007: when collapse_findings=true (default in v0.8.0), render_finding_flat is called per collapsed group with the collapsed representative Finding, and the header line appends a (xN) count suffix per BC-2.11.026; when N=1 (singleton), the header line is byte-identical to the pre-v0.8.0 output; when collapse_findings=false (--no-collapse), all existing postconditions remain byte-identical to pre-v0.8.0. Cross-references BC-2.11.025/026/028/029. ADR-0003 (display-layer aggregation subsection) cited. — 2026-06-17"
   - "v1.9 2026-06-17: F2 adversarial pass-1 — update Invariant 5: (xN) suffix is colorized identically with the header line (no uncolorized suffix; suffix appended to pre-color line string before colorization) (F-259-02)"
   - "v1.10 2026-06-17: F2 adversarial pass-2 — align Invariant 5 to path-(b) collapse-aware wrapper (F-A03): the flat collapse path uses a wrapper that builds the header with suffix; render_finding_prefix itself is unchanged; grouped mode is structurally suffix-free"
+  - "v1.11 2026-06-17: F2 adversarial pass-4 — F-F2-A01: convert Invariant 5 and Description collapse paragraph from internal-call-structure prescription to observable-behavior contract; add MITRE line observable-behavior postcondition (PC-6); remove 'render_finding_flat is called once per group via this wrapper' call-graph claim; add non-normative implementation note per adjudicated model"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -54,13 +55,15 @@ For multi-element vecs the output is `MITRE: T1692.001, T0836`. Findings with em
 `mitre_techniques` produce no MITRE line. Findings are rendered in their original emission
 order with no tactic bucketing or sorting.
 
-**v0.8.0 collapse interaction (BC-2.11.025/BC-2.11.026):** When `collapse_findings = true`
-(the v0.8.0 default), `render_finding_flat` is called once per collapsed group (not once per
-raw finding). The representative Finding for the group provides the MITRE line content
-unchanged. The header line of the collapsed group gains a ` (xN)` suffix per BC-2.11.026.
-When N=1 (singleton group), the header line is byte-identical to the pre-v0.8.0 output.
-When `collapse_findings = false` (`--no-collapse`), all postconditions in this BC remain
-byte-identical to the pre-v0.8.0 behavior.
+**v0.8.0 collapse interaction (BC-2.11.025/BC-2.11.026/BC-2.11.027):** When
+`collapse_findings = true` (the v0.8.0 default), the terminal emits one display group per
+collapsed group. For each group the OBSERVABLE output lines are, in order: (1) the header
+line with ` (xN)` suffix when N≥2 (colorized; BC-2.11.026), (2) up to K=3 sampled evidence
+lines (BC-2.11.027), (3) the MITRE line IF `mitre_techniques` is non-empty — identical in
+format to this BC's Postcondition 1 (comma-space-joined IDs from the representative finding).
+When N=1 (singleton group), the output is byte-identical to the pre-v0.8.0 single-finding
+output. When `collapse_findings = false` (`--no-collapse`), all postconditions in this BC
+remain byte-identical to the pre-v0.8.0 behavior.
 
 ## Preconditions
 
@@ -76,6 +79,12 @@ byte-identical to the pre-v0.8.0 behavior.
 3. No `## TacticName` or `## Uncategorized` headers in the FINDINGS section.
 4. Findings render in their original slice order.
 5. Findings with empty `mitre_techniques` produce no MITRE line (no blank line either).
+6. **v0.8.0 collapse path:** When `collapse_findings = true`, for each collapsed group the
+   MITRE line (if `mitre_techniques` non-empty) is emitted after the header line and after
+   the K-sampled evidence lines, using the same `mitre_techniques.join(", ")` format as
+   Postconditions 1–2. The MITRE line content comes from the representative finding of the
+   group. The MITRE line does NOT carry the ` (xN)` suffix — the count suffix appears only
+   on the header line (BC-2.11.026 Invariant 2 / EC-007).
 
 ## Invariants
 
@@ -84,18 +93,19 @@ byte-identical to the pre-v0.8.0 behavior.
 2. `render_finding_flat` never calls `technique_name()` or `technique_tactic()`.
 3. This mode is the "no --mitre flag" case; grouping requires the `--mitre` CLI flag.
 4. The join separator is `", "` (comma followed by single space). No trailing separator.
-5. **v0.8.0 collapse path (BC-2.11.026 path-(b)):** When `collapse_findings = true`, the flat
-   dispatch block uses a collapse-aware FLAT-ONLY wrapper function (NOT `render_finding_prefix`
-   directly) that builds the header line with the ` (xN)` suffix when N≥2, then colorizes the
-   complete line including the suffix. `render_finding_flat` is called once per collapsed group
-   (passing the group's representative `&Finding`) via this wrapper. The MITRE line produced by
-   `render_finding_flat` is unchanged; the suffix appears only on the header line, not on the
-   MITRE line. `render_finding_prefix` itself is NOT modified — it continues to be called
-   unchanged by `render_finding_grouped` for grouped mode, preserving the structural suffix-free
-   guarantee for grouped/`--mitre` output (BC-2.11.013 Invariant 4). The suffix is colorized
-   identically with the header line (F-259-02 adjudication; F-A03 path-(b) prescription). When
-   `collapse_findings = false` (`--no-collapse`), the flat dispatch block calls
-   `render_finding_flat` once per raw finding, identical to the pre-v0.8.0 code path.
+5. **v0.8.0 collapse path — OBSERVABLE LINE ORDER (BC-2.11.025/026/027):** When
+   `collapse_findings = true`, for each collapsed group the terminal emits — in order —
+   (1) the header line with ` (xN)` suffix (colorized; N≥2) or without suffix (N=1),
+   (2) up to K=3 sampled evidence lines each passed through `escape_for_terminal`,
+   (3) the MITRE line using `mitre_techniques.join(", ")` format from Postconditions 1–2
+   IF `mitre_techniques` is non-empty. The ` (xN)` suffix is colorized identically with
+   the rest of the header line. When `show_mitre_grouping = true`, the collapse pass is NOT
+   applied and all existing postconditions hold unchanged (BC-2.11.025 Invariant 5).
+   **Implementation note (non-normative; F4 decides):** F4 MAY reimplement the flat-render
+   inline in a collapse-aware wrapper OR factor a shared header/MITRE helper — the internal
+   function call graph is unconstrained PROVIDED the observable line order above holds, the
+   ` (xN)` suffix appears only in collapsed/flat mode (never grouped), evidence is K-capped,
+   and every evidence line passes through `escape_for_terminal`.
 
 ## Edge Cases
 
