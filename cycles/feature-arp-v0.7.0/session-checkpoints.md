@@ -875,3 +875,31 @@ STORY-111=3eefa35 MATCH | STORY-112=6115929 MATCH (stale re-drift caught in clos
 | main HEAD | 3e29891 | v0.6.0 |
 | factory-artifacts HEAD | see git -C .factory log -1 | — |
 | open PRs | none | — |
+
+---
+
+## Archived Checkpoint: 2026-06-17 — E-17 F3 story decomposition freeze; NEXT = E17-F3 adversarial Pass 1
+
+**Archived from STATE.md on:** 2026-06-17 (replaced by "E-17 F3 adversarial P1 CLEAN; clean-streak 1/3" checkpoint)
+
+### A. EXACT PIPELINE POSITION (at archive time)
+
+- E-17 F1: PASSED (human-gated 2026-06-16). MACsec investigated → NO code bug; documented-limitation; full F1-F7 rigor; v0.7.1 target.
+- E-17 F2: COMPLETE — adversarial gate SATISFIED 3/3 (2026-06-16) on frozen baseline factory-artifacts 39f57ea. Final corpus: BC-2.16.009 v1.9, BC-2.16.015 v1.8, arp-architecture-delta v1.19, VP-024 v2.4, verification-coverage-matrix v1.8.
+- E-17 F3: COMPLETE (frozen) — STORY-116 (wave 45, QinQ coverage) + STORY-117 (wave 46, MACsec documented-limitation); linear chain STORY-115→116→117; input-hash c389b39 both MATCH; BC-2.16.009 v1.10 + BC-2.16.015 v1.9 backlinks added; epics/dependency-graph/wave-schedule updated. F3 human gate REQUIRED before F4.
+- E-17 F3 NEXT: F3 adversarial convergence + consistency-validator → F3 human gate → F4 authorized.
+- develop HEAD: 480f8ae == origin/develop.
+- main HEAD: dd8e142 (v0.7.0).
+- factory-artifacts HEAD: see git -C .factory log -1 --format='%h %s'
+- Active worktrees: EXACTLY 2 — main repo (develop) + .factory (factory-artifacts).
+- Open PRs: None.
+
+### B. BURST RECORDED
+
+- STORY-116 (QinQ coverage, wave 45) + STORY-117 (MACsec documented-limitation, wave 46) created; linear chain STORY-115→116→117.
+- input-hash c389b39 computed and MATCH for both stories.
+- BC-2.16.009 v1.10 + BC-2.16.015 v1.9: Traceability backlinks added for STORY-116/STORY-117.
+- epics.md, dependency-graph.md (cross_epic_edges 18→19, total_stories 67→69), wave-schedule updated (waves 44→46).
+- Drift items added: DRIFT-E16-EPICS-SUMMARY-GAP-001 + DRIFT-E16-BC-BACKLINK-GAP-001 (pre-existing E-16 traceability gaps; DEFERRED LOW).
+- spec-changelog.md updated with F3 entry.
+- E-17 phase pointer advanced: F3 COMPLETE (frozen) → F3 adversarial convergence.

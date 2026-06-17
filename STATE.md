@@ -47,9 +47,10 @@ arp_f4_wave_adversary_convergence_counter: 3/3 CONVERGED (re-streak on bcb1bd6) 
 arp_f5_scoped_adversary_convergence_counter: "3/3 CONVERGED — F5 scoped-adversarial gate SATISFIED (2026-06-16, develop 079013d; 3 independent fresh-context passes PASS CLEAN)"
 convergence_trajectory: "P1-P14 greenfield GATE-SATISFIED; MITRE-222 3-pass CONVERGED. Detail: cycles/v0.1.0-greenfield-spec/convergence-trajectory.md"
 arp_f2_adversary_convergence_counter: 3/3 CONVERGED  # Pass 31/32/33 consecutive CLEAN; F2 strict-whole-corpus adversarial gate SATISFIED
-arp_f3_adversary_convergence_counter: 3/3 CONVERGED  # Passes 36/37/38 consecutive CLEAN; F3 strict-whole-corpus adversarial gate SATISFIED
+arp_f3_adversary_convergence_counter: 3/3 CONVERGED  # Passes 36/37/38 consecutive CLEAN; F3 strict-whole-corpus adversarial gate SATISFIED (STORY-111..115 E-16)
+e17_f3_adversary_convergence_counter: 1/3  # E17-F3 Pass 1 (round 2, 2026-06-17) CLEAN — zero MEDIUM+; streak 1/3; STORY-116/117; corpus frozen 5dff3cb
 arp_f2_convergence_trajectory: "15→20→~8→~15→~6→~4→~4→~7→~4→~6→~5→~18→~8→~22(P14: 2C/5H NEW corpus-debt; trend broke; ARP delta clean 6th pass)→P15(8 findings: holdout-layer field-rename + regression; REMEDIATED)→P16(7: 0C/0H, sibling-sweep misses; REMEDIATED; Slice B CLEAN)→P17(10: holdout MITRE-counts + module-decomposition peer; REMEDIATED; Slice B CLEAN 2nd)→P18(9: ss-05 anchor-drift + indicatif + STORY-INDEX; 0C/3H; REMEDIATED; arp.rs+holdout pre-flush verified clean)→P19(15: corpus-wide anchor-drift; 0C/8H; PARTIAL — ss-07-full+remaining-BC pending)→ batch2: ss-07-full(35 BCs)+ss-04-partial(21 BCs)+ss-11(10 BCs); ss-01/02/08/13 CLEAN; ss-04-remainder+ss-12 to Pass-20 — REMEDIATED → P20(7: anchor-drift flushed, ss-04/ss-12 closed; 0C/1H; Slices A+C CLEAN; REMEDIATED) → P21(5 cosmetic; 0C/0H; A+C CLEAN; REMEDIATED) → P22(5 valid; 0C/0H; cosmetic; version-pin hardened; REMEDIATED) → P23(5; B/C/D CLEAN; Slice-A only; 0C/0H; REMEDIATED) → P24(4: D-01 DNP3-C24 sweep genuine + 3 self-induced; 0C/1H; B+C CLEAN; REMEDIATED) → P25(2; A/B/C CLEAN; changelog-path flush; 0C/0H; REMEDIATED) → P26 CLEAN 1/3 (all 4 slices zero findings; corpus-wide debt flushed P14-25) → P27 reset 1/3→0/3 (HS-008 kill-chain + HS-INDEX pin; holdout-pin-hardened) → P28 CLEAN 1/3 (restart after P27 reset) → P29 reset 1/3→0/3 (DNP3 T1692.001 + PRD FC-0x17 content gaps; REMEDIATED) → P30 (4 HIGH genuine: FlowKey accessor + STORY input-hash dup + ADR-006 FC0x17; REMEDIATED) → P31 CLEAN 1/3 (restart; P30 HIGH fixes held; all 4 slices zero findings) → P32 CLEAN 2/3 (2nd consecutive) → P33 CLEAN 3/3 CONVERGED (F2 strict-whole-corpus gate satisfied after 33 passes). Detail: phase-f5-adversarial/arp-f2-convergence-trajectory.md"
-f3_convergence_trajectory: "F3 STRICT WHOLE-CORPUS CONVERGED 3/3 — GATE SATISFIED. Full per-pass detail P1-P38: phase-f5-adversarial/arp-f3-convergence-trajectory.md. P31 FULLY CLEAN (clean-streak 0/3→1/3). P32 reset (STORY-115 storm_findings field; REMEDIATED). P33 reset (BC-2.15.024 parse_errors→malformed_in_window; REMEDIATED). POST-P33 SS-15 FLUSH (6 findings). P34 reset (changelog Artifacts table; REMEDIATED). P35 reset (changelog line-pins; de-pin sweep). P36 FULLY CLEAN (clean-streak 0/3→1/3). P37 FULLY CLEAN (clean-streak 1/3→2/3). P38 FULLY CLEAN — all 4 slices ZERO; A 17th-consec, B converged, C converged, D converged; mount-guards PASSED; clean-streak 2/3→3/3. **F3 STRICT WHOLE-CORPUS ADVERSARIAL GATE SATISFIED** (Passes 36/37/38 consecutive CLEAN). Total: 38 passes."
+f3_convergence_trajectory: "F3 STRICT WHOLE-CORPUS CONVERGED 3/3 — GATE SATISFIED (E-16, STORY-111..115). Full per-pass detail P1-P38: phase-f5-adversarial/arp-f3-convergence-trajectory.md. P36/P37/P38 consecutive CLEAN. Total: 38 passes. E-17 ROUND-2 STREAK: E17-F3 Pass 1 (2026-06-17) CLEAN — zero MEDIUM+; 2 LOW observations only (O-1 input-hash pairing, O-2 dep-graph label cosmetic); clean-streak 1/3. Detail: arp-f3-convergence-trajectory.md §E-17 F3 section."
 f7_convergence_trajectory: "6 fresh-context adversarial passes; final 3 consecutive CONVERGED (0 P0/CRITICAL/HIGH/MEDIUM)"
 consistency_audit: CONSISTENT  # post-F7-consistency-remediation; F1-F4 ALL REMEDIATED 2026-06-16
 input_drift_check: "F7-followup-dispositions burst (2026-06-16): STORY-071=6b40879 MATCH (recomputed; BC-2.10.007 v1.8 input), STORY-100=bc08fb1 MATCH (recomputed; BC-2.10.007 v1.8 input), STORY-111=3eefa35 MATCH, STORY-112=26fb42d MATCH, STORY-113=f35bcfc MATCH, STORY-114=02da9e7 MATCH, STORY-115=80be67e MATCH. ALL 7 MATCH. Non-ARP/non-BC-2.10.007 STALE pre-existing; does NOT block release."
@@ -100,49 +101,46 @@ input_drift_check: "F7-followup-dispositions burst (2026-06-16): STORY-071=6b408
 | Release v0.7.0 | **RELEASED 2026-06-16** — PR #256 (release/0.7.0 → main); merge commit dd8e142; tag v0.7.0; GitHub Release https://github.com/Zious11/wirerust/releases/tag/v0.7.0; 4 binaries (aarch64-apple-darwin, x86_64-apple-darwin, x86_64-pc-windows-msvc, x86_64-unknown-linux-gnu); release.yml run 27645784901 SUCCESS. ARP Security Analyzer (E-16, issue #9). develop merge-back: dd8e142 (branch-protection bypass; gitflow sync; CI-verified via PR #256). | **RELEASED** |
 | E-17: ARP QinQ/MACsec offset hardening (issue #253) — F1 Delta Analysis | **PASSED** (human-gated 2026-06-16) — MACsec offset investigated → NO code bug; documented-limitation evidence-backed. Full F1-F7 rigor authorized; v0.7.1 target. Artifacts: `.factory/phase-f1-delta-analysis/` | PASSED |
 | E-17: ARP QinQ/MACsec offset hardening (issue #253) — F2 Spec Evolution | **SATISFIED 3/3 COMPLETE** (2026-06-16) — 3 consecutive fresh-context CLEAN passes (zero MEDIUM-or-above) on frozen baseline factory-artifacts 39f57ea. Each pass corroborated: etherparse 0.20.2 citations vs vendored source, all 10 test names, VP-024 v2.4 lock integrity, EC-009 sibling identity, §2.2 snippet-vs-shipped-code parity. Full trajectory: HIGH mis-anchor (4 governance docs) → MEDIUM symbol/tense → MEDIUM changelog traceability gap → 3/3 CLEAN. Final F2 corpus versions: BC-2.16.009 v1.9, BC-2.16.015 v1.8, arp-architecture-delta v1.19, VP-024 v2.4, verification-coverage-matrix v1.8. | COMPLETE |
-| E-17: ARP QinQ/MACsec offset hardening (issue #253) — F3 Story Decomposition | **COMPLETE** — STORY-116 (wave 45, QinQ coverage) + STORY-117 (wave 46, MACsec documented-limitation); linear chain STORY-115→116→117; input-hash c389b39 both MATCH; BC-2.16.009 v1.10 + BC-2.16.015 v1.9 backlinks added; epics/dependency-graph/wave-schedule updated. F3 frozen for adversarial convergence + consistency-validator → F3 human gate. | COMPLETE — frozen for F3 adversarial |
+| E-17: ARP QinQ/MACsec offset hardening (issue #253) — F3 Story Decomposition | **IN PROGRESS — adversarial convergence** — STORY-116 (wave 45, QinQ coverage) + STORY-117 (wave 46, MACsec documented-limitation); corpus frozen at factory-artifacts 5dff3cb; round-1 remediations complete (edge counts, BC/VP version refs, epics rollups); E17-F3 Pass 1 CLEAN (2026-06-17) — zero MEDIUM+; clean-streak 1/3. | IN PROGRESS — E17-F3 P1 CLEAN 1/3 |
 
-## Session Resume Checkpoint (2026-06-17 — E-17 F3 story decomposition freeze)
+## Session Resume Checkpoint (2026-06-17 — E-17 F3 adversarial P1 CLEAN)
 
-**Previous checkpoint (2026-06-16 — E-17 F2 gate closure) archived to:
+**Previous checkpoint (2026-06-17 — E-17 F3 story decomposition freeze) archived to:
 `cycles/feature-arp-v0.7.0/session-checkpoints.md`**
 
 ### A. EXACT PIPELINE POSITION
 
 - **Project:** wirerust. Mode: STEADY-STATE (top-level pipeline IDLE; E-17 sub-cycle IN PROGRESS).
 - **E-17 "ARP QinQ/MACsec offset hardening" (issue #253): CYCLE OPEN.**
-- **E-17 F1:** PASSED (human-gated 2026-06-16). MACsec investigated → NO code bug; documented-limitation; full F1-F7 rigor; v0.7.1 target.
-- **E-17 F2:** COMPLETE — adversarial gate SATISFIED 3/3 (2026-06-16) on frozen baseline factory-artifacts 39f57ea. Final corpus: BC-2.16.009 v1.9, BC-2.16.015 v1.8, arp-architecture-delta v1.19, VP-024 v2.4, verification-coverage-matrix v1.8.
-- **E-17 F3:** COMPLETE (frozen) — STORY-116 (wave 45, QinQ coverage) + STORY-117 (wave 46, MACsec documented-limitation); linear chain STORY-115→116→117; input-hash c389b39 both MATCH; BC-2.16.009 v1.10 + BC-2.16.015 v1.9 backlinks added; epics/dependency-graph/wave-schedule updated. F3 human gate REQUIRED before F4.
-- **E-17 F3 NEXT:** F3 adversarial convergence + consistency-validator → F3 human gate → F4 authorized.
+- **E-17 F1:** PASSED (human-gated 2026-06-16).
+- **E-17 F2:** COMPLETE — adversarial gate SATISFIED 3/3 (2026-06-16).
+- **E-17 F3:** IN PROGRESS — adversarial convergence. Corpus frozen at factory-artifacts 5dff3cb. E17-F3 Pass 1 (2026-06-17) CLEAN — zero MEDIUM+; 2 LOW observations only (O-1 input-hash pairing, O-2 dep-graph label cosmetic). Clean-streak **1/3**.
+- **E-17 F3 NEXT:** Pass 2 (clean-streak attempt 2/3).
 - **develop HEAD: 480f8ae** == origin/develop.
 - **main HEAD: dd8e142 (v0.7.0).**
 - **factory-artifacts HEAD:** see `git -C .factory log -1 --format='%h %s'`
 - **Active worktrees:** EXACTLY 2 — main repo (develop) + .factory (factory-artifacts).
-- **Open PRs:** None (E-17 F3 is spec-only; no source PR yet).
+- **Open PRs:** None.
 
-### B. E-17 F3 STORY DECOMPOSITION FREEZE BURST (2026-06-17)
+### B. E17-F3 ADVERSARIAL P1 RESULT (2026-06-17)
 
-Recorded in this burst:
-- STORY-116 (QinQ coverage, wave 45) + STORY-117 (MACsec documented-limitation, wave 46) created; linear chain STORY-115→116→117.
-- input-hash c389b39 computed and MATCH for both stories.
-- BC-2.16.009 v1.10 + BC-2.16.015 v1.9: Traceability backlinks added for STORY-116/STORY-117.
-- epics.md, dependency-graph.md (cross_epic_edges 18→19, total_stories 67→69), wave-schedule updated (waves 44→46).
-- Drift items added: DRIFT-E16-EPICS-SUMMARY-GAP-001 + DRIFT-E16-BC-BACKLINK-GAP-001 (pre-existing E-16 traceability gaps; DEFERRED LOW).
-- spec-changelog.md updated with F3 entry.
-- E-17 phase pointer advanced: F3 COMPLETE (frozen) → F3 adversarial convergence.
+- E17-F3 Pass 1: PASS — CLEAN. Zero CRITICAL/HIGH/MEDIUM. 2 LOW observations: O-1 (input-hash c389b39 not tool-verified; orchestrator must run `bin/compute-input-hash --scan` before gate), O-2 (dep-graph.md lines 204/586 STORY-117 description mis-labels "observe-only probe" — cosmetic, edge correct). No corpus edits required.
+- Clean-streak advanced: 0/3 → 1/3. NEXT = E17-F3 Pass 2.
+- Convergence trajectory appended: `phase-f5-adversarial/arp-f3-convergence-trajectory.md` §E-17 F3.
 
 ### C. CARRY-FORWARD (open items)
 
-- **E-17 F3 adversarial convergence:** Dispatch adversarial-review on frozen F3 corpus; then consistency-validator; then F3 human gate.
+- **E-17 F3 adversarial Pass 2:** Dispatch fresh-context adversarial-review on frozen corpus (factory-artifacts 5dff3cb). Zero corpus edits until 3/3 CLEAN achieved.
+- **O-1 (deferred to gate):** Run `bin/compute-input-hash --scan` before F3 human gate to confirm STORY-116/117 c389b39 MATCH.
+- **O-2 (deferred LOW):** dep-graph.md lines 204/586 STORY-117 label fix — schedule in a dep-graph label sweep.
 - **#252** VP-024 proof_file_hash + re-lock (post-release).
 - **#254** Repo-wide RED-prose doc cleanup (post-release; 71 occurrences).
-- **#255** JSON enum casing → snake_case (post-release; maintainer chose snake_case).
+- **#255** JSON enum casing → snake_case (post-release).
 
 ### D. RESUME PROCEDURE (E-17 F3 ADVERSARIAL CONVERGENCE — SESSION-CLEAR SAFE 2026-06-17)
 
 **CONTEXT FOR FRESH SESSION:**
-- **Project:** wirerust. Mode: STEADY-STATE (top-level). E-17 sub-cycle IN PROGRESS at F3 adversarial.
+- **Project:** wirerust. Mode: STEADY-STATE (top-level). E-17 sub-cycle IN PROGRESS at F3 adversarial P2.
 - **develop HEAD:** 480f8ae == origin/develop.
 - **main HEAD:** dd8e142 (v0.7.0).
 - **factory-artifacts HEAD:** see `git -C .factory log -1 --format='%h %s'`
@@ -156,10 +154,10 @@ gh pr list --state open                                        # expect none
 ```
 
 **Step 3 — WHAT IS COMPLETE (do NOT re-do):**
-E-17 F1 PASSED. E-17 F2 spec-evolution committed/frozen and adversarial gate SATISFIED 3/3. E-17 F3 story decomposition COMPLETE and frozen (STORY-116/117, BC backlinks, epics/dep-graph/wave-schedule). VP-024 v2.4 is the authoritative final entry.
+E-17 F1 PASSED. E-17 F2 adversarial gate SATISFIED 3/3. E-17 F3 story decomposition COMPLETE and frozen (STORY-116/117, BC backlinks, epics/dep-graph/wave-schedule, VP-024 v2.4). Round-1 remediation burst committed (5dff3cb). E17-F3 Pass 1 CLEAN (clean-streak 1/3).
 
 **Step 4 — NEXT ACTION:**
-Dispatch F3 adversarial convergence (strict whole-corpus, 3 fresh-context passes). On 3/3 CLEAN → consistency-validator → F3 human gate. On human-gate PASSED, F4 delta-implementation authorized (STORY-116 first, wave 45).
+Dispatch E17-F3 Pass 2 (strict whole-corpus, fresh context, SCOPE-LOCKED — no corpus edits during pass). On CLEAN → Pass 3. On 3/3 CLEAN → consistency-validator → F3 human gate. On human-gate PASSED, F4 delta-implementation authorized (STORY-116 first, wave 45).
 
 ### E. KEY ARTIFACT POINTERS
 

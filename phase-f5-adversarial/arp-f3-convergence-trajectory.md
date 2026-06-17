@@ -287,3 +287,45 @@ blocked P33/P34/P35. P36/P37/P38 consecutive CLEAN.
 | 36 | ZERO (15th-consec) | ZERO (converged) | ZERO (converged) | ZERO | 0 | **1/3** | FULLY CLEAN — all 4 slices ZERO; mount-guards PASSED. Post-P35 changelog de-pin flush + SS-15 flush eliminated the recurring Slice-D/B churn. 2nd fully-clean pass overall (P31 was first, reset by P32 storm_findings). Clean-streak 0/3→1/3. NEXT = Pass 37 (clean-streak attempt 2/3 — need 2 more consecutive). |
 | 37 | ZERO (16th-consec) | ZERO (converged) | ZERO (converged) | ZERO | 0 | **2/3** | FULLY CLEAN — all 4 slices ZERO; mount-guards PASSED. A 16th-consecutive Slice-A ZERO; B/C/D all converged. No remediation required. P36+P37 consecutive clean passes. Clean-streak 1/3→2/3. ONE more consecutive clean pass (Pass 38) satisfies the F3 strict 3/3 gate. NEXT = Pass 38 (clean-streak attempt 3/3 — final pass needed for F3 gate). |
 | 38 | ZERO (17th-consec) | ZERO (converged) | ZERO (converged) | ZERO | 0 | **3/3 GATE SATISFIED** | FULLY CLEAN — all 4 slices ZERO; mount-guards PASSED. A 17th-consecutive Slice-A ZERO; B/C/D all converged. No remediation required. P36+P37+P38 = 3 consecutive CLEAN passes. Clean-streak 2/3→3/3. **F3 STRICT WHOLE-CORPUS ADVERSARIAL CONVERGENCE GATE SATISFIED** (Passes 36/37/38 consecutive CLEAN). Total: 38 passes. Trajectory: 38 passes total; P31 first clean (reset by P32 storm_findings); P33 reset; post-P26 + post-P33 consistency flushes + post-P35 changelog de-pin eliminated asymptotic churn; P36/37/38 consecutive clean. NEXT = F3 human approval gate → F4 delta-implementation (TDD on STORY-111..115). |
+
+---
+
+## E-17 F3 Adversarial Convergence — STORY-116/117 (Round 2, 2026-06-17)
+
+**Scope change:** E-17 adds STORY-116 (wave 45, QinQ coverage) + STORY-117 (wave 46, MACsec documented-limitation) to the F3 decomposition. New adversarial streak required for expanded corpus. Frozen at factory-artifacts 5dff3cb.
+
+**Bar:** Same strict whole-corpus method — ZERO findings MEDIUM-or-above; 3 consecutive clean passes required.
+
+**Round-1 remediation burst (pre-streak):** adversarial+consistency round-1 found edge-count/story-BC-version/epics-rollup drift; all remediated (dep-graph total_edges→93/header 19, STORY-116/117/INDEX BC refs→v1.10/v1.9, VP-024 body-text refs→v2.4, epics 70 stories/283 BCs). Corpus re-frozen at 5dff3cb.
+
+### E17-F3 Pass 1 (2026-06-17) — Round 2 streak start
+
+**Verdict:** PASS — CLEAN (zero findings MEDIUM-or-above).
+
+**Worktree-identity attestation:** Spec/BC/index/changelog from `.factory/` (factory-artifacts); feature-code from `.worktrees/arp-qinq-macsec-fixtures/tests/`. Distinct trees confirmed.
+
+**Axes reviewed:** AC→test-fn name sync (DF-AC-TEST-NAME-SYNC); AC↔test-body semantic match; stale-version sweep; dependency-graph internal consistency (total_edges arithmetic); chain acyclicity; epics arithmetic; BC backlinks (DF-SIBLING-SWEEP); wave/points/status cross-check.
+
+**Results:**
+- AC→test-fn name sync: ALL 10 cited test functions exist exactly as named (STORY-116: 4 fns in bc_2_16_qinq_macsec_offset_tests.rs; STORY-117: 6 fns in bc_2_16_e17_macsec_offset_tests.rs). CLEAN.
+- AC↔test-body semantic: spot-verified STORY-116 AC-001 + STORY-117 AC-005/AC-006. No AC claims behavior absent from its mapped test. CLEAN.
+- Stale-version sweep: zero stale v1.9/v1.8/v2.3 refs. Both stories consistently cite BC-2.16.009 v1.10 / BC-2.16.015 v1.9 / VP-024 v2.4. CLEAN.
+- Dependency-graph arithmetic: 74 intra-epic + 19 cross-epic = 93 total; matches total_edges:93 + cross_epic_edges:19 + section header "19 edges". CLEAN.
+- Chain acyclicity: STORY-115→116→117 strictly linear; mutual depends_on/blocks consistent. CLEAN.
+- Epics arithmetic: total_bcs 283 (219+25+24+15=283); story-count Total=70 (E-16 row=5, E-17 row=2 present). CLEAN.
+- BC backlinks: BC-2.16.009 v1.10 Stories = STORY-113/116/117; BC-2.16.015 v1.9 Stories = STORY-112/116/117. CLEAN.
+- Wave/points/status: wave 45/3pts (STORY-116) and wave 46/5pts (STORY-117) consistent across STORY-INDEX, dependency-graph, epics.md, wave-schedule.md. CLEAN.
+
+**Findings:** ZERO CRITICAL / ZERO HIGH / ZERO MEDIUM.
+
+**Observations (LOW — no remediation required):**
+- O-1 (LOW, execution-required): input-hash c389b39 not tool-verified this pass (read-only agent; DF-ADVERSARY-TOOLCHAIN-PAIRING-001). Orchestrator must run `bin/compute-input-hash --scan` to confirm MATCH before v0.7.1 gate. Inputs lists identical across STORY-116/117 (same three inputs, same order) — internally consistent.
+- O-2 (LOW, cosmetic): dependency-graph.md lines 204/586 describe STORY-117 as "observe-only probe + documented limitation" — the observe-only probe (AC-004) belongs to STORY-116; STORY-117 delivers six offset-assertion/security-guard tests. Description label mis-attributed (edge/dependency target is correct). Recommend fixing in a dep-graph label sweep.
+
+**Clean-streak: 0/3 → 1/3.** NEXT = E17-F3 Pass 2 (clean-streak attempt 2/3).
+
+### E17-F3 Summary Table
+
+| Pass | Total findings | Clean-streak | Notes |
+|------|---------------|-------------|-------|
+| E17-F3 P1 | 0 (zero MEDIUM+) | **1/3** | CLEAN — all axes PASS; 2 LOW observations (O-1 input-hash pairing, O-2 dep-graph label cosmetic); no remediation. |
