@@ -1,13 +1,13 @@
 ---
 pipeline: STEADY_STATE
 phase: released
-phase_status: "v0.7.1 RELEASED 2026-06-17 — ARP VLAN/QinQ/MACsec offset regression hardening (E-17, issue #253) COMPLETE. F1..F7 ALL CONVERGED. PR #260 (release/0.7.1 → main) b98a72f; tag v0.7.1; release.yml run 27694602320 (binaries building — confirm on next session); E-17 cycle CLOSED."
+phase_status: "v0.7.1 RELEASED 2026-06-17 — ARP VLAN/QinQ/MACsec offset regression hardening (E-17, issue #253) COMPLETE. F1..F7 ALL CONVERGED. PR #260 (release/0.7.1 → main) b98a72f; tag v0.7.1; release.yml run 27694602320 SUCCESS (4 binaries CONFIRMED PUBLISHED); E-17 cycle CLOSED. Pipeline STEADY_STATE/IDLE."
 active_feature: "none — E-17 closed"
 feature_arp_status: "v0.7.0 RELEASED 2026-06-16 — ARP Security Analyzer (E-16, issue #9); PR #256 dd8e142; tag v0.7.0; 4 binaries (aarch64-apple-darwin, x86_64-apple-darwin, x86_64-pc-windows-msvc, x86_64-unknown-linux-gnu)"
 feature_8_status: "v0.6.0 RELEASED 2026-06-12 — DNP3 TCP analyzer; F7 5-dim CONVERGED; tag v0.6.0 + 4 binaries"
 product: wirerust
 mode: brownfield
-timestamp: 2026-06-17T23:59:00Z
+timestamp: 2026-06-17T12:00:00Z
 bootstrapped: 2026-05-19T16:56:48Z
 phase_0_completed: 2026-05-19T20:00:00Z
 phase_1_completed: "2026-05-21"
@@ -30,7 +30,7 @@ released_at: "2026-06-17"
 release_tag: v0.7.1
 release_url: https://github.com/Zious11/wirerust/releases/tag/v0.7.1
 release_commit: b98a72f
-release_yml_run: "27694602320 (binaries: aarch64-apple-darwin + x86_64-unknown-linux-gnu SUCCESS at last check; x86_64-pc-windows-msvc + x86_64-apple-darwin building — confirm GitHub Release on next session)"
+release_yml_run: "27694602320 COMPLETED conclusion=success — 4 binaries CONFIRMED PUBLISHED: wirerust-v0.7.1-aarch64-apple-darwin.tar.gz, wirerust-v0.7.1-x86_64-apple-darwin.tar.gz, wirerust-v0.7.1-x86_64-pc-windows-msvc.zip, wirerust-v0.7.1-x86_64-unknown-linux-gnu.tar.gz. GitHub Release isDraft=false at https://github.com/Zious11/wirerust/releases/tag/v0.7.1"
 prior_released_version: v0.7.0
 prior_released_at: "2026-06-16"
 prior_release_tag: v0.7.0
@@ -67,7 +67,7 @@ input_drift_check: "F7-followup-dispositions burst (2026-06-16): STORY-071=6b408
 
 ## Status
 
-**wirerust v0.7.1 RELEASED 2026-06-17 — ARP VLAN/QinQ/MACsec offset regression hardening (E-17, issue #253). Test-and-docs patch; NO runtime behavior change. PR #258 (E-17 tests) merged to develop (b94aa6c); PR #260 (release/0.7.1 → main b98a72f); tag v0.7.1; release.yml run 27694602320 (binaries building — confirm GitHub Release on next session). E-17 cycle F1..F7 CONVERGED AND CLOSED. develop merge-back e1273c8. Next = steady-state or new feature.**
+**wirerust v0.7.1 RELEASED 2026-06-17 — ARP VLAN/QinQ/MACsec offset regression hardening (E-17, issue #253). Test-only patch; NO runtime behavior change. PR #258 (E-17 tests) merged to develop (b94aa6c); PR #260 (release/0.7.1 → main b98a72f); tag v0.7.1; release.yml run 27694602320 SUCCESS — 4 binaries CONFIRMED PUBLISHED. GitHub Release https://github.com/Zious11/wirerust/releases/tag/v0.7.1 (isDraft=false). E-17 cycle F1..F7 CONVERGED AND CLOSED. develop merge-back e1273c8. Pipeline STEADY_STATE/IDLE — await new feature or steady-state task.**
 
 **Summary:** 68 stories (48 greenfield + 1 tooling + 19 feature-cycle), 457 pts. 283 BCs (244 pre-F2 + 24 SS-15 + 15 SS-16 ARP), 24 VPs (VP-024 LOCKED v2.3). STORY-111..115 ALL DELIVERED (PRs #236/#238/#239/#240/#241). Carry-forward open issues: #252 (proof_file_hash), #253 (QinQ/MACsec fixtures), #254 (doc-debt), #255 (JSON snake_case). Process gaps codified: PG-ARP-FIX-MECHANISM-FIRST / PG-ARP-FIXBURST-CONSUMER-SWEEP / PG-ARP-F4-REDTEST-DOC-TENSE-RECURRENCE. develop HEAD 480f8ae (PR #257 docs landed post-release); main HEAD dd8e142 (v0.7.0). Post-release audit-trail burst: research/arp-pcap-sources.md + research/arp-followups-validation.md committed to factory-artifacts.
 
@@ -115,50 +115,71 @@ input_drift_check: "F7-followup-dispositions burst (2026-06-16): STORY-071=6b408
 | E-17: ARP QinQ/MACsec offset hardening (issue #253) — F5 Scoped Adversarial | **GATE SATISFIED 3/3** (2026-06-17, cb2bf06). Three verified fresh-context CLEAN passes (security/robustness lens) on the E-17 delta: a4b70a59 (P1), a97d26e3 (P2), ac72bce2 (P3); each zero MEDIUM+. Test-only delta confirmed (no unsafe/panic/unbounded-alloc/non-determinism). V5/V6 MACsec ciphertext-opaque property (CWE-693) asserted correct-polarity + non-vacuous (corroborated etherparse lax_macsec_slice.rs — Layer::Arp structurally unreachable for Modified payloads). Decoder bounds-safety unchanged from v0.7.0. No silent-failure. Residual LOWs all fenced/non-blocking. Trajectory: `cycles/feature-arp-v0.7.0/arp-f5-scoped-adversarial-trajectory.md` §E-17 F5. NEXT = F6 targeted hardening. | **GATE SATISFIED** |
 | E-17: ARP QinQ/MACsec offset hardening (issue #253) — F6 Targeted Hardening | **SATISFIED** (2026-06-17). Zero src/ delta (test-only, 2 files +1841). VP-024 5/5 Kani harnesses run-confirmed VERIFICATION SUCCESSFUL (verify_extract_arp_frame_safety/eth_ipv4_correctness/none_on_bad_size at decoder.rs:616/643/705; verify_classify_garp_total/binding_table_cap at arp.rs:4371/4423). Fuzz VP-008 fuzz_decode_packet: 4.08M + 2.11M runs, 0 crashes, empty artifacts. cargo-audit: only known-accepted RUSTSEC-2026-0097, no new advisory; clippy/fmt clean. Mutation v0.7.0 98.9% ARP kill applies (src unchanged). No new VP/proof obligation. VP-024 verification_lock untouched. | **SATISFIED** |
 | E-17: ARP QinQ/MACsec offset hardening (issue #253) — F7 Delta Convergence | **CONVERGED — 5-dim ALL MET** (2026-06-17, PR #258 @ cb2bf06). (1) Regression CI 9/9 GREEN (consistency-validator audit a5e0c652); (2) Verification PASS (VP-024 5/5 Kani SUCCESSFUL + fuzz 6.19M/0 + audit CLEAN + VP counts 24 consistent); (3) Impl/spec convergence (F4 delta 3/3 + holdout 1.00 + AC traces); (4) Robustness (F5 3/3); (5) Documentation/coherence whole-corpus CONSISTENT. F7 HOLISTIC ADVERSARIAL GATE SATISFIED 3/3 — three verified fresh-context CLEAN release-readiness passes on cb2bf06: ad2442cd (P1), acdf40b1 (P2), afeb0e8e (P3); each zero MEDIUM+; all four lenses (coherence/completeness/ship-safety/MACsec-limitation-honesty) confirmed. Delta = PR #258 @ cb2bf06 (test-only, 2 files +1841/-0, zero src/). E-17 cycle F1..F7 CONVERGED. RELEASE-READY for v0.7.1. | **CONVERGED** |
-| Release v0.7.1 | **RELEASED 2026-06-17** — PR #258 (E-17 tests) merged to develop (b94aa6c); PR #260 (release/0.7.1 → main b98a72f); tag v0.7.1; release.yml run 27694602320 (aarch64-apple-darwin + x86_64-unknown-linux-gnu SUCCESS; windows + x86_64-apple-darwin building — GitHub Release pending final binary upload). E-17 ARP VLAN/QinQ/MACsec offset regression hardening (issue #253); test-only; NO runtime behavior change. develop merge-back e1273c8 (version bump + CHANGELOG synced; branch-protection bypass for gitflow sync — recorded for audit). E-17 cycle CLOSED. Process-gaps PG-E17-STATEMGR-FABRICATED-VERDICT-001 / PG-E17-ADVERSARY-HANG-001 / PG-E17-AGENT-SCOPE-CREEP-001 dispositioned as ENGINE-NOTE DEFERRED (see Drift Items). | **RELEASED** |
+| Release v0.7.1 | **RELEASED 2026-06-17 — CONFIRMED** — PR #258 (E-17 tests) merged to develop (b94aa6c); PR #260 (release/0.7.1 → main b98a72f); tag v0.7.1 (annotated → b98a72f); release.yml run 27694602320 COMPLETED conclusion=success; 4 binaries PUBLISHED (aarch64-apple-darwin, x86_64-apple-darwin, x86_64-pc-windows-msvc, x86_64-unknown-linux-gnu); GitHub Release isDraft=false https://github.com/Zious11/wirerust/releases/tag/v0.7.1. E-17 ARP VLAN/QinQ/MACsec offset regression hardening (issue #253); test-only; NO runtime behavior change. develop merge-back e1273c8; E-17 cycle CLOSED. Process-gaps ENGINE-NOTE DEFERRED (see Drift Items). | **RELEASED** |
 
-## Session Resume Checkpoint (2026-06-17 — v0.7.1 RELEASED; E-17 CLOSED; pipeline STEADY_STATE/IDLE)
+## Session Resume Checkpoint (2026-06-17 — COLD-RESUME-COMPLETE; v0.7.1 CONFIRMED RELEASED; E-17 CLOSED; pipeline STEADY_STATE/IDLE)
 
-**Previous checkpoint (2026-06-17 — E-17 F7 CONVERGED; NEXT = F7 human gate → v0.7.1 release) archived to:
+**Previous checkpoint (2026-06-17 — v0.7.1 RELEASED; release.yml 2/4 binaries confirmed; NEXT = confirm remaining binaries) archived to:
 `cycles/feature-arp-v0.7.0/session-checkpoints.md`**
 
 ### A. EXACT PIPELINE POSITION
 
-- **Project:** wirerust. Mode: STEADY-STATE (top-level pipeline IDLE). E-17 cycle CLOSED.
-- **v0.7.1 RELEASED 2026-06-17** — E-17 ARP VLAN/QinQ/MACsec offset regression hardening (issue #253); test-only; NO runtime behavior change.
-- **PR #258** (10 tests: 4 QinQ + 6 MACsec) merged to develop — merge commit b94aa6c.
-- **PR #260** (release/0.7.1 → main) merged — merge commit b98a72f.
-- **Tag v0.7.1** created on main (annotated, dereferences to b98a72f), pushed.
-- **release.yml run 27694602320:** 2/4 binaries confirmed SUCCESS (aarch64-apple-darwin + x86_64-unknown-linux-gnu); x86_64-pc-windows-msvc + x86_64-apple-darwin building at last check. GitHub Release publishes on completion.
-- **develop HEAD: e1273c8** (version bump + CHANGELOG; merge-back after release).
-- **main HEAD: b98a72f (v0.7.1).**
+- **Project:** wirerust. **Mode:** STEADY-STATE (pipeline IDLE, no active feature).
+- **Latest release:** v0.7.1 — E-17 ARP VLAN/QinQ/MACsec offset regression hardening (issue #253); test-only delta; NO runtime behavior change. FULLY RELEASED.
+- **release.yml run 27694602320:** COMPLETED conclusion=success. GitHub Release v0.7.1 PUBLISHED (isDraft=false). **4 binaries CONFIRMED:** wirerust-v0.7.1-aarch64-apple-darwin.tar.gz, x86_64-apple-darwin.tar.gz, x86_64-pc-windows-msvc.zip, x86_64-unknown-linux-gnu.tar.gz. Release URL: https://github.com/Zious11/wirerust/releases/tag/v0.7.1
+- **develop HEAD:** e1273c8 — CONFIRMED == origin/develop (version bump + CHANGELOG; merge-back post-v0.7.1; branch-protection bypass for gitflow sync recorded for audit).
+- **main HEAD:** b98a72f (tag v0.7.1 annotated → b98a72f).
+- **prior_released_version:** v0.7.0 (dd8e142, 2026-06-16).
 - **factory-artifacts HEAD:** see `git -C .factory log -1 --format='%h %s'`
-- **Active worktrees:** EXACTLY 2 — main repo (develop) + .factory (factory-artifacts).
-- **Process-gaps dispositioned:** PG-E17-STATEMGR-FABRICATED-VERDICT-001 / PG-E17-ADVERSARY-HANG-001 / PG-E17-AGENT-SCOPE-CREEP-001 — all ENGINE-NOTE DEFERRED (see Drift Items).
+- **Active worktrees:** EXACTLY 2 — main repo (develop branch) + `.factory/` (factory-artifacts branch).
+- **Open PRs:** none.
+- **E-17 cycle:** CLOSED. Full F1-F7 CONVERGED. All gates SATISFIED.
+- **Engine process-gaps dispositioned (E-17):** PG-E17-STATEMGR-FABRICATED-VERDICT-001 / PG-E17-ADVERSARY-HANG-001 / PG-E17-AGENT-SCOPE-CREEP-001 — all ENGINE-NOTE DEFERRED (see Drift Items).
 
-### B. NEXT ACTION (fresh session)
+### B. CARRY-FORWARD (open items post-v0.7.1)
 
-1. (BLOCKING) `vsdd-factory:factory-worktree-health`
-2. Verify: `git -C /Users/zious/Documents/GITHUB/wirerust rev-parse HEAD` — expect e1273c8 prefix.
-3. **Confirm release.yml run 27694602320 complete** — check GitHub Actions for x86_64-pc-windows-msvc + x86_64-apple-darwin build results; confirm GitHub Release at https://github.com/Zious11/wirerust/releases/tag/v0.7.1 has 4 binaries.
-4. No further pipeline phases — await new feature request or steady-state task.
+- **#252** — VP-024 proof_file_hash + re-lock (post-release LOW).
+- **#253** — Delivered in v0.7.1 (QinQ/MACsec fixture work). CLOSABLE — verify then close.
+- **#254** — Repo-wide RED-prose doc cleanup (71 occurrences). Post-release chore.
+- **#255** — JSON enum casing → snake_case. Post-release.
+- **E-17 deferred engine process-gaps (ENGINE-NOTE DEFERRED):** PG-E17-STATEMGR-FABRICATED-VERDICT-001, PG-E17-ADVERSARY-HANG-001, PG-E17-AGENT-SCOPE-CREEP-001.
+- **E-17 non-blocking deferred LOWs:** DRIFT-E17-VERSIONLABEL-LAG-001, DRIFT-VP024-BTREEMAP-PROSE-001, DRIFT-EPICS-REGISTRY-STRUCTURAL-001, DRIFT-E16-BC-BACKLINK-GAP-001 (STORY-114/115), VP-INDEX not bumped for E-17 (by design).
 
-### C. CARRY-FORWARD (open items post-v0.7.1)
+### C. RESUME PROCEDURE (COLD-RESUME)
 
-- **Confirm GitHub Release:** release.yml run 27694602320 — 2 remaining binaries + release publish.
-- **#252** VP-024 proof_file_hash + re-lock (post-release).
-- **#253** CLOSED by v0.7.1.
-- **#254** Repo-wide RED-prose doc cleanup (71 occurrences).
-- **#255** JSON enum casing → snake_case (post-release).
-- **O-2 (deferred LOW):** dep-graph.md lines 204/586 STORY-117 label fix — dep-graph label sweep.
+**Step 1 (BLOCKING):** Run `vsdd-factory:factory-worktree-health` before any other action.
+
+**Step 2 — Verify SHAs (must all match):**
+- `git rev-parse --short HEAD` in repo root → expect `e1273c8`
+- `git rev-parse --short origin/develop` → expect `e1273c8` (develop == origin/develop CONFIRMED)
+- `git -C .factory rev-parse --short HEAD` → current factory-artifacts HEAD (see git log)
+- `git rev-parse --short main` → expect `b98a72f`
+- `git tag -l v0.7.1` → must exist
+- `gh pr list --state open` → expect empty (no open PRs)
+
+**Step 3 — WHAT IS COMPLETE (do NOT redo):**
+- v0.7.1 FULLY RELEASED: 4 binaries published, GitHub Release live, run 27694602320 SUCCESS.
+- E-17 cycle F1-F7: ALL CONVERGED AND CLOSED.
+- All pipeline gates SATISFIED (adversarial 3/3, holdout 1.00, F6 Kani 5/5, F7 5-dim).
+- factory-artifacts worktree CLEAN (this commit closes the last untracked artifact).
+
+**Step 4 — NEXT ACTION:**
+Await new feature selection or steady-state task. Candidates:
+- Close issue #253 (delivered in v0.7.1).
+- Address open issues: #252 (VP-024 proof_file_hash), #254 (RED-prose doc cleanup), #255 (JSON snake_case).
+- Next ICS protocol feature (e.g., S7comm, PROFINET, or roadmap item #3/#4/#6).
+- No automatic pipeline continues — human decision required.
 
 ### D. KEY ARTIFACT POINTERS
 
-- ARP architecture delta: `.factory/specs/architecture/arp-architecture-delta.md` (v1.19)
-- VP-024: `.factory/specs/verification-properties/vp-024-arp-parse-safety.md` (v2.4 LOCKED)
+- E-17 cycle artifacts: `.factory/cycles/feature-arp-v0.7.0/` (arp-f4-wave-adversary-convergence-trajectory.md, arp-f5-scoped-adversarial-trajectory.md, lessons.md, session-checkpoints.md)
+- BC-2.16.009 v1.10 + BC-2.16.015 v1.9: `.factory/specs/behavioral-contracts/`
+- ARP architecture delta v1.19: `.factory/specs/architecture/arp-architecture-delta.md`
+- VP-024 v2.4 (LOCKED): `.factory/specs/verification-properties/vp-024-arp-parse-safety.md`
 - STORY-116/117: `.factory/stories/STORY-116.md` / `.factory/stories/STORY-117.md`
-- ARP cycle artifacts: `.factory/cycles/feature-arp-v0.7.0/`
-- Archived checkpoints: `.factory/cycles/feature-arp-v0.7.0/session-checkpoints.md`
+- E-17 shipped tests (on develop): `tests/bc_2_16_qinq_macsec_offset_tests.rs` + `tests/bc_2_16_e17_macsec_offset_tests.rs`
+- Lessons (E-17 Cycle-Close + process-gaps): `.factory/cycles/feature-arp-v0.7.0/lessons.md`
+- E-17 release delivery record: `.factory/code-delivery/release-0.7.1/pr-description.md`
 
 ## Decisions Log
 
