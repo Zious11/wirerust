@@ -14,6 +14,49 @@ changes, invariant rewrites).
 
 ---
 
+## [issue-259-collapse-advpass3-remediation-2026-06-17] — 2026-06-17
+
+### PATCH: Issue #259 F2 Adversarial Pass-3 Remediation — 1 HIGH + 2 LOW resolved
+
+**Trigger:** F2 adversarial pass-3 found 1 HIGH + 2 LOW findings (0 CRITICAL — all pass-1/pass-2
+findings confirmed fixed). All remediated in one burst. No F1 locked decisions changed.
+total_bcs=288 unchanged. SS-11=29 unchanged.
+
+#### Finding Dispositions
+
+| Finding | Severity | BC(s) Changed | Resolution |
+|---------|----------|--------------|-----------|
+| F-F2X-01 | HIGH | BC-2.11.010 v1.5→v1.6, BC-2.11.026 v1.2→v1.3, BC-2.11.027 v1.2→v1.3, ADR-0003 | False claim "same call site in render_finding_prefix / same code path" corrected throughout. Path-(b) flat collapse wrapper calls `escape_for_terminal` DIRECTLY on each sampled evidence line. It does NOT delegate to `render_finding_prefix`'s evidence loop (that loop renders all entries of ONE finding; collapse samples `evidence[0]` across up to K different member findings). Escape reuse is FUNCTION-level, not call-site-level. Every affected statement corrected: BC-2.11.010 Invariant 4 + EC-007; BC-2.11.026 PC-4 evidence emission sentence; BC-2.11.027 PC-1 + PC-6 + Invariant 5; ADR-0003 Display-Layer Aggregation subsection prose. |
+| F-F2X-03 | LOW | BC-2.11.026 v1.2→v1.3 | PC-4 was silent on HOW the collapse wrapper emits evidence lines. Added explicit sentence: "After emitting the colorized header line, the same wrapper emits the K-sampled evidence lines per BC-2.11.027 DIRECTLY (calling `escape_for_terminal` on each sampled line), NOT via `render_finding_prefix`." |
+| F-F2X-02 | LOW | BC-2.11.026 v1.2→v1.3 | EC-008 and EC-009 were listed out of monotonic order (EC-009 before EC-008). Rows swapped to restore EC-008, EC-009 ascending order. |
+
+#### BC Version Summary
+
+| BC | Before | After |
+|----|--------|-------|
+| BC-2.11.010 | v1.5 | v1.6 |
+| BC-2.11.026 | v1.2 | v1.3 |
+| BC-2.11.027 | v1.2 | v1.3 |
+
+#### ADR-0003 Change
+
+The Display-Layer Aggregation subsection previously stated: "The collapse path calls `render_finding_prefix` through the same code path as uncollapsed rendering; there is no bypass of the escape helper." This was FALSE. Corrected to: "The collapse wrapper (path-(b), BC-2.11.026 PC-4) calls `escape_for_terminal` DIRECTLY on each sampled evidence line — it does NOT delegate to `render_finding_prefix`'s evidence loop, because that loop renders all entries of a single finding whereas collapse samples `evidence[0]` across up to K member findings (BC-2.11.027 positional model). There is no bypass of the escape helper."
+
+#### Sibling Sweep Result
+
+Grepped all touched BC files and ADR-0003 for: "render_finding_prefix", "call site", "same code path", "same call", "identical to the existing", "per-finding evidence rendering". All remaining occurrences confirmed as correct structural descriptions (render_finding_prefix is called by render_finding_grouped — that is true and must stay). No residual false claims found.
+
+#### Files Changed
+
+- `.factory/specs/behavioral-contracts/ss-11/BC-2.11.010.md` (v1.5 → v1.6)
+- `.factory/specs/behavioral-contracts/ss-11/BC-2.11.026.md` (v1.2 → v1.3)
+- `.factory/specs/behavioral-contracts/ss-11/BC-2.11.027.md` (v1.2 → v1.3)
+- `docs/adr/0003-reporting-pipeline-layering.md` (Display-Layer Aggregation subsection — escape reuse prose corrected)
+- `.factory/specs/behavioral-contracts/BC-INDEX.md` (v1.30 → v1.31; BC-2.11.010/026/027 row annotations updated)
+- `.factory/specs/prd.md` (delta block updated: BC-2.11.010 pair v1.4→v1.5 → v1.4→v1.6; BC-2.11.026/027 pairs v1.0→v1.2 → v1.0→v1.3)
+
+---
+
 ## [issue-259-collapse-advpass2-remediation-2026-06-17] — 2026-06-17
 
 ### PATCH: Issue #259 F2 Adversarial Pass-2 Remediation — 4 MEDIUM + 3 LOW resolved

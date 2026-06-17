@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-06-17T00:00:00Z
@@ -12,7 +12,7 @@ subsystem: SS-11
 capability: CAP-11
 lifecycle_status: active
 introduced: v0.8.0
-modified: ["v1.1 2026-06-17: F2 adversarial pass-1 — relax suffix colorization: (xN) suffix IS colorized with the header line (no seam for uncolorized suffix in render_finding_prefix); update Invariant 4, PC-4, EC-008 (F-259-02)", "v1.2 2026-06-17: F2 adversarial pass-2 — path-(b) collapse-aware wrapper prescribed as canonical in PC-4 (F-A03); dispatch anchor 149-160→149-162 (F-A05); EC-005 test vector added (F-A06)"]
+modified: ["v1.1 2026-06-17: F2 adversarial pass-1 — relax suffix colorization: (xN) suffix IS colorized with the header line (no seam for uncolorized suffix in render_finding_prefix); update Invariant 4, PC-4, EC-008 (F-259-02)", "v1.2 2026-06-17: F2 adversarial pass-2 — path-(b) collapse-aware wrapper prescribed as canonical in PC-4 (F-A03); dispatch anchor 149-160→149-162 (F-A05); EC-005 test vector added (F-A06)", "v1.3 2026-06-17: F2 adversarial pass-3 — add evidence emission sentence to PC-4 (F-F2X-03); fix EC row order EC-009/EC-008 → EC-008/EC-009 monotonic (F-F2X-02); fix arch anchor: remove stale 'appended here' alternative"]
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -70,7 +70,12 @@ attacker-controlled bytes; it does not require additional escaping.
    path (a)) is prohibited unless the grouped call site passes an explicit no-suffix sentinel
    (N=0 or `None`) — which would make the implementation error-prone and the contract harder
    to audit. Path (b) enforces structural separation: grouped mode is incapable of emitting a
-   suffix because it never calls the collapse-aware wrapper.
+   suffix because it never calls the collapse-aware wrapper. After emitting the colorized
+   header line, the same wrapper emits the K-sampled evidence lines per BC-2.11.027
+   DIRECTLY (calling `escape_for_terminal` on each sampled line), NOT via
+   `render_finding_prefix`. This is structurally required: `render_finding_prefix`'s evidence
+   loop renders all entries of ONE finding, but the collapse path samples `evidence[0]` across
+   up to K different member findings (BC-2.11.027 positional model).
 5. The count suffix is not subject to `escape_for_terminal`; it is a hardcoded format string
    and contains no attacker-controlled content.
 
@@ -101,8 +106,8 @@ attacker-controlled bytes; it does not require additional escaping.
 | EC-005 | Summary ends with whitespace before suffix | Suffix appended directly after the whitespace; one space before `(x...)`; result may have double space — acceptable, no trimming |
 | EC-006 | collapse_findings=false (opt-out) | No collapse pass runs; no count suffix on any finding; behavior per BC-2.11.028 |
 | EC-007 | show_mitre_grouping=true, multiple identical-key findings | Collapse pass not applied; no count suffix on any finding regardless of group sizes. STRUCTURAL guarantee: `render_finding_prefix` is called unchanged by `render_findings_grouped`; the collapse-aware wrapper (path-(b)) is only invoked from the flat dispatch block; grouped mode is structurally unable to emit a suffix |
-| EC-009 | show_mitre_grouping=true, N=100 identical-key findings | 100 individual lines, none with a ` (xN)` suffix — suffix-free guarantee enforced by path-(b) separation even at large N |
 | EC-008 | Group with N=2 and use_color=true | Complete header line (including ` (x2)` suffix) colored per verdict/confidence — the suffix is part of the pre-color `line` string and is colorized together with the summary text |
+| EC-009 | show_mitre_grouping=true, N=100 identical-key findings | 100 individual lines, none with a ` (xN)` suffix — suffix-free guarantee enforced by path-(b) separation even at large N |
 
 ## Canonical Test Vectors
 
@@ -145,7 +150,7 @@ attacker-controlled bytes; it does not require additional escaping.
 
 ## Architecture Anchors
 
-- `src/reporter/terminal.rs:203-226` -- render_finding_prefix (summary escape + header line construction; the (xN) suffix is appended here or in a new wrapper function for collapsed groups)
+- `src/reporter/terminal.rs:203-226` -- render_finding_prefix (summary escape + header line construction; called UNCHANGED by grouped mode; the collapse-aware flat wrapper (path-(b)) builds a SEPARATE header line with the (xN) suffix and calls escape_for_terminal directly for evidence lines — it does NOT call render_finding_prefix)
 - `src/reporter/terminal.rs:149-162` -- FINDINGS dispatch block (flat path where count-annotated render replaces the direct render_finding_flat call when collapse=true; includes `out.push('\n')` at :161 and block close at :162)
 
 ## Story Anchor

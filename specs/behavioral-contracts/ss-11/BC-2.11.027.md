@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-06-17T00:00:00Z
@@ -12,7 +12,7 @@ subsystem: SS-11
 capability: CAP-11
 lifecycle_status: active
 introduced: v0.8.0
-modified: ["v1.1 2026-06-17: fix N=1 singleton model — K-cap does NOT apply to singletons; evidence renders unchanged per BC-2.11.010 (consistency audit remediation)", "v1.2 2026-06-17: F2 adversarial pass-1 — fix CRITICAL F-259-01: enforce positional first-K-members model throughout (PC-2/Invariant-2/PC-5/EC-004/test vectors); fix EC-004 total=2 not 3; add N=3/N=4 boundary vectors (F-259-07)"]
+modified: ["v1.1 2026-06-17: fix N=1 singleton model — K-cap does NOT apply to singletons; evidence renders unchanged per BC-2.11.010 (consistency audit remediation)", "v1.2 2026-06-17: F2 adversarial pass-1 — fix CRITICAL F-259-01: enforce positional first-K-members model throughout (PC-2/Invariant-2/PC-5/EC-004/test vectors); fix EC-004 total=2 not 3; add N=3/N=4 boundary vectors (F-259-07)", "v1.3 2026-06-17: F2 adversarial pass-3 — fix PC-1/PC-6/Invariant-5: change false 'existing render_finding_prefix format/same code path' claims to correct 'same escape_for_terminal FUNCTION, called directly by collapse wrapper' (F-F2X-01)"]
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -48,9 +48,12 @@ configurable via CLI flag. Future cycles may expose K as `--collapse-evidence-sa
 
 ## Postconditions
 
-1. The terminal output for a collapsed group contains at most K=3 evidence lines
-   (rendered as `    > <escaped_evidence_line>\n` per the existing render_finding_prefix
-   format).
+1. The terminal output for a collapsed group contains at most K=3 evidence lines, each
+   rendered as `    > <escaped_evidence_line>\n`. This format matches the output of
+   `render_finding_prefix`'s evidence loop, but the collapse wrapper produces it DIRECTLY
+   (calling `escape_for_terminal` per sampled line) — it does NOT call `render_finding_prefix`
+   to obtain these lines (see Architecture Anchor at terminal.rs:223-226 — the collapse path
+   replaces this loop).
 2. Evidence lines are drawn from the FIRST min(N, K) members in the group (by position in
    the original emission order — purely positional). For each of these inspected members, if
    `finding.evidence` is non-empty, `finding.evidence[0]` is emitted as the representative
@@ -65,8 +68,13 @@ configurable via CLI flag. Future cycles may expose K as `--collapse-evidence-sa
 5. When the group has N≤K findings, all N members are inspected (since min(N,K)=N). Evidence
    is rendered as one line per member that has a non-empty evidence vec. The K cap is not
    reached; the positional window covers all members.
-6. Each rendered evidence line is passed through `escape_for_terminal` before output,
-   identical to the existing per-finding evidence rendering (BC-2.11.010).
+6. Each rendered evidence line is passed through the `escape_for_terminal` FUNCTION before
+   output. The escape guarantee matches BC-2.11.010 — but the structural path differs: the
+   collapse wrapper calls `escape_for_terminal` directly on each sampled line; it does NOT
+   reuse `render_finding_prefix`'s evidence loop (which renders all entries of ONE finding,
+   whereas the collapse path samples evidence[0] across up to K different member findings).
+   See Architecture Anchor terminal.rs:223-226 — the collapse path REPLACES this loop with
+   a bounded K-sampled loop that calls `escape_for_terminal` per iteration.
 
 ## Invariants
 
@@ -83,9 +91,12 @@ configurable via CLI flag. Future cycles may expose K as `--collapse-evidence-sa
    every finding in the group is never truncated or mutated.
 4. Elision is silent: no elision marker (e.g., "... and N more") is rendered in v0.8.0.
    The count suffix on the header line (BC-2.11.026) is the only indicator of group size.
-5. The `escape_for_terminal` invariant (BC-2.11.010) is preserved: every evidence line
-   rendered by a collapsed group goes through `escape_for_terminal`, via the same code path
-   used for non-collapsed rendering.
+5. The `escape_for_terminal` FUNCTION invariant (BC-2.11.010) is preserved: every evidence
+   line rendered by a collapsed group goes through `escape_for_terminal`. The escape guarantee
+   is function-level, NOT call-site-level — the collapse wrapper invokes `escape_for_terminal`
+   directly on each sampled line rather than delegating to `render_finding_prefix`'s evidence
+   loop (see PC-6 and Architecture Anchor terminal.rs:223-226 — the collapse path replaces
+   that loop). The function called is identical; the structural caller differs.
 6. For a singleton group (N=1), the collapse feature does not alter evidence rendering in any
    way. The K-cap does NOT apply to singletons. The finding's evidence renders identically to
    the pre-v0.8.0 `render_finding_prefix` output — all evidence lines shown, governed by

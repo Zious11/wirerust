@@ -375,12 +375,15 @@ supplements:
 
 > **Version 1.26 delta (2026-06-17 — Feature #259 terminal finding collapse, issue #259, v0.8.0):**
 > Added 5 new BCs (BC-2.11.025..029) for the terminal finding collapse feature. Extended 4 existing
-> BCs (BC-2.11.010 v1.4→v1.5, BC-2.11.013 v1.8→v1.10, BC-2.11.017 v1.7→v1.10, BC-2.11.019 v1.4→v1.6)
-> with collapse-interaction clauses; further bumped by adversarial pass-1/pass-2 remediation:
+> BCs (BC-2.11.010 v1.4→v1.6, BC-2.11.013 v1.8→v1.10, BC-2.11.017 v1.7→v1.10, BC-2.11.019 v1.4→v1.6)
+> with collapse-interaction clauses; further bumped by adversarial pass-1/pass-2/pass-3 remediation:
+> BC-2.11.010 v1.5 (F2-integrate) → v1.6 (adv-pass-3: Invariant 4 + EC-007 escape reuse corrected to function-level);
 > BC-2.11.013 v1.9 (F2-integrate, 2026-06-17) → v1.10 (adv-pass-2 path-(b) EC-007 structural guarantee);
 > BC-2.11.017 v1.8 (F2-integrate) → v1.9 (adv-pass-1 colorized-suffix) → v1.10 (adv-pass-2 path-(b) Invariant 5);
 > BC-2.11.019 v1.5 (F2-integrate) → v1.6 (adv-pass-2 anchor fix);
-> New greenfield BCs: BC-2.11.025 v1.0→v1.2, BC-2.11.026 v1.0→v1.2, BC-2.11.027 v1.0→v1.2, BC-2.11.028 v1.0→v1.2, BC-2.11.029 v1.0→v1.2
+> New greenfield BCs: BC-2.11.025 v1.0→v1.2, BC-2.11.026 v1.0→v1.3, BC-2.11.027 v1.0→v1.3, BC-2.11.028 v1.0→v1.2, BC-2.11.029 v1.0→v1.2;
+> BC-2.11.026 v1.2 → v1.3 (adv-pass-3: PC-4 evidence emission sentence; EC row order; arch anchor fix);
+> BC-2.11.027 v1.2 → v1.3 (adv-pass-3: PC-1/PC-6/Invariant-5 corrected to function-level escape_for_terminal reuse)
 > with collapse-interaction clauses. §2.11 index table updated with 5 new rows and a group note.
 > Total BC count: 288 (was 283).
 > Key design decisions (F1-gated, non-negotiable):

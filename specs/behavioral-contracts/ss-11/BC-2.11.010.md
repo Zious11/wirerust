@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.5"
+version: "1.6"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -18,6 +18,7 @@ modified:
   - "v1.3: Wave-21 wave-level consistency lens — SS-11 reporter VP proof-method family harmonization (DF-SIBLING-SWEEP-001; sibling of the 2026-05-30 VP-020 correction): VP-012 VP-table Proof Method cells corrected unit→proptest; VP-012 proof_method=proptest is authoritative (unbounded Unicode input space) — 2026-05-30"
   - "v1.4: DF-SIBLING-SWEEP-001 — fix stale terminal.rs range anchor: 196-218 → 203-226 (render_finding_prefix fn starts at 203, closes at 226); inline line refs updated: summary escape :197 → :204, evidence escape :215-216 → :222-223; verified against HEAD cfe0112a — 2026-06-01"
   - "v1.5: issue-#259 F2 integrate (v0.8.0 collapse feature) — extend Invariant 3 and add Invariant 4; add EC-006 and EC-007 for collapse-interaction: when collapse_findings=true, evidence rendering for a collapsed group is bounded to at most K=3 representative lines per BC-2.11.027; escape_for_terminal invariant is unchanged and applies identically to each sampled evidence line through the same code path. Added cross-references BC-2.11.025/BC-2.11.027/BC-2.11.029. ADR-0003 (display-layer aggregation subsection) cited. — 2026-06-17"
+  - "v1.6 2026-06-17: F2 adversarial pass-3 — fix Invariant 4 and EC-007: change false 'same call site in render_finding_prefix' claim to correct 'same escape_for_terminal FUNCTION' claim; the flat collapse wrapper calls escape_for_terminal directly, NOT via render_finding_prefix's evidence loop (F-F2X-01)"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -58,11 +59,16 @@ summary line or any supporting evidence detail -- cannot inject terminal control
 3. This contract applies in both default (flat) and MITRE-grouped rendering modes.
 4. Under the v0.8.0 collapse feature (BC-2.11.025, `collapse_findings = true`), evidence
    rendering for a collapsed group is bounded to at most K=3 representative lines (BC-2.11.027).
-   The `escape_for_terminal` invariant is unchanged: every evidence line that IS rendered —
-   whether from a collapsed group or a singleton — goes through `escape_for_terminal` via the
-   same call site in `render_finding_prefix`. The K-sample cap reduces the number of evidence
-   lines rendered; it does not bypass or weaken the escape requirement for those that are
-   rendered. The full `Finding.evidence` vec is never mutated (BC-2.11.029).
+   The `escape_for_terminal` FUNCTION invariant is unchanged: every evidence line that IS
+   rendered — whether from a collapsed group or a singleton — goes through `escape_for_terminal`.
+   The flat collapse wrapper (BC-2.11.026 path-(b)) calls `escape_for_terminal` on each sampled
+   evidence line DIRECTLY; it does NOT delegate to `render_finding_prefix`'s evidence loop,
+   because that loop renders all entries of a single finding whereas the collapse path samples
+   `evidence[0]` across up to K members from different findings (BC-2.11.027 positional model).
+   The escape GUARANTEE is preserved — only the structural call path differs. The K-sample cap
+   reduces the number of evidence lines rendered; it does not bypass or weaken the escape
+   requirement for those that are rendered. The full `Finding.evidence` vec is never mutated
+   (BC-2.11.029).
 
 ## Edge Cases
 
@@ -74,7 +80,7 @@ summary line or any supporting evidence detail -- cannot inject terminal control
 | EC-004 | Evidence is empty vec | No evidence lines rendered; no crash |
 | EC-005 | Evidence with multiple entries, each with ESC | Each entry independently escaped |
 | EC-006 | collapse_findings=true, group of N>3 findings, each with 1 evidence entry containing ESC | At most 3 evidence lines rendered; each of the 3 rendered lines is individually escaped; evidence from findings 4..N is elided from terminal but remains in raw slice (BC-2.11.027/BC-2.11.029) |
-| EC-007 | collapse_findings=true, representative evidence line contains C1 codepoint | C1 codepoint escaped via escape_for_terminal through the same render_finding_prefix path; collapse path does not bypass the C1 escape |
+| EC-007 | collapse_findings=true, representative evidence line contains C1 codepoint | C1 codepoint escaped via the `escape_for_terminal` FUNCTION called directly in the collapse wrapper (NOT via render_finding_prefix's evidence loop); collapse path does not bypass the C1 escape — the function-level guarantee is preserved regardless of which code path calls it |
 
 ## Canonical Test Vectors
 
