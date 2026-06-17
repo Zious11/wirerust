@@ -2447,8 +2447,7 @@ mod story_104 {
         // window_secs = WRITE_BURST_WINDOW_SECS (1), unit_id = 1, threshold = 20.
         let expected = format!(
             "Modbus write burst: 21 writes within {}s window (unit 1, threshold {}/s)",
-            WRITE_BURST_WINDOW_SECS,
-            DEFAULT_WRITE_BURST_THRESHOLD,
+            WRITE_BURST_WINDOW_SECS, DEFAULT_WRITE_BURST_THRESHOLD,
         );
         assert_eq!(
             burst.summary, expected,
