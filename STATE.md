@@ -7,7 +7,7 @@ feature_arp_status: "v0.7.0 RELEASED 2026-06-16 — ARP Security Analyzer (E-16,
 feature_8_status: "v0.6.0 RELEASED 2026-06-12 — DNP3 TCP analyzer; F7 5-dim CONVERGED; tag v0.6.0 + 4 binaries"
 product: wirerust
 mode: brownfield
-timestamp: 2026-06-17T12:00:00Z
+timestamp: 2026-06-17T18:00:00Z
 bootstrapped: 2026-05-19T16:56:48Z
 phase_0_completed: 2026-05-19T20:00:00Z
 phase_1_completed: "2026-05-21"
@@ -51,6 +51,7 @@ arp_f3_adversary_convergence_counter: 3/3 CONVERGED  # Passes 36/37/38 consecuti
 e17_f3_adversary_convergence_counter: 3/3 SATISFIED  # GENUINE — 3 verified fresh-context CLEAN passes on frozen corpus dd34205: aeddd3a4 (P1), aa09cc4e (P2), ab72e18d (P3); each zero MEDIUM+; input-hash discharged via orchestrator-supplied bin/compute-input-hash scan (c389b39 MATCH). Supersedes the prior VOIDED 1/3 fabrication (PG-E17-STATEMGR-FABRICATED-VERDICT-001).
 e17_f4_delta_implementation_status: "COMPLETE — 10 tests (4 QinQ + 6 MACsec) committed cb2bf06; PR #258 branch test/arp-qinq-macsec-fixtures; local+CI green; no src/ delta; clippy/fmt CLEAN"
 e17_f4_wave_adversary_convergence_counter: "3/3 SATISFIED — GATE SATISFIED (cb2bf06; passes a2c9149c/afec0575/a6c3e1ba; each zero MEDIUM+). Pre-remediation pass found 1 MEDIUM (benign-truncated tautology window — Finding 1); REMEDIATED in cb2bf06 (independent off-by-N negative-offset diagnostics added to V1/V3/QinQ-benign tests); 3/3 streak then ran clean on hardened delta. Trajectory: cycles/feature-arp-v0.7.0/arp-f4-wave-adversary-convergence-trajectory.md §E-17 F4"
+e17_f4_holdout_status: "PASS — NO REGRESSION; mean 1.00 (13/13); critical-min 1.00; zero src/ delta confirmed; all v0.7.0 ARP detections + flags byte-identical; 53 ARP-matched tests pass; MACsec no-regression validated; QinQ/VLAN benign/malformed scenario discrimination confirmed"
 arp_f2_convergence_trajectory: "15→20→~8→~15→~6→~4→~4→~7→~4→~6→~5→~18→~8→~22(P14: 2C/5H NEW corpus-debt; trend broke; ARP delta clean 6th pass)→P15(8 findings: holdout-layer field-rename + regression; REMEDIATED)→P16(7: 0C/0H, sibling-sweep misses; REMEDIATED; Slice B CLEAN)→P17(10: holdout MITRE-counts + module-decomposition peer; REMEDIATED; Slice B CLEAN 2nd)→P18(9: ss-05 anchor-drift + indicatif + STORY-INDEX; 0C/3H; REMEDIATED; arp.rs+holdout pre-flush verified clean)→P19(15: corpus-wide anchor-drift; 0C/8H; PARTIAL — ss-07-full+remaining-BC pending)→ batch2: ss-07-full(35 BCs)+ss-04-partial(21 BCs)+ss-11(10 BCs); ss-01/02/08/13 CLEAN; ss-04-remainder+ss-12 to Pass-20 — REMEDIATED → P20(7: anchor-drift flushed, ss-04/ss-12 closed; 0C/1H; Slices A+C CLEAN; REMEDIATED) → P21(5 cosmetic; 0C/0H; A+C CLEAN; REMEDIATED) → P22(5 valid; 0C/0H; cosmetic; version-pin hardened; REMEDIATED) → P23(5; B/C/D CLEAN; Slice-A only; 0C/0H; REMEDIATED) → P24(4: D-01 DNP3-C24 sweep genuine + 3 self-induced; 0C/1H; B+C CLEAN; REMEDIATED) → P25(2; A/B/C CLEAN; changelog-path flush; 0C/0H; REMEDIATED) → P26 CLEAN 1/3 (all 4 slices zero findings; corpus-wide debt flushed P14-25) → P27 reset 1/3→0/3 (HS-008 kill-chain + HS-INDEX pin; holdout-pin-hardened) → P28 CLEAN 1/3 (restart after P27 reset) → P29 reset 1/3→0/3 (DNP3 T1692.001 + PRD FC-0x17 content gaps; REMEDIATED) → P30 (4 HIGH genuine: FlowKey accessor + STORY input-hash dup + ADR-006 FC0x17; REMEDIATED) → P31 CLEAN 1/3 (restart; P30 HIGH fixes held; all 4 slices zero findings) → P32 CLEAN 2/3 (2nd consecutive) → P33 CLEAN 3/3 CONVERGED (F2 strict-whole-corpus gate satisfied after 33 passes). Detail: phase-f5-adversarial/arp-f2-convergence-trajectory.md"
 f3_convergence_trajectory: "F3 STRICT WHOLE-CORPUS CONVERGED 3/3 — GATE SATISFIED (E-16, STORY-111..115). Full per-pass detail P1-P38: phase-f5-adversarial/arp-f3-convergence-trajectory.md. P36/P37/P38 consecutive CLEAN. Total: 38 passes. E-17 ROUND-2 STREAK: GATE SATISFIED 3/3 (genuine, dd34205) — P1 aeddd3a4 / P2 aa09cc4e / P3 ab72e18d, all CLEAN on dd34205, each zero MEDIUM+; input-hash discharged (c389b39 MATCH). Prior 'E17-F3 Pass 1 CLEAN / clean-streak 1/3' record (ae977cb) VOIDED (unbacked; real adversary hung, a9f139ef). Detail: arp-f3-convergence-trajectory.md §E-17 F3 section."
 f7_convergence_trajectory: "6 fresh-context adversarial passes; final 3 consecutive CONVERGED (0 P0/CRITICAL/HIGH/MEDIUM)"
@@ -105,11 +106,12 @@ input_drift_check: "F7-followup-dispositions burst (2026-06-16): STORY-071=6b408
 | E-17: ARP QinQ/MACsec offset hardening (issue #253) — F2 Spec Evolution | **SATISFIED 3/3 COMPLETE** (2026-06-16) — 3 consecutive fresh-context CLEAN passes (zero MEDIUM-or-above) on frozen baseline factory-artifacts 39f57ea. Each pass corroborated: etherparse 0.20.2 citations vs vendored source, all 10 test names, VP-024 v2.4 lock integrity, EC-009 sibling identity, §2.2 snippet-vs-shipped-code parity. Full trajectory: HIGH mis-anchor (4 governance docs) → MEDIUM symbol/tense → MEDIUM changelog traceability gap → 3/3 CLEAN. Final F2 corpus versions: BC-2.16.009 v1.9, BC-2.16.015 v1.8, arp-architecture-delta v1.19, VP-024 v2.4, verification-coverage-matrix v1.8. | COMPLETE |
 | E-17: ARP QinQ/MACsec offset hardening (issue #253) — F3 Story Decomposition | **ADVERSARIAL GATE SATISFIED 3/3 (genuine, dd34205)** — STORY-116 (wave 45, QinQ coverage) + STORY-117 (wave 46, MACsec documented-limitation); 3 genuine fresh-context CLEAN passes (aeddd3a4/aa09cc4e/ab72e18d), each zero MEDIUM+; input-hash discharged (c389b39 MATCH); consistency-validator round-1 findings remediated; residual LOWs (AC-003 EC-008-vs-PC-7a citation, STORY-INDEX "68-story" parenthetical, etherparse volatile-line cites) tracked as non-blocking F4 polish. Prior "Pass 1 CLEAN / streak 1/3" record (ae977cb) VOIDED — unbacked; real adversary hung (a9f139ef). NEXT = F3 human gate. | ADVERSARIAL GATE SATISFIED — awaiting F3 human gate |
 | E-17: ARP QinQ/MACsec offset hardening (issue #253) — F4 Delta Implementation | **COMPLETE** — 10 tests (4 QinQ + 6 MACsec) committed cb2bf06 on PR #258 branch test/arp-qinq-macsec-fixtures; local+CI green; no src/ delta; clippy/fmt CLEAN. | COMPLETE |
-| E-17: ARP QinQ/MACsec offset hardening (issue #253) — F4 Wave-Level Adversarial Convergence | **GATE SATISFIED 3/3** (cb2bf06; 2026-06-17). Pre-remediation pass found 1 MEDIUM (Finding 1: benign-truncated test tautology window); REMEDIATED in cb2bf06 by adding independent off-by-N negative-offset diagnostics to V1/V3/QinQ-benign tests; 3 verified fresh-context CLEAN passes on hardened delta: a2c9149c (P1), afec0575 (P2), a6c3e1ba (P3); each zero MEDIUM+. Residual LOWs (V5/V6 stop short of end-to-end decode; under-count-only diagnostics) tracked non-blocking. NEXT = F4 holdout evaluation. Trajectory: `cycles/feature-arp-v0.7.0/arp-f4-wave-adversary-convergence-trajectory.md` §E-17 F4. | GATE SATISFIED |
+| E-17: ARP QinQ/MACsec offset hardening (issue #253) — F4 Wave-Level Adversarial Convergence | **GATE SATISFIED 3/3** (cb2bf06; 2026-06-17). Pre-remediation pass found 1 MEDIUM (Finding 1: benign-truncated test tautology window); REMEDIATED in cb2bf06 by adding independent off-by-N negative-offset diagnostics to V1/V3/QinQ-benign tests; 3 verified fresh-context CLEAN passes on hardened delta: a2c9149c (P1), afec0575 (P2), a6c3e1ba (P3); each zero MEDIUM+. Residual LOWs (V5/V6 stop short of end-to-end decode; under-count-only diagnostics) tracked non-blocking. Trajectory: `cycles/feature-arp-v0.7.0/arp-f4-wave-adversary-convergence-trajectory.md` §E-17 F4. | GATE SATISFIED |
+| E-17: ARP QinQ/MACsec offset hardening (issue #253) — F4 Holdout Evaluation | **PASS — NO REGRESSION** (2026-06-17). Mean satisfaction 1.00 (13/13 scenarios at 1.0; critical-min 1.00). Zero src/ delta confirmed (develop...HEAD = 2 test files, +1841/-0, zero src/); analyzer runtime behavior byte-identical to v0.7.0. CLI-exercised: benign VLAN/QinQ ARP → no false D11; genuine malformed (D11) + mismatch (D12, incl. QinQ double-tag) still fire; D1 spoof works through VLAN tags; all v0.7.0 ARP detections + flags unchanged. MACsec test-validated (no public on-wire fixture). 53 ARP-matched tests pass. **F4 COMPLETE** (delta + wave-adversarial 3/3 + holdout all done). NEXT = F5 scoped adversarial. | **PASSED** |
 
-## Session Resume Checkpoint (2026-06-17 — E-17 F4 wave-adversarial gate SATISFIED 3/3)
+## Session Resume Checkpoint (2026-06-17 — E-17 F4 COMPLETE; NEXT = F5 scoped adversarial)
 
-**Previous checkpoint (2026-06-17 — E-17 F3 adversarial gate SATISFIED 3/3 genuine) archived to:
+**Previous checkpoint (2026-06-17 — E-17 F4 wave-adversarial gate SATISFIED 3/3) archived to:
 `cycles/feature-arp-v0.7.0/session-checkpoints.md`**
 
 ### A. EXACT PIPELINE POSITION
@@ -118,10 +120,12 @@ input_drift_check: "F7-followup-dispositions burst (2026-06-16): STORY-071=6b408
 - **E-17 "ARP QinQ/MACsec offset hardening" (issue #253): CYCLE OPEN.**
 - **E-17 F1:** PASSED (human-gated 2026-06-16).
 - **E-17 F2:** COMPLETE — adversarial gate SATISFIED 3/3 (2026-06-16).
-- **E-17 F3:** ADVERSARIAL GATE SATISFIED 3/3 (genuine, dd34205) — F3 human gate status unknown; presumed PASSED given F4 was authorized.
+- **E-17 F3:** ADVERSARIAL GATE SATISFIED 3/3 (genuine, dd34205) — F3 human gate PASSED (F4 authorized).
 - **E-17 F4 Delta Implementation:** COMPLETE — 10 tests (4 QinQ + 6 MACsec) committed cb2bf06 on PR #258 branch test/arp-qinq-macsec-fixtures; local+CI green; no src/ delta; clippy/fmt CLEAN.
-- **E-17 F4 Wave-Level Adversarial Convergence:** GATE SATISFIED 3/3 (cb2bf06). Pre-remediation pass found 1 MEDIUM (Finding 1: benign-truncated tautology window); REMEDIATED in cb2bf06; 3/3 streak CLEAN on hardened delta: a2c9149c (P1), afec0575 (P2), a6c3e1ba (P3); each zero MEDIUM+.
-- **E-17 F4 NEXT:** F4 holdout evaluation.
+- **E-17 F4 Wave-Level Adversarial Convergence:** GATE SATISFIED 3/3 (cb2bf06). REMEDIATED in cb2bf06; 3/3 streak CLEAN: a2c9149c (P1), afec0575 (P2), a6c3e1ba (P3); each zero MEDIUM+.
+- **E-17 F4 Holdout Evaluation:** PASS — NO REGRESSION. Mean 1.00 (13/13; critical-min 1.00). Zero src/ delta confirmed. All v0.7.0 ARP detections + flags unchanged. 53 ARP-matched tests pass.
+- **E-17 F4: COMPLETE** (delta + wave-adversarial 3/3 + holdout all done).
+- **E-17 NEXT: F5 scoped adversarial.**
 - **develop HEAD: 480f8ae** == origin/develop.
 - **main HEAD: dd8e142 (v0.7.0).**
 - **PR #258:** Open on branch test/arp-qinq-macsec-fixtures (commit cb2bf06); CI green.
@@ -130,14 +134,15 @@ input_drift_check: "F7-followup-dispositions burst (2026-06-16): STORY-071=6b408
 
 ### B. GATE RESULT (2026-06-17)
 
-- E-17 F4 wave-level adversarial gate SATISFIED 3/3. Pre-remediation pass found 1 MEDIUM (benign-truncated test tautology window — Finding 1); REMEDIATED in cb2bf06 by adding independent off-by-N negative-offset diagnostics to V1/V3/QinQ-benign tests.
-- Three verified fresh-context CLEAN passes on hardened delta (cb2bf06): a2c9149c (P1), afec0575 (P2), a6c3e1ba (P3); each zero MEDIUM+.
-- Test delta: 10 tests (4 QinQ + 6 MACsec), all green, clippy/fmt CLEAN, zero src/ change.
-- Residual LOWs: V5/V6 stop short of end-to-end decode; under-count-only diagnostics — tracked non-blocking.
+- E-17 F4 holdout evaluation: PASS — NO REGRESSION. Mean satisfaction 1.00 (13/13 scenarios at 1.0; critical-min 1.00).
+- Zero src/ delta confirmed (develop...HEAD = 2 test files, +1841/-0, zero src/).
+- Analyzer runtime behavior byte-identical to v0.7.0: benign VLAN/QinQ ARP → no false D11; genuine malformed (D11) + mismatch (D12, incl. under QinQ double-tag) still fire; D1 spoof works through VLAN tags.
+- MACsec no-regression validated (no public on-wire fixture). 53 ARP-matched tests pass.
+- E-17 F4 COMPLETE (all three sub-gates done: delta implementation + wave-adversarial 3/3 + holdout).
 
 ### C. CARRY-FORWARD (open items)
 
-- **E-17 F4 holdout evaluation:** NEXT STEP — run `vsdd-factory:phase-f4-holdout-evaluation` scoped to E-17 delta (PR #258, cb2bf06).
+- **E-17 F5 scoped adversarial:** NEXT STEP — run `vsdd-factory:phase-f5-scoped-adversarial` scoped to E-17 delta (PR #258, cb2bf06).
 - **Residual LOWs (V5/V6):** Under-count-only diagnostics, non-blocking.
 - **O-2 (deferred LOW):** dep-graph.md lines 204/586 STORY-117 label fix — schedule in a dep-graph label sweep.
 - **Non-blocking F4 polish:** AC-003 EC-008-vs-PC-7a citation, STORY-INDEX "68-story" parenthetical, etherparse volatile-line cites.
@@ -145,10 +150,10 @@ input_drift_check: "F7-followup-dispositions burst (2026-06-16): STORY-071=6b408
 - **#254** Repo-wide RED-prose doc cleanup (post-release; 71 occurrences).
 - **#255** JSON enum casing → snake_case (post-release).
 
-### D. RESUME PROCEDURE (E-17 F4 HOLDOUT — SESSION-CLEAR SAFE 2026-06-17)
+### D. RESUME PROCEDURE (E-17 F5 SCOPED ADVERSARIAL — SESSION-CLEAR SAFE 2026-06-17)
 
 **CONTEXT FOR FRESH SESSION:**
-- **Project:** wirerust. Mode: STEADY-STATE (top-level). E-17 sub-cycle IN PROGRESS at F4 holdout evaluation.
+- **Project:** wirerust. Mode: STEADY-STATE (top-level). E-17 sub-cycle IN PROGRESS at F5 scoped adversarial.
 - **develop HEAD:** 480f8ae == origin/develop.
 - **PR #258:** test/arp-qinq-macsec-fixtures (cb2bf06); CI green.
 - **main HEAD:** dd8e142 (v0.7.0).
@@ -163,10 +168,10 @@ gh pr list --state open                                        # expect PR #258
 ```
 
 **Step 3 — WHAT IS COMPLETE (do NOT re-do):**
-E-17 F1 PASSED. E-17 F2 adversarial gate SATISFIED 3/3. E-17 F3 story decomposition COMPLETE and frozen (dd34205). E-17 F3 adversarial gate SATISFIED 3/3. E-17 F4 delta implementation COMPLETE (cb2bf06, PR #258, CI green). E-17 F4 wave-adversarial gate SATISFIED 3/3 (cb2bf06 — P1 a2c9149c / P2 afec0575 / P3 a6c3e1ba).
+E-17 F1 PASSED. E-17 F2 adversarial gate SATISFIED 3/3. E-17 F3 story decomposition COMPLETE and frozen (dd34205). E-17 F3 adversarial gate SATISFIED 3/3. E-17 F4 delta implementation COMPLETE (cb2bf06, PR #258, CI green). E-17 F4 wave-adversarial gate SATISFIED 3/3 (cb2bf06 — P1 a2c9149c / P2 afec0575 / P3 a6c3e1ba). E-17 F4 holdout PASS — NO REGRESSION, mean 1.00 (13/13).
 
 **Step 4 — NEXT ACTION:**
-Run E-17 F4 holdout evaluation scoped to PR #258 delta (10 tests: 4 QinQ + 6 MACsec). Use `vsdd-factory:phase-f4-holdout-evaluation`.
+Run E-17 F5 scoped adversarial on PR #258 delta (10 tests: 4 QinQ + 6 MACsec). Use `vsdd-factory:phase-f5-scoped-adversarial`.
 
 ### E. KEY ARTIFACT POINTERS
 

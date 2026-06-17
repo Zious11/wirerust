@@ -939,3 +939,22 @@ STORY-111=3eefa35 MATCH | STORY-112=6115929 MATCH (stale re-drift caught in clos
 - main HEAD: dd8e142 (v0.7.0).
 - Open PRs: None.
 - Real E-17 F3 adversarial streak must restart from Pass 1 with a genuine fresh-context adversary dispatch.
+
+---
+
+## Checkpoint 2026-06-17 — E-17 F4 wave-adversarial gate SATISFIED 3/3
+
+**Archived from STATE.md; replaced by "E-17 F4 COMPLETE; NEXT = F5 scoped adversarial" checkpoint.**
+
+### POSITION
+
+- Project: wirerust. Mode: STEADY-STATE (top-level pipeline IDLE; E-17 sub-cycle IN PROGRESS).
+- E-17 F1: PASSED (human-gated 2026-06-16).
+- E-17 F2: COMPLETE — adversarial gate SATISFIED 3/3 (2026-06-16).
+- E-17 F3: ADVERSARIAL GATE SATISFIED 3/3 (genuine, dd34205) — F3 human gate status unknown; presumed PASSED given F4 was authorized.
+- E-17 F4 Delta Implementation: COMPLETE — 10 tests (4 QinQ + 6 MACsec) committed cb2bf06 on PR #258 branch test/arp-qinq-macsec-fixtures; local+CI green; no src/ delta; clippy/fmt CLEAN.
+- E-17 F4 Wave-Level Adversarial Convergence: GATE SATISFIED 3/3 (cb2bf06). Pre-remediation pass found 1 MEDIUM (Finding 1: benign-truncated tautology window); REMEDIATED in cb2bf06; 3/3 streak CLEAN on hardened delta: a2c9149c (P1), afec0575 (P2), a6c3e1ba (P3); each zero MEDIUM+.
+- E-17 F4 NEXT: F4 holdout evaluation.
+- develop HEAD: 480f8ae == origin/develop.
+- main HEAD: dd8e142 (v0.7.0).
+- PR #258: Open on branch test/arp-qinq-macsec-fixtures (commit cb2bf06); CI green.
