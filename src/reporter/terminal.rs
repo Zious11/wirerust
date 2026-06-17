@@ -60,6 +60,41 @@ fn escape_for_terminal(s: &str) -> String {
     out
 }
 
+/// Maximum number of representative evidence lines rendered per collapsed group.
+///
+/// BC-2.11.027 invariant 1: K = 3 is a hardcoded named constant, not a magic number.
+/// The collapse pass inspects the first `min(N, COLLAPSE_EVIDENCE_SAMPLES)` members
+/// of the group and emits `evidence[0]` from each inspected member (if non-empty).
+/// The window is positional and does NOT slide past empty-evidence members.
+///
+/// STORY-118 stub: used by `collapse_findings_pass` (todo!) and
+/// `render_findings_collapsed` (todo!) — referenced once the implementer fills
+/// in those bodies.
+#[allow(dead_code)]
+const COLLAPSE_EVIDENCE_SAMPLES: usize = 3;
+
+/// Collapse key: the four semantic fields that determine group membership.
+///
+/// Two findings belong to the same collapsed group when they share the same
+/// `(category, verdict, confidence, summary)` four-tuple. The remaining fields
+/// (`evidence`, `mitre_techniques`, `source_ip`, `timestamp`, `direction`) are
+/// per-instance and are intentionally excluded from the key.
+///
+/// BC-2.11.025 invariant 7: `PartialEq` only — NO `Hash` derive (ThreatCategory,
+/// Verdict, and Confidence do not derive Hash in v0.8.0). The collapse accumulator
+/// is `Vec<(CollapseKey, Vec<&Finding>)>` with linear-scan equality matching.
+///
+/// STORY-118 stub: constructed by `collapse_findings_pass` (todo!) — used once
+/// the implementer fills in that body.
+#[allow(dead_code)]
+#[derive(PartialEq, Eq)]
+struct CollapseKey {
+    category: crate::findings::ThreatCategory,
+    verdict: Verdict,
+    confidence: Confidence,
+    summary: String,
+}
+
 pub struct TerminalReporter {
     pub use_color: bool,
     /// When true, regroup the FINDINGS section by MITRE tactic and expand
@@ -72,6 +107,14 @@ pub struct TerminalReporter {
     /// always-present `Hosts: N` count line in the header is shown
     /// regardless; this gate only controls the expanded itemized list.
     pub show_hosts_breakdown: bool,
+    /// When true (the default), repeated findings sharing the same
+    /// `(category, verdict, confidence, summary)` four-tuple are collapsed
+    /// into a single display group with a ` (xN)` count suffix (N≥2).
+    /// Singletons (N=1) render byte-identically to pre-v0.8.0 output.
+    /// Collapse applies ONLY in flat mode (`show_mitre_grouping = false`).
+    /// Wired from `--no-collapse` flag: `collapse_findings = !no_collapse`.
+    /// BC-2.11.025 / BC-2.11.026 / BC-2.11.027 / BC-2.11.028.
+    pub collapse_findings: bool,
 }
 
 impl Reporter for TerminalReporter {
@@ -149,7 +192,16 @@ impl Reporter for TerminalReporter {
         if !findings.is_empty() {
             out.push_str(&self.section("FINDINGS"));
             if self.show_mitre_grouping {
+                // Grouped (--mitre) path: structurally suffix-free per BC-2.11.025
+                // invariant 5. STORY-118 does NOT modify this path — collapse applies
+                // only in flat mode. render_finding_prefix stays unchanged.
                 self.render_findings_grouped(&mut out, findings);
+            } else if self.collapse_findings {
+                // Flat + collapse path (STORY-118 / BC-2.11.025 / BC-2.11.026 /
+                // BC-2.11.027): group findings by CollapseKey in first-occurrence
+                // order, render each group with optional (xN) suffix and up to K=3
+                // sampled evidence lines. todo!() per BC-5.38.001.
+                self.render_findings_collapsed(&mut out, findings);
             } else {
                 // Per ADR 0003: the Finding struct stores raw bytes; the
                 // terminal reporter is responsible for escaping untrusted
@@ -260,6 +312,40 @@ impl TerminalReporter {
                 None => out.push_str(&format!("    MITRE: {ids} (unknown)\n")),
             }
         }
+    }
+
+    /// Groups findings by `CollapseKey` in first-occurrence order using a
+    /// `Vec<(CollapseKey, Vec<&Finding>)>` accumulator with linear-scan
+    /// `PartialEq` matching (no HashMap / IndexMap — `ThreatCategory`, `Verdict`,
+    /// and `Confidence` do not derive `Hash` in v0.8.0).
+    ///
+    /// BC-2.11.025 invariant 7 / postcondition 9: Vec accumulator is canonical.
+    /// BC-5.38.001: non-trivial body — `todo!()` placeholder.
+    // STORY-118 stub: allow dead_code until implementer wires the call-site.
+    #[allow(dead_code)]
+    fn collapse_findings_pass<'a>(
+        &self,
+        _findings: &'a [Finding],
+    ) -> Vec<(CollapseKey, Vec<&'a Finding>)> {
+        todo!("STORY-118: implement collapse_findings_pass — BC-5.38.001")
+    }
+
+    /// Renders the FINDINGS section in collapsed flat mode.
+    ///
+    /// Calls `collapse_findings_pass` to build insertion-ordered groups, then for
+    /// each group:
+    ///   - N == 1 (singleton): renders byte-identically to `render_finding_flat`
+    ///     (no count suffix, all evidence, MITRE line if non-empty).
+    ///   - N >= 2: renders header with ` (xN)` suffix (colorized WITH the header via
+    ///     the same verdict/confidence color-ladder at terminal.rs lines ~245-258),
+    ///     then up to `COLLAPSE_EVIDENCE_SAMPLES` = 3 evidence lines (first K members'
+    ///     `evidence[0]`, positional window, does NOT slide past empty-evidence members),
+    ///     then the MITRE line from `group_members[0]` if non-empty.
+    ///
+    /// BC-2.11.025 / BC-2.11.026 / BC-2.11.027 / BC-2.11.010.
+    /// BC-5.38.001: non-trivial body — `todo!()` placeholder.
+    fn render_findings_collapsed(&self, _out: &mut String, _findings: &[Finding]) {
+        todo!("STORY-118: implement render_findings_collapsed — BC-5.38.001")
     }
 
     /// Renders the FINDINGS section grouped by MITRE tactic. Each tactic

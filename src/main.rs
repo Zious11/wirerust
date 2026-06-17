@@ -53,6 +53,7 @@ fn main() -> Result<()> {
             tls,
             all,
             mitre,
+            no_collapse,
             modbus,
             modbus_write_burst_threshold,
             modbus_write_sustained_threshold,
@@ -76,6 +77,7 @@ fn main() -> Result<()> {
                 *arp_spoof_threshold,
                 *arp_storm_rate,
                 *mitre,
+                !*no_collapse,
                 use_color,
                 &cli,
             )?;
@@ -103,6 +105,7 @@ fn run_analyze(
     arp_spoof_threshold: u32,
     arp_storm_rate: u32,
     show_mitre_grouping: bool,
+    collapse_findings: bool,
     use_color: bool,
     cli: &Cli,
 ) -> Result<()> {
@@ -373,6 +376,10 @@ fn run_analyze(
                 // `analyze` does not expose a per-host breakdown flag —
                 // that is `summary`-subcommand-only (LESSON-P1.03).
                 show_hosts_breakdown: false,
+                // BC-2.11.028: `collapse_findings = !no_collapse`.
+                // Wired from `--no-collapse` flag: true → collapse OFF; false → collapse ON.
+                // Mirrors exactly how `*mitre` becomes `show_mitre_grouping`.
+                collapse_findings,
             };
             reporter.render(&summary, &all_findings, &analyzer_summaries)
         }
@@ -433,6 +440,10 @@ fn run_summary(
                 use_color,
                 show_mitre_grouping: false,
                 show_hosts_breakdown,
+                // BC-2.11.028 invariant 4: `run_summary` emits no FINDINGS section;
+                // this value is inert. Set to `true` for completeness (Rust requires
+                // all struct fields to be initialized). See STORY-118 Task 8 note.
+                collapse_findings: true,
             };
             reporter.render(&summary, &[], &[])
         }

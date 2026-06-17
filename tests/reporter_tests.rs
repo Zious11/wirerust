@@ -450,6 +450,8 @@ fn test_terminal_hosts_breakdown_off_by_default() {
         use_color: false,
         show_mitre_grouping: false,
         show_hosts_breakdown: false,
+        // STORY-118: new field; false = pre-v0.8.0 non-collapse path
+        collapse_findings: false,
     };
     let out = reporter.render(&summary, &[], &[]);
     assert!(
@@ -472,6 +474,8 @@ fn test_terminal_hosts_breakdown_lists_each_host_when_enabled() {
         use_color: false,
         show_mitre_grouping: false,
         show_hosts_breakdown: true,
+        // STORY-118: new field; false = pre-v0.8.0 non-collapse path
+        collapse_findings: false,
     };
     let out = reporter.render(&summary, &[], &[]);
     assert!(
@@ -521,6 +525,8 @@ fn test_terminal_reporter_shows_skipped_when_nonzero() {
         use_color: false,
         show_mitre_grouping: false,
         show_hosts_breakdown: false,
+        // STORY-118: new field; false = pre-v0.8.0 non-collapse path
+        collapse_findings: false,
     };
     let mut summary = Summary::new();
     summary.skipped_packets = 5;
@@ -538,6 +544,8 @@ fn test_terminal_reporter_hides_skipped_when_zero() {
         use_color: false,
         show_mitre_grouping: false,
         show_hosts_breakdown: false,
+        // STORY-118: new field; false = pre-v0.8.0 non-collapse path
+        collapse_findings: false,
     };
     let summary = Summary::new();
 
@@ -558,6 +566,8 @@ fn test_terminal_reporter_escapes_esc_bytes_in_summary() {
         use_color: false,
         show_mitre_grouping: false,
         show_hosts_breakdown: false,
+        // STORY-118: new field; false = pre-v0.8.0 non-collapse path
+        collapse_findings: false,
     };
     let summary = Summary::new();
     let findings = vec![Finding {
@@ -636,6 +646,8 @@ fn test_output_sanitization_layering_contract() {
         use_color: false,
         show_mitre_grouping: false,
         show_hosts_breakdown: false,
+        // STORY-118: new field; false = pre-v0.8.0 non-collapse path
+        collapse_findings: false,
     }
     .render(&Summary::new(), std::slice::from_ref(&finding), &[]);
     assert!(
@@ -742,6 +754,8 @@ fn test_terminal_reporter_escapes_control_bytes_in_analyzer_summaries() {
         use_color: false,
         show_mitre_grouping: false,
         show_hosts_breakdown: false,
+        // STORY-118: new field; false = pre-v0.8.0 non-collapse path
+        collapse_findings: false,
     }
     .render(
         &Summary::new(),
@@ -849,6 +863,8 @@ fn test_http_finding_c1_csi_escaped_by_terminal_reporter() {
         use_color: false,
         show_mitre_grouping: false,
         show_hosts_breakdown: false,
+        // STORY-118: new field; false = pre-v0.8.0 non-collapse path
+        collapse_findings: false,
     }
     .render(&Summary::new(), &findings, &[]);
     assert!(
@@ -934,6 +950,8 @@ fn test_http_analyzer_summary_c1_csi_escaped_by_terminal_reporter() {
         use_color: false,
         show_mitre_grouping: false,
         show_hosts_breakdown: false,
+        // STORY-118: new field; false = pre-v0.8.0 non-collapse path
+        collapse_findings: false,
     }
     .render(
         &Summary::new(),
@@ -984,6 +1002,8 @@ fn mitre_grouping_emits_tactic_headers_in_canonical_order() {
         use_color: false,
         show_mitre_grouping: true,
         show_hosts_breakdown: false,
+        // STORY-118: new field; false = pre-v0.8.0 non-collapse path
+        collapse_findings: false,
     };
     let out = reporter.render(&Summary::new(), &findings, &[]);
     // Anchor on the `## ` header prefix so future summary/evidence text
@@ -1017,6 +1037,8 @@ fn mitre_grouping_sorts_within_tactic_by_verdict_then_confidence() {
         use_color: false,
         show_mitre_grouping: true,
         show_hosts_breakdown: false,
+        // STORY-118: new field; false = pre-v0.8.0 non-collapse path
+        collapse_findings: false,
     };
     let out = reporter.render(&Summary::new(), &findings, &[]);
     let p1 = out.find("first").expect("first missing");
@@ -1050,6 +1072,8 @@ fn mitre_grouping_buckets_none_and_unknown_under_uncategorized() {
         use_color: false,
         show_mitre_grouping: true,
         show_hosts_breakdown: false,
+        // STORY-118: new field; false = pre-v0.8.0 non-collapse path
+        collapse_findings: false,
     };
     let out = reporter.render(&Summary::new(), &findings, &[]);
     let uncat_pos = out
@@ -1083,6 +1107,8 @@ fn mitre_grouping_expands_per_finding_line_with_technique_name() {
         use_color: false,
         show_mitre_grouping: true,
         show_hosts_breakdown: false,
+        // STORY-118: new field; false = pre-v0.8.0 non-collapse path
+        collapse_findings: false,
     };
     let out = reporter.render(&Summary::new(), &findings, &[]);
     assert!(
@@ -1103,6 +1129,8 @@ fn default_rendering_unchanged_when_mitre_flag_off() {
         use_color: false,
         show_mitre_grouping: false,
         show_hosts_breakdown: false,
+        // STORY-118: new field; false = pre-v0.8.0 non-collapse path
+        collapse_findings: false,
     };
     let out = reporter.render(&Summary::new(), &findings, &[]);
     assert!(out.contains("MITRE: T1046"));
@@ -1128,6 +1156,8 @@ fn mitre_grouping_preserves_emission_order_when_verdict_and_confidence_tie() {
         use_color: false,
         show_mitre_grouping: true,
         show_hosts_breakdown: false,
+        // STORY-118: new field; false = pre-v0.8.0 non-collapse path
+        collapse_findings: false,
     };
     let out = reporter.render(&Summary::new(), &findings, &[]);
     let pa = out.find("alpha").expect("alpha missing");
@@ -1163,6 +1193,8 @@ fn mitre_grouping_keeps_known_and_unknown_ids_in_separate_buckets() {
         use_color: false,
         show_mitre_grouping: true,
         show_hosts_breakdown: false,
+        // STORY-118: new field; false = pre-v0.8.0 non-collapse path
+        collapse_findings: false,
     };
     let out = reporter.render(&Summary::new(), &findings, &[]);
     let discovery_pos = out.find("## Discovery").expect("Discovery header missing");
@@ -2445,6 +2477,8 @@ fn test_story_070_ec001_full_pipeline_esc_in_uri() {
         use_color: false,
         show_mitre_grouping: false,
         show_hosts_breakdown: false,
+        // STORY-118: new field; false = pre-v0.8.0 non-collapse path
+        collapse_findings: false,
     }
     .render(&Summary::new(), std::slice::from_ref(&finding), &[]);
     assert!(

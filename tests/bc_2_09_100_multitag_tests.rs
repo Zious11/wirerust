@@ -691,6 +691,8 @@ fn make_terminal(mitre_grouping: bool) -> TerminalReporter {
         use_color: false,
         show_mitre_grouping: mitre_grouping,
         show_hosts_breakdown: false,
+        // STORY-118: new field; false = pre-v0.8.0 non-collapse path
+        collapse_findings: false,
     }
 }
 

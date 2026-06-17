@@ -65,11 +65,14 @@ fn make_finding(summary: impl Into<String>) -> Finding {
 }
 
 /// TerminalReporter with color and all optional sections disabled.
+/// STORY-118: `collapse_findings` field added; default false so existing tests
+/// exercise the pre-v0.8.0 non-collapse path (BC-2.11.028 invariant 2 / opt-out path).
 fn plain_reporter() -> TerminalReporter {
     TerminalReporter {
         use_color: false,
         show_mitre_grouping: false,
         show_hosts_breakdown: false,
+        collapse_findings: false,
     }
 }
 
@@ -653,11 +656,14 @@ mod story_078 {
     // -----------------------------------------------------------------------
 
     /// TerminalReporter with MITRE grouping enabled and color disabled.
+    /// STORY-118: `collapse_findings` field added; false here since grouped mode
+    /// does not apply collapse (BC-2.11.025 invariant 5 / AC-005).
     fn mitre_reporter() -> TerminalReporter {
         TerminalReporter {
             use_color: false,
             show_mitre_grouping: true,
             show_hosts_breakdown: false,
+            collapse_findings: false,
         }
     }
 
@@ -1742,5 +1748,398 @@ mod fix_p5_003_terminal_ordering {
              got: {:?}",
             lines[6]
         );
+    }
+}
+
+// ---------------------------------------------------------------------------
+// STORY-118: Terminal Finding-Collapse — Flat Mode (v0.8.0)
+// Per DF-TEST-NAMESPACE-001: all STORY-118 tests are grouped inside a
+// dedicated `mod story_118` wrapper to prevent test-function name collisions
+// with other stories' BC-prefixed names.
+//
+// Behavioral contracts covered:
+//   BC-2.11.025  Flat-Mode Collapse Groups Findings by (category, verdict,
+//                confidence, summary) Key; First-Occurrence Order; Deterministic
+//   BC-2.11.026  Collapsed Group of N≥2 Renders Header with (xN) Suffix;
+//                Singleton (N=1) Renders Without Suffix
+//   BC-2.11.027  Collapsed Group Retains at Most K=3 Representative Evidence
+//                Lines; Remainder Elided from Terminal Display
+//   BC-2.11.028  --no-collapse Opt-Out Flag Disables Terminal Collapse and
+//                Restores One-Line-Per-Finding Rendering; JSON/CSV Unaffected
+//   BC-2.11.029  Collapse is Display-Layer Only; JSON/CSV Reporters Receive
+//                Unmodified findings Slice; Non-Repeated Findings Individually
+//                Visible in All Outputs
+//   BC-2.11.010  TerminalReporter Escapes Both Summary AND Each Evidence Line
+//   BC-2.11.013  MITRE Grouping Emits Tactic Headers in Canonical Order;
+//                Uncategorized Last
+//   BC-2.11.017  Default Rendering Emits MITRE: <id(s)> Only (No Em-Dash)
+//   BC-2.11.019  TerminalReporter Renders Sections in Correct Order
+//
+// tdd_mode: strict — all 35 test bodies are `todo!()` per BC-5.38.001.
+// Red Gate: `cargo build --all-targets` must pass; `cargo test` must show
+// these 35 tests as FAILED (panicking with "not yet implemented").
+// ---------------------------------------------------------------------------
+mod story_118 {
+    use super::*;
+
+    // -----------------------------------------------------------------------
+    // Helpers scoped to story_118
+    // -----------------------------------------------------------------------
+    // STORY-118 stub: helpers are unused until test bodies are filled in by the
+    // implementer. `#[allow(dead_code)]` suppresses warnings that would become
+    // errors under RUSTFLAGS=-Dwarnings in CI.
+
+    /// TerminalReporter with collapse enabled and color disabled (the default
+    /// v0.8.0 flat-mode reporter).
+    #[allow(dead_code)]
+    fn collapse_reporter() -> TerminalReporter {
+        TerminalReporter {
+            use_color: false,
+            show_mitre_grouping: false,
+            show_hosts_breakdown: false,
+            collapse_findings: true,
+        }
+    }
+
+    /// TerminalReporter with collapse enabled and color enabled (for color-ladder tests).
+    #[allow(dead_code)]
+    fn collapse_reporter_color() -> TerminalReporter {
+        TerminalReporter {
+            use_color: true,
+            show_mitre_grouping: false,
+            show_hosts_breakdown: false,
+            collapse_findings: true,
+        }
+    }
+
+    /// TerminalReporter with MITRE grouping and collapse both enabled (for AC-005).
+    #[allow(dead_code)]
+    fn mitre_collapse_reporter() -> TerminalReporter {
+        TerminalReporter {
+            use_color: false,
+            show_mitre_grouping: true,
+            show_hosts_breakdown: false,
+            collapse_findings: true,
+        }
+    }
+
+    /// Construct a Finding with full control over the four collapse-key fields
+    /// plus optional evidence and MITRE techniques.
+    #[allow(dead_code)]
+    fn make_collapse_finding(
+        category: ThreatCategory,
+        verdict: Verdict,
+        confidence: Confidence,
+        summary: impl Into<String>,
+        evidence: Vec<String>,
+        mitre: Vec<String>,
+    ) -> Finding {
+        Finding {
+            category,
+            verdict,
+            confidence,
+            summary: summary.into(),
+            evidence,
+            mitre_techniques: mitre,
+            source_ip: None,
+            timestamp: None,
+            direction: None,
+        }
+    }
+
+    // -----------------------------------------------------------------------
+    // BC-2.11.025 — Flat-Mode Collapse (9 tests)
+    // -----------------------------------------------------------------------
+
+    /// AC-001: N identical findings collapse to exactly one display group.
+    /// REGRESSION-GUARD: verifies BC-2.11.025 postcondition 1.
+    #[test]
+    fn test_BC_2_11_025_identical_findings_collapse_to_one_group() {
+        // BC-5.38.005 self-check: including real assertions here would make this
+        // test pass without implementer work — stub body is `todo!()`.
+        todo!("STORY-118 RED: implement test body — BC-5.38.001")
+    }
+
+    /// AC-002: first-occurrence order is preserved across collapsed groups.
+    /// REGRESSION-GUARD: verifies BC-2.11.025 postcondition 2.
+    #[test]
+    fn test_BC_2_11_025_first_occurrence_order() {
+        todo!("STORY-118 RED: implement test body — BC-5.38.001")
+    }
+
+    /// AC-003: evidence difference does NOT prevent collapse; only the four-field
+    /// key matters.
+    /// REGRESSION-GUARD: verifies BC-2.11.025 postcondition 4.
+    #[test]
+    fn test_BC_2_11_025_key_discriminator_evidence_nondiscriminating() {
+        todo!("STORY-118 RED: implement test body — BC-5.38.001")
+    }
+
+    /// AC-004: category difference prevents collapse; two distinct groups emitted.
+    /// REGRESSION-GUARD: verifies BC-2.11.025 invariant 1.
+    #[test]
+    fn test_BC_2_11_025_key_discriminator_category() {
+        todo!("STORY-118 RED: implement test body — BC-5.38.001")
+    }
+
+    /// AC-005: show_mitre_grouping=true suppresses collapse; no (xN) suffix anywhere.
+    /// REGRESSION-GUARD: verifies BC-2.11.025 invariant 5.
+    #[test]
+    fn test_BC_2_11_025_grouped_mode_bypasses_collapse() {
+        todo!("STORY-118 RED: implement test body — BC-5.38.001")
+    }
+
+    /// AC-006: Likely/High findings collapse normally (severity-agnostic).
+    /// REGRESSION-GUARD: verifies BC-2.11.025 postcondition 7 / edge case EC-014.
+    #[test]
+    fn test_BC_2_11_025_severity_agnostic_collapse_likely_high() {
+        todo!("STORY-118 RED: implement test body — BC-5.38.001")
+    }
+
+    /// AC-007: raw ESC byte in summary distinguishes two groups (raw-byte key).
+    /// REGRESSION-GUARD: verifies BC-2.11.025 postcondition 8 / edge case EC-015.
+    #[test]
+    fn test_BC_2_11_025_raw_byte_key_esc_distinguishes_groups() {
+        todo!("STORY-118 RED: implement test body — BC-5.38.001")
+    }
+
+    /// AC-024: deterministic output for same input (Vec accumulator invariant).
+    /// REGRESSION-GUARD: verifies BC-2.11.025 postcondition 9 / invariant 7.
+    #[test]
+    fn test_BC_2_11_025_deterministic_output_same_input() {
+        todo!("STORY-118 RED: implement test body — BC-5.38.001")
+    }
+
+    /// AC-026: canonical flood case — 5 empty-UA findings collapse to 1 group
+    /// with exactly 3 evidence lines.
+    /// REGRESSION-GUARD: verifies BC-2.11.025 canonical test vector /
+    /// BC-2.11.027 postcondition 2.
+    #[test]
+    fn test_BC_2_11_025_flood_canonical_empty_ua_five_findings() {
+        todo!("STORY-118 RED: implement test body — BC-5.38.001")
+    }
+
+    // -----------------------------------------------------------------------
+    // BC-2.11.026 — Count Suffix and Colorization (10 tests)
+    // -----------------------------------------------------------------------
+
+    /// AC-008: N=1 singleton renders with no count suffix; byte-identical to
+    /// pre-v0.8.0 output.
+    /// REGRESSION-GUARD: verifies BC-2.11.026 postcondition 2 / invariant 2.
+    #[test]
+    fn test_BC_2_11_026_singleton_no_suffix() {
+        todo!("STORY-118 RED: implement test body — BC-5.38.001")
+    }
+
+    /// AC-009 (part 1): N≥2 header line contains correct (xN) suffix with exact count.
+    /// REGRESSION-GUARD: verifies BC-2.11.026 postcondition 1 / invariant 1.
+    #[test]
+    fn test_BC_2_11_026_count_suffix_for_n_ge_2() {
+        todo!("STORY-118 RED: implement test body — BC-5.38.001")
+    }
+
+    /// AC-009 (part 2): large count (N=3142) rendered exactly; no rounding.
+    /// REGRESSION-GUARD: verifies BC-2.11.026 invariant 1.
+    #[test]
+    fn test_BC_2_11_026_large_count_exact() {
+        todo!("STORY-118 RED: implement test body — BC-5.38.001")
+    }
+
+    /// AC-010: suffix format is exactly ` (x<N>)` — one space, paren, x, decimal, paren.
+    /// REGRESSION-GUARD: verifies BC-2.11.026 invariant 1.
+    #[test]
+    fn test_BC_2_11_026_suffix_format() {
+        todo!("STORY-118 RED: implement test body — BC-5.38.001")
+    }
+
+    /// AC-011: (xN) suffix is INSIDE the ANSI color span, not after the reset.
+    /// REGRESSION-GUARD: verifies BC-2.11.026 postcondition 6 / invariant 4.
+    #[test]
+    fn test_BC_2_11_026_suffix_colorized_inside_span_red_bold() {
+        todo!("STORY-118 RED: implement test body — BC-5.38.001")
+    }
+
+    /// AC-012 (part 1): Inconclusive verdict → cyan colorization.
+    /// REGRESSION-GUARD: verifies BC-2.11.026 postcondition 6 (color-ladder).
+    #[test]
+    fn test_BC_2_11_026_color_ladder_inconclusive_cyan() {
+        todo!("STORY-118 RED: implement test body — BC-5.38.001")
+    }
+
+    /// AC-012 (part 2): Likely + non-High confidence → yellow colorization.
+    /// REGRESSION-GUARD: verifies BC-2.11.026 postcondition 6 (color-ladder).
+    #[test]
+    fn test_BC_2_11_026_color_ladder_likely_other_yellow() {
+        todo!("STORY-118 RED: implement test body — BC-5.38.001")
+    }
+
+    /// AC-012 (part 3): Possible verdict → yellow colorization.
+    /// REGRESSION-GUARD: verifies BC-2.11.026 postcondition 6 (color-ladder).
+    #[test]
+    fn test_BC_2_11_026_color_ladder_possible_yellow() {
+        todo!("STORY-118 RED: implement test body — BC-5.38.001")
+    }
+
+    /// AC-012 (part 4): Unlikely verdict → dimmed colorization.
+    /// REGRESSION-GUARD: verifies BC-2.11.026 postcondition 6 (color-ladder).
+    #[test]
+    fn test_BC_2_11_026_color_ladder_unlikely_dimmed() {
+        todo!("STORY-118 RED: implement test body — BC-5.38.001")
+    }
+
+    /// AC-023 (part 1): MITRE line sources group_members[0]; other members' MITRE elided.
+    /// REGRESSION-GUARD: verifies BC-2.11.026 postcondition 7 /
+    /// BC-2.11.017 postcondition 6.
+    #[test]
+    fn test_BC_2_11_026_mitre_line_from_representative_finding() {
+        todo!("STORY-118 RED: implement test body — BC-5.38.001")
+    }
+
+    // -----------------------------------------------------------------------
+    // BC-2.11.027 — Evidence Sampling (K=3 cap) (5 tests)
+    // -----------------------------------------------------------------------
+
+    /// AC-013: N>K shows exactly K=3 evidence lines (first K members).
+    /// REGRESSION-GUARD: verifies BC-2.11.027 postcondition 2 / invariant 2.
+    #[test]
+    fn test_BC_2_11_027_evidence_capped_at_k() {
+        todo!("STORY-118 RED: implement test body — BC-5.38.001")
+    }
+
+    /// AC-014: N≤K renders all available evidence (no elision at or below cap).
+    /// REGRESSION-GUARD: verifies BC-2.11.027 postcondition 5.
+    #[test]
+    fn test_BC_2_11_027_evidence_below_cap_rendered_fully() {
+        todo!("STORY-118 RED: implement test body — BC-5.38.001")
+    }
+
+    /// AC-015: empty first-member contributes 0 lines; window does NOT slide.
+    /// REGRESSION-GUARD: verifies BC-2.11.027 postcondition 2 / invariant 2
+    /// (positional no-slide rule).
+    #[test]
+    fn test_BC_2_11_027_evidence_drawn_from_first_k_members() {
+        todo!("STORY-118 RED: implement test body — BC-5.38.001")
+    }
+
+    /// AC-016: evidence lines pass through escape_for_terminal in the collapse path.
+    /// REGRESSION-GUARD: verifies BC-2.11.027 postcondition 6 /
+    /// BC-2.11.010 invariant 4.
+    #[test]
+    fn test_BC_2_11_027_escape_preserved_in_sampled_evidence() {
+        todo!("STORY-118 RED: implement test body — BC-5.38.001")
+    }
+
+    /// AC-017: singleton — K-cap does NOT apply; all evidence lines rendered.
+    /// REGRESSION-GUARD: verifies BC-2.11.027 invariant 6.
+    #[test]
+    fn test_BC_2_11_027_singleton_evidence_not_capped() {
+        todo!("STORY-118 RED: implement test body — BC-5.38.001")
+    }
+
+    // -----------------------------------------------------------------------
+    // BC-2.11.028 — --no-collapse Opt-Out Flag (3 tests)
+    // -----------------------------------------------------------------------
+
+    /// AC-018 (part 1): --no-collapse restores one-line-per-finding; no (xN) suffix.
+    /// REGRESSION-GUARD: verifies BC-2.11.028 postcondition 2.
+    #[test]
+    fn test_BC_2_11_028_no_collapse_flag_one_line_per_finding() {
+        todo!("STORY-118 RED: implement test body — BC-5.38.001")
+    }
+
+    /// AC-018 (part 2): default vs. opt-out outputs are observably different.
+    /// REGRESSION-GUARD: verifies BC-2.11.028 postcondition 2.
+    #[test]
+    fn test_BC_2_11_028_default_vs_opt_out_output_difference() {
+        todo!("STORY-118 RED: implement test body — BC-5.38.001")
+    }
+
+    /// AC-019: --no-collapse flag is wired: no_collapse=true → collapse_findings=false.
+    /// REGRESSION-GUARD: verifies BC-2.11.028 postcondition 1 / invariant 1 /
+    /// precondition 3. Structural test — confirms the field exists and the wiring
+    /// relationship is correct.
+    #[test]
+    fn test_BC_2_11_028_flag_wired_to_reporter_field() {
+        todo!("STORY-118 RED: implement test body — BC-5.38.001")
+    }
+
+    // -----------------------------------------------------------------------
+    // BC-2.11.029 — Display-Layer Only; JSON/CSV Unaffected (4 tests)
+    // -----------------------------------------------------------------------
+
+    /// AC-020: JSON reporter receives full N findings regardless of collapse flag.
+    /// REGRESSION-GUARD: verifies BC-2.11.029 postcondition 1 / invariant 1.
+    #[test]
+    fn test_BC_2_11_029_json_receives_full_findings() {
+        todo!("STORY-118 RED: implement test body — BC-5.38.001")
+    }
+
+    /// AC-021: CSV reporter receives full N findings regardless of collapse flag.
+    /// REGRESSION-GUARD: verifies BC-2.11.029 postcondition 2.
+    #[test]
+    fn test_BC_2_11_029_csv_receives_full_findings() {
+        todo!("STORY-118 RED: implement test body — BC-5.38.001")
+    }
+
+    /// AC-022: non-repeated finding renders individually; no suffix.
+    /// REGRESSION-GUARD: verifies BC-2.11.029 postcondition 3.
+    #[test]
+    fn test_BC_2_11_029_non_repeated_finding_no_suffix() {
+        todo!("STORY-118 RED: implement test body — BC-5.38.001")
+    }
+
+    /// AC-027: --no-collapse flag has no observable effect on JSON or CSV output.
+    /// REGRESSION-GUARD: verifies BC-2.11.029 postcondition 5.
+    #[test]
+    fn test_BC_2_11_029_no_collapse_flag_json_invariant() {
+        todo!("STORY-118 RED: implement test body — BC-5.38.001")
+    }
+
+    // -----------------------------------------------------------------------
+    // BC-2.11.010 — Escape in Collapse Path (1 test)
+    // -----------------------------------------------------------------------
+
+    /// AC-028: escape_for_terminal is called on each sampled evidence line in the
+    /// collapse path; raw ESC bytes in evidence are escaped to \u{1b}.
+    /// REGRESSION-GUARD: verifies BC-2.11.010 invariant 4.
+    #[test]
+    fn test_BC_2_11_010_escape_in_collapse_path() {
+        todo!("STORY-118 RED: implement test body — BC-5.38.001")
+    }
+
+    // -----------------------------------------------------------------------
+    // BC-2.11.013 — Grouped Mode Suffix-Free (1 test)
+    // -----------------------------------------------------------------------
+
+    /// AC-005 (BC-2.11.013): grouped mode (--mitre) is structurally suffix-free
+    /// regardless of `collapse_findings` flag; 0 (xN) suffixes in any volume.
+    /// REGRESSION-GUARD: verifies BC-2.11.013 invariant 4.
+    #[test]
+    fn test_BC_2_11_013_grouped_mode_suffix_free() {
+        todo!("STORY-118 RED: implement test body — BC-5.38.001")
+    }
+
+    // -----------------------------------------------------------------------
+    // BC-2.11.017 — Collapsed MITRE Line from Representative Finding (1 test)
+    // -----------------------------------------------------------------------
+
+    /// AC-023 (part 2): collapsed group MITRE line comes from group_members[0],
+    /// format is `MITRE: <id>` (no em-dash; flat-mode BC-2.11.017 contract).
+    /// REGRESSION-GUARD: verifies BC-2.11.017 postcondition 6.
+    #[test]
+    fn test_BC_2_11_017_collapsed_mitre_line_from_representative() {
+        todo!("STORY-118 RED: implement test body — BC-5.38.001")
+    }
+
+    // -----------------------------------------------------------------------
+    // BC-2.11.019 — Section Order Unchanged with Collapse (1 test)
+    // -----------------------------------------------------------------------
+
+    /// AC-025: overall section order is unchanged when collapse_findings=true.
+    /// Only the FINDINGS body content changes.
+    /// REGRESSION-GUARD: verifies BC-2.11.019 postcondition 9 / invariant 7.
+    #[test]
+    fn test_BC_2_11_019_section_order_unchanged_with_collapse() {
+        todo!("STORY-118 RED: implement test body — BC-5.38.001")
     }
 }
