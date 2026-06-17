@@ -201,7 +201,7 @@ Dependencies in this graph respect the layer rules from
 
 | From | To | Justification |
 |------|----|---------------|
-| STORY-116 | STORY-117 | STORY-117 (MACsec observe-only probe + documented limitation AC) requires STORY-116's QinQ fixture infrastructure — the test module scaffolding and pcap fixture loading patterns established in STORY-116 are reused by STORY-117; also a logical sequencing: VLAN/QinQ offset coverage must land before MACsec observe-only probe to avoid test file conflicts on the same `tests/arp_offset_*.rs` module |
+| STORY-116 | STORY-117 | STORY-117 (MACsec offset-assertion tests) logically sequences after STORY-116's QinQ offset coverage: STORY-116 establishes the offset-formula understanding via `tests/bc_2_16_qinq_macsec_offset_tests.rs` (QinQ benign/malformed + observe-only MACsec probe), and STORY-117 builds on that understanding with full offset-assertion tests in the distinct file `tests/bc_2_16_e17_macsec_offset_tests.rs` (no-SCI offset 22, SCI-present offset 30, D11 routing, opaque-unreachable security guards). The two test files are independently compilable (no shared module); the edge reflects logical sequencing and QinQ-infrastructure reuse, not a file/module conflict. |
 
 ---
 
@@ -583,7 +583,7 @@ and can be dispatched in parallel.
 
 | Story | Epic | Points | Subsystem | Description |
 |-------|------|--------|-----------|-------------|
-| STORY-117 | E-17 | 5 | SS-16 | ARP MACsec Observe-Only Probe + Documented Limitation (EC-009) |
+| STORY-117 | E-17 | 5 | SS-16 | ARP MACsec offset-assertion tests (offset 22/30, D11 routing, opaque-unreachable guards) + documented limitation (EC-009) |
 
 > **Release gate:** v0.7.1 ships after Wave 46 gate (STORY-116 + STORY-117 PRs merged, `cargo test --all-targets` green). tdd_mode: facade — delivers test files only, no production code change.
 

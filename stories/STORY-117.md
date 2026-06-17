@@ -86,7 +86,7 @@ have `htype == 0x0001` and `hlen == 6`, so genuine truncation is correctly ident
 - **Test:** `test_BC_2_16_015_macsec_no_sci_unmodified_arp_truncated_offset_22`
   (in `tests/bc_2_16_e17_macsec_offset_tests.rs`)
 
-### AC-002 (traces to BC-2.16.009 postcondition 3 / EC-009(a) — MACsec no-SCI Unmodified malformed hlen=8 MUST route to D11)
+### AC-002 (traces to BC-2.16.009 Precondition 3 / Postcondition 1 / EC-009(a) — MACsec no-SCI Unmodified malformed hlen=8 MUST route to D11)
 A MACsec Unmodified/no-SCI frame carrying an ARP fixed header with `hlen=8` at offset 22
 produces `Err("Non-Ethernet/IPv4 ARP frame")`, `malformed_findings >= 1`, D11 finding has
 `category == Anomaly`, `mitre_techniques: []`.
@@ -109,7 +109,7 @@ bytes as ARP and produce a false D11.
 - **Test:** `test_BC_2_16_015_macsec_sci_present_unmodified_arp_truncated_offset_30`
   (in `tests/bc_2_16_e17_macsec_offset_tests.rs`)
 
-### AC-004 (traces to BC-2.16.009 postcondition 3 / EC-009(a) — MACsec SCI-present Unmodified malformed hlen=8 MUST route to D11)
+### AC-004 (traces to BC-2.16.009 Precondition 3 / Postcondition 1 / EC-009(a) — MACsec SCI-present Unmodified malformed hlen=8 MUST route to D11)
 A MACsec Unmodified/SCI-present frame carrying an ARP fixed header with `hlen=8` at offset 30
 produces `Err("Non-Ethernet/IPv4 ARP frame")`, `malformed_findings >= 1`, D11 finding has
 `category == Anomaly`, `mitre_techniques: []`.

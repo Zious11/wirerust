@@ -83,7 +83,7 @@ the correct offset 22 and classifies the benign header as genuine truncation.
 - **Test:** `test_BC_2_16_015_qinq_truncated_benign_arp_no_false_positive_d11`
   (in `tests/bc_2_16_qinq_macsec_offset_tests.rs`)
 
-### AC-002 (traces to BC-2.16.009 postcondition 3 / EC-008 — QinQ malformed hlen=8 MUST route to D11)
+### AC-002 (traces to BC-2.16.009 Precondition 3 / Postcondition 1 / EC-008 — QinQ malformed hlen=8 MUST route to D11)
 A QinQ double-tagged ARP frame with the same outer framing (offset 22) but with `hlen=8`
 (non-Ethernet hardware-address length) in the ARP fixed header produces
 `Err("Non-Ethernet/IPv4 ARP frame")`, `malformed_findings >= 1`, and the D11 finding
