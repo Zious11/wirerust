@@ -5,12 +5,12 @@ status: draft
 producer: story-writer
 phase: 3
 timestamp: 2026-05-21T00:00:00Z
-modified: "2026-06-13: Feature #9 (issue #9) — added STORY-111..115 linear chain (E-16 ARP). total_stories 62→67 (product; STORY-091 tooling separate). total_edges 86→91 (+5 delta: 4 intra E-16 + 1 cross E-15→E-16 STORY-110→STORY-111). number_of_waves 39→44."
-total_stories: 67
-total_edges: 91
-intra_epic_edges: 73
-cross_epic_edges: 18
-number_of_waves: 44
+modified: "2026-06-17: Feature #253 (issue #253) — added STORY-116..117 linear chain (E-17 ARP VLAN/QinQ/MACsec offset hardening). total_stories 67→69 (product; STORY-091 tooling separate). total_edges 91→92 (+1 delta: 1 intra E-17 STORY-116→STORY-117). number_of_waves 44→46."
+total_stories: 69
+total_edges: 92
+intra_epic_edges: 74
+cross_epic_edges: 19
+number_of_waves: 46
 acyclic: true
 traces_to:
   - .factory/stories/epics.md
@@ -34,13 +34,13 @@ traces_to:
 
 | Metric | Value |
 |--------|-------|
-| Total stories | 67 (product; +STORY-091 tooling = 68) |
-| Total dependency edges | 91 |
-| Intra-epic edges | 73 |
-| Cross-epic edges | 18 |
-| Number of parallel waves | 44 |
-| Graph is acyclic | Yes (Kahn topological sort verified; STORY-097→098→099 extend acyclic order; STORY-106→107→108→109→110 extend further; STORY-111→112→113→114→115 extend further) |
-| Total story points | 452 (product; +5 tooling = 457) |
+| Total stories | 69 (product; +STORY-091 tooling = 70) |
+| Total dependency edges | 92 |
+| Intra-epic edges | 74 |
+| Cross-epic edges | 19 |
+| Number of parallel waves | 46 |
+| Graph is acyclic | Yes (Kahn topological sort verified; STORY-097→098→099 extend acyclic order; STORY-106→107→108→109→110 extend further; STORY-111→112→113→114→115 extend further; STORY-115→116→117 extend further) |
+| Total story points | 460 (product; +5 tooling = 465) |
 
 ---
 
@@ -67,7 +67,7 @@ Dependencies in this graph respect the layer rules from
 
 ## Dependencies (Edge List)
 
-### Intra-Epic Edges (73 edges)
+### Intra-Epic Edges (74 edges)
 
 #### Epic E-1: PCAP Ingestion and Packet Decoding
 
@@ -197,9 +197,17 @@ Dependencies in this graph respect the layer rules from
 | STORY-113 | STORY-114 | STORY-114 (D1 spoof detection emissions + VP-007 atomic update SEEDED 23→25 / EMITTED 15→17) requires the complete `ArpAnalyzer` detection surface from STORY-113 (binding table, classify_garp, D2/D11/D12 detectors) before D1 findings can be emitted and MITRE catalog seeded; also requires `summarize()` key layout from STORY-113 for VP-007 catalog alignment |
 | STORY-114 | STORY-115 | STORY-115 (D3 storm detection + `--arp-storm-rate` CLI flag + `storm_findings` summary key) finalizes the complete `ArpAnalyzer` (all detections live); it cannot do so before the analyzer's full detection surface and emission contract are finalized in STORY-114; also wires the VALUE of the existing BC-2.16.010 `storm_findings` key (canonical key 8, declared by STORY-113) in `summarize()` (ARP bypasses `classify()`/`StreamDispatcher` — arp-architecture-delta §4.4) |
 
+#### Epic E-17: ARP Decoder VLAN/QinQ/MACsec Offset Hardening (issue #253)
+
+| From | To | Justification |
+|------|----|---------------|
+| STORY-116 | STORY-117 | STORY-117 (MACsec observe-only probe + documented limitation AC) requires STORY-116's QinQ fixture infrastructure — the test module scaffolding and pcap fixture loading patterns established in STORY-116 are reused by STORY-117; also a logical sequencing: VLAN/QinQ offset coverage must land before MACsec observe-only probe to avoid test file conflicts on the same `tests/arp_offset_*.rs` module |
+
 ---
 
 ### Cross-Epic Edges (18 edges)
+
+> **Note:** The E-17 intra-epic edge (STORY-116 → STORY-117) is listed under Intra-Epic Edges above. The E-16 → E-17 boundary edge (STORY-115 → STORY-116) appears in the table below.
 
 These edges reflect the architecture pipeline layers defined in
 `architecture/dependency-graph.md` and `architecture/module-decomposition.md`.
@@ -224,6 +232,7 @@ These edges reflect the architecture pipeline layers defined in
 | STORY-105 | STORY-110 | E-14 -> E-15 | SS-05 (Modbus Rule 5) -> SS-05 (DNP3 Rule 6) | STORY-110 adds `DispatchTarget::Dnp3` as Rule 6 in `classify()`, placed after Rule 5 (Modbus/502) from STORY-105; Rule 6 ordering is only meaningful once Rule 5 is established — and the VP-004 oracle must include the Modbus arm before the DNP3 arm can be added correctly |
 | STORY-105 | STORY-109 | E-14 -> E-15 | SS-10 mitre.rs | STORY-109 adds T1691.001 and T0827 to `SEEDED_TECHNIQUE_IDS` and the kani_proofs `EMITTED_IDS` set in `src/mitre.rs`; the Modbus seeding in STORY-105 sets the catalog counts to 21/13; STORY-109's obligation is 21→23 / 13→15 — this is a logical dependency on the prior state of mitre.rs |
 | STORY-110 | STORY-111 | E-15 -> E-16 | SS-02 (decoder) | STORY-111 migrates etherparse 0.16→0.20 and introduces `DecodedFrame::Arp(ArpFrame)` in `src/decoder.rs`; it also revises BC-2.02.009 to add the third decode path; the migration touches both `src/decoder.rs` and `src/dispatcher.rs` (Cargo.toml etherparse version bump affects both files) and must follow STORY-110's finalized `src/dispatcher.rs` changes (DNP3 Rule 6 in place) to avoid merge conflicts on the same file — file-level sequencing constraint, not a classify() ordering requirement |
+| STORY-115 | STORY-116 | E-16 -> E-17 | SS-16 (ARP lax-path) | STORY-116 adds VLAN/QinQ offset regression tests that exercise `extract_arp_frame` and the ARP lax-path in `src/decoder.rs`; STORY-115 must be merged first because it finalizes all ARP decode-time logic in `src/decoder.rs` and `src/main.rs` that STORY-116's fixture tests exercise; file-sequencing + behavioral contract completeness (BC-2.16.009 EC-008, BC-2.16.015 PC-7a) — offset hardening stories test code that must be fully landed first |
 
 ---
 
@@ -562,6 +571,22 @@ and can be dispatched in parallel.
 
 > **Release gate:** v0.7.0 ships after Wave 44 gate (STORY-111..115 all PRs merged, `cargo test --all-targets` green). `--arp` CLI flag (STORY-113, BC-2.16.011) gates ARP analysis at decode-time — `main.rs` routes the `DecodedFrame::Arp` arm to `ArpAnalyzer`; ARP bypasses `classify()`/`StreamDispatcher` (arp-architecture-delta §4.4).
 
+### Wave 45 — 1 story | Epic: E-17
+
+| Story | Epic | Points | Subsystem | Description |
+|-------|------|--------|-----------|-------------|
+| STORY-116 | E-17 | 3 | SS-16 | ARP VLAN/QinQ Offset Fixture Coverage — EC-008 (QinQ 22-byte offset) + VLAN 18-byte regression tests |
+
+> **Note:** STORY-116 depends on STORY-115 (cross-epic: E-16 ARP decode-time logic must be fully shipped before offset regression tests can be authored against it). Root of the E-17 linear chain. tdd_mode: facade — delivers test files only, no production code change.
+
+### Wave 46 — 1 story | Epic: E-17
+
+| Story | Epic | Points | Subsystem | Description |
+|-------|------|--------|-----------|-------------|
+| STORY-117 | E-17 | 5 | SS-16 | ARP MACsec Observe-Only Probe + Documented Limitation (EC-009) |
+
+> **Release gate:** v0.7.1 ships after Wave 46 gate (STORY-116 + STORY-117 PRs merged, `cargo test --all-targets` green). tdd_mode: facade — delivers test files only, no production code change.
+
 ---
 
 ## Topological Order (Full Sequence)
@@ -579,16 +604,19 @@ STORY-086 -> STORY-087 -> STORY-096 -> STORY-088 -> STORY-089 -> STORY-090 ->
 [Wave 31: STORY-100 ∥ STORY-101] ->
 [Wave 32: STORY-102] -> [Wave 33: STORY-103 ∥ STORY-104] -> [Wave 34: STORY-105] ->
 STORY-106 -> STORY-107 -> STORY-108 -> STORY-109 -> STORY-110 ->
-STORY-111 -> STORY-112 -> STORY-113 -> STORY-114 -> STORY-115
+STORY-111 -> STORY-112 -> STORY-113 -> STORY-114 -> STORY-115 ->
+STORY-116 -> STORY-117
 ```
 
-> **Cycle check:** All 67 product nodes processed by Kahn's algorithm. No node remained
+> **Cycle check:** All 69 product nodes processed by Kahn's algorithm. No node remained
 > in the queue with non-zero in-degree after processing. Graph is acyclic.
 > E-15 chain (STORY-106→107→108→109→110) is strictly linear; STORY-106 depends on
 > STORY-100 (cross-epic), STORY-110 depends on STORY-105 (cross-epic for VP-004 oracle
 > ordering). E-16 chain (STORY-111→112→113→114→115) is strictly linear; STORY-111
-> depends on STORY-110 (cross-epic: dispatcher file ordering constraint). No back-edges
-> into the existing 67-story graph.
+> depends on STORY-110 (cross-epic: dispatcher file ordering constraint). E-17 chain
+> (STORY-116→117) is strictly linear; STORY-116 depends on STORY-115 (cross-epic:
+> E-16 ARP decode-time logic must be shipped before offset regression tests). No
+> back-edges into the existing 69-story graph.
 
 ---
 
@@ -599,13 +627,16 @@ iteratively. Result:
 
 - Initial zero-in-degree nodes: STORY-001, STORY-069 (Wave 1)
 - Each wave removes its stories and decrements successor in-degrees
-- Final output: all 67 product stories processed, queue empty, no cycle detected
+- Final output: all 69 product stories processed, queue empty, no cycle detected
 - Any cycle would leave unprocessed nodes with non-zero in-degree — none found
 - E-15 extension (STORY-106→107→108→109→110) is a linear tail appended after Wave 34;
   it shares two cross-epic edges (STORY-100→106, STORY-105→110) that add in-degrees
   only to E-15 nodes — no existing node gains a new in-degree, so no cycle is possible
 - E-16 extension (STORY-111→112→113→114→115) is a linear tail appended after Wave 39;
   it has one cross-epic edge (STORY-110→111) that adds in-degree only to the E-16 root
+  node — no existing node gains a new in-degree, so no cycle is possible
+- E-17 extension (STORY-116→117) is a linear tail appended after Wave 44;
+  it has one cross-epic edge (STORY-115→116) that adds in-degree only to the E-17 root
   node — no existing node gains a new in-degree, so no cycle is possible
 
 ---
@@ -675,8 +706,10 @@ iteratively. Result:
 | BC-2.16.003, BC-2.16.005, BC-2.16.006, BC-2.16.007, BC-2.16.009, BC-2.16.010, BC-2.16.011 | STORY-113 | E-16 | SS-16 |
 | BC-2.16.004, BC-2.16.012, BC-2.16.014 (+BC-2.16.007 D12-MITRE extension) | STORY-114 | E-16 | SS-16 |
 | BC-2.16.008, BC-2.16.013 (+BC-2.16.010 extension) | STORY-115 | E-16 | SS-02, SS-16 |
+| BC-2.16.009 (EC-008 QinQ offset 22, EC-009 MACsec observe-only probe — v1.10 additions) | STORY-116, STORY-117 | E-17 | SS-16 |
+| BC-2.16.015 (PC-7a QinQ offset 22, EC-008, EC-009 — v1.9 additions) | STORY-116, STORY-117 | E-17 | SS-16 |
 
-**Coverage: 283 / 283 BCs assigned (219 pre-feature + 25 Modbus BC-2.14.001..025 + 24 DNP3 BC-2.15.001..024 across STORY-106..110 + 15 ARP BC-2.16.001..015 across STORY-112..115; BC-2.02.009 is revised, not a new BC).**
+**Coverage: 283 / 283 BCs assigned (219 pre-feature + 25 Modbus BC-2.14.001..025 + 24 DNP3 BC-2.15.001..024 across STORY-106..110 + 15 ARP BC-2.16.001..015 across STORY-112..115; BC-2.02.009 is revised, not a new BC). E-17 (STORY-116..117) adds regression-test coverage to BC-2.16.009 and BC-2.16.015 (v1.10 / v1.9 EC-008/EC-009 additions); no new BCs introduced — the E-17 stories deepen coverage of two BCs already counted in the 283 total.**
 
 ---
 
@@ -709,7 +742,7 @@ iteratively. Result:
 | VP-004 (E-15 arm) | Content-First Dispatch Precedence — port-20000 oracle arm | dispatcher.rs | STORY-110 | BC-2.15.021 |
 | VP-007 (E-15 atomic update) | MITRE Technique ID Catalog Completeness — T1691.001 + T0827 seeding | mitre.rs | STORY-109 | BC-2.15.014 (T1691.001), BC-2.15.015 (T0827 correlation) |
 | VP-008 (E-16 carry-forward) | decode_packet Never Panics — updated for DecodedFrame return type | decoder.rs | STORY-111 | BC-2.02.009 invariant 5 |
-| VP-024 | ARP Frame Parse Safety and Binding-Table Invariant — 4 sub-property groups: Sub-A=3 Kani (verify_extract_arp_frame_safety, verify_extract_arp_frame_eth_ipv4_correctness, verify_extract_arp_frame_none_on_bad_size); Sub-B=1 Kani (verify_classify_garp_total); Sub-C=1 proptest (test_binding_table_last_write_wins — NOT Kani); Sub-D=1 Kani (verify_binding_table_cap) | analyzer/arp.rs + decoder.rs | STORY-112, STORY-113 | BC-2.16.001 (Sub-A safety), BC-2.16.002 (Sub-A correctness), BC-2.16.003 (Sub-B classify_garp_total), BC-2.16.005 (Sub-C last_write_wins), BC-2.16.006 (Sub-D binding_table_cap) |
+| VP-024 | ARP Frame Parse Safety and Binding-Table Invariant — 4 sub-property groups: Sub-A=3 Kani (verify_extract_arp_frame_safety, verify_extract_arp_frame_eth_ipv4_correctness, verify_extract_arp_frame_none_on_bad_size); Sub-B=1 Kani (verify_classify_garp_total); Sub-C=1 proptest (test_binding_table_last_write_wins — NOT Kani); Sub-D=1 Kani (verify_binding_table_cap) | analyzer/arp.rs + decoder.rs | STORY-112, STORY-113, STORY-116, STORY-117 | BC-2.16.001 (Sub-A safety), BC-2.16.002 (Sub-A correctness), BC-2.16.003 (Sub-B classify_garp_total), BC-2.16.005 (Sub-C last_write_wins), BC-2.16.006 (Sub-D binding_table_cap); STORY-116/117 exercise VP-024 offset-arithmetic correctness for VLAN/QinQ/MACsec paths (BC-2.16.009 EC-008, BC-2.16.015 PC-7a) |
 | VP-007 (E-16 atomic update) | MITRE Technique ID Catalog Completeness — ARP technique seeding | mitre.rs | STORY-114 | BC-2.10.005, BC-2.10.008 (catalog SEEDED 23→25 / EMITTED 15→17); BC-2.16.004 (ARP-spoof emission trigger) |
 
 ---
@@ -768,6 +801,14 @@ E-15 (SS-15 DNP3)
 E-16 (SS-16 ARP) — linear chain:
   STORY-111 -> STORY-112 -> STORY-113 -> STORY-114 -> STORY-115
   (SS-02 decoder migration -> SS-16 struct+Kani -> SS-16 detections+binding-table -> SS-16 emissions+VP-007 -> SS-16 D3 storm detection+--arp-storm-rate+storm_findings)
+
+E-16 (SS-16 ARP)
+  |
+  +----> E-17 (SS-16 offset hardening) [via STORY-115 -> STORY-116; ARP decode-time code must be fully shipped before offset regression tests land]
+
+E-17 (SS-16 ARP VLAN/QinQ/MACsec) — linear chain:
+  STORY-116 -> STORY-117
+  (SS-16 VLAN+QinQ fixture coverage -> SS-16 MACsec observe-only probe)
 ```
 
 ---
@@ -786,6 +827,9 @@ E-16 ARP specific gap notes:
 - STORY-111 revises BC-2.02.009 (not a new BC); the revision adds a third decode path (DecodedFrame::Arp) and does not break the existing two paths. VP-008 fuzz harness must be updated in STORY-111 per F3-OBL-STORY111-VP008.
 - T0814 MITRE tag in STORY-115 (D3 storm) is deferred per DF-VALIDATION-001; STORY-115 covers BC-2.16.008 (storm detection) without the MITRE tag until validated.
 - BC-2.15.015 (single 300s window reset owner) and BC-2.15.014 (block inference emission) are co-located in STORY-109; the reset and the emission are inseparable behaviors.
+
+E-17 ARP offset hardening specific gap notes:
+- BC-2.16.009 and BC-2.16.015 are primarily owned by STORY-113 and STORY-112 respectively; STORY-116 and STORY-117 extend coverage to EC-008 (QinQ offset) and EC-009 (MACsec observe-only) additions introduced in BC-2.16.009 v1.10 / BC-2.16.015 v1.9. No new BCs; no gap — deeper clause coverage on existing BCs.
 
 | Gap ID | Level | Source | Justification | Resolution Target |
 |--------|-------|--------|---------------|-------------------|

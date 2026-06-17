@@ -1,10 +1,10 @@
 ---
 document_type: wave-schedule
 level: ops
-version: "1.3"  # v1.3 (Pass-28 Slice-D): T0855→T1692.001 remap per issue #222 / ATT&CK-ICS v19 (HS-INDEX:322); seeded-count clarified as v0.3.0 milestone figure
+version: "1.4"  # v1.4 (E-17 traceability): added Waves 45-46 (STORY-116..117) for ARP VLAN/QinQ/MACsec offset hardening (issue #253, v0.7.1)
 status: draft
 producer: story-writer
-timestamp: 2026-06-13T00:00:00Z
+timestamp: 2026-06-17T00:00:00Z
 phase: 4
 inputs:
   - .factory/stories/STORY-INDEX.md
@@ -19,13 +19,16 @@ inputs:
   - .factory/stories/STORY-113.md
   - .factory/stories/STORY-114.md
   - .factory/stories/STORY-115.md
+  - .factory/stories/STORY-116.md
+  - .factory/stories/STORY-117.md
 traces_to: .factory/stories/STORY-INDEX.md
-feature_id: issue-007-modbus-analyzer, issue-009-arp-security-analyzer
-github_issue: 7, 9
+feature_id: issue-007-modbus-analyzer, issue-009-arp-security-analyzer, issue-253-arp-offset-hardening
+github_issue: 7, 9, 253
 cycles:
   - v0.3.0-multitag   # Waves 31 — E-13 Multi-Tag Schema Migration
   - v0.4.0-modbus     # Waves 32-34 — E-14 Modbus TCP Analyzer
   - v0.7.0-arp        # Waves 40-44 — E-16 ARP Security Analyzer
+  - v0.7.1-arp-offset # Waves 45-46 — E-17 ARP VLAN/QinQ/MACsec Offset Hardening
 ---
 
 # Wave Schedule: Feature #7 Modbus Analyzer + Multi-Tag Schema; Feature #9 ARP Security Analyzer (Waves 40-44)
@@ -313,4 +316,87 @@ Their test assertions are updated by STORY-100; no re-implementation is required
 ```
 STORY-111 (5) → STORY-112 (8) → STORY-113 (13) → STORY-114 (13) → STORY-115 (8)
 Total: 47 pts, 4 serial hops — no off-critical-path work; all 5 stories are on the critical path.
+```
+
+---
+
+# Wave Schedule Extension: Feature #253 — ARP VLAN/QinQ/MACsec Offset Hardening (issue #253, v0.7.1)
+
+> **Context:** Feature #253 (GitHub issue #253) introduces E-17: regression-test coverage for
+> VLAN/QinQ/MACsec ARP offset edge cases added in BC-2.16.009 v1.10 and BC-2.16.015 v1.9.
+> Waves 45–46 extend the wave graph after Wave 44 (v0.7.0 ARP). Both stories use
+> `tdd_mode: facade` — they deliver test files against already-shipped code. Strictly linear
+> chain; no parallelism within E-17. Topological sort confirmed acyclic (E-17 tail appended
+> after Wave 44; one cross-epic edge STORY-115 → STORY-116).
+
+---
+
+## Summary (E-17)
+
+| Metric | Value |
+|--------|-------|
+| New stories | 2 (STORY-116, STORY-117) |
+| New waves | 2 (Waves 45–46) |
+| New story points | 8 |
+| Release gate | v0.7.1 after Wave 46 |
+| Critical path | STORY-115 → STORY-116 → STORY-117 (2 E-17 stories, 1 serial hop; + 1 cross-epic hop from STORY-115) |
+| Max parallelism | None — strictly linear within E-17 |
+
+---
+
+## Dependency Graph (E-17)
+
+```
+(Wave 44, v0.7.0 released)
+    STORY-115
+        │  ← v0.7.1 release gate after Wave 46 ──────────────────────┐
+        ▼                                                              │
+    STORY-116  [Wave 45, P1, 3 pts — SS-16: VLAN/QinQ offset fixtures, tdd_mode: facade]  │
+    depends_on: [STORY-115]                                           │
+        │                                                              │
+        ▼                                                              │
+    STORY-117  [Wave 46, P1, 5 pts — SS-16: MACsec observe-only probe, tdd_mode: facade]  │
+    depends_on: [STORY-116]                                           │
+        │                                                              │
+        └──────────────────────────── v0.7.1 release gate ────────────┘
+```
+
+---
+
+## Wave Table (E-17)
+
+| Wave | Stories | Parallelism | Points | Release Gate |
+|------|---------|-------------|--------|--------------|
+| 45 | STORY-116 | — | 3 | — |
+| 46 | STORY-117 | — | 5 | v0.7.1 |
+| **TOTAL** | **2** | | **8** | |
+
+---
+
+## Release Gate: v0.7.1 — After Wave 46
+
+**Trigger:** STORY-116 and STORY-117 PRs merged; `cargo test --all-targets` green; `cargo clippy --all-targets -- -D warnings` clean.
+
+**Scope:** ARP decoder VLAN/QinQ/MACsec offset hardening (BC-2.16.009 EC-008/EC-009, BC-2.16.015 PC-7a/EC-008/EC-009).
+
+**Deliverables:**
+- Fixture pcaps and regression tests for VLAN-tagged ARP (18-byte offset), QinQ double-tagged ARP (22-byte offset)
+- MACsec-encapsulated ARP observe-only probe test confirming documented-limitation behavior (EC-009 per BC-2.16.009 / BC-2.16.015)
+- No production code changes — test-only delivery (tdd_mode: facade for both stories)
+
+---
+
+## Dispatch Ordering (E-17)
+
+1. Dispatch **STORY-116** (3 pts) after STORY-115 is merged (v0.7.0 gate closed). Wait for PR merge + CI green.
+2. Dispatch **STORY-117** (5 pts) after STORY-116 is merged.
+3. STORY-117 merged → **v0.7.1 release gate** → create release tag.
+
+---
+
+## Critical Path (E-17)
+
+```
+STORY-116 (3) → STORY-117 (5)
+Total: 8 pts, 1 serial hop — no off-critical-path work; both stories are on the critical path.
 ```

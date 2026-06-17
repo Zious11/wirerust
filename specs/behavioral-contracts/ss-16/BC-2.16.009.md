@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.9"
+version: "1.10"
 status: draft
 producer: product-owner
 timestamp: 2026-06-12T00:00:00Z
@@ -22,6 +22,7 @@ modified:
   - "v1.7: D-078 F-1 fix — VLAN/link-extension offset correction. The v1.6 text stated the ARP payload offset was derived from lax.link (Ethernet2 only — offset 14). This was an oversimplification: VLAN-tagged (802.1Q/802.1ad) and MACsec frames carry extension headers in lax.link_exts. The actual offset is now: Ethernet2 base header length (from lax.link) PLUS the summed byte-lengths of all headers in lax.link_exts. A VLAN-tagged ARP with non-standard type/size fields is therefore read at the correct offset and classified as D11 (no false-negative). A genuinely truncated VLAN ARP with a valid 8-byte fixed header is classified as the conservative 'truncated ARP frame' path (no false-positive D11). Only genuinely non-Ethernet link layers (lax.link not Ethernet2 or None) remain on the conservative path. Precondition 2 lax-path description and EC-008 updated accordingly. Observable D11 outcome unchanged for non-VLAN frames. — 2026-06-15"
   - "v1.8: E-17 F2 spec evolution — stacked link-extension documented-limitation clause. EC-008 expanded and EC-009 added to cover QinQ and MACsec offset correctness and the MACsec documented-unverified boundary. Precondition 2 lax-path text updated to name the QinQ (+8) and MACsec Unmodified (no-SCI +8 / SCI +16) offset values explicitly. No change to observable D11 outcome. Evidence: etherparse 0.20.2 source (macsec_header_slice.rs:246-248) + upstream proptest + tests/bc_2_16_qinq_macsec_offset_tests.rs. — 2026-06-16. EC-009 citation reconciliation to canonical test file bc_2_16_e17_macsec_offset_tests.rs (E-17 F2, DF-SIBLING-SWEEP): no-SCI offset==22 now cites test_BC_2_16_015_macsec_no_sci_unmodified_arp_truncated_offset_22; SCI-present offset==30 now cites test_BC_2_16_015_macsec_sci_present_unmodified_arp_truncated_offset_30; both in tests/bc_2_16_e17_macsec_offset_tests.rs. Replaces previously cited non-existent names from bc_2_16_qinq_macsec_offset_tests.rs. DF-SIBLING-SWEEP: identical change applied to BC-2.16.015 v1.7. EC-008 completeness note (combined/triple-stack untested; formula generalizes) — E-17 F2 Pass-1 remediation. DF-SIBLING-SWEEP: identical change applied to BC-2.16.015. F-2 symbol-pair clarification + O-1 notation fix + O-3 version-pin note — E-17 F2 Pass remediation. DF-SIBLING-SWEEP: identical change applied to BC-2.16.015."
   - "v1.9: DF-CONSISTENCY-AUDIT (E-17 F2 adversarial finding M-2) — input-hash field set to null (BCs are not covered by the story input-hash drift-check mechanism per CLAUDE.md). No BC content change. DF-SIBLING-SWEEP: BC-2.16.015 receives identical input-hash treatment at its v1.8. — 2026-06-16"
+  - "v1.10: E-17 F3 backlink: added STORY-116/STORY-117 to Stories traceability (BC Backlink Update Obligation). — 2026-06-17"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -193,7 +194,7 @@ tagging with T0814 requires live DF-VALIDATION-001 validation that has not been 
 | Capability Anchor Justification | CAP-16 ("ARP Security Analysis") per ARCH-INDEX.md §SS-16 — D11 malformed ARP detection is a named detection in the ARP Security Analysis capability; malformed ARP frames can indicate protocol fuzzing, non-standard ICS stacks, or deliberate evasion attempts |
 | L2 Domain Invariants | (none directly) |
 | Architecture Module | SS-16 (src/decoder.rs `extract_arp_frame` None path, C-23); ADR-008 Decision 5 D11 |
-| Stories | STORY-113 |
+| Stories | STORY-113, STORY-116, STORY-117 |
 | Feature | arp-security-analyzer |
 | MITRE Techniques | NONE — T0814 withheld per DF-VALIDATION-001 (not validated live as of 2026-06-12) |
 

@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.8"
+version: "1.9"
 status: draft
 producer: product-owner
 timestamp: 2026-06-12T00:00:00Z
@@ -22,6 +22,7 @@ modified:
   - "v1.6: D-078 F-1 fix — VLAN/link-extension offset correction. The v1.5 text stated the ARP payload offset was derived from lax.link (Ethernet2 → offset 14) with non-Ethernet links falling to the conservative truncation path. This was an oversimplification: VLAN-tagged (802.1Q/802.1ad) and MACsec frames carry link-extension headers in lax.link_exts, which were not accounted for. The actual offset is now: base Ethernet2 header length (from lax.link) PLUS the summed byte-lengths of all link-extension headers in lax.link_exts. A VLAN-tagged ARP is therefore read at the correct offset and classified correctly (non-standard htype/ptype/hlen/plen in a VLAN ARP → D11; genuinely truncated VLAN ARP → conservative truncation path, no false-positive D11). Only genuinely non-Ethernet link layers (e.g. raw/other, where lax.link is not Ethernet2 or is None) still fall to the conservative 'truncated ARP frame' path. PC-7a, PC-7b, and EC-008 updated. Observable D11 outcome and classification logic unchanged for non-VLAN frames. — 2026-06-15"
   - "v1.7: E-17 F2 spec evolution — QinQ confirmed offset and MACsec documented-limitation clause. PC-7a updated with confirmed offset values for QinQ (+8) and MACsec Unmodified (no-SCI +8 / SCI +16). EC-008 updated with the confirmed offset table. EC-009 added mirroring BC-2.16.009 v1.8 EC-009: MACsec offset correctness proven for all reachable variants; Encrypted/Modified MACsec payloads are safe by construction (unreachable via Layer::Arp); DOCUMENTED-UNVERIFIED boundary for absence of real-traffic fixture. DF-SIBLING-SWEEP with BC-2.16.009 v1.8. — 2026-06-16. EC-009 citation reconciliation to canonical test file bc_2_16_e17_macsec_offset_tests.rs (E-17 F2, DF-SIBLING-SWEEP): no-SCI offset==22 now cites test_BC_2_16_015_macsec_no_sci_unmodified_arp_truncated_offset_22; SCI-present offset==30 now cites test_BC_2_16_015_macsec_sci_present_unmodified_arp_truncated_offset_30; both in tests/bc_2_16_e17_macsec_offset_tests.rs. Replaces previously cited non-existent names from bc_2_16_qinq_macsec_offset_tests.rs. DF-SIBLING-SWEEP: identical change applied to BC-2.16.009 v1.8. EC-008 completeness note (combined/triple-stack untested; formula generalizes) — E-17 F2 Pass-1 remediation. DF-SIBLING-SWEEP: identical change applied to BC-2.16.009. F-2 symbol-pair clarification + O-1 notation fix + O-3 version-pin note — E-17 F2 Pass remediation. DF-SIBLING-SWEEP: identical change applied to BC-2.16.009."
   - "v1.8: DF-CONSISTENCY-AUDIT (E-17 F2 adversarial finding M-1) — PC-7a QinQ offset-22 citation corrected: added `test_BC_2_16_015_qinq_truncated_benign_arp_no_false_positive_d11` as the test that confirms the actual offset-22 ARP byte-read; `test_BC_2_16_015_qinq_link_exts_offset_formula_pin` retained as the citation for the +8 link-exts-sum invariant only. input-hash field set to null (BCs are not covered by the story input-hash mechanism per CLAUDE.md). DF-SIBLING-SWEEP: BC-2.16.009 receives no corresponding change (it cited only the offset value without citing the pin test by name). — 2026-06-16"
+  - "v1.9: E-17 F3 backlink: added STORY-116/STORY-117 to Stories traceability (BC Backlink Update Obligation; DF-SIBLING-SWEEP with BC-2.16.009 v1.10). — 2026-06-17"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -195,7 +196,7 @@ it specifies the structural pipeline guarantee rather than a security finding.
 | Capability Anchor Justification | CAP-16 ("ARP Security Analysis") per ARCH-INDEX.md §SS-16 — the decode-vs-analysis separation is the foundational architectural invariant enabling the ARP Security Analysis capability: decode is always exercised (correctness and fuzz coverage), analysis is opt-in (performance and noise control) |
 | L2 Domain Invariants | (none directly) |
 | Architecture Module | SS-16 + SS-02 (src/decoder.rs DecodedFrame enum + decode_packet; src/main.rs packet loop); ADR-008 Decisions 1–3 |
-| Stories | STORY-112 |
+| Stories | STORY-112, STORY-116, STORY-117 |
 | Feature | arp-security-analyzer |
 | MITRE Techniques | (none — architectural invariant; no finding emission) |
 

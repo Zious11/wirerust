@@ -14,6 +14,42 @@ changes, invariant rewrites).
 
 ---
 
+## [e17-f3-story-backlink-update-2026-06-17] — 2026-06-17
+
+### PATCH: BC-2.16.009 v1.9→v1.10 + BC-2.16.015 v1.8→v1.9 — E-17 F3 story-backlink update (BC Backlink Update Obligation)
+
+**Feature cycle:** E-17 "ARP Decoder VLAN/QinQ/MACsec Offset Hardening" — F3 traceability completion (E-17 issue #253).
+**Trigger:** STORY-116 and STORY-117 (E-17 epic) were created in the preceding burst and consume
+BC-2.16.009 and BC-2.16.015. Their IDs were not yet reflected in either BC's Traceability "Stories:"
+field (BC Backlink Update Obligation, scope-lock E-17).
+
+**Changes:**
+
+- BC-2.16.009 v1.9 → v1.10: `Stories` traceability row updated from `STORY-113` to
+  `STORY-113, STORY-116, STORY-117`. No content change to preconditions, postconditions, invariants,
+  edge cases, or verification properties.
+- BC-2.16.015 v1.8 → v1.9: `Stories` traceability row updated from `STORY-112` to
+  `STORY-112, STORY-116, STORY-117` (DF-SIBLING-SWEEP with BC-2.16.009 v1.10). No content change
+  to preconditions, postconditions, invariants, edge cases, or verification properties.
+
+**Artifacts affected:**
+
+| Artifact | Change | File |
+|----------|--------|------|
+| BC-2.16.009 | v1.9 → v1.10: Stories row += STORY-116, STORY-117 | `.factory/specs/behavioral-contracts/ss-16/BC-2.16.009.md` |
+| BC-2.16.015 | v1.8 → v1.9: Stories row += STORY-116, STORY-117 | `.factory/specs/behavioral-contracts/ss-16/BC-2.16.015.md` |
+
+**Story input-hash note:** Editing BC-2.16.009 and BC-2.16.015 invalidates the STORY-116/STORY-117
+`input-hash` field (previously `46dcf52`). Re-stamping is deferred to the story-writer in the next
+burst per CLAUDE.md input-hash policy — do NOT re-stamp here.
+
+**Pre-existing gap (flagged, not fixed):** STORY-114 and STORY-115 also consume these BCs but are
+absent from the Stories traceability rows (STORY-113-only for BC-2.16.009; STORY-112-only for
+BC-2.16.015 prior to this entry). These omissions pre-date this burst. They are outside the
+scope-lock for E-17 F3 and must be addressed in a separate traceability sweep.
+
+---
+
 ## [e17-f2-qinq-macsec-documented-limitation-2026-06-16] — 2026-06-16
 
 ### PATCH: BC-2.16.009 v1.7→v1.9 + BC-2.16.015 v1.6→v1.8 — E-17 QinQ/MACsec offset confirmed + MACsec documented-limitation clause (final versions after DF-CONSISTENCY-AUDIT follow-on bumps)

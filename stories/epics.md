@@ -403,6 +403,34 @@ with no parallelism (each story builds on the previous one's produced types and 
 
 ---
 
+## Epic E-17: ARP Decoder VLAN/QinQ/MACsec Offset Hardening (issue #253)
+
+- **Goal:** A forensic analyst running wirerust against pcaps containing 802.1Q-tagged
+  (VLAN), QinQ double-tagged, or MACsec-encapsulated Ethernet frames sees correct ARP
+  detection behavior: VLAN-tagged ARP frames are decoded at the correct 18-byte offset,
+  QinQ double-tagged ARP frames are decoded at the 22-byte offset, and MACsec-encapsulated
+  frames are documented as a known limitation (observe-only probe, no silent
+  misclassification) — with regression tests and fixture pcaps ensuring no offset
+  regression when etherparse is upgraded.
+- **BCs:**
+  BC-2.16.009, BC-2.16.015
+- **Subsystems touched:** SS-16 (ARP analyzer, lax-path offset handling)
+- **Estimated stories:** 2 (STORY-116, STORY-117)
+- **Feature issue:** #253
+- **Release target:** v0.7.1
+- **Total points:** 8 (STORY-116: 3 pts, STORY-117: 5 pts)
+
+**Rationale:** The VLAN/QinQ/MACsec offset edge cases (EC-008, EC-009 per BC-2.16.009
+and BC-2.16.015) are not delivered as part of the v0.7.0 ARP Security Analyzer (E-16).
+They represent a hardening increment that requires dedicated fixture pcaps and regression
+tests targeting decode-time offset arithmetic in the ARP lax-path. STORY-116 delivers
+VLAN + QinQ fixture coverage; STORY-117 delivers MACsec observe-only documentation and
+probe test. The two stories are strictly linear (STORY-116 → STORY-117). Both use
+`tdd_mode: facade` because they deliver test files against already-shipped code — no
+`todo!()` stub cycle.
+
+---
+
 ## Estimated Story Count Summary
 
 | Epic | Stories Est. |
@@ -422,4 +450,5 @@ with no parallelism (each story builds on the previous one's produced types and 
 | E-13 | 2           |
 | E-14 | 4           |
 | E-15 | 5           |
-| **Total** | **63** |
+| E-17 | 2           |
+| **Total** | **65** |
