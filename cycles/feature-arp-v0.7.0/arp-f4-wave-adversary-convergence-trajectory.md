@@ -207,17 +207,82 @@ The gate is now definitively satisfied on bcb1bd6.
 
 ---
 
-## Current Status
+## Current Status (E-16)
 
-**arp_f4_wave_adversary_convergence_counter: 3/3 CONVERGED (re-streak on bcb1bd6) — F4 WAVE-LEVEL ADVERSARIAL GATE SATISFIED**
+**arp_f4_wave_adversary_convergence_counter: 3/3 CONVERGED (re-streak on bcb1bd6) — F4 WAVE-LEVEL ADVERSARIAL GATE SATISFIED (E-16)**
 
-**F4 PHASE COMPLETE:**
+**F4 PHASE COMPLETE (E-16):**
 - Delta-implementation: 5 stories (STORY-111..115) ALL DELIVERED.
 - Wave-level adversarial convergence: 3/3 GATE SATISFIED (re-streak on bcb1bd6).
 - Holdout evaluation: GATE PASS (15/15 mean 1.0; RFC-826 canonical PASS).
 - PRs this convergence cycle: #242 / #243 / #244 / #245 / #246.
 
-Trajectory shorthand (complete):
+Trajectory shorthand (complete, E-16):
 `1M→(remediated D-074)→P1/3-CLEAN→P2/3-CLEAN→P3/3-CLEAN-GATE-SATISFIED(fee71ee)→[HOLDOUT-PASS;D-075;D-076;D-077-CRITICAL-RESET]→ReStreak-P1/3-CLEAN→ReStreak-P2/3-CLEAN→ReStreak-P3/3-CLEAN-GATE-SATISFIED(bcb1bd6)`
 
-**Next phase:** F5 scoped-adversarial (`vsdd-factory:phase-f5-scoped-adversarial`).
+**Next phase (E-16):** F5 scoped-adversarial (`vsdd-factory:phase-f5-scoped-adversarial`).
+
+---
+
+## E-17 F4 Wave-Level Adversarial Convergence (ARP QinQ/MACsec Offset Hardening, issue #253)
+
+Gate: 3 consecutive fresh-context passes with zero MEDIUM+ findings over the E-17 test delta
+(PR #258 branch test/arp-qinq-macsec-fixtures, commit cb2bf06): 10 tests (4 QinQ + 6 MACsec),
+no src/ changes, clippy/fmt CLEAN, CI green.
+
+### Pass Summary Table
+
+| Pass | Date | Findings | Severity | Counter | Outcome |
+|------|------|----------|----------|---------|---------|
+| Pre-remediation pass | 2026-06-17 | 1 | 1 MEDIUM (Finding 1: benign-truncated tautology window) | 0/3 | NOT CLEAN — remediated in cb2bf06; independent off-by-N diagnostics added to V1/V3/QinQ-benign tests |
+| Pass 1/3 (a2c9149c) | 2026-06-17 | 0 | — | 1/3 | PASS CLEAN — fresh-context; hardened delta cb2bf06; zero MEDIUM+ |
+| Pass 2/3 (afec0575) | 2026-06-17 | 0 | — | 2/3 | PASS CLEAN — fresh-context; zero MEDIUM+ |
+| Pass 3/3 (a6c3e1ba) | 2026-06-17 | 0 | — | 3/3 | PASS CLEAN — fresh-context; zero MEDIUM+. GATE SATISFIED |
+
+### Pre-Remediation Pass Detail
+
+**Branch:** test/arp-qinq-macsec-fixtures (commit before cb2bf06)
+**Adversary stance:** fresh-context, E-17 test delta scope
+
+**Finding 1 (MEDIUM):** Benign-truncated test tautology window.
+- V1/V3/QinQ-benign tests lacked independent off-by-N negative-offset diagnostics, leaving
+  a tautology window where a benign-truncation path could be masked without detection.
+- Adjudication: GENUINE MEDIUM. REMEDIATED in cb2bf06 by adding independent off-by-N
+  negative-offset diagnostic assertions to V1, V3, and QinQ-benign tests.
+- No src/ change required — test-only remediation.
+
+**Outcome:** NOT CLEAN. Counter = 0/3. Remediation applied; streak restart on cb2bf06.
+
+### Clean-Streak Passes (Post-Remediation; commit cb2bf06)
+
+**Pass 1/3 (a2c9149c) — 2026-06-17**
+- Develop HEAD: 480f8ae (origin/develop); PR #258 branch commit: cb2bf06
+- Adversary stance: fresh-context, E-17 delta (10 tests: 4 QinQ + 6 MACsec)
+- Findings: 0
+- Outcome: PASS CLEAN. Clean-streak 0/3 → 1/3.
+
+**Pass 2/3 (afec0575) — 2026-06-17**
+- Same branch/commit cb2bf06
+- Adversary stance: fresh-context, E-17 delta
+- Findings: 0
+- Outcome: PASS CLEAN. Clean-streak 1/3 → 2/3.
+
+**Pass 3/3 (a6c3e1ba) — 2026-06-17**
+- Same branch/commit cb2bf06
+- Adversary stance: fresh-context, E-17 delta
+- Findings: 0
+- Outcome: PASS CLEAN. Clean-streak 2/3 → 3/3. **E-17 F4 WAVE-LEVEL ADVERSARIAL GATE SATISFIED.**
+
+### Residual LOWs (non-blocking)
+
+- V5/V6 stop short of end-to-end decode: under-count-only diagnostics. Tracked non-blocking;
+  do not reset the gate.
+
+### Gate Verdict
+
+**E-17 F4 WAVE-LEVEL ADVERSARIAL CONVERGENCE GATE SATISFIED (3/3 CLEAN on cb2bf06).**
+
+Trajectory shorthand (E-17 F4):
+`1M(Finding1-benign-truncated-tautology)→(REMEDIATED-cb2bf06)→P1/3-CLEAN(a2c9149c)→P2/3-CLEAN(afec0575)→P3/3-CLEAN-GATE-SATISFIED(a6c3e1ba)`
+
+**Next phase (E-17):** F4 holdout evaluation.

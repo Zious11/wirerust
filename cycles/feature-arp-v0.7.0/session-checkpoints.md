@@ -921,4 +921,21 @@ STORY-111=3eefa35 MATCH | STORY-112=6115929 MATCH (stale re-drift caught in clos
 ### B. INTEGRITY CORRECTION
 
 - Prior Pass-1 CLEAN record (ae977cb) VOIDED: no fresh-context adversary actually produced that verdict. Streak reset: 1/3 → 0/3.
+
+---
+
+## Archived Checkpoint: 2026-06-17 — E-17 F3 adversarial gate SATISFIED 3/3 genuine
+
+**Archived from STATE.md on:** 2026-06-17 (replaced by "E-17 F4 wave-adversarial gate SATISFIED 3/3" checkpoint)
+
+### POSITION
+
+- Project: wirerust. Mode: STEADY-STATE (top-level pipeline IDLE; E-17 sub-cycle IN PROGRESS).
+- E-17 F1: PASSED (human-gated 2026-06-16).
+- E-17 F2: COMPLETE — adversarial gate SATISFIED 3/3 (2026-06-16).
+- E-17 F3: ADVERSARIAL GATE SATISFIED 3/3 (genuine, dd34205) — 3 verified fresh-context CLEAN passes (aeddd3a4/aa09cc4e/ab72e18d); each zero MEDIUM+; input-hash discharged (c389b39 MATCH); consistency-validator round-1 remediated; residual LOWs non-blocking. AWAITING F3 human gate.
+- E-17 F3 NEXT: F3 human gate (approval of STORY-116/117 decomposition). On PASSED → F4 authorized (STORY-116 first, wave 45).
+- develop HEAD: 480f8ae == origin/develop.
+- main HEAD: dd8e142 (v0.7.0).
+- Open PRs: None.
 - Real E-17 F3 adversarial streak must restart from Pass 1 with a genuine fresh-context adversary dispatch.
