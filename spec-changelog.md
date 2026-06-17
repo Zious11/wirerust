@@ -14,6 +14,58 @@ changes, invariant rewrites).
 
 ---
 
+## [issue-259-collapse-advpass6-8-remediation-2026-06-17] — 2026-06-17
+
+### PATCH: Issue #259 F2 Adversarial Passes 6-8 Remediation — 1 MEDIUM + 2 LOW resolved
+
+**Trigger:** Passes 6 and 7 came back clean; pass 8 found 1 MEDIUM (stale count) missed by
+prior passes. Two cheap LOW hardening items also applied. All remediated in one burst.
+total_bcs=288 unchanged. SS-11=29 unchanged.
+
+#### Finding Dispositions
+
+| Finding | Severity | File(s) Changed | Resolution |
+|---------|----------|----------------|-----------|
+| F1 (pass 8) | MEDIUM | BC-INDEX.md v1.33→v1.34 | Line 17 "verified on disk for all 283 entries" → "verified on disk for all 288 entries (283 prior + 5 new BC-2.11.025–029 for issue #259)". The line 34 current-state block already said 288; line 17 was the stale current-total claim. All other 283 references in BC-INDEX and prd.md are historical ARP-era delta rows that correctly record the intermediate milestone count and remain unchanged. |
+| LOW-1 (pass 7 O-1) | LOW | BC-2.11.026 v1.5→v1.6 | Added canonical test vector exercising the `Likely/High → red().bold()` color branch: "2 findings (Reconnaissance, Likely, High, 'Port scan'), use_color=true → header + ` (x2)` suffix both wrapped in the red-bold span." EC-008 previously only exercised INCONCLUSIVE (cyan) branch. |
+| LOW-2 (pass 7 O-2) | LOW | ADR-0003 | Example header line at ADR line 262 had no leading indent. Added two leading spaces (`  [Anomaly] INCONCLUSIVE...`) with annotation "(two leading spaces per `out.push_str("  {colored}\n")` in BC-2.11.026 PC-1/PC-2)" to match the binding contract. |
+
+#### BC Version Summary
+
+| BC/Doc | Before | After |
+|--------|--------|-------|
+| BC-2.11.026 | v1.5 | v1.6 |
+| BC-INDEX.md | v1.33 | v1.34 |
+
+#### "283" Sibling Sweep Result (BC-INDEX.md + prd.md)
+
+| Location | Text | Verdict |
+|----------|------|---------|
+| BC-INDEX.md:17 | "verified on disk for all 283 entries" | FIXED → 288 |
+| BC-INDEX.md:31 | "total to 283 active L3 BCs" | SAFE — ARP-era derivation step (intermediate count) |
+| BC-INDEX.md:34 | "288 BCs (...283 prior + 5 new...)" | SAFE — correct current total |
+| BC-INDEX.md:142 | "attempts-remove :147→:283" | SAFE — Rust line number, not a BC count |
+| BC-INDEX.md:480 | "= 283 active BCs; + 5 Feature Mode... = 288" | SAFE — canonical derivation intermediate |
+| prd.md:126 | "Total BC count: 283 (was 268)" | SAFE — ARP F2 delta row |
+| prd.md:195 | "Total BC count: 283 (unchanged)" | SAFE — ARP pass-1 delta row |
+| prd.md:232 | "Total BC count: 283 (unchanged)" | SAFE — ARP pass-2 delta row |
+| prd.md:243 | "Total BC count: 283 (unchanged)" | SAFE — ARP pass-4 delta row |
+| prd.md:257 | "283-total derivation" | SAFE — ARP-era derivation reference |
+| prd.md:259 | "total remains 283" | SAFE — ARP pass-11 delta row |
+| prd.md:388 | "Total BC count: 288 (was 283)" | SAFE — correct current total |
+| prd.md:411 | "no BC count change (283)" | SAFE — pre-#259 ARP-era note |
+
+Confirmation: the ONLY current-state total now reads 288 everywhere. All 283 residuals are historical ARP-era delta rows legitimately recording the intermediate count.
+
+#### Files Changed
+
+- `.factory/specs/behavioral-contracts/BC-INDEX.md` (v1.33 → v1.34; line 17 count 283→288)
+- `.factory/specs/behavioral-contracts/ss-11/BC-2.11.026.md` (v1.5 → v1.6; red-bold test vector added)
+- `docs/adr/0003-reporting-pipeline-layering.md` (example header line prefixed with two leading spaces + annotation)
+- `.factory/specs/prd.md` (delta pair BC-2.11.026 updated to v1.0→v1.6)
+
+---
+
 ## [issue-259-collapse-advpass5-remediation-2026-06-17] — 2026-06-17
 
 ### PATCH: Issue #259 F2 Adversarial Pass-5 Remediation — 1 MEDIUM + 1 LOW resolved

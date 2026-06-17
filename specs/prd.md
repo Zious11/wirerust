@@ -381,9 +381,9 @@ supplements:
 > BC-2.11.013 v1.9 (F2-integrate) → v1.10 (adv-pass-2) → v1.11 (adv-pass-4 EC-007 observable-behavior);
 > BC-2.11.017 v1.8 (F2-integrate) → v1.9 (adv-pass-1) → v1.10 (adv-pass-2) → v1.11 (adv-pass-4 observable-behavior + PC-6);
 > BC-2.11.019 v1.5 (F2-integrate) → v1.6 (adv-pass-2 anchor fix);
-> New greenfield BCs: BC-2.11.025 v1.0→v1.3, BC-2.11.026 v1.0→v1.5, BC-2.11.027 v1.0→v1.3, BC-2.11.028 v1.0→v1.2, BC-2.11.029 v1.0→v1.2;
+> New greenfield BCs: BC-2.11.025 v1.0→v1.3, BC-2.11.026 v1.0→v1.6, BC-2.11.027 v1.0→v1.3, BC-2.11.028 v1.0→v1.2, BC-2.11.029 v1.0→v1.2;
 > BC-2.11.025 v1.2 → v1.3 (adv-pass-4: Invariant 6 observable-behavior; anchor; flood vector timestamp fix);
-> BC-2.11.026 v1.3 → v1.4 (adv-pass-4: PC-4 observable-behavior + non-normative note; EC-007 observable; anchor) → v1.5 (adv-pass-5: remove residual 'path-(b) separation' from EC-009);
+> BC-2.11.026 v1.3 → v1.4 (adv-pass-4) → v1.5 (adv-pass-5: remove 'path-(b) separation') → v1.6 (adv-passes-6-8: red-bold test vector LOW-1);
 > with collapse-interaction clauses. §2.11 index table updated with 5 new rows and a group note.
 > Total BC count: 288 (was 283).
 > Key design decisions (F1-gated, non-negotiable):
