@@ -1,6 +1,6 @@
 ---
 document_type: holdout-scenario
-version: "1.2"  # F-PB-001: absent-UA → present-but-empty UA trigger; F-C-03: [Uncategorized] → ## Uncategorized; F-O-02: drop HTTP/1.1 from evidence examples; F-E-01: HS-W47-006 re-grounded on real path-traversal emission (Reconnaissance/Likely/High)
+version: "1.3"  # F-PB-001: absent-UA → present-but-empty UA trigger; F-C-03: [Uncategorized] → ## Uncategorized; F-O-02: drop HTTP/1.1 from evidence examples; F-E-01: HS-W47-006 re-grounded on real path-traversal emission; F-H-001: --output json/csv → --json/--csv throughout
 status: draft
 producer: product-owner
 timestamp: 2026-06-17T00:00:00Z
@@ -375,7 +375,7 @@ collapse feature is enabled (default).
 ### Command
 
 ```
-wirerust analyze --http --output json <pcap>
+wirerust analyze --http --json <pcap>
 ```
 
 ### Expected Assertions
@@ -389,7 +389,7 @@ wirerust analyze --http --output json <pcap>
 5. The tool exits with code 0.
 
 Additional verification (if terminal output is also captured separately):
-6. Running the same command without `--output json` (terminal mode) produces exactly 1
+6. Running the same command without `--json` (terminal mode) produces exactly 1
    collapsed group header with `(x1000)` — confirming the collapse applies to terminal
    but not JSON.
 
@@ -422,7 +422,7 @@ findings, each with one distinct evidence URI.
 ### Command
 
 ```
-wirerust analyze --http --output csv <pcap>
+wirerust analyze --http --csv <pcap>
 ```
 
 ### Expected Assertions
@@ -527,7 +527,7 @@ wirerust analyze --http <pcap>
    `mitre_techniques` are elided from terminal output.
 4. No second MITRE line (e.g., `    MITRE: T1059`) appears for this collapsed group.
 
-Additionally, when run with `--output json`:
+Additionally, when run with `--json`:
 5. All 3 JSON finding objects preserve their individual `mitre_techniques` values:
    object[0] has `["T1036"]`, object[1] has `[]` (or no key), object[2] has `["T1059"]`.
    The MITRE elision is terminal-display-layer only.
@@ -622,7 +622,7 @@ wirerust analyze --http <pcap>
    syntactically correct.
 3. If no collapsed groups appear (expected for clean traffic): the FINDINGS section
    renders normally with no `(xN)` suffixes anywhere.
-4. The JSON output (`--output json`) contains the same number of finding objects as would
+4. The JSON output (`--json`) contains the same number of finding objects as would
    be expected from the known finding count of the corpus (no findings are lost due to
    collapse being inadvertently applied upstream).
 5. The overall structure of the terminal output (PROTOCOLS, SERVICES, FINDINGS sections)
@@ -680,7 +680,7 @@ wirerust analyze --http <pcap>
    lines appear).
 4. The overall noise reduction is measurable: instead of 20+ lines, exactly one header
    line with a count annotation is visible — the core UX goal of issue #259 is achieved.
-5. Running the same command with `--output json` produces N individual JSON objects (N =
+5. Running the same command with `--json` produces N individual JSON objects (N =
    the actual number of requests with a present-but-empty User-Agent header), confirming
    forensic completeness.
 

@@ -2,7 +2,7 @@
 document_type: story
 story_id: STORY-118
 epic_id: E-18
-version: "1.2"
+version: "1.3"
 status: draft
 producer: story-writer
 timestamp: 2026-06-17T00:00:00Z
@@ -550,9 +550,9 @@ to split into a separate SS-12 story.
    dispatch block (terminal.rs:149-162), and the `--mitre`/`--dns` boolean precedent
    (cli.rs:150-152).
 2. **[F4 scope — RED]** Create `tests/reporter_terminal_tests.rs` mod block
-   `mod story_118` (or equivalent) with all 26 test functions named in ACs 001-026 above.
-   All test function bodies MUST use `todo!()` (or equivalent) — the Red Gate density
-   check requires ≥50% `todo!()` bodies before the implementer is dispatched.
+   `mod story_118` (or equivalent) with all 35 tests enumerated in the DF-AC-TEST-NAME-SYNC-001
+   inventory, covering ACs 001-028. All test function bodies MUST use `todo!()` (or equivalent) —
+   the Red Gate density check requires ≥50% `todo!()` bodies before the implementer is dispatched.
 3. **[F4 scope — GREEN — cli.rs]** Add `#[arg(long)] no_collapse: bool` to
    `Commands::Analyze` in `src/cli.rs`, following the `mitre: bool` / `dns: bool`
    subcommand-scoped boolean precedent at cli.rs:150-152 (BC-2.11.028 precondition 2).
@@ -678,7 +678,7 @@ BC-2.11.029 invariants 1-3:
 | `src/cli.rs` | **Modify** | Add `#[arg(long)] no_collapse: bool` to `Commands::Analyze` (following cli.rs:150-152 mitre/dns precedent) |
 | `src/main.rs` | **Modify** | Destructure `no_collapse` from `Commands::Analyze` in `main()` (main.rs:49-64); thread it as a new positional `bool` parameter into `run_analyze`; set `collapse_findings: !no_collapse` at `TerminalReporter { … }` construction (main.rs:370-376), mirroring how `*mitre` becomes `show_mitre_grouping` |
 | `docs/adr/0003-reporting-pipeline-layering.md` | **Modify (must ride this PR)** | Add "Display-Layer Aggregation" section documenting the collapse feature design decision |
-| `tests/reporter_terminal_tests.rs` | **Modify** | Add `mod story_118` block with all test functions named in ACs above (27 ACs post-Fix; see BC cross-check section for full test inventory) |
+| `tests/reporter_terminal_tests.rs` | **Modify** | Add `mod story_118` block with all 35 tests enumerated in the DF-AC-TEST-NAME-SYNC-001 inventory (28 ACs, AC-001..AC-028; see BC cross-check section for full test name list) |
 | `src/reporter/json.rs` | **No change** | JsonReporter is unaffected |
 | `src/reporter/csv.rs` | **No change** | CsvReporter is unaffected |
 | `src/findings.rs` | **No change** | Finding struct is unaffected |
@@ -699,8 +699,9 @@ BC-2.11.029 invariants 1-3:
 | **Total estimated** | **~56,000** |
 
 Within 20-30% of agent context window (200k context → 20-30% = 40-60k). This story
-is at the boundary. If the test-writer produces 26+ test stubs in a single pass, split
-the test-writing burst from the implementation burst to keep each pass under the budget.
+is at the boundary. If the test-writer produces 35+ test stubs in a single pass (28 ACs,
+AC-001..AC-028), split the test-writing burst from the implementation burst to keep each
+pass under the budget.
 
 ## BC Frontmatter ↔ Body Cross-Check (DF-SIBLING-SWEEP-001)
 

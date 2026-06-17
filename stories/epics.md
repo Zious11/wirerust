@@ -1,6 +1,6 @@
 ---
 document_type: epics
-version: "1.3"
+version: "1.4"
 status: draft
 producer: story-writer
 phase: 2
@@ -8,6 +8,7 @@ timestamp: 2026-05-21T00:00:00Z
 modified:
   - "2026-06-17 v1.2: E-18 Terminal Finding-Collapse (issue #259) added — STORY-118 + STORY-119 (deferred). total_bcs 283→288 (+5 new BC-2.11.025–029; 4 existing BCs extended/versioned — count unchanged)."
   - "2026-06-17 v1.3: Adversarial Burst 3 remediation — E-8 story count 7→5 (Estimated Story Count Summary table; actual E-8 roster is STORY-076..080 = 5 stories). Column sum now 72, matching Total row."
+  - "2026-06-17 v1.4: Adversarial Burst 4 remediation — Coverage Check body updated to 288 BCs: added E-18 row to Per-Epic BC Assignment table (BC-2.11.025..029, 5), added E-17 row (extensions, 0), updated TOTAL 283→288, updated Arithmetic Verification block (+E-18 line, ✓ 288/288), updated Coverage confirmed assertion 283→288."
 total_bcs: 288
 traces_to:
   - .factory/specs/prd.md
@@ -282,7 +283,9 @@ the same test vehicle (CLI invocation with obsolete flag).
 | E-14: Modbus TCP Analyzer | SS-14 (new), SS-05, SS-12 | BC-2.14.001..025 | 25 |
 | E-15: DNP3/ICS Analyzer | SS-15 (new), SS-05, SS-12 | BC-2.15.001..024 | 24 |
 | E-16: ARP Security Analyzer | SS-16 (new) | BC-2.16.001..015 | 15 |
-| **TOTAL** | | | **283** |
+| E-17: ARP QinQ/MACsec Offset Hardening | SS-16 | BC-2.16.009 EC-008/009, BC-2.16.015 PC-7b/EC-008/009 (extensions) | 0 (extensions, not new BCs) |
+| E-18: Terminal Finding-Collapse | SS-11 | BC-2.11.025..029 | 5 |
+| **TOTAL** | | | **288** |
 
 ### Arithmetic Verification
 
@@ -304,7 +307,10 @@ E-14: 25 (SS-14, BC-2.14.001..025) = 25
 E-15: 24 (SS-15, BC-2.15.001..024) = 24
 E-16: 15 (SS-16, BC-2.16.001..015) = 15
                       --------
-                      283 / 283  ✓
+                      283 (pre-E-18 subtotal)
+E-18:  5 (SS-11, BC-2.11.025..029) =  5
+                      --------
+                      288 / 288  ✓
 ```
 
 Note: E-11 (Tooling) has 0 BCs authored yet (STORY-091 pending). E-12 BCs are feature-mode
@@ -335,8 +341,8 @@ non-overlapping. No BC appears in more than one epic row above.
 | SS-12 | CLI / Entry | E-9 |
 | SS-13 | Absent Behaviors | E-10 |
 
-**Coverage confirmed: 283 / 283 BCs assigned, 0 unassigned, 0 double-assigned.**
-(219 pre-feature + 25 E-14 Modbus + 24 E-15 DNP3 + 15 E-16 ARP = 283)
+**Coverage confirmed: 288 / 288 BCs assigned, 0 unassigned, 0 double-assigned.**
+(219 pre-feature + 25 E-14 Modbus + 24 E-15 DNP3 + 15 E-16 ARP + 5 E-18 Collapse = 288)
 
 ---
 
