@@ -43,11 +43,35 @@ Key sub-decisions:
 3. **Canonical emission order per analyzer** — each analyzer defines a stable ordering for its
    multi-technique vecs. For Modbus write findings the full precedence order is:
    T0806 > T1692.001 > T0836 > T0835 > T0831 > T0814 > T0888 (threat severity descending).
-   In practice this produces two cases:
-   - **T0806 co-emitted** (burst/sustained-rate threshold exceeded): `vec!["T0806", "T1692.001"]` —
+   In practice this produces the following emission shapes (verified against `src/analyzer/modbus.rs`):
+
+   **Write-class per-PDU findings** (one per write FC in ClientToServer direction):
+   - Register-write FCs {0x06, 0x10, 0x16, 0x17}: `vec!["T1692.001", "T0836"]`, with T0831
+     appended when the 5-second coordinated-write window fires: `vec!["T1692.001", "T0836", "T0831"]`.
+   - Coil-write FCs {0x05, 0x0F}: `vec!["T1692.001", "T0835"]`, with T0831 appended when the
+     5-second coordinated-write window fires: `vec!["T1692.001", "T0835", "T0831"]`.
+   - Other write FC (0x15): `vec!["T1692.001"]` (no T0836/T0835 subset tag applies).
+
+   **Burst/sustained-rate threshold findings** (emitted separately from the per-PDU finding):
+   - 1-second burst threshold exceeded (`modbus.rs` burst detector): `vec!["T0806", "T1692.001"]` —
      T0806 leads, T1692.001 follows.
-   - **T0806 not co-emitted** (single per-PDU write finding): T1692.001 is first (e.g.,
-     `vec!["T1692.001", "T0836"]`), because T0806 is absent.
+   - >=2-second sustained-rate threshold exceeded (`modbus.rs` sustained detector):
+     `vec!["T0806", "T1692.001"]` — same shape as the 1-second burst finding.
+
+   **Exception-response findings** (ServerToClient direction, per-exception-code burst window):
+   - Exception code 0x01 (Illegal Function) or 0x02 (Illegal Data Address): `vec!["T0888"]`
+     (recon — FC scanning or register-map enumeration).
+   - All other exception codes: `vec![]` (no MITRE tag; `modbus.rs` line ~883).
+
+   **Forced-listen-only / DoS sub-function finding** (FC=0x08 with sub-func 0x0001 or 0x0004):
+   - `vec!["T0814"]` (`modbus.rs` line ~755).
+
+   **Anti-forensic finding** (FC=0x08/0x000A Clear Counters) and **unknown FC finding**:
+   - Both emit `vec![]` — no MITRE attribution (`modbus.rs` lines ~485 and ~774).
+
+   **Recon findings** (FC=0x11 Report Server ID; FC=0x2B/MEI=0x0E Read Device Identification):
+   - Both emit `vec!["T0888"]` (`modbus.rs` lines ~428 and ~458).
+
    This ordering is documented in inline comments at each emission site (ADR-006 §13.7 sub-decision 3).
 
 4. **CSV: semicolon-join for multi-technique cells** — the CSV reporter joins the vec with `";"`,

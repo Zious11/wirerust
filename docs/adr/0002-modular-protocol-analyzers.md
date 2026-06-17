@@ -146,7 +146,7 @@ Analyzers register themselves in a global registry (e.g., via `inventory` crate)
 | TLS | `StreamAnalyzer` | `src/analyzer/tls.rs` | v0.1.0 |
 | Modbus | `StreamAnalyzer` | `src/analyzer/modbus.rs` | v0.4.0 |
 | DNP3 | custom dispatch interface (see ADR-0007) | `src/analyzer/dnp3.rs` | v0.6.0 |
-| ARP | custom packet-level interface (see ADR-0007) | `src/analyzer/arp.rs` | v0.7.0 |
+| ARP | custom packet-level interface (no separate ADR; see §Deviations below) | `src/analyzer/arp.rs` | v0.7.0 |
 
 ### Deviations from generic traits (DNP3 and ARP)
 
@@ -165,5 +165,7 @@ Their actual interfaces are:
   operates at the packet level but is dispatched directly from the frame loop in `main.rs` without
   going through the trait interface.
 
-The "Adding a New Analyzer" steps above describe the standard generic-trait path. For DNP3 and
-ARP, step 2 is replaced by direct inherent-method dispatch as described in ADR-0007.
+The "Adding a New Analyzer" steps above describe the standard generic-trait path. For DNP3, step 2
+is replaced by direct inherent-method dispatch as described in ADR-0007. For ARP, step 2 is
+replaced by direct inherent-method dispatch as described in the §Deviations section above; there
+is no separate ADR for the ARP deviation.
