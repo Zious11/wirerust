@@ -96,8 +96,20 @@ pub enum Collapse {
 /// explicitly; `Default::default()` would obscure which mode is being selected.
 ///
 /// ADR-0003 Binding Rule 5 (revised, STORY-119).
-/// BC-2.11.013 / BC-2.11.025 / BC-2.11.026 / BC-2.11.027 / BC-2.11.028 /
-/// BC-2.11.030 / BC-2.11.031 / BC-2.11.032 / BC-2.11.033 / BC-2.11.034.
+///
+/// Governing BCs (full set, matching STORY-119 frontmatter `behavioral_contracts`):
+///   BC-2.11.013  — MITRE grouping: emits tactic headers in canonical order, Uncategorized last (Grouping::Grouped path)
+///   BC-2.11.014  — within-bucket sort (verdict, confidence, emission order); determines post-sort representative
+///   BC-2.11.016  — MITRE grouping per-finding line: em-dash + technique name (consumed by BC-034)
+///   BC-2.11.025  — FLAT-mode collapse: groups by (category,verdict,confidence,summary) key, first-occurrence order
+///   BC-2.11.026  — FLAT collapsed group (xN) suffix; singleton no suffix (grouped analogue: BC-031)
+///   BC-2.11.027  — FLAT collapse K=3 representative evidence sampling (grouped analogue: BC-032)
+///   BC-2.11.028  — --no-collapse opt-out flag, DUAL-SCOPE (flat + grouped); JSON/CSV unaffected
+///   BC-2.11.030  — CLI→render mode mapping (--mitre → {Grouped,Collapsed}; --mitre --no-collapse → {Grouped,Expanded})
+///   BC-2.11.031  — per-bucket (xN) count suffix in grouped collapse
+///   BC-2.11.032  — per-bucket K=3 evidence sampling in grouped collapse (grouped analogue of BC-027)
+///   BC-2.11.033  — tactic-bucket ordering invariant under grouped collapse (collapse within buckets only)
+///   BC-2.11.034  — MITRE line format in grouped collapse: em-dash name expansion from members[0]; no (xN) on MITRE line
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct FindingsRender {
     pub grouping: Grouping,

@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-06-18T00:00:00Z
@@ -15,6 +15,7 @@ introduced: v0.9.0
 modified:
   - "v1.1 2026-06-18: F2 adversarial round-1 fix — (1) Add EC-008: group whose members share mitre_techniques[0] (same primary technique, same collapse-key bucket) but differ in trailing/secondary technique IDs; MITRE line sourced from members[0] only; trailing-ID divergence elided from terminal, preserved in JSON/CSV. (2) Renumber mis-prefixed test function anchor: test_BC_2_11_031_grouped_collapse_mitre_line_em_dash_format → test_BC_2_11_034_grouped_collapse_mitre_line_em_dash_format."
   - "v1.2 2026-06-18: R2-2 — introduced: v0.10.0 → v0.9.0. R2-5 — Invariant 3 rescoped: BC-2.11.026 reference narrowed to representative SOURCING only (members[0] principle), not MITRE line format; format precedent is BC-2.11.016 (em-dash name expansion), not BC-026's bare flat format. Related-BCs updated to match."
+  - "v1.3 2026-06-18: F2 adversarial round-3 fix (F-PB-M01) — Invariant 3 reworded to clarify that the positional members[0] sourcing MECHANIC is shared with BC-2.11.026 PC-7, but the ORDERING that establishes index 0 differs: grouped-collapse uses post-sort bucket order (ascending verdict rank Likely=0/Possible=1/Inconclusive=2/Unlikely=3, then confidence rank), not the emission order used in flat mode. Related-BCs note for BC-2.11.026 updated to match."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -41,8 +42,9 @@ with the MITRE line rendering for N≥2 collapsed groups, where `render_finding_
 called (the header is rendered inline with the `(xN)` suffix) and the MITRE line must be
 explicitly reproduced from `members[0]`.
 
-Other group members' `mitre_techniques` are elided from terminal output, consistent with the
-flat-mode representative-finding contract (BC-2.11.025 Invariant 6 / BC-2.11.026 PC-7).
+Other group members' `mitre_techniques` are elided from terminal output, applying the same
+positional-members[0] sourcing mechanic as BC-2.11.026 PC-7 (flat mode), but over the
+post-sort bucket order rather than emission order (see Invariant 3).
 
 ## Preconditions
 
@@ -88,9 +90,12 @@ flat-mode representative-finding contract (BC-2.11.025 Invariant 6 / BC-2.11.026
    delegate; the observable output format is normative).
 3. The MITRE line is sourced from the group representative (`members[0]`) regardless of N.
    The MITRE lines of other group members are never rendered in the terminal for grouped-collapse
-   groups. The SOURCING principle (use members[0]) is consistent with BC-2.11.026 PC-7
-   (flat-mode representative-finding sourcing applied to grouped-mode context). The MITRE line
-   FORMAT (em-dash name expansion, `(unknown)` fallback) follows BC-2.11.016 (the authoritative
+   groups. This BC applies the positional `members[0]` sourcing MECHANIC of BC-2.11.026 PC-7,
+   but over the post-sort bucket order (ascending verdict rank Likely=0/Possible=1/Inconclusive=2/Unlikely=3,
+   then ascending confidence rank High=0/Medium=1/Low=2, then ascending emission-index) —
+   NOT the emission order used in flat mode. The two modes share the positional-members[0]
+   mechanic but differ in which ordering establishes index 0. The MITRE line FORMAT
+   (em-dash name expansion, `(unknown)` fallback) follows BC-2.11.016 (the authoritative
    grouped-mode MITRE format contract) — NOT BC-2.11.026's bare flat format.
 4. An empty `mitre_techniques` vec on `members[0]` produces no MITRE line for the group (same
    empty-vec guard as BC-2.11.016 PC-4 and `render_finding_grouped`'s `is_empty` check at
@@ -146,7 +151,7 @@ flat-mode representative-finding contract (BC-2.11.025 Invariant 6 / BC-2.11.026
 ## Related BCs
 
 - BC-2.11.016 — mirrors (authoritative MITRE line FORMAT for grouped mode: em-dash name expansion, `(unknown)` fallback; this BC extends it to collapsed N≥2 groups by sourcing the MITRE data from members[0])
-- BC-2.11.026 — composes with (PC-7: representative-finding MITRE SOURCING principle in flat-mode collapse — use members[0] as the source; this BC applies the same sourcing principle to grouped-mode collapse; the MITRE line FORMAT follows BC-2.11.016, not BC-026's bare flat format)
+- BC-2.11.026 — composes with (PC-7: applies the positional members[0] sourcing MECHANIC of BC-2.11.026 PC-7 to grouped-mode collapse, but over the post-sort bucket order — ascending verdict/confidence rank — NOT the emission order used in flat mode; the MITRE line FORMAT follows BC-2.11.016, not BC-026's bare flat format)
 - BC-2.11.031 — composes with (header line produces `(xN)` suffix; this BC confirms the MITRE line in the same output block carries no suffix)
 - BC-2.11.033 — depends on (sort-then-collapse ordering that determines who is members[0])
 - BC-2.11.030 — depends on (CLI mapping that activates `{Grouped, Collapsed}`)

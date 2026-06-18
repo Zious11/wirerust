@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: product-owner
 timestamp: 2026-06-18T00:00:00Z
@@ -13,7 +13,8 @@ capability: CAP-11
 lifecycle_status: active
 introduced: v0.9.0
 modified:
-  - "v1.1 2026-06-18: R2-2 — correct introduced version: v0.10.0 → v0.9.0 (canonical per ADR-0003 §Semver, design-note §7, BC-INDEX:269; D-110 bundles into unreleased 0.9.0)."
+  - "v1.1 2026-06-18: R2-2 — correct introduced version: v0.10.0 → v0.9.0 (canonical per ADR-0003 §Semver, design-note §7, BC-INDEX:271; D-110 bundles into unreleased 0.9.0)."
+  - "v1.2 2026-06-18: F2 adversarial round-3 fix (NIT) — correct BC-INDEX line reference in v1.1 stanza: ':269' (CsvReporter BCs 020-024 note) → ':271' (grouped-collapse v0.9.0 line)."
 deprecated: null
 deprecated_by: null
 replacement: null

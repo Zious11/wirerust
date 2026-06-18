@@ -14,6 +14,57 @@ changes, invariant rewrites).
 
 ---
 
+## [story-119-f2-adv-round3-remediation-2026-06-18] — 2026-06-18
+
+### PATCH: STORY-119 F2 Adversarial Round-3 Remediation — STORY-119.md BC-Table Role-Description Verbatim-Title Fix, Design-Note Doc-Comment Annotation Correction, BC-032/034 Representative-Ordering Clarification, BC-030 Index-Anchor Nit
+
+**Trigger:** F2 adversarial round-3 triple — Pass A CLEAN (all round-2 fixes verified); Passes B and C each found a NEW defect introduced by the round-2 STORY-119.md de-stale. BC-INDEX v1.46 → v1.47. Consuming-surface sweep CONFIRMED FULLY CONVERGED (Pass C exhaustive enum→struct census: zero forward-facing stale refs).
+
+#### Root Cause
+
+Round-3 Pass A confirmed round-2 remediation correct. Passes B and C independently found three defect classes:
+1. STORY-119.md BC-table role-description column carried mis-anchored descriptions (10/12 rows wrong) — the same D-095 "from-memory" class, where the story-writer paraphrased role descriptions rather than reading verbatim BC H1 titles.
+2. The design-note struct doc-comment BC annotations (§2.1) were mislabeled in the round-2 R2-7 fix (labels did not match the actual BC H1 titles for BC-2.11.030–034).
+3. BC-2.11.032 and BC-2.11.034 overstated the representative sourcing in Inv3 as "consistent with BC-026 PC-7" without distinguishing: flat=emission-order, grouped-collapse=post-sort severity order (the two differ and BC-026 covers flat only).
+
+#### Changed Artifacts (this burst)
+
+**STORY-119.md BC-table role mis-anchor fix (v1.1→v1.2):**
+- All 12 BC-table role-description cells corrected to verbatim BC H1 titles (extracted
+  directly from the canonical BC files — D-095 lesson applied). Affected rows: all 12
+  entries in the behavioral_contracts traceability table.
+- Body text "9 behavioral contracts" corrected to "12 behavioral contracts" (9-BC count
+  was a carry-over from the v1.0 stub that listed only [013,025,026]).
+- VP-deferred comment added to clarify verification-property scope for STORY-119 (no new
+  VP; F3 will carry the impl test obligations).
+
+**Design-note struct doc-comment BC annotation correction:**
+- `story-119-type-design.md` §2.1: `FindingsRender` struct doc-comment BC list corrected.
+  Round-2 R2-7 added BC annotations but the labels for BC-2.11.030–034 were mislabeled
+  (wrong titles copied). Corrected to verbatim H1 titles from each BC file.
+
+**BC-2.11.032 v1.2→v1.3 — representative-ordering clarification:**
+- `BC-2.11.032`: Invariant 3 reworded to clarify that "positionally first" applies
+  WITHIN the post-sort order (severity-ascending, matching BC-2.11.014) — not
+  emission-order. Added explicit note: flat=emission-order sourcing (BC-026 PC-7);
+  grouped-collapse=post-sort severity order. This removes ambiguity against BC-026.
+
+**BC-2.11.034 v1.2→v1.3 — representative-ordering clarification:**
+- `BC-2.11.034`: Invariant 3 and Related-BCs updated to be explicit that the grouped
+  representative (`members[0]`) is the first member in post-sort severity order, not
+  emission-order. Related-BCs now documents the sourcing/ordering distinction between
+  flat (BC-026, emission-order) and grouped-collapse (BC-032, post-sort).
+
+**BC-2.11.030 v1.1→v1.2 — index-anchor nit:**
+- `BC-2.11.030`: BC-INDEX annotation corrected from ":269" to ":271" (the nit-level
+  index line-anchor was pointing at the wrong line in BC-INDEX).
+
+**BC-INDEX v1.46→v1.47:**
+- Table row annotations updated: BC-2.11.030 v1.2, BC-2.11.032 v1.3, BC-2.11.034 v1.3.
+- v1.47 navigation changelog entry added.
+
+---
+
 ## [story-119-f2-adv-round2-remediation-2026-06-18] — 2026-06-18
 
 ### PATCH: STORY-119 F2 Adversarial Round-2 Remediation — Verdict-Rank Table Corrected (Possible Added), Version-Pins v0.9.0, HS-081 Enum→Struct Sweep, STORY-119 De-Stale, BC-034 MITRE Cross-Ref Scoping, BC-031 Observable-Behavior Reword, Design-Note Struct Doc-Comment

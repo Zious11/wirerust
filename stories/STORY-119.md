@@ -2,7 +2,7 @@
 document_type: story
 story_id: STORY-119
 epic_id: E-18
-version: "1.1"
+version: "1.2"
 status: draft
 producer: story-writer
 timestamp: 2026-06-17T00:00:00Z
@@ -25,6 +25,7 @@ behavioral_contracts:
   - BC-2.11.033
   - BC-2.11.034
 verification_properties: []
+# VP status: VP-NNN assignments are an F3/F4 deliverable; governing BCs carry '—' VP placeholders pending test-writer authorship.
 tdd_mode: strict
 target_module: reporter/terminal
 subsystems: [SS-11]
@@ -38,6 +39,10 @@ deferred_reason: "F1/F2 complete; full AC/task decomposition pending F3."
 #   is a display-layer extension of reporter/terminal.rs — the core SS-11 module.
 # Version 1.1 changes: F2 round-2 de-stale: struct vocabulary, full 9-BC set,
 #   current anchors, deferred flag removed; full AC/task decomposition pending F3.
+# Version 1.2 changes: F2 round-3 remediation: BC table role-descriptions rewritten
+#   to faithfully reflect each BC's actual contract; version column corrected
+#   (030 v1.2, 032 v1.3, 034 v1.3); changelog note updated to full 12-BC set;
+#   VP comment added to verification_properties.
 inputs: []
 input-hash: TBD
 ---
@@ -104,18 +109,18 @@ the current BC versions listed below. STORY-119 is the implementing story for al
 
 | BC | Version | Role for STORY-119 |
 |----|---------|-------------------|
-| BC-2.11.013 | v1.14 | Core grouped-mode collapse semantics (primary) |
-| BC-2.11.014 | v2.0 | Collapse key definition reused in grouped path |
-| BC-2.11.016 | v1.9 | Evidence sampling (K=3) applies to grouped buckets |
-| BC-2.11.025 | v1.11 | `{Grouped, Collapsed}` variant dispatch rules |
-| BC-2.11.026 | v1.13 | `{Grouped, Expanded}` remains suffix-free |
-| BC-2.11.027 | v1.7 | Count suffix format ` (xN)` in grouped output |
-| BC-2.11.028 | v1.9 | Per-bucket first-occurrence ordering preserved |
-| BC-2.11.030 | v1.1 | Backward compatibility: singleton findings in bucket |
-| BC-2.11.031 | v1.2 | Color-ladder rules for suffix in grouped mode |
-| BC-2.11.032 | v1.2 | Structural separation of grouped and flat paths |
-| BC-2.11.033 | v1.2 | Tactic-bucket ordering interaction with collapse |
-| BC-2.11.034 | v1.2 | `render_findings_grouped_collapsed` dispatch target |
+| BC-2.11.013 | v1.14 | Grouped-mode tactic-header structure: emits tactic headers in canonical order, uncategorized last — governs the `{Grouped,*}` path |
+| BC-2.11.014 | v2.0 | Within-bucket sort by verdict, confidence, emission order — determines the post-sort representative (members[0]) used for grouped collapse |
+| BC-2.11.016 | v1.9 | Grouped MITRE em-dash+name line format — the per-finding line expanded with em-dash and name (consumed by BC-2.11.034) |
+| BC-2.11.025 | v1.11 | Flat-mode collapse key and first-occurrence order — the `(category, verdict, confidence, summary)` key and ordering that grouped per-bucket collapse mirrors |
+| BC-2.11.026 | v1.13 | Flat collapse `(xN)` suffix rule — N≥2 renders header with `(xN)` suffix, singleton (N=1) without (grouped analogue is BC-2.11.031) |
+| BC-2.11.027 | v1.7 | Flat collapse K=3 evidence sampling — collapsed group retains at most K=3 representative evidence lines (grouped analogue is BC-2.11.032) |
+| BC-2.11.028 | v1.9 | `--no-collapse` opt-out flag: dual-scope — disables terminal collapse in both flat and grouped paths; JSON/CSV unaffected |
+| BC-2.11.030 | v1.2 | CLI→render mode mapping: `--mitre` maps to `{Grouped, Collapsed}`; `--mitre --no-collapse` maps to `{Grouped, Expanded}` — CLI-to-render mode mapping contract for grouped collapse |
+| BC-2.11.031 | v1.2 | Per-bucket `(xN)` suffix in grouped collapse: N≥2 group within a tactic bucket renders header with `(xN)` suffix; singleton without |
+| BC-2.11.032 | v1.3 | Per-bucket K=3 evidence sampling in grouped-collapse mode: first min(N, K=3) members positionally; no sliding window |
+| BC-2.11.033 | v1.2 | Tactic-bucket ordering invariant under grouped collapse: bucket sequence unchanged; collapse occurs within buckets only |
+| BC-2.11.034 | v1.3 | MITRE line format in grouped collapse: em-dash name expansion sourced from group representative (members[0]); no `(xN)` on MITRE line |
 
 Full AC-to-BC tracing will be authored in F3 decomposition.
 

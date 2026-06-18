@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-06-18T00:00:00Z
@@ -15,6 +15,7 @@ introduced: v0.9.0
 modified:
   - "v1.1 2026-06-18: F2 adversarial round-1 fix — Invariant 3 sort direction corrected: 'verdict-rank desc, confidence-rank desc' → 'ascending by rank (Likely=0/High=0 first)' to match BC-2.11.014 authoritative rank definitions. No behavioral change."
   - "v1.2 2026-06-18: R2-1 — propagate corrected verdict-rank enumeration: Invariant 3 now lists all four verdicts (Likely=0 first, Possible=1, Inconclusive=2, Unlikely=3) to match terminal.rs:447-454 source. R2-2 — introduced: v0.10.0 → v0.9.0."
+  - "v1.3 2026-06-18: F2 adversarial round-3 fix (F-PB-M01) — Invariant 3 reworded to clarify that the positional members[0] sourcing MECHANIC is shared with BC-2.11.026 PC-7 (flat mode), but the ORDERING that establishes index 0 differs: grouped-collapse uses post-sort bucket order (ascending verdict rank Likely=0/Possible=1/Inconclusive=2/Unlikely=3, then confidence rank), not the emission order used in flat mode."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -85,7 +86,10 @@ positional no-sliding-window invariant applies identically.
    ascending by confidence-rank (High=0 first, Medium=1, Low=2), then emission-index ascending
    — applied BEFORE the collapse pass (BC-2.11.014 defines the rank assignments). The group
    representative (`members[0]`) is the first finding in this sorted order that established the
-   group's key (BC-2.11.025 Invariant 6 analogue for grouped mode).
+   group's key. This BC applies the positional `members[0]` sourcing MECHANIC of BC-2.11.026 PC-7,
+   but over the post-sort bucket order described above — NOT the emission order used in flat mode.
+   The two modes share the positional-members[0] mechanic but differ in which ordering establishes
+   index 0.
 4. Evidence sampling is a display-only operation. `Finding.evidence` vecs are never truncated
    or mutated. JSON/CSV reporters receive the complete, unmodified `findings` slice
    (BC-2.11.029 invariant applies across all reporter types).
