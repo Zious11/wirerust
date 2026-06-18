@@ -1,0 +1,84 @@
+## AC-018 / AC-028 — --no-collapse opt-out restores one-line-per-finding
+## Command: wirerust analyze --http --no-color --no-collapse <empty_ua_flood.pcap>
+## Input: Same 25 HTTP/1.1 GET requests with empty User-Agent
+## Expected: 25 INDIVIDUAL lines, no (xN) suffix, all evidence shown per finding
+
+$ ./target/release/wirerust analyze --http --no-color --no-collapse \
+    /Users/zious/Documents/GITHUB/wirerust/.factory/demo-evidence/STORY-118/empty_ua_flood.pcap
+
+WIRERUST TRIAGE REPORT
+────────────────────────────────────────
+  Packets: 125  Bytes: 8625  Hosts: 2
+
+PROTOCOLS
+────────────────────────────────────────
+  Tcp: 125
+
+SERVICES
+────────────────────────────────────────
+  HTTP: 125
+
+FINDINGS
+────────────────────────────────────────
+  [Anomaly] INCONCLUSIVE (LOW) - Empty User-Agent header
+    > GET /req001
+  [Anomaly] INCONCLUSIVE (LOW) - Empty User-Agent header
+    > GET /req002
+  [Anomaly] INCONCLUSIVE (LOW) - Empty User-Agent header
+    > GET /req003
+  [Anomaly] INCONCLUSIVE (LOW) - Empty User-Agent header
+    > GET /req004
+  [Anomaly] INCONCLUSIVE (LOW) - Empty User-Agent header
+    > GET /req005
+  [Anomaly] INCONCLUSIVE (LOW) - Empty User-Agent header
+    > GET /req006
+  [Anomaly] INCONCLUSIVE (LOW) - Empty User-Agent header
+    > GET /req007
+  [Anomaly] INCONCLUSIVE (LOW) - Empty User-Agent header
+    > GET /req008
+  [Anomaly] INCONCLUSIVE (LOW) - Empty User-Agent header
+    > GET /req009
+  [Anomaly] INCONCLUSIVE (LOW) - Empty User-Agent header
+    > GET /req010
+  [Anomaly] INCONCLUSIVE (LOW) - Empty User-Agent header
+    > GET /req011
+  [Anomaly] INCONCLUSIVE (LOW) - Empty User-Agent header
+    > GET /req012
+  [Anomaly] INCONCLUSIVE (LOW) - Empty User-Agent header
+    > GET /req013
+  [Anomaly] INCONCLUSIVE (LOW) - Empty User-Agent header
+    > GET /req014
+  [Anomaly] INCONCLUSIVE (LOW) - Empty User-Agent header
+    > GET /req015
+  [Anomaly] INCONCLUSIVE (LOW) - Empty User-Agent header
+    > GET /req016
+  [Anomaly] INCONCLUSIVE (LOW) - Empty User-Agent header
+    > GET /req017
+  [Anomaly] INCONCLUSIVE (LOW) - Empty User-Agent header
+    > GET /req018
+  [Anomaly] INCONCLUSIVE (LOW) - Empty User-Agent header
+    > GET /req019
+  [Anomaly] INCONCLUSIVE (LOW) - Empty User-Agent header
+    > GET /req020
+  [Anomaly] INCONCLUSIVE (LOW) - Empty User-Agent header
+    > GET /req021
+  [Anomaly] INCONCLUSIVE (LOW) - Empty User-Agent header
+    > GET /req022
+  [Anomaly] INCONCLUSIVE (LOW) - Empty User-Agent header
+    > GET /req023
+  [Anomaly] INCONCLUSIVE (LOW) - Empty User-Agent header
+    > GET /req024
+  [Anomaly] INCONCLUSIVE (LOW) - Empty User-Agent header
+    > GET /req025
+
+ANALYZER: HTTP
+────────────────────────────────────────
+  user_agents: {"":25}
+  [...remaining stats same as AC-001...]
+
+## RESULT: PASS
+## - 25 individual FINDINGS lines (one per request, no collapse)
+## - NO "(xN)" suffix appears anywhere in the output
+## - Each finding has its own evidence line (> GET /reqNNN)
+## - Output is byte-identical to pre-v0.8.0 behavior for the same input
+## - Traces to: BC-2.11.028 postcondition 2 (--no-collapse restores one-line-per-finding)

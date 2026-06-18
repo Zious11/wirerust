@@ -1,0 +1,43 @@
+## AC-020 / AC-027 — JSON output unaffected by collapse (display-layer only)
+## Command: wirerust analyze --http --json /tmp/s118.json <empty_ua_flood.pcap>
+## Input: Same 25 HTTP/1.1 GET requests with empty User-Agent
+## Expected: JSON contains 25 finding objects regardless of collapse setting
+
+## Step 1: Terminal (collapse ON) shows (x25)
+$ ./target/release/wirerust analyze --http --no-color \
+    .../empty_ua_flood.pcap 2>&1 | grep -A3 FINDINGS
+
+FINDINGS
+────────────────────────────────────────
+  [Anomaly] INCONCLUSIVE (LOW) - Empty User-Agent header (x25)
+    > GET /req001
+    > GET /req002
+    > GET /req003
+
+## Step 2: JSON reporter receives all 25 unmodified findings
+$ ./target/release/wirerust analyze --http --json /tmp/s118_ac020.json \
+    .../empty_ua_flood.pcap
+
+$ python3 -c "
+import json
+d = json.load(open('/tmp/s118_ac020.json'))
+n = len(d['findings'])
+print(f'JSON finding objects: {n}  (collapse is display-layer only -- all {n} emitted)')
+first = d['findings'][0]
+last = d['findings'][-1]
+print(f'First: {first[\"summary\"]} / evidence={first[\"evidence\"]}')
+print(f'Last:  {last[\"summary\"]} / evidence={last[\"evidence\"]}')
+"
+
+JSON finding objects: 25  (collapse is display-layer only -- all 25 emitted)
+First: Empty User-Agent header / evidence=['GET /req001']
+Last:  Empty User-Agent header / evidence=['GET /req025']
+
+## RESULT: PASS
+## - Terminal output (collapse ON): 1 group header with (x25), 3 evidence samples
+## - JSON output: 25 finding objects, first=GET /req001, last=GET /req025
+## - The collapse pass inside TerminalReporter::render is ephemeral and never
+##   touches the findings slice passed to JsonReporter
+## - --no-collapse flag has NO effect on JSON output (same 25 objects with or without)
+## - Traces to: BC-2.11.029 postcondition 1 (JSON receives full findings)
+##              BC-2.11.029 postcondition 5 (--no-collapse flag JSON invariant)

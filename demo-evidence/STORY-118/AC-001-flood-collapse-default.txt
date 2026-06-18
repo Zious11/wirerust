@@ -1,0 +1,69 @@
+## AC-001 / AC-009 / AC-026 — Default-ON collapse
+## Command: wirerust analyze --http --no-color <empty_ua_flood.pcap>
+## Input: 25 HTTP/1.1 GET requests each with User-Agent: (empty) + Host: example.com
+## Expected: ONE collapsed group with (x25) suffix, 3 evidence samples
+
+$ ./target/release/wirerust analyze --http --no-color \
+    /Users/zious/Documents/GITHUB/wirerust/.factory/demo-evidence/STORY-118/empty_ua_flood.pcap
+
+WIRERUST TRIAGE REPORT
+────────────────────────────────────────
+  Packets: 125  Bytes: 8625  Hosts: 2
+
+PROTOCOLS
+────────────────────────────────────────
+  Tcp: 125
+
+SERVICES
+────────────────────────────────────────
+  HTTP: 125
+
+FINDINGS
+────────────────────────────────────────
+  [Anomaly] INCONCLUSIVE (LOW) - Empty User-Agent header (x25)
+    > GET /req001
+    > GET /req002
+    > GET /req003
+
+ANALYZER: TCP Reassembly
+────────────────────────────────────────
+  Packets analyzed: 125
+  bytes_reassembled: 1875
+  dropped_findings: 0
+  evictions: 0
+  flows_completed: 0
+  flows_expired: 0
+  flows_fin: 0
+  flows_partial: 0
+  flows_rst: 0
+  flows_total: 25
+  packets_processed: 125
+  packets_skipped_non_tcp: 0
+  segments_depth_exceeded: 0
+  segments_duplicates: 0
+  segments_inserted: 25
+  segments_out_of_window: 0
+  segments_overlaps: 0
+  segments_segment_limit: 0
+  unclassified_flows: 0
+
+ANALYZER: HTTP
+────────────────────────────────────────
+  Packets analyzed: 0
+  methods: {"GET":25}
+  non_http_flows: 0
+  parse_errors: 0
+  poisoned_bytes_skipped: 0
+  recent_uris: ["/req001","/req002","/req003",...]
+  status_codes: {}
+  top_hosts: ["example.com"]
+  transactions: 0
+  user_agents: {"":25}
+
+## RESULT: PASS
+## - Exactly ONE display group in FINDINGS section (not 25 lines)
+## - Header: "[Anomaly] INCONCLUSIVE (LOW) - Empty User-Agent header (x25)"
+## - Suffix format is exactly " (x25)": space-paren-x-integer-paren
+## - Exactly K=3 evidence lines: > GET /req001, > GET /req002, > GET /req003
+## - Evidence for /req004.../req025 is elided (22 entries suppressed)
+## - Traces to: BC-2.11.025 (collapse), BC-2.11.026 (xN suffix), BC-2.11.027 (K=3 evidence)
