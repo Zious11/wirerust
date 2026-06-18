@@ -14,6 +14,49 @@ changes, invariant rewrites).
 
 ---
 
+## [f3-adv-round6-bc-029-sibling-sweep-2026-06-18] — 2026-06-18
+
+### PATCH: F3 Adversarial Round-6 — BC-2.11.029 Sibling-Sweep Completion (Issue #62)
+
+**Trigger:** F3 round-4 fixed BC-2.11.028's wiring expression scope defect but did NOT sweep sibling BC-2.11.029, which carried the identical defect. Round-6 completes the sibling sweep.
+
+#### Finding 1 (MEDIUM) — BC-2.11.029 Architecture Anchor Wiring Expression Used Out-of-Scope Variable Names
+
+The Architecture Anchor `src/main.rs:~373` REFACTOR TARGET bullet in BC-2.11.029 prescribed the wiring expression as `render: if *mitre { FindingsRender::Grouped } else if !no_collapse { FindingsRender::FlatCollapsed } else { FindingsRender::FlatExpanded }`. The `*mitre` and `no_collapse` (negated) names are `Commands::Analyze` destructured fields scoped to `main()` only (src/main.rs:55-56) — they are NOT in scope inside `run_analyze` at the TerminalReporter construction site (~main.rs:373). Inside `run_analyze`, the already-resolved bool params are `show_mitre_grouping` (line 107) and `collapse_findings` (line 108). The v1.4 changelog entry claimed "aligned to BC-2.11.028 sibling treatment" but copied the expression from before BC-2.11.028's own round-4 correction, so the defect persisted.
+
+Corrected to: `render: if show_mitre_grouping { FindingsRender::Grouped } else if collapse_findings { FindingsRender::FlatCollapsed } else { FindingsRender::FlatExpanded }`, with an explicit note that the `--mitre`/`--no-collapse`→bool resolution happens at the `main()` call site (lines 79-80, UNCHANGED): `show_mitre_grouping == *mitre` and `collapse_findings == !no_collapse` (via `collapse_findings_from_flag`). Scope/naming correction only; no behavioral change.
+
+**Exhaustive sibling grep result** (`grep -rn '\*mitre\|no_collapse' .factory/specs/behavioral-contracts/ss-11/`):
+
+| File | Line | Hit text | Classification |
+|------|------|----------|----------------|
+| BC-2.11.028.md | 58 | `show_mitre_grouping == *mitre` and `collapse_findings == !no_collapse` | SAFE — prose describing main() call-site resolution (not a normative wiring expression) |
+| BC-2.11.028.md | 81 | `no_collapse` field on `Commands::Analyze` is a boolean | SAFE — prose describing CLI field definition |
+| BC-2.11.028.md | 83-84 | `show_mitre_grouping == *mitre` and `collapse_findings == !no_collapse` | SAFE — Invariant 6 prose describing main() resolution (UNCHANGED) |
+| BC-2.11.028.md | 93 | `summary` subcommand has no `no_collapse` | SAFE — EC-008 prose about absent field on summary subcommand |
+| BC-2.11.028.md | 98 | `no_collapse` field in `cli.rs` MUST be wired | SAFE — prose referencing the CLI field name by name |
+| BC-2.11.028.md | 101 | `*mitre`/`no_collapse` names from `Commands::Analyze` are resolved at | SAFE — Invariant 6 prose explaining the scope boundary (UNCHANGED) |
+| BC-2.11.028.md | 116 | EC-008 summary subcommand (no `--no-collapse` field) | SAFE — edge case prose about absent flag |
+| BC-2.11.028.md | 133 | `render = FindingsRender::FlatExpanded` (--no-collapse) | SAFE — VP description of observable behavior |
+| BC-2.11.028.md | 136 | `no_collapse=true` → `render = FindingsRender::FlatExpanded` | SAFE — VP description at the CLI/flag level (not the run_analyze wiring expression) |
+| BC-2.11.028.md | 159 | `same pattern as `no_collapse`` | SAFE — arch anchor prose comparing CLI field patterns |
+| BC-2.11.028.md | 160 | `*mitre` → `show_mitre_grouping`; `collapse_findings_from_flag(*no_collapse)` → `collapse_findings` | SAFE — arch anchor main() call-site resolution note (UNCHANGED; this IS at main() scope) |
+| BC-2.11.029.md | 123 | `--no-collapse flag` | SAFE — VP description of the CLI flag name |
+| BC-2.11.029.md | 150 | `render: if *mitre { ... } else if !no_collapse { ... }` | **DEFECT — FIXED** (this entry; corrected to `show_mitre_grouping`/`collapse_findings`) |
+
+Zero remaining defect expressions after this fix.
+
+#### BC Version Summary
+
+| BC/Doc | Before | After | Change |
+|--------|--------|-------|--------|
+| BC-2.11.029 | v1.4 | v1.5 | Architecture Anchor main.rs:~373 wiring expression: `*mitre`/`!no_collapse` → `show_mitre_grouping`/`collapse_findings` (in-scope run_analyze params); main() call-site resolution note added |
+| BC-INDEX.md | — | — | BC-2.11.029 annotation bumped with v1.5 sibling-sweep note |
+
+**total_bcs=288 unchanged** (scope/naming correction only; no new BCs, no retirements).
+
+---
+
 ## [f3-adv-round4-bc-scope-anchor-fixes-2026-06-18] — 2026-06-18
 
 ### PATCH: F3 Adversarial Round-4 — Two BC Correctness Fixes (Issue #62)
@@ -24,6 +67,8 @@ changes, invariant rewrites).
 
 PC3, Invariant 1, Invariant 6, and the Architecture Anchor prescribed the `run_analyze` wiring
 as `if *mitre { FindingsRender::Grouped } else if !no_collapse { FindingsRender::FlatCollapsed } else { FindingsRender::FlatExpanded }`. But `*mitre` and `no_collapse` are `Commands::Analyze` destructured fields scoped to `main()` only (src/main.rs:55-56). Inside `run_analyze`, the resolved bool params are `show_mitre_grouping` (line 107) and `collapse_findings` (line 108). The out-of-scope names would not compile at the construction site (~main.rs:373). Corrected to: `if show_mitre_grouping { FindingsRender::Grouped } else if collapse_findings { FindingsRender::FlatCollapsed } else { FindingsRender::FlatExpanded }`. Added explicit note that `--mitre`/`--no-collapse`→bool resolution happens at `main()` lines 79-80 (UNCHANGED); `run_analyze` signature is UNCHANGED. Behavior identical — scope/naming correction only.
+
+**Sibling BC-2.11.029:** Round-4 fixed BC-2.11.028 but did NOT sweep its sibling BC-2.11.029, which carried the identical defect in its Architecture Anchor main.rs:~373 bullet. The sibling-sweep was completed in F3 round-6 (see section `[f3-adv-round6-bc-029-sibling-sweep-2026-06-18]` below).
 
 #### Finding 2 (MEDIUM) — Stale FINDINGS Dispatch Anchor `terminal.rs:149-162` Points at HOSTS Section
 
