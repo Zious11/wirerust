@@ -72,7 +72,7 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-11/BC-2.11.029.md
   - .factory/phase-f1-delta-analysis/issue-62-terminal-reporter-enum-modes-delta-analysis.md
   - docs/adr/0003-reporting-pipeline-layering.md
-input-hash: "776490b"
+input-hash: "6e4d628"
 ---
 
 # STORY-120: TerminalReporter FindingsRender Enum Migration (v0.9.0)
@@ -413,11 +413,21 @@ a defect. The Cargo.toml version is bumped to `0.9.0` in the STORY-120 PR.
 *documentation correctness obligation; traces to BC-2.11.028 postcondition 3 — the*
 *struct shape change propagates to all four test files including their comment vocabulary)*
 
-After STORY-120 lands, `grep -n 'collapse_findings\|show_mitre_grouping' tests/` returns
-only the residue listed in the **EXEMPT allow-list** below. Every non-exempt match is a
-forward-facing assertion about the removed struct fields and MUST be rewritten to enum
-vocabulary (`FindingsRender::Grouped`, `FindingsRender::FlatCollapsed`,
-`FindingsRender::FlatExpanded`).
+After STORY-120 lands, the following two greps together return only the residue listed in
+the **EXEMPT allow-list** below. Every non-exempt match is a forward-facing assertion about
+the removed struct fields (or a paraphrased provenance comment that goes stale after Task 7)
+and MUST be rewritten to enum vocabulary (`FindingsRender::Grouped`,
+`FindingsRender::FlatCollapsed`, `FindingsRender::FlatExpanded`).
+
+**Primary grep** (catches direct field-name references):
+`grep -n 'collapse_findings\|show_mitre_grouping' tests/`
+
+**Paraphrase grep** (catches comments that describe the removed fields without naming them
+verbatim — these are invisible to the primary grep but go equally stale after Task 7):
+`grep -n 'non-collapse\|apply collapse\|STORY-118: new field' tests/`
+
+Both greps MUST be run at AC-017 verification time. A passing AC-017 requires both
+commands to return only lines in the EXEMPT allow-list.
 
 #### Forward-Facing Comment Sweep Targets (MUST be rewritten)
 
@@ -453,13 +463,17 @@ expected — locate by surrounding context.
 | `reporter_terminal_tests.rs` | 3669 | `// 50 identical-key findings with collapse_findings=true AND show_mitre_grouping=true.` | Replace with `FindingsRender::FlatCollapsed AND FindingsRender::Grouped` |
 | `reporter_terminal_tests.rs` | 3774 | `/// AC-025: overall section order is unchanged when collapse_findings=true.` | Replace `collapse_findings=true` with `render=FindingsRender::FlatCollapsed` |
 | `bc_2_09_100_multitag_tests.rs` | 766 | `/// Flat view (show_mitre_grouping=false).` | Replace with `render=FindingsRender::FlatExpanded` |
+| `dnp3_f5_remediation_tests.rs` | 1074 | `// STORY-118: new field; false here — grouped mode does not apply collapse.` | Rewrite to `// STORY-120: render = FindingsRender::Grouped (grouped helper)` |
+| `bc_2_09_100_multitag_tests.rs` | 694 | `// STORY-118: new field; false = pre-v0.8.0 non-collapse path` | Rewrite to `// STORY-120: parameterized — mitre_grouping ? Grouped : FlatExpanded` |
 
 #### EXEMPT Allow-List (post-sweep residue — these matches are expected to remain)
 
-The following lines match `collapse_findings\|show_mitre_grouping` but are EXEMPT from
-the sweep. After Task 7b, `grep -n 'collapse_findings\|show_mitre_grouping' tests/` MUST
-return ONLY these lines (plus any assertion-message string-literals-under-test that capture
-current test failure messages):
+The following lines match the **primary grep** (`collapse_findings\|show_mitre_grouping`)
+or the **paraphrase grep** (`non-collapse\|apply collapse\|STORY-118: new field`) but are
+EXEMPT from the sweep. After Task 7b, both greps MUST return ONLY these lines (plus any
+assertion-message string-literals-under-test that capture current test failure messages).
+
+**Primary-grep exemptions:**
 
 | File | Approx. Line | Exemption reason |
 |------|-------------|-----------------|
@@ -475,13 +489,32 @@ current test failure messages):
 | `reporter_terminal_tests.rs` | 3565 | Inline comment `// JsonReporter does not have a collapse_findings field` — refers to JsonReporter, not TerminalReporter; factually correct after refactor (JsonReporter never had this field) |
 | `reporter_terminal_tests.rs` | 3689 | Assertion message: `" of collapse_findings=true; 50 identical findings; got:\n{out}"` — string literal under test |
 
-**Falsifiability rule:** After Task 7b completes, `grep -n 'collapse_findings\|show_mitre_grouping' tests/` MUST return only lines whose content matches one of the exemption reasons above (historical narration, assertion message string literals, or construction-site comments that were rewritten by Task 7). Any line NOT in this allow-list that still matches is a Task 7b omission and must be fixed before PR merge. The reviewer MUST diff the grep output against this table at PR review time.
+**Paraphrase-grep exemptions** (lines that match `non-collapse\|apply collapse\|STORY-118: new field`
+but are legitimately exempt because they are past-tense historical narration):
 
-Passing check: `grep -n 'collapse_findings\|show_mitre_grouping' tests/` yields at most the
-exempt lines listed above — never a current docstring that asserts the field exists on the struct.
+| File | Approx. Line | Exemption reason |
+|------|-------------|-----------------|
+| `reporter_terminal_tests.rs` | 69 | Continuation of line-68 exempt narration: `exercise the pre-v0.8.0 non-collapse path` — same historical block, past-tense |
+| `reporter_terminal_tests.rs` | 660 | Continuation of line-659 exempt narration: `does not apply collapse (BC-2.11.025 invariant 5 / AC-005)` — same historical block, past-tense |
+
+Note: `reporter_tests.rs` contains ~17 construction-site-adjacent `// STORY-118: new field; false = pre-v0.8.0 non-collapse path` comments immediately above `collapse_findings: false` struct fields. These are removed automatically as part of Task 7's construction-site rewrites (they annotate the field being replaced) and are NOT standalone stale comments requiring separate sweep attention. After Task 7 completes, the paraphrase grep will return zero hits in `reporter_tests.rs`.
+
+**Falsifiability rule:** After Task 7b completes, BOTH of the following commands MUST
+return only lines whose content matches one of the exemption reasons above (historical
+narration, assertion message string literals, or construction-site comments that were
+rewritten by Task 7). Any line NOT in this allow-list that still matches is a Task 7b
+omission and must be fixed before PR merge. The reviewer MUST diff both grep outputs
+against this table at PR review time.
+
+- `grep -n 'collapse_findings\|show_mitre_grouping' tests/`
+- `grep -n 'non-collapse\|apply collapse\|STORY-118: new field' tests/`
+
+Passing check: both greps yield at most the exempt lines listed above — never a current
+docstring or comment that asserts the removed fields exist on the struct, or a paraphrased
+provenance comment that names STORY-118 as the source of a field removed by STORY-120.
 
 - **Test:** manual grep census during Task 7b review against this explicit allow-list;
-  auditable at PR review time by diffing grep output against the EXEMPT table.
+  auditable at PR review time by diffing both grep outputs against the EXEMPT table.
 
 ---
 
@@ -593,11 +626,13 @@ required (per F1 §8 and F2 Verification Delta).
 
 7b. **[F4 scope — GREEN — comment sweep, parallel with Task 7]** Sweep all 4 test files for
     comment and docstring references to the removed `collapse_findings` and `show_mitre_grouping`
-    fields. Run `grep -n 'collapse_findings\|show_mitre_grouping' tests/` from the repo root and
-    rewrite every forward-facing match to enum vocabulary (`FindingsRender::Grouped`,
+    fields, including paraphrased provenance comments. Run BOTH greps from the repo root:
+    - `grep -n 'collapse_findings\|show_mitre_grouping' tests/`
+    - `grep -n 'non-collapse\|apply collapse\|STORY-118: new field' tests/`
+    Rewrite every non-exempt match to enum vocabulary (`FindingsRender::Grouped`,
     `FindingsRender::FlatCollapsed`, `FindingsRender::FlatExpanded`).
 
-    **Use the AC-017 Forward-Facing Sweep Targets table** (24 file:line entries) as the
+    **Use the AC-017 Forward-Facing Sweep Targets table** (26 file:line entries) as the
     authoritative work list. Every entry in that table MUST be rewritten before marking this
     AC complete. Specifically:
 
@@ -606,21 +641,29 @@ required (per F1 §8 and F2 Verification Delta).
       `collapse_findings` field does not exist" — replace with "FAILS if `FlatCollapsed` and
       `FlatExpanded` produce identical output / if the render variant is mis-wired to the
       wrong rendering path."
-    - Rewrite all 23 additional forward-facing matches per the sweep-targets table (lines
-      ~696, 1011, 1086, 1100, 1107, 2068, 2078, 2390, 2400, 3218, 3221, 3222, 3226, 3240,
-      3257, 3270, 3328-3329, 3543, 3550-3551, 3659, 3669, 3774 in reporter_terminal_tests.rs;
-      line ~766 in bc_2_09_100_multitag_tests.rs).
+    - Rewrite all 23 additional primary-grep forward-facing matches per the sweep-targets
+      table (lines ~696, 1011, 1086, 1100, 1107, 2068, 2078, 2390, 2400, 3218, 3221, 3222,
+      3226, 3240, 3257, 3270, 3328-3329, 3543, 3550-3551, 3659, 3669, 3774 in
+      reporter_terminal_tests.rs; line ~766 in bc_2_09_100_multitag_tests.rs).
+    - Rewrite the 2 paraphrase-grep forward-facing matches:
+      - `tests/dnp3_f5_remediation_tests.rs:1074`: `// STORY-118: new field; false here — grouped mode does not apply collapse.`
+        → `// STORY-120: render = FindingsRender::Grouped (grouped helper)`
+      - `tests/bc_2_09_100_multitag_tests.rs:694`: `// STORY-118: new field; false = pre-v0.8.0 non-collapse path`
+        → `// STORY-120: parameterized — mitre_grouping ? Grouped : FlatExpanded`
     - Do NOT rewrite the EXEMPT allow-list entries (historical STORY-118 narration at lines
-      ~68, ~659; assertion message string-literals-under-test at lines ~2099, 3247, 3254,
-      3262, 3355, 3368, 3375, 3689; JsonReporter factual comment at ~3565).
+      ~68, ~69, ~659, ~660 in reporter_terminal_tests.rs; assertion message string-literals
+      under-test at lines ~2099, 3247, 3254, 3262, 3355, 3368, 3375, 3689; JsonReporter
+      factual comment at ~3565). The ~17 `// STORY-118: new field` comments in reporter_tests.rs
+      are removed automatically with their adjacent `collapse_findings:` construction sites
+      in Task 7 — no separate action needed.
     - Lines ~3345 and ~3358 are construction-site comments that MUST be rewritten (they are
       in the Forward-Facing Sweep Targets table); do not exempt them as "Task 7 scope" — they
       ARE Task 7 / 7b scope and must be updated alongside the construction sites they annotate.
 
-    **Verification:** After all rewrites, run `grep -n 'collapse_findings\|show_mitre_grouping'
-    tests/` and diff the output against the AC-017 EXEMPT allow-list. Any match NOT in the
-    allow-list is an omission that must be fixed. Guards against DF-GREEN-DOC-TENSE-SWEEP /
-    DF-SIBLING-SWEEP recurrence. See AC-017.
+    **Verification:** After all rewrites, run BOTH greps and diff the output against the
+    AC-017 EXEMPT allow-list (primary-grep exemptions + paraphrase-grep exemptions). Any
+    match NOT in the allow-list is an omission that must be fixed. Guards against
+    DF-GREEN-DOC-TENSE-SWEEP / DF-SIBLING-SWEEP recurrence. See AC-017.
 
 8. **[F4 scope — VERIFY]** Run `cargo check --all-targets` (zero compile errors confirms
    all 28 sites updated). Run `cargo test --all-targets` (zero test regressions confirms

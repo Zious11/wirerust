@@ -40,7 +40,7 @@ F1 for issue #62 itself.
 Two concrete violations of AC #3 ("no inter-flag invariants encoded only in comments") now
 exist in the shipped code:
 
-1. **Three-way mutual exclusion as nested bools** (`src/reporter/terminal.rs:187-197`):
+1. **Three-way mutual exclusion as nested bools** (`src/reporter/terminal.rs:187-205`):
    ```rust
    if self.show_mitre_grouping {
        self.render_findings_grouped(&mut out, findings);
@@ -436,9 +436,9 @@ crate, so there is no `lib.rs` and no downstream crate consumers. However, test 
 `wirerust::reporter::terminal::FindingsRender`.
 
 **Recommendation:** No re-export needed. The test files can add
-`use wirerust::reporter::terminal::FindingsRender;` to their existing imports. All 35
-construction sites are in test files that already import `TerminalReporter` from the same
-path.
+`use wirerust::reporter::terminal::FindingsRender;` to their existing imports. 26 of the
+28 construction sites are in test files that already import `TerminalReporter` from the
+same path; the remaining 2 are in `src/main.rs` (`run_analyze`, `run_summary`).
 
 ### OQ-4 (REFINEMENT): Derive Traits on `FindingsRender`
 
