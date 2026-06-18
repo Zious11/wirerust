@@ -92,16 +92,16 @@ input-hash: "cfa60a9"
 | BC | Version | Title |
 |----|---------|-------|
 | BC-2.11.013 | v1.12 | MITRE Grouping Emits Tactic Headers in Canonical Order; Uncategorized Last |
-| BC-2.11.014 | v1.7  | MITRE Bucket Sort |
-| BC-2.11.015 | v1.8  | Colorization and Per-Tactic Header |
-| BC-2.11.016 | v1.7  | Uncategorized Bucket — Findings with No Recognized MITRE Technique |
+| BC-2.11.014 | v1.7  | Within Tactic Bucket: Sort by Verdict, Confidence, Emission Order |
+| BC-2.11.015 | v1.8  | No-Technique or Unknown-ID Findings Land in Uncategorized |
+| BC-2.11.016 | v1.7  | MITRE Grouping Expands Per-Finding Line with Em-Dash and Name |
 | BC-2.11.017 | v1.14 | Default Rendering Emits MITRE: <id(s)> Only (No Em-Dash) |
 | BC-2.11.019 | v1.7  | TerminalReporter Renders Sections in Correct Order |
-| BC-2.11.025 | v1.8  | Flat-Mode Collapse Groups Findings by (category, verdict, confidence, summary) Key |
-| BC-2.11.026 | v1.9  | Collapsed Group of N≥2 Renders Header with (xN) Suffix |
-| BC-2.11.027 | v1.5  | Collapsed Group Retains at Most K=3 Representative Evidence Lines |
-| BC-2.11.028 | v1.5  | --no-collapse Opt-Out Flag Disables Terminal Collapse |
-| BC-2.11.029 | v1.4  | Collapse is Display-Layer Only; JSON/CSV Reporters Receive Unmodified findings Slice |
+| BC-2.11.025 | v1.8  | Flat-Mode Collapse Groups Findings by (category, verdict, confidence, summary) Key; First-Occurrence Order; Deterministic |
+| BC-2.11.026 | v1.9  | Collapsed Group of N≥2 Renders Header with (xN) Suffix; Singleton (N=1) Renders Without Suffix |
+| BC-2.11.027 | v1.5  | Collapsed Group Retains at Most K=3 Representative Evidence Lines; Remainder Elided from Terminal Display |
+| BC-2.11.028 | v1.5  | --no-collapse Opt-Out Flag Disables Terminal Collapse and Restores One-Line-Per-Finding Rendering; JSON/CSV Unaffected |
+| BC-2.11.029 | v1.4  | Collapse is Display-Layer Only; JSON/CSV Reporters Receive Unmodified findings Slice; Non-Repeated Findings Individually Visible in All Outputs |
 | BC-2.11.010 | v1.9  | TerminalReporter Escapes Both Summary AND Each Evidence Line |
 
 ## Acceptance Criteria
@@ -159,17 +159,18 @@ Rule 5 rationale — they are not part of the mutually-exclusive findings-render
 
 ### AC-003 — Dispatch in render() is an exhaustive match over FindingsRender
 *(traces to BC-2.11.019 invariant 7 — FINDINGS dispatch routing;*
-*BC-2.11.014 postcondition 1 — bucket sort invoked via Grouped arm calling render_findings_grouped;*
-*BC-2.11.015 postcondition 1 — colorization invoked via Grouped arm calling render_findings_grouped;*
-*BC-2.11.016 postcondition 1 — uncategorized bucket invoked via Grouped arm calling render_findings_grouped)*
+*BC-2.11.014 postcondition 1 — within-tactic bucket sort by verdict, confidence, emission order invoked via Grouped arm calling render_findings_grouped;*
+*BC-2.11.015 postcondition 1 — no-technique / unknown-ID findings land in the Uncategorized bucket, invoked via Grouped arm calling render_findings_grouped;*
+*BC-2.11.016 postcondition 1 — grouped mode expands each per-finding MITRE line with em-dash and technique name, invoked via Grouped arm calling render_findings_grouped)*
 
 The FINDINGS section dispatch in `TerminalReporter::render` replaces the
 `if self.show_mitre_grouping { ... } else if self.collapse_findings { ... } else { ... }`
 chain with a `match self.render { FindingsRender::Grouped => ..., FindingsRender::FlatCollapsed => ..., FindingsRender::FlatExpanded => ... }`.
 Rust's exhaustive match enforcement means all three arms are required to compile.
-No behavior changes: `Grouped` calls `render_findings_grouped` (which owns the bucket sort
-per BC-2.11.014, per-tactic colorization per BC-2.11.015, and the uncategorized bucket per
-BC-2.11.016), `FlatCollapsed` calls the collapse pass (established in STORY-118),
+No behavior changes: `Grouped` calls `render_findings_grouped` (which owns the within-tactic
+bucket sort per BC-2.11.014, the Uncategorized bucket for no-technique/unknown-ID findings
+per BC-2.11.015, and the em-dash + technique-name MITRE line expansion per BC-2.11.016),
+`FlatCollapsed` calls the collapse pass (established in STORY-118),
 `FlatExpanded` iterates `render_finding_flat` directly.
 
 - **Test:** `test_BC_2_11_019_findings_dispatch_match_exhaustive`
@@ -365,7 +366,7 @@ branch.
 
 ### AC-014 — FlatExpanded: one-line-per-finding behavior preserved byte-for-byte
 *(traces to BC-2.11.028 postcondition 2 — --no-collapse restores pre-v0.8.0 rendering;*
-*BC-2.11.017 postcondition 1 — default/flat rendering emits MITRE: &lt;id(s)&gt; without em-dash,*
+*BC-2.11.017 postcondition 1 — default/flat rendering emits `MITRE: <id(s)>` only, no em-dash,*
 *exercised by both FlatCollapsed and FlatExpanded arms which call render_finding_flat)*
 
 Given `TerminalReporter { render: FindingsRender::FlatExpanded, ... }`, the output is
@@ -413,24 +414,74 @@ a defect. The Cargo.toml version is bumped to `0.9.0` in the STORY-120 PR.
 *struct shape change propagates to all four test files including their comment vocabulary)*
 
 After STORY-120 lands, `grep -n 'collapse_findings\|show_mitre_grouping' tests/` returns
-zero matches that are current assertions about the struct fields. Specifically:
-- The `test_BC_2_11_028_flag_wired_to_reporter_field` docstring (currently at
-  `tests/reporter_terminal_tests.rs:3320-3324`) says "FAILS if the `collapse_findings` field
-  does not exist" — this assertion is self-contradictory after the refactor removes the field.
-  It MUST be rewritten to: "FAILS if `FlatCollapsed` and `FlatExpanded` produce identical
-  output / if the render variant is mis-wired to the wrong rendering path."
-- Any comment referencing `collapse_findings:` or `show_mitre_grouping:` as **struct fields**
-  must be rewritten to use `FindingsRender::FlatCollapsed`, `FindingsRender::FlatExpanded`,
-  or `FindingsRender::Grouped` vocabulary.
-- Historical changelog prose (e.g., STORY-118 references in comments) that mentions these
-  field names in past-tense narration is exempt — only forward-facing assertions are in scope.
+only the residue listed in the **EXEMPT allow-list** below. Every non-exempt match is a
+forward-facing assertion about the removed struct fields and MUST be rewritten to enum
+vocabulary (`FindingsRender::Grouped`, `FindingsRender::FlatCollapsed`,
+`FindingsRender::FlatExpanded`).
 
-Passing check: `grep -n 'collapse_findings\|show_mitre_grouping' tests/` yields only
-enum-era uses (e.g., in string literals being tested) or clearly historical-narrative
-comments — never a current docstring that asserts the field exists on the struct.
+#### Forward-Facing Comment Sweep Targets (MUST be rewritten)
 
-- **Test:** manual grep census during Task 7b review; there is no automated test gate, but
-  the AC is auditable at PR review time.
+The following lines reference removed fields in a forward-facing/assertive manner and are
+in scope for Task 7b rewriting. Line numbers are pre-refactor baselines; minor shifts are
+expected — locate by surrounding context.
+
+| File | Approx. Line | Content (pre-refactor) | Rewrite action |
+|------|-------------|------------------------|----------------|
+| `reporter_terminal_tests.rs` | 696 | `/// When show_mitre_grouping = true, tactic section headers appear` | Replace `show_mitre_grouping = true` with `render = FindingsRender::Grouped` |
+| `reporter_terminal_tests.rs` | 1011 | `/// When show_mitre_grouping = true and a finding has a known technique ID` | Replace with `render = FindingsRender::Grouped` |
+| `reporter_terminal_tests.rs` | 1086 | `/// When show_mitre_grouping = false (default)` | Replace with `render != FindingsRender::Grouped (FlatExpanded/FlatCollapsed)` |
+| `reporter_terminal_tests.rs` | 1100 | `// Canonical test vector: mitre="T1036", show_mitre_grouping=false.` | Replace `show_mitre_grouping=false` with `render=FlatExpanded` |
+| `reporter_terminal_tests.rs` | 1107 | `// Use plain_reporter() (show_mitre_grouping = false).` | Replace with `render=FindingsRender::FlatExpanded` |
+| `reporter_terminal_tests.rs` | 2068 | `/// AC-005: show_mitre_grouping=true suppresses collapse` | Replace with `render=FindingsRender::Grouped suppresses collapse` |
+| `reporter_terminal_tests.rs` | 2078 | `// BC-2.11.025 invariant 5: when show_mitre_grouping=true, collapse does NOT run.` | Replace with `render=FindingsRender::Grouped` |
+| `reporter_terminal_tests.rs` | 2390 | `// Collapse reporter (collapse_findings=true) with a single finding.` | Replace with `render=FindingsRender::FlatCollapsed` |
+| `reporter_terminal_tests.rs` | 2400 | `// Output must be byte-identical to the pre-v0.8.0 path (collapse_findings=false).` | Replace `collapse_findings=false` with `render=FindingsRender::FlatExpanded` |
+| `reporter_terminal_tests.rs` | 3218 | `/// This guards the opt-out path: with collapse_findings=false, 5 identical-key` | Replace `collapse_findings=false` with `render=FindingsRender::FlatExpanded` |
+| `reporter_terminal_tests.rs` | 3221 | `/// checking that collapse_findings=true produces a different (collapsed) result.` | Replace with `render=FindingsRender::FlatCollapsed` |
+| `reporter_terminal_tests.rs` | 3222 | `/// FAILS if collapse_findings=false collapses` | Replace with `FlatExpanded` |
+| `reporter_terminal_tests.rs` | 3226 | `// BC-2.11.028 pc2: collapse_findings=false → one header per finding, no suffix.` | Replace `collapse_findings=false` with `render=FindingsRender::FlatExpanded` |
+| `reporter_terminal_tests.rs` | 3240 | `// plain_reporter() has collapse_findings=false.` | Replace with `render=FindingsRender::FlatExpanded` |
+| `reporter_terminal_tests.rs` | 3257 | `// Contrast assertion: collapse_findings=true on the same input MUST produce` | Replace with `FindingsRender::FlatCollapsed` |
+| `reporter_terminal_tests.rs` | 3270 | `/// FAILS if a future change makes collapse_findings=true and collapse_findings=false` | Replace both with `FlatCollapsed` and `FlatExpanded` |
+| `reporter_terminal_tests.rs` | 3320–3324 | docstring: `--no-collapse flag is wired: no_collapse=true → collapse_findings=false` + `FAILS if the collapse_findings field does not exist` | Rewrite: `FAILS if FlatCollapsed and FlatExpanded produce identical output / if the render variant is mis-wired to the wrong rendering path.` |
+| `reporter_terminal_tests.rs` | 3328–3329 | `// collapse_findings=true → collapse active` + `// collapse_findings=false → collapse inactive` | Replace with `FlatCollapsed` / `FlatExpanded` vocabulary |
+| `reporter_terminal_tests.rs` | 3543 | `/// This guards that the collapse_findings field on TerminalReporter does not leak` | Replace with `render field (FindingsRender::FlatCollapsed)` |
+| `reporter_terminal_tests.rs` | 3550–3551 | `// BC-2.11.029 pc5: JSON output must be identical regardless of collapse_findings.` + `// The collapse_findings field belongs to TerminalReporter only.` | Replace `collapse_findings` with `render` / `FindingsRender` |
+| `reporter_terminal_tests.rs` | 3659 | `/// regardless of collapse_findings flag; 0 (xN) suffixes in any volume.` | Replace `collapse_findings flag` with `render variant` |
+| `reporter_terminal_tests.rs` | 3669 | `// 50 identical-key findings with collapse_findings=true AND show_mitre_grouping=true.` | Replace with `FindingsRender::FlatCollapsed AND FindingsRender::Grouped` |
+| `reporter_terminal_tests.rs` | 3774 | `/// AC-025: overall section order is unchanged when collapse_findings=true.` | Replace `collapse_findings=true` with `render=FindingsRender::FlatCollapsed` |
+| `bc_2_09_100_multitag_tests.rs` | 766 | `/// Flat view (show_mitre_grouping=false).` | Replace with `render=FindingsRender::FlatExpanded` |
+
+#### EXEMPT Allow-List (post-sweep residue — these matches are expected to remain)
+
+The following lines match `collapse_findings\|show_mitre_grouping` but are EXEMPT from
+the sweep. After Task 7b, `grep -n 'collapse_findings\|show_mitre_grouping' tests/` MUST
+return ONLY these lines (plus any assertion-message string-literals-under-test that capture
+current test failure messages):
+
+| File | Approx. Line | Exemption reason |
+|------|-------------|-----------------|
+| `reporter_terminal_tests.rs` | 68 | Past-tense STORY-118 changelog narration: `STORY-118: collapse_findings field added; default false so existing tests` — historical, past-tense |
+| `reporter_terminal_tests.rs` | 659 | Past-tense STORY-118 changelog narration: `STORY-118: collapse_findings field added; false here since grouped mode` — historical, past-tense |
+| `reporter_terminal_tests.rs` | 2099 | Assertion message string literal under test: `collapse_findings=true; got:\n{out}` — testing pre-enum behavior described in the message; becomes stale after Task 7 construction-site update but the assertion message itself may remain if the test behavior is preserved |
+| `reporter_terminal_tests.rs` | 3247 | Assertion message string literal: `"BC-2.11.028 pc2: collapse_findings=false must render 5 individual header lines; \"` — assertion message, not a forward-facing struct-field claim |
+| `reporter_terminal_tests.rs` | 3254 | Assertion message string literal: `"BC-2.11.028 pc2: collapse_findings=false must produce no (xN) suffix; got:\n{out}"` — assertion message |
+| `reporter_terminal_tests.rs` | 3262 | Assertion message string literal: `"BC-2.11.028 pc2 contrast: collapse_findings=true must produce '(x5)' for same \"` — assertion message |
+| `reporter_terminal_tests.rs` | 3345 | Inline comment `// Reporter with collapse_findings = true → produces "(x3)".` — this comment accompanies the construction site (Task 7 scope); becomes `FlatCollapsed` after Task 7 rewrite |
+| `reporter_terminal_tests.rs` | 3355 | Assertion message: `"BC-2.11.028 inv1: collapse_findings=true must produce '(x3)' suffix; got:\n{out_on}"` — string literal under test |
+| `reporter_terminal_tests.rs` | 3358 | Inline comment `// Reporter with collapse_findings = false → no collapse, no suffix.` — Task 7 construction-site comment; becomes `FlatExpanded` after Task 7 rewrite |
+| `reporter_terminal_tests.rs` | 3368 | Assertion message: `"BC-2.11.028 inv1: collapse_findings=false must produce no (xN) suffix; \"` — string literal under test |
+| `reporter_terminal_tests.rs` | 3375 | Assertion message: `"BC-2.11.028 inv1: collapse_findings=true and collapse_findings=false must produce \"` — string literal under test |
+| `reporter_terminal_tests.rs` | 3565 | Inline comment `// JsonReporter does not have a collapse_findings field` — refers to JsonReporter, not TerminalReporter; factually correct after refactor (JsonReporter never had this field) |
+| `reporter_terminal_tests.rs` | 3689 | Assertion message: `" of collapse_findings=true; 50 identical findings; got:\n{out}"` — string literal under test |
+
+**Falsifiability rule:** After Task 7b completes, `grep -n 'collapse_findings\|show_mitre_grouping' tests/` MUST return only lines whose content matches one of the exemption reasons above (historical narration, assertion message string literals, or construction-site comments that were rewritten by Task 7). Any line NOT in this allow-list that still matches is a Task 7b omission and must be fixed before PR merge. The reviewer MUST diff the grep output against this table at PR review time.
+
+Passing check: `grep -n 'collapse_findings\|show_mitre_grouping' tests/` yields at most the
+exempt lines listed above — never a current docstring that asserts the field exists on the struct.
+
+- **Test:** manual grep census during Task 7b review against this explicit allow-list;
+  auditable at PR review time by diffing grep output against the EXEMPT table.
 
 ---
 
@@ -542,20 +593,31 @@ required (per F1 §8 and F2 Verification Delta).
 
 7b. **[F4 scope — GREEN — comment sweep, parallel with Task 7]** Sweep all 4 test files for
     comment and docstring references to the removed `collapse_findings` and `show_mitre_grouping`
-    fields. Run `grep -n 'collapse_findings\|show_mitre_grouping' tests/` and rewrite each
-    stale comment to enum vocabulary (`FindingsRender::Grouped`, `FindingsRender::FlatCollapsed`,
-    `FindingsRender::FlatExpanded`). Specifically:
+    fields. Run `grep -n 'collapse_findings\|show_mitre_grouping' tests/` from the repo root and
+    rewrite every forward-facing match to enum vocabulary (`FindingsRender::Grouped`,
+    `FindingsRender::FlatCollapsed`, `FindingsRender::FlatExpanded`).
+
+    **Use the AC-017 Forward-Facing Sweep Targets table** (24 file:line entries) as the
+    authoritative work list. Every entry in that table MUST be rewritten before marking this
+    AC complete. Specifically:
+
     - Rewrite the `test_BC_2_11_028_flag_wired_to_reporter_field` docstring
       (`tests/reporter_terminal_tests.rs:3320-3324`): the current text says "FAILS if the
       `collapse_findings` field does not exist" — replace with "FAILS if `FlatCollapsed` and
       `FlatExpanded` produce identical output / if the render variant is mis-wired to the
-      wrong rendering path." This ensures the docstring is self-consistent after the bool
-      fields are removed.
-    - Any other comment asserting `collapse_findings` or `show_mitre_grouping` exist as
-      struct fields must be rewritten to enum vocabulary.
-    - Historical/changelog-narration comments (past-tense references to the v0.8.0 bool
-      era) are exempt — only forward-facing assertions are in scope.
-    Guards against DF-GREEN-DOC-TENSE-SWEEP / DF-SIBLING-SWEEP recurrence. See AC-017.
+      wrong rendering path."
+    - Rewrite all 23 additional forward-facing matches per the sweep-targets table (lines
+      ~696, 1011, 1086, 1100, 1107, 2068, 2078, 2390, 2400, 3218, 3221, 3222, 3226, 3240,
+      3257, 3270, 3328-3329, 3543, 3550-3551, 3659, 3669, 3774 in reporter_terminal_tests.rs;
+      line ~766 in bc_2_09_100_multitag_tests.rs).
+    - Do NOT rewrite the EXEMPT allow-list entries (historical STORY-118 narration at lines
+      ~68, ~659; assertion message string-literals-under-test at lines ~2099, 3247, 3254,
+      3262, 3355, 3368, 3375, 3689; JsonReporter factual comment at ~3565).
+
+    **Verification:** After all rewrites, run `grep -n 'collapse_findings\|show_mitre_grouping'
+    tests/` and diff the output against the AC-017 EXEMPT allow-list. Any match NOT in the
+    allow-list is an omission that must be fixed. Guards against DF-GREEN-DOC-TENSE-SWEEP /
+    DF-SIBLING-SWEEP recurrence. See AC-017.
 
 8. **[F4 scope — VERIFY]** Run `cargo check --all-targets` (zero compile errors confirms
    all 28 sites updated). Run `cargo test --all-targets` (zero test regressions confirms
@@ -693,10 +755,10 @@ were already verified during STORY-118 and are unchanged by this refactor.
 Every BC in the `behavioral_contracts:` frontmatter array is cited by at least one AC:
 
 - BC-2.11.013: AC-004 (invariant 4 — grouped path structurally suffix-free), AC-012
-- BC-2.11.014: AC-003 (postcondition 1 — Grouped arm calls `render_findings_grouped` which owns bucket sort)
-- BC-2.11.015: AC-003 (postcondition 1 — Grouped arm calls `render_findings_grouped` which owns colorization)
-- BC-2.11.016: AC-003 (postcondition 1 — Grouped arm calls `render_findings_grouped` which owns uncategorized bucket)
-- BC-2.11.017: AC-014 (postcondition 1 — FlatExpanded and FlatCollapsed arms call render_finding_flat, preserving MITRE: <id> no-em-dash format)
+- BC-2.11.014: AC-003 (postcondition 1 — Grouped arm calls `render_findings_grouped` which owns within-tactic bucket sort by verdict, confidence, emission order)
+- BC-2.11.015: AC-003 (postcondition 1 — Grouped arm calls `render_findings_grouped` which owns no-technique/unknown-ID findings landing in the Uncategorized bucket)
+- BC-2.11.016: AC-003 (postcondition 1 — Grouped arm calls `render_findings_grouped` which owns grouped-mode em-dash + technique-name MITRE line expansion)
+- BC-2.11.017: AC-014 (postcondition 1 — default/flat rendering emits `MITRE: <id(s)>` only, no em-dash; FlatExpanded and FlatCollapsed arms call render_finding_flat)
 - BC-2.11.019: AC-003 (invariant 7 — dispatch routing), AC-010
 - BC-2.11.025: AC-004 (invariant 5 — type-level mutual exclusion), AC-013
 - BC-2.11.026: AC-013 (postcondition 1 — (xN) suffix preserved in FlatCollapsed)

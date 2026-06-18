@@ -1,6 +1,6 @@
 ---
 document_type: dependency-graph
-version: "1.9"
+version: "2.0"
 status: draft
 producer: story-writer
 phase: 3
