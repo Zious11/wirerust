@@ -96,5 +96,49 @@ traces_to: STATE.md
 
 ---
 
+---
+
+## Session Resume Checkpoint (2026-06-18 — F7 CONVERGED — AWAITING F7 HUMAN GATE → v0.9.0) [ARCHIVED]
+
+### State at archival
+
+| Field | Value |
+|-------|-------|
+| **Date** | 2026-06-18 |
+| **Position** | F7 delta-convergence CONVERGED (D-108). Awaiting F7 HUMAN GATE to release v0.9.0. |
+| **Pipeline** | FEATURE_MODE E-8 / #62 |
+| **develop HEAD** | f851995 (fix-PR #267 — ADR-0003 color-ladder anchor + CHANGELOG v0.9.0 entry) |
+| **main HEAD** | 73034da (tag v0.8.0) |
+| **Next step** | Present F7 convergence summary to human → release v0.9.0 gate |
+
+### A. EXACT PIPELINE POSITION
+
+- **Project:** wirerust. **Mode:** FEATURE_MODE — E-8 / issue #62 TerminalReporter FindingsRender enum-of-modes refactor. Release target v0.9.0 CONFIRMED.
+- **Phase:** F1 / F2 / F3 / F4 DELIVERED / F5 CONVERGED 3/3 (D-106) / F6 HARDENED (D-107) / F7 CONVERGED (D-108). AWAITING F7 HUMAN GATE → release v0.9.0.
+- **Latest release:** v0.8.0 — finding-collapse (E-18, issue #259, STORY-118). Tag v0.8.0 on main 73034da. Next release: v0.9.0.
+- **develop HEAD:** f851995 (fix-PR #267 — ADR-0003 color-ladder anchor 209-221→273-285 + CHANGELOG v0.9.0 entry).
+- **main HEAD:** 73034da (chore: release v0.8.0). Tag v0.8.0 annotated.
+- **Active worktrees:** EXACTLY 2 — main repo (develop at /Users/zious/Documents/GITHUB/wirerust), .factory/ (factory-artifacts). STORY-120 worktree cleaned post-merge.
+- **Open PRs:** NONE.
+
+### B. WHAT WAS COMPLETE AT THIS CHECKPOINT
+
+- F1 delta-analysis: COMPLETE (full numeric audit; 28 construction sites).
+- F2 spec-evolution: COMPLETE (D-088–D-091). 12 SS-11 BCs re-anchored. BC-INDEX v1.42. ADR-0003 amended. Gate SATISFIED 3/3 (60d8392).
+- F3 story decomposition: COMPLETE (D-092–D-102; 10 fix rounds). STORY-120 created. Gate SATISFIED 3/3 (f034ca2). HUMAN GATE APPROVED (D-103).
+- F4 delta-implementation: COMPLETE (D-104). STORY-120 merged develop a4263c73 (PR #266). Per-story adversarial 3/3. CI 9/9. Cargo 0.8.0→0.9.0.
+- F5 scoped-adversarial: CONVERGED 3/3 (D-105/D-106). HIGH F-1 remediated. Re-run triple CLEAN (develop f851995 / factory e1d5a64).
+- F6 targeted hardening: HARDENED (D-107). No new VP. Regression 1646/0. Mutation 96.6%. All 3 dispatch arms KILLED.
+- F7 delta-convergence: CONVERGED 5-dim (D-108). Holistic adversarial 3/3 CLEAN. Consistency PASS (VP-016 v2.4). Input-drift MATCH.
+- Decisions D-088..D-108 cover this cycle.
+
+### C. NEXT ACTIONS (at time of archival)
+
+1. Present F7 convergence summary (D-108) to human for release approval → release v0.9.0.
+
+<!-- This checkpoint was replaced by the STORY-119 new cycle checkpoint on 2026-06-18. -->
+
+---
+
 <!-- Prior checkpoint archived here when feature-collapse-v0.8.0 STEADY_STATE/IDLE checkpoint was replaced
      by FEATURE_MODE E-8/#62 F1-COMPLETE checkpoint. -->

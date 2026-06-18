@@ -35,6 +35,19 @@ traces_to: STATE.md
 5. **DF-SIBLING-SWEEP-001 must cover same defect class across all sibling BCs** — BC-2.11.029 Architecture-Anchor carried the same out-of-scope wiring expression as BC-2.11.028 (fixed in Round-4), but the Round-4 sibling-sweep covered only the dispatch-anchor pattern, not the wiring-expression pattern. Reinforces DF-SIBLING-SWEEP-001: fix must sweep ALL siblings for the SAME defect class, not just the named instance.
    _Discovered: F3 Round-6 triple, 2026-06-18 (D-098)._
 
+6. **Post-merge anchor drift is a consuming-surface gap** — F5 Pass-3 found that all 12 SS-11 BC line-anchors and ADR-0003 became stale the moment STORY-120 merged (shifting terminal.rs lines ~52-160). The anchor re-validation passes had been run against the spec-branch HEAD, not the post-merge feature SHA. Resolved by BC-INDEX v1.43 re-anchor by symbol + ADR-0003+CHANGELOG fix-PR #267. Additionally F7 consistency audit found VP-016 was also a missed consuming surface (stale struct-field snippets in test-spec code blocks). Root cause: the consuming-surface checklist for any story refactoring a file that other BCs/VPs anchor into must include a post-merge anchor-revalidation step. Codification via STORY-121 (PG-62-F5-POSTMERGE-ANCHOR-001).
+   _Discovered: F5 Pass-3, 2026-06-18 (D-105/D-106); extended F7 consistency (D-108)._
+
+## Cycle-Closing Record (2026-06-18)
+
+**E-8 / #62 cycle status: CLOSED-PENDING-RELEASE (D-109).**
+
+- All process-gap findings from this cycle have follow-up coverage:
+  - **STORY-121 (E-11, draft)** covers D-099/D-100/D-101 (F1/F2 story-input numeric self-audit + consuming-surface sweep checklist) + PG-62-F5-POSTMERGE-ANCHOR-001 (post-merge anchor drift) + VP-016/consuming-surface gap (D-108 sub-note). Filed 2026-06-18.
+  - STORY-121 is the designated vehicle for all F1-F7 #62 process-gap policy codification.
+- **Release v0.9.0 HELD** per human (D-109). Cargo 0.9.0 on develop f851995. Holding until more work is bundled (specifically the upcoming STORY-119 grouped-mode collapse cycle).
+- **Next cycle:** STORY-119 (grouped-mode finding-collapse). Feature-Mode F1 delta-analysis. depends_on [STORY-120] (unblocked).
+
 ## Policy Candidates
 
 | Lesson | Proposed Policy | Scope | Status |
@@ -44,3 +57,4 @@ traces_to: STATE.md
 | 3 | PG-62-F3-AC-SCOPE — AC code blocks scope-verified at cited file:line | Story AC authoring | proposed — policy codification pending |
 | 4 | PG-62-F3-AC-DESC-FROM-SOURCE — AC trace descriptions verbatim from BC PC text | Story AC authoring | proposed — policy codification pending |
 | 5 | DF-SIBLING-SWEEP-001 extension — sweep same defect class across all sibling BCs | Post-fix BC sweep | reinforces existing policy |
+| 6 | PG-62-F5-POSTMERGE-ANCHOR-001 — post-merge anchor revalidation (BCs + VPs) against merged feature SHA | Cycle-closing checklist for stories refactoring files that other BCs/VPs anchor into | proposed — STORY-121 filed |
