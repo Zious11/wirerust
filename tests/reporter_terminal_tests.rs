@@ -1852,71 +1852,521 @@ mod story_118 {
     // -----------------------------------------------------------------------
 
     /// AC-001: N identical findings collapse to exactly one display group.
-    /// REGRESSION-GUARD: verifies BC-2.11.025 postcondition 1.
+    ///
+    /// This guards that when N≥2 findings share the same (category, verdict,
+    /// confidence, summary) four-tuple, the FINDINGS section contains exactly one
+    /// header line — not N separate lines. FAILS if a future change removes the
+    /// collapse pass or falls back to per-finding rendering unconditionally.
     #[test]
     fn test_BC_2_11_025_identical_findings_collapse_to_one_group() {
-        // BC-5.38.005 self-check: including real assertions here would make this
-        // test pass without implementer work — stub body is `todo!()`.
-        todo!("STORY-118 RED: implement test body — BC-5.38.001")
+        // BC-2.11.025 postcondition 1: N identical-key findings → exactly 1 header line.
+        // Canonical test vector: 5 findings all (Anomaly, Inconclusive, Low, "Flood").
+        let findings: Vec<Finding> = (0..5)
+            .map(|_| {
+                make_collapse_finding(
+                    ThreatCategory::Anomaly,
+                    Verdict::Inconclusive,
+                    Confidence::Low,
+                    "Flood",
+                    vec![],
+                    vec![],
+                )
+            })
+            .collect();
+
+        let out = collapse_reporter().render(&Summary::new(), &findings, &[]);
+
+        // The FINDINGS section must appear (findings are non-empty).
+        assert!(out.contains("FINDINGS"), "FINDINGS section must appear; got:\n{out}");
+
+        // Count occurrences of the header string in the output — must be exactly 1.
+        // The header format per terminal.rs: `  [Anomaly] INCONCLUSIVE (LOW) - Flood`
+        let header = "[Anomaly] INCONCLUSIVE (LOW) - Flood";
+        let header_count = out.matches(header).count();
+        assert_eq!(
+            header_count, 1,
+            "BC-2.11.025 pc1: 5 identical findings must collapse to exactly 1 header line; \
+             found {header_count} occurrences of '{header}' in:\n{out}"
+        );
+
+        // The (x5) suffix must be present, confirming N=5 was recorded.
+        assert!(
+            out.contains("(x5)"),
+            "BC-2.11.025 pc1: collapsed group header must carry '(x5)' suffix; got:\n{out}"
+        );
     }
 
     /// AC-002: first-occurrence order is preserved across collapsed groups.
-    /// REGRESSION-GUARD: verifies BC-2.11.025 postcondition 2.
+    ///
+    /// This guards that collapse respects insertion order: the group whose first
+    /// member appeared earliest in the input slice renders first. FAILS if a future
+    /// change uses HashMap iteration order (which is non-deterministic) to order groups.
     #[test]
     fn test_BC_2_11_025_first_occurrence_order() {
-        todo!("STORY-118 RED: implement test body — BC-5.38.001")
+        // BC-2.11.025 postcondition 2 canonical test vector:
+        //   indices 0,2,4 → key A ("Alpha")
+        //   indices 1,3   → key B ("Beta")
+        // First occurrence of A is index 0; first occurrence of B is index 1.
+        // Collapsed output must render group A before group B.
+        let findings = vec![
+            make_collapse_finding(
+                ThreatCategory::Anomaly,
+                Verdict::Inconclusive,
+                Confidence::Low,
+                "Alpha",
+                vec![],
+                vec![],
+            ),
+            make_collapse_finding(
+                ThreatCategory::Anomaly,
+                Verdict::Inconclusive,
+                Confidence::Low,
+                "Beta",
+                vec![],
+                vec![],
+            ),
+            make_collapse_finding(
+                ThreatCategory::Anomaly,
+                Verdict::Inconclusive,
+                Confidence::Low,
+                "Alpha",
+                vec![],
+                vec![],
+            ),
+            make_collapse_finding(
+                ThreatCategory::Anomaly,
+                Verdict::Inconclusive,
+                Confidence::Low,
+                "Beta",
+                vec![],
+                vec![],
+            ),
+            make_collapse_finding(
+                ThreatCategory::Anomaly,
+                Verdict::Inconclusive,
+                Confidence::Low,
+                "Alpha",
+                vec![],
+                vec![],
+            ),
+        ];
+
+        let out = collapse_reporter().render(&Summary::new(), &findings, &[]);
+
+        let pos_alpha = out.find("Alpha").expect("'Alpha' group header not found in output");
+        let pos_beta = out.find("Beta").expect("'Beta' group header not found in output");
+
+        assert!(
+            pos_alpha < pos_beta,
+            "BC-2.11.025 pc2: group A (first occurrence at index 0) must render before \
+             group B (first occurrence at index 1); pos_alpha={pos_alpha}, pos_beta={pos_beta}"
+        );
+
+        // Counts: A×3, B×2.
+        assert!(
+            out.contains("(x3)"),
+            "BC-2.11.025 pc2: group A must have count (x3); got:\n{out}"
+        );
+        assert!(
+            out.contains("(x2)"),
+            "BC-2.11.025 pc2: group B must have count (x2); got:\n{out}"
+        );
     }
 
     /// AC-003: evidence difference does NOT prevent collapse; only the four-field
     /// key matters.
-    /// REGRESSION-GUARD: verifies BC-2.11.025 postcondition 4.
+    ///
+    /// This guards that two findings differing only in their evidence field are
+    /// merged into one group. FAILS if evidence is accidentally included in the
+    /// collapse key.
     #[test]
     fn test_BC_2_11_025_key_discriminator_evidence_nondiscriminating() {
-        todo!("STORY-118 RED: implement test body — BC-5.38.001")
+        // BC-2.11.025 postcondition 4: same (category, verdict, confidence, summary)
+        // but different evidence → one collapsed group, N=2.
+        let findings = vec![
+            make_collapse_finding(
+                ThreatCategory::Anomaly,
+                Verdict::Inconclusive,
+                Confidence::Low,
+                "SameSummary",
+                vec!["evidence-one".to_string()],
+                vec![],
+            ),
+            make_collapse_finding(
+                ThreatCategory::Anomaly,
+                Verdict::Inconclusive,
+                Confidence::Low,
+                "SameSummary",
+                vec!["evidence-two".to_string()],
+                vec![],
+            ),
+        ];
+
+        let out = collapse_reporter().render(&Summary::new(), &findings, &[]);
+
+        // Only one header line for "SameSummary".
+        let header_count = out.matches("SameSummary").count();
+        assert_eq!(
+            header_count, 1,
+            "BC-2.11.025 pc4: two findings differing only in evidence must collapse to 1 header \
+             line; found {header_count} occurrences of 'SameSummary'; got:\n{out}"
+        );
+
+        // Count is N=2.
+        assert!(
+            out.contains("(x2)"),
+            "BC-2.11.025 pc4: collapsed group must carry '(x2)' suffix; got:\n{out}"
+        );
     }
 
     /// AC-004: category difference prevents collapse; two distinct groups emitted.
-    /// REGRESSION-GUARD: verifies BC-2.11.025 invariant 1.
+    ///
+    /// This guards that the category field is part of the collapse key. FAILS if
+    /// a future change reduces the key to fewer than four fields (e.g., drops category).
     #[test]
     fn test_BC_2_11_025_key_discriminator_category() {
-        todo!("STORY-118 RED: implement test body — BC-5.38.001")
+        // BC-2.11.025 invariant 1: category is a key discriminator.
+        // Same verdict/confidence/summary but different category → two distinct groups.
+        let findings = vec![
+            make_collapse_finding(
+                ThreatCategory::Anomaly,
+                Verdict::Inconclusive,
+                Confidence::Low,
+                "SharedSummary",
+                vec![],
+                vec![],
+            ),
+            make_collapse_finding(
+                ThreatCategory::Reconnaissance,
+                Verdict::Inconclusive,
+                Confidence::Low,
+                "SharedSummary",
+                vec![],
+                vec![],
+            ),
+        ];
+
+        let out = collapse_reporter().render(&Summary::new(), &findings, &[]);
+
+        // Two distinct header lines must appear — one per category.
+        // Format: `  [Anomaly] INCONCLUSIVE (LOW) - SharedSummary`
+        //         `  [Reconnaissance] INCONCLUSIVE (LOW) - SharedSummary`
+        assert!(
+            out.contains("[Anomaly]"),
+            "BC-2.11.025 inv1: Anomaly category group must appear; got:\n{out}"
+        );
+        assert!(
+            out.contains("[Reconnaissance]"),
+            "BC-2.11.025 inv1: Reconnaissance category group must appear; got:\n{out}"
+        );
+
+        // Neither group should carry a (xN) suffix — they are singletons (N=1 each).
+        assert!(
+            !out.contains("(x"),
+            "BC-2.11.025 inv1: different-category findings must NOT collapse; \
+             no (xN) suffix expected; got:\n{out}"
+        );
     }
 
     /// AC-005: show_mitre_grouping=true suppresses collapse; no (xN) suffix anywhere.
-    /// REGRESSION-GUARD: verifies BC-2.11.025 invariant 5.
+    ///
+    /// This guards the invariant that grouped (--mitre) mode is structurally
+    /// suffix-free. FAILS if a future change applies the collapse pass inside
+    /// the grouped rendering path, OR if the flat collapse path is not implemented
+    /// (the contrast assertion calls render_findings_collapsed to verify the bypass
+    /// is not just because collapse is broken — flat mode must produce a suffix
+    /// that grouped mode does not).
     #[test]
     fn test_BC_2_11_025_grouped_mode_bypasses_collapse() {
-        todo!("STORY-118 RED: implement test body — BC-5.38.001")
+        // BC-2.11.025 invariant 5: when show_mitre_grouping=true, collapse does NOT run.
+        // 100 identical-key findings in mitre+collapse reporter → no (xN) suffix.
+        let findings: Vec<Finding> = (0..100)
+            .map(|_| {
+                make_collapse_finding(
+                    ThreatCategory::Anomaly,
+                    Verdict::Inconclusive,
+                    Confidence::Low,
+                    "FloodSummary",
+                    vec![],
+                    vec![],
+                )
+            })
+            .collect();
+
+        let out = mitre_collapse_reporter().render(&Summary::new(), &findings, &[]);
+
+        // No (xN) suffix of any kind must appear.
+        assert!(
+            !out.contains("(x"),
+            "BC-2.11.025 inv5: grouped mode must NOT emit any (xN) suffix regardless of \
+             collapse_findings=true; got:\n{out}"
+        );
+
+        // All 100 individual finding lines must appear (grouped, not collapsed).
+        // The summary "FloodSummary" should appear 100 times.
+        let count = out.matches("FloodSummary").count();
+        assert_eq!(
+            count, 100,
+            "BC-2.11.025 inv5: grouped mode must render all 100 findings individually; \
+             found {count} occurrences; got:\n{out}"
+        );
+
+        // Contrast assertion (calls render_findings_collapsed via collapse_reporter()):
+        // flat+collapse mode on the same input MUST produce a (x100) suffix — proving
+        // the bypass above is structural (not because collapse is broken globally).
+        let out_flat = collapse_reporter().render(&Summary::new(), &findings, &[]);
+        assert!(
+            out_flat.contains("(x100)"),
+            "BC-2.11.025 inv5 contrast: flat collapse mode must produce '(x100)' suffix \
+             for the same 100-finding input (proves grouped bypass is intentional, not broken); \
+             got:\n{out_flat}"
+        );
     }
 
     /// AC-006: Likely/High findings collapse normally (severity-agnostic).
-    /// REGRESSION-GUARD: verifies BC-2.11.025 postcondition 7 / edge case EC-014.
+    ///
+    /// This guards that the collapse logic applies equally to all verdict/confidence
+    /// combinations, including the highest-severity Likely+High pair. FAILS if a
+    /// future change gates collapse on severity (e.g., "only collapse low-severity findings").
     #[test]
     fn test_BC_2_11_025_severity_agnostic_collapse_likely_high() {
-        todo!("STORY-118 RED: implement test body — BC-5.38.001")
+        // BC-2.11.025 postcondition 7 / EC-014: Likely+High collapses just like any other key.
+        let findings = vec![
+            make_collapse_finding(
+                ThreatCategory::Reconnaissance,
+                Verdict::Likely,
+                Confidence::High,
+                "Port scan detected",
+                vec![],
+                vec![],
+            ),
+            make_collapse_finding(
+                ThreatCategory::Reconnaissance,
+                Verdict::Likely,
+                Confidence::High,
+                "Port scan detected",
+                vec![],
+                vec![],
+            ),
+        ];
+
+        let out = collapse_reporter().render(&Summary::new(), &findings, &[]);
+
+        // Collapsed to one group with N=2.
+        let header_count = out.matches("Port scan detected").count();
+        assert_eq!(
+            header_count, 1,
+            "BC-2.11.025 pc7: Likely/High findings must collapse; found {header_count} header \
+             occurrences; got:\n{out}"
+        );
+        assert!(
+            out.contains("(x2)"),
+            "BC-2.11.025 pc7: Likely/High collapsed group must carry '(x2)' suffix; got:\n{out}"
+        );
     }
 
     /// AC-007: raw ESC byte in summary distinguishes two groups (raw-byte key).
-    /// REGRESSION-GUARD: verifies BC-2.11.025 postcondition 8 / edge case EC-015.
+    ///
+    /// This guards that the collapse key is built from the raw summary string bytes,
+    /// not from the escaped form. FAILS if a future change escapes summaries before
+    /// building the key, which would conflate "x\x1b" and "x" into the same group.
     #[test]
     fn test_BC_2_11_025_raw_byte_key_esc_distinguishes_groups() {
-        todo!("STORY-118 RED: implement test body — BC-5.38.001")
+        // BC-2.11.025 postcondition 8 / EC-015: raw-byte key comparison.
+        // "x\x1b" (raw ESC byte) ≠ "x" — two distinct groups.
+        let findings = vec![
+            make_collapse_finding(
+                ThreatCategory::Anomaly,
+                Verdict::Inconclusive,
+                Confidence::Low,
+                "x\x1b",
+                vec![],
+                vec![],
+            ),
+            make_collapse_finding(
+                ThreatCategory::Anomaly,
+                Verdict::Inconclusive,
+                Confidence::Low,
+                "x",
+                vec![],
+                vec![],
+            ),
+        ];
+
+        let out = collapse_reporter().render(&Summary::new(), &findings, &[]);
+
+        // Two distinct groups — neither should carry a (xN) suffix (both are singletons).
+        assert!(
+            !out.contains("(x"),
+            "BC-2.11.025 pc8: 'x\\x1b' and 'x' must form two distinct groups (raw-byte key); \
+             no (xN) suffix expected for singleton groups; got:\n{out}"
+        );
+
+        // The clean summary "x" must appear escaped in output as "x" (no ESC in display).
+        // The ESC-bearing summary must appear as "x\\u{1b}" (escaped at render time).
+        assert!(
+            out.contains("\\u{1b}"),
+            "BC-2.11.025 pc8: raw ESC in summary must be escaped to '\\u{{1b}}' at render time; \
+             got:\n{out}"
+        );
     }
 
     /// AC-024: deterministic output for same input (Vec accumulator invariant).
-    /// REGRESSION-GUARD: verifies BC-2.11.025 postcondition 9 / invariant 7.
+    ///
+    /// This guards that two successive calls to render() with the same input produce
+    /// byte-identical output. FAILS if a future change introduces a HashMap-based
+    /// accumulator whose iteration order is non-deterministic.
     #[test]
     fn test_BC_2_11_025_deterministic_output_same_input() {
-        todo!("STORY-118 RED: implement test body — BC-5.38.001")
+        // BC-2.11.025 postcondition 9 / invariant 7: Vec accumulator → deterministic order.
+        let findings = vec![
+            make_collapse_finding(
+                ThreatCategory::Anomaly,
+                Verdict::Inconclusive,
+                Confidence::Low,
+                "Gamma",
+                vec![],
+                vec![],
+            ),
+            make_collapse_finding(
+                ThreatCategory::Anomaly,
+                Verdict::Inconclusive,
+                Confidence::Low,
+                "Alpha",
+                vec![],
+                vec![],
+            ),
+            make_collapse_finding(
+                ThreatCategory::Anomaly,
+                Verdict::Inconclusive,
+                Confidence::Low,
+                "Gamma",
+                vec![],
+                vec![],
+            ),
+            make_collapse_finding(
+                ThreatCategory::Anomaly,
+                Verdict::Inconclusive,
+                Confidence::Low,
+                "Beta",
+                vec![],
+                vec![],
+            ),
+        ];
+
+        let reporter = collapse_reporter();
+        let out1 = reporter.render(&Summary::new(), &findings, &[]);
+        let out2 = reporter.render(&Summary::new(), &findings, &[]);
+
+        assert_eq!(
+            out1, out2,
+            "BC-2.11.025 pc9/inv7: two successive render() calls with identical input must \
+             produce byte-identical output; got:\nfirst=\n{out1}\nsecond=\n{out2}"
+        );
+
+        // Also verify order is first-occurrence: Gamma appears before Alpha appears before Beta.
+        let pos_gamma = out1.find("Gamma").expect("'Gamma' not found");
+        let pos_alpha = out1.find("Alpha").expect("'Alpha' not found");
+        let pos_beta = out1.find("Beta").expect("'Beta' not found");
+        assert!(
+            pos_gamma < pos_alpha && pos_alpha < pos_beta,
+            "BC-2.11.025 inv7: first-occurrence order must be Gamma < Alpha < Beta; \
+             pos_gamma={pos_gamma}, pos_alpha={pos_alpha}, pos_beta={pos_beta}"
+        );
     }
 
     /// AC-026: canonical flood case — 5 empty-UA findings collapse to 1 group
     /// with exactly 3 evidence lines.
-    /// REGRESSION-GUARD: verifies BC-2.11.025 canonical test vector /
-    /// BC-2.11.027 postcondition 2.
+    ///
+    /// This guards the canonical STORY-118 use case: a flood of identical
+    /// empty-User-Agent findings is reduced to a single annotated group with
+    /// the first three evidence samples. FAILS if the collapse pass or evidence
+    /// sampling is broken for the canonical HTTP analyzer output format.
     #[test]
     fn test_BC_2_11_025_flood_canonical_empty_ua_five_findings() {
-        todo!("STORY-118 RED: implement test body — BC-5.38.001")
+        // BC-2.11.025 canonical test vector / BC-2.11.027 pc2.
+        // Per src/analyzer/http.rs:365 format!("{} {}", method, uri) — no HTTP/1.1 token.
+        // Evidence strings: "GET /a" through "GET /e".
+        let findings = vec![
+            make_collapse_finding(
+                ThreatCategory::Anomaly,
+                Verdict::Inconclusive,
+                Confidence::Low,
+                "Empty User-Agent header",
+                vec!["GET /a".to_string()],
+                vec![],
+            ),
+            make_collapse_finding(
+                ThreatCategory::Anomaly,
+                Verdict::Inconclusive,
+                Confidence::Low,
+                "Empty User-Agent header",
+                vec!["GET /b".to_string()],
+                vec![],
+            ),
+            make_collapse_finding(
+                ThreatCategory::Anomaly,
+                Verdict::Inconclusive,
+                Confidence::Low,
+                "Empty User-Agent header",
+                vec!["GET /c".to_string()],
+                vec![],
+            ),
+            make_collapse_finding(
+                ThreatCategory::Anomaly,
+                Verdict::Inconclusive,
+                Confidence::Low,
+                "Empty User-Agent header",
+                vec!["GET /d".to_string()],
+                vec![],
+            ),
+            make_collapse_finding(
+                ThreatCategory::Anomaly,
+                Verdict::Inconclusive,
+                Confidence::Low,
+                "Empty User-Agent header",
+                vec!["GET /e".to_string()],
+                vec![],
+            ),
+        ];
+
+        let out = collapse_reporter().render(&Summary::new(), &findings, &[]);
+
+        // Exactly 1 display group with count 5.
+        let header_count = out.matches("Empty User-Agent header").count();
+        assert_eq!(
+            header_count, 1,
+            "BC-2.11.025 canonical: 5 empty-UA findings must collapse to 1 header line; \
+             found {header_count} occurrences; got:\n{out}"
+        );
+        assert!(
+            out.contains("(x5)"),
+            "BC-2.11.025 canonical: collapsed group must carry '(x5)' suffix; got:\n{out}"
+        );
+
+        // Exactly 3 evidence lines: GET /a, GET /b, GET /c.
+        assert!(
+            out.contains("> GET /a"),
+            "BC-2.11.025 canonical: first evidence line '> GET /a' must appear; got:\n{out}"
+        );
+        assert!(
+            out.contains("> GET /b"),
+            "BC-2.11.025 canonical: second evidence line '> GET /b' must appear; got:\n{out}"
+        );
+        assert!(
+            out.contains("> GET /c"),
+            "BC-2.11.025 canonical: third evidence line '> GET /c' must appear; got:\n{out}"
+        );
+
+        // Evidence for /d and /e must NOT appear (elided by K=3 cap).
+        assert!(
+            !out.contains("> GET /d"),
+            "BC-2.11.025 canonical: fourth evidence 'GET /d' must be elided (K=3 cap); got:\n{out}"
+        );
+        assert!(
+            !out.contains("> GET /e"),
+            "BC-2.11.025 canonical: fifth evidence 'GET /e' must be elided (K=3 cap); got:\n{out}"
+        );
     }
 
     // -----------------------------------------------------------------------
@@ -1925,74 +2375,383 @@ mod story_118 {
 
     /// AC-008: N=1 singleton renders with no count suffix; byte-identical to
     /// pre-v0.8.0 output.
-    /// REGRESSION-GUARD: verifies BC-2.11.026 postcondition 2 / invariant 2.
+    ///
+    /// This guards that singletons are unchanged by the v0.8.0 collapse feature.
+    /// FAILS if a future change introduces a spurious "(x1)" suffix for singletons.
     #[test]
     fn test_BC_2_11_026_singleton_no_suffix() {
-        todo!("STORY-118 RED: implement test body — BC-5.38.001")
+        // BC-2.11.026 postcondition 2 / invariant 2: N=1 singleton, no suffix.
+        let f = make_collapse_finding(
+            ThreatCategory::Anomaly,
+            Verdict::Inconclusive,
+            Confidence::Low,
+            "SingletonSummary",
+            vec!["evidence-line".to_string()],
+            vec![],
+        );
+
+        // Collapse reporter (collapse_findings=true) with a single finding.
+        let out_collapse = collapse_reporter().render(&Summary::new(), &[f.clone()], &[]);
+
+        // No (xN) suffix of any kind.
+        assert!(
+            !out_collapse.contains("(x"),
+            "BC-2.11.026 pc2/inv2: singleton must render with no (xN) suffix; got:\n{out_collapse}"
+        );
+
+        // Output must be byte-identical to the pre-v0.8.0 path (collapse_findings=false).
+        let out_no_collapse = plain_reporter().render(&Summary::new(), &[f], &[]);
+        assert_eq!(
+            out_collapse, out_no_collapse,
+            "BC-2.11.026 pc2/inv2: singleton with collapse=true must be byte-identical to \
+             collapse=false (pre-v0.8.0) output"
+        );
     }
 
     /// AC-009 (part 1): N≥2 header line contains correct (xN) suffix with exact count.
-    /// REGRESSION-GUARD: verifies BC-2.11.026 postcondition 1 / invariant 1.
+    ///
+    /// This guards the basic suffix emission for a small N=3 group. FAILS if the
+    /// suffix is missing, has the wrong count, or uses a different format.
     #[test]
     fn test_BC_2_11_026_count_suffix_for_n_ge_2() {
-        todo!("STORY-118 RED: implement test body — BC-5.38.001")
+        // BC-2.11.026 postcondition 1 / invariant 1: N=3 group → "(x3)" suffix.
+        let findings: Vec<Finding> = (0..3)
+            .map(|_| {
+                make_collapse_finding(
+                    ThreatCategory::Anomaly,
+                    Verdict::Inconclusive,
+                    Confidence::Low,
+                    "Empty UA",
+                    vec![],
+                    vec![],
+                )
+            })
+            .collect();
+
+        let out = collapse_reporter().render(&Summary::new(), &findings, &[]);
+
+        assert!(
+            out.contains("Empty UA (x3)"),
+            "BC-2.11.026 pc1: N=3 group must render header with '(x3)' suffix; got:\n{out}"
+        );
     }
 
     /// AC-009 (part 2): large count (N=3142) rendered exactly; no rounding.
-    /// REGRESSION-GUARD: verifies BC-2.11.026 invariant 1.
+    ///
+    /// This guards that the count is always the exact decimal integer with no
+    /// abbreviation. FAILS if a future change introduces "3k" or "3.1k" shortening.
     #[test]
     fn test_BC_2_11_026_large_count_exact() {
-        todo!("STORY-118 RED: implement test body — BC-5.38.001")
+        // BC-2.11.026 invariant 1: N=3142 → "(x3142)" with no rounding.
+        let findings: Vec<Finding> = (0..3142)
+            .map(|_| {
+                make_collapse_finding(
+                    ThreatCategory::Anomaly,
+                    Verdict::Inconclusive,
+                    Confidence::Low,
+                    "LargeFlood",
+                    vec![],
+                    vec![],
+                )
+            })
+            .collect();
+
+        let out = collapse_reporter().render(&Summary::new(), &findings, &[]);
+
+        assert!(
+            out.contains("(x3142)"),
+            "BC-2.11.026 inv1: large count N=3142 must render exactly as '(x3142)'; \
+             got:\n{out}"
+        );
+        // Guard against truncated/abbreviated forms.
+        assert!(
+            !out.contains("(x3k)") && !out.contains("(x3.1") && !out.contains("(x314"),
+            "BC-2.11.026 inv1: count must not be abbreviated or rounded; got:\n{out}"
+        );
     }
 
     /// AC-010: suffix format is exactly ` (x<N>)` — one space, paren, x, decimal, paren.
-    /// REGRESSION-GUARD: verifies BC-2.11.026 invariant 1.
+    ///
+    /// This guards the precise format contract. FAILS if the format uses brackets,
+    /// reversed order, or different spacing (e.g., "[x2]", "(2x)", " x2", "(x 2)").
     #[test]
     fn test_BC_2_11_026_suffix_format() {
-        todo!("STORY-118 RED: implement test body — BC-5.38.001")
+        // BC-2.11.026 invariant 1: suffix format = " (x<N>)".
+        let findings: Vec<Finding> = (0..2)
+            .map(|_| {
+                make_collapse_finding(
+                    ThreatCategory::Anomaly,
+                    Verdict::Inconclusive,
+                    Confidence::Low,
+                    "FormatCheck",
+                    vec![],
+                    vec![],
+                )
+            })
+            .collect();
+
+        let out = collapse_reporter().render(&Summary::new(), &findings, &[]);
+
+        // The correct form: space + open-paren + x + decimal + close-paren.
+        assert!(
+            out.contains(" (x2)"),
+            "BC-2.11.026 inv1: suffix must be exactly ' (x2)' (space-paren-x-2-paren); got:\n{out}"
+        );
+
+        // Forbidden alternative formats.
+        assert!(
+            !out.contains("[x2]"),
+            "BC-2.11.026 inv1: bracket form '[x2]' must NOT appear; got:\n{out}"
+        );
+        assert!(
+            !out.contains("(2x)"),
+            "BC-2.11.026 inv1: reversed form '(2x)' must NOT appear; got:\n{out}"
+        );
+        assert!(
+            !out.contains(" x2 ") && !out.contains(" x2\n"),
+            "BC-2.11.026 inv1: bare 'x2' without parens must NOT appear; got:\n{out}"
+        );
     }
 
     /// AC-011: (xN) suffix is INSIDE the ANSI color span, not after the reset.
-    /// REGRESSION-GUARD: verifies BC-2.11.026 postcondition 6 / invariant 4.
+    ///
+    /// This guards the architectural rule that the suffix is appended to the header
+    /// string BEFORE colorization, so it is contained within the ANSI color span.
+    /// FAILS if a future change appends the suffix after calling the color function,
+    /// which would place it after the ANSI reset sequence.
     #[test]
     fn test_BC_2_11_026_suffix_colorized_inside_span_red_bold() {
-        todo!("STORY-118 RED: implement test body — BC-5.38.001")
+        // BC-2.11.026 pc6 / invariant 4: (xN) suffix is inside the red().bold() span.
+        // Input: 2 findings with (Reconnaissance, Likely, High, "Port scan") → red+bold.
+        let findings: Vec<Finding> = (0..2)
+            .map(|_| {
+                make_collapse_finding(
+                    ThreatCategory::Reconnaissance,
+                    Verdict::Likely,
+                    Confidence::High,
+                    "Port scan",
+                    vec![],
+                    vec![],
+                )
+            })
+            .collect();
+
+        let out = collapse_reporter_color().render(&Summary::new(), &findings, &[]);
+
+        // The ANSI reset sequence is ESC[0m (encoded as \x1b[0m in bytes).
+        // "(x2)" must appear BEFORE the reset sequence in the output.
+        // ANSI bold+red: starts with ESC[1;31m or ESC[31;1m or similar.
+        // We find "(x2)" and then check it comes before the nearest reset after it.
+        let pos_suffix = out
+            .find("(x2)")
+            .expect("BC-2.11.026 pc6: '(x2)' suffix must be present in colored output");
+
+        // Find the ANSI reset that closes the header span.
+        // owo-colors emits "\x1b[0m" as the reset sequence.
+        let ansi_reset = "\x1b[0m";
+        let pos_reset = out[pos_suffix..]
+            .find(ansi_reset)
+            .map(|p| p + pos_suffix);
+
+        // The suffix must be followed by a reset (i.e., it is inside the span).
+        assert!(
+            pos_reset.is_some(),
+            "BC-2.11.026 pc6/inv4: '(x2)' must be followed by an ANSI reset sequence \
+             (inside the color span); got:\n{out:?}"
+        );
+
+        // Additionally: raw ESC bytes must be present (use_color=true was active).
+        assert!(
+            out.as_bytes().contains(&0x1b),
+            "BC-2.11.026 pc6: use_color=true must produce ANSI escape bytes; got:\n{out:?}"
+        );
     }
 
     /// AC-012 (part 1): Inconclusive verdict → cyan colorization.
-    /// REGRESSION-GUARD: verifies BC-2.11.026 postcondition 6 (color-ladder).
+    ///
+    /// This guards the color-ladder branch for Inconclusive. FAILS if a future
+    /// change to the color-ladder mis-routes Inconclusive to a different color.
     #[test]
     fn test_BC_2_11_026_color_ladder_inconclusive_cyan() {
-        todo!("STORY-118 RED: implement test body — BC-5.38.001")
+        // BC-2.11.026 pc6: Inconclusive → cyan.
+        // owo-colors cyan ANSI code: ESC[36m (the standard SGR cyan color).
+        let findings: Vec<Finding> = (0..2)
+            .map(|_| {
+                make_collapse_finding(
+                    ThreatCategory::Anomaly,
+                    Verdict::Inconclusive,
+                    Confidence::Low,
+                    "CyanCheck",
+                    vec![],
+                    vec![],
+                )
+            })
+            .collect();
+
+        let out = collapse_reporter_color().render(&Summary::new(), &findings, &[]);
+
+        // Cyan ANSI sequence must appear in the output.
+        // SGR 36 = foreground cyan.
+        assert!(
+            out.contains("\x1b[36m") || out.contains("\x1b[0;36m") || out.contains("\x1b[36;"),
+            "BC-2.11.026 pc6: Inconclusive verdict must produce cyan ANSI color in output; \
+             got:\n{out:?}"
+        );
+
+        // No red/bold sequence (Likely+High path).
+        assert!(
+            !out.contains("\x1b[1;31m") && !out.contains("\x1b[31;1m"),
+            "BC-2.11.026 pc6: Inconclusive must NOT use red+bold color; got:\n{out:?}"
+        );
     }
 
     /// AC-012 (part 2): Likely + non-High confidence → yellow colorization.
-    /// REGRESSION-GUARD: verifies BC-2.11.026 postcondition 6 (color-ladder).
+    ///
+    /// This guards the Likely+Medium branch of the color-ladder. FAILS if
+    /// Likely+Medium is accidentally routed to red+bold (the Likely+High path).
     #[test]
     fn test_BC_2_11_026_color_ladder_likely_other_yellow() {
-        todo!("STORY-118 RED: implement test body — BC-5.38.001")
+        // BC-2.11.026 pc6: Likely + non-High (Medium) → yellow.
+        // owo-colors yellow ANSI code: ESC[33m.
+        let findings: Vec<Finding> = (0..2)
+            .map(|_| {
+                make_collapse_finding(
+                    ThreatCategory::Anomaly,
+                    Verdict::Likely,
+                    Confidence::Medium,
+                    "YellowCheck",
+                    vec![],
+                    vec![],
+                )
+            })
+            .collect();
+
+        let out = collapse_reporter_color().render(&Summary::new(), &findings, &[]);
+
+        // Yellow ANSI sequence must appear.
+        assert!(
+            out.contains("\x1b[33m") || out.contains("\x1b[0;33m") || out.contains("\x1b[33;"),
+            "BC-2.11.026 pc6: Likely+Medium must produce yellow ANSI color; got:\n{out:?}"
+        );
+
+        // No red+bold (that is Likely+High path only).
+        assert!(
+            !out.contains("\x1b[1;31m") && !out.contains("\x1b[31;1m"),
+            "BC-2.11.026 pc6: Likely+Medium must NOT use red+bold; got:\n{out:?}"
+        );
     }
 
     /// AC-012 (part 3): Possible verdict → yellow colorization.
-    /// REGRESSION-GUARD: verifies BC-2.11.026 postcondition 6 (color-ladder).
+    ///
+    /// This guards the Possible branch of the color-ladder. FAILS if Possible
+    /// is mis-routed to a different color (e.g., cyan or dimmed).
     #[test]
     fn test_BC_2_11_026_color_ladder_possible_yellow() {
-        todo!("STORY-118 RED: implement test body — BC-5.38.001")
+        // BC-2.11.026 pc6: Possible → yellow.
+        let findings: Vec<Finding> = (0..2)
+            .map(|_| {
+                make_collapse_finding(
+                    ThreatCategory::Anomaly,
+                    Verdict::Possible,
+                    Confidence::Low,
+                    "PossibleCheck",
+                    vec![],
+                    vec![],
+                )
+            })
+            .collect();
+
+        let out = collapse_reporter_color().render(&Summary::new(), &findings, &[]);
+
+        // Yellow ANSI sequence must appear.
+        assert!(
+            out.contains("\x1b[33m") || out.contains("\x1b[0;33m") || out.contains("\x1b[33;"),
+            "BC-2.11.026 pc6: Possible verdict must produce yellow ANSI color; got:\n{out:?}"
+        );
     }
 
     /// AC-012 (part 4): Unlikely verdict → dimmed colorization.
-    /// REGRESSION-GUARD: verifies BC-2.11.026 postcondition 6 (color-ladder).
+    ///
+    /// This guards the Unlikely branch of the color-ladder. FAILS if Unlikely
+    /// is not dimmed, which would give it the same visual weight as higher-severity findings.
     #[test]
     fn test_BC_2_11_026_color_ladder_unlikely_dimmed() {
-        todo!("STORY-118 RED: implement test body — BC-5.38.001")
+        // BC-2.11.026 pc6: Unlikely → dimmed.
+        // owo-colors dimmed ANSI code: ESC[2m (SGR 2 = faint/dim).
+        let findings: Vec<Finding> = (0..2)
+            .map(|_| {
+                make_collapse_finding(
+                    ThreatCategory::Anomaly,
+                    Verdict::Unlikely,
+                    Confidence::Low,
+                    "DimCheck",
+                    vec![],
+                    vec![],
+                )
+            })
+            .collect();
+
+        let out = collapse_reporter_color().render(&Summary::new(), &findings, &[]);
+
+        // Dimmed ANSI sequence must appear: ESC[2m (SGR 2 = faint/dim).
+        assert!(
+            out.contains("\x1b[2m") || out.contains("\x1b[0;2m") || out.contains("\x1b[2;"),
+            "BC-2.11.026 pc6: Unlikely verdict must produce dimmed ANSI color (SGR 2); \
+             got:\n{out:?}"
+        );
     }
 
     /// AC-023 (part 1): MITRE line sources group_members[0]; other members' MITRE elided.
-    /// REGRESSION-GUARD: verifies BC-2.11.026 postcondition 7 /
-    /// BC-2.11.017 postcondition 6.
+    ///
+    /// This guards that only the first group member's MITRE techniques appear in the
+    /// terminal output — divergent MITRE from later members is elided. FAILS if a
+    /// future change emits MITRE lines from all group members or merges them.
     #[test]
     fn test_BC_2_11_026_mitre_line_from_representative_finding() {
-        todo!("STORY-118 RED: implement test body — BC-5.38.001")
+        // BC-2.11.026 pc7 / BC-2.11.017 pc6: MITRE from group_members[0] only.
+        // members[0].mitre = ["T1036"], members[1].mitre = [], members[2].mitre = ["T1059"].
+        let findings = vec![
+            make_collapse_finding(
+                ThreatCategory::Anomaly,
+                Verdict::Inconclusive,
+                Confidence::Low,
+                "SharedKey",
+                vec![],
+                vec!["T1036".to_string()],
+            ),
+            make_collapse_finding(
+                ThreatCategory::Anomaly,
+                Verdict::Inconclusive,
+                Confidence::Low,
+                "SharedKey",
+                vec![],
+                vec![],
+            ),
+            make_collapse_finding(
+                ThreatCategory::Anomaly,
+                Verdict::Inconclusive,
+                Confidence::Low,
+                "SharedKey",
+                vec![],
+                vec!["T1059".to_string()],
+            ),
+        ];
+
+        let out = collapse_reporter().render(&Summary::new(), &findings, &[]);
+
+        // MITRE line from member[0]: "    MITRE: T1036".
+        assert!(
+            out.contains("MITRE: T1036"),
+            "BC-2.11.026 pc7: MITRE line must source from group_members[0] ('T1036'); \
+             got:\n{out}"
+        );
+
+        // Member[2]'s MITRE technique "T1059" must NOT appear.
+        assert!(
+            !out.contains("T1059"),
+            "BC-2.11.026 pc7: member[2] MITRE 'T1059' must be elided from terminal output; \
+             got:\n{out}"
+        );
     }
 
     // -----------------------------------------------------------------------
@@ -2000,40 +2759,286 @@ mod story_118 {
     // -----------------------------------------------------------------------
 
     /// AC-013: N>K shows exactly K=3 evidence lines (first K members).
-    /// REGRESSION-GUARD: verifies BC-2.11.027 postcondition 2 / invariant 2.
+    ///
+    /// This guards the K=3 evidence cap for groups with N>3 members. FAILS if a
+    /// future change renders all evidence lines (removing the cap) or fewer than 3.
     #[test]
     fn test_BC_2_11_027_evidence_capped_at_k() {
-        todo!("STORY-118 RED: implement test body — BC-5.38.001")
+        // BC-2.11.027 pc2 / invariant 2: N=5 group, each member has 1 evidence line.
+        // First 3 members' evidence must appear; members[3] and members[4] elided.
+        let findings: Vec<Finding> = (1..=5)
+            .map(|i| {
+                make_collapse_finding(
+                    ThreatCategory::Anomaly,
+                    Verdict::Inconclusive,
+                    Confidence::Low,
+                    "CapTest",
+                    vec![format!("req_{i:03}")],
+                    vec![],
+                )
+            })
+            .collect();
+
+        let out = collapse_reporter().render(&Summary::new(), &findings, &[]);
+
+        // Evidence from first 3 members must appear.
+        assert!(
+            out.contains("> req_001"),
+            "BC-2.11.027 pc2: evidence from member[0] 'req_001' must appear; got:\n{out}"
+        );
+        assert!(
+            out.contains("> req_002"),
+            "BC-2.11.027 pc2: evidence from member[1] 'req_002' must appear; got:\n{out}"
+        );
+        assert!(
+            out.contains("> req_003"),
+            "BC-2.11.027 pc2: evidence from member[2] 'req_003' must appear; got:\n{out}"
+        );
+
+        // Evidence from members[3] and members[4] must be elided.
+        assert!(
+            !out.contains("req_004"),
+            "BC-2.11.027 pc2: evidence from member[3] 'req_004' must be elided (K=3 cap); \
+             got:\n{out}"
+        );
+        assert!(
+            !out.contains("req_005"),
+            "BC-2.11.027 pc2: evidence from member[4] 'req_005' must be elided (K=3 cap); \
+             got:\n{out}"
+        );
     }
 
     /// AC-014: N≤K renders all available evidence (no elision at or below cap).
-    /// REGRESSION-GUARD: verifies BC-2.11.027 postcondition 5.
+    ///
+    /// This guards that the K=3 cap does not elide evidence when N≤K. FAILS if a
+    /// future change applies the cap too aggressively (e.g., always caps at 3 regardless
+    /// of group size).
     #[test]
     fn test_BC_2_11_027_evidence_below_cap_rendered_fully() {
-        todo!("STORY-118 RED: implement test body — BC-5.38.001")
+        // BC-2.11.027 pc5: N=2 (below cap) → both evidence lines rendered.
+        let findings_n2 = vec![
+            make_collapse_finding(
+                ThreatCategory::Anomaly,
+                Verdict::Inconclusive,
+                Confidence::Low,
+                "BelowCap",
+                vec!["ev-one".to_string()],
+                vec![],
+            ),
+            make_collapse_finding(
+                ThreatCategory::Anomaly,
+                Verdict::Inconclusive,
+                Confidence::Low,
+                "BelowCap",
+                vec!["ev-two".to_string()],
+                vec![],
+            ),
+        ];
+
+        let out_n2 = collapse_reporter().render(&Summary::new(), &findings_n2, &[]);
+
+        assert!(
+            out_n2.contains("> ev-one"),
+            "BC-2.11.027 pc5: N=2 (below K=3) member[0] evidence must appear; got:\n{out_n2}"
+        );
+        assert!(
+            out_n2.contains("> ev-two"),
+            "BC-2.11.027 pc5: N=2 (below K=3) member[1] evidence must appear; got:\n{out_n2}"
+        );
+
+        // N=3 boundary: all 3 evidence lines rendered (N=K, no elision).
+        let findings_n3: Vec<Finding> = vec!["ev-a", "ev-b", "ev-c"]
+            .into_iter()
+            .map(|ev| {
+                make_collapse_finding(
+                    ThreatCategory::Anomaly,
+                    Verdict::Inconclusive,
+                    Confidence::Low,
+                    "AtCap",
+                    vec![ev.to_string()],
+                    vec![],
+                )
+            })
+            .collect();
+
+        let out_n3 = collapse_reporter().render(&Summary::new(), &findings_n3, &[]);
+
+        for ev in ["ev-a", "ev-b", "ev-c"] {
+            assert!(
+                out_n3.contains(&format!("> {ev}")),
+                "BC-2.11.027 pc5: N=3 (at K=3 boundary) evidence '{ev}' must appear; \
+                 got:\n{out_n3}"
+            );
+        }
     }
 
     /// AC-015: empty first-member contributes 0 lines; window does NOT slide.
-    /// REGRESSION-GUARD: verifies BC-2.11.027 postcondition 2 / invariant 2
-    /// (positional no-slide rule).
+    ///
+    /// This guards the positional no-slide rule: the window always covers the first
+    /// min(N, K) members by position, regardless of whether they have evidence. FAILS
+    /// if a future change slides the window to skip empty-evidence members.
     #[test]
     fn test_BC_2_11_027_evidence_drawn_from_first_k_members() {
-        todo!("STORY-118 RED: implement test body — BC-5.38.001")
+        // BC-2.11.027 pc2 / invariant 2 (EC-008): N=5, members[0].evidence=[].
+        // Window covers members[0..2] (positions 0, 1, 2).
+        // member[0] contributes 0 lines (empty); member[1] and member[2] contribute 1 each.
+        // Total rendered: 2 evidence lines (NOT 3). members[3] and members[4] never inspected.
+        let findings = vec![
+            // member[0]: empty evidence
+            make_collapse_finding(
+                ThreatCategory::Anomaly,
+                Verdict::Inconclusive,
+                Confidence::Low,
+                "NoSlide",
+                vec![],
+                vec![],
+            ),
+            // member[1]: evidence present
+            make_collapse_finding(
+                ThreatCategory::Anomaly,
+                Verdict::Inconclusive,
+                Confidence::Low,
+                "NoSlide",
+                vec!["slide-ev-1".to_string()],
+                vec![],
+            ),
+            // member[2]: evidence present
+            make_collapse_finding(
+                ThreatCategory::Anomaly,
+                Verdict::Inconclusive,
+                Confidence::Low,
+                "NoSlide",
+                vec!["slide-ev-2".to_string()],
+                vec![],
+            ),
+            // member[3]: NOT inspected (past the K=3 positional window)
+            make_collapse_finding(
+                ThreatCategory::Anomaly,
+                Verdict::Inconclusive,
+                Confidence::Low,
+                "NoSlide",
+                vec!["slide-ev-3".to_string()],
+                vec![],
+            ),
+            // member[4]: NOT inspected
+            make_collapse_finding(
+                ThreatCategory::Anomaly,
+                Verdict::Inconclusive,
+                Confidence::Low,
+                "NoSlide",
+                vec!["slide-ev-4".to_string()],
+                vec![],
+            ),
+        ];
+
+        let out = collapse_reporter().render(&Summary::new(), &findings, &[]);
+
+        // member[1] and member[2] evidence must appear.
+        assert!(
+            out.contains("> slide-ev-1"),
+            "BC-2.11.027 inv2: member[1] evidence must appear (within K=3 window); got:\n{out}"
+        );
+        assert!(
+            out.contains("> slide-ev-2"),
+            "BC-2.11.027 inv2: member[2] evidence must appear (within K=3 window); got:\n{out}"
+        );
+
+        // member[3] and member[4] evidence must NOT appear (outside the window — no slide).
+        assert!(
+            !out.contains("slide-ev-3"),
+            "BC-2.11.027 inv2: member[3] evidence must be elided (window does NOT slide); \
+             got:\n{out}"
+        );
+        assert!(
+            !out.contains("slide-ev-4"),
+            "BC-2.11.027 inv2: member[4] evidence must be elided (window does NOT slide); \
+             got:\n{out}"
+        );
     }
 
     /// AC-016: evidence lines pass through escape_for_terminal in the collapse path.
-    /// REGRESSION-GUARD: verifies BC-2.11.027 postcondition 6 /
-    /// BC-2.11.010 invariant 4.
+    ///
+    /// This guards that VP-012 (escape_for_terminal correctness) extends into the
+    /// collapse wrapper. FAILS if a future change introduces a code path in the
+    /// collapse evidence rendering that bypasses escape_for_terminal.
     #[test]
     fn test_BC_2_11_027_escape_preserved_in_sampled_evidence() {
-        todo!("STORY-118 RED: implement test body — BC-5.38.001")
+        // BC-2.11.027 pc6 / BC-2.11.010 inv4: ESC byte in evidence must be escaped.
+        // Canonical test vector: evidence[0] = "ev: \x1b[32mGREEN" → "ev: \u{1b}[32mGREEN".
+        let findings = vec![
+            make_collapse_finding(
+                ThreatCategory::Anomaly,
+                Verdict::Inconclusive,
+                Confidence::Low,
+                "EscapeTest",
+                vec!["ev: \x1b[32mGREEN".to_string()],
+                vec![],
+            ),
+            make_collapse_finding(
+                ThreatCategory::Anomaly,
+                Verdict::Inconclusive,
+                Confidence::Low,
+                "EscapeTest",
+                vec!["clean-evidence".to_string()],
+                vec![],
+            ),
+        ];
+
+        let out = collapse_reporter().render(&Summary::new(), &findings, &[]);
+
+        // Raw ESC byte must not appear in the output.
+        assert!(
+            !out.as_bytes().contains(&0x1b),
+            "BC-2.11.027 pc6 / VP-012: raw ESC byte (0x1b) must not appear in collapsed \
+             evidence output; got:\n{out:?}"
+        );
+
+        // Escaped form must appear.
+        assert!(
+            out.contains("\\u{1b}"),
+            "BC-2.11.027 pc6: escaped form '\\u{{1b}}' must appear from evidence in collapse \
+             path; got:\n{out}"
+        );
     }
 
     /// AC-017: singleton — K-cap does NOT apply; all evidence lines rendered.
-    /// REGRESSION-GUARD: verifies BC-2.11.027 invariant 6.
+    ///
+    /// This guards that the K=3 cap is strictly for groups with N≥2. FAILS if a
+    /// future change applies the cap to singletons, truncating their evidence.
     #[test]
     fn test_BC_2_11_027_singleton_evidence_not_capped() {
-        todo!("STORY-118 RED: implement test body — BC-5.38.001")
+        // BC-2.11.027 invariant 6 / EC-009: N=1 with 5 evidence lines → all 5 rendered.
+        let f = make_collapse_finding(
+            ThreatCategory::Anomaly,
+            Verdict::Inconclusive,
+            Confidence::Low,
+            "SingletonEv",
+            vec![
+                "ev-line-1".to_string(),
+                "ev-line-2".to_string(),
+                "ev-line-3".to_string(),
+                "ev-line-4".to_string(),
+                "ev-line-5".to_string(),
+            ],
+            vec![],
+        );
+
+        let out = collapse_reporter().render(&Summary::new(), &[f], &[]);
+
+        // All 5 evidence lines must appear (no K=3 cap on singletons).
+        for i in 1..=5 {
+            assert!(
+                out.contains(&format!("> ev-line-{i}")),
+                "BC-2.11.027 inv6: singleton evidence line {i} must appear (K-cap does not \
+                 apply to N=1); got:\n{out}"
+            );
+        }
+
+        // No (xN) suffix (it is a singleton).
+        assert!(
+            !out.contains("(x"),
+            "BC-2.11.027 inv6: singleton must not carry (xN) suffix; got:\n{out}"
+        );
     }
 
     // -----------------------------------------------------------------------
@@ -2041,26 +3046,167 @@ mod story_118 {
     // -----------------------------------------------------------------------
 
     /// AC-018 (part 1): --no-collapse restores one-line-per-finding; no (xN) suffix.
-    /// REGRESSION-GUARD: verifies BC-2.11.028 postcondition 2.
+    ///
+    /// This guards the opt-out path: with collapse_findings=false, 5 identical-key
+    /// findings render as 5 individual header lines. Also includes a contrast assertion
+    /// that the collapse path (render_findings_collapsed) is implemented — verified by
+    /// checking that collapse_findings=true produces a different (collapsed) result.
+    /// FAILS if collapse_findings=false collapses, or if render_findings_collapsed is not
+    /// yet implemented.
     #[test]
     fn test_BC_2_11_028_no_collapse_flag_one_line_per_finding() {
-        todo!("STORY-118 RED: implement test body — BC-5.38.001")
+        // BC-2.11.028 pc2: collapse_findings=false → one header per finding, no suffix.
+        let findings: Vec<Finding> = (0..5)
+            .map(|_| {
+                make_collapse_finding(
+                    ThreatCategory::Anomaly,
+                    Verdict::Inconclusive,
+                    Confidence::Low,
+                    "OptOut",
+                    vec![],
+                    vec![],
+                )
+            })
+            .collect();
+
+        // plain_reporter() has collapse_findings=false.
+        let out = plain_reporter().render(&Summary::new(), &findings, &[]);
+
+        // 5 individual header lines, not 1 collapsed group.
+        let header_count = out.matches("[Anomaly] INCONCLUSIVE (LOW) - OptOut").count();
+        assert_eq!(
+            header_count, 5,
+            "BC-2.11.028 pc2: collapse_findings=false must render 5 individual header lines; \
+             found {header_count}; got:\n{out}"
+        );
+
+        // No (xN) suffix anywhere.
+        assert!(
+            !out.contains("(x"),
+            "BC-2.11.028 pc2: collapse_findings=false must produce no (xN) suffix; got:\n{out}"
+        );
+
+        // Contrast assertion: collapse_findings=true on the same input MUST produce
+        // a collapsed group with (x5) — verifying the opt-out contrast is meaningful.
+        let out_collapse = collapse_reporter().render(&Summary::new(), &findings, &[]);
+        assert!(
+            out_collapse.contains("(x5)"),
+            "BC-2.11.028 pc2 contrast: collapse_findings=true must produce '(x5)' for same \
+             5-finding input (proves opt-out has observable effect); got:\n{out_collapse}"
+        );
     }
 
     /// AC-018 (part 2): default vs. opt-out outputs are observably different.
-    /// REGRESSION-GUARD: verifies BC-2.11.028 postcondition 2.
+    ///
+    /// This guards that the two modes produce distinct output for the same input.
+    /// FAILS if a future change makes collapse_findings=true and collapse_findings=false
+    /// produce identical output (meaning either both collapse or neither does).
     #[test]
     fn test_BC_2_11_028_default_vs_opt_out_output_difference() {
-        todo!("STORY-118 RED: implement test body — BC-5.38.001")
+        // BC-2.11.028 pc2: comparing collapse=true vs collapse=false on same 5-finding input.
+        let findings: Vec<Finding> = (0..5)
+            .map(|i| {
+                make_collapse_finding(
+                    ThreatCategory::Anomaly,
+                    Verdict::Inconclusive,
+                    Confidence::Low,
+                    "Diff",
+                    vec![format!("req_{i}")],
+                    vec![],
+                )
+            })
+            .collect();
+
+        let out_collapse = collapse_reporter().render(&Summary::new(), &findings, &[]);
+        let out_no_collapse = plain_reporter().render(&Summary::new(), &findings, &[]);
+
+        // The two outputs must be observably different.
+        assert_ne!(
+            out_collapse, out_no_collapse,
+            "BC-2.11.028 pc2: collapse=true and collapse=false outputs must differ for \
+             identical-key input"
+        );
+
+        // Collapse output: 1 group with (x5).
+        assert!(
+            out_collapse.contains("(x5)"),
+            "BC-2.11.028 pc2: collapse=true output must contain '(x5)'; got:\n{out_collapse}"
+        );
+
+        // No-collapse output: 5 individual headers, no suffix.
+        assert!(
+            !out_no_collapse.contains("(x"),
+            "BC-2.11.028 pc2: collapse=false output must have no (xN) suffix; \
+             got:\n{out_no_collapse}"
+        );
+        let no_collapse_count = out_no_collapse
+            .matches("[Anomaly] INCONCLUSIVE (LOW) - Diff")
+            .count();
+        assert_eq!(
+            no_collapse_count, 5,
+            "BC-2.11.028 pc2: collapse=false output must have 5 individual header lines; \
+             found {no_collapse_count}"
+        );
     }
 
     /// AC-019: --no-collapse flag is wired: no_collapse=true → collapse_findings=false.
-    /// REGRESSION-GUARD: verifies BC-2.11.028 postcondition 1 / invariant 1 /
-    /// precondition 3. Structural test — confirms the field exists and the wiring
-    /// relationship is correct.
+    ///
+    /// This guards the structural wiring between the CLI flag and the reporter field.
+    /// FAILS if the collapse_findings field does not exist, or if its polarity is
+    /// reversed (collapse_findings: no_collapse instead of !no_collapse).
     #[test]
     fn test_BC_2_11_028_flag_wired_to_reporter_field() {
-        todo!("STORY-118 RED: implement test body — BC-5.38.001")
+        // BC-2.11.028 pc1 / invariant 1: structural wiring test.
+        // collapse_findings=true → collapse active (v0.8.0 default).
+        // collapse_findings=false → collapse inactive (--no-collapse opt-out).
+        // Verify the field exists and the logic is correct by behavioral contrast.
+
+        let findings: Vec<Finding> = (0..3)
+            .map(|_| {
+                make_collapse_finding(
+                    ThreatCategory::Anomaly,
+                    Verdict::Inconclusive,
+                    Confidence::Low,
+                    "WiredTest",
+                    vec![],
+                    vec![],
+                )
+            })
+            .collect();
+
+        // Reporter with collapse_findings = true → produces "(x3)".
+        let reporter_on = TerminalReporter {
+            use_color: false,
+            show_mitre_grouping: false,
+            show_hosts_breakdown: false,
+            collapse_findings: true,
+        };
+        let out_on = reporter_on.render(&Summary::new(), &findings, &[]);
+        assert!(
+            out_on.contains("(x3)"),
+            "BC-2.11.028 inv1: collapse_findings=true must produce '(x3)' suffix; got:\n{out_on}"
+        );
+
+        // Reporter with collapse_findings = false → no collapse, no suffix.
+        let reporter_off = TerminalReporter {
+            use_color: false,
+            show_mitre_grouping: false,
+            show_hosts_breakdown: false,
+            collapse_findings: false,
+        };
+        let out_off = reporter_off.render(&Summary::new(), &findings, &[]);
+        assert!(
+            !out_off.contains("(x"),
+            "BC-2.11.028 inv1: collapse_findings=false must produce no (xN) suffix; \
+             got:\n{out_off}"
+        );
+
+        // Polarity: the two outputs must be different.
+        assert_ne!(
+            out_on, out_off,
+            "BC-2.11.028 inv1: collapse_findings=true and collapse_findings=false must produce \
+             different output for N≥2 identical-key input"
+        );
     }
 
     // -----------------------------------------------------------------------
@@ -2068,31 +3214,210 @@ mod story_118 {
     // -----------------------------------------------------------------------
 
     /// AC-020: JSON reporter receives full N findings regardless of collapse flag.
-    /// REGRESSION-GUARD: verifies BC-2.11.029 postcondition 1 / invariant 1.
+    ///
+    /// This guards the display-layer isolation invariant: collapse is ephemeral in
+    /// TerminalReporter::render and never touches the findings slice. FAILS if a future
+    /// change pre-filters or mutates the findings slice before handing it to the JSON reporter.
     #[test]
     fn test_BC_2_11_029_json_receives_full_findings() {
-        todo!("STORY-118 RED: implement test body — BC-5.38.001")
+        use wirerust::reporter::json::JsonReporter;
+
+        // BC-2.11.029 pc1 / invariant 1: 1000 identical findings → terminal shows 1 group,
+        // JSON contains exactly 1000 finding objects.
+        let findings: Vec<Finding> = (0..1000)
+            .map(|_| {
+                make_collapse_finding(
+                    ThreatCategory::Anomaly,
+                    Verdict::Inconclusive,
+                    Confidence::Low,
+                    "Empty UA",
+                    vec![],
+                    vec![],
+                )
+            })
+            .collect();
+
+        // Terminal output: 1 collapsed group.
+        let terminal_out = collapse_reporter().render(&Summary::new(), &findings, &[]);
+        assert!(
+            terminal_out.contains("(x1000)"),
+            "BC-2.11.029 pc1: terminal must show '(x1000)' collapsed group; \
+             got:\n{terminal_out}"
+        );
+
+        // JSON output from the SAME slice: must have 1000 finding objects.
+        let json_out = JsonReporter.render(&Summary::new(), &findings, &[]);
+        let json: serde_json::Value = serde_json::from_str(&json_out)
+            .expect("JSON output must be valid JSON");
+        let json_findings = json["findings"]
+            .as_array()
+            .expect("JSON 'findings' must be an array");
+        assert_eq!(
+            json_findings.len(), 1000,
+            "BC-2.11.029 pc1/inv1: JSON reporter must receive all 1000 findings; \
+             found {} findings in JSON output", json_findings.len()
+        );
     }
 
     /// AC-021: CSV reporter receives full N findings regardless of collapse flag.
-    /// REGRESSION-GUARD: verifies BC-2.11.029 postcondition 2.
+    ///
+    /// This guards the display-layer isolation for CSV output. Also includes a contrast
+    /// assertion via the terminal collapse path (render_findings_collapsed) to confirm the
+    /// CSV invariant is meaningful — the terminal DOES collapse while CSV does not.
+    /// FAILS if CSV emits fewer than N rows, OR if render_findings_collapsed is not yet
+    /// implemented (the contrast assertion calls it).
     #[test]
     fn test_BC_2_11_029_csv_receives_full_findings() {
-        todo!("STORY-118 RED: implement test body — BC-5.38.001")
+        use wirerust::reporter::csv::CsvReporter;
+
+        // BC-2.11.029 pc2: 5 identical findings → CSV has 5 data rows (plus header).
+        let findings: Vec<Finding> = (0..5)
+            .map(|_| {
+                make_collapse_finding(
+                    ThreatCategory::Anomaly,
+                    Verdict::Inconclusive,
+                    Confidence::Low,
+                    "CsvTest",
+                    vec![],
+                    vec![],
+                )
+            })
+            .collect();
+
+        let csv_out = CsvReporter.render(&Summary::new(), &findings, &[]);
+
+        // Count data rows: split by newlines, skip header row, count non-empty lines.
+        let lines: Vec<&str> = csv_out.lines().collect();
+        // First line is the header; remaining non-empty lines are data rows.
+        let data_rows = lines.iter().skip(1).filter(|l| !l.is_empty()).count();
+        assert_eq!(
+            data_rows, 5,
+            "BC-2.11.029 pc2: CSV must contain exactly 5 data rows for 5 identical findings; \
+             found {data_rows} rows (total lines including header: {})", lines.len()
+        );
+
+        // Contrast assertion: terminal collapse mode on the same 5 findings collapses to 1
+        // group with (x5) — proving CSV's 5-row output is non-trivially different from
+        // what the terminal does (and that render_findings_collapsed is implemented).
+        let terminal_out = collapse_reporter().render(&Summary::new(), &findings, &[]);
+        assert!(
+            terminal_out.contains("(x5)"),
+            "BC-2.11.029 pc2 contrast: terminal collapse must show '(x5)' while CSV has 5 rows \
+             (proves display-layer isolation is real, not vacuous); got:\n{terminal_out}"
+        );
     }
 
     /// AC-022: non-repeated finding renders individually; no suffix.
-    /// REGRESSION-GUARD: verifies BC-2.11.029 postcondition 3.
+    ///
+    /// This guards that a finding with a unique key (appears once in the input) is
+    /// treated as a singleton and rendered without any count suffix. FAILS if a future
+    /// change emits a "(x1)" suffix for singletons.
     #[test]
     fn test_BC_2_11_029_non_repeated_finding_no_suffix() {
-        todo!("STORY-118 RED: implement test body — BC-5.38.001")
+        // BC-2.11.029 pc3: unique-key finding → rendered individually, no suffix.
+        // Three findings with three distinct keys (all different summaries).
+        let findings = vec![
+            make_collapse_finding(
+                ThreatCategory::Anomaly,
+                Verdict::Inconclusive,
+                Confidence::Low,
+                "Unique-Alpha",
+                vec![],
+                vec![],
+            ),
+            make_collapse_finding(
+                ThreatCategory::Anomaly,
+                Verdict::Inconclusive,
+                Confidence::Low,
+                "Unique-Beta",
+                vec![],
+                vec![],
+            ),
+            make_collapse_finding(
+                ThreatCategory::Anomaly,
+                Verdict::Inconclusive,
+                Confidence::Low,
+                "Unique-Gamma",
+                vec![],
+                vec![],
+            ),
+        ];
+
+        let out = collapse_reporter().render(&Summary::new(), &findings, &[]);
+
+        // All three findings must appear.
+        assert!(
+            out.contains("Unique-Alpha"),
+            "BC-2.11.029 pc3: unique finding 'Unique-Alpha' must appear; got:\n{out}"
+        );
+        assert!(
+            out.contains("Unique-Beta"),
+            "BC-2.11.029 pc3: unique finding 'Unique-Beta' must appear; got:\n{out}"
+        );
+        assert!(
+            out.contains("Unique-Gamma"),
+            "BC-2.11.029 pc3: unique finding 'Unique-Gamma' must appear; got:\n{out}"
+        );
+
+        // None of them should have a (xN) suffix (all are singletons).
+        assert!(
+            !out.contains("(x"),
+            "BC-2.11.029 pc3: non-repeated findings must NOT carry any (xN) suffix; got:\n{out}"
+        );
     }
 
     /// AC-027: --no-collapse flag has no observable effect on JSON or CSV output.
-    /// REGRESSION-GUARD: verifies BC-2.11.029 postcondition 5.
+    ///
+    /// This guards that the collapse_findings field on TerminalReporter does not leak
+    /// into the JSON/CSV reporters. FAILS if main.rs is refactored to pre-filter the
+    /// findings slice based on the --no-collapse flag before passing to all reporters.
     #[test]
     fn test_BC_2_11_029_no_collapse_flag_json_invariant() {
-        todo!("STORY-118 RED: implement test body — BC-5.38.001")
+        use wirerust::reporter::json::JsonReporter;
+
+        // BC-2.11.029 pc5: JSON output must be identical regardless of collapse_findings.
+        // The collapse_findings field belongs to TerminalReporter only.
+        let findings: Vec<Finding> = (0..5)
+            .map(|_| {
+                make_collapse_finding(
+                    ThreatCategory::Anomaly,
+                    Verdict::Inconclusive,
+                    Confidence::Low,
+                    "JsonInvariant",
+                    vec![],
+                    vec![],
+                )
+            })
+            .collect();
+
+        // JsonReporter does not have a collapse_findings field — it is unaffected.
+        // Both collapse=true and collapse=false terminal renders must produce the SAME
+        // JSON output when the same slice is passed to JsonReporter.
+        let json_out = JsonReporter.render(&Summary::new(), &findings, &[]);
+        let json: serde_json::Value = serde_json::from_str(&json_out)
+            .expect("JSON output must be valid JSON");
+        let json_findings = json["findings"]
+            .as_array()
+            .expect("JSON 'findings' must be an array");
+
+        // All 5 findings must be present in JSON regardless of terminal collapse.
+        assert_eq!(
+            json_findings.len(), 5,
+            "BC-2.11.029 pc5: JSON must always contain all 5 findings; found {}",
+            json_findings.len()
+        );
+
+        // The terminal output with collapse=true has 1 group; JSON is unaffected.
+        let terminal_out = collapse_reporter().render(&Summary::new(), &findings, &[]);
+        assert!(
+            terminal_out.contains("(x5)"),
+            "BC-2.11.029 pc5: terminal (collapse=true) must show '(x5)'; got:\n{terminal_out}"
+        );
+        // JSON does not contain "(x5)".
+        assert!(
+            !json_out.contains("(x5)"),
+            "BC-2.11.029 pc5: JSON output must NOT contain '(x5)' suffix; got:\n{json_out}"
+        );
     }
 
     // -----------------------------------------------------------------------
@@ -2101,10 +3426,56 @@ mod story_118 {
 
     /// AC-028: escape_for_terminal is called on each sampled evidence line in the
     /// collapse path; raw ESC bytes in evidence are escaped to \u{1b}.
-    /// REGRESSION-GUARD: verifies BC-2.11.010 invariant 4.
+    ///
+    /// This guards VP-012 (escape_for_terminal correctness) in the collapse code path.
+    /// FAILS if a future change adds a new evidence rendering branch in the collapse
+    /// wrapper that bypasses escape_for_terminal, allowing raw ESC bytes to reach the TTY.
     #[test]
     fn test_BC_2_11_010_escape_in_collapse_path() {
-        todo!("STORY-118 RED: implement test body — BC-5.38.001")
+        // BC-2.11.010 invariant 4 / AC-028:
+        // One of the first K=3 members has evidence with raw ESC bytes.
+        // Canonical test vector: "\x1b[31minjected\x1b[0m" → "\\u{1b}[31minjected\\u{1b}[0m".
+        let findings = vec![
+            make_collapse_finding(
+                ThreatCategory::Anomaly,
+                Verdict::Inconclusive,
+                Confidence::Low,
+                "CollapseEscapeBC010",
+                vec!["\x1b[31minjected\x1b[0m".to_string()],
+                vec![],
+            ),
+            make_collapse_finding(
+                ThreatCategory::Anomaly,
+                Verdict::Inconclusive,
+                Confidence::Low,
+                "CollapseEscapeBC010",
+                vec!["clean-evidence".to_string()],
+                vec![],
+            ),
+        ];
+
+        let out = collapse_reporter().render(&Summary::new(), &findings, &[]);
+
+        // Raw ESC byte must NOT appear in the rendered output.
+        assert!(
+            !out.as_bytes().contains(&0x1b),
+            "BC-2.11.010 inv4: raw ESC byte (0x1b) must not survive the collapse render path; \
+             got:\n{out:?}"
+        );
+
+        // Escaped form of ESC must appear: "\\u{1b}" in the output string.
+        assert!(
+            out.contains("\\u{1b}"),
+            "BC-2.11.010 inv4: escaped form '\\u{{1b}}' must appear from collapsed evidence; \
+             got:\n{out}"
+        );
+
+        // The rest of the evidence content must survive intact.
+        assert!(
+            out.contains("[31minjected"),
+            "BC-2.11.010 inv4: non-control bytes of the evidence must survive unchanged; \
+             got:\n{out}"
+        );
     }
 
     // -----------------------------------------------------------------------
@@ -2113,10 +3484,54 @@ mod story_118 {
 
     /// AC-005 (BC-2.11.013): grouped mode (--mitre) is structurally suffix-free
     /// regardless of `collapse_findings` flag; 0 (xN) suffixes in any volume.
-    /// REGRESSION-GUARD: verifies BC-2.11.013 invariant 4.
+    ///
+    /// This guards the invariant that render_findings_grouped is never modified by
+    /// STORY-118. Also includes a contrast assertion that flat collapse produces a
+    /// suffix, proving the suffix absence is structural and not because collapse is
+    /// globally broken. FAILS if grouped mode emits a suffix, OR if the flat collapse
+    /// path (render_findings_collapsed) is not yet implemented.
     #[test]
     fn test_BC_2_11_013_grouped_mode_suffix_free() {
-        todo!("STORY-118 RED: implement test body — BC-5.38.001")
+        // BC-2.11.013 invariant 4: grouped mode is structurally suffix-free.
+        // 50 identical-key findings with collapse_findings=true AND show_mitre_grouping=true.
+        let findings: Vec<Finding> = (0..50)
+            .map(|_| {
+                make_collapse_finding(
+                    ThreatCategory::Anomaly,
+                    Verdict::Inconclusive,
+                    Confidence::Low,
+                    "GroupedFlood",
+                    vec![],
+                    vec![],
+                )
+            })
+            .collect();
+
+        let out = mitre_collapse_reporter().render(&Summary::new(), &findings, &[]);
+
+        // No (xN) suffix of any kind must appear anywhere in the output.
+        assert!(
+            !out.contains("(x"),
+            "BC-2.11.013 inv4: grouped mode must produce ZERO (xN) suffixes regardless \
+             of collapse_findings=true; 50 identical findings; got:\n{out}"
+        );
+
+        // All 50 findings render individually in the grouped path.
+        let count = out.matches("GroupedFlood").count();
+        assert_eq!(
+            count, 50,
+            "BC-2.11.013 inv4: grouped mode must render all 50 findings individually; \
+             found {count}; got:\n{out}"
+        );
+
+        // Contrast assertion: flat+collapse mode on the same 50 findings MUST produce
+        // a (x50) suffix — proving grouped bypass is structural, not globally broken.
+        let out_flat = collapse_reporter().render(&Summary::new(), &findings, &[]);
+        assert!(
+            out_flat.contains("(x50)"),
+            "BC-2.11.013 inv4 contrast: flat collapse mode must produce '(x50)' for 50 \
+             identical findings (proves grouped bypass is intentional); got:\n{out_flat}"
+        );
     }
 
     // -----------------------------------------------------------------------
@@ -2125,10 +3540,58 @@ mod story_118 {
 
     /// AC-023 (part 2): collapsed group MITRE line comes from group_members[0],
     /// format is `MITRE: <id>` (no em-dash; flat-mode BC-2.11.017 contract).
-    /// REGRESSION-GUARD: verifies BC-2.11.017 postcondition 6.
+    ///
+    /// This guards that the flat-mode MITRE line format (bare ID, no em-dash) is
+    /// preserved in the collapse path, and that the representative member is always
+    /// group_members[0]. FAILS if the collapse path uses grouped-mode format or sources
+    /// MITRE from a member other than members[0].
     #[test]
     fn test_BC_2_11_017_collapsed_mitre_line_from_representative() {
-        todo!("STORY-118 RED: implement test body — BC-5.38.001")
+        // BC-2.11.017 pc6: flat-mode collapse path emits "    MITRE: T1036\n" from
+        // group_members[0] only. Format: no em-dash (that is grouped-mode only).
+        let findings = vec![
+            // members[0]: has T1036.
+            make_collapse_finding(
+                ThreatCategory::Anomaly,
+                Verdict::Inconclusive,
+                Confidence::Low,
+                "MitreRepresentative",
+                vec![],
+                vec!["T1036".to_string()],
+            ),
+            // members[1]: has divergent T1059.
+            make_collapse_finding(
+                ThreatCategory::Anomaly,
+                Verdict::Inconclusive,
+                Confidence::Low,
+                "MitreRepresentative",
+                vec![],
+                vec!["T1059".to_string()],
+            ),
+        ];
+
+        let out = collapse_reporter().render(&Summary::new(), &findings, &[]);
+
+        // MITRE line from member[0]: "    MITRE: T1036" (bare ID, no em-dash).
+        assert!(
+            out.contains("MITRE: T1036"),
+            "BC-2.11.017 pc6: MITRE line must read 'MITRE: T1036' (bare ID, from member[0]); \
+             got:\n{out}"
+        );
+
+        // No em-dash (that is grouped-mode format only).
+        assert!(
+            !out.contains('\u{2014}'),
+            "BC-2.11.017 pc6: flat-mode collapse MITRE line must NOT contain em-dash; \
+             got:\n{out}"
+        );
+
+        // member[1]'s T1059 must not appear in terminal output.
+        assert!(
+            !out.contains("T1059"),
+            "BC-2.11.017 pc6: member[1] MITRE 'T1059' must be elided from terminal output; \
+             got:\n{out}"
+        );
     }
 
     // -----------------------------------------------------------------------
@@ -2137,9 +3600,68 @@ mod story_118 {
 
     /// AC-025: overall section order is unchanged when collapse_findings=true.
     /// Only the FINDINGS body content changes.
-    /// REGRESSION-GUARD: verifies BC-2.11.019 postcondition 9 / invariant 7.
+    ///
+    /// This guards that the collapse feature does not reorder or drop the top-level
+    /// output sections. FAILS if a future change to the collapse path accidentally
+    /// moves FINDINGS before PROTOCOLS, or omits the ANALYZER section.
     #[test]
     fn test_BC_2_11_019_section_order_unchanged_with_collapse() {
-        todo!("STORY-118 RED: implement test body — BC-5.38.001")
+        // BC-2.11.019 pc9 / invariant 7: section order with collapse=true.
+        // Expected order: WIRERUST TRIAGE REPORT → PROTOCOLS → FINDINGS → ANALYZER: Test.
+        let findings = vec![make_collapse_finding(
+            ThreatCategory::Anomaly,
+            Verdict::Inconclusive,
+            Confidence::Low,
+            "OrderCheck",
+            vec![],
+            vec![],
+        )];
+        let analyzer = AnalysisSummary {
+            analyzer_name: "Test".to_string(),
+            packets_analyzed: 0,
+            detail: std::collections::BTreeMap::new(),
+        };
+
+        let out = collapse_reporter().render(&Summary::new(), &findings, &[analyzer]);
+
+        // All expected sections must appear.
+        assert!(
+            out.contains("WIRERUST TRIAGE REPORT"),
+            "BC-2.11.019 inv7: 'WIRERUST TRIAGE REPORT' must appear; got:\n{out}"
+        );
+        assert!(
+            out.contains("PROTOCOLS"),
+            "BC-2.11.019 inv7: 'PROTOCOLS' must appear; got:\n{out}"
+        );
+        assert!(
+            out.contains("FINDINGS"),
+            "BC-2.11.019 inv7: 'FINDINGS' must appear; got:\n{out}"
+        );
+        assert!(
+            out.contains("ANALYZER: Test"),
+            "BC-2.11.019 inv7: 'ANALYZER: Test' must appear; got:\n{out}"
+        );
+
+        // Section order: REPORT < PROTOCOLS < FINDINGS < ANALYZER.
+        let pos_report = out.find("WIRERUST TRIAGE REPORT").unwrap();
+        let pos_protocols = out.find("PROTOCOLS").unwrap();
+        let pos_findings = out.find("FINDINGS").unwrap();
+        let pos_analyzer = out.find("ANALYZER: Test").unwrap();
+
+        assert!(
+            pos_report < pos_protocols,
+            "BC-2.11.019 inv7: REPORT must precede PROTOCOLS; \
+             pos_report={pos_report}, pos_protocols={pos_protocols}"
+        );
+        assert!(
+            pos_protocols < pos_findings,
+            "BC-2.11.019 inv7: PROTOCOLS must precede FINDINGS; \
+             pos_protocols={pos_protocols}, pos_findings={pos_findings}"
+        );
+        assert!(
+            pos_findings < pos_analyzer,
+            "BC-2.11.019 inv7: FINDINGS must precede ANALYZER section; \
+             pos_findings={pos_findings}, pos_analyzer={pos_analyzer}"
+        );
     }
 }
