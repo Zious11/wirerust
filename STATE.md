@@ -1,13 +1,13 @@
 ---
 pipeline: FEATURE_MODE
 phase: F7
-phase_status: "FEATURE MODE issue #62 — F6 HARDENED. NEXT = F7 delta-convergence (5-dim + consistency audit + holistic adversarial + human gate)."
+phase_status: "FEATURE MODE issue #62 — F7 delta-convergence CONVERGED (5-dim MET; holistic adversarial 3/3; consistency PASS). AWAITING F7 HUMAN GATE before release v0.9.0."
 active_feature: "E-8 / #62 TerminalReporter enum-of-modes refactor — F1..F4 COMPLETE; STORY-120 merged a4263c73; release target v0.9.0. STORY-119 depends_on [STORY-120]. F3 adversarial gate SATISFIED 3/3 (f034ca2). STORY-121 (E-11 self-improvement follow-up, D-099/D-100/D-101 process-gap) filed as draft."
 feature_arp_status: "v0.7.0 RELEASED 2026-06-16 — ARP Security Analyzer (E-16, issue #9); PR #256 dd8e142; tag v0.7.0; 4 binaries (aarch64-apple-darwin, x86_64-apple-darwin, x86_64-pc-windows-msvc, x86_64-unknown-linux-gnu)"
 feature_8_status: "v0.6.0 RELEASED 2026-06-12 — DNP3 TCP analyzer; F7 5-dim CONVERGED; tag v0.6.0 + 4 binaries"
 product: wirerust
 mode: brownfield
-timestamp: 2026-06-18T16:00:00Z
+timestamp: 2026-06-18T18:00:00Z
 maintenance_run: COMPLETE
 maintenance_run_id: maint-2026-06-17
 maintenance_started_at: "2026-06-17"
@@ -75,7 +75,7 @@ e8_f4_wave_adversary_convergence_counter: "3/3 SATISFIED (passes 1/2/3 clean on 
 e8_f4_perstory_adversary_convergence_counter: "3/3 SATISFIED — per-story adversarial gate SATISFIED (frozen corpus 864de05; parallel triple A/B/C all CLEAN, zero MEDIUM+; lenses: behavior-preservation / census+scope+semver / AC-017-doc-sweep+test-quality). Toolchain confirmed: fmt clean, clippy clean, all test suites 0 failures, byte-identical output)."
 e8_f5_scoped_adversary_convergence_counter: "3/3 SATISFIED — F5 scoped-adversarial gate SATISFIED (re-run triple on frozen corpus develop f851995 / factory e1d5a64; Passes A/B/C all CLEAN, zero MEDIUM+). First triple: Pass-3 HIGH F-1 (stale post-merge anchors) → remediated (12 BCs re-anchored, ADR-0003+CHANGELOG fix-PR #267 f851995). Re-run all CLEAN. STORY-120 body version-stamps synced + input-hash recomputed."
 e8_f6_hardening_status: "HARDENED — no new VP (F1/F2 verification delta confirmed). Regression 1646/0 (byte-identical gate). VP-012 escape_for_terminal proptest unchanged & passing (4 prop harnesses 1000 cases each). Mutation (cargo-mutants on terminal.rs): 28 killed / 1 survived / 2 unviable = 96.6%; all 3 dispatch-arm targets KILLED (Grouped→render_findings_grouped, FlatCollapsed→render_findings_collapsed, FlatExpanded→render_finding_flat); escape_for_terminal 5/5 100%. Lone survivor terminal.rs:276 (Confidence::High arm in render_finding_prefix) is pre-existing/byte-untouched by #62, out of scope. Kani (decoder.rs/dispatcher.rs) + fuzz (decode/dnp3/modbus parsers) UNAFFECTED — delta touches only main.rs + reporter/terminal.rs. cargo audit clean (1 ACCEPTED-TRANSITIVE RUSTSEC-2026-0097). cargo deny clean. clippy/fmt clean."
-e8_f7_convergence_status: "CONVERGED — 5-dim MET on develop 5f7cd1b; holistic adversarial: impl ship-ready 3/3"
+e8_f7_convergence_status: "CONVERGED — 5-dim MET on develop f851995. Holistic adversarial 3/3 CLEAN (all SHIP v0.9.0). Fresh-context consistency audit PASS (1 MEDIUM F-001 = VP-016 stale test-spec field refs → REMEDIATED v2.4). Dimensions: spec (BC/ADR/CHANGELOG coherent), tests (1646/0), implementation (STORY-120 merged a4263c7/PR#266, byte-identical), verification (F6 HARDENED, mutation 96.6%, VP-012 pass), docs (CHANGELOG [0.9.0] + ADR-0003 + README coherent). Input-drift: STORY-120 input-hash 8047030 MATCH. AWAITING F7 HUMAN GATE → release v0.9.0."
 e8_f4_holdout_status: "PASS — mean 1.00 / critical-min 1.00 (11 CLI scenarios)"
 arp_f4_wave_adversary_convergence_counter: 3/3 CONVERGED (re-streak on bcb1bd6) — F4 wave-level adversarial gate SATISFIED
 arp_f5_scoped_adversary_convergence_counter: "3/3 CONVERGED — F5 scoped-adversarial gate SATISFIED (2026-06-16, develop 079013d)"
@@ -132,19 +132,20 @@ input_drift_check: "F7-followup-dispositions burst (2026-06-16): STORY-071/100/1
 | E-8 / #62 F4 delta-implementation | **DELIVERED** 2026-06-18 — STORY-120 merged develop a4263c73 (PR #266); per-story adversarial 3/3; demo evidence .factory/demo-evidence/issue-62-story-120/; CI 9/9 green; v0.9.0 bump. | STORY-120 (FindingsRender enum migration, 28 construction sites, byte-identical refactor) delivered. Per-story adversarial convergence 3/3 CLEAN (frozen 864de05; behavior/census-scope-semver/doc-sweep lenses). PR #266 merged develop a4263c73. |
 | E-8 / #62 F5 scoped-adversarial | **CONVERGED 3/3** 2026-06-18 — scoped-adversarial; HIGH F-1 anchor-drift remediated (BCs re-anchored + ADR/CHANGELOG PR #267); re-run triple CLEAN. | First triple: Pass-3 HIGH F-1 (post-merge stale terminal.rs anchors across all 12 SS-11 BCs + ADR-0003). Remediated: 12 BCs re-anchored by symbol (BC-INDEX v1.43); ADR-0003 color-ladder anchor 209-221→273-285 + CHANGELOG v0.9.0 entry via fix-PR #267 (develop f851995). Re-run triple A/B/C all CLEAN (frozen corpus develop f851995 / factory e1d5a64). STORY-120 body version-stamps synced; input-hash 3d76a93→8047030. |
 | E-8 / #62 F6 targeted hardening | **HARDENED** 2026-06-18 — regression 1646/0; mutation 96.6% (3 dispatch arms + escape 100% killed); no new VP; Kani/fuzz unaffected; audit/deny clean. | No new VP (pure byte-identical dispatch refactor; F1/F2 verification delta confirmed). Regression 1646/0. VP-012 proptest pass (4 harnesses, 1000 cases each). cargo-mutants terminal.rs: 28 killed / 1 survived / 2 unviable = 96.6%; all 3 dispatch arms KILLED; lone survivor terminal.rs:276 (Confidence::High in render_finding_prefix) pre-existing/out-of-scope. Kani (decoder.rs/dispatcher.rs) + fuzz (decode/dnp3/modbus parsers) UNAFFECTED. cargo audit (RUSTSEC-2026-0097 ACCEPTED-TRANSITIVE) / deny / clippy / fmt clean. D-107. |
+| E-8 / #62 F7 delta-convergence | **CONVERGED 3/3** 2026-06-18 — 5-dim MET; holistic adversarial 3/3 SHIP; consistency PASS (F-001 VP-016 remediated v2.4); input-drift MATCH. AWAITING HUMAN GATE → v0.9.0. | 5-dim MET on develop f851995: spec (BC/ADR/CHANGELOG coherent), tests (1646/0), implementation (STORY-120 merged a4263c7/PR#266, byte-identical), verification (F6 HARDENED, mutation 96.6%, VP-012 pass), docs (CHANGELOG [0.9.0] + ADR-0003 + README coherent). Holistic adversarial 3/3 CLEAN (all SHIP v0.9.0). Fresh-context consistency audit PASS — 1 MEDIUM F-001 (VP-016 stale test-spec snippets: show_mitre_grouping → FindingsRender::Grouped) REMEDIATED via VP-016 v2.4 mechanical API update (no normative change). Input-drift: STORY-120 input-hash 8047030 MATCH. D-108. |
 
-## Session Resume Checkpoint (2026-06-18 — F6 HARDENED — FEATURE MODE E-8 / #62; F1-F6 COMPLETE — F7 NEXT)
+## Session Resume Checkpoint (2026-06-18 — F7 CONVERGED — AWAITING HUMAN GATE → v0.9.0)
 
-**Previous checkpoint (2026-06-18 — COLD-RESUME F4 IN PROGRESS) archived to:
+**Previous checkpoint (2026-06-18 — F6 HARDENED) archived to:
 `.factory/cycles/feature-collapse-v0.8.0/session-checkpoints.md`**
 
 ### A. EXACT PIPELINE POSITION
 
 - **Project:** wirerust. **Mode:** FEATURE_MODE — E-8 / issue #62 TerminalReporter FindingsRender enum-of-modes refactor. Release target v0.9.0 CONFIRMED.
-- **Phase:** **F1 ✅ / F2 ✅ / F3 ✅ / F4 ✅ DELIVERED / F5 ✅ CONVERGED 3/3 (D-106) / F6 ✅ HARDENED (D-107). NEXT = F7 delta-convergence (5-dim + consistency audit + holistic adversarial + human gate).**
+- **Phase:** **F1 ✅ / F2 ✅ / F3 ✅ / F4 ✅ DELIVERED / F5 ✅ CONVERGED 3/3 (D-106) / F6 ✅ HARDENED (D-107) / F7 ✅ CONVERGED (D-108). AWAITING F7 HUMAN GATE → release v0.9.0.**
 - **Refactor summary:** Replace TerminalReporter's 3 render bools (`show_mitre_grouping`, `collapse_findings`, and the logical third) with `FindingsRender { Grouped, FlatCollapsed, FlatExpanded }` enum (keep `use_color`, `show_hosts_breakdown` as orthogonal bools). 28 construction sites. Byte-identical output — CONFIRMED.
 - **Latest release:** v0.8.0 — finding-collapse (E-18, issue #259, STORY-118). Tag v0.8.0 on main 73034da. Next release: v0.9.0.
-- **Follow-up:** STORY-121 filed (E-11, draft) — F1/F2 story-input analysis docs self-audit + consuming-surface sweep checklist (D-099/D-100/D-101 process-gap).
+- **Follow-up:** STORY-121 filed (E-11, draft) — F1/F2 story-input analysis docs self-audit + consuming-surface sweep checklist (D-099/D-100/D-101 process-gap); extended by D-108 to cover VP docs that embed struct construction.
 
 ### B. EXACT SHAs / WORKTREE STATE (verified 2026-06-18)
 
@@ -189,8 +190,8 @@ git -C /Users/zious/Documents/GITHUB/wirerust worktree list
 ### E. NEXT ACTIONS (in order — do NOT skip steps)
 
 1. **BLOCKING on resume:** run `/vsdd-factory:factory-worktree-health`; verify SHAs per §C.
-2. **F7 delta-convergence:** 5-dim convergence check + consistency audit + holistic adversarial review (3/3) + human gate → release v0.9.0.
-3. **F6 is COMPLETE (D-107).** Do NOT re-run F6.
+2. **F7 HUMAN GATE:** Present convergence summary (D-108) to human for release approval → release v0.9.0. 5-dim MET, adversarial 3/3 CLEAN, consistency PASS (F-001 VP-016 remediated v2.4).
+3. **F6 and F7 are COMPLETE (D-107/D-108).** Do NOT re-run F6 or F7.
 
 ### F. KEY ARTIFACT POINTERS
 
@@ -228,6 +229,7 @@ D-055..D-091 archived: `cycles/feature-collapse-v0.8.0/decisions-archive.md` (Fe
 | D-105 | Issue #62 F5 Pass-3 (spec-coherence lens, fresh-context) found HIGH F-1: the STORY-120 enum block shifted src/reporter/terminal.rs helpers down ~52-160 lines, making every terminal.rs:NNN anchor in all 12 SS-11 BCs + ADR-0003 line-268 stale (some pointing at semantically different code — e.g. BC-2.11.026 PC-6 color-ladder normative ref). Passes 1&2 CLEAN. Root cause / process-gap O-1 [process-gap]: re-anchor passes validated against spec-branch HEAD, not the post-merge feature SHA, so anchors went stale the moment STORY-120 merged. Remediation: PO re-anchored 12 BCs by symbol against a4263c7 (anchor-only, no normative change, versions bumped, BC-INDEX v1.43); ADR-0003 + CHANGELOG fix-PR to develop. F5 streak reset to 0/3; re-running triple on new frozen corpus. | 2026-06-18 |
 | D-106 | Issue #62 F5 scoped-adversarial CONVERGED 3/3 (re-run on develop f851995 / factory e1d5a64). HIGH F-1 (post-merge BC/ADR anchor drift) remediated: 12 BCs re-anchored by symbol (BC-INDEX v1.43), ADR-0003 color-ladder anchor 209-221→273-285 + CHANGELOG v0.9.0 entry via fix-PR #267 (develop f851995). Re-run triple A/B/C all CLEAN. Post-convergence bookkeeping: STORY-120 body BC-version stamps synced to F5 versions; input-hash recomputed (3d76a93→8047030). Residual MINOR (non-blocking): src/main.rs:495 collapse_findings_from_flag doc-comment references removed field (DRIFT-62-MAIN495-DOC-001, LOW). NEXT = F6. | 2026-06-18 |
 | D-107 | Issue #62 F6 targeted hardening HARDENED (develop f851995). No new VP (pure byte-identical dispatch refactor). Regression 1646/0; VP-012 unchanged; mutation 96.6% with all 3 match-dispatch arms killed (Grouped→render_findings_grouped, FlatCollapsed→render_findings_collapsed, FlatExpanded→render_finding_flat) + escape_for_terminal 100%; lone survivor terminal.rs:276 (Confidence::High arm in render_finding_prefix) pre-existing/out-of-scope; Kani/fuzz unaffected (delta doesn't touch decoder/dispatcher/parsers); audit+deny+clippy+fmt clean. NEXT = F7. | 2026-06-18 |
+| D-108 | Issue #62 F7 delta-convergence CONVERGED. Holistic adversarial triple (Passes 1/2/3, fresh-context, whole-implementation) all CLEAN with explicit SHIP v0.9.0 recommendation. Fresh-context consistency audit PASS — single MEDIUM F-001 (VP-016 verification_lock doc had stale show_mitre_grouping test-spec snippets; not in STORY-120 input set so sweep missed it) REMEDIATED via VP-016 v2.4 mechanical API update (no normative change). 5-dim convergence MET (spec/tests/impl/verification/docs). Input-drift STORY-120 MATCH (8047030). Process-gap: VP docs that reference a refactored struct are a consuming surface — extends PG-62-F5-POSTMERGE-ANCHOR-001 / STORY-121 scope. AWAITING F7 HUMAN GATE → release v0.9.0. | 2026-06-18 |
 
 ## Blocking Issues
 
@@ -296,7 +298,7 @@ Full tech-debt register: `.factory/tech-debt-register.md`.
 | DRIFT-62-BC028-ECCOUNT-PROSE-001 | Changelog/PRD-delta describe BC-2.11.028 EC changes as "EC-001..005" but EC-010 was also enum-updated. Artifact is correct; change-prose undercounts. | DEFERRED — next doc-sweep |
 | PG-62-F3-AC-SCOPE | F3 round-1 adversary caught CRITICAL: AC-005 code block prescribed vars (*mitre, no_collapse) that are out of scope at the cited construction site (run_analyze). Root cause: story-writer did not verify variable scope at each cited file:line. Policy candidate: AC code blocks MUST reference only variables provably in scope at the cited file:line anchor. Ties to PG-62-F2-BOOKKEEPING-SWEEP-001 family (multi-phase fresh-context audits surface latent spec defects). | OPEN — policy codification |
 | PG-62-F3-AC-DESC-FROM-SOURCE | F3 round-3 adversary caught CRITICAL: round-2 AC-trace descriptions were written from memory and were semantically INVERTED for BC-2.11.015/016. Root cause: story-writer paraphrased BC postconditions rather than reading the actual BC file and copying the canonical PC-1 text verbatim. Policy candidate: AC trace descriptions for BC citations MUST be copied verbatim from the cited BC's actual postcondition text, never paraphrased. Companion to PG-62-F3-AC-SCOPE. | OPEN — policy codification pending (MEDIUM) |
-| PG-62-F5-POSTMERGE-ANCHOR-001 | F5: BC/ADR line-anchors re-validated against spec-branch HEAD go stale when the implementation merge shifts lines on develop. Need a post-merge anchor-revalidation step (grep each terminal.rs:NNN anchor's symbol against the merged feature SHA) in the cycle-closing checklist for any story refactoring a file other BCs anchor into. Candidate scope addition to STORY-121. | OPEN — policy codification (relates STORY-121) |
+| PG-62-F5-POSTMERGE-ANCHOR-001 | F5: BC/ADR line-anchors re-validated against spec-branch HEAD go stale when the implementation merge shifts lines on develop. Need a post-merge anchor-revalidation step (grep each terminal.rs:NNN anchor's symbol against the merged feature SHA) in the cycle-closing checklist for any story refactoring a file other BCs anchor into. Candidate scope addition to STORY-121. **F7 sub-note:** F7 consistency audit found VP-016 was also a missed consuming surface (stale struct-field snippets: show_mitre_grouping/collapse_findings in test-spec code blocks → FindingsRender::Grouped enum vocabulary) — reinforces the consuming-surface sweep checklist must include verification-property docs that embed struct construction. Folds into STORY-121. | OPEN — policy codification (relates STORY-121) |
 | DRIFT-62-MAIN495-DOC-001 | src/main.rs:495 collapse_findings_from_flag doc-comment still says it maps --no-collapse to the removed TerminalReporter `collapse_findings` field; it now maps to a local bool feeding render: FindingsRender. F5 Pass-B graded MINOR. Fix in next develop touch (F7/release pre-flight). | DEFERRED LOW |
 
 ## Deferred Next-Work Backlog

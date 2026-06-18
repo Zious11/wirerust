@@ -1,7 +1,7 @@
 ---
 document_type: verification-property
 level: L4
-version: "2.3"
+version: "2.4"
 status: verified
 producer: architect
 timestamp: 2026-05-20T00:00:00Z
@@ -29,6 +29,7 @@ modified:
   - "v2.1 (2026-06-12): F-D10-L02 — corrected stale variant count 16 → 17. IcsImpact was added in the DNP3/Feature-8 cycle (src/mitre.rs, STORY-109). Canonical count: 14 Enterprise + 3 ICS-unique (IcsInhibitResponseFunction, IcsImpairProcessControl, IcsImpact) = 17. Updated test assertion comment and assert_eq value."
   - "v2.2 (2026-06-13, ARP-F2 Pass-14 PO Burst 2): Two stale Finding field references in Test Specification corrected: 'mitre_technique: None' → 'mitre_techniques: vec![]' and 'mitre_technique: technique.map(|s| s.to_string())' → 'mitre_techniques: technique.map(|s| vec![s.to_string()]).unwrap_or_default()'. These were STALE singular field uses; shipped struct is Vec<String> per ADR-006 Decision 13. Lock fields unchanged."
   - "v2.3 (2026-06-14, F3-convergence FIX-4): De-pinned stale line anchor '(mitre.rs:95)' → '(src/mitre.rs `all_tactics_in_report_order`)'. Live src verified: all_tactics_in_report_order at mitre.rs:100 (was off by 5). DF-SIBLING-SWEEP-001: no other stale line pins found in this file."
+  - "v2.4: mechanical API-vocabulary update — TerminalReporter test-spec snippets re-expressed in FindingsRender enum vocabulary (show_mitre_grouping: true → render: FindingsRender::Grouped) per STORY-120 / issue #62; no normative change to the property or proof obligation; verification_lock preserved."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -104,15 +105,15 @@ fn test_mitre_grouping_order_canonical() {
 fn test_no_technique_finding_lands_in_uncategorized() {
     use crate::findings::{Confidence, Finding, ThreatCategory, Verdict};
     use crate::reporter::Reporter;
-    use crate::reporter::terminal::TerminalReporter;
+    use crate::reporter::terminal::{FindingsRender, TerminalReporter};
     use crate::summary::Summary;
 
     // TerminalReporter is a plain struct with public fields; no new() constructor
     // (terminal.rs:63-75). Construct directly.
     let reporter = TerminalReporter {
         use_color: false,
-        show_mitre_grouping: true,
         show_hosts_breakdown: false,
+        render: FindingsRender::Grouped,
     };
     let finding = Finding {
         category: ThreatCategory::Anomaly,
@@ -134,7 +135,7 @@ fn test_no_technique_finding_lands_in_uncategorized() {
 fn test_within_bucket_sort_verdict_first() {
     use crate::findings::{Confidence, Finding, ThreatCategory, Verdict};
     use crate::reporter::Reporter;
-    use crate::reporter::terminal::TerminalReporter;
+    use crate::reporter::terminal::{FindingsRender, TerminalReporter};
     use crate::summary::Summary;
 
     // sort_within_bucket is an internal detail of render_findings_grouped;
@@ -142,8 +143,8 @@ fn test_within_bucket_sort_verdict_first() {
     // render(), checking that Likely appears before Inconclusive in the output.
     let reporter = TerminalReporter {
         use_color: false,
-        show_mitre_grouping: true,
         show_hosts_breakdown: false,
+        render: FindingsRender::Grouped,
     };
     fn make_finding(verdict: Verdict, confidence: Confidence, technique: Option<&str>) -> Finding {
         Finding {
