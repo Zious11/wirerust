@@ -1877,7 +1877,10 @@ mod story_118 {
         let out = collapse_reporter().render(&Summary::new(), &findings, &[]);
 
         // The FINDINGS section must appear (findings are non-empty).
-        assert!(out.contains("FINDINGS"), "FINDINGS section must appear; got:\n{out}");
+        assert!(
+            out.contains("FINDINGS"),
+            "FINDINGS section must appear; got:\n{out}"
+        );
 
         // Count occurrences of the header string in the output — must be exactly 1.
         // The header format per terminal.rs: `  [Anomaly] INCONCLUSIVE (LOW) - Flood`
@@ -1953,8 +1956,12 @@ mod story_118 {
 
         let out = collapse_reporter().render(&Summary::new(), &findings, &[]);
 
-        let pos_alpha = out.find("Alpha").expect("'Alpha' group header not found in output");
-        let pos_beta = out.find("Beta").expect("'Beta' group header not found in output");
+        let pos_alpha = out
+            .find("Alpha")
+            .expect("'Alpha' group header not found in output");
+        let pos_beta = out
+            .find("Beta")
+            .expect("'Beta' group header not found in output");
 
         assert!(
             pos_alpha < pos_beta,
@@ -2391,7 +2398,8 @@ mod story_118 {
         );
 
         // Collapse reporter (collapse_findings=true) with a single finding.
-        let out_collapse = collapse_reporter().render(&Summary::new(), &[f.clone()], &[]);
+        let out_collapse =
+            collapse_reporter().render(&Summary::new(), std::slice::from_ref(&f), &[]);
 
         // No (xN) suffix of any kind.
         assert!(
@@ -2549,9 +2557,7 @@ mod story_118 {
         // Find the ANSI reset that closes the header span.
         // owo-colors emits "\x1b[0m" as the reset sequence.
         let ansi_reset = "\x1b[0m";
-        let pos_reset = out[pos_suffix..]
-            .find(ansi_reset)
-            .map(|p| p + pos_suffix);
+        let pos_reset = out[pos_suffix..].find(ansi_reset).map(|p| p + pos_suffix);
 
         // The suffix must be followed by a reset (i.e., it is inside the span).
         assert!(
@@ -3247,15 +3253,17 @@ mod story_118 {
 
         // JSON output from the SAME slice: must have 1000 finding objects.
         let json_out = JsonReporter.render(&Summary::new(), &findings, &[]);
-        let json: serde_json::Value = serde_json::from_str(&json_out)
-            .expect("JSON output must be valid JSON");
+        let json: serde_json::Value =
+            serde_json::from_str(&json_out).expect("JSON output must be valid JSON");
         let json_findings = json["findings"]
             .as_array()
             .expect("JSON 'findings' must be an array");
         assert_eq!(
-            json_findings.len(), 1000,
+            json_findings.len(),
+            1000,
             "BC-2.11.029 pc1/inv1: JSON reporter must receive all 1000 findings; \
-             found {} findings in JSON output", json_findings.len()
+             found {} findings in JSON output",
+            json_findings.len()
         );
     }
 
@@ -3291,9 +3299,11 @@ mod story_118 {
         // First line is the header; remaining non-empty lines are data rows.
         let data_rows = lines.iter().skip(1).filter(|l| !l.is_empty()).count();
         assert_eq!(
-            data_rows, 5,
+            data_rows,
+            5,
             "BC-2.11.029 pc2: CSV must contain exactly 5 data rows for 5 identical findings; \
-             found {data_rows} rows (total lines including header: {})", lines.len()
+             found {data_rows} rows (total lines including header: {})",
+            lines.len()
         );
 
         // Contrast assertion: terminal collapse mode on the same 5 findings collapses to 1
@@ -3394,15 +3404,16 @@ mod story_118 {
         // Both collapse=true and collapse=false terminal renders must produce the SAME
         // JSON output when the same slice is passed to JsonReporter.
         let json_out = JsonReporter.render(&Summary::new(), &findings, &[]);
-        let json: serde_json::Value = serde_json::from_str(&json_out)
-            .expect("JSON output must be valid JSON");
+        let json: serde_json::Value =
+            serde_json::from_str(&json_out).expect("JSON output must be valid JSON");
         let json_findings = json["findings"]
             .as_array()
             .expect("JSON 'findings' must be an array");
 
         // All 5 findings must be present in JSON regardless of terminal collapse.
         assert_eq!(
-            json_findings.len(), 5,
+            json_findings.len(),
+            5,
             "BC-2.11.029 pc5: JSON must always contain all 5 findings; found {}",
             json_findings.len()
         );

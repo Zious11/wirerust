@@ -67,10 +67,6 @@ fn escape_for_terminal(s: &str) -> String {
 /// of the group and emits `evidence[0]` from each inspected member (if non-empty).
 /// The window is positional and does NOT slide past empty-evidence members.
 ///
-/// STORY-118 stub: used by `collapse_findings_pass` (todo!) and
-/// `render_findings_collapsed` (todo!) — referenced once the implementer fills
-/// in those bodies.
-#[allow(dead_code)]
 const COLLAPSE_EVIDENCE_SAMPLES: usize = 3;
 
 /// Collapse key: the four semantic fields that determine group membership.
@@ -84,9 +80,6 @@ const COLLAPSE_EVIDENCE_SAMPLES: usize = 3;
 /// Verdict, and Confidence do not derive Hash in v0.8.0). The collapse accumulator
 /// is `Vec<(CollapseKey, Vec<&Finding>)>` with linear-scan equality matching.
 ///
-/// STORY-118 stub: constructed by `collapse_findings_pass` (todo!) — used once
-/// the implementer fills in that body.
-#[allow(dead_code)]
 #[derive(PartialEq, Eq)]
 struct CollapseKey {
     category: crate::findings::ThreatCategory,
@@ -198,9 +191,9 @@ impl Reporter for TerminalReporter {
                 self.render_findings_grouped(&mut out, findings);
             } else if self.collapse_findings {
                 // Flat + collapse path (STORY-118 / BC-2.11.025 / BC-2.11.026 /
-                // BC-2.11.027): group findings by CollapseKey in first-occurrence
-                // order, render each group with optional (xN) suffix and up to K=3
-                // sampled evidence lines. todo!() per BC-5.38.001.
+                // BC-2.11.027): groups findings by CollapseKey in first-occurrence
+                // order, renders each group with optional (xN) suffix and up to K=3
+                // sampled evidence lines.
                 self.render_findings_collapsed(&mut out, findings);
             } else {
                 // Per ADR 0003: the Finding struct stores raw bytes; the
@@ -319,33 +312,95 @@ impl TerminalReporter {
     /// `PartialEq` matching (no HashMap / IndexMap — `ThreatCategory`, `Verdict`,
     /// and `Confidence` do not derive `Hash` in v0.8.0).
     ///
+    /// Each finding's four-tuple `(category, verdict, confidence, summary)` is
+    /// compared by raw bytes (the summary is not escaped before key construction;
+    /// escape is a render-time operation). Groups appear in first-occurrence order —
+    /// the position of the first member that created the group.
+    ///
     /// BC-2.11.025 invariant 7 / postcondition 9: Vec accumulator is canonical.
-    /// BC-5.38.001: non-trivial body — `todo!()` placeholder.
-    // STORY-118 stub: allow dead_code until implementer wires the call-site.
-    #[allow(dead_code)]
     fn collapse_findings_pass<'a>(
         &self,
-        _findings: &'a [Finding],
+        findings: &'a [Finding],
     ) -> Vec<(CollapseKey, Vec<&'a Finding>)> {
-        todo!("STORY-118: implement collapse_findings_pass — BC-5.38.001")
+        let mut groups: Vec<(CollapseKey, Vec<&'a Finding>)> = Vec::new();
+        for f in findings {
+            let key = CollapseKey {
+                category: f.category,
+                verdict: f.verdict,
+                confidence: f.confidence,
+                summary: f.summary.clone(),
+            };
+            // Linear-scan PartialEq: find an existing group or create a new one.
+            if let Some(pos) = groups.iter().position(|(k, _)| k == &key) {
+                groups[pos].1.push(f);
+            } else {
+                groups.push((key, vec![f]));
+            }
+        }
+        groups
     }
 
     /// Renders the FINDINGS section in collapsed flat mode.
     ///
     /// Calls `collapse_findings_pass` to build insertion-ordered groups, then for
     /// each group:
-    ///   - N == 1 (singleton): renders byte-identically to `render_finding_flat`
-    ///     (no count suffix, all evidence, MITRE line if non-empty).
-    ///   - N >= 2: renders header with ` (xN)` suffix (colorized WITH the header via
-    ///     the same verdict/confidence color-ladder at terminal.rs lines ~245-258),
-    ///     then up to `COLLAPSE_EVIDENCE_SAMPLES` = 3 evidence lines (first K members'
-    ///     `evidence[0]`, positional window, does NOT slide past empty-evidence members),
-    ///     then the MITRE line from `group_members[0]` if non-empty.
+    ///   - N == 1 (singleton): delegates to `render_finding_flat` for byte-identical
+    ///     output compared to pre-v0.8.0 (no count suffix, all evidence rendered, MITRE
+    ///     line if non-empty).
+    ///   - N >= 2: renders header with ` (xN)` suffix appended BEFORE colorization (so
+    ///     the suffix is inside the ANSI color span), then up to K=3 sampled evidence
+    ///     lines (first `min(N, COLLAPSE_EVIDENCE_SAMPLES)` members' `evidence[0]` in
+    ///     positional order; the window does NOT slide past empty-evidence members), then
+    ///     the MITRE line from `group_members[0]` if non-empty.
     ///
     /// BC-2.11.025 / BC-2.11.026 / BC-2.11.027 / BC-2.11.010.
-    /// BC-5.38.001: non-trivial body — `todo!()` placeholder.
-    fn render_findings_collapsed(&self, _out: &mut String, _findings: &[Finding]) {
-        todo!("STORY-118: implement render_findings_collapsed — BC-5.38.001")
+    fn render_findings_collapsed(&self, out: &mut String, findings: &[Finding]) {
+        let groups = self.collapse_findings_pass(findings);
+        for (_key, members) in &groups {
+            let n = members.len();
+            if n == 1 {
+                // Singleton: byte-identical to pre-v0.8.0 flat rendering.
+                self.render_finding_flat(out, members[0]);
+            } else {
+                // N >= 2: build header with (xN) suffix, colorize the full string.
+                let rep = members[0];
+                let escaped_summary = escape_for_terminal(&rep.summary);
+                let header_text = format!(
+                    "[{}] {} ({}) - {} (x{})",
+                    rep.category, rep.verdict, rep.confidence, escaped_summary, n
+                );
+                let colored = if self.use_color {
+                    match rep.verdict {
+                        Verdict::Likely => match rep.confidence {
+                            Confidence::High => header_text.red().bold().to_string(),
+                            _ => header_text.yellow().to_string(),
+                        },
+                        Verdict::Possible => header_text.yellow().to_string(),
+                        Verdict::Inconclusive => header_text.cyan().to_string(),
+                        Verdict::Unlikely => header_text.dimmed().to_string(),
+                    }
+                } else {
+                    header_text
+                };
+                out.push_str(&format!("  {colored}\n"));
+
+                // Evidence sampling: inspect first min(N, K) members positionally.
+                // The window does NOT slide past empty-evidence members (BC-2.11.027 inv2).
+                let window = members.len().min(COLLAPSE_EVIDENCE_SAMPLES);
+                for member in &members[..window] {
+                    if let Some(ev) = member.evidence.first() {
+                        let escaped_ev = escape_for_terminal(ev);
+                        out.push_str(&format!("    > {escaped_ev}\n"));
+                    }
+                }
+
+                // MITRE line from group_members[0] only, if non-empty (BC-2.11.026 pc7).
+                if !rep.mitre_techniques.is_empty() {
+                    let ids = rep.mitre_techniques.join(", ");
+                    out.push_str(&format!("    MITRE: {ids}\n"));
+                }
+            }
+        }
     }
 
     /// Renders the FINDINGS section grouped by MITRE tactic. Each tactic
