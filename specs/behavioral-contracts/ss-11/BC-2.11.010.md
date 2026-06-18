@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.10"
+version: "1.11"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -23,6 +23,7 @@ modified:
   - "v1.8 2026-06-17: F2 adversarial pass-5 — F1: remove residual 'path-(b)' label from Invariant 4 body (BC-2.11.026 path-(b)) → 'The flat collapse wrapper calls...'"
   - "v1.9 2026-06-17: issue-#62 F2 BC re-anchor (fix-burst) — replace collapse_findings=true bool references with FindingsRender enum: Invariant 4 preamble + EC-006 Input cell + EC-007 Input cell updated. Rationale: illegal-state elimination. No behavioral change."
   - "v1.10 2026-06-18: F5 post-merge re-anchor to develop a4263c7 (terminal.rs line-anchor drift fix; no normative change) — render_finding_prefix fn shifted: Architecture Anchor + Source Evidence path :203-227 → :267-291 (fn at 267, summary escape at 268, evidence loop at 287-290); inline line refs :204 → :268 (summary escape), :222-223 → :287-290 (evidence loop)."
+  - "v1.11 2026-06-18: STORY-119 vocabulary migration — D-110 struct form: FindingsRender::FlatCollapsed → FindingsRender { grouping: Grouping::Flat, collapse: Collapse::Collapsed } in Invariant 4 and EC-006/EC-007. No behavioral change."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -61,7 +62,7 @@ summary line or any supporting evidence detail -- cannot inject terminal control
 2. Both the summary call site and the evidence loop call site use the same `escape_for_terminal`
    function.
 3. This contract applies in both default (flat) and MITRE-grouped rendering modes.
-4. Under the v0.8.0 collapse feature (BC-2.11.025, `render = FindingsRender::FlatCollapsed`), evidence
+4. Under the v0.8.0 collapse feature (BC-2.11.025, `render = FindingsRender { grouping: Grouping::Flat, collapse: Collapse::Collapsed }`), evidence
    rendering for a collapsed group is bounded to at most K=3 representative lines (BC-2.11.027).
    The `escape_for_terminal` FUNCTION invariant is unchanged: every evidence line that IS
    rendered — whether from a collapsed group or a singleton — goes through `escape_for_terminal`.
@@ -84,8 +85,8 @@ summary line or any supporting evidence detail -- cannot inject terminal control
 | EC-003 | Control bytes in both summary and evidence | Both escaped independently |
 | EC-004 | Evidence is empty vec | No evidence lines rendered; no crash |
 | EC-005 | Evidence with multiple entries, each with ESC | Each entry independently escaped |
-| EC-006 | `render = FindingsRender::FlatCollapsed`, group of N>3 findings, each with 1 evidence entry containing ESC | At most 3 evidence lines rendered; each of the 3 rendered lines is individually escaped; evidence from findings 4..N is elided from terminal but remains in raw slice (BC-2.11.027/BC-2.11.029) |
-| EC-007 | `render = FindingsRender::FlatCollapsed`, representative evidence line contains C1 codepoint | C1 codepoint escaped via the `escape_for_terminal` FUNCTION called directly in the collapse wrapper (NOT via render_finding_prefix's evidence loop); collapse path does not bypass the C1 escape — the function-level guarantee is preserved regardless of which code path calls it |
+| EC-006 | `render = FindingsRender { grouping: Grouping::Flat, collapse: Collapse::Collapsed }` (flat-collapsed mode), group of N>3 findings, each with 1 evidence entry containing ESC | At most 3 evidence lines rendered; each of the 3 rendered lines is individually escaped; evidence from findings 4..N is elided from terminal but remains in raw slice (BC-2.11.027/BC-2.11.029) |
+| EC-007 | `render = FindingsRender { grouping: Grouping::Flat, collapse: Collapse::Collapsed }` (flat-collapsed mode), representative evidence line contains C1 codepoint | C1 codepoint escaped via the `escape_for_terminal` FUNCTION called directly in the collapse wrapper (NOT via render_finding_prefix's evidence loop); collapse path does not bypass the C1 escape — the function-level guarantee is preserved regardless of which code path calls it |
 
 ## Canonical Test Vectors
 

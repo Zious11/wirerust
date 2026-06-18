@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.8"
+version: "1.9"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -21,6 +21,7 @@ modified:
   - "v1.6: PG-ARP-F2-007 — fix stale terminal.rs line anchors shifted by F2 multi-tag additions (STORY-100): verdict_rank :269-275 → :287-293; confidence_rank :276-282 → :295-301; sort_by_key range :284-288 → :303-307; bucket push line 266 → 284; bounding range :269-288 → :287-307; verified against current HEAD — 2026-06-13"
   - "v1.7 2026-06-17: issue-#62 F2 BC re-anchor — Precondition 1: 'show_mitre_grouping = true' → 'render = FindingsRender::Grouped'. Rationale: illegal-state elimination (enum makes the two-bool axis for grouped mode unrepresentable as separate bools). No behavioral change."
   - "v1.8 2026-06-18: F5 post-merge re-anchor to develop a4263c7 (terminal.rs line-anchor drift fix; no normative change) — sort helpers shifted: verdict_rank :287-293 → :447-454; confidence_rank :295-301 → :455-461; sort_by_key call :303-307 → :464-466; bucket push line :284 → :444; bounding range :287-307 → :447-466; Architecture Anchor + Source Evidence path updated."
+  - "v1.9 2026-06-18: STORY-119 vocabulary migration — D-110 struct form: FindingsRender::Grouped → render.grouping == Grouping::Grouped in Precondition 1. No behavioral change."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -40,7 +41,8 @@ key). This ordering surfaces the highest-severity findings at the top of each ta
 
 ## Preconditions
 
-1. `TerminalReporter.render = FindingsRender::Grouped` (set via `--mitre` CLI flag).
+1. `TerminalReporter.render.grouping == Grouping::Grouped` (set via `--mitre` CLI flag; applies
+   to both `{Grouped, Collapsed}` and `{Grouped, Expanded}` paths).
 2. At least two findings share the same tactic bucket.
 
 ## Postconditions

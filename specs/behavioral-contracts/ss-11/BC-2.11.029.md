@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.6"
+version: "1.7"
 status: draft
 producer: product-owner
 timestamp: 2026-06-17T00:00:00Z
@@ -12,7 +12,7 @@ subsystem: SS-11
 capability: CAP-11
 lifecycle_status: active
 introduced: v0.8.0
-modified: ["v1.1 2026-06-17: fix Postcondition 3 — remove misleading 'N=1 ≤ K=3' reasoning; singleton renders identically to pre-v0.8.0 (consistency audit remediation)", "v1.2 2026-06-17: F2 adversarial pass-1 — add precise csv.rs line anchors (csv.rs:40 neutralize, csv.rs:76 render loop); mark terminal.rs:63-75 as insertion target (F-259-05, F-259-08)", "v1.3 2026-06-17: issue-#62 F2 BC re-anchor (fix-burst) — Precondition 4: 'collapse_findings = true' → 'render = FindingsRender::FlatCollapsed'; PC-1 inline qualifier: 'collapse_findings' → 'render' field; Architecture Anchors: INSERTION TARGET wording updated from old bool field names to FindingsRender enum. Rationale: illegal-state elimination. No behavioral change.", "v1.4 2026-06-18: F2 adv-pass-2 anchor-block correction (F-1) — Architecture Anchors: (1) both INSERTION TARGET/STORY-118 bullets replaced with REFACTOR TARGET/STORY-120 to match the correct implementing story (STORY-118 is completed v0.8.0; STORY-120 carries the enum migration per D-088 freeze); (2) stale struct parenthetical claiming three fields corrected — v0.8.0 TerminalReporter struct has four fields (use_color, show_mitre_grouping, show_hosts_breakdown, collapse_findings); (3) line ranges aligned to sibling BC-2.11.028 treatment (terminal.rs:91-110, main.rs ~373). The v1.3 changelog entry falsely claimed anchors were updated; this entry corrects the actual anchor block content. No behavioral change.", "v1.5 2026-06-18: F3 adv-round-6 sibling-sweep — Architecture Anchor main.rs:~373 REFACTOR TARGET wiring expression corrected: show_mitre_grouping/collapse_findings (in-scope run_analyze bool params, lines 107-108). Scope/naming correction only; no behavioral change.", "v1.6 2026-06-18: F5 post-merge re-anchor to develop a4263c7 (terminal.rs line-anchor drift fix; no normative change) — TerminalReporter struct REFACTOR TARGET :91-110 → :100-126 (FindingsRender enum at :100-111; TerminalReporter struct at :113-126; STORY-120 completed); Architecture Anchor updated."]
+modified: ["v1.1 2026-06-17: fix Postcondition 3 — remove misleading 'N=1 ≤ K=3' reasoning; singleton renders identically to pre-v0.8.0 (consistency audit remediation)", "v1.2 2026-06-17: F2 adversarial pass-1 — add precise csv.rs line anchors (csv.rs:40 neutralize, csv.rs:76 render loop); mark terminal.rs:63-75 as insertion target (F-259-05, F-259-08)", "v1.3 2026-06-17: issue-#62 F2 BC re-anchor (fix-burst) — Precondition 4: 'collapse_findings = true' → 'render = FindingsRender::FlatCollapsed'; PC-1 inline qualifier: 'collapse_findings' → 'render' field; Architecture Anchors: INSERTION TARGET wording updated from old bool field names to FindingsRender enum. Rationale: illegal-state elimination. No behavioral change.", "v1.4 2026-06-18: F2 adv-pass-2 anchor-block correction (F-1) — Architecture Anchors: (1) both INSERTION TARGET/STORY-118 bullets replaced with REFACTOR TARGET/STORY-120 to match the correct implementing story (STORY-118 is completed v0.8.0; STORY-120 carries the enum migration per D-088 freeze); (2) stale struct parenthetical claiming three fields corrected — v0.8.0 TerminalReporter struct has four fields (use_color, show_mitre_grouping, show_hosts_breakdown, collapse_findings); (3) line ranges aligned to sibling BC-2.11.028 treatment (terminal.rs:91-110, main.rs ~373). The v1.3 changelog entry falsely claimed anchors were updated; this entry corrects the actual anchor block content. No behavioral change.", "v1.5 2026-06-18: F3 adv-round-6 sibling-sweep — Architecture Anchor main.rs:~373 REFACTOR TARGET wiring expression corrected: show_mitre_grouping/collapse_findings (in-scope run_analyze bool params, lines 107-108). Scope/naming correction only; no behavioral change.", "v1.6 2026-06-18: F5 post-merge re-anchor to develop a4263c7 (terminal.rs line-anchor drift fix; no normative change) — TerminalReporter struct REFACTOR TARGET :91-110 → :100-126 (FindingsRender enum at :100-111; TerminalReporter struct at :113-126; STORY-120 completed); Architecture Anchor updated.", "v1.7 2026-06-18: STORY-119 vocabulary migration — D-110 struct form: FindingsRender::FlatCollapsed → {Flat, Collapsed}; enum anchor updated to STORY-119 F4-pending struct target in Architecture Anchors. No behavioral change."]
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -48,7 +48,8 @@ frames are intact in all machine-readable outputs; aggregation is a display-laye
 1. `Reporter::render` has been invoked on `TerminalReporter` with `findings: &[Finding]`.
 2. `Reporter::render` has been invoked on `JsonReporter` with the same `findings` slice.
 3. `Reporter::render` has been invoked on `CsvReporter` with the same `findings` slice.
-4. The collapse feature is enabled (`TerminalReporter.render = FindingsRender::FlatCollapsed`).
+4. The collapse feature is enabled (`TerminalReporter.render.collapse == Collapse::Collapsed`; applies
+   to both `{Flat, Collapsed}` and `{Grouped, Collapsed}` paths — JSON/CSV are unaffected in all cases).
 5. The input `findings` slice contains at least one repeated finding (for the interesting case)
    and at least one non-repeated finding (for the non-interference case).
 
@@ -147,8 +148,8 @@ frames are intact in all machine-readable outputs; aggregation is a display-laye
 - `src/reporter/json.rs` -- JsonReporter::render iterates every finding in the slice; no collapse path
 - `src/reporter/csv.rs:40` -- `neutralize_csv_injection(s: &str) -> String` (confirmed present at csv.rs:40); called for every field of every finding
 - `src/reporter/csv.rs:76` -- `for f in findings { ... }` render loop (confirmed present at csv.rs:76); iterates every finding in the slice; no collapse path
-- `src/main.rs:~373` -- **REFACTOR TARGET (STORY-120):** TerminalReporter construction site; `render: if show_mitre_grouping { FindingsRender::Grouped } else if collapse_findings { FindingsRender::FlatCollapsed } else { FindingsRender::FlatExpanded }` using the in-scope bool params `show_mitre_grouping` (line 107) and `collapse_findings` (line 108). The `--mitre`/`--no-collapse`→bool resolution happens at the `main()` call site (lines 79-80, UNCHANGED): `show_mitre_grouping == *mitre` and `collapse_findings == !no_collapse` (via `collapse_findings_from_flag`). Replaces the former separate `show_mitre_grouping: bool` + `collapse_findings: bool` fields. Approximate location: main.rs ~373.
-- `src/reporter/terminal.rs:100-126` -- `pub enum FindingsRender { Grouped, FlatCollapsed, FlatExpanded }` at :100-111; `pub struct TerminalReporter` with `pub render: FindingsRender` field at :113-126 (STORY-120 completed; replaces former separate bool fields).
+- `src/main.rs:~run_analyze` -- **F4-pending STORY-119 target:** TerminalReporter construction site; `render: FindingsRender { grouping: if show_mitre_grouping { Grouping::Grouped } else { Grouping::Flat }, collapse: if collapse_findings { Collapse::Collapsed } else { Collapse::Expanded } }` using the in-scope bool params `show_mitre_grouping` (line 107) and `collapse_findings` (line 108). Replaces the v0.9.0 three-arm if-expression.
+- `src/reporter/terminal.rs:100-126` -- **F4-pending replacement target:** current v0.9.0 `pub enum FindingsRender { Grouped, FlatCollapsed, FlatExpanded }` at :100-111 → STORY-119 `pub struct FindingsRender { pub grouping: Grouping, pub collapse: Collapse }` per D-110; `pub struct TerminalReporter` with `pub render: FindingsRender` field at :113-126 (field name unchanged; field type changes).
 
 ## Story Anchor
 

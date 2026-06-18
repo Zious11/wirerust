@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.9"
+version: "1.10"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -22,6 +22,7 @@ modified:
   - "v1.8 2026-06-17: issue-#62 F2 BC re-anchor (fix-burst) — Precondition 1: 'show_mitre_grouping = true' → 'render = FindingsRender::Grouped'. Rationale: illegal-state elimination (enum makes two-bool grouped-mode representation unrepresentable as separate fields). No behavioral change."
   - "v1.6: ADR-006 / Decision 13 §13.7 (F2 v0.3.0) — 'None' path replaced by 'empty vec' path; Precondition 2 updated; Postconditions 1/4 updated; Invariants 1/2 updated; EC-001 updated; no MITRE line rendered when vec is empty. — 2026-06-09"
   - "v1.9 2026-06-18: F5 post-merge re-anchor to develop a4263c7 (terminal.rs line-anchor drift fix; no normative change) — render_finding_grouped fn :247-263 → :311-327; None-arm (unknown label) :260 → :324; Uncategorized bucket :317-322 → :477-482; outer Source Evidence path :247-323 → :311-483; Architecture Anchors updated."
+  - "v1.10 2026-06-18: STORY-119 vocabulary migration — D-110 struct form: FindingsRender::Grouped → render.grouping == Grouping::Grouped in Precondition 1. No behavioral change."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -53,7 +54,8 @@ due to an empty technique attribution or an unrecognized technique ID.
 
 ## Preconditions
 
-1. `TerminalReporter.render = FindingsRender::Grouped`.
+1. `TerminalReporter.render.grouping == Grouping::Grouped` (applies to both `{Grouped, Collapsed}`
+   and `{Grouped, Expanded}` paths).
 2. At least one finding has `mitre_techniques = vec![]` (empty) or has a first element not
    in the catalog.
 

@@ -14,6 +14,58 @@ changes, invariant rewrites).
 
 ---
 
+## [story-119-f2-spec-evolution-2026-06-18] — 2026-06-18
+
+### MINOR: STORY-119 F2 Spec-Evolution — Grouped-Collapse BCs, enum→struct Vocabulary Migration, Deferral-Clause Revisions, --no-collapse Dual-Scope
+
+**Trigger:** STORY-119 F2 spec-evolution (D-111). FindingsRender reshaped from a 3-variant enum to `struct FindingsRender { grouping: Grouping, collapse: Collapse }` on develop (ADR-0003 updated, uncommitted). This makes grouping×collapse orthogonal (all 4 combos valid) — the struct is the idiomatic Rust representation. 5 new BCs authored for grouped-collapse behavior. 4 deferral/scope BCs revised. 8 BCs vocab-swept.
+
+#### New BCs — Grouped-Collapse (5 new BCs, SS-11 29→34)
+
+| BC | Title | Version |
+|----|-------|---------|
+| BC-2.11.030 | `--mitre` Default Maps to {Grouped, Collapsed}; `--mitre --no-collapse` Maps to {Grouped, Expanded} — CLI-to-Render Mode Mapping Contract | v1.0 |
+| BC-2.11.031 | Per-Bucket Count Suffix — N≥2 Group Within a Tactic Bucket Renders Header with ` (xN)` Suffix; Singleton (N=1) Renders Without Suffix | v1.0 |
+| BC-2.11.032 | Per-Bucket Evidence Sampling in Grouped-Collapse Mode — First min(N,K=3) Members Positionally; No Sliding Window | v1.0 |
+| BC-2.11.033 | Tactic-Bucket Ordering Invariant Under Grouped-Collapse — Bucket Sequence Unchanged; Collapse Operates Within Buckets Only | v1.0 |
+| BC-2.11.034 | MITRE Line Format in Grouped-Collapse — Em-Dash Name Expansion Sourced from Group Representative (`members[0]`); No `(xN)` on MITRE Line | v1.0 |
+
+#### Revised BCs — Deferral-Clause Revisions and --no-collapse Dual-Scope (4 BCs revised)
+
+| BC | Change | Before | After |
+|----|--------|--------|-------|
+| BC-2.11.013 | Deferral clause removed — grouped-collapse now supported (BC-2.11.030–034 cover it); scope restricted to flat-mode grouping order | v1.13 | v1.14 |
+| BC-2.11.025 | Scope clarified as flat-mode only; grouped-collapse handled by BC-2.11.030–034; --no-collapse dual-scope (suppresses collapse in both grouped and flat modes) | v1.10 | v1.11 |
+| BC-2.11.026 | Scope clarified as flat-mode only; per-bucket (xN) suffix in grouped mode addressed by BC-2.11.031 | v1.11 | v1.12 |
+| BC-2.11.028 | --no-collapse dual-scope: suppresses collapse in BOTH grouped and flat modes; grouped-collapse now supported (was previously deferred/excluded) | v1.7 | v1.8 |
+
+#### Vocab-Swept BCs — enum→struct{grouping:Grouping, collapse:Collapse} (8 BCs swept)
+
+Exhaustive consuming-surface sweep: all occurrences of the old 3-variant `FindingsRender` enum variant names (`FlatCollapsed`, `FlatExpanded`, `Grouped`) replaced with struct-field access (`FindingsRender { grouping: Grouping::Grouped, collapse: Collapse::Collapsed }` etc.). Zero old enum-variant refs remain in SS-11 BCs.
+
+| BC | Before | After |
+|----|--------|-------|
+| BC-2.11.010 | v1.10 | v1.11 |
+| BC-2.11.014 | v1.8 | v1.9 |
+| BC-2.11.015 | v1.9 | v1.10 |
+| BC-2.11.016 | v1.8 | v1.9 |
+| BC-2.11.017 | v1.15 | v1.16 |
+| BC-2.11.019 | v1.9 | v1.10 |
+| BC-2.11.027 | v1.6 | v1.7 |
+| BC-2.11.029 | v1.6 | v1.7 |
+
+#### PRD-Delta
+
+`.factory/phase-f2-spec-evolution/story-119-prd-delta.md` written. Documents FindingsRender struct-of-orthogonal-enums type design decision (D-110), grouped-collapse CLI/UX mapping (--mitre now collapses by default), and the 5 new grouped-collapse BCs.
+
+#### BC-INDEX
+
+BC-INDEX.md updated: v1.43 → v1.44; SS-11 count 29→34; 5 new rows added (BC-2.11.030–034); 12 existing BC annotations bumped; total BC count 288→293.
+
+**total_bcs=293 (5 new BCs 030–034; 12 revised/swept; no retirements).**
+
+---
+
 ## [f3-adv-round6-bc-029-sibling-sweep-2026-06-18] — 2026-06-18
 
 ### PATCH: F3 Adversarial Round-6 — BC-2.11.029 Sibling-Sweep Completion (Issue #62)

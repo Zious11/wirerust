@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.9"
+version: "1.10"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -22,6 +22,7 @@ modified:
   - "v1.7 2026-06-17: issue-#62 F2 BC re-anchor — replace show_mitre_grouping/collapse_findings bool references with FindingsRender enum: Postcondition 9 and Invariant 7 and EC-008/EC-009 updated to use FindingsRender variant names. Rationale: illegal-state elimination (enum makes grouping && collapse unrepresentable). No behavioral change."
   - "v1.8 2026-06-18: F3 adversarial round-4 finding 2 (MEDIUM) stale dispatch anchor — Invariant 7 cited FINDINGS dispatch at terminal.rs:149-162, but line 149 is the HOSTS section (if self.show_hosts_breakdown). Verified against src/reporter/terminal.rs: actual FINDINGS dispatch if-chain is at lines 185-207 (if !findings.is_empty() block through closing brace). Re-anchored Invariant 7 to correct range 185-207."
   - "v1.9 2026-06-18: F5 post-merge re-anchor to develop a4263c7 (terminal.rs line-anchor drift fix; no normative change) — full render() body :83-186 → :129-250; HOSTS :113 → :164; PROTOCOLS :125 → :176; proto_vec sort :127-130 → :178-181; SERVICES conditional :138 → :189; svc_vec sort :141 → :192; FINDINGS dispatch :149 → :200; ANALYZER loop :165 → :229; Invariant 7 dispatch range :185-207 → :200-226; Source Evidence path updated."
+  - "v1.10 2026-06-18: STORY-119 vocabulary migration — D-110 struct form: FindingsRender enum variants → struct form in PC-9, Invariant 7, EC-008/EC-009, Related BCs. PC-9 updated to reflect four-arm dispatch (match on grouping+collapse tuple). No behavioral change."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -66,16 +67,16 @@ section per `AnalysisSummary`. This order is documented in the module and verifi
    order is deterministic across all runs regardless of the underlying HashMap iteration order
    of `service_counts()`. Sort key:
    `b.count.cmp(a.count).then_with(|| a.name.cmp(b.name))`.
-9. **v0.8.0 flat-mode FINDINGS dispatch (BC-2.11.025):** When `render = FindingsRender::FlatCollapsed`
-   (the v0.8.0 default), the FINDINGS section body routes through the collapse pass before rendering.
-   The collapse pass groups the `findings` slice by `(category, verdict, confidence, summary)` key
-   (BC-2.11.025) and renders one display group per unique key with a ` (xN)` count suffix for N≥2
-   (BC-2.11.026) and at most K=3 evidence lines per group (BC-2.11.027). When
-   `render = FindingsRender::FlatExpanded` (`--no-collapse`) OR when `render = FindingsRender::Grouped`,
-   the FINDINGS section body is rendered identically to the pre-v0.8.0 behavior. Section
-   presence/ordering (postconditions 1-8) is unchanged in all cases. The `FindingsRender` enum makes
-   the former impossible state (`show_mitre_grouping=true && collapse_findings=true`) structurally
-   unrepresentable.
+9. **FINDINGS dispatch (BC-2.11.025 / BC-2.11.031):** The FINDINGS section body routing depends on
+   `render.grouping` and `render.collapse` (four-arm dispatch since STORY-119):
+   - `{Flat, Collapsed}` (default): global flat collapse pass + ` (xN)` suffix per BC-2.11.025/026/027.
+   - `{Flat, Expanded}` (`--no-collapse`, no `--mitre`): one line per finding, no collapse, pre-v0.8.0 behavior.
+   - `{Grouped, Collapsed}` (`--mitre` alone, new STORY-119 default): grouped path with per-bucket
+     collapse; tactic bucket headers; ` (xN)` suffix per bucket per BC-2.11.031.
+   - `{Grouped, Expanded}` (`--mitre --no-collapse`): grouped path, no collapse; one finding per
+     `render_finding_grouped` call; pre-STORY-119 `--mitre` behavior.
+   Section presence/ordering (postconditions 1-8) is unchanged in all cases. The `FindingsRender`
+   struct makes all four modes structurally orthogonal.
 
 ## Invariants
 
@@ -89,13 +90,14 @@ section per `AnalysisSummary`. This order is documented in the module and verifi
 6. The within-section body order for PROTOCOLS and SERVICES is determined by an explicit sort
    (not HashMap iteration order); the output is therefore fully reproducible given the same
    input regardless of Rust runtime HashMap randomization.
-7. **v0.8.0 collapse routing (BC-2.11.025):** The FINDINGS dispatch at `terminal.rs:200-226`
-   routes based on `self.render`: `FindingsRender::Grouped` → grouped path; `FindingsRender::FlatCollapsed`
-   → collapse pass (produce collapsed groups, render one display group per unique key);
-   `FindingsRender::FlatExpanded` → iterate findings individually as in pre-v0.8.0. The section
-   header and the enclosing `if !findings.is_empty()` guard (postcondition 4 / Invariant 2)
-   are unchanged. The `FindingsRender` enum makes all three paths mutually exclusive at the
-   type level.
+7. **FINDINGS dispatch routing (BC-2.11.025 / BC-2.11.031):** The FINDINGS dispatch at
+   `terminal.rs:200-226` routes based on `(self.render.grouping, self.render.collapse)`:
+   `(Grouped, Expanded)` → `render_findings_grouped` (per-finding, no collapse);
+   `(Grouped, Collapsed)` → `render_findings_grouped_collapsed` (per-bucket collapse, STORY-119);
+   `(Flat, Collapsed)` → `render_findings_collapsed` (global flat collapse pass);
+   `(Flat, Expanded)` → per-finding flat loop. The section header and the enclosing
+   `if !findings.is_empty()` guard (postcondition 4 / Invariant 2) are unchanged in all four
+   arms. The `FindingsRender` struct makes all four paths mutually exclusive at the type level.
 
 ## Edge Cases
 
@@ -108,8 +110,9 @@ section per `AnalysisSummary`. This order is documented in the module and verifi
 | EC-005 | Multiple analyzer summaries | Each ANALYZER: section in slice order |
 | EC-006 | Multiple protocols with equal counts | Within the tied group, protocols appear in ascending order of Debug string (e.g., "Icmp" < "Other(10)" < "Tcp"); result is deterministic regardless of HashMap internal order |
 | EC-007 | Multiple services with equal counts | Within the tied group, services appear in ascending alphabetical order by service name string; result is deterministic regardless of HashMap internal order |
-| EC-008 | `render = FindingsRender::FlatCollapsed` (default), findings non-empty | FINDINGS section body rendered as collapsed groups per BC-2.11.025/026/027; section header and section presence unchanged; section order unchanged |
-| EC-009 | `render = FindingsRender::Grouped` | FINDINGS section body rendered via grouped path (render_findings_grouped); collapse pass NOT applied (BC-2.11.013 Invariant 4); section order unchanged. The `FindingsRender` enum ensures `Grouped` and collapse are structurally exclusive. |
+| EC-008 | `render = {Flat, Collapsed}` (default), findings non-empty | FINDINGS section body rendered as flat collapsed groups per BC-2.11.025/026/027; section header and section presence unchanged; section order unchanged |
+| EC-009a | `render = {Grouped, Expanded}` (`--mitre --no-collapse`) | FINDINGS section body rendered via `render_findings_grouped`; no collapse pass; section order unchanged |
+| EC-009b | `render = {Grouped, Collapsed}` (`--mitre` alone, STORY-119 default) | FINDINGS section body rendered via `render_findings_grouped_collapsed`; per-bucket collapse applies (BC-2.11.031); tactic bucket headers present; section order unchanged |
 
 ## Canonical Test Vectors
 
@@ -143,8 +146,9 @@ section per `AnalysisSummary`. This order is documented in the module and verifi
 ## Related BCs
 
 - BC-2.11.006 -- composes with (skipped-packets line appears within the header section)
-- BC-2.11.013 -- composes with (FINDINGS section content when render=FindingsRender::Grouped)
-- BC-2.11.025 -- composes with (v0.8.0 collapse: flat FINDINGS dispatch routes through collapse pass when render=FindingsRender::FlatCollapsed)
+- BC-2.11.013 -- composes with (FINDINGS section content when render.grouping==Grouping::Grouped)
+- BC-2.11.025 -- composes with (flat FINDINGS dispatch routes through collapse pass when render=={Flat,Collapsed})
+- BC-2.11.031 -- composes with (grouped FINDINGS dispatch routes through per-bucket collapse when render=={Grouped,Collapsed})
 - BC-2.11.026 -- composes with (count suffix rendering for collapsed groups within the FINDINGS body)
 - BC-2.11.027 -- composes with (evidence sampling within collapsed groups in the FINDINGS body)
 - BC-2.11.028 -- depends on (--no-collapse flag controls render field; when FlatExpanded, FINDINGS body unchanged from pre-v0.8.0)

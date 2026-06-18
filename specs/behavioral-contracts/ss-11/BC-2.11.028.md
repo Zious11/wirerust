@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.7"
+version: "1.8"
 status: draft
 producer: product-owner
 timestamp: 2026-06-17T00:00:00Z
@@ -12,7 +12,7 @@ subsystem: SS-11
 capability: CAP-11
 lifecycle_status: active
 introduced: v0.8.0
-modified: ["v1.1 2026-06-17: fix Related BCs stale cross-ref BC-2.13.001 (--threats) → BC-2.13.004 (--verbose absent) (consistency audit remediation)", "v1.2 2026-06-17: F2 adversarial pass-1 — change PC-3 from indicative to imperative (code does not exist yet); mark Architecture Anchors as insertion targets pending STORY-118 (F-259-08)", "v1.3 2026-06-17: F2 adversarial pass-9 — F-PA-03: add EC-010 (--no-collapse absent, default --output terminal → collapse applies, default-on)", "v1.4 2026-06-17: F2 adversarial passes 12-14 — F-PB-01: drop '--no-color/--no-reassemble convention' citation (those are global flags; no_collapse is subcommand-scoped); replace with correct subcommand-scoped precedent (#[arg(long)] mitre: bool / dns: bool on Commands::Analyze); fix stale Architecture Anchor cli.rs:151-153 no_reassemble → cli.rs:150-152 mitre: bool (subcommand-scoped boolean precedent)", "v1.5 2026-06-17: issue-#62 F2 BC re-anchor — update all collapse_findings/show_mitre_grouping field-name references to FindingsRender enum: Description wiring note + Preconditions + Postconditions + Invariants 1-2 + EC rows updated. Rationale: illegal-state elimination (FindingsRender makes the three modes structurally exclusive). No behavioral change — the CLI flag wiring and observable output semantics are identical; only the struct field name changes from collapse_findings: bool to render: FindingsRender.", "v1.6 2026-06-18: F3 adversarial round-4 finding 1 (MEDIUM) scope/naming correction — PC3/Inv1/Inv6/Architecture-Anchor prescribed wiring expression used *mitre/no_collapse which are NOT in scope inside run_analyze; they live only in main() (src/main.rs:55-56). run_analyze receives the already-resolved bool params show_mitre_grouping (src/main.rs:107) and collapse_findings (src/main.rs:108). Corrected to in-scope param form. Added explicit note that the --mitre/--no-collapse→bool resolution happens at the main() call site (lines 79-80, UNCHANGED). Behavior identical — scope/naming correction only.", "v1.7 2026-06-18: F5 post-merge re-anchor to develop a4263c7 (terminal.rs line-anchor drift fix; no normative change) — TerminalReporter struct REFACTOR TARGET :91-110 → :100-126 (FindingsRender enum at :100-111; TerminalReporter struct at :113-126); Architecture Anchor updated."]
+modified: ["v1.1 2026-06-17: fix Related BCs stale cross-ref BC-2.13.001 (--threats) → BC-2.13.004 (--verbose absent) (consistency audit remediation)", "v1.2 2026-06-17: F2 adversarial pass-1 — change PC-3 from indicative to imperative (code does not exist yet); mark Architecture Anchors as insertion targets pending STORY-118 (F-259-08)", "v1.3 2026-06-17: F2 adversarial pass-9 — F-PA-03: add EC-010 (--no-collapse absent, default --output terminal → collapse applies, default-on)", "v1.4 2026-06-17: F2 adversarial passes 12-14 — F-PB-01: drop '--no-color/--no-reassemble convention' citation (those are global flags; no_collapse is subcommand-scoped); replace with correct subcommand-scoped precedent (#[arg(long)] mitre: bool / dns: bool on Commands::Analyze); fix stale Architecture Anchor cli.rs:151-153 no_reassemble → cli.rs:150-152 mitre: bool (subcommand-scoped boolean precedent)", "v1.5 2026-06-17: issue-#62 F2 BC re-anchor — update all collapse_findings/show_mitre_grouping field-name references to FindingsRender enum: Description wiring note + Preconditions + Postconditions + Invariants 1-2 + EC rows updated. Rationale: illegal-state elimination (FindingsRender makes the three modes structurally exclusive). No behavioral change — the CLI flag wiring and observable output semantics are identical; only the struct field name changes from collapse_findings: bool to render: FindingsRender.", "v1.6 2026-06-18: F3 adversarial round-4 finding 1 (MEDIUM) scope/naming correction — PC3/Inv1/Inv6/Architecture-Anchor prescribed wiring expression used *mitre/no_collapse which are NOT in scope inside run_analyze; they live only in main() (src/main.rs:55-56). run_analyze receives the already-resolved bool params show_mitre_grouping (src/main.rs:107) and collapse_findings (src/main.rs:108). Corrected to in-scope param form. Added explicit note that the --mitre/--no-collapse→bool resolution happens at the main() call site (lines 79-80, UNCHANGED). Behavior identical — scope/naming correction only.", "v1.7 2026-06-18: F5 post-merge re-anchor to develop a4263c7 (terminal.rs line-anchor drift fix; no normative change) — TerminalReporter struct REFACTOR TARGET :91-110 → :100-126 (FindingsRender enum at :100-111; TerminalReporter struct at :113-126); Architecture Anchor updated.", "v1.8 2026-06-18: STORY-119 spec-evolution — broaden to DUAL-SCOPE: --no-collapse now suppresses collapse in BOTH flat AND grouped modes. Description wiring updated to struct form (FindingsRender{grouping,collapse} construction). Postconditions 1-2/4 updated to struct form. Invariants 1-2 updated to struct wiring expression. Architecture Anchor updated to struct construction site (STORY-119 F4 target). EC-004/EC-005 updated to struct vocabulary. --mitre default-collapse behavior change noted (--mitre alone → {Grouped, Collapsed} since STORY-119; --mitre --no-collapse → {Grouped, Expanded})."]
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -26,14 +26,17 @@ removal_reason: null
 ## Description
 
 The `--no-collapse` CLI flag on the `analyze` subcommand provides an explicit opt-out from
-the default-on collapse behavior introduced in v0.8.0. When `--no-collapse` is present, the
-terminal reporter renders one display line per raw `Finding` in the input slice — identical to
-the pre-v0.8.0 behavior. When `--no-collapse` is absent (the default), the collapse pass is
-enabled. The flag is wired from `cli.rs` through `main.rs` to the `TerminalReporter`
-`render` field: when `--no-collapse` is absent and `--mitre` is absent, `render` is set to
-`FindingsRender::FlatCollapsed`; when `--no-collapse` is present (and `--mitre` absent),
-`render` is set to `FindingsRender::FlatExpanded`; when `--mitre` is present (regardless of
-`--no-collapse`), `render` is set to `FindingsRender::Grouped`.
+the default-on collapse behavior. Since STORY-119, `--no-collapse` is **dual-scope**: it
+suppresses collapse in both flat mode AND grouped mode. When `--no-collapse` is absent (the
+default), the collapse pass is enabled in both modes. The flag is wired from `cli.rs` through
+`main.rs` to the `TerminalReporter` `render` field using the STORY-119 struct construction:
+`render: FindingsRender { grouping: if show_mitre_grouping { Grouping::Grouped } else { Grouping::Flat }, collapse: if collapse_findings { Collapse::Collapsed } else { Collapse::Expanded } }`.
+
+The resulting `render` values are:
+- `--no-collapse` absent, `--mitre` absent: `render = {Flat, Collapsed}` (collapse-ON, flat)
+- `--no-collapse` present, `--mitre` absent: `render = {Flat, Expanded}` (collapse-OFF, flat)
+- `--no-collapse` absent, `--mitre` present: `render = {Grouped, Collapsed}` (collapse-ON, grouped — NEW default since STORY-119)
+- `--no-collapse` present, `--mitre` present: `render = {Grouped, Expanded}` (collapse-OFF, grouped — preserves pre-STORY-119 `--mitre` behavior)
 
 `--no-collapse` has no effect on JSON output (`--output json`) or CSV output (`--output csv`).
 Both machine-readable formats always emit every finding individually regardless of the flag,
@@ -54,27 +57,36 @@ struct and are unrelated to subcommand-scoped opt-outs).
    `src/cli.rs`, following the same subcommand-scoped boolean precedent as `#[arg(long)]
    mitre: bool` / `dns: bool` on `Commands::Analyze` (cli.rs:150-152), destructured in
    `run_analyze` (main.rs:54-64) as `args.no_collapse`.
-3. The `no_collapse` field MUST be wired in `src/main.rs` `run_analyze` by STORY-118/STORY-120:
-   `render: if show_mitre_grouping { FindingsRender::Grouped } else if collapse_findings { FindingsRender::FlatCollapsed } else { FindingsRender::FlatExpanded }` at the `TerminalReporter` construction site inside `run_analyze`, using the in-scope bool params `show_mitre_grouping` (line 107) and `collapse_findings` (line 108). The `--mitre`/`--no-collapse`→bool resolution happens at the `main()` call site (lines 79-80, UNCHANGED): `show_mitre_grouping == *mitre` and `collapse_findings == !no_collapse` (via `collapse_findings_from_flag`); `run_analyze` signature is UNCHANGED. Per LESSON-P1.04, an unwired flag is a spec violation.
+3. The `no_collapse` field MUST be wired in `src/main.rs` `run_analyze` by STORY-119 (F4):
+   `render: FindingsRender { grouping: if show_mitre_grouping { Grouping::Grouped } else { Grouping::Flat }, collapse: if collapse_findings { Collapse::Collapsed } else { Collapse::Expanded } }` at the `TerminalReporter` construction site inside `run_analyze`, using the in-scope bool params `show_mitre_grouping` (line 107) and `collapse_findings` (line 108). The `--mitre`/`--no-collapse`→bool resolution happens at the `main()` call site (lines 79-80, UNCHANGED): `show_mitre_grouping == *mitre` and `collapse_findings == !no_collapse` (via `collapse_findings_from_flag`); `run_analyze` signature is UNCHANGED. Per LESSON-P1.04, an unwired flag is a spec violation.
 
 ## Postconditions
 
-1. When `--no-collapse` is absent (default) and `--mitre` is absent: `TerminalReporter.render = FindingsRender::FlatCollapsed`.
+1. When `--no-collapse` is absent (default) and `--mitre` is absent:
+   `TerminalReporter.render = FindingsRender { grouping: Grouping::Flat, collapse: Collapse::Collapsed }`.
    The FINDINGS section renders collapsed groups with ` (xN)` suffixes per BC-2.11.025 and
    BC-2.11.026.
-2. When `--no-collapse` is present and `--mitre` is absent: `TerminalReporter.render = FindingsRender::FlatExpanded`. The FINDINGS
-   section renders one display line per raw `Finding` in the input slice. No ` (xN)` count
-   suffix appears on any line. Every finding's full evidence is rendered (no evidence sampling
-   per BC-2.11.027). The output is byte-identical to the pre-v0.8.0 terminal output for the
-   same input.
-3. In both modes, `JsonReporter` and `CsvReporter` receive the complete, unmodified
+2. When `--no-collapse` is present and `--mitre` is absent:
+   `TerminalReporter.render = FindingsRender { grouping: Grouping::Flat, collapse: Collapse::Expanded }`.
+   The FINDINGS section renders one display line per raw `Finding` in the input slice. No
+   ` (xN)` count suffix appears on any line. Every finding's full evidence is rendered (no
+   evidence sampling per BC-2.11.027). The output is byte-identical to the pre-v0.8.0 terminal
+   output for the same input.
+3. In all modes, `JsonReporter` and `CsvReporter` receive the complete, unmodified
    `findings: &[Finding]` slice and render every finding individually. The `--no-collapse`
    flag has no observable effect on JSON or CSV output.
-4. The flag's interaction with `--mitre`: when `--mitre` is present (regardless of
-   `--no-collapse`), `render = FindingsRender::Grouped` and collapse is not applied. The
-   `FindingsRender` enum makes this structurally enforced — `--no-collapse` has no additional
-   effect when `FindingsRender::Grouped` is selected. This mirrors the previous behavior where
-   the `show_mitre_grouping = true` guard suppressed collapse (BC-2.11.025 Invariant 5).
+4. **DUAL-SCOPE (STORY-119):** `--no-collapse` acts as a universal collapse suppressor across
+   BOTH the flat and grouped rendering paths:
+   - `--mitre` absent, `--no-collapse` present: `render = {Flat, Expanded}` — no flat collapse.
+   - `--mitre` present, `--no-collapse` absent: `render = {Grouped, Collapsed}` — grouped
+     collapse IS applied per-bucket (BC-2.11.031). This is the NEW default for `--mitre` since
+     STORY-119.
+   - `--mitre` present, `--no-collapse` present: `render = {Grouped, Expanded}` — no grouped
+     collapse; each finding rendered individually via `render_finding_grouped`; no ` (xN)`
+     suffix. This preserves the pre-STORY-119 `--mitre` behavior via the explicit opt-out.
+   The `collapse` axis of the `FindingsRender` struct is determined exclusively by
+   `collapse_findings`; the `grouping` axis by `show_mitre_grouping`. They are fully
+   orthogonal.
 
 ## Invariants
 
@@ -82,12 +94,15 @@ struct and are unrelated to subcommand-scoped opt-outs).
    is present, `false` when absent. The `--mitre`/`--no-collapse`→bool resolution happens at
    the `main()` call site (lines 79-80): `show_mitre_grouping == *mitre` and
    `collapse_findings == !no_collapse` (via `collapse_findings_from_flag`). Inside
-   `run_analyze`, the `TerminalReporter.render` field is resolved using the in-scope params:
-   `if show_mitre_grouping { FindingsRender::Grouped } else if collapse_findings { FindingsRender::FlatCollapsed } else { FindingsRender::FlatExpanded }`.
-2. Default behavior (flag absent, `--mitre` absent) is `FindingsRender::FlatCollapsed` (collapse-ON).
-   This is intentional: the canonical v0.8.0 UX for terminal output is the collapsed view.
-   Analysts who require per-finding lines for scripting or detailed triage can explicitly opt
-   out with `--no-collapse`.
+   `run_analyze`, the `TerminalReporter.render` field is constructed using the STORY-119
+   struct form (F4 target):
+   `render: FindingsRender { grouping: if show_mitre_grouping { Grouping::Grouped } else { Grouping::Flat }, collapse: if collapse_findings { Collapse::Collapsed } else { Collapse::Expanded } }`.
+   The two axes are fully orthogonal: no combination is illegal.
+2. Default behavior (both flags absent) is `{Flat, Collapsed}` (collapse-ON, flat rendering).
+   This is intentional: the canonical terminal UX is the collapsed view. When `--mitre` is
+   present (and `--no-collapse` absent), the default is now `{Grouped, Collapsed}` — symmetric
+   collapse-on behavior for both rendering modes (STORY-119 D-110 approved behavior change).
+   Analysts who require per-finding lines can explicitly opt out with `--no-collapse` in either mode.
 3. The flag is a pure boolean. It does not accept a value (not `--no-collapse=true`). There
    is no `--collapse` alias in v0.8.0.
 4. The flag is `analyze`-subcommand-scoped. The `summary` subcommand has no `no_collapse`
@@ -96,21 +111,21 @@ struct and are unrelated to subcommand-scoped opt-outs).
    describe both the default-on behavior and the opt-out semantics, and must clarify that
    JSON/CSV output is unaffected.
 6. Per LESSON-P1.04 (no unwired flags): the `no_collapse` field in `cli.rs` MUST be wired
-   to `TerminalReporter.render` in `main.rs` via the three-way expression in Invariant 1,
-   using the in-scope `show_mitre_grouping` and `collapse_findings` params inside
-   `run_analyze`. The `*mitre`/`no_collapse` names from `Commands::Analyze` are resolved at
-   the `main()` call site (lines 79-80) before being passed as bool params to `run_analyze`.
-   An unwired flag is a spec violation.
+   to `TerminalReporter.render` in `main.rs` via the two-field struct expression in Invariant 1
+   (STORY-119 F4 target), using the in-scope `show_mitre_grouping` and `collapse_findings`
+   params inside `run_analyze`. The `*mitre`/`no_collapse` names from `Commands::Analyze` are
+   resolved at the `main()` call site (lines 79-80) before being passed as bool params to
+   `run_analyze`. An unwired flag is a spec violation.
 
 ## Edge Cases
 
 | ID | Description | Expected Behavior |
 |----|-------------|-------------------|
-| EC-001 | --no-collapse absent (→ `render = FindingsRender::FlatCollapsed`), 5 identical findings | Terminal: collapsed, `(x5)` suffix; JSON: 5 finding objects |
-| EC-002 | --no-collapse present (→ `render = FindingsRender::FlatExpanded`), 5 identical findings | Terminal: 5 individual lines, no suffix; JSON: 5 finding objects |
-| EC-003 | --no-collapse present, all findings are unique | Terminal output byte-identical to pre-v0.8.0 (no collapse was happening anyway) |
-| EC-004 | --no-collapse present with --mitre (→ `render = FindingsRender::Grouped`; `--no-collapse` has no effect when `--mitre` wins) | Grouped mode renders individually; `--no-collapse` has no additional effect. The `FindingsRender` enum makes this structurally enforced. |
-| EC-005 | --no-collapse absent with --mitre (→ `render = FindingsRender::Grouped`) | Grouped mode renders individually; `FindingsRender::Grouped` is structurally suffix-free (BC-2.11.025 Invariant 5 / BC-2.11.013 Invariant 4) |
+| EC-001 | --no-collapse absent, --mitre absent (→ `render = {Flat, Collapsed}`), 5 identical findings | Terminal: collapsed, `(x5)` suffix; JSON: 5 finding objects |
+| EC-002 | --no-collapse present, --mitre absent (→ `render = {Flat, Expanded}`), 5 identical findings | Terminal: 5 individual lines, no suffix; JSON: 5 finding objects |
+| EC-003 | --no-collapse present, --mitre absent, all findings are unique | Terminal output byte-identical to pre-v0.8.0 (no collapse was happening anyway) |
+| EC-004 | --no-collapse present with --mitre (→ `render = {Grouped, Expanded}`) | Grouped mode renders each finding individually via `render_finding_grouped`; no ` (xN)` suffix. Preserves the pre-STORY-119 `--mitre` behavior explicitly via opt-out. |
+| EC-005 | --no-collapse absent with --mitre (→ `render = {Grouped, Collapsed}`) | Grouped-collapse mode: per-bucket collapse applies (BC-2.11.031); `(xN)` suffix on N≥2 groups within each tactic bucket. This is the new STORY-119 default for `--mitre`. |
 | EC-006 | --no-collapse with --output json | JSON output is identical to --no-collapse absent with --output json; the flag has no effect on JsonReporter |
 | EC-007 | --no-collapse with --output csv | CSV output is identical to --no-collapse absent with --output csv; the flag has no effect on CsvReporter |
 | EC-008 | summary subcommand invoked (no --no-collapse field) | No error; summary subcommand has no findings section and no no_collapse field; unaffected |
@@ -121,19 +136,22 @@ struct and are unrelated to subcommand-scoped opt-outs).
 
 | Input | Expected Output | Category |
 |-------|----------------|----------|
-| 5 identical `(Anomaly, Inconclusive, Low, "Empty UA")` findings, `render = FindingsRender::FlatExpanded` (--no-collapse) | FINDINGS section has 5 individual lines, no `(x5)` suffix anywhere | happy-path (opt-out) |
-| 5 identical findings, `render = FindingsRender::FlatCollapsed` (default) | FINDINGS section has 1 collapsed line with `(x5)` suffix | happy-path (default) |
-| 5 identical findings rendered to JSON reporter (`render = FindingsRender::FlatCollapsed` or `FindingsRender::FlatExpanded`) | JSON output contains 5 finding objects regardless | happy-path (JSON unaffected) |
+| 5 identical `(Anomaly, Inconclusive, Low, "Empty UA")` findings, `render = FindingsRender { grouping: Grouping::Flat, collapse: Collapse::Expanded }` (--no-collapse, flat) | FINDINGS section has 5 individual lines, no `(x5)` suffix anywhere | happy-path (flat opt-out) |
+| 5 identical findings, `render = FindingsRender { grouping: Grouping::Flat, collapse: Collapse::Collapsed }` (default) | FINDINGS section has 1 collapsed line with `(x5)` suffix | happy-path (flat default) |
+| 5 identical findings rendered to JSON reporter (any `render` variant) | JSON output contains 5 finding objects regardless | happy-path (JSON unaffected) |
+| 5 identical findings in tactic bucket, `render = FindingsRender { grouping: Grouping::Grouped, collapse: Collapse::Collapsed }` (`--mitre` alone, new default) | FINDINGS section has tactic bucket header + 1 collapsed line with `(x5)` suffix + K=3 evidence + MITRE line | happy-path (grouped-collapsed default, STORY-119) |
+| 5 identical findings in tactic bucket, `render = FindingsRender { grouping: Grouping::Grouped, collapse: Collapse::Expanded }` (`--mitre --no-collapse`) | FINDINGS section has tactic bucket header + 5 individual lines, no suffix | happy-path (grouped-expanded opt-out) |
 | --no-collapse present, mix of 1 unique + 3 identical findings | 4 individual lines, no suffixes | mixed scenario (opt-out) |
 
 ## Verification Properties
 
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| — | `render = FindingsRender::FlatExpanded` (--no-collapse) produces one line per finding, no (xN) suffix | unit: test_BC_2_11_028_no_collapse_flag_one_line_per_finding |
-| — | `FindingsRender::FlatCollapsed` (default) vs `FlatExpanded`: output differs for repeated findings | unit: test_BC_2_11_028_default_vs_opt_out_output_difference |
+| — | `render = {Flat, Expanded}` (--no-collapse, flat) produces one line per finding, no (xN) suffix | unit: test_BC_2_11_028_no_collapse_flag_one_line_per_finding |
+| — | `{Flat, Collapsed}` (default) vs `{Flat, Expanded}`: output differs for repeated findings | unit: test_BC_2_11_028_default_vs_opt_out_output_difference |
 | — | JSON reporter output identical regardless of `render` variant | integration: test_BC_2_11_029_json_receives_full_findings (cross-BC) |
-| — | Flag is wired (`no_collapse=true` → `render = FindingsRender::FlatExpanded` in TerminalReporter) | unit: test_BC_2_11_028_flag_wired_to_reporter_field |
+| — | Flag is wired (`no_collapse=true` → `render.collapse == Collapse::Expanded` in TerminalReporter) | unit: test_BC_2_11_028_flag_wired_to_reporter_field |
+| — | `--no-collapse` with `--mitre` produces `{Grouped, Expanded}` (suffix-free grouped mode) | unit: test_BC_2_11_028_no_collapse_with_mitre_produces_grouped_expanded |
 
 ## Traceability
 
@@ -157,8 +175,8 @@ struct and are unrelated to subcommand-scoped opt-outs).
 ## Architecture Anchors
 
 - `src/cli.rs:150-152` -- `#[arg(long)] mitre: bool` (subcommand-scoped boolean precedent on `Commands::Analyze`; same pattern as `no_collapse`) (existing code; reference only)
-- `src/main.rs:~run_analyze` -- **REFACTOR TARGET (STORY-120):** `render: if show_mitre_grouping { FindingsRender::Grouped } else if collapse_findings { FindingsRender::FlatCollapsed } else { FindingsRender::FlatExpanded }` at TerminalReporter construction site (~line 373), using the in-scope bool params `show_mitre_grouping` (line 107) and `collapse_findings` (line 108). The `--mitre`/`--no-collapse`→bool resolution happens at `main()` lines 79-80 (UNCHANGED): `*mitre` → `show_mitre_grouping`; `collapse_findings_from_flag(*no_collapse)` → `collapse_findings`. Replaces the v0.8.0 separate `show_mitre_grouping` + `collapse_findings` fields.
-- `src/reporter/terminal.rs:100-126` -- `pub enum FindingsRender { Grouped, FlatCollapsed, FlatExpanded }` at :100-111; `pub struct TerminalReporter` with `pub render: FindingsRender` field at :113-126 (STORY-120 completed; replaces former separate bool fields).
+- `src/main.rs:~run_analyze` -- **F4-pending STORY-119 target:** `render: FindingsRender { grouping: if show_mitre_grouping { Grouping::Grouped } else { Grouping::Flat }, collapse: if collapse_findings { Collapse::Collapsed } else { Collapse::Expanded } }` at TerminalReporter construction site, using the in-scope bool params `show_mitre_grouping` (line 107) and `collapse_findings` (line 108). The `--mitre`/`--no-collapse`→bool resolution happens at `main()` lines 79-80 (UNCHANGED): `*mitre` → `show_mitre_grouping`; `collapse_findings_from_flag(*no_collapse)` → `collapse_findings`. Replaces the v0.9.0 three-arm if-expression for `FindingsRender` enum.
+- `src/reporter/terminal.rs:100-126` -- **F4-pending replacement target:** current v0.9.0 `pub enum FindingsRender { Grouped, FlatCollapsed, FlatExpanded }` at :100-111 replaced by `pub enum Grouping { Grouped, Flat }` + `pub enum Collapse { Collapsed, Expanded }` + `pub struct FindingsRender { pub grouping: Grouping, pub collapse: Collapse }` per D-110 (story-119-type-design.md §2.1). `pub struct TerminalReporter` with `pub render: FindingsRender` field at :113-126 is structurally unchanged (field name `render` remains; field type changes from enum to struct).
 
 ## Story Anchor
 

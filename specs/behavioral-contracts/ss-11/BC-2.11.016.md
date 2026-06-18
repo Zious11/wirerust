@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.8"
+version: "1.9"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -21,6 +21,7 @@ modified:
   - "v1.7 2026-06-17: issue-#62 F2 BC re-anchor (fix-burst) — Precondition 1: 'show_mitre_grouping = true' → 'render = FindingsRender::Grouped'. Rationale: illegal-state elimination. No behavioral change."
   - "v1.5: ARP-F2 Pass-14 Burst-7 — mitre_technique (singular) → mitre_techniques (Vec<String>) in Precondition 2, Postcondition 4, EC-003, and all three Canonical Test Vector rows. Shipped Finding struct uses Vec<String>; 'no MITRE line' condition is empty vec, not None. — 2026-06-13"
   - "v1.8 2026-06-18: F5 post-merge re-anchor to develop a4263c7 (terminal.rs line-anchor drift fix; no normative change) — render_finding_grouped MITRE expansion body :249-261 → :313-327 (is_empty guard at 313; ids join at 316; first-technique name lookup at 318-325; known branch with em-dash at 323; unknown branch at 324; closing at 327); em-dash literal :259 → :323; Architecture Anchor + Source Evidence path updated."
+  - "v1.9 2026-06-18: STORY-119 vocabulary migration — D-110 struct form: FindingsRender::Grouped → render.grouping == Grouping::Grouped in Precondition 1. No behavioral change."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -40,7 +41,9 @@ render as `MITRE: <id> (unknown)`.
 
 ## Preconditions
 
-1. `TerminalReporter.render = FindingsRender::Grouped`.
+1. `TerminalReporter.render.grouping == Grouping::Grouped` (applies to both `{Grouped, Collapsed}`
+   and `{Grouped, Expanded}` paths; the em-dash MITRE expansion occurs on all `render_finding_grouped`
+   calls regardless of collapse axis).
 2. A finding has a non-empty `mitre_techniques` vec with at least one technique ID in the catalog.
 
 ## Postconditions

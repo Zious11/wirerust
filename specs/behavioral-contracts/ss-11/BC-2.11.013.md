@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.13"
+version: "1.14"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -26,6 +26,7 @@ modified:
   - "v1.11 2026-06-17: F2 adversarial pass-4 — F-F2-A01: EC-007 STRUCTURAL guarantee converted to OBSERVABLE GUARANTEE form; remove call-graph prescription 'render_finding_prefix itself is UNCHANGED; the collapse-aware flat wrapper that appends suffixes is never called from the grouped path'"
   - "v1.12 2026-06-17: issue-#62 F2 BC re-anchor — replace show_mitre_grouping bool references with FindingsRender enum: Precondition 1 and Description 'show_mitre_grouping = true' → 'render = FindingsRender::Grouped'; Invariant 4 scoping boundary reworded to enum form; EC-007 condition reworded. Rationale: illegal-state elimination (grouping=true && collapse=true unrepresentable as FindingsRender::Grouped). No behavioral change."
   - "v1.13 2026-06-18: F5 post-merge re-anchor to develop a4263c7 (terminal.rs line-anchor drift fix; no normative change) — render_findings_grouped fn shifted: :272-323 → :432-483; tactic loop :309 → :469; Architecture Anchor + Source Evidence path updated."
+  - "v1.14 2026-06-18: STORY-119 spec-evolution — grouped collapse is NOW SUPPORTED. Precondition 1 updated to struct form (render.grouping == Grouping::Grouped). Invariant 4 rewritten: removes deferral language ('DEFERRED to STORY-119'); grouped collapse is active when render == {grouping: Grouping::Grouped, collapse: Collapse::Collapsed} (BC-2.11.031); the no-collapse guarantee is scoped to {Grouping::Grouped, Collapse::Expanded} only. Related BCs updated to reference BC-2.11.030–034. EC-007 updated to reflect both grouped-expanded (no suffix) and grouped-collapsed ({Grouped,Collapsed}: suffix applies per-bucket per BC-2.11.031) paths. Description updated to struct vocabulary."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -47,9 +48,11 @@ removal_reason: null
 
 ## Description
 
-When `TerminalReporter.render = FindingsRender::Grouped`, the FINDINGS section is reorganized into
-per-tactic buckets. Tactic headers are emitted in the order returned by
-`all_tactics_in_report_order()` (MITRE Enterprise kill-chain order first, then ICS tactics).
+When `TerminalReporter.render.grouping == Grouping::Grouped` (i.e., `render` is either
+`FindingsRender { grouping: Grouping::Grouped, collapse: Collapse::Expanded }` or
+`FindingsRender { grouping: Grouping::Grouped, collapse: Collapse::Collapsed }`), the FINDINGS
+section is reorganized into per-tactic buckets. Tactic headers are emitted in the order returned
+by `all_tactics_in_report_order()` (MITRE Enterprise kill-chain order first, then ICS tactics).
 An `Uncategorized` bucket is always appended last, collecting findings with an empty
 `mitre_techniques` vec or with all IDs unknown to the technique catalog.
 
@@ -57,9 +60,18 @@ For multi-tag findings (e.g., `mitre_techniques: ["T1692.001","T0836"]`), the gr
 determined by `mitre_techniques[0]` (the first element). This is the primary attribution
 approximation per ADR-006 §13.7; full multi-tactic display is a future enhancement.
 
+When `render.collapse == Collapse::Collapsed` (`{Grouped, Collapsed}` — the new default for
+`--mitre` since STORY-119), each tactic bucket additionally applies a per-bucket collapse pass
+producing `(xN)` suffix annotations for N≥2 groups (BC-2.11.031) and K=3 evidence sampling
+(BC-2.11.032). When `render.collapse == Collapse::Expanded` (`{Grouped, Expanded}` —
+`--mitre --no-collapse`), each finding is rendered individually with no suffix, preserving
+the pre-STORY-119 `--mitre` behavior.
+
 ## Preconditions
 
-1. `TerminalReporter.render = FindingsRender::Grouped` (set via `--mitre` CLI flag).
+1. `TerminalReporter.render.grouping == Grouping::Grouped` (set via `--mitre` CLI flag).
+   The collapse axis may be either `Collapse::Collapsed` (`--mitre` alone, the new default
+   since STORY-119) or `Collapse::Expanded` (`--mitre --no-collapse`, suffix-free).
 2. `findings` is non-empty.
 3. At least some findings have a non-empty `mitre_techniques` vec containing a recognized ID;
    others may have empty vecs or unknown IDs.
@@ -89,14 +101,21 @@ approximation per ADR-006 §13.7; full multi-tactic display is a future enhancem
    on runtime sorting. The reporter does NOT sort `mitre_techniques` before bucketing.
 3. A tactic section is SKIPPED if no findings belong to it. This prevents empty section
    headers in the output.
-4. **v0.8.0 collapse scoping boundary (BC-2.11.025 Invariant 5):** When
-   `render = FindingsRender::Grouped`, the collapse pass introduced in v0.8.0 (BC-2.11.025) is NOT
-   applied. The `FindingsRender` enum makes the former illegal state (`show_mitre_grouping = true &&
-   collapse_findings = true`) structurally unrepresentable — `FindingsRender::Grouped` is the single
-   variant that activates the grouped path, with no collapse-flag axis. Grouped mode renders each
-   finding individually, one per `render_finding_grouped` call, with no count suffix. Collapse within
-   grouped/`--mitre` mode is deferred to STORY-119 (future cycle). This invariant preserves the
-   existing BC-2.11.013 behavior exactly when `--mitre` is active.
+4. **Collapse axis in grouped mode (STORY-119, D-110):** The collapse behavior depends on
+   `render.collapse`:
+   - When `render == FindingsRender { grouping: Grouping::Grouped, collapse: Collapse::Expanded }`
+     (`--mitre --no-collapse`): the collapse pass is NOT applied. Each finding is rendered
+     individually via one `render_finding_grouped` call, with no `(xN)` count suffix. This is
+     the pre-STORY-119 `--mitre` behavior, now explicitly selected via `--no-collapse`. The
+     OBSERVABLE GUARANTEE holds: no ` (xN)` suffix appears in the terminal output for any
+     finding, at any input volume.
+   - When `render == FindingsRender { grouping: Grouping::Grouped, collapse: Collapse::Collapsed }`
+     (`--mitre` alone, the new default since STORY-119): a per-bucket collapse pass IS applied
+     within each tactic bucket. Groups of N≥2 identical-key findings within a bucket emit a
+     ` (xN)` suffix per BC-2.11.031. Singletons (N=1) within a bucket render via
+     `render_finding_grouped` with no suffix. The `{Grouped, Collapsed}` mode is the new
+     STORY-119 default for grouped output (BC-2.11.030). See BC-2.11.031–034 for the full
+     grouped-collapse behavioral contract.
 
 ## Edge Cases
 
@@ -108,7 +127,8 @@ approximation per ADR-006 §13.7; full multi-tactic display is a future enhancem
 | EC-004 | Mix: known + unknown + empty mitre_techniques | Named sections + ## Uncategorized last |
 | EC-005 | Empty findings slice | No FINDINGS section rendered at all (not grouping-mode specific) |
 | EC-006 | Finding with mitre_techniques=["T1692.001","T0836"] (multi-tag) | Groups under MitreTactic::IcsImpairProcessControl (T1692.001's tactic); T0836 visible in inline rendering but does not create a second bucket |
-| EC-007 | `render = FindingsRender::Grouped` with multiple identical-key findings (formerly the `show_mitre_grouping=true AND collapse_findings=true` impossible state) | The `FindingsRender` enum makes this combination structurally unrepresentable; `FindingsRender::Grouped` implies no collapse pass. Each finding is rendered individually; no `(xN)` count suffix on any finding. OBSERVABLE GUARANTEE: no ` (xN)` suffix appears in the terminal output for any grouped-mode finding, at any input volume — this is the same guarantee as BC-2.11.026 EC-007 and BC-2.11.025 Invariant 5 |
+| EC-007a | `render = {Grouping::Grouped, Collapse::Expanded}` (`--mitre --no-collapse`) with multiple identical-key findings | Each finding is rendered individually via `render_finding_grouped`; no `(xN)` count suffix on any finding. OBSERVABLE GUARANTEE: no ` (xN)` suffix appears in the terminal output for any finding, at any input volume. This is the pre-STORY-119 `--mitre` behavior, now explicitly selected via `--no-collapse`. |
+| EC-007b | `render = {Grouping::Grouped, Collapse::Collapsed}` (`--mitre` alone, the new default) with multiple identical-key findings in the same tactic bucket | Per-bucket collapse applies. N≥2 identical-key findings within a bucket collapse to one header with ` (xN)` suffix (BC-2.11.031). The suffix appears on the finding-group header line only, not on tactic bucket headers or MITRE lines. See BC-2.11.031–034 for the complete grouped-collapse contract. |
 
 ## Canonical Test Vectors
 
@@ -143,8 +163,13 @@ approximation per ADR-006 §13.7; full multi-tactic display is a future enhancem
 - BC-2.11.015 -- composes with (None/unknown bucket definition)
 - BC-2.11.016 -- composes with (per-finding line format in grouped mode)
 - BC-2.10.003 -- depends on (all_tactics_in_report_order provides the canonical iteration)
-- BC-2.11.025 -- contrasts with (BC-025 collapse key contract; Invariant 4 here establishes that BC-025 collapse pass is not applied when render=FindingsRender::Grouped)
-- BC-2.11.028 -- contrasts with (--no-collapse opt-out flag; in grouped mode FindingsRender::Grouped structurally prevents collapse; --no-collapse has no additional effect)
+- BC-2.11.025 -- composes with (same CollapseKey four-tuple used in grouped-collapse per-bucket pass; BC-025 governs the flat-mode invocation; grouped-mode invocation governed by BC-2.11.031)
+- BC-2.11.028 -- composes with (--no-collapse opt-out now has dual scope: suppresses collapse in both flat AND grouped modes; {Grouped, Expanded} is the explicit suffix-free grouped mode)
+- BC-2.11.030 -- depends on (CLI mapping: --mitre alone → {Grouped, Collapsed}; --mitre --no-collapse → {Grouped, Expanded})
+- BC-2.11.031 -- composes with (per-bucket count suffix rule when render={Grouped, Collapsed})
+- BC-2.11.032 -- composes with (per-bucket evidence sampling when render={Grouped, Collapsed})
+- BC-2.11.033 -- composes with (tactic-bucket ordering invariant under grouped-collapse)
+- BC-2.11.034 -- composes with (MITRE line format for collapsed groups within tactic buckets)
 - BC-2.11.029 -- composes with (JSON/CSV raw-stream invariant; grouped mode does not affect JSON/CSV unmodified-slice guarantee)
 
 ## Architecture Anchors
