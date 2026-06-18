@@ -1775,23 +1775,16 @@ mod fix_p5_003_terminal_ordering {
 //   BC-2.11.017  Default Rendering Emits MITRE: <id(s)> Only (No Em-Dash)
 //   BC-2.11.019  TerminalReporter Renders Sections in Correct Order
 //
-// tdd_mode: strict — all 35 test bodies are `todo!()` per BC-5.38.001.
-// Red Gate: `cargo build --all-targets` must pass; `cargo test` must show
-// these 35 tests as FAILED (panicking with "not yet implemented").
-// ---------------------------------------------------------------------------
+// STORY-118 finding-collapse tests — all implemented and passing (v0.8.0).
 mod story_118 {
     use super::*;
 
     // -----------------------------------------------------------------------
     // Helpers scoped to story_118
     // -----------------------------------------------------------------------
-    // STORY-118 stub: helpers are unused until test bodies are filled in by the
-    // implementer. `#[allow(dead_code)]` suppresses warnings that would become
-    // errors under RUSTFLAGS=-Dwarnings in CI.
 
     /// TerminalReporter with collapse enabled and color disabled (the default
     /// v0.8.0 flat-mode reporter).
-    #[allow(dead_code)]
     fn collapse_reporter() -> TerminalReporter {
         TerminalReporter {
             use_color: false,
@@ -1802,7 +1795,6 @@ mod story_118 {
     }
 
     /// TerminalReporter with collapse enabled and color enabled (for color-ladder tests).
-    #[allow(dead_code)]
     fn collapse_reporter_color() -> TerminalReporter {
         TerminalReporter {
             use_color: true,
@@ -1813,7 +1805,6 @@ mod story_118 {
     }
 
     /// TerminalReporter with MITRE grouping and collapse both enabled (for AC-005).
-    #[allow(dead_code)]
     fn mitre_collapse_reporter() -> TerminalReporter {
         TerminalReporter {
             use_color: false,
@@ -1825,7 +1816,6 @@ mod story_118 {
 
     /// Construct a Finding with full control over the four collapse-key fields
     /// plus optional evidence and MITRE techniques.
-    #[allow(dead_code)]
     fn make_collapse_finding(
         category: ThreatCategory,
         verdict: Verdict,
@@ -3845,6 +3835,114 @@ mod story_118 {
             pos_findings < pos_analyzer,
             "BC-2.11.019 inv7: FINDINGS must precede ANALYZER section; \
              pos_findings={pos_findings}, pos_analyzer={pos_analyzer}"
+        );
+    }
+
+    // -----------------------------------------------------------------------
+    // Supplementary regression guards (beyond the 35 AC-mandated tests)
+    // These cover untested branches of existing BCs discovered during the
+    // GREEN-phase sweep.
+    // -----------------------------------------------------------------------
+
+    /// SUPPLEMENTARY regression guard for BC-2.11.027 (beyond the 35 AC-mandated tests),
+    /// covering the untested branch of the `if let Some(ev) = member.evidence.first()` path
+    /// when every member in the group has an empty evidence vec.
+    ///
+    /// This guards that when N=3 members all have `evidence = []`, the collapse header
+    /// with `(x3)` still appears, and NO evidence line (`    > `) is emitted for the group.
+    /// FAILS if a future change panics on empty-evidence groups, emits a spurious `> ` line,
+    /// or omits the `(x3)` header entirely.
+    #[test]
+    fn test_BC_2_11_027_all_empty_evidence_group_emits_no_evidence_lines() {
+        // BC-2.11.027 pc2 / `if let Some(ev) = member.evidence.first()` branch:
+        // N=3 collapsed group where ALL members have evidence=[].
+        // The header must appear with (x3); no evidence line must be emitted.
+        let findings: Vec<Finding> = (0..3)
+            .map(|_| {
+                make_collapse_finding(
+                    ThreatCategory::Anomaly,
+                    Verdict::Inconclusive,
+                    Confidence::Low,
+                    "AllEmptyEv",
+                    vec![],
+                    vec![],
+                )
+            })
+            .collect();
+
+        let out = collapse_reporter().render(&Summary::new(), &findings, &[]);
+
+        // Header with (x3) must appear — the group was correctly collapsed.
+        assert!(
+            out.contains("(x3)"),
+            "BC-2.11.027 supplementary: all-empty-evidence N=3 group must emit '(x3)' header; \
+             got:\n{out}"
+        );
+
+        // No evidence line (`    > `) must appear anywhere in the output.
+        assert!(
+            !out.contains("    > "),
+            "BC-2.11.027 supplementary: all-empty-evidence group must emit zero evidence lines; \
+             got:\n{out}"
+        );
+    }
+
+    /// SUPPLEMENTARY regression guard for BC-2.11.026 (beyond the 35 AC-mandated tests),
+    /// covering the negative direction of the MITRE-line-from-representative contract:
+    /// when `members[0].mitre_techniques = []` but a later member has `["T1036"]`,
+    /// NO `MITRE:` line must appear.
+    ///
+    /// This is the negative-direction complement of
+    /// `test_BC_2_11_026_mitre_line_from_representative_finding`, which tests that MITRE
+    /// IS emitted when members[0] has a technique. This test guards the symmetric case:
+    /// when members[0] has no technique, the presence of a technique on members[1] must
+    /// NOT cause a MITRE line to appear.
+    /// FAILS if a future change sources MITRE from any member other than members[0],
+    /// or emits a MITRE line when the representative has no techniques.
+    #[test]
+    fn test_BC_2_11_026_no_mitre_line_when_representative_has_no_mitre() {
+        // BC-2.11.026 PC-7 / BC-2.11.017: MITRE sourced from group_members[0] ONLY.
+        // members[0].mitre_techniques = [] → no MITRE line should appear.
+        // members[1].mitre_techniques = ["T1036"] → must be silently elided.
+        let findings = vec![
+            make_collapse_finding(
+                ThreatCategory::Anomaly,
+                Verdict::Inconclusive,
+                Confidence::Low,
+                "NoRepMitre",
+                vec![],
+                vec![],
+            ),
+            make_collapse_finding(
+                ThreatCategory::Anomaly,
+                Verdict::Inconclusive,
+                Confidence::Low,
+                "NoRepMitre",
+                vec![],
+                vec!["T1036".to_string()],
+            ),
+        ];
+
+        let out = collapse_reporter().render(&Summary::new(), &findings, &[]);
+
+        // The (x2) header must appear — group was correctly collapsed.
+        assert!(
+            out.contains("(x2)"),
+            "BC-2.11.026 supplementary: N=2 group must emit '(x2)' header; got:\n{out}"
+        );
+
+        // No MITRE line must appear — representative (members[0]) has no techniques.
+        assert!(
+            !out.contains("MITRE:"),
+            "BC-2.11.026 supplementary: no MITRE line when representative members[0] has \
+             mitre_techniques=[]; members[1] T1036 must be silently elided; got:\n{out}"
+        );
+
+        // T1036 specifically must not appear anywhere.
+        assert!(
+            !out.contains("T1036"),
+            "BC-2.11.026 supplementary: members[1] technique 'T1036' must not appear when \
+             members[0].mitre_techniques=[]; got:\n{out}"
         );
     }
 }
