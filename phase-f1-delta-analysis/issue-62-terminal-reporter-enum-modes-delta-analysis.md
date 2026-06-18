@@ -12,6 +12,7 @@ status: draft
 supersedes_section: ".factory/phase-f1-delta-analysis/issue-259-finding-collapse-delta-analysis.md §4 Interaction with Issue #62"
 modified:
   - "2026-06-18: Census corrected 35→28 construction sites (F3 round-7 bookkeeping fix). The 35 was a pre-grep estimate; ground-truth grep yields 28. reporter_terminal_tests.rs: 12→7 (helpers are 5 construction sites, not 12; counted each helper struct literal once). dnp3_f5_remediation_tests.rs: 2→1 (helper fn line 1069 is the fn signature, literal is at line 1070). bc_2_09_100_multitag_tests.rs: 2→1 (same pattern: fn signature at line 689, literal at line 690). Total: 2+17+7+1+1 = 28. Nine locations updated in total: census table (3 cells), total line, §6 intro, §7 paragraph, summary table, §8 classification test-count, §9 OQ-5 option-B, §9 OQ-6 question, §10 summary top-risks."
+  - "2026-06-18: F3 exhaustive numeric audit (round-9 final fix). §6 row-322: Grouped sites in reporter_tests.rs corrected 4→6 (lines 1001, 1036, 1071, 1106, 1155, 1192; field-lines 1003/1038/1073/1108/1157/1194); `false, false` count made explicit as 11 sites. BC count: §2 total and §10 summary corrected 9→8 BCs needing re-anchoring (BC-2.11.018 examined but no change required; clarifying parenthetical added to §2 total line and §10 row)."
 ---
 
 # F1 Delta Analysis — Issue #62: Refactor TerminalReporter to Enum-of-Modes
@@ -129,7 +130,7 @@ the field reference in the Preconditions section requires editing.
 | BC-2.11.017 | render_finding_flat Multi-ID MITRE | Precondition: `show_mitre_grouping = false` — replace with `render != FindingsRender::Grouped` or narrow to the flat paths. |
 | BC-2.11.018 | Colorization | No precondition on these fields; `use_color` stays an orthogonal field — no change needed. |
 
-**Total: 9 BCs in SS-11 need field-name updates in their Preconditions sections.** None
+**Total: 8 BCs in SS-11 need field-name updates in their Preconditions sections** (BC-2.11.018 is listed above for completeness — it needs no change). None
 require new postconditions, new invariants, or new test vectors — the observable behavior is
 unchanged. This is a re-anchoring pass, not a spec expansion.
 
@@ -319,7 +320,7 @@ changes. The substitution rule is:
 | `tests/reporter_terminal_tests.rs:1809` (`mitre_collapse_reporter`) | 1 | `true, true` (currently nonsensical) | `Grouped` |
 | `tests/reporter_terminal_tests.rs:3346` (`reporter_on`) | 1 | `false, true` | `FlatCollapsed` |
 | `tests/reporter_terminal_tests.rs:3359` (`reporter_off`) | 1 | `false, false` | `FlatExpanded` |
-| `tests/reporter_tests.rs` (17 sites) | 17 | `false, false` (most); `true, false` (4 sites: lines 1001, 1036, 1071, 1106) | `FlatExpanded` / `Grouped` respectively |
+| `tests/reporter_tests.rs` (17 sites) | 17 | `false, false` (11 sites); `true, false` (6 sites: lines 1001, 1036, 1071, 1106, 1155, 1192) | `FlatExpanded` / `Grouped` respectively |
 | `tests/dnp3_f5_remediation_tests.rs:1070` | 1 | `true, false` | `Grouped` |
 | `tests/bc_2_09_100_multitag_tests.rs:690` | 1 | `mitre_grouping, false` (parameterized) | `if mitre_grouping { Grouped } else { FlatExpanded }` |
 
@@ -510,7 +511,7 @@ trivial either way; versioning consistency matters more than release acceleratio
 | Dimension | Assessment |
 |-----------|-----------|
 | Impact boundary | `src/reporter/terminal.rs` (struct shape only), `src/main.rs` (2 sites), `tests/reporter_tests.rs` (17 sites), `tests/reporter_terminal_tests.rs` (7 sites), `tests/dnp3_f5_remediation_tests.rs` (1 site), `tests/bc_2_09_100_multitag_tests.rs` (1 site). Total: 28 construction sites. Zero output changes. |
-| BCs touched | 9 BCs in SS-11 (BC-2.11.013, .014, .017, .019, .025, .026, .027, .028) — re-anchoring of precondition field names only. No new BCs. No new postconditions. |
+| BCs touched | 8 BCs in SS-11 (BC-2.11.013, .014, .017, .019, .025, .026, .027, .028) — re-anchoring of precondition field names only. BC-2.11.018 examined but needs no change. No new BCs. No new postconditions. |
 | ADR recommendation | No new ADR, no ADR amendment. Capture enum rationale in PR description. |
 | Story estimate | 1 story (STORY-120, ~3 pts), Epic E-8, SS-11. |
 | Regression risk | LOW. Rust compiler enforces construction-site completeness. No output bytes change. |
