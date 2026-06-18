@@ -32,10 +32,11 @@ estimated_days: 1
 feature_id: issue-62-enum-modes
 github_issue: 62
 wave: 48
-# BC status: BC-2.11.013 v1.12, BC-2.11.014 v1.7, BC-2.11.015 v1.8, BC-2.11.016 v1.7,
-#             BC-2.11.017 v1.14, BC-2.11.019 v1.8, BC-2.11.025 v1.9, BC-2.11.026 v1.10,
-#             BC-2.11.027 v1.5, BC-2.11.028 v1.6, BC-2.11.029 v1.5, BC-2.11.010 v1.9
+# BC status: BC-2.11.013 v1.13, BC-2.11.014 v1.8, BC-2.11.015 v1.9, BC-2.11.016 v1.8,
+#             BC-2.11.017 v1.15, BC-2.11.019 v1.9, BC-2.11.025 v1.10, BC-2.11.026 v1.11,
+#             BC-2.11.027 v1.6, BC-2.11.028 v1.7, BC-2.11.029 v1.6, BC-2.11.010 v1.10
 #             — all 12 re-anchored and CONVERGED (F2 passes complete 2026-06-17/18).
+#             Version stamps synced to F5 post-merge re-anchor (mechanical, no normative change).
 # Subsystem anchor: SS-11 owns this story's scope because TerminalReporter and the new
 #   FindingsRender enum live in src/reporter/terminal.rs (SS-11 per ARCH-INDEX Subsystem
 #   Registry). The two main.rs construction sites are thin SS-12 wiring — insufficient
@@ -72,7 +73,7 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-11/BC-2.11.029.md
   - .factory/phase-f1-delta-analysis/issue-62-terminal-reporter-enum-modes-delta-analysis.md
   - docs/adr/0003-reporting-pipeline-layering.md
-input-hash: "3d76a93"
+input-hash: "8047030"
 ---
 
 # STORY-120: TerminalReporter FindingsRender Enum Migration (v0.9.0)
@@ -91,18 +92,18 @@ input-hash: "3d76a93"
 
 | BC | Version | Title |
 |----|---------|-------|
-| BC-2.11.013 | v1.12 | MITRE Grouping Emits Tactic Headers in Canonical Order; Uncategorized Last |
-| BC-2.11.014 | v1.7  | Within Tactic Bucket: Sort by Verdict, Confidence, Emission Order |
-| BC-2.11.015 | v1.8  | No-Technique or Unknown-ID Findings Land in Uncategorized |
-| BC-2.11.016 | v1.7  | MITRE Grouping Expands Per-Finding Line with Em-Dash and Name |
-| BC-2.11.017 | v1.14 | Default Rendering Emits MITRE: <id(s)> Only (No Em-Dash) |
-| BC-2.11.019 | v1.8  | TerminalReporter Renders Sections in Correct Order |
-| BC-2.11.025 | v1.9  | Flat-Mode Collapse Groups Findings by (category, verdict, confidence, summary) Key; First-Occurrence Order; Deterministic |
-| BC-2.11.026 | v1.10 | Collapsed Group of N≥2 Renders Header with (xN) Suffix; Singleton (N=1) Renders Without Suffix |
-| BC-2.11.027 | v1.5  | Collapsed Group Retains at Most K=3 Representative Evidence Lines; Remainder Elided from Terminal Display |
-| BC-2.11.028 | v1.6  | --no-collapse Opt-Out Flag Disables Terminal Collapse and Restores One-Line-Per-Finding Rendering; JSON/CSV Unaffected |
-| BC-2.11.029 | v1.5  | Collapse is Display-Layer Only; JSON/CSV Reporters Receive Unmodified findings Slice; Non-Repeated Findings Individually Visible in All Outputs |
-| BC-2.11.010 | v1.9  | TerminalReporter Escapes Both Summary AND Each Evidence Line |
+| BC-2.11.013 | v1.13 | MITRE Grouping Emits Tactic Headers in Canonical Order; Uncategorized Last |
+| BC-2.11.014 | v1.8  | Within Tactic Bucket: Sort by Verdict, Confidence, Emission Order |
+| BC-2.11.015 | v1.9  | No-Technique or Unknown-ID Findings Land in Uncategorized |
+| BC-2.11.016 | v1.8  | MITRE Grouping Expands Per-Finding Line with Em-Dash and Name |
+| BC-2.11.017 | v1.15 | Default Rendering Emits MITRE: <id(s)> Only (No Em-Dash) |
+| BC-2.11.019 | v1.9  | TerminalReporter Renders Sections in Correct Order |
+| BC-2.11.025 | v1.10 | Flat-Mode Collapse Groups Findings by (category, verdict, confidence, summary) Key; First-Occurrence Order; Deterministic |
+| BC-2.11.026 | v1.11 | Collapsed Group of N≥2 Renders Header with (xN) Suffix; Singleton (N=1) Renders Without Suffix |
+| BC-2.11.027 | v1.6  | Collapsed Group Retains at Most K=3 Representative Evidence Lines; Remainder Elided from Terminal Display |
+| BC-2.11.028 | v1.7  | --no-collapse Opt-Out Flag Disables Terminal Collapse and Restores One-Line-Per-Finding Rendering; JSON/CSV Unaffected |
+| BC-2.11.029 | v1.6  | Collapse is Display-Layer Only; JSON/CSV Reporters Receive Unmodified findings Slice; Non-Repeated Findings Individually Visible in All Outputs |
+| BC-2.11.010 | v1.10 | TerminalReporter Escapes Both Summary AND Each Evidence Line |
 
 ## Acceptance Criteria
 
