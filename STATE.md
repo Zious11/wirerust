@@ -1,13 +1,13 @@
 ---
 pipeline: FEATURE_MODE
-phase: F7
-phase_status: "E-8 / issue #62 FindingsRender enum migration — F1..F7 COMPLETE & CONVERGED; F7 human gate APPROVED 2026-06-18; RELEASE v0.9.0 HELD (human deferred — bundling more work). Implementation merged on develop f851995 (Cargo 0.9.0). NEXT = new feature cycle for STORY-119 (grouped-mode collapse, depends_on STORY-120, now unblocked). DRIFT-62-MAIN495-DOC-001 to be fixed on develop in the STORY-119 cycle."
-active_feature: "E-8 / #62 DONE-BUT-UNRELEASED — impl merged develop f851995 (Cargo 0.9.0); F7 HUMAN GATE APPROVED 2026-06-18 (D-109); RELEASE v0.9.0 HELD per human (defer release, bundle more work). STORY-119 (grouped-mode collapse) — NEW FEATURE CYCLE AUTHORIZED; depends_on [STORY-120] (now unblocked). STORY-121 (E-11 process-gap self-improvement, D-099/100/101 + PG-62-F5-POSTMERGE-ANCHOR-001 incl. VP-016/consuming-surface) filed as draft."
+phase: F2
+phase_status: "STORY-119 cycle — F1 COMPLETE (delta-analysis + human gate). NEXT = F2 spec-evolution (reshape FindingsRender; revise deferral clauses; author grouped-collapse BCs)."
+active_feature: "STORY-119 grouped-mode finding-collapse (E-18 / issue #259 tail) — F1 delta-analysis COMPLETE & gate-approved 2026-06-18. Depends on STORY-120 (merged). NEXT = F2 spec-evolution. v0.9.0 still HELD (no release); STORY-119 bundles into the same unreleased develop line."
 feature_arp_status: "v0.7.0 RELEASED 2026-06-16 — ARP Security Analyzer (E-16, issue #9); PR #256 dd8e142; tag v0.7.0; 4 binaries (aarch64-apple-darwin, x86_64-apple-darwin, x86_64-pc-windows-msvc, x86_64-unknown-linux-gnu)"
 feature_8_status: "v0.6.0 RELEASED 2026-06-12 — DNP3 TCP analyzer; F7 5-dim CONVERGED; tag v0.6.0 + 4 binaries"
 product: wirerust
 mode: brownfield
-timestamp: 2026-06-18T23:59:00Z
+timestamp: 2026-06-18T23:59:59Z
 maintenance_run: COMPLETE
 maintenance_run_id: maint-2026-06-17
 maintenance_started_at: "2026-06-17"
@@ -95,7 +95,7 @@ input_drift_check: "F7-followup-dispositions burst (2026-06-16): STORY-071/100/1
 
 ## Status
 
-**wirerust v0.8.0 RELEASED 2026-06-17. E-8 / #62 (FindingsRender enum migration, STORY-120) F1..F7 COMPLETE & CONVERGED — F7 HUMAN GATE APPROVED 2026-06-18 (D-109). RELEASE v0.9.0 HELD per human (bundling more work before next release; Cargo already at 0.9.0 on develop f851995). #62 cycle CLOSED-PENDING-RELEASE. NEXT = new Feature-Mode cycle for STORY-119 (grouped-mode finding-collapse, depends_on STORY-120, now unblocked) — start at F1 delta-analysis.**
+**wirerust v0.8.0 RELEASED 2026-06-17. STORY-119 cycle ACTIVE — F1 delta-analysis COMPLETE & gate-approved 2026-06-18 (D-110). Type design: struct-of-orthogonal-enums; --mitre collapses by default; no release (bundling into unreleased 0.9.0 develop line). NEXT = F2 spec-evolution.**
 
 ## Maintenance Run (maint-2026-06-17)
 
@@ -133,20 +133,21 @@ input_drift_check: "F7-followup-dispositions burst (2026-06-16): STORY-071/100/1
 | E-8 / #62 F5 scoped-adversarial | **CONVERGED 3/3** 2026-06-18 — scoped-adversarial; HIGH F-1 anchor-drift remediated (BCs re-anchored + ADR/CHANGELOG PR #267); re-run triple CLEAN. | First triple: Pass-3 HIGH F-1 (post-merge stale terminal.rs anchors across all 12 SS-11 BCs + ADR-0003). Remediated: 12 BCs re-anchored by symbol (BC-INDEX v1.43); ADR-0003 color-ladder anchor 209-221→273-285 + CHANGELOG v0.9.0 entry via fix-PR #267 (develop f851995). Re-run triple A/B/C all CLEAN (frozen corpus develop f851995 / factory e1d5a64). STORY-120 body version-stamps synced; input-hash 3d76a93→8047030. |
 | E-8 / #62 F6 targeted hardening | **HARDENED** 2026-06-18 — regression 1646/0; mutation 96.6% (3 dispatch arms + escape 100% killed); no new VP; Kani/fuzz unaffected; audit/deny clean. | No new VP (pure byte-identical dispatch refactor; F1/F2 verification delta confirmed). Regression 1646/0. VP-012 proptest pass (4 harnesses, 1000 cases each). cargo-mutants terminal.rs: 28 killed / 1 survived / 2 unviable = 96.6%; all 3 dispatch arms KILLED; lone survivor terminal.rs:276 (Confidence::High in render_finding_prefix) pre-existing/out-of-scope. Kani (decoder.rs/dispatcher.rs) + fuzz (decode/dnp3/modbus parsers) UNAFFECTED. cargo audit (RUSTSEC-2026-0097 ACCEPTED-TRANSITIVE) / deny / clippy / fmt clean. D-107. |
 | E-8 / #62 F7 delta-convergence | **CONVERGED + HUMAN-APPROVED 2026-06-18 — RELEASE v0.9.0 HELD (deferred per human); impl merged develop f851995** | 5-dim MET on develop f851995: spec (BC/ADR/CHANGELOG coherent), tests (1646/0), implementation (STORY-120 merged a4263c7/PR#266, byte-identical), verification (F6 HARDENED, mutation 96.6%, VP-012 pass), docs (CHANGELOG [0.9.0] + ADR-0003 + README coherent). Holistic adversarial 3/3 CLEAN (all SHIP v0.9.0). Consistency PASS (VP-016 v2.4). F7 HUMAN GATE APPROVED 2026-06-18 (D-109). RELEASE v0.9.0 HELD — bundling more work (specifically STORY-119 grouped-mode collapse). #62 cycle CLOSED-PENDING-RELEASE. |
+| **STORY-119 grouped-mode collapse — F1 delta-analysis** | **F1 COMPLETE + gate-approved** 2026-06-18 — delta-analysis; type=struct-of-orthogonal-enums (research-backed); --mitre collapses by default; no release yet. | F1 gate decisions (D-110): (1) TYPE DESIGN: reshape FindingsRender to `struct FindingsRender { grouping: Grouping, collapse: Collapse }` (research: .factory/research/story-119-render-mode-typedesign.md); (2) CLI/UX: --mitre collapses by default (Grouped+Collapsed); --no-collapse dual-scope; (3) VERSIONING: bundle into unreleased 0.9.0 develop line. F1 artifact: .factory/phase-f1-delta-analysis/story-119-grouped-mode-collapse-delta-analysis.md. NEXT = F2 spec-evolution. |
 
-## Session Resume Checkpoint (2026-06-18 — E-8/#62 COMPLETE; STORY-119 cycle NEXT)
+## Session Resume Checkpoint (2026-06-18 — STORY-119 cycle ACTIVE; F1 COMPLETE; NEXT = F2)
 
-**Previous checkpoint (2026-06-18 — F7 CONVERGED — AWAITING HUMAN GATE) archived to:
-`.factory/cycles/feature-collapse-v0.8.0/session-checkpoints.md`**
+**Previous checkpoint (2026-06-18 — E-8/#62 COMPLETE; STORY-119 cycle NEXT) archived to:
+`.factory/cycles/feature-story-119-grouped-collapse/session-checkpoints.md`**
 
 ### A. EXACT PIPELINE POSITION
 
-- **Project:** wirerust. **Mode:** FEATURE_MODE — transitioning from completed E-8/#62 to new STORY-119 Feature-Mode cycle.
-- **E-8 / #62 status:** ALL PHASES COMPLETE & CONVERGED. F7 HUMAN GATE APPROVED 2026-06-18 (D-109). RELEASE v0.9.0 HELD — human deferred (bundling more work; Cargo already 0.9.0 on develop). #62 cycle CLOSED-PENDING-RELEASE.
-- **Next cycle:** STORY-119 (grouped-mode finding-collapse). depends_on [STORY-120] (now unblocked, merged). Authorized by D-109. Start at F1 delta-analysis.
+- **Project:** wirerust. **Mode:** FEATURE_MODE — STORY-119 cycle, phase F2.
+- **STORY-119 F1 status:** COMPLETE + gate-approved 2026-06-18 (D-110). Three human decisions: type=struct-of-orthogonal-enums; --mitre collapses by default (dual-scope --no-collapse); no release yet (bundle into unreleased 0.9.0 develop line).
+- **E-8 / #62 status:** ALL PHASES COMPLETE. F7 HUMAN GATE APPROVED. RELEASE v0.9.0 HELD. #62 cycle CLOSED-PENDING-RELEASE.
 - **Latest release:** v0.8.0 — finding-collapse (E-18, issue #259, STORY-118). Tag v0.8.0 on main 73034da. Cargo 0.9.0 is on develop (not yet released).
 - **DRIFT-62-MAIN495-DOC-001:** Fix src/main.rs:495 doc-comment on develop within the STORY-119 cycle (D-109).
-- **STORY-121 (E-11 process-gap):** Filed as draft. Covers D-099/100/101 + PG-62-F5-POSTMERGE-ANCHOR-001 incl. VP-016/consuming-surface. Process-gaps codified. No action needed before STORY-119 F1.
+- **STORY-121 (E-11 process-gap):** Filed as draft. No action needed during STORY-119 F2.
 
 ### B. EXACT SHAs / WORKTREE STATE (verified 2026-06-18)
 
@@ -154,10 +155,9 @@ input_drift_check: "F7-followup-dispositions burst (2026-06-16): STORY-071/100/1
 - **main HEAD:** `73034da` (`chore: release v0.8.0`). Tag `v0.8.0` annotated.
 - **factory-artifacts HEAD:** run `git -C /Users/zious/Documents/GITHUB/wirerust/.factory log -1 --format='%h %s'`
 - **STORY-120:** DELIVERED — merged to develop via PR #266 (a4263c73). Worktree cleaned.
-- **STORY-119:** Exists as `.factory/stories/STORY-119.md`; depends_on [STORY-120] (unblocked). Ready for new F1 delta-analysis.
+- **STORY-119:** `.factory/stories/STORY-119.md` — F1 COMPLETE. Awaiting F2 spec-evolution.
 - **Active worktrees:** 2 — main repo (develop at `/Users/zious/Documents/GITHUB/wirerust`), `.factory/` (factory-artifacts).
 - **Open PRs:** NONE.
-- **Stash:** stash@{0} exists — redundant ADR working-copy identical to merged develop; safe to drop; leaving tracked (D-109).
 
 ### C. RESUME PROCEDURE (COLD-RESUME — follow verbatim in order)
 
@@ -172,38 +172,34 @@ git -C /Users/zious/Documents/GITHUB/wirerust/.factory log -1 --format='%h %s'  
 gh pr list --state open                                                     # expect empty
 ```
 
-**Step 3 — Verify worktrees (no stale STORY-120 worktree):**
+**Step 3 — Verify worktrees:**
 ```
 git -C /Users/zious/Documents/GITHUB/wirerust worktree list
-# expect only main repo + .factory/ (STORY-120 worktree cleaned post-merge)
+# expect only main repo + .factory/
 ```
 
 ### D. WHAT IS COMPLETE — DO NOT REDO
 
 - **E-8 / #62 ENTIRE CYCLE (F1..F7):** ALL PHASES COMPLETE & CONVERGED (D-088..D-109). HUMAN GATE APPROVED. RELEASE HELD.
 - **STORY-120 (FindingsRender enum, 28 sites, byte-identical):** DELIVERED — PR #266 merged develop a4263c73. Worktree cleaned.
-- **F5 fix-PR #267:** Merged — ADR-0003 anchor + CHANGELOG v0.9.0. develop HEAD f851995.
-- **VP-016 v2.4:** Consistency remediation complete (D-108). No further consistency work for #62.
-- **STORY-121:** Filed as draft. No further action until STORY-119 cycle provides natural fix-opportunity.
-- **Decisions D-088..D-109** cover the complete #62 cycle.
+- **STORY-119 F1 delta-analysis:** COMPLETE + gate-approved (D-110). Artifact: `.factory/phase-f1-delta-analysis/story-119-grouped-mode-collapse-delta-analysis.md`.
+- **Decisions D-088..D-110** all committed.
 
 ### E. NEXT ACTIONS (in order — do NOT skip steps)
 
 1. **BLOCKING on resume:** run `/vsdd-factory:factory-worktree-health`; verify SHAs per §C.
-2. **Start STORY-119 Feature-Mode cycle** — F1 delta-analysis for grouped-mode finding-collapse. STORY-119 depends_on [STORY-120] (unblocked). Feature issue to be confirmed by orchestrator.
+2. **STORY-119 F2 spec-evolution:** reshape FindingsRender (struct-of-orthogonal-enums); revise BC deferral clauses; author grouped-collapse BCs; update ADR-0003; adversarial convergence on spec.
 3. **Within STORY-119 cycle:** fix DRIFT-62-MAIN495-DOC-001 (src/main.rs:495 doc-comment) as part of develop work.
-4. **Do NOT release v0.9.0** until human gate authorizes (D-109 holds release pending more bundled work).
+4. **Do NOT release v0.9.0** until human gate authorizes (D-109/D-110 hold release pending STORY-119 completion).
 
 ### F. KEY ARTIFACT POINTERS
 
 - STORY-119: `.factory/stories/STORY-119.md` (grouped-mode collapse; depends_on [STORY-120])
+- STORY-119 F1 delta-analysis: `.factory/phase-f1-delta-analysis/story-119-grouped-mode-collapse-delta-analysis.md`
+- Research (type-design): `.factory/research/story-119-render-mode-typedesign.md`
+- Cycle manifest: `.factory/cycles/feature-story-119-grouped-collapse/cycle-manifest.md`
 - STORY-120: `.factory/stories/STORY-120.md` (DELIVERED; input-hash 8047030)
 - STORY-121: `.factory/stories/STORY-121.md` (draft — E-11 process-gap self-improvement)
-- #62 F1 delta-analysis: `.factory/phase-f1-delta-analysis/issue-62-terminal-reporter-enum-modes-delta-analysis.md`
-- #62 F2 PRD-delta: `.factory/phase-f2-spec-evolution/issue-62-prd-delta.md`
-- BCs (re-anchored v1.43): `.factory/specs/behavioral-contracts/ss-11/BC-2.11.0{10,13,14,15,16,17,19,25,26,27,28,29}.md`
-- Demo evidence: `.factory/demo-evidence/issue-62-story-120/`
-- Cycle lessons: `.factory/cycles/feature-collapse-v0.8.0/lessons.md`
 
 ## Decisions Log
 
@@ -230,6 +226,7 @@ D-055..D-091 archived: `cycles/feature-collapse-v0.8.0/decisions-archive.md` (Fe
 | D-107 | Issue #62 F6 targeted hardening HARDENED (develop f851995). No new VP (pure byte-identical dispatch refactor). Regression 1646/0; VP-012 unchanged; mutation 96.6% with all 3 match-dispatch arms killed (Grouped→render_findings_grouped, FlatCollapsed→render_findings_collapsed, FlatExpanded→render_finding_flat) + escape_for_terminal 100%; lone survivor terminal.rs:276 (Confidence::High arm in render_finding_prefix) pre-existing/out-of-scope; Kani/fuzz unaffected (delta doesn't touch decoder/dispatcher/parsers); audit+deny+clippy+fmt clean. NEXT = F7. | 2026-06-18 |
 | D-108 | Issue #62 F7 delta-convergence CONVERGED. Holistic adversarial triple (Passes 1/2/3, fresh-context, whole-implementation) all CLEAN with explicit SHIP v0.9.0 recommendation. Fresh-context consistency audit PASS — single MEDIUM F-001 (VP-016 verification_lock doc had stale show_mitre_grouping test-spec snippets; not in STORY-120 input set so sweep missed it) REMEDIATED via VP-016 v2.4 mechanical API update (no normative change). 5-dim convergence MET (spec/tests/impl/verification/docs). Input-drift STORY-120 MATCH (8047030). Process-gap: VP docs that reference a refactored struct are a consuming surface — extends PG-62-F5-POSTMERGE-ANCHOR-001 / STORY-121 scope. | 2026-06-18 |
 | D-109 | Issue #62 F7 HUMAN GATE: convergence APPROVED; release v0.9.0 HELD per human (defer release, bundle more work — specifically the deferred STORY-119 grouped-mode collapse). E-8/#62 implementation complete & merged on develop (f851995, Cargo 0.9.0, byte-identical, all phases converged). New Feature-Mode cycle authorized for STORY-119 (depends_on STORY-120, now unblocked). main.rs:495 doc nit (DRIFT-62-MAIN495-DOC-001) to be fixed on develop within the STORY-119 cycle. ADR redundant stash (stash@{0}) is recoverable and provably identical to merged develop — safe to drop; leaving tracked. STORY-121 (D-099/100/101 + PG-62-F5-POSTMERGE-ANCHOR-001 incl. VP-016/consuming-surface) remains filed as draft; process-gaps are codified via STORY-121. #62 cycle CLOSED-PENDING-RELEASE. | 2026-06-18 |
+| D-110 | STORY-119 grouped-mode collapse — F1 delta-analysis gate APPROVED 2026-06-18 with three human decisions: (1) TYPE DESIGN — reshape FindingsRender from a 3-variant enum into a STRUCT OF TWO ORTHOGONAL ENUMS: `struct FindingsRender { grouping: Grouping, collapse: Collapse }` where `enum Grouping { Grouped, Flat }` and `enum Collapse { Collapsed, Expanded }`. Rationale: once grouped mode supports collapse, grouping×collapse are orthogonal (all 4 combos valid) → product type is idiomatic (research: .factory/research/story-119-render-mode-typedesign.md); zero illegal states; extensible. Reshapes STORY-120's just-shipped enum (acceptable — v0.9.0 unreleased). NOTE: research's 'no [lib] target' premise was WRONG (src/lib.rs IS a public library), but moot since unreleased. (2) CLI/UX — `--mitre` now COLLAPSES BY DEFAULT (grouping=Grouped, collapse=Collapsed); `--no-collapse` suppresses collapse in BOTH grouped and flat modes (dual-scope). This is a user-visible behavior change to `--mitre`, explicitly approved. The old suffix-free grouped output becomes the `--mitre --no-collapse` path. (3) VERSIONING — no release/bump yet; STORY-119 bundles into the unreleased 0.9.0 develop line. F1 artifact: .factory/phase-f1-delta-analysis/story-119-grouped-mode-collapse-delta-analysis.md. NEXT = F2. | 2026-06-18 |
 
 ## Blocking Issues
 
@@ -307,7 +304,7 @@ Full tech-debt register: `.factory/tech-debt-register.md`.
 
 **2. Roadmap (post-DNP3):** #3 C2 beaconing | #4 CSV+SQLite reporters | #6 rayon parallel (relates to O-07).
 
-**3. STORY-119 (grouped-mode finding-collapse):** ACTIVE NEXT — new Feature-Mode cycle authorized (D-109). depends_on [STORY-120] (now unblocked). DRIFT-62-MAIN495-DOC-001 fix on develop within this cycle. Start at F1 delta-analysis.
+**3. STORY-119 (grouped-mode finding-collapse):** ACTIVE — F1 delta-analysis COMPLETE & gate-approved 2026-06-18 (D-110). Type design: struct-of-orthogonal-enums; --mitre collapses by default; no release yet (bundling into unreleased 0.9.0). DRIFT-62-MAIN495-DOC-001 fix on develop within this cycle. **CURRENT PHASE = F2 spec-evolution.**
 
 ## Governance Policy
 
