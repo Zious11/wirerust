@@ -1,13 +1,13 @@
 ---
 pipeline: FEATURE_MODE
 phase: F2
-phase_status: "FEATURE MODE issue #62 — F3 round-4 fix-burst complete (CRITICAL: round-2 AC-trace descriptions were semantically wrong (BC-015/016 mislabeled) — corrected from actual BC postconditions; HIGH: 12 BC titles → verbatim canonical; dep-graph version→2.0; AC-017/Task-7b full census + exempt allow-list). F3 convergence re-streak pending."
-active_feature: "E-8 / #62 TerminalReporter enum-of-modes refactor — F1..F3 IN PROGRESS; STORY-120 created (28 sites, wave 48); STORY-119 depends_on [STORY-120]; F3 adversary re-streak pending after round-4 fix-burst; release target v0.9.0"
+phase_status: "FEATURE MODE issue #62 — F3 round-4 BC-fix complete: BC-2.11.028 wiring expression corrected to in-scope params (v1.6, root of the scope bug already fixed in ADR+story); stale FINDINGS-dispatch anchor 149-162→185-207 across BC-2.11.019/025/026. STORY-120 input-hash 2012512. F3 convergence re-streak pending."
+active_feature: "E-8 / #62 TerminalReporter enum-of-modes refactor — F1..F3 IN PROGRESS; STORY-120 created (28 sites, wave 48); STORY-119 depends_on [STORY-120]; F3 adversary round-5 re-streak pending after round-4 BC-fix burst; release target v0.9.0"
 feature_arp_status: "v0.7.0 RELEASED 2026-06-16 — ARP Security Analyzer (E-16, issue #9); PR #256 dd8e142; tag v0.7.0; 4 binaries (aarch64-apple-darwin, x86_64-apple-darwin, x86_64-pc-windows-msvc, x86_64-unknown-linux-gnu)"
 feature_8_status: "v0.6.0 RELEASED 2026-06-12 — DNP3 TCP analyzer; F7 5-dim CONVERGED; tag v0.6.0 + 4 binaries"
 product: wirerust
 mode: brownfield
-timestamp: 2026-06-18T14:00:00Z
+timestamp: 2026-06-18T16:30:00Z
 maintenance_run: COMPLETE
 maintenance_run_id: maint-2026-06-17
 maintenance_started_at: "2026-06-17"
@@ -70,7 +70,7 @@ adversary_convergence_counter: 3/3  # Pass 14 CONVERGENCE_REACHED; clean-streak 
 e8_f2_adversary_convergence_counter: "3/3 SATISFIED — GATE SATISFIED (frozen corpus 4231b6b; Passes 15/16/17 run in parallel; each zero MEDIUM-or-above; 17 passes total)."
 e8_f3_adversary_convergence_counter: "3/3 SATISFIED — GATE SATISFIED (frozen corpus bdd531a; Passes V/W/X run in parallel; each zero MEDIUM-or-above; 8 parallel triples / 24 passes total)."
 e8_f2_spec_evolution_adversary_convergence_counter: "3/3 SATISFIED — F2 spec-evolution adversarial gate SATISFIED (frozen corpus 60d8392; Round-4 triple A/B/C all CLEAN, zero MEDIUM+). Convergence took 4 rounds: R1 (5 findings), R2 (1 MEDIUM F-A2-01), R3 (1 MEDIUM F-R3A-01), R4 (3/3 CLEAN). Recurring root cause PG-62-F2-BOOKKEEPING-SWEEP-001 (post-fix-burst bookkeeping propagation)."
-e8_f3_story_adversary_convergence_counter: "0/3 — round-4 re-streak pending; R1(CRIT+4MED) R2(3MED) R3(CRIT+HIGH+3MED) all fixed; root cause: story-writer edits introduced description errors → fixed by handing verbatim canonical text from BC source-of-truth. Gate NOT SATISFIED."
+e8_f3_story_adversary_convergence_counter: "0/3 — round-5 re-streak pending; R4 triple = A CLEAN, B CLEAN, C 2 MED (both in anchored BCs: BC-2.11.028 wiring scope + 149-162 dispatch anchor drift) — fixed. Story body itself converged (A/B clean). Gate NOT SATISFIED."
 e8_f4_wave_adversary_convergence_counter: "3/3 SATISFIED (passes 1/2/3 clean on develop 5f7cd1b)"
 e8_f5_scoped_adversary_convergence_counter: "3/3 SATISFIED (passes 1/2/3 clean on develop 5f7cd1b)"
 e8_f6_hardening_status: "HARDENED — no new VP; regression 1641/1641; VP-012 proptest pass; Kani/fuzz unaffected; collapse-delta mutation 100% kill; audit/deny clean"
@@ -127,17 +127,17 @@ input_drift_check: "F7-followup-dispositions burst (2026-06-16): STORY-071/100/1
 | Maintenance maint-2026-06-17 | **COMPLETE** 2026-06-17 | 2 PRs delivered (#261/#262); 5 items deferred; develop c03a38b |
 | Feature E-18 / #259 finding-collapse — F1..F7 + Release v0.8.0 | **RELEASED** 2026-06-17 | STORY-118; 9 new BCs SS-11=29; total 288 BCs; F5 3/3; F6 mutation 100%; F7 5-dim CONVERGED; PR #264→develop 5f7cd1b; PR #265→main 73034da; tag v0.8.0; 4 binaries; run 27732692087. STORY-119 DEFERRED. Per-phase detail: cycles/feature-collapse-v0.8.0/phase-progress-archive.md |
 | Feature E-8 / #62 TerminalReporter enum-modes — F1..F2 COMPLETE | **F1..F2 COMPLETE — F2 adversarial gate SATISFIED 3/3 (60d8392)** | F2 fix-burst 2026-06-18: 12 unique SS-11 BCs re-anchored; BC-INDEX v1.42; ADR-0003 v0.9.0 subsection; PRD-delta (12 BCs + run_summary site); HS-081 9df8300 MATCH; STORY-077/078/118 FROZEN (D-088). 4 rounds to convergence (R1: 5 findings; R2: 1 MEDIUM; R3: 1 MEDIUM; R4: 3/3 CLEAN). |
-| E-8 / #62 F3 story decomposition — IN PROGRESS | **F3 STORY-120 created; round-1 + round-2 + round-3 + round-4 FIXED; convergence pending (0/3)** | STORY-120 created (enum migration carrier, 28 construction sites, wave 48, E-8, 17 ACs, 3 pts, depends_on []). STORY-119 re-pointed to depends_on [STORY-120]. Round-1: 1 CRITICAL + 2 HIGH + 2 MEDIUM + 4 MINOR ALL FIXED (D-092). Round-2: CRITICAL scope error in AC-005/ADR-0003 ALL FIXED (D-093). Round-3: 3 MEDIUM ALL FIXED — AC-003/014 trace clauses for BC-014/015/016/017; dep-graph STORY-120 edges re-bucketed intra 76→74/cross 19→21; Task 7b + AC-017 test-comment-sweep added (D-094). Round-4: CRITICAL round-2 AC-trace descriptions were semantically wrong (BC-015 mislabeled "colorization"→actually Uncategorized bucket; BC-016 mislabeled "uncategorized"→actually em-dash expansion); HIGH: 12 BC body-table titles corrected to verbatim canonical H1; dep-graph version 1.9→2.0; AC-017/Task-7b full 24-entry census + 13-entry exempt allow-list ALL FIXED (D-095). STORY-120 input-hash cfa60a9. Convergence re-streak pending. |
+| E-8 / #62 F3 story decomposition — IN PROGRESS | **F3 STORY-120 created; rounds 1–4 FIXED; round-4 BC-correctness burst applied; convergence pending (0/3)** | STORY-120 (28 sites, wave 48, 17 ACs, depends_on []). R1 (D-092): CRITICAL+2HIGH+2MED+4MIN fixed. R2 (D-093): CRITICAL AC-005 scope bug (out-of-scope *mitre/!no_collapse) fixed. R3 (D-094): 3 MED fixed (BC trace clauses, dep-graph bucketing, Task-7b sweep). R4 (D-095): story BODY converged (Pass A+B CLEAN); Pass C 2 MED in anchored BCs — BC-2.11.028 still prescribed out-of-scope wiring (root of scope bug), BC-2.11.019/025/026 anchored FINDINGS dispatch at stale 149-162 (actual 185-207). Fixed (D-096): BC-2.11.028 v1.6, BC-2.11.019 v1.8, BC-2.11.025 v1.9, BC-2.11.026 v1.10. STORY-120 input-hash 2012512. Round-5 re-streak pending. |
 
-## Session Resume Checkpoint (2026-06-18 — FEATURE MODE E-8 / #62; F3 IN PROGRESS — STORY-120 round-4 fix-burst COMPLETE; convergence re-streak 0/3 pending)
+## Session Resume Checkpoint (2026-06-18 — FEATURE MODE E-8 / #62; F3 IN PROGRESS — STORY-120 round-4 BC-fix burst COMPLETE; round-5 re-streak 0/3 pending)
 
-**Previous checkpoint (2026-06-18 — F3 round-3 fix-burst COMPLETE) archived to:
+**Previous checkpoint (2026-06-18 — F3 round-4 story fix-burst COMPLETE) archived to:
 `.factory/cycles/feature-arp-v0.7.0/session-checkpoints.md`**
 
 ### A. EXACT PIPELINE POSITION
 
 - **Project:** wirerust. **Mode:** FEATURE_MODE — E-8 / issue #62 TerminalReporter enum-of-modes refactor.
-- **Phase:** F3 incremental story decomposition IN PROGRESS. STORY-120 round-4 fix-burst applied (D-095). F3 convergence re-streak: 0/3 — gate NOT SATISFIED.
+- **Phase:** F3 incremental story decomposition IN PROGRESS. STORY-120 round-4 BC-fix burst applied (D-096). F3 convergence re-streak: 0/3 — gate NOT SATISFIED.
 - **Latest release:** v0.8.0 — finding-collapse (E-18, issue #259, STORY-118). Tag v0.8.0 on main 73034da.
 - **develop HEAD:** bec13ba == origin/develop (ADR-0003 round-2 fix pending PR on develop tree — see Step 3).
 - **main HEAD:** 73034da (chore: release v0.8.0).
@@ -160,14 +160,13 @@ input_drift_check: "F7-followup-dispositions burst (2026-06-16): STORY-071/100/1
 - v0.8.0 FULLY RELEASED (D-087). E-18 #259 CLOSED. STORY-119 DEFERRED (now re-pointed to depends_on [STORY-120]).
 - F1 delta-analysis for E-8 / #62 COMPLETE. Artifact: `.factory/phase-f1-delta-analysis/issue-62-terminal-reporter-enum-modes-delta-analysis.md`.
 - F2 spec-evolution COMPLETE (D-088–D-091): 12 SS-11 BCs re-anchored; ADR-0003 amended; HS-081 MATCH; STORY-077/078/118 FROZEN. Gate SATISFIED 3/3 (60d8392).
-- F3 round-1: STORY-120 created (28 construction sites, wave 48, 16 ACs, 3 pts, depends_on []). ALL FIXED (D-092): census 35→28, Grouped/FlatExpanded split, AC-005 citation.
-- F3 round-2: CRITICAL AC-005/ADR-0003 scope error fixed (D-093): prescribed *mitre/no_collapse vars are out of scope at run_analyze; adjudicated in-scope bools show_mitre_grouping/collapse_findings used instead; collapse_findings_from_flag UNCHANGED; AC-001 doc-comments ADR-aligned; dep-graph acyclicity prose 71→72. STORY-120 input-hash cfa60a9. ADR-0003 fix is on develop tree (docs/adr/0003-reporting-pipeline-layering.md — uncommitted/needs PR). ARCH-INDEX.md updated on factory-artifacts.
-- F3 round-3: 3 MEDIUM ALL FIXED (D-094): AC-003/AC-014 explicit trace clauses for BC-2.11.014/015/016/017; dep-graph STORY-120 edges re-bucketed intra 76→74 / cross 19→21 (total 95 unchanged); Task 7b + AC-017 test-comment-sweep added. STORY-120 now 17 ACs. input-hash cfa60a9 MATCH.
-- F3 round-4: CRITICAL round-2 AC-trace descriptions semantically inverted — BC-015 was labeled "colorization" (wrong; actual: Uncategorized bucket), BC-016 was labeled "uncategorized" (wrong; actual: em-dash expansion) — ALL FIXED (D-095). HIGH: 12 BC-table body titles corrected to verbatim canonical H1 text. dep-graph version 1.9→2.0. AC-017/Task-7b full 24-target census + 13-entry explicit EXEMPT allow-list (falsifiable). Colorization attribution removed (grep colori: clean). STORY-120 input-hash cfa60a9 MATCH.
+- F3 rounds 1–3: STORY-120 created + census/scope/trace/dep-graph/Task-7b/AC-017 fixes (D-092/D-093/D-094). STORY-120 now 17 ACs.
+- F3 round-4 (story body): Pass A+B CLEAN; Pass C found 2 MEDIUM in anchored BCs — ALL FIXED (D-095): story AC-trace descriptions verbatim canonical, 12 BC titles corrected, dep-graph 2.0, allow-list. STORY-120 input-hash cfa60a9 MATCH.
+- F3 round-4 (BC-correctness burst, D-096): BC-2.11.028 v1.6 (wiring corrected to show_mitre_grouping/collapse_findings); BC-2.11.019 v1.8 / BC-2.11.025 v1.9 / BC-2.11.026 v1.10 (FINDINGS-dispatch anchor 149-162→185-207). STORY-120 input-hash 2012512.
 
 **Step 4 — NEXT ACTIONS:**
 1. Commit and PR the ADR-0003 fix on develop (docs/adr/0003-reporting-pipeline-layering.md) — this is a doc-only change.
-2. Run F3 adversary re-streak: dispatch 3 fresh-context passes on STORY-120 post-round-4-fix corpus. Gate requires 3 consecutive CLEAN (zero MEDIUM+). Counter currently 0/3.
+2. Run F3 adversary round-5 re-streak: dispatch 3 fresh-context passes on STORY-120 + corrected BC corpus. Gate requires 3 consecutive CLEAN (zero MEDIUM+). Counter currently 0/3.
 
 ### C. KEY ARTIFACT POINTERS
 
@@ -227,6 +226,7 @@ D-001..D-054 archived: `cycles/v0.1.0-greenfield-spec/decisions-archive.md` (D-0
 | D-093 | Issue #62 F3 round-1 triple caught CRITICAL in STORY-120 AC-005 (+ originating ADR-0003 migration map): prescribed `render: if *mitre ... else if !no_collapse ...` at run_analyze construction site, but those vars are out of scope there — only main() owns them. Adjudicated option (a): keep run_analyze signature UNCHANGED, build enum from in-scope bool params show_mitre_grouping/collapse_findings; collapse_findings_from_flag UNCHANGED. ADR-0003 migration map + STORY-120 AC-005/Task5 both corrected. AC-001 doc-comment ADR byte-match fixed. dep-graph acyclicity prose 71→72. STORY-120 input-hash ca8e753→cfa60a9. ADR-0003 on develop tree (uncommitted). Process-gap: AC code blocks MUST reference only variables in scope at the cited file:line (PG-62-F3-AC-SCOPE). F3 convergence re-streak pending. | 2026-06-18 |
 | D-094 | Issue #62 F3 round-2 triple (each pass 1 distinct MEDIUM, CRITICAL/census/wiring confirmed clean): (1) BC-2.11.014/015/016/017 missing explicit AC trace clauses — added to AC-003/AC-014 with "(traces to BC-2.11.014/015/016/017)" clauses + BC↔Body cross-check reconciled; (2) dep-graph mis-bucketed STORY-120 cross-epic edges as intra-E-18 — corrected to intra_epic_edges 74/cross_epic_edges 21 (total_edges 95 unchanged), v2.0 changelog + summary table + subheadings corrected; (3) STORY-120 lacked a test-comment-sweep task — added Task 7b (grep sweep for stale field-referencing comments) + AC-017 (no stale comments, DF-GREEN-DOC-TENSE/SIBLING-SWEEP guard, cargo check/test cannot catch). STORY-120 now 17 ACs, input-hash cfa60a9 MATCH (inputs unchanged). Convergence re-streak pending. | 2026-06-18 |
 | D-095 | Issue #62 F3 round-3 triple found CRITICAL: round-2 AC-trace completeness fix added BC-2.11.015/016 trace descriptions semantically INVERTED — BC-015 mislabeled "colorization" (actual: Uncategorized bucket); BC-016 mislabeled "uncategorized" (actual: em-dash expansion); plus 12 BC body-table titles were scrambled/truncated copies. Root cause: story-writer wrote descriptions from memory rather than reading BC postconditions. Fixed round-4: orchestrator extracted verbatim canonical H1 titles + actual PC-1 text and handed paste-ready to story-writer. Also fixed: dep-graph version-stamp lag (1.9→2.0); AC-017/Task-7b comment-sweep falsifiable (full 24-target census + 13-entry explicit EXEMPT allow-list); colorization attribution removed. STORY-120 input-hash cfa60a9 MATCH. Process-gap PG-62-F3-AC-DESC-FROM-SOURCE recorded. | 2026-06-18 |
+| D-096 | Issue #62 F3 round-4 triple: story BODY converged (Pass A + B CLEAN); Pass C found 2 MEDIUM in the anchored BCs — BC-2.11.028 still prescribed the out-of-scope `*mitre`/`!no_collapse` wiring (the ROOT that propagated to ADR + AC-005, both already fixed) and BC-2.11.019/025/026 anchored FINDINGS dispatch at stale 149-162 (actual 185-207, ~38-line drift, pre-existing). Fixed: BC-2.11.028 v1.6 (in-scope params `show_mitre_grouping`/`collapse_findings` at PC3/Inv1/Inv6/Architecture-Anchor); BC-2.11.019 v1.8 / BC-2.11.025 v1.9 / BC-2.11.026 v1.10 (re-anchor 149-162→185-207). STORY-120 input-hash 2012512. Demonstrates F3 source cross-check catching latent F2 BC defects. Round-5 re-streak pending. | 2026-06-18 |
 
 ## Blocking Issues
 

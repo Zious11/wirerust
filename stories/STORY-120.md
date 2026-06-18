@@ -72,7 +72,7 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-11/BC-2.11.029.md
   - .factory/phase-f1-delta-analysis/issue-62-terminal-reporter-enum-modes-delta-analysis.md
   - docs/adr/0003-reporting-pipeline-layering.md
-input-hash: "cfa60a9"
+input-hash: "2012512"
 ---
 
 # STORY-120: TerminalReporter FindingsRender Enum Migration (v0.9.0)

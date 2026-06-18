@@ -14,6 +14,35 @@ changes, invariant rewrites).
 
 ---
 
+## [f3-adv-round4-bc-scope-anchor-fixes-2026-06-18] — 2026-06-18
+
+### PATCH: F3 Adversarial Round-4 — Two BC Correctness Fixes (Issue #62)
+
+**Trigger:** F3 adversarial round-4 surfaced two MEDIUM findings against STORY-120's anchored BC set.
+
+#### Finding 1 (MEDIUM) — BC-2.11.028 Wiring Expression Used Out-of-Scope Variable Names
+
+PC3, Invariant 1, Invariant 6, and the Architecture Anchor prescribed the `run_analyze` wiring
+as `if *mitre { FindingsRender::Grouped } else if !no_collapse { FindingsRender::FlatCollapsed } else { FindingsRender::FlatExpanded }`. But `*mitre` and `no_collapse` are `Commands::Analyze` destructured fields scoped to `main()` only (src/main.rs:55-56). Inside `run_analyze`, the resolved bool params are `show_mitre_grouping` (line 107) and `collapse_findings` (line 108). The out-of-scope names would not compile at the construction site (~main.rs:373). Corrected to: `if show_mitre_grouping { FindingsRender::Grouped } else if collapse_findings { FindingsRender::FlatCollapsed } else { FindingsRender::FlatExpanded }`. Added explicit note that `--mitre`/`--no-collapse`→bool resolution happens at `main()` lines 79-80 (UNCHANGED); `run_analyze` signature is UNCHANGED. Behavior identical — scope/naming correction only.
+
+#### Finding 2 (MEDIUM) — Stale FINDINGS Dispatch Anchor `terminal.rs:149-162` Points at HOSTS Section
+
+BC-2.11.025 Architecture Anchor, BC-2.11.026 Architecture Anchor, and BC-2.11.019 Invariant 7 cited the FINDINGS dispatch block as `src/reporter/terminal.rs:149-162`. Verified against source: line 149 is `if self.show_hosts_breakdown {` (HOSTS section). The actual FINDINGS dispatch if-chain (`if !findings.is_empty()`) begins at line 185 and ends at line 207. All three BCs re-anchored to `185-207`. DF-SIBLING-SWEEP-001 sweep confirmed these three are the only `149-162` occurrences in the 29 SS-11 BCs. Stories sweep (`grep -rn '149-162' .factory/stories/`) found hits in STORY-118 only; STORY-118 is frozen (pre-#62 implementing story) — not modified per scope constraint.
+
+#### BC Version Summary
+
+| BC/Doc | Before | After | Change |
+|--------|--------|-------|--------|
+| BC-2.11.028 | v1.5 | v1.6 | PC3 + Invariant 1 + Invariant 6 + Architecture Anchor: wiring expression variable names corrected to `show_mitre_grouping`/`collapse_findings` (in-scope params) |
+| BC-2.11.019 | v1.7 | v1.8 | Invariant 7 dispatch anchor: terminal.rs:149-162 → 185-207 |
+| BC-2.11.025 | v1.8 | v1.9 | Architecture Anchor dispatch range: terminal.rs:149-162 → 185-207 |
+| BC-2.11.026 | v1.9 | v1.10 | Architecture Anchor dispatch range: terminal.rs:149-162 → 185-207 |
+| BC-INDEX.md | — | — | Annotations updated for all 4 BCs |
+
+**total_bcs=288 unchanged** (correctness/anchor fixes only; no new BCs, no retirements).
+
+---
+
 ## [issue-62-enum-modes-bc-reanchor-2026-06-17] — 2026-06-17
 
 ### PATCH: Issue #62 BC Re-anchoring — FindingsRender Enum Precondition Update

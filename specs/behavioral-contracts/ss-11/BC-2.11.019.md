@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.7"
+version: "1.8"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -20,6 +20,7 @@ modified:
   - "v1.5: issue-#259 F2 integrate (v0.8.0 collapse feature) — add Postcondition 9 and Invariant 7 and EC-008/EC-009 for FINDINGS dispatch collapse interaction: when collapse_findings=true (default in v0.8.0), the flat-mode FINDINGS body routes through the collapse pass (BC-2.11.025) before calling render_finding_flat per group; when collapse_findings=false (--no-collapse) or show_mitre_grouping=true, the FINDINGS body is unchanged from pre-v0.8.0. Section presence/ordering (postconditions 1-8) is unchanged. Cross-references BC-2.11.025/026/027/028/029. ADR-0003 (display-layer aggregation subsection) cited. — 2026-06-17"
   - "v1.6 2026-06-17: F2 adversarial pass-2 — fix dispatch block anchor terminal.rs:149-160→149-162 in Invariant 7 (F-A05)"
   - "v1.7 2026-06-17: issue-#62 F2 BC re-anchor — replace show_mitre_grouping/collapse_findings bool references with FindingsRender enum: Postcondition 9 and Invariant 7 and EC-008/EC-009 updated to use FindingsRender variant names. Rationale: illegal-state elimination (enum makes grouping && collapse unrepresentable). No behavioral change."
+  - "v1.8 2026-06-18: F3 adversarial round-4 finding 2 (MEDIUM) stale dispatch anchor — Invariant 7 cited FINDINGS dispatch at terminal.rs:149-162, but line 149 is the HOSTS section (if self.show_hosts_breakdown). Verified against src/reporter/terminal.rs: actual FINDINGS dispatch if-chain is at lines 185-207 (if !findings.is_empty() block through closing brace). Re-anchored Invariant 7 to correct range 185-207."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -87,7 +88,7 @@ section per `AnalysisSummary`. This order is documented in the module and verifi
 6. The within-section body order for PROTOCOLS and SERVICES is determined by an explicit sort
    (not HashMap iteration order); the output is therefore fully reproducible given the same
    input regardless of Rust runtime HashMap randomization.
-7. **v0.8.0 collapse routing (BC-2.11.025):** The FINDINGS dispatch at `terminal.rs:149-162`
+7. **v0.8.0 collapse routing (BC-2.11.025):** The FINDINGS dispatch at `terminal.rs:185-207`
    routes based on `self.render`: `FindingsRender::Grouped` → grouped path; `FindingsRender::FlatCollapsed`
    → collapse pass (produce collapsed groups, render one display group per unique key);
    `FindingsRender::FlatExpanded` → iterate findings individually as in pre-v0.8.0. The section
