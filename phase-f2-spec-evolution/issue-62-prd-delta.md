@@ -59,6 +59,7 @@ spec-changelog migration map exactly. All four construction sites are accounted 
 | BC-2.11.015 | v1.7  | v1.8  | Precondition 1 (fix-burst: missed in pass-1) |
 | BC-2.11.016 | v1.6  | v1.7  | Precondition 1 (fix-burst: missed in pass-1) |
 | BC-2.11.029 | v1.2  | v1.3  | Precondition 4 + PC-1 inline qualifier + Architecture Anchors (fix-burst: missed in pass-1) |
+| BC-2.11.029 | v1.3  | v1.4  | Architecture Anchors block corrected (F-1, adv-pass-2): INSERTION TARGET/STORY-118 → REFACTOR TARGET/STORY-120; stale three-field parenthetical corrected to four-field v0.8.0 struct (use_color, show_mitre_grouping, show_hosts_breakdown, collapse_findings); line ranges aligned to BC-2.11.028 sibling (terminal.rs:91-110, main.rs ~373). |
 | BC-2.11.025 | v1.7  | v1.8  | VP-table row: 'show_mitre_grouping=true suppresses collapse' → 'render = FindingsRender::Grouped suppresses collapse' (F2 adv-pass-2 fix F-6) |
 
 **Total BCs touched: 12** (8 first-pass re-anchors + 4 fix-burst catches + 1 VP-table fix; includes .025 twice as it crossed two patch waves).
