@@ -1,13 +1,13 @@
 ---
 pipeline: STEADY_STATE
-phase: feature-f7
-phase_status: "v0.7.1 RELEASED + maint-2026-06-17 COMPLETE + reactive fix #220 CLOSED. Feature #259 (finding-collapse) F7 CONVERGED — develop 5f7cd1b; 5-dim ALL MET; holistic adversarial 3/3 (impl ship-ready); release-doc gaps (CHANGELOG/README/Cargo.toml 0.8.0) to apply on release/0.8.0 branch (PG-F7-006). NEXT = release v0.8.0 (gitflow release/0.8.0 → main; apply CHANGELOG + README + Cargo.toml 0.8.0; PR to main; CI; tag v0.8.0; build binaries; GitHub release; merge-back to develop)."
-active_feature: "E-18 #259 finding-collapse (v0.8.0 target) — F7 CONVERGED → release v0.8.0"
+phase: released
+phase_status: "v0.8.0 RELEASED — terminal finding-collapse (E-18 #259); F1-F7 CONVERGED + CLOSED; pipeline STEADY_STATE/IDLE."
+active_feature: "none — E-18 #259 finding-collapse CLOSED"
 feature_arp_status: "v0.7.0 RELEASED 2026-06-16 — ARP Security Analyzer (E-16, issue #9); PR #256 dd8e142; tag v0.7.0; 4 binaries (aarch64-apple-darwin, x86_64-apple-darwin, x86_64-pc-windows-msvc, x86_64-unknown-linux-gnu)"
 feature_8_status: "v0.6.0 RELEASED 2026-06-12 — DNP3 TCP analyzer; F7 5-dim CONVERGED; tag v0.6.0 + 4 binaries"
 product: wirerust
 mode: brownfield
-timestamp: 2026-06-17T23:59:00Z
+timestamp: 2026-06-17T23:59:59Z
 maintenance_run: COMPLETE
 maintenance_run_id: maint-2026-06-17
 maintenance_started_at: "2026-06-17"
@@ -41,23 +41,23 @@ phase_5_completed: "2026-06-01"
 phase_6_completed: "2026-06-02"
 phase_7_to_release_gate: "PASSED (human-approved 2026-06-09 — D-045)"
 adversary_gate: SATISFIED
-develop_head: 5f7cd1b
-develop_head_confirmed: "5f7cd1b (+PR #264 feat(reporter) finding-collapse STORY-118 merged; prev 5ed8077 +PR #263 fix(modbus) burst window display closes #220)"
+develop_head: bec13ba
+develop_head_confirmed: "bec13ba (chore: merge main (v0.8.0) back into develop — gitflow sync, branch-protection bypass per prior-cycle convention)"
 arp_f6_hardening_status: "COMPLETE — 5/5 Kani SUCCESSFUL (46/46 project-wide), VP-024 v2.3 LOCKED, fuzz VP-008 16.2M/0, mutants 98.9%"
 arp_f7_convergence_status: "CONVERGED — 5-dim met; awaiting v0.7.0 release human gate"
 arp_followups_status: "DISPOSITIONED — item 5 fixed (BC-2.10.007 v1.8 de-PLANNED 25/17); issues #252-255 filed (post-release); CR-001/CR-002/FU-STORM-NEW-ATTR/BC-2.10-COUNT-POSTMERGE dropped/resolved. RELEASE-READY."
 factory_artifacts_head: see git -C .factory log -1  # updated by this burst
-main_head: b98a72f
-released_version: v0.7.1
+main_head: 73034da
+released_version: v0.8.0
 released_at: "2026-06-17"
-release_tag: v0.7.1
-release_url: https://github.com/Zious11/wirerust/releases/tag/v0.7.1
-release_commit: b98a72f
-release_yml_run: "27694602320 COMPLETED conclusion=success — 4 binaries CONFIRMED PUBLISHED: wirerust-v0.7.1-aarch64-apple-darwin.tar.gz, wirerust-v0.7.1-x86_64-apple-darwin.tar.gz, wirerust-v0.7.1-x86_64-pc-windows-msvc.zip, wirerust-v0.7.1-x86_64-unknown-linux-gnu.tar.gz. GitHub Release isDraft=false at https://github.com/Zious11/wirerust/releases/tag/v0.7.1"
-prior_released_version: v0.7.0
-prior_released_at: "2026-06-16"
-prior_release_tag: v0.7.0
-prior_release_commit: dd8e142
+release_tag: v0.8.0
+release_url: https://github.com/Zious11/wirerust/releases/tag/v0.8.0
+release_commit: 73034da
+release_yml_run: "27732692087 COMPLETED conclusion=success — 4 binaries CONFIRMED PUBLISHED: wirerust-v0.8.0-aarch64-apple-darwin.tar.gz, wirerust-v0.8.0-x86_64-apple-darwin.tar.gz, wirerust-v0.8.0-x86_64-pc-windows-msvc.zip, wirerust-v0.8.0-x86_64-unknown-linux-gnu.tar.gz. GitHub Release isDraft=false at https://github.com/Zious11/wirerust/releases/tag/v0.8.0"
+prior_released_version: v0.7.1
+prior_released_at: "2026-06-17"
+prior_release_tag: v0.7.1
+prior_release_commit: b98a72f
 current_cycle: v0.1.0-greenfield-spec
 current_wave: 27 (FINAL — CLOSED)
 stories_delivered: 70  # STORY-INDEX total_stories: 70 (68 merged + STORY-116/117 pending merge on PR #258)
@@ -97,7 +97,7 @@ input_drift_check: "F7-followup-dispositions burst (2026-06-16): STORY-071=6b408
 
 ## Status
 
-**wirerust v0.7.1 RELEASED 2026-06-17 — ARP VLAN/QinQ/MACsec offset regression hardening (E-17, issue #253). Test-only patch; NO runtime behavior change. PR #258 (E-17 tests) merged to develop (b94aa6c); PR #260 (release/0.7.1 → main b98a72f); tag v0.7.1; release.yml run 27694602320 SUCCESS — 4 binaries CONFIRMED PUBLISHED. GitHub Release https://github.com/Zious11/wirerust/releases/tag/v0.7.1 (isDraft=false). E-17 cycle F1..F7 CONVERGED AND CLOSED. develop merge-back e1273c8. Pipeline STEADY_STATE/IDLE — await new feature or steady-state task.**
+**wirerust v0.8.0 RELEASED 2026-06-17 — terminal finding-collapse (E-18, issue #259, STORY-118). F1-F7 CONVERGED AND CLOSED. PR #265 (release/0.8.0 → main 73034da); tag v0.8.0 (annotated → 73034da); release.yml run 27732692087 SUCCESS — 4 binaries CONFIRMED PUBLISHED. GitHub Release https://github.com/Zious11/wirerust/releases/tag/v0.8.0 (isDraft=false). Cargo.toml 0.8.0 + CHANGELOG [0.8.0] on develop. develop merge-back bec13ba (gitflow sync). Pipeline STEADY_STATE/IDLE — await new feature or steady-state task. STORY-119 (grouped-mode collapse) remains DEFERRED to a future cycle.**
 
 **Reactive fix #220 CLOSED 2026-06-17 — Modbus write-burst "0s window" cosmetic display bug. PR #263 `fix(modbus): report burst window width not elapsed span in summary` merged to develop (5ed8077). 9/9 CI green; security APPROVE (0 findings); code review APPROVE (3 LOW non-blocking notes); pr-reviewer APPROVE. Scoped cosmetic fix: burst summary string "elapsed_secs" → "window_secs" (`WRITE_BURST_WINDOW_SECS`); no behavioral change; no finding-count/threshold change. BC-2.14.017 bumped to v2.6 (PC1 + new EC-011 same-second/elapsed==0 case). Spec commit 8d5446d on factory-artifacts. Regression test `test_BC_2_14_017_burst_summary_reports_window_width_not_elapsed` added.**
 
@@ -213,67 +213,57 @@ ADR-0007 Decision 2 prose-clarity nit — arithmetic-walk thinking artifact; fol
 | Feature #259 (finding-collapse, E-8) — F5 Scoped Adversarial | **GATE SATISFIED 3/3 — 2026-06-17.** Three independent fresh-context CLEAN passes (security/robustness lens, completeness/integration lens, spec-fidelity/coherence lens) on develop @ 5f7cd1b; each zero MEDIUM+. BC-set completeness sweep PASS (all 9 BCs implemented + tested). Panic-safety confirmed (evidence.first()/len().min(K)/members[0] guarded; no unbounded-DoS beyond capture-bounded workload). Injection closed (escape_for_terminal on summary + each sampled evidence line; MITRE IDs are program-literals not packet-derived). Display-layer-only (JSON/CSV/grouped/render_finding_prefix unchanged). Deterministic (Vec accumulator). 3 non-blocking LOW observations tracked as Drift Items. NEXT = F6 targeted hardening (no new formal VP per verification-coverage-matrix v1.12; confirm VP-012 escape proptest unaffected; full regression + cargo audit/deny on develop; optional mutation on collapse fns). | **GATE SATISFIED** → F6 |
 | Feature #259 (finding-collapse, E-8) — F6 Targeted Hardening | **HARDENED — 2026-06-17, develop 5f7cd1b.** No new formal VP (test-sufficient per verification-coverage-matrix v1.12; VP-012 escape_for_terminal proptest covers the reused escape surface unchanged; no unsafe/decode/overflow/unbounded-alloc in collapse delta). Full regression 1641/1641 PASS. VP-012 escape proptest (4 properties × 1000 cases) PASS. Kani/fuzz provably UNAFFECTED — delta touches no Kani-harnessed file or fuzz target (git-diff evidence; reasoned no-impact attestation). Mutation testing scoped to collapse fns: 100% kill (6/6 viable mutants caught; collapse_findings_from_flag polarity mutant caught). cargo audit: 0 NEW advisories (only known-accepted RUSTSEC-2026-0097 rand transitive). cargo deny: bans/licenses/sources OK. clippy -D warnings + fmt --check CLEAN. NEXT = F7 delta convergence. | **HARDENED** → F7 |
 | Feature #259 (finding-collapse, E-8) — F7 Delta Convergence | **CONVERGED — 5-dim ALL MET on develop 5f7cd1b (2026-06-17).** (1) Regression GREEN (cargo test 1641/1641, clippy/fmt clean — F6); (2) Verification GREEN (no new VP per verification-coverage-matrix v1.12; VP-012 escape proptest 4×1000 PASS; Kani/fuzz unaffected; collapse-delta mutation 100% kill; cargo audit 0 new / cargo deny ok); (3) Impl/spec convergence (F4: per-story adversarial 3/3 + wave-47 3/3 + holdout PASS mean 1.00); (4) Robustness (F5 scoped adversarial 3/3); (5) Documentation/coherence (F7 whole-corpus consistency audit CONSISTENT, 0 blocking). F7 HOLISTIC ADVERSARIAL GATE: 3 fresh-context passes ALL agree impl is ship-ready (BC-complete, regression-safe, display-layer-isolated, escape-closed, no code defect); findings are RELEASE-PACKAGING gaps only (PG-F7-006) to apply on release/0.8.0 branch: CHANGELOG [Unreleased] v0.8.0 entry, README --no-collapse row, Cargo.toml 0.7.1→0.8.0. Doc-state nits RESOLVED-IN-RELEASE-PREP: HS-INDEX status:draft (factory convention), STORY-118 ADR-note present-tense (optional artifact cleanup). AC-025 "invariant 7" concern NON-ISSUE (BC-2.11.019 v1.6 has both PC-9 and Inv-7 — CLOSED). NEXT = release v0.8.0 (gitflow release/0.8.0 → main). | **CONVERGED** → release v0.8.0 |
+| Release v0.8.0 — RELEASED 2026-06-17 (E-18 #259 finding-collapse); 4 binaries; run 27732692087 SUCCESS; develop merge-back bec13ba. | **RELEASED 2026-06-17** — PR #265 (release/0.8.0 → main); merge commit 73034da; annotated tag v0.8.0 on 73034da; release.yml run 27732692087 COMPLETED conclusion=success; 4 binaries PUBLISHED (aarch64-apple-darwin, x86_64-apple-darwin, x86_64-pc-windows-msvc, x86_64-unknown-linux-gnu); GitHub Release isDraft=false at https://github.com/Zious11/wirerust/releases/tag/v0.8.0. E-18 #259 finding-collapse F1-F7 CONVERGED AND CLOSED. STORY-119 (grouped-mode collapse) DEFERRED to future cycle. Cargo.toml 0.8.0 + CHANGELOG [0.8.0] on develop. develop merge-back bec13ba (gitflow sync; branch-protection bypass per prior-cycle convention). Pipeline STEADY_STATE/IDLE. | **RELEASED** |
 
-## Session Resume Checkpoint (2026-06-17 — F7 CONVERGED (#259 finding-collapse); pipeline FEATURE-MODE → RELEASE PREP; NEXT = release v0.8.0)
+## Session Resume Checkpoint (2026-06-17 — v0.8.0 RELEASED; E-18 #259 finding-collapse F1-F7 CONVERGED+CLOSED; pipeline STEADY_STATE/IDLE)
 
-**Previous checkpoint (2026-06-17 — F6 HARDENED (#259 finding-collapse); pipeline FEATURE-MODE F7; NEXT = F7 delta convergence) archived to:
+**Previous checkpoint (2026-06-17 — F7 CONVERGED (#259 finding-collapse); pipeline FEATURE-MODE → RELEASE PREP; NEXT = release v0.8.0) archived to:
 `.factory/cycles/feature-arp-v0.7.0/session-checkpoints.md`**
 
 ### A. EXACT PIPELINE POSITION
 
-- **Project:** wirerust. **Mode:** FEATURE-MODE F7 → RELEASE PREP (#259 finding-collapse) — F7 5-dim CONVERGED + holistic adversarial 3/3 SHIP-READY. NEXT = release v0.8.0.
-- **Latest release:** v0.7.1 — E-17 ARP VLAN/QinQ/MACsec offset regression hardening (issue #253); FULLY RELEASED. Tag v0.7.1 on main b98a72f.
-- **Active feature:** #259 finding-collapse, E-18, v0.8.0 target — F7 CONVERGED on develop 5f7cd1b. NEXT = gitflow release/0.8.0 branch → apply CHANGELOG/README/Cargo.toml 0.8.0 → PR to main → CI → tag v0.8.0 → 4-binary release → GitHub release → merge-back to develop.
-- **develop HEAD:** 5f7cd1b == origin/develop (PR #264 feat(reporter): collapse repeated low-value findings into a counted summary line).
-- **main HEAD:** b98a72f (tag v0.7.1 annotated).
+- **Project:** wirerust. **Mode:** STEADY_STATE/IDLE — v0.8.0 RELEASED; no active feature. NEXT = await new feature request, maintenance sweep, or issue triage.
+- **Latest release:** v0.8.0 — terminal finding-collapse (E-18, issue #259, STORY-118). FULLY RELEASED. Tag v0.8.0 on main 73034da. Release PR #265 (release/0.8.0 → main). run 27732692087 SUCCESS. 4 binaries published. GitHub Release live.
+- **Active feature:** none — E-18 #259 finding-collapse CLOSED. STORY-119 (grouped-mode collapse) deferred to future cycle.
+- **develop HEAD:** bec13ba == origin/develop (chore: merge main (v0.8.0) back into develop — gitflow sync).
+- **main HEAD:** 73034da (tag v0.8.0 annotated).
 - **factory-artifacts HEAD:** run `git -C .factory log -1 --format='%H'`
-- **Active worktrees:** EXACTLY 2 — main repo (develop), `.factory/` (factory-artifacts). feat-259-finding-collapse worktree REMOVED (branch deleted after PR #264 merge).
+- **Active worktrees:** EXACTLY 2 — main repo (develop), `.factory/` (factory-artifacts).
 - **Open PRs:** none.
-- **Issue #220:** CLOSED (by PR #263). **Issue #254:** CLOSED (by PR #261).
+- **Issue #259:** CLOSED by STORY-118 delivery (PR #264 + v0.8.0 release).
 
 ### B. RESUME PROCEDURE (COLD-RESUME)
 
 **Step 1 (BLOCKING):** Run `vsdd-factory:factory-worktree-health` before any other action.
 
 **Step 2 — Verify SHAs (all must match before proceeding):**
-- `git rev-parse --short HEAD` in repo root → expect `5f7cd1b`
-- `git rev-parse --short origin/develop` → expect `5f7cd1b` (develop == origin/develop)
+- `git rev-parse --short HEAD` in repo root → expect `bec13ba`
+- `git rev-parse --short origin/develop` → expect `bec13ba` (develop == origin/develop)
 - `git -C .factory rev-parse --short HEAD` → this burst SHA (run `git -C .factory log -1 --format='%h'`)
-- `git rev-parse --short main` → expect `b98a72f`
-- `git tag -l v0.7.1` → must exist
+- `git rev-parse --short main` → expect `73034da`
+- `git tag -l v0.8.0` → must exist
 - `gh pr list --state open` → expect empty
 
 **Step 3 — WHAT IS COMPLETE (do NOT redo):**
-- v0.7.1 FULLY RELEASED: 4 binaries published, GitHub Release live, run 27694602320 SUCCESS.
-- E-17 cycle F1-F7: ALL CONVERGED AND CLOSED.
-- maint-2026-06-17: COMPLETE — PRs #261/#262 merged; 5 TD items registered; gate PASS.
-- Issue #220: CLOSED — PR #263 merged; BC-2.14.017 v2.6; cosmetic fix only.
-- Feature #259 F2: adversarial gate SATISFIED 3/3 (Passes 15/16/17 clean on 4231b6b).
-- Feature #259 F3: story decomposition COMPLETE + adversarial gate SATISFIED 3/3 (Passes V/W/X CLEAN on bdd531a; 24 passes total).
-- Feature #259 F4 STORY-118: DELIVERED — PR #264 merged to develop 5f7cd1b; 9/9 CI GREEN; security APPROVE; pr-reviewer APPROVE; wave 47 CLOSED. Branch feat/259-finding-collapse deleted; worktree removed. ADR-0003 display-layer aggregation section committed.
-- Feature #259 F4 wave-47 adversarial convergence: GATE SATISFIED 3/3 (passes 1/2/3 all CLEAN on develop 5f7cd1b; BC-complete, panic-safe, display-layer-isolated, deterministic).
-- Feature #259 F4 holdout evaluation: PASS (mean 1.00 / critical-min 1.00 / 11 CLI scenarios). F4 COMPLETE.
-- Feature #259 F5 scoped adversarial: GATE SATISFIED 3/3 (3 independent fresh-context CLEAN passes on develop 5f7cd1b; each zero MEDIUM+). F5 COMPLETE.
-- Feature #259 F6 targeted hardening: HARDENED — regression 1641/1641 PASS; VP-012 proptest (4×1000) PASS; Kani/fuzz unaffected; collapse-delta mutation 100% kill (6/6); audit/deny CLEAN; no new VP. F6 COMPLETE.
-- Feature #259 F7 delta convergence: 5-dim ALL MET; holistic adversarial 3/3 SHIP-READY; release-doc gaps (CHANGELOG/README/Cargo.toml) to apply on release/0.8.0 branch (PG-F7-006). F7 CONVERGED.
+- v0.8.0 FULLY RELEASED: 4 binaries published, GitHub Release live, run 27732692087 SUCCESS. Tag v0.8.0 on main 73034da.
+- E-18 #259 finding-collapse cycle F1-F7: ALL CONVERGED AND CLOSED (D-087). STORY-118 DELIVERED (PR #264). STORY-119 DEFERRED.
+- PR #265 release/0.8.0 → main MERGED. Cargo.toml 0.8.0 + CHANGELOG [0.8.0] on develop bec13ba.
+- Process-gap findings for #259 cycle: all present in Drift Items with tracked dispositions (all DEFERRED/NOTED/RESOLVED — cycle CLOSED).
+- v0.7.1 FULLY RELEASED: E-17 cycle CLOSED. maint-2026-06-17: COMPLETE. Issue #220: CLOSED.
 
-**Step 4 — NEXT ACTIONS (release v0.8.0):**
-1. Cut `release/0.8.0` branch from develop (develop 5f7cd1b).
-2. Apply release fixups on release/0.8.0: (a) CHANGELOG.md — add [v0.8.0] entry under [Unreleased] with finding-collapse feature; (b) README.md — add `--no-collapse` row to "Analyze flags" table; (c) Cargo.toml — bump version 0.7.1 → 0.8.0.
-3. Open PR `release/0.8.0 → main`; verify CI green (9/9).
-4. Merge; tag v0.8.0 on main; confirm release.yml workflow runs; verify 4 binaries published.
-5. Create GitHub Release (isDraft=false) at https://github.com/Zious11/wirerust/releases/tag/v0.8.0.
-6. Merge main back to develop to keep branches in sync (gitflow merge-back).
+**Step 4 — NEXT ACTIONS (STEADY_STATE/IDLE):**
+- Await new feature request (check open GitHub issues for next validated item).
+- Or run `vsdd-factory:maintenance-sweep` if a scheduled maintenance window is due.
+- Or validate a deferred issue via `vsdd-factory:research` (DF-VALIDATION-001) before starting any new feature cycle.
+- STORY-119 (grouped-mode finding-collapse) is the natural next feature candidate.
 
 ### C. KEY ARTIFACT POINTERS
 
 - Maintenance report: `.factory/maintenance/sweep-report-2026-06-17.md`
 - Tech-debt register: `.factory/tech-debt-register.md`
-- E-17 cycle artifacts: `.factory/cycles/feature-arp-v0.7.0/` (lessons.md, session-checkpoints.md, adversarial-reviews/)
-- #259 F2/F3 BCs: `.factory/specs/behavioral-contracts/bc-2-11-*.md` (BC-2.11.010/.013/.017/.019/.025/.026/.027/.028/.029)
-- #259 F3 stories: `.factory/stories/STORY-118.md` (v1.5, 28 ACs/35 tests, status: completed) + `.factory/stories/STORY-119.md` (deferred stub)
-- #259 F3 holdout: `.factory/holdout-scenarios/wave-scenarios/wave-47-holdout.md` (v1.6, 13 P0)
-- #259 F4 delivered: PR #264 merge commit 5f7cd1b on develop
+- E-18 #259 cycle artifacts: `.factory/specs/behavioral-contracts/bc-2-11-*.md` (BC-2.11.010/.013/.017/.019/.025/.026/.027/.028/.029); STORY-118.md (completed); wave-47-holdout.md
+- E-17 cycle artifacts: `.factory/cycles/feature-arp-v0.7.0/`
+- GitHub Release v0.8.0: https://github.com/Zious11/wirerust/releases/tag/v0.8.0
 
 ## Decisions Log
 
@@ -314,6 +304,7 @@ D-001..D-054 archived: `cycles/v0.1.0-greenfield-spec/decisions-archive.md` (D-0
 | D-084 | Feature #259 F5 CONVERGED 3/3 — scoped-adversarial gate SATISFIED (2026-06-17). Three independent fresh-context CLEAN passes on develop 5f7cd1b: pass 1 (security/robustness lens), pass 2 (completeness/integration lens), pass 3 (spec-fidelity/coherence lens); each zero MEDIUM+. BC-set completeness sweep PASS (all 9 BCs implemented + tested). Panic-safety confirmed (evidence.first()/len().min(K)/members[0] guarded; no unbounded-DoS beyond capture-bounded workload). Injection closed (escape_for_terminal on summary + each sampled evidence line; MITRE IDs are program-literals not packet-derived). Display-layer-only (JSON/CSV/grouped/render_finding_prefix unchanged). Deterministic (Vec accumulator). No new formal VP per verification-coverage-matrix v1.12 (test-sufficient). 3 non-blocking LOWs tracked in Drift Items (DRIFT-STORY118-AC025-INV7-CITATION, plain_reporter collapse intentional, CollapseKey Eq harmless). Pipeline advances FEATURE-MODE F5 → F6. | 2026-06-17 |
 | D-085 | Feature #259 F6 HARDENED (2026-06-17) — develop 5f7cd1b. No new formal VP (test-sufficient per verification-coverage-matrix v1.12; VP-012 escape proptest covers reused escape surface; no unsafe/decode/overflow/unbounded-alloc in collapse delta). Full regression 1641/1641 PASS. VP-012 escape proptest (4 properties × 1000 cases) PASS. Kani/fuzz provably UNAFFECTED (delta touches no Kani-harnessed file or fuzz target — git-diff evidence; reasoned no-impact attestation). Mutation testing scoped to collapse fns: 100% kill (6/6 viable mutants; collapse_findings_from_flag polarity mutant caught). cargo audit: 0 new advisories (only known-accepted RUSTSEC-2026-0097 rand transitive). cargo deny bans/licenses/sources OK. clippy -D warnings + fmt --check CLEAN. Pipeline advances FEATURE-MODE F6 → F7. | 2026-06-17 |
 | D-086 | Feature #259 F7 CONVERGED (2026-06-17) — develop 5f7cd1b. 5-dim delta convergence ALL MET: (1) Regression GREEN (1641/1641, clippy/fmt clean); (2) Verification GREEN (no new VP, VP-012 4×1000 PASS, Kani/fuzz unaffected, mutation 100% kill, audit/deny clean); (3) Impl/spec convergence (F4 per-story 3/3 + wave-47 3/3 + holdout mean 1.00); (4) Robustness (F5 scoped adversarial 3/3); (5) Documentation/coherence (whole-corpus consistency CONSISTENT, 0 blocking). F7 holistic adversarial gate: 3 fresh-context passes all agree implementation is ship-ready (BC-complete, regression-safe, display-layer-isolated, escape-closed, no code defect). Release-packaging gaps (PG-F7-006): CHANGELOG [Unreleased] v0.8.0 entry + README --no-collapse row + Cargo.toml 0.7.1→0.8.0 — to apply on release/0.8.0 branch. Doc-state nits RESOLVED-IN-RELEASE-PREP (HS-INDEX status:draft = factory convention; STORY-118 ADR-note present-tense = completed artifact, optional cleanup). AC-025 "invariant 7" concern: NON-ISSUE — BC-2.11.019 v1.6 has both PC-9 and Inv-7; drift entry CLOSED. Pipeline advances FEATURE-MODE F7 → RELEASE PREP v0.8.0. | 2026-06-17 |
+| D-087 | wirerust v0.8.0 RELEASED 2026-06-17 — E-18 #259 finding-collapse F1-F7 CONVERGED AND CLOSED. Full cycle summary: F1 human-gated (OQ-1/2/3/4 scoped; ADR-0003 ext planned; F2-F7 authorized); F2 spec-evolution 3/3 (Passes 15/16/17 parallel CLEAN on 4231b6b; 17 passes total; 9 new BCs SS-11=29; total_bcs=288); F3 story-decomposition 3/3 (Passes V/W/X CLEAN on bdd531a; 8 parallel triples / 24 passes total; STORY-118 v1.5 + STORY-119 stub; wave-47-holdout v1.6); F4 per-story 3/3 (STORY-118 triple G/H/I CLEAN on b847915; PR #264 → develop 5f7cd1b) + wave 3/3 (passes 1/2/3 CLEAN on 5f7cd1b) + holdout 1.00 (11 CLI P0); F5 scoped adversarial 3/3 (3 independent CLEAN on 5f7cd1b); F6 targeted hardening — regression 1641/1641 PASS + mutation 100% kill (6/6) + audit/deny CLEAN; F7 5-dim CONVERGED + holistic adversarial 3/3 SHIP-READY. Release PR #265 (release/0.8.0 → main 73034da); annotated tag v0.8.0 on 73034da; release.yml run 27732692087 SUCCESS; 4 binaries PUBLISHED; GitHub Release isDraft=false at https://github.com/Zious11/wirerust/releases/tag/v0.8.0. Cargo.toml 0.8.0 + CHANGELOG [0.8.0] applied on release/0.8.0 branch (PG-F7-006 RESOLVED). develop merge-back bec13ba (gitflow sync; branch-protection bypass per prior-cycle convention). STORY-119 (grouped-mode collapse) DEFERRED to future cycle. Cycle-closing process-gap dispositions (S-7.02): PG-259-F2-ADVERSARY-CHURN DEFERRED engine-note; PG-259-F3-SIBLING-SWEEP-CROSS-ARTIFACT DEFERRED policy-codification; PG-259-F3-BC-CONTENT-INPUTHASH DEFERRED policy-enforcement; PG-259-F3-HOLDOUT-PRODUCIBILITY DEFERRED policy-codification; PG-259-F4-PERSTORY-CHURN NOTED; PG-F7-006-RELEASE-DOC-NITS RESOLVED-IN-RELEASE-PREP (shipped in v0.8.0); DRIFT-HS-W47-JSON-CMD-001 DEFERRED LOW; DRIFT-RUNANALYZE-REASSEMBLYCONFIG-MUTANTS-001 DEFERRED LOW (DF-VALIDATION-001 required before any GitHub issue). All process-gaps have tracked dispositions — cycle CLOSED. Pipeline = STEADY_STATE/IDLE. | 2026-06-17 |
 
 ## Blocking Issues
 
@@ -410,7 +401,7 @@ Full tech-debt register: `.factory/tech-debt-register.md`.
 | DRIFT-259-PLAIN-REPORTER-COLLAPSE-INTENTIONAL | plain_reporter() (pre-v0.8.0 path) sets collapse_findings: false — this is intentional; plain output retains the pre-collapse behavior. Noted by F5 completeness/integration lens as expected design. No action required. | NOTED — intentional; no action |
 | DRIFT-259-COLLAPSEKEY-EQ-DERIVE | CollapseKey derives Eq in addition to PartialEq — harmless and correct (Eq is the stronger total-equality bound; no behavioral inconsistency). Noted by F5 spec-fidelity lens. No action required. | NOTED — correct/harmless; no action |
 | DRIFT-RUNANALYZE-REASSEMBLYCONFIG-MUTANTS-001 | F6 mutation run surfaced 2 pre-existing SURVIVING mutants in run_analyze ReassemblyConfig field init (max_depth, memcap; src/main.rs ~170-171) — a test-coverage gap from prior commits (2e146473/7beaca61), NOT introduced by #259 finding-collapse. Out of #259 scope. Candidate for a separate reassembly-config test-hardening backlog item. DF-VALIDATION-001 applies before any GitHub issue. | LOW — out of #259 scope; deferred |
-| PG-F7-006-RELEASE-DOC-NITS | F7 holistic adversarial identified 3 release-doc gaps (PG-F7-006): (a) CHANGELOG.md needs [v0.8.0] Unreleased entry for finding-collapse; (b) README.md "Analyze flags" table needs --no-collapse row; (c) Cargo.toml version 0.7.1 → 0.8.0. These are standard gitflow release-branch fixups. RESOLVED-IN-RELEASE-PREP: to apply on release/0.8.0 branch (D-086). HS-INDEX status:draft is factory convention — leave as-is. STORY-118 ADR-note present-tense is a completed-story artifact — optional cleanup only. | RESOLVED-IN-RELEASE-PREP — apply on release/0.8.0 branch (D-086) |
+| PG-F7-006-RELEASE-DOC-NITS | F7 holistic adversarial identified 3 release-doc gaps (PG-F7-006): (a) CHANGELOG.md [v0.8.0] entry; (b) README.md --no-collapse row; (c) Cargo.toml 0.7.1→0.8.0. Applied on release/0.8.0 branch (PR #265 8a69a9f) and SHIPPED in v0.8.0. HS-INDEX status:draft is factory convention — left as-is. STORY-118 ADR-note present-tense is completed-story artifact. | RESOLVED — shipped in v0.8.0 (D-087) |
 
 ## Deferred Next-Work Backlog
 
