@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.4"
+version: "1.5"
 status: draft
 producer: product-owner
 timestamp: 2026-06-17T00:00:00Z
@@ -12,7 +12,7 @@ subsystem: SS-11
 capability: CAP-11
 lifecycle_status: active
 introduced: v0.8.0
-modified: ["v1.1 2026-06-17: fix N=1 singleton model — K-cap does NOT apply to singletons; evidence renders unchanged per BC-2.11.010 (consistency audit remediation)", "v1.2 2026-06-17: F2 adversarial pass-1 — fix CRITICAL F-259-01: enforce positional first-K-members model throughout (PC-2/Invariant-2/PC-5/EC-004/test vectors); fix EC-004 total=2 not 3; add N=3/N=4 boundary vectors (F-259-07)", "v1.3 2026-06-17: F2 adversarial pass-3 — fix PC-1/PC-6/Invariant-5: change false 'existing render_finding_prefix format/same code path' claims to correct 'same escape_for_terminal FUNCTION, called directly by collapse wrapper' (F-F2X-01)", "v1.4 2026-06-17: escape-notation accuracy fix — EC-007 clarify escaped output form; canonical test vector: \\x1b → \\u{1b} (char::escape_default form verified by terminal.rs escapes_esc_byte test)"]
+modified: ["v1.1 2026-06-17: fix N=1 singleton model — K-cap does NOT apply to singletons; evidence renders unchanged per BC-2.11.010 (consistency audit remediation)", "v1.2 2026-06-17: F2 adversarial pass-1 — fix CRITICAL F-259-01: enforce positional first-K-members model throughout (PC-2/Invariant-2/PC-5/EC-004/test vectors); fix EC-004 total=2 not 3; add N=3/N=4 boundary vectors (F-259-07)", "v1.3 2026-06-17: F2 adversarial pass-3 — fix PC-1/PC-6/Invariant-5: change false 'existing render_finding_prefix format/same code path' claims to correct 'same escape_for_terminal FUNCTION, called directly by collapse wrapper' (F-F2X-01)", "v1.4 2026-06-17: escape-notation accuracy fix — EC-007 clarify escaped output form; canonical test vector: \\x1b → \\u{1b} (char::escape_default form verified by terminal.rs escapes_esc_byte test)", "v1.5 2026-06-17: issue-#62 F2 BC re-anchor — Preconditions 1-2 and EC-008 updated: 'collapse_findings = true/false' and 'show_mitre_grouping = false' → FindingsRender enum variants. Rationale: illegal-state elimination. No behavioral change."]
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -40,8 +40,9 @@ configurable via CLI flag. Future cycles may expose K as `--collapse-evidence-sa
 
 ## Preconditions
 
-1. `TerminalReporter.collapse_findings = true`.
-2. `TerminalReporter.show_mitre_grouping = false` (flat mode).
+1. `TerminalReporter.render = FindingsRender::FlatCollapsed`.
+2. Flat mode is guaranteed by `FindingsRender::FlatCollapsed` at the type level — no separate
+   `show_mitre_grouping = false` check is needed.
 3. A collapsed display group has been produced by the BC-2.11.025 collapse pass with N
    member findings (N≥1).
 4. Each member finding carries zero or more strings in its `Finding.evidence: Vec<String>`.
@@ -114,7 +115,7 @@ configurable via CLI flag. Future cycles may expose K as `--collapse-evidence-sa
 | EC-005 | Group with N=5 members, all have empty evidence | Zero evidence lines rendered |
 | EC-006 | Group with N=3 members, member[0] has 2 evidence lines, others have 1 each | Only evidence[0] from member[0] is used; total = 3 lines (one per member, first entry only) |
 | EC-007 | Evidence line contains ESC byte (e.g., `"\x1b[31m"` as raw input) | Escaped via `escape_for_terminal` before output; a raw ESC byte (`0x1b`) renders as `\u{1b}` (via `char::escape_default`); full line rendered as `> \u{1b}[31m` — NOT `> \x1b[31m` |
-| EC-008 | collapse_findings=false | No collapse pass; evidence rendered in full per finding per pre-v0.8.0 behavior (BC-2.11.010 unchanged) |
+| EC-008 | `render = FindingsRender::FlatExpanded` (--no-collapse) | No collapse pass; evidence rendered in full per finding per pre-v0.8.0 behavior (BC-2.11.010 unchanged) |
 | EC-009 | Group with N=10000, each finding has evidence | Exactly 3 evidence lines in terminal output; JSON reporter receives 10000 complete findings each with full evidence |
 
 ## Canonical Test Vectors

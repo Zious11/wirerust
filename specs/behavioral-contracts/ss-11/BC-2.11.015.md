@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.7"
+version: "1.8"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -19,6 +19,7 @@ modified:
   - "v1.4: re-anchor Architecture-Anchor from legacy reporter_tests.rs to authoritative reporter_terminal_tests.rs mod story_078 formalization (F-W22-BC-ANCHOR) — 2026-05-31"
   - "v1.5: DF-SIBLING-SWEEP-001 — fix stale terminal.rs line anchors: render_finding_grouped 237-245 → 244-252 (fn at 244, None-arm at 249), Uncategorized bucket 291-296 → 298-303 (if let Some at 298); outer Path range 237-296 → 244-303; verified against HEAD cfe0112a — 2026-06-01"
   - "v1.7: PG-ARP-F2-007 — fix stale terminal.rs line anchors shifted by F2 multi-tag additions (STORY-100): render_finding_grouped fn :244-252 → :247-263; None-arm (unknown label) :249 → :260; Uncategorized bucket :298-303 → :317-322; outer Path range :244-303 → :247-323; verified against current HEAD — 2026-06-13"
+  - "v1.8 2026-06-17: issue-#62 F2 BC re-anchor (fix-burst) — Precondition 1: 'show_mitre_grouping = true' → 'render = FindingsRender::Grouped'. Rationale: illegal-state elimination (enum makes two-bool grouped-mode representation unrepresentable as separate fields). No behavioral change."
   - "v1.6: ADR-006 / Decision 13 §13.7 (F2 v0.3.0) — 'None' path replaced by 'empty vec' path; Precondition 2 updated; Postconditions 1/4 updated; Invariants 1/2 updated; EC-001 updated; no MITRE line rendered when vec is empty. — 2026-06-09"
 deprecated: null
 deprecated_by: null
@@ -51,7 +52,7 @@ due to an empty technique attribution or an unrecognized technique ID.
 
 ## Preconditions
 
-1. `TerminalReporter.show_mitre_grouping = true`.
+1. `TerminalReporter.render = FindingsRender::Grouped`.
 2. At least one finding has `mitre_techniques = vec![]` (empty) or has a first element not
    in the catalog.
 

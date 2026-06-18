@@ -33,6 +33,9 @@ modified:
   - date: 2026-06-17
     actor: architect
     reason: "F2 Phase Spec Evolution (issue #259): ADR-0003 row extended with v0.8.0 display-layer aggregation subsection (collapse identical findings, --no-collapse, K=3 evidence sampling, flat-mode-only scope). ADR 0003 date updated to reflect extension."
+  - date: 2026-06-17
+    actor: architect
+    reason: "F2 Phase Spec Evolution (issue #62): ADR-0003 row extended with v0.9.0 render-mode enum subsection (FindingsRender enum, illegal-state elimination rationale, migration map, semver v0.9.0 consequence, Default omission decision)."
 phase: 1c
 origin: brownfield
 deployment_topology: single-service
@@ -174,7 +177,7 @@ or any network-related call. This is the basis for the "offline" forensic-tool g
 |-----|------|----------|---------------------|
 | ADR 0001 | 2026-04-07 | Content-first stream dispatch (port-based fallback only) | SS-05 |
 | ADR 0002 | 2026-04-07 | Modular protocol analyzer pattern (two-trait split) | SS-05, SS-06, SS-07, SS-08 |
-| ADR 0003 | 2026-04-09 (extended 2026-06-17) | Reporting pipeline layering (raw data / display-layer separation); v0.8.0 extension: display-layer aggregation — collapse identical findings in TerminalReporter, `--no-collapse` opt-out, K=3 evidence sampling, flat mode only for v0.8.0 (STORY-118) | SS-06, SS-07, SS-09, SS-11 |
+| ADR 0003 | 2026-04-09 (extended 2026-06-17 ×2) | Reporting pipeline layering (raw data / display-layer separation); v0.8.0 extension: display-layer aggregation — collapse identical findings in TerminalReporter, `--no-collapse` opt-out, K=3 evidence sampling, flat mode only for v0.8.0 (STORY-118); v0.9.0 extension: render-mode enum — `FindingsRender {Grouped, FlatCollapsed, FlatExpanded}` replaces bool pair, illegal-state elimination, `Default` omit decision, semver v0.9.0 (issue #62) | SS-06, SS-07, SS-09, SS-11 |
 | ADR 0004 | 2026-05-19 | Process-wide warning atomics for one-shot bug tripwires | SS-04 |
 | ADR 0005 | 2026-06-09 | Binary ICS protocol integration (Modbus TCP): port-only classification exception, PDU-oriented manual parsing, full transaction-correlation state, ICS-matrix MITRE representation | SS-05, SS-10, SS-14 |
 | ADR 0006 | 2026-06-09 | Multi-technique Finding attribution: `mitre_technique: Option<String>` → `mitre_techniques: Vec<String>`; one-finding-N-tags aligned with Sigma/Elastic standard; volume control via aggregation not tag-suppression; v0.3.0 breaking schema change | SS-09, SS-10, SS-11, SS-14 |

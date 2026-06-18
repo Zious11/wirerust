@@ -1,13 +1,13 @@
 ---
 pipeline: FEATURE_MODE
-phase: F1
-phase_status: "FEATURE MODE — issue #62 TerminalReporter enum-of-modes refactor; Phase F1 delta-analysis COMPLETE; awaiting F1 human gate."
-active_feature: "E-8 / #62 TerminalReporter enum-of-modes refactor — F1 COMPLETE; awaiting F1 human gate; release target v0.9.0"
+phase: F2
+phase_status: "FEATURE MODE — issue #62 TerminalReporter enum-of-modes refactor; Phase F2 spec-evolution COMPLETE pending adversarial convergence re-streak (0/3)."
+active_feature: "E-8 / #62 TerminalReporter enum-of-modes refactor — F2 spec-evolution COMPLETE; 13 SS-11 BCs re-anchored; ADR-0003 amended; HS-081 recomputed; completed stories frozen (D-088); F2 adversary re-streak 0/3 pending; release target v0.9.0"
 feature_arp_status: "v0.7.0 RELEASED 2026-06-16 — ARP Security Analyzer (E-16, issue #9); PR #256 dd8e142; tag v0.7.0; 4 binaries (aarch64-apple-darwin, x86_64-apple-darwin, x86_64-pc-windows-msvc, x86_64-unknown-linux-gnu)"
 feature_8_status: "v0.6.0 RELEASED 2026-06-12 — DNP3 TCP analyzer; F7 5-dim CONVERGED; tag v0.6.0 + 4 binaries"
 product: wirerust
 mode: brownfield
-timestamp: 2026-06-17T00:01:00Z
+timestamp: 2026-06-18T00:00:00Z
 maintenance_run: COMPLETE
 maintenance_run_id: maint-2026-06-17
 maintenance_started_at: "2026-06-17"
@@ -69,6 +69,7 @@ dtu_services: []
 adversary_convergence_counter: 3/3  # Pass 14 CONVERGENCE_REACHED; clean-streak 3/3; ADVERSARY GATE SATISFIED
 e8_f2_adversary_convergence_counter: "3/3 SATISFIED — GATE SATISFIED (frozen corpus 4231b6b; Passes 15/16/17 run in parallel; each zero MEDIUM-or-above; 17 passes total)."
 e8_f3_adversary_convergence_counter: "3/3 SATISFIED — GATE SATISFIED (frozen corpus bdd531a; Passes V/W/X run in parallel; each zero MEDIUM-or-above; 8 parallel triples / 24 passes total)."
+e8_f2_spec_evolution_adversary_convergence_counter: "0/3 — re-streak pending after F2 fix-burst (13 BCs re-anchored, ADR-0003 amended, HS-081 recomputed 2026-06-18)"
 e8_f4_wave_adversary_convergence_counter: "3/3 SATISFIED (passes 1/2/3 clean on develop 5f7cd1b)"
 e8_f5_scoped_adversary_convergence_counter: "3/3 SATISFIED (passes 1/2/3 clean on develop 5f7cd1b)"
 e8_f6_hardening_status: "HARDENED — no new VP; regression 1641/1641; VP-012 proptest pass; Kani/fuzz unaffected; collapse-delta mutation 100% kill; audit/deny clean"
@@ -124,17 +125,17 @@ input_drift_check: "F7-followup-dispositions burst (2026-06-16): STORY-071/100/1
 | Reactive fix: issue #220 Modbus burst-window display | **CLOSED** 2026-06-17 | PR #263 5ed8077; BC-2.14.017 v2.6; spec 8d5446d |
 | Maintenance maint-2026-06-17 | **COMPLETE** 2026-06-17 | 2 PRs delivered (#261/#262); 5 items deferred; develop c03a38b |
 | Feature E-18 / #259 finding-collapse — F1..F7 + Release v0.8.0 | **RELEASED** 2026-06-17 | STORY-118; 9 new BCs SS-11=29; total 288 BCs; F5 3/3; F6 mutation 100%; F7 5-dim CONVERGED; PR #264→develop 5f7cd1b; PR #265→main 73034da; tag v0.8.0; 4 binaries; run 27732692087. STORY-119 DEFERRED. Per-phase detail: cycles/feature-collapse-v0.8.0/phase-progress-archive.md |
-| Feature E-8 / #62 TerminalReporter enum-modes — F1 | **F1 COMPLETE — awaiting human gate** | F1 artifact: `.factory/phase-f1-delta-analysis/issue-62-terminal-reporter-enum-modes-delta-analysis.md`. Behavior-preserving refactor; 35 construction sites; 9 SS-11 BCs re-anchored (no new BCs); ~STORY-120 (~3 pts, Epic E-8); regression risk LOW; 7 F1-gate open questions; release target v0.9.0 (semver: public-field removal). |
+| Feature E-8 / #62 TerminalReporter enum-modes — F1..F2 | **F2 COMPLETE — adversary re-streak 0/3 pending** | F2 fix-burst 2026-06-18: 13 SS-11 BCs re-anchored to FindingsRender enum (BC-2.11.010/.013–.017/.019/.025–.029); BC-INDEX v1.41; ADR-0003 v0.9.0 subsection + ARCH-INDEX; PRD-delta (12 BCs); HS-081 input-hash 9df8300 (MATCH); completed STORY-077/078/118 FROZEN as-built (D-088); STORY-120 is sole #62 delivery target. F2 adversary gate NOT yet SATISFIED. |
 
-## Session Resume Checkpoint (2026-06-17 — FEATURE MODE E-8 / #62; F1 COMPLETE; awaiting human gate)
+## Session Resume Checkpoint (2026-06-18 — FEATURE MODE E-8 / #62; F2 spec-evolution COMPLETE; adversary re-streak 0/3 pending)
 
-**Previous checkpoint (2026-06-17 — v0.8.0 RELEASED; STEADY_STATE/IDLE) archived to:
-`.factory/cycles/feature-collapse-v0.8.0/session-checkpoints.md`**
+**Previous checkpoint (2026-06-17 — E-8/#62 F1 COMPLETE; awaiting human gate) archived to:
+`.factory/cycles/feature-arp-v0.7.0/session-checkpoints.md`**
 
 ### A. EXACT PIPELINE POSITION
 
 - **Project:** wirerust. **Mode:** FEATURE_MODE — E-8 / issue #62 TerminalReporter enum-of-modes refactor.
-- **Phase:** F1 COMPLETE — awaiting F1 human gate (authorize F2 spec-evolution or reject).
+- **Phase:** F2 spec-evolution COMPLETE. Adversary gate NOT yet SATISFIED — re-streak 0/3 pending.
 - **Latest release:** v0.8.0 — finding-collapse (E-18, issue #259, STORY-118). Tag v0.8.0 on main 73034da.
 - **develop HEAD:** bec13ba == origin/develop.
 - **main HEAD:** 73034da (chore: release v0.8.0).
@@ -156,18 +157,27 @@ input_drift_check: "F7-followup-dispositions burst (2026-06-16): STORY-071/100/1
 **Step 3 — WHAT IS COMPLETE (do NOT redo):**
 - v0.8.0 FULLY RELEASED (D-087). E-18 #259 CLOSED. STORY-119 DEFERRED.
 - F1 delta-analysis for E-8 / #62 COMPLETE. Artifact: `.factory/phase-f1-delta-analysis/issue-62-terminal-reporter-enum-modes-delta-analysis.md`.
-- F1 findings: behavior-preserving refactor; 35 construction sites; 9 SS-11 BCs re-anchored (no new BCs); ~STORY-120 (~3 pts, Epic E-8); regression risk LOW; 7 F1-gate open questions; release target v0.9.0.
+- F2 spec-evolution fix-burst COMPLETE (2026-06-18, D-088):
+  - 13 SS-11 BCs re-anchored: BC-2.11.010/.013/.014/.015/.016/.017/.019/.025/.026/.027/.028/.029 (BC-2.11.025 → v1.8 for VP-row fix).
+  - BC-INDEX.md → v1.41. ARCH-INDEX updated. ADR-0003 v0.9.0 render-mode subsection added.
+  - PRD-delta `.factory/phase-f2-spec-evolution/issue-62-prd-delta.md` updated (12 BCs listed).
+  - HS-081 holdout re-anchored + input-hash recomputed (bfce575 → 9df8300, MATCH).
+  - spec-changelog.md `[issue-62-enum-modes-bc-reanchor-2026-06-17]` entry covers 13 BCs.
+  - STORY-077/078/118 CONFIRMED CLEAN (no diff) — frozen as-built records per D-088.
+- Completed stories STORY-077/078/118 are FROZEN — NOT re-anchored to FindingsRender enum (D-088).
+- F2 adversary gate: NOT SATISFIED. re-streak must reach 3/3 CLEAN before F3 advance.
 
-**Step 4 — NEXT ACTIONS (awaiting human F1 gate):**
-- Human reviews F1 artifact and decides: APPROVE F2 spec-evolution | REJECT | request clarification.
-- On APPROVE: orchestrator runs `vsdd-factory:phase-f2-spec-evolution` for E-8 / #62.
-- On REJECT: pipeline returns to STEADY_STATE/IDLE.
+**Step 4 — NEXT ACTIONS:**
+- Run F2 adversarial re-streak (3 consecutive fresh-context CLEAN passes on current factory-artifacts corpus).
+- On 3/3 CLEAN: F2 adversary gate SATISFIED → advance to F3 incremental-stories.
+- F3 must produce STORY-120 (FindingsRender enum — ~3 pts, Epic E-8, release target v0.9.0).
 
 ### C. KEY ARTIFACT POINTERS
 
 - F1 delta-analysis: `.factory/phase-f1-delta-analysis/issue-62-terminal-reporter-enum-modes-delta-analysis.md`
+- F2 PRD-delta: `.factory/phase-f2-spec-evolution/issue-62-prd-delta.md`
+- SS-11 BCs: `.factory/specs/behavioral-contracts/ss-11/BC-2.11.*.md`
 - E-18 #259 cycle detail: `cycles/feature-collapse-v0.8.0/phase-progress-archive.md`
-- Maintenance report: `.factory/maintenance/sweep-report-2026-06-17.md`
 - Tech-debt register: `.factory/tech-debt-register.md`
 - GitHub Release v0.8.0: https://github.com/Zious11/wirerust/releases/tag/v0.8.0
 
@@ -211,6 +221,7 @@ D-001..D-054 archived: `cycles/v0.1.0-greenfield-spec/decisions-archive.md` (D-0
 | D-085 | Feature #259 F6 HARDENED (2026-06-17, develop 5f7cd1b). Full regression 1641/1641 PASS. VP-012 escape proptest (4 × 1000 cases) PASS. Kani/fuzz UNAFFECTED. Mutation 100% kill (6/6). cargo audit: 0 new advisories. cargo deny OK. clippy/fmt CLEAN. Pipeline advances F6 → F7. | 2026-06-17 |
 | D-086 | Feature #259 F7 CONVERGED (2026-06-17, develop 5f7cd1b). 5-dim ALL MET. F7 holistic adversarial gate: 3 fresh-context passes all agree implementation is ship-ready. Release-packaging gaps (PG-F7-006) to apply on release/0.8.0 branch. Pipeline advances F7 → RELEASE PREP v0.8.0. | 2026-06-17 |
 | D-087 | wirerust v0.8.0 RELEASED 2026-06-17 — E-18 #259 finding-collapse F1-F7 CONVERGED AND CLOSED. Release PR #265 (release/0.8.0 → main 73034da); annotated tag v0.8.0; run 27732692087 SUCCESS; 4 binaries; GitHub Release isDraft=false. Cargo.toml 0.8.0 + CHANGELOG [0.8.0] on develop. develop merge-back bec13ba. STORY-119 (grouped-mode collapse) DEFERRED. All process-gap dispositions tracked — cycle CLOSED. Pipeline = STEADY_STATE/IDLE. | 2026-06-17 |
+| D-088 | Issue #62 F2 spec-evolution: completed/shipped stories (STORY-077/078/118) are FROZEN as immutable as-built records — NOT retroactively re-anchored to the v0.9.0 FindingsRender enum (human-adjudicated 2026-06-18). The enum vocabulary lives only in living specs (BCs/ADR/holdouts) and the future STORY-120. Two F2 adversary passes (5 then 6 findings) drove: full SS-11 BC sweep (13 BCs re-anchored, not the initially-claimed 8), PRD-delta scope correction (8→12 BCs), HS-081 input-hash recompute, and revert of the over-eager completed-story body sweep. | 2026-06-18 |
 
 ## Blocking Issues
 
@@ -273,6 +284,8 @@ Full tech-debt register: `.factory/tech-debt-register.md`.
 | DF-SIBLING-SWEEP-CROSS-SS-001 | F-cycle BC-invariant corrections sharing routing semantics across subsystems MUST sweep cross-subsystem sibling BCs. | DEFERRED — policy codification |
 | PG-ARP-F4-REDTEST-DOC-TENSE-RECURRENCE | PG-ARP-F4-REDTEST-DOC-TENSE recurred in D-075 despite codification. Agent-prompt/hook strengthening needed. | OPEN — agent-prompt/hook strengthening needed |
 | PG-ARP-F4-TYPE-BRANCH-NARROWING | impl + unit tests + Kani consistently omitted hw/proto type-reject branch (D-077), self-consistent omission invisible to 4 adversary passes + holdout. | OPEN — DF-BC-COMPLETENESS-SWEEP policy extension |
+| DRIFT-62-FROZEN-STORY-INPUTHASH-001 | STORY-077/078/118 input-hashes are STALE after #62 BC re-anchoring (BCs referenced by those stories now carry FindingsRender enum vocabulary). | ACCEPTED — frozen as-built completed-story records; not re-anchored per D-088; does NOT block Phase-4 (#62 cycle delivers STORY-120 only) |
+| PG-62-F2-BOOKKEEPING-SWEEP-001 | F2 re-anchor burst migrated normative behavioral text but initially skipped bookkeeping surfaces (story version-tables, PRD-delta BC table, input-hashes) and under-counted the BC set (claimed 8, actual 13). Root cause: F1/F2 accepted the BC list without a mechanical SS-11 grep sweep. | RECORDED — codification follow-up: F2 dispatch template should mandate `grep -rn 'show_mitre_grouping\|collapse_findings'` reconcile step |
 
 ## Deferred Next-Work Backlog
 

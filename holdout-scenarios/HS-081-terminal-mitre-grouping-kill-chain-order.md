@@ -16,7 +16,7 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-11/BC-2.11.014.md
   - .factory/specs/behavioral-contracts/ss-11/BC-2.11.015.md
   - .factory/specs/behavioral-contracts/ss-11/BC-2.11.016.md
-input-hash: "bfce575"
+input-hash: "9df8300"
 traces_to: .factory/stories/STORY-076.md
 id: "HS-081"
 category: "behavioral-subtleties"
@@ -82,7 +82,7 @@ Invoke the tool with a set of findings spanning the described tactics. In the te
 6. Assert the no-technique finding appears under the Uncategorized header.
 
 At the unit level, construct the findings programmatically and call `TerminalReporter::render`
-with `show_mitre_grouping = true`, then scan the resulting string.
+with `render = FindingsRender::Grouped`, then scan the resulting string.
 
 ## Evaluation Rubric
 
@@ -97,7 +97,7 @@ with `show_mitre_grouping = true`, then scan the resulting string.
 - All findings in one tactic: only that tactic section plus possibly Uncategorized.
 - Unknown technique ID "T9999": appears under Uncategorized with "(unknown)" label.
 - When all findings have None technique: only an Uncategorized section is present.
-- When `show_mitre_grouping = false` (default mode): no tactic headers, and the technique
+- When `render != FindingsRender::Grouped` (i.e., `FlatCollapsed` or `FlatExpanded`; default mode): no tactic headers, and the technique
   line reads `MITRE: T1036` with no em-dash and no name.
 
 ## Failure Guidance

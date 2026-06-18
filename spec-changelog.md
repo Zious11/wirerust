@@ -14,6 +14,53 @@ changes, invariant rewrites).
 
 ---
 
+## [issue-62-enum-modes-bc-reanchor-2026-06-17] — 2026-06-17
+
+### PATCH: Issue #62 BC Re-anchoring — FindingsRender Enum Precondition Update
+
+**Trigger:** Issue #62 F2 spec evolution (BC re-anchoring pass). The approved design replaces
+the three render bools (`show_mitre_grouping: bool`, `collapse_findings: bool`, plus implicit
+flat-expanded default) with `pub enum FindingsRender { Grouped, FlatCollapsed, FlatExpanded }`
+and reduces `TerminalReporter` to two orthogonal bools + one enum field. This is a
+behavior-preserving type-system refactor — illegal-state elimination: the previous struct
+permitted `show_mitre_grouping = true && collapse_findings = true`, a combination silently
+handled by dispatch order but never valid. `FindingsRender::Grouped` makes that combination
+structurally unrepresentable.
+
+**Migration map (verified against `src/reporter/terminal.rs:187-197` dispatch):**
+- `show_mitre_grouping = true` (any `collapse_findings`) → `render = FindingsRender::Grouped`
+- `show_mitre_grouping = false, collapse_findings = true` → `render = FindingsRender::FlatCollapsed`
+- `show_mitre_grouping = false, collapse_findings = false` → `render = FindingsRender::FlatExpanded`
+- `run_summary` construction site → `render: FindingsRender::FlatCollapsed` by convention (inert — `run_summary` emits no FINDINGS section; no BC governs this path; the value is a structural placeholder distinguishing it from the dispatch-derived `run_analyze` mapping above)
+
+**Scope:** Precondition field-name re-anchoring only. No new postconditions, no new test
+vectors, no new invariants. No behavioral change. No new BCs. Architecture unchanged.
+
+#### BC Version Summary
+
+| BC/Doc | Before | After | Change |
+|--------|--------|-------|--------|
+| BC-2.11.013 | v1.11 | v1.12 | Description + Precondition 1 + Invariant 4 + EC-007 |
+| BC-2.11.014 | v1.6  | v1.7  | Precondition 1 only |
+| BC-2.11.017 | v1.13 | v1.14 | Description + Precondition 1 + Postcondition 6 + Invariants 1/5 + EC-004/007/008 + test vectors |
+| BC-2.11.019 | v1.6  | v1.7  | Postcondition 9 + Invariant 7 + EC-008/EC-009 |
+| BC-2.11.025 | v1.6  | v1.7  | Description + Preconditions 1-2 + Invariant 5 + EC-011 |
+| BC-2.11.026 | v1.8  | v1.9  | Preconditions 1-2 + EC-006/EC-007/EC-009 |
+| BC-2.11.027 | v1.4  | v1.5  | Preconditions 1-2 + EC-008 |
+| BC-2.11.028 | v1.4  | v1.5  | Description + Preconditions + Postconditions + Invariants 1-2 + EC-001..005 + Architecture Anchors |
+| BC-INDEX.md | v1.38 | v1.39 | Comment annotations updated for all 8 BCs |
+| BC-2.11.010 | v1.8  | v1.9  | Invariant 4 + EC-006 + EC-007 (fix-burst: missed in pass-1) |
+| BC-2.11.015 | v1.7  | v1.8  | Precondition 1 (fix-burst: missed in pass-1) |
+| BC-2.11.016 | v1.6  | v1.7  | Precondition 1 (fix-burst: missed in pass-1) |
+| BC-2.11.029 | v1.2  | v1.3  | Precondition 4 + PC-1 inline qualifier + Architecture Anchors (fix-burst: missed in pass-1) |
+| BC-INDEX.md | v1.39 | v1.40 | Comment annotations updated for 4 fix-burst BCs |
+| BC-2.11.025 | v1.7  | v1.8  | VP-table row: 'show_mitre_grouping=true suppresses collapse' → 'render = FindingsRender::Grouped suppresses collapse' (F2 adv-pass-2 fix F-6) |
+| BC-INDEX.md | v1.40 | v1.41 | BC-2.11.025 annotation updated with v1.8 note |
+
+**total_bcs=288 unchanged** (re-anchoring pass; no new BCs, no retirements).
+
+---
+
 ## [issue-259-collapse-bc025-evidence-fix-2026-06-17] — 2026-06-17
 
 ### PATCH: Issue #259 BC-2.11.025 Evidence Format Accuracy Fix (F-F3-001)

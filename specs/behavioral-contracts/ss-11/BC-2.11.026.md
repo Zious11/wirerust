@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.8"
+version: "1.9"
 status: draft
 producer: product-owner
 timestamp: 2026-06-17T00:00:00Z
@@ -12,7 +12,7 @@ subsystem: SS-11
 capability: CAP-11
 lifecycle_status: active
 introduced: v0.8.0
-modified: ["v1.1 2026-06-17: F2 adversarial pass-1 — relax suffix colorization: (xN) suffix IS colorized with the header line (no seam for uncolorized suffix in render_finding_prefix); update Invariant 4, PC-4, EC-008 (F-259-02)", "v1.2 2026-06-17: F2 adversarial pass-2 — path-(b) collapse-aware wrapper prescribed as canonical in PC-4 (F-A03); dispatch anchor 149-160→149-162 (F-A05); EC-005 test vector added (F-A06)", "v1.3 2026-06-17: F2 adversarial pass-3 — add evidence emission sentence to PC-4 (F-F2X-03); fix EC row order EC-009/EC-008 → EC-008/EC-009 monotonic (F-F2X-02); fix arch anchor: remove stale 'appended here' alternative", "v1.4 2026-06-17: F2 adversarial pass-4 — F-F2-A01: convert PC-4 from internal-call-structure prescription to observable-behavior contract; remove 'path-(b) function-call graph' normative language; add non-normative implementation note; F-F2-O01: anchor :203-226 → :203-227; update EC-007 STRUCTURAL guarantee to observable-behavior form", "v1.5 2026-06-17: F2 adversarial pass-5 — F1: remove residual 'path-(b) separation' label from EC-009 body; reword to observable-behavior form", "v1.6 2026-06-17: F2 adversarial passes 6-8 — LOW-1: add red-bold (Likely/High) canonical test vector to confirm (xN) suffix is inside the red-bold colorization span for that branch", "v1.7 2026-06-17: F2 adversarial pass-9 — F-PA-01: add explicit normative PC-6 color-ladder requirement: same Likely+High→red().bold()/Likely+other→yellow/Possible→yellow/Inconclusive→cyan/Unlikely→dimmed logic applied to pre-suffix string BEFORE colorization; appending suffix after ANSI reset is NON-CONFORMANT", "v1.8 2026-06-17: F2 adversarial passes 12-14 — F-PA-A01: define 'representative finding' for N≥2 groups: group_members[0] (first member in emission order); add PC-7 (MITRE line sources group_members[0].mitre_techniques; other members' MITRE elided from terminal); add canonical test vector for divergent-mitre case"]
+modified: ["v1.1 2026-06-17: F2 adversarial pass-1 — relax suffix colorization: (xN) suffix IS colorized with the header line (no seam for uncolorized suffix in render_finding_prefix); update Invariant 4, PC-4, EC-008 (F-259-02)", "v1.2 2026-06-17: F2 adversarial pass-2 — path-(b) collapse-aware wrapper prescribed as canonical in PC-4 (F-A03); dispatch anchor 149-160→149-162 (F-A05); EC-005 test vector added (F-A06)", "v1.3 2026-06-17: F2 adversarial pass-3 — add evidence emission sentence to PC-4 (F-F2X-03); fix EC row order EC-009/EC-008 → EC-008/EC-009 monotonic (F-F2X-02); fix arch anchor: remove stale 'appended here' alternative", "v1.4 2026-06-17: F2 adversarial pass-4 — F-F2-A01: convert PC-4 from internal-call-structure prescription to observable-behavior contract; remove 'path-(b) function-call graph' normative language; add non-normative implementation note; F-F2-O01: anchor :203-226 → :203-227; update EC-007 STRUCTURAL guarantee to observable-behavior form", "v1.5 2026-06-17: F2 adversarial pass-5 — F1: remove residual 'path-(b) separation' label from EC-009 body; reword to observable-behavior form", "v1.6 2026-06-17: F2 adversarial passes 6-8 — LOW-1: add red-bold (Likely/High) canonical test vector to confirm (xN) suffix is inside the red-bold colorization span for that branch", "v1.7 2026-06-17: F2 adversarial pass-9 — F-PA-01: add explicit normative PC-6 color-ladder requirement: same Likely+High→red().bold()/Likely+other→yellow/Possible→yellow/Inconclusive→cyan/Unlikely→dimmed logic applied to pre-suffix string BEFORE colorization; appending suffix after ANSI reset is NON-CONFORMANT", "v1.8 2026-06-17: F2 adversarial passes 12-14 — F-PA-A01: define 'representative finding' for N≥2 groups: group_members[0] (first member in emission order); add PC-7 (MITRE line sources group_members[0].mitre_techniques; other members' MITRE elided from terminal); add canonical test vector for divergent-mitre case", "v1.9 2026-06-17: issue-#62 F2 BC re-anchor — replace collapse_findings/show_mitre_grouping bool references with FindingsRender enum: Preconditions 1-2 + EC-006 + EC-007 + EC-009 updated. Rationale: illegal-state elimination. No behavioral change."]
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -40,8 +40,9 @@ attacker-controlled bytes; it does not require additional escaping.
 
 ## Preconditions
 
-1. `TerminalReporter.collapse_findings = true`.
-2. `TerminalReporter.show_mitre_grouping = false` (flat mode).
+1. `TerminalReporter.render = FindingsRender::FlatCollapsed`.
+2. Flat mode is guaranteed by `FindingsRender::FlatCollapsed` at the type level — no separate
+   `show_mitre_grouping = false` check is needed.
 3. The collapse pass (BC-2.11.025) has grouped the findings slice into display groups, each with
    a count N (the number of findings in the group).
 4. The `escape_for_terminal` function has been applied to the group's representative `summary`
@@ -118,23 +119,23 @@ attacker-controlled bytes; it does not require additional escaping.
 | EC-003 | Group with N=3142 | Header line ends with ` (x3142)` |
 | EC-004 | Group with N=10000 | Header line ends with ` (x10000)` (no truncation, no abbreviation) |
 | EC-005 | Summary ends with whitespace before suffix | Suffix appended directly after the whitespace; one space before `(x...)`; result may have double space — acceptable, no trimming |
-| EC-006 | collapse_findings=false (opt-out) | No collapse pass runs; no count suffix on any finding; behavior per BC-2.11.028 |
-| EC-007 | show_mitre_grouping=true, multiple identical-key findings | Collapse pass not applied; no count suffix on any finding regardless of group sizes. OBSERVABLE GUARANTEE: no ` (xN)` suffix appears in the terminal output for any grouped-mode finding, at any input volume. This is the same guarantee as BC-2.11.013 Invariant 4 |
+| EC-006 | `render = FindingsRender::FlatExpanded` (--no-collapse opt-out) | No collapse pass runs; no count suffix on any finding; behavior per BC-2.11.028 |
+| EC-007 | `render = FindingsRender::Grouped`, multiple identical-key findings (formerly the impossible `show_mitre_grouping=true` with any `collapse_findings` value) | Collapse pass not applied; no count suffix on any finding regardless of group sizes. The `FindingsRender` enum makes this structurally enforced. OBSERVABLE GUARANTEE: no ` (xN)` suffix appears in the terminal output for any grouped-mode finding, at any input volume. This is the same guarantee as BC-2.11.013 Invariant 4 |
 | EC-008 | Group with N=2 and use_color=true | Complete header line (including ` (x2)` suffix) colored per verdict/confidence — the suffix is part of the pre-color `line` string and is colorized together with the summary text |
-| EC-009 | show_mitre_grouping=true, N=100 identical-key findings | 100 individual lines, none with a ` (xN)` suffix — suffix-free guarantee enforced by the grouped path being structurally suffix-free (it never appends a count suffix), even at large N |
+| EC-009 | `render = FindingsRender::Grouped`, N=100 identical-key findings | 100 individual lines, none with a ` (xN)` suffix — suffix-free guarantee enforced structurally by the `FindingsRender::Grouped` path never appending a count suffix, even at large N |
 
 ## Canonical Test Vectors
 
 | Input | Expected Output | Category |
 |-------|----------------|----------|
-| 3 findings all `(Anomaly, Inconclusive, Low, "Empty UA")`, collapse_findings=true | Header line contains `"Empty UA (x3)"` | happy-path (count display) |
-| 1 finding `(Anomaly, Inconclusive, Low, "Empty UA")`, collapse_findings=true | Header line contains `"Empty UA"` with no `(x1)` suffix | happy-path (singleton) |
+| 3 findings all `(Anomaly, Inconclusive, Low, "Empty UA")`, `render = FindingsRender::FlatCollapsed` | Header line contains `"Empty UA (x3)"` | happy-path (count display) |
+| 1 finding `(Anomaly, Inconclusive, Low, "Empty UA")`, `render = FindingsRender::FlatCollapsed` | Header line contains `"Empty UA"` with no `(x1)` suffix | happy-path (singleton) |
 | 3142 findings all `(Anomaly, Inconclusive, Low, "Empty User-Agent header")` | Header line ends with `"Empty User-Agent header (x3142)"` | happy-path (large count) |
 | 1 unique finding + 5 identical findings | Unique finding: no suffix; identical group: `(x5)` suffix | mixed scenario |
 | 2 findings same key, use_color=false | Header `"  [Anomaly] INCONCLUSIVE (LOW) - Empty UA (x2)\n"` | happy-path (no color) |
 | 2 findings `(Reconnaissance, Likely, High, "Port scan")`, use_color=true | Complete header including ` (x2)` suffix is wrapped in the `red().bold()` color span — i.e., the output is `<red_bold_open>  [Reconnaissance] LIKELY (HIGH) - Port scan (x2)<red_bold_close>\n`; the suffix is INSIDE the bold-red span, not appended after the color reset | happy-path (EC-008 red-bold branch — LOW-1) |
-| 2 findings with summary=`"Empty UA "` (trailing space), collapse_findings=true | Header line ends with `"Empty UA  (x2)\n"` — two spaces before `(x2)` (one from summary trailing space, one from the suffix's leading space); no trimming applied | edge-case (EC-005 — trailing whitespace, double-space pinned) |
-| 3 findings all same collapse key, member[0].mitre_techniques=["T1036"], member[1].mitre_techniques=[], member[2].mitre_techniques=["T1059"], collapse_findings=true | MITRE line reads `    MITRE: T1036\n` (from group_members[0]); member[1] and member[2] mitre_techniques are elided from terminal; all 3 findings' mitre_techniques preserved in JSON/CSV output | representative-finding (F-PA-A01 divergent-mitre) |
+| 2 findings with summary=`"Empty UA "` (trailing space), `render = FindingsRender::FlatCollapsed` | Header line ends with `"Empty UA  (x2)\n"` — two spaces before `(x2)` (one from summary trailing space, one from the suffix's leading space); no trimming applied | edge-case (EC-005 — trailing whitespace, double-space pinned) |
+| 3 findings all same collapse key, member[0].mitre_techniques=["T1036"], member[1].mitre_techniques=[], member[2].mitre_techniques=["T1059"], `render = FindingsRender::FlatCollapsed` | MITRE line reads `    MITRE: T1036\n` (from group_members[0]); member[1] and member[2] mitre_techniques are elided from terminal; all 3 findings' mitre_techniques preserved in JSON/CSV output | representative-finding (F-PA-A01 divergent-mitre) |
 
 ## Verification Properties
 

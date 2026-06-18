@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.6"
+version: "1.7"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -18,6 +18,7 @@ modified:
   - "v1.3: re-anchor Architecture-Anchor from legacy reporter_tests.rs to authoritative reporter_terminal_tests.rs mod story_078 formalization (F-W22-BC-ANCHOR) — 2026-05-31"
   - "v1.4: DF-SIBLING-SWEEP-001 — fix stale terminal.rs line anchors: MITRE expansion range 239-244 → 246-251 (fn render_finding_grouped body: match at 246-250, close at 252), em-dash literal :241 → :248; guard clause at :240 → :247; verified against HEAD cfe0112a — 2026-06-01"
   - "v1.6: PG-ARP-F2-007 — fix stale terminal.rs line anchors shifted by F2 multi-tag additions (STORY-100): fn render_finding_grouped body range :246-251 → :249-261 (is_empty guard at 249; ids join at 252; first-technique name lookup at 254-260; Some/em-dash arm at 259; None/unknown arm at 260); em-dash literal :248 → :259; verified against current HEAD — 2026-06-13"
+  - "v1.7 2026-06-17: issue-#62 F2 BC re-anchor (fix-burst) — Precondition 1: 'show_mitre_grouping = true' → 'render = FindingsRender::Grouped'. Rationale: illegal-state elimination. No behavioral change."
   - "v1.5: ARP-F2 Pass-14 Burst-7 — mitre_technique (singular) → mitre_techniques (Vec<String>) in Precondition 2, Postcondition 4, EC-003, and all three Canonical Test Vector rows. Shipped Finding struct uses Vec<String>; 'no MITRE line' condition is empty vec, not None. — 2026-06-13"
 deprecated: null
 deprecated_by: null
@@ -38,7 +39,7 @@ render as `MITRE: <id> (unknown)`.
 
 ## Preconditions
 
-1. `TerminalReporter.show_mitre_grouping = true`.
+1. `TerminalReporter.render = FindingsRender::Grouped`.
 2. A finding has a non-empty `mitre_techniques` vec with at least one technique ID in the catalog.
 
 ## Postconditions

@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.6"
+version: "1.7"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -19,6 +19,7 @@ modified:
   - "v1.4: re-anchor Architecture-Anchor from legacy reporter_tests.rs to authoritative reporter_terminal_tests.rs mod story_078 formalization (F-W22-BC-ANCHOR) — 2026-05-31"
   - "v1.5: DF-SIBLING-SWEEP-001 — fix stale terminal.rs sort-closure anchor: 262-280 → 269-288 (verdict_rank/confidence_rank helpers at 269-282, sort_by_key call at 284-288); verified against HEAD cfe0112a — 2026-06-01"
   - "v1.6: PG-ARP-F2-007 — fix stale terminal.rs line anchors shifted by F2 multi-tag additions (STORY-100): verdict_rank :269-275 → :287-293; confidence_rank :276-282 → :295-301; sort_by_key range :284-288 → :303-307; bucket push line 266 → 284; bounding range :269-288 → :287-307; verified against current HEAD — 2026-06-13"
+  - "v1.7 2026-06-17: issue-#62 F2 BC re-anchor — Precondition 1: 'show_mitre_grouping = true' → 'render = FindingsRender::Grouped'. Rationale: illegal-state elimination (enum makes the two-bool axis for grouped mode unrepresentable as separate bools). No behavioral change."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -38,7 +39,7 @@ key). This ordering surfaces the highest-severity findings at the top of each ta
 
 ## Preconditions
 
-1. `TerminalReporter.show_mitre_grouping = true`.
+1. `TerminalReporter.render = FindingsRender::Grouped` (set via `--mitre` CLI flag).
 2. At least two findings share the same tactic bucket.
 
 ## Postconditions

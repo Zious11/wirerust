@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-06-17T00:00:00Z
@@ -12,7 +12,7 @@ subsystem: SS-11
 capability: CAP-11
 lifecycle_status: active
 introduced: v0.8.0
-modified: ["v1.1 2026-06-17: fix Postcondition 3 — remove misleading 'N=1 ≤ K=3' reasoning; singleton renders identically to pre-v0.8.0 (consistency audit remediation)", "v1.2 2026-06-17: F2 adversarial pass-1 — add precise csv.rs line anchors (csv.rs:40 neutralize, csv.rs:76 render loop); mark terminal.rs:63-75 as insertion target (F-259-05, F-259-08)"]
+modified: ["v1.1 2026-06-17: fix Postcondition 3 — remove misleading 'N=1 ≤ K=3' reasoning; singleton renders identically to pre-v0.8.0 (consistency audit remediation)", "v1.2 2026-06-17: F2 adversarial pass-1 — add precise csv.rs line anchors (csv.rs:40 neutralize, csv.rs:76 render loop); mark terminal.rs:63-75 as insertion target (F-259-05, F-259-08)", "v1.3 2026-06-17: issue-#62 F2 BC re-anchor (fix-burst) — Precondition 4: 'collapse_findings = true' → 'render = FindingsRender::FlatCollapsed'; PC-1 inline qualifier: 'collapse_findings' → 'render' field; Architecture Anchors: INSERTION TARGET wording updated from old bool field names to FindingsRender enum. Rationale: illegal-state elimination. No behavioral change."]
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -48,7 +48,7 @@ frames are intact in all machine-readable outputs; aggregation is a display-laye
 1. `Reporter::render` has been invoked on `TerminalReporter` with `findings: &[Finding]`.
 2. `Reporter::render` has been invoked on `JsonReporter` with the same `findings` slice.
 3. `Reporter::render` has been invoked on `CsvReporter` with the same `findings` slice.
-4. The collapse feature is enabled (`TerminalReporter.collapse_findings = true`).
+4. The collapse feature is enabled (`TerminalReporter.render = FindingsRender::FlatCollapsed`).
 5. The input `findings` slice contains at least one repeated finding (for the interesting case)
    and at least one non-repeated finding (for the non-interference case).
 
@@ -57,7 +57,7 @@ frames are intact in all machine-readable outputs; aggregation is a display-laye
 1. `JsonReporter` produces exactly one JSON finding object per element of the input `findings`
    slice. If the slice contains N findings, the JSON array contains exactly N objects.
    No finding is omitted, merged, or deduplicated in JSON output regardless of
-   `TerminalReporter.collapse_findings`.
+   `TerminalReporter.render` variant.
 2. `CsvReporter` produces exactly one CSV row per element of the input `findings` slice.
    If the slice contains N findings, the CSV body (excluding the header row) contains exactly N
    rows. No row is omitted, merged, or deduplicated in CSV output.
@@ -147,8 +147,8 @@ frames are intact in all machine-readable outputs; aggregation is a display-laye
 - `src/reporter/json.rs` -- JsonReporter::render iterates every finding in the slice; no collapse path
 - `src/reporter/csv.rs:40` -- `neutralize_csv_injection(s: &str) -> String` (confirmed present at csv.rs:40); called for every field of every finding
 - `src/reporter/csv.rs:76` -- `for f in findings { ... }` render loop (confirmed present at csv.rs:76); iterates every finding in the slice; no collapse path
-- `src/main.rs:~run_analyze` -- **INSERTION TARGET (code TBD by STORY-118):** TerminalReporter construction site; `collapse_findings` field will be added here. Pre-story line-range approximation: ~370-375.
-- `src/reporter/terminal.rs:63-75` -- **INSERTION TARGET (code TBD by STORY-118):** TerminalReporter struct; `collapse_findings: bool` field does NOT exist yet (current struct has only `use_color`, `show_mitre_grouping`, `show_hosts_breakdown`); collapse pass will be a private method added by STORY-118
+- `src/main.rs:~run_analyze` -- **INSERTION TARGET (code TBD by STORY-118):** TerminalReporter construction site; `render: FindingsRender` field will be set here (replacing the former `collapse_findings: bool` + `show_mitre_grouping: bool` pair). Pre-story line-range approximation: ~370-375.
+- `src/reporter/terminal.rs:63-75` -- **INSERTION TARGET (code TBD by STORY-118):** TerminalReporter struct; `pub render: FindingsRender` field replaces `pub show_mitre_grouping: bool` + `pub collapse_findings: bool` (current struct has only `use_color`, `show_mitre_grouping`, `show_hosts_breakdown`); collapse pass will be a private method added by STORY-118
 
 ## Story Anchor
 

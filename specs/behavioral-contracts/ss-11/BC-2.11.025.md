@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.6"
+version: "1.8"
 status: draft
 producer: product-owner
 timestamp: 2026-06-17T00:00:00Z
@@ -12,7 +12,7 @@ subsystem: SS-11
 capability: CAP-11
 lifecycle_status: active
 introduced: v0.8.0
-modified: ["v1.1 2026-06-17: F2 adversarial pass-1 — add singleton immutability invariant (F-259-03), severity-agnostic postcondition (F-259-04), input-order determinism assumption (F-259-06), raw-key vs escaped-display postcondition and test vector (F-259-09)", "v1.2 2026-06-17: F2 adversarial pass-2 — Vec-accumulator canonical (F-A01); strengthen primary flood test vector (F-A04); fix dispatch anchor 149-160→149-162 (F-A05)", "v1.3 2026-06-17: F2 adversarial pass-4 — F-F2-A01: Invariant 6 singleton claim converted from 'byte-identical to calling render_finding_flat directly' to observable-behavior form; F-F2-O01: anchor :203-226 → :203-227; F-F2-O02: flood vector timestamp updated to 'differing per-request timestamps (non-key field)' to reflect real empty-UA emission pattern", "v1.4 2026-06-17: F2 adversarial pass-9 — F-PA-02: soften flood-vector timestamp claim: 'DIFFERING per-request timestamps' → 'timestamps MAY differ across requests/flows (timestamp is a NON-KEY field; collapse is invariant to it regardless)' to avoid implying timestamps always differ", "v1.5 2026-06-17: F2 adversarial passes 12-14 — F-PA-A01: generalize Invariant 6 'representative' definition from N=1 singleton to all N≥1 (group representative = group_members[0] for all N); cross-reference BC-2.11.026 PC-7 for the display consequence", "v1.6 2026-06-17: F-F3-001: fix flood-vector evidence format — 'GET /a HTTP/1.1'→'GET /a' (method + URI only; no HTTP version token per http.rs:365 format!(\"{} {}\", parsed.method, parsed.uri))"]
+modified: ["v1.1 2026-06-17: F2 adversarial pass-1 — add singleton immutability invariant (F-259-03), severity-agnostic postcondition (F-259-04), input-order determinism assumption (F-259-06), raw-key vs escaped-display postcondition and test vector (F-259-09)", "v1.2 2026-06-17: F2 adversarial pass-2 — Vec-accumulator canonical (F-A01); strengthen primary flood test vector (F-A04); fix dispatch anchor 149-160→149-162 (F-A05)", "v1.3 2026-06-17: F2 adversarial pass-4 — F-F2-A01: Invariant 6 singleton claim converted from 'byte-identical to calling render_finding_flat directly' to observable-behavior form; F-F2-O01: anchor :203-226 → :203-227; F-F2-O02: flood vector timestamp updated to 'differing per-request timestamps (non-key field)' to reflect real empty-UA emission pattern", "v1.4 2026-06-17: F2 adversarial pass-9 — F-PA-02: soften flood-vector timestamp claim: 'DIFFERING per-request timestamps' → 'timestamps MAY differ across requests/flows (timestamp is a NON-KEY field; collapse is invariant to it regardless)' to avoid implying timestamps always differ", "v1.5 2026-06-17: F2 adversarial passes 12-14 — F-PA-A01: generalize Invariant 6 'representative' definition from N=1 singleton to all N≥1 (group representative = group_members[0] for all N); cross-reference BC-2.11.026 PC-7 for the display consequence", "v1.6 2026-06-17: F-F3-001: fix flood-vector evidence format — 'GET /a HTTP/1.1'→'GET /a' (method + URI only; no HTTP version token per http.rs:365 format!(\"{} {}\", parsed.method, parsed.uri))", "v1.7 2026-06-17: issue-#62 F2 BC re-anchor — replace show_mitre_grouping/collapse_findings bool references with FindingsRender enum: Description + Preconditions 1-2 + Invariant 5 + EC-011 updated. Rationale: illegal-state elimination (FindingsRender::FlatCollapsed implies flat mode by type; the former Precondition 2 'show_mitre_grouping = false' is now a type-level guarantee). No behavioral change.", "v1.8 2026-06-18: issue-#62 F2 adversary pass-2 fix (F-6) — VP-table row: 'show_mitre_grouping=true suppresses collapse' → 'render = FindingsRender::Grouped suppresses collapse'. Normative-position miss caught post-re-anchor; test function name test_BC_2_11_025_grouped_mode_bypasses_collapse unchanged."]
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -25,26 +25,29 @@ removal_reason: null
 
 ## Description
 
-When `TerminalReporter.collapse_findings = true` and `show_mitre_grouping = false`, the
-flat-mode FINDINGS section collapses the raw `findings` slice into display groups before
-rendering. Two findings are members of the same group if and only if all four key fields
-are equal: `category`, `verdict`, `confidence`, and `summary`. Any difference in any of
-these four fields — even one character in `summary` — produces a distinct group. Fields
-outside the key (`evidence`, `mitre_techniques`, `source_ip`, `timestamp`, `direction`)
-are NOT part of the key; they vary per instance and are retained as evidence samples
-(governed by BC-2.11.027). The collapsed output preserves first-occurrence order: each
-group's position in the output is determined by the index of the first finding matching
-that key in the input slice. Group order is stable and deterministic across all runs given
-the same input slice.
+When `TerminalReporter.render = FindingsRender::FlatCollapsed`, the flat-mode FINDINGS section
+collapses the raw `findings` slice into display groups before rendering. Two findings are members
+of the same group if and only if all four key fields are equal: `category`, `verdict`,
+`confidence`, and `summary`. Any difference in any of these four fields — even one character in
+`summary` — produces a distinct group. Fields outside the key (`evidence`, `mitre_techniques`,
+`source_ip`, `timestamp`, `direction`) are NOT part of the key; they vary per instance and are
+retained as evidence samples (governed by BC-2.11.027). The collapsed output preserves
+first-occurrence order: each group's position in the output is determined by the index of the
+first finding matching that key in the input slice. Group order is stable and deterministic
+across all runs given the same input slice.
 
-This BC is scoped to flat mode only (`show_mitre_grouping = false`). Grouped (`--mitre`)
-mode renders findings individually regardless of `collapse_findings`. Grouped-mode collapse
-is deferred to a future cycle (see STORY-119).
+This BC is scoped to `FindingsRender::FlatCollapsed` only. `FindingsRender::Grouped` (`--mitre`)
+mode renders findings individually; grouped-mode collapse is deferred to a future cycle (see
+STORY-119). `FindingsRender::FlatExpanded` (`--no-collapse`) renders each finding individually
+without grouping. The `FindingsRender` enum makes the three modes mutually exclusive at the type
+level, eliminating the former impossible state (`show_mitre_grouping = true && collapse_findings = true`).
 
 ## Preconditions
 
-1. `TerminalReporter.collapse_findings = true`.
-2. `TerminalReporter.show_mitre_grouping = false` (flat mode).
+1. `TerminalReporter.render = FindingsRender::FlatCollapsed` (set by default; opt-out via
+   `--no-collapse` sets `FindingsRender::FlatExpanded`).
+2. Flat mode is guaranteed by `FindingsRender::FlatCollapsed` at the type level — no separate
+   `show_mitre_grouping = false` check is needed.
 3. `findings` is a non-empty `&[Finding]` slice passed to `render()`.
 4. The `Finding` struct fields used as the aggregation key (`category: ThreatCategory`,
    `verdict: Verdict`, `confidence: Confidence`, `summary: String`) are populated on every
@@ -104,8 +107,10 @@ is deferred to a future cycle (see STORY-119).
 4. The collapse pass is a private implementation detail of `TerminalReporter`. `JsonReporter`
    and `CsvReporter` always receive and render the original unmodified `findings` slice
    (BC-2.11.029).
-5. This invariant is scoped to flat mode. When `show_mitre_grouping = true`, the collapse
-   pass is not applied regardless of the `collapse_findings` field value.
+5. This invariant is scoped to `FindingsRender::FlatCollapsed`. The `FindingsRender` enum
+   makes the grouped vs. flat distinction structural: `FindingsRender::Grouped` never
+   applies the collapse pass (BC-2.11.013 Invariant 4). The former impossible state
+   (`show_mitre_grouping = true && collapse_findings = true`) is now unrepresentable.
 6. **Group representative definition (all N≥1):** The "representative finding" of any group is
    `group_members[0]` — the first `&Finding` element in emission order that established the
    group's collapse key. This definition holds for all N≥1:
@@ -142,7 +147,7 @@ is deferred to a future cycle (see STORY-119).
 | EC-008 | Two findings differ in confidence only | Two distinct groups |
 | EC-009 | Two findings differ in summary by one character | Two distinct groups |
 | EC-010 | Input slice has a single finding | One singleton group; rendered as current (no count suffix per BC-2.11.026) |
-| EC-011 | show_mitre_grouping=true, collapse_findings=true | Collapse pass NOT applied; findings rendered individually via grouped path (scoping boundary) |
+| EC-011 | `render = FindingsRender::Grouped` (formerly the impossible `show_mitre_grouping=true, collapse_findings=true` state) | Collapse pass NOT applied; findings rendered individually via grouped path. The `FindingsRender` enum makes this structurally enforced — `Grouped` variant never reaches the collapse pass. |
 | EC-012 | Summary contains attacker-controlled bytes (C0/ESC) | Key comparison operates on raw bytes; escape_for_terminal applied at render time per BC-2.11.010, not during key construction |
 | EC-013 | Mixed: 3 findings with key A, 2 with key B, 1 with key C; input order A,B,A,C,B,A | Output groups in order: A (count 3), B (count 2), C (count 1) — first-occurrence position of A is index 0, B is index 1, C is index 3 |
 | EC-014 | Two findings identical except verdict=Likely and confidence=High (high-severity pair), same summary | Collapsed into one group with ` (x2)` suffix — collapse is severity-agnostic; no "low-value" gating condition |
@@ -168,7 +173,7 @@ is deferred to a future cycle (see STORY-119).
 | — | Key discriminator: category difference prevents collapse | unit: test_BC_2_11_025_key_discriminator_category |
 | — | Key discriminator: evidence difference does NOT prevent collapse | unit: test_BC_2_11_025_key_discriminator_evidence_nondiscriminating |
 | — | First-occurrence group order preserved | unit: test_BC_2_11_025_first_occurrence_order |
-| — | show_mitre_grouping=true suppresses collapse | unit: test_BC_2_11_025_grouped_mode_bypasses_collapse |
+| — | render = FindingsRender::Grouped suppresses collapse | unit: test_BC_2_11_025_grouped_mode_bypasses_collapse |
 
 ## Traceability
 

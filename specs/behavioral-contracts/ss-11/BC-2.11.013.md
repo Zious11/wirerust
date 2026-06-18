@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.11"
+version: "1.12"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -24,6 +24,7 @@ modified:
   - "v1.9: issue-#259 F2 integrate (v0.8.0 collapse feature) — add Invariant 4 and EC-007 explicitly scoping collapse interaction: when show_mitre_grouping=true, the collapse pass (BC-2.11.025) is NOT applied regardless of collapse_findings field value. Grouped mode renders each finding individually. Collapse within grouped/--mitre mode is DEFERRED to STORY-119 (future cycle). Cross-references BC-2.11.025/028/029. ADR-0003 (display-layer aggregation subsection) cited. — 2026-06-17"
   - "v1.10 2026-06-17: F2 adversarial pass-2 — strengthen EC-007: assert structural suffix-free guarantee via path-(b) wrapper (render_finding_prefix unchanged; grouped path structurally unable to emit suffix) (F-A03)"
   - "v1.11 2026-06-17: F2 adversarial pass-4 — F-F2-A01: EC-007 STRUCTURAL guarantee converted to OBSERVABLE GUARANTEE form; remove call-graph prescription 'render_finding_prefix itself is UNCHANGED; the collapse-aware flat wrapper that appends suffixes is never called from the grouped path'"
+  - "v1.12 2026-06-17: issue-#62 F2 BC re-anchor — replace show_mitre_grouping bool references with FindingsRender enum: Precondition 1 and Description 'show_mitre_grouping = true' → 'render = FindingsRender::Grouped'; Invariant 4 scoping boundary reworded to enum form; EC-007 condition reworded. Rationale: illegal-state elimination (grouping=true && collapse=true unrepresentable as FindingsRender::Grouped). No behavioral change."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -45,7 +46,7 @@ removal_reason: null
 
 ## Description
 
-When `TerminalReporter.show_mitre_grouping = true`, the FINDINGS section is reorganized into
+When `TerminalReporter.render = FindingsRender::Grouped`, the FINDINGS section is reorganized into
 per-tactic buckets. Tactic headers are emitted in the order returned by
 `all_tactics_in_report_order()` (MITRE Enterprise kill-chain order first, then ICS tactics).
 An `Uncategorized` bucket is always appended last, collecting findings with an empty
@@ -57,7 +58,7 @@ approximation per ADR-006 §13.7; full multi-tactic display is a future enhancem
 
 ## Preconditions
 
-1. `TerminalReporter.show_mitre_grouping = true`.
+1. `TerminalReporter.render = FindingsRender::Grouped` (set via `--mitre` CLI flag).
 2. `findings` is non-empty.
 3. At least some findings have a non-empty `mitre_techniques` vec containing a recognized ID;
    others may have empty vecs or unknown IDs.
@@ -88,12 +89,13 @@ approximation per ADR-006 §13.7; full multi-tactic display is a future enhancem
 3. A tactic section is SKIPPED if no findings belong to it. This prevents empty section
    headers in the output.
 4. **v0.8.0 collapse scoping boundary (BC-2.11.025 Invariant 5):** When
-   `show_mitre_grouping = true`, the collapse pass introduced in v0.8.0 (BC-2.11.025) is NOT
-   applied regardless of the `collapse_findings` field value. Grouped mode renders each finding
-   individually, one per `render_finding_grouped` call, with no count suffix. Collapse within
+   `render = FindingsRender::Grouped`, the collapse pass introduced in v0.8.0 (BC-2.11.025) is NOT
+   applied. The `FindingsRender` enum makes the former illegal state (`show_mitre_grouping = true &&
+   collapse_findings = true`) structurally unrepresentable — `FindingsRender::Grouped` is the single
+   variant that activates the grouped path, with no collapse-flag axis. Grouped mode renders each
+   finding individually, one per `render_finding_grouped` call, with no count suffix. Collapse within
    grouped/`--mitre` mode is deferred to STORY-119 (future cycle). This invariant preserves the
-   existing BC-2.11.013 behavior exactly when `--mitre` is active, even after v0.8.0 ships the
-   default-on collapse feature for flat mode.
+   existing BC-2.11.013 behavior exactly when `--mitre` is active.
 
 ## Edge Cases
 
@@ -105,7 +107,7 @@ approximation per ADR-006 §13.7; full multi-tactic display is a future enhancem
 | EC-004 | Mix: known + unknown + empty mitre_techniques | Named sections + ## Uncategorized last |
 | EC-005 | Empty findings slice | No FINDINGS section rendered at all (not grouping-mode specific) |
 | EC-006 | Finding with mitre_techniques=["T1692.001","T0836"] (multi-tag) | Groups under MitreTactic::IcsImpairProcessControl (T1692.001's tactic); T0836 visible in inline rendering but does not create a second bucket |
-| EC-007 | show_mitre_grouping=true AND collapse_findings=true (both flags active) | Collapse pass NOT applied; each finding rendered individually; no (xN) count suffix on any finding; grouped-mode behavior unchanged from pre-v0.8.0 (Invariant 4 scoping boundary). OBSERVABLE GUARANTEE: no ` (xN)` suffix appears in the terminal output for any grouped-mode finding, at any input volume — this is the same guarantee as BC-2.11.026 EC-007 and BC-2.11.025 Invariant 5 |
+| EC-007 | `render = FindingsRender::Grouped` with multiple identical-key findings (formerly the `show_mitre_grouping=true AND collapse_findings=true` impossible state) | The `FindingsRender` enum makes this combination structurally unrepresentable; `FindingsRender::Grouped` implies no collapse pass. Each finding is rendered individually; no `(xN)` count suffix on any finding. OBSERVABLE GUARANTEE: no ` (xN)` suffix appears in the terminal output for any grouped-mode finding, at any input volume — this is the same guarantee as BC-2.11.026 EC-007 and BC-2.11.025 Invariant 5 |
 
 ## Canonical Test Vectors
 
@@ -140,8 +142,8 @@ approximation per ADR-006 §13.7; full multi-tactic display is a future enhancem
 - BC-2.11.015 -- composes with (None/unknown bucket definition)
 - BC-2.11.016 -- composes with (per-finding line format in grouped mode)
 - BC-2.10.003 -- depends on (all_tactics_in_report_order provides the canonical iteration)
-- BC-2.11.025 -- contrasts with (BC-025 collapse key contract; Invariant 4 here establishes that BC-025 collapse pass is not applied when show_mitre_grouping=true)
-- BC-2.11.028 -- contrasts with (--no-collapse opt-out flag; in grouped mode collapse is already suppressed by show_mitre_grouping guard; --no-collapse has no additional effect)
+- BC-2.11.025 -- contrasts with (BC-025 collapse key contract; Invariant 4 here establishes that BC-025 collapse pass is not applied when render=FindingsRender::Grouped)
+- BC-2.11.028 -- contrasts with (--no-collapse opt-out flag; in grouped mode FindingsRender::Grouped structurally prevents collapse; --no-collapse has no additional effect)
 - BC-2.11.029 -- composes with (JSON/CSV raw-stream invariant; grouped mode does not affect JSON/CSV unmodified-slice guarantee)
 
 ## Architecture Anchors
