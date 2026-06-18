@@ -12,11 +12,12 @@ modified:
   - "2026-06-17 v1.7: Adversarial Burst 5 remediation — stale 69→71 in two live current-state prose assertions (brownfield context note line ~28; acyclicity proof line ~254)."
   - "2026-06-17 v1.8: Adversarial Burst 6 remediation — BC-2.11.027 version stamp in BC-to-Stories matrix row (line ~740) updated v1.3→v1.4 (escape-notation fix bump). All other 8 BC version stamps confirmed MATCH vs live frontmatter."
   - "2026-06-17 v1.9: DF-INPUT-HASH-CANONICAL-001 — BC-2.11.025 bumped v1.5→v1.6 by BC-PO (canonical-vector evidence HTTP/1.1 fix); updated BC-2.11.025 stamp in BC-to-Stories matrix (v1.5→v1.6). STORY-118 input-hash recomputed: 432f43e → 77d97c6."
-total_stories: 71  # product stories only (excludes STORY-091 tooling; all-stories total = 72)
-total_edges: 94
-intra_epic_edges: 75
+  - "2026-06-18 v2.0: Feature #62 (issue #62, FindingsRender enum migration) — added STORY-120 (E-8, wave 48) for TerminalReporter enum-of-modes refactor (v0.9.0). total_stories 71→72 (product; +STORY-091 tooling = 73 all-stories). total_edges 94→95 (+1 intra E-8: STORY-120 blocks STORY-119, expressed as STORY-120→STORY-119 edge replacing the prior STORY-118→STORY-119 edge; STORY-119 now depends_on=[STORY-120]). number_of_waves 47→48. STORY-120 depends_on=[] (reporter struct exists; no new predecessor required). total_points 468→471 (product +3; scheduled wave-table total)."
+total_stories: 72  # product stories only (excludes STORY-091 tooling; all-stories total = 73)
+total_edges: 95
+intra_epic_edges: 76
 cross_epic_edges: 19
-number_of_waves: 47
+number_of_waves: 48
 acyclic: true
 traces_to:
   - .factory/stories/epics.md
@@ -28,8 +29,8 @@ traces_to:
 # wirerust Story Dependency Graph
 
 > **Brownfield context:** wirerust is a single-crate offline pcap forensic triage CLI.
-> All 71 product stories formalize behavioral contracts for existing and new shipped code
-> (48 greenfield + F2/F7/F8/F9/F18 feature additions across E-14, E-15, E-16, E-18).
+> All 72 product stories formalize behavioral contracts for existing and new shipped code
+> (48 greenfield + F2/F7/F8/F9/F18/F62 feature additions across E-14, E-15, E-16, E-18, E-8).
 > Cross-epic dependencies reflect the architecture pipeline layering
 > (L1 Ingest -> L2 Stream -> L3 Domain -> L4 Output -> L0 Entry) defined in
 > `architecture/dependency-graph.md` and `architecture/module-decomposition.md`.
@@ -40,13 +41,13 @@ traces_to:
 
 | Metric | Value |
 |--------|-------|
-| Total stories | 71 (product; +STORY-091 tooling = 72) |
-| Total dependency edges | 94 |
-| Intra-epic edges | 75 |
+| Total stories | 72 (product; +STORY-091 tooling = 73) |
+| Total dependency edges | 95 |
+| Intra-epic edges | 76 |
 | Cross-epic edges | 19 |
-| Number of parallel waves | 47 (STORY-119 unscheduled/deferred; wave count reflects STORY-118 wave 47) |
-| Graph is acyclic | Yes (Kahn topological sort verified; STORY-097→098→099 extend acyclic order; STORY-106→107→108→109→110 extend further; STORY-111→112→113→114→115 extend further; STORY-115→116→117 extend further; STORY-118 has no new predecessors (depends_on=[]); STORY-119 depends on STORY-118 — no back-edges into existing 71-story graph) |
-| Total story points | 468 (product; +5 tooling = 473; +8 STORY-118; STORY-119 deferred/8pts not in scheduled total) |
+| Number of parallel waves | 48 (STORY-119 unscheduled/deferred; wave count reflects STORY-120 wave 48) |
+| Graph is acyclic | Yes (Kahn topological sort verified; STORY-097→098→099 extend acyclic order; STORY-106→107→108→109→110 extend further; STORY-111→112→113→114→115 extend further; STORY-115→116→117 extend further; STORY-118 has no new predecessors (depends_on=[]); STORY-120 has no new predecessors (depends_on=[]); STORY-119 now depends on STORY-120 — no back-edges into existing 72-story graph) |
+| Total story points | 471 (product; +5 tooling = 476; +3 STORY-120; STORY-119 deferred/8pts not in scheduled total) |
 
 ---
 
@@ -73,7 +74,7 @@ Dependencies in this graph respect the layer rules from
 
 ## Dependencies (Edge List)
 
-### Intra-Epic Edges (75 edges)
+### Intra-Epic Edges (76 edges)
 
 #### Epic E-1: PCAP Ingestion and Packet Decoding
 
@@ -209,11 +210,12 @@ Dependencies in this graph respect the layer rules from
 |------|----|---------------|
 | STORY-116 | STORY-117 | STORY-117 (MACsec offset-assertion tests) logically sequences after STORY-116's QinQ offset coverage: STORY-116 establishes the offset-formula understanding via `tests/bc_2_16_qinq_macsec_offset_tests.rs` (QinQ benign/malformed + observe-only MACsec probe), and STORY-117 builds on that understanding with full offset-assertion tests in the distinct file `tests/bc_2_16_e17_macsec_offset_tests.rs` (no-SCI offset 22, SCI-present offset 30, D11 routing, opaque-unreachable security guards). The two test files are independently compilable (no shared module); the edge reflects logical sequencing and QinQ-infrastructure reuse, not a file/module conflict. |
 
-#### Epic E-18: Terminal Finding-Collapse (issue #259, v0.8.0)
+#### Epic E-18: Terminal Finding-Collapse (issue #259, v0.8.0) + Enum Migration (issue #62, v0.9.0)
 
 | From | To | Justification |
 |------|----|---------------|
-| STORY-118 | STORY-119 | STORY-119 (grouped-mode collapse, deferred) requires the `collapse_findings: bool` field, `CollapseKey` type, `COLLAPSE_EVIDENCE_SAMPLES` constant, and `collapse_findings_pass` function introduced by STORY-118. Without STORY-118 shipped, the grouped path has no field to check and no key type to instantiate — compile-order dependency on STORY-118's struct additions to `src/reporter/terminal.rs`. |
+| STORY-118 | STORY-120 | STORY-120 (FindingsRender enum migration, v0.9.0) refactors the `TerminalReporter` struct introduced by STORY-118. STORY-118 is completed; its four-bool struct is the refactor target. No compile-order dependency (the struct exists); logical sequencing places STORY-120 after STORY-118. |
+| STORY-120 | STORY-119 | STORY-119 (grouped-mode collapse, deferred) will use the `FindingsRender` enum variants introduced by STORY-120. If STORY-119 were delivered before STORY-120, its construction sites would use the old bool fields and require a second sweep. STORY-120 replaces the prior STORY-118→STORY-119 edge for this justification: STORY-119's implementer should build against the enum vocabulary, not the removed bools. Additionally, STORY-119 depends on STORY-120's `render: FindingsRender` field being present — the grouped-mode collapse feature will check `FindingsRender::Grouped` in its dispatch. |
 
 ---
 
@@ -609,6 +611,16 @@ and can be dispatched in parallel.
 
 > **Note:** STORY-118 has `depends_on: []` — it is a reporter-only story that extends the existing `TerminalReporter` struct (landed in STORY-077/078) with a new `collapse_findings` field and a private collapse pass. No new cross-epic or intra-epic predecessor is required.
 
+### Wave 48 — 1 story | Epic: E-8
+
+| Story | Epic | Points | Subsystem | Description |
+|-------|------|--------|-----------|-------------|
+| STORY-120 | E-8 | 3 | SS-11 | TerminalReporter FindingsRender Enum Migration (v0.9.0) — replace show_mitre_grouping+collapse_findings bools with render: FindingsRender enum; 28 construction sites updated; byte-identical output |
+
+> **Release gate:** v0.9.0 ships after Wave 48 gate (STORY-120 PR merged, `cargo test --all-targets` green, `cargo-semver-checks` `struct_field_missing` documented, Cargo.toml version bumped to 0.9.0). STORY-119 (grouped-mode collapse) remains DEFERRED and unscheduled; it does not block v0.9.0.
+
+> **Note:** STORY-120 has `depends_on: []` — it refactors the existing `TerminalReporter` struct (completed in STORY-118) by replacing two bool fields with a single `FindingsRender` enum field. No new cross-epic or intra-epic predecessor is required. The struct already exists; this is a pure type-system improvement. STORY-120 blocks STORY-119: STORY-119's implementer should build against the enum vocabulary established here.
+
 ---
 
 ## Topological Order (Full Sequence)
@@ -628,20 +640,22 @@ STORY-086 -> STORY-087 -> STORY-096 -> STORY-088 -> STORY-089 -> STORY-090 ->
 STORY-106 -> STORY-107 -> STORY-108 -> STORY-109 -> STORY-110 ->
 STORY-111 -> STORY-112 -> STORY-113 -> STORY-114 -> STORY-115 ->
 STORY-116 -> STORY-117
-[Wave 47 (independent): STORY-118] -> STORY-119 (deferred/unscheduled)
+[Wave 47 (independent): STORY-118] ->
+[Wave 48 (independent): STORY-120] -> STORY-119 (deferred/unscheduled)
 ```
 
-> **Cycle check:** All 71 product nodes processed by Kahn's algorithm. No node remained
+> **Cycle check:** All 72 product nodes processed by Kahn's algorithm. No node remained
 > in the queue with non-zero in-degree after processing. Graph is acyclic.
 > E-15 chain (STORY-106→107→108→109→110) is strictly linear; STORY-106 depends on
 > STORY-100 (cross-epic), STORY-110 depends on STORY-105 (cross-epic for VP-004 oracle
 > ordering). E-16 chain (STORY-111→112→113→114→115) is strictly linear; STORY-111
 > depends on STORY-110 (cross-epic: dispatcher file ordering constraint). E-17 chain
 > (STORY-116→117) is strictly linear; STORY-116 depends on STORY-115 (cross-epic:
-> E-16 ARP decode-time logic must be shipped before offset regression tests). E-18 chain
-> (STORY-118→119) is strictly linear; STORY-118 has `depends_on=[]` (reporter-only,
-> no new predecessor); STORY-119 depends on STORY-118 (compile-order: struct additions
-> to terminal.rs). No back-edges into the existing 71-story graph.
+> E-16 ARP decode-time logic must be shipped before offset regression tests). E-8/E-18
+> chain (STORY-118→120→119): STORY-118 has `depends_on=[]` (reporter-only, no new
+> predecessor); STORY-120 has `depends_on=[]` (refactors existing struct — no compile
+> predecessor); STORY-119 depends on STORY-120 (logical sequencing: build against enum
+> vocabulary). No back-edges into the existing 72-story graph.
 
 ---
 
@@ -663,12 +677,13 @@ iteratively. Result:
 - E-17 extension (STORY-116→117) is a linear tail appended after Wave 44;
   it has one cross-epic edge (STORY-115→116) that adds in-degree only to the E-17 root
   node — no existing node gains a new in-degree, so no cycle is possible
-- E-18 extension (STORY-118→119): STORY-118 has `depends_on=[]` (Wave 47, no new
-  predecessor — reporter-only story extends existing TerminalReporter struct); STORY-119
-  depends on STORY-118 only (deferred/unscheduled). Adding STORY-118 as a zero-in-degree
-  node does not change any existing node's in-degree. Adding the STORY-118→119 edge
-  adds in-degree only to STORY-119. No existing node gains a new in-degree, so no cycle
-  is possible.
+- E-18/E-8 extension (STORY-118→120→119): STORY-118 has `depends_on=[]` (Wave 47,
+  reporter-only story extends existing TerminalReporter struct); STORY-120 has
+  `depends_on=[]` (Wave 48, refactors existing struct — no compile predecessor required);
+  STORY-119 now depends on STORY-120 only (deferred/unscheduled). Adding STORY-120 as a
+  zero-in-degree node does not change any existing node's in-degree. Routing the prior
+  STORY-118→119 edge through STORY-120→119 adds in-degree only to STORY-119 (via
+  STORY-120). No existing node gains a new in-degree, so no cycle is possible.
 
 ---
 
@@ -739,11 +754,13 @@ iteratively. Result:
 | BC-2.16.008, BC-2.16.013 (+BC-2.16.010 extension) | STORY-115 | E-16 | SS-02, SS-16 |
 | BC-2.16.009 (EC-008 QinQ offset 22, EC-009 MACsec observe-only probe — v1.10 additions) | STORY-116, STORY-117 | E-17 | SS-16 |
 | BC-2.16.015 (PC-7a QinQ offset 22, EC-008, EC-009 — v1.9 additions) | STORY-116, STORY-117 | E-17 | SS-16 |
-| BC-2.11.025 (v1.6), BC-2.11.026 (v1.8), BC-2.11.027 (v1.4), BC-2.11.028 (v1.4), BC-2.11.029 (v1.2) | STORY-118 | E-18 | SS-11 |
-| BC-2.11.010 (v1.8, collapse escape-path extension), BC-2.11.013 (v1.11, grouped-mode bypass), BC-2.11.017 (v1.13, MITRE line from group_members[0]), BC-2.11.019 (v1.6, flat dispatch routing) | STORY-118 | E-18 | SS-11 |
+| BC-2.11.025 (v1.8), BC-2.11.026 (v1.9), BC-2.11.027 (v1.5), BC-2.11.028 (v1.5), BC-2.11.029 (v1.4) | STORY-118 (implemented), STORY-120 (re-anchor carrier) | E-18/E-8 | SS-11 |
+| BC-2.11.010 (v1.9, collapse escape-path extension), BC-2.11.013 (v1.12, enum anchor), BC-2.11.017 (v1.14, enum anchor), BC-2.11.019 (v1.7, enum anchor) | STORY-118 (impl), STORY-120 (enum migration) | E-18/E-8 | SS-11 |
+| BC-2.11.014 (v1.7), BC-2.11.015 (v1.8), BC-2.11.016 (v1.7) | STORY-078 (impl), STORY-120 (enum migration — Grouped arm) | E-8 | SS-11 |
 | BC-2.11.013 (Invariant 4 forward-ref), BC-2.11.025 (Invariant 5 forward-ref), BC-2.11.026 (PC-4 grouped suffix-free guarantee) | STORY-119 (deferred stub) | E-18 | SS-11 |
+| BC-2.11.010 (v1.9), BC-2.11.013 (v1.12), BC-2.11.014 (v1.7), BC-2.11.015 (v1.8), BC-2.11.016 (v1.7), BC-2.11.017 (v1.14), BC-2.11.019 (v1.7), BC-2.11.025 (v1.8), BC-2.11.026 (v1.9), BC-2.11.027 (v1.5), BC-2.11.028 (v1.5), BC-2.11.029 (v1.4) | STORY-120 | E-8 | SS-11 |
 
-**Coverage: 288 / 288 BCs assigned (283 pre-E18 + 5 NEW BCs: BC-2.11.025/026/027/028/029; BC-2.11.010/013/017/019 are EXTENDED/versioned — not new BCs, already counted in the 283 total via STORY-077/078). E-18 (STORY-118) introduces 5 new BCs (all under ss-11/). STORY-119 is a forward-reference stub that deepens coverage of 3 existing BCs; no new BCs introduced for the deferred story.**
+**Coverage: 288 / 288 BCs assigned (283 pre-E18 + 5 NEW BCs: BC-2.11.025/026/027/028/029; BC-2.11.010/013/017/019 are EXTENDED/versioned — not new BCs, already counted in the 283 total via STORY-077/078). E-18 (STORY-118) introduces 5 new BCs (all under ss-11/). STORY-120 is the enum-migration story carrying the re-anchored BC vocabulary for all 12 SS-11 BCs; no new BCs. STORY-119 is a forward-reference stub that deepens coverage of 3 existing BCs; no new BCs introduced for the deferred story.**
 
 ---
 
@@ -844,18 +861,21 @@ E-17 (SS-16 ARP VLAN/QinQ/MACsec) — linear chain:
   STORY-116 -> STORY-117
   (SS-16 VLAN+QinQ fixture coverage -> SS-16 MACsec observe-only probe)
 
-E-18 (SS-11 Terminal Finding-Collapse, issue #259) — linear chain (Wave 47 + deferred):
-  STORY-118 (Wave 47) -> STORY-119 (deferred/unscheduled)
-  (SS-11 flat-mode collapse + --no-collapse flag + JSON/CSV invariant -> SS-11 grouped-mode collapse, future cycle)
+E-18/E-8 (SS-11 Terminal Finding-Collapse + Enum Migration) — linear chain (Waves 47-48 + deferred):
+  STORY-118 (Wave 47) -> STORY-120 (Wave 48) -> STORY-119 (deferred/unscheduled)
+  (SS-11 flat-mode collapse + --no-collapse flag -> SS-11 FindingsRender enum migration v0.9.0 -> SS-11 grouped-mode collapse, future cycle)
   STORY-118 has NO upstream dependency (depends_on=[]); it is an independent extension
   of the existing TerminalReporter struct introduced in STORY-077/078.
+  STORY-120 has NO upstream dependency (depends_on=[]); it refactors the existing
+  TerminalReporter struct completed in STORY-118 by replacing two bool fields with
+  a FindingsRender enum.
 ```
 
 ---
 
 ## Gap Register
 
-No story-decomposition gaps identified. All 283 BCs are covered (219 pre-feature + 25 Modbus BC-2.14.001..025 + 24 DNP3 BC-2.15.001..024 across STORY-106..110 + 15 ARP BC-2.16.001..015 across STORY-112..115; BC-2.02.009 is revised in STORY-111, not a new BC).
+No story-decomposition gaps identified. All 288 BCs are covered (219 pre-feature + 25 Modbus BC-2.14.001..025 + 24 DNP3 BC-2.15.001..024 across STORY-106..110 + 15 ARP BC-2.16.001..015 across STORY-112..115 + 5 new E-18 BCs BC-2.11.025..029 via STORY-118; BC-2.02.009 is revised in STORY-111, not a new BC; BC-2.11.010/013/014/015/016/017/019 are extended/versioned — coverage assigned to STORY-078 and extended by STORY-118/STORY-120).
 All L2 domain capabilities (CAP-NNN) are covered by at least one story.
 All cross-epic architectural dependencies are captured in this graph.
 
@@ -871,16 +891,21 @@ E-16 ARP specific gap notes:
 E-17 ARP offset hardening specific gap notes:
 - BC-2.16.009 and BC-2.16.015 are primarily owned by STORY-113 and STORY-112 respectively; STORY-116 and STORY-117 extend coverage to EC-008 (QinQ offset) and EC-009 (MACsec observe-only) additions introduced in BC-2.16.009 v1.10 / BC-2.16.015 v1.9. No new BCs; no gap — deeper clause coverage on existing BCs.
 
-E-18 Terminal Finding-Collapse specific gap notes:
+E-18/E-8 Terminal Finding-Collapse + Enum Migration specific gap notes:
 - STORY-119 is deliberately deferred; BC-2.11.025 Invariant 5 and BC-2.11.013 Invariant 4
   explicitly document this boundary. Grouped-mode collapse is a future-cycle scope item.
-- BC-2.11.013, BC-2.11.017, BC-2.11.019 are EXTENDED by STORY-118 (new clauses for
-  collapse-path interaction) but ownership of their non-collapse clauses remains in
-  STORY-078. Both stories must be treated as co-owners of these BCs at review time.
+  STORY-119 now depends on STORY-120 (enum vocabulary established before grouped-mode work).
+- BC-2.11.013, BC-2.11.017, BC-2.11.019 are EXTENDED by STORY-118 and RE-ANCHORED by
+  STORY-120 (bool references → enum variants). Non-collapse clause ownership remains in
+  STORY-078. All three stories (STORY-078, STORY-118, STORY-120) are co-owners of these
+  BCs at review time.
+- STORY-120 carries no new BCs — it is a pure vocabulary migration. The 12 BCs in its
+  frontmatter are the same BCs owned by STORY-077/078/118; the enum re-anchoring is the
+  complete scope.
 
 | Gap ID | Level | Source | Justification | Resolution Target |
 |--------|-------|--------|---------------|-------------------|
-| GAP-001 | L1 | BC-2.11.013 Invariant 4 / BC-2.11.025 Invariant 5 | Grouped-mode collapse explicitly deferred to STORY-119 per F1 delta analysis §4 locked-design decision. v0.8.0 scope boundary. | Future feature cycle (STORY-119 activation) |
+| GAP-001 | L1 | BC-2.11.013 Invariant 4 / BC-2.11.025 Invariant 5 | Grouped-mode collapse explicitly deferred to STORY-119 per F1 delta analysis §4 locked-design decision. v0.8.0 scope boundary. STORY-120 (v0.9.0 enum migration) does not close this gap; STORY-119 remains deferred. | Future feature cycle (STORY-119 activation) |
 
 ---
 

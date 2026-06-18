@@ -1,8 +1,8 @@
 ---
 pipeline: FEATURE_MODE
 phase: F2
-phase_status: "FEATURE MODE — issue #62 TerminalReporter enum-of-modes refactor; F2 spec-evolution CONVERGED (3/3); 12 SS-11 BCs re-anchored to FindingsRender enum, ADR-0003 amended, HS-081 recomputed, completed stories frozen (D-088). NEXT = F3 incremental story decomposition (create STORY-120)."
-active_feature: "E-8 / #62 TerminalReporter enum-of-modes refactor — F1..F2 COMPLETE; F2 adversary gate SATISFIED 3/3 (frozen corpus 60d8392); NEXT = F3 incremental-stories (STORY-120); release target v0.9.0"
+phase_status: "FEATURE MODE issue #62 — F3 story decomposition: STORY-120 created (enum migration carrier, 28 construction sites, wave 48, E-8); F3 adversarial+consistency review round-1 found 1 CRITICAL + 2 HIGH + 2 MEDIUM + 4 MINOR, ALL FIXED; F3 convergence re-streak pending."
+active_feature: "E-8 / #62 TerminalReporter enum-of-modes refactor — F1..F3 IN PROGRESS; STORY-120 created (28 sites, wave 48); STORY-119 depends_on [STORY-120]; F3 adversary re-streak pending; release target v0.9.0"
 feature_arp_status: "v0.7.0 RELEASED 2026-06-16 — ARP Security Analyzer (E-16, issue #9); PR #256 dd8e142; tag v0.7.0; 4 binaries (aarch64-apple-darwin, x86_64-apple-darwin, x86_64-pc-windows-msvc, x86_64-unknown-linux-gnu)"
 feature_8_status: "v0.6.0 RELEASED 2026-06-12 — DNP3 TCP analyzer; F7 5-dim CONVERGED; tag v0.6.0 + 4 binaries"
 product: wirerust
@@ -70,6 +70,7 @@ adversary_convergence_counter: 3/3  # Pass 14 CONVERGENCE_REACHED; clean-streak 
 e8_f2_adversary_convergence_counter: "3/3 SATISFIED — GATE SATISFIED (frozen corpus 4231b6b; Passes 15/16/17 run in parallel; each zero MEDIUM-or-above; 17 passes total)."
 e8_f3_adversary_convergence_counter: "3/3 SATISFIED — GATE SATISFIED (frozen corpus bdd531a; Passes V/W/X run in parallel; each zero MEDIUM-or-above; 8 parallel triples / 24 passes total)."
 e8_f2_spec_evolution_adversary_convergence_counter: "3/3 SATISFIED — F2 spec-evolution adversarial gate SATISFIED (frozen corpus 60d8392; Round-4 triple A/B/C all CLEAN, zero MEDIUM+). Convergence took 4 rounds: R1 (5 findings), R2 (1 MEDIUM F-A2-01), R3 (1 MEDIUM F-R3A-01), R4 (3/3 CLEAN). Recurring root cause PG-62-F2-BOOKKEEPING-SWEEP-001 (post-fix-burst bookkeeping propagation)."
+e8_f3_story_adversary_convergence_counter: "0/3 — re-streak pending after F3 round-1 fix-burst (STORY-120 census/AC corrections)"
 e8_f4_wave_adversary_convergence_counter: "3/3 SATISFIED (passes 1/2/3 clean on develop 5f7cd1b)"
 e8_f5_scoped_adversary_convergence_counter: "3/3 SATISFIED (passes 1/2/3 clean on develop 5f7cd1b)"
 e8_f6_hardening_status: "HARDENED — no new VP; regression 1641/1641; VP-012 proptest pass; Kani/fuzz unaffected; collapse-delta mutation 100% kill; audit/deny clean"
@@ -125,17 +126,18 @@ input_drift_check: "F7-followup-dispositions burst (2026-06-16): STORY-071/100/1
 | Reactive fix: issue #220 Modbus burst-window display | **CLOSED** 2026-06-17 | PR #263 5ed8077; BC-2.14.017 v2.6; spec 8d5446d |
 | Maintenance maint-2026-06-17 | **COMPLETE** 2026-06-17 | 2 PRs delivered (#261/#262); 5 items deferred; develop c03a38b |
 | Feature E-18 / #259 finding-collapse — F1..F7 + Release v0.8.0 | **RELEASED** 2026-06-17 | STORY-118; 9 new BCs SS-11=29; total 288 BCs; F5 3/3; F6 mutation 100%; F7 5-dim CONVERGED; PR #264→develop 5f7cd1b; PR #265→main 73034da; tag v0.8.0; 4 binaries; run 27732692087. STORY-119 DEFERRED. Per-phase detail: cycles/feature-collapse-v0.8.0/phase-progress-archive.md |
-| Feature E-8 / #62 TerminalReporter enum-modes — F1..F2 COMPLETE | **F1..F2 COMPLETE — F2 adversarial gate SATISFIED 3/3 (60d8392)** | F2 fix-burst 2026-06-18: 12 unique SS-11 BCs re-anchored; BC-INDEX v1.42; ADR-0003 v0.9.0 subsection; PRD-delta (12 BCs + run_summary site); HS-081 9df8300 MATCH; STORY-077/078/118 FROZEN (D-088). 4 rounds to convergence (R1: 5 findings; R2: 1 MEDIUM; R3: 1 MEDIUM; R4: 3/3 CLEAN). NEXT = F3 (STORY-120). |
+| Feature E-8 / #62 TerminalReporter enum-modes — F1..F2 COMPLETE | **F1..F2 COMPLETE — F2 adversarial gate SATISFIED 3/3 (60d8392)** | F2 fix-burst 2026-06-18: 12 unique SS-11 BCs re-anchored; BC-INDEX v1.42; ADR-0003 v0.9.0 subsection; PRD-delta (12 BCs + run_summary site); HS-081 9df8300 MATCH; STORY-077/078/118 FROZEN (D-088). 4 rounds to convergence (R1: 5 findings; R2: 1 MEDIUM; R3: 1 MEDIUM; R4: 3/3 CLEAN). |
+| E-8 / #62 F3 story decomposition — IN PROGRESS | **F3 STORY-120 created; round-1 review FIXED; convergence pending (0/3)** | STORY-120 created (enum migration carrier, 28 construction sites, wave 48, E-8, 16 ACs, 3 pts, depends_on []). STORY-119 re-pointed to depends_on [STORY-120]. Round-1 adversarial+consistency: 1 CRITICAL (Grouped/FlatExpanded split) + 2 HIGH (census 35→28, dead citation) + 2 MEDIUM + 4 MINOR — ALL FIXED (D-092). Convergence re-streak pending. |
 
-## Session Resume Checkpoint (2026-06-18 — FEATURE MODE E-8 / #62; F2 CONVERGED — gate SATISFIED 3/3; NEXT = F3 incremental-stories)
+## Session Resume Checkpoint (2026-06-18 — FEATURE MODE E-8 / #62; F3 IN PROGRESS — STORY-120 created; round-1 fix-burst COMPLETE; convergence re-streak 0/3 pending)
 
-**Previous checkpoint (2026-06-18 — E-8/#62 F2 COMPLETE; round-4 re-streak 0/3 pending) archived to:
+**Previous checkpoint (2026-06-18 — E-8/#62 F2 CONVERGED; NEXT = F3) archived to:
 `.factory/cycles/feature-arp-v0.7.0/session-checkpoints.md`**
 
 ### A. EXACT PIPELINE POSITION
 
 - **Project:** wirerust. **Mode:** FEATURE_MODE — E-8 / issue #62 TerminalReporter enum-of-modes refactor.
-- **Phase:** F2 spec-evolution COMPLETE. Adversary gate SATISFIED — Round-4 triple A/B/C all CLEAN on frozen corpus 60d8392 (zero MEDIUM+). Pipeline advances F2 → F3.
+- **Phase:** F3 incremental story decomposition IN PROGRESS. STORY-120 created; round-1 adversarial+consistency fix-burst applied (D-092). F3 convergence re-streak: 0/3 — gate NOT SATISFIED.
 - **Latest release:** v0.8.0 — finding-collapse (E-18, issue #259, STORY-118). Tag v0.8.0 on main 73034da.
 - **develop HEAD:** bec13ba == origin/develop.
 - **main HEAD:** 73034da (chore: release v0.8.0).
@@ -155,22 +157,25 @@ input_drift_check: "F7-followup-dispositions burst (2026-06-16): STORY-071/100/1
 - `gh pr list --state open` → expect empty
 
 **Step 3 — WHAT IS COMPLETE (do NOT redo):**
-- v0.8.0 FULLY RELEASED (D-087). E-18 #259 CLOSED. STORY-119 DEFERRED.
+- v0.8.0 FULLY RELEASED (D-087). E-18 #259 CLOSED. STORY-119 DEFERRED (now re-pointed to depends_on [STORY-120]).
 - F1 delta-analysis for E-8 / #62 COMPLETE. Artifact: `.factory/phase-f1-delta-analysis/issue-62-terminal-reporter-enum-modes-delta-analysis.md`.
-- F2 spec-evolution fix-burst COMPLETE (2026-06-18, D-088): 12 unique SS-11 BCs re-anchored; BC-INDEX v1.42; ADR-0003 v0.9.0 render-mode subsection; PRD-delta (12 BCs + run_summary site); HS-081 9df8300 MATCH; STORY-077/078/118 FROZEN (D-088/D-089/D-090).
-- F2 adversarial convergence COMPLETE (D-091): Round-4 triple A/B/C all CLEAN on frozen corpus 60d8392. Gate SATISFIED 3/3. Two LOW cosmetic items deferred (DRIFT-62-BC026-PC6-LINEANCHOR-001, DRIFT-62-BC028-ECCOUNT-PROSE-001).
+- F2 spec-evolution COMPLETE (D-088–D-091): 12 SS-11 BCs re-anchored; ADR-0003 amended; HS-081 MATCH; STORY-077/078/118 FROZEN. Gate SATISFIED 3/3 (60d8392).
+- F3 STORY-120 created (28 construction sites, wave 48, E-8, 16 ACs, 3 pts, github_issue 62, depends_on [], input-hash ca8e753 MATCH). Round-1 adversarial+consistency ALL FIXED (D-092): census 35→28, Grouped/FlatExpanded split corrected, AC-005 citation corrected, AC-002/AC-006 quality improved.
+- dependency-graph.md v2.0: STORY-120 wave 48; STORY-119 depends_on [STORY-120].
+- STORY-INDEX.md v1.9: STORY-120 row; E-8 5→6 stories / 29→32 pts; TOTAL 73 stories; wave-48 row.
 
 **Step 4 — NEXT ACTIONS:**
-- Run F3 incremental story decomposition: create STORY-120 (FindingsRender enum — ~3 pts, Epic E-8, release target v0.9.0).
+- Run F3 adversary re-streak: dispatch 3 fresh-context passes on STORY-120 post-fix-burst corpus. Gate requires 3 consecutive CLEAN (zero MEDIUM+). Counter currently 0/3.
 
 ### C. KEY ARTIFACT POINTERS
 
 - F1 delta-analysis: `.factory/phase-f1-delta-analysis/issue-62-terminal-reporter-enum-modes-delta-analysis.md`
 - F2 PRD-delta: `.factory/phase-f2-spec-evolution/issue-62-prd-delta.md`
 - SS-11 BCs: `.factory/specs/behavioral-contracts/ss-11/BC-2.11.*.md`
+- STORY-120: `.factory/stories/STORY-120.md`
 - E-18 #259 cycle detail: `cycles/feature-collapse-v0.8.0/phase-progress-archive.md`
 - Tech-debt register: `.factory/tech-debt-register.md`
-- GitHub Release v0.8.0: https://github.com/Zious11/wirerust/releases/tag/v0.8.0
+- GitHub Release v0.8.0: https://github.com/Zious/wirerust/releases/tag/v0.8.0
 
 ## Decisions Log
 
@@ -216,6 +221,7 @@ D-001..D-054 archived: `cycles/v0.1.0-greenfield-spec/decisions-archive.md` (D-0
 | D-089 | Issue #62 F2 round-2 bookkeeping reconciliation (2026-06-18): Round-2 adversary Pass A found F-A2-01 MEDIUM — spec-changelog Scope line "Architecture unchanged." contradicted ADR-0003 amendment. Exhaustive bookkeeping self-audit applied: (1) spec-changelog Scope corrected + bookkeeping-correction note + ADR-0003/ARCH-INDEX rows added to Version Summary table; (2) PRD-delta Verification section extended with run_summary → FlatCollapsed (inert) construction site; (3) BC count clarified: 12 unique SS-11 BCs (.025 bumped twice; "13" in prior entries was a miscount). Round-3 re-streak pending. | 2026-06-18 |
 | D-090 | Issue #62 F2 round-3 bookkeeping fix (2026-06-18): Round-3 adversary Pass A found F-R3A-01 MEDIUM — PRD-delta BCs-Touched table .029 cell showed v1.3 (stale) while the actual BC file was at v1.4. Fixed: PRD-delta .029 row updated to show v1.3→v1.4 transition. Orchestrator then mechanically cross-checked all 12 BCs-Touched table "After" version cells against their BC files — 12/12 MATCH confirmed. 4th consecutive round where Pass A found exactly one stale-bookkeeping cell while Passes B/C were CLEAN; orchestrator broke the loop by doing a full-table mechanical sweep. PG-62-F2-BOOKKEEPING-SWEEP-001 reinforced (4th data point). Round-4 re-streak pending on fully reconciled corpus. | 2026-06-18 |
 | D-091 | Issue #62 F2 spec-evolution CONVERGED — F2 adversarial gate SATISFIED 3/3 on frozen corpus 60d8392 (Round-4 A/B/C all CLEAN). 12 SS-11 BCs re-anchored to FindingsRender{Grouped,FlatCollapsed,FlatExpanded}; ADR-0003 amended (Render-Mode Enum subsection + Binding Rule 5, v0.9.0 semver); ARCH-INDEX updated; HS-081 input-hash 9df8300; STORY-077/078/118 frozen as-built (D-088). Two LOW cosmetic observations deferred to next doc-sweep: BC-2.11.026 PC-6 line-anchor off-by-one (DRIFT-62-BC026-PC6-LINEANCHOR-001); BC-2.11.028 EC-count change-prose undercount (DRIFT-62-BC028-ECCOUNT-PROSE-001). Pipeline advances F2 → F3. | 2026-06-18 |
+| D-092 | Issue #62 F3 — STORY-120 created as sole enum-migration carrier (28 construction sites: 2 src/main.rs + 7 reporter_terminal_tests + 17 reporter_tests + 1 dnp3_f5 + 1 bc_2_09_100 param-helper; wave 48; depends_on []). STORY-119 re-pointed to depend on STORY-120. F3 round-1 adversarial+consistency review caught: CRITICAL Grouped/FlatExpanded mis-split (wrong-but-compiling variant — only cargo test detects); HIGH census error (35→28, double-counted fn-signatures); HIGH dead test citation; 2 MEDIUM AC quality gaps; 4 MINOR issues. ALL FIXED in fix-burst. F3 adversarial convergence pending (0/3). | 2026-06-18 |
 
 ## Blocking Issues
 

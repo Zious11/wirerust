@@ -9,7 +9,7 @@ timestamp: 2026-06-17T00:00:00Z
 phase: f3
 points: 8
 priority: P2
-depends_on: [STORY-118]
+depends_on: [STORY-120]
 blocks: []
 behavioral_contracts:
   - BC-2.11.013
@@ -40,7 +40,13 @@ input-hash: TBD
 
 # STORY-119: Terminal Finding-Collapse — Grouped Mode / --mitre (DEFERRED)
 
-**DEFERRED — NOT scheduled for v0.8.0.**
+**DEFERRED — NOT scheduled for v0.8.0 or v0.9.0.**
+
+> **Note (2026-06-18, F3 fix-burst):** `depends_on` updated from `[STORY-118]` to
+> `[STORY-120]`. This story's collapse work will build on STORY-120's `FindingsRender`
+> enum rather than the removed `collapse_findings: bool` field from STORY-118. At full
+> decomposition time, ACs should reference `FindingsRender::Grouped` (not the old bool)
+> and the Architecture Mapping should reflect the enum vocabulary.
 
 This story is a forward-reference stub only. It resolves the BC citations in
 BC-2.11.013 Invariant 4 ("Collapse within grouped/`--mitre` mode is deferred to
@@ -58,11 +64,12 @@ the start of the future feature cycle that targets grouped-mode collapse.
 - **So that** I can quickly assess the volume of repeated findings per tactic without
   wading through thousands of identical grouped-mode lines
 
-**Scope note (v0.8.0 boundary):** The `--mitre` grouped rendering path
+**Scope note (v0.8.0/v0.9.0 boundary):** The `--mitre` grouped rendering path
 (`render_findings_grouped` at terminal.rs:272-323) renders findings individually in
-v0.8.0. The `show_mitre_grouping = true` guard in `TerminalReporter::render` explicitly
-bypasses the collapse pass (BC-2.11.025 Invariant 5 / BC-2.11.013 Invariant 4). This
-story will extend collapse into the grouped path in a future cycle.
+v0.8.0 and v0.9.0. In v0.9.0 (STORY-120), the dispatch becomes `match self.render {
+FindingsRender::Grouped => render_findings_grouped(...), ... }` — the grouped arm
+explicitly bypasses the collapse pass (BC-2.11.025 Invariant 5 / BC-2.11.013 Invariant 4).
+This story will extend collapse into the grouped path in a future cycle.
 
 ## Future-Cycle Scope (non-normative sketch)
 
@@ -71,17 +78,19 @@ story will extend collapse into the grouped path in a future cycle.
 - Count suffix ` (xN)` on grouped finding lines when N≥2 within a bucket
 - Singleton findings within a bucket render without suffix (backward compatible)
 - K=3 evidence sampling per group (same rule as STORY-118)
-- The `collapse_findings` field added by STORY-118 controls grouped-mode collapse too
+- The `FindingsRender::Grouped` variant (from STORY-120) controls grouped-mode dispatch; collapse behavior within grouped mode will be gated on this variant (replaces the old `collapse_findings: bool` field removed by STORY-120)
 
 ## Dependencies
 
-- `depends_on: [STORY-118]` — STORY-119 depends on STORY-118 because the
-  `collapse_findings` field on `TerminalReporter`, the `CollapseKey` type, the
-  `COLLAPSE_EVIDENCE_SAMPLES` constant, and the `collapse_findings_pass` function all
-  come from STORY-118. STORY-119 will extend these into the grouped rendering path.
-  Dependency: STORY-119 cannot be built before STORY-118 ships and the field/type
-  infrastructure exists.
-- `blocks: []` — No downstream stories depend on STORY-119 in v0.8.0.
+- `depends_on: [STORY-120]` — STORY-119 depends on STORY-120 because STORY-120
+  introduces the `FindingsRender` enum (`Grouped`, `FlatCollapsed`, `FlatExpanded`) that
+  replaces the v0.8.0 bool fields (`show_mitre_grouping`, `collapse_findings`). STORY-119's
+  implementer should build against the enum vocabulary established by STORY-120 — checking
+  `FindingsRender::Grouped` in the dispatch match — rather than against the removed bool
+  fields. The underlying collapse infrastructure (`CollapseKey`, `collapse_findings_pass`,
+  `COLLAPSE_EVIDENCE_SAMPLES`) still comes from STORY-118 (which STORY-120 depends on
+  transitively). STORY-119 cannot be built before STORY-120 ships (v0.9.0 boundary).
+- `blocks: []` — No downstream stories depend on STORY-119 in v0.9.0.
 
 ## Behavioral Contracts (forward references only — not yet fully authored)
 
@@ -109,7 +118,7 @@ trace to a BC postcondition per the standard story format.
 |-----------|--------|---------------|
 | `render_findings_grouped` (extension) | `src/reporter/terminal.rs:272-323` | Pure core |
 | Per-bucket collapse pass (new) | `src/reporter/terminal.rs` | Pure core |
-| `collapse_findings: bool` field (from STORY-118) | `src/reporter/terminal.rs` | Pure data |
+| `render: FindingsRender` field (from STORY-120; replaces v0.8.0 `collapse_findings: bool`) | `src/reporter/terminal.rs` | Pure data |
 
 ## Token Budget Estimate
 
@@ -162,10 +171,12 @@ At full decomposition time, key rules will include:
 
 ## Dependency Rationale
 
-- `depends_on: [STORY-118]` — STORY-119 (grouped-mode collapse) requires the
-  `collapse_findings` field and `CollapseKey` type infrastructure introduced by
-  STORY-118. Without STORY-118 shipped, there is no `collapse_findings` field to
-  read in the grouped path and no `CollapseKey` type to instantiate. Hard compile-order
-  dependency.
-- `blocks: []` — STORY-119 is a future-cycle tail. No v0.8.0 or v0.8.x stories
+- `depends_on: [STORY-120]` — STORY-119 (grouped-mode collapse) builds on the
+  `FindingsRender` enum introduced by STORY-120 (v0.9.0). The enum replaces the
+  v0.8.0 `show_mitre_grouping` + `collapse_findings` bool pair; STORY-119's implementer
+  must dispatch on `FindingsRender::Grouped` (the enum variant), not on the removed bool.
+  STORY-120 is the direct predecessor. STORY-118's collapse infrastructure (`CollapseKey`,
+  `collapse_findings_pass`, `COLLAPSE_EVIDENCE_SAMPLES`) is transitively available through
+  STORY-120's dependency chain.
+- `blocks: []` — STORY-119 is a future-cycle tail. No v0.9.0 or earlier stories
   depend on grouped-mode collapse.
