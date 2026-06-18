@@ -1,13 +1,13 @@
 ---
 pipeline: FEATURE_MODE
-phase: F6
-phase_status: "FEATURE MODE issue #62 — F5 scoped-adversarial CONVERGED 3/3. NEXT = F6 targeted hardening (delta)."
+phase: F7
+phase_status: "FEATURE MODE issue #62 — F6 HARDENED. NEXT = F7 delta-convergence (5-dim + consistency audit + holistic adversarial + human gate)."
 active_feature: "E-8 / #62 TerminalReporter enum-of-modes refactor — F1..F4 COMPLETE; STORY-120 merged a4263c73; release target v0.9.0. STORY-119 depends_on [STORY-120]. F3 adversarial gate SATISFIED 3/3 (f034ca2). STORY-121 (E-11 self-improvement follow-up, D-099/D-100/D-101 process-gap) filed as draft."
 feature_arp_status: "v0.7.0 RELEASED 2026-06-16 — ARP Security Analyzer (E-16, issue #9); PR #256 dd8e142; tag v0.7.0; 4 binaries (aarch64-apple-darwin, x86_64-apple-darwin, x86_64-pc-windows-msvc, x86_64-unknown-linux-gnu)"
 feature_8_status: "v0.6.0 RELEASED 2026-06-12 — DNP3 TCP analyzer; F7 5-dim CONVERGED; tag v0.6.0 + 4 binaries"
 product: wirerust
 mode: brownfield
-timestamp: 2026-06-18T14:00:00Z
+timestamp: 2026-06-18T16:00:00Z
 maintenance_run: COMPLETE
 maintenance_run_id: maint-2026-06-17
 maintenance_started_at: "2026-06-17"
@@ -74,7 +74,7 @@ e8_f3_story_adversary_convergence_counter: "3/3 SATISFIED — F3 story-decomposi
 e8_f4_wave_adversary_convergence_counter: "3/3 SATISFIED (passes 1/2/3 clean on develop 5f7cd1b)"
 e8_f4_perstory_adversary_convergence_counter: "3/3 SATISFIED — per-story adversarial gate SATISFIED (frozen corpus 864de05; parallel triple A/B/C all CLEAN, zero MEDIUM+; lenses: behavior-preservation / census+scope+semver / AC-017-doc-sweep+test-quality). Toolchain confirmed: fmt clean, clippy clean, all test suites 0 failures, byte-identical output)."
 e8_f5_scoped_adversary_convergence_counter: "3/3 SATISFIED — F5 scoped-adversarial gate SATISFIED (re-run triple on frozen corpus develop f851995 / factory e1d5a64; Passes A/B/C all CLEAN, zero MEDIUM+). First triple: Pass-3 HIGH F-1 (stale post-merge anchors) → remediated (12 BCs re-anchored, ADR-0003+CHANGELOG fix-PR #267 f851995). Re-run all CLEAN. STORY-120 body version-stamps synced + input-hash recomputed."
-e8_f6_hardening_status: "HARDENED — no new VP; regression 1641/1641; VP-012 proptest pass; Kani/fuzz unaffected; collapse-delta mutation 100% kill; audit/deny clean"
+e8_f6_hardening_status: "HARDENED — no new VP (F1/F2 verification delta confirmed). Regression 1646/0 (byte-identical gate). VP-012 escape_for_terminal proptest unchanged & passing (4 prop harnesses 1000 cases each). Mutation (cargo-mutants on terminal.rs): 28 killed / 1 survived / 2 unviable = 96.6%; all 3 dispatch-arm targets KILLED (Grouped→render_findings_grouped, FlatCollapsed→render_findings_collapsed, FlatExpanded→render_finding_flat); escape_for_terminal 5/5 100%. Lone survivor terminal.rs:276 (Confidence::High arm in render_finding_prefix) is pre-existing/byte-untouched by #62, out of scope. Kani (decoder.rs/dispatcher.rs) + fuzz (decode/dnp3/modbus parsers) UNAFFECTED — delta touches only main.rs + reporter/terminal.rs. cargo audit clean (1 ACCEPTED-TRANSITIVE RUSTSEC-2026-0097). cargo deny clean. clippy/fmt clean."
 e8_f7_convergence_status: "CONVERGED — 5-dim MET on develop 5f7cd1b; holistic adversarial: impl ship-ready 3/3"
 e8_f4_holdout_status: "PASS — mean 1.00 / critical-min 1.00 (11 CLI scenarios)"
 arp_f4_wave_adversary_convergence_counter: 3/3 CONVERGED (re-streak on bcb1bd6) — F4 wave-level adversarial gate SATISFIED
@@ -131,8 +131,9 @@ input_drift_check: "F7-followup-dispositions burst (2026-06-16): STORY-071/100/1
 | E-8 / #62 F3 story decomposition — GATE APPROVED | **F3 GATE APPROVED 2026-06-18 — human approved; F4 COMPLETE** | STORY-120 (28 sites, wave 48, 16+1 ACs, depends_on [], input-hash 3d76a93) implementation-ready. 10 fix rounds (D-092..D-102). D-103: (a) proceed F4 — APPROVED; (b) STORY-121 filed (E-11 self-improvement); (c) v0.9.0 CONFIRMED. Worktree .worktrees/STORY-120 (worktree-issue-62-findingsrender-enum @ bec13ba) created. |
 | E-8 / #62 F4 delta-implementation | **DELIVERED** 2026-06-18 — STORY-120 merged develop a4263c73 (PR #266); per-story adversarial 3/3; demo evidence .factory/demo-evidence/issue-62-story-120/; CI 9/9 green; v0.9.0 bump. | STORY-120 (FindingsRender enum migration, 28 construction sites, byte-identical refactor) delivered. Per-story adversarial convergence 3/3 CLEAN (frozen 864de05; behavior/census-scope-semver/doc-sweep lenses). PR #266 merged develop a4263c73. |
 | E-8 / #62 F5 scoped-adversarial | **CONVERGED 3/3** 2026-06-18 — scoped-adversarial; HIGH F-1 anchor-drift remediated (BCs re-anchored + ADR/CHANGELOG PR #267); re-run triple CLEAN. | First triple: Pass-3 HIGH F-1 (post-merge stale terminal.rs anchors across all 12 SS-11 BCs + ADR-0003). Remediated: 12 BCs re-anchored by symbol (BC-INDEX v1.43); ADR-0003 color-ladder anchor 209-221→273-285 + CHANGELOG v0.9.0 entry via fix-PR #267 (develop f851995). Re-run triple A/B/C all CLEAN (frozen corpus develop f851995 / factory e1d5a64). STORY-120 body version-stamps synced; input-hash 3d76a93→8047030. |
+| E-8 / #62 F6 targeted hardening | **HARDENED** 2026-06-18 — regression 1646/0; mutation 96.6% (3 dispatch arms + escape 100% killed); no new VP; Kani/fuzz unaffected; audit/deny clean. | No new VP (pure byte-identical dispatch refactor; F1/F2 verification delta confirmed). Regression 1646/0. VP-012 proptest pass (4 harnesses, 1000 cases each). cargo-mutants terminal.rs: 28 killed / 1 survived / 2 unviable = 96.6%; all 3 dispatch arms KILLED; lone survivor terminal.rs:276 (Confidence::High in render_finding_prefix) pre-existing/out-of-scope. Kani (decoder.rs/dispatcher.rs) + fuzz (decode/dnp3/modbus parsers) UNAFFECTED. cargo audit (RUSTSEC-2026-0097 ACCEPTED-TRANSITIVE) / deny / clippy / fmt clean. D-107. |
 
-## Session Resume Checkpoint (2026-06-18 — F5 CONVERGED — FEATURE MODE E-8 / #62; F1-F5 COMPLETE — F6 NEXT)
+## Session Resume Checkpoint (2026-06-18 — F6 HARDENED — FEATURE MODE E-8 / #62; F1-F6 COMPLETE — F7 NEXT)
 
 **Previous checkpoint (2026-06-18 — COLD-RESUME F4 IN PROGRESS) archived to:
 `.factory/cycles/feature-collapse-v0.8.0/session-checkpoints.md`**
@@ -140,7 +141,7 @@ input_drift_check: "F7-followup-dispositions burst (2026-06-16): STORY-071/100/1
 ### A. EXACT PIPELINE POSITION
 
 - **Project:** wirerust. **Mode:** FEATURE_MODE — E-8 / issue #62 TerminalReporter FindingsRender enum-of-modes refactor. Release target v0.9.0 CONFIRMED.
-- **Phase:** **F1 ✅ / F2 ✅ / F3 ✅ / F4 ✅ DELIVERED / F5 ✅ CONVERGED 3/3 (D-106). NEXT = F6 targeted hardening (delta).**
+- **Phase:** **F1 ✅ / F2 ✅ / F3 ✅ / F4 ✅ DELIVERED / F5 ✅ CONVERGED 3/3 (D-106) / F6 ✅ HARDENED (D-107). NEXT = F7 delta-convergence (5-dim + consistency audit + holistic adversarial + human gate).**
 - **Refactor summary:** Replace TerminalReporter's 3 render bools (`show_mitre_grouping`, `collapse_findings`, and the logical third) with `FindingsRender { Grouped, FlatCollapsed, FlatExpanded }` enum (keep `use_color`, `show_hosts_breakdown` as orthogonal bools). 28 construction sites. Byte-identical output — CONFIRMED.
 - **Latest release:** v0.8.0 — finding-collapse (E-18, issue #259, STORY-118). Tag v0.8.0 on main 73034da. Next release: v0.9.0.
 - **Follow-up:** STORY-121 filed (E-11, draft) — F1/F2 story-input analysis docs self-audit + consuming-surface sweep checklist (D-099/D-100/D-101 process-gap).
@@ -182,13 +183,14 @@ git -C /Users/zious/Documents/GITHUB/wirerust worktree list
 - **F3 HUMAN GATE:** APPROVED 2026-06-18 (D-103).
 - **F4 delta-implementation:** COMPLETE (D-104). STORY-120 merged develop a4263c73 (PR #266). Per-story adversarial 3/3 CLEAN (frozen 864de05). CI 9/9 green. Cargo bumped 0.8.0→0.9.0. Demo: 3 render modes byte-identical.
 - **F5 scoped-adversarial:** CONVERGED 3/3 (D-105/D-106). HIGH F-1 (post-merge anchor drift) remediated: 12 BCs re-anchored (BC-INDEX v1.43), ADR-0003+CHANGELOG via fix-PR #267 (develop f851995). Re-run triple A/B/C all CLEAN (frozen develop f851995 / factory e1d5a64). STORY-120 body version-stamps synced + input-hash 3d76a93→8047030.
-- **Decisions D-088..D-106** cover this cycle.
+- **F6 targeted hardening:** HARDENED (D-107). No new VP (pure byte-identical dispatch refactor). Regression 1646/0. VP-012 proptest pass (4 harnesses 1000 cases). cargo-mutants terminal.rs: 28 killed / 1 survived / 2 unviable = 96.6%; all 3 dispatch-arm targets KILLED; lone survivor terminal.rs:276 pre-existing/out-of-scope. Kani/fuzz UNAFFECTED (delta touches only main.rs + reporter/terminal.rs). cargo audit (RUSTSEC-2026-0097 ACCEPTED-TRANSITIVE) / deny / clippy / fmt clean.
+- **Decisions D-088..D-107** cover this cycle.
 
 ### E. NEXT ACTIONS (in order — do NOT skip steps)
 
 1. **BLOCKING on resume:** run `/vsdd-factory:factory-worktree-health`; verify SHAs per §C.
-2. **F6 targeted hardening (delta):** Scope = FindingsRender enum delta on develop f851995.
-3. **After F6 gate:** F7 delta-convergence → release v0.9.0.
+2. **F7 delta-convergence:** 5-dim convergence check + consistency audit + holistic adversarial review (3/3) + human gate → release v0.9.0.
+3. **F6 is COMPLETE (D-107).** Do NOT re-run F6.
 
 ### F. KEY ARTIFACT POINTERS
 
@@ -225,6 +227,7 @@ D-055..D-091 archived: `cycles/feature-collapse-v0.8.0/decisions-archive.md` (Fe
 | D-104 | Issue #62 F4 delivered. STORY-120 (FindingsRender enum, 28 construction sites, behavior-preserving byte-identical refactor) merged to develop via PR #266 (a4263c73). RED gate: 5 mod story_120 stubs. GREEN: enum + exhaustive match dispatch + 28-site migration + AC-017 comment sweep + Cargo 0.8.0→0.9.0. Per-story adversarial convergence 3/3 CLEAN (frozen 864de05; behavior/census-scope-semver/doc-sweep lenses). pr-manager 9-step lifecycle: pr-reviewer APPROVE cycle-1, security 0 CRIT/HIGH/MED, CI 9/9 green. Demo: 3 render modes byte-identical. Worktree cleaned; develop ff-merged to a4263c73; redundant ADR working-copy stashed (identical to merged develop). NEXT = F5 scoped-adversarial. | 2026-06-18 |
 | D-105 | Issue #62 F5 Pass-3 (spec-coherence lens, fresh-context) found HIGH F-1: the STORY-120 enum block shifted src/reporter/terminal.rs helpers down ~52-160 lines, making every terminal.rs:NNN anchor in all 12 SS-11 BCs + ADR-0003 line-268 stale (some pointing at semantically different code — e.g. BC-2.11.026 PC-6 color-ladder normative ref). Passes 1&2 CLEAN. Root cause / process-gap O-1 [process-gap]: re-anchor passes validated against spec-branch HEAD, not the post-merge feature SHA, so anchors went stale the moment STORY-120 merged. Remediation: PO re-anchored 12 BCs by symbol against a4263c7 (anchor-only, no normative change, versions bumped, BC-INDEX v1.43); ADR-0003 + CHANGELOG fix-PR to develop. F5 streak reset to 0/3; re-running triple on new frozen corpus. | 2026-06-18 |
 | D-106 | Issue #62 F5 scoped-adversarial CONVERGED 3/3 (re-run on develop f851995 / factory e1d5a64). HIGH F-1 (post-merge BC/ADR anchor drift) remediated: 12 BCs re-anchored by symbol (BC-INDEX v1.43), ADR-0003 color-ladder anchor 209-221→273-285 + CHANGELOG v0.9.0 entry via fix-PR #267 (develop f851995). Re-run triple A/B/C all CLEAN. Post-convergence bookkeeping: STORY-120 body BC-version stamps synced to F5 versions; input-hash recomputed (3d76a93→8047030). Residual MINOR (non-blocking): src/main.rs:495 collapse_findings_from_flag doc-comment references removed field (DRIFT-62-MAIN495-DOC-001, LOW). NEXT = F6. | 2026-06-18 |
+| D-107 | Issue #62 F6 targeted hardening HARDENED (develop f851995). No new VP (pure byte-identical dispatch refactor). Regression 1646/0; VP-012 unchanged; mutation 96.6% with all 3 match-dispatch arms killed (Grouped→render_findings_grouped, FlatCollapsed→render_findings_collapsed, FlatExpanded→render_finding_flat) + escape_for_terminal 100%; lone survivor terminal.rs:276 (Confidence::High arm in render_finding_prefix) pre-existing/out-of-scope; Kani/fuzz unaffected (delta doesn't touch decoder/dispatcher/parsers); audit+deny+clippy+fmt clean. NEXT = F7. | 2026-06-18 |
 
 ## Blocking Issues
 
