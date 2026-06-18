@@ -7,6 +7,22 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-06-17
+
+### Added
+
+- `--no-collapse` flag for `wirerust analyze` to opt out of terminal finding-collapse (closes
+  #259, STORY-118). Pass `--no-collapse` to restore the pre-v0.8.0 one-line-per-finding output.
+
+### Changed
+
+- **Terminal `analyze` output now collapses repeated findings by default.** Findings that share
+  the same (category, verdict, confidence, summary) are collapsed into a single line with a
+  `(xN)` count suffix and up to 3 representative evidence samples (K=3). This is a
+  **display-layer-only behavioral change**: JSON and CSV output are unaffected, and
+  `--mitre`-grouped mode is also unchanged (grouped-mode collapse is deferred to a future
+  release). Pass `--no-collapse` to disable. Governed by ADR-0003 Display-Layer Aggregation.
+
 ## [0.7.1] - 2026-06-17
 
 ### Added
@@ -365,7 +381,8 @@ Downstream consumers of wirerust JSON or CSV output must update for this release
 - Output sanitization in the terminal reporter guards against C1 control bytes
   in packet-derived strings.
 
-[Unreleased]: https://github.com/Zious11/wirerust/compare/v0.7.1...HEAD
+[Unreleased]: https://github.com/Zious11/wirerust/compare/v0.8.0...HEAD
+[0.8.0]: https://github.com/Zious11/wirerust/compare/v0.7.1...v0.8.0
 [0.7.1]: https://github.com/Zious11/wirerust/compare/v0.7.0...v0.7.1
 [0.7.0]: https://github.com/Zious11/wirerust/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/Zious11/wirerust/compare/v0.5.0...v0.6.0
