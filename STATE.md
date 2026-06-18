@@ -1,8 +1,8 @@
 ---
 pipeline: FEATURE_MODE
 phase: F2
-phase_status: "FEATURE MODE — issue #62 TerminalReporter enum-of-modes refactor; Phase F2 spec-evolution COMPLETE pending adversarial convergence re-streak (0/3 round-4 re-streak pending after round-3 bookkeeping fix: PRD-delta .029 cell v1.3→v1.4 corrected; 12/12 version cells verified by orchestrator)."
-active_feature: "E-8 / #62 TerminalReporter enum-of-modes refactor — F2 spec-evolution COMPLETE; 12 unique SS-11 BCs re-anchored; ADR-0003 amended; HS-081 recomputed; completed stories frozen (D-088/D-089); PRD-delta version table 12/12 verified (D-090); F2 adversary re-streak 0/3 round-4 pending; release target v0.9.0"
+phase_status: "FEATURE MODE — issue #62 TerminalReporter enum-of-modes refactor; F2 spec-evolution CONVERGED (3/3); 12 SS-11 BCs re-anchored to FindingsRender enum, ADR-0003 amended, HS-081 recomputed, completed stories frozen (D-088). NEXT = F3 incremental story decomposition (create STORY-120)."
+active_feature: "E-8 / #62 TerminalReporter enum-of-modes refactor — F1..F2 COMPLETE; F2 adversary gate SATISFIED 3/3 (frozen corpus 60d8392); NEXT = F3 incremental-stories (STORY-120); release target v0.9.0"
 feature_arp_status: "v0.7.0 RELEASED 2026-06-16 — ARP Security Analyzer (E-16, issue #9); PR #256 dd8e142; tag v0.7.0; 4 binaries (aarch64-apple-darwin, x86_64-apple-darwin, x86_64-pc-windows-msvc, x86_64-unknown-linux-gnu)"
 feature_8_status: "v0.6.0 RELEASED 2026-06-12 — DNP3 TCP analyzer; F7 5-dim CONVERGED; tag v0.6.0 + 4 binaries"
 product: wirerust
@@ -69,7 +69,7 @@ dtu_services: []
 adversary_convergence_counter: 3/3  # Pass 14 CONVERGENCE_REACHED; clean-streak 3/3; ADVERSARY GATE SATISFIED
 e8_f2_adversary_convergence_counter: "3/3 SATISFIED — GATE SATISFIED (frozen corpus 4231b6b; Passes 15/16/17 run in parallel; each zero MEDIUM-or-above; 17 passes total)."
 e8_f3_adversary_convergence_counter: "3/3 SATISFIED — GATE SATISFIED (frozen corpus bdd531a; Passes V/W/X run in parallel; each zero MEDIUM-or-above; 8 parallel triples / 24 passes total)."
-e8_f2_spec_evolution_adversary_convergence_counter: "0/3 — round-4 re-streak pending; PRD-delta version table fully reconciled (12/12 cells verified by orchestrator). Round-3 triple: Pass B CLEAN, Pass C CLEAN, Pass A 1 MEDIUM (F-R3A-01: PRD-delta BCs-Touched table .029 cell showed v1.3 after v1.4 fix had already landed in the BC file — stale bookkeeping row). Fixed: PRD-delta v1.3→v1.4 row added; orchestrator mechanically cross-checked all 12 cells (12/12 match). 4th consecutive round where Pass A found exactly one stale-bookkeeping cell; Passes B/C consistently CLEAN. Pattern PG-62-F2-BOOKKEEPING-SWEEP-001 (4th data point). Orchestrator broke loop by mechanical full-table cross-check. Gate NOT SATISFIED — round-4 re-streak pending on fully reconciled corpus."
+e8_f2_spec_evolution_adversary_convergence_counter: "3/3 SATISFIED — F2 spec-evolution adversarial gate SATISFIED (frozen corpus 60d8392; Round-4 triple A/B/C all CLEAN, zero MEDIUM+). Convergence took 4 rounds: R1 (5 findings), R2 (1 MEDIUM F-A2-01), R3 (1 MEDIUM F-R3A-01), R4 (3/3 CLEAN). Recurring root cause PG-62-F2-BOOKKEEPING-SWEEP-001 (post-fix-burst bookkeeping propagation)."
 e8_f4_wave_adversary_convergence_counter: "3/3 SATISFIED (passes 1/2/3 clean on develop 5f7cd1b)"
 e8_f5_scoped_adversary_convergence_counter: "3/3 SATISFIED (passes 1/2/3 clean on develop 5f7cd1b)"
 e8_f6_hardening_status: "HARDENED — no new VP; regression 1641/1641; VP-012 proptest pass; Kani/fuzz unaffected; collapse-delta mutation 100% kill; audit/deny clean"
@@ -125,17 +125,17 @@ input_drift_check: "F7-followup-dispositions burst (2026-06-16): STORY-071/100/1
 | Reactive fix: issue #220 Modbus burst-window display | **CLOSED** 2026-06-17 | PR #263 5ed8077; BC-2.14.017 v2.6; spec 8d5446d |
 | Maintenance maint-2026-06-17 | **COMPLETE** 2026-06-17 | 2 PRs delivered (#261/#262); 5 items deferred; develop c03a38b |
 | Feature E-18 / #259 finding-collapse — F1..F7 + Release v0.8.0 | **RELEASED** 2026-06-17 | STORY-118; 9 new BCs SS-11=29; total 288 BCs; F5 3/3; F6 mutation 100%; F7 5-dim CONVERGED; PR #264→develop 5f7cd1b; PR #265→main 73034da; tag v0.8.0; 4 binaries; run 27732692087. STORY-119 DEFERRED. Per-phase detail: cycles/feature-collapse-v0.8.0/phase-progress-archive.md |
-| Feature E-8 / #62 TerminalReporter enum-modes — F1..F2 | **F2 COMPLETE — adversary re-streak 0/3 pending (round-4 after PRD-delta .029 cell corrected v1.3→v1.4, 12/12 cells verified D-090)** | F2 fix-burst 2026-06-18: 12 unique SS-11 BCs re-anchored; BC-INDEX v1.42; ADR-0003 v0.9.0 subsection; PRD-delta (12 BCs + run_summary site); HS-081 9df8300 MATCH; STORY-077/078/118 FROZEN (D-088). Round-1: B+C CLEAN, A MEDIUM (F-1 BC-2.11.029 stale anchor). Round-2: B+C CLEAN, A MEDIUM (F-A2-01 spec-changelog Scope). Round-3: B+C CLEAN, A MEDIUM (F-R3A-01 PRD-delta .029 cell v1.3 vs file v1.4). Fixed D-090; 12/12 cells orchestrator-verified. Round-4 re-streak 0/3 pending. |
+| Feature E-8 / #62 TerminalReporter enum-modes — F1..F2 COMPLETE | **F1..F2 COMPLETE — F2 adversarial gate SATISFIED 3/3 (60d8392)** | F2 fix-burst 2026-06-18: 12 unique SS-11 BCs re-anchored; BC-INDEX v1.42; ADR-0003 v0.9.0 subsection; PRD-delta (12 BCs + run_summary site); HS-081 9df8300 MATCH; STORY-077/078/118 FROZEN (D-088). 4 rounds to convergence (R1: 5 findings; R2: 1 MEDIUM; R3: 1 MEDIUM; R4: 3/3 CLEAN). NEXT = F3 (STORY-120). |
 
-## Session Resume Checkpoint (2026-06-18 — FEATURE MODE E-8 / #62; F2 COMPLETE; round-4 re-streak 0/3 pending after PRD-delta .029 cell corrected, 12/12 table verified)
+## Session Resume Checkpoint (2026-06-18 — FEATURE MODE E-8 / #62; F2 CONVERGED — gate SATISFIED 3/3; NEXT = F3 incremental-stories)
 
-**Previous checkpoint (2026-06-17 — E-8/#62 F1 COMPLETE; awaiting human gate) archived to:
+**Previous checkpoint (2026-06-18 — E-8/#62 F2 COMPLETE; round-4 re-streak 0/3 pending) archived to:
 `.factory/cycles/feature-arp-v0.7.0/session-checkpoints.md`**
 
 ### A. EXACT PIPELINE POSITION
 
 - **Project:** wirerust. **Mode:** FEATURE_MODE — E-8 / issue #62 TerminalReporter enum-of-modes refactor.
-- **Phase:** F2 spec-evolution COMPLETE. Adversary gate NOT yet SATISFIED — round-4 re-streak 0/3 pending after PRD-delta BCs-Touched .029 cell corrected v1.3→v1.4, full 12/12 version table verified by orchestrator (D-090).
+- **Phase:** F2 spec-evolution COMPLETE. Adversary gate SATISFIED — Round-4 triple A/B/C all CLEAN on frozen corpus 60d8392 (zero MEDIUM+). Pipeline advances F2 → F3.
 - **Latest release:** v0.8.0 — finding-collapse (E-18, issue #259, STORY-118). Tag v0.8.0 on main 73034da.
 - **develop HEAD:** bec13ba == origin/develop.
 - **main HEAD:** 73034da (chore: release v0.8.0).
@@ -157,23 +157,11 @@ input_drift_check: "F7-followup-dispositions burst (2026-06-16): STORY-071/100/1
 **Step 3 — WHAT IS COMPLETE (do NOT redo):**
 - v0.8.0 FULLY RELEASED (D-087). E-18 #259 CLOSED. STORY-119 DEFERRED.
 - F1 delta-analysis for E-8 / #62 COMPLETE. Artifact: `.factory/phase-f1-delta-analysis/issue-62-terminal-reporter-enum-modes-delta-analysis.md`.
-- F2 spec-evolution fix-burst COMPLETE (2026-06-18, D-088):
-  - **12 unique** SS-11 BCs re-anchored: BC-2.11.010/.013/.014/.015/.016/.017/.019/.025/.026/.027/.028/.029 (BC-2.11.025 bumped twice across two patch waves → v1.7 then v1.8; 12 distinct IDs, not 13).
-  - BC-INDEX.md → v1.42. ARCH-INDEX updated. ADR-0003 v0.9.0 render-mode subsection + Binding Rule 5 added.
-  - PRD-delta `.factory/phase-f2-spec-evolution/issue-62-prd-delta.md` updated (12 BCs listed; Verification section includes run_summary → FlatCollapsed (inert) site).
-  - HS-081 holdout re-anchored + input-hash recomputed (bfce575 → 9df8300, MATCH).
-  - spec-changelog.md `[issue-62-enum-modes-bc-reanchor-2026-06-17]` entry: Scope line corrected (ADR-0003 amendment acknowledged); bookkeeping-correction note dated 2026-06-18; ADR-0003 + ARCH-INDEX rows added to Version Summary table.
-  - STORY-077/078/118 CONFIRMED CLEAN (no diff) — frozen as-built records per D-088.
-- Completed stories STORY-077/078/118 are FROZEN — NOT re-anchored to FindingsRender enum (D-088).
-- F2 adversary gate: NOT SATISFIED. Round-3 re-streak must reach 3/3 CLEAN before F3 advance.
-- Round-1 triple (2026-06-18): Pass B CLEAN, Pass C CLEAN, Pass A MEDIUM — F-1: BC-2.11.029 Architecture Anchors block retained stale INSERTION TARGET/STORY-118 after v1.3 claimed fix. Fixed: BC-2.11.029 v1.4, BC-INDEX v1.42.
-- Round-2 triple (2026-06-18): Pass B CLEAN, Pass C CLEAN, Pass A MEDIUM — F-A2-01: spec-changelog Scope line read "Architecture unchanged." which contradicts the ADR-0003 amendment. Fixed: spec-changelog Scope corrected + bookkeeping-correction note + ADR-0003/ARCH-INDEX Version Summary rows added; PRD-delta Verification section extended with run_summary site (D-089). PG-62-F2-BOOKKEEPING-SWEEP-001 reinforced with 3rd data point.
-- Round-3 triple (2026-06-18): Pass B CLEAN, Pass C CLEAN, Pass A MEDIUM — F-R3A-01: PRD-delta BCs-Touched table .029 cell showed v1.3 (stale) after the actual BC file was at v1.4. Fixed: PRD-delta v1.3→v1.4 row added (D-090). Orchestrator mechanically cross-checked all 12 BCs-Touched table version cells against files — 12/12 MATCH. PG-62-F2-BOOKKEEPING-SWEEP-001 reinforced with 4th consecutive data point.
+- F2 spec-evolution fix-burst COMPLETE (2026-06-18, D-088): 12 unique SS-11 BCs re-anchored; BC-INDEX v1.42; ADR-0003 v0.9.0 render-mode subsection; PRD-delta (12 BCs + run_summary site); HS-081 9df8300 MATCH; STORY-077/078/118 FROZEN (D-088/D-089/D-090).
+- F2 adversarial convergence COMPLETE (D-091): Round-4 triple A/B/C all CLEAN on frozen corpus 60d8392. Gate SATISFIED 3/3. Two LOW cosmetic items deferred (DRIFT-62-BC026-PC6-LINEANCHOR-001, DRIFT-62-BC028-ECCOUNT-PROSE-001).
 
 **Step 4 — NEXT ACTIONS:**
-- Run F2 adversarial re-streak ROUND 4 (3 consecutive fresh-context CLEAN passes on fully reconciled corpus: BC-2.11.029 v1.4, BC-INDEX v1.42, spec-changelog bookkeeping-corrected, PRD-delta BCs-Touched 12/12 cells verified).
-- On 3/3 CLEAN: F2 adversary gate SATISFIED → advance to F3 incremental-stories.
-- F3 must produce STORY-120 (FindingsRender enum — ~3 pts, Epic E-8, release target v0.9.0).
+- Run F3 incremental story decomposition: create STORY-120 (FindingsRender enum — ~3 pts, Epic E-8, release target v0.9.0).
 
 ### C. KEY ARTIFACT POINTERS
 
@@ -227,6 +215,7 @@ D-001..D-054 archived: `cycles/v0.1.0-greenfield-spec/decisions-archive.md` (D-0
 | D-088 | Issue #62 F2 spec-evolution: completed/shipped stories (STORY-077/078/118) are FROZEN as immutable as-built records — NOT retroactively re-anchored to the v0.9.0 FindingsRender enum (human-adjudicated 2026-06-18). The enum vocabulary lives only in living specs (BCs/ADR/holdouts) and the future STORY-120. Two F2 adversary passes (5 then 6 findings) drove: full SS-11 BC sweep (13 BCs re-anchored, not the initially-claimed 8), PRD-delta scope correction (8→12 BCs), HS-081 input-hash recompute, and revert of the over-eager completed-story body sweep. | 2026-06-18 |
 | D-089 | Issue #62 F2 round-2 bookkeeping reconciliation (2026-06-18): Round-2 adversary Pass A found F-A2-01 MEDIUM — spec-changelog Scope line "Architecture unchanged." contradicted ADR-0003 amendment. Exhaustive bookkeeping self-audit applied: (1) spec-changelog Scope corrected + bookkeeping-correction note + ADR-0003/ARCH-INDEX rows added to Version Summary table; (2) PRD-delta Verification section extended with run_summary → FlatCollapsed (inert) construction site; (3) BC count clarified: 12 unique SS-11 BCs (.025 bumped twice; "13" in prior entries was a miscount). Round-3 re-streak pending. | 2026-06-18 |
 | D-090 | Issue #62 F2 round-3 bookkeeping fix (2026-06-18): Round-3 adversary Pass A found F-R3A-01 MEDIUM — PRD-delta BCs-Touched table .029 cell showed v1.3 (stale) while the actual BC file was at v1.4. Fixed: PRD-delta .029 row updated to show v1.3→v1.4 transition. Orchestrator then mechanically cross-checked all 12 BCs-Touched table "After" version cells against their BC files — 12/12 MATCH confirmed. 4th consecutive round where Pass A found exactly one stale-bookkeeping cell while Passes B/C were CLEAN; orchestrator broke the loop by doing a full-table mechanical sweep. PG-62-F2-BOOKKEEPING-SWEEP-001 reinforced (4th data point). Round-4 re-streak pending on fully reconciled corpus. | 2026-06-18 |
+| D-091 | Issue #62 F2 spec-evolution CONVERGED — F2 adversarial gate SATISFIED 3/3 on frozen corpus 60d8392 (Round-4 A/B/C all CLEAN). 12 SS-11 BCs re-anchored to FindingsRender{Grouped,FlatCollapsed,FlatExpanded}; ADR-0003 amended (Render-Mode Enum subsection + Binding Rule 5, v0.9.0 semver); ARCH-INDEX updated; HS-081 input-hash 9df8300; STORY-077/078/118 frozen as-built (D-088). Two LOW cosmetic observations deferred to next doc-sweep: BC-2.11.026 PC-6 line-anchor off-by-one (DRIFT-62-BC026-PC6-LINEANCHOR-001); BC-2.11.028 EC-count change-prose undercount (DRIFT-62-BC028-ECCOUNT-PROSE-001). Pipeline advances F2 → F3. | 2026-06-18 |
 
 ## Blocking Issues
 
@@ -291,6 +280,8 @@ Full tech-debt register: `.factory/tech-debt-register.md`.
 | PG-ARP-F4-TYPE-BRANCH-NARROWING | impl + unit tests + Kani consistently omitted hw/proto type-reject branch (D-077), self-consistent omission invisible to 4 adversary passes + holdout. | OPEN — DF-BC-COMPLETENESS-SWEEP policy extension |
 | DRIFT-62-FROZEN-STORY-INPUTHASH-001 | STORY-077/078/118 input-hashes are STALE after #62 BC re-anchoring (BCs referenced by those stories now carry FindingsRender enum vocabulary). | ACCEPTED — frozen as-built completed-story records; not re-anchored per D-088; does NOT block Phase-4 (#62 cycle delivers STORY-120 only) |
 | PG-62-F2-BOOKKEEPING-SWEEP-001 | F2 re-anchor burst migrated normative behavioral text but initially skipped bookkeeping surfaces (story version-tables, PRD-delta BC table, input-hashes) and under-counted the BC set (claimed 8, actual 13). Root cause: F1/F2 accepted the BC list without a mechanical SS-11 grep sweep. | RECORDED — codification follow-up: F2 dispatch template should mandate `grep -rn 'show_mitre_grouping\|collapse_findings'` reconcile step |
+| DRIFT-62-BC026-PC6-LINEANCHOR-001 | BC-2.11.026 PC-6 cites terminal.rs:209-221; authoritative is :209-222 per BC-2.11.018. Pre-existing; untouched by #62. | DEFERRED — next doc-sweep |
+| DRIFT-62-BC028-ECCOUNT-PROSE-001 | Changelog/PRD-delta describe BC-2.11.028 EC changes as "EC-001..005" but EC-010 was also enum-updated. Artifact is correct; change-prose undercounts. | DEFERRED — next doc-sweep |
 
 ## Deferred Next-Work Backlog
 
