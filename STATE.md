@@ -1,13 +1,13 @@
 ---
 pipeline: STEADY_STATE
-phase: feature-f6
-phase_status: "v0.7.1 RELEASED + maint-2026-06-17 COMPLETE + reactive fix #220 CLOSED. Feature #259 (finding-collapse) F5 CONVERGED 3/3 — scoped-adversarial gate SATISFIED (3 independent fresh-context CLEAN passes on develop 5f7cd1b; each zero MEDIUM+; security/robustness, completeness/integration, spec-fidelity/coherence lenses; 9 BCs complete, panic-safe, injection-closed, display-layer-only, deterministic). NEXT = F6 targeted hardening (no new formal VP per verification-coverage-matrix v1.12; confirm VP-012 escape proptest unaffected; full regression + cargo audit/deny on develop; optional mutation on collapse fns)."
+phase: feature-f7
+phase_status: "v0.7.1 RELEASED + maint-2026-06-17 COMPLETE + reactive fix #220 CLOSED. Feature #259 (finding-collapse) F6 HARDENED — develop 5f7cd1b; regression 1641/1641 PASS; VP-012 escape proptest 4×1000 PASS; Kani/fuzz unaffected (delta touches no Kani-harnessed file or fuzz target); collapse-delta mutation 100% kill (6/6 viable mutants); cargo audit/deny CLEAN; no new formal VP (test-sufficient per verification-coverage-matrix v1.12). NEXT = F7 delta convergence (5-dim + holistic adversarial gate + human gate → release v0.8.0)."
 active_feature: "E-8 #259 finding-collapse (v0.8.0 target) — F2 FROZEN"
 feature_arp_status: "v0.7.0 RELEASED 2026-06-16 — ARP Security Analyzer (E-16, issue #9); PR #256 dd8e142; tag v0.7.0; 4 binaries (aarch64-apple-darwin, x86_64-apple-darwin, x86_64-pc-windows-msvc, x86_64-unknown-linux-gnu)"
 feature_8_status: "v0.6.0 RELEASED 2026-06-12 — DNP3 TCP analyzer; F7 5-dim CONVERGED; tag v0.6.0 + 4 binaries"
 product: wirerust
 mode: brownfield
-timestamp: 2026-06-17T22:00:00Z
+timestamp: 2026-06-17T23:30:00Z
 maintenance_run: COMPLETE
 maintenance_run_id: maint-2026-06-17
 maintenance_started_at: "2026-06-17"
@@ -71,6 +71,7 @@ e8_f2_adversary_convergence_counter: "3/3 SATISFIED — GATE SATISFIED (frozen c
 e8_f3_adversary_convergence_counter: "3/3 SATISFIED — GATE SATISFIED (frozen corpus bdd531a; Passes V/W/X run in parallel; each zero MEDIUM-or-above; 8 parallel triples / 24 passes total). Genuine defects surfaced & remediated each round: HS-W47 holdout grounding (empty-UA, path-traversal, --no-color, --json/--csv flags, Host-header confound), reporter-boundary synthetic reframing HS-W47-005/010, AC↔BC own-prefix test binding + VP-table coverage, epics coverage-proof 288, escape notation \\u{1b}, BC-2.11.025 v1.6 evidence fix + STORY-118 input-hash recompute 432f43e→77d97c6."
 e8_f4_wave_adversary_convergence_counter: "3/3 SATISFIED (passes 1/2/3 clean on develop 5f7cd1b)"
 e8_f5_scoped_adversary_convergence_counter: "3/3 SATISFIED (passes 1/2/3 clean on develop 5f7cd1b)"
+e8_f6_hardening_status: "HARDENED — no new VP; regression 1641/1641; VP-012 proptest pass; Kani/fuzz unaffected; collapse-delta mutation 100% kill; audit/deny clean"
 e8_f4_holdout_status: "PASS — mean 1.00 / critical-min 1.00 (11 CLI scenarios)"
 arp_f4_wave_adversary_convergence_counter: 3/3 CONVERGED (re-streak on bcb1bd6) — F4 wave-level adversarial gate SATISFIED  # Initial 3/3 (fee71ee) invalidated by post-convergence findings; re-streak on bcb1bd6 definitively satisfied the gate
 arp_f5_scoped_adversary_convergence_counter: "3/3 CONVERGED — F5 scoped-adversarial gate SATISFIED (2026-06-16, develop 079013d; 3 independent fresh-context passes PASS CLEAN)"
@@ -209,17 +210,18 @@ ADR-0007 Decision 2 prose-clarity nit — arithmetic-walk thinking artifact; fol
 | Feature #259 (finding-collapse, E-8) — F4 Wave-Level Adversarial Convergence (wave 47) | **GATE SATISFIED 3/3 — 2026-06-17.** Passes 1/2/3 all CLEAN (zero MEDIUM+) on merged develop 5f7cd1b. BC-complete (9 BCs), panic-safe, display-layer-isolated, deterministic. Non-blocking LOW ADV-P01-LOW-001 (end-to-end wiring chain; exercised by holdout). | **GATE SATISFIED** |
 | Feature #259 (finding-collapse, E-8) — F4 Holdout Evaluation (wave-47 scenarios) | **PASS — 2026-06-17.** Mean satisfaction 1.00, critical-min 1.00 across 11 CLI-producible P0 scenarios; gate (mean>=0.85, critical-min>=0.6) PASS. HS-W47-005/010 (reporter-boundary synthetics) out-of-black-box-scope (test-covered AC-015/AC-023), not counted against gate. **F4 COMPLETE.** NEXT = F5 scoped adversarial (full rigor, 3 clean passes on #259 delta). | **PASSED** → F5 |
 | Feature #259 (finding-collapse, E-8) — F5 Scoped Adversarial | **GATE SATISFIED 3/3 — 2026-06-17.** Three independent fresh-context CLEAN passes (security/robustness lens, completeness/integration lens, spec-fidelity/coherence lens) on develop @ 5f7cd1b; each zero MEDIUM+. BC-set completeness sweep PASS (all 9 BCs implemented + tested). Panic-safety confirmed (evidence.first()/len().min(K)/members[0] guarded; no unbounded-DoS beyond capture-bounded workload). Injection closed (escape_for_terminal on summary + each sampled evidence line; MITRE IDs are program-literals not packet-derived). Display-layer-only (JSON/CSV/grouped/render_finding_prefix unchanged). Deterministic (Vec accumulator). 3 non-blocking LOW observations tracked as Drift Items. NEXT = F6 targeted hardening (no new formal VP per verification-coverage-matrix v1.12; confirm VP-012 escape proptest unaffected; full regression + cargo audit/deny on develop; optional mutation on collapse fns). | **GATE SATISFIED** → F6 |
+| Feature #259 (finding-collapse, E-8) — F6 Targeted Hardening | **HARDENED — 2026-06-17, develop 5f7cd1b.** No new formal VP (test-sufficient per verification-coverage-matrix v1.12; VP-012 escape_for_terminal proptest covers the reused escape surface unchanged; no unsafe/decode/overflow/unbounded-alloc in collapse delta). Full regression 1641/1641 PASS. VP-012 escape proptest (4 properties × 1000 cases) PASS. Kani/fuzz provably UNAFFECTED — delta touches no Kani-harnessed file or fuzz target (git-diff evidence; reasoned no-impact attestation). Mutation testing scoped to collapse fns: 100% kill (6/6 viable mutants caught; collapse_findings_from_flag polarity mutant caught). cargo audit: 0 NEW advisories (only known-accepted RUSTSEC-2026-0097 rand transitive). cargo deny: bans/licenses/sources OK. clippy -D warnings + fmt --check CLEAN. NEXT = F7 delta convergence (5-dim + holistic adversarial gate + human gate → release v0.8.0). | **HARDENED** → F7 |
 
-## Session Resume Checkpoint (2026-06-17 — F5 CONVERGED (#259 finding-collapse); pipeline FEATURE-MODE F6; NEXT = F6 targeted hardening)
+## Session Resume Checkpoint (2026-06-17 — F6 HARDENED (#259 finding-collapse); pipeline FEATURE-MODE F7; NEXT = F7 delta convergence)
 
-**Previous checkpoint (2026-06-17 — F4 COMPLETE (#259 finding-collapse); pipeline FEATURE-MODE F5; NEXT = F5 scoped adversarial (3 clean passes on develop 5f7cd1b)) archived to:
+**Previous checkpoint (2026-06-17 — F5 CONVERGED (#259 finding-collapse); pipeline FEATURE-MODE F6; NEXT = F6 targeted hardening) archived to:
 `.factory/cycles/feature-arp-v0.7.0/session-checkpoints.md`**
 
 ### A. EXACT PIPELINE POSITION
 
-- **Project:** wirerust. **Mode:** FEATURE-MODE F6 (#259 finding-collapse) — F5 CONVERGED. Scoped-adversarial gate 3/3 SATISFIED on develop 5f7cd1b.
+- **Project:** wirerust. **Mode:** FEATURE-MODE F7 (#259 finding-collapse) — F6 HARDENED. Targeted-hardening gate SATISFIED on develop 5f7cd1b.
 - **Latest release:** v0.7.1 — E-17 ARP VLAN/QinQ/MACsec offset regression hardening (issue #253); FULLY RELEASED. Tag v0.7.1 on main b98a72f.
-- **Active feature:** #259 finding-collapse, E-8, v0.8.0 target — STORY-118 DELIVERED (develop 5f7cd1b); F5 COMPLETE (3/3 GATE SATISFIED). NEXT = F6 targeted hardening.
+- **Active feature:** #259 finding-collapse, E-8, v0.8.0 target — STORY-118 DELIVERED (develop 5f7cd1b); F6 HARDENED. NEXT = F7 delta convergence (5-dim + holistic adversarial gate + human gate → release v0.8.0).
 - **develop HEAD:** 5f7cd1b == origin/develop (PR #264 feat(reporter): collapse repeated low-value findings into a counted summary line).
 - **main HEAD:** b98a72f (tag v0.7.1 annotated).
 - **factory-artifacts HEAD:** run `git -C .factory log -1 --format='%H'`
@@ -251,10 +253,11 @@ ADR-0007 Decision 2 prose-clarity nit — arithmetic-walk thinking artifact; fol
 - Feature #259 F4 wave-47 adversarial convergence: GATE SATISFIED 3/3 (passes 1/2/3 all CLEAN on develop 5f7cd1b; BC-complete, panic-safe, display-layer-isolated, deterministic).
 - Feature #259 F4 holdout evaluation: PASS (mean 1.00 / critical-min 1.00 / 11 CLI scenarios; gate PASS). F4 COMPLETE.
 - Feature #259 F5 scoped adversarial: GATE SATISFIED 3/3 (3 independent fresh-context CLEAN passes on develop 5f7cd1b; each zero MEDIUM+; all three lenses CLEAN). F5 COMPLETE.
+- Feature #259 F6 targeted hardening: HARDENED — regression 1641/1641 PASS; VP-012 proptest (4×1000) PASS; Kani/fuzz unaffected; collapse-delta mutation 100% kill (6/6); audit/deny CLEAN; no new VP. F6 COMPLETE.
 
 **Step 4 — NEXT ACTIONS:**
-1. F6 targeted hardening: no new formal VP per verification-coverage-matrix v1.12 (test-sufficient); confirm VP-012 escape proptest unaffected; full regression (`cargo test --all-targets`); `cargo audit` + `cargo deny`; optional mutation testing on collapse fns.
-2. F7 → release v0.8.0.
+1. F7 delta convergence: (1) regression GREEN; (2) verification GREEN (VP-012 proptest + no new VP); (3) impl/spec convergence (F4 3/3 + holdout); (4) robustness (F5 3/3 already held); (5) documentation/coherence + holistic adversarial gate (3 fresh-context CLEAN passes on develop 5f7cd1b).
+2. F7 human gate → release v0.8.0.
 
 ### C. KEY ARTIFACT POINTERS
 
@@ -303,6 +306,7 @@ D-001..D-054 archived: `cycles/v0.1.0-greenfield-spec/decisions-archive.md` (D-0
 | D-082 | STORY-118 (#259 finding-collapse, flat mode) IMPLEMENTED + per-story adversarial gate (BC-5.39.001) SATISFIED 3/3 (2026-06-17). Final clean triple G/H/I ALL CLEAN (zero MEDIUM+) on frozen worktree feat/259-finding-collapse @ b847915. Convergence journey: T1 (color-span MEDIUMs → c349859), T2 (test-coverage + RED-residue MEDIUMs → f240900), T3 (wiring-polarity MEDIUM → b847915), T4 (G/H/I) ALL CLEAN. 37 story_118 tests (35 AC-mandated + 2 supplementary guards) + test_bc_2_11_028_collapse_flag_polarity ALL PASS; clippy/fmt CLEAN. Impact boundary held: src/reporter/terminal.rs (collapse pass) + src/cli.rs (--no-collapse flag) + src/main.rs (wiring + both construction sites). NO json.rs/csv.rs/analyzer changes. Residual: 1 LOW (ADV-P01-LOW-001 — full CLI→collapse_findings_from_flag→TerminalReporter wiring chain not asserted end-to-end; non-blocking; exercised by F4 holdout). | 2026-06-17 |
 | D-083 | Feature #259 F4 COMPLETE (2026-06-17) — wave-47 wave-level adversarial convergence GATE SATISFIED 3/3 (passes 1/2/3 all CLEAN on merged develop 5f7cd1b; BC-complete 9 BCs, panic-safe, display-layer-isolated, deterministic; merge coherent); F4 holdout evaluation PASS (black-box info-asymmetry eval of develop @ 5f7cd1b; mean satisfaction 1.00, critical-min 1.00 across 11 CLI-producible P0 scenarios; gate mean>=0.85 PASS). HS-W47-005/010 (reporter-boundary synthetics) out-of-black-box-scope (test-covered AC-015/AC-023), not counted against gate. Non-blocking follow-up: DRIFT-HS-W47-JSON-CMD-001 (holdout doc command examples HS-W47-007/008 use --json/--csv with positional; deferred LOW). Pipeline advances FEATURE-MODE F4 → F5. | 2026-06-17 |
 | D-084 | Feature #259 F5 CONVERGED 3/3 — scoped-adversarial gate SATISFIED (2026-06-17). Three independent fresh-context CLEAN passes on develop 5f7cd1b: pass 1 (security/robustness lens), pass 2 (completeness/integration lens), pass 3 (spec-fidelity/coherence lens); each zero MEDIUM+. BC-set completeness sweep PASS (all 9 BCs implemented + tested). Panic-safety confirmed (evidence.first()/len().min(K)/members[0] guarded; no unbounded-DoS beyond capture-bounded workload). Injection closed (escape_for_terminal on summary + each sampled evidence line; MITRE IDs are program-literals not packet-derived). Display-layer-only (JSON/CSV/grouped/render_finding_prefix unchanged). Deterministic (Vec accumulator). No new formal VP per verification-coverage-matrix v1.12 (test-sufficient). 3 non-blocking LOWs tracked in Drift Items (DRIFT-STORY118-AC025-INV7-CITATION, plain_reporter collapse intentional, CollapseKey Eq harmless). Pipeline advances FEATURE-MODE F5 → F6. | 2026-06-17 |
+| D-085 | Feature #259 F6 HARDENED (2026-06-17) — develop 5f7cd1b. No new formal VP (test-sufficient per verification-coverage-matrix v1.12; VP-012 escape proptest covers reused escape surface; no unsafe/decode/overflow/unbounded-alloc in collapse delta). Full regression 1641/1641 PASS. VP-012 escape proptest (4 properties × 1000 cases) PASS. Kani/fuzz provably UNAFFECTED (delta touches no Kani-harnessed file or fuzz target — git-diff evidence; reasoned no-impact attestation). Mutation testing scoped to collapse fns: 100% kill (6/6 viable mutants; collapse_findings_from_flag polarity mutant caught). cargo audit: 0 new advisories (only known-accepted RUSTSEC-2026-0097 rand transitive). cargo deny bans/licenses/sources OK. clippy -D warnings + fmt --check CLEAN. Pipeline advances FEATURE-MODE F6 → F7. | 2026-06-17 |
 
 ## Blocking Issues
 
@@ -398,6 +402,7 @@ Full tech-debt register: `.factory/tech-debt-register.md`.
 | DRIFT-STORY118-AC025-INV7-CITATION | STORY-118 AC-025 traces to "BC-2.11.019 postcondition 9 / invariant 7" but BC-2.11.019 has no invariant 7; PC-9 covers the property. The stray "/ invariant 7" annotation in AC-025 is a doc-only citation error. Fix in a doc cleanup pass; no BC or test change required. Non-blocking (test body is correct; only the citation annotation is stale). Surfaced by F5 pass 3 spec-fidelity/coherence lens. | LOW — doc cleanup; target: next story doc sweep |
 | DRIFT-259-PLAIN-REPORTER-COLLAPSE-INTENTIONAL | plain_reporter() (pre-v0.8.0 path) sets collapse_findings: false — this is intentional; plain output retains the pre-collapse behavior. Noted by F5 completeness/integration lens as expected design. No action required. | NOTED — intentional; no action |
 | DRIFT-259-COLLAPSEKEY-EQ-DERIVE | CollapseKey derives Eq in addition to PartialEq — harmless and correct (Eq is the stronger total-equality bound; no behavioral inconsistency). Noted by F5 spec-fidelity lens. No action required. | NOTED — correct/harmless; no action |
+| DRIFT-RUNANALYZE-REASSEMBLYCONFIG-MUTANTS-001 | F6 mutation run surfaced 2 pre-existing SURVIVING mutants in run_analyze ReassemblyConfig field init (max_depth, memcap; src/main.rs ~170-171) — a test-coverage gap from prior commits (2e146473/7beaca61), NOT introduced by #259 finding-collapse. Out of #259 scope. Candidate for a separate reassembly-config test-hardening backlog item. DF-VALIDATION-001 applies before any GitHub issue. | LOW — out of #259 scope; deferred |
 
 ## Deferred Next-Work Backlog
 
