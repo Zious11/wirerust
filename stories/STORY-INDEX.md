@@ -115,7 +115,7 @@ traces_to:
 | STORY-115 | D3 ARP Storm Detection + --arp-storm-rate CLI Flag + storm_findings Summary Key | E-16 | 44 | 8 | draft | STORY-114 |
 | STORY-116 | ARP QinQ (Double-Tag) Decoder Offset Coverage | E-17 | 45 | 3 | draft | STORY-115 |
 | STORY-117 | ARP MACsec Offset Documented-Limitation Coverage | E-17 | 46 | 5 | draft | STORY-116 |
-| STORY-118 | Terminal Finding-Collapse — Flat Mode (v0.8.0) | E-18 | 47 | 8 | draft | — |
+| STORY-118 | Terminal Finding-Collapse — Flat Mode (v0.8.0) | E-18 | 47 | 8 | completed | — |
 | STORY-119 | Terminal Finding-Collapse — Grouped Mode / --mitre (DEFERRED) | E-18 | ~ | 8 | draft (deferred) | STORY-118 |
 
 ---
@@ -252,7 +252,7 @@ traces_to:
 | 44 | STORY-115 | draft | — | — | — |
 | 45 | STORY-116 | draft | #258 (test/arp-qinq-macsec-fixtures) | — | — |
 | 46 | STORY-117 | draft | #258 (test/arp-qinq-macsec-fixtures) | — | — |
-| 47 | STORY-118 | draft | — | — | — |
+| 47 | STORY-118 | **DELIVERED & CLOSED** | #264 | 5f7cd1b | 2026-06-17 |
 | ~ (deferred) | STORY-119 | draft (deferred) | — | — | — |
 
 ## Coverage Verification

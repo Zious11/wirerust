@@ -1,13 +1,13 @@
 ---
 pipeline: STEADY_STATE
 phase: feature-f3
-phase_status: "v0.7.1 RELEASED + maint-2026-06-17 COMPLETE + reactive fix #220 CLOSED (PR #263 merged; develop 5ed8077). Feature #259 (finding-collapse) F4 STORY-118 per-story adversarial gate (BC-5.39.001) SATISFIED 3/3 — final triple G/H/I ALL CLEAN (zero MEDIUM+) on frozen worktree feat/259-finding-collapse @ b847915; 37 story_118 tests + polarity unit test ALL PASS; clippy/fmt CLEAN. Demo evidence recorded (.factory/demo-evidence/STORY-118/ — 3 ACs: AC-001 collapse, AC-018 --no-collapse, AC-020 JSON-unaffected; x25 real). NEXT = push feat/259-finding-collapse → PR lifecycle → merge → wave-level adversarial convergence (3 clean) + F4 holdout evaluation."
+phase_status: "v0.7.1 RELEASED + maint-2026-06-17 COMPLETE + reactive fix #220 CLOSED. Feature #259 (finding-collapse) F4 STORY-118 DELIVERED — PR #264 `feat(reporter): collapse repeated low-value findings into a counted summary line` MERGED to develop (5f7cd1b); 9/9 CI GREEN; security APPROVE (0 findings); pr-reviewer APPROVE cycle 1. 37 story_118 tests + polarity unit test ALL PASS. NEXT = wave-level adversarial convergence (wave 47, 3 clean passes) + F4 holdout evaluation (13 wave-47 scenarios). Then F5 → F6 → F7 → release v0.8.0."
 active_feature: "E-8 #259 finding-collapse (v0.8.0 target) — F2 FROZEN"
 feature_arp_status: "v0.7.0 RELEASED 2026-06-16 — ARP Security Analyzer (E-16, issue #9); PR #256 dd8e142; tag v0.7.0; 4 binaries (aarch64-apple-darwin, x86_64-apple-darwin, x86_64-pc-windows-msvc, x86_64-unknown-linux-gnu)"
 feature_8_status: "v0.6.0 RELEASED 2026-06-12 — DNP3 TCP analyzer; F7 5-dim CONVERGED; tag v0.6.0 + 4 binaries"
 product: wirerust
 mode: brownfield
-timestamp: 2026-06-17T19:00:00Z
+timestamp: 2026-06-17T20:00:00Z
 maintenance_run: COMPLETE
 maintenance_run_id: maint-2026-06-17
 maintenance_started_at: "2026-06-17"
@@ -41,8 +41,8 @@ phase_5_completed: "2026-06-01"
 phase_6_completed: "2026-06-02"
 phase_7_to_release_gate: "PASSED (human-approved 2026-06-09 — D-045)"
 adversary_gate: SATISFIED
-develop_head: 5ed8077
-develop_head_confirmed: "5ed8077 (+PR #263 fix(modbus) burst window display closes #220; prev c03a38b +PR #261 test RED-prose closes #254, +PR #262 docs analyzers/ADR-0005-0007; maint-2026-06-17 COMPLETE)"
+develop_head: 5f7cd1b
+develop_head_confirmed: "5f7cd1b (+PR #264 feat(reporter) finding-collapse STORY-118 merged; prev 5ed8077 +PR #263 fix(modbus) burst window display closes #220)"
 arp_f6_hardening_status: "COMPLETE — 5/5 Kani SUCCESSFUL (46/46 project-wide), VP-024 v2.3 LOCKED, fuzz VP-008 16.2M/0, mutants 98.9%"
 arp_f7_convergence_status: "CONVERGED — 5-dim met; awaiting v0.7.0 release human gate"
 arp_followups_status: "DISPOSITIONED — item 5 fixed (BC-2.10.007 v1.8 de-PLANNED 25/17); issues #252-255 filed (post-release); CR-001/CR-002/FU-STORM-NEW-ATTR/BC-2.10-COUNT-POSTMERGE dropped/resolved. RELEASE-READY."
@@ -201,23 +201,23 @@ ADR-0007 Decision 2 prose-clarity nit — arithmetic-walk thinking artifact; fol
 | Feature #259 (finding-collapse, E-8) — F3 Adversarial Pass-5 Remediation (M/N/O) | F3 adversarial pass-5 (M/N/O): M CLEAN, O CLEAN, N 1 MED (HS-W47-003 exact-plain-header assertion 2 false-fail — command lacked --no-color; default color codes corrupt byte-identity check) → REMEDIATED; wave-47-holdout v1.4→v1.5 (HS-W47-003 command `wirerust analyze --http <pcap>` → `wirerust analyze --http --no-color <pcap>`; full 13-scenario color-assertion audit: no siblings affected; assertion 2 byte-identity precondition restored deterministically); corpus re-frozen; F3 streak 0/3 → 3 parallel passes next. | **REMEDIATED** — corpus re-frozen; F3 streak 0/3 → 3 parallel passes next |
 | Feature #259 (finding-collapse, E-8) — F3 Adversarial Pass-6 Remediation (P/Q/R) | F3 adversarial pass-6 (P/Q/R): Q CLEAN, R CLEAN, P 1 MED (escape notation `\x1b` vs genuine `\u{1b}` — `char::escape_default` form) → REMEDIATED across STORY-118 v1.3→v1.4 (AC-016/AC-028 examples corrected to `\u{1b}` form; input-hash 432f43e UNCHANGED) + BC-2.11.027 v1.3→v1.4 (EC-007 + canonical test vector `\x1b`→`\u{1b}`) + BC-INDEX v1.36→v1.37; spec-changelog entry [issue-259-collapse-escape-notation-fix-2026-06-17]; notation class closed; corpus re-frozen; F3 streak 0/3 → 3 parallel passes next. | **REMEDIATED** — corpus re-frozen; F3 streak 0/3 → 3 parallel passes next |
 | Feature #259 (finding-collapse, E-8) — F3 Adversarial Pass-7 Remediation (S/T/U) | F3 adversarial pass-7 (S/T/U): 3 distinct MED — T Host-confound (holdout false-fail: wave-47-holdout.md v1.5→v1.6, Host-header constraint added to all CLI-producible flood scenarios so detection #5 HTTP/1.1 missing/empty-Host anomaly does not co-fire; per-scenario detection audit), S BC-2.11.025 HTTP/1.1 evidence residue (canonical-vector evidence HTTP/1.1 token dropped to match http.rs:365; v1.5→v1.6), U dep-graph BC version drift (BC-2.11.027 v1.3→v1.4 and BC-2.11.025 v1.5→v1.6 matrix stamps; v1.7→v1.9) → all REMEDIATED; BC-INDEX v1.37→v1.38; STORY-118 v1.4→v1.5 (BC-2.11.025 citation v1.6; input-hash 432f43e→77d97c6 via bin/compute-input-hash --scan MATCH); STORY-119 BC table stamp v1.5→v1.6; spec-changelog entries present; corpus re-frozen; F3 streak 0/3 → 3 parallel passes next. | **REMEDIATED** — corpus re-frozen; F3 streak 0/3 → 3 parallel passes next |
+| Feature #259 (finding-collapse, E-8) — F4 STORY-118 DELIVERED (PR #264 → develop 5f7cd1b; 9/9 CI; security+review APPROVE) | **DELIVERED 2026-06-17** — PR #264 `feat(reporter): collapse repeated low-value findings into a counted summary line` MERGED to develop (merge commit 5f7cd1b; +8 commits, 2579 insertions). 9/9 CI GREEN (test, clippy, fmt, semantic-pr, action-pin-gate, fuzz-build, audit, deny, trust-boundary). Security review APPROVE (0 findings — escape_for_terminal preserved in collapse path). pr-reviewer APPROVE cycle 1 (0 blocking; 8 design invariants verified). Branch feat/259-finding-collapse deleted; worktree removed. NEXT = wave-level adversarial convergence (wave 47, 3 clean passes) + F4 holdout evaluation (13 wave-47 scenarios). | **DELIVERED** |
 | Feature #259 (finding-collapse, E-8) — F4 STORY-118 per-story adversarial gate (BC-5.39.001) | **SATISFIED 3/3 — GATE SATISFIED 2026-06-17.** Convergence journey: T1 (color-span MEDIUMs) → fixed c349859; T2 (test-coverage + RED-residue MEDIUMs) → fixed f240900; T3 (wiring-polarity MEDIUM) → fixed b847915; T4 (G/H/I) ALL CLEAN = gate SATISFIED. Final clean triple on frozen worktree feat/259-finding-collapse @ b847915. Test status: 37 story_118 tests (35 AC-mandated + 2 supplementary guards) + test_bc_2_11_028_collapse_flag_polarity + full pre-existing suite ALL PASS; clippy --all-targets -D warnings CLEAN; fmt CLEAN. Worktree 8 commits: 3930310 (Red-Gate stubs) → 2cf7fe6 (failing tests) → 848fcb5 (impl) → 0f9704d (test-typo fix) → d9db427 (ADR-0003 display-layer section) → c349859 (color-span assertion hardening) → f240900 (+2 supplementary regression guards + RED-residue clear) → b847915 (--no-collapse polarity helper+test + comment hygiene). Impact boundary: src/reporter/terminal.rs + src/cli.rs + src/main.rs; NO json.rs/csv.rs/analyzer changes. Residual: 1 LOW (ADV-P01-LOW-001 — full CLI→collapse_findings_from_flag→TerminalReporter wiring chain not asserted end-to-end; non-blocking; exercised by F4 holdout). NEXT = demo recording → push → PR lifecycle (pr-manager) → merge → wave-level adversarial convergence (3 clean) + F4 holdout evaluation. | **GATE SATISFIED** → demo+PR |
 
-## Session Resume Checkpoint (2026-06-17 — F4 STORY-118 demo evidence recorded (3 ACs) + committed to factory-artifacts; pipeline FEATURE-MODE F4 mid-story; NEXT = push + PR lifecycle)
+## Session Resume Checkpoint (2026-06-17 — F4 STORY-118 DELIVERED (PR #264 → develop 5f7cd1b); pipeline FEATURE-MODE F4 post-story; NEXT = wave-47 adversarial convergence (3 clean) + F4 holdout evaluation)
 
-**Previous checkpoint (2026-06-17 — F3 story-decomposition adversarial gate 3/3 SATISFIED; Passes V/W/X CLEAN on bdd531a; pipeline FEATURE-MODE; NEXT = F3 HUMAN GATE → F4) archived to:
+**Previous checkpoint (2026-06-17 — F4 STORY-118 demo evidence recorded (3 ACs) + committed to factory-artifacts; pipeline FEATURE-MODE F4 mid-story; NEXT = push + PR lifecycle) archived to:
 `.factory/cycles/feature-arp-v0.7.0/session-checkpoints.md`**
 
 ### A. EXACT PIPELINE POSITION
 
-- **Project:** wirerust. **Mode:** FEATURE-MODE F4 (#259 finding-collapse) — STORY-118 IMPLEMENTED + per-story adversarial gate SATISFIED 3/3 (BC-5.39.001) + demo evidence recorded (3 ACs: AC-001/AC-018/AC-020); mid-story lifecycle (pre-push, pre-PR).
+- **Project:** wirerust. **Mode:** FEATURE-MODE F4 (#259 finding-collapse) — STORY-118 DELIVERED (PR #264 merged to develop 5f7cd1b; 9/9 CI GREEN). Wave 47: STORY-118 complete.
 - **Latest release:** v0.7.1 — E-17 ARP VLAN/QinQ/MACsec offset regression hardening (issue #253); FULLY RELEASED. Tag v0.7.1 on main b98a72f.
-- **Active feature:** #259 finding-collapse, E-8, v0.8.0 target — STORY-118 (flat collapse) IMPLEMENTED; final adversarial triple G/H/I ALL CLEAN on frozen worktree feat/259-finding-collapse @ b847915; per-story gate SATISFIED.
-- **Active worktree:** feat/259-finding-collapse @ b847915 (feat/259-finding-collapse branch). 8 commits: 3930310→2cf7fe6→848fcb5→0f9704d→d9db427→c349859→f240900→b847915.
-- **develop HEAD:** 5ed8077 == origin/develop. Working tree: docs/adr/0003-reporting-pipeline-layering.md has uncommitted change (subcommand-scoping + color-ladder prose added; rides STORY-118 F4 impl PR — do NOT commit to develop until PR merge).
+- **Active feature:** #259 finding-collapse, E-8, v0.8.0 target — STORY-118 (flat collapse) DELIVERED. NEXT = wave-level adversarial convergence (3 clean passes on develop 5f7cd1b) + F4 holdout evaluation (13 wave-47 scenarios).
+- **develop HEAD:** 5f7cd1b == origin/develop (PR #264 feat(reporter): collapse repeated low-value findings into a counted summary line).
 - **main HEAD:** b98a72f (tag v0.7.1 annotated).
-- **factory-artifacts HEAD:** run `git -C .factory log -1 --format='%H'` (updated this burst — demo-evidence commit).
-- **Active worktrees:** EXACTLY 3 — main repo (develop), `.factory/` (factory-artifacts), feat-259-finding-collapse worktree (feat/259-finding-collapse @ b847915).
+- **factory-artifacts HEAD:** run `git -C .factory log -1 --format='%H'` (updated this burst).
+- **Active worktrees:** EXACTLY 2 — main repo (develop), `.factory/` (factory-artifacts). feat-259-finding-collapse worktree REMOVED (branch deleted after PR #264 merge).
 - **Open PRs:** none.
 - **Issue #220:** CLOSED (by PR #263). **Issue #254:** CLOSED (by PR #261).
 
@@ -226,11 +226,10 @@ ADR-0007 Decision 2 prose-clarity nit — arithmetic-walk thinking artifact; fol
 **Step 1 (BLOCKING):** Run `vsdd-factory:factory-worktree-health` before any other action.
 
 **Step 2 — Verify SHAs (all must match before proceeding):**
-- `git rev-parse --short HEAD` in repo root → expect `5ed8077`
-- `git rev-parse --short origin/develop` → expect `5ed8077` (develop == origin/develop)
+- `git rev-parse --short HEAD` in repo root → expect `5f7cd1b`
+- `git rev-parse --short origin/develop` → expect `5f7cd1b` (develop == origin/develop)
 - `git -C .factory rev-parse --short HEAD` → this burst SHA (run `git -C .factory log -1 --format='%h'`)
 - `git rev-parse --short main` → expect `b98a72f`
-- `git -C .worktrees/feat-259-finding-collapse rev-parse --short HEAD` → expect `b847915`
 - `git tag -l v0.7.1` → must exist
 - `gh pr list --state open` → expect empty
 
@@ -238,18 +237,16 @@ ADR-0007 Decision 2 prose-clarity nit — arithmetic-walk thinking artifact; fol
 - v0.7.1 FULLY RELEASED: 4 binaries published, GitHub Release live, run 27694602320 SUCCESS.
 - E-17 cycle F1-F7: ALL CONVERGED AND CLOSED.
 - maint-2026-06-17: COMPLETE — PRs #261/#262 merged; 5 TD items registered; gate PASS.
-- Issue #220: CLOSED — PR #263 merged; BC-2.14.017 v2.6; cosmetic fix only; no pipeline phase impact.
+- Issue #220: CLOSED — PR #263 merged; BC-2.14.017 v2.6; cosmetic fix only.
 - Feature #259 F2 adversarial: GATE SATISFIED 3/3 (Passes 15/16/17 clean on 4231b6b).
-- Feature #259 F3: story decomposition COMPLETE + adversarial gate SATISFIED 3/3 (Passes V/W/X CLEAN on bdd531a; 24 passes total). Final corpus frozen — do NOT modify.
-- Feature #259 F4 STORY-118: IMPLEMENTED + per-story adversarial gate SATISFIED 3/3 (G/H/I clean, b847915). 37 story_118 tests + polarity unit test ALL PASS; clippy/fmt CLEAN. Demo evidence recorded: .factory/demo-evidence/STORY-118/ (AC-001 collapse/AC-018 --no-collapse/AC-020 JSON-unaffected; x25 real; gif+webm+tape+txt per AC).
-- ADR-0003 develop-tree: HAS uncommitted change (docs/adr/0003-reporting-pipeline-layering.md) — intentional; rides STORY-118 F4 impl PR. Do NOT commit on develop until F4 merge.
+- Feature #259 F3: story decomposition COMPLETE + adversarial gate SATISFIED 3/3 (Passes V/W/X CLEAN on bdd531a; 24 passes total). Final corpus frozen.
+- Feature #259 F4 STORY-118: DELIVERED — PR #264 merged to develop 5f7cd1b; 9/9 CI GREEN; security APPROVE (0 findings); pr-reviewer APPROVE (0 blocking); wave 47 CLOSED. Branch feat/259-finding-collapse deleted; worktree removed.
+- ADR-0003: display-layer aggregation section committed (rode STORY-118 F4 PR #264).
 
 **Step 4 — NEXT ACTIONS:**
-1. DONE: Demo evidence recorded + committed to factory-artifacts (.factory/demo-evidence/STORY-118/ — 3 ACs: AC-001 collapse/AC-018 --no-collapse/AC-020 JSON-unaffected; x25 real).
-2. Push feat/259-finding-collapse branch → open PR against develop.
-3. PR lifecycle via pr-manager (review, approve, merge).
-4. Wave-level adversarial convergence (3 consecutive clean passes on merged develop).
-5. F4 holdout evaluation (13 P0 scenarios in wave-47-holdout.md v1.6).
+1. Wave-level adversarial convergence: 3 consecutive clean passes on develop 5f7cd1b (wave 47 corpus).
+2. F4 holdout evaluation: 13 P0 scenarios in `.factory/holdout-scenarios/wave-scenarios/wave-47-holdout.md` (v1.6).
+3. F5 → F6 → F7 → release v0.8.0.
 
 ### C. KEY ARTIFACT POINTERS
 
@@ -257,9 +254,9 @@ ADR-0007 Decision 2 prose-clarity nit — arithmetic-walk thinking artifact; fol
 - Tech-debt register: `.factory/tech-debt-register.md`
 - E-17 cycle artifacts: `.factory/cycles/feature-arp-v0.7.0/` (lessons.md, session-checkpoints.md, adversarial-reviews/)
 - #259 F2/F3 BCs: `.factory/specs/behavioral-contracts/bc-2-11-*.md` (BC-2.11.010/.013/.017/.019/.025/.026/.027/.028/.029)
-- #259 F3 stories: `.factory/stories/STORY-118.md` (v1.5, 28 ACs/35 tests) + `.factory/stories/STORY-119.md` (deferred stub)
+- #259 F3 stories: `.factory/stories/STORY-118.md` (v1.5, 28 ACs/35 tests, status: completed) + `.factory/stories/STORY-119.md` (deferred stub)
 - #259 F3 holdout: `.factory/holdout-scenarios/wave-scenarios/wave-47-holdout.md` (v1.6, 13 P0)
-- #259 F4 worktree: `.worktrees/feat-259-finding-collapse` @ b847915 (feat/259-finding-collapse branch)
+- #259 F4 delivered: PR #264 merge commit 5f7cd1b on develop
 
 ## Decisions Log
 

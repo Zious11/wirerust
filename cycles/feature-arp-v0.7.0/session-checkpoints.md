@@ -1037,3 +1037,15 @@ STORY-111=3eefa35 MATCH | STORY-112=6115929 MATCH (stale re-drift caught in clos
 - main HEAD: dd8e142 (v0.7.0).
 - PR #258: test/arp-qinq-macsec-fixtures (cb2bf06); CI green; READY TO MERGE.
 - Next: human gate — merge PR #258, cut release/0.7.1, open release PR → main, tag v0.7.1.
+
+---
+
+## Archived Checkpoint: 2026-06-17 — F4 STORY-118 demo evidence recorded; pipeline FEATURE-MODE F4 mid-story; NEXT = push + PR lifecycle
+
+- Position: FEATURE-MODE F4 (#259 finding-collapse) — STORY-118 IMPLEMENTED + per-story adversarial gate SATISFIED 3/3 (BC-5.39.001) + demo evidence recorded (3 ACs: AC-001/AC-018/AC-020); mid-story lifecycle (pre-push, pre-PR).
+- develop HEAD: 5ed8077 == origin/develop.
+- main HEAD: b98a72f (tag v0.7.1 annotated).
+- Active worktree: feat/259-finding-collapse @ b847915 (8 commits: 3930310→2cf7fe6→848fcb5→0f9704d→d9db427→c349859→f240900→b847915).
+- Demo evidence: .factory/demo-evidence/STORY-118/ (AC-001 collapse/AC-018 --no-collapse/AC-020 JSON-unaffected; x25 real; gif+webm+tape+txt per AC).
+- ADR-0003: uncommitted change on develop (rides STORY-118 F4 PR).
+- Next: push feat/259-finding-collapse → PR lifecycle (pr-manager) → merge → wave-level adversarial convergence (3 clean) + F4 holdout evaluation.

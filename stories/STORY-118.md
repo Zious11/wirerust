@@ -3,7 +3,7 @@ document_type: story
 story_id: STORY-118
 epic_id: E-18
 version: "1.5"
-status: draft
+status: completed
 producer: story-writer
 timestamp: 2026-06-17T00:00:00Z
 phase: f3
