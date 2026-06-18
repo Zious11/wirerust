@@ -10,6 +10,8 @@ validation_report: n/a — issue #62 is a refactor with no external validation r
 validation_verdict: TRIGGER-CONFIRMED
 status: draft
 supersedes_section: ".factory/phase-f1-delta-analysis/issue-259-finding-collapse-delta-analysis.md §4 Interaction with Issue #62"
+modified:
+  - "2026-06-18: Census corrected 35→28 construction sites (F3 round-7 bookkeeping fix). The 35 was a pre-grep estimate; ground-truth grep yields 28. reporter_terminal_tests.rs: 12→7 (helpers are 5 construction sites, not 12; counted each helper struct literal once). dnp3_f5_remediation_tests.rs: 2→1 (helper fn line 1069 is the fn signature, literal is at line 1070). bc_2_09_100_multitag_tests.rs: 2→1 (same pattern: fn signature at line 689, literal at line 690). Total: 2+17+7+1+1 = 28. Nine locations updated in total: census table (3 cells), total line, §6 intro, §7 paragraph, summary table, §8 classification test-count, §9 OQ-5 option-B, §9 OQ-6 question, §10 summary top-risks."
 ---
 
 # F1 Delta Analysis — Issue #62: Refactor TerminalReporter to Enum-of-Modes
@@ -74,13 +76,13 @@ exist in the shipped code:
 | `src/reporter/terminal.rs` | Refactor | Replace the four bool fields with `use_color: bool` + `show_hosts_breakdown: bool` + `render: FindingsRender`. Add `pub enum FindingsRender` with three variants. Update `render()` dispatch (lines 187-205). Update `render_findings_collapsed`, `render_findings_grouped`, `render_finding_flat` — called identically, just reached via `self.render` match instead of `self.show_mitre_grouping` / `self.collapse_findings` if-chain. Update `COLLAPSE_EVIDENCE_SAMPLES` constant — unchanged. No behavioral change. |
 | `src/main.rs` | Refactor | Two construction sites. `run_analyze` (~line 373): `show_mitre_grouping` + `collapse_findings` → `render: if show_mitre_grouping { FindingsRender::Grouped } else if collapse_findings { FindingsRender::FlatCollapsed } else { FindingsRender::FlatExpanded }`. `run_summary` (~line 439): `render: FindingsRender::FlatCollapsed` (or any variant — field is inert; use enum variant to express intent). The comment explaining the inert value stays but is now attached to the enum variant selection. |
 | `tests/reporter_tests.rs` | Refactor | 17 construction sites (lines 449, 473, 524, 543, 565, 645, 753, 862, 949, 1001, 1036, 1071, 1106, 1128, 1155, 1192, 2476). Each inline `TerminalReporter { ... }` literal gets the two rendered bools replaced by a `render: FindingsRender::...` field. Mechanical field-substitution only — zero test logic changes. |
-| `tests/reporter_terminal_tests.rs` | Refactor | 12 construction sites (helpers: `plain_reporter` at line 71, `mitre_reporter` at line 662, `collapse_reporter` at line 1789, `collapse_reporter_color` at line 1799, `mitre_collapse_reporter` at line 1809; inline: `reporter_on` at 3346, `reporter_off` at 3359). The five helpers each become one-liner enum assignments. The `mitre_collapse_reporter` helper currently sets `show_mitre_grouping: true, collapse_findings: true` — the impossible-but-ignored combination; with the enum, this becomes `render: FindingsRender::Grouped` (grouped wins, collapse silently ignored in the current code — the new design makes this unrepresentable). |
-| `tests/dnp3_f5_remediation_tests.rs` | Refactor | 2 construction sites (helper `mitre_reporter` at lines 1069-1075): `show_mitre_grouping: true, collapse_findings: false` → `render: FindingsRender::Grouped`. |
-| `tests/bc_2_09_100_multitag_tests.rs` | Refactor | 2 construction sites (helper `make_terminal` at lines 689-695): `show_mitre_grouping: mitre_grouping, collapse_findings: false` → `render: if mitre_grouping { FindingsRender::Grouped } else { FindingsRender::FlatExpanded }`. |
+| `tests/reporter_terminal_tests.rs` | Refactor | 7 construction sites (helpers: `plain_reporter` at line 71, `mitre_reporter` at line 662, `collapse_reporter` at line 1789, `collapse_reporter_color` at line 1799, `mitre_collapse_reporter` at line 1809; inline: `reporter_on` at 3346, `reporter_off` at 3359). The five helpers each become one-liner enum assignments. The `mitre_collapse_reporter` helper currently sets `show_mitre_grouping: true, collapse_findings: true` — the impossible-but-ignored combination; with the enum, this becomes `render: FindingsRender::Grouped` (grouped wins, collapse silently ignored in the current code — the new design makes this unrepresentable). |
+| `tests/dnp3_f5_remediation_tests.rs` | Refactor | 1 construction site (helper `mitre_reporter`, literal @1070; line 1069 is the fn signature): `show_mitre_grouping: true, collapse_findings: false` → `render: FindingsRender::Grouped`. |
+| `tests/bc_2_09_100_multitag_tests.rs` | Refactor | 1 construction site (helper `make_terminal`, literal @690; line 689 is the fn signature): `show_mitre_grouping: mitre_grouping, collapse_findings: false` → `render: if mitre_grouping { FindingsRender::Grouped } else { FindingsRender::FlatExpanded }`. |
 
-**Total construction sites changed: 35** (2 in `src/main.rs`, 17 in `tests/reporter_tests.rs`,
-12 in `tests/reporter_terminal_tests.rs`, 2 in `tests/dnp3_f5_remediation_tests.rs`,
-2 in `tests/bc_2_09_100_multitag_tests.rs`).
+**Total construction sites changed: 28** (2 in `src/main.rs`, 17 in `tests/reporter_tests.rs`,
+7 in `tests/reporter_terminal_tests.rs`, 1 in `tests/dnp3_f5_remediation_tests.rs`,
+1 in `tests/bc_2_09_100_multitag_tests.rs`).
 
 ### Files Explicitly NOT Touched
 
@@ -294,7 +296,7 @@ before the refactor will match exactly after it. The two issues are independent.
 
 ### Construction Site Translation Table
 
-All 35 construction sites require a mechanical field-substitution. No test assertion logic
+All 28 construction sites require a mechanical field-substitution. No test assertion logic
 changes. The substitution rule is:
 
 | Old Fields | New Field |
@@ -354,10 +356,10 @@ that STORY-118 was supposed to trigger. It does not belong in a new epic.
 
 | Story | Scope | Points (est.) |
 |-------|-------|----------------|
-| STORY-120 (next available) | `TerminalReporter` enum-of-modes refactor: (a) define `pub enum FindingsRender` with `Grouped / FlatCollapsed / FlatExpanded` variants; (b) update `TerminalReporter` struct (remove `show_mitre_grouping`, `collapse_findings`; add `render: FindingsRender`); (c) update `render()` dispatch to `match self.render`; (d) update `main.rs` two construction sites; (e) update all 35 test construction sites (mechanical substitution); (f) update BC-2.11.013, .014, .017, .019, .025–.028 precondition field references (re-anchoring pass); (g) add `FindingsRender` re-export or visibility as needed. Behavioral change: none. Output change: none. TDD mode: refactor (all tests must pass before and after — Red Gate is `cargo check` failing on the old fields after struct change). | 3 pts |
+| STORY-120 (next available) | `TerminalReporter` enum-of-modes refactor: (a) define `pub enum FindingsRender` with `Grouped / FlatCollapsed / FlatExpanded` variants; (b) update `TerminalReporter` struct (remove `show_mitre_grouping`, `collapse_findings`; add `render: FindingsRender`); (c) update `render()` dispatch to `match self.render`; (d) update `main.rs` two construction sites; (e) update all 28 test construction sites (mechanical substitution); (f) update BC-2.11.013, .014, .017, .019, .025–.028 precondition field references (re-anchoring pass); (g) add `FindingsRender` re-export or visibility as needed. Behavioral change: none. Output change: none. TDD mode: refactor (all tests must pass before and after — Red Gate is `cargo check` failing on the old fields after struct change). | 3 pts |
 
 **Total: 1 story (~3 pts).** This is a contained mechanical refactor with a large-but-
-mechanical touch surface. The 35 construction sites are individually trivial; the constraint
+mechanical touch surface. The 28 construction sites are individually trivial; the constraint
 is thoroughness, not complexity.
 
 ---
@@ -379,7 +381,7 @@ The refactor changes no logic. All existing VPs remain valid:
 The refactor's correctness is primarily verified by the Rust compiler:
 
 - Missing construction sites: compile error (struct literal missing fields).
-- Behavioral regressions: the existing 35 construction-site tests cover every path; the test
+- Behavioral regressions: the existing 28 construction-site tests cover every path; the test
   suite passing after the refactor proves behavioral equivalence.
 
 No new proptest or Kani harness is warranted. A `cargo test --all-targets` green run after
@@ -460,7 +462,7 @@ current refactor anticipate this by pre-splitting `Grouped`?
 - (A) Pre-split now: `Grouped, GroupedCollapsed, FlatCollapsed, FlatExpanded` (4 variants).
   Anticipated future-proofing; adds variants for a feature not yet scheduled.
 - (B) Add variants when STORY-119 is implemented: the STORY-119 F2 spec evolution amends
-  the enum and adds the new variant. This is a second 35-site construction sweep.
+  the enum and adds the new variant. This is a second 28-site construction sweep.
 - (C) Use a struct with `show_hosts_breakdown: bool, render: FindingsRender, collapse_within_groups: bool`:
   handles the interaction without multiplying variants; `collapse_within_groups` is only
   relevant when `render = FindingsRender::Grouped`.
@@ -470,7 +472,7 @@ The STORY-119 cycle will have its own F1 and can amend the enum at that time.
 
 ### OQ-6 (PROCESS): Should #62 Be Bundled with STORY-119 or Kept Standalone?
 
-**Question:** The 35 construction-site sweep will happen again when STORY-119 adds grouped-
+**Question:** The 28 construction-site sweep will happen again when STORY-119 adds grouped-
 mode collapse. Should the refactor be deferred until STORY-119 is scheduled, to avoid a
 double sweep?
 
@@ -507,14 +509,14 @@ trivial either way; versioning consistency matters more than release acceleratio
 
 | Dimension | Assessment |
 |-----------|-----------|
-| Impact boundary | `src/reporter/terminal.rs` (struct shape only), `src/main.rs` (2 sites), `tests/reporter_tests.rs` (17 sites), `tests/reporter_terminal_tests.rs` (12 sites), `tests/dnp3_f5_remediation_tests.rs` (2 sites), `tests/bc_2_09_100_multitag_tests.rs` (2 sites). Total: 35 construction sites. Zero output changes. |
+| Impact boundary | `src/reporter/terminal.rs` (struct shape only), `src/main.rs` (2 sites), `tests/reporter_tests.rs` (17 sites), `tests/reporter_terminal_tests.rs` (7 sites), `tests/dnp3_f5_remediation_tests.rs` (1 site), `tests/bc_2_09_100_multitag_tests.rs` (1 site). Total: 28 construction sites. Zero output changes. |
 | BCs touched | 9 BCs in SS-11 (BC-2.11.013, .014, .017, .019, .025, .026, .027, .028) — re-anchoring of precondition field names only. No new BCs. No new postconditions. |
 | ADR recommendation | No new ADR, no ADR amendment. Capture enum rationale in PR description. |
 | Story estimate | 1 story (STORY-120, ~3 pts), Epic E-8, SS-11. |
 | Regression risk | LOW. Rust compiler enforces construction-site completeness. No output bytes change. |
 | Issue #63 interaction | Independent. Snapshot tests can land before or after #62 without conflict. |
 | New VP | None. Test-sufficient + compile-verified. VP-012 unchanged. |
-| Top risks | (1) `mitre_collapse_reporter` helper — currently nonsensical state, becomes structurally impossible; verify tests still pass; (2) 35-site sweep must be complete before merge (compiler enforces this); (3) `FindingsRender` must be `use`d in all test files. |
+| Top risks | (1) `mitre_collapse_reporter` helper — currently nonsensical state, becomes structurally impossible; verify tests still pass; (2) 28-site sweep must be complete before merge (compiler enforces this); (3) `FindingsRender` must be `use`d in all test files. |
 | F1-gate open questions | OQ-1 (enum variant names — BLOCKING); OQ-2 (module location — IMPORTANT); OQ-3 (re-export — REFINEMENT); OQ-4 (derive traits — REFINEMENT); OQ-5 (STORY-119 anticipation — IMPORTANT); OQ-6 (bundle vs standalone — PROCESS); OQ-7 (release versioning — REFINEMENT). |
 
 ---
