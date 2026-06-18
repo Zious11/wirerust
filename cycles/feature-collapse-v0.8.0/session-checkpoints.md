@@ -59,5 +59,42 @@ traces_to: STATE.md
 
 ---
 
+## Session Resume Checkpoint (2026-06-18 — FEATURE MODE E-8 / #62; F3 IN PROGRESS — round-9 F1 numeric audit COMPLETE; round-10 re-streak 0/3 pending) [ARCHIVED]
+
+### State at archival
+
+| Field | Value |
+|-------|-------|
+| **Date** | 2026-06-18 |
+| **Position** | F3 incremental story decomposition. Round-9 F1 numeric audit applied (D-101). F3 convergence re-streak: 0/3 — gate NOT SATISFIED. |
+| **Pipeline** | FEATURE_MODE E-8 / #62 |
+| **develop HEAD** | bec13ba (== origin/develop) |
+| **main HEAD** | 73034da (tag v0.8.0) |
+| **Next step** | Commit ADR-0003 PR on develop → F3 round-10 re-streak |
+
+### A. EXACT PIPELINE POSITION
+
+- **Project:** wirerust. **Mode:** FEATURE_MODE — E-8 / issue #62 TerminalReporter enum-of-modes refactor.
+- **Phase:** F3 incremental story decomposition IN PROGRESS. Round-9 F1 numeric audit applied (D-101). F3 convergence re-streak: 0/3 — gate NOT SATISFIED.
+- **Latest release:** v0.8.0 — finding-collapse (E-18, issue #259, STORY-118). Tag v0.8.0 on main 73034da.
+- **develop HEAD:** bec13ba == origin/develop (ADR-0003 round-2 fix uncommitted on develop tree).
+- **main HEAD:** 73034da (chore: release v0.8.0).
+- **Active worktrees:** EXACTLY 2 — main repo (develop), `.factory/` (factory-artifacts).
+- **Open PRs:** NONE.
+
+### B. WHAT WAS COMPLETE AT THIS CHECKPOINT
+
+- F1 delta-analysis COMPLETE (full numeric audit R9). 28 construction sites.
+- F2 spec-evolution COMPLETE (D-088–D-091): 12 SS-11 BCs re-anchored; ADR-0003 amended; HS-081 MATCH; gate SATISFIED 3/3 (60d8392).
+- F3 rounds 1–9: STORY-120 created + all fixes (D-092..D-101). Round-9: exhaustive F1 numeric audit — reporter_tests Grouped 4→6; §2 "9 BCs"→8; §10 "9 BCs"→8. STORY-120 input-hash 3d76a93 MATCH.
+
+### C. NEXT ACTIONS (at time of archival)
+
+1. Commit ADR-0003 fix to develop and open PR.
+2. Run F3 round-10 re-streak (3 fresh-context passes). Gate requires 3 consecutive CLEAN (zero MEDIUM+).
+3. If round-10 surfaces only documentation residuals, escalate to human with recommend-accept (D-100/D-101).
+
+---
+
 <!-- Prior checkpoint archived here when feature-collapse-v0.8.0 STEADY_STATE/IDLE checkpoint was replaced
      by FEATURE_MODE E-8/#62 F1-COMPLETE checkpoint. -->
