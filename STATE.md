@@ -1,13 +1,13 @@
 ---
-pipeline: STEADY_STATE
-phase: released
-phase_status: "v0.8.0 RELEASED — terminal finding-collapse (E-18 #259); F1-F7 CONVERGED + CLOSED; pipeline STEADY_STATE/IDLE."
-active_feature: "none — E-18 #259 finding-collapse CLOSED; STORY-119 (grouped-mode) DEFERRED to future cycle"
+pipeline: FEATURE_MODE
+phase: F1
+phase_status: "FEATURE MODE — issue #62 TerminalReporter enum-of-modes refactor; Phase F1 delta-analysis COMPLETE; awaiting F1 human gate."
+active_feature: "E-8 / #62 TerminalReporter enum-of-modes refactor — F1 COMPLETE; awaiting F1 human gate; release target v0.9.0"
 feature_arp_status: "v0.7.0 RELEASED 2026-06-16 — ARP Security Analyzer (E-16, issue #9); PR #256 dd8e142; tag v0.7.0; 4 binaries (aarch64-apple-darwin, x86_64-apple-darwin, x86_64-pc-windows-msvc, x86_64-unknown-linux-gnu)"
 feature_8_status: "v0.6.0 RELEASED 2026-06-12 — DNP3 TCP analyzer; F7 5-dim CONVERGED; tag v0.6.0 + 4 binaries"
 product: wirerust
 mode: brownfield
-timestamp: 2026-06-17T00:00:00Z
+timestamp: 2026-06-17T00:01:00Z
 maintenance_run: COMPLETE
 maintenance_run_id: maint-2026-06-17
 maintenance_started_at: "2026-06-17"
@@ -124,57 +124,51 @@ input_drift_check: "F7-followup-dispositions burst (2026-06-16): STORY-071/100/1
 | Reactive fix: issue #220 Modbus burst-window display | **CLOSED** 2026-06-17 | PR #263 5ed8077; BC-2.14.017 v2.6; spec 8d5446d |
 | Maintenance maint-2026-06-17 | **COMPLETE** 2026-06-17 | 2 PRs delivered (#261/#262); 5 items deferred; develop c03a38b |
 | Feature E-18 / #259 finding-collapse — F1..F7 + Release v0.8.0 | **RELEASED** 2026-06-17 | STORY-118; 9 new BCs SS-11=29; total 288 BCs; F5 3/3; F6 mutation 100%; F7 5-dim CONVERGED; PR #264→develop 5f7cd1b; PR #265→main 73034da; tag v0.8.0; 4 binaries; run 27732692087. STORY-119 DEFERRED. Per-phase detail: cycles/feature-collapse-v0.8.0/phase-progress-archive.md |
+| Feature E-8 / #62 TerminalReporter enum-modes — F1 | **F1 COMPLETE — awaiting human gate** | F1 artifact: `.factory/phase-f1-delta-analysis/issue-62-terminal-reporter-enum-modes-delta-analysis.md`. Behavior-preserving refactor; 35 construction sites; 9 SS-11 BCs re-anchored (no new BCs); ~STORY-120 (~3 pts, Epic E-8); regression risk LOW; 7 F1-gate open questions; release target v0.9.0 (semver: public-field removal). |
 
-## Session Resume Checkpoint (2026-06-17 — v0.8.0 RELEASED; STEADY_STATE/IDLE)
+## Session Resume Checkpoint (2026-06-17 — FEATURE MODE E-8 / #62; F1 COMPLETE; awaiting human gate)
 
-**Previous checkpoint (2026-06-17 — F7 CONVERGED (#259 finding-collapse); pipeline FEATURE-MODE → RELEASE PREP; NEXT = release v0.8.0) archived to:
-`.factory/cycles/feature-arp-v0.7.0/session-checkpoints.md`**
+**Previous checkpoint (2026-06-17 — v0.8.0 RELEASED; STEADY_STATE/IDLE) archived to:
+`.factory/cycles/feature-collapse-v0.8.0/session-checkpoints.md`**
 
 ### A. EXACT PIPELINE POSITION
 
-- **Project:** wirerust. **Mode:** STEADY_STATE/IDLE — v0.8.0 RELEASED; no active feature.
-- **Latest release:** v0.8.0 — finding-collapse (E-18, issue #259, STORY-118). FULLY RELEASED. Tag v0.8.0 annotated on main 73034da. Release PR #265 (release/0.8.0 → main). run 27732692087 SUCCESS. 4 binaries published. GitHub Release live (isDraft=false).
-- **Active feature:** none — E-18 #259 CLOSED. STORY-119 (grouped-mode collapse) deferred to future cycle.
-- **develop HEAD:** bec13ba == origin/develop (chore: merge main (v0.8.0) back into develop — gitflow sync).
-- **main HEAD:** 73034da (chore: release v0.8.0) == origin/main. Tag v0.8.0 annotated on 73034da.
-- **factory-artifacts HEAD:** run `git -C .factory log -1 --format='%H'` — this burst updates it.
+- **Project:** wirerust. **Mode:** FEATURE_MODE — E-8 / issue #62 TerminalReporter enum-of-modes refactor.
+- **Phase:** F1 COMPLETE — awaiting F1 human gate (authorize F2 spec-evolution or reject).
+- **Latest release:** v0.8.0 — finding-collapse (E-18, issue #259, STORY-118). Tag v0.8.0 on main 73034da.
+- **develop HEAD:** bec13ba == origin/develop.
+- **main HEAD:** 73034da (chore: release v0.8.0).
+- **factory-artifacts HEAD:** run `git -C .factory log -1 --format='%H'`
 - **Active worktrees:** EXACTLY 2 — main repo (develop at /Users/zious/Documents/GITHUB/wirerust), `.factory/` (factory-artifacts).
 - **Open PRs:** NONE.
-- **Issue #259:** CLOSED by STORY-118 delivery (PR #264 + v0.8.0 release).
 
 ### B. RESUME PROCEDURE (COLD-RESUME — follow verbatim)
 
 **Step 1 (BLOCKING):** Run `vsdd-factory:factory-worktree-health` before any other action.
 
-**Step 2 — Verify SHAs (all must match before proceeding):**
-- `git rev-parse --short HEAD` in repo root → expect `bec13ba`
-- `git rev-parse --short origin/develop` → expect `bec13ba` (develop == origin/develop — CLEAN)
+**Step 2 — Verify SHAs:**
+- `git rev-parse --short HEAD` → expect `bec13ba`
 - `git rev-parse --short main` → expect `73034da`
 - `git tag -l v0.8.0` → must exist
-- `git -C .factory rev-parse --short HEAD` → must match factory-artifacts HEAD recorded above; if stale, run `git -C .factory fetch origin && git -C .factory reset --hard origin/factory-artifacts`
-- `gh pr list --state open` → expect empty (no open PRs)
-- `git worktree list` → expect exactly 2 entries (repo root + .factory/)
+- `git -C .factory rev-parse --short HEAD` → must match factory-artifacts HEAD above
+- `gh pr list --state open` → expect empty
 
 **Step 3 — WHAT IS COMPLETE (do NOT redo):**
-- v0.8.0 FULLY RELEASED: 4 binaries published, GitHub Release live, run 27732692087 SUCCESS. Tag v0.8.0 on main 73034da.
-- E-18 #259 finding-collapse cycle F1-F7: ALL CONVERGED AND CLOSED (D-087). STORY-118 DELIVERED (PR #264 → develop 5f7cd1b). STORY-119 DEFERRED.
-- PR #265 (release/0.8.0 → main 73034da) MERGED. Cargo.toml 0.8.0 + CHANGELOG [0.8.0] on develop bec13ba.
-- v0.7.1 FULLY RELEASED: E-17 cycle CLOSED. maint-2026-06-17: COMPLETE (PRs #261/#262). Issue #220: CLOSED (PR #263).
+- v0.8.0 FULLY RELEASED (D-087). E-18 #259 CLOSED. STORY-119 DEFERRED.
+- F1 delta-analysis for E-8 / #62 COMPLETE. Artifact: `.factory/phase-f1-delta-analysis/issue-62-terminal-reporter-enum-modes-delta-analysis.md`.
+- F1 findings: behavior-preserving refactor; 35 construction sites; 9 SS-11 BCs re-anchored (no new BCs); ~STORY-120 (~3 pts, Epic E-8); regression risk LOW; 7 F1-gate open questions; release target v0.9.0.
 
-**Step 4 — NEXT ACTIONS (STEADY_STATE/IDLE — human decision; no auto-continue):**
-- Await new feature request or maintenance task.
-- STORY-119 (grouped-mode finding-collapse) is the natural next feature candidate.
-- Optional post-pipeline: `vsdd-factory:session-review` for the #259 E-18 cycle (not yet run).
-- Open LOW backlog items (DF-VALIDATION-001 applies before any GitHub issue filing):
-  - DRIFT-RUNANALYZE-REASSEMBLYCONFIG-MUTANTS-001 (pre-existing ReassemblyConfig mutant gap)
-  - DRIFT-HS-W47-JSON-CMD-001 (holdout cmd-example `--json -- <pcap>`)
+**Step 4 — NEXT ACTIONS (awaiting human F1 gate):**
+- Human reviews F1 artifact and decides: APPROVE F2 spec-evolution | REJECT | request clarification.
+- On APPROVE: orchestrator runs `vsdd-factory:phase-f2-spec-evolution` for E-8 / #62.
+- On REJECT: pipeline returns to STEADY_STATE/IDLE.
 
 ### C. KEY ARTIFACT POINTERS
 
+- F1 delta-analysis: `.factory/phase-f1-delta-analysis/issue-62-terminal-reporter-enum-modes-delta-analysis.md`
 - E-18 #259 cycle detail: `cycles/feature-collapse-v0.8.0/phase-progress-archive.md`
 - Maintenance report: `.factory/maintenance/sweep-report-2026-06-17.md`
 - Tech-debt register: `.factory/tech-debt-register.md`
-- E-17 / ARP cycle artifacts: `.factory/cycles/feature-arp-v0.7.0/`
 - GitHub Release v0.8.0: https://github.com/Zious11/wirerust/releases/tag/v0.8.0
 
 ## Decisions Log
