@@ -2,7 +2,7 @@
 document_type: story
 story_id: STORY-119
 epic_id: E-18
-version: "1.2"
+version: "1.3"
 status: draft
 producer: story-writer
 timestamp: 2026-06-17T00:00:00Z
@@ -37,12 +37,16 @@ deferred: false
 deferred_reason: "F1/F2 complete; full AC/task decomposition pending F3."
 # Subsystem anchor: SS-11 owns this story's scope because grouped-mode collapse
 #   is a display-layer extension of reporter/terminal.rs — the core SS-11 module.
-# Version 1.1 changes: F2 round-2 de-stale: struct vocabulary, full 9-BC set,
+# Version 1.1 changes: F2 round-2 de-stale: struct vocabulary, full 12-BC set,
 #   current anchors, deferred flag removed; full AC/task decomposition pending F3.
 # Version 1.2 changes: F2 round-3 remediation: BC table role-descriptions rewritten
 #   to faithfully reflect each BC's actual contract; version column corrected
 #   (030 v1.2, 032 v1.3, 034 v1.3); changelog note updated to full 12-BC set;
 #   VP comment added to verification_properties.
+# Version 1.3 changes: F2 round-4 remediation: corrected type-introduction attribution
+#   throughout — STORY-120 introduces the three-variant FindingsRender ENUM; STORY-119
+#   evolves it into the struct-of-orthogonal-enums (FindingsRender { grouping, collapse })
+#   and implements grouped-mode collapse. Fixed "9-BC" → "12-BC" in v1.1 stanza.
 inputs: []
 input-hash: TBD
 ---
@@ -52,8 +56,9 @@ input-hash: TBD
 > **Status (2026-06-18, F2 round-2 de-stale):** F1/F2 are complete. The BCs that
 > previously forward-referenced this story have now been authored (see Behavioral
 > Contracts table below). Full AC/task decomposition will occur in F3. `depends_on`
-> remains `[STORY-120]` — STORY-119 builds on the `FindingsRender` struct introduced
-> by STORY-120.
+> remains `[STORY-120]` — STORY-119 evolves the three-variant `FindingsRender` ENUM
+> (introduced by STORY-120) into the struct-of-orthogonal-enums and implements
+> grouped-mode collapse.
 
 This story implements grouped-mode collapse: per-tactic-bucket deduplication with
 a ` (xN)` count suffix for repeated findings when `--mitre` grouped rendering is
@@ -70,10 +75,13 @@ are pending F3 decomposition.
 - **So that** I can quickly assess the volume of repeated findings per tactic without
   wading through thousands of identical grouped-mode lines
 
-**Scope note:** As of v0.9.0 (STORY-120), the dispatch is `match self.render.grouping {
-Grouping::Grouped => render_findings_grouped(...), ... }`. For the
-`{Grouping::Grouped, Collapse::Collapsed}` variant pair, collapse is not yet applied
-within per-bucket groups — that is precisely what this story delivers. The
+**Scope note:** As of v0.9.0 (STORY-120), dispatch was
+`match self.render { FindingsRender::Grouped => render_findings_grouped(...), ... }`
+over the three-variant enum, where `{Grouped, Collapsed}` was an unrepresentable /
+illegal state (grouped mode could not collapse). STORY-119 reshapes `FindingsRender`
+into the struct-of-orthogonal-enums (`FindingsRender { grouping: Grouping, collapse:
+Collapse }`) so that `{Grouping::Grouped, Collapse::Collapsed}` becomes representable,
+then implements per-bucket grouped collapse. The
 `{Grouping::Grouped, Collapse::Expanded}` variant remains suffix-free and is not
 modified by this story. See BC-2.11.025 and BC-2.11.013 for the invariant clauses
 that were previously forward-references and are now authored.
@@ -86,16 +94,22 @@ that were previously forward-references and are now authored.
 - Singleton findings within a bucket render without suffix (backward compatible)
 - K=3 evidence sampling per group (same rule as STORY-118)
 - Dispatch gated on `FindingsRender { grouping: Grouping::Grouped, collapse: Collapse::Collapsed }`
-  (struct form introduced by STORY-120); `{Grouping::Grouped, Collapse::Expanded}` renders
-  findings individually and is unaffected by this story
+  (struct-of-enums introduced by STORY-119, replacing the three-variant enum from STORY-120);
+  `{Grouping::Grouped, Collapse::Expanded}` renders findings individually and is unaffected
+  by this story
 
 ## Dependencies
 
 - `depends_on: [STORY-120]` — STORY-119 depends on STORY-120 because STORY-120
-  introduces the `FindingsRender` struct (`grouping: Grouping`, `collapse: Collapse`) that
-  replaces the v0.8.0 bool fields (`show_mitre_grouping`, `collapse_findings`). STORY-119's
-  implementer dispatches on `FindingsRender { grouping: Grouping::Grouped, collapse: Collapse::Collapsed }`
-  rather than on the removed bool fields. The underlying collapse infrastructure
+  introduces the three-variant `FindingsRender` ENUM (`FindingsRender::Grouped`,
+  `FindingsRender::FlatCollapsed`, `FindingsRender::FlatExpanded`); STORY-119 then
+  evolves that enum into the struct-of-orthogonal-enums
+  (`FindingsRender { grouping: Grouping, collapse: Collapse }`) which replaces the
+  v0.8.0 bool fields (`show_mitre_grouping`, `collapse_findings`). The type must exist
+  (STORY-120) before STORY-119 can refactor it. STORY-119's implementer dispatches on
+  `FindingsRender { grouping: Grouping::Grouped, collapse: Collapse::Collapsed }` —
+  a state that was unrepresentable / illegal under the prior three-variant enum.
+  The underlying collapse infrastructure
   (`CollapseKey`, `collapse_findings_pass`, `COLLAPSE_EVIDENCE_SAMPLES`) comes from
   STORY-118 (transitively available through STORY-120's dependency chain).
   STORY-119 cannot be built before STORY-120 ships.
@@ -139,7 +153,7 @@ story format — will be written during F3 story decomposition in this cycle.
 | `render_findings_grouped` (extension, ~432-483) | `src/reporter/terminal.rs` | Pure core |
 | `render_findings_grouped_collapsed` (new, F4-pending) | `src/reporter/terminal.rs` | Pure core |
 | Per-bucket collapse pass (new) | `src/reporter/terminal.rs` | Pure core |
-| `render: FindingsRender { grouping: Grouping, collapse: Collapse }` (from STORY-120) | `src/reporter/terminal.rs` | Pure data |
+| `render: FindingsRender { grouping: Grouping, collapse: Collapse }` (struct introduced by STORY-119, replacing the three-variant enum from STORY-120) | `src/reporter/terminal.rs` | Pure data |
 
 ## Token Budget Estimate
 
@@ -154,7 +168,8 @@ decomposition once full ACs and tasks are written.
 
 BCs are now authored (prerequisite met). Full tasks will be written during the F3
 decomposition pass in this cycle. At that point the key prerequisite — STORY-120
-(enum refactor) merged and CI green — must also hold before F4 dispatch.
+(three-variant FindingsRender enum introduction) merged and CI green — must also
+hold before F4 dispatch.
 
 ## Previous Story Intelligence
 
@@ -179,7 +194,8 @@ Predecessor: STORY-118 (flat-mode collapse). Key lessons from STORY-118 applicab
 ## Forbidden Dependencies
 
 - This story MUST NOT be dispatched to the F4 implementer before STORY-120 has merged
-  and CI is green (the `FindingsRender` struct is a hard prerequisite).
+  and CI is green (the three-variant `FindingsRender` ENUM introduced by STORY-120 is
+  a hard prerequisite; STORY-119 then reshapes it into the struct-of-orthogonal-enums).
 - Any PR against `render_findings_grouped` for collapse purposes before this story
   transitions `status: draft → ready` (full ACs authored in F3) is a scope violation.
 - The grouped-path implementation MUST NOT import or call the flat-mode render path
@@ -201,11 +217,13 @@ Expected files (to be confirmed in F3 decomposition):
 
 ## Dependency Rationale
 
-- `depends_on: [STORY-120]` — STORY-119 (grouped-mode collapse) builds on the
-  `FindingsRender` struct introduced by STORY-120 (`grouping: Grouping`, `collapse: Collapse`).
-  The struct replaces the v0.8.0 `show_mitre_grouping` + `collapse_findings` bool pair;
-  STORY-119's implementer dispatches on
-  `FindingsRender { grouping: Grouping::Grouped, collapse: Collapse::Collapsed }`,
+- `depends_on: [STORY-120]` — STORY-120 introduces the three-variant `FindingsRender`
+  ENUM (`FindingsRender::Grouped`, `FindingsRender::FlatCollapsed`,
+  `FindingsRender::FlatExpanded`); STORY-119 evolves that enum into the
+  struct-of-orthogonal-enums (`FindingsRender { grouping: Grouping, collapse: Collapse }`)
+  and depends on STORY-120 because the type must exist first. The struct replaces the
+  v0.8.0 `show_mitre_grouping` + `collapse_findings` bool pair; STORY-119's implementer
+  dispatches on `FindingsRender { grouping: Grouping::Grouped, collapse: Collapse::Collapsed }`,
   not on removed bools. STORY-120 is the direct predecessor. STORY-118's collapse
   infrastructure (`CollapseKey`, `collapse_findings_pass`, `COLLAPSE_EVIDENCE_SAMPLES`)
   is transitively available through STORY-120's dependency chain.

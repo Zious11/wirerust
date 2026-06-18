@@ -211,7 +211,7 @@ structurally unchanged.
 
 The function performs tactic bucketing and sorting identically to the existing
 `render_findings_grouped` (BC-2.11.013: `mitre_techniques[0]` determines bucket; ascending by
-verdict rank then confidence rank then emission-index within each bucket — ascending by verdict rank (Likely=0, Possible=1, Inconclusive=2, Unlikely=3), then confidence rank (High=0, Medium=1, Low=2), then emission-index — highest-severity surfaces first). Then, **within each tactic
+verdict rank (Likely=0, Possible=1, Inconclusive=2, Unlikely=3), then confidence rank (High=0, Medium=1, Low=2), then emission-index — highest-severity first). Then, **within each tactic
 bucket**, it applies the existing `collapse_findings_pass` (same `CollapseKey` semantics as flat
 mode: `(category, verdict, confidence, summary)`) and renders each resulting group using the
 collapse rendering rules:

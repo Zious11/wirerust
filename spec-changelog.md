@@ -14,6 +14,51 @@ changes, invariant rewrites).
 
 ---
 
+## [story-119-f2-adv-round4-remediation-2026-06-18] — 2026-06-18
+
+### PATCH: STORY-119 F2 Adversarial Round-4 Remediation — Type-Attribution Inversion Fix; BC-030 Provenance Citation Corrected; Design-Note §5.1 Sort-Clause Dedup; BC-INDEX:032 Annotation Alignment; "9-BC"→"12-BC" Count Fix
+
+**Trigger:** F2 adversarial round-4 triple — Pass A CLEAN; Pass C CLEAN (LOW only); Pass B found HIGH type-attribution inversion + MED stale BC count + LOW BC-030 provenance citation + 2 NITs. BC-INDEX v1.47 → v1.48. ADR untouched this round.
+
+#### Root Cause
+
+Round-4 Passes A and C were CLEAN. Pass B found four defect classes:
+
+1. **HIGH (F-R4B-001): STORY-119.md type-attribution inversion.** The narrative (~8 occurrences) incorrectly attributed the FindingsRender STRUCT introduction to STORY-120. Correct: STORY-120 introduces the three-variant FindingsRender ENUM (`FindingsRender::Grouped`, `FindingsRender::FlatCollapsed`, `FindingsRender::FlatExpanded`); STORY-119 then evolves that enum into the struct-of-orthogonal-enums (`FindingsRender { grouping: Grouping, collapse: Collapse }`). The Scope note also contained a self-contradiction: said "v0.9.0 dispatched the enum" but implied `{Grouped,Collapsed}` was already representable (it was not — that illegal state is what STORY-119 resolves).
+2. **MED: Stale "9-BC set" in v1.1 stanza** of STORY-119.md frontmatter comment. The v1.1 de-stale added the full 12-BC set but the description said "9-BC"; corrected to "12-BC set".
+3. **LOW: BC-030 v1.2 provenance citation wrong.** The v1.1 stanza in BC-2.11.030.md cited "BC-INDEX:271" as the location of the grouped-collapse v0.9.0 entry; the v1.2 stanza retained that wrong cite. Verified: the live BC-INDEX shows the grouped-collapse v0.9.0 entry at line 273 (not :271). Both stanzas now cite :273 with verified entry content.
+4. **NIT×2:** design-note §5.1 contained a duplicated sort clause (second occurrence removed); BC-INDEX:032 annotation used "consistent with BC-026 PC-7" language that was ambiguous — aligned to the corrected body wording ("shares the positional members[0] mechanic with BC-026 PC-7 but uses post-sort (not emission) order").
+
+#### Changed Artifacts (this burst)
+
+**STORY-119.md v1.2→v1.3 — type-attribution inversion fix:**
+- All ~8 occurrences of incorrect attribution corrected throughout: frontmatter comment, status callout, narrative body, Implementation Scope, Dependencies section, Architecture Mapping table, Dependency Rationale section.
+- Correct attribution everywhere: STORY-120 introduces the three-variant `FindingsRender` ENUM; STORY-119 evolves it into the struct-of-orthogonal-enums.
+- Scope-note self-contradiction removed: clarified that `{Grouped,Collapsed}` was an unrepresentable/illegal state under the v0.9.0 three-variant enum (it was not merely "illegal at dispatch time" — the state did not exist).
+- Stale "9-BC set" in v1.1 stanza corrected to "12-BC set".
+- `depends_on: [STORY-120]` unchanged (correct).
+
+**BC-2.11.030.md v1.2→v1.3 — provenance citation corrected:**
+- `BC-2.11.030`: v1.1 stanza BC-INDEX line citation corrected from ":271" to ":273" with verified entry content ("BCs 030-034: grouped-collapse (greenfield, STORY-119, v0.9.0)").
+- v1.2 stanza retained as audit trail of the round-3 intermediate error (the :271 fix was itself wrong — the round-3 NIT-fix overcorrected from :269 to :271 but the actual line is :273).
+
+**Design-note §5.1 duplicate sort clause removed (NIT):**
+- `story-119-type-design.md` §5.1: one duplicated sort-clause sentence removed (the paragraph stated the sort criterion twice in consecutive sentences).
+
+**BC-INDEX.md v1.47→v1.48 — annotation alignment (NIT):**
+- BC-2.11.032 row annotation aligned to corrected body wording: "...post-sort severity order; shares the positional members[0] mechanic with BC-026 PC-7 but uses post-sort (not emission) order."
+- BC-2.11.030 row annotation extended with v1.3 citation note.
+- Version stamp bumped to v1.48; round-4 changelog note prepended.
+
+**Artifacts NOT changed this round:**
+- ADR-0003 (no ADR change this round)
+- BC-2.11.031, 033, 034 (untouched)
+- HS-081 (untouched)
+- PRD-delta (untouched)
+- No new BCs; total 293 unchanged.
+
+---
+
 ## [story-119-f2-adv-round3-remediation-2026-06-18] — 2026-06-18
 
 ### PATCH: STORY-119 F2 Adversarial Round-3 Remediation — STORY-119.md BC-Table Role-Description Verbatim-Title Fix, Design-Note Doc-Comment Annotation Correction, BC-032/034 Representative-Ordering Clarification, BC-030 Index-Anchor Nit

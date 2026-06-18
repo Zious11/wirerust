@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-06-18T00:00:00Z
@@ -13,8 +13,9 @@ capability: CAP-11
 lifecycle_status: active
 introduced: v0.9.0
 modified:
-  - "v1.1 2026-06-18: R2-2 — correct introduced version: v0.10.0 → v0.9.0 (canonical per ADR-0003 §Semver, design-note §7, BC-INDEX:271; D-110 bundles into unreleased 0.9.0)."
+  - "v1.1 2026-06-18: R2-2 — correct introduced version: v0.10.0 → v0.9.0 (canonical per ADR-0003 §Semver, design-note §7, BC-INDEX:273 'BCs 030-034: grouped-collapse (greenfield, STORY-119, v0.9.0)'; D-110 bundles into unreleased 0.9.0)."
   - "v1.2 2026-06-18: F2 adversarial round-3 fix (NIT) — correct BC-INDEX line reference in v1.1 stanza: ':269' (CsvReporter BCs 020-024 note) → ':271' (grouped-collapse v0.9.0 line)."
+  - "v1.3 2026-06-18: F2 adversarial round-4 fix — correct BC-INDEX line citation in v1.1 and v1.2 stanzas: verified live BC-INDEX shows grouped-collapse v0.9.0 entry at line 273 (not 271); v1.2 ':271' was itself wrong. v1.1 stanza now cites ':273' verbatim with entry content; v1.2 stanza retained as audit trail of the round-3 intermediate error."
 deprecated: null
 deprecated_by: null
 replacement: null
