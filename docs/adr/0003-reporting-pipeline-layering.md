@@ -360,6 +360,222 @@ Wireshark model and avoids the syslog anti-pattern.
 
 ---
 
+## Render-Mode Enum (Issue #62 — v0.9.0)
+
+**Status of this subsection:** Accepted (F2 spec evolution 2026-06-17; F3 scope correction 2026-06-18)
+
+### Context
+
+v0.8.0 shipped `TerminalReporter` with four boolean fields:
+
+```rust
+pub struct TerminalReporter {
+    pub use_color: bool,
+    pub show_mitre_grouping: bool,
+    pub show_hosts_breakdown: bool,
+    pub collapse_findings: bool,
+}
+```
+
+The issue #62 trigger condition ("when a 3rd render flag is added") fired when STORY-118
+(issue #259) added `collapse_findings`. Two concrete illegal-state violations resulted:
+
+1. **Nonsensical combination** (`show_mitre_grouping = true && collapse_findings = true`)
+   is a representable struct value. The type permits it; the code silently ignores
+   `collapse_findings` when `show_mitre_grouping` is true (dispatch-order enforcement only).
+   The BC-2.11.025 invariant is encoded in comments and dispatch order, not the type system.
+
+2. **Inert-value comment** at `main.rs` `run_summary`: `collapse_findings: true` with a
+   comment explaining the value does not matter. The type cannot express "irrelevant in this
+   context."
+
+### Decision
+
+**Replace `show_mitre_grouping: bool` and `collapse_findings: bool` with
+`render: FindingsRender` — a three-variant enum that makes the mutually-exclusive
+rendering modes unrepresentable as invalid combinations.**
+
+```rust
+/// Governs which rendering path the FINDINGS section uses.
+///
+/// Replaces `show_mitre_grouping: bool` + `collapse_findings: bool`
+/// from v0.8.0. The previous struct admitted `show_mitre_grouping = true
+/// && collapse_findings = true`, which was silently handled by dispatch
+/// order but was never a valid state.
+///
+/// BC-2.11.013 (Grouped), BC-2.11.025–028 (FlatCollapsed), default (FlatExpanded).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum FindingsRender {
+    /// Group findings by MITRE tactic (`--mitre` flag).
+    /// Corresponds to the previous `show_mitre_grouping = true`.
+    Grouped,
+    /// Collapse repeated findings into counted groups (default, v0.8.0+).
+    /// Corresponds to the previous `collapse_findings = true, show_mitre_grouping = false`.
+    FlatCollapsed,
+    /// One display line per raw finding (pre-v0.8.0 behavior, `--no-collapse`).
+    /// Corresponds to the previous `collapse_findings = false, show_mitre_grouping = false`.
+    FlatExpanded,
+}
+
+pub struct TerminalReporter {
+    pub use_color: bool,
+    pub show_hosts_breakdown: bool,
+    pub render: FindingsRender,
+}
+```
+
+### Rationale: Illegal-State Elimination is the Primary Driver
+
+The decisive justification is **illegal-state elimination** — making the
+`show_mitre_grouping = true && collapse_findings = true` combination unrepresentable at the
+type level. Rust's `match` exhaustiveness then enforces that every call site handles all
+three modes explicitly, replacing the fragile `if/else if` dispatch chain.
+
+The Clippy `fn_params_excessive_bools` lint (`max-fn-params-bools` default: `3`) provides
+corroborating tooling consensus (the current four bools exceed the machine-enforced
+threshold) but is not the primary driver. The illegal-state argument is decisive on its own:
+two mutually-exclusive bools encode `2^2 = 4` representable states, of which only 3 are
+valid. The enum encodes exactly 3 states and no others.
+
+This is confirmed by external research (`.factory/research/issue-62-enum-modes-design-validation.md`):
+- Rust API Guidelines C-NEWTYPE recommends deliberate types when invariants exist.
+- "Parse, don't validate" (Alexis King): enums over bool-pairs when combinations matter.
+- Clippy's machine-enforced default threshold verified directly against rust-lang.org docs.
+
+### Why Orthogonal Flags Stay as Bools
+
+`use_color` and `show_hosts_breakdown` are **orthogonal** — all four combinations are valid
+and meaningful:
+
+- `use_color` applies uniformly across every output section (headers, findings, warnings).
+  It is controlled by `--no-color` and terminal detection, independent of how findings are
+  grouped. It is not part of the findings-render axis.
+- `show_hosts_breakdown` gates the HOSTS section, which is rendered before the FINDINGS
+  section and is independent of it. It is used by the `summary` subcommand, which never
+  renders a FINDINGS section at all — making `FindingsRender` irrelevant for that path.
+
+Folding either into `FindingsRender` would be a category error: it would create combinations
+that are semantically incoherent (e.g., `FindingsRender::GroupedWithColor`) and would
+introduce new illegal states rather than eliminating them.
+
+The hybrid design — one enum for the mutually-exclusive axis, two bools for orthogonal
+toggles — is confirmed as the idiomatic Rust recommendation by research Q3: "Keep genuinely
+orthogonal booleans as separate, clearly-named fields while extracting only the
+mutually-exclusive axis into an enum."
+
+### Migration Map
+
+Every construction site translates old bool pairs to enum variants as follows:
+
+| Old fields | New field | Notes |
+|-----------|-----------|-------|
+| `show_mitre_grouping: true, collapse_findings: false` | `render: FindingsRender::Grouped` | — |
+| `show_mitre_grouping: true, collapse_findings: true` | `render: FindingsRender::Grouped` | Was previously nonsensical; grouped wins per dispatch order |
+| `show_mitre_grouping: false, collapse_findings: true` | `render: FindingsRender::FlatCollapsed` | — |
+| `show_mitre_grouping: false, collapse_findings: false` | `render: FindingsRender::FlatExpanded` | Pre-v0.8.0 behavior |
+
+The `--mitre` / `--no-collapse` → bool resolution stays at the `main()` call site
+(`src/main.rs` lines 79-80), unchanged by this refactor:
+
+```rust
+// main() call site — unchanged:
+*mitre,                              // → show_mitre_grouping: bool
+collapse_findings_from_flag(*no_collapse),  // → collapse_findings: bool
+```
+
+Inside `run_analyze`, the in-scope parameters are `show_mitre_grouping: bool` and
+`collapse_findings: bool` (function signature `src/main.rs` lines 107-108).
+The `run_analyze` signature is unchanged. The bool → enum translation at the
+`TerminalReporter` construction site (`src/main.rs` ~line 373) becomes:
+
+```rust
+// at the TerminalReporter construction site inside run_analyze;
+// show_mitre_grouping and collapse_findings are the in-scope params:
+render: if show_mitre_grouping {
+    FindingsRender::Grouped
+} else if collapse_findings {
+    FindingsRender::FlatCollapsed
+} else {
+    FindingsRender::FlatExpanded
+},
+```
+
+`collapse_findings_from_flag` is unchanged. `show_mitre_grouping` is `true` exactly
+when `*mitre` is `true`; `collapse_findings` is `true` exactly when `!no_collapse`
+is `true`. The observable behavior is identical to the migration table above.
+
+The `run_summary` inert-value site (`collapse_findings: true` with comment) becomes
+`render: FindingsRender::FlatCollapsed` — structurally expressing "if this reporter
+were ever used to render findings, it would use the v0.8.0 default."
+
+### Semver Consequence: v0.8.x → v0.9.0
+
+Removing the public fields `show_mitre_grouping` and `collapse_findings` and adding the
+public field `render: FindingsRender` is a **breaking change** to the public struct API.
+Under Cargo's SemVer model and RFC 1105, removing or replacing a reachable public field is
+classified as a major (breaking) change. For a `0.y.z` crate, the `y` component is the
+breaking component; `0.8.x → 0.9.0` is therefore the correct and required version bump.
+
+This is confirmed by research Q4 (verified directly against `doc.rust-lang.org/cargo/
+reference/semver.html` and RFC 1105). The caret specifier `"0.8.x"` in `Cargo.toml`
+resolves to `>=0.8.x, <0.9.0`, so consumers pinned in the 0.8.x line will not auto-receive
+0.9.0 — the intended containment behavior for a breaking change.
+
+The `cargo-semver-checks` `struct_field_missing` lint will fire as expected when run against
+the 0.8.x baseline. This is correct, not a defect. The recommendation from research is to
+run `cargo-semver-checks` in the release flow to make the classification machine-visible.
+
+### `Default` Derive: Deliberate Omission
+
+`Default` is **NOT derived** on `FindingsRender`. Rationale:
+
+RFC 3107 permits `#[derive(Default)]` with `#[default]` on a unit variant. The natural
+candidate would be `FlatCollapsed` (matching today's default `analyze` behavior). However:
+
+- Deriving `Default` makes the default variant part of the public stability commitment.
+  Changing it post-0.9.0 would be a silent behavioral break not caught by the compiler or
+  `cargo-semver-checks`.
+- The current codebase has exactly two construction paths (`run_analyze` and `run_summary`),
+  both of which set `render` explicitly. There is no site that would benefit from a
+  `Default::default()` call — all sites carry enough context to pick the correct variant.
+- Explicit construction is preferable here: `render: FindingsRender::FlatCollapsed` at each
+  site documents the intent, whereas `Default::default()` would obscure which variant is
+  being selected.
+
+If a future caller needs a default (e.g., a test helper builder pattern), `Default` can be
+added then as a documented, deliberate API commitment. It is backwards-compatible to add
+`Default` in a later minor release; it is not backwards-compatible to change the default
+variant after the fact.
+
+### Binding Rule
+
+> **Rule 5 (render-mode type):** `TerminalReporter`'s findings rendering mode MUST be
+> expressed as `FindingsRender`. Adding a new rendering mode requires adding a new variant
+> to `FindingsRender` and updating all exhaustive `match` arms. A bool field on
+> `TerminalReporter` that encodes a mutually-exclusive rendering mode is prohibited; such a
+> field MUST be folded into `FindingsRender` or a successor enum. Orthogonal toggles
+> (properties that do not create illegal states when combined with existing fields) MAY
+> remain as bool fields.
+
+### Alternatives Considered
+
+**Pre-split for STORY-119 (grouped-mode collapse):** Add `GroupedCollapsed` and
+`GroupedExpanded` variants now, anticipating a future feature. Rejected as YAGNI — the
+STORY-119 cycle will have its own F1/F2 and can amend the enum at that time. The current
+three-variant enum exactly models the current three modes with no phantom states.
+
+**Builder / typestate pattern:** A `TerminalReporterBuilder` with typestate enforcement.
+Warranted for multi-step construction with cross-field invariants. Rejected: `TerminalReporter`
+construction is one-shot mode selection with no sequenced protocol. A plain enum is the
+correct, minimal tool.
+
+**Remain as bools, add documentation only:** The existing dispatch-order invariant is already
+documented in comments and BCs. Rejected: the illegal state is still constructible; the
+compiler provides no enforcement; new contributors can silently violate the invariant. The
+type-system fix is strictly superior.
+
+---
+
 ## Validation
 
 This decision was validated through targeted Perplexity queries on 2026-04-08:

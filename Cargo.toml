@@ -1,6 +1,6 @@
 [package]
 name = "wirerust"
-version = "0.8.0"
+version = "0.9.0"
 edition = "2024"
 rust-version = "1.91"
 description = "Fast PCAP forensics and network triage CLI tool"

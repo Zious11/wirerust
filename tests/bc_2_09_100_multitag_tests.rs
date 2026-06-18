@@ -691,7 +691,11 @@ fn make_terminal(mitre_grouping: bool) -> TerminalReporter {
         use_color: false,
         show_hosts_breakdown: false,
         // STORY-120: parameterized — mitre_grouping ? Grouped : FlatExpanded
-        render: if mitre_grouping { FindingsRender::Grouped } else { FindingsRender::FlatExpanded },
+        render: if mitre_grouping {
+            FindingsRender::Grouped
+        } else {
+            FindingsRender::FlatExpanded
+        },
     }
 }
 
@@ -762,7 +766,7 @@ fn test_BC_2_11_015_terminal_unknown_id_lands_in_uncategorized() {
 
 /// BC-2.11.017 postcondition, AC-002 (STORY-101):
 /// Two-technique finding renders as `"MITRE: T1692.001, T0836"` (comma-space join).
-/// Flat view (show_mitre_grouping=false).
+/// Flat view (render=FindingsRender::FlatExpanded).
 #[test]
 fn test_BC_2_11_017_terminal_renders_multi_id_mitre_string() {
     let f = make_finding_multitag(vec!["T1692.001", "T0836"]);

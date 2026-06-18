@@ -691,7 +691,7 @@ mod story_078 {
     // -----------------------------------------------------------------------
 
     /// AC-001 (BC-2.11.013 postcondition 2):
-    /// When `show_mitre_grouping = true`, tactic section headers appear in the
+    /// When `render = FindingsRender::Grouped`, tactic section headers appear in the
     /// order returned by `all_tactics_in_report_order()`.  Only sections with at
     /// least one finding are emitted.
     ///
@@ -1006,7 +1006,7 @@ mod story_078 {
     // -----------------------------------------------------------------------
 
     /// AC-008 (BC-2.11.016 postcondition 1):
-    /// When `show_mitre_grouping = true` and a finding has a known technique ID
+    /// When `render = FindingsRender::Grouped` and a finding has a known technique ID
     /// (e.g., "T1036"), the MITRE line reads `MITRE: T1036 \u{2014} Masquerading`
     /// (U+2014 em-dash, not ASCII "--").
     ///
@@ -1081,8 +1081,8 @@ mod story_078 {
     // -----------------------------------------------------------------------
 
     /// AC-010 (BC-2.11.017 postcondition 1):
-    /// When `show_mitre_grouping = false` (default), a finding with
-    /// `mitre_technique = "T1036"` produces the MITRE line `MITRE: T1036`
+    /// When `render != FindingsRender::Grouped` (FlatExpanded or FlatCollapsed), a finding
+    /// with `mitre_technique = "T1036"` produces the MITRE line `MITRE: T1036`
     /// with no em-dash, no technique name, and no `(unknown)` label.
     ///
     /// Discriminating assertions:
@@ -1095,14 +1095,14 @@ mod story_078 {
     /// inv1/2: render_finding_flat never calls technique_name() / technique_tactic().
     #[test]
     fn test_BC_2_11_017_default_mode_bare_mitre_id() {
-        // Canonical test vector: mitre="T1036", show_mitre_grouping=false.
+        // Canonical test vector: mitre="T1036", render=FlatExpanded.
         let f = make_mitre_finding(
             "flat-finding",
             Verdict::Likely,
             Confidence::High,
             Some("T1036"),
         );
-        // Use plain_reporter() (show_mitre_grouping = false).
+        // Use plain_reporter() (render=FindingsRender::FlatExpanded).
         let out = plain_reporter().render(&Summary::new(), &[f], &[]);
 
         // Bare MITRE ID must be present.
@@ -2060,7 +2060,7 @@ mod story_118 {
         );
     }
 
-    /// AC-005: show_mitre_grouping=true suppresses collapse; no (xN) suffix anywhere.
+    /// AC-005: render=FindingsRender::Grouped suppresses collapse; no (xN) suffix anywhere.
     ///
     /// This guards the invariant that grouped (--mitre) mode is structurally
     /// suffix-free. FAILS if a future change applies the collapse pass inside
@@ -2070,7 +2070,7 @@ mod story_118 {
     /// that grouped mode does not).
     #[test]
     fn test_BC_2_11_025_grouped_mode_bypasses_collapse() {
-        // BC-2.11.025 invariant 5: when show_mitre_grouping=true, collapse does NOT run.
+        // BC-2.11.025 invariant 5: when render=FindingsRender::Grouped, collapse does NOT run.
         // 100 identical-key findings in mitre+collapse reporter → no (xN) suffix.
         let findings: Vec<Finding> = (0..100)
             .map(|_| {
@@ -2382,7 +2382,7 @@ mod story_118 {
             vec![],
         );
 
-        // Collapse reporter (collapse_findings=true) with a single finding.
+        // Collapse reporter (render=FindingsRender::FlatCollapsed) with a single finding.
         let out_collapse =
             collapse_reporter().render(&Summary::new(), std::slice::from_ref(&f), &[]);
 
@@ -2392,7 +2392,7 @@ mod story_118 {
             "BC-2.11.026 pc2/inv2: singleton must render with no (xN) suffix; got:\n{out_collapse}"
         );
 
-        // Output must be byte-identical to the pre-v0.8.0 path (collapse_findings=false).
+        // Output must be byte-identical to the pre-v0.8.0 path (render=FindingsRender::FlatExpanded).
         let out_no_collapse = plain_reporter().render(&Summary::new(), &[f], &[]);
         assert_eq!(
             out_collapse, out_no_collapse,
@@ -3210,15 +3210,14 @@ mod story_118 {
 
     /// AC-018 (part 1): --no-collapse restores one-line-per-finding; no (xN) suffix.
     ///
-    /// This guards the opt-out path: with collapse_findings=false, 5 identical-key
+    /// This guards the opt-out path: with render=FindingsRender::FlatExpanded, 5 identical-key
     /// findings render as 5 individual header lines. Also includes a contrast assertion
     /// that the collapse path (render_findings_collapsed) is implemented — verified by
-    /// checking that collapse_findings=true produces a different (collapsed) result.
-    /// FAILS if collapse_findings=false collapses, or if render_findings_collapsed is not
-    /// yet implemented.
+    /// checking that render=FindingsRender::FlatCollapsed produces a different (collapsed) result.
+    /// FAILS if FlatExpanded collapses, or if render_findings_collapsed is not yet implemented.
     #[test]
     fn test_BC_2_11_028_no_collapse_flag_one_line_per_finding() {
-        // BC-2.11.028 pc2: collapse_findings=false → one header per finding, no suffix.
+        // BC-2.11.028 pc2: render=FindingsRender::FlatExpanded → one header per finding, no suffix.
         let findings: Vec<Finding> = (0..5)
             .map(|_| {
                 make_collapse_finding(
@@ -3232,7 +3231,7 @@ mod story_118 {
             })
             .collect();
 
-        // plain_reporter() has collapse_findings=false.
+        // plain_reporter() has render=FindingsRender::FlatExpanded.
         let out = plain_reporter().render(&Summary::new(), &findings, &[]);
 
         // 5 individual header lines, not 1 collapsed group.
@@ -3249,7 +3248,7 @@ mod story_118 {
             "BC-2.11.028 pc2: collapse_findings=false must produce no (xN) suffix; got:\n{out}"
         );
 
-        // Contrast assertion: collapse_findings=true on the same input MUST produce
+        // Contrast assertion: render=FindingsRender::FlatCollapsed on the same input MUST produce
         // a collapsed group with (x5) — verifying the opt-out contrast is meaningful.
         let out_collapse = collapse_reporter().render(&Summary::new(), &findings, &[]);
         assert!(
@@ -3262,7 +3261,7 @@ mod story_118 {
     /// AC-018 (part 2): default vs. opt-out outputs are observably different.
     ///
     /// This guards that the two modes produce distinct output for the same input.
-    /// FAILS if a future change makes collapse_findings=true and collapse_findings=false
+    /// FAILS if a future change makes FindingsRender::FlatCollapsed and FindingsRender::FlatExpanded
     /// produce identical output (meaning either both collapse or neither does).
     #[test]
     fn test_BC_2_11_028_default_vs_opt_out_output_difference() {
@@ -3312,17 +3311,17 @@ mod story_118 {
         );
     }
 
-    /// AC-019: --no-collapse flag is wired: no_collapse=true → collapse_findings=false.
+    /// AC-019: --no-collapse flag is wired: no_collapse=true → render=FindingsRender::FlatExpanded.
     ///
-    /// This guards the structural wiring between the CLI flag and the reporter field.
-    /// FAILS if the collapse_findings field does not exist, or if its polarity is
-    /// reversed (collapse_findings: no_collapse instead of !no_collapse).
+    /// This guards the structural wiring between the CLI flag and the render field.
+    /// FAILS if FlatCollapsed and FlatExpanded produce identical output, or if the
+    /// render variant is mis-wired to the wrong rendering path.
     #[test]
     fn test_BC_2_11_028_flag_wired_to_reporter_field() {
         // BC-2.11.028 pc1 / invariant 1: structural wiring test.
-        // collapse_findings=true → collapse active (v0.8.0 default).
-        // collapse_findings=false → collapse inactive (--no-collapse opt-out).
-        // Verify the field exists and the logic is correct by behavioral contrast.
+        // render=FindingsRender::FlatCollapsed → collapse active (v0.8.0 default).
+        // render=FindingsRender::FlatExpanded → collapse inactive (--no-collapse opt-out).
+        // Verify the render field is wired correctly by behavioral contrast.
 
         let findings: Vec<Finding> = (0..3)
             .map(|_| {
@@ -3533,15 +3532,15 @@ mod story_118 {
 
     /// AC-027: --no-collapse flag has no observable effect on JSON or CSV output.
     ///
-    /// This guards that the collapse_findings field on TerminalReporter does not leak
-    /// into the JSON/CSV reporters. FAILS if main.rs is refactored to pre-filter the
-    /// findings slice based on the --no-collapse flag before passing to all reporters.
+    /// This guards that the render field (FindingsRender::FlatCollapsed) on TerminalReporter
+    /// does not leak into the JSON/CSV reporters. FAILS if main.rs is refactored to pre-filter
+    /// the findings slice based on the --no-collapse flag before passing to all reporters.
     #[test]
     fn test_BC_2_11_029_no_collapse_flag_json_invariant() {
         use wirerust::reporter::json::JsonReporter;
 
-        // BC-2.11.029 pc5: JSON output must be identical regardless of collapse_findings.
-        // The collapse_findings field belongs to TerminalReporter only.
+        // BC-2.11.029 pc5: JSON output must be identical regardless of render variant.
+        // The render field belongs to TerminalReporter only.
         let findings: Vec<Finding> = (0..5)
             .map(|_| {
                 make_collapse_finding(
@@ -3556,7 +3555,7 @@ mod story_118 {
             .collect();
 
         // JsonReporter does not have a collapse_findings field — it is unaffected.
-        // Both collapse=true and collapse=false terminal renders must produce the SAME
+        // Both FlatCollapsed and FlatExpanded terminal renders must produce the SAME
         // JSON output when the same slice is passed to JsonReporter.
         let json_out = JsonReporter.render(&Summary::new(), &findings, &[]);
         let json: serde_json::Value =
@@ -3649,7 +3648,7 @@ mod story_118 {
     // -----------------------------------------------------------------------
 
     /// AC-005 (BC-2.11.013): grouped mode (--mitre) is structurally suffix-free
-    /// regardless of `collapse_findings` flag; 0 (xN) suffixes in any volume.
+    /// regardless of render variant; 0 (xN) suffixes in any volume.
     ///
     /// This guards the invariant that render_findings_grouped is never modified by
     /// STORY-118. Also includes a contrast assertion that flat collapse produces a
@@ -3659,7 +3658,7 @@ mod story_118 {
     #[test]
     fn test_BC_2_11_013_grouped_mode_suffix_free() {
         // BC-2.11.013 invariant 4: grouped mode is structurally suffix-free.
-        // 50 identical-key findings with collapse_findings=true AND show_mitre_grouping=true.
+        // 50 identical-key findings with FindingsRender::FlatCollapsed AND FindingsRender::Grouped.
         let findings: Vec<Finding> = (0..50)
             .map(|_| {
                 make_collapse_finding(
@@ -3764,7 +3763,7 @@ mod story_118 {
     // BC-2.11.019 — Section Order Unchanged with Collapse (1 test)
     // -----------------------------------------------------------------------
 
-    /// AC-025: overall section order is unchanged when collapse_findings=true.
+    /// AC-025: overall section order is unchanged when render=FindingsRender::FlatCollapsed.
     /// Only the FINDINGS body content changes.
     ///
     /// This guards that the collapse feature does not reorder or drop the top-level
@@ -3941,21 +3940,15 @@ mod story_118 {
 }
 
 // ---------------------------------------------------------------------------
-// STORY-120 RED gate stubs
+// STORY-120 GREEN gate tests
 //
 // These tests exercise new behaviors introduced by the FindingsRender enum
-// migration (STORY-120). All bodies are `todo!()` — they compile but panic
-// at runtime, satisfying the Red Gate density check (≥50% todo!() bodies).
+// migration (STORY-120). All todo!() stubs have been replaced with real
+// assertions by the GREEN implementer.
 //
-// The implementer replaces each todo!() with real assertions during GREEN
-// after defining `pub enum FindingsRender { Grouped, FlatCollapsed,
-// FlatExpanded }` and updating `TerminalReporter` to use `render:
-// FindingsRender` in place of `show_mitre_grouping: bool` and
-// `collapse_findings: bool`.
-//
-// DO NOT reference the `FindingsRender` type here — it does not yet exist.
-// Construction sites remain as `todo!()` prose descriptions so the file
-// compiles against the current (pre-enum) struct shape.
+// `TerminalReporter` now uses `render: FindingsRender` (a three-variant enum)
+// in place of the two removed bool fields. The FindingsRender enum is now
+// defined in src/reporter/terminal.rs and imported below.
 // ---------------------------------------------------------------------------
 
 mod story_120 {
@@ -4004,7 +3997,7 @@ mod story_120 {
     fn test_findings_render_derives_debug_clone_copy_partialeq_eq() {
         let a = FindingsRender::Grouped;
         let b = a; // Copy
-        let c = a.clone(); // Clone
+        let c = Clone::clone(&a); // Clone (explicit form avoids clone_on_copy lint)
         assert_eq!(a, b, "PartialEq + Eq: Grouped == copied Grouped");
         assert_eq!(a, c, "PartialEq + Eq: Grouped == cloned Grouped");
         let _ = format!("{a:?}"); // Debug — would panic if not implemented
@@ -4040,7 +4033,7 @@ mod story_120 {
     /// AC-002 (BC-2.11.028 precondition 3):
     /// TerminalReporter has exactly 3 fields: use_color, show_hosts_breakdown, render.
     /// This test compiles only if the struct has exactly those fields — any reference
-    /// to removed fields show_mitre_grouping or collapse_findings is a compile error.
+    /// to the removed fields is a compile error.
     #[test]
     fn test_BC_2_11_028_struct_has_exactly_three_fields_post_refactor() {
         // The struct literal below is the test: it compiles if and only if exactly
@@ -4120,9 +4113,18 @@ mod story_120 {
         );
 
         // All three outputs are mutually distinct.
-        assert_ne!(grouped_out, collapsed_out, "AC-003: Grouped != FlatCollapsed output");
-        assert_ne!(grouped_out, expanded_out, "AC-003: Grouped != FlatExpanded output");
-        assert_ne!(collapsed_out, expanded_out, "AC-003: FlatCollapsed != FlatExpanded output");
+        assert_ne!(
+            grouped_out, collapsed_out,
+            "AC-003: Grouped != FlatCollapsed output"
+        );
+        assert_ne!(
+            grouped_out, expanded_out,
+            "AC-003: Grouped != FlatExpanded output"
+        );
+        assert_ne!(
+            collapsed_out, expanded_out,
+            "AC-003: FlatCollapsed != FlatExpanded output"
+        );
     }
 
     // -----------------------------------------------------------------------
@@ -4132,7 +4134,7 @@ mod story_120 {
 
     /// AC-004 (BC-2.11.025 invariant 5):
     /// FindingsRender::Grouped on N=100 identical-key findings produces no "(xN)" suffix.
-    /// The impossible state (show_mitre_grouping=true && collapse_findings=true) is
+    /// The impossible state (FindingsRender::Grouped + FlatCollapsed simultaneously) is
     /// eliminated by type — FindingsRender::Grouped structurally excludes the collapse path.
     #[test]
     fn test_BC_2_11_025_grouped_mode_bypasses_collapse_structurally() {
