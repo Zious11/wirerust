@@ -2473,7 +2473,7 @@ mod story_118 {
         );
         // Guard against truncated/abbreviated forms.
         assert!(
-            !out.contains("(x3k)") && !out.contains("(x3.1") && !out.contains("(x314"),
+            !out.contains("(x3k)") && !out.contains("(x3.1") && !out.contains("(x314)"),
             "BC-2.11.026 inv1: count must not be abbreviated or rounded; got:\n{out}"
         );
     }
