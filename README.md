@@ -107,6 +107,7 @@ Options:
 --arp                                  Analyze ARP traffic (spoofing, GARP, storms, malformed, MAC mismatch; default-off; included in --all)
 --arp-spoof-threshold N                MAC-rebind escalation threshold per IP within 60s window (default: 3)
 --arp-storm-rate N                     ARP storm frames/second per source MAC threshold (default: 50)
+--no-collapse                          Disable terminal finding-collapse (default ON); restore one-line-per-finding output (pre-v0.8.0)
 --mitre                                Group findings by MITRE ATT&CK tactic with technique names
 -a, --all                              Run all analyzers
 ```
