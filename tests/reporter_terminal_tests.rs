@@ -42,7 +42,7 @@ use wirerust::analyzer::AnalysisSummary;
 use wirerust::decoder::{ParsedPacket, Protocol, TransportInfo};
 use wirerust::findings::{Confidence, Finding, ThreatCategory, Verdict};
 use wirerust::reporter::Reporter;
-use wirerust::reporter::terminal::TerminalReporter;
+use wirerust::reporter::terminal::{FindingsRender, TerminalReporter};
 use wirerust::summary::Summary;
 
 // ---------------------------------------------------------------------------
@@ -70,9 +70,8 @@ fn make_finding(summary: impl Into<String>) -> Finding {
 fn plain_reporter() -> TerminalReporter {
     TerminalReporter {
         use_color: false,
-        show_mitre_grouping: false,
         show_hosts_breakdown: false,
-        collapse_findings: false,
+        render: FindingsRender::FlatExpanded,
     }
 }
 
@@ -661,9 +660,8 @@ mod story_078 {
     fn mitre_reporter() -> TerminalReporter {
         TerminalReporter {
             use_color: false,
-            show_mitre_grouping: true,
             show_hosts_breakdown: false,
-            collapse_findings: false,
+            render: FindingsRender::Grouped,
         }
     }
 
@@ -1788,9 +1786,8 @@ mod story_118 {
     fn collapse_reporter() -> TerminalReporter {
         TerminalReporter {
             use_color: false,
-            show_mitre_grouping: false,
             show_hosts_breakdown: false,
-            collapse_findings: true,
+            render: FindingsRender::FlatCollapsed,
         }
     }
 
@@ -1798,9 +1795,8 @@ mod story_118 {
     fn collapse_reporter_color() -> TerminalReporter {
         TerminalReporter {
             use_color: true,
-            show_mitre_grouping: false,
             show_hosts_breakdown: false,
-            collapse_findings: true,
+            render: FindingsRender::FlatCollapsed,
         }
     }
 
@@ -1808,9 +1804,8 @@ mod story_118 {
     fn mitre_collapse_reporter() -> TerminalReporter {
         TerminalReporter {
             use_color: false,
-            show_mitre_grouping: true,
             show_hosts_breakdown: false,
-            collapse_findings: true,
+            render: FindingsRender::Grouped,
         }
     }
 
@@ -3342,12 +3337,11 @@ mod story_118 {
             })
             .collect();
 
-        // Reporter with collapse_findings = true → produces "(x3)".
+        // Reporter with render = FindingsRender::FlatCollapsed → produces "(x3)".
         let reporter_on = TerminalReporter {
             use_color: false,
-            show_mitre_grouping: false,
             show_hosts_breakdown: false,
-            collapse_findings: true,
+            render: FindingsRender::FlatCollapsed,
         };
         let out_on = reporter_on.render(&Summary::new(), &findings, &[]);
         assert!(
@@ -3355,12 +3349,11 @@ mod story_118 {
             "BC-2.11.028 inv1: collapse_findings=true must produce '(x3)' suffix; got:\n{out_on}"
         );
 
-        // Reporter with collapse_findings = false → no collapse, no suffix.
+        // Reporter with render = FindingsRender::FlatExpanded → no collapse, no suffix.
         let reporter_off = TerminalReporter {
             use_color: false,
-            show_mitre_grouping: false,
             show_hosts_breakdown: false,
-            collapse_findings: false,
+            render: FindingsRender::FlatExpanded,
         };
         let out_off = reporter_off.render(&Summary::new(), &findings, &[]);
         assert!(
@@ -3944,5 +3937,166 @@ mod story_118 {
             "BC-2.11.026 supplementary: members[1] technique 'T1036' must not appear when \
              members[0].mitre_techniques=[]; got:\n{out}"
         );
+    }
+}
+
+// ---------------------------------------------------------------------------
+// STORY-120 RED gate stubs
+//
+// These tests exercise new behaviors introduced by the FindingsRender enum
+// migration (STORY-120). All bodies are `todo!()` — they compile but panic
+// at runtime, satisfying the Red Gate density check (≥50% todo!() bodies).
+//
+// The implementer replaces each todo!() with real assertions during GREEN
+// after defining `pub enum FindingsRender { Grouped, FlatCollapsed,
+// FlatExpanded }` and updating `TerminalReporter` to use `render:
+// FindingsRender` in place of `show_mitre_grouping: bool` and
+// `collapse_findings: bool`.
+//
+// DO NOT reference the `FindingsRender` type here — it does not yet exist.
+// Construction sites remain as `todo!()` prose descriptions so the file
+// compiles against the current (pre-enum) struct shape.
+// ---------------------------------------------------------------------------
+
+mod story_120 {
+    // Inherit the allow(non_snake_case) from the file-level attribute so
+    // test_BC_* names compile without a separate inner attribute.
+    //
+    // Imports are unused now (todo!() bodies) but will be needed by the
+    // implementer during GREEN. Suppress the lint so the file remains clean
+    // under `cargo check --all-targets` with RUSTFLAGS=-Dwarnings.
+    #![allow(unused_imports)]
+
+    use wirerust::findings::{Confidence, Finding, ThreatCategory, Verdict};
+    use wirerust::reporter::Reporter;
+    use wirerust::reporter::terminal::TerminalReporter;
+    use wirerust::summary::Summary;
+
+    // -----------------------------------------------------------------------
+    // AC-001 — FindingsRender derives Debug, Clone, Copy, PartialEq, Eq
+    // (traces to BC-2.11.025 invariant 5, BC-2.11.013 invariant 4)
+    //
+    // Intended assertion (implementer fills in during GREEN):
+    //   - Confirm `FindingsRender` satisfies `Debug + Clone + Copy + PartialEq + Eq`
+    //     by asserting equality, cloning, and debug-formatting all three variants.
+    //   - Assert the enum has exactly three variants (Grouped, FlatCollapsed,
+    //     FlatExpanded) and that `Default` is NOT derived (no Default impl).
+    // -----------------------------------------------------------------------
+    #[test]
+    fn test_findings_render_derives_debug_clone_copy_partialeq_eq() {
+        // RED: FindingsRender does not exist yet — todo!() panics to satisfy Red Gate.
+        // GREEN: replace with:
+        //   let a = FindingsRender::Grouped;
+        //   let b = a;                          // Copy
+        //   let c = a.clone();                  // Clone
+        //   assert_eq!(a, b);                   // PartialEq + Eq
+        //   let _ = format!("{a:?}");           // Debug
+        //   assert_ne!(a, FindingsRender::FlatCollapsed);
+        //   assert_ne!(a, FindingsRender::FlatExpanded);
+        todo!(
+            "AC-001: verify FindingsRender derives Debug+Clone+Copy+PartialEq+Eq \
+             and has exactly three variants; implement after enum is defined"
+        )
+    }
+
+    // -----------------------------------------------------------------------
+    // AC-002 — TerminalReporter struct has exactly 3 fields after refactor
+    // (traces to BC-2.11.028 precondition 3 — struct shape governs render wiring)
+    //
+    // Intended assertion (implementer fills in during GREEN):
+    //   - Construct TerminalReporter with exactly {use_color, show_hosts_breakdown,
+    //     render} and verify it compiles (struct-literal exhaustiveness is the gate).
+    //   - Assert that neither `show_mitre_grouping` nor `collapse_findings` appear
+    //     as fields (any reference to them is a compile error after STORY-120).
+    // -----------------------------------------------------------------------
+    #[test]
+    fn test_BC_2_11_028_struct_has_exactly_three_fields_post_refactor() {
+        // RED: the struct still has four bool fields; the intended three-field
+        // construction (with render: FindingsRender) does not compile yet.
+        // GREEN: replace with a TerminalReporter literal using only:
+        //   use_color, show_hosts_breakdown, render: FindingsRender::FlatExpanded
+        // and assert that cargo check passes (the compile itself is the assertion).
+        todo!(
+            "AC-002: verify TerminalReporter has exactly 3 fields \
+             (use_color, show_hosts_breakdown, render: FindingsRender); \
+             implement after struct is refactored"
+        )
+    }
+
+    // -----------------------------------------------------------------------
+    // AC-003 — Dispatch is an exhaustive match over FindingsRender
+    // (traces to BC-2.11.019 invariant 7)
+    //
+    // Intended assertion (implementer fills in during GREEN):
+    //   - Render through all three FindingsRender variants with the same input
+    //     and assert each reaches the correct rendering path:
+    //       Grouped      → output contains "## " tactic header (grouped path)
+    //       FlatCollapsed → output contains "(x3)" suffix for N=3 identical findings
+    //       FlatExpanded  → output does NOT contain "(x" and has 3 individual lines
+    //   - Relies on exhaustive match compile-time guarantee (no arm can be omitted).
+    // -----------------------------------------------------------------------
+    #[test]
+    fn test_BC_2_11_019_findings_dispatch_match_exhaustive() {
+        // RED: FindingsRender does not exist; todo!() panics to satisfy Red Gate.
+        // GREEN: replace with three reporter constructions using each variant
+        // and behavioral assertions for each rendering path.
+        todo!(
+            "AC-003: verify all three FindingsRender arms are reachable and route \
+             to the correct rendering helper; implement after match dispatch is added"
+        )
+    }
+
+    // -----------------------------------------------------------------------
+    // AC-004 — Impossible state (Grouped + collapsed simultaneously)
+    //          is structurally unrepresentable after STORY-120
+    // (traces to BC-2.11.025 invariant 5)
+    //
+    // Intended assertion (implementer fills in during GREEN):
+    //   - Confirm that `FindingsRender::Grouped` on N=100 identical-key findings
+    //     produces NO "(xN)" suffix anywhere in the output (collapse path not
+    //     reachable from the Grouped arm — the impossible state is gone by type).
+    //   - This corresponds to the former `mitre_collapse_reporter` construction
+    //     (show_mitre_grouping=true, collapse_findings=true) which now maps to
+    //     render: FindingsRender::Grouped cleanly.
+    // -----------------------------------------------------------------------
+    #[test]
+    fn test_BC_2_11_025_grouped_mode_bypasses_collapse_structurally() {
+        // RED: FindingsRender does not exist; todo!() panics to satisfy Red Gate.
+        // GREEN: construct TerminalReporter { render: FindingsRender::Grouped, ... },
+        // render 100 identical-key findings, and assert no "(x" suffix appears.
+        todo!(
+            "AC-004: verify FindingsRender::Grouped never emits (xN) suffix — \
+             impossible state (Grouped + collapsed) is structurally unrepresentable; \
+             implement after enum and match dispatch are in place"
+        )
+    }
+
+    // -----------------------------------------------------------------------
+    // AC-005 — run_analyze construction site wired correctly in main.rs
+    // (traces to BC-2.11.028 postconditions 1–2, invariant 1)
+    //
+    // Intended assertion (implementer fills in during GREEN):
+    //   - Using FindingsRender::FlatCollapsed (collapse ON) vs FindingsRender::FlatExpanded
+    //     (collapse OFF) on N=3 identical-key findings produces different output
+    //     (FlatCollapsed emits "(x3)", FlatExpanded does not) — proving the render
+    //     field is wired correctly to the rendering path.
+    //   - This mirrors the run_analyze wiring intent:
+    //       render: if show_mitre_grouping { Grouped }
+    //               else if collapse_findings { FlatCollapsed }
+    //               else { FlatExpanded }
+    //   - Structural polarity test: FlatCollapsed != FlatExpanded output.
+    // -----------------------------------------------------------------------
+    #[test]
+    fn test_BC_2_11_028_flag_wired_to_render_field_post_enum() {
+        // RED: FindingsRender does not exist; todo!() panics to satisfy Red Gate.
+        // GREEN: construct two reporters — one with render: FindingsRender::FlatCollapsed
+        // and one with render: FindingsRender::FlatExpanded — render N=3 identical
+        // findings, and assert FlatCollapsed produces "(x3)" while FlatExpanded does not.
+        // Also assert the two outputs differ (polarity test mirrors run_analyze wiring).
+        todo!(
+            "AC-005: verify render: FindingsRender::FlatCollapsed produces collapse \
+             and FlatExpanded does not — proving the run_analyze wiring intent; \
+             implement after enum construction sites are updated"
+        )
     }
 }
