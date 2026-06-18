@@ -2546,30 +2546,52 @@ mod story_118 {
 
         let out = collapse_reporter_color().render(&Summary::new(), &findings, &[]);
 
-        // The ANSI reset sequence is ESC[0m (encoded as \x1b[0m in bytes).
-        // "(x2)" must appear BEFORE the reset sequence in the output.
-        // ANSI bold+red: starts with ESC[1;31m or ESC[31;1m or similar.
-        // We find "(x2)" and then check it comes before the nearest reset after it.
-        let pos_suffix = out
-            .find("(x2)")
-            .expect("BC-2.11.026 pc6: '(x2)' suffix must be present in colored output");
-
-        // Find the ANSI reset that closes the header span.
-        // owo-colors emits "\x1b[0m" as the reset sequence.
-        let ansi_reset = "\x1b[0m";
-        let pos_reset = out[pos_suffix..].find(ansi_reset).map(|p| p + pos_suffix);
-
-        // The suffix must be followed by a reset (i.e., it is inside the span).
-        assert!(
-            pos_reset.is_some(),
-            "BC-2.11.026 pc6/inv4: '(x2)' must be followed by an ANSI reset sequence \
-             (inside the color span); got:\n{out:?}"
-        );
-
-        // Additionally: raw ESC bytes must be present (use_color=true was active).
+        // raw ESC bytes must be present (use_color=true was active).
         assert!(
             out.as_bytes().contains(&0x1b),
             "BC-2.11.026 pc6: use_color=true must produce ANSI escape bytes; got:\n{out:?}"
+        );
+
+        // Span-containment check: the (x2) suffix must be inside the red color span.
+        // owo-colors 4.x: header_text.red().bold() emits:
+        //   ESC[1m  ESC[31m  <header_text including "(x2)">  ESC[39m  ESC[0m
+        // The foreground-color reset for red is ESC[39m (SGR 39 = default fg).
+        // We assert: opener(ESC[31m) < suffix("(x2)") < reset(ESC[39m) with no
+        // ESC[39m between the opener and the suffix — falsifies "suffix after reset".
+        let opener = "\x1b[31m";
+        let fg_reset = "\x1b[39m";
+        let suffix = "(x2)";
+
+        let pos_opener = out
+            .find(opener)
+            .expect("BC-2.11.026 pc6/inv4: red ANSI opener ESC[31m must be present");
+        let pos_suffix = out
+            .find(suffix)
+            .expect("BC-2.11.026 pc6/inv4: '(x2)' suffix must be present in colored output");
+        let pos_reset = out[pos_suffix..]
+            .find(fg_reset)
+            .map(|p| p + pos_suffix)
+            .expect(
+                "BC-2.11.026 pc6/inv4: fg reset ESC[39m must follow the '(x2)' suffix \
+                 (suffix must be inside the color span)",
+            );
+
+        assert!(
+            pos_opener < pos_suffix,
+            "BC-2.11.026 pc6/inv4: color opener must precede the '(x2)' suffix; \
+             opener@{pos_opener}, suffix@{pos_suffix}; got:\n{out:?}"
+        );
+        assert!(
+            pos_suffix < pos_reset,
+            "BC-2.11.026 pc6/inv4: '(x2)' suffix must precede the fg reset; \
+             suffix@{pos_suffix}, reset@{pos_reset}; got:\n{out:?}"
+        );
+        // No fg reset between the opener and the suffix — discriminates "suffix after reset".
+        assert!(
+            !out[pos_opener..pos_suffix].contains(fg_reset),
+            "BC-2.11.026 pc6/inv4: no ESC[39m reset may appear between the color opener \
+             and the '(x2)' suffix (suffix must be inside, not after, the span); \
+             got:\n{out:?}"
         );
     }
 
@@ -2609,6 +2631,44 @@ mod story_118 {
             !out.contains("\x1b[1;31m") && !out.contains("\x1b[31;1m"),
             "BC-2.11.026 pc6: Inconclusive must NOT use red+bold color; got:\n{out:?}"
         );
+
+        // Span-containment: the (x2) suffix must be inside the cyan color span.
+        // owo-colors 4.x: header_text.cyan() emits ESC[36m<text>ESC[39m.
+        // ESC[39m is the fg-reset for color spans (SGR 39 = default foreground).
+        let opener = "\x1b[36m";
+        let fg_reset = "\x1b[39m";
+        let suffix = "(x2)";
+
+        let pos_opener = out
+            .find(opener)
+            .expect("BC-2.11.026 pc6/inv4: cyan opener ESC[36m must be present");
+        let pos_suffix = out
+            .find(suffix)
+            .expect("BC-2.11.026 pc6/inv4: '(x2)' suffix must be present");
+        let pos_reset = out[pos_suffix..]
+            .find(fg_reset)
+            .map(|p| p + pos_suffix)
+            .expect(
+                "BC-2.11.026 pc6/inv4: fg reset ESC[39m must follow '(x2)' \
+                 (suffix must be inside the color span)",
+            );
+
+        assert!(
+            pos_opener < pos_suffix,
+            "BC-2.11.026 pc6/inv4: cyan opener must precede '(x2)' suffix; \
+             opener@{pos_opener}, suffix@{pos_suffix}; got:\n{out:?}"
+        );
+        assert!(
+            pos_suffix < pos_reset,
+            "BC-2.11.026 pc6/inv4: '(x2)' suffix must precede fg reset; \
+             suffix@{pos_suffix}, reset@{pos_reset}; got:\n{out:?}"
+        );
+        assert!(
+            !out[pos_opener..pos_suffix].contains(fg_reset),
+            "BC-2.11.026 pc6/inv4: no ESC[39m reset may appear between cyan opener \
+             and '(x2)' suffix (suffix must be inside, not after, the span); \
+             got:\n{out:?}"
+        );
     }
 
     /// AC-012 (part 2): Likely + non-High confidence → yellow colorization.
@@ -2645,6 +2705,43 @@ mod story_118 {
             !out.contains("\x1b[1;31m") && !out.contains("\x1b[31;1m"),
             "BC-2.11.026 pc6: Likely+Medium must NOT use red+bold; got:\n{out:?}"
         );
+
+        // Span-containment: the (x2) suffix must be inside the yellow color span.
+        // owo-colors 4.x: header_text.yellow() emits ESC[33m<text>ESC[39m.
+        let opener = "\x1b[33m";
+        let fg_reset = "\x1b[39m";
+        let suffix = "(x2)";
+
+        let pos_opener = out
+            .find(opener)
+            .expect("BC-2.11.026 pc6/inv4: yellow opener ESC[33m must be present");
+        let pos_suffix = out
+            .find(suffix)
+            .expect("BC-2.11.026 pc6/inv4: '(x2)' suffix must be present");
+        let pos_reset = out[pos_suffix..]
+            .find(fg_reset)
+            .map(|p| p + pos_suffix)
+            .expect(
+                "BC-2.11.026 pc6/inv4: fg reset ESC[39m must follow '(x2)' \
+                 (suffix must be inside the color span)",
+            );
+
+        assert!(
+            pos_opener < pos_suffix,
+            "BC-2.11.026 pc6/inv4: yellow opener must precede '(x2)' suffix; \
+             opener@{pos_opener}, suffix@{pos_suffix}; got:\n{out:?}"
+        );
+        assert!(
+            pos_suffix < pos_reset,
+            "BC-2.11.026 pc6/inv4: '(x2)' suffix must precede fg reset; \
+             suffix@{pos_suffix}, reset@{pos_reset}; got:\n{out:?}"
+        );
+        assert!(
+            !out[pos_opener..pos_suffix].contains(fg_reset),
+            "BC-2.11.026 pc6/inv4: no ESC[39m reset may appear between yellow opener \
+             and '(x2)' suffix (suffix must be inside, not after, the span); \
+             got:\n{out:?}"
+        );
     }
 
     /// AC-012 (part 3): Possible verdict → yellow colorization.
@@ -2673,6 +2770,43 @@ mod story_118 {
         assert!(
             out.contains("\x1b[33m") || out.contains("\x1b[0;33m") || out.contains("\x1b[33;"),
             "BC-2.11.026 pc6: Possible verdict must produce yellow ANSI color; got:\n{out:?}"
+        );
+
+        // Span-containment: the (x2) suffix must be inside the yellow color span.
+        // owo-colors 4.x: header_text.yellow() emits ESC[33m<text>ESC[39m.
+        let opener = "\x1b[33m";
+        let fg_reset = "\x1b[39m";
+        let suffix = "(x2)";
+
+        let pos_opener = out
+            .find(opener)
+            .expect("BC-2.11.026 pc6/inv4: yellow opener ESC[33m must be present");
+        let pos_suffix = out
+            .find(suffix)
+            .expect("BC-2.11.026 pc6/inv4: '(x2)' suffix must be present");
+        let pos_reset = out[pos_suffix..]
+            .find(fg_reset)
+            .map(|p| p + pos_suffix)
+            .expect(
+                "BC-2.11.026 pc6/inv4: fg reset ESC[39m must follow '(x2)' \
+                 (suffix must be inside the color span)",
+            );
+
+        assert!(
+            pos_opener < pos_suffix,
+            "BC-2.11.026 pc6/inv4: yellow opener must precede '(x2)' suffix; \
+             opener@{pos_opener}, suffix@{pos_suffix}; got:\n{out:?}"
+        );
+        assert!(
+            pos_suffix < pos_reset,
+            "BC-2.11.026 pc6/inv4: '(x2)' suffix must precede fg reset; \
+             suffix@{pos_suffix}, reset@{pos_reset}; got:\n{out:?}"
+        );
+        assert!(
+            !out[pos_opener..pos_suffix].contains(fg_reset),
+            "BC-2.11.026 pc6/inv4: no ESC[39m reset may appear between yellow opener \
+             and '(x2)' suffix (suffix must be inside, not after, the span); \
+             got:\n{out:?}"
         );
     }
 
@@ -2703,6 +2837,44 @@ mod story_118 {
         assert!(
             out.contains("\x1b[2m") || out.contains("\x1b[0;2m") || out.contains("\x1b[2;"),
             "BC-2.11.026 pc6: Unlikely verdict must produce dimmed ANSI color (SGR 2); \
+             got:\n{out:?}"
+        );
+
+        // Span-containment: the (x2) suffix must be inside the dim span.
+        // owo-colors 4.x: header_text.dimmed() emits ESC[2m<text>ESC[0m.
+        // DimDisplay uses ESC[0m as its reset (a style span, not a color span).
+        let opener = "\x1b[2m";
+        let style_reset = "\x1b[0m";
+        let suffix = "(x2)";
+
+        let pos_opener = out
+            .find(opener)
+            .expect("BC-2.11.026 pc6/inv4: dim opener ESC[2m must be present");
+        let pos_suffix = out
+            .find(suffix)
+            .expect("BC-2.11.026 pc6/inv4: '(x2)' suffix must be present");
+        let pos_reset = out[pos_suffix..]
+            .find(style_reset)
+            .map(|p| p + pos_suffix)
+            .expect(
+                "BC-2.11.026 pc6/inv4: style reset ESC[0m must follow '(x2)' \
+                 (suffix must be inside the dim span)",
+            );
+
+        assert!(
+            pos_opener < pos_suffix,
+            "BC-2.11.026 pc6/inv4: dim opener must precede '(x2)' suffix; \
+             opener@{pos_opener}, suffix@{pos_suffix}; got:\n{out:?}"
+        );
+        assert!(
+            pos_suffix < pos_reset,
+            "BC-2.11.026 pc6/inv4: '(x2)' suffix must precede style reset; \
+             suffix@{pos_suffix}, reset@{pos_reset}; got:\n{out:?}"
+        );
+        assert!(
+            !out[pos_opener..pos_suffix].contains(style_reset),
+            "BC-2.11.026 pc6/inv4: no ESC[0m reset may appear between dim opener \
+             and '(x2)' suffix (suffix must be inside, not after, the span); \
              got:\n{out:?}"
         );
     }
