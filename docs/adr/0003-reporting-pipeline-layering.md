@@ -178,7 +178,7 @@ Add a `Finding::display_summary()` method that returns the escaped form, and hav
 | File | Change |
 |------|--------|
 | `src/reporter/terminal.rs` | Add a private `escape_for_terminal(s: &str) -> String` helper at file scope that iterates `s.chars()`, applies `char::escape_default()` for chars that are ASCII controls (C0 + DEL), C1 controls (`U+0080..=U+009F`), or backslash, and passes all other chars through. Apply it to `f.summary` (line ~65, where `f.summary` is interpolated into the line `format!`) and to each `ev` in `f.evidence` (line ~81) before writing to the output buffer. The helper is private to the terminal reporter — other reporters that need it (e.g., a future CSV reporter) implement at their own boundary, since each output medium has different escaping rules. |
-| `src/analyzer/tls.rs` | Replace `{hostname:?}` (line ~349) and `{lossy:?}` (line ~369) with `{hostname}` / `{lossy}`. Update the inline doc comments that explain *why* the Debug formatter was used; replace them with a pointer to this ADR. |
+| `src/analyzer/tls.rs` | **Done.** Raw hostname/lossy interpolation (`{hostname}` / `{lossy}`) is already in place. Inline doc comments reference this ADR at the emission sites. |
 | `src/findings.rs` | Add a `///` doc comment on `impl Display for Finding` noting that it produces RAW text and is NOT safe for terminal display; consumers wanting safe display should go through the terminal reporter. |
 | `src/analyzer/http.rs` | **No changes required.** Existing raw interpolations are now correct under the new policy. |
 | `src/analyzer/dns.rs` | **No changes required.** DNS analyzer's `analyze()` returns `Vec::new()` — emits no findings. |
@@ -213,6 +213,152 @@ Add a `Finding::display_summary()` method that returns the escaped form, and hav
 > **Rule 2 (reporter authors):** Each reporter MUST apply medium-appropriate escaping at its render boundary. The terminal reporter escapes for terminal-safety; the JSON reporter relies on `serde_json`'s automatic RFC 8259 escaping; future reporters apply their own format's rules.
 >
 > **Rule 3 (display-layer formatting in general):** New formatting concerns that depend on the output medium (truncation, styling, localization, etc.) belong in the reporter, not in the analyzer. When in doubt, push it across the boundary.
+
+## Display-Layer Aggregation (Issue #259 — v0.8.0)
+
+**Status of this subsection:** Accepted (F1 gate decisions locked 2026-06-17)
+
+### Context
+
+On captures containing many repeated low-value findings — the canonical case is the HTTP
+empty-User-Agent anomaly — the FINDINGS section floods with thousands of identical lines,
+one per matching request. This is a direct consequence of the analyzer-layer principle: the
+HTTP analyzer correctly emits one `Finding` per anomalous request (each has distinct
+evidence). The flooding is a display-layer problem, not an emission-layer problem.
+
+ADR 0003's governing principle — "the data layer holds raw bytes; the display layer formats
+for its medium" — already provides the correct answer: collapsing repeated findings for
+human readability is another display-layer transform that MUST NOT mutate the canonical
+`Finding` stream.
+
+### Decision
+
+**Aggregate identical findings at the terminal-display layer only.** The `Finding` stream
+and all machine-readable reporters (JSON, CSV) are unchanged. `TerminalReporter::render`
+applies a private collapse pass before rendering when `collapse_findings` is `true`.
+
+### Aggregation Key
+
+Two findings belong to the same collapsed group when they are identical on all four
+semantic fields: `(category, verdict, confidence, summary)`. Fields that vary per-instance
+(`evidence`, `mitre_techniques`, `source_ip`, `timestamp`, `direction`) are NOT part of
+the key. These per-instance fields are intentionally excluded because keying on `evidence`
+would prevent collapse — every request has a distinct URI in its evidence line. Excluding
+them is the direct analogue of Wireshark Expert Information keying on `(severity, message
+text)` rather than on the per-frame detail.
+
+The key is broader than Wireshark's two-field key: `category` and `confidence` are
+included to prevent collapsing semantically distinct finding types that happen to share a
+summary string (e.g., `Anomaly/INCONCLUSIVE/LOW` and `Reconnaissance/INCONCLUSIVE/LOW` are
+distinct event types even if their summary texts are identical).
+
+### Count Display and Evidence Sampling
+
+A collapsed group of N findings renders as a single header line. The count is always
+displayed:
+
+- N = 1: no count suffix (singleton renders identically to current behavior)
+- N ≥ 2: `(xN)` suffix appended after the summary, e.g.,
+  `  [Anomaly] INCONCLUSIVE (LOW) - Empty User-Agent header (x3142)`
+  (two leading spaces per `out.push_str("  {colored}\n")` in BC-2.11.026 PC-1/PC-2)
+
+The ` (xN)` suffix is part of the string that is passed to the color function — it is appended
+**before** colorization, not after the ANSI reset. The color ladder applied to the pre-suffix
+string is the same verdict/confidence ladder used by the existing `render_finding_prefix`
+(terminal.rs:209-221): `Likely/High → red().bold()`, `Likely/other → yellow`,
+`Possible → yellow`, `Inconclusive → cyan`, `Unlikely → dimmed`. See BC-2.11.026 PC-6.
+
+Evidence sampling: a collapsed group retains at most K = 3 evidence lines, taken from the
+first min(N, K) findings in the group (in original emission order) — purely positional. From
+each inspected member, `evidence[0]` is emitted if the member's evidence vec is non-empty;
+an empty-evidence member contributes 0 lines and the window does NOT slide past it to the
+next member. The total evidence lines rendered is therefore at most K but may be less if any
+inspected member has an empty evidence vec (e.g., N=5, member[0] empty, K=3 → inspects
+members[0,1,2], member[0] contributes 0, total = 2 lines, NOT 3). Evidence lines beyond the
+window are discarded for terminal display only; they remain present in the full `Finding`
+structs passed to JSON and CSV reporters. K = 3 is a hardcoded named constant
+(`COLLAPSE_EVIDENCE_SAMPLES`). It is not configurable per CLI flag to keep the surface
+small; a future ADR may revisit this if operator feedback indicates the need.
+
+The `escape_for_terminal` invariant (VP-012) is unchanged. The collapse path calls
+`escape_for_terminal` directly on each sampled evidence line (per BC-2.11.026 PC-4
+observable line-order contract) — it does NOT delegate to `render_finding_prefix`'s evidence
+loop (that loop renders all entries of one finding; the collapse path samples evidence[0]
+across up to K different member findings). The escape FUNCTION guarantee is preserved;
+there is no bypass of the escape helper.
+
+### Default-On with `--no-collapse` Opt-Out
+
+Collapse is **default-on** for terminal output. A `--no-collapse` flag on the
+`analyze` subcommand reverts to one-line-per-finding behavior (the behavior before
+v0.8.0). This flag is scoped to `Commands::Analyze` only; the `summary` subcommand has no
+findings section and is unaffected.
+
+**Rationale for default-on:** The flooding scenario is the primary motivation. Terminal
+output is not a machine-readable contract — that role belongs to `--json` and `--csv`.
+Defaulting to the better human experience matches the Wireshark Expert Information model
+(aggregated view is the default; expanding to per-packet detail requires a user action).
+Making collapse opt-in would require explicit discovery of the flag and would not address
+the alert-fatigue problem for new users.
+
+**Non-goal:** This is NOT the syslog "last message repeated N times" anti-pattern. syslog
+collapses the canonical record (there is no separate raw stream), which destroys forensic
+accuracy and is widely criticized (see validation report §3.1 sources [9][16]). wirerust
+preserves every raw `Finding`; the collapse is strictly a terminal-display lens.
+
+### Flat Mode Only for v0.8.0 (STORY-118)
+
+Collapse applies only when `show_mitre_grouping = false` (the default flat mode).
+
+When `--mitre` is active, findings are already organized into tactic buckets by
+`render_findings_grouped`. Applying collapse within each bucket requires a non-trivial
+interaction with the tactic-sort path (`BC-2.11.014`). For v0.8.0 scope control, grouped
+mode is excluded from collapse: the `render_findings_grouped` path renders each finding
+individually as today, regardless of the `collapse_findings` flag.
+
+This is a deliberate scope boundary, not a design principle. When both
+`show_mitre_grouping = true` and `collapse_findings = true`, collapse silently does not
+apply to grouped output. Grouped-mode collapse is deferred to STORY-119 in a follow-on
+cycle.
+
+### Binding Rule
+
+> **Rule 4 (display-layer aggregation):** Aggregation of repeated findings for human
+> readability belongs in `TerminalReporter` only. JSON and CSV consumers MUST receive
+> the complete, unaggregated `&[Finding]` slice. No aggregation pass MAY be applied
+> upstream of the multi-reporter dispatch in `main.rs`. Any future reporter that wants
+> its own aggregation implements it privately at its own render boundary.
+
+### Alternatives Considered
+
+**Opt-in (`--collapse` flag, default-off):** Preserves backward compatibility for any
+script that counts terminal output lines. Rejected because the flooding problem persists
+until operators discover the flag, and terminal output is not a machine-readable contract.
+The F1 gate confirmed this as the most consequential UX choice and locked default-on.
+
+**Threshold (`--collapse-threshold N`, collapse only when count ≥ N):** Adds a
+configurable minimum repeat count before collapsing. Rejected because singletons already
+render without a count suffix under the always-collapse design, making the effective
+behavior identical to a threshold of 1, and the flag adds CLI surface without benefit.
+The F1 gate locked always-collapse (no threshold).
+
+**Collapse within each MITRE tactic bucket (`--mitre` + collapse):** Feasible but
+non-trivial — requires a collapse pass after bucketing and sorting but before rendering
+each bucket. Deferred to STORY-119 per F1 gate OQ-3 resolution (flat mode only for
+v0.8.0).
+
+### Precedents
+
+This decision is directly validated by the analysis-time aggregation pattern in mature
+network-security tooling, documented in
+`.factory/research/issue-259-finding-collapse-validation.md` (Wireshark Expert Information
+[sources 7, 8, 15], ntopng Alerts Explorer [13, 14], Splunk `dedup` [10], SIEM aggregation
+stage [17]). The syslog "last message repeated N times" pattern [9, 16] is the explicit
+counter-example — it collapses the canonical record rather than providing a display-layer
+lens, and is widely criticized and routinely disabled. wirerust's design matches the
+Wireshark model and avoids the syslog anti-pattern.
+
+---
 
 ## Validation
 

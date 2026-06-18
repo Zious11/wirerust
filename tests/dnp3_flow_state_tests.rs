@@ -844,8 +844,8 @@ mod story_107 {
     /// CORRECTED per F-A-001 REVISION 2: DIR is bit 7 (mask 0x80) per IEEE 1815 DNP3
     /// link-layer framing. The previous version incorrectly tested bit 4 (mask 0x10 = FCV/DFC).
     ///
-    /// RED GATE: this test asserts the CORRECT 0x80-mask behavior. It fails until
-    /// `is_master_frame` is fixed from `control & 0x10 != 0` to `control & 0x80 != 0`.
+    /// Regression guard: asserts the correct 0x80-mask behavior for `is_master_frame`
+    /// (DIR bit is bit 7, mask 0x80; not bit 4/FCV).
     ///
     /// Traces to: BC-2.15.016 postcondition 5 (corrected); F-A-001 REVISION 2 §R2-1.
     #[test]
@@ -863,8 +863,7 @@ mod story_107 {
         // 0xC4 & 0x10 = 0x00 == 0 → BUGGY mask returns false (proves the bug).
         assert!(
             is_master_frame(0xC4),
-            "control=0xC4 (canonical master frame: DIR=1 bit7 set) must return true; \
-             RED: buggy mask 0x10 returns false for this canonical value"
+            "control=0xC4 (canonical master frame: DIR=1 bit7 set) must return true"
         );
 
         // 0xD4 = 1101 0100: DIR=1(bit7), PRM=1(bit6), FCB=0(bit5), FCV=1(bit4),
@@ -912,8 +911,7 @@ mod story_107 {
         // Under the CORRECT mask (0x80): 0x10 & 0x80 = 0 → false.
         assert!(
             !is_master_frame(0x10),
-            "control=0x10 (FCV bit only, DIR=0 bit7 clear) must return false; \
-             RED: buggy mask 0x10 returns true for this value (wrong: 0x10 is FCV, not DIR)"
+            "control=0x10 (FCV bit only, DIR=0 bit7 clear) must return false"
         );
     }
 

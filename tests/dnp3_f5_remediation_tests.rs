@@ -1,10 +1,10 @@
-//! RED-gate tests for F5-remediation fix set — REVISION 2 (canonical 0xC4 frames).
+//! Regression tests for F5-remediation fix set — REVISION 2 (canonical 0xC4 frames).
 //!
-//! ## Part A — F-A-001: DIR-bit fix (BC-2.15.016 PC5)
+//! ## Part A — F-A-001: DIR-bit correctness (BC-2.15.016 PC5)
 //!
 //! The DNP3 DIR bit is bit 7 (mask 0x80), NOT bit 4 (mask 0x10 = FCV/DFC).
-//! `is_master_frame` currently tests `control & 0x10 != 0` — this is wrong.
-//! Tests assert the CORRECT behavior; they FAIL until the mask is fixed.
+//! `is_master_frame` tests `control & 0x80 != 0` — this is the correct mask.
+//! Tests assert the correct behavior; all pass with the fixed implementation.
 //!
 //! ### IEEE 1815 Provenance for the 0xC4 Canonical Control Byte
 //!
@@ -24,25 +24,21 @@
 //! ## Part B — F-F5-001: Unexpected-source detection (BC-2.15.010 Invariant 5)
 //!
 //! All frames use the canonical `build_canonical_master_control_frame` helper
-//! (CTRL=0xC4). The prior red-gate used CTRL=0xD4 (non-canonical); this rebuild
-//! uses CTRL=0xC4 throughout so the tests are ALSO red under the buggy 0x10 mask
-//! (0xC4 & 0x10 = 0 → is_master_frame=false → master_addrs_seen never populated).
+//! (CTRL=0xC4). The suite uses CTRL=0xC4 throughout so that:
+//!   - 0xC4 & 0x80 = 0x80 → is_master_frame=true (correct mask)
+//!   - master_addrs_seen is populated correctly
+//!   - detect_unexpected_source_split fires as expected
 //!
 //! ## Part C — F-F5-002: MitreTactic::IcsImpact / Impact Display collision
 //!
-//! Both MitreTactic::IcsImpact and MitreTactic::Impact currently Display as
-//! "Impact". Tests assert the display strings are distinct.
+//! MitreTactic::IcsImpact displays as "Impact (ICS)", distinct from
+//! MitreTactic::Impact ("Impact"). Tests assert the display strings are distinct.
 //!
 //! ## Part D — F-F5-003: Resync accounting (BC-2.15.024, BC-2.15.016 EC-009)
 //!
 //! Tests for the three resync-arm counting changes (REVISION 2 IMP-1/IMP-2/IMP-3):
 //! junk-at-clean-boundary, no-double-count, flood threshold, overflow-head-preserved,
 //! fake-sync-flood.
-//!
-//! ## Red Gate Contract
-//!
-//! ALL new/corrected tests MUST FAIL before implementation (they fail for
-//! behavioral reasons, NOT compile errors). The suite MUST compile clean.
 //!
 //! Traces to:
 //!   BC-2.15.010 Invariant 5 (unexpected-source check)
@@ -74,17 +70,15 @@ mod f5_dir_bit_fix {
     //     bit4=0 → FCV=0  (bit 4 is FCV/DFC, NOT DIR)
     //     nibble=0100 → FC=UNCONFIRMED_USER_DATA
     //
-    // Under BUGGY mask (0x10): 0xC4 & 0x10 = 0x00 → is_master_frame=false. WRONG.
-    // Under CORRECT mask (0x80): 0xC4 & 0x80 = 0x80 → is_master_frame=true. CORRECT.
-    //
-    // RED: currently is_master_frame(0xC4) returns false (buggy 0x10 mask).
+    // Under the (fixed) correct mask (0x80): 0xC4 & 0x80 = 0x80 → is_master_frame=true. CORRECT.
+    // Under the former buggy mask (0x10): 0xC4 & 0x10 = 0x00 → is_master_frame=false. WRONG.
     //
     // Traces to: BC-2.15.016 PC5 (corrected); F-A-001 REVISION 2 §R2-1.
     // -----------------------------------------------------------------------
 
     /// is_master_frame(0xC4) must return true: 0xC4 is the canonical master frame
-    /// control byte (DIR=1, PRM=1, FCV=0, FC=UNCONF_USER_DATA). RED: buggy 0x10
-    /// mask returns false (0xC4 & 0x10 = 0).
+    /// control byte (DIR=1, PRM=1, FCV=0, FC=UNCONF_USER_DATA). Correct mask 0x80:
+    /// 0xC4 & 0x80 = 0x80 → true.
     ///
     /// IEEE 1815 citation (primary provenance for 0xC4):
     /// Per IEEE 1815-2012 §9.2.4.1 (data-link fixed-frame header; CONTROL field
@@ -103,8 +97,7 @@ mod f5_dir_bit_fix {
         assert!(
             is_master_frame(0xC4),
             "is_master_frame(0xC4) must return true: canonical master frame \
-             (DIR=1 bit7 set, 0xC4 & 0x80 = 0x80); \
-             RED: buggy mask 0x10 gives is_master_frame(0xC4)=false"
+             (DIR=1 bit7 set, 0xC4 & 0x80 = 0x80)"
         );
     }
 
@@ -115,22 +108,16 @@ mod f5_dir_bit_fix {
     //   is_master_frame(0x10) == false  (bit4=FCV only; bit7=DIR is clear)
     //   is_master_frame(0x80) == true   (bit7=DIR set; this is the pure DIR mask)
     //
-    // Under BUGGY mask (0x10):
-    //   is_master_frame(0x10) = (0x10 & 0x10 = 0x10 != 0) = true  → WRONG
-    //   is_master_frame(0x80) = (0x80 & 0x10 = 0x00 == 0) = false → WRONG
-    //
-    // Under CORRECT mask (0x80):
+    // Under the correct mask (0x80):
     //   is_master_frame(0x10) = (0x10 & 0x80 = 0x00 == 0) = false → CORRECT
     //   is_master_frame(0x80) = (0x80 & 0x80 = 0x80 != 0) = true  → CORRECT
-    //
-    // RED: both assertions fail under the buggy 0x10 mask.
     //
     // Traces to: BC-2.15.016 PC5 (corrected); F-A-001 REVISION 2 §R2-1.
     // -----------------------------------------------------------------------
 
     /// is_master_frame(0x10) must return false (0x10 = FCV bit only; DIR=bit7 is clear).
     /// is_master_frame(0x80) must return true  (0x80 = pure DIR bit only; DIR=1).
-    /// RED: buggy 0x10 mask gives opposite results for both.
+    /// Verifies the correct 0x80 mask distinguishes DIR from FCV.
     #[test]
     fn test_dir_bit_is_bit7_not_bit4() {
         // 0x10 = 0001 0000: bit4=FCV(=1), bit7=DIR(=0). DIR is CLEAR.
@@ -139,8 +126,7 @@ mod f5_dir_bit_fix {
         assert!(
             !is_master_frame(0x10),
             "is_master_frame(0x10) must return false: 0x10 sets FCV bit (bit4) only; \
-             DIR bit (bit7, mask 0x80) is clear; \
-             RED: buggy 0x10 mask returns true"
+             DIR bit (bit7, mask 0x80) is clear"
         );
 
         // 0x80 = 1000 0000: bit7=DIR(=1), all other bits clear. DIR is SET.
@@ -148,8 +134,7 @@ mod f5_dir_bit_fix {
         // Buggy mask (0x10): 0x80 & 0x10 = 0x00 → false. WRONG.
         assert!(
             is_master_frame(0x80),
-            "is_master_frame(0x80) must return true: 0x80 sets DIR bit (bit7) only; \
-             RED: buggy 0x10 mask returns false (0x80 & 0x10 = 0)"
+            "is_master_frame(0x80) must return true: 0x80 sets DIR bit (bit7) only"
         );
     }
 
@@ -165,7 +150,8 @@ mod f5_dir_bit_fix {
     // This test asserts the CORRECT behavior (must be true). Confirms that 0xEF
     // being DIR=1 is not a surprise — bit7 is set.
     //
-    // RED: only if the mask is still 0x10 (0xEF & 0x10 = 0 → false). After fix: green.
+    // 0xEF & 0x80 = 0x80 → is_master_frame=true (correct). Regression guard for the
+    // former STORY-107 test that had 0xEF wrong (it used the buggy mask).
     //
     // Traces to: BC-2.15.016 PC5; F-A-001 REVISION 2 §R2-1 (0xEF correction).
     // -----------------------------------------------------------------------
@@ -178,9 +164,7 @@ mod f5_dir_bit_fix {
         // 0xEF = 1110 1111: bit7(DIR)=1. With corrected mask 0x80: true.
         assert!(
             is_master_frame(0xEF),
-            "is_master_frame(0xEF) must return true under corrected mask: \
-             0xEF & 0x80 = 0x80 != 0 (DIR=1); \
-             RED: old buggy mask 0x10 gives 0xEF & 0x10 = 0 → false"
+            "is_master_frame(0xEF) must return true: 0xEF & 0x80 = 0x80 != 0 (DIR=1)"
         );
     }
 
@@ -218,8 +202,8 @@ mod f5_dir_bit_fix {
 
     /// Delivers a canonical CTRL=0xC4 master-direction frame with a non-Control FC
     /// (FC=0x01, READ) and asserts master_addrs_seen is populated with the source
-    /// address after the call. RED: buggy 0x10 mask treats 0xC4 as non-master
-    /// → master_addrs_seen stays empty.
+    /// address after the call. The correct 0x80 mask recognizes 0xC4 as a master frame
+    /// and populates master_addrs_seen.
     #[test]
     fn test_canonical_mask_sanity_master_addrs_seen_populated() {
         let mut analyzer = Dnp3Analyzer::new(10);
@@ -250,12 +234,10 @@ mod f5_dir_bit_fix {
 
         let flow = analyzer.flows.get(&key).expect("flow must exist");
 
-        // RED: under buggy mask, is_master_frame(0xC4)=false → src 0x0001 NOT added.
         assert!(
             flow.master_addrs_seen.contains(&0x0001),
             "master_addrs_seen must contain 0x0001 after delivering a canonical CTRL=0xC4 \
-             master frame; RED: buggy mask 0x10 gives is_master_frame(0xC4)=false so \
-             master_addrs_seen stays empty"
+             master frame (0xC4 & 0x80 = 0x80 → is_master_frame=true)"
         );
     }
 }
@@ -345,25 +327,24 @@ mod f5_unexpected_source {
     // Correctness anchor: documents the corrected 0x80 mask behavior and catches
     // any regression if someone reverts the mask fix.
     //
-    // RED: is_master_frame(0xC4) returns false under the buggy 0x10 mask.
-    //      is_master_frame(0x04) returns false under BOTH masks (no DIR bit).
+    // is_master_frame(0xC4) returns true under the correct 0x80 mask (regression guard).
+    // is_master_frame(0x04) returns false under both masks (no DIR bit — expected).
     //
     // Traces to: F-A-001 REVISION 2 §R2-6 "test_canonical_master_frame_helper_...".
     // -----------------------------------------------------------------------
 
     /// Correctness anchor for the build_canonical_master_control_frame helper.
-    /// Asserts the corrected 0x80-mask behavior for key control bytes.
-    /// RED: is_master_frame(0xC4) fails under the buggy 0x10 mask.
+    /// Asserts the correct 0x80-mask behavior for key control bytes.
+    /// Regression guard: 0xC4 must return true (0xC4 & 0x80 = 0x80 != 0).
     #[test]
     fn test_canonical_master_frame_helper_satisfies_is_master_frame() {
         use wirerust::analyzer::dnp3::is_master_frame;
 
         // Canonical master (CTRL=0xC4): DIR=1 bit7 set → must be true.
-        // RED: buggy 0x10 mask → false (0xC4 & 0x10 = 0).
+        // 0xC4 & 0x80 = 0x80 != 0 → true.
         assert!(
             is_master_frame(0xC4),
-            "is_master_frame(0xC4) must return true under corrected 0x80 mask; \
-             RED: buggy 0x10 mask returns false"
+            "is_master_frame(0xC4) must return true: 0xC4 & 0x80 = 0x80 != 0 (DIR=1 bit7 set)"
         );
 
         // 0xD4: DIR=1 bit7 set (0xD4 & 0x80 = 0x80) → must be true.
@@ -398,7 +379,7 @@ mod f5_unexpected_source {
     //         Frame 2: build_canonical_master_control_frame(0x05, 0x0003, 0x0099)
     //           → src=0x0099 NOT in master_addrs_seen → unexpected-source finding.
     //
-    // Expected (RED — detect_unexpected_source_split not yet implemented):
+    // Expected:
     //   all_findings.len() == 1
     //   finding[0].mitre_techniques == ["T1692.001"]
     //   finding[0].category == ThreatCategory::Execution
@@ -413,22 +394,13 @@ mod f5_unexpected_source {
     //   "DNP3 unauthorized control command from unexpected source: \
     //    src=0x0099 is not in expected master set [0x0001] on dest=0x0003"
     //
-    // RED vectors:
-    //   (a) Under buggy mask: 0xC4 frames not recognized as master →
-    //       master_addrs_seen never populated → expected_set_established=false →
-    //       unexpected-source check never fires → all_findings.len()==0. RED.
-    //   (b) Under correct mask but without detect_unexpected_source_split:
-    //       master_addrs_seen is populated but detection branch is not implemented
-    //       → all_findings.len()==0. RED.
-    //
     // Traces to: BC-2.15.010 Invariant 5; HS-W37-002 (amended);
     //            F-A-001 REVISION 2 §§R2-5, R2-6.
     // -----------------------------------------------------------------------
 
     /// BC-2.15.010 Invariant 5: unexpected source fires at count=1, independent of
     /// the burst threshold. Asserts the EXACT pinned summary string (full equality).
-    /// RED: detect_unexpected_source_split is not implemented; ALSO red under
-    /// buggy 0x10 mask (canonical 0xC4 frames not recognized as master).
+    /// Traces to: BC-2.15.010 Invariant 5; F-A-001 REVISION 2 §R2-5.
     #[test]
     fn test_unexpected_source_fires_at_count_1() {
         let mut analyzer = Dnp3Analyzer::new(10); // threshold=10
@@ -451,13 +423,11 @@ mod f5_unexpected_source {
         let frame2 = build_canonical_master_control_frame(0x05, 0x0003, 0x0099);
         analyzer.on_data(key.clone(), &frame2, 1);
 
-        // RED: no detect_unexpected_source_split → all_findings.len()==0.
         assert_eq!(
             analyzer.all_findings.len(),
             1,
             "test_unexpected_source_fires_at_count_1: expected exactly ONE T1692.001 finding \
-             for unexpected source 0x0099 at count=1; \
-             RED: detect_unexpected_source_split not implemented (or is_master_frame buggy)"
+             for unexpected source 0x0099 at count=1"
         );
 
         let f = &analyzer.all_findings[0];
@@ -505,8 +475,6 @@ mod f5_unexpected_source {
         //   entry[1] = "expected_masters={master_set}"
         // For this test: app_fc=0x05 (DIRECT_OPERATE), dest=0x0003, src=0x0099,
         //   master_set=[0x0001] (single entry formatted {:#06X}).
-        // The current impl emits a SINGLE entry "unexpected_source src=... dest=... master_set=..."
-        // and DROPS app_fc → this assertion FAILS now (RED exposing F-P4-001).
         assert_eq!(
             f.evidence,
             vec![
@@ -516,7 +484,6 @@ mod f5_unexpected_source {
             "evidence must be TWO entries per F-F5-001 REVISION 2 §2: \
              entry[0]='FC=0x{{app_fc:02X}} dest={{dest:#06X}} src={{src:#06X}}', \
              entry[1]='expected_masters={{master_set}}'; \
-             RED (F-P4-001): current impl emits one entry without app_fc; \
              got: {:?}",
             f.evidence
         );
@@ -575,13 +542,11 @@ mod f5_unexpected_source {
         let frame_unexpected = build_canonical_master_control_frame(0x05, 0x0003, 0x0099);
         analyzer.on_data(key.clone(), &frame_unexpected, 9);
 
-        // RED: no detection → still 0 findings.
         assert_eq!(
             analyzer.all_findings.len(),
             1,
             "test_unexpected_source_independent_of_threshold: expected exactly ONE finding \
-             (unexpected-source, not burst); \
-             RED: detect_unexpected_source_split not implemented"
+             (unexpected-source, not burst)"
         );
 
         let f = &analyzer.all_findings[0];
@@ -645,12 +610,10 @@ mod f5_unexpected_source {
             .filter(|f| f.summary.contains("unexpected source"))
             .count();
 
-        // RED: no detection → 0 unexpected-source findings.
         assert_eq!(
             unexpected_count, 1,
             "test_unexpected_source_one_shot_guard: expected exactly ONE unexpected-source \
-             finding (first FC triggers; subsequent suppressed by unexpected_source_emitted); \
-             RED: detect_unexpected_source_split not implemented"
+             finding (first FC triggers; subsequent suppressed by unexpected_source_emitted)"
         );
 
         let flow = analyzer.flows.get(&key).expect("flow must exist");
@@ -702,7 +665,7 @@ mod f5_unexpected_source {
         assert!(
             flow.master_addrs_seen.contains(&0x0001),
             "master_addrs_seen must contain 0x0001 after first master frame; \
-             got {:?} (RED: buggy 0x10 mask leaves master_addrs_seen empty for 0xC4 frames)",
+             got {:?}",
             flow.master_addrs_seen
         );
         assert!(
@@ -758,13 +721,11 @@ mod f5_unexpected_source {
             analyzer.on_data(key.clone(), &frame, ts);
         }
 
-        // RED: no detect_unexpected_source_split → only 1 burst finding (not 2).
         assert_eq!(
             analyzer.all_findings.len(),
             2,
             "test_unexpected_source_and_burst_both_fire: expected 2 T1692.001 findings \
-             (one unexpected-source + one burst); \
-             RED: detect_unexpected_source_split not implemented"
+             (one unexpected-source + one burst)"
         );
 
         // Both findings carry T1692.001.
@@ -860,8 +821,7 @@ mod f5_unexpected_source {
             assert_eq!(
                 flow.master_addrs_seen.len(),
                 64,
-                "pre-condition: master_addrs_seen must be at MAX_MASTER_ADDRS=64 \
-                 (RED: buggy mask means 0xC4 frames don't populate it → len==0)"
+                "pre-condition: master_addrs_seen must be at MAX_MASTER_ADDRS=64"
             );
         }
 
@@ -878,12 +838,10 @@ mod f5_unexpected_source {
             .filter(|f| f.summary.contains("unexpected source"))
             .count();
 
-        // RED: without detection implementation → 0 findings.
         assert_eq!(
             unexpected_count, 1,
             "test_unexpected_source_max_master_addrs_full: expected ONE unexpected-source \
-             finding even when master_addrs_seen is at cap (64 entries); \
-             RED: detect_unexpected_source_split not implemented"
+             finding even when master_addrs_seen is at cap (64 entries)"
         );
 
         let flow = analyzer.flows.get(&key).expect("flow must exist");
@@ -936,13 +894,11 @@ mod f5_unexpected_source {
             .filter(|f| f.summary.contains("unexpected source"))
             .count();
 
-        // RED: no detection → 0; after fix: exactly 1.
         assert_eq!(
             unexpected_count, 1,
             "test_unexpected_source_second_distinct_unexpected_source_suppressed: \
              expected exactly ONE unexpected-source finding total (one-shot guard \
-             suppresses second distinct unexpected address); \
-             RED: detect_unexpected_source_split not implemented"
+             suppresses second distinct unexpected address)"
         );
 
         // All three source addresses should have been pushed to master_addrs_seen
@@ -1047,7 +1003,7 @@ mod f5_ics_impact_display {
     // After the fix, IcsImpact must have a distinct non-empty display string
     // (e.g., "Impact (ICS)").
     //
-    // RED: currently both display "Impact" → strings ARE equal → assert_ne! FAILS.
+    // MitreTactic::IcsImpact displays as "Impact (ICS)"; MitreTactic::Impact as "Impact".
     //
     // Traces to: F-F5-002.
     // -----------------------------------------------------------------------
@@ -1058,12 +1014,10 @@ mod f5_ics_impact_display {
         let impact_str = MitreTactic::Impact.to_string();
         let ics_impact_str = MitreTactic::IcsImpact.to_string();
 
-        // RED: currently both are "Impact" → this assertion FAILS.
         assert_ne!(
             ics_impact_str, impact_str,
             "MitreTactic::IcsImpact must display as a DISTINCT string from \
-             MitreTactic::Impact; \
-             currently both display as {:?} — RED (F-F5-002 not yet fixed)",
+             MitreTactic::Impact; got both as {:?}",
             impact_str
         );
 
@@ -1107,7 +1061,7 @@ mod f5_ics_impact_display {
     // Grouped terminal reporter must render two distinct tactic section headers
     // for Impact and IcsImpact.
     //
-    // RED: currently both bucket to the same "  ## Impact" header.
+    // Verifies the grouped reporter renders two distinct tactic headers for Impact and IcsImpact.
     //
     // Traces to: F-F5-002; terminal.rs render_findings_grouped.
     // -----------------------------------------------------------------------
@@ -1117,6 +1071,8 @@ mod f5_ics_impact_display {
             use_color: false,
             show_mitre_grouping: true,
             show_hosts_breakdown: false,
+            // STORY-118: new field; false here — grouped mode does not apply collapse.
+            collapse_findings: false,
         }
     }
 
@@ -1160,14 +1116,11 @@ mod f5_ics_impact_display {
         let unique_headers: std::collections::HashSet<&str> =
             impact_section_headers.iter().copied().collect();
 
-        // RED: currently unique_headers == {"  ## Impact"} (size 1).
         assert_eq!(
             unique_headers.len(),
             2,
             "expected 2 DISTINCT tactic section headers for Impact and IcsImpact; \
-             got {} unique header(s): {:?}.\nOutput:\n{out}\n\
-             RED: F-F5-002 not fixed — IcsImpact.to_string() == Impact.to_string() == \
-             \"Impact\", so both tactic buckets emit identical '## Impact' header",
+             got {} unique header(s): {:?}.\nOutput:\n{out}",
             unique_headers.len(),
             unique_headers
         );
@@ -1229,7 +1182,7 @@ mod f5_resync_accounting {
     // Setup: one complete valid 10-byte frame + 3 bytes of non-sync junk
     //        [0xAA, 0xBB, 0xCC] in the same on_data call.
     //
-    // Expected (RED — resync arm currently does NOT increment counters):
+    // Expected:
     //   flow.parse_errors == 1     (one structural event from the junk)
     //   flow.malformed_in_window == 1
     //   flow.frame_count == 1      (the valid frame was consumed)
@@ -1239,8 +1192,8 @@ mod f5_resync_accounting {
     //            increment); BC-2.15.016 EC-009 (new).
     // -----------------------------------------------------------------------
 
-    /// Path B: junk at a clean frame boundary. Resync arm must increment both
-    /// counters unconditionally. RED: current resync arm has zero-increment.
+    /// Path B: junk at a clean frame boundary. Resync arm increments both
+    /// counters unconditionally (F-F5-003 Change 1).
     #[test]
     fn test_EC_junk_at_clean_boundary_increments_malformed_counters() {
         let mut analyzer = Dnp3Analyzer::new(10);
@@ -1265,18 +1218,15 @@ mod f5_resync_accounting {
             "frame_count must be 1: the valid frame was consumed before the junk"
         );
 
-        // RED: resync arm currently does not increment counters → parse_errors==0.
         assert_eq!(
             flow.parse_errors, 1,
             "test_EC_junk_at_clean_boundary_increments_malformed_counters: \
-             parse_errors must be 1 (one structural event from non-sync junk at clean boundary); \
-             RED: resync arm currently has no increment (F-F5-003 Change 1 not implemented)"
+             parse_errors must be 1 (one structural event from non-sync junk at clean boundary)"
         );
 
         assert_eq!(
             flow.malformed_in_window, 1,
-            "malformed_in_window must be 1 (one sync-loss event from junk at clean boundary); \
-             RED: resync arm currently has no increment"
+            "malformed_in_window must be 1 (one sync-loss event from junk at clean boundary)"
         );
 
         // Resync arm cleared the junk (no [0x05, 0x64] in [0xAA, 0xBB, 0xCC]).
@@ -1297,17 +1247,12 @@ mod f5_resync_accounting {
     //
     // Input: [0x05, 0x64, 0x02, ...zeros...] (10 bytes; LENGTH=2 < 5).
     //
-    // Expected (RED — LENGTH-gate arm currently does NOT perform inline resync):
+    // Expected:
     //   flow.parse_errors == 1     (exactly one increment — no double-count)
     //   flow.malformed_in_window == 1
     //   flow.carry.len() == 0
     //
-    // Under the CURRENT code (before Change 2):
-    //   Iteration 1: LENGTH-gate fires → parse_errors=1, carry.drain(..1), continue.
-    //   Iteration 2: carry[0]=0x64 (not sync) → resync arm fires → parse_errors=2. DOUBLE-COUNT.
-    //   So currently parse_errors==2, which fails the assertion. RED.
-    //
-    // After Change 2: LENGTH-gate arm performs inline resync → loop enters with
+    // Change 2: LENGTH-gate arm performs inline resync → loop enters with
     //   empty or valid carry → resync arm NOT entered → parse_errors stays at 1.
     //
     // Traces to: F-F5-003 REVISION 2 Change 2 (LENGTH-gate inline resync);
@@ -1316,7 +1261,7 @@ mod f5_resync_accounting {
 
     /// LENGTH-gate arm + inline resync: parse_errors must be exactly 1 (not 2).
     /// Catches any double-count regression from the resync arm firing after a
-    /// LENGTH-gate drain. RED: current code produces parse_errors==2.
+    /// LENGTH-gate drain (F-F5-003 Change 2 no-double-count invariant).
     #[test]
     fn test_EC_length_gate_resync_no_double_count() {
         let mut analyzer = Dnp3Analyzer::new(10);
@@ -1333,13 +1278,11 @@ mod f5_resync_accounting {
 
         let flow = analyzer.flows.get(&key).expect("flow must exist");
 
-        // RED: current code produces parse_errors==2 (double-count: LENGTH-gate +
-        //      resync arm both increment). After Change 2: parse_errors==1.
+        // LENGTH-gate arm performs inline resync (Change 2); parse_errors stays at 1.
         assert_eq!(
             flow.parse_errors, 1,
             "test_EC_length_gate_resync_no_double_count: parse_errors must be exactly 1 \
-             (LENGTH-gate counts once; inline resync prevents resync arm from firing again); \
-             RED: current code increments twice → parse_errors==2 (no Change 2 yet)"
+             (LENGTH-gate counts once; inline resync prevents resync arm from firing again)"
         );
 
         assert_eq!(
@@ -1367,7 +1310,7 @@ mod f5_resync_accounting {
     // the junk-at-clean-boundary path). On the third call, malformed_in_window
     // reaches 3 (MALFORMED_ANOMALY_THRESHOLD=3) → T0814 emitted.
     //
-    // Expected after third call (RED — resync arm currently zero-increment):
+    // Expected after third call:
     //   flow.parse_errors == 3
     //   flow.malformed_in_window == 3 (or 0 if window reset occurred — none here)
     //   flow.frame_count == 3
@@ -1379,7 +1322,7 @@ mod f5_resync_accounting {
     // -----------------------------------------------------------------------
 
     /// Three valid-frame + junk calls accumulate malformed_in_window=3 → T0814.
-    /// RED: resync arm currently zero-increment → counters stay 0 → no T0814.
+    /// Each call triggers the resync arm (Change 1) which increments both counters.
     #[test]
     fn test_malformed_anomaly_boundary_junk_reaches_threshold() {
         let mut analyzer = Dnp3Analyzer::new(10);
@@ -1396,12 +1339,10 @@ mod f5_resync_accounting {
 
         let flow = analyzer.flows.get(&key).expect("flow must exist");
 
-        // RED: resync arm has no increment → parse_errors==0, malformed_in_window==0.
         assert_eq!(
             flow.parse_errors, 3,
             "test_malformed_anomaly_boundary_junk_reaches_threshold: \
-             parse_errors must be 3 (one per junk-at-clean-boundary event); \
-             RED: resync arm currently has no increment"
+             parse_errors must be 3 (one per junk-at-clean-boundary event)"
         );
 
         assert_eq!(
@@ -1543,8 +1484,7 @@ mod f5_resync_accounting {
         assert!(
             flow.frame_count >= 1,
             "test_overflow_arm_preserves_valid_head_frame: frame_count must be >= 1 \
-             (valid head frame sitting in carry after overflow cap must be preserved and parsed); \
-             RED: REVISION 1 carry.clear()+return would discard it → frame_count==0"
+             (overflow arm inline resync preserves valid head frame sitting in carry)"
         );
     }
 
@@ -1575,8 +1515,7 @@ mod f5_resync_accounting {
     //             Inline resync: scans [0x64,0x02,0xAA,0xAA] → no [0x05,0x64] → carry.clear().
     //     Iter 4: carry.len()==0 < 3 → break.
     //
-    // Expected (RED — Change 2 not implemented; currently: double-count means parse_errors > 3,
-    //           AND T0814 threshold check may be off):
+    // Expected:
     //   flow.parse_errors == 3
     //   flow.malformed_in_window == 3
     //   flow.malformed_anomaly_emitted == true
@@ -1589,8 +1528,7 @@ mod f5_resync_accounting {
 
     /// Principle 1: three embedded fake-sync [0x05,0x64,invalid-LENGTH] triplets
     /// → parse_errors=3 → T0814. Confirms intended detection of Crain-Sistrunk probes.
-    /// RED: Change 2 (LENGTH-gate inline resync) not implemented; without it the walk
-    /// produces a different count (double-count from resync arm after each LENGTH-gate drain).
+    /// Each triplet triggers exactly one LENGTH-gate entry (no double-count with Change 2).
     #[test]
     fn test_fake_sync_flood_crosses_malformed_threshold() {
         let mut analyzer = Dnp3Analyzer::new(10);
@@ -1611,13 +1549,12 @@ mod f5_resync_accounting {
 
         let flow = analyzer.flows.get(&key).expect("flow must exist");
 
-        // RED: without Change 2, the resync arm also fires after each LENGTH-gate drain,
-        // producing parse_errors > 3 (double-count). After Change 2: exactly 3.
+        // With Change 2 (inline resync after each LENGTH-gate drain), resync arm
+        // does NOT fire again → parse_errors stays at exactly 3.
         assert_eq!(
             flow.parse_errors, 3,
             "test_fake_sync_flood_crosses_malformed_threshold: \
-             parse_errors must be 3 (one per LENGTH-gate entry — Principle 1 semantics); \
-             RED: without Change 2 (inline resync), resync arm also fires → parse_errors > 3"
+             parse_errors must be 3 (one per LENGTH-gate entry — Principle 1 semantics)"
         );
 
         assert_eq!(

@@ -20,7 +20,7 @@ mod story_104 {
 
     use wirerust::analyzer::modbus::{
         DEFAULT_WRITE_BURST_THRESHOLD, DEFAULT_WRITE_SUSTAINED_THRESHOLD, MAX_FINDINGS, MbapHeader,
-        ModbusAnalyzer, ModbusFlowState,
+        ModbusAnalyzer, ModbusFlowState, WRITE_BURST_WINDOW_SECS,
     };
     use wirerust::findings::{Confidence, ThreatCategory, Verdict};
     use wirerust::reassembly::flow::FlowKey;
@@ -2381,6 +2381,77 @@ mod story_104 {
          and MUST co-tag T0831 (kills the 535 > -> == and > -> >= boundary mutants); \
          got {:?}",
             f2[0].mitre_techniques
+        );
+    }
+
+    // ---------------------------------------------------------------------------
+    // BC-2.14.017 v2.6 — Burst summary window-width display (issue #220 regression guard)
+    // EC-011 / Postcondition 1: summary must report configured window WIDTH constant
+    // (WRITE_BURST_WINDOW_SECS), not the elapsed span between first and last write.
+    // ---------------------------------------------------------------------------
+
+    /// test_BC_2_14_017_burst_summary_reports_window_width_not_elapsed
+    ///
+    /// Regression guard for GitHub issue #220: when all writes in a burst share the same
+    /// integer-second timestamp, the burst detector computed `burst_elapsed = 0` and
+    /// interpolated that into the summary string, producing "...in 0s window".
+    ///
+    /// The fix (BC-2.14.017 v2.6 Postcondition 1, EC-011, STORY-104 AC-004) requires the
+    /// summary to report the configured window width constant (`WRITE_BURST_WINDOW_SECS = 1`),
+    /// not the elapsed span.  Canonical summary form:
+    ///   "Modbus write burst: {count} writes within {window_secs}s window
+    ///    (unit {unit_id}, threshold {threshold}/s)"
+    ///
+    /// This guard drives 21 write-class FCs all at ts=0 (same second), locates the single
+    /// burst finding, and asserts both the anti-regression property ("0s window" absent) and
+    /// the exact canonical summary string.
+    ///
+    /// Traces to: BC-2.14.017 v2.6 Postcondition 1, EC-011, STORY-104 AC-004.
+    #[test]
+    fn test_BC_2_14_017_burst_summary_reports_window_width_not_elapsed() {
+        let mut az = default_analyzer();
+        let mut flow = ModbusFlowState::default();
+        let fk = test_flow_key();
+
+        // 21 writes all at ts=0 — same integer-second timestamp, so the pre-fix code
+        // computes burst_elapsed = 0 and emits "...in 0s window".
+        let mut all_findings = Vec::new();
+        for i in 0..21_u32 {
+            let adu = build_adu(i as u16 + 1, 0x01, 0x06, &[0x00, i as u8, 0x01, 0x00]);
+            let mut f = drive(&mut az, &mut flow, &fk, Direction::ClientToServer, &adu, 0);
+            all_findings.append(&mut f);
+        }
+
+        let burst_findings: Vec<_> = all_findings
+            .iter()
+            .filter(|f| f.mitre_techniques.contains(&"T0806".to_string()))
+            .collect();
+
+        // Guard: exactly one burst finding (behavioral invariant — no change expected).
+        assert_eq!(
+            burst_findings.len(),
+            1,
+            "exactly one burst finding must be emitted for 21 same-second writes"
+        );
+
+        let burst = burst_findings[0];
+
+        // Anti-regression: the pre-fix string "in 0s window" must be absent.
+        assert!(
+            !burst.summary.contains("0s window"),
+            "issue #220 regression: summary must not contain \"0s window\"; got: {:?}",
+            burst.summary
+        );
+
+        // Exact canonical form per BC-2.14.017 v2.6 Postcondition 1 / EC-011.
+        // window_secs = WRITE_BURST_WINDOW_SECS (1), unit_id = 1, threshold = 20.
+        let expected = format!(
+            "Modbus write burst: 21 writes within {}s window (unit 1, threshold {}/s)",
+            WRITE_BURST_WINDOW_SECS, DEFAULT_WRITE_BURST_THRESHOLD,
+        );
+        assert_eq!(
+            burst.summary, expected,
+            "burst summary must use window WIDTH constant, not elapsed span"
         );
     }
 } // mod story_104
