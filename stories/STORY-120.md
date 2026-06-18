@@ -72,7 +72,7 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-11/BC-2.11.029.md
   - .factory/phase-f1-delta-analysis/issue-62-terminal-reporter-enum-modes-delta-analysis.md
   - docs/adr/0003-reporting-pipeline-layering.md
-input-hash: "ca8e753"
+input-hash: "cfa60a9"
 ---
 
 # STORY-120: TerminalReporter FindingsRender Enum Migration (v0.9.0)
@@ -116,10 +116,22 @@ variants: `Grouped`, `FlatCollapsed`, `FlatExpanded`. The enum carries
 `#[derive(Debug, Clone, Copy, PartialEq, Eq)]`. `Default` is NOT derived. The enum
 is `pub` (same visibility as `TerminalReporter`).
 
-The variant doc comments match ADR-0003 Binding Rule 5:
-- `Grouped`: "Group findings by MITRE tactic (`--mitre` flag)."
-- `FlatCollapsed`: "Collapse repeated findings into counted groups (default, v0.8.0+)."
-- `FlatExpanded`: "One display line per raw finding (`--no-collapse` / pre-v0.8.0 behavior)."
+The variant doc comments match ADR-0003 Binding Rule 5 (byte-identical):
+- `Grouped`:
+  ```
+  /// Group findings by MITRE tactic (`--mitre` flag).
+  /// Corresponds to the previous `show_mitre_grouping = true`.
+  ```
+- `FlatCollapsed`:
+  ```
+  /// Collapse repeated findings into counted groups (default, v0.8.0+).
+  /// Corresponds to the previous `collapse_findings = true, show_mitre_grouping = false`.
+  ```
+- `FlatExpanded`:
+  ```
+  /// One display line per raw finding (pre-v0.8.0 behavior, `--no-collapse`).
+  /// Corresponds to the previous `collapse_findings = false, show_mitre_grouping = false`.
+  ```
 
 - **Test:** `test_findings_render_derives_debug_clone_copy_partialeq_eq`
   (in `tests/reporter_terminal_tests.rs`)
@@ -179,19 +191,24 @@ already doing.
 ### AC-005 — run_analyze construction site wired correctly in main.rs
 *(traces to BC-2.11.028 postconditions 1–2, invariant 1 — CLI flag wiring)*
 
-The `TerminalReporter { ... }` construction in `run_analyze` (src/main.rs ~line 373) uses:
+The `TerminalReporter { ... }` construction in `run_analyze` (src/main.rs ~line 373) uses
+the in-scope bool params `show_mitre_grouping: bool` (line 107) and `collapse_findings:
+bool` (line 108) — NOT the raw CLI flags `*mitre` or `no_collapse`, which are only in
+scope inside `main()` (src/main.rs:55-56, 66-83). The construction site reads:
 ```rust
-render: if *mitre {
+render: if show_mitre_grouping {
     FindingsRender::Grouped
-} else if !no_collapse {
+} else if collapse_findings {
     FindingsRender::FlatCollapsed
 } else {
     FindingsRender::FlatExpanded
 },
 ```
-This mirrors the F1 migration map exactly. `--mitre` wins over `--no-collapse` when both
-are present (structural: only one enum variant is selected). The `show_mitre_grouping`
-and `collapse_findings` bool fields are removed from this literal.
+This mirrors the F1 migration map exactly. `show_mitre_grouping` is true exactly when
+`--mitre` is passed (resolved at the `main()` call site, lines 79-80, UNCHANGED), so
+`if show_mitre_grouping` structurally wins over `collapse_findings` — precedence is
+preserved. The `show_mitre_grouping` and `collapse_findings` bool fields are removed
+from this struct literal (they are now params, not fields).
 
 - **Test:** `test_BC_2_11_028_flag_wired_to_reporter_field`
   (in `tests/reporter_terminal_tests.rs:3326` — post-STORY-120, this test's construction
@@ -307,8 +324,8 @@ or partial-match warnings (enum is exhaustive).
 
 `cargo fmt --check` passes after the refactor. `rustfmt.toml` settings (edition 2024,
 max_width = 100) apply to the new enum definition, the struct, and the match arm in
-`render()`. The `render: if *mitre { ... } else if !no_collapse { ... } else { ... }`
-expression in main.rs is formatted per rustfmt's expression-alignment rules.
+`render()`. The `render: if show_mitre_grouping { ... } else if collapse_findings { ... } else { ... }`
+expression in `run_analyze` in main.rs is formatted per rustfmt's expression-alignment rules.
 
 - **Test:** CI gate (`cargo fmt --check` step)
 
@@ -463,9 +480,13 @@ required (per F1 §8 and F2 Verification Delta).
    of the three arms are identical to the three branches they replace — no logic changes.
 
 5. **[F4 scope — GREEN — src/main.rs run_analyze]** Replace the two-bool construction at
-   ~line 373 with the three-way enum expression per AC-005:
-   `render: if *mitre { FindingsRender::Grouped } else if !no_collapse { FindingsRender::FlatCollapsed } else { FindingsRender::FlatExpanded }`.
-   Add `use wirerust::reporter::terminal::FindingsRender;` to main.rs imports if needed.
+   ~line 373 with the three-way enum expression per AC-005, using the in-scope bool params
+   `show_mitre_grouping` (line 107) and `collapse_findings` (line 108) — NOT the raw CLI
+   references `*mitre` / `no_collapse`, which are only in scope in `main()`:
+   `render: if show_mitre_grouping { FindingsRender::Grouped } else if collapse_findings { FindingsRender::FlatCollapsed } else { FindingsRender::FlatExpanded }`.
+   The `--mitre`/`--no-collapse` → bool resolution at the `main()` call site (lines 79-80)
+   is UNCHANGED. Add `use wirerust::reporter::terminal::FindingsRender;` to main.rs imports
+   if needed. `run_analyze` signature is UNCHANGED.
 
 6. **[F4 scope — GREEN — src/main.rs run_summary]** Replace the inert `collapse_findings:
    true` construction at ~line 439 with `render: FindingsRender::FlatCollapsed` per AC-006.
@@ -516,6 +537,13 @@ writing stubs to get exact line numbers and helper names. The F1 §6 migration t
 authoritative but line numbers may shift slightly. `cargo check` after the struct change
 is the definitive completeness check — every missed site is a compile error.
 
+**Scope boundary for implementer:** `collapse_findings_from_flag` (src/main.rs:498) and
+its unit tests (~lines 535-541) are UNCHANGED — this helper maps `--no-collapse` (a
+`bool` CLI flag) to the `collapse_findings: bool` parameter. The `run_analyze` signature
+is UNCHANGED. Only the bool → `FindingsRender` enum translation at the construction site
+inside `run_analyze` (~line 373) is new in this story. Do not touch `main()` flag parsing
+or `collapse_findings_from_flag`.
+
 ## Architecture Compliance Rules
 
 Derived from ADR-0003 Binding Rule 5 and the F1/F2 design decisions:
@@ -551,6 +579,10 @@ Derived from ADR-0003 Binding Rule 5 and the F1/F2 design decisions:
   analyzers are unaffected).
 - `FindingsRender` MUST NOT gain a `Default` implementation without a separate deliberate
   API decision.
+- `collapse_findings_from_flag` (src/main.rs:498) and its unit tests (~lines 535-541) are
+  UNCHANGED — the `--no-collapse` → `collapse_findings: bool` mapping is preserved at the
+  `main()` call site. Only the bool → enum translation at the `run_analyze` construction
+  site is new (this story). The `run_analyze` function signature is UNCHANGED.
 
 ## Library & Framework Requirements
 

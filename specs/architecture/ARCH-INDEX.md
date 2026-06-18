@@ -36,6 +36,9 @@ modified:
   - date: 2026-06-17
     actor: architect
     reason: "F2 Phase Spec Evolution (issue #62): ADR-0003 row extended with v0.9.0 render-mode enum subsection (FindingsRender enum, illegal-state elimination rationale, migration map, semver v0.9.0 consequence, Default omission decision)."
+  - date: 2026-06-18
+    actor: architect
+    reason: "F3 scope correction (issue #62): ADR-0003 v0.9.0 migration-map code block corrected — original snippet used *mitre and no_collapse which are out of scope inside run_analyze; corrected to use the in-scope params show_mitre_grouping and collapse_findings (function signature lines 107-108). Prose added to make explicit that the --mitre/--no-collapse → bool resolution stays at the main() call site (lines 79-80), collapse_findings_from_flag is unchanged, and the run_analyze signature is unchanged. Behavior is identical; only the variable names/layer cited in the migration map are corrected."
 phase: 1c
 origin: brownfield
 deployment_topology: single-service

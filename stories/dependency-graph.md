@@ -256,7 +256,7 @@ Waves are computed as `wave(story) = max(wave(dependency)) + 1` (longest-path /
 critical-path method). Stories in the same wave have no dependency between them
 and can be dispatched in parallel.
 
-> **Graph is acyclic:** Kahn's algorithm processes all 71 product stories. No cycle detected.
+> **Graph is acyclic:** Kahn's algorithm processes all 72 product stories. No cycle detected.
 
 ### Wave 1 — 2 stories | Epics: E-1, E-7
 
@@ -666,7 +666,7 @@ iteratively. Result:
 
 - Initial zero-in-degree nodes: STORY-001, STORY-069 (Wave 1)
 - Each wave removes its stories and decrements successor in-degrees
-- Final output: all 71 product stories processed, queue empty, no cycle detected
+- Final output: all 72 product stories processed, queue empty, no cycle detected
 - Any cycle would leave unprocessed nodes with non-zero in-degree — none found
 - E-15 extension (STORY-106→107→108→109→110) is a linear tail appended after Wave 34;
   it shares two cross-epic edges (STORY-100→106, STORY-105→110) that add in-degrees
