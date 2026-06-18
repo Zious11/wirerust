@@ -14,6 +14,55 @@ changes, invariant rewrites).
 
 ---
 
+## [story-119-f2-adv-round5-remediation-2026-06-18] — 2026-06-18
+
+### PATCH: STORY-119 F2 Adversarial Round-5 Remediation — BC-030 Content-Based Citation (ends line-number churn); STORY-119 BC-030 Stamp Re-Sync v1.2→v1.4; ADR-0003 Binary-Crate False Premise Corrected; Research-Doc Correction Note
+
+**Trigger:** F2 adversarial round-5 triple — Pass A CLEAN; Pass B found BC-030 stamp drift in STORY-119 body table + ADR-0003 binary-crate false premise; Pass C found BC-INDEX grouped-collapse entry line-citation STILL wrong (churns on every changelog prepend). ALL REMEDIATED. BC-INDEX v1.48 → v1.49. Re-streak pending (round-6 triple).
+
+#### Root Cause
+
+Pass A was CLEAN (all round-4 fixes verified). Passes B and C independently found three self-inflicted churn defects:
+
+1. **MED (F-R5B-001): STORY-119.md BC-030 stamp drift.** The round-4 burst bumped BC-030 from v1.2 to v1.3, but the STORY-119.md body BC table still showed v1.2. This is the same consuming-surface propagation gap (PG-62-F2-BOOKKEEPING-SWEEP-001 family) — the BC file version advanced but the story's version-stamp column was not updated. Re-synced to v1.4 (which also incorporates the round-5 content-based citation fix).
+
+2. **HIGH (F-R5B-002): ADR-0003 alternatives note false premise — 'binary crate / no [lib] target'.** The ADR-0003 alternatives-rejected section (added during round-4 attribution-correction burst) stated that wirerust has no `[lib]` target and therefore FindingsRender has no downstream semver consumers. This is incorrect: `src/lib.rs` exists and is a public library; `FindingsRender` is exported by it and is part of the public API surface. The DECISION REMAINS VALID because v0.9.0 is still unreleased (the breaking change is fully contained by the 0.9.0 version bump). The false-premise prose was corrected in ADR-0003 and a correction note was added to the research doc.
+
+3. **[process-gap] (F-R5C-001): BC-INDEX grouped-collapse line-citation still wrong — churns on every prepend.** The v1.48 BC-INDEX changelog entry cited "line 273" as the location of the grouped-collapse v0.9.0 entry. The v1.47 entry cited ":271"; v1.46 said ":269". All were wrong at the time they were written — each changelog prepend shifts all subsequent line numbers. The BC-030 body stanzas (v1.1/v1.2/v1.3) also carried the successive wrong line numbers as their provenance citations. PERMANENTLY FIXED by switching ALL grouped-collapse provenance citations to content-based references: the canonical citation is now 'BCs 030-034: grouped-collapse (greenfield, STORY-119, v0.9.0)' — the content of that BC-INDEX section heading, which does not shift when entries are prepended.
+
+#### Changed Artifacts (this burst)
+
+**BC-2.11.030.md v1.3→v1.4 — content-based citation (permanent fix):**
+- v1.4 stanza added: grouped-collapse provenance citation switched from fragile BC-INDEX line number to content-based reference: BC-INDEX entry 'BCs 030-034: grouped-collapse (greenfield, STORY-119, v0.9.0)'.
+- All ":NNN" line-number citations for this provenance removed from the v1.1 stanza.
+- v1.2 and v1.3 stanzas annotated as SUPERSEDED (the successive :271 and :273 corrections were each themselves wrong due to changelog-prepend drift) but retained as audit trail of the round-3 and round-4 intermediate errors.
+
+**STORY-119.md v1.3→v1.4 — BC-030 stamp re-sync:**
+- BC-030 version cell in the body Behavioral Contracts table corrected from v1.2 to v1.4 (incorporating round-3 →v1.2, round-4 →v1.3, and round-5 →v1.4 in one update).
+- All other BC version stamps confirmed correct (no other drift).
+
+**ADR-0003 (on develop, rides F4 PR) — binary-crate false premise corrected:**
+- The alternatives-rejected section's "binary crate / no [lib] target" premise corrected to acknowledge src/lib.rs is a public library and FindingsRender is public API.
+- Decision rationale updated: the breaking change is contained by the unreleased v0.9.0 version bump, not by the absence of consumers.
+
+**Research doc story-119-render-mode-typedesign.md — correction note added:**
+- Correction note prepended to the "Key Finding First" section explaining the false premise, why the decision remains valid, and that the correction is preserved as audit trail.
+
+**BC-INDEX.md v1.48→v1.49:**
+- v1.49 changelog entry prepended (this burst).
+- v1.48 entry's ":273 / line 273" BC-030 citation reworded to content-based phrasing (no line number).
+- BC-030 row annotation extended with v1.4 content-based citation note.
+- Version stamp bumped to v1.49.
+
+**Artifacts NOT changed this round:**
+- BC-2.11.031, 032, 033, 034 (untouched)
+- BC-2.11.014 (untouched)
+- HS-081 (untouched)
+- PRD-delta (untouched)
+- No new BCs; total 293 unchanged.
+
+---
+
 ## [story-119-f2-adv-round4-remediation-2026-06-18] — 2026-06-18
 
 ### PATCH: STORY-119 F2 Adversarial Round-4 Remediation — Type-Attribution Inversion Fix; BC-030 Provenance Citation Corrected; Design-Note §5.1 Sort-Clause Dedup; BC-INDEX:032 Annotation Alignment; "9-BC"→"12-BC" Count Fix

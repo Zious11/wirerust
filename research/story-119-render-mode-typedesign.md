@@ -35,6 +35,17 @@ This research evaluates three candidate representations and recommends one.
 
 ## Key Finding First (decisive constraint)
 
+> **CORRECTION NOTE (2026-06-18, F2 adversarial round-5):** The premise "wirerust is a binary
+> crate with no `[lib]` target" stated below was INCORRECT. `src/lib.rs` exists and is a public
+> library; `FindingsRender` is part of the public API surface (exported by `lib.rs`). This
+> conclusion was caught as a false premise in ADR-0003's alternatives note during round-5
+> adversarial review. The DECISION REMAINS VALID because v0.9.0 is still unreleased — the
+> breaking change to `FindingsRender` is contained by the version bump to 0.9.0 (no external
+> consumers of an unreleased version). The research doc's structural analysis and recommendation
+> (struct-of-orthogonal-enums) are correct on the merits. Only the "no semver consumers" premise
+> used to dismiss the API-breakage axis was wrong. Corrected in ADR-0003; preserved here as
+> audit trail.
+
 **wirerust is a binary crate, not a published library.** `Cargo.toml` declares only
 `[package]` with a CLI binary and a `[[bench]]` target — there is **no `[lib]` target** and the
 crate is not published to crates.io as an API dependency. Therefore `FindingsRender` being `pub`
@@ -337,3 +348,11 @@ Repo facts verified locally:
 **Training data reliance:** low-to-medium — the type-design recommendation (Q1–Q3, Q5) is
 source-grounded via `perplexity_research` + `perplexity_reason`; only the Q4 crate-precedent
 specifics lean on model knowledge and are flagged as such.
+
+---
+
+**CORRECTION (F2 round-5):** The "binary crate / no `[lib]` target" premise in "Key Finding" and
+throughout Q5 is INCORRECT — `src/lib.rs` is a public library target (Cargo auto-discovers it;
+`FindingsRender`/`TerminalReporter` are public API via `wirerust::reporter::terminal`). The
+struct-of-enums recommendation stands on orthogonality grounds; the semver point is moot only
+because v0.9.0 is unreleased (not because there is no lib).
