@@ -7,6 +7,20 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-06-18
+
+### Changed (BREAKING)
+
+- **`TerminalReporter` findings-render mode: two bools → `FindingsRender` enum (STORY-120, PR #266).**
+  The `show_mitre_grouping: bool` and `collapse_findings: bool` public fields on `TerminalReporter`
+  are removed and replaced by a single `render: FindingsRender` field. `FindingsRender` is an enum
+  with three variants: `Grouped` (formerly `show_mitre_grouping = true`), `FlatCollapsed` (formerly
+  `collapse_findings = true`), and `FlatExpanded` (formerly both bools false). The previously
+  representable invalid state (`show_mitre_grouping = true` and `collapse_findings = true`
+  simultaneously) is now structurally impossible. Terminal output is byte-identical across all
+  three modes; this is an internal refactor only. Per RFC 1105 the removal of public fields is a
+  breaking change, hence the 0.8.x → 0.9.0 minor bump.
+
 ## [0.8.0] - 2026-06-17
 
 ### Added
@@ -381,7 +395,8 @@ Downstream consumers of wirerust JSON or CSV output must update for this release
 - Output sanitization in the terminal reporter guards against C1 control bytes
   in packet-derived strings.
 
-[Unreleased]: https://github.com/Zious11/wirerust/compare/v0.8.0...HEAD
+[Unreleased]: https://github.com/Zious11/wirerust/compare/v0.9.0...HEAD
+[0.9.0]: https://github.com/Zious11/wirerust/compare/v0.8.0...v0.9.0
 [0.8.0]: https://github.com/Zious11/wirerust/compare/v0.7.1...v0.8.0
 [0.7.1]: https://github.com/Zious11/wirerust/compare/v0.7.0...v0.7.1
 [0.7.0]: https://github.com/Zious11/wirerust/compare/v0.6.0...v0.7.0

@@ -265,7 +265,7 @@ displayed:
 The ` (xN)` suffix is part of the string that is passed to the color function — it is appended
 **before** colorization, not after the ANSI reset. The color ladder applied to the pre-suffix
 string is the same verdict/confidence ladder used by the existing `render_finding_prefix`
-(terminal.rs:209-221): `Likely/High → red().bold()`, `Likely/other → yellow`,
+(terminal.rs:273-285): `Likely/High → red().bold()`, `Likely/other → yellow`,
 `Possible → yellow`, `Inconclusive → cyan`, `Unlikely → dimmed`. See BC-2.11.026 PC-6.
 
 Evidence sampling: a collapsed group retains at most K = 3 evidence lines, taken from the
