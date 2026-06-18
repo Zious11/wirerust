@@ -14,7 +14,8 @@ modified:
   - "2026-06-17 v1.9: DF-INPUT-HASH-CANONICAL-001 — BC-2.11.025 bumped v1.5→v1.6 by BC-PO (canonical-vector evidence HTTP/1.1 fix); updated BC-2.11.025 stamp in BC-to-Stories matrix (v1.5→v1.6). STORY-118 input-hash recomputed: 432f43e → 77d97c6."
   - "2026-06-18 v2.0: Feature #62 (issue #62, FindingsRender enum migration) — added STORY-120 (E-8, wave 48) for TerminalReporter enum-of-modes refactor (v0.9.0). total_stories 71→72 (product; +STORY-091 tooling = 73 all-stories). total_edges 94→95 (+2 cross-epic: STORY-118→STORY-120 (E-18→E-8) + STORY-120→STORY-119 (E-8→E-18), replacing the prior STORY-118→STORY-119 intra-E-18 edge; net +1 cross-epic edge; intra 75→74, cross 19→21). number_of_waves 47→48. STORY-120 depends_on=[] (reporter struct exists; no new predecessor required). total_points 468→471 (product +3; scheduled wave-table total)."
   - "2026-06-18 v2.1: BC-to-Stories matrix version-stamp sync (F3 round-7 bookkeeping fix). Updated stale stamps to authoritative current versions: BC-2.11.019 v1.7→v1.8, BC-2.11.025 v1.8→v1.9, BC-2.11.026 v1.9→v1.10, BC-2.11.028 v1.5→v1.6, BC-2.11.029 v1.4→v1.5. (BC-010 v1.9, .013 v1.12, .014 v1.7, .015 v1.8, .016 v1.7, .017 v1.14, .027 v1.5 confirmed correct — no change.)"
-total_stories: 72  # product stories only (excludes STORY-091 tooling; all-stories total = 73)
+  - "2026-06-18 v2.2: D-103 F3 human gate — STORY-121 added (E-11 tooling, wave TBD, 3 pts). Product-story count unchanged (72). all-stories total 73→74. No new edges (STORY-121 has no dependencies). Wave count unchanged (48)."
+total_stories: 72  # product stories only (excludes STORY-091 + STORY-121 tooling; all-stories total = 74)
 total_edges: 95
 intra_epic_edges: 74
 cross_epic_edges: 21

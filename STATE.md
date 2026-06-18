@@ -1,13 +1,13 @@
 ---
 pipeline: FEATURE_MODE
-phase: F2
-phase_status: "FEATURE MODE issue #62 — F3 CONVERGED (3/3). STORY-120 (TerminalReporter FindingsRender enum migration, 28 construction sites, wave 48, E-8) implementation-ready. AWAITING F3 HUMAN GATE before F4 delta-implementation."
-active_feature: "E-8 / #62 TerminalReporter enum-of-modes refactor — F1..F3 COMPLETE; STORY-120 implementation-ready (28 sites, wave 48); STORY-119 depends_on [STORY-120]; F3 adversarial gate SATISFIED 3/3 (f034ca2); AWAITING F3 HUMAN GATE → F4; release target v0.9.0"
+phase: F4
+phase_status: "F3 HUMAN GATE APPROVED 2026-06-18. Proceeding to F4 delta-implementation (TDD) for STORY-120. Worktree .worktrees/STORY-120 (branch worktree-issue-62-findingsrender-enum, base bec13ba) created; ADR-0003 patch applied into worktree."
+active_feature: "E-8 / #62 TerminalReporter enum-of-modes refactor — F3 HUMAN GATE APPROVED 2026-06-18; release target v0.9.0 CONFIRMED; F4 delta-implementation IN PROGRESS. STORY-120 worktree created (worktree-issue-62-findingsrender-enum @ bec13ba). STORY-119 depends_on [STORY-120]. F1..F3 COMPLETE; F3 adversarial gate SATISFIED 3/3 (f034ca2). STORY-121 (E-11 self-improvement follow-up, D-099/D-100/D-101 process-gap) filed as draft."
 feature_arp_status: "v0.7.0 RELEASED 2026-06-16 — ARP Security Analyzer (E-16, issue #9); PR #256 dd8e142; tag v0.7.0; 4 binaries (aarch64-apple-darwin, x86_64-apple-darwin, x86_64-pc-windows-msvc, x86_64-unknown-linux-gnu)"
 feature_8_status: "v0.6.0 RELEASED 2026-06-12 — DNP3 TCP analyzer; F7 5-dim CONVERGED; tag v0.6.0 + 4 binaries"
 product: wirerust
 mode: brownfield
-timestamp: 2026-06-18T23:30:00Z
+timestamp: 2026-06-18T23:59:00Z
 maintenance_run: COMPLETE
 maintenance_run_id: maint-2026-06-17
 maintenance_started_at: "2026-06-17"
@@ -127,28 +127,31 @@ input_drift_check: "F7-followup-dispositions burst (2026-06-16): STORY-071/100/1
 | Maintenance maint-2026-06-17 | **COMPLETE** 2026-06-17 | 2 PRs delivered (#261/#262); 5 items deferred; develop c03a38b |
 | Feature E-18 / #259 finding-collapse — F1..F7 + Release v0.8.0 | **RELEASED** 2026-06-17 | STORY-118; 9 new BCs SS-11=29; total 288 BCs; F5 3/3; F6 mutation 100%; F7 5-dim CONVERGED; PR #264→develop 5f7cd1b; PR #265→main 73034da; tag v0.8.0; 4 binaries; run 27732692087. STORY-119 DEFERRED. Per-phase detail: cycles/feature-collapse-v0.8.0/phase-progress-archive.md |
 | Feature E-8 / #62 TerminalReporter enum-modes — F1..F2 COMPLETE | **F1..F2 COMPLETE — F2 adversarial gate SATISFIED 3/3 (60d8392)** | F2 fix-burst 2026-06-18: 12 unique SS-11 BCs re-anchored; BC-INDEX v1.42; ADR-0003 v0.9.0 subsection; PRD-delta (12 BCs + run_summary site); HS-081 9df8300 MATCH; STORY-077/078/118 FROZEN (D-088). 4 rounds to convergence (R1: 5 findings; R2: 1 MEDIUM; R3: 1 MEDIUM; R4: 3/3 CLEAN). |
-| E-8 / #62 F3 story decomposition — CONVERGED | **F3 CONVERGED — adversarial gate SATISFIED 3/3 (f034ca2); awaiting human gate** | STORY-120 (28 sites, wave 48, 16+1 ACs, depends_on [], input-hash 3d76a93) implementation-ready. 10 fix rounds (D-092..D-102). Churn: documentation/bookkeeping in consuming artifacts (F1 sub-counts via input-hash), NOT implementation-readiness. AWAITING F3 HUMAN GATE → F4. |
+| E-8 / #62 F3 story decomposition — GATE APPROVED | **F3 GATE APPROVED 2026-06-18 — human approved; F4 IN PROGRESS** | STORY-120 (28 sites, wave 48, 16+1 ACs, depends_on [], input-hash 3d76a93) implementation-ready. 10 fix rounds (D-092..D-102). D-103: (a) proceed F4 — APPROVED; (b) STORY-121 filed (E-11 self-improvement); (c) v0.9.0 CONFIRMED. Worktree .worktrees/STORY-120 (worktree-issue-62-findingsrender-enum @ bec13ba) created. |
+| E-8 / #62 F4 delta-implementation | **F4 IN PROGRESS** | STORY-120 TDD in progress. Worktree worktree-issue-62-findingsrender-enum @ bec13ba. ADR-0003 patch applied. |
 
-## Session Resume Checkpoint (2026-06-18 — COLD-RESUME — FEATURE MODE E-8 / #62; F1 ✅ / F2 ✅ CONVERGED 3/3 / F3 ✅ CONVERGED 3/3 — AWAITING F3 HUMAN GATE; NEXT = F4)
+## Session Resume Checkpoint (2026-06-18 — COLD-RESUME — FEATURE MODE E-8 / #62; F1 ✅ / F2 ✅ / F3 ✅ HUMAN GATE APPROVED — F4 IN PROGRESS)
 
-**Previous checkpoint (2026-06-18 — F3 round-9 fix-burst COMPLETE; round-10 re-streak 0/3 pending) archived to:
+**Previous checkpoint (2026-06-18 — COLD-RESUME F3 gate pending) archived to:
 `.factory/cycles/feature-collapse-v0.8.0/session-checkpoints.md`**
 
 ### A. EXACT PIPELINE POSITION
 
-- **Project:** wirerust. **Mode:** FEATURE_MODE — E-8 / issue #62 TerminalReporter FindingsRender enum-of-modes refactor. Release target v0.9.0.
-- **Phase:** **F1 ✅ / F2 ✅ CONVERGED 3/3 / F3 ✅ CONVERGED 3/3 (10 rounds; corpus f034ca2). AWAITING F3 HUMAN GATE. Next = F4 delta-implementation (TDD).** No F4 work started.
+- **Project:** wirerust. **Mode:** FEATURE_MODE — E-8 / issue #62 TerminalReporter FindingsRender enum-of-modes refactor. Release target v0.9.0 CONFIRMED.
+- **Phase:** **F1 ✅ / F2 ✅ CONVERGED 3/3 / F3 ✅ CONVERGED 3/3 / F3 HUMAN GATE APPROVED 2026-06-18 (D-103). F4 delta-implementation IN PROGRESS.**
 - **Refactor summary:** Replace TerminalReporter's 3 render bools (`show_mitre_grouping`, `collapse_findings`, and the logical third) with `FindingsRender { Grouped, FlatCollapsed, FlatExpanded }` enum (keep `use_color`, `show_hosts_breakdown` as orthogonal bools). 28 construction sites. Byte-identical output required.
 - **Latest release:** v0.8.0 — finding-collapse (E-18, issue #259, STORY-118). Tag v0.8.0 on main 73034da.
+- **Follow-up:** STORY-121 filed (E-11, draft) — F1/F2 story-input analysis docs self-audit + consuming-surface sweep checklist (D-099/D-100/D-101 process-gap).
 
 ### B. EXACT SHAs / WORKTREE STATE (verified 2026-06-18)
 
 - **develop HEAD:** `bec13ba` == origin/develop (`chore: merge main (v0.8.0) back into develop`).
 - **main HEAD:** `73034da` (`chore: release v0.8.0`). Tag `v0.8.0` annotated.
-- **factory-artifacts HEAD:** run `git -C /Users/zious/Documents/GITHUB/wirerust/.factory log -1 --format='%h %s'` — this burst advances it; record the new HEAD post-commit.
+- **factory-artifacts HEAD:** run `git -C /Users/zious/Documents/GITHUB/wirerust/.factory log -1 --format='%h %s'`
 - **STORY-120 input-hash:** `3d76a93` (MATCH verified).
-- **UNCOMMITTED on develop working tree: `docs/adr/0003-reporting-pipeline-layering.md` (M)** — F2+F3 spec changes (Render-Mode Enum subsection, Binding Rule 5, F3 in-scope-param migration-map correction). Backed up at `.factory/cycles/feature-collapse-v0.8.0/issue-62-adr-0003-f2f3.patch`. This change rides into develop via the STORY-120 F4 PR.
-- **Active worktrees:** EXACTLY 2 — main repo (develop at `/Users/zious/Documents/GITHUB/wirerust`), `.factory/` (factory-artifacts).
+- **STORY-120 worktree:** `.worktrees/STORY-120` (branch `worktree-issue-62-findingsrender-enum`, base `bec13ba`). ADR-0003 patch applied into worktree.
+- **UNCOMMITTED on develop working tree: `docs/adr/0003-reporting-pipeline-layering.md` (M)** — F2+F3 spec changes. Backed up at `.factory/cycles/feature-collapse-v0.8.0/issue-62-adr-0003-f2f3.patch`. Rides into develop via the STORY-120 F4 PR (already applied in the STORY-120 worktree).
+- **Active worktrees:** 3 — main repo (develop at `/Users/zious/Documents/GITHUB/wirerust`), `.factory/` (factory-artifacts), `.worktrees/STORY-120` (worktree-issue-62-findingsrender-enum).
 - **Open PRs:** NONE.
 
 ### C. RESUME PROCEDURE (COLD-RESUME — follow verbatim in order)
@@ -164,44 +167,40 @@ git -C /Users/zious/Documents/GITHUB/wirerust/.factory log -1 --format='%h %s'  
 gh pr list --state open                                                     # expect empty
 ```
 
-**Step 3 — Verify uncommitted ADR change is present:**
+**Step 3 — Verify STORY-120 worktree:**
 ```
-git -C /Users/zious/Documents/GITHUB/wirerust status --short
-```
-Expected output contains: ` M docs/adr/0003-reporting-pipeline-layering.md`
-
-If ABSENT: re-apply the patch:
-```
-git -C /Users/zious/Documents/GITHUB/wirerust apply .factory/cycles/feature-collapse-v0.8.0/issue-62-adr-0003-f2f3.patch
+git -C /Users/zious/Documents/GITHUB/wirerust worktree list
+# expect .worktrees/STORY-120 on branch worktree-issue-62-findingsrender-enum at bec13ba
 ```
 
 ### D. WHAT IS COMPLETE — DO NOT REDO
 
 - **F1 delta-analysis:** COMPLETE (full numeric audit; 28 construction sites: 2 src/main.rs + 7 reporter_terminal_tests + 17 reporter_tests + 1 dnp3_f5 + 1 bc_2_09_100). Artifact: `.factory/phase-f1-delta-analysis/issue-62-terminal-reporter-enum-modes-delta-analysis.md`.
-- **F2 spec-evolution:** COMPLETE (D-088–D-091). 12 unique SS-11 BCs re-anchored to FindingsRender enum (authoritative versions: BC-2.11.010 v1.9, 013 v1.12, 014 v1.7, 015 v1.8, 016 v1.7, 017 v1.14, 019 v1.8, 025 v1.9, 026 v1.10, 027 v1.5, 028 v1.6, 029 v1.5). BC-INDEX v1.42 (current). ADR-0003 amended (uncommitted on develop — see §B). HS-081 recomputed 9df8300 MATCH. STORY-077/078/118 FROZEN as-built (D-088). F2 adversarial gate SATISFIED 3/3 (frozen corpus 60d8392).
-- **F3 story decomposition:** COMPLETE (D-092–D-102; 10 fix rounds). STORY-120 created (E-8, wave 48, 3 pts, 17 ACs, depends_on [], input-hash 3d76a93). STORY-119 re-pointed depends_on [STORY-120]. dep-graph v2.1 (intra 74 / cross 21 / total 95; no cycle). STORY-INDEX: 73 stories / 48 waves / 476 total-points; E-8 has 6 stories / 32 points. F3 adversarial gate SATISFIED 3/3 (frozen corpus f034ca2; Round-10 A/B/C all CLEAN, zero MEDIUM+).
-- **Decisions D-088..D-102** cover this cycle (archived in decisions log above).
+- **F2 spec-evolution:** COMPLETE (D-088–D-091). 12 unique SS-11 BCs re-anchored to FindingsRender enum. BC-INDEX v1.42. ADR-0003 amended. HS-081 9df8300 MATCH. F2 adversarial gate SATISFIED 3/3 (frozen corpus 60d8392).
+- **F3 story decomposition:** COMPLETE (D-092–D-102; 10 fix rounds). STORY-120 created (E-8, wave 48, 3 pts, 17 ACs, depends_on [], input-hash 3d76a93). F3 adversarial gate SATISFIED 3/3 (frozen corpus f034ca2; Round-10 A/B/C all CLEAN).
+- **F3 HUMAN GATE:** APPROVED 2026-06-18 (D-103): (a) F4 TDD — APPROVED; (b) STORY-121 filed (E-11 self-improvement); (c) v0.9.0 CONFIRMED.
+- **Decisions D-088..D-103** cover this cycle.
 
 ### E. NEXT ACTIONS (in order — do NOT skip steps)
 
-1. **BLOCKING on resume:** run `/vsdd-factory:factory-worktree-health`; verify SHAs per §C; confirm uncommitted ADR change is present (re-apply patch if absent).
-2. **F3 HUMAN GATE is pending** — 3 questions for the human: (a) approve to proceed to F4 TDD? (b) open a self-improvement follow-up story for the F1-input-doc churn process-gap (D-099/D-100/D-101) or defer? (c) confirm v0.9.0 release target. **Do NOT start F4 until the human approves.**
-3. **On human approval → F4 delta-implementation (TDD):**
-   - Dispatch test-writer: stub `pub enum FindingsRender` + failing tests for AC-001 derives + AC-003 dispatch-exhaustive in a `mod story_120` block.
+1. **BLOCKING on resume:** run `/vsdd-factory:factory-worktree-health`; verify SHAs per §C; verify STORY-120 worktree exists.
+2. **F4 delta-implementation (TDD) — IN PROGRESS:**
+   - Dispatch test-writer: stub `pub enum FindingsRender` + failing tests for AC-001 derives + AC-003 dispatch-exhaustive in a `mod story_120` block in the `.worktrees/STORY-120` worktree.
    - Dispatch implementer: TDD the 28-site migration per AC-007/Task-7 + Task-7b comment sweep; full existing suite as byte-identical regression gate.
-   - Per-story delivery: demo, PR, review, merge. ADR-0003 patch rides in via the F4 PR.
-4. **After F4 delivery:** F5 scoped-adversarial → F6 formal hardening → F7 convergence → release v0.9.0.
+   - Per-story delivery: demo, PR, review, merge. ADR-0003 patch already applied in worktree.
+3. **After F4 delivery:** F5 scoped-adversarial → F6 formal hardening → F7 convergence → release v0.9.0.
 
 ### F. KEY ARTIFACT POINTERS
 
 - Story: `.factory/stories/STORY-120.md`
 - Depends: `.factory/stories/STORY-119.md` (depends_on [STORY-120])
+- Follow-up: `.factory/stories/STORY-121.md` (draft — E-11 process-gap self-improvement)
 - F1 delta-analysis: `.factory/phase-f1-delta-analysis/issue-62-terminal-reporter-enum-modes-delta-analysis.md`
 - F2 PRD-delta: `.factory/phase-f2-spec-evolution/issue-62-prd-delta.md`
 - Research: `.factory/research/issue-62-enum-modes-design-validation.md`
-- ADR: `docs/adr/0003-reporting-pipeline-layering.md` (uncommitted; patch: `.factory/cycles/feature-collapse-v0.8.0/issue-62-adr-0003-f2f3.patch`)
+- ADR: `docs/adr/0003-reporting-pipeline-layering.md` (uncommitted; patch: `.factory/cycles/feature-collapse-v0.8.0/issue-62-adr-0003-f2f3.patch`; also applied in .worktrees/STORY-120)
 - BCs: `.factory/specs/behavioral-contracts/ss-11/BC-2.11.0{10,13,14,15,16,17,19,25,26,27,28,29}.md`
-- Decisions detail: D-088..D-102 in Decisions Log above
+- Decisions detail: D-088..D-103 in Decisions Log above
 - ADR patch re-apply: `git -C /Users/zious/Documents/GITHUB/wirerust apply .factory/cycles/feature-collapse-v0.8.0/issue-62-adr-0003-f2f3.patch`
 
 ## Decisions Log
@@ -222,6 +221,7 @@ D-055..D-091 archived: `cycles/feature-collapse-v0.8.0/decisions-archive.md` (Fe
 | D-100 | Issue #62 F3 round-8 triple (all 3 passes confirmed implementer-success + byte-identical output; residuals documentation-only): F1 OQ-3 retained the 10th '35' occurrence the round-7 9-location sweep missed (doubly wrong — '35' + 'all in test files' when 2 are in src/main.rs); anchor line 187-205 corrected. AC-017's field-name grep was blind to two paraphrased provenance comments (dnp3:1074, bc_2_09:694) — AC-017 now runs a dual grep (field-name + paraphrase pattern); Forward-Facing Sweep Targets expanded to 26 total. STORY-120 input-hash 776490b→6e4d628. F3 has run 8 fix rounds; the churn is the documented PG-259-F2-ADVERSARY-CHURN / consuming-surface-sweep pattern — codification candidate D-099 stands. NOTE for orchestrator: if round-9 surfaces only further documentation-hygiene residuals (no implementer-blocking defect), escalate to human with recommend-accept. | 2026-06-18 |
 | D-101 | Issue #62 F3 round-9 triple: ALL THREE passes converged on a single identical finding (F1 §6 migration table reporter_tests Grouped undercount 4 vs ground-truth 6) and all three confirmed the STORY-120 body is correct, self-sufficient, and implementer-ready (byte-identical output) — strong convergence signal. Root cause: the F1 delta-analysis accumulated stale sub-counts (35→28 headline fixed across rounds 7-8 but embedded sub-counts in §6/§2/§10 lagged). Resolved by an EXHAUSTIVE F1 numeric audit reconciling every count/line-list against grep ground-truth (3 fixes: §6 reporter_tests Grouped "4 sites"→"6 sites (1001,1036,1071,1106,1155,1192)" + FlatExpanded "most"→"11 sites"; §2 line-132 "9 BCs need updates"→8 (BC-2.11.018 is no-change); §10 line-513 "9 BCs"→8). STORY-120 input-hash 3d76a93. F3 has run 9 fix rounds — the most-churned phase of this cycle; the F1-delta-analysis as a STORY-120 input meant every F1 edit re-triggered input-hash + fresh re-derivation. Codification candidate (extends D-099/D-100): F1/F2 phase analysis docs that are declared story inputs MUST pass a full numeric self-audit vs grep ground-truth at authoring time, since they re-enter the convergence loop via input-hash. | 2026-06-18 |
 | D-102 | Issue #62 F3 story-decomposition CONVERGED — adversarial gate SATISFIED 3/3 on frozen corpus f034ca2 (Round-10 A/B/C all CLEAN). STORY-120 (16+1 ACs, 28 construction sites, depends_on [], wave 48, input-hash 3d76a93) verified implementation-ready: in-scope-param wiring (option a), behavior-preserving byte-identical, complete BC traceability, AC-017 dual-grep comment-sweep falsifiable. F3 required 10 fix rounds — the cycle's most-churned phase. Root cause (codified D-099/D-100/D-101): the F1 delta-analysis is a STORY-120 input, so every consuming-artifact fix re-triggered input-hash recompute + fresh adversarial re-derivation, and stale sub-counts/version-stamps surfaced serially one consuming surface per round (story body, frontmatter comment, dep-graph matrix, dep-graph version, F1 headline count, F1 sub-counts, BC-029 sibling wiring, AC-017 paraphrase blind-spot). Resolved decisively by exhaustive orchestrator-supplied authoritative-value sweeps. Pipeline awaiting F3 HUMAN GATE → F4. | 2026-06-18 |
+| D-103 | Issue #62 F3 HUMAN GATE APPROVED (3 questions answered): (a) proceed to F4 TDD — APPROVED; (b) process-gap follow-up — OPEN STORY-121 (E-11 self-improvement; covers D-099/D-100/D-101 codification: F1/F2 story-input analysis docs mandatory numeric self-audit + consuming-surface sweep checklist); (c) release target — v0.9.0 CONFIRMED. STORY-120 worktree created (worktree-issue-62-findingsrender-enum @ bec13ba). ADR-0003 patch applied into worktree. F4 delta-implementation started. STORY-INDEX updated 73 → 74 stories (STORY-121 added; E-11 members: STORY-091 + STORY-121; count 2; points 8). | 2026-06-18 |
 
 ## Blocking Issues
 
