@@ -33,8 +33,8 @@ feature_id: issue-62-enum-modes
 github_issue: 62
 wave: 48
 # BC status: BC-2.11.013 v1.12, BC-2.11.014 v1.7, BC-2.11.015 v1.8, BC-2.11.016 v1.7,
-#             BC-2.11.017 v1.14, BC-2.11.019 v1.7, BC-2.11.025 v1.8, BC-2.11.026 v1.9,
-#             BC-2.11.027 v1.5, BC-2.11.028 v1.5, BC-2.11.029 v1.4, BC-2.11.010 v1.9
+#             BC-2.11.017 v1.14, BC-2.11.019 v1.8, BC-2.11.025 v1.9, BC-2.11.026 v1.10,
+#             BC-2.11.027 v1.5, BC-2.11.028 v1.6, BC-2.11.029 v1.4, BC-2.11.010 v1.9
 #             — all 12 re-anchored and CONVERGED (F2 passes complete 2026-06-17/18).
 # Subsystem anchor: SS-11 owns this story's scope because TerminalReporter and the new
 #   FindingsRender enum live in src/reporter/terminal.rs (SS-11 per ARCH-INDEX Subsystem
@@ -96,11 +96,11 @@ input-hash: "2012512"
 | BC-2.11.015 | v1.8  | No-Technique or Unknown-ID Findings Land in Uncategorized |
 | BC-2.11.016 | v1.7  | MITRE Grouping Expands Per-Finding Line with Em-Dash and Name |
 | BC-2.11.017 | v1.14 | Default Rendering Emits MITRE: <id(s)> Only (No Em-Dash) |
-| BC-2.11.019 | v1.7  | TerminalReporter Renders Sections in Correct Order |
-| BC-2.11.025 | v1.8  | Flat-Mode Collapse Groups Findings by (category, verdict, confidence, summary) Key; First-Occurrence Order; Deterministic |
-| BC-2.11.026 | v1.9  | Collapsed Group of N≥2 Renders Header with (xN) Suffix; Singleton (N=1) Renders Without Suffix |
+| BC-2.11.019 | v1.8  | TerminalReporter Renders Sections in Correct Order |
+| BC-2.11.025 | v1.9  | Flat-Mode Collapse Groups Findings by (category, verdict, confidence, summary) Key; First-Occurrence Order; Deterministic |
+| BC-2.11.026 | v1.10 | Collapsed Group of N≥2 Renders Header with (xN) Suffix; Singleton (N=1) Renders Without Suffix |
 | BC-2.11.027 | v1.5  | Collapsed Group Retains at Most K=3 Representative Evidence Lines; Remainder Elided from Terminal Display |
-| BC-2.11.028 | v1.5  | --no-collapse Opt-Out Flag Disables Terminal Collapse and Restores One-Line-Per-Finding Rendering; JSON/CSV Unaffected |
+| BC-2.11.028 | v1.6  | --no-collapse Opt-Out Flag Disables Terminal Collapse and Restores One-Line-Per-Finding Rendering; JSON/CSV Unaffected |
 | BC-2.11.029 | v1.4  | Collapse is Display-Layer Only; JSON/CSV Reporters Receive Unmodified findings Slice; Non-Repeated Findings Individually Visible in All Outputs |
 | BC-2.11.010 | v1.9  | TerminalReporter Escapes Both Summary AND Each Evidence Line |
 
@@ -436,6 +436,8 @@ expected — locate by surrounding context.
 | `reporter_terminal_tests.rs` | 2078 | `// BC-2.11.025 invariant 5: when show_mitre_grouping=true, collapse does NOT run.` | Replace with `render=FindingsRender::Grouped` |
 | `reporter_terminal_tests.rs` | 2390 | `// Collapse reporter (collapse_findings=true) with a single finding.` | Replace with `render=FindingsRender::FlatCollapsed` |
 | `reporter_terminal_tests.rs` | 2400 | `// Output must be byte-identical to the pre-v0.8.0 path (collapse_findings=false).` | Replace `collapse_findings=false` with `render=FindingsRender::FlatExpanded` |
+| `reporter_terminal_tests.rs` | 3345 | `// Reporter with collapse_findings = true → produces "(x3)".` | Replace `collapse_findings = true` with `render = FindingsRender::FlatCollapsed` |
+| `reporter_terminal_tests.rs` | 3358 | `// Reporter with collapse_findings = false → no collapse, no suffix.` | Replace `collapse_findings = false` with `render = FindingsRender::FlatExpanded` |
 | `reporter_terminal_tests.rs` | 3218 | `/// This guards the opt-out path: with collapse_findings=false, 5 identical-key` | Replace `collapse_findings=false` with `render=FindingsRender::FlatExpanded` |
 | `reporter_terminal_tests.rs` | 3221 | `/// checking that collapse_findings=true produces a different (collapsed) result.` | Replace with `render=FindingsRender::FlatCollapsed` |
 | `reporter_terminal_tests.rs` | 3222 | `/// FAILS if collapse_findings=false collapses` | Replace with `FlatExpanded` |
@@ -467,9 +469,7 @@ current test failure messages):
 | `reporter_terminal_tests.rs` | 3247 | Assertion message string literal: `"BC-2.11.028 pc2: collapse_findings=false must render 5 individual header lines; \"` — assertion message, not a forward-facing struct-field claim |
 | `reporter_terminal_tests.rs` | 3254 | Assertion message string literal: `"BC-2.11.028 pc2: collapse_findings=false must produce no (xN) suffix; got:\n{out}"` — assertion message |
 | `reporter_terminal_tests.rs` | 3262 | Assertion message string literal: `"BC-2.11.028 pc2 contrast: collapse_findings=true must produce '(x5)' for same \"` — assertion message |
-| `reporter_terminal_tests.rs` | 3345 | Inline comment `// Reporter with collapse_findings = true → produces "(x3)".` — this comment accompanies the construction site (Task 7 scope); becomes `FlatCollapsed` after Task 7 rewrite |
 | `reporter_terminal_tests.rs` | 3355 | Assertion message: `"BC-2.11.028 inv1: collapse_findings=true must produce '(x3)' suffix; got:\n{out_on}"` — string literal under test |
-| `reporter_terminal_tests.rs` | 3358 | Inline comment `// Reporter with collapse_findings = false → no collapse, no suffix.` — Task 7 construction-site comment; becomes `FlatExpanded` after Task 7 rewrite |
 | `reporter_terminal_tests.rs` | 3368 | Assertion message: `"BC-2.11.028 inv1: collapse_findings=false must produce no (xN) suffix; \"` — string literal under test |
 | `reporter_terminal_tests.rs` | 3375 | Assertion message: `"BC-2.11.028 inv1: collapse_findings=true and collapse_findings=false must produce \"` — string literal under test |
 | `reporter_terminal_tests.rs` | 3565 | Inline comment `// JsonReporter does not have a collapse_findings field` — refers to JsonReporter, not TerminalReporter; factually correct after refactor (JsonReporter never had this field) |
@@ -613,6 +613,9 @@ required (per F1 §8 and F2 Verification Delta).
     - Do NOT rewrite the EXEMPT allow-list entries (historical STORY-118 narration at lines
       ~68, ~659; assertion message string-literals-under-test at lines ~2099, 3247, 3254,
       3262, 3355, 3368, 3375, 3689; JsonReporter factual comment at ~3565).
+    - Lines ~3345 and ~3358 are construction-site comments that MUST be rewritten (they are
+      in the Forward-Facing Sweep Targets table); do not exempt them as "Task 7 scope" — they
+      ARE Task 7 / 7b scope and must be updated alongside the construction sites they annotate.
 
     **Verification:** After all rewrites, run `grep -n 'collapse_findings\|show_mitre_grouping'
     tests/` and diff the output against the AC-017 EXEMPT allow-list. Any match NOT in the
