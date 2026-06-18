@@ -1071,6 +1071,8 @@ mod f5_ics_impact_display {
             use_color: false,
             show_mitre_grouping: true,
             show_hosts_breakdown: false,
+            // STORY-118: new field; false here — grouped mode does not apply collapse.
+            collapse_findings: false,
         }
     }
 
