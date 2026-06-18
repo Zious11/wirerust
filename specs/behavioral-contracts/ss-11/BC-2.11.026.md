@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.10"
+version: "1.11"
 status: draft
 producer: product-owner
 timestamp: 2026-06-17T00:00:00Z
@@ -12,7 +12,7 @@ subsystem: SS-11
 capability: CAP-11
 lifecycle_status: active
 introduced: v0.8.0
-modified: ["v1.1 2026-06-17: F2 adversarial pass-1 — relax suffix colorization: (xN) suffix IS colorized with the header line (no seam for uncolorized suffix in render_finding_prefix); update Invariant 4, PC-4, EC-008 (F-259-02)", "v1.2 2026-06-17: F2 adversarial pass-2 — path-(b) collapse-aware wrapper prescribed as canonical in PC-4 (F-A03); dispatch anchor 149-160→149-162 (F-A05); EC-005 test vector added (F-A06)", "v1.3 2026-06-17: F2 adversarial pass-3 — add evidence emission sentence to PC-4 (F-F2X-03); fix EC row order EC-009/EC-008 → EC-008/EC-009 monotonic (F-F2X-02); fix arch anchor: remove stale 'appended here' alternative", "v1.4 2026-06-17: F2 adversarial pass-4 — F-F2-A01: convert PC-4 from internal-call-structure prescription to observable-behavior contract; remove 'path-(b) function-call graph' normative language; add non-normative implementation note; F-F2-O01: anchor :203-226 → :203-227; update EC-007 STRUCTURAL guarantee to observable-behavior form", "v1.5 2026-06-17: F2 adversarial pass-5 — F1: remove residual 'path-(b) separation' label from EC-009 body; reword to observable-behavior form", "v1.6 2026-06-17: F2 adversarial passes 6-8 — LOW-1: add red-bold (Likely/High) canonical test vector to confirm (xN) suffix is inside the red-bold colorization span for that branch", "v1.7 2026-06-17: F2 adversarial pass-9 — F-PA-01: add explicit normative PC-6 color-ladder requirement: same Likely+High→red().bold()/Likely+other→yellow/Possible→yellow/Inconclusive→cyan/Unlikely→dimmed logic applied to pre-suffix string BEFORE colorization; appending suffix after ANSI reset is NON-CONFORMANT", "v1.8 2026-06-17: F2 adversarial passes 12-14 — F-PA-A01: define 'representative finding' for N≥2 groups: group_members[0] (first member in emission order); add PC-7 (MITRE line sources group_members[0].mitre_techniques; other members' MITRE elided from terminal); add canonical test vector for divergent-mitre case", "v1.9 2026-06-17: issue-#62 F2 BC re-anchor — replace collapse_findings/show_mitre_grouping bool references with FindingsRender enum: Preconditions 1-2 + EC-006 + EC-007 + EC-009 updated. Rationale: illegal-state elimination. No behavioral change.", "v1.10 2026-06-18: F3 adversarial round-4 finding 2 (MEDIUM) stale dispatch anchor (DF-SIBLING-SWEEP-001) — Architecture Anchor cited FINDINGS dispatch at terminal.rs:149-162, but line 149 is the HOSTS section (if self.show_hosts_breakdown). Verified against src/reporter/terminal.rs: actual FINDINGS dispatch if-chain is at lines 185-207 (if !findings.is_empty() block through closing brace). Re-anchored Architecture Anchor to correct range 185-207."]
+modified: ["v1.1 2026-06-17: F2 adversarial pass-1 — relax suffix colorization: (xN) suffix IS colorized with the header line (no seam for uncolorized suffix in render_finding_prefix); update Invariant 4, PC-4, EC-008 (F-259-02)", "v1.2 2026-06-17: F2 adversarial pass-2 — path-(b) collapse-aware wrapper prescribed as canonical in PC-4 (F-A03); dispatch anchor 149-160→149-162 (F-A05); EC-005 test vector added (F-A06)", "v1.3 2026-06-17: F2 adversarial pass-3 — add evidence emission sentence to PC-4 (F-F2X-03); fix EC row order EC-009/EC-008 → EC-008/EC-009 monotonic (F-F2X-02); fix arch anchor: remove stale 'appended here' alternative", "v1.4 2026-06-17: F2 adversarial pass-4 — F-F2-A01: convert PC-4 from internal-call-structure prescription to observable-behavior contract; remove 'path-(b) function-call graph' normative language; add non-normative implementation note; F-F2-O01: anchor :203-226 → :203-227; update EC-007 STRUCTURAL guarantee to observable-behavior form", "v1.5 2026-06-17: F2 adversarial pass-5 — F1: remove residual 'path-(b) separation' label from EC-009 body; reword to observable-behavior form", "v1.6 2026-06-17: F2 adversarial passes 6-8 — LOW-1: add red-bold (Likely/High) canonical test vector to confirm (xN) suffix is inside the red-bold colorization span for that branch", "v1.7 2026-06-17: F2 adversarial pass-9 — F-PA-01: add explicit normative PC-6 color-ladder requirement: same Likely+High→red().bold()/Likely+other→yellow/Possible→yellow/Inconclusive→cyan/Unlikely→dimmed logic applied to pre-suffix string BEFORE colorization; appending suffix after ANSI reset is NON-CONFORMANT", "v1.8 2026-06-17: F2 adversarial passes 12-14 — F-PA-A01: define 'representative finding' for N≥2 groups: group_members[0] (first member in emission order); add PC-7 (MITRE line sources group_members[0].mitre_techniques; other members' MITRE elided from terminal); add canonical test vector for divergent-mitre case", "v1.9 2026-06-17: issue-#62 F2 BC re-anchor — replace collapse_findings/show_mitre_grouping bool references with FindingsRender enum: Preconditions 1-2 + EC-006 + EC-007 + EC-009 updated. Rationale: illegal-state elimination. No behavioral change.", "v1.10 2026-06-18: F3 adversarial round-4 finding 2 (MEDIUM) stale dispatch anchor (DF-SIBLING-SWEEP-001) — Architecture Anchor cited FINDINGS dispatch at terminal.rs:149-162, but line 149 is the HOSTS section (if self.show_hosts_breakdown). Verified against src/reporter/terminal.rs: actual FINDINGS dispatch if-chain is at lines 185-207 (if !findings.is_empty() block through closing brace). Re-anchored Architecture Anchor to correct range 185-207.", "v1.11 2026-06-18: F5 post-merge re-anchor to develop a4263c7 (terminal.rs line-anchor drift fix; no normative change) — FINDINGS dispatch :185-207 → :200-226; render_finding_prefix :203-227 → :267-291; PC-6 color-ladder normative reference :209-221 → :391 (render_findings_collapsed color ladder); Architecture Anchors updated."]
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -77,7 +77,7 @@ attacker-controlled bytes; it does not require additional escaping.
 5. The count suffix is not subject to `escape_for_terminal`; it is a hardcoded format string
    and contains no attacker-controlled content.
 6. **COLOR-LADDER REQUIREMENT (normative):** The collapse header path MUST apply the same
-   verdict/confidence color-selection logic as `terminal.rs:209-221` to a pre-color string
+   verdict/confidence color-selection logic as `terminal.rs:391` to a pre-color string
    that ALREADY INCLUDES the ` (xN)` suffix. The ladder is:
    - `Likely` + `High` → `red().bold()`
    - `Likely` + any other confidence → `yellow`
@@ -167,8 +167,9 @@ attacker-controlled bytes; it does not require additional escaping.
 
 ## Architecture Anchors
 
-- `src/reporter/terminal.rs:203-227` -- render_finding_prefix (summary escape + header line construction; called by grouped mode — observable: grouped output never carries a (xN) suffix)
-- `src/reporter/terminal.rs:185-207` -- FINDINGS dispatch block (flat path; collapse-aware render inserted here when collapse=true; if !findings.is_empty() at :185; block close + out.push('\n') at :206-207)
+- `src/reporter/terminal.rs:267-291` -- render_finding_prefix (summary escape + header line construction; called by grouped mode — observable: grouped output never carries a (xN) suffix)
+- `src/reporter/terminal.rs:200-226` -- FINDINGS dispatch block (flat path; collapse-aware render inserted here when collapse=true; if !findings.is_empty() at :200; block close + out.push('\n') at :225-226)
+- `src/reporter/terminal.rs:391` -- color ladder in render_findings_collapsed (Likely+High→red().bold(), Likely+other→yellow, Possible→yellow, Inconclusive→cyan, Unlikely→dimmed; suffix included in pre-color string)
 
 ## Story Anchor
 

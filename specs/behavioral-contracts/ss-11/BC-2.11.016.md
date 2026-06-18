@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.7"
+version: "1.8"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -20,6 +20,7 @@ modified:
   - "v1.6: PG-ARP-F2-007 — fix stale terminal.rs line anchors shifted by F2 multi-tag additions (STORY-100): fn render_finding_grouped body range :246-251 → :249-261 (is_empty guard at 249; ids join at 252; first-technique name lookup at 254-260; Some/em-dash arm at 259; None/unknown arm at 260); em-dash literal :248 → :259; verified against current HEAD — 2026-06-13"
   - "v1.7 2026-06-17: issue-#62 F2 BC re-anchor (fix-burst) — Precondition 1: 'show_mitre_grouping = true' → 'render = FindingsRender::Grouped'. Rationale: illegal-state elimination. No behavioral change."
   - "v1.5: ARP-F2 Pass-14 Burst-7 — mitre_technique (singular) → mitre_techniques (Vec<String>) in Precondition 2, Postcondition 4, EC-003, and all three Canonical Test Vector rows. Shipped Finding struct uses Vec<String>; 'no MITRE line' condition is empty vec, not None. — 2026-06-13"
+  - "v1.8 2026-06-18: F5 post-merge re-anchor to develop a4263c7 (terminal.rs line-anchor drift fix; no normative change) — render_finding_grouped MITRE expansion body :249-261 → :313-327 (is_empty guard at 313; ids join at 316; first-technique name lookup at 318-325; known branch with em-dash at 323; unknown branch at 324; closing at 327); em-dash literal :259 → :323; Architecture Anchor + Source Evidence path updated."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -52,7 +53,7 @@ render as `MITRE: <id> (unknown)`.
 
 ## Invariants
 
-1. The em-dash character U+2014 is hardcoded at terminal.rs:259 as `\u{2014}`.
+1. The em-dash character U+2014 is hardcoded at terminal.rs:323 as `\u{2014}`.
 2. `technique_name(id)` is the authoritative source for the name string.
 3. The MITRE line is rendered by `render_finding_grouped`, called only in grouping mode.
 4. In default (flat) mode, `render_finding_flat` renders `MITRE: <id>` only (no expansion).
@@ -99,8 +100,8 @@ render as `MITRE: <id> (unknown)`.
 
 ## Architecture Anchors
 
-- `src/reporter/terminal.rs:249-261` -- render_finding_grouped MITRE line expansion (is_empty guard at 249; ids join at 252; first-technique name lookup at 254-260; known branch with em-dash at 259; unknown branch at 260; closing at 261)
-- `src/reporter/terminal.rs:259` -- `\u{2014}` em-dash literal
+- `src/reporter/terminal.rs:313-327` -- render_finding_grouped MITRE line expansion (is_empty guard at 313; ids join at 316; first-technique name lookup at 318-325; known branch with em-dash at 323; unknown branch at 324; closing at 327)
+- `src/reporter/terminal.rs:323` -- `\u{2014}` em-dash literal
 - `tests/reporter_terminal_tests.rs` -- mod story_078 :: test_BC_2_11_016_known_id_em_dash_and_name
 
 ---
@@ -111,7 +112,7 @@ render as `MITRE: <id> (unknown)`.
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/reporter/terminal.rs:249-261` |
+| **Path** | `src/reporter/terminal.rs:313-327` |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 

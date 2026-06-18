@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.12"
+version: "1.13"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -25,6 +25,7 @@ modified:
   - "v1.10 2026-06-17: F2 adversarial pass-2 — strengthen EC-007: assert structural suffix-free guarantee via path-(b) wrapper (render_finding_prefix unchanged; grouped path structurally unable to emit suffix) (F-A03)"
   - "v1.11 2026-06-17: F2 adversarial pass-4 — F-F2-A01: EC-007 STRUCTURAL guarantee converted to OBSERVABLE GUARANTEE form; remove call-graph prescription 'render_finding_prefix itself is UNCHANGED; the collapse-aware flat wrapper that appends suffixes is never called from the grouped path'"
   - "v1.12 2026-06-17: issue-#62 F2 BC re-anchor — replace show_mitre_grouping bool references with FindingsRender enum: Precondition 1 and Description 'show_mitre_grouping = true' → 'render = FindingsRender::Grouped'; Invariant 4 scoping boundary reworded to enum form; EC-007 condition reworded. Rationale: illegal-state elimination (grouping=true && collapse=true unrepresentable as FindingsRender::Grouped). No behavioral change."
+  - "v1.13 2026-06-18: F5 post-merge re-anchor to develop a4263c7 (terminal.rs line-anchor drift fix; no normative change) — render_findings_grouped fn shifted: :272-323 → :432-483; tactic loop :309 → :469; Architecture Anchor + Source Evidence path updated."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -74,7 +75,7 @@ approximation per ADR-006 §13.7; full multi-tactic display is a future enhancem
 ## Invariants
 
 1. `all_tactics_in_report_order()` is the authoritative iteration order; the terminal
-   reporter iterates it directly (terminal.rs:309).
+   reporter iterates it directly (terminal.rs:469).
 2. Tactic buckets use `HashMap<Option<MitreTactic>, Vec<...>>`; the bucket key is derived as:
    - If `mitre_techniques` is empty: key = `None` (Uncategorized)
    - If `mitre_techniques` is non-empty: key = `technique_tactic(mitre_techniques[0])`, which
@@ -148,8 +149,8 @@ approximation per ADR-006 §13.7; full multi-tactic display is a future enhancem
 
 ## Architecture Anchors
 
-- `src/reporter/terminal.rs:272-323` -- render_findings_grouped implementation
-- `src/reporter/terminal.rs:309` -- `for tactic in all_tactics_in_report_order()`
+- `src/reporter/terminal.rs:432-483` -- render_findings_grouped implementation
+- `src/reporter/terminal.rs:469` -- `for tactic in all_tactics_in_report_order()`
 - `tests/reporter_terminal_tests.rs` -- mod story_078 :: test_BC_2_11_013_tactic_headers_in_canonical_order
 
 ---
@@ -160,7 +161,7 @@ approximation per ADR-006 §13.7; full multi-tactic display is a future enhancem
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/reporter/terminal.rs:272-323` |
+| **Path** | `src/reporter/terminal.rs:432-483` |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 

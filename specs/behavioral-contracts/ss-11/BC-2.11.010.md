@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.9"
+version: "1.10"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -22,6 +22,7 @@ modified:
   - "v1.7 2026-06-17: F2 adversarial pass-4 — F-F2-O01: anchor :203-226 → :203-227; Source Evidence path updated to :203-227"
   - "v1.8 2026-06-17: F2 adversarial pass-5 — F1: remove residual 'path-(b)' label from Invariant 4 body (BC-2.11.026 path-(b)) → 'The flat collapse wrapper calls...'"
   - "v1.9 2026-06-17: issue-#62 F2 BC re-anchor (fix-burst) — replace collapse_findings=true bool references with FindingsRender enum: Invariant 4 preamble + EC-006 Input cell + EC-007 Input cell updated. Rationale: illegal-state elimination. No behavioral change."
+  - "v1.10 2026-06-18: F5 post-merge re-anchor to develop a4263c7 (terminal.rs line-anchor drift fix; no normative change) — render_finding_prefix fn shifted: Architecture Anchor + Source Evidence path :203-227 → :267-291 (fn at 267, summary escape at 268, evidence loop at 287-290); inline line refs :204 → :268 (summary escape), :222-223 → :287-290 (evidence loop)."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -123,7 +124,7 @@ summary line or any supporting evidence detail -- cannot inject terminal control
 
 ## Architecture Anchors
 
-- `src/reporter/terminal.rs:203-227` -- render_finding_prefix (escape applied to summary line 204 and evidence lines 222-223)
+- `src/reporter/terminal.rs:267-291` -- render_finding_prefix (escape applied to summary line 268 and evidence lines 287-290)
 
 ---
 
@@ -133,14 +134,14 @@ summary line or any supporting evidence detail -- cannot inject terminal control
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/reporter/terminal.rs:203-227` |
+| **Path** | `src/reporter/terminal.rs:267-291` |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 
 #### Evidence Types Used
 
 - **assertion**: test_terminal_reporter_escapes_esc_bytes_in_summary (asserts both summary AND evidence are escaped)
-- **type constraint**: escape_for_terminal called on both f.summary (line 204) and ev (line 223)
+- **type constraint**: escape_for_terminal called on both f.summary (line 268) and ev (line 287-290)
 
 #### Purity Classification
 

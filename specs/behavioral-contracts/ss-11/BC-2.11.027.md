@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.5"
+version: "1.6"
 status: draft
 producer: product-owner
 timestamp: 2026-06-17T00:00:00Z
@@ -12,7 +12,7 @@ subsystem: SS-11
 capability: CAP-11
 lifecycle_status: active
 introduced: v0.8.0
-modified: ["v1.1 2026-06-17: fix N=1 singleton model — K-cap does NOT apply to singletons; evidence renders unchanged per BC-2.11.010 (consistency audit remediation)", "v1.2 2026-06-17: F2 adversarial pass-1 — fix CRITICAL F-259-01: enforce positional first-K-members model throughout (PC-2/Invariant-2/PC-5/EC-004/test vectors); fix EC-004 total=2 not 3; add N=3/N=4 boundary vectors (F-259-07)", "v1.3 2026-06-17: F2 adversarial pass-3 — fix PC-1/PC-6/Invariant-5: change false 'existing render_finding_prefix format/same code path' claims to correct 'same escape_for_terminal FUNCTION, called directly by collapse wrapper' (F-F2X-01)", "v1.4 2026-06-17: escape-notation accuracy fix — EC-007 clarify escaped output form; canonical test vector: \\x1b → \\u{1b} (char::escape_default form verified by terminal.rs escapes_esc_byte test)", "v1.5 2026-06-17: issue-#62 F2 BC re-anchor — Preconditions 1-2 and EC-008 updated: 'collapse_findings = true/false' and 'show_mitre_grouping = false' → FindingsRender enum variants. Rationale: illegal-state elimination. No behavioral change."]
+modified: ["v1.1 2026-06-17: fix N=1 singleton model — K-cap does NOT apply to singletons; evidence renders unchanged per BC-2.11.010 (consistency audit remediation)", "v1.2 2026-06-17: F2 adversarial pass-1 — fix CRITICAL F-259-01: enforce positional first-K-members model throughout (PC-2/Invariant-2/PC-5/EC-004/test vectors); fix EC-004 total=2 not 3; add N=3/N=4 boundary vectors (F-259-07)", "v1.3 2026-06-17: F2 adversarial pass-3 — fix PC-1/PC-6/Invariant-5: change false 'existing render_finding_prefix format/same code path' claims to correct 'same escape_for_terminal FUNCTION, called directly by collapse wrapper' (F-F2X-01)", "v1.4 2026-06-17: escape-notation accuracy fix — EC-007 clarify escaped output form; canonical test vector: \\x1b → \\u{1b} (char::escape_default form verified by terminal.rs escapes_esc_byte test)", "v1.5 2026-06-17: issue-#62 F2 BC re-anchor — Preconditions 1-2 and EC-008 updated: 'collapse_findings = true/false' and 'show_mitre_grouping = false' → FindingsRender enum variants. Rationale: illegal-state elimination. No behavioral change.", "v1.6 2026-06-18: F5 post-merge re-anchor to develop a4263c7 (terminal.rs line-anchor drift fix; no normative change) — evidence loop in render_finding_prefix :223-226 → :287-290; Architecture Anchor updated. findings.rs:141 anchor confirmed correct — no change needed."]
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -53,7 +53,7 @@ configurable via CLI flag. Future cycles may expose K as `--collapse-evidence-sa
    rendered as `    > <escaped_evidence_line>\n`. This format matches the output of
    `render_finding_prefix`'s evidence loop, but the collapse wrapper produces it DIRECTLY
    (calling `escape_for_terminal` per sampled line) — it does NOT call `render_finding_prefix`
-   to obtain these lines (see Architecture Anchor at terminal.rs:223-226 — the collapse path
+   to obtain these lines (see Architecture Anchor at terminal.rs:287-290 — the collapse path
    replaces this loop).
 2. Evidence lines are drawn from the FIRST min(N, K) members in the group (by position in
    the original emission order — purely positional). For each of these inspected members, if
@@ -74,7 +74,7 @@ configurable via CLI flag. Future cycles may expose K as `--collapse-evidence-sa
    collapse wrapper calls `escape_for_terminal` directly on each sampled line; it does NOT
    reuse `render_finding_prefix`'s evidence loop (which renders all entries of ONE finding,
    whereas the collapse path samples evidence[0] across up to K different member findings).
-   See Architecture Anchor terminal.rs:223-226 — the collapse path REPLACES this loop with
+   See Architecture Anchor terminal.rs:287-290 — the collapse path REPLACES this loop with
    a bounded K-sampled loop that calls `escape_for_terminal` per iteration.
 
 ## Invariants
@@ -96,7 +96,7 @@ configurable via CLI flag. Future cycles may expose K as `--collapse-evidence-sa
    line rendered by a collapsed group goes through `escape_for_terminal`. The escape guarantee
    is function-level, NOT call-site-level — the collapse wrapper invokes `escape_for_terminal`
    directly on each sampled line rather than delegating to `render_finding_prefix`'s evidence
-   loop (see PC-6 and Architecture Anchor terminal.rs:223-226 — the collapse path replaces
+   loop (see PC-6 and Architecture Anchor terminal.rs:287-290 — the collapse path replaces
    that loop). The function called is identical; the structural caller differs.
 6. For a singleton group (N=1), the collapse feature does not alter evidence rendering in any
    way. The K-cap does NOT apply to singletons. The finding's evidence renders identically to
@@ -161,7 +161,7 @@ configurable via CLI flag. Future cycles may expose K as `--collapse-evidence-sa
 
 ## Architecture Anchors
 
-- `src/reporter/terminal.rs:223-226` -- evidence rendering loop in render_finding_prefix (`for ev in &f.evidence`); the collapse path replaces this with a bounded loop over sampled evidence
+- `src/reporter/terminal.rs:287-290` -- evidence rendering loop in render_finding_prefix (`for ev in &f.evidence`); the collapse path replaces this with a bounded loop over sampled evidence
 - `src/findings.rs:141` -- `pub evidence: Vec<String>` (field that is sampled from, never mutated)
 
 ## Story Anchor

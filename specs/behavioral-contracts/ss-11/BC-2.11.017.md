@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.14"
+version: "1.15"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -27,6 +27,7 @@ modified:
   - "v1.12 2026-06-17: F2 adversarial pass-9 — F-PA-01: add cross-reference to BC-2.11.026 PC-6 in Invariant 5 for the full color-ladder requirement; the (xN) suffix colorization is governed by BC-2.11.026 PC-6"
   - "v1.13 2026-06-17: F2 adversarial passes 12-14 — F-PA-A01: define 'representative finding' for N≥2 groups = group_members[0] (first in emission order); update PC-6 and EC-007 to reference group_members[0] explicitly; add canonical test vector for divergent-mitre case (member[0].mitre=[T1036], member[1].mitre=[], member[2].mitre=[T1059] → MITRE: T1036 from member[0])"
   - "v1.14 2026-06-17: issue-#62 F2 BC re-anchor — replace show_mitre_grouping/collapse_findings bool references with FindingsRender enum: Precondition 1 'show_mitre_grouping = false' → 'render != FindingsRender::Grouped (i.e. FlatCollapsed or FlatExpanded)'; Description and Postcondition 6 'collapse_findings = true/false' → 'render = FindingsRender::FlatCollapsed / FindingsRender::FlatExpanded'; Invariant 5 scoping boundary reworded. Rationale: illegal-state elimination. No behavioral change."
+  - "v1.15 2026-06-18: F5 post-merge re-anchor to develop a4263c7 (terminal.rs line-anchor drift fix; no normative change) — render_finding_flat fn :232-238 → :296-302; Invariant 1 fn ref + Architecture Anchor + Source Evidence path updated."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -95,7 +96,7 @@ this BC remain byte-identical to the pre-v0.8.0 behavior.
 ## Invariants
 
 1. Flat modes (`FindingsRender::FlatCollapsed` or `FindingsRender::FlatExpanded`) use
-   `render_finding_flat` (terminal.rs:232-238) which iterates `mitre_techniques` and joins
+   `render_finding_flat` (terminal.rs:296-302) which iterates `mitre_techniques` and joins
    IDs with `", "`. If empty, skips the MITRE line entirely.
 2. `render_finding_flat` never calls `technique_name()` or `technique_tactic()`.
 3. This mode is the "no --mitre flag" case; `FindingsRender::Grouped` requires the `--mitre`
@@ -170,7 +171,7 @@ this BC remain byte-identical to the pre-v0.8.0 behavior.
 
 ## Architecture Anchors
 
-- `src/reporter/terminal.rs:232-238` -- render_finding_flat (default path)
+- `src/reporter/terminal.rs:296-302` -- render_finding_flat (default path)
 - `tests/reporter_terminal_tests.rs` -- mod story_078 :: test_BC_2_11_017_default_mode_bare_mitre_id
 
 ---
@@ -181,7 +182,7 @@ this BC remain byte-identical to the pre-v0.8.0 behavior.
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/reporter/terminal.rs:232-238` |
+| **Path** | `src/reporter/terminal.rs:296-302` |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 

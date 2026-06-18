@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.8"
+version: "1.9"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -21,6 +21,7 @@ modified:
   - "v1.6 2026-06-17: F2 adversarial pass-2 — fix dispatch block anchor terminal.rs:149-160→149-162 in Invariant 7 (F-A05)"
   - "v1.7 2026-06-17: issue-#62 F2 BC re-anchor — replace show_mitre_grouping/collapse_findings bool references with FindingsRender enum: Postcondition 9 and Invariant 7 and EC-008/EC-009 updated to use FindingsRender variant names. Rationale: illegal-state elimination (enum makes grouping && collapse unrepresentable). No behavioral change."
   - "v1.8 2026-06-18: F3 adversarial round-4 finding 2 (MEDIUM) stale dispatch anchor — Invariant 7 cited FINDINGS dispatch at terminal.rs:149-162, but line 149 is the HOSTS section (if self.show_hosts_breakdown). Verified against src/reporter/terminal.rs: actual FINDINGS dispatch if-chain is at lines 185-207 (if !findings.is_empty() block through closing brace). Re-anchored Invariant 7 to correct range 185-207."
+  - "v1.9 2026-06-18: F5 post-merge re-anchor to develop a4263c7 (terminal.rs line-anchor drift fix; no normative change) — full render() body :83-186 → :129-250; HOSTS :113 → :164; PROTOCOLS :125 → :176; proto_vec sort :127-130 → :178-181; SERVICES conditional :138 → :189; svc_vec sort :141 → :192; FINDINGS dispatch :149 → :200; ANALYZER loop :165 → :229; Invariant 7 dispatch range :185-207 → :200-226; Source Evidence path updated."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -88,7 +89,7 @@ section per `AnalysisSummary`. This order is documented in the module and verifi
 6. The within-section body order for PROTOCOLS and SERVICES is determined by an explicit sort
    (not HashMap iteration order); the output is therefore fully reproducible given the same
    input regardless of Rust runtime HashMap randomization.
-7. **v0.8.0 collapse routing (BC-2.11.025):** The FINDINGS dispatch at `terminal.rs:185-207`
+7. **v0.8.0 collapse routing (BC-2.11.025):** The FINDINGS dispatch at `terminal.rs:200-226`
    routes based on `self.render`: `FindingsRender::Grouped` → grouped path; `FindingsRender::FlatCollapsed`
    → collapse pass (produce collapsed groups, render one display group per unique key);
    `FindingsRender::FlatExpanded` → iterate findings individually as in pre-v0.8.0. The section
@@ -151,14 +152,14 @@ section per `AnalysisSummary`. This order is documented in the module and verifi
 
 ## Architecture Anchors
 
-- `src/reporter/terminal.rs:83-186` -- TerminalReporter::render full body
-- `src/reporter/terminal.rs:113` -- HOSTS conditional block
-- `src/reporter/terminal.rs:125` -- PROTOCOLS section
-- `src/reporter/terminal.rs:127-130` -- proto_vec sort: `sort_by(|a, b| b.1.cmp(a.1).then_with(|| format!("{:?}", a.0).cmp(&format!("{:?}", b.0))))` (FIX-P5-003)
-- `src/reporter/terminal.rs:138` -- SERVICES conditional block (`if !services.is_empty()`)
-- `src/reporter/terminal.rs:141` -- svc_vec sort: `sort_by(|a, b| b.1.cmp(a.1).then_with(|| a.0.cmp(b.0)))` (FIX-P5-003)
-- `src/reporter/terminal.rs:149` -- FINDINGS conditional block (`if !findings.is_empty()`)
-- `src/reporter/terminal.rs:165` -- ANALYZER: sections loop
+- `src/reporter/terminal.rs:129-250` -- TerminalReporter::render full body
+- `src/reporter/terminal.rs:164` -- HOSTS conditional block
+- `src/reporter/terminal.rs:176` -- PROTOCOLS section
+- `src/reporter/terminal.rs:178-181` -- proto_vec sort: `sort_by(|a, b| b.1.cmp(a.1).then_with(|| format!("{:?}", a.0).cmp(&format!("{:?}", b.0))))` (FIX-P5-003)
+- `src/reporter/terminal.rs:189` -- SERVICES conditional block (`if !services.is_empty()`)
+- `src/reporter/terminal.rs:192` -- svc_vec sort: `sort_by(|a, b| b.1.cmp(a.1).then_with(|| a.0.cmp(b.0)))` (FIX-P5-003)
+- `src/reporter/terminal.rs:200` -- FINDINGS conditional block (`if !findings.is_empty()`)
+- `src/reporter/terminal.rs:229` -- ANALYZER: sections loop
 - `tests/reporter_terminal_tests.rs::test_terminal_protocols_sorted_count_then_name` -- covers postcondition 7 / invariant 6 / EC-006 (FIX-P5-003)
 - `tests/reporter_terminal_tests.rs::test_terminal_services_sorted_count_then_name` -- covers postcondition 8 / invariant 6 / EC-007 (FIX-P5-003)
 
@@ -170,7 +171,7 @@ section per `AnalysisSummary`. This order is documented in the module and verifi
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/reporter/terminal.rs:83-186` |
+| **Path** | `src/reporter/terminal.rs:129-250` |
 | **Confidence** | medium |
 | **Extraction Date** | 2026-05-20 |
 

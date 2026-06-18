@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.7"
+version: "1.8"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -20,6 +20,7 @@ modified:
   - "v1.5: DF-SIBLING-SWEEP-001 — fix stale terminal.rs sort-closure anchor: 262-280 → 269-288 (verdict_rank/confidence_rank helpers at 269-282, sort_by_key call at 284-288); verified against HEAD cfe0112a — 2026-06-01"
   - "v1.6: PG-ARP-F2-007 — fix stale terminal.rs line anchors shifted by F2 multi-tag additions (STORY-100): verdict_rank :269-275 → :287-293; confidence_rank :276-282 → :295-301; sort_by_key range :284-288 → :303-307; bucket push line 266 → 284; bounding range :269-288 → :287-307; verified against current HEAD — 2026-06-13"
   - "v1.7 2026-06-17: issue-#62 F2 BC re-anchor — Precondition 1: 'show_mitre_grouping = true' → 'render = FindingsRender::Grouped'. Rationale: illegal-state elimination (enum makes the two-bool axis for grouped mode unrepresentable as separate bools). No behavioral change."
+  - "v1.8 2026-06-18: F5 post-merge re-anchor to develop a4263c7 (terminal.rs line-anchor drift fix; no normative change) — sort helpers shifted: verdict_rank :287-293 → :447-454; confidence_rank :295-301 → :455-461; sort_by_key call :303-307 → :464-466; bucket push line :284 → :444; bounding range :287-307 → :447-466; Architecture Anchor + Source Evidence path updated."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -53,12 +54,12 @@ key). This ordering surfaces the highest-severity findings at the top of each ta
 ## Invariants
 
 1. Verdict ranks: Likely=0, Inconclusive=1, Unlikely=2 (defined by local `verdict_rank`
-   function in terminal.rs:287-293).
+   function in terminal.rs:447-454).
 2. Confidence ranks: High=0, Medium=1, Low=2 (defined by local `confidence_rank` function
-   in terminal.rs:295-301).
+   in terminal.rs:455-461).
 3. The sort key is `(verdict_rank, confidence_rank, original_index)` -- a 3-tuple
    sort that is stable (Rust's sort_by_key is stable).
-4. Original index is attached at bucket insertion time (line 284) as `(i, f)` via `buckets.entry(tactic).or_default().push((i, f))`.
+4. Original index is attached at bucket insertion time (line 444) as `(i, f)` via `buckets.entry(tactic).or_default().push((i, f))`.
 
 ## Edge Cases
 
@@ -101,7 +102,7 @@ key). This ordering surfaces the highest-severity findings at the top of each ta
 
 ## Architecture Anchors
 
-- `src/reporter/terminal.rs:287-307` -- sort closure and sort_by_key call (verdict_rank helper at 287-293; confidence_rank helper at 295-301; sort_by_key call at 303-307)
+- `src/reporter/terminal.rs:447-466` -- sort closure and sort_by_key call (verdict_rank helper at 447-454; confidence_rank helper at 455-461; sort_by_key call at 464-466)
 - `tests/reporter_terminal_tests.rs` -- mod story_078 :: test_BC_2_11_014_sort_by_verdict_within_bucket, test_BC_2_11_014_stable_emission_order_on_tie
 
 ---
@@ -112,7 +113,7 @@ key). This ordering surfaces the highest-severity findings at the top of each ta
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/reporter/terminal.rs:287-307` |
+| **Path** | `src/reporter/terminal.rs:447-466` |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 
