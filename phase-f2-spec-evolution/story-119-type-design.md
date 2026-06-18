@@ -50,8 +50,8 @@ idiomatic Rust representation (Alexis King "Parse, Don't Validate"; Rust communi
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Grouping {
     /// Group findings by MITRE tactic — renders tactic-bucket headers
-    /// (`## Tactic Name`) and sorts within each bucket by verdict-desc,
-    /// confidence-desc, then emission order (stable).
+    /// (`## Tactic Name`) and sorts within each bucket ascending by rank
+    /// (Likely=0 first, High=0 first), then emission order (stable).
     /// Corresponds to `--mitre` flag / `show_mitre_grouping = true`.
     Grouped,
     /// Render findings in original emission order with no tactic headers.
@@ -196,8 +196,8 @@ structurally unchanged.
 ### 5.1 Behavior Specification
 
 The function performs tactic bucketing and sorting identically to the existing
-`render_findings_grouped` (BC-2.11.013: `mitre_techniques[0]` determines bucket; verdict-desc
-then confidence-desc then emission-index sort within each bucket). Then, **within each tactic
+`render_findings_grouped` (BC-2.11.013: `mitre_techniques[0]` determines bucket; ascending by
+verdict rank then confidence rank then emission-index within each bucket — Likely=0/High=0 first). Then, **within each tactic
 bucket**, it applies the existing `collapse_findings_pass` (same `CollapseKey` semantics as flat
 mode: `(category, verdict, confidence, summary)`) and renders each resulting group using the
 collapse rendering rules:

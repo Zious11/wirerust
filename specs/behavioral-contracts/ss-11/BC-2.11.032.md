@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.0"
+version: "1.1"
 status: draft
 producer: product-owner
 timestamp: 2026-06-18T00:00:00Z
@@ -12,7 +12,8 @@ subsystem: SS-11
 capability: CAP-11
 lifecycle_status: active
 introduced: v0.10.0
-modified: []
+modified:
+  - "v1.1 2026-06-18: F2 adversarial round-1 fix — Invariant 3 sort direction corrected: 'verdict-rank desc, confidence-rank desc' → 'ascending by rank (Likely=0/High=0 first)' to match BC-2.11.014 authoritative rank definitions. No behavioral change."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -79,9 +80,11 @@ positional no-sliding-window invariant applies identically.
    if `member[0]` has empty evidence, `member[K]` (index K) is still NOT inspected. No
    "skip-empty" logic; no content-based reordering; purely positional, purely bounded.
 3. The "post-sort bucket order" for group membership is the order produced by the per-bucket
-   sort (verdict-rank desc, confidence-rank desc, emission-index asc) applied BEFORE the
-   collapse pass. The group representative (`members[0]`) is the first finding in this sorted
-   order that established the group's key (BC-2.11.025 Invariant 6 analogue for grouped mode).
+   sort — ascending by verdict-rank (Likely=0 first, Inconclusive=1, Unlikely=2), ascending
+   by confidence-rank (High=0 first, Medium=1, Low=2), then emission-index ascending — applied
+   BEFORE the collapse pass (BC-2.11.014 defines the rank assignments). The group representative
+   (`members[0]`) is the first finding in this sorted order that established the group's key
+   (BC-2.11.025 Invariant 6 analogue for grouped mode).
 4. Evidence sampling is a display-only operation. `Finding.evidence` vecs are never truncated
    or mutated. JSON/CSV reporters receive the complete, unmodified `findings` slice
    (BC-2.11.029 invariant applies across all reporter types).

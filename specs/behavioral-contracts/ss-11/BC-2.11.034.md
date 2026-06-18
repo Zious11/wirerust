@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.0"
+version: "1.1"
 status: draft
 producer: product-owner
 timestamp: 2026-06-18T00:00:00Z
@@ -12,7 +12,8 @@ subsystem: SS-11
 capability: CAP-11
 lifecycle_status: active
 introduced: v0.10.0
-modified: []
+modified:
+  - "v1.1 2026-06-18: F2 adversarial round-1 fix — (1) Add EC-008: group whose members share mitre_techniques[0] (same primary technique, same collapse-key bucket) but differ in trailing/secondary technique IDs; MITRE line sourced from members[0] only; trailing-ID divergence elided from terminal, preserved in JSON/CSV. (2) Renumber mis-prefixed test function anchor: test_BC_2_11_031_grouped_collapse_mitre_line_em_dash_format → test_BC_2_11_034_grouped_collapse_mitre_line_em_dash_format."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -105,6 +106,7 @@ flat-mode representative-finding contract (BC-2.11.025 Invariant 6 / BC-2.11.026
 | EC-005 | N=2 group, `members[0].mitre_techniques=["T1692.001","T0836"]` (multi-tag) | MITRE line: `    MITRE: T1692.001, T0836 \u{2014} <name_of_T1692.001>\n`; IDs joined with `", "`; name from first ID only (consistent with `render_finding_grouped` behavior per BC-2.11.016) |
 | EC-006 | Singleton (N=1) in a bucket | `render_finding_grouped` called directly; BC-2.11.016 governs MITRE line; this BC does not apply |
 | EC-007 | N=3 group, `members[0].mitre_techniques=["T1046"]`; complete output block | Output order: (1) header line `  [<Cat>] <VERDICT> (<CONF>) - <summary> (x3)\n`, (2) up to 3 evidence lines `    > ...\n`, (3) MITRE line `    MITRE: T1046 \u{2014} Network Service Discovery\n` — `(x3)` appears only in (1) |
+| EC-008 | N=3 group, members share same `mitre_techniques[0]` ("T1046") but differ in trailing/secondary IDs: `members[0].mitre_techniques=["T1046","T0836"]`, `members[1].mitre_techniques=["T1046"]`, `members[2].mitre_techniques=["T1046","T1059"]` | MITRE line sourced from `members[0]` only: `    MITRE: T1046, T0836 \u{2014} Network Service Discovery\n`; trailing-ID divergence of members[1] and [2] is elided from terminal output; all three findings' full `mitre_techniques` vecs are preserved unmodified in the raw findings slice for JSON/CSV reporters (BC-2.11.029) |
 
 ## Canonical Test Vectors
 
@@ -120,7 +122,7 @@ flat-mode representative-finding contract (BC-2.11.025 Invariant 6 / BC-2.11.026
 
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| — | N≥2 grouped-collapse group MITRE line uses em-dash + name from members[0] | unit: test_BC_2_11_031_grouped_collapse_mitre_line_em_dash_format |
+| — | N≥2 grouped-collapse group MITRE line uses em-dash + name from members[0] | unit: test_BC_2_11_034_grouped_collapse_mitre_line_em_dash_format |
 | — | MITRE line for unknown technique uses `(unknown)` format | unit: test_BC_2_11_034_unknown_technique_in_grouped_collapse |
 | — | `(xN)` suffix absent from MITRE line | unit: test_BC_2_11_034_suffix_not_on_mitre_line |
 | — | Divergent mitre_techniques across members: terminal uses members[0] only | unit: test_BC_2_11_034_divergent_mitre_representative_sourcing |

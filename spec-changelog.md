@@ -14,6 +14,70 @@ changes, invariant rewrites).
 
 ---
 
+## [story-119-f2-adv-round1-remediation-2026-06-18] — 2026-06-18
+
+### PATCH: STORY-119 F2 Adversarial Round-1 Remediation — Sort-Direction Correction, Stale Enum Consuming-Surface Sweep, PRD-Delta Fixes, BC-026 PC-4 Flat-MITRE Reconcile, BC-034 EC-008, Test-Anchor Renumbering
+
+**Trigger:** F2 adversarial round-1 triple — all 3 passes NOT CLEAN. All findings remediated; re-streak pending (round-2 triple). BC-INDEX v1.44 → v1.45. VP-016 v2.4 → v2.5.
+
+#### CRITICAL — Sort-Direction desc↔asc Contradiction vs BC-2.11.014 (5 artifacts)
+
+BC-2.11.014 (v1.9, code-extracted) prescribes within-bucket sort ascending by (verdict_rank, confidence_rank, emission order) — Likely=0/High=0 appear first. BC-2.11.031/032/033 + design note (`story-119-type-design.md`) + ADR-0003 (develop, uncommitted) all described the within-bucket sort as "descending" — directly contradicting BC-2.11.014.
+
+Corrected: BC-2.11.031 v1.0→v1.1, BC-2.11.032 v1.0→v1.1, BC-2.11.033 v1.0→v1.1 — "descending" replaced with "ascending (Likely=0/High=0 first, matching BC-2.11.014)". Design note and ADR-0003 (develop) corrected to ascending. Test anchors in BC-2.11.031/033 renumbered.
+
+| BC | Change | Before | After |
+|----|--------|--------|-------|
+| BC-2.11.031 | Within-bucket sort: desc → asc (matches BC-2.11.014); test anchors renumbered | v1.0 | v1.1 |
+| BC-2.11.032 | Within-bucket sort: desc → asc (matches BC-2.11.014) | v1.0 | v1.1 |
+| BC-2.11.033 | Within-bucket sort: desc → asc (matches BC-2.11.014); test anchors renumbered | v1.0 | v1.1 |
+
+Artifacts also corrected: `.factory/phase-f2-spec-evolution/story-119-type-design.md` (design note). ADR-0003 on develop (uncommitted — rides with the F4 PR).
+
+#### HIGH — PRD-Delta Default-Mode Correction ({Flat,Expanded} → {Flat,Collapsed})
+
+PRD-delta §2.2 "default render mode for plain invocation" mistakenly listed `{Flat, Expanded}` as the neither-flag default. D-110 establishes `{Flat, Collapsed}` as the default (--mitre-less invocation) and `{Grouped, Collapsed}` as the --mitre default. Corrected in `.factory/phase-f2-spec-evolution/story-119-prd-delta.md`.
+
+#### HIGH — PRD-Delta BC-034 Phantom Header Format Corrected
+
+PRD-delta §4 "BC-2.11.034 MITRE line format" incorrectly described the grouped-collapse MITRE line as having a standalone header format (`<tactic>: (<xN>)`). The actual contract per BC-2.11.034 is that the MITRE expansion line (`— <technique name>`) is sourced from `members[0]` with no `(xN)` suffix on the MITRE line itself; (xN) appears only on the finding header line (BC-2.11.031). Corrected in `.factory/phase-f2-spec-evolution/story-119-prd-delta.md`.
+
+#### HIGH (consuming-surface misses, recurrence of PG-62-F5) — Stale FindingsRender Enum-Variant Refs in BC-017/026/028 + VP-016
+
+The F2 spec-evolution vocab-sweep (v1.44) migrated normative body text but left stale enum-variant refs in test-vector/EC body cells and VP-016 test-spec snippets:
+
+- **BC-2.11.017** (v1.16→v1.17): test vector cells still referenced `FindingsRender::FlatExpanded` / `FindingsRender::FlatCollapsed` (old enum variants); migrated to `FindingsRender { grouping: Grouping::Flat, collapse: Collapse::Expanded }` / `FindingsRender { grouping: Grouping::Flat, collapse: Collapse::Collapsed }`.
+- **BC-2.11.026** (v1.12→v1.13): PC-4 flat-MITRE behavior reconciled with BC-2.11.016/017 (PC-4 prose was inconsistent); stale enum-variant refs in test cells migrated to struct form.
+- **BC-2.11.028** (v1.8→v1.9): stale enum-variant refs in EC cells migrated to struct form; test anchor renumbered.
+- **VP-016** (v2.4→v2.5): test-spec code-block snippets at lines 116 and 147 still used `FindingsRender::Grouped` (old enum variant) as construction examples; migrated to `FindingsRender { grouping: Grouping::Grouped, collapse: Collapse::Collapsed }`.
+
+| Artifact | Change | Before | After |
+|----------|--------|--------|-------|
+| BC-2.11.017 | Enum-variant refs in test-vector cells → struct form | v1.16 | v1.17 |
+| BC-2.11.026 | PC-4 flat-MITRE reconciled; enum refs → struct form | v1.12 | v1.13 |
+| BC-2.11.028 | Enum refs in EC cells → struct form; test anchor renumbered | v1.8 | v1.9 |
+| VP-016 | Test-spec snippets :116/:147 enum→struct | v2.4 | v2.5 |
+
+#### MEDIUM — BC-2.11.026 PC-4 Flat-MITRE Reconciliation
+
+PC-4 of BC-2.11.026 described flat-mode MITRE behavior inconsistently with BC-2.11.016 (em-dash expansion) and BC-2.11.017 (no em-dash in default). Reconciled so PC-4 explicitly cites the per-mode behavior — MITRE line in grouped mode uses em-dash expansion (BC-2.11.016); MITRE line in flat mode emits ID(s) only (BC-2.11.017). Included in BC-2.11.026 v1.13.
+
+#### MEDIUM — BC-2.11.034 EC-008 Multi-Tag Members Sharing [0]
+
+EC-008 was absent from BC-2.11.034. Added: "Multi-tag finding where multiple members share the same `members[0]`: the MITRE line renders the technique name from `members[0].mitre_techniques[0]` (first technique of first member); additional techniques of `members[0]` are not rendered on the MITRE line." Included in BC-2.11.034 v1.1.
+
+#### MEDIUM — Test-Anchor Renumbering (BC-2.11.031/033/034)
+
+Test anchors in BC-2.11.031, BC-2.11.033, and BC-2.11.034 were renumbered to match the corrected sort-direction and EC additions. No behavioral change; anchor renumbering only.
+
+#### BC-INDEX
+
+BC-INDEX.md updated: v1.44 → v1.45. Inline comment stamps updated for 7 BCs (017 v1.17, 026 v1.13, 028 v1.9, 031 v1.1, 032 v1.1, 033 v1.1, 034 v1.1). Total BC count: 293 (unchanged; no new BCs).
+
+**Root-cause note:** Consuming-surface sweep during F2 spec-evolution covered BC normative bodies but missed test-vector/EC cells and VP docs that embed struct construction snippets. Reinforces PG-62-F5-POSTMERGE-ANCHOR-001 / STORY-121 scope: consuming-surface sweep MUST cover VP docs, PRD-delta sections, and all test-vector/EC body cells, not just BC normative bodies.
+
+---
+
 ## [story-119-f2-spec-evolution-2026-06-18] — 2026-06-18
 
 ### MINOR: STORY-119 F2 Spec-Evolution — Grouped-Collapse BCs, enum→struct Vocabulary Migration, Deferral-Clause Revisions, --no-collapse Dual-Scope

@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.0"
+version: "1.1"
 status: draft
 producer: product-owner
 timestamp: 2026-06-18T00:00:00Z
@@ -12,7 +12,8 @@ subsystem: SS-11
 capability: CAP-11
 lifecycle_status: active
 introduced: v0.10.0
-modified: []
+modified:
+  - "v1.1 2026-06-18: F2 adversarial round-1 fix — (1) Sort direction corrected throughout: 'descending' verdict/confidence-rank → 'ascending by rank (Likely=0/High=0 first)' in Description, PC-5, Invariant 4, and EC-007, to match BC-2.11.014 authoritative rank definitions. (2) EC-007 parenthetical 'higher verdict rank' → 'lower verdict-rank value (Likely=0), surfaced first by ascending sort'. (3) Mis-prefixed test-function anchors in Verification Properties renumbered from test_BC_2_11_030_* to test_BC_2_11_033_*."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -39,10 +40,11 @@ vec is empty or the first ID has no known tactic) — exactly as in BC-2.11.013 
 Collapse does not reassign findings to different buckets.
 
 This BC also specifies the sort-then-collapse ordering within each bucket: findings in a
-bucket are sorted by verdict-rank (descending), confidence-rank (descending), then
-emission-index (ascending) BEFORE the collapse pass is applied. This means the group
-representative (`members[0]`) is the first finding in the sorted bucket order, not the
-first in the original global emission order.
+bucket are sorted ascending by rank — verdict-rank ascending (Likely=0 first, Inconclusive=1,
+Unlikely=2), confidence-rank ascending (High=0 first, Medium=1, Low=2), then emission-index
+ascending — BEFORE the collapse pass is applied (BC-2.11.014 defines the rank assignments).
+This means the group representative (`members[0]`) is the first finding in the sorted bucket
+order, not the first in the original global emission order.
 
 ## Preconditions
 
@@ -63,10 +65,12 @@ first in the original global emission order.
    `technique_tactic(mitre_techniques[0])` returns `None` — identical to BC-2.11.013 PC-4.
 4. Bucket membership is unchanged by collapse. A finding assigned to bucket B under
    `{Grouped, Expanded}` is assigned to the same bucket B under `{Grouped, Collapsed}`.
-5. Within each bucket, findings are sorted by verdict-rank (desc), confidence-rank (desc),
-   then emission-index (asc) BEFORE the per-bucket `collapse_findings_pass` is applied. The
-   result of this sort determines the within-bucket group order and the group representative
-   identity (`members[0]` is the first finding in the sorted order that established the key).
+5. Within each bucket, findings are sorted ascending by rank — verdict-rank ascending
+   (Likely=0 first, Inconclusive=1, Unlikely=2), confidence-rank ascending (High=0 first,
+   Medium=1, Low=2), then emission-index ascending — BEFORE the per-bucket
+   `collapse_findings_pass` is applied (BC-2.11.014 defines the rank assignments). The result
+   of this sort determines the within-bucket group order and the group representative identity
+   (`members[0]` is the first finding in the sorted order that established the key).
 6. The per-bucket `collapse_findings_pass` produces groups whose order within the bucket is
    first-occurrence in the SORTED bucket order (not first-occurrence in the global emission
    order). This is the "post-sort first-occurrence" definition for grouped-collapse mode.
@@ -82,10 +86,12 @@ first in the original global emission order.
    independently and sequentially in tactic-order. There is no global cross-bucket collapse
    pass; `collapse_findings_pass` never receives the full global `findings` slice in grouped
    mode.
-4. Sort-then-collapse ordering: the per-bucket sort (verdict-rank desc, confidence-rank desc,
-   emission-index asc) PRECEDES `collapse_findings_pass` for that bucket. This ordering is
-   required to produce a deterministic and semantically meaningful group representative
-   (the most-significant finding by verdict/confidence wins the representative slot).
+4. Sort-then-collapse ordering: the per-bucket sort — ascending by verdict-rank (Likely=0
+   first), ascending by confidence-rank (High=0 first), ascending by emission-index — PRECEDES
+   `collapse_findings_pass` for that bucket (BC-2.11.014 defines the rank values). This
+   ordering is required to produce a deterministic and semantically meaningful group
+   representative (the lowest rank-value finding, i.e., highest severity, wins the
+   representative slot by appearing first in the ascending sort).
 5. A finding can belong to at most one tactic bucket (determined by `mitre_techniques[0]` or
    the `Uncategorized` bucket). Multi-tag findings with `mitre_techniques = ["T1036", "T1059"]`
    land in the bucket for `T1036`'s tactic only (ADR-006 §13.7 primary-tactic approximation;
@@ -103,7 +109,7 @@ first in the original global emission order.
 | EC-004 | A tactic bucket has 5 findings; after per-bucket collapse they reduce to 2 groups (one N=3, one N=2) | Bucket header still emitted; 2 group headers with `(x3)` and `(x2)` suffixes respectively; bucket header does not change |
 | EC-005 | Findings with `mitre_techniques=[]` (empty) | Assigned to `Uncategorized` bucket; `Uncategorized` emitted last; collapse applied within `Uncategorized` bucket per same rules |
 | EC-006 | Multi-tag finding `mitre_techniques=["T1692.001","T0836"]` and another finding `mitre_techniques=["T0836"]` with same collapse key | Both findings assigned based on their respective `mitre_techniques[0]` — T1692.001's tactic and T0836's tactic respectively; they land in DIFFERENT buckets and are NOT cross-collapsed |
-| EC-007 | Per-bucket sort: two findings same collapse key, different verdict ranks (Likely vs Inconclusive), in same bucket | After sort: Likely finding is `members[0]` (higher verdict rank); it becomes group representative; `(x2)` suffix; group representative's fields used for header rendering |
+| EC-007 | Per-bucket sort: two findings same collapse key, different verdict ranks (Likely vs Inconclusive), in same bucket | After sort: Likely finding is `members[0]` because it has lower verdict-rank value (Likely=0), surfaced first by ascending sort; it becomes group representative; `(x2)` suffix; group representative's fields used for header rendering |
 | EC-008 | `{Grouped, Expanded}` path (--mitre --no-collapse) | Tactic bucket ordering is identical to `{Grouped, Collapsed}` — same `all_tactics_in_report_order()`, same bucket membership, same Uncategorized-last rule; no collapse pass; one finding per line |
 
 ## Canonical Test Vectors
@@ -114,15 +120,15 @@ first in the original global emission order.
 | `{Grouped, Collapsed}`, two findings with same collapse key: first has `mitre_techniques=["T1046"]` (Discovery), second has `mitre_techniques=["T1059"]` (Execution) | Two separate singleton groups in their respective buckets — no cross-bucket collapse despite identical collapse key | cross-bucket isolation (EC-003) |
 | `{Grouped, Collapsed}`, same report as `{Grouped, Expanded}` baseline | Bucket headers appear in identical order in both modes; findings within each bucket differ (collapsed vs expanded) but bucket sequence is identical | invariant preservation (PC-1) |
 | `{Grouped, Collapsed}`, a bucket with 3 same-key findings (N=3 → 1 group) | Bucket header still emitted; 1 collapsed group with `(x3)` suffix inside bucket | non-empty-bucket-header invariant (PC-2) |
-| `{Grouped, Collapsed}`, per-bucket sort: 2 same-key findings with verdict Likely and Inconclusive respectively | Likely finding is `members[0]` after sort; used as group representative for header rendering; `(x2)` suffix | sort-then-collapse representative (EC-007) |
+| `{Grouped, Collapsed}`, per-bucket sort: 2 same-key findings with verdict Likely and Inconclusive respectively | Likely finding is `members[0]` after ascending-rank sort (Likely=0 surfaces first); used as group representative for header rendering; `(x2)` suffix | sort-then-collapse representative (EC-007) |
 
 ## Verification Properties
 
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
 | — | Tactic bucket order under `{Grouped, Collapsed}` matches `all_tactics_in_report_order()` | unit: test_BC_2_11_013_grouped_collapsed_preserves_bucket_order |
-| — | Cross-bucket findings with same collapse key are NOT merged | unit: test_BC_2_11_030_different_buckets_not_cross_collapsed |
-| — | Sort precedes collapse within each bucket (representative = highest-rank finding by key) | unit: test_BC_2_11_030_first_occurrence_in_sorted_bucket_order |
+| — | Cross-bucket findings with same collapse key are NOT merged | unit: test_BC_2_11_033_different_buckets_not_cross_collapsed |
+| — | Sort precedes collapse within each bucket (representative = lowest-rank-value / highest-severity finding by key) | unit: test_BC_2_11_033_first_occurrence_in_sorted_bucket_order |
 | — | Uncategorized bucket emitted last under `{Grouped, Collapsed}` | unit: test_BC_2_11_033_uncategorized_last_under_grouped_collapse |
 
 ## Traceability

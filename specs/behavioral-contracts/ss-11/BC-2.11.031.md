@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.0"
+version: "1.1"
 status: draft
 producer: product-owner
 timestamp: 2026-06-18T00:00:00Z
@@ -12,7 +12,8 @@ subsystem: SS-11
 capability: CAP-11
 lifecycle_status: active
 introduced: v0.10.0
-modified: []
+modified:
+  - "v1.1 2026-06-18: F2 adversarial round-1 fix — PC-4 sort direction corrected: 'verdict-rank (desc), confidence-rank (desc)' → 'ascending by rank (Likely=0/High=0 first)' to match BC-2.11.014 authoritative definition. No behavioral change; rank=0 means highest severity and is sorted first by ascending comparison, making the description of 'descending severity' formerly used in this BC misleading and internally inconsistent with BC-014's explicit rank assignments."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -45,10 +46,11 @@ bucket and are never cross-collapsed (see BC-2.11.030, BC-2.11.033).
 3. The collapse key is the four-tuple `(category: ThreatCategory, verdict: Verdict,
    confidence: Confidence, summary: String)` — identical to the flat-mode collapse key
    (BC-2.11.025 Invariant 1).
-4. Findings within a bucket have been sorted by verdict-rank (desc), confidence-rank (desc),
-   then emission-index (asc) BEFORE the collapse pass is applied (BC-2.11.033 establishes this
-   sort-then-collapse ordering). The group representative is the first member in the
-   post-sort bucket order.
+4. Findings within a bucket have been sorted ascending by rank — verdict-rank ascending
+   (Likely=0 first, Inconclusive=1, Unlikely=2), confidence-rank ascending (High=0 first,
+   Medium=1, Low=2), then emission-index ascending — BEFORE the collapse pass is applied
+   (BC-2.11.033 establishes this sort-then-collapse ordering; BC-2.11.014 defines the rank
+   assignments). The group representative is the first member in the post-sort bucket order.
 5. `escape_for_terminal` has been applied to the group representative's `summary` field before
    the suffix is appended (VP-012 invariant; BC-2.11.010).
 

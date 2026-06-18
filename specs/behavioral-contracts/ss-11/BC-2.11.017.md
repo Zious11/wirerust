@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.16"
+version: "1.17"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -29,6 +29,7 @@ modified:
   - "v1.14 2026-06-17: issue-#62 F2 BC re-anchor — replace show_mitre_grouping/collapse_findings bool references with FindingsRender enum: Precondition 1 'show_mitre_grouping = false' → 'render != FindingsRender::Grouped (i.e. FlatCollapsed or FlatExpanded)'; Description and Postcondition 6 'collapse_findings = true/false' → 'render = FindingsRender::FlatCollapsed / FindingsRender::FlatExpanded'; Invariant 5 scoping boundary reworded. Rationale: illegal-state elimination. No behavioral change."
   - "v1.15 2026-06-18: F5 post-merge re-anchor to develop a4263c7 (terminal.rs line-anchor drift fix; no normative change) — render_finding_flat fn :232-238 → :296-302; Invariant 1 fn ref + Architecture Anchor + Source Evidence path updated."
   - "v1.16 2026-06-18: STORY-119 vocabulary migration — D-110 struct form throughout: FindingsRender::FlatCollapsed → {Flat, Collapsed}; FindingsRender::FlatExpanded → {Flat, Expanded}; FindingsRender::Grouped → {Grouped, *} or Grouping::Grouped. Description, Preconditions, Invariants 1 and 5, EC-004, EC-007, EC-008, and Canonical Test Vectors updated. No behavioral change."
+  - "v1.17 2026-06-18: F2 adversarial round-1 fix — Canonical Test Vectors divergent-mitre row: 'render = FindingsRender::FlatCollapsed' migrated to struct form 'render = FindingsRender { grouping: Grouping::Flat, collapse: Collapse::Collapsed }'. Stale enum-variant reference eliminated."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -144,7 +145,7 @@ all postconditions in this BC remain byte-identical to the pre-v0.8.0 behavior.
 | Finding with mitre_techniques=["T1692.001","T0836"], `render = FindingsRender { grouping: Grouping::Flat, collapse: Collapse::Expanded }` | Output contains "MITRE: T1692.001, T0836" | happy-path (multi-tag) |
 | Finding with mitre_techniques=[], `render = FindingsRender { grouping: Grouping::Flat, collapse: Collapse::Expanded }` | No "MITRE:" line in output for that finding | edge-case (empty) |
 | Findings rendered flat (any `{Flat, *}` mode) | No "## Defense Evasion" header present | happy-path |
-| 3 findings all same collapse key, `render = FindingsRender::FlatCollapsed`, member[0].mitre_techniques=["T1036"], member[1].mitre_techniques=[], member[2].mitre_techniques=["T1059"] | MITRE line reads `    MITRE: T1036\n` (from group_members[0]); member[1] and member[2] mitre_techniques are elided from terminal output; all 3 findings' full mitre_techniques preserved in JSON/CSV output (BC-2.11.029) | representative-finding (F-PA-A01 divergent-mitre case) |
+| 3 findings all same collapse key, `render = FindingsRender { grouping: Grouping::Flat, collapse: Collapse::Collapsed }`, member[0].mitre_techniques=["T1036"], member[1].mitre_techniques=[], member[2].mitre_techniques=["T1059"] | MITRE line reads `    MITRE: T1036\n` (from group_members[0]); member[1] and member[2] mitre_techniques are elided from terminal output; all 3 findings' full mitre_techniques preserved in JSON/CSV output (BC-2.11.029) | representative-finding (F-PA-A01 divergent-mitre case) |
 
 ## Verification Properties
 

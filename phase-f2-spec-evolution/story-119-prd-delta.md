@@ -52,11 +52,10 @@ flag had no effect on `--mitre` output (it only governed flat mode).
 
 | CLI Flags | Resulting Render Mode | Notes |
 |-----------|----------------------|-------|
-| (neither) | `{Flat, Expanded}` | unchanged |
+| (neither) | `{Flat, Collapsed}` | unchanged (collapse-ON is the default) |
 | `--no-collapse` | `{Flat, Expanded}` | unchanged |
 | `--mitre` | `{Grouped, Collapsed}` | **NEW DEFAULT** — collapses per bucket |
 | `--mitre --no-collapse` | `{Grouped, Expanded}` | preserves pre-STORY-119 behavior via explicit opt-out |
-| (implicit collapse) | `{Flat, Collapsed}` | unchanged |
 
 ### 2.3 --no-collapse Dual-Scope
 
@@ -125,7 +124,7 @@ of the grouped-collapse mode:
 | BC-2.11.031 | Per-Bucket Count Suffix Rule | `(xN)` suffix emission in `{Grouped, Collapsed}` mode; singleton omits suffix |
 | BC-2.11.032 | Per-Bucket Evidence Sampling | Evidence lines shown per-bucket in grouped-collapse output |
 | BC-2.11.033 | Tactic-Bucket Ordering Invariant Under Grouped-Collapse | Collapse does not reorder buckets; canonical tactic order preserved |
-| BC-2.11.034 | MITRE Line Format in Grouped-Collapse | Collapsed header line format: `<tactic>: (<n> findings, xN)` |
+| BC-2.11.034 | MITRE Line Format in Grouped-Collapse | MITRE line in grouped-collapse: em-dash name expansion sourced from group representative `members[0]`; format `MITRE: <ids> — <name>` (known) or `MITRE: <ids> (unknown)`; no `(xN)` on the MITRE line |
 
 All five BCs are located at:
 `.factory/specs/behavioral-contracts/ss-11/BC-2.11.030.md` through `BC-2.11.034.md`
