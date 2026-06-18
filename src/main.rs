@@ -37,7 +37,7 @@ use wirerust::reassembly::{ReassemblyConfig, TcpReassembler};
 use wirerust::reporter::Reporter;
 use wirerust::reporter::csv::CsvReporter;
 use wirerust::reporter::json::JsonReporter;
-use wirerust::reporter::terminal::TerminalReporter;
+use wirerust::reporter::terminal::{FindingsRender, TerminalReporter};
 use wirerust::summary::Summary;
 
 fn main() -> Result<()> {
@@ -372,14 +372,19 @@ fn run_analyze(
         _ => {
             let reporter = TerminalReporter {
                 use_color,
-                show_mitre_grouping,
                 // `analyze` does not expose a per-host breakdown flag —
                 // that is `summary`-subcommand-only (LESSON-P1.03).
                 show_hosts_breakdown: false,
-                // BC-2.11.028: `collapse_findings = !no_collapse`.
-                // Wired from `--no-collapse` flag: true → collapse OFF; false → collapse ON.
-                // Mirrors exactly how `*mitre` becomes `show_mitre_grouping`.
-                collapse_findings,
+                // BC-2.11.028: three-way render mode selection.
+                // show_mitre_grouping wins over collapse_findings (same precedence as
+                // the pre-v0.9.0 if-chain dispatch order).
+                render: if show_mitre_grouping {
+                    FindingsRender::Grouped
+                } else if collapse_findings {
+                    FindingsRender::FlatCollapsed
+                } else {
+                    FindingsRender::FlatExpanded
+                },
             };
             reporter.render(&summary, &all_findings, &analyzer_summaries)
         }
@@ -438,13 +443,10 @@ fn run_summary(
         _ => {
             let reporter = TerminalReporter {
                 use_color,
-                show_mitre_grouping: false,
                 show_hosts_breakdown,
-                // BC-2.11.028 invariant 4: `run_summary` emits no FINDINGS section;
-                // this value is inert. Set to `true` for completeness (Rust requires
-                // all struct fields to be initialized). Collapse is analyze-scoped;
-                // run_summary emits no FINDINGS section (BC-2.11.028 invariant 4).
-                collapse_findings: true,
+                // BC-2.11.028 invariant 4: render field is inert for run_summary — no FINDINGS section.
+                // FlatCollapsed expresses the v0.8.0 default intent for any hypothetical future use.
+                render: FindingsRender::FlatCollapsed,
             };
             reporter.render(&summary, &[], &[])
         }

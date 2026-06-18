@@ -2,10 +2,13 @@
 //!
 //! Renders the capture summary, per-host breakdown (gated by
 //! `show_hosts_breakdown` per LESSON-P1.03), protocols, services,
-//! findings, and per-analyzer detail tables for TTY output. Optional
-//! MITRE-tactic grouping (`show_mitre_grouping`) reorganizes the
-//! FINDINGS section by MITRE ATT&CK tactic and expands each finding's
-//! MITRE line with the technique name from [`crate::mitre`].
+//! findings, and per-analyzer detail tables for TTY output. The
+//! `render: FindingsRender` field selects among three mutually-exclusive
+//! FINDINGS rendering modes: `Grouped` (MITRE tactic grouping, `--mitre`),
+//! `FlatCollapsed` (default v0.8.0+), and `FlatExpanded` (`--no-collapse`).
+//! MITRE-tactic grouping reorganizes the FINDINGS section by MITRE ATT&CK
+//! tactic and expands each finding's MITRE line with the technique name from
+//! [`crate::mitre`].
 //!
 //! Per ADR 0003 (`docs/adr/0003-reporting-pipeline-layering.md`), every
 //! attacker-controlled string (Finding `summary`/`evidence`, analyzer
@@ -88,11 +91,27 @@ struct CollapseKey {
     summary: String,
 }
 
+/// Render mode for the FINDINGS section of a terminal report.
+///
+/// Encodes the three mutually-exclusive rendering modes as a single enum,
+/// eliminating the impossible state `show_mitre_grouping = true &&
+/// collapse_findings = true` that existed in v0.8.0.
+/// ADR-0003 Binding Rule 5 — Render-Mode Enum (Issue #62 — v0.9.0).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum FindingsRender {
+    /// Group findings by MITRE tactic (`--mitre` flag).
+    /// Corresponds to the previous `show_mitre_grouping = true`.
+    Grouped,
+    /// Collapse repeated findings into counted groups (default, v0.8.0+).
+    /// Corresponds to the previous `collapse_findings = true, show_mitre_grouping = false`.
+    FlatCollapsed,
+    /// One display line per raw finding (pre-v0.8.0 behavior, `--no-collapse`).
+    /// Corresponds to the previous `collapse_findings = false, show_mitre_grouping = false`.
+    FlatExpanded,
+}
+
 pub struct TerminalReporter {
     pub use_color: bool,
-    /// When true, regroup the FINDINGS section by MITRE tactic and expand
-    /// the per-finding MITRE line to include the technique name.
-    pub show_mitre_grouping: bool,
     /// When true, render a per-host breakdown section listing each
     /// unique source/destination IP observed in the capture. Wired
     /// from the `summary` subcommand's `--hosts` flag — see
@@ -100,14 +119,10 @@ pub struct TerminalReporter {
     /// always-present `Hosts: N` count line in the header is shown
     /// regardless; this gate only controls the expanded itemized list.
     pub show_hosts_breakdown: bool,
-    /// When true (the default), repeated findings sharing the same
-    /// `(category, verdict, confidence, summary)` four-tuple are collapsed
-    /// into a single display group with a ` (xN)` count suffix (N≥2).
-    /// Singletons (N=1) render byte-identically to pre-v0.8.0 output.
-    /// Collapse applies ONLY in flat mode (`show_mitre_grouping = false`).
-    /// Wired from `--no-collapse` flag: `collapse_findings = !no_collapse`.
-    /// BC-2.11.025 / BC-2.11.026 / BC-2.11.027 / BC-2.11.028.
-    pub collapse_findings: bool,
+    /// Render mode for the FINDINGS section. Controls mutual exclusion between
+    /// MITRE grouping, flat-collapsed, and flat-expanded rendering.
+    /// ADR-0003 Binding Rule 5; BC-2.11.025 / BC-2.11.026 / BC-2.11.027 / BC-2.11.028.
+    pub render: FindingsRender,
 }
 
 impl Reporter for TerminalReporter {
@@ -184,23 +199,27 @@ impl Reporter for TerminalReporter {
         // Findings
         if !findings.is_empty() {
             out.push_str(&self.section("FINDINGS"));
-            if self.show_mitre_grouping {
-                // Grouped (--mitre) path: structurally suffix-free per BC-2.11.025
-                // invariant 5. STORY-118 does NOT modify this path — collapse applies
-                // only in flat mode. render_finding_prefix stays unchanged.
-                self.render_findings_grouped(&mut out, findings);
-            } else if self.collapse_findings {
-                // Flat + collapse path (STORY-118 / BC-2.11.025 / BC-2.11.026 /
-                // BC-2.11.027): groups findings by CollapseKey in first-occurrence
-                // order, renders each group with optional (xN) suffix and up to K=3
-                // sampled evidence lines.
-                self.render_findings_collapsed(&mut out, findings);
-            } else {
-                // Per ADR 0003: the Finding struct stores raw bytes; the
-                // terminal reporter is responsible for escaping untrusted
-                // content (summary + evidence) before writing to a TTY.
-                for f in findings {
-                    self.render_finding_flat(&mut out, f);
+            match self.render {
+                FindingsRender::Grouped => {
+                    // Grouped (--mitre) path: structurally suffix-free per BC-2.11.025
+                    // invariant 5. Collapse does not apply — impossible state eliminated
+                    // by type. render_finding_prefix stays unchanged.
+                    self.render_findings_grouped(&mut out, findings);
+                }
+                FindingsRender::FlatCollapsed => {
+                    // Flat + collapse path (STORY-118 / BC-2.11.025 / BC-2.11.026 /
+                    // BC-2.11.027): groups findings by CollapseKey in first-occurrence
+                    // order, renders each group with optional (xN) suffix and up to K=3
+                    // sampled evidence lines.
+                    self.render_findings_collapsed(&mut out, findings);
+                }
+                FindingsRender::FlatExpanded => {
+                    // Per ADR 0003: the Finding struct stores raw bytes; the
+                    // terminal reporter is responsible for escaping untrusted
+                    // content (summary + evidence) before writing to a TTY.
+                    for f in findings {
+                        self.render_finding_flat(&mut out, f);
+                    }
                 }
             }
             out.push('\n');

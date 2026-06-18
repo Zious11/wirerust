@@ -35,7 +35,7 @@ use wirerust::mitre::{MitreTactic, technique_name, technique_tactic};
 use wirerust::reporter::Reporter;
 use wirerust::reporter::csv::CsvReporter;
 use wirerust::reporter::json::JsonReporter;
-use wirerust::reporter::terminal::TerminalReporter;
+use wirerust::reporter::terminal::{FindingsRender, TerminalReporter};
 use wirerust::summary::Summary;
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -689,10 +689,13 @@ fn test_BC_2_11_001_mitre_attack_version_constant_has_f4_pin_flag_comment() {
 fn make_terminal(mitre_grouping: bool) -> TerminalReporter {
     TerminalReporter {
         use_color: false,
-        show_mitre_grouping: mitre_grouping,
         show_hosts_breakdown: false,
-        // STORY-118: new field; false = pre-v0.8.0 non-collapse path
-        collapse_findings: false,
+        // STORY-120: parameterized — mitre_grouping ? Grouped : FlatExpanded
+        render: if mitre_grouping {
+            FindingsRender::Grouped
+        } else {
+            FindingsRender::FlatExpanded
+        },
     }
 }
 
@@ -763,7 +766,7 @@ fn test_BC_2_11_015_terminal_unknown_id_lands_in_uncategorized() {
 
 /// BC-2.11.017 postcondition, AC-002 (STORY-101):
 /// Two-technique finding renders as `"MITRE: T1692.001, T0836"` (comma-space join).
-/// Flat view (show_mitre_grouping=false).
+/// Flat view (render=FindingsRender::FlatExpanded).
 #[test]
 fn test_BC_2_11_017_terminal_renders_multi_id_mitre_string() {
     let f = make_finding_multitag(vec!["T1692.001", "T0836"]);

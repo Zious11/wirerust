@@ -993,7 +993,7 @@ mod f5_ics_impact_display {
     use wirerust::findings::{Confidence, Finding, ThreatCategory, Verdict};
     use wirerust::mitre::{MitreTactic, all_tactics_in_report_order};
     use wirerust::reporter::Reporter;
-    use wirerust::reporter::terminal::TerminalReporter;
+    use wirerust::reporter::terminal::{FindingsRender, TerminalReporter};
     use wirerust::summary::Summary;
 
     // -----------------------------------------------------------------------
@@ -1069,10 +1069,9 @@ mod f5_ics_impact_display {
     fn mitre_reporter() -> TerminalReporter {
         TerminalReporter {
             use_color: false,
-            show_mitre_grouping: true,
             show_hosts_breakdown: false,
-            // STORY-118: new field; false here — grouped mode does not apply collapse.
-            collapse_findings: false,
+            // STORY-120: render = FindingsRender::Grouped (grouped helper)
+            render: FindingsRender::Grouped,
         }
     }
 
