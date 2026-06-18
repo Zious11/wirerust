@@ -77,7 +77,7 @@ fn main() -> Result<()> {
                 *arp_spoof_threshold,
                 *arp_storm_rate,
                 *mitre,
-                !*no_collapse,
+                collapse_findings_from_flag(*no_collapse),
                 use_color,
                 &cli,
             )?;
@@ -442,7 +442,8 @@ fn run_summary(
                 show_hosts_breakdown,
                 // BC-2.11.028 invariant 4: `run_summary` emits no FINDINGS section;
                 // this value is inert. Set to `true` for completeness (Rust requires
-                // all struct fields to be initialized). See STORY-118 Task 8 note.
+                // all struct fields to be initialized). Collapse is analyze-scoped;
+                // run_summary emits no FINDINGS section (BC-2.11.028 invariant 4).
                 collapse_findings: true,
             };
             reporter.render(&summary, &[], &[])
@@ -489,6 +490,15 @@ fn write_output(output: &str, cli: &Cli) -> Result<()> {
     }
 }
 
+/// Maps the `--no-collapse` opt-out flag to the `TerminalReporter` `collapse_findings`
+/// field (default-on per BC-2.11.028).
+///
+/// When the flag is absent (`no_collapse = false`), collapse is ON (`true`).
+/// When `--no-collapse` is passed (`no_collapse = true`), collapse is OFF (`false`).
+fn collapse_findings_from_flag(no_collapse: bool) -> bool {
+    !no_collapse
+}
+
 fn resolve_targets(target: &Path) -> Result<Vec<std::path::PathBuf>> {
     if target.is_file() {
         return Ok(vec![target.to_path_buf()]);
@@ -509,4 +519,26 @@ fn resolve_targets(target: &Path) -> Result<Vec<std::path::PathBuf>> {
         return Ok(files);
     }
     anyhow::bail!("Target not found: {}", target.display());
+}
+
+#[cfg(test)]
+mod tests {
+    use super::collapse_findings_from_flag;
+
+    /// BC-2.11.028: flag absent (false) → collapse ON (true);
+    /// --no-collapse present (true) → collapse OFF (false).
+    /// Guards against a polarity inversion in the wiring.
+    #[test]
+    fn test_bc_2_11_028_collapse_flag_polarity() {
+        // Default: --no-collapse not passed → collapse should be enabled.
+        assert!(
+            collapse_findings_from_flag(false),
+            "flag absent (no_collapse=false) must yield collapse_findings=true"
+        );
+        // Opt-out: --no-collapse passed → collapse should be disabled.
+        assert!(
+            !collapse_findings_from_flag(true),
+            "--no-collapse (no_collapse=true) must yield collapse_findings=false"
+        );
+    }
 }
