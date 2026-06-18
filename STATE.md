@@ -7,7 +7,7 @@ feature_arp_status: "v0.7.0 RELEASED 2026-06-16 — ARP Security Analyzer (E-16,
 feature_8_status: "v0.6.0 RELEASED 2026-06-12 — DNP3 TCP analyzer; F7 5-dim CONVERGED; tag v0.6.0 + 4 binaries"
 product: wirerust
 mode: brownfield
-timestamp: 2026-06-18T00:00:00Z
+timestamp: 2026-06-18T06:00:00Z
 maintenance_run: COMPLETE
 maintenance_run_id: maint-2026-06-17
 maintenance_started_at: "2026-06-17"
@@ -69,7 +69,7 @@ dtu_services: []
 adversary_convergence_counter: 3/3  # Pass 14 CONVERGENCE_REACHED; clean-streak 3/3; ADVERSARY GATE SATISFIED
 e8_f2_adversary_convergence_counter: "3/3 SATISFIED — GATE SATISFIED (frozen corpus 4231b6b; Passes 15/16/17 run in parallel; each zero MEDIUM-or-above; 17 passes total)."
 e8_f3_adversary_convergence_counter: "3/3 SATISFIED — GATE SATISFIED (frozen corpus bdd531a; Passes V/W/X run in parallel; each zero MEDIUM-or-above; 8 parallel triples / 24 passes total)."
-e8_f2_spec_evolution_adversary_convergence_counter: "0/3 — re-streak pending after F2 fix-burst (13 BCs re-anchored, ADR-0003 amended, HS-081 recomputed 2026-06-18)"
+e8_f2_spec_evolution_adversary_convergence_counter: "0/3 — round-2 re-streak pending after F-1 fix (BC-2.11.029 v1.4, BC-INDEX v1.42). Round-1 triple result: Pass B CLEAN, Pass C CLEAN, Pass A MEDIUM (F-1: BC-2.11.029 stale anchor block — INSERTION TARGET/STORY-118 retained after v1.3 claimed fix; genuine sibling-sweep partial-propagation defect; reinforces PG-62-F2-BOOKKEEPING-SWEEP-001). Gate NOT SATISFIED."
 e8_f4_wave_adversary_convergence_counter: "3/3 SATISFIED (passes 1/2/3 clean on develop 5f7cd1b)"
 e8_f5_scoped_adversary_convergence_counter: "3/3 SATISFIED (passes 1/2/3 clean on develop 5f7cd1b)"
 e8_f6_hardening_status: "HARDENED — no new VP; regression 1641/1641; VP-012 proptest pass; Kani/fuzz unaffected; collapse-delta mutation 100% kill; audit/deny clean"
@@ -125,9 +125,9 @@ input_drift_check: "F7-followup-dispositions burst (2026-06-16): STORY-071/100/1
 | Reactive fix: issue #220 Modbus burst-window display | **CLOSED** 2026-06-17 | PR #263 5ed8077; BC-2.14.017 v2.6; spec 8d5446d |
 | Maintenance maint-2026-06-17 | **COMPLETE** 2026-06-17 | 2 PRs delivered (#261/#262); 5 items deferred; develop c03a38b |
 | Feature E-18 / #259 finding-collapse — F1..F7 + Release v0.8.0 | **RELEASED** 2026-06-17 | STORY-118; 9 new BCs SS-11=29; total 288 BCs; F5 3/3; F6 mutation 100%; F7 5-dim CONVERGED; PR #264→develop 5f7cd1b; PR #265→main 73034da; tag v0.8.0; 4 binaries; run 27732692087. STORY-119 DEFERRED. Per-phase detail: cycles/feature-collapse-v0.8.0/phase-progress-archive.md |
-| Feature E-8 / #62 TerminalReporter enum-modes — F1..F2 | **F2 COMPLETE — adversary re-streak 0/3 pending** | F2 fix-burst 2026-06-18: 13 SS-11 BCs re-anchored to FindingsRender enum (BC-2.11.010/.013–.017/.019/.025–.029); BC-INDEX v1.41; ADR-0003 v0.9.0 subsection + ARCH-INDEX; PRD-delta (12 BCs); HS-081 input-hash 9df8300 (MATCH); completed STORY-077/078/118 FROZEN as-built (D-088); STORY-120 is sole #62 delivery target. F2 adversary gate NOT yet SATISFIED. |
+| Feature E-8 / #62 TerminalReporter enum-modes — F1..F2 | **F2 COMPLETE — adversary re-streak 0/3 pending (round-2 after F-1 fix)** | F2 fix-burst 2026-06-18: 13 SS-11 BCs re-anchored to FindingsRender enum; BC-INDEX v1.41; ADR-0003 v0.9.0 subsection; PRD-delta (12 BCs); HS-081 9df8300 MATCH; STORY-077/078/118 FROZEN (D-088). Round-1 triple: B+C CLEAN, A MEDIUM (F-1 BC-2.11.029 stale anchor block — genuine partial-propagation defect; v1.3 claimed fix but anchor block unchanged). Fix applied: BC-2.11.029 v1.4, BC-INDEX v1.42. Round-2 re-streak 0/3 pending. |
 
-## Session Resume Checkpoint (2026-06-18 — FEATURE MODE E-8 / #62; F2 spec-evolution COMPLETE; adversary re-streak 0/3 pending)
+## Session Resume Checkpoint (2026-06-18 — FEATURE MODE E-8 / #62; F2 COMPLETE; round-2 re-streak 0/3 pending after F-1 fix)
 
 **Previous checkpoint (2026-06-17 — E-8/#62 F1 COMPLETE; awaiting human gate) archived to:
 `.factory/cycles/feature-arp-v0.7.0/session-checkpoints.md`**
@@ -162,13 +162,15 @@ input_drift_check: "F7-followup-dispositions burst (2026-06-16): STORY-071/100/1
   - BC-INDEX.md → v1.41. ARCH-INDEX updated. ADR-0003 v0.9.0 render-mode subsection added.
   - PRD-delta `.factory/phase-f2-spec-evolution/issue-62-prd-delta.md` updated (12 BCs listed).
   - HS-081 holdout re-anchored + input-hash recomputed (bfce575 → 9df8300, MATCH).
-  - spec-changelog.md `[issue-62-enum-modes-bc-reanchor-2026-06-17]` entry covers 13 BCs.
+  - spec-changelog.md `[issue-62-enum-modes-bc-reanchor-2026-06-17]` entry covers 13 BCs + two adv-pass-2 fix rows (BC-2.11.029 v1.3→v1.4, BC-INDEX v1.41→v1.42).
   - STORY-077/078/118 CONFIRMED CLEAN (no diff) — frozen as-built records per D-088.
 - Completed stories STORY-077/078/118 are FROZEN — NOT re-anchored to FindingsRender enum (D-088).
-- F2 adversary gate: NOT SATISFIED. re-streak must reach 3/3 CLEAN before F3 advance.
+- F2 adversary gate: NOT SATISFIED. Round-2 re-streak must reach 3/3 CLEAN before F3 advance.
+- Round-1 triple (2026-06-18): Pass B CLEAN, Pass C CLEAN, Pass A MEDIUM — F-1: BC-2.11.029 Architecture Anchors block retained stale INSERTION TARGET/STORY-118 language after v1.3 claimed to have corrected it. Genuine sibling-sweep partial-propagation defect (changelog claimed fix not landed). Reinforces PG-62-F2-BOOKKEEPING-SWEEP-001.
+- F-1 fix applied: BC-2.11.029 v1.4 (correct REFACTOR TARGET/STORY-120; four-field struct; line-range alignment to .028 sibling), BC-INDEX v1.42.
 
 **Step 4 — NEXT ACTIONS:**
-- Run F2 adversarial re-streak (3 consecutive fresh-context CLEAN passes on current factory-artifacts corpus).
+- Run F2 adversarial re-streak ROUND 2 (3 consecutive fresh-context CLEAN passes on updated corpus post-F-1 fix: BC-2.11.029 v1.4, BC-INDEX v1.42).
 - On 3/3 CLEAN: F2 adversary gate SATISFIED → advance to F3 incremental-stories.
 - F3 must produce STORY-120 (FindingsRender enum — ~3 pts, Epic E-8, release target v0.9.0).
 

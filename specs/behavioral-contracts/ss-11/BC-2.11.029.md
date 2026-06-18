@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: product-owner
 timestamp: 2026-06-17T00:00:00Z
@@ -12,7 +12,7 @@ subsystem: SS-11
 capability: CAP-11
 lifecycle_status: active
 introduced: v0.8.0
-modified: ["v1.1 2026-06-17: fix Postcondition 3 — remove misleading 'N=1 ≤ K=3' reasoning; singleton renders identically to pre-v0.8.0 (consistency audit remediation)", "v1.2 2026-06-17: F2 adversarial pass-1 — add precise csv.rs line anchors (csv.rs:40 neutralize, csv.rs:76 render loop); mark terminal.rs:63-75 as insertion target (F-259-05, F-259-08)", "v1.3 2026-06-17: issue-#62 F2 BC re-anchor (fix-burst) — Precondition 4: 'collapse_findings = true' → 'render = FindingsRender::FlatCollapsed'; PC-1 inline qualifier: 'collapse_findings' → 'render' field; Architecture Anchors: INSERTION TARGET wording updated from old bool field names to FindingsRender enum. Rationale: illegal-state elimination. No behavioral change."]
+modified: ["v1.1 2026-06-17: fix Postcondition 3 — remove misleading 'N=1 ≤ K=3' reasoning; singleton renders identically to pre-v0.8.0 (consistency audit remediation)", "v1.2 2026-06-17: F2 adversarial pass-1 — add precise csv.rs line anchors (csv.rs:40 neutralize, csv.rs:76 render loop); mark terminal.rs:63-75 as insertion target (F-259-05, F-259-08)", "v1.3 2026-06-17: issue-#62 F2 BC re-anchor (fix-burst) — Precondition 4: 'collapse_findings = true' → 'render = FindingsRender::FlatCollapsed'; PC-1 inline qualifier: 'collapse_findings' → 'render' field; Architecture Anchors: INSERTION TARGET wording updated from old bool field names to FindingsRender enum. Rationale: illegal-state elimination. No behavioral change.", "v1.4 2026-06-18: F2 adv-pass-2 anchor-block correction (F-1) — Architecture Anchors: (1) both INSERTION TARGET/STORY-118 bullets replaced with REFACTOR TARGET/STORY-120 to match the correct implementing story (STORY-118 is completed v0.8.0; STORY-120 carries the enum migration per D-088 freeze); (2) stale struct parenthetical claiming three fields corrected — v0.8.0 TerminalReporter struct has four fields (use_color, show_mitre_grouping, show_hosts_breakdown, collapse_findings); (3) line ranges aligned to sibling BC-2.11.028 treatment (terminal.rs:91-110, main.rs ~373). The v1.3 changelog entry falsely claimed anchors were updated; this entry corrects the actual anchor block content. No behavioral change."]
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -147,8 +147,8 @@ frames are intact in all machine-readable outputs; aggregation is a display-laye
 - `src/reporter/json.rs` -- JsonReporter::render iterates every finding in the slice; no collapse path
 - `src/reporter/csv.rs:40` -- `neutralize_csv_injection(s: &str) -> String` (confirmed present at csv.rs:40); called for every field of every finding
 - `src/reporter/csv.rs:76` -- `for f in findings { ... }` render loop (confirmed present at csv.rs:76); iterates every finding in the slice; no collapse path
-- `src/main.rs:~run_analyze` -- **INSERTION TARGET (code TBD by STORY-118):** TerminalReporter construction site; `render: FindingsRender` field will be set here (replacing the former `collapse_findings: bool` + `show_mitre_grouping: bool` pair). Pre-story line-range approximation: ~370-375.
-- `src/reporter/terminal.rs:63-75` -- **INSERTION TARGET (code TBD by STORY-118):** TerminalReporter struct; `pub render: FindingsRender` field replaces `pub show_mitre_grouping: bool` + `pub collapse_findings: bool` (current struct has only `use_color`, `show_mitre_grouping`, `show_hosts_breakdown`); collapse pass will be a private method added by STORY-118
+- `src/main.rs:~373` -- **REFACTOR TARGET (STORY-120):** TerminalReporter construction site; `render: if *mitre { FindingsRender::Grouped } else if !no_collapse { FindingsRender::FlatCollapsed } else { FindingsRender::FlatExpanded }` replaces the former separate `show_mitre_grouping: bool` + `collapse_findings: bool` fields. Approximate location: main.rs ~373.
+- `src/reporter/terminal.rs:91-110` -- **REFACTOR TARGET (STORY-120):** TerminalReporter struct; `pub render: FindingsRender` field replaces `pub show_mitre_grouping: bool` + `pub collapse_findings: bool` on the v0.8.0 struct (which has four fields: `use_color`, `show_mitre_grouping`, `show_hosts_breakdown`, `collapse_findings`). The `pub enum FindingsRender { Grouped, FlatCollapsed, FlatExpanded }` is defined in this file.
 
 ## Story Anchor
 

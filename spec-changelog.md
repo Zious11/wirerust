@@ -56,6 +56,8 @@ vectors, no new invariants. No behavioral change. No new BCs. Architecture uncha
 | BC-INDEX.md | v1.39 | v1.40 | Comment annotations updated for 4 fix-burst BCs |
 | BC-2.11.025 | v1.7  | v1.8  | VP-table row: 'show_mitre_grouping=true suppresses collapse' → 'render = FindingsRender::Grouped suppresses collapse' (F2 adv-pass-2 fix F-6) |
 | BC-INDEX.md | v1.40 | v1.41 | BC-2.11.025 annotation updated with v1.8 note |
+| BC-2.11.029 | v1.3  | v1.4  | Architecture Anchors block corrected (F-1, adv-pass-2): INSERTION TARGET/STORY-118 → REFACTOR TARGET/STORY-120; stale three-field parenthetical corrected to four-field v0.8.0 struct (use_color, show_mitre_grouping, show_hosts_breakdown, collapse_findings); line ranges aligned to BC-2.11.028 sibling (terminal.rs:91-110, main.rs ~373). The v1.3 changelog falsely claimed anchors had been updated; v1.4 is the genuine anchor-block correction. |
+| BC-INDEX.md | v1.41 | v1.42 | BC-2.11.029 annotation updated with v1.4 note |
 
 **total_bcs=288 unchanged** (re-anchoring pass; no new BCs, no retirements).
 
