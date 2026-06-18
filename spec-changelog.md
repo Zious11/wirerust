@@ -14,6 +14,73 @@ changes, invariant rewrites).
 
 ---
 
+## [story-119-f2-adv-round2-remediation-2026-06-18] — 2026-06-18
+
+### PATCH: STORY-119 F2 Adversarial Round-2 Remediation — Verdict-Rank Table Corrected (Possible Added), Version-Pins v0.9.0, HS-081 Enum→Struct Sweep, STORY-119 De-Stale, BC-034 MITRE Cross-Ref Scoping, BC-031 Observable-Behavior Reword, Design-Note Struct Doc-Comment
+
+#### Root Cause
+
+F2 adversarial round-2 (all 3 passes NOT CLEAN) identified 7 findings (R2-1..R2-7) across
+brownfield-extraction staleness, version-pin errors, unconsumed holdout sweep, stale story
+stub, cross-reference scoping confusion, over-specified invariants, and doc-comment gaps.
+
+#### Changed Artifacts (this burst)
+
+**R2-1 CRITICAL — Verdict-rank table corrected (BC-2.11.014 v1.9→v2.0; propagated to BC-031/032/033 + design-note + ADR):**
+- `BC-2.11.014`: Invariant 1 corrected from stale Likely=0/Inconclusive=1/Unlikely=2 to
+  source-confirmed Likely=0/Possible=1/Inconclusive=2/Unlikely=3 per terminal.rs:447-454.
+  Possible variant was added in STORY-109 but not reflected in the brownfield extraction.
+  Description paragraph updated to include Possible in the rank ordering.
+- `BC-2.11.031` v1.1→v1.2: PC-4 sort direction now lists all four verdicts
+  (Likely=0/Possible=1/Inconclusive=2/Unlikely=3). Invariants 4 and 5 reworded to
+  observable-behavior form (removed implementation-sharing/no-duplication prescriptions;
+  stated externally testable color-selection and K=3 cap invariants instead — R2-6).
+- `BC-2.11.032` v1.1→v1.2: Invariant 3 post-sort description lists all four verdicts.
+- `BC-2.11.033` v1.1→v1.2: Description, PC-5, and Invariant 4 list all four verdicts.
+- Design-note §5.1: sort-precision updated to list all four verdicts.
+- ADR-0003: verdict-rank propagation (on develop working tree — rides F4 PR).
+
+**R2-2 HIGH — Version-pin corrected to v0.9.0 (BC-2.11.030–034):**
+- All five new BCs had `introduced: v0.10.0` (typo); corrected to `introduced: v0.9.0`
+  per ADR-0003 §Semver, design-note §7, and D-110 bundling decision.
+  BC-030 v1.0→v1.1; BC-031/032/033/034 v1.1→v1.2 (combined with R2-1 changes above).
+
+**R2-3 HIGH — HS-081 holdout enum→struct migration (v1.0→v1.1; input-hash 9df8300→e62a96d):**
+- `HS-081`: Verification Approach (unit-level construction call) migrated from
+  `render = FindingsRender::Grouped` to `render = FindingsRender { grouping:
+  Grouping::Grouped, collapse: Collapse::Expanded }`. Edge Conditions migrated from
+  `render != FindingsRender::Grouped` to `render.grouping != Grouping::Grouped`.
+  Input-hash recomputed after BC-2.11.014 (an HS-081 input) updated to v2.0.
+
+**R2-4 HIGH — STORY-119.md de-stale (v1.0→v1.1):**
+- `STORY-119.md`: Expanded `behavioral_contracts` list from [013,025,026] to full 12-BC
+  set (adds 028,030,031,032,033,034). Removed `deferred: true` flag and do-not-dispatch
+  language. Updated struct vocabulary throughout (enum variant refs → struct form).
+  Updated terminal.rs anchor references (~272-323→~432-483). Removed false "grouped
+  bypasses collapse" invariant. `deferred_reason` updated to F1/F2-complete status note.
+  Full AC/task decomposition remains pending F3.
+
+**R2-5 HIGH — BC-2.11.034 MITRE cross-ref scoping (v1.1→v1.2):**
+- `BC-2.11.034`: Invariant 3 rescoped: BC-2.11.026 reference narrowed to representative
+  SOURCING principle only (use members[0] as source); em-dash FORMAT precedent moved to
+  BC-2.11.016 (the authoritative grouped-mode MITRE format contract). Related-BCs table
+  updated to document the sourcing/format distinction explicitly.
+
+**R2-6 MEDIUM — BC-2.11.031 observable-behavior reword (v1.1→v1.2; combined with R2-1):**
+- `BC-2.11.031`: Invariants 4 and 5 converted from implementation-sharing prescriptions
+  ("no duplication", "shared COLLAPSE_EVIDENCE_SAMPLES constant") to observable-behavior
+  form: Inv4 states K=3 cap equivalence; Inv5 states identical color-selection outcome.
+
+**R2-7 MEDIUM — Design-note struct doc-comment updated (R2-7):**
+- `story-119-type-design.md` §2.1: `FindingsRender` struct doc-comment BC list extended
+  to include all ten consuming BCs: BC-2.11.013/025/026/027/028/030/031/032/033/034.
+
+**BC-INDEX v1.45→v1.46:**
+- Version stamps updated: BC-2.11.014 v2.0, BC-2.11.030 v1.1, BC-2.11.031 v1.2,
+  BC-2.11.032 v1.2, BC-2.11.033 v1.2, BC-2.11.034 v1.2.
+
+---
+
 ## [story-119-f2-adv-round1-remediation-2026-06-18] — 2026-06-18
 
 ### PATCH: STORY-119 F2 Adversarial Round-1 Remediation — Sort-Direction Correction, Stale Enum Consuming-Surface Sweep, PRD-Delta Fixes, BC-026 PC-4 Flat-MITRE Reconcile, BC-034 EC-008, Test-Anchor Renumbering

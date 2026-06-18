@@ -1,7 +1,7 @@
 ---
 document_type: holdout-scenario
 level: ops
-version: "1.0"
+version: "1.1"
 status: draft
 producer: product-owner
 timestamp: 2026-05-21T00:00:00Z
@@ -16,7 +16,7 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-11/BC-2.11.014.md
   - .factory/specs/behavioral-contracts/ss-11/BC-2.11.015.md
   - .factory/specs/behavioral-contracts/ss-11/BC-2.11.016.md
-input-hash: "9df8300"
+input-hash: "e62a96d"
 traces_to: .factory/stories/STORY-076.md
 id: "HS-081"
 category: "behavioral-subtleties"
@@ -36,6 +36,8 @@ stale_reason: null
 retired: null
 assumption_source: null
 risk_source: null
+modified:
+  - "v1.1 2026-06-18: R2-3 — STORY-119 enum→struct migration: update Verification Approach and Edge Conditions to use D-110 struct form. 'FindingsRender::Grouped' → 'FindingsRender { grouping: Grouping::Grouped, collapse: Collapse::Expanded }' at the unit-level construction call; 'render != FindingsRender::Grouped (i.e., FlatCollapsed or FlatExpanded)' → 'render.grouping != Grouping::Grouped (i.e., {Flat, Collapsed} or {Flat, Expanded}; default mode)' in Edge Conditions."
 ---
 
 # Holdout Scenario: MITRE Grouping Presents Tactics in Kill-Chain Order with Correct Sorting
@@ -82,7 +84,10 @@ Invoke the tool with a set of findings spanning the described tactics. In the te
 6. Assert the no-technique finding appears under the Uncategorized header.
 
 At the unit level, construct the findings programmatically and call `TerminalReporter::render`
-with `render = FindingsRender::Grouped`, then scan the resulting string.
+with `render = FindingsRender { grouping: Grouping::Grouped, collapse: Collapse::Expanded }`
+(suffix-free grouped path — tests kill-chain order and sort without collapse interactions),
+then scan the resulting string. (`Grouping` and `Collapse` must be brought into scope from
+`crate::reporter::terminal` or equivalent.)
 
 ## Evaluation Rubric
 
@@ -97,7 +102,7 @@ with `render = FindingsRender::Grouped`, then scan the resulting string.
 - All findings in one tactic: only that tactic section plus possibly Uncategorized.
 - Unknown technique ID "T9999": appears under Uncategorized with "(unknown)" label.
 - When all findings have None technique: only an Uncategorized section is present.
-- When `render != FindingsRender::Grouped` (i.e., `FlatCollapsed` or `FlatExpanded`; default mode): no tactic headers, and the technique
+- When `render.grouping != Grouping::Grouped` (i.e., `{Flat, Collapsed}` or `{Flat, Expanded}`; default mode): no tactic headers, and the technique
   line reads `MITRE: T1036` with no em-dash and no name.
 
 ## Failure Guidance

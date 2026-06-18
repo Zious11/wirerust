@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: product-owner
 timestamp: 2026-06-18T00:00:00Z
@@ -11,9 +11,10 @@ traces_to: .factory/specs/domain/domain-spec.md
 subsystem: SS-11
 capability: CAP-11
 lifecycle_status: active
-introduced: v0.10.0
+introduced: v0.9.0
 modified:
   - "v1.1 2026-06-18: F2 adversarial round-1 fix — (1) Sort direction corrected throughout: 'descending' verdict/confidence-rank → 'ascending by rank (Likely=0/High=0 first)' in Description, PC-5, Invariant 4, and EC-007, to match BC-2.11.014 authoritative rank definitions. (2) EC-007 parenthetical 'higher verdict rank' → 'lower verdict-rank value (Likely=0), surfaced first by ascending sort'. (3) Mis-prefixed test-function anchors in Verification Properties renumbered from test_BC_2_11_030_* to test_BC_2_11_033_*."
+  - "v1.2 2026-06-18: R2-1 — propagate corrected verdict-rank enumeration: Description, PC-5, and Invariant 4 now list all four verdicts (Likely=0 first, Possible=1, Inconclusive=2, Unlikely=3) to match terminal.rs:447-454 source. R2-2 — introduced: v0.10.0 → v0.9.0."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -40,11 +41,11 @@ vec is empty or the first ID has no known tactic) — exactly as in BC-2.11.013 
 Collapse does not reassign findings to different buckets.
 
 This BC also specifies the sort-then-collapse ordering within each bucket: findings in a
-bucket are sorted ascending by rank — verdict-rank ascending (Likely=0 first, Inconclusive=1,
-Unlikely=2), confidence-rank ascending (High=0 first, Medium=1, Low=2), then emission-index
-ascending — BEFORE the collapse pass is applied (BC-2.11.014 defines the rank assignments).
-This means the group representative (`members[0]`) is the first finding in the sorted bucket
-order, not the first in the original global emission order.
+bucket are sorted ascending by rank — verdict-rank ascending (Likely=0 first, Possible=1,
+Inconclusive=2, Unlikely=3), confidence-rank ascending (High=0 first, Medium=1, Low=2), then
+emission-index ascending — BEFORE the collapse pass is applied (BC-2.11.014 defines the rank
+assignments). This means the group representative (`members[0]`) is the first finding in the
+sorted bucket order, not the first in the original global emission order.
 
 ## Preconditions
 
@@ -66,8 +67,8 @@ order, not the first in the original global emission order.
 4. Bucket membership is unchanged by collapse. A finding assigned to bucket B under
    `{Grouped, Expanded}` is assigned to the same bucket B under `{Grouped, Collapsed}`.
 5. Within each bucket, findings are sorted ascending by rank — verdict-rank ascending
-   (Likely=0 first, Inconclusive=1, Unlikely=2), confidence-rank ascending (High=0 first,
-   Medium=1, Low=2), then emission-index ascending — BEFORE the per-bucket
+   (Likely=0 first, Possible=1, Inconclusive=2, Unlikely=3), confidence-rank ascending
+   (High=0 first, Medium=1, Low=2), then emission-index ascending — BEFORE the per-bucket
    `collapse_findings_pass` is applied (BC-2.11.014 defines the rank assignments). The result
    of this sort determines the within-bucket group order and the group representative identity
    (`members[0]` is the first finding in the sorted order that established the key).
@@ -87,11 +88,12 @@ order, not the first in the original global emission order.
    pass; `collapse_findings_pass` never receives the full global `findings` slice in grouped
    mode.
 4. Sort-then-collapse ordering: the per-bucket sort — ascending by verdict-rank (Likely=0
-   first), ascending by confidence-rank (High=0 first), ascending by emission-index — PRECEDES
-   `collapse_findings_pass` for that bucket (BC-2.11.014 defines the rank values). This
-   ordering is required to produce a deterministic and semantically meaningful group
-   representative (the lowest rank-value finding, i.e., highest severity, wins the
-   representative slot by appearing first in the ascending sort).
+   first, Possible=1, Inconclusive=2, Unlikely=3), ascending by confidence-rank (High=0 first,
+   Medium=1, Low=2), ascending by emission-index — PRECEDES `collapse_findings_pass` for that
+   bucket (BC-2.11.014 defines the rank values). This ordering is required to produce a
+   deterministic and semantically meaningful group representative (the lowest rank-value
+   finding, i.e., highest severity, wins the representative slot by appearing first in the
+   ascending sort).
 5. A finding can belong to at most one tactic bucket (determined by `mitre_techniques[0]` or
    the `Uncategorized` bucket). Multi-tag findings with `mitre_techniques = ["T1036", "T1059"]`
    land in the bucket for `T1036`'s tactic only (ADR-006 §13.7 primary-tactic approximation;

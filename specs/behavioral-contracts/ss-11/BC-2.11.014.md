@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.9"
+version: "2.0"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -22,6 +22,7 @@ modified:
   - "v1.7 2026-06-17: issue-#62 F2 BC re-anchor — Precondition 1: 'show_mitre_grouping = true' → 'render = FindingsRender::Grouped'. Rationale: illegal-state elimination (enum makes the two-bool axis for grouped mode unrepresentable as separate bools). No behavioral change."
   - "v1.8 2026-06-18: F5 post-merge re-anchor to develop a4263c7 (terminal.rs line-anchor drift fix; no normative change) — sort helpers shifted: verdict_rank :287-293 → :447-454; confidence_rank :295-301 → :455-461; sort_by_key call :303-307 → :464-466; bucket push line :284 → :444; bounding range :287-307 → :447-466; Architecture Anchor + Source Evidence path updated."
   - "v1.9 2026-06-18: STORY-119 vocabulary migration — D-110 struct form: FindingsRender::Grouped → render.grouping == Grouping::Grouped in Precondition 1. No behavioral change."
+  - "v2.0 2026-06-18: R2-1 — correct Invariant 1 verdict-rank enumeration: was Likely=0, Inconclusive=1, Unlikely=2 (stale brownfield extraction, Possible variant added post-extraction in STORY-109); now Likely=0, Possible=1, Inconclusive=2, Unlikely=3 per terminal.rs:447-454 source-confirmed match arms. Also correct Description paragraph (was 'Likely < Inconclusive < Unlikely'; now includes Possible). No behavioral change."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -35,9 +36,10 @@ removal_reason: null
 ## Description
 
 Within each MITRE tactic bucket in the grouped rendering mode, findings are sorted by a
-three-key sort: (1) verdict rank ascending (Likely < Inconclusive < Unlikely), (2) confidence
-rank ascending (High < Medium < Low), (3) original emission index ascending (stable tertiary
-key). This ordering surfaces the highest-severity findings at the top of each tactic section.
+three-key sort: (1) verdict rank ascending (Likely < Possible < Inconclusive < Unlikely), (2)
+confidence rank ascending (High < Medium < Low), (3) original emission index ascending (stable
+tertiary key). This ordering surfaces the highest-severity findings at the top of each tactic
+section.
 
 ## Preconditions
 
@@ -55,8 +57,8 @@ key). This ordering surfaces the highest-severity findings at the top of each ta
 
 ## Invariants
 
-1. Verdict ranks: Likely=0, Inconclusive=1, Unlikely=2 (defined by local `verdict_rank`
-   function in terminal.rs:447-454).
+1. Verdict ranks: Likely=0, Possible=1, Inconclusive=2, Unlikely=3 (defined by local
+   `verdict_rank` function in terminal.rs:447-454; source-confirmed match arms).
 2. Confidence ranks: High=0, Medium=1, Low=2 (defined by local `confidence_rank` function
    in terminal.rs:455-461).
 3. The sort key is `(verdict_rank, confidence_rank, original_index)` -- a 3-tuple

@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.0"
+version: "1.1"
 status: draft
 producer: product-owner
 timestamp: 2026-06-18T00:00:00Z
@@ -11,8 +11,9 @@ traces_to: .factory/specs/domain/domain-spec.md
 subsystem: SS-11
 capability: CAP-11
 lifecycle_status: active
-introduced: v0.10.0
-modified: []
+introduced: v0.9.0
+modified:
+  - "v1.1 2026-06-18: R2-2 — correct introduced version: v0.10.0 → v0.9.0 (canonical per ADR-0003 §Semver, design-note §7, BC-INDEX:269; D-110 bundles into unreleased 0.9.0)."
 deprecated: null
 deprecated_by: null
 replacement: null

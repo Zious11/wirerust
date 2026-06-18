@@ -50,8 +50,9 @@ idiomatic Rust representation (Alexis King "Parse, Don't Validate"; Rust communi
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Grouping {
     /// Group findings by MITRE tactic — renders tactic-bucket headers
-    /// (`## Tactic Name`) and sorts within each bucket ascending by rank
-    /// (Likely=0 first, High=0 first), then emission order (stable).
+    /// (`## Tactic Name`) and sorts within each bucket ascending by verdict rank
+    /// (Likely=0, Possible=1, Inconclusive=2, Unlikely=3), then confidence rank
+    /// (High=0, Medium=1, Low=2), then emission-index — highest-severity surfaces first.
     /// Corresponds to `--mitre` flag / `show_mitre_grouping = true`.
     Grouped,
     /// Render findings in original emission order with no tactic headers.
@@ -95,7 +96,8 @@ pub enum Collapse {
 /// explicitly; `Default::default()` would obscure which mode is being selected.
 ///
 /// ADR-0003 Binding Rule 5 (revised, STORY-119).
-/// BC-2.11.013 / BC-2.11.025 / BC-2.11.026 / BC-2.11.027 / BC-2.11.028.
+/// BC-2.11.013 / BC-2.11.025 / BC-2.11.026 / BC-2.11.027 / BC-2.11.028 /
+/// BC-2.11.030 / BC-2.11.031 / BC-2.11.032 / BC-2.11.033 / BC-2.11.034.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct FindingsRender {
     pub grouping: Grouping,
@@ -197,7 +199,7 @@ structurally unchanged.
 
 The function performs tactic bucketing and sorting identically to the existing
 `render_findings_grouped` (BC-2.11.013: `mitre_techniques[0]` determines bucket; ascending by
-verdict rank then confidence rank then emission-index within each bucket — Likely=0/High=0 first). Then, **within each tactic
+verdict rank then confidence rank then emission-index within each bucket — ascending by verdict rank (Likely=0, Possible=1, Inconclusive=2, Unlikely=3), then confidence rank (High=0, Medium=1, Low=2), then emission-index — highest-severity surfaces first). Then, **within each tactic
 bucket**, it applies the existing `collapse_findings_pass` (same `CollapseKey` semantics as flat
 mode: `(category, verdict, confidence, summary)`) and renders each resulting group using the
 collapse rendering rules:

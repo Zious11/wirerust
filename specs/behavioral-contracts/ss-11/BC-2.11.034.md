@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: product-owner
 timestamp: 2026-06-18T00:00:00Z
@@ -11,9 +11,10 @@ traces_to: .factory/specs/domain/domain-spec.md
 subsystem: SS-11
 capability: CAP-11
 lifecycle_status: active
-introduced: v0.10.0
+introduced: v0.9.0
 modified:
   - "v1.1 2026-06-18: F2 adversarial round-1 fix — (1) Add EC-008: group whose members share mitre_techniques[0] (same primary technique, same collapse-key bucket) but differ in trailing/secondary technique IDs; MITRE line sourced from members[0] only; trailing-ID divergence elided from terminal, preserved in JSON/CSV. (2) Renumber mis-prefixed test function anchor: test_BC_2_11_031_grouped_collapse_mitre_line_em_dash_format → test_BC_2_11_034_grouped_collapse_mitre_line_em_dash_format."
+  - "v1.2 2026-06-18: R2-2 — introduced: v0.10.0 → v0.9.0. R2-5 — Invariant 3 rescoped: BC-2.11.026 reference narrowed to representative SOURCING only (members[0] principle), not MITRE line format; format precedent is BC-2.11.016 (em-dash name expansion), not BC-026's bare flat format. Related-BCs updated to match."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -87,8 +88,10 @@ flat-mode representative-finding contract (BC-2.11.025 Invariant 6 / BC-2.11.026
    delegate; the observable output format is normative).
 3. The MITRE line is sourced from the group representative (`members[0]`) regardless of N.
    The MITRE lines of other group members are never rendered in the terminal for grouped-collapse
-   groups. This is consistent with BC-2.11.026 PC-7 (flat-mode representative-finding MITRE
-   sourcing) applied to the grouped-mode context.
+   groups. The SOURCING principle (use members[0]) is consistent with BC-2.11.026 PC-7
+   (flat-mode representative-finding sourcing applied to grouped-mode context). The MITRE line
+   FORMAT (em-dash name expansion, `(unknown)` fallback) follows BC-2.11.016 (the authoritative
+   grouped-mode MITRE format contract) — NOT BC-2.11.026's bare flat format.
 4. An empty `mitre_techniques` vec on `members[0]` produces no MITRE line for the group (same
    empty-vec guard as BC-2.11.016 PC-4 and `render_finding_grouped`'s `is_empty` check at
    `terminal.rs:313`).
@@ -142,8 +145,8 @@ flat-mode representative-finding contract (BC-2.11.025 Invariant 6 / BC-2.11.026
 
 ## Related BCs
 
-- BC-2.11.016 — mirrors (em-dash name-expansion format for MITRE lines in grouped mode; this BC extends it to collapsed N≥2 groups by sourcing the MITRE data from members[0])
-- BC-2.11.026 — composes with (PC-7: representative-finding MITRE sourcing in flat-mode collapse; same principle applied here to grouped-mode collapse)
+- BC-2.11.016 — mirrors (authoritative MITRE line FORMAT for grouped mode: em-dash name expansion, `(unknown)` fallback; this BC extends it to collapsed N≥2 groups by sourcing the MITRE data from members[0])
+- BC-2.11.026 — composes with (PC-7: representative-finding MITRE SOURCING principle in flat-mode collapse — use members[0] as the source; this BC applies the same sourcing principle to grouped-mode collapse; the MITRE line FORMAT follows BC-2.11.016, not BC-026's bare flat format)
 - BC-2.11.031 — composes with (header line produces `(xN)` suffix; this BC confirms the MITRE line in the same output block carries no suffix)
 - BC-2.11.033 — depends on (sort-then-collapse ordering that determines who is members[0])
 - BC-2.11.030 — depends on (CLI mapping that activates `{Grouped, Collapsed}`)

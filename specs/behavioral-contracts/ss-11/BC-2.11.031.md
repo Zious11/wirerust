@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: product-owner
 timestamp: 2026-06-18T00:00:00Z
@@ -11,9 +11,10 @@ traces_to: .factory/specs/domain/domain-spec.md
 subsystem: SS-11
 capability: CAP-11
 lifecycle_status: active
-introduced: v0.10.0
+introduced: v0.9.0
 modified:
   - "v1.1 2026-06-18: F2 adversarial round-1 fix — PC-4 sort direction corrected: 'verdict-rank (desc), confidence-rank (desc)' → 'ascending by rank (Likely=0/High=0 first)' to match BC-2.11.014 authoritative definition. No behavioral change; rank=0 means highest severity and is sorted first by ascending comparison, making the description of 'descending severity' formerly used in this BC misleading and internally inconsistent with BC-014's explicit rank assignments."
+  - "v1.2 2026-06-18: R2-1 — propagate corrected verdict-rank enumeration: PC-4 now lists all four verdicts (Likely=0 first, Possible=1, Inconclusive=2, Unlikely=3) to match terminal.rs:447-454 source. R2-2 — introduced: v0.10.0 → v0.9.0. R2-6 — Invariant 4 and Invariant 5 reworded to observable-behavior form (drop implementation-sharing/no-duplication prescription; state externally testable invariants instead)."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -47,10 +48,11 @@ bucket and are never cross-collapsed (see BC-2.11.030, BC-2.11.033).
    confidence: Confidence, summary: String)` — identical to the flat-mode collapse key
    (BC-2.11.025 Invariant 1).
 4. Findings within a bucket have been sorted ascending by rank — verdict-rank ascending
-   (Likely=0 first, Inconclusive=1, Unlikely=2), confidence-rank ascending (High=0 first,
-   Medium=1, Low=2), then emission-index ascending — BEFORE the collapse pass is applied
-   (BC-2.11.033 establishes this sort-then-collapse ordering; BC-2.11.014 defines the rank
-   assignments). The group representative is the first member in the post-sort bucket order.
+   (Likely=0 first, Possible=1, Inconclusive=2, Unlikely=3), confidence-rank ascending
+   (High=0 first, Medium=1, Low=2), then emission-index ascending — BEFORE the collapse pass
+   is applied (BC-2.11.033 establishes this sort-then-collapse ordering; BC-2.11.014 defines
+   the rank assignments). The group representative is the first member in the post-sort bucket
+   order.
 5. `escape_for_terminal` has been applied to the group representative's `summary` field before
    the suffix is appended (VP-012 invariant; BC-2.11.010).
 
@@ -92,11 +94,12 @@ bucket and are never cross-collapsed (see BC-2.11.030, BC-2.11.033).
 3. The collapse pass producing the per-bucket groups uses `collapse_findings_pass` — the same
    function as flat-mode collapse — called once per bucket's findings slice, not across all
    findings.
-4. The `COLLAPSE_EVIDENCE_SAMPLES` constant (K=3) is shared between flat-mode and
-   grouped-mode collapse paths; no duplication. Evidence sampling within a grouped-collapse
-   bucket group is governed by BC-2.11.032.
-5. Color styling is applied to the COMPLETE header line including the ` (xN)` suffix. There is
-   no uncolorized suffix fragment (consistent with BC-2.11.026 Invariant 4).
+4. The rendered evidence cap for grouped-collapse bucket groups equals K=3 — the same value as
+   the flat-mode collapse evidence cap. Evidence sampling within a grouped-collapse bucket group
+   is governed by BC-2.11.032.
+5. The color selection for a given (verdict, confidence) pair in the grouped-collapse header is
+   identical to the color selected for the same (verdict, confidence) pair in flat-mode collapse.
+   The mapping is the same color ladder described in PC-3 above.
 
 ## Edge Cases
 
