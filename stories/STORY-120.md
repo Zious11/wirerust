@@ -158,14 +158,19 @@ Rule 5 rationale — they are not part of the mutually-exclusive findings-render
 ---
 
 ### AC-003 — Dispatch in render() is an exhaustive match over FindingsRender
-*(traces to BC-2.11.019 invariant 7 — FINDINGS dispatch routing)*
+*(traces to BC-2.11.019 invariant 7 — FINDINGS dispatch routing;*
+*BC-2.11.014 postcondition 1 — bucket sort invoked via Grouped arm calling render_findings_grouped;*
+*BC-2.11.015 postcondition 1 — colorization invoked via Grouped arm calling render_findings_grouped;*
+*BC-2.11.016 postcondition 1 — uncategorized bucket invoked via Grouped arm calling render_findings_grouped)*
 
 The FINDINGS section dispatch in `TerminalReporter::render` replaces the
 `if self.show_mitre_grouping { ... } else if self.collapse_findings { ... } else { ... }`
 chain with a `match self.render { FindingsRender::Grouped => ..., FindingsRender::FlatCollapsed => ..., FindingsRender::FlatExpanded => ... }`.
 Rust's exhaustive match enforcement means all three arms are required to compile.
-No behavior changes: `Grouped` calls `render_findings_grouped`, `FlatCollapsed` calls the
-collapse pass (established in STORY-118), `FlatExpanded` iterates `render_finding_flat` directly.
+No behavior changes: `Grouped` calls `render_findings_grouped` (which owns the bucket sort
+per BC-2.11.014, per-tactic colorization per BC-2.11.015, and the uncategorized bucket per
+BC-2.11.016), `FlatCollapsed` calls the collapse pass (established in STORY-118),
+`FlatExpanded` iterates `render_finding_flat` directly.
 
 - **Test:** `test_BC_2_11_019_findings_dispatch_match_exhaustive`
   (in `tests/reporter_terminal_tests.rs` — verifies all three render paths are reachable)
@@ -359,12 +364,17 @@ branch.
 ---
 
 ### AC-014 — FlatExpanded: one-line-per-finding behavior preserved byte-for-byte
-*(traces to BC-2.11.028 postcondition 2 — --no-collapse restores pre-v0.8.0 rendering)*
+*(traces to BC-2.11.028 postcondition 2 — --no-collapse restores pre-v0.8.0 rendering;*
+*BC-2.11.017 postcondition 1 — default/flat rendering emits MITRE: &lt;id(s)&gt; without em-dash,*
+*exercised by both FlatCollapsed and FlatExpanded arms which call render_finding_flat)*
 
 Given `TerminalReporter { render: FindingsRender::FlatExpanded, ... }`, the output is
 byte-identical to the pre-v0.8.0 flat rendering: one header line per finding, no ` (xN)`
 suffix, full evidence per finding. The `match` arm for `FindingsRender::FlatExpanded`
 iterates `render_finding_flat` directly, identical to the pre-refactor `else` branch.
+The `FlatCollapsed` arm also invokes `render_finding_flat` for each representative line,
+so BC-2.11.017's MITRE-id emission guarantee (no em-dash; plain `MITRE: <id>` format) is
+preserved across both flat variants.
 
 - **Test:** `test_BC_2_11_028_no_collapse_flag_one_line_per_finding` (existing, updated)
 
@@ -394,6 +404,33 @@ a defect. The Cargo.toml version is bumped to `0.9.0` in the STORY-120 PR.
 
 - **Test:** `cargo-semver-checks check` fires `struct_field_missing` (informational, expected);
   the PR description documents this as the intentional v0.9.0 semver boundary.
+
+---
+
+### AC-017 — No test-file comment references removed bool fields post-refactor
+*(process guard: DF-GREEN-DOC-TENSE-SWEEP / DF-SIBLING-SWEEP — stale comments are a*
+*documentation correctness obligation; traces to BC-2.11.028 postcondition 3 — the*
+*struct shape change propagates to all four test files including their comment vocabulary)*
+
+After STORY-120 lands, `grep -n 'collapse_findings\|show_mitre_grouping' tests/` returns
+zero matches that are current assertions about the struct fields. Specifically:
+- The `test_BC_2_11_028_flag_wired_to_reporter_field` docstring (currently at
+  `tests/reporter_terminal_tests.rs:3320-3324`) says "FAILS if the `collapse_findings` field
+  does not exist" — this assertion is self-contradictory after the refactor removes the field.
+  It MUST be rewritten to: "FAILS if `FlatCollapsed` and `FlatExpanded` produce identical
+  output / if the render variant is mis-wired to the wrong rendering path."
+- Any comment referencing `collapse_findings:` or `show_mitre_grouping:` as **struct fields**
+  must be rewritten to use `FindingsRender::FlatCollapsed`, `FindingsRender::FlatExpanded`,
+  or `FindingsRender::Grouped` vocabulary.
+- Historical changelog prose (e.g., STORY-118 references in comments) that mentions these
+  field names in past-tense narration is exempt — only forward-facing assertions are in scope.
+
+Passing check: `grep -n 'collapse_findings\|show_mitre_grouping' tests/` yields only
+enum-era uses (e.g., in string literals being tested) or clearly historical-narrative
+comments — never a current docstring that asserts the field exists on the struct.
+
+- **Test:** manual grep census during Task 7b review; there is no automated test gate, but
+  the AC is auditable at PR review time.
 
 ---
 
@@ -458,7 +495,10 @@ required (per F1 §8 and F2 Verification Delta).
    `collapse_findings`) and the existing FINDINGS dispatch block (`if self.show_mitre_grouping
    { ... } else if self.collapse_findings { ... } else { ... }`). Read `src/main.rs`
    (lines ~370-450) to confirm both construction sites. Read all 5 test files to enumerate
-   all construction sites before writing stubs.
+   all construction sites before writing stubs. **Also note**: as part of this initial read,
+   run `grep -n 'collapse_findings\|show_mitre_grouping' tests/` to capture all comment and
+   docstring references to the removed fields (AC-017 scope); record the line numbers for
+   Task 7b.
 
 2. **[F4 scope — RED]** Write test stubs in `tests/reporter_terminal_tests.rs` in a new
    `mod story_120` block for ACs 001–005, 007–016 that do not already have a corresponding
@@ -499,6 +539,23 @@ required (per F1 §8 and F2 Verification Delta).
    - `tests/dnp3_f5_remediation_tests.rs` (1 site): mitre_reporter(1070) → `Grouped`
    - `tests/bc_2_09_100_multitag_tests.rs` (1 site): make_terminal(690) → parameterized `if mitre_grouping { FindingsRender::Grouped } else { FindingsRender::FlatExpanded }`
    Add `use wirerust::reporter::terminal::FindingsRender;` to each file's imports.
+
+7b. **[F4 scope — GREEN — comment sweep, parallel with Task 7]** Sweep all 4 test files for
+    comment and docstring references to the removed `collapse_findings` and `show_mitre_grouping`
+    fields. Run `grep -n 'collapse_findings\|show_mitre_grouping' tests/` and rewrite each
+    stale comment to enum vocabulary (`FindingsRender::Grouped`, `FindingsRender::FlatCollapsed`,
+    `FindingsRender::FlatExpanded`). Specifically:
+    - Rewrite the `test_BC_2_11_028_flag_wired_to_reporter_field` docstring
+      (`tests/reporter_terminal_tests.rs:3320-3324`): the current text says "FAILS if the
+      `collapse_findings` field does not exist" — replace with "FAILS if `FlatCollapsed` and
+      `FlatExpanded` produce identical output / if the render variant is mis-wired to the
+      wrong rendering path." This ensures the docstring is self-consistent after the bool
+      fields are removed.
+    - Any other comment asserting `collapse_findings` or `show_mitre_grouping` exist as
+      struct fields must be rewritten to enum vocabulary.
+    - Historical/changelog-narration comments (past-tense references to the v0.8.0 bool
+      era) are exempt — only forward-facing assertions are in scope.
+    Guards against DF-GREEN-DOC-TENSE-SWEEP / DF-SIBLING-SWEEP recurrence. See AC-017.
 
 8. **[F4 scope — VERIFY]** Run `cargo check --all-targets` (zero compile errors confirms
    all 28 sites updated). Run `cargo test --all-targets` (zero test regressions confirms
@@ -636,10 +693,10 @@ were already verified during STORY-118 and are unchanged by this refactor.
 Every BC in the `behavioral_contracts:` frontmatter array is cited by at least one AC:
 
 - BC-2.11.013: AC-004 (invariant 4 — grouped path structurally suffix-free), AC-012
-- BC-2.11.014: AC-003 (match arm calls `render_findings_grouped` which owns bucket sort)
-- BC-2.11.015: AC-003 (match arm calls `render_findings_grouped` which owns colorization)
-- BC-2.11.016: AC-003 (match arm calls `render_findings_grouped` which owns uncategorized bucket)
-- BC-2.11.017: AC-003 (match arm for FlatCollapsed/FlatExpanded calls flat helpers)
+- BC-2.11.014: AC-003 (postcondition 1 — Grouped arm calls `render_findings_grouped` which owns bucket sort)
+- BC-2.11.015: AC-003 (postcondition 1 — Grouped arm calls `render_findings_grouped` which owns colorization)
+- BC-2.11.016: AC-003 (postcondition 1 — Grouped arm calls `render_findings_grouped` which owns uncategorized bucket)
+- BC-2.11.017: AC-014 (postcondition 1 — FlatExpanded and FlatCollapsed arms call render_finding_flat, preserving MITRE: <id> no-em-dash format)
 - BC-2.11.019: AC-003 (invariant 7 — dispatch routing), AC-010
 - BC-2.11.025: AC-004 (invariant 5 — type-level mutual exclusion), AC-013
 - BC-2.11.026: AC-013 (postcondition 1 — (xN) suffix preserved in FlatCollapsed)

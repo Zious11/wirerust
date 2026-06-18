@@ -12,11 +12,11 @@ modified:
   - "2026-06-17 v1.7: Adversarial Burst 5 remediation — stale 69→71 in two live current-state prose assertions (brownfield context note line ~28; acyclicity proof line ~254)."
   - "2026-06-17 v1.8: Adversarial Burst 6 remediation — BC-2.11.027 version stamp in BC-to-Stories matrix row (line ~740) updated v1.3→v1.4 (escape-notation fix bump). All other 8 BC version stamps confirmed MATCH vs live frontmatter."
   - "2026-06-17 v1.9: DF-INPUT-HASH-CANONICAL-001 — BC-2.11.025 bumped v1.5→v1.6 by BC-PO (canonical-vector evidence HTTP/1.1 fix); updated BC-2.11.025 stamp in BC-to-Stories matrix (v1.5→v1.6). STORY-118 input-hash recomputed: 432f43e → 77d97c6."
-  - "2026-06-18 v2.0: Feature #62 (issue #62, FindingsRender enum migration) — added STORY-120 (E-8, wave 48) for TerminalReporter enum-of-modes refactor (v0.9.0). total_stories 71→72 (product; +STORY-091 tooling = 73 all-stories). total_edges 94→95 (+1 intra E-8: STORY-120 blocks STORY-119, expressed as STORY-120→STORY-119 edge replacing the prior STORY-118→STORY-119 edge; STORY-119 now depends_on=[STORY-120]). number_of_waves 47→48. STORY-120 depends_on=[] (reporter struct exists; no new predecessor required). total_points 468→471 (product +3; scheduled wave-table total)."
+  - "2026-06-18 v2.0: Feature #62 (issue #62, FindingsRender enum migration) — added STORY-120 (E-8, wave 48) for TerminalReporter enum-of-modes refactor (v0.9.0). total_stories 71→72 (product; +STORY-091 tooling = 73 all-stories). total_edges 94→95 (+2 cross-epic: STORY-118→STORY-120 (E-18→E-8) + STORY-120→STORY-119 (E-8→E-18), replacing the prior STORY-118→STORY-119 intra-E-18 edge; net +1 cross-epic edge; intra 75→74, cross 19→21). number_of_waves 47→48. STORY-120 depends_on=[] (reporter struct exists; no new predecessor required). total_points 468→471 (product +3; scheduled wave-table total)."
 total_stories: 72  # product stories only (excludes STORY-091 tooling; all-stories total = 73)
 total_edges: 95
-intra_epic_edges: 76
-cross_epic_edges: 19
+intra_epic_edges: 74
+cross_epic_edges: 21
 number_of_waves: 48
 acyclic: true
 traces_to:
@@ -43,8 +43,8 @@ traces_to:
 |--------|-------|
 | Total stories | 72 (product; +STORY-091 tooling = 73) |
 | Total dependency edges | 95 |
-| Intra-epic edges | 76 |
-| Cross-epic edges | 19 |
+| Intra-epic edges | 74 |
+| Cross-epic edges | 21 |
 | Number of parallel waves | 48 (STORY-119 unscheduled/deferred; wave count reflects STORY-120 wave 48) |
 | Graph is acyclic | Yes (Kahn topological sort verified; STORY-097→098→099 extend acyclic order; STORY-106→107→108→109→110 extend further; STORY-111→112→113→114→115 extend further; STORY-115→116→117 extend further; STORY-118 has no new predecessors (depends_on=[]); STORY-120 has no new predecessors (depends_on=[]); STORY-119 now depends on STORY-120 — no back-edges into existing 72-story graph) |
 | Total story points | 471 (product; +5 tooling = 476; +3 STORY-120; STORY-119 deferred/8pts not in scheduled total) |
@@ -74,7 +74,7 @@ Dependencies in this graph respect the layer rules from
 
 ## Dependencies (Edge List)
 
-### Intra-Epic Edges (76 edges)
+### Intra-Epic Edges (74 edges)
 
 #### Epic E-1: PCAP Ingestion and Packet Decoding
 
@@ -210,16 +210,9 @@ Dependencies in this graph respect the layer rules from
 |------|----|---------------|
 | STORY-116 | STORY-117 | STORY-117 (MACsec offset-assertion tests) logically sequences after STORY-116's QinQ offset coverage: STORY-116 establishes the offset-formula understanding via `tests/bc_2_16_qinq_macsec_offset_tests.rs` (QinQ benign/malformed + observe-only MACsec probe), and STORY-117 builds on that understanding with full offset-assertion tests in the distinct file `tests/bc_2_16_e17_macsec_offset_tests.rs` (no-SCI offset 22, SCI-present offset 30, D11 routing, opaque-unreachable security guards). The two test files are independently compilable (no shared module); the edge reflects logical sequencing and QinQ-infrastructure reuse, not a file/module conflict. |
 
-#### Epic E-18: Terminal Finding-Collapse (issue #259, v0.8.0) + Enum Migration (issue #62, v0.9.0)
-
-| From | To | Justification |
-|------|----|---------------|
-| STORY-118 | STORY-120 | STORY-120 (FindingsRender enum migration, v0.9.0) refactors the `TerminalReporter` struct introduced by STORY-118. STORY-118 is completed; its four-bool struct is the refactor target. No compile-order dependency (the struct exists); logical sequencing places STORY-120 after STORY-118. |
-| STORY-120 | STORY-119 | STORY-119 (grouped-mode collapse, deferred) will use the `FindingsRender` enum variants introduced by STORY-120. If STORY-119 were delivered before STORY-120, its construction sites would use the old bool fields and require a second sweep. STORY-120 replaces the prior STORY-118→STORY-119 edge for this justification: STORY-119's implementer should build against the enum vocabulary, not the removed bools. Additionally, STORY-119 depends on STORY-120's `render: FindingsRender` field being present — the grouped-mode collapse feature will check `FindingsRender::Grouped` in its dispatch. |
-
 ---
 
-### Cross-Epic Edges (19 edges)
+### Cross-Epic Edges (21 edges)
 
 > **Note:** The E-17 intra-epic edge (STORY-116 → STORY-117) is listed under Intra-Epic Edges above. The E-16 → E-17 boundary edge (STORY-115 → STORY-116) appears in the table below.
 
@@ -247,6 +240,8 @@ These edges reflect the architecture pipeline layers defined in
 | STORY-105 | STORY-109 | E-14 -> E-15 | SS-10 mitre.rs | STORY-109 adds T1691.001 and T0827 to `SEEDED_TECHNIQUE_IDS` and the kani_proofs `EMITTED_IDS` set in `src/mitre.rs`; the Modbus seeding in STORY-105 sets the catalog counts to 21/13; STORY-109's obligation is 21→23 / 13→15 — this is a logical dependency on the prior state of mitre.rs |
 | STORY-110 | STORY-111 | E-15 -> E-16 | SS-02 (decoder) | STORY-111 migrates etherparse 0.16→0.20 and introduces `DecodedFrame::Arp(ArpFrame)` in `src/decoder.rs`; it also revises BC-2.02.009 to add the third decode path; the migration touches both `src/decoder.rs` and `src/dispatcher.rs` (Cargo.toml etherparse version bump affects both files) and must follow STORY-110's finalized `src/dispatcher.rs` changes (DNP3 Rule 6 in place) to avoid merge conflicts on the same file — file-level sequencing constraint, not a classify() ordering requirement |
 | STORY-115 | STORY-116 | E-16 -> E-17 | SS-16 (ARP lax-path) | STORY-116 adds VLAN/QinQ offset regression tests that exercise `extract_arp_frame` and the ARP lax-path in `src/decoder.rs`; STORY-115 must be merged first because it finalizes all ARP decode-time logic in `src/decoder.rs` and `src/main.rs` that STORY-116's fixture tests exercise; file-sequencing + behavioral contract completeness (BC-2.16.009 EC-008, BC-2.16.015 PC-7a) — offset hardening stories test code that must be fully landed first |
+| STORY-118 | STORY-120 | E-18 -> E-8 | SS-11 (TerminalReporter) | STORY-120 (E-8, FindingsRender enum migration, v0.9.0) refactors the `TerminalReporter` struct introduced by STORY-118 (E-18). STORY-118 is completed; its four-bool struct is the refactor target. No compile-order dependency (the struct exists); logical sequencing places STORY-120 after STORY-118. Cross-epic: STORY-118 is E-18; STORY-120 is E-8. |
+| STORY-120 | STORY-119 | E-8 -> E-18 | SS-11 (TerminalReporter) | STORY-119 (E-18, grouped-mode collapse, deferred) will use the `FindingsRender` enum variants introduced by STORY-120 (E-8). If STORY-119 were delivered before STORY-120, its construction sites would use the old bool fields and require a second sweep. STORY-120 replaces the prior STORY-118→STORY-119 edge: STORY-119's implementer should build against the enum vocabulary. Cross-epic: STORY-120 is E-8; STORY-119 is E-18. |
 
 ---
 
