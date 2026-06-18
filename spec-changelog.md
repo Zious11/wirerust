@@ -34,7 +34,15 @@ structurally unrepresentable.
 - `run_summary` construction site → `render: FindingsRender::FlatCollapsed` by convention (inert — `run_summary` emits no FINDINGS section; no BC governs this path; the value is a structural placeholder distinguishing it from the dispatch-derived `run_analyze` mapping above)
 
 **Scope:** Precondition field-name re-anchoring only. No new postconditions, no new test
-vectors, no new invariants. No behavioral change. No new BCs. Architecture unchanged.
+vectors, no new invariants. No behavioral change. No new BCs. Architecture: ADR-0003
+amended (new "Render-Mode Enum (Issue #62 — v0.9.0)" subsection + Binding Rule 5);
+ARCH-INDEX SS-11/ADR-0003 row updated. See PRD-delta §Architecture Delta.
+
+> **Bookkeeping correction (2026-06-18):** The original Scope line read "Architecture
+> unchanged." — this was FALSE. ADR-0003 was amended during the human gate review (after
+> the initial F2 pass) with a new subsection and Binding Rule 5. The Version Summary table
+> below has been extended to include ADR-0003 and ARCH-INDEX as they were omitted in the
+> original entry. No BC postconditions or test vectors changed.
 
 #### BC Version Summary
 
@@ -58,6 +66,8 @@ vectors, no new invariants. No behavioral change. No new BCs. Architecture uncha
 | BC-INDEX.md | v1.40 | v1.41 | BC-2.11.025 annotation updated with v1.8 note |
 | BC-2.11.029 | v1.3  | v1.4  | Architecture Anchors block corrected (F-1, adv-pass-2): INSERTION TARGET/STORY-118 → REFACTOR TARGET/STORY-120; stale three-field parenthetical corrected to four-field v0.8.0 struct (use_color, show_mitre_grouping, show_hosts_breakdown, collapse_findings); line ranges aligned to BC-2.11.028 sibling (terminal.rs:91-110, main.rs ~373). The v1.3 changelog falsely claimed anchors had been updated; v1.4 is the genuine anchor-block correction. |
 | BC-INDEX.md | v1.41 | v1.42 | BC-2.11.029 annotation updated with v1.4 note |
+| ADR-0003 | — | amended | "Render-Mode Enum (Issue #62 — v0.9.0)" subsection added; Binding Rule 5 (render-mode type) added; illegal-state elimination rationale, migration map, semver v0.9.0 consequence, Default omission decision documented. (human gate fix-burst 2026-06-17) |
+| ARCH-INDEX.md | v1.5 | v1.5* | ADR-0003 table row extended: v0.9.0 render-mode enum subsection appended to description; `modified[]` entry added for issue #62. (*version field unchanged; modified[] records the extension.) |
 
 **total_bcs=288 unchanged** (re-anchoring pass; no new BCs, no retirements).
 

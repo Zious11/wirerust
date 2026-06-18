@@ -36,8 +36,12 @@ The dispatch confirms:
 - `show_mitre_grouping = true` wins regardless of `collapse_findings` → `Grouped`
 - `show_mitre_grouping = false, collapse_findings = true` → `FlatCollapsed`
 - `show_mitre_grouping = false, collapse_findings = false` → `FlatExpanded`
+- `run_summary` construction site → `render: FindingsRender::FlatCollapsed` by convention
+  (inert — `run_summary` emits no FINDINGS section; no BC governs this path; the value is a
+  structural placeholder distinguishing it from the dispatch-derived `run_analyze` mapping above)
 
-This matches the F1-approved design and the research brief's migration map exactly.
+This matches the F1-approved design, the research brief's migration map, and the
+spec-changelog migration map exactly. All four construction sites are accounted for.
 
 ## BCs Touched (re-anchoring only)
 
