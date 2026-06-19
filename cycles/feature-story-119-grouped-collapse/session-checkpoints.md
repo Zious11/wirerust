@@ -5,6 +5,39 @@ cycle_id: feature-story-119-grouped-collapse
 
 # Archived Session Checkpoints — STORY-119 grouped-mode collapse
 
+## Checkpoint: 2026-06-18 — STORY-119 F1/F2 COMPLETE; PAUSED before F3
+
+*Archived from STATE.md when STORY-119 F3 convergence burst replaced this checkpoint.*
+
+### A. EXACT PIPELINE POSITION
+
+- **Project:** wirerust. **Mode:** FEATURE_MODE — STORY-119 cycle, F1✅/F2✅ CONVERGED 3/3 (frozen corpus 7eb9f09). PAUSED before F3 per human directive ('finish F2 convergence, then pause').
+- **STORY-119 F2 status:** adversarial gate SATISFIED 3/3 (D-118). Round-6 triple all CLEAN. F2 COMPLETE.
+- **E-8 / #62 status:** ALL PHASES COMPLETE. F7 HUMAN GATE APPROVED. RELEASE v0.9.0 HELD. #62 cycle CLOSED-PENDING-RELEASE.
+- **Latest release:** v0.8.0 — finding-collapse (E-18, issue #259, STORY-118). Tag v0.8.0 on main 73034da. Cargo 0.9.0 is on develop (not yet released).
+- **DRIFT-62-MAIN495-DOC-001:** Fix src/main.rs:495 doc-comment on develop within the STORY-119 cycle (D-109).
+- **STORY-121 (E-11 process-gap):** Filed as draft; D-118 extends scope (5 process-gap families). No action until F3.
+
+### B. EXACT SHAs / WORKTREE STATE
+
+- **develop HEAD:** `f851995` (fix-PR #267 — ADR-0003 color-ladder anchor + CHANGELOG v0.9.0 entry).
+- **main HEAD:** `73034da` (`chore: release v0.8.0`). Tag `v0.8.0` annotated.
+- **factory-artifacts HEAD:** run `git -C /Users/zious/Documents/GITHUB/wirerust/.factory log -1 --format='%h %s'`
+- **STORY-120:** DELIVERED — merged to develop via PR #266 (a4263c73). Worktree cleaned.
+- **STORY-119:** `.factory/stories/STORY-119.md` v1.4 — F2 spec COMPLETE; F2 adversarial gate SATISFIED 3/3 (D-118).
+- **Active worktrees:** 2 — main repo (develop), `.factory/` (factory-artifacts).
+- **Open PRs:** NONE.
+
+### C. KEY ARTIFACT POINTERS
+
+- STORY-119: `.factory/stories/STORY-119.md` (grouped-mode collapse; v1.4; F2 CONVERGED)
+- Cycle manifest: `.factory/cycles/feature-story-119-grouped-collapse/cycle-manifest.md`
+- STORY-120: `.factory/stories/STORY-120.md` (DELIVERED; input-hash 8047030)
+- STORY-121: `.factory/stories/STORY-121.md` (draft — E-11 process-gap; D-118 scope extension)
+- F2 convergence: frozen corpus 7eb9f09; D-118.
+
+---
+
 ## Checkpoint: 2026-06-18 — E-8/#62 COMPLETE; STORY-119 cycle NEXT
 
 *Archived from STATE.md when STORY-119 F1 gate-approved burst replaced this checkpoint.*
