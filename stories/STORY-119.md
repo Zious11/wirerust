@@ -2,7 +2,7 @@
 document_type: story
 story_id: STORY-119
 epic_id: E-18
-version: "2.1"
+version: "2.2"
 status: pending
 producer: story-writer
 timestamp: 2026-06-18T00:00:00Z
@@ -546,14 +546,14 @@ No new crates. `CollapseKey`, `COLLAPSE_EVIDENCE_SAMPLES`, and `collapse_finding
 | `run_analyze` construction site (modified in Task 4: 3-arm if → orthogonal 2-if) | `src/main.rs` | Effectful (CLI entry point) |
 
 **Architecture Anchors (post-STORY-122/A / pre-STORY-119/B state):**
-- `src/reporter/terminal.rs` — `collapse_findings_pass` at `:340` (becomes thin adapter in Task 1)
+- `src/reporter/terminal.rs` — `collapse_findings_pass` (locate by function signature `fn collapse_findings_pass`; becomes thin adapter in Task 1; line range shifts after STORY-122/A grows the dispatch block above it)
 - `src/reporter/terminal.rs` — `collapse_findings_pass_refs` (F4-new; to be added adjacent to `collapse_findings_pass`)
-- `src/reporter/terminal.rs:202-224` — `match (self.render.grouping, self.render.collapse)` four-arm dispatch (established by STORY-122/A; Task 3 repoints the `{Grouped, Collapsed}` arm)
-- `src/reporter/terminal.rs:432-483` — `render_findings_grouped` (Task 2 structural model; DO NOT MODIFY the function body)
-- `src/reporter/terminal.rs:376-423` — `render_findings_collapsed` (flat-mode precedent for evidence loop and color ladder patterns)
-- `src/reporter/terminal.rs:73` — `COLLAPSE_EVIDENCE_SAMPLES = 3` (shared constant; not duplicated)
-- `src/reporter/terminal.rs:311-327` — `render_finding_grouped` (called for N=1 singletons; unchanged)
-- `src/reporter/terminal.rs:391` — color ladder in `render_findings_collapsed` (normative reference for suffix-in-pre-color-string pattern; `:391` is the color-selection block entry point per BC-2.11.031 PC-3)
+- `src/reporter/terminal.rs` — `match (self.render.grouping, self.render.collapse)` four-arm dispatch in `TerminalReporter::render()` (locate by the match expression `match (self.render.grouping, self.render.collapse)`; Task 3 repoints the `{Grouped, Collapsed}` arm; line range shifts after STORY-122/A — do NOT hard-code `:202-224`, use content-based search per lesson #7)
+- `src/reporter/terminal.rs` — `render_findings_grouped` (locate by function signature `fn render_findings_grouped`; Task 2 structural model; DO NOT MODIFY the function body; line range shifts after STORY-122/A)
+- `src/reporter/terminal.rs` — `render_findings_collapsed` (locate by function signature `fn render_findings_collapsed`; flat-mode precedent for evidence loop and color ladder patterns; line range shifts after STORY-122/A)
+- `src/reporter/terminal.rs:73` — `COLLAPSE_EVIDENCE_SAMPLES = 3` (shared constant; not duplicated; stable line, pre-dispatch block)
+- `src/reporter/terminal.rs` — `render_finding_grouped` (locate by function signature `fn render_finding_grouped`; called for N=1 singletons; unchanged)
+- `src/reporter/terminal.rs` — color ladder in `render_findings_collapsed` (locate by the `Likely` + `High` branch: `red().bold()` block; normative reference for suffix-in-pre-color-string pattern; line range shifts after STORY-122/A)
 - `src/main.rs:107` — `show_mitre_grouping: bool` in-scope param in `run_analyze`
 - `src/main.rs:108` — `collapse_findings: bool` in-scope param in `run_analyze`
 
@@ -609,3 +609,4 @@ No new crates. `CollapseKey`, `COLLAPSE_EVIDENCE_SAMPLES`, and `collapse_finding
 - **v1.0–v1.12:** See monolithic STORY-119 history (archived in version control). v1.12 was the last converged version before the D-120 split.
 - **v2.0 (D-120 re-scope, 2026-06-18):** Re-scoped per D-120 human-confirmed split decision (2026-06-18). STORY-119/B now covers only the net-new behavioral delta: `render_findings_grouped_collapsed` implementation, `collapse_findings_pass_refs` shared helper, `collapse_findings_pass` thin adapter, dispatch arm repointing, CLI flip (`--mitre` default → `{Grouped, Collapsed}`), dual-scope `--no-collapse`. Removed from scope (moved to STORY-122/A): struct definition, enum→struct reshape, 84-site migration, four-arm dispatch establishment, comment sweep of three-variant/verdict-desc stale prose. ACs renumbered: old AC-001..004 (CLI mapping) → new AC-001..004 (identical text); old AC-005 (struct def) → moved to STORY-122/A; old AC-006 (dispatch existence) → moved to STORY-122/A; old AC-007 (84-site migration) → moved to STORY-122/A; old AC-008..029 → renumbered AC-005..026 (behavioral path ACs preserved); old AC-030 (comment sweep) → simplified AC-026 (dual-scope doc-comment only; three-variant sweep moved to STORY-122/A); old AC-031 (test green) → new AC-027. depends_on updated [STORY-120] → [STORY-122]. wave updated 49 → 50. points updated 8 → 5 (behavioral delta only; migration burden moved to STORY-122 3pts). Input BC list unchanged (same 12 BCs govern the complete feature). PO-final BC versions applied: 013 v1.15, 014 v2.1, 016 v1.10, 025 v1.14, 026 v1.14, 027 v1.8, 028 v1.10, 030 v1.5, 031 v1.4, 032 v1.5, 033 v1.4, 034 v1.4.
 - **v2.1 (F3-resplit round-1 remediation, 2026-06-18):** Reconciled to Option X (human-approved split design). Previously Task 4 said "No code change needed to the construction site itself — the CLI flip happens by virtue of repointing the dispatch arm." That was Option Y (wrong). Fixed: Task 4 now prescribes REPLACING the STORY-122/A 3-arm if with the orthogonal 2-if form at `run_analyze` — this IS the construction flip that STORY-119/B owns under Option X. `src/main.rs` in File Structure Requirements changed from **Verify** to **Modify**. Architecture Mapping entry for `run_analyze` updated to reflect the Task 4 change. Scope section item 5 updated to explicitly state "This IS a code change to the construction site." AC-005 trace quote corrected from verbatim `"F4-new function"` to `"F4-pending new function:"` (verbatim from BC-2.11.031.md:165). The Option X coherence: A leaves `{Grouped, Collapsed}` unreachable-via-CLI (3-arm if never produces it); B makes `run_analyze` produce it via orthogonal 2-if and repoints the dispatch arm to `render_findings_grouped_collapsed`.
+- **v2.2 (F3-resplit round-2 remediation, 2026-06-18):** Fix 3 (Pass A F-A-004): Architecture Anchors section updated to use content-based citations for all post-STORY-122 source functions whose line ranges will drift. The brittle `src/reporter/terminal.rs:202-224` line range (the four-arm dispatch block that STORY-122/A grows from 3→4 arms) replaced with a content-based citation: "locate by the match expression `match (self.render.grouping, self.render.collapse)`". Also converted `collapse_findings_pass` (:340), `render_findings_grouped` (:432-483), `render_findings_collapsed` (:376-423), `render_finding_grouped` (:311-327), and the color-ladder entry point (:391) to content-based anchors with locate-by instructions — all of these shift after STORY-122/A's dispatch block grows. Stable pre-dispatch reference `:73` (COLLAPSE_EVIDENCE_SAMPLES) retained as a line anchor. Per lesson #7 in Previous Story Intelligence: use content-based citations (entry text) rather than line numbers when referencing functions whose position shifts due to predecessor edits.

@@ -1,6 +1,6 @@
 ---
 document_type: story-index
-version: "2.3"
+version: "2.4"
 status: draft
 producer: story-writer
 timestamp: 2026-06-18T00:00:00Z
@@ -41,6 +41,8 @@ total_points: 484  # = 479 wave-table scheduled product (72 product stories in w
 # enum→struct reshape + 84-site migration byte-identical). STORY-119 re-scoped to B (wave 50,
 # 5 pts, depends_on STORY-122). total_stories 74→75. total_waves 49→50. Points net zero change
 # (STORY-119 8→5 + STORY-122 3pts). E-18 epic entry updated (2→3 stories, 16 pts unchanged).
+# v2.4 (2026-06-18): F3-resplit round-2 remediation — Fix 4 (Pass C H-1): epic-table TOTAL
+# row Count cell corrected 74→75 (per-epic Count column sums to 75; frontmatter total_stories=75).
 traces_to:
   - .factory/stories/dependency-graph.md
   - .factory/stories/epics.md
@@ -224,7 +226,7 @@ traces_to:
 | E-16: ARP Security Analyzer (issue #9) | STORY-111, STORY-112, STORY-113, STORY-114, STORY-115 | 5 | 47 |
 | E-17: ARP QinQ/MACsec Offset Hardening (issue #253) | STORY-116, STORY-117 | 2 | 8 |
 | E-18: Terminal Finding-Collapse (issue #259, v0.8.0) | STORY-118, STORY-122, STORY-119 | 3 | 16 |
-| **TOTAL** | | **74** | **487** |
+| **TOTAL** | | **75** | **487** |
 
 ---
 

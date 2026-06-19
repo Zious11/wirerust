@@ -2,7 +2,7 @@
 document_type: story
 story_id: STORY-122
 epic_id: E-18
-version: "1.1"
+version: "1.2"
 status: pending
 producer: story-writer
 timestamp: 2026-06-18T00:00:00Z
@@ -197,9 +197,15 @@ The stale doc-comment on `render_findings_grouped` at `src/reporter/terminal.rs:
 "verdict-desc, then confidence-desc" is corrected to ascending sort order: "Within each bucket,
 findings sort ascending by verdict-rank (Likely=0, Possible=1, Inconclusive=2, Unlikely=3),
 then ascending by confidence-rank (High=0, Medium=1, Low=2), then original emission order (stable)."
-The stale semantic prose at `tests/reporter_terminal_tests.rs` lines 3949, 3995, 4005, 4038,
-and 4061 referencing "three-variant enum" / "three fields" / "three arms" vocabulary is updated
-to two-orthogonal-axis / four-arm vocabulary.
+The stale semantic prose at `tests/reporter_terminal_tests.rs` lines 3949, 3995, 4005, and 4061
+referencing "three-variant enum" / "three arms" / "three variants" vocabulary is updated to
+two-orthogonal-axis / four-arm vocabulary. The derive test body (lines 3996-4026) is updated to
+use struct literals for all four Grouping×Collapse combinations (see Task 4 for detail). The test
+at line 4038 (`test_BC_2_11_028_struct_has_exactly_three_fields_post_refactor`) and its body
+comment at line 4040 (`these three fields exist on TerminalReporter`) are EXEMPT — they correctly
+describe the TerminalReporter struct field count (3 fields: use_color, show_hosts_breakdown,
+render), which is UNCHANGED by the FindingsRender reshape. Only the FindingsRender variant token
+at line 4045 within that test (`FindingsRender::FlatExpanded`) is migrated mechanically by Task 2.
 (traces to BC-2.11.028 Invariant 6: "Per LESSON-P1.04 (no unwired flags): the `no_collapse` field in `cli.rs` MUST be wired to `TerminalReporter.render` in `main.rs` via the two-field struct expression in Invariant 1 (STORY-119 F4 target)…")
 (governing-BC trace: BC-2.11.014 Invariant 1: "Verdict ranks: Likely=0, Possible=1, Inconclusive=2, Unlikely=3 (defined by local `verdict_rank` function in terminal.rs:447-454; source-confirmed match arms).")
 
@@ -354,24 +360,33 @@ stale `verdict-desc`/`confidence-desc` text, and stale `three-variant`/`three fi
 **Stale semantic prose targets (tests/reporter_terminal_tests.rs):**
 - Line 3949 — module-level comment `(a three-variant enum)` → update to `(a struct-of-two-orthogonal-enums: Grouping × Collapse)`
 - Line 3995 — doc-comment `The enum has exactly three variants` → update to `The struct has exactly two fields: grouping: Grouping and collapse: Collapse`
-- Line 4005 — body comment `All three variants are distinct` → update to describe Grouping×Collapse combinations
-- Line 4038 — test name `test_BC_2_11_028_struct_has_exactly_three_fields_post_refactor` + body comment `these three fields exist on TerminalReporter` → update to two-orthogonal-axis vocabulary
+- Lines 3996-4026 — body of `test_findings_render_derives_debug_clone_copy_partialeq_eq`: after Task-1 reshapes the type and Task-2 migrates the variant tokens, the existing three-variant assertion logic degenerates (only 3 of the 4 Cartesian combos covered; the "three variants" framing is false — there are no variants, and 4 valid struct-literal combos exist). **Migrate the variant tokens to struct literals AND update the assertions and comments:**
+  - Replace `FindingsRender::Grouped`, `FindingsRender::FlatCollapsed`, `FindingsRender::FlatExpanded` tokens with struct literals per the migration map (Task 2).
+  - Add the 4th combo `FindingsRender { grouping: Grouping::Grouped, collapse: Collapse::Collapsed }` so all four Cartesian pairs are asserted pairwise distinct.
+  - Update the comment `// All three variants are distinct.` → `// All four Grouping × Collapse combinations are pairwise distinct.`
+  - Rename/rescope the test from "three variants" to the two-orthogonal-axis struct: update the doc-comment line 3995 and the Debug format assertions (lines 4023-4025) to use struct literal Debug output, e.g. `assert!(format!("{:?}", FindingsRender { grouping: Grouping::Grouped, collapse: Collapse::Expanded }).contains("Grouped"))`.
+  - The test name `test_findings_render_derives_debug_clone_copy_partialeq_eq` may be kept or renamed to `test_findings_render_struct_derives_debug_clone_copy_partialeq_eq`. Any name change must not collide with existing test names.
+  - This keeps AC-006 ("all existing tests pass") honest: the test must verify what it claims post-reshape. A test asserting `FindingsRender` derive traits with three-variant enum literals is a non-compiling dead letter after Task 1; it must be updated to assert the same traits for the struct form.
 - Line 4061 — doc-comment `All three FindingsRender arms` → update to `All four FindingsRender (Grouping × Collapse) dispatch arms`
+- Lines 4115-4127 — comments and assertions in `test_BC_2_11_019_findings_dispatch_match_exhaustive` referencing three outputs (`// All three outputs are mutually distinct.`): this test already constructs Grouped/FlatCollapsed/FlatExpanded inline — migrate those variant tokens to struct literals (Task 2) and update the comment at :4115 to `// All three tested outputs are mutually distinct (three of the four Grouping × Collapse combos).`
 
-**Exempt (do not modify):**
+**EXEMPT (do NOT modify — rationale required):**
 - `collapse_findings` as a local bool variable name inside `run_analyze` — intentional.
 - `show_mitre_grouping` as a local bool variable name inside `run_analyze` — same rationale.
 - Historical BCs and ADR text outside `src/` and `tests/` — spec artifacts.
 - Changelog stanzas in STORY files and BC files that historically reference "three-variant enum"
   — frozen historical records.
+- **`tests/reporter_terminal_tests.rs:4038` test name `test_BC_2_11_028_struct_has_exactly_three_fields_post_refactor` — EXEMPT.** This test asserts that `TerminalReporter` has exactly three fields (`use_color`, `show_hosts_breakdown`, `render`). That field count is UNCHANGED by the FindingsRender reshape; TerminalReporter still has exactly the same three fields. The test name and its body comment at `:4040` ("these three fields exist on TerminalReporter") describe the TerminalReporter struct field count, NOT FindingsRender variant count. Do NOT rename this test and do NOT edit the comment at `:4040`. The only edit to this test block (`:4038-4053`) is the mechanical Task-2 migration of `FindingsRender::FlatExpanded` at `:4045` to the struct literal `FindingsRender { grouping: Grouping::Flat, collapse: Collapse::Expanded }`.
+- `tests/reporter_terminal_tests.rs:394` — `All three boundary` — EXEMPT: refers to U+009F/U+00A0 escape boundary values, unrelated to FindingsRender.
+- `tests/reporter_terminal_tests.rs:3512` — `All three findings must appear.` — EXEMPT: refers to a count of three test findings (not FindingsRender variants).
 
 **Falsifiable requirements after sweep:**
 1. `grep -rn "FindingsRender::Grouped\|FindingsRender::FlatCollapsed\|FindingsRender::FlatExpanded" src/ tests/` returns zero lines.
 2. `grep -n "verdict-desc\|confidence-desc" src/reporter/terminal.rs` returns zero lines.
-3. `grep -n "three-variant\|three fields\|All three FindingsRender\|three.arm" tests/reporter_terminal_tests.rs` returns zero lines for the non-exempt targets listed above.
-4. `grep -n "three mutually-exclusive\|three-way\|impossible state\|three.mode" src/reporter/terminal.rs src/main.rs` returns zero lines (covers the src/ stale-prose targets added in this story version).
+3. `grep -n "three.variant\|All three FindingsRender\|three.arm\|three mutually-exclusive\|three-way\|impossible state" tests/reporter_terminal_tests.rs src/reporter/terminal.rs src/main.rs` returns zero lines for non-exempt targets. Note: the bare token `three fields` is EXEMPT at `:4040` (TerminalReporter-field prose) — do NOT include bare `three fields` in the gate pattern. Use the scoped pattern above which matches `three.variant`, `All three FindingsRender`, `three.arm`, `three mutually-exclusive`, `three-way`, `impossible state` — these match only FindingsRender-scoped stale prose, not the TerminalReporter-field comment.
+4. `grep -n "three mutually-exclusive\|three-way\|impossible state\|three.mode" src/reporter/terminal.rs src/main.rs` returns zero lines (covers the src/ stale-prose targets).
 
-The grep gate in (4) is NEW in STORY-122 v1.1. The F4 implementer MUST run all four gates after completing all tasks and confirm all return zero non-exempt lines.
+The grep gate in (3) and (4) are tightened in STORY-122 v1.2 to avoid false-positive matches against the EXEMPT TerminalReporter-field comment at `:4040`. The F4 implementer MUST run all four gates after completing all tasks and confirm all return zero non-exempt lines.
 
 ---
 
@@ -534,3 +549,4 @@ No new crates. This story does not introduce any new external dependencies.
 
 - **v1.0 (D-120 split, 2026-06-18):** Created as STORY-122/A from the D-120 human-confirmed split of monolithic STORY-119 v1.12. Scope: FindingsRender enum→struct reshape + 84-site migration (byte-identical). ACs drawn from STORY-119 v1.12 AC-005 (struct def), AC-006 (dispatch), AC-007 (84-site migration), AC-028 (byte-identical {Grouped,Expanded}), AC-029 (flat paths byte-identical), AC-030 (comment sweep), and the struct-construction wiring ACs AC-001/AC-003/AC-004. The `{Grouped,Collapsed}` TEMPORARY routing note (AC-002) is new to STORY-122/A — the monolithic story had this arm dispatching to `render_findings_grouped_collapsed` (a function that STORY-122/A does NOT introduce). BC set reduced to 6 (removed BC-2.11.025/030/031/032/033/034 which govern the behavioral render path in STORY-119/B). points set to 3 (migration-only, like STORY-120). wave 49 = max(STORY-120=48)+1.
 - **v1.1 (F3-resplit round-1 remediation, 2026-06-18):** Reconciled to Option X (human-approved split design). Previously AC-004 and Task 2 prescribed the orthogonal 2-if struct wiring (`{grouping: if .., collapse: if ..}`), which would produce `{Grouped, Collapsed}` for `--mitre` alone and contradicted the claim in AC-006/EC-001 that `{Grouped, Collapsed}` is unreachable via CLI in Story A. Fixed: AC-004 now prescribes the 3-arm if migrated to 3 struct literals (byte-identical to v0.9.0 branching: `--mitre` alone → `{Grouped, Expanded}`). Task 2 run_analyze wiring updated to match. EC-001 corrected to say `--mitre` alone → `{Grouped, Expanded}` in A; `{Grouped, Collapsed}` unreachable-via-CLI note preserved and made accurate. Task 1 scope extended to Lines 94-111 (include :94-99 doc-comment block in wholesale replacement). Task 4 extended to cover src/ stale prose targets (`src/reporter/terminal.rs:6-8`, `:122-124`, `:204-206`; `src/main.rs:378`) and added falsifiable grep gate (4): `grep -n 'three mutually-exclusive|three-way|impossible state|three.mode' src/reporter/terminal.rs src/main.rs` must return zero lines after F4. Migration map note added: no arm in the 3-arm if yields `{Grouped, Collapsed}`, so the unreachable claim is structurally accurate.
+- **v1.2 (F3-resplit round-2 remediation, 2026-06-18):** Three targeted fixes. (1) Fix 1 (Pass A F-A-002+F-A-003): removed `:4038` and `:4040` from Task-4 stale-prose TARGET list — the test `test_BC_2_11_028_struct_has_exactly_three_fields_post_refactor` and its comment "these three fields exist on TerminalReporter" correctly describe the TerminalReporter field count (still 3: use_color, show_hosts_breakdown, render), NOT FindingsRender variant count; added explicit EXEMPT entry for `:4038`/`:4040` with rationale in Task 4 and AC-007. Tightened grep gate (3): bare `three fields` dropped from the pattern; scoped to `three.variant`, `All three FindingsRender`, `three.arm`, `three mutually-exclusive`, `three-way`, `impossible state` — FindingsRender-scoped only, not TerminalReporter-field prose. (2) Fix 2 (Pass A F-A-001): AC-007 and Task 4 now explicitly instruct updating the derive test body (lines 3996-4026): migrate variant tokens to struct literals AND add the 4th Grouping×Collapse combo `{Grouped, Collapsed}` AND update comments and Debug assertions to reflect the struct form, so the test verifies what it claims post-reshape. (3) Minor: `:4115` comment `All three outputs are mutually distinct` added to Task-4 target list (in `test_BC_2_11_019_findings_dispatch_match_exhaustive`); similarly `:4137`/`:4155` impossible-state prose in `test_BC_2_11_025_grouped_mode_bypasses_collapse_structurally` added.
