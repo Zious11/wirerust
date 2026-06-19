@@ -65,28 +65,28 @@ fn escape_for_terminal(s: &str) -> String {
     out
 }
 
-/// Escape control bytes for safe terminal display in the grouped-collapse rendering path.
+/// Ascending sort rank for [`Verdict`]: lower value → appears first in a sorted bucket.
 ///
-/// Identical to [`escape_for_terminal`] for C1 (U+0080–U+009F) and backslash,
-/// but uses two-digit hex (`\xNN`) instead of unicode (`\u{N}`) for C0 (U+0000–U+001F)
-/// and DEL (U+007F). This matches BC-2.11.031 Precondition 5 / VP-012 as exercised
-/// by the grouped-collapse acceptance tests (AC-023).
-fn escape_for_terminal_grouped(s: &str) -> String {
-    let mut out = String::with_capacity(s.len());
-    for c in s.chars() {
-        if c.is_ascii_control() {
-            // C0 (0x00–0x1F) and DEL (0x7F): two-digit lowercase hex escape.
-            out.push_str(&format!("\\x{:02x}", c as u32));
-        } else if ('\u{80}'..='\u{9f}').contains(&c) || c == '\\' {
-            // C1 range and backslash: delegate to escape_default (same as flat path).
-            for e in c.escape_default() {
-                out.push(e);
-            }
-        } else {
-            out.push(c);
-        }
+/// BC-2.11.014 / BC-2.11.033 PC-5: both `render_findings_grouped` and
+/// `render_findings_grouped_collapsed` share this single source (BC-014 single-source rule).
+fn verdict_rank(v: Verdict) -> u8 {
+    match v {
+        Verdict::Likely => 0,
+        Verdict::Possible => 1,
+        Verdict::Inconclusive => 2,
+        Verdict::Unlikely => 3,
     }
-    out
+}
+
+/// Ascending sort rank for [`Confidence`]: lower value → appears first in a sorted bucket.
+///
+/// BC-2.11.014 / BC-2.11.033 PC-6: both grouped render functions share this single source.
+fn confidence_rank(c: Confidence) -> u8 {
+    match c {
+        Confidence::High => 0,
+        Confidence::Medium => 1,
+        Confidence::Low => 2,
+    }
 }
 
 /// Maximum number of representative evidence lines rendered per collapsed group.
@@ -481,22 +481,7 @@ impl TerminalReporter {
             buckets.entry(tactic).or_default().push((i, f));
         }
 
-        fn verdict_rank(v: Verdict) -> u8 {
-            match v {
-                Verdict::Likely => 0,
-                Verdict::Possible => 1,
-                Verdict::Inconclusive => 2,
-                Verdict::Unlikely => 3,
-            }
-        }
-        fn confidence_rank(c: Confidence) -> u8 {
-            match c {
-                Confidence::High => 0,
-                Confidence::Medium => 1,
-                Confidence::Low => 2,
-            }
-        }
-
+        // verdict_rank / confidence_rank: module-level single-source (BC-014).
         for (_, items) in buckets.iter_mut() {
             items.sort_by_key(|(idx, f)| {
                 (verdict_rank(f.verdict), confidence_rank(f.confidence), *idx)
@@ -543,24 +528,8 @@ impl TerminalReporter {
             buckets.entry(tactic).or_default().push((i, f));
         }
 
-        // Step 2: sort helper ranks (same as render_findings_grouped).
-        fn verdict_rank(v: Verdict) -> u8 {
-            match v {
-                Verdict::Likely => 0,
-                Verdict::Possible => 1,
-                Verdict::Inconclusive => 2,
-                Verdict::Unlikely => 3,
-            }
-        }
-        fn confidence_rank(c: Confidence) -> u8 {
-            match c {
-                Confidence::High => 0,
-                Confidence::Medium => 1,
-                Confidence::Low => 2,
-            }
-        }
-
         // Sort each bucket ascending by (verdict_rank, confidence_rank, emission-index).
+        // verdict_rank / confidence_rank: module-level single-source (BC-014).
         for (_, items) in buckets.iter_mut() {
             items.sort_by_key(|(idx, f)| {
                 (verdict_rank(f.verdict), confidence_rank(f.confidence), *idx)
@@ -569,23 +538,13 @@ impl TerminalReporter {
 
         // Step 3: render buckets in all_tactics_in_report_order(), Uncategorized last.
         let render_collapsed_bucket = |out: &mut String, items: &[(usize, &Finding)]| {
-            // Build a slice of &Finding refs in sorted order for collapse pass.
-            // Per-bucket collapse: group by summary only (BC-2.11.033 PC-5/6 — the
-            // sort-then-collapse semantics require verdict/confidence to determine the
-            // representative, not group membership; findings with the same summary but
-            // different severities form one group whose representative is the
-            // highest-severity post-sort members[0]).
-            let refs: Vec<&Finding> = items.iter().map(|(_, f)| *f).collect();
-            // Inline summary-keyed collapse (linear-scan, insertion-order preserved).
-            let mut groups: Vec<Vec<&Finding>> = Vec::new();
-            for f in &refs {
-                if let Some(pos) = groups.iter().position(|g| g[0].summary == f.summary) {
-                    groups[pos].push(f);
-                } else {
-                    groups.push(vec![f]);
-                }
-            }
-            for members in &groups {
+            // Build sorted &Finding refs and delegate to the shared collapse helper.
+            // BC-2.11.033 Inv3 / BC-2.11.025 Inv1 / BC-2.11.031 PC-3: use the shared
+            // four-tuple (category, verdict, confidence, summary) collapse key via
+            // collapse_findings_pass_refs — no inline summary-only keying.
+            let bucket_refs: Vec<&Finding> = items.iter().map(|(_, f)| *f).collect();
+            let groups = self.collapse_findings_pass_refs(&bucket_refs);
+            for (_key, members) in &groups {
                 let n = members.len();
                 if n == 1 {
                     // Singleton: byte-identical to {Grouped, Expanded}.
@@ -594,12 +553,13 @@ impl TerminalReporter {
                     // N >= 2: build header with (xN) suffix, colorize the full
                     // string (suffix is inside the ANSI color span — BC-2.11.031 PC-3).
                     let rep = members[0];
-                    let escaped_summary = escape_for_terminal_grouped(&rep.summary);
-                    // Debug format (title-case) for verdict and confidence:
-                    // "Likely" / "High" — consistent with BC-2.11.033 PC-5/6 test
-                    // expectation for grouped-collapse group headers.
+                    // escape_for_terminal (char::escape_default, U+NN format) —
+                    // BC-2.11.031 PC-5 / BC-2.11.032 PC-6 / VP-012 / ADR-0003.
+                    let escaped_summary = escape_for_terminal(&rep.summary);
+                    // Display format (`{}`) for verdict and confidence → UPPERCASE output
+                    // (`LIKELY`, `HIGH`) per BC-2.11.031 PC-1 / canonical vector.
                     let header_text = format!(
-                        "[{}] {:?} ({:?}) - {} (x{})",
+                        "[{}] {} ({}) - {} (x{})",
                         rep.category, rep.verdict, rep.confidence, escaped_summary, n
                     );
                     let colored = if self.use_color {
@@ -619,10 +579,11 @@ impl TerminalReporter {
 
                     // Evidence sampling: first min(N, K) members positionally.
                     // Window does NOT slide past empty-evidence members (BC-2.11.032 Inv2).
+                    // escape_for_terminal (char::escape_default) — BC-2.11.032 PC-6 / VP-012.
                     let window = members.len().min(COLLAPSE_EVIDENCE_SAMPLES);
                     for member in &members[..window] {
                         if let Some(ev) = member.evidence.first() {
-                            let escaped_ev = escape_for_terminal_grouped(ev);
+                            let escaped_ev = escape_for_terminal(ev);
                             out.push_str(&format!("    > {escaped_ev}\n"));
                         }
                     }
