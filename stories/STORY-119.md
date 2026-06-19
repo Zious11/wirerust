@@ -2,7 +2,7 @@
 document_type: story
 story_id: STORY-119
 epic_id: E-18
-version: "1.10"
+version: "1.11"
 status: pending
 producer: story-writer
 timestamp: 2026-06-18T00:00:00Z
@@ -77,7 +77,7 @@ input-hash: "87e1b0c"
 #   added for BC-2.11.014/016/026/027 (verbatim from source BC postconditions/invariants).
 # Version 1.5 changes (F3 full decomposition): full ACs (AC-001..AC-031) each tracing
 #   verbatim to governing BC postcondition/invariant; full implementation tasks (Tasks 1-9)
-#   including struct reshape (~46 sites), render_findings_grouped_collapsed implementation,
+#   including struct reshape (84 sites), render_findings_grouped_collapsed implementation,
 #   CLI struct-construction wiring, comment sweep; VP assignments (VP-012, VP-016);
 #   wave assignment (wave: 49); inputs list populated; deferred markers removed;
 #   CARRY-119-F3-RESIDUALS-001 fixes applied (VP-table test rename, NIT changelog fix).
@@ -687,3 +687,4 @@ No new crates. `CollapseKey`, `COLLAPSE_EVIDENCE_SAMPLES`, and `collapse_finding
 - **v1.8 (F3 adversarial round-3 remediation, 2026-06-18):** Fix 1 (Pass B H-1): reverted AC-011 color-ladder anchor from `terminal.rs:392-400` back to `terminal.rs:391` to match BC-2.11.031 PC-3 verbatim — the quote in the trace parenthetical must be byte-identical to the source BC; prose outside the quote uses "color-selection block beginning at `terminal.rs:391`" to pre-empt off-by-one confusion; same revert applied to Task 4 item 4b and Architecture Anchors entry. Fix 2 (Pass A H-2): Task 2 `src/main.rs` per-file descriptor corrected from "2 sites" to "4 enum-variant occurrences across 2 logical construction sites" with line references (:382/:384/:386 collapsing to one struct literal; :449 `run_summary`) — aligns AC-007 census (84 total) with zero-grep acceptance gate. Fix 3 (Pass A H-1/Pass B L-1): Task 5 gains disambiguation note distinguishing new `test_BC_2_11_025_grouped_mode_bypasses_flat_collapse` (mod story_119, verifies Invariant 5 per-bucket path) from pre-existing `test_BC_2_11_025_grouped_mode_bypasses_collapse` at tests/reporter_terminal_tests.rs:2072 (verifies {Grouped, Expanded} suffix-free path); both referenced in BC-2.11.025 VP-table row 6. Fix 5 (PO-final BC-2.11.025 v1.13): BC-table stamp BC-2.11.025 v1.12 → v1.13.
 - **v1.9 (F3 adversarial round-4 remediation, 2026-06-18):** Fix 1 (Pass C MEDIUM — status token drift): `status: draft` → `status: pending` — STORY-120 is DELIVERED (merged f851995), unblocking STORY-119 for dispatch; reconciled with sprint-state.yaml which already recorded `pending`. Fix 2 (Pass B O-1 NIT — AC-014 trace label precision): label updated from "Postconditions 1–2" to "Postconditions 1–2 and Invariant 2" to include the Invariant 2 source of the quoted fragment ("The window does NOT slide past empty-evidence members."); quoted text verified verbatim against BC-2.11.032 Invariant 2 body.
 - **v1.10 (F3 adversarial round-5 remediation, 2026-06-18):** Fix 1 (Pass B M-1 — AC-015 trace quote): parenthetical trace quote corrected to BC-2.11.032 PC-4 verbatim — removed inserted `… and ` and changed single-quoted `'… and N-K more evidence lines elided'` to double-quoted `"N-K more evidence lines elided"` matching the BC source text exactly.
+- **v1.11 (F3 adversarial round-6 remediation, 2026-06-18):** Fix 1 (Pass C F-C-001 MEDIUM — stale site count in frontmatter comment block): line 80 of frontmatter comment block corrected `~46 sites` → `84 sites` to match the authoritative grepped ground-truth established at v1.7 and confirmed in AC-007/Task 2. Decisive same-surface audit performed across all 30 lines of the frontmatter comment block (lines 54-83); 12-BC count, 31-AC range (AC-001..AC-031), VP-012/VP-016, wave 49, status pending all verified correct; no additional stale figures found. The frozen v1.5 `## Changelog` stanza retains `~46 sites` as a legitimate historical record of what v1.5 said at the time.
