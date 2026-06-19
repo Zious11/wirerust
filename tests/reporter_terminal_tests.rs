@@ -4013,7 +4013,7 @@ mod story_120 {
 
     /// AC-001 (BC-2.11.025 invariant 5, BC-2.11.013 invariant 4):
     /// FindingsRender satisfies Debug + Clone + Copy + PartialEq + Eq.
-    /// The enum has exactly three variants and no Default impl.
+    /// The struct has exactly two fields: grouping: Grouping and collapse: Collapse. No Default impl.
     #[test]
     fn test_findings_render_derives_debug_clone_copy_partialeq_eq() {
         let a = FindingsRender {
@@ -4026,7 +4026,7 @@ mod story_120 {
         assert_eq!(a, c, "PartialEq + Eq: Grouped == cloned Grouped");
         let _ = format!("{a:?}"); // Debug — would panic if not implemented
 
-        // All three variants are distinct.
+        // All four Grouping x Collapse combinations are pairwise distinct.
         assert_ne!(
             FindingsRender {
                 grouping: Grouping::Grouped,
@@ -4036,7 +4036,7 @@ mod story_120 {
                 grouping: Grouping::Flat,
                 collapse: Collapse::Collapsed
             },
-            "Grouped != FlatCollapsed"
+            "{{Grouped,Expanded}} != {{Flat,Collapsed}}"
         );
         assert_ne!(
             FindingsRender {
@@ -4047,7 +4047,7 @@ mod story_120 {
                 grouping: Grouping::Flat,
                 collapse: Collapse::Expanded
             },
-            "Grouped != FlatExpanded"
+            "{{Grouped,Expanded}} != {{Flat,Expanded}}"
         );
         assert_ne!(
             FindingsRender {
@@ -4058,10 +4058,43 @@ mod story_120 {
                 grouping: Grouping::Flat,
                 collapse: Collapse::Expanded
             },
-            "FlatCollapsed != FlatExpanded"
+            "{{Flat,Collapsed}} != {{Flat,Expanded}}"
+        );
+        assert_ne!(
+            FindingsRender {
+                grouping: Grouping::Grouped,
+                collapse: Collapse::Expanded
+            },
+            FindingsRender {
+                grouping: Grouping::Grouped,
+                collapse: Collapse::Collapsed
+            },
+            "{{Grouped,Expanded}} != {{Grouped,Collapsed}}"
+        );
+        assert_ne!(
+            FindingsRender {
+                grouping: Grouping::Grouped,
+                collapse: Collapse::Collapsed
+            },
+            FindingsRender {
+                grouping: Grouping::Flat,
+                collapse: Collapse::Collapsed
+            },
+            "{{Grouped,Collapsed}} != {{Flat,Collapsed}}"
+        );
+        assert_ne!(
+            FindingsRender {
+                grouping: Grouping::Grouped,
+                collapse: Collapse::Collapsed
+            },
+            FindingsRender {
+                grouping: Grouping::Flat,
+                collapse: Collapse::Expanded
+            },
+            "{{Grouped,Collapsed}} != {{Flat,Expanded}}"
         );
 
-        // Debug formats include the variant name.
+        // Debug output for struct form includes field names and variant names.
         assert!(
             format!(
                 "{:?}",
@@ -4080,7 +4113,17 @@ mod story_120 {
                     collapse: Collapse::Collapsed
                 }
             )
-            .contains("FlatCollapsed")
+            .contains("Flat")
+        );
+        assert!(
+            format!(
+                "{:?}",
+                FindingsRender {
+                    grouping: Grouping::Flat,
+                    collapse: Collapse::Collapsed
+                }
+            )
+            .contains("Collapsed")
         );
         assert!(
             format!(
@@ -4090,7 +4133,7 @@ mod story_120 {
                     collapse: Collapse::Expanded
                 }
             )
-            .contains("FlatExpanded")
+            .contains("Expanded")
         );
     }
 
