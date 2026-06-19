@@ -7,6 +7,28 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.9.2] - 2026-06-19
+
+### Fixed
+
+- **DNP3 `control_operation_counts` was non-deterministic across process runs.**
+  `Dnp3Analyzer::summarize()` previously called `self.flows.values().enumerate()`
+  over a `HashMap<FlowKey, Dnp3FlowState>`. Because `HashMap` uses a per-process
+  random seed (HashBrown), the iteration order changed each run, causing the
+  flow index assigned by `enumerate()` to map to a different flow on every
+  invocation. The `BTreeMap` key-sort masked the issue at the key level (keys
+  `"0".."N-1"` were always sorted), but the VALUE at each key was
+  non-deterministic. Running `wirerust analyze <dnp3-capture> --all` twice on the
+  same file produced different `control_operation_counts` output (confirmed on a
+  real 26K-packet DNP3 capture in post-release e2e testing).
+
+  Fix: derive `Ord` + `PartialOrd` on `FlowKey` (lexicographic order on
+  `(lower_ip, lower_port, upper_ip, upper_port)`; `IpAddr` and `u16` both
+  implement `Ord`). In `summarize()`, sort `flows.iter()` by `FlowKey` before
+  `enumerate()`, so index→value assignment is stable across all process runs.
+  JSON schema is unchanged — keys remain `"0".."N-1"` strings in a BTreeMap.
+  Traces to BC-2.15.020 postcondition 1.
+
 ## [0.9.1] - 2026-06-19
 
 ### Fixed
@@ -438,7 +460,8 @@ Downstream consumers of wirerust JSON or CSV output must update for this release
 - Output sanitization in the terminal reporter guards against C1 control bytes
   in packet-derived strings.
 
-[Unreleased]: https://github.com/Zious11/wirerust/compare/v0.9.1...HEAD
+[Unreleased]: https://github.com/Zious11/wirerust/compare/v0.9.2...HEAD
+[0.9.2]: https://github.com/Zious11/wirerust/compare/v0.9.1...v0.9.2
 [0.9.1]: https://github.com/Zious11/wirerust/compare/v0.9.0...v0.9.1
 [0.9.0]: https://github.com/Zious11/wirerust/compare/v0.8.0...v0.9.0
 [0.8.0]: https://github.com/Zious11/wirerust/compare/v0.7.1...v0.8.0
