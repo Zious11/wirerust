@@ -604,9 +604,11 @@ type-system fix is strictly superior.
 
 ## Grouped-Mode Collapse — Issue #259 tail / STORY-119/B (+ STORY-122/A reshape)
 
-**Status of this subsection:** Accepted (F2 spec evolution 2026-06-18; D-120 split: enum→struct
-reshape + migration map = STORY-122/A; grouped-collapse render path + `--mitre` default-collapse
-CLI flip + `--no-collapse` dual-scope = STORY-119/B; F4 implementation pending)
+**Status of this subsection:** Implemented (F2 spec evolution 2026-06-18; D-120 split:
+enum→struct reshape + migration map = STORY-122/A [IMPLEMENTED]; grouped-collapse render path
++ `--mitre` default-collapse CLI flip + `--no-collapse` dual-scope = STORY-119/B [IMPLEMENTED
+2026-06-19: `render_findings_grouped_collapsed` live; `{Grouped, Collapsed}` dispatch arm
+active; `--mitre` default is now per-bucket collapsed output])
 
 *(D-120 split note: the monolithic STORY-119 was split per D-120 into STORY-122 (A — enum→struct
 reshape, 84-site migration, byte-identical, CLI unchanged) and STORY-119 (B — grouped-collapse
