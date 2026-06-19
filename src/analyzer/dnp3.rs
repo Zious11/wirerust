@@ -1394,12 +1394,16 @@ impl Dnp3Analyzer {
             .collect();
 
         // BC-2.15.020 postcondition 1: control_operation_counts — per-flow direct_operate_count.
-        // Keys are the flow index (0-based) as string to produce a stable JSON object.
-        let control_operation_counts: BTreeMap<String, u64> = self
-            .flows
-            .values()
+        // Keys are the flow index (0-based) as string. We sort entries by FlowKey
+        // (which derives Ord via lexicographic (lower_ip, lower_port, upper_ip, upper_port))
+        // BEFORE enumerate so that index→value is deterministic across process runs,
+        // independent of HashMap's per-process randomized iteration order.
+        let mut sorted_flows: Vec<(&FlowKey, &Dnp3FlowState)> = self.flows.iter().collect();
+        sorted_flows.sort_by_key(|(k, _)| *k);
+        let control_operation_counts: BTreeMap<String, u64> = sorted_flows
+            .iter()
             .enumerate()
-            .map(|(i, flow)| (i.to_string(), flow.direct_operate_count as u64))
+            .map(|(i, (_, flow))| (i.to_string(), flow.direct_operate_count as u64))
             .collect();
 
         let mut detail = BTreeMap::new();
