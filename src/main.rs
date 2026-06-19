@@ -381,8 +381,16 @@ fn run_analyze(
                 // default (show_mitre_grouping=false, collapse_findings=true) → {Flat, Collapsed}.
                 // --no-collapse only (show_mitre_grouping=false, collapse_findings=false) → {Flat, Expanded}.
                 render: FindingsRender {
-                    grouping: if show_mitre_grouping { Grouping::Grouped } else { Grouping::Flat },
-                    collapse: if collapse_findings { Collapse::Collapsed } else { Collapse::Expanded },
+                    grouping: if show_mitre_grouping {
+                        Grouping::Grouped
+                    } else {
+                        Grouping::Flat
+                    },
+                    collapse: if collapse_findings {
+                        Collapse::Collapsed
+                    } else {
+                        Collapse::Expanded
+                    },
                 },
             };
             reporter.render(&summary, &all_findings, &analyzer_summaries)

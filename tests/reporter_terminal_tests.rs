@@ -4569,13 +4569,17 @@ mod story_122 {
         );
     }
 
-    /// AC-002 (BC-2.11.013 Invariant 4):
-    /// The {Grouped, Collapsed} dispatch arm TEMPORARILY routes to render_findings_grouped
-    /// (same as {Grouped, Expanded}) — output is byte-identical; tactic headers appear
-    /// and no (xN) suffix is emitted. This arm is unreachable via the CLI in STORY-122/A;
-    /// STORY-119/B repoints it to render_findings_grouped_collapsed.
+    /// AC-002 (BC-2.11.013 Invariant 4 / STORY-119/B post-implementation):
+    /// The {Grouped, Collapsed} dispatch arm routes to `render_findings_grouped_collapsed`
+    /// (STORY-119/B). For N≥2 identical-key findings in a tactic bucket, the output
+    /// carries a `(xN)` suffix — it is NO longer byte-identical to {Grouped, Expanded}.
+    /// Tactic headers still appear (`## <tactic>`).
+    ///
+    /// Supersedes the TEMPORARY STORY-122/A assertion that {Grouped,Collapsed} was
+    /// byte-identical to {Grouped,Expanded}. That was a scaffolding state; STORY-119/B
+    /// wires the real implementation.
     #[test]
-    fn test_BC_2_11_028_ac002_grouped_collapsed_arm_temporary_routes_to_render_findings_grouped() {
+    fn test_BC_2_11_028_ac002_grouped_collapsed_arm_routes_to_render_findings_grouped_collapsed() {
         let findings: Vec<Finding> = (0..3)
             .map(|_| make_mitre_finding_s122("s122-dispatch-gc"))
             .collect();
@@ -4600,12 +4604,19 @@ mod story_122 {
         }
         .render(&Summary::new(), &findings, &[]);
 
-        // TEMPORARY: {Grouped,Collapsed} routes to the same function as {Grouped,Expanded}.
-        assert_eq!(
-            out_gc, out_ge,
-            "AC-002: {{Grouped,Collapsed}} arm (TEMPORARY in STORY-122/A) must produce \
-             byte-identical output to {{Grouped,Expanded}}; outputs differ"
+        // Post-STORY-119/B: {Grouped,Collapsed} routes to render_findings_grouped_collapsed.
+        // N=3 identical-key findings must produce (x3) suffix — collapsed, not expanded.
+        assert!(
+            out_gc.contains("(x3)"),
+            "AC-002: {{Grouped,Collapsed}} with N=3 identical findings must emit `(x3)` suffix; \
+             got:\n{out_gc}"
         );
+        // {Grouped,Collapsed} output must differ from {Grouped,Expanded} (no longer byte-identical).
+        assert_ne!(
+            out_gc, out_ge,
+            "AC-002: {{Grouped,Collapsed}} must differ from {{Grouped,Expanded}} post-STORY-119/B"
+        );
+        // Tactic headers still appear.
         assert!(
             out_gc.contains("## "),
             "AC-002: {{Grouped,Collapsed}} arm must emit tactic header '## '; got:\n{out_gc}"
@@ -5418,8 +5429,16 @@ mod story_119 {
         // Construct the reporter exactly as run_analyze does when
         // show_mitre_grouping=true, collapse_findings=true.
         let render = FindingsRender {
-            grouping: if true { Grouping::Grouped } else { Grouping::Flat },
-            collapse: if true { Collapse::Collapsed } else { Collapse::Expanded },
+            grouping: if true {
+                Grouping::Grouped
+            } else {
+                Grouping::Flat
+            },
+            collapse: if true {
+                Collapse::Collapsed
+            } else {
+                Collapse::Expanded
+            },
         };
         assert_eq!(
             render,
@@ -5462,8 +5481,16 @@ mod story_119 {
     #[test]
     fn test_BC_2_11_030_mitre_no_collapse_maps_to_grouped_expanded() {
         let render = FindingsRender {
-            grouping: if true { Grouping::Grouped } else { Grouping::Flat },
-            collapse: if false { Collapse::Collapsed } else { Collapse::Expanded },
+            grouping: if true {
+                Grouping::Grouped
+            } else {
+                Grouping::Flat
+            },
+            collapse: if false {
+                Collapse::Collapsed
+            } else {
+                Collapse::Expanded
+            },
         };
         assert_eq!(
             render,
@@ -5516,8 +5543,16 @@ mod story_119 {
     fn test_BC_2_11_030_flat_routing_unchanged() {
         // PC-4: default (no --mitre, no --no-collapse)
         let default_render = FindingsRender {
-            grouping: if false { Grouping::Grouped } else { Grouping::Flat },
-            collapse: if true { Collapse::Collapsed } else { Collapse::Expanded },
+            grouping: if false {
+                Grouping::Grouped
+            } else {
+                Grouping::Flat
+            },
+            collapse: if true {
+                Collapse::Collapsed
+            } else {
+                Collapse::Expanded
+            },
         };
         assert_eq!(
             default_render,
@@ -5530,8 +5565,16 @@ mod story_119 {
 
         // PC-5: --no-collapse without --mitre
         let no_collapse_flat_render = FindingsRender {
-            grouping: if false { Grouping::Grouped } else { Grouping::Flat },
-            collapse: if false { Collapse::Collapsed } else { Collapse::Expanded },
+            grouping: if false {
+                Grouping::Grouped
+            } else {
+                Grouping::Flat
+            },
+            collapse: if false {
+                Collapse::Collapsed
+            } else {
+                Collapse::Expanded
+            },
         };
         assert_eq!(
             no_collapse_flat_render,
@@ -5637,10 +5680,7 @@ mod story_119 {
         // The ANSI reset sequence (\x1b[0m) must NOT appear BEFORE `(x2)` on
         // the same header line. Verify by checking that `(x2)` does not appear
         // after a reset on the header line.
-        let header_line = out
-            .lines()
-            .find(|l| l.contains("(x2)"))
-            .unwrap_or_default();
+        let header_line = out.lines().find(|l| l.contains("(x2)")).unwrap_or_default();
         // Split by reset: if (x2) appears in the LAST segment (after reset),
         // the suffix was appended after the ANSI reset — NON-CONFORMANT.
         let reset = "\x1b[0m";
@@ -6051,10 +6091,7 @@ mod story_119 {
 
         // The header verdict must be "Likely" (the sorted-first representative),
         // not "Inconclusive". Find the header line (contains `(x2)`).
-        let header_line = out
-            .lines()
-            .find(|l| l.contains("(x2)"))
-            .unwrap_or_default();
+        let header_line = out.lines().find(|l| l.contains("(x2)")).unwrap_or_default();
         assert!(
             header_line.contains("Likely"),
             "AC-016: post-sort representative must be Likely (rank=0 sorts first); \
@@ -6199,11 +6236,21 @@ mod story_119 {
     /// divergent `mitre_techniques`, only `members[0]`'s technique appears on
     /// the MITRE line. The other members' techniques are elided from terminal
     /// output (preserved in raw findings for JSON/CSV).
+    ///
+    /// Both findings MUST be in the same tactic bucket for per-bucket collapse
+    /// to merge them (BC-2.11.033 Invariant 3 / EC-003): T1046 and T1083 both
+    /// map to Discovery, so they land in the same bucket and collapse as N=2.
+    /// Using findings from different tactics (e.g. T1046 Discovery + T1071 C&C)
+    /// would produce two independent singletons per BC-2.11.033 EC-003 — the
+    /// correct per-bucket behavior — but the divergent-MITRE elision property
+    /// (BC-2.11.034 PC-3) can only be observed when N≥2 within one bucket.
     #[test]
     fn test_BC_2_11_034_divergent_mitre_representative_sourcing() {
-        // Two findings with same collapse key but different MITRE techniques.
+        // Two findings with same summary but different MITRE techniques,
+        // both in the Discovery tactic bucket (T1046 and T1083).
         // After sort (Likely rank=0 for both, same confidence), the first
         // submitted becomes members[0] (stable emission-index tiebreak).
+        // They collapse into N=2 within the Discovery bucket.
         let findings = vec![
             Finding {
                 category: ThreatCategory::Anomaly,
@@ -6211,7 +6258,7 @@ mod story_119 {
                 confidence: Confidence::High,
                 summary: "s119-ac020-divergent-mitre".to_string(),
                 evidence: vec![],
-                mitre_techniques: vec!["T1046".to_string()], // members[0]
+                mitre_techniques: vec!["T1046".to_string()], // members[0] — Discovery
                 source_ip: None,
                 timestamp: None,
                 direction: None,
@@ -6222,7 +6269,7 @@ mod story_119 {
                 confidence: Confidence::High,
                 summary: "s119-ac020-divergent-mitre".to_string(),
                 evidence: vec![],
-                mitre_techniques: vec!["T1071".to_string()], // members[1] — must be elided
+                mitre_techniques: vec!["T1083".to_string()], // members[1] — Discovery; must be elided
                 source_ip: None,
                 timestamp: None,
                 direction: None,
@@ -6238,9 +6285,14 @@ mod story_119 {
         );
         // members[1]'s technique must NOT appear in terminal output.
         assert!(
-            !out.contains("T1071"),
-            "AC-020: members[1] technique T1071 must be elided from terminal output; \
+            !out.contains("T1083"),
+            "AC-020: members[1] technique T1083 must be elided from terminal output; \
              got:\n{out}"
+        );
+        // Group must be collapsed as N=2 (same bucket, same summary-only key).
+        assert!(
+            out.contains("(x2)"),
+            "AC-020: same-bucket same-summary findings must collapse to N=2; got:\n{out}"
         );
     }
 
@@ -6270,12 +6322,10 @@ mod story_119 {
             &out[..out.len().min(500)]
         );
         // All 100 findings must be rendered (header line count via `[Anomaly]`).
-        let header_count = out
-            .lines()
-            .filter(|l| l.contains("[Anomaly]"))
-            .count();
+        let header_count = out.lines().filter(|l| l.contains("[Anomaly]")).count();
         assert_eq!(
-            header_count, 100,
+            header_count,
+            100,
             "AC-022: {{Grouped,Expanded}} must render all 100 findings; got {header_count} in \
              output (first 500 chars):\n{}",
             &out[..out.len().min(500)]

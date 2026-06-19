@@ -65,6 +65,30 @@ fn escape_for_terminal(s: &str) -> String {
     out
 }
 
+/// Escape control bytes for safe terminal display in the grouped-collapse rendering path.
+///
+/// Identical to [`escape_for_terminal`] for C1 (U+0080–U+009F) and backslash,
+/// but uses two-digit hex (`\xNN`) instead of unicode (`\u{N}`) for C0 (U+0000–U+001F)
+/// and DEL (U+007F). This matches BC-2.11.031 Precondition 5 / VP-012 as exercised
+/// by the grouped-collapse acceptance tests (AC-023).
+fn escape_for_terminal_grouped(s: &str) -> String {
+    let mut out = String::with_capacity(s.len());
+    for c in s.chars() {
+        if c.is_ascii_control() {
+            // C0 (0x00–0x1F) and DEL (0x7F): two-digit lowercase hex escape.
+            out.push_str(&format!("\\x{:02x}", c as u32));
+        } else if ('\u{80}'..='\u{9f}').contains(&c) || c == '\\' {
+            // C1 range and backslash: delegate to escape_default (same as flat path).
+            for e in c.escape_default() {
+                out.push(e);
+            }
+        } else {
+            out.push(c);
+        }
+    }
+    out
+}
+
 /// Maximum number of representative evidence lines rendered per collapsed group.
 ///
 /// BC-2.11.027 invariant 1: K = 3 is a hardcoded named constant, not a magic number.
@@ -498,26 +522,139 @@ impl TerminalReporter {
     /// Renders the FINDINGS section grouped by MITRE tactic WITH per-bucket collapse.
     ///
     /// Per-tactic-bucket grouping identical to `render_findings_grouped` (BC-2.11.013),
-    /// then per-bucket sort (BC-2.11.033 PC-5 / BC-2.11.014), then per-bucket
+    /// then per-bucket sort ascending by (verdict_rank, confidence_rank, emission-index)
+    /// (BC-2.11.033 PC-5 / BC-2.11.014), then per-bucket
     /// `collapse_findings_pass_refs` (BC-2.11.033 Invariant 3), then collapsed
     /// group rendering with `(xN)` suffix (BC-2.11.031), K=3 evidence sampling
     /// (BC-2.11.032), and MITRE em-dash line from `members[0]` (BC-2.11.034).
     ///
     /// Singletons (N=1) render via `render_finding_grouped` (byte-identical to
     /// `{Grouped, Expanded}` for that finding).
-    ///
-    /// STORY-119/B GREEN: implement per-bucket collapse rendering here.
-    fn render_findings_grouped_collapsed(&self, _out: &mut String, _findings: &[Finding]) {
-        // BC-5.38.001: non-trivial body — todo!() until GREEN phase.
-        // "If I include this real implementation, will the test for this function pass
-        // trivially without any implementer work?" Yes — therefore todo!() here.
-        // Self-check per BC-5.38.005 invariant 1.
-        todo!(
-            "STORY-119/B GREEN: render_findings_grouped_collapsed — \
-             per-bucket sort + collapse_findings_pass_refs + (xN) headers + \
-             K=3 evidence sampling + MITRE em-dash from members[0] \
-             (BC-2.11.031/032/033/034)"
-        )
+    fn render_findings_grouped_collapsed(&self, out: &mut String, findings: &[Finding]) {
+        // Step 1: bucket by tactic (same as render_findings_grouped, BC-2.11.013).
+        let mut buckets: std::collections::HashMap<Option<MitreTactic>, Vec<(usize, &Finding)>> =
+            std::collections::HashMap::new();
+        for (i, f) in findings.iter().enumerate() {
+            let tactic = f
+                .mitre_techniques
+                .first()
+                .map(|id| id.as_str())
+                .and_then(technique_tactic);
+            buckets.entry(tactic).or_default().push((i, f));
+        }
+
+        // Step 2: sort helper ranks (same as render_findings_grouped).
+        fn verdict_rank(v: Verdict) -> u8 {
+            match v {
+                Verdict::Likely => 0,
+                Verdict::Possible => 1,
+                Verdict::Inconclusive => 2,
+                Verdict::Unlikely => 3,
+            }
+        }
+        fn confidence_rank(c: Confidence) -> u8 {
+            match c {
+                Confidence::High => 0,
+                Confidence::Medium => 1,
+                Confidence::Low => 2,
+            }
+        }
+
+        // Sort each bucket ascending by (verdict_rank, confidence_rank, emission-index).
+        for (_, items) in buckets.iter_mut() {
+            items.sort_by_key(|(idx, f)| {
+                (verdict_rank(f.verdict), confidence_rank(f.confidence), *idx)
+            });
+        }
+
+        // Step 3: render buckets in all_tactics_in_report_order(), Uncategorized last.
+        let render_collapsed_bucket = |out: &mut String, items: &[(usize, &Finding)]| {
+            // Build a slice of &Finding refs in sorted order for collapse pass.
+            // Per-bucket collapse: group by summary only (BC-2.11.033 PC-5/6 — the
+            // sort-then-collapse semantics require verdict/confidence to determine the
+            // representative, not group membership; findings with the same summary but
+            // different severities form one group whose representative is the
+            // highest-severity post-sort members[0]).
+            let refs: Vec<&Finding> = items.iter().map(|(_, f)| *f).collect();
+            // Inline summary-keyed collapse (linear-scan, insertion-order preserved).
+            let mut groups: Vec<Vec<&Finding>> = Vec::new();
+            for f in &refs {
+                if let Some(pos) = groups.iter().position(|g| g[0].summary == f.summary) {
+                    groups[pos].push(f);
+                } else {
+                    groups.push(vec![f]);
+                }
+            }
+            for members in &groups {
+                let n = members.len();
+                if n == 1 {
+                    // Singleton: byte-identical to {Grouped, Expanded}.
+                    self.render_finding_grouped(out, members[0]);
+                } else {
+                    // N >= 2: build header with (xN) suffix, colorize the full
+                    // string (suffix is inside the ANSI color span — BC-2.11.031 PC-3).
+                    let rep = members[0];
+                    let escaped_summary = escape_for_terminal_grouped(&rep.summary);
+                    // Debug format (title-case) for verdict and confidence:
+                    // "Likely" / "High" — consistent with BC-2.11.033 PC-5/6 test
+                    // expectation for grouped-collapse group headers.
+                    let header_text = format!(
+                        "[{}] {:?} ({:?}) - {} (x{})",
+                        rep.category, rep.verdict, rep.confidence, escaped_summary, n
+                    );
+                    let colored = if self.use_color {
+                        match rep.verdict {
+                            Verdict::Likely => match rep.confidence {
+                                Confidence::High => header_text.red().bold().to_string(),
+                                _ => header_text.yellow().to_string(),
+                            },
+                            Verdict::Possible => header_text.yellow().to_string(),
+                            Verdict::Inconclusive => header_text.cyan().to_string(),
+                            Verdict::Unlikely => header_text.dimmed().to_string(),
+                        }
+                    } else {
+                        header_text
+                    };
+                    out.push_str(&format!("  {colored}\n"));
+
+                    // Evidence sampling: first min(N, K) members positionally.
+                    // Window does NOT slide past empty-evidence members (BC-2.11.032 Inv2).
+                    let window = members.len().min(COLLAPSE_EVIDENCE_SAMPLES);
+                    for member in &members[..window] {
+                        if let Some(ev) = member.evidence.first() {
+                            let escaped_ev = escape_for_terminal_grouped(ev);
+                            out.push_str(&format!("    > {escaped_ev}\n"));
+                        }
+                    }
+
+                    // MITRE line from members[0] with em-dash name expansion (BC-2.11.034).
+                    if !rep.mitre_techniques.is_empty() {
+                        let ids = rep.mitre_techniques.join(", ");
+                        match rep
+                            .mitre_techniques
+                            .first()
+                            .and_then(|id| technique_name(id.as_str()))
+                        {
+                            Some(name) => {
+                                out.push_str(&format!("    MITRE: {ids} \u{2014} {name}\n"))
+                            }
+                            None => out.push_str(&format!("    MITRE: {ids} (unknown)\n")),
+                        }
+                    }
+                }
+            }
+        };
+
+        for tactic in all_tactics_in_report_order() {
+            if let Some(items) = buckets.get(&Some(*tactic)) {
+                out.push_str(&format!("  ## {tactic}\n"));
+                render_collapsed_bucket(out, items);
+            }
+        }
+        if let Some(items) = buckets.get(&None) {
+            out.push_str("  ## Uncategorized\n");
+            render_collapsed_bucket(out, items);
+        }
     }
 }
 
