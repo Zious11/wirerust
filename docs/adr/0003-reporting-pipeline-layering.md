@@ -699,27 +699,33 @@ The three existing functions (`render_findings_grouped`, `render_findings_collap
 
 `src/main.rs` `run_analyze` TerminalReporter construction site
 (`src/reporter/terminal.rs` at the struct initialization, ~line 373 in f851995 era).
-The construction expression is identical in both phases — only the reachability of the
-`{Grouped, Collapsed}` arm changes between them:
-
-```rust
-render: FindingsRender {
-    grouping: if show_mitre_grouping { Grouping::Grouped } else { Grouping::Flat },
-    collapse: if collapse_findings { Collapse::Collapsed } else { Collapse::Expanded },
-},
-```
 
 `show_mitre_grouping` ← `*mitre` (CLI `--mitre` flag).
 `collapse_findings` ← `collapse_findings_from_flag(*no_collapse)` (unchanged: `!no_collapse`).
 
+The construction expression **changes between phases**: Phase A uses the 3-arm-if form
+(byte-identical; `--mitre`→`{Grouped, Expanded}`, `{Grouped, Collapsed}` unreachable via CLI);
+Phase B (STORY-119/B Task 4) replaces it with the orthogonal 2-if form so that
+`--mitre`→`{Grouped, Collapsed}`.
+
 **Phase A — STORY-122/A (byte-identical; `--mitre` behavior unchanged):**
 
-Under STORY-122/A the construction expression above is in place, but the `collapse_findings`
-value when `--mitre` is passed is still `true` (default-on from v0.8.0 `--no-collapse`
-semantics). The `{Grouped, Collapsed}` dispatch arm exists in `render()` but routes to
-`render_findings_grouped` (the existing grouped-expanded function) as a temporary placeholder
-— `render_findings_grouped_collapsed` does not exist yet. Observable CLI behavior is
-byte-identical to v0.9.0: `--mitre` still produces suffix-free grouped output.
+Under STORY-122/A the 3-arm-if construction is used, ensuring `--mitre` alone always
+produces `{Grouped, Expanded}` — `{Grouped, Collapsed}` is structurally unreachable via
+CLI in this phase. `render_findings_grouped_collapsed` does not exist yet; the dispatch arm
+for `{Grouped, Collapsed}` exists in `render()` but the 3-arm-if never routes there.
+Observable CLI behavior is byte-identical to v0.9.0: `--mitre` still produces suffix-free
+grouped output.
+
+```rust
+render: if show_mitre_grouping {
+    FindingsRender { grouping: Grouping::Grouped, collapse: Collapse::Expanded }
+} else if collapse_findings {
+    FindingsRender { grouping: Grouping::Flat, collapse: Collapse::Collapsed }
+} else {
+    FindingsRender { grouping: Grouping::Flat, collapse: Collapse::Expanded }
+},
+```
 
 | CLI flags (Phase A) | Resulting struct | Behavior |
 |--------------------|-----------------|----------|
