@@ -698,7 +698,7 @@ The three existing functions (`render_findings_grouped`, `render_findings_collap
 ### CLI → Render Mode Wiring (two-phase: STORY-122/A then STORY-119/B)
 
 `src/main.rs` `run_analyze` TerminalReporter construction site
-(`src/reporter/terminal.rs` at the struct initialization, ~line 373 in f851995 era).
+(the 3-arm-if at `src/main.rs:380-395`; `run_summary` inert site at `src/main.rs:456-459`).
 
 `show_mitre_grouping` ← `*mitre` (CLI `--mitre` flag).
 `collapse_findings` ← `collapse_findings_from_flag(*no_collapse)` (unchanged: `!no_collapse`).
@@ -762,7 +762,7 @@ with per-bucket collapse. In v0.9.0 and Phase A, `--mitre` produced suffix-free 
 
 **Status:** Accepted (F3 spec-evolution remediation 2026-06-18)
 
-**Problem:** `collapse_findings_pass` (`:340`) takes `&'a [Finding]` — a slice of owned values.
+**Problem:** `collapse_findings_pass` (`:343`) takes `&'a [Finding]` — a slice of owned values.
 The grouped path builds tactic buckets as `HashMap<Option<MitreTactic>, Vec<(usize, &Finding)>>`
 — each bucket element is a reference, not an owned value. Rust cannot coerce `&[&Finding]` to
 `&[Finding]`. Passing a bucket to the unmodified `collapse_findings_pass` would require
@@ -808,7 +808,7 @@ fn collapse_findings_pass_refs<'a>(
 
 /// Flat-mode adapter: collects `&[Finding]` into references, delegates to
 /// `collapse_findings_pass_refs`. Preserves the existing call signature for
-/// `render_findings_collapsed` (`:376`) — that caller is unchanged.
+/// `render_findings_collapsed` (`:379`) — that caller is unchanged.
 ///
 /// BC-2.11.025 invariant 7 / postcondition 9: Vec accumulator is canonical.
 fn collapse_findings_pass<'a>(
@@ -820,7 +820,7 @@ fn collapse_findings_pass<'a>(
 }
 ```
 
-**Flat-mode caller** (`render_findings_collapsed`, `:376`): unchanged — it still calls
+**Flat-mode caller** (`render_findings_collapsed`, `:379`): unchanged — it still calls
 `self.collapse_findings_pass(findings)` with a `&[Finding]` slice. The adapter wraps it.
 
 **Grouped-mode caller** (`render_findings_grouped_collapsed`, F4-new): strips the `usize`
@@ -837,7 +837,7 @@ let groups = self.collapse_findings_pass_refs(&bucket_refs);
   throughout; only references are held in the accumulator.
 - Single source of collapse logic (`collapse_findings_pass_refs`). No duplicated group-building
   code between flat and grouped paths — BC-2.11.031 Invariant 3 (shared pass) is satisfied.
-- `collapse_findings_pass` public call signature is unchanged. Its BC citation (`:340-360`) and
+- `collapse_findings_pass` public call signature is unchanged. Its BC citation (`:343-360`) and
   all existing test references remain valid.
 - Purity boundary (ADR-0003 Rule 2, Rule 4): the collapse pass is still a pure, side-effect-free
   function. No I/O, no mutation, no global state.
@@ -848,7 +848,7 @@ findings.iter()` yields `&&'a Finding` (double reference). A bound of
 `&[&'a Finding]` (which yields `&&'a Finding`). Unifying the two call sites generically requires
 either a consuming iterator (incompatible with the flat-mode `&[Finding]` borrow) or deref
 coercion wrappers. The sibling adapter is cleaner and does not require changing the existing
-caller or its BC-cited signature at `:340`.
+caller or its BC-cited signature at `:343`.
 
 **Why not option (c) — clone per bucket:** `Finding` is `Clone` but the clone is unnecessary.
 Rejected.
