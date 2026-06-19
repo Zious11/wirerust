@@ -23,6 +23,9 @@ That downloads the real captures and regenerates the synthetic one into
 | `4SICS-GeekLounge-151021.pcap` | 134 MB | `7365b0ea475b76bf79b207fd8f83baa45e4449aead5da6a9214bbcffbc5fa7de` | [Netresec 4SICS](https://www.netresec.com/?page=PCAP4SICS) | Modbus/502, DNP3, S7, HTTP, TLS, … | recon detection (FC 0x2B/0x11); throughput |
 | `4SICS-GeekLounge-151022.pcap` | 200 MB | `82529c23906416dc73d7f1926a0d38b82527f1f2a7ff8c6f755ce3208feb9643` | [Netresec 4SICS](https://www.netresec.com/?page=PCAP4SICS) | Modbus/502 (heavy), DNP3, TLS, … | full Modbus detector set: writes (T0835/T0836/T1692.001), burst (T0806), recon (T0888); DoS finding-cap; determinism |
 | `modbus-large.pcap` | ~7 KB | `1286603a7c83ca28de7eb46bc93271acd86ce3121f8fe695a744491cc22e5966` | synthetic — `tests/fixtures/mk_modbus_large_pcap.py` | Modbus/502 (5 crafted flows) | every Modbus detector class in isolation (recon, write-burst, coil/register/control writes, diagnostics DoS) |
+| `dnp3dataset_capture.pcap` | ~2.6 MB | `72551ac30b30c80ee1a0a032e950648f1f70592642880656a1f8e4b5306e5b20` | [igbe/DNP3-Dataset-Plus-SnortRules](https://github.com/igbe/DNP3-Dataset-Plus-SnortRules) (no explicit LICENSE — local use only, not redistributed) | DNP3 over TCP (26058 packets, 402 hosts) | DNP3 detector set at scale: unexpected unsolicited-response (T0814, x539), ENABLE_UNSOLICITED (x546), DISABLE_UNSOLICITED, COLD_RESTART (x11), WRITE/parameter-modification (T0836); exercises grouped-collapse + `--mitre` tactic bucketing at scale (~0.02 s). **Note:** this capture exposed BUG-DNP3-CONTROL-OP-DETERMINISM-001 (non-deterministic `control_operation_counts`), fixed in v0.9.2. |
+| `rsasnakeoil2.pcap` | ~24 KB | `f3f74008e2585d35479b7a234010a584803c240d82723f1f857bac0eb8a8db57` | [Wireshark SampleCaptures](https://wiki.wireshark.org/SampleCaptures) (no per-file license; public sample — credit Wireshark Foundation; not redistributed) | TLS/TCP (58 packets) | TLS weak-crypto detection: ServerHello+ClientHello SSL 3.0 (RFC 7568 prohibits SSLv3), ClientHello export/NULL/anonymous cipher suites (TLS_RSA_EXPORT_*). The only reliable classic-pcap TLS-handshake fixture found. |
+| `dns-tunnel-iodine.pcap` | ~76 KB | `91fd221e07107507c8327a9d9487cd7f7531a1fd87cf543b1a76160ff0609b7b` | [elastic/examples](https://github.com/elastic/examples) (Apache-2.0; credit Elastic) | DNS over UDP (434 packets; 222 queries / 212 responses) | iodine DNS-tunneling capture. **Note:** wirerust currently produces 0 findings (DNS-tunneling detection not yet implemented) — retained as a benign-parse baseline AND a future-detector fixture. Tracked as a coverage/feature gap. |
 
 > A tiny committed fixture, `tests/fixtures/modbus-write.pcap` (8 packets), is
 > tracked in git and used by the automated test suite — it is **not** part of
@@ -35,6 +38,21 @@ That downloads the real captures and regenerates the synthetic one into
 | 151020 | `https://share.netresec.com/s/xYj2qCNbsLEAd6M/download/4SICS-GeekLounge-151020.pcap` |
 | 151021 | `https://share.netresec.com/s/camL59aoxbCRyyZ/download/4SICS-GeekLounge-151021.pcap` |
 | 151022 | `https://share.netresec.com/s/gw6Y2QzJHqDD5pr/download/4SICS-GeekLounge-151022.pcap` |
+| `dnp3dataset_capture.pcap` | `https://raw.githubusercontent.com/igbe/DNP3-Dataset-Plus-SnortRules/master/dnp3dataset_capture.pcap` |
+| `rsasnakeoil2.pcap` | `https://gitlab.com/wireshark/wireshark/-/wikis/uploads/__moin_import__/attachments/SampleCaptures/rsasnakeoil2.pcap` |
+| `dns-tunnel-iodine.pcap` | `https://raw.githubusercontent.com/elastic/examples/master/Security%20Analytics/dns_tunnel_detection/dns-tunnel-iodine.pcap` |
+
+### Link-only captures (cannot be auto-fetched)
+
+These captures are indexed here for reference but are **not** included in the
+auto-fetch script. They either require manual browser download (bot-blocked CDN)
+or are too large for routine automated fetching.
+
+| File | Approx. Size | sha256 | URL | Source | Notes |
+|------|-------------|--------|-----|--------|-------|
+| `dnscat2_dns_tunneling_1hr.pcap` | ~2.35 MB | from source / unverified | `https://www.activecountermeasures.com/wp-content/uploads/2021/06/dnscat2_dns_tunneling_1hr.pcap` | Active Countermeasures (public WordPress uploads) | **Manual download required** — Cloudflare bot-protection returns an HTML challenge page to automated curl/HEAD; must be fetched via a browser. SHA256 published by source but not independently verified by us. |
+| `dnscat2_dns_tunneling_24hr.pcap` | ~82 MB | from source / unverified | `https://www.activecountermeasures.com/wp-content/uploads/2021/06/dnscat2_dns_tunneling_24hr.pcap` | Active Countermeasures (public WordPress uploads) | Same bot-block caveat as 1hr variant. Optional given size. |
+| `maccdc2012_00000.pcap` | ~1 GB | unverified | `https://share.netresec.com/s/7qgDSGNGw2NY8ea/download/maccdc2012_00000.pcap` | Netresec public pcap collection (credit Netresec / maccdc) | Mixed-enterprise scale stressor (HTTP/TLS/DNS/SMB). Optional given 1 GB size; not included in standard fetch. |
 
 ## Attribution
 
@@ -42,6 +60,14 @@ The 4SICS Geek Lounge captures are from Netresec's public 4SICS ICS-lab
 collection: <https://www.netresec.com/?page=PCAP4SICS>. Per the source's
 request, **credit CS3Sthlm / 4SICS** if these captures are redistributed or
 used in training material. They are not redistributed via this repo.
+
+- **`dnp3dataset_capture.pcap`**: `igbe/DNP3-Dataset-Plus-SnortRules` (GitHub). No explicit
+  LICENSE file — used locally for validation only, not redistributed. Credit: igbe (GitHub).
+- **`rsasnakeoil2.pcap`**: Wireshark SampleCaptures wiki. No per-file license stated; public
+  sample distributed by the Wireshark project. Used locally only, not redistributed.
+  Credit: Wireshark Foundation.
+- **`dns-tunnel-iodine.pcap`**: `elastic/examples` repository (Apache-2.0 license).
+  Credit: Elastic.
 
 ## ARP captures (D1 spoof / D2 GARP / D3 storm / D12 MAC mismatch)
 
@@ -81,6 +107,20 @@ They live gitignored under `tests/fixtures/local-samples/` — never committed.
   Credit: Chris Sanders.
 - **`arpspoof.pcap`**: `researcher111/ARP-pcap-files` (no LICENSE file — all-rights-reserved).
   Used locally for validation only — not redistributed. Credit: researcher111 (GitHub).
+
+## Coverage gaps and notes
+
+- **pcapng not yet supported:** Large TLS-heavy captures of interest (including several
+  high-fidelity enterprise captures from Netresec and the Wireshark sample set) are available
+  only as pcapng files. Wirerust's reader requires classic pcap magic and rejects pcapng with
+  "wrong magic number" (see `arp-baseline-16pkt.cap` above for a concrete example). This
+  strengthens the case for adding pcapng support — it is the primary blocker for expanding the
+  TLS and mixed-protocol portions of the E2E corpus.
+- **DNS tunneling detection not yet implemented:** `dns-tunnel-iodine.pcap` (and the
+  dnscat2 captures above) currently produce 0 findings. They are retained as benign-parse
+  baselines and future-detector fixtures for whenever DNS-tunneling analysis is added.
+- **Full research write-up:** The evaluation methodology, candidate evaluation, and rationale
+  for all selections above is documented at `.factory/research/e2e-pcap-candidates.md`.
 
 ## Adding a capture
 
