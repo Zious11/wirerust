@@ -2,7 +2,7 @@
 document_type: story
 story_id: STORY-119
 epic_id: E-18
-version: "1.7"
+version: "1.8"
 status: draft
 producer: story-writer
 timestamp: 2026-06-18T00:00:00Z
@@ -50,7 +50,7 @@ inputs:
   - .factory/phase-f1-delta-analysis/story-119-grouped-mode-collapse-delta-analysis.md
   - .factory/phase-f2-spec-evolution/story-119-type-design.md
   - .factory/phase-f2-spec-evolution/story-119-prd-delta.md
-input-hash: "eb09050"
+input-hash: "87e1b0c"
 # BC status: all 12 BCs authored/converged at F2 (2026-06-18). See individual BC version
 #   stamps in the Behavioral Contracts table below. All BCs are F2-frozen; normative
 #   bodies must not be edited as part of STORY-119 F4 implementation.
@@ -120,7 +120,7 @@ All 12 BCs governing this story are authored and F2-frozen.
 | BC-2.11.013 | v1.14 | Tactic-header structure and collapse axis: when `render.grouping == Grouping::Grouped` with `Collapse::Collapsed`, per-bucket collapse applies; with `Collapse::Expanded`, suffix-free. Tactic-bucket ordering and header format unchanged. |
 | BC-2.11.014 | v2.0 | Within-bucket sort — ascending by verdict-rank (Likely=0, Possible=1, Inconclusive=2, Unlikely=3), confidence-rank (High=0, Medium=1, Low=2), then emission-index — determines the post-sort group representative (members[0]). |
 | BC-2.11.016 | v1.9 | Grouped MITRE em-dash+name line format — em-dash + technique name for known IDs, `(unknown)` for unrecognized; applies to both `{Grouped, Collapsed}` and `{Grouped, Expanded}` paths; consumed by BC-2.11.034 for collapsed N≥2 groups. |
-| BC-2.11.025 | v1.12 | Flat-mode collapse key and first-occurrence order: the `(category, verdict, confidence, summary)` four-tuple key and `Vec<(CollapseKey, Vec<&Finding>)>` accumulator structure; `collapse_findings_pass` (flat-mode wrapper) delegates to `collapse_findings_pass_refs`; grouped per-bucket collapse calls `collapse_findings_pass_refs` directly. Scoped to `Grouping::Flat`. |
+| BC-2.11.025 | v1.13 | Flat-mode collapse key and first-occurrence order: the `(category, verdict, confidence, summary)` four-tuple key and `Vec<(CollapseKey, Vec<&Finding>)>` accumulator structure; `collapse_findings_pass` (flat-mode wrapper) delegates to `collapse_findings_pass_refs`; grouped per-bucket collapse calls `collapse_findings_pass_refs` directly. Scoped to `Grouping::Flat`. |
 | BC-2.11.026 | v1.13 | Flat-mode `(xN)` suffix rule and color-ladder requirement; grouped analogue is BC-2.11.031. PC-4 suffix-free guarantee now scoped to `{Grouped, Expanded}` only. Canonical test vectors migrated to struct form in v1.13. |
 | BC-2.11.027 | v1.7 | Flat-mode K=3 evidence sampling — positional no-sliding-window; grouped analogue is BC-2.11.032. Vocabulary migrated to D-110 struct form in v1.7. |
 | BC-2.11.028 | v1.9 | `--no-collapse` opt-out flag: dual-scope since STORY-119 — disables collapse in both flat and grouped modes. Wiring uses struct construction `FindingsRender { grouping: if show_mitre_grouping { Grouping::Grouped } else { Grouping::Flat }, collapse: if collapse_findings { Collapse::Collapsed } else { Collapse::Expanded } }`. |
@@ -186,8 +186,8 @@ For a singleton group (N=1 within a bucket) under `{Grouped, Collapsed}`, `rende
 (governing-BC trace: BC-2.11.016 Precondition 1: "`TerminalReporter.render.grouping == Grouping::Grouped` (applies to both `{Grouped, Collapsed}` and `{Grouped, Expanded}` paths; the em-dash MITRE expansion occurs on all `render_finding_grouped` calls regardless of collapse axis)." — the singleton path calls `render_finding_grouped` which is governed by BC-2.11.016 for its MITRE em-dash line.)
 
 ### AC-011 — color-ladder requirement: `(xN)` suffix is part of the pre-colorization string
-The grouped-collapse header path applies the same verdict/confidence color-ladder as `terminal.rs:392-400` to a pre-color string that ALREADY INCLUDES the ` (xN)` suffix. The ladder: `Likely+High` → `red().bold()`; `Likely+other` → `yellow`; `Possible` → `yellow`; `Inconclusive` → `cyan`; `Unlikely` → `dimmed`. Appending the suffix AFTER the ANSI color-reset sequence is NON-CONFORMANT.
-(traces to BC-2.11.031 Postcondition 3: "The grouped-collapse header path MUST apply the same verdict/confidence color-selection logic as `terminal.rs:392-400` to a pre-color string that ALREADY INCLUDES the ` (xN)` suffix… appending the suffix after the ANSI reset is NON-CONFORMANT.")
+The grouped-collapse header path applies the same verdict/confidence color-ladder as the color-selection block beginning at `terminal.rs:391` to a pre-color string that ALREADY INCLUDES the ` (xN)` suffix. The ladder: `Likely+High` → `red().bold()`; `Likely+other` → `yellow`; `Possible` → `yellow`; `Inconclusive` → `cyan`; `Unlikely` → `dimmed`. Appending the suffix AFTER the ANSI color-reset sequence is NON-CONFORMANT.
+(traces to BC-2.11.031 Postcondition 3: "The grouped-collapse header path MUST apply the same verdict/confidence color-selection logic as `terminal.rs:391` to a pre-color string that ALREADY INCLUDES the ` (xN)` suffix… appending the suffix after the ANSI reset is NON-CONFORMANT.")
 
 ### AC-012 — `(xN)` suffix does NOT appear on the MITRE line, evidence lines, or tactic bucket headers
 The ` (xN)` suffix appears ONLY on the finding-group header line. It must not appear on the MITRE line (`    MITRE: <ids> \u{2014} <name>`), on any `    > <evidence>` line, or on the tactic bucket header (`  ## <TacticName>`).
@@ -324,7 +324,7 @@ Update the `use` import in `src/main.rs`: `use wirerust::reporter::terminal::{Fi
 ### Task 2 — Mechanical migration: update 84 `FindingsRender::Variant` construction sites
 
 **Files affected (census from F1 §8 + F2 §9):**
-- `src/main.rs` — 2 sites (`run_analyze` 3-arm if-expression; `run_summary` site)
+- `src/main.rs` — 4 enum-variant occurrences across 2 logical construction sites (the 3-arm if-expression at :382/:384/:386 collapses to one struct literal; the `run_summary` site at :449)
 - `tests/reporter_terminal_tests.rs` — 55 sites across all story_NNN blocks
 - `tests/reporter_tests.rs` — 17 `mitre_reporter()` helper sites
 - `tests/dnp3_f5_remediation_tests.rs` — `mitre_reporter` helper
@@ -413,7 +413,7 @@ The call `self.render_findings_grouped_collapsed` references the new function ad
    - **N=1 (singleton):** call `render_finding_grouped(out, group_members[0])` — byte-identical to `{Grouped, Expanded}` for that finding.
    - **N≥2 (collapsed group):**
      a. Build pre-color string: `escaped_summary + format!(" (x{})", N)`.
-     b. Apply color-ladder (same as `terminal.rs:392-400`): `Likely+High` → `red().bold()`; `Likely+other` → `yellow`; `Possible` → `yellow`; `Inconclusive` → `cyan`; `Unlikely` → `dimmed`. Apply with `use_color` guard.
+     b. Apply color-ladder (same as the color-selection block beginning at `terminal.rs:391`): `Likely+High` → `red().bold()`; `Likely+other` → `yellow`; `Possible` → `yellow`; `Inconclusive` → `cyan`; `Unlikely` → `dimmed`. Apply with `use_color` guard.
      c. Write header: `"  [<Category>] <VERDICT> (<CONFIDENCE>) - <colored_line>\n"`.
      d. Evidence loop: iterate `members[0..min(N, COLLAPSE_EVIDENCE_SAMPLES)]`; for each member with non-empty `evidence`, write `"    > {}\n"` for `escape_for_terminal(&evidence[0])`. Window does NOT slide past empty-evidence members.
      e. MITRE line: if `group_members[0].mitre_techniques` is non-empty, call the same name-expansion logic as `render_finding_grouped` (BC-2.11.034 Invariant 2): `ids.join(", ")` + `technique_name(ids[0])` → `Some(name)` → `"    MITRE: <ids> \u{2014} <name>\n"` / `None` → `"    MITRE: <ids> (unknown)\n"`. If empty, no MITRE line.
@@ -450,6 +450,8 @@ The call `self.render_findings_grouped_collapsed` references the new function ad
 | `test_BC_2_11_034_divergent_mitre_representative_sourcing` | BC-2.11.034 PC-3 | Divergent `mitre_techniques` across group members → only `members[0]` MITRE data appears in terminal output |
 | `test_BC_2_11_025_grouped_mode_bypasses_flat_collapse` | BC-2.11.025 Invariant 5 (updated) | `render.grouping == Grouping::Grouped` with `Collapse::Collapsed` does NOT invoke the global flat-mode collapse pass; per-bucket pass applies instead |
 | `test_BC_2_11_028_no_collapse_with_mitre_produces_grouped_expanded` | BC-2.11.028 PC-4 | `{Grouped, Expanded}` path (`--mitre --no-collapse`): no ` (xN)` suffix even for N=100 identical findings in a bucket |
+
+> **Disambiguation note (BC-2.11.025 Invariant 5 VP-table row 6):** The new test `test_BC_2_11_025_grouped_mode_bypasses_flat_collapse` in `mod story_119` is DISTINCT from the pre-existing `test_BC_2_11_025_grouped_mode_bypasses_collapse` at `tests/reporter_terminal_tests.rs:2072`. The pre-existing test verifies the `{Grouped, Expanded}` suffix-free path (no `(xN)` suffix produced by the `--mitre --no-collapse` combination). The new test verifies the `{Grouped, Collapsed}` per-bucket invariant (BC-2.11.025 Invariant 5 — grouped-collapsed mode uses per-bucket `collapse_findings_pass_refs`, never the global flat `collapse_findings_pass` adapter). Both are referenced in BC-2.11.025's VP-table (row 6 maps to Invariant 5). The name resolves uniquely within `mod story_119`; the pre-existing test lives in a sibling `mod` block.
 
 ---
 
@@ -624,7 +626,7 @@ No new crates. `CollapseKey`, `COLLAPSE_EVIDENCE_SAMPLES`, and `collapse_finding
 - `src/reporter/terminal.rs` — `collapse_findings_pass_refs(&[&Finding])` (F4-new shared helper introduced by this story; implements the shared collapse logic; see ADR-0003 "Collapse-API Shape")
 - `src/reporter/terminal.rs:73` — `COLLAPSE_EVIDENCE_SAMPLES = 3` (shared constant; not duplicated)
 - `src/reporter/terminal.rs:311-327` — `render_finding_grouped` (called for N=1 singletons; unchanged)
-- `src/reporter/terminal.rs:392-400` — color ladder in `render_findings_collapsed` (normative reference for suffix-in-pre-color-string pattern)
+- `src/reporter/terminal.rs:391` — color ladder in `render_findings_collapsed` (normative reference for suffix-in-pre-color-string pattern; `:391` is the color-selection block entry point per BC-2.11.031 PC-3)
 - `src/main.rs:381-387` — current 3-arm if-expression for `FindingsRender` construction (Task 2 replacement target)
 - `src/main.rs:107` — `show_mitre_grouping: bool` in-scope param in `run_analyze`
 - `src/main.rs:108` — `collapse_findings: bool` in-scope param in `run_analyze`
@@ -682,3 +684,4 @@ No new crates. `CollapseKey`, `COLLAPSE_EVIDENCE_SAMPLES`, and `collapse_finding
 - **v1.5 (F3 full decomposition, 2026-06-18):** Full acceptance criteria (AC-001..AC-031) each traced verbatim to governing BC postcondition/invariant. Full implementation tasks (Tasks 1-9): struct reshape (~46 sites), render_findings_grouped_collapsed implementation, CLI struct-construction wiring, comment sweep. VP assignments (VP-012, VP-016). Wave assigned (wave: 49 = max(STORY-120=48)+1). Inputs list populated. Deferred markers removed. CARRY-119-F3-RESIDUALS-001 fixes: VP-table test anchor renamed `test_BC_2_11_033_grouped_collapsed_preserves_bucket_order` (was mis-prefixed `test_BC_2_11_013_...` in F2 round per BC-2.11.033 Verification Properties); spec-changelog NIT applied (`Collapse::Expanded` corrected in BC-2.11.030 v1.2 stanza — closed round historical entry; no normative change).
 - **v1.6 (F3 adversarial round-1 remediation, 2026-06-18):** BC stamps synced to PO-final: BC-2.11.014→v2.0, BC-2.11.025→v1.12, BC-2.11.027→v1.7, BC-2.11.031→v1.3, BC-2.11.032→v1.4, BC-2.11.033→v1.3. C-1: collapse API shape propagated — `collapse_findings_pass_refs(&[&Finding])` is the F4-new shared helper; `collapse_findings_pass` at :340 becomes a thin adapter delegating to it; grouped caller collects `bucket_refs` and calls `collapse_findings_pass_refs` directly; AC-027, Task 4 item 3, and Architecture Anchors updated; ADR-0003 "Collapse-API Shape" and F2 design-note §5.2.1 referenced. H-2: Task 7 and AC-030 gain explicit falsifiable sweep target for stale `verdict-desc, confidence-desc` doc-comment at `terminal.rs:429-430` (WRONG — sort is ASCENDING; correction specified). M-1: Task 6 and AC-030 updated — `no_collapse` field uses bare `#[arg(long)]` with `///` doc-comment lines, NOT a `help = "..."` attribute; task now instructs editing those doc-comment lines. M-2: Forbidden Dependencies gains `render_finding_grouped` N≥2 prohibition (calling it for N≥2 groups violates AC-009/AC-014/AC-024). MEDIUM-1: explicit governing-BC trace anchors added for four orphan BCs: AC-019 → BC-2.11.014 Invariant 1 (verbatim verdict-rank enumeration); AC-009 → BC-2.11.026 Precondition 1; AC-014 → BC-2.11.027 Precondition 1; AC-010 → BC-2.11.016 Precondition 1. All trace descriptions copied verbatim from live BC files (PG-62-F3-AC-DESC-FROM-SOURCE). AC-019/AC-020 `collapse_findings_pass` references updated to `collapse_findings_pass_refs` in AC body text. BC-033 body-table description updated to reference `collapse_findings_pass_refs`.
 - **v1.7 (F3 adversarial round-2 remediation, 2026-06-18):** Pass B trace-quote symbol fixes: AC-019/AC-020/AC-027 verbatim trace quotes updated `collapse_findings_pass` → `collapse_findings_pass_refs` to match BC-2.11.033 PC-5/PC-6/Invariant 3 source text exactly (retired symbol was still quoted in the parenthetical trace citations). Pass A M-1 site census corrected from ~46 to 84 (grepped ground-truth: main.rs=4, terminal.rs=3, reporter_terminal_tests.rs=55, reporter_tests.rs=17, dnp3_f5_remediation_tests.rs=2, bc_2_09_100_multitag_tests.rs=3); AC-007 and Task 2 header updated to 84; Task 2 per-file descriptors corrected (reporter_terminal_tests.rs=55, reporter_tests.rs=17). Pass A L-1 color-ladder anchor corrected terminal.rs:391 → terminal.rs:392-400 in AC-011, Task 4 item 3b, and Architecture Anchors (line 391 is `let colored =`; ladder match arms are :392-400).
+- **v1.8 (F3 adversarial round-3 remediation, 2026-06-18):** Fix 1 (Pass B H-1): reverted AC-011 color-ladder anchor from `terminal.rs:392-400` back to `terminal.rs:391` to match BC-2.11.031 PC-3 verbatim — the quote in the trace parenthetical must be byte-identical to the source BC; prose outside the quote uses "color-selection block beginning at `terminal.rs:391`" to pre-empt off-by-one confusion; same revert applied to Task 4 item 4b and Architecture Anchors entry. Fix 2 (Pass A H-2): Task 2 `src/main.rs` per-file descriptor corrected from "2 sites" to "4 enum-variant occurrences across 2 logical construction sites" with line references (:382/:384/:386 collapsing to one struct literal; :449 `run_summary`) — aligns AC-007 census (84 total) with zero-grep acceptance gate. Fix 3 (Pass A H-1/Pass B L-1): Task 5 gains disambiguation note distinguishing new `test_BC_2_11_025_grouped_mode_bypasses_flat_collapse` (mod story_119, verifies Invariant 5 per-bucket path) from pre-existing `test_BC_2_11_025_grouped_mode_bypasses_collapse` at tests/reporter_terminal_tests.rs:2072 (verifies {Grouped, Expanded} suffix-free path); both referenced in BC-2.11.025 VP-table row 6. Fix 5 (PO-final BC-2.11.025 v1.13): BC-table stamp BC-2.11.025 v1.12 → v1.13.

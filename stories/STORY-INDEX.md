@@ -131,7 +131,7 @@ traces_to:
 | STORY-117 | ARP MACsec Offset Documented-Limitation Coverage | E-17 | 46 | 5 | draft | STORY-116 |
 | STORY-118 | Terminal Finding-Collapse — Flat Mode (v0.8.0) | E-18 | 47 | 8 | completed | — |
 | STORY-119 | Terminal Finding-Collapse — Grouped Mode / --mitre | E-18 | 49 | 8 | draft | STORY-120 |
-| STORY-120 | TerminalReporter FindingsRender Enum Migration (v0.9.0) | E-8 | 48 | 3 | draft | — |
+| STORY-120 | TerminalReporter FindingsRender Enum Migration (v0.9.0) | E-8 | 48 | 3 | completed | — |
 
 ---
 
@@ -269,7 +269,7 @@ traces_to:
 | 45 | STORY-116 | draft | #258 (test/arp-qinq-macsec-fixtures) | — | — |
 | 46 | STORY-117 | draft | #258 (test/arp-qinq-macsec-fixtures) | — | — |
 | 47 | STORY-118 | **DELIVERED & CLOSED** | #264 | 5f7cd1b | 2026-06-17 |
-| 48 | STORY-120 | draft | — | — | — |
+| 48 | STORY-120 | **DELIVERED & CLOSED** | #267 | f851995 | 2026-06-18 |
 | 49 | STORY-119 | draft | — | — | — |
 
 ## Coverage Verification
