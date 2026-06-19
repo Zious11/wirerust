@@ -1,0 +1,59 @@
+WIRERUST TRIAGE REPORT
+────────────────────────────────────────
+  Packets: 8  Bytes: 480  Hosts: 2
+
+PROTOCOLS
+────────────────────────────────────────
+  Tcp: 8
+
+SERVICES
+────────────────────────────────────────
+  Modbus: 8
+
+FINDINGS
+────────────────────────────────────────
+  ## Discovery
+  [Anomaly] INCONCLUSIVE (MEDIUM) - Modbus recon: Report Server ID (FC 0x11) from unit 1
+    > FC=0x11 TxnID=0x0001 UnitID=1
+    MITRE: T0888 — Remote System Information Discovery
+  [Anomaly] INCONCLUSIVE (MEDIUM) - Modbus recon: Report Server ID (FC 0x11) from unit 1
+    > FC=0x11 TxnID=0x0001 UnitID=1
+    MITRE: T0888 — Remote System Information Discovery
+  ## Impair Process Control
+  [Execution] LIKELY (MEDIUM) - Modbus write command observed: FC 0x10 from unit 1
+    > FC=0x10 TxnID=0x0002 UnitID=1 ADU bytes 0..17
+    MITRE: T1692.001, T0836 — Unauthorized Message: Command Message
+
+ANALYZER: TCP Reassembly
+────────────────────────────────────────
+  Packets analyzed: 8
+  bytes_reassembled: 48
+  dropped_findings: 0
+  evictions: 0
+  flows_completed: 0
+  flows_expired: 0
+  flows_fin: 0
+  flows_partial: 0
+  flows_rst: 0
+  flows_total: 1
+  packets_processed: 8
+  packets_skipped_non_tcp: 0
+  segments_depth_exceeded: 0
+  segments_duplicates: 0
+  segments_inserted: 4
+  segments_out_of_window: 0
+  segments_overlaps: 0
+  segments_segment_limit: 0
+  unclassified_flows: 0
+
+ANALYZER: modbus
+────────────────────────────────────────
+  Packets analyzed: 4
+  dropped_findings: 0
+  exception_count: 1
+  function_code_distribution: {"0x10":1,"0x11":2,"0x90":1}
+  parse_errors: 0
+  pdu_count: 4
+  write_count: 1
+
+
