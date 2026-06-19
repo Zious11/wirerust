@@ -380,14 +380,14 @@ fn run_analyze(
                 // --mitre --no-collapse (show_mitre_grouping=true, collapse_findings=false) → {Grouped, Expanded}.
                 // default (show_mitre_grouping=false, collapse_findings=true) → {Flat, Collapsed}.
                 // --no-collapse only (show_mitre_grouping=false, collapse_findings=false) → {Flat, Expanded}.
-                render: FindingsRender {
-                    grouping: grouping_from_flag(show_mitre_grouping),
-                    collapse: if collapse_findings {
+                render: FindingsRender::new(
+                    grouping_from_flag(show_mitre_grouping),
+                    if collapse_findings {
                         Collapse::Collapsed
                     } else {
                         Collapse::Expanded
                     },
-                },
+                ),
             };
             reporter.render(&summary, &all_findings, &analyzer_summaries)
         }
@@ -448,10 +448,7 @@ fn run_summary(
                 use_color,
                 show_hosts_breakdown,
                 // BC-2.11.028 invariant 4: render field is inert for run_summary — no FINDINGS section.
-                render: FindingsRender {
-                    grouping: Grouping::Flat,
-                    collapse: Collapse::Collapsed,
-                },
+                render: FindingsRender::new(Grouping::Flat, Collapse::Collapsed),
             };
             reporter.render(&summary, &[], &[])
         }

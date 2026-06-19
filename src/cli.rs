@@ -31,20 +31,13 @@ pub enum OutputFormat {
     Csv,
 }
 
-/// CLI surface.
-///
-/// LESSON-P1.04 ("no unwired CLI flags" convention): every flag and
-/// option here must be consumed somewhere in `src/main.rs`. Declaring a
-/// flag in clap that has no behavioral effect misleads users who read
-/// `--help` and write scripts against the surface. The brownfield-ingest
-/// Phase C synthesis identified 5 unwired flags (`--verbose`,
-/// `--threats`, `--beacon`, `--filter` on `analyze`; `--services` on
-/// `summary`) which have been removed in this PR. A 6th — `--hosts` on
-/// `summary` — was previously unwired and has been *wired* to gate a
-/// per-host breakdown in the terminal reporter (LESSON-P1.03).
-///
-/// When adding a new flag here, verify the consumer path in `main.rs`
-/// in the same change. CI does not yet enforce this — see DEBT register.
+// "no unwired CLI flags" convention (LESSON-P1.04): every flag and
+// option here must be consumed somewhere in `src/main.rs`. Declaring a
+// flag in clap that has no behavioral effect misleads users who read
+// `--help` and write scripts against the surface.
+//
+// When adding a new flag here, verify the consumer path in `main.rs`
+// in the same change. CI does not yet enforce this — see DEBT register.
 #[derive(Parser, Debug)]
 #[command(
     name = "wirerust",
@@ -88,32 +81,32 @@ pub struct Cli {
 
     /// Override the overlapping-segment anomaly threshold (default: 50).
     /// Per flow direction; accepted range 0–255 (Snort's
-    /// `overlap_limit` range). See LESSON-P2.05 in the reassembly config.
+    /// `overlap_limit` range).
     #[arg(long, global = true, value_parser = clap::value_parser!(u32).range(0..=255))]
     pub overlap_threshold: Option<u32>,
 
     /// Override the small-segment anomaly threshold (default: 100).
     /// Length of a consecutive run of undersized segments, per flow
     /// direction, above which the anomaly fires. Accepted range 0–2048
-    /// (Snort's `small_segments` count range). See LESSON-P2.05.
+    /// (Snort's `small_segments` count range).
     #[arg(long, global = true, value_parser = clap::value_parser!(u32).range(0..=2048))]
     pub small_segment_threshold: Option<u32>,
 
     /// Override the small-segment payload-size cutoff in bytes
     /// (default: 16). A segment shorter than this counts as "small";
     /// 0 disables small-segment detection. Accepted range 0–2048
-    /// (Snort's `small_segments` size range). See LESSON-P2.05.
+    /// (Snort's `small_segments` size range).
     #[arg(long, global = true, value_parser = clap::value_parser!(u16).range(0..=2048))]
     pub small_segment_max_bytes: Option<u16>,
 
     /// Override the ports exempt from small-segment detection
     /// (default: 23,513 — telnet, rlogin). Comma-separated; a flow is
-    /// exempt if either endpoint port matches. See LESSON-P2.05.
+    /// exempt if either endpoint port matches.
     #[arg(long, global = true, value_delimiter = ',')]
     pub small_segment_ignore_ports: Option<Vec<u16>>,
 
     /// Override the out-of-window anomaly threshold (default: 100).
-    /// Per flow direction; see LESSON-P2.05.
+    /// Per flow direction.
     #[arg(long, global = true)]
     pub out_of_window_threshold: Option<u32>,
 
@@ -159,7 +152,7 @@ pub enum Commands {
         /// within each MITRE tactic bucket with a `(xN)` count suffix.
         /// Pass --no-collapse to restore one-line-per-finding output in both modes.
         /// Has no effect on --output json or --output csv.
-        /// BC-2.11.028 precondition 2; dual-scope since STORY-119.
+        // BC-2.11.028 precondition 2; dual-scope since STORY-119.
         #[arg(long)]
         no_collapse: bool,
 
@@ -167,51 +160,55 @@ pub enum Commands {
         #[arg(short, long)]
         all: bool,
 
-        /// Analyze Modbus TCP traffic (port 502, requires stream reassembly)
-        /// (BC-2.14.023 — default-off; included by --all)
+        /// Analyze Modbus TCP traffic (port 502, requires stream reassembly).
+        /// Default-off; included by --all.
+        // BC-2.14.023
         #[arg(long)]
         modbus: bool,
 
         /// Per-flow write-burst threshold: fires T0806+T1692.001 when more than N
-        /// write-class FCs are observed within any 1-second window (BC-2.14.024).
+        /// write-class FCs are observed within any 1-second window.
         /// Default: 20. Must be >= 1.
+        // BC-2.14.024
         #[arg(long, default_value_t = 20)]
         modbus_write_burst_threshold: u32,
 
         /// Per-flow sustained-rate threshold: fires T0806+T1692.001 when the average
-        /// write-FC rate exceeds M writes/second over a contiguous window of >= 2s
-        /// (BC-2.14.024). Default: 10. Must be >= 1.
+        /// write-FC rate exceeds M writes/second over a contiguous window of >= 2s.
+        /// Default: 10. Must be >= 1.
         #[arg(long, default_value_t = 10)]
         modbus_write_sustained_threshold: u32,
 
-        /// Analyze DNP3 TCP traffic (port 20000, requires stream reassembly)
-        /// (BC-2.15.021 — default-off; included by --all)
+        /// Analyze DNP3 TCP traffic (port 20000, requires stream reassembly).
+        /// Default-off; included by --all.
+        // BC-2.15.021
         #[arg(long)]
         dnp3: bool,
 
         /// Per-flow direct-operate burst threshold: fires T1692.001 when more than N
-        /// Control-class FCs are observed within the detection window (BC-2.15.010 /
-        /// BC-2.15.017). Default: 10.
+        /// Control-class FCs are observed within the detection window. Default: 10.
+        // BC-2.15.010 / BC-2.15.017
         #[arg(long, default_value_t = DNPXX_DIRECT_OPERATE_THRESHOLD_DEFAULT)]
         dnp3_direct_operate_threshold: u32,
 
         /// Analyze ARP traffic for spoofing, GARP anomalies, malformed frames, and
-        /// L2/L3 sender-MAC mismatch (BC-2.16.011 — default-off; included by --all).
+        /// L2/L3 sender-MAC mismatch. Default-off; included by --all.
+        // BC-2.16.011
         #[arg(long)]
         arp: bool,
 
         /// D1 spoof escalation threshold: number of MAC rebinds within
         /// ARP_FLAP_WINDOW_SECS (60 s) before a HIGH severity finding is emitted.
         /// Default: 3. Set to 1 to fire HIGH on the very first rebind.
-        /// BC-2.16.012 primary deliverable (STORY-114).
+        // BC-2.16.012 / STORY-114
         #[arg(long, default_value_t = 3)]
         arp_spoof_threshold: u32,
 
         /// D3 storm rate threshold: frames/second per source MAC above which a
         /// MEDIUM/Anomaly storm finding is emitted. Default: 50 (wirerust engineering
         /// default — not derived from any external standard). ICS/OT operators with
-        /// PLCs or RTUs should typically lower this to 5–20/s (BC-2.16.013).
-        /// BC-2.16.013 primary deliverable (STORY-115).
+        /// PLCs or RTUs should typically lower this to 5–20/s.
+        // BC-2.16.013 / STORY-115
         #[arg(long, default_value_t = 50)]
         arp_storm_rate: u32,
     },
@@ -222,11 +219,11 @@ pub enum Commands {
         #[arg(required = true)]
         targets: Vec<PathBuf>,
 
-        /// Include per-host breakdown of source/destination IPs
-        /// (LESSON-P1.03 — previously a no-op flag; now wired to
-        /// expand the terminal output's `Hosts: N` count into an
-        /// itemized list. The JSON reporter has always emitted the
-        /// full `unique_hosts` array independently of this flag.)
+        /// Include per-host breakdown of source/destination IPs.
+        /// Expands the terminal output's `Hosts: N` count into an
+        /// itemized list. The JSON reporter always emits the full
+        /// `unique_hosts` array independently of this flag.
+        // LESSON-P1.03
         #[arg(long)]
         hosts: bool,
     },

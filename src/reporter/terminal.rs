@@ -118,6 +118,7 @@ struct CollapseKey {
 }
 
 /// Grouping axis for the FINDINGS section.
+#[non_exhaustive]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Grouping {
     Grouped,
@@ -125,6 +126,7 @@ pub enum Grouping {
 }
 
 /// Collapse axis for the FINDINGS section.
+#[non_exhaustive]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Collapse {
     Collapsed,
@@ -133,10 +135,25 @@ pub enum Collapse {
 
 /// Rendering mode for the FINDINGS section of [`TerminalReporter`].
 /// No [`Default`] is derived — deliberate, consistent with STORY-120.
+///
+/// Construct with [`FindingsRender::new`] from external crates; struct-literal
+/// construction is blocked by `#[non_exhaustive]` to preserve the growth path
+/// (ADR-0003 / LESSON-P2.10).
+#[non_exhaustive]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct FindingsRender {
     pub grouping: Grouping,
     pub collapse: Collapse,
+}
+
+impl FindingsRender {
+    /// Construct a [`FindingsRender`] with the given grouping and collapse axes.
+    ///
+    /// This is the canonical construction path for code outside the `wirerust`
+    /// crate. Internal code (same crate) may use struct-literal syntax directly.
+    pub fn new(grouping: Grouping, collapse: Collapse) -> Self {
+        Self { grouping, collapse }
+    }
 }
 
 pub struct TerminalReporter {

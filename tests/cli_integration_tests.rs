@@ -374,3 +374,46 @@ fn mitre_named_tactic_header_emitted_for_modbus_fixture() {
          got stdout:\n{stdout}"
     );
 }
+
+// ---- F-A-001: CLI help must not expose internal factory provenance IDs ----
+//
+// Clap renders `///` doc-comment text into `--help` output. Internal factory
+// provenance tags (BC-*, STORY-*, LESSON-*) embedded in `///` comments appear
+// verbatim in `wirerust analyze --help` and `wirerust summary --help`, which is
+// confusing to end-users. This test guards the sweep performed in
+// src/cli.rs: all provenance IDs must live in `//` (non-doc) comments so they
+// are present as source annotations but do NOT reach the rendered help text.
+//
+// FAIL MODE VERIFICATION (done manually before committing): temporarily
+// restoring one `///` line with "BC-2.11.028" caused this test to fail with:
+//   assertion failed: `--help` must not contain "BC-"; found in stdout
+// Then removing the ID restored the green state.
+
+/// REGRESSION GUARD: `wirerust analyze --help` must not contain any of the
+/// internal factory provenance IDs `BC-`, `STORY-`, or `LESSON-`.
+///
+/// Each subcommand's help text is tested independently so failures name the
+/// exact surface that regressed.
+#[test]
+fn help_output_contains_no_internal_provenance_ids() {
+    for subcommand in &["analyze", "summary"] {
+        let output = Command::cargo_bin("wirerust")
+            .expect("binary built")
+            .args([subcommand, "--help"])
+            // clap exits 0 for --help
+            .assert()
+            .success()
+            .get_output()
+            .stdout
+            .clone();
+        let stdout = String::from_utf8(output).expect("utf-8 stdout");
+
+        for id_prefix in &["BC-", "STORY-", "LESSON-"] {
+            assert!(
+                !stdout.contains(id_prefix),
+                "`wirerust {subcommand} --help` must not contain \"{id_prefix}\"; \
+                 found in stdout:\n{stdout}"
+            );
+        }
+    }
+}

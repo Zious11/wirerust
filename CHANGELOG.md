@@ -28,6 +28,14 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
   change: any code that matched or constructed the three-variant enum must migrate to the
   two-field struct. The 0.8.x → 0.9.0 minor bump covers both phases.
 
+  *Forward-compatibility (F7-R2):* `Grouping`, `Collapse`, and `FindingsRender` (in
+  `wirerust::reporter::terminal`) are now marked `#[non_exhaustive]`, allowing future
+  variants or fields to be added without a semver-breaking change. Because `FindingsRender`
+  is `#[non_exhaustive]`, external crates must construct it via the new
+  `FindingsRender::new(grouping, collapse)` constructor rather than a struct literal
+  (struct-literal construction of a `#[non_exhaustive]` struct is rejected by the compiler
+  outside the defining crate).
+
 ### Changed
 
 - **`--mitre` now collapses identical findings within each MITRE tactic bucket by default
