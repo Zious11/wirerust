@@ -7,6 +7,50 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-06-19
+
+### Changed (BREAKING)
+
+- **`TerminalReporter` findings-render mode: two bools → `FindingsRender` enum → `FindingsRender`
+  struct of two orthogonal enums (STORY-120 PR #266, STORY-122/A PR #268).**
+  This entry supersedes the three-variant enum description that shipped in an earlier 0.9.0
+  pre-release entry.
+
+  *Phase 1 (STORY-120, PR #266):* The `show_mitre_grouping: bool` and `collapse_findings: bool`
+  public fields on `TerminalReporter` were removed and replaced by a single `render: FindingsRender`
+  field typed as a three-variant enum (`Grouped`, `FlatCollapsed`, `FlatExpanded`).
+
+  *Phase 2 (STORY-122/A, PR #268):* `FindingsRender` was reshaped from a three-variant enum into
+  a **struct of two orthogonal enums**: `{ grouping: Grouping, collapse: Collapse }`. The
+  `Grouping` enum has variants `Grouped` and `Flat`; the `Collapse` enum has variants `Collapsed`
+  and `Expanded`. All four combinations are valid. The three named enum variants (`Grouped`,
+  `FlatCollapsed`, `FlatExpanded`) no longer exist. Per RFC 1105 this is an additional breaking
+  change: any code that matched or constructed the three-variant enum must migrate to the
+  two-field struct. The 0.8.x → 0.9.0 minor bump covers both phases.
+
+  *Forward-compatibility (F7-R2):* `Grouping`, `Collapse`, and `FindingsRender` (in
+  `wirerust::reporter::terminal`) are now marked `#[non_exhaustive]`, allowing future
+  variants or fields to be added without a semver-breaking change. Because `FindingsRender`
+  is `#[non_exhaustive]`, external crates must construct it via the new
+  `FindingsRender::new(grouping, collapse)` constructor rather than a struct literal
+  (struct-literal construction of a `#[non_exhaustive]` struct is rejected by the compiler
+  outside the defining crate).
+
+### Changed
+
+- **`--mitre` now collapses identical findings within each MITRE tactic bucket by default
+  (STORY-119/B, PR #269).** When `--mitre` is passed, `wirerust analyze` routes output through
+  the new `render_findings_grouped_collapsed` path, which groups identical findings (same category,
+  verdict, confidence, summary) within each tactic bucket into a single line with a `(xN)` count
+  suffix and up to K=3 representative evidence samples. Singletons render without a count suffix.
+  Terminal output for `--mitre` is **no longer byte-identical** to the pre-0.9.0 grouped output.
+  JSON and CSV output are unaffected.
+
+- **`--no-collapse` is now dual-scope (STORY-119/B, PR #269).** Previously `--no-collapse`
+  suppressed collapse only in flat (non-`--mitre`) mode. It now suppresses collapse in both flat
+  and grouped (`--mitre`) modes. Passing `--no-collapse` restores one-line-per-finding output
+  regardless of whether `--mitre` is also passed.
+
 ## [0.8.0] - 2026-06-17
 
 ### Added
@@ -20,8 +64,8 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
   the same (category, verdict, confidence, summary) are collapsed into a single line with a
   `(xN)` count suffix and up to 3 representative evidence samples (K=3). This is a
   **display-layer-only behavioral change**: JSON and CSV output are unaffected, and
-  `--mitre`-grouped mode is also unchanged (grouped-mode collapse is deferred to a future
-  release). Pass `--no-collapse` to disable. Governed by ADR-0003 Display-Layer Aggregation.
+  `--mitre`-grouped mode was unchanged in 0.8.0; grouped-mode collapse shipped in 0.9.0.
+  Pass `--no-collapse` to disable. Governed by ADR-0003 Display-Layer Aggregation.
 
 ## [0.7.1] - 2026-06-17
 
@@ -381,7 +425,8 @@ Downstream consumers of wirerust JSON or CSV output must update for this release
 - Output sanitization in the terminal reporter guards against C1 control bytes
   in packet-derived strings.
 
-[Unreleased]: https://github.com/Zious11/wirerust/compare/v0.8.0...HEAD
+[Unreleased]: https://github.com/Zious11/wirerust/compare/v0.9.0...HEAD
+[0.9.0]: https://github.com/Zious11/wirerust/compare/v0.8.0...v0.9.0
 [0.8.0]: https://github.com/Zious11/wirerust/compare/v0.7.1...v0.8.0
 [0.7.1]: https://github.com/Zious11/wirerust/compare/v0.7.0...v0.7.1
 [0.7.0]: https://github.com/Zious11/wirerust/compare/v0.6.0...v0.7.0

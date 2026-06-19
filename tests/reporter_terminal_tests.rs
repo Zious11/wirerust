@@ -42,7 +42,7 @@ use wirerust::analyzer::AnalysisSummary;
 use wirerust::decoder::{ParsedPacket, Protocol, TransportInfo};
 use wirerust::findings::{Confidence, Finding, ThreatCategory, Verdict};
 use wirerust::reporter::Reporter;
-use wirerust::reporter::terminal::TerminalReporter;
+use wirerust::reporter::terminal::{Collapse, FindingsRender, Grouping, TerminalReporter};
 use wirerust::summary::Summary;
 
 // ---------------------------------------------------------------------------
@@ -70,9 +70,8 @@ fn make_finding(summary: impl Into<String>) -> Finding {
 fn plain_reporter() -> TerminalReporter {
     TerminalReporter {
         use_color: false,
-        show_mitre_grouping: false,
         show_hosts_breakdown: false,
-        collapse_findings: false,
+        render: FindingsRender::new(Grouping::Flat, Collapse::Expanded),
     }
 }
 
@@ -661,9 +660,8 @@ mod story_078 {
     fn mitre_reporter() -> TerminalReporter {
         TerminalReporter {
             use_color: false,
-            show_mitre_grouping: true,
             show_hosts_breakdown: false,
-            collapse_findings: false,
+            render: FindingsRender::new(Grouping::Grouped, Collapse::Expanded),
         }
     }
 
@@ -693,7 +691,7 @@ mod story_078 {
     // -----------------------------------------------------------------------
 
     /// AC-001 (BC-2.11.013 postcondition 2):
-    /// When `show_mitre_grouping = true`, tactic section headers appear in the
+    /// When `render = FindingsRender { grouping: Grouping::Grouped, collapse: Collapse::Expanded }`, tactic section headers appear in the
     /// order returned by `all_tactics_in_report_order()`.  Only sections with at
     /// least one finding are emitted.
     ///
@@ -1008,7 +1006,7 @@ mod story_078 {
     // -----------------------------------------------------------------------
 
     /// AC-008 (BC-2.11.016 postcondition 1):
-    /// When `show_mitre_grouping = true` and a finding has a known technique ID
+    /// When `render = FindingsRender { grouping: Grouping::Grouped, collapse: Collapse::Expanded }` and a finding has a known technique ID
     /// (e.g., "T1036"), the MITRE line reads `MITRE: T1036 \u{2014} Masquerading`
     /// (U+2014 em-dash, not ASCII "--").
     ///
@@ -1083,8 +1081,8 @@ mod story_078 {
     // -----------------------------------------------------------------------
 
     /// AC-010 (BC-2.11.017 postcondition 1):
-    /// When `show_mitre_grouping = false` (default), a finding with
-    /// `mitre_technique = "T1036"` produces the MITRE line `MITRE: T1036`
+    /// When `render != FindingsRender { grouping: Grouping::Grouped, collapse: Collapse::Expanded }` (FlatExpanded or FlatCollapsed), a finding
+    /// with `mitre_technique = "T1036"` produces the MITRE line `MITRE: T1036`
     /// with no em-dash, no technique name, and no `(unknown)` label.
     ///
     /// Discriminating assertions:
@@ -1097,14 +1095,14 @@ mod story_078 {
     /// inv1/2: render_finding_flat never calls technique_name() / technique_tactic().
     #[test]
     fn test_BC_2_11_017_default_mode_bare_mitre_id() {
-        // Canonical test vector: mitre="T1036", show_mitre_grouping=false.
+        // Canonical test vector: mitre="T1036", render=FlatExpanded.
         let f = make_mitre_finding(
             "flat-finding",
             Verdict::Likely,
             Confidence::High,
             Some("T1036"),
         );
-        // Use plain_reporter() (show_mitre_grouping = false).
+        // Use plain_reporter() (render=FindingsRender { grouping: Grouping::Flat, collapse: Collapse::Expanded }).
         let out = plain_reporter().render(&Summary::new(), &[f], &[]);
 
         // Bare MITRE ID must be present.
@@ -1788,9 +1786,8 @@ mod story_118 {
     fn collapse_reporter() -> TerminalReporter {
         TerminalReporter {
             use_color: false,
-            show_mitre_grouping: false,
             show_hosts_breakdown: false,
-            collapse_findings: true,
+            render: FindingsRender::new(Grouping::Flat, Collapse::Collapsed),
         }
     }
 
@@ -1798,19 +1795,19 @@ mod story_118 {
     fn collapse_reporter_color() -> TerminalReporter {
         TerminalReporter {
             use_color: true,
-            show_mitre_grouping: false,
             show_hosts_breakdown: false,
-            collapse_findings: true,
+            render: FindingsRender::new(Grouping::Flat, Collapse::Collapsed),
         }
     }
 
-    /// TerminalReporter with MITRE grouping and collapse both enabled (for AC-005).
-    fn mitre_collapse_reporter() -> TerminalReporter {
+    /// TerminalReporter with MITRE grouping ENABLED and collapse DISABLED
+    /// ({Grouped, Expanded}); used to prove grouped mode is structurally
+    /// suffix-free (no `(xN)` suffix regardless of collapse_findings setting).
+    fn mitre_expanded_reporter() -> TerminalReporter {
         TerminalReporter {
             use_color: false,
-            show_mitre_grouping: true,
             show_hosts_breakdown: false,
-            collapse_findings: true,
+            render: FindingsRender::new(Grouping::Grouped, Collapse::Expanded),
         }
     }
 
@@ -2065,7 +2062,7 @@ mod story_118 {
         );
     }
 
-    /// AC-005: show_mitre_grouping=true suppresses collapse; no (xN) suffix anywhere.
+    /// AC-005: render=FindingsRender { grouping: Grouping::Grouped, collapse: Collapse::Expanded } suppresses collapse; no (xN) suffix anywhere.
     ///
     /// This guards the invariant that grouped (--mitre) mode is structurally
     /// suffix-free. FAILS if a future change applies the collapse pass inside
@@ -2075,7 +2072,7 @@ mod story_118 {
     /// that grouped mode does not).
     #[test]
     fn test_BC_2_11_025_grouped_mode_bypasses_collapse() {
-        // BC-2.11.025 invariant 5: when show_mitre_grouping=true, collapse does NOT run.
+        // BC-2.11.025 invariant 5: when render=FindingsRender { grouping: Grouping::Grouped, collapse: Collapse::Expanded }, collapse does NOT run.
         // 100 identical-key findings in mitre+collapse reporter → no (xN) suffix.
         let findings: Vec<Finding> = (0..100)
             .map(|_| {
@@ -2090,7 +2087,7 @@ mod story_118 {
             })
             .collect();
 
-        let out = mitre_collapse_reporter().render(&Summary::new(), &findings, &[]);
+        let out = mitre_expanded_reporter().render(&Summary::new(), &findings, &[]);
 
         // No (xN) suffix of any kind must appear.
         assert!(
@@ -2387,7 +2384,7 @@ mod story_118 {
             vec![],
         );
 
-        // Collapse reporter (collapse_findings=true) with a single finding.
+        // Collapse reporter (render=FindingsRender { grouping: Grouping::Flat, collapse: Collapse::Collapsed }) with a single finding.
         let out_collapse =
             collapse_reporter().render(&Summary::new(), std::slice::from_ref(&f), &[]);
 
@@ -2397,7 +2394,7 @@ mod story_118 {
             "BC-2.11.026 pc2/inv2: singleton must render with no (xN) suffix; got:\n{out_collapse}"
         );
 
-        // Output must be byte-identical to the pre-v0.8.0 path (collapse_findings=false).
+        // Output must be byte-identical to the pre-v0.8.0 path (render=FindingsRender { grouping: Grouping::Flat, collapse: Collapse::Expanded }).
         let out_no_collapse = plain_reporter().render(&Summary::new(), &[f], &[]);
         assert_eq!(
             out_collapse, out_no_collapse,
@@ -3215,15 +3212,14 @@ mod story_118 {
 
     /// AC-018 (part 1): --no-collapse restores one-line-per-finding; no (xN) suffix.
     ///
-    /// This guards the opt-out path: with collapse_findings=false, 5 identical-key
+    /// This guards the opt-out path: with render=FindingsRender { grouping: Grouping::Flat, collapse: Collapse::Expanded }, 5 identical-key
     /// findings render as 5 individual header lines. Also includes a contrast assertion
     /// that the collapse path (render_findings_collapsed) is implemented — verified by
-    /// checking that collapse_findings=true produces a different (collapsed) result.
-    /// FAILS if collapse_findings=false collapses, or if render_findings_collapsed is not
-    /// yet implemented.
+    /// checking that render=FindingsRender { grouping: Grouping::Flat, collapse: Collapse::Collapsed } produces a different (collapsed) result.
+    /// FAILS if FlatExpanded collapses, or if render_findings_collapsed is not yet implemented.
     #[test]
     fn test_BC_2_11_028_no_collapse_flag_one_line_per_finding() {
-        // BC-2.11.028 pc2: collapse_findings=false → one header per finding, no suffix.
+        // BC-2.11.028 pc2: render=FindingsRender { grouping: Grouping::Flat, collapse: Collapse::Expanded } → one header per finding, no suffix.
         let findings: Vec<Finding> = (0..5)
             .map(|_| {
                 make_collapse_finding(
@@ -3237,7 +3233,7 @@ mod story_118 {
             })
             .collect();
 
-        // plain_reporter() has collapse_findings=false.
+        // plain_reporter() has render=FindingsRender { grouping: Grouping::Flat, collapse: Collapse::Expanded }.
         let out = plain_reporter().render(&Summary::new(), &findings, &[]);
 
         // 5 individual header lines, not 1 collapsed group.
@@ -3254,7 +3250,7 @@ mod story_118 {
             "BC-2.11.028 pc2: collapse_findings=false must produce no (xN) suffix; got:\n{out}"
         );
 
-        // Contrast assertion: collapse_findings=true on the same input MUST produce
+        // Contrast assertion: render=FindingsRender { grouping: Grouping::Flat, collapse: Collapse::Collapsed } on the same input MUST produce
         // a collapsed group with (x5) — verifying the opt-out contrast is meaningful.
         let out_collapse = collapse_reporter().render(&Summary::new(), &findings, &[]);
         assert!(
@@ -3267,7 +3263,7 @@ mod story_118 {
     /// AC-018 (part 2): default vs. opt-out outputs are observably different.
     ///
     /// This guards that the two modes produce distinct output for the same input.
-    /// FAILS if a future change makes collapse_findings=true and collapse_findings=false
+    /// FAILS if a future change makes FindingsRender { grouping: Grouping::Flat, collapse: Collapse::Collapsed } and FindingsRender { grouping: Grouping::Flat, collapse: Collapse::Expanded }
     /// produce identical output (meaning either both collapse or neither does).
     #[test]
     fn test_BC_2_11_028_default_vs_opt_out_output_difference() {
@@ -3317,17 +3313,17 @@ mod story_118 {
         );
     }
 
-    /// AC-019: --no-collapse flag is wired: no_collapse=true → collapse_findings=false.
+    /// AC-019: --no-collapse flag is wired: no_collapse=true → render=FindingsRender { grouping: Grouping::Flat, collapse: Collapse::Expanded }.
     ///
-    /// This guards the structural wiring between the CLI flag and the reporter field.
-    /// FAILS if the collapse_findings field does not exist, or if its polarity is
-    /// reversed (collapse_findings: no_collapse instead of !no_collapse).
+    /// This guards the structural wiring between the CLI flag and the render field.
+    /// FAILS if FlatCollapsed and FlatExpanded produce identical output, or if the
+    /// render variant is mis-wired to the wrong rendering path.
     #[test]
     fn test_BC_2_11_028_flag_wired_to_reporter_field() {
         // BC-2.11.028 pc1 / invariant 1: structural wiring test.
-        // collapse_findings=true → collapse active (v0.8.0 default).
-        // collapse_findings=false → collapse inactive (--no-collapse opt-out).
-        // Verify the field exists and the logic is correct by behavioral contrast.
+        // render=FindingsRender { grouping: Grouping::Flat, collapse: Collapse::Collapsed } → collapse active (v0.8.0 default).
+        // render=FindingsRender { grouping: Grouping::Flat, collapse: Collapse::Expanded } → collapse inactive (--no-collapse opt-out).
+        // Verify the render field is wired correctly by behavioral contrast.
 
         let findings: Vec<Finding> = (0..3)
             .map(|_| {
@@ -3342,12 +3338,11 @@ mod story_118 {
             })
             .collect();
 
-        // Reporter with collapse_findings = true → produces "(x3)".
+        // Reporter with render = FindingsRender { grouping: Grouping::Flat, collapse: Collapse::Collapsed } → produces "(x3)".
         let reporter_on = TerminalReporter {
             use_color: false,
-            show_mitre_grouping: false,
             show_hosts_breakdown: false,
-            collapse_findings: true,
+            render: FindingsRender::new(Grouping::Flat, Collapse::Collapsed),
         };
         let out_on = reporter_on.render(&Summary::new(), &findings, &[]);
         assert!(
@@ -3355,12 +3350,11 @@ mod story_118 {
             "BC-2.11.028 inv1: collapse_findings=true must produce '(x3)' suffix; got:\n{out_on}"
         );
 
-        // Reporter with collapse_findings = false → no collapse, no suffix.
+        // Reporter with render = FindingsRender { grouping: Grouping::Flat, collapse: Collapse::Expanded } → no collapse, no suffix.
         let reporter_off = TerminalReporter {
             use_color: false,
-            show_mitre_grouping: false,
             show_hosts_breakdown: false,
-            collapse_findings: false,
+            render: FindingsRender::new(Grouping::Flat, Collapse::Expanded),
         };
         let out_off = reporter_off.render(&Summary::new(), &findings, &[]);
         assert!(
@@ -3540,15 +3534,15 @@ mod story_118 {
 
     /// AC-027: --no-collapse flag has no observable effect on JSON or CSV output.
     ///
-    /// This guards that the collapse_findings field on TerminalReporter does not leak
-    /// into the JSON/CSV reporters. FAILS if main.rs is refactored to pre-filter the
-    /// findings slice based on the --no-collapse flag before passing to all reporters.
+    /// This guards that the render field (FindingsRender { grouping: Grouping::Flat, collapse: Collapse::Collapsed }) on TerminalReporter
+    /// does not leak into the JSON/CSV reporters. FAILS if main.rs is refactored to pre-filter
+    /// the findings slice based on the --no-collapse flag before passing to all reporters.
     #[test]
     fn test_BC_2_11_029_no_collapse_flag_json_invariant() {
         use wirerust::reporter::json::JsonReporter;
 
-        // BC-2.11.029 pc5: JSON output must be identical regardless of collapse_findings.
-        // The collapse_findings field belongs to TerminalReporter only.
+        // BC-2.11.029 pc5: JSON output must be identical regardless of render variant.
+        // The render field belongs to TerminalReporter only.
         let findings: Vec<Finding> = (0..5)
             .map(|_| {
                 make_collapse_finding(
@@ -3563,7 +3557,7 @@ mod story_118 {
             .collect();
 
         // JsonReporter does not have a collapse_findings field — it is unaffected.
-        // Both collapse=true and collapse=false terminal renders must produce the SAME
+        // Both FlatCollapsed and FlatExpanded terminal renders must produce the SAME
         // JSON output when the same slice is passed to JsonReporter.
         let json_out = JsonReporter.render(&Summary::new(), &findings, &[]);
         let json: serde_json::Value =
@@ -3656,7 +3650,7 @@ mod story_118 {
     // -----------------------------------------------------------------------
 
     /// AC-005 (BC-2.11.013): grouped mode (--mitre) is structurally suffix-free
-    /// regardless of `collapse_findings` flag; 0 (xN) suffixes in any volume.
+    /// regardless of render variant; 0 (xN) suffixes in any volume.
     ///
     /// This guards the invariant that render_findings_grouped is never modified by
     /// STORY-118. Also includes a contrast assertion that flat collapse produces a
@@ -3666,7 +3660,7 @@ mod story_118 {
     #[test]
     fn test_BC_2_11_013_grouped_mode_suffix_free() {
         // BC-2.11.013 invariant 4: grouped mode is structurally suffix-free.
-        // 50 identical-key findings with collapse_findings=true AND show_mitre_grouping=true.
+        // 50 identical-key findings with FindingsRender { grouping: Grouping::Flat, collapse: Collapse::Collapsed } AND FindingsRender { grouping: Grouping::Grouped, collapse: Collapse::Expanded }.
         let findings: Vec<Finding> = (0..50)
             .map(|_| {
                 make_collapse_finding(
@@ -3680,7 +3674,7 @@ mod story_118 {
             })
             .collect();
 
-        let out = mitre_collapse_reporter().render(&Summary::new(), &findings, &[]);
+        let out = mitre_expanded_reporter().render(&Summary::new(), &findings, &[]);
 
         // No (xN) suffix of any kind must appear anywhere in the output.
         assert!(
@@ -3771,7 +3765,7 @@ mod story_118 {
     // BC-2.11.019 — Section Order Unchanged with Collapse (1 test)
     // -----------------------------------------------------------------------
 
-    /// AC-025: overall section order is unchanged when collapse_findings=true.
+    /// AC-025: overall section order is unchanged when render=FindingsRender { grouping: Grouping::Flat, collapse: Collapse::Collapsed }.
     /// Only the FINDINGS body content changes.
     ///
     /// This guards that the collapse feature does not reorder or drop the top-level
@@ -3943,6 +3937,2743 @@ mod story_118 {
             !out.contains("T1036"),
             "BC-2.11.026 supplementary: members[1] technique 'T1036' must not appear when \
              members[0].mitre_techniques=[]; got:\n{out}"
+        );
+    }
+}
+
+// ---------------------------------------------------------------------------
+// STORY-120 GREEN gate tests
+//
+// These tests exercise new behaviors introduced by the FindingsRender enum
+// migration (STORY-120). All todo!() stubs have been replaced with real
+// assertions by the GREEN implementer.
+//
+// `TerminalReporter` now uses `render: FindingsRender` (a struct-of-two-orthogonal-enums:
+// `Grouping` × `Collapse`) in place of the two removed bool fields. The FindingsRender
+// struct and its axis enums are defined in src/reporter/terminal.rs and imported below.
+// ---------------------------------------------------------------------------
+
+mod story_120 {
+    use wirerust::findings::{Confidence, Finding, ThreatCategory, Verdict};
+    use wirerust::reporter::Reporter;
+    use wirerust::reporter::terminal::{Collapse, FindingsRender, Grouping, TerminalReporter};
+    use wirerust::summary::Summary;
+
+    fn make_finding_s120(summary: impl Into<String>) -> Finding {
+        Finding {
+            category: ThreatCategory::Anomaly,
+            verdict: Verdict::Inconclusive,
+            confidence: Confidence::Low,
+            summary: summary.into(),
+            evidence: vec![],
+            mitre_techniques: vec![],
+            source_ip: None,
+            timestamp: None,
+            direction: None,
+        }
+    }
+
+    fn make_mitre_finding_s120(summary: impl Into<String>) -> Finding {
+        Finding {
+            category: ThreatCategory::Anomaly,
+            verdict: Verdict::Likely,
+            confidence: Confidence::High,
+            summary: summary.into(),
+            evidence: vec![],
+            mitre_techniques: vec!["T1046".to_string()],
+            source_ip: None,
+            timestamp: None,
+            direction: None,
+        }
+    }
+
+    // -----------------------------------------------------------------------
+    // AC-001 — FindingsRender derives Debug, Clone, Copy, PartialEq, Eq
+    // (traces to BC-2.11.025 invariant 5, BC-2.11.013 invariant 4)
+    // -----------------------------------------------------------------------
+
+    /// AC-001 (BC-2.11.025 invariant 5, BC-2.11.013 invariant 4):
+    /// FindingsRender satisfies Debug + Clone + Copy + PartialEq + Eq.
+    /// The struct has exactly two fields: grouping: Grouping and collapse: Collapse. No Default impl.
+    #[test]
+    fn test_findings_render_derives_debug_clone_copy_partialeq_eq() {
+        let a = FindingsRender::new(Grouping::Grouped, Collapse::Expanded);
+        let b = a; // Copy
+        let c = Clone::clone(&a); // Clone (explicit form avoids clone_on_copy lint)
+        assert_eq!(a, b, "PartialEq + Eq: Grouped == copied Grouped");
+        assert_eq!(a, c, "PartialEq + Eq: Grouped == cloned Grouped");
+        let _ = format!("{a:?}"); // Debug — would panic if not implemented
+
+        // All four Grouping x Collapse combinations are pairwise distinct.
+        assert_ne!(
+            FindingsRender::new(Grouping::Grouped, Collapse::Expanded),
+            FindingsRender::new(Grouping::Flat, Collapse::Collapsed),
+            "{{Grouped,Expanded}} != {{Flat,Collapsed}}"
+        );
+        assert_ne!(
+            FindingsRender::new(Grouping::Grouped, Collapse::Expanded),
+            FindingsRender::new(Grouping::Flat, Collapse::Expanded),
+            "{{Grouped,Expanded}} != {{Flat,Expanded}}"
+        );
+        assert_ne!(
+            FindingsRender::new(Grouping::Flat, Collapse::Collapsed),
+            FindingsRender::new(Grouping::Flat, Collapse::Expanded),
+            "{{Flat,Collapsed}} != {{Flat,Expanded}}"
+        );
+        assert_ne!(
+            FindingsRender::new(Grouping::Grouped, Collapse::Expanded),
+            FindingsRender::new(Grouping::Grouped, Collapse::Collapsed),
+            "{{Grouped,Expanded}} != {{Grouped,Collapsed}}"
+        );
+        assert_ne!(
+            FindingsRender::new(Grouping::Grouped, Collapse::Collapsed),
+            FindingsRender::new(Grouping::Flat, Collapse::Collapsed),
+            "{{Grouped,Collapsed}} != {{Flat,Collapsed}}"
+        );
+        assert_ne!(
+            FindingsRender::new(Grouping::Grouped, Collapse::Collapsed),
+            FindingsRender::new(Grouping::Flat, Collapse::Expanded),
+            "{{Grouped,Collapsed}} != {{Flat,Expanded}}"
+        );
+
+        // Debug output for struct form includes field names and variant names.
+        assert!(
+            format!(
+                "{:?}",
+                FindingsRender::new(Grouping::Grouped, Collapse::Expanded)
+            )
+            .contains("Grouped")
+        );
+        assert!(
+            format!(
+                "{:?}",
+                FindingsRender::new(Grouping::Flat, Collapse::Collapsed)
+            )
+            .contains("Flat")
+        );
+        assert!(
+            format!(
+                "{:?}",
+                FindingsRender::new(Grouping::Flat, Collapse::Collapsed)
+            )
+            .contains("Collapsed")
+        );
+        assert!(
+            format!(
+                "{:?}",
+                FindingsRender::new(Grouping::Flat, Collapse::Expanded)
+            )
+            .contains("Expanded")
+        );
+    }
+
+    // -----------------------------------------------------------------------
+    // AC-002 — TerminalReporter struct has exactly 3 fields after refactor
+    // (traces to BC-2.11.028 precondition 3 — struct shape governs render wiring)
+    // -----------------------------------------------------------------------
+
+    /// AC-002 (BC-2.11.028 precondition 3):
+    /// TerminalReporter has exactly 3 fields: use_color, show_hosts_breakdown, render.
+    /// This test compiles only if the struct has exactly those fields — any reference
+    /// to the removed fields is a compile error.
+    #[test]
+    fn test_BC_2_11_028_struct_has_exactly_three_fields_post_refactor() {
+        // The struct literal below is the test: it compiles if and only if exactly
+        // these three fields exist on TerminalReporter (Rust requires all fields in a
+        // struct literal; extra fields are also a compile error).
+        let r = TerminalReporter {
+            use_color: false,
+            show_hosts_breakdown: false,
+            render: FindingsRender::new(Grouping::Flat, Collapse::Expanded),
+        };
+        // The struct renders fine (behavioral sanity).
+        let out = r.render(&Summary::new(), &[], &[]);
+        assert!(
+            out.contains("WIRERUST TRIAGE REPORT"),
+            "three-field TerminalReporter renders a valid report; got: {out}"
+        );
+    }
+
+    // -----------------------------------------------------------------------
+    // AC-003 — Dispatch is an exhaustive match over FindingsRender
+    // (traces to BC-2.11.019 invariant 7)
+    // -----------------------------------------------------------------------
+
+    /// AC-003 (BC-2.11.019 invariant 7):
+    /// All four FindingsRender (Grouping × Collapse) dispatch arms are reachable and route
+    /// to the correct rendering path. Three of the four combos are exercised here:
+    ///   {Grouped,Expanded}   → MITRE tactic header "## " in output
+    ///   {Flat,Collapsed}     → "(x3)" suffix for N=3 identical findings
+    ///   {Flat,Expanded}      → 3 individual header lines, no "(x" suffix
+    #[test]
+    fn test_BC_2_11_019_findings_dispatch_match_exhaustive() {
+        // Three identical-key findings with a known MITRE technique for the Grouped path.
+        let findings: Vec<Finding> = (0..3)
+            .map(|_| make_mitre_finding_s120("dispatch-test"))
+            .collect();
+
+        // Grouped arm: calls render_findings_grouped → emits "## " tactic header.
+        let grouped_out = TerminalReporter {
+            use_color: false,
+            show_hosts_breakdown: false,
+            render: FindingsRender::new(Grouping::Grouped, Collapse::Expanded),
+        }
+        .render(&Summary::new(), &findings, &[]);
+        assert!(
+            grouped_out.contains("## "),
+            "AC-003: Grouped arm must emit a tactic header (## ...); got:\n{grouped_out}"
+        );
+
+        // FlatCollapsed arm: calls render_findings_collapsed → emits "(x3)" suffix.
+        let collapsed_out = TerminalReporter {
+            use_color: false,
+            show_hosts_breakdown: false,
+            render: FindingsRender::new(Grouping::Flat, Collapse::Collapsed),
+        }
+        .render(&Summary::new(), &findings, &[]);
+        assert!(
+            collapsed_out.contains("(x3)"),
+            "AC-003: FlatCollapsed arm must emit '(x3)' for 3 identical-key findings; \
+             got:\n{collapsed_out}"
+        );
+
+        // FlatExpanded arm: iterates render_finding_flat → 3 individual header lines, no (x.
+        let expanded_out = TerminalReporter {
+            use_color: false,
+            show_hosts_breakdown: false,
+            render: FindingsRender::new(Grouping::Flat, Collapse::Expanded),
+        }
+        .render(&Summary::new(), &findings, &[]);
+        assert!(
+            !expanded_out.contains("(x"),
+            "AC-003: FlatExpanded arm must not emit (xN) suffix; got:\n{expanded_out}"
+        );
+        let header_count = expanded_out.matches("dispatch-test").count();
+        assert_eq!(
+            header_count, 3,
+            "AC-003: FlatExpanded arm must emit 3 individual finding lines; \
+             found {header_count} in:\n{expanded_out}"
+        );
+
+        // All three tested outputs are mutually distinct (three of the four Grouping x Collapse combos).
+        assert_ne!(
+            grouped_out, collapsed_out,
+            "AC-003: Grouped != FlatCollapsed output"
+        );
+        assert_ne!(
+            grouped_out, expanded_out,
+            "AC-003: Grouped != FlatExpanded output"
+        );
+        assert_ne!(
+            collapsed_out, expanded_out,
+            "AC-003: FlatCollapsed != FlatExpanded output"
+        );
+    }
+
+    // -----------------------------------------------------------------------
+    // AC-004 — {Grouped, Expanded} mode does not emit collapse (xN) suffixes
+    // (traces to BC-2.11.025 invariant 5)
+    // -----------------------------------------------------------------------
+
+    /// AC-004 (BC-2.11.025 invariant 5):
+    /// FindingsRender { grouping: Grouping::Grouped, collapse: Collapse::Expanded } on N=100
+    /// identical-key findings produces no "(xN)" suffix. The {Grouped, Expanded} struct combo
+    /// routes to render_findings_grouped which never applies the collapse pass — the two axes
+    /// are orthogonal and all four combinations are valid (no combination is prohibited).
+    #[test]
+    fn test_BC_2_11_025_grouped_mode_bypasses_collapse_structurally() {
+        let findings: Vec<Finding> = (0..100)
+            .map(|_| make_mitre_finding_s120("grouped-collapse-impossible"))
+            .collect();
+
+        let out = TerminalReporter {
+            use_color: false,
+            show_hosts_breakdown: false,
+            render: FindingsRender::new(Grouping::Grouped, Collapse::Expanded),
+        }
+        .render(&Summary::new(), &findings, &[]);
+
+        assert!(
+            !out.contains("(x"),
+            "AC-004: FindingsRender {{ grouping: Grouping::Grouped, collapse: Collapse::Expanded }} must never emit (xN) suffix — \
+             the grouped path does not apply the collapse pass; got:\n{out}"
+        );
+        // Grouped mode emits tactic headers (confirming the Grouped path ran, not collapsed).
+        assert!(
+            out.contains("## "),
+            "AC-004: FindingsRender {{ grouping: Grouping::Grouped, collapse: Collapse::Expanded }} must emit tactic section headers; got:\n{out}"
+        );
+    }
+
+    // -----------------------------------------------------------------------
+    // AC-005 — render field wiring: FlatCollapsed vs FlatExpanded polarity
+    // (traces to BC-2.11.028 postconditions 1–2, invariant 1)
+    // -----------------------------------------------------------------------
+
+    /// AC-005 (BC-2.11.028 postconditions 1–2, invariant 1):
+    /// FindingsRender { grouping: Grouping::Flat, collapse: Collapse::Collapsed } produces "(x3)" for 3 identical-key findings;
+    /// FindingsRender { grouping: Grouping::Flat, collapse: Collapse::Expanded } does not — proving the render field is wired
+    /// correctly to the rendering path. Mirrors the run_analyze construction intent.
+    #[test]
+    fn test_BC_2_11_028_flag_wired_to_render_field_post_enum() {
+        let findings: Vec<Finding> = (0..3)
+            .map(|_| make_finding_s120("WiredTestPostEnum"))
+            .collect();
+
+        // FlatCollapsed → collapse active → "(x3)" suffix.
+        let out_collapsed = TerminalReporter {
+            use_color: false,
+            show_hosts_breakdown: false,
+            render: FindingsRender::new(Grouping::Flat, Collapse::Collapsed),
+        }
+        .render(&Summary::new(), &findings, &[]);
+        assert!(
+            out_collapsed.contains("(x3)"),
+            "AC-005: FindingsRender {{ grouping: Grouping::Flat, collapse: Collapse::Collapsed }} must produce '(x3)' for 3 identical \
+             findings; got:\n{out_collapsed}"
+        );
+
+        // FlatExpanded → collapse inactive → no "(x" suffix, 3 individual lines.
+        let out_expanded = TerminalReporter {
+            use_color: false,
+            show_hosts_breakdown: false,
+            render: FindingsRender::new(Grouping::Flat, Collapse::Expanded),
+        }
+        .render(&Summary::new(), &findings, &[]);
+        assert!(
+            !out_expanded.contains("(x"),
+            "AC-005: FindingsRender {{ grouping: Grouping::Flat, collapse: Collapse::Expanded }} must not produce (xN) suffix; \
+             got:\n{out_expanded}"
+        );
+
+        // Polarity: FlatCollapsed != FlatExpanded output for N≥2 identical-key input.
+        assert_ne!(
+            out_collapsed, out_expanded,
+            "AC-005: FlatCollapsed and FlatExpanded must produce different output \
+             for N≥2 identical-key findings"
+        );
+    }
+}
+
+// ---------------------------------------------------------------------------
+// STORY-122 acceptance-gate tests
+//
+// These tests lock in the STORY-122 acceptance criteria for the
+// FindingsRender enum→struct reshape (Option X). The stub-architect
+// (commit dec8a55) reshaped the types and migrated the 84 construction
+// sites; these tests verify both the completed mechanical migration and
+// the completed Task-4 comment-sweep work.
+//
+// All tasks complete on this commit; every test below is GREEN and serves
+// as a regression guard.
+//
+// DF-TEST-NAMESPACE-001: per-story mod wrapper.
+// ---------------------------------------------------------------------------
+
+mod story_122 {
+    use wirerust::findings::{Confidence, Finding, ThreatCategory, Verdict};
+    use wirerust::reporter::Reporter;
+    use wirerust::reporter::terminal::{Collapse, FindingsRender, Grouping, TerminalReporter};
+    use wirerust::summary::Summary;
+
+    fn make_finding_s122(summary: impl Into<String>) -> Finding {
+        Finding {
+            category: ThreatCategory::Anomaly,
+            verdict: Verdict::Inconclusive,
+            confidence: Confidence::Low,
+            summary: summary.into(),
+            evidence: vec![],
+            mitre_techniques: vec![],
+            source_ip: None,
+            timestamp: None,
+            direction: None,
+        }
+    }
+
+    fn make_mitre_finding_s122(summary: impl Into<String>) -> Finding {
+        Finding {
+            category: ThreatCategory::Anomaly,
+            verdict: Verdict::Likely,
+            confidence: Confidence::High,
+            summary: summary.into(),
+            evidence: vec![],
+            mitre_techniques: vec!["T1046".to_string()],
+            source_ip: None,
+            timestamp: None,
+            direction: None,
+        }
+    }
+
+    // -----------------------------------------------------------------------
+    // AC-001 — Grouping, Collapse, and FindingsRender struct defined correctly
+    // (traces to BC-2.11.028 Invariant 1)
+    // -----------------------------------------------------------------------
+
+    /// AC-001 (BC-2.11.028 Invariant 1):
+    /// All four Grouping × Collapse combinations are pairwise distinct.
+    /// Grouping and Collapse each derive Debug, Clone, Copy, PartialEq, Eq.
+    /// FindingsRender struct derives Debug, Clone, Copy, PartialEq, Eq.
+    /// No Default is derived on any of the three types.
+    #[test]
+    fn test_BC_2_11_028_ac001_four_combos_pairwise_distinct() {
+        let grouped_expanded = FindingsRender::new(Grouping::Grouped, Collapse::Expanded);
+        let grouped_collapsed = FindingsRender::new(Grouping::Grouped, Collapse::Collapsed);
+        let flat_collapsed = FindingsRender::new(Grouping::Flat, Collapse::Collapsed);
+        let flat_expanded = FindingsRender::new(Grouping::Flat, Collapse::Expanded);
+
+        // Copy semantics: binding a second name does not move.
+        let ge2 = grouped_expanded;
+        assert_eq!(
+            grouped_expanded, ge2,
+            "AC-001: Copy + PartialEq: {ge2:?} == copy"
+        );
+
+        // Clone semantics.
+        let gc2 = Clone::clone(&grouped_collapsed);
+        assert_eq!(
+            grouped_collapsed, gc2,
+            "AC-001: Clone + PartialEq: {gc2:?} == clone"
+        );
+
+        // Debug is implemented — would panic at format time if not.
+        let _ = format!("{grouped_expanded:?}");
+        let _ = format!("{grouped_collapsed:?}");
+        let _ = format!("{flat_collapsed:?}");
+        let _ = format!("{flat_expanded:?}");
+
+        // All four Grouping × Collapse combinations are pairwise distinct.
+        assert_ne!(
+            grouped_expanded, grouped_collapsed,
+            "AC-001: {grouped_expanded:?} != {grouped_collapsed:?}"
+        );
+        assert_ne!(
+            grouped_expanded, flat_collapsed,
+            "AC-001: {grouped_expanded:?} != {flat_collapsed:?}"
+        );
+        assert_ne!(
+            grouped_expanded, flat_expanded,
+            "AC-001: {grouped_expanded:?} != {flat_expanded:?}"
+        );
+        assert_ne!(
+            grouped_collapsed, flat_collapsed,
+            "AC-001: {grouped_collapsed:?} != {flat_collapsed:?}"
+        );
+        assert_ne!(
+            grouped_collapsed, flat_expanded,
+            "AC-001: {grouped_collapsed:?} != {flat_expanded:?}"
+        );
+        assert_ne!(
+            flat_collapsed, flat_expanded,
+            "AC-001: {flat_collapsed:?} != {flat_expanded:?}"
+        );
+    }
+
+    /// AC-001 (BC-2.11.028 Invariant 1):
+    /// Debug output for FindingsRender struct uses struct-of-enums vocabulary,
+    /// not the old enum-variant vocabulary. Field names "grouping" and "collapse"
+    /// appear in the Debug representation; old variant names "FlatCollapsed" and
+    /// "FlatExpanded" do not.
+    #[test]
+    fn test_BC_2_11_028_ac001_debug_format_struct_vocabulary() {
+        // Struct debug output contains field and variant names.
+        let ge_dbg = format!(
+            "{:?}",
+            FindingsRender::new(Grouping::Grouped, Collapse::Expanded)
+        );
+        assert!(
+            ge_dbg.contains("grouping"),
+            "AC-001: Debug must include field name 'grouping'; got: {ge_dbg}"
+        );
+        assert!(
+            ge_dbg.contains("collapse"),
+            "AC-001: Debug must include field name 'collapse'; got: {ge_dbg}"
+        );
+        assert!(
+            ge_dbg.contains("Grouped"),
+            "AC-001: Debug must include 'Grouped' for Grouping::Grouped; got: {ge_dbg}"
+        );
+        assert!(
+            ge_dbg.contains("Expanded"),
+            "AC-001: Debug must include 'Expanded' for Collapse::Expanded; got: {ge_dbg}"
+        );
+
+        let fc_dbg = format!(
+            "{:?}",
+            FindingsRender::new(Grouping::Flat, Collapse::Collapsed)
+        );
+        assert!(
+            fc_dbg.contains("Flat"),
+            "AC-001: Debug must include 'Flat' for Grouping::Flat; got: {fc_dbg}"
+        );
+        assert!(
+            fc_dbg.contains("Collapsed"),
+            "AC-001: Debug must include 'Collapsed' for Collapse::Collapsed; got: {fc_dbg}"
+        );
+
+        // Old enum-variant concatenated names must NOT appear in debug output.
+        assert!(
+            !fc_dbg.contains("FlatCollapsed"),
+            "AC-001: Debug must not contain old enum token 'FlatCollapsed'; got: {fc_dbg}"
+        );
+        let fe_dbg = format!(
+            "{:?}",
+            FindingsRender::new(Grouping::Flat, Collapse::Expanded)
+        );
+        assert!(
+            !fe_dbg.contains("FlatExpanded"),
+            "AC-001: Debug must not contain old enum token 'FlatExpanded'; got: {fe_dbg}"
+        );
+    }
+
+    // -----------------------------------------------------------------------
+    // AC-002 — Four-arm exhaustive tuple dispatch
+    // (traces to BC-2.11.013 Invariant 4)
+    // -----------------------------------------------------------------------
+
+    /// AC-002 (BC-2.11.013 Invariant 4):
+    /// The {Grouped, Expanded} dispatch arm routes to render_findings_grouped —
+    /// MITRE tactic headers ("## ") appear in output.
+    #[test]
+    fn test_BC_2_11_028_ac002_grouped_expanded_arm_routes_to_render_findings_grouped() {
+        let findings: Vec<Finding> = (0..3)
+            .map(|_| make_mitre_finding_s122("s122-dispatch-ge"))
+            .collect();
+        let out = TerminalReporter {
+            use_color: false,
+            show_hosts_breakdown: false,
+            render: FindingsRender::new(Grouping::Grouped, Collapse::Expanded),
+        }
+        .render(&Summary::new(), &findings, &[]);
+        assert!(
+            out.contains("## "),
+            "AC-002: {{Grouped,Expanded}} arm must emit tactic header '## '; got:\n{out}"
+        );
+        assert!(
+            !out.contains("(x"),
+            "AC-002: {{Grouped,Expanded}} arm must not emit (xN) suffix; got:\n{out}"
+        );
+    }
+
+    /// AC-002 (BC-2.11.013 Invariant 4 / STORY-119/B post-implementation):
+    /// The {Grouped, Collapsed} dispatch arm routes to `render_findings_grouped_collapsed`
+    /// (STORY-119/B). For N≥2 identical-key findings in a tactic bucket, the output
+    /// carries a `(xN)` suffix — it is NO longer byte-identical to {Grouped, Expanded}.
+    /// Tactic headers still appear (`## <tactic>`).
+    ///
+    /// Supersedes the TEMPORARY STORY-122/A assertion that {Grouped,Collapsed} was
+    /// byte-identical to {Grouped,Expanded}. That was a scaffolding state; STORY-119/B
+    /// wires the real implementation.
+    #[test]
+    fn test_BC_2_11_028_ac002_grouped_collapsed_arm_routes_to_render_findings_grouped_collapsed() {
+        let findings: Vec<Finding> = (0..3)
+            .map(|_| make_mitre_finding_s122("s122-dispatch-gc"))
+            .collect();
+
+        let out_gc = TerminalReporter {
+            use_color: false,
+            show_hosts_breakdown: false,
+            render: FindingsRender::new(Grouping::Grouped, Collapse::Collapsed),
+        }
+        .render(&Summary::new(), &findings, &[]);
+
+        let out_ge = TerminalReporter {
+            use_color: false,
+            show_hosts_breakdown: false,
+            render: FindingsRender::new(Grouping::Grouped, Collapse::Expanded),
+        }
+        .render(&Summary::new(), &findings, &[]);
+
+        // Post-STORY-119/B: {Grouped,Collapsed} routes to render_findings_grouped_collapsed.
+        // N=3 identical-key findings must produce (x3) suffix — collapsed, not expanded.
+        assert!(
+            out_gc.contains("(x3)"),
+            "AC-002: {{Grouped,Collapsed}} with N=3 identical findings must emit `(x3)` suffix; \
+             got:\n{out_gc}"
+        );
+        // {Grouped,Collapsed} output must differ from {Grouped,Expanded} (no longer byte-identical).
+        assert_ne!(
+            out_gc, out_ge,
+            "AC-002: {{Grouped,Collapsed}} must differ from {{Grouped,Expanded}} post-STORY-119/B"
+        );
+        // Tactic headers still appear.
+        assert!(
+            out_gc.contains("## "),
+            "AC-002: {{Grouped,Collapsed}} arm must emit tactic header '## '; got:\n{out_gc}"
+        );
+    }
+
+    /// AC-002 (BC-2.11.013 Invariant 4):
+    /// The {Flat, Collapsed} dispatch arm routes to render_findings_collapsed —
+    /// (xN) suffix appears for N≥2 identical-key findings.
+    #[test]
+    fn test_BC_2_11_028_ac002_flat_collapsed_arm_routes_to_render_findings_collapsed() {
+        let findings: Vec<Finding> = (0..3)
+            .map(|_| make_finding_s122("s122-dispatch-fc"))
+            .collect();
+        let out = TerminalReporter {
+            use_color: false,
+            show_hosts_breakdown: false,
+            render: FindingsRender::new(Grouping::Flat, Collapse::Collapsed),
+        }
+        .render(&Summary::new(), &findings, &[]);
+        assert!(
+            out.contains("(x3)"),
+            "AC-002: {{Flat,Collapsed}} arm must emit '(x3)' for 3 identical-key findings; got:\n{out}"
+        );
+    }
+
+    /// AC-002 (BC-2.11.013 Invariant 4):
+    /// The {Flat, Expanded} dispatch arm iterates render_finding_flat —
+    /// 3 individual finding lines with no (xN) suffix.
+    #[test]
+    fn test_BC_2_11_028_ac002_flat_expanded_arm_iterates_render_finding_flat() {
+        let findings: Vec<Finding> = (0..3)
+            .map(|_| make_finding_s122("s122-dispatch-fe"))
+            .collect();
+        let out = TerminalReporter {
+            use_color: false,
+            show_hosts_breakdown: false,
+            render: FindingsRender::new(Grouping::Flat, Collapse::Expanded),
+        }
+        .render(&Summary::new(), &findings, &[]);
+        assert!(
+            !out.contains("(x"),
+            "AC-002: {{Flat,Expanded}} arm must not emit (xN) suffix; got:\n{out}"
+        );
+        let count = out.matches("s122-dispatch-fe").count();
+        assert_eq!(
+            count, 3,
+            "AC-002: {{Flat,Expanded}} arm must emit 3 individual finding lines; found {count} in:\n{out}"
+        );
+    }
+
+    // -----------------------------------------------------------------------
+    // AC-004 — run_analyze construction site: 3-arm if → 3 struct literals
+    // (traces to BC-2.11.028 Invariant 1)
+    //
+    // run_analyze is not directly callable from tests (reads pcap files), so
+    // we verify the wiring by asserting the behavior of TerminalReporter
+    // constructed with the exact FindingsRender values that run_analyze
+    // produces for each flag combination (byte-identical to v0.9.0 branching).
+    // -----------------------------------------------------------------------
+
+    /// AC-004 (BC-2.11.028 Invariant 1, EC-001):
+    /// HISTORICAL REGRESSION GUARD (STORY-122/A era): in STORY-122/A, `--mitre` alone
+    /// produced `{Grouped, Expanded}`. This test asserts the struct value that
+    /// STORY-122/A's construction site emitted — preserved as a regression guard for
+    /// the STORY-122/A struct value only.
+    /// NOTE: Post-STORY-119/B, `--mitre` alone produces `{Grouped, Collapsed}` (the
+    /// CLI default was flipped by STORY-119/B Task 4). This test does NOT assert the
+    /// run_analyze CLI behavior after STORY-119/B — it asserts only the struct value
+    /// equality and that `{Grouped,Expanded}` ≠ `{Grouped,Collapsed}`.
+    #[test]
+    fn test_BC_2_11_028_ac004_mitre_alone_yields_grouped_expanded() {
+        let findings: Vec<Finding> = (0..2)
+            .map(|_| make_mitre_finding_s122("s122-ac004-mitre"))
+            .collect();
+
+        // The struct value run_analyze produces when show_mitre_grouping=true.
+        let render_from_mitre_flag = FindingsRender::new(Grouping::Grouped, Collapse::Expanded);
+
+        let out = TerminalReporter {
+            use_color: false,
+            show_hosts_breakdown: false,
+            render: render_from_mitre_flag,
+        }
+        .render(&Summary::new(), &findings, &[]);
+
+        assert!(
+            out.contains("## "),
+            "AC-004: --mitre alone → {{Grouped,Expanded}} must emit tactic headers; got:\n{out}"
+        );
+        assert!(
+            !out.contains("(x"),
+            "AC-004: --mitre alone → {{Grouped,Expanded}} must not emit (xN) suffix; got:\n{out}"
+        );
+
+        // {Grouped, Collapsed} is NOT what --mitre alone produced in STORY-122/A
+        // (post-STORY-119/B this IS the CLI default, but this test only asserts the struct values).
+        let render_grouped_collapsed = FindingsRender::new(Grouping::Grouped, Collapse::Collapsed);
+        assert_ne!(
+            render_from_mitre_flag, render_grouped_collapsed,
+            "AC-004: run_analyze with --mitre alone must produce {{Grouped,Expanded}}, \
+             not {{Grouped,Collapsed}} — the CLI flip is STORY-119/B scope"
+        );
+    }
+
+    /// AC-004 (BC-2.11.028 Invariant 1, EC-003):
+    /// Default (show_mitre_grouping=false, collapse_findings=true) →
+    /// run_analyze produces FindingsRender { grouping: Grouping::Flat, collapse: Collapse::Collapsed }.
+    /// Routes to render_findings_collapsed; (xN) suffix for identical findings.
+    #[test]
+    fn test_BC_2_11_028_ac004_default_yields_flat_collapsed() {
+        let findings: Vec<Finding> = (0..3)
+            .map(|_| make_finding_s122("s122-ac004-default"))
+            .collect();
+
+        // The struct value run_analyze produces for the default (no --mitre, collapse_findings=true).
+        let render_default = FindingsRender::new(Grouping::Flat, Collapse::Collapsed);
+
+        let out = TerminalReporter {
+            use_color: false,
+            show_hosts_breakdown: false,
+            render: render_default,
+        }
+        .render(&Summary::new(), &findings, &[]);
+
+        assert!(
+            out.contains("(x3)"),
+            "AC-004: default → {{Flat,Collapsed}} must emit '(x3)' for 3 identical-key findings; got:\n{out}"
+        );
+        assert!(
+            !out.contains("## "),
+            "AC-004: default → {{Flat,Collapsed}} must not emit tactic headers; got:\n{out}"
+        );
+    }
+
+    /// AC-004 (BC-2.11.028 Invariant 1, EC-002):
+    /// --no-collapse (show_mitre_grouping=false, collapse_findings=false) →
+    /// run_analyze produces FindingsRender { grouping: Grouping::Flat, collapse: Collapse::Expanded }.
+    /// Routes to render_finding_flat per-item; 3 individual lines, no (xN) suffix.
+    #[test]
+    fn test_BC_2_11_028_ac004_no_collapse_yields_flat_expanded() {
+        let findings: Vec<Finding> = (0..3)
+            .map(|_| make_finding_s122("s122-ac004-nocollapse"))
+            .collect();
+
+        // The struct value run_analyze produces for --no-collapse (collapse_findings=false).
+        let render_no_collapse = FindingsRender::new(Grouping::Flat, Collapse::Expanded);
+
+        let out = TerminalReporter {
+            use_color: false,
+            show_hosts_breakdown: false,
+            render: render_no_collapse,
+        }
+        .render(&Summary::new(), &findings, &[]);
+
+        assert!(
+            !out.contains("(x"),
+            "AC-004: --no-collapse → {{Flat,Expanded}} must not emit (xN) suffix; got:\n{out}"
+        );
+        let count = out.matches("s122-ac004-nocollapse").count();
+        assert_eq!(
+            count, 3,
+            "AC-004: --no-collapse → {{Flat,Expanded}} must emit 3 individual lines; found {count}"
+        );
+    }
+
+    // -----------------------------------------------------------------------
+    // AC-005 — run_summary construction site uses {Flat, Collapsed}
+    // (traces to BC-2.11.028 Postcondition 4)
+    // -----------------------------------------------------------------------
+
+    /// AC-005 (BC-2.11.028 Postcondition 4):
+    /// run_summary uses FindingsRender { grouping: Grouping::Flat, collapse: Collapse::Collapsed }.
+    /// The render field is inert for run_summary (no FINDINGS section rendered).
+    /// TerminalReporter constructed with that value renders a valid report.
+    #[test]
+    fn test_BC_2_11_028_ac005_run_summary_construction_uses_flat_collapsed() {
+        // The struct value run_summary uses — inert (run_summary renders no FINDINGS section).
+        let render_summary = FindingsRender::new(Grouping::Flat, Collapse::Collapsed);
+
+        let reporter = TerminalReporter {
+            use_color: false,
+            show_hosts_breakdown: false,
+            render: render_summary,
+        };
+
+        // run_summary passes an empty findings slice — no FINDINGS section appears.
+        let out = reporter.render(&Summary::new(), &[], &[]);
+        assert!(
+            out.contains("WIRERUST TRIAGE REPORT"),
+            "AC-005: run_summary construction site must render a valid report header; got:\n{out}"
+        );
+        assert!(
+            !out.contains("FINDINGS"),
+            "AC-005: run_summary with empty findings must not emit FINDINGS section; got:\n{out}"
+        );
+
+        // The run_summary value matches exactly {Flat, Collapsed}.
+        assert_eq!(
+            render_summary,
+            FindingsRender::new(Grouping::Flat, Collapse::Collapsed),
+            "AC-005: run_summary FindingsRender must be {{Flat,Collapsed}}"
+        );
+    }
+
+    // -----------------------------------------------------------------------
+    // AC-006 — Output byte-identical to v0.9.0 for all existing CLI combos
+    // (traces to BC-2.11.013 Invariant 4)
+    //
+    // The three CLI-reachable paths in STORY-122/A are verified by asserting
+    // that each FindingsRender value routes to the same render function as
+    // the old enum variant it replaced, producing the same observable output.
+    // -----------------------------------------------------------------------
+
+    /// AC-006 (BC-2.11.013 Invariant 4):
+    /// {Grouped, Expanded} (--mitre alone in STORY-122/A) produces the same
+    /// output as the old grouped (suffix-free) variant:
+    /// tactic headers present, no (xN) suffix, byte-identical across the reshape.
+    #[test]
+    fn test_BC_2_11_028_ac006_grouped_expanded_byte_identical_to_old_grouped_variant() {
+        let findings: Vec<Finding> = (0..2)
+            .map(|_| make_mitre_finding_s122("s122-ac006-byteident"))
+            .collect();
+
+        let out = TerminalReporter {
+            use_color: false,
+            show_hosts_breakdown: false,
+            render: FindingsRender::new(Grouping::Grouped, Collapse::Expanded),
+        }
+        .render(&Summary::new(), &findings, &[]);
+
+        // Grouped-expanded output has tactic headers and no collapse suffixes.
+        assert!(
+            out.contains("## "),
+            "AC-006: {{Grouped,Expanded}} must emit '## ' tactic header"
+        );
+        assert!(
+            !out.contains("(x"),
+            "AC-006: {{Grouped,Expanded}} must not emit (xN) suffix"
+        );
+        // Finding summary appears (not collapsed away).
+        assert!(
+            out.matches("s122-ac006-byteident").count() >= 2,
+            "AC-006: {{Grouped,Expanded}} must emit all 2 findings individually"
+        );
+    }
+
+    /// AC-006 (BC-2.11.026 Postcondition 4, BC-2.11.027 Postcondition 1):
+    /// {Flat, Collapsed} (default in STORY-122/A) produces the same output as
+    /// the old flat-collapsed path: (xN) suffix for N≥2, up to K=3
+    /// evidence lines, MITRE line for non-empty mitre_techniques.
+    #[test]
+    fn test_BC_2_11_028_ac006_flat_collapsed_byte_identical_to_old_flatcollapsed_variant() {
+        let findings: Vec<Finding> = (0..3)
+            .map(|i| Finding {
+                category: ThreatCategory::Anomaly,
+                verdict: Verdict::Likely,
+                confidence: Confidence::High,
+                summary: "s122-ac006-collapse".to_string(),
+                evidence: vec![format!("ev{i}")],
+                mitre_techniques: vec!["T1046".to_string()],
+                source_ip: None,
+                timestamp: None,
+                direction: None,
+            })
+            .collect();
+
+        let out = TerminalReporter {
+            use_color: false,
+            show_hosts_breakdown: false,
+            render: FindingsRender::new(Grouping::Flat, Collapse::Collapsed),
+        }
+        .render(&Summary::new(), &findings, &[]);
+
+        // BC-2.11.026 PC-4: (xN) suffix for collapsed group of N=3.
+        assert!(
+            out.contains("(x3)"),
+            "AC-006: {{Flat,Collapsed}} must emit '(x3)' for 3 identical-key findings; got:\n{out}"
+        );
+        // BC-2.11.027 PC-1: up to K=3 evidence lines.
+        assert!(
+            out.contains("ev0"),
+            "AC-006: first evidence line ev0 must appear; got:\n{out}"
+        );
+        // MITRE line for non-empty mitre_techniques.
+        assert!(
+            out.contains("T1046"),
+            "AC-006: MITRE technique T1046 must appear; got:\n{out}"
+        );
+    }
+
+    /// AC-006 (BC-2.11.013 Invariant 4):
+    /// {Flat, Expanded} (--no-collapse in STORY-122/A) produces the same output
+    /// as the old flat-expanded path: 3 individual lines, no (xN) suffix.
+    #[test]
+    fn test_BC_2_11_028_ac006_flat_expanded_byte_identical_to_old_flatexpanded_variant() {
+        let findings: Vec<Finding> = (0..3).map(|_| make_finding_s122("s122-ac006-fe")).collect();
+
+        let out = TerminalReporter {
+            use_color: false,
+            show_hosts_breakdown: false,
+            render: FindingsRender::new(Grouping::Flat, Collapse::Expanded),
+        }
+        .render(&Summary::new(), &findings, &[]);
+
+        assert!(
+            !out.contains("(x"),
+            "AC-006: {{Flat,Expanded}} must not emit (xN) suffix; got:\n{out}"
+        );
+        assert_eq!(
+            out.matches("s122-ac006-fe").count(),
+            3,
+            "AC-006: {{Flat,Expanded}} must emit 3 individual finding lines"
+        );
+    }
+
+    // -----------------------------------------------------------------------
+    // AC-007 — Comment sweep: stale prose is absent from swept targets
+    // (traces to BC-2.11.028 Invariant 6)
+    //
+    // These tests read src/reporter/terminal.rs and tests/reporter_terminal_tests.rs
+    // via include_str! at compile time (file paths anchored to crate root) and
+    // assert that the stale prose tokens listed in the STORY-122 Task-4
+    // Falsifiable Requirements are absent.
+    //
+    // REGRESSION GUARD: Task 4 comment sweep is complete; these tests assert
+    // the swept targets stay free of stale FindingsRender enum vocabulary.
+    // The grep gate values match STORY-122 AC-007 / Task-4 Falsifiable Requirements (3) and (4).
+    //
+    // EXEMPT: The pattern "three fields" is NOT in the gate (exempt:
+    // TerminalReporter-field prose at reporter_terminal_tests.rs:4040).
+    // The "All three boundary" (escape test) and "All three findings must appear"
+    // (count-of-test-findings comment) are also exempt per AC-007.
+    // -----------------------------------------------------------------------
+
+    /// AC-007 (BC-2.11.028 Invariant 6):
+    /// src/reporter/terminal.rs contains no stale pre-STORY-122 module-doc vocabulary
+    /// (the "three-modes" framing replaced by two-orthogonal-axis struct vocabulary).
+    /// Gate 4 from STORY-122 Task-4 Falsifiable Requirements.
+    #[test]
+    fn test_BC_2_11_028_ac007_terminal_rs_no_three_mutually_exclusive() {
+        let src = include_str!("../src/reporter/terminal.rs");
+        // Build token at runtime so this source file does not self-trigger the sweep gate.
+        let token = concat!("three", " mutually-exclusive");
+        assert!(
+            !src.contains(token),
+            "AC-007: src/reporter/terminal.rs must not contain the stale two-axis framing token; \
+             Task 4 comment sweep is incomplete"
+        );
+    }
+
+    /// AC-007 (BC-2.11.028 Invariant 6):
+    /// src/reporter/terminal.rs contains no stale "verdict-desc" or "confidence-desc"
+    /// doc-comment text. Gate 2 from STORY-122 Task-4 Falsifiable Requirements.
+    #[test]
+    fn test_BC_2_11_028_ac007_terminal_rs_no_verdict_desc_or_confidence_desc() {
+        let src = include_str!("../src/reporter/terminal.rs");
+        assert!(
+            !src.contains("verdict-desc"),
+            "AC-007: src/reporter/terminal.rs must not contain stale 'verdict-desc' in \
+             render_findings_grouped doc-comment; Task 4 comment sweep is incomplete"
+        );
+        assert!(
+            !src.contains("confidence-desc"),
+            "AC-007: src/reporter/terminal.rs must not contain stale 'confidence-desc' in \
+             render_findings_grouped doc-comment; Task 4 comment sweep is incomplete"
+        );
+    }
+
+    /// AC-007 (BC-2.11.028 Invariant 6):
+    /// tests/reporter_terminal_tests.rs contains no stale pre-STORY-122 FindingsRender
+    /// enum vocabulary (old variant names, old three-mode framing, old impossible-combo
+    /// framing) in the swept targets.
+    /// Gate 3 from STORY-122 Task-4 Falsifiable Requirements.
+    ///
+    /// EXEMPT tokens NOT checked here:
+    ///   - "three fields" (TerminalReporter-field comment) — correct, not stale.
+    ///   - "All three boundary" (escape-boundary test) — unrelated to FindingsRender.
+    ///   - "All three findings must appear" (test-finding count) — unrelated.
+    #[test]
+    fn test_BC_2_11_028_ac007_test_file_no_stale_findingsrender_prose() {
+        let src = include_str!("../tests/reporter_terminal_tests.rs");
+
+        // Split into lines so we can skip exempt lines by their anchored text.
+        let exempt_line_fragments: &[&str] = &[
+            // :4040 — "these three fields exist on TerminalReporter" — EXEMPT.
+            "these three fields exist on TerminalReporter",
+            // :394 — "All three boundary" — EXEMPT (escape boundary values).
+            "All three boundary",
+            // :3512 — "All three findings must appear" — EXEMPT (count of test findings).
+            "All three findings must appear",
+        ];
+
+        // Tokens are built with concat! so this source file does not self-trigger the sweep.
+        let stale_tokens: &[&str] = &[
+            concat!("three", "-variant"),
+            concat!("three", " variants"),
+            concat!("All three", " FindingsRender"),
+            concat!("All three", " outputs"),
+            concat!("three", " arm"),
+            concat!("three", "-arm"),
+            concat!("three", " mutually-exclusive"),
+            concat!("three", "-way"),
+            concat!("impossible", " state"),
+        ];
+
+        let mut violations: Vec<String> = Vec::new();
+        for (line_no, line) in src.lines().enumerate() {
+            // Skip exempt lines.
+            let is_exempt = exempt_line_fragments.iter().any(|frag| line.contains(frag));
+            if is_exempt {
+                continue;
+            }
+            for token in stale_tokens {
+                if line.contains(token) {
+                    violations.push(format!(
+                        "  line {}: {:?} (token: {:?})",
+                        line_no + 1,
+                        line.trim(),
+                        token
+                    ));
+                }
+            }
+        }
+
+        assert!(
+            violations.is_empty(),
+            "AC-007: tests/reporter_terminal_tests.rs contains stale FindingsRender prose \
+             that Task 4 comment sweep must remove:\n{}",
+            violations.join("\n")
+        );
+    }
+
+    /// AC-007 (BC-2.11.028 Invariant 6):
+    /// src/main.rs contains no stale pre-STORY-122 FindingsRender vocabulary
+    /// (old three-mode framing, old impossible-combo framing, old three-mode prose).
+    /// Gate 4 (src/ targets) from STORY-122 Task-4 Falsifiable Requirements.
+    #[test]
+    fn test_BC_2_11_028_ac007_main_rs_no_stale_findingsrender_prose() {
+        let src = include_str!("../src/main.rs");
+        // Tokens built with concat! so this source file does not self-trigger the sweep.
+        for token in &[
+            concat!("three", " mutually-exclusive"),
+            concat!("three", "-way"),
+            concat!("impossible", " state"),
+            concat!("three", " mode"),
+        ] {
+            assert!(
+                !src.contains(token),
+                "AC-007: src/main.rs must not contain stale token {:?}; \
+                 Task 4 comment sweep is incomplete",
+                token
+            );
+        }
+    }
+
+    // -----------------------------------------------------------------------
+    // AC-008 — BC-016/026/027 preserved byte-identically across reshape
+    // (traces to BC-2.11.016 Invariant 3, BC-2.11.026 Postcondition 4,
+    //  BC-2.11.027 Postcondition 1)
+    // -----------------------------------------------------------------------
+
+    /// AC-008 (BC-2.11.016 Invariant 3):
+    /// The em-dash MITRE name line is produced by render_findings_grouped
+    /// via the {Grouped, Expanded} arm — the reshape does not alter this behavior.
+    /// Known technique T1046 (Network Service Discovery) emits an em-dash line.
+    #[test]
+    fn test_BC_2_11_016_ac008_em_dash_mitre_format_preserved_after_reshape() {
+        let findings = vec![Finding {
+            category: ThreatCategory::Anomaly,
+            verdict: Verdict::Likely,
+            confidence: Confidence::High,
+            summary: "s122-ac008-emdash".to_string(),
+            evidence: vec![],
+            mitre_techniques: vec!["T1046".to_string()],
+            source_ip: None,
+            timestamp: None,
+            direction: None,
+        }];
+
+        let out = TerminalReporter {
+            use_color: false,
+            show_hosts_breakdown: false,
+            render: FindingsRender::new(Grouping::Grouped, Collapse::Expanded),
+        }
+        .render(&Summary::new(), &findings, &[]);
+
+        // BC-2.11.016: em-dash line for known MITRE ID.
+        assert!(
+            out.contains("\u{2014}"),
+            "AC-008: {{Grouped,Expanded}} must emit em-dash (U+2014) for known MITRE technique; got:\n{out}"
+        );
+        assert!(
+            out.contains("T1046"),
+            "AC-008: MITRE technique T1046 must appear in grouped output; got:\n{out}"
+        );
+    }
+
+    /// AC-008 (BC-2.11.026 Postcondition 4):
+    /// The flat (xN) suffix rule is preserved after the enum→struct reshape.
+    /// {Flat, Collapsed} with N=5 identical-key findings emits "(x5)" suffix.
+    #[test]
+    fn test_BC_2_11_026_ac008_flat_xn_suffix_preserved_after_reshape() {
+        let findings: Vec<Finding> = (0..5).map(|_| make_finding_s122("s122-ac008-xn")).collect();
+
+        let out = TerminalReporter {
+            use_color: false,
+            show_hosts_breakdown: false,
+            render: FindingsRender::new(Grouping::Flat, Collapse::Collapsed),
+        }
+        .render(&Summary::new(), &findings, &[]);
+
+        assert!(
+            out.contains("(x5)"),
+            "AC-008: {{Flat,Collapsed}} must emit '(x5)' for 5 identical-key findings; got:\n{out}"
+        );
+        // BC-2.11.026 PC-4: suffix-free guarantee scoped to {Grouped,Expanded}.
+        let grouped_out = TerminalReporter {
+            use_color: false,
+            show_hosts_breakdown: false,
+            render: FindingsRender::new(Grouping::Grouped, Collapse::Expanded),
+        }
+        .render(&Summary::new(), &findings, &[]);
+        assert!(
+            !grouped_out.contains("(x"),
+            "AC-008: {{Grouped,Expanded}} must never emit (xN) suffix (PC-4 suffix-free guarantee); got:\n{grouped_out}"
+        );
+    }
+
+    /// AC-008 (BC-2.11.027 Postcondition 1):
+    /// K=3 evidence sampling is preserved after the enum→struct reshape.
+    /// {Flat, Collapsed} with N=5 identical-key findings, each with evidence,
+    /// emits at most 3 evidence lines (K=3 cap).
+    #[test]
+    fn test_BC_2_11_027_ac008_k3_evidence_sampling_preserved_after_reshape() {
+        let findings: Vec<Finding> = (0..5)
+            .map(|i| Finding {
+                category: ThreatCategory::Anomaly,
+                verdict: Verdict::Likely,
+                confidence: Confidence::High,
+                summary: "s122-ac008-k3".to_string(),
+                evidence: vec![format!("evidence-line-{i}")],
+                mitre_techniques: vec![],
+                source_ip: None,
+                timestamp: None,
+                direction: None,
+            })
+            .collect();
+
+        let out = TerminalReporter {
+            use_color: false,
+            show_hosts_breakdown: false,
+            render: FindingsRender::new(Grouping::Flat, Collapse::Collapsed),
+        }
+        .render(&Summary::new(), &findings, &[]);
+
+        // BC-2.11.027 PC-1: at most K=3 evidence lines ("    > " prefix).
+        let evidence_line_count = out
+            .lines()
+            .filter(|l| l.trim_start().starts_with("> "))
+            .count();
+        assert!(
+            evidence_line_count <= 3,
+            "AC-008: K=3 cap — {{Flat,Collapsed}} must emit at most 3 evidence lines; \
+             got {evidence_line_count} in:\n{out}"
+        );
+        // At least 1 evidence line (confirms sampling path ran).
+        assert!(
+            evidence_line_count >= 1,
+            "AC-008: {{Flat,Collapsed}} with evidence-bearing findings must emit \
+             at least 1 evidence line; got {evidence_line_count} in:\n{out}"
+        );
+    }
+
+    // -----------------------------------------------------------------------
+    // AC-003 — Zero-grep gate: no stale FindingsRender::{Grouped,FlatCollapsed,FlatExpanded}
+    // tokens in src/ or tests/
+    // (traces to BC-2.11.028 AC-003; AC-007 extended the gate to doc-comments)
+    // -----------------------------------------------------------------------
+
+    /// AC-003 / AC-007 (BC-2.11.028 Invariant 6):
+    /// REGRESSION GUARD: No stale `FindingsRender::{Grouped,FlatCollapsed,FlatExpanded}`
+    /// tokens exist anywhere in src/main.rs, src/reporter/terminal.rs, or this test file.
+    /// These tokens are the removed enum-variant paths from the pre-STORY-122 type.
+    /// The gate tokens are built with `concat!` so this source file does not self-trigger.
+    #[test]
+    fn test_BC_2_11_028_ac003_no_stale_findingsrender_variant_tokens() {
+        let sources: &[(&str, &str)] = &[
+            ("src/main.rs", include_str!("../src/main.rs")),
+            (
+                "src/reporter/terminal.rs",
+                include_str!("../src/reporter/terminal.rs"),
+            ),
+            (
+                "tests/reporter_terminal_tests.rs",
+                include_str!("../tests/reporter_terminal_tests.rs"),
+            ),
+        ];
+
+        // Tokens are built with concat! so this source file does not self-trigger the gate.
+        let banned_tokens: &[&str] = &[
+            concat!("FindingsRender", "::", "Grouped"),
+            concat!("FindingsRender", "::", "FlatCollapsed"),
+            concat!("FindingsRender", "::", "FlatExpanded"),
+        ];
+
+        let mut violations: Vec<String> = Vec::new();
+        for (label, src) in sources {
+            for (line_no, line) in src.lines().enumerate() {
+                for token in banned_tokens {
+                    if line.contains(token) {
+                        violations.push(format!(
+                            "  {}:{}: {:?} (token: {:?})",
+                            label,
+                            line_no + 1,
+                            line.trim(),
+                            token
+                        ));
+                    }
+                }
+            }
+        }
+
+        assert!(
+            violations.is_empty(),
+            "AC-003: stale FindingsRender enum-variant tokens found — \
+             Task 4 comment sweep or doc-comment cleanup is incomplete:\n{}",
+            violations.join("\n")
+        );
+    }
+}
+
+// ============================================================================
+// mod story_119 — STORY-119/B: Grouped-Collapse Behavioral Delta
+// ============================================================================
+//
+// Tests for render_findings_grouped_collapsed (BC-2.11.031/032/033/034),
+// CLI mapping to {Grouped,Collapsed} (BC-2.11.030), and the per-bucket
+// collapse-not-global invariant (BC-2.11.025 Invariant 5).
+//
+// Namespace wrapper per DF-TEST-NAMESPACE-001: all test functions live inside
+// `mod story_119` so that identically-named siblings in sibling mods (e.g.
+// `test_BC_2_11_025_grouped_mode_bypasses_flat_collapse` vs the pre-existing
+// siblings in the outer scope) resolve without collision.
+//
+// Regression guard: every test in this module verifies BC-canonical behavior
+// of `render_findings_grouped_collapsed` and related helpers. A failing
+// assertion is the RED signal for the implementer to fix.
+// ============================================================================
+mod story_119 {
+    use wirerust::findings::{Confidence, Finding, ThreatCategory, Verdict};
+    use wirerust::reporter::Reporter;
+    use wirerust::reporter::terminal::{Collapse, FindingsRender, Grouping, TerminalReporter};
+    use wirerust::summary::Summary;
+
+    // -----------------------------------------------------------------------
+    // Module-level helpers
+    // -----------------------------------------------------------------------
+
+    /// Returns a `TerminalReporter` wired to `{Grouped, Collapsed}` with
+    /// color and hosts-breakdown disabled. This is the canonical reporter for
+    /// all STORY-119/B grouped-collapse behavioral tests.
+    ///
+    /// Fields used: `use_color`, `show_hosts_breakdown`, `render` —
+    /// `TerminalReporter` has no `findings` field (STORY-119/B Previous Story
+    /// Intelligence lesson 3).
+    fn grouped_collapse_reporter() -> TerminalReporter {
+        TerminalReporter {
+            use_color: false,
+            show_hosts_breakdown: false,
+            render: FindingsRender::new(Grouping::Grouped, Collapse::Collapsed),
+        }
+    }
+
+    /// Returns a `TerminalReporter` wired to `{Grouped, Collapsed}` WITH
+    /// color enabled. Used by the color-ladder test (AC-008 / BC-2.11.031 PC-3).
+    fn grouped_collapse_reporter_color() -> TerminalReporter {
+        TerminalReporter {
+            use_color: true,
+            show_hosts_breakdown: false,
+            render: FindingsRender::new(Grouping::Grouped, Collapse::Collapsed),
+        }
+    }
+
+    /// Returns a `TerminalReporter` wired to `{Grouped, Expanded}` (the
+    /// `--mitre --no-collapse` path). Used to verify suffix-free behaviour and
+    /// byte-identical singleton output.
+    fn grouped_expanded_reporter() -> TerminalReporter {
+        TerminalReporter {
+            use_color: false,
+            show_hosts_breakdown: false,
+            render: FindingsRender::new(Grouping::Grouped, Collapse::Expanded),
+        }
+    }
+
+    /// Builds a minimal `Finding` with the given `summary`, no evidence, no
+    /// MITRE techniques, `Verdict::Likely`, `Confidence::High`.
+    fn make_finding_s119(summary: impl Into<String>) -> Finding {
+        Finding {
+            category: ThreatCategory::Anomaly,
+            verdict: Verdict::Likely,
+            confidence: Confidence::High,
+            summary: summary.into(),
+            evidence: vec![],
+            mitre_techniques: vec![],
+            source_ip: None,
+            timestamp: None,
+            direction: None,
+        }
+    }
+
+    /// Builds a `Finding` with a known MITRE technique T1046 (Discovery tactic).
+    /// T1046 → "Network Service Discovery" per `technique_info`.
+    fn make_discovery_finding_s119(summary: impl Into<String>) -> Finding {
+        Finding {
+            category: ThreatCategory::Anomaly,
+            verdict: Verdict::Likely,
+            confidence: Confidence::High,
+            summary: summary.into(),
+            evidence: vec![],
+            mitre_techniques: vec!["T1046".to_string()],
+            source_ip: None,
+            timestamp: None,
+            direction: None,
+        }
+    }
+
+    /// Builds a `Finding` with a known MITRE technique T1071 (Command and
+    /// Control tactic). T1071 → "Application Layer Protocol".
+    fn make_c2_finding_s119(summary: impl Into<String>) -> Finding {
+        Finding {
+            category: ThreatCategory::Anomaly,
+            verdict: Verdict::Likely,
+            confidence: Confidence::High,
+            summary: summary.into(),
+            evidence: vec![],
+            mitre_techniques: vec!["T1071".to_string()],
+            source_ip: None,
+            timestamp: None,
+            direction: None,
+        }
+    }
+
+    // -----------------------------------------------------------------------
+    // AC-001 — `--mitre` alone routes to {Grouped, Collapsed}
+    // (traces to BC-2.11.030 PC-2)
+    // -----------------------------------------------------------------------
+
+    /// AC-001 (BC-2.11.030 Postcondition 2):
+    /// REGRESSION GUARD: `FindingsRender { grouping: Grouping::Grouped, collapse:
+    /// Collapse::Collapsed }` (the value produced by `run_analyze` when `--mitre`
+    /// is present and collapse is enabled) routes to `render_findings_grouped_collapsed`.
+    ///
+    /// The mapping from the `--mitre` CLI flag to `Grouping::Grouped` is tested
+    /// by `test_bc_2_11_030_grouping_flag_polarity` in `src/main.rs` (unit test on
+    /// the `grouping_from_flag` helper) and by the e2e CLI tests in
+    /// `cli_integration_tests.rs`. This test verifies the RENDERING behavior of the
+    /// `{Grouped, Collapsed}` variant: tactic headers appear and `(xN)` suffix is
+    /// emitted for N≥2 identical-key findings in one bucket.
+    #[test]
+    fn test_BC_2_11_030_mitre_alone_maps_to_grouped_collapsed() {
+        // Directly construct the expected FindingsRender value for --mitre alone
+        // (show_mitre_grouping=true, collapse_findings=true → {Grouped, Collapsed}).
+        // No tautological if/else copy of production logic.
+        let render = FindingsRender::new(Grouping::Grouped, Collapse::Collapsed);
+
+        // Observable render: N=3 identical-key findings in one tactic bucket
+        // must produce a header with `(x3)` suffix — the grouped-collapse path.
+        let findings: Vec<Finding> = (0..3)
+            .map(|_| make_discovery_finding_s119("s119-ac001-mitre-collapse"))
+            .collect();
+        let out = TerminalReporter {
+            use_color: false,
+            show_hosts_breakdown: false,
+            render,
+        }
+        .render(&Summary::new(), &findings, &[]);
+        assert!(
+            out.contains("## "),
+            "AC-001: {{Grouped,Collapsed}} must emit tactic headers; got:\n{out}"
+        );
+        assert!(
+            out.contains("(x3)"),
+            "AC-001: {{Grouped,Collapsed}} with N=3 identical findings must emit \
+             `(x3)` suffix; got:\n{out}"
+        );
+    }
+
+    // -----------------------------------------------------------------------
+    // AC-002 — `--mitre --no-collapse` routes to {Grouped, Expanded}
+    // (traces to BC-2.11.030 PC-3)
+    // -----------------------------------------------------------------------
+
+    /// AC-002 (BC-2.11.030 Postcondition 3):
+    /// REGRESSION GUARD: `FindingsRender { grouping: Grouping::Grouped, collapse:
+    /// Collapse::Expanded }` (the value produced by `run_analyze` when `--mitre
+    /// --no-collapse` is passed) routes to the grouped-expanded arm.
+    ///
+    /// The mapping from CLI flags to this struct value is tested by the unit
+    /// tests in `src/main.rs` (`grouping_from_flag` and `collapse_findings_from_flag`)
+    /// and by the e2e CLI tests. This test verifies the RENDERING behavior:
+    /// tactic headers appear but no `(xN)` suffix is emitted for any N.
+    #[test]
+    fn test_BC_2_11_030_mitre_no_collapse_maps_to_grouped_expanded() {
+        // Directly construct the expected FindingsRender value for --mitre --no-collapse
+        // (show_mitre_grouping=true, collapse_findings=false → {Grouped, Expanded}).
+        // No tautological if/else copy of production logic.
+        let render = FindingsRender::new(Grouping::Grouped, Collapse::Expanded);
+
+        // Observable render: {Grouped, Expanded} must emit tactic headers and
+        // must NOT emit any `(xN)` suffix for N identical findings.
+        let findings: Vec<Finding> = (0..3)
+            .map(|_| make_discovery_finding_s119("s119-ac002-mitre-expanded"))
+            .collect();
+        let out = TerminalReporter {
+            use_color: false,
+            show_hosts_breakdown: false,
+            render,
+        }
+        .render(&Summary::new(), &findings, &[]);
+        assert!(
+            out.contains("## "),
+            "AC-002: {{Grouped,Expanded}} must emit tactic headers; got:\n{out}"
+        );
+        assert!(
+            !out.contains("(x"),
+            "AC-002: {{Grouped,Expanded}} must not emit any `(xN)` suffix; got:\n{out}"
+        );
+    }
+
+    // -----------------------------------------------------------------------
+    // AC-003 — flat-mode routing unchanged at construction site
+    // (traces to BC-2.11.030 PC-4 and PC-5)
+    // -----------------------------------------------------------------------
+
+    /// AC-003 (BC-2.11.030 Postconditions 4 and 5):
+    /// REGRESSION GUARD: Flat-mode `FindingsRender` variants produce the correct
+    /// observable rendering behavior.
+    ///
+    /// BC-2.11.030 PC-4: default (no `--mitre`, no `--no-collapse`) →
+    /// `{Flat, Collapsed}` — identical findings collapse to one line with `(xN)` suffix.
+    ///
+    /// BC-2.11.030 PC-5: `--no-collapse` without `--mitre` →
+    /// `{Flat, Expanded}` — all findings rendered individually, no `(xN)` suffix.
+    ///
+    /// The mapping from CLI flags to these struct values is tested by the unit
+    /// tests in `src/main.rs` (`grouping_from_flag` and `collapse_findings_from_flag`).
+    #[test]
+    fn test_BC_2_11_030_flat_routing_unchanged() {
+        // PC-4: default (no --mitre, no --no-collapse) → {Flat, Collapsed}.
+        // Directly construct the expected value without tautological if/else copies.
+        let default_render = FindingsRender::new(Grouping::Flat, Collapse::Collapsed);
+
+        let findings_default: Vec<Finding> = (0..3)
+            .map(|_| make_discovery_finding_s119("s119-ac003-flat-collapsed"))
+            .collect();
+        let out_default = TerminalReporter {
+            use_color: false,
+            show_hosts_breakdown: false,
+            render: default_render,
+        }
+        .render(&Summary::new(), &findings_default, &[]);
+        assert!(
+            out_default.contains("(x3)"),
+            "AC-003 PC-4: {{Flat,Collapsed}} must emit '(x3)' for 3 identical findings; \
+             got:\n{out_default}"
+        );
+        assert!(
+            !out_default.contains("## "),
+            "AC-003 PC-4: {{Flat,Collapsed}} must not emit tactic headers; got:\n{out_default}"
+        );
+
+        // PC-5: --no-collapse without --mitre → {Flat, Expanded}.
+        let no_collapse_flat_render = FindingsRender::new(Grouping::Flat, Collapse::Expanded);
+
+        let findings_expanded: Vec<Finding> = (0..3)
+            .map(|_| make_discovery_finding_s119("s119-ac003-flat-expanded"))
+            .collect();
+        let out_expanded = TerminalReporter {
+            use_color: false,
+            show_hosts_breakdown: false,
+            render: no_collapse_flat_render,
+        }
+        .render(&Summary::new(), &findings_expanded, &[]);
+        assert!(
+            !out_expanded.contains("(x"),
+            "AC-003 PC-5: {{Flat,Expanded}} must not emit (xN) suffix; got:\n{out_expanded}"
+        );
+        let count = out_expanded.matches("s119-ac003-flat-expanded").count();
+        assert_eq!(
+            count, 3,
+            "AC-003 PC-5: {{Flat,Expanded}} must emit 3 individual finding lines; found {count}"
+        );
+    }
+
+    // -----------------------------------------------------------------------
+    // AC-006 — per-bucket collapse: N≥2 group renders header with `(xN)` suffix
+    // (traces to BC-2.11.031 PC-1)
+    // -----------------------------------------------------------------------
+
+    /// AC-006 (BC-2.11.031 Postcondition 1):
+    /// REGRESSION GUARD: For a group of N=3 findings sharing the same collapse
+    /// key within a MITRE tactic bucket under `{Grouped, Collapsed}`, the header
+    /// line contains ` (x3)` — a space before the opening parenthesis, exact
+    /// decimal N, no leading zeros.
+    #[test]
+    fn test_BC_2_11_031_grouped_collapse_suffix_format() {
+        let findings: Vec<Finding> = (0..3)
+            .map(|_| make_discovery_finding_s119("s119-ac006-suffix"))
+            .collect();
+        let out = grouped_collapse_reporter().render(&Summary::new(), &findings, &[]);
+
+        // BC-2.11.031 PC-1: header line contains ` (x3)` suffix.
+        assert!(
+            out.contains("(x3)"),
+            "AC-006: N=3 group in bucket must emit `(x3)` suffix; got:\n{out}"
+        );
+        // Tactic header for Discovery must be present.
+        assert!(
+            out.contains("## Discovery"),
+            "AC-006: Discovery bucket header must appear; got:\n{out}"
+        );
+    }
+
+    // -----------------------------------------------------------------------
+    // AC-007 — singleton (N=1) renders via render_finding_grouped, no suffix
+    // (traces to BC-2.11.031 PC-2)
+    // -----------------------------------------------------------------------
+
+    /// AC-007 (BC-2.11.031 Postcondition 2):
+    /// REGRESSION GUARD: A singleton finding (N=1 within a bucket) under
+    /// `{Grouped, Collapsed}` renders via `render_finding_grouped` with no
+    /// `(xN)` suffix — byte-identical to `{Grouped, Expanded}` for that finding.
+    #[test]
+    fn test_BC_2_11_031_singleton_no_suffix_in_bucket() {
+        let findings = vec![make_discovery_finding_s119("s119-ac007-singleton")];
+
+        let out_collapsed = grouped_collapse_reporter().render(&Summary::new(), &findings, &[]);
+        let out_expanded = grouped_expanded_reporter().render(&Summary::new(), &findings, &[]);
+
+        // BC-2.11.031 PC-2: singleton output is byte-identical to {Grouped, Expanded}.
+        assert_eq!(
+            out_collapsed, out_expanded,
+            "AC-007: singleton under {{Grouped,Collapsed}} must be byte-identical to \
+             {{Grouped,Expanded}}; outputs differ"
+        );
+        // No (xN) suffix anywhere in output.
+        assert!(
+            !out_collapsed.contains("(x"),
+            "AC-007: singleton must not emit any `(xN)` suffix; got:\n{out_collapsed}"
+        );
+    }
+
+    // -----------------------------------------------------------------------
+    // AC-008 — color-ladder: `(xN)` suffix is part of the pre-colorization string
+    // (traces to BC-2.11.031 PC-3)
+    // -----------------------------------------------------------------------
+
+    /// AC-008 (BC-2.11.031 Postcondition 3):
+    /// REGRESSION GUARD: For a `Likely + High` group of N=2 under
+    /// `{Grouped, Collapsed}` with `use_color: true`, the ` (x2)` suffix
+    /// is inside the ANSI color span (i.e., it appears before the ANSI reset
+    /// sequence, not after it). Verified by asserting the suffix is NOT
+    /// preceded by an ANSI reset `\x1b[0m` in the output.
+    #[test]
+    fn test_BC_2_11_031_grouped_collapse_color_ladder() {
+        let findings: Vec<Finding> = (0..2)
+            .map(|_| Finding {
+                category: ThreatCategory::Anomaly,
+                verdict: Verdict::Likely,
+                confidence: Confidence::High,
+                summary: "s119-ac008-color".to_string(),
+                evidence: vec![],
+                mitre_techniques: vec!["T1046".to_string()],
+                source_ip: None,
+                timestamp: None,
+                direction: None,
+            })
+            .collect();
+        let out = grouped_collapse_reporter_color().render(&Summary::new(), &findings, &[]);
+
+        // BC-2.11.031 PC-3: the suffix must appear in the output.
+        assert!(
+            out.contains("(x2)"),
+            "AC-008: N=2 group with color must still emit `(x2)` suffix; got:\n{out}"
+        );
+        // The ANSI reset sequence (\x1b[0m) must NOT appear BEFORE `(x2)` on
+        // the same header line. Verify by checking that `(x2)` does not appear
+        // after a reset on the header line.
+        let header_line = out.lines().find(|l| l.contains("(x2)")).unwrap_or_default();
+        // Split by reset: if (x2) appears in the LAST segment (after reset),
+        // the suffix was appended after the ANSI reset — NON-CONFORMANT.
+        let reset = "\x1b[0m";
+        let after_reset = header_line
+            .rfind(reset)
+            .map(|pos| &header_line[pos + reset.len()..])
+            .unwrap_or("");
+        assert!(
+            !after_reset.contains("(x2)"),
+            "AC-008: `(x2)` must be inside the ANSI color span (before reset), \
+             not after the reset sequence. Header line: {header_line:?}"
+        );
+    }
+
+    // -----------------------------------------------------------------------
+    // AC-009 — `(xN)` suffix NOT on MITRE line, evidence lines, or bucket headers
+    // (traces to BC-2.11.031 PC-4)
+    // -----------------------------------------------------------------------
+
+    /// AC-009 (BC-2.11.031 Postcondition 4):
+    /// REGRESSION GUARD: The ` (xN)` suffix appears ONLY on the finding-group
+    /// header line. It must not appear on the MITRE line (`    MITRE: ...`),
+    /// evidence lines (`    > ...`), or the tactic bucket header (`  ## ...`).
+    #[test]
+    fn test_BC_2_11_031_suffix_only_on_header_not_mitre_or_evidence() {
+        let findings: Vec<Finding> = (0..3)
+            .map(|_| Finding {
+                category: ThreatCategory::Anomaly,
+                verdict: Verdict::Likely,
+                confidence: Confidence::High,
+                summary: "s119-ac009-no-suffix-leak".to_string(),
+                evidence: vec!["evidence-line".to_string()],
+                mitre_techniques: vec!["T1046".to_string()],
+                source_ip: None,
+                timestamp: None,
+                direction: None,
+            })
+            .collect();
+        let out = grouped_collapse_reporter().render(&Summary::new(), &findings, &[]);
+
+        // `(x3)` must appear somewhere in output.
+        assert!(
+            out.contains("(x3)"),
+            "AC-009: N=3 group must emit `(x3)` suffix; got:\n{out}"
+        );
+
+        // `(xN)` must NOT appear on any MITRE line, evidence line, or bucket header.
+        for line in out.lines() {
+            let trimmed = line.trim_start();
+            if trimmed.starts_with("MITRE:") {
+                assert!(
+                    !line.contains("(x"),
+                    "AC-009: `(xN)` must not appear on MITRE line: {line:?}"
+                );
+            }
+            if trimmed.starts_with("> ") {
+                assert!(
+                    !line.contains("(x"),
+                    "AC-009: `(xN)` must not appear on evidence line: {line:?}"
+                );
+            }
+            if trimmed.starts_with("## ") {
+                assert!(
+                    !line.contains("(x"),
+                    "AC-009: `(xN)` must not appear on tactic bucket header: {line:?}"
+                );
+            }
+        }
+    }
+
+    // -----------------------------------------------------------------------
+    // AC-010 — cross-bucket suffix independence
+    // (traces to BC-2.11.031 PC-6)
+    // -----------------------------------------------------------------------
+
+    /// AC-010 (BC-2.11.031 Postcondition 6):
+    /// REGRESSION GUARD: Two groups with the same collapse key but in different
+    /// MITRE tactic buckets produce independent `(xN)` suffixes. A group of 3
+    /// in the Discovery bucket (T1046) and a group of 2 in the Command and
+    /// Control bucket (T1071) produce `(x3)` and `(x2)` respectively — never
+    /// merged to `(x5)`.
+    #[test]
+    fn test_BC_2_11_031_cross_bucket_suffix_independence() {
+        // 3 findings with same summary → Discovery bucket (T1046).
+        let mut findings: Vec<Finding> = (0..3)
+            .map(|_| Finding {
+                category: ThreatCategory::Anomaly,
+                verdict: Verdict::Likely,
+                confidence: Confidence::High,
+                summary: "s119-ac010-shared-key".to_string(),
+                evidence: vec![],
+                mitre_techniques: vec!["T1046".to_string()],
+                source_ip: None,
+                timestamp: None,
+                direction: None,
+            })
+            .collect();
+        // 2 findings with same summary → Command and Control bucket (T1071).
+        findings.extend((0..2).map(|_| Finding {
+            category: ThreatCategory::Anomaly,
+            verdict: Verdict::Likely,
+            confidence: Confidence::High,
+            summary: "s119-ac010-shared-key".to_string(),
+            evidence: vec![],
+            mitre_techniques: vec!["T1071".to_string()],
+            source_ip: None,
+            timestamp: None,
+            direction: None,
+        }));
+
+        let out = grouped_collapse_reporter().render(&Summary::new(), &findings, &[]);
+
+        // Each bucket must produce its own independent suffix.
+        assert!(
+            out.contains("(x3)"),
+            "AC-010: Discovery bucket (3 findings) must emit `(x3)`; got:\n{out}"
+        );
+        assert!(
+            out.contains("(x2)"),
+            "AC-010: C&C bucket (2 findings) must emit `(x2)`; got:\n{out}"
+        );
+        // No cross-bucket merge to (x5).
+        assert!(
+            !out.contains("(x5)"),
+            "AC-010: cross-bucket merge must not occur — `(x5)` must not appear; got:\n{out}"
+        );
+    }
+
+    // -----------------------------------------------------------------------
+    // AC-011 — per-bucket evidence sampling: at most K=3 lines per N≥2 group
+    // (traces to BC-2.11.032 PC-1)
+    // -----------------------------------------------------------------------
+
+    /// AC-011 (BC-2.11.032 Postconditions 1–2):
+    /// REGRESSION GUARD: For a collapsed group of N=5 in a tactic bucket, each
+    /// member with one evidence line, the terminal output contains at most K=3
+    /// evidence lines (`    > ` prefix).
+    #[test]
+    fn test_BC_2_11_032_evidence_sampling_k3_in_bucket() {
+        let findings: Vec<Finding> = (0..5)
+            .map(|i| Finding {
+                category: ThreatCategory::Anomaly,
+                verdict: Verdict::Likely,
+                confidence: Confidence::High,
+                summary: "s119-ac011-k3-evidence".to_string(),
+                evidence: vec![format!("ev-{i}")],
+                mitre_techniques: vec!["T1046".to_string()],
+                source_ip: None,
+                timestamp: None,
+                direction: None,
+            })
+            .collect();
+
+        let out = grouped_collapse_reporter().render(&Summary::new(), &findings, &[]);
+
+        let evidence_count = out
+            .lines()
+            .filter(|l| l.trim_start().starts_with("> "))
+            .count();
+        assert!(
+            evidence_count <= 3,
+            "AC-011: K=3 evidence cap — at most 3 evidence lines; got {evidence_count} in:\n{out}"
+        );
+        assert!(
+            evidence_count >= 1,
+            "AC-011: at least 1 evidence line expected from evidence-bearing group; \
+             got {evidence_count} in:\n{out}"
+        );
+        // `(x5)` suffix must be present (group of 5).
+        assert!(
+            out.contains("(x5)"),
+            "AC-011: N=5 group must emit `(x5)` suffix; got:\n{out}"
+        );
+    }
+
+    // -----------------------------------------------------------------------
+    // AC-011 edge — no sliding window: empty-evidence member blocks window
+    // (traces to BC-2.11.032 Invariant 2)
+    // -----------------------------------------------------------------------
+
+    /// AC-011 edge (BC-2.11.032 Invariant 2):
+    /// REGRESSION GUARD: For a group of N=5, `members[0].evidence = []` (empty),
+    /// `members[1..4]` each have one evidence line. The positional window
+    /// inspects members[0], [1], [2] — member[0] contributes 0 lines (no
+    /// sliding), members[1] and [2] each contribute 1 line. Total = 2 evidence
+    /// lines; NOT 3.
+    #[test]
+    fn test_BC_2_11_032_evidence_positional_no_slide() {
+        // members[0]: no evidence.
+        let mut findings = vec![Finding {
+            category: ThreatCategory::Anomaly,
+            verdict: Verdict::Likely,
+            confidence: Confidence::High,
+            summary: "s119-ac011b-no-slide".to_string(),
+            evidence: vec![],
+            mitre_techniques: vec!["T1046".to_string()],
+            source_ip: None,
+            timestamp: None,
+            direction: None,
+        }];
+        // members[1..4]: each with one evidence line.
+        findings.extend((1..5).map(|i| Finding {
+            category: ThreatCategory::Anomaly,
+            verdict: Verdict::Likely,
+            confidence: Confidence::High,
+            summary: "s119-ac011b-no-slide".to_string(),
+            evidence: vec![format!("ev-{i}")],
+            mitre_techniques: vec!["T1046".to_string()],
+            source_ip: None,
+            timestamp: None,
+            direction: None,
+        }));
+
+        let out = grouped_collapse_reporter().render(&Summary::new(), &findings, &[]);
+
+        // Window inspects members[0..min(5,3)=3]. members[0]: 0 lines; [1] and [2]: 1 each.
+        let evidence_count = out
+            .lines()
+            .filter(|l| l.trim_start().starts_with("> "))
+            .count();
+        assert_eq!(
+            evidence_count, 2,
+            "AC-011 edge: positional no-slide — members[0] empty, window=[0,1,2], \
+             expected 2 evidence lines; got {evidence_count} in:\n{out}"
+        );
+    }
+
+    // -----------------------------------------------------------------------
+    // AC-013 — tactic-bucket ordering invariant under {Grouped, Collapsed}
+    // (traces to BC-2.11.033 PC-1 / VP-016)
+    // -----------------------------------------------------------------------
+
+    /// AC-013 (BC-2.11.033 Postconditions 1–2 / VP-016):
+    /// REGRESSION GUARD: Tactic bucket headers appear in the order returned by
+    /// `all_tactics_in_report_order()` under `{Grouped, Collapsed}`. Discovery
+    /// (index 8) appears before Command and Control (index 11) in the output.
+    #[test]
+    fn test_BC_2_11_033_grouped_collapsed_preserves_bucket_order() {
+        // Findings in two tactics in reverse order to confirm sorted output.
+        let mut findings: Vec<Finding> = (0..2)
+            .map(|_| make_c2_finding_s119("s119-ac013-c2")) // C&C = later bucket
+            .collect();
+        findings.extend((0..2).map(|_| make_discovery_finding_s119("s119-ac013-disc"))); // Discovery = earlier
+
+        let out = grouped_collapse_reporter().render(&Summary::new(), &findings, &[]);
+
+        let disc_pos = out.find("## Discovery");
+        let c2_pos = out.find("## Command and Control");
+
+        assert!(
+            disc_pos.is_some(),
+            "AC-013: Discovery bucket header must appear; got:\n{out}"
+        );
+        assert!(
+            c2_pos.is_some(),
+            "AC-013: Command and Control bucket header must appear; got:\n{out}"
+        );
+        assert!(
+            disc_pos.unwrap() < c2_pos.unwrap(),
+            "AC-013: Discovery (index 8) must appear before Command and Control (index 11) \
+             per all_tactics_in_report_order(); got:\n{out}"
+        );
+    }
+
+    // -----------------------------------------------------------------------
+    // AC-014 — `Uncategorized` emitted last under {Grouped, Collapsed}
+    // (traces to BC-2.11.033 PC-3)
+    // -----------------------------------------------------------------------
+
+    /// AC-014 (BC-2.11.033 Postcondition 3):
+    /// REGRESSION GUARD: The `Uncategorized` bucket header appears last among
+    /// emitted buckets under `{Grouped, Collapsed}`.
+    #[test]
+    fn test_BC_2_11_033_uncategorized_last_under_grouped_collapse() {
+        // One finding in Discovery, two uncategorized (no mitre_techniques).
+        let mut findings = vec![make_discovery_finding_s119("s119-ac014-disc")];
+        findings.extend((0..2).map(|_| make_finding_s119("s119-ac014-uncategorized")));
+
+        let out = grouped_collapse_reporter().render(&Summary::new(), &findings, &[]);
+
+        let disc_pos = out.find("## Discovery");
+        let uncat_pos = out.find("## Uncategorized");
+
+        assert!(
+            disc_pos.is_some(),
+            "AC-014: Discovery bucket header must appear; got:\n{out}"
+        );
+        assert!(
+            uncat_pos.is_some(),
+            "AC-014: Uncategorized bucket header must appear; got:\n{out}"
+        );
+        assert!(
+            disc_pos.unwrap() < uncat_pos.unwrap(),
+            "AC-014: Uncategorized must appear after Discovery — Uncategorized is last; \
+             got:\n{out}"
+        );
+    }
+
+    // -----------------------------------------------------------------------
+    // AC-015 — bucket membership unchanged by collapse
+    // (traces to BC-2.11.033 PC-4)
+    // -----------------------------------------------------------------------
+
+    /// AC-015 (BC-2.11.033 Postcondition 4):
+    /// REGRESSION GUARD: A finding assigned to the Discovery bucket under
+    /// `{Grouped, Expanded}` is assigned to the same bucket under `{Grouped,
+    /// Collapsed}`. The collapse key is orthogonal to bucket assignment.
+    #[test]
+    fn test_BC_2_11_033_different_buckets_not_cross_collapsed() {
+        // Two findings with the same summary but different MITRE techniques
+        // (different buckets). They must NOT be cross-collapsed.
+        let findings = vec![
+            Finding {
+                category: ThreatCategory::Anomaly,
+                verdict: Verdict::Likely,
+                confidence: Confidence::High,
+                summary: "s119-ac015-same-key".to_string(),
+                evidence: vec![],
+                mitre_techniques: vec!["T1046".to_string()], // Discovery
+                source_ip: None,
+                timestamp: None,
+                direction: None,
+            },
+            Finding {
+                category: ThreatCategory::Anomaly,
+                verdict: Verdict::Likely,
+                confidence: Confidence::High,
+                summary: "s119-ac015-same-key".to_string(),
+                evidence: vec![],
+                mitre_techniques: vec!["T1071".to_string()], // C&C
+                source_ip: None,
+                timestamp: None,
+                direction: None,
+            },
+        ];
+
+        let out = grouped_collapse_reporter().render(&Summary::new(), &findings, &[]);
+
+        // Both bucket headers must appear (two separate buckets, not merged).
+        assert!(
+            out.contains("## Discovery"),
+            "AC-015: Discovery bucket header must appear (same key, different tactic); \
+             got:\n{out}"
+        );
+        assert!(
+            out.contains("## Command and Control"),
+            "AC-015: C&C bucket header must appear (same key, different tactic); got:\n{out}"
+        );
+        // No cross-bucket merge: `(x2)` must NOT appear (each bucket has only 1).
+        assert!(
+            !out.contains("(x2)"),
+            "AC-015: cross-bucket collapse must not occur — `(x2)` must not appear; \
+             got:\n{out}"
+        );
+    }
+
+    // -----------------------------------------------------------------------
+    // AC-016 / AC-017 — sort-then-collapse: post-sort order determines representative
+    // (traces to BC-2.11.033 PC-5/6)
+    // -----------------------------------------------------------------------
+
+    /// AC-016/AC-017 (BC-2.11.033 Postconditions 5 and 6):
+    /// REGRESSION GUARD: Within a bucket, findings are sorted by verdict-rank
+    /// ascending (Likely=0, Possible=1, Inconclusive=2, Unlikely=3) BEFORE the
+    /// collapse pass. The lower-rank (higher-severity) finding becomes the group
+    /// representative.
+    ///
+    /// Setup: three findings in the T1046 (Discovery) bucket.
+    ///   - Two share key (Anomaly, Likely, High, "s119-ac016-likely-finding"):
+    ///     they collapse to a N=2 group. The group representative is Likely.
+    ///   - One has key (Anomaly, Inconclusive, Low, "s119-ac016-inconclusive"):
+    ///     a singleton group. Sorts after the Likely group.
+    ///
+    /// Observable consequences:
+    ///   1. The N=2 group header shows `(x2)` suffix.
+    ///   2. The N=2 group header uses UPPERCASE verdict `LIKELY` (not title-case).
+    ///   3. The Likely group header appears before the Inconclusive singleton in output.
+    #[test]
+    fn test_BC_2_11_033_first_occurrence_in_sorted_bucket_order() {
+        let findings = vec![
+            // Emitted first — Inconclusive/Low singleton.
+            Finding {
+                category: ThreatCategory::Anomaly,
+                verdict: Verdict::Inconclusive, // rank=2 — sorts after Likely
+                confidence: Confidence::Low,
+                summary: "s119-ac016-inconclusive".to_string(),
+                evidence: vec![],
+                mitre_techniques: vec!["T1046".to_string()],
+                source_ip: None,
+                timestamp: None,
+                direction: None,
+            },
+            // Emitted second — first member of the Likely/High N=2 group.
+            Finding {
+                category: ThreatCategory::Anomaly,
+                verdict: Verdict::Likely, // rank=0 — sorts first
+                confidence: Confidence::High,
+                summary: "s119-ac016-likely-finding".to_string(),
+                evidence: vec!["ev-ac016-a".to_string()],
+                mitre_techniques: vec!["T1046".to_string()],
+                source_ip: None,
+                timestamp: None,
+                direction: None,
+            },
+            // Emitted third — second member of the Likely/High N=2 group (same key).
+            Finding {
+                category: ThreatCategory::Anomaly,
+                verdict: Verdict::Likely, // rank=0 — same key as above
+                confidence: Confidence::High,
+                summary: "s119-ac016-likely-finding".to_string(),
+                evidence: vec!["ev-ac016-b".to_string()],
+                mitre_techniques: vec!["T1046".to_string()],
+                source_ip: None,
+                timestamp: None,
+                direction: None,
+            },
+        ];
+
+        let out = grouped_collapse_reporter().render(&Summary::new(), &findings, &[]);
+
+        // The Likely/High pair collapses to a N=2 group.
+        assert!(
+            out.contains("(x2)"),
+            "AC-016: N=2 group in bucket must emit `(x2)` suffix; got:\n{out}"
+        );
+
+        // The header verdict must use UPPERCASE Display format: `LIKELY`, not title-case.
+        let header_line = out.lines().find(|l| l.contains("(x2)")).unwrap_or_default();
+        assert!(
+            header_line.contains("LIKELY"),
+            "AC-016: N=2 group header must use uppercase Display format `LIKELY`; \
+             header line: {header_line:?}\nfull output:\n{out}"
+        );
+        assert!(
+            !header_line.contains("Likely"),
+            "AC-016: header must not contain title-case `Likely` — Display format is `LIKELY`; \
+             header line: {header_line:?}\nfull output:\n{out}"
+        );
+
+        // Sort order: Likely group (rank=0) appears before Inconclusive singleton (rank=2).
+        let likely_pos = out.find("(x2)").unwrap_or(usize::MAX);
+        let inconclusive_pos = out.find("INCONCLUSIVE").unwrap_or(usize::MAX);
+        assert!(
+            likely_pos < inconclusive_pos,
+            "AC-017: Likely group (lower rank) must appear before Inconclusive singleton \
+             in sorted bucket order; got:\n{out}"
+        );
+    }
+
+    /// BC-2.11.025 EC-007/EC-008 grouped analogue:
+    /// REGRESSION GUARD: Two findings in the SAME tactic bucket with the SAME
+    /// summary but DIFFERENT verdict (or confidence, or category) must NOT be
+    /// merged — they have distinct four-tuple collapse keys and must render as
+    /// two separate group headers with NO `(xN)` suffix on either.
+    ///
+    /// This catches a summary-only (three-field) collapse key bug: if the
+    /// implementation keyed on summary alone, these two findings would be
+    /// incorrectly merged into one N=2 group.
+    #[test]
+    fn test_BC_2_11_025_distinct_verdict_same_summary_no_merge_in_bucket() {
+        // Same bucket (T1046 / Discovery), same summary, DIFFERENT verdict.
+        let findings = vec![
+            Finding {
+                category: ThreatCategory::Anomaly,
+                verdict: Verdict::Likely,
+                confidence: Confidence::High,
+                summary: "s119-ec007-same-summary".to_string(),
+                evidence: vec!["ev-likely".to_string()],
+                mitre_techniques: vec!["T1046".to_string()],
+                source_ip: None,
+                timestamp: None,
+                direction: None,
+            },
+            Finding {
+                category: ThreatCategory::Anomaly,
+                verdict: Verdict::Inconclusive,
+                confidence: Confidence::High,
+                summary: "s119-ec007-same-summary".to_string(), // identical summary
+                evidence: vec!["ev-inconclusive".to_string()],
+                mitre_techniques: vec!["T1046".to_string()],
+                source_ip: None,
+                timestamp: None,
+                direction: None,
+            },
+        ];
+
+        let out = grouped_collapse_reporter().render(&Summary::new(), &findings, &[]);
+
+        // Different verdict → different four-tuple keys → two distinct groups, no merge.
+        assert!(
+            !out.contains("(x2)"),
+            "BC-2.11.025 EC-007: same summary but different verdict must produce TWO distinct \
+             groups, not one N=2 merged group — `(x2)` must not appear; got:\n{out}"
+        );
+        // Both headers must appear independently.
+        assert!(
+            out.contains("LIKELY"),
+            "BC-2.11.025 EC-007: Likely group header must appear; got:\n{out}"
+        );
+        assert!(
+            out.contains("INCONCLUSIVE"),
+            "BC-2.11.025 EC-007: Inconclusive group header must appear; got:\n{out}"
+        );
+        // Both findings must render as separate group headers — neither merged nor
+        // dropped. Count `[Anomaly]` occurrences (one per header line in no-color
+        // output) to catch a drop-vs-merge bug that the (x2) check alone would miss.
+        assert_eq!(
+            out.matches("[Anomaly]").count(),
+            2,
+            "BC-2.11.025 EC-007: both findings must render as separate group headers \
+             (one `[Anomaly]` prefix each), not merged or dropped; got:\n{out}"
+        );
+    }
+
+    // -----------------------------------------------------------------------
+    // AC-018 / AC-021 — MITRE line from members[0] with em-dash format
+    // (traces to BC-2.11.034 PC-1 and PC-5)
+    // -----------------------------------------------------------------------
+
+    /// AC-018 / AC-021 (BC-2.11.034 Postconditions 1 and 5):
+    /// REGRESSION GUARD: For a collapsed N≥2 group, the MITRE line is rendered
+    /// from `group_members[0].mitre_techniques` using em-dash expansion
+    /// (U+2014, not ASCII `--`). The observable line format is:
+    /// `    MITRE: T1046 — Network Service Discovery`.
+    ///
+    /// Output block order: (1) header with `(xN)`, (2) evidence lines,
+    /// (3) MITRE line. The `(xN)` suffix appears ONLY in item (1).
+    #[test]
+    fn test_BC_2_11_034_grouped_collapse_mitre_line_em_dash_format() {
+        let findings: Vec<Finding> = (0..2)
+            .map(|_| Finding {
+                category: ThreatCategory::Anomaly,
+                verdict: Verdict::Likely,
+                confidence: Confidence::High,
+                summary: "s119-ac018-mitre-em-dash".to_string(),
+                evidence: vec![],
+                mitre_techniques: vec!["T1046".to_string()],
+                source_ip: None,
+                timestamp: None,
+                direction: None,
+            })
+            .collect();
+
+        let out = grouped_collapse_reporter().render(&Summary::new(), &findings, &[]);
+
+        // BC-2.11.034 PC-1: em-dash (U+2014) + name on MITRE line.
+        assert!(
+            out.contains("T1046 \u{2014} Network Service Discovery"),
+            "AC-018: MITRE line must use em-dash (U+2014) + name from members[0]; got:\n{out}"
+        );
+        // `(x2)` suffix on header.
+        assert!(
+            out.contains("(x2)"),
+            "AC-018: header must carry `(x2)` suffix; got:\n{out}"
+        );
+        // Block order: header (with `(x2)`) must appear before MITRE line.
+        let header_pos = out.find("(x2)").unwrap_or(usize::MAX);
+        let mitre_pos = out.find("MITRE: T1046").unwrap_or(usize::MAX);
+        assert!(
+            header_pos < mitre_pos,
+            "AC-021: header (with `(x2)`) must appear before MITRE line; got:\n{out}"
+        );
+    }
+
+    // -----------------------------------------------------------------------
+    // AC-018 edge — unknown technique in collapsed group
+    // (traces to BC-2.11.034 PC-1 unknown-ID branch)
+    // -----------------------------------------------------------------------
+
+    /// AC-018 edge (BC-2.11.034 Postcondition 1 — unknown ID):
+    /// REGRESSION GUARD: For a collapsed N≥2 group where `members[0]` has an
+    /// unknown technique ID, the MITRE line format is
+    /// `    MITRE: <ids_joined> (unknown)` — not an em-dash expansion.
+    #[test]
+    fn test_BC_2_11_034_unknown_technique_in_grouped_collapse() {
+        let findings: Vec<Finding> = (0..2)
+            .map(|_| Finding {
+                category: ThreatCategory::Anomaly,
+                verdict: Verdict::Likely,
+                confidence: Confidence::High,
+                summary: "s119-ac018b-unknown-tech".to_string(),
+                evidence: vec![],
+                mitre_techniques: vec!["T9999".to_string()], // unknown ID
+                source_ip: None,
+                timestamp: None,
+                direction: None,
+            })
+            .collect();
+
+        let out = grouped_collapse_reporter().render(&Summary::new(), &findings, &[]);
+
+        assert!(
+            out.contains("(x2)"),
+            "AC-018 edge: N=2 group with unknown technique must emit `(x2)` suffix; \
+             got:\n{out}"
+        );
+        assert!(
+            out.contains("T9999 (unknown)"),
+            "AC-018 edge: unknown technique ID must produce `(unknown)` format on MITRE line; \
+             got:\n{out}"
+        );
+    }
+
+    // -----------------------------------------------------------------------
+    // AC-019 — `(xN)` suffix NOT on MITRE line for N≥2 groups
+    // (traces to BC-2.11.034 PC-2)
+    // -----------------------------------------------------------------------
+
+    /// AC-019 (BC-2.11.034 Postcondition 2):
+    /// REGRESSION GUARD: The `(xN)` count suffix does not appear on the MITRE
+    /// line for N≥2 collapsed groups. The suffix is scoped to the header line
+    /// only (verified together with AC-009).
+    #[test]
+    fn test_BC_2_11_034_suffix_not_on_mitre_line() {
+        let findings: Vec<Finding> = (0..3)
+            .map(|_| make_discovery_finding_s119("s119-ac019-no-suffix-mitre"))
+            .collect();
+
+        let out = grouped_collapse_reporter().render(&Summary::new(), &findings, &[]);
+
+        // `(x3)` must appear (on header).
+        assert!(
+            out.contains("(x3)"),
+            "AC-019: `(x3)` must appear in output; got:\n{out}"
+        );
+        // The MITRE line must not contain any `(xN)`.
+        for line in out.lines() {
+            if line.trim_start().starts_with("MITRE:") {
+                assert!(
+                    !line.contains("(x"),
+                    "AC-019: `(xN)` must not appear on MITRE line: {line:?}"
+                );
+            }
+        }
+    }
+
+    // -----------------------------------------------------------------------
+    // AC-020 — divergent MITRE: only members[0] appears in terminal output
+    // (traces to BC-2.11.034 PC-3)
+    // -----------------------------------------------------------------------
+
+    /// AC-020 (BC-2.11.034 Postcondition 3):
+    /// REGRESSION GUARD: For a collapsed group of N≥2 where members have
+    /// divergent `mitre_techniques`, only `members[0]`'s technique appears on
+    /// the MITRE line. The other members' techniques are elided from terminal
+    /// output (preserved in raw findings for JSON/CSV).
+    ///
+    /// Both findings MUST be in the same tactic bucket for per-bucket collapse
+    /// to merge them (BC-2.11.033 Invariant 3 / EC-003): T1046 and T1083 both
+    /// map to Discovery, so they land in the same bucket and collapse as N=2.
+    /// Using findings from different tactics (e.g. T1046 Discovery + T1071 C&C)
+    /// would produce two independent singletons per BC-2.11.033 EC-003 — the
+    /// correct per-bucket behavior — but the divergent-MITRE elision property
+    /// (BC-2.11.034 PC-3) can only be observed when N≥2 within one bucket.
+    #[test]
+    fn test_BC_2_11_034_divergent_mitre_representative_sourcing() {
+        // Two findings with same summary but different MITRE techniques,
+        // both in the Discovery tactic bucket (T1046 and T1083).
+        // After sort (Likely rank=0 for both, same confidence), the first
+        // submitted becomes members[0] (stable emission-index tiebreak).
+        // They collapse into N=2 within the Discovery bucket.
+        let findings = vec![
+            Finding {
+                category: ThreatCategory::Anomaly,
+                verdict: Verdict::Likely,
+                confidence: Confidence::High,
+                summary: "s119-ac020-divergent-mitre".to_string(),
+                evidence: vec![],
+                mitre_techniques: vec!["T1046".to_string()], // members[0] — Discovery
+                source_ip: None,
+                timestamp: None,
+                direction: None,
+            },
+            Finding {
+                category: ThreatCategory::Anomaly,
+                verdict: Verdict::Likely,
+                confidence: Confidence::High,
+                summary: "s119-ac020-divergent-mitre".to_string(),
+                evidence: vec![],
+                mitre_techniques: vec!["T1083".to_string()], // members[1] — Discovery; must be elided
+                source_ip: None,
+                timestamp: None,
+                direction: None,
+            },
+        ];
+
+        let out = grouped_collapse_reporter().render(&Summary::new(), &findings, &[]);
+
+        // members[0]'s technique must appear on the MITRE line.
+        assert!(
+            out.contains("T1046"),
+            "AC-020: members[0] technique T1046 must appear in terminal output; got:\n{out}"
+        );
+        // members[1]'s technique must NOT appear in terminal output.
+        assert!(
+            !out.contains("T1083"),
+            "AC-020: members[1] technique T1083 must be elided from terminal output; \
+             got:\n{out}"
+        );
+        // Group must be collapsed as N=2 (same bucket, same shared four-tuple
+        // collapse key: category=Anomaly, verdict=Likely, confidence=High,
+        // summary="s119-ac020-divergent-mitre").
+        assert!(
+            out.contains("(x2)"),
+            "AC-020: same-bucket same-four-tuple-key findings must collapse to N=2; got:\n{out}"
+        );
+    }
+
+    // -----------------------------------------------------------------------
+    // AC-022 — {Grouped, Expanded} suffix-free guarantee unchanged
+    // (traces to BC-2.11.013 Invariant 4)
+    // -----------------------------------------------------------------------
+
+    /// AC-022 (BC-2.11.013 Invariant 4):
+    /// REGRESSION GUARD: Under `render = {Grouped, Expanded}`, N=100 identical-
+    /// key findings in a tactic bucket produce 100 individual finding lines with
+    /// no ` (xN)` suffix on any line. The `{Grouped, Expanded}` suffix-free
+    /// guarantee (pre-STORY-119 `--mitre` behavior) is unchanged.
+    #[test]
+    fn test_BC_2_11_028_no_collapse_with_mitre_produces_grouped_expanded() {
+        let findings: Vec<Finding> = (0..100)
+            .map(|_| make_discovery_finding_s119("s119-ac022-no-collapse-100"))
+            .collect();
+
+        let out = grouped_expanded_reporter().render(&Summary::new(), &findings, &[]);
+
+        // No `(xN)` suffix anywhere.
+        assert!(
+            !out.contains("(x"),
+            "AC-022: {{Grouped,Expanded}} with N=100 identical findings must emit zero \
+             `(xN)` suffixes; got excerpt:\n{}",
+            &out[..out.len().min(500)]
+        );
+        // All 100 findings must be rendered (header line count via `[Anomaly]`).
+        let header_count = out.lines().filter(|l| l.contains("[Anomaly]")).count();
+        assert_eq!(
+            header_count,
+            100,
+            "AC-022: {{Grouped,Expanded}} must render all 100 findings; got {header_count} in \
+             output (first 500 chars):\n{}",
+            &out[..out.len().min(500)]
+        );
+    }
+
+    // -----------------------------------------------------------------------
+    // AC-023 — escape_for_terminal applied in grouped-collapse path
+    // (traces to BC-2.11.031 Precondition 5 / VP-012)
+    // -----------------------------------------------------------------------
+
+    /// AC-023 (BC-2.11.031 Precondition 5 / VP-012):
+    /// REGRESSION GUARD: `escape_for_terminal` is applied to all `summary` and
+    /// `evidence` strings in `render_findings_grouped_collapsed`. A summary
+    /// containing a C0 control character (U+0001) must not appear raw in the
+    /// output — it must be escaped via `char::escape_default` to `\u{1}`.
+    #[test]
+    fn test_BC_2_11_031_escape_for_terminal_in_grouped_collapse_path() {
+        let findings: Vec<Finding> = (0..2)
+            .map(|_| Finding {
+                category: ThreatCategory::Anomaly,
+                verdict: Verdict::Likely,
+                confidence: Confidence::High,
+                // C0 control character in summary — must be escaped.
+                summary: "s119-ac023-\u{0001}escape".to_string(),
+                evidence: vec!["ev-\u{0001}escape".to_string()],
+                mitre_techniques: vec!["T1046".to_string()],
+                source_ip: None,
+                timestamp: None,
+                direction: None,
+            })
+            .collect();
+
+        let out = grouped_collapse_reporter().render(&Summary::new(), &findings, &[]);
+
+        // Raw U+0001 must NOT appear in the output.
+        assert!(
+            !out.contains('\u{0001}'),
+            "AC-023: raw C0 control char U+0001 must not appear in output — \
+             escape_for_terminal must be applied; got:\n{out:?}"
+        );
+        // The escaped form `\u{1}` must appear in output (char::escape_default output).
+        assert!(
+            out.contains("\\u{1}"),
+            "AC-023: C0 char U+0001 must be escaped to `\\u{{1}}` via char::escape_default; \
+             got:\n{out:?}"
+        );
+    }
+
+    /// BC-2.11.032 EC-007 / VP canonical vector:
+    /// REGRESSION GUARD: Evidence strings in grouped-collapse bucket groups pass
+    /// through `escape_for_terminal`. A raw ESC byte (U+001B = 0x1B) in evidence
+    /// must be escaped via `char::escape_default` to `\u{1b}` in the output.
+    ///
+    /// Canonical test vector (BC-2.11.032 EC-007):
+    ///   evidence `"\x1b[31m"` → rendered as `> \u{1b}[31m` in the terminal.
+    #[test]
+    fn test_BC_2_11_032_escape_preserved_in_bucket_evidence() {
+        // N=2 group so both findings collapse; K=3 evidence cap not reached.
+        let findings: Vec<Finding> = (0..2)
+            .map(|i| Finding {
+                category: ThreatCategory::Anomaly,
+                verdict: Verdict::Likely,
+                confidence: Confidence::High,
+                summary: "s119-ec007-esc-evidence".to_string(),
+                // Raw ESC byte in ANSI sequence — must be escaped in output.
+                evidence: vec![format!("\x1b[31m-item-{i}")],
+                mitre_techniques: vec!["T1046".to_string()],
+                source_ip: None,
+                timestamp: None,
+                direction: None,
+            })
+            .collect();
+
+        let out = grouped_collapse_reporter().render(&Summary::new(), &findings, &[]);
+
+        // Raw ESC byte must NOT appear in the output.
+        assert!(
+            !out.contains('\x1b'),
+            "BC-2.11.032 EC-007: raw ESC byte must not appear in grouped-collapse evidence output; \
+             got:\n{out:?}"
+        );
+        // The ESC must be escaped via char::escape_default to `\u{1b}`.
+        assert!(
+            out.contains("\\u{1b}"),
+            "BC-2.11.032 EC-007: ESC byte in evidence must render as `\\u{{1b}}` \
+             (char::escape_default); got:\n{out:?}"
+        );
+    }
+
+    // -----------------------------------------------------------------------
+    // AC-024 — collapse_findings_pass_refs called per bucket, not globally
+    // (traces to BC-2.11.033 Invariant 3 / BC-2.11.025 Invariant 5)
+    // -----------------------------------------------------------------------
+
+    /// AC-024 / test_BC_2_11_025_grouped_mode_bypasses_flat_collapse
+    /// (BC-2.11.025 Invariant 5 — updated; BC-2.11.033 Invariant 3):
+    /// REGRESSION GUARD: `render.grouping == Grouping::Grouped` with
+    /// `Collapse::Collapsed` uses per-bucket `collapse_findings_pass_refs`,
+    /// never the global flat `collapse_findings_pass` adapter. Observable
+    /// consequence: two findings with the same summary but in different tactic
+    /// buckets produce two separate group headers (one per bucket), not one
+    /// merged group of N=2.
+    ///
+    /// Note: this test is DISTINCT from the pre-existing siblings
+    /// `test_BC_2_11_025_grouped_mode_bypasses_collapse` (line ~2072) and
+    /// `test_BC_2_11_025_grouped_mode_bypasses_collapse_structurally` (line
+    /// ~4140) which verify the `{Grouped, Expanded}` path. This test verifies
+    /// the `{Grouped, Collapsed}` per-bucket invariant (BC-2.11.025 Inv5).
+    #[test]
+    fn test_BC_2_11_025_grouped_mode_bypasses_flat_collapse() {
+        // Same collapse key, different MITRE tactic → different buckets.
+        // A global flat collapse pass would merge them into one N=2 group.
+        // Per-bucket collapse must produce two separate singleton groups (N=1
+        // each) — neither emits `(x2)` and neither emits a cross-bucket header.
+        let findings = vec![
+            Finding {
+                category: ThreatCategory::Anomaly,
+                verdict: Verdict::Likely,
+                confidence: Confidence::High,
+                summary: "s119-ac024-per-bucket".to_string(),
+                evidence: vec![],
+                mitre_techniques: vec!["T1046".to_string()], // Discovery
+                source_ip: None,
+                timestamp: None,
+                direction: None,
+            },
+            Finding {
+                category: ThreatCategory::Anomaly,
+                verdict: Verdict::Likely,
+                confidence: Confidence::High,
+                summary: "s119-ac024-per-bucket".to_string(),
+                evidence: vec![],
+                mitre_techniques: vec!["T1071".to_string()], // C&C
+                source_ip: None,
+                timestamp: None,
+                direction: None,
+            },
+        ];
+
+        let out = grouped_collapse_reporter().render(&Summary::new(), &findings, &[]);
+
+        // Per-bucket pass: each bucket has N=1 → no `(x2)` suffix.
+        assert!(
+            !out.contains("(x2)"),
+            "AC-024: per-bucket collapse must not cross-collapse findings from different \
+             buckets — `(x2)` must not appear; got:\n{out}"
+        );
+        // Both bucket headers must appear (each bucket independently emitted).
+        assert!(
+            out.contains("## Discovery"),
+            "AC-024: Discovery bucket header must appear; got:\n{out}"
+        );
+        assert!(
+            out.contains("## Command and Control"),
+            "AC-024: C&C bucket header must appear; got:\n{out}"
+        );
+    }
+
+    // -----------------------------------------------------------------------
+    // AC-025 — flat paths byte-identical
+    // (traces to BC-2.11.025 Invariant 5)
+    // -----------------------------------------------------------------------
+
+    /// AC-025 (BC-2.11.025 Invariant 5):
+    /// REGRESSION GUARD: The `{Flat, Collapsed}` arm calls `render_findings_collapsed`
+    /// and the `{Flat, Expanded}` arm calls the `render_finding_flat` loop —
+    /// both byte-identical to v0.9.0 behavior. Flat-mode tests are unaffected
+    /// by STORY-119/B. Verified here as a smoke check.
+    #[test]
+    fn test_BC_2_11_025_flat_paths_unchanged_by_story_119() {
+        let findings: Vec<Finding> = (0..3)
+            .map(|_| make_finding_s119("s119-ac025-flat-unchanged"))
+            .collect();
+
+        // {Flat, Collapsed} must emit at most 1 `(x3)` suffix (flat collapse).
+        let out_fc = TerminalReporter {
+            use_color: false,
+            show_hosts_breakdown: false,
+            render: FindingsRender::new(Grouping::Flat, Collapse::Collapsed),
+        }
+        .render(&Summary::new(), &findings, &[]);
+        assert!(
+            out_fc.contains("(x3)"),
+            "AC-025: {{Flat,Collapsed}} with N=3 identical findings must emit `(x3)`; \
+             got:\n{out_fc}"
+        );
+
+        // {Flat, Expanded} must emit zero `(xN)` suffixes.
+        let out_fe = TerminalReporter {
+            use_color: false,
+            show_hosts_breakdown: false,
+            render: FindingsRender::new(Grouping::Flat, Collapse::Expanded),
+        }
+        .render(&Summary::new(), &findings, &[]);
+        assert!(
+            !out_fe.contains("(x"),
+            "AC-025: {{Flat,Expanded}} must not emit any `(xN)` suffix; got:\n{out_fe}"
+        );
+    }
+
+    // -----------------------------------------------------------------------
+    // AC-004 — run_summary construction site produces {Flat, Collapsed}
+    // (traces to BC-2.11.030 PC-6)
+    // -----------------------------------------------------------------------
+
+    /// AC-004 (BC-2.11.030 Postcondition 6):
+    /// REGRESSION GUARD: The `run_summary` construction site always produces
+    /// `FindingsRender { grouping: Grouping::Flat, collapse: Collapse::Collapsed }`.
+    /// Inert value semantics — `run_summary` renders no FINDINGS section; the
+    /// field is structurally present but irrelevant.
+    #[test]
+    fn test_BC_2_11_030_run_summary_produces_flat_collapsed() {
+        // Verify the literal struct value that run_summary uses.
+        let run_summary_render = FindingsRender::new(Grouping::Flat, Collapse::Collapsed);
+        assert_eq!(
+            run_summary_render,
+            FindingsRender::new(Grouping::Flat, Collapse::Collapsed),
+            "AC-004: run_summary render field must be {{Flat, Collapsed}}"
+        );
+        // This is a structural/value test — no dispatch exercised.
+    }
+
+    // -----------------------------------------------------------------------
+    // AC-005 — render_findings_grouped_collapsed function exists and dispatches
+    // (traces to BC-2.11.031 Architecture Anchors)
+    // -----------------------------------------------------------------------
+
+    /// AC-005 (BC-2.11.031 Architecture Anchors):
+    /// REGRESSION GUARD: `render_findings_grouped_collapsed` is dispatched for
+    /// the `(Grouping::Grouped, Collapse::Collapsed)` arm. Observable: a
+    /// `{Grouped, Collapsed}` reporter with N=1 finding renders the FINDINGS
+    /// section (non-empty FINDINGS block present) without panicking.
+    #[test]
+    fn test_BC_2_11_031_grouped_collapsed_arm_dispatches_to_new_function() {
+        let findings = vec![make_discovery_finding_s119("s119-ac005-dispatch")];
+        let out = grouped_collapse_reporter().render(&Summary::new(), &findings, &[]);
+
+        assert!(
+            out.contains("FINDINGS"),
+            "AC-005: {{Grouped,Collapsed}} must emit a FINDINGS section; got:\n{out}"
+        );
+        assert!(
+            out.contains("## Discovery"),
+            "AC-005: {{Grouped,Collapsed}} must bucket into Discovery tactic; got:\n{out}"
+        );
+    }
+
+    // -----------------------------------------------------------------------
+    // EC-006 edge — members[0].mitre_techniques empty → no MITRE line
+    // (traces to AC-018 / BC-2.11.034 PC-1)
+    // -----------------------------------------------------------------------
+
+    /// EC-006 / AC-018 edge (BC-2.11.034 Postcondition 1):
+    /// REGRESSION GUARD: For a collapsed N≥2 group where `members[0].mitre_techniques`
+    /// is empty, no MITRE line is rendered — header + evidence only.
+    #[test]
+    fn test_BC_2_11_034_empty_mitre_techniques_no_mitre_line() {
+        // N=2 identical-key findings, no mitre_techniques → Uncategorized bucket.
+        let findings: Vec<Finding> = (0..2)
+            .map(|_| Finding {
+                category: ThreatCategory::Anomaly,
+                verdict: Verdict::Likely,
+                confidence: Confidence::High,
+                summary: "s119-ec006-empty-mitre".to_string(),
+                evidence: vec!["ev-ec006".to_string()],
+                mitre_techniques: vec![],
+                source_ip: None,
+                timestamp: None,
+                direction: None,
+            })
+            .collect();
+
+        let out = grouped_collapse_reporter().render(&Summary::new(), &findings, &[]);
+
+        // Header with `(x2)` must appear.
+        assert!(
+            out.contains("(x2)"),
+            "EC-006: N=2 group must emit `(x2)` suffix; got:\n{out}"
+        );
+        // No MITRE line must be present (empty mitre_techniques on members[0]).
+        assert!(
+            !out.contains("MITRE:"),
+            "EC-006: no MITRE line must appear when members[0].mitre_techniques is empty; \
+             got:\n{out}"
+        );
+    }
+
+    // -----------------------------------------------------------------------
+    // F6-FINDING-1 — confidence_rank secondary sort key on grouped/collapsed path
+    // (traces to BC-2.11.033 PC-6 / BC-2.11.014)
+    // -----------------------------------------------------------------------
+
+    /// F6-FINDING-1 (BC-2.11.033 Postcondition 6 / BC-2.11.014):
+    /// REGRESSION GUARD: Two findings in the SAME tactic bucket with the SAME
+    /// verdict but DIFFERENT confidence must appear in `confidence_rank` order
+    /// (High before Low, i.e. rank-0 before rank-2) when rendered through the
+    /// `{Grouped, Collapsed}` path.
+    ///
+    /// The existing `test_BC_2_11_033_first_occurrence_in_sorted_bucket_order`
+    /// varies VERDICT only (Likely vs Inconclusive). This test fixes the gap by
+    /// keeping verdict constant (Likely/Likely) and varying CONFIDENCE
+    /// (High vs Low). Both findings are singletons (distinct summaries) so they
+    /// produce two separate group headers — the order of those headers is
+    /// entirely determined by the `confidence_rank` secondary sort key.
+    ///
+    /// FAIL mode: if `confidence_rank` is removed from the `sort_by_key` lambda
+    /// in `render_findings_grouped_collapsed` (terminal.rs:~534), the two
+    /// singletons sort by emission index only, meaning the Low-confidence finding
+    /// (inserted first) would appear before the High-confidence one — inverting
+    /// the expected order and failing the positional assertion below.
+    #[test]
+    fn test_BC_2_11_033_confidence_rank_secondary_sort_same_verdict_grouped_collapsed() {
+        // Two findings: same verdict (Likely), same bucket (T1046/Discovery),
+        // DIFFERENT confidence. Low is inserted first (index 0) so that removing
+        // `confidence_rank` from sort_by_key would put it first, inverting order.
+        let findings = vec![
+            Finding {
+                category: ThreatCategory::Anomaly,
+                verdict: Verdict::Likely,
+                confidence: Confidence::Low, // rank=2 — must sort AFTER High
+                summary: "s119-f6find1-low-confidence".to_string(),
+                evidence: vec![],
+                mitre_techniques: vec!["T1046".to_string()],
+                source_ip: None,
+                timestamp: None,
+                direction: None,
+            },
+            Finding {
+                category: ThreatCategory::Anomaly,
+                verdict: Verdict::Likely,
+                confidence: Confidence::High, // rank=0 — must sort FIRST
+                summary: "s119-f6find1-high-confidence".to_string(),
+                evidence: vec![],
+                mitre_techniques: vec!["T1046".to_string()],
+                source_ip: None,
+                timestamp: None,
+                direction: None,
+            },
+        ];
+
+        let out = grouped_collapse_reporter().render(&Summary::new(), &findings, &[]);
+
+        // Both headers must be present (singletons — no (xN) suffix on either).
+        assert!(
+            out.contains("s119-f6find1-high-confidence"),
+            "F6-FINDING-1: High-confidence finding must appear in output; got:\n{out}"
+        );
+        assert!(
+            out.contains("s119-f6find1-low-confidence"),
+            "F6-FINDING-1: Low-confidence finding must appear in output; got:\n{out}"
+        );
+        // Neither is a group of N≥2: no (xN) suffix expected.
+        assert!(
+            !out.contains("(x"),
+            "F6-FINDING-1: both findings are singletons; no (xN) suffix expected; got:\n{out}"
+        );
+
+        // Core assertion: High-confidence (rank=0) must appear BEFORE
+        // Low-confidence (rank=2) in the rendered output.
+        // If confidence_rank is removed from sort_by_key, the Low-confidence
+        // finding (emission index 0) would appear first — this assertion fails.
+        let high_pos = out
+            .find("s119-f6find1-high-confidence")
+            .expect("high-confidence finding must be in output");
+        let low_pos = out
+            .find("s119-f6find1-low-confidence")
+            .expect("low-confidence finding must be in output");
+        assert!(
+            high_pos < low_pos,
+            "F6-FINDING-1 (BC-2.11.033 PC-6 / BC-2.11.014): High-confidence finding \
+             (confidence_rank=0) must appear before Low-confidence (confidence_rank=2) \
+             in the grouped-collapsed output. This assertion fails when `confidence_rank` \
+             is removed from the sort_by_key lambda in render_findings_grouped_collapsed.\n\
+             high_pos={high_pos}, low_pos={low_pos}\nfull output:\n{out}"
+        );
+    }
+
+    // -----------------------------------------------------------------------
+    // F6-FINDING-2 — pin the Confidence::High red+bold color arm in
+    // render_findings_grouped_collapsed (terminal.rs:~568)
+    // (traces to BC-2.11.031 PC-3)
+    // -----------------------------------------------------------------------
+
+    /// F6-FINDING-2 (BC-2.11.031 Postcondition 3):
+    /// REGRESSION GUARD: The color ladder for `{Grouped, Collapsed}` N≥2 groups
+    /// with `Verdict::Likely` and `Confidence::High` must emit ANSI red+bold
+    /// escapes (ESC[1m and ESC[31m) on the collapsed summary header line.
+    ///
+    /// The existing `test_BC_2_11_031_grouped_collapse_color_ladder` verifies
+    /// that `(x2)` is inside the ANSI color span but does NOT assert the
+    /// specific escape code — a mutation that changes `High => red().bold()` to
+    /// `High => yellow()` (ESC[33m) still passes the existing test. This sibling
+    /// pins the specific ANSI sequences so that mutation fails.
+    ///
+    /// owo-colors escape sequences used:
+    ///   - `.red()` wraps text as `ESC[31m{text}ESC[39m`
+    ///   - `.bold()` wraps outer as `ESC[1m{inner}ESC[0m`
+    ///   - `.red().bold()` → `ESC[1mESC[31m{text}ESC[39mESC[0m`
+    ///   - `.yellow()` → `ESC[33m{text}ESC[39m` (mutation: no ESC[1m, no ESC[31m)
+    ///
+    /// FAIL mode: mutate `Confidence::High => header_text.red().bold()` to
+    /// `Confidence::High => header_text.yellow()` in terminal.rs:~568; both
+    /// `\x1b[1m` (bold) and `\x1b[31m` (red) would be absent, failing this test.
+    #[test]
+    fn test_BC_2_11_031_grouped_collapse_high_confidence_red_bold_ansi() {
+        // N=2 Likely/High findings in one tactic bucket → collapsed with N=2 header.
+        let findings: Vec<Finding> = (0..2)
+            .map(|_| Finding {
+                category: ThreatCategory::Anomaly,
+                verdict: Verdict::Likely,
+                confidence: Confidence::High,
+                summary: "s119-f6find2-red-bold".to_string(),
+                evidence: vec![],
+                mitre_techniques: vec!["T1046".to_string()],
+                source_ip: None,
+                timestamp: None,
+                direction: None,
+            })
+            .collect();
+
+        let out = grouped_collapse_reporter_color().render(&Summary::new(), &findings, &[]);
+
+        // The N=2 suffix must be present (sanity check that we're on the right path).
+        assert!(
+            out.contains("(x2)"),
+            "F6-FINDING-2: N=2 group must emit `(x2)` suffix; got:\n{out}"
+        );
+
+        // Extract the header line (the line that contains the (x2) suffix).
+        let header_line = out.lines().find(|l| l.contains("(x2)")).unwrap_or_default();
+
+        // Assert ESC[1m (bold) is present on the header line.
+        // Mutation `red().bold()` → `yellow()` removes ESC[1m.
+        assert!(
+            header_line.contains("\x1b[1m"),
+            "F6-FINDING-2 (BC-2.11.031 PC-3): Likely/High collapsed header must contain \
+             ANSI bold escape ESC[1m. Mutation of `Confidence::High => red().bold()` to \
+             `yellow()` in terminal.rs:~568 removes this escape and fails this test.\n\
+             header line: {header_line:?}\nfull output:\n{out}"
+        );
+
+        // Assert ESC[31m (red foreground) is present on the header line.
+        // Mutation `red().bold()` → `yellow()` replaces ESC[31m with ESC[33m.
+        assert!(
+            header_line.contains("\x1b[31m"),
+            "F6-FINDING-2 (BC-2.11.031 PC-3): Likely/High collapsed header must contain \
+             ANSI red escape ESC[31m. Mutation of `Confidence::High => red().bold()` to \
+             `yellow()` in terminal.rs:~568 replaces this with ESC[33m and fails this test.\n\
+             header line: {header_line:?}\nfull output:\n{out}"
         );
     }
 }

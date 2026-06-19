@@ -206,6 +206,119 @@ jobs:
           fi
           echo "PASS: No production callers of _for_testing functions found in src/"
 
+  # Help-provenance gate: prevent internal factory IDs from leaking into user-facing
+  # --help text rendered by clap from `///` doc-comments.
+  #
+  # Background: clap derives --help output exclusively from `///` (doc-comment) lines
+  # on Parser/Args/Subcommand/ValueEnum structs and their fields. Plain `//` comments
+  # are never rendered to users and are not scanned here. Internal identifiers of the
+  # factory convention must not appear in `///` doc-comments in clap-hosting files —
+  # they are implementation bookkeeping and have no meaning to end users.
+  #
+  # Scope: src/cli.rs only. All clap derive macros (#[derive(Parser)], #[arg(...)],
+  # #[command(...)]) currently live in src/cli.rs. Other src/ files use `///` for
+  # rustdoc on internal/library types (findings.rs, decoder.rs, etc.) where internal
+  # ID traceability is legitimate developer documentation and must not be stripped.
+  # If a new clap-derive module is added to src/, append its path to the grep
+  # target in the step below.
+  #
+  # Pattern rationale:
+  #   \b[A-Z]{2,}-[0-9A-Z]  — matches any factory internal-ID convention:
+  #     two-or-more uppercase letters, a literal hyphen, then a digit or uppercase
+  #     letter. This covers the full known set of factory prefixes:
+  #       BC-       behavioral contract refs    (e.g. BC-2.11.028, BC-2.14.023)
+  #       STORY-    story refs                  (e.g. STORY-114, STORY-119)
+  #       LESSON-   lesson refs                 (e.g. LESSON-P1.03, LESSON-P2.05)
+  #       VP-       variant-proposal refs       (e.g. VP-016)
+  #       ADR-      architecture decision refs  (e.g. ADR-0003)
+  #       EC-       evaluation criterion refs   (e.g. EC-006)
+  #       AC-       acceptance criterion refs   (e.g. AC-007)
+  #       TD-       tech-debt refs              (e.g. TD-012)
+  #       PG-       policy-gate refs            (e.g. PG-001)
+  #   and any future two-plus-letter prefix that follows the same convention.
+  #   False-positive safety: ordinary hyphenated English prose uses lowercase
+  #   (e.g. "non-zero", "opt-in") and will never match [A-Z]{2,}. Legitimate
+  #   uppercase terms in help text that do not precede a hyphen (e.g. "MITRE",
+  #   "JSON", "TCP", "ARP") are equally safe — the hyphen-then-[0-9A-Z] suffix
+  #   anchors the match to ID-structured tokens only.
+  #
+  # Standards-body exclusion (SEC-002 / CWE-697):
+  #   The broad regex also matches standards-body identifiers (RFC-9293, ISO-27001,
+  #   CVE-2024-1234, IEC-62443, ANSI-X9, NIST-800, IEEE-802) which are legitimate
+  #   and useful in help text. A second-pass filter strips these known prefixes so
+  #   that legitimate standards references never false-positive the gate.
+  #   Factory IDs use short, project-specific prefixes (BC, STORY, LESSON, VP, ADR,
+  #   EC, AC, TD, PG) that do not appear in the exclusion list.
+  #
+  # File-not-found guard (SEC-001 / CWE-390):
+  #   If src/cli.rs is renamed or deleted, `grep … || true` would silently return
+  #   an empty VIOLATIONS string and falsely PASS. An explicit existence check
+  #   before grep ensures such structural changes fail loudly so the gate scope
+  #   can be updated to match the new clap-derive module location.
+  #
+  # Only `///` lines (doc-comments) are matched; `//` comment lines are excluded by
+  # the leading `^\s*///` anchor.
+  help-provenance-gate:
+    name: Help-provenance gate (no internal IDs in clap /// doc-comments)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Verify no internal factory IDs in clap /// doc-comments
+        # Scans src/cli.rs (the sole clap-derive module) for `///` lines containing
+        # factory internal-ID patterns. The pattern \b[A-Z]{2,}-[0-9A-Z] catches any
+        # UPPERCASE-prefix factory ID (BC-, STORY-, LESSON-, VP-, ADR-, EC-, AC-,
+        # TD-, PG-, and future additions) while excluding lowercase hyphenated prose
+        # and standalone uppercase acronyms that are not followed by -[digit/UPPER].
+        # These patterns appear verbatim in clap --help output and must not be visible
+        # to end users. Plain // comment lines are not matched and are never rendered
+        # by clap. If a new clap-derive module is added, append its path to the grep target.
+        #
+        # SEC-001 (CWE-390): explicit existence check before grep prevents a renamed or
+        # deleted src/cli.rs from silently returning an empty match and false-passing.
+        # SEC-002 (CWE-697): standards-body IDs (RFC, ISO, CVE, IEC, ANSI, NIST, IEEE)
+        # are excluded via a second-pass filter so legitimate references in help text
+        # never false-positive. Factory prefixes (BC, STORY, VP, ADR, etc.) are disjoint
+        # from this exclusion list and continue to be caught correctly.
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          # SEC-001: fail loudly if the scan target has been renamed or removed.
+          # Without this check, `grep … || true` would silently PASS on a missing file
+          # (grep exits 2 for file-not-found, which `|| true` swallows). Updating the
+          # gate scope to match a new clap-derive module location is a deliberate step.
+          if ! test -f src/cli.rs; then
+            echo "FAIL: help-provenance-gate: src/cli.rs not found — clap surface moved?"
+            echo "Update the gate target in .github/workflows/ci.yml to match the new"
+            echo "clap-derive module location before merging."
+            exit 1
+          fi
+
+          # SEC-002: strip known standards-body IDs from grep hits before deciding
+          # pass/fail. RFC-NNNN, ISO-NNNNN, CVE-YYYY-NNNN, IEC-NNNNN, ANSI-XXX,
+          # NIST-NNN, IEEE-NNN are legitimate references in public help text and must
+          # not trigger the gate. Factory IDs (BC-, STORY-, LESSON-, VP-, ADR-, EC-,
+          # AC-, TD-, PG-) are not in this exclusion list and continue to be caught.
+          VIOLATIONS=$(
+            grep -n -E '^\s*///.*\b[A-Z]{2,}-[0-9A-Z]' src/cli.rs \
+              | grep -vE '\b(RFC|ISO|CVE|IEC|ANSI|NIST|IEEE)-' \
+            || true
+          )
+
+          if [ -n "${VIOLATIONS}" ]; then
+            echo "FAIL: Internal factory IDs found in /// doc-comments in src/cli.rs:"
+            echo "${VIOLATIONS}"
+            echo ""
+            echo "/// doc-comments in clap-derive files are rendered verbatim into"
+            echo "--help output and must not contain internal IDs (BC-NNN, STORY-NNN,"
+            echo "LESSON-*, VP-NNN, ADR-NNN, EC-NNN, AC-NNN, TD-NNN, etc.)."
+            echo "Move internal references to plain // comments, which are"
+            echo "never rendered by clap and are invisible to end users."
+            exit 1
+          fi
+          echo "PASS: No internal factory IDs found in /// doc-comments in src/cli.rs"
+
   # Supply-chain hardening: enforce that every remote GitHub Action `uses:` reference
   # is pinned to a 40-character commit SHA rather than a mutable tag or branch.
   # Mutable refs (e.g. @v6, @v2.9.1, @stable) can be silently moved by the upstream

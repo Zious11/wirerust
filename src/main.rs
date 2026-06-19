@@ -37,7 +37,7 @@ use wirerust::reassembly::{ReassemblyConfig, TcpReassembler};
 use wirerust::reporter::Reporter;
 use wirerust::reporter::csv::CsvReporter;
 use wirerust::reporter::json::JsonReporter;
-use wirerust::reporter::terminal::TerminalReporter;
+use wirerust::reporter::terminal::{Collapse, FindingsRender, Grouping, TerminalReporter};
 use wirerust::summary::Summary;
 
 fn main() -> Result<()> {
@@ -372,14 +372,22 @@ fn run_analyze(
         _ => {
             let reporter = TerminalReporter {
                 use_color,
-                show_mitre_grouping,
                 // `analyze` does not expose a per-host breakdown flag —
                 // that is `summary`-subcommand-only (LESSON-P1.03).
                 show_hosts_breakdown: false,
-                // BC-2.11.028: `collapse_findings = !no_collapse`.
-                // Wired from `--no-collapse` flag: true → collapse OFF; false → collapse ON.
-                // Mirrors exactly how `*mitre` becomes `show_mitre_grouping`.
-                collapse_findings,
+                // BC-2.11.028 / BC-2.11.030: orthogonal 2-if struct wiring (STORY-119/B CLI flip).
+                // --mitre alone (show_mitre_grouping=true, collapse_findings=true) → {Grouped, Collapsed}.
+                // --mitre --no-collapse (show_mitre_grouping=true, collapse_findings=false) → {Grouped, Expanded}.
+                // default (show_mitre_grouping=false, collapse_findings=true) → {Flat, Collapsed}.
+                // --no-collapse only (show_mitre_grouping=false, collapse_findings=false) → {Flat, Expanded}.
+                render: FindingsRender::new(
+                    grouping_from_flag(show_mitre_grouping),
+                    if collapse_findings {
+                        Collapse::Collapsed
+                    } else {
+                        Collapse::Expanded
+                    },
+                ),
             };
             reporter.render(&summary, &all_findings, &analyzer_summaries)
         }
@@ -438,13 +446,9 @@ fn run_summary(
         _ => {
             let reporter = TerminalReporter {
                 use_color,
-                show_mitre_grouping: false,
                 show_hosts_breakdown,
-                // BC-2.11.028 invariant 4: `run_summary` emits no FINDINGS section;
-                // this value is inert. Set to `true` for completeness (Rust requires
-                // all struct fields to be initialized). Collapse is analyze-scoped;
-                // run_summary emits no FINDINGS section (BC-2.11.028 invariant 4).
-                collapse_findings: true,
+                // BC-2.11.028 invariant 4: render field is inert for run_summary — no FINDINGS section.
+                render: FindingsRender::new(Grouping::Flat, Collapse::Collapsed),
             };
             reporter.render(&summary, &[], &[])
         }
@@ -499,6 +503,19 @@ fn collapse_findings_from_flag(no_collapse: bool) -> bool {
     !no_collapse
 }
 
+/// Maps the `--mitre` flag to the `FindingsRender` `grouping` field
+/// (BC-2.11.030 PC-2 through PC-5).
+///
+/// When `--mitre` is present (`show_mitre_grouping = true`), grouping is `Grouped`.
+/// When `--mitre` is absent (`show_mitre_grouping = false`), grouping is `Flat`.
+fn grouping_from_flag(show_mitre_grouping: bool) -> Grouping {
+    if show_mitre_grouping {
+        Grouping::Grouped
+    } else {
+        Grouping::Flat
+    }
+}
+
 fn resolve_targets(target: &Path) -> Result<Vec<std::path::PathBuf>> {
     if target.is_file() {
         return Ok(vec![target.to_path_buf()]);
@@ -523,7 +540,8 @@ fn resolve_targets(target: &Path) -> Result<Vec<std::path::PathBuf>> {
 
 #[cfg(test)]
 mod tests {
-    use super::collapse_findings_from_flag;
+    use super::{collapse_findings_from_flag, grouping_from_flag};
+    use wirerust::reporter::terminal::Grouping;
 
     /// BC-2.11.028: flag absent (false) → collapse ON (true);
     /// --no-collapse present (true) → collapse OFF (false).
@@ -539,6 +557,27 @@ mod tests {
         assert!(
             !collapse_findings_from_flag(true),
             "--no-collapse (no_collapse=true) must yield collapse_findings=false"
+        );
+    }
+
+    /// BC-2.11.030 PC-2/PC-4: `--mitre` flag polarity guard.
+    ///
+    /// Guards against swapping `Grouped`/`Flat` in `grouping_from_flag` —
+    /// a regression that would ship silently if the construction-site mapping
+    /// were only tested via tautological literal copies.
+    #[test]
+    fn test_bc_2_11_030_grouping_flag_polarity() {
+        // --mitre present (show_mitre_grouping=true) → Grouped.
+        assert_eq!(
+            grouping_from_flag(true),
+            Grouping::Grouped,
+            "--mitre present (show_mitre_grouping=true) must yield Grouping::Grouped"
+        );
+        // --mitre absent (show_mitre_grouping=false) → Flat.
+        assert_eq!(
+            grouping_from_flag(false),
+            Grouping::Flat,
+            "--mitre absent (show_mitre_grouping=false) must yield Grouping::Flat"
         );
     }
 }

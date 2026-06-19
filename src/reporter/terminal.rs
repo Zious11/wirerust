@@ -2,10 +2,15 @@
 //!
 //! Renders the capture summary, per-host breakdown (gated by
 //! `show_hosts_breakdown` per LESSON-P1.03), protocols, services,
-//! findings, and per-analyzer detail tables for TTY output. Optional
-//! MITRE-tactic grouping (`show_mitre_grouping`) reorganizes the
-//! FINDINGS section by MITRE ATT&CK tactic and expands each finding's
-//! MITRE line with the technique name from [`crate::mitre`].
+//! findings, and per-analyzer detail tables for TTY output. The
+//! `render: FindingsRender` field is a struct-of-two-orthogonal-enums
+//! (`Grouping` × `Collapse`) that selects the FINDINGS rendering path:
+//! `Grouping::Grouped` (MITRE tactic grouping, `--mitre`) or
+//! `Grouping::Flat` (flat list); `Collapse::Collapsed` (default) or
+//! `Collapse::Expanded` (`--no-collapse`). All four combinations are valid.
+//! MITRE-tactic grouping reorganizes the FINDINGS section by MITRE ATT&CK
+//! tactic and expands each finding's MITRE line with the technique name from
+//! [`crate::mitre`].
 //!
 //! Per ADR 0003 (`docs/adr/0003-reporting-pipeline-layering.md`), every
 //! attacker-controlled string (Finding `summary`/`evidence`, analyzer
@@ -60,6 +65,30 @@ fn escape_for_terminal(s: &str) -> String {
     out
 }
 
+/// Ascending sort rank for [`Verdict`]: lower value → appears first in a sorted bucket.
+///
+/// BC-2.11.014 / BC-2.11.033 PC-5: both `render_findings_grouped` and
+/// `render_findings_grouped_collapsed` share this single source (BC-014 single-source rule).
+fn verdict_rank(v: Verdict) -> u8 {
+    match v {
+        Verdict::Likely => 0,
+        Verdict::Possible => 1,
+        Verdict::Inconclusive => 2,
+        Verdict::Unlikely => 3,
+    }
+}
+
+/// Ascending sort rank for [`Confidence`]: lower value → appears first in a sorted bucket.
+///
+/// BC-2.11.014 / BC-2.11.033 PC-6: both grouped render functions share this single source.
+fn confidence_rank(c: Confidence) -> u8 {
+    match c {
+        Confidence::High => 0,
+        Confidence::Medium => 1,
+        Confidence::Low => 2,
+    }
+}
+
 /// Maximum number of representative evidence lines rendered per collapsed group.
 ///
 /// BC-2.11.027 invariant 1: K = 3 is a hardcoded named constant, not a magic number.
@@ -88,11 +117,47 @@ struct CollapseKey {
     summary: String,
 }
 
+/// Grouping axis for the FINDINGS section.
+#[non_exhaustive]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Grouping {
+    Grouped,
+    Flat,
+}
+
+/// Collapse axis for the FINDINGS section.
+#[non_exhaustive]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Collapse {
+    Collapsed,
+    Expanded,
+}
+
+/// Rendering mode for the FINDINGS section of [`TerminalReporter`].
+/// No [`Default`] is derived — deliberate, consistent with STORY-120.
+///
+/// Construct with [`FindingsRender::new`] from external crates; struct-literal
+/// construction is blocked by `#[non_exhaustive]` to preserve the growth path
+/// (ADR-0003 / LESSON-P2.10).
+#[non_exhaustive]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct FindingsRender {
+    pub grouping: Grouping,
+    pub collapse: Collapse,
+}
+
+impl FindingsRender {
+    /// Construct a [`FindingsRender`] with the given grouping and collapse axes.
+    ///
+    /// This is the canonical construction path for code outside the `wirerust`
+    /// crate. Internal code (same crate) may use struct-literal syntax directly.
+    pub fn new(grouping: Grouping, collapse: Collapse) -> Self {
+        Self { grouping, collapse }
+    }
+}
+
 pub struct TerminalReporter {
     pub use_color: bool,
-    /// When true, regroup the FINDINGS section by MITRE tactic and expand
-    /// the per-finding MITRE line to include the technique name.
-    pub show_mitre_grouping: bool,
     /// When true, render a per-host breakdown section listing each
     /// unique source/destination IP observed in the capture. Wired
     /// from the `summary` subcommand's `--hosts` flag — see
@@ -100,14 +165,11 @@ pub struct TerminalReporter {
     /// always-present `Hosts: N` count line in the header is shown
     /// regardless; this gate only controls the expanded itemized list.
     pub show_hosts_breakdown: bool,
-    /// When true (the default), repeated findings sharing the same
-    /// `(category, verdict, confidence, summary)` four-tuple are collapsed
-    /// into a single display group with a ` (xN)` count suffix (N≥2).
-    /// Singletons (N=1) render byte-identically to pre-v0.8.0 output.
-    /// Collapse applies ONLY in flat mode (`show_mitre_grouping = false`).
-    /// Wired from `--no-collapse` flag: `collapse_findings = !no_collapse`.
-    /// BC-2.11.025 / BC-2.11.026 / BC-2.11.027 / BC-2.11.028.
-    pub collapse_findings: bool,
+    /// Render mode for the FINDINGS section. A struct-of-two-orthogonal-enums:
+    /// `grouping` (Grouped vs Flat) and `collapse` (Collapsed vs Expanded).
+    /// All four combinations are valid (no combination is illegal).
+    /// ADR-0003 Binding Rule 5; BC-2.11.013 / BC-2.11.026 / BC-2.11.027 / BC-2.11.028.
+    pub render: FindingsRender,
 }
 
 impl Reporter for TerminalReporter {
@@ -184,23 +246,20 @@ impl Reporter for TerminalReporter {
         // Findings
         if !findings.is_empty() {
             out.push_str(&self.section("FINDINGS"));
-            if self.show_mitre_grouping {
-                // Grouped (--mitre) path: structurally suffix-free per BC-2.11.025
-                // invariant 5. STORY-118 does NOT modify this path — collapse applies
-                // only in flat mode. render_finding_prefix stays unchanged.
-                self.render_findings_grouped(&mut out, findings);
-            } else if self.collapse_findings {
-                // Flat + collapse path (STORY-118 / BC-2.11.025 / BC-2.11.026 /
-                // BC-2.11.027): groups findings by CollapseKey in first-occurrence
-                // order, renders each group with optional (xN) suffix and up to K=3
-                // sampled evidence lines.
-                self.render_findings_collapsed(&mut out, findings);
-            } else {
-                // Per ADR 0003: the Finding struct stores raw bytes; the
-                // terminal reporter is responsible for escaping untrusted
-                // content (summary + evidence) before writing to a TTY.
-                for f in findings {
-                    self.render_finding_flat(&mut out, f);
+            match (self.render.grouping, self.render.collapse) {
+                (Grouping::Grouped, Collapse::Expanded) => {
+                    self.render_findings_grouped(&mut out, findings);
+                }
+                (Grouping::Grouped, Collapse::Collapsed) => {
+                    self.render_findings_grouped_collapsed(&mut out, findings);
+                }
+                (Grouping::Flat, Collapse::Collapsed) => {
+                    self.render_findings_collapsed(&mut out, findings);
+                }
+                (Grouping::Flat, Collapse::Expanded) => {
+                    for f in findings {
+                        self.render_finding_flat(&mut out, f);
+                    }
                 }
             }
             out.push('\n');
@@ -307,23 +366,22 @@ impl TerminalReporter {
         }
     }
 
-    /// Groups findings by `CollapseKey` in first-occurrence order using a
-    /// `Vec<(CollapseKey, Vec<&Finding>)>` accumulator with linear-scan
-    /// `PartialEq` matching (no HashMap / IndexMap — `ThreatCategory`, `Verdict`,
-    /// and `Confidence` do not derive `Hash` in v0.8.0).
+    /// Shared collapse-logic helper: groups a slice of finding references by
+    /// `CollapseKey` in first-occurrence order.
     ///
-    /// Each finding's four-tuple `(category, verdict, confidence, summary)` is
-    /// compared by raw bytes (the summary is not escaped before key construction;
-    /// escape is a render-time operation). Groups appear in first-occurrence order —
-    /// the position of the first member that created the group.
+    /// This is the single source of collapse logic (ADR-0003 "Collapse-API Shape";
+    /// F2 design-note §5.2.1). `collapse_findings_pass` (the flat-mode wrapper)
+    /// delegates to this function. `render_findings_grouped_collapsed` calls this
+    /// directly per bucket.
     ///
-    /// BC-2.11.025 invariant 7 / postcondition 9: Vec accumulator is canonical.
-    fn collapse_findings_pass<'a>(
+    /// BC-2.11.025 invariant 7 / postcondition 9: Vec accumulator is canonical —
+    /// linear-scan `PartialEq`, no `HashMap`, no `IndexMap`.
+    fn collapse_findings_pass_refs<'a>(
         &self,
-        findings: &'a [Finding],
+        refs: &[&'a Finding],
     ) -> Vec<(CollapseKey, Vec<&'a Finding>)> {
         let mut groups: Vec<(CollapseKey, Vec<&'a Finding>)> = Vec::new();
-        for f in findings {
+        for f in refs {
             let key = CollapseKey {
                 category: f.category,
                 verdict: f.verdict,
@@ -338,6 +396,20 @@ impl TerminalReporter {
             }
         }
         groups
+    }
+
+    /// Flat-mode collapse adapter. Collects the `&[Finding]` parameter into
+    /// `Vec<&Finding>` and delegates to `collapse_findings_pass_refs`.
+    ///
+    /// Uses the `findings` PARAMETER — `TerminalReporter` has no `findings` field.
+    ///
+    /// BC-2.11.025 / ADR-0003 "Collapse-API Shape".
+    fn collapse_findings_pass<'a>(
+        &self,
+        findings: &'a [Finding],
+    ) -> Vec<(CollapseKey, Vec<&'a Finding>)> {
+        let refs: Vec<&Finding> = findings.iter().collect();
+        self.collapse_findings_pass_refs(&refs)
     }
 
     /// Renders the FINDINGS section in collapsed flat mode.
@@ -407,8 +479,9 @@ impl TerminalReporter {
     /// header is `## Tactic Name`; sections appear in
     /// [`all_tactics_in_report_order`] order with an Uncategorized bucket
     /// last that holds findings with no technique or an unknown ID.
-    /// Within each bucket, findings sort by verdict-desc, then
-    /// confidence-desc, then original emission order (stable).
+    /// Within each bucket, findings sort ascending by verdict-rank
+    /// (Likely=0, Possible=1, Inconclusive=2, Unlikely=3), then ascending by
+    /// confidence-rank (High=0, Medium=1, Low=2), then original emission order (stable).
     /// BC-2.11.013: tactic bucketing uses `mitre_techniques[0]` (first element).
     fn render_findings_grouped(&self, out: &mut String, findings: &[Finding]) {
         // Bucket by tactic. Attach original index for stable tertiary sort.
@@ -425,22 +498,7 @@ impl TerminalReporter {
             buckets.entry(tactic).or_default().push((i, f));
         }
 
-        fn verdict_rank(v: Verdict) -> u8 {
-            match v {
-                Verdict::Likely => 0,
-                Verdict::Possible => 1,
-                Verdict::Inconclusive => 2,
-                Verdict::Unlikely => 3,
-            }
-        }
-        fn confidence_rank(c: Confidence) -> u8 {
-            match c {
-                Confidence::High => 0,
-                Confidence::Medium => 1,
-                Confidence::Low => 2,
-            }
-        }
-
+        // verdict_rank / confidence_rank: module-level single-source (BC-014).
         for (_, items) in buckets.iter_mut() {
             items.sort_by_key(|(idx, f)| {
                 (verdict_rank(f.verdict), confidence_rank(f.confidence), *idx)
@@ -460,6 +518,120 @@ impl TerminalReporter {
             for (_, f) in items {
                 self.render_finding_grouped(out, f);
             }
+        }
+    }
+
+    /// Renders the FINDINGS section grouped by MITRE tactic WITH per-bucket collapse.
+    ///
+    /// Per-tactic-bucket grouping identical to `render_findings_grouped` (BC-2.11.013),
+    /// then per-bucket sort ascending by (verdict_rank, confidence_rank, emission-index)
+    /// (BC-2.11.033 PC-5 / BC-2.11.014), then per-bucket
+    /// `collapse_findings_pass_refs` (BC-2.11.033 Invariant 3), then collapsed
+    /// group rendering with `(xN)` suffix (BC-2.11.031), K=3 evidence sampling
+    /// (BC-2.11.032), and MITRE em-dash line from `members[0]` (BC-2.11.034).
+    ///
+    /// Singletons (N=1) render via `render_finding_grouped` (byte-identical to
+    /// `{Grouped, Expanded}` for that finding).
+    fn render_findings_grouped_collapsed(&self, out: &mut String, findings: &[Finding]) {
+        // Step 1: bucket by tactic (same as render_findings_grouped, BC-2.11.013).
+        let mut buckets: std::collections::HashMap<Option<MitreTactic>, Vec<(usize, &Finding)>> =
+            std::collections::HashMap::new();
+        for (i, f) in findings.iter().enumerate() {
+            let tactic = f
+                .mitre_techniques
+                .first()
+                .map(|id| id.as_str())
+                .and_then(technique_tactic);
+            buckets.entry(tactic).or_default().push((i, f));
+        }
+
+        // Sort each bucket ascending by (verdict_rank, confidence_rank, emission-index).
+        // verdict_rank / confidence_rank: module-level single-source (BC-014).
+        for (_, items) in buckets.iter_mut() {
+            items.sort_by_key(|(idx, f)| {
+                (verdict_rank(f.verdict), confidence_rank(f.confidence), *idx)
+            });
+        }
+
+        // Step 3: render buckets in all_tactics_in_report_order(), Uncategorized last.
+        let render_collapsed_bucket = |out: &mut String, items: &[(usize, &Finding)]| {
+            // Build sorted &Finding refs and delegate to the shared collapse helper.
+            // BC-2.11.033 Inv3 / BC-2.11.025 Inv1 / BC-2.11.031 PC-3: use the shared
+            // four-tuple (category, verdict, confidence, summary) collapse key via
+            // collapse_findings_pass_refs — no inline summary-only keying.
+            let bucket_refs: Vec<&Finding> = items.iter().map(|(_, f)| *f).collect();
+            let groups = self.collapse_findings_pass_refs(&bucket_refs);
+            for (_key, members) in &groups {
+                let n = members.len();
+                if n == 1 {
+                    // Singleton: byte-identical to {Grouped, Expanded}.
+                    self.render_finding_grouped(out, members[0]);
+                } else {
+                    // N >= 2: build header with (xN) suffix, colorize the full
+                    // string (suffix is inside the ANSI color span — BC-2.11.031 PC-3).
+                    let rep = members[0];
+                    // escape_for_terminal (char::escape_default, U+NN format) —
+                    // BC-2.11.031 PC-5 / BC-2.11.032 PC-6 / VP-012 / ADR-0003.
+                    let escaped_summary = escape_for_terminal(&rep.summary);
+                    // Display format (`{}`) for verdict and confidence → UPPERCASE output
+                    // (`LIKELY`, `HIGH`) per BC-2.11.031 PC-1 / canonical vector.
+                    let header_text = format!(
+                        "[{}] {} ({}) - {} (x{})",
+                        rep.category, rep.verdict, rep.confidence, escaped_summary, n
+                    );
+                    let colored = if self.use_color {
+                        match rep.verdict {
+                            Verdict::Likely => match rep.confidence {
+                                Confidence::High => header_text.red().bold().to_string(),
+                                _ => header_text.yellow().to_string(),
+                            },
+                            Verdict::Possible => header_text.yellow().to_string(),
+                            Verdict::Inconclusive => header_text.cyan().to_string(),
+                            Verdict::Unlikely => header_text.dimmed().to_string(),
+                        }
+                    } else {
+                        header_text
+                    };
+                    out.push_str(&format!("  {colored}\n"));
+
+                    // Evidence sampling: first min(N, K) members positionally.
+                    // Window does NOT slide past empty-evidence members (BC-2.11.032 Inv2).
+                    // escape_for_terminal (char::escape_default) — BC-2.11.032 PC-6 / VP-012.
+                    let window = members.len().min(COLLAPSE_EVIDENCE_SAMPLES);
+                    for member in &members[..window] {
+                        if let Some(ev) = member.evidence.first() {
+                            let escaped_ev = escape_for_terminal(ev);
+                            out.push_str(&format!("    > {escaped_ev}\n"));
+                        }
+                    }
+
+                    // MITRE line from members[0] with em-dash name expansion (BC-2.11.034).
+                    if !rep.mitre_techniques.is_empty() {
+                        let ids = rep.mitre_techniques.join(", ");
+                        match rep
+                            .mitre_techniques
+                            .first()
+                            .and_then(|id| technique_name(id.as_str()))
+                        {
+                            Some(name) => {
+                                out.push_str(&format!("    MITRE: {ids} \u{2014} {name}\n"))
+                            }
+                            None => out.push_str(&format!("    MITRE: {ids} (unknown)\n")),
+                        }
+                    }
+                }
+            }
+        };
+
+        for tactic in all_tactics_in_report_order() {
+            if let Some(items) = buckets.get(&Some(*tactic)) {
+                out.push_str(&format!("  ## {tactic}\n"));
+                render_collapsed_bucket(out, items);
+            }
+        }
+        if let Some(items) = buckets.get(&None) {
+            out.push_str("  ## Uncategorized\n");
+            render_collapsed_bucket(out, items);
         }
     }
 }
