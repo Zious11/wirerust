@@ -206,6 +206,51 @@ jobs:
           fi
           echo "PASS: No production callers of _for_testing functions found in src/"
 
+  # Help-provenance gate: prevent internal factory IDs from leaking into user-facing
+  # --help text rendered by clap from `///` doc-comments.
+  #
+  # Background: clap derives --help output exclusively from `///` (doc-comment) lines
+  # on Parser/Args/Subcommand/ValueEnum structs and their fields. Plain `//` comments
+  # are never rendered to users and are not scanned here. Internal identifiers of the
+  # form BC-NNN, STORY-NNN, and LESSON-* must not appear in `///` doc-comments on any
+  # source file — they are implementation bookkeeping and have no meaning to end users.
+  #
+  # Scope: all *.rs files under src/ (covers current and future clap-hosting files).
+  # A future clap struct added to any src/ file is automatically guarded.
+  #
+  # Pattern rationale:
+  #   BC-[0-9]    — behavioral contract refs (e.g. BC-2.11.028, BC-2.14.023)
+  #   STORY-[0-9] — factory story refs  (e.g. STORY-114, STORY-119)
+  #   LESSON-     — factory lesson refs (e.g. LESSON-P1.03, LESSON-P2.05)
+  # Only `///` lines (doc-comments) are matched; `//` comment lines are excluded by
+  # the leading `^\s*///` anchor.
+  help-provenance-gate:
+    name: Help-provenance gate (no internal IDs in /// doc-comments)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Verify no internal factory IDs in /// doc-comments
+        # Scans all Rust source files under src/ for `///` lines that contain
+        # internal ID patterns (BC-NNN, STORY-NNN, LESSON-*). These patterns
+        # appear in clap --help output and must not be visible to end users.
+        # Plain // comment lines are not matched and are never rendered by clap.
+        shell: bash
+        run: |
+          set -euo pipefail
+          VIOLATIONS=$(grep -rn --include='*.rs' -E '^\s*///.*(BC-[0-9]|STORY-[0-9]|LESSON-)' src/) || true
+          if [ -n "${VIOLATIONS}" ]; then
+            echo "FAIL: Internal factory IDs found in /// doc-comments under src/:"
+            echo "${VIOLATIONS}"
+            echo ""
+            echo "/// doc-comments are rendered verbatim into clap --help output and"
+            echo "must not contain internal IDs (BC-NNN, STORY-NNN, LESSON-*)."
+            echo "Move internal references to plain // comments, which are never"
+            echo "rendered by clap and are invisible to end users."
+            exit 1
+          fi
+          echo "PASS: No internal factory IDs found in /// doc-comments under src/"
+
   # Supply-chain hardening: enforce that every remote GitHub Action `uses:` reference
   # is pinned to a 40-character commit SHA rather than a mutable tag or branch.
   # Mutable refs (e.g. @v6, @v2.9.1, @stable) can be silently moved by the upstream
