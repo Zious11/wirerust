@@ -17,7 +17,7 @@ use std::net::IpAddr;
 
 use crate::reassembly::handler::Direction;
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct FlowKey {
     lower_ip: IpAddr,
     lower_port: u16,
