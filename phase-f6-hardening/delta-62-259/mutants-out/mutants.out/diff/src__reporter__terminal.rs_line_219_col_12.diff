@@ -1,0 +1,21 @@
+--- src/reporter/terminal.rs
++++ delete ! in <impl Reporter for TerminalReporter>::render
+@@ -211,17 +211,17 @@
+         });
+         for (proto, count) in &proto_vec {
+             out.push_str(&format!("  {proto:?}: {count}\n"));
+         }
+         out.push('\n');
+ 
+         // Services
+         let services = summary.service_counts();
+-        if !services.is_empty() {
++        if  /* ~ changed by cargo-mutants ~ */services.is_empty() {
+             out.push_str(&self.section("SERVICES"));
+             let mut svc_vec: Vec<_> = services.iter().collect();
+             svc_vec.sort_by(|a, b| b.1.cmp(a.1).then_with(|| a.0.cmp(b.0)));
+             for (svc, count) in &svc_vec {
+                 out.push_str(&format!("  {svc}: {count}\n"));
+             }
+             out.push('\n');
+         }

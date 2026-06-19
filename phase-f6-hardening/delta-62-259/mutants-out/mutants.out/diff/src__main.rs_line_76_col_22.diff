@@ -1,0 +1,21 @@
+--- src/main.rs
++++ replace || with && in main
+@@ -68,17 +68,17 @@
+                 *dns || *all,
+                 *http || *all,
+                 *tls || *all,
+                 *modbus || *all,
+                 *modbus_write_burst_threshold,
+                 *modbus_write_sustained_threshold,
+                 *dnp3 || *all,
+                 *dnp3_direct_operate_threshold,
+-                *arp || *all,
++                *arp && /* ~ changed by cargo-mutants ~ */ *all,
+                 *arp_spoof_threshold,
+                 *arp_storm_rate,
+                 *mitre,
+                 collapse_findings_from_flag(*no_collapse),
+                 use_color,
+                 &cli,
+             )?;
+         }

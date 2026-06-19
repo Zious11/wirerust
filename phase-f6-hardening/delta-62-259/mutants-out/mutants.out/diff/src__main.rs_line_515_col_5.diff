@@ -1,0 +1,25 @@
+--- src/main.rs
++++ replace grouping_from_flag -> Grouping with Default::default()
+@@ -507,21 +507,17 @@
+ }
+ 
+ /// Maps the `--mitre` flag to the `FindingsRender` `grouping` field
+ /// (BC-2.11.030 PC-2 through PC-5).
+ ///
+ /// When `--mitre` is present (`show_mitre_grouping = true`), grouping is `Grouped`.
+ /// When `--mitre` is absent (`show_mitre_grouping = false`), grouping is `Flat`.
+ fn grouping_from_flag(show_mitre_grouping: bool) -> Grouping {
+-    if show_mitre_grouping {
+-        Grouping::Grouped
+-    } else {
+-        Grouping::Flat
+-    }
++    Default::default() /* ~ changed by cargo-mutants ~ */
+ }
+ 
+ fn resolve_targets(target: &Path) -> Result<Vec<std::path::PathBuf>> {
+     if target.is_file() {
+         return Ok(vec![target.to_path_buf()]);
+     }
+     if target.is_dir() {
+         let mut files = Vec::new();

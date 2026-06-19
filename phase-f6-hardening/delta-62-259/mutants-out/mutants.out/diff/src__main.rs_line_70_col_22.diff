@@ -1,0 +1,21 @@
+--- src/main.rs
++++ replace || with && in main
+@@ -62,17 +62,17 @@
+             arp,
+             arp_spoof_threshold,
+             arp_storm_rate,
+         } => {
+             run_analyze(
+                 targets,
+                 *dns || *all,
+                 *http || *all,
+-                *tls || *all,
++                *tls && /* ~ changed by cargo-mutants ~ */ *all,
+                 *modbus || *all,
+                 *modbus_write_burst_threshold,
+                 *modbus_write_sustained_threshold,
+                 *dnp3 || *all,
+                 *dnp3_direct_operate_threshold,
+                 *arp || *all,
+                 *arp_spoof_threshold,
+                 *arp_storm_rate,

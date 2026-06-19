@@ -1,0 +1,21 @@
+--- src/main.rs
++++ replace && with || in run_analyze
+@@ -146,17 +146,17 @@
+         cli.reassemble || enable_http || enable_tls || enable_modbus || enable_dnp3;
+ 
+     if (enable_http || enable_tls) && skip_reassembly {
+         eprintln!(
+             "Warning: --http/--tls require TCP reassembly, but --no-reassemble is set. Stream analysis will be skipped."
+         );
+     }
+     // BC-2.14.023 §P2 sub-case (EC-001): warn and omit Modbus when reassembly disabled.
+-    if enable_modbus && skip_reassembly {
++    if enable_modbus || /* ~ changed by cargo-mutants ~ */ skip_reassembly {
+         eprintln!(
+             "WARNING: --modbus requires stream reassembly; ignoring --modbus \
+              (pass --reassemble or omit --no-reassemble)"
+         );
+     }
+     // BC-2.15.021: warn and omit DNP3 when reassembly disabled.
+     if enable_dnp3 && skip_reassembly {
+         eprintln!(

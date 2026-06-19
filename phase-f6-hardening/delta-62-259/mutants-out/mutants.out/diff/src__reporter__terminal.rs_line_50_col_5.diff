@@ -1,0 +1,36 @@
+--- src/reporter/terminal.rs
++++ replace escape_for_terminal -> String with String::new()
+@@ -42,32 +42,17 @@
+ /// equivalent of ESC[. Escaping them closes a narrow but real vector.
+ ///
+ /// **Why not `str::escape_default`?** It routes *every* character through
+ /// `char::escape_default`, which escapes non-ASCII as `\u{...}` and would
+ /// mangle a Cyrillic hostname like `пример.рф` into `\u{43f}\u{440}...`.
+ /// See ADR 0003 (`docs/adr/0003-reporting-pipeline-layering.md`) for the
+ /// layering rationale and the empirical verification.
+ fn escape_for_terminal(s: &str) -> String {
+-    let mut out = String::with_capacity(s.len());
+-    for c in s.chars() {
+-        // Escape C0 (0x00-0x1f), DEL (0x7f), C1 (U+0080-U+009F), and backslash.
+-        // C1 codepoints like U+0085 (NEL) and U+009B (CSI — 8-bit equivalent of
+-        // ESC[) are valid multi-byte UTF-8 in a `String` but can be interpreted
+-        // as controls by terminals in 8-bit C1 mode (DEC S8C1T). Escaping them
+-        // is cheap insurance.
+-        if c.is_ascii_control() || ('\u{80}'..='\u{9f}').contains(&c) || c == '\\' {
+-            for e in c.escape_default() {
+-                out.push(e);
+-            }
+-        } else {
+-            out.push(c);
+-        }
+-    }
+-    out
++    String::new() /* ~ changed by cargo-mutants ~ */
+ }
+ 
+ /// Ascending sort rank for [`Verdict`]: lower value → appears first in a sorted bucket.
+ ///
+ /// BC-2.11.014 / BC-2.11.033 PC-5: both `render_findings_grouped` and
+ /// `render_findings_grouped_collapsed` share this single source (BC-014 single-source rule).
+ fn verdict_rank(v: Verdict) -> u8 {
+     match v {

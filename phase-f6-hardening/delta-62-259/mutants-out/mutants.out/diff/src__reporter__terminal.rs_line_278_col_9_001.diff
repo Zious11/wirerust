@@ -1,0 +1,25 @@
+--- src/reporter/terminal.rs
++++ replace TerminalReporter::section -> String with "xyzzy".into()
+@@ -270,21 +270,17 @@
+         }
+ 
+         out
+     }
+ }
+ 
+ impl TerminalReporter {
+     fn section(&self, title: &str) -> String {
+-        if self.use_color {
+-            format!("{}\n{}\n", title.bold().underline(), "─".repeat(40))
+-        } else {
+-            format!("{title}\n{}\n", "─".repeat(40))
+-        }
++        "xyzzy".into() /* ~ changed by cargo-mutants ~ */
+     }
+ 
+     /// Emits the shared per-finding prefix: the colored `[category] verdict
+     /// (confidence) - summary` header line followed by each evidence line.
+     /// Summary and evidence strings are escaped per ADR 0003 before being
+     /// written to the TTY. Callers own the trailing MITRE line — see
+     /// [`render_finding_flat`] and [`render_finding_grouped`].
+     fn render_finding_prefix(&self, out: &mut String, f: &Finding) {

@@ -1,0 +1,1747 @@
+
+*** src/main.rs:205:41: delete ! in run_analyze
+
+*** mutation diff:
+--- src/main.rs
++++ delete ! in run_analyze
+@@ -197,17 +197,17 @@
+         None
+     };
+ 
+     let http_analyzer = if enable_http && !skip_reassembly {
+         Some(HttpAnalyzer::new())
+     } else {
+         None
+     };
+-    let tls_analyzer = if enable_tls && !skip_reassembly {
++    let tls_analyzer = if enable_tls &&  /* ~ changed by cargo-mutants ~ */skip_reassembly {
+         Some(TlsAnalyzer::new())
+     } else {
+         None
+     };
+     // BC-2.14.023 §P2: construct ModbusAnalyzer only when enabled AND reassembly is on.
+     let modbus_analyzer: Option<ModbusAnalyzer> = if enable_modbus && !skip_reassembly {
+         Some(ModbusAnalyzer::new(
+             modbus_write_burst_threshold,
+
+
+*** /Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo test --no-run --verbose --package=wirerust@0.9.0
+       Fresh unicode-ident v1.0.24
+       Fresh memchr v2.8.0
+       Fresh cfg-if v1.0.4
+       Fresh autocfg v1.5.0
+       Fresh siphasher v1.0.2
+       Fresh anstyle v1.0.14
+       Fresh rand_core v0.6.4
+       Fresh winnow v1.0.1
+       Fresh proc-macro2 v1.0.106
+       Fresh hashbrown v0.16.1
+       Fresh equivalent v1.0.2
+       Fresh rand v0.8.5
+       Fresh toml_parser v1.1.2+spec-1.1.0
+       Fresh toml_datetime v1.1.1+spec-1.1.0
+       Fresh quote v1.0.45
+       Fresh libc v0.2.184
+       Fresh serde_core v1.0.228
+       Fresh typenum v1.19.0
+       Fresh indexmap v2.13.1
+       Fresh crossbeam-utils v0.8.21
+       Fresh regex-syntax v0.8.10
+       Fresh utf8parse v0.2.2
+       Fresh phf_generator v0.11.3
+       Fresh aho-corasick v1.1.4
+       Fresh is_terminal_polyfill v1.70.2
+       Fresh minimal-lexical v0.2.1
+       Fresh itoa v1.0.18
+       Fresh syn v2.0.117
+       Fresh num-traits v0.2.19
+       Fresh syn v1.0.109
+       Fresh crossbeam-epoch v0.9.18
+       Fresh toml_edit v0.25.10+spec-1.1.0
+       Fresh hybrid-array v0.4.10
+       Fresh anstyle-parse v1.0.0
+       Fresh colorchoice v1.0.5
+       Fresh anstyle-query v1.1.5
+       Fresh either v1.15.0
+       Fresh getrandom v0.3.4
+       Fresh phf_codegen v0.11.3
+       Fresh nom v7.1.3
+       Fresh zerocopy-derive v0.8.48
+       Fresh serde_derive v1.0.228
+       Fresh crossbeam-deque v0.8.6
+       Fresh rustversion v1.0.22
+       Fresh anstream v1.0.0
+       Fresh proc-macro-crate v3.5.0
+       Fresh zmij v1.0.21
+       Fresh regex-automata v0.4.14
+       Fresh find-msvc-tools v0.1.9
+       Fresh shlex v1.3.0
+       Fresh strsim v0.11.1
+       Fresh clap_lex v1.1.0
+       Fresh zerocopy v0.8.48
+       Fresh serde v1.0.228
+       Fresh heck v0.5.0
+       Fresh serde_json v1.0.150
+       Fresh cc v1.2.58
+       Fresh clap_builder v4.6.0
+       Fresh num_enum_derive v0.7.6
+       Fresh rayon-core v1.13.0
+       Fresh thiserror-impl v1.0.69
+       Fresh crypto-common v0.2.1
+       Fresh nom-derive-impl v0.10.1
+       Fresh block-buffer v0.12.0
+       Fresh clap_derive v4.6.1
+       Fresh rand_core v0.9.5
+       Fresh errno v0.3.14
+       Fresh phf_shared v0.11.3
+       Fresh unicode-width v0.2.2
+       Fresh core-foundation-sys v0.8.7
+       Fresh byteorder v1.5.0
+       Fresh bitflags v2.11.0
+       Fresh const-oid v0.10.2
+       Fresh rayon v1.12.0
+       Fresh nom-derive v0.10.1
+       Fresh getrandom v0.4.2
+       Fresh half v2.7.1
+       Fresh digest v0.11.2
+       Fresh clap v4.6.1
+       Fresh console v0.16.3
+       Fresh iana-time-zone v0.1.65
+       Fresh rustix v1.1.4
+       Fresh phf v0.11.3
+       Fresh byteorder_slice v3.0.0
+       Fresh num_enum v0.7.6
+       Fresh portable-atomic v1.13.1
+       Fresh thiserror v1.0.69
+       Fresh regex v1.12.3
+       Fresh derive-into-owned v0.2.0
+       Fresh rusticata-macros v4.1.0
+       Fresh wait-timeout v0.2.1
+       Fresh csv-core v0.1.13
+       Fresh fastrand v2.3.0
+       Fresh plotters-backend v0.3.7
+       Fresh once_cell v1.21.4
+       Fresh ryu v1.0.23
+       Fresh ciborium-io v0.2.2
+       Fresh predicates-core v1.0.10
+       Fresh unit-prefix v0.5.2
+       Fresh arrayvec v0.7.6
+       Fresh md-5 v0.11.0
+       Fresh owo-colors v4.3.0
+       Fresh httparse v1.10.1
+       Fresh chrono v0.4.45
+       Fresh pcap-file v2.0.0
+       Fresh tls-parser v0.12.2
+       Fresh indicatif v0.18.4
+       Fresh etherparse v0.20.2
+       Fresh tempfile v3.27.0
+       Fresh csv v1.4.0
+       Fresh plotters-svg v0.3.7
+       Fresh ciborium-ll v0.2.2
+       Fresh anyhow v1.0.102
+       Fresh ppv-lite86 v0.2.21
+       Fresh itertools v0.13.0
+       Fresh float-cmp v0.10.0
+       Fresh termtree v0.5.1
+       Fresh normalize-line-endings v0.3.0
+       Fresh same-file v1.0.6
+       Fresh cast v0.3.0
+       Fresh quick-error v1.2.3
+       Fresh fnv v1.0.7
+       Fresh bit-vec v0.8.0
+       Fresh difflib v0.4.0
+       Fresh ciborium v0.2.2
+       Fresh predicates-tree v1.0.13
+       Fresh plotters v0.3.7
+       Fresh rand_chacha v0.9.0
+       Fresh criterion-plot v0.8.2
+       Fresh walkdir v2.5.0
+       Fresh alloca v0.4.0
+       Fresh rand v0.9.4
+       Fresh rand_xorshift v0.4.0
+       Fresh tinytemplate v1.2.1
+       Fresh bstr v1.12.1
+       Fresh page_size v0.6.0
+       Fresh oorandom v11.1.5
+       Fresh bit-set v0.8.0
+       Fresh rusty-fork v0.3.1
+       Fresh predicates v3.1.4
+       Fresh anes v0.1.6
+       Fresh unarray v0.1.4
+       Fresh criterion v0.8.2
+       Fresh proptest v1.11.0
+       Fresh assert_cmd v2.2.2
+       Dirty wirerust v0.9.0 (/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp): the file `src/main.rs` has changed (1781889961.692176315s, 4s after last build at 1781889957.772453752s)
+   Compiling wirerust v0.9.0 (/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp)
+     Running `/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/rustc --crate-name wirerust --edition=2024 src/main.rs --error-format=json --json=diagnostic-rendered-ansi,artifacts,future-incompat --emit=dep-info,link -C embed-bitcode=no -C debuginfo=2 -C split-debuginfo=unpacked --warn=unexpected_cfgs --check-cfg 'cfg(kani)' --test --check-cfg 'cfg(docsrs,test)' --check-cfg 'cfg(feature, values())' -C metadata=616950ad91bbfe98 -C extra-filename=-9d425a18c7fd8383 --out-dir /private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps -C incremental=/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/incremental -L dependency=/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps --extern anyhow=/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/libanyhow-aad1a319eea0f22f.rlib --extern assert_cmd=/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/libassert_cmd-e8417878665bc8ef.rlib --extern chrono=/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/libchrono-5eb64a18c523800c.rlib --extern clap=/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/libclap-138be68a8f4c35ae.rlib --extern criterion=/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/libcriterion-57d60ef95f105a5b.rlib --extern csv=/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/libcsv-85fe0442e973e378.rlib --extern etherparse=/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/libetherparse-15b437e9418a1e81.rlib --extern httparse=/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/libhttparse-cd8f335e2faa6069.rlib --extern indicatif=/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/libindicatif-7b49dd58c691a971.rlib --extern md5=/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/libmd5-2ae3801642c310e1.rlib --extern owo_colors=/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/libowo_colors-d58639cf14aa07a0.rlib --extern pcap_file=/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/libpcap_file-f15bd65c2e1285e2.rlib --extern predicates=/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/libpredicates-b830d8bfa48afcf4.rlib --extern proptest=/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/libproptest-2e0e5cc16ca78873.rlib --extern rayon=/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/librayon-3dc7ab874f964dce.rlib --extern serde=/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/libserde-e0c1335c613c3acb.rlib --extern serde_json=/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/libserde_json-4cb2ee28c8663320.rlib --extern tempfile=/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/libtempfile-655aafd192885eb6.rlib --extern tls_parser=/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/libtls_parser-f45409ffa13fbd4b.rlib --extern wirerust=/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/libwirerust-53dceebf2d2e2ea6.rlib -L native=/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/build/alloca-73d7970950e0bd0e/out`
+     Running `/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/rustc --crate-name wirerust --edition=2024 src/main.rs --error-format=json --json=diagnostic-rendered-ansi,artifacts,future-incompat --crate-type bin --emit=dep-info,link -C embed-bitcode=no -C debuginfo=2 -C split-debuginfo=unpacked --warn=unexpected_cfgs --check-cfg 'cfg(kani)' --check-cfg 'cfg(docsrs,test)' --check-cfg 'cfg(feature, values())' -C metadata=b9c70180be749f6c -C extra-filename=-1ff9d38ba8cce40c --out-dir /private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps -C incremental=/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/incremental -L dependency=/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps --extern anyhow=/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/libanyhow-aad1a319eea0f22f.rlib --extern chrono=/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/libchrono-5eb64a18c523800c.rlib --extern clap=/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/libclap-138be68a8f4c35ae.rlib --extern csv=/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/libcsv-85fe0442e973e378.rlib --extern etherparse=/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/libetherparse-15b437e9418a1e81.rlib --extern httparse=/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/libhttparse-cd8f335e2faa6069.rlib --extern indicatif=/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/libindicatif-7b49dd58c691a971.rlib --extern md5=/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/libmd5-2ae3801642c310e1.rlib --extern owo_colors=/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/libowo_colors-d58639cf14aa07a0.rlib --extern pcap_file=/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/libpcap_file-f15bd65c2e1285e2.rlib --extern rayon=/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/librayon-3dc7ab874f964dce.rlib --extern serde=/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/libserde-e0c1335c613c3acb.rlib --extern serde_json=/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/libserde_json-4cb2ee28c8663320.rlib --extern tls_parser=/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/libtls_parser-f45409ffa13fbd4b.rlib --extern wirerust=/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/libwirerust-53dceebf2d2e2ea6.rlib`
+     Running `/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/rustc --crate-name reporter_terminal_tests --edition=2024 tests/reporter_terminal_tests.rs --error-format=json --json=diagnostic-rendered-ansi,artifacts,future-incompat --emit=dep-info,link -C embed-bitcode=no -C debuginfo=2 -C split-debuginfo=unpacked --warn=unexpected_cfgs --check-cfg 'cfg(kani)' --test --check-cfg 'cfg(docsrs,test)' --check-cfg 'cfg(feature, values())' -C metadata=601e829d3b94f47f -C extra-filename=-c739371bd524b2ea --out-dir /private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps -C incremental=/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/incremental -L dependency=/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps --extern anyhow=/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/libanyhow-aad1a319eea0f22f.rlib --extern assert_cmd=/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/libassert_cmd-e8417878665bc8ef.rlib --extern chrono=/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/libchrono-5eb64a18c523800c.rlib --extern clap=/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/libclap-138be68a8f4c35ae.rlib --extern criterion=/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/libcriterion-57d60ef95f105a5b.rlib --extern csv=/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/libcsv-85fe0442e973e378.rlib --extern etherparse=/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/libetherparse-15b437e9418a1e81.rlib --extern httparse=/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/libhttparse-cd8f335e2faa6069.rlib --extern indicatif=/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/libindicatif-7b49dd58c691a971.rlib --extern md5=/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/libmd5-2ae3801642c310e1.rlib --extern owo_colors=/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/libowo_colors-d58639cf14aa07a0.rlib --extern pcap_file=/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/libpcap_file-f15bd65c2e1285e2.rlib --extern predicates=/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/libpredicates-b830d8bfa48afcf4.rlib --extern proptest=/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/libproptest-2e0e5cc16ca78873.rlib --extern rayon=/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/librayon-3dc7ab874f964dce.rlib --extern serde=/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/libserde-e0c1335c613c3acb.rlib --extern serde_json=/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/libserde_json-4cb2ee28c8663320.rlib --extern tempfile=/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/libtempfile-655aafd192885eb6.rlib --extern tls_parser=/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/libtls_parser-f45409ffa13fbd4b.rlib --extern wirerust=/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/libwirerust-53dceebf2d2e2ea6.rlib -L native=/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/build/alloca-73d7970950e0bd0e/out`
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.38s
+  Executable `/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/wirerust-24df536b2b07ef3f`
+  Executable `/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/wirerust-9d425a18c7fd8383`
+  Executable `/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/analyzer_tests-8efb12db4eab09a2`
+  Executable `/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/bc_2_01_story001_tests-548d8d42490558cb`
+  Executable `/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/bc_2_02_story002_tests-1d7d02c56bced514`
+  Executable `/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/bc_2_02_story003_tests-5000ba85b15ea79c`
+  Executable `/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/bc_2_02_story004_tests-8a2b6f21e799edcc`
+  Executable `/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/bc_2_02_story005_tests-fcefa5477ea2a229`
+  Executable `/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/bc_2_09_100_multitag_tests-d76770bd61794416`
+  Executable `/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/bc_2_14_103_modbus_correlation_tests-3801ccbf7c330a1a`
+  Executable `/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/bc_2_14_105_modbus_dispatch_tests-7b1979b0d7bd1944`
+  Executable `/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/bc_2_15_110_dnp3_dispatcher_tests-089e1b3a074db127`
+  Executable `/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/bc_2_16_d074_arp_threshold_zero_tests-4df099d346026e60`
+  Executable `/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/bc_2_16_d077_arp_type_reject_tests-df8bbe71dd1aa443`
+  Executable `/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/bc_2_16_d078_lax_malformed_tests-f1b4fbf19949171d`
+  Executable `/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/bc_2_16_d078_vlan_offset_tests-a0968d4059ef82ed`
+  Executable `/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/bc_2_16_d078b_lax_some_arm_tests-cb26732c444695e7`
+  Executable `/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/bc_2_16_e17_macsec_offset_tests-0b88b1f2a799dc7c`
+  Executable `/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/bc_2_16_qinq_macsec_offset_tests-20ba501ca5549c90`
+  Executable `/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/bc_2_16_story112_arp_tests-1c6bc2cb6d19ac82`
+  Executable `/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/bc_2_16_story113_arp_tests-6b21366e724de26e`
+  Executable `/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/bc_2_16_story114_arp_tests-81b62933ba7e06c6`
+  Executable `/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/bc_2_16_story115_arp_tests-d423145b6ddb92a6`
+  Executable `/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/cli_integration_tests-21f9a0cfc573ffb0`
+  Executable `/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/cli_story_086_tests-2277591959a1823a`
+  Executable `/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/cli_story_087_tests-561ce502fb60bfdb`
+  Executable `/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/cli_story_096_tests-a8d5d5083cae4bfe`
+  Executable `/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/cli_tests-bd8f06f39fbde192`
+  Executable `/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/decoder_tests-81291b09deb0dfa1`
+  Executable `/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/dispatcher_tests-904e15510c0c0317`
+  Executable `/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/dnp3_correlation_tests-9fb19331d4e4802f`
+  Executable `/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/dnp3_detection_tests-87a667cb88065142`
+  Executable `/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/dnp3_f5_remediation_tests-54bf237016298c05`
+  Executable `/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/dnp3_flow_state_tests-25da13d89adb1021`
+  Executable `/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/dnp3_parse_core_tests-c750d48554c0ded2`
+  Executable `/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/dns_tests-f22cc5fe83b973c8`
+  Executable `/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/findings_tests-59ee9826bd6332aa`
+  Executable `/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/fixture_reassembly_tests-156d2aabb0feae65`
+  Executable `/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/hs043_flow_expiry_tests-873421f71d24b369`
+  Executable `/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/http_analyzer_tests-d1e948f9bc09c37f`
+  Executable `/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/http_integration_tests-22956b3c8e7a36b4`
+  Executable `/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/integration_test-70d7bd40aefc9edf`
+  Executable `/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/linktype_integration_tests-e73fec5826ec21e8`
+  Executable `/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/main_story_088_tests-7e466a4dba7d427e`
+  Executable `/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/main_story_089_tests-652140d450c274ba`
+  Executable `/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/mitre_tests-14b66df7ef12308e`
+  Executable `/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/modbus_detection_tests-491397b083881992`
+  Executable `/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/modbus_e2e_tests-f04f9201010e9480`
+  Executable `/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/modbus_parse_tests-11b562a242acbcc0`
+  Executable `/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/module_docs_tests-abf8ced471beeef5`
+  Executable `/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/multi_analyzer_e2e_tests-217b5e49342243e9`
+  Executable `/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/reader_tests-7c8ac3c263d54f37`
+  Executable `/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/reassembly_engine_tests-60838e6376235db4`
+  Executable `/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/reassembly_flow_tests-c1e2167577a3e3e5`
+  Executable `/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/reassembly_segment_tests-c35cbdd87fc62699`
+  Executable `/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/reporter_csv_tests-70bf6642d1ed7ff7`
+  Executable `/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/reporter_json_tests-3992ff187988cba2`
+  Executable `/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/reporter_terminal_tests-c739371bd524b2ea`
+  Executable `/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/reporter_tests-95e9b4d46484cde2`
+  Executable `/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/summary_story_090_tests-511b831eedcc079d`
+  Executable `/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/summary_tests-4ed11d667fa4f15a`
+  Executable `/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/timestamp_threading_tests-72802183616d9ede`
+  Executable `/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/tls_analyzer_tests-fbe08e5b7820d987`
+  Executable `/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/tls_integration_tests-3444b2b6c6870664`
+
+*** result: Success
+
+*** /Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo test --verbose --package=wirerust@0.9.0
+       Fresh unicode-ident v1.0.24
+       Fresh memchr v2.8.0
+       Fresh cfg-if v1.0.4
+       Fresh autocfg v1.5.0
+       Fresh siphasher v1.0.2
+       Fresh hashbrown v0.16.1
+       Fresh winnow v1.0.1
+       Fresh rand_core v0.6.4
+       Fresh proc-macro2 v1.0.106
+       Fresh equivalent v1.0.2
+       Fresh anstyle v1.0.14
+       Fresh rand v0.8.5
+       Fresh toml_parser v1.1.2+spec-1.1.0
+       Fresh toml_datetime v1.1.1+spec-1.1.0
+       Fresh quote v1.0.45
+       Fresh libc v0.2.184
+       Fresh serde_core v1.0.228
+       Fresh indexmap v2.13.1
+       Fresh crossbeam-utils v0.8.21
+       Fresh typenum v1.19.0
+       Fresh utf8parse v0.2.2
+       Fresh regex-syntax v0.8.10
+       Fresh phf_generator v0.11.3
+       Fresh aho-corasick v1.1.4
+       Fresh is_terminal_polyfill v1.70.2
+       Fresh colorchoice v1.0.5
+       Fresh syn v2.0.117
+       Fresh num-traits v0.2.19
+       Fresh syn v1.0.109
+       Fresh hybrid-array v0.4.10
+       Fresh anstyle-parse v1.0.0
+       Fresh crossbeam-epoch v0.9.18
+       Fresh toml_edit v0.25.10+spec-1.1.0
+       Fresh minimal-lexical v0.2.1
+       Fresh either v1.15.0
+       Fresh itoa v1.0.18
+       Fresh anstyle-query v1.1.5
+       Fresh rustversion v1.0.22
+       Fresh regex-automata v0.4.14
+       Fresh zerocopy-derive v0.8.48
+       Fresh serde_derive v1.0.228
+       Fresh crossbeam-deque v0.8.6
+       Fresh anstream v1.0.0
+       Fresh proc-macro-crate v3.5.0
+       Fresh nom v7.1.3
+       Fresh zmij v1.0.21
+       Fresh getrandom v0.3.4
+       Fresh phf_codegen v0.11.3
+       Fresh shlex v1.3.0
+       Fresh clap_lex v1.1.0
+       Fresh find-msvc-tools v0.1.9
+       Fresh strsim v0.11.1
+       Fresh zerocopy v0.8.48
+       Fresh serde v1.0.228
+       Fresh heck v0.5.0
+       Fresh clap_builder v4.6.0
+       Fresh num_enum_derive v0.7.6
+       Fresh cc v1.2.58
+       Fresh rayon-core v1.13.0
+       Fresh rand_core v0.9.5
+       Fresh serde_json v1.0.150
+       Fresh nom-derive-impl v0.10.1
+       Fresh crypto-common v0.2.1
+       Fresh thiserror-impl v1.0.69
+       Fresh clap_derive v4.6.1
+       Fresh block-buffer v0.12.0
+       Fresh errno v0.3.14
+       Fresh phf_shared v0.11.3
+       Fresh const-oid v0.10.2
+       Fresh unicode-width v0.2.2
+       Fresh core-foundation-sys v0.8.7
+       Fresh byteorder v1.5.0
+       Fresh bitflags v2.11.0
+       Fresh portable-atomic v1.13.1
+       Fresh getrandom v0.4.2
+       Fresh half v2.7.1
+       Fresh clap v4.6.1
+       Fresh rustix v1.1.4
+       Fresh byteorder_slice v3.0.0
+       Fresh phf v0.11.3
+       Fresh digest v0.11.2
+       Fresh iana-time-zone v0.1.65
+       Fresh console v0.16.3
+       Fresh thiserror v1.0.69
+       Fresh nom-derive v0.10.1
+       Fresh rayon v1.12.0
+       Fresh num_enum v0.7.6
+       Fresh rusticata-macros v4.1.0
+       Fresh derive-into-owned v0.2.0
+       Fresh regex v1.12.3
+       Fresh wait-timeout v0.2.1
+       Fresh csv-core v0.1.13
+       Fresh unit-prefix v0.5.2
+       Fresh fastrand v2.3.0
+       Fresh once_cell v1.21.4
+       Fresh ryu v1.0.23
+       Fresh ciborium-io v0.2.2
+       Fresh plotters-backend v0.3.7
+       Fresh arrayvec v0.7.6
+       Fresh predicates-core v1.0.10
+       Fresh chrono v0.4.45
+       Fresh httparse v1.10.1
+       Fresh tls-parser v0.12.2
+       Fresh owo-colors v4.3.0
+       Fresh md-5 v0.11.0
+       Fresh anyhow v1.0.102
+       Fresh csv v1.4.0
+       Fresh indicatif v0.18.4
+       Fresh tempfile v3.27.0
+       Fresh plotters-svg v0.3.7
+       Fresh ciborium-ll v0.2.2
+       Fresh etherparse v0.20.2
+       Fresh pcap-file v2.0.0
+       Fresh ppv-lite86 v0.2.21
+       Fresh float-cmp v0.10.0
+       Fresh itertools v0.13.0
+       Fresh termtree v0.5.1
+       Fresh normalize-line-endings v0.3.0
+       Fresh fnv v1.0.7
+       Fresh quick-error v1.2.3
+       Fresh difflib v0.4.0
+       Fresh cast v0.3.0
+       Fresh same-file v1.0.6
+       Fresh bit-vec v0.8.0
+       Fresh rusty-fork v0.3.1
+       Fresh plotters v0.3.7
+       Fresh criterion-plot v0.8.2
+       Fresh predicates v3.1.4
+       Fresh ciborium v0.2.2
+       Fresh rand_chacha v0.9.0
+       Fresh predicates-tree v1.0.13
+       Fresh alloca v0.4.0
+       Fresh tinytemplate v1.2.1
+       Fresh rand_xorshift v0.4.0
+       Fresh rand v0.9.4
+       Fresh bstr v1.12.1
+       Fresh page_size v0.6.0
+       Fresh unarray v0.1.4
+       Fresh bit-set v0.8.0
+       Fresh walkdir v2.5.0
+       Fresh oorandom v11.1.5
+       Fresh anes v0.1.6
+       Fresh assert_cmd v2.2.2
+       Fresh criterion v0.8.2
+       Fresh proptest v1.11.0
+       Fresh wirerust v0.9.0 (/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.09s
+     Running `/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/wirerust-24df536b2b07ef3f`
+
+running 87 tests
+test analyzer::arp::story_114::test_BC_2_16_004_d1_medium_confidence_carries_verdict_possible ... ok
+test analyzer::arp::story_114::test_BC_2_16_004_d1_high_confidence_carries_verdict_likely ... ok
+test analyzer::arp::story_114::test_d12_mismatch_carries_mitre_after_catalog ... ok
+test analyzer::arp::story_114::test_d1_finding_evidence_contains_ips_and_macs ... ok
+test analyzer::arp::story_114::test_d1_first_rebind_emits_medium ... ok
+test analyzer::arp::story_114::test_d1_escalates_to_high_at_threshold ... ok
+test analyzer::arp::story_114::test_d1_flap_window_reset ... ok
+test analyzer::arp::story_114::test_d1_high_guard_prevents_second_high ... ok
+test analyzer::arp::story_114::test_d1_threshold_1_high_on_first_rebind ... ok
+test analyzer::arp::story_114::test_garp_conflicts_d1_also_emitted ... ok
+test analyzer::arp::story_114::test_garp_conflicts_d1_high_at_threshold ... ok
+test analyzer::arp::story_114::test_garp_conflicts_garp_finding_upgrades_to_medium ... ok
+test analyzer::arp::story_114::test_garp_no_conflict_low_only ... ok
+test analyzer::arp::story_114::test_impact_vs_ics_impact_variants_distinct ... ok
+test analyzer::arp::story_115::test_d3_finding_has_empty_mitre_techniques ... ok
+test analyzer::arp::story_115::test_storm_custom_rate_10 ... ok
+test analyzer::arp::story_115::test_storm_49_below_threshold_50_at_threshold ... ok
+test analyzer::arp::story_115::test_storm_first_observation_no_finding ... ok
+test analyzer::arp::story_115::test_storm_in_window_increments_count ... ok
+test analyzer::arp::story_115::test_storm_finding_emitted_at_threshold ... ok
+test analyzer::arp::story_115::test_storm_detected_for_garp_flood ... ok
+test analyzer::arp::story_115::test_storm_late_burst_suppression_accepted_limitation ... ok
+test analyzer::arp::story_115::test_storm_same_second_denominator_is_1 ... ok
+test analyzer::arp::story_115::test_storm_one_shot_guard_prevents_second_finding ... ok
+test analyzer::arp::story_115::test_storm_window_boundary_60_in_window_61_expired ... ok
+test analyzer::arp::story_115::test_storm_window_expiry_resets_counter ... ok
+test analyzer::arp::tests::test_BC_2_16_003_is_gratuitous_arp_false_when_sender_ne_target_ip ... ok
+test analyzer::arp::tests::test_BC_2_16_003_is_gratuitous_arp_opcode_agnostic ... ok
+test analyzer::arp::tests::test_BC_2_16_003_is_gratuitous_arp_true_when_sender_eq_target_ip ... ok
+test analyzer::arp::story_115::test_summarize_storm_findings_key_non_zero_after_detection ... ok
+test analyzer::arp::tests::test_BC_2_16_003_process_arp_garp_emits_low_anomaly_finding ... ok
+test analyzer::arp::tests::test_BC_2_16_005_binding_broadcast_sender_ip_filtered ... ok
+test analyzer::arp::tests::test_BC_2_16_003_process_arp_garp_emits_per_frame ... ok
+test analyzer::arp::tests::test_BC_2_16_005_binding_first_observation_no_finding ... ok
+test analyzer::arp::tests::test_BC_2_16_005_binding_same_mac_touches_last_seen_ts ... ok
+test analyzer::arp::tests::test_BC_2_16_005_binding_table_last_write_wins_basic ... ok
+test analyzer::arp::tests::test_BC_2_16_005_binding_zero_sender_ip_filtered ... ok
+test analyzer::arp::tests::test_BC_2_16_006_binding_table_cap_enforced ... ok
+test analyzer::arp::tests::test_BC_2_16_006_binding_table_cap_enforced_array_surrogate ... ok
+test analyzer::arp::tests::test_BC_2_16_007_d12_and_garp_coemit_on_single_frame ... ok
+test analyzer::arp::tests::test_BC_2_16_007_d12_mismatch_emits_medium_finding ... ok
+test analyzer::arp::tests::test_BC_2_16_007_d12_skipped_when_macs_match ... ok
+test analyzer::arp::tests::test_BC_2_16_007_d12_skipped_when_outer_src_mac_none ... ok
+test analyzer::arp::tests::test_BC_2_16_009_d11_malformed_arp_emits_low_finding ... ok
+test analyzer::arp::tests::test_BC_2_16_009_d11_malformed_counter_semantics ... ok
+test analyzer::arp::tests::test_BC_2_16_010_summarize_key_names_exact ... ok
+test analyzer::arp::tests::test_BC_2_16_010_summarize_reconciliation_invariant ... ok
+test analyzer::arp::tests::test_BC_2_16_010_summarize_zero_frames_all_eleven_keys_zero ... ok
+test analyzer::arp::tests::test_insert_binding_lru_array_branch_fidelity ... ok
+test analyzer::arp::tests::test_insert_binding_lru_hashmap_eviction_boundary ... ok
+test analyzer::http::tests::test_BC_2_06_010_truncate_uri_multibyte_four_byte_codepoint ... ok
+test analyzer::http::tests::test_BC_2_06_010_truncate_uri_multibyte_no_truncation_when_fits ... ok
+test analyzer::http::tests::test_BC_2_06_010_truncate_uri_multibyte_two_byte_codepoint ... ok
+test analyzer::tls::ja3_property_tests::is_grease_u16_matches_all_canonical_grease_values ... ok
+test mitre::vp007_format_tests::format_predicate_accepts_canonical_and_rejects_malformed ... ok
+test reassembly::segment::adjacency_tests::exact_adjacency_new_begins_where_existing_ends_is_not_overlap ... ok
+test reassembly::segment::adjacency_tests::exact_adjacency_new_ends_where_existing_begins_is_not_overlap ... ok
+test reassembly::segment::adjacency_tests::one_byte_into_existing_is_overlap ... ok
+test reassembly::segment::adjacency_tests::one_byte_overlap_at_existing_right_edge_is_overlap ... ok
+test reporter::terminal::tests::empty_string_is_empty ... ok
+test reporter::terminal::tests::escapes_backslash ... ok
+test reporter::terminal::tests::escapes_bel_and_del ... ok
+test reporter::terminal::tests::escapes_c1_nel_and_csi ... ok
+test reporter::terminal::tests::escapes_c1_range_boundaries ... ok
+test reporter::terminal::tests::escapes_esc_byte ... ok
+test reporter::terminal::tests::escapes_tab_newline_cr_as_short_forms ... ok
+test reporter::terminal::tests::mixed_content_escapes_only_dangerous_bytes ... ok
+test reporter::terminal::tests::preserves_cyrillic ... ok
+test reporter::terminal::tests::preserves_emoji ... ok
+test reporter::terminal::tests::preserves_printable_ascii ... ok
+test analyzer::arp::story_115::test_storm_counter_cap_enforced ... ok
+test analyzer::arp::story_115::test_storm_lru_no_spurious_eviction_on_existing_mac_reinit ... ok
+test analyzer::tls::ja3_property_tests::compute_ja3s_is_deterministic_and_hex ... ok
+test analyzer::tls::ja3_property_tests::compute_ja3_is_order_sensitive ... ok
+test analyzer::tls::ja3_property_tests::compute_ja3_is_grease_invariant ... ok
+test analyzer::tls::ja3_property_tests::compute_ja3_has_five_fields_and_hex_hash ... ok
+test analyzer::tls::ja3_property_tests::bytes_to_hex_roundtrips_length_and_alphabet ... ok
+test analyzer::tls::ja3_property_tests::is_grease_u16_matches_nibble_bitmask_contract ... ok
+test analyzer::tls::proptest_proofs_vp005::prop_sni_arm3_priority_and_arm1_ascii_only ... ok
+test analyzer::http::vp_006_proptest_proofs::prop_poison_per_direction_isolated ... ok
+test reporter::terminal::tests::prop_non_ascii_unicode_above_c1_unchanged ... ok
+test reporter::terminal::tests::prop_no_dangerous_bytes_survive ... ok
+test reporter::terminal::tests::prop_escape_is_length_conserving ... ok
+test reporter::terminal::tests::prop_printable_ascii_unchanged ... ok
+test analyzer::arp::tests::test_BC_2_16_005_binding_table_last_write_wins ... ok
+test analyzer::http::vp_006_proptest_proofs::prop_poison_bytes_skipped_monotonic ... ok
+test mitre::vp007_format_tests::vp007_catalog_drift_guard ... ok
+
+test result: ok. 87 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.79s
+
+     Running `/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/wirerust-9d425a18c7fd8383`
+
+running 2 tests
+test tests::test_bc_2_11_028_collapse_flag_polarity ... ok
+test tests::test_bc_2_11_030_grouping_flag_polarity ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running `/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/analyzer_tests-8efb12db4eab09a2`
+
+running 3 tests
+test test_analyzer_trait_name ... ok
+test test_dns_analyzer_counts_queries ... ok
+test test_dns_analyzer_matches_dns_packets ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running `/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/bc_2_01_story001_tests-548d8d42490558cb`
+
+running 20 tests
+test test_BC_2_01_001_raw_and_ipv4_both_accepted ... ok
+test test_BC_2_01_002_timestamp_preserved_microsecond ... ok
+test test_BC_2_01_003_zero_packet_pcap ... ok
+test test_BC_2_01_005_nanosecond_resolution_conversion ... ok
+test test_BC_2_01_002_packet_count_and_order ... ok
+test test_BC_2_01_006_truncated_header_error_message ... ok
+test test_BC_2_01_004_rejects_pcapng ... ok
+test test_BC_2_01_008_file_not_found_error ... ok
+test test_BC_2_01_008_from_file_delegates_to_from_pcap_reader ... ok
+test test_BC_2_01_008_permission_denied_error ... ok
+test test_BC_2_01_001_rejects_unsupported_link_type ... ok
+test test_BC_2_01_002_timestamp_preserved_nanosecond ... ok
+test test_BC_2_01_001_accepts_all_five_link_types ... ok
+test test_BC_2_01_005_ts_sec_u32_max_stored_as_is ... ok
+test test_BC_2_01_005_zero_timestamp_nanosecond ... ok
+test test_BC_2_01_003_zero_packet_linux_sll ... ok
+test test_BC_2_01_007_truncated_packet_error ... ok
+test test_BC_2_01_006_corrupt_header_error_message ... ok
+test test_BC_2_01_001_proptest_whitelist_link_type_accepted ... ok
+test test_BC_2_01_001_proptest_non_whitelist_link_type_rejected ... ok
+
+test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.07s
+
+     Running `/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/bc_2_02_story002_tests-1d7d02c56bced514`
+
+running 24 tests
+test test_BC_2_02_001_ec001_tcp_syn_only_flags ... ok
+test test_BC_2_02_001_ec002_tcp_syn_ack_flags ... ok
+test test_BC_2_02_001_ec003_tcp_pure_ack_empty_payload ... ok
+test test_BC_2_02_001_ethernet_ipv4_tcp_decode ... ok
+test test_BC_2_02_001_tcp_fin_flag_positively_asserted ... ok
+test test_BC_2_02_001_tcp_rst_flag_positively_asserted ... ok
+test test_BC_2_02_002_ec003_udp_port_80_http_hint ... ok
+test test_BC_2_02_002_app_protocol_hint_full_port_table ... ok
+test test_BC_2_02_002_ec004_udp_unknown_port_no_hint ... ok
+test test_BC_2_02_002_udp_dns_port_hint ... ok
+test test_BC_2_02_001_packet_len_is_total_frame_length ... ok
+test test_BC_2_02_002_udp_dns_src_port_hint ... ok
+test test_BC_2_02_003_raw_ipv4_tcp_decode ... ok
+test test_BC_2_02_004_ec005_ipv4_datalink_identical_to_raw ... ok
+test test_BC_2_02_004_raw_and_ipv4_both_err_on_garbage ... ok
+test test_BC_2_02_004_raw_and_ipv4_identical ... ok
+test test_BC_2_02_005_ec002_raw_ipv6_udp_dns_hint ... ok
+test test_BC_2_02_005_ec003_raw_ipv6_icmpv6_protocol_icmp ... ok
+test test_BC_2_02_005_ec006_ipv6_loopback_decoded_normally ... ok
+test test_BC_2_02_005_ec007_ipv6_extension_headers_tcp_surfaced ... ok
+test test_BC_2_02_005_invariant1_lax_path_recovers_ipv6_addresses ... ok
+test test_BC_2_02_005_ipv6_tcp_transport ... ok
+test test_BC_2_02_005_raw_ipv6_tcp_decode ... ok
+test test_BC_2_02_001_proptest_packet_len_equals_data_len ... ok
+
+test result: ok. 24 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+
+     Running `/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/bc_2_02_story003_tests-5000ba85b15ea79c`
+
+running 21 tests
+test test_BC_2_02_006_ec001_sll_ipv4_tcp_strict_path ... ok
+test test_BC_2_02_006_ec002_sll_snaplen_lax_invoked ... ok
+test test_BC_2_02_006_ec003_sll_sub_16_bytes_no_lax_retry ... ok
+test test_BC_2_02_006_linux_sll_ipv6_tcp ... ok
+test test_BC_2_02_006_linux_sll_ipv6_udp ... ok
+test test_BC_2_02_006_linux_sll_exactly_16_bytes_no_payload ... ok
+test test_BC_2_02_006_linux_sll_snaplen_truncated_lax_recovery ... ok
+test test_BC_2_02_006_linux_sll_sub_16_bytes_rejected ... ok
+test test_BC_2_02_006_linux_sll_ipv4_tcp ... ok
+test test_BC_2_02_007_ec004_empty_data_sll ... ok
+test test_BC_2_02_007_empty_slice_no_panic ... ok
+test test_BC_2_02_007_random_bytes_ethernet_no_panic ... ok
+test test_BC_2_02_007_error_prefix_representative_check ... ok
+test test_BC_2_02_007_random_bytes_no_panic ... ok
+test test_BC_2_02_008_ec005_ieee802_11_rejected ... ok
+test test_BC_2_02_008_unsupported_link_type_error ... ok
+test test_BC_2_02_009_ec006_arp_ethernet_no_ip_layer ... ok
+test test_BC_2_02_009_ec007_custom_ethertype_no_ip_layer ... ok
+test test_BC_2_02_009_non_ip_frame_rejected ... ok
+test test_BC_2_02_009_strict_path_sll_arp_no_ip ... ok
+test test_VP_008_fuzz_harness_exists ... ok
+
+test result: ok. 21 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running `/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/bc_2_02_story004_tests-8a2b6f21e799edcc`
+
+running 18 tests
+test test_BC_2_02_010_EC_002_icmpv6_neighbor_solicitation_protocol_icmp ... ok
+test test_BC_2_02_010_EC_001_icmpv4_echo_reply_protocol_icmp ... ok
+test test_BC_2_02_010_icmp_app_protocol_hint_none ... ok
+test test_BC_2_02_010_icmpv4_and_icmpv6_both_produce_protocol_icmp ... ok
+test test_BC_2_02_011_EC_003_gre_protocol_other_47 ... ok
+test test_BC_2_02_011_EC_004_esp_protocol_other_50 ... ok
+test test_BC_2_02_011_gre_protocol_other ... ok
+test test_BC_2_02_011_protocol_other_preserves_byte ... ok
+test test_BC_2_02_010_icmpv4_protocol_icmp ... ok
+test test_BC_2_02_012_EC_005_src_53_dst_unknown_returns_dns ... ok
+test test_BC_2_02_012_EC_006_src_unknown_dst_53_returns_dns ... ok
+test test_BC_2_02_012_EC_007_src_443_dst_80_match_order_http_still_wins ... ok
+test test_BC_2_02_012_app_protocol_hint_all_seven_ports ... ok
+test test_BC_2_02_012_app_protocol_hint_match_order ... ok
+test test_BC_2_02_012_app_protocol_hint_match_order_dns_beats_modbus ... ok
+test test_BC_2_02_012_app_protocol_hint_unknown_port_returns_none ... ok
+test test_BC_2_02_013_EC_008_transport_none_always_none_for_any_protocol ... ok
+test test_BC_2_02_013_transport_none_returns_none_hint ... ok
+
+test result: ok. 18 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running `/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/bc_2_02_story005_tests-fcefa5477ea2a229`
+
+running 16 tests
+test test_BC_2_02_014_ec001_1500_byte_frame_packet_len ... ok
+test test_BC_2_02_014_ec002_54_byte_pure_ack ... ok
+test test_BC_2_02_014_ec003_snaplen_truncated_at_100 ... ok
+test test_BC_2_02_014_ec007_60_byte_padded_frame ... ok
+test test_BC_2_02_014_snaplen_truncated_packet_len ... ok
+test test_BC_2_02_015_ec004_seq_number_max_u32 ... ok
+test test_BC_2_02_015_ec005_all_four_flags_set ... ok
+test test_BC_2_02_015_ec006_no_flags_set ... ok
+test test_BC_2_02_014_packet_len_equals_data_len ... ok
+test test_BC_2_02_015_psh_urg_not_in_transport_info ... ok
+test test_BC_2_02_014_packet_len_set_on_both_strict_and_lax_paths ... ok
+test test_BC_2_02_015_tcp_payload_bytes ... ok
+test test_BC_2_02_015_tcp_rst_and_fin_ack_flags ... ok
+test test_BC_2_02_015_tcp_seq_number_extracted ... ok
+test test_BC_2_02_015_tcp_syn_ack_flags ... ok
+test test_BC_2_02_015_tcp_syn_flags ... ok
+
+test result: ok. 16 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running `/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/bc_2_09_100_multitag_tests-d76770bd61794416`
+
+running 42 tests
+test test_BC_2_09_001_constructs_finding_with_multi_technique_vec ... ok
+test test_BC_2_09_001_constructs_finding_with_empty_techniques_vec ... ok
+test test_BC_2_09_001_constructs_finding_with_singleton_technique_vec ... ok
+test test_BC_2_09_001_invariant_field_is_vec_not_option ... ok
+test test_BC_2_09_001_vp021_helper_pattern_uses_vec_field ... ok
+test test_BC_2_09_001_no_option_string_field_in_source ... ok
+test test_BC_2_09_001_singleton_vec_csv_output_byte_identical_to_pre_migration ... ok
+test test_BC_2_09_001_singleton_vec_terminal_output_byte_identical_to_pre_migration ... ok
+test test_BC_2_09_001_singleton_vec_json_output_is_array_not_scalar ... ok
+test test_BC_2_09_006_empty_vec_produces_absent_mitre_techniques_key ... ok
+test test_BC_2_10_005_technique_name_resolves_all_21_seeded_ids ... ok
+test test_BC_2_09_006_multi_technique_serializes_as_json_array ... ok
+test test_BC_2_09_006_no_scalar_mitre_technique_key_in_json ... ok
+test test_BC_2_09_006_single_technique_serializes_as_json_array ... ok
+test test_BC_2_10_005_technique_name_resolves_t0836_modify_parameter ... ok
+test test_BC_2_10_005_technique_name_resolves_t0888_remote_system_info_discovery ... ok
+test test_BC_2_10_007_t0806_maps_to_ics_impair_process_control ... ok
+test test_BC_2_10_007_t0814_maps_to_ics_inhibit_response_function ... ok
+test test_BC_2_10_007_t0888_maps_to_discovery_tactic ... ok
+test test_BC_2_10_005_seeded_technique_id_count_is_25 ... ok
+test test_BC_2_10_007_technique_tactic_correct_for_all_21_seeded_ids ... ok
+test test_BC_2_10_008_all_emitted_ids_resolve_in_lookup ... ok
+test test_BC_2_10_008_t0846_seeded_but_not_in_emitted_set ... ok
+test test_BC_2_10_008_vp007_new_ics_ids_resolve_positive_coverage ... ok
+test test_BC_2_11_001_envelope_fields_present_with_zero_findings ... ok
+test test_BC_2_10_008_vp007_grep_comment_updated_to_new_field_name ... ok
+test test_BC_2_11_001_json_report_envelope_has_mitre_domain_and_version ... ok
+test test_BC_2_11_013_terminal_tactic_grouping_uses_first_technique ... ok
+test test_BC_2_11_001_mitre_attack_version_constant_has_f4_pin_flag_comment ... ok
+test test_BC_2_11_015_terminal_unknown_id_lands_in_uncategorized ... ok
+test test_BC_2_11_017_terminal_empty_vec_produces_no_mitre_line ... ok
+test test_BC_2_11_015_terminal_empty_techniques_lands_in_uncategorized ... ok
+test test_BC_2_11_017_terminal_singleton_technique_render_unchanged ... ok
+test test_BC_2_11_020_csv_has_no_envelope_fields ... ok
+test test_BC_2_11_017_terminal_renders_multi_id_mitre_string ... ok
+test test_BC_2_11_020_csv_column_count_stays_9_with_multitag ... ok
+test test_BC_2_11_024_csv_empty_technique_is_empty_string ... ok
+test test_BC_2_11_020_csv_header_column_6_is_mitre_techniques ... ok
+test test_BC_2_11_024_csv_singleton_technique_is_plain_id ... ok
+test test_BC_2_11_024_csv_three_technique_semicolon_join ... ok
+test test_BC_2_11_024_csv_multi_technique_semicolon_join ... ok
+test test_BC_2_09_001_all_emission_sites_use_vec_field ... ok
+
+test result: ok. 42 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running `/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/bc_2_14_103_modbus_correlation_tests-3801ccbf7c330a1a`
+
+running 23 tests
+test story_103::test_BC_2_14_009_insert_request_returns_some_on_overwrite ... ok
+test story_103::test_BC_2_14_009_modbus_analyzer_new_stores_thresholds ... ok
+test story_103::test_BC_2_14_009_modbus_flow_state_has_all_required_fields ... ok
+test story_103::test_BC_2_14_009_pending_key_is_txn_id_plus_unit_id ... ok
+test story_103::test_BC_2_14_009_request_pdu_inserted_into_pending ... ok
+test story_103::test_BC_2_14_009_unit_id_broadcast_0xff_is_valid ... ok
+test story_103::test_BC_2_14_010_concurrent_pending_different_unit_ids_resolved_independently ... ok
+test story_103::test_BC_2_14_009_txn_id_zero_is_valid_key ... ok
+test story_103::test_BC_2_14_009_timestamp_zero_stored_correctly ... ok
+test story_103::test_BC_2_14_010_fc_mismatch_response_removes_entry ... ok
+test story_103::test_BC_2_14_010_orphan_response_returns_none ... ok
+test story_103::test_BC_2_14_010_response_pdu_matched_and_entry_removed ... ok
+test story_103::test_BC_2_14_011_exception_attributed_to_original_fc_read_class ... ok
+test story_103::test_BC_2_14_011_exception_attributed_to_original_fc_write_class ... ok
+test story_103::test_BC_2_14_011_exception_fc_0x80_original_fc_0x00_unknown_class ... ok
+test story_103::test_BC_2_14_011_orphan_exception_returns_none ... ok
+test story_103::test_BC_2_14_011_spoof_exception_fc_mismatch_entry_not_removed ... ok
+test story_103::test_BC_2_14_012_max_pending_transactions_constant_is_256 ... ok
+test story_103::test_BC_2_14_012_255th_entry_succeeds_256th_is_cap ... ok
+test story_103::test_BC_2_14_012_entry_freed_after_response_allows_next_insert ... ok
+test story_103::test_BC_2_14_012_VP022_pending_table_no_unbounded_growth ... ok
+test story_103::test_BC_2_14_012_insert_request_drops_when_table_full ... ok
+test story_103::test_BC_2_14_012_pending_table_bounded_at_256 ... ok
+
+test result: ok. 23 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running `/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/bc_2_14_105_modbus_dispatch_tests-7b1979b0d7bd1944`
+
+running 30 tests
+test story_105::test_BC_2_14_024_custom_sustained_threshold_flows_through ... ok
+test story_105::test_BC_2_14_024_default_thresholds_applied ... ok
+test story_105::test_BC_2_14_024_custom_burst_threshold_flows_through ... ok
+test story_105::test_BC_2_14_025_modbus_disabled_port_502_flow_is_noop ... ok
+test story_105::test_BC_2_14_025_port_443_mbap_bytes_classified_to_tls_not_modbus ... ok
+test story_105::test_BC_2_14_025_on_flow_close_routes_modbus_flow_to_analyzer ... ok
+test story_105::test_BC_2_14_025_on_data_routes_port_502_flow_to_modbus_analyzer ... ok
+test story_105::test_BC_2_14_025_port_502_classified_to_modbus_as_rule_5 ... ok
+test story_105::test_BC_2_14_025_port_502_tls_content_classified_to_tls_not_modbus ... ok
+test story_105::test_BC_2_14_025_port_502_http_content_classified_to_http_not_modbus ... ok
+test story_105::test_BC_2_14_025_take_modbus_analyzer_uses_option_take ... ok
+test story_105::test_BC_2_14_025_unclassified_flows_counted_in_modbus_only_run ... ok
+test story_105::test_BC_2_14_025_vp004_oracle_port_8080_routes_to_http_not_modbus ... ok
+test story_105::test_BC_2_14_025_vp004_oracle_rule_5_port_502_non_tls_non_http ... ok
+test story_105::test_BC_2_14_025_vp004_oracle_unknown_port_routes_to_none_not_modbus ... ok
+test story_105::test_F_105_002_pin1_two_complete_adus_in_one_on_data_counted_correctly ... ok
+test story_105::test_F_105_002_pin2_write_adu_split_across_two_on_data_calls ... ok
+test story_105::test_F_105_002_pin3_partial_mbap_header_3_bytes_then_rest ... ok
+test story_105::test_F_105_003_pin1_carry_cap_near_limit_safe_case ... ok
+test story_105::test_F_105_003_pin2_dribble_never_completing_stream_is_non_modbus_set ... ok
+test story_105::test_F_105_003_pin3_max_adu_carry_bytes_equals_one_max_adu ... ok
+test story_105::test_f_delta_003_proto_id_0_length_invalid_latches_is_non_modbus_and_bails ... ok
+test story_105::test_f_delta_001_e2e_second_scale_timestamps_through_dispatcher ... ok
+test story_105::test_BC_2_14_024_sustained_threshold_zero_rejected ... ok
+test story_105::test_BC_2_14_024_burst_threshold_zero_rejected ... ok
+test story_105::test_BC_2_14_023_modbus_with_no_reassemble_prints_warning ... ok
+test story_105::test_BC_2_14_023_modbus_alone_triggers_reassembly ... ok
+test story_105::test_BC_2_14_023_modbus_flag_enables_analyzer_empty_pcap ... ok
+test story_105::test_BC_2_14_023_modbus_disabled_by_default ... ok
+test story_105::test_BC_2_14_023_all_flag_enables_modbus ... ok
+
+test result: ok. 30 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.31s
+
+     Running `/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/bc_2_15_110_dnp3_dispatcher_tests-089e1b3a074db127`
+
+running 26 tests
+test story_110::test_AC_003_early_exit_guard_does_not_fire_when_dnp3_is_some ... ok
+test story_110::test_BC_2_15_021_detect_control_burst_unit_fires_at_threshold_plus_1 ... ok
+test story_110::test_BC_2_15_021_detect_control_burst_unit_threshold_0_fires_on_first ... ok
+test story_110::test_early_exit_guard_includes_dnp3 ... ok
+test story_110::test_BC_2_15_021_detect_control_burst_unit_threshold_echoed_in_summary ... ok
+test story_110::test_BC_2_15_021_threshold_stored_in_dnp3_analyzer ... ok
+test story_110::test_BC_2_15_021_detect_control_burst_window_expiry_resets_counter ... ok
+test story_110::test_ec005_unknown_port_routes_to_none ... ok
+test story_110::test_ec003_partial_frame_split_across_two_on_data_calls ... ok
+test story_110::test_ec001_non_dnp3_content_on_port_20000_desync_bail ... ok
+test story_110::test_ec002_multiple_frames_in_one_on_data_call ... ok
+test story_110::test_ec007_dnp3_disabled_port_20000_flow_is_noop ... ok
+test story_110::test_ec006_ports_502_and_20000_modbus_wins ... ok
+test story_110::test_http_on_port_20000_routes_to_http ... ok
+test story_110::test_none_is_rule_7_no_match ... ok
+test story_110::test_port_20000_dispatches_to_dnp3 ... ok
+test story_110::test_port_502_and_20000_routes_to_modbus ... ok
+test story_110::test_take_dnp3_analyzer_moves_out ... ok
+test story_110::test_threshold_0_fires_immediately ... ok
+test story_110::test_threshold_default_10_echoed_in_t1692_summary ... ok
+test story_110::test_threshold_echoed_in_t1692_summary ... ok
+test story_110::test_threshold_max_never_fires ... ok
+test story_110::test_tls_on_port_20000_routes_to_tls ... ok
+test story_110::test_vp007_seeded_23_emitted_15 ... ok
+test story_110::test_ec008_threshold_omitted_defaults_to_10 ... ok
+test story_110::test_cli_flag_dnp3_direct_operate_threshold_parsed ... ok
+
+test result: ok. 26 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running `/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/bc_2_16_d074_arp_threshold_zero_tests-4df099d346026e60`
+
+running 4 tests
+test d074_arp_threshold_zero::test_BC_2_16_008_EC_006_arp_storm_rate_zero_rejected ... ok
+test d074_arp_threshold_zero::test_BC_2_16_012_EC_004_arp_spoof_threshold_zero_rejected ... ok
+test d074_arp_threshold_zero::test_BC_2_16_012_arp_spoof_threshold_one_accepted ... ok
+test d074_arp_threshold_zero::test_BC_2_16_013_arp_storm_rate_one_accepted ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running `/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/bc_2_16_d077_arp_type_reject_tests-df8bbe71dd1aa443`
+
+running 3 tests
+test d077_arp_type_reject::test_BC_2_16_009_PC3b_non_ipv4_prototype_rejected ... ok
+test d077_arp_type_reject::test_BC_2_16_009_PC3a_non_ethernet_hwtype_rejected ... ok
+test d077_arp_type_reject::test_BC_2_16_014_garp_conflict_summary_mentions_conflict ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running `/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/bc_2_16_d078_lax_malformed_tests-f1b4fbf19949171d`
+
+running 2 tests
+test d078_lax_malformed::test_BC_2_16_015_D078_unbuildable_truncated_arp_stays_decode_error ... ok
+test d078_lax_malformed::test_BC_2_16_009_D078_lax_malformed_arp_routes_to_d11 ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running `/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/bc_2_16_d078_vlan_offset_tests-a0968d4059ef82ed`
+
+running 4 tests
+test d078_vlan_offset::test_F1_nonvlan_truncated_benign_unchanged ... ok
+test d078_vlan_offset::test_F1_vlan_tagged_truncated_benign_arp_no_false_positive_d11 ... ok
+test d078_vlan_offset::test_F1_nonvlan_truncated_malformed_unchanged ... ok
+test d078_vlan_offset::test_F1_vlan_tagged_truncated_malformed_arp_routes_to_d11 ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running `/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/bc_2_16_d078b_lax_some_arm_tests-cb26732c444695e7`
+
+running 3 tests
+test d078b_lax_some_arm::test_BC_2_16_009_D078b_empirical_short_bad_htype_reaches_lax_none_arm_not_some ... ok
+test d078b_lax_some_arm::test_BC_2_16_009_D078b_empirical_full_size_bad_htype_reaches_strict_arm ... ok
+test d078b_lax_some_arm::test_BC_2_16_009_D078b_lax_some_arm_malformed_routes_to_d11 ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running `/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/bc_2_16_e17_macsec_offset_tests-0b88b1f2a799dc7c`
+
+running 6 tests
+test macsec_offset::test_BC_2_16_015_macsec_no_sci_modified_opaque_payload_unreachable ... ok
+test macsec_offset::test_BC_2_16_015_macsec_no_sci_unmodified_arp_truncated_offset_22 ... ok
+test macsec_offset::test_BC_2_16_009_macsec_sci_present_unmodified_arp_malformed_hlen8_routes_to_d11 ... ok
+test macsec_offset::test_BC_2_16_009_macsec_no_sci_unmodified_arp_malformed_hlen8_routes_to_d11 ... ok
+test macsec_offset::test_BC_2_16_015_macsec_sci_present_unmodified_arp_truncated_offset_30 ... ok
+test macsec_offset::test_BC_2_16_015_macsec_sci_present_modified_opaque_payload_unreachable ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running `/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/bc_2_16_qinq_macsec_offset_tests-20ba501ca5549c90`
+
+running 4 tests
+test qinq_macsec_offset::test_BC_2_16_015_qinq_link_exts_offset_formula_pin ... ok
+test qinq_macsec_offset::test_BC_2_16_015_macsec_arp_lax_parse_probe ... ok
+test qinq_macsec_offset::test_BC_2_16_009_qinq_malformed_hlen8_routes_to_d11 ... ok
+test qinq_macsec_offset::test_BC_2_16_015_qinq_truncated_benign_arp_no_false_positive_d11 ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running `/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/bc_2_16_story112_arp_tests-1c6bc2cb6d19ac82`
+
+running 15 tests
+test test_BC_2_16_001_extract_arp_frame_none_on_hw_addr_size_8 ... ok
+test test_BC_2_16_001_extract_arp_frame_outer_src_mac_none_passthrough ... ok
+test test_BC_2_16_001_extract_arp_frame_none_on_proto_addr_size_16 ... ok
+test test_BC_2_16_001_extract_arp_frame_request_field_copy_fidelity ... ok
+test test_BC_2_16_001_invariant_opcode_agnostic_op_zero ... ok
+test test_BC_2_16_001_extract_arp_frame_request_returns_some ... ok
+test test_BC_2_16_001_invariant_outer_src_mac_mismatch_passthrough ... ok
+test test_BC_2_16_001_invariant_zero_target_mac_copied_faithfully ... ok
+test test_BC_2_16_002_extract_arp_frame_reply_returns_some_with_correct_fields ... ok
+test test_BC_2_16_002_invariant_garp_reply_extractor_agnostic ... ok
+test test_BC_2_16_015_arp_frame_never_reaches_stream_dispatcher ... ok
+test test_BC_2_16_015_decode_packet_arp_non_eth_ipv4_returns_error ... ok
+test test_BC_2_16_015_decode_packet_lax_arm_truncated_arp_non_panic ... ok
+test test_BC_2_16_015_decode_packet_routes_arp_to_decoded_frame_arp ... ok
+test test_BC_2_16_015_main_arp_arm_calls_process_arp_stub ... ok
+
+test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running `/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/bc_2_16_story113_arp_tests-6b21366e724de26e`
+
+running 2 tests
+test story_113_cli::test_BC_2_16_011_main_arp_flag_present_summarize_appended ... ok
+test story_113_cli::test_BC_2_16_011_main_arp_flag_absent_no_findings_no_summary ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running `/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/bc_2_16_story114_arp_tests-81b62933ba7e06c6`
+
+running 5 tests
+test story_114_mitre::test_t0830_and_t1557_002_resolves_in_catalog ... ok
+test story_114_mitre::test_vp007_all_17_emitted_ids_resolve ... ok
+test story_114_mitre::test_vp007_seeded_25_emitted_17 ... ok
+test story_114_cli::test_cli_arp_spoof_threshold_parsed ... ok
+test story_114_cli::test_cli_arp_spoof_threshold_default_3 ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running `/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/bc_2_16_story115_arp_tests-d423145b6ddb92a6`
+
+running 4 tests
+test story_115_cli::test_cli_arp_storm_rate_default_50 ... ok
+test story_115_cli::test_storm_rate_flag_accepted_without_arp_flag ... ok
+test story_115_cli::test_cli_arp_storm_rate_parsed ... ok
+test story_115_integration::test_integration_arp_storm_end_to_end ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running `/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/cli_integration_tests-21f9a0cfc573ffb0`
+
+running 9 tests
+test json_and_csv_flags_are_mutually_exclusive ... ok
+test summary_subcommand_also_supports_csv ... ok
+test csv_flag_without_path_writes_csv_to_stdout ... ok
+test output_format_csv_emits_csv ... ok
+test mitre_flag_emits_tactic_headers_and_collapse_suffix ... ok
+test mitre_no_collapse_emits_tactic_headers_without_collapse_suffix ... ok
+test csv_flag_with_path_writes_csv_findings_table ... ok
+test json_file_output_overrides_terminal_output_format ... ok
+test json_file_output_writes_json_content_to_path ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running `/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/cli_story_086_tests-2277591959a1823a`
+
+running 15 tests
+test story_086::test_summary_services_flag_removed ... ok
+test story_086::test_EC_004_services_flag_rejected_on_summary ... ok
+test story_086::test_analyze_requires_at_least_one_target ... ok
+test story_086::test_EC_003_hosts_flag_rejected_on_analyze ... ok
+test story_086::test_multiple_targets_preserve_order_and_duplicates ... ok
+test story_086::test_EC_001_all_flag_with_individual_protocol_flags ... ok
+test story_086::test_summary_subcommand_basic_parse ... ok
+test story_086::test_no_color_flag_default_false ... ok
+test story_086::test_EC_002_mitre_alone ... ok
+test story_086::test_EC_005_duplicate_targets_preserved ... ok
+test story_086::test_analyze_subcommand_basic_parse ... ok
+test story_086::test_mitre_flag_does_not_imply_analyzers ... ok
+test story_086::test_summary_hosts_flag ... ok
+test story_086::test_analyze_individual_protocol_flags ... ok
+test story_086::test_no_color_flag_global_placement ... ok
+
+test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running `/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/cli_story_087_tests-561ce502fb60bfdb`
+
+running 19 tests
+test story_087::test_output_format_invalid_value_rejected ... ok
+test story_087::test_reassemble_conflict_is_symmetric ... ok
+test story_087::test_reassemble_and_no_reassemble_conflict ... ok
+test story_087::test_EC_001_reassembly_depth_zero_rejected ... ok
+test story_087::test_EC_001_reassembly_memcap_zero_rejected ... ok
+test story_087::test_overlap_threshold_out_of_range_rejected ... ok
+test story_087::test_EC_005_no_reassembly_flags_all_defaults ... ok
+test story_087::test_output_format_absent_is_none ... ok
+test story_087::test_EC_003_overlap_threshold_max_accepted ... ok
+test story_087::test_output_format_csv_flag ... ok
+test story_087::test_reassemble_alone_parses_ok ... ok
+test story_087::test_EC_002_small_segment_max_bytes_zero ... ok
+test story_087::test_reassembly_depth_default_is_10 ... ok
+test story_087::test_output_format_json_flag ... ok
+test story_087::test_reassembly_memcap_default_is_1024 ... ok
+test story_087::test_small_segment_ignore_ports_comma_delimited ... ok
+test story_087::test_reassembly_threshold_flags_default_none ... ok
+test story_087::test_analyze_reassembly_depth_zero_exits_usage_error ... ok
+test story_087::test_analyze_reassembly_memcap_zero_exits_usage_error ... ok
+
+test result: ok. 19 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running `/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/cli_story_096_tests-a8d5d5083cae4bfe`
+
+running 14 tests
+test story_096::test_threats_field_absent_from_cli ... ok
+test story_096::test_verbose_field_absent_from_cli ... ok
+test story_096::test_bpf_filter_absent_from_src ... ok
+test story_096::test_verbose_short_flag_rejected_by_clap ... ok
+test story_096::test_EC_002_beacon_with_valid_flags_still_errors ... ok
+test story_096::test_verbose_flag_rejected_by_clap ... ok
+test story_096::test_beacon_flag_rejected_by_clap ... ok
+test story_096::test_EC_003_filter_with_bpf_expression_rejected ... ok
+test story_096::test_threats_flag_rejected_by_clap ... ok
+test story_096::test_filter_flag_rejected_by_clap ... ok
+test story_096::test_EC_001_threats_before_subcommand_rejected ... ok
+test story_096::test_EC_004_valid_http_invocation_parses_ok ... ok
+test story_096::test_valid_invocation_unaffected_by_absent_flags ... ok
+test story_096::test_beacon_analyzer_absent_from_src ... ok
+
+test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running `/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/cli_tests-bd8f06f39fbde192`
+
+running 14 tests
+test test_summary_hosts_flag_parses_and_is_bound ... ok
+test test_mitre_flag_defaults_false ... ok
+test test_no_reassemble_flag ... ok
+test test_summary_subcommand ... ok
+test test_reassembly_flags ... ok
+test test_threshold_flags_default_to_none ... ok
+test test_multiple_targets ... ok
+test test_summary_hosts_flag_defaults_false ... ok
+test test_mitre_flag_parses_on_analyze ... ok
+test test_threshold_flags_parse ... ok
+test test_no_color_flag ... ok
+test test_analyze_subcommand ... ok
+test test_reassembly_threshold_flags_reject_out_of_range_values ... ok
+test test_removed_unwired_flags_are_rejected ... ok
+
+test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running `/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/decoder_tests-81291b09deb0dfa1`
+
+running 16 tests
+test test_decode_ipv4_linktype_uses_from_ip ... ok
+test test_decode_invalid_packet ... ok
+test test_decode_ipv6_tcp_packet ... ok
+test test_decode_arp_shaped_input_does_not_panic ... ok
+test test_decode_non_ip_non_arp_frame_returns_no_ip_error ... ok
+test test_decode_linux_sll_tcp_packet ... ok
+test test_decode_raw_ip_tcp_packet ... ok
+test test_decode_snaplen_truncated_clamps_payload_to_captured_bytes ... ok
+test test_decode_snaplen_truncated_ethernet_recovers_via_lax_parsing ... ok
+test test_decode_snaplen_truncated_ipv6_recovers_via_lax_parsing ... ok
+test test_decode_snaplen_truncated_raw_ip_recovers_via_lax_parsing ... ok
+test test_decode_snaplen_truncated_linux_sll_recovers_via_lax_parsing ... ok
+test test_decode_tcp_packet ... ok
+test test_decode_structurally_corrupt_packet_is_rejected_not_lax_recovered ... ok
+test test_decode_truncation_inside_tcp_header_degrades_to_other ... ok
+test test_decode_udp_dns_packet ... ok
+
+test result: ok. 16 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running `/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/dispatcher_tests-904e15510c0c0317`
+
+running 34 tests
+test test_BC_2_05_006_none_cached_permanently_after_retry_cap ... ok
+test test_BC_2_05_008_no_analyzer_dispatcher_early_returns ... ok
+test test_BC_2_05_007_unclassified_flows_counter ... ok
+test test_BC_2_05_005_classification_cached_after_first_match ... ok
+test test_BC_2_05_006_none_not_cached_before_retry_cap ... ok
+test test_BC_2_05_005_cache_evicted_on_flow_close_then_reclassified ... ok
+test test_BC_2_05_007_classified_flow_not_counted_as_unclassified ... ok
+test test_BC_2_05_009_flow_close_for_unknown_flow_key ... ok
+test test_BC_2_05_006_late_classification_after_nones ... ok
+test test_BC_2_05_008_single_analyzer_not_early_returned ... ok
+test test_BC_2_05_009_flow_close_forwards_to_http_analyzer ... ok
+test test_default_max_classification_attempts ... ok
+test test_classified_flow_not_counted_as_unclassified ... ok
+test test_dispatcher_content_detection_tls_on_port_80 ... ok
+test test_dispatcher_routes_http ... ok
+test test_http_content_on_port_443_routes_to_http ... ok
+test test_all_http_method_prefixes_route_to_http ... ok
+test test_http_no_space_does_not_match ... ok
+test test_late_classification_within_attempt_budget_still_routes ... ok
+test test_port_fallback_443_to_tls ... ok
+test test_port_fallback_8080_to_http ... ok
+test test_port_fallback_80_to_http ... ok
+test test_port_fallback_8443_to_tls ... ok
+test test_port_fallback_uses_canonical_port_ordering ... ok
+test test_stream_dispatcher_forwards_timestamp_to_analyzers ... ok
+test test_tls_check_requires_byte1_equals_0x03 ... ok
+test test_tls_check_skipped_below_len_5 ... ok
+test test_tls_content_routes_tls_on_port_443 ... ok
+test test_tls_content_wins_over_port_8080 ... ok
+test test_tls_takes_priority_over_http_methods_check ... ok
+test test_unclassifiable_flow_still_counted_after_attempt_cap ... ok
+test test_unclassified_flows_counter ... ok
+test test_with_max_classification_attempts_overrides_default ... ok
+test test_zero_attempt_budget_classifies_nothing ... ok
+
+test result: ok. 34 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running `/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/dnp3_correlation_tests-9fb19331d4e4802f`
+
+running 35 tests
+test story_109::test_BC_2_15_015_first_window_seed_sets_anchor_not_expiry ... ok
+test story_109::test_BC_2_15_018_broadcast_summary_and_evidence_exact_pin ... ok
+test story_109::test_EC_001_direct_operate_nr_not_tracked_no_block_event ... ok
+test story_109::test_BC_2_15_023_enable_unsolicited_summary_exact_pin ... ok
+test story_109::test_BC_2_15_015_t0827_summary_exact_pin ... ok
+test story_109::test_BC_2_15_019_unsolicited_summary_and_evidence_exact_pin ... ok
+test story_109::test_EC_002_select_response_within_timeout_no_block_event ... ok
+test story_109::test_EC_005_broadcast_read_no_anomaly ... ok
+test story_109::test_EC_006_bailed_flow_disable_unsolicited_no_op ... ok
+test story_109::test_BC_2_15_024_malformed_evidence_exact_pin ... ok
+test story_109::test_EC_007_enable_before_unsolicited_suppresses_anomaly ... ok
+test story_109::test_EC_004_t0827_one_shot_fourth_restart_no_second ... ok
+test story_109::test_EC_010_single_cold_restart_t0814_no_t0827 ... ok
+test story_109::test_EC_009_fourth_malformed_no_second_t0814 ... ok
+test story_109::test_block_event_count_increments_unconditionally ... ok
+test story_109::test_block_events_not_reset_at_120s ... ok
+test story_109::test_broadcast_control_anomaly_fires_for_dest_ffff ... ok
+test story_109::test_broadcast_and_burst_both_retained ... ok
+test story_109::test_broadcast_read_no_anomaly ... ok
+test story_109::test_correlation_window_expiry_resets_six_fields ... ok
+test story_109::test_disable_unsolicited_emits_t0814_likely_medium ... ok
+test story_109::test_enable_unsolicited_emits_t0814_possible_low ... ok
+test story_109::test_malformed_anomaly_at_threshold_3_of_300s ... ok
+test story_109::test_parse_errors_not_reset_at_window_expiry ... ok
+test story_109::test_pending_request_timeout_wrapping_sub ... ok
+test story_109::test_story_109_constants_correct_values ... ok
+test story_109::test_story_109_ics_impact_tactic_seeded ... ok
+test story_109::test_story_109_is_broadcast_destination_helper ... ok
+test story_109::test_t0827_emitted_at_combined_threshold ... ok
+test story_109::test_t0827_emitted_when_block_crosses_threshold_after_restarts ... ok
+test story_109::test_t0827_emitted_when_second_block_crosses_threshold_after_one_restart ... ok
+test story_109::test_t0827_requires_distinct_events ... ok
+test story_109::test_t1691_001_emitted_at_threshold_3_of_300s ... ok
+test story_109::test_unsolicited_response_anomaly_no_prior_enable ... ok
+test story_109::test_unsolicited_response_no_anomaly_after_enable ... ok
+
+test result: ok. 35 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running `/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/dnp3_detection_tests-87a667cb88065142`
+
+running 26 tests
+test story_108::test_BC_2_15_010_threshold_is_strictly_greater_not_gte ... ok
+test story_108::test_BC_2_15_010_asymmetric_port_master_lower_ip_else_branch ... ok
+test story_108::test_BC_2_15_010_asymmetric_port_master_upper_ip_if_branch ... ok
+test story_108::test_BC_2_15_020_summarize_includes_parse_errors ... ok
+test story_108::test_BC_2_15_020_summarize_control_operation_counts_per_flow ... ok
+test story_108::test_EC_002_no_finding_at_exact_threshold ... ok
+test story_108::test_EC_001_direct_operate_nr_counts_toward_threshold ... ok
+test story_108::test_EC_005_two_cold_restarts_restart_event_count_is_2 ... ok
+test story_108::test_BC_2_15_020_summarize_does_not_push_findings ... ok
+test story_108::test_EC_007_control_then_write_separate_findings_never_cotagged ... ok
+test story_108::test_direct_operate_count_increments_on_control_fc ... ok
+test story_108::test_EC_008_wrapping_sub_out_of_order_timestamp_no_panic ... ok
+test story_108::test_initialize_data_not_restart ... ok
+test story_108::test_restart_findings_append_in_observation_order ... ok
+test story_108::test_summarize_zero_flows ... ok
+test story_108::test_summarize_function_code_distribution ... ok
+test story_108::test_t0814_emitted_per_occurrence_cold_restart ... ok
+test story_108::test_t0814_emitted_per_occurrence_warm_restart ... ok
+test story_108::test_t0836_emitted_for_write_fc ... ok
+test story_108::test_t1692_001_emitted_at_threshold_plus_one ... ok
+test story_108::test_t1692_001_one_shot_guard ... ok
+test story_108::test_t1692_001_window_expiry_resets_counter ... ok
+test story_108::test_write_fc_not_t1692 ... ok
+test story_108::test_EC_006_cap_restart_counter_still_increments ... ok
+test story_108::test_max_findings_cap_preserves_first_finding ... ok
+test story_108::test_max_findings_counters_updated_when_capped ... ok
+
+test result: ok. 26 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running `/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/dnp3_f5_remediation_tests-54bf237016298c05`
+
+running 20 tests
+test f5_dir_bit_fix::test_EF_is_master_frame_under_corrected_mask ... ok
+test f5_dir_bit_fix::test_canonical_master_frame_is_master_frame ... ok
+test f5_dir_bit_fix::test_dir_bit_is_bit7_not_bit4 ... ok
+test f5_ics_impact_display::test_ics_impact_display_distinct_from_impact ... ok
+test f5_dir_bit_fix::test_canonical_mask_sanity_master_addrs_seen_populated ... ok
+test f5_resync_accounting::test_EC_junk_at_clean_boundary_increments_malformed_counters ... ok
+test f5_resync_accounting::test_fake_sync_flood_crosses_malformed_threshold ... ok
+test f5_ics_impact_display::test_reporter_renders_distinct_impact_sections ... ok
+test f5_resync_accounting::test_EC_length_gate_resync_no_double_count ... ok
+test f5_resync_accounting::test_malformed_anomaly_boundary_junk_reaches_threshold ... ok
+test f5_unexpected_source::test_canonical_master_frame_helper_satisfies_is_master_frame ... ok
+test f5_resync_accounting::test_overflow_arm_preserves_valid_head_frame ... ok
+test f5_unexpected_source::test_first_master_is_expected ... ok
+test f5_unexpected_source::test_unexpected_source_fires_at_count_1 ... ok
+test f5_unexpected_source::test_unexpected_source_and_burst_both_fire ... ok
+test f5_unexpected_source::test_unexpected_source_independent_of_threshold ... ok
+test f5_unexpected_source::test_unexpected_source_one_shot_guard ... ok
+test f5_unexpected_source::test_unexpected_source_second_distinct_unexpected_source_suppressed ... ok
+test f5_unexpected_source::test_unexpected_source_skipped_on_is_non_dnp3 ... ok
+test f5_unexpected_source::test_unexpected_source_max_master_addrs_full ... ok
+
+test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running `/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/dnp3_flow_state_tests-25da13d89adb1021`
+
+running 14 tests
+test story_107::test_BC_2_15_016_is_master_frame_dir_bit ... ok
+test story_107::test_EC_001_partial_frame_in_carry ... ok
+test story_107::test_EC_002_two_complete_frames_one_call ... ok
+test story_107::test_BC_2_16_OBS_P11_1_resync_realign_branch_drain_to_next_sync ... ok
+test story_107::test_EC_003_carry_291_plus_2_overflow ... ok
+test story_107::test_EC_004_bailed_flow_is_noop ... ok
+test story_107::test_EC_006_invalid_length_byte_increments_parse_errors ... ok
+test story_107::test_carry_buffer_cap_at_292 ... ok
+test story_107::test_carry_buffer_frame_consumption ... ok
+test story_107::test_carry_drain_boundary_min_frame ... ok
+test story_107::test_frame_count_increments ... ok
+test story_107::test_master_addrs_cap_at_64 ... ok
+test story_107::test_EC_005_pending_requests_tie_break_eviction ... ok
+test story_107::test_pending_requests_eviction_at_256 ... ok
+
+test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running `/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/dnp3_parse_core_tests-c750d48554c0ded2`
+
+running 36 tests
+test story_106::test_BC_2_15_001_invariant_parse_does_not_gate_on_sync ... ok
+test story_106::test_BC_2_15_001_minimum_length_control_frame ... ok
+test story_106::test_BC_2_15_001_trailing_bytes_not_decoded ... ok
+test story_106::test_BC_2_15_002_boundary_sweep_all_short_lengths ... ok
+test story_106::test_BC_2_15_002_ec001_zero_length_no_panic ... ok
+test story_106::test_BC_2_15_002_ec002_nine_bytes_returns_none ... ok
+test story_106::test_BC_2_15_003_ec003_invalid_sync_returns_some_with_raw_fields ... ok
+test story_106::test_BC_2_15_003_ec004_broadcast_0xffff ... ok
+test story_106::test_BC_2_15_004_ec005_length_4_rejected_by_gate ... ok
+test story_106::test_BC_2_15_004_length_255_valid ... ok
+test story_106::test_BC_2_15_004_length_zero_false ... ok
+test story_106::test_BC_2_15_005_canonical_vectors ... ok
+test story_106::test_BC_2_15_005_totality_sweep_all_256_values ... ok
+test story_106::test_BC_2_15_006_ec007_direct_operate_nr_is_control ... ok
+test story_106::test_BC_2_15_006_ec008_unsolicited_response_is_response ... ok
+test story_106::test_BC_2_15_007_ec005_length_4_returns_none ... ok
+test story_106::test_BC_2_15_007_ec006_length_255_returns_292 ... ok
+test story_106::test_BC_2_15_007_length_14_direct_operate ... ok
+test story_106::test_BC_2_15_007_result_bounds_all_valid_lengths ... ok
+test story_106::test_BC_2_15_008_ec009_fir0_continuation_returns_false ... ok
+test story_106::test_BC_2_15_008_fir_biconditional_all_256_transport_octets ... ok
+test story_106::test_BC_2_15_009_ec010_sync_at_offset_2_triggers_bail ... ok
+test story_106::test_BC_2_15_009_flow_state_defaults_to_not_bailed ... ok
+test story_106::test_BC_2_15_009_valid_sync_no_bail ... ok
+test story_106::test_classify_dnp3_fc_set_membership ... ok
+test story_106::test_classify_dnp3_fc_total ... ok
+test story_106::test_compute_dnp3_frame_len_formula ... ok
+test story_106::test_desync_bail_non_dnp3_traffic ... ok
+test story_106::test_fir_gating_extract_on_fir1_skip_on_fir0 ... ok
+test story_106::test_has_user_data_link_fc_guard ... ok
+test story_106::test_is_valid_dnp3_frame_header_biconditional ... ok
+test story_106::test_on_data_fir_but_non_user_data_link_fc_no_extraction ... ok
+test story_106::test_on_data_fir_gating_updates_counters ... ok
+test story_106::test_parse_dnp3_dl_header_le_address_decode ... ok
+test story_106::test_parse_dnp3_dl_header_rejects_truncated_input ... ok
+test story_106::test_parse_dnp3_dl_header_returns_some_for_minimum_10_bytes ... ok
+
+test result: ok. 36 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running `/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/dns_tests-f22cc5fe83b973c8`
+
+running 18 tests
+test test_dns_analyze_always_returns_empty_findings ... ok
+test test_dns_analyze_increments_exactly_one_counter ... ok
+test test_dns_analyzer_counts_queries ... ok
+test test_dns_analyzer_counts_responses ... ok
+test test_dns_can_decode_false_for_icmp ... ok
+test test_dns_can_decode_false_for_non_dns_port ... ok
+test test_dns_can_decode_port_53_tcp_and_udp ... ok
+test test_dns_ec001_udp_src53_can_decode ... ok
+test test_dns_ec002_tcp_dst53_can_decode ... ok
+test test_dns_ec003_empty_payload_counted_as_response ... ok
+test test_dns_ec004_all_flags_set_counted_as_response ... ok
+test test_dns_ec005_zero_packets_summarize ... ok
+test test_dns_short_payload_counted_as_response ... ok
+test test_dns_summarize_analyzer_name ... ok
+test test_dns_summarize_detail_keys ... ok
+test test_dns_summarize_exactly_two_detail_keys ... ok
+test test_dns_high_volume_no_findings ... ok
+test test_dns_summarize_packets_analyzed_is_sum ... ok
+
+test result: ok. 18 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running `/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/findings_tests-59ee9826bd6332aa`
+
+running 2 tests
+test test_finding_creation ... ok
+test test_finding_display ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running `/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/fixture_reassembly_tests-156d2aabb0feae65`
+
+running 4 tests
+test test_tcp_ethereal_file1_reassembles_as_benign_baseline ... ok
+test test_tcp_ecn_sample_reassembles_as_benign_baseline ... ok
+test test_snaplen_truncated_capture_loads_without_error ... ok
+test test_nfs_bad_stalls_snaplen_capture_decodes_and_detects_anomaly ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s
+
+     Running `/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/hs043_flow_expiry_tests-873421f71d24b369`
+
+running 8 tests
+test hs043::test_BC_2_04_013_v15_boundary_not_expired_at_exact_timeout ... ok
+test hs043::test_BC_2_04_013_v15_boundary_expired_at_timeout_plus_one ... ok
+test hs043::test_BC_2_04_013_PC0_idle_expiry_wired_in_process_packet ... ok
+test hs043::test_BC_2_04_013_v15_gated_sweep_no_escape_same_second ... ok
+test hs043::test_BC_2_04_013_v15_regressing_timestamp_no_underflow_panic ... ok
+test hs043::test_BC_2_04_013_v15_active_flow_delta0_never_self_expires ... ok
+test hs043::test_BC_2_04_013_v15_cli_flow_timeout_zero_rejected ... ok
+test hs043::test_BC_2_04_013_v15_cli_flow_timeout_arg_produces_flows_expired ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running `/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/http_analyzer_tests-d1e948f9bc09c37f`
+
+running 140 tests
+test bc_2_06_043_formalization::test_BC_2_06_008_detect_unusual_method ... ok
+test bc_2_06_043_formalization::test_BC_2_06_009_detect_empty_host_header ... ok
+test bc_2_06_043_formalization::test_BC_2_06_009_detect_missing_host_header ... ok
+test bc_2_06_023_formalization::test_summarize_packets_analyzed_equals_transactions ... ok
+test bc_2_06_043_formalization::test_BC_2_06_008_all_four_unusual_methods_emit_finding ... ok
+test bc_2_06_023_formalization::test_summarize_does_not_mutate_state ... ok
+test bc_2_06_023_formalization::test_summarize_btreemap_key_order_is_deterministic ... ok
+test bc_2_06_043_formalization::test_BC_2_06_011_detect_empty_user_agent ... ok
+test bc_2_06_043_formalization::test_http10_no_host_finding ... ok
+test bc_2_06_043_formalization::test_BC_2_06_011_empty_ua_and_missing_host_both_fire_independently ... ok
+test bc_2_06_043_formalization::test_BC_2_06_011_missing_user_agent_no_finding ... ok
+test bc_2_06_023_formalization::test_summarize_recent_uris_first_20 ... ok
+test bc_2_06_043_formalization::test_whitespace_user_agent_triggers_empty_ua_finding ... ok
+test bc_2_06_044_formalization::test_BC_2_06_013_binary_garbage_increments_parse_errors ... ok
+test bc_2_06_043_formalization::test_BC_2_06_010_detect_long_uri ... ok
+test bc_2_06_044_formalization::test_BC_2_06_013_invariant_had_success_suppresses_body_byte_errors ... ok
+test bc_2_06_043_formalization::test_BC_2_06_010_long_uri_and_path_traversal_both_fire_independently ... ok
+test bc_2_06_043_formalization::test_unusual_method_case_sensitive ... ok
+test bc_2_06_044_formalization::test_BC_2_06_013_invariant_token_error_does_not_emit_finding ... ok
+test bc_2_06_044_formalization::test_BC_2_06_013_non_http_bytes_increment_parse_errors_no_finding ... ok
+test bc_2_06_023_formalization::test_summarize_top_hosts_sorted_and_truncated ... ok
+test bc_2_06_044_formalization::test_BC_2_06_014_invariant_evidence_is_plain_string_not_enum_derived ... ok
+test bc_2_06_044_formalization::test_BC_2_06_014_too_many_headers_request_emits_anomaly_finding ... ok
+test bc_2_06_044_formalization::test_BC_2_06_015_invariant_poisoning_is_irreversible ... ok
+test bc_2_06_044_formalization::test_BC_2_06_015_invariant_error_count_is_consecutive_not_cumulative ... ok
+test bc_2_06_044_formalization::test_BC_2_06_014_too_many_headers_response_emits_anomaly_finding ... ok
+test bc_2_06_044_formalization::test_BC_2_06_015_non_http_flows_incremented_on_first_poison ... ok
+test bc_2_06_044_formalization::test_BC_2_06_015_three_consecutive_errors_trigger_poisoning ... ok
+test bc_2_06_043_formalization::test_long_uri_boundary_exactly_2048 ... ok
+test bc_2_06_044_formalization::test_BC_2_06_014_invariant_too_many_headers_contributes_to_poison_threshold ... ok
+test bc_2_06_044_formalization::test_BC_2_06_016_ec003_two_errors_success_one_error_count_one ... ok
+test bc_2_06_044_formalization::test_BC_2_06_016_invariant_single_error_then_success_resets_count ... ok
+test bc_2_06_044_formalization::test_BC_2_06_016_single_error_does_not_poison_direction ... ok
+test bc_2_06_044_formalization::test_BC_2_06_017_ec003_poisoned_response_does_not_affect_request ... ok
+test bc_2_06_044_formalization::test_BC_2_06_017_invariant_request_poisoned_gates_only_client_to_server ... ok
+test bc_2_06_044_formalization::test_BC_2_06_017_poisoned_request_does_not_affect_response_parsing ... ok
+test bc_2_06_044_formalization::test_BC_2_06_018_both_directions_poisoned_counts_one_flow_not_two ... ok
+test bc_2_06_044_formalization::test_BC_2_06_018_invariant_counted_as_non_http_latch_prevents_double_count ... ok
+test bc_2_06_044_formalization::test_BC_2_06_018_invariant_two_separate_flows_count_two ... ok
+test bc_2_06_044_formalization::test_BC_2_06_018_only_request_poisoned_counts_one_flow ... ok
+test bc_2_06_044_formalization::test_BC_2_06_020_invariant_had_success_is_local_per_call ... ok
+test bc_2_06_044_formalization::test_BC_2_06_020_invariant_too_many_headers_after_success_suppressed ... ok
+test bc_2_06_044_formalization::test_BC_2_06_020_post_with_body_does_not_inflate_parse_errors ... ok
+test bc_2_06_044_formalization::test_BC_2_06_020_invariant_real_too_many_headers_after_success_suppressed ... ok
+test bc_2_06_044_formalization::test_BC_2_06_020_invariant_real_too_many_headers_after_success_suppressed_response ... ok
+test bc_2_06_044_formalization::test_BC_2_06_020_pre_success_errors_counted_body_errors_not ... ok
+test bc_2_06_044_formalization::test_BC_2_06_020_response_with_body_does_not_inflate_parse_errors ... ok
+test bc_2_06_045_formalization::test_BC_2_06_019_flow_close_on_unknown_key_is_noop ... ok
+test bc_2_06_045_formalization::test_BC_2_06_019_flow_close_removes_entry_and_preserves_aggregates ... ok
+test bc_2_06_045_formalization::test_BC_2_06_019_partial_buf_discarded_on_close ... ok
+test bc_2_06_045_formalization::test_BC_2_06_019_reopen_same_key_starts_fresh_state ... ok
+test bc_2_06_043_formalization::test_BC_2_06_010_very_long_uri_evidence_truncated_to_200 ... ok
+test bc_2_06_045_formalization::test_BC_2_06_021_flow_a_parse_errors_do_not_affect_flow_b ... ok
+test bc_2_06_045_formalization::test_BC_2_06_021_flow_a_poisoning_does_not_affect_flow_b ... ok
+test bc_2_06_045_formalization::test_BC_2_06_025_uris_no_deduplication ... ok
+test bc_2_06_formalization::test_BC_2_06_001_consumed_bytes_drained_from_buf ... ok
+test bc_2_06_formalization::test_BC_2_06_001_complete_request_updates_all_counters ... ok
+test bc_2_06_formalization::test_BC_2_06_001_absent_optional_headers_produce_no_map_entries ... ok
+test bc_2_06_formalization::test_BC_2_06_001_http10_parsed_without_host_finding ... ok
+test bc_2_06_formalization::test_BC_2_06_001_request_parse_does_not_increment_transactions ... ok
+test bc_2_06_formalization::test_BC_2_06_002_had_success_suppresses_request_body_byte_errors ... ok
+test bc_2_06_formalization::test_BC_2_06_002_pipelined_loop_stops_on_partial_tail ... ok
+test bc_2_06_formalization::test_BC_2_06_002_pipelined_detections_per_request_not_aggregated ... ok
+test bc_2_06_formalization::test_BC_2_06_002_pipelined_requests_each_counted_independently ... ok
+test bc_2_06_formalization::test_BC_2_06_003_partial_request_no_anomaly_detection ... ok
+test bc_2_06_formalization::test_BC_2_06_003_partial_not_counted_as_error ... ok
+test bc_2_06_formalization::test_BC_2_06_002_request_error_count_reset_after_success ... ok
+test bc_2_06_formalization::test_BC_2_06_003_partial_request_leaves_counters_unchanged ... ok
+test bc_2_06_formalization::test_BC_2_06_004_had_success_suppresses_response_body_byte_errors ... ok
+test bc_2_06_formalization::test_BC_2_06_004_response_parse_increments_transactions_and_status_code ... ok
+test bc_2_06_formalization::test_BC_2_06_004_response_buf_drained_enables_pipelined_parsing ... ok
+test bc_2_06_formalization::test_BC_2_06_004_well_formed_404_response_status_code_counted ... ok
+test bc_2_06_formalization::test_BC_2_06_004_transactions_counts_responses_not_requests ... ok
+test bc_2_06_formalization::test_BC_2_06_004_summarize_packets_analyzed_equals_transactions ... ok
+test bc_2_06_formalization::test_BC_2_06_026_find_header_returns_none_for_absent_header ... ok
+test bc_2_06_formalization::test_BC_2_06_026_find_header_case_insensitive_match ... ok
+test bc_2_06_formalization::test_BC_2_06_026_header_utf8_lossy_whitespace_trimmed ... ok
+test bc_2_06_formalization::test_BC_2_06_026_non_utf8_header_value_replaced_with_replacement_char ... ok
+test bc_2_06_045_formalization::test_BC_2_06_022_buffer_cap_exact_65536_no_more_bytes_accepted ... ok
+test bc_2_06_formalization::test_BC_2_06_026_raw_uri_bytes_preserved_in_finding_evidence ... ok
+test bc_2_06_story042_formalization::test_BC_2_06_005_encoded_traversal_four_patterns ... ok
+test bc_2_06_story042_formalization::test_BC_2_06_005_http10_path_traversal_not_exempt ... ok
+test bc_2_06_story042_formalization::test_BC_2_06_005_path_traversal_all_fields ... ok
+test bc_2_06_story042_formalization::test_BC_2_06_006_webshell_path_all_fields ... ok
+test bc_2_06_story042_formalization::test_BC_2_06_007_admin_panel_all_fields ... ok
+test bc_2_06_045_formalization::test_BC_2_06_022_buffer_cap_partial_fill_one_byte_appended ... ok
+test bc_2_06_story042_formalization::test_BC_2_06_012_normal_request_no_parse_errors ... ok
+test bc_2_06_story042_formalization::test_BC_2_06_012_normal_request_zero_findings ... ok
+test bc_2_06_story042_formalization::test_admin_panel_case_insensitive ... ok
+test bc_2_06_story042_formalization::test_path_traversal_fires_per_request ... ok
+test bc_2_06_story042_formalization::test_multiple_detections_fire_independently ... ok
+test test_body_bytes_do_not_inflate_parse_errors ... ok
+test test_cross_flow_isolation_poisoning ... ok
+test test_detect_empty_host_header ... ok
+test test_cross_flow_isolation_parse_errors ... ok
+test test_detect_empty_user_agent ... ok
+test test_detect_encoded_traversal ... ok
+test test_detect_missing_host_header ... ok
+test test_detect_admin_panel_paths ... ok
+test test_detect_path_traversal ... ok
+test test_detect_unusual_method ... ok
+test test_detect_long_uri ... ok
+test test_detect_webshell_path ... ok
+test bc_2_06_story042_formalization::test_webshell_case_insensitive ... ok
+test test_flow_close_cleans_up_state ... ok
+test test_detect_whitespace_only_host_header ... ok
+test test_http_analyzer_construction ... ok
+test test_missing_user_agent_no_finding ... ok
+test test_multiple_parse_errors_accumulate ... ok
+test test_no_findings_for_normal_request ... ok
+test test_normal_request_no_parse_errors ... ok
+test test_non_http_flows_counts_per_flow_not_direction ... ok
+test test_parse_error_in_response ... ok
+test test_parse_error_increments_counter ... ok
+test test_buffer_cap_no_panic_on_oversized_headers ... ok
+test test_parse_error_in_summarize ... ok
+test bc_2_06_045_formalization::test_BC_2_06_022_response_buffer_cap_exact_65536_no_more_bytes_accepted ... ok
+test test_parse_error_poisons_direction_after_threshold ... ok
+test test_parse_partial_request ... ok
+test test_parse_pipelined_requests ... ok
+test test_parse_pipelined_responses ... ok
+test test_parse_get_request ... ok
+test test_parse_response ... ok
+test test_poison_request_does_not_affect_response ... ok
+test test_partial_response_reassembly ... ok
+test test_poison_cleared_after_flow_close ... ok
+test test_single_error_does_not_poison ... ok
+test bc_2_06_045_formalization::test_BC_2_06_022_response_buffer_cap_partial_fill_one_byte_appended ... ok
+test test_summarize_produces_complete_output ... ok
+test test_too_many_headers_generates_finding ... ok
+test test_too_many_headers_in_response_generates_finding ... ok
+test test_summarize_top_hosts_ties_broken_alphabetically ... ok
+test bc_2_06_045_formalization::test_BC_2_06_025_uris_capped_at_max_uris ... ok
+test vp_014_cross_flow_isolation::prop_close_and_reopen_starts_fresh ... ok
+test bc_2_06_045_formalization::test_BC_2_06_024_map_cardinality_cap_nth_entry_succeeds ... ok
+test bc_2_06_045_formalization::test_BC_2_06_024_map_cardinality_cap_drops_new_keys ... ok
+test bc_2_06_045_formalization::test_BC_2_06_024_existing_keys_increment_at_cap ... ok
+test bc_2_06_045_formalization::test_BC_2_06_024_hosts_map_cardinality_cap_independent_of_methods ... ok
+test bc_2_06_045_formalization::test_BC_2_06_024_user_agents_map_cardinality_cap_independent_of_methods ... ok
+test vp_014_cross_flow_isolation::prop_flow_b_unaffected_by_flow_a_errors ... ok
+
+test result: ok. 140 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.59s
+
+     Running `/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/http_integration_tests-22956b3c8e7a36b4`
+
+running 1 test
+test test_http_analysis_with_fixture ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running `/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/integration_test-70d7bd40aefc9edf`
+
+running 1 test
+test test_full_pipeline ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running `/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/linktype_integration_tests-e73fec5826ec21e8`
+
+running 3 tests
+test test_ipv4_pcap_http_ooo ... ok
+test test_raw_ip_pcap_segmented ... ok
+test test_ethernet_pcap_tls ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running `/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/deps/main_story_088_tests-7e466a4dba7d427e`
+
+running 19 tests
+test story_088::test_progress_bar_does_not_appear_in_output ... ok
+test story_088::test_EC_002_uppercase_pcap_extension_excluded ... ok
+test story_088::test_EC_001_empty_directory_returns_ok_empty ... ok
+test story_088::test_resolve_targets_case_sensitive_extension_exclusion ... ok
+test story_088::test_no_color_env_var_disables_color ... ok
+test story_088::test_EC_004_no_color_empty_value_disables_color ... ok
+test story_088::test_dns_analyzer_constructed_without_reassembly ... ok
+test story_088::test_EC_003_no_reassemble_without_http_tls_no_warning ... ok
+test story_088::test_all_flag_enables_all_three_analyzers ... FAILED
+test story_088::test_resolve_targets_directory_pcap_only_sorted ... ok
+test story_088::test_EC_005_directory_files_returned_sorted ... ok
+test story_088::test_run_summary_has_no_progress_bar ... ok
+test story_088::test_resolve_targets_nonexistent_path_error ... ok
+test story_088::test_resolve_targets_not_recursive ... ok
+test story_088::test_all_does_not_imply_mitre ... ok
+test story_088::test_no_reassemble_skips_http_and_tls_constructors ... ok
+test story_088::test_use_color_true_when_no_flags_set ... ok
+test story_088::test_needs_reassembly_formula ... ok
+test story_088::test_no_reassemble_with_http_emits_warning ... ok
+
+failures:
+
+---- story_088::test_all_flag_enables_all_three_analyzers stdout ----
+
+thread 'story_088::test_all_flag_enables_all_three_analyzers' (177112180) panicked at tests/main_story_088_tests.rs:85:14:
+Unexpected stdout, failed var.contains(ANALYZER: TLS)
+├── var: [4m[1mWIRERUST TRIAGE REPORT[0m[0m
+│   ────────────────────────────────────────
+│     Packets: 16  Bytes: 929  Hosts: 2
+│   
+│   [4m[1mPROTOCOLS[0m[0m
+│   ────────────────────────────────────────
+│     Tcp: 16
+│   
+│   [4m[1mSERVICES[0m[0m
+│   ────────────────────────────────────────
+│     HTTP: 16
+│   
+│   [4m[1mFINDINGS[0m[0m
+│   ────────────────────────────────────────
+│     [36m[Anomaly] INCONCLUSIVE (MEDIUM) - HTTP/1.1 request without Host header (x5)[39m
+│       > PUT /1
+│       > GET /2
+│       > PUT /3
+│   
+│   [4m[1mANALYZER: TCP Reassembly[0m[0m
+│   ────────────────────────────────────────
+│     Packets analyzed: 16
+│     bytes_reassembled: 287
+│     dropped_findings: 0
+│     evictions: 0
+│     flows_completed: 0
+│     flows_expired: 0
+│     flows_fin: 0
+│     flows_partial: 1
+│     flows_rst: 0
+│     flows_total: 1
+│     packets_processed: 16
+│     packets_skipped_non_tcp: 0
+│     segments_depth_exceeded: 0
+│     segments_duplicates: 0
+│     segments_inserted: 15
+│     segments_out_of_window: 0
+│     segments_overlaps: 0
+│     segments_segment_limit: 0
+│     unclassified_flows: 0
+│   
+│   [4m[1mANALYZER: DNS[0m[0m
+│   ────────────────────────────────────────
+│     Packets analyzed: 0
+│     dns_queries: 0
+│     dns_responses: 0
+│   
+│   [4m[1mANALYZER: HTTP[0m[0m
+│   ────────────────────────────────────────
+│     Packets analyzed: 0
+│     methods: {"GET":1,"PUT":4}
+│     non_http_flows: 0
+│     parse_errors: 6
+│     poisoned_bytes_skipped: 0
+│     recent_uris: ["/1","/2","/3","/4","/5"]
+│     status_codes: {}
+│     top_hosts: []
+│     transactions: 0
+│     user_agents: {}
+│   
+│   [4m[1mANALYZER: modbus[0m[0m
+│   ────────────────────────────────────────
+│     Packets analyzed: 0
+│     dropped_findings: 0
+│     exception_count: 0
+│     function_code_distribution: {}
+│     parse_errors: 0
+│     pdu_count: 0
+│     write_count: 0
+│   
+│   [4m[1mANALYZER: DNP3[0m[0m
+│   ────────────────────────────────────────
+│     Packets analyzed: 0
+│     control_operation_counts: {}
+│     flows_analyzed: 0
+│     function_code_distribution: {}
+│     total_frames: 0
+│     total_parse_errors: 0
+│   
+│   [4m[1mANALYZER: ARP[0m[0m
+│   ────────────────────────────────────────
+│     Packets analyzed: 0
+│     bindings_tracked: 0
+│     frames_analyzed: 0
+│     garp_findings: 0
+│     malformed_findings: 0
+│     malformed_frames: 0
+│     mismatch_findings: 0
+│     other_opcode_count: 0
+│     reply_count: 0
+│     request_count: 0
+│     spoof_findings: 0
+│     storm_findings: 0
+│   
+│   
+└── var as str: [4m[1mWIRERUST TRIAGE REPORT[0m[0m
+    ────────────────────────────────────────
+      Packets: 16  Bytes: 929  Hosts: 2
+    
+    [4m[1mPROTOCOLS[0m[0m
+    ────────────────────────────────────────
+      Tcp: 16
+    
+    [4m[1mSERVICES[0m[0m
+    ────────────────────────────────────────
+      HTTP: 16
+    
+    [4m[1mFINDINGS[0m[0m
+    ────────────────────────────────────────
+      [36m[Anomaly] INCONCLUSIVE (MEDIUM) - HTTP/1.1 request without Host header (x5)[39m
+        > PUT /1
+        > GET /2
+        > PUT /3
+    
+    [4m[1mANALYZER: TCP Reassembly[0m[0m
+    ────────────────────────────────────────
+      Packets analyzed: 16
+      bytes_reassembled: 287
+      dropped_findings: 0
+      evictions: 0
+      flows_completed: 0
+      flows_expired: 0
+      flows_fin: 0
+      flows_partial: 1
+      flows_rst: 0
+      flows_total: 1
+      packets_processed: 16
+      packets_skipped_non_tcp: 0
+      segments_depth_exceeded: 0
+      segments_duplicates: 0
+      segments_inserted: 15
+      segments_out_of_window: 0
+      segments_overlaps: 0
+      segments_segment_limit: 0
+      unclassified_flows: 0
+    
+    [4m[1mANALYZER: DNS[0m[0m
+    ────────────────────────────────────────
+      Packets analyzed: 0
+      dns_queries: 0
+      dns_responses: 0
+    
+    [4m[1mANALYZER: HTTP[0m[0m
+    ────────────────────────────────────────
+      Packets analyzed: 0
+      methods: {"GET":1,"PUT":4}
+      non_http_flows: 0
+      parse_errors: 6
+      poisoned_bytes_skipped: 0
+      recent_uris: ["/1","/2","/3","/4","/5"]
+      status_codes: {}
+      top_hosts: []
+      transactions: 0
+      user_agents: {}
+    
+    [4m[1mANALYZER: modbus[0m[0m
+    ────────────────────────────────────────
+      Packets analyzed: 0
+      dropped_findings: 0
+      exception_count: 0
+      function_code_distribution: {}
+      parse_errors: 0
+      pdu_count: 0
+      write_count: 0
+    
+    [4m[1mANALYZER: DNP3[0m[0m
+    ────────────────────────────────────────
+      Packets analyzed: 0
+      control_operation_counts: {}
+      flows_analyzed: 0
+      function_code_distribution: {}
+      total_frames: 0
+      total_parse_errors: 0
+    
+    [4m[1mANALYZER: ARP[0m[0m
+    ────────────────────────────────────────
+      Packets analyzed: 0
+      bindings_tracked: 0
+      frames_analyzed: 0
+      garp_findings: 0
+      malformed_findings: 0
+      malformed_frames: 0
+      mismatch_findings: 0
+      other_opcode_count: 0
+      reply_count: 0
+      request_count: 0
+      spoof_findings: 0
+      storm_findings: 0
+    
+    
+
+command=`"/private/var/folders/p5/tjcpsj_90sd8b2t321cqpf600000gn/T/cargo-mutants-wirerust-ePVJFG.tmp/target/debug/wirerust" "analyze" "tests/fixtures/http-ooo.pcap" "--all"`
+code=0
+stdout=<95 lines total>
+```
+\x1b[4m\x1b[1mWIRERUST TRIAGE REPORT\x1b[0m\x1b[0m
+────────────────────────────────────────
+  Packets: 16  Bytes: 929  Hosts: 2
+
+\x1b[4m\x1b[1mPROTOCOLS\x1b[0m\x1b[0m
+────────────────────────────────────────
+  Tcp: 16
+
+\x1b[4m\x1b[1mSERVICES\x1b[0m\x1b[0m
+────────────────────────────────────────
+  HTTP: 16
+
+\x1b[4m\x1b[1mFINDINGS\x1b[0m\x1b[0m
+────────────────────────────────────────
+  \x1b[36m[Anomaly] INCONCLUSIVE (MEDIUM) - HTTP/1.1 request without Host header (x5)\x1b[39m
+    > PUT /1
+    > GET /2
+    > PUT /3
+
+\x1b[4m\x1b[1mANALYZER: TCP Reassembly\x1b[0m\x1b[0m
+```
+<35 lines omitted>
+```
+  status_codes: {}
+  top_hosts: []
+  transactions: 0
+  user_agents: {}
+
+\x1b[4m\x1b[1mANALYZER: modbus\x1b[0m\x1b[0m
+────────────────────────────────────────
+  Packets analyzed: 0
+  dropped_findings: 0
+  exception_count: 0
+  function_code_distribution: {}
+  parse_errors: 0
+  pdu_count: 0
+  write_count: 0
+
+\x1b[4m\x1b[1mANALYZER: DNP3\x1b[0m\x1b[0m
+────────────────────────────────────────
+  Packets analyzed: 0
+  control_operation_counts: {}
+  flows_analyzed: 0
+  function_code_distribution: {}
+  total_frames: 0
+  total_parse_errors: 0
+
+\x1b[4m\x1b[1mANALYZER: ARP\x1b[0m\x1b[0m
+────────────────────────────────────────
+  Packets analyzed: 0
+  bindings_tracked: 0
+  frames_analyzed: 0
+  garp_findings: 0
+  malformed_findings: 0
+  malformed_frames: 0
+  mismatch_findings: 0
+  other_opcode_count: 0
+  reply_count: 0
+  request_count: 0
+  spoof_findings: 0
+  storm_findings: 0
+
+
+```
+
+stderr=""
+
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    story_088::test_all_flag_enables_all_three_analyzers
+
+test result: FAILED. 18 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+error: test failed, to rerun pass `-p wirerust --test main_story_088_tests`
+
+*** result: Failure(101)

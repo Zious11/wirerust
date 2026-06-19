@@ -1,0 +1,305 @@
+--- src/main.rs
++++ replace run_analyze -> Result<()> with Ok(())
+@@ -105,301 +105,17 @@
+     arp_spoof_threshold: u32,
+     arp_storm_rate: u32,
+     show_mitre_grouping: bool,
+     collapse_findings: bool,
+     use_color: bool,
+     cli: &Cli,
+ ) -> Result<()> {
+     // BC-2.14.024 §P3a/P3b: validate thresholds before constructing the analyzer.
+-    if modbus_write_burst_threshold == 0 {
+-        anyhow::bail!("--modbus-write-burst-threshold must be >= 1 (got 0)");
+-    }
+-    if modbus_write_sustained_threshold == 0 {
+-        anyhow::bail!("--modbus-write-sustained-threshold must be >= 1 (got 0)");
+-    }
+-    // BC-2.16.008 EC-006 / BC-2.16.012 EC-004 / BC-2.16.013 EC-004 / D-074:
+-    // Reject zero thresholds before constructing the ARP analyzer, mirroring
+-    // the modbus guards above.  Value 0 is rejected here so that the D3 storm
+-    // detector and spoof detector never operate with degenerate parameters.
+-    if arp_storm_rate == 0 {
+-        anyhow::bail!("--arp-storm-rate must be >= 1 (got 0)");
+-    }
+-    if arp_spoof_threshold == 0 {
+-        anyhow::bail!("--arp-spoof-threshold must be >= 1 (got 0)");
+-    }
+-
+-    let mut summary = Summary::new();
+-    let mut dns_analyzer = DnsAnalyzer::new();
+-    // STORY-115: ArpAnalyzer::new(spoof_threshold, storm_rate).
+-    // arp_spoof_threshold is wired from --arp-spoof-threshold (BC-2.16.012).
+-    // arp_storm_rate is wired from --arp-storm-rate (BC-2.16.013; STORY-115).
+-    // Default 50 applies when flag is absent (clap default_value_t = 50).
+-    // --arp flag-gating is wired below (BC-2.16.011).
+-    let mut arp_analyzer = ArpAnalyzer::new(arp_spoof_threshold, arp_storm_rate);
+-    let mut all_findings = Vec::new();
+-    let mut total_decode_errors: u64 = 0;
+-
+-    let skip_reassembly = cli.no_reassemble;
+-
+-    // BC-2.14.023 §P4: needs_reassembly includes enable_modbus / enable_dnp3 so that
+-    // --modbus or --dnp3 alone (without --http or --tls) activates the reassembly engine.
+-    let needs_reassembly =
+-        cli.reassemble || enable_http || enable_tls || enable_modbus || enable_dnp3;
+-
+-    if (enable_http || enable_tls) && skip_reassembly {
+-        eprintln!(
+-            "Warning: --http/--tls require TCP reassembly, but --no-reassemble is set. Stream analysis will be skipped."
+-        );
+-    }
+-    // BC-2.14.023 §P2 sub-case (EC-001): warn and omit Modbus when reassembly disabled.
+-    if enable_modbus && skip_reassembly {
+-        eprintln!(
+-            "WARNING: --modbus requires stream reassembly; ignoring --modbus \
+-             (pass --reassemble or omit --no-reassemble)"
+-        );
+-    }
+-    // BC-2.15.021: warn and omit DNP3 when reassembly disabled.
+-    if enable_dnp3 && skip_reassembly {
+-        eprintln!(
+-            "WARNING: --dnp3 requires stream reassembly; ignoring --dnp3 \
+-             (pass --reassemble or omit --no-reassemble)"
+-        );
+-    }
+-
+-    let mut reassembler = if needs_reassembly && !skip_reassembly {
+-        let mut config = ReassemblyConfig {
+-            max_depth: cli.reassembly_depth * 1_048_576,
+-            memcap: cli.reassembly_memcap * 1_048_576,
+-            ..ReassemblyConfig::default()
+-        };
+-        // LESSON-P2.05: anomaly thresholds are CLI-overridable; an
+-        // absent flag leaves the `ReassemblyConfig::default()` value.
+-        if let Some(v) = cli.overlap_threshold {
+-            config.overlap_alert_threshold = v;
+-        }
+-        if let Some(v) = cli.small_segment_threshold {
+-            config.small_segment_alert_threshold = v;
+-        }
+-        if let Some(v) = cli.small_segment_max_bytes {
+-            config.small_segment_max_bytes = v;
+-        }
+-        if let Some(v) = cli.small_segment_ignore_ports.clone() {
+-            config.small_segment_ignore_ports = v;
+-        }
+-        if let Some(v) = cli.out_of_window_threshold {
+-            config.out_of_window_alert_threshold = v;
+-        }
+-        // HS-043 fix: wire --flow-timeout into the config (BC-2.04.013 v1.5).
+-        // u64 → u32 saturating cast: values above u32::MAX (~136 years) clamp
+-        // to u32::MAX, which is a safe, non-silent default for any real capture.
+-        config.flow_timeout_secs = cli.flow_timeout.min(u64::from(u32::MAX)) as u32;
+-        Some(TcpReassembler::new(config))
+-    } else {
+-        None
+-    };
+-
+-    let http_analyzer = if enable_http && !skip_reassembly {
+-        Some(HttpAnalyzer::new())
+-    } else {
+-        None
+-    };
+-    let tls_analyzer = if enable_tls && !skip_reassembly {
+-        Some(TlsAnalyzer::new())
+-    } else {
+-        None
+-    };
+-    // BC-2.14.023 §P2: construct ModbusAnalyzer only when enabled AND reassembly is on.
+-    let modbus_analyzer: Option<ModbusAnalyzer> = if enable_modbus && !skip_reassembly {
+-        Some(ModbusAnalyzer::new(
+-            modbus_write_burst_threshold,
+-            modbus_write_sustained_threshold,
+-        ))
+-    } else {
+-        None
+-    };
+-    // BC-2.15.021 / BC-2.15.017: construct Dnp3Analyzer only when enabled AND reassembly is on.
+-    // Forward the CLI-parsed dnp3_direct_operate_threshold to Dnp3Analyzer::new().
+-    // When flag omitted, clap default = DNPXX_DIRECT_OPERATE_THRESHOLD_DEFAULT (10).
+-    // AC-006: threshold wired; AC-007: 0 fires immediately, MAX never fires;
+-    // AC-008: threshold echoed in T1692.001 summary string "(threshold N)".
+-    let dnp3_analyzer: Option<Dnp3Analyzer> = if enable_dnp3 && !skip_reassembly {
+-        Some(Dnp3Analyzer::new(dnp3_direct_operate_threshold))
+-    } else {
+-        None
+-    };
+-
+-    let mut dispatcher =
+-        StreamDispatcher::new(http_analyzer, tls_analyzer, modbus_analyzer, dnp3_analyzer);
+-
+-    // Capture loop wrapped in an immediately-invoked closure so any `?`-bail
+-    // inside (e.g. unreadable pcap, malformed progress-bar template) is
+-    // captured as an `Err` *without* short-circuiting `run_analyze` itself.
+-    // This guarantees we always reach the reassembler `finalize` call below,
+-    // which is what `impl Drop for TcpReassembler` only warns about — see
+-    // LESSON-P0.03 / architecture smell #9 ("no-Drop / finalize-fragile").
+-    let capture_result: Result<()> = (|| {
+-        for target in targets {
+-            let pcap_files = resolve_targets(target)?;
+-            for path in &pcap_files {
+-                let source = PcapSource::from_file(path)
+-                    .with_context(|| format!("Failed to read {}", path.display()))?;
+-
+-                let pb = ProgressBar::new(source.packets.len() as u64);
+-                pb.set_style(ProgressStyle::with_template(
+-                    "[{elapsed_precise}] {bar:40} {pos}/{len} packets",
+-                )?);
+-
+-                for raw in &source.packets {
+-                    match decode_packet(&raw.data, source.datalink) {
+-                        Ok(DecodedFrame::Ip(parsed)) => {
+-                            summary.ingest(&parsed);
+-                            if enable_dns && dns_analyzer.can_decode(&parsed) {
+-                                let findings = dns_analyzer.analyze(&parsed);
+-                                all_findings.extend(findings);
+-                            }
+-                            if let Some(ref mut reasm) = reassembler {
+-                                reasm.process_packet(&parsed, raw.timestamp_secs, &mut dispatcher);
+-                            }
+-                        }
+-                        // STORY-113: ArpAnalyzer wiring (BC-2.16.011; AC-015/AC-016).
+-                        // ARP frames NEVER reach StreamDispatcher (Forbidden Dependency;
+-                        // arp-architecture-delta.md §1; BC-2.16.015 Invariant 2).
+-                        // process_arp is called only when --arp is active (enable_arp gate).
+-                        Ok(DecodedFrame::Arp(arp_frame)) => {
+-                            if enable_arp {
+-                                let ts = raw.timestamp_secs;
+-                                let findings = arp_analyzer.process_arp(&arp_frame, ts);
+-                                all_findings.extend(findings);
+-                            }
+-                        }
+-                        Err(ref e) if e.to_string().contains("Non-Ethernet/IPv4 ARP frame") => {
+-                            // STORY-113: D11 malformed ARP notification (BC-2.16.009 PC3/PC4).
+-                            // malformed_frames increments unconditionally (BC-2.16.009 PC4).
+-                            // When --arp active: record_malformed emits D11 Finding and
+-                            // increments both malformed_frames and malformed_findings (AC-012).
+-                            // When --arp absent: only malformed_frames increments; no finding
+-                            // emitted and malformed_findings unchanged (BC-2.16.009 PC4, ADR-008
+-                            // Decision 7, BC-2.16.010 key 11).
+-                            if enable_arp {
+-                                all_findings.extend(arp_analyzer.record_malformed(raw.data.len()));
+-                            } else {
+-                                arp_analyzer.malformed_frames += 1;
+-                            }
+-                        }
+-                        Err(e) => {
+-                            if total_decode_errors == 0 {
+-                                eprintln!(
+-                                    "Warning: failed to decode packet ({e}). Further errors counted silently."
+-                                );
+-                            }
+-                            total_decode_errors += 1;
+-                        }
+-                    }
+-                    pb.inc(1);
+-                }
+-                pb.finish_and_clear();
+-            }
+-        }
+-        Ok(())
+-    })();
+-
+-    summary.skipped_packets = total_decode_errors;
+-
+-    // ALWAYS finalize the reassembler before propagating any capture error,
+-    // so the segment-limit summary finding and per-flow flush still happen
+-    // on the partial state captured before the bail.
+-    if let Some(ref mut reasm) = reassembler {
+-        reasm.finalize(&mut dispatcher);
+-        all_findings.extend(reasm.findings().to_vec());
+-    }
+-
+-    capture_result?;
+-
+-    if let Some(http) = dispatcher.http_analyzer() {
+-        all_findings.extend(http.findings());
+-    }
+-    if let Some(tls) = dispatcher.tls_analyzer() {
+-        all_findings.extend(tls.findings());
+-    }
+-
+-    let mut analyzer_summaries = Vec::new();
+-    if let Some(ref reasm) = reassembler {
+-        let mut reasm_summary = reasm.summarize();
+-        reasm_summary.detail.insert(
+-            "unclassified_flows".to_string(),
+-            serde_json::json!(dispatcher.unclassified_flows()),
+-        );
+-        analyzer_summaries.push(reasm_summary);
+-    }
+-    if enable_dns {
+-        analyzer_summaries.push(dns_analyzer.summarize());
+-    }
+-    if let Some(http) = dispatcher.http_analyzer() {
+-        analyzer_summaries.push(http.summarize());
+-    }
+-    if let Some(tls) = dispatcher.tls_analyzer() {
+-        analyzer_summaries.push(tls.summarize());
+-    }
+-
+-    // BC-2.14.023 §P5: post-finalize — collect Modbus findings and summary.
+-    if let Some(modbus) = dispatcher.take_modbus_analyzer() {
+-        all_findings.extend(modbus.all_findings.iter().cloned());
+-        analyzer_summaries.push(modbus.summarize());
+-    }
+-
+-    // BC-2.15.021: post-finalize — collect DNP3 findings and summary.
+-    if let Some(dnp3) = dispatcher.take_dnp3_analyzer() {
+-        all_findings.extend(dnp3.all_findings.iter().cloned());
+-        analyzer_summaries.push(dnp3.summarize());
+-    }
+-
+-    // STORY-113: ARP post-capture summary (BC-2.16.011 PC7/8; AC-016).
+-    // summarize() and push to analyzer_summaries only when --arp is active.
+-    // Mirrors the Modbus/DNP3 pattern per BC-2.16.010 Invariant 4.
+-    if enable_arp {
+-        analyzer_summaries.push(arp_analyzer.summarize());
+-    }
+-
+-    let resolved_format = resolve_format(cli);
+-    let output = match resolved_format {
+-        Some(OutputFormat::Json) => {
+-            let reporter = JsonReporter;
+-            reporter.render(&summary, &all_findings, &analyzer_summaries)
+-        }
+-        Some(OutputFormat::Csv) => {
+-            let reporter = CsvReporter;
+-            reporter.render(&summary, &all_findings, &analyzer_summaries)
+-        }
+-        _ => {
+-            let reporter = TerminalReporter {
+-                use_color,
+-                // `analyze` does not expose a per-host breakdown flag —
+-                // that is `summary`-subcommand-only (LESSON-P1.03).
+-                show_hosts_breakdown: false,
+-                // BC-2.11.028 / BC-2.11.030: orthogonal 2-if struct wiring (STORY-119/B CLI flip).
+-                // --mitre alone (show_mitre_grouping=true, collapse_findings=true) → {Grouped, Collapsed}.
+-                // --mitre --no-collapse (show_mitre_grouping=true, collapse_findings=false) → {Grouped, Expanded}.
+-                // default (show_mitre_grouping=false, collapse_findings=true) → {Flat, Collapsed}.
+-                // --no-collapse only (show_mitre_grouping=false, collapse_findings=false) → {Flat, Expanded}.
+-                render: FindingsRender {
+-                    grouping: grouping_from_flag(show_mitre_grouping),
+-                    collapse: if collapse_findings {
+-                        Collapse::Collapsed
+-                    } else {
+-                        Collapse::Expanded
+-                    },
+-                },
+-            };
+-            reporter.render(&summary, &all_findings, &analyzer_summaries)
+-        }
+-    };
+-
+-    write_output(&output, cli)?;
+-    Ok(())
++    Ok(()) /* ~ changed by cargo-mutants ~ */
+ }
+ 
+ fn run_summary(
+     targets: &[std::path::PathBuf],
+     show_hosts_breakdown: bool,
+     use_color: bool,
+     cli: &Cli,
+ ) -> Result<()> {

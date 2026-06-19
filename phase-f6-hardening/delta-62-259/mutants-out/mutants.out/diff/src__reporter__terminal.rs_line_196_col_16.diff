@@ -1,0 +1,21 @@
+--- src/reporter/terminal.rs
++++ delete ! in <impl Reporter for TerminalReporter>::render
+@@ -188,17 +188,17 @@
+         // LESSON-P1.03: optional per-host breakdown, gated by the
+         // `summary --hosts` flag. Renders one line per unique
+         // source/destination IP observed in the capture, in the
+         // sorted-by-address order returned by `Summary::unique_hosts()`.
+         // The always-on `Hosts: N` count in the header is kept; this
+         // section is the expanded itemized list.
+         if self.show_hosts_breakdown {
+             let hosts = summary.unique_hosts();
+-            if !hosts.is_empty() {
++            if  /* ~ changed by cargo-mutants ~ */hosts.is_empty() {
+                 out.push_str(&self.section("HOSTS"));
+                 for host in &hosts {
+                     out.push_str(&format!("  {host}\n"));
+                 }
+                 out.push('\n');
+             }
+         }
+ 

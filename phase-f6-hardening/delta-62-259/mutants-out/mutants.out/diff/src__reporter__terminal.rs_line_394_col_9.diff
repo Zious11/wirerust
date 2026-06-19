@@ -1,0 +1,22 @@
+--- src/reporter/terminal.rs
++++ replace TerminalReporter::collapse_findings_pass -> Vec<(CollapseKey, Vec<&'a Finding>)> with vec![]
+@@ -386,18 +386,17 @@
+     ///
+     /// Uses the `findings` PARAMETER — `TerminalReporter` has no `findings` field.
+     ///
+     /// BC-2.11.025 / ADR-0003 "Collapse-API Shape".
+     fn collapse_findings_pass<'a>(
+         &self,
+         findings: &'a [Finding],
+     ) -> Vec<(CollapseKey, Vec<&'a Finding>)> {
+-        let refs: Vec<&Finding> = findings.iter().collect();
+-        self.collapse_findings_pass_refs(&refs)
++        vec![] /* ~ changed by cargo-mutants ~ */
+     }
+ 
+     /// Renders the FINDINGS section in collapsed flat mode.
+     ///
+     /// Calls `collapse_findings_pass` to build insertion-ordered groups, then for
+     /// each group:
+     ///   - N == 1 (singleton): delegates to `render_finding_flat` for byte-identical
+     ///     output compared to pre-v0.8.0 (no count suffix, all evidence rendered, MITRE

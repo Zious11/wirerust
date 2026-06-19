@@ -1,0 +1,24 @@
+--- src/main.rs
++++ delete match arm Some(OutputFormat::Json) in run_summary
+@@ -430,20 +430,17 @@
+                 }
+             }
+         }
+     }
+     summary.skipped_packets = total_decode_errors;
+ 
+     let resolved_format = resolve_format(cli);
+     let output = match resolved_format {
+-        Some(OutputFormat::Json) => {
+-            let reporter = JsonReporter;
+-            reporter.render(&summary, &[], &[])
+-        }
++         /* ~ changed by cargo-mutants ~ */
+         Some(OutputFormat::Csv) => {
+             let reporter = CsvReporter;
+             reporter.render(&summary, &[], &[])
+         }
+         _ => {
+             let reporter = TerminalReporter {
+                 use_color,
+                 show_hosts_breakdown,

@@ -1,0 +1,21 @@
+--- src/main.rs
++++ replace += with -= in run_summary
+@@ -420,17 +420,17 @@
+                     // ARP security analysis runs only under `analyze --arp`.
+                     Ok(DecodedFrame::Arp(_arp_frame)) => {}
+                     Err(e) => {
+                         if total_decode_errors == 0 {
+                             eprintln!(
+                                 "Warning: failed to decode packet ({e}). Further errors counted silently."
+                             );
+                         }
+-                        total_decode_errors += 1;
++                        total_decode_errors -= /* ~ changed by cargo-mutants ~ */ 1;
+                     }
+                 }
+             }
+         }
+     }
+     summary.skipped_packets = total_decode_errors;
+ 
+     let resolved_format = resolve_format(cli);

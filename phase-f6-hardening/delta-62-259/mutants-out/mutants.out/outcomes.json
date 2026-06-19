@@ -1,0 +1,7011 @@
+{
+  "outcomes": [
+    {
+      "scenario": "Baseline",
+      "summary": "Success",
+      "log_path": "log/baseline.log",
+      "diff_path": null,
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 16.663047875,
+          "process_status": "Success",
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 21.504046875,
+          "process_status": "Success",
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/main.rs:44:5: replace main -> Result<()> with Ok(())",
+          "package": "wirerust",
+          "file": "src/main.rs",
+          "function": {
+            "function_name": "main",
+            "return_type": "-> Result<()>",
+            "span": {
+              "start": {
+                "line": 43,
+                "column": 1
+              },
+              "end": {
+                "line": 91,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 44,
+              "column": 5
+            },
+            "end": {
+              "line": 90,
+              "column": 11
+            }
+          },
+          "replacement": "Ok(())",
+          "genre": "FnValue"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/src__main.rs_line_44_col_5.log",
+      "diff_path": "diff/src__main.rs_line_44_col_5.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 0.384963542,
+          "process_status": "Success",
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 2.616484958,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/main.rs:46:35: replace && with || in main",
+          "package": "wirerust",
+          "file": "src/main.rs",
+          "function": {
+            "function_name": "main",
+            "return_type": "-> Result<()>",
+            "span": {
+              "start": {
+                "line": 43,
+                "column": 1
+              },
+              "end": {
+                "line": 91,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 46,
+              "column": 35
+            },
+            "end": {
+              "line": 46,
+              "column": 37
+            }
+          },
+          "replacement": "||",
+          "genre": "BinaryOperator"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/src__main.rs_line_46_col_35.log",
+      "diff_path": "diff/src__main.rs_line_46_col_35.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 0.490982333,
+          "process_status": "Success",
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 3.620751125,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/main.rs:46:21: delete ! in main",
+          "package": "wirerust",
+          "file": "src/main.rs",
+          "function": {
+            "function_name": "main",
+            "return_type": "-> Result<()>",
+            "span": {
+              "start": {
+                "line": 43,
+                "column": 1
+              },
+              "end": {
+                "line": 91,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 46,
+              "column": 21
+            },
+            "end": {
+              "line": 46,
+              "column": 22
+            }
+          },
+          "replacement": "",
+          "genre": "UnaryOperator"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/src__main.rs_line_46_col_21.log",
+      "diff_path": "diff/src__main.rs_line_46_col_21.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 0.428386958,
+          "process_status": "Success",
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 3.548910375,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/main.rs:68:22: replace || with && in main",
+          "package": "wirerust",
+          "file": "src/main.rs",
+          "function": {
+            "function_name": "main",
+            "return_type": "-> Result<()>",
+            "span": {
+              "start": {
+                "line": 43,
+                "column": 1
+              },
+              "end": {
+                "line": 91,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 68,
+              "column": 22
+            },
+            "end": {
+              "line": 68,
+              "column": 24
+            }
+          },
+          "replacement": "&&",
+          "genre": "BinaryOperator"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/src__main.rs_line_68_col_22.log",
+      "diff_path": "diff/src__main.rs_line_68_col_22.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 0.432649667,
+          "process_status": "Success",
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 3.610036584,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/main.rs:69:23: replace || with && in main",
+          "package": "wirerust",
+          "file": "src/main.rs",
+          "function": {
+            "function_name": "main",
+            "return_type": "-> Result<()>",
+            "span": {
+              "start": {
+                "line": 43,
+                "column": 1
+              },
+              "end": {
+                "line": 91,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 69,
+              "column": 23
+            },
+            "end": {
+              "line": 69,
+              "column": 25
+            }
+          },
+          "replacement": "&&",
+          "genre": "BinaryOperator"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/src__main.rs_line_69_col_23.log",
+      "diff_path": "diff/src__main.rs_line_69_col_23.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 0.432183709,
+          "process_status": "Success",
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 2.865691,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/main.rs:70:22: replace || with && in main",
+          "package": "wirerust",
+          "file": "src/main.rs",
+          "function": {
+            "function_name": "main",
+            "return_type": "-> Result<()>",
+            "span": {
+              "start": {
+                "line": 43,
+                "column": 1
+              },
+              "end": {
+                "line": 91,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 70,
+              "column": 22
+            },
+            "end": {
+              "line": 70,
+              "column": 24
+            }
+          },
+          "replacement": "&&",
+          "genre": "BinaryOperator"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/src__main.rs_line_70_col_22.log",
+      "diff_path": "diff/src__main.rs_line_70_col_22.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 0.428113708,
+          "process_status": "Success",
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 3.55080675,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/main.rs:71:25: replace || with && in main",
+          "package": "wirerust",
+          "file": "src/main.rs",
+          "function": {
+            "function_name": "main",
+            "return_type": "-> Result<()>",
+            "span": {
+              "start": {
+                "line": 43,
+                "column": 1
+              },
+              "end": {
+                "line": 91,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 71,
+              "column": 25
+            },
+            "end": {
+              "line": 71,
+              "column": 27
+            }
+          },
+          "replacement": "&&",
+          "genre": "BinaryOperator"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/src__main.rs_line_71_col_25.log",
+      "diff_path": "diff/src__main.rs_line_71_col_25.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 0.380359458,
+          "process_status": "Success",
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 2.714524709,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/main.rs:74:23: replace || with && in main",
+          "package": "wirerust",
+          "file": "src/main.rs",
+          "function": {
+            "function_name": "main",
+            "return_type": "-> Result<()>",
+            "span": {
+              "start": {
+                "line": 43,
+                "column": 1
+              },
+              "end": {
+                "line": 91,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 74,
+              "column": 23
+            },
+            "end": {
+              "line": 74,
+              "column": 25
+            }
+          },
+          "replacement": "&&",
+          "genre": "BinaryOperator"
+        }
+      },
+      "summary": "MissedMutant",
+      "log_path": "log/src__main.rs_line_74_col_23.log",
+      "diff_path": "diff/src__main.rs_line_74_col_23.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 0.433916208,
+          "process_status": "Success",
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 5.921034917,
+          "process_status": "Success",
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/main.rs:76:22: replace || with && in main",
+          "package": "wirerust",
+          "file": "src/main.rs",
+          "function": {
+            "function_name": "main",
+            "return_type": "-> Result<()>",
+            "span": {
+              "start": {
+                "line": 43,
+                "column": 1
+              },
+              "end": {
+                "line": 91,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 76,
+              "column": 22
+            },
+            "end": {
+              "line": 76,
+              "column": 24
+            }
+          },
+          "replacement": "&&",
+          "genre": "BinaryOperator"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/src__main.rs_line_76_col_22.log",
+      "diff_path": "diff/src__main.rs_line_76_col_22.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 0.439440667,
+          "process_status": "Success",
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 2.76582925,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/main.rs:113:5: replace run_analyze -> Result<()> with Ok(())",
+          "package": "wirerust",
+          "file": "src/main.rs",
+          "function": {
+            "function_name": "run_analyze",
+            "return_type": "-> Result<()>",
+            "span": {
+              "start": {
+                "line": 93,
+                "column": 1
+              },
+              "end": {
+                "line": 398,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 113,
+              "column": 5
+            },
+            "end": {
+              "line": 397,
+              "column": 11
+            }
+          },
+          "replacement": "Ok(())",
+          "genre": "FnValue"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/src__main.rs_line_113_col_5.log",
+      "diff_path": "diff/src__main.rs_line_113_col_5.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 0.427661791,
+          "process_status": "Success",
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 2.636300083,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/main.rs:113:37: replace == with != in run_analyze",
+          "package": "wirerust",
+          "file": "src/main.rs",
+          "function": {
+            "function_name": "run_analyze",
+            "return_type": "-> Result<()>",
+            "span": {
+              "start": {
+                "line": 93,
+                "column": 1
+              },
+              "end": {
+                "line": 398,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 113,
+              "column": 37
+            },
+            "end": {
+              "line": 113,
+              "column": 39
+            }
+          },
+          "replacement": "!=",
+          "genre": "BinaryOperator"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/src__main.rs_line_113_col_37.log",
+      "diff_path": "diff/src__main.rs_line_113_col_37.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 0.42540425,
+          "process_status": "Success",
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 2.776355958,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/main.rs:116:41: replace == with != in run_analyze",
+          "package": "wirerust",
+          "file": "src/main.rs",
+          "function": {
+            "function_name": "run_analyze",
+            "return_type": "-> Result<()>",
+            "span": {
+              "start": {
+                "line": 93,
+                "column": 1
+              },
+              "end": {
+                "line": 398,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 116,
+              "column": 41
+            },
+            "end": {
+              "line": 116,
+              "column": 43
+            }
+          },
+          "replacement": "!=",
+          "genre": "BinaryOperator"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/src__main.rs_line_116_col_41.log",
+      "diff_path": "diff/src__main.rs_line_116_col_41.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 0.439860666,
+          "process_status": "Success",
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 2.6994334159999998,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/main.rs:123:23: replace == with != in run_analyze",
+          "package": "wirerust",
+          "file": "src/main.rs",
+          "function": {
+            "function_name": "run_analyze",
+            "return_type": "-> Result<()>",
+            "span": {
+              "start": {
+                "line": 93,
+                "column": 1
+              },
+              "end": {
+                "line": 398,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 123,
+              "column": 23
+            },
+            "end": {
+              "line": 123,
+              "column": 25
+            }
+          },
+          "replacement": "!=",
+          "genre": "BinaryOperator"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/src__main.rs_line_123_col_23.log",
+      "diff_path": "diff/src__main.rs_line_123_col_23.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 0.373917292,
+          "process_status": "Success",
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 2.6315391249999998,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/main.rs:126:28: replace == with != in run_analyze",
+          "package": "wirerust",
+          "file": "src/main.rs",
+          "function": {
+            "function_name": "run_analyze",
+            "return_type": "-> Result<()>",
+            "span": {
+              "start": {
+                "line": 93,
+                "column": 1
+              },
+              "end": {
+                "line": 398,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 126,
+              "column": 28
+            },
+            "end": {
+              "line": 126,
+              "column": 30
+            }
+          },
+          "replacement": "!=",
+          "genre": "BinaryOperator"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/src__main.rs_line_126_col_28.log",
+      "diff_path": "diff/src__main.rs_line_126_col_28.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 0.426614292,
+          "process_status": "Success",
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 2.597564083,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/main.rs:146:70: replace || with && in run_analyze",
+          "package": "wirerust",
+          "file": "src/main.rs",
+          "function": {
+            "function_name": "run_analyze",
+            "return_type": "-> Result<()>",
+            "span": {
+              "start": {
+                "line": 93,
+                "column": 1
+              },
+              "end": {
+                "line": 398,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 146,
+              "column": 70
+            },
+            "end": {
+              "line": 146,
+              "column": 72
+            }
+          },
+          "replacement": "&&",
+          "genre": "BinaryOperator"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/src__main.rs_line_146_col_70.log",
+      "diff_path": "diff/src__main.rs_line_146_col_70.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 0.426414417,
+          "process_status": "Success",
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 3.576935833,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/main.rs:146:53: replace || with && in run_analyze",
+          "package": "wirerust",
+          "file": "src/main.rs",
+          "function": {
+            "function_name": "run_analyze",
+            "return_type": "-> Result<()>",
+            "span": {
+              "start": {
+                "line": 93,
+                "column": 1
+              },
+              "end": {
+                "line": 398,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 146,
+              "column": 53
+            },
+            "end": {
+              "line": 146,
+              "column": 55
+            }
+          },
+          "replacement": "&&",
+          "genre": "BinaryOperator"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/src__main.rs_line_146_col_53.log",
+      "diff_path": "diff/src__main.rs_line_146_col_53.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 0.433688917,
+          "process_status": "Success",
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 3.568513958,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/main.rs:146:39: replace || with && in run_analyze",
+          "package": "wirerust",
+          "file": "src/main.rs",
+          "function": {
+            "function_name": "run_analyze",
+            "return_type": "-> Result<()>",
+            "span": {
+              "start": {
+                "line": 93,
+                "column": 1
+              },
+              "end": {
+                "line": 398,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 146,
+              "column": 39
+            },
+            "end": {
+              "line": 146,
+              "column": 41
+            }
+          },
+          "replacement": "&&",
+          "genre": "BinaryOperator"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/src__main.rs_line_146_col_39.log",
+      "diff_path": "diff/src__main.rs_line_146_col_39.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 0.434566625,
+          "process_status": "Success",
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 3.566790458,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/main.rs:146:24: replace || with && in run_analyze",
+          "package": "wirerust",
+          "file": "src/main.rs",
+          "function": {
+            "function_name": "run_analyze",
+            "return_type": "-> Result<()>",
+            "span": {
+              "start": {
+                "line": 93,
+                "column": 1
+              },
+              "end": {
+                "line": 398,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 146,
+              "column": 24
+            },
+            "end": {
+              "line": 146,
+              "column": 26
+            }
+          },
+          "replacement": "&&",
+          "genre": "BinaryOperator"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/src__main.rs_line_146_col_24.log",
+      "diff_path": "diff/src__main.rs_line_146_col_24.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 0.425023209,
+          "process_status": "Success",
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 2.898949125,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/main.rs:148:36: replace && with || in run_analyze",
+          "package": "wirerust",
+          "file": "src/main.rs",
+          "function": {
+            "function_name": "run_analyze",
+            "return_type": "-> Result<()>",
+            "span": {
+              "start": {
+                "line": 93,
+                "column": 1
+              },
+              "end": {
+                "line": 398,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 148,
+              "column": 36
+            },
+            "end": {
+              "line": 148,
+              "column": 38
+            }
+          },
+          "replacement": "||",
+          "genre": "BinaryOperator"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/src__main.rs_line_148_col_36.log",
+      "diff_path": "diff/src__main.rs_line_148_col_36.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 0.425866875,
+          "process_status": "Success",
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 3.538791458,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/main.rs:148:21: replace || with && in run_analyze",
+          "package": "wirerust",
+          "file": "src/main.rs",
+          "function": {
+            "function_name": "run_analyze",
+            "return_type": "-> Result<()>",
+            "span": {
+              "start": {
+                "line": 93,
+                "column": 1
+              },
+              "end": {
+                "line": 398,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 148,
+              "column": 21
+            },
+            "end": {
+              "line": 148,
+              "column": 23
+            }
+          },
+          "replacement": "&&",
+          "genre": "BinaryOperator"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/src__main.rs_line_148_col_21.log",
+      "diff_path": "diff/src__main.rs_line_148_col_21.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 0.426718583,
+          "process_status": "Success",
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 3.6498495,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/main.rs:154:22: replace && with || in run_analyze",
+          "package": "wirerust",
+          "file": "src/main.rs",
+          "function": {
+            "function_name": "run_analyze",
+            "return_type": "-> Result<()>",
+            "span": {
+              "start": {
+                "line": 93,
+                "column": 1
+              },
+              "end": {
+                "line": 398,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 154,
+              "column": 22
+            },
+            "end": {
+              "line": 154,
+              "column": 24
+            }
+          },
+          "replacement": "||",
+          "genre": "BinaryOperator"
+        }
+      },
+      "summary": "MissedMutant",
+      "log_path": "log/src__main.rs_line_154_col_22.log",
+      "diff_path": "diff/src__main.rs_line_154_col_22.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 0.433358208,
+          "process_status": "Success",
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 5.76885975,
+          "process_status": "Success",
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/main.rs:161:20: replace && with || in run_analyze",
+          "package": "wirerust",
+          "file": "src/main.rs",
+          "function": {
+            "function_name": "run_analyze",
+            "return_type": "-> Result<()>",
+            "span": {
+              "start": {
+                "line": 93,
+                "column": 1
+              },
+              "end": {
+                "line": 398,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 161,
+              "column": 20
+            },
+            "end": {
+              "line": 161,
+              "column": 22
+            }
+          },
+          "replacement": "||",
+          "genre": "BinaryOperator"
+        }
+      },
+      "summary": "MissedMutant",
+      "log_path": "log/src__main.rs_line_161_col_20.log",
+      "diff_path": "diff/src__main.rs_line_161_col_20.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 0.427598625,
+          "process_status": "Success",
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 5.662470167,
+          "process_status": "Success",
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/main.rs:168:47: replace && with || in run_analyze",
+          "package": "wirerust",
+          "file": "src/main.rs",
+          "function": {
+            "function_name": "run_analyze",
+            "return_type": "-> Result<()>",
+            "span": {
+              "start": {
+                "line": 93,
+                "column": 1
+              },
+              "end": {
+                "line": 398,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 168,
+              "column": 47
+            },
+            "end": {
+              "line": 168,
+              "column": 49
+            }
+          },
+          "replacement": "||",
+          "genre": "BinaryOperator"
+        }
+      },
+      "summary": "MissedMutant",
+      "log_path": "log/src__main.rs_line_168_col_47.log",
+      "diff_path": "diff/src__main.rs_line_168_col_47.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 0.426249291,
+          "process_status": "Success",
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 5.785215584,
+          "process_status": "Success",
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/main.rs:168:50: delete ! in run_analyze",
+          "package": "wirerust",
+          "file": "src/main.rs",
+          "function": {
+            "function_name": "run_analyze",
+            "return_type": "-> Result<()>",
+            "span": {
+              "start": {
+                "line": 93,
+                "column": 1
+              },
+              "end": {
+                "line": 398,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 168,
+              "column": 50
+            },
+            "end": {
+              "line": 168,
+              "column": 51
+            }
+          },
+          "replacement": "",
+          "genre": "UnaryOperator"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/src__main.rs_line_168_col_50.log",
+      "diff_path": "diff/src__main.rs_line_168_col_50.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 0.428436667,
+          "process_status": "Success",
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 2.73857925,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/main.rs:170:13: delete field max_depth from struct ReassemblyConfig expression in run_analyze",
+          "package": "wirerust",
+          "file": "src/main.rs",
+          "function": {
+            "function_name": "run_analyze",
+            "return_type": "-> Result<()>",
+            "span": {
+              "start": {
+                "line": 93,
+                "column": 1
+              },
+              "end": {
+                "line": 398,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 170,
+              "column": 13
+            },
+            "end": {
+              "line": 170,
+              "column": 57
+            }
+          },
+          "replacement": "",
+          "genre": "StructField"
+        }
+      },
+      "summary": "MissedMutant",
+      "log_path": "log/src__main.rs_line_170_col_13.log",
+      "diff_path": "diff/src__main.rs_line_170_col_13.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 0.435616584,
+          "process_status": "Success",
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 5.7080368329999995,
+          "process_status": "Success",
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/main.rs:171:13: delete field memcap from struct ReassemblyConfig expression in run_analyze",
+          "package": "wirerust",
+          "file": "src/main.rs",
+          "function": {
+            "function_name": "run_analyze",
+            "return_type": "-> Result<()>",
+            "span": {
+              "start": {
+                "line": 93,
+                "column": 1
+              },
+              "end": {
+                "line": 398,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 171,
+              "column": 13
+            },
+            "end": {
+              "line": 171,
+              "column": 55
+            }
+          },
+          "replacement": "",
+          "genre": "StructField"
+        }
+      },
+      "summary": "MissedMutant",
+      "log_path": "log/src__main.rs_line_171_col_13.log",
+      "diff_path": "diff/src__main.rs_line_171_col_13.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 0.433019583,
+          "process_status": "Success",
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 5.673335708,
+          "process_status": "Success",
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/main.rs:170:45: replace * with + in run_analyze",
+          "package": "wirerust",
+          "file": "src/main.rs",
+          "function": {
+            "function_name": "run_analyze",
+            "return_type": "-> Result<()>",
+            "span": {
+              "start": {
+                "line": 93,
+                "column": 1
+              },
+              "end": {
+                "line": 398,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 170,
+              "column": 45
+            },
+            "end": {
+              "line": 170,
+              "column": 46
+            }
+          },
+          "replacement": "+",
+          "genre": "BinaryOperator"
+        }
+      },
+      "summary": "MissedMutant",
+      "log_path": "log/src__main.rs_line_170_col_45.log",
+      "diff_path": "diff/src__main.rs_line_170_col_45.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 0.429904291,
+          "process_status": "Success",
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 5.744484625,
+          "process_status": "Success",
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/main.rs:170:45: replace * with / in run_analyze",
+          "package": "wirerust",
+          "file": "src/main.rs",
+          "function": {
+            "function_name": "run_analyze",
+            "return_type": "-> Result<()>",
+            "span": {
+              "start": {
+                "line": 93,
+                "column": 1
+              },
+              "end": {
+                "line": 398,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 170,
+              "column": 45
+            },
+            "end": {
+              "line": 170,
+              "column": 46
+            }
+          },
+          "replacement": "/",
+          "genre": "BinaryOperator"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/src__main.rs_line_170_col_45_001.log",
+      "diff_path": "diff/src__main.rs_line_170_col_45_001.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 0.437950875,
+          "process_status": "Success",
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 2.63193025,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/main.rs:171:43: replace * with + in run_analyze",
+          "package": "wirerust",
+          "file": "src/main.rs",
+          "function": {
+            "function_name": "run_analyze",
+            "return_type": "-> Result<()>",
+            "span": {
+              "start": {
+                "line": 93,
+                "column": 1
+              },
+              "end": {
+                "line": 398,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 171,
+              "column": 43
+            },
+            "end": {
+              "line": 171,
+              "column": 44
+            }
+          },
+          "replacement": "+",
+          "genre": "BinaryOperator"
+        }
+      },
+      "summary": "MissedMutant",
+      "log_path": "log/src__main.rs_line_171_col_43.log",
+      "diff_path": "diff/src__main.rs_line_171_col_43.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 0.4329705,
+          "process_status": "Success",
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 5.740384875,
+          "process_status": "Success",
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/main.rs:171:43: replace * with / in run_analyze",
+          "package": "wirerust",
+          "file": "src/main.rs",
+          "function": {
+            "function_name": "run_analyze",
+            "return_type": "-> Result<()>",
+            "span": {
+              "start": {
+                "line": 93,
+                "column": 1
+              },
+              "end": {
+                "line": 398,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 171,
+              "column": 43
+            },
+            "end": {
+              "line": 171,
+              "column": 44
+            }
+          },
+          "replacement": "/",
+          "genre": "BinaryOperator"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/src__main.rs_line_171_col_43_001.log",
+      "diff_path": "diff/src__main.rs_line_171_col_43_001.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 0.415303792,
+          "process_status": "Success",
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 2.732249125,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/main.rs:200:40: replace && with || in run_analyze",
+          "package": "wirerust",
+          "file": "src/main.rs",
+          "function": {
+            "function_name": "run_analyze",
+            "return_type": "-> Result<()>",
+            "span": {
+              "start": {
+                "line": 93,
+                "column": 1
+              },
+              "end": {
+                "line": 398,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 200,
+              "column": 40
+            },
+            "end": {
+              "line": 200,
+              "column": 42
+            }
+          },
+          "replacement": "||",
+          "genre": "BinaryOperator"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/src__main.rs_line_200_col_40.log",
+      "diff_path": "diff/src__main.rs_line_200_col_40.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 0.42973375,
+          "process_status": "Success",
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 3.539508292,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/main.rs:200:43: delete ! in run_analyze",
+          "package": "wirerust",
+          "file": "src/main.rs",
+          "function": {
+            "function_name": "run_analyze",
+            "return_type": "-> Result<()>",
+            "span": {
+              "start": {
+                "line": 93,
+                "column": 1
+              },
+              "end": {
+                "line": 398,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 200,
+              "column": 43
+            },
+            "end": {
+              "line": 200,
+              "column": 44
+            }
+          },
+          "replacement": "",
+          "genre": "UnaryOperator"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/src__main.rs_line_200_col_43.log",
+      "diff_path": "diff/src__main.rs_line_200_col_43.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 0.435494,
+          "process_status": "Success",
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 2.897083583,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/main.rs:205:38: replace && with || in run_analyze",
+          "package": "wirerust",
+          "file": "src/main.rs",
+          "function": {
+            "function_name": "run_analyze",
+            "return_type": "-> Result<()>",
+            "span": {
+              "start": {
+                "line": 93,
+                "column": 1
+              },
+              "end": {
+                "line": 398,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 205,
+              "column": 38
+            },
+            "end": {
+              "line": 205,
+              "column": 40
+            }
+          },
+          "replacement": "||",
+          "genre": "BinaryOperator"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/src__main.rs_line_205_col_38.log",
+      "diff_path": "diff/src__main.rs_line_205_col_38.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 0.429769333,
+          "process_status": "Success",
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 3.587728625,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/main.rs:205:41: delete ! in run_analyze",
+          "package": "wirerust",
+          "file": "src/main.rs",
+          "function": {
+            "function_name": "run_analyze",
+            "return_type": "-> Result<()>",
+            "span": {
+              "start": {
+                "line": 93,
+                "column": 1
+              },
+              "end": {
+                "line": 398,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 205,
+              "column": 41
+            },
+            "end": {
+              "line": 205,
+              "column": 42
+            }
+          },
+          "replacement": "",
+          "genre": "UnaryOperator"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/src__main.rs_line_205_col_41.log",
+      "diff_path": "diff/src__main.rs_line_205_col_41.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 0.436976541,
+          "process_status": "Success",
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 3.528483708,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/main.rs:211:68: replace && with || in run_analyze",
+          "package": "wirerust",
+          "file": "src/main.rs",
+          "function": {
+            "function_name": "run_analyze",
+            "return_type": "-> Result<()>",
+            "span": {
+              "start": {
+                "line": 93,
+                "column": 1
+              },
+              "end": {
+                "line": 398,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 211,
+              "column": 68
+            },
+            "end": {
+              "line": 211,
+              "column": 70
+            }
+          },
+          "replacement": "||",
+          "genre": "BinaryOperator"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/src__main.rs_line_211_col_68.log",
+      "diff_path": "diff/src__main.rs_line_211_col_68.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 0.427551208,
+          "process_status": "Success",
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 2.736944083,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/main.rs:211:71: delete ! in run_analyze",
+          "package": "wirerust",
+          "file": "src/main.rs",
+          "function": {
+            "function_name": "run_analyze",
+            "return_type": "-> Result<()>",
+            "span": {
+              "start": {
+                "line": 93,
+                "column": 1
+              },
+              "end": {
+                "line": 398,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 211,
+              "column": 71
+            },
+            "end": {
+              "line": 211,
+              "column": 72
+            }
+          },
+          "replacement": "",
+          "genre": "UnaryOperator"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/src__main.rs_line_211_col_71.log",
+      "diff_path": "diff/src__main.rs_line_211_col_71.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 0.434168125,
+          "process_status": "Success",
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 2.616995791,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/main.rs:224:62: replace && with || in run_analyze",
+          "package": "wirerust",
+          "file": "src/main.rs",
+          "function": {
+            "function_name": "run_analyze",
+            "return_type": "-> Result<()>",
+            "span": {
+              "start": {
+                "line": 93,
+                "column": 1
+              },
+              "end": {
+                "line": 398,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 224,
+              "column": 62
+            },
+            "end": {
+              "line": 224,
+              "column": 64
+            }
+          },
+          "replacement": "||",
+          "genre": "BinaryOperator"
+        }
+      },
+      "summary": "MissedMutant",
+      "log_path": "log/src__main.rs_line_224_col_62.log",
+      "diff_path": "diff/src__main.rs_line_224_col_62.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 0.4317135,
+          "process_status": "Success",
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 5.727792583,
+          "process_status": "Success",
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/main.rs:224:65: delete ! in run_analyze",
+          "package": "wirerust",
+          "file": "src/main.rs",
+          "function": {
+            "function_name": "run_analyze",
+            "return_type": "-> Result<()>",
+            "span": {
+              "start": {
+                "line": 93,
+                "column": 1
+              },
+              "end": {
+                "line": 398,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 224,
+              "column": 65
+            },
+            "end": {
+              "line": 224,
+              "column": 66
+            }
+          },
+          "replacement": "",
+          "genre": "UnaryOperator"
+        }
+      },
+      "summary": "MissedMutant",
+      "log_path": "log/src__main.rs_line_224_col_65.log",
+      "diff_path": "diff/src__main.rs_line_224_col_65.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 0.427696291,
+          "process_status": "Success",
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 5.729582958,
+          "process_status": "Success",
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/main.rs:274:39: replace match guard e.to_string().contains(\"Non-Ethernet/IPv4 ARP frame\") with true in run_analyze",
+          "package": "wirerust",
+          "file": "src/main.rs",
+          "function": {
+            "function_name": "run_analyze",
+            "return_type": "-> Result<()>",
+            "span": {
+              "start": {
+                "line": 93,
+                "column": 1
+              },
+              "end": {
+                "line": 398,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 274,
+              "column": 39
+            },
+            "end": {
+              "line": 274,
+              "column": 92
+            }
+          },
+          "replacement": "true",
+          "genre": "MatchArmGuard"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/src__main.rs_line_274_col_39.log",
+      "diff_path": "diff/src__main.rs_line_274_col_39.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 0.440317125,
+          "process_status": "Success",
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 3.55194175,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/main.rs:274:39: replace match guard e.to_string().contains(\"Non-Ethernet/IPv4 ARP frame\") with false in run_analyze",
+          "package": "wirerust",
+          "file": "src/main.rs",
+          "function": {
+            "function_name": "run_analyze",
+            "return_type": "-> Result<()>",
+            "span": {
+              "start": {
+                "line": 93,
+                "column": 1
+              },
+              "end": {
+                "line": 398,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 274,
+              "column": 39
+            },
+            "end": {
+              "line": 274,
+              "column": 92
+            }
+          },
+          "replacement": "false",
+          "genre": "MatchArmGuard"
+        }
+      },
+      "summary": "MissedMutant",
+      "log_path": "log/src__main.rs_line_274_col_39_001.log",
+      "diff_path": "diff/src__main.rs_line_274_col_39_001.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 0.431943125,
+          "process_status": "Success",
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 5.793771583,
+          "process_status": "Success",
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/main.rs:255:43: replace && with || in run_analyze",
+          "package": "wirerust",
+          "file": "src/main.rs",
+          "function": {
+            "function_name": "run_analyze",
+            "return_type": "-> Result<()>",
+            "span": {
+              "start": {
+                "line": 93,
+                "column": 1
+              },
+              "end": {
+                "line": 398,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 255,
+              "column": 43
+            },
+            "end": {
+              "line": 255,
+              "column": 45
+            }
+          },
+          "replacement": "||",
+          "genre": "BinaryOperator"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/src__main.rs_line_255_col_43.log",
+      "diff_path": "diff/src__main.rs_line_255_col_43.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 0.428738833,
+          "process_status": "Success",
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 3.493143375,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/main.rs:285:63: replace += with -= in run_analyze",
+          "package": "wirerust",
+          "file": "src/main.rs",
+          "function": {
+            "function_name": "run_analyze",
+            "return_type": "-> Result<()>",
+            "span": {
+              "start": {
+                "line": 93,
+                "column": 1
+              },
+              "end": {
+                "line": 398,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 285,
+              "column": 63
+            },
+            "end": {
+              "line": 285,
+              "column": 65
+            }
+          },
+          "replacement": "-=",
+          "genre": "BinaryOperator"
+        }
+      },
+      "summary": "MissedMutant",
+      "log_path": "log/src__main.rs_line_285_col_63.log",
+      "diff_path": "diff/src__main.rs_line_285_col_63.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 0.422221166,
+          "process_status": "Success",
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 5.719998875,
+          "process_status": "Success",
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/main.rs:285:63: replace += with *= in run_analyze",
+          "package": "wirerust",
+          "file": "src/main.rs",
+          "function": {
+            "function_name": "run_analyze",
+            "return_type": "-> Result<()>",
+            "span": {
+              "start": {
+                "line": 93,
+                "column": 1
+              },
+              "end": {
+                "line": 398,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 285,
+              "column": 63
+            },
+            "end": {
+              "line": 285,
+              "column": 65
+            }
+          },
+          "replacement": "*=",
+          "genre": "BinaryOperator"
+        }
+      },
+      "summary": "MissedMutant",
+      "log_path": "log/src__main.rs_line_285_col_63_001.log",
+      "diff_path": "diff/src__main.rs_line_285_col_63_001.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 0.43115375,
+          "process_status": "Success",
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 5.734405,
+          "process_status": "Success",
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/main.rs:289:52: replace == with != in run_analyze",
+          "package": "wirerust",
+          "file": "src/main.rs",
+          "function": {
+            "function_name": "run_analyze",
+            "return_type": "-> Result<()>",
+            "span": {
+              "start": {
+                "line": 93,
+                "column": 1
+              },
+              "end": {
+                "line": 398,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 289,
+              "column": 52
+            },
+            "end": {
+              "line": 289,
+              "column": 54
+            }
+          },
+          "replacement": "!=",
+          "genre": "BinaryOperator"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/src__main.rs_line_289_col_52.log",
+      "diff_path": "diff/src__main.rs_line_289_col_52.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 0.4256505,
+          "process_status": "Success",
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 3.602451666,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/main.rs:294:49: replace += with -= in run_analyze",
+          "package": "wirerust",
+          "file": "src/main.rs",
+          "function": {
+            "function_name": "run_analyze",
+            "return_type": "-> Result<()>",
+            "span": {
+              "start": {
+                "line": 93,
+                "column": 1
+              },
+              "end": {
+                "line": 398,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 294,
+              "column": 49
+            },
+            "end": {
+              "line": 294,
+              "column": 51
+            }
+          },
+          "replacement": "-=",
+          "genre": "BinaryOperator"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/src__main.rs_line_294_col_49.log",
+      "diff_path": "diff/src__main.rs_line_294_col_49.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 0.429801125,
+          "process_status": "Success",
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 3.628188583,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/main.rs:294:49: replace += with *= in run_analyze",
+          "package": "wirerust",
+          "file": "src/main.rs",
+          "function": {
+            "function_name": "run_analyze",
+            "return_type": "-> Result<()>",
+            "span": {
+              "start": {
+                "line": 93,
+                "column": 1
+              },
+              "end": {
+                "line": 398,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 294,
+              "column": 49
+            },
+            "end": {
+              "line": 294,
+              "column": 51
+            }
+          },
+          "replacement": "*=",
+          "genre": "BinaryOperator"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/src__main.rs_line_294_col_49_001.log",
+      "diff_path": "diff/src__main.rs_line_294_col_49_001.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 0.430058625,
+          "process_status": "Success",
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 3.550617708,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/main.rs:364:9: delete match arm Some(OutputFormat::Json) in run_analyze",
+          "package": "wirerust",
+          "file": "src/main.rs",
+          "function": {
+            "function_name": "run_analyze",
+            "return_type": "-> Result<()>",
+            "span": {
+              "start": {
+                "line": 93,
+                "column": 1
+              },
+              "end": {
+                "line": 398,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 364,
+              "column": 9
+            },
+            "end": {
+              "line": 367,
+              "column": 10
+            }
+          },
+          "replacement": "",
+          "genre": "MatchArm"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/src__main.rs_line_364_col_9.log",
+      "diff_path": "diff/src__main.rs_line_364_col_9.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 0.429763083,
+          "process_status": "Success",
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 2.764232333,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/main.rs:368:9: delete match arm Some(OutputFormat::Csv) in run_analyze",
+          "package": "wirerust",
+          "file": "src/main.rs",
+          "function": {
+            "function_name": "run_analyze",
+            "return_type": "-> Result<()>",
+            "span": {
+              "start": {
+                "line": 93,
+                "column": 1
+              },
+              "end": {
+                "line": 398,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 368,
+              "column": 9
+            },
+            "end": {
+              "line": 371,
+              "column": 10
+            }
+          },
+          "replacement": "",
+          "genre": "MatchArm"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/src__main.rs_line_368_col_9.log",
+      "diff_path": "diff/src__main.rs_line_368_col_9.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 0.427509834,
+          "process_status": "Success",
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 2.781897459,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/main.rs:406:5: replace run_summary -> Result<()> with Ok(())",
+          "package": "wirerust",
+          "file": "src/main.rs",
+          "function": {
+            "function_name": "run_summary",
+            "return_type": "-> Result<()>",
+            "span": {
+              "start": {
+                "line": 400,
+                "column": 1
+              },
+              "end": {
+                "line": 462,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 406,
+              "column": 5
+            },
+            "end": {
+              "line": 461,
+              "column": 11
+            }
+          },
+          "replacement": "Ok(())",
+          "genre": "FnValue"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/src__main.rs_line_406_col_5.log",
+      "diff_path": "diff/src__main.rs_line_406_col_5.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 0.427868209,
+          "process_status": "Success",
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 2.733487291,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/main.rs:423:48: replace == with != in run_summary",
+          "package": "wirerust",
+          "file": "src/main.rs",
+          "function": {
+            "function_name": "run_summary",
+            "return_type": "-> Result<()>",
+            "span": {
+              "start": {
+                "line": 400,
+                "column": 1
+              },
+              "end": {
+                "line": 462,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 423,
+              "column": 48
+            },
+            "end": {
+              "line": 423,
+              "column": 50
+            }
+          },
+          "replacement": "!=",
+          "genre": "BinaryOperator"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/src__main.rs_line_423_col_48.log",
+      "diff_path": "diff/src__main.rs_line_423_col_48.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 0.48475125,
+          "process_status": "Success",
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 3.556458875,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/main.rs:428:45: replace += with -= in run_summary",
+          "package": "wirerust",
+          "file": "src/main.rs",
+          "function": {
+            "function_name": "run_summary",
+            "return_type": "-> Result<()>",
+            "span": {
+              "start": {
+                "line": 400,
+                "column": 1
+              },
+              "end": {
+                "line": 462,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 428,
+              "column": 45
+            },
+            "end": {
+              "line": 428,
+              "column": 47
+            }
+          },
+          "replacement": "-=",
+          "genre": "BinaryOperator"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/src__main.rs_line_428_col_45.log",
+      "diff_path": "diff/src__main.rs_line_428_col_45.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 0.432831208,
+          "process_status": "Success",
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 3.594551083,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/main.rs:428:45: replace += with *= in run_summary",
+          "package": "wirerust",
+          "file": "src/main.rs",
+          "function": {
+            "function_name": "run_summary",
+            "return_type": "-> Result<()>",
+            "span": {
+              "start": {
+                "line": 400,
+                "column": 1
+              },
+              "end": {
+                "line": 462,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 428,
+              "column": 45
+            },
+            "end": {
+              "line": 428,
+              "column": 47
+            }
+          },
+          "replacement": "*=",
+          "genre": "BinaryOperator"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/src__main.rs_line_428_col_45_001.log",
+      "diff_path": "diff/src__main.rs_line_428_col_45_001.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 0.433811584,
+          "process_status": "Success",
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 3.561934125,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/main.rs:438:9: delete match arm Some(OutputFormat::Json) in run_summary",
+          "package": "wirerust",
+          "file": "src/main.rs",
+          "function": {
+            "function_name": "run_summary",
+            "return_type": "-> Result<()>",
+            "span": {
+              "start": {
+                "line": 400,
+                "column": 1
+              },
+              "end": {
+                "line": 462,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 438,
+              "column": 9
+            },
+            "end": {
+              "line": 441,
+              "column": 10
+            }
+          },
+          "replacement": "",
+          "genre": "MatchArm"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/src__main.rs_line_438_col_9.log",
+      "diff_path": "diff/src__main.rs_line_438_col_9.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 0.435184125,
+          "process_status": "Success",
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 3.54190425,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/main.rs:442:9: delete match arm Some(OutputFormat::Csv) in run_summary",
+          "package": "wirerust",
+          "file": "src/main.rs",
+          "function": {
+            "function_name": "run_summary",
+            "return_type": "-> Result<()>",
+            "span": {
+              "start": {
+                "line": 400,
+                "column": 1
+              },
+              "end": {
+                "line": 462,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 442,
+              "column": 9
+            },
+            "end": {
+              "line": 445,
+              "column": 10
+            }
+          },
+          "replacement": "",
+          "genre": "MatchArm"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/src__main.rs_line_442_col_9.log",
+      "diff_path": "diff/src__main.rs_line_442_col_9.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 0.436119791,
+          "process_status": "Success",
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 2.898352833,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/main.rs:473:5: replace resolve_format -> Option<OutputFormat> with None",
+          "package": "wirerust",
+          "file": "src/main.rs",
+          "function": {
+            "function_name": "resolve_format",
+            "return_type": "-> Option<OutputFormat>",
+            "span": {
+              "start": {
+                "line": 464,
+                "column": 1
+              },
+              "end": {
+                "line": 480,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 473,
+              "column": 5
+            },
+            "end": {
+              "line": 479,
+              "column": 6
+            }
+          },
+          "replacement": "None",
+          "genre": "FnValue"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/src__main.rs_line_473_col_5.log",
+      "diff_path": "diff/src__main.rs_line_473_col_5.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 0.432032416,
+          "process_status": "Success",
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 2.676815167,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/main.rs:473:5: replace resolve_format -> Option<OutputFormat> with Some(Default::default())",
+          "package": "wirerust",
+          "file": "src/main.rs",
+          "function": {
+            "function_name": "resolve_format",
+            "return_type": "-> Option<OutputFormat>",
+            "span": {
+              "start": {
+                "line": 464,
+                "column": 1
+              },
+              "end": {
+                "line": 480,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 473,
+              "column": 5
+            },
+            "end": {
+              "line": 479,
+              "column": 6
+            }
+          },
+          "replacement": "Some(Default::default())",
+          "genre": "FnValue"
+        }
+      },
+      "summary": "Unviable",
+      "log_path": "log/src__main.rs_line_473_col_5_001.log",
+      "diff_path": "diff/src__main.rs_line_473_col_5_001.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 0.431321292,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/main.rs:488:5: replace write_output -> Result<()> with Ok(())",
+          "package": "wirerust",
+          "file": "src/main.rs",
+          "function": {
+            "function_name": "write_output",
+            "return_type": "-> Result<()>",
+            "span": {
+              "start": {
+                "line": 482,
+                "column": 1
+              },
+              "end": {
+                "line": 498,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 488,
+              "column": 5
+            },
+            "end": {
+              "line": 497,
+              "column": 6
+            }
+          },
+          "replacement": "Ok(())",
+          "genre": "FnValue"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/src__main.rs_line_488_col_5.log",
+      "diff_path": "diff/src__main.rs_line_488_col_5.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 0.474413292,
+          "process_status": "Success",
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 2.688190584,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/main.rs:489:9: delete match arm (Some(Some(path)), _) in write_output",
+          "package": "wirerust",
+          "file": "src/main.rs",
+          "function": {
+            "function_name": "write_output",
+            "return_type": "-> Result<()>",
+            "span": {
+              "start": {
+                "line": 482,
+                "column": 1
+              },
+              "end": {
+                "line": 498,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 489,
+              "column": 9
+            },
+            "end": {
+              "line": 490,
+              "column": 92
+            }
+          },
+          "replacement": "",
+          "genre": "MatchArm"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/src__main.rs_line_489_col_9.log",
+      "diff_path": "diff/src__main.rs_line_489_col_9.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 0.440021417,
+          "process_status": "Success",
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 2.701937,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/main.rs:491:9: delete match arm (_, Some(Some(path))) in write_output",
+          "package": "wirerust",
+          "file": "src/main.rs",
+          "function": {
+            "function_name": "write_output",
+            "return_type": "-> Result<()>",
+            "span": {
+              "start": {
+                "line": 482,
+                "column": 1
+              },
+              "end": {
+                "line": 498,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 491,
+              "column": 9
+            },
+            "end": {
+              "line": 492,
+              "column": 91
+            }
+          },
+          "replacement": "",
+          "genre": "MatchArm"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/src__main.rs_line_491_col_9.log",
+      "diff_path": "diff/src__main.rs_line_491_col_9.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 0.433555875,
+          "process_status": "Success",
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 2.7223513329999998,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/main.rs:506:5: replace collapse_findings_from_flag -> bool with true",
+          "package": "wirerust",
+          "file": "src/main.rs",
+          "function": {
+            "function_name": "collapse_findings_from_flag",
+            "return_type": "-> bool",
+            "span": {
+              "start": {
+                "line": 500,
+                "column": 1
+              },
+              "end": {
+                "line": 507,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 506,
+              "column": 5
+            },
+            "end": {
+              "line": 506,
+              "column": 17
+            }
+          },
+          "replacement": "true",
+          "genre": "FnValue"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/src__main.rs_line_506_col_5.log",
+      "diff_path": "diff/src__main.rs_line_506_col_5.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 0.429216917,
+          "process_status": "Success",
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 2.235187792,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/main.rs:506:5: replace collapse_findings_from_flag -> bool with false",
+          "package": "wirerust",
+          "file": "src/main.rs",
+          "function": {
+            "function_name": "collapse_findings_from_flag",
+            "return_type": "-> bool",
+            "span": {
+              "start": {
+                "line": 500,
+                "column": 1
+              },
+              "end": {
+                "line": 507,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 506,
+              "column": 5
+            },
+            "end": {
+              "line": 506,
+              "column": 17
+            }
+          },
+          "replacement": "false",
+          "genre": "FnValue"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/src__main.rs_line_506_col_5_001.log",
+      "diff_path": "diff/src__main.rs_line_506_col_5_001.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 0.43817375,
+          "process_status": "Success",
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 2.213476792,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/main.rs:506:5: delete ! in collapse_findings_from_flag",
+          "package": "wirerust",
+          "file": "src/main.rs",
+          "function": {
+            "function_name": "collapse_findings_from_flag",
+            "return_type": "-> bool",
+            "span": {
+              "start": {
+                "line": 500,
+                "column": 1
+              },
+              "end": {
+                "line": 507,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 506,
+              "column": 5
+            },
+            "end": {
+              "line": 506,
+              "column": 6
+            }
+          },
+          "replacement": "",
+          "genre": "UnaryOperator"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/src__main.rs_line_506_col_5_002.log",
+      "diff_path": "diff/src__main.rs_line_506_col_5_002.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 0.434487083,
+          "process_status": "Success",
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 2.192979666,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/main.rs:515:5: replace grouping_from_flag -> Grouping with Default::default()",
+          "package": "wirerust",
+          "file": "src/main.rs",
+          "function": {
+            "function_name": "grouping_from_flag",
+            "return_type": "-> Grouping",
+            "span": {
+              "start": {
+                "line": 509,
+                "column": 1
+              },
+              "end": {
+                "line": 520,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 515,
+              "column": 5
+            },
+            "end": {
+              "line": 519,
+              "column": 6
+            }
+          },
+          "replacement": "Default::default()",
+          "genre": "FnValue"
+        }
+      },
+      "summary": "Unviable",
+      "log_path": "log/src__main.rs_line_515_col_5.log",
+      "diff_path": "diff/src__main.rs_line_515_col_5.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 0.377886375,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/main.rs:523:5: replace resolve_targets -> Result<Vec<std::path::PathBuf>> with Ok(vec![])",
+          "package": "wirerust",
+          "file": "src/main.rs",
+          "function": {
+            "function_name": "resolve_targets",
+            "return_type": "-> Result<Vec<std::path::PathBuf>>",
+            "span": {
+              "start": {
+                "line": 522,
+                "column": 1
+              },
+              "end": {
+                "line": 542,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 523,
+              "column": 5
+            },
+            "end": {
+              "line": 541,
+              "column": 61
+            }
+          },
+          "replacement": "Ok(vec![])",
+          "genre": "FnValue"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/src__main.rs_line_523_col_5.log",
+      "diff_path": "diff/src__main.rs_line_523_col_5.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 0.432216,
+          "process_status": "Success",
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 2.745723042,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/main.rs:523:5: replace resolve_targets -> Result<Vec<std::path::PathBuf>> with Ok(vec![Default::default()])",
+          "package": "wirerust",
+          "file": "src/main.rs",
+          "function": {
+            "function_name": "resolve_targets",
+            "return_type": "-> Result<Vec<std::path::PathBuf>>",
+            "span": {
+              "start": {
+                "line": 522,
+                "column": 1
+              },
+              "end": {
+                "line": 542,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 523,
+              "column": 5
+            },
+            "end": {
+              "line": 541,
+              "column": 61
+            }
+          },
+          "replacement": "Ok(vec![Default::default()])",
+          "genre": "FnValue"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/src__main.rs_line_523_col_5_001.log",
+      "diff_path": "diff/src__main.rs_line_523_col_5_001.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 0.43574,
+          "process_status": "Success",
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 2.698971084,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/main.rs:533:17: replace && with || in resolve_targets",
+          "package": "wirerust",
+          "file": "src/main.rs",
+          "function": {
+            "function_name": "resolve_targets",
+            "return_type": "-> Result<Vec<std::path::PathBuf>>",
+            "span": {
+              "start": {
+                "line": 522,
+                "column": 1
+              },
+              "end": {
+                "line": 542,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 533,
+              "column": 17
+            },
+            "end": {
+              "line": 533,
+              "column": 19
+            }
+          },
+          "replacement": "||",
+          "genre": "BinaryOperator"
+        }
+      },
+      "summary": "Unviable",
+      "log_path": "log/src__main.rs_line_533_col_17.log",
+      "diff_path": "diff/src__main.rs_line_533_col_17.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 0.428896333,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/main.rs:532:17: replace && with || in resolve_targets",
+          "package": "wirerust",
+          "file": "src/main.rs",
+          "function": {
+            "function_name": "resolve_targets",
+            "return_type": "-> Result<Vec<std::path::PathBuf>>",
+            "span": {
+              "start": {
+                "line": 522,
+                "column": 1
+              },
+              "end": {
+                "line": 542,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 532,
+              "column": 17
+            },
+            "end": {
+              "line": 532,
+              "column": 19
+            }
+          },
+          "replacement": "||",
+          "genre": "BinaryOperator"
+        }
+      },
+      "summary": "Unviable",
+      "log_path": "log/src__main.rs_line_532_col_17.log",
+      "diff_path": "diff/src__main.rs_line_532_col_17.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 0.43487825,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/main.rs:533:24: replace == with != in resolve_targets",
+          "package": "wirerust",
+          "file": "src/main.rs",
+          "function": {
+            "function_name": "resolve_targets",
+            "return_type": "-> Result<Vec<std::path::PathBuf>>",
+            "span": {
+              "start": {
+                "line": 522,
+                "column": 1
+              },
+              "end": {
+                "line": 542,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 533,
+              "column": 24
+            },
+            "end": {
+              "line": 533,
+              "column": 26
+            }
+          },
+          "replacement": "!=",
+          "genre": "BinaryOperator"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/src__main.rs_line_533_col_24.log",
+      "diff_path": "diff/src__main.rs_line_533_col_24.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 0.479008625,
+          "process_status": "Success",
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 3.534599542,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/reporter/terminal.rs:50:5: replace escape_for_terminal -> String with String::new()",
+          "package": "wirerust",
+          "file": "src/reporter/terminal.rs",
+          "function": {
+            "function_name": "escape_for_terminal",
+            "return_type": "-> String",
+            "span": {
+              "start": {
+                "line": 29,
+                "column": 1
+              },
+              "end": {
+                "line": 66,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 50,
+              "column": 5
+            },
+            "end": {
+              "line": 65,
+              "column": 8
+            }
+          },
+          "replacement": "String::new()",
+          "genre": "FnValue"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/src__reporter__terminal.rs_line_50_col_5.log",
+      "diff_path": "diff/src__reporter__terminal.rs_line_50_col_5.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 3.666718125,
+          "process_status": "Success",
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 2.2662364999999998,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/reporter/terminal.rs:50:5: replace escape_for_terminal -> String with \"xyzzy\".into()",
+          "package": "wirerust",
+          "file": "src/reporter/terminal.rs",
+          "function": {
+            "function_name": "escape_for_terminal",
+            "return_type": "-> String",
+            "span": {
+              "start": {
+                "line": 29,
+                "column": 1
+              },
+              "end": {
+                "line": 66,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 50,
+              "column": 5
+            },
+            "end": {
+              "line": 65,
+              "column": 8
+            }
+          },
+          "replacement": "\"xyzzy\".into()",
+          "genre": "FnValue"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/src__reporter__terminal.rs_line_50_col_5_001.log",
+      "diff_path": "diff/src__reporter__terminal.rs_line_50_col_5_001.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 3.794341458,
+          "process_status": "Success",
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 2.258674417,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/reporter/terminal.rs:57:71: replace || with && in escape_for_terminal",
+          "package": "wirerust",
+          "file": "src/reporter/terminal.rs",
+          "function": {
+            "function_name": "escape_for_terminal",
+            "return_type": "-> String",
+            "span": {
+              "start": {
+                "line": 29,
+                "column": 1
+              },
+              "end": {
+                "line": 66,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 57,
+              "column": 71
+            },
+            "end": {
+              "line": 57,
+              "column": 73
+            }
+          },
+          "replacement": "&&",
+          "genre": "BinaryOperator"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/src__reporter__terminal.rs_line_57_col_71.log",
+      "diff_path": "diff/src__reporter__terminal.rs_line_57_col_71.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 3.9060337499999997,
+          "process_status": "Success",
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 2.307629917,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/reporter/terminal.rs:57:33: replace || with && in escape_for_terminal",
+          "package": "wirerust",
+          "file": "src/reporter/terminal.rs",
+          "function": {
+            "function_name": "escape_for_terminal",
+            "return_type": "-> String",
+            "span": {
+              "start": {
+                "line": 29,
+                "column": 1
+              },
+              "end": {
+                "line": 66,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 57,
+              "column": 33
+            },
+            "end": {
+              "line": 57,
+              "column": 35
+            }
+          },
+          "replacement": "&&",
+          "genre": "BinaryOperator"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/src__reporter__terminal.rs_line_57_col_33.log",
+      "diff_path": "diff/src__reporter__terminal.rs_line_57_col_33.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 3.970820416,
+          "process_status": "Success",
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 2.352485583,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/reporter/terminal.rs:57:76: replace == with != in escape_for_terminal",
+          "package": "wirerust",
+          "file": "src/reporter/terminal.rs",
+          "function": {
+            "function_name": "escape_for_terminal",
+            "return_type": "-> String",
+            "span": {
+              "start": {
+                "line": 29,
+                "column": 1
+              },
+              "end": {
+                "line": 66,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 57,
+              "column": 76
+            },
+            "end": {
+              "line": 57,
+              "column": 78
+            }
+          },
+          "replacement": "!=",
+          "genre": "BinaryOperator"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/src__reporter__terminal.rs_line_57_col_76.log",
+      "diff_path": "diff/src__reporter__terminal.rs_line_57_col_76.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 4.174998709,
+          "process_status": "Success",
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 2.397463625,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/reporter/terminal.rs:73:5: replace verdict_rank -> u8 with 0",
+          "package": "wirerust",
+          "file": "src/reporter/terminal.rs",
+          "function": {
+            "function_name": "verdict_rank",
+            "return_type": "-> u8",
+            "span": {
+              "start": {
+                "line": 68,
+                "column": 1
+              },
+              "end": {
+                "line": 79,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 73,
+              "column": 5
+            },
+            "end": {
+              "line": 78,
+              "column": 6
+            }
+          },
+          "replacement": "0",
+          "genre": "FnValue"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/src__reporter__terminal.rs_line_73_col_5.log",
+      "diff_path": "diff/src__reporter__terminal.rs_line_73_col_5.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 4.155635916,
+          "process_status": "Success",
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 27.65755125,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/reporter/terminal.rs:73:5: replace verdict_rank -> u8 with 1",
+          "package": "wirerust",
+          "file": "src/reporter/terminal.rs",
+          "function": {
+            "function_name": "verdict_rank",
+            "return_type": "-> u8",
+            "span": {
+              "start": {
+                "line": 68,
+                "column": 1
+              },
+              "end": {
+                "line": 79,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 73,
+              "column": 5
+            },
+            "end": {
+              "line": 78,
+              "column": 6
+            }
+          },
+          "replacement": "1",
+          "genre": "FnValue"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/src__reporter__terminal.rs_line_73_col_5_001.log",
+      "diff_path": "diff/src__reporter__terminal.rs_line_73_col_5_001.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 4.690682958,
+          "process_status": "Success",
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 28.941266542,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/reporter/terminal.rs:85:5: replace confidence_rank -> u8 with 0",
+          "package": "wirerust",
+          "file": "src/reporter/terminal.rs",
+          "function": {
+            "function_name": "confidence_rank",
+            "return_type": "-> u8",
+            "span": {
+              "start": {
+                "line": 81,
+                "column": 1
+              },
+              "end": {
+                "line": 90,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 85,
+              "column": 5
+            },
+            "end": {
+              "line": 89,
+              "column": 6
+            }
+          },
+          "replacement": "0",
+          "genre": "FnValue"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/src__reporter__terminal.rs_line_85_col_5.log",
+      "diff_path": "diff/src__reporter__terminal.rs_line_85_col_5.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 4.539815666,
+          "process_status": "Success",
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 30.573450208,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/reporter/terminal.rs:85:5: replace confidence_rank -> u8 with 1",
+          "package": "wirerust",
+          "file": "src/reporter/terminal.rs",
+          "function": {
+            "function_name": "confidence_rank",
+            "return_type": "-> u8",
+            "span": {
+              "start": {
+                "line": 81,
+                "column": 1
+              },
+              "end": {
+                "line": 90,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 85,
+              "column": 5
+            },
+            "end": {
+              "line": 89,
+              "column": 6
+            }
+          },
+          "replacement": "1",
+          "genre": "FnValue"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/src__reporter__terminal.rs_line_85_col_5_001.log",
+      "diff_path": "diff/src__reporter__terminal.rs_line_85_col_5_001.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 4.749497167,
+          "process_status": "Success",
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 32.337029167,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/reporter/terminal.rs:165:9: replace <impl Reporter for TerminalReporter>::render -> String with String::new()",
+          "package": "wirerust",
+          "file": "src/reporter/terminal.rs",
+          "function": {
+            "function_name": "<impl Reporter for TerminalReporter>::render",
+            "return_type": "-> String",
+            "span": {
+              "start": {
+                "line": 159,
+                "column": 5
+              },
+              "end": {
+                "line": 273,
+                "column": 6
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 165,
+              "column": 9
+            },
+            "end": {
+              "line": 272,
+              "column": 12
+            }
+          },
+          "replacement": "String::new()",
+          "genre": "FnValue"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/src__reporter__terminal.rs_line_165_col_9.log",
+      "diff_path": "diff/src__reporter__terminal.rs_line_165_col_9.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 5.5041551250000005,
+          "process_status": "Success",
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 6.794887834,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/reporter/terminal.rs:165:9: replace <impl Reporter for TerminalReporter>::render -> String with \"xyzzy\".into()",
+          "package": "wirerust",
+          "file": "src/reporter/terminal.rs",
+          "function": {
+            "function_name": "<impl Reporter for TerminalReporter>::render",
+            "return_type": "-> String",
+            "span": {
+              "start": {
+                "line": 159,
+                "column": 5
+              },
+              "end": {
+                "line": 273,
+                "column": 6
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 165,
+              "column": 9
+            },
+            "end": {
+              "line": 272,
+              "column": 12
+            }
+          },
+          "replacement": "\"xyzzy\".into()",
+          "genre": "FnValue"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/src__reporter__terminal.rs_line_165_col_9_001.log",
+      "diff_path": "diff/src__reporter__terminal.rs_line_165_col_9_001.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 5.177777375,
+          "process_status": "Success",
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 7.113741375,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/reporter/terminal.rs:175:36: replace > with == in <impl Reporter for TerminalReporter>::render",
+          "package": "wirerust",
+          "file": "src/reporter/terminal.rs",
+          "function": {
+            "function_name": "<impl Reporter for TerminalReporter>::render",
+            "return_type": "-> String",
+            "span": {
+              "start": {
+                "line": 159,
+                "column": 5
+              },
+              "end": {
+                "line": 273,
+                "column": 6
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 175,
+              "column": 36
+            },
+            "end": {
+              "line": 175,
+              "column": 37
+            }
+          },
+          "replacement": "==",
+          "genre": "BinaryOperator"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/src__reporter__terminal.rs_line_175_col_36.log",
+      "diff_path": "diff/src__reporter__terminal.rs_line_175_col_36.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 5.671936791,
+          "process_status": "Success",
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 37.166259625,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/reporter/terminal.rs:175:36: replace > with < in <impl Reporter for TerminalReporter>::render",
+          "package": "wirerust",
+          "file": "src/reporter/terminal.rs",
+          "function": {
+            "function_name": "<impl Reporter for TerminalReporter>::render",
+            "return_type": "-> String",
+            "span": {
+              "start": {
+                "line": 159,
+                "column": 5
+              },
+              "end": {
+                "line": 273,
+                "column": 6
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 175,
+              "column": 36
+            },
+            "end": {
+              "line": 175,
+              "column": 37
+            }
+          },
+          "replacement": "<",
+          "genre": "BinaryOperator"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/src__reporter__terminal.rs_line_175_col_36_001.log",
+      "diff_path": "diff/src__reporter__terminal.rs_line_175_col_36_001.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 5.498527416,
+          "process_status": "Success",
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 38.5726655,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/reporter/terminal.rs:175:36: replace > with >= in <impl Reporter for TerminalReporter>::render",
+          "package": "wirerust",
+          "file": "src/reporter/terminal.rs",
+          "function": {
+            "function_name": "<impl Reporter for TerminalReporter>::render",
+            "return_type": "-> String",
+            "span": {
+              "start": {
+                "line": 159,
+                "column": 5
+              },
+              "end": {
+                "line": 273,
+                "column": 6
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 175,
+              "column": 36
+            },
+            "end": {
+              "line": 175,
+              "column": 37
+            }
+          },
+          "replacement": ">=",
+          "genre": "BinaryOperator"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/src__reporter__terminal.rs_line_175_col_36_002.log",
+      "diff_path": "diff/src__reporter__terminal.rs_line_175_col_36_002.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 5.57212425,
+          "process_status": "Success",
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 40.603008542,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/reporter/terminal.rs:196:16: delete ! in <impl Reporter for TerminalReporter>::render",
+          "package": "wirerust",
+          "file": "src/reporter/terminal.rs",
+          "function": {
+            "function_name": "<impl Reporter for TerminalReporter>::render",
+            "return_type": "-> String",
+            "span": {
+              "start": {
+                "line": 159,
+                "column": 5
+              },
+              "end": {
+                "line": 273,
+                "column": 6
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 196,
+              "column": 16
+            },
+            "end": {
+              "line": 196,
+              "column": 17
+            }
+          },
+          "replacement": "",
+          "genre": "UnaryOperator"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/src__reporter__terminal.rs_line_196_col_16.log",
+      "diff_path": "diff/src__reporter__terminal.rs_line_196_col_16.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 5.589214208,
+          "process_status": "Success",
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 42.9644495,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/reporter/terminal.rs:219:12: delete ! in <impl Reporter for TerminalReporter>::render",
+          "package": "wirerust",
+          "file": "src/reporter/terminal.rs",
+          "function": {
+            "function_name": "<impl Reporter for TerminalReporter>::render",
+            "return_type": "-> String",
+            "span": {
+              "start": {
+                "line": 159,
+                "column": 5
+              },
+              "end": {
+                "line": 273,
+                "column": 6
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 219,
+              "column": 12
+            },
+            "end": {
+              "line": 219,
+              "column": 13
+            }
+          },
+          "replacement": "",
+          "genre": "UnaryOperator"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/src__reporter__terminal.rs_line_219_col_12.log",
+      "diff_path": "diff/src__reporter__terminal.rs_line_219_col_12.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 5.982270833,
+          "process_status": "Success",
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 44.063281125,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/reporter/terminal.rs:230:12: delete ! in <impl Reporter for TerminalReporter>::render",
+          "package": "wirerust",
+          "file": "src/reporter/terminal.rs",
+          "function": {
+            "function_name": "<impl Reporter for TerminalReporter>::render",
+            "return_type": "-> String",
+            "span": {
+              "start": {
+                "line": 159,
+                "column": 5
+              },
+              "end": {
+                "line": 273,
+                "column": 6
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 230,
+              "column": 12
+            },
+            "end": {
+              "line": 230,
+              "column": 13
+            }
+          },
+          "replacement": "",
+          "genre": "UnaryOperator"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/src__reporter__terminal.rs_line_230_col_12.log",
+      "diff_path": "diff/src__reporter__terminal.rs_line_230_col_12.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 6.110528166,
+          "process_status": "Success",
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 8.824975208,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/reporter/terminal.rs:278:9: replace TerminalReporter::section -> String with String::new()",
+          "package": "wirerust",
+          "file": "src/reporter/terminal.rs",
+          "function": {
+            "function_name": "TerminalReporter::section",
+            "return_type": "-> String",
+            "span": {
+              "start": {
+                "line": 277,
+                "column": 5
+              },
+              "end": {
+                "line": 283,
+                "column": 6
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 278,
+              "column": 9
+            },
+            "end": {
+              "line": 282,
+              "column": 10
+            }
+          },
+          "replacement": "String::new()",
+          "genre": "FnValue"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/src__reporter__terminal.rs_line_278_col_9.log",
+      "diff_path": "diff/src__reporter__terminal.rs_line_278_col_9.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 6.523472125,
+          "process_status": "Success",
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 36.149143458,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/reporter/terminal.rs:278:9: replace TerminalReporter::section -> String with \"xyzzy\".into()",
+          "package": "wirerust",
+          "file": "src/reporter/terminal.rs",
+          "function": {
+            "function_name": "TerminalReporter::section",
+            "return_type": "-> String",
+            "span": {
+              "start": {
+                "line": 277,
+                "column": 5
+              },
+              "end": {
+                "line": 283,
+                "column": 6
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 278,
+              "column": 9
+            },
+            "end": {
+              "line": 282,
+              "column": 10
+            }
+          },
+          "replacement": "\"xyzzy\".into()",
+          "genre": "FnValue"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/src__reporter__terminal.rs_line_278_col_9_001.log",
+      "diff_path": "diff/src__reporter__terminal.rs_line_278_col_9_001.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 6.977761125,
+          "process_status": "Success",
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 29.312794666,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/reporter/terminal.rs:291:9: replace TerminalReporter::render_finding_prefix with ()",
+          "package": "wirerust",
+          "file": "src/reporter/terminal.rs",
+          "function": {
+            "function_name": "TerminalReporter::render_finding_prefix",
+            "return_type": "",
+            "span": {
+              "start": {
+                "line": 285,
+                "column": 5
+              },
+              "end": {
+                "line": 314,
+                "column": 6
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 291,
+              "column": 9
+            },
+            "end": {
+              "line": 313,
+              "column": 10
+            }
+          },
+          "replacement": "()",
+          "genre": "FnValue"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/src__reporter__terminal.rs_line_291_col_9.log",
+      "diff_path": "diff/src__reporter__terminal.rs_line_291_col_9.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 6.810243625,
+          "process_status": "Success",
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 50.649815959,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/reporter/terminal.rs:299:21: delete match arm Confidence::High in TerminalReporter::render_finding_prefix",
+          "package": "wirerust",
+          "file": "src/reporter/terminal.rs",
+          "function": {
+            "function_name": "TerminalReporter::render_finding_prefix",
+            "return_type": "",
+            "span": {
+              "start": {
+                "line": 285,
+                "column": 5
+              },
+              "end": {
+                "line": 314,
+                "column": 6
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 299,
+              "column": 21
+            },
+            "end": {
+              "line": 299,
+              "column": 71
+            }
+          },
+          "replacement": "",
+          "genre": "MatchArm"
+        }
+      },
+      "summary": "MissedMutant",
+      "log_path": "log/src__reporter__terminal.rs_line_299_col_21.log",
+      "diff_path": "diff/src__reporter__terminal.rs_line_299_col_21.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 7.046586833,
+          "process_status": "Success",
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 59.527193125,
+          "process_status": "Success",
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/reporter/terminal.rs:320:9: replace TerminalReporter::render_finding_flat with ()",
+          "package": "wirerust",
+          "file": "src/reporter/terminal.rs",
+          "function": {
+            "function_name": "TerminalReporter::render_finding_flat",
+            "return_type": "",
+            "span": {
+              "start": {
+                "line": 316,
+                "column": 5
+              },
+              "end": {
+                "line": 325,
+                "column": 6
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 320,
+              "column": 9
+            },
+            "end": {
+              "line": 324,
+              "column": 10
+            }
+          },
+          "replacement": "()",
+          "genre": "FnValue"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/src__reporter__terminal.rs_line_320_col_9.log",
+      "diff_path": "diff/src__reporter__terminal.rs_line_320_col_9.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 6.970594917,
+          "process_status": "Success",
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 10.552883208,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/reporter/terminal.rs:321:12: delete ! in TerminalReporter::render_finding_flat",
+          "package": "wirerust",
+          "file": "src/reporter/terminal.rs",
+          "function": {
+            "function_name": "TerminalReporter::render_finding_flat",
+            "return_type": "",
+            "span": {
+              "start": {
+                "line": 316,
+                "column": 5
+              },
+              "end": {
+                "line": 325,
+                "column": 6
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 321,
+              "column": 12
+            },
+            "end": {
+              "line": 321,
+              "column": 13
+            }
+          },
+          "replacement": "",
+          "genre": "UnaryOperator"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/src__reporter__terminal.rs_line_321_col_12.log",
+      "diff_path": "diff/src__reporter__terminal.rs_line_321_col_12.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 7.440631917,
+          "process_status": "Success",
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 10.929952167,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/reporter/terminal.rs:335:9: replace TerminalReporter::render_finding_grouped with ()",
+          "package": "wirerust",
+          "file": "src/reporter/terminal.rs",
+          "function": {
+            "function_name": "TerminalReporter::render_finding_grouped",
+            "return_type": "",
+            "span": {
+              "start": {
+                "line": 327,
+                "column": 5
+              },
+              "end": {
+                "line": 350,
+                "column": 6
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 335,
+              "column": 9
+            },
+            "end": {
+              "line": 349,
+              "column": 10
+            }
+          },
+          "replacement": "()",
+          "genre": "FnValue"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/src__reporter__terminal.rs_line_335_col_9.log",
+      "diff_path": "diff/src__reporter__terminal.rs_line_335_col_9.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 7.45487725,
+          "process_status": "Success",
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 58.101099292,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/reporter/terminal.rs:336:12: delete ! in TerminalReporter::render_finding_grouped",
+          "package": "wirerust",
+          "file": "src/reporter/terminal.rs",
+          "function": {
+            "function_name": "TerminalReporter::render_finding_grouped",
+            "return_type": "",
+            "span": {
+              "start": {
+                "line": 327,
+                "column": 5
+              },
+              "end": {
+                "line": 350,
+                "column": 6
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 336,
+              "column": 12
+            },
+            "end": {
+              "line": 336,
+              "column": 13
+            }
+          },
+          "replacement": "",
+          "genre": "UnaryOperator"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/src__reporter__terminal.rs_line_336_col_12.log",
+      "diff_path": "diff/src__reporter__terminal.rs_line_336_col_12.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 7.7789132500000004,
+          "process_status": "Success",
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 60.160252417,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/reporter/terminal.rs:366:9: replace TerminalReporter::collapse_findings_pass_refs -> Vec<(CollapseKey, Vec<&'a Finding>)> with vec![]",
+          "package": "wirerust",
+          "file": "src/reporter/terminal.rs",
+          "function": {
+            "function_name": "TerminalReporter::collapse_findings_pass_refs",
+            "return_type": "-> Vec<(CollapseKey, Vec<&'a Finding>)>",
+            "span": {
+              "start": {
+                "line": 352,
+                "column": 5
+              },
+              "end": {
+                "line": 382,
+                "column": 6
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 366,
+              "column": 9
+            },
+            "end": {
+              "line": 381,
+              "column": 15
+            }
+          },
+          "replacement": "vec![]",
+          "genre": "FnValue"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/src__reporter__terminal.rs_line_366_col_9.log",
+      "diff_path": "diff/src__reporter__terminal.rs_line_366_col_9.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 7.9307345,
+          "process_status": "Success",
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 27.719205875,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/reporter/terminal.rs:366:9: replace TerminalReporter::collapse_findings_pass_refs -> Vec<(CollapseKey, Vec<&'a Finding>)> with vec![(Default::default(), vec![])]",
+          "package": "wirerust",
+          "file": "src/reporter/terminal.rs",
+          "function": {
+            "function_name": "TerminalReporter::collapse_findings_pass_refs",
+            "return_type": "-> Vec<(CollapseKey, Vec<&'a Finding>)>",
+            "span": {
+              "start": {
+                "line": 352,
+                "column": 5
+              },
+              "end": {
+                "line": 382,
+                "column": 6
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 366,
+              "column": 9
+            },
+            "end": {
+              "line": 381,
+              "column": 15
+            }
+          },
+          "replacement": "vec![(Default::default(), vec![])]",
+          "genre": "FnValue"
+        }
+      },
+      "summary": "Unviable",
+      "log_path": "log/src__reporter__terminal.rs_line_366_col_9_001.log",
+      "diff_path": "diff/src__reporter__terminal.rs_line_366_col_9_001.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 0.691781125,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/reporter/terminal.rs:366:9: replace TerminalReporter::collapse_findings_pass_refs -> Vec<(CollapseKey, Vec<&'a Finding>)> with vec![(Default::default(), vec![Box::leak(Box::new(Default::default()))])]",
+          "package": "wirerust",
+          "file": "src/reporter/terminal.rs",
+          "function": {
+            "function_name": "TerminalReporter::collapse_findings_pass_refs",
+            "return_type": "-> Vec<(CollapseKey, Vec<&'a Finding>)>",
+            "span": {
+              "start": {
+                "line": 352,
+                "column": 5
+              },
+              "end": {
+                "line": 382,
+                "column": 6
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 366,
+              "column": 9
+            },
+            "end": {
+              "line": 381,
+              "column": 15
+            }
+          },
+          "replacement": "vec![(Default::default(), vec![Box::leak(Box::new(Default::default()))])]",
+          "genre": "FnValue"
+        }
+      },
+      "summary": "Unviable",
+      "log_path": "log/src__reporter__terminal.rs_line_366_col_9_002.log",
+      "diff_path": "diff/src__reporter__terminal.rs_line_366_col_9_002.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 0.689385334,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/reporter/terminal.rs:375:66: replace == with != in TerminalReporter::collapse_findings_pass_refs",
+          "package": "wirerust",
+          "file": "src/reporter/terminal.rs",
+          "function": {
+            "function_name": "TerminalReporter::collapse_findings_pass_refs",
+            "return_type": "-> Vec<(CollapseKey, Vec<&'a Finding>)>",
+            "span": {
+              "start": {
+                "line": 352,
+                "column": 5
+              },
+              "end": {
+                "line": 382,
+                "column": 6
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 375,
+              "column": 66
+            },
+            "end": {
+              "line": 375,
+              "column": 68
+            }
+          },
+          "replacement": "!=",
+          "genre": "BinaryOperator"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/src__reporter__terminal.rs_line_375_col_66.log",
+      "diff_path": "diff/src__reporter__terminal.rs_line_375_col_66.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 8.841373334,
+          "process_status": "Success",
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 28.898111417,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/reporter/terminal.rs:394:9: replace TerminalReporter::collapse_findings_pass -> Vec<(CollapseKey, Vec<&'a Finding>)> with vec![]",
+          "package": "wirerust",
+          "file": "src/reporter/terminal.rs",
+          "function": {
+            "function_name": "TerminalReporter::collapse_findings_pass",
+            "return_type": "-> Vec<(CollapseKey, Vec<&'a Finding>)>",
+            "span": {
+              "start": {
+                "line": 384,
+                "column": 5
+              },
+              "end": {
+                "line": 396,
+                "column": 6
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 394,
+              "column": 9
+            },
+            "end": {
+              "line": 395,
+              "column": 48
+            }
+          },
+          "replacement": "vec![]",
+          "genre": "FnValue"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/src__reporter__terminal.rs_line_394_col_9.log",
+      "diff_path": "diff/src__reporter__terminal.rs_line_394_col_9.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 9.215982792,
+          "process_status": "Success",
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 66.650412542,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/reporter/terminal.rs:394:9: replace TerminalReporter::collapse_findings_pass -> Vec<(CollapseKey, Vec<&'a Finding>)> with vec![(Default::default(), vec![])]",
+          "package": "wirerust",
+          "file": "src/reporter/terminal.rs",
+          "function": {
+            "function_name": "TerminalReporter::collapse_findings_pass",
+            "return_type": "-> Vec<(CollapseKey, Vec<&'a Finding>)>",
+            "span": {
+              "start": {
+                "line": 384,
+                "column": 5
+              },
+              "end": {
+                "line": 396,
+                "column": 6
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 394,
+              "column": 9
+            },
+            "end": {
+              "line": 395,
+              "column": 48
+            }
+          },
+          "replacement": "vec![(Default::default(), vec![])]",
+          "genre": "FnValue"
+        }
+      },
+      "summary": "Unviable",
+      "log_path": "log/src__reporter__terminal.rs_line_394_col_9_001.log",
+      "diff_path": "diff/src__reporter__terminal.rs_line_394_col_9_001.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 0.758929416,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/reporter/terminal.rs:394:9: replace TerminalReporter::collapse_findings_pass -> Vec<(CollapseKey, Vec<&'a Finding>)> with vec![(Default::default(), vec![Box::leak(Box::new(Default::default()))])]",
+          "package": "wirerust",
+          "file": "src/reporter/terminal.rs",
+          "function": {
+            "function_name": "TerminalReporter::collapse_findings_pass",
+            "return_type": "-> Vec<(CollapseKey, Vec<&'a Finding>)>",
+            "span": {
+              "start": {
+                "line": 384,
+                "column": 5
+              },
+              "end": {
+                "line": 396,
+                "column": 6
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 394,
+              "column": 9
+            },
+            "end": {
+              "line": 395,
+              "column": 48
+            }
+          },
+          "replacement": "vec![(Default::default(), vec![Box::leak(Box::new(Default::default()))])]",
+          "genre": "FnValue"
+        }
+      },
+      "summary": "Unviable",
+      "log_path": "log/src__reporter__terminal.rs_line_394_col_9_002.log",
+      "diff_path": "diff/src__reporter__terminal.rs_line_394_col_9_002.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 0.634330792,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/reporter/terminal.rs:413:9: replace TerminalReporter::render_findings_collapsed with ()",
+          "package": "wirerust",
+          "file": "src/reporter/terminal.rs",
+          "function": {
+            "function_name": "TerminalReporter::render_findings_collapsed",
+            "return_type": "",
+            "span": {
+              "start": {
+                "line": 398,
+                "column": 5
+              },
+              "end": {
+                "line": 459,
+                "column": 6
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 413,
+              "column": 9
+            },
+            "end": {
+              "line": 458,
+              "column": 10
+            }
+          },
+          "replacement": "()",
+          "genre": "FnValue"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/src__reporter__terminal.rs_line_413_col_9.log",
+      "diff_path": "diff/src__reporter__terminal.rs_line_413_col_9.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 8.361066708,
+          "process_status": "Success",
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 67.905809875,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/reporter/terminal.rs:416:18: replace == with != in TerminalReporter::render_findings_collapsed",
+          "package": "wirerust",
+          "file": "src/reporter/terminal.rs",
+          "function": {
+            "function_name": "TerminalReporter::render_findings_collapsed",
+            "return_type": "",
+            "span": {
+              "start": {
+                "line": 398,
+                "column": 5
+              },
+              "end": {
+                "line": 459,
+                "column": 6
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 416,
+              "column": 18
+            },
+            "end": {
+              "line": 416,
+              "column": 20
+            }
+          },
+          "replacement": "!=",
+          "genre": "BinaryOperator"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/src__reporter__terminal.rs_line_416_col_18.log",
+      "diff_path": "diff/src__reporter__terminal.rs_line_416_col_18.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 9.16889925,
+          "process_status": "Success",
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 69.644925167,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/reporter/terminal.rs:430:29: delete match arm Confidence::High in TerminalReporter::render_findings_collapsed",
+          "package": "wirerust",
+          "file": "src/reporter/terminal.rs",
+          "function": {
+            "function_name": "TerminalReporter::render_findings_collapsed",
+            "return_type": "",
+            "span": {
+              "start": {
+                "line": 398,
+                "column": 5
+              },
+              "end": {
+                "line": 459,
+                "column": 6
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 430,
+              "column": 29
+            },
+            "end": {
+              "line": 430,
+              "column": 86
+            }
+          },
+          "replacement": "",
+          "genre": "MatchArm"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/src__reporter__terminal.rs_line_430_col_29.log",
+      "diff_path": "diff/src__reporter__terminal.rs_line_430_col_29.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 9.053692292,
+          "process_status": "Success",
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 72.122904125,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/reporter/terminal.rs:453:20: delete ! in TerminalReporter::render_findings_collapsed",
+          "package": "wirerust",
+          "file": "src/reporter/terminal.rs",
+          "function": {
+            "function_name": "TerminalReporter::render_findings_collapsed",
+            "return_type": "",
+            "span": {
+              "start": {
+                "line": 398,
+                "column": 5
+              },
+              "end": {
+                "line": 459,
+                "column": 6
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 453,
+              "column": 20
+            },
+            "end": {
+              "line": 453,
+              "column": 21
+            }
+          },
+          "replacement": "",
+          "genre": "UnaryOperator"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/src__reporter__terminal.rs_line_453_col_20.log",
+      "diff_path": "diff/src__reporter__terminal.rs_line_453_col_20.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 9.295841541,
+          "process_status": "Success",
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 75.816905958,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/reporter/terminal.rs:471:9: replace TerminalReporter::render_findings_grouped with ()",
+          "package": "wirerust",
+          "file": "src/reporter/terminal.rs",
+          "function": {
+            "function_name": "TerminalReporter::render_findings_grouped",
+            "return_type": "",
+            "span": {
+              "start": {
+                "line": 461,
+                "column": 5
+              },
+              "end": {
+                "line": 505,
+                "column": 6
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 471,
+              "column": 9
+            },
+            "end": {
+              "line": 504,
+              "column": 10
+            }
+          },
+          "replacement": "()",
+          "genre": "FnValue"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/src__reporter__terminal.rs_line_471_col_9.log",
+      "diff_path": "diff/src__reporter__terminal.rs_line_471_col_9.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 9.461711291,
+          "process_status": "Success",
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 14.34141975,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/reporter/terminal.rs:520:9: replace TerminalReporter::render_findings_grouped_collapsed with ()",
+          "package": "wirerust",
+          "file": "src/reporter/terminal.rs",
+          "function": {
+            "function_name": "TerminalReporter::render_findings_grouped_collapsed",
+            "return_type": "",
+            "span": {
+              "start": {
+                "line": 507,
+                "column": 5
+              },
+              "end": {
+                "line": 619,
+                "column": 6
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 520,
+              "column": 9
+            },
+            "end": {
+              "line": 618,
+              "column": 10
+            }
+          },
+          "replacement": "()",
+          "genre": "FnValue"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/src__reporter__terminal.rs_line_520_col_9.log",
+      "diff_path": "diff/src__reporter__terminal.rs_line_520_col_9.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 10.081654125,
+          "process_status": "Success",
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 34.979500792,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/reporter/terminal.rs:549:22: replace == with != in TerminalReporter::render_findings_grouped_collapsed",
+          "package": "wirerust",
+          "file": "src/reporter/terminal.rs",
+          "function": {
+            "function_name": "TerminalReporter::render_findings_grouped_collapsed",
+            "return_type": "",
+            "span": {
+              "start": {
+                "line": 507,
+                "column": 5
+              },
+              "end": {
+                "line": 619,
+                "column": 6
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 549,
+              "column": 22
+            },
+            "end": {
+              "line": 549,
+              "column": 24
+            }
+          },
+          "replacement": "!=",
+          "genre": "BinaryOperator"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/src__reporter__terminal.rs_line_549_col_22.log",
+      "diff_path": "diff/src__reporter__terminal.rs_line_549_col_22.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 11.210445834,
+          "process_status": "Success",
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 36.579692042,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/reporter/terminal.rs:568:33: delete match arm Confidence::High in TerminalReporter::render_findings_grouped_collapsed",
+          "package": "wirerust",
+          "file": "src/reporter/terminal.rs",
+          "function": {
+            "function_name": "TerminalReporter::render_findings_grouped_collapsed",
+            "return_type": "",
+            "span": {
+              "start": {
+                "line": 507,
+                "column": 5
+              },
+              "end": {
+                "line": 619,
+                "column": 6
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 568,
+              "column": 33
+            },
+            "end": {
+              "line": 568,
+              "column": 90
+            }
+          },
+          "replacement": "",
+          "genre": "MatchArm"
+        }
+      },
+      "summary": "MissedMutant",
+      "log_path": "log/src__reporter__terminal.rs_line_568_col_33.log",
+      "diff_path": "diff/src__reporter__terminal.rs_line_568_col_33.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 11.696621083,
+          "process_status": "Success",
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 92.10801475,
+          "process_status": "Success",
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/reporter/terminal.rs:592:24: delete ! in TerminalReporter::render_findings_grouped_collapsed",
+          "package": "wirerust",
+          "file": "src/reporter/terminal.rs",
+          "function": {
+            "function_name": "TerminalReporter::render_findings_grouped_collapsed",
+            "return_type": "",
+            "span": {
+              "start": {
+                "line": 507,
+                "column": 5
+              },
+              "end": {
+                "line": 619,
+                "column": 6
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 592,
+              "column": 24
+            },
+            "end": {
+              "line": 592,
+              "column": 25
+            }
+          },
+          "replacement": "",
+          "genre": "UnaryOperator"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/src__reporter__terminal.rs_line_592_col_24.log",
+      "diff_path": "diff/src__reporter__terminal.rs_line_592_col_24.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 11.667852666,
+          "process_status": "Success",
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 85.020056667,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/Users/zious/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=wirerust@0.9.0"
+          ]
+        }
+      ]
+    }
+  ],
+  "total_mutants": 109,
+  "missed": 15,
+  "caught": 86,
+  "timeout": 0,
+  "unviable": 8,
+  "success": 0,
+  "start_time": "2026-06-19T17:23:05.203334Z",
+  "end_time": "2026-06-19T17:55:05.64971Z",
+  "cargo_mutants_version": "27.0.0"
+}

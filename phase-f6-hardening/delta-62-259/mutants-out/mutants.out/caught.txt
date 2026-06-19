@@ -1,0 +1,86 @@
+src/main.rs:44:5: replace main -> Result<()> with Ok(())
+src/main.rs:46:35: replace && with || in main
+src/main.rs:46:21: delete ! in main
+src/main.rs:68:22: replace || with && in main
+src/main.rs:69:23: replace || with && in main
+src/main.rs:70:22: replace || with && in main
+src/main.rs:71:25: replace || with && in main
+src/main.rs:76:22: replace || with && in main
+src/main.rs:113:5: replace run_analyze -> Result<()> with Ok(())
+src/main.rs:113:37: replace == with != in run_analyze
+src/main.rs:116:41: replace == with != in run_analyze
+src/main.rs:123:23: replace == with != in run_analyze
+src/main.rs:126:28: replace == with != in run_analyze
+src/main.rs:146:70: replace || with && in run_analyze
+src/main.rs:146:53: replace || with && in run_analyze
+src/main.rs:146:39: replace || with && in run_analyze
+src/main.rs:146:24: replace || with && in run_analyze
+src/main.rs:148:36: replace && with || in run_analyze
+src/main.rs:148:21: replace || with && in run_analyze
+src/main.rs:168:50: delete ! in run_analyze
+src/main.rs:170:45: replace * with / in run_analyze
+src/main.rs:171:43: replace * with / in run_analyze
+src/main.rs:200:40: replace && with || in run_analyze
+src/main.rs:200:43: delete ! in run_analyze
+src/main.rs:205:38: replace && with || in run_analyze
+src/main.rs:205:41: delete ! in run_analyze
+src/main.rs:211:68: replace && with || in run_analyze
+src/main.rs:211:71: delete ! in run_analyze
+src/main.rs:274:39: replace match guard e.to_string().contains("Non-Ethernet/IPv4 ARP frame") with true in run_analyze
+src/main.rs:255:43: replace && with || in run_analyze
+src/main.rs:289:52: replace == with != in run_analyze
+src/main.rs:294:49: replace += with -= in run_analyze
+src/main.rs:294:49: replace += with *= in run_analyze
+src/main.rs:364:9: delete match arm Some(OutputFormat::Json) in run_analyze
+src/main.rs:368:9: delete match arm Some(OutputFormat::Csv) in run_analyze
+src/main.rs:406:5: replace run_summary -> Result<()> with Ok(())
+src/main.rs:423:48: replace == with != in run_summary
+src/main.rs:428:45: replace += with -= in run_summary
+src/main.rs:428:45: replace += with *= in run_summary
+src/main.rs:438:9: delete match arm Some(OutputFormat::Json) in run_summary
+src/main.rs:442:9: delete match arm Some(OutputFormat::Csv) in run_summary
+src/main.rs:473:5: replace resolve_format -> Option<OutputFormat> with None
+src/main.rs:488:5: replace write_output -> Result<()> with Ok(())
+src/main.rs:489:9: delete match arm (Some(Some(path)), _) in write_output
+src/main.rs:491:9: delete match arm (_, Some(Some(path))) in write_output
+src/main.rs:506:5: replace collapse_findings_from_flag -> bool with true
+src/main.rs:506:5: replace collapse_findings_from_flag -> bool with false
+src/main.rs:506:5: delete ! in collapse_findings_from_flag
+src/main.rs:523:5: replace resolve_targets -> Result<Vec<std::path::PathBuf>> with Ok(vec![])
+src/main.rs:523:5: replace resolve_targets -> Result<Vec<std::path::PathBuf>> with Ok(vec![Default::default()])
+src/main.rs:533:24: replace == with != in resolve_targets
+src/reporter/terminal.rs:50:5: replace escape_for_terminal -> String with String::new()
+src/reporter/terminal.rs:50:5: replace escape_for_terminal -> String with "xyzzy".into()
+src/reporter/terminal.rs:57:71: replace || with && in escape_for_terminal
+src/reporter/terminal.rs:57:33: replace || with && in escape_for_terminal
+src/reporter/terminal.rs:57:76: replace == with != in escape_for_terminal
+src/reporter/terminal.rs:73:5: replace verdict_rank -> u8 with 0
+src/reporter/terminal.rs:73:5: replace verdict_rank -> u8 with 1
+src/reporter/terminal.rs:85:5: replace confidence_rank -> u8 with 0
+src/reporter/terminal.rs:85:5: replace confidence_rank -> u8 with 1
+src/reporter/terminal.rs:165:9: replace <impl Reporter for TerminalReporter>::render -> String with String::new()
+src/reporter/terminal.rs:165:9: replace <impl Reporter for TerminalReporter>::render -> String with "xyzzy".into()
+src/reporter/terminal.rs:175:36: replace > with == in <impl Reporter for TerminalReporter>::render
+src/reporter/terminal.rs:175:36: replace > with < in <impl Reporter for TerminalReporter>::render
+src/reporter/terminal.rs:175:36: replace > with >= in <impl Reporter for TerminalReporter>::render
+src/reporter/terminal.rs:196:16: delete ! in <impl Reporter for TerminalReporter>::render
+src/reporter/terminal.rs:219:12: delete ! in <impl Reporter for TerminalReporter>::render
+src/reporter/terminal.rs:230:12: delete ! in <impl Reporter for TerminalReporter>::render
+src/reporter/terminal.rs:278:9: replace TerminalReporter::section -> String with String::new()
+src/reporter/terminal.rs:278:9: replace TerminalReporter::section -> String with "xyzzy".into()
+src/reporter/terminal.rs:291:9: replace TerminalReporter::render_finding_prefix with ()
+src/reporter/terminal.rs:320:9: replace TerminalReporter::render_finding_flat with ()
+src/reporter/terminal.rs:321:12: delete ! in TerminalReporter::render_finding_flat
+src/reporter/terminal.rs:335:9: replace TerminalReporter::render_finding_grouped with ()
+src/reporter/terminal.rs:336:12: delete ! in TerminalReporter::render_finding_grouped
+src/reporter/terminal.rs:366:9: replace TerminalReporter::collapse_findings_pass_refs -> Vec<(CollapseKey, Vec<&'a Finding>)> with vec![]
+src/reporter/terminal.rs:375:66: replace == with != in TerminalReporter::collapse_findings_pass_refs
+src/reporter/terminal.rs:394:9: replace TerminalReporter::collapse_findings_pass -> Vec<(CollapseKey, Vec<&'a Finding>)> with vec![]
+src/reporter/terminal.rs:413:9: replace TerminalReporter::render_findings_collapsed with ()
+src/reporter/terminal.rs:416:18: replace == with != in TerminalReporter::render_findings_collapsed
+src/reporter/terminal.rs:430:29: delete match arm Confidence::High in TerminalReporter::render_findings_collapsed
+src/reporter/terminal.rs:453:20: delete ! in TerminalReporter::render_findings_collapsed
+src/reporter/terminal.rs:471:9: replace TerminalReporter::render_findings_grouped with ()
+src/reporter/terminal.rs:520:9: replace TerminalReporter::render_findings_grouped_collapsed with ()
+src/reporter/terminal.rs:549:22: replace == with != in TerminalReporter::render_findings_grouped_collapsed
+src/reporter/terminal.rs:592:24: delete ! in TerminalReporter::render_findings_grouped_collapsed

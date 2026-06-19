@@ -1,0 +1,26 @@
+--- src/reporter/terminal.rs
++++ replace verdict_rank -> u8 with 0
+@@ -65,22 +65,17 @@
+     out
+ }
+ 
+ /// Ascending sort rank for [`Verdict`]: lower value → appears first in a sorted bucket.
+ ///
+ /// BC-2.11.014 / BC-2.11.033 PC-5: both `render_findings_grouped` and
+ /// `render_findings_grouped_collapsed` share this single source (BC-014 single-source rule).
+ fn verdict_rank(v: Verdict) -> u8 {
+-    match v {
+-        Verdict::Likely => 0,
+-        Verdict::Possible => 1,
+-        Verdict::Inconclusive => 2,
+-        Verdict::Unlikely => 3,
+-    }
++    0 /* ~ changed by cargo-mutants ~ */
+ }
+ 
+ /// Ascending sort rank for [`Confidence`]: lower value → appears first in a sorted bucket.
+ ///
+ /// BC-2.11.014 / BC-2.11.033 PC-6: both grouped render functions share this single source.
+ fn confidence_rank(c: Confidence) -> u8 {
+     match c {
+         Confidence::High => 0,

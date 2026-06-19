@@ -1,0 +1,119 @@
+--- src/reporter/terminal.rs
++++ replace TerminalReporter::render_findings_grouped_collapsed with ()
+@@ -512,115 +512,17 @@
+     /// `collapse_findings_pass_refs` (BC-2.11.033 Invariant 3), then collapsed
+     /// group rendering with `(xN)` suffix (BC-2.11.031), K=3 evidence sampling
+     /// (BC-2.11.032), and MITRE em-dash line from `members[0]` (BC-2.11.034).
+     ///
+     /// Singletons (N=1) render via `render_finding_grouped` (byte-identical to
+     /// `{Grouped, Expanded}` for that finding).
+     fn render_findings_grouped_collapsed(&self, out: &mut String, findings: &[Finding]) {
+         // Step 1: bucket by tactic (same as render_findings_grouped, BC-2.11.013).
+-        let mut buckets: std::collections::HashMap<Option<MitreTactic>, Vec<(usize, &Finding)>> =
+-            std::collections::HashMap::new();
+-        for (i, f) in findings.iter().enumerate() {
+-            let tactic = f
+-                .mitre_techniques
+-                .first()
+-                .map(|id| id.as_str())
+-                .and_then(technique_tactic);
+-            buckets.entry(tactic).or_default().push((i, f));
+-        }
+-
+-        // Sort each bucket ascending by (verdict_rank, confidence_rank, emission-index).
+-        // verdict_rank / confidence_rank: module-level single-source (BC-014).
+-        for (_, items) in buckets.iter_mut() {
+-            items.sort_by_key(|(idx, f)| {
+-                (verdict_rank(f.verdict), confidence_rank(f.confidence), *idx)
+-            });
+-        }
+-
+-        // Step 3: render buckets in all_tactics_in_report_order(), Uncategorized last.
+-        let render_collapsed_bucket = |out: &mut String, items: &[(usize, &Finding)]| {
+-            // Build sorted &Finding refs and delegate to the shared collapse helper.
+-            // BC-2.11.033 Inv3 / BC-2.11.025 Inv1 / BC-2.11.031 PC-3: use the shared
+-            // four-tuple (category, verdict, confidence, summary) collapse key via
+-            // collapse_findings_pass_refs — no inline summary-only keying.
+-            let bucket_refs: Vec<&Finding> = items.iter().map(|(_, f)| *f).collect();
+-            let groups = self.collapse_findings_pass_refs(&bucket_refs);
+-            for (_key, members) in &groups {
+-                let n = members.len();
+-                if n == 1 {
+-                    // Singleton: byte-identical to {Grouped, Expanded}.
+-                    self.render_finding_grouped(out, members[0]);
+-                } else {
+-                    // N >= 2: build header with (xN) suffix, colorize the full
+-                    // string (suffix is inside the ANSI color span — BC-2.11.031 PC-3).
+-                    let rep = members[0];
+-                    // escape_for_terminal (char::escape_default, U+NN format) —
+-                    // BC-2.11.031 PC-5 / BC-2.11.032 PC-6 / VP-012 / ADR-0003.
+-                    let escaped_summary = escape_for_terminal(&rep.summary);
+-                    // Display format (`{}`) for verdict and confidence → UPPERCASE output
+-                    // (`LIKELY`, `HIGH`) per BC-2.11.031 PC-1 / canonical vector.
+-                    let header_text = format!(
+-                        "[{}] {} ({}) - {} (x{})",
+-                        rep.category, rep.verdict, rep.confidence, escaped_summary, n
+-                    );
+-                    let colored = if self.use_color {
+-                        match rep.verdict {
+-                            Verdict::Likely => match rep.confidence {
+-                                Confidence::High => header_text.red().bold().to_string(),
+-                                _ => header_text.yellow().to_string(),
+-                            },
+-                            Verdict::Possible => header_text.yellow().to_string(),
+-                            Verdict::Inconclusive => header_text.cyan().to_string(),
+-                            Verdict::Unlikely => header_text.dimmed().to_string(),
+-                        }
+-                    } else {
+-                        header_text
+-                    };
+-                    out.push_str(&format!("  {colored}\n"));
+-
+-                    // Evidence sampling: first min(N, K) members positionally.
+-                    // Window does NOT slide past empty-evidence members (BC-2.11.032 Inv2).
+-                    // escape_for_terminal (char::escape_default) — BC-2.11.032 PC-6 / VP-012.
+-                    let window = members.len().min(COLLAPSE_EVIDENCE_SAMPLES);
+-                    for member in &members[..window] {
+-                        if let Some(ev) = member.evidence.first() {
+-                            let escaped_ev = escape_for_terminal(ev);
+-                            out.push_str(&format!("    > {escaped_ev}\n"));
+-                        }
+-                    }
+-
+-                    // MITRE line from members[0] with em-dash name expansion (BC-2.11.034).
+-                    if !rep.mitre_techniques.is_empty() {
+-                        let ids = rep.mitre_techniques.join(", ");
+-                        match rep
+-                            .mitre_techniques
+-                            .first()
+-                            .and_then(|id| technique_name(id.as_str()))
+-                        {
+-                            Some(name) => {
+-                                out.push_str(&format!("    MITRE: {ids} \u{2014} {name}\n"))
+-                            }
+-                            None => out.push_str(&format!("    MITRE: {ids} (unknown)\n")),
+-                        }
+-                    }
+-                }
+-            }
+-        };
+-
+-        for tactic in all_tactics_in_report_order() {
+-            if let Some(items) = buckets.get(&Some(*tactic)) {
+-                out.push_str(&format!("  ## {tactic}\n"));
+-                render_collapsed_bucket(out, items);
+-            }
+-        }
+-        if let Some(items) = buckets.get(&None) {
+-            out.push_str("  ## Uncategorized\n");
+-            render_collapsed_bucket(out, items);
+-        }
++        () /* ~ changed by cargo-mutants ~ */
+     }
+ }
+ 
+ #[cfg(test)]
+ mod tests {
+     use super::escape_for_terminal;
+     use proptest::prelude::*;
+ 

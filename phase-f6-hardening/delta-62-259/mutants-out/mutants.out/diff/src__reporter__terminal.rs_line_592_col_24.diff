@@ -1,0 +1,21 @@
+--- src/reporter/terminal.rs
++++ delete ! in TerminalReporter::render_findings_grouped_collapsed
+@@ -584,17 +584,17 @@
+                     for member in &members[..window] {
+                         if let Some(ev) = member.evidence.first() {
+                             let escaped_ev = escape_for_terminal(ev);
+                             out.push_str(&format!("    > {escaped_ev}\n"));
+                         }
+                     }
+ 
+                     // MITRE line from members[0] with em-dash name expansion (BC-2.11.034).
+-                    if !rep.mitre_techniques.is_empty() {
++                    if  /* ~ changed by cargo-mutants ~ */rep.mitre_techniques.is_empty() {
+                         let ids = rep.mitre_techniques.join(", ");
+                         match rep
+                             .mitre_techniques
+                             .first()
+                             .and_then(|id| technique_name(id.as_str()))
+                         {
+                             Some(name) => {
+                                 out.push_str(&format!("    MITRE: {ids} \u{2014} {name}\n"))

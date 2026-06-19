@@ -1,0 +1,21 @@
+--- src/main.rs
++++ replace == with != in run_analyze
+@@ -108,17 +108,17 @@
+     collapse_findings: bool,
+     use_color: bool,
+     cli: &Cli,
+ ) -> Result<()> {
+     // BC-2.14.024 §P3a/P3b: validate thresholds before constructing the analyzer.
+     if modbus_write_burst_threshold == 0 {
+         anyhow::bail!("--modbus-write-burst-threshold must be >= 1 (got 0)");
+     }
+-    if modbus_write_sustained_threshold == 0 {
++    if modbus_write_sustained_threshold != /* ~ changed by cargo-mutants ~ */ 0 {
+         anyhow::bail!("--modbus-write-sustained-threshold must be >= 1 (got 0)");
+     }
+     // BC-2.16.008 EC-006 / BC-2.16.012 EC-004 / BC-2.16.013 EC-004 / D-074:
+     // Reject zero thresholds before constructing the ARP analyzer, mirroring
+     // the modbus guards above.  Value 0 is rejected here so that the D3 storm
+     // detector and spoof detector never operate with degenerate parameters.
+     if arp_storm_rate == 0 {
+         anyhow::bail!("--arp-storm-rate must be >= 1 (got 0)");

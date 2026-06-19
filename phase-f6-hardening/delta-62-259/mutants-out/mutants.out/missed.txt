@@ -1,0 +1,15 @@
+src/main.rs:74:23: replace || with && in main
+src/main.rs:154:22: replace && with || in run_analyze
+src/main.rs:161:20: replace && with || in run_analyze
+src/main.rs:168:47: replace && with || in run_analyze
+src/main.rs:170:13: delete field max_depth from struct ReassemblyConfig expression in run_analyze
+src/main.rs:171:13: delete field memcap from struct ReassemblyConfig expression in run_analyze
+src/main.rs:170:45: replace * with + in run_analyze
+src/main.rs:171:43: replace * with + in run_analyze
+src/main.rs:224:62: replace && with || in run_analyze
+src/main.rs:224:65: delete ! in run_analyze
+src/main.rs:274:39: replace match guard e.to_string().contains("Non-Ethernet/IPv4 ARP frame") with false in run_analyze
+src/main.rs:285:63: replace += with -= in run_analyze
+src/main.rs:285:63: replace += with *= in run_analyze
+src/reporter/terminal.rs:299:21: delete match arm Confidence::High in TerminalReporter::render_finding_prefix
+src/reporter/terminal.rs:568:33: delete match arm Confidence::High in TerminalReporter::render_findings_grouped_collapsed

@@ -1,0 +1,27 @@
+--- src/main.rs
++++ replace resolve_format -> Option<OutputFormat> with None
+@@ -465,23 +465,17 @@
+ ///
+ /// Precedence (highest to lowest):
+ /// 1. `--json [<FILE>]` forces `OutputFormat::Json`.
+ /// 2. `--csv [<FILE>]` forces `OutputFormat::Csv`. (`--json` and `--csv`
+ ///    are mutually exclusive — clap rejects the combination.)
+ /// 3. `--output-format <fmt>` is honored as-is.
+ /// 4. Default (terminal table) when no flag is given.
+ fn resolve_format(cli: &Cli) -> Option<OutputFormat> {
+-    if cli.json.is_some() {
+-        Some(OutputFormat::Json)
+-    } else if cli.csv.is_some() {
+-        Some(OutputFormat::Csv)
+-    } else {
+-        cli.output_format
+-    }
++    None /* ~ changed by cargo-mutants ~ */
+ }
+ 
+ /// Write rendered output to a file (if `--json <FILE>` or `--csv <FILE>`
+ /// was given with a path) or to stdout otherwise.
+ ///
+ /// `--json` and `--csv` are mutually exclusive (enforced by clap), so at
+ /// most one of the file-path arms can be active.
+ fn write_output(output: &str, cli: &Cli) -> Result<()> {

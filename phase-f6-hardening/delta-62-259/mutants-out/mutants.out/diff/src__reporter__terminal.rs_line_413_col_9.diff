@@ -1,0 +1,66 @@
+--- src/reporter/terminal.rs
++++ replace TerminalReporter::render_findings_collapsed with ()
+@@ -405,62 +405,17 @@
+     ///   - N >= 2: renders header with ` (xN)` suffix appended BEFORE colorization (so
+     ///     the suffix is inside the ANSI color span), then up to K=3 sampled evidence
+     ///     lines (first `min(N, COLLAPSE_EVIDENCE_SAMPLES)` members' `evidence[0]` in
+     ///     positional order; the window does NOT slide past empty-evidence members), then
+     ///     the MITRE line from `group_members[0]` if non-empty.
+     ///
+     /// BC-2.11.025 / BC-2.11.026 / BC-2.11.027 / BC-2.11.010.
+     fn render_findings_collapsed(&self, out: &mut String, findings: &[Finding]) {
+-        let groups = self.collapse_findings_pass(findings);
+-        for (_key, members) in &groups {
+-            let n = members.len();
+-            if n == 1 {
+-                // Singleton: byte-identical to pre-v0.8.0 flat rendering.
+-                self.render_finding_flat(out, members[0]);
+-            } else {
+-                // N >= 2: build header with (xN) suffix, colorize the full string.
+-                let rep = members[0];
+-                let escaped_summary = escape_for_terminal(&rep.summary);
+-                let header_text = format!(
+-                    "[{}] {} ({}) - {} (x{})",
+-                    rep.category, rep.verdict, rep.confidence, escaped_summary, n
+-                );
+-                let colored = if self.use_color {
+-                    match rep.verdict {
+-                        Verdict::Likely => match rep.confidence {
+-                            Confidence::High => header_text.red().bold().to_string(),
+-                            _ => header_text.yellow().to_string(),
+-                        },
+-                        Verdict::Possible => header_text.yellow().to_string(),
+-                        Verdict::Inconclusive => header_text.cyan().to_string(),
+-                        Verdict::Unlikely => header_text.dimmed().to_string(),
+-                    }
+-                } else {
+-                    header_text
+-                };
+-                out.push_str(&format!("  {colored}\n"));
+-
+-                // Evidence sampling: inspect first min(N, K) members positionally.
+-                // The window does NOT slide past empty-evidence members (BC-2.11.027 inv2).
+-                let window = members.len().min(COLLAPSE_EVIDENCE_SAMPLES);
+-                for member in &members[..window] {
+-                    if let Some(ev) = member.evidence.first() {
+-                        let escaped_ev = escape_for_terminal(ev);
+-                        out.push_str(&format!("    > {escaped_ev}\n"));
+-                    }
+-                }
+-
+-                // MITRE line from group_members[0] only, if non-empty (BC-2.11.026 pc7).
+-                if !rep.mitre_techniques.is_empty() {
+-                    let ids = rep.mitre_techniques.join(", ");
+-                    out.push_str(&format!("    MITRE: {ids}\n"));
+-                }
+-            }
+-        }
++        () /* ~ changed by cargo-mutants ~ */
+     }
+ 
+     /// Renders the FINDINGS section grouped by MITRE tactic. Each tactic
+     /// header is `## Tactic Name`; sections appear in
+     /// [`all_tactics_in_report_order`] order with an Uncategorized bucket
+     /// last that holds findings with no technique or an unknown ID.
+     /// Within each bucket, findings sort ascending by verdict-rank
+     /// (Likely=0, Possible=1, Inconclusive=2, Unlikely=3), then ascending by

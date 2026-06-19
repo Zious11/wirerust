@@ -1,0 +1,21 @@
+--- src/main.rs
++++ replace match guard e.to_string().contains("Non-Ethernet/IPv4 ARP frame") with false in run_analyze
+@@ -266,17 +266,17 @@
+                         // process_arp is called only when --arp is active (enable_arp gate).
+                         Ok(DecodedFrame::Arp(arp_frame)) => {
+                             if enable_arp {
+                                 let ts = raw.timestamp_secs;
+                                 let findings = arp_analyzer.process_arp(&arp_frame, ts);
+                                 all_findings.extend(findings);
+                             }
+                         }
+-                        Err(ref e) if e.to_string().contains("Non-Ethernet/IPv4 ARP frame") => {
++                        Err(ref e) if false /* ~ changed by cargo-mutants ~ */ => {
+                             // STORY-113: D11 malformed ARP notification (BC-2.16.009 PC3/PC4).
+                             // malformed_frames increments unconditionally (BC-2.16.009 PC4).
+                             // When --arp active: record_malformed emits D11 Finding and
+                             // increments both malformed_frames and malformed_findings (AC-012).
+                             // When --arp absent: only malformed_frames increments; no finding
+                             // emitted and malformed_findings unchanged (BC-2.16.009 PC4, ADR-008
+                             // Decision 7, BC-2.16.010 key 11).
+                             if enable_arp {

@@ -1,0 +1,21 @@
+--- src/reporter/terminal.rs
++++ delete match arm Confidence::High in TerminalReporter::render_findings_grouped_collapsed
+@@ -560,17 +560,17 @@
+                     // (`LIKELY`, `HIGH`) per BC-2.11.031 PC-1 / canonical vector.
+                     let header_text = format!(
+                         "[{}] {} ({}) - {} (x{})",
+                         rep.category, rep.verdict, rep.confidence, escaped_summary, n
+                     );
+                     let colored = if self.use_color {
+                         match rep.verdict {
+                             Verdict::Likely => match rep.confidence {
+-                                Confidence::High => header_text.red().bold().to_string(),
++                                 /* ~ changed by cargo-mutants ~ */
+                                 _ => header_text.yellow().to_string(),
+                             },
+                             Verdict::Possible => header_text.yellow().to_string(),
+                             Verdict::Inconclusive => header_text.cyan().to_string(),
+                             Verdict::Unlikely => header_text.dimmed().to_string(),
+                         }
+                     } else {
+                         header_text

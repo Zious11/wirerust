@@ -1,0 +1,21 @@
+--- src/reporter/terminal.rs
++++ delete ! in TerminalReporter::render_findings_collapsed
+@@ -445,17 +445,17 @@
+                 for member in &members[..window] {
+                     if let Some(ev) = member.evidence.first() {
+                         let escaped_ev = escape_for_terminal(ev);
+                         out.push_str(&format!("    > {escaped_ev}\n"));
+                     }
+                 }
+ 
+                 // MITRE line from group_members[0] only, if non-empty (BC-2.11.026 pc7).
+-                if !rep.mitre_techniques.is_empty() {
++                if  /* ~ changed by cargo-mutants ~ */rep.mitre_techniques.is_empty() {
+                     let ids = rep.mitre_techniques.join(", ");
+                     out.push_str(&format!("    MITRE: {ids}\n"));
+                 }
+             }
+         }
+     }
+ 
+     /// Renders the FINDINGS section grouped by MITRE tactic. Each tactic

@@ -1,0 +1,21 @@
+--- src/reporter/terminal.rs
++++ replace == with != in escape_for_terminal
+@@ -49,17 +49,17 @@
+ fn escape_for_terminal(s: &str) -> String {
+     let mut out = String::with_capacity(s.len());
+     for c in s.chars() {
+         // Escape C0 (0x00-0x1f), DEL (0x7f), C1 (U+0080-U+009F), and backslash.
+         // C1 codepoints like U+0085 (NEL) and U+009B (CSI — 8-bit equivalent of
+         // ESC[) are valid multi-byte UTF-8 in a `String` but can be interpreted
+         // as controls by terminals in 8-bit C1 mode (DEC S8C1T). Escaping them
+         // is cheap insurance.
+-        if c.is_ascii_control() || ('\u{80}'..='\u{9f}').contains(&c) || c == '\\' {
++        if c.is_ascii_control() || ('\u{80}'..='\u{9f}').contains(&c) || c != /* ~ changed by cargo-mutants ~ */ '\\' {
+             for e in c.escape_default() {
+                 out.push(e);
+             }
+         } else {
+             out.push(c);
+         }
+     }
+     out

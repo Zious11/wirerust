@@ -1,0 +1,21 @@
+--- src/main.rs
++++ replace += with *= in run_analyze
+@@ -286,17 +286,17 @@
+                             }
+                         }
+                         Err(e) => {
+                             if total_decode_errors == 0 {
+                                 eprintln!(
+                                     "Warning: failed to decode packet ({e}). Further errors counted silently."
+                                 );
+                             }
+-                            total_decode_errors += 1;
++                            total_decode_errors *= /* ~ changed by cargo-mutants ~ */ 1;
+                         }
+                     }
+                     pb.inc(1);
+                 }
+                 pb.finish_and_clear();
+             }
+         }
+         Ok(())

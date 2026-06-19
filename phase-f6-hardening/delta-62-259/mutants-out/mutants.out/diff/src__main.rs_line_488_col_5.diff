@@ -1,0 +1,30 @@
+--- src/main.rs
++++ replace write_output -> Result<()> with Ok(())
+@@ -480,26 +480,17 @@
+ }
+ 
+ /// Write rendered output to a file (if `--json <FILE>` or `--csv <FILE>`
+ /// was given with a path) or to stdout otherwise.
+ ///
+ /// `--json` and `--csv` are mutually exclusive (enforced by clap), so at
+ /// most one of the file-path arms can be active.
+ fn write_output(output: &str, cli: &Cli) -> Result<()> {
+-    match (&cli.json, &cli.csv) {
+-        (Some(Some(path)), _) => std::fs::write(path, output)
+-            .with_context(|| format!("Failed to write JSON output to {}", path.display())),
+-        (_, Some(Some(path))) => std::fs::write(path, output)
+-            .with_context(|| format!("Failed to write CSV output to {}", path.display())),
+-        _ => {
+-            println!("{output}");
+-            Ok(())
+-        }
+-    }
++    Ok(()) /* ~ changed by cargo-mutants ~ */
+ }
+ 
+ /// Maps the `--no-collapse` opt-out flag to the `TerminalReporter` `collapse_findings`
+ /// field (default-on per BC-2.11.028).
+ ///
+ /// When the flag is absent (`no_collapse = false`), collapse is ON (`true`).
+ /// When `--no-collapse` is passed (`no_collapse = true`), collapse is OFF (`false`).
+ fn collapse_findings_from_flag(no_collapse: bool) -> bool {

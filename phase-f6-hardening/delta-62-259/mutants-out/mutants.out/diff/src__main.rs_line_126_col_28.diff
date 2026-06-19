@@ -1,0 +1,21 @@
+--- src/main.rs
++++ replace == with != in run_analyze
+@@ -118,17 +118,17 @@
+     }
+     // BC-2.16.008 EC-006 / BC-2.16.012 EC-004 / BC-2.16.013 EC-004 / D-074:
+     // Reject zero thresholds before constructing the ARP analyzer, mirroring
+     // the modbus guards above.  Value 0 is rejected here so that the D3 storm
+     // detector and spoof detector never operate with degenerate parameters.
+     if arp_storm_rate == 0 {
+         anyhow::bail!("--arp-storm-rate must be >= 1 (got 0)");
+     }
+-    if arp_spoof_threshold == 0 {
++    if arp_spoof_threshold != /* ~ changed by cargo-mutants ~ */ 0 {
+         anyhow::bail!("--arp-spoof-threshold must be >= 1 (got 0)");
+     }
+ 
+     let mut summary = Summary::new();
+     let mut dns_analyzer = DnsAnalyzer::new();
+     // STORY-115: ArpAnalyzer::new(spoof_threshold, storm_rate).
+     // arp_spoof_threshold is wired from --arp-spoof-threshold (BC-2.16.012).
+     // arp_storm_rate is wired from --arp-storm-rate (BC-2.16.013; STORY-115).

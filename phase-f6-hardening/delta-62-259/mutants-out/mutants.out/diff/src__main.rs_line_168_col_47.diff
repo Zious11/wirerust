@@ -1,0 +1,21 @@
+--- src/main.rs
++++ replace && with || in run_analyze
+@@ -160,17 +160,17 @@
+     // BC-2.15.021: warn and omit DNP3 when reassembly disabled.
+     if enable_dnp3 && skip_reassembly {
+         eprintln!(
+             "WARNING: --dnp3 requires stream reassembly; ignoring --dnp3 \
+              (pass --reassemble or omit --no-reassemble)"
+         );
+     }
+ 
+-    let mut reassembler = if needs_reassembly && !skip_reassembly {
++    let mut reassembler = if needs_reassembly || /* ~ changed by cargo-mutants ~ */ !skip_reassembly {
+         let mut config = ReassemblyConfig {
+             max_depth: cli.reassembly_depth * 1_048_576,
+             memcap: cli.reassembly_memcap * 1_048_576,
+             ..ReassemblyConfig::default()
+         };
+         // LESSON-P2.05: anomaly thresholds are CLI-overridable; an
+         // absent flag leaves the `ReassemblyConfig::default()` value.
+         if let Some(v) = cli.overlap_threshold {

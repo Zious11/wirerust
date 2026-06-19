@@ -1,0 +1,21 @@
+--- src/reporter/terminal.rs
++++ delete ! in <impl Reporter for TerminalReporter>::render
+@@ -222,17 +222,17 @@
+             svc_vec.sort_by(|a, b| b.1.cmp(a.1).then_with(|| a.0.cmp(b.0)));
+             for (svc, count) in &svc_vec {
+                 out.push_str(&format!("  {svc}: {count}\n"));
+             }
+             out.push('\n');
+         }
+ 
+         // Findings
+-        if !findings.is_empty() {
++        if  /* ~ changed by cargo-mutants ~ */findings.is_empty() {
+             out.push_str(&self.section("FINDINGS"));
+             match (self.render.grouping, self.render.collapse) {
+                 (Grouping::Grouped, Collapse::Expanded) => {
+                     self.render_findings_grouped(&mut out, findings);
+                 }
+                 (Grouping::Grouped, Collapse::Collapsed) => {
+                     self.render_findings_grouped_collapsed(&mut out, findings);
+                 }

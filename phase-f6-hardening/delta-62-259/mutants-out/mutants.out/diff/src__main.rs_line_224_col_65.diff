@@ -1,0 +1,21 @@
+--- src/main.rs
++++ delete ! in run_analyze
+@@ -216,17 +216,17 @@
+     } else {
+         None
+     };
+     // BC-2.15.021 / BC-2.15.017: construct Dnp3Analyzer only when enabled AND reassembly is on.
+     // Forward the CLI-parsed dnp3_direct_operate_threshold to Dnp3Analyzer::new().
+     // When flag omitted, clap default = DNPXX_DIRECT_OPERATE_THRESHOLD_DEFAULT (10).
+     // AC-006: threshold wired; AC-007: 0 fires immediately, MAX never fires;
+     // AC-008: threshold echoed in T1692.001 summary string "(threshold N)".
+-    let dnp3_analyzer: Option<Dnp3Analyzer> = if enable_dnp3 && !skip_reassembly {
++    let dnp3_analyzer: Option<Dnp3Analyzer> = if enable_dnp3 &&  /* ~ changed by cargo-mutants ~ */skip_reassembly {
+         Some(Dnp3Analyzer::new(dnp3_direct_operate_threshold))
+     } else {
+         None
+     };
+ 
+     let mut dispatcher =
+         StreamDispatcher::new(http_analyzer, tls_analyzer, modbus_analyzer, dnp3_analyzer);
+ 

@@ -1,0 +1,36 @@
+--- src/reporter/terminal.rs
++++ replace TerminalReporter::collapse_findings_pass_refs -> Vec<(CollapseKey, Vec<&'a Finding>)> with vec![(Default::default(), vec![Box::leak(Box::new(Default::default()))])]
+@@ -358,32 +358,17 @@
+     /// directly per bucket.
+     ///
+     /// BC-2.11.025 invariant 7 / postcondition 9: Vec accumulator is canonical —
+     /// linear-scan `PartialEq`, no `HashMap`, no `IndexMap`.
+     fn collapse_findings_pass_refs<'a>(
+         &self,
+         refs: &[&'a Finding],
+     ) -> Vec<(CollapseKey, Vec<&'a Finding>)> {
+-        let mut groups: Vec<(CollapseKey, Vec<&'a Finding>)> = Vec::new();
+-        for f in refs {
+-            let key = CollapseKey {
+-                category: f.category,
+-                verdict: f.verdict,
+-                confidence: f.confidence,
+-                summary: f.summary.clone(),
+-            };
+-            // Linear-scan PartialEq: find an existing group or create a new one.
+-            if let Some(pos) = groups.iter().position(|(k, _)| k == &key) {
+-                groups[pos].1.push(f);
+-            } else {
+-                groups.push((key, vec![f]));
+-            }
+-        }
+-        groups
++        vec![(Default::default(), vec![Box::leak(Box::new(Default::default()))])] /* ~ changed by cargo-mutants ~ */
+     }
+ 
+     /// Flat-mode collapse adapter. Collects the `&[Finding]` parameter into
+     /// `Vec<&Finding>` and delegates to `collapse_findings_pass_refs`.
+     ///
+     /// Uses the `findings` PARAMETER — `TerminalReporter` has no `findings` field.
+     ///
+     /// BC-2.11.025 / ADR-0003 "Collapse-API Shape".

@@ -1,0 +1,76 @@
+--- src/main.rs
++++ replace run_summary -> Result<()> with Ok(())
+@@ -398,72 +398,17 @@
+ }
+ 
+ fn run_summary(
+     targets: &[std::path::PathBuf],
+     show_hosts_breakdown: bool,
+     use_color: bool,
+     cli: &Cli,
+ ) -> Result<()> {
+-    let mut summary = Summary::new();
+-    let mut total_decode_errors: u64 = 0;
+-
+-    for target in targets {
+-        let pcap_files = resolve_targets(target)?;
+-        for path in &pcap_files {
+-            let source = PcapSource::from_file(path)
+-                .with_context(|| format!("Failed to read {}", path.display()))?;
+-            for raw in &source.packets {
+-                match decode_packet(&raw.data, source.datalink) {
+-                    Ok(DecodedFrame::Ip(parsed)) => {
+-                        summary.ingest(&parsed);
+-                    }
+-                    // ArpAnalyzer is not wired in the summary subcommand path;
+-                    // ARP security analysis runs only under `analyze --arp`.
+-                    Ok(DecodedFrame::Arp(_arp_frame)) => {}
+-                    Err(e) => {
+-                        if total_decode_errors == 0 {
+-                            eprintln!(
+-                                "Warning: failed to decode packet ({e}). Further errors counted silently."
+-                            );
+-                        }
+-                        total_decode_errors += 1;
+-                    }
+-                }
+-            }
+-        }
+-    }
+-    summary.skipped_packets = total_decode_errors;
+-
+-    let resolved_format = resolve_format(cli);
+-    let output = match resolved_format {
+-        Some(OutputFormat::Json) => {
+-            let reporter = JsonReporter;
+-            reporter.render(&summary, &[], &[])
+-        }
+-        Some(OutputFormat::Csv) => {
+-            let reporter = CsvReporter;
+-            reporter.render(&summary, &[], &[])
+-        }
+-        _ => {
+-            let reporter = TerminalReporter {
+-                use_color,
+-                show_hosts_breakdown,
+-                // BC-2.11.028 invariant 4: render field is inert for run_summary — no FINDINGS section.
+-                render: FindingsRender {
+-                    grouping: Grouping::Flat,
+-                    collapse: Collapse::Collapsed,
+-                },
+-            };
+-            reporter.render(&summary, &[], &[])
+-        }
+-    };
+-
+-    write_output(&output, cli)?;
+-    Ok(())
++    Ok(()) /* ~ changed by cargo-mutants ~ */
+ }
+ 
+ /// Determine the output format.
+ ///
+ /// Precedence (highest to lowest):
+ /// 1. `--json [<FILE>]` forces `OutputFormat::Json`.
+ /// 2. `--csv [<FILE>]` forces `OutputFormat::Csv`. (`--json` and `--csv`
+ ///    are mutually exclusive — clap rejects the combination.)

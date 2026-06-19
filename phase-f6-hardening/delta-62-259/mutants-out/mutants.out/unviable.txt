@@ -1,0 +1,8 @@
+src/main.rs:473:5: replace resolve_format -> Option<OutputFormat> with Some(Default::default())
+src/main.rs:515:5: replace grouping_from_flag -> Grouping with Default::default()
+src/main.rs:533:17: replace && with || in resolve_targets
+src/main.rs:532:17: replace && with || in resolve_targets
+src/reporter/terminal.rs:366:9: replace TerminalReporter::collapse_findings_pass_refs -> Vec<(CollapseKey, Vec<&'a Finding>)> with vec![(Default::default(), vec![])]
+src/reporter/terminal.rs:366:9: replace TerminalReporter::collapse_findings_pass_refs -> Vec<(CollapseKey, Vec<&'a Finding>)> with vec![(Default::default(), vec![Box::leak(Box::new(Default::default()))])]
+src/reporter/terminal.rs:394:9: replace TerminalReporter::collapse_findings_pass -> Vec<(CollapseKey, Vec<&'a Finding>)> with vec![(Default::default(), vec![])]
+src/reporter/terminal.rs:394:9: replace TerminalReporter::collapse_findings_pass -> Vec<(CollapseKey, Vec<&'a Finding>)> with vec![(Default::default(), vec![Box::leak(Box::new(Default::default()))])]

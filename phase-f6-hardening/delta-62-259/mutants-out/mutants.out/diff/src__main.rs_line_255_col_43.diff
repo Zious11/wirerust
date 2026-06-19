@@ -1,0 +1,21 @@
+--- src/main.rs
++++ replace && with || in run_analyze
+@@ -247,17 +247,17 @@
+                 pb.set_style(ProgressStyle::with_template(
+                     "[{elapsed_precise}] {bar:40} {pos}/{len} packets",
+                 )?);
+ 
+                 for raw in &source.packets {
+                     match decode_packet(&raw.data, source.datalink) {
+                         Ok(DecodedFrame::Ip(parsed)) => {
+                             summary.ingest(&parsed);
+-                            if enable_dns && dns_analyzer.can_decode(&parsed) {
++                            if enable_dns || /* ~ changed by cargo-mutants ~ */ dns_analyzer.can_decode(&parsed) {
+                                 let findings = dns_analyzer.analyze(&parsed);
+                                 all_findings.extend(findings);
+                             }
+                             if let Some(ref mut reasm) = reassembler {
+                                 reasm.process_packet(&parsed, raw.timestamp_secs, &mut dispatcher);
+                             }
+                         }
+                         // STORY-113: ArpAnalyzer wiring (BC-2.16.011; AC-015/AC-016).

@@ -1,0 +1,21 @@
+--- src/reporter/terminal.rs
++++ delete ! in TerminalReporter::render_finding_grouped
+@@ -328,17 +328,17 @@
+     /// if non-empty, expands to `ID — Name` for the first ID and `ID (unknown)`
+     /// for IDs absent from [`crate::mitre::technique_name`]. Unknown IDs
+     /// still render so they surface in audit trails; the regression test
+     /// `known_emitted_technique_ids_resolve_in_lookup` in
+     /// `tests/mitre_tests.rs` covers the hand-curated set of IDs we
+     /// currently emit (see issue #67 for the trade-off rationale).
+     fn render_finding_grouped(&self, out: &mut String, f: &Finding) {
+         self.render_finding_prefix(out, f);
+-        if !f.mitre_techniques.is_empty() {
++        if  /* ~ changed by cargo-mutants ~ */f.mitre_techniques.is_empty() {
+             // For the grouped view, show all IDs joined with comma-space.
+             // Expand the first known ID with its name; unknown IDs get "(unknown)".
+             let ids = f.mitre_techniques.join(", ");
+             // Use the first technique ID for expanded name lookup in grouped view.
+             match f
+                 .mitre_techniques
+                 .first()
+                 .and_then(|id| technique_name(id.as_str()))

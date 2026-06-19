@@ -1,0 +1,128 @@
+--- src/reporter/terminal.rs
++++ replace <impl Reporter for TerminalReporter>::render -> String with String::new()
+@@ -157,124 +157,17 @@
+ 
+ impl Reporter for TerminalReporter {
+     fn render(
+         &self,
+         summary: &Summary,
+         findings: &[Finding],
+         analyzer_summaries: &[AnalysisSummary],
+     ) -> String {
+-        let mut out = String::new();
+-
+-        // Header
+-        out.push_str(&self.section("WIRERUST TRIAGE REPORT"));
+-        out.push_str(&format!(
+-            "  Packets: {}  Bytes: {}  Hosts: {}\n",
+-            summary.total_packets,
+-            summary.total_bytes,
+-            summary.unique_hosts().len(),
+-        ));
+-        if summary.skipped_packets > 0 {
+-            let warning = format!(
+-                "  Skipped: {} packets (decode errors)\n",
+-                summary.skipped_packets
+-            );
+-            if self.use_color {
+-                out.push_str(&warning.yellow().to_string());
+-            } else {
+-                out.push_str(&warning);
+-            }
+-        }
+-        out.push('\n');
+-
+-        // LESSON-P1.03: optional per-host breakdown, gated by the
+-        // `summary --hosts` flag. Renders one line per unique
+-        // source/destination IP observed in the capture, in the
+-        // sorted-by-address order returned by `Summary::unique_hosts()`.
+-        // The always-on `Hosts: N` count in the header is kept; this
+-        // section is the expanded itemized list.
+-        if self.show_hosts_breakdown {
+-            let hosts = summary.unique_hosts();
+-            if !hosts.is_empty() {
+-                out.push_str(&self.section("HOSTS"));
+-                for host in &hosts {
+-                    out.push_str(&format!("  {host}\n"));
+-                }
+-                out.push('\n');
+-            }
+-        }
+-
+-        // Protocol breakdown
+-        out.push_str(&self.section("PROTOCOLS"));
+-        let mut proto_vec: Vec<_> = summary.protocol_counts().iter().collect();
+-        proto_vec.sort_by(|a, b| {
+-            b.1.cmp(a.1)
+-                .then_with(|| format!("{:?}", a.0).cmp(&format!("{:?}", b.0)))
+-        });
+-        for (proto, count) in &proto_vec {
+-            out.push_str(&format!("  {proto:?}: {count}\n"));
+-        }
+-        out.push('\n');
+-
+-        // Services
+-        let services = summary.service_counts();
+-        if !services.is_empty() {
+-            out.push_str(&self.section("SERVICES"));
+-            let mut svc_vec: Vec<_> = services.iter().collect();
+-            svc_vec.sort_by(|a, b| b.1.cmp(a.1).then_with(|| a.0.cmp(b.0)));
+-            for (svc, count) in &svc_vec {
+-                out.push_str(&format!("  {svc}: {count}\n"));
+-            }
+-            out.push('\n');
+-        }
+-
+-        // Findings
+-        if !findings.is_empty() {
+-            out.push_str(&self.section("FINDINGS"));
+-            match (self.render.grouping, self.render.collapse) {
+-                (Grouping::Grouped, Collapse::Expanded) => {
+-                    self.render_findings_grouped(&mut out, findings);
+-                }
+-                (Grouping::Grouped, Collapse::Collapsed) => {
+-                    self.render_findings_grouped_collapsed(&mut out, findings);
+-                }
+-                (Grouping::Flat, Collapse::Collapsed) => {
+-                    self.render_findings_collapsed(&mut out, findings);
+-                }
+-                (Grouping::Flat, Collapse::Expanded) => {
+-                    for f in findings {
+-                        self.render_finding_flat(&mut out, f);
+-                    }
+-                }
+-            }
+-            out.push('\n');
+-        }
+-
+-        // Analyzer summaries
+-        for asummary in analyzer_summaries {
+-            out.push_str(&self.section(&format!("ANALYZER: {}", asummary.analyzer_name)));
+-            out.push_str(&format!(
+-                "  Packets analyzed: {}\n",
+-                asummary.packets_analyzed
+-            ));
+-            for (key, val) in &asummary.detail {
+-                // Per ADR 0003: analyzer summary detail values can contain
+-                // attacker-controlled bytes (e.g., top_hosts, top_snis,
+-                // recent_uris from HTTP/TLS). serde_json's Display impl
+-                // escapes C0 + DEL per RFC 8259 but passes C1 codepoints
+-                // (U+0080-U+009F) through as raw UTF-8 — so we still need
+-                // to run the JSON rendering through escape_for_terminal to
+-                // close the C1 gap that U+009B (CSI) exploits.
+-                let escaped_val = escape_for_terminal(&val.to_string());
+-                out.push_str(&format!("  {key}: {escaped_val}\n"));
+-            }
+-            out.push('\n');
+-        }
+-
+-        out
++        String::new() /* ~ changed by cargo-mutants ~ */
+     }
+ }
+ 
+ impl TerminalReporter {
+     fn section(&self, title: &str) -> String {
+         if self.use_color {
+             format!("{}\n{}\n", title.bold().underline(), "─".repeat(40))
+         } else {

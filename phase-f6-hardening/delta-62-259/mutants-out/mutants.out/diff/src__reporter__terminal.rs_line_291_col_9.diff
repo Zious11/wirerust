@@ -1,0 +1,43 @@
+--- src/reporter/terminal.rs
++++ replace TerminalReporter::render_finding_prefix with ()
+@@ -283,39 +283,17 @@
+     }
+ 
+     /// Emits the shared per-finding prefix: the colored `[category] verdict
+     /// (confidence) - summary` header line followed by each evidence line.
+     /// Summary and evidence strings are escaped per ADR 0003 before being
+     /// written to the TTY. Callers own the trailing MITRE line — see
+     /// [`render_finding_flat`] and [`render_finding_grouped`].
+     fn render_finding_prefix(&self, out: &mut String, f: &Finding) {
+-        let escaped_summary = escape_for_terminal(&f.summary);
+-        let line = format!(
+-            "[{}] {} ({}) - {}",
+-            f.category, f.verdict, f.confidence, escaped_summary
+-        );
+-        let colored = if self.use_color {
+-            match f.verdict {
+-                Verdict::Likely => match f.confidence {
+-                    Confidence::High => line.red().bold().to_string(),
+-                    _ => line.yellow().to_string(),
+-                },
+-                Verdict::Possible => line.yellow().to_string(),
+-                Verdict::Inconclusive => line.cyan().to_string(),
+-                Verdict::Unlikely => line.dimmed().to_string(),
+-            }
+-        } else {
+-            line
+-        };
+-        out.push_str(&format!("  {colored}\n"));
+-        for ev in &f.evidence {
+-            let escaped_ev = escape_for_terminal(ev);
+-            out.push_str(&format!("    > {escaped_ev}\n"));
+-        }
++        () /* ~ changed by cargo-mutants ~ */
+     }
+ 
+     /// Renders a single finding in the default flat view. MITRE line, if
+     /// non-empty, shows comma-space joined technique IDs.
+     /// BC-2.11.017: multi-ID renders as `MITRE: T1692.001, T0836`; empty vec → no line.
+     fn render_finding_flat(&self, out: &mut String, f: &Finding) {
+         self.render_finding_prefix(out, f);
+         if !f.mitre_techniques.is_empty() {

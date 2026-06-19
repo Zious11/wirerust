@@ -1,0 +1,25 @@
+--- src/reporter/terminal.rs
++++ replace TerminalReporter::render_finding_flat with ()
+@@ -312,21 +312,17 @@
+             out.push_str(&format!("    > {escaped_ev}\n"));
+         }
+     }
+ 
+     /// Renders a single finding in the default flat view. MITRE line, if
+     /// non-empty, shows comma-space joined technique IDs.
+     /// BC-2.11.017: multi-ID renders as `MITRE: T1692.001, T0836`; empty vec → no line.
+     fn render_finding_flat(&self, out: &mut String, f: &Finding) {
+-        self.render_finding_prefix(out, f);
+-        if !f.mitre_techniques.is_empty() {
+-            let ids = f.mitre_techniques.join(", ");
+-            out.push_str(&format!("    MITRE: {ids}\n"));
+-        }
++        () /* ~ changed by cargo-mutants ~ */
+     }
+ 
+     /// Renders a single finding in the `--mitre` grouped view. MITRE line,
+     /// if non-empty, expands to `ID — Name` for the first ID and `ID (unknown)`
+     /// for IDs absent from [`crate::mitre::technique_name`]. Unknown IDs
+     /// still render so they surface in audit trails; the regression test
+     /// `known_emitted_technique_ids_resolve_in_lookup` in
+     /// `tests/mitre_tests.rs` covers the hand-curated set of IDs we

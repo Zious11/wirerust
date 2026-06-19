@@ -1,0 +1,21 @@
+--- src/reporter/terminal.rs
++++ replace == with != in TerminalReporter::render_findings_collapsed
+@@ -408,17 +408,17 @@
+     ///     positional order; the window does NOT slide past empty-evidence members), then
+     ///     the MITRE line from `group_members[0]` if non-empty.
+     ///
+     /// BC-2.11.025 / BC-2.11.026 / BC-2.11.027 / BC-2.11.010.
+     fn render_findings_collapsed(&self, out: &mut String, findings: &[Finding]) {
+         let groups = self.collapse_findings_pass(findings);
+         for (_key, members) in &groups {
+             let n = members.len();
+-            if n == 1 {
++            if n != /* ~ changed by cargo-mutants ~ */ 1 {
+                 // Singleton: byte-identical to pre-v0.8.0 flat rendering.
+                 self.render_finding_flat(out, members[0]);
+             } else {
+                 // N >= 2: build header with (xN) suffix, colorize the full string.
+                 let rep = members[0];
+                 let escaped_summary = escape_for_terminal(&rep.summary);
+                 let header_text = format!(
+                     "[{}] {} ({}) - {} (x{})",

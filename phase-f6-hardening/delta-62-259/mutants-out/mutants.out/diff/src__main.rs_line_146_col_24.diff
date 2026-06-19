@@ -1,0 +1,21 @@
+--- src/main.rs
++++ replace || with && in run_analyze
+@@ -138,17 +138,17 @@
+     let mut all_findings = Vec::new();
+     let mut total_decode_errors: u64 = 0;
+ 
+     let skip_reassembly = cli.no_reassemble;
+ 
+     // BC-2.14.023 §P4: needs_reassembly includes enable_modbus / enable_dnp3 so that
+     // --modbus or --dnp3 alone (without --http or --tls) activates the reassembly engine.
+     let needs_reassembly =
+-        cli.reassemble || enable_http || enable_tls || enable_modbus || enable_dnp3;
++        cli.reassemble && /* ~ changed by cargo-mutants ~ */ enable_http || enable_tls || enable_modbus || enable_dnp3;
+ 
+     if (enable_http || enable_tls) && skip_reassembly {
+         eprintln!(
+             "Warning: --http/--tls require TCP reassembly, but --no-reassemble is set. Stream analysis will be skipped."
+         );
+     }
+     // BC-2.14.023 §P2 sub-case (EC-001): warn and omit Modbus when reassembly disabled.
+     if enable_modbus && skip_reassembly {

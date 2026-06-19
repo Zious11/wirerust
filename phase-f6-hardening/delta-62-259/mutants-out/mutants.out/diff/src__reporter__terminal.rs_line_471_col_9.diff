@@ -1,0 +1,54 @@
+--- src/reporter/terminal.rs
++++ replace TerminalReporter::render_findings_grouped with ()
+@@ -463,50 +463,17 @@
+     /// [`all_tactics_in_report_order`] order with an Uncategorized bucket
+     /// last that holds findings with no technique or an unknown ID.
+     /// Within each bucket, findings sort ascending by verdict-rank
+     /// (Likely=0, Possible=1, Inconclusive=2, Unlikely=3), then ascending by
+     /// confidence-rank (High=0, Medium=1, Low=2), then original emission order (stable).
+     /// BC-2.11.013: tactic bucketing uses `mitre_techniques[0]` (first element).
+     fn render_findings_grouped(&self, out: &mut String, findings: &[Finding]) {
+         // Bucket by tactic. Attach original index for stable tertiary sort.
+-        let mut buckets: std::collections::HashMap<Option<MitreTactic>, Vec<(usize, &Finding)>> =
+-            std::collections::HashMap::new();
+-        for (i, f) in findings.iter().enumerate() {
+-            // BC-2.11.013: tactic grouping uses mitre_techniques[0] (first element).
+-            // Empty vec → None → Uncategorized. Unknown ID → None → Uncategorized.
+-            let tactic = f
+-                .mitre_techniques
+-                .first()
+-                .map(|id| id.as_str())
+-                .and_then(technique_tactic);
+-            buckets.entry(tactic).or_default().push((i, f));
+-        }
+-
+-        // verdict_rank / confidence_rank: module-level single-source (BC-014).
+-        for (_, items) in buckets.iter_mut() {
+-            items.sort_by_key(|(idx, f)| {
+-                (verdict_rank(f.verdict), confidence_rank(f.confidence), *idx)
+-            });
+-        }
+-
+-        for tactic in all_tactics_in_report_order() {
+-            if let Some(items) = buckets.get(&Some(*tactic)) {
+-                out.push_str(&format!("  ## {tactic}\n"));
+-                for (_, f) in items {
+-                    self.render_finding_grouped(out, f);
+-                }
+-            }
+-        }
+-        if let Some(items) = buckets.get(&None) {
+-            out.push_str("  ## Uncategorized\n");
+-            for (_, f) in items {
+-                self.render_finding_grouped(out, f);
+-            }
+-        }
++        () /* ~ changed by cargo-mutants ~ */
+     }
+ 
+     /// Renders the FINDINGS section grouped by MITRE tactic WITH per-bucket collapse.
+     ///
+     /// Per-tactic-bucket grouping identical to `render_findings_grouped` (BC-2.11.013),
+     /// then per-bucket sort ascending by (verdict_rank, confidence_rank, emission-index)
+     /// (BC-2.11.033 PC-5 / BC-2.11.014), then per-bucket
+     /// `collapse_findings_pass_refs` (BC-2.11.033 Invariant 3), then collapsed

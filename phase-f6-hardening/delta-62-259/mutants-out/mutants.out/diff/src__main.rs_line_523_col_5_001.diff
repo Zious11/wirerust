@@ -1,0 +1,39 @@
+--- src/main.rs
++++ replace resolve_targets -> Result<Vec<std::path::PathBuf>> with Ok(vec![Default::default()])
+@@ -515,35 +515,17 @@
+     if show_mitre_grouping {
+         Grouping::Grouped
+     } else {
+         Grouping::Flat
+     }
+ }
+ 
+ fn resolve_targets(target: &Path) -> Result<Vec<std::path::PathBuf>> {
+-    if target.is_file() {
+-        return Ok(vec![target.to_path_buf()]);
+-    }
+-    if target.is_dir() {
+-        let mut files = Vec::new();
+-        for entry in std::fs::read_dir(target)? {
+-            let entry = entry?;
+-            let path = entry.path();
+-            if path.is_file()
+-                && let Some(ext) = path.extension()
+-                && ext == "pcap"
+-            {
+-                files.push(path);
+-            }
+-        }
+-        files.sort();
+-        return Ok(files);
+-    }
+-    anyhow::bail!("Target not found: {}", target.display());
++    Ok(vec![Default::default()]) /* ~ changed by cargo-mutants ~ */
+ }
+ 
+ #[cfg(test)]
+ mod tests {
+     use super::{collapse_findings_from_flag, grouping_from_flag};
+     use wirerust::reporter::terminal::Grouping;
+ 
+     /// BC-2.11.028: flag absent (false) → collapse ON (true);

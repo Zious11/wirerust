@@ -1,0 +1,21 @@
+--- src/main.rs
++++ replace && with || in main
+@@ -38,17 +38,17 @@
+ use wirerust::reporter::csv::CsvReporter;
+ use wirerust::reporter::json::JsonReporter;
+ use wirerust::reporter::terminal::{Collapse, FindingsRender, Grouping, TerminalReporter};
+ use wirerust::summary::Summary;
+ 
+ fn main() -> Result<()> {
+     let cli = Cli::parse();
+ 
+-    let use_color = !cli.no_color && std::env::var("NO_COLOR").is_err();
++    let use_color = !cli.no_color || /* ~ changed by cargo-mutants ~ */ std::env::var("NO_COLOR").is_err();
+ 
+     match &cli.command {
+         Commands::Analyze {
+             targets,
+             dns,
+             http,
+             tls,
+             all,

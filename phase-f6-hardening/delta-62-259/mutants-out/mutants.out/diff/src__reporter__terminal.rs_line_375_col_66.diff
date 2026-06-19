@@ -1,0 +1,21 @@
+--- src/reporter/terminal.rs
++++ replace == with != in TerminalReporter::collapse_findings_pass_refs
+@@ -367,17 +367,17 @@
+         for f in refs {
+             let key = CollapseKey {
+                 category: f.category,
+                 verdict: f.verdict,
+                 confidence: f.confidence,
+                 summary: f.summary.clone(),
+             };
+             // Linear-scan PartialEq: find an existing group or create a new one.
+-            if let Some(pos) = groups.iter().position(|(k, _)| k == &key) {
++            if let Some(pos) = groups.iter().position(|(k, _)| k != /* ~ changed by cargo-mutants ~ */ &key) {
+                 groups[pos].1.push(f);
+             } else {
+                 groups.push((key, vec![f]));
+             }
+         }
+         groups
+     }
+ 

@@ -1,0 +1,21 @@
+--- src/reporter/terminal.rs
++++ replace == with != in TerminalReporter::render_findings_grouped_collapsed
+@@ -541,17 +541,17 @@
+             // Build sorted &Finding refs and delegate to the shared collapse helper.
+             // BC-2.11.033 Inv3 / BC-2.11.025 Inv1 / BC-2.11.031 PC-3: use the shared
+             // four-tuple (category, verdict, confidence, summary) collapse key via
+             // collapse_findings_pass_refs — no inline summary-only keying.
+             let bucket_refs: Vec<&Finding> = items.iter().map(|(_, f)| *f).collect();
+             let groups = self.collapse_findings_pass_refs(&bucket_refs);
+             for (_key, members) in &groups {
+                 let n = members.len();
+-                if n == 1 {
++                if n != /* ~ changed by cargo-mutants ~ */ 1 {
+                     // Singleton: byte-identical to {Grouped, Expanded}.
+                     self.render_finding_grouped(out, members[0]);
+                 } else {
+                     // N >= 2: build header with (xN) suffix, colorize the full
+                     // string (suffix is inside the ANSI color span — BC-2.11.031 PC-3).
+                     let rep = members[0];
+                     // escape_for_terminal (char::escape_default, U+NN format) —
+                     // BC-2.11.031 PC-5 / BC-2.11.032 PC-6 / VP-012 / ADR-0003.

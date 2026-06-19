@@ -1,0 +1,21 @@
+--- src/main.rs
++++ replace == with != in run_summary
+@@ -415,17 +415,17 @@
+                 match decode_packet(&raw.data, source.datalink) {
+                     Ok(DecodedFrame::Ip(parsed)) => {
+                         summary.ingest(&parsed);
+                     }
+                     // ArpAnalyzer is not wired in the summary subcommand path;
+                     // ARP security analysis runs only under `analyze --arp`.
+                     Ok(DecodedFrame::Arp(_arp_frame)) => {}
+                     Err(e) => {
+-                        if total_decode_errors == 0 {
++                        if total_decode_errors != /* ~ changed by cargo-mutants ~ */ 0 {
+                             eprintln!(
+                                 "Warning: failed to decode packet ({e}). Further errors counted silently."
+                             );
+                         }
+                         total_decode_errors += 1;
+                     }
+                 }
+             }

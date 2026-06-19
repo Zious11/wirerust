@@ -1,0 +1,21 @@
+--- src/main.rs
++++ delete ! in run_analyze
+@@ -203,17 +203,17 @@
+         None
+     };
+     let tls_analyzer = if enable_tls && !skip_reassembly {
+         Some(TlsAnalyzer::new())
+     } else {
+         None
+     };
+     // BC-2.14.023 §P2: construct ModbusAnalyzer only when enabled AND reassembly is on.
+-    let modbus_analyzer: Option<ModbusAnalyzer> = if enable_modbus && !skip_reassembly {
++    let modbus_analyzer: Option<ModbusAnalyzer> = if enable_modbus &&  /* ~ changed by cargo-mutants ~ */skip_reassembly {
+         Some(ModbusAnalyzer::new(
+             modbus_write_burst_threshold,
+             modbus_write_sustained_threshold,
+         ))
+     } else {
+         None
+     };
+     // BC-2.15.021 / BC-2.15.017: construct Dnp3Analyzer only when enabled AND reassembly is on.

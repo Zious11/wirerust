@@ -1,0 +1,21 @@
+--- src/reporter/terminal.rs
++++ delete match arm Confidence::High in TerminalReporter::render_finding_prefix
+@@ -291,17 +291,17 @@
+         let escaped_summary = escape_for_terminal(&f.summary);
+         let line = format!(
+             "[{}] {} ({}) - {}",
+             f.category, f.verdict, f.confidence, escaped_summary
+         );
+         let colored = if self.use_color {
+             match f.verdict {
+                 Verdict::Likely => match f.confidence {
+-                    Confidence::High => line.red().bold().to_string(),
++                     /* ~ changed by cargo-mutants ~ */
+                     _ => line.yellow().to_string(),
+                 },
+                 Verdict::Possible => line.yellow().to_string(),
+                 Verdict::Inconclusive => line.cyan().to_string(),
+                 Verdict::Unlikely => line.dimmed().to_string(),
+             }
+         } else {
+             line

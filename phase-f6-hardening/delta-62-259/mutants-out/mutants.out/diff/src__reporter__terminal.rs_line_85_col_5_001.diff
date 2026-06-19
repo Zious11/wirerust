@@ -1,0 +1,25 @@
+--- src/reporter/terminal.rs
++++ replace confidence_rank -> u8 with 1
+@@ -77,21 +77,17 @@
+         Verdict::Unlikely => 3,
+     }
+ }
+ 
+ /// Ascending sort rank for [`Confidence`]: lower value → appears first in a sorted bucket.
+ ///
+ /// BC-2.11.014 / BC-2.11.033 PC-6: both grouped render functions share this single source.
+ fn confidence_rank(c: Confidence) -> u8 {
+-    match c {
+-        Confidence::High => 0,
+-        Confidence::Medium => 1,
+-        Confidence::Low => 2,
+-    }
++    1 /* ~ changed by cargo-mutants ~ */
+ }
+ 
+ /// Maximum number of representative evidence lines rendered per collapsed group.
+ ///
+ /// BC-2.11.027 invariant 1: K = 3 is a hardcoded named constant, not a magic number.
+ /// The collapse pass inspects the first `min(N, COLLAPSE_EVIDENCE_SAMPLES)` members
+ /// of the group and emits `evidence[0]` from each inspected member (if non-empty).
+ /// The window is positional and does NOT slide past empty-evidence members.

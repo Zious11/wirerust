@@ -1,0 +1,21 @@
+--- src/main.rs
++++ replace += with *= in run_analyze
+@@ -277,17 +277,17 @@
+                             // When --arp active: record_malformed emits D11 Finding and
+                             // increments both malformed_frames and malformed_findings (AC-012).
+                             // When --arp absent: only malformed_frames increments; no finding
+                             // emitted and malformed_findings unchanged (BC-2.16.009 PC4, ADR-008
+                             // Decision 7, BC-2.16.010 key 11).
+                             if enable_arp {
+                                 all_findings.extend(arp_analyzer.record_malformed(raw.data.len()));
+                             } else {
+-                                arp_analyzer.malformed_frames += 1;
++                                arp_analyzer.malformed_frames *= /* ~ changed by cargo-mutants ~ */ 1;
+                             }
+                         }
+                         Err(e) => {
+                             if total_decode_errors == 0 {
+                                 eprintln!(
+                                     "Warning: failed to decode packet ({e}). Further errors counted silently."
+                                 );
+                             }

@@ -1,0 +1,21 @@
+--- src/main.rs
++++ replace && with || in run_analyze
+@@ -153,17 +153,17 @@
+     // BC-2.14.023 §P2 sub-case (EC-001): warn and omit Modbus when reassembly disabled.
+     if enable_modbus && skip_reassembly {
+         eprintln!(
+             "WARNING: --modbus requires stream reassembly; ignoring --modbus \
+              (pass --reassemble or omit --no-reassemble)"
+         );
+     }
+     // BC-2.15.021: warn and omit DNP3 when reassembly disabled.
+-    if enable_dnp3 && skip_reassembly {
++    if enable_dnp3 || /* ~ changed by cargo-mutants ~ */ skip_reassembly {
+         eprintln!(
+             "WARNING: --dnp3 requires stream reassembly; ignoring --dnp3 \
+              (pass --reassemble or omit --no-reassemble)"
+         );
+     }
+ 
+     let mut reassembler = if needs_reassembly && !skip_reassembly {
+         let mut config = ReassemblyConfig {

@@ -1,0 +1,21 @@
+--- src/main.rs
++++ delete ! in run_analyze
+@@ -192,17 +192,17 @@
+         // u64 → u32 saturating cast: values above u32::MAX (~136 years) clamp
+         // to u32::MAX, which is a safe, non-silent default for any real capture.
+         config.flow_timeout_secs = cli.flow_timeout.min(u64::from(u32::MAX)) as u32;
+         Some(TcpReassembler::new(config))
+     } else {
+         None
+     };
+ 
+-    let http_analyzer = if enable_http && !skip_reassembly {
++    let http_analyzer = if enable_http &&  /* ~ changed by cargo-mutants ~ */skip_reassembly {
+         Some(HttpAnalyzer::new())
+     } else {
+         None
+     };
+     let tls_analyzer = if enable_tls && !skip_reassembly {
+         Some(TlsAnalyzer::new())
+     } else {
+         None

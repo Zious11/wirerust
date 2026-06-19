@@ -1,0 +1,22 @@
+--- src/main.rs
++++ delete match arm (_, Some(Some(path))) in write_output
+@@ -483,18 +483,17 @@
+ /// was given with a path) or to stdout otherwise.
+ ///
+ /// `--json` and `--csv` are mutually exclusive (enforced by clap), so at
+ /// most one of the file-path arms can be active.
+ fn write_output(output: &str, cli: &Cli) -> Result<()> {
+     match (&cli.json, &cli.csv) {
+         (Some(Some(path)), _) => std::fs::write(path, output)
+             .with_context(|| format!("Failed to write JSON output to {}", path.display())),
+-        (_, Some(Some(path))) => std::fs::write(path, output)
+-            .with_context(|| format!("Failed to write CSV output to {}", path.display())),
++         /* ~ changed by cargo-mutants ~ */
+         _ => {
+             println!("{output}");
+             Ok(())
+         }
+     }
+ }
+ 
+ /// Maps the `--no-collapse` opt-out flag to the `TerminalReporter` `collapse_findings`

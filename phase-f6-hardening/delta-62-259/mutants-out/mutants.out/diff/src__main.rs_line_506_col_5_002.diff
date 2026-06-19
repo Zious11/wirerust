@@ -1,0 +1,21 @@
+--- src/main.rs
++++ delete ! in collapse_findings_from_flag
+@@ -498,17 +498,17 @@
+ }
+ 
+ /// Maps the `--no-collapse` opt-out flag to the `TerminalReporter` `collapse_findings`
+ /// field (default-on per BC-2.11.028).
+ ///
+ /// When the flag is absent (`no_collapse = false`), collapse is ON (`true`).
+ /// When `--no-collapse` is passed (`no_collapse = true`), collapse is OFF (`false`).
+ fn collapse_findings_from_flag(no_collapse: bool) -> bool {
+-    !no_collapse
++     /* ~ changed by cargo-mutants ~ */no_collapse
+ }
+ 
+ /// Maps the `--mitre` flag to the `FindingsRender` `grouping` field
+ /// (BC-2.11.030 PC-2 through PC-5).
+ ///
+ /// When `--mitre` is present (`show_mitre_grouping = true`), grouping is `Grouped`.
+ /// When `--mitre` is absent (`show_mitre_grouping = false`), grouping is `Flat`.
+ fn grouping_from_flag(show_mitre_grouping: bool) -> Grouping {
