@@ -4347,16 +4347,16 @@ mod story_120 {
 }
 
 // ---------------------------------------------------------------------------
-// STORY-122 RED gate tests
+// STORY-122 acceptance-gate tests
 //
 // These tests lock in the STORY-122 acceptance criteria for the
 // FindingsRender enum→struct reshape (Option X). The stub-architect
 // (commit dec8a55) reshaped the types and migrated the 84 construction
 // sites; these tests verify both the completed mechanical migration and
-// the remaining Task-4 comment-sweep work.
+// the completed Task-4 comment-sweep work.
 //
-// Tests tied to UNFINISHED work (Task 4 comment sweep) are RED on this
-// commit. Tests for already-complete type/dispatch/wiring work are GREEN.
+// All tasks complete on this commit; every test below is GREEN and serves
+// as a regression guard.
 //
 // DF-TEST-NAMESPACE-001: per-story mod wrapper.
 // ---------------------------------------------------------------------------
@@ -4841,7 +4841,7 @@ mod story_122 {
 
     /// AC-006 (BC-2.11.013 Invariant 4):
     /// {Grouped, Expanded} (--mitre alone in STORY-122/A) produces the same
-    /// output as the old FindingsRender::Grouped enum variant:
+    /// output as the old grouped (suffix-free) variant:
     /// tactic headers present, no (xN) suffix, byte-identical across the reshape.
     #[test]
     fn test_BC_2_11_028_ac006_grouped_expanded_byte_identical_to_old_grouped_variant() {
@@ -4877,7 +4877,7 @@ mod story_122 {
 
     /// AC-006 (BC-2.11.026 Postcondition 4, BC-2.11.027 Postcondition 1):
     /// {Flat, Collapsed} (default in STORY-122/A) produces the same output as
-    /// the old FindingsRender::FlatCollapsed: (xN) suffix for N≥2, up to K=3
+    /// the old flat-collapsed path: (xN) suffix for N≥2, up to K=3
     /// evidence lines, MITRE line for non-empty mitre_techniques.
     #[test]
     fn test_BC_2_11_028_ac006_flat_collapsed_byte_identical_to_old_flatcollapsed_variant() {
@@ -4924,7 +4924,7 @@ mod story_122 {
 
     /// AC-006 (BC-2.11.013 Invariant 4):
     /// {Flat, Expanded} (--no-collapse in STORY-122/A) produces the same output
-    /// as the old FindingsRender::FlatExpanded: 3 individual lines, no (xN) suffix.
+    /// as the old flat-expanded path: 3 individual lines, no (xN) suffix.
     #[test]
     fn test_BC_2_11_028_ac006_flat_expanded_byte_identical_to_old_flatexpanded_variant() {
         let findings: Vec<Finding> = (0..3).map(|_| make_finding_s122("s122-ac006-fe")).collect();
@@ -4959,9 +4959,9 @@ mod story_122 {
     // assert that the stale prose tokens listed in the STORY-122 Task-4
     // Falsifiable Requirements are absent.
     //
-    // RED: These tests FAIL on this commit because Task 4 (comment sweep)
-    // has not been performed yet by the implementer. The grep gate values
-    // match STORY-122 AC-007 / Task-4 Falsifiable Requirements (3) and (4).
+    // REGRESSION GUARD: Task 4 comment sweep is complete; these tests assert
+    // the swept targets stay free of stale FindingsRender enum vocabulary.
+    // The grep gate values match STORY-122 AC-007 / Task-4 Falsifiable Requirements (3) and (4).
     //
     // EXEMPT: The pattern "three fields" is NOT in the gate (exempt:
     // TerminalReporter-field prose at reporter_terminal_tests.rs:4040).
@@ -5217,6 +5217,63 @@ mod story_122 {
             evidence_line_count >= 1,
             "AC-008: {{Flat,Collapsed}} with evidence-bearing findings must emit \
              at least 1 evidence line; got {evidence_line_count} in:\n{out}"
+        );
+    }
+
+    // -----------------------------------------------------------------------
+    // AC-003 — Zero-grep gate: no stale FindingsRender::{Grouped,FlatCollapsed,FlatExpanded}
+    // tokens in src/ or tests/
+    // (traces to BC-2.11.028 AC-003; AC-007 extended the gate to doc-comments)
+    // -----------------------------------------------------------------------
+
+    /// AC-003 / AC-007 (BC-2.11.028 Invariant 6):
+    /// REGRESSION GUARD: No stale `FindingsRender::{Grouped,FlatCollapsed,FlatExpanded}`
+    /// tokens exist anywhere in src/main.rs, src/reporter/terminal.rs, or this test file.
+    /// These tokens are the removed enum-variant paths from the pre-STORY-122 type.
+    /// The gate tokens are built with `concat!` so this source file does not self-trigger.
+    #[test]
+    fn test_BC_2_11_028_ac003_no_stale_findingsrender_variant_tokens() {
+        let sources: &[(&str, &str)] = &[
+            ("src/main.rs", include_str!("../src/main.rs")),
+            (
+                "src/reporter/terminal.rs",
+                include_str!("../src/reporter/terminal.rs"),
+            ),
+            (
+                "tests/reporter_terminal_tests.rs",
+                include_str!("../tests/reporter_terminal_tests.rs"),
+            ),
+        ];
+
+        // Tokens are built with concat! so this source file does not self-trigger the gate.
+        let banned_tokens: &[&str] = &[
+            concat!("FindingsRender", "::", "Grouped"),
+            concat!("FindingsRender", "::", "FlatCollapsed"),
+            concat!("FindingsRender", "::", "FlatExpanded"),
+        ];
+
+        let mut violations: Vec<String> = Vec::new();
+        for (label, src) in sources {
+            for (line_no, line) in src.lines().enumerate() {
+                for token in banned_tokens {
+                    if line.contains(token) {
+                        violations.push(format!(
+                            "  {}:{}: {:?} (token: {:?})",
+                            label,
+                            line_no + 1,
+                            line.trim(),
+                            token
+                        ));
+                    }
+                }
+            }
+        }
+
+        assert!(
+            violations.is_empty(),
+            "AC-003: stale FindingsRender enum-variant tokens found — \
+             Task 4 comment sweep or doc-comment cleanup is incomplete:\n{}",
+            violations.join("\n")
         );
     }
 }
