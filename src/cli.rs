@@ -151,12 +151,13 @@ pub enum Commands {
         #[arg(long)]
         mitre: bool,
 
-        /// Disable terminal finding-collapse (default: collapse ON).
-        /// By default, repeated findings sharing the same (category, verdict,
-        /// confidence, summary) are collapsed into one display group with a
-        /// `(xN)` count suffix. Pass --no-collapse to restore one-line-per-finding
-        /// output identical to pre-v0.8.0 behavior.
-        /// BC-2.11.028 precondition 2; mirrors the --mitre / --dns boolean precedent.
+        /// Disable collapsing of repeated findings in both flat and grouped
+        /// (--mitre) terminal output. By default, collapse is enabled in both
+        /// modes. When --mitre is used, collapse groups identical findings
+        /// within each MITRE tactic bucket with a `(xN)` count suffix.
+        /// Pass --no-collapse to restore one-line-per-finding output in both modes.
+        /// Has no effect on --output json or --output csv.
+        /// BC-2.11.028 precondition 2; dual-scope since STORY-119.
         #[arg(long)]
         no_collapse: bool,
 

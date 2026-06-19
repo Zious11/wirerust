@@ -375,23 +375,14 @@ fn run_analyze(
                 // `analyze` does not expose a per-host breakdown flag —
                 // that is `summary`-subcommand-only (LESSON-P1.03).
                 show_hosts_breakdown: false,
-                // BC-2.11.028: render mode selection (3-arm if for byte-identical STORY-122/A;
-                // orthogonal 2-if form in STORY-119/B).
-                render: if show_mitre_grouping {
-                    FindingsRender {
-                        grouping: Grouping::Grouped,
-                        collapse: Collapse::Expanded,
-                    }
-                } else if collapse_findings {
-                    FindingsRender {
-                        grouping: Grouping::Flat,
-                        collapse: Collapse::Collapsed,
-                    }
-                } else {
-                    FindingsRender {
-                        grouping: Grouping::Flat,
-                        collapse: Collapse::Expanded,
-                    }
+                // BC-2.11.028 / BC-2.11.030: orthogonal 2-if struct wiring (STORY-119/B CLI flip).
+                // --mitre alone (show_mitre_grouping=true, collapse_findings=true) → {Grouped, Collapsed}.
+                // --mitre --no-collapse (show_mitre_grouping=true, collapse_findings=false) → {Grouped, Expanded}.
+                // default (show_mitre_grouping=false, collapse_findings=true) → {Flat, Collapsed}.
+                // --no-collapse only (show_mitre_grouping=false, collapse_findings=false) → {Flat, Expanded}.
+                render: FindingsRender {
+                    grouping: if show_mitre_grouping { Grouping::Grouped } else { Grouping::Flat },
+                    collapse: if collapse_findings { Collapse::Collapsed } else { Collapse::Expanded },
                 },
             };
             reporter.render(&summary, &all_findings, &analyzer_summaries)

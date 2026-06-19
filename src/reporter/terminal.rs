@@ -210,11 +210,7 @@ impl Reporter for TerminalReporter {
                     self.render_findings_grouped(&mut out, findings);
                 }
                 (Grouping::Grouped, Collapse::Collapsed) => {
-                    // TEMPORARY (STORY-122/A): routes to render_findings_grouped until STORY-119/B
-                    // introduces render_findings_grouped_collapsed and repoints this arm.
-                    // {Grouped, Collapsed} is unreachable via CLI in this story (--mitre alone maps
-                    // to {Grouped, Expanded} until STORY-119/B flips the CLI default).
-                    self.render_findings_grouped(&mut out, findings);
+                    self.render_findings_grouped_collapsed(&mut out, findings);
                 }
                 (Grouping::Flat, Collapse::Collapsed) => {
                     self.render_findings_collapsed(&mut out, findings);
@@ -329,23 +325,22 @@ impl TerminalReporter {
         }
     }
 
-    /// Groups findings by `CollapseKey` in first-occurrence order using a
-    /// `Vec<(CollapseKey, Vec<&Finding>)>` accumulator with linear-scan
-    /// `PartialEq` matching (no HashMap / IndexMap — `ThreatCategory`, `Verdict`,
-    /// and `Confidence` do not derive `Hash` in v0.8.0).
+    /// Shared collapse-logic helper: groups a slice of finding references by
+    /// `CollapseKey` in first-occurrence order.
     ///
-    /// Each finding's four-tuple `(category, verdict, confidence, summary)` is
-    /// compared by raw bytes (the summary is not escaped before key construction;
-    /// escape is a render-time operation). Groups appear in first-occurrence order —
-    /// the position of the first member that created the group.
+    /// This is the single source of collapse logic (ADR-0003 "Collapse-API Shape";
+    /// F2 design-note §5.2.1). `collapse_findings_pass` (the flat-mode wrapper)
+    /// delegates to this function. `render_findings_grouped_collapsed` calls this
+    /// directly per bucket.
     ///
-    /// BC-2.11.025 invariant 7 / postcondition 9: Vec accumulator is canonical.
-    fn collapse_findings_pass<'a>(
+    /// BC-2.11.025 invariant 7 / postcondition 9: Vec accumulator is canonical —
+    /// linear-scan `PartialEq`, no `HashMap`, no `IndexMap`.
+    fn collapse_findings_pass_refs<'a>(
         &self,
-        findings: &'a [Finding],
+        refs: &[&'a Finding],
     ) -> Vec<(CollapseKey, Vec<&'a Finding>)> {
         let mut groups: Vec<(CollapseKey, Vec<&'a Finding>)> = Vec::new();
-        for f in findings {
+        for f in refs {
             let key = CollapseKey {
                 category: f.category,
                 verdict: f.verdict,
@@ -360,6 +355,20 @@ impl TerminalReporter {
             }
         }
         groups
+    }
+
+    /// Flat-mode collapse adapter. Collects the `&[Finding]` parameter into
+    /// `Vec<&Finding>` and delegates to `collapse_findings_pass_refs`.
+    ///
+    /// Uses the `findings` PARAMETER — `TerminalReporter` has no `findings` field.
+    ///
+    /// BC-2.11.025 / ADR-0003 "Collapse-API Shape".
+    fn collapse_findings_pass<'a>(
+        &self,
+        findings: &'a [Finding],
+    ) -> Vec<(CollapseKey, Vec<&'a Finding>)> {
+        let refs: Vec<&Finding> = findings.iter().collect();
+        self.collapse_findings_pass_refs(&refs)
     }
 
     /// Renders the FINDINGS section in collapsed flat mode.
@@ -484,6 +493,31 @@ impl TerminalReporter {
                 self.render_finding_grouped(out, f);
             }
         }
+    }
+
+    /// Renders the FINDINGS section grouped by MITRE tactic WITH per-bucket collapse.
+    ///
+    /// Per-tactic-bucket grouping identical to `render_findings_grouped` (BC-2.11.013),
+    /// then per-bucket sort (BC-2.11.033 PC-5 / BC-2.11.014), then per-bucket
+    /// `collapse_findings_pass_refs` (BC-2.11.033 Invariant 3), then collapsed
+    /// group rendering with `(xN)` suffix (BC-2.11.031), K=3 evidence sampling
+    /// (BC-2.11.032), and MITRE em-dash line from `members[0]` (BC-2.11.034).
+    ///
+    /// Singletons (N=1) render via `render_finding_grouped` (byte-identical to
+    /// `{Grouped, Expanded}` for that finding).
+    ///
+    /// STORY-119/B GREEN: implement per-bucket collapse rendering here.
+    fn render_findings_grouped_collapsed(&self, _out: &mut String, _findings: &[Finding]) {
+        // BC-5.38.001: non-trivial body — todo!() until GREEN phase.
+        // "If I include this real implementation, will the test for this function pass
+        // trivially without any implementer work?" Yes — therefore todo!() here.
+        // Self-check per BC-5.38.005 invariant 1.
+        todo!(
+            "STORY-119/B GREEN: render_findings_grouped_collapsed — \
+             per-bucket sort + collapse_findings_pass_refs + (xN) headers + \
+             K=3 evidence sampling + MITRE em-dash from members[0] \
+             (BC-2.11.031/032/033/034)"
+        )
     }
 }
 
