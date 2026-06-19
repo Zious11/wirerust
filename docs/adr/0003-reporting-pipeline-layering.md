@@ -736,10 +736,13 @@ render: if show_mitre_grouping {
 
 **Phase B — STORY-119/B (behavior flip; `--mitre` default changes):**
 
-STORY-119/B introduces `render_findings_grouped_collapsed` and repoints the
-`{Grouped, Collapsed}` dispatch arm from the placeholder to the new function. No change to
-the construction expression. `--no-collapse` becomes dual-scope (suppresses collapse in both
-flat and grouped modes).
+STORY-119/B makes two coordinated changes. First, it replaces the 3-arm-if construction with
+the orthogonal 2-if form (`grouping: if show_mitre_grouping { Grouped } else { Flat },
+collapse: if collapse_findings { Collapsed } else { Expanded }`), so `--mitre` alone now
+constructs `{Grouped, Collapsed}` instead of `{Grouped, Expanded}`. Second, it introduces
+`render_findings_grouped_collapsed` and repoints the `{Grouped, Collapsed}` dispatch arm from
+the placeholder `render_findings_grouped` to the new function. `--no-collapse` becomes
+dual-scope (suppresses collapse in both flat and grouped modes).
 
 | CLI flags (Phase B) | Resulting struct | Behavior |
 |--------------------|-----------------|----------|
