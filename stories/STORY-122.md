@@ -2,7 +2,7 @@
 document_type: story
 story_id: STORY-122
 epic_id: E-18
-version: "1.0"
+version: "1.1"
 status: pending
 producer: story-writer
 timestamp: 2026-06-18T00:00:00Z
@@ -152,15 +152,27 @@ After migration: `grep -rn "FindingsRender::Grouped\|FindingsRender::FlatCollaps
 returns zero lines (zero-grep gate).
 (traces to BC-2.11.028 Postcondition 4: "The `collapse` axis of the `FindingsRender` struct is determined exclusively by `collapse_findings`; the `grouping` axis by `show_mitre_grouping`. They are fully orthogonal.")
 
-### AC-004 — `run_analyze` construction site uses struct literal with in-scope params
-The `TerminalReporter` construction site in `src/main.rs::run_analyze` uses the struct literal
-form: `render: FindingsRender { grouping: if show_mitre_grouping { Grouping::Grouped } else { Grouping::Flat }, collapse: if collapse_findings { Collapse::Collapsed } else { Collapse::Expanded } }`.
+### AC-004 — `run_analyze` construction site migrates 3-arm if-expression to 3 struct literals (byte-identical)
+The existing 3-arm `if`-expression at `src/main.rs:381-387` (current v0.9.0 code:
+`if show_mitre_grouping { FindingsRender::Grouped } else if collapse_findings { FindingsRender::FlatCollapsed } else { FindingsRender::FlatExpanded }`)
+is migrated to three parallel struct literals that preserve the same branching logic:
+```rust
+render: if show_mitre_grouping {
+    FindingsRender { grouping: Grouping::Grouped, collapse: Collapse::Expanded }
+} else if collapse_findings {
+    FindingsRender { grouping: Grouping::Flat, collapse: Collapse::Collapsed }
+} else {
+    FindingsRender { grouping: Grouping::Flat, collapse: Collapse::Expanded }
+},
+```
 The in-scope bool params are `show_mitre_grouping` (line 107) and `collapse_findings` (line 108)
 inside `run_analyze`. The `--mitre`/`--no-collapse` → bool resolution at `main()` lines 79-80
-is UNCHANGED. Since `--mitre` alone maps `collapse_findings = true` → `Collapse::Collapsed`
-and `show_mitre_grouping = true` → `Grouping::Grouped`, the struct produces `{Grouped, Collapsed}` —
-which TEMPORARILY routes to `render_findings_grouped` (byte-identical to v0.9.0 `--mitre` output).
-(traces to BC-2.11.028 Invariant 1: "…`render: FindingsRender { grouping: if show_mitre_grouping { Grouping::Grouped } else { Grouping::Flat }, collapse: if collapse_findings { Collapse::Collapsed } else { Collapse::Expanded } }`… The two axes are fully orthogonal: no combination is illegal.")
+is UNCHANGED. With this migration: `--mitre` alone (`show_mitre_grouping=true`) → first branch →
+`{Grouped, Expanded}` (suffix-free, byte-identical to old `FindingsRender::Grouped`).
+`{Grouped, Collapsed}` is NOT produced by `run_analyze` in this story — it is unreachable via
+the CLI in STORY-122/A. The construction flip (`--mitre` → `{Grouped, Collapsed}`) is
+STORY-119/B's scope (Task 4).
+(traces to BC-2.11.028 Invariant 1: "…`render: FindingsRender { grouping: if show_mitre_grouping { Grouping::Grouped } else { Grouping::Flat }, collapse: if collapse_findings { Collapse::Collapsed } else { Collapse::Expanded } }`… The two axes are fully orthogonal: no combination is illegal." — NOTE: The invariant describes the FINAL struct wiring form (as installed by STORY-119/B). STORY-122/A preserves the v0.9.0 3-arm-if branching order as 3 struct literals, which is functionally equivalent to BC-2.11.028 Invariant 1 for the 3 CLI-reachable combos AND preserves byte-identical output. The orthogonal form is STORY-119/B's Task 4 — BC-2.11.028's Architecture Anchor explicitly marks it "F4-pending STORY-119 target.")
 
 ### AC-005 — `run_summary` construction site uses `{Flat, Collapsed}` struct literal
 The `run_summary` construction site in `src/main.rs` uses struct literal form
@@ -206,7 +218,7 @@ to two-orthogonal-axis / four-arm vocabulary.
 ### Task 1 — Replace `FindingsRender` three-variant enum with `Grouping` + `Collapse` + `FindingsRender` struct in `src/reporter/terminal.rs`
 
 **File:** `src/reporter/terminal.rs`
-**Scope:** Lines 100-111 (current `pub enum FindingsRender { Grouped, FlatCollapsed, FlatExpanded }`)
+**Scope:** Lines **94**-111 (includes the enum doc-comment block at :94-99 and the `pub enum FindingsRender { Grouped, FlatCollapsed, FlatExpanded }` definition at :100-111; the wholesale replacement removes the stale doc-comment at :94-99 so no orphaned stale doc remains)
 
 Replace with:
 ```rust
@@ -256,16 +268,24 @@ Update the `use` import in `src/main.rs`: `use wirerust::reporter::terminal::{Fi
 | `FindingsRender::FlatCollapsed` | `FindingsRender { grouping: Grouping::Flat, collapse: Collapse::Collapsed }` |
 | `FindingsRender::FlatExpanded` | `FindingsRender { grouping: Grouping::Flat, collapse: Collapse::Expanded }` |
 
-**Wiring for `run_analyze` construction site** (`src/main.rs` — replaces the 3-arm if-expression):
+**Wiring for `run_analyze` construction site** (`src/main.rs:381-387` — migrates the 3-arm if-expression to 3 struct literals, preserving v0.9.0 branching order for byte-identical output):
 ```rust
-render: FindingsRender {
-    grouping: if show_mitre_grouping { Grouping::Grouped } else { Grouping::Flat },
-    collapse: if collapse_findings { Collapse::Collapsed } else { Collapse::Expanded },
+render: if show_mitre_grouping {
+    FindingsRender { grouping: Grouping::Grouped, collapse: Collapse::Expanded }
+} else if collapse_findings {
+    FindingsRender { grouping: Grouping::Flat, collapse: Collapse::Collapsed }
+} else {
+    FindingsRender { grouping: Grouping::Flat, collapse: Collapse::Expanded }
 },
 ```
 Note: `show_mitre_grouping` (line 107) and `collapse_findings` (line 108) are the in-scope bool
 params inside `run_analyze`. The `--mitre`/`--no-collapse` → bool resolution at `main()` lines
-79-80 is UNCHANGED.
+79-80 is UNCHANGED. This wiring produces `{Grouped, Expanded}` for `--mitre` alone (byte-identical to
+old `FindingsRender::Grouped`). `{Grouped, Collapsed}` is NOT reachable via `run_analyze` in
+STORY-122/A — the construction flip to the orthogonal 2-if form is STORY-119/B's Task 4.
+The migration map governs this: `FindingsRender::Grouped` → `{Grouped, Expanded}` (first arm); the
+flat arms migrate to `{Flat, Collapsed}` and `{Flat, Expanded}` respectively. No orthogonal-axis
+recomputation occurs; no arm yields `{Grouped, Collapsed}`.
 
 **Wiring for `run_summary` construction site** (`src/main.rs`):
 ```rust
@@ -312,20 +332,24 @@ existing functions as before — zero behavior change for those paths.
 
 ---
 
-### Task 4 — Comment sweep: remove stale enum-vocabulary references and fix stale doc-comment
+### Task 4 — Comment sweep: remove stale enum-vocabulary references and fix stale doc-comments
 
 **Files:** `src/reporter/terminal.rs`, `src/main.rs`, all test files.
 
 Census: grep for `FindingsRender::Grouped`, `FindingsRender::FlatCollapsed`, `FindingsRender::FlatExpanded`,
 stale `verdict-desc`/`confidence-desc` text, and stale `three-variant`/`three fields`/
-`All three FindingsRender`/`three.arm` semantic prose.
+`All three FindingsRender`/`three.arm`/`three mutually-exclusive`/`three-way`/`impossible state`/
+`three.mode` semantic prose.
 
-**Exempt (do not modify):**
-- `collapse_findings` as a local bool variable name inside `run_analyze` — intentional.
-- `show_mitre_grouping` as a local bool variable name inside `run_analyze` — same rationale.
-- Historical BCs and ADR text outside `src/` and `tests/` — spec artifacts.
-- Changelog stanzas in STORY files and BC files that historically reference "three-variant enum"
-  — frozen historical records.
+**Stale semantic prose targets (src/reporter/terminal.rs — confirmed by grep):**
+- Line 6-8 — module-level doc `render: FindingsRender field selects among three mutually-exclusive` → update to two-orthogonal-axis vocabulary (struct-of-two-orthogonal-enums)
+- Lines 94-99 — stale doc-comment block on old `FindingsRender` enum (removed wholesale by Task 1 scope extension to :94-111; included in Task 1's replacement block)
+- Lines 96-99 — `Encodes the three mutually-exclusive rendering modes` / `eliminating the impossible state` → removed by Task 1 scope; no separate edit needed
+- Lines 122-124 — `TerminalReporter.render` field doc referencing "mutual exclusion between ... three ... modes" → update to struct-of-enums vocabulary
+- Lines 204-206 — dispatch-arm comment "impossible state eliminated by type" → remove or update (this comment was true for the three-variant enum but is now FALSE under the four-arm struct dispatch where no combination is illegal)
+
+**Stale semantic prose targets (src/main.rs — confirmed by grep):**
+- Line 378 — inline comment `BC-2.11.028: three-way render mode selection` → update to `BC-2.11.028: render mode selection (3-arm if for byte-identical byte-identical STORY-122/A; orthogonal 2-if form in STORY-119/B)`
 
 **Stale semantic prose targets (tests/reporter_terminal_tests.rs):**
 - Line 3949 — module-level comment `(a three-variant enum)` → update to `(a struct-of-two-orthogonal-enums: Grouping × Collapse)`
@@ -334,10 +358,20 @@ stale `verdict-desc`/`confidence-desc` text, and stale `three-variant`/`three fi
 - Line 4038 — test name `test_BC_2_11_028_struct_has_exactly_three_fields_post_refactor` + body comment `these three fields exist on TerminalReporter` → update to two-orthogonal-axis vocabulary
 - Line 4061 — doc-comment `All three FindingsRender arms` → update to `All four FindingsRender (Grouping × Collapse) dispatch arms`
 
+**Exempt (do not modify):**
+- `collapse_findings` as a local bool variable name inside `run_analyze` — intentional.
+- `show_mitre_grouping` as a local bool variable name inside `run_analyze` — same rationale.
+- Historical BCs and ADR text outside `src/` and `tests/` — spec artifacts.
+- Changelog stanzas in STORY files and BC files that historically reference "three-variant enum"
+  — frozen historical records.
+
 **Falsifiable requirements after sweep:**
 1. `grep -rn "FindingsRender::Grouped\|FindingsRender::FlatCollapsed\|FindingsRender::FlatExpanded" src/ tests/` returns zero lines.
 2. `grep -n "verdict-desc\|confidence-desc" src/reporter/terminal.rs` returns zero lines.
 3. `grep -n "three-variant\|three fields\|All three FindingsRender\|three.arm" tests/reporter_terminal_tests.rs` returns zero lines for the non-exempt targets listed above.
+4. `grep -n "three mutually-exclusive\|three-way\|impossible state\|three.mode" src/reporter/terminal.rs src/main.rs` returns zero lines (covers the src/ stale-prose targets added in this story version).
+
+The grep gate in (4) is NEW in STORY-122 v1.1. The F4 implementer MUST run all four gates after completing all tasks and confirm all return zero non-exempt lines.
 
 ---
 
@@ -361,7 +395,7 @@ Record the computed hash in the `input-hash` frontmatter field.
 
 2. **Verdict rank is 4-valued, ascending:** Likely=0, Possible=1, Inconclusive=2, Unlikely=3 (source-confirmed in `terminal.rs:447-454`). Within-bucket sort is ascending by rank value. All BC citations on sort direction use this vocabulary.
 
-3. **`{Grouped, Collapsed}` is TEMPORARY in this story:** The `run_analyze` construction site WILL produce `{Grouped, Collapsed}` when `--mitre` is passed alone (because `collapse_findings` defaults to `true`). The four-arm dispatch must handle this arm. Route it to `render_findings_grouped` with an explicit `// TEMPORARY` comment. STORY-119/B replaces this arm.
+3. **`{Grouped, Collapsed}` dispatch arm is TEMPORARY in this story:** Under Option X, the `run_analyze` construction site in STORY-122/A uses a 3-arm if migrated to 3 struct literals — `show_mitre_grouping=true` → `{Grouped, Expanded}` (first arm wins; byte-identical to old `FindingsRender::Grouped`). The `{Grouped, Collapsed}` arm EXISTS in the four-arm tuple dispatch but is UNREACHABLE via the CLI in this story (no run_analyze path produces that struct value). The arm must still be present (compiler exhaustiveness requires covering all 4 combinations) and must route to `render_findings_grouped` with an explicit `// TEMPORARY (STORY-122/A)` comment. STORY-119/B's Task 4 replaces the 3-arm if with the orthogonal 2-if form, making `--mitre` alone produce `{Grouped, Collapsed}`, which then dispatches to `render_findings_grouped_collapsed` (STORY-119/B's Task 3).
 
 4. **No Default on FindingsRender/Grouping/Collapse:** Consistent with the deliberate omission in STORY-120 (ADR-0003 "Default Derive: Deliberate Omission"). All construction sites select both axes explicitly.
 
@@ -487,7 +521,7 @@ No new crates. This story does not introduce any new external dependencies.
 
 | ID | Description | Expected Behavior |
 |----|-------------|-------------------|
-| EC-001 | `--mitre` alone (no `--no-collapse`) constructs `{Grouped, Collapsed}` | TEMPORARY: routes to `render_findings_grouped`; output byte-identical to v0.9.0 `--mitre` output (which was `FindingsRender::Grouped`). No `(xN)` suffixes. STORY-119/B repoints the arm. |
+| EC-001 | `--mitre` alone (no `--no-collapse`) in STORY-122/A | `run_analyze` produces `{Grouped, Expanded}` (first arm of the 3-arm if: `show_mitre_grouping=true` → `{Grouping::Grouped, Collapse::Expanded}`). Routes to `render_findings_grouped`; output byte-identical to v0.9.0 `--mitre` output (which was `FindingsRender::Grouped`). No `(xN)` suffixes. `{Grouped, Collapsed}` is UNREACHABLE via the CLI in STORY-122/A — the arm exists in the 4-arm dispatch but `run_analyze` never produces that struct value. STORY-119/B Task 4 replaces the 3-arm if with the orthogonal 2-if form, making `--mitre` alone produce `{Grouped, Collapsed}`. |
 | EC-002 | `--mitre --no-collapse` constructs `{Grouped, Expanded}` | Routes to `render_findings_grouped`; byte-identical to v0.9.0. |
 | EC-003 | Default (no `--mitre`, no `--no-collapse`) constructs `{Flat, Collapsed}` | Routes to `render_findings_collapsed`; byte-identical to v0.9.0. |
 | EC-004 | Site with `FindingsRender::Grouped` in a test helper | Migrated to `FindingsRender { grouping: Grouping::Grouped, collapse: Collapse::Expanded }` — preserves existing test semantics. |
@@ -499,3 +533,4 @@ No new crates. This story does not introduce any new external dependencies.
 ## Changelog
 
 - **v1.0 (D-120 split, 2026-06-18):** Created as STORY-122/A from the D-120 human-confirmed split of monolithic STORY-119 v1.12. Scope: FindingsRender enum→struct reshape + 84-site migration (byte-identical). ACs drawn from STORY-119 v1.12 AC-005 (struct def), AC-006 (dispatch), AC-007 (84-site migration), AC-028 (byte-identical {Grouped,Expanded}), AC-029 (flat paths byte-identical), AC-030 (comment sweep), and the struct-construction wiring ACs AC-001/AC-003/AC-004. The `{Grouped,Collapsed}` TEMPORARY routing note (AC-002) is new to STORY-122/A — the monolithic story had this arm dispatching to `render_findings_grouped_collapsed` (a function that STORY-122/A does NOT introduce). BC set reduced to 6 (removed BC-2.11.025/030/031/032/033/034 which govern the behavioral render path in STORY-119/B). points set to 3 (migration-only, like STORY-120). wave 49 = max(STORY-120=48)+1.
+- **v1.1 (F3-resplit round-1 remediation, 2026-06-18):** Reconciled to Option X (human-approved split design). Previously AC-004 and Task 2 prescribed the orthogonal 2-if struct wiring (`{grouping: if .., collapse: if ..}`), which would produce `{Grouped, Collapsed}` for `--mitre` alone and contradicted the claim in AC-006/EC-001 that `{Grouped, Collapsed}` is unreachable via CLI in Story A. Fixed: AC-004 now prescribes the 3-arm if migrated to 3 struct literals (byte-identical to v0.9.0 branching: `--mitre` alone → `{Grouped, Expanded}`). Task 2 run_analyze wiring updated to match. EC-001 corrected to say `--mitre` alone → `{Grouped, Expanded}` in A; `{Grouped, Collapsed}` unreachable-via-CLI note preserved and made accurate. Task 1 scope extended to Lines 94-111 (include :94-99 doc-comment block in wholesale replacement). Task 4 extended to cover src/ stale prose targets (`src/reporter/terminal.rs:6-8`, `:122-124`, `:204-206`; `src/main.rs:378`) and added falsifiable grep gate (4): `grep -n 'three mutually-exclusive|three-way|impossible state|three.mode' src/reporter/terminal.rs src/main.rs` must return zero lines after F4. Migration map note added: no arm in the 3-arm if yields `{Grouped, Collapsed}`, so the unreachable claim is structurally accurate.

@@ -1,6 +1,6 @@
 ---
 document_type: dependency-graph
-version: "2.8"
+version: "2.9"
 status: draft
 producer: story-writer
 phase: 3
@@ -21,10 +21,11 @@ modified:
   - "2026-06-18 v2.6: F3 adversarial round-3 remediation — BC-2.11.025 stamp sync v1.12→v1.13 (PO-final v1.13) across all three BC-to-Stories matrix rows that referenced BC-2.11.025: STORY-118 row, STORY-119 row, STORY-120 row."
   - "2026-06-18 v2.7: F3 adversarial round-5 remediation — Fix 2: stale '~46 construction sites' in Wave 49 STORY-119 note corrected to '84 FindingsRender:: occurrences' with per-file grepped ground-truth (main.rs=4, terminal.rs=3, reporter_terminal_tests.rs=55, reporter_tests.rs=17, dnp3_f5_remediation_tests.rs=2, bc_2_09_100_multitag_tests.rs=3). Fix 3: Wave 48 STORY-120 table row annotated to disambiguate '28 construction sites' (STORY-120 enum-introduction scope, v0.9.0) from STORY-119's 84 occurrences."
   - "2026-06-18 v2.8: D-120 STORY-119 split — added STORY-122 (E-18, wave 49, 3 pts, A: enum→struct reshape + 84-site migration byte-identical). STORY-119 re-scoped to B (behavioral delta only: render_findings_grouped_collapsed + CLI flip, wave 50, 5 pts). total_stories 72→73 (product; all-stories total 74→75). total_edges 95→96 (+1 intra: STORY-122→STORY-119 replaces direct STORY-120→STORY-119 edge — both cross-epic count corrected: STORY-120→STORY-122 new cross-epic E-8→E-18, STORY-122→STORY-119 intra-E-18; net: cross_epic_edges 21→22, intra_epic_edges 74→74 — STORY-120→STORY-119 cross-epic removed, STORY-122→STORY-119 intra added, net intra unchanged). number_of_waves 49→50 (STORY-119/B now wave 50). total_points 479→481 (product scheduled: STORY-119 8→5, +STORY-122 3pts = net 479+3-3=479; wait — STORY-119 was 8pts, now 5pts; STORY-122 adds 3pts; net change = -8+5+3=0 → 479 unchanged). BC-to-Stories matrix: add STORY-122 row (A BCs: 013/014/016/026/027/028 at PO-final versions); update STORY-119 row (B BCs: 013/014/016/025/026/027/028/030/031/032/033/034 at PO-final versions). VP-to-Stories: VP-016 extended to STORY-122. Wave schedule: wave 49 = STORY-122; wave 50 = STORY-119. Topological order: STORY-120→STORY-122→STORY-119 (linear chain; acyclic verified). STORY-119 points updated 8→5. Acyclicity re-verified."
+  - "2026-06-18 v2.9: F3-resplit round-1 remediation — H-1 edge-taxonomy fix: STORY-122→STORY-119 edge is INTRA-epic (both E-18). v2.8 stanza erroneously concluded 'cross_epic_edges 21→22' but the new edge is intra-E-18, not cross-epic. Correct counts: intra_epic_edges 74→75 (STORY-122→STORY-119 is the 75th intra edge), cross_epic_edges 22→21 (v2.8 over-counted; the STORY-120→STORY-119 cross-epic was REPLACED by STORY-120→STORY-122 cross-epic + STORY-122→STORY-119 intra; net cross-epic edge count from v2.0 baseline should be 21, not 22). total_edges 96 unchanged. Summary Statistics table rows updated. Intra-Epic Edges subheading updated (74→75). Cross-Epic Edges subheading updated (22→21). H-2 acyclicity proof E-18/E-8 bullet rewritten to post-split chain: STORY-118 depends_on=[] (W47); STORY-120 depends_on=[] (W48); STORY-122 depends_on=[STORY-120] (W49); STORY-119 depends_on=[STORY-122] (W50). Stale 'STORY-119 now depends on STORY-120 only (wave 49)' and 'STORY-118→119 routed through STORY-120→119' text removed. M-1 wave-gate notes: two stale 'STORY-119 ... wave 49' references in Wave 47 and Wave 48 release-gate notes corrected to wave 50."
 total_stories: 73  # product stories only (excludes STORY-091 + STORY-121 tooling; all-stories total = 75)
 total_edges: 96
-intra_epic_edges: 74
-cross_epic_edges: 22
+intra_epic_edges: 75
+cross_epic_edges: 21
 number_of_waves: 50
 acyclic: true
 traces_to:
@@ -52,8 +53,8 @@ traces_to:
 |--------|-------|
 | Total stories | 73 (product; +STORY-091 tooling = 74; all-stories total = 75) |
 | Total dependency edges | 96 |
-| Intra-epic edges | 74 |
-| Cross-epic edges | 22 |
+| Intra-epic edges | 75 |
+| Cross-epic edges | 21 |
 | Number of parallel waves | 50 (STORY-122 wave 49; STORY-119/B wave 50; wave count reflects STORY-120 wave 48 + STORY-122 wave 49 + STORY-119 wave 50) |
 | Graph is acyclic | Yes (Kahn topological sort verified; STORY-097→098→099 extend acyclic order; STORY-106→107→108→109→110 extend further; STORY-111→112→113→114→115 extend further; STORY-115→116→117 extend further; STORY-118 has no new predecessors (depends_on=[]); STORY-120 has no new predecessors (depends_on=[]); STORY-122 depends on STORY-120 (wave 49 = max(48)+1); STORY-119/B depends on STORY-122 (wave 50 = max(49)+1) — linear chain STORY-120→STORY-122→STORY-119; no back-edges into existing graph) |
 | Total story points | 479 (product; +5 tooling = 484; net: STORY-119 8→5 + STORY-122 new 3pts = zero change; scheduled total unchanged at 479) |
@@ -83,7 +84,7 @@ Dependencies in this graph respect the layer rules from
 
 ## Dependencies (Edge List)
 
-### Intra-Epic Edges (74 edges)
+### Intra-Epic Edges (75 edges)
 
 #### Epic E-1: PCAP Ingestion and Packet Decoding
 
@@ -227,7 +228,7 @@ Dependencies in this graph respect the layer rules from
 
 ---
 
-### Cross-Epic Edges (22 edges)
+### Cross-Epic Edges (21 edges)
 
 > **Note:** The E-17 intra-epic edge (STORY-116 → STORY-117) is listed under Intra-Epic Edges above. The E-16 → E-17 boundary edge (STORY-115 → STORY-116) appears in the table below.
 
@@ -617,7 +618,7 @@ and can be dispatched in parallel.
 |-------|------|--------|-----------|-------------|
 | STORY-118 | E-18 | 8 | SS-11 | Terminal finding-collapse (flat mode) — default-ON collapse, (xN) suffix, K=3 evidence sampling, --no-collapse opt-out, JSON/CSV unaffected |
 
-> **Release gate:** v0.8.0 ships after Wave 47 gate (STORY-118 PR merged with ADR-0003 Display-Layer Aggregation section, `cargo test --all-targets` green). STORY-119 (grouped-mode collapse, wave 49) does not block v0.8.0.
+> **Release gate:** v0.8.0 ships after Wave 47 gate (STORY-118 PR merged with ADR-0003 Display-Layer Aggregation section, `cargo test --all-targets` green). STORY-119 (grouped-mode collapse, wave 50) does not block v0.8.0.
 
 > **Note:** STORY-118 has `depends_on: []` — it is a reporter-only story that extends the existing `TerminalReporter` struct (landed in STORY-077/078) with a new `collapse_findings` field and a private collapse pass. No new cross-epic or intra-epic predecessor is required.
 
@@ -627,7 +628,7 @@ and can be dispatched in parallel.
 |-------|------|--------|-----------|-------------|
 | STORY-120 | E-8 | 3 | SS-11 | TerminalReporter FindingsRender Enum Migration (v0.9.0) — replace show_mitre_grouping+collapse_findings bools with render: FindingsRender enum; 28 construction sites updated (STORY-120 enum-introduction scope, v0.9.0); byte-identical output. (STORY-119's subsequent struct reshape touches 84 `FindingsRender::` occurrences incl. test-helper expansion — distinct from STORY-120's 28.) |
 
-> **Release gate:** v0.9.0 ships after Wave 48 gate (STORY-120 PR merged, `cargo test --all-targets` green, `cargo-semver-checks` `struct_field_missing` documented, Cargo.toml version bumped to 0.9.0). STORY-119 (grouped-mode collapse) is assigned wave 49 and does NOT block v0.9.0.
+> **Release gate:** v0.9.0 ships after Wave 48 gate (STORY-120 PR merged, `cargo test --all-targets` green, `cargo-semver-checks` `struct_field_missing` documented, Cargo.toml version bumped to 0.9.0). STORY-119 (grouped-mode collapse) is assigned wave 50 (via STORY-122/A wave 49) and does NOT block v0.9.0.
 
 > **Note:** STORY-120 has `depends_on: []` — it refactors the existing `TerminalReporter` struct (completed in STORY-118) by replacing two bool fields with a single `FindingsRender` enum field. No new cross-epic or intra-epic predecessor is required. The struct already exists; this is a pure type-system improvement. STORY-120 blocks STORY-119: STORY-119's implementer should build against the enum vocabulary established here.
 
@@ -711,13 +712,16 @@ iteratively. Result:
 - E-17 extension (STORY-116→117) is a linear tail appended after Wave 44;
   it has one cross-epic edge (STORY-115→116) that adds in-degree only to the E-17 root
   node — no existing node gains a new in-degree, so no cycle is possible
-- E-18/E-8 extension (STORY-118→120→119): STORY-118 has `depends_on=[]` (Wave 47,
-  reporter-only story extends existing TerminalReporter struct); STORY-120 has
-  `depends_on=[]` (Wave 48, refactors existing struct — no compile predecessor required);
-  STORY-119 now depends on STORY-120 only (wave 49). Adding STORY-120 as a
-  zero-in-degree node does not change any existing node's in-degree. Routing the prior
-  STORY-118→119 edge through STORY-120→119 adds in-degree only to STORY-119 (via
-  STORY-120). No existing node gains a new in-degree, so no cycle is possible.
+- E-18/E-8 extension (STORY-118→120→122→119 post-D-120 split): STORY-118 has `depends_on=[]`
+  (Wave 47, reporter-only story extends existing TerminalReporter struct — no new predecessor);
+  STORY-120 has `depends_on=[]` (Wave 48, refactors existing struct — no compile predecessor
+  required); STORY-122 depends_on=[STORY-120] (Wave 49, D-120 split A: enum→struct reshape
+  builds against enum vocabulary established by STORY-120); STORY-119 depends_on=[STORY-122]
+  (Wave 50, D-120 split B: behavioral delta builds against struct-of-enums established by
+  STORY-122). Linear chain: STORY-120→STORY-122→STORY-119. No node gains a new in-degree
+  beyond this chain. STORY-122 enters the graph with in-degree=1 (from STORY-120) and
+  out-degree=1 (to STORY-119). STORY-119 gains in-degree from STORY-122 only. No back-edges
+  into the existing 73-story graph exist. No cycle is possible.
 
 ---
 

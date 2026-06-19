@@ -2,7 +2,7 @@
 document_type: story
 story_id: STORY-119
 epic_id: E-18
-version: "2.0"
+version: "2.1"
 status: pending
 producer: story-writer
 timestamp: 2026-06-18T00:00:00Z
@@ -98,7 +98,10 @@ STORY-119/B:
    count suffix, K=3 evidence sampling, em-dash MITRE line from `group_members[0]`.
 4. Repoints the `{Grouped, Collapsed}` dispatch arm from `render_findings_grouped` (STORY-122/A
    TEMPORARY) to the new `render_findings_grouped_collapsed`.
-5. Flips the `--mitre` CLI default to `{Grouped, Collapsed}` (collapse by default).
+5. Flips the `--mitre` CLI default to `{Grouped, Collapsed}` (collapse by default) by replacing the
+   3-arm if construction (STORY-122/A's byte-identical form) with the orthogonal 2-if struct wiring at
+   the `run_analyze` construction site in `src/main.rs` (Task 4). This IS a code change to the
+   construction site — it is the owner of the CLI flip under Option X.
    `--no-collapse` becomes dual-scope (suppresses collapse in BOTH grouped and flat modes).
 6. Updates the `--no-collapse` doc-comment in `src/cli.rs` for dual-scope.
 
@@ -157,7 +160,7 @@ The `run_summary` construction site in `src/main.rs` uses struct literal form `r
 
 ### AC-005 — `render_findings_grouped_collapsed` function exists and is dispatched for `{Grouped, Collapsed}`
 A new function `render_findings_grouped_collapsed` exists in `src/reporter/terminal.rs`. It is called by the `(Grouping::Grouped, Collapse::Collapsed)` arm of the four-arm tuple dispatch (replacing the TEMPORARY `render_findings_grouped` call from STORY-122/A). The function handles tactic bucketing and sorting identically to `render_findings_grouped` (BC-2.11.013), then applies a per-bucket collapse pass before rendering.
-(traces to BC-2.11.031 Architecture Anchors: "`render_findings_grouped_collapsed` — F4-new function: per-bucket collapse + grouped-collapse header rendering".)
+(traces to BC-2.11.031 Architecture Anchors: "`render_findings_grouped_collapsed` — F4-pending new function: per-bucket collapse + grouped-collapse header rendering".)
 
 ### AC-006 — per-bucket collapse: N≥2 group within a bucket renders header with `(xN)` suffix
 For a group of N≥2 findings sharing the same `(category, verdict, confidence, summary)` key within a MITRE tactic bucket under `{Grouped, Collapsed}`, the header line reads: `  [<Category>] <VERDICT> (<CONFIDENCE>) - <escaped_summary> (x<N>)\n` where `<N>` is the exact decimal integer count (no leading zeros, no space between `x` and `N`).
@@ -339,25 +342,42 @@ Remove the `// TEMPORARY (STORY-122/A)` comment when replacing.
 
 ---
 
-### Task 4 — Flip `--mitre` CLI default to `{Grouped, Collapsed}` — verify construction site
+### Task 4 — Flip `--mitre` CLI default to `{Grouped, Collapsed}` — replace 3-arm if with orthogonal 2-if at construction site
 
 **File:** `src/main.rs`
-**Scope:** The `run_analyze` construction site (already using struct literal form from STORY-122/A).
+**Scope:** The `run_analyze` construction site — STORY-122/A left it as a 3-arm if-expression with 3 struct literals (byte-identical to v0.9.0). STORY-119/B CHANGES this to the orthogonal 2-if form so that `--mitre` alone produces `{Grouped, Collapsed}`.
 
-Verify (or adjust if needed) that the construction site correctly maps `--mitre` alone to `{Grouped, Collapsed}`. The struct literal from STORY-122/A should already be:
+Replace the STORY-122/A 3-arm if at the `run_analyze` construction site:
 ```rust
+// STORY-122/A form (3-arm if — byte-identical to v0.9.0):
+render: if show_mitre_grouping {
+    FindingsRender { grouping: Grouping::Grouped, collapse: Collapse::Expanded }
+} else if collapse_findings {
+    FindingsRender { grouping: Grouping::Flat, collapse: Collapse::Collapsed }
+} else {
+    FindingsRender { grouping: Grouping::Flat, collapse: Collapse::Expanded }
+},
+```
+with the orthogonal 2-if struct wiring (BC-2.11.028 Invariant 1 target):
+```rust
+// STORY-119/B form (orthogonal 2-if — CLI flip: --mitre alone → {Grouped, Collapsed}):
 render: FindingsRender {
     grouping: if show_mitre_grouping { Grouping::Grouped } else { Grouping::Flat },
     collapse: if collapse_findings { Collapse::Collapsed } else { Collapse::Expanded },
 },
 ```
-Since `collapse_findings` defaults to `true` (from cli.rs), `--mitre` alone will produce
-`{Grouped, Collapsed}` which now dispatches to `render_findings_grouped_collapsed` (Task 3). No
-code change needed to the construction site itself — the CLI flip happens by virtue of repointing
-the dispatch arm. Confirm by running: `cargo run -- analyze <pcap> --mitre` and verifying collapsed output.
+Since `collapse_findings` defaults to `true` (from `collapse_findings_from_flag(no_collapse=false)`),
+`--mitre` alone (`show_mitre_grouping=true, collapse_findings=true`) now produces
+`{Grouped, Collapsed}`, which dispatches to `render_findings_grouped_collapsed` (Task 3).
+`--mitre --no-collapse` (`show_mitre_grouping=true, collapse_findings=false`) produces
+`{Grouped, Expanded}`, preserving the pre-STORY-119 `--mitre` behavior exactly.
+This IS a code change to the construction site — the CLI flip is implemented here, not just in the
+dispatch arm repoint.
 
 **Note:** `show_mitre_grouping` (line 107) and `collapse_findings` (line 108) are the in-scope bool
 params inside `run_analyze`. Do NOT reference `*mitre` or `no_collapse` — those live only in `main()` lines 79-80.
+(traces to BC-2.11.030 Postcondition 2: "When `--mitre` is present and `--no-collapse` is absent: `render == FindingsRender { grouping: Grouping::Grouped, collapse: Collapse::Collapsed }`.")
+(traces to BC-2.11.028 Invariant 1: "The two axes are fully orthogonal: no combination is illegal.")
 
 ---
 
@@ -508,7 +528,7 @@ No new crates. `CollapseKey`, `COLLAPSE_EVIDENCE_SAMPLES`, and `collapse_finding
 | File | Action | Notes |
 |------|--------|-------|
 | `src/reporter/terminal.rs` | **Modify** | (1) Introduce `collapse_findings_pass_refs` shared helper + make `collapse_findings_pass` thin adapter (Task 1). (2) Implement `render_findings_grouped_collapsed` (Task 2). (3) Repoint `{Grouped, Collapsed}` arm from TEMPORARY to new function (Task 3). |
-| `src/main.rs` | **Verify** | Construction site from STORY-122/A should already produce `{Grouped, Collapsed}` for `--mitre` alone. No code change expected; verify by inspection and test. |
+| `src/main.rs` | **Modify** | Replace the 3-arm if construction (STORY-122/A byte-identical form) with the orthogonal 2-if struct wiring at the `run_analyze` construction site (Task 4). This is the CLI flip: `--mitre` alone now produces `{Grouped, Collapsed}`. |
 | `src/cli.rs` | **Modify** | Update `--no-collapse` help text for dual-scope (Task 5). |
 | `tests/reporter_terminal_tests.rs` | **Modify** | Add `mod story_119` block with `grouped_collapse_reporter()` helper and all 19 tests (Task 6). |
 | `Cargo.toml` | **Verify** | Confirm version is `0.9.0`; no change required (STORY-120 and STORY-122 already handled this). |
@@ -523,7 +543,7 @@ No new crates. `CollapseKey`, `COLLAPSE_EVIDENCE_SAMPLES`, and `collapse_finding
 | `collapse_findings_pass` (thin adapter) | `src/reporter/terminal.rs` | Pure core |
 | `render_findings_grouped_collapsed` (new function) | `src/reporter/terminal.rs` | Pure core |
 | `{Grouped, Collapsed}` dispatch arm (repointed) | `src/reporter/terminal.rs` | Pure core |
-| `run_analyze` construction site (already struct literal from STORY-122/A) | `src/main.rs` | Effectful (CLI entry point) |
+| `run_analyze` construction site (modified in Task 4: 3-arm if → orthogonal 2-if) | `src/main.rs` | Effectful (CLI entry point) |
 
 **Architecture Anchors (post-STORY-122/A / pre-STORY-119/B state):**
 - `src/reporter/terminal.rs` — `collapse_findings_pass` at `:340` (becomes thin adapter in Task 1)
@@ -588,3 +608,4 @@ No new crates. `CollapseKey`, `COLLAPSE_EVIDENCE_SAMPLES`, and `collapse_finding
 
 - **v1.0–v1.12:** See monolithic STORY-119 history (archived in version control). v1.12 was the last converged version before the D-120 split.
 - **v2.0 (D-120 re-scope, 2026-06-18):** Re-scoped per D-120 human-confirmed split decision (2026-06-18). STORY-119/B now covers only the net-new behavioral delta: `render_findings_grouped_collapsed` implementation, `collapse_findings_pass_refs` shared helper, `collapse_findings_pass` thin adapter, dispatch arm repointing, CLI flip (`--mitre` default → `{Grouped, Collapsed}`), dual-scope `--no-collapse`. Removed from scope (moved to STORY-122/A): struct definition, enum→struct reshape, 84-site migration, four-arm dispatch establishment, comment sweep of three-variant/verdict-desc stale prose. ACs renumbered: old AC-001..004 (CLI mapping) → new AC-001..004 (identical text); old AC-005 (struct def) → moved to STORY-122/A; old AC-006 (dispatch existence) → moved to STORY-122/A; old AC-007 (84-site migration) → moved to STORY-122/A; old AC-008..029 → renumbered AC-005..026 (behavioral path ACs preserved); old AC-030 (comment sweep) → simplified AC-026 (dual-scope doc-comment only; three-variant sweep moved to STORY-122/A); old AC-031 (test green) → new AC-027. depends_on updated [STORY-120] → [STORY-122]. wave updated 49 → 50. points updated 8 → 5 (behavioral delta only; migration burden moved to STORY-122 3pts). Input BC list unchanged (same 12 BCs govern the complete feature). PO-final BC versions applied: 013 v1.15, 014 v2.1, 016 v1.10, 025 v1.14, 026 v1.14, 027 v1.8, 028 v1.10, 030 v1.5, 031 v1.4, 032 v1.5, 033 v1.4, 034 v1.4.
+- **v2.1 (F3-resplit round-1 remediation, 2026-06-18):** Reconciled to Option X (human-approved split design). Previously Task 4 said "No code change needed to the construction site itself — the CLI flip happens by virtue of repointing the dispatch arm." That was Option Y (wrong). Fixed: Task 4 now prescribes REPLACING the STORY-122/A 3-arm if with the orthogonal 2-if form at `run_analyze` — this IS the construction flip that STORY-119/B owns under Option X. `src/main.rs` in File Structure Requirements changed from **Verify** to **Modify**. Architecture Mapping entry for `run_analyze` updated to reflect the Task 4 change. Scope section item 5 updated to explicitly state "This IS a code change to the construction site." AC-005 trace quote corrected from verbatim `"F4-new function"` to `"F4-pending new function:"` (verbatim from BC-2.11.031.md:165). The Option X coherence: A leaves `{Grouped, Collapsed}` unreachable-via-CLI (3-arm if never produces it); B makes `run_analyze` produce it via orthogonal 2-if and repoints the dispatch arm to `render_findings_grouped_collapsed`.
