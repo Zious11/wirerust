@@ -147,7 +147,9 @@ pub enum Commands {
         #[arg(long)]
         tls: bool,
 
-        /// Group findings by MITRE ATT&CK tactic and show technique names
+        /// Group findings by MITRE ATT&CK tactic and show technique names;
+        /// collapses identical findings within each tactic bucket with a
+        /// `(xN)` count suffix by default (pass --no-collapse to disable).
         #[arg(long)]
         mitre: bool,
 

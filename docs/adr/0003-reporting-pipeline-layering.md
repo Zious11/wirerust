@@ -235,7 +235,7 @@ human readability is another display-layer transform that MUST NOT mutate the ca
 
 **Aggregate identical findings at the terminal-display layer only.** The `Finding` stream
 and all machine-readable reporters (JSON, CSV) are unchanged. `TerminalReporter::render`
-applies a private collapse pass before rendering when `collapse_findings` is `true`.
+applies a private collapse pass before rendering when `render.collapse == Collapse::Collapsed`.
 
 ### Aggregation Key
 
@@ -307,6 +307,11 @@ accuracy and is widely criticized (see validation report §3.1 sources [9][16]).
 preserves every raw `Finding`; the collapse is strictly a terminal-display lens.
 
 ### Flat Mode Only for v0.8.0 (STORY-118)
+
+> **NOTE (superseded by v0.9.0):** The following describes pre-v0.9.0 behavior only.
+> STORY-119/B (PR #269) extended collapse to grouped (`--mitre`) mode; all four
+> `Grouping` × `Collapse` combinations are now valid. See the "Grouped-Mode Collapse"
+> subsection below for current behavior.
 
 Collapse applies only when `show_mitre_grouping = false` (the default flat mode).
 
