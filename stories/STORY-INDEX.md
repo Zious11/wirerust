@@ -142,7 +142,7 @@ traces_to:
 | STORY-118 | Terminal Finding-Collapse — Flat Mode (v0.8.0) | E-18 | 47 | 8 | completed | — |
 | STORY-119 | Terminal Finding-Collapse — Grouped Mode / --mitre (B: render path + CLI flip) | E-18 | 50 | 5 | pending | STORY-122 |
 | STORY-120 | TerminalReporter FindingsRender Enum Migration (v0.9.0) | E-8 | 48 | 3 | completed | — |
-| STORY-122 | FindingsRender enum→struct reshape + construction-site migration (byte-identical) | E-18 | 49 | 3 | pending | STORY-120 |
+| STORY-122 | FindingsRender enum→struct reshape + construction-site migration (byte-identical) | E-18 | 49 | 3 | completed | STORY-120 |
 
 ---
 
@@ -282,7 +282,7 @@ traces_to:
 | 46 | STORY-117 | draft | #258 (test/arp-qinq-macsec-fixtures) | — | — |
 | 47 | STORY-118 | **DELIVERED & CLOSED** | #264 | 5f7cd1b | 2026-06-17 |
 | 48 | STORY-120 | **DELIVERED & CLOSED** | #267 | f851995 | 2026-06-18 |
-| 49 | STORY-122 | pending | — | — | — |
+| 49 | STORY-122 | **DELIVERED & CLOSED** | #268 | 8696448 | 2026-06-19 |
 | 50 | STORY-119 | pending | — | — | — |
 
 ## Coverage Verification

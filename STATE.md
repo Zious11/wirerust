@@ -1,7 +1,7 @@
 ---
 pipeline: FEATURE_MODE
 phase: F4
-phase_status: "STORY-119 SPLIT F3 GATE PASSED (human-approved, D-122). Entering F4 per-story TDD delivery: STORY-122 (A, wave 49) FIRST, then STORY-119 (B, wave 50) after A merges. F4 autonomy = deliver both with HUMAN GATE at each PR-merge. STORY-122 + STORY-119 both converged 3/3 (8fa9ff9), consistency CONSISTENT. ADR-0003 re-anchored (uncommitted develop working-tree) — to be committed within STORY-122/A F4 delivery. Release v0.9.0 HELD."
+phase_status: "STORY-122 (A — FindingsRender enum→struct reshape, byte-identical) DELIVERED — PR #268 squash/merged to develop (HEAD 8696448); per-story adversarial 3/3 (748d276; 5 rounds, ADR two-phase narrative + anchor coherence the long pole); security APPROVED, pr-reviewer APPROVE, CI 9/9; demo evidence .factory/demo-evidence/issue-62-story-122/. ADR-0003 re-anchored to D-120 split landed on develop with this PR. NEXT = F4 delivery of STORY-119 (B — grouped-collapse render + --mitre default-collapse CLI flip), depends_on STORY-122 (now merged), wave 50. v0.9.0 still HELD."
 active_feature: "STORY-119 grouped-mode finding-collapse (E-18 / issue #259 tail) — F1/F2 COMPLETE; F3 RE-OPENED (D-120 split: STORY-122 A wave 49 + STORY-119 B wave 50). v0.9.0 still HELD (no release); bundles into unreleased develop line. Dep-graph chain: STORY-120 → STORY-122 → STORY-119."
 feature_arp_status: "v0.7.0 RELEASED 2026-06-16 — ARP Security Analyzer (E-16, issue #9); PR #256 dd8e142; tag v0.7.0; 4 binaries (aarch64-apple-darwin, x86_64-apple-darwin, x86_64-pc-windows-msvc, x86_64-unknown-linux-gnu)"
 feature_8_status: "v0.6.0 RELEASED 2026-06-12 — DNP3 TCP analyzer; F7 5-dim CONVERGED; tag v0.6.0 + 4 binaries"
@@ -43,8 +43,8 @@ phase_5_completed: "2026-06-01"
 phase_6_completed: "2026-06-02"
 phase_7_to_release_gate: "PASSED (human-approved 2026-06-09 — D-045)"
 adversary_gate: SATISFIED
-develop_head: a4263c7
-develop_head_confirmed: "a4263c7 (Merge pull request #266 — refactor(reporter): replace TerminalReporter render bools with FindingsRender enum (#62))"
+develop_head: 8696448
+develop_head_confirmed: "8696448 (PR #268 squash — refactor(reporter): reshape FindingsRender enum→struct{grouping,collapse}; byte-identical (STORY-122/A))"
 arp_f6_hardening_status: "COMPLETE — 5/5 Kani SUCCESSFUL (46/46 project-wide), VP-024 v2.3 LOCKED, fuzz VP-008 16.2M/0, mutants 98.9%"
 arp_f7_convergence_status: "CONVERGED — 5-dim met; v0.7.0 RELEASED"
 arp_followups_status: "DISPOSITIONED — item 5 fixed (BC-2.10.007 v1.8 de-PLANNED 25/17); issues #252-255 filed (post-release); CR-001/CR-002/FU-STORM-NEW-ATTR/BC-2.10-COUNT-POSTMERGE dropped/resolved. RELEASE-READY."
@@ -97,7 +97,7 @@ input_drift_check: "F7-followup-dispositions burst (2026-06-16): STORY-071/100/1
 
 ## Status
 
-**wirerust v0.8.0 RELEASED 2026-06-17. STORY-119 cycle — F3 SPLIT GATE PASSED (human-approved D-122). Entering F4: STORY-122 (A, struct reshape, byte-identical, wave 49, input-hash 309f190) first, then STORY-119 (B, grouped-collapse render + CLI flip, wave 50, input-hash 4a8c93f). BC traceability v1.51; dep-graph v2.9 (chain 120→122→119); STORY-INDEX v2.3 (75 stories / 50 waves). F4 autonomy = per-story TDD with HUMAN GATE at each PR-merge. Release v0.9.0 HELD.**
+**wirerust v0.8.0 RELEASED 2026-06-17. STORY-119 cycle — F4 IN-PROGRESS. STORY-122 (A, struct reshape, byte-identical) DELIVERED — PR #268 → develop 8696448; per-story adversarial 3/3; CI 9/9. NEXT: STORY-119 (B, grouped-collapse render + --mitre default-collapse CLI flip, wave 50, input-hash 4a8c93f, depends_on STORY-122 now merged). BC traceability v1.51; dep-graph v2.9 (chain 120→122→119); STORY-INDEX v2.3 (75 stories / 50 waves). Release v0.9.0 HELD.**
 
 ## Maintenance Run (maint-2026-06-17)
 
@@ -138,30 +138,29 @@ input_drift_check: "F7-followup-dispositions burst (2026-06-16): STORY-071/100/1
 | **STORY-119 grouped-mode collapse — F1 delta-analysis** | **F1 COMPLETE + gate-approved** 2026-06-18 — delta-analysis; type=struct-of-orthogonal-enums (research-backed); --mitre collapses by default; no release yet. | F1 gate decisions (D-110): (1) TYPE DESIGN: reshape FindingsRender to `struct FindingsRender { grouping: Grouping, collapse: Collapse }` (research: .factory/research/story-119-render-mode-typedesign.md); (2) CLI/UX: --mitre collapses by default (Grouped+Collapsed); --no-collapse dual-scope; (3) VERSIONING: bundle into unreleased 0.9.0 develop line. F1 artifact: .factory/phase-f1-delta-analysis/story-119-grouped-mode-collapse-delta-analysis.md. NEXT = F2 spec-evolution. |
 | **STORY-119 — F2 spec-evolution** | **CONVERGED 3/3** 2026-06-18 (frozen corpus 7eb9f09; 6 rounds) — F2 COMPLETE; substance converged R4, R5-6 provenance; 3 minor residuals→F3; PAUSED before F3. | 5 new BCs (BC-2.11.030–034); 4 deferral/scope BCs revised; 8 vocab-swept enum→struct; PRD-delta; ADR-0003 reshaped. SS-11 29→34. BC-INDEX v1.49. Total BCs 293. D-111..D-118. Adversarial gate SATISFIED 3/3 (round-6 triple all CLEAN, zero MEDIUM+). 3 below-threshold residuals carried to F3 (D-118). PAUSED per human. |
 | **STORY-119 — F3 story-decomposition (resplit D-120)** | **PASSED** 2026-06-19 — split CONVERGED 3/3 (8fa9ff9); consistency CONSISTENT; F3 HUMAN GATE APPROVED (D-122). STORY-122 (A, v1.4, 8 ACs, 6 BCs, wave 49, 309f190) + STORY-119 (B, v2.4, 27 ACs, 12 BCs, wave 50, 4a8c93f). 5 resplit rounds. dep-graph v2.9; BC-INDEX v1.51; STORY-INDEX v2.3 (75 stories / 50 waves). | D-121/D-122. Prior monolithic D-119 superseded by D-120. ADR-0003 Collapse-API Shape subsection on develop (uncommitted until F4). |
-| **STORY-119 cycle — F4 delta-implementation** | **IN-PROGRESS** 2026-06-19 — STORY-122 (A, wave 49) FIRST; STORY-119 (B, wave 50) after A merges. Per-story TDD with HUMAN GATE at each PR-merge. | D-122: F4 autonomy = deliver both, gate at each PR-merge. |
+| **STORY-119 cycle — F4 delta-implementation** | **IN-PROGRESS** 2026-06-19 — STORY-122 (A, wave 49) DELIVERED (PR #268 → develop 8696448; per-story 3/3; 2026-06-19); STORY-119 (B, wave 50) PENDING. | D-122/D-123. STORY-122 byte-identical struct reshape; per-story adversarial 5 rounds (ADR two-phase narrative/anchor long pole). STORY-119/B next. |
 
-## Session Resume Checkpoint (2026-06-19 — F3 SPLIT GATE PASSED (D-122); ENTERING F4)
+## Session Resume Checkpoint (2026-06-19 — STORY-122/A DELIVERED (D-123); ENTERING STORY-119/B F4)
 
-**Previous checkpoint (2026-06-19 — STORY-119 split F3 CONVERGED 3/3; AWAITING F3 HUMAN GATE) archived to:
+**Previous checkpoint (2026-06-19 — F3 SPLIT GATE PASSED (D-122); ENTERING F4) archived to:
 `.factory/cycles/feature-story-119-grouped-collapse/session-checkpoints.md`**
 
 ### A. EXACT PIPELINE POSITION
 
-- **Project:** wirerust. **Mode:** FEATURE_MODE — STORY-119 cycle, F1✅/F2✅/F3✅ PASSED (D-122, human-approved). Entering F4 TDD: STORY-122 (A) first, then STORY-119 (B) after A merges.
-- **F4 autonomy:** deliver both stories with HUMAN GATE at each PR-merge point (D-122).
-- **STORY-122 (A):** `.factory/stories/STORY-122.md` v1.4 — 8 ACs, 6 governing BCs, wave 49, input-hash 309f190 MATCH, depends_on [STORY-120]. Implementation-ready.
-- **STORY-119 (B):** `.factory/stories/STORY-119.md` v2.4 — 27 ACs, 12 governing BCs, wave 50, input-hash 4a8c93f MATCH, depends_on [STORY-122]. Implementation-ready (BLOCKED until STORY-122 merges).
+- **Project:** wirerust. **Mode:** FEATURE_MODE — STORY-119 cycle, F1✅/F2✅/F3✅/F4-partial✅. STORY-122/A DELIVERED (PR #268 → develop 8696448). Now entering F4 TDD for STORY-119 (B).
+- **F4 autonomy:** deliver STORY-119/B with HUMAN GATE at PR-merge (D-122).
+- **STORY-122 (A):** DELIVERED — PR #268 squash/merged → develop 8696448; per-story adversarial 3/3 (748d276; 5 rounds). Demo: `.factory/demo-evidence/issue-62-story-122/`. DO NOT REDO.
+- **STORY-119 (B):** `.factory/stories/STORY-119.md` v2.4 — 27 ACs, 12 governing BCs, wave 50, input-hash 4a8c93f MATCH, depends_on [STORY-122] (now merged). Implementation-ready — UNBLOCKED.
 - **Latest release:** v0.8.0 — tag v0.8.0 on main 73034da. Cargo 0.9.0 on develop (not yet released).
-- **ADR-0003 Collapse-API Shape subsection:** on develop working tree (uncommitted) — to be committed during STORY-122/A F4 delivery.
-- **DRIFT-62-MAIN495-DOC-001:** Still pending, fix in STORY-119 cycle F4.
-- **STORY-121 (E-11 process-gap):** Filed as draft; process-gaps from D-120 split fold into scope.
+- **ADR-0003 Collapse-API Shape subsection:** committed to develop via PR #268.
+- **DRIFT-62-MAIN495-DOC-001:** Fix scheduled in STORY-119/B delivery.
+- **STORY-121 (E-11 process-gap):** Filed as draft; D-123 process-gap [ADR-split-re-anchor-coherence] folds into scope.
 
 ### B. EXACT SHAs / WORKTREE STATE
 
-- **develop HEAD:** `f851995` (fix-PR #267). Unchanged.
+- **develop HEAD:** `8696448` (PR #268 squash — STORY-122/A struct reshape).
 - **main HEAD:** `73034da` (`chore: release v0.8.0`). Tag `v0.8.0` annotated.
 - **factory-artifacts HEAD:** run `git -C /Users/zious/Documents/GITHUB/wirerust/.factory log -1 --format='%h %s'`
-- **STORY-122:** `.factory/stories/STORY-122.md` v1.4 (A, struct reshape, wave 49, input-hash 309f190 MATCH).
 - **STORY-119:** `.factory/stories/STORY-119.md` v2.4 (B, render+CLI, wave 50, input-hash 4a8c93f MATCH).
 - **Active worktrees:** 2 — main repo (develop), `.factory/` (factory-artifacts). **Open PRs:** NONE.
 
@@ -171,7 +170,7 @@ input_drift_check: "F7-followup-dispositions burst (2026-06-16): STORY-071/100/1
 
 **Step 2 — Verify SHAs:**
 ```
-git -C /Users/zious/Documents/GITHUB/wirerust rev-parse --short HEAD   # expect f851995
+git -C /Users/zious/Documents/GITHUB/wirerust rev-parse --short HEAD   # expect 8696448
 git -C /Users/zious/Documents/GITHUB/wirerust rev-parse --short main    # expect 73034da
 git -C /Users/zious/Documents/GITHUB/wirerust tag -l v0.8.0             # must exist
 git -C /Users/zious/Documents/GITHUB/wirerust/.factory log -1 --format='%h %s'
@@ -182,27 +181,28 @@ gh pr list --state open                                                  # expec
 
 - **E-8 / #62 ENTIRE CYCLE (F1..F7):** ALL PHASES COMPLETE & CONVERGED. HUMAN GATE APPROVED. RELEASE HELD.
 - **STORY-120:** DELIVERED — PR #266 merged develop a4263c73. Worktree cleaned.
+- **STORY-122 (A):** DELIVERED — PR #268 squash/merged develop 8696448. Per-story adversarial 3/3. DO NOT REDO.
 - **STORY-119 F1/F2:** COMPLETE AND CONVERGED (D-110..D-118). DO NOT REDO.
 - **D-120 split:** STORY-122 + STORY-119 re-scoped + BC traceability v1.51 + dep-graph v2.9 COMMITTED.
 - **D-121 F3 resplit convergence:** 3/3 SATISFIED (8fa9ff9); consistency CONSISTENT. DO NOT REDO.
 - **D-122 F3 HUMAN GATE:** PASSED. F4 authorized. DO NOT REDO.
+- **D-123 STORY-122/A delivery:** RECORDED. Per-story 3/3 (5 rounds). DO NOT REDO.
 
 ### E. NEXT ACTIONS
 
-1. **F4 TDD — STORY-122 (A, wave 49):** struct reshape (FindingsRender enum→struct{grouping,collapse}); commit ADR-0003 Collapse-API Shape subsection; open PR; PAUSE for HUMAN GATE at PR-merge.
-2. **F4 TDD — STORY-119 (B, wave 50):** grouped-collapse render + --mitre default-collapse CLI flip; PAUSE for HUMAN GATE at PR-merge.
-3. **F5 → F6 → F7** — scoped adversarial, formal hardening, delta-convergence.
-4. **Release v0.9.0** — only after F7 human gate authorizes.
-5. **BLOCKING on resume:** run `/vsdd-factory:factory-worktree-health`; verify SHAs per §C.
+1. **F4 TDD — STORY-119 (B, wave 50):** grouped-collapse render + --mitre default-collapse CLI flip; per-story adversarial gate; open PR; PAUSE for HUMAN GATE at PR-merge.
+2. **F5 → F6 → F7** — scoped adversarial, formal hardening, delta-convergence.
+3. **Release v0.9.0** — only after F7 human gate authorizes.
+4. **BLOCKING on resume:** run `/vsdd-factory:factory-worktree-health`; verify SHAs per §C.
 
 ### F. KEY ARTIFACT POINTERS
 
-- STORY-122: `.factory/stories/STORY-122.md` (A, struct reshape; wave 49; v1.4; input-hash 309f190)
 - STORY-119: `.factory/stories/STORY-119.md` (B, render+CLI; wave 50; v2.4; input-hash 4a8c93f)
 - dep-graph: `.factory/stories/dependency-graph.md` v2.9 (chain 120→122→119)
 - Cycle manifest: `.factory/cycles/feature-story-119-grouped-collapse/cycle-manifest.md`
+- STORY-122: `.factory/stories/STORY-122.md` (A, DELIVERED; PR #268; develop 8696448)
 - STORY-120: `.factory/stories/STORY-120.md` (DELIVERED; input-hash 8047030)
-- STORY-121: `.factory/stories/STORY-121.md` (draft — E-11 process-gap)
+- STORY-121: `.factory/stories/STORY-121.md` (draft — E-11 process-gap; D-123 gap folds in)
 
 ## Decisions Log
 
@@ -235,6 +235,7 @@ D-055..D-091 archived: `cycles/feature-collapse-v0.8.0/decisions-archive.md` (Fe
 | D-120 | STORY-119 F3 HUMAN SPLIT DIRECTIVE — prior monolithic F3 3/3 convergence (b9a7cd9) superseded. STORY-119 split into two stories: STORY-122 (A — struct reshape, byte-identical refactor, wave 49, input-hash 309f190, depends_on [STORY-120]) and STORY-119 (B — grouped-collapse render + CLI default flip, wave 50, input-hash 4a8c93f, depends_on [STORY-122]). Dep-graph chain: STORY-120 → STORY-122 → STORY-119 (v2.8). BC-INDEX v1.51 (BC traceability updated to split allocation). STORY-INDEX v2.3: 75 stories / 50 waves. Sprint-state: STORY-122 added wave 49; STORY-119 moved wave 50. BC versions bumped in this burst: BC-2.11.013 v1.15, BC-2.11.014 v2.1, BC-2.11.016 v1.10, BC-2.11.025 v1.14, BC-2.11.026 v1.14, BC-2.11.027 v1.8, BC-2.11.028 v1.10, BC-2.11.030 v1.5, BC-2.11.031 v1.4, BC-2.11.032 v1.5, BC-2.11.033 v1.4, BC-2.11.034 v1.4 (PO). Release remains HELD; v0.9.0 still on develop unreleased. F3 adversarial gate re-run on frozen resplit corpus is PENDING. | 2026-06-18 |
 | D-121 | STORY-119 split (D-120) F3 re-decomposition CONVERGED 3/3 (frozen corpus 8fa9ff9). STORY-122 (A, wave 49, 3pts) + STORY-119 (B, wave 50, 5pts); chain STORY-120→STORY-122→STORY-119; net points zero (8→5+3); STORY-INDEX 75 stories/50 waves; dep-graph v2.9; BC-INDEX v1.51 (12 BCs re-allocated). ADR-0003 re-anchored to split (reshape→A, behavior→B, 2-phase CLI wiring, Phase-A table fixed) — develop working-tree, uncommitted until F4. Process-gaps surfaced [split-propagation checklist: when a monolithic story with consuming ADR/index is split mid-cycle, re-anchor ALL consuming surfaces (BC backlinks, ADR attribution+phasing, index totals, dep-graph edge taxonomy); the self.findings phantom-field false-negative; consuming-surface-sweep family] all fold into STORY-121 (E-11) per D-118. Release v0.9.0 still HELD. AWAITING F3 HUMAN GATE (split). STORY-122 final: v1.4, 8 ACs, 6 governing BCs, wave 49, input-hash 309f190 MATCH. STORY-119 final: v2.4, 27 ACs, 12 governing BCs, wave 50, input-hash 4a8c93f MATCH. Fresh-context consistency audit CONSISTENT (6 dims + split checks; sole MEDIUM F-ADR-001 ADR-0003 Phase-A table row remediated). | 2026-06-19 |
 | D-122 | STORY-119 split F3 HUMAN GATE APPROVED. Three decisions: (1) F3 split gate APPROVED — proceed to F4 TDD; (2) F4 ordering: STORY-122 (A, wave 49, struct reshape) FIRST, then STORY-119 (B, wave 50, grouped-collapse render + CLI flip) after STORY-122/A PR merges; (3) F4 autonomy: "deliver both, gate at each PR-merge" — run full per-story TDD cycle for each story, PAUSE for human approval at each story's PR-merge point. Release v0.9.0 remains HELD (bundling STORY-122 + STORY-119 completion). Phase transitions F3 → F4. | 2026-06-19 |
+| D-123 | STORY-122/A delivered (PR #268 → develop 8696448). Per-story adversarial 3/3 (frozen corpus 748d276; 5 rounds). Pass A/B (behavior-preservation / census+scope) converged by round 1-2; Pass C ADR-0003 two-phase CLI-wiring narrative + file/line anchors were the churn (Phase-A table → Phase-A code block → Phase-B "no change" prose → line-701 file anchor → comprehensive anchor audit). Process-gap [ADR-split-re-anchor-coherence: when an ADR section is re-anchored for a mid-cycle story split, ALL anchors + both-phase narrative + tables must be audited together in one pass, not incrementally] — folds into STORY-121 (E-11). 1 LOW security finding (intentional TEMPORARY arm) + non-blocking PR nits accepted. security APPROVED; pr-reviewer APPROVE; CI 9/9. Demo evidence: .factory/demo-evidence/issue-62-story-122/. ADR-0003 Collapse-API Shape subsection committed to develop via PR #268. STORY-119/B begins next. | 2026-06-19 |
 | D-118 | STORY-119 F2 spec-evolution CONVERGED — adversarial gate SATISFIED 3/3 (frozen corpus 7eb9f09; round-6 triple all CLEAN). 6 rounds to converge; per-round root causes: R1 sort-direction desc→asc; R2 verdict-rank table stale (BC-014 omitted Verdict::Possible added in STORY-109 — fixed to Likely=0/Possible=1/Inconclusive=2/Unlikely=3) + version-pins v0.10.0→v0.9.0 + HS-081/VP-016 consuming-surface enum→struct sweep; R3 STORY-119 de-stale role-table mis-anchor (verbatim-title fix) + BC-032/034 representative-ordering clarification; R4 STORY-119 type-attribution inversion (STORY-120=enum, STORY-119=struct); R5 BC-030 stamp drift + ADR false 'binary crate' premise + BC-INDEX line-citation churn (permanently ended via content-based citation). Substance converged by R4; R5-6 closed provenance/bookkeeping. Process-gap family (extends STORY-121 / PG-62-F5-POSTMERGE-ANCHOR-001): (a) consuming-surface sweep must enumerate ALL FindingsRender consumers (BC bodies, VP docs, holdout-scenarios, consuming-story body, design/ADR/PRD-delta); (b) brownfield-extracted precedent BCs must be re-verified against current source (BC-014 Possible omission); (c) index cross-references must be CONTENT-based, not line-number (line-drift on changelog prepend); (d) post-version-bump stamp re-sync across consuming surfaces; (e) role/trace/attribution descriptions handed off VERBATIM, never from memory (D-095 recurrence). 3 carried-to-F3 below-threshold residuals: (1) BC-2.11.033 VP-table test anchor test_BC_2_11_013_grouped_collapsed_preserves_bucket_order should be test_BC_2_11_033_* (MINOR — F3/F4 test authorship settles; the test does not yet exist); (2) research-doc body retains the false binary-crate premise as bracketed audit-trail (NIT — corrections present, no action); (3) spec-changelog round-1 narrative line says Collapse::Collapsed but live VP-016 correctly Expanded (NIT — closed historical entry, optional). F2 COMPLETE. NEXT = F3 (PAUSED per human). | 2026-06-18 |
 | D-117 | STORY-119 F2 adversarial round-5: Pass A CLEAN; B/C found 3 micro-provenance defects, all self-inflicted by remediation churn: (1) BC-030 body-table version stamp drift (round-4 bumped BC-030 v1.3 but story table still v1.2 — re-synced, now v1.4); (2) ADR-0003 alternatives-note falsely claimed 'binary crate, no downstream semver consumers' — src/lib.rs IS a public library; corrected (FindingsRender is public API, breaking change contained by unreleased v0.9.0 bump); research-doc correction note added; (3) the BC-INDEX line-number citation for the grouped-collapse entry churned :269→:271→:273 across 3 rounds and was STILL wrong (actual :275) because each BC-INDEX changelog prepend shifts the line — PERMANENTLY FIXED by switching BC-030 + BC-INDEX + spec-changelog to a CONTENT-based citation ('BCs 030-034: grouped-collapse (greenfield, STORY-119, v0.9.0)'; no line number). Substance fully converged since round-4 (Pass A clean rounds 4 & 5); remaining churn was provenance bookkeeping. [process-gap] index line-number citations are fragile under changelog-prepend; codify content-based citation for cross-index references (extends STORY-121 scope). Re-streak pending. | 2026-06-18 |
 | D-116 | STORY-119 F2 adversarial round-4: Pass A + Pass C CLEAN; Pass B HIGH F-R4B-001 — STORY-119.md narrative inverted the type attribution (claimed the FindingsRender struct was introduced by STORY-120; correct: STORY-120 shipped the 3-variant ENUM, STORY-119 introduces the struct-of-orthogonal-enums). ~8 occurrences fixed via story-writer with explicit correct attribution + the Scope-note self-contradiction (v0.9.0 dispatched the enum, {Grouped,Collapsed} was illegal). Also: stale '9-BC set' (v1.1 stanza)→'12-BC set' (MED); BC-030 changelog BC-INDEX citation :271→:273 verified (LOW, a round-3 NIT-fix had introduced a wrong line); design-note §5.1 duplicate sort clause removed + BC-INDEX:032 annotation aligned (NITs). depends_on [STORY-120] unchanged (correct). Re-streak pending. | 2026-06-18 |
@@ -321,7 +322,7 @@ Full tech-debt register: `.factory/tech-debt-register.md`.
 
 **2. Roadmap (post-DNP3):** #3 C2 beaconing | #4 CSV+SQLite reporters | #6 rayon parallel (relates to O-07).
 
-**3. STORY-119 cycle (grouped-mode finding-collapse):** ACTIVE — F1✅/F2✅/F3✅ PASSED (D-122, human-approved); IN F4 TDD. Split: STORY-122 (A, struct reshape, wave 49, v1.4, input-hash 309f190 MATCH) FIRST, then STORY-119 (B, render+CLI flip, wave 50, v2.4, input-hash 4a8c93f MATCH) after A merges. Dep-graph chain 120→122→119 (v2.9). BC-INDEX v1.51. Consistency CONSISTENT. F4 autonomy = per-story TDD with HUMAN GATE at each PR-merge (D-122). ADR-0003 Collapse-API Shape subsection on develop (uncommitted — commit in STORY-122/A F4 delivery). DRIFT-62-MAIN495-DOC-001 fix scheduled in F4.
+**3. STORY-119 cycle (grouped-mode finding-collapse):** ACTIVE — F1✅/F2✅/F3✅/F4-partial✅. STORY-122/A DELIVERED (PR #268 → develop 8696448; per-story 3/3; D-123). NOW: STORY-119 (B, render+CLI flip, wave 50, v2.4, input-hash 4a8c93f MATCH) — grouped-collapse render + --mitre default-collapse CLI flip. Dep-graph chain 120→122→119 (v2.9). BC-INDEX v1.51. F4 autonomy = per-story TDD with HUMAN GATE at PR-merge (D-122). ADR-0003 Collapse-API Shape subsection committed to develop via PR #268. DRIFT-62-MAIN495-DOC-001 fix scheduled in STORY-119/B delivery.
 
 ## Governance Policy
 

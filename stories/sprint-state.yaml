@@ -655,21 +655,20 @@ stories:
 
   # ---------------------------------------------------------------------------
   # Wave 49 — 1 story (E-18 D-120 split A: FindingsRender enum→struct reshape)
-  # D-120 human-confirmed split 2026-06-18. STORY-122/A is a new story (byte-identical
-  # reshape only). STORY-120 is merged so the block is resolved — STORY-122 may be dispatched.
+  # DELIVERED 2026-06-19: PR #268 squash/merged → develop 8696448 (D-123).
+  # Per-story adversarial 3/3 (748d276; 5 rounds). CI 9/9. security APPROVED.
   # ---------------------------------------------------------------------------
 
   STORY-122:
-    status: pending
+    status: done
     wave: 49
-    branch: null
+    branch: null  # squash-merged; worktree cleaned
     worktree: null
-    blocked_by: [STORY-120]  # static dep-edge (depends_on); STORY-120 delivered (f851995) so live readiness is unblocked
+    blocked_by: [STORY-120]  # static dep-edge resolved; STORY-120 delivered (f851995); STORY-122 now done (8696448)
 
   # ---------------------------------------------------------------------------
   # Wave 50 — 1 story (E-18 D-120 split B: grouped-mode collapse render path + CLI flip)
-  # D-120 human-confirmed split 2026-06-18. STORY-119/B depends on STORY-122/A.
-  # STORY-122/A must merge before STORY-119/B can be dispatched.
+  # D-120 human-confirmed split 2026-06-18. STORY-122/A merged 8696448 — STORY-119/B UNBLOCKED.
   # ---------------------------------------------------------------------------
 
   STORY-119:
@@ -677,4 +676,4 @@ stories:
     wave: 50
     branch: null
     worktree: null
-    blocked_by: [STORY-122]  # static dep-edge (depends_on); STORY-122/A must deliver before STORY-119/B can dispatch
+    blocked_by: []  # STORY-122/A delivered (8696448 D-123); static dep-edge resolved; STORY-119/B ready to dispatch
