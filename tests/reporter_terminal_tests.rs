@@ -6802,4 +6802,79 @@ mod story_119 {
              high_pos={high_pos}, low_pos={low_pos}\nfull output:\n{out}"
         );
     }
+
+    // -----------------------------------------------------------------------
+    // F6-FINDING-2 — pin the Confidence::High red+bold color arm in
+    // render_findings_grouped_collapsed (terminal.rs:~568)
+    // (traces to BC-2.11.031 PC-3)
+    // -----------------------------------------------------------------------
+
+    /// F6-FINDING-2 (BC-2.11.031 Postcondition 3):
+    /// REGRESSION GUARD: The color ladder for `{Grouped, Collapsed}` N≥2 groups
+    /// with `Verdict::Likely` and `Confidence::High` must emit ANSI red+bold
+    /// escapes (ESC[1m and ESC[31m) on the collapsed summary header line.
+    ///
+    /// The existing `test_BC_2_11_031_grouped_collapse_color_ladder` verifies
+    /// that `(x2)` is inside the ANSI color span but does NOT assert the
+    /// specific escape code — a mutation that changes `High => red().bold()` to
+    /// `High => yellow()` (ESC[33m) still passes the existing test. This sibling
+    /// pins the specific ANSI sequences so that mutation fails.
+    ///
+    /// owo-colors escape sequences used:
+    ///   - `.red()` wraps text as `ESC[31m{text}ESC[39m`
+    ///   - `.bold()` wraps outer as `ESC[1m{inner}ESC[0m`
+    ///   - `.red().bold()` → `ESC[1mESC[31m{text}ESC[39mESC[0m`
+    ///   - `.yellow()` → `ESC[33m{text}ESC[39m` (mutation: no ESC[1m, no ESC[31m)
+    ///
+    /// FAIL mode: mutate `Confidence::High => header_text.red().bold()` to
+    /// `Confidence::High => header_text.yellow()` in terminal.rs:~568; both
+    /// `\x1b[1m` (bold) and `\x1b[31m` (red) would be absent, failing this test.
+    #[test]
+    fn test_BC_2_11_031_grouped_collapse_high_confidence_red_bold_ansi() {
+        // N=2 Likely/High findings in one tactic bucket → collapsed with N=2 header.
+        let findings: Vec<Finding> = (0..2)
+            .map(|_| Finding {
+                category: ThreatCategory::Anomaly,
+                verdict: Verdict::Likely,
+                confidence: Confidence::High,
+                summary: "s119-f6find2-red-bold".to_string(),
+                evidence: vec![],
+                mitre_techniques: vec!["T1046".to_string()],
+                source_ip: None,
+                timestamp: None,
+                direction: None,
+            })
+            .collect();
+
+        let out = grouped_collapse_reporter_color().render(&Summary::new(), &findings, &[]);
+
+        // The N=2 suffix must be present (sanity check that we're on the right path).
+        assert!(
+            out.contains("(x2)"),
+            "F6-FINDING-2: N=2 group must emit `(x2)` suffix; got:\n{out}"
+        );
+
+        // Extract the header line (the line that contains the (x2) suffix).
+        let header_line = out.lines().find(|l| l.contains("(x2)")).unwrap_or_default();
+
+        // Assert ESC[1m (bold) is present on the header line.
+        // Mutation `red().bold()` → `yellow()` removes ESC[1m.
+        assert!(
+            header_line.contains("\x1b[1m"),
+            "F6-FINDING-2 (BC-2.11.031 PC-3): Likely/High collapsed header must contain \
+             ANSI bold escape ESC[1m. Mutation of `Confidence::High => red().bold()` to \
+             `yellow()` in terminal.rs:~568 removes this escape and fails this test.\n\
+             header line: {header_line:?}\nfull output:\n{out}"
+        );
+
+        // Assert ESC[31m (red foreground) is present on the header line.
+        // Mutation `red().bold()` → `yellow()` replaces ESC[31m with ESC[33m.
+        assert!(
+            header_line.contains("\x1b[31m"),
+            "F6-FINDING-2 (BC-2.11.031 PC-3): Likely/High collapsed header must contain \
+             ANSI red escape ESC[31m. Mutation of `Confidence::High => red().bold()` to \
+             `yellow()` in terminal.rs:~568 replaces this with ESC[33m and fails this test.\n\
+             header line: {header_line:?}\nfull output:\n{out}"
+        );
+    }
 }
