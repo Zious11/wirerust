@@ -567,6 +567,14 @@ variant after the fact.
 > enum in `FindingsRender`. Orthogonal toggles that do not constitute a rendering-mode axis
 > (e.g., `use_color`, `show_hosts_breakdown`) MAY remain as bool fields.
 >
+> **Forward-compatibility (F7-R2):** `Grouping`, `Collapse`, and `FindingsRender` are marked
+> `#[non_exhaustive]`, allowing future variants or fields to be added without a semver-breaking
+> change. Because `FindingsRender` is `#[non_exhaustive]`, external crates MUST construct it via
+> `FindingsRender::new(grouping, collapse)` rather than a struct literal — the compiler rejects
+> struct-literal construction of `#[non_exhaustive]` structs outside the defining crate. Internal
+> (same-crate) code may still use struct-literal syntax directly. See CHANGELOG.md §[0.9.0]
+> "Forward-compatibility (F7-R2)" for the shipped rationale.
+>
 > **Orthogonality realization (STORY-122/A → STORY-119/B):** The type reshape establishing
 > the struct-of-enums is STORY-122/A. The orthogonality is made real by STORY-119/B, which
 > adds grouped-mode collapse, making all four combinations valid. The v0.9.0 three-variant sum
@@ -641,6 +649,7 @@ Grouped-collapse render path + `--mitre` default-collapse + `--no-collapse` dual
 
 ```rust
 /// Grouping axis: whether to group findings by MITRE tactic.
+#[non_exhaustive]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Grouping {
     /// Group by MITRE ATT&CK tactic (`--mitre`). Renders tactic-bucket headers.
@@ -650,6 +659,7 @@ pub enum Grouping {
 }
 
 /// Collapse axis: whether to collapse repeated findings.
+#[non_exhaustive]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Collapse {
     /// Collapse groups sharing `(category, verdict, confidence, summary)` into
@@ -666,10 +676,22 @@ pub enum Collapse {
 /// grouped-mode collapse implemented by STORY-119/B (D-120 split, `--mitre` default-collapse flip).
 /// No `Default` derived — deliberate omission, consistent with STORY-120.
 /// ADR-0003 Binding Rule 5 (reshaped by STORY-122/A; behavior completed by STORY-119/B).
+///
+/// Construct via `FindingsRender::new(grouping, collapse)` from external crates;
+/// `#[non_exhaustive]` blocks struct-literal construction outside the defining crate
+/// to preserve the growth path (LESSON-P2.10 / F7-R2).
+#[non_exhaustive]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct FindingsRender {
     pub grouping: Grouping,
     pub collapse: Collapse,
+}
+
+impl FindingsRender {
+    /// Canonical constructor for external crates.
+    pub fn new(grouping: Grouping, collapse: Collapse) -> Self {
+        Self { grouping, collapse }
+    }
 }
 ```
 
@@ -752,10 +774,10 @@ the placeholder `render_findings_grouped` to the new function. `--no-collapse` b
 dual-scope (suppresses collapse in both flat and grouped modes).
 
 Note: the shipped code at `src/main.rs:384` does not inline the grouping expression; it calls
-the named helper `grouping_from_flag(show_mitre_grouping)` (defined at `src/main.rs:514`),
+the named helper `grouping_from_flag(show_mitre_grouping)` (defined at `src/main.rs:511`),
 which encapsulates the `if show_mitre_grouping { Grouping::Grouped } else { Grouping::Flat }`
 logic. The collapse boolean is derived upstream by `collapse_findings_from_flag(*no_collapse)`
-(called at `src/main.rs:80`, defined at `src/main.rs:505`), which is `!no_collapse`. The
+(called at `src/main.rs:80`, defined at `src/main.rs:502`), which is `!no_collapse`. The
 2-if structure and all four CLI combinations in the table below remain correct.
 
 | CLI flags (Phase B) | Resulting struct | Behavior |
