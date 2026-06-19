@@ -1,0 +1,113 @@
+WIRERUST TRIAGE REPORT
+────────────────────────────────────────
+  Packets: 8  Bytes: 480  Hosts: 2
+
+PROTOCOLS
+────────────────────────────────────────
+  Tcp: 8
+
+SERVICES
+────────────────────────────────────────
+  Modbus: 8
+
+FINDINGS
+────────────────────────────────────────
+  ## Discovery
+  [Anomaly] INCONCLUSIVE (MEDIUM) - Modbus recon: Report Server ID (FC 0x11) from unit 1
+    > FC=0x11 TxnID=0x0001 UnitID=1
+    MITRE: T0888 — Remote System Information Discovery
+  [Anomaly] INCONCLUSIVE (MEDIUM) - Modbus recon: Report Server ID (FC 0x11) from unit 1
+    > FC=0x11 TxnID=0x0001 UnitID=1
+    MITRE: T0888 — Remote System Information Discovery
+  ## Impair Process Control
+  [Execution] LIKELY (MEDIUM) - Modbus write command observed: FC 0x10 from unit 1
+    > FC=0x10 TxnID=0x0002 UnitID=1 ADU bytes 0..17
+    MITRE: T1692.001, T0836 — Unauthorized Message: Command Message
+
+ANALYZER: TCP Reassembly
+────────────────────────────────────────
+  Packets analyzed: 8
+  bytes_reassembled: 48
+  dropped_findings: 0
+  evictions: 0
+  flows_completed: 0
+  flows_expired: 0
+  flows_fin: 0
+  flows_partial: 0
+  flows_rst: 0
+  flows_total: 1
+  packets_processed: 8
+  packets_skipped_non_tcp: 0
+  segments_depth_exceeded: 0
+  segments_duplicates: 0
+  segments_inserted: 4
+  segments_out_of_window: 0
+  segments_overlaps: 0
+  segments_segment_limit: 0
+  unclassified_flows: 0
+
+ANALYZER: DNS
+────────────────────────────────────────
+  Packets analyzed: 0
+  dns_queries: 0
+  dns_responses: 0
+
+ANALYZER: HTTP
+────────────────────────────────────────
+  Packets analyzed: 0
+  methods: {}
+  non_http_flows: 0
+  parse_errors: 0
+  poisoned_bytes_skipped: 0
+  recent_uris: []
+  status_codes: {}
+  top_hosts: []
+  transactions: 0
+  user_agents: {}
+
+ANALYZER: TLS
+────────────────────────────────────────
+  Packets analyzed: 0
+  cipher_suites: {}
+  ja3_hashes: {}
+  ja3s_hashes: {}
+  parse_errors: 0
+  tls_versions: {}
+  top_snis: []
+  truncated_records: 0
+
+ANALYZER: modbus
+────────────────────────────────────────
+  Packets analyzed: 4
+  dropped_findings: 0
+  exception_count: 1
+  function_code_distribution: {"0x10":1,"0x11":2,"0x90":1}
+  parse_errors: 0
+  pdu_count: 4
+  write_count: 1
+
+ANALYZER: DNP3
+────────────────────────────────────────
+  Packets analyzed: 0
+  control_operation_counts: {}
+  flows_analyzed: 0
+  function_code_distribution: {}
+  total_frames: 0
+  total_parse_errors: 0
+
+ANALYZER: ARP
+────────────────────────────────────────
+  Packets analyzed: 0
+  bindings_tracked: 0
+  frames_analyzed: 0
+  garp_findings: 0
+  malformed_findings: 0
+  malformed_frames: 0
+  mismatch_findings: 0
+  other_opcode_count: 0
+  reply_count: 0
+  request_count: 0
+  spoof_findings: 0
+  storm_findings: 0
+
+

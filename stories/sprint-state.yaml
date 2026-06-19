@@ -672,8 +672,8 @@ stories:
   # ---------------------------------------------------------------------------
 
   STORY-119:
-    status: pending
+    status: done
     wave: 50
-    branch: null
+    branch: null  # squash-merged; worktree cleaned
     worktree: null
-    blocked_by: []  # STORY-122/A delivered (8696448 D-123); static dep-edge resolved; STORY-119/B ready to dispatch
+    blocked_by: [STORY-122]  # static dep-edge resolved; STORY-119/B delivered (PR #269 → develop 181d5e2; D-125)
