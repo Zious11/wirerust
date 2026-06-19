@@ -53,8 +53,8 @@ quality_gates:
   # (those gates are already recorded in STATE.md / phase-7-convergence-report.md)
   mode: vsdd-partial
 
-  # Phase-7 / F7 convergence gate PASSED (human-approved — D-045 greenfield; D-109 E-8 F7
-  # HUMAN GATE; D-128 E-18 F5 gate SATISFIED; F6 hardening complete).
+  # F7 delta-convergence gate for E-18 grouped-collapse (v0.9.0).
+  # Check .factory/STATE.md for current convergence status before approving.
   # The release skill checks STATE.md for a recorded convergence report; the
   # file is at .factory/cycles/feature-story-119-grouped-collapse/ (F7 delta convergence
   # for E-18 grouped-collapse, v0.9.0).
@@ -78,20 +78,19 @@ quality_gates:
   # Release is created, it is public and permanent.
   require_human_approval: true
   human_approval_prompt: |
-    All quality gates are satisfied for E-18 grouped-collapse (v0.9.0):
-    F7 delta-convergence IN PROGRESS (Round-1 findings documented/remediation-in-flight;
-    F7 Round-2 pending after doc-fix PR lands on develop); regression ~1700 tests green
-    (cargo test --all-targets); F6 HARDENED (mutation 85%+ on terminal.rs + main.rs,
-    VP-012 escape proptest passing, Kani + fuzz parsers provably unaffected, NO new VP);
-    F5 scoped-adversarial 3/3 SATISFIED; STORY-120 (PR #266), STORY-122 (PR #268),
-    STORY-119 (PR #269) all delivered and merged to develop.
+    Release gate for E-18 grouped-collapse (v0.9.0).
+    This release bundles: FindingsRender struct reshape (STORY-122, PR #268),
+    grouped-mode finding-collapse render + --mitre default-collapse CLI flip
+    (STORY-119/B, PR #269), and FindingsRender enum migration (STORY-120, PR #266).
     Cycle path: .factory/cycles/feature-story-119-grouped-collapse/
     Proposed tag: v{version} (computed from Cargo.toml package.version) on branch main
     (merged from develop via gitflow release/X.Y.Z branch).
-    NOTE: v0.9.0 release is HELD pending F7 Round-2 convergence. Approve ONLY after
-    F7 Round-2 triple A/B/C returns CLEAN.
     GitHub Release will be created with cross-compiled binary artifacts via release.yml.
     crates.io publish is DISABLED.
+    GATE CONDITION: Approve ONLY after confirming, per .factory/STATE.md, that F7
+    delta-convergence is CONVERGED (latest holistic triple A/B/C CLEAN + consistency
+    audit CONSISTENT), all CI checks are green on the release branch, and you accept
+    that the tag push and GitHub Release creation are irreversible public actions.
     Approve release of v{version}? (yes/no)
 
 # ── Pre-release checks ────────────────────────────────────────────────────────

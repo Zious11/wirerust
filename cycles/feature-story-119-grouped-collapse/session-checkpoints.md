@@ -166,6 +166,33 @@ cycle_id: feature-story-119-grouped-collapse
 
 ---
 
+## Checkpoint: 2026-06-19 — F5 GATE SATISFIED; Round-2 triple A/B/C all CLEAN; resume at F6 targeted-hardening
+
+*Archived from STATE.md when F7 Round-2 burst (D-130) replaced this checkpoint.*
+
+### A. EXACT PIPELINE POSITION
+
+- **Project:** wirerust. **Mode:** FEATURE_MODE. **Feature:** E-18 / issue #62/#259 grouped-collapse delta (STORY-120 + STORY-122/A + STORY-119/B).
+- **Phase:** F5 COMPLETE — Gate SATISFIED. Round-2 triple (frozen corpus develop adcf4e9): Pass A CLEAN, Pass B CLEAN, Pass C CLEAN = 3/3 consecutive CLEAN, zero MEDIUM+. Lenses: behavior-preservation / BC-trace+semver+doc-coherence / test-quality+security+mutation-resistance.
+- **STORY-122 (A) + STORY-119 (B):** BOTH DELIVERED (D-123/D-125). DO NOT REDO.
+- **Latest release:** v0.8.0 — tag v0.8.0 on main 73034da. Cargo 0.9.0 on develop (unreleased, HELD).
+
+### B. EXACT SHAs / WORKTREE STATE
+
+- **develop HEAD:** `adcf4e9` (PR #270 merge — F5 remediation: changelog/readme accuracy + non-tautological grouping tests; 2026-06-19T17:13:51Z).
+- **main HEAD:** `73034da` (`chore: release v0.8.0`). Tag `v0.8.0` annotated.
+- **Active worktrees:** 2 — main repo (develop `adcf4e9`), `.factory/` (factory-artifacts). No story worktrees active.
+- **Open PRs:** NONE. PR #270 MERGED.
+
+### C. KEY ARTIFACT POINTERS
+
+- STORY-119/B: `.factory/stories/STORY-119.md` (B, DELIVERED; PR #269; develop 181d5e2)
+- STORY-122/A: `.factory/stories/STORY-122.md` (A, DELIVERED; PR #268; develop 8696448)
+- F5 remediation: PR #270 → develop adcf4e9
+- dep-graph: `.factory/stories/dependency-graph.md` v2.9 (chain 120→122→119)
+
+---
+
 ## Checkpoint: 2026-06-19 — F4 COMPLETE; STORY-119/B DELIVERED (PR #269 → 181d5e2); resume at F5
 
 *Archived from STATE.md when F5 Round-1 remediation burst (D-126) replaced this checkpoint.*

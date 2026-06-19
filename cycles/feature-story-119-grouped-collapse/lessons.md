@@ -72,3 +72,63 @@ collapse render (STORY-119/B), and --mitre behavioral flip.
 [unreleased/next] entry MUST be audited by the pr-manager to confirm it reflects
 ALL stories in the bundle, not just the first. Add to pr-manager F4-close
 checklist.
+
+---
+
+## [process-gap] [codified] Narrow Leak-Checkers Miss BC/STORY/LESSON Provenance Tags (D-130 / PG-F7-R2-001)
+
+**Observed:** F7 Round-2 Pass A found F-A-001 (MEDIUM): cli.rs:162 --no-collapse
+doc-comment leaked "BC-2.11.028 ... STORY-119 ... LESSON-P2.10" internal
+provenance IDs into the user-facing `cargo run -- --help` output. Two prior
+narrow upstream checkers (pr-reviewer + consistency-validator) both MISSED the
+leak. Root cause: both checkers scan for "F-"-style finding IDs (adversarial
+finding-reference syntax), not for BC-/STORY-/LESSON- provenance tag patterns
+that belong in factory artifacts, not in --help text.
+
+**Root cause:** Narrow lens scanning for adversarial "F-NNN" identifiers leaves a
+blind spot for a different class of factory-internal strings (BC/STORY/LESSON
+provenance tags) that should never appear in user-visible CLI output.
+
+**Codification [codified]:** A CI grep gate is being added to ci.yml as part of
+develop PR fix/f7-r2-cli-hardening. The gate scans help-text doc-comments
+(#[doc = "..."] and /// strings above clap fields) for patterns matching
+BC-[0-9], STORY-[0-9], LESSON- and fails CI if found. This closes the blind-spot
+mechanically, independent of reviewer lens breadth. The full provenance-leak sweep
+of all ~10 flags in cli.rs (modbus/dnp3/arp/reassembly flags) is included in
+the same PR.
+
+**Follow-up:** fix/f7-r2-cli-hardening on develop. CI gate is the codification —
+no separate story needed (covered under STORY-121 E-11 self-improvement scope).
+
+---
+
+## [process-gap] [codified] Release-Config Approval Prompt Must Not Embed Status Snapshots (D-130 / PG-F7-R2-002)
+
+**Observed:** F7 Round-2 Pass C found F-PASSC-001/2/3 (MEDIUM cluster): the
+release-config.yaml `human_approval_prompt` opened with "All quality gates are
+satisfied for E-18 grouped-collapse (v0.9.0)" while its body narrated "F7
+delta-convergence IN PROGRESS / Round-2 pending / release HELD" — a
+self-contradiction at the irreversibility gate. Additionally, the `quality_gates`
+comment block still asserted "F7 convergence gate PASSED (2026-06-12 / 1496 tests
+/ VP-023)" which was DNP3-era leftover language. The prompt was authored during
+an in-progress phase with a specific round/status narrative, which became
+self-falsifying by the time the gate was reached.
+
+**Root cause:** Approval prompts that embed a point-in-time status snapshot
+(e.g., "Round-1 findings documented/remediation-in-flight") self-falsify the
+moment the state advances. The opener "All quality gates are satisfied" was
+copied from a prior release template and never updated to match the held status.
+
+**Codification [codified]:** This burst reconciles release-config.yaml. The new
+prompt: (a) describes the release content (E-18 grouped-collapse v0.9.0 stories
+STORY-120/122/119 PRs #266/#268/#269); (b) states the gate CONDITION generically
+by reference to STATE.md as the source of truth: "Approve ONLY after confirming,
+per .factory/STATE.md, that F7 delta-convergence is CONVERGED (latest holistic
+triple A/B/C CLEAN + consistency audit CONSISTENT), all CI checks are green, and
+you accept the irreversible tag + publish." This pattern avoids embedded snapshots
+entirely.
+
+**Rule derived:** Release-config `human_approval_prompt` MUST reference STATE.md
+as the source of truth for convergence status, not embed a round/status narrative.
+The gate condition may be stated generically (as above). Historical context
+(deliveries, PRs) is welcome; current-state claims are not.
