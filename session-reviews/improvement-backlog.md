@@ -33,6 +33,22 @@ See full proposals in: `.factory/cycles/feature-arp-v0.7.0/session-review.md`
 
 ---
 
+## From: v0.9.0 / E-18 grouped-collapse Session Review (2026-06-19)
+
+See full proposals in: `.factory/session-reviews/review-2026-06-19-v0.9.0-e18-grouped-collapse.md`
+
+| ID | Category | Priority | Summary | Status |
+|---|---|---|---|---|
+| PROP-E18-01 | workflow | P1 HIGH | Add pre-F7 doc/spec-currency consolidated sweep step — CHANGELOG bundle audit, release-config reference-not-snapshot, help-text provenance lint, BC Architecture Anchors, post-delivery notes | PENDING HUMAN REVIEW |
+| PROP-E18-02 | agent (adversary dispatch) | P1 HIGH | Orchestrator supplies verified HEAD SHA in adversary dispatch prompt preamble — confirmed mitigation for stale-sandbox git-ref false alarms (3+ occurrences) | PENDING HUMAN REVIEW |
+| PROP-E18-03 | workflow (pr-manager F4-close) | P2 HIGH | F4-close bundle CHANGELOG audit — confirm all stories in bundle are represented; block F4->F5 if CHANGELOG incomplete | PENDING HUMAN REVIEW |
+| PROP-E18-04 | agent (fixburst discipline) | P2 HIGH | Post-fixburst consuming-surface sweep as blocking numbered checklist in PR description (not just policy reference) — PAT-004 third recurrence | PENDING HUMAN REVIEW |
+| PROP-E18-05 | workflow (orchestrator<->pr-manager) | P2 MEDIUM | Document merge-authorization handoff protocol — orchestrator merges directly under human authorization; pr-manager is not an authorization relay | PENDING HUMAN REVIEW |
+| PROP-E18-06 | agent (test-writer) | P2 HIGH | BC canonical-test-vector verbatim assertion requirement in test-writer dispatch — cite BC section+version, never derive from running implementation | PENDING HUMAN REVIEW |
+| PROP-E18-07 | pattern (database) | P3 LOW | Append PAT-007/008/009 to pattern-database.yaml (already done by session-reviewer) | COMPLETE — applied 2026-06-19 |
+
+---
+
 ## Auto-Deferral Note
 
 If no human response within 72h of session review completion (2026-06-16), all

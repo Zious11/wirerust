@@ -135,6 +135,73 @@ patterns:
       Reference when justifying adversary convergence overhead.
     status: DOCUMENTED-POSITIVE
 
+  - id: PAT-007
+    name: f7-doc-spec-currency-wave
+    description: >
+      Multiple fix-bursts landing during F7 each generate a downstream consuming-surface
+      propagation gap that the next adversary round finds. The resulting cascade extends
+      F7 by 1-2 rounds per burst. Root cause: fix-bursts during F7 are dispatched with
+      a narrow remediation scope and do not include a post-burst consuming-surface sweep.
+      DF-CONSISTENCY-AUDIT-POST-FIXBURST-001 policy exists but is not enforced as a
+      blocking checklist item at the point of dispatch.
+    first_observed: "feature-story-119-grouped-collapse"
+    occurrences:
+      - cycle: "feature-story-119-grouped-collapse"
+        count: 4
+        notes: >
+          R1 (CHANGELOG/release-config) -> R2 (provenance-leak + #[non_exhaustive]) ->
+          R3 (ADR anchor drift) -> R4 (BC Architecture Anchors + story post-delivery notes).
+          Each burst generated its own propagation gap found in the next round.
+    total_occurrences: 1
+    severity: HIGH
+    proposal: PROP-E18-01
+    status: OPEN
+
+  - id: PAT-008
+    name: release-config-approval-prompt-self-falsification
+    description: >
+      release-config.yaml human_approval_prompt embeds a point-in-time status snapshot
+      (e.g., "Round-2 pending / remediation-in-flight") that self-falsifies when the
+      state advances. The opener "All quality gates are satisfied" may be copied from a
+      prior template without matching the current held/in-progress status.
+    first_observed: "feature-story-119-grouped-collapse"
+    occurrences:
+      - cycle: "feature-story-119-grouped-collapse"
+        notes: >
+          F7-R2 Pass C findings F-PASSC-001/2/3 -- remediated via D-130 burst.
+          Codified: prompt MUST reference STATE.md as source-of-truth, not embed inline status.
+    total_occurrences: 1
+    severity: MEDIUM
+    proposal: null
+    status: RESOLVED-CODIFIED
+
+  - id: PAT-009
+    name: adversary-stale-git-ref-false-alarm
+    description: >
+      Adversary subagents operating in isolated sandboxes can report a stale git HEAD SHA
+      while reviewing the correct live file contents. This generates a false-alarm finding
+      that consumes one remediation burst before being closed. Confirmed mitigation:
+      orchestrator supplies verified HEAD SHA in adversary dispatch prompt preamble.
+    first_observed: "feature-story-119-grouped-collapse"
+    occurrences:
+      - cycle: "feature-story-119-grouped-collapse"
+        notes: "D-105 -- F5 post-merge anchor re-validation against spec-branch HEAD"
+      - cycle: "feature-story-119-grouped-collapse"
+        notes: "E-8 F7 consistency audit stale-field instance"
+      - cycle: "feature-story-119-grouped-collapse"
+        notes: >
+          F7-R4 Pass C (D-131) -- adversary reported develop HEAD == 31d1231/8696448
+          when actual was 1c89b52. Closed as false alarm; confirmed mitigation applied in R5
+          (orchestrator supplied verified HEAD; R5 found 0 findings).
+    total_occurrences: 3
+    confirmed_mitigation: >
+      Orchestrator supplies `git rev-parse HEAD` at dispatch time; adversary preamble
+      states "treat <SHA> as ground truth if your tooling differs."
+    mitigation_applied_in: "F7-R5 (zero SHA discrepancy reported; R5 CLEAN)"
+    severity: MEDIUM
+    proposal: PROP-E18-02
+    status: OPEN
+
 ---
 
 benchmarks:

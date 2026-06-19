@@ -65,3 +65,61 @@ runs:
     proposals_p2: 5
     proposals_p3: 3
     proposals_p4: 2
+
+  - cycle: feature-story-119-grouped-collapse
+    released_version: v0.9.0
+    released_at: "2026-06-19"
+    pipeline_path: feature-mode resumed at F4 PAUSED -> F4/F5/F6/F7 + release
+    stories_in_cycle: 2  # STORY-122/A + STORY-119/B (STORY-120 completed prior cycle)
+    prs_delivered: 8  # #268/#269 (F4) + #270 (F5) + #271 (F6) + #272/#273/#274/#275 (F7)
+
+    quality:
+      holdout_mean_final: null  # no holdout re-run this cycle (F4 delta; prior holdout 1.0)
+      holdout_scenarios: null
+      mutation_kill_rate_pct: 85  # on terminal.rs + main.rs delta scope
+      mutation_all_dispatch_arms_killed: true  # 3/3 dispatch arms killed
+      kani_successful: null  # UNAFFECTED (delta touches only terminal.rs + main.rs)
+      kani_total: null
+      fuzz_executions_millions: null  # UNAFFECTED
+      fuzz_crashes: 0
+      test_count_at_release: 1700  # approximate (~1700)
+      test_failures: 0
+      security_findings_exploitable: 0
+      new_ci_gates_added: 1  # help-provenance-gate (PR #273)
+
+    convergence:
+      f5_adversary_rounds: 2
+      f5_adversary_remediation_prs: 1  # PR #270
+      f7_adversary_rounds: 5
+      f7_code_defects_found: 0  # ZERO shipped-code defects in all 5 rounds
+      f7_doc_spec_currency_findings: 16  # R1(9) + R2(4) + R3(1) + R4(2)
+      f7_pass_b_clean_every_round: true
+      f7_consistency_gaps_initial: 0  # consistency-validator CONSISTENT from R3 onward
+      f7_false_alarm_sha_findings: 1  # F7-R4 Pass C stale-sandbox git-ref
+
+    efficiency:
+      doc_tense_recurrences: 0
+      pr_manager_shortstop_count: 1  # D-127 (down from 5 in v0.7.0)
+      changelog_bundle_omission: true  # F5-R1 HIGH + F7-R1 partial
+      post_fixburst_consumer_sweep_gap: 1  # F7-R4 (BC Architecture Anchors + story notes)
+      tautological_tests_masking_defects: 1  # D-124 (3 CRITICAL + 2 HIGH)
+      release_config_self_contradiction: 1  # F7-R2 Pass C (now codified)
+
+    gate_first_try:
+      total_gates: 8
+      passed_first_try: 5
+      rate_pct: 62.5
+      non_first_try_gates:
+        - F4 STORY-122/A per-story round-1 (ADR anchor churn)
+        - F4 STORY-119/B per-story round-1 (tautological tests masking 3 CRITICAL + 2 HIGH)
+        - F7 R1-R4 (doc/spec-currency wave; zero code defects)
+
+    new_patterns_observed:
+      - PAT-007  # F7 doc/spec-currency wave
+      - PAT-008  # release-config approval prompt self-falsification (RESOLVED-CODIFIED)
+      - PAT-009  # adversary stale git-ref false alarm
+
+    proposals_generated: 7
+    proposals_p1: 2  # PROP-E18-01, PROP-E18-02
+    proposals_p2: 4  # PROP-E18-03, PROP-E18-04, PROP-E18-05, PROP-E18-06
+    proposals_p3: 1  # PROP-E18-07
