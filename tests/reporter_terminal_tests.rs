@@ -5422,40 +5422,25 @@ mod story_119 {
     // -----------------------------------------------------------------------
 
     /// AC-001 (BC-2.11.030 Postcondition 2):
-    /// REGRESSION GUARD: The `run_analyze` construction site produces
-    /// `FindingsRender { grouping: Grouping::Grouped, collapse: Collapse::Collapsed }`
-    /// when `show_mitre_grouping == true` and `collapse_findings == true`
-    /// (`--mitre` alone, default collapse enabled).
+    /// REGRESSION GUARD: `FindingsRender { grouping: Grouping::Grouped, collapse:
+    /// Collapse::Collapsed }` (the value produced by `run_analyze` when `--mitre`
+    /// is present and collapse is enabled) routes to `render_findings_grouped_collapsed`.
     ///
-    /// Verified via the observable dispatch: a reporter constructed with
-    /// `{Grouped, Collapsed}` exercises `render_findings_grouped_collapsed`.
-    /// A FINDINGS section with grouped-collapse output appears in the rendered
-    /// string (tactic headers and `(xN)` suffix for N≥2 groups).
+    /// The mapping from the `--mitre` CLI flag to `Grouping::Grouped` is tested
+    /// by `test_bc_2_11_030_grouping_flag_polarity` in `src/main.rs` (unit test on
+    /// the `grouping_from_flag` helper) and by the e2e CLI tests in
+    /// `cli_integration_tests.rs`. This test verifies the RENDERING behavior of the
+    /// `{Grouped, Collapsed}` variant: tactic headers appear and `(xN)` suffix is
+    /// emitted for N≥2 identical-key findings in one bucket.
     #[test]
     fn test_BC_2_11_030_mitre_alone_maps_to_grouped_collapsed() {
-        // Construct the reporter exactly as run_analyze does when
-        // show_mitre_grouping=true, collapse_findings=true.
+        // Directly construct the expected FindingsRender value for --mitre alone
+        // (show_mitre_grouping=true, collapse_findings=true → {Grouped, Collapsed}).
+        // No tautological if/else copy of production logic.
         let render = FindingsRender {
-            grouping: if true {
-                Grouping::Grouped
-            } else {
-                Grouping::Flat
-            },
-            collapse: if true {
-                Collapse::Collapsed
-            } else {
-                Collapse::Expanded
-            },
+            grouping: Grouping::Grouped,
+            collapse: Collapse::Collapsed,
         };
-        assert_eq!(
-            render,
-            FindingsRender {
-                grouping: Grouping::Grouped,
-                collapse: Collapse::Collapsed,
-            },
-            "AC-001: --mitre alone (show_mitre_grouping=true, collapse_findings=true) \
-             must produce {{Grouped, Collapsed}}"
-        );
 
         // Observable render: N=3 identical-key findings in one tactic bucket
         // must produce a header with `(x3)` suffix — the grouped-collapse path.
@@ -5469,6 +5454,10 @@ mod story_119 {
         }
         .render(&Summary::new(), &findings, &[]);
         assert!(
+            out.contains("## "),
+            "AC-001: {{Grouped,Collapsed}} must emit tactic headers; got:\n{out}"
+        );
+        assert!(
             out.contains("(x3)"),
             "AC-001: {{Grouped,Collapsed}} with N=3 identical findings must emit \
              `(x3)` suffix; got:\n{out}"
@@ -5481,35 +5470,26 @@ mod story_119 {
     // -----------------------------------------------------------------------
 
     /// AC-002 (BC-2.11.030 Postcondition 3):
-    /// REGRESSION GUARD: The `run_analyze` construction site produces
-    /// `FindingsRender { grouping: Grouping::Grouped, collapse: Collapse::Expanded }`
-    /// when `show_mitre_grouping == true` and `collapse_findings == false`
-    /// (`--mitre` with `--no-collapse`).
+    /// REGRESSION GUARD: `FindingsRender { grouping: Grouping::Grouped, collapse:
+    /// Collapse::Expanded }` (the value produced by `run_analyze` when `--mitre
+    /// --no-collapse` is passed) routes to the grouped-expanded arm.
+    ///
+    /// The mapping from CLI flags to this struct value is tested by the unit
+    /// tests in `src/main.rs` (`grouping_from_flag` and `collapse_findings_from_flag`)
+    /// and by the e2e CLI tests. This test verifies the RENDERING behavior:
+    /// tactic headers appear but no `(xN)` suffix is emitted for any N.
     #[test]
     fn test_BC_2_11_030_mitre_no_collapse_maps_to_grouped_expanded() {
+        // Directly construct the expected FindingsRender value for --mitre --no-collapse
+        // (show_mitre_grouping=true, collapse_findings=false → {Grouped, Expanded}).
+        // No tautological if/else copy of production logic.
         let render = FindingsRender {
-            grouping: if true {
-                Grouping::Grouped
-            } else {
-                Grouping::Flat
-            },
-            collapse: if false {
-                Collapse::Collapsed
-            } else {
-                Collapse::Expanded
-            },
+            grouping: Grouping::Grouped,
+            collapse: Collapse::Expanded,
         };
-        assert_eq!(
-            render,
-            FindingsRender {
-                grouping: Grouping::Grouped,
-                collapse: Collapse::Expanded,
-            },
-            "AC-002: --mitre --no-collapse (show_mitre_grouping=true, collapse_findings=false) \
-             must produce {{Grouped, Expanded}}"
-        );
 
-        // Observable render: {Grouped, Expanded} must not emit any `(xN)` suffix.
+        // Observable render: {Grouped, Expanded} must emit tactic headers and
+        // must NOT emit any `(xN)` suffix for N identical findings.
         let findings: Vec<Finding> = (0..3)
             .map(|_| make_discovery_finding_s119("s119-ac002-mitre-expanded"))
             .collect();
@@ -5520,12 +5500,12 @@ mod story_119 {
         }
         .render(&Summary::new(), &findings, &[]);
         assert!(
-            !out.contains("(x"),
-            "AC-002: {{Grouped,Expanded}} must not emit any `(xN)` suffix; got:\n{out}"
-        );
-        assert!(
             out.contains("## "),
             "AC-002: {{Grouped,Expanded}} must emit tactic headers; got:\n{out}"
+        );
+        assert!(
+            !out.contains("(x"),
+            "AC-002: {{Grouped,Expanded}} must not emit any `(xN)` suffix; got:\n{out}"
         );
     }
 
@@ -5535,61 +5515,68 @@ mod story_119 {
     // -----------------------------------------------------------------------
 
     /// AC-003 (BC-2.11.030 Postconditions 4 and 5):
-    /// REGRESSION GUARD: Flat-mode `FindingsRender` wiring at the `run_analyze`
-    /// construction site is unchanged.
+    /// REGRESSION GUARD: Flat-mode `FindingsRender` variants produce the correct
+    /// observable rendering behavior.
     ///
-    /// BC-2.11.030 PC-4: "When neither `--mitre` nor `--no-collapse` is present
-    /// (the default terminal output): `render == FindingsRender { grouping:
-    /// Grouping::Flat, collapse: Collapse::Collapsed }`. Unchanged from
-    /// pre-STORY-119 behavior."
+    /// BC-2.11.030 PC-4: default (no `--mitre`, no `--no-collapse`) →
+    /// `{Flat, Collapsed}` — identical findings collapse to one line with `(xN)` suffix.
     ///
-    /// BC-2.11.030 PC-5: "When `--no-collapse` is present but `--mitre` is
-    /// absent: `render == FindingsRender { grouping: Grouping::Flat, collapse:
-    /// Collapse::Expanded }`. Unchanged from pre-STORY-119 behavior."
+    /// BC-2.11.030 PC-5: `--no-collapse` without `--mitre` →
+    /// `{Flat, Expanded}` — all findings rendered individually, no `(xN)` suffix.
+    ///
+    /// The mapping from CLI flags to these struct values is tested by the unit
+    /// tests in `src/main.rs` (`grouping_from_flag` and `collapse_findings_from_flag`).
     #[test]
     fn test_BC_2_11_030_flat_routing_unchanged() {
-        // PC-4: default (no --mitre, no --no-collapse)
+        // PC-4: default (no --mitre, no --no-collapse) → {Flat, Collapsed}.
+        // Directly construct the expected value without tautological if/else copies.
         let default_render = FindingsRender {
-            grouping: if false {
-                Grouping::Grouped
-            } else {
-                Grouping::Flat
-            },
-            collapse: if true {
-                Collapse::Collapsed
-            } else {
-                Collapse::Expanded
-            },
+            grouping: Grouping::Flat,
+            collapse: Collapse::Collapsed,
         };
-        assert_eq!(
-            default_render,
-            FindingsRender {
-                grouping: Grouping::Flat,
-                collapse: Collapse::Collapsed,
-            },
-            "AC-003 PC-4: default routing must produce {{Flat, Collapsed}}"
+
+        let findings_default: Vec<Finding> = (0..3)
+            .map(|_| make_discovery_finding_s119("s119-ac003-flat-collapsed"))
+            .collect();
+        let out_default = TerminalReporter {
+            use_color: false,
+            show_hosts_breakdown: false,
+            render: default_render,
+        }
+        .render(&Summary::new(), &findings_default, &[]);
+        assert!(
+            out_default.contains("(x3)"),
+            "AC-003 PC-4: {{Flat,Collapsed}} must emit '(x3)' for 3 identical findings; \
+             got:\n{out_default}"
+        );
+        assert!(
+            !out_default.contains("## "),
+            "AC-003 PC-4: {{Flat,Collapsed}} must not emit tactic headers; got:\n{out_default}"
         );
 
-        // PC-5: --no-collapse without --mitre
+        // PC-5: --no-collapse without --mitre → {Flat, Expanded}.
         let no_collapse_flat_render = FindingsRender {
-            grouping: if false {
-                Grouping::Grouped
-            } else {
-                Grouping::Flat
-            },
-            collapse: if false {
-                Collapse::Collapsed
-            } else {
-                Collapse::Expanded
-            },
+            grouping: Grouping::Flat,
+            collapse: Collapse::Expanded,
         };
+
+        let findings_expanded: Vec<Finding> = (0..3)
+            .map(|_| make_discovery_finding_s119("s119-ac003-flat-expanded"))
+            .collect();
+        let out_expanded = TerminalReporter {
+            use_color: false,
+            show_hosts_breakdown: false,
+            render: no_collapse_flat_render,
+        }
+        .render(&Summary::new(), &findings_expanded, &[]);
+        assert!(
+            !out_expanded.contains("(x"),
+            "AC-003 PC-5: {{Flat,Expanded}} must not emit (xN) suffix; got:\n{out_expanded}"
+        );
+        let count = out_expanded.matches("s119-ac003-flat-expanded").count();
         assert_eq!(
-            no_collapse_flat_render,
-            FindingsRender {
-                grouping: Grouping::Flat,
-                collapse: Collapse::Expanded,
-            },
-            "AC-003 PC-5: --no-collapse without --mitre must produce {{Flat, Expanded}}"
+            count, 3,
+            "AC-003 PC-5: {{Flat,Expanded}} must emit 3 individual finding lines; found {count}"
         );
     }
 
