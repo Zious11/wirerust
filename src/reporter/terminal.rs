@@ -3,9 +3,11 @@
 //! Renders the capture summary, per-host breakdown (gated by
 //! `show_hosts_breakdown` per LESSON-P1.03), protocols, services,
 //! findings, and per-analyzer detail tables for TTY output. The
-//! `render: FindingsRender` field selects among three mutually-exclusive
-//! FINDINGS rendering modes: `Grouped` (MITRE tactic grouping, `--mitre`),
-//! `FlatCollapsed` (default v0.8.0+), and `FlatExpanded` (`--no-collapse`).
+//! `render: FindingsRender` field is a struct-of-two-orthogonal-enums
+//! (`Grouping` × `Collapse`) that selects the FINDINGS rendering path:
+//! `Grouping::Grouped` (MITRE tactic grouping, `--mitre`) or
+//! `Grouping::Flat` (flat list); `Collapse::Collapsed` (default) or
+//! `Collapse::Expanded` (`--no-collapse`). All four combinations are valid.
 //! MITRE-tactic grouping reorganizes the FINDINGS section by MITRE ATT&CK
 //! tactic and expands each finding's MITRE line with the technique name from
 //! [`crate::mitre`].
@@ -91,23 +93,26 @@ struct CollapseKey {
     summary: String,
 }
 
-/// Render mode for the FINDINGS section of a terminal report.
-///
-/// Encodes the three mutually-exclusive rendering modes as a single enum,
-/// eliminating the impossible state `show_mitre_grouping = true &&
-/// collapse_findings = true` that existed in v0.8.0.
-/// ADR-0003 Binding Rule 5 — Render-Mode Enum (Issue #62 — v0.9.0).
+/// Grouping axis for the FINDINGS section.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum FindingsRender {
-    /// Group findings by MITRE tactic (`--mitre` flag).
-    /// Corresponds to the previous `show_mitre_grouping = true`.
+pub enum Grouping {
     Grouped,
-    /// Collapse repeated findings into counted groups (default, v0.8.0+).
-    /// Corresponds to the previous `collapse_findings = true, show_mitre_grouping = false`.
-    FlatCollapsed,
-    /// One display line per raw finding (pre-v0.8.0 behavior, `--no-collapse`).
-    /// Corresponds to the previous `collapse_findings = false, show_mitre_grouping = false`.
-    FlatExpanded,
+    Flat,
+}
+
+/// Collapse axis for the FINDINGS section.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Collapse {
+    Collapsed,
+    Expanded,
+}
+
+/// Rendering mode for the FINDINGS section of [`TerminalReporter`].
+/// No [`Default`] is derived — deliberate, consistent with STORY-120.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct FindingsRender {
+    pub grouping: Grouping,
+    pub collapse: Collapse,
 }
 
 pub struct TerminalReporter {
@@ -119,9 +124,10 @@ pub struct TerminalReporter {
     /// always-present `Hosts: N` count line in the header is shown
     /// regardless; this gate only controls the expanded itemized list.
     pub show_hosts_breakdown: bool,
-    /// Render mode for the FINDINGS section. Controls mutual exclusion between
-    /// MITRE grouping, flat-collapsed, and flat-expanded rendering.
-    /// ADR-0003 Binding Rule 5; BC-2.11.025 / BC-2.11.026 / BC-2.11.027 / BC-2.11.028.
+    /// Render mode for the FINDINGS section. A struct-of-two-orthogonal-enums:
+    /// `grouping` (Grouped vs Flat) and `collapse` (Collapsed vs Expanded).
+    /// All four combinations are valid (no combination is illegal).
+    /// ADR-0003 Binding Rule 5; BC-2.11.013 / BC-2.11.026 / BC-2.11.027 / BC-2.11.028.
     pub render: FindingsRender,
 }
 
@@ -199,24 +205,21 @@ impl Reporter for TerminalReporter {
         // Findings
         if !findings.is_empty() {
             out.push_str(&self.section("FINDINGS"));
-            match self.render {
-                FindingsRender::Grouped => {
-                    // Grouped (--mitre) path: structurally suffix-free per BC-2.11.025
-                    // invariant 5. Collapse does not apply — impossible state eliminated
-                    // by type. render_finding_prefix stays unchanged.
+            match (self.render.grouping, self.render.collapse) {
+                (Grouping::Grouped, Collapse::Expanded) => {
                     self.render_findings_grouped(&mut out, findings);
                 }
-                FindingsRender::FlatCollapsed => {
-                    // Flat + collapse path (STORY-118 / BC-2.11.025 / BC-2.11.026 /
-                    // BC-2.11.027): groups findings by CollapseKey in first-occurrence
-                    // order, renders each group with optional (xN) suffix and up to K=3
-                    // sampled evidence lines.
+                (Grouping::Grouped, Collapse::Collapsed) => {
+                    // TEMPORARY (STORY-122/A): routes to render_findings_grouped until STORY-119/B
+                    // introduces render_findings_grouped_collapsed and repoints this arm.
+                    // {Grouped, Collapsed} is unreachable via CLI in this story (--mitre alone maps
+                    // to {Grouped, Expanded} until STORY-119/B flips the CLI default).
+                    self.render_findings_grouped(&mut out, findings);
+                }
+                (Grouping::Flat, Collapse::Collapsed) => {
                     self.render_findings_collapsed(&mut out, findings);
                 }
-                FindingsRender::FlatExpanded => {
-                    // Per ADR 0003: the Finding struct stores raw bytes; the
-                    // terminal reporter is responsible for escaping untrusted
-                    // content (summary + evidence) before writing to a TTY.
+                (Grouping::Flat, Collapse::Expanded) => {
                     for f in findings {
                         self.render_finding_flat(&mut out, f);
                     }
@@ -426,8 +429,9 @@ impl TerminalReporter {
     /// header is `## Tactic Name`; sections appear in
     /// [`all_tactics_in_report_order`] order with an Uncategorized bucket
     /// last that holds findings with no technique or an unknown ID.
-    /// Within each bucket, findings sort by verdict-desc, then
-    /// confidence-desc, then original emission order (stable).
+    /// Within each bucket, findings sort ascending by verdict-rank
+    /// (Likely=0, Possible=1, Inconclusive=2, Unlikely=3), then ascending by
+    /// confidence-rank (High=0, Medium=1, Low=2), then original emission order (stable).
     /// BC-2.11.013: tactic bucketing uses `mitre_techniques[0]` (first element).
     fn render_findings_grouped(&self, out: &mut String, findings: &[Finding]) {
         // Bucket by tactic. Attach original index for stable tertiary sort.
