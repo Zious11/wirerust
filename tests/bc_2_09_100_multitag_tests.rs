@@ -692,15 +692,9 @@ fn make_terminal(mitre_grouping: bool) -> TerminalReporter {
         show_hosts_breakdown: false,
         // STORY-120: parameterized — mitre_grouping ? Grouped : FlatExpanded
         render: if mitre_grouping {
-            FindingsRender {
-                grouping: Grouping::Grouped,
-                collapse: Collapse::Expanded,
-            }
+            FindingsRender::new(Grouping::Grouped, Collapse::Expanded)
         } else {
-            FindingsRender {
-                grouping: Grouping::Flat,
-                collapse: Collapse::Expanded,
-            }
+            FindingsRender::new(Grouping::Flat, Collapse::Expanded)
         },
     }
 }

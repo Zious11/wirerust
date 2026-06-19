@@ -71,10 +71,7 @@ fn plain_reporter() -> TerminalReporter {
     TerminalReporter {
         use_color: false,
         show_hosts_breakdown: false,
-        render: FindingsRender {
-            grouping: Grouping::Flat,
-            collapse: Collapse::Expanded,
-        },
+        render: FindingsRender::new(Grouping::Flat, Collapse::Expanded),
     }
 }
 
@@ -664,10 +661,7 @@ mod story_078 {
         TerminalReporter {
             use_color: false,
             show_hosts_breakdown: false,
-            render: FindingsRender {
-                grouping: Grouping::Grouped,
-                collapse: Collapse::Expanded,
-            },
+            render: FindingsRender::new(Grouping::Grouped, Collapse::Expanded),
         }
     }
 
@@ -1793,10 +1787,7 @@ mod story_118 {
         TerminalReporter {
             use_color: false,
             show_hosts_breakdown: false,
-            render: FindingsRender {
-                grouping: Grouping::Flat,
-                collapse: Collapse::Collapsed,
-            },
+            render: FindingsRender::new(Grouping::Flat, Collapse::Collapsed),
         }
     }
 
@@ -1805,10 +1796,7 @@ mod story_118 {
         TerminalReporter {
             use_color: true,
             show_hosts_breakdown: false,
-            render: FindingsRender {
-                grouping: Grouping::Flat,
-                collapse: Collapse::Collapsed,
-            },
+            render: FindingsRender::new(Grouping::Flat, Collapse::Collapsed),
         }
     }
 
@@ -1819,10 +1807,7 @@ mod story_118 {
         TerminalReporter {
             use_color: false,
             show_hosts_breakdown: false,
-            render: FindingsRender {
-                grouping: Grouping::Grouped,
-                collapse: Collapse::Expanded,
-            },
+            render: FindingsRender::new(Grouping::Grouped, Collapse::Expanded),
         }
     }
 
@@ -3357,10 +3342,7 @@ mod story_118 {
         let reporter_on = TerminalReporter {
             use_color: false,
             show_hosts_breakdown: false,
-            render: FindingsRender {
-                grouping: Grouping::Flat,
-                collapse: Collapse::Collapsed,
-            },
+            render: FindingsRender::new(Grouping::Flat, Collapse::Collapsed),
         };
         let out_on = reporter_on.render(&Summary::new(), &findings, &[]);
         assert!(
@@ -3372,10 +3354,7 @@ mod story_118 {
         let reporter_off = TerminalReporter {
             use_color: false,
             show_hosts_breakdown: false,
-            render: FindingsRender {
-                grouping: Grouping::Flat,
-                collapse: Collapse::Expanded,
-            },
+            render: FindingsRender::new(Grouping::Flat, Collapse::Expanded),
         };
         let out_off = reporter_off.render(&Summary::new(), &findings, &[]);
         assert!(
@@ -4018,10 +3997,7 @@ mod story_120 {
     /// The struct has exactly two fields: grouping: Grouping and collapse: Collapse. No Default impl.
     #[test]
     fn test_findings_render_derives_debug_clone_copy_partialeq_eq() {
-        let a = FindingsRender {
-            grouping: Grouping::Grouped,
-            collapse: Collapse::Expanded,
-        };
+        let a = FindingsRender::new(Grouping::Grouped, Collapse::Expanded);
         let b = a; // Copy
         let c = Clone::clone(&a); // Clone (explicit form avoids clone_on_copy lint)
         assert_eq!(a, b, "PartialEq + Eq: Grouped == copied Grouped");
@@ -4030,69 +4006,33 @@ mod story_120 {
 
         // All four Grouping x Collapse combinations are pairwise distinct.
         assert_ne!(
-            FindingsRender {
-                grouping: Grouping::Grouped,
-                collapse: Collapse::Expanded
-            },
-            FindingsRender {
-                grouping: Grouping::Flat,
-                collapse: Collapse::Collapsed
-            },
+            FindingsRender::new(Grouping::Grouped, Collapse::Expanded),
+            FindingsRender::new(Grouping::Flat, Collapse::Collapsed),
             "{{Grouped,Expanded}} != {{Flat,Collapsed}}"
         );
         assert_ne!(
-            FindingsRender {
-                grouping: Grouping::Grouped,
-                collapse: Collapse::Expanded
-            },
-            FindingsRender {
-                grouping: Grouping::Flat,
-                collapse: Collapse::Expanded
-            },
+            FindingsRender::new(Grouping::Grouped, Collapse::Expanded),
+            FindingsRender::new(Grouping::Flat, Collapse::Expanded),
             "{{Grouped,Expanded}} != {{Flat,Expanded}}"
         );
         assert_ne!(
-            FindingsRender {
-                grouping: Grouping::Flat,
-                collapse: Collapse::Collapsed
-            },
-            FindingsRender {
-                grouping: Grouping::Flat,
-                collapse: Collapse::Expanded
-            },
+            FindingsRender::new(Grouping::Flat, Collapse::Collapsed),
+            FindingsRender::new(Grouping::Flat, Collapse::Expanded),
             "{{Flat,Collapsed}} != {{Flat,Expanded}}"
         );
         assert_ne!(
-            FindingsRender {
-                grouping: Grouping::Grouped,
-                collapse: Collapse::Expanded
-            },
-            FindingsRender {
-                grouping: Grouping::Grouped,
-                collapse: Collapse::Collapsed
-            },
+            FindingsRender::new(Grouping::Grouped, Collapse::Expanded),
+            FindingsRender::new(Grouping::Grouped, Collapse::Collapsed),
             "{{Grouped,Expanded}} != {{Grouped,Collapsed}}"
         );
         assert_ne!(
-            FindingsRender {
-                grouping: Grouping::Grouped,
-                collapse: Collapse::Collapsed
-            },
-            FindingsRender {
-                grouping: Grouping::Flat,
-                collapse: Collapse::Collapsed
-            },
+            FindingsRender::new(Grouping::Grouped, Collapse::Collapsed),
+            FindingsRender::new(Grouping::Flat, Collapse::Collapsed),
             "{{Grouped,Collapsed}} != {{Flat,Collapsed}}"
         );
         assert_ne!(
-            FindingsRender {
-                grouping: Grouping::Grouped,
-                collapse: Collapse::Collapsed
-            },
-            FindingsRender {
-                grouping: Grouping::Flat,
-                collapse: Collapse::Expanded
-            },
+            FindingsRender::new(Grouping::Grouped, Collapse::Collapsed),
+            FindingsRender::new(Grouping::Flat, Collapse::Expanded),
             "{{Grouped,Collapsed}} != {{Flat,Expanded}}"
         );
 
@@ -4100,40 +4040,28 @@ mod story_120 {
         assert!(
             format!(
                 "{:?}",
-                FindingsRender {
-                    grouping: Grouping::Grouped,
-                    collapse: Collapse::Expanded
-                }
+                FindingsRender::new(Grouping::Grouped, Collapse::Expanded)
             )
             .contains("Grouped")
         );
         assert!(
             format!(
                 "{:?}",
-                FindingsRender {
-                    grouping: Grouping::Flat,
-                    collapse: Collapse::Collapsed
-                }
+                FindingsRender::new(Grouping::Flat, Collapse::Collapsed)
             )
             .contains("Flat")
         );
         assert!(
             format!(
                 "{:?}",
-                FindingsRender {
-                    grouping: Grouping::Flat,
-                    collapse: Collapse::Collapsed
-                }
+                FindingsRender::new(Grouping::Flat, Collapse::Collapsed)
             )
             .contains("Collapsed")
         );
         assert!(
             format!(
                 "{:?}",
-                FindingsRender {
-                    grouping: Grouping::Flat,
-                    collapse: Collapse::Expanded
-                }
+                FindingsRender::new(Grouping::Flat, Collapse::Expanded)
             )
             .contains("Expanded")
         );
@@ -4156,10 +4084,7 @@ mod story_120 {
         let r = TerminalReporter {
             use_color: false,
             show_hosts_breakdown: false,
-            render: FindingsRender {
-                grouping: Grouping::Flat,
-                collapse: Collapse::Expanded,
-            },
+            render: FindingsRender::new(Grouping::Flat, Collapse::Expanded),
         };
         // The struct renders fine (behavioral sanity).
         let out = r.render(&Summary::new(), &[], &[]);
@@ -4191,10 +4116,7 @@ mod story_120 {
         let grouped_out = TerminalReporter {
             use_color: false,
             show_hosts_breakdown: false,
-            render: FindingsRender {
-                grouping: Grouping::Grouped,
-                collapse: Collapse::Expanded,
-            },
+            render: FindingsRender::new(Grouping::Grouped, Collapse::Expanded),
         }
         .render(&Summary::new(), &findings, &[]);
         assert!(
@@ -4206,10 +4128,7 @@ mod story_120 {
         let collapsed_out = TerminalReporter {
             use_color: false,
             show_hosts_breakdown: false,
-            render: FindingsRender {
-                grouping: Grouping::Flat,
-                collapse: Collapse::Collapsed,
-            },
+            render: FindingsRender::new(Grouping::Flat, Collapse::Collapsed),
         }
         .render(&Summary::new(), &findings, &[]);
         assert!(
@@ -4222,10 +4141,7 @@ mod story_120 {
         let expanded_out = TerminalReporter {
             use_color: false,
             show_hosts_breakdown: false,
-            render: FindingsRender {
-                grouping: Grouping::Flat,
-                collapse: Collapse::Expanded,
-            },
+            render: FindingsRender::new(Grouping::Flat, Collapse::Expanded),
         }
         .render(&Summary::new(), &findings, &[]);
         assert!(
@@ -4273,10 +4189,7 @@ mod story_120 {
         let out = TerminalReporter {
             use_color: false,
             show_hosts_breakdown: false,
-            render: FindingsRender {
-                grouping: Grouping::Grouped,
-                collapse: Collapse::Expanded,
-            },
+            render: FindingsRender::new(Grouping::Grouped, Collapse::Expanded),
         }
         .render(&Summary::new(), &findings, &[]);
 
@@ -4311,10 +4224,7 @@ mod story_120 {
         let out_collapsed = TerminalReporter {
             use_color: false,
             show_hosts_breakdown: false,
-            render: FindingsRender {
-                grouping: Grouping::Flat,
-                collapse: Collapse::Collapsed,
-            },
+            render: FindingsRender::new(Grouping::Flat, Collapse::Collapsed),
         }
         .render(&Summary::new(), &findings, &[]);
         assert!(
@@ -4327,10 +4237,7 @@ mod story_120 {
         let out_expanded = TerminalReporter {
             use_color: false,
             show_hosts_breakdown: false,
-            render: FindingsRender {
-                grouping: Grouping::Flat,
-                collapse: Collapse::Expanded,
-            },
+            render: FindingsRender::new(Grouping::Flat, Collapse::Expanded),
         }
         .render(&Summary::new(), &findings, &[]);
         assert!(
@@ -4409,22 +4316,10 @@ mod story_122 {
     /// No Default is derived on any of the three types.
     #[test]
     fn test_BC_2_11_028_ac001_four_combos_pairwise_distinct() {
-        let grouped_expanded = FindingsRender {
-            grouping: Grouping::Grouped,
-            collapse: Collapse::Expanded,
-        };
-        let grouped_collapsed = FindingsRender {
-            grouping: Grouping::Grouped,
-            collapse: Collapse::Collapsed,
-        };
-        let flat_collapsed = FindingsRender {
-            grouping: Grouping::Flat,
-            collapse: Collapse::Collapsed,
-        };
-        let flat_expanded = FindingsRender {
-            grouping: Grouping::Flat,
-            collapse: Collapse::Expanded,
-        };
+        let grouped_expanded = FindingsRender::new(Grouping::Grouped, Collapse::Expanded);
+        let grouped_collapsed = FindingsRender::new(Grouping::Grouped, Collapse::Collapsed);
+        let flat_collapsed = FindingsRender::new(Grouping::Flat, Collapse::Collapsed);
+        let flat_expanded = FindingsRender::new(Grouping::Flat, Collapse::Expanded);
 
         // Copy semantics: binding a second name does not move.
         let ge2 = grouped_expanded;
@@ -4483,10 +4378,7 @@ mod story_122 {
         // Struct debug output contains field and variant names.
         let ge_dbg = format!(
             "{:?}",
-            FindingsRender {
-                grouping: Grouping::Grouped,
-                collapse: Collapse::Expanded
-            }
+            FindingsRender::new(Grouping::Grouped, Collapse::Expanded)
         );
         assert!(
             ge_dbg.contains("grouping"),
@@ -4507,10 +4399,7 @@ mod story_122 {
 
         let fc_dbg = format!(
             "{:?}",
-            FindingsRender {
-                grouping: Grouping::Flat,
-                collapse: Collapse::Collapsed
-            }
+            FindingsRender::new(Grouping::Flat, Collapse::Collapsed)
         );
         assert!(
             fc_dbg.contains("Flat"),
@@ -4528,10 +4417,7 @@ mod story_122 {
         );
         let fe_dbg = format!(
             "{:?}",
-            FindingsRender {
-                grouping: Grouping::Flat,
-                collapse: Collapse::Expanded
-            }
+            FindingsRender::new(Grouping::Flat, Collapse::Expanded)
         );
         assert!(
             !fe_dbg.contains("FlatExpanded"),
@@ -4555,10 +4441,7 @@ mod story_122 {
         let out = TerminalReporter {
             use_color: false,
             show_hosts_breakdown: false,
-            render: FindingsRender {
-                grouping: Grouping::Grouped,
-                collapse: Collapse::Expanded,
-            },
+            render: FindingsRender::new(Grouping::Grouped, Collapse::Expanded),
         }
         .render(&Summary::new(), &findings, &[]);
         assert!(
@@ -4589,20 +4472,14 @@ mod story_122 {
         let out_gc = TerminalReporter {
             use_color: false,
             show_hosts_breakdown: false,
-            render: FindingsRender {
-                grouping: Grouping::Grouped,
-                collapse: Collapse::Collapsed,
-            },
+            render: FindingsRender::new(Grouping::Grouped, Collapse::Collapsed),
         }
         .render(&Summary::new(), &findings, &[]);
 
         let out_ge = TerminalReporter {
             use_color: false,
             show_hosts_breakdown: false,
-            render: FindingsRender {
-                grouping: Grouping::Grouped,
-                collapse: Collapse::Expanded,
-            },
+            render: FindingsRender::new(Grouping::Grouped, Collapse::Expanded),
         }
         .render(&Summary::new(), &findings, &[]);
 
@@ -4636,10 +4513,7 @@ mod story_122 {
         let out = TerminalReporter {
             use_color: false,
             show_hosts_breakdown: false,
-            render: FindingsRender {
-                grouping: Grouping::Flat,
-                collapse: Collapse::Collapsed,
-            },
+            render: FindingsRender::new(Grouping::Flat, Collapse::Collapsed),
         }
         .render(&Summary::new(), &findings, &[]);
         assert!(
@@ -4659,10 +4533,7 @@ mod story_122 {
         let out = TerminalReporter {
             use_color: false,
             show_hosts_breakdown: false,
-            render: FindingsRender {
-                grouping: Grouping::Flat,
-                collapse: Collapse::Expanded,
-            },
+            render: FindingsRender::new(Grouping::Flat, Collapse::Expanded),
         }
         .render(&Summary::new(), &findings, &[]);
         assert!(
@@ -4702,10 +4573,7 @@ mod story_122 {
             .collect();
 
         // The struct value run_analyze produces when show_mitre_grouping=true.
-        let render_from_mitre_flag = FindingsRender {
-            grouping: Grouping::Grouped,
-            collapse: Collapse::Expanded,
-        };
+        let render_from_mitre_flag = FindingsRender::new(Grouping::Grouped, Collapse::Expanded);
 
         let out = TerminalReporter {
             use_color: false,
@@ -4725,10 +4593,7 @@ mod story_122 {
 
         // {Grouped, Collapsed} is NOT what --mitre alone produced in STORY-122/A
         // (post-STORY-119/B this IS the CLI default, but this test only asserts the struct values).
-        let render_grouped_collapsed = FindingsRender {
-            grouping: Grouping::Grouped,
-            collapse: Collapse::Collapsed,
-        };
+        let render_grouped_collapsed = FindingsRender::new(Grouping::Grouped, Collapse::Collapsed);
         assert_ne!(
             render_from_mitre_flag, render_grouped_collapsed,
             "AC-004: run_analyze with --mitre alone must produce {{Grouped,Expanded}}, \
@@ -4747,10 +4612,7 @@ mod story_122 {
             .collect();
 
         // The struct value run_analyze produces for the default (no --mitre, collapse_findings=true).
-        let render_default = FindingsRender {
-            grouping: Grouping::Flat,
-            collapse: Collapse::Collapsed,
-        };
+        let render_default = FindingsRender::new(Grouping::Flat, Collapse::Collapsed);
 
         let out = TerminalReporter {
             use_color: false,
@@ -4780,10 +4642,7 @@ mod story_122 {
             .collect();
 
         // The struct value run_analyze produces for --no-collapse (collapse_findings=false).
-        let render_no_collapse = FindingsRender {
-            grouping: Grouping::Flat,
-            collapse: Collapse::Expanded,
-        };
+        let render_no_collapse = FindingsRender::new(Grouping::Flat, Collapse::Expanded);
 
         let out = TerminalReporter {
             use_color: false,
@@ -4815,10 +4674,7 @@ mod story_122 {
     #[test]
     fn test_BC_2_11_028_ac005_run_summary_construction_uses_flat_collapsed() {
         // The struct value run_summary uses — inert (run_summary renders no FINDINGS section).
-        let render_summary = FindingsRender {
-            grouping: Grouping::Flat,
-            collapse: Collapse::Collapsed,
-        };
+        let render_summary = FindingsRender::new(Grouping::Flat, Collapse::Collapsed);
 
         let reporter = TerminalReporter {
             use_color: false,
@@ -4840,10 +4696,7 @@ mod story_122 {
         // The run_summary value matches exactly {Flat, Collapsed}.
         assert_eq!(
             render_summary,
-            FindingsRender {
-                grouping: Grouping::Flat,
-                collapse: Collapse::Collapsed
-            },
+            FindingsRender::new(Grouping::Flat, Collapse::Collapsed),
             "AC-005: run_summary FindingsRender must be {{Flat,Collapsed}}"
         );
     }
@@ -4870,10 +4723,7 @@ mod story_122 {
         let out = TerminalReporter {
             use_color: false,
             show_hosts_breakdown: false,
-            render: FindingsRender {
-                grouping: Grouping::Grouped,
-                collapse: Collapse::Expanded,
-            },
+            render: FindingsRender::new(Grouping::Grouped, Collapse::Expanded),
         }
         .render(&Summary::new(), &findings, &[]);
 
@@ -4916,10 +4766,7 @@ mod story_122 {
         let out = TerminalReporter {
             use_color: false,
             show_hosts_breakdown: false,
-            render: FindingsRender {
-                grouping: Grouping::Flat,
-                collapse: Collapse::Collapsed,
-            },
+            render: FindingsRender::new(Grouping::Flat, Collapse::Collapsed),
         }
         .render(&Summary::new(), &findings, &[]);
 
@@ -4950,10 +4797,7 @@ mod story_122 {
         let out = TerminalReporter {
             use_color: false,
             show_hosts_breakdown: false,
-            render: FindingsRender {
-                grouping: Grouping::Flat,
-                collapse: Collapse::Expanded,
-            },
+            render: FindingsRender::new(Grouping::Flat, Collapse::Expanded),
         }
         .render(&Summary::new(), &findings, &[]);
 
@@ -5135,10 +4979,7 @@ mod story_122 {
         let out = TerminalReporter {
             use_color: false,
             show_hosts_breakdown: false,
-            render: FindingsRender {
-                grouping: Grouping::Grouped,
-                collapse: Collapse::Expanded,
-            },
+            render: FindingsRender::new(Grouping::Grouped, Collapse::Expanded),
         }
         .render(&Summary::new(), &findings, &[]);
 
@@ -5163,10 +5004,7 @@ mod story_122 {
         let out = TerminalReporter {
             use_color: false,
             show_hosts_breakdown: false,
-            render: FindingsRender {
-                grouping: Grouping::Flat,
-                collapse: Collapse::Collapsed,
-            },
+            render: FindingsRender::new(Grouping::Flat, Collapse::Collapsed),
         }
         .render(&Summary::new(), &findings, &[]);
 
@@ -5178,10 +5016,7 @@ mod story_122 {
         let grouped_out = TerminalReporter {
             use_color: false,
             show_hosts_breakdown: false,
-            render: FindingsRender {
-                grouping: Grouping::Grouped,
-                collapse: Collapse::Expanded,
-            },
+            render: FindingsRender::new(Grouping::Grouped, Collapse::Expanded),
         }
         .render(&Summary::new(), &findings, &[]);
         assert!(
@@ -5213,10 +5048,7 @@ mod story_122 {
         let out = TerminalReporter {
             use_color: false,
             show_hosts_breakdown: false,
-            render: FindingsRender {
-                grouping: Grouping::Flat,
-                collapse: Collapse::Collapsed,
-            },
+            render: FindingsRender::new(Grouping::Flat, Collapse::Collapsed),
         }
         .render(&Summary::new(), &findings, &[]);
 
@@ -5334,10 +5166,7 @@ mod story_119 {
         TerminalReporter {
             use_color: false,
             show_hosts_breakdown: false,
-            render: FindingsRender {
-                grouping: Grouping::Grouped,
-                collapse: Collapse::Collapsed,
-            },
+            render: FindingsRender::new(Grouping::Grouped, Collapse::Collapsed),
         }
     }
 
@@ -5347,10 +5176,7 @@ mod story_119 {
         TerminalReporter {
             use_color: true,
             show_hosts_breakdown: false,
-            render: FindingsRender {
-                grouping: Grouping::Grouped,
-                collapse: Collapse::Collapsed,
-            },
+            render: FindingsRender::new(Grouping::Grouped, Collapse::Collapsed),
         }
     }
 
@@ -5361,10 +5187,7 @@ mod story_119 {
         TerminalReporter {
             use_color: false,
             show_hosts_breakdown: false,
-            render: FindingsRender {
-                grouping: Grouping::Grouped,
-                collapse: Collapse::Expanded,
-            },
+            render: FindingsRender::new(Grouping::Grouped, Collapse::Expanded),
         }
     }
 
@@ -5437,10 +5260,7 @@ mod story_119 {
         // Directly construct the expected FindingsRender value for --mitre alone
         // (show_mitre_grouping=true, collapse_findings=true → {Grouped, Collapsed}).
         // No tautological if/else copy of production logic.
-        let render = FindingsRender {
-            grouping: Grouping::Grouped,
-            collapse: Collapse::Collapsed,
-        };
+        let render = FindingsRender::new(Grouping::Grouped, Collapse::Collapsed);
 
         // Observable render: N=3 identical-key findings in one tactic bucket
         // must produce a header with `(x3)` suffix — the grouped-collapse path.
@@ -5483,10 +5303,7 @@ mod story_119 {
         // Directly construct the expected FindingsRender value for --mitre --no-collapse
         // (show_mitre_grouping=true, collapse_findings=false → {Grouped, Expanded}).
         // No tautological if/else copy of production logic.
-        let render = FindingsRender {
-            grouping: Grouping::Grouped,
-            collapse: Collapse::Expanded,
-        };
+        let render = FindingsRender::new(Grouping::Grouped, Collapse::Expanded);
 
         // Observable render: {Grouped, Expanded} must emit tactic headers and
         // must NOT emit any `(xN)` suffix for N identical findings.
@@ -5530,10 +5347,7 @@ mod story_119 {
     fn test_BC_2_11_030_flat_routing_unchanged() {
         // PC-4: default (no --mitre, no --no-collapse) → {Flat, Collapsed}.
         // Directly construct the expected value without tautological if/else copies.
-        let default_render = FindingsRender {
-            grouping: Grouping::Flat,
-            collapse: Collapse::Collapsed,
-        };
+        let default_render = FindingsRender::new(Grouping::Flat, Collapse::Collapsed);
 
         let findings_default: Vec<Finding> = (0..3)
             .map(|_| make_discovery_finding_s119("s119-ac003-flat-collapsed"))
@@ -5555,10 +5369,7 @@ mod story_119 {
         );
 
         // PC-5: --no-collapse without --mitre → {Flat, Expanded}.
-        let no_collapse_flat_render = FindingsRender {
-            grouping: Grouping::Flat,
-            collapse: Collapse::Expanded,
-        };
+        let no_collapse_flat_render = FindingsRender::new(Grouping::Flat, Collapse::Expanded);
 
         let findings_expanded: Vec<Finding> = (0..3)
             .map(|_| make_discovery_finding_s119("s119-ac003-flat-expanded"))
@@ -6592,10 +6403,7 @@ mod story_119 {
         let out_fc = TerminalReporter {
             use_color: false,
             show_hosts_breakdown: false,
-            render: FindingsRender {
-                grouping: Grouping::Flat,
-                collapse: Collapse::Collapsed,
-            },
+            render: FindingsRender::new(Grouping::Flat, Collapse::Collapsed),
         }
         .render(&Summary::new(), &findings, &[]);
         assert!(
@@ -6608,10 +6416,7 @@ mod story_119 {
         let out_fe = TerminalReporter {
             use_color: false,
             show_hosts_breakdown: false,
-            render: FindingsRender {
-                grouping: Grouping::Flat,
-                collapse: Collapse::Expanded,
-            },
+            render: FindingsRender::new(Grouping::Flat, Collapse::Expanded),
         }
         .render(&Summary::new(), &findings, &[]);
         assert!(
@@ -6633,16 +6438,10 @@ mod story_119 {
     #[test]
     fn test_BC_2_11_030_run_summary_produces_flat_collapsed() {
         // Verify the literal struct value that run_summary uses.
-        let run_summary_render = FindingsRender {
-            grouping: Grouping::Flat,
-            collapse: Collapse::Collapsed,
-        };
+        let run_summary_render = FindingsRender::new(Grouping::Flat, Collapse::Collapsed);
         assert_eq!(
             run_summary_render,
-            FindingsRender {
-                grouping: Grouping::Flat,
-                collapse: Collapse::Collapsed,
-            },
+            FindingsRender::new(Grouping::Flat, Collapse::Collapsed),
             "AC-004: run_summary render field must be {{Flat, Collapsed}}"
         );
         // This is a structural/value test — no dispatch exercised.
