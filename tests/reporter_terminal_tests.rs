@@ -42,7 +42,7 @@ use wirerust::analyzer::AnalysisSummary;
 use wirerust::decoder::{ParsedPacket, Protocol, TransportInfo};
 use wirerust::findings::{Confidence, Finding, ThreatCategory, Verdict};
 use wirerust::reporter::Reporter;
-use wirerust::reporter::terminal::{FindingsRender, TerminalReporter};
+use wirerust::reporter::terminal::{Collapse, FindingsRender, Grouping, TerminalReporter};
 use wirerust::summary::Summary;
 
 // ---------------------------------------------------------------------------
@@ -71,7 +71,7 @@ fn plain_reporter() -> TerminalReporter {
     TerminalReporter {
         use_color: false,
         show_hosts_breakdown: false,
-        render: FindingsRender::FlatExpanded,
+        render: FindingsRender { grouping: Grouping::Flat, collapse: Collapse::Expanded },
     }
 }
 
@@ -661,7 +661,7 @@ mod story_078 {
         TerminalReporter {
             use_color: false,
             show_hosts_breakdown: false,
-            render: FindingsRender::Grouped,
+            render: FindingsRender { grouping: Grouping::Grouped, collapse: Collapse::Expanded },
         }
     }
 
@@ -691,7 +691,7 @@ mod story_078 {
     // -----------------------------------------------------------------------
 
     /// AC-001 (BC-2.11.013 postcondition 2):
-    /// When `render = FindingsRender::Grouped`, tactic section headers appear in the
+    /// When `render = FindingsRender { grouping: Grouping::Grouped, collapse: Collapse::Expanded }`, tactic section headers appear in the
     /// order returned by `all_tactics_in_report_order()`.  Only sections with at
     /// least one finding are emitted.
     ///
@@ -1006,7 +1006,7 @@ mod story_078 {
     // -----------------------------------------------------------------------
 
     /// AC-008 (BC-2.11.016 postcondition 1):
-    /// When `render = FindingsRender::Grouped` and a finding has a known technique ID
+    /// When `render = FindingsRender { grouping: Grouping::Grouped, collapse: Collapse::Expanded }` and a finding has a known technique ID
     /// (e.g., "T1036"), the MITRE line reads `MITRE: T1036 \u{2014} Masquerading`
     /// (U+2014 em-dash, not ASCII "--").
     ///
@@ -1081,7 +1081,7 @@ mod story_078 {
     // -----------------------------------------------------------------------
 
     /// AC-010 (BC-2.11.017 postcondition 1):
-    /// When `render != FindingsRender::Grouped` (FlatExpanded or FlatCollapsed), a finding
+    /// When `render != FindingsRender { grouping: Grouping::Grouped, collapse: Collapse::Expanded }` (FlatExpanded or FlatCollapsed), a finding
     /// with `mitre_technique = "T1036"` produces the MITRE line `MITRE: T1036`
     /// with no em-dash, no technique name, and no `(unknown)` label.
     ///
@@ -1102,7 +1102,7 @@ mod story_078 {
             Confidence::High,
             Some("T1036"),
         );
-        // Use plain_reporter() (render=FindingsRender::FlatExpanded).
+        // Use plain_reporter() (render=FindingsRender { grouping: Grouping::Flat, collapse: Collapse::Expanded }).
         let out = plain_reporter().render(&Summary::new(), &[f], &[]);
 
         // Bare MITRE ID must be present.
@@ -1787,7 +1787,7 @@ mod story_118 {
         TerminalReporter {
             use_color: false,
             show_hosts_breakdown: false,
-            render: FindingsRender::FlatCollapsed,
+            render: FindingsRender { grouping: Grouping::Flat, collapse: Collapse::Collapsed },
         }
     }
 
@@ -1796,7 +1796,7 @@ mod story_118 {
         TerminalReporter {
             use_color: true,
             show_hosts_breakdown: false,
-            render: FindingsRender::FlatCollapsed,
+            render: FindingsRender { grouping: Grouping::Flat, collapse: Collapse::Collapsed },
         }
     }
 
@@ -1805,7 +1805,7 @@ mod story_118 {
         TerminalReporter {
             use_color: false,
             show_hosts_breakdown: false,
-            render: FindingsRender::Grouped,
+            render: FindingsRender { grouping: Grouping::Grouped, collapse: Collapse::Expanded },
         }
     }
 
@@ -2060,7 +2060,7 @@ mod story_118 {
         );
     }
 
-    /// AC-005: render=FindingsRender::Grouped suppresses collapse; no (xN) suffix anywhere.
+    /// AC-005: render=FindingsRender { grouping: Grouping::Grouped, collapse: Collapse::Expanded } suppresses collapse; no (xN) suffix anywhere.
     ///
     /// This guards the invariant that grouped (--mitre) mode is structurally
     /// suffix-free. FAILS if a future change applies the collapse pass inside
@@ -2070,7 +2070,7 @@ mod story_118 {
     /// that grouped mode does not).
     #[test]
     fn test_BC_2_11_025_grouped_mode_bypasses_collapse() {
-        // BC-2.11.025 invariant 5: when render=FindingsRender::Grouped, collapse does NOT run.
+        // BC-2.11.025 invariant 5: when render=FindingsRender { grouping: Grouping::Grouped, collapse: Collapse::Expanded }, collapse does NOT run.
         // 100 identical-key findings in mitre+collapse reporter → no (xN) suffix.
         let findings: Vec<Finding> = (0..100)
             .map(|_| {
@@ -2382,7 +2382,7 @@ mod story_118 {
             vec![],
         );
 
-        // Collapse reporter (render=FindingsRender::FlatCollapsed) with a single finding.
+        // Collapse reporter (render=FindingsRender { grouping: Grouping::Flat, collapse: Collapse::Collapsed }) with a single finding.
         let out_collapse =
             collapse_reporter().render(&Summary::new(), std::slice::from_ref(&f), &[]);
 
@@ -2392,7 +2392,7 @@ mod story_118 {
             "BC-2.11.026 pc2/inv2: singleton must render with no (xN) suffix; got:\n{out_collapse}"
         );
 
-        // Output must be byte-identical to the pre-v0.8.0 path (render=FindingsRender::FlatExpanded).
+        // Output must be byte-identical to the pre-v0.8.0 path (render=FindingsRender { grouping: Grouping::Flat, collapse: Collapse::Expanded }).
         let out_no_collapse = plain_reporter().render(&Summary::new(), &[f], &[]);
         assert_eq!(
             out_collapse, out_no_collapse,
@@ -3210,14 +3210,14 @@ mod story_118 {
 
     /// AC-018 (part 1): --no-collapse restores one-line-per-finding; no (xN) suffix.
     ///
-    /// This guards the opt-out path: with render=FindingsRender::FlatExpanded, 5 identical-key
+    /// This guards the opt-out path: with render=FindingsRender { grouping: Grouping::Flat, collapse: Collapse::Expanded }, 5 identical-key
     /// findings render as 5 individual header lines. Also includes a contrast assertion
     /// that the collapse path (render_findings_collapsed) is implemented — verified by
-    /// checking that render=FindingsRender::FlatCollapsed produces a different (collapsed) result.
+    /// checking that render=FindingsRender { grouping: Grouping::Flat, collapse: Collapse::Collapsed } produces a different (collapsed) result.
     /// FAILS if FlatExpanded collapses, or if render_findings_collapsed is not yet implemented.
     #[test]
     fn test_BC_2_11_028_no_collapse_flag_one_line_per_finding() {
-        // BC-2.11.028 pc2: render=FindingsRender::FlatExpanded → one header per finding, no suffix.
+        // BC-2.11.028 pc2: render=FindingsRender { grouping: Grouping::Flat, collapse: Collapse::Expanded } → one header per finding, no suffix.
         let findings: Vec<Finding> = (0..5)
             .map(|_| {
                 make_collapse_finding(
@@ -3231,7 +3231,7 @@ mod story_118 {
             })
             .collect();
 
-        // plain_reporter() has render=FindingsRender::FlatExpanded.
+        // plain_reporter() has render=FindingsRender { grouping: Grouping::Flat, collapse: Collapse::Expanded }.
         let out = plain_reporter().render(&Summary::new(), &findings, &[]);
 
         // 5 individual header lines, not 1 collapsed group.
@@ -3248,7 +3248,7 @@ mod story_118 {
             "BC-2.11.028 pc2: collapse_findings=false must produce no (xN) suffix; got:\n{out}"
         );
 
-        // Contrast assertion: render=FindingsRender::FlatCollapsed on the same input MUST produce
+        // Contrast assertion: render=FindingsRender { grouping: Grouping::Flat, collapse: Collapse::Collapsed } on the same input MUST produce
         // a collapsed group with (x5) — verifying the opt-out contrast is meaningful.
         let out_collapse = collapse_reporter().render(&Summary::new(), &findings, &[]);
         assert!(
@@ -3261,7 +3261,7 @@ mod story_118 {
     /// AC-018 (part 2): default vs. opt-out outputs are observably different.
     ///
     /// This guards that the two modes produce distinct output for the same input.
-    /// FAILS if a future change makes FindingsRender::FlatCollapsed and FindingsRender::FlatExpanded
+    /// FAILS if a future change makes FindingsRender { grouping: Grouping::Flat, collapse: Collapse::Collapsed } and FindingsRender { grouping: Grouping::Flat, collapse: Collapse::Expanded }
     /// produce identical output (meaning either both collapse or neither does).
     #[test]
     fn test_BC_2_11_028_default_vs_opt_out_output_difference() {
@@ -3311,7 +3311,7 @@ mod story_118 {
         );
     }
 
-    /// AC-019: --no-collapse flag is wired: no_collapse=true → render=FindingsRender::FlatExpanded.
+    /// AC-019: --no-collapse flag is wired: no_collapse=true → render=FindingsRender { grouping: Grouping::Flat, collapse: Collapse::Expanded }.
     ///
     /// This guards the structural wiring between the CLI flag and the render field.
     /// FAILS if FlatCollapsed and FlatExpanded produce identical output, or if the
@@ -3319,8 +3319,8 @@ mod story_118 {
     #[test]
     fn test_BC_2_11_028_flag_wired_to_reporter_field() {
         // BC-2.11.028 pc1 / invariant 1: structural wiring test.
-        // render=FindingsRender::FlatCollapsed → collapse active (v0.8.0 default).
-        // render=FindingsRender::FlatExpanded → collapse inactive (--no-collapse opt-out).
+        // render=FindingsRender { grouping: Grouping::Flat, collapse: Collapse::Collapsed } → collapse active (v0.8.0 default).
+        // render=FindingsRender { grouping: Grouping::Flat, collapse: Collapse::Expanded } → collapse inactive (--no-collapse opt-out).
         // Verify the render field is wired correctly by behavioral contrast.
 
         let findings: Vec<Finding> = (0..3)
@@ -3336,11 +3336,11 @@ mod story_118 {
             })
             .collect();
 
-        // Reporter with render = FindingsRender::FlatCollapsed → produces "(x3)".
+        // Reporter with render = FindingsRender { grouping: Grouping::Flat, collapse: Collapse::Collapsed } → produces "(x3)".
         let reporter_on = TerminalReporter {
             use_color: false,
             show_hosts_breakdown: false,
-            render: FindingsRender::FlatCollapsed,
+            render: FindingsRender { grouping: Grouping::Flat, collapse: Collapse::Collapsed },
         };
         let out_on = reporter_on.render(&Summary::new(), &findings, &[]);
         assert!(
@@ -3348,11 +3348,11 @@ mod story_118 {
             "BC-2.11.028 inv1: collapse_findings=true must produce '(x3)' suffix; got:\n{out_on}"
         );
 
-        // Reporter with render = FindingsRender::FlatExpanded → no collapse, no suffix.
+        // Reporter with render = FindingsRender { grouping: Grouping::Flat, collapse: Collapse::Expanded } → no collapse, no suffix.
         let reporter_off = TerminalReporter {
             use_color: false,
             show_hosts_breakdown: false,
-            render: FindingsRender::FlatExpanded,
+            render: FindingsRender { grouping: Grouping::Flat, collapse: Collapse::Expanded },
         };
         let out_off = reporter_off.render(&Summary::new(), &findings, &[]);
         assert!(
@@ -3532,7 +3532,7 @@ mod story_118 {
 
     /// AC-027: --no-collapse flag has no observable effect on JSON or CSV output.
     ///
-    /// This guards that the render field (FindingsRender::FlatCollapsed) on TerminalReporter
+    /// This guards that the render field (FindingsRender { grouping: Grouping::Flat, collapse: Collapse::Collapsed }) on TerminalReporter
     /// does not leak into the JSON/CSV reporters. FAILS if main.rs is refactored to pre-filter
     /// the findings slice based on the --no-collapse flag before passing to all reporters.
     #[test]
@@ -3658,7 +3658,7 @@ mod story_118 {
     #[test]
     fn test_BC_2_11_013_grouped_mode_suffix_free() {
         // BC-2.11.013 invariant 4: grouped mode is structurally suffix-free.
-        // 50 identical-key findings with FindingsRender::FlatCollapsed AND FindingsRender::Grouped.
+        // 50 identical-key findings with FindingsRender { grouping: Grouping::Flat, collapse: Collapse::Collapsed } AND FindingsRender { grouping: Grouping::Grouped, collapse: Collapse::Expanded }.
         let findings: Vec<Finding> = (0..50)
             .map(|_| {
                 make_collapse_finding(
@@ -3763,7 +3763,7 @@ mod story_118 {
     // BC-2.11.019 — Section Order Unchanged with Collapse (1 test)
     // -----------------------------------------------------------------------
 
-    /// AC-025: overall section order is unchanged when render=FindingsRender::FlatCollapsed.
+    /// AC-025: overall section order is unchanged when render=FindingsRender { grouping: Grouping::Flat, collapse: Collapse::Collapsed }.
     /// Only the FINDINGS body content changes.
     ///
     /// This guards that the collapse feature does not reorder or drop the top-level
@@ -3954,7 +3954,7 @@ mod story_118 {
 mod story_120 {
     use wirerust::findings::{Confidence, Finding, ThreatCategory, Verdict};
     use wirerust::reporter::Reporter;
-    use wirerust::reporter::terminal::{FindingsRender, TerminalReporter};
+    use wirerust::reporter::terminal::{Collapse, FindingsRender, Grouping, TerminalReporter};
     use wirerust::summary::Summary;
 
     fn make_finding_s120(summary: impl Into<String>) -> Finding {
@@ -3995,7 +3995,7 @@ mod story_120 {
     /// The enum has exactly three variants and no Default impl.
     #[test]
     fn test_findings_render_derives_debug_clone_copy_partialeq_eq() {
-        let a = FindingsRender::Grouped;
+        let a = FindingsRender { grouping: Grouping::Grouped, collapse: Collapse::Expanded };
         let b = a; // Copy
         let c = Clone::clone(&a); // Clone (explicit form avoids clone_on_copy lint)
         assert_eq!(a, b, "PartialEq + Eq: Grouped == copied Grouped");
@@ -4004,25 +4004,25 @@ mod story_120 {
 
         // All three variants are distinct.
         assert_ne!(
-            FindingsRender::Grouped,
-            FindingsRender::FlatCollapsed,
+            FindingsRender { grouping: Grouping::Grouped, collapse: Collapse::Expanded },
+            FindingsRender { grouping: Grouping::Flat, collapse: Collapse::Collapsed },
             "Grouped != FlatCollapsed"
         );
         assert_ne!(
-            FindingsRender::Grouped,
-            FindingsRender::FlatExpanded,
+            FindingsRender { grouping: Grouping::Grouped, collapse: Collapse::Expanded },
+            FindingsRender { grouping: Grouping::Flat, collapse: Collapse::Expanded },
             "Grouped != FlatExpanded"
         );
         assert_ne!(
-            FindingsRender::FlatCollapsed,
-            FindingsRender::FlatExpanded,
+            FindingsRender { grouping: Grouping::Flat, collapse: Collapse::Collapsed },
+            FindingsRender { grouping: Grouping::Flat, collapse: Collapse::Expanded },
             "FlatCollapsed != FlatExpanded"
         );
 
         // Debug formats include the variant name.
-        assert!(format!("{:?}", FindingsRender::Grouped).contains("Grouped"));
-        assert!(format!("{:?}", FindingsRender::FlatCollapsed).contains("FlatCollapsed"));
-        assert!(format!("{:?}", FindingsRender::FlatExpanded).contains("FlatExpanded"));
+        assert!(format!("{:?}", FindingsRender { grouping: Grouping::Grouped, collapse: Collapse::Expanded }).contains("Grouped"));
+        assert!(format!("{:?}", FindingsRender { grouping: Grouping::Flat, collapse: Collapse::Collapsed }).contains("FlatCollapsed"));
+        assert!(format!("{:?}", FindingsRender { grouping: Grouping::Flat, collapse: Collapse::Expanded }).contains("FlatExpanded"));
     }
 
     // -----------------------------------------------------------------------
@@ -4042,7 +4042,7 @@ mod story_120 {
         let r = TerminalReporter {
             use_color: false,
             show_hosts_breakdown: false,
-            render: FindingsRender::FlatExpanded,
+            render: FindingsRender { grouping: Grouping::Flat, collapse: Collapse::Expanded },
         };
         // The struct renders fine (behavioral sanity).
         let out = r.render(&Summary::new(), &[], &[]);
@@ -4073,7 +4073,7 @@ mod story_120 {
         let grouped_out = TerminalReporter {
             use_color: false,
             show_hosts_breakdown: false,
-            render: FindingsRender::Grouped,
+            render: FindingsRender { grouping: Grouping::Grouped, collapse: Collapse::Expanded },
         }
         .render(&Summary::new(), &findings, &[]);
         assert!(
@@ -4085,7 +4085,7 @@ mod story_120 {
         let collapsed_out = TerminalReporter {
             use_color: false,
             show_hosts_breakdown: false,
-            render: FindingsRender::FlatCollapsed,
+            render: FindingsRender { grouping: Grouping::Flat, collapse: Collapse::Collapsed },
         }
         .render(&Summary::new(), &findings, &[]);
         assert!(
@@ -4098,7 +4098,7 @@ mod story_120 {
         let expanded_out = TerminalReporter {
             use_color: false,
             show_hosts_breakdown: false,
-            render: FindingsRender::FlatExpanded,
+            render: FindingsRender { grouping: Grouping::Flat, collapse: Collapse::Expanded },
         }
         .render(&Summary::new(), &findings, &[]);
         assert!(
@@ -4133,9 +4133,9 @@ mod story_120 {
     // -----------------------------------------------------------------------
 
     /// AC-004 (BC-2.11.025 invariant 5):
-    /// FindingsRender::Grouped on N=100 identical-key findings produces no "(xN)" suffix.
-    /// The impossible state (FindingsRender::Grouped + FlatCollapsed simultaneously) is
-    /// eliminated by type — FindingsRender::Grouped structurally excludes the collapse path.
+    /// FindingsRender { grouping: Grouping::Grouped, collapse: Collapse::Expanded } on N=100 identical-key findings produces no "(xN)" suffix.
+    /// The impossible state (FindingsRender { grouping: Grouping::Grouped, collapse: Collapse::Expanded } + FlatCollapsed simultaneously) is
+    /// eliminated by type — FindingsRender { grouping: Grouping::Grouped, collapse: Collapse::Expanded } structurally excludes the collapse path.
     #[test]
     fn test_BC_2_11_025_grouped_mode_bypasses_collapse_structurally() {
         let findings: Vec<Finding> = (0..100)
@@ -4145,19 +4145,19 @@ mod story_120 {
         let out = TerminalReporter {
             use_color: false,
             show_hosts_breakdown: false,
-            render: FindingsRender::Grouped,
+            render: FindingsRender { grouping: Grouping::Grouped, collapse: Collapse::Expanded },
         }
         .render(&Summary::new(), &findings, &[]);
 
         assert!(
             !out.contains("(x"),
-            "AC-004: FindingsRender::Grouped must never emit (xN) suffix — \
+            "AC-004: FindingsRender {{ grouping: Grouping::Grouped, collapse: Collapse::Expanded }} must never emit (xN) suffix — \
              impossible state is structurally unrepresentable; got:\n{out}"
         );
         // Grouped mode emits tactic headers (confirming the Grouped path ran, not collapsed).
         assert!(
             out.contains("## "),
-            "AC-004: FindingsRender::Grouped must emit tactic section headers; got:\n{out}"
+            "AC-004: FindingsRender {{ grouping: Grouping::Grouped, collapse: Collapse::Expanded }} must emit tactic section headers; got:\n{out}"
         );
     }
 
@@ -4167,8 +4167,8 @@ mod story_120 {
     // -----------------------------------------------------------------------
 
     /// AC-005 (BC-2.11.028 postconditions 1–2, invariant 1):
-    /// FindingsRender::FlatCollapsed produces "(x3)" for 3 identical-key findings;
-    /// FindingsRender::FlatExpanded does not — proving the render field is wired
+    /// FindingsRender { grouping: Grouping::Flat, collapse: Collapse::Collapsed } produces "(x3)" for 3 identical-key findings;
+    /// FindingsRender { grouping: Grouping::Flat, collapse: Collapse::Expanded } does not — proving the render field is wired
     /// correctly to the rendering path. Mirrors the run_analyze construction intent.
     #[test]
     fn test_BC_2_11_028_flag_wired_to_render_field_post_enum() {
@@ -4180,12 +4180,12 @@ mod story_120 {
         let out_collapsed = TerminalReporter {
             use_color: false,
             show_hosts_breakdown: false,
-            render: FindingsRender::FlatCollapsed,
+            render: FindingsRender { grouping: Grouping::Flat, collapse: Collapse::Collapsed },
         }
         .render(&Summary::new(), &findings, &[]);
         assert!(
             out_collapsed.contains("(x3)"),
-            "AC-005: FindingsRender::FlatCollapsed must produce '(x3)' for 3 identical \
+            "AC-005: FindingsRender {{ grouping: Grouping::Flat, collapse: Collapse::Collapsed }} must produce '(x3)' for 3 identical \
              findings; got:\n{out_collapsed}"
         );
 
@@ -4193,12 +4193,12 @@ mod story_120 {
         let out_expanded = TerminalReporter {
             use_color: false,
             show_hosts_breakdown: false,
-            render: FindingsRender::FlatExpanded,
+            render: FindingsRender { grouping: Grouping::Flat, collapse: Collapse::Expanded },
         }
         .render(&Summary::new(), &findings, &[]);
         assert!(
             !out_expanded.contains("(x"),
-            "AC-005: FindingsRender::FlatExpanded must not produce (xN) suffix; \
+            "AC-005: FindingsRender {{ grouping: Grouping::Flat, collapse: Collapse::Expanded }} must not produce (xN) suffix; \
              got:\n{out_expanded}"
         );
 

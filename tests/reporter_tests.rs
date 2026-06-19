@@ -5,7 +5,7 @@ use wirerust::reassembly::flow::FlowKey;
 use wirerust::reassembly::handler::{Direction, StreamAnalyzer, StreamHandler};
 use wirerust::reporter::Reporter;
 use wirerust::reporter::json::JsonReporter;
-use wirerust::reporter::terminal::{FindingsRender, TerminalReporter};
+use wirerust::reporter::terminal::{Collapse, FindingsRender, Grouping, TerminalReporter};
 use wirerust::summary::Summary;
 
 #[test]
@@ -449,7 +449,7 @@ fn test_terminal_hosts_breakdown_off_by_default() {
     let reporter = TerminalReporter {
         use_color: false,
         show_hosts_breakdown: false,
-        render: FindingsRender::FlatExpanded,
+        render: FindingsRender { grouping: Grouping::Flat, collapse: Collapse::Expanded },
     };
     let out = reporter.render(&summary, &[], &[]);
     assert!(
@@ -471,7 +471,7 @@ fn test_terminal_hosts_breakdown_lists_each_host_when_enabled() {
     let reporter = TerminalReporter {
         use_color: false,
         show_hosts_breakdown: true,
-        render: FindingsRender::FlatExpanded,
+        render: FindingsRender { grouping: Grouping::Flat, collapse: Collapse::Expanded },
     };
     let out = reporter.render(&summary, &[], &[]);
     assert!(
@@ -520,7 +520,7 @@ fn test_terminal_reporter_shows_skipped_when_nonzero() {
     let reporter = TerminalReporter {
         use_color: false,
         show_hosts_breakdown: false,
-        render: FindingsRender::FlatExpanded,
+        render: FindingsRender { grouping: Grouping::Flat, collapse: Collapse::Expanded },
     };
     let mut summary = Summary::new();
     summary.skipped_packets = 5;
@@ -537,7 +537,7 @@ fn test_terminal_reporter_hides_skipped_when_zero() {
     let reporter = TerminalReporter {
         use_color: false,
         show_hosts_breakdown: false,
-        render: FindingsRender::FlatExpanded,
+        render: FindingsRender { grouping: Grouping::Flat, collapse: Collapse::Expanded },
     };
     let summary = Summary::new();
 
@@ -557,7 +557,7 @@ fn test_terminal_reporter_escapes_esc_bytes_in_summary() {
     let reporter = TerminalReporter {
         use_color: false,
         show_hosts_breakdown: false,
-        render: FindingsRender::FlatExpanded,
+        render: FindingsRender { grouping: Grouping::Flat, collapse: Collapse::Expanded },
     };
     let summary = Summary::new();
     let findings = vec![Finding {
@@ -635,7 +635,7 @@ fn test_output_sanitization_layering_contract() {
     let terminal_output = TerminalReporter {
         use_color: false,
         show_hosts_breakdown: false,
-        render: FindingsRender::FlatExpanded,
+        render: FindingsRender { grouping: Grouping::Flat, collapse: Collapse::Expanded },
     }
     .render(&Summary::new(), std::slice::from_ref(&finding), &[]);
     assert!(
@@ -741,7 +741,7 @@ fn test_terminal_reporter_escapes_control_bytes_in_analyzer_summaries() {
     let output = TerminalReporter {
         use_color: false,
         show_hosts_breakdown: false,
-        render: FindingsRender::FlatExpanded,
+        render: FindingsRender { grouping: Grouping::Flat, collapse: Collapse::Expanded },
     }
     .render(
         &Summary::new(),
@@ -848,7 +848,7 @@ fn test_http_finding_c1_csi_escaped_by_terminal_reporter() {
     let output = TerminalReporter {
         use_color: false,
         show_hosts_breakdown: false,
-        render: FindingsRender::FlatExpanded,
+        render: FindingsRender { grouping: Grouping::Flat, collapse: Collapse::Expanded },
     }
     .render(&Summary::new(), &findings, &[]);
     assert!(
@@ -933,7 +933,7 @@ fn test_http_analyzer_summary_c1_csi_escaped_by_terminal_reporter() {
     let output = TerminalReporter {
         use_color: false,
         show_hosts_breakdown: false,
-        render: FindingsRender::FlatExpanded,
+        render: FindingsRender { grouping: Grouping::Flat, collapse: Collapse::Expanded },
     }
     .render(
         &Summary::new(),
@@ -983,7 +983,7 @@ fn mitre_grouping_emits_tactic_headers_in_canonical_order() {
     let reporter = TerminalReporter {
         use_color: false,
         show_hosts_breakdown: false,
-        render: FindingsRender::Grouped,
+        render: FindingsRender { grouping: Grouping::Grouped, collapse: Collapse::Expanded },
     };
     let out = reporter.render(&Summary::new(), &findings, &[]);
     // Anchor on the `## ` header prefix so future summary/evidence text
@@ -1016,7 +1016,7 @@ fn mitre_grouping_sorts_within_tactic_by_verdict_then_confidence() {
     let reporter = TerminalReporter {
         use_color: false,
         show_hosts_breakdown: false,
-        render: FindingsRender::Grouped,
+        render: FindingsRender { grouping: Grouping::Grouped, collapse: Collapse::Expanded },
     };
     let out = reporter.render(&Summary::new(), &findings, &[]);
     let p1 = out.find("first").expect("first missing");
@@ -1049,7 +1049,7 @@ fn mitre_grouping_buckets_none_and_unknown_under_uncategorized() {
     let reporter = TerminalReporter {
         use_color: false,
         show_hosts_breakdown: false,
-        render: FindingsRender::Grouped,
+        render: FindingsRender { grouping: Grouping::Grouped, collapse: Collapse::Expanded },
     };
     let out = reporter.render(&Summary::new(), &findings, &[]);
     let uncat_pos = out
@@ -1082,7 +1082,7 @@ fn mitre_grouping_expands_per_finding_line_with_technique_name() {
     let reporter = TerminalReporter {
         use_color: false,
         show_hosts_breakdown: false,
-        render: FindingsRender::Grouped,
+        render: FindingsRender { grouping: Grouping::Grouped, collapse: Collapse::Expanded },
     };
     let out = reporter.render(&Summary::new(), &findings, &[]);
     assert!(
@@ -1102,7 +1102,7 @@ fn default_rendering_unchanged_when_mitre_flag_off() {
     let reporter = TerminalReporter {
         use_color: false,
         show_hosts_breakdown: false,
-        render: FindingsRender::FlatExpanded,
+        render: FindingsRender { grouping: Grouping::Flat, collapse: Collapse::Expanded },
     };
     let out = reporter.render(&Summary::new(), &findings, &[]);
     assert!(out.contains("MITRE: T1046"));
@@ -1127,7 +1127,7 @@ fn mitre_grouping_preserves_emission_order_when_verdict_and_confidence_tie() {
     let reporter = TerminalReporter {
         use_color: false,
         show_hosts_breakdown: false,
-        render: FindingsRender::Grouped,
+        render: FindingsRender { grouping: Grouping::Grouped, collapse: Collapse::Expanded },
     };
     let out = reporter.render(&Summary::new(), &findings, &[]);
     let pa = out.find("alpha").expect("alpha missing");
@@ -1162,7 +1162,7 @@ fn mitre_grouping_keeps_known_and_unknown_ids_in_separate_buckets() {
     let reporter = TerminalReporter {
         use_color: false,
         show_hosts_breakdown: false,
-        render: FindingsRender::Grouped,
+        render: FindingsRender { grouping: Grouping::Grouped, collapse: Collapse::Expanded },
     };
     let out = reporter.render(&Summary::new(), &findings, &[]);
     let discovery_pos = out.find("## Discovery").expect("Discovery header missing");
@@ -2444,7 +2444,7 @@ fn test_story_070_ec001_full_pipeline_esc_in_uri() {
     let terminal_out = TerminalReporter {
         use_color: false,
         show_hosts_breakdown: false,
-        render: FindingsRender::FlatExpanded,
+        render: FindingsRender { grouping: Grouping::Flat, collapse: Collapse::Expanded },
     }
     .render(&Summary::new(), std::slice::from_ref(&finding), &[]);
     assert!(

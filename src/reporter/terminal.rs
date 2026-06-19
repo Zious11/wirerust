@@ -91,23 +91,26 @@ struct CollapseKey {
     summary: String,
 }
 
-/// Render mode for the FINDINGS section of a terminal report.
-///
-/// Encodes the three mutually-exclusive rendering modes as a single enum,
-/// eliminating the impossible state `show_mitre_grouping = true &&
-/// collapse_findings = true` that existed in v0.8.0.
-/// ADR-0003 Binding Rule 5 — Render-Mode Enum (Issue #62 — v0.9.0).
+/// Grouping axis for the FINDINGS section.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum FindingsRender {
-    /// Group findings by MITRE tactic (`--mitre` flag).
-    /// Corresponds to the previous `show_mitre_grouping = true`.
+pub enum Grouping {
     Grouped,
-    /// Collapse repeated findings into counted groups (default, v0.8.0+).
-    /// Corresponds to the previous `collapse_findings = true, show_mitre_grouping = false`.
-    FlatCollapsed,
-    /// One display line per raw finding (pre-v0.8.0 behavior, `--no-collapse`).
-    /// Corresponds to the previous `collapse_findings = false, show_mitre_grouping = false`.
-    FlatExpanded,
+    Flat,
+}
+
+/// Collapse axis for the FINDINGS section.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Collapse {
+    Collapsed,
+    Expanded,
+}
+
+/// Rendering mode for the FINDINGS section of [`TerminalReporter`].
+/// No [`Default`] is derived — deliberate, consistent with STORY-120.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct FindingsRender {
+    pub grouping: Grouping,
+    pub collapse: Collapse,
 }
 
 pub struct TerminalReporter {
@@ -199,24 +202,22 @@ impl Reporter for TerminalReporter {
         // Findings
         if !findings.is_empty() {
             out.push_str(&self.section("FINDINGS"));
-            match self.render {
-                FindingsRender::Grouped => {
-                    // Grouped (--mitre) path: structurally suffix-free per BC-2.11.025
-                    // invariant 5. Collapse does not apply — impossible state eliminated
-                    // by type. render_finding_prefix stays unchanged.
+            match (self.render.grouping, self.render.collapse) {
+                (Grouping::Grouped, Collapse::Expanded) => {
                     self.render_findings_grouped(&mut out, findings);
                 }
-                FindingsRender::FlatCollapsed => {
-                    // Flat + collapse path (STORY-118 / BC-2.11.025 / BC-2.11.026 /
-                    // BC-2.11.027): groups findings by CollapseKey in first-occurrence
-                    // order, renders each group with optional (xN) suffix and up to K=3
-                    // sampled evidence lines.
+                (Grouping::Grouped, Collapse::Collapsed) => {
+                    // TEMPORARY (STORY-122/A): routes to render_findings_grouped until STORY-119/B
+                    // introduces render_findings_grouped_collapsed and repoints this arm.
+                    // {Grouped, Collapsed} is unreachable via CLI in this story (--mitre alone maps
+                    // to {Grouped, Expanded} until STORY-119/B flips the CLI default).
+                    // STORY-122 GREEN: real migration replaces this stub.
+                    self.render_findings_grouped(&mut out, findings);
+                }
+                (Grouping::Flat, Collapse::Collapsed) => {
                     self.render_findings_collapsed(&mut out, findings);
                 }
-                FindingsRender::FlatExpanded => {
-                    // Per ADR 0003: the Finding struct stores raw bytes; the
-                    // terminal reporter is responsible for escaping untrusted
-                    // content (summary + evidence) before writing to a TTY.
+                (Grouping::Flat, Collapse::Expanded) => {
                     for f in findings {
                         self.render_finding_flat(&mut out, f);
                     }

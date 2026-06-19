@@ -993,7 +993,7 @@ mod f5_ics_impact_display {
     use wirerust::findings::{Confidence, Finding, ThreatCategory, Verdict};
     use wirerust::mitre::{MitreTactic, all_tactics_in_report_order};
     use wirerust::reporter::Reporter;
-    use wirerust::reporter::terminal::{FindingsRender, TerminalReporter};
+    use wirerust::reporter::terminal::{Collapse, FindingsRender, Grouping, TerminalReporter};
     use wirerust::summary::Summary;
 
     // -----------------------------------------------------------------------
@@ -1070,8 +1070,8 @@ mod f5_ics_impact_display {
         TerminalReporter {
             use_color: false,
             show_hosts_breakdown: false,
-            // STORY-120: render = FindingsRender::Grouped (grouped helper)
-            render: FindingsRender::Grouped,
+            // STORY-120: render = FindingsRender { grouping: Grouping::Grouped, collapse: Collapse::Expanded } (grouped helper)
+            render: FindingsRender { grouping: Grouping::Grouped, collapse: Collapse::Expanded },
         }
     }
 

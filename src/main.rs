@@ -37,7 +37,7 @@ use wirerust::reassembly::{ReassemblyConfig, TcpReassembler};
 use wirerust::reporter::Reporter;
 use wirerust::reporter::csv::CsvReporter;
 use wirerust::reporter::json::JsonReporter;
-use wirerust::reporter::terminal::{FindingsRender, TerminalReporter};
+use wirerust::reporter::terminal::{Collapse, FindingsRender, Grouping, TerminalReporter};
 use wirerust::summary::Summary;
 
 fn main() -> Result<()> {
@@ -375,15 +375,14 @@ fn run_analyze(
                 // `analyze` does not expose a per-host breakdown flag —
                 // that is `summary`-subcommand-only (LESSON-P1.03).
                 show_hosts_breakdown: false,
-                // BC-2.11.028: three-way render mode selection.
-                // show_mitre_grouping wins over collapse_findings (same precedence as
-                // the pre-v0.9.0 if-chain dispatch order).
+                // BC-2.11.028: render mode selection (3-arm if for byte-identical STORY-122/A;
+                // orthogonal 2-if form in STORY-119/B).
                 render: if show_mitre_grouping {
-                    FindingsRender::Grouped
+                    FindingsRender { grouping: Grouping::Grouped, collapse: Collapse::Expanded }
                 } else if collapse_findings {
-                    FindingsRender::FlatCollapsed
+                    FindingsRender { grouping: Grouping::Flat, collapse: Collapse::Collapsed }
                 } else {
-                    FindingsRender::FlatExpanded
+                    FindingsRender { grouping: Grouping::Flat, collapse: Collapse::Expanded }
                 },
             };
             reporter.render(&summary, &all_findings, &analyzer_summaries)
@@ -445,8 +444,7 @@ fn run_summary(
                 use_color,
                 show_hosts_breakdown,
                 // BC-2.11.028 invariant 4: render field is inert for run_summary — no FINDINGS section.
-                // FlatCollapsed expresses the v0.8.0 default intent for any hypothetical future use.
-                render: FindingsRender::FlatCollapsed,
+                render: FindingsRender { grouping: Grouping::Flat, collapse: Collapse::Collapsed },
             };
             reporter.render(&summary, &[], &[])
         }
