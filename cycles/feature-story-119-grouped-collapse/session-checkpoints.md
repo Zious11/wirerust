@@ -225,6 +225,22 @@ cycle_id: feature-story-119-grouped-collapse
 
 ---
 
+## Archived Checkpoint: 2026-06-19 — F7 Round-4 D-131 REMEDIATED; Round-5 pending
+
+### A. EXACT PIPELINE POSITION
+
+- **Project:** wirerust. **Mode:** FEATURE_MODE. **Feature:** E-18 / issue #62/#259 grouped-collapse delta (STORY-120 + STORY-122/A + STORY-119/B).
+- **Phase:** F7 delta-convergence IN PROGRESS — Round-4 complete (D-131); Round-5 pending.
+- **F6 HARDENED:** regression ~1700/0; mutation 85%+ on grouped-collapse path; VP-012 grouped path; Kani/fuzz unaffected. F6 COMPLETE.
+- **F7 Round-1 (D-129):** NOT CLEAN — release-config self-contradiction + doc/metadata. REMEDIATED.
+- **F7 Round-2 (D-130):** NOT CLEAN — cli.rs provenance-leak (F-A-001) + release-config self-contradiction (F-PASSC-001/2/3) + #[non_exhaustive] (F-PASSC-004). REMEDIATED (PRs #273 + docs/f7-convergence-doc-fixes).
+- **F7 Round-3:** PRs #273 (fix/f7-r2-cli-hardening) + docs/f7-convergence-doc-fixes landed on develop. Corpus frozen at 1c89b52.
+- **F7 Round-4 (D-131, develop 1c89b52):** Pass A NOT CLEAN — F-A-001 (BC-2.11.028 stale anchor REMEDIATED) + F-A-002 (STORY-119/120/122 F7-R2 notes REMEDIATED). Pass B CLEAN. Pass C NOT CLEAN — F-C-001 SHA-attestation FALSE ALARM (all refs confirmed 1c89b52) + F-C-002 required_checks inaccurate REMEDIATED. Consistency-validator CONSISTENT. Non-blocking LOWs: F-C-003/F-C-004/Pass-B INFO-2.
+- develop HEAD: `1c89b52`. factory-artifacts HEAD: 642a298.
+- Open PRs: None.
+
+---
+
 ## Archived Checkpoint: 2026-06-19 — F7 Round-2 NOT CLEAN; release-config FIXED; Round-3 pending
 
 ### A. EXACT PIPELINE POSITION
