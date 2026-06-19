@@ -1071,7 +1071,10 @@ mod f5_ics_impact_display {
             use_color: false,
             show_hosts_breakdown: false,
             // STORY-120: render = FindingsRender { grouping: Grouping::Grouped, collapse: Collapse::Expanded } (grouped helper)
-            render: FindingsRender { grouping: Grouping::Grouped, collapse: Collapse::Expanded },
+            render: FindingsRender {
+                grouping: Grouping::Grouped,
+                collapse: Collapse::Expanded,
+            },
         }
     }
 

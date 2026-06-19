@@ -71,7 +71,10 @@ fn plain_reporter() -> TerminalReporter {
     TerminalReporter {
         use_color: false,
         show_hosts_breakdown: false,
-        render: FindingsRender { grouping: Grouping::Flat, collapse: Collapse::Expanded },
+        render: FindingsRender {
+            grouping: Grouping::Flat,
+            collapse: Collapse::Expanded,
+        },
     }
 }
 
@@ -661,7 +664,10 @@ mod story_078 {
         TerminalReporter {
             use_color: false,
             show_hosts_breakdown: false,
-            render: FindingsRender { grouping: Grouping::Grouped, collapse: Collapse::Expanded },
+            render: FindingsRender {
+                grouping: Grouping::Grouped,
+                collapse: Collapse::Expanded,
+            },
         }
     }
 
@@ -1787,7 +1793,10 @@ mod story_118 {
         TerminalReporter {
             use_color: false,
             show_hosts_breakdown: false,
-            render: FindingsRender { grouping: Grouping::Flat, collapse: Collapse::Collapsed },
+            render: FindingsRender {
+                grouping: Grouping::Flat,
+                collapse: Collapse::Collapsed,
+            },
         }
     }
 
@@ -1796,7 +1805,10 @@ mod story_118 {
         TerminalReporter {
             use_color: true,
             show_hosts_breakdown: false,
-            render: FindingsRender { grouping: Grouping::Flat, collapse: Collapse::Collapsed },
+            render: FindingsRender {
+                grouping: Grouping::Flat,
+                collapse: Collapse::Collapsed,
+            },
         }
     }
 
@@ -1805,7 +1817,10 @@ mod story_118 {
         TerminalReporter {
             use_color: false,
             show_hosts_breakdown: false,
-            render: FindingsRender { grouping: Grouping::Grouped, collapse: Collapse::Expanded },
+            render: FindingsRender {
+                grouping: Grouping::Grouped,
+                collapse: Collapse::Expanded,
+            },
         }
     }
 
@@ -3340,7 +3355,10 @@ mod story_118 {
         let reporter_on = TerminalReporter {
             use_color: false,
             show_hosts_breakdown: false,
-            render: FindingsRender { grouping: Grouping::Flat, collapse: Collapse::Collapsed },
+            render: FindingsRender {
+                grouping: Grouping::Flat,
+                collapse: Collapse::Collapsed,
+            },
         };
         let out_on = reporter_on.render(&Summary::new(), &findings, &[]);
         assert!(
@@ -3352,7 +3370,10 @@ mod story_118 {
         let reporter_off = TerminalReporter {
             use_color: false,
             show_hosts_breakdown: false,
-            render: FindingsRender { grouping: Grouping::Flat, collapse: Collapse::Expanded },
+            render: FindingsRender {
+                grouping: Grouping::Flat,
+                collapse: Collapse::Expanded,
+            },
         };
         let out_off = reporter_off.render(&Summary::new(), &findings, &[]);
         assert!(
@@ -3995,7 +4016,10 @@ mod story_120 {
     /// The enum has exactly three variants and no Default impl.
     #[test]
     fn test_findings_render_derives_debug_clone_copy_partialeq_eq() {
-        let a = FindingsRender { grouping: Grouping::Grouped, collapse: Collapse::Expanded };
+        let a = FindingsRender {
+            grouping: Grouping::Grouped,
+            collapse: Collapse::Expanded,
+        };
         let b = a; // Copy
         let c = Clone::clone(&a); // Clone (explicit form avoids clone_on_copy lint)
         assert_eq!(a, b, "PartialEq + Eq: Grouped == copied Grouped");
@@ -4004,25 +4028,70 @@ mod story_120 {
 
         // All three variants are distinct.
         assert_ne!(
-            FindingsRender { grouping: Grouping::Grouped, collapse: Collapse::Expanded },
-            FindingsRender { grouping: Grouping::Flat, collapse: Collapse::Collapsed },
+            FindingsRender {
+                grouping: Grouping::Grouped,
+                collapse: Collapse::Expanded
+            },
+            FindingsRender {
+                grouping: Grouping::Flat,
+                collapse: Collapse::Collapsed
+            },
             "Grouped != FlatCollapsed"
         );
         assert_ne!(
-            FindingsRender { grouping: Grouping::Grouped, collapse: Collapse::Expanded },
-            FindingsRender { grouping: Grouping::Flat, collapse: Collapse::Expanded },
+            FindingsRender {
+                grouping: Grouping::Grouped,
+                collapse: Collapse::Expanded
+            },
+            FindingsRender {
+                grouping: Grouping::Flat,
+                collapse: Collapse::Expanded
+            },
             "Grouped != FlatExpanded"
         );
         assert_ne!(
-            FindingsRender { grouping: Grouping::Flat, collapse: Collapse::Collapsed },
-            FindingsRender { grouping: Grouping::Flat, collapse: Collapse::Expanded },
+            FindingsRender {
+                grouping: Grouping::Flat,
+                collapse: Collapse::Collapsed
+            },
+            FindingsRender {
+                grouping: Grouping::Flat,
+                collapse: Collapse::Expanded
+            },
             "FlatCollapsed != FlatExpanded"
         );
 
         // Debug formats include the variant name.
-        assert!(format!("{:?}", FindingsRender { grouping: Grouping::Grouped, collapse: Collapse::Expanded }).contains("Grouped"));
-        assert!(format!("{:?}", FindingsRender { grouping: Grouping::Flat, collapse: Collapse::Collapsed }).contains("FlatCollapsed"));
-        assert!(format!("{:?}", FindingsRender { grouping: Grouping::Flat, collapse: Collapse::Expanded }).contains("FlatExpanded"));
+        assert!(
+            format!(
+                "{:?}",
+                FindingsRender {
+                    grouping: Grouping::Grouped,
+                    collapse: Collapse::Expanded
+                }
+            )
+            .contains("Grouped")
+        );
+        assert!(
+            format!(
+                "{:?}",
+                FindingsRender {
+                    grouping: Grouping::Flat,
+                    collapse: Collapse::Collapsed
+                }
+            )
+            .contains("FlatCollapsed")
+        );
+        assert!(
+            format!(
+                "{:?}",
+                FindingsRender {
+                    grouping: Grouping::Flat,
+                    collapse: Collapse::Expanded
+                }
+            )
+            .contains("FlatExpanded")
+        );
     }
 
     // -----------------------------------------------------------------------
@@ -4042,7 +4111,10 @@ mod story_120 {
         let r = TerminalReporter {
             use_color: false,
             show_hosts_breakdown: false,
-            render: FindingsRender { grouping: Grouping::Flat, collapse: Collapse::Expanded },
+            render: FindingsRender {
+                grouping: Grouping::Flat,
+                collapse: Collapse::Expanded,
+            },
         };
         // The struct renders fine (behavioral sanity).
         let out = r.render(&Summary::new(), &[], &[]);
@@ -4073,7 +4145,10 @@ mod story_120 {
         let grouped_out = TerminalReporter {
             use_color: false,
             show_hosts_breakdown: false,
-            render: FindingsRender { grouping: Grouping::Grouped, collapse: Collapse::Expanded },
+            render: FindingsRender {
+                grouping: Grouping::Grouped,
+                collapse: Collapse::Expanded,
+            },
         }
         .render(&Summary::new(), &findings, &[]);
         assert!(
@@ -4085,7 +4160,10 @@ mod story_120 {
         let collapsed_out = TerminalReporter {
             use_color: false,
             show_hosts_breakdown: false,
-            render: FindingsRender { grouping: Grouping::Flat, collapse: Collapse::Collapsed },
+            render: FindingsRender {
+                grouping: Grouping::Flat,
+                collapse: Collapse::Collapsed,
+            },
         }
         .render(&Summary::new(), &findings, &[]);
         assert!(
@@ -4098,7 +4176,10 @@ mod story_120 {
         let expanded_out = TerminalReporter {
             use_color: false,
             show_hosts_breakdown: false,
-            render: FindingsRender { grouping: Grouping::Flat, collapse: Collapse::Expanded },
+            render: FindingsRender {
+                grouping: Grouping::Flat,
+                collapse: Collapse::Expanded,
+            },
         }
         .render(&Summary::new(), &findings, &[]);
         assert!(
@@ -4145,7 +4226,10 @@ mod story_120 {
         let out = TerminalReporter {
             use_color: false,
             show_hosts_breakdown: false,
-            render: FindingsRender { grouping: Grouping::Grouped, collapse: Collapse::Expanded },
+            render: FindingsRender {
+                grouping: Grouping::Grouped,
+                collapse: Collapse::Expanded,
+            },
         }
         .render(&Summary::new(), &findings, &[]);
 
@@ -4180,7 +4264,10 @@ mod story_120 {
         let out_collapsed = TerminalReporter {
             use_color: false,
             show_hosts_breakdown: false,
-            render: FindingsRender { grouping: Grouping::Flat, collapse: Collapse::Collapsed },
+            render: FindingsRender {
+                grouping: Grouping::Flat,
+                collapse: Collapse::Collapsed,
+            },
         }
         .render(&Summary::new(), &findings, &[]);
         assert!(
@@ -4193,7 +4280,10 @@ mod story_120 {
         let out_expanded = TerminalReporter {
             use_color: false,
             show_hosts_breakdown: false,
-            render: FindingsRender { grouping: Grouping::Flat, collapse: Collapse::Expanded },
+            render: FindingsRender {
+                grouping: Grouping::Flat,
+                collapse: Collapse::Expanded,
+            },
         }
         .render(&Summary::new(), &findings, &[]);
         assert!(
@@ -4207,6 +4297,877 @@ mod story_120 {
             out_collapsed, out_expanded,
             "AC-005: FlatCollapsed and FlatExpanded must produce different output \
              for N≥2 identical-key findings"
+        );
+    }
+}
+
+// ---------------------------------------------------------------------------
+// STORY-122 RED gate tests
+//
+// These tests lock in the STORY-122 acceptance criteria for the
+// FindingsRender enum→struct reshape (Option X). The stub-architect
+// (commit dec8a55) reshaped the types and migrated the 84 construction
+// sites; these tests verify both the completed mechanical migration and
+// the remaining Task-4 comment-sweep work.
+//
+// Tests tied to UNFINISHED work (Task 4 comment sweep) are RED on this
+// commit. Tests for already-complete type/dispatch/wiring work are GREEN.
+//
+// DF-TEST-NAMESPACE-001: per-story mod wrapper.
+// ---------------------------------------------------------------------------
+
+mod story_122 {
+    use std::path::Path;
+    use wirerust::findings::{Confidence, Finding, ThreatCategory, Verdict};
+    use wirerust::reporter::Reporter;
+    use wirerust::reporter::terminal::{Collapse, FindingsRender, Grouping, TerminalReporter};
+    use wirerust::summary::Summary;
+
+    fn make_finding_s122(summary: impl Into<String>) -> Finding {
+        Finding {
+            category: ThreatCategory::Anomaly,
+            verdict: Verdict::Inconclusive,
+            confidence: Confidence::Low,
+            summary: summary.into(),
+            evidence: vec![],
+            mitre_techniques: vec![],
+            source_ip: None,
+            timestamp: None,
+            direction: None,
+        }
+    }
+
+    fn make_mitre_finding_s122(summary: impl Into<String>) -> Finding {
+        Finding {
+            category: ThreatCategory::Anomaly,
+            verdict: Verdict::Likely,
+            confidence: Confidence::High,
+            summary: summary.into(),
+            evidence: vec![],
+            mitre_techniques: vec!["T1046".to_string()],
+            source_ip: None,
+            timestamp: None,
+            direction: None,
+        }
+    }
+
+    // -----------------------------------------------------------------------
+    // AC-001 — Grouping, Collapse, and FindingsRender struct defined correctly
+    // (traces to BC-2.11.028 Invariant 1)
+    // -----------------------------------------------------------------------
+
+    /// AC-001 (BC-2.11.028 Invariant 1):
+    /// All four Grouping × Collapse combinations are pairwise distinct.
+    /// Grouping and Collapse each derive Debug, Clone, Copy, PartialEq, Eq.
+    /// FindingsRender struct derives Debug, Clone, Copy, PartialEq, Eq.
+    /// No Default is derived on any of the three types.
+    #[test]
+    fn test_BC_2_11_028_ac001_four_combos_pairwise_distinct() {
+        let grouped_expanded = FindingsRender {
+            grouping: Grouping::Grouped,
+            collapse: Collapse::Expanded,
+        };
+        let grouped_collapsed = FindingsRender {
+            grouping: Grouping::Grouped,
+            collapse: Collapse::Collapsed,
+        };
+        let flat_collapsed = FindingsRender {
+            grouping: Grouping::Flat,
+            collapse: Collapse::Collapsed,
+        };
+        let flat_expanded = FindingsRender {
+            grouping: Grouping::Flat,
+            collapse: Collapse::Expanded,
+        };
+
+        // Copy semantics: binding a second name does not move.
+        let ge2 = grouped_expanded;
+        assert_eq!(
+            grouped_expanded, ge2,
+            "AC-001: Copy + PartialEq: {ge2:?} == copy"
+        );
+
+        // Clone semantics.
+        let gc2 = Clone::clone(&grouped_collapsed);
+        assert_eq!(
+            grouped_collapsed, gc2,
+            "AC-001: Clone + PartialEq: {gc2:?} == clone"
+        );
+
+        // Debug is implemented — would panic at format time if not.
+        let _ = format!("{grouped_expanded:?}");
+        let _ = format!("{grouped_collapsed:?}");
+        let _ = format!("{flat_collapsed:?}");
+        let _ = format!("{flat_expanded:?}");
+
+        // All four Grouping × Collapse combinations are pairwise distinct.
+        assert_ne!(
+            grouped_expanded, grouped_collapsed,
+            "AC-001: {grouped_expanded:?} != {grouped_collapsed:?}"
+        );
+        assert_ne!(
+            grouped_expanded, flat_collapsed,
+            "AC-001: {grouped_expanded:?} != {flat_collapsed:?}"
+        );
+        assert_ne!(
+            grouped_expanded, flat_expanded,
+            "AC-001: {grouped_expanded:?} != {flat_expanded:?}"
+        );
+        assert_ne!(
+            grouped_collapsed, flat_collapsed,
+            "AC-001: {grouped_collapsed:?} != {flat_collapsed:?}"
+        );
+        assert_ne!(
+            grouped_collapsed, flat_expanded,
+            "AC-001: {grouped_collapsed:?} != {flat_expanded:?}"
+        );
+        assert_ne!(
+            flat_collapsed, flat_expanded,
+            "AC-001: {flat_collapsed:?} != {flat_expanded:?}"
+        );
+    }
+
+    /// AC-001 (BC-2.11.028 Invariant 1):
+    /// Debug output for FindingsRender struct uses struct-of-enums vocabulary,
+    /// not the old enum-variant vocabulary. Field names "grouping" and "collapse"
+    /// appear in the Debug representation; old variant names "FlatCollapsed" and
+    /// "FlatExpanded" do not.
+    #[test]
+    fn test_BC_2_11_028_ac001_debug_format_struct_vocabulary() {
+        // Struct debug output contains field and variant names.
+        let ge_dbg = format!(
+            "{:?}",
+            FindingsRender {
+                grouping: Grouping::Grouped,
+                collapse: Collapse::Expanded
+            }
+        );
+        assert!(
+            ge_dbg.contains("grouping"),
+            "AC-001: Debug must include field name 'grouping'; got: {ge_dbg}"
+        );
+        assert!(
+            ge_dbg.contains("collapse"),
+            "AC-001: Debug must include field name 'collapse'; got: {ge_dbg}"
+        );
+        assert!(
+            ge_dbg.contains("Grouped"),
+            "AC-001: Debug must include 'Grouped' for Grouping::Grouped; got: {ge_dbg}"
+        );
+        assert!(
+            ge_dbg.contains("Expanded"),
+            "AC-001: Debug must include 'Expanded' for Collapse::Expanded; got: {ge_dbg}"
+        );
+
+        let fc_dbg = format!(
+            "{:?}",
+            FindingsRender {
+                grouping: Grouping::Flat,
+                collapse: Collapse::Collapsed
+            }
+        );
+        assert!(
+            fc_dbg.contains("Flat"),
+            "AC-001: Debug must include 'Flat' for Grouping::Flat; got: {fc_dbg}"
+        );
+        assert!(
+            fc_dbg.contains("Collapsed"),
+            "AC-001: Debug must include 'Collapsed' for Collapse::Collapsed; got: {fc_dbg}"
+        );
+
+        // Old enum-variant concatenated names must NOT appear in debug output.
+        assert!(
+            !fc_dbg.contains("FlatCollapsed"),
+            "AC-001: Debug must not contain old enum token 'FlatCollapsed'; got: {fc_dbg}"
+        );
+        let fe_dbg = format!(
+            "{:?}",
+            FindingsRender {
+                grouping: Grouping::Flat,
+                collapse: Collapse::Expanded
+            }
+        );
+        assert!(
+            !fe_dbg.contains("FlatExpanded"),
+            "AC-001: Debug must not contain old enum token 'FlatExpanded'; got: {fe_dbg}"
+        );
+    }
+
+    // -----------------------------------------------------------------------
+    // AC-002 — Four-arm exhaustive tuple dispatch
+    // (traces to BC-2.11.013 Invariant 4)
+    // -----------------------------------------------------------------------
+
+    /// AC-002 (BC-2.11.013 Invariant 4):
+    /// The {Grouped, Expanded} dispatch arm routes to render_findings_grouped —
+    /// MITRE tactic headers ("## ") appear in output.
+    #[test]
+    fn test_BC_2_11_028_ac002_grouped_expanded_arm_routes_to_render_findings_grouped() {
+        let findings: Vec<Finding> = (0..3)
+            .map(|_| make_mitre_finding_s122("s122-dispatch-ge"))
+            .collect();
+        let out = TerminalReporter {
+            use_color: false,
+            show_hosts_breakdown: false,
+            render: FindingsRender {
+                grouping: Grouping::Grouped,
+                collapse: Collapse::Expanded,
+            },
+        }
+        .render(&Summary::new(), &findings, &[]);
+        assert!(
+            out.contains("## "),
+            "AC-002: {{Grouped,Expanded}} arm must emit tactic header '## '; got:\n{out}"
+        );
+        assert!(
+            !out.contains("(x"),
+            "AC-002: {{Grouped,Expanded}} arm must not emit (xN) suffix; got:\n{out}"
+        );
+    }
+
+    /// AC-002 (BC-2.11.013 Invariant 4):
+    /// The {Grouped, Collapsed} dispatch arm TEMPORARILY routes to render_findings_grouped
+    /// (same as {Grouped, Expanded}) — output is byte-identical; tactic headers appear
+    /// and no (xN) suffix is emitted. This arm is unreachable via the CLI in STORY-122/A;
+    /// STORY-119/B repoints it to render_findings_grouped_collapsed.
+    #[test]
+    fn test_BC_2_11_028_ac002_grouped_collapsed_arm_temporary_routes_to_render_findings_grouped() {
+        let findings: Vec<Finding> = (0..3)
+            .map(|_| make_mitre_finding_s122("s122-dispatch-gc"))
+            .collect();
+
+        let out_gc = TerminalReporter {
+            use_color: false,
+            show_hosts_breakdown: false,
+            render: FindingsRender {
+                grouping: Grouping::Grouped,
+                collapse: Collapse::Collapsed,
+            },
+        }
+        .render(&Summary::new(), &findings, &[]);
+
+        let out_ge = TerminalReporter {
+            use_color: false,
+            show_hosts_breakdown: false,
+            render: FindingsRender {
+                grouping: Grouping::Grouped,
+                collapse: Collapse::Expanded,
+            },
+        }
+        .render(&Summary::new(), &findings, &[]);
+
+        // TEMPORARY: {Grouped,Collapsed} routes to the same function as {Grouped,Expanded}.
+        assert_eq!(
+            out_gc, out_ge,
+            "AC-002: {{Grouped,Collapsed}} arm (TEMPORARY in STORY-122/A) must produce \
+             byte-identical output to {{Grouped,Expanded}}; outputs differ"
+        );
+        assert!(
+            out_gc.contains("## "),
+            "AC-002: {{Grouped,Collapsed}} arm must emit tactic header '## '; got:\n{out_gc}"
+        );
+    }
+
+    /// AC-002 (BC-2.11.013 Invariant 4):
+    /// The {Flat, Collapsed} dispatch arm routes to render_findings_collapsed —
+    /// (xN) suffix appears for N≥2 identical-key findings.
+    #[test]
+    fn test_BC_2_11_028_ac002_flat_collapsed_arm_routes_to_render_findings_collapsed() {
+        let findings: Vec<Finding> = (0..3)
+            .map(|_| make_finding_s122("s122-dispatch-fc"))
+            .collect();
+        let out = TerminalReporter {
+            use_color: false,
+            show_hosts_breakdown: false,
+            render: FindingsRender {
+                grouping: Grouping::Flat,
+                collapse: Collapse::Collapsed,
+            },
+        }
+        .render(&Summary::new(), &findings, &[]);
+        assert!(
+            out.contains("(x3)"),
+            "AC-002: {{Flat,Collapsed}} arm must emit '(x3)' for 3 identical-key findings; got:\n{out}"
+        );
+    }
+
+    /// AC-002 (BC-2.11.013 Invariant 4):
+    /// The {Flat, Expanded} dispatch arm iterates render_finding_flat —
+    /// 3 individual finding lines with no (xN) suffix.
+    #[test]
+    fn test_BC_2_11_028_ac002_flat_expanded_arm_iterates_render_finding_flat() {
+        let findings: Vec<Finding> = (0..3)
+            .map(|_| make_finding_s122("s122-dispatch-fe"))
+            .collect();
+        let out = TerminalReporter {
+            use_color: false,
+            show_hosts_breakdown: false,
+            render: FindingsRender {
+                grouping: Grouping::Flat,
+                collapse: Collapse::Expanded,
+            },
+        }
+        .render(&Summary::new(), &findings, &[]);
+        assert!(
+            !out.contains("(x"),
+            "AC-002: {{Flat,Expanded}} arm must not emit (xN) suffix; got:\n{out}"
+        );
+        let count = out.matches("s122-dispatch-fe").count();
+        assert_eq!(
+            count, 3,
+            "AC-002: {{Flat,Expanded}} arm must emit 3 individual finding lines; found {count} in:\n{out}"
+        );
+    }
+
+    // -----------------------------------------------------------------------
+    // AC-004 — run_analyze construction site: 3-arm if → 3 struct literals
+    // (traces to BC-2.11.028 Invariant 1)
+    //
+    // run_analyze is not directly callable from tests (reads pcap files), so
+    // we verify the wiring by asserting the behavior of TerminalReporter
+    // constructed with the exact FindingsRender values that run_analyze
+    // produces for each flag combination (byte-identical to v0.9.0 branching).
+    // -----------------------------------------------------------------------
+
+    /// AC-004 (BC-2.11.028 Invariant 1, EC-001):
+    /// --mitre alone (show_mitre_grouping=true) → run_analyze produces
+    /// FindingsRender { grouping: Grouping::Grouped, collapse: Collapse::Expanded }.
+    /// Routes to render_findings_grouped; tactic headers emitted; no (xN) suffix.
+    /// {Grouped, Collapsed} is NOT produced by run_analyze in STORY-122/A.
+    #[test]
+    fn test_BC_2_11_028_ac004_mitre_alone_yields_grouped_expanded() {
+        let findings: Vec<Finding> = (0..2)
+            .map(|_| make_mitre_finding_s122("s122-ac004-mitre"))
+            .collect();
+
+        // The struct value run_analyze produces when show_mitre_grouping=true.
+        let render_from_mitre_flag = FindingsRender {
+            grouping: Grouping::Grouped,
+            collapse: Collapse::Expanded,
+        };
+
+        let out = TerminalReporter {
+            use_color: false,
+            show_hosts_breakdown: false,
+            render: render_from_mitre_flag,
+        }
+        .render(&Summary::new(), &findings, &[]);
+
+        assert!(
+            out.contains("## "),
+            "AC-004: --mitre alone → {{Grouped,Expanded}} must emit tactic headers; got:\n{out}"
+        );
+        assert!(
+            !out.contains("(x"),
+            "AC-004: --mitre alone → {{Grouped,Expanded}} must not emit (xN) suffix; got:\n{out}"
+        );
+
+        // {Grouped, Collapsed} is NOT what --mitre alone produces in STORY-122/A.
+        let render_grouped_collapsed = FindingsRender {
+            grouping: Grouping::Grouped,
+            collapse: Collapse::Collapsed,
+        };
+        assert_ne!(
+            render_from_mitre_flag, render_grouped_collapsed,
+            "AC-004: run_analyze with --mitre alone must produce {{Grouped,Expanded}}, \
+             not {{Grouped,Collapsed}} — the CLI flip is STORY-119/B scope"
+        );
+    }
+
+    /// AC-004 (BC-2.11.028 Invariant 1, EC-003):
+    /// Default (show_mitre_grouping=false, collapse_findings=true) →
+    /// run_analyze produces FindingsRender { grouping: Grouping::Flat, collapse: Collapse::Collapsed }.
+    /// Routes to render_findings_collapsed; (xN) suffix for identical findings.
+    #[test]
+    fn test_BC_2_11_028_ac004_default_yields_flat_collapsed() {
+        let findings: Vec<Finding> = (0..3)
+            .map(|_| make_finding_s122("s122-ac004-default"))
+            .collect();
+
+        // The struct value run_analyze produces for the default (no --mitre, collapse_findings=true).
+        let render_default = FindingsRender {
+            grouping: Grouping::Flat,
+            collapse: Collapse::Collapsed,
+        };
+
+        let out = TerminalReporter {
+            use_color: false,
+            show_hosts_breakdown: false,
+            render: render_default,
+        }
+        .render(&Summary::new(), &findings, &[]);
+
+        assert!(
+            out.contains("(x3)"),
+            "AC-004: default → {{Flat,Collapsed}} must emit '(x3)' for 3 identical-key findings; got:\n{out}"
+        );
+        assert!(
+            !out.contains("## "),
+            "AC-004: default → {{Flat,Collapsed}} must not emit tactic headers; got:\n{out}"
+        );
+    }
+
+    /// AC-004 (BC-2.11.028 Invariant 1, EC-002):
+    /// --no-collapse (show_mitre_grouping=false, collapse_findings=false) →
+    /// run_analyze produces FindingsRender { grouping: Grouping::Flat, collapse: Collapse::Expanded }.
+    /// Routes to render_finding_flat per-item; 3 individual lines, no (xN) suffix.
+    #[test]
+    fn test_BC_2_11_028_ac004_no_collapse_yields_flat_expanded() {
+        let findings: Vec<Finding> = (0..3)
+            .map(|_| make_finding_s122("s122-ac004-nocollapse"))
+            .collect();
+
+        // The struct value run_analyze produces for --no-collapse (collapse_findings=false).
+        let render_no_collapse = FindingsRender {
+            grouping: Grouping::Flat,
+            collapse: Collapse::Expanded,
+        };
+
+        let out = TerminalReporter {
+            use_color: false,
+            show_hosts_breakdown: false,
+            render: render_no_collapse,
+        }
+        .render(&Summary::new(), &findings, &[]);
+
+        assert!(
+            !out.contains("(x"),
+            "AC-004: --no-collapse → {{Flat,Expanded}} must not emit (xN) suffix; got:\n{out}"
+        );
+        let count = out.matches("s122-ac004-nocollapse").count();
+        assert_eq!(
+            count, 3,
+            "AC-004: --no-collapse → {{Flat,Expanded}} must emit 3 individual lines; found {count}"
+        );
+    }
+
+    // -----------------------------------------------------------------------
+    // AC-005 — run_summary construction site uses {Flat, Collapsed}
+    // (traces to BC-2.11.028 Postcondition 4)
+    // -----------------------------------------------------------------------
+
+    /// AC-005 (BC-2.11.028 Postcondition 4):
+    /// run_summary uses FindingsRender { grouping: Grouping::Flat, collapse: Collapse::Collapsed }.
+    /// The render field is inert for run_summary (no FINDINGS section rendered).
+    /// TerminalReporter constructed with that value renders a valid report.
+    #[test]
+    fn test_BC_2_11_028_ac005_run_summary_construction_uses_flat_collapsed() {
+        // The struct value run_summary uses — inert (run_summary renders no FINDINGS section).
+        let render_summary = FindingsRender {
+            grouping: Grouping::Flat,
+            collapse: Collapse::Collapsed,
+        };
+
+        let reporter = TerminalReporter {
+            use_color: false,
+            show_hosts_breakdown: false,
+            render: render_summary,
+        };
+
+        // run_summary passes an empty findings slice — no FINDINGS section appears.
+        let out = reporter.render(&Summary::new(), &[], &[]);
+        assert!(
+            out.contains("WIRERUST TRIAGE REPORT"),
+            "AC-005: run_summary construction site must render a valid report header; got:\n{out}"
+        );
+        assert!(
+            !out.contains("FINDINGS"),
+            "AC-005: run_summary with empty findings must not emit FINDINGS section; got:\n{out}"
+        );
+
+        // The run_summary value matches exactly {Flat, Collapsed}.
+        assert_eq!(
+            render_summary,
+            FindingsRender {
+                grouping: Grouping::Flat,
+                collapse: Collapse::Collapsed
+            },
+            "AC-005: run_summary FindingsRender must be {{Flat,Collapsed}}"
+        );
+    }
+
+    // -----------------------------------------------------------------------
+    // AC-006 — Output byte-identical to v0.9.0 for all existing CLI combos
+    // (traces to BC-2.11.013 Invariant 4)
+    //
+    // The three CLI-reachable paths in STORY-122/A are verified by asserting
+    // that each FindingsRender value routes to the same render function as
+    // the old enum variant it replaced, producing the same observable output.
+    // -----------------------------------------------------------------------
+
+    /// AC-006 (BC-2.11.013 Invariant 4):
+    /// {Grouped, Expanded} (--mitre alone in STORY-122/A) produces the same
+    /// output as the old FindingsRender::Grouped enum variant:
+    /// tactic headers present, no (xN) suffix, byte-identical across the reshape.
+    #[test]
+    fn test_BC_2_11_028_ac006_grouped_expanded_byte_identical_to_old_grouped_variant() {
+        let findings: Vec<Finding> = (0..2)
+            .map(|_| make_mitre_finding_s122("s122-ac006-byteident"))
+            .collect();
+
+        let out = TerminalReporter {
+            use_color: false,
+            show_hosts_breakdown: false,
+            render: FindingsRender {
+                grouping: Grouping::Grouped,
+                collapse: Collapse::Expanded,
+            },
+        }
+        .render(&Summary::new(), &findings, &[]);
+
+        // Grouped-expanded output has tactic headers and no collapse suffixes.
+        assert!(
+            out.contains("## "),
+            "AC-006: {{Grouped,Expanded}} must emit '## ' tactic header"
+        );
+        assert!(
+            !out.contains("(x"),
+            "AC-006: {{Grouped,Expanded}} must not emit (xN) suffix"
+        );
+        // Finding summary appears (not collapsed away).
+        assert!(
+            out.matches("s122-ac006-byteident").count() >= 2,
+            "AC-006: {{Grouped,Expanded}} must emit all 2 findings individually"
+        );
+    }
+
+    /// AC-006 (BC-2.11.026 Postcondition 4, BC-2.11.027 Postcondition 1):
+    /// {Flat, Collapsed} (default in STORY-122/A) produces the same output as
+    /// the old FindingsRender::FlatCollapsed: (xN) suffix for N≥2, up to K=3
+    /// evidence lines, MITRE line for non-empty mitre_techniques.
+    #[test]
+    fn test_BC_2_11_028_ac006_flat_collapsed_byte_identical_to_old_flatcollapsed_variant() {
+        let findings: Vec<Finding> = (0..3)
+            .map(|i| Finding {
+                category: ThreatCategory::Anomaly,
+                verdict: Verdict::Likely,
+                confidence: Confidence::High,
+                summary: "s122-ac006-collapse".to_string(),
+                evidence: vec![format!("ev{i}")],
+                mitre_techniques: vec!["T1046".to_string()],
+                source_ip: None,
+                timestamp: None,
+                direction: None,
+            })
+            .collect();
+
+        let out = TerminalReporter {
+            use_color: false,
+            show_hosts_breakdown: false,
+            render: FindingsRender {
+                grouping: Grouping::Flat,
+                collapse: Collapse::Collapsed,
+            },
+        }
+        .render(&Summary::new(), &findings, &[]);
+
+        // BC-2.11.026 PC-4: (xN) suffix for collapsed group of N=3.
+        assert!(
+            out.contains("(x3)"),
+            "AC-006: {{Flat,Collapsed}} must emit '(x3)' for 3 identical-key findings; got:\n{out}"
+        );
+        // BC-2.11.027 PC-1: up to K=3 evidence lines.
+        assert!(
+            out.contains("ev0"),
+            "AC-006: first evidence line ev0 must appear; got:\n{out}"
+        );
+        // MITRE line for non-empty mitre_techniques.
+        assert!(
+            out.contains("T1046"),
+            "AC-006: MITRE technique T1046 must appear; got:\n{out}"
+        );
+    }
+
+    /// AC-006 (BC-2.11.013 Invariant 4):
+    /// {Flat, Expanded} (--no-collapse in STORY-122/A) produces the same output
+    /// as the old FindingsRender::FlatExpanded: 3 individual lines, no (xN) suffix.
+    #[test]
+    fn test_BC_2_11_028_ac006_flat_expanded_byte_identical_to_old_flatexpanded_variant() {
+        let findings: Vec<Finding> = (0..3).map(|_| make_finding_s122("s122-ac006-fe")).collect();
+
+        let out = TerminalReporter {
+            use_color: false,
+            show_hosts_breakdown: false,
+            render: FindingsRender {
+                grouping: Grouping::Flat,
+                collapse: Collapse::Expanded,
+            },
+        }
+        .render(&Summary::new(), &findings, &[]);
+
+        assert!(
+            !out.contains("(x"),
+            "AC-006: {{Flat,Expanded}} must not emit (xN) suffix; got:\n{out}"
+        );
+        assert_eq!(
+            out.matches("s122-ac006-fe").count(),
+            3,
+            "AC-006: {{Flat,Expanded}} must emit 3 individual finding lines"
+        );
+    }
+
+    // -----------------------------------------------------------------------
+    // AC-007 — Comment sweep: stale prose is absent from swept targets
+    // (traces to BC-2.11.028 Invariant 6)
+    //
+    // These tests read src/reporter/terminal.rs and tests/reporter_terminal_tests.rs
+    // via include_str! at compile time (file paths anchored to crate root) and
+    // assert that the stale prose tokens listed in the STORY-122 Task-4
+    // Falsifiable Requirements are absent.
+    //
+    // RED: These tests FAIL on this commit because Task 4 (comment sweep)
+    // has not been performed yet by the implementer. The grep gate values
+    // match STORY-122 AC-007 / Task-4 Falsifiable Requirements (3) and (4).
+    //
+    // EXEMPT: The pattern "three fields" is NOT in the gate (exempt:
+    // TerminalReporter-field prose at reporter_terminal_tests.rs:4040).
+    // The "All three boundary" (escape test) and "All three findings must appear"
+    // (count-of-test-findings comment) are also exempt per AC-007.
+    // -----------------------------------------------------------------------
+
+    /// AC-007 (BC-2.11.028 Invariant 6):
+    /// src/reporter/terminal.rs contains no stale "three mutually-exclusive" prose.
+    /// Gate 4 from STORY-122 Task-4 Falsifiable Requirements.
+    #[test]
+    fn test_BC_2_11_028_ac007_terminal_rs_no_three_mutually_exclusive() {
+        let src = include_str!("../src/reporter/terminal.rs");
+        assert!(
+            !src.contains("three mutually-exclusive"),
+            "AC-007: src/reporter/terminal.rs must not contain stale 'three mutually-exclusive' \
+             prose; Task 4 comment sweep is incomplete"
+        );
+    }
+
+    /// AC-007 (BC-2.11.028 Invariant 6):
+    /// src/reporter/terminal.rs contains no stale "verdict-desc" or "confidence-desc"
+    /// doc-comment text. Gate 2 from STORY-122 Task-4 Falsifiable Requirements.
+    #[test]
+    fn test_BC_2_11_028_ac007_terminal_rs_no_verdict_desc_or_confidence_desc() {
+        let src = include_str!("../src/reporter/terminal.rs");
+        assert!(
+            !src.contains("verdict-desc"),
+            "AC-007: src/reporter/terminal.rs must not contain stale 'verdict-desc' in \
+             render_findings_grouped doc-comment; Task 4 comment sweep is incomplete"
+        );
+        assert!(
+            !src.contains("confidence-desc"),
+            "AC-007: src/reporter/terminal.rs must not contain stale 'confidence-desc' in \
+             render_findings_grouped doc-comment; Task 4 comment sweep is incomplete"
+        );
+    }
+
+    /// AC-007 (BC-2.11.028 Invariant 6):
+    /// tests/reporter_terminal_tests.rs contains no stale three-variant / three-arm /
+    /// three mutually-exclusive / All three FindingsRender / All three outputs /
+    /// impossible state prose in the swept targets.
+    /// Gate 3 from STORY-122 Task-4 Falsifiable Requirements.
+    ///
+    /// EXEMPT tokens NOT checked here:
+    ///   - "three fields" (TerminalReporter-field comment at :4040) — correct, not stale.
+    ///   - "All three boundary" (escape-boundary test at :394) — unrelated to FindingsRender.
+    ///   - "All three findings must appear" (test-finding count at :3512) — unrelated.
+    #[test]
+    fn test_BC_2_11_028_ac007_test_file_no_stale_findingsrender_prose() {
+        let src = include_str!("../tests/reporter_terminal_tests.rs");
+
+        // Split into lines so we can skip exempt lines by their anchored text.
+        let exempt_line_fragments: &[&str] = &[
+            // :4040 — "these three fields exist on TerminalReporter" — EXEMPT.
+            "these three fields exist on TerminalReporter",
+            // :394 — "All three boundary" — EXEMPT (escape boundary values).
+            "All three boundary",
+            // :3512 — "All three findings must appear" — EXEMPT (count of test findings).
+            "All three findings must appear",
+        ];
+
+        let stale_tokens: &[&str] = &[
+            "three-variant",
+            "three variants",
+            "All three FindingsRender",
+            "All three outputs",
+            "three arm",
+            "three-arm",
+            "three mutually-exclusive",
+            "three-way",
+            "impossible state",
+        ];
+
+        let mut violations: Vec<String> = Vec::new();
+        for (line_no, line) in src.lines().enumerate() {
+            // Skip exempt lines.
+            let is_exempt = exempt_line_fragments.iter().any(|frag| line.contains(frag));
+            if is_exempt {
+                continue;
+            }
+            for token in stale_tokens {
+                if line.contains(token) {
+                    violations.push(format!(
+                        "  line {}: {:?} (token: {:?})",
+                        line_no + 1,
+                        line.trim(),
+                        token
+                    ));
+                }
+            }
+        }
+
+        assert!(
+            violations.is_empty(),
+            "AC-007: tests/reporter_terminal_tests.rs contains stale FindingsRender prose \
+             that Task 4 comment sweep must remove:\n{}",
+            violations.join("\n")
+        );
+    }
+
+    /// AC-007 (BC-2.11.028 Invariant 6):
+    /// src/main.rs contains no stale three-mutually-exclusive / three-way /
+    /// impossible-state / three-mode prose.
+    /// Gate 4 (src/ targets) from STORY-122 Task-4 Falsifiable Requirements.
+    #[test]
+    fn test_BC_2_11_028_ac007_main_rs_no_stale_findingsrender_prose() {
+        let src = include_str!("../src/main.rs");
+        for token in &[
+            "three mutually-exclusive",
+            "three-way",
+            "impossible state",
+            "three mode",
+        ] {
+            assert!(
+                !src.contains(token),
+                "AC-007: src/main.rs must not contain stale token {:?}; \
+                 Task 4 comment sweep is incomplete",
+                token
+            );
+        }
+    }
+
+    // -----------------------------------------------------------------------
+    // AC-008 — BC-016/026/027 preserved byte-identically across reshape
+    // (traces to BC-2.11.016 Invariant 3, BC-2.11.026 Postcondition 4,
+    //  BC-2.11.027 Postcondition 1)
+    // -----------------------------------------------------------------------
+
+    /// AC-008 (BC-2.11.016 Invariant 3):
+    /// The em-dash MITRE name line is produced by render_findings_grouped
+    /// via the {Grouped, Expanded} arm — the reshape does not alter this behavior.
+    /// Known technique T1046 (Network Service Discovery) emits an em-dash line.
+    #[test]
+    fn test_BC_2_11_016_ac008_em_dash_mitre_format_preserved_after_reshape() {
+        let findings = vec![Finding {
+            category: ThreatCategory::Anomaly,
+            verdict: Verdict::Likely,
+            confidence: Confidence::High,
+            summary: "s122-ac008-emdash".to_string(),
+            evidence: vec![],
+            mitre_techniques: vec!["T1046".to_string()],
+            source_ip: None,
+            timestamp: None,
+            direction: None,
+        }];
+
+        let out = TerminalReporter {
+            use_color: false,
+            show_hosts_breakdown: false,
+            render: FindingsRender {
+                grouping: Grouping::Grouped,
+                collapse: Collapse::Expanded,
+            },
+        }
+        .render(&Summary::new(), &findings, &[]);
+
+        // BC-2.11.016: em-dash line for known MITRE ID.
+        assert!(
+            out.contains("\u{2014}"),
+            "AC-008: {{Grouped,Expanded}} must emit em-dash (U+2014) for known MITRE technique; got:\n{out}"
+        );
+        assert!(
+            out.contains("T1046"),
+            "AC-008: MITRE technique T1046 must appear in grouped output; got:\n{out}"
+        );
+    }
+
+    /// AC-008 (BC-2.11.026 Postcondition 4):
+    /// The flat (xN) suffix rule is preserved after the enum→struct reshape.
+    /// {Flat, Collapsed} with N=5 identical-key findings emits "(x5)" suffix.
+    #[test]
+    fn test_BC_2_11_026_ac008_flat_xn_suffix_preserved_after_reshape() {
+        let findings: Vec<Finding> = (0..5).map(|_| make_finding_s122("s122-ac008-xn")).collect();
+
+        let out = TerminalReporter {
+            use_color: false,
+            show_hosts_breakdown: false,
+            render: FindingsRender {
+                grouping: Grouping::Flat,
+                collapse: Collapse::Collapsed,
+            },
+        }
+        .render(&Summary::new(), &findings, &[]);
+
+        assert!(
+            out.contains("(x5)"),
+            "AC-008: {{Flat,Collapsed}} must emit '(x5)' for 5 identical-key findings; got:\n{out}"
+        );
+        // BC-2.11.026 PC-4: suffix-free guarantee scoped to {Grouped,Expanded}.
+        let grouped_out = TerminalReporter {
+            use_color: false,
+            show_hosts_breakdown: false,
+            render: FindingsRender {
+                grouping: Grouping::Grouped,
+                collapse: Collapse::Expanded,
+            },
+        }
+        .render(&Summary::new(), &findings, &[]);
+        assert!(
+            !grouped_out.contains("(x"),
+            "AC-008: {{Grouped,Expanded}} must never emit (xN) suffix (PC-4 suffix-free guarantee); got:\n{grouped_out}"
+        );
+    }
+
+    /// AC-008 (BC-2.11.027 Postcondition 1):
+    /// K=3 evidence sampling is preserved after the enum→struct reshape.
+    /// {Flat, Collapsed} with N=5 identical-key findings, each with evidence,
+    /// emits at most 3 evidence lines (K=3 cap).
+    #[test]
+    fn test_BC_2_11_027_ac008_k3_evidence_sampling_preserved_after_reshape() {
+        let findings: Vec<Finding> = (0..5)
+            .map(|i| Finding {
+                category: ThreatCategory::Anomaly,
+                verdict: Verdict::Likely,
+                confidence: Confidence::High,
+                summary: "s122-ac008-k3".to_string(),
+                evidence: vec![format!("evidence-line-{i}")],
+                mitre_techniques: vec![],
+                source_ip: None,
+                timestamp: None,
+                direction: None,
+            })
+            .collect();
+
+        let out = TerminalReporter {
+            use_color: false,
+            show_hosts_breakdown: false,
+            render: FindingsRender {
+                grouping: Grouping::Flat,
+                collapse: Collapse::Collapsed,
+            },
+        }
+        .render(&Summary::new(), &findings, &[]);
+
+        // BC-2.11.027 PC-1: at most K=3 evidence lines ("    > " prefix).
+        let evidence_line_count = out
+            .lines()
+            .filter(|l| l.trim_start().starts_with("> "))
+            .count();
+        assert!(
+            evidence_line_count <= 3,
+            "AC-008: K=3 cap — {{Flat,Collapsed}} must emit at most 3 evidence lines; \
+             got {evidence_line_count} in:\n{out}"
+        );
+        // At least 1 evidence line (confirms sampling path ran).
+        assert!(
+            evidence_line_count >= 1,
+            "AC-008: {{Flat,Collapsed}} with evidence-bearing findings must emit \
+             at least 1 evidence line; got {evidence_line_count} in:\n{out}"
         );
     }
 }

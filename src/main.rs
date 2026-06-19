@@ -378,11 +378,20 @@ fn run_analyze(
                 // BC-2.11.028: render mode selection (3-arm if for byte-identical STORY-122/A;
                 // orthogonal 2-if form in STORY-119/B).
                 render: if show_mitre_grouping {
-                    FindingsRender { grouping: Grouping::Grouped, collapse: Collapse::Expanded }
+                    FindingsRender {
+                        grouping: Grouping::Grouped,
+                        collapse: Collapse::Expanded,
+                    }
                 } else if collapse_findings {
-                    FindingsRender { grouping: Grouping::Flat, collapse: Collapse::Collapsed }
+                    FindingsRender {
+                        grouping: Grouping::Flat,
+                        collapse: Collapse::Collapsed,
+                    }
                 } else {
-                    FindingsRender { grouping: Grouping::Flat, collapse: Collapse::Expanded }
+                    FindingsRender {
+                        grouping: Grouping::Flat,
+                        collapse: Collapse::Expanded,
+                    }
                 },
             };
             reporter.render(&summary, &all_findings, &analyzer_summaries)
@@ -444,7 +453,10 @@ fn run_summary(
                 use_color,
                 show_hosts_breakdown,
                 // BC-2.11.028 invariant 4: render field is inert for run_summary — no FINDINGS section.
-                render: FindingsRender { grouping: Grouping::Flat, collapse: Collapse::Collapsed },
+                render: FindingsRender {
+                    grouping: Grouping::Flat,
+                    collapse: Collapse::Collapsed,
+                },
             };
             reporter.render(&summary, &[], &[])
         }
