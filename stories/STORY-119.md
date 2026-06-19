@@ -2,7 +2,7 @@
 document_type: story
 story_id: STORY-119
 epic_id: E-18
-version: "1.6"
+version: "1.7"
 status: draft
 producer: story-writer
 timestamp: 2026-06-18T00:00:00Z
@@ -163,7 +163,7 @@ The `match self.render` three-arm dispatch in `TerminalReporter::render()` is re
 - `(Grouping::Flat, Collapse::Expanded)` → `for f in findings { self.render_finding_flat(&mut out, f); }` (UNCHANGED)
 (traces to BC-2.11.013 Invariant 4: "When `render == FindingsRender { grouping: Grouping::Grouped, collapse: Collapse::Expanded }` (`--mitre --no-collapse`): the collapse pass is NOT applied… When `render == FindingsRender { grouping: Grouping::Grouped, collapse: Collapse::Collapsed }` (`--mitre` alone, the new default since STORY-119): a per-bucket collapse pass IS applied within each tactic bucket.")
 
-### AC-007 — all ~46 `FindingsRender::Variant` construction sites updated to struct literal form
+### AC-007 — all 84 `FindingsRender::Variant` construction sites updated to struct literal form
 Every occurrence of `FindingsRender::Grouped`, `FindingsRender::FlatCollapsed`, and `FindingsRender::FlatExpanded` across all source and test files is updated to the corresponding struct literal per the D-110 migration map:
 - `FindingsRender::Grouped` → `FindingsRender { grouping: Grouping::Grouped, collapse: Collapse::Expanded }` (preserves suffix-free semantics)
 - `FindingsRender::FlatCollapsed` → `FindingsRender { grouping: Grouping::Flat, collapse: Collapse::Collapsed }`
@@ -186,8 +186,8 @@ For a singleton group (N=1 within a bucket) under `{Grouped, Collapsed}`, `rende
 (governing-BC trace: BC-2.11.016 Precondition 1: "`TerminalReporter.render.grouping == Grouping::Grouped` (applies to both `{Grouped, Collapsed}` and `{Grouped, Expanded}` paths; the em-dash MITRE expansion occurs on all `render_finding_grouped` calls regardless of collapse axis)." — the singleton path calls `render_finding_grouped` which is governed by BC-2.11.016 for its MITRE em-dash line.)
 
 ### AC-011 — color-ladder requirement: `(xN)` suffix is part of the pre-colorization string
-The grouped-collapse header path applies the same verdict/confidence color-ladder as `terminal.rs:391` to a pre-color string that ALREADY INCLUDES the ` (xN)` suffix. The ladder: `Likely+High` → `red().bold()`; `Likely+other` → `yellow`; `Possible` → `yellow`; `Inconclusive` → `cyan`; `Unlikely` → `dimmed`. Appending the suffix AFTER the ANSI color-reset sequence is NON-CONFORMANT.
-(traces to BC-2.11.031 Postcondition 3: "The grouped-collapse header path MUST apply the same verdict/confidence color-selection logic as `terminal.rs:391` to a pre-color string that ALREADY INCLUDES the ` (xN)` suffix… appending the suffix after the ANSI reset is NON-CONFORMANT.")
+The grouped-collapse header path applies the same verdict/confidence color-ladder as `terminal.rs:392-400` to a pre-color string that ALREADY INCLUDES the ` (xN)` suffix. The ladder: `Likely+High` → `red().bold()`; `Likely+other` → `yellow`; `Possible` → `yellow`; `Inconclusive` → `cyan`; `Unlikely` → `dimmed`. Appending the suffix AFTER the ANSI color-reset sequence is NON-CONFORMANT.
+(traces to BC-2.11.031 Postcondition 3: "The grouped-collapse header path MUST apply the same verdict/confidence color-selection logic as `terminal.rs:392-400` to a pre-color string that ALREADY INCLUDES the ` (xN)` suffix… appending the suffix after the ANSI reset is NON-CONFORMANT.")
 
 ### AC-012 — `(xN)` suffix does NOT appear on the MITRE line, evidence lines, or tactic bucket headers
 The ` (xN)` suffix appears ONLY on the finding-group header line. It must not appear on the MITRE line (`    MITRE: <ids> \u{2014} <name>`), on any `    > <evidence>` line, or on the tactic bucket header (`  ## <TacticName>`).
@@ -220,12 +220,12 @@ A finding assigned to bucket B under `{Grouped, Expanded}` is assigned to the sa
 
 ### AC-019 — sort-then-collapse ordering: per-bucket sort precedes `collapse_findings_pass_refs`
 Within each tactic bucket, findings are sorted ascending by rank — verdict-rank ascending (Likely=0 first, Possible=1, Inconclusive=2, Unlikely=3), confidence-rank ascending (High=0 first, Medium=1, Low=2), then emission-index ascending — BEFORE `collapse_findings_pass_refs` is applied to that bucket's slice. The group representative `members[0]` is therefore the first finding in the sorted bucket order, not first in the original global emission order.
-(traces to BC-2.11.033 Postcondition 5: "Within each bucket, findings are sorted ascending by rank — verdict-rank ascending (Likely=0 first, Possible=1, Inconclusive=2, Unlikely=3), confidence-rank ascending (High=0 first, Medium=1, Low=2), then emission-index ascending — BEFORE the per-bucket `collapse_findings_pass` is applied.")
+(traces to BC-2.11.033 Postcondition 5: "Within each bucket, findings are sorted ascending by rank — verdict-rank ascending (Likely=0 first, Possible=1, Inconclusive=2, Unlikely=3), confidence-rank ascending (High=0 first, Medium=1, Low=2), then emission-index ascending — BEFORE the per-bucket `collapse_findings_pass_refs` is applied.")
 (governing-BC trace: BC-2.11.014 Invariant 1: "Verdict ranks: Likely=0, Possible=1, Inconclusive=2, Unlikely=3 (defined by local `verdict_rank` function in terminal.rs:447-454; source-confirmed match arms).")
 
 ### AC-020 — group order within bucket is first-occurrence in SORTED bucket order
 The per-bucket `collapse_findings_pass_refs` produces groups whose order within the bucket is first-occurrence in the SORTED bucket order (not first-occurrence in the global emission order). Two findings with the same key in a bucket: the one with lower rank value (higher severity) sorts first and becomes `members[0]` (group representative).
-(traces to BC-2.11.033 Postcondition 6: "The per-bucket `collapse_findings_pass` produces groups whose order within the bucket is first-occurrence in the SORTED bucket order (not first-occurrence in the global emission order). This is the 'post-sort first-occurrence' definition for grouped-collapse mode.")
+(traces to BC-2.11.033 Postcondition 6: "The per-bucket `collapse_findings_pass_refs` produces groups whose order within the bucket is first-occurrence in the SORTED bucket order (not first-occurrence in the global emission order). This is the 'post-sort first-occurrence' definition for grouped-collapse mode.")
 
 ### AC-021 — MITRE line for N≥2 collapsed group: em-dash name expansion sourced from `members[0]`
 For a collapsed group of N≥2 in a tactic bucket, the MITRE line is rendered from `group_members[0].mitre_techniques`: if non-empty, the format is `    MITRE: <ids_joined> \u{2014} <name>\n` (known ID) or `    MITRE: <ids_joined> (unknown)\n` (unrecognized ID). If `group_members[0].mitre_techniques` is empty, no MITRE line is rendered. The IDs are joined as `mitre_techniques.join(", ")`. The separator is U+2014 (EM DASH), not ASCII `--`.
@@ -253,7 +253,7 @@ All `summary` and `evidence` strings in `render_findings_grouped_collapsed` pass
 
 ### AC-027 — `collapse_findings_pass_refs` called once per tactic bucket slice (not across global findings)
 In `render_findings_grouped_collapsed`, `collapse_findings_pass_refs(&[&Finding])` (the F4-new shared helper) is called once per bucket's per-bucket sorted slice, not once for the global `findings` slice. `collapse_findings_pass` at `:340` becomes a thin adapter: it collects `self.findings.iter().collect()` and delegates to `collapse_findings_pass_refs`. The grouped caller collects `bucket_refs: Vec<&Finding> = items.iter().map(|(_, f)| *f).collect()` then calls `collapse_findings_pass_refs(&bucket_refs)`. The collapse LOGIC is shared/reused via `collapse_findings_pass_refs`; the exact original `collapse_findings_pass` signature is not called from the grouped path. There is no cross-bucket collapse pass. Reference: ADR-0003 "Collapse-API Shape" subsection and F2 design-note §5.2.1.
-(traces to BC-2.11.033 Invariant 3: "The per-bucket collapse pass is applied to the sorted-bucket slice for each tactic bucket independently and sequentially in tactic-order. There is no global cross-bucket collapse pass; `collapse_findings_pass` never receives the full global `findings` slice in grouped mode.")
+(traces to BC-2.11.033 Invariant 3: "The per-bucket collapse pass is applied to the sorted-bucket slice for each tactic bucket independently and sequentially in tactic-order. There is no global cross-bucket collapse pass; `collapse_findings_pass_refs` never receives the full global `findings` slice in grouped mode.")
 (governing-BC trace: BC-2.11.025 Invariant 5: "This BC and its invariants are scoped to `Grouping::Flat` (the `{Flat, Collapsed}` path)… The grouped-mode collapse (`{Grouped, Collapsed}`) is a distinct per-bucket invocation of `collapse_findings_pass_refs` (the shared collapse-logic helper; `collapse_findings_pass` delegates to it for flat mode), governed by BC-2.11.031.")
 
 ### AC-028 — `{Grouped, Expanded}` path output byte-identical to v0.9.0 `FindingsRender::Grouped` path
@@ -321,12 +321,12 @@ Update the `use` import in `src/main.rs`: `use wirerust::reporter::terminal::{Fi
 
 ---
 
-### Task 2 — Mechanical migration: update ~46 `FindingsRender::Variant` construction sites
+### Task 2 — Mechanical migration: update 84 `FindingsRender::Variant` construction sites
 
 **Files affected (census from F1 §8 + F2 §9):**
 - `src/main.rs` — 2 sites (`run_analyze` 3-arm if-expression; `run_summary` site)
-- `tests/reporter_terminal_tests.rs` — majority of the ~44 sites across all story_NNN blocks
-- `tests/reporter_tests.rs` — 6 `mitre_reporter()` helper sites
+- `tests/reporter_terminal_tests.rs` — 55 sites across all story_NNN blocks
+- `tests/reporter_tests.rs` — 17 `mitre_reporter()` helper sites
 - `tests/dnp3_f5_remediation_tests.rs` — `mitre_reporter` helper
 - `tests/bc_2_09_100_multitag_tests.rs` — parameterized helper
 
@@ -413,7 +413,7 @@ The call `self.render_findings_grouped_collapsed` references the new function ad
    - **N=1 (singleton):** call `render_finding_grouped(out, group_members[0])` — byte-identical to `{Grouped, Expanded}` for that finding.
    - **N≥2 (collapsed group):**
      a. Build pre-color string: `escaped_summary + format!(" (x{})", N)`.
-     b. Apply color-ladder (same as `terminal.rs:391`): `Likely+High` → `red().bold()`; `Likely+other` → `yellow`; `Possible` → `yellow`; `Inconclusive` → `cyan`; `Unlikely` → `dimmed`. Apply with `use_color` guard.
+     b. Apply color-ladder (same as `terminal.rs:392-400`): `Likely+High` → `red().bold()`; `Likely+other` → `yellow`; `Possible` → `yellow`; `Inconclusive` → `cyan`; `Unlikely` → `dimmed`. Apply with `use_color` guard.
      c. Write header: `"  [<Category>] <VERDICT> (<CONFIDENCE>) - <colored_line>\n"`.
      d. Evidence loop: iterate `members[0..min(N, COLLAPSE_EVIDENCE_SAMPLES)]`; for each member with non-empty `evidence`, write `"    > {}\n"` for `escape_for_terminal(&evidence[0])`. Window does NOT slide past empty-evidence members.
      e. MITRE line: if `group_members[0].mitre_techniques` is non-empty, call the same name-expansion logic as `render_finding_grouped` (BC-2.11.034 Invariant 2): `ids.join(", ")` + `technique_name(ids[0])` → `Some(name)` → `"    MITRE: <ids> \u{2014} <name>\n"` / `None` → `"    MITRE: <ids> (unknown)\n"`. If empty, no MITRE line.
@@ -624,7 +624,7 @@ No new crates. `CollapseKey`, `COLLAPSE_EVIDENCE_SAMPLES`, and `collapse_finding
 - `src/reporter/terminal.rs` — `collapse_findings_pass_refs(&[&Finding])` (F4-new shared helper introduced by this story; implements the shared collapse logic; see ADR-0003 "Collapse-API Shape")
 - `src/reporter/terminal.rs:73` — `COLLAPSE_EVIDENCE_SAMPLES = 3` (shared constant; not duplicated)
 - `src/reporter/terminal.rs:311-327` — `render_finding_grouped` (called for N=1 singletons; unchanged)
-- `src/reporter/terminal.rs:391` — color ladder in `render_findings_collapsed` (normative reference for suffix-in-pre-color-string pattern)
+- `src/reporter/terminal.rs:392-400` — color ladder in `render_findings_collapsed` (normative reference for suffix-in-pre-color-string pattern)
 - `src/main.rs:381-387` — current 3-arm if-expression for `FindingsRender` construction (Task 2 replacement target)
 - `src/main.rs:107` — `show_mitre_grouping: bool` in-scope param in `run_analyze`
 - `src/main.rs:108` — `collapse_findings: bool` in-scope param in `run_analyze`
@@ -681,3 +681,4 @@ No new crates. `CollapseKey`, `COLLAPSE_EVIDENCE_SAMPLES`, and `collapse_finding
 - **v1.4 (F2 round-5 remediation):** BC-2.11.030 body-table version cell corrected v1.2 → v1.4 to match live BC file. All other BC version stamps confirmed correct.
 - **v1.5 (F3 full decomposition, 2026-06-18):** Full acceptance criteria (AC-001..AC-031) each traced verbatim to governing BC postcondition/invariant. Full implementation tasks (Tasks 1-9): struct reshape (~46 sites), render_findings_grouped_collapsed implementation, CLI struct-construction wiring, comment sweep. VP assignments (VP-012, VP-016). Wave assigned (wave: 49 = max(STORY-120=48)+1). Inputs list populated. Deferred markers removed. CARRY-119-F3-RESIDUALS-001 fixes: VP-table test anchor renamed `test_BC_2_11_033_grouped_collapsed_preserves_bucket_order` (was mis-prefixed `test_BC_2_11_013_...` in F2 round per BC-2.11.033 Verification Properties); spec-changelog NIT applied (`Collapse::Expanded` corrected in BC-2.11.030 v1.2 stanza — closed round historical entry; no normative change).
 - **v1.6 (F3 adversarial round-1 remediation, 2026-06-18):** BC stamps synced to PO-final: BC-2.11.014→v2.0, BC-2.11.025→v1.12, BC-2.11.027→v1.7, BC-2.11.031→v1.3, BC-2.11.032→v1.4, BC-2.11.033→v1.3. C-1: collapse API shape propagated — `collapse_findings_pass_refs(&[&Finding])` is the F4-new shared helper; `collapse_findings_pass` at :340 becomes a thin adapter delegating to it; grouped caller collects `bucket_refs` and calls `collapse_findings_pass_refs` directly; AC-027, Task 4 item 3, and Architecture Anchors updated; ADR-0003 "Collapse-API Shape" and F2 design-note §5.2.1 referenced. H-2: Task 7 and AC-030 gain explicit falsifiable sweep target for stale `verdict-desc, confidence-desc` doc-comment at `terminal.rs:429-430` (WRONG — sort is ASCENDING; correction specified). M-1: Task 6 and AC-030 updated — `no_collapse` field uses bare `#[arg(long)]` with `///` doc-comment lines, NOT a `help = "..."` attribute; task now instructs editing those doc-comment lines. M-2: Forbidden Dependencies gains `render_finding_grouped` N≥2 prohibition (calling it for N≥2 groups violates AC-009/AC-014/AC-024). MEDIUM-1: explicit governing-BC trace anchors added for four orphan BCs: AC-019 → BC-2.11.014 Invariant 1 (verbatim verdict-rank enumeration); AC-009 → BC-2.11.026 Precondition 1; AC-014 → BC-2.11.027 Precondition 1; AC-010 → BC-2.11.016 Precondition 1. All trace descriptions copied verbatim from live BC files (PG-62-F3-AC-DESC-FROM-SOURCE). AC-019/AC-020 `collapse_findings_pass` references updated to `collapse_findings_pass_refs` in AC body text. BC-033 body-table description updated to reference `collapse_findings_pass_refs`.
+- **v1.7 (F3 adversarial round-2 remediation, 2026-06-18):** Pass B trace-quote symbol fixes: AC-019/AC-020/AC-027 verbatim trace quotes updated `collapse_findings_pass` → `collapse_findings_pass_refs` to match BC-2.11.033 PC-5/PC-6/Invariant 3 source text exactly (retired symbol was still quoted in the parenthetical trace citations). Pass A M-1 site census corrected from ~46 to 84 (grepped ground-truth: main.rs=4, terminal.rs=3, reporter_terminal_tests.rs=55, reporter_tests.rs=17, dnp3_f5_remediation_tests.rs=2, bc_2_09_100_multitag_tests.rs=3); AC-007 and Task 2 header updated to 84; Task 2 per-file descriptors corrected (reporter_terminal_tests.rs=55, reporter_tests.rs=17). Pass A L-1 color-ladder anchor corrected terminal.rs:391 → terminal.rs:392-400 in AC-011, Task 4 item 3b, and Architecture Anchors (line 391 is `let colored =`; ladder match arms are :392-400).

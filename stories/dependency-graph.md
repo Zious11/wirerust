@@ -1,6 +1,6 @@
 ---
 document_type: dependency-graph
-version: "2.4"
+version: "2.5"
 status: draft
 producer: story-writer
 phase: 3
@@ -17,6 +17,7 @@ modified:
   - "2026-06-18 v2.2: D-103 F3 human gate — STORY-121 added (E-11 tooling, wave TBD, 3 pts). Product-story count unchanged (72). all-stories total 73→74. No new edges (STORY-121 has no dependencies). Wave count unchanged (48)."
   - "2026-06-18 v2.3: F3 full decomposition of STORY-119 — assigned wave 49. number_of_waves 48→49. total_points 471→479 (scheduled product; +8 pts STORY-119 now in wave table). Wave 48 release-gate note updated (STORY-119 no longer deferred). BC-to-Stories matrix row for STORY-119 updated (full 12-BC coverage replacing forward-ref stub). GAP-001 resolved (grouped-mode collapse delivered in STORY-119 wave 49). VP-012 + VP-016 added to VP-to-Stories matrix for STORY-119. Epic-level description updated to wave 49."
   - "2026-06-18 v2.4: F3 adversarial round-1 remediation — BC-to-Stories matrix STORY-119 row stamps synced to PO-final: BC-2.11.014 v1.8→v2.0, BC-2.11.025 v1.11→v1.12, BC-2.11.027 v1.6→v1.7, BC-2.11.031 v1.2→v1.3, BC-2.11.032 v1.3→v1.4, BC-2.11.033 v1.2→v1.3. v2.1 changelog stanza annotated (was-correct-at-time; superseded by this update). Frontmatter version bumped 2.1→2.4 to match changelog latest stanza. Product-story count note qualified in heading prose ('72 product stories (excludes STORY-091 + STORY-121 tooling; all-stories total = 74)') to reconcile dep-graph/STORY-INDEX wording."
+  - "2026-06-18 v2.5: F3 adversarial round-2 remediation — sibling-row BC version-stamp sweep: STORY-118 row (.025 v1.9→v1.12, .026 v1.10→v1.13, .027 v1.5→v1.7, .028 v1.6→v1.9, .029 v1.5→v1.7); STORY-118/120 shared row (.010 v1.9→v1.11, .013 v1.12→v1.14, .017 v1.14→v1.17, .019 v1.8→v1.10); STORY-078/120 row (.014 v1.7→v2.0, .015 v1.8→v1.10, .016 v1.7→v1.9); STORY-120 row (all 12 stamps synced to live: .010 v1.11, .013 v1.14, .014 v2.0, .015 v1.10, .016 v1.9, .017 v1.17, .019 v1.10, .025 v1.12, .026 v1.13, .027 v1.7, .028 v1.9, .029 v1.7); VP-012 row BC-2.11.010 v1.9→v1.11. BC coverage tally corrected 300/300→293/293 (STORY-INDEX authoritative: 219+25+24+15+5+5=293); Gap Register prose corrected 288→293 with grouped-collapse BCs (BC-2.11.030..034 via STORY-119) added to breakdown."
 total_stories: 72  # product stories only (excludes STORY-091 + STORY-121 tooling; all-stories total = 74)
 total_edges: 95
 intra_epic_edges: 74
@@ -765,13 +766,13 @@ iteratively. Result:
 | BC-2.16.008, BC-2.16.013 (+BC-2.16.010 extension) | STORY-115 | E-16 | SS-02, SS-16 |
 | BC-2.16.009 (EC-008 QinQ offset 22, EC-009 MACsec observe-only probe — v1.10 additions) | STORY-116, STORY-117 | E-17 | SS-16 |
 | BC-2.16.015 (PC-7a QinQ offset 22, EC-008, EC-009 — v1.9 additions) | STORY-116, STORY-117 | E-17 | SS-16 |
-| BC-2.11.025 (v1.9), BC-2.11.026 (v1.10), BC-2.11.027 (v1.5), BC-2.11.028 (v1.6), BC-2.11.029 (v1.5) | STORY-118 (implemented), STORY-120 (re-anchor carrier) | E-18/E-8 | SS-11 |
-| BC-2.11.010 (v1.9, collapse escape-path extension), BC-2.11.013 (v1.12, enum anchor), BC-2.11.017 (v1.14, enum anchor), BC-2.11.019 (v1.8, enum anchor) | STORY-118 (impl), STORY-120 (enum migration) | E-18/E-8 | SS-11 |
-| BC-2.11.014 (v1.7), BC-2.11.015 (v1.8), BC-2.11.016 (v1.7) | STORY-078 (impl), STORY-120 (enum migration — Grouped arm) | E-8 | SS-11 |
+| BC-2.11.025 (v1.12), BC-2.11.026 (v1.13), BC-2.11.027 (v1.7), BC-2.11.028 (v1.9), BC-2.11.029 (v1.7) | STORY-118 (implemented), STORY-120 (re-anchor carrier) | E-18/E-8 | SS-11 |
+| BC-2.11.010 (v1.11, collapse escape-path extension), BC-2.11.013 (v1.14, enum anchor), BC-2.11.017 (v1.17, enum anchor), BC-2.11.019 (v1.10, enum anchor) | STORY-118 (impl), STORY-120 (enum migration) | E-18/E-8 | SS-11 |
+| BC-2.11.014 (v2.0), BC-2.11.015 (v1.10), BC-2.11.016 (v1.9) | STORY-078 (impl), STORY-120 (enum migration — Grouped arm) | E-8 | SS-11 |
 | BC-2.11.013 (v1.14), BC-2.11.014 (v2.0), BC-2.11.016 (v1.9), BC-2.11.025 (v1.12), BC-2.11.026 (v1.13), BC-2.11.027 (v1.7), BC-2.11.028 (v1.9), BC-2.11.030 (v1.4), BC-2.11.031 (v1.3), BC-2.11.032 (v1.4), BC-2.11.033 (v1.3), BC-2.11.034 (v1.3) | STORY-119 (wave 49 — grouped-mode collapse + FindingsRender struct-of-enums reshape) | E-18 | SS-11 |
-| BC-2.11.010 (v1.9), BC-2.11.013 (v1.12), BC-2.11.014 (v1.7), BC-2.11.015 (v1.8), BC-2.11.016 (v1.7), BC-2.11.017 (v1.14), BC-2.11.019 (v1.8), BC-2.11.025 (v1.9), BC-2.11.026 (v1.10), BC-2.11.027 (v1.5), BC-2.11.028 (v1.6), BC-2.11.029 (v1.5) | STORY-120 | E-8 | SS-11 |
+| BC-2.11.010 (v1.11), BC-2.11.013 (v1.14), BC-2.11.014 (v2.0), BC-2.11.015 (v1.10), BC-2.11.016 (v1.9), BC-2.11.017 (v1.17), BC-2.11.019 (v1.10), BC-2.11.025 (v1.12), BC-2.11.026 (v1.13), BC-2.11.027 (v1.7), BC-2.11.028 (v1.9), BC-2.11.029 (v1.7) | STORY-120 | E-8 | SS-11 |
 
-**Coverage: 300 / 300 BCs assigned (283 pre-E18 + 5 NEW E-18 BCs: BC-2.11.025/026/027/028/029 via STORY-118; + 12 NEW E-18 BCs: BC-2.11.030/031/032/033/034 + BC-2.11.013/014/016/025/026/027/028 re-anchored in STORY-119 → 5 new BCs: BC-2.11.030/031/032/033/034 are net-new for grouped-mode collapse; BC-2.11.013/014/016/025/026/027/028 are extended/versioned coverage already counted; BC-2.11.010/013/017/019 are EXTENDED/versioned — not new BCs, already counted in the 283 total via STORY-077/078). E-18 (STORY-118) introduces 5 new BCs (BC-2.11.025..029). STORY-119 introduces 5 new BCs (BC-2.11.030..034). STORY-120 is the enum-migration story carrying the re-anchored vocabulary for all 12 SS-11 BCs; no new BCs.**
+**Coverage: 293 / 293 BCs assigned (219 pre-feature + 25 Modbus BC-2.14.001..025 + 24 DNP3 BC-2.15.001..024 + 15 ARP BC-2.16.001..015 + 5 E-18 flat-collapse BCs BC-2.11.025..029 via STORY-118 + 5 E-18 grouped-collapse BCs BC-2.11.030..034 via STORY-119 = 293). STORY-120 is the enum-migration story carrying the re-anchored vocabulary for all 12 SS-11 BCs; no new BCs. BC-2.11.010/013/014/015/016/017/019 are extended/versioned — not new BCs, already counted in the 219 pre-feature total via STORY-077/078.**
 
 ---
 
@@ -790,7 +791,7 @@ iteratively. Result:
 | VP-009 | FlowState Machine Validity | reassembly/flow.rs | STORY-013 | BC-2.04.004, BC-2.04.005, BC-2.04.050..052 |
 | VP-010 | buffered_bytes Invariant | reassembly/segment.rs | STORY-012, STORY-016 | BC-2.04.030 (STORY-012); BC-2.04.047 (STORY-016) |
 | VP-011 | flush_contiguous Monotonicity | reassembly/segment.rs | STORY-015 | BC-2.04.007, BC-2.04.008, BC-2.04.034 |
-| VP-012 | escape_for_terminal Correctness | reporter/terminal.rs | STORY-077, STORY-119 | BC-2.11.007..012 (STORY-077); BC-2.11.031 PC-5 / BC-2.11.010 v1.9 (STORY-119 — grouped-collapse path inherits escape_for_terminal requirement; AC-026) |
+| VP-012 | escape_for_terminal Correctness | reporter/terminal.rs | STORY-077, STORY-119 | BC-2.11.007..012 (STORY-077); BC-2.11.031 PC-5 / BC-2.11.010 v1.11 (STORY-119 — grouped-collapse path inherits escape_for_terminal requirement; AC-026) |
 | VP-013 | JA3 GREASE Filter Correctness | analyzer/tls.rs | STORY-051 | BC-2.07.006..008 |
 | VP-014 | HttpAnalyzer Cross-Flow Isolation | analyzer/http.rs | STORY-045 | BC-2.06.019, BC-2.06.021 |
 | VP-015 | TCP Sequence Number Wraparound | reassembly/segment.rs | STORY-015 | BC-2.04.039 |
@@ -889,7 +890,7 @@ E-18/E-8 (SS-11 Terminal Finding-Collapse + Enum Migration) — linear chain (Wa
 
 ## Gap Register
 
-No story-decomposition gaps identified. All 288 BCs are covered (219 pre-feature + 25 Modbus BC-2.14.001..025 + 24 DNP3 BC-2.15.001..024 across STORY-106..110 + 15 ARP BC-2.16.001..015 across STORY-112..115 + 5 new E-18 BCs BC-2.11.025..029 via STORY-118; BC-2.02.009 is revised in STORY-111, not a new BC; BC-2.11.010/013/014/015/016/017/019 are extended/versioned — coverage assigned to STORY-078 and extended by STORY-118/STORY-120).
+No story-decomposition gaps identified. All 293 BCs are covered (219 pre-feature + 25 Modbus BC-2.14.001..025 + 24 DNP3 BC-2.15.001..024 across STORY-106..110 + 15 ARP BC-2.16.001..015 across STORY-112..115 + 5 E-18 flat-collapse BCs BC-2.11.025..029 via STORY-118 + 5 E-18 grouped-collapse BCs BC-2.11.030..034 via STORY-119 = 293; BC-2.02.009 is revised in STORY-111, not a new BC; BC-2.11.010/013/014/015/016/017/019 are extended/versioned — coverage assigned to STORY-078 and extended by STORY-118/STORY-120).
 All L2 domain capabilities (CAP-NNN) are covered by at least one story.
 All cross-epic architectural dependencies are captured in this graph.
 
