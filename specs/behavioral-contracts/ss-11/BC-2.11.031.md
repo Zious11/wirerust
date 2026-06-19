@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-06-18T00:00:00Z
@@ -15,6 +15,7 @@ introduced: v0.9.0
 modified:
   - "v1.1 2026-06-18: F2 adversarial round-1 fix — PC-4 sort direction corrected: 'verdict-rank (desc), confidence-rank (desc)' → 'ascending by rank (Likely=0/High=0 first)' to match BC-2.11.014 authoritative definition. No behavioral change; rank=0 means highest severity and is sorted first by ascending comparison, making the description of 'descending severity' formerly used in this BC misleading and internally inconsistent with BC-014's explicit rank assignments."
   - "v1.2 2026-06-18: R2-1 — propagate corrected verdict-rank enumeration: PC-4 now lists all four verdicts (Likely=0 first, Possible=1, Inconclusive=2, Unlikely=3) to match terminal.rs:447-454 source. R2-2 — introduced: v0.10.0 → v0.9.0. R2-6 — Invariant 4 and Invariant 5 reworded to observable-behavior form (drop implementation-sharing/no-duplication prescription; state externally testable invariants instead)."
+  - "v1.3 2026-06-18: F3 adversarial round-1 remediation (C-1) — Architecture Anchors: collapse_findings_pass bullet replaced with collapse_findings_pass_refs (F4-new private helper; accepts &[&'a Finding]; called once per bucket; collapse_findings_pass at :340 retained as thin adapter for flat-mode caller). Invariant 3: reworded to name collapse_findings_pass_refs as the shared implementation called by both flat and grouped mode; flat-mode adapter delegation noted; no Finding value cloned."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -43,7 +44,7 @@ bucket and are never cross-collapsed (see BC-2.11.030, BC-2.11.033).
 
 1. `TerminalReporter.render == FindingsRender { grouping: Grouping::Grouped, collapse: Collapse::Collapsed }`.
 2. The per-bucket collapse pass has been applied to each tactic bucket's finding slice
-   (via `collapse_findings_pass` called once per bucket, not across the global findings slice).
+   (via `collapse_findings_pass_refs` called once per bucket, not across the global findings slice).
 3. The collapse key is the four-tuple `(category: ThreatCategory, verdict: Verdict,
    confidence: Confidence, summary: String)` — identical to the flat-mode collapse key
    (BC-2.11.025 Invariant 1).
@@ -91,9 +92,10 @@ bucket and are never cross-collapsed (see BC-2.11.030, BC-2.11.033).
    close-paren. Identical to BC-2.11.026 Invariant 1. No alternative formats.
 2. Singleton groups (N=1) within a bucket produce no count suffix. The absence of a suffix for
    singletons preserves visual continuity with the existing `{Grouped, Expanded}` output.
-3. The collapse pass producing the per-bucket groups uses `collapse_findings_pass` — the same
-   function as flat-mode collapse — called once per bucket's findings slice, not across all
-   findings.
+3. The collapse pass producing the per-bucket groups uses `collapse_findings_pass_refs` — the
+   shared collapse-logic implementation called by both flat mode and grouped mode. It is called
+   once per bucket's findings slice (as `&[&Finding]`), not across all findings. The flat-mode
+   adapter `collapse_findings_pass` delegates to the same function. No `Finding` value is cloned.
 4. The rendered evidence cap for grouped-collapse bucket groups equals K=3 — the same value as
    the flat-mode collapse evidence cap. Evidence sampling within a grouped-collapse bucket group
    is governed by BC-2.11.032.
@@ -153,14 +155,14 @@ bucket and are never cross-collapsed (see BC-2.11.030, BC-2.11.033).
 - BC-2.11.032 — composes with (evidence sampling under the count-annotated group header)
 - BC-2.11.033 — composes with (tactic-bucket ordering; collapse operates within buckets only)
 - BC-2.11.034 — composes with (MITRE line format sourced from group representative for N≥2 groups)
-- BC-2.11.025 — composes with (same `CollapseKey` four-tuple; `collapse_findings_pass` function shared)
+- BC-2.11.025 — composes with (same `CollapseKey` four-tuple; `collapse_findings_pass_refs` is the shared collapse-logic implementation; `collapse_findings_pass` in flat mode delegates to it)
 - BC-2.11.013 — depends on (tactic-bucket structure; `{Grouped, Expanded}` path suffix-free guarantee unchanged)
 
 ## Architecture Anchors
 
 - `src/reporter/terminal.rs:432-483` — `render_findings_grouped` (existing; **F4-pending modification target:** per-bucket collapse pass inserted before inner rendering loop at ~:472-474; bucket sort at ~:463-467 already in place)
 - `src/reporter/terminal.rs` — `render_findings_grouped_collapsed` — **F4-pending new function:** per-bucket collapse + grouped-collapse header rendering; does not yet exist; `render_findings_collapsed` at `:376-423` (flat-mode) is the structural precedent
-- `src/reporter/terminal.rs:340-360` — `collapse_findings_pass` (existing; reused per-bucket; unchanged)
+- `src/reporter/terminal.rs` — `collapse_findings_pass_refs` (F4-new private helper; single source of collapse logic; accepts `&[&'a Finding]`; called once per bucket with emission-indices stripped). `collapse_findings_pass` at `:340` is retained as a thin adapter for the flat-mode caller and preserves its existing signature; it delegates to `collapse_findings_pass_refs`.
 - `src/reporter/terminal.rs:391` — color ladder in `render_findings_collapsed` (flat-mode precedent for identical suffix-in-pre-color-string pattern)
 - `src/reporter/terminal.rs:311-327` — `render_finding_grouped` (existing; called for N=1 singletons within a bucket in grouped-collapse path)
 

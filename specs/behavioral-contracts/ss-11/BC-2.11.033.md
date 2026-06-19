@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-06-18T00:00:00Z
@@ -15,6 +15,7 @@ introduced: v0.9.0
 modified:
   - "v1.1 2026-06-18: F2 adversarial round-1 fix — (1) Sort direction corrected throughout: 'descending' verdict/confidence-rank → 'ascending by rank (Likely=0/High=0 first)' in Description, PC-5, Invariant 4, and EC-007, to match BC-2.11.014 authoritative rank definitions. (2) EC-007 parenthetical 'higher verdict rank' → 'lower verdict-rank value (Likely=0), surfaced first by ascending sort'. (3) Mis-prefixed test-function anchors in Verification Properties renumbered from test_BC_2_11_030_* to test_BC_2_11_033_*."
   - "v1.2 2026-06-18: R2-1 — propagate corrected verdict-rank enumeration: Description, PC-5, and Invariant 4 now list all four verdicts (Likely=0 first, Possible=1, Inconclusive=2, Unlikely=3) to match terminal.rs:447-454 source. R2-2 — introduced: v0.10.0 → v0.9.0."
+  - "v1.3 2026-06-18: F3 adversarial round-1 remediation — (C-1) Architecture Anchors: collapse_findings_pass bullet at :340-360 replaced with collapse_findings_pass_refs (F4-new private helper; called once per bucket slice; delegates from collapse_findings_pass thin adapter). (H-1 / CARRY-119-F3-RESIDUALS-001 item 1) Verification Properties: test_BC_2_11_013_grouped_collapsed_preserves_bucket_order renamed to test_BC_2_11_033_grouped_collapsed_preserves_bucket_order."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -34,7 +35,7 @@ path (BC-2.11.013). Tactic buckets appear in `all_tactics_in_report_order()` seq
 last. The per-bucket collapse pass does NOT alter which bucket a finding belongs to, and does
 NOT alter the order in which buckets are emitted.
 
-The collapse transform is strictly a within-bucket operation: `collapse_findings_pass` is
+The collapse transform is strictly a within-bucket operation: `collapse_findings_pass_refs` is
 called once per bucket's finding slice, not across the global findings slice. A finding's
 tactic bucket membership is determined by `mitre_techniques[0]` (or `Uncategorized` if the
 vec is empty or the first ID has no known tactic) — exactly as in BC-2.11.013 Invariant 2.
@@ -69,10 +70,10 @@ sorted bucket order, not the first in the original global emission order.
 5. Within each bucket, findings are sorted ascending by rank — verdict-rank ascending
    (Likely=0 first, Possible=1, Inconclusive=2, Unlikely=3), confidence-rank ascending
    (High=0 first, Medium=1, Low=2), then emission-index ascending — BEFORE the per-bucket
-   `collapse_findings_pass` is applied (BC-2.11.014 defines the rank assignments). The result
+   `collapse_findings_pass_refs` is applied (BC-2.11.014 defines the rank assignments). The result
    of this sort determines the within-bucket group order and the group representative identity
    (`members[0]` is the first finding in the sorted order that established the key).
-6. The per-bucket `collapse_findings_pass` produces groups whose order within the bucket is
+6. The per-bucket `collapse_findings_pass_refs` produces groups whose order within the bucket is
    first-occurrence in the SORTED bucket order (not first-occurrence in the global emission
    order). This is the "post-sort first-occurrence" definition for grouped-collapse mode.
 
@@ -85,12 +86,12 @@ sorted bucket order, not the first in the original global emission order.
    bucket assignment.
 3. The per-bucket collapse pass is applied to the sorted-bucket slice for each tactic bucket
    independently and sequentially in tactic-order. There is no global cross-bucket collapse
-   pass; `collapse_findings_pass` never receives the full global `findings` slice in grouped
-   mode.
+   pass; `collapse_findings_pass_refs` never receives the full global `findings` slice in
+   grouped mode.
 4. Sort-then-collapse ordering: the per-bucket sort — ascending by verdict-rank (Likely=0
    first, Possible=1, Inconclusive=2, Unlikely=3), ascending by confidence-rank (High=0 first,
-   Medium=1, Low=2), ascending by emission-index — PRECEDES `collapse_findings_pass` for that
-   bucket (BC-2.11.014 defines the rank values). This ordering is required to produce a
+   Medium=1, Low=2), ascending by emission-index — PRECEDES `collapse_findings_pass_refs` for
+   that bucket (BC-2.11.014 defines the rank values). This ordering is required to produce a
    deterministic and semantically meaningful group representative (the lowest rank-value
    finding, i.e., highest severity, wins the representative slot by appearing first in the
    ascending sort).
@@ -128,7 +129,7 @@ sorted bucket order, not the first in the original global emission order.
 
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| — | Tactic bucket order under `{Grouped, Collapsed}` matches `all_tactics_in_report_order()` | unit: test_BC_2_11_013_grouped_collapsed_preserves_bucket_order |
+| — | Tactic bucket order under `{Grouped, Collapsed}` matches `all_tactics_in_report_order()` | unit: test_BC_2_11_033_grouped_collapsed_preserves_bucket_order |
 | — | Cross-bucket findings with same collapse key are NOT merged | unit: test_BC_2_11_033_different_buckets_not_cross_collapsed |
 | — | Sort precedes collapse within each bucket (representative = lowest-rank-value / highest-severity finding by key) | unit: test_BC_2_11_033_first_occurrence_in_sorted_bucket_order |
 | — | Uncategorized bucket emitted last under `{Grouped, Collapsed}` | unit: test_BC_2_11_033_uncategorized_last_under_grouped_collapse |
@@ -157,7 +158,7 @@ sorted bucket order, not the first in the original global emission order.
 
 - `src/reporter/terminal.rs:432-483` — `render_findings_grouped` (existing; tactic-bucket loop at `:469`; per-bucket sort at `:463-467`; **F4-pending modification target** for adding collapse pass after sort)
 - `src/reporter/terminal.rs` — `render_findings_grouped_collapsed` — **F4-pending new function:** outer tactic-bucket loop mirrors `render_findings_grouped`; inner per-bucket collapse and grouped-collapse rendering replaces `render_finding_grouped` direct call
-- `src/reporter/terminal.rs:340-360` — `collapse_findings_pass` (existing; called once per bucket slice in the F4 implementation, not once for the global slice)
+- `src/reporter/terminal.rs` — `collapse_findings_pass_refs` (F4-new private helper; called once per bucket slice, not once for the global slice; `collapse_findings_pass` at `:340` is retained as a thin adapter for the flat-mode caller and delegates to `collapse_findings_pass_refs`)
 
 ## Story Anchor
 

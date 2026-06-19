@@ -3,15 +3,24 @@
 # Updated by state-manager after each story dispatch or completion.
 # Wave 1 stories are `pending` (ready to dispatch). All later stories are `blocked`.
 # Fields: status, wave, branch, worktree, blocked_by
+#
+# NOTE (2026-06-18): This file is a vestigial greenfield-cycle artifact. The header
+# invariants (total_stories, total_waves, current_wave) reflect the original 48-story
+# greenfield cycle and are intentionally not auto-incremented — STORY-INDEX.md is the
+# authoritative wave registry (74 stories, 49 waves as of v2.1). Feature-mode and
+# F3-decomposition stories (STORY-097+) are tracked in STORY-INDEX.md. This file
+# retains individual story entries for greenfield stories (STORY-001..STORY-090) and
+# is extended with feature-mode entries as they are dispatched. STORY-120 is
+# delivered (merged PR #267, develop f851995). STORY-119 is pending dispatch (wave 49).
 
 document_type: sprint-state
-version: "1.0"
+version: "1.1"
 produced_by: story-writer
 timestamp: 2026-05-21T00:00:00Z
 cycle: v0.1.0-greenfield-spec
-current_wave: 27
-total_stories: 48
-total_waves: 27
+current_wave: 27  # greenfield cycle high-water mark; see STORY-INDEX.md for current wave (49)
+total_stories: 48  # greenfield product stories only; see STORY-INDEX.md total_stories: 74
+total_waves: 27    # greenfield cycle waves only; see STORY-INDEX.md total_waves: 49
 
 stories:
 
@@ -625,9 +634,25 @@ stories:
     converged_date: "2026-05-31"
 
   # ---------------------------------------------------------------------------
+  # Wave 48 — 1 story (E-8 FindingsRender enum migration, v0.9.0)
+  # STORY-120 is delivered: PR #267 merged to develop at f851995 (2026-06-18).
+  # STORY-119's blocked_by: [STORY-120] is resolved.
+  # ---------------------------------------------------------------------------
+
+  STORY-120:
+    status: done
+    wave: 48
+    branch: fix/issue-62-adr-anchor-changelog
+    worktree: null
+    blocked_by: []
+    pr: 267
+    merge_commit: f851995
+    merged_date: "2026-06-18"
+
+  # ---------------------------------------------------------------------------
   # Wave 49 — 1 story (E-18 grouped-mode collapse + FindingsRender struct reshape)
-  # F3 full decomposition complete 2026-06-18; awaiting STORY-120 F4 delivery
-  # before STORY-119 can be dispatched.
+  # F3 full decomposition complete 2026-06-18; STORY-120 is now merged so the
+  # block is resolved — STORY-119 may be dispatched.
   # ---------------------------------------------------------------------------
 
   STORY-119:
@@ -635,4 +660,4 @@ stories:
     wave: 49
     branch: null
     worktree: null
-    blocked_by: [STORY-120]
+    blocked_by: []  # STORY-120 delivered (f851995); block resolved

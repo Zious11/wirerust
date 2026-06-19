@@ -1,6 +1,6 @@
 ---
 document_type: dependency-graph
-version: "2.1"
+version: "2.4"
 status: draft
 producer: story-writer
 phase: 3
@@ -13,9 +13,10 @@ modified:
   - "2026-06-17 v1.8: Adversarial Burst 6 remediation — BC-2.11.027 version stamp in BC-to-Stories matrix row (line ~740) updated v1.3→v1.4 (escape-notation fix bump). All other 8 BC version stamps confirmed MATCH vs live frontmatter."
   - "2026-06-17 v1.9: DF-INPUT-HASH-CANONICAL-001 — BC-2.11.025 bumped v1.5→v1.6 by BC-PO (canonical-vector evidence HTTP/1.1 fix); updated BC-2.11.025 stamp in BC-to-Stories matrix (v1.5→v1.6). STORY-118 input-hash recomputed: 432f43e → 77d97c6."
   - "2026-06-18 v2.0: Feature #62 (issue #62, FindingsRender enum migration) — added STORY-120 (E-8, wave 48) for TerminalReporter enum-of-modes refactor (v0.9.0). total_stories 71→72 (product; +STORY-091 tooling = 73 all-stories). total_edges 94→95 (+2 cross-epic: STORY-118→STORY-120 (E-18→E-8) + STORY-120→STORY-119 (E-8→E-18), replacing the prior STORY-118→STORY-119 intra-E-18 edge; net +1 cross-epic edge; intra 75→74, cross 19→21). number_of_waves 47→48. STORY-120 depends_on=[] (reporter struct exists; no new predecessor required). total_points 468→471 (product +3; scheduled wave-table total)."
-  - "2026-06-18 v2.1: BC-to-Stories matrix version-stamp sync (F3 round-7 bookkeeping fix). Updated stale stamps to authoritative current versions: BC-2.11.019 v1.7→v1.8, BC-2.11.025 v1.8→v1.9, BC-2.11.026 v1.9→v1.10, BC-2.11.028 v1.5→v1.6, BC-2.11.029 v1.4→v1.5. (BC-010 v1.9, .013 v1.12, .014 v1.7, .015 v1.8, .016 v1.7, .017 v1.14, .027 v1.5 confirmed correct — no change.)"
+  - "2026-06-18 v2.1: BC-to-Stories matrix version-stamp sync (F3 round-7 bookkeeping fix). Updated stale stamps to authoritative current versions: BC-2.11.019 v1.7→v1.8, BC-2.11.025 v1.8→v1.9, BC-2.11.026 v1.9→v1.10, BC-2.11.028 v1.5→v1.6, BC-2.11.029 v1.4→v1.5. (BC-010 v1.9, .013 v1.12, .014 v1.7, .015 v1.8, .016 v1.7, .017 v1.14, .027 v1.5 confirmed correct at time of this stanza — superseded by v2.4 which reflects PO-final versions.)"
   - "2026-06-18 v2.2: D-103 F3 human gate — STORY-121 added (E-11 tooling, wave TBD, 3 pts). Product-story count unchanged (72). all-stories total 73→74. No new edges (STORY-121 has no dependencies). Wave count unchanged (48)."
   - "2026-06-18 v2.3: F3 full decomposition of STORY-119 — assigned wave 49. number_of_waves 48→49. total_points 471→479 (scheduled product; +8 pts STORY-119 now in wave table). Wave 48 release-gate note updated (STORY-119 no longer deferred). BC-to-Stories matrix row for STORY-119 updated (full 12-BC coverage replacing forward-ref stub). GAP-001 resolved (grouped-mode collapse delivered in STORY-119 wave 49). VP-012 + VP-016 added to VP-to-Stories matrix for STORY-119. Epic-level description updated to wave 49."
+  - "2026-06-18 v2.4: F3 adversarial round-1 remediation — BC-to-Stories matrix STORY-119 row stamps synced to PO-final: BC-2.11.014 v1.8→v2.0, BC-2.11.025 v1.11→v1.12, BC-2.11.027 v1.6→v1.7, BC-2.11.031 v1.2→v1.3, BC-2.11.032 v1.3→v1.4, BC-2.11.033 v1.2→v1.3. v2.1 changelog stanza annotated (was-correct-at-time; superseded by this update). Frontmatter version bumped 2.1→2.4 to match changelog latest stanza. Product-story count note qualified in heading prose ('72 product stories (excludes STORY-091 + STORY-121 tooling; all-stories total = 74)') to reconcile dep-graph/STORY-INDEX wording."
 total_stories: 72  # product stories only (excludes STORY-091 + STORY-121 tooling; all-stories total = 74)
 total_edges: 95
 intra_epic_edges: 74
@@ -33,7 +34,8 @@ traces_to:
 
 > **Brownfield context:** wirerust is a single-crate offline pcap forensic triage CLI.
 > All 72 product stories formalize behavioral contracts for existing and new shipped code
-> (48 greenfield + F2/F7/F8/F9/F18/F62 feature additions across E-14, E-15, E-16, E-18, E-8).
+> (48 greenfield + F2/F7/F8/F9/F18/F62 feature additions across E-14, E-15, E-16, E-18, E-8;
+> excludes STORY-091 + STORY-121 tooling stories — all-stories total = 74).
 > Cross-epic dependencies reflect the architecture pipeline layering
 > (L1 Ingest -> L2 Stream -> L3 Domain -> L4 Output -> L0 Entry) defined in
 > `architecture/dependency-graph.md` and `architecture/module-decomposition.md`.
@@ -766,7 +768,7 @@ iteratively. Result:
 | BC-2.11.025 (v1.9), BC-2.11.026 (v1.10), BC-2.11.027 (v1.5), BC-2.11.028 (v1.6), BC-2.11.029 (v1.5) | STORY-118 (implemented), STORY-120 (re-anchor carrier) | E-18/E-8 | SS-11 |
 | BC-2.11.010 (v1.9, collapse escape-path extension), BC-2.11.013 (v1.12, enum anchor), BC-2.11.017 (v1.14, enum anchor), BC-2.11.019 (v1.8, enum anchor) | STORY-118 (impl), STORY-120 (enum migration) | E-18/E-8 | SS-11 |
 | BC-2.11.014 (v1.7), BC-2.11.015 (v1.8), BC-2.11.016 (v1.7) | STORY-078 (impl), STORY-120 (enum migration — Grouped arm) | E-8 | SS-11 |
-| BC-2.11.013 (v1.14), BC-2.11.014 (v1.8), BC-2.11.016 (v1.9), BC-2.11.025 (v1.11), BC-2.11.026 (v1.13), BC-2.11.027 (v1.6), BC-2.11.028 (v1.9), BC-2.11.030 (v1.4), BC-2.11.031 (v1.2), BC-2.11.032 (v1.3), BC-2.11.033 (v1.2), BC-2.11.034 (v1.3) | STORY-119 (wave 49 — grouped-mode collapse + FindingsRender struct-of-enums reshape) | E-18 | SS-11 |
+| BC-2.11.013 (v1.14), BC-2.11.014 (v2.0), BC-2.11.016 (v1.9), BC-2.11.025 (v1.12), BC-2.11.026 (v1.13), BC-2.11.027 (v1.7), BC-2.11.028 (v1.9), BC-2.11.030 (v1.4), BC-2.11.031 (v1.3), BC-2.11.032 (v1.4), BC-2.11.033 (v1.3), BC-2.11.034 (v1.3) | STORY-119 (wave 49 — grouped-mode collapse + FindingsRender struct-of-enums reshape) | E-18 | SS-11 |
 | BC-2.11.010 (v1.9), BC-2.11.013 (v1.12), BC-2.11.014 (v1.7), BC-2.11.015 (v1.8), BC-2.11.016 (v1.7), BC-2.11.017 (v1.14), BC-2.11.019 (v1.8), BC-2.11.025 (v1.9), BC-2.11.026 (v1.10), BC-2.11.027 (v1.5), BC-2.11.028 (v1.6), BC-2.11.029 (v1.5) | STORY-120 | E-8 | SS-11 |
 
 **Coverage: 300 / 300 BCs assigned (283 pre-E18 + 5 NEW E-18 BCs: BC-2.11.025/026/027/028/029 via STORY-118; + 12 NEW E-18 BCs: BC-2.11.030/031/032/033/034 + BC-2.11.013/014/016/025/026/027/028 re-anchored in STORY-119 → 5 new BCs: BC-2.11.030/031/032/033/034 are net-new for grouped-mode collapse; BC-2.11.013/014/016/025/026/027/028 are extended/versioned coverage already counted; BC-2.11.010/013/017/019 are EXTENDED/versioned — not new BCs, already counted in the 283 total via STORY-077/078). E-18 (STORY-118) introduces 5 new BCs (BC-2.11.025..029). STORY-119 introduces 5 new BCs (BC-2.11.030..034). STORY-120 is the enum-migration story carrying the re-anchored vocabulary for all 12 SS-11 BCs; no new BCs.**

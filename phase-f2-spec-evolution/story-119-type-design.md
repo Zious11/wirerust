@@ -212,8 +212,9 @@ structurally unchanged.
 The function performs tactic bucketing and sorting identically to the existing
 `render_findings_grouped` (BC-2.11.013: `mitre_techniques[0]` determines bucket; ascending by
 verdict rank (Likely=0, Possible=1, Inconclusive=2, Unlikely=3), then confidence rank (High=0, Medium=1, Low=2), then emission-index — highest-severity first). Then, **within each tactic
-bucket**, it applies the existing `collapse_findings_pass` (same `CollapseKey` semantics as flat
-mode: `(category, verdict, confidence, summary)`) and renders each resulting group using the
+bucket**, it applies `collapse_findings_pass_refs` (the shared collapse-logic helper introduced
+in §5.2.1; same `CollapseKey` semantics as flat mode: `(category, verdict, confidence, summary)`)
+and renders each resulting group using the
 collapse rendering rules:
 
 - **N = 1 (singleton within bucket):** delegates to `render_finding_grouped` — byte-identical
@@ -232,9 +233,67 @@ itself operates on unescaped raw `Finding` field values (escape is render-time, 
 
 ### 5.2 Key Implementation Notes (for F4)
 
-- Reuse `collapse_findings_pass` without modification — it accepts `&[Finding]` and returns
-  `Vec<(CollapseKey, Vec<&Finding>)>` with first-occurrence ordering. Call it once per
-  bucket's finding slice, not across all findings.
+#### 5.2.1 Collapse-API Shape — F3 Type-Design Resolution (2026-06-18)
+
+The F2 spec (and the BC architecture anchors) originally stated that `collapse_findings_pass`
+would be "reused without modification." This claim does not type-check and has been corrected.
+
+**Root cause:** `collapse_findings_pass` (`:340`) takes `&'a [Finding]` — a slice of owned
+values. The grouped path builds each tactic bucket as `Vec<(usize, &Finding)>` (reference plus
+emission index). Rust cannot coerce `&[&Finding]` to `&[Finding]`. Passing a bucket to the
+unmodified function would require materializing a `Vec<Finding>` — a deep clone of every
+`Finding` in the bucket — which is both unnecessary and unspecified.
+
+**Resolution — introduce `collapse_findings_pass_refs` as the single shared implementation:**
+
+```rust
+// NEW private helper — the single source of collapse logic.
+// Accepts a slice of Finding *references*; both call paths use this.
+fn collapse_findings_pass_refs<'a>(
+    &self,
+    findings: &[&'a Finding],
+) -> Vec<(CollapseKey, Vec<&'a Finding>)>
+
+// REVISED thin adapter — preserves existing signature for render_findings_collapsed.
+// Collects `&[Finding]` into references, delegates to collapse_findings_pass_refs.
+fn collapse_findings_pass<'a>(
+    &self,
+    findings: &'a [Finding],
+) -> Vec<(CollapseKey, Vec<&'a Finding>)> {
+    let refs: Vec<&Finding> = findings.iter().collect();
+    self.collapse_findings_pass_refs(&refs)
+}
+```
+
+**Flat-mode caller** (`render_findings_collapsed`, `:376`): unchanged. It still calls
+`self.collapse_findings_pass(findings)` with its `&[Finding]` parameter. No source change
+to `render_findings_collapsed`.
+
+**Grouped-mode caller** (`render_findings_grouped_collapsed`, F4-new): strips emission indices
+from each bucket before invoking the shared logic:
+
+```rust
+// Per tactic bucket, inside render_findings_grouped_collapsed:
+let bucket_refs: Vec<&Finding> = items.iter().map(|(_, f)| *f).collect();
+let groups = self.collapse_findings_pass_refs(&bucket_refs);
+```
+
+This approach is:
+- **Zero per-bucket clone** — `Finding` values stay in the original `&[Finding]` slice.
+- **Single source of logic** — BC-2.11.031 Invariant 3 (shared pass, no duplication) is
+  satisfied by `collapse_findings_pass_refs`.
+- **Non-breaking to existing callers** — `collapse_findings_pass` retains its BC-cited
+  signature at `:340`; all existing tests and BC references remain valid.
+- **Purity-boundary compliant** — both functions are pure/deterministic with no I/O or
+  global state (ADR-0003 Rules 2, 4).
+
+The generic-`IntoIterator` alternative (option b) was evaluated and rejected: `&[&'a Finding]`
+iterates to `&&'a Finding` (double reference), not `&'a Finding`, so a single `IntoIterator<Item
+= &'a Finding>` bound does not cleanly cover both the `&[Finding]` flat caller and the
+`Vec<&Finding>` grouped caller without additional deref machinery.
+
+#### 5.2.2 Other Implementation Notes
+
 - `COLLAPSE_EVIDENCE_SAMPLES = 3` constant is shared with flat-collapse; no duplication needed.
 - The tactic-bucket data structure (HashMap keyed on `Option<MitreTactic>`) and iteration
   over `all_tactics_in_report_order()` carry over without change.
