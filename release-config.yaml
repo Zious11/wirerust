@@ -173,13 +173,18 @@ ci:
   release_workflow: ".github/workflows/release.yml"  # auto-builds binaries on tag push
   # Status checks that must pass on main before tagging
   required_checks:
+    # Jobs that actually gate (block) merges/releases — verified against ci.yml job `name:` fields
+    # and `continue-on-error` flags 2026-06-19 (F7-R4 finding F-C-002).
     - "Test"
     - "Clippy"
     - "Format"
     - "Fuzz build"
-    - "Audit"
+    # NOTE: "Audit" is INTENTIONALLY OMITTED — ci.yml audit job has continue-on-error: true
+    # (informational only; cargo audit failures do not block merge or release).
     - "Deny"
     - "Trust-boundary (test-seam gate)"
+    - "Help-provenance gate (no internal IDs in clap /// doc-comments)"
+    - "Action pin gate"
 
 # ── Autonomy / pause points ───────────────────────────────────────────────────
 autonomy:

@@ -72,10 +72,17 @@ inputs:
 #   AC (AC-006 as formerly numbered — dispatch is STORY-122's scope). Kept all behavioral ACs:
 #   CLI mapping (AC-001..004), render path (AC-008..027), flat-paths-unchanged (AC-029),
 #   comment sweep (AC-030 updated), test green (AC-031). ACs renumbered sequentially.
-input-hash: "4a8c93f"
+input-hash: "61d2fb1"
 ---
 
 # STORY-119 (B): Terminal Finding-Collapse — Grouped Mode / --mitre (render path + CLI flip)
+
+> **Post-delivery update (F7-R2, PR #273):** `Grouping`, `Collapse`, and `FindingsRender` are
+> now `#[non_exhaustive]`; external crates construct `FindingsRender` via
+> `FindingsRender::new(grouping, collapse)` rather than a struct literal. The Task/AC
+> construction snippets below show the as-delivered struct-literal form; the current canonical
+> construction is the `::new()` form. See ADR-0003 Binding Rule 5 (Forward-compatibility F7-R2),
+> CHANGELOG [0.9.0], and BC-2.11.028 v1.11.
 
 ## Narrative
 

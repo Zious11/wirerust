@@ -222,3 +222,17 @@ cycle_id: feature-story-119-grouped-collapse
 - Cycle manifest: `.factory/cycles/feature-story-119-grouped-collapse/cycle-manifest.md`
 - Demo evidence STORY-119/B: `.factory/demo-evidence/issue-62-story-119/`
 - STORY-121: `.factory/stories/STORY-121.md` (draft — E-11 process-gap)
+
+---
+
+## Archived Checkpoint: 2026-06-19 — F7 Round-2 NOT CLEAN; release-config FIXED; Round-3 pending
+
+### A. EXACT PIPELINE POSITION
+
+- **Project:** wirerust. **Mode:** FEATURE_MODE. **Feature:** E-18 / issue #62/#259 grouped-collapse delta (STORY-120 + STORY-122/A + STORY-119/B).
+- **Phase:** F7 delta-convergence IN PROGRESS — Round-2 NOT CLEAN (D-130). Round-3 pending.
+- **F6 HARDENED:** regression ~1700/0; mutation 85%+ on grouped-collapse path; VP-012 grouped path; Kani/fuzz unaffected.
+- **F7 Round-1 (D-129):** NOT CLEAN — release-config self-contradiction + doc/metadata. Factory-side FIXED; develop-side dispatched docs/f7-convergence-doc-fixes.
+- **F7 Round-2 (D-130):** NOT CLEAN — F-A-001 cli.rs provenance-leak, F-PASSC-001/2/3 release-config self-contradiction (FIXED this burst), F-PASSC-004 #[non_exhaustive]. Human decisions: (1) full provenance-leak sweep + CI grep gate → fix/f7-r2-cli-hardening; (2) ADD #[non_exhaustive].
+- develop HEAD: adcf4e9 (Round-2 frozen corpus: bfe625b). factory-artifacts HEAD: 08bc5ea.
+- Open PRs: docs/f7-convergence-doc-fixes + fix/f7-r2-cli-hardening (to be created).

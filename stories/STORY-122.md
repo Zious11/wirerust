@@ -56,10 +56,17 @@ inputs:
 # Split rationale: D-120 (human-confirmed 2026-06-18) splits the monolithic STORY-119 v1.12 into:
 #   A = STORY-122 (this story): enum→struct reshape + 84-site migration (byte-identical output).
 #   B = STORY-119 (re-scoped): grouped-collapse render path + CLI flip (net-new behavior).
-input-hash: "309f190"
+input-hash: "3f59efd"
 ---
 
 # STORY-122: FindingsRender enum→struct reshape + construction-site migration (byte-identical)
+
+> **Post-delivery update (F7-R2, PR #273):** `Grouping`, `Collapse`, and `FindingsRender` are
+> now `#[non_exhaustive]`; external crates construct `FindingsRender` via
+> `FindingsRender::new(grouping, collapse)` rather than a struct literal. The Task/AC
+> construction snippets below show the as-delivered struct-literal form; the current canonical
+> construction is the `::new()` form. See ADR-0003 Binding Rule 5 (Forward-compatibility F7-R2),
+> CHANGELOG [0.9.0], and BC-2.11.028 v1.11.
 
 ## Narrative
 

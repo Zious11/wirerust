@@ -132,3 +132,49 @@ entirely.
 as the source of truth for convergence status, not embed a round/status narrative.
 The gate condition may be stated generically (as above). Historical context
 (deliveries, PRs) is welcome; current-state claims are not.
+
+---
+
+## [process-gap][codified] Post-Fixburst Sibling Sweep — Consuming BC Bodies + Story Notes (D-131 / PG-F7-R4-POST-FIXBURST-SIBLING-SWEEP-001)
+
+**Observed (F7 Round-4):** The F7-R2 hardening burst (PR #273) added `#[non_exhaustive]`
+to `Grouping`, `Collapse`, and `FindingsRender`, and introduced the `FindingsRender::new`
+public constructor. These changes were correctly propagated to source code, ADR-0003,
+CHANGELOG, and tests. However:
+- **BC-2.11.028 Architecture Anchors** still described the old three-variant enum
+  (`pub enum FindingsRender { Grouped, FlatCollapsed, FlatExpanded }`) and retained
+  `F4-pending` language — now stale against the shipped `#[non_exhaustive] struct`.
+- **STORY-119, STORY-120, STORY-122** had no post-delivery notes recording the
+  F7-R2 changes, and their `input-hash:` fields were stale because BC-2.11.028 (an
+  input) had been updated.
+
+**Root cause:** The fixburst checklist stopped at the code/ADR/test surface. It did
+not enumerate the consuming-BC Architecture Anchors (which describe implementation
+reality) or the consuming-story post-delivery note convention (which records
+significant post-merge spec changes that touch the story's governing BCs).
+
+**Codification [codified]:** Policy DF-CONSISTENCY-AUDIT-POST-FIXBURST-001 /
+DF-SIBLING-SWEEP-001 (already in policy registry). Any develop PR or factory burst
+that changes a public API element — struct definition, enum variants, constructor
+form, `#[non_exhaustive]` annotation — MUST sweep:
+
+1. **All consuming BC bodies:** Architecture Anchors, PC/Inv wiring expressions,
+   EC example rows that reference the changed element.
+2. **All consuming story bodies:** post-delivery notes documenting the change, plus
+   BC-table version stamps if the BC version was bumped.
+3. **All consuming VP docs:** verification-property code blocks or test-spec
+   snippets that embed struct field names or construction patterns.
+4. **Input-hash recomputation:** any story whose `inputs:` list includes a BC that
+   was edited must have its `input-hash:` recomputed (`bin/compute-input-hash --write`).
+
+**Reconcile burst (this burst, 2026-06-19):** BC-2.11.028 → v1.11 (Architecture
+Anchors updated to shipped reality); STORY-119/120/122 post-delivery F7-R2 notes
+added; input-hashes recomputed: STORY-119 `61d2fb1`, STORY-120 `dade348`,
+STORY-122 `3f59efd`. Committed to factory-artifacts as part of F7 Round-4
+remediation burst (D-131).
+
+**Follow-up:** This process-gap is a codification candidate for STORY-121 (E-11
+self-improvement). The policy already exists; the gap is agent execution discipline
+at fixburst time. Per S-7.02, a follow-up story or justified deferral is required.
+Deferral: STORY-121 scope extension covers this (consuming-surface sweep checklist).
+No new story required; deferral justified (policy already codified, STORY-121 in scope).

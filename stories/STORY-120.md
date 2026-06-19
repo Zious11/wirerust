@@ -73,7 +73,7 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-11/BC-2.11.029.md
   - .factory/phase-f1-delta-analysis/issue-62-terminal-reporter-enum-modes-delta-analysis.md
   - docs/adr/0003-reporting-pipeline-layering.md
-input-hash: "0ca4436"
+input-hash: "dade348"
 ---
 
 # STORY-120: TerminalReporter FindingsRender Enum Migration (v0.9.0)
@@ -84,6 +84,14 @@ input-hash: "0ca4436"
 > by STORY-122/A (PR #268). The input BCs and ADR-0003 now reflect the struct vocabulary
 > (v0.9.0+ canonical form). This story's body documents the enum as delivered; STORY-122 is
 > the authoritative record of the current `FindingsRender` type shape. See CHANGELOG [0.9.0].
+
+> **Post-delivery update (F7-R2, PR #273):** `Grouping`, `Collapse`, and `FindingsRender` are
+> now `#[non_exhaustive]`; external crates construct `FindingsRender` via
+> `FindingsRender::new(grouping, collapse)` rather than a struct literal. The Task/AC
+> construction snippets below show the as-delivered struct-literal form (and, for this story
+> specifically, the prior enum-variant form); the current canonical construction is the
+> `::new()` form. See ADR-0003 Binding Rule 5 (Forward-compatibility F7-R2),
+> CHANGELOG [0.9.0], and BC-2.11.028 v1.11.
 
 ## Narrative
 

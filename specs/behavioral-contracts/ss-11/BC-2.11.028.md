@@ -1,10 +1,10 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.10"
+version: "1.11"
 status: draft
 producer: product-owner
-timestamp: 2026-06-17T00:00:00Z
+timestamp: 2026-06-19T00:00:00Z
 phase: 1a
 origin: greenfield
 traces_to: .factory/specs/domain/domain-spec.md
@@ -12,7 +12,7 @@ subsystem: SS-11
 capability: CAP-11
 lifecycle_status: active
 introduced: v0.8.0
-modified: ["v1.1 2026-06-17: fix Related BCs stale cross-ref BC-2.13.001 (--threats) → BC-2.13.004 (--verbose absent) (consistency audit remediation)", "v1.2 2026-06-17: F2 adversarial pass-1 — change PC-3 from indicative to imperative (code does not exist yet); mark Architecture Anchors as insertion targets pending STORY-118 (F-259-08)", "v1.3 2026-06-17: F2 adversarial pass-9 — F-PA-03: add EC-010 (--no-collapse absent, default --output terminal → collapse applies, default-on)", "v1.4 2026-06-17: F2 adversarial passes 12-14 — F-PB-01: drop '--no-color/--no-reassemble convention' citation (those are global flags; no_collapse is subcommand-scoped); replace with correct subcommand-scoped precedent (#[arg(long)] mitre: bool / dns: bool on Commands::Analyze); fix stale Architecture Anchor cli.rs:151-153 no_reassemble → cli.rs:150-152 mitre: bool (subcommand-scoped boolean precedent)", "v1.5 2026-06-17: issue-#62 F2 BC re-anchor — update all collapse_findings/show_mitre_grouping field-name references to FindingsRender enum: Description wiring note + Preconditions + Postconditions + Invariants 1-2 + EC rows updated. Rationale: illegal-state elimination (FindingsRender makes the three modes structurally exclusive). No behavioral change — the CLI flag wiring and observable output semantics are identical; only the struct field name changes from collapse_findings: bool to render: FindingsRender.", "v1.6 2026-06-18: F3 adversarial round-4 finding 1 (MEDIUM) scope/naming correction — PC3/Inv1/Inv6/Architecture-Anchor prescribed wiring expression used *mitre/no_collapse which are NOT in scope inside run_analyze; they live only in main() (src/main.rs:55-56). run_analyze receives the already-resolved bool params show_mitre_grouping (src/main.rs:107) and collapse_findings (src/main.rs:108). Corrected to in-scope param form. Added explicit note that the --mitre/--no-collapse→bool resolution happens at the main() call site (lines 79-80, UNCHANGED). Behavior identical — scope/naming correction only.", "v1.7 2026-06-18: F5 post-merge re-anchor to develop a4263c7 (terminal.rs line-anchor drift fix; no normative change) — TerminalReporter struct REFACTOR TARGET :91-110 → :100-126 (FindingsRender enum at :100-111; TerminalReporter struct at :113-126); Architecture Anchor updated.", "v1.8 2026-06-18: STORY-119 spec-evolution — broaden to DUAL-SCOPE: --no-collapse now suppresses collapse in BOTH flat AND grouped modes. Description wiring updated to struct form (FindingsRender{grouping,collapse} construction). Postconditions 1-2/4 updated to struct form. Invariants 1-2 updated to struct wiring expression. Architecture Anchor updated to struct construction site (STORY-119 F4 target). EC-004/EC-005 updated to struct vocabulary. --mitre default-collapse behavior change noted (--mitre alone → {Grouped, Collapsed} since STORY-119; --mitre --no-collapse → {Grouped, Expanded}).", "v1.9 2026-06-18: F2 adversarial round-1 fix — EC-010: 'TerminalReporter.render = FindingsRender::FlatCollapsed' migrated to struct form 'FindingsRender { grouping: Grouping::Flat, collapse: Collapse::Collapsed }'. Stale enum-variant reference eliminated.", "v1.10 2026-06-18: STORY-119 split D-120 — traceability backlinks updated: Stories field expanded from STORY-118 to STORY-118, STORY-122 (A, preserves --no-collapse dual-scope struct construction byte-identical; no CLI change), STORY-119 (B, activates the {Grouped,Collapsed} default mapping and {Grouped,Expanded} opt-out; BC-030 governs CLI-to-render mapping). No normative change."]
+modified: ["v1.1 2026-06-17: fix Related BCs stale cross-ref BC-2.13.001 (--threats) → BC-2.13.004 (--verbose absent) (consistency audit remediation)", "v1.2 2026-06-17: F2 adversarial pass-1 — change PC-3 from indicative to imperative (code does not exist yet); mark Architecture Anchors as insertion targets pending STORY-118 (F-259-08)", "v1.3 2026-06-17: F2 adversarial pass-9 — F-PA-03: add EC-010 (--no-collapse absent, default --output terminal → collapse applies, default-on)", "v1.4 2026-06-17: F2 adversarial passes 12-14 — F-PB-01: drop '--no-color/--no-reassemble convention' citation (those are global flags; no_collapse is subcommand-scoped); replace with correct subcommand-scoped precedent (#[arg(long)] mitre: bool / dns: bool on Commands::Analyze); fix stale Architecture Anchor cli.rs:151-153 no_reassemble → cli.rs:150-152 mitre: bool (subcommand-scoped boolean precedent)", "v1.5 2026-06-17: issue-#62 F2 BC re-anchor — update all collapse_findings/show_mitre_grouping field-name references to FindingsRender enum: Description wiring note + Preconditions + Postconditions + Invariants 1-2 + EC rows updated. Rationale: illegal-state elimination (FindingsRender makes the three modes structurally exclusive). No behavioral change — the CLI flag wiring and observable output semantics are identical; only the struct field name changes from collapse_findings: bool to render: FindingsRender.", "v1.6 2026-06-18: F3 adversarial round-4 finding 1 (MEDIUM) scope/naming correction — PC3/Inv1/Inv6/Architecture-Anchor prescribed wiring expression used *mitre/no_collapse which are NOT in scope inside run_analyze; they live only in main() (src/main.rs:55-56). run_analyze receives the already-resolved bool params show_mitre_grouping (src/main.rs:107) and collapse_findings (src/main.rs:108). Corrected to in-scope param form. Added explicit note that the --mitre/--no-collapse→bool resolution happens at the main() call site (lines 79-80, UNCHANGED). Behavior identical — scope/naming correction only.", "v1.7 2026-06-18: F5 post-merge re-anchor to develop a4263c7 (terminal.rs line-anchor drift fix; no normative change) — TerminalReporter struct REFACTOR TARGET :91-110 → :100-126 (FindingsRender enum at :100-111; TerminalReporter struct at :113-126); Architecture Anchor updated.", "v1.8 2026-06-18: STORY-119 spec-evolution — broaden to DUAL-SCOPE: --no-collapse now suppresses collapse in BOTH flat AND grouped modes. Description wiring updated to struct form (FindingsRender{grouping,collapse} construction). Postconditions 1-2/4 updated to struct form. Invariants 1-2 updated to struct wiring expression. Architecture Anchor updated to struct construction site (STORY-119 F4 target). EC-004/EC-005 updated to struct vocabulary. --mitre default-collapse behavior change noted (--mitre alone → {Grouped, Collapsed} since STORY-119; --mitre --no-collapse → {Grouped, Expanded}).", "v1.9 2026-06-18: F2 adversarial round-1 fix — EC-010: 'TerminalReporter.render = FindingsRender::FlatCollapsed' migrated to struct form 'FindingsRender { grouping: Grouping::Flat, collapse: Collapse::Collapsed }'. Stale enum-variant reference eliminated.", "v1.10 2026-06-18: STORY-119 split D-120 — traceability backlinks updated: Stories field expanded from STORY-118 to STORY-118, STORY-122 (A, preserves --no-collapse dual-scope struct construction byte-identical; no CLI change), STORY-119 (B, activates the {Grouped,Collapsed} default mapping and {Grouped,Expanded} opt-out; BC-030 governs CLI-to-render mapping). No normative change.", "v1.11 2026-06-19: F7-R4 finding F-A-002 spec-currency reconciliation to shipped reality (develop / PR #268 + #273). Architecture Anchors updated: removed stale 'pub enum FindingsRender { Grouped, FlatCollapsed, FlatExpanded }' and 'F4-pending replacement target' language (STORY-122/A shipped); updated main.rs anchor to shipped FindingsRender::new form (main.rs:383-390); updated terminal.rs anchor to shipped #[non_exhaustive] struct-of-enums + FindingsRender::new (terminal.rs:121-157). Description/PC-3/Inv-1/Inv-6 wiring expressions migrated from bare struct-literal to FindingsRender::new(...). ADR-0003 Binding Rule 5 Forward-compatibility (F7-R2) and CHANGELOG [0.9.0] cited. No behavioral postconditions changed."]
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -29,8 +29,12 @@ The `--no-collapse` CLI flag on the `analyze` subcommand provides an explicit op
 the default-on collapse behavior. Since STORY-119, `--no-collapse` is **dual-scope**: it
 suppresses collapse in both flat mode AND grouped mode. When `--no-collapse` is absent (the
 default), the collapse pass is enabled in both modes. The flag is wired from `cli.rs` through
-`main.rs` to the `TerminalReporter` `render` field using the STORY-119 struct construction:
-`render: FindingsRender { grouping: if show_mitre_grouping { Grouping::Grouped } else { Grouping::Flat }, collapse: if collapse_findings { Collapse::Collapsed } else { Collapse::Expanded } }`.
+`main.rs` to the `TerminalReporter` `render` field using the shipped `FindingsRender::new`
+constructor (ADR-0003 Binding Rule 5, Forward-compatibility F7-R2; CHANGELOG [0.9.0]):
+`render: FindingsRender::new(grouping_from_flag(show_mitre_grouping), if collapse_findings { Collapse::Collapsed } else { Collapse::Expanded })`.
+`FindingsRender` is a `#[non_exhaustive]` struct; `Grouping` and `Collapse` are
+`#[non_exhaustive]` enums. External-crate construction via struct literal is compiler-rejected;
+`FindingsRender::new` is the canonical constructor (terminal.rs:154).
 
 The resulting `render` values are:
 - `--no-collapse` absent, `--mitre` absent: `render = {Flat, Collapsed}` (collapse-ON, flat)
@@ -57,8 +61,9 @@ struct and are unrelated to subcommand-scoped opt-outs).
    `src/cli.rs`, following the same subcommand-scoped boolean precedent as `#[arg(long)]
    mitre: bool` / `dns: bool` on `Commands::Analyze` (cli.rs:150-152), destructured in
    `run_analyze` (main.rs:54-64) as `args.no_collapse`.
-3. The `no_collapse` field MUST be wired in `src/main.rs` `run_analyze` by STORY-119 (F4):
-   `render: FindingsRender { grouping: if show_mitre_grouping { Grouping::Grouped } else { Grouping::Flat }, collapse: if collapse_findings { Collapse::Collapsed } else { Collapse::Expanded } }` at the `TerminalReporter` construction site inside `run_analyze`, using the in-scope bool params `show_mitre_grouping` (line 107) and `collapse_findings` (line 108). The `--mitre`/`--no-collapse`→bool resolution happens at the `main()` call site (lines 79-80, UNCHANGED): `show_mitre_grouping == *mitre` and `collapse_findings == !no_collapse` (via `collapse_findings_from_flag`); `run_analyze` signature is UNCHANGED. Per LESSON-P1.04, an unwired flag is a spec violation.
+3. The `no_collapse` field IS wired in `src/main.rs` `run_analyze` (shipped as of STORY-122/A
+   + STORY-119/B):
+   `render: FindingsRender::new(grouping_from_flag(show_mitre_grouping), if collapse_findings { Collapse::Collapsed } else { Collapse::Expanded })` at the `TerminalReporter` construction site inside `run_analyze` (main.rs:383-390), using the in-scope bool params `show_mitre_grouping` and `collapse_findings`. The `--mitre`/`--no-collapse`→bool resolution happens at the `main()` call site (lines ~78-80): `*mitre` → `show_mitre_grouping`; `collapse_findings_from_flag(*no_collapse)` → `collapse_findings` (main.rs:80, main.rs:502). `FindingsRender::new` is the canonical constructor per ADR-0003 Binding Rule 5 Forward-compatibility (F7-R2) and CHANGELOG [0.9.0]. Per LESSON-P1.04, an unwired flag is a spec violation.
 
 ## Postconditions
 
@@ -94,9 +99,9 @@ struct and are unrelated to subcommand-scoped opt-outs).
    is present, `false` when absent. The `--mitre`/`--no-collapse`→bool resolution happens at
    the `main()` call site (lines 79-80): `show_mitre_grouping == *mitre` and
    `collapse_findings == !no_collapse` (via `collapse_findings_from_flag`). Inside
-   `run_analyze`, the `TerminalReporter.render` field is constructed using the STORY-119
-   struct form (F4 target):
-   `render: FindingsRender { grouping: if show_mitre_grouping { Grouping::Grouped } else { Grouping::Flat }, collapse: if collapse_findings { Collapse::Collapsed } else { Collapse::Expanded } }`.
+   `run_analyze`, the `TerminalReporter.render` field is constructed using the shipped
+   `FindingsRender::new` constructor (ADR-0003 Binding Rule 5 Forward-compatibility F7-R2):
+   `render: FindingsRender::new(grouping_from_flag(show_mitre_grouping), if collapse_findings { Collapse::Collapsed } else { Collapse::Expanded })` (main.rs:383-390).
    The two axes are fully orthogonal: no combination is illegal.
 2. Default behavior (both flags absent) is `{Flat, Collapsed}` (collapse-ON, flat rendering).
    This is intentional: the canonical terminal UX is the collapsed view. When `--mitre` is
@@ -110,11 +115,12 @@ struct and are unrelated to subcommand-scoped opt-outs).
 5. The flag must be documented in the `--help` output for `analyze`. The help text must
    describe both the default-on behavior and the opt-out semantics, and must clarify that
    JSON/CSV output is unaffected.
-6. Per LESSON-P1.04 (no unwired flags): the `no_collapse` field in `cli.rs` MUST be wired
-   to `TerminalReporter.render` in `main.rs` via the two-field struct expression in Invariant 1
-   (STORY-119 F4 target), using the in-scope `show_mitre_grouping` and `collapse_findings`
+6. Per LESSON-P1.04 (no unwired flags): the `no_collapse` field in `cli.rs` IS wired
+   to `TerminalReporter.render` in `main.rs` via `FindingsRender::new` in Invariant 1
+   (shipped as of STORY-122/A + STORY-119/B; ADR-0003 Binding Rule 5 Forward-compatibility F7-R2),
+   using the in-scope `show_mitre_grouping` and `collapse_findings`
    params inside `run_analyze`. The `*mitre`/`no_collapse` names from `Commands::Analyze` are
-   resolved at the `main()` call site (lines 79-80) before being passed as bool params to
+   resolved at the `main()` call site (lines ~78-80) before being passed as bool params to
    `run_analyze`. An unwired flag is a spec violation.
 
 ## Edge Cases
@@ -175,8 +181,8 @@ struct and are unrelated to subcommand-scoped opt-outs).
 ## Architecture Anchors
 
 - `src/cli.rs:150-152` -- `#[arg(long)] mitre: bool` (subcommand-scoped boolean precedent on `Commands::Analyze`; same pattern as `no_collapse`) (existing code; reference only)
-- `src/main.rs:~run_analyze` -- **F4-pending STORY-119 target:** `render: FindingsRender { grouping: if show_mitre_grouping { Grouping::Grouped } else { Grouping::Flat }, collapse: if collapse_findings { Collapse::Collapsed } else { Collapse::Expanded } }` at TerminalReporter construction site, using the in-scope bool params `show_mitre_grouping` (line 107) and `collapse_findings` (line 108). The `--mitre`/`--no-collapse`→bool resolution happens at `main()` lines 79-80 (UNCHANGED): `*mitre` → `show_mitre_grouping`; `collapse_findings_from_flag(*no_collapse)` → `collapse_findings`. Replaces the v0.9.0 three-arm if-expression for `FindingsRender` enum.
-- `src/reporter/terminal.rs:100-126` -- **F4-pending replacement target:** current v0.9.0 `pub enum FindingsRender { Grouped, FlatCollapsed, FlatExpanded }` at :100-111 replaced by `pub enum Grouping { Grouped, Flat }` + `pub enum Collapse { Collapsed, Expanded }` + `pub struct FindingsRender { pub grouping: Grouping, pub collapse: Collapse }` per D-110 (story-119-type-design.md §2.1). `pub struct TerminalReporter` with `pub render: FindingsRender` field at :113-126 is structurally unchanged (field name `render` remains; field type changes from enum to struct).
+- `src/main.rs:383-390` -- **SHIPPED (STORY-122/A + STORY-119/B):** `render: FindingsRender::new(grouping_from_flag(show_mitre_grouping), if collapse_findings { Collapse::Collapsed } else { Collapse::Expanded })` at `TerminalReporter` construction site inside `run_analyze`. The `--mitre`/`--no-collapse`→bool resolution happens at `main()` lines ~78-80: `*mitre` → `show_mitre_grouping`; `collapse_findings_from_flag(*no_collapse)` → `collapse_findings` (main.rs:80, helper at main.rs:502). `FindingsRender::new` is required because `FindingsRender` is `#[non_exhaustive]` — ADR-0003 Binding Rule 5 Forward-compatibility (F7-R2); CHANGELOG [0.9.0].
+- `src/reporter/terminal.rs:121-157` -- **SHIPPED (STORY-122/A + F7-R2 / PR #273):** `#[non_exhaustive] pub enum Grouping { Grouped, Flat }` at :121-127; `#[non_exhaustive] pub enum Collapse { Collapsed, Expanded }` at :129-136; `#[non_exhaustive] pub struct FindingsRender { pub grouping: Grouping, pub collapse: Collapse }` at :142-147; `impl FindingsRender { pub fn new(grouping: Grouping, collapse: Collapse) -> Self }` at :149-157. `pub struct TerminalReporter` with `pub render: FindingsRender` field at :159-172. The prior three-variant enum (`Grouped`, `FlatCollapsed`, `FlatExpanded`) no longer exists. Struct-literal construction of `FindingsRender` outside the defining crate is compiler-rejected by `#[non_exhaustive]`.
 
 ## Story Anchor
 
