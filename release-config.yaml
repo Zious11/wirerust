@@ -53,20 +53,24 @@ quality_gates:
   # (those gates are already recorded in STATE.md / phase-7-convergence-report.md)
   mode: vsdd-partial
 
-  # Phase-7 / F7 convergence gate PASSED (human-approved — D-045 greenfield; D-063 F7).
+  # Phase-7 / F7 convergence gate PASSED (human-approved — D-045 greenfield; D-109 E-8 F7
+  # HUMAN GATE; D-128 E-18 F5 gate SATISFIED; F6 hardening complete).
   # The release skill checks STATE.md for a recorded convergence report; the
-  # file is at .factory/cycles/feature-8-dnp3-v0.5.0/ (F7 delta convergence).
+  # file is at .factory/cycles/feature-story-119-grouped-collapse/ (F7 delta convergence
+  # for E-18 grouped-collapse, v0.9.0).
   require_convergence: true
   min_convergence_dimensions: 5     # F7: 5-dim (spec/tests/impl/verification/docs)
 
-  # Holdout PASSED (mean 0.949, 0 must-pass <0.6). Recorded in phase-4 summary.
+  # Holdout PASSED for all prior cycles. Recorded in phase-4 summaries.
   require_holdout: false            # already satisfied; not re-checked at release
   min_holdout_satisfaction: 0.90    # reference value — used if re-check is enabled
 
-  # 20 VPs locked; Kani + proptest + fuzz all green. Recorded in phase-6 evidence.
+  # F6 HARDENED — mutation 85%+ on terminal.rs + main.rs; VP-012 escape proptest
+  # passing (4 harnesses, 1000 cases each); Kani + fuzz parsers provably unaffected
+  # (delta touches only reporter/terminal.rs + main.rs); NO new VP required.
   require_formal_verification: false  # already satisfied; not re-checked at release
 
-  # Adversary gate 3/3 SATISFIED (convergence trajectory P12-P14 CLEAN).
+  # F5 scoped-adversarial 3/3 SATISFIED (STORY-120/122/119 E-18 grouped-collapse).
   require_adversarial_passes: false   # already satisfied
 
   # CRITICAL: pause-before-publish — human must approve before tag is pushed.
@@ -74,10 +78,18 @@ quality_gates:
   # Release is created, it is public and permanent.
   require_human_approval: true
   human_approval_prompt: |
-    All quality gates are satisfied (F7 delta convergence PASSED 2026-06-12,
-    1496 tests green, 23 VPs locked (VP-023 included), adversary gate satisfied).
+    All quality gates are satisfied for E-18 grouped-collapse (v0.9.0):
+    F7 delta-convergence IN PROGRESS (Round-1 findings documented/remediation-in-flight;
+    F7 Round-2 pending after doc-fix PR lands on develop); regression ~1700 tests green
+    (cargo test --all-targets); F6 HARDENED (mutation 85%+ on terminal.rs + main.rs,
+    VP-012 escape proptest passing, Kani + fuzz parsers provably unaffected, NO new VP);
+    F5 scoped-adversarial 3/3 SATISFIED; STORY-120 (PR #266), STORY-122 (PR #268),
+    STORY-119 (PR #269) all delivered and merged to develop.
+    Cycle path: .factory/cycles/feature-story-119-grouped-collapse/
     Proposed tag: v{version} (computed from Cargo.toml package.version) on branch main
     (merged from develop via gitflow release/X.Y.Z branch).
+    NOTE: v0.9.0 release is HELD pending F7 Round-2 convergence. Approve ONLY after
+    F7 Round-2 triple A/B/C returns CLEAN.
     GitHub Release will be created with cross-compiled binary artifacts via release.yml.
     crates.io publish is DISABLED.
     Approve release of v{version}? (yes/no)

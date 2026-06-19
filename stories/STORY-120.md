@@ -3,14 +3,14 @@ document_type: story
 story_id: STORY-120
 epic_id: E-8
 version: "1.0"
-status: draft
+status: completed
 producer: story-writer
 timestamp: 2026-06-18T00:00:00Z
 phase: f3
 points: 3
 priority: P0
 depends_on: []
-blocks: [STORY-119]
+blocks: [STORY-122]
 behavioral_contracts:
   - BC-2.11.010
   - BC-2.11.013
@@ -73,10 +73,17 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-11/BC-2.11.029.md
   - .factory/phase-f1-delta-analysis/issue-62-terminal-reporter-enum-modes-delta-analysis.md
   - docs/adr/0003-reporting-pipeline-layering.md
-input-hash: "8047030"
+input-hash: "0ca4436"
 ---
 
 # STORY-120: TerminalReporter FindingsRender Enum Migration (v0.9.0)
+
+> **Historical note (2026-06-18):** STORY-120 delivered the bool-to-enum refactor (PR #266).
+> The `FindingsRender` enum form (`Grouped`, `FlatCollapsed`, `FlatExpanded`) it introduced
+> was subsequently reshaped into a struct form (`FindingsRender { grouping: Grouping, collapse: Collapse }`)
+> by STORY-122/A (PR #268). The input BCs and ADR-0003 now reflect the struct vocabulary
+> (v0.9.0+ canonical form). This story's body documents the enum as delivered; STORY-122 is
+> the authoritative record of the current `FindingsRender` type shape. See CHANGELOG [0.9.0].
 
 ## Narrative
 
