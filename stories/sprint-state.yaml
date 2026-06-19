@@ -12,6 +12,9 @@
 # retains individual story entries for greenfield stories (STORY-001..STORY-090) and
 # is extended with feature-mode entries as they are dispatched. STORY-120 is
 # delivered (merged PR #267, develop f851995). STORY-119 is pending dispatch (wave 49).
+# blocked_by convention: static dependency-edge set (mirrors depends_on); kept even
+# after predecessors merge. Not a live "is-blocked" flag — a done predecessor in
+# blocked_by means the static edge exists but is resolved. See STORY-119 below.
 
 document_type: sprint-state
 version: "1.1"
@@ -660,4 +663,4 @@ stories:
     wave: 49
     branch: null
     worktree: null
-    blocked_by: []  # STORY-120 delivered (f851995); block resolved
+    blocked_by: [STORY-120]  # static dep-edge (depends_on); STORY-120 delivered (f851995) so live readiness is unblocked
