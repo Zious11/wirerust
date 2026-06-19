@@ -97,3 +97,35 @@ cycle_id: feature-story-119-grouped-collapse
 - **STORY-122:** `.factory/stories/STORY-122.md` — NEW (A, struct reshape, wave 49, input-hash 309f190).
 - **STORY-119:** `.factory/stories/STORY-119.md` — RE-SCOPED (B, wave 50, input-hash 4a8c93f).
 - **Active worktrees:** 2 — main repo (develop), `.factory/` (factory-artifacts). **Open PRs:** NONE.
+
+---
+
+## Checkpoint: 2026-06-19 — STORY-119 split F3 CONVERGED 3/3; AWAITING F3 HUMAN GATE
+
+*Archived from STATE.md when F3 HUMAN GATE APPROVED (D-122) burst replaced this checkpoint.*
+
+### A. EXACT PIPELINE POSITION
+
+- **Project:** wirerust. **Mode:** FEATURE_MODE — STORY-119 cycle, F1✅/F2✅/F3 CONVERGED (split). D-121: split CONVERGED 3/3 (frozen corpus 8fa9ff9; round-5 triple A/B/C all CLEAN). Consistency audit CONSISTENT (6 dims + split checks). AWAITING F3 HUMAN GATE (split) → F4 TDD.
+- **STORY-122 (A):** `.factory/stories/STORY-122.md` v1.4 — 8 ACs, 6 governing BCs, wave 49, input-hash 309f190 MATCH, depends_on [STORY-120]. Implementation-ready.
+- **STORY-119 (B):** `.factory/stories/STORY-119.md` v2.4 — 27 ACs, 12 governing BCs, wave 50, input-hash 4a8c93f MATCH, depends_on [STORY-122]. Implementation-ready.
+- **Latest release:** v0.8.0 — tag v0.8.0 on main 73034da. Cargo 0.9.0 on develop (not yet released).
+- **ADR-0003 Collapse-API Shape subsection:** on develop working tree (uncommitted) — to be committed during F4.
+- **DRIFT-62-MAIN495-DOC-001:** Still pending, fix in STORY-119 cycle F4.
+- **STORY-121 (E-11 process-gap):** Filed as draft; process-gaps from D-120 split fold into scope.
+
+### B. EXACT SHAs / WORKTREE STATE
+
+- **develop HEAD:** `f851995` (fix-PR #267). Unchanged.
+- **main HEAD:** `73034da` (`chore: release v0.8.0`). Tag `v0.8.0` annotated.
+- **factory-artifacts HEAD:** run `git -C /Users/zious/Documents/GITHUB/wirerust/.factory log -1 --format='%h %s'`
+- **STORY-122:** `.factory/stories/STORY-122.md` v1.4 (A, struct reshape, wave 49, input-hash 309f190 MATCH).
+- **STORY-119:** `.factory/stories/STORY-119.md` v2.4 (B, render+CLI, wave 50, input-hash 4a8c93f MATCH).
+- **Active worktrees:** 2 — main repo (develop), `.factory/` (factory-artifacts). **Open PRs:** NONE.
+
+### C. KEY ARTIFACT POINTERS
+
+- STORY-122: `.factory/stories/STORY-122.md` (A, struct reshape; wave 49; v1.4; input-hash 309f190)
+- STORY-119: `.factory/stories/STORY-119.md` (B, render+CLI; wave 50; v2.4; input-hash 4a8c93f)
+- dep-graph: `.factory/stories/dependency-graph.md` v2.9 (chain 120→122→119)
+- Cycle manifest: `.factory/cycles/feature-story-119-grouped-collapse/cycle-manifest.md`
