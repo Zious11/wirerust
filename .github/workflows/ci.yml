@@ -212,9 +212,8 @@ jobs:
   # Background: clap derives --help output exclusively from `///` (doc-comment) lines
   # on Parser/Args/Subcommand/ValueEnum structs and their fields. Plain `//` comments
   # are never rendered to users and are not scanned here. Internal identifiers of the
-  # form BC-NNN, STORY-NNN, and LESSON-* must not appear in `///` doc-comments in
-  # clap-hosting files — they are implementation bookkeeping and have no meaning to
-  # end users.
+  # factory convention must not appear in `///` doc-comments in clap-hosting files —
+  # they are implementation bookkeeping and have no meaning to end users.
   #
   # Scope: src/cli.rs only. All clap derive macros (#[derive(Parser)], #[arg(...)],
   # #[command(...)]) currently live in src/cli.rs. Other src/ files use `///` for
@@ -224,9 +223,24 @@ jobs:
   # target in the step below.
   #
   # Pattern rationale:
-  #   BC-[0-9]    — behavioral contract refs (e.g. BC-2.11.028, BC-2.14.023)
-  #   STORY-[0-9] — factory story refs  (e.g. STORY-114, STORY-119)
-  #   LESSON-     — factory lesson refs (e.g. LESSON-P1.03, LESSON-P2.05)
+  #   \b[A-Z]{2,}-[0-9A-Z]  — matches any factory internal-ID convention:
+  #     two-or-more uppercase letters, a literal hyphen, then a digit or uppercase
+  #     letter. This covers the full known set of factory prefixes:
+  #       BC-       behavioral contract refs    (e.g. BC-2.11.028, BC-2.14.023)
+  #       STORY-    story refs                  (e.g. STORY-114, STORY-119)
+  #       LESSON-   lesson refs                 (e.g. LESSON-P1.03, LESSON-P2.05)
+  #       VP-       variant-proposal refs       (e.g. VP-016)
+  #       ADR-      architecture decision refs  (e.g. ADR-0003)
+  #       EC-       evaluation criterion refs   (e.g. EC-006)
+  #       AC-       acceptance criterion refs   (e.g. AC-007)
+  #       TD-       tech-debt refs              (e.g. TD-012)
+  #       PG-       policy-gate refs            (e.g. PG-001)
+  #   and any future two-plus-letter prefix that follows the same convention.
+  #   False-positive safety: ordinary hyphenated English prose uses lowercase
+  #   (e.g. "non-zero", "opt-in") and will never match [A-Z]{2,}. Legitimate
+  #   uppercase terms in help text that do not precede a hyphen (e.g. "MITRE",
+  #   "JSON", "TCP", "ARP") are equally safe — the hyphen-then-[0-9A-Z] suffix
+  #   anchors the match to ID-structured tokens only.
   # Only `///` lines (doc-comments) are matched; `//` comment lines are excluded by
   # the leading `^\s*///` anchor.
   help-provenance-gate:
@@ -237,21 +251,25 @@ jobs:
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
       - name: Verify no internal factory IDs in clap /// doc-comments
         # Scans src/cli.rs (the sole clap-derive module) for `///` lines containing
-        # internal ID patterns (BC-NNN, STORY-NNN, LESSON-*). These patterns appear
-        # verbatim in clap --help output and must not be visible to end users.
-        # Plain // comment lines are not matched and are never rendered by clap.
-        # If a new clap-derive module is added, append its path to the grep target.
+        # factory internal-ID patterns. The pattern \b[A-Z]{2,}-[0-9A-Z] catches any
+        # UPPERCASE-prefix factory ID (BC-, STORY-, LESSON-, VP-, ADR-, EC-, AC-,
+        # TD-, PG-, and future additions) while excluding lowercase hyphenated prose
+        # and standalone uppercase acronyms that are not followed by -[digit/UPPER].
+        # These patterns appear verbatim in clap --help output and must not be visible
+        # to end users. Plain // comment lines are not matched and are never rendered
+        # by clap. If a new clap-derive module is added, append its path to the grep target.
         shell: bash
         run: |
           set -euo pipefail
-          VIOLATIONS=$(grep -n -E '^\s*///.*(BC-[0-9]|STORY-[0-9]|LESSON-)' src/cli.rs) || true
+          VIOLATIONS=$(grep -n -E '^\s*///.*\b[A-Z]{2,}-[0-9A-Z]' src/cli.rs) || true
           if [ -n "${VIOLATIONS}" ]; then
             echo "FAIL: Internal factory IDs found in /// doc-comments in src/cli.rs:"
             echo "${VIOLATIONS}"
             echo ""
             echo "/// doc-comments in clap-derive files are rendered verbatim into"
             echo "--help output and must not contain internal IDs (BC-NNN, STORY-NNN,"
-            echo "LESSON-*). Move internal references to plain // comments, which are"
+            echo "LESSON-*, VP-NNN, ADR-NNN, EC-NNN, AC-NNN, TD-NNN, etc.)."
+            echo "Move internal references to plain // comments, which are"
             echo "never rendered by clap and are invisible to end users."
             exit 1
           fi
