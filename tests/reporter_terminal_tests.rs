@@ -6712,4 +6712,94 @@ mod story_119 {
              got:\n{out}"
         );
     }
+
+    // -----------------------------------------------------------------------
+    // F6-FINDING-1 — confidence_rank secondary sort key on grouped/collapsed path
+    // (traces to BC-2.11.033 PC-6 / BC-2.11.014)
+    // -----------------------------------------------------------------------
+
+    /// F6-FINDING-1 (BC-2.11.033 Postcondition 6 / BC-2.11.014):
+    /// REGRESSION GUARD: Two findings in the SAME tactic bucket with the SAME
+    /// verdict but DIFFERENT confidence must appear in `confidence_rank` order
+    /// (High before Low, i.e. rank-0 before rank-2) when rendered through the
+    /// `{Grouped, Collapsed}` path.
+    ///
+    /// The existing `test_BC_2_11_033_first_occurrence_in_sorted_bucket_order`
+    /// varies VERDICT only (Likely vs Inconclusive). This test fixes the gap by
+    /// keeping verdict constant (Likely/Likely) and varying CONFIDENCE
+    /// (High vs Low). Both findings are singletons (distinct summaries) so they
+    /// produce two separate group headers — the order of those headers is
+    /// entirely determined by the `confidence_rank` secondary sort key.
+    ///
+    /// FAIL mode: if `confidence_rank` is removed from the `sort_by_key` lambda
+    /// in `render_findings_grouped_collapsed` (terminal.rs:~534), the two
+    /// singletons sort by emission index only, meaning the Low-confidence finding
+    /// (inserted first) would appear before the High-confidence one — inverting
+    /// the expected order and failing the positional assertion below.
+    #[test]
+    fn test_BC_2_11_033_confidence_rank_secondary_sort_same_verdict_grouped_collapsed() {
+        // Two findings: same verdict (Likely), same bucket (T1046/Discovery),
+        // DIFFERENT confidence. Low is inserted first (index 0) so that removing
+        // `confidence_rank` from sort_by_key would put it first, inverting order.
+        let findings = vec![
+            Finding {
+                category: ThreatCategory::Anomaly,
+                verdict: Verdict::Likely,
+                confidence: Confidence::Low, // rank=2 — must sort AFTER High
+                summary: "s119-f6find1-low-confidence".to_string(),
+                evidence: vec![],
+                mitre_techniques: vec!["T1046".to_string()],
+                source_ip: None,
+                timestamp: None,
+                direction: None,
+            },
+            Finding {
+                category: ThreatCategory::Anomaly,
+                verdict: Verdict::Likely,
+                confidence: Confidence::High, // rank=0 — must sort FIRST
+                summary: "s119-f6find1-high-confidence".to_string(),
+                evidence: vec![],
+                mitre_techniques: vec!["T1046".to_string()],
+                source_ip: None,
+                timestamp: None,
+                direction: None,
+            },
+        ];
+
+        let out = grouped_collapse_reporter().render(&Summary::new(), &findings, &[]);
+
+        // Both headers must be present (singletons — no (xN) suffix on either).
+        assert!(
+            out.contains("s119-f6find1-high-confidence"),
+            "F6-FINDING-1: High-confidence finding must appear in output; got:\n{out}"
+        );
+        assert!(
+            out.contains("s119-f6find1-low-confidence"),
+            "F6-FINDING-1: Low-confidence finding must appear in output; got:\n{out}"
+        );
+        // Neither is a group of N≥2: no (xN) suffix expected.
+        assert!(
+            !out.contains("(x"),
+            "F6-FINDING-1: both findings are singletons; no (xN) suffix expected; got:\n{out}"
+        );
+
+        // Core assertion: High-confidence (rank=0) must appear BEFORE
+        // Low-confidence (rank=2) in the rendered output.
+        // If confidence_rank is removed from sort_by_key, the Low-confidence
+        // finding (emission index 0) would appear first — this assertion fails.
+        let high_pos = out
+            .find("s119-f6find1-high-confidence")
+            .expect("high-confidence finding must be in output");
+        let low_pos = out
+            .find("s119-f6find1-low-confidence")
+            .expect("low-confidence finding must be in output");
+        assert!(
+            high_pos < low_pos,
+            "F6-FINDING-1 (BC-2.11.033 PC-6 / BC-2.11.014): High-confidence finding \
+             (confidence_rank=0) must appear before Low-confidence (confidence_rank=2) \
+             in the grouped-collapsed output. This assertion fails when `confidence_rank` \
+             is removed from the sort_by_key lambda in render_findings_grouped_collapsed.\n\
+             high_pos={high_pos}, low_pos={low_pos}\nfull output:\n{out}"
+        );
+    }
 }
