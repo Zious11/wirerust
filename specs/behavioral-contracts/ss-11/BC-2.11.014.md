@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "2.0"
+version: "2.1"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -22,6 +22,7 @@ modified:
   - "v1.7 2026-06-17: issue-#62 F2 BC re-anchor — Precondition 1: 'show_mitre_grouping = true' → 'render = FindingsRender::Grouped'. Rationale: illegal-state elimination (enum makes the two-bool axis for grouped mode unrepresentable as separate bools). No behavioral change."
   - "v1.8 2026-06-18: F5 post-merge re-anchor to develop a4263c7 (terminal.rs line-anchor drift fix; no normative change) — sort helpers shifted: verdict_rank :287-293 → :447-454; confidence_rank :295-301 → :455-461; sort_by_key call :303-307 → :464-466; bucket push line :284 → :444; bounding range :287-307 → :447-466; Architecture Anchor + Source Evidence path updated."
   - "v1.9 2026-06-18: STORY-119 vocabulary migration — D-110 struct form: FindingsRender::Grouped → render.grouping == Grouping::Grouped in Precondition 1. No behavioral change."
+  - "v2.1 2026-06-18: STORY-119 split D-120 — traceability backlinks updated: Stories field expanded from STORY-078 to STORY-078, STORY-122 (A, preserves within-bucket sort byte-identical), STORY-119 (B, grouped-collapse must honor this sort order within each bucket). No normative change."
   - "v2.0 2026-06-18: R2-1 — correct Invariant 1 verdict-rank enumeration: was Likely=0, Inconclusive=1, Unlikely=2 (stale brownfield extraction, Possible variant added post-extraction in STORY-109); now Likely=0, Possible=1, Inconclusive=2, Unlikely=3 per terminal.rs:447-454 source-confirmed match arms. Also correct Description paragraph (was 'Likely < Inconclusive < Unlikely'; now includes Possible). No behavioral change."
 deprecated: null
 deprecated_by: null
@@ -97,7 +98,7 @@ section.
 | Capability Anchor Justification | CAP-11 ("Reporting and Output") per domain/capabilities/cap-11-reporting-output.md -- sorting findings by severity within each tactic bucket is part of the MITRE-grouped reporting output contract |
 | L2 Domain Invariants | None directly |
 | Architecture Module | SS-11 (reporter/terminal.rs, C-20) |
-| Stories | STORY-078 |
+| Stories | STORY-078, STORY-122 (A — preserves within-bucket sort byte-identical), STORY-119 (B — grouped-collapse must honor this sort order within each bucket per-bucket pass) |
 | Origin BC | BC-RPT-014 (pass-3 ingestion corpus, HIGH confidence) |
 
 ## Related BCs

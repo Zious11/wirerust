@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: product-owner
 timestamp: 2026-06-18T00:00:00Z
@@ -16,6 +16,7 @@ modified:
   - "v1.1 2026-06-18: F2 adversarial round-1 fix — PC-4 sort direction corrected: 'verdict-rank (desc), confidence-rank (desc)' → 'ascending by rank (Likely=0/High=0 first)' to match BC-2.11.014 authoritative definition. No behavioral change; rank=0 means highest severity and is sorted first by ascending comparison, making the description of 'descending severity' formerly used in this BC misleading and internally inconsistent with BC-014's explicit rank assignments."
   - "v1.2 2026-06-18: R2-1 — propagate corrected verdict-rank enumeration: PC-4 now lists all four verdicts (Likely=0 first, Possible=1, Inconclusive=2, Unlikely=3) to match terminal.rs:447-454 source. R2-2 — introduced: v0.10.0 → v0.9.0. R2-6 — Invariant 4 and Invariant 5 reworded to observable-behavior form (drop implementation-sharing/no-duplication prescription; state externally testable invariants instead)."
   - "v1.3 2026-06-18: F3 adversarial round-1 remediation (C-1) — Architecture Anchors: collapse_findings_pass bullet replaced with collapse_findings_pass_refs (F4-new private helper; accepts &[&'a Finding]; called once per bucket; collapse_findings_pass at :340 retained as thin adapter for flat-mode caller). Invariant 3: reworded to name collapse_findings_pass_refs as the shared implementation called by both flat and grouped mode; flat-mode adapter delegation noted; no Finding value cloned."
+  - "v1.4 2026-06-18: STORY-119 split D-120 — traceability backlinks updated: Stories field changed from STORY-119 to STORY-119 (B, PRIMARY: implements render_findings_grouped_collapsed + collapse_findings_pass_refs). STORY-122 NOT listed (A is a type reshape; does not implement grouped-collapse render). No normative change."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -144,7 +145,7 @@ bucket and are never cross-collapsed (see BC-2.11.030, BC-2.11.033).
 | Capability Anchor Justification | CAP-11 ("Reporting and Output") per domain/capabilities/cap-11-reporting-output.md — this BC defines the per-bucket count annotation format that makes grouped-mode collapse human-readable; the ` (xN)` suffix within each MITRE tactic bucket is the direct output contract of the Reporting capability for collapsed grouped mode |
 | L2 Domain Invariants | INV-4 (Raw-Data/Display-Layer Separation — count computation occurs at display time; the raw Finding slice carries no count field and is never mutated) |
 | Architecture Module | SS-11 (reporter/terminal.rs — `render_findings_grouped_collapsed`, F4-pending) |
-| Stories | STORY-119 |
+| Stories | STORY-119 (B — PRIMARY: implements render_findings_grouped_collapsed + collapse_findings_pass_refs per-bucket count suffix) |
 | Issue | #259 (Collapse repeated low-value findings — grouped-mode extension) |
 | ADR | ADR-0003 (Binding Rule 5 revised, STORY-119; grouped-mode collapse subsection) |
 

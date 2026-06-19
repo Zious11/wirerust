@@ -1,12 +1,12 @@
 ---
 document_type: story-index
-version: "2.2"
+version: "2.3"
 status: draft
 producer: story-writer
 timestamp: 2026-06-18T00:00:00Z
 phase: 3
-total_stories: 74
-total_waves: 49
+total_stories: 75
+total_waves: 50
 total_points: 484  # = 479 wave-table scheduled product (72 product stories in waves 1-49, excludes STORY-091/STORY-121 wave-TBD) + 5 (STORY-091 tooling, wave TBD); epic-table grand total = 487 (= 484 + 3 STORY-121 tooling pts); STORY-121 3pts is in epic table but excluded from this frontmatter total; see wave-table footer row (479 = scheduled product only) and epic table (487 = all 74 stories)
 # v1.5 totals reconciliation (Pass-26 Slice-D remediation):
 # Root cause: the "400 pre-ARP" figure in v1.4 was itself 10 low (actual pre-ARP incl STORY-091 = 410).
@@ -37,6 +37,10 @@ total_points: 484  # = 479 wave-table scheduled product (72 product stories in w
 # coverage note (line ~284) corrected to '84 sites' (grepped ground-truth per STORY-119 v1.7).
 # Fix 4: legend extended — 'completed' (Index Table) = delivered and merged to develop; equivalent
 # to Wave-Delivery-Progress table's DELIVERED & CLOSED. No per-row status cell changes.
+# v2.3 (2026-06-18): D-120 STORY-119 split — added STORY-122 (E-18, wave 49, 3 pts, A:
+# enum→struct reshape + 84-site migration byte-identical). STORY-119 re-scoped to B (wave 50,
+# 5 pts, depends_on STORY-122). total_stories 74→75. total_waves 49→50. Points net zero change
+# (STORY-119 8→5 + STORY-122 3pts). E-18 epic entry updated (2→3 stories, 16 pts unchanged).
 traces_to:
   - .factory/stories/dependency-graph.md
   - .factory/stories/epics.md
@@ -46,7 +50,7 @@ traces_to:
 
 # wirerust Story Index
 
-> **Authoritative story registry for the v0.1.0-greenfield-spec cycle (48 greenfield product + 1 tooling STORY-091 = 49 stories) + Feature Mode F3 additions (3 stories, STORY-097/098/099 for issue #100) + Feature #7 additions (6 stories, STORY-100..105 for issue #7 Modbus Analyzer) + Feature #8 additions (5 stories, STORY-106..110 for issue #8 DNP3/ICS Analyzer) + Feature #9 additions (5 stories, STORY-111..115 for issue #9 ARP Security Analyzer) + E-17 F3 additions (2 stories, STORY-116..117 for issue #253 ARP QinQ/MACsec Offset Hardening) + E-18 F3 additions (2 stories, STORY-118..119 for issue #259 Terminal Finding-Collapse) + Issue #62 F3 addition (1 story, STORY-120 for issue #62 FindingsRender Enum Migration v0.9.0) + D-103 process-gap follow-up (1 story, STORY-121 for E-11 self-improvement — F1/F2 numeric self-audit checklist).**
+> **Authoritative story registry for the v0.1.0-greenfield-spec cycle (48 greenfield product + 1 tooling STORY-091 = 49 stories) + Feature Mode F3 additions (3 stories, STORY-097/098/099 for issue #100) + Feature #7 additions (6 stories, STORY-100..105 for issue #7 Modbus Analyzer) + Feature #8 additions (5 stories, STORY-106..110 for issue #8 DNP3/ICS Analyzer) + Feature #9 additions (5 stories, STORY-111..115 for issue #9 ARP Security Analyzer) + E-17 F3 additions (2 stories, STORY-116..117 for issue #253 ARP QinQ/MACsec Offset Hardening) + E-18 F3 additions (3 stories, STORY-118/STORY-119/STORY-122 for issue #259 Terminal Finding-Collapse — D-120 split: STORY-122=A reshape, STORY-119=B behavioral) + Issue #62 F3 addition (1 story, STORY-120 for issue #62 FindingsRender Enum Migration v0.9.0) + D-103 process-gap follow-up (1 story, STORY-121 for E-11 self-improvement — F1/F2 numeric self-audit checklist).**
 > All 48 greenfield stories formalize behavioral contracts for the existing shipped wirerust
 > codebase. STORY-097/098/099 are new feature stories for issue #100 (pcap timestamps).
 > STORY-100/101 implement E-13 multi-tag Finding schema migration (v0.3.0).
@@ -134,8 +138,9 @@ traces_to:
 | STORY-116 | ARP QinQ (Double-Tag) Decoder Offset Coverage | E-17 | 45 | 3 | draft | STORY-115 |
 | STORY-117 | ARP MACsec Offset Documented-Limitation Coverage | E-17 | 46 | 5 | draft | STORY-116 |
 | STORY-118 | Terminal Finding-Collapse — Flat Mode (v0.8.0) | E-18 | 47 | 8 | completed | — |
-| STORY-119 | Terminal Finding-Collapse — Grouped Mode / --mitre | E-18 | 49 | 8 | pending | STORY-120 |
+| STORY-119 | Terminal Finding-Collapse — Grouped Mode / --mitre (B: render path + CLI flip) | E-18 | 50 | 5 | pending | STORY-122 |
 | STORY-120 | TerminalReporter FindingsRender Enum Migration (v0.9.0) | E-8 | 48 | 3 | completed | — |
+| STORY-122 | FindingsRender enum→struct reshape + construction-site migration (byte-identical) | E-18 | 49 | 3 | pending | STORY-120 |
 
 ---
 
@@ -191,8 +196,9 @@ traces_to:
 | 46 | STORY-117 | 1 | 5 |
 | 47 | STORY-118 | 1 | 8 |
 | 48 | STORY-120 | 1 | 3 |
-| 49 | STORY-119 | 1 | 8 |
-| **TOTAL (excl. STORY-091 wave-TBD, STORY-121 wave-TBD)** | | **72** | **479** |
+| 49 | STORY-122 | 1 | 3 |
+| 50 | STORY-119 | 1 | 5 |
+| **TOTAL (excl. STORY-091 wave-TBD, STORY-121 wave-TBD)** | | **73** | **479** |
 
 ---
 
@@ -217,7 +223,7 @@ traces_to:
 | E-15: DNP3/ICS Analyzer (issue #8) | STORY-106, STORY-107, STORY-108, STORY-109, STORY-110 | 5 | 47 |
 | E-16: ARP Security Analyzer (issue #9) | STORY-111, STORY-112, STORY-113, STORY-114, STORY-115 | 5 | 47 |
 | E-17: ARP QinQ/MACsec Offset Hardening (issue #253) | STORY-116, STORY-117 | 2 | 8 |
-| E-18: Terminal Finding-Collapse (issue #259, v0.8.0) | STORY-118, STORY-119 | 2 | 16 |
+| E-18: Terminal Finding-Collapse (issue #259, v0.8.0) | STORY-118, STORY-122, STORY-119 | 3 | 16 |
 | **TOTAL** | | **74** | **487** |
 
 ---
@@ -274,17 +280,18 @@ traces_to:
 | 46 | STORY-117 | draft | #258 (test/arp-qinq-macsec-fixtures) | — | — |
 | 47 | STORY-118 | **DELIVERED & CLOSED** | #264 | 5f7cd1b | 2026-06-17 |
 | 48 | STORY-120 | **DELIVERED & CLOSED** | #267 | f851995 | 2026-06-18 |
-| 49 | STORY-119 | pending | — | — | — |
+| 49 | STORY-122 | pending | — | — | — |
+| 50 | STORY-119 | pending | — | — | — |
 
 ## Coverage Verification
 
-- Total stories: **74** (48 greenfield product + 1 tooling STORY-091 + 3 F3 feature STORY-097/098/099 + 6 Feature-#7 STORY-100..105 + 5 Feature-#8 STORY-106..110 + 5 Feature-#9 STORY-111..115 + 2 E-17 F3 STORY-116..117 + 2 E-18 F3 STORY-118..119 + 1 Issue-#62 F3 STORY-120 + 1 D-103 process-gap STORY-121)
-- Total waves: **49** (Waves 40–44 added for Feature #9 ARP; Waves 45–46 added for E-17 QinQ/MACsec hardening; Wave 47 added for E-18 finding-collapse STORY-118; Wave 48 added for Issue-#62 STORY-120; Wave 49 added for STORY-119 grouped-mode collapse F3 full decomposition 2026-06-18; STORY-091 wave TBD; STORY-121 wave TBD)
-- Total points: **484** (465 pre-E18 + 8 STORY-118 + 3 STORY-120 + 8 STORY-119 now scheduled; wave-table scheduled row shows 479 — delta of 5 is STORY-091+STORY-121 at wave TBD excluded from wave table; epic table shows 487)
-- Graph is acyclic: **Yes** (Kahn topological sort verified; Feature-#7 dependency chain: STORY-100 → {STORY-101 ∥ STORY-102} → STORY-103 → STORY-104 → STORY-105; Feature-#8 DNP3 chain: STORY-100 → STORY-106 → STORY-107 → STORY-108 → STORY-109 → STORY-110; Feature-#9 ARP chain: STORY-110 → STORY-111 → STORY-112 → STORY-113 → STORY-114 → STORY-115; E-17 hardening chain: STORY-115 → STORY-116 → STORY-117; E-18/E-8 collapse chain: STORY-118 (no predecessor) → STORY-120 (no predecessor) → STORY-119 (wave 49); no back-edges into existing 74-story graph; 74 = 72 product stories + STORY-091 tooling + STORY-121 tooling)
+- Total stories: **75** (48 greenfield product + 1 tooling STORY-091 + 3 F3 feature STORY-097/098/099 + 6 Feature-#7 STORY-100..105 + 5 Feature-#8 STORY-106..110 + 5 Feature-#9 STORY-111..115 + 2 E-17 F3 STORY-116..117 + 3 E-18 F3 STORY-118/STORY-119/STORY-122 + 1 Issue-#62 F3 STORY-120 + 1 D-103 process-gap STORY-121)
+- Total waves: **50** (Waves 40–44 added for Feature #9 ARP; Waves 45–46 added for E-17 QinQ/MACsec hardening; Wave 47 added for E-18 finding-collapse STORY-118; Wave 48 added for Issue-#62 STORY-120; Wave 49 added for STORY-122 (D-120 split A: enum→struct reshape); Wave 50 added for STORY-119/B (D-120 split B: render path + CLI flip, 2026-06-18); STORY-091 wave TBD; STORY-121 wave TBD)
+- Total points: **484** (465 pre-E18 + 8 STORY-118 + 3 STORY-120 + 3 STORY-122 + 5 STORY-119/B now scheduled; wave-table scheduled row shows 479 — STORY-119 8→5 + STORY-122 new 3pts = net zero change; delta of 5 is STORY-091+STORY-121 at wave TBD excluded from wave table; epic table shows 487)
+- Graph is acyclic: **Yes** (Kahn topological sort verified; Feature-#7 dependency chain: STORY-100 → {STORY-101 ∥ STORY-102} → STORY-103 → STORY-104 → STORY-105; Feature-#8 DNP3 chain: STORY-100 → STORY-106 → STORY-107 → STORY-108 → STORY-109 → STORY-110; Feature-#9 ARP chain: STORY-110 → STORY-111 → STORY-112 → STORY-113 → STORY-114 → STORY-115; E-17 hardening chain: STORY-115 → STORY-116 → STORY-117; E-18/E-8 collapse chain: STORY-118 (no predecessor) → STORY-120 (no predecessor) → STORY-122 (wave 49) → STORY-119/B (wave 50); no back-edges into existing 75-story graph; 75 = 73 product stories + STORY-091 tooling + STORY-121 tooling)
 - All 10 product epics + E-11 (Tooling, 2 stories: STORY-091 + STORY-121) + E-12 (Pcap Timestamps) + E-13 (Multi-Tag Migration) + E-14 (Modbus) + E-15 (DNP3) + E-16 (ARP) + E-17 (ARP QinQ/MACsec Hardening) + E-18 (Terminal Finding-Collapse) covered: **Yes**
-- All 219 greenfield BCs assigned + F2 additions + BC-2.09.001/006 (shared, extended in STORY-100) + BC-2.10.005/007/008 (extended in STORY-100) + BC-2.11.001/013/015/017/020/024 (extended in STORY-101) + BC-2.14.001..025 (new Modbus BCs in STORY-102..105) + BC-2.15.001..024 (new DNP3 BCs in STORY-106..110) + BC-2.02.009 (revised in STORY-111) + BC-2.16.001..015 (new ARP BCs in STORY-111..115) + BC-2.16.009 v1.10 EC-009 / BC-2.16.015 v1.9 EC-009 (E-17 MACsec documented-limitation extensions in STORY-116/117) + BC-2.11.025/026/027/028/029 (new E-18 collapse BCs in STORY-118; BC-2.11.010/013/017/019 extended/versioned — not new BCs) + BC-2.11.030/031/032/033/034 (5 new grouped-mode-collapse BCs in STORY-119): **Yes** (total 293 BCs; explicit tally: 219 greenfield + 25 Modbus + 24 DNP3 + 15 ARP + 5 E-18 flat-collapse + 5 E-18 grouped-collapse = 293; E-17 + all extensions = versioning of existing BCs, +0)
+- All 219 greenfield BCs assigned + F2 additions + BC-2.09.001/006 (shared, extended in STORY-100) + BC-2.10.005/007/008 (extended in STORY-100) + BC-2.11.001/013/015/017/020/024 (extended in STORY-101) + BC-2.14.001..025 (new Modbus BCs in STORY-102..105) + BC-2.15.001..024 (new DNP3 BCs in STORY-106..110) + BC-2.02.009 (revised in STORY-111) + BC-2.16.001..015 (new ARP BCs in STORY-111..115) + BC-2.16.009 v1.10 EC-009 / BC-2.16.015 v1.9 EC-009 (E-17 MACsec documented-limitation extensions in STORY-116/117) + BC-2.11.025/026/027/028/029 (new E-18 collapse BCs in STORY-118; BC-2.11.010/013/017/019 extended/versioned — not new BCs) + BC-2.11.030/031/032/033/034 (5 new grouped-mode-collapse BCs in STORY-119/B): **Yes** (total 293 BCs; explicit tally: 219 greenfield + 25 Modbus + 24 DNP3 + 15 ARP + 5 E-18 flat-collapse + 5 E-18 grouped-collapse = 293; E-17 + all extensions = versioning of existing BCs, +0; D-120 split adds no new BCs)
 - PROCESS-GAP-P5-001 dispositioned: **Yes** — STORY-091 created as the S-7.02 cycle-close disposition
-- Coverage note: STORY-097/098/099 trace to BC-2.04.055 and BC-2.09.007 (both F2 additions); these 3 stories cover VP-021 (verified @256a490). STORY-100 extends BC-2.09.001 (field rename) and BC-2.10.005/007/008 (catalog seed to 21). STORY-101 extends BC-2.11.001/013/015/017/020/024 (reporter multi-tag). STORY-102..105 cover BC-2.14.001..025 (Modbus TCP analyzer). STORY-106..110 cover BC-2.15.001..024 (DNP3/ICS analyzer); VP-023 Kani lands in STORY-106, VP-004 oracle obligation lands in STORY-110, VP-007 atomic-update obligation (SEEDED 21→23, EMITTED 13→15) lands in STORY-109. STORY-111..115 cover BC-2.16.001..015 (ARP Security Analyzer): STORY-111 covers BC-2.02.009 (revised) + decoder migration; STORY-112 covers BC-2.16.001/002/015 (VP-024 Sub-A Kani); STORY-113 covers BC-2.16.003/005/006/007/009/010/011; STORY-114 covers BC-2.16.004/012/014 (VP-007 SEEDED 23→25 / EMITTED 15→17) + BC-2.16.007 D12-MITRE extension; STORY-115 covers BC-2.16.008/013 + BC-2.16.010 extension. STORY-116 covers BC-2.16.009 EC-008 (QinQ D11) + BC-2.16.015 PC-7b/EC-008 (QinQ offset-22 formula pin) + BC-2.16.015 EC-009(a) (MACsec observe-only probe, no-SCI shape guard). STORY-117 covers BC-2.16.009 EC-009(a) (MACsec offset 22/30 assertion + D11 routing) + BC-2.16.015 EC-009(a/b) (SCI-present spec-backing test; Modified/Encrypted opaque-unreachable security guards); both stories reference VP-024 lifecycle note (append-only, no proof change). STORY-118 covers BC-2.11.025/026/027/028/029 (5 new E-18 flat-collapse BCs) + extensions to BC-2.11.010/013/017/019 (collapse-path interaction clauses). VP-012 (escape_for_terminal) extended by STORY-118 (collapse evidence path). STORY-119 (wave 49, F3 full decomp 2026-06-18) covers BC-2.11.030/031/032/033/034 (5 new grouped-mode-collapse BCs) + BC-2.11.013/014/016/025/026/027/028 (re-anchored to struct-of-enums vocabulary); FindingsRender enum → struct reshape (84 sites); render_findings_grouped_collapsed new function; VP-012 (grouped-collapse escape path, AC-026) + VP-016 (tactic order preserved under grouped-collapse, test_BC_2_11_033_grouped_collapsed_preserves_bucket_order).
-- Release mapping: v0.3.0 ships after Wave 31 gate (STORY-100 + STORY-101 merged); v0.4.0 ships after Wave 34 gate (STORY-102..105 merged); v0.6.0 ships after Wave 39 gate (STORY-106..110 merged); v0.7.0 ships after Wave 44 gate (STORY-111..115 merged); v0.7.1 ships after Wave 46 gate (STORY-116 + STORY-117 merged — E-17 test-and-docs patch); **v0.8.0 ships after Wave 47 gate (STORY-118 merged with ADR-0003 Display-Layer Aggregation section)**; **v0.9.0 ships after Wave 48 gate (STORY-120 merged, Cargo.toml version bumped to 0.9.0, cargo-semver-checks struct_field_missing documented)**; **v0.10.0 ships after Wave 49 gate (STORY-119 merged — grouped-mode collapse, --mitre default-collapse behavior change, FindingsRender struct-of-enums)**. (v0.5.0 was the MITRE-drift-guard fix released separately; DNP3 targets v0.6.0; ARP targets v0.7.0; ARP QinQ/MACsec hardening targets v0.7.1.)
+- Coverage note: STORY-097/098/099 trace to BC-2.04.055 and BC-2.09.007 (both F2 additions); these 3 stories cover VP-021 (verified @256a490). STORY-100 extends BC-2.09.001 (field rename) and BC-2.10.005/007/008 (catalog seed to 21). STORY-101 extends BC-2.11.001/013/015/017/020/024 (reporter multi-tag). STORY-102..105 cover BC-2.14.001..025 (Modbus TCP analyzer). STORY-106..110 cover BC-2.15.001..024 (DNP3/ICS analyzer); VP-023 Kani lands in STORY-106, VP-004 oracle obligation lands in STORY-110, VP-007 atomic-update obligation (SEEDED 21→23, EMITTED 13→15) lands in STORY-109. STORY-111..115 cover BC-2.16.001..015 (ARP Security Analyzer): STORY-111 covers BC-2.02.009 (revised) + decoder migration; STORY-112 covers BC-2.16.001/002/015 (VP-024 Sub-A Kani); STORY-113 covers BC-2.16.003/005/006/007/009/010/011; STORY-114 covers BC-2.16.004/012/014 (VP-007 SEEDED 23→25 / EMITTED 15→17) + BC-2.16.007 D12-MITRE extension; STORY-115 covers BC-2.16.008/013 + BC-2.16.010 extension. STORY-116 covers BC-2.16.009 EC-008 (QinQ D11) + BC-2.16.015 PC-7b/EC-008 (QinQ offset-22 formula pin) + BC-2.16.015 EC-009(a) (MACsec observe-only probe, no-SCI shape guard). STORY-117 covers BC-2.16.009 EC-009(a) (MACsec offset 22/30 assertion + D11 routing) + BC-2.16.015 EC-009(a/b) (SCI-present spec-backing test; Modified/Encrypted opaque-unreachable security guards); both stories reference VP-024 lifecycle note (append-only, no proof change). STORY-118 covers BC-2.11.025/026/027/028/029 (5 new E-18 flat-collapse BCs) + extensions to BC-2.11.010/013/017/019 (collapse-path interaction clauses). VP-012 (escape_for_terminal) extended by STORY-118 (collapse evidence path). STORY-122 (wave 49, D-120 split A): FindingsRender enum→struct reshape (84 sites); 4-arm dispatch with TEMPORARY {Grouped,Collapsed} arm; byte-identical output; VP-016 (existing tactic-order tests continue to pass). STORY-119/B (wave 50, D-120 split B): covers BC-2.11.030/031/032/033/034 (5 new grouped-mode-collapse BCs) + BC-2.11.013/014/016/025/026/027/028 (re-anchored to struct-of-enums vocabulary); render_findings_grouped_collapsed new function; VP-012 (grouped-collapse escape path, AC-023) + VP-016 (tactic order preserved under grouped-collapse, test_BC_2_11_033_grouped_collapsed_preserves_bucket_order).
+- Release mapping: v0.3.0 ships after Wave 31 gate (STORY-100 + STORY-101 merged); v0.4.0 ships after Wave 34 gate (STORY-102..105 merged); v0.6.0 ships after Wave 39 gate (STORY-106..110 merged); v0.7.0 ships after Wave 44 gate (STORY-111..115 merged); v0.7.1 ships after Wave 46 gate (STORY-116 + STORY-117 merged — E-17 test-and-docs patch); **v0.8.0 ships after Wave 47 gate (STORY-118 merged with ADR-0003 Display-Layer Aggregation section)**; **v0.9.0 ships after Wave 48 gate (STORY-120 merged, Cargo.toml version bumped to 0.9.0, cargo-semver-checks struct_field_missing documented)**; **v0.9.x/v0.10.0-pre ships after Wave 49 gate (STORY-122 merged — FindingsRender enum→struct reshape, byte-identical, no externally observable behavior change)**; **v0.10.0 ships after Wave 50 gate (STORY-119/B merged — grouped-mode collapse, --mitre default-collapse behavior change)**. (v0.5.0 was the MITRE-drift-guard fix released separately; DNP3 targets v0.6.0; ARP targets v0.7.0; ARP QinQ/MACsec hardening targets v0.7.1.)
 - Existing stories affected by schema migration: STORY-069/070/071/078/079/080 — their MITRE-technique test assertions migrate from `mitre_technique: Option<String>` to `mitre_techniques: Vec<String>` via STORY-100 (see revision notes in each story). STORY-111 revises BC-2.02.009 to add the third decode path (ArpFrame); existing STORY-002/003 passing tests are unaffected.

@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.7"
+version: "1.8"
 status: draft
 producer: product-owner
 timestamp: 2026-06-17T00:00:00Z
@@ -12,7 +12,7 @@ subsystem: SS-11
 capability: CAP-11
 lifecycle_status: active
 introduced: v0.8.0
-modified: ["v1.1 2026-06-17: fix N=1 singleton model — K-cap does NOT apply to singletons; evidence renders unchanged per BC-2.11.010 (consistency audit remediation)", "v1.2 2026-06-17: F2 adversarial pass-1 — fix CRITICAL F-259-01: enforce positional first-K-members model throughout (PC-2/Invariant-2/PC-5/EC-004/test vectors); fix EC-004 total=2 not 3; add N=3/N=4 boundary vectors (F-259-07)", "v1.3 2026-06-17: F2 adversarial pass-3 — fix PC-1/PC-6/Invariant-5: change false 'existing render_finding_prefix format/same code path' claims to correct 'same escape_for_terminal FUNCTION, called directly by collapse wrapper' (F-F2X-01)", "v1.4 2026-06-17: escape-notation accuracy fix — EC-007 clarify escaped output form; canonical test vector: \\x1b → \\u{1b} (char::escape_default form verified by terminal.rs escapes_esc_byte test)", "v1.5 2026-06-17: issue-#62 F2 BC re-anchor — Preconditions 1-2 and EC-008 updated: 'collapse_findings = true/false' and 'show_mitre_grouping = false' → FindingsRender enum variants. Rationale: illegal-state elimination. No behavioral change.", "v1.6 2026-06-18: F5 post-merge re-anchor to develop a4263c7 (terminal.rs line-anchor drift fix; no normative change) — evidence loop in render_finding_prefix :223-226 → :287-290; Architecture Anchor updated. findings.rs:141 anchor confirmed correct — no change needed.", "v1.7 2026-06-18: STORY-119 vocabulary migration — D-110 struct form: FindingsRender::FlatCollapsed → {Flat, Collapsed}; FindingsRender::FlatExpanded → {Flat, Expanded} in Preconditions 1-2 and EC-008. No behavioral change."]
+modified: ["v1.1 2026-06-17: fix N=1 singleton model — K-cap does NOT apply to singletons; evidence renders unchanged per BC-2.11.010 (consistency audit remediation)", "v1.2 2026-06-17: F2 adversarial pass-1 — fix CRITICAL F-259-01: enforce positional first-K-members model throughout (PC-2/Invariant-2/PC-5/EC-004/test vectors); fix EC-004 total=2 not 3; add N=3/N=4 boundary vectors (F-259-07)", "v1.3 2026-06-17: F2 adversarial pass-3 — fix PC-1/PC-6/Invariant-5: change false 'existing render_finding_prefix format/same code path' claims to correct 'same escape_for_terminal FUNCTION, called directly by collapse wrapper' (F-F2X-01)", "v1.4 2026-06-17: escape-notation accuracy fix — EC-007 clarify escaped output form; canonical test vector: \\x1b → \\u{1b} (char::escape_default form verified by terminal.rs escapes_esc_byte test)", "v1.5 2026-06-17: issue-#62 F2 BC re-anchor — Preconditions 1-2 and EC-008 updated: 'collapse_findings = true/false' and 'show_mitre_grouping = false' → FindingsRender enum variants. Rationale: illegal-state elimination. No behavioral change.", "v1.6 2026-06-18: F5 post-merge re-anchor to develop a4263c7 (terminal.rs line-anchor drift fix; no normative change) — evidence loop in render_finding_prefix :223-226 → :287-290; Architecture Anchor updated. findings.rs:141 anchor confirmed correct — no change needed.", "v1.7 2026-06-18: STORY-119 vocabulary migration — D-110 struct form: FindingsRender::FlatCollapsed → {Flat, Collapsed}; FindingsRender::FlatExpanded → {Flat, Expanded} in Preconditions 1-2 and EC-008. No behavioral change.", "v1.8 2026-06-18: STORY-119 split D-120 — traceability backlinks updated: Stories field expanded from STORY-118 to STORY-118, STORY-122 (A, preserves flat-mode K=3 evidence sampling contract byte-identical), STORY-119 (B, grouped-collapse per-bucket evidence sampling is the flat analogue addressed by BC-2.11.032; BC-027 itself governs flat mode). No normative change."]
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -150,7 +150,7 @@ configurable via CLI flag. Future cycles may expose K as `--collapse-evidence-sa
 | Capability Anchor Justification | CAP-11 ("Reporting and Output") per domain/capabilities/cap-11-reporting-output.md -- evidence sampling for collapsed groups is a terminal output formatting decision that controls how much contextual detail the analyst sees per finding cluster, directly governing the readability vs. completeness trade-off in the Reporting and Output capability |
 | L2 Domain Invariants | INV-4 (Raw-Data/Display-Layer Separation -- evidence truncation is a display-layer decision; the raw Finding.evidence vec is never mutated) |
 | Architecture Module | SS-11 (reporter/terminal.rs) |
-| Stories | STORY-118 |
+| Stories | STORY-118, STORY-122 (A — preserves flat-mode K=3 evidence sampling contract byte-identical), STORY-119 (B — references as flat analogue; grouped-collapse per-bucket evidence sampling governed by BC-2.11.032) |
 | Issue | #259 (Collapse repeated low-value findings) |
 | ADR | ADR-0003 (display-layer aggregation subsection; K=3 constant documented therein) |
 
@@ -168,7 +168,7 @@ configurable via CLI flag. Future cycles may expose K as `--collapse-evidence-sa
 
 ## Story Anchor
 
-STORY-118
+STORY-118, STORY-122 (A — preserves flat K=3 sampling contract), STORY-119 (B — flat analogue; grouped-collapse sampling in BC-032)
 
 ## VP Anchors
 

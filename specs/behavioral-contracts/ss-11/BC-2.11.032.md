@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.4"
+version: "1.5"
 status: draft
 producer: product-owner
 timestamp: 2026-06-18T00:00:00Z
@@ -17,6 +17,7 @@ modified:
   - "v1.2 2026-06-18: R2-1 — propagate corrected verdict-rank enumeration: Invariant 3 now lists all four verdicts (Likely=0 first, Possible=1, Inconclusive=2, Unlikely=3) to match terminal.rs:447-454 source. R2-2 — introduced: v0.10.0 → v0.9.0."
   - "v1.3 2026-06-18: F2 adversarial round-3 fix (F-PB-M01) — Invariant 3 reworded to clarify that the positional members[0] sourcing MECHANIC is shared with BC-2.11.026 PC-7 (flat mode), but the ORDERING that establishes index 0 differs: grouped-collapse uses post-sort bucket order (ascending verdict rank Likely=0/Possible=1/Inconclusive=2/Unlikely=3, then confidence rank), not the emission order used in flat mode."
   - "v1.4 2026-06-18: F3 adversarial round-1 remediation (C-1) — Architecture Anchors: collapse_findings_pass bullet replaced with collapse_findings_pass_refs (F4-new private helper; accepts &[&'a Finding]; returns Vec<(CollapseKey, Vec<&'a Finding>)> in first-occurrence-within-bucket order; shared between flat mode and grouped mode). collapse_findings_pass at :340 remains as thin adapter for flat-mode caller; its signature and BC citations are unchanged."
+  - "v1.5 2026-06-18: STORY-119 split D-120 — traceability backlinks updated: Stories field changed from STORY-119 to STORY-119 (B, PRIMARY: implements per-bucket evidence sampling in render_findings_grouped_collapsed). STORY-122 NOT listed (A is a type reshape; does not implement grouped-collapse render). No normative change."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -142,7 +143,7 @@ positional no-sliding-window invariant applies identically.
 | Capability Anchor Justification | CAP-11 ("Reporting and Output") per domain/capabilities/cap-11-reporting-output.md — per-bucket evidence sampling for grouped-collapse groups is a terminal output formatting decision that controls how much contextual evidence the analyst sees per finding cluster within each MITRE tactic bucket, directly governing the readability vs. completeness trade-off of the Reporting capability in grouped mode |
 | L2 Domain Invariants | INV-4 (Raw-Data/Display-Layer Separation — evidence truncation is a display-layer decision applied per-bucket; the raw Finding.evidence vec is never mutated; JSON/CSV reporters see full evidence) |
 | Architecture Module | SS-11 (reporter/terminal.rs — `render_findings_grouped_collapsed`, F4-pending) |
-| Stories | STORY-119 |
+| Stories | STORY-119 (B — PRIMARY: implements per-bucket evidence sampling in render_findings_grouped_collapsed) |
 | Issue | #259 (Collapse repeated low-value findings — grouped-mode extension) |
 | ADR | ADR-0003 (Binding Rule 5 revised, STORY-119; grouped-mode collapse subsection) |
 

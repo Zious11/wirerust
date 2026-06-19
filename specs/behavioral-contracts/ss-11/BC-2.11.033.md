@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: product-owner
 timestamp: 2026-06-18T00:00:00Z
@@ -16,6 +16,7 @@ modified:
   - "v1.1 2026-06-18: F2 adversarial round-1 fix — (1) Sort direction corrected throughout: 'descending' verdict/confidence-rank → 'ascending by rank (Likely=0/High=0 first)' in Description, PC-5, Invariant 4, and EC-007, to match BC-2.11.014 authoritative rank definitions. (2) EC-007 parenthetical 'higher verdict rank' → 'lower verdict-rank value (Likely=0), surfaced first by ascending sort'. (3) Mis-prefixed test-function anchors in Verification Properties renumbered from test_BC_2_11_030_* to test_BC_2_11_033_*."
   - "v1.2 2026-06-18: R2-1 — propagate corrected verdict-rank enumeration: Description, PC-5, and Invariant 4 now list all four verdicts (Likely=0 first, Possible=1, Inconclusive=2, Unlikely=3) to match terminal.rs:447-454 source. R2-2 — introduced: v0.10.0 → v0.9.0."
   - "v1.3 2026-06-18: F3 adversarial round-1 remediation — (C-1) Architecture Anchors: collapse_findings_pass bullet at :340-360 replaced with collapse_findings_pass_refs (F4-new private helper; called once per bucket slice; delegates from collapse_findings_pass thin adapter). (H-1 / CARRY-119-F3-RESIDUALS-001 item 1) Verification Properties: test_BC_2_11_013_grouped_collapsed_preserves_bucket_order renamed to test_BC_2_11_033_grouped_collapsed_preserves_bucket_order."
+  - "v1.4 2026-06-18: STORY-119 split D-120 — traceability backlinks updated: Stories field changed from STORY-119 to STORY-119 (B, PRIMARY: implements tactic-bucket ordering invariant in render_findings_grouped_collapsed). STORY-122 NOT listed (A is a type reshape; does not implement grouped-collapse render). No normative change."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -142,7 +143,7 @@ sorted bucket order, not the first in the original global emission order.
 | Capability Anchor Justification | CAP-11 ("Reporting and Output") per domain/capabilities/cap-11-reporting-output.md — this BC defines the structural invariant that the MITRE kill-chain tactic ordering is preserved under grouped-collapse; maintaining a consistent, predictable tactic sequence is a core output-structure responsibility of the Reporting capability for analysts relying on MITRE ATT&CK organization |
 | L2 Domain Invariants | INV-4 (Raw-Data/Display-Layer Separation — tactic bucket assignment and ordering are display-layer decisions; the raw Finding slice and its `mitre_techniques` fields are never mutated by collapse) |
 | Architecture Module | SS-11 (reporter/terminal.rs — `render_findings_grouped_collapsed`, F4-pending; reuses `all_tactics_in_report_order()` and tactic HashMap unchanged) |
-| Stories | STORY-119 |
+| Stories | STORY-119 (B — PRIMARY: implements tactic-bucket ordering invariant in render_findings_grouped_collapsed) |
 | Issue | #259 (Collapse repeated low-value findings — grouped-mode extension) |
 | ADR | ADR-0003 (Binding Rule 5 revised, STORY-119; grouped-mode collapse subsection); ADR-006 §13.7 (primary-tactic approximation for multi-tag findings) |
 

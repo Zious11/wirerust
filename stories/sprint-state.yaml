@@ -7,14 +7,15 @@
 # NOTE (2026-06-18): This file is a vestigial greenfield-cycle artifact. The header
 # invariants (total_stories, total_waves, current_wave) reflect the original 48-story
 # greenfield cycle and are intentionally not auto-incremented — STORY-INDEX.md is the
-# authoritative wave registry (74 stories, 49 waves as of v2.1). Feature-mode and
-# F3-decomposition stories (STORY-097+) are tracked in STORY-INDEX.md. This file
-# retains individual story entries for greenfield stories (STORY-001..STORY-090) and
-# is extended with feature-mode entries as they are dispatched. STORY-120 is
-# delivered (merged PR #267, develop f851995). STORY-119 is pending dispatch (wave 49).
+# authoritative wave registry (75 stories, 50 waves as of v2.3, D-120 split applied).
+# Feature-mode and F3-decomposition stories (STORY-097+) are tracked in STORY-INDEX.md.
+# This file retains individual story entries for greenfield stories (STORY-001..STORY-090)
+# and is extended with feature-mode entries as they are dispatched. STORY-120 is
+# delivered (merged PR #267, develop f851995). STORY-122 (wave 49, A: reshape) and
+# STORY-119/B (wave 50, B: behavioral delta) are pending dispatch.
 # blocked_by convention: static dependency-edge set (mirrors depends_on); kept even
 # after predecessors merge. Not a live "is-blocked" flag — a done predecessor in
-# blocked_by means the static edge exists but is resolved. See STORY-119 below.
+# blocked_by means the static edge exists but is resolved. See STORY-122 and STORY-119 below.
 
 document_type: sprint-state
 version: "1.1"
@@ -653,14 +654,27 @@ stories:
     merged_date: "2026-06-18"
 
   # ---------------------------------------------------------------------------
-  # Wave 49 — 1 story (E-18 grouped-mode collapse + FindingsRender struct reshape)
-  # F3 full decomposition complete 2026-06-18; STORY-120 is now merged so the
-  # block is resolved — STORY-119 may be dispatched.
+  # Wave 49 — 1 story (E-18 D-120 split A: FindingsRender enum→struct reshape)
+  # D-120 human-confirmed split 2026-06-18. STORY-122/A is a new story (byte-identical
+  # reshape only). STORY-120 is merged so the block is resolved — STORY-122 may be dispatched.
   # ---------------------------------------------------------------------------
 
-  STORY-119:
+  STORY-122:
     status: pending
     wave: 49
     branch: null
     worktree: null
     blocked_by: [STORY-120]  # static dep-edge (depends_on); STORY-120 delivered (f851995) so live readiness is unblocked
+
+  # ---------------------------------------------------------------------------
+  # Wave 50 — 1 story (E-18 D-120 split B: grouped-mode collapse render path + CLI flip)
+  # D-120 human-confirmed split 2026-06-18. STORY-119/B depends on STORY-122/A.
+  # STORY-122/A must merge before STORY-119/B can be dispatched.
+  # ---------------------------------------------------------------------------
+
+  STORY-119:
+    status: pending
+    wave: 50
+    branch: null
+    worktree: null
+    blocked_by: [STORY-122]  # static dep-edge (depends_on); STORY-122/A must deliver before STORY-119/B can dispatch

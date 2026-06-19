@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.4"
+version: "1.5"
 status: draft
 producer: product-owner
 timestamp: 2026-06-18T00:00:00Z
@@ -17,6 +17,7 @@ modified:
   - "v1.2 2026-06-18: F2 adversarial round-3 fix (NIT) — correct BC-INDEX line reference in v1.1 stanza: ':269' (CsvReporter BCs 020-024 note) → ':271' (grouped-collapse v0.9.0 line). [SUPERSEDED by v1.4 content-based citation — retained as audit trail of the round-3 intermediate error.]"
   - "v1.3 2026-06-18: F2 adversarial round-4 fix — correct BC-INDEX line citation in v1.1 and v1.2 stanzas: verified live BC-INDEX shows grouped-collapse v0.9.0 entry at line 273 (not 271); v1.2 ':271' was itself wrong. [SUPERSEDED by v1.4 content-based citation — retained as audit trail of the round-4 intermediate error.]"
   - "v1.4 2026-06-18: permanent fix — switched grouped-collapse provenance citation from a fragile BC-INDEX line number (churned :269→:271→:273, all wrong due to changelog-prepend line drift) to a content-based reference: BC-INDEX entry 'BCs 030-034: grouped-collapse (greenfield, STORY-119, v0.9.0)'. All \":NNN\" line-number citations for this provenance removed from v1.1 stanza. v1.2 and v1.3 stanzas annotated as superseded but retained as audit trail."
+  - "v1.5 2026-06-18: STORY-119 split D-120 — traceability backlinks updated: Stories field changed from STORY-119 to STORY-119 (B, PRIMARY: delivers the {Grouped,Collapsed} default and --no-collapse dual-scope CLI flip). STORY-122 NOT listed (A leaves CLI unchanged; see scope note in Traceability). No normative change."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -131,7 +132,8 @@ flat-mode wiring already in BC-2.11.028, broadened to cover both axes of the two
 | Capability Anchor Justification | CAP-11 ("Reporting and Output") per domain/capabilities/cap-11-reporting-output.md — this BC defines the CLI-to-render-mode mapping contract that determines which rendering path the terminal output capability uses for grouped mode; the flag wiring is the public interface of the Reporting capability for `--mitre` users |
 | L2 Domain Invariants | INV-4 (Raw-Data/Display-Layer Separation — CLI flag wiring affects only terminal rendering; JSON/CSV reporters receive the unmodified findings slice regardless of `--mitre` or `--no-collapse` values) |
 | Architecture Module | SS-11 (src/main.rs::run_analyze construction site + src/reporter/terminal.rs dispatch) |
-| Stories | STORY-119 |
+| Stories | STORY-119 (B — PRIMARY: delivers the {Grouped,Collapsed} default mapping and --no-collapse dual-scope CLI flip) |
+| Scope note (D-120) | The default-collapse mapping ({Grouped,Collapsed} as new `--mitre` default) is delivered by STORY-119 (B). STORY-122 (A) only reshapes the FindingsRender type from enum to struct; it leaves the CLI and all flag semantics unchanged. STORY-122 is therefore NOT a governing story for this BC. |
 | Issue | #259 (Collapse repeated low-value findings — grouped-mode extension) |
 | ADR | ADR-0003 (Binding Rule 5 revised, STORY-119; grouped-mode collapse subsection) |
 

@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.9"
+version: "1.10"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -21,6 +21,7 @@ modified:
   - "v1.7 2026-06-17: issue-#62 F2 BC re-anchor (fix-burst) — Precondition 1: 'show_mitre_grouping = true' → 'render = FindingsRender::Grouped'. Rationale: illegal-state elimination. No behavioral change."
   - "v1.5: ARP-F2 Pass-14 Burst-7 — mitre_technique (singular) → mitre_techniques (Vec<String>) in Precondition 2, Postcondition 4, EC-003, and all three Canonical Test Vector rows. Shipped Finding struct uses Vec<String>; 'no MITRE line' condition is empty vec, not None. — 2026-06-13"
   - "v1.8 2026-06-18: F5 post-merge re-anchor to develop a4263c7 (terminal.rs line-anchor drift fix; no normative change) — render_finding_grouped MITRE expansion body :249-261 → :313-327 (is_empty guard at 313; ids join at 316; first-technique name lookup at 318-325; known branch with em-dash at 323; unknown branch at 324; closing at 327); em-dash literal :259 → :323; Architecture Anchor + Source Evidence path updated."
+  - "v1.10 2026-06-18: STORY-119 split D-120 — traceability backlinks updated: Stories field expanded from STORY-078 to STORY-078, STORY-122 (A, preserves em-dash MITRE line format byte-identical in render_finding_grouped), STORY-119 (B, grouped-collapse reuses this format for N=1 singletons and em-dash logic for N≥2 group reps per BC-2.11.034). No normative change."
   - "v1.9 2026-06-18: STORY-119 vocabulary migration — D-110 struct form: FindingsRender::Grouped → render.grouping == Grouping::Grouped in Precondition 1. No behavioral change."
 deprecated: null
 deprecated_by: null
@@ -92,7 +93,7 @@ render as `MITRE: <id> (unknown)`.
 | Capability Anchor Justification | CAP-11 ("Reporting and Output") per domain/capabilities/cap-11-reporting-output.md -- the expanded MITRE line format with em-dash and technique name is a documented output encoding contract that downstream grep-based pipelines must account for |
 | L2 Domain Invariants | INV-9 (MITRE Technique ID Format -- the expansion uses the catalog's name mapping) |
 | Architecture Module | SS-11 (reporter/terminal.rs, C-20) |
-| Stories | STORY-078 |
+| Stories | STORY-078, STORY-122 (A — preserves em-dash MITRE line format in render_finding_grouped byte-identical), STORY-119 (B — reuses this format for N=1 singletons; grouped-collapse em-dash logic for N≥2 reps governed by BC-2.11.034) |
 | Origin BC | BC-RPT-016 (pass-3 ingestion corpus, HIGH confidence) |
 
 ## Related BCs

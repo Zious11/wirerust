@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.14"
+version: "1.15"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -26,6 +26,7 @@ modified:
   - "v1.11 2026-06-17: F2 adversarial pass-4 — F-F2-A01: EC-007 STRUCTURAL guarantee converted to OBSERVABLE GUARANTEE form; remove call-graph prescription 'render_finding_prefix itself is UNCHANGED; the collapse-aware flat wrapper that appends suffixes is never called from the grouped path'"
   - "v1.12 2026-06-17: issue-#62 F2 BC re-anchor — replace show_mitre_grouping bool references with FindingsRender enum: Precondition 1 and Description 'show_mitre_grouping = true' → 'render = FindingsRender::Grouped'; Invariant 4 scoping boundary reworded to enum form; EC-007 condition reworded. Rationale: illegal-state elimination (grouping=true && collapse=true unrepresentable as FindingsRender::Grouped). No behavioral change."
   - "v1.13 2026-06-18: F5 post-merge re-anchor to develop a4263c7 (terminal.rs line-anchor drift fix; no normative change) — render_findings_grouped fn shifted: :272-323 → :432-483; tactic loop :309 → :469; Architecture Anchor + Source Evidence path updated."
+  - "v1.15 2026-06-18: STORY-119 split D-120 — traceability backlinks updated: Stories field expanded from STORY-078 to STORY-078, STORY-122 (A, introducer of struct reshape; preserves bucket/sort/em-dash invariants byte-identical), STORY-119 (B, grouped-collapse render path; honors these invariants in render_findings_grouped_collapsed). No normative change."
   - "v1.14 2026-06-18: STORY-119 spec-evolution — grouped collapse is NOW SUPPORTED. Precondition 1 updated to struct form (render.grouping == Grouping::Grouped). Invariant 4 rewritten: removes deferral language ('DEFERRED to STORY-119'); grouped collapse is active when render == {grouping: Grouping::Grouped, collapse: Collapse::Collapsed} (BC-2.11.031); the no-collapse guarantee is scoped to {Grouping::Grouped, Collapse::Expanded} only. Related BCs updated to reference BC-2.11.030–034. EC-007 updated to reflect both grouped-expanded (no suffix) and grouped-collapsed ({Grouped,Collapsed}: suffix applies per-bucket per BC-2.11.031) paths. Description updated to struct vocabulary."
 deprecated: null
 deprecated_by: null
@@ -154,7 +155,7 @@ the pre-STORY-119 `--mitre` behavior.
 | Capability Anchor Justification | CAP-11 ("Reporting and Output") per domain/capabilities/cap-11-reporting-output.md -- the MITRE tactic grouping rendering is a key differentiator in the terminal output mode that organizes forensic findings by attack phase |
 | L2 Domain Invariants | INV-9 (MITRE Technique ID Format -- technique IDs that fail catalog lookup go to Uncategorized) |
 | Architecture Module | SS-11 (reporter/terminal.rs, C-20) |
-| Stories | STORY-078 |
+| Stories | STORY-078, STORY-122 (A — introduces FindingsRender struct; preserves tactic-bucket headers/order byte-identical), STORY-119 (B — grouped-collapse render path must honor these bucket invariants) |
 | Origin BC | BC-RPT-013 (pass-3 ingestion corpus, HIGH confidence) |
 
 ## Related BCs
