@@ -2,7 +2,7 @@
 document_type: story
 story_id: STORY-119
 epic_id: E-18
-version: "2.3"
+version: "2.4"
 status: pending
 producer: story-writer
 timestamp: 2026-06-18T00:00:00Z
@@ -152,7 +152,8 @@ When `show_mitre_grouping == true` and `collapse_findings == false` (i.e., `--mi
 
 ### AC-003 — flat-mode routing unchanged at construction site
 When `show_mitre_grouping == false` and `collapse_findings == true` (default), `render == {Flat, Collapsed}`. When `show_mitre_grouping == false` and `collapse_findings == false`, `render == {Flat, Expanded}`. Both unchanged from v0.8.0 behavior.
-(traces to BC-2.11.030 Postconditions 4–5: unchanged flat-mode routing.)
+(traces to BC-2.11.030 Postcondition 4: "When neither `--mitre` nor `--no-collapse` is present (the default terminal output): `render == FindingsRender { grouping: Grouping::Flat, collapse: Collapse::Collapsed }`. Unchanged from pre-STORY-119 behavior.")
+(traces to BC-2.11.030 Postcondition 5: "When `--no-collapse` is present but `--mitre` is absent: `render == FindingsRender { grouping: Grouping::Flat, collapse: Collapse::Expanded }`. Unchanged from pre-STORY-119 behavior.")
 
 ### AC-004 — `run_summary` construction site produces `{Flat, Collapsed}`
 The `run_summary` construction site in `src/main.rs` uses struct literal form `render: FindingsRender { grouping: Grouping::Flat, collapse: Collapse::Collapsed }`. The inert value semantics are unchanged — `run_summary` renders no FINDINGS section; the field is structurally present but irrelevant.
@@ -606,6 +607,7 @@ No new crates. `CollapseKey`, `COLLAPSE_EVIDENCE_SAMPLES`, and `collapse_finding
 
 ## Changelog
 
+- **v2.4 (F3-resplit round-4 remediation, 2026-06-19):** Fix 2 optional tidy (Pass B verbatim-lens pre-emption): AC-003 paraphrase "(traces to BC-2.11.030 Postconditions 4–5: unchanged flat-mode routing.)" replaced with two verbatim quotes: BC-2.11.030 Postcondition 4 ("When neither `--mitre` nor `--no-collapse` is present (the default terminal output): `render == FindingsRender { grouping: Grouping::Flat, collapse: Collapse::Collapsed }`. Unchanged from pre-STORY-119 behavior.") and BC-2.11.030 Postcondition 5 ("When `--no-collapse` is present but `--mitre` is absent: `render == FindingsRender { grouping: Grouping::Flat, collapse: Collapse::Expanded }`. Unchanged from pre-STORY-119 behavior."). No BC edits, no dep-graph edits, no frontmatter BC set change.
 - **v1.0–v1.12:** See monolithic STORY-119 history (archived in version control). v1.12 was the last converged version before the D-120 split.
 - **v2.0 (D-120 re-scope, 2026-06-18):** Re-scoped per D-120 human-confirmed split decision (2026-06-18). STORY-119/B now covers only the net-new behavioral delta: `render_findings_grouped_collapsed` implementation, `collapse_findings_pass_refs` shared helper, `collapse_findings_pass` thin adapter, dispatch arm repointing, CLI flip (`--mitre` default → `{Grouped, Collapsed}`), dual-scope `--no-collapse`. Removed from scope (moved to STORY-122/A): struct definition, enum→struct reshape, 84-site migration, four-arm dispatch establishment, comment sweep of three-variant/verdict-desc stale prose. ACs renumbered: old AC-001..004 (CLI mapping) → new AC-001..004 (identical text); old AC-005 (struct def) → moved to STORY-122/A; old AC-006 (dispatch existence) → moved to STORY-122/A; old AC-007 (84-site migration) → moved to STORY-122/A; old AC-008..029 → renumbered AC-005..026 (behavioral path ACs preserved); old AC-030 (comment sweep) → simplified AC-026 (dual-scope doc-comment only; three-variant sweep moved to STORY-122/A); old AC-031 (test green) → new AC-027. depends_on updated [STORY-120] → [STORY-122]. wave updated 49 → 50. points updated 8 → 5 (behavioral delta only; migration burden moved to STORY-122 3pts). Input BC list unchanged (same 12 BCs govern the complete feature). PO-final BC versions applied: 013 v1.15, 014 v2.1, 016 v1.10, 025 v1.14, 026 v1.14, 027 v1.8, 028 v1.10, 030 v1.5, 031 v1.4, 032 v1.5, 033 v1.4, 034 v1.4.
 - **v2.1 (F3-resplit round-1 remediation, 2026-06-18):** Reconciled to Option X (human-approved split design). Previously Task 4 said "No code change needed to the construction site itself — the CLI flip happens by virtue of repointing the dispatch arm." That was Option Y (wrong). Fixed: Task 4 now prescribes REPLACING the STORY-122/A 3-arm if with the orthogonal 2-if form at `run_analyze` — this IS the construction flip that STORY-119/B owns under Option X. `src/main.rs` in File Structure Requirements changed from **Verify** to **Modify**. Architecture Mapping entry for `run_analyze` updated to reflect the Task 4 change. Scope section item 5 updated to explicitly state "This IS a code change to the construction site." AC-005 trace quote corrected from verbatim `"F4-new function"` to `"F4-pending new function:"` (verbatim from BC-2.11.031.md:165). The Option X coherence: A leaves `{Grouped, Collapsed}` unreachable-via-CLI (3-arm if never produces it); B makes `run_analyze` produce it via orthogonal 2-if and repoints the dispatch arm to `render_findings_grouped_collapsed`.
