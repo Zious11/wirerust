@@ -1,6 +1,6 @@
 ---
 document_type: dependency-graph
-version: "2.6"
+version: "2.7"
 status: draft
 producer: story-writer
 phase: 3
@@ -19,6 +19,7 @@ modified:
   - "2026-06-18 v2.4: F3 adversarial round-1 remediation — BC-to-Stories matrix STORY-119 row stamps synced to PO-final: BC-2.11.014 v1.8→v2.0, BC-2.11.025 v1.11→v1.12, BC-2.11.027 v1.6→v1.7, BC-2.11.031 v1.2→v1.3, BC-2.11.032 v1.3→v1.4, BC-2.11.033 v1.2→v1.3. v2.1 changelog stanza annotated (was-correct-at-time; superseded by this update). Frontmatter version bumped 2.1→2.4 to match changelog latest stanza. Product-story count note qualified in heading prose ('72 product stories (excludes STORY-091 + STORY-121 tooling; all-stories total = 74)') to reconcile dep-graph/STORY-INDEX wording."
   - "2026-06-18 v2.5: F3 adversarial round-2 remediation — sibling-row BC version-stamp sweep: STORY-118 row (.025 v1.9→v1.12, .026 v1.10→v1.13, .027 v1.5→v1.7, .028 v1.6→v1.9, .029 v1.5→v1.7); STORY-118/120 shared row (.010 v1.9→v1.11, .013 v1.12→v1.14, .017 v1.14→v1.17, .019 v1.8→v1.10); STORY-078/120 row (.014 v1.7→v2.0, .015 v1.8→v1.10, .016 v1.7→v1.9); STORY-120 row (all 12 stamps synced to live: .010 v1.11, .013 v1.14, .014 v2.0, .015 v1.10, .016 v1.9, .017 v1.17, .019 v1.10, .025 v1.12, .026 v1.13, .027 v1.7, .028 v1.9, .029 v1.7); VP-012 row BC-2.11.010 v1.9→v1.11. BC coverage tally corrected 300/300→293/293 (STORY-INDEX authoritative: 219+25+24+15+5+5=293); Gap Register prose corrected 288→293 with grouped-collapse BCs (BC-2.11.030..034 via STORY-119) added to breakdown."
   - "2026-06-18 v2.6: F3 adversarial round-3 remediation — BC-2.11.025 stamp sync v1.12→v1.13 (PO-final v1.13) across all three BC-to-Stories matrix rows that referenced BC-2.11.025: STORY-118 row, STORY-119 row, STORY-120 row."
+  - "2026-06-18 v2.7: F3 adversarial round-5 remediation — Fix 2: stale '~46 construction sites' in Wave 49 STORY-119 note corrected to '84 FindingsRender:: occurrences' with per-file grepped ground-truth (main.rs=4, terminal.rs=3, reporter_terminal_tests.rs=55, reporter_tests.rs=17, dnp3_f5_remediation_tests.rs=2, bc_2_09_100_multitag_tests.rs=3). Fix 3: Wave 48 STORY-120 table row annotated to disambiguate '28 construction sites' (STORY-120 enum-introduction scope, v0.9.0) from STORY-119's 84 occurrences."
 total_stories: 72  # product stories only (excludes STORY-091 + STORY-121 tooling; all-stories total = 74)
 total_edges: 95
 intra_epic_edges: 74
@@ -617,7 +618,7 @@ and can be dispatched in parallel.
 
 | Story | Epic | Points | Subsystem | Description |
 |-------|------|--------|-----------|-------------|
-| STORY-120 | E-8 | 3 | SS-11 | TerminalReporter FindingsRender Enum Migration (v0.9.0) — replace show_mitre_grouping+collapse_findings bools with render: FindingsRender enum; 28 construction sites updated; byte-identical output |
+| STORY-120 | E-8 | 3 | SS-11 | TerminalReporter FindingsRender Enum Migration (v0.9.0) — replace show_mitre_grouping+collapse_findings bools with render: FindingsRender enum; 28 construction sites updated (STORY-120 enum-introduction scope, v0.9.0); byte-identical output. (STORY-119's subsequent struct reshape touches 84 `FindingsRender::` occurrences incl. test-helper expansion — distinct from STORY-120's 28.) |
 
 > **Release gate:** v0.9.0 ships after Wave 48 gate (STORY-120 PR merged, `cargo test --all-targets` green, `cargo-semver-checks` `struct_field_missing` documented, Cargo.toml version bumped to 0.9.0). STORY-119 (grouped-mode collapse) is assigned wave 49 and does NOT block v0.9.0.
 
@@ -631,7 +632,7 @@ and can be dispatched in parallel.
 
 > **Release gate:** v0.10.0 (or v0.9.x patch) ships after Wave 49 gate (STORY-119 PR merged, `cargo test --all-targets` green, `cargo-semver-checks` `struct_missing` for Grouping/Collapse documented, FindingsRender enum→struct migration confirmed byte-identical on flat paths). The `--mitre` behavior change (default collapse ON) is the externally observable change for this release.
 
-> **Note:** STORY-119 has `depends_on: [STORY-120]` — it reshapes the `FindingsRender` three-variant enum (introduced by STORY-120) into `struct FindingsRender { grouping: Grouping, collapse: Collapse }` and implements grouped-mode per-bucket collapse via a new `render_findings_grouped_collapsed` function. The enum vocabulary must exist (STORY-120) before STORY-119 can reshape it. ~46 construction sites updated (product code + all test files).
+> **Note:** STORY-119 has `depends_on: [STORY-120]` — it reshapes the `FindingsRender` three-variant enum (introduced by STORY-120) into `struct FindingsRender { grouping: Grouping, collapse: Collapse }` and implements grouped-mode per-bucket collapse via a new `render_findings_grouped_collapsed` function. The enum vocabulary must exist (STORY-120) before STORY-119 can reshape it. 84 `FindingsRender::` occurrences updated (product code + all test files; grepped ground-truth: main.rs=4, terminal.rs=3, reporter_terminal_tests.rs=55, reporter_tests.rs=17, dnp3_f5_remediation_tests.rs=2, bc_2_09_100_multitag_tests.rs=3).
 
 ---
 
