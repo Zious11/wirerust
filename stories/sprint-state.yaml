@@ -623,3 +623,16 @@ stories:
     merge_commit: 6158e6e
     merged_date: "2026-05-31"
     converged_date: "2026-05-31"
+
+  # ---------------------------------------------------------------------------
+  # Wave 49 — 1 story (E-18 grouped-mode collapse + FindingsRender struct reshape)
+  # F3 full decomposition complete 2026-06-18; awaiting STORY-120 F4 delivery
+  # before STORY-119 can be dispatched.
+  # ---------------------------------------------------------------------------
+
+  STORY-119:
+    status: pending
+    wave: 49
+    branch: null
+    worktree: null
+    blocked_by: [STORY-120]

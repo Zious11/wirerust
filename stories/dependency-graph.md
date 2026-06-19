@@ -15,11 +15,12 @@ modified:
   - "2026-06-18 v2.0: Feature #62 (issue #62, FindingsRender enum migration) — added STORY-120 (E-8, wave 48) for TerminalReporter enum-of-modes refactor (v0.9.0). total_stories 71→72 (product; +STORY-091 tooling = 73 all-stories). total_edges 94→95 (+2 cross-epic: STORY-118→STORY-120 (E-18→E-8) + STORY-120→STORY-119 (E-8→E-18), replacing the prior STORY-118→STORY-119 intra-E-18 edge; net +1 cross-epic edge; intra 75→74, cross 19→21). number_of_waves 47→48. STORY-120 depends_on=[] (reporter struct exists; no new predecessor required). total_points 468→471 (product +3; scheduled wave-table total)."
   - "2026-06-18 v2.1: BC-to-Stories matrix version-stamp sync (F3 round-7 bookkeeping fix). Updated stale stamps to authoritative current versions: BC-2.11.019 v1.7→v1.8, BC-2.11.025 v1.8→v1.9, BC-2.11.026 v1.9→v1.10, BC-2.11.028 v1.5→v1.6, BC-2.11.029 v1.4→v1.5. (BC-010 v1.9, .013 v1.12, .014 v1.7, .015 v1.8, .016 v1.7, .017 v1.14, .027 v1.5 confirmed correct — no change.)"
   - "2026-06-18 v2.2: D-103 F3 human gate — STORY-121 added (E-11 tooling, wave TBD, 3 pts). Product-story count unchanged (72). all-stories total 73→74. No new edges (STORY-121 has no dependencies). Wave count unchanged (48)."
+  - "2026-06-18 v2.3: F3 full decomposition of STORY-119 — assigned wave 49. number_of_waves 48→49. total_points 471→479 (scheduled product; +8 pts STORY-119 now in wave table). Wave 48 release-gate note updated (STORY-119 no longer deferred). BC-to-Stories matrix row for STORY-119 updated (full 12-BC coverage replacing forward-ref stub). GAP-001 resolved (grouped-mode collapse delivered in STORY-119 wave 49). VP-012 + VP-016 added to VP-to-Stories matrix for STORY-119. Epic-level description updated to wave 49."
 total_stories: 72  # product stories only (excludes STORY-091 + STORY-121 tooling; all-stories total = 74)
 total_edges: 95
 intra_epic_edges: 74
 cross_epic_edges: 21
-number_of_waves: 48
+number_of_waves: 49
 acyclic: true
 traces_to:
   - .factory/stories/epics.md
@@ -47,9 +48,9 @@ traces_to:
 | Total dependency edges | 95 |
 | Intra-epic edges | 74 |
 | Cross-epic edges | 21 |
-| Number of parallel waves | 48 (STORY-119 unscheduled/deferred; wave count reflects STORY-120 wave 48) |
-| Graph is acyclic | Yes (Kahn topological sort verified; STORY-097→098→099 extend acyclic order; STORY-106→107→108→109→110 extend further; STORY-111→112→113→114→115 extend further; STORY-115→116→117 extend further; STORY-118 has no new predecessors (depends_on=[]); STORY-120 has no new predecessors (depends_on=[]); STORY-119 now depends on STORY-120 — no back-edges into existing 72-story graph) |
-| Total story points | 471 (product; +5 tooling = 476; +3 STORY-120; STORY-119 deferred/8pts not in scheduled total) |
+| Number of parallel waves | 49 (STORY-119 assigned wave 49; wave count reflects STORY-120 wave 48 + STORY-119 wave 49) |
+| Graph is acyclic | Yes (Kahn topological sort verified; STORY-097→098→099 extend acyclic order; STORY-106→107→108→109→110 extend further; STORY-111→112→113→114→115 extend further; STORY-115→116→117 extend further; STORY-118 has no new predecessors (depends_on=[]); STORY-120 has no new predecessors (depends_on=[]); STORY-119 depends on STORY-120 (wave 49 = max(48)+1) — no back-edges into existing 72-story graph) |
+| Total story points | 479 (product; +5 tooling = 484; +3 STORY-120 + +8 STORY-119 now scheduled at wave 49) |
 
 ---
 
@@ -243,7 +244,7 @@ These edges reflect the architecture pipeline layers defined in
 | STORY-110 | STORY-111 | E-15 -> E-16 | SS-02 (decoder) | STORY-111 migrates etherparse 0.16→0.20 and introduces `DecodedFrame::Arp(ArpFrame)` in `src/decoder.rs`; it also revises BC-2.02.009 to add the third decode path; the migration touches both `src/decoder.rs` and `src/dispatcher.rs` (Cargo.toml etherparse version bump affects both files) and must follow STORY-110's finalized `src/dispatcher.rs` changes (DNP3 Rule 6 in place) to avoid merge conflicts on the same file — file-level sequencing constraint, not a classify() ordering requirement |
 | STORY-115 | STORY-116 | E-16 -> E-17 | SS-16 (ARP lax-path) | STORY-116 adds VLAN/QinQ offset regression tests that exercise `extract_arp_frame` and the ARP lax-path in `src/decoder.rs`; STORY-115 must be merged first because it finalizes all ARP decode-time logic in `src/decoder.rs` and `src/main.rs` that STORY-116's fixture tests exercise; file-sequencing + behavioral contract completeness (BC-2.16.009 EC-008, BC-2.16.015 PC-7a) — offset hardening stories test code that must be fully landed first |
 | STORY-118 | STORY-120 | E-18 -> E-8 | SS-11 (TerminalReporter) | STORY-120 (E-8, FindingsRender enum migration, v0.9.0) refactors the `TerminalReporter` struct introduced by STORY-118 (E-18). STORY-118 is completed; its four-bool struct is the refactor target. No compile-order dependency (the struct exists); logical sequencing places STORY-120 after STORY-118. Cross-epic: STORY-118 is E-18; STORY-120 is E-8. |
-| STORY-120 | STORY-119 | E-8 -> E-18 | SS-11 (TerminalReporter) | STORY-119 (E-18, grouped-mode collapse, deferred) will use the `FindingsRender` enum variants introduced by STORY-120 (E-8). If STORY-119 were delivered before STORY-120, its construction sites would use the old bool fields and require a second sweep. STORY-120 replaces the prior STORY-118→STORY-119 edge: STORY-119's implementer should build against the enum vocabulary. Cross-epic: STORY-120 is E-8; STORY-119 is E-18. |
+| STORY-120 | STORY-119 | E-8 -> E-18 | SS-11 (TerminalReporter) | STORY-119 (E-18, grouped-mode collapse, wave 49) reshapes the `FindingsRender` three-variant enum introduced by STORY-120 (E-8) into the struct-of-orthogonal-enums. If STORY-119 were delivered before STORY-120, its construction sites would use the old bool fields and require a second sweep. STORY-120 is the direct predecessor: STORY-119's implementer builds against the enum vocabulary established here. Cross-epic: STORY-120 is E-8; STORY-119 is E-18. |
 
 ---
 
@@ -604,7 +605,7 @@ and can be dispatched in parallel.
 |-------|------|--------|-----------|-------------|
 | STORY-118 | E-18 | 8 | SS-11 | Terminal finding-collapse (flat mode) — default-ON collapse, (xN) suffix, K=3 evidence sampling, --no-collapse opt-out, JSON/CSV unaffected |
 
-> **Release gate:** v0.8.0 ships after Wave 47 gate (STORY-118 PR merged with ADR-0003 Display-Layer Aggregation section, `cargo test --all-targets` green). STORY-119 (grouped-mode collapse) is DEFERRED and unscheduled; it does not block v0.8.0.
+> **Release gate:** v0.8.0 ships after Wave 47 gate (STORY-118 PR merged with ADR-0003 Display-Layer Aggregation section, `cargo test --all-targets` green). STORY-119 (grouped-mode collapse, wave 49) does not block v0.8.0.
 
 > **Note:** STORY-118 has `depends_on: []` — it is a reporter-only story that extends the existing `TerminalReporter` struct (landed in STORY-077/078) with a new `collapse_findings` field and a private collapse pass. No new cross-epic or intra-epic predecessor is required.
 
@@ -614,9 +615,19 @@ and can be dispatched in parallel.
 |-------|------|--------|-----------|-------------|
 | STORY-120 | E-8 | 3 | SS-11 | TerminalReporter FindingsRender Enum Migration (v0.9.0) — replace show_mitre_grouping+collapse_findings bools with render: FindingsRender enum; 28 construction sites updated; byte-identical output |
 
-> **Release gate:** v0.9.0 ships after Wave 48 gate (STORY-120 PR merged, `cargo test --all-targets` green, `cargo-semver-checks` `struct_field_missing` documented, Cargo.toml version bumped to 0.9.0). STORY-119 (grouped-mode collapse) remains DEFERRED and unscheduled; it does not block v0.9.0.
+> **Release gate:** v0.9.0 ships after Wave 48 gate (STORY-120 PR merged, `cargo test --all-targets` green, `cargo-semver-checks` `struct_field_missing` documented, Cargo.toml version bumped to 0.9.0). STORY-119 (grouped-mode collapse) is assigned wave 49 and does NOT block v0.9.0.
 
 > **Note:** STORY-120 has `depends_on: []` — it refactors the existing `TerminalReporter` struct (completed in STORY-118) by replacing two bool fields with a single `FindingsRender` enum field. No new cross-epic or intra-epic predecessor is required. The struct already exists; this is a pure type-system improvement. STORY-120 blocks STORY-119: STORY-119's implementer should build against the enum vocabulary established here.
+
+### Wave 49 — 1 story | Epic: E-18
+
+| Story | Epic | Points | Subsystem | Description |
+|-------|------|--------|-----------|-------------|
+| STORY-119 | E-18 | 8 | SS-11 | Terminal finding-collapse (grouped mode / --mitre) — FindingsRender enum → struct-of-two-orthogonal-enums (Grouping × Collapse); --mitre alone now collapses by default ({Grouped, Collapsed}); --no-collapse dual-scope opt-out; render_findings_grouped_collapsed with per-bucket deduplication, (xN) suffix, K=3 evidence sampling |
+
+> **Release gate:** v0.10.0 (or v0.9.x patch) ships after Wave 49 gate (STORY-119 PR merged, `cargo test --all-targets` green, `cargo-semver-checks` `struct_missing` for Grouping/Collapse documented, FindingsRender enum→struct migration confirmed byte-identical on flat paths). The `--mitre` behavior change (default collapse ON) is the externally observable change for this release.
+
+> **Note:** STORY-119 has `depends_on: [STORY-120]` — it reshapes the `FindingsRender` three-variant enum (introduced by STORY-120) into `struct FindingsRender { grouping: Grouping, collapse: Collapse }` and implements grouped-mode per-bucket collapse via a new `render_findings_grouped_collapsed` function. The enum vocabulary must exist (STORY-120) before STORY-119 can reshape it. ~46 construction sites updated (product code + all test files).
 
 ---
 
@@ -638,7 +649,8 @@ STORY-106 -> STORY-107 -> STORY-108 -> STORY-109 -> STORY-110 ->
 STORY-111 -> STORY-112 -> STORY-113 -> STORY-114 -> STORY-115 ->
 STORY-116 -> STORY-117
 [Wave 47 (independent): STORY-118] ->
-[Wave 48 (independent): STORY-120] -> STORY-119 (deferred/unscheduled)
+[Wave 48 (independent): STORY-120] ->
+[Wave 49: STORY-119]
 ```
 
 > **Cycle check:** All 72 product nodes processed by Kahn's algorithm. No node remained
@@ -677,7 +689,7 @@ iteratively. Result:
 - E-18/E-8 extension (STORY-118→120→119): STORY-118 has `depends_on=[]` (Wave 47,
   reporter-only story extends existing TerminalReporter struct); STORY-120 has
   `depends_on=[]` (Wave 48, refactors existing struct — no compile predecessor required);
-  STORY-119 now depends on STORY-120 only (deferred/unscheduled). Adding STORY-120 as a
+  STORY-119 now depends on STORY-120 only (wave 49). Adding STORY-120 as a
   zero-in-degree node does not change any existing node's in-degree. Routing the prior
   STORY-118→119 edge through STORY-120→119 adds in-degree only to STORY-119 (via
   STORY-120). No existing node gains a new in-degree, so no cycle is possible.
@@ -754,10 +766,10 @@ iteratively. Result:
 | BC-2.11.025 (v1.9), BC-2.11.026 (v1.10), BC-2.11.027 (v1.5), BC-2.11.028 (v1.6), BC-2.11.029 (v1.5) | STORY-118 (implemented), STORY-120 (re-anchor carrier) | E-18/E-8 | SS-11 |
 | BC-2.11.010 (v1.9, collapse escape-path extension), BC-2.11.013 (v1.12, enum anchor), BC-2.11.017 (v1.14, enum anchor), BC-2.11.019 (v1.8, enum anchor) | STORY-118 (impl), STORY-120 (enum migration) | E-18/E-8 | SS-11 |
 | BC-2.11.014 (v1.7), BC-2.11.015 (v1.8), BC-2.11.016 (v1.7) | STORY-078 (impl), STORY-120 (enum migration — Grouped arm) | E-8 | SS-11 |
-| BC-2.11.013 (Invariant 4 forward-ref), BC-2.11.025 (Invariant 5 forward-ref), BC-2.11.026 (PC-4 grouped suffix-free guarantee) | STORY-119 (deferred stub) | E-18 | SS-11 |
+| BC-2.11.013 (v1.14), BC-2.11.014 (v1.8), BC-2.11.016 (v1.9), BC-2.11.025 (v1.11), BC-2.11.026 (v1.13), BC-2.11.027 (v1.6), BC-2.11.028 (v1.9), BC-2.11.030 (v1.4), BC-2.11.031 (v1.2), BC-2.11.032 (v1.3), BC-2.11.033 (v1.2), BC-2.11.034 (v1.3) | STORY-119 (wave 49 — grouped-mode collapse + FindingsRender struct-of-enums reshape) | E-18 | SS-11 |
 | BC-2.11.010 (v1.9), BC-2.11.013 (v1.12), BC-2.11.014 (v1.7), BC-2.11.015 (v1.8), BC-2.11.016 (v1.7), BC-2.11.017 (v1.14), BC-2.11.019 (v1.8), BC-2.11.025 (v1.9), BC-2.11.026 (v1.10), BC-2.11.027 (v1.5), BC-2.11.028 (v1.6), BC-2.11.029 (v1.5) | STORY-120 | E-8 | SS-11 |
 
-**Coverage: 288 / 288 BCs assigned (283 pre-E18 + 5 NEW BCs: BC-2.11.025/026/027/028/029; BC-2.11.010/013/017/019 are EXTENDED/versioned — not new BCs, already counted in the 283 total via STORY-077/078). E-18 (STORY-118) introduces 5 new BCs (all under ss-11/). STORY-120 is the enum-migration story carrying the re-anchored BC vocabulary for all 12 SS-11 BCs; no new BCs. STORY-119 is a forward-reference stub that deepens coverage of 3 existing BCs; no new BCs introduced for the deferred story.**
+**Coverage: 300 / 300 BCs assigned (283 pre-E18 + 5 NEW E-18 BCs: BC-2.11.025/026/027/028/029 via STORY-118; + 12 NEW E-18 BCs: BC-2.11.030/031/032/033/034 + BC-2.11.013/014/016/025/026/027/028 re-anchored in STORY-119 → 5 new BCs: BC-2.11.030/031/032/033/034 are net-new for grouped-mode collapse; BC-2.11.013/014/016/025/026/027/028 are extended/versioned coverage already counted; BC-2.11.010/013/017/019 are EXTENDED/versioned — not new BCs, already counted in the 283 total via STORY-077/078). E-18 (STORY-118) introduces 5 new BCs (BC-2.11.025..029). STORY-119 introduces 5 new BCs (BC-2.11.030..034). STORY-120 is the enum-migration story carrying the re-anchored vocabulary for all 12 SS-11 BCs; no new BCs.**
 
 ---
 
@@ -776,11 +788,11 @@ iteratively. Result:
 | VP-009 | FlowState Machine Validity | reassembly/flow.rs | STORY-013 | BC-2.04.004, BC-2.04.005, BC-2.04.050..052 |
 | VP-010 | buffered_bytes Invariant | reassembly/segment.rs | STORY-012, STORY-016 | BC-2.04.030 (STORY-012); BC-2.04.047 (STORY-016) |
 | VP-011 | flush_contiguous Monotonicity | reassembly/segment.rs | STORY-015 | BC-2.04.007, BC-2.04.008, BC-2.04.034 |
-| VP-012 | escape_for_terminal Correctness | reporter/terminal.rs | STORY-077 | BC-2.11.007..012 |
+| VP-012 | escape_for_terminal Correctness | reporter/terminal.rs | STORY-077, STORY-119 | BC-2.11.007..012 (STORY-077); BC-2.11.031 PC-5 / BC-2.11.010 v1.9 (STORY-119 — grouped-collapse path inherits escape_for_terminal requirement; AC-026) |
 | VP-013 | JA3 GREASE Filter Correctness | analyzer/tls.rs | STORY-051 | BC-2.07.006..008 |
 | VP-014 | HttpAnalyzer Cross-Flow Isolation | analyzer/http.rs | STORY-045 | BC-2.06.019, BC-2.06.021 |
 | VP-015 | TCP Sequence Number Wraparound | reassembly/segment.rs | STORY-015 | BC-2.04.039 |
-| VP-016 | MITRE Tactic Grouping Order | reporter/terminal.rs | STORY-071, STORY-078 | BC-2.10.003, BC-2.10.004 (STORY-071); BC-2.11.013..015 (STORY-078) |
+| VP-016 | MITRE Tactic Grouping Order | reporter/terminal.rs | STORY-071, STORY-078, STORY-119 | BC-2.10.003, BC-2.10.004 (STORY-071); BC-2.11.013..015 (STORY-078); BC-2.11.033 PC-1..3 / BC-2.11.013 Invariant 4 (STORY-119 — tactic bucket order preserved under grouped-collapse; test_BC_2_11_033_grouped_collapsed_preserves_bucket_order) |
 | VP-017 | JsonReporter Key-Order Determinism | reporter/json.rs | STORY-076 | BC-2.11.001, BC-2.11.003 |
 | VP-018 | CLI Reassemble / No-Reassemble Mutual Exclusion | cli.rs | STORY-087, STORY-088 | BC-2.12.007 (STORY-087); BC-2.12.009 (STORY-088) |
 | VP-019 | DNS Analyzer Is Statistics-Only (Never Emits Findings) | analyzer/dns.rs | STORY-066 | BC-2.08.001..004 |
@@ -858,14 +870,17 @@ E-17 (SS-16 ARP VLAN/QinQ/MACsec) — linear chain:
   STORY-116 -> STORY-117
   (SS-16 VLAN+QinQ fixture coverage -> SS-16 MACsec observe-only probe)
 
-E-18/E-8 (SS-11 Terminal Finding-Collapse + Enum Migration) — linear chain (Waves 47-48 + deferred):
-  STORY-118 (Wave 47) -> STORY-120 (Wave 48) -> STORY-119 (deferred/unscheduled)
-  (SS-11 flat-mode collapse + --no-collapse flag -> SS-11 FindingsRender enum migration v0.9.0 -> SS-11 grouped-mode collapse, future cycle)
+E-18/E-8 (SS-11 Terminal Finding-Collapse + Enum Migration) — linear chain (Waves 47-48-49):
+  STORY-118 (Wave 47) -> STORY-120 (Wave 48) -> STORY-119 (Wave 49)
+  (SS-11 flat-mode collapse + --no-collapse flag -> SS-11 FindingsRender enum migration v0.9.0 -> SS-11 grouped-mode collapse + FindingsRender enum→struct reshape)
   STORY-118 has NO upstream dependency (depends_on=[]); it is an independent extension
   of the existing TerminalReporter struct introduced in STORY-077/078.
   STORY-120 has NO upstream dependency (depends_on=[]); it refactors the existing
   TerminalReporter struct completed in STORY-118 by replacing two bool fields with
   a FindingsRender enum.
+  STORY-119 depends_on=[STORY-120]; it reshapes the three-variant FindingsRender enum into
+  struct FindingsRender { grouping: Grouping, collapse: Collapse } and implements
+  per-bucket grouped-mode collapse (render_findings_grouped_collapsed).
 ```
 
 ---
@@ -889,20 +904,22 @@ E-17 ARP offset hardening specific gap notes:
 - BC-2.16.009 and BC-2.16.015 are primarily owned by STORY-113 and STORY-112 respectively; STORY-116 and STORY-117 extend coverage to EC-008 (QinQ offset) and EC-009 (MACsec observe-only) additions introduced in BC-2.16.009 v1.10 / BC-2.16.015 v1.9. No new BCs; no gap — deeper clause coverage on existing BCs.
 
 E-18/E-8 Terminal Finding-Collapse + Enum Migration specific gap notes:
-- STORY-119 is deliberately deferred; BC-2.11.025 Invariant 5 and BC-2.11.013 Invariant 4
-  explicitly document this boundary. Grouped-mode collapse is a future-cycle scope item.
-  STORY-119 now depends on STORY-120 (enum vocabulary established before grouped-mode work).
+- STORY-119 is now scheduled at wave 49 (F3 full decomposition complete 2026-06-18);
+  BC-2.11.025 Invariant 5 and BC-2.11.013 Invariant 4 now scoped to STORY-119's ACs.
+  STORY-119 depends_on=[STORY-120] (enum vocabulary established before struct reshape).
 - BC-2.11.013, BC-2.11.017, BC-2.11.019 are EXTENDED by STORY-118 and RE-ANCHORED by
   STORY-120 (bool references → enum variants). Non-collapse clause ownership remains in
   STORY-078. All three stories (STORY-078, STORY-118, STORY-120) are co-owners of these
-  BCs at review time.
+  BCs at review time. STORY-119 adds grouped-collapse clause coverage.
 - STORY-120 carries no new BCs — it is a pure vocabulary migration. The 12 BCs in its
   frontmatter are the same BCs owned by STORY-077/078/118; the enum re-anchoring is the
   complete scope.
+- STORY-119 introduces 5 new BCs (BC-2.11.030..034) scoped to the grouped-collapse feature
+  and the CLI→struct routing change (--mitre default-collapse).
 
 | Gap ID | Level | Source | Justification | Resolution Target |
 |--------|-------|--------|---------------|-------------------|
-| GAP-001 | L1 | BC-2.11.013 Invariant 4 / BC-2.11.025 Invariant 5 | Grouped-mode collapse explicitly deferred to STORY-119 per F1 delta analysis §4 locked-design decision. v0.8.0 scope boundary. STORY-120 (v0.9.0 enum migration) does not close this gap; STORY-119 remains deferred. | Future feature cycle (STORY-119 activation) |
+| GAP-001 | L1 | BC-2.11.013 Invariant 4 / BC-2.11.025 Invariant 5 | ~~RESOLVED (2026-06-18).~~ Grouped-mode collapse delivered in STORY-119 (wave 49, F3 full decomposition complete). BC-2.11.030..034 authored for the feature. GAP-001 closed. | STORY-119 wave 49 (CLOSED) |
 
 ---
 
