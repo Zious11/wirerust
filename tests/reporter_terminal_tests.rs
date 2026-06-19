@@ -3967,9 +3967,9 @@ mod story_118 {
 // migration (STORY-120). All todo!() stubs have been replaced with real
 // assertions by the GREEN implementer.
 //
-// `TerminalReporter` now uses `render: FindingsRender` (a three-variant enum)
-// in place of the two removed bool fields. The FindingsRender enum is now
-// defined in src/reporter/terminal.rs and imported below.
+// `TerminalReporter` now uses `render: FindingsRender` (a struct-of-two-orthogonal-enums:
+// `Grouping` × `Collapse`) in place of the two removed bool fields. The FindingsRender
+// struct and its axis enums are defined in src/reporter/terminal.rs and imported below.
 // ---------------------------------------------------------------------------
 
 mod story_120 {
@@ -4173,10 +4173,11 @@ mod story_120 {
     // -----------------------------------------------------------------------
 
     /// AC-003 (BC-2.11.019 invariant 7):
-    /// All three FindingsRender arms are reachable and route to the correct rendering path.
-    ///   Grouped       → MITRE tactic header "## " in output
-    ///   FlatCollapsed → "(x3)" suffix for N=3 identical findings
-    ///   FlatExpanded  → 3 individual header lines, no "(x" suffix
+    /// All four FindingsRender (Grouping × Collapse) dispatch arms are reachable and route
+    /// to the correct rendering path. Three of the four combos are exercised here:
+    ///   {Grouped,Expanded}   → MITRE tactic header "## " in output
+    ///   {Flat,Collapsed}     → "(x3)" suffix for N=3 identical findings
+    ///   {Flat,Expanded}      → 3 individual header lines, no "(x" suffix
     #[test]
     fn test_BC_2_11_019_findings_dispatch_match_exhaustive() {
         // Three identical-key findings with a known MITRE technique for the Grouped path.
@@ -4236,7 +4237,7 @@ mod story_120 {
              found {header_count} in:\n{expanded_out}"
         );
 
-        // All three outputs are mutually distinct.
+        // All three tested outputs are mutually distinct (three of the four Grouping x Collapse combos).
         assert_ne!(
             grouped_out, collapsed_out,
             "AC-003: Grouped != FlatCollapsed output"
@@ -4252,14 +4253,15 @@ mod story_120 {
     }
 
     // -----------------------------------------------------------------------
-    // AC-004 — Impossible state (Grouped + collapsed) is structurally unrepresentable
+    // AC-004 — {Grouped, Expanded} mode does not emit collapse (xN) suffixes
     // (traces to BC-2.11.025 invariant 5)
     // -----------------------------------------------------------------------
 
     /// AC-004 (BC-2.11.025 invariant 5):
-    /// FindingsRender { grouping: Grouping::Grouped, collapse: Collapse::Expanded } on N=100 identical-key findings produces no "(xN)" suffix.
-    /// The impossible state (FindingsRender { grouping: Grouping::Grouped, collapse: Collapse::Expanded } + FlatCollapsed simultaneously) is
-    /// eliminated by type — FindingsRender { grouping: Grouping::Grouped, collapse: Collapse::Expanded } structurally excludes the collapse path.
+    /// FindingsRender { grouping: Grouping::Grouped, collapse: Collapse::Expanded } on N=100
+    /// identical-key findings produces no "(xN)" suffix. The {Grouped, Expanded} struct combo
+    /// routes to render_findings_grouped which never applies the collapse pass — the two axes
+    /// are orthogonal and all four combinations are valid (no combination is prohibited).
     #[test]
     fn test_BC_2_11_025_grouped_mode_bypasses_collapse_structurally() {
         let findings: Vec<Finding> = (0..100)
@@ -4279,7 +4281,7 @@ mod story_120 {
         assert!(
             !out.contains("(x"),
             "AC-004: FindingsRender {{ grouping: Grouping::Grouped, collapse: Collapse::Expanded }} must never emit (xN) suffix — \
-             impossible state is structurally unrepresentable; got:\n{out}"
+             the grouped path does not apply the collapse pass; got:\n{out}"
         );
         // Grouped mode emits tactic headers (confirming the Grouped path ran, not collapsed).
         assert!(
@@ -4360,7 +4362,6 @@ mod story_120 {
 // ---------------------------------------------------------------------------
 
 mod story_122 {
-    use std::path::Path;
     use wirerust::findings::{Confidence, Finding, ThreatCategory, Verdict};
     use wirerust::reporter::Reporter;
     use wirerust::reporter::terminal::{Collapse, FindingsRender, Grouping, TerminalReporter};
@@ -4969,15 +4970,18 @@ mod story_122 {
     // -----------------------------------------------------------------------
 
     /// AC-007 (BC-2.11.028 Invariant 6):
-    /// src/reporter/terminal.rs contains no stale "three mutually-exclusive" prose.
+    /// src/reporter/terminal.rs contains no stale pre-STORY-122 module-doc vocabulary
+    /// (the "three-modes" framing replaced by two-orthogonal-axis struct vocabulary).
     /// Gate 4 from STORY-122 Task-4 Falsifiable Requirements.
     #[test]
     fn test_BC_2_11_028_ac007_terminal_rs_no_three_mutually_exclusive() {
         let src = include_str!("../src/reporter/terminal.rs");
+        // Build token at runtime so this source file does not self-trigger the sweep gate.
+        let token = concat!("three", " mutually-exclusive");
         assert!(
-            !src.contains("three mutually-exclusive"),
-            "AC-007: src/reporter/terminal.rs must not contain stale 'three mutually-exclusive' \
-             prose; Task 4 comment sweep is incomplete"
+            !src.contains(token),
+            "AC-007: src/reporter/terminal.rs must not contain the stale two-axis framing token; \
+             Task 4 comment sweep is incomplete"
         );
     }
 
@@ -5000,15 +5004,15 @@ mod story_122 {
     }
 
     /// AC-007 (BC-2.11.028 Invariant 6):
-    /// tests/reporter_terminal_tests.rs contains no stale three-variant / three-arm /
-    /// three mutually-exclusive / All three FindingsRender / All three outputs /
-    /// impossible state prose in the swept targets.
+    /// tests/reporter_terminal_tests.rs contains no stale pre-STORY-122 FindingsRender
+    /// enum vocabulary (old variant names, old three-mode framing, old impossible-combo
+    /// framing) in the swept targets.
     /// Gate 3 from STORY-122 Task-4 Falsifiable Requirements.
     ///
     /// EXEMPT tokens NOT checked here:
-    ///   - "three fields" (TerminalReporter-field comment at :4040) — correct, not stale.
-    ///   - "All three boundary" (escape-boundary test at :394) — unrelated to FindingsRender.
-    ///   - "All three findings must appear" (test-finding count at :3512) — unrelated.
+    ///   - "three fields" (TerminalReporter-field comment) — correct, not stale.
+    ///   - "All three boundary" (escape-boundary test) — unrelated to FindingsRender.
+    ///   - "All three findings must appear" (test-finding count) — unrelated.
     #[test]
     fn test_BC_2_11_028_ac007_test_file_no_stale_findingsrender_prose() {
         let src = include_str!("../tests/reporter_terminal_tests.rs");
@@ -5023,16 +5027,17 @@ mod story_122 {
             "All three findings must appear",
         ];
 
+        // Tokens are built with concat! so this source file does not self-trigger the sweep.
         let stale_tokens: &[&str] = &[
-            "three-variant",
-            "three variants",
-            "All three FindingsRender",
-            "All three outputs",
-            "three arm",
-            "three-arm",
-            "three mutually-exclusive",
-            "three-way",
-            "impossible state",
+            concat!("three", "-variant"),
+            concat!("three", " variants"),
+            concat!("All three", " FindingsRender"),
+            concat!("All three", " outputs"),
+            concat!("three", " arm"),
+            concat!("three", "-arm"),
+            concat!("three", " mutually-exclusive"),
+            concat!("three", "-way"),
+            concat!("impossible", " state"),
         ];
 
         let mut violations: Vec<String> = Vec::new();
@@ -5063,17 +5068,18 @@ mod story_122 {
     }
 
     /// AC-007 (BC-2.11.028 Invariant 6):
-    /// src/main.rs contains no stale three-mutually-exclusive / three-way /
-    /// impossible-state / three-mode prose.
+    /// src/main.rs contains no stale pre-STORY-122 FindingsRender vocabulary
+    /// (old three-mode framing, old impossible-combo framing, old three-mode prose).
     /// Gate 4 (src/ targets) from STORY-122 Task-4 Falsifiable Requirements.
     #[test]
     fn test_BC_2_11_028_ac007_main_rs_no_stale_findingsrender_prose() {
         let src = include_str!("../src/main.rs");
+        // Tokens built with concat! so this source file does not self-trigger the sweep.
         for token in &[
-            "three mutually-exclusive",
-            "three-way",
-            "impossible state",
-            "three mode",
+            concat!("three", " mutually-exclusive"),
+            concat!("three", "-way"),
+            concat!("impossible", " state"),
+            concat!("three", " mode"),
         ] {
             assert!(
                 !src.contains(token),
