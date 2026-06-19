@@ -751,6 +751,13 @@ constructs `{Grouped, Collapsed}` instead of `{Grouped, Expanded}`. Second, it i
 the placeholder `render_findings_grouped` to the new function. `--no-collapse` becomes
 dual-scope (suppresses collapse in both flat and grouped modes).
 
+Note: the shipped code at `src/main.rs:384` does not inline the grouping expression; it calls
+the named helper `grouping_from_flag(show_mitre_grouping)` (defined at `src/main.rs:514`),
+which encapsulates the `if show_mitre_grouping { Grouping::Grouped } else { Grouping::Flat }`
+logic. The collapse boolean is derived upstream by `collapse_findings_from_flag(*no_collapse)`
+(called at `src/main.rs:80`, defined at `src/main.rs:505`), which is `!no_collapse`. The
+2-if structure and all four CLI combinations in the table below remain correct.
+
 | CLI flags (Phase B) | Resulting struct | Behavior |
 |--------------------|-----------------|----------|
 | *(default)* | `{Flat, Collapsed}` | Flat collapse — unchanged default. |
