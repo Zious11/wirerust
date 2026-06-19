@@ -49,7 +49,7 @@ traces_to:
 > STORY-102/103/104/105 implement E-14 Modbus TCP analyzer (v0.4.0).
 > STORY-106/107/108/109/110 implement E-15 DNP3/ICS analyzer (issue #8).
 > STORY-111/112/113/114/115 implement E-16 ARP Security Analyzer (issue #9, v0.7.0).
-> Status `draft` = not yet dispatched. Wave assignments are from the
+> Status `draft` = not yet dispatched. Status `pending` = fully decomposed, predecessor(s) merged, queued for dispatch (F4). Wave assignments are from the
 > authoritative dependency-graph.md (longest-path / Kahn topological sort).
 
 ---
@@ -130,7 +130,7 @@ traces_to:
 | STORY-116 | ARP QinQ (Double-Tag) Decoder Offset Coverage | E-17 | 45 | 3 | draft | STORY-115 |
 | STORY-117 | ARP MACsec Offset Documented-Limitation Coverage | E-17 | 46 | 5 | draft | STORY-116 |
 | STORY-118 | Terminal Finding-Collapse — Flat Mode (v0.8.0) | E-18 | 47 | 8 | completed | — |
-| STORY-119 | Terminal Finding-Collapse — Grouped Mode / --mitre | E-18 | 49 | 8 | draft | STORY-120 |
+| STORY-119 | Terminal Finding-Collapse — Grouped Mode / --mitre | E-18 | 49 | 8 | pending | STORY-120 |
 | STORY-120 | TerminalReporter FindingsRender Enum Migration (v0.9.0) | E-8 | 48 | 3 | completed | — |
 
 ---
@@ -270,7 +270,7 @@ traces_to:
 | 46 | STORY-117 | draft | #258 (test/arp-qinq-macsec-fixtures) | — | — |
 | 47 | STORY-118 | **DELIVERED & CLOSED** | #264 | 5f7cd1b | 2026-06-17 |
 | 48 | STORY-120 | **DELIVERED & CLOSED** | #267 | f851995 | 2026-06-18 |
-| 49 | STORY-119 | draft | — | — | — |
+| 49 | STORY-119 | pending | — | — | — |
 
 ## Coverage Verification
 
