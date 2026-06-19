@@ -72,5 +72,28 @@ cycle_id: feature-story-119-grouped-collapse
 - BCs (re-anchored v1.43): `.factory/specs/behavioral-contracts/ss-11/BC-2.11.0{10,13,14,15,16,17,19,25,26,27,28,29}.md`
 - Demo evidence: `.factory/demo-evidence/issue-62-story-120/`
 - Cycle lessons: `.factory/cycles/feature-collapse-v0.8.0/lessons.md`
-</content>
-</invoke>
+
+---
+
+## Checkpoint: 2026-06-18 — STORY-119 F3 RE-OPENED D-120 resplit corpus FROZEN
+
+*Archived from STATE.md when STORY-119 F3 resplit CONVERGED 3/3 burst (D-121) replaced this checkpoint.*
+
+### A. EXACT PIPELINE POSITION
+
+- **Project:** wirerust. **Mode:** FEATURE_MODE — STORY-119 cycle, F1✅/F2✅/F3 RE-OPENED. D-120 split directive: STORY-122 (A, wave 49) + STORY-119 (B, wave 50). Adversarial gate re-run PENDING on frozen resplit corpus.
+- **STORY-122 (A):** `.factory/stories/STORY-122.md` — NEW; struct reshape, byte-identical, wave 49, input-hash 309f190, depends_on [STORY-120].
+- **STORY-119 (B):** `.factory/stories/STORY-119.md` — RE-SCOPED; grouped-collapse render + CLI flip, wave 50, input-hash 4a8c93f, depends_on [STORY-122].
+- **Latest release:** v0.8.0 — tag v0.8.0 on main 73034da. Cargo 0.9.0 on develop (not yet released).
+- **ADR-0003 Collapse-API Shape subsection:** on develop working tree (uncommitted) — to be committed during F4.
+- **DRIFT-62-MAIN495-DOC-001:** Still pending, to be fixed within STORY-119 cycle.
+- **STORY-121 (E-11 process-gap):** Filed as draft; D-119 process-gap notes fold into scope.
+
+### B. EXACT SHAs / WORKTREE STATE
+
+- **develop HEAD:** `f851995` (fix-PR #267). Unchanged.
+- **main HEAD:** `73034da` (`chore: release v0.8.0`). Tag `v0.8.0` annotated.
+- **factory-artifacts HEAD:** run `git -C /Users/zious/Documents/GITHUB/wirerust/.factory log -1 --format='%h %s'`
+- **STORY-122:** `.factory/stories/STORY-122.md` — NEW (A, struct reshape, wave 49, input-hash 309f190).
+- **STORY-119:** `.factory/stories/STORY-119.md` — RE-SCOPED (B, wave 50, input-hash 4a8c93f).
+- **Active worktrees:** 2 — main repo (develop), `.factory/` (factory-artifacts). **Open PRs:** NONE.
