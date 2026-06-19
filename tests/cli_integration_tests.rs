@@ -389,6 +389,113 @@ fn mitre_named_tactic_header_emitted_for_modbus_fixture() {
 //   assertion failed: `--help` must not contain "BC-"; found in stdout
 // Then removing the ID restored the green state.
 
+// ---- v0.9.1 doc-bug regression guard: --no-collapse flag naming ----
+//
+// Pre-0.9.1 the --no-collapse clap doc-comment said "Has no effect on --output
+// json or --output csv." but `--output` does not exist; the real flags are
+// `--json`, `--csv`, and `--output-format`. This test pins the corrected wording
+// so any revert to the bogus substring is caught immediately.
+//
+// FAIL MODE VERIFICATION (performed before committing 0.9.1 fix):
+//   Temporarily restored "Has no effect on --output json or --output csv." in
+//   src/cli.rs and ran: cargo test no_collapse_help_names_real_output_flags
+//   Test failed with:
+//     assertion failed: `--no-collapse` help must NOT contain bogus `--output json`
+//   Then `--output csv` assertion also failed.
+//   Restored corrected wording: test passes.
+//   Assertion (b) was verified green throughout (--json appears in sibling flags).
+
+/// REGRESSION GUARD (v0.9.1): `wirerust analyze --help` `--no-collapse` entry
+/// must NOT reference the non-existent `--output json` / `--output csv` flags,
+/// and MUST reference at least one of the real output flags (`--json`, `--csv`,
+/// `--output-format`).
+///
+/// Scoping: clap renders flags as `\n      --flag-name\n          description`.
+/// The test finds the `--no-collapse` FLAG LINE (a line whose content, when
+/// trimmed, equals `--no-collapse`) and extracts the description lines that
+/// follow until the next flag line.  This prevents the `(pass --no-collapse to
+/// disable)` text in the sibling `--mitre` entry from tainting the assertions.
+///
+/// Fail-mode verification (run before committing 0.9.1 fix):
+///   Restored "Has no effect on --output json or --output csv." in src/cli.rs,
+///   ran cargo test no_collapse_help_names_real_output_flags.
+///   Test failed with:
+///     v0.9.1-reg: `--no-collapse` help must NOT contain bogus `--output json`
+///   and `--output csv` assertion also failed.
+///   Restored corrected wording: both (a) assertions pass, (b) passes.
+#[test]
+fn no_collapse_help_names_real_output_flags() {
+    let output = Command::cargo_bin("wirerust")
+        .expect("binary built")
+        .args(["analyze", "--help"])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let help = String::from_utf8(output).expect("utf-8 stdout");
+
+    // Find the line where --no-collapse IS the flag (trimmed line == "--no-collapse"),
+    // not a reference to it inside another flag's description.
+    let nc_flag_line_start = help
+        .lines()
+        .enumerate()
+        .find(|(_, line)| line.trim() == "--no-collapse")
+        .map(|(i, _)| {
+            // Byte offset of the start of this line.
+            help.lines()
+                .take(i)
+                .map(|l| l.len() + 1) // +1 for the \n
+                .sum::<usize>()
+        })
+        .expect("v0.9.1-reg: `--no-collapse` flag line must appear in `analyze --help`");
+
+    let after_nc_line = &help[nc_flag_line_start..];
+
+    // The description is on the lines that follow the flag line.
+    // Collect lines until we hit the next flag line (trimmed starts with "--").
+    let mut nc_block = String::new();
+    let mut saw_flag_line = false;
+    for line in after_nc_line.lines() {
+        if line.trim() == "--no-collapse" {
+            saw_flag_line = true;
+            nc_block.push_str(line);
+            nc_block.push('\n');
+            continue;
+        }
+        if saw_flag_line {
+            // Stop at the next sibling flag line.
+            if line.trim_start().starts_with("--") && line.trim() != "--no-collapse" {
+                break;
+            }
+            nc_block.push_str(line);
+            nc_block.push('\n');
+        }
+    }
+
+    // (a) must NOT contain the bogus non-existent flag spelling.
+    assert!(
+        !nc_block.contains("--output json"),
+        "v0.9.1-reg: `--no-collapse` help must NOT contain bogus `--output json`; \
+         got block:\n{nc_block}"
+    );
+    assert!(
+        !nc_block.contains("--output csv"),
+        "v0.9.1-reg: `--no-collapse` help must NOT contain bogus `--output csv`; \
+         got block:\n{nc_block}"
+    );
+
+    // (b) must reference at least one real output flag.
+    let references_real_flag = nc_block.contains("--json")
+        || nc_block.contains("--csv")
+        || nc_block.contains("--output-format");
+    assert!(
+        references_real_flag,
+        "v0.9.1-reg: `--no-collapse` help must reference a real output flag \
+         (`--json`, `--csv`, or `--output-format`); got block:\n{nc_block}"
+    );
+}
+
 /// REGRESSION GUARD: `wirerust analyze --help` must not contain any of the
 /// internal factory provenance IDs `BC-`, `STORY-`, or `LESSON-`.
 ///

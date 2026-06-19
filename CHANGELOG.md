@@ -7,6 +7,19 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.9.1] - 2026-06-19
+
+### Fixed
+
+- **`--no-collapse` help text and README referenced non-existent flags
+  `--output json` / `--output csv`.** There is no `--output` flag in wirerust;
+  the real flags are `--json <FILE>`, `--csv <FILE>`, and
+  `--output-format <fmt>`. The doc-comment in `src/cli.rs` and the corresponding
+  line in `README.md` both said "Has no effect on --output json or --output csv."
+  Corrected to "Has no effect on --json, --csv, or --output-format json|csv
+  output." Behavior is unchanged — JSON and CSV output were already
+  collapse-invariant; only the help text wording was wrong.
+
 ## [0.9.0] - 2026-06-19
 
 ### Changed (BREAKING)
@@ -425,7 +438,8 @@ Downstream consumers of wirerust JSON or CSV output must update for this release
 - Output sanitization in the terminal reporter guards against C1 control bytes
   in packet-derived strings.
 
-[Unreleased]: https://github.com/Zious11/wirerust/compare/v0.9.0...HEAD
+[Unreleased]: https://github.com/Zious11/wirerust/compare/v0.9.1...HEAD
+[0.9.1]: https://github.com/Zious11/wirerust/compare/v0.9.0...v0.9.1
 [0.9.0]: https://github.com/Zious11/wirerust/compare/v0.8.0...v0.9.0
 [0.8.0]: https://github.com/Zious11/wirerust/compare/v0.7.1...v0.8.0
 [0.7.1]: https://github.com/Zious11/wirerust/compare/v0.7.0...v0.7.1

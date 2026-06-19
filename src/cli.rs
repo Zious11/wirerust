@@ -151,7 +151,7 @@ pub enum Commands {
         /// modes. When --mitre is used, collapse groups identical findings
         /// within each MITRE tactic bucket with a `(xN)` count suffix.
         /// Pass --no-collapse to restore one-line-per-finding output in both modes.
-        /// Has no effect on --output json or --output csv.
+        /// Has no effect on --json, --csv, or --output-format json|csv output.
         // BC-2.11.028 precondition 2; dual-scope since STORY-119.
         #[arg(long)]
         no_collapse: bool,
