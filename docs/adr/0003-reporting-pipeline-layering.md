@@ -700,7 +700,7 @@ The three existing functions (`render_findings_grouped`, `render_findings_collap
 ### CLI → Render Mode Wiring (two-phase: STORY-122/A then STORY-119/B)
 
 `src/main.rs` `run_analyze` TerminalReporter construction site
-(the 3-arm-if at `src/main.rs:380-395`; `run_summary` inert site at `src/main.rs:456-459`).
+(orthogonal 2-if struct construction at `src/main.rs:383-390`; `run_summary` inert site at `src/main.rs:451-454`).
 
 `show_mitre_grouping` ← `*mitre` (CLI `--mitre` flag).
 `collapse_findings` ← `collapse_findings_from_flag(*no_collapse)` (unchanged: `!no_collapse`).
