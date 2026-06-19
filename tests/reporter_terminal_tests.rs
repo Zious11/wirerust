@@ -6712,4 +6712,169 @@ mod story_119 {
              got:\n{out}"
         );
     }
+
+    // -----------------------------------------------------------------------
+    // F6-FINDING-1 — confidence_rank secondary sort key on grouped/collapsed path
+    // (traces to BC-2.11.033 PC-6 / BC-2.11.014)
+    // -----------------------------------------------------------------------
+
+    /// F6-FINDING-1 (BC-2.11.033 Postcondition 6 / BC-2.11.014):
+    /// REGRESSION GUARD: Two findings in the SAME tactic bucket with the SAME
+    /// verdict but DIFFERENT confidence must appear in `confidence_rank` order
+    /// (High before Low, i.e. rank-0 before rank-2) when rendered through the
+    /// `{Grouped, Collapsed}` path.
+    ///
+    /// The existing `test_BC_2_11_033_first_occurrence_in_sorted_bucket_order`
+    /// varies VERDICT only (Likely vs Inconclusive). This test fixes the gap by
+    /// keeping verdict constant (Likely/Likely) and varying CONFIDENCE
+    /// (High vs Low). Both findings are singletons (distinct summaries) so they
+    /// produce two separate group headers — the order of those headers is
+    /// entirely determined by the `confidence_rank` secondary sort key.
+    ///
+    /// FAIL mode: if `confidence_rank` is removed from the `sort_by_key` lambda
+    /// in `render_findings_grouped_collapsed` (terminal.rs:~534), the two
+    /// singletons sort by emission index only, meaning the Low-confidence finding
+    /// (inserted first) would appear before the High-confidence one — inverting
+    /// the expected order and failing the positional assertion below.
+    #[test]
+    fn test_BC_2_11_033_confidence_rank_secondary_sort_same_verdict_grouped_collapsed() {
+        // Two findings: same verdict (Likely), same bucket (T1046/Discovery),
+        // DIFFERENT confidence. Low is inserted first (index 0) so that removing
+        // `confidence_rank` from sort_by_key would put it first, inverting order.
+        let findings = vec![
+            Finding {
+                category: ThreatCategory::Anomaly,
+                verdict: Verdict::Likely,
+                confidence: Confidence::Low, // rank=2 — must sort AFTER High
+                summary: "s119-f6find1-low-confidence".to_string(),
+                evidence: vec![],
+                mitre_techniques: vec!["T1046".to_string()],
+                source_ip: None,
+                timestamp: None,
+                direction: None,
+            },
+            Finding {
+                category: ThreatCategory::Anomaly,
+                verdict: Verdict::Likely,
+                confidence: Confidence::High, // rank=0 — must sort FIRST
+                summary: "s119-f6find1-high-confidence".to_string(),
+                evidence: vec![],
+                mitre_techniques: vec!["T1046".to_string()],
+                source_ip: None,
+                timestamp: None,
+                direction: None,
+            },
+        ];
+
+        let out = grouped_collapse_reporter().render(&Summary::new(), &findings, &[]);
+
+        // Both headers must be present (singletons — no (xN) suffix on either).
+        assert!(
+            out.contains("s119-f6find1-high-confidence"),
+            "F6-FINDING-1: High-confidence finding must appear in output; got:\n{out}"
+        );
+        assert!(
+            out.contains("s119-f6find1-low-confidence"),
+            "F6-FINDING-1: Low-confidence finding must appear in output; got:\n{out}"
+        );
+        // Neither is a group of N≥2: no (xN) suffix expected.
+        assert!(
+            !out.contains("(x"),
+            "F6-FINDING-1: both findings are singletons; no (xN) suffix expected; got:\n{out}"
+        );
+
+        // Core assertion: High-confidence (rank=0) must appear BEFORE
+        // Low-confidence (rank=2) in the rendered output.
+        // If confidence_rank is removed from sort_by_key, the Low-confidence
+        // finding (emission index 0) would appear first — this assertion fails.
+        let high_pos = out
+            .find("s119-f6find1-high-confidence")
+            .expect("high-confidence finding must be in output");
+        let low_pos = out
+            .find("s119-f6find1-low-confidence")
+            .expect("low-confidence finding must be in output");
+        assert!(
+            high_pos < low_pos,
+            "F6-FINDING-1 (BC-2.11.033 PC-6 / BC-2.11.014): High-confidence finding \
+             (confidence_rank=0) must appear before Low-confidence (confidence_rank=2) \
+             in the grouped-collapsed output. This assertion fails when `confidence_rank` \
+             is removed from the sort_by_key lambda in render_findings_grouped_collapsed.\n\
+             high_pos={high_pos}, low_pos={low_pos}\nfull output:\n{out}"
+        );
+    }
+
+    // -----------------------------------------------------------------------
+    // F6-FINDING-2 — pin the Confidence::High red+bold color arm in
+    // render_findings_grouped_collapsed (terminal.rs:~568)
+    // (traces to BC-2.11.031 PC-3)
+    // -----------------------------------------------------------------------
+
+    /// F6-FINDING-2 (BC-2.11.031 Postcondition 3):
+    /// REGRESSION GUARD: The color ladder for `{Grouped, Collapsed}` N≥2 groups
+    /// with `Verdict::Likely` and `Confidence::High` must emit ANSI red+bold
+    /// escapes (ESC[1m and ESC[31m) on the collapsed summary header line.
+    ///
+    /// The existing `test_BC_2_11_031_grouped_collapse_color_ladder` verifies
+    /// that `(x2)` is inside the ANSI color span but does NOT assert the
+    /// specific escape code — a mutation that changes `High => red().bold()` to
+    /// `High => yellow()` (ESC[33m) still passes the existing test. This sibling
+    /// pins the specific ANSI sequences so that mutation fails.
+    ///
+    /// owo-colors escape sequences used:
+    ///   - `.red()` wraps text as `ESC[31m{text}ESC[39m`
+    ///   - `.bold()` wraps outer as `ESC[1m{inner}ESC[0m`
+    ///   - `.red().bold()` → `ESC[1mESC[31m{text}ESC[39mESC[0m`
+    ///   - `.yellow()` → `ESC[33m{text}ESC[39m` (mutation: no ESC[1m, no ESC[31m)
+    ///
+    /// FAIL mode: mutate `Confidence::High => header_text.red().bold()` to
+    /// `Confidence::High => header_text.yellow()` in terminal.rs:~568; both
+    /// `\x1b[1m` (bold) and `\x1b[31m` (red) would be absent, failing this test.
+    #[test]
+    fn test_BC_2_11_031_grouped_collapse_high_confidence_red_bold_ansi() {
+        // N=2 Likely/High findings in one tactic bucket → collapsed with N=2 header.
+        let findings: Vec<Finding> = (0..2)
+            .map(|_| Finding {
+                category: ThreatCategory::Anomaly,
+                verdict: Verdict::Likely,
+                confidence: Confidence::High,
+                summary: "s119-f6find2-red-bold".to_string(),
+                evidence: vec![],
+                mitre_techniques: vec!["T1046".to_string()],
+                source_ip: None,
+                timestamp: None,
+                direction: None,
+            })
+            .collect();
+
+        let out = grouped_collapse_reporter_color().render(&Summary::new(), &findings, &[]);
+
+        // The N=2 suffix must be present (sanity check that we're on the right path).
+        assert!(
+            out.contains("(x2)"),
+            "F6-FINDING-2: N=2 group must emit `(x2)` suffix; got:\n{out}"
+        );
+
+        // Extract the header line (the line that contains the (x2) suffix).
+        let header_line = out.lines().find(|l| l.contains("(x2)")).unwrap_or_default();
+
+        // Assert ESC[1m (bold) is present on the header line.
+        // Mutation `red().bold()` → `yellow()` removes ESC[1m.
+        assert!(
+            header_line.contains("\x1b[1m"),
+            "F6-FINDING-2 (BC-2.11.031 PC-3): Likely/High collapsed header must contain \
+             ANSI bold escape ESC[1m. Mutation of `Confidence::High => red().bold()` to \
+             `yellow()` in terminal.rs:~568 removes this escape and fails this test.\n\
+             header line: {header_line:?}\nfull output:\n{out}"
+        );
+
+        // Assert ESC[31m (red foreground) is present on the header line.
+        // Mutation `red().bold()` → `yellow()` replaces ESC[31m with ESC[33m.
+        assert!(
+            header_line.contains("\x1b[31m"),
+            "F6-FINDING-2 (BC-2.11.031 PC-3): Likely/High collapsed header must contain \
+             ANSI red escape ESC[31m. Mutation of `Confidence::High => red().bold()` to \
+             `yellow()` in terminal.rs:~568 replaces this with ESC[33m and fails this test.\n\
+             header line: {header_line:?}\nfull output:\n{out}"
+        );
+    }
 }

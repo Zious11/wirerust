@@ -247,3 +247,68 @@ fn mitre_no_collapse_emits_tactic_headers_without_collapse_suffix() {
          got stdout:\n{stdout}"
     );
 }
+
+// O-1: Named MITRE tactic header assertion and (xN) collapse on modbus fixture
+//
+// The http-ooo.pcap fixture only produces "## Uncategorized" because its HTTP
+// findings carry no MITRE technique IDs. The `## ` assertion in
+// `mitre_flag_emits_tactic_headers_and_collapse_suffix` is therefore satisfied
+// by the Uncategorized bucket alone — it does not verify that a NAMED tactic
+// header (Discovery, Command and Control, etc.) is correctly emitted.
+//
+// modbus-write.pcap produces findings with T1046 (→ Discovery) technique IDs,
+// yielding a `## Discovery` tactic header and a collapsed N=2 group.
+// This test pins a NAMED tactic header so that a bug suppressing tactic-name
+// resolution (while still emitting `## Uncategorized`) would be caught.
+
+/// O-1 (BC-2.11.030 PC-2 / BC-2.11.033 PC-3):
+/// REGRESSION GUARD: `analyze modbus-write.pcap --all --mitre` must emit a
+/// NAMED MITRE tactic header `## Discovery` (produced by T1046 findings in the
+/// fixture). The existing `mitre_flag_emits_tactic_headers_and_collapse_suffix`
+/// test only asserts `## ` which is satisfied by `## Uncategorized`. This test
+/// pins the named-tactic path: if tactic-name resolution is broken, `## Discovery`
+/// would not appear and this test fails.
+///
+/// Also asserts that the collapsed N=2 group in the Discovery bucket carries an
+/// `(xN)` suffix (the fixture produces 2 Modbus recon findings with the same key).
+///
+/// FAIL mode: disable `technique_tactic` lookup so all findings fall into
+/// Uncategorized. The `## Discovery` assertion fails; the existing `## `
+/// assertion in the companion test would still pass.
+#[test]
+fn mitre_named_tactic_header_emitted_for_modbus_fixture() {
+    // modbus-write.pcap produces T1046 findings that map to the Discovery tactic.
+    // Verified by running: cargo run -- analyze tests/fixtures/modbus-write.pcap --all --mitre
+    // Output includes:
+    //   ## Discovery
+    //   [Anomaly] INCONCLUSIVE (MEDIUM) - Modbus recon: Report Server ID ... (x2)
+    //   ## Impair Process Control
+    const MODBUS_FIXTURE: &str = "tests/fixtures/modbus-write.pcap";
+
+    let output = Command::cargo_bin("wirerust")
+        .expect("binary built")
+        .args(["analyze", MODBUS_FIXTURE, "--all", "--mitre"])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let stdout = String::from_utf8(output).expect("utf-8 stdout");
+
+    // Named tactic header must appear — NOT just `## Uncategorized`.
+    assert!(
+        stdout.contains("## Discovery"),
+        "O-1 (BC-2.11.030 PC-2): `--mitre` must emit the named MITRE tactic header \
+         '## Discovery' for T1046 findings in modbus-write.pcap; \
+         got stdout:\n{stdout}"
+    );
+
+    // The Discovery bucket contains N=2 identical-key Modbus recon findings;
+    // collapsed output must carry an `(xN)` suffix on the group header.
+    assert!(
+        stdout.contains("(x"),
+        "O-1 (BC-2.11.030 PC-2): `--mitre` on modbus-write.pcap must collapse \
+         N≥2 identical-key Modbus recon findings with '(xN)' suffix; \
+         got stdout:\n{stdout}"
+    );
+}
