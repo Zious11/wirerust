@@ -4685,10 +4685,14 @@ mod story_122 {
     // -----------------------------------------------------------------------
 
     /// AC-004 (BC-2.11.028 Invariant 1, EC-001):
-    /// --mitre alone (show_mitre_grouping=true) → run_analyze produces
-    /// FindingsRender { grouping: Grouping::Grouped, collapse: Collapse::Expanded }.
-    /// Routes to render_findings_grouped; tactic headers emitted; no (xN) suffix.
-    /// {Grouped, Collapsed} is NOT produced by run_analyze in STORY-122/A.
+    /// HISTORICAL REGRESSION GUARD (STORY-122/A era): in STORY-122/A, `--mitre` alone
+    /// produced `{Grouped, Expanded}`. This test asserts the struct value that
+    /// STORY-122/A's construction site emitted — preserved as a regression guard for
+    /// the STORY-122/A struct value only.
+    /// NOTE: Post-STORY-119/B, `--mitre` alone produces `{Grouped, Collapsed}` (the
+    /// CLI default was flipped by STORY-119/B Task 4). This test does NOT assert the
+    /// run_analyze CLI behavior after STORY-119/B — it asserts only the struct value
+    /// equality and that `{Grouped,Expanded}` ≠ `{Grouped,Collapsed}`.
     #[test]
     fn test_BC_2_11_028_ac004_mitre_alone_yields_grouped_expanded() {
         let findings: Vec<Finding> = (0..2)
@@ -4717,7 +4721,8 @@ mod story_122 {
             "AC-004: --mitre alone → {{Grouped,Expanded}} must not emit (xN) suffix; got:\n{out}"
         );
 
-        // {Grouped, Collapsed} is NOT what --mitre alone produces in STORY-122/A.
+        // {Grouped, Collapsed} is NOT what --mitre alone produced in STORY-122/A
+        // (post-STORY-119/B this IS the CLI default, but this test only asserts the struct values).
         let render_grouped_collapsed = FindingsRender {
             grouping: Grouping::Grouped,
             collapse: Collapse::Collapsed,
@@ -5302,9 +5307,9 @@ mod story_122 {
 // `test_BC_2_11_025_grouped_mode_bypasses_flat_collapse` vs the pre-existing
 // siblings in the outer scope) resolve without collision.
 //
-// Red Gate (BC-5.38.001): every test in this module exercises
-// `render_findings_grouped_collapsed`, which is a `todo!()` stub until the
-// GREEN phase. All tests panic at runtime — that is the expected RED signal.
+// Regression guard: every test in this module verifies BC-canonical behavior
+// of `render_findings_grouped_collapsed` and related helpers. A failing
+// assertion is the RED signal for the implementer to fix.
 // ============================================================================
 mod story_119 {
     use wirerust::findings::{Confidence, Finding, ThreatCategory, Verdict};
@@ -6045,35 +6050,53 @@ mod story_119 {
     /// AC-016/AC-017 (BC-2.11.033 Postconditions 5 and 6):
     /// REGRESSION GUARD: Within a bucket, findings are sorted by verdict-rank
     /// ascending (Likely=0, Possible=1, Inconclusive=2, Unlikely=3) BEFORE the
-    /// collapse pass. The lower-rank (higher-severity) finding becomes
-    /// `members[0]` (the group representative).
+    /// collapse pass. The lower-rank (higher-severity) finding becomes the group
+    /// representative.
     ///
-    /// Test: two findings with the same collapse key in one bucket —
-    /// one `Likely` (rank=0) and one `Inconclusive` (rank=2). The `Likely`
-    /// finding sorts first → becomes `members[0]` → its fields appear in the
-    /// header. The header verdict must be "Likely", not "Inconclusive".
+    /// Setup: three findings in the T1046 (Discovery) bucket.
+    ///   - Two share key (Anomaly, Likely, High, "s119-ac016-likely-finding"):
+    ///     they collapse to a N=2 group. The group representative is Likely.
+    ///   - One has key (Anomaly, Inconclusive, Low, "s119-ac016-inconclusive"):
+    ///     a singleton group. Sorts after the Likely group.
+    ///
+    /// Observable consequences:
+    ///   1. The N=2 group header shows `(x2)` suffix.
+    ///   2. The N=2 group header uses UPPERCASE verdict `LIKELY` (not title-case).
+    ///   3. The Likely group header appears before the Inconclusive singleton in output.
     #[test]
     fn test_BC_2_11_033_first_occurrence_in_sorted_bucket_order() {
         let findings = vec![
-            // Submitted second but sorts first by verdict-rank.
+            // Emitted first — Inconclusive/Low singleton.
             Finding {
                 category: ThreatCategory::Anomaly,
-                verdict: Verdict::Inconclusive, // rank=2
+                verdict: Verdict::Inconclusive, // rank=2 — sorts after Likely
                 confidence: Confidence::Low,
-                summary: "s119-ac016-sort-key".to_string(),
+                summary: "s119-ac016-inconclusive".to_string(),
                 evidence: vec![],
                 mitre_techniques: vec!["T1046".to_string()],
                 source_ip: None,
                 timestamp: None,
                 direction: None,
             },
-            // Submitted first but sorts second.
+            // Emitted second — first member of the Likely/High N=2 group.
             Finding {
                 category: ThreatCategory::Anomaly,
                 verdict: Verdict::Likely, // rank=0 — sorts first
                 confidence: Confidence::High,
-                summary: "s119-ac016-sort-key".to_string(),
-                evidence: vec![],
+                summary: "s119-ac016-likely-finding".to_string(),
+                evidence: vec!["ev-ac016-a".to_string()],
+                mitre_techniques: vec!["T1046".to_string()],
+                source_ip: None,
+                timestamp: None,
+                direction: None,
+            },
+            // Emitted third — second member of the Likely/High N=2 group (same key).
+            Finding {
+                category: ThreatCategory::Anomaly,
+                verdict: Verdict::Likely, // rank=0 — same key as above
+                confidence: Confidence::High,
+                summary: "s119-ac016-likely-finding".to_string(),
+                evidence: vec!["ev-ac016-b".to_string()],
                 mitre_techniques: vec!["T1046".to_string()],
                 source_ip: None,
                 timestamp: None,
@@ -6083,24 +6106,88 @@ mod story_119 {
 
         let out = grouped_collapse_reporter().render(&Summary::new(), &findings, &[]);
 
-        // `(x2)` suffix must appear (N=2 group).
+        // The Likely/High pair collapses to a N=2 group.
         assert!(
             out.contains("(x2)"),
             "AC-016: N=2 group in bucket must emit `(x2)` suffix; got:\n{out}"
         );
 
-        // The header verdict must be "Likely" (the sorted-first representative),
-        // not "Inconclusive". Find the header line (contains `(x2)`).
+        // The header verdict must use UPPERCASE Display format: `LIKELY`, not title-case.
         let header_line = out.lines().find(|l| l.contains("(x2)")).unwrap_or_default();
         assert!(
-            header_line.contains("Likely"),
-            "AC-016: post-sort representative must be Likely (rank=0 sorts first); \
+            header_line.contains("LIKELY"),
+            "AC-016: N=2 group header must use uppercase Display format `LIKELY`; \
              header line: {header_line:?}\nfull output:\n{out}"
         );
         assert!(
-            !header_line.contains("Inconclusive"),
-            "AC-016: Inconclusive (rank=2) must NOT be the representative; \
+            !header_line.contains("Likely"),
+            "AC-016: header must not contain title-case `Likely` — Display format is `LIKELY`; \
              header line: {header_line:?}\nfull output:\n{out}"
+        );
+
+        // Sort order: Likely group (rank=0) appears before Inconclusive singleton (rank=2).
+        let likely_pos = out.find("(x2)").unwrap_or(usize::MAX);
+        let inconclusive_pos = out.find("INCONCLUSIVE").unwrap_or(usize::MAX);
+        assert!(
+            likely_pos < inconclusive_pos,
+            "AC-017: Likely group (lower rank) must appear before Inconclusive singleton \
+             in sorted bucket order; got:\n{out}"
+        );
+    }
+
+    /// BC-2.11.025 EC-007/EC-008 grouped analogue:
+    /// REGRESSION GUARD: Two findings in the SAME tactic bucket with the SAME
+    /// summary but DIFFERENT verdict (or confidence, or category) must NOT be
+    /// merged — they have distinct four-tuple collapse keys and must render as
+    /// two separate group headers with NO `(xN)` suffix on either.
+    ///
+    /// This catches a summary-only (three-field) collapse key bug: if the
+    /// implementation keyed on summary alone, these two findings would be
+    /// incorrectly merged into one N=2 group.
+    #[test]
+    fn test_BC_2_11_025_distinct_verdict_same_summary_no_merge_in_bucket() {
+        // Same bucket (T1046 / Discovery), same summary, DIFFERENT verdict.
+        let findings = vec![
+            Finding {
+                category: ThreatCategory::Anomaly,
+                verdict: Verdict::Likely,
+                confidence: Confidence::High,
+                summary: "s119-ec007-same-summary".to_string(),
+                evidence: vec!["ev-likely".to_string()],
+                mitre_techniques: vec!["T1046".to_string()],
+                source_ip: None,
+                timestamp: None,
+                direction: None,
+            },
+            Finding {
+                category: ThreatCategory::Anomaly,
+                verdict: Verdict::Inconclusive,
+                confidence: Confidence::High,
+                summary: "s119-ec007-same-summary".to_string(), // identical summary
+                evidence: vec!["ev-inconclusive".to_string()],
+                mitre_techniques: vec!["T1046".to_string()],
+                source_ip: None,
+                timestamp: None,
+                direction: None,
+            },
+        ];
+
+        let out = grouped_collapse_reporter().render(&Summary::new(), &findings, &[]);
+
+        // Different verdict → different four-tuple keys → two distinct groups, no merge.
+        assert!(
+            !out.contains("(x2)"),
+            "BC-2.11.025 EC-007: same summary but different verdict must produce TWO distinct \
+             groups, not one N=2 merged group — `(x2)` must not appear; got:\n{out}"
+        );
+        // Both headers must appear independently.
+        assert!(
+            out.contains("LIKELY"),
+            "BC-2.11.025 EC-007: Likely group header must appear; got:\n{out}"
+        );
+        assert!(
+            out.contains("INCONCLUSIVE"),
+            "BC-2.11.025 EC-007: Inconclusive group header must appear; got:\n{out}"
         );
     }
 
@@ -6341,7 +6428,7 @@ mod story_119 {
     /// REGRESSION GUARD: `escape_for_terminal` is applied to all `summary` and
     /// `evidence` strings in `render_findings_grouped_collapsed`. A summary
     /// containing a C0 control character (U+0001) must not appear raw in the
-    /// output — it must be escaped to `\x01`.
+    /// output — it must be escaped via `char::escape_default` to `\u{1}`.
     #[test]
     fn test_BC_2_11_031_escape_for_terminal_in_grouped_collapse_path() {
         let findings: Vec<Finding> = (0..2)
@@ -6367,10 +6454,52 @@ mod story_119 {
             "AC-023: raw C0 control char U+0001 must not appear in output — \
              escape_for_terminal must be applied; got:\n{out:?}"
         );
-        // The escaped form `\\x01` must appear in output (escaped).
+        // The escaped form `\u{1}` must appear in output (char::escape_default output).
         assert!(
-            out.contains("\\x01"),
-            "AC-023: C0 char must be escaped to `\\x01` in output; got:\n{out:?}"
+            out.contains("\\u{1}"),
+            "AC-023: C0 char U+0001 must be escaped to `\\u{{1}}` via char::escape_default; \
+             got:\n{out:?}"
+        );
+    }
+
+    /// BC-2.11.032 EC-007 / VP canonical vector:
+    /// REGRESSION GUARD: Evidence strings in grouped-collapse bucket groups pass
+    /// through `escape_for_terminal`. A raw ESC byte (U+001B = 0x1B) in evidence
+    /// must be escaped via `char::escape_default` to `\u{1b}` in the output.
+    ///
+    /// Canonical test vector (BC-2.11.032 EC-007):
+    ///   evidence `"\x1b[31m"` → rendered as `> \u{1b}[31m` in the terminal.
+    #[test]
+    fn test_BC_2_11_032_escape_preserved_in_bucket_evidence() {
+        // N=2 group so both findings collapse; K=3 evidence cap not reached.
+        let findings: Vec<Finding> = (0..2)
+            .map(|i| Finding {
+                category: ThreatCategory::Anomaly,
+                verdict: Verdict::Likely,
+                confidence: Confidence::High,
+                summary: "s119-ec007-esc-evidence".to_string(),
+                // Raw ESC byte in ANSI sequence — must be escaped in output.
+                evidence: vec![format!("\x1b[31m-item-{i}")],
+                mitre_techniques: vec!["T1046".to_string()],
+                source_ip: None,
+                timestamp: None,
+                direction: None,
+            })
+            .collect();
+
+        let out = grouped_collapse_reporter().render(&Summary::new(), &findings, &[]);
+
+        // Raw ESC byte must NOT appear in the output.
+        assert!(
+            !out.contains('\x1b'),
+            "BC-2.11.032 EC-007: raw ESC byte must not appear in grouped-collapse evidence output; \
+             got:\n{out:?}"
+        );
+        // The ESC must be escaped via char::escape_default to `\u{1b}`.
+        assert!(
+            out.contains("\\u{1b}"),
+            "BC-2.11.032 EC-007: ESC byte in evidence must render as `\\u{{1b}}` \
+             (char::escape_default); got:\n{out:?}"
         );
     }
 
