@@ -1812,8 +1812,10 @@ mod story_118 {
         }
     }
 
-    /// TerminalReporter with MITRE grouping and collapse both enabled (for AC-005).
-    fn mitre_collapse_reporter() -> TerminalReporter {
+    /// TerminalReporter with MITRE grouping ENABLED and collapse DISABLED
+    /// ({Grouped, Expanded}); used to prove grouped mode is structurally
+    /// suffix-free (no `(xN)` suffix regardless of collapse_findings setting).
+    fn mitre_expanded_reporter() -> TerminalReporter {
         TerminalReporter {
             use_color: false,
             show_hosts_breakdown: false,
@@ -2100,7 +2102,7 @@ mod story_118 {
             })
             .collect();
 
-        let out = mitre_collapse_reporter().render(&Summary::new(), &findings, &[]);
+        let out = mitre_expanded_reporter().render(&Summary::new(), &findings, &[]);
 
         // No (xN) suffix of any kind must appear.
         assert!(
@@ -3693,7 +3695,7 @@ mod story_118 {
             })
             .collect();
 
-        let out = mitre_collapse_reporter().render(&Summary::new(), &findings, &[]);
+        let out = mitre_expanded_reporter().render(&Summary::new(), &findings, &[]);
 
         // No (xN) suffix of any kind must appear anywhere in the output.
         assert!(
@@ -6189,6 +6191,15 @@ mod story_119 {
             out.contains("INCONCLUSIVE"),
             "BC-2.11.025 EC-007: Inconclusive group header must appear; got:\n{out}"
         );
+        // Both findings must render as separate group headers — neither merged nor
+        // dropped. Count `[Anomaly]` occurrences (one per header line in no-color
+        // output) to catch a drop-vs-merge bug that the (x2) check alone would miss.
+        assert_eq!(
+            out.matches("[Anomaly]").count(),
+            2,
+            "BC-2.11.025 EC-007: both findings must render as separate group headers \
+             (one `[Anomaly]` prefix each), not merged or dropped; got:\n{out}"
+        );
     }
 
     // -----------------------------------------------------------------------
@@ -6376,10 +6387,12 @@ mod story_119 {
             "AC-020: members[1] technique T1083 must be elided from terminal output; \
              got:\n{out}"
         );
-        // Group must be collapsed as N=2 (same bucket, same summary-only key).
+        // Group must be collapsed as N=2 (same bucket, same shared four-tuple
+        // collapse key: category=Anomaly, verdict=Likely, confidence=High,
+        // summary="s119-ac020-divergent-mitre").
         assert!(
             out.contains("(x2)"),
-            "AC-020: same-bucket same-summary findings must collapse to N=2; got:\n{out}"
+            "AC-020: same-bucket same-four-tuple-key findings must collapse to N=2; got:\n{out}"
         );
     }
 
