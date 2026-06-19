@@ -261,6 +261,68 @@ fn mitre_no_collapse_emits_tactic_headers_without_collapse_suffix() {
 // This test pins a NAMED tactic header so that a bug suppressing tactic-name
 // resolution (while still emitting `## Uncategorized`) would be caught.
 
+// ---- F-PASS-A-001: --mitre help-text collapse regression guard ----
+//
+// The --mitre clap doc-comment must mention collapse behavior so that
+// `wirerust analyze --help` agrees with README and --no-collapse docs.
+// This test pins those keywords so a revert to the terse pre-STORY-119
+// one-liner is caught immediately.
+
+/// F-PASS-A-001 regression guard:
+/// `wirerust analyze --help` must document that `--mitre` collapses
+/// identical findings within each tactic bucket with a `(xN)` count suffix
+/// by default, and that `--no-collapse` disables it.
+///
+/// The test scopes to only the `--mitre` entry text (between `--mitre` and the
+/// next `--no-collapse` flag entry) so that keywords found in the `--no-collapse`
+/// description do not produce a false pass when `--mitre` reverts to the stale
+/// terse one-liner.
+///
+/// Mutation-fail verification (performed during F-PASS-A-001 fix):
+///   Reverted `--mitre` doc-comment to "Group findings by MITRE ATT&CK tactic
+///   and show technique names" (single terse line, no "collapse" / "(x").
+///   Confirmed the binary renders the terse text under `--mitre` with no
+///   "collapse" or "(x" in the scoped slice up to `--no-collapse`.
+///   Test failed with: assertion `--mitre` help text must mention 'collapse'.
+///   Restored new doc-comment: test passes.
+#[test]
+fn mitre_help_text_mentions_collapse_behavior() {
+    let output = Command::cargo_bin("wirerust")
+        .expect("binary built")
+        .args(["analyze", "--help"])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let help = String::from_utf8(output).expect("utf-8 stdout");
+
+    // Locate the --mitre entry and extract only the text up to the sibling
+    // --no-collapse entry.  This scoping prevents the richer --no-collapse
+    // description from satisfying the assertions when --mitre reverts to the
+    // stale one-liner (the bug F-PASS-A-001 guards against).
+    let mitre_pos = help
+        .find("--mitre\n")
+        .expect("F-PASS-A-001: `--mitre` flag must appear in `analyze --help` output");
+    let after_mitre = &help[mitre_pos..];
+    // Clap renders the next flag with leading spaces + "--no-collapse"; slice before it.
+    let no_collapse_pos = after_mitre
+        .find("--no-collapse")
+        .expect("F-PASS-A-001: `--no-collapse` must appear after `--mitre` in help output");
+    let mitre_entry = &after_mitre[..no_collapse_pos];
+
+    assert!(
+        mitre_entry.contains("collapse"),
+        "F-PASS-A-001: `--mitre` help text (before --no-collapse entry) must mention \
+         'collapse'; got mitre entry:\n{mitre_entry}"
+    );
+    assert!(
+        mitre_entry.contains("(x"),
+        "F-PASS-A-001: `--mitre` help text (before --no-collapse entry) must mention \
+         '(x' count suffix; got mitre entry:\n{mitre_entry}"
+    );
+}
+
 /// O-1 (BC-2.11.030 PC-2 / BC-2.11.033 PC-3):
 /// REGRESSION GUARD: `analyze modbus-write.pcap --all --mitre` must emit a
 /// NAMED MITRE tactic header `## Discovery` (produced by T1046 findings in the
