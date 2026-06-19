@@ -176,3 +176,74 @@ fn json_and_csv_flags_are_mutually_exclusive() {
         .assert()
         .failure();
 }
+
+// ---- F5/MEDIUM-1: CLI grouping construction-site mapping e2e guard ----
+//
+// The http-ooo.pcap fixture with `--all` produces 5 identical "HTTP/1.1
+// request without Host header" findings (same category, verdict, confidence,
+// summary). These tests exercise the REAL binary wiring at src/main.rs
+// (the grouping_from_flag construction site) through end-to-end invocation.
+//
+// Together with the unit test `test_bc_2_11_030_grouping_flag_polarity` in
+// src/main.rs, these tests form a non-tautological regression guard: a swap
+// of Grouping::Grouped / Grouping::Flat in `grouping_from_flag` would:
+//   - fail the unit test (wrong return value from helper), AND
+//   - fail the e2e tests below (wrong output format from binary).
+
+/// BC-2.11.030 PC-2 e2e guard:
+/// `analyze <fixture> --all --mitre` must emit MITRE tactic section headers
+/// (`## ` prefix) and collapse N≥2 identical-key findings to a single group
+/// line with `(xN)` suffix.
+#[test]
+fn mitre_flag_emits_tactic_headers_and_collapse_suffix() {
+    let output = Command::cargo_bin("wirerust")
+        .expect("binary built")
+        .args(["analyze", FIXTURE, "--all", "--mitre"])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let stdout = String::from_utf8(output).expect("utf-8 stdout");
+
+    assert!(
+        stdout.contains("## "),
+        "BC-2.11.030 PC-2: `--mitre` must emit MITRE tactic section headers ('## '); \
+         got stdout:\n{stdout}"
+    );
+    // The fixture produces ≥2 identical-key HTTP findings; collapsed output carries (xN).
+    assert!(
+        stdout.contains("(x"),
+        "BC-2.11.030 PC-2: `--mitre` must collapse ≥2 identical findings with '(xN)' suffix; \
+         got stdout:\n{stdout}"
+    );
+}
+
+/// BC-2.11.030 PC-3 e2e guard:
+/// `analyze <fixture> --all --mitre --no-collapse` must emit MITRE tactic
+/// section headers (`## ` prefix) but NO `(xN)` collapse suffix on any line.
+#[test]
+fn mitre_no_collapse_emits_tactic_headers_without_collapse_suffix() {
+    let output = Command::cargo_bin("wirerust")
+        .expect("binary built")
+        .args(["analyze", FIXTURE, "--all", "--mitre", "--no-collapse"])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let stdout = String::from_utf8(output).expect("utf-8 stdout");
+
+    assert!(
+        stdout.contains("## "),
+        "BC-2.11.030 PC-3: `--mitre --no-collapse` must emit MITRE tactic headers ('## '); \
+         got stdout:\n{stdout}"
+    );
+    // Strip ANSI codes before checking — the terminal reporter may emit color codes.
+    // Simple approach: look for the literal "(x" which only appears in collapse suffixes.
+    assert!(
+        !stdout.contains("(x"),
+        "BC-2.11.030 PC-3: `--mitre --no-collapse` must NOT emit any '(xN)' collapse suffix; \
+         got stdout:\n{stdout}"
+    );
+}

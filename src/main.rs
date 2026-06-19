@@ -381,11 +381,7 @@ fn run_analyze(
                 // default (show_mitre_grouping=false, collapse_findings=true) → {Flat, Collapsed}.
                 // --no-collapse only (show_mitre_grouping=false, collapse_findings=false) → {Flat, Expanded}.
                 render: FindingsRender {
-                    grouping: if show_mitre_grouping {
-                        Grouping::Grouped
-                    } else {
-                        Grouping::Flat
-                    },
+                    grouping: grouping_from_flag(show_mitre_grouping),
                     collapse: if collapse_findings {
                         Collapse::Collapsed
                     } else {
@@ -510,6 +506,19 @@ fn collapse_findings_from_flag(no_collapse: bool) -> bool {
     !no_collapse
 }
 
+/// Maps the `--mitre` flag to the `FindingsRender` `grouping` field
+/// (BC-2.11.030 PC-2 through PC-5).
+///
+/// When `--mitre` is present (`show_mitre_grouping = true`), grouping is `Grouped`.
+/// When `--mitre` is absent (`show_mitre_grouping = false`), grouping is `Flat`.
+fn grouping_from_flag(show_mitre_grouping: bool) -> Grouping {
+    if show_mitre_grouping {
+        Grouping::Grouped
+    } else {
+        Grouping::Flat
+    }
+}
+
 fn resolve_targets(target: &Path) -> Result<Vec<std::path::PathBuf>> {
     if target.is_file() {
         return Ok(vec![target.to_path_buf()]);
@@ -534,7 +543,8 @@ fn resolve_targets(target: &Path) -> Result<Vec<std::path::PathBuf>> {
 
 #[cfg(test)]
 mod tests {
-    use super::collapse_findings_from_flag;
+    use super::{collapse_findings_from_flag, grouping_from_flag};
+    use wirerust::reporter::terminal::Grouping;
 
     /// BC-2.11.028: flag absent (false) → collapse ON (true);
     /// --no-collapse present (true) → collapse OFF (false).
@@ -550,6 +560,27 @@ mod tests {
         assert!(
             !collapse_findings_from_flag(true),
             "--no-collapse (no_collapse=true) must yield collapse_findings=false"
+        );
+    }
+
+    /// BC-2.11.030 PC-2/PC-4: `--mitre` flag polarity guard.
+    ///
+    /// Guards against swapping `Grouped`/`Flat` in `grouping_from_flag` —
+    /// a regression that would ship silently if the construction-site mapping
+    /// were only tested via tautological literal copies.
+    #[test]
+    fn test_bc_2_11_030_grouping_flag_polarity() {
+        // --mitre present (show_mitre_grouping=true) → Grouped.
+        assert_eq!(
+            grouping_from_flag(true),
+            Grouping::Grouped,
+            "--mitre present (show_mitre_grouping=true) must yield Grouping::Grouped"
+        );
+        // --mitre absent (show_mitre_grouping=false) → Flat.
+        assert_eq!(
+            grouping_from_flag(false),
+            Grouping::Flat,
+            "--mitre absent (show_mitre_grouping=false) must yield Grouping::Flat"
         );
     }
 }
