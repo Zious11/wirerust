@@ -107,7 +107,7 @@ Options:
 --arp                                  Analyze ARP traffic (spoofing, GARP, storms, malformed, MAC mismatch; default-off; included in --all)
 --arp-spoof-threshold N                MAC-rebind escalation threshold per IP within 60s window (default: 3)
 --arp-storm-rate N                     ARP storm frames/second per source MAC threshold (default: 50)
---no-collapse                          Disable collapsing of repeated findings in both flat and grouped (--mitre) terminal output. By default, collapse is enabled in both modes. Pass --no-collapse to restore one-line-per-finding output in both modes. Has no effect on --output json or --output csv.
+--no-collapse                          Disable collapsing of repeated findings in both flat and grouped (--mitre) terminal output. By default, collapse is enabled in both modes. When --mitre is used, collapse groups identical findings within each MITRE tactic bucket with a (xN) count suffix. Pass --no-collapse to restore one-line-per-finding output in both modes. Has no effect on --output json or --output csv.
 --mitre                                Group findings by MITRE ATT&CK tactic and show technique names; collapses identical findings within each tactic bucket with a (xN) count suffix by default (pass --no-collapse to disable)
 -a, --all                              Run all analyzers
 ```
