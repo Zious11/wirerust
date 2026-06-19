@@ -150,7 +150,6 @@ pub enum Commands {
         /// Group findings by MITRE ATT&CK tactic and show technique names;
         /// collapses identical findings within each tactic bucket with a
         /// `(xN)` count suffix by default (pass --no-collapse to disable).
-        /// F-PASS-A-001: doc-comment updated to match shipped collapse behavior.
         #[arg(long)]
         mitre: bool,
 
