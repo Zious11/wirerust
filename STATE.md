@@ -1,13 +1,13 @@
 ---
 pipeline: FEATURE_MODE
 phase: F7
-phase_status: "v0.9.0 RELEASED 2026-06-19. E-18 grouped-collapse cycle CLOSED. tag v0.9.0 on main commit 986e148; GitHub Release isDraft=false. 4 binaries published. develop FF'd to main (zero divergence). Maintenance / next-feature mode."
-active_feature: "STORY-119 grouped-mode finding-collapse (E-18 / issue #259 tail) — CYCLE CLOSED. All phases F1–F7 CONVERGED. STORY-122/A (PR #268) + STORY-119/B (PR #269) DELIVERED. v0.9.0 RELEASED 2026-06-19 (tag v0.9.0, 4 binaries, run 27849831862). Cycle CLOSED (D-133)."
+phase_status: "v0.9.1 RELEASED 2026-06-19. Patch: --no-collapse help text + README stale flag names fixed (PRs #277/#278). tag v0.9.1 on main commit ad4eec8; GitHub Release isDraft=false. 4 binaries published. develop and main at zero divergence. Maintenance / next-feature mode."
+active_feature: "STORY-119 grouped-mode finding-collapse (E-18 / issue #259 tail) — CYCLE CLOSED (D-133). v0.9.0 RELEASED 2026-06-19. v0.9.1 RELEASED 2026-06-19 (patch: flag-name doc fixes; PRs #277/#278; tag v0.9.1, 4 binaries, run 27851688859). Both cycles closed."
 feature_arp_status: "v0.7.0 RELEASED 2026-06-16 — ARP Security Analyzer (E-16, issue #9); PR #256 dd8e142; tag v0.7.0; 4 binaries (aarch64-apple-darwin, x86_64-apple-darwin, x86_64-pc-windows-msvc, x86_64-unknown-linux-gnu)"
 feature_8_status: "v0.6.0 RELEASED 2026-06-12 — DNP3 TCP analyzer; F7 5-dim CONVERGED; tag v0.6.0 + 4 binaries"
 product: wirerust
 mode: brownfield
-timestamp: 2026-06-19T00:00:00Z
+timestamp: 2026-06-19T00:00:01Z
 story_119_f2_adversary_convergence_counter: "3/3 SATISFIED — F2 spec-evolution adversarial gate SATISFIED (frozen corpus 7eb9f09; round-6 triple A/B/C all CLEAN, zero MEDIUM+). Convergence took 6 rounds. Substance converged by round-4 (Pass A clean rounds 4/5/6); rounds 5-6 closed provenance/bookkeeping churn. 3 below-threshold residuals carried to F3 (D-118)."
 story_119_f3_resplit_adversary_convergence_counter: "3/3 SATISFIED — F3-resplit adversarial gate SATISFIED (frozen corpus 8fa9ff9; round-5 triple A/B/C all CLEAN, zero MEDIUM+; lenses: readiness/AC-scope/Option-X-boundary + BC-trace-verbatim/allocation + split-integrity). 5 resplit rounds: R1 Option-X/Y reconciliation (A 3-combo / B construction-flip) + dep-graph edge counts; R2 Task-4 src/ sweep + ADR re-anchor; R3 census mislabel + AC-007/Task-4 sync + content-anchors; R4 STORY-122 AC-008 discharges BC-016/026/027 + STORY-119 AC-003 verbatim; R5 CLEAN 3/3. Monolithic STORY-119 F3 (8 rounds, b9a7cd9) superseded by D-120 split."
 maintenance_run: COMPLETE
@@ -43,26 +43,26 @@ phase_5_completed: "2026-06-01"
 phase_6_completed: "2026-06-02"
 phase_7_to_release_gate: "PASSED (human-approved 2026-06-09 — D-045)"
 adversary_gate: SATISFIED
-develop_head: 986e148
-develop_head_confirmed: "986e148 (release/0.9.0 PR #276 merged to main; develop FF'd to main — zero divergence 2026-06-19)"
+develop_head: ad4eec8
+develop_head_confirmed: "ad4eec8 (release/0.9.1 PR #278 merged to main; develop FF'd to main — zero divergence 2026-06-19)"
 arp_f6_hardening_status: "COMPLETE — 5/5 Kani SUCCESSFUL (46/46 project-wide), VP-024 v2.3 LOCKED, fuzz VP-008 16.2M/0, mutants 98.9%"
 arp_f7_convergence_status: "CONVERGED — 5-dim met; v0.7.0 RELEASED"
 arp_followups_status: "DISPOSITIONED — item 5 fixed (BC-2.10.007 v1.8 de-PLANNED 25/17); issues #252-255 filed (post-release); CR-001/CR-002/FU-STORM-NEW-ATTR/BC-2.10-COUNT-POSTMERGE dropped/resolved. RELEASE-READY."
 factory_artifacts_head: see git -C .factory log -1  # updated by this burst
-main_head: 986e148
-released_version: v0.9.0
+main_head: ad4eec8
+released_version: v0.9.1
 released_at: "2026-06-19"
-release_tag: v0.9.0
-release_url: https://github.com/Zious11/wirerust/releases/tag/v0.9.0
-release_commit: 986e148
-release_yml_run: "27849831862 SUCCESS — 4 binaries published: wirerust-v0.9.0-aarch64-apple-darwin.tar.gz, wirerust-v0.9.0-x86_64-apple-darwin.tar.gz, wirerust-v0.9.0-x86_64-pc-windows-msvc.zip, wirerust-v0.9.0-x86_64-unknown-linux-gnu.tar.gz. GitHub Release isDraft=false at https://github.com/Zious11/wirerust/releases/tag/v0.9.0"
-prior_released_version: v0.8.0
-prior_released_at: "2026-06-17"
-prior_release_tag: v0.8.0
-prior_release_commit: 73034da
+release_tag: v0.9.1
+release_url: https://github.com/Zious11/wirerust/releases/tag/v0.9.1
+release_commit: ad4eec8
+release_yml_run: "27851688859 SUCCESS — 4 binaries published: wirerust-v0.9.1-aarch64-apple-darwin.tar.gz, wirerust-v0.9.1-x86_64-apple-darwin.tar.gz, wirerust-v0.9.1-x86_64-pc-windows-msvc.zip, wirerust-v0.9.1-x86_64-unknown-linux-gnu.tar.gz. GitHub Release isDraft=false at https://github.com/Zious11/wirerust/releases/tag/v0.9.1"
+prior_released_version: v0.9.0
+prior_released_at: "2026-06-19"
+prior_release_tag: v0.9.0
+prior_release_commit: 986e148
 current_cycle: v0.1.0-greenfield-spec
 current_wave: 27 (FINAL — CLOSED)
-stories_delivered: 71  # STORY-INDEX total_stories: 75 (71 delivered; STORY-119/B merged 181d5e2 2026-06-19; STORY-122/A 8696448; STORY-120 a4263c73; STORY-118 v0.8.0; STORY-116/117 v0.7.1)
+stories_delivered: 71  # STORY-INDEX total_stories: 75 (71 delivered; STORY-119/B merged 181d5e2 2026-06-19; STORY-122/A 8696448; STORY-120 a4263c73; STORY-118 v0.8.0; STORY-116/117 v0.7.1; v0.9.1 patch PRs #277/#278 — no new story)
 wave_history_detail: "cycles/phase-3-tdd/wave-history.md (all waves 1-27)"
 dtu_required: false
 dtu_assessment: 2026-05-20
@@ -99,7 +99,7 @@ input_drift_check: "F7-followup-dispositions burst (2026-06-16): STORY-071/100/1
 
 ## Status
 
-**wirerust v0.9.0 RELEASED 2026-06-19. E-18 grouped-mode finding-collapse cycle CLOSED (D-133). Feature: grouped-mode finding-collapse (E-18, issue #62/#259) — STORY-120/122/119 (PRs #266/#268/#269) + F5/F6/F7 remediation PRs #270/#273/#274/#275 + doc-fix #272 + earlier #271. F7 5-dim CONVERGED (D-132). tag v0.9.0 on main commit 986e148; 4 binaries published; release.yml run 27849831862 SUCCESS; GitHub Release isDraft=false. develop FF'd to main (zero divergence). BC traceability v1.51; dep-graph v2.9 (chain 120→122→119); STORY-INDEX v2.3 (75 stories / 50 waves; 71 delivered).**
+**wirerust v0.9.1 RELEASED 2026-06-19 (D-134). Patch over v0.9.0: fixed --no-collapse help text + README stale flag references (--output json/csv → --json/--csv/--output-format), found in post-v0.9.0 e2e testing. Regression test `no_collapse_help_names_real_output_flags` added. PRs #277 (develop) + #278 (release→main). tag v0.9.1 on main commit ad4eec8; 4 binaries; release.yml run 27851688859 SUCCESS; GitHub Release isDraft=false. BUG-DNP3-CONTROL-OP-DETERMINISM-001 logged (confirmed root cause; OPEN). BC traceability v1.51; dep-graph v2.9; STORY-INDEX v2.3 (75 stories / 50 waves; 71 delivered).**
 
 ## Maintenance Run (maint-2026-06-17)
 
@@ -144,24 +144,25 @@ input_drift_check: "F7-followup-dispositions burst (2026-06-16): STORY-071/100/1
 | **STORY-119 cycle — F5 scoped-adversarial** | **SATISFIED / COMPLETE** — Round-2 triple (frozen corpus develop adcf4e9): Pass A CLEAN, Pass B CLEAN, Pass C CLEAN = 3/3 consecutive CLEAN, zero MEDIUM+. F5 gate SATISFIED. Round-1 had 3 findings (F-B-001 HIGH, F-B-002 MED, MEDIUM-1 MED) remediated via PR #270. | D-126/D-128. Lenses: behavior-preservation / BC-trace+semver+doc-coherence / test-quality+security+mutation-resistance. 3 sub-threshold LOW residuals tracked (F-B-LOW-001, O-1, O-2) — non-release-blocking; address in F6/doc-anchor sweep. |
 | **STORY-119 cycle — F6 targeted-hardening** | **HARDENED** — mutation 85%+ on grouped-collapse path; regression ~1700/0; VP-012 grouped path; Kani/fuzz unaffected. LOW residuals F-B-LOW-001/O-2 resolved in F6/PR #273. | Follows D-128. |
 | **STORY-119 cycle — F7 delta-convergence + Release v0.9.0** | **CONVERGED + RELEASED** (D-132/D-133) — Round-5 triple on develop 1c89b52: Pass A/B/C all CLEAN (3/3, zero MEDIUM+); consistency CONSISTENT. 5-dim MET. Trajectory: R1 9→R2 4→R3 1 MED→R4 2 MED→R5 0. Cycle-closing checklist COMPLETE. v0.9.0 RELEASED 2026-06-19 — tag v0.9.0 on main 986e148; PR #276 release/0.9.0→main; 4 binaries; run 27849831862 SUCCESS. E-18 cycle CLOSED. | D-129/D-130/D-131/D-132/D-133. |
+| **Release v0.9.1 (patch)** | **RELEASED** 2026-06-19 — D-134. Patch: --no-collapse help text + README stale --output json/csv flags fixed; regression test added. PRs #277 (develop) + #278 (release/0.9.1→main); tag v0.9.1 on main ad4eec8; 4 binaries; run 27851688859 SUCCESS. GitHub Release isDraft=false. | Behavior unchanged; doc/help correctness only. |
 
-## Session Resume Checkpoint (2026-06-19 -- v0.9.0 RELEASED; E-18 cycle CLOSED D-133)
+## Session Resume Checkpoint (2026-06-19 -- v0.9.1 RELEASED; post-release bug BUG-DNP3-CONTROL-OP-DETERMINISM-001 logged)
 
 **Previous checkpoint (2026-06-19 -- F7 CONVERGED D-132; v0.9.0 AWAITING HUMAN RELEASE GATE) archived to:
 `.factory/cycles/feature-story-119-grouped-collapse/session-checkpoints.md`**
 
 ### A. EXACT PIPELINE POSITION
 
-- **Project:** wirerust. **Mode:** FEATURE_MODE -> cycle CLOSED. **Feature:** E-18 / issue #62/#259 grouped-collapse delta -- CYCLE CLOSED (D-133).
-- **Phase:** F7 delta-convergence CONVERGED + RELEASED. v0.9.0 RELEASED 2026-06-19.
-- **Release:** tag v0.9.0 on main 986e148; PR #276 (release/0.9.0 -> main) merged; release.yml run 27849831862 SUCCESS; 4 binaries published; GitHub Release isDraft=false.
+- **Project:** wirerust. **Mode:** FEATURE_MODE -> maintenance. **Feature:** E-18 / issue #62/#259 grouped-collapse delta -- CYCLE CLOSED (D-133). v0.9.1 patch cycle also CLOSED (D-134).
+- **Phase:** F7 delta-convergence CONVERGED + RELEASED. v0.9.0 RELEASED 2026-06-19; v0.9.1 RELEASED 2026-06-19 (patch).
+- **Release:** tag v0.9.1 on main ad4eec8; PR #277 (develop) + PR #278 (release/0.9.1 -> main) merged; release.yml run 27851688859 SUCCESS; 4 binaries published; GitHub Release isDraft=false.
 - **develop/main:** zero divergence -- develop FF'd to main after release.
-- **Cycle-closing checklist (S-7.02) COMPLETE** (D-132): all 4 process-gaps dispositioned.
+- **Cycle-closing checklist (S-7.02) COMPLETE** (D-132/D-133/D-134): all process-gaps dispositioned.
 
 ### B. EXACT SHAs / WORKTREE STATE
 
-- **develop HEAD:** `986e148` (FF to main post-release; zero divergence).
-- **main HEAD:** `986e148` (`chore: release v0.9.0`). Tag `v0.9.0` annotated.
+- **develop HEAD:** `ad4eec8` (FF to main post-v0.9.1 release; zero divergence).
+- **main HEAD:** `ad4eec8` (release/0.9.1 PR #278 merged). Tag `v0.9.1` annotated on commit `ad4eec8` (tag object `17ca34b`).
 - **factory-artifacts HEAD:** run `git -C /Users/zious/Documents/GITHUB/wirerust/.factory log -1 --format='%h %s'`
 - **Active worktrees:** 2 -- main repo (develop), `.factory/` (factory-artifacts). No story worktrees active.
 - **Open PRs:** None.
@@ -169,6 +170,7 @@ input_drift_check: "F7-followup-dispositions burst (2026-06-16): STORY-071/100/1
 ### C. WHAT IS COMPLETE -- DO NOT REDO
 
 - **E-18 full cycle (F1-F7):** COMPLETE and RELEASED. STORY-120/122/119 (PRs #266/#268/#269) + F5/F6/F7 remediation PRs #270/#273/#274/#275. v0.9.0 tag on main 986e148.
+- **v0.9.1 patch release (D-134):** COMPLETE. PRs #277/#278; tag v0.9.1 on main ad4eec8; regression test `no_collapse_help_names_real_output_flags` added.
 - **All F7 rounds 1-5:** Complete and converged. R5 triple CLEAN 3/3.
 - **Cycle-closing checklist:** COMPLETE (D-132/D-133). All 4 process-gaps dispositioned.
 - **develop sync:** develop FF'd to main 986e148 post-release (branch-protection bypass noted -- benign gitflow-maintenance event; D-133).
@@ -176,7 +178,8 @@ input_drift_check: "F7-followup-dispositions burst (2026-06-16): STORY-071/100/1
 ### D. NEXT ACTIONS (verbatim order)
 
 1. **Post-release:** Choose next feature cycle -- candidates: STORY-121 (E-11 process-gap codification), roadmap items (#3 C2 beaconing / #4 CSV+SQLite / #6 rayon), or PCAP-CORPUS-001 (pending human decision).
-2. **Drift items:** SEC-001 DF-VALIDATION-001 research-agent validation before filing GitHub issue.
+2. **BUG-DNP3-CONTROL-OP-DETERMINISM-001:** OPEN confirmed bug; human decision on fix-now (v0.9.2 patch) vs land-on-develop. Root cause at dnp3.rs:1398-1403.
+3. **Drift items:** SEC-001 and BUG-DNP3-CONTROL-OP-DETERMINISM-001 — DF-VALIDATION-001 research-agent validation before filing GitHub issues (though BUG-DNP3 has confirmed root cause, validation still required per policy).
 
 ### E. KEY ARTIFACT POINTERS
 
@@ -196,6 +199,7 @@ D-055..D-091 archived: `cycles/feature-collapse-v0.8.0/decisions-archive.md` (Fe
 | D-131 | STORY-119 cycle F7 delta-convergence Round-4 findings + remediation (this burst, develop 1c89b52). **Pass A NOT CLEAN** — F-A-001 (MEDIUM): BC-2.11.028 Architecture Anchors were stale: still described the pre-PR-#273 enum form (`pub enum FindingsRender { Grouped, FlatCollapsed, FlatExpanded }`) and `F4-pending` language, and lacked the `#[non_exhaustive]`+`FindingsRender::new` shipped reality. REMEDIATED: BC-2.11.028 → v1.11 — Architecture Anchors updated to shipped `#[non_exhaustive] struct FindingsRender` + `FindingsRender::new` constructor form (terminal.rs:121-157), main.rs:383-390 wiring via `FindingsRender::new`, all `F4-pending` removed. F-A-002 (MEDIUM): STORY-119/120/122 lacked post-delivery notes documenting the #[non_exhaustive]+FindingsRender::new F7-R2 changes (PR #273), and input-hashes were stale vs the updated BC body. REMEDIATED: all three stories received `Post-delivery update (F7-R2, PR #273)` blocks and input-hashes recomputed (STORY-119: 61d2fb1; STORY-120: dade348; STORY-122: 3f59efd). **Pass B CLEAN** — no findings. **Pass C NOT CLEAN** — F-C-001 (claimed MEDIUM): adversary subagents reported a SHA-attestation discrepancy asserting develop HEAD == 31d1231 or 8696448 (stale sandbox git-ref view). **RESOLUTION: FALSE ALARM** — orchestrator directly verified `git rev-parse develop`, `git rev-parse HEAD`, and `git rev-parse origin/develop` all == 1c89b52; `.git/refs/heads/develop` raw == 1c89b52; consistency-validator independently confirmed HEAD==1c89b52 and reviewed correct live file contents. The adversary subagents operated in an isolated sandbox that had a stale git-ref cache; they reviewed the correct LIVE file contents but reported the wrong SHA. This finding is CLOSED as false alarm and MUST NOT be re-litigated in future rounds — the ground-truth is `git -C <repo> rev-parse HEAD`. F-C-002 (MEDIUM): `release-config.yaml` `required_checks` listed `"Audit"` (which is `continue-on-error: true` — informational, non-gating) and omitted two actual gating jobs: `"Help-provenance gate (no internal IDs in clap /// doc-comments)"` and `"Action pin gate"`. REMEDIATED: `required_checks` corrected — `"Audit"` removed with explanatory comment (informational only, `continue-on-error: true`), `"Help-provenance gate..."` and `"Action pin gate"` added. Verified against ci.yml job `name:` fields and `continue-on-error` flags 2026-06-19. **Consistency-validator CONSISTENT** (HEAD==1c89b52). **Non-blocking LOWs (no action this burst):** F-C-003: `cargo audit --ignore RUSTSEC-2026-0097` in release-config pre_release and `--ignore RUSTSEC-2026-0097` in ci.yml audit job are in sync — confirming observation, no change needed. F-C-004: CHANGELOG [0.9.0] BREAKING bullet omits the module path (`reporter::terminal`) in its description — style-level info, does not affect correctness or gating. Pass-B INFO-2: no `compile_fail` doctest for `#[non_exhaustive]` enforcement — acceptable; compile_fail doctests are not run by CI (`cargo test --all-targets` excludes doctests). **Process-gap [codified] — DF-CONSISTENCY-AUDIT-POST-FIXBURST-001 / DF-SIBLING-SWEEP-001:** The F7-R2 hardening burst (PR #273) added `#[non_exhaustive]`+`FindingsRender::new` to code/ADR/CHANGELOG/tests but did NOT propagate the change to BC-2.11.028 Architecture Anchors or to STORY-119/120/122 post-delivery notes. Round-4 caught this. Codification: post-hoc hardening fix-bursts (or any develop PR that changes a public API element) MUST sweep all consuming BC bodies (Architecture Anchors, PC/Inv wiring expressions), consuming story bodies (post-delivery notes, BC-table version stamps), and related VP docs. See cycles/feature-story-119-grouped-collapse/lessons.md for `[codified]` entry. **F7 Round-5 pending** on frozen corpus develop 1c89b52 after this burst is committed and pushed to factory-artifacts. v0.9.0 HELD. | 2026-06-19 |
 | D-132 | STORY-119 cycle F7 delta-convergence CONVERGED. **Round-5 holistic triple on frozen corpus develop 1c89b52:** Pass A CLEAN, Pass B CLEAN, Pass C CLEAN — 3/3, zero MEDIUM+ findings. **Consistency-validator CONSISTENT** — 3 observation-only items OBS-1/2/3 all documented via post-delivery notes, non-blocking. **Convergence trajectory:** R1 9 findings → R2 4 → R3 1 MED → R4 2 MED (spec-currency) → R5 0 (CONVERGED). **5-dimensional convergence MET:** (1) SPEC — BC-2.11.028 v1.11 + ADR-0003 (Binding Rule 5 F7-R2 section) + CHANGELOG [0.9.0] coherent; consistency-validator CONSISTENT. (2) TESTS — cargo test --all-targets all pass (~1700, 0 failures); mutation-resistant (F6 85% kill; confidence_rank/red+bold/named-tactic/help-provenance regression guards active via CI gate). (3) IMPLEMENTATION — STORY-120/122/119 merged (PRs #266/#268/#269); 4-mode dispatch correct; reporter output byte-identical except documented --mitre default-collapse flip. (4) VERIFICATION — F6 HARDENED; mutation 85% on terminal.rs+main.rs; VP-012 escape proptest pass (4 harnesses 1000 cases each); Kani+fuzz provably unaffected (delta touches only main.rs+reporter/terminal.rs); NO new VP required. (5) DOCS — CHANGELOG/README/ADR-0003 coherent (Pass C CLEAN, consistency CONSISTENT); no internal-ID leaks (CI help-provenance-gate active). REGRESSION (full tree): cargo test --all-targets green; CI 10/10 on all merge PRs. **Input-drift confirmed:** STORY-119 input-hash 61d2fb1 MATCH; STORY-120 input-hash dade348 MATCH; STORY-122 input-hash 3f59efd MATCH (on factory 642a298). **Cycle-closing checklist (S-7.02) — all [process-gap] findings from this cycle dispositioned:** PG-F7-R2-001 (narrow leak-checkers missed BC/STORY/LESSON provenance tags) — CODIFIED by CI grep gate added in PR #273 (fix/f7-r2-cli-hardening); no new story needed, covered under STORY-121 E-11. PG-F7-R2-002 (approval prompt embedded in-progress status snapshot → self-contradiction) — CODIFIED this cycle: release-config reconciled to STATE.md-reference pattern (D-130 burst). PG-F7-R4-POST-FIXBURST-SIBLING-SWEEP-001 (fix-burst didn't sweep consuming BC Architecture Anchors or story post-delivery notes) — CODIFIED: lessons.md [codified] entry added (D-131 burst); policy DF-CONSISTENCY-AUDIT-POST-FIXBURST-001 already in policy registry; STORY-121 scope extension covers execution-discipline gap. D-127 (orchestrator↔pr-manager relay-trust merge-authorization friction) — DEFERRED to STORY-121 scope (justified: D-127 explicitly names STORY-121 as the codification vehicle; lessons.md records the follow-up; pattern documented until codified). All 4 process-gaps have follow-up stories (STORY-121) or codification entries — S-7.02 satisfied. **v0.9.0 release-ready. AWAITING HUMAN RELEASE GATE.** | 2026-06-19 |
 | D-133 | v0.9.0 RELEASED 2026-06-19. Feature: grouped-mode finding-collapse (E-18, issue #62/#259) — STORY-120/122/119 (PRs #266/#268/#269) + F5/F6/F7 remediation PRs #270/#273/#274/#275 + doc-fix #272/#271. F7 5-dim CONVERGED (D-132). Release PR #276 (release/0.9.0 → main) merged; tag v0.9.0 on main commit 986e148632675cfdba73ed538fc15c6ea7b5e21d (short: 986e148); release.yml run 27849831862 SUCCESS; 4 binaries published (wirerust-v0.9.0-{aarch64-apple-darwin,x86_64-apple-darwin,x86_64-pc-windows-msvc,x86_64-unknown-linux-gnu}); GitHub Release https://github.com/Zious11/wirerust/releases/tag/v0.9.0 isDraft=false. develop FF'd to main post-release (zero divergence; branch-protection bypass for main→develop FF push was a benign gitflow-maintenance event -- content originated from PR #276; see DRIFT-DEVELOP-SYNC-BPBYPASS-001). E-18 / STORY-119 cycle CLOSED. | 2026-06-19 |
+| D-134 | v0.9.1 RELEASED 2026-06-19. Patch release over v0.9.0. **Root cause discovered in post-release e2e testing:** (1) `--no-collapse` help text was incorrect (wrong flag name), and (2) README referenced non-existent `--output json`/`--output csv` flags — correct invocations are `--json`/`--csv`/`--output-format`. Behavior unchanged; documentation and help-text correctness only. **Delivery:** PR #277 (fix applied to develop) + PR #278 (release/0.9.1 → main). Regression test `no_collapse_help_names_real_output_flags` added to prevent recurrence. release.yml run 27851688859 SUCCESS; 4 binaries (wirerust-v0.9.1-{aarch64-apple-darwin, x86_64-apple-darwin, x86_64-pc-windows-msvc, x86_64-unknown-linux-gnu}); GitHub Release https://github.com/Zious11/wirerust/releases/tag/v0.9.1 isDraft=false. Tag `v0.9.1` (tag object `17ca34b`) on main commit `ad4eec8`. develop HEAD ad4eec8 (FF'd to main). **Also logged this burst:** BUG-DNP3-CONTROL-OP-DETERMINISM-001 (confirmed root cause; OPEN, MEDIUM severity; per DF-VALIDATION-001 requires research-agent validation before GitHub issue filing) + DNS-TUNNELING-COVERAGE-001 observation (informational). | 2026-06-19 |
 | D-092 | Issue #62 F3 — STORY-120 created as sole enum-migration carrier (28 construction sites: 2 src/main.rs + 7 reporter_terminal_tests + 17 reporter_tests + 1 dnp3_f5 + 1 bc_2_09_100 param-helper; wave 48; depends_on []). STORY-119 re-pointed to depend on STORY-120. F3 round-1 adversarial+consistency review caught: CRITICAL Grouped/FlatExpanded mis-split (wrong-but-compiling variant — only cargo test detects); HIGH census error (35→28, double-counted fn-signatures); HIGH dead test citation; 2 MEDIUM AC quality gaps; 4 MINOR issues. ALL FIXED in fix-burst. F3 adversarial convergence pending (0/3). | 2026-06-18 |
 | D-093 | Issue #62 F3 round-1 triple caught CRITICAL in STORY-120 AC-005 (+ originating ADR-0003 migration map): prescribed `render: if *mitre ... else if !no_collapse ...` at run_analyze construction site, but those vars are out of scope there — only main() owns them. Adjudicated option (a): keep run_analyze signature UNCHANGED, build enum from in-scope bool params show_mitre_grouping/collapse_findings; collapse_findings_from_flag UNCHANGED. ADR-0003 migration map + STORY-120 AC-005/Task5 both corrected. AC-001 doc-comment ADR byte-match fixed. dep-graph acyclicity prose 71→72. STORY-120 input-hash ca8e753→cfa60a9. ADR-0003 on develop tree (uncommitted). Process-gap: AC code blocks MUST reference only variables in scope at the cited file:line (PG-62-F3-AC-SCOPE). F3 convergence re-streak pending. | 2026-06-18 |
 | D-094 | Issue #62 F3 round-2 triple (each pass 1 distinct MEDIUM, CRITICAL/census/wiring confirmed clean): (1) BC-2.11.014/015/016/017 missing explicit AC trace clauses — added to AC-003/AC-014 with "(traces to BC-2.11.014/015/016/017)" clauses + BC↔Body cross-check reconciled; (2) dep-graph mis-bucketed STORY-120 cross-epic edges as intra-E-18 — corrected to intra_epic_edges 74/cross_epic_edges 21 (total_edges 95 unchanged), v2.0 changelog + summary table + subheadings corrected; (3) STORY-120 lacked a test-comment-sweep task — added Task 7b (grep sweep for stale field-referencing comments) + AC-017 (no stale comments, DF-GREEN-DOC-TENSE/SIBLING-SWEEP guard, cargo check/test cannot catch). STORY-120 now 17 ACs, input-hash cfa60a9 MATCH (inputs unchanged). Convergence re-streak pending. | 2026-06-18 |
@@ -247,6 +251,8 @@ Full tech-debt register: `.factory/tech-debt-register.md`.
 
 | ID | Summary | Status |
 |----|---------|--------|
+| BUG-DNP3-CONTROL-OP-DETERMINISM-001 | **CONFIRMED BUG (MEDIUM):** `src/analyzer/dnp3.rs:1398-1403` builds `control_operation_counts` via `self.flows.values().enumerate()` where `self.flows` is a `HashMap` (line 275) with randomized per-process iteration order. The flow index `i` is assigned non-deterministically, breaking byte-identical report reproducibility in terminal AND JSON/CSV output. The BTreeMap display layer masks this (sorts keys) but values vary. Inline comment at :1397 ("Keys are the flow index … to produce a stable JSON object") is incorrect. Traces to BC-2.15.020 postcondition 1. Pre-existing since DNP3 v0.6.0; exposed by large real capture (igbe/DNP3-Dataset-Plus-SnortRules, 26058 pkts). Small committed modbus-write fixture has too few DNP3 flows to trip it. **Proposed fix:** iterate `self.flows` in deterministic order before enumerate (sort by FlowKey, mirroring pattern at dnp3.rs:901), or key output map by stable flow identifier. Add regression test using multi-flow DNP3 fixture asserting byte-identical output across 2+ runs. **Status:** OPEN — human decision: fix-now (v0.9.2 patch) vs land-on-develop. Per DF-VALIDATION-001 requires research-agent validation before filing GitHub issue (confirmed root cause — not speculative). | OPEN MEDIUM — D-134 |
+| DNS-TUNNELING-COVERAGE-001 | **COVERAGE OBSERVATION (informational):** DNS analyzer produced 0 findings on an iodine DNS-tunneling capture (dns-tunnel-iodine.pcap; 222 queries/212 responses parsed). DNS-tunneling detection (e.g. high query entropy, long subdomain labels, excessive TXT record usage) appears unimplemented. Good fixture candidate for future DNS story/feature. Not a bug — current BCs do not promise tunneling detection. | INFORMATIONAL — D-134; candidate future story |
 | CARRY-119-F3-RESIDUALS-001 | 3 below-threshold F2 residuals carried to F3: BC-033 line-131 test-anchor _013_→_033_ rename; research-doc audit-trail false-premise (no-action); spec-changelog:264 Collapsed→Expanded narrative nit. Address during F3 decomposition. | CARRY-TO-F3 |
 | DRIFT-119-ENT04-VERDICT-RANK-001 | domain entity doc .factory/specs/domain/entities/ent-04-findings-output.md:32 still carries the stale 3-verdict rank table (Likely<Inconclusive<Unlikely, missing Possible) + stale terminal.rs:269-275 anchor — same brownfield-extraction staleness BC-014 v2.0 fixed. OUT OF STORY-119 F2 perimeter (pre-existing). Fix in a future doc-sweep / sibling-sweep follow-up. | DEFERRED LOW |
 | ADV-HS043-P02-MED-001 | Idle-flow expiry monotonic watermark stalls on multi-epoch captures | ACCEPTED — gated on live-capture support |
@@ -327,6 +333,10 @@ Full tech-debt register: `.factory/tech-debt-register.md`.
 **2. Roadmap (post-DNP3):** #3 C2 beaconing | #4 CSV+SQLite reporters | #6 rayon parallel (relates to O-07).
 
 **3. STORY-119 cycle (grouped-mode finding-collapse):** CLOSED (D-133). v0.9.0 RELEASED 2026-06-19. F1-F7 ALL COMPLETE. STORY-120/122/119 merged; tag v0.9.0 on main 986e148; 4 binaries published; GitHub Release isDraft=false. Cycle CLOSED.
+
+**4. v0.9.1 patch release:** CLOSED (D-134). Patch: --no-collapse help text + README flag names fixed. PRs #277/#278; tag v0.9.1 on main ad4eec8; 4 binaries; run 27851688859 SUCCESS.
+
+**5. BUG-DNP3-CONTROL-OP-DETERMINISM-001:** OPEN. Confirmed non-determinism in `control_operation_counts` stat at dnp3.rs:1398-1403. Human decision pending: v0.9.2 patch vs next develop cycle.
 
 ## Governance Policy
 
