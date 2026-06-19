@@ -163,3 +163,35 @@ cycle_id: feature-story-119-grouped-collapse
 - STORY-122: `.factory/stories/STORY-122.md` (A, DELIVERED; PR #268; develop 8696448)
 - STORY-120: `.factory/stories/STORY-120.md` (DELIVERED; input-hash 8047030)
 - STORY-121: `.factory/stories/STORY-121.md` (draft — E-11 process-gap; D-123 gap folds in)
+
+---
+
+## Checkpoint: 2026-06-19 — F4 COMPLETE; STORY-119/B DELIVERED (PR #269 → 181d5e2); resume at F5
+
+*Archived from STATE.md when F5 Round-1 remediation burst (D-126) replaced this checkpoint.*
+
+### A. EXACT PIPELINE POSITION
+
+- **Project:** wirerust. **Mode:** FEATURE_MODE. **Feature:** E-8/#62 grouped-collapse, D-120 split.
+- **Phase:** F4 COMPLETE — STORY-122/A DELIVERED (PR #268 → develop 8696448). STORY-119/B DELIVERED (PR #269 → develop 181d5e2; CI 9/9 PASS; security APPROVE 1 LOW SEC-001; pr-reviewer APPROVE 0 blocking).
+- **STORY-122 (A):** DELIVERED PR #268 squash-merged → develop 8696448. DONE.
+- **STORY-119 (B):** DELIVERED PR #269 squash-merged → develop 181d5e2 (2026-06-19T16:34:06Z). DONE.
+- **Latest release:** v0.8.0 — tag v0.8.0 on main 73034da. Cargo 0.9.0 on develop (unreleased, HELD).
+
+### B. EXACT SHAs / WORKTREE STATE
+
+- **develop HEAD:** `181d5e2` (PR #269 squash — STORY-119/B grouped-collapse + --mitre default flip).
+- **main HEAD:** `73034da` (`chore: release v0.8.0`). Tag `v0.8.0` annotated.
+- **factory-artifacts HEAD:** run `git -C /Users/zious/Documents/GITHUB/wirerust/.factory log -1 --format='%h %s'`
+- **Active worktrees:** 2 — main repo (develop `181d5e2`), `.factory/` (factory-artifacts). STORY-119 worktree cleaned post-merge.
+- **Open PRs:** NONE. PR #268 and PR #269 both MERGED.
+- **Demo evidence:** `.factory/demo-evidence/issue-62-story-119/`; `.factory/demo-evidence/issue-62-story-122/`.
+
+### C. KEY ARTIFACT POINTERS
+
+- STORY-119/B: `.factory/stories/STORY-119.md` (B, DELIVERED; PR #269; develop 181d5e2)
+- STORY-122/A: `.factory/stories/STORY-122.md` (A, DELIVERED; PR #268; develop 8696448)
+- dep-graph: `.factory/stories/dependency-graph.md` v2.9 (chain 120→122→119)
+- Cycle manifest: `.factory/cycles/feature-story-119-grouped-collapse/cycle-manifest.md`
+- Demo evidence STORY-119/B: `.factory/demo-evidence/issue-62-story-119/`
+- STORY-121: `.factory/stories/STORY-121.md` (draft — E-11 process-gap)
