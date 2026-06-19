@@ -11,15 +11,37 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
 
 ### Changed (BREAKING)
 
-- **`TerminalReporter` findings-render mode: two bools → `FindingsRender` enum (STORY-120, PR #266).**
-  The `show_mitre_grouping: bool` and `collapse_findings: bool` public fields on `TerminalReporter`
-  are removed and replaced by a single `render: FindingsRender` field. `FindingsRender` is an enum
-  with three variants: `Grouped` (formerly `show_mitre_grouping = true`), `FlatCollapsed` (formerly
-  `collapse_findings = true`), and `FlatExpanded` (formerly both bools false). The previously
-  representable invalid state (`show_mitre_grouping = true` and `collapse_findings = true`
-  simultaneously) is now structurally impossible. Terminal output is byte-identical across all
-  three modes; this is an internal refactor only. Per RFC 1105 the removal of public fields is a
-  breaking change, hence the 0.8.x → 0.9.0 minor bump.
+- **`TerminalReporter` findings-render mode: two bools → `FindingsRender` enum → `FindingsRender`
+  struct of two orthogonal enums (STORY-120 PR #266, STORY-122/A PR #268).**
+  This entry supersedes the three-variant enum description that shipped in an earlier 0.9.0
+  pre-release entry.
+
+  *Phase 1 (STORY-120, PR #266):* The `show_mitre_grouping: bool` and `collapse_findings: bool`
+  public fields on `TerminalReporter` were removed and replaced by a single `render: FindingsRender`
+  field typed as a three-variant enum (`Grouped`, `FlatCollapsed`, `FlatExpanded`).
+
+  *Phase 2 (STORY-122/A, PR #268):* `FindingsRender` was reshaped from a three-variant enum into
+  a **struct of two orthogonal enums**: `{ grouping: Grouping, collapse: Collapse }`. The
+  `Grouping` enum has variants `Grouped` and `Flat`; the `Collapse` enum has variants `Collapsed`
+  and `Expanded`. All four combinations are valid. The three named enum variants (`Grouped`,
+  `FlatCollapsed`, `FlatExpanded`) no longer exist. Per RFC 1105 this is an additional breaking
+  change: any code that matched or constructed the three-variant enum must migrate to the
+  two-field struct. The 0.8.x → 0.9.0 minor bump covers both phases.
+
+### Changed
+
+- **`--mitre` now collapses identical findings within each MITRE tactic bucket by default
+  (STORY-119/B, PR #269).** When `--mitre` is passed, `wirerust analyze` routes output through
+  the new `render_findings_grouped_collapsed` path, which groups identical findings (same category,
+  verdict, confidence, summary) within each tactic bucket into a single line with a `(xN)` count
+  suffix and up to K=3 representative evidence samples. Singletons render without a count suffix.
+  Terminal output for `--mitre` is **no longer byte-identical** to the pre-0.9.0 grouped output.
+  JSON and CSV output are unaffected.
+
+- **`--no-collapse` is now dual-scope (STORY-119/B, PR #269).** Previously `--no-collapse`
+  suppressed collapse only in flat (non-`--mitre`) mode. It now suppresses collapse in both flat
+  and grouped (`--mitre`) modes. Passing `--no-collapse` restores one-line-per-finding output
+  regardless of whether `--mitre` is also passed.
 
 ## [0.8.0] - 2026-06-17
 
@@ -34,8 +56,8 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
   the same (category, verdict, confidence, summary) are collapsed into a single line with a
   `(xN)` count suffix and up to 3 representative evidence samples (K=3). This is a
   **display-layer-only behavioral change**: JSON and CSV output are unaffected, and
-  `--mitre`-grouped mode is also unchanged (grouped-mode collapse is deferred to a future
-  release). Pass `--no-collapse` to disable. Governed by ADR-0003 Display-Layer Aggregation.
+  `--mitre`-grouped mode was unchanged in 0.8.0; grouped-mode collapse shipped in 0.9.0.
+  Pass `--no-collapse` to disable. Governed by ADR-0003 Display-Layer Aggregation.
 
 ## [0.7.1] - 2026-06-17
 
