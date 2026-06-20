@@ -11,7 +11,7 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-09/BC-2.09.007.md
   - .factory/specs/behavioral-contracts/ss-04/BC-2.04.055.md
   - .factory/feature-delta/issue-100-pcap-timestamps/delta-analysis.md
-input-hash: 8b39dcb
+input-hash: 68d0282
 traces_to: .factory/specs/prd.md
 points: 8
 depends_on: [STORY-097]

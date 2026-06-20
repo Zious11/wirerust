@@ -10,7 +10,7 @@ phase: 3
 inputs:
   - .factory/specs/behavioral-contracts/ss-04/BC-2.04.055.md
   - .factory/feature-delta/issue-100-pcap-timestamps/delta-analysis.md
-input-hash: cb2c82d
+input-hash: 97c08b6
 traces_to: .factory/specs/prd.md
 points: 5
 depends_on: []

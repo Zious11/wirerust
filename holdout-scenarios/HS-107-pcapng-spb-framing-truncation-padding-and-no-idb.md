@@ -8,7 +8,8 @@ timestamp: 2026-06-19T00:00:00Z
 phase: 2
 inputs:
   - .factory/specs/behavioral-contracts/ss-01/BC-2.01.013.md
-input-hash: "tbd"
+  - .factory/specs/architecture/decisions/ADR-009-pcapng-capture-format-reader-support.md
+input-hash: "d11e6ab"
 traces_to: .factory/specs/prd.md
 id: "HS-107"
 category: "security-probes"

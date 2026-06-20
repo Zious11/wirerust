@@ -52,7 +52,7 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-11/BC-2.11.028.md
   - .factory/specs/behavioral-contracts/ss-11/BC-2.11.029.md
   - .factory/phase-f1-delta-analysis/issue-259-finding-collapse-delta-analysis.md
-input-hash: "77d97c6"
+input-hash: "95a135c"
 ---
 
 # STORY-118: Terminal Finding-Collapse — Flat Mode (v0.8.0)

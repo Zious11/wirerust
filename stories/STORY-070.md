@@ -10,7 +10,7 @@ phase: 2
 inputs:
   - .factory/specs/behavioral-contracts/ss-09/BC-2.09.005.md
   - .factory/specs/behavioral-contracts/ss-09/BC-2.09.006.md
-input-hash: "7f7d331"
+input-hash: "89c8b5f"
 traces_to: .factory/specs/prd.md
 points: 5
 depends_on: [STORY-069]

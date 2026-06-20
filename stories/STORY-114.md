@@ -34,7 +34,7 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-16/BC-2.16.012.md
   - .factory/specs/behavioral-contracts/ss-16/BC-2.16.014.md
   - .factory/specs/verification-properties/vp-007-mitre-technique-id-format.md
-input-hash: "02da9e7"
+input-hash: "ec7230c"
 ---
 
 # STORY-114: D1 ARP Spoof Escalation + GARP-that-Conflicts (D2+D1) + MITRE Attribution + VP-007 5-Part Atomic Update

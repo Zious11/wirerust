@@ -9,7 +9,8 @@ phase: 2
 inputs:
   - .factory/specs/behavioral-contracts/ss-01/BC-2.01.009.md
   - .factory/specs/behavioral-contracts/ss-01/BC-2.01.015.md
-input-hash: "tbd"
+  - .factory/specs/architecture/decisions/ADR-009-pcapng-capture-format-reader-support.md
+input-hash: "3f3958a"
 traces_to: .factory/specs/prd.md
 id: "HS-108"
 category: "behavioral-subtleties"

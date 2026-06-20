@@ -1,6 +1,6 @@
 ---
 document_type: dependency-graph
-version: "2.9"
+version: "3.0"
 status: draft
 producer: story-writer
 phase: 3
@@ -22,11 +22,12 @@ modified:
   - "2026-06-18 v2.7: F3 adversarial round-5 remediation — Fix 2: stale '~46 construction sites' in Wave 49 STORY-119 note corrected to '84 FindingsRender:: occurrences' with per-file grepped ground-truth (main.rs=4, terminal.rs=3, reporter_terminal_tests.rs=55, reporter_tests.rs=17, dnp3_f5_remediation_tests.rs=2, bc_2_09_100_multitag_tests.rs=3). Fix 3: Wave 48 STORY-120 table row annotated to disambiguate '28 construction sites' (STORY-120 enum-introduction scope, v0.9.0) from STORY-119's 84 occurrences."
   - "2026-06-18 v2.8: D-120 STORY-119 split — added STORY-122 (E-18, wave 49, 3 pts, A: enum→struct reshape + 84-site migration byte-identical). STORY-119 re-scoped to B (behavioral delta only: render_findings_grouped_collapsed + CLI flip, wave 50, 5 pts). total_stories 72→73 (product; all-stories total 74→75). total_edges 95→96 (+1 intra: STORY-122→STORY-119 replaces direct STORY-120→STORY-119 edge — both cross-epic count corrected: STORY-120→STORY-122 new cross-epic E-8→E-18, STORY-122→STORY-119 intra-E-18; net: cross_epic_edges 21→22, intra_epic_edges 74→74 — STORY-120→STORY-119 cross-epic removed, STORY-122→STORY-119 intra added, net intra unchanged). number_of_waves 49→50 (STORY-119/B now wave 50). total_points 479→481 (product scheduled: STORY-119 8→5, +STORY-122 3pts = net 479+3-3=479; wait — STORY-119 was 8pts, now 5pts; STORY-122 adds 3pts; net change = -8+5+3=0 → 479 unchanged). BC-to-Stories matrix: add STORY-122 row (A BCs: 013/014/016/026/027/028 at PO-final versions); update STORY-119 row (B BCs: 013/014/016/025/026/027/028/030/031/032/033/034 at PO-final versions). VP-to-Stories: VP-016 extended to STORY-122. Wave schedule: wave 49 = STORY-122; wave 50 = STORY-119. Topological order: STORY-120→STORY-122→STORY-119 (linear chain; acyclic verified). STORY-119 points updated 8→5. Acyclicity re-verified."
   - "2026-06-18 v2.9: F3-resplit round-1 remediation — H-1 edge-taxonomy fix: STORY-122→STORY-119 edge is INTRA-epic (both E-18). v2.8 stanza erroneously concluded 'cross_epic_edges 21→22' but the new edge is intra-E-18, not cross-epic. Correct counts: intra_epic_edges 74→75 (STORY-122→STORY-119 is the 75th intra edge), cross_epic_edges 22→21 (v2.8 over-counted; the STORY-120→STORY-119 cross-epic was REPLACED by STORY-120→STORY-122 cross-epic + STORY-122→STORY-119 intra; net cross-epic edge count from v2.0 baseline should be 21, not 22). total_edges 96 unchanged. Summary Statistics table rows updated. Intra-Epic Edges subheading updated (74→75). Cross-Epic Edges subheading updated (22→21). H-2 acyclicity proof E-18/E-8 bullet rewritten to post-split chain: STORY-118 depends_on=[] (W47); STORY-120 depends_on=[] (W48); STORY-122 depends_on=[STORY-120] (W49); STORY-119 depends_on=[STORY-122] (W50). Stale 'STORY-119 now depends on STORY-120 only (wave 49)' and 'STORY-118→119 routed through STORY-120→119' text removed. M-1 wave-gate notes: two stale 'STORY-119 ... wave 49' references in Wave 47 and Wave 48 release-gate notes corrected to wave 50."
-total_stories: 73  # product stories only (excludes STORY-091 + STORY-121 tooling; all-stories total = 75)
-total_edges: 96
-intra_epic_edges: 75
+  - "2026-06-20 v3.0: FE-001 INTEGRATE sub-burst — E-19 pcapng reader support (STORY-123..128) added. 6 new product stories: STORY-123 (W51, depends_on=[], 5pts), STORY-124 (W52, depends_on=[123], 8pts), STORY-125 (W53, depends_on=[123,124], 8pts), STORY-126 (W54, depends_on=[123,124], 8pts), STORY-127 (W55, depends_on=[123,124,125,126], 5pts), STORY-128 (W56, depends_on=[127], 3pts). total_stories 73→79 (product; all-stories 75→81). total_edges 96→106 (+10 intra-E-19: (123,124),(123,125),(123,126),(123,127),(124,125),(124,126),(124,127),(125,127),(126,127),(127,128) — all intra-E-19, 0 cross-epic). intra_epic_edges 75→85. cross_epic_edges unchanged at 21. number_of_waves 50→56. total_points 479→516 (product scheduled, +37). Acyclicity re-verified."
+total_stories: 79  # product stories only (excludes STORY-091 + STORY-121 tooling; all-stories total = 81)
+total_edges: 106
+intra_epic_edges: 85
 cross_epic_edges: 21
-number_of_waves: 50
+number_of_waves: 56
 acyclic: true
 traces_to:
   - .factory/stories/epics.md
@@ -38,9 +39,9 @@ traces_to:
 # wirerust Story Dependency Graph
 
 > **Brownfield context:** wirerust is a single-crate offline pcap forensic triage CLI.
-> All 73 product stories formalize behavioral contracts for existing and new shipped code
-> (48 greenfield + F2/F7/F8/F9/F18/F62 feature additions across E-14, E-15, E-16, E-18, E-8;
-> excludes STORY-091 + STORY-121 tooling stories — all-stories total = 75).
+> All 79 product stories formalize behavioral contracts for existing and new shipped code
+> (48 greenfield + F2/F7/F8/F9/F18/F62/FE-001 feature additions across E-14, E-15, E-16, E-18, E-8, E-19;
+> excludes STORY-091 + STORY-121 tooling stories — all-stories total = 81).
 > Cross-epic dependencies reflect the architecture pipeline layering
 > (L1 Ingest -> L2 Stream -> L3 Domain -> L4 Output -> L0 Entry) defined in
 > `architecture/dependency-graph.md` and `architecture/module-decomposition.md`.
@@ -51,13 +52,13 @@ traces_to:
 
 | Metric | Value |
 |--------|-------|
-| Total stories | 73 (product; +STORY-091 tooling = 74; all-stories total = 75) |
-| Total dependency edges | 96 |
-| Intra-epic edges | 75 |
+| Total stories | 79 (product; +STORY-091 tooling = 80; all-stories total = 81) |
+| Total dependency edges | 106 |
+| Intra-epic edges | 85 |
 | Cross-epic edges | 21 |
-| Number of parallel waves | 50 (STORY-122 wave 49; STORY-119/B wave 50; wave count reflects STORY-120 wave 48 + STORY-122 wave 49 + STORY-119 wave 50) |
-| Graph is acyclic | Yes (Kahn topological sort verified; STORY-097→098→099 extend acyclic order; STORY-106→107→108→109→110 extend further; STORY-111→112→113→114→115 extend further; STORY-115→116→117 extend further; STORY-118 has no new predecessors (depends_on=[]); STORY-120 has no new predecessors (depends_on=[]); STORY-122 depends on STORY-120 (wave 49 = max(48)+1); STORY-119/B depends on STORY-122 (wave 50 = max(49)+1) — linear chain STORY-120→STORY-122→STORY-119; no back-edges into existing graph) |
-| Total story points | 479 (product; +5 tooling = 484; net: STORY-119 8→5 + STORY-122 new 3pts = zero change; scheduled total unchanged at 479) |
+| Number of parallel waves | 56 (Waves 51–56 added for E-19 pcapng reader support STORY-123..128; STORY-123 wave 51, STORY-124 wave 52, STORY-125 wave 53, STORY-126 wave 54, STORY-127 wave 55, STORY-128 wave 56) |
+| Graph is acyclic | Yes (Kahn topological sort verified; STORY-097→098→099 extend acyclic order; STORY-106→107→108→109→110 extend further; STORY-111→112→113→114→115 extend further; STORY-115→116→117 extend further; STORY-118 has no new predecessors (depends_on=[]); STORY-120 has no new predecessors (depends_on=[]); STORY-122 depends on STORY-120 (wave 49 = max(48)+1); STORY-119/B depends on STORY-122 (wave 50 = max(49)+1) — linear chain STORY-120→STORY-122→STORY-119; STORY-123 has no predecessors (depends_on=[]); STORY-124 depends on STORY-123 (wave 52); STORY-125 depends on STORY-123+124 (wave 53); STORY-126 depends on STORY-123+124 (wave 54); STORY-127 depends on STORY-123+124+125+126 (wave 55 = max(54)+1); STORY-128 depends on STORY-127 (wave 56); no back-edges into existing graph) |
+| Total story points | 516 (product; +5 tooling = 521; pre-FE-001 479 + 37 E-19 [5+8+8+8+5+3] = 516 scheduled) |
 
 ---
 
@@ -84,7 +85,7 @@ Dependencies in this graph respect the layer rules from
 
 ## Dependencies (Edge List)
 
-### Intra-Epic Edges (75 edges)
+### Intra-Epic Edges (85 edges)
 
 #### Epic E-1: PCAP Ingestion and Packet Decoding
 
@@ -225,6 +226,21 @@ Dependencies in this graph respect the layer rules from
 | From | To | Justification |
 |------|----|---------------|
 | STORY-122 | STORY-119 | STORY-119/B (render_findings_grouped_collapsed + CLI flip) depends on STORY-122/A (FindingsRender enum→struct reshape + 84-site migration + four-arm dispatch establishment). STORY-119/B repoints the `{Grouped, Collapsed}` arm from the TEMPORARY `render_findings_grouped` call (established by STORY-122/A) to the new `render_findings_grouped_collapsed`. The Grouping/Collapse/FindingsRender struct types must exist (STORY-122/A) before STORY-119/B can introduce `render_findings_grouped_collapsed` and repoint the dispatch arm. Intra-epic: both stories are E-18. |
+
+#### Epic E-19: pcapng Capture-Format Reader Support (FE-001)
+
+| From | To | Justification |
+|------|----|---------------|
+| STORY-123 | STORY-124 | STORY-124 (IDB parse + interface whitelist) requires the magic-byte probe infrastructure, byte-order state, and pcapng block-walk established by STORY-123 (SHB parse). The `PcapngReader` struct and block-dispatch loop introduced in STORY-123 are the foundation consumed by all subsequent block-type parsers. |
+| STORY-123 | STORY-125 | STORY-125 (EPB parse + timestamp normalization) requires the pcapng routing and SHB byte-order state from STORY-123; EPB cannot be parsed before the block-dispatch loop exists. |
+| STORY-123 | STORY-126 | STORY-126 (SPB parse + explicit block-skip) requires the block-walk dispatch established in STORY-123; SPB handling is a block-type arm in that same dispatch loop. |
+| STORY-123 | STORY-127 | STORY-127 (resolve_targets magic-byte glob + E2E corpus wiring) exercises the full reader stack including the SHB detection path established by STORY-123; the E2E corpus tests cannot run before the foundational SHB parser lands. |
+| STORY-124 | STORY-125 | STORY-125 (EPB parse) requires the `Vec<InterfaceInfo>` interface table with `if_tsresol` populated by STORY-124's IDB parser; every EPB must look up its `interface_id` in that table to perform 64-bit timestamp normalization. Compile-order dependency on the `InterfaceInfo` type. |
+| STORY-124 | STORY-126 | STORY-126 (SPB parse) requires the interface table existence check (`empty-table guard for SPB → E-INP-009`) which depends on the `Vec<InterfaceInfo>` structure established by STORY-124's IDB parser. |
+| STORY-124 | STORY-127 | STORY-127 E2E corpus tests include pcapng files with IDB blocks; the interface-whitelist and multi-IDB agreement contract (STORY-124) must be landed before corpus tests that exercise those paths can pass. |
+| STORY-125 | STORY-127 | STORY-127 E2E corpus wiring exercises EPB timestamp normalization paths delivered by STORY-125; integration tests cannot validate pcapng packet timestamps before EPB parse is complete. |
+| STORY-126 | STORY-127 | STORY-127 E2E corpus wiring exercises SPB paths and block-skip dispatch delivered by STORY-126; the full corpus integration test suite requires all block-type parsers to be in place. |
+| STORY-127 | STORY-128 | STORY-128 (per-file batch isolation loop) operates on the file list produced by the refactored `resolve_targets` in STORY-127. The isolation semantics — catch-and-continue per file — only make sense once the magic-byte glob and full reader stack are in place. |
 
 ---
 
@@ -652,6 +668,54 @@ and can be dispatched in parallel.
 
 > **Note:** STORY-119/B has `depends_on: [STORY-122]` — it repoints the `{Grouped, Collapsed}` arm (TEMPORARY in STORY-122/A) to `render_findings_grouped_collapsed` and implements the full grouped-mode collapse behavioral delta. The struct-of-enums and four-arm dispatch must exist (STORY-122/A) before STORY-119/B can build.
 
+### Wave 51 — 1 story | Epic: E-19 (FE-001 pcapng root)
+
+| Story | Epic | Points | Subsystem | Description |
+|-------|------|--------|-----------|-------------|
+| STORY-123 | E-19 | 5 | SS-01 | pcapng Format Detection (Magic-Byte Probe) and SHB Parse |
+
+> **Note:** STORY-123 has `depends_on: []` — it is the foundation of the pcapng reader stack. Covers BC-2.01.009 (magic-byte probe) and BC-2.01.010 (SHB parse + byte-order detection). VP-026 anchor story.
+
+### Wave 52 — 1 story | Epic: E-19
+
+| Story | Epic | Points | Subsystem | Description |
+|-------|------|--------|-----------|-------------|
+| STORY-124 | E-19 | 8 | SS-01 | IDB Parse (Link Type + if_tsresol), Interface Whitelist, and Multi-IDB Agreement |
+
+> **Note:** STORY-124 depends on STORY-123. Covers BC-2.01.011 (IDB link-type decode), BC-2.01.016 (interface whitelist), BC-2.01.018 (multi-IDB agreement). VP-030 anchor story.
+
+### Wave 53 — 1 story | Epic: E-19
+
+| Story | Epic | Points | Subsystem | Description |
+|-------|------|--------|-----------|-------------|
+| STORY-125 | E-19 | 8 | SS-01 | EPB Parse and 64-bit Timestamp Normalization (Kani VP-025 + VP-027) |
+
+> **Note:** STORY-125 depends on STORY-123 and STORY-124. Covers BC-2.01.012 (EPB parse), BC-2.01.014 (timestamp normalization). VP-025 and VP-027 anchor story.
+
+### Wave 54 — 1 story | Epic: E-19
+
+| Story | Epic | Points | Subsystem | Description |
+|-------|------|--------|-----------|-------------|
+| STORY-126 | E-19 | 8 | SS-01 | SPB Parse, Explicit Block-Skip Dispatch (F-07), and Error-Surface Contract |
+
+> **Note:** STORY-126 depends on STORY-123 and STORY-124. Covers BC-2.01.013 (SPB parse), BC-2.01.015 (block-skip dispatch), BC-2.01.017 (error-surface contract). VP-029 and VP-031 anchor story. STORY-125 and STORY-126 are independent of each other (parallel at waves 53 and 54).
+
+### Wave 55 — 1 story | Epic: E-19
+
+| Story | Epic | Points | Subsystem | Description |
+|-------|------|--------|-----------|-------------|
+| STORY-127 | E-19 | 5 | SS-12 | Magic-Byte Glob (resolve_targets Content Detection) and E2E Corpus Wiring |
+
+> **Note:** STORY-127 depends on STORY-123, STORY-124, STORY-125, STORY-126 — all block-type parsers must be merged before E2E corpus tests run. Covers BC-2.12.011 (resolve_targets pcapng content detection + corpus wiring).
+
+### Wave 56 — 1 story | Epic: E-19
+
+| Story | Epic | Points | Subsystem | Description |
+|-------|------|--------|-----------|-------------|
+| STORY-128 | E-19 | 3 | SS-12 | main.rs Per-File Error Isolation Loop (Catch-and-Continue) |
+
+> **Note:** STORY-128 depends on STORY-127. Covers BC-2.01.018 (per-file batch error isolation — re-attributed to SS-12/main.rs AC-002). Terminal story in the E-19 chain.
+
 ---
 
 ## Topological Order (Full Sequence)
@@ -675,9 +739,14 @@ STORY-116 -> STORY-117
 [Wave 48 (independent): STORY-120] ->
 [Wave 49: STORY-122] ->
 [Wave 50: STORY-119]
+[Wave 51 (independent): STORY-123] ->
+[Wave 52: STORY-124] ->
+[Wave 53: STORY-125 ∥ Wave 54: STORY-126] ->
+[Wave 55: STORY-127] ->
+[Wave 56: STORY-128]
 ```
 
-> **Cycle check:** All 73 product nodes processed by Kahn's algorithm. No node remained
+> **Cycle check:** All 79 product nodes processed by Kahn's algorithm. No node remained
 > in the queue with non-zero in-degree after processing. Graph is acyclic.
 > E-15 chain (STORY-106→107→108→109→110) is strictly linear; STORY-106 depends on
 > STORY-100 (cross-epic), STORY-110 depends on STORY-105 (cross-epic for VP-004 oracle
@@ -690,7 +759,11 @@ STORY-116 -> STORY-117
 > predecessor); STORY-122 depends on STORY-120 (D-120 split A: reshape builds against enum
 > vocabulary established by STORY-120); STORY-119/B depends on STORY-122 (D-120 split B:
 > behavioral delta builds against struct-of-enums established by STORY-122). Linear chain
-> STORY-120→STORY-122→STORY-119. No back-edges into the existing 73-story graph.
+> STORY-120→STORY-122→STORY-119. E-19 chain (STORY-123..128, FE-001): STORY-123 has
+> `depends_on=[]` (no predecessor; pcapng root); STORY-124 depends on STORY-123; STORY-125
+> and STORY-126 both depend on STORY-123+STORY-124 and are parallel (waves 53/54);
+> STORY-127 depends on all four predecessors (wave 55 = max(54)+1); STORY-128 depends on
+> STORY-127 (wave 56). No back-edges into the existing 79-story graph. Graph is acyclic.
 
 ---
 
@@ -701,7 +774,7 @@ iteratively. Result:
 
 - Initial zero-in-degree nodes: STORY-001, STORY-069 (Wave 1)
 - Each wave removes its stories and decrements successor in-degrees
-- Final output: all 73 product stories processed, queue empty, no cycle detected
+- Final output: all 79 product stories processed, queue empty, no cycle detected
 - Any cycle would leave unprocessed nodes with non-zero in-degree — none found
 - E-15 extension (STORY-106→107→108→109→110) is a linear tail appended after Wave 34;
   it shares two cross-epic edges (STORY-100→106, STORY-105→110) that add in-degrees
@@ -721,7 +794,17 @@ iteratively. Result:
   STORY-122). Linear chain: STORY-120→STORY-122→STORY-119. No node gains a new in-degree
   beyond this chain. STORY-122 enters the graph with in-degree=1 (from STORY-120) and
   out-degree=1 (to STORY-119). STORY-119 gains in-degree from STORY-122 only. No back-edges
-  into the existing 73-story graph exist. No cycle is possible.
+  into the existing 79-story graph exist. No cycle is possible.
+- E-19 extension (STORY-123..128, FE-001 pcapng): STORY-123 has `depends_on=[]`
+  (Wave 51, root of pcapng reader stack — no predecessor required). STORY-124 depends_on=
+  [STORY-123] (Wave 52, in-degree=1). STORY-125 depends_on=[STORY-123, STORY-124]
+  (Wave 53, in-degree=2). STORY-126 depends_on=[STORY-123, STORY-124] (Wave 54,
+  in-degree=2; parallel to STORY-125). STORY-127 depends_on=[STORY-123, STORY-124,
+  STORY-125, STORY-126] (Wave 55 = max(54)+1, in-degree=4). STORY-128 depends_on=
+  [STORY-127] (Wave 56, in-degree=1). All new edges point forward through waves
+  51→56; no edge points to any existing node (waves 1–50). All 10 new edges are
+  intra-E-19. No back-edges exist. Wave constraint satisfied: wave(story) = max(wave
+  of predecessors)+1 at every node. No cycle is possible.
 
 ---
 
@@ -729,6 +812,12 @@ iteratively. Result:
 
 | BC Range | Story | Epic | Subsystem |
 |----------|-------|------|-----------|
+| BC-2.01.009, BC-2.01.010 | STORY-123 | E-19 | SS-01 |
+| BC-2.01.011, BC-2.01.016, BC-2.01.018 (IDB / multi-IDB) | STORY-124 | E-19 | SS-01 |
+| BC-2.01.012, BC-2.01.014 | STORY-125 | E-19 | SS-01 |
+| BC-2.01.013, BC-2.01.015, BC-2.01.017 | STORY-126 | E-19 | SS-01 |
+| BC-2.12.011 | STORY-127 | E-19 | SS-12 |
+| BC-2.01.018 (per-file isolation AC-002) | STORY-128 | E-19 | SS-12 |
 | BC-2.01.001..008 | STORY-001 | E-1 | SS-01 |
 | BC-2.02.001..005 | STORY-002 | E-1 | SS-02 |
 | BC-2.02.006..009 | STORY-003 | E-1 | SS-02 |
@@ -799,7 +888,7 @@ iteratively. Result:
 | BC-2.11.013 (v1.15), BC-2.11.014 (v2.1), BC-2.11.016 (v1.10), BC-2.11.025 (v1.14), BC-2.11.026 (v1.14), BC-2.11.027 (v1.8), BC-2.11.028 (v1.10), BC-2.11.030 (v1.5), BC-2.11.031 (v1.4), BC-2.11.032 (v1.5), BC-2.11.033 (v1.4), BC-2.11.034 (v1.4) | STORY-119 (wave 50 — B: grouped-mode collapse render path + CLI flip) | E-18 | SS-11 |
 | BC-2.11.010 (v1.11), BC-2.11.013 (v1.14), BC-2.11.014 (v2.0), BC-2.11.015 (v1.10), BC-2.11.016 (v1.9), BC-2.11.017 (v1.17), BC-2.11.019 (v1.10), BC-2.11.025 (v1.13), BC-2.11.026 (v1.13), BC-2.11.027 (v1.7), BC-2.11.028 (v1.9), BC-2.11.029 (v1.7) | STORY-120 | E-8 | SS-11 |
 
-**Coverage: 293 / 293 BCs assigned (219 pre-feature + 25 Modbus BC-2.14.001..025 + 24 DNP3 BC-2.15.001..024 + 15 ARP BC-2.16.001..015 + 5 E-18 flat-collapse BCs BC-2.11.025..029 via STORY-118 + 5 E-18 grouped-collapse BCs BC-2.11.030..034 via STORY-119/B = 293). STORY-120 is the enum-migration story; STORY-122/A carries the re-anchored vocabulary (struct form) for 6 of the 12 SS-11 BCs; STORY-119/B carries all 12 BCs including the 5 new grouped-collapse BCs; no new BCs added by D-120 split. BC-2.11.010/013/014/015/016/017/019 are extended/versioned — not new BCs, already counted in the 219 pre-feature total via STORY-077/078.**
+**Coverage: 302 / 302 BCs assigned (see epics.md for canonical tally: 228 pre-feature [219 prior + 9 net F2 SS-01] + 25 Modbus BC-2.14.001..025 + 24 DNP3 BC-2.15.001..024 + 15 ARP BC-2.16.001..015 + 10 E-18 collapse BCs BC-2.11.025..034 = 302; E-19 pcapng stories cover BC-2.01.009..018 which are already counted in the E-1 BC total in epics.md [added in epics.md v1.5]; BC-2.12.011 is already in the E-9 BC total). STORY-120 is the enum-migration story; STORY-122/A carries the re-anchored vocabulary (struct form) for 6 of the 12 SS-11 BCs; STORY-119/B carries all 12 BCs including the 5 new grouped-collapse BCs; no new BCs added by D-120 split. BC-2.11.010/013/014/015/016/017/019 are extended/versioned — not new BCs, already counted in the 219 pre-feature total via STORY-077/078. E-19 STORY-123..128 cover BC-2.01.009..018 and BC-2.12.011 which are pre-existing BCs already counted in epics.md.**
 
 ---
 
@@ -834,6 +923,12 @@ iteratively. Result:
 | VP-008 (E-16 carry-forward) | decode_packet Never Panics — updated for DecodedFrame return type | decoder.rs | STORY-111 | BC-2.02.009 invariant 5 |
 | VP-024 | ARP Frame Parse Safety and Binding-Table Invariant — 4 sub-property groups: Sub-A=3 Kani (verify_extract_arp_frame_safety, verify_extract_arp_frame_eth_ipv4_correctness, verify_extract_arp_frame_none_on_bad_size); Sub-B=1 Kani (verify_classify_garp_total); Sub-C=1 proptest (test_binding_table_last_write_wins — NOT Kani); Sub-D=1 Kani (verify_binding_table_cap) | analyzer/arp.rs + decoder.rs | STORY-112, STORY-113, STORY-116, STORY-117 | BC-2.16.001 (Sub-A safety), BC-2.16.002 (Sub-A correctness), BC-2.16.003 (Sub-B classify_garp_total), BC-2.16.005 (Sub-C last_write_wins), BC-2.16.006 (Sub-D binding_table_cap); STORY-116/117 exercise VP-024 offset-arithmetic correctness for VLAN/QinQ/MACsec paths (BC-2.16.009 EC-008, BC-2.16.015 PC-7a) |
 | VP-007 (E-16 atomic update) | MITRE Technique ID Catalog Completeness — ARP technique seeding | mitre.rs | STORY-114 | BC-2.10.005, BC-2.10.008 (catalog SEEDED 23→25 / EMITTED 15→17); BC-2.16.004 (ARP-spoof emission trigger) |
+| VP-025 | pcapng EPB Timestamp Normalization Safety (Kani) | reader.rs | STORY-125 | BC-2.01.014 (64-bit timestamp normalization arithmetic — Kani-provable) |
+| VP-026 | pcapng Magic-Byte Probe Correctness | reader.rs | STORY-123 | BC-2.01.009 (magic-byte probe: 4-byte LE read + SHB type tag comparison) |
+| VP-027 | pcapng EPB Timestamp Bounds (Kani) | reader.rs | STORY-125 | BC-2.01.014 (timestamp normalization bounds: result fits u64, no overflow) |
+| VP-029 | pcapng SPB Block-Skip Safety | reader.rs | STORY-126 | BC-2.01.015 (explicit block-skip dispatch: unknown block types skipped without consuming packet data) |
+| VP-030 | pcapng IDB Interface-Whitelist Invariant | reader.rs | STORY-124 | BC-2.01.011 (IDB link-type decode), BC-2.01.016 (interface whitelist — if_linktype must be in allowed set) |
+| VP-031 | pcapng Error-Surface Contract (Kani) | reader.rs | STORY-126 | BC-2.01.017 (error-surface: malformed blocks produce structured errors, no panic) |
 
 ---
 
@@ -914,6 +1009,19 @@ E-18/E-8 (SS-11 Terminal Finding-Collapse + Enum Migration) — linear chain (Wa
   STORY-119/B depends_on=[STORY-122]; it repoints the {Grouped,Collapsed} arm to
   render_findings_grouped_collapsed, introduces the collapse_findings_pass_refs shared
   helper, and flips the --mitre CLI default (D-120 split B).
+
+E-19 (SS-01 pcapng reader + SS-12 main.rs wiring) — diamond/funnel topology (Waves 51-56, FE-001):
+  STORY-123 (Wave 51) [root, depends_on=[]]
+    -> STORY-124 (Wave 52) [IDB parse; depends_on=[123]]
+      -> STORY-125 (Wave 53) [EPB parse; depends_on=[123,124]]  ∥
+      -> STORY-126 (Wave 54) [SPB parse; depends_on=[123,124]]
+        -> STORY-127 (Wave 55) [E2E wiring; depends_on=[123,124,125,126]]
+          -> STORY-128 (Wave 56) [per-file isolation; depends_on=[127]]
+  STORY-123 has NO upstream dependency (depends_on=[]); it is the foundation of the
+  entire pcapng reader stack. STORY-124 depends_on=[123]; provides interface table.
+  STORY-125 and STORY-126 are parallel (waves 53/54); both need STORY-123+124.
+  STORY-127 waits for all four predecessors before E2E corpus tests can run.
+  STORY-128 is the terminal leaf of the E-19 chain.
 ```
 
 ---

@@ -1,6 +1,6 @@
 ---
 document_type: epics
-version: "1.6"
+version: "1.7"
 status: draft
 producer: story-writer
 phase: 2
@@ -11,6 +11,7 @@ modified:
   - "2026-06-17 v1.4: Adversarial Burst 4 remediation — Coverage Check body updated to 288 BCs: added E-18 row to Per-Epic BC Assignment table (BC-2.11.025..029, 5), added E-17 row (extensions, 0), updated TOTAL 283→288, updated Arithmetic Verification block (+E-18 line, ✓ 288/288), updated Coverage confirmed assertion 283→288."
   - "2026-06-19 v1.5: F2 pcapng-reader-support re-anchor — E-1 BC list: BC-2.01.004 struck through [RETIRED], BC-2.01.009–018 (10 new SS-01 BCs) added. E-1 SS-01 count 8→17 active (+9 net). E-1 total 23→32. total_bcs 288→297 (net +9: 10 new BC-2.01.009–018 minus 1 retired BC-2.01.004). Arithmetic Verification and Coverage Confirmed updated."
   - "2026-06-19 v1.6: FINDING-002 correction — BC-2.11.030–034 (5 grouped-collapse BCs added in BC-INDEX v1.44 for STORY-119) were missing from epics.md. Added to E-18 row. total_bcs corrected 297→302 (verified against BC-INDEX v1.52 ground truth: 302 active BCs). Arithmetic Verification and Coverage Confirmed updated."
+  - "2026-06-20 v1.7: FE-001 INTEGRATE sub-burst — E-19 pcapng Capture-Format Reader Support added (STORY-123..128, 6 stories, 37 points, Waves 51–56). No new BCs — BC-2.01.009..018 and BC-2.12.011 are pre-existing (counted in E-1 and E-9 respectively since v1.5). Estimated Story Count Summary updated: E-19 row added (6), Total 72→78. total_bcs unchanged at 302."
 total_bcs: 302
 traces_to:
   - .factory/specs/prd.md
@@ -472,6 +473,41 @@ findings individually in v0.8.0 and the BC forward-references are satisfied by t
 
 ---
 
+## Epic E-19: pcapng Capture-Format Reader Support (FE-001)
+
+- **Goal:** A forensic analyst can point wirerust at a pcapng file (Section Header Block
+  + Interface Description Block + Enhanced Packet Block / Simple Packet Block) and have
+  every captured packet decoded and analyzed, with correct 64-bit timestamp normalization,
+  interface-whitelist validation, structured error surfaces for malformed blocks, and
+  per-file error isolation so one corrupt pcapng in a batch does not abort the entire
+  analysis run. wirerust accepts pcapng files wherever pcap files are accepted; format
+  detection is content-based (magic-byte probe), not extension-based.
+- **BCs:**
+  BC-2.01.009, BC-2.01.010, BC-2.01.011, BC-2.01.012, BC-2.01.013, BC-2.01.014,
+  BC-2.01.015, BC-2.01.016, BC-2.01.017, BC-2.01.018,
+  BC-2.12.011
+  _(Note: these BCs are pre-existing — added to the E-1 and E-9 BC lists in v1.5/v1.6;
+  no new BCs are introduced by E-19. The stories assign implementation ownership to the
+  specific BCs without changing the epic-level BC-count totals.)_
+- **Subsystems touched:** SS-01 (reader.rs — magic-byte probe, SHB/IDB/EPB/SPB parsers),
+  SS-12 (main.rs — resolve_targets content detection, per-file isolation loop)
+- **Estimated stories:** 6 (STORY-123..128)
+- **Feature ID:** FE-001
+- **Total points:** 37 (STORY-123: 5, STORY-124: 8, STORY-125: 8, STORY-126: 8, STORY-127: 5, STORY-128: 3)
+- **Waves:** 51–56
+- **Status:** in-progress
+
+**Rationale:** pcapng is the modern successor to the legacy pcap format and is the default
+output of Wireshark, tcpdump ≥4.9.3, and most hardware capture appliances. Analysts
+increasingly encounter pcapng files; wirerust's current E-INP-004 rejection means these
+files are silently unanalyzed. The feature spans two subsystems (SS-01 reader + SS-12
+entry) and decomposes into 6 stories following the natural block-type layering of the
+pcapng spec (RFC 8126 / draft-tuexen-opsawg-pcapng): SHB (root) → IDB (interface table)
+→ EPB (most common packet block) ∥ SPB (compact block) → E2E corpus wiring → per-file
+isolation. Each story is independently testable with a stub predecessor.
+
+---
+
 ## Estimated Story Count Summary
 
 | Epic | Stories Est. |
@@ -494,4 +530,5 @@ findings individually in v0.8.0 and the BC forward-references are satisfied by t
 | E-16 | 5           |
 | E-17 | 2           |
 | E-18 | 2           |
-| **Total** | **72** |
+| E-19 | 6           |
+| **Total** | **78** |

@@ -47,7 +47,7 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-15/BC-2.15.009.md
   - .factory/specs/architecture/decisions/ADR-007-binary-ics-protocol-integration-dnp3-tcp.md
   - .factory/specs/verification-properties/vp-023-dnp3-parse-safety.md
-input-hash: "fbc14af"
+input-hash: "4fcf8aa"
 ---
 
 # STORY-106: DNP3 DL/Transport Parse + FC Classify — Pure Core (VP-023 Kani)

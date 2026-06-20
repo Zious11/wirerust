@@ -1,7 +1,7 @@
 ---
 document_type: holdout-scenario-index
 level: ops
-version: "2.5"  # Pass-8 focused re-audit (FINDING-P8-001 FIXED): behavioral-subtleties by-category cell corrected 39→40 (HS-106 undercounted by 1 in the pcapng-holdouts note; all 5 category rows now sum to 109 = TOTAL). Focused re-audit CLEAN otherwise — HS-109 byte-exact, M-fixes verified, invariants intact. CLEAN-PASS 1/3 confirmed (metadata fix does not reset clean-pass counter). Prior v2.4: Pass-8 M-2 remediation: added HS-109 (IDB body-decode framing/error holdout — BC-2.01.011 / VP-026 / VP-027). Closes gap where IDB was the only framing BC with no holdout for body-decode error paths. 5 cases: (a) btl=16 body<8→E-INP-008; (b) reserved!=0→E-INP-008; (c) options-TLV OOB→E-INP-008; (d) if_tsresol option_length=4→E-INP-008; (e) positive control. Greenfield total now 109. All-namespace total now 182. Prior v2.3: Pass-4 R4 / ADR-009 rev 7: added HS-108 (zero-packet notice end-to-end — BC-2.01.009 PC6 / BC-2.01.015 PC9 / H-4). Greenfield total was 108. All-namespace total was 181 (greenfield=108, feature DNP3=32 + ARP=28 + collapse=13 = 73). Also bumped HS-103 (v1.5 +Case D btl=16→E-INP-008), HS-104 (v1.2 +Case E non-mult-4 padding-aware bound), HS-107 (v1.3 +Case F btl=12→E-INP-008) per Decision 20 holdouts.
+version: "2.6"  # F3 close (D-166): HS-001 stale anomaly RESOLVED — HS-001 was fully rewritten to pcapng-ACCEPTANCE (v2.0, BC-2.01.009) in F3/STORY-127 scope; lifecycle_status corrected to active; input-hash regenerated (946cb06). Input-hashes also regenerated for HS-104 (a8907f2), HS-107 (d11e6ab), HS-108 (3f3958a) per F-06/F-07/F3-entry checklist; ADR-009 added to HS-104/107 inputs (already present in HS-108/001). Stale anomaly note in Anomalies section cleared. Prior v2.5: Pass-8 focused re-audit (FINDING-P8-001 FIXED): behavioral-subtleties by-category cell corrected 39→40 (HS-106 undercounted by 1 in the pcapng-holdouts note; all 5 category rows now sum to 109 = TOTAL). Focused re-audit CLEAN otherwise — HS-109 byte-exact, M-fixes verified, invariants intact. CLEAN-PASS 1/3 confirmed (metadata fix does not reset clean-pass counter). Prior v2.4: Pass-8 M-2 remediation: added HS-109 (IDB body-decode framing/error holdout — BC-2.01.011 / VP-026 / VP-027). Closes gap where IDB was the only framing BC with no holdout for body-decode error paths. 5 cases: (a) btl=16 body<8→E-INP-008; (b) reserved!=0→E-INP-008; (c) options-TLV OOB→E-INP-008; (d) if_tsresol option_length=4→E-INP-008; (e) positive control. Greenfield total now 109. All-namespace total now 182. Prior v2.3: Pass-4 R4 / ADR-009 rev 7: added HS-108 (zero-packet notice end-to-end — BC-2.01.009 PC6 / BC-2.01.015 PC9 / H-4). Greenfield total was 108. All-namespace total was 181 (greenfield=108, feature DNP3=32 + ARP=28 + collapse=13 = 73). Also bumped HS-103 (v1.5 +Case D btl=16→E-INP-008), HS-104 (v1.2 +Case E non-mult-4 padding-aware bound), HS-107 (v1.3 +Case F btl=12→E-INP-008) per Decision 20 holdouts.
 status: draft
 producer: product-owner
 timestamp: 2026-06-19T00:00:00Z
@@ -173,7 +173,7 @@ All 109 scenarios, one row each, grouped by epic.
 
 | HS ID | Title | Category | Priority | Waves | Behavioral Contracts |
 |-------|-------|----------|----------|-------|---------------------|
-| [HS-001](HS-001-pcap-link-type-gating.md) | PCAP Link-Type Boundary — Accepted vs. Rejected at File Open **[STALE — 2026-06-19: pcapng-rejection expectation inverted by BC-2.01.009; rewrite F3/STORY-127]** | integration-boundaries | must-pass | 1 | BC-2.01.001, ~~BC-2.01.004~~ (retired → BC-2.01.009) |
+| [HS-001](HS-001-pcap-link-type-gating.md) | PCAP Link-Type Boundary — Accepted vs. Rejected at File Open | integration-boundaries | must-pass | 1 | BC-2.01.001, BC-2.01.009 |
 | [HS-002](HS-002-pcap-zero-packet-and-error-surfaces.md) | Empty Capture and Corrupt-Header Behavior at Ingest | edge-case-combinations | must-pass | 1 | BC-2.01.002, BC-2.01.003, BC-2.01.006, BC-2.01.007 |
 | [HS-003](HS-003-ethernet-ipv4-ipv6-decode-paths.md) | Ethernet, RAW IPv4, and IPv6 Link-Layer Decode Correctness | integration-boundaries | must-pass | 2 | BC-2.02.001, BC-2.02.003, BC-2.02.005, BC-2.02.007 |
 | [HS-004](HS-004-linux-sll-icmp-non-ip-rejection.md) | Linux SLL Cooked Capture, ICMP Classification, and Non-IP Frame Handling | edge-case-combinations | must-pass | 2 | BC-2.02.006, BC-2.02.009, BC-2.02.010, BC-2.02.011 |
@@ -332,10 +332,13 @@ All 109 scenarios, one row each, grouped by epic.
 
 ## Anomalies
 
-**Known — HS-001 stale (pre-existing, F3 scope):** HS-001's pcapng-rejection expectation
-was inverted by BC-2.01.009 (F2 pcapng reader feature). The stale banner and frontmatter
-`lifecycle_status: stale` have been in place since 2026-06-19. Rewrite is F3/STORY-127
-scope. HS-001 is excluded from the active gate set until rewritten.
+**RESOLVED (D-166, 2026-06-20) — HS-001 stale anomaly CLEARED:** HS-001 was fully rewritten
+in F3/STORY-127 scope to pcapng-ACCEPTANCE (v2.0, BC-2.01.009, ADR-009 rev 9). Prior v1.0
+encoded pcapng-REJECTION via retired BC-2.01.004. The rewritten scenario: detects a valid
+pcapng file via magic-byte probe, routes to the pcapng reader, analyzes packets to completion.
+The 802.11 link-type rejection (BC-2.01.001 Step 4) remains covered. `lifecycle_status`
+corrected from `stale` to `active`. Input-hash regenerated (946cb06). HS-001 is now ACTIVE
+and included in the F3/F4 gate set.
 
 **Known — HS-101..109 wave TBD:** These nine scenarios were authored in F2 Burst C (HS-101..106),
 P3-Burst-Hold (HS-107), Pass-4 R4 (HS-108), and Pass-8 M-2 remediation (HS-109) before story
