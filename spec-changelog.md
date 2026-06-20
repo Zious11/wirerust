@@ -14,6 +14,97 @@ changes, invariant rewrites).
 
 ---
 
+## [pcapng-f2-pass2-remediation-2026-06-19] — 2026-06-19
+
+### PASS-2 ADVERSARIAL REMEDIATION: 4 CRITICAL / 8 HIGH / 6 MEDIUM / 6 LOW — HIGH novelty
+
+**Trigger:** F2 adversarial pass-2 identified 4C/8H/6M/6L findings, HIGH overall novelty class
+(new wire-format + partial-fix-regression findings not anticipated by pass-1 remediation). All
+must-fix items remediated in this burst. Pass-3 is next; F3 remains BLOCKED until 3 clean passes.
+
+**Critical findings (4):**
+
+- **C-1 (pass-2 re-verification):** IDB snaplen offset 4-7 — BC-2.01.010 had the wrong byte
+  offset for the `snaplen` field in the SHB body. Corrected to offset 4–7 (bytes within the
+  SHB body after the byte-order magic u32). BC-2.01.010 v1.7.
+- **C-2 (pass-2 re-verification):** HS-107 authored for SPB framing/snaplen holdout
+  (BC-2.01.013 / VP-028 gap). HS-INDEX v2.1 (107 scenarios, all-namespace 180).
+- **C-3 (pass-2 re-verification):** EPB frame overhead confirmed 12 bytes above payload
+  (EPB fixed header is 20 bytes: block_type 4 + block_total_length 4 + interface_id 4 +
+  timestamp_high 4 + timestamp_low 4 + captured_packet_length 4 + original_packet_length 4 =
+  28 bytes total; data padding is after payload; overhead above aligned payload is 12 bytes
+  of fixed header after the 16-byte prefix). ADR-009 rev 5 Decision 8 updated.
+- **C-4 (NEW — stale error codes in BC-2.01.017):** BC-2.01.017 v1.2 listed only
+  E-INP-008..E-INP-011; E-INP-012 and E-INP-013 were missing from the error-code table.
+  This is a partial-fix-regression: the D-142 remediation added E-INP-012 to error-taxonomy
+  but failed to sweep the cross-cutting parent BC-2.01.017 (the "errors surface" BC that
+  must enumerate all error codes). Fixed: BC-2.01.017 v1.3 (E-INP-013 added; full table
+  E-INP-008..E-INP-013). Triggered sibling-sweep lesson: cross-cutting parent BCs must be
+  included in every error-code routing fix sweep.
+
+**High findings (8):**
+
+- **I-1 (VP re-anchor):** VP-025..030 annotations in VP-INDEX desynchronized from on-disk
+  BC versions after the D-142 remediation. VP-INDEX v2.4 re-anchors all VP-to-BC citations.
+- **I-2 (Kani unwind note):** BC-2.01.014 / BC-2.01.010 both lacked a Kani `#[kani::unwind]`
+  bound specification for the base-10 power-of-ten loop; without a bound the harness loops
+  forever. ADR-009 rev 5 §VP-025 note added; BC-2.01.014 v1.2 and BC-2.01.010 v1.7 include
+  the impl note.
+- **I-3 (zero-packet one-shot OPB notice):** BC-2.01.011 did not document the one-shot
+  observation emitted when an OPB-only pcapng produces zero packets (SOUL #4 silent-failure
+  scope). BC-2.01.011 v1.2 adds the notice.
+- **I-4 (SPB bound re-statement):** SPB 16-byte overhead not clearly distinguished from the
+  20-byte figure mentioned in adjacent prose. BC-2.01.013 v1.2 clarifies.
+- **I-5/I-6 (interleaved-IDB → E-INP-013; ADR-009 Decision 15):** No BC specified what
+  happens when an IDB appears after the first packet block. BC-2.01.015 v1.3 and BC-2.01.016
+  v1.2 add the route; ADR-009 rev 5 Decision 15 is the architectural record. This was a
+  HIGH-novelty finding: the interleaved-IDB scenario is a valid pcapng file that wirerust
+  must explicitly reject rather than silently misbehave on.
+- **I-7 (E-INP-008/010 boundary):** The threshold description for E-INP-008 vs E-INP-010
+  was ambiguous when block_total_length is exactly at the SHB minimum (28 bytes). BC-2.01.010
+  v1.7 and BC-2.01.012 v1.2 sharpen the boundary language.
+- **I-8 (HS-completeness map):** ADR-009 rev 5 adds a forward-reference HS-completeness map
+  (§HS-Completeness Map) listing all framing BCs and their required holdout scenarios;
+  resolves I-14. This map was absent from rev 4, leaving no machine-checkable record of
+  which BCs lacked holdout coverage.
+
+**Medium and Low findings (12):** I-9 (EPB boundary semantics), I-10 (OPB zero-packet
+clarification), I-11 (verification-architecture.md v2.0 VP coherence), I-12
+(verification-coverage-matrix.md v1.14 coverage update), I-13 (VP-INDEX v2.4 stale citations),
+I-14 (HS-completeness gap — HS-107 now authored), plus 6 LOW items resolved inline in the
+BC pass-2 annotations above.
+
+**O-5 (verification-architecture/coverage-matrix VP coherence):** Addressed by the architect's
+v2.0/v1.14 updates (verification-architecture.md v2.0, verification-coverage-matrix.md v1.14).
+
+#### Version Bumps
+
+| Artifact | Change | Version |
+|----------|--------|---------|
+| `specs/behavioral-contracts/ss-01/BC-2.01.009.md` | C-4 stale error-code sweep — E-INP-008..E-INP-013 added to error-code table. | v1.1 → v1.2 |
+| `specs/behavioral-contracts/ss-01/BC-2.01.010.md` | VP re-anchor (I-3); Kani unwind note (I-2); E-INP-008/E-INP-010 boundary clarification (I-9). | v1.6 → v1.7 |
+| `specs/behavioral-contracts/ss-01/BC-2.01.011.md` | Zero-packet one-shot OPB-only notice (I-10); E-INP-013 cite for interleaved-IDB (Decision 15). | v1.1 → v1.2 |
+| `specs/behavioral-contracts/ss-01/BC-2.01.012.md` | EPB boundary I-9 clarification (captured_len vs block_total_length boundary semantics). | v1.1 → v1.2 |
+| `specs/behavioral-contracts/ss-01/BC-2.01.013.md` | SPB 16-byte bound re-stated for clarity; HS-107 authored (C-2/I-14). | v1.1 → v1.2 |
+| `specs/behavioral-contracts/ss-01/BC-2.01.014.md` | Kani unwind bound note (I-2); VP-025 precomputed base-10 table impl note. | v1.1 → v1.2 |
+| `specs/behavioral-contracts/ss-01/BC-2.01.015.md` | Interleaved-IDB E-INP-013 route (I-5/I-6; ADR-009 Decision 15). | v1.2 → v1.3 |
+| `specs/behavioral-contracts/ss-01/BC-2.01.016.md` | Linktype-whitelist timing at IDB-parse time (I-5; ADR-009 Decision 15 amendment). | v1.1 → v1.2 |
+| `specs/behavioral-contracts/ss-01/BC-2.01.017.md` | C-4 stale codes — E-INP-013 added to error-code table; full table E-INP-008..E-INP-013; error-taxonomy v2.8. | v1.2 → v1.3 |
+| `specs/architecture/decisions/ADR-009-pcapng-capture-format-reader-support.md` | Rev 5 — Decision 15 (interleaved-IDB → E-INP-013 reject); linktype-whitelist timing amendment; HS-Completeness Map; VP-025 Kani unwind note. | rev 4 → rev 5 |
+| `specs/prd-supplements/error-taxonomy.md` | v2.8 — E-INP-013 added (interleaved-IDB late IDB reject; Decision 15); next_free = E-INP-014. | v2.7 → v2.8 |
+| `specs/verification-properties/VP-INDEX.md` | v2.4 — VP re-anchor to on-disk BC versions; VP-025 Kani unwind note. | v2.3 → v2.4 |
+| `specs/architecture/verification-architecture.md` | v2.0 — VP coherence update (O-5). | prior → v2.0 |
+| `specs/architecture/verification-coverage-matrix.md` | v1.14 — Coverage update (O-5, I-12). | prior → v1.14 |
+| `holdout-scenarios/HS-107-pcapng-spb-framing-truncation-padding-and-no-idb.md` | New — SPB framing/snaplen holdout for BC-2.01.013 / VP-028 / C-2/I-14 gap. | new v1.0 |
+| `holdout-scenarios/HS-INDEX.md` | v2.1 — HS-107 added; greenfield total 107; all-namespace total 180. | v2.0 → v2.1 |
+| `specs/behavioral-contracts/BC-INDEX.md` | v1.55 — inline version annotations synced for BC-2.01.009..017 (9 BCs). | v1.54 → v1.55 |
+
+#### Active BC Count
+
+302 active BCs — unchanged.
+
+---
+
 ## [pcapng-f2-reaudit-fixes-2026-06-19] — 2026-06-19
 
 ### RE-AUDIT CONSISTENCY FIXES: 6 findings + BOM-mapping contradiction chain resolved

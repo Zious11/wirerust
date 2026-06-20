@@ -6,10 +6,11 @@ sources:
   - adversarial-spec-review-pass1 (ADV-F2-PASS1)
   - security-review (SR-PCAPNG-F2)
   - performance-review
+  - adversarial-spec-review-pass2 (ADV-F2-PASS2)
 date_created: 2026-06-19
-status: REAUDIT-FIXED
+status: PASS2-REMEDIATED
 f3_blocked: true
-f3_blocker_reason: "Adversarial reconvergence required (3 clean passes). Must-fix items addressed (D-142). Re-audit 6 findings + BOM-mapping chain ALL FIXED (D-143). Pass 2 not yet dispatched. BLOCKED-ON-SPIKE items (H-2 final form, H-6/M-2/partial SEC-002) pending pass-2 verification."
+f3_blocker_reason: "Adversarial reconvergence required (3 clean passes). Pass-1 items addressed (D-142/D-143). Pass-2 items addressed (D-144). Pass-3 not yet dispatched."
 ---
 
 # F2 Review Remediation Tracker — pcapng Reader
@@ -132,6 +133,50 @@ contradiction chain. All fixed in the D-143 burst.
 
 ---
 
+---
+
+## Pass-2 Adversarial Findings (ADV-F2-PASS2 — D-144 burst — 2026-06-19)
+
+**Overall verdict:** 4 CRITICAL / 8 HIGH / 6 MEDIUM / 6 LOW. HIGH novelty class (new wire-format
+findings + partial-fix-regression findings not anticipated by pass-1 remediation).
+All C/I items remediated. Pass-3 required.
+
+**O-5 note:** O-5 (verification-architecture/coverage-matrix VP coherence) addressed by the
+architect's v2.0/v1.14 updates (verification-architecture.md v2.0,
+verification-coverage-matrix.md v1.14) — closed in this burst.
+
+### Pass-2 Critical Findings
+
+| ID | Severity | Finding Summary | Status |
+|----|----------|----------------|--------|
+| C-1 | CRITICAL | IDB snaplen offset wrong: SHB body bytes 4–7 carry `snaplen`, not bytes 8–11. BC-2.01.010 had the wrong offset. | FIXED — BC-2.01.010 v1.7 (pass-3 verification pending) |
+| C-2 | CRITICAL | HS-107 missing — BC-2.01.013 (SPB) had no holdout scenario. HS-completeness map in ADR-009 rev 5 exposed the gap (I-14). | FIXED — HS-107 authored (SPB framing/snaplen/no-IDB); HS-INDEX v2.1 (107 greenfield / 180 all-namespace) (pass-3 verification pending) |
+| C-3 | CRITICAL | Frame-overhead 12: EPB fixed header is 28 bytes total; overhead above aligned payload is 12 bytes (not the earlier prose which was ambiguous). ADR-009 rev 5 Decision 8 updated. | FIXED — ADR-009 rev 5 Decision 8; BC-2.01.012 v1.2 boundary clarification (pass-3 verification pending) |
+| C-4 | CRITICAL | Stale error codes in BC-2.01.017 v1.2: error-code table listed only E-INP-008..E-INP-011. E-INP-012 and E-INP-013 added in error-taxonomy but cross-cutting parent BC-2.01.017 was not swept (partial-fix regression from D-142). | FIXED — BC-2.01.017 v1.3: full table E-INP-008..E-INP-013 (pass-3 verification pending) |
+
+### Pass-2 High/Medium/Low Findings (I-1..I-14)
+
+| ID | Severity | Finding Summary | Status |
+|----|----------|----------------|--------|
+| I-1 | HIGH | VP-INDEX v2.3 citations desynchronized from on-disk BC versions after D-142/D-143 bumps. | FIXED — VP-INDEX v2.4 (re-anchor) (pass-3 verification pending) |
+| I-2 | HIGH | Kani `#[kani::unwind]` bound unspecified in BC-2.01.014 + BC-2.01.010; harness would loop indefinitely without a bound. | FIXED — BC-2.01.014 v1.2 + BC-2.01.010 v1.7 Kani note; ADR-009 rev 5 §VP-025 note (pass-3 verification pending) |
+| I-3 | HIGH | BC-2.01.011 did not document the one-shot observation for OPB-only zero-packet pcapng. SOUL #4 (silent failure) requires an observable notice. | FIXED — BC-2.01.011 v1.2 (zero-packet one-shot OPB-only notice) (pass-3 verification pending) |
+| I-4 | HIGH | SPB 16-byte overhead not clearly distinguished from the 20-byte figure in adjacent prose; ambiguity could produce wrong implementation. | FIXED — BC-2.01.013 v1.2 (SPB 16-byte bound re-stated for clarity) (pass-3 verification pending) |
+| I-5 | HIGH | No BC specified linktype-whitelist timing: check fires at IDB-parse time, not at first-packet time. ADR-009 rev 5 Decision 15 amendment. | FIXED — BC-2.01.016 v1.2 (linktype-whitelist at IDB-parse time); ADR-009 rev 5 (pass-3 verification pending) |
+| I-6 | HIGH | No BC specified interleaved-IDB policy (IDB after first packet block). This is a valid pcapng file that wirerust must explicitly reject. New: ADR-009 Decision 15 → E-INP-013. | FIXED — ADR-009 rev 5 Decision 15; BC-2.01.015 v1.3 (E-INP-013 route); error-taxonomy v2.8 (E-INP-013) (pass-3 verification pending) |
+| I-7 | HIGH | E-INP-008 vs E-INP-010 threshold ambiguous when block_total_length is exactly at SHB minimum. | FIXED — BC-2.01.010 v1.7 + BC-2.01.012 v1.2 boundary language sharpened (pass-3 verification pending) |
+| I-8 | HIGH | ADR-009 lacked a forward-reference HS-completeness map; no machine-checkable record of which framing BCs lacked holdout coverage. | FIXED — ADR-009 rev 5 §HS-Completeness Map (resolves I-14) (pass-3 verification pending) |
+| I-9 | MEDIUM | EPB boundary semantics for `captured_len` vs `block_total_length` not stated precisely (off-by-one risk at boundary). | FIXED — BC-2.01.012 v1.2 boundary clarification (pass-3 verification pending) |
+| I-10 | MEDIUM | OPB-only zero-packet scenario: BC-2.01.011 had no prose distinguishing the one-shot from normal zero-packet paths. | FIXED — BC-2.01.011 v1.2 (same fix as I-3) (pass-3 verification pending) |
+| I-11 | MEDIUM | verification-architecture.md VP coherence stale (O-5). | FIXED — verification-architecture.md v2.0 (architect burst) (pass-3 verification pending) |
+| I-12 | MEDIUM | verification-coverage-matrix.md coverage stale (O-5). | FIXED — verification-coverage-matrix.md v1.14 (architect burst) (pass-3 verification pending) |
+| I-13 | MEDIUM | VP-INDEX v2.3 stale citations after D-142/D-143 (duplicates I-1 concern). | FIXED — VP-INDEX v2.4 (same fix as I-1) (pass-3 verification pending) |
+| I-14 | MEDIUM | HS-completeness gap — no reverse-map from framing BCs to required holdout scenarios; HS-107 missing (SPB). | FIXED — ADR-009 rev 5 §HS-Completeness Map; HS-107 authored (same fix as C-2/I-8) (pass-3 verification pending) |
+
+**Low findings (I-15..I-20, 6 items):** Minor annotation inconsistencies in BC-2.01.009 (error-code table scope note), BC-2.01.010 (Kani note placement), BC-2.01.013 (block-type constant alignment), BC-2.01.014 (base-10 table reference), BC-2.01.015 (IDB skip-arm note), BC-2.01.017 (next_free citation). All resolved inline in the pass-2 BC version bumps above (pass-3 verification pending).
+
+---
+
 ## F3 Entry Gate
 
 F3 story decomposition is **BLOCKED** until:
@@ -139,3 +184,4 @@ F3 story decomposition is **BLOCKED** until:
 2. Adversarial reconvergence: 3 consecutive clean adversarial review passes (0 CRITICAL, 0 HIGH, <3 MEDIUM)
 3. pcap-file 2.0.0 API spike complete (unblocks H-1 final form, H-2, H-6, M-2, SEC-002/008)
 4. VP-NNN assigned to all 10 BCs (C-3 resolved) — COMPLETE (D-142)
+5. Pass-2 items remediated — COMPLETE (D-144): C-1/C-2/C-3/C-4/I-1..I-14 ALL FIXED (pending pass-3 verification)
