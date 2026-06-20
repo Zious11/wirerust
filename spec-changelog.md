@@ -14,6 +14,39 @@ changes, invariant rewrites).
 
 ---
 
+## [pcapng-f2-pass7-reaudit-minors-2026-06-20] — 2026-06-20
+
+### PASS-7 RE-AUDIT: 2 MINOR METADATA/RUBRIC FINDINGS FIXED — D-160
+
+**Trigger:** F2 pass-7 re-audit identified 2 Minor findings (FINDING-P7-001, FINDING-P7-002).
+No Major or Critical findings. Adversary pass-8 pending. Clean-pass counter 0/3.
+
+**FINDING-P7-001 (Minor, metadata — Case D counter description wrong in BC-INDEX + STATE.md):**
+BC-INDEX v1.64 inline annotation for BC-2.01.015 v1.8 described Case D as "(3 OPBs)
+skipped_blocks=3/opb_skipped=3". STATE.md D-159 decision row and session checkpoint both
+repeated this wrong description. The correct values per normative HS-108 v1.5 and
+BC-2.01.015 v1.8 "both" model: Case D = 1 OPB, skipped_blocks=1, opb_skipped=1 (one OPB
+increments BOTH counters once each, not three times). The adversary's D-158 finding (F-1)
+originally proposed "Case D skipped_blocks=3" as the fix for what was then described as
+"3 OPBs"; D-159 remediation fixed HS-108 on disk correctly to skipped_blocks=1 but
+propagated the wrong "3 OPBs" label into the BC-INDEX annotation and STATE.md prose.
+BC-INDEX v1.64→v1.65: Case D inline text corrected to "Case D (1 OPB) skipped_blocks=1/
+opb_skipped=1; Case E (2 NRBs + 1 OPB) skipped_blocks=3/opb_skipped=1". STATE.md
+D-159 entry + session checkpoint Case D description corrected to match.
+
+**FINDING-P7-002 (Minor, rubric gate — HS-108 Case B/F bare `skipped_blocks > 0`):**
+HS-108 v1.4 Cases B and F rubric gates used bare `skipped_blocks > 0` as the condition
+for the parenthetical skip-count segment. Canonical gate per BC-2.01.009 PC6 is
+`(skipped_blocks - opb_skipped) > 0` (G > 0). For Cases B and F (opb_skipped==0 in both)
+the two forms are numerically equivalent, so no existing test passes or fails differently.
+However, the bare form would incorrectly gate an OPB-only file (skipped_blocks=1,
+opb_skipped=1, G=0) as emitting the generic segment when it should not. The canonical form
+was applied in pass-7 remediation (D-159) to Cases D/E but left as bare form in Cases B/F.
+HS-108 v1.4→v1.5: Case B rubric gate and Case F body gate updated to `(skipped_blocks -
+opb_skipped) > 0` (G > 0; consistent with BC-2.01.009 PC6 throughout).
+
+---
+
 ## [pcapng-f2-pass7-remediation-2026-06-20] — 2026-06-20
 
 ### PASS-7 REMEDIATION: 1C/3H/4M FINDINGS FIXED — D-159
@@ -31,9 +64,9 @@ test suite written against the BC. Root cause: HS-108 authored in D-150 (pass-4 
 before opb_skipped sub-counter was added in D-153 (pass-5 H-2); D-153 updated the BC
 but not HS-108 Cases D/E.
 BC-2.01.015 v1.7→v1.8: "both" model invariant restated explicitly in PC9/AC-003/AC-006;
-subset postcondition pinned. HS-108 v1.3→v1.4: Case D corrected to skipped_blocks=3/
-opb_skipped=3; Case E corrected to skipped_blocks=3/opb_skipped=1 (2 NRBs + 1 OPB = 3
-total skips).
+subset postcondition pinned. HS-108 v1.3→v1.4: Case D corrected to skipped_blocks=1/
+opb_skipped=1 (1 OPB — both counters increment once); Case E corrected to
+skipped_blocks=3/opb_skipped=1 (2 NRBs + 1 OPB = 3 total skips, 1 OPB).
 
 **F-2 (HIGH — obsolete_packet_blocks → opb_skipped rename; HS-108 6× stale field):**
 HS-108 Cases D/E used non-existent field `obsolete_packet_blocks` (6 occurrences) — a

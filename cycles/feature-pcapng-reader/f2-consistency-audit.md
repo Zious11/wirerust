@@ -2587,3 +2587,462 @@ Both findings are Minor (annotation/comment staleness in BC-2.01.017; no normati
 | FINDING-P5-004 | MINOR | v5.0 audit — error-taxonomy E-INP-008 BC Ref omits BC-2.01.013 | RESOLVED (error-taxonomy v3.4 pass-5 re-audit) |
 | FINDING-P6-001 | Minor | v6.0 audit — BC-2.01.017 Related BCs lines 145-146 omit E-INP-008 from BC-2.01.012 and BC-2.01.013 error-code lists | OPEN |
 | FINDING-P6-002 | Minor | v6.0 audit — BC-2.01.017 PC1 line 68 states SPB body-too-short window as [btl 16≤btl<20]; correct window is btl=12 only | OPEN |
+
+---
+
+## v7.0 Append — F2 Pass-7 Remediation Cross-Seam Audit
+
+**Audit date:** 2026-06-20
+**Scope:** Post-pass-7 remediation coherence check across the 8 seams defined in the brief.
+Covers: OPB counter "both" model (F-1), field rename opb_skipped (F-2), notice display
+arithmetic (F-3), EPB decode precedence (F-4), spb_data_available symbol rename (F-5/F-7),
+btl=14 misaligned fixture (F-8), uniform error rule, and versions/counters/next_free.
+
+**Artifacts checked (on-disk versions at time of audit):**
+- BC-2.01.009 v1.7
+- BC-2.01.012 v1.7
+- BC-2.01.013 v1.7
+- BC-2.01.015 v1.8
+- HS-104 v1.4
+- HS-107 v1.6
+- HS-108 v1.4
+- BC-INDEX v1.64 (inline annotations)
+- VP-INDEX v2.8
+- error-taxonomy.md (current, next_free E-INP-014)
+- STATE.md (F2 pass-7 remediation summary)
+
+---
+
+### Seam 1 — OPB counter "both" model: BC-2.01.015 PC9 / AC-003 / AC-006 ↔ HS-108 Cases D/E
+
+**Check:** BC-2.01.015 v1.8 states that an OPB skip increments BOTH `skipped_blocks` AND
+`opb_skipped`; invariant `opb_skipped <= skipped_blocks`. HS-108 Case D (1 OPB) must show
+`skipped_blocks==1, opb_skipped==1`. HS-108 Case E (2 NRBs + 1 OPB) must show
+`skipped_blocks==3, opb_skipped==1`. No residual separate-counter model.
+
+**Findings:**
+
+- BC-2.01.015 v1.8 PC9: "every OPB skip increments BOTH `skipped_blocks` AND `opb_skipped`.
+  When a non-OPB unknown block is skipped, only `skipped_blocks` is incremented." Invariant
+  stated as `opb_skipped <= skipped_blocks`. PASS.
+
+- BC-2.01.015 v1.8 PC9 examples: "(a) `skipped_blocks=1, opb_skipped=1` → G=0 → no generic
+  segment, OPB clause '1'. (b) `skipped_blocks=3, opb_skipped=1` → G=2 → generic segment '2',
+  OPB clause '1'." Matches Case D and Case E respectively. PASS.
+
+- BC-2.01.015 v1.8 AC-003: "When an OPB is skipped, BOTH `skipped_blocks` AND `opb_skipped`
+  are incremented (saturating)." PASS.
+
+- BC-2.01.015 v1.8 AC-006: "Always `opb_skipped <= skipped_blocks`." PASS.
+
+- HS-108 v1.4 Case D live content (line 247-249): "`skipped_blocks == 1` (OPB increments
+  BOTH `skipped_blocks` AND `opb_skipped` per BC-2.01.015 PC9 'both' model), and
+  `opb_skipped == 1`." G = 1-1 = 0. PASS — matches BC.
+
+- HS-108 v1.4 Case D evaluation rubric (line 465): "Internal state: `skipped_blocks==1`,
+  `opb_skipped==1`." PASS.
+
+- HS-108 v1.4 Case D byte-exact assertion (line 267-269): "Internal state: `skipped_blocks==1`,
+  `opb_skipped==1`." PASS.
+
+- HS-108 v1.4 Case E live content (line 307-309): "`skipped_blocks == 3` (both NRBs increment
+  `skipped_blocks` once each; the OPB also increments `skipped_blocks` per BC-2.01.015 PC9
+  'both' model, giving 2 + 1 = 3 total), and `opb_skipped == 1`." G = 3-1 = 2. PASS.
+
+- HS-108 v1.4 Case E evaluation rubric (line 471): "Internal state: `skipped_blocks==3`,
+  `opb_skipped==1`." PASS.
+
+- HS-108 v1.4 Case E byte-exact assertion (line 330-331): "Internal state: `skipped_blocks==3`,
+  `opb_skipped==1`." PASS.
+
+**FINDING-P7-001 — MINOR (documentation drift; no normative contradiction):**
+
+BC-INDEX v1.64 inline annotation for BC-2.01.015 (the v1.8 changelog note, line 106) reads:
+"HS-108 Case D/E counter values corrected per this invariant: Case D (3 OPBs) skipped_blocks=3/opb_skipped=3;
+Case E (2 NRBs + 1 OPB) skipped_blocks=3/opb_skipped=1".
+
+The parenthetical "Case D (3 OPBs)" is factually wrong. Case D has ONE OPB (not 3),
+yielding `skipped_blocks==1, opb_skipped==1`. The "3 OPBs" label is a copy-paste error
+from STATE.md remediation summary which also contains the same wrong label
+("Case D skipped_blocks=3"). The actual HS-108 v1.4 live content (the normative gate
+artifact) is CORRECT with `skipped_blocks==1, opb_skipped==1`. The BC-INDEX inline
+annotation and STATE.md summary are metadata-layer records that describe what was done,
+not normative gate inputs — but they are wrong and would mislead a reviewer reading the
+audit trail.
+
+Similarly, STATE.md line 73 remediation summary states "Case D skipped_blocks=3, Case E
+skipped_blocks=3". Case D is wrong (should be 1); Case E is correct (3).
+
+No normative artifact (BC-2.01.015, HS-108 body) is incorrect. The error is confined to
+the BC-INDEX inline changelog annotation and the STATE.md summary.
+
+Fix: Correct BC-INDEX v1.64 annotation for BC-2.01.015 to read: "Case D (1 OPB)
+skipped_blocks=1/opb_skipped=1; Case E (2 NRBs + 1 OPB) skipped_blocks=3/opb_skipped=1".
+Correct STATE.md summary to read "Case D skipped_blocks=1, Case E skipped_blocks=3".
+
+**SEAM 1: PASS — normative artifacts correct. FINDING-P7-001 (Minor) in metadata trail.**
+
+---
+
+### Seam 2 — Field name: zero `obsolete_packet_blocks` in live content of HS-108
+
+**Check:** Canonical field is `opb_skipped` everywhere. No residual `obsolete_packet_blocks`
+in live content of BC-2.01.009, BC-2.01.015, or HS-108 body (changelog historical refs OK).
+
+**Findings:**
+
+- Searched all live content of HS-108 v1.4, BC-2.01.009 v1.7, BC-2.01.015 v1.8 for
+  `obsolete_packet_blocks`. Zero hits in normative body text. All hits are confined to:
+  (a) the HS-108 v1.4 `version:` frontmatter changelog note; (b) the STATE.md D-158/D-159
+  audit log entries; (c) the pass-7 review file and remediation tracker (historical records).
+
+- BC-2.01.015 v1.8 uses `opb_skipped` consistently throughout PC9, AC-003, AC-006. PASS.
+
+- BC-2.01.009 v1.7 uses `opb_skipped` consistently throughout PC6, EC-007, EC-010. PASS.
+
+- HS-108 v1.4 body text uses `opb_skipped` throughout Cases D, E, F, BC linkage table,
+  evaluation rubric, edge conditions, failure guidance. PASS.
+
+**SEAM 2: CLEAN**
+
+---
+
+### Seam 3 — Notice display arithmetic: BC-2.01.009 PC6 ↔ HS-108 Cases D/E
+
+**Check:** BC-2.01.009 PC6 defines generic segment = `(skipped_blocks - opb_skipped)`,
+emitted only when > 0. OPB clause gated independently on `opb_skipped > 0`. HS-108 Case D
+(G=0) → no generic segment; Case E (G=2) → generic "2" + OPB "1". BC-2.01.015 cross-refs
+BC-2.01.009 for the G-derivation.
+
+**Findings:**
+
+- BC-2.01.009 v1.7 PC6: Generic skip segment gated on `(source.skipped_blocks - source.opb_skipped) > 0`;
+  where `G = source.skipped_blocks - source.opb_skipped`. OPB clause gated on
+  `source.opb_skipped > 0`. Case D derivation: G=1-1=0 → no generic segment; OPB clause "1".
+  Case E derivation: G=3-1=2 → generic segment "2"; OPB clause "1". PASS.
+
+- BC-2.01.009 v1.7 PC6 Case D full notice: `"notice: <f>: 0 packets read from pcapng file
+  (includes 1 obsolete Packet Block(s) whose data was not analyzed; re-save with mergecap)"`.
+  Case E full notice: `"notice: <f>: 0 packets read from pcapng file (2 block(s) skipped as
+  unsupported) (includes 1 obsolete Packet Block(s) whose data was not analyzed; re-save with
+  mergecap)"`. PASS.
+
+- BC-2.01.015 v1.8 PC9 cross-ref: "Generic-segment display formula (cross-ref BC-2.01.009
+  PC6 — U1): BC-2.01.009 PC6 computes the displayed non-OPB skip count as
+  `G = skipped_blocks - opb_skipped`." The cross-reference is bidirectional. PASS.
+
+- BC-2.01.015 v1.8 PC9 examples match Case D (a) and Case E (b) exactly. PASS.
+
+- HS-108 v1.4 BC linkage table: "Case D: 1 OPB → skipped_blocks=1, opb_skipped=1, G=0 →
+  no generic segment; notice includes OPB count (1) and mergecap hint only." Consistent
+  with BC-2.01.009 PC6 derivation. PASS.
+
+- HS-108 v1.4 BC linkage table Case E: "2 NRBs + 1 OPB → skipped_blocks=3, opb_skipped=1,
+  G=2 → notice shows '2 block(s) skipped as unsupported' AND '1 obsolete Packet Block' as
+  distinct entries." Consistent. PASS.
+
+- HS-108 v1.4 evaluation rubric Case D (line 465-468): "Generic count G = 1-1 = 0, so no
+  generic skip segment appears in the notice... The `stderr` MUST NOT contain 'skipped as
+  unsupported' (that is the generic segment, gated on G>0)." Correct. PASS.
+
+- HS-108 v1.4 evaluation rubric Case E (line 471-475): "Generic count G = 3-1 = 2. Notice
+  must show generic segment... AND OPB clause... as separate values. MUST NOT collapse into
+  a single count of 3." Correct. PASS.
+
+**ONE MINOR INCONSISTENCY detected:**
+
+HS-108 v1.4 Case F step 3 (line 369-371) states: "the parenthetical is gated on
+`opb_skipped > 0` for the OPB clause; the generic skip segment is gated on `skipped_blocks > 0`".
+
+The phrase "the generic skip segment is gated on `skipped_blocks > 0`" is IMPRECISE.
+The correct gate per BC-2.01.009 PC6 is `(skipped_blocks - opb_skipped) > 0`, i.e.,
+`G > 0`. The HS-108 Case F text "skipped_blocks > 0" is a simpler approximation that
+happens to be harmless for Case F specifically (both counters are zero, so both
+formulations give the same result). But taken literally, the simpler gate would produce a
+generic segment for Case D (where `skipped_blocks=1 > 0` is true but `G=0` means the
+correct BC says no generic segment). The Case F wording also appears in the evaluation
+rubric Case B text (line 458): "The skip-count segment is present IFF `skipped_blocks > 0`"
+— again imprecise but harmless for Case B (which has no OPBs, so `opb_skipped=0` and thus
+`G == skipped_blocks`).
+
+This is a precision gap in Case F and Case B evaluation text, not a normative error — the
+BC-2.01.009 PC6 is authoritative and states `G > 0`. The inaccurate shorthand in HS-108
+only produces a wrong result if an implementer reads the rubric for Case B/F in isolation
+and treats "skipped_blocks > 0" as the gate for the generic segment while ignoring the
+OPB co-occurrence. In Cases B and F, the shorthand is numerically equivalent. The
+full arithmetic is correctly stated in the BC linkage table and Case D/E descriptions.
+
+Severity: MINOR (imprecise shorthand in evaluation rubric; normatively correct gate in BC
+and in Case D/E of HS-108).
+
+**FINDING-P7-002 — MINOR:**
+
+HS-108 v1.4 evaluation rubric Case B (line 458) states "skip-count segment is present IFF
+`skipped_blocks > 0`" and Case F (line 369-371) states "the generic skip segment is gated
+on `skipped_blocks > 0`". The correct gate per BC-2.01.009 PC6 is
+`(skipped_blocks - opb_skipped) > 0` (i.e., G > 0). The simplified gate is numerically
+equivalent only when `opb_skipped == 0`. An OPB-only file has `skipped_blocks=1,
+opb_skipped=1`, G=0 — the simplified gate would incorrectly say "emit generic segment"
+while the correct gate says "omit it". No current test case in HS-108 uses the rubric
+Case B or Case F wording for an OPB-only scenario (Case D covers that), so the
+imprecision does not cause a wrong holdout outcome. But a future evaluator relying on the
+Case B rubric prose alone could misapply the gate.
+
+Fix: HS-108 v1.4 Case B rubric line 458: replace "skip-count segment is present IFF
+`skipped_blocks > 0`" with "generic skip segment is present IFF G=(skipped_blocks-opb_skipped)>0".
+Case F step 3 line 370-371: replace "the generic skip segment is gated on `skipped_blocks > 0`"
+with "the generic skip segment is gated on (skipped_blocks - opb_skipped) > 0 (equivalently
+G > 0)".
+
+**SEAM 3: PASS WITH FINDING-P7-002 (Minor). Normative BC-2.01.009 PC6 is correct.**
+
+---
+
+### Seam 4 — EPB decode precedence (F-4): BC-2.01.012 PC9 / Precondition 1
+
+**Check:** BC-2.01.012 v1.7 PC9 states 5-step order: (i) body.len()>=20 else E-INP-008;
+(ii) read interface_id; (iii) empty table→E-INP-009; (iv) OOB non-empty→E-INP-010;
+(v) captured_len bound/padding→E-INP-008. Precondition 1 no longer claims "interface table
+non-empty" (no contradiction with PC5a). HS-104 Case (empty) → E-INP-009 and HS-108 Case C
+→ E-INP-009 are derivable from the precedence.
+
+**Findings:**
+
+- BC-2.01.012 v1.7 Precondition 1: "The interface table MAY be empty when an EPB is
+  encountered — the empty-table case is a handled error path (→ E-INP-009 via PC5a), NOT a
+  precondition for successful parsing. No assumption is made about whether any IDB has been
+  seen before this EPB; that state is checked at step (iii) of the EPB evaluation order
+  (PC9)." The previous contradiction ("interface table is non-empty") is removed. PASS.
+
+- BC-2.01.012 v1.7 PC9: 5-step evaluation order explicitly pinned:
+  (i) body.len() >= 20 else E-INP-008;
+  (ii) read interface_id (safe because step i passed);
+  (iii) if table EMPTY → E-INP-009 (before any captured_len / data-slice decode);
+  (iv) if table non-empty but OOB → E-INP-010;
+  (v) captured_len two-step validation → E-INP-008 on failure.
+  PASS.
+
+- BC-2.01.012 v1.7 PC9 implication note: "An EPB presented when the interface table is
+  EMPTY must produce E-INP-009 regardless of whether captured_len would also be malformed —
+  the empty-table check at step (iii) fires before any captured_len / data-slice arithmetic
+  at step (v)." Unambiguous. PASS.
+
+- HS-104 Case (empty): EPB with interface_id=0, zero IDBs → E-INP-009 EXACTLY. Derivable
+  from PC9 step (iii): table is empty, step (iii) short-circuits before captured_len. PASS.
+
+- HS-108 Case C: EPB before any IDB → E-INP-009 → exit 1. Derivable from PC9 step (iii):
+  table is empty. PASS.
+
+- BC-2.01.012 v1.7 PC5a and PC5b preserved: PC5a (empty-table → E-INP-009) and PC5b
+  (OOB-on-non-empty → E-INP-010). PC9 step (iii) maps to PC5a; step (iv) maps to PC5b.
+  No contradiction. PASS.
+
+**SEAM 4: CLEAN**
+
+---
+
+### Seam 5 — spb_data_available rename: no residual `block_body_available` in live content
+
+**Check:** Zero `block_body_available` in live content of BC-2.01.013 (EC-001/002/003,
+Canonical Test Vectors, PC4) or HS-107 (Scenario/Case A/BC-linkage). Canonical symbol
+`spb_data_available = body.len()-4` everywhere. Historical changelog refs OK.
+
+**Findings:**
+
+- Searched BC-2.01.013 v1.7, HS-107 v1.6, BC-2.01.009 v1.7, BC-2.01.015 v1.8,
+  BC-2.01.012 v1.7 for `block_body_available`. All hits are exclusively in the `modified:`
+  changelog entries (historical preservation of past version descriptions). Zero hits in
+  normative body text (Preconditions, Postconditions, Edge Cases, Canonical Test Vectors,
+  Invariants, Acceptance Criteria sections). PASS.
+
+- BC-2.01.013 v1.7 EC-001: "spb_data_available = body.len() - 4". EC-002: "original_len =
+  spb_data_available (= body.len() - 4)". EC-003: "spb_data_available" used. PASS.
+
+- BC-2.01.013 v1.7 Canonical Test Vectors: all three data-bound rows use "spb_data_available
+  = body.len()-4" explicitly. PASS.
+
+- BC-2.01.013 v1.7 Precondition 4: "blocks with btl < 12 / misaligned / EOF are rejected by
+  the crate with E-INP-010" — no `block_body_available` in this precondition. PASS (v1.7
+  changelog claims the stale reference in PC4 was also renamed).
+
+- HS-107 v1.6 Scenario header: "spb_data_available = body.len() - 4 (equivalently
+  block_total_length-16)". Case A: "spb_data_available = body.len() - 4 = 20 bytes". Case C
+  key observable: "spb_data_available = body.len()-4 = 32-12-4 = 16". BC linkage table:
+  "captured_len = min(original_len, spb_data_available)". Evaluation Rubric: "spb_data_available
+  bound (body.len()-4 = 104-4 = 100)". Verification Approach: "spb_data_available=100 bytes
+  (body.len()-4=104-4=100)". PASS.
+
+**SEAM 5: CLEAN**
+
+---
+
+### Seam 6 — btl=14 misaligned fixture (F-8): BC-2.01.013 EC-005 ↔ HS-107 Case E
+
+**Check:** BC-2.01.013 v1.7 EC-005 enumerates both btl<12 (e.g. btl=8) AND misaligned
+(btl=14, 14%4!=0) → E-INP-010. Matches HS-107 Case E rationale (alignment, not "below 12").
+
+**Findings:**
+
+- BC-2.01.013 v1.7 EC-005: "(a) btl < 12 (e.g., btl=8 — below the outer-header minimum;
+  crate rejects before returning block; wirerust never sees the body → E-INP-010); (b) btl
+  misaligned (e.g., btl=14 — while 14 >= 12, the pcapng specification requires all
+  block_total_length values to be a multiple of 4; 14 % 4 != 0 violates 4-byte alignment;
+  crate rejects before returning block; wirerust never sees the body → E-INP-010)." Both
+  sub-cases enumerated. Both correctly map to E-INP-010 (crate framing rejection). PASS.
+
+- BC-2.01.013 v1.7 EC-005: "Both sub-cases are crate-level framing failures; E-INP-010 fires
+  for alignment as well as for btl<12. Distinct from EC-008 (btl=12 → body=0 < 4 → wirerust
+  body-decode → E-INP-008)." Explicit distinction from EC-008. PASS.
+
+- BC-2.01.013 v1.7 Canonical Test Vectors: row "SPB with btl=14 (btl >= 12 but 14 % 4 != 0
+  — crate rejects for 4-byte alignment)" → E-INP-010; labeled "error (crate-rejection path;
+  EC-005b; HS-107 Case E)". Cross-reference to HS-107 Case E present. PASS.
+
+- HS-107 v1.6 Case E: "block_total_length = 14. While 14 >= 12 (the outer-header-size
+  minimum), it is rejected by the pcap-file crate because 14 % 4 != 0 — the pcapng
+  specification requires all block_total_length values to be a multiple of 4 bytes, and the
+  crate enforces this 4-byte alignment requirement. The crate returns `Err` before wirerust
+  body-decode code runs. wirerust maps this to E-INP-010 (crate-level framing failure)."
+  Consistent with BC-2.01.013 EC-005b. PASS.
+
+- HS-107 v1.6 Behavioral Contract Linkage table Case E: "BC-2.01.013 Postcondition 6 /
+  EC-005 — btl=14 violates 4-byte alignment (14%4!=0; crate rejects) → E-INP-010". PASS.
+
+- HS-107 v1.6 Failure Guidance: "Case E failure (exit 0 or panic) indicates the crate-level
+  4-byte alignment check is absent; btl=14 (14%4!=0) violates pcapng 4-byte alignment and
+  must be rejected by the crate as E-INP-010. Note: the rejection cause is alignment
+  (14%4!=0), NOT 'below minimum' (14>=12)." Correct framing. PASS.
+
+**SEAM 6: CLEAN**
+
+---
+
+### Seam 7 — Uniform error rule still intact
+
+**Check:** framing(<12/misaligned/EOF)→E-INP-010; body-decode(body<fixed-min,
+EPB padding/bound, SPB)→E-INP-008; empty-table→E-INP-009; OOB-non-empty→E-INP-010;
+conflict→E-INP-011; interleaved-IDB→E-INP-013; whitelist→E-INP-001. Per-block windows
+(SHB 12-28/IDB 12-20/EPB 12-32/SPB=12) consistent across BC-2.01.010/011/012/013/017.
+
+**Findings:**
+
+- framing → E-INP-010: BC-2.01.012 v1.7 EC-012, BC-2.01.013 v1.7 EC-005, BC-2.01.015 v1.8
+  Invariant 5 all confirm btl<12/misaligned/EOF → crate Err → E-INP-010. PASS.
+
+- body-decode failures → E-INP-008: BC-2.01.012 v1.7 PC9 steps (i) and (v), BC-2.01.013
+  v1.7 PC6 (SPB body-decode), error-taxonomy v3.4 (E-INP-008 scope) all confirm body-too-short
+  and padding-overrun → E-INP-008. PASS.
+
+- empty-table → E-INP-009: BC-2.01.012 v1.7 PC5a / PC9 step (iii), BC-2.01.013 v1.7 PC5,
+  HS-104 Case (empty), HS-108 Case C all confirm. PASS.
+
+- OOB-non-empty → E-INP-010: BC-2.01.012 v1.7 PC5b / PC9 step (iv), HS-104 Case (OOB)
+  confirm. PASS.
+
+- conflict → E-INP-011, interleaved-IDB → E-INP-013, whitelist → E-INP-001: not changed
+  in pass-7; confirmed stable from prior audit passes. PASS.
+
+- Per-block windows: SHB body-too-short = [12 <= btl < 28]; IDB = [12 <= btl < 20]; EPB =
+  [12 <= btl < 32] (body < 20); SPB = btl=12 only (body=0 < 4). All four windows consistent
+  with their respective BCs and BC-2.01.017 (per prior FINDING-P6-002 annotation gap in
+  BC-2.01.017 itself, but the primary governing BCs are correct). PASS (normative).
+
+**SEAM 7: CLEAN**
+
+---
+
+### Seam 8 — Versions monotonic; next_free E-INP-014; VP-INDEX total 31; 302 BCs; BC-INDEX inline == frontmatter
+
+**Check:** Versions are monotonic. error-taxonomy next_free = E-INP-014. VP-INDEX total = 31.
+302 active BCs unchanged. BC-INDEX v1.64 inline annotations match on-disk BC frontmatter for
+the 4 remediated BCs.
+
+**Findings:**
+
+- Versions checked on disk:
+  - BC-2.01.009: frontmatter `version: "1.7"`. BC-INDEX v1.64 annotation "v1.6→v1.7". PASS.
+  - BC-2.01.012: frontmatter `version: "1.7"`. BC-INDEX v1.64 annotation "v1.6→v1.7". PASS.
+  - BC-2.01.013: frontmatter `version: "1.7"`. BC-INDEX v1.64 annotation "v1.6→v1.7". PASS.
+  - BC-2.01.015: frontmatter `version: "1.8"`. BC-INDEX v1.64 annotation "v1.7→v1.8". PASS.
+  - HS-107: frontmatter `version: "1.6"`. BC-INDEX v1.64 notes "HS-107 v1.5→v1.6". PASS.
+  - HS-108: frontmatter `version: "1.4"`. BC-INDEX v1.64 notes "HS-108 v1.3→v1.4". PASS.
+  All versions are monotonically increasing. PASS.
+
+- error-taxonomy.md: E-INP-013 is the last defined error code. `next_free_error_code` field
+  in the E-INP-013 row reads "E-INP-014". No E-INP-014 row present. Consistent with the
+  BC-INDEX v1.64 annotation "next_free E-INP-014". PASS.
+
+- VP-INDEX v2.8: `total_vps: 31`. Arithmetic: P0(8) + P1(17) + test-sufficient(6) = 31.
+  Tool counts: kani(14) + proptest(10) + fuzz(2) + integration/unit(5) = 31. Consistency
+  Invariants block states all three must be 31. Self-consistent. PASS.
+
+- 302 active BCs: BC-INDEX v1.64 header confirms "302 active BCs unchanged" for this pass.
+  Prior audits confirmed arithmetic. No BC additions or retirements in pass-7. PASS.
+
+- BC-INDEX inline annotations vs frontmatter (content correctness):
+  The annotation for BC-2.01.015 v1.8 in BC-INDEX describes: "F-1 OPB counter 'both'
+  model confirmed canonical — PC9/AC-003/AC-006 invariant: OPB skip arm increments BOTH
+  skipped_blocks AND opb_skipped; HS-108 Case D/E counter values corrected per this
+  invariant: Case D (3 OPBs) skipped_blocks=3/opb_skipped=3; Case E (2 NRBs + 1 OPB)
+  skipped_blocks=3/opb_skipped=1".
+
+  The BC-2.01.015 v1.8 frontmatter on disk is at version "1.8" and the body correctly
+  states the "both" model. The inline description of Case D in the BC-INDEX annotation
+  says "Case D (3 OPBs) skipped_blocks=3/opb_skipped=3" which is wrong — Case D has 1
+  OPB with `skipped_blocks=1, opb_skipped=1`. The frontmatter version field ("1.8") is
+  correct; only the BC-INDEX inline description of the case values is wrong. This is the
+  same error already flagged as FINDING-P7-001.
+
+  All other BC-INDEX inline annotations for the 4 remediated BCs correctly describe the
+  changes made in the corresponding BC versions. PASS (with FINDING-P7-001 already noted).
+
+**SEAM 8: PASS — versions monotonic, next_free E-INP-014 correct, VP-INDEX total 31 correct,
+302 active BCs unchanged, BC-INDEX inline version numbers match frontmatter. FINDING-P7-001
+(Minor) in BC-INDEX Case D description text.**
+
+---
+
+### v7.0 Summary Table
+
+| Seam | Topic | Result |
+|------|-------|--------|
+| 1 | OPB "both" model: BC-2.01.015 PC9/AC-003/AC-006 ↔ HS-108 Cases D/E | PASS WITH FINDING-P7-001 (Minor — metadata trail) |
+| 2 | Field rename opb_skipped: zero `obsolete_packet_blocks` in live content | CLEAN |
+| 3 | Notice display arithmetic: G=(skipped_blocks-opb_skipped) gate, Case D/E | PASS WITH FINDING-P7-002 (Minor — rubric imprecision) |
+| 4 | EPB decode precedence: PC9 5-step order, PC1 contradiction removed | CLEAN |
+| 5 | spb_data_available rename: zero `block_body_available` in live content | CLEAN |
+| 6 | btl=14 misaligned fixture: BC-2.01.013 EC-005b ↔ HS-107 Case E | CLEAN |
+| 7 | Uniform error rule intact across all BCs | CLEAN |
+| 8 | Versions monotonic; next_free E-INP-014; VP-INDEX 31; 302 BCs | PASS WITH FINDING-P7-001 (same — metadata trail) |
+
+**Overall v7.0 verdict: CLEAN (no blocking gaps). Two minor findings in metadata/rubric.**
+
+| ID | Severity | Source | File | Description |
+|----|----------|--------|------|-------------|
+| FINDING-P7-001 | Minor | Seam 1/8 | BC-INDEX v1.64 annotation (line 106) + STATE.md line 73 | Metadata trail error: BC-INDEX inline annotation and STATE.md remediation summary both say "Case D (3 OPBs) skipped_blocks=3" and "Case D skipped_blocks=3" respectively. The normative artifacts (BC-2.01.015 v1.8 body, HS-108 v1.4 body) correctly show Case D = 1 OPB with skipped_blocks=1, opb_skipped=1. No normative document is wrong; only the metadata summary annotations are wrong. |
+| FINDING-P7-002 | Minor | Seam 3 | HS-108 v1.4 evaluation rubric (Case B line ~458, Case F lines ~369-371) | Rubric imprecision: generic skip segment gating described as "skipped_blocks > 0" instead of correct "(skipped_blocks - opb_skipped) > 0" (G > 0). Imprecision is harmless for the specific cases where it appears (Cases B and F have opb_skipped=0, so both formulations are equivalent). An OPB-only file evaluated against the Case B rubric in isolation would get the wrong gate condition. The correct gate is unambiguously stated in BC-2.01.009 PC6 and in HS-108 Case D/E descriptions. |
+
+No blocking findings. The 8 seams defined in the brief are all confirmed coherent at the
+normative-artifact level. The two minor findings are confined to metadata audit-trail
+annotations (BC-INDEX inline, STATE.md summary) and a rubric precision gap in HS-108 that
+does not affect any current holdout outcome.
+
+---
+
+### Updated Open Findings Register (v7.0)
+
+| ID | Severity | Source | Status |
+|----|----------|--------|--------|
+| FINDING-001 | HIGH | v1.0 audit — ADR-009 Status section stale contradiction | OPEN |
+| FINDING-002 | HIGH | v1.0 audit — epics.md total_bcs 297 vs BC-INDEX 302 | OPEN |
+| FINDING-003 | MEDIUM | v1.0 audit — prd.md RTM missing BC-2.01.009-018 rows | OPEN |
+| FINDING-004 | MEDIUM | v1.0 audit — BC-INDEX updated timestamp stale | OPEN |
+| FINDING-P2-001 | LOW | v2.0 audit — ADR-009 HS-completeness map HS-107 shown MISSING | OPEN |
+| FINDING-P5-001 | MINOR | v5.0 audit — HS-108 frontmatter verification_properties: [VP-025] is misattribution | RESOLVED (HS-108 v1.3 pass-5 re-audit) |
+| FINDING-P5-002 | MINOR | v5.0 audit — OPB notice hint text diverges: BC-2.01.009 vs HS-108 | RESOLVED (HS-108 v1.3 pass-5 re-audit) |
+| FINDING-P5-003 | MINOR | v5.0 audit — BC-2.01.010 v1.9 has 4 stale deferral annotations | RESOLVED (BC-2.01.010 v2.0 pass-5 re-audit) |
+| FINDING-P5-004 | MINOR | v5.0 audit — error-taxonomy E-INP-008 BC Ref omits BC-2.01.013 | RESOLVED (error-taxonomy v3.4 pass-5 re-audit) |
+| FINDING-P6-001 | Minor | v6.0 audit — BC-2.01.017 Related BCs lines 145-146 omit E-INP-008 from BC-2.01.012 and BC-2.01.013 error-code lists | OPEN |
+| FINDING-P6-002 | Minor | v6.0 audit — BC-2.01.017 PC1 line 68 states SPB body-too-short window as [btl 16≤btl<20]; correct window is btl=12 only | OPEN |
+| FINDING-P7-001 | Minor | v7.0 audit — BC-INDEX v1.64 annotation + STATE.md line 73: metadata trail says "Case D (3 OPBs) skipped_blocks=3" but normative HS-108 body shows skipped_blocks==1, opb_skipped==1 (1 OPB) | RESOLVED — BC-INDEX v1.64→v1.65: Case D annotation corrected to "Case D (1 OPB) skipped_blocks=1/opb_skipped=1"; STATE.md D-159 entry corrected; spec-changelog D-159 body corrected. D-160. |
+| FINDING-P7-002 | Minor | v7.0 audit — HS-108 v1.4 evaluation rubric (Case B/F) describes generic-segment gate as "skipped_blocks > 0" instead of canonical "(skipped_blocks - opb_skipped) > 0" | RESOLVED — HS-108 v1.4→v1.5: Case B rubric gate and Case F body gate corrected to "(skipped_blocks - opb_skipped) > 0" (G > 0). D-160. |

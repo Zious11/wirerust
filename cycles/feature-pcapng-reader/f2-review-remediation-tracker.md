@@ -10,7 +10,7 @@ sources:
 date_created: 2026-06-19
 status: PASS7-REMEDIATED-PASS8-PENDING
 f3_blocked: true
-f3_blocker_reason: "Adversarial reconvergence required (3 clean passes). Pass-1 items addressed (D-142/D-143). Pass-2 items addressed (D-144). Pass-2 cross-seam re-audit CLEAN (D-145). Pass-3 NOT CLEAN (D-146): 1C/5H/7M/4L. Pass-3 remediation COMPLETE (D-147). Pass-3 cross-seam re-audit gap fixes COMPLETE (D-148). Pass-4 NOT CLEAN (D-149): 1C/4H/5M/3L, HIGH novelty. Pass-4 remediation COMPLETE (D-150). Pass-4 re-audit 3 Major boundary gaps FIXED (D-151): FINDING-P4-001/002/003. Pass-5 NOT CLEAN (D-152): 1C/4H/5M/3L, HIGH novelty — TRAJECTORY PLATEAU (23/24/17/13/13). Pass-5 remediation COMPLETE (D-153): all 1C/4H/5M/3L FIXED. Pass-5 re-audit CLEAN (D-154): 4 Minor findings FIXED (FINDING-P5-001/002/003/004); 6 seams CLEAN. Pass-5 fully remediated + consistency-verified. Pass-6 NOT CLEAN (D-155): 0C/4H/5M/4L — FIRST zero-critical pass; count plateau 13 (P4/5/6), severity declining. Pass-6 remediation COMPLETE (D-156): all 0C/4H/5M/4L FIXED. Pass-6 re-audit CLEAN (D-157): 2 Minor findings FIXED (FINDING-P6-001/002); 10 seams CLEAN. Pass-7 NOT CLEAN (D-158): 1C/3H/4M/4L; novelty MODERATE; 2 axes CONVERGED. Pass-7 remediation COMPLETE (D-159): all 1C/3H/4M FIXED; 4L CONVERGED GREEN. Adversary pass-8 pending. Clean-pass counter 0/3."
+f3_blocker_reason: "Adversarial reconvergence required (3 clean passes). Pass-1 items addressed (D-142/D-143). Pass-2 items addressed (D-144). Pass-2 cross-seam re-audit CLEAN (D-145). Pass-3 NOT CLEAN (D-146): 1C/5H/7M/4L. Pass-3 remediation COMPLETE (D-147). Pass-3 cross-seam re-audit gap fixes COMPLETE (D-148). Pass-4 NOT CLEAN (D-149): 1C/4H/5M/3L, HIGH novelty. Pass-4 remediation COMPLETE (D-150). Pass-4 re-audit 3 Major boundary gaps FIXED (D-151): FINDING-P4-001/002/003. Pass-5 NOT CLEAN (D-152): 1C/4H/5M/3L, HIGH novelty — TRAJECTORY PLATEAU (23/24/17/13/13). Pass-5 remediation COMPLETE (D-153): all 1C/4H/5M/3L FIXED. Pass-5 re-audit CLEAN (D-154): 4 Minor findings FIXED (FINDING-P5-001/002/003/004); 6 seams CLEAN. Pass-5 fully remediated + consistency-verified. Pass-6 NOT CLEAN (D-155): 0C/4H/5M/4L — FIRST zero-critical pass; count plateau 13 (P4/5/6), severity declining. Pass-6 remediation COMPLETE (D-156): all 0C/4H/5M/4L FIXED. Pass-6 re-audit CLEAN (D-157): 2 Minor findings FIXED (FINDING-P6-001/002); 10 seams CLEAN. Pass-7 NOT CLEAN (D-158): 1C/3H/4M/4L; novelty MODERATE; 2 axes CONVERGED. Pass-7 remediation COMPLETE (D-159): all 1C/3H/4M FIXED; 4L CONVERGED GREEN. Pass-7 re-audit minors FIXED (D-160): FINDING-P7-001/002 (metadata + rubric gate). Adversary pass-8 pending. Clean-pass counter 0/3."
 ---
 
 # F2 Review Remediation Tracker — pcapng Reader
@@ -577,7 +577,7 @@ Clean-pass counter: 0/3. Remediation round-7 required.
 
 | ID | Severity | Finding Summary | Status |
 |----|----------|----------------|--------|
-| F-1 | CRITICAL | OPB counter model contradiction: BC-2.01.015 PC9/AC-003/AC-006 establishes dual-counter model — OPB skip arm increments BOTH `skipped_blocks` AND `opb_skipped` (invariant: opb_skipped <= skipped_blocks, i.e., OPBs are a SUBSET of total skips). HS-108 Case D (3 OPBs) asserts `skipped_blocks=0, opb_skipped=3` — violates the subset invariant. HS-108 Case E (2 NRBs + 1 OPB) asserts `skipped_blocks=2, opb_skipped=1` — NRBs NOT included in skipped_blocks, making it a non-OPB counter not a total counter. A test suite written against BC-2.01.015 will FAIL the HS-108 holdout. Root cause: HS-108 authored in D-150 (pass-4 H-4) before opb_skipped sub-counter added in D-153 (pass-5 H-2); D-153 updated the BC but not HS-108 Cases D/E. Fix: keep BC "both" model; HS-108 Case D skipped_blocks=3; Case E skipped_blocks=3. | FIXED — BC-2.01.015 v1.7→v1.8 (subset invariant canonical in PC9/AC-003/AC-006); HS-108 v1.3→v1.4 (Case D: skipped_blocks=3/opb_skipped=3; Case E: skipped_blocks=3/opb_skipped=1). D-159. Pending pass-8 verification. |
+| F-1 | CRITICAL | OPB counter model contradiction: BC-2.01.015 PC9/AC-003/AC-006 establishes dual-counter model — OPB skip arm increments BOTH `skipped_blocks` AND `opb_skipped` (invariant: opb_skipped <= skipped_blocks, i.e., OPBs are a SUBSET of total skips). HS-108 Case D (3 OPBs) asserts `skipped_blocks=0, opb_skipped=3` — violates the subset invariant. HS-108 Case E (2 NRBs + 1 OPB) asserts `skipped_blocks=2, opb_skipped=1` — NRBs NOT included in skipped_blocks, making it a non-OPB counter not a total counter. A test suite written against BC-2.01.015 will FAIL the HS-108 holdout. Root cause: HS-108 authored in D-150 (pass-4 H-4) before opb_skipped sub-counter added in D-153 (pass-5 H-2); D-153 updated the BC but not HS-108 Cases D/E. Fix: keep BC "both" model; HS-108 Case D skipped_blocks=1/opb_skipped=1 (1 OPB → both counters increment once); Case E skipped_blocks=3/opb_skipped=1 (2 NRBs + 1 OPB). | FIXED — BC-2.01.015 v1.7→v1.8 (subset invariant canonical in PC9/AC-003/AC-006); HS-108 v1.3→v1.4 (Case D: skipped_blocks=1/opb_skipped=1 (1 OPB); Case E: skipped_blocks=3/opb_skipped=1 (2 NRBs + 1 OPB)). D-159. P7-001 metadata correction applied D-160. Pending pass-8 verification. |
 
 ### Pass-7 High Findings
 
@@ -624,6 +624,31 @@ Clean-pass counter: 0/3. Remediation round-7 required.
 | BC-INDEX | v1.63 | v1.64 | 4 BC annotations synced (BC-2.01.009/012/013/015) |
 | spec-changelog | — | — | [pcapng-f2-pass7-remediation-2026-06-20] prepended |
 | STATE.md | — | — | phase_status updated; spec-versions synced; D-159 added; F2-gate checklist item 8 added |
+
+---
+
+## Pass-7 Re-Audit Minor Findings (D-160 — 2026-06-20)
+
+**Overall verdict:** 0 CRITICAL / 0 HIGH / 0 MEDIUM / 2 LOW (metadata/rubric). No normative BC content changed this burst.
+
+| ID | Severity | Finding Summary | Status |
+|----|----------|----------------|--------|
+| FINDING-P7-001 | Minor (metadata) | BC-INDEX v1.64 inline annotation for BC-2.01.015 v1.8 described Case D as "(3 OPBs) skipped_blocks=3/opb_skipped=3". STATE.md D-159 entry + session checkpoint repeated the same wrong description. Correct per normative HS-108 v1.5 on disk + BC-2.01.015 v1.8 "both" model: Case D = 1 OPB → skipped_blocks=1, opb_skipped=1. The D-159 remediation fixed HS-108 on disk correctly but propagated the adversary's original (pre-fix) "3 OPBs" label into index/state prose. | FIXED — BC-INDEX v1.64→v1.65: Case D annotation corrected to "Case D (1 OPB) skipped_blocks=1/opb_skipped=1". STATE.md D-159 decision text corrected. spec-changelog D-159 entry corrected. Tracker F-1 status cell corrected. D-160. |
+| FINDING-P7-002 | Minor (rubric gate) | HS-108 v1.4 Cases B and F rubric gates used bare `skipped_blocks > 0` as the condition for emitting the generic skip-count segment. Canonical gate per BC-2.01.009 PC6 is `(skipped_blocks - opb_skipped) > 0` (G > 0). Numerically equivalent for Cases B/F (both have opb_skipped==0) but the bare form would incorrectly emit the generic segment for an OPB-only input (skipped_blocks=1, opb_skipped=1, G=0 → no generic segment should appear). | FIXED — HS-108 v1.4→v1.5: Case B rubric gate and Case F body gate corrected to `(skipped_blocks - opb_skipped) > 0`. BC-INDEX v1.65 changelog records HS-108 v1.4→v1.5. D-160. |
+
+**Artifacts updated in this burst (5 artifacts):**
+
+| Artifact | Before | After | Findings addressed |
+|----------|--------|-------|--------------------|
+| BC-INDEX | v1.64 | v1.65 | FINDING-P7-001 (Case D metadata corrected in v1.64 annotation + new v1.65 changelog) |
+| HS-108 | v1.4 | v1.5 | FINDING-P7-002 (Case B/F rubric gates → canonical G > 0 form) |
+| STATE.md | — | — | FINDING-P7-001 (D-159 entry + checkpoint Case D corrected); phase_status + spec-versions updated; D-160 added |
+| spec-changelog | — | — | [pcapng-f2-pass7-reaudit-minors-2026-06-20] prepended; D-159 body Case D text corrected |
+| f2-review-remediation-tracker.md | — | — | FINDING-P7-001/002 sections added; F-1 status cell corrected |
+
+**Verdict:** All 2 Minor pass-7 re-audit findings FIXED. 0 Major/Critical. Clean-pass counter 0/3. Adversary pass-8 pending.
+
+---
 
 **F-6 Deferral Note (DEFERRED-TO-F2-CONVERGENCE):**
 Rationale: HS-104/107/108 input-hashes computed on a still-churning spec go stale after each
