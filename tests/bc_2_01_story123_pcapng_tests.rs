@@ -119,23 +119,56 @@ fn minimal_shb_pcapng_le() -> Vec<u8> {
     shb_only_pcapng(SHB_BOM_LE, 1, 0)
 }
 
-/// Build a well-formed BE SHB-only pcapng (28 bytes, major=1, minor=0).
+/// Build a spec-conforming BE SHB-only pcapng (28 bytes, major=1, minor=2).
 ///
-/// Note: the SHB block_type and block_total_length fields are written LE
-/// because the pcap-file crate uses u32::from_le_bytes for block framing
-/// on the raw-block path (the magic is endian-independent). The BOM field
-/// inside the body is the BE BOM bytes (1A 2B 3C 4D), which signals to
-/// wirerust's SHB body decoder that the section is big-endian.
+/// In a genuine big-endian pcapng file ALL multi-byte fields — both the outer
+/// block framing (block_type, block_total_length) AND the SHB body fields
+/// (BOM, major, minor, section_length) — are encoded big-endian. This is the
+/// postcondition of BC-2.01.010 PC1 / Invariant 4.
 ///
-/// This is the canonical fixture for AC-005 BE path and AC-011 (endian-
-/// independence of the outer magic).
+/// A fixture with a BE BOM but LE outer framing is MALFORMED for a crate-based
+/// reader that correctly reads SHB btl as big-endian first (architect mandate).
+///
+/// # Fixture correction (architect-sanctioned, STORY-123)
+///
+/// Prior versions wrote outer framing (block_type, btl, trailing btl) as LE.
+/// This was malformed: the pcap-file 2.0.0 crate reads the SHB btl as BE,
+/// then swap_bytes() for LE sections. A BE BOM with LE-encoded btl of 28
+/// (`1C 00 00 00`) reads as BE = 0x1C000000 = 469762048 → IncompleteBuffer.
+/// The fix: write ALL framing fields in genuine big-endian (00 00 00 1C).
+///
+/// Old bytes (positions 4..8):  1C 00 00 00  (btl=28 LE — malformed for BE file)
+/// New bytes (positions 4..8):  00 00 00 1C  (btl=28 BE — spec-conforming)
+/// Old bytes (positions 24..28): 1C 00 00 00  (trailing btl LE — malformed)
+/// New bytes (positions 24..28): 00 00 00 1C  (trailing btl BE — spec-conforming)
+///
+/// # Non-palindromic minor_version = 2
+///
+/// minor_version = 2 is chosen deliberately:
+///   - On-disk (BE): `00 02`  → correctly decoded as 2
+///   - LE misread:   `02 00`  → decoded as 512 (detects LE misread immediately)
+///
+/// major_version = 1 encoded BE: `00 01`
+///   - LE misread: `01 00` → decoded as 256 ≠ 1 → triggers "unsupported version" error
+///
+/// Any `parse_shb_body` implementation that reads version fields unconditionally as LE
+/// will see major = 256 and return Err("Unsupported pcapng major version: 256") — RED.
+/// Only a correct BE-aware decode produces (major=1, minor=2) — GREEN after fix.
 fn minimal_shb_pcapng_be() -> Vec<u8> {
-    // For BE fixture: we still write the pcap-file framing fields LE
-    // (the crate's RawBlock framing is always little-endian on the outer
-    // block_type + block_total_length fields). Only the inner body fields
-    // are big-endian in a true BE file, but for SHB-body-parse tests only
-    // the BOM matters.
-    shb_only_pcapng(SHB_BOM_BE, 1, 0)
+    let mut buf = Vec::with_capacity(28);
+    // Outer block framing: ALL fields big-endian (genuine BE file per pcapng spec).
+    // block_type 0x0A0D0D0A is endian-independent (palindromic in bytes [0A 0D 0D 0A]).
+    buf.extend_from_slice(&SHB_BLOCK_TYPE_U32.to_be_bytes()); // 0A 0D 0D 0A
+    buf.extend_from_slice(&28u32.to_be_bytes()); // 00 00 00 1C (btl=28 BE)
+    // SHB body — ALL fields big-endian (spec-conforming BE section):
+    buf.extend_from_slice(&SHB_BOM_BE); // 1A 2B 3C 4D (big-endian BOM)
+    buf.extend_from_slice(&1u16.to_be_bytes()); // 00 01 (major=1 BE; LE misread = 256)
+    buf.extend_from_slice(&2u16.to_be_bytes()); // 00 02 (minor=2 BE; LE misread = 512)
+    buf.extend_from_slice(&0xFFFF_FFFF_FFFF_FFFFu64.to_be_bytes()); // FF FF FF FF FF FF FF FF
+    // Trailing btl — big-endian (matching outer framing).
+    buf.extend_from_slice(&28u32.to_be_bytes()); // 00 00 00 1C (trailing btl=28 BE)
+    assert_eq!(buf.len(), 28, "BE SHB fixture must be exactly 28 bytes");
+    buf
 }
 
 /// Build a minimal classic-pcap global header (24 bytes, LE microsecond).
@@ -210,17 +243,32 @@ fn two_section_pcapng() -> Vec<u8> {
 
 /// Build an SHB with a truncated body (btl=16 → body=4 bytes, < 16 SHB fixed-field bytes).
 ///
-/// AC-007 case (b): crate accepts the block (btl=16 ≥ 12, btl%4==0), wirerust
-/// body-decode finds body < 16 → E-INP-008 (body-too-short).
+/// AC-007 case (b): crate parses the block outer frame (btl=16, body=4 bytes), then
+/// wirerust body-decode finds body < 16 SHB_BODY_FIXED_BYTES → E-INP-008 (body-too-short).
 ///
-/// Structure: block_type + btl(16) + 4 bytes of body + trailing btl(16).
+/// Structure: block_type + btl(16 LE) + 4 body bytes + trailing btl(16 LE).
 /// Total = 4 + 4 + 4 + 4 = 16 bytes.
+///
+/// # Fixture correction (architect-sanctioned, STORY-123)
+///
+/// Prior version put [1A 2B 3C 4D] (BE BOM bytes) as the 4-byte body in an
+/// otherwise LE-framed SHB. This is endianness-inconsistent: the crate reads
+/// the SHB btl as BE first → 0x10000000 (not 16) → IncompleteBuffer → E-INP-010,
+/// masking the intended E-INP-008 body-too-short signal.
+///
+/// Fix: use LE BOM bytes [4D 3C 2B 1A] as the 4-byte body, consistent with a
+/// LE-outer-framed SHB. The crate now correctly reads btl=16 LE (via swap_bytes
+/// after seeing LE BOM), yields body=[4D 3C 2B 1A] (4 bytes), and passes the
+/// block to wirerust. Wirerust checks body.len()=4 < 16 → E-INP-008.
+///
+/// Old body bytes: 1A 2B 3C 4D  (BE BOM — inconsistent with LE outer framing)
+/// New body bytes: 4D 3C 2B 1A  (LE BOM — consistent with LE outer framing)
 fn shb_body_truncated_btl16() -> Vec<u8> {
     let mut buf = Vec::new();
     buf.extend_from_slice(&SHB_BLOCK_TYPE_U32.to_le_bytes()); // block_type
     buf.extend_from_slice(&16u32.to_le_bytes()); // block_total_length = 16
-    // body = btl - 12 = 16 - 12 = 4 bytes (just the start of the BOM, truncated)
-    buf.extend_from_slice(&[0x1A, 0x2B, 0x3C, 0x4D]); // only 4 body bytes
+    // body = btl - 12 = 16 - 12 = 4 bytes (LE BOM bytes — consistent with LE outer framing)
+    buf.extend_from_slice(&[0x4D, 0x3C, 0x2B, 0x1A]); // only 4 body bytes (LE BOM)
     buf.extend_from_slice(&16u32.to_le_bytes()); // trailing btl
     assert_eq!(buf.len(), 16);
     buf
@@ -930,32 +978,86 @@ fn test_BC_2_01_010_bom_little_endian() {
 }
 
 /// AC-005 / BC-2.01.010 PC1: parse_shb_body with BE BOM (1A 2B 3C 4D) →
-/// SectionEndianness::BigEndian.
+/// SectionEndianness::BigEndian, major=1, minor=2.
 ///
 /// Canonical test vector: on-disk 1A 2B 3C 4D → big-endian.
 /// Also covers AC-011 (SHB magic is endian-independent).
+///
+/// # Spec-conforming body layout
+///
+/// When the BOM declares big-endian, ALL subsequent multi-byte body fields MUST be
+/// big-endian encoded (BC-2.01.010 PC1 / Invariant 4). This test uses:
+///   - major_version = 1  encoded BE: `00 01`  (LE misread → 256 ≠ 1 → wrong)
+///   - minor_version = 2  encoded BE: `00 02`  (LE misread → 512 ≠ 2 → wrong)
+///
+/// A `parse_shb_body` that reads version fields unconditionally as LE will interpret
+/// `00 01` (BE major=1) as `0x0100 = 256`, triggering "Unsupported pcapng major
+/// version: 256" and returning Err — making this test RED against the current impl
+/// (reader.rs lines 206-207 use `u16::from_le_bytes` unconditionally).
+///
+/// # RED GATE EXPECTATION
+///
+/// Current reader.rs implementation (lines 206-207):
+///   `let major_version = u16::from_le_bytes([body[4], body[5]]);`
+///   `let minor_version = u16::from_le_bytes([body[6], body[7]]);`
+///
+/// With BE body bytes `[..., 00 01, 00 02, ...]`:
+///   - major decoded as LE: body[4]=0x00, body[5]=0x01 → u16::from_le_bytes([0,1]) = 256
+///   - major=256 ≠ 1 → Err("Unsupported pcapng major version: 256")
+///   - parse_shb_body returns Err, not Ok
+///   - `result.is_ok()` assertion FAILS → RED
+///
+/// The test becomes GREEN only when `parse_shb_body` applies section endianness
+/// (established by the BOM) to subsequent field decoding.
 #[test]
 fn test_BC_2_01_010_bom_big_endian() {
+    // Spec-conforming big-endian SHB body: BOM says BE, so ALL fields are BE-encoded.
     let mut body = Vec::with_capacity(16);
-    body.extend_from_slice(&SHB_BOM_BE); // 1A 2B 3C 4D = big-endian
-    body.extend_from_slice(&1u16.to_le_bytes()); // major = 1 (LE in body for this fixture)
-    body.extend_from_slice(&0u16.to_le_bytes()); // minor = 0
-    body.extend_from_slice(&0xFFFF_FFFF_FFFF_FFFFu64.to_le_bytes());
-    assert_eq!(body.len(), SHB_BODY_FIXED_BYTES);
+    body.extend_from_slice(&SHB_BOM_BE); // 1A 2B 3C 4D (big-endian BOM)
+    body.extend_from_slice(&1u16.to_be_bytes()); // 00 01 (major=1 BE; LE misread = 256)
+    body.extend_from_slice(&2u16.to_be_bytes()); // 00 02 (minor=2 BE; LE misread = 512)
+    body.extend_from_slice(&0xFFFF_FFFF_FFFF_FFFFu64.to_be_bytes()); // section_length (BE)
+    assert_eq!(
+        body.len(),
+        SHB_BODY_FIXED_BYTES,
+        "body must be exactly 16 bytes"
+    );
 
     let result = parse_shb_body(&body);
+
+    // PRIMARY ASSERTION — currently RED:
+    // parse_shb_body reads major via u16::from_le_bytes([0x00, 0x01]) = 256 ≠ 1 → Err.
+    // Correct BE-aware decode: u16::from_be_bytes([0x00, 0x01]) = 1 → Ok.
     assert!(
         result.is_ok(),
-        "valid BE BOM must return Ok(ShbInfo); got: {:?}",
+        "spec-conforming BE body (BOM=1A2B3C4D, major/minor BE-encoded) must return Ok(ShbInfo); \
+         current impl reads version LE → major=256 → Err (RED GATE); got: {:?}",
         result.err()
     );
+
     let info = result.unwrap();
+
+    // ENDIANNESS
     assert_eq!(
         info.endianness,
         SectionEndianness::BigEndian,
-        "on-disk 1A 2B 3C 4D → SectionEndianness::BigEndian (BC-2.01.010 PC1 canonical BOM table)"
+        "on-disk BOM 1A 2B 3C 4D → SectionEndianness::BigEndian (BC-2.01.010 PC1 canonical BOM table)"
     );
-    assert_eq!(info.major_version, 1);
+
+    // MAJOR VERSION — non-palindromic detection:
+    // BE bytes `00 01` → correct decode = 1; LE misread = 256.
+    assert_eq!(
+        info.major_version, 1,
+        "BE-encoded major_version (`00 01`) must decode to 1; LE misread gives 256 (RED)"
+    );
+
+    // MINOR VERSION — non-palindromic detection:
+    // BE bytes `00 02` → correct decode = 2; LE misread = 512.
+    // This assertion makes any LE-fallback detectable: a LE read of `00 02` = 512 ≠ 2.
+    assert_eq!(
+        info.minor_version, 2,
+        "BE-encoded minor_version (`00 02`) must decode to 2; LE misread gives 512 (detects LE fallback)"
+    );
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
