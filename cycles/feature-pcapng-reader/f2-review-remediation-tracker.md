@@ -8,9 +8,9 @@ sources:
   - performance-review
   - adversarial-spec-review-pass2 (ADV-F2-PASS2)
 date_created: 2026-06-19
-status: PASS6-REMEDIATED-PASS7-PENDING
+status: PASS6-REAUDIT-CLEAN-PASS7-PENDING
 f3_blocked: true
-f3_blocker_reason: "Adversarial reconvergence required (3 clean passes). Pass-1 items addressed (D-142/D-143). Pass-2 items addressed (D-144). Pass-2 cross-seam re-audit CLEAN (D-145). Pass-3 NOT CLEAN (D-146): 1C/5H/7M/4L. Pass-3 remediation COMPLETE (D-147). Pass-3 cross-seam re-audit gap fixes COMPLETE (D-148). Pass-4 NOT CLEAN (D-149): 1C/4H/5M/3L, HIGH novelty. Pass-4 remediation COMPLETE (D-150). Pass-4 re-audit 3 Major boundary gaps FIXED (D-151): FINDING-P4-001/002/003. Pass-5 NOT CLEAN (D-152): 1C/4H/5M/3L, HIGH novelty — TRAJECTORY PLATEAU (23/24/17/13/13). Pass-5 remediation COMPLETE (D-153): all 1C/4H/5M/3L FIXED. Pass-5 re-audit CLEAN (D-154): 4 Minor findings FIXED (FINDING-P5-001/002/003/004); 6 seams CLEAN. Pass-5 fully remediated + consistency-verified. Pass-6 NOT CLEAN (D-155): 0C/4H/5M/4L — FIRST zero-critical pass; count plateau 13 (P4/5/6), severity declining. Pass-6 remediation COMPLETE (D-156): all 0C/4H/5M/4L FIXED. Adversary pass-7 pending. Clean-pass counter 0/3."
+f3_blocker_reason: "Adversarial reconvergence required (3 clean passes). Pass-1 items addressed (D-142/D-143). Pass-2 items addressed (D-144). Pass-2 cross-seam re-audit CLEAN (D-145). Pass-3 NOT CLEAN (D-146): 1C/5H/7M/4L. Pass-3 remediation COMPLETE (D-147). Pass-3 cross-seam re-audit gap fixes COMPLETE (D-148). Pass-4 NOT CLEAN (D-149): 1C/4H/5M/3L, HIGH novelty. Pass-4 remediation COMPLETE (D-150). Pass-4 re-audit 3 Major boundary gaps FIXED (D-151): FINDING-P4-001/002/003. Pass-5 NOT CLEAN (D-152): 1C/4H/5M/3L, HIGH novelty — TRAJECTORY PLATEAU (23/24/17/13/13). Pass-5 remediation COMPLETE (D-153): all 1C/4H/5M/3L FIXED. Pass-5 re-audit CLEAN (D-154): 4 Minor findings FIXED (FINDING-P5-001/002/003/004); 6 seams CLEAN. Pass-5 fully remediated + consistency-verified. Pass-6 NOT CLEAN (D-155): 0C/4H/5M/4L — FIRST zero-critical pass; count plateau 13 (P4/5/6), severity declining. Pass-6 remediation COMPLETE (D-156): all 0C/4H/5M/4L FIXED. Pass-6 re-audit CLEAN (D-157): 2 Minor findings FIXED (FINDING-P6-001/002); 10 seams CLEAN. Adversary pass-7 pending. Clean-pass counter 0/3."
 ---
 
 # F2 Review Remediation Tracker — pcapng Reader
@@ -536,3 +536,25 @@ Clean-pass counter: 0/3. Remediation round-6 required.
 | BC-INDEX | v1.61 | v1.62 | all 7 changed BCs synced |
 | spec-changelog | — | — | [pcapng-f2-pass6-remediation-2026-06-20] prepended |
 | STATE.md | — | — | phase_status + spec-versions + D-156 added |
+
+---
+
+## Pass-6 Re-Audit Findings (consistency-validator — D-157 burst — 2026-06-20)
+
+**Overall verdict:** 2 Minor findings. 0 Major / 0 Critical. 10 seams CLEAN. Pass-6 fully
+remediated + consistency-verified. Adversary pass-7 pending. Clean-pass counter 0/3.
+
+| ID | Severity | Finding Summary | Status |
+|----|----------|----------------|--------|
+| FINDING-P6-001 | Minor | BC-2.01.017 v1.5 Related-BCs section listed BC-2.01.012 and BC-2.01.013 with annotations referencing E-INP-009 and E-INP-010 only. Per Decision 20 and D-156, BC-2.01.012 routes EPB body-decode failures to E-INP-008 and BC-2.01.013 routes SPB body-decode failures to E-INP-008. Annotations were incomplete — omitting E-INP-008 contradicted this BC's own PC1 error-code split and Error Taxonomy field (which explicitly includes E-INP-008 for EPB/SPB body-decode). | FIXED — BC-2.01.017 v1.5→v1.6: Related-BCs annotations for BC-2.01.012 and BC-2.01.013 updated to include E-INP-008 (EPB/SPB body-decode failures) alongside E-INP-009 and E-INP-010. D-157. |
+| FINDING-P6-002 | Minor | BC-2.01.017 v1.5 PC1 per-block body-too-short window descriptions were incorrect: SPB window stated "[btl 16<=btl<20]" (this is the IDB window; btl=16 is minimal valid SPB with body=4 >= SPB_FIXED_OVERHEAD_BYTES=4); EPB window stated "[btl 32<=btl<52]" (wrong: EPB_FIXED_OVERHEAD_BYTES=20, so window is 12<=btl<32). Correct per-block windows per Decision 20 + block fixed minimums: SHB 12<=btl<28 (body 0-15); IDB 12<=btl<20 (body 0-7); EPB 12<=btl<32 (body 0-19); SPB btl=12 only (body=0 < 4; btl=16 is minimal valid SPB body=4). | FIXED — BC-2.01.017 v1.5→v1.6: PC1 per-block body-too-short windows corrected. BC-INDEX v1.62→v1.63 (annotation synced). D-157. |
+
+**Artifacts updated in this burst (2 artifacts):**
+
+| Artifact | Before | After | Findings addressed |
+|----------|--------|-------|--------------------|
+| BC-2.01.017 | v1.5 | v1.6 | FINDING-P6-001 (Related-BCs +E-INP-008), FINDING-P6-002 (per-block body-too-short windows corrected) |
+| BC-INDEX | v1.62 | v1.63 | FINDING-P6-002 annotation sync (BC-2.01.017 v1.5→v1.6) |
+
+**Re-audit verdict:** CLEAN. All 10 seams pass. 2 Minor findings FIXED. Pass-6 fully
+remediated + consistency-verified. Adversary pass-7 is next. Clean-pass counter 0/3.

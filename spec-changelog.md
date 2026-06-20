@@ -14,6 +14,40 @@ changes, invariant rewrites).
 
 ---
 
+## [pcapng-f2-pass6-reaudit-minors-2026-06-20] — 2026-06-20
+
+### PASS-6 RE-AUDIT: 2 Minor FIXED (FINDING-P6-001/002) — D-157
+
+**Trigger:** F2 pass-6 re-audit (consistency-validator) after D-156 remediation burst. 10 seams
+checked; 2 Minor findings closed. 0 Major / 0 Critical. Adversary pass-7 pending. Clean-pass
+counter 0/3.
+
+**FINDING-P6-001 (Minor — BC-2.01.017 Related-BCs annotations missing E-INP-008):**
+BC-2.01.017 v1.5 Related-BCs section listed BC-2.01.012 and BC-2.01.013 with annotations
+referencing E-INP-009 and E-INP-010 only. Per Decision 20 and D-156 updates, BC-2.01.012
+(EPB body-decode → E-INP-008) and BC-2.01.013 (SPB body-decode → E-INP-008) both route
+body-too-short failures to E-INP-008. The Related-BCs annotations were incomplete — omitting
+E-INP-008 contradicted this BC's own PC1 error-code split and Error Taxonomy field.
+BC-2.01.017 v1.5→v1.6: Related-BCs annotations for BC-2.01.012 and BC-2.01.013 updated to
+include E-INP-008 (EPB/SPB body-decode failures) alongside E-INP-009 and E-INP-010.
+
+**FINDING-P6-002 (Minor — per-block body-too-short windows incorrect in BC-2.01.017 PC1):**
+BC-2.01.017 v1.5 PC1 body-too-short window descriptions were partially wrong: SPB window
+stated "[btl 16<=btl<20]" (which is the IDB window, not SPB); EPB window stated "[btl
+32<=btl<52]" (wrong bounds). Correct per-block windows per Decision 20 + block fixed minimums:
+SHB 12<=btl<28 (body 0-15; SHB_FIXED_OVERHEAD=16); IDB 12<=btl<20 (body 0-7; IDB_FIXED=8);
+EPB 12<=btl<32 (body 0-19; EPB_FIXED_OVERHEAD=20); SPB btl=12 only (body=0 < 4;
+SPB_FIXED_OVERHEAD=4; btl=16 is minimal valid SPB). BC-2.01.017 v1.5→v1.6: PC1 per-block
+windows corrected. BC-INDEX v1.62→v1.63 (annotation synced).
+
+**Per-block body-too-short windows reconciled (canonical):**
+- SHB: 12<=btl<28 (body 0..15 bytes < 16-byte SHB minimum body)
+- IDB: 12<=btl<20 (body 0..7 bytes < 8-byte IDB minimum body)
+- EPB: 12<=btl<32 (body 0..19 bytes < 20-byte EPB minimum body)
+- SPB: btl=12 only (body=0 bytes < 4-byte SPB minimum body; btl=16 is minimal valid SPB)
+
+---
+
 ## [pcapng-f2-pass6-remediation-2026-06-20] — 2026-06-20
 
 ### PASS-6 REMEDIATION: 4H/5M/4L FINDINGS FIXED — D-156
