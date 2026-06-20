@@ -9,19 +9,25 @@ supersedes: null
 superseded_by: null
 ---
 
-# ADR-009: pcapng Capture-Format Reader Support (rev 9)
+# ADR-009: pcapng Capture-Format Reader Support (rev 10)
 
 ## Status
 
 **Accepted** — 2026-06-20.
 
-Lifecycle transition; revision number remains rev 9 (status change is not a
-decision-content revision). All 10 behavioral contracts (BC-2.01.004 retired/inverted
-plus BC-2.01.005..018), all seven verification properties (VP-025..031), and 8
-Phase-4 holdout scenarios were authored against this ADR as a normative source of
-truth throughout the F2 feature cycle. F2 adversarial convergence reached its first
-clean pass at pass 8 (0 HIGH / 0 CRITICAL findings). Status promoted from `proposed`
-to `accepted` to reflect full downstream adoption and clean spec convergence.
+**Rev 10 amendment — 2026-06-20:** Decision 20 amended to reflect empirical `pcap-file` 2.0.0
+crate behavior at the first-SHB boundary (`PcapNgParser::new`). The btl=8 first-SHB case now
+maps to **E-INP-008**, not E-INP-010. See Decision 20 amendment note below and Decision 23.
+BC-2.01.010 EC-008, AC-004b, and Canonical Test Vectors must be updated by the PO to match.
+`test_BC_2_01_010_shb_framing_rejection_e_inp_010` must be renamed and re-asserted per the
+Implementer Directive in Decision 23.
+
+Rev 9 history: All 10 behavioral contracts (BC-2.01.004 retired/inverted plus BC-2.01.005..018),
+all seven verification properties (VP-025..031), and 8 Phase-4 holdout scenarios were authored
+against this ADR as a normative source of truth throughout the F2 feature cycle. F2 adversarial
+convergence reached its first clean pass at pass 8 (0 HIGH / 0 CRITICAL findings). Status
+promoted from `proposed` to `accepted` to reflect full downstream adoption and clean spec
+convergence.
 
 ---
 
@@ -616,6 +622,38 @@ Restated property (VP-030 v2): generate sequences of **WHITELISTED DataLink valu
 Rationale: 1-based indexing is the human-readable convention (consistent with Wireshark's "frame #N" display); 0-based indexing is the internal array-index convention. Error messages are for humans; use 1-based. Uniformity across all three error codes prevents off-by-one inconsistencies in error message context between error sites.
 
 PO actions: Update E-INP-010, E-INP-012, and E-INP-013 entries in error-taxonomy.md to state "block #<seq> where seq is the 1-based block index (SHB = block #1)" in the Context field. Remove any existing "0-based" qualifiers.
+
+**Decision 23 — First-SHB btl=8 maps to E-INP-008, not E-INP-010 (rev 10 amendment; resolves STORY-123 AC-007 contradiction).** [NEW — rev 10.]
+
+**Scope:** This decision applies ONLY to the first-SHB parse path (`PcapNgParser::new`). Decision 20 Tier 1 applies to `next_raw_block` (the subsequent-block walk loop). These are two distinct crate entry points with different internal behavior.
+
+**Empirical crate behavior:** When `PcapNgParser::new` is called on a byte stream whose first 8 bytes encode `block_type=0x0A0D0D0A` followed by `btl=8` (4 bytes, e.g. `08 00 00 00` LE), the crate does NOT return `Err(InvalidField("Block: initial_len < 12"))`. Instead it reads the btl field using the default big-endian interpretation, gets `btl = 0x08000000` (134217728), reads the next 4 bytes as the BOM field, finds a value that is neither `0x1A2B3C4D` (BE BOM) nor `0x4D3C2B1A` (LE BOM), and returns `Err(PcapError::InvalidField("SectionHeaderBlock: invalid magic number"))`. This is the same error the crate returns for a genuinely invalid BOM on a well-framed SHB (correct btl=28, DEADBEEF BOM). The crate conflates these two conditions at its API boundary for the first-SHB path; they are not distinguishable from wirerust's side.
+
+**Decision (binding):** For the first-SHB path only, a btl=8 stream produces `PcapError::InvalidField("SectionHeaderBlock: invalid magic number")`. wirerust's existing mapper arm `InvalidField(msg) if msg.contains("invalid magic number") => E-INP-008` is CORRECT and MUST be retained. The mapping is:
+
+| Condition | Crate error | wirerust error code |
+|-----------|------------|---------------------|
+| First SHB, btl=8 (or any btl that causes crate to read BOM field as garbage) | `InvalidField("SectionHeaderBlock: invalid magic number")` | **E-INP-008** |
+| First SHB, genuine invalid BOM (btl=28, BOM=DEADBEEF) | `InvalidField("SectionHeaderBlock: invalid magic number")` | **E-INP-008** |
+| Subsequent blocks, btl < 12 (`next_raw_block` path) | `InvalidField("Block: initial_len < 12")` | **E-INP-010** (Decision 20 Tier 1 unchanged) |
+| First SHB, `IncompleteBuffer` / EOF | `IncompleteBuffer` | **E-INP-010** (mapper catch-all arm) |
+
+**Why Option A (pre-check) is rejected:** The first-SHB path is `PcapNgParser::new`, not `RawBlock::from_slice`. There is no public API hook between "stream passed to new" and "BOM detection attempted" that wirerust can exploit without partially hand-parsing the raw stream before delegation. Such a pre-check would: (a) duplicate the crate's framing logic, violating Decision 1's rationale that wirerust delegates framing to the crate; (b) require a dual-read discipline (peek then re-feed), introducing a new failure mode at the stream boundary; (c) produce no observable benefit to the caller — E-INP-008 is equally diagnostic for "stream is malformed before the BOM" and "stream has a valid frame but wrong BOM bytes." The error taxonomy is defined by observable crate API outcomes, not by the logical cause of the malformation.
+
+**Decision 20 amendment note:** Decision 20 Tier 1 text ("block_total_length < 12 → crate returns Err(InvalidField('Block: initial_len < 12'))") describes the `next_raw_block` path. This text is CORRECT for subsequent blocks. It does NOT apply to `PcapNgParser::new`. The statement "Framing rejection (E-INP-010): Fired by the CRATE before wirerust sees the block body" remains true for the block-walk loop. At the first-SHB boundary, the crate surfaces framing-degenerate inputs as `InvalidField("SectionHeaderBlock: invalid magic number")` — this is a crate API behavior difference between the two entry points, not a contradition in Decision 20's logic.
+
+**PO actions required (rev 10):**
+  - **BC-2.01.010 AC-004b:** Replace "Canonical fixture: SHB with `block_total_length = 8` (crate rejects; E-INP-010)" with "Canonical fixture: SHB with `block_total_length = 8` (crate raises InvalidField invalid magic number; maps to E-INP-008 — same arm as genuine invalid-BOM)."
+  - **BC-2.01.010 EC-008:** Replace "crate rejects before returning block → E-INP-010" with "crate raises `InvalidField('SectionHeaderBlock: invalid magic number')` via `PcapNgParser::new` → maps to **E-INP-008** (same arm as genuine invalid-BOM; indistinguishable at API level)."
+  - **BC-2.01.010 Postcondition 5(a):** The case "btl < 12 / btl % 4 != 0 / EOF before trailer → E-INP-010" should be qualified: this routing applies for `IncompleteBuffer` / EOF errors from `PcapNgParser::new`, and for all errors from `next_raw_block`. For btl-degenerate inputs that cause the crate to surface `InvalidField("invalid magic number")` (the btl=8 case), the mapping is E-INP-008 via the existing invalid-magic arm.
+  - **BC-2.01.010 Canonical Test Vectors:** Row "SHB with block_total_length=8 (crate framing rejection before block returned) → Err (E-INP-010)" must be corrected to "→ Err (E-INP-008)" with note "crate raises InvalidField invalid magic number via PcapNgParser::new; indistinguishable from genuine invalid-BOM."
+  - **BC-2.01.010 PC5:** If PC5 is the "SHB error routing — uniform 4-way split" postcondition, add a clarifying note to case (a): "For `PcapNgParser::new`, EOF/IncompleteBuffer → E-INP-010; btl-degenerate inputs that cause the crate to report InvalidField invalid magic number → E-INP-008 (Decision 23)."
+
+**Implementer Directive:** The existing mapper in `read_pcapng_crate` (reader.rs ~line 373-384) is ALREADY CORRECT. No code changes are required. The only required change is to the test. The test `test_BC_2_01_010_shb_framing_rejection_e_inp_010` MUST be:
+  1. **Renamed** to `test_BC_2_01_010_shb_btl8_maps_to_e_inp_008` to reflect the actual ruling.
+  2. **Re-asserted** with a pinned E-INP-008 assertion, not bare `is_err()`. The test body must verify that the error message contains `"E-INP-008"` AND does NOT contain `"E-INP-010"`, mirroring the assertion pattern in `test_BC_2_01_010_invalid_bom_e_inp_008`.
+  3. The doc comment must cite Decision 23 as the binding authority.
+  The test MUST NOT assert `"E-INP-010"` anywhere. The weakened bare `is_err()` assertion is not acceptable.
 
 **Fallback — Option C (hand-roll, +0 crates).** If during implementation `pcap-file`
 2.0.0's `RawBlock` / `next_raw_block` path exhibits a defect (incorrect byte-order

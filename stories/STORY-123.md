@@ -3,7 +3,7 @@ document_type: story
 story_id: STORY-123
 epic_id: E-19
 version: "1.0"
-status: draft
+status: in-progress
 # BC status: BCs authored and anchored below; all traces complete.
 producer: story-writer
 timestamp: 2026-06-20T00:00:00Z
@@ -32,7 +32,7 @@ inputs:
 # Subsystem anchor: SS-01 owns this story's scope because BC-2.01.009 and
 #   BC-2.01.010 are both SS-01 behavioral contracts per their traceability
 #   tables, anchored to src/reader.rs (C-4) per ARCH-INDEX Subsystem Registry.
-input-hash: "72a3650"
+input-hash: "e6cff0e"
 ---
 
 # STORY-123: pcapng Format Detection (Magic-Byte Probe) and SHB Parse
@@ -118,7 +118,7 @@ SHB errors are routed according to the uniform 4-way split from ADR-009 Decision
 - (d) Well-formed → parse proceeds
 
 **Test:** `test_BC_2_01_010_shb_body_truncated_e_inp_008` (btl=16 → body=4 < 16 → E-INP-008),
-`test_BC_2_01_010_shb_framing_rejection_e_inp_010` (btl=8 → crate rejects → E-INP-010),
+`test_BC_2_01_010_shb_btl8_maps_to_e_inp_008` (btl=8 → PcapNgParser::new InvalidField → E-INP-008 per ADR-009 Decision 23),
 `test_BC_2_01_010_invalid_bom_e_inp_008`
 
 ### AC-008 (traces to BC-2.01.010 AC-002 — multi-section rejection)
@@ -159,7 +159,7 @@ The `arp-baseline-16pkt.cap` fixture (pcapng with `.cap` extension) MUST return
 | BC | Version | Clauses Covered |
 |----|---------|-----------------|
 | BC-2.01.009 | v1.7 | PC3 (probe consumes no bytes), PC1 (pcapng routing), PC2 (classic routing), PC4 (unrecognized magic), PC6 (zero-packet notice emission via main.rs), PC5 (smb3/arp-baseline.cap fixtures), Inv1 (4-byte peek), Inv3 (probe not duplicated), Inv4 (SHB magic endian-independent), AC-007 (BufReader wrap-site) |
-| BC-2.01.010 | v2.1 | PC1 (canonical BOM table + section-wide endianness authority), PC2 (major version), PC3 (section_length ignored), AC-002 (multi-section rejection → E-INP-012), PC5 (4-way error routing), Inv4 (section-wide endianness scope) |
+| BC-2.01.010 | v2.2 | PC1 (canonical BOM table + section-wide endianness authority), PC2 (major version), PC3 (section_length ignored), AC-002 (multi-section rejection → E-INP-012), PC5 (4-way error routing, Decision 23 first-SHB btl-degenerate → E-INP-008), Inv4 (section-wide endianness scope) |
 
 ## Architecture Mapping
 
@@ -195,7 +195,7 @@ Decision 8 (forward-progress contract).
 | EC-006 | Classic ns-resolution pcap (`0xA1B23C4D`) | Routed to classic-pcap path |
 | EC-007 | Unbuffered `Cursor<&[u8]>` with valid pcapng SHB | `Ok(PcapSource)` with correct routing (AC-007) |
 | EC-008 | SHB with btl=16 (body=4 bytes, < 16 SHB fixed-field bytes) | `Err` mapping to E-INP-008 |
-| EC-009 | SHB with btl=8 (crate framing rejection) | `Err` mapping to E-INP-010 |
+| EC-009 | SHB with btl=8 (first-SHB btl-degenerate; PcapNgParser::new → InvalidField("invalid magic number")) | `Err` mapping to E-INP-008 per ADR-009 Decision 23 |
 | EC-010 | SHB with invalid BOM on-disk bytes | `Err` mapping to E-INP-008 |
 | EC-011 | Crafted 2-section pcapng (SHB1 + IDB + EPB + SHB2) | `Err` mapping to E-INP-012 |
 | EC-012 | SHB-only pcapng (no IDB, no subsequent blocks) | `Ok(PcapSource)` with `packets.len()==0`, `skipped_blocks==0`, `opb_skipped==0` |
@@ -224,7 +224,7 @@ Decision 8 (forward-progress contract).
 | AC-004 | `test_BC_2_01_009_unrecognized_magic`, `test_BC_2_01_009_stream_under_4_bytes` | Unit |
 | AC-005 | `test_BC_2_01_010_bom_little_endian`, `test_BC_2_01_010_bom_big_endian` | Unit |
 | AC-006 | `test_BC_2_01_010_major_version_not_1_rejected` | Unit |
-| AC-007 | `test_BC_2_01_010_shb_body_truncated_e_inp_008`, `test_BC_2_01_010_shb_framing_rejection_e_inp_010`, `test_BC_2_01_010_invalid_bom_e_inp_008` | Unit |
+| AC-007 | `test_BC_2_01_010_shb_body_truncated_e_inp_008`, `test_BC_2_01_010_shb_btl8_maps_to_e_inp_008`, `test_BC_2_01_010_invalid_bom_e_inp_008` | Unit |
 | AC-008 | `test_BC_2_01_010_second_shb_rejected_e_inp_012` | Unit |
 | AC-009 | `test_BC_2_01_010_no_panic_fuzz` | Property |
 | AC-010 | `test_BC_2_01_009_shb_only_zero_packet_notice` | Integration |
@@ -294,3 +294,49 @@ Within 20-30% of agent context window.
 - `blocks: [STORY-124, STORY-125, STORY-126, STORY-127]` — All four downstream stories
   depend on the pcapng routing infrastructure and SHB endianness established here. None of
   them can be implemented without the probe and SHB in place.
+
+## Cross-Story Deferred Findings (from STORY-123 adversarial review)
+
+The following findings surfaced during the STORY-123 Wave-51 adversarial pass-1 review
+(D-169) but are out of scope for STORY-123. They are recorded here for traceability and
+mirrored in STATE.md Drift Items.
+
+### F-2 [cross-story → STORY-125 / BC-2.01.012]
+
+EPB padding-overrun check (ADR-009 Decision 20/22: verify
+`20 + captured_len + pad_len(captured_len) <= body.len()` → E-INP-008) is NOT implemented
+or tested in STORY-123. STORY-123 only checks `captured_len > available`. STORY-125 MUST
+add a `captured_len % 4 != 0` fixture that exercises the padding-overrun path and confirms
+E-INP-008 is returned.
+
+**Owner:** STORY-125 (BC-2.01.012). Status: DEFERRED.
+
+### F-3 [cross-story → STORY-125 / BC-2.01.014]
+
+Timestamp decode in `read_pcapng_crate` hardcodes `DEFAULT_TSRESOL=6` (microsecond), does
+NOT walk IDB `if_tsresol` options, and inlines the math instead of calling the BC-2.01.014
+pure-core helper. This produces timestamps that are wrong by 1000x for `if_tsresol=9`
+(nanosecond) captures. STORY-125 MUST implement the `if_tsresol` option-walk, call the
+BC-2.01.014 pure-core helper for the actual scaling, and deliver the VP-025 Kani proof
+target covering the full `u8` `if_tsresol` space including the base-2 branch.
+
+**Owner:** STORY-125 (BC-2.01.014). Status: DEFERRED.
+
+### F-5 [system-level → Phase-4]
+
+AC-012 (`test_BC_2_01_009_arp_baseline_cap_accepted`) uses a SYNTHETIC `arp-baseline-16pkt.cap`
+fixture created via `temp_dir`. The authentic PacketLife-sourced capture MUST replace this
+synthetic fixture before the Phase-4 holdout evaluation. Tracked under DF-VALIDATION-001
+policy.
+
+**Owner:** Phase-4 entry gate. Status: DEFERRED — pre-Phase-4 obligation.
+
+### F-7 [observation → Phase-6]
+
+`parse_shb_body` (the VP-026 Kani proof target) is NOT on the live integration path — the
+`pcap-file` crate itself parses the SHB in the `PcapNgParser::new` call; wirerust's
+`parse_shb_body` is a pure helper that is NOT invoked in the actual execution path. VP-026's
+Kani target function may need re-scoping in Phase-6 to cover the actual reachable code path
+rather than the dead pure helper.
+
+**Owner:** Phase-6 (formal hardening). Status: OBSERVATION — evaluate at Phase-6 entry.

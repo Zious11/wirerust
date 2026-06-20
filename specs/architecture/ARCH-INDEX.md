@@ -42,6 +42,9 @@ modified:
   - date: 2026-06-19
     actor: architect
     reason: "F2 Phase Spec Evolution (FE-001 pcapng reader support): ADR-009 added to Architecture Decisions table — magic-byte auto-detection, Option A parser (pcap-file 2.0.0 PcapNgReader +0 crates), SHB/IDB/EPB/SPB block coverage, multi-IDB link-type-agreement policy, pure-core timestamp-conversion helper, BC-2.01.004 retired/inverted. SS-01 affected."
+  - date: 2026-06-20
+    actor: architect
+    reason: "ADR-009 rev 9→rev 10 (Decision 23): first-SHB btl=8 maps to E-INP-008 (not E-INP-010). PcapNgParser::new raises InvalidField(invalid magic number) for btl-degenerate inputs — same arm as genuine invalid-BOM; indistinguishable at API level. No VP count change, no section file change, no subsystem change. BC-2.01.010 EC-008/AC-004b/PC5/Canonical Test Vectors require PO update. test_BC_2_01_010_shb_framing_rejection_e_inp_010 requires rename+reassertion by implementer (Decision 23 Implementer Directive). No code change needed — existing mapper is correct."
 phase: 1c
 origin: brownfield
 deployment_topology: single-service

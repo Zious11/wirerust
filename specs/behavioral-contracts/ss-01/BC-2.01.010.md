@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "2.1"
+version: "2.2"
 status: draft
 producer: product-owner
 timestamp: 2026-06-19T00:00:00Z
@@ -13,6 +13,7 @@ capability: CAP-01
 lifecycle_status: active
 introduced: v0.10.0-pcapng
 modified:
+  - "v2.2: Spec-correctness reconciliation (ADR-009 Decision 23, rev 10) — A first-SHB with block_total_length=8 (btl<12) maps to E-INP-008, NOT E-INP-010. When btl<12 is encountered on the FIRST block, PcapNgParser::new surfaces it as InvalidField(\"invalid magic number\") — indistinguishable from a genuine invalid BOM at the crate API boundary. wirerust therefore routes it as a semantic/body failure (E-INP-008), not a framing rejection (E-INP-010). E-INP-010 remains correct for SUBSEQUENT-block framing rejections (next_raw_block) and for IncompleteBuffer/EOF on the first block. Changes: (1) AC-004b canonical fixture note corrected: btl=8 maps to E-INP-008 (not E-INP-010); test renamed to test_BC_2_01_010_shb_btl8_maps_to_e_inp_008. (2) EC-008 expected error changed from E-INP-010 to E-INP-008 with ADR-009 Decision 23 explanation. (3) PC5(a) clarifying note added: btl-degenerate first-SHB inputs causing InvalidField(\"invalid magic number\") via PcapNgParser::new map to E-INP-008; E-INP-010 applies to subsequent-block framing rejections via next_raw_block and to first-SHB IncompleteBuffer/EOF. (4) Canonical Test Vectors row: btl=8 E-INP-010 → E-INP-008. This is a spec-correctness fix only; the implementation already produces E-INP-008 for this case. — 2026-06-20"
   - "v2.1: Pass-6 remediation T4 (ADR-009 rev 9) — (F-M2) Established ONE canonical normative BOM table in Postcondition 1 (leading with big-endian): on-disk 1A 2B 3C 4D ⇒ big-endian section; on-disk 4D 3C 2B 1A ⇒ little-endian section; any other four bytes ⇒ E-INP-008. All prior restatements of LE/BE byte values in Description and AC-001 replaced with a single reference to 'the Postcondition 1 canonical BOM table'. (Process-gap F-M2) Added explicit section-wide endianness authority statement to Postcondition 1: the SHB BOM establishes endianness once for the ENTIRE section; this single determination governs ALL subsequent multi-byte field decoding (block lengths, interface_id, captured_len, timestamps, option code/length) in EVERY block of that section — downstream block decoders MUST NOT re-detect endianness per-block. Description updated to reference the canonical table and section-wide scope. Invariant 4 added to codify section-wide scope. — 2026-06-20"
   - "v2.0: Pass-5 re-audit FINDING-P5-003 — removed 4 stale 'deferred to a separate burst' annotations (HS-103 v1.5 already covers the referenced cases: Case D btl=16→E-INP-008 and Case C btl<12/misaligned→E-INP-010). Replaced deferral notes with explicit HS-103 case citations in Postcondition 5(b), AC-004a, EC-005, and EC-009. No normative behavior change. — 2026-06-20"
   - "v1.9: Pass-4 remediation R2 Decision 20 — RE-ADDED body-too-short E-INP-008 case for SHB. Pass-3 removal was WRONG: the 'unconstructible' premise was FALSE. A crate-framed RawBlock with block_total_length=16 (aligned, >=12) has a body of 4 bytes (16-12=4), which is < 16 SHB fixed-field bytes. The crate DOES return this block; wirerust body-decode then finds body < 16 and returns E-INP-008. The constructible window is 12<=btl<28 (body 0-15 bytes). Restated uniform 4-way split in Postcondition 5; restored AC-004 body-truncation test; restored EC-005 constructible fixture (btl=16, body=4). Traceability error taxonomy updated to include body-too-short path. Authority: ADR-009 rev 7, per-block fixed-field minimums: SHB=16. — 2026-06-20"
@@ -80,7 +81,15 @@ before returning any block (forward-progress contract, Decision 8).
 4. After successful SHB parse, the reader proceeds to walk subsequent blocks (IDB, EPB, SPB).
 5. **SHB error routing — uniform 4-way split (ADR-009 rev 7 Decision 20).**
    - **(a) btl < 12 / btl % 4 != 0 / EOF before trailer** — crate rejects BEFORE returning any
-     block to wirerust → **E-INP-010** via BC-2.01.017. wirerust never sees the body.
+     block to wirerust → **E-INP-010** via BC-2.01.017 for SUBSEQUENT-block framing rejections
+     (via `next_raw_block`) and for first-SHB IncompleteBuffer/EOF. **ADR-009 Decision 23
+     (rev 10) exception for first-SHB btl-degenerate inputs:** when btl < 12 is encountered
+     on the FIRST block, `PcapNgParser::new` surfaces it as `InvalidField("invalid magic
+     number")` — indistinguishable from a genuine invalid BOM at the crate API boundary.
+     wirerust therefore routes first-SHB btl-degenerate inputs (e.g., btl=8) to
+     **E-INP-008**, not E-INP-010. E-INP-010 framing rejection applies strictly to
+     subsequent blocks (via `next_raw_block`) and to first-SHB IncompleteBuffer/EOF.
+     wirerust never sees the block body in either case.
    - **(b) 12 ≤ btl < 28 (body 0–15 bytes)** — crate frames and returns the block; wirerust
      body-decode finds body < 16 SHB fixed-field bytes → **E-INP-008** (body-too-short).
      Constructible fixture: btl=16 → body=4 bytes < 16 → E-INP-008. (HS-103 btl=16 holdout
@@ -126,13 +135,19 @@ before returning any block (forward-progress contract, Decision 8).
   (body 0–15 bytes). Canonical fixture: `block_total_length = 16` → body = 4 bytes < 16 →
   E-INP-008. (Covered by HS-103 v1.5 Case D: btl=16 → body=4 < 16 → E-INP-008.)
   **Test:** `test_BC_2_01_010_shb_body_truncated_e_inp_008`
-- **AC-004b (Framing rejection — E-INP-010):** Any SHB where the crate rejects before
-  returning a block — `block_total_length < 12`, `block_total_length % 4 != 0`, or EOF before
-  the block_total_length trailer — routes to **E-INP-010** via BC-2.01.017 taxonomy. wirerust
-  never sees the block body in this case. Canonical fixture: SHB with `block_total_length = 8`
-  (crate rejects; E-INP-010). Note: HS-103 Case C ("15 bytes total, btl misaligned") is also
-  this case; covered by HS-103 v1.5 Case C.
-  **Test:** `test_BC_2_01_010_shb_framing_rejection_e_inp_010`
+- **AC-004b (First-SHB btl-degenerate rejection — E-INP-008):** An SHB where the crate
+  rejects before returning a block and the rejection occurs on the FIRST block via
+  `PcapNgParser::new` — `block_total_length < 12` (e.g., btl=8) — routes to **E-INP-008**,
+  NOT E-INP-010. Per ADR-009 Decision 23 (rev 10): `PcapNgParser::new` surfaces btl<12 on
+  the first block as `InvalidField("invalid magic number")`, which is indistinguishable from
+  a genuine invalid BOM at the crate API boundary; wirerust therefore maps it to E-INP-008.
+  E-INP-010 remains the code for SUBSEQUENT-block framing rejections (via `next_raw_block`)
+  and for first-SHB IncompleteBuffer/EOF. wirerust never sees the block body in either case.
+  Canonical fixture: SHB with `block_total_length = 8` (PcapNgParser::new rejects as
+  InvalidField("invalid magic number"); E-INP-008). Note: HS-103 Case C ("15 bytes total,
+  btl misaligned") is a subsequent-block framing rejection → E-INP-010; covered by HS-103
+  v1.5 Case C.
+  **Test:** `test_BC_2_01_010_shb_btl8_maps_to_e_inp_008`
 - **AC-005 (no-panic — SEC-005):** This block parser MUST return `Err` for any malformed or
   truncated SHB byte sequence. `unwrap()`, `expect()`, `panic!()`, and `unreachable!()` are
   prohibited in the SHB parse path. The crate's `RawBlock::from_slice` is Result-clean on
@@ -170,7 +185,7 @@ before returning any block (forward-progress contract, Decision 8).
 | EC-005 | SHB where crate returns a valid-framed RawBlock (btl=16, aligned, ≥12) but body is only 4 bytes (16−12=4) — wirerust body-decode finds body < 16 SHB fixed-field bytes | `Err` mapping to **E-INP-008** (body-too-short; wirerust body-decode path). No panic. Constructible window: 12≤btl<28. Canonical fixture: btl=16 → body=4 bytes < 16 → E-INP-008. (Covered by HS-103 v1.5 Case D.) **Test:** `test_BC_2_01_010_shb_body_truncated_e_inp_008` |
 | EC-006 | Multi-section pcapng (second SHB mid-file) | `Err` mapping to E-INP-012: "pcapng multi-section files are not supported (second Section Header Block at block #<seq>) (hint: split the capture into single-section files, or re-save with 'mergecap -w out.pcapng <file>' or 'editcap' which emit single-section pcapng)"; wirerust supports single-section pcapng only (scope decision; pcap-file 2.0.0 handles multi-section correctly but wirerust does not exercise that path). No byte-order reset is attempted before rejection. **Test:** `test_BC_2_01_010_second_shb_rejected_e_inp_012` |
 | EC-007 | Invalid BOM value (on-disk bytes matching neither row of the PC1 canonical BOM table) | `Err` mapping to E-INP-008; no panic (holdout: craft SHB with BOM on-disk bytes `DE AD BE EF` — not in PC1 table). **Test:** `test_BC_2_01_010_invalid_bom_e_inp_008` |
-| EC-008 | SHB with block_total_length < 12 (e.g., total = 8) — crate rejects before returning block | `Err` routed via BC-2.01.017 taxonomy to **E-INP-010** (crate framing rejection, not wirerust body-decode). No panic. **Test:** `test_BC_2_01_010_shb_framing_rejection_e_inp_010` |
+| EC-008 | SHB with block_total_length < 12 (e.g., total = 8) — first-SHB btl-degenerate input; `PcapNgParser::new` surfaces as `InvalidField("invalid magic number")` | `Err` mapped to **E-INP-008** (NOT E-INP-010). Per ADR-009 Decision 23 (rev 10): on the first block, `PcapNgParser::new` cannot distinguish btl<12 from a genuine invalid BOM — both surface as `InvalidField("invalid magic number")` at the crate API boundary. wirerust routes this to E-INP-008. E-INP-010 applies to subsequent-block framing rejections (via `next_raw_block`) and to first-SHB IncompleteBuffer/EOF; it does NOT apply to first-SHB btl-degenerate inputs. No panic. **Test:** `test_BC_2_01_010_shb_btl8_maps_to_e_inp_008` |
 | EC-009 | SHB total length = 15 bytes (block_total_length < 12 or misaligned) — crate rejects (HS-103 Case C) | `Err` mapping to **E-INP-010** (crate framing Err before block returned to wirerust); covered by HS-103 v1.5 Case C. **Test:** `test_BC_2_01_010_hs103_case_c_e_inp_010` |
 
 ## Canonical Test Vectors
@@ -182,7 +197,7 @@ before returning any block (forward-progress contract, Decision 8).
 | SHB with section length = `0xFFFFFFFFFFFFFFFF` | Parse succeeds; section length ignored | edge-case |
 | SHB with major version = 2 | `Err` containing "unsupported" | error |
 | SHB with block_total_length=16 (crate returns block; body=4 bytes < 16 SHB fixed fields) | `Err` (E-INP-008); no panic | error (body-too-short; wirerust body-decode path) |
-| SHB with block_total_length=8 (crate framing rejection before block returned) | `Err` (E-INP-010); no panic | error (crate-rejection path; btl<12) |
+| SHB with block_total_length=8 (first-SHB; PcapNgParser::new surfaces as InvalidField("invalid magic number")) | `Err` (E-INP-008); no panic | error (first-SHB btl-degenerate; ADR-009 Decision 23 rev 10) |
 | SHB with invalid BOM (on-disk bytes not matching either row of the PC1 canonical BOM table) | `Err` (E-INP-008); no panic | error (holdout) |
 | Crafted 2-section pcapng (SHB₁ + IDB + EPB + SHB₂) | `Err` (E-INP-012) after SHB₁ section; no packets from section 2 | error |
 
@@ -206,8 +221,8 @@ before returning any block (forward-progress contract, Decision 8).
 | L2 Domain Invariants | None directly |
 | Architecture Module | SS-01 (reader.rs, C-4) |
 | Stories | STORY-123 |
-| ADR Reference | ADR-009 rev 9 Decision 1 (raw-block path via `RawBlock`/`next_raw_block`), Decision 2 (SHB block coverage), Decision 8 (forward-progress contract: crate rejects btl<12 before returning block), Decision 10 (panic surface), Decision 20 (uniform error-code rule: btl<12/misaligned/EOF→E-INP-010; 12≤btl<28→body-too-short→E-INP-008; body≥16 but invalid BOM or major≠1→E-INP-008; per-block fixed-field minimum SHB=16) — F-M2: single canonical BOM table in PC1 (leading BE); section-wide endianness authority statement; downstream decoders MUST NOT re-detect per-block; Invariant 4 added |
-| Error Taxonomy | E-INP-008 (SHB failures: (a) body-too-short — crate returns valid-framed RawBlock with 12≤btl<28 but wirerust body-decode finds body < 16 SHB fixed-field bytes; (b) invalid Byte-Order Magic — on-disk bytes neither `1A 2B 3C 4D` nor `4D 3C 2B 1A`; (c) major_version != 1. Authority: ADR-009 rev 7 Decision 20 / per-block fixed-field minimum SHB=16), E-INP-010 (all SHB framing/length failures: btl<12 / btl%4!=0 / EOF-before-trailer — crate rejects BEFORE returning block; wirerust never sees the body), E-INP-012 (multi-section SHB reject — scope decision; pcap-file 2.0.0 handles multi-section correctly; wirerust rejects as out-of-scope; message includes `mergecap -w out.pcapng <file>` / editcap remediation hint per ADR-009 Decision 7) |
+| ADR Reference | ADR-009 rev 10 Decision 1 (raw-block path via `RawBlock`/`next_raw_block`), Decision 2 (SHB block coverage), Decision 8 (forward-progress contract: crate rejects btl<12 before returning block), Decision 10 (panic surface), Decision 20 (uniform error-code rule: btl<12/misaligned/EOF→E-INP-010; 12≤btl<28→body-too-short→E-INP-008; body≥16 but invalid BOM or major≠1→E-INP-008; per-block fixed-field minimum SHB=16), Decision 23 (first-SHB btl-degenerate exception: btl<12 on FIRST block → E-INP-008, not E-INP-010, because `PcapNgParser::new` surfaces it as `InvalidField("invalid magic number")` — indistinguishable from invalid BOM at crate API boundary; E-INP-010 applies to subsequent-block framing rejections via `next_raw_block` and to first-SHB IncompleteBuffer/EOF) — F-M2: single canonical BOM table in PC1 (leading BE); section-wide endianness authority statement; downstream decoders MUST NOT re-detect per-block; Invariant 4 added |
+| Error Taxonomy | E-INP-008 (SHB failures: (a) body-too-short — crate returns valid-framed RawBlock with 12≤btl<28 but wirerust body-decode finds body < 16 SHB fixed-field bytes; (b) invalid Byte-Order Magic — on-disk bytes neither `1A 2B 3C 4D` nor `4D 3C 2B 1A`; (c) major_version != 1; (d) first-SHB btl-degenerate (btl<12 on first block) — PcapNgParser::new surfaces as InvalidField("invalid magic number"), indistinguishable from invalid BOM at crate API boundary; ADR-009 Decision 23 rev 10. Authority: ADR-009 rev 7 Decision 20 / Decision 23 / per-block fixed-field minimum SHB=16), E-INP-010 (SHB framing/length failures on SUBSEQUENT blocks via next_raw_block: btl<12 / btl%4!=0 / EOF-before-trailer; also first-SHB IncompleteBuffer/EOF — crate rejects BEFORE returning block; wirerust never sees the body. NOTE: first-SHB btl-degenerate btl<12 is E-INP-008 not E-INP-010 per Decision 23), E-INP-012 (multi-section SHB reject — scope decision; pcap-file 2.0.0 handles multi-section correctly; wirerust rejects as out-of-scope; message includes `mergecap -w out.pcapng <file>` / editcap remediation hint per ADR-009 Decision 7) |
 
 ## Related BCs
 
