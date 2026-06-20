@@ -10,6 +10,19 @@ Archived session resume checkpoints (superseded). Latest checkpoint is in STATE.
 
 ---
 
+## Checkpoint D-170 (2026-06-20 — F4 STORY-123 ADVERSARIALLY CONVERGED)
+
+Superseded by D-171 checkpoint (STORY-123 MERGED / Wave 52 begins).
+
+- **Status:** F4 IN PROGRESS. STORY-123 (Wave 51) adversarially converged (3/3 clean passes, BC-5.39.001, D-170). Code on feature/STORY-123-pcapng-format-detect HEAD 48fe536 (1736 tests green, clippy/fmt clean).
+- **NEXT (at archive time):** demos → PR (pr-manager 9-step) → merge → worktree cleanup → Wave 52 (STORY-124).
+- **develop:** b73b242. **main:** b73b242. Zero divergence.
+- **F2:** CONVERGED + HUMAN-APPROVED (D-164). F3: GATE PASSED + HUMAN-APPROVED (D-168).
+- **STORY-123 convergence trajectory:** pass-1 (1C/2H) → pass-2 (2Maj) → pass-3 (1Maj) → CLEAN/CLEAN/CLEAN.
+- **Open items:** DNS-TUNNELING-COVERAGE-001, STORY-121, STORY-124..128 input-hashes STALE (ADR-009 rev 10), STORY-123-PIPE-FILLBUF-001, VP-026 re-scope (Phase-6), O-1 doc-precision (Phase-6).
+
+---
+
 ## Archived: F4 STORY-123 IN ADVERSARIAL CONVERGENCE — Pass-1 Remediated (D-169)
 
 **Archived when:** D-170 — STORY-123 adversarial convergence ACHIEVED (3 clean passes, BC-5.39.001). New checkpoint supersedes.

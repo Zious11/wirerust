@@ -147,7 +147,7 @@ traces_to:
 | STORY-119 | Terminal Finding-Collapse — Grouped Mode / --mitre (B: render path + CLI flip) | E-18 | 50 | 5 | completed | STORY-122 |
 | STORY-120 | TerminalReporter FindingsRender Enum Migration (v0.9.0) | E-8 | 48 | 3 | completed | — |
 | STORY-122 | FindingsRender enum→struct reshape + construction-site migration (byte-identical) | E-18 | 49 | 3 | completed | STORY-120 |
-| STORY-123 | pcapng Format Detection (Magic-Byte Probe) and SHB Parse | E-19 | 51 | 5 | draft | — |
+| STORY-123 | pcapng Format Detection (Magic-Byte Probe) and SHB Parse | E-19 | 51 | 5 | completed | — |
 | STORY-124 | IDB Parse (Link Type + if_tsresol), Interface Whitelist, and Multi-IDB Agreement | E-19 | 52 | 8 | draft | STORY-123 |
 | STORY-125 | EPB Parse and 64-bit Timestamp Normalization (Kani VP-025 + VP-027) | E-19 | 53 | 8 | draft | STORY-123, STORY-124 |
 | STORY-126 | SPB Parse, Explicit Block-Skip Dispatch (F-07), and Error-Surface Contract | E-19 | 54 | 8 | draft | STORY-123, STORY-124 |
@@ -301,7 +301,7 @@ traces_to:
 | 48 | STORY-120 | **DELIVERED & CLOSED** | #267 | f851995 | 2026-06-18 |
 | 49 | STORY-122 | **DELIVERED & CLOSED** | #268 | 8696448 | 2026-06-19 |
 | 50 | STORY-119 | **DELIVERED & CLOSED** | #269 | 181d5e2 | 2026-06-19 |
-| 51 | STORY-123 | draft | — | — | — |
+| 51 | STORY-123 | **DELIVERED & CLOSED** | #281 | e4b940b | 2026-06-20 |
 | 52 | STORY-124 | draft | — | — | — |
 | 53 | STORY-125 | draft | — | — | — |
 | 54 | STORY-126 | draft | — | — | — |
