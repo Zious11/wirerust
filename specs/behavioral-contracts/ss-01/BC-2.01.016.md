@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: product-owner
 timestamp: 2026-06-19T00:00:00Z
@@ -13,6 +13,7 @@ capability: CAP-02
 lifecycle_status: active
 introduced: v0.10.0-pcapng
 modified:
+  - "v1.2: Pass-2 remediation Burst P2b (ADR-009 rev 5) — (I-5/Decision 15 amendment) rewrite Description and Preconditions to make clear whitelist fires at IDB-PARSE TIME, not deferred to post-multi-IDB-check. Remove all text implying check is 'after all IDBs' or 'at first packet'. (I-11) add Test: citations to ACs. — 2026-06-19"
   - "v1.1: ADR-009 rev 4 Burst B — No VP assigned (test-sufficient; ADR-009 dispatch confirmed). Confirm mirrors BC-2.01.001 (CAP-02). Add no-panic AC (SEC-005). Add explicit mirror-confirmation note. Minimal normative change. — 2026-06-19"
 deprecated: null
 deprecated_by: null
@@ -27,18 +28,23 @@ removal_reason: null
 ## Description
 
 The link-type whitelist enforced by BC-2.01.001 for classic-pcap applies equally to pcapng.
-When the first (or only) IDB's `linktype` field carries a `DataLink` variant not in the
-accepted whitelist `{ETHERNET, RAW, IPV4, IPV6, LINUX_SLL}`, the reader MUST return an error
-with the same message format as BC-2.01.001 Postcondition 2. The check fires after all IDBs
-are parsed and the multi-IDB agreement check (BC-2.01.018) has passed; the accepted single
-`linktype` value is then checked against the whitelist. This preserves the invariant that
-`PcapSource.datalink` is always a whitelisted value, regardless of capture format.
+When an IDB's `linktype` field carries a `DataLink` variant not in the accepted whitelist
+`{ETHERNET, RAW, IPV4, IPV6, LINUX_SLL}`, the reader MUST return an error with the same
+message format as BC-2.01.001 Postcondition 2. The whitelist check fires at **IDB-PARSE
+TIME** — immediately when the IDB block body is decoded — before any packet block from that
+interface is consumed. A whitelist violation returns `Err` immediately at the IDB stage; no
+packets from the violating interface are ever read. This preserves the invariant that
+`PcapSource.datalink` is always a whitelisted value, regardless of capture format. The check
+does NOT wait until "after all IDBs are parsed" or "at first packet time".
 
 ## Preconditions
 
-1. The pcapng SHB and at least one IDB have been parsed.
-2. The multi-IDB agreement check (BC-2.01.018) has passed (all IDBs agree on `linktype`).
-3. The agreed `linktype` value is now being evaluated against the whitelist.
+1. The pcapng SHB has been parsed.
+2. The block-walk loop has reached an IDB block and decoded its body (the `linktype` field is
+   now available).
+3. **The whitelist check fires here — at IDB-parse time — before any packet block is
+   consumed from this interface.** There is no dependency on the multi-IDB agreement check
+   (BC-2.01.018); the whitelist fires independently per IDB as each IDB is parsed.
 
 ## Postconditions
 
@@ -58,13 +64,19 @@ are parsed and the multi-IDB agreement check (BC-2.01.018) has passed; the accep
 - **AC-001 (mirror of BC-2.01.001):** The link-type acceptance whitelist is IDENTICAL to
   BC-2.01.001: exactly `{ETHERNET, RAW, IPV4, IPV6, LINUX_SLL}` (5 variants). Any change
   to the whitelist is a coordinated breaking change to both BCs simultaneously.
+  **Test:** `test_BC_2_01_016_whitelist_mirrors_bc_2_01_001` — assert that the set of
+  accepted `DataLink` variants in the pcapng path equals `{ETHERNET, RAW, IPV4, IPV6,
+  LINUX_SLL}` and matches the classic-pcap whitelist.
 - **AC-002 (no-panic — SEC-005):** This whitelist check MUST return `Err` for any non-whitelisted
   `DataLink` variant. `unwrap()`, `expect()`, `panic!()`, and `unreachable!()` are prohibited.
   Since this is a pure match on an enum value, no panic path exists; this AC asserts that
   the implementation retains that property through any future enum variant additions.
+  **Test:** `test_BC_2_01_016_non_whitelisted_linktype_returns_err_no_panic` — inject
+  `DataLink::IEEE802_11` in a pcapng IDB; assert `Err`, no panic, no unwrap.
 - **AC-003 (no VP — test-sufficient):** No new formal VP is assigned to this BC per
   ADR-009 dispatch. The integration test covering BC-2.01.001's whitelist (STORY-126)
   is sufficient for this parallel check.
+  **Test:** Covered by STORY-126 integration suite; no additional VP file required.
 
 ## Invariants
 
@@ -72,8 +84,11 @@ are parsed and the multi-IDB agreement check (BC-2.01.018) has passed; the accep
    the whitelist is a breaking change to BOTH BC-2.01.001 and BC-2.01.016.
 2. The error message format is identical to BC-2.01.001 Postcondition 2 (E-INP-001); the
    same error taxonomy entry applies.
-3. This check is downstream of the multi-IDB agreement check; a multi-IDB conflict produces
-   E-INP-011 (BC-2.01.018), not E-INP-001.
+3. This check fires at IDB-parse time. The multi-IDB agreement check (BC-2.01.018) is a
+   separate, independent check that runs after the interface table is fully built. A
+   multi-IDB conflict produces E-INP-011 (BC-2.01.018), not E-INP-001. However, if any
+   individual IDB fails the whitelist check first (at IDB-parse time), E-INP-001 is
+   returned before the multi-IDB check can run.
 
 ## Edge Cases
 
@@ -81,7 +96,7 @@ are parsed and the multi-IDB agreement check (BC-2.01.018) has passed; the accep
 |----|-------------|-------------------|
 | EC-001 | pcapng IDB `linktype = ETHERNET` | Accepted; `PcapSource.datalink = ETHERNET` |
 | EC-002 | pcapng IDB `linktype = IEEE802_11` (numeric 105) | `Err` with message identical to BC-2.01.001 EC-001 |
-| EC-003 | pcapng with two IDBs, both `linktype = IEEE802_11` | Multi-IDB check passes (they agree); this whitelist check fires with IEEE802_11 → `Err` E-INP-001 |
+| EC-003 | pcapng with two IDBs, both `linktype = IEEE802_11` | Whitelist fires at IDB-parse time on the FIRST IDB → `Err` E-INP-001 immediately; the second IDB and the multi-IDB check are never reached |
 | EC-004 | pcapng with one IDB `linktype = LINUX_SLL` | Accepted; `PcapSource.datalink = LINUX_SLL` |
 | EC-005 | pcapng with zero IDBs (malformed) | Handled by BC-2.01.018 / BC-2.01.017; this check never reached |
 
@@ -116,7 +131,9 @@ are parsed and the multi-IDB agreement check (BC-2.01.018) has passed; the accep
 
 - BC-2.01.001 -- mirrors (identical whitelist; pcapng analog of classic-pcap link-type gate)
 - BC-2.01.011 -- depends on (linktype value extracted from IDB in BC-2.01.011)
-- BC-2.01.018 -- depends on (multi-IDB agreement check runs before this whitelist check)
+- BC-2.01.018 -- related (multi-IDB agreement check is independent; both check linktype but
+  at different stages — this BC fires at IDB-parse time, BC-2.01.018 fires after the full
+  interface table is built)
 
 ## Architecture Anchors
 

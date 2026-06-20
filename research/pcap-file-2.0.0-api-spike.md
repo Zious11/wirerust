@@ -428,3 +428,187 @@ rely on. If wirerust wants snaplen parity / enforcement, it must implement the
 overflow cluster as a live fix.** Do not wire the helper onto `EnhancedPacketBlock::timestamp`
 (double-application / lost-resolution hazard). This conclusion should be reflected in the F2
 pcapng spec remediation. (No spec was modified by this spike.)
+
+---
+
+# ADDENDUM — F2 pcapng raw-block path bootstrapping (HS-103 / BC-2.01.010 / IDB offsets)
+
+**Date:** 2026-06-19
+**Scope:** Three questions gating the F2 pcapng raw-block path. Authoritative source reading of
+the vendored crate (same source tree as above). All citations `file:line` relative to crate
+`src/` root, quoted verbatim.
+
+## VERDICTS (read first)
+
+1. **Does `RawBlock` expose the SHB body VERBATIM for self-detection?**
+   **YES — but with one critical nuance the F2 design MUST account for.** The `RawBlock.body`
+   field is the raw, uninterpreted block body, framed as `Cow::Borrowed(&slice[..body_len])`
+   (`block_common.rs:111,121`). For the SHB, the body begins at the **Byte-Order Magic (BOM)**:
+   the crate does NOT consume the BOM into the body. `body` starts at body offset 0 =
+   BOM(4) | major(2) | minor(2) | section_length(8) | options... — exactly the verbatim SHB
+   body layout. wirerust CAN read `RawBlock.body[0..4]` and self-detect section endianness from
+   the BOM. **Nuance:** `next_raw_block` / `RawBlock::from_slice` PEEKS the BOM internally
+   (`block_common.rs:80-86`) only to choose how to read the SHB's `initial_len` and to validate
+   the trailer — it does NOT strip or rewrite the body. So self-detection is both *possible* and
+   *redundant-but-harmless*: the crate already knows the endianness, but it leaves the BOM in the
+   body for you to re-derive. BC-2.01.010 raw BOM-detection is fully implementable on
+   `RawBlock.body`.
+
+2. **Is endianness bootstrapping handled such that BC-2.01.010 raw BOM-detection is
+   implementable?**
+   **YES.** The crate solves the chicken-and-egg (need endianness to read `block_total_length`,
+   but endianness lives in the BOM inside the body) by treating the SHB as a special case: it
+   reads the SHB `initial_len` as BigEndian, peeks the BOM, then byte-swaps `initial_len` if the
+   BOM says little-endian (`block_common.rs:76-89`). The `RawBlock` it returns has
+   `initial_len`/`trailer_len` **already resolved to native u32 values** AND `body` **left raw**
+   (BOM intact at body offset 0). So wirerust gets both: a correctly-framed block extent for
+   forward progress, AND the raw BOM to re-derive endianness for major/minor/section_length.
+   BC-2.01.010 is implementable: read `body[0..4]` as u32-BE, compare against `0x1A2B3C4D`
+   (big) / `0x4D3C2B1A` (little), then read major @4, minor @6, section_length @8 in the
+   detected endianness.
+
+3. **IDB snaplen byte offset — CONFIRM adversary C-1.**
+   **CONFIRMED: snaplen is at IDB body offset 4-7, with a 2-byte reserved field @2-3.** The
+   wire body field order is exactly: `linktype: u16 @0-1`, `reserved: u16 @2-3`,
+   `snaplen: u32 @4-7`. Source proves snaplen is NOT at offset 2. The crate additionally
+   *validates* `reserved == 0` and errors otherwise — a detail F2 should mirror or tolerate.
+
+---
+
+## Q-A1 — SHB raw-body exposure (KEYSTONE for HS-103 / BC-2.01.010)
+
+**Verdict: `RawBlock` exposes the SHB body VERBATIM starting at the BOM. The crate peeks the
+BOM to resolve framing but does NOT consume/rewrite it; `RawBlock.body[0]` = BOM byte 0.**
+
+`RawBlock` struct (`block_common.rs:54-64`):
+```rust
+pub struct RawBlock<'a> {
+    pub type_: u32,         // block type (resolved to native u32)
+    pub initial_len: u32,   // block_total_length (resolved to native u32)
+    pub body: Cow<'a, [u8]>,// raw block body, VERBATIM — BOM intact for SHB
+    pub trailer_len: u32,
+}
+```
+
+How `from_slice` frames the SHB (`block_common.rs:73-93`):
+```rust
+let type_ = slice.read_u32::<B>().unwrap();
+// Special case for the section header because we don't know the endianness yet
+if type_ == SECTION_HEADER_BLOCK {
+    let initial_len = slice.read_u32::<BigEndian>().unwrap();
+    // Check the first field of the Section header to find the endianness
+    let mut tmp_slice = slice;
+    let magic = tmp_slice.read_u32::<BigEndian>().unwrap();   // PEEK only — tmp_slice, not slice
+    let res = match magic {
+        0x1A2B3C4D => inner_parse::<BigEndian>(slice, type_, initial_len),
+        0x4D3C2B1A => inner_parse::<LittleEndian>(slice, type_, initial_len.swap_bytes()),
+        _ => Err(PcapError::InvalidField("SectionHeaderBlock: invalid magic number")),
+    };
+    return res;
+}
+```
+Key proof that the BOM survives into `body`: the magic peek is done on `tmp_slice` (a copy of
+the cursor, `:80-81`), so the real `slice` cursor is still positioned at the BOM when handed to
+`inner_parse`. Then `inner_parse` carves the body from offset 0 of that slice
+(`block_common.rs:110-111`):
+```rust
+let body_len = initial_len - 12;
+let body = &slice[..body_len as usize];   // body[0] == BOM byte 0
+```
+The 12 subtracted is type(4) + initial_len(4) + trailer_len(4) — i.e. the block header/trailer
+framing, NOT the BOM. The BOM is inside the body.
+
+**Contrast with the parsed path:** if wirerust instead used `Block`/`SectionHeaderBlock`, the
+crate consumes the BOM and hands back a resolved `endianness: Endianness` field with the BOM
+gone (`section_header.rs:19-21,47-52`). So self-detection is ONLY possible on the **raw** path —
+which is exactly the F2 raw-block path. On the raw path it is fully possible.
+
+**BC-2.01.010 implementability:** CONFIRMED. wirerust reads `raw_block.body[0..4]` as a u32 in
+big-endian, matches `0x1A2B3C4D` (section is big-endian) or `0x4D3C2B1A` (little-endian), and
+proceeds to read major/minor/section_length from the body at the offsets below in the detected
+endianness. This is the same logic the crate uses at `section_header.rs:47-52`.
+
+## Q-A2 — Endianness bootstrapping on the raw path
+
+**Verdict: The crate resolves SHB framing fields (`initial_len`, `trailer_len`) to native u32
+by peeking the BOM, while leaving the body raw. wirerust does NOT need to solve framing
+endianness itself, AND retains the raw BOM to detect body-field endianness. Both halves of the
+bootstrap are satisfied.**
+
+Mechanics, step by step (`block_common.rs:76-119`):
+1. SHB `type_` (`0x0A0D0D0A`) is endian-agnostic (palindromic magic), so it reads identically
+   either way (`:73`, const `:25`).
+2. `initial_len` is read as BigEndian first (`:77`), then the BOM is peeked (`:81`); if the BOM
+   is little-endian, `initial_len` is byte-swapped before use
+   (`:84` `initial_len.swap_bytes()`). So the returned `RawBlock.initial_len` is a correct
+   native value regardless of section endianness.
+3. The trailer length is read in the resolved endianness `B` and checked against `initial_len`
+   (`:115-119`): `if initial_len != trailer_len { return Err(...) }`. This is the forward-progress
+   / integrity guard; it is done FOR wirerust.
+4. The body (BOM-first) is returned raw (`:111,121`).
+
+**SHB body field offsets (for BC-2.01.010), derived from `section_header.rs:47-67`:**
+
+| Field | Body offset | Width | How crate reads it |
+|-------|-------------|-------|--------------------|
+| Byte-Order Magic (BOM) | 0 | 4 | `read_u32::<BigEndian>` then match (`section_header.rs:47`) |
+| major_version | 4 | 2 | `read_u16::<B>` (`:65`) |
+| minor_version | 6 | 2 | `read_u16::<B>` (`:66`) |
+| section_length | 8 | 8 (i64) | `read_i64::<B>` (`:67`) |
+| options | 16 | var | `opts_from_slice::<B>` (`:68`) |
+
+Note the crate reads the BOM itself in BigEndian and *matches the raw 32-bit value* against the
+two magic constants (`section_header.rs:47-52`) — it does NOT need to know endianness in advance
+because both magic constants are distinct 32-bit patterns. wirerust must do the same: read BOM
+as a fixed-endian u32 and compare, not "read then interpret."
+
+**Conclusion:** BC-2.01.010 raw BOM-detection is implementable. The crate already proves the
+exact algorithm at `section_header.rs:47-52` and proves the framing-bootstrap at
+`block_common.rs:76-89`. wirerust on the raw path gets resolved framing (free) + raw body
+(BOM intact) — everything needed for self-detection.
+
+## Q-A3 — IDB body field layout (confirms adversary C-1)
+
+**Verdict: CONFIRMED. IDB wire body is `linktype: u16 @0-1`, `reserved: u16 @2-3`,
+`snaplen: u32 @4-7`. snaplen is at body offset 4, NOT 2. The crate also validates
+`reserved == 0`.**
+
+Parse source (`interface_description.rs:40-57`), in read order = wire order:
+```rust
+if slice.len() < 8 {
+    return Err(PcapError::InvalidField("InterfaceDescriptionBlock: block length < 8"));
+}
+let linktype = (slice.read_u16::<B>().unwrap() as u32).into();  // @0-1  (u16)
+let reserved = slice.read_u16::<B>().unwrap();                  // @2-3  (u16)
+if reserved != 0 {
+    return Err(PcapError::InvalidField("InterfaceDescriptionBlock: reserved != 0"));
+}
+let snaplen = slice.read_u32::<B>().unwrap();                   // @4-7  (u32)
+let (slice, options) = InterfaceDescriptionOption::opts_from_slice::<B>(slice)?;
+```
+The reads are sequential off the body slice with no seeking, so offsets are cumulative:
+
+| Field | Body offset | Width | Cite |
+|-------|-------------|-------|------|
+| linktype | 0 | 2 (u16, widened to u32) | `interface_description.rs:45` |
+| reserved | 2 | 2 (u16, must be 0) | `interface_description.rs:47-50` |
+| snaplen | 4 | 4 (u32) | `interface_description.rs:52` |
+| options | 8 | var | `interface_description.rs:53` |
+
+**Adversary C-1 disposition:** the claim that snaplen sits at body offset 2 is WRONG. snaplen is
+at offset 4-7; a 2-byte reserved field occupies @2-3. Any F2 logic computing snaplen position
+must use offset 4. Additional crate behavior F2 should note: the crate REJECTS a non-zero
+reserved field (`:48-49`), and requires body length >= 8 before reading (`:41-42`). If F2's raw
+path hand-parses the IDB body, mirroring the `reserved == 0` check is optional (the spec leaves
+reserved "should be zero"), but the offsets are non-negotiable: linktype@0, reserved@2,
+snaplen@4.
+
+## Addendum summary table
+
+| Q | Topic | Verdict | Key cite |
+|---|-------|---------|----------|
+| A1 | SHB raw-body verbatim? | YES — `RawBlock.body[0]` = BOM byte 0; crate peeks BOM on `tmp_slice`, leaves real body raw | `block_common.rs:54-64,80-93,110-111,121` |
+| A2 | Endianness bootstrap implementable? | YES — framing (`initial_len`/trailer) resolved by crate; BOM left in body for self-detect; algorithm proven | `block_common.rs:76-119`, `section_header.rs:47-67` |
+| A3 | IDB snaplen offset | CONFIRMED @4-7; reserved u16 @2-3; linktype u16 @0-1; crate enforces reserved==0 | `interface_description.rs:45-53` |
+
+(No spec was modified by this addendum.)

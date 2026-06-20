@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: product-owner
 timestamp: 2026-06-19T00:00:00Z
@@ -14,6 +14,7 @@ lifecycle_status: active
 introduced: v0.10.0-pcapng
 modified:
   - "v1.1: F2 Burst-A remediation per ADR-009 rev 4 PO dispatch — (1) Corrected SPB body-relative fixed overhead to 4 bytes (original_len: u32 only; H-2 fix — was incorrectly stated as 20 bytes in the Description and Postcondition 1). (2) Corrected minimum block_total_length to 16 bytes (12 outer + 4 body-fixed); available padded-data bytes = block_total_length - 16. (3) Added explicit note: RawBlock `data` includes padding — caller MUST compute captured_len = min(original_len, snaplen) and strip accordingly. (4) Added SPB-without-IDB case as E-INP-009 (empty interface table; do NOT index idb[0] unguarded — H-4). (5) Added no-panic AC (SEC-005). (6) Removed incorrect 'block_total_length - 20' formula from Postcondition 1 (20 was the EPB overhead, not SPB). — 2026-06-19"
+  - "v1.2: Pass-2 remediation per ADR-009 rev 5 (I-4, I-11) — (I-4) EC-001 corrected: data bound changed from min(original_len, block_body_available) to min(original_len, snaplen, block_body_available) — consistent with PC1/Invariant-2 which both specify the three-way minimum. (I-11) Added Test: citations to all ACs. Added HS-107 holdout reference in Verification Properties. — 2026-06-19"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -69,15 +70,19 @@ specification. Timestamp fields on `RawPacket` are always set to zero for SPBs.
 - **AC-001 (snaplen from idb[0] — guarded):** wirerust MUST look up `snaplen` from the
   interface table at index 0. This access MUST be guarded: if the interface table is empty,
   return `Err` mapping to E-INP-009 rather than indexing an empty Vec.
+  **Test:** `test_BC_2_01_013_snaplen_lookup_guarded`
 - **AC-002 (padding strip):** The raw `data` slice from the crate INCLUDES padding bytes to
   the 4-byte boundary. wirerust MUST compute `captured_len = min(original_len, snaplen)` and
   slice to `captured_len` bytes before populating `RawPacket.data`. Handing the padded slice
   to downstream decoders verbatim is prohibited.
+  **Test:** `test_BC_2_01_013_padding_strip`
 - **AC-003 (no-panic, SEC-005):** This block parser MUST return `Err` for any malformed or
   truncated input; `unwrap()`, `expect()`, and `panic!()` are prohibited in the SPB parse path.
+  **Test:** `test_BC_2_01_013_no_panic_malformed`
 - **AC-004 (SPB_FIXED_OVERHEAD_BYTES = 4):** The named constant `SPB_FIXED_OVERHEAD_BYTES`
   MUST equal 4 (body-relative; `original_len: u32` only). This constant MUST NOT be confused
   with `EPB_FIXED_OVERHEAD_BYTES = 20`.
+  **Test:** `test_BC_2_01_013_fixed_overhead_constant`
 
 ## Invariants
 
@@ -96,7 +101,7 @@ specification. Timestamp fields on `RawPacket` are always set to zero for SPBs.
 
 | ID | Description | Expected Behavior |
 |----|-------------|-------------------|
-| EC-001 | SPB with `original_len > block body data` (truncated on disk) | Data slice bounded to `min(original_len, block_body_available)` bytes; `RawPacket.data.len() < original_len` |
+| EC-001 | SPB with `original_len > block body data` (truncated on disk) | Data slice bounded to `min(original_len, snaplen, block_body_available)` bytes; `RawPacket.data.len() < original_len` |
 | EC-002 | SPB where `original_len` exactly matches `snaplen` | Data sliced to `captured_len = original_len = snaplen`; no truncation |
 | EC-003 | SPB in file with multiple IDBs (spec violation) | Guard only checks `idb.is_empty()`; if non-empty, uses `idb[0].snaplen`; no panic; proceeds |
 | EC-004 | SPB with zero-byte data section (`original_len = 0`) | `RawPacket { data: vec![] }` produced |
@@ -123,6 +128,7 @@ specification. Timestamp fields on `RawPacket` are always set to zero for SPBs.
 | — | SPB-without-IDB returns E-INP-009, not panic | unit: SPB with empty interface table; assert Err(E-INP-009); no panic |
 | — | SPB padding stripped before RawPacket | unit: SPB with original_len not 4-byte aligned; assert data.len() == original_len (not padded length) |
 | — | Covered under VP-028 (cargo-fuzz) for full no-panic coverage | fuzz: fuzz SPB bytes, assert no panic (F6 hardening deliverable) |
+| HS-107 | SPB holdout scenario: real-world pcapng file with SPB blocks validates end-to-end ingestion correctness and no false positives/negatives on SPB-carrying captures | holdout evaluation (Phase 4); see `.factory/specs/holdout-scenarios/HS-107.md` |
 
 ## Traceability
 

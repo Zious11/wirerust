@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-06-19T00:00:00Z
@@ -15,6 +15,7 @@ introduced: v0.10.0-pcapng
 modified:
   - "v1.1: F-07 completeness delta — explicitly enumerate all pcap-file Block variants that fall through to the skip path (NRB, ISB, DSB, SystemdJournalExport, obsolete Packet Block 0x2, Unknown); note that obsolete Packet Block 0x2 carries packet data but is treated as out-of-scope/skipped; add AC to prevent omitted match arm at implementation. — 2026-06-19"
   - "v1.2: F2 Burst-A remediation per ADR-009 rev 4 PO dispatch — (1) VP-029 added to Verification Properties. (2) EC-004 CORRECTED: `block_total_length = 8` is REJECTED by the crate (`block_common.rs:101`: `< 12` threshold), NOT '0 bytes consumed; no error'. Removed the false 'no error' claim; replaced with crate-accurate reject behavior. (3) EC-005 updated accordingly (threshold is now < 12, not < 8). (4) Added forward-progress invariant: block-walk loop MUST break on Err(_); the crate cursor does NOT advance on error (`read_buffer.rs:65`). (5) On the raw-block path, skip means ignoring the RawBlock body bytes (already in the body slice); the loop-break-on-error invariant covers all block types. (6) DSB log-guard note (SEC-007) added to AC-002: block body bytes MUST NOT be logged at any level. (7) Corrected AC-001 entry for DSB: DSB (type 0x0A) is NOT a named pcap-file Block variant — it arrives as Block::Unknown on the high-level API; on the raw-block path, block-type dispatch reads bytes 0-3 of each RawBlock body — no named DSB arm exists. (8) Added no-panic AC (SEC-005). — 2026-06-19"
+  - "v1.3: Pass-2 remediation per ADR-009 rev 5 (C-3, I-3, I-11) — (C-3) Canonical Test Vector body-byte count corrected: block_total_length=20 has 20-12=8 body bytes (not 12; pcapng frame overhead is 12 bytes: type:4 + total_len:4 + trailing_total_len:4). Test vector updated accordingly. (I-3) Added skipped_blocks counter concept and cross-reference to BC-2.01.009 for the one-shot stderr notice: when packet-bearing blocks are skipped and packet count reaches zero on a non-empty file, BC-2.01.009 emits a one-shot E-INP-007-style notice with the count of skipped blocks (no body bytes logged — SEC-007). BC-2.01.015 owns the counter; emission is BC-2.01.009's responsibility. Added Postcondition 9 and AC-006. (I-11) Added Test: citations to all ACs. — 2026-06-19"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -61,6 +62,13 @@ error, so retrying the same source after an error would spin (CWE-835).
 8. If the crate returns `Err(_)` for any block (including a malformed unknown block), the
    block-walk loop MUST break immediately. The loop MUST NOT retry the same source after
    an error.
+9. BC-2.01.015 maintains a `skipped_blocks: u64` counter incremented once per skipped block
+   (any block falling through to the skip arm). This counter is passed to the caller context
+   at end-of-file. When the resulting packet list is empty AND the source file is non-empty AND
+   `skipped_blocks > 0`, the one-shot stderr notice (owned by BC-2.01.009, mirroring the
+   E-INP-007 discipline) is emitted with the count of skipped blocks. Block body bytes MUST NOT
+   appear in this notice (SEC-007). This cross-reference is bidirectional: BC-2.01.015 owns
+   the counter; BC-2.01.009 owns the emission.
 
 ## Acceptance Criteria
 
@@ -76,22 +84,35 @@ error, so retrying the same source after an error would spin (CWE-835).
     named variant in `pcap_file::pcapng::Block` — there is no `DecryptionSecrets` enum arm.
     On the raw-block path, DSB arrives as a `RawBlock` with block-type bytes `0x0000000A` and
     is handled by the skip arm. Do NOT attempt to name-match on a DSB enum variant.
+  **Test:** `test_BC_2_01_015_dispatch_known_and_skip_unknown`
 - **AC-002 (no output at any log level, SEC-007):** For each block type on the skip path, the
   skip MUST NOT emit any warning, error, finding, or log entry at any log level (trace, debug,
   info, warn, error). Block body bytes MUST NOT be logged, printed, or included in any
   diagnostic output. DSB (type `0x0000000A`) carries TLS key material; logging its bytes
   would be a security violation.
+  **Test:** `test_BC_2_01_015_no_output_on_skip`
 - **AC-003 (OPB is skipped, not parsed):** OPB (type `0x00000002`) carries packet data but is
   an obsolete/deprecated block superseded by EPB. wirerust treats it as out-of-scope and skips
   it silently. OPB packet data is intentionally NOT ingested. Captures relying solely on OPB
   will yield zero packets from those blocks.
+  **Test:** `test_BC_2_01_015_opb_skipped_not_parsed`
 - **AC-004 (forward-progress / loop-break-on-error):** The block-walk loop MUST `break` (or
   return) on any `Err(_)` from the crate's block reader. The documented rustdoc example
   with an empty `Err(_) => {}` arm is WRONG and MUST NOT be copied — it would spin on the
   same error indefinitely because the crate does NOT advance the cursor on error
   (`read_buffer.rs:65`).
+  **Test:** `test_BC_2_01_015_loop_break_on_error`
 - **AC-005 (no-panic, SEC-005):** The skip path and the block-walk loop MUST NOT contain
   `unwrap()`, `expect()`, or `panic!()` reachable from the skip arm.
+  **Test:** `test_BC_2_01_015_no_panic_skip_path`
+- **AC-006 (skipped_blocks counter and zero-packet notice, cross-ref BC-2.01.009):**
+  The block-walk loop MUST maintain a `skipped_blocks: u64` counter, incrementing it once per
+  block entering the skip arm. At end-of-file, if the packet list is empty, the source file is
+  non-empty, and `skipped_blocks > 0`, the one-shot notice is delegated to BC-2.01.009 (which
+  emits a single stderr line with the skipped-block count following the E-INP-007 discipline).
+  The notice MUST NOT include block body bytes (SEC-007). The counter itself MUST NOT overflow
+  (use saturating_add or u64 — realistic file sizes cannot approach u64::MAX blocks).
+  **Test:** `test_BC_2_01_015_skipped_blocks_counter_and_notice`
 
 ## Invariants
 
@@ -129,7 +150,7 @@ error, so retrying the same source after an error would spin (CWE-835).
 | Input | Expected Output | Category |
 |-------|----------------|----------|
 | pcapng file with ISB before final EPB | ISB skipped silently; final EPB produces `RawPacket` | happy-path |
-| Block with type `0xDEADBEEF`, `block_total_length=20` | 12 body bytes discarded (20 - 8 block-header = 12), no error, no packet | edge-case |
+| Block with type `0xDEADBEEF`, `block_total_length=20` | 8 body bytes discarded (20 - 12 frame overhead = 8; overhead: type:4 + total_len:4 + trailing_total_len:4), no error, no packet | edge-case |
 | Block with `block_total_length=8` | `Err` returned by crate (rejected at `< 12` threshold); loop breaks | error (EC-004) |
 | Unknown block followed by EPB | Unknown block skipped; EPB parsed normally | happy-path |
 | DSB (type `0x0000000A`) followed by EPB | DSB body discarded without logging; EPB produces RawPacket | edge-case (EC-012) |

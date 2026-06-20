@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: product-owner
 timestamp: 2026-06-19T00:00:00Z
@@ -13,6 +13,7 @@ capability: CAP-01
 lifecycle_status: active
 introduced: v0.10.0-pcapng
 modified:
+  - "v1.2: Pass-2 P2a remediation — I-12: PC3/Invariant-1 restated in observable terms: 'the probe consumes no bytes; the next read returns the byte that was at offset 0' (BufReader::fill_buf peek semantics); removed unobservable 'stream positioned at byte 0' phrasing. Clarified pcapng branch also receives the un-consumed reader (RawBlock reads from the same stream). I-3 zero-packet trap: added PC6 — when a non-empty pcapng file parses cleanly but yields ZERO packets because all packet-bearing blocks were skipped (OPB / unknown block types), the reader emits a ONE-SHOT stderr notice including the skipped-block count (from BC-2.01.015 counter; no block bodies logged — SEC-007); exit code remains 0. I-11: added Test: citations per AC. — 2026-06-19"
   - "v1.1: H5-1 remediation — Postcondition 1 reworded: removed over-promise 'with at least one readable packet'; now reads 'returns Ok(PcapSource) for a valid pcapng file; packets contains one RawPacket per readable EPB/SPB in encounter order (possibly empty)'. packets.len() > 0 assertion demoted to fixture-specific test vector annotation for smb3.pcapng only, not a general postcondition. Parity with BC-2.01.002 EC-001 (empty pcapng) and OPB-only zero-packet case established. — 2026-06-19"
 supersedes: BC-2.01.004
 deprecated: null
@@ -38,7 +39,9 @@ its postconditions from rejection to acceptance.
 ## Preconditions
 
 1. A readable byte stream is passed to `PcapSource::from_pcap_reader`.
-2. The stream supports non-destructive peek (wrapping in `std::io::BufReader` is sufficient).
+2. The stream supports non-destructive peek via `BufReader::fill_buf()` + `consume(4)`;
+   wrapping any `Read` implementation in `std::io::BufReader` is sufficient, and this pattern
+   works on non-seekable streams (pipes, sockets) with no seek required.
 3. At least 4 bytes are available at the start of the stream.
 
 ## Postconditions
@@ -50,18 +53,36 @@ its postconditions from rejection to acceptance.
    `packets.len() == 0`).
 2. When the first 4 bytes are a valid classic-pcap magic, the classic-pcap path (`PcapReader`)
    is taken exactly as before this feature; all classic-pcap behavioral contracts remain valid.
-3. The peek operation MUST NOT advance the stream position. After the probe, the stream
-   must still be positioned at byte 0.
+3. The probe consumes no bytes from the underlying stream: implemented via
+   `BufReader::fill_buf()` (which peeks without advancing) followed by reading 4 bytes from
+   the filled buffer, then `consume(4)` only after the routing decision is committed and
+   the downstream parser is ready to take over. Observable invariant: the next read on the
+   stream returns the byte that was at offset 0 before the probe. The pcapng branch receives
+   the same un-consumed `BufReader` reader; `RawBlock`/`next_raw_block` reads from that same
+   stream starting at byte 0 (spike confirms `RawBlock.body` begins at the BOM, which is the
+   first byte of the stream body).
 4. When the first 4 bytes match neither format, returns `Err` with context indicating the
    unrecognized magic.
 5. The `smb3.pcapng` fixture (formerly the negative-assertion fixture for BC-2.01.004)
    MUST now return `Ok(PcapSource)` with the correct packet count and link type.
+6. (Zero-packet silent-trap prevention — I-3) When a non-empty pcapng file parses cleanly
+   but yields ZERO packets because all packet-bearing blocks were skipped (Obsolete Packet
+   Block / `Block::Unknown` block types not supported as packet sources), the reader emits a
+   ONE-SHOT stderr notice including the count of skipped blocks (sourced from BC-2.01.015's
+   per-block-type skip counter; no block body content is logged — SEC-007 compliance). The
+   notice is emitted once per file, not once per skipped block. Exit code remains 0 (the
+   file is structurally valid). This prevents a silent false-negative where a pcapng file
+   appears to succeed but produces no analysis output.
 
 ## Invariants
 
-1. The probe reads exactly 4 bytes and consumes none of them from the underlying stream.
+1. The probe peeks exactly 4 bytes without consuming them; the next read on the `BufReader`
+   returns the byte that was at offset 0 before the probe. This is observable in tests via
+   `BufReader::fill_buf()` before and after the probe — the filled buffer must be identical.
+   This formulation is testable on non-seekable streams (pipes) where `seek(SeekFrom::Start(0))`
+   is not available (EC-005).
 2. The classic-pcap path is structurally unchanged: after probing, the classic branch passes
-   the stream — still positioned at byte 0 — to `PcapReader::new` exactly as before.
+   the `BufReader` — with byte 0 still unconsumed — to `PcapReader::new` exactly as before.
 3. Both `from_file` and `from_pcap_reader` route through the same probe; the probe is not
    duplicated.
 4. The pcapng SHB magic (`0x0A0D0D0A`) is endian-independent as a 4-byte literal; it reads
@@ -71,12 +92,13 @@ its postconditions from rejection to acceptance.
 
 | ID | Description | Expected Behavior |
 |----|-------------|-------------------|
-| EC-001 | `smb3.pcapng` (previously a rejection fixture) | Returns `Ok(PcapSource)` with correct packet count; link type from IDB |
-| EC-002 | Classic `.pcap` file passed alongside pcapng (directory mode) | Both succeed; each routes via the correct probe branch |
-| EC-003 | Stream under 4 bytes (truncated header) | Returns `Err` wrapping the short-read error |
-| EC-004 | File with 4-byte content that is neither pcap nor pcapng magic | Returns `Err` with unrecognized magic context |
-| EC-005 | Non-seekable `Read` stream (pipe) | Probe uses `BufReader::fill_buf()` + `consume()`; works on non-seekable streams |
-| EC-006 | Classic nanosecond-resolution pcap (`0xA1B23C4D`) | Routed to classic-pcap path; timestamp resolution handled by existing `TsResolution` branch |
+| EC-001 | `smb3.pcapng` (previously a rejection fixture) | Returns `Ok(PcapSource)` with correct packet count; link type from IDB. **Test:** `test_BC_2_01_009_smb3_pcapng_accepted` |
+| EC-002 | Classic `.pcap` file passed alongside pcapng (directory mode) | Both succeed; each routes via the correct probe branch. **Test:** `test_BC_2_01_009_mixed_directory_routing` |
+| EC-003 | Stream under 4 bytes (truncated header) | Returns `Err` wrapping the short-read error. **Test:** `test_BC_2_01_009_stream_under_4_bytes` |
+| EC-004 | File with 4-byte content that is neither pcap nor pcapng magic | Returns `Err` with unrecognized magic context. **Test:** `test_BC_2_01_009_unrecognized_magic` |
+| EC-005 | Non-seekable `Read` stream (pipe) | Probe uses `BufReader::fill_buf()` (peek, no seek) then routes; byte 0 remains the next readable byte after probe; works on non-seekable streams. **Test:** `test_BC_2_01_009_pipe_stream_probe_observable` (assert next-byte == original byte-0 after probe) |
+| EC-006 | Classic nanosecond-resolution pcap (`0xA1B23C4D`) | Routed to classic-pcap path; timestamp resolution handled by existing `TsResolution` branch. **Test:** `test_BC_2_01_009_nanosecond_pcap_routing` |
+| EC-007 | Non-empty pcapng with zero EPB/SPB (all OPB or Unknown blocks) | `Ok(PcapSource)` with `packets.len() == 0`; one-shot stderr notice emitted with skipped-block count; exit code 0. **Test:** `test_BC_2_01_009_zero_packet_opb_only_notice` |
 
 ## Canonical Test Vectors
 
@@ -92,9 +114,10 @@ its postconditions from rejection to acceptance.
 
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| — | Probe does not advance stream position | unit: `fill_buf()` then verify stream still starts at byte 0 |
+| — | Probe consumes no bytes — observable: next read returns byte-0 | unit: `fill_buf()` before probe, capture buf[0]; after probe `fill_buf()` again; assert identical; works on pipe (non-seekable). Covers I-12 observable reformulation. |
 | — | Classic-pcap test suite fully green after probe insertion | regression: all prior reader tests pass |
 | — | pcapng file returns `Ok` not `Err` | unit: `from_file(smb3.pcapng)` returns `Ok` |
+| — | Zero-packet OPB-only pcapng emits one-shot stderr notice (PC6 / I-3) | unit: craft pcapng with only OPB blocks; assert `packets.len()==0`, assert stderr contains "skipped" with block count, assert exit code 0, assert notice emitted exactly once |
 
 ## Traceability
 

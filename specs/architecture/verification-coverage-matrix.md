@@ -2,7 +2,7 @@
 artifact: architecture-section
 section: verification-coverage-matrix
 traces_to: ARCH-INDEX.md
-version: "1.13"
+version: "1.14"
 status: verified
 producer: architect
 timestamp: 2026-05-20T00:00:00Z
@@ -61,6 +61,9 @@ modified:
   - date: 2026-06-19
     actor: architect
     reason: "F2 pcapng remediation (ADR-009 rev 4): VP-025 through VP-030 added (SS-01 pcapng, reader.rs). New module row reader.rs added. Kani 11→14 (VP-025, VP-026, VP-027); proptest 7→9 (VP-029, VP-030); cargo-fuzz 1→2 (VP-028). Total 24→30. Totals row updated. Version bump 1.12→1.13."
+  - date: 2026-06-19
+    actor: architect
+    reason: "Pass-2 adversarial remediation (ADR-009 rev 5, I-1/I-2): VP-025/VP-026/VP-027 Module cell in VP-to-Module table re-anchored from 'reader.rs' to 'reader.rs (pcapng_pure_core fns) [b]'. reader.rs Per-Module row annotated [b]. Footnote [b] and coverage note added: Kani targets are pure-core sub-functions within reader.rs (not from_pcap_reader); VP-025 Kani unwind bound must be resolved before STORY-125 F3 decomposition. No VP counts, tool counts, or Totals row values changed. Version bump 1.13→1.14."
 ---
 
 # Verification Coverage Matrix
@@ -93,9 +96,9 @@ modified:
 | VP-022 | Modbus MBAP parse safety + FC boundary classification | analyzer/modbus.rs | Kani | P1 | verified |
 | VP-023 | DNP3 DL frame parse safety + FC classification + frame_len arithmetic | analyzer/dnp3.rs | Kani | P1 | verified |
 | VP-024 | ARP frame parse safety (extract_arp_frame) + GARP totality + binding-table cap | analyzer/arp.rs | Kani | P1 | verified |
-| VP-025 | pcapng timestamp conversion totality: no panic, ts_usecs in [0,999999], saturating arithmetic for all (u32,u32,u8) | reader.rs | Kani | P1 | draft |
-| VP-026 | pcapng SHB parse safety: no panic, byte-order BOM detection correct (LE/BE), Err for <28 bytes | reader.rs | Kani | P1 | draft |
-| VP-027 | pcapng EPB parse safety: no panic, interface_id bounds-check, guard-before-allocate, Err for invalid fields | reader.rs | Kani | P1 | draft |
+| VP-025 | pcapng timestamp conversion totality: no panic, ts_usecs in [0,999999], saturating arithmetic for all (u32,u32,u8) | reader.rs (pcapng_pure_core fns) [b] | Kani | P1 | draft |
+| VP-026 | pcapng SHB parse safety: no panic, byte-order BOM detection correct (LE/BE), Err for <28 bytes | reader.rs (pcapng_pure_core fns) [b] | Kani | P1 | draft |
+| VP-027 | pcapng EPB parse safety: no panic, interface_id bounds-check, guard-before-allocate, Err for invalid fields | reader.rs (pcapng_pure_core fns) [b] | Kani | P1 | draft |
 | VP-028 | pcapng reader no-panic (cargo-fuzz fuzz_pcapng_reader, F6 hardening) | reader.rs | cargo-fuzz | P1 | draft |
 | VP-029 | pcapng block-walk skip: always terminates, Err-breaks loop, cursor advances >= 12 bytes per Ok | reader.rs | proptest | P1 | draft |
 | VP-030 | pcapng multi-IDB linktype agreement totality: all-equal → Ok, first-conflict → Err(E-INP-011) | reader.rs | proptest | P1 | draft |
@@ -121,7 +124,7 @@ modified:
 | analyzer/modbus.rs | 1 (VP-022) | 0 | 0 | 0 | 1 |
 | analyzer/dnp3.rs | 1 (VP-023) | 0 | 0 | 0 | 1 |
 | analyzer/arp.rs | 1 (VP-024) [a] | 0 | 0 | 0 | 1 |
-| reader.rs | 3 (VP-025, VP-026, VP-027) | 2 (VP-029, VP-030) | 1 (VP-028) | 0 | 6 |
+| reader.rs | 3 (VP-025, VP-026, VP-027) [b] | 2 (VP-029, VP-030) | 1 (VP-028) | 0 | 6 |
 | **Totals** | **14** | **9** | **2** | **5** | **30** |
 
 
@@ -172,10 +175,28 @@ modified:
   the sole formal VP touching reporter/terminal.rs; its scope is unchanged.
 
 - VP-025 through VP-030 (reader.rs) are status=draft pending BC revisions by the PO
-  per ADR-009 rev 4 PO BC-Change Dispatch and F3 story decomposition. VP-028
+  per ADR-009 rev 4/5 PO BC-Change Dispatch and F3 story decomposition. VP-028
   (cargo-fuzz) is explicitly an F6 hardening deliverable; it is NOT expected to be
   exercised in F3/F4. VP-025, VP-026, VP-027 (Kani) and VP-029, VP-030 (proptest)
   will transition to verified at F6 per the VP-022/VP-023/VP-024 lifecycle pattern.
+
+  [b] **VP-025 / VP-026 / VP-027 module anchor: reader.rs (pcapng_pure_core fns)**
+  (I-1 resolution, ADR-009 rev 5). Kani targets are pure-core helper functions
+  colocated in `src/reader.rs` as private functions, NOT the effectful
+  `from_pcap_reader<R: Read>` top-level entry point (which cannot be Kani-proved due
+  to I/O). Per-module row anchor is `reader.rs` (the compilation unit); the `[b]`
+  annotation signals the proof harnesses target pure-core sub-functions within it,
+  mirroring the VP-024 `[a]` annotation (umbrella anchor to arp.rs, Sub-A harnesses
+  authored in decoder.rs). VP-028 (cargo-fuzz) correctly targets `from_pcap_reader`
+  — the effectful entry point, appropriate for fuzzing. VP-029 and VP-030 (proptest)
+  target pure predicate/aggregation logic extracted from the block-walk and multi-IDB
+  policy layers within reader.rs.
+
+  VP-025 Kani unwind note (I-2): the base-10 branch of
+  `pcapng_timestamp_to_secs_usecs` uses `checked_pow` (iterative). The harness MUST
+  either (A) use a precomputed power-of-ten lookup (preferred — no loop, trivially
+  bounded) or (B) carry `#[kani::unwind(128)]`. Without one of these, Kani's default
+  unwind=1 produces a vacuous proof. See ADR-009 rev 5 VP-025 Kani Provability Note.
 
 - `module-criticality.md` defines kill-rate targets that constrain the minimum proof
   depth for each module. CRITICAL modules (reassembly/segment.rs, reassembly/flow.rs,

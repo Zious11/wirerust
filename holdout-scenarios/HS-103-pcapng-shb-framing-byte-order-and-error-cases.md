@@ -1,7 +1,7 @@
 ---
 document_type: holdout-scenario
 level: ops
-version: "1.2"  # BOM-3 fix: corrected Case A BOM on-disk bytes from 4D 3C 2B 1A (LE) to 1A 2B 3C 4D (BE); corrected case title and prose that misnamed 0x4D3C2B1A as the BE sentinel
+version: "1.3"  # I-8 fix: corrected Case C expected error code from E-INP-008 to E-INP-010. A block_total_length < 28 (or a 15-byte file where the crate cannot frame the block) is rejected by the pcap-file crate before wirerust body-decode runs — the crate returns Err, which wirerust maps to E-INP-010 (unframed/truncated block). E-INP-008 applies only when the crate successfully frames the SHB body but the body is < 28 bytes of fixed fields — a distinct path that requires block_total_length >= 12 but body < 28. BOM-3 fix (v1.2): corrected Case A BOM on-disk bytes from 4D 3C 2B 1A (LE) to 1A 2B 3C 4D (BE); corrected case title and prose that misnamed 0x4D3C2B1A as the BE sentinel
 status: draft
 producer: product-owner
 timestamp: 2026-06-19T00:00:00Z
@@ -69,14 +69,22 @@ mandatory error returns.
    occurs. The error message indicates the file could not be parsed (it need not expose the
    specific byte values, but must not be a bare panic backtrace).
 
-### Case C — SHB truncated at byte 15 (total block < 28 bytes) → Err with E-INP-008
+### Case C — SHB truncated at byte 15 (total block < 28 bytes) → Err with E-INP-010
 
-1. A file is presented where the SHB block begins but block_total_length is set to 16 (below
-   the 28-byte minimum required: 12 outer header + 16 body fixed fields). Alternatively,
-   the file contains only 15 bytes total — fewer than the minimum SHB requires.
-2. The user runs `wirerust analyze truncated_shb.pcapng --json`.
+1. A file is presented that contains only 15 bytes total — fewer than the minimum an SHB
+   requires. The pcap-file crate cannot frame the block (block_total_length cannot even be
+   fully read), so it returns `Err` before wirerust body-decode code runs. wirerust maps
+   this crate-level framing error to **E-INP-010** (truncated/unframed block). Note: a
+   block_total_length = 16 case (12-byte outer header + 4 bytes of body) would also be
+   rejected as structurally invalid, and also maps to E-INP-010 since the crate-level
+   framing check fires. E-INP-008 applies only when the crate successfully frames an SHB
+   body but that body is < 16 fixed-bytes wide (BOM:4 + major:2 + minor:2 + section_len:8)
+   — which requires block_total_length >= 12 but body < 28. That distinct path is NOT
+   exercised by a 15-byte file.
+2. The user runs `wirerust analyze truncated_shb.pcapng --json 2>&1`.
 3. The tool exits non-zero. An error is printed to stderr referencing a truncated or
-   malformed file. No packets are emitted. No panic occurs.
+   malformed file. The error is consistent with E-INP-010 (not E-INP-008). No packets are
+   emitted. No panic occurs.
 
 ## Behavioral Contract Linkage
 
@@ -85,7 +93,7 @@ mandatory error returns.
 | BC-2.01.010 | Postcondition 1 — SHB with LE BOM accepted | (Baseline; covered by Cases A/B/C setup infrastructure) |
 | BC-2.01.010 | Postcondition 2 — SHB with BE BOM (on-disk `1A 2B 3C 4D`, u32 value 0x1A2B3C4D) accepted; subsequent fields decoded BE | Case A: the BE-magic path must be recognized and used |
 | BC-2.01.010 | Postcondition 3 — SHB with invalid BOM returns Err | Case B: invalid BOM must produce a graceful error, not a panic or silent wrong-decode |
-| BC-2.01.010 | Postcondition 4 / E-INP-008 — SHB block_total_length < 28 returns Err(E-INP-008) | Case C: truncated SHB below minimum size produces E-INP-008 |
+| BC-2.01.010 | Postcondition 4 / E-INP-010 — SHB block_total_length < 12 (crate can't frame block) returns Err(E-INP-010) | Case C: 15-byte file can't be framed by crate → crate Err → wirerust E-INP-010 (not E-INP-008, which requires a successfully-framed body) |
 | BC-2.01.010 | No-panic invariant (SEC-005 AC) — must return Err for any malformed/truncated input | All cases: no panic permitted |
 
 ## Verification Approach
@@ -106,8 +114,9 @@ Expect: non-zero exit, error text on stderr, no JSON on stdout.
 wirerust analyze truncated_shb.pcapng --json 2>&1
 echo "Exit: $?"
 ```
-Expect: non-zero exit, error text on stderr referencing a parse or format error,
-no JSON on stdout.
+Expect: non-zero exit, error text on stderr referencing a truncated or malformed block
+(E-INP-010 — crate-level framing failure; NOT E-INP-008 which is a body-decode error
+on a successfully-framed-but-too-short SHB body), no JSON on stdout.
 
 For Case A, an additional check: if the BE-decoded EPB linktype is Ethernet (1), and a
 minimal valid Ethernet frame is present, the packet should appear in the output with
@@ -145,5 +154,5 @@ indicate the BE byte-order path is broken.
 "HOLDOUT LOW: HS-103 (satisfaction: 0.XX) — pcapng SHB framing has defects.
 Case A failure (exit non-zero) indicates BE byte-order detection is absent or broken.
 Case B failure (exit 0 or panic) indicates invalid BOM is not being rejected.
-Case C failure (exit 0 or panic) indicates truncated SHB is not being rejected.
+Case C failure (exit 0, panic, or wrong error code E-INP-008 instead of E-INP-010) indicates the crate-level framing-error path is not being mapped correctly; a 15-byte file cannot provide a full SHB outer header and must map to E-INP-010.
 See BC-2.01.010, VP-026, and ADR-009 Decision 2."

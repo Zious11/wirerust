@@ -8,9 +8,9 @@ sources:
   - performance-review
   - adversarial-spec-review-pass2 (ADV-F2-PASS2)
 date_created: 2026-06-19
-status: PASS2-REMEDIATED
+status: PASS2-CONSISTENCY-VERIFIED
 f3_blocked: true
-f3_blocker_reason: "Adversarial reconvergence required (3 clean passes). Pass-1 items addressed (D-142/D-143). Pass-2 items addressed (D-144). Pass-3 not yet dispatched."
+f3_blocker_reason: "Adversarial reconvergence required (3 clean passes). Pass-1 items addressed (D-142/D-143). Pass-2 items addressed (D-144). Pass-2 cross-seam re-audit CLEAN (D-145). Pass-3 not yet dispatched."
 ---
 
 # F2 Review Remediation Tracker — pcapng Reader
@@ -185,3 +185,17 @@ F3 story decomposition is **BLOCKED** until:
 3. pcap-file 2.0.0 API spike complete (unblocks H-1 final form, H-2, H-6, M-2, SEC-002/008)
 4. VP-NNN assigned to all 10 BCs (C-3 resolved) — COMPLETE (D-142)
 5. Pass-2 items remediated — COMPLETE (D-144): C-1/C-2/C-3/C-4/I-1..I-14 ALL FIXED (pending pass-3 verification)
+6. Pass-2 cross-seam consistency re-audit — COMPLETE (D-145): CLEAN on all 12 seams; FINDING-P2-001 FIXED (see below)
+
+---
+
+## Pass-2 Cross-Seam Consistency Re-Audit (D-145 — 2026-06-19)
+
+**Audit report:** `.factory/cycles/feature-pcapng-reader/f2-consistency-audit.md` (v2.0 append)
+**Verdict:** CLEAN — 12/12 seams pass. 1 LOW finding identified and fixed.
+
+| ID | Severity | Seam | Finding | Status |
+|----|----------|------|---------|--------|
+| FINDING-P2-001 | LOW | Seam 8 — ADR-009 HS-completeness map | ADR-009 rev 5 HS-completeness map listed HS-107 with status DRAFT (stale); HS-107 was AUTHORED in the D-144 burst but the map was not updated. | FIXED — architect updated ADR-009 rev 5 HS-map: HS-107 now AUTHORED. ADR stays rev 5. (D-145) |
+
+All other seams (1-7, 9-12) verified CLEAN against disk.

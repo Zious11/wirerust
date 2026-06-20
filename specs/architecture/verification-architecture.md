@@ -2,7 +2,7 @@
 artifact: architecture-section
 section: verification-architecture
 traces_to: ARCH-INDEX.md
-version: "1.9"
+version: "2.0"
 status: verified
 producer: architect
 timestamp: 2026-05-20T00:00:00Z
@@ -49,6 +49,9 @@ modified:
   - date: 2026-06-19
     actor: architect
     reason: "F2 pcapng remediation (ADR-009 rev 4): VP-025 through VP-030 added to Should Prove table (all P1, SS-01 pcapng reader). VP-025 Kani (timestamp totality); VP-026 Kani (SHB parse safety); VP-027 Kani (EPB parse safety + interface_id bounds); VP-028 cargo-fuzz (pcapng reader no-panic, F6 deliverable); VP-029 proptest (block-walk skip + forward progress); VP-030 proptest (multi-IDB linktype totality). Tooling Selection table Kani row updated 11→14; proptest row updated 7→9; fuzz row updated 1→2. P1 count 10→16. Total 24→30. Version bump 1.8→1.9."
+  - date: 2026-06-19
+    actor: architect
+    reason: "Pass-2 adversarial remediation (ADR-009 rev 5, I-1/I-2): VP-025/VP-026/VP-027 Module cell in Should Prove table updated from 'reader.rs' to 'reader.rs (pcapng_pure_core fns) [b]' — Kani targets pure-core helper functions, not the effectful from_pcap_reader entry point. VP-028/029/030 module unchanged. Footnote [b] added documenting the pure-core anchor and VP-025 Kani unwind-bound requirement (Option A: lookup table preferred; Option B: #[kani::unwind(128)]). Version bump 1.9→2.0."
 ---
 
 # Verification Architecture
@@ -82,9 +85,9 @@ modified:
 | VP-022 | Modbus MBAP parse safety and function-code boundary classification: (A) parse_mbap_header never panics and returns None for <8-byte inputs; (B) classify_fc is total over all 256 FC values; (C) exception detection iff fc >= 0x80 | (no-panic + boundary) | analyzer/modbus.rs | Kani |
 | VP-023 | DNP3 data-link frame parse safety and FC classification: (A) parse_dnp3_dl_header never panics, None for <10-byte inputs; (B) classify_dnp3_fc total over all 256 FC values, Control/Restart/Write sets correct; (C) validity gate true iff sync==0x0564 and LENGTH>=5; (D) compute_dnp3_frame_len correct over all LENGTH 5..=255, result in [10,292] | (no-panic + boundary + arithmetic) | analyzer/dnp3.rs | Kani |
 | VP-024 | ARP frame parse safety and binding-table invariant: (A) extract_arp_frame never panics on any valid ArpPacketSlice input; Some(ArpFrame) for Eth/IPv4, None otherwise; (B) GARP detection total: is_gratuitous_arp(f)==(f.sender_ip==f.target_ip) for all ArpFrame; (C) binding-table last-write-wins determinism and no-duplicate-key; (D) MAX_ARP_BINDINGS cap never exceeded | (no-panic + GARP totality + binding-table invariant) | analyzer/arp.rs + decoder.rs [a] | Kani |
-| VP-025 | pcapng timestamp conversion totality: pcapng_timestamp_to_secs_usecs(ts_high, ts_low, if_tsresol) never panics for any (u32, u32, u8) input; ts_usecs always in [0, 999_999]; saturating arithmetic for base-10 pow overflow (e>=20) and base-2 shift clamp (e clamped to [0,63]); intermediate u128 product prevents u64 overflow | (no-panic + arithmetic totality + range invariant) | reader.rs | Kani |
-| VP-026 | pcapng SHB parse safety and byte-order detection: SHB byte-order BOM detection correct for LE magic (0x1A2B3C4D) and BE magic (0x4D3C2B1A); no panic for any truncated/malformed SHB byte sequence; SHB < 28 bytes returns Err | (no-panic + byte-order correctness) | reader.rs | Kani |
-| VP-027 | pcapng EPB parse safety and interface_id bounds: EPB decode never panics; interface_id is bounds-checked against interface table size before any index operation (out-of-range → Err); captured_len guard (captured_len <= block_total_length - 32) precedes any data allocation; Err returned for all invalid field combinations | (no-panic + bounds-check + guard-before-allocate) | reader.rs | Kani |
+| VP-025 | pcapng timestamp conversion totality: pcapng_timestamp_to_secs_usecs(ts_high, ts_low, if_tsresol) never panics for any (u32, u32, u8) input; ts_usecs always in [0, 999_999]; saturating arithmetic for base-10 pow overflow (e>=20) and base-2 shift clamp (e clamped to [0,63]); intermediate u128 product prevents u64 overflow | (no-panic + arithmetic totality + range invariant) | reader.rs (pcapng_pure_core fns) [b] | Kani |
+| VP-026 | pcapng SHB parse safety and byte-order detection: SHB byte-order BOM detection correct for LE magic (0x1A2B3C4D) and BE magic (0x4D3C2B1A); no panic for any truncated/malformed SHB byte sequence; SHB < 28 bytes returns Err | (no-panic + byte-order correctness) | reader.rs (pcapng_pure_core fns) [b] | Kani |
+| VP-027 | pcapng EPB parse safety and interface_id bounds: EPB decode never panics; interface_id is bounds-checked against interface table size before any index operation (out-of-range → Err); captured_len guard (captured_len <= block_total_length - 32) precedes any data allocation; Err returned for all invalid field combinations | (no-panic + bounds-check + guard-before-allocate) | reader.rs (pcapng_pure_core fns) [b] | Kani |
 | VP-028 | pcapng reader no-panic (full path fuzz): PcapSource::from_pcap_reader returns Ok(_) or Err(_) for any arbitrary byte sequence; no panic, no infinite loop; F6 hardening deliverable (cargo-fuzz target: fuzz_pcapng_reader) | (no-panic + termination) | reader.rs | cargo-fuzz |
 | VP-029 | pcapng block-walk skip correctness and forward progress: for any sequence of raw blocks (valid, malformed, unknown-type), the block-walk loop always terminates; each Ok(_) iteration advances the cursor by at least 12 bytes (block header minimum); loop breaks on Err(_) without spinning | (termination + forward-progress) | reader.rs | proptest |
 | VP-030 | pcapng multi-IDB linktype agreement totality: for any sequence of IDB linktype u16 values, the reader either (a) accepts all (all-equal) producing PcapSource.datalink = that linktype, or (b) returns Err(E-INP-011) immediately on the first conflicting IDB; no third outcome | (totality + determinism) | reader.rs | proptest |
@@ -94,6 +97,17 @@ modified:
 `verify_extract_arp_frame_none_on_bad_size`) are authored in the `src/decoder.rs` `#[cfg(kani)]`
 block because `extract_arp_frame` lives in `src/decoder.rs` (per vp-024-arp-parse-safety.md
 §Proof Harness Skeleton and arp-architecture-delta §6 STORY-112). Mirrors verification-coverage-matrix.md footnote [a].
+
+[b] VP-025 / VP-026 / VP-027 Kani targets are pure-core sub-functions within `src/reader.rs`,
+NOT the effectful `from_pcap_reader<R: Read>` entry point. Kani requires pure, I/O-free functions.
+The three targets are: (VP-025) `pcapng_timestamp_to_secs_usecs(u32, u32, u8) -> (u32, u32)`;
+(VP-026) the pure SHB-body decode function (takes `&[u8]` body slice); (VP-027) the pure EPB
+fixed-field-decode function (takes `&[u8]` and interface table size). These are colocated in
+`src/reader.rs` as private pure-core helpers. VP-028 (cargo-fuzz) correctly targets
+`from_pcap_reader` — the effectful entry point appropriate for fuzzing. See ADR-009 rev 5
+and VP-INDEX.md footnote [^vp025-027-module-anchor]. VP-025 Kani harness requires either a
+precomputed power-of-ten lookup table (Option A, preferred) or `#[kani::unwind(128)]` (Option B)
+to be non-vacuous over symbolic `e`; see ADR-009 rev 5 VP-025 Kani Provability Note.
 
 ### Test Sufficient (UI logic, non-critical defaults)
 

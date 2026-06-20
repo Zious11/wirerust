@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: product-owner
 timestamp: 2026-06-19T00:00:00Z
@@ -14,6 +14,7 @@ lifecycle_status: active
 introduced: v0.10.0-pcapng
 modified:
   - "v1.1: F2 Burst-A remediation per ADR-009 rev 4 PO dispatch — (1) VP-025 added to Verification Properties. (2) Required SATURATING arithmetic throughout (H-1/SEC-001/SEC-006): base-10 uses checked_pow (saturate to u64::MAX on overflow); base-2 exponent e CLAMPED to [0,63] before shift (e >= 64 panics in Rust with overflow-checks=true — clamping is mandatory); intermediate product (ticks % ticks_per_sec) * 1_000_000 MUST use u128 or saturating_mul (overflows u64 for base-2 e >= 43). (3) Updated EC-006: added explicit statement that e >= 64 panics without clamping and that the spec mandates clamping; also added base-2 e=63 as a tested boundary. (4) Added new edge cases: EC-009 (if_tsresol=6 µs default), EC-010 (if_tsresol=9 ns), EC-011 (if_tsresol=0x94 base-2 e=20), EC-012 (if_tsresol=0xFF base-2 e=127, must not panic). (5) Updated Postcondition 2 and 3 to specify saturating formulas. (6) Updated Invariant 1: 'no panics' is NOW ACTUALLY TRUE with the saturating formula — prior version with `pow` could panic for large base-10 exponents. (7) Clarified that this helper is LOAD-BEARING (drives off raw split ticks from RawBlock; crate's high-level EPB is ns-hardcoded and wrong). — 2026-06-19"
+  - "v1.2: Pass-2 remediation per ADR-009 rev 5 (I-9, I-2, I-11) — (I-9) EC-006 corrected: was if_tsresol=0x3F (bit7=0 → base-10, not base-2; e=63); fixed to if_tsresol=0xBF (bit7=1 → base-2, e=63). Panic counter-example changed from 0x40 (base-10 e=64, checked_pow saturates — no panic) to 0xC0 (base-2 e=64 — shift panic without clamp). EC-006 now correctly illustrates the base-2 e=63 boundary and the necessity of clamping for e=64. (I-2) Added Kani implementation note to VP-025 row: base-10 branch MUST use precomputed ticks_per_sec lookup table for e∈[0,19] (Option A, preferred, keeps Kani proof bounded) OR VP-025 harness carries #[kani::unwind(128)] (Option B). Without one of these, the Kani proof is vacuous. (I-11) Added Test: citations to all unit/integration VP rows. — 2026-06-19"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -122,7 +123,7 @@ the pcapng specification default).
 | EC-003 | Nanoseconds (`if_tsresol=9`), `ticks=1_500_000_000_500` | `ts_sec=1500, ts_usecs=0` (500 ns < 1 µs rounds down) |
 | EC-004 | `if_tsresol=0` (base-10, 10^0=1 tick/sec, 1-second resolution) | `ticks_per_sec=1`; `ts_sec=(ticks).min(u32::MAX as u64) as u32`; `ts_usecs=0` |
 | EC-005 | `if_tsresol=0x80` (base-2, 2^0=1 tick/sec, 1-second resolution) | Same output as EC-004 |
-| EC-006 | `if_tsresol=0x3F` (base-2, e=63) | `e_clamped=63`; `ticks_per_sec=1u64<<63`; ticks likely << ticks_per_sec; `ts_sec=0, ts_usecs=0`; NO PANIC. Without the e-clamp, `if_tsresol=0x40` (e=64) would panic; clamping is mandatory. |
+| EC-006 | `if_tsresol=0xBF` (base-2 [bit7=1], e=63) | `e_clamped=63`; `ticks_per_sec=1u64<<63`; ticks likely << ticks_per_sec; `ts_sec=0, ts_usecs=0`; NO PANIC. Without the e-clamp, `if_tsresol=0xC0` (base-2 [bit7=1], e=64) would panic on `1u64 << 64` with overflow-checks=true; clamping to [0,63] is mandatory. |
 | EC-007 | `ts_high=u32::MAX, ts_low=u32::MAX` (maximum u64 ticks) | `ts_sec` saturates at u32::MAX; `ts_usecs` computed from remainder; NO PANIC |
 | EC-008 | `if_tsresol=6` (default), `ticks=1_000_000` exactly | `ts_sec=1, ts_usecs=0` |
 | EC-009 | `if_tsresol=6` (µs default), pcapng file with known packet timestamp | REGRESSION GUARD: confirms 1000× timestamp bug absent; a Wireshark-default µs capture must NOT produce timestamps 1000× too large (crate's ns-hardcode bug) |
@@ -147,11 +148,11 @@ the pcapng specification default).
 
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| VP-025 | `pcapng_timestamp_to_secs_usecs` totality: no panic for ALL (u32, u32, u8) inputs with saturating arithmetic; `ts_usecs` always in [0, 999_999]; `ts_sec` plausible (≤ u32::MAX); denominator never 0 | Kani: `#[kani::proof]` over full symbolic input space (u32 × u32 × u8 = 2^65 inputs; Kani explores exhaustively via bounded model checking) |
-| — | `if_tsresol=6` result matches classic-pcap microsecond result for same epoch | unit: compare against classic-pcap timestamp extraction |
-| — | `if_tsresol=0xFF` (e=127) does not panic | unit: assert result = (0, 0) or (0, small) without panic |
-| — | `if_tsresol=0x94` (e=20) produces correct result for known ticks | unit: `ticks=1_048_576, if_tsresol=0x94` → `(1, 0)` |
-| — | ts_usecs regression guard for µs-default captures | integration: pcapng file with known ts values and `if_tsresol=6`; assert timestamp_secs and timestamp_usecs are correct (proves 1000× bug absent) |
+| VP-025 | `pcapng_timestamp_to_secs_usecs` totality: no panic for ALL (u32, u32, u8) inputs with saturating arithmetic; `ts_usecs` always in [0, 999_999]; `ts_sec` plausible (≤ u32::MAX); denominator never 0 | Kani: `#[kani::proof]` over full symbolic input space (u32 × u32 × u8 = 2^65 inputs; Kani explores exhaustively via bounded model checking). **Implementation note (I-2):** the base-10 branch MUST use a precomputed ticks_per_sec lookup table for e∈[0,19] (saturating to u64::MAX for e≥20) — **Option A (preferred)**: keeps the Kani proof bounded without unwind annotations; OR the VP-025 Kani harness carries `#[kani::unwind(128)]` — **Option B**. Without one of these, the Kani proof over the base-10 `checked_pow` loop is vacuous (Kani will not explore all paths). Option A is preferred. |
+| — | `if_tsresol=6` result matches classic-pcap microsecond result for same epoch | unit: compare against classic-pcap timestamp extraction **Test:** `test_BC_2_01_014_usecs_default_matches_classic_pcap` |
+| — | `if_tsresol=0xFF` (e=127) does not panic | unit: assert result = (0, 0) or (0, small) without panic **Test:** `test_BC_2_01_014_e127_no_panic` |
+| — | `if_tsresol=0x94` (e=20) produces correct result for known ticks | unit: `ticks=1_048_576, if_tsresol=0x94` → `(1, 0)` **Test:** `test_BC_2_01_014_base2_e20_known_vector` |
+| — | ts_usecs regression guard for µs-default captures | integration: pcapng file with known ts values and `if_tsresol=6`; assert timestamp_secs and timestamp_usecs are correct (proves 1000× bug absent) **Test:** `test_BC_2_01_014_regression_1000x_bug` |
 
 ## Traceability
 

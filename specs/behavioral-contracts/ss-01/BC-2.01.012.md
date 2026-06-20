@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: product-owner
 timestamp: 2026-06-19T00:00:00Z
@@ -14,6 +14,7 @@ lifecycle_status: active
 introduced: v0.10.0-pcapng
 modified:
   - "v1.1: F2 Burst-A remediation per ADR-009 rev 4 PO dispatch — (1) VP-027 added to Verification Properties. (2) Postcondition 5 corrected: EPB with interface_id referencing an EMPTY table → E-INP-009 (not E-INP-008); EPB with interface_id OOB on a NON-EMPTY table → E-INP-010 (not E-INP-008). (3) Added explicit AC: interface_id MUST be bounds-checked before any indexing. (4) Added guard-before-allocate AC (SEC-004): captured_len vs. block_total_length - 32 check MUST precede any data allocation. (5) Corrected and named EPB body-relative fixed overhead = 20 bytes (EPB_FIXED_OVERHEAD_BYTES); outer 12-byte raw header is separate; validation: captured_len <= block_total_length - 32. (6) Added no-panic AC (SEC-005). (7) Added boundary edge cases (captured_len = btl-32 valid; btl-31 invalid). (8) Clarified raw-block path: timestamp is raw split ticks fed to BC-2.01.014 — NOT the crate's Duration. (9) Updated EC-005 to reflect empty-table vs OOB distinction. — 2026-06-19"
+  - "v1.2: Pass-2 remediation per ADR-009 rev 5 (I-10, I-11) — (I-10) Removed duplicate ticks combine from Postcondition 1: EPB parser reads raw (ts_high, ts_low) from the block body but does NOT form ticks=(ts_high<<32)|ts_low itself; that combine is owned exclusively by BC-2.01.014. Postcondition 2 updated to reflect that the helper receives (ts_high, ts_low, if_tsresol) and performs the combine internally. (I-11) Added Test: citations to all ACs. — 2026-06-19"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -46,13 +47,15 @@ per-interface `if_tsresol` to produce `(ts_sec: u32, ts_usecs: u32)` for `RawPac
 
 ## Postconditions
 
-1. The raw 64-bit timestamp in ticks is formed as
-   `ticks: u64 = (ts_high as u64) << 32 | (ts_low as u64)` from the raw block body fields.
-   This is the RAW split-ticks value, NOT the crate's `Duration` (which hard-codes nanoseconds
-   and NEVER applies `if_tsresol` — confirmed at `enhanced_packet.rs:46-48,65`).
-2. `ticks` is converted to `(ts_sec, ts_usecs)` by calling the BC-2.01.014 pure-core helper
+1. The raw split-tick fields `ts_high: u32` and `ts_low: u32` are read from the EPB block
+   body. These are the RAW values from wire bytes — NOT the crate's `Duration` type (which
+   hard-codes nanoseconds and NEVER applies `if_tsresol` — confirmed at
+   `enhanced_packet.rs:46-48,65`). The EPB parser DOES NOT form the combined 64-bit ticks
+   value itself; combining is the exclusive responsibility of the BC-2.01.014 helper.
+2. `(ts_sec, ts_usecs)` is produced by calling the BC-2.01.014 pure-core helper
    with `(ts_high, ts_low, if_tsresol)` where `if_tsresol` comes from the IDB for
-   `interface_id` (defaulting to `6u8` when absent from the IDB).
+   `interface_id` (defaulting to `6u8` when absent from the IDB). The helper owns the
+   `ticks = (ts_high as u64) << 32 | ts_low as u64` combine and all subsequent arithmetic.
 3. Packet data is copied from the EPB body bounded by `captured_len` bytes (not
    `original_len`). If `captured_len < original_len`, the packet is snaplen-truncated; the
    `data` field carries only the captured bytes.
@@ -72,19 +75,23 @@ per-interface `if_tsresol` to produce `(ts_sec: u32, ts_usecs: u32)` for `RawPac
   checked against the current interface table size before any indexing operation. The check
   MUST distinguish empty-table (→ E-INP-009) from out-of-range-on-non-empty-table (→ E-INP-010).
   An unchecked array index on `interface_id` is NOT permitted.
+  **Test:** `test_BC_2_01_012_interface_id_bounds_check`
 - **AC-002 (guard-before-allocate, SEC-004):** The validation `captured_len <=
   block_total_length - 32` MUST be performed BEFORE any memory allocation for packet data.
   Allocating based on an attacker-controlled `captured_len` without first checking the block
   boundary is prohibited.
+  **Test:** `test_BC_2_01_012_guard_before_allocate`
 - **AC-003 (no-panic, SEC-005):** This block parser MUST return `Err` for any malformed or
   truncated input; `unwrap()`, `expect()`, and `panic!()` are prohibited in the EPB parse path.
   The crate's own field-level guards (`slice.len() < 20` → `Err`) enforce this at the framing
   layer; wirerust MUST NOT bypass them.
+  **Test:** `test_BC_2_01_012_no_panic_malformed`
 - **AC-004 (raw-block path):** The raw split ticks `(ts_high, ts_low)` MUST be read from the
   `RawBlock` body and passed to the BC-2.01.014 helper. wirerust MUST NOT consume
   `EnhancedPacketBlock::timestamp` (the crate's `Duration` type) — that field hard-codes
   nanosecond resolution and discards the raw ticks, making tsresol-correct conversion
   impossible.
+  **Test:** `test_BC_2_01_012_raw_block_path_not_crate_duration`
 
 ## Invariants
 

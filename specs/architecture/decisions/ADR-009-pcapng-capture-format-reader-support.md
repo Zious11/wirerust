@@ -9,7 +9,7 @@ supersedes: null
 superseded_by: null
 ---
 
-# ADR-009: pcapng Capture-Format Reader Support (rev 4)
+# ADR-009: pcapng Capture-Format Reader Support (rev 5)
 
 > **One-per-file:** Each architectural decision lives in its own file.
 > Filename convention: `ADR-NNN-<short-name>.md` (e.g., `ADR-001-rust-dispatcher.md`)
@@ -268,6 +268,35 @@ F3 deliverable. The harness is the primary vehicle for exercising the no-panic c
 (BC-2.01.017 PC3) across the full pcapng block-walk path including edge cases not
 reached by unit tests.
 
+**Decision 15 — Interleaved IDB policy (IDB after first packet block).** [NEW — rev 5,
+resolves I-5/I-6.] The pcapng specification permits an Interface Description Block (IDB)
+to appear anywhere within a section, including after packet blocks (EPB/SPB), to describe
+a new capture interface opened mid-capture. wirerust DOES NOT support this ordering.
+An IDB encountered AFTER the first packet block has been emitted is REJECTED immediately
+with `Err` mapping to error code **E-INP-013** ("pcapng interface description block after
+first packet block — unsupported ordering"). Processing stops at that point; any
+subsequent blocks are not parsed. The interface table state at the point of rejection is
+discarded with the error.
+
+Rationale: the intended corpus (Wireshark default captures, PacketLife traces, public
+protocol fixtures) opens all interfaces before the first packet — the IDB-first ordering
+is universal in practice. Interleaved IDBs arise only in live-capture scenarios where a
+second NIC comes online after packets from the first NIC have already been written.
+wirerust's fail-closed posture requires an explicit, diagnosed error over silent misbehavior.
+Full interleaved-IDB support is the correct scope for a future cycle when live-capture
+streaming is introduced (estimated cost: add per-IDB lazy registration to the block-walk
+loop, promote interface_table from Vec to a RefCell-backed structure, thread packet
+DataLink per-packet — a medium-scope refactor outside this cycle's NFR-VIO-001 deferral).
+
+**Linktype whitelist timing (Decision 15 amendment, resolves I-5):** BC-2.01.016's
+linktype whitelist check is applied **at first-IDB-parse time**, immediately when the IDB
+block body is decoded, before any packet from that interface is consumed. It is NOT
+deferred to "after all IDBs" (undefined under streaming) nor "at first packet" (too late
+for early error reporting). This means a linktype-whitelist violation (E-INP-010 / TBD
+error code) is reported at the IDB stage and parsing aborts before any packets are
+emitted from that interface. The PO must update BC-2.01.016 to specify: "linktype check
+fires at IDB-parse time, not at first-packet time."
+
 **Fallback — Option C (hand-roll, +0 crates).** If during implementation `pcap-file`
 2.0.0's `RawBlock` / `next_raw_block` path exhibits a defect (incorrect byte-order
 handling, forward-progress violation not caught by the spike), the escalation path is a
@@ -407,6 +436,55 @@ is not a pure arithmetic invariant — it is behavioral. BC-2.01.011 (IDB parse)
 covered under VP-027's interface-table accumulation proof. BC-2.01.016 (linktype
 whitelist) is test-sufficient (integration test, no new formal VP).
 
+#### VP-025 Kani Provability Note — unwind bound (I-2 resolution, rev 5)
+
+VP-025 targets `pcapng_timestamp_to_secs_usecs(ts_high: u32, ts_low: u32, if_tsresol: u8)`,
+which calls `10u64.checked_pow(e as u32)` where `e = if_tsresol & 0x7F` (base-10 branch).
+`checked_pow` is iterative (loop over `e` multiplications); with symbolic `e` up to 127
+Kani's default loop unwind of 1 will not explore the full iteration count, causing the
+proof to be vacuous (Kani reports SUCCESSFUL with insufficient unwind, which is a false
+pass).
+
+**Required implementation choice (PO/implementer must pick one):**
+
+Option A (PREFERRED — bounded, Kani-decidable): Implement `ticks_per_sec` for base-10
+using a precomputed lookup table for `e ∈ [0, 19]` and saturating to `u64::MAX` for
+`e ≥ 20`. `10^19 = 10_000_000_000_000_000_000 < u64::MAX`; `10^20` overflows u64.
+The table has 20 entries, constant-time, no loop. Kani sees no iteration; the proof is
+trivially bounded. The VP harness then requires NO explicit `#[kani::unwind]` annotation
+and is deterministic.
+
+Option B (acceptable, explicit unwind): Keep the `checked_pow` loop but add
+`#[kani::unwind(128)]` to the VP-025 proof harness (e ∈ [0, 127] requires at most
+127 iterations). Kani will explore the full range. Proof time increases modestly
+(benchmark: ~30–60 s for this input domain). The harness MUST carry a comment
+documenting the unwind bound and its justification.
+
+Option A is the preferred implementation: it eliminates the loop from the pure-core
+function entirely, making the function trivially provable and faster at runtime for the
+common case (e=6, microseconds). The PO must add an implementation note to BC-2.01.014
+specifying that the base-10 path uses a precomputed power-of-ten table or, if Option B
+is chosen, that the Kani harness carries `#[kani::unwind(128)]`.
+
+This decision MUST be recorded in BC-2.01.014 before STORY-125 F3 story decomposition.
+
+### HS-Completeness Map — Framing BCs → Required Holdout Scenarios (rev 5, resolves I-14)
+
+The following table maps each framing BC to its required holdout scenario (HS-NNN). A
+missing holdout is a process gap that makes a BC untestable at the Phase 4 holdout gate.
+This map makes gaps visible; each row must be satisfied before the Phase 4 gate opens.
+
+| BC | Title (short) | Required Holdout | Status |
+|----|---------------|-----------------|--------|
+| BC-2.01.010 | SHB parse / byte-order detection | HS-103 | AUTHORED |
+| BC-2.01.012 | EPB parse / interface_id bounds | HS-104 | AUTHORED |
+| BC-2.01.013 | SPB parse / snaplen clamping | HS-107 | AUTHORED |
+| BC-2.01.014 | Pure-core timestamp normalization | HS-101, HS-102 | AUTHORED |
+| BC-2.01.015 | Block-walk skip / forward progress | HS-105 | AUTHORED |
+| BC-2.01.018 | Multi-IDB linktype agreement | HS-106 | AUTHORED |
+
+**C-2 resolved: HS-107 is now AUTHORED** (`.factory/holdout-scenarios/HS-107-pcapng-spb-framing-truncation-padding-and-no-idb.md`; reflected in HS-INDEX v2.1). BC-2.01.013 SPB parsing and snaplen clamping are fully covered at the Phase 4 holdout gate.
+
 Holdout scenarios required by the PO per BC:
 - BC-2.01.010 (VP-026): byte-exact crafted SHB with BE byte-order magic u32 `0x1A2B3C4D`, on-disk bytes `1A 2B 3C 4D` (LE section stores same u32 as on-disk bytes `4D 3C 2B 1A`);
   SHB with invalid Byte-Order Magic; SHB truncated at byte 15 (< 28 total).
@@ -424,7 +502,7 @@ Holdout scenarios required by the PO per BC:
   immediately on second IDB, not deferred to EPB); pcapng with two IDBs same linktype
   (valid, multi-IDB accepted).
 
-### Status as of 2026-06-19 (rev 4)
+### Status as of 2026-06-19 (rev 5)
 
 Proposed. `pcap-file` 2.0.0's pcapng module is dead code in the compiled binary;
 `src/reader.rs` does not import it. BC-2.01.004 was RETIRED during F2 spec evolution
@@ -448,6 +526,10 @@ BC-change dispatch documented for PO.
 **Rev 4 minor correction (2026-06-19):** BC-2.01.013 dispatch note corrected: removed double-subtraction of original_len field; SPB fixed overhead is 16 bytes total (block-type:4 + block-total-length:4 + original-packet-length:4 + trailing block-total-length:4); available data = btl - 16; body-relative overhead = 4 bytes (original_len only). Now consistent with BC-2.01.013 v1.1.
 
 **Rev 4 minor correction 2 (2026-06-19):** Corrected two mislabeled BE byte-order magic values. The canonical BOM is u32 `0x1A2B3C4D`; a BE section stores it on-disk as bytes `1A 2B 3C 4D`; an LE section stores it on-disk as bytes `4D 3C 2B 1A`. Both holdout-scenario references (line ~411 and PO BC-change dispatch line ~464) previously and incorrectly named the BE case as `0x4D3C2B1A` (the LE on-disk byte sequence). Fixed per BC-2.01.010 v1.5 / HS-103 v1.2.
+
+**Rev 5 (2026-06-19):** Pass-2 adversarial remediation — architect-owned items. Added Decision 15 (interleaved-IDB policy: IDB-after-first-packet-block → E-INP-013, reject with clear error; linktype-whitelist timing: check at IDB-parse time, not deferred). Added HS-completeness map (framing BC → holdout HS-NNN; flags BC-2.01.013 SPB as MISSING HS-107 — PO to author). Added VP-025 Kani provability note with unwind-bound analysis: Option A (precomputed power-of-ten lookup for e∈[0,19], preferred) and Option B (explicit `#[kani::unwind(128)]` on harness). Error code E-INP-013 introduced for interleaved-IDB rejection; PO must add to error-taxonomy.md. VP-025/026/027 module re-anchor from `reader.rs` to `reader.rs (pcapng_pure_core fns)` recorded in VP-INDEX and arch docs (I-1 resolution).
+
+**Rev 5 minor correction (2026-06-19):** HS-Completeness Map BC-2.01.013 row updated from MISSING to AUTHORED; C-2 flag resolved. HS-107 (`HS-107-pcapng-spb-framing-truncation-padding-and-no-idb.md`) authored and reflected in HS-INDEX v2.1.
 
 ### PO BC-Change Dispatch (rev 4)
 
@@ -562,6 +644,50 @@ architect does not edit BC files; this section is the handoff specification.
   per-file errors; report each to stderr; set exit code 1 if any file failed.
 - This story owns E-INP-011/012 per-file-isolation AC-002 claims currently in
   BC-2.01.018.
+
+**Rev 5 additions — PO must also action the following (Decision 15 / I-5/I-6/I-14 dispatch):**
+
+**BC-2.01.011 (IDB) — interleaved-IDB guard (rev 5 / Decision 15):**
+- Add AC: "If an IDB is encountered AFTER the first EPB or SPB has been emitted (i.e.,
+  `packets_emitted > 0` at the time of IDB parsing), the reader MUST return `Err` mapping
+  to E-INP-013 ('pcapng interface description block after first packet block — unsupported
+  ordering'). The interface table is NOT updated for the late IDB; processing stops."
+- This is a TIGHT-SCOPE reject consistent with the fail-closed posture and the IDB-first
+  ordering of the intended corpus (Wireshark, PacketLife, public fixtures all open
+  interfaces before the first packet).
+
+**BC-2.01.016 (linktype whitelist) — timing clarification (rev 5 / Decision 15):**
+- Add or update the existing postcondition/AC to state: "The linktype whitelist check
+  fires at IDB-parse time, not at first-packet time or after all IDBs. If the linktype
+  value in an IDB is not on the whitelist, the reader MUST return `Err` immediately
+  when parsing that IDB block, before any packet from that interface is consumed."
+- Remove or correct any existing text that implies linktype validation is deferred to
+  the packet-processing stage.
+
+**BC-2.01.013 (SPB) — add HS-107 holdout (rev 5 / HS-completeness map):**
+- Author HS-107: holdout scenarios for SPB parsing and snaplen clamping. Required
+  scenarios: (a) well-formed SPB with IDB-snaplen=96; packet data truncated to 96 bytes;
+  (b) SPB with original_len > snaplen (padding present; `captured_len = snaplen` after
+  clamping); (c) SPB arriving before any IDB (→ E-INP-009: interface table empty).
+- HS-107 is MISSING and must be authored before Phase 4. BC-2.01.013 is untestable
+  at the Phase 4 gate without it.
+
+**error-taxonomy.md — add E-INP-013:**
+- Add entry: `E-INP-013` — "pcapng interface description block after first packet block
+  — unsupported ordering". Severity: error. Category: input. Context: include the block
+  sequence number of the late IDB and the block sequence number of the first packet block
+  previously emitted. Remediation hint: "capture files with mid-capture interface changes
+  are not supported in this cycle; use mergecap to re-capture or filter to a single
+  interface."
+
+**VP-025/BC-2.01.014 — implementation note for Kani provability (I-2 resolution):**
+- Add implementation note to BC-2.01.014 Verification Properties section: "The base-10
+  branch MUST use a precomputed lookup table for e∈[0,19] (saturating to u64::MAX for
+  e≥20) OR the VP-025 Kani harness MUST carry `#[kani::unwind(128)]`. Without one of
+  these, the Kani proof over symbolic `e` is vacuous (insufficient unwind). Option A
+  (lookup table) is preferred: no loop in the pure-core function, proof trivially bounded,
+  faster runtime on the common e=6 path." See ADR-009 rev 5 VP-025 Kani Provability Note
+  for full analysis.
 
 ## Alternatives Considered
 
