@@ -16,7 +16,7 @@
 //!             test_BC_2_01_010_bom_big_endian
 //!   AC-006 → test_BC_2_01_010_major_version_not_1_rejected
 //!   AC-007 → test_BC_2_01_010_shb_body_truncated_e_inp_008
-//!             test_BC_2_01_010_shb_framing_rejection_e_inp_010
+//!             test_BC_2_01_010_shb_btl8_maps_to_e_inp_008
 //!             test_BC_2_01_010_invalid_bom_e_inp_008
 //!   AC-008 → test_BC_2_01_010_second_shb_rejected_e_inp_012
 //!   AC-009 → test_BC_2_01_010_no_panic_fuzz
@@ -1155,23 +1155,30 @@ fn test_BC_2_01_010_shb_body_truncated_e_inp_008() {
     );
 }
 
-/// AC-007 case (a) / BC-2.01.010 AC-004b / EC-008: SHB with btl=8 → crate
-/// framing rejection → Err.
+/// AC-007 case (a) / BC-2.01.010 AC-004b / EC-008: SHB with btl=8 → E-INP-008.
 ///
-/// ADR-009 rev 9 Decision 20: the pcap-file 2.0.0 crate reads SHB btl=8 as
-/// BigEndian (0x08000000 = 134217728), then reads the next 4 bytes as the BOM
-/// field and finds an invalid magic number (SectionHeaderBlock: invalid magic
-/// number), returning InvalidField rather than IncompleteBuffer. Both the
-/// btl=8 path and the genuine invalid-BOM path (DEADBEEF) produce the same
-/// InvalidField("SectionHeaderBlock: invalid magic number") — they are
-/// semantically equivalent at the crate level and both map to E-INP-008.
+/// # Binding authority: ADR-009 Decision 23 (rev 10)
 ///
-/// The primary postcondition is that the stream is rejected (is_err()); the
-/// error code is E-INP-008 because the crate-level rejection is via
-/// InvalidField("invalid magic number") for both framing-degenerate and
-/// genuine-invalid-BOM inputs.
+/// A first-SHB with block_total_length=8 maps to E-INP-008, NOT E-INP-010.
+///
+/// Mechanism: `PcapNgParser::new` reads the SHB btl field as a big-endian u32
+/// (the crate always does its initial BOM-detection read as BE). With btl=8
+/// encoded as LE on-disk (`08 00 00 00`), the BE read yields 0x08000000 =
+/// 134217728. The crate then reads the next 4 bytes as the BOM field; it finds
+/// a garbage value (not 1A2B3C4D / 4D3C2B1A) and returns:
+///   `InvalidField("SectionHeaderBlock: invalid magic number")`
+///
+/// The `read_pcapng_crate` mapper matches `InvalidField(msg)` containing
+/// "invalid magic number" → the same arm as a genuine invalid BOM (DEADBEEF).
+/// Both are indistinguishable at the `PcapNgParser::new` API boundary.
+///
+/// E-INP-010 is reserved for `IncompleteBuffer`/EOF and for subsequent-block
+/// (next_raw_block) framing rejections — it is NOT raised here.
+///
+/// This test pins E-INP-008 and explicitly verifies E-INP-010 is absent,
+/// mirroring the assertion pattern in `test_BC_2_01_010_invalid_bom_e_inp_008`.
 #[test]
-fn test_BC_2_01_010_shb_framing_rejection_e_inp_010() {
+fn test_BC_2_01_010_shb_btl8_maps_to_e_inp_008() {
     let bytes = shb_framing_btl8();
     // shb_framing_btl8() already starts with SHB_BLOCK_TYPE (= PCAPNG_MAGIC as bytes).
     assert_eq!(
@@ -1181,17 +1188,18 @@ fn test_BC_2_01_010_shb_framing_rejection_e_inp_010() {
     );
 
     let result = PcapSource::from_pcap_reader(Cursor::new(bytes));
+    assert!(result.is_err(), "btl=8 SHB must return Err");
+    let err_msg = format!("{:#}", result.unwrap_err());
     assert!(
-        result.is_err(),
-        "BC-2.01.010 AC-004b: SHB btl=8 must return Err (crate rejects malformed SHB); got Ok"
+        err_msg.contains("E-INP-008"),
+        "btl=8 SHB must map to E-INP-008 (invalid magic number arm, same as genuine \
+         invalid-BOM); got: {err_msg}"
     );
-    // The crate emits InvalidField("invalid magic number") for btl=8 because it
-    // reads the btl bytes as a BE u32 BOM field and finds it invalid. This maps
-    // to E-INP-008 (same as the genuine invalid-BOM path). Verify is_err() only;
-    // the specific error code follows the "invalid magic number" arm of the mapper.
-    let _err_msg = format!("{:#}", result.unwrap_err());
-    // Primary assertion: stream must be rejected. Additional error-code invariant
-    // checked implicitly by the mapper arm that produces "E-INP-008: invalid BOM".
+    assert!(
+        !err_msg.contains("E-INP-010"),
+        "btl=8 SHB must NOT map to E-INP-010; PcapNgParser::new raises InvalidField \
+         not IncompleteBuffer; got: {err_msg}"
+    );
 }
 
 /// AC-007 case (c) / BC-2.01.010 AC-001 / EC-007: SHB with valid framing
