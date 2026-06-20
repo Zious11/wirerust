@@ -375,8 +375,10 @@ impl PcapSource {
                 anyhow!("pcapng SHB body too short: {e} (E-INP-008: SHB body decode failure)")
             }
             PcapError::InvalidField(msg) if msg.contains("invalid magic number") => {
-                anyhow!("pcapng SHB invalid BOM (unrecognized byte-order mark): {e} \
-                         (E-INP-008: invalid BOM)")
+                anyhow!(
+                    "pcapng SHB invalid BOM (unrecognized byte-order mark): {e} \
+                     (E-INP-008: invalid BOM)"
+                )
             }
             _ => anyhow!("pcapng SHB parse failed: {e} (E-INP-010: crate framing rejection)"),
         })?;
