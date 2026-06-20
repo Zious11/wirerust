@@ -75,6 +75,36 @@ const DEFAULT_TSRESOL: u8 = 6;
 
 // ─── Public types ────────────────────────────────────────────────────────────
 
+/// Per-interface metadata extracted from an IDB (BC-2.01.011 PC1/PC2/PC3).
+///
+/// One entry is pushed onto the interface table (`Vec<InterfaceInfo>`) for each
+/// IDB parsed, in IDB encounter order (BC-2.01.011 Invariant 1 — 0-based index).
+///
+/// # Field constraints (BC-2.01.011 / ADR-009 rev 9)
+///
+/// - `linktype`  — extracted from IDB body bytes 0–1 (byte-order-corrected per
+///   section endianness established by the SHB BOM).
+/// - `if_tsresol` — the raw `if_tsresol` option byte (option code 9) when present;
+///   defaults to `6` (10^-6 microseconds, pcapng spec default) when absent.
+///   Interpretation: bit 7 == 0 → base-10 exponent `e`; bit 7 == 1 → base-2
+///   exponent `e & 0x7F`. Consumed by the BC-2.01.014 timestamp-conversion helper.
+///
+/// # Prohibited field
+///
+/// `snaplen` MUST NOT be added (F-M3 / ADR-009 rev 9 Decision 21 / BC-2.01.011 PC4):
+/// snaplen is read from IDB bytes 4–7 only to advance the cursor and is immediately
+/// discarded — wirerust has no consumer for it this cycle.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct InterfaceInfo {
+    /// Link-layer type for this interface (BC-2.01.011 PC1 / Invariant 4).
+    pub linktype: DataLink,
+    /// Timestamp resolution exponent byte (BC-2.01.011 PC2).
+    ///
+    /// Defaults to `6` (10^-6 µs) when the `if_tsresol` TLV option is absent
+    /// from the IDB options region (pcapng spec §4.4 default).
+    pub if_tsresol: u8,
+}
+
 #[derive(Debug, Clone)]
 pub struct RawPacket {
     pub timestamp_secs: u32,
@@ -219,6 +249,124 @@ pub fn parse_shb_body(body: &[u8]) -> Result<ShbInfo> {
         major_version,
         minor_version,
     })
+}
+
+// ─── Pure-core helper: IDB options TLV walk ─────────────────────────────────
+
+/// Walk the IDB options region and extract the `if_tsresol` exponent byte.
+///
+/// `body` is the **full IDB body slice** (everything after the 12-byte outer
+/// block header), starting at byte 0 of the IDB body (`linktype u16 @0-1`).
+/// The options region begins at body offset 8 (immediately after the 8-byte IDB
+/// fixed fields: `linktype:2 + reserved:2 + snaplen:4`).
+///
+/// # Caller contract
+///
+/// The caller MUST have already validated `body.len() >= IDB_BODY_FIXED_BYTES`
+/// (≥ 8 bytes) before calling this function. Passing a shorter slice is a
+/// programming error; behavior is unspecified (the implementation may return
+/// the default without reading).
+///
+/// # Returns
+///
+/// `Ok(e)` where `e` is the raw `if_tsresol` option byte:
+/// - If the `if_tsresol` option (code 9) is present with `option_length == 1`,
+///   returns the single value byte unchanged.
+/// - If `if_tsresol` is absent (no option with code 9 found before
+///   `opt_endofopt` or end-of-body), returns `DEFAULT_TSRESOL` (6).
+///
+/// # Errors
+///
+/// - `option_length` of any option exceeds the number of remaining body bytes
+///   (before any read of the value or padding) → `Err` (E-INP-008).
+/// - `if_tsresol` option (code 9) present with `option_length != 1`
+///   → `Err` (E-INP-008; F-M5 / ADR-009 rev 9: MUST NOT silently default).
+///
+/// # TLV walk invariants (BC-2.01.011 PC6)
+///
+/// - Bounds-check `option-length` against remaining bytes BEFORE reading value
+///   or padding.
+/// - `opt_endofopt` (code 0) or end-of-body terminates the walk immediately.
+/// - Unknown option codes are silently skipped (value + 4-byte-aligned padding
+///   consumed). Exception: code 9 is not "unknown" — it receives enforcement.
+/// - `if_tsoffset` (code 10) is silently skipped (Decision 21).
+///
+/// # Panics
+///
+/// Never panics. All error conditions return `Err`. `unwrap()`, `expect()`,
+/// `panic!()`, and unchecked slice indexing are prohibited (SEC-005 /
+/// BC-2.01.011 AC-001).
+pub fn parse_idb_options(body: &[u8]) -> Result<u8> {
+    // The options region begins at body offset 8 (after the 8-byte IDB fixed fields:
+    // linktype:2 + reserved:2 + snaplen:4). If the body has no bytes beyond the fixed
+    // fields, there are no options → return the default.
+    //
+    // Caller contract: body.len() >= IDB_BODY_FIXED_BYTES (≥ 8) must hold.
+    // If body is shorter than 8 bytes, the options region is empty; return default.
+    let opts = if body.len() > IDB_BODY_FIXED_BYTES {
+        &body[IDB_BODY_FIXED_BYTES..]
+    } else {
+        return Ok(DEFAULT_TSRESOL);
+    };
+
+    // Walk the TLV options region (BC-2.01.011 PC6).
+    // Each TLV: option_code:u16 (LE) + option_length:u16 (LE) + value (option_length bytes)
+    // + padding to next 4-byte boundary.
+    let mut cursor = 0usize;
+    let remaining = opts;
+
+    loop {
+        // Need at least 4 bytes for the TLV header (code:2 + length:2).
+        if cursor + 4 > remaining.len() {
+            // End of options region without finding opt_endofopt — treat as end-of-body.
+            break;
+        }
+
+        let opt_code = u16::from_le_bytes([remaining[cursor], remaining[cursor + 1]]);
+        let opt_len = u16::from_le_bytes([remaining[cursor + 2], remaining[cursor + 3]]) as usize;
+        cursor += 4;
+
+        // opt_endofopt (code 0) terminates the walk immediately.
+        if opt_code == 0 {
+            break;
+        }
+
+        // Bounds-check: option_length must not exceed remaining bytes BEFORE reading.
+        // (BC-2.01.011 PC6 / AC-005 / SEC-005 — no OOB read)
+        if cursor + opt_len > remaining.len() {
+            return Err(anyhow!(
+                "IDB options TLV overrun: option code {opt_code} declares length {opt_len} \
+                 but only {} bytes remain in the options region \
+                 (E-INP-008: malformed IDB options TLV)",
+                remaining.len().saturating_sub(cursor)
+            ));
+        }
+
+        // Advance cursor past value + 4-byte-aligned padding.
+        let padded = (opt_len + 3) & !3;
+
+        if opt_code == 9 {
+            // if_tsresol option: MUST have option_length == 1 exactly.
+            // F-M5 / ADR-009 rev 9: any other length is a malformed TLV → E-INP-008.
+            // MUST NOT silently ignore or default.
+            if opt_len != 1 {
+                return Err(anyhow!(
+                    "IDB if_tsresol option (code 9) has option_length={opt_len}, expected 1 \
+                     (E-INP-008: malformed if_tsresol TLV; F-M5 / ADR-009 rev 9)"
+                ));
+            }
+            // Extract the single-byte value and return immediately.
+            // (bounds already checked above: cursor + opt_len <= remaining.len())
+            return Ok(remaining[cursor]);
+        }
+
+        // Unknown option code (including if_tsoffset = 10 per Decision 21):
+        // silently skip (value bytes + 4-byte-aligned padding consumed).
+        cursor += padded;
+    }
+
+    // if_tsresol absent → return default (BC-2.01.011 PC2 / EC-001).
+    Ok(DEFAULT_TSRESOL)
 }
 
 // ─── PcapSource impl ─────────────────────────────────────────────────────────
@@ -406,7 +554,11 @@ impl PcapSource {
         // BC-2.01.010 Invariant 4: section_endianness propagated to all decoders.
 
         let mut packets = Vec::new();
-        let mut datalink: Option<DataLink> = None;
+        // BC-2.01.011 AC-002: interface table MUST be Vec<InterfaceInfo>, NOT HashMap.
+        // Interface indexes are 0-based and assigned in IDB encounter order (Invariant 1).
+        let mut interfaces: Vec<InterfaceInfo> = Vec::new();
+        // E-INP-013 position check (Decision 15 / AC-004): track emitted packet count.
+        let mut packets_emitted: u32 = 0;
         let mut skipped_blocks: u32 = 0;
         let mut opb_skipped: u32 = 0;
         let mut block_seq: u32 = 1; // SHB was block #1
@@ -414,7 +566,33 @@ impl PcapSource {
         while !src.is_empty() {
             let prev_len = src.len();
             let (rem, raw_block) = parser.next_raw_block(src).map_err(|e| {
-                anyhow!("pcapng block framing error: {e} (E-INP-010: crate framing rejection)")
+                // The crate parses IDB blocks inside next_raw_block_inner (via try_into_block)
+                // to maintain its internal interfaces list. This means the crate's IDB parser
+                // runs before wirerust's own body checks. Two IDB errors from the crate must
+                // be remapped from E-INP-010 to E-INP-008 (ADR-009 Decision 20):
+                //
+                //   - "block length < 8"  — IDB body too short (wirerust's body-decode window:
+                //     12 ≤ btl < 20; crate frames the block but body < 8 IDB fixed-field bytes).
+                //     Per Decision 20 Tier 2: body-decode failure → E-INP-008.
+                //   - "reserved != 0"     — structural IDB error (mirrors spec-required check).
+                //     Per Decision 20 Tier 2: structural body-decode failure → E-INP-008.
+                //
+                // All other crate errors are Tier 1 framing rejections → E-INP-010.
+                let msg = e.to_string();
+                if msg.contains("block length < 8") {
+                    anyhow!(
+                        "pcapng IDB body too short: body < 8 IDB fixed-field bytes \
+                         (E-INP-008: body-too-short; constructible window 12 ≤ btl < 20)"
+                    )
+                } else if msg.contains("reserved != 0") {
+                    anyhow!(
+                        "pcapng IDB reserved field is non-zero (structural IDB error) \
+                         (E-INP-008: reserved != 0; mirrors crate enforcement at \
+                         interface_description.rs:48-49)"
+                    )
+                } else {
+                    anyhow!("pcapng block framing error: {e} (E-INP-010: crate framing rejection)")
+                }
             })?;
             src = rem;
             // Forward-progress guard (CWE-835 / ADR-009 Decision 8): if the crate
@@ -446,7 +624,25 @@ impl PcapSource {
                 }
 
                 IDB_BLOCK_TYPE => {
-                    // BC-2.01.011 / ADR-009 Decision 2: parse IDB for linktype.
+                    // BC-2.01.011 / BC-2.01.016 / BC-2.01.018 / ADR-009 Decision 17.
+                    //
+                    // THREE-LEVEL PRECEDENCE — apply in EXACT order (Decision 17):
+                    //   1. E-INP-013 position check FIRST (body NOT decoded if fires)
+                    //   2. E-INP-001 whitelist check SECOND
+                    //   3. E-INP-011 conflict check THIRD
+                    //
+                    // CHECK 1 — E-INP-013: IDB after first packet block (Decision 15 / AC-004).
+                    // `packets_emitted > 0` means a packet block has already been emitted.
+                    // The IDB body is NOT decoded; interface table NOT updated.
+                    if packets_emitted > 0 {
+                        return Err(anyhow!(
+                            "pcapng interface description block after first packet block — \
+                             unsupported ordering (E-INP-013)"
+                        ));
+                    }
+
+                    // Now decode the IDB body (body-length check is wirerust's responsibility
+                    // on the raw path — M-1 / BC-2.01.011 AC-007 Architecture Anchor).
                     let blk_body = raw_block.body.as_ref();
                     if blk_body.len() < IDB_BODY_FIXED_BYTES {
                         return Err(anyhow!(
@@ -456,6 +652,8 @@ impl PcapSource {
                             blk_body.len()
                         ));
                     }
+
+                    // Decode linktype (body[0..2]) using section endianness.
                     let link_raw = match section_endianness {
                         SectionEndianness::BigEndian => {
                             u16::from_be_bytes([blk_body[0], blk_body[1]])
@@ -464,6 +662,8 @@ impl PcapSource {
                             u16::from_le_bytes([blk_body[0], blk_body[1]])
                         }
                     };
+
+                    // CHECK 2 — E-INP-001: whitelist check (BC-2.01.016 / Decision 17 check 2).
                     let new_dl = DataLink::from(u32::from(link_raw));
                     match new_dl {
                         DataLink::ETHERNET
@@ -478,17 +678,32 @@ impl PcapSource {
                             ));
                         }
                     }
-                    if let Some(existing) = datalink {
-                        if existing != new_dl {
-                            return Err(anyhow!(
-                                "pcapng multi-IDB linktype conflict: first IDB linktype \
-                                 {existing:?} conflicts with new IDB linktype {new_dl:?} \
-                                 (E-INP-011)"
-                            ));
-                        }
-                    } else {
-                        datalink = Some(new_dl);
+
+                    // CHECK 3 — E-INP-011: multi-IDB linktype agreement (BC-2.01.018 / Decision 17
+                    // check 3). Compare against the first registered interface's linktype.
+                    // Lazy check: first mismatch fires immediately (BC-2.01.018 PC4).
+                    // Message format: "pcapng multi-interface link-type conflict: interface 0 has
+                    // {first:?}, interface {n} has {other:?}" (BC-2.01.018 PC2 exact wording).
+                    if !interfaces.is_empty() && interfaces[0].linktype != new_dl {
+                        let first = interfaces[0].linktype;
+                        let n = interfaces.len(); // 0-based index of the new (conflicting) IDB
+                        return Err(anyhow!(
+                            "pcapng multi-interface link-type conflict: interface 0 has \
+                             {first:?}, interface {n} has {new_dl:?} (E-INP-011)"
+                        ));
                     }
+
+                    // All three checks passed. Extract if_tsresol from the IDB options TLV.
+                    // parse_idb_options walks body[8..] for the if_tsresol option (code 9).
+                    let if_tsresol = parse_idb_options(blk_body)
+                        .context("IDB options TLV parse failed (E-INP-008)")?;
+
+                    // Push to interface table (BC-2.01.011 PC3 / Invariant 1).
+                    // snaplen (body[4..8]) is read-and-discarded; NOT stored (F-M3).
+                    interfaces.push(InterfaceInfo {
+                        linktype: new_dl,
+                        if_tsresol,
+                    });
                 }
 
                 EPB_BLOCK_TYPE => {
@@ -502,7 +717,7 @@ impl PcapSource {
                             blk_body.len()
                         ));
                     }
-                    if datalink.is_none() {
+                    if interfaces.is_empty() {
                         return Err(anyhow!(
                             "pcapng EPB encountered before any IDB has been parsed \
                              (E-INP-009: no interface table entry)"
@@ -578,6 +793,8 @@ impl PcapSource {
                         timestamp_usecs: ts_usecs,
                         data: packet_data.to_vec(),
                     });
+                    // Increment packets_emitted for E-INP-013 position check (AC-005 / Decision 15).
+                    packets_emitted = packets_emitted.saturating_add(1);
                 }
 
                 OPB_BLOCK_TYPE => {
@@ -595,7 +812,11 @@ impl PcapSource {
 
         // SHB-only files (no IDB) are structurally valid (BC-2.01.009 EC-010 / F-M4).
         // M-3 (architect ruling): DataLink::from(0) = NULL sentinel when no IDB seen.
-        let final_datalink = datalink.unwrap_or(DataLink::from(0));
+        // Derive final datalink from interfaces[0].linktype (or NULL sentinel if no IDB).
+        let final_datalink = interfaces
+            .first()
+            .map(|i| i.linktype)
+            .unwrap_or(DataLink::from(0));
 
         Ok(PcapSource {
             packets,
