@@ -1310,6 +1310,19 @@ fn test_BC_2_01_010_second_shb_rejected_e_inp_012() {
         err_msg.to_lowercase().contains("mergecap") || err_msg.to_lowercase().contains("editcap"),
         "E-INP-012: error must include 'mergecap' or 'editcap' remediation hint; got: {err_msg}"
     );
+
+    // Routing discriminator: must NOT map to E-INP-010 (block-framing rejection) or E-INP-008
+    // (body-decode). A regression where next_raw_block's map_err fires first on the second SHB
+    // (before the SHB_BLOCK_TYPE match arm) would produce E-INP-010 instead of E-INP-012.
+    assert!(
+        !err_msg.contains("E-INP-010"),
+        "E-INP-012: second SHB must NOT be misrouted to E-INP-010 (block-framing rejection \
+         fires before the SHB_BLOCK_TYPE arm); got: {err_msg}"
+    );
+    assert!(
+        !err_msg.contains("E-INP-008"),
+        "E-INP-012: second SHB must NOT be misrouted to E-INP-008 (body-decode); got: {err_msg}"
+    );
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
