@@ -326,8 +326,8 @@ impl PcapSource {
 
     /// pcapng parse path using `pcap-file` 2.0.0's `PcapNgParser` API.
     ///
-    /// ADR-009 Decision 1 (rev 5) — `PcapNgParser::new` + `next_raw_block` path.
-    /// ADR-009 Decision 13 — all-in-memory model (`raw` is a fully-buffered slice).
+    /// ADR-009 rev 9 Decision 1 — `PcapNgParser::new` + `next_raw_block` path.
+    /// ADR-009 rev 9 Decision 13 — all-in-memory model (`raw` is a fully-buffered slice).
     ///
     /// ## Error taxonomy (H-2)
     ///
