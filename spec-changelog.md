@@ -14,6 +14,117 @@ changes, invariant rewrites).
 
 ---
 
+## [pcapng-f2-pass4-remediation-2026-06-20] — 2026-06-20
+
+### PASS-4 ADVERSARIAL REMEDIATION: 1 CRITICAL / 4 HIGH / 5 MEDIUM / 3 LOW — HIGH novelty; D-150
+
+**Trigger:** F2 adversary pass-4 (D-149) identified 1C/4H/5M/3L findings, HIGH novelty class
+(EPB/SPB sibling-propagation gap; false-unconstructibility over-correction; VP satisfiability
+failure; SOUL #4 holdout gap). All must-fix items remediated. Pass-5 is next; F3 remains
+BLOCKED until 3 clean passes.
+
+**Version bumps (~19 artifacts):** BC-2.01.009 v1.3→v1.4; BC-2.01.010 v1.8→v1.9;
+BC-2.01.011 v1.3→v1.4; BC-2.01.012 v1.3→v1.4; BC-2.01.013 v1.3→v1.4; BC-2.01.014 v1.3→v1.4;
+BC-2.01.015 v1.4→v1.5; BC-2.01.016 v1.3→v1.4; BC-2.01.017 unchanged v1.4;
+BC-2.01.018 v1.4→v1.5; error-taxonomy v3.0→v3.1; ADR-009 rev 6→rev 7;
+VP-INDEX v2.5→v2.6; verification-architecture.md v2.1→v2.2;
+verification-coverage-matrix.md v1.15→v1.16; HS-103 v1.4→v1.5; HS-104 v1.1→v1.2;
+HS-107 v1.2→v1.3; HS-108 v1.0 (new); HS-INDEX v2.2→v2.3. BC-INDEX v1.57→v1.58.
+
+**Critical finding (1):**
+
+- **C-1 (EPB padding-aware bound — BC-2.01.012 v1.4):** [Critical] EPB captured_len guard
+  was `captured_len <= block_total_length - 32` — missing the 4-byte padding term and lacking
+  an unconditional body.len() bound. The SPB three-way min fix (D-147) was not propagated to
+  the EPB sibling. A non-multiple-of-4 captured_len at the body boundary could cause padded
+  slice overrun. Fixed: padding term `EPB_FIXED + captured_len + pad(captured_len) <= body.len()`
+  added; unconditional body.len() bound added as first guard; M-3 PC8 scoped to EC-009 only;
+  EC-008 boundary case moved to HS-104 Case E (HS-104 v1.2).
+
+**High findings (4):**
+
+- **H-1 / Decision 20 (uniform body-decode-truncation rule; SHB body-too-short re-added):**
+  [High] Pass-3 narrowed SHB E-INP-008 to semantic-only based on the false premise that
+  "btl<12 is unconstructible." This was incorrect: btl=16 IS constructible (16 % 4 == 0,
+  >= 12; crate accepts; wirerust receives body of 4 bytes < 16-byte SHB minimum) and was
+  wrongly removed from spec coverage. ADR-009 rev 7 Decision 20 establishes the uniform
+  body-decode-truncation rule: three mutually-exclusive tiers (crate framing failure →
+  E-INP-010; aligned-and-framed body-too-short → E-INP-008; semantic failure → E-INP-008).
+  SHB body-too-short (btl=16 → body=4 example) re-added as constructible E-INP-008 case.
+  HS-103 v1.5 (Case D added). HS-107 v1.3 (Case F added — SPB btl=12 → E-INP-008).
+  BC-2.01.009/010/011/015 updated. error-taxonomy v3.1 (uniform rule preamble).
+
+- **H-2 (peek-only probe — BC-2.01.009 v1.4):** [High] BC-2.01.009 probe specified
+  consume(4) which advances the stream cursor past the block-type bytes before dispatch.
+  Every downstream block parser then receives the wrong bytes. Fixed: probe must be peek-only
+  via fill_buf (no cursor advance). BC-2.01.009 v1.4.
+
+- **H-3 (VP-030 restated — BC-2.01.018 v1.5; VP-INDEX v2.6):** [High] VP-030 was specified
+  over arbitrary u16 inputs, but non-whitelisted linktypes short-circuit to E-INP-001
+  (Decision 17 step 2) before the E-INP-011 conflict check (step 3). VP-030 as written
+  was unsatisfiable — virtually all arbitrary u16 pairs hit E-INP-001 and never reach the
+  code under test. Fixed: VP-030 domain narrowed to whitelisted DataLink values only;
+  non-whitelisted → E-INP-001 explicitly out of VP-030 scope. VP-INDEX v2.6 (H-3 restate).
+  BC-2.01.018 v1.5.
+
+- **H-4 (HS-108 zero-packet / Decision 19 — BC-2.01.009 v1.4):** [High] No holdout scenario
+  existed for the zero-packet one-shot notice (SOUL #4 property). Pass-3 M-3 broadened the
+  notice but no HS covered it. Also: BC-2.01.009 lacked a disambiguation rule between
+  zero-packet success (Ok + notice) and EPB-before-IDB error (Err). Fixed: HS-108 authored
+  (three cases: IDB-only pcapng → Ok + notice; IDB + 2 unknown-type skipped blocks → Ok +
+  notice with skip count; EPB before IDB → Err E-INP-009). ADR-009 Decision 19 formalizes
+  the zero-packet notice gating rule. BC-2.01.009 v1.4 adds disambiguation rule.
+  HS-INDEX v2.3 (HS-108; all-namespace=181).
+
+**Medium findings (5):**
+
+- **M-1 (crate-enforces over-claim removed):** BC-2.01.011/012/013 attributed body-minimum
+  enforcement to the crate; on the raw-block path wirerust performs the guard itself.
+  Removed the crate-attribution claim from BC-2.01.011 v1.4, BC-2.01.012 v1.4,
+  BC-2.01.013 v1.4.
+
+- **M-2 / Decision 21 (if_tsoffset out-of-scope — BC-2.01.011 v1.4; BC-2.01.014 v1.4):**
+  if_tsoffset (IDB option code 10) was extracted in BC-2.01.011 PC6 but the term never
+  appeared in the BC-2.01.014 timestamp formula, creating a silent timestamp offset
+  wrongness path. Declared out-of-scope: ADR-009 Decision 21 records this as a conscious
+  scope decision (zero-offset corpus assumed; if_tsoffset support deferred). BC-2.01.011
+  v1.4 and BC-2.01.014 v1.4 document the out-of-scope ruling.
+
+- **M-3 (EC-008 boundary case to HS-104):** BC-2.01.012 PC8 over-claimed coverage of
+  both EC-008 (captured_len < original_len) and EC-009 (captured_len == original_len) via
+  the arp-baseline fixture, which has no truncated packets. PC8 scoped to EC-009 only;
+  EC-008 boundary case moved to HS-104 Case E. BC-2.01.012 v1.4; HS-104 v1.2.
+
+- **M-4 / Decision 19 (zero-packet anchor — BC-2.01.009 v1.4; BC-2.01.018 v1.5):**
+  BC-2.01.009 PC6 and BC-2.01.015 PC9 mis-cited ADR Decision 17 (IDB-parse precedence
+  order) as the authority for zero-packet notice behavior. Zero-packet notice is governed
+  by Decision 19, not Decision 17. Citations corrected. BC-2.01.018 v1.5 adds Decision 19
+  anchor.
+
+- **M-5 (#seq convention — error-taxonomy v3.1):** Block sequence numbering used two
+  incompatible conventions across error-taxonomy entries: E-INP-012 counted SHB in
+  "#seq within file" (SHB = block 1), while E-INP-010 / E-INP-013 counted blocks
+  "after SHB." Fixed: error-taxonomy v3.1 adds a preamble pinning the canonical
+  convention (all templates count "#N in file, including SHB as block 1"). BC-2.01.015 v1.5,
+  BC-2.01.016 v1.4, BC-2.01.018 v1.5 carry cross-reference notes.
+
+**Low findings (3):**
+
+- **L-1 (DLT code verification — BC-2.01.016 v1.4):** Numeric DLT codes in BC-2.01.016
+  error message template source-verified against pcap-file 2.0.0 DataLink enum discriminants
+  and official linktype registry. Corrections applied where discrepant.
+
+- **L-2 (unescaped pipe — BC-2.01.011 v1.4):** EC-003 in BC-2.01.011 contained unescaped
+  pipe `0x80 | 0x0A` in Markdown table cell causing table corruption. Wrapped in code span.
+  (Same class as pass-1 L-1 fix for BC-2.01.011 v1.1 that was re-introduced during H-2
+  constructible-fixture window edit.)
+
+- **L-3 (process-gap / deferred):** error-taxonomy input-hash still N/A — error contract
+  outside drift guard. Pre-F3 obligation; not blocking this remediation burst. Carried
+  forward as open obligation.
+
+---
+
 ## [pcapng-f2-pass3-reaudit-fixes-2026-06-19] — 2026-06-19
 
 ### PASS-3 CROSS-SEAM RE-AUDIT GAP FIXES: 4 ITEMS (1 Major / 2 Minor / 1 Obs) — ALL FIXED

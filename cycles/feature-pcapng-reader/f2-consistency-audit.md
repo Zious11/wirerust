@@ -708,3 +708,511 @@ cause a phase-4 gate failure. No blocking findings.
 | FINDING-003 | MEDIUM | v1.0 audit — prd.md RTM missing BC-2.01.009-018 rows | OPEN |
 | FINDING-004 | MEDIUM | v1.0 audit — BC-INDEX updated timestamp stale | OPEN |
 | FINDING-P2-001 | LOW | v2.0 audit — ADR-009 HS-completeness map HS-107 shown MISSING | OPEN |
+
+---
+
+## v3.0 Append — F2 Pass-3 Remediation Cross-Seam Audit
+
+**Audit date:** 2026-06-19
+**Scope:** F2 Pass-3 remediation — 4 parallel PO bursts + architect rev 6. Seams 1-12 from the
+Pass-3 audit brief checked against disk.
+
+**Artifacts checked:**
+
+- error-taxonomy.md v2.9
+- BC-2.01.009 v1.3, BC-2.01.010 v1.8, BC-2.01.011 v1.3, BC-2.01.012 v1.3,
+  BC-2.01.013 v1.3, BC-2.01.014 v1.3, BC-2.01.015 v1.4, BC-2.01.016 v1.3,
+  BC-2.01.017 v1.4, BC-2.01.018 v1.3
+- VP-INDEX v2.5
+- verification-architecture.md v2.1
+- verification-coverage-matrix.md v1.15
+- HS-INDEX v2.1, HS-103 v1.4, HS-104 v1.1, HS-107 v1.1
+- ADR-009 rev 6
+- BC-INDEX v1.56
+
+---
+
+### Seam 1 — Three-way min (C-1/H-4): PASS WITH GAP
+
+**Check:** BC-2.01.013 v1.3 uses min(original_len, snaplen, block_body_available) at every
+captured_len site; no residual two-way min in normative text; consistent with HS-107 + VP-031.
+
+**Findings:**
+
+- BC-2.01.013 v1.3 PC1, AC-002, Invariant 2, EC-001, EC-007, Description, Architecture
+  Anchors: all use the three-way form min(original_len, snaplen, block_body_available). No
+  residual two-way min in any normative section. PASS.
+
+- VP-031 present in BC-2.01.013 v1.3 Verification Properties table: "proptest arithmetic
+  correctness for three-way min". PASS.
+
+- HS-107 v1.1 Case B Key observable: "captured_len = min(200, 100) = 100" — two-way
+  expression. The block_body_available for the Case B fixture is block_total_length(116) - 16 = 100,
+  which equals the snaplen argument, so the two-way expression produces the numerically correct
+  result for that specific fixture. However, this is inconsistent with the normative three-way
+  form. A reader checking HS-107 Case B against BC-2.01.013 sees a two-way expression in the
+  holdout when the BC mandates a three-way form. GAP — see FINDING-P3-004 below.
+
+- HS-107 v1.1 frontmatter verification_properties: [VP-028] only. VP-031 not present. GAP —
+  see FINDING-P3-003 below.
+
+**SEAM 1: PASS WITH FINDING-P3-004 (Minor) and FINDING-P3-003 (Observation)**
+
+---
+
+### Seam 2 — E-INP-008 narrowed to semantic (H-1/H-2): PASS WITH GAP
+
+**Check:** BC-2.01.010 v1.8 PC5 — E-INP-008 is semantic-only for SHB (BOM invalid, major!=1);
+all SHB framing/length truncation → E-INP-010. BC-2.01.011 v1.3 — constructible IDB E-INP-008
+window 12<=btl<20. error-taxonomy v2.9 E-INP-008 scope text consistent. BC-2.01.017 v1.4 and
+HS-103 v1.4 consistent with SHB semantic→008 / framing→010 split.
+
+**Findings:**
+
+- BC-2.01.010 v1.8 PC5: "SHB E-INP-008 is semantic-only — covers BOM-invalid (neither LE nor BE
+  magic) and major_version != 1. ALL SHB framing/length-truncation errors where the pcap-file
+  crate cannot frame the block → E-INP-010." Correct and complete narrowing. PASS.
+
+- BC-2.01.011 v1.3 EC-008: "Constructible IDB E-INP-008 window = 12 <= btl < 20 (body 0-7
+  bytes); btl < 12 maps to E-INP-010 (crate-level framing rejection, not this BC)." Consistent
+  with the H-2 IDB constructible-fixture window requirement. PASS.
+
+- BC-2.01.017 v1.4: Error taxonomy field lists E-INP-008 with scope "SHB semantic failures and
+  IDB body-decode failures." E-INP-010 separately listed for crate-level framing. PASS.
+
+- HS-103 v1.4 Case B (invalid BOM → E-INP-008): correct. Case C (15-byte SHB → E-INP-010):
+  explicit note in Case C body confirming the crate-level framing path maps to E-INP-010, not
+  E-INP-008. "E-INP-008 applies only when the crate successfully frames an SHB body but that body
+  is < 16 fixed-bytes wide" — correctly distinguishes the two cases. PASS.
+
+- error-taxonomy v2.9 E-INP-008 Notes: "Covers structural parse failures at the SHB or IDB
+  level: truncated file, missing BOM, malformed block-total-length, unsupported major version."
+  This text was carried from v2.7 and was NOT updated for the H-1 SHB semantic-only narrowing
+  (which was applied to BC-2.01.010 in v1.8 and to error-taxonomy v2.9 only via the E-INP-001
+  BC-ref fix — the Notes prose was not touched). The phrase "truncated file, malformed
+  block-total-length" implies SHB framing failures route to E-INP-008, contradicting
+  BC-2.01.010 v1.8 PC5 which sends them to E-INP-010. GAP — see FINDING-P3-001 below.
+
+**SEAM 2: PASS WITH FINDING-P3-001 (Major)**
+
+---
+
+### Seam 3 — E-INP-001 wiring (H-3): CLEAN
+
+**Check:** error-taxonomy v2.9 E-INP-001 BC-ref includes BC-2.01.016; BC-2.01.017 v1.4 PC1
+context strings and range include E-INP-001; BC-2.01.016 v1.3 maps whitelist → E-INP-001. No
+orphan.
+
+**Findings:**
+
+- error-taxonomy v2.9 E-INP-001 BC Ref field: "BC-2.01.001, BC-2.01.016" — includes
+  BC-2.01.016 as required by H-3. PASS.
+
+- BC-2.01.017 v1.4 PC1: context strings include "pcapng Interface Description Block link type
+  rejected" mapped to E-INP-001. Error taxonomy field in BC-2.01.017 lists E-INP-001 with
+  correct scope. PASS.
+
+- BC-2.01.016 v1.3 Preconditions item 3 (three-level IDB check order): whitelist check is
+  SECOND; on whitelist failure → E-INP-001. Maps whitelist → E-INP-001 unambiguously. PASS.
+
+- No orphaned E-INP-001 references. The three legs of the triangle (error-taxonomy → BC-2.01.016,
+  BC-2.01.016 → E-INP-001, BC-2.01.017 → E-INP-001) are all present. PASS.
+
+**SEAM 3: CLEAN**
+
+---
+
+### Seam 4 — IDB-parse precedence (M-7 / Decision 17): PASS WITH GAP
+
+**Check:** E-INP-013 (position) → E-INP-001 (whitelist) → E-INP-011 (conflict) consistently in
+BC-2.01.011 v1.3, BC-2.01.016 v1.3, BC-2.01.018 v1.3, ADR-009 Decision 17. Late-IDB-with-conflict
+→ E-INP-013 wins.
+
+**Findings:**
+
+- ADR-009 rev 6 Decision 17: three-level precedence fully specified — E-INP-013 first (position
+  check: IDB after first packet), E-INP-001 second (whitelist check), E-INP-011 third
+  (agreement/conflict check). PASS.
+
+- BC-2.01.011 v1.3 AC-006: "Three-level precedence: E-INP-013 > E-INP-001 > E-INP-011." EC-012:
+  "Late IDB with conflicting linktype → E-INP-013 wins; E-INP-011 never evaluated." PASS.
+
+- BC-2.01.016 v1.3 Preconditions item 3: whitelist check is SECOND in the ordering (after
+  E-INP-013 position check, before E-INP-011 conflict check). Invariant 3 consistent. PASS.
+
+- BC-2.01.018 v1.3 AC-001: "E-INP-011 is THIRD check (Decision 17)." EC-010: "Late IDB with
+  conflict → E-INP-013 wins; E-INP-011 never evaluated." PASS.
+
+- BC-2.01.018 v1.3 Related BCs section: "BC-2.01.016 — composes with (agreement check runs
+  first; whitelist check runs second)." This annotation reverses the correct order: per Decision
+  17, whitelist (E-INP-001) is SECOND and agreement/conflict (E-INP-011) is THIRD. The normative
+  sections (AC-001, EC-010, Invariants) are all correct; only the Related BCs prose annotation
+  is backwards. GAP — see FINDING-P3-002 below.
+
+**SEAM 4: PASS WITH FINDING-P3-002 (Minor)**
+
+---
+
+### Seam 5 — Multi-section dead-spec (H-5 / Decision 16): CLEAN
+
+**Check:** BC-2.01.011 v1.3 Inv2 + BC-2.01.018 v1.3 Inv4 marked DEFERRED; BC-2.01.018 v1.3
+EC-005 = reject 2nd SHB → E-INP-012 (NOT per-section success); ADR Decision 16 consistent. No
+residual "resets at each SHB" or "succeeds per section" as live behavior.
+
+**Findings:**
+
+- BC-2.01.011 v1.3 Invariant 2: ~~reset at each SHB~~ DEFERRED. No live "resets at SHB"
+  behavior. PASS.
+
+- BC-2.01.018 v1.3 Invariant 4: ~~per-section IDB reset~~ DELETED/DEFERRED. PASS.
+
+- BC-2.01.018 v1.3 EC-005: "Reject 2nd SHB → E-INP-012. NOT per-section success outcome."
+  Explicitly not the per-section case. PASS.
+
+- ADR-009 rev 6 Decision 16: "per-section IDB reset is DEAD SPEC — unreachable under the
+  single-section constraint (Decision 7 rejects a second SHB with E-INP-012)." Consistent. PASS.
+
+- No other BC in the SS-01 set has a "resets at SHB" clause. Swept BC-2.01.009 through
+  BC-2.01.018 for residual per-section language; none found. PASS.
+
+**SEAM 5: CLEAN**
+
+---
+
+### Seam 6 — VP-031 (M-2): CLEAN
+
+**Check:** BC-2.01.013 v1.3 Verification Properties table has VP-031; VP-INDEX v2.5 total 31
+(proptest 10); verification-architecture v2.1 + verification-coverage-matrix v1.15 consistent;
+arithmetic balances.
+
+**Findings:**
+
+- BC-2.01.013 v1.3 Verification Properties table: VP-031 present, tool=proptest, phase=P1.
+  PASS.
+
+- ADR-009 rev 6 Decision 18: VP-031 assigned for SPB captured-len arithmetic correctness.
+  VP table in ADR shows VP-031 as proptest P1. PASS.
+
+- VP-INDEX v2.5: total_vps=31, p0=8, p1=17, test_sufficient=6 (8+17+6=31). Tool totals:
+  kani=14, proptest=10, fuzz=2, integration/unit=5 (14+10+2+5=31). VP-031 listed: proptest,
+  P1, draft, BC-2.01.013. Consistency invariants block: "P0+P1+test-sufficient = 31; draft 7
+  (VP-025..031); verified 24." PASS.
+
+- verification-architecture.md v2.1 Should Prove table: VP-031 present with correct property,
+  module=reader.rs (pcapng_pure_core fns), tool=proptest. Modification log confirms proptest
+  count updated 9→10, P1 count 16→17, total 30→31, version bump 2.0→2.1. PASS.
+
+- verification-coverage-matrix.md v1.15: reader.rs row shows VP-031 under proptest column
+  (count 2→3). Grand Totals row: proptest 9→10, overall 30→31. Version bump 1.14→1.15.
+  Modification log consistent. PASS.
+
+- Arithmetic cross-check: verification-coverage-matrix.md Totals row: Kani(14) + proptest(10) +
+  fuzz(2) + integration/unit(5) = 31. Matches VP-INDEX total. PASS.
+
+**SEAM 6: CLEAN**
+
+---
+
+### Seam 7 — Zero-packet notice (M-3): CLEAN
+
+**Check:** BC-2.01.009 v1.3 PC6 fires on "valid file + zero packets" regardless of
+skipped_blocks > 0; BC-2.01.015 v1.4 PC9 counter feeds but is not the gate. Consistent, no
+contradiction.
+
+**Findings:**
+
+- BC-2.01.009 v1.3 PC6: trigger = "valid file + zero packets" (not gated on skipped_blocks > 0).
+  EC-007: OPB-only → notice with skip count. EC-008: IDB-only (zero skipped blocks) → notice
+  without skip count. Both cases covered by PC6 with skipped_blocks count optional in message.
+  PASS.
+
+- BC-2.01.015 v1.4 PC9: "counter feeds notice but trigger is owned by BC-2.01.009." AC-006:
+  "The gating condition for emission is 'valid file + zero packets' (BC-2.01.009 PC6), not
+  'skipped_blocks > 0'." Ownership boundary explicit. PASS.
+
+- No contradiction between BC-2.01.009 and BC-2.01.015 on gating condition. PASS.
+
+**SEAM 7: CLEAN**
+
+---
+
+### Seam 8 — Happy-path (M-5): CLEAN
+
+**Check:** BC-2.01.012 v1.3 has N-packet in-order + byte-fidelity postcondition anchored to
+arp-baseline-16pkt.cap.
+
+**Findings:**
+
+- BC-2.01.012 v1.3 PC8: N-packet in-order delivery + byte-fidelity, anchored to
+  arp-baseline-16pkt.cap (16 packets). Canonical test vector includes arp-baseline-16pkt.cap
+  case with expected packet count 16 and byte-for-byte fidelity assertion. PASS.
+
+**SEAM 8: CLEAN**
+
+---
+
+### Seam 9 — Timestamp parity (M-4): CLEAN
+
+**Check:** BC-2.01.014 v1.3 Inv2 scoped to ts_high==0 / u32-range; regression test scoped
+accordingly.
+
+**Findings:**
+
+- BC-2.01.014 v1.3 Invariant 2: "ts_high==0 / u32-range" qualification explicit. The regression
+  guard is scoped to the ts_high==0 domain to avoid requiring u128 arithmetic in the regression
+  assertion while still exercising the full u32 ts_low range. EC-009 regression guard scoped
+  consistently to ts_high==0 domain. PASS.
+
+**SEAM 9: CLEAN**
+
+---
+
+### Seam 10 — Options TLV (M-6): CLEAN
+
+**Check:** BC-2.01.011 v1.3 options-walk postcondition + bounds-check AC + malformed-length →
+E-INP-008 edge case; no contradiction with IDB body-decode.
+
+**Findings:**
+
+- BC-2.01.011 v1.3 PC6: IDB options TLV walking with bounds-check → E-INP-008 on malformed
+  length. PASS.
+
+- AC bounds-check citation and EC for malformed options length → E-INP-008 present. PASS.
+
+- No contradiction with IDB body-decode path: the options TLV walk occurs after successful
+  IDB body decode (linktype + reserved + snaplen); it is a subsequent phase that can independently
+  produce E-INP-008. The two phases are sequenced, not concurrent. PASS.
+
+**SEAM 10: CLEAN**
+
+---
+
+### Seam 11 — Holdouts: PASS WITH GAPS
+
+**Check:** HS-103 v1.4 (E-INP-008 semantic / E-INP-010 framing), HS-104 v1.1 (PC5 re-cite),
+HS-107 v1.1 (no stale pre-correction byte lines). HS-INDEX counts consistent.
+
+**Findings:**
+
+- HS-103 v1.4: Case B (invalid BOM) → E-INP-008; Case C (15-byte SHB, crate can't frame) →
+  E-INP-010. Version note confirms E-INP-008/E-INP-010 split verified. Behavioral Contract
+  Linkage table accurately reflects the two distinct paths. PASS.
+
+- HS-107 v1.1 frontmatter verification_properties: [VP-028] only. VP-031 was added in Pass-3
+  after HS-107 was authored; neither the holdout file nor the HS-INDEX entry was updated to
+  cross-reference VP-031 when it was assigned. GAP — see FINDING-P3-003 below.
+
+- HS-107 v1.1 Case B Key observable: "captured_len = min(200, 100) = 100" — two-way expression.
+  Inconsistent with BC-2.01.013 v1.3 normative three-way form. GAP — see FINDING-P3-004 below.
+
+- HS-INDEX v2.1 entry for HS-107: cites "BC-2.01.013 (VP-028)" — does not include VP-031.
+  Consistent with HS-107 frontmatter but both are missing the VP-031 cross-reference. Noted in
+  FINDING-P3-003.
+
+- HS-INDEX v2.1 total_scenarios: 107. Counts: must_pass=106, should_pass=1. Per-epic and
+  per-category sums consistent as documented in v2.0 audit. PASS.
+
+**SEAM 11: PASS WITH FINDING-P3-003 (Observation) and FINDING-P3-004 (Minor)**
+
+---
+
+### Seam 12 — Stale-note sweep (O-3): CLEAN
+
+**Check:** No "to be added in a separate burst" notes remain for E-INP-013. Versions monotonic;
+next_free E-INP-014; 302 active BCs; BC-INDEX inline == frontmatter.
+
+**Findings:**
+
+- error-taxonomy v2.9: E-INP-013 present and fully defined. No "to be added" placeholder or
+  stale deferral note for E-INP-013. next_free_error_code = E-INP-014. PASS.
+
+- Versions monotonic: BC-2.01.009 v1.2→v1.3, BC-2.01.010 v1.7→v1.8, BC-2.01.011 v1.2→v1.3,
+  BC-2.01.012 v1.2→v1.3, BC-2.01.013 v1.2→v1.3, BC-2.01.014 v1.2→v1.3, BC-2.01.015 v1.3→v1.4,
+  BC-2.01.016 v1.2→v1.3, BC-2.01.017 v1.3→v1.4, BC-2.01.018 v1.2→v1.3. All monotonic. PASS.
+
+- BC-INDEX v1.56 active count: "Active: 302 BCs" in header commentary and derivation block.
+  BC-INDEX inline annotation for Pass-3 burst: "Active count stays 302." Consistent. PASS.
+
+- BC-INDEX v1.56 inline version annotations for all 10 Pass-3 BCs match the on-disk frontmatter
+  versions confirmed above. PASS.
+
+**SEAM 12: CLEAN**
+
+---
+
+## v3.0 Findings
+
+### FINDING-P3-001 — Major (Seam 2)
+
+**error-taxonomy.md v2.9 E-INP-008 Notes do not reflect SHB semantic-only narrowing**
+
+**File:** `.factory/specs/prd-supplements/error-taxonomy.md`
+**Frontmatter version:** v2.9
+**Location:** E-INP-008 entry, Notes field
+
+**Current text (paraphrased from v2.9):**
+> "Covers structural parse failures at the SHB or IDB level: truncated file, missing BOM,
+> malformed block-total-length, unsupported major version. `<block-type>` is one of 'Section
+> Header Block', 'Interface Description Block'."
+
+**What is wrong:** BC-2.01.010 v1.8 PC5 (applied in Pass-3 via the H-1 fix) narrowed E-INP-008
+for SHB to semantic failures only: invalid BOM and major_version != 1. All SHB framing and
+length-truncation errors where the crate cannot frame the block now route to E-INP-010. The
+taxonomy Notes text was not updated in v2.9 (which only added BC-2.01.016 to the E-INP-001
+BC Ref field — the H-3 fix). The phrases "truncated file" and "malformed block-total-length"
+in the E-INP-008 Notes imply that SHB crate-framing failures route to E-INP-008, contradicting
+BC-2.01.010 v1.8 PC5 and HS-103 v1.4 Case C (which explicitly confirms E-INP-010 for a
+15-byte truncated SHB).
+
+**Evidence triangle:**
+- BC-2.01.010 v1.8 PC5: "ALL SHB framing/length-truncation errors → E-INP-010"
+- HS-103 v1.4 Case C: "maps to E-INP-010 — NOT E-INP-008 (which requires a successfully-framed
+  body)"
+- error-taxonomy.md v2.9 E-INP-008 Notes: still says "truncated file, malformed
+  block-total-length" (implies → E-INP-008 for SHB)
+
+**Impact:** A developer reading only error-taxonomy.md would conclude that a truncated SHB
+(e.g., 15 bytes) maps to E-INP-008. The correct mapping is E-INP-010. This directly contradicts
+the normative BC.
+
+**Fix:** In error-taxonomy.md, update the E-INP-008 Notes field to read:
+> "Covers SEMANTIC parse failures at the SHB level (invalid Byte-Order Magic, unsupported
+> major_version) and structural body-decode failures at the IDB level (body < 8 bytes, non-zero
+> reserved field, malformed options TLV length). SHB framing and length-truncation errors where
+> the pcap-file crate cannot frame the block map to E-INP-010, NOT E-INP-008."
+
+---
+
+### FINDING-P3-002 — Minor (Seam 4)
+
+**BC-2.01.018 v1.3 Related BCs annotation reverses whitelist/conflict precedence order**
+
+**File:** `.factory/specs/behavioral-contracts/ss-01/BC-2.01.018.md`
+**Frontmatter version:** v1.3
+**Location:** Related BCs section, BC-2.01.016 row
+
+**Current text:**
+> "BC-2.01.016 — composes with (agreement check runs first; whitelist check runs second)"
+
+**What is wrong:** Per ADR-009 Decision 17 and all normative sections of BC-2.01.016 v1.3 and
+BC-2.01.018 v1.3, the correct order is: E-INP-013 (position) FIRST, E-INP-001 whitelist SECOND,
+E-INP-011 agreement/conflict THIRD. The Related BCs annotation says "agreement check runs first;
+whitelist check runs second" — this transposes SECOND and THIRD. The normative sections (AC-001,
+EC-010, Invariants) are all correct; only this non-normative annotation is wrong.
+
+**Impact:** Low. A reader scanning only the Related BCs section of BC-2.01.018 to understand the
+ordering would receive a backwards description. The normative sections override this prose, but
+the inconsistency is a readability hazard and could cause confusion during implementation review.
+
+**Fix:** In BC-2.01.018 v1.3 Related BCs section, update the BC-2.01.016 row to:
+> "BC-2.01.016 — composes with (whitelist check runs second, per Decision 17; agreement/conflict
+> check in this BC runs third)"
+
+---
+
+### FINDING-P3-003 — Observation (Seams 6 + 11)
+
+**HS-107 v1.1 frontmatter and HS-INDEX v2.1 entry do not cross-reference VP-031**
+
+**File 1:** `.factory/holdout-scenarios/HS-107-pcapng-spb-framing-truncation-padding-and-no-idb.md`
+**Location:** frontmatter `verification_properties` field (line 21)
+**Current value:** `[VP-028]`
+
+**File 2:** `.factory/holdout-scenarios/HS-INDEX.md`
+**Location:** HS-107 entry, BC/VP citation column
+**Current text:** "BC-2.01.013 (VP-028)"
+
+**What happened:** VP-031 (proptest arithmetic correctness for SPB captured-len three-way min)
+was assigned in Pass-3 as part of the C-1 fix propagation. HS-107 was authored in Pass-2
+(before VP-031 existed). When VP-031 was added to BC-2.01.013 and VP-INDEX v2.5, neither HS-107
+nor the HS-INDEX entry for HS-107 was updated to cross-reference VP-031.
+
+**Impact:** Observation-level. The holdout scenario itself tests the behavior that VP-031
+verifies (SPB captured-len arithmetic). The omission is a traceability gap, not a behavioral
+gap. No phase-4 gate outcome depends on HS-107 listing VP-031, but the traceability matrix is
+incomplete.
+
+**No blocking action required.** Recommended fix: update HS-107 frontmatter
+`verification_properties: [VP-028, VP-031]` and update the HS-INDEX entry to
+"BC-2.01.013 (VP-028, VP-031)".
+
+---
+
+### FINDING-P3-004 — Minor (Seams 1 + 11)
+
+**HS-107 v1.1 Case B shows two-way min expression instead of normative three-way form**
+
+**File:** `.factory/holdout-scenarios/HS-107-pcapng-spb-framing-truncation-padding-and-no-idb.md`
+**Location:** Case B Key observable line
+**Current text (paraphrased):** "captured_len = min(200, 100) = 100"
+
+**What is wrong:** BC-2.01.013 v1.3 normatively requires the three-way expression
+min(original_len, snaplen, block_body_available) at every captured_len computation site.
+The HS-107 Case B fixture has original_len=200, snaplen=100, block_body_available=100
+(block_total_length=116, 116-16=100). For this specific fixture the two-way expression
+min(200, 100) produces the correct result numerically because block_body_available equals
+snaplen. However, the holdout observable shows only the two-way form, which:
+
+1. Does not demonstrate that the three-way min is being applied (a two-way implementation
+   would also pass Case B).
+2. Is inconsistent with the normative three-way form in BC-2.01.013.
+
+**Impact:** Minor. The Case B fixture as written does not distinguish between a correct
+three-way implementation and an incorrect two-way implementation. The normative correctness
+is covered by VP-031 (proptest), which will exercise the case where block_body_available is
+the binding minimum. The HS-107 observable is a documentation inconsistency rather than a
+behavioral gap.
+
+**Fix:** Update HS-107 Case B Key observable to use the three-way form:
+> "captured_len = min(original_len=200, snaplen=100, block_body_available=100) = 100
+> (snaplen and block_body_available are tied as the binding minimum in this fixture;
+> VP-031 exercises the case where block_body_available is strictly the binding minimum)"
+
+---
+
+## v3.0 Summary — Cross-Seam Audit
+
+| Seam | Topic | Result |
+|------|-------|--------|
+| 1 | Three-way min — BC-2.01.013 normative sections | CLEAN (gaps in HS-107 captured in Seam 11) |
+| 2 | E-INP-008 narrowed to semantic (H-1/H-2) | GAP: FINDING-P3-001 (Major) |
+| 3 | E-INP-001 wiring (H-3) | CLEAN |
+| 4 | IDB-parse precedence (M-7 / Decision 17) | GAP: FINDING-P3-002 (Minor) |
+| 5 | Multi-section dead-spec (H-5 / Decision 16) | CLEAN |
+| 6 | VP-031 (M-2) | CLEAN |
+| 7 | Zero-packet notice (M-3) | CLEAN |
+| 8 | Happy-path (M-5) | CLEAN |
+| 9 | Timestamp parity (M-4) | CLEAN |
+| 10 | Options TLV (M-6) | CLEAN |
+| 11 | Holdouts (HS-103/104/107, HS-INDEX counts) | GAP: FINDING-P3-003 (Obs), FINDING-P3-004 (Minor) |
+| 12 | Stale-note sweep (O-3); versions; 302 BCs | CLEAN |
+
+**Overall v3.0 verdict: NOT CLEAN — 4 gaps found.**
+
+| ID | Severity | Seam | Summary |
+|----|----------|------|---------|
+| FINDING-P3-001 | Major | 2 | error-taxonomy.md E-INP-008 Notes not updated for SHB semantic-only narrowing |
+| FINDING-P3-002 | Minor | 4 | BC-2.01.018 Related BCs annotation reverses whitelist/conflict order |
+| FINDING-P3-003 | Observation | 6+11 | HS-107 frontmatter + HS-INDEX entry omit VP-031 cross-reference |
+| FINDING-P3-004 | Minor | 1+11 | HS-107 Case B shows two-way min instead of normative three-way form |
+
+No blocking findings against phase-4 gate. FINDING-P3-001 (Major) is a taxonomy prose
+inconsistency that should be resolved before the next adversarial pass. FINDING-P3-002 through
+FINDING-P3-004 are Minor or Observation and do not affect behavioral correctness of any normative
+section.
+
+---
+
+## Updated Open Findings Register
+
+| ID | Severity | Source | Status |
+|----|----------|--------|--------|
+| FINDING-001 | HIGH | v1.0 audit — ADR-009 Status section stale contradiction | OPEN |
+| FINDING-002 | HIGH | v1.0 audit — epics.md total_bcs 297 vs BC-INDEX 302 | OPEN |
+| FINDING-003 | MEDIUM | v1.0 audit — prd.md RTM missing BC-2.01.009-018 rows | OPEN |
+| FINDING-004 | MEDIUM | v1.0 audit — BC-INDEX updated timestamp stale | OPEN |
+| FINDING-P2-001 | LOW | v2.0 audit — ADR-009 HS-completeness map HS-107 shown MISSING | OPEN |
+| FINDING-P3-001 | MAJOR | v3.0 audit — error-taxonomy E-INP-008 Notes not updated for SHB semantic-only narrowing | OPEN |
+| FINDING-P3-002 | MINOR | v3.0 audit — BC-2.01.018 Related BCs annotation reverses whitelist/conflict order | OPEN |
+| FINDING-P3-003 | OBS | v3.0 audit — HS-107 + HS-INDEX omit VP-031 cross-reference | OPEN |
+| FINDING-P3-004 | MINOR | v3.0 audit — HS-107 Case B shows two-way min expression | OPEN |

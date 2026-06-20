@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.5"
 status: draft
 producer: product-owner
 timestamp: 2026-06-19T00:00:00Z
@@ -15,6 +15,8 @@ introduced: v0.10.0-pcapng
 modified:
   - "v1.1: F-07 completeness delta — explicitly enumerate all pcap-file Block variants that fall through to the skip path (NRB, ISB, DSB, SystemdJournalExport, obsolete Packet Block 0x2, Unknown); note that obsolete Packet Block 0x2 carries packet data but is treated as out-of-scope/skipped; add AC to prevent omitted match arm at implementation. — 2026-06-19"
   - "v1.2: F2 Burst-A remediation per ADR-009 rev 4 PO dispatch — (1) VP-029 added to Verification Properties. (2) EC-004 CORRECTED: `block_total_length = 8` is REJECTED by the crate (`block_common.rs:101`: `< 12` threshold), NOT '0 bytes consumed; no error'. Removed the false 'no error' claim; replaced with crate-accurate reject behavior. (3) EC-005 updated accordingly (threshold is now < 12, not < 8). (4) Added forward-progress invariant: block-walk loop MUST break on Err(_); the crate cursor does NOT advance on error (`read_buffer.rs:65`). (5) On the raw-block path, skip means ignoring the RawBlock body bytes (already in the body slice); the loop-break-on-error invariant covers all block types. (6) DSB log-guard note (SEC-007) added to AC-002: block body bytes MUST NOT be logged at any level. (7) Corrected AC-001 entry for DSB: DSB (type 0x0A) is NOT a named pcap-file Block variant — it arrives as Block::Unknown on the high-level API; on the raw-block path, block-type dispatch reads bytes 0-3 of each RawBlock body — no named DSB arm exists. (8) Added no-panic AC (SEC-005). — 2026-06-19"
+  - "v1.5: Pass-4 remediation R3a (ADR-009 rev 7) — (Decision 19 / M-4) Fixed PC9 citation: 'Decision 17' corrected to 'Decision 19' in Postcondition 9 cross-reference. The skipped_blocks counter and its pass-to-caller semantics are unchanged. BC-2.01.009 owns the emission gate ('valid file + zero packets', Decision 19); BC-2.01.015 owns the counter. — 2026-06-20"
+  - "v1.4: Pass-3 remediation Burst Q3 (ADR-009 rev 6) — (M-3) PC9 clarified: the emission trigger now lives in BC-2.01.009 as 'valid file + zero packets' (not 'zero packets AND skipped_blocks>0'). BC-2.01.015 retains the skipped_blocks counter and passes it to BC-2.01.009; BC-2.01.009 decides whether to include the count in the notice message. AC-006 updated to reflect that the counter is reported in the notice message when >0 but is NOT the gating condition. — 2026-06-19"
   - "v1.3: Pass-2 remediation per ADR-009 rev 5 (C-3, I-3, I-11) — (C-3) Canonical Test Vector body-byte count corrected: block_total_length=20 has 20-12=8 body bytes (not 12; pcapng frame overhead is 12 bytes: type:4 + total_len:4 + trailing_total_len:4). Test vector updated accordingly. (I-3) Added skipped_blocks counter concept and cross-reference to BC-2.01.009 for the one-shot stderr notice: when packet-bearing blocks are skipped and packet count reaches zero on a non-empty file, BC-2.01.009 emits a one-shot E-INP-007-style notice with the count of skipped blocks (no body bytes logged — SEC-007). BC-2.01.015 owns the counter; emission is BC-2.01.009's responsibility. Added Postcondition 9 and AC-006. (I-11) Added Test: citations to all ACs. — 2026-06-19"
 deprecated: null
 deprecated_by: null
@@ -64,11 +66,14 @@ error, so retrying the same source after an error would spin (CWE-835).
    an error.
 9. BC-2.01.015 maintains a `skipped_blocks: u64` counter incremented once per skipped block
    (any block falling through to the skip arm). This counter is passed to the caller context
-   at end-of-file. When the resulting packet list is empty AND the source file is non-empty AND
-   `skipped_blocks > 0`, the one-shot stderr notice (owned by BC-2.01.009, mirroring the
-   E-INP-007 discipline) is emitted with the count of skipped blocks. Block body bytes MUST NOT
-   appear in this notice (SEC-007). This cross-reference is bidirectional: BC-2.01.015 owns
-   the counter; BC-2.01.009 owns the emission.
+   at end-of-file. **The emission trigger is owned by BC-2.01.009 and is "valid file + zero
+   packets"** (M-3 / ADR-009 rev 7 Decision 19): BC-2.01.009 emits the one-shot stderr
+   notice whenever the pcapng file is structurally valid and the packet list is empty —
+   regardless of whether `skipped_blocks > 0`. The `skipped_blocks` count from this counter
+   is included in the notice message when it is greater than zero; it is NOT the gating
+   condition for notice emission. Block body bytes MUST NOT appear in this notice (SEC-007).
+   This cross-reference is bidirectional: BC-2.01.015 owns the counter; BC-2.01.009 owns
+   the emission decision and message format.
 
 ## Acceptance Criteria
 
@@ -105,11 +110,14 @@ error, so retrying the same source after an error would spin (CWE-835).
 - **AC-005 (no-panic, SEC-005):** The skip path and the block-walk loop MUST NOT contain
   `unwrap()`, `expect()`, or `panic!()` reachable from the skip arm.
   **Test:** `test_BC_2_01_015_no_panic_skip_path`
-- **AC-006 (skipped_blocks counter and zero-packet notice, cross-ref BC-2.01.009):**
+- **AC-006 (skipped_blocks counter, cross-ref BC-2.01.009):**
   The block-walk loop MUST maintain a `skipped_blocks: u64` counter, incrementing it once per
-  block entering the skip arm. At end-of-file, if the packet list is empty, the source file is
-  non-empty, and `skipped_blocks > 0`, the one-shot notice is delegated to BC-2.01.009 (which
-  emits a single stderr line with the skipped-block count following the E-INP-007 discipline).
+  block entering the skip arm. At end-of-file, the counter value is passed to BC-2.01.009's
+  notice-emission logic. **The gating condition for emission is "valid file + zero packets"
+  (BC-2.01.009 PC6), not "skipped_blocks > 0"**: BC-2.01.009 will emit the one-shot notice
+  even when `skipped_blocks == 0` (e.g., an IDB-only file with no packet blocks and no
+  skipped blocks). When `skipped_blocks > 0`, the count is included in the notice message;
+  when `skipped_blocks == 0`, the notice is emitted without a skip-count segment.
   The notice MUST NOT include block body bytes (SEC-007). The counter itself MUST NOT overflow
   (use saturating_add or u64 — realistic file sizes cannot approach u64::MAX blocks).
   **Test:** `test_BC_2_01_015_skipped_blocks_counter_and_notice`

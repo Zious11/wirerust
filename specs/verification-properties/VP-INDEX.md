@@ -1,17 +1,17 @@
 ---
 artifact: vp-index
 traces_to: .factory/specs/architecture/ARCH-INDEX.md
-version: "2.4"
+version: "2.6"
 status: active
 producer: architect
 timestamp: 2026-05-20T00:00:00Z
-modified: "2026-06-09: Phase-F6 — VP-021 (timestamp-provenance-threading) locked/verified @ develop 256a490. status draft→verified, verification_lock→true. test_sufficient_count 5→6. All 21 VPs now verified; draft count 1→0. | 2026-06-09: F2 delta issue #7 — VP-022 added (Modbus MBAP parse safety; draft; Kani; P1; analyzer/modbus.rs). total 21→22, p1 7→8, kani 8→9, draft 0→1. | 2026-06-09: F2 fix (consistency BLOCKING-1 / F-MED-006) — VP-022 catalog-row Verified BCs reconciled 6→8 (added BC-2.14.005, BC-2.14.008) to match VP-022 frontmatter and the architect's canonical BC map; no VP-count change. | 2026-06-09: F7 consistency fix F1 — VP-022 locked/verified at F6 (Kani 4/4 SUCCESSFUL @ develop 68a3306); propagate lock: status draft→verified, verification_lock→true. draft count 1→0; verified count 21→22. Mirrors VP-021 lock propagation pattern. | 2026-06-10: F2 delta issue #8 — VP-023 added (DNP3 data-link parse safety and FC classification; draft; Kani; P1; analyzer/dnp3.rs). total 22→23, p1 8→9, kani 9→10, draft 0→1. 4 harnesses: verify_parse_dnp3_dl_header_safety (sub-A), verify_is_valid_dnp3_frame_gate (sub-C), verify_classify_dnp3_fc_total (sub-B), verify_compute_dnp3_frame_len (sub-D). | 2026-06-10: H-3/H-4 coherence fixes (issue #8) — VP-023 Verified-BCs scope clarified: BC-2.15.001..007 only; BC-2.15.008 and BC-2.15.009 explicitly excluded (unit-test-only, not Kani obligations). VP-023 draft→verified lifecycle note added documenting F6 lock obligation and count transition (verified 22→23, draft 1→0) mirroring VP-021/VP-022 pattern. No VP counts changed. | 2026-06-12: Phase-F6 — VP-023 (DNP3 data-link frame parse safety and FC classification) locked/verified @ develop e685664. status draft→verified, verification_lock→true. verified count 22→23, draft count 1→0. | 2026-06-12: F2 delta ARP security analyzer — VP-024 added (ARP frame parse safety and binding-table invariant; draft; Kani primary + proptest Sub-C; P1; src/analyzer/arp.rs + src/decoder.rs). total 23→24, p1 9→10, kani 10→11, draft 0→1. | 2026-06-13: Corpus-wide consistency audit remediation (VP-1): VP-023 lifecycle note qualified — 'Total VP count (23), Kani count (10), P1 count (9)' were pre-VP-024 values at time of VP-023 lock; updated to reflect VP-024 addition: total 23→24, Kani 10→11, P1 9→10. Version bump 2.0→2.1. | 2026-06-13: Pass-15 A-01 reconciliation — VP-024 Verified-BCs catalog-row corrected to BC-2.16.001, .002, .003, .005, .006 (5 BCs; .004 excluded); BC-2.16.007 removed from formal scope per vp-024-arp-parse-safety.md v1.1 (F-A04) which is authoritative source of truth. Footnote [^vp024-bc-scope] updated to clarify BC-2.16.007 is satisfied by unit test (STORY-113), not Kani, and is NOT a VP-024 Kani-verified BC. No VP counts changed. Version bump 2.1→2.2. | 2026-06-19: F2 pcapng reader remediation (ADR-009 rev 4) — VP-025 through VP-030 added (pcapng framing BCs; draft; SS-01 reader.rs). Resolves C-3/DF-CANONICAL-FRAME-HOLDOUT-001. VP-025 Kani (timestamp totality, BC-2.01.014); VP-026 Kani (SHB parse safety, BC-2.01.010); VP-027 Kani (EPB parse safety, BC-2.01.012); VP-028 cargo-fuzz (pcapng reader no-panic, BC-2.01.017); VP-029 proptest (block-walk skip correctness, BC-2.01.015); VP-030 proptest (multi-IDB agreement totality, BC-2.01.018). total 24→30, p1 10→16, kani 11→14, fuzz 1→2, proptest 7→9, draft 0→6. Version bump 2.2→2.3. | 2026-06-19: Pass-2 adversarial remediation (ADR-009 rev 5) — I-1: VP-025/026/027 module column re-anchored from 'reader.rs' to 'reader.rs (pcapng_pure_core fns)' — Kani targets pure-core sub-functions (pcapng_timestamp_to_secs_usecs, pure SHB-body decode, pure EPB field decode), NOT the effectful from_pcap_reader<R: Read> entry point. VP-028/029/030 module anchor unchanged (proptest/fuzz correctly target the integration layer). I-2: footnote [^vp025-027-module-anchor] added documenting VP-025 Kani unwind-bound requirement (Option A: precomputed lookup table preferred; Option B: #[kani::unwind(128)]); must be resolved before STORY-125 F3 decomposition. No VP counts changed. Version bump 2.3→2.4."
-total_vps: 30
+modified: "2026-06-09: Phase-F6 — VP-021 (timestamp-provenance-threading) locked/verified @ develop 256a490. status draft→verified, verification_lock→true. test_sufficient_count 5→6. All 21 VPs now verified; draft count 1→0. | 2026-06-09: F2 delta issue #7 — VP-022 added (Modbus MBAP parse safety; draft; Kani; P1; analyzer/modbus.rs). total 21→22, p1 7→8, kani 8→9, draft 0→1. | 2026-06-09: F2 fix (consistency BLOCKING-1 / F-MED-006) — VP-022 catalog-row Verified BCs reconciled 6→8 (added BC-2.14.005, BC-2.14.008) to match VP-022 frontmatter and the architect's canonical BC map; no VP-count change. | 2026-06-09: F7 consistency fix F1 — VP-022 locked/verified at F6 (Kani 4/4 SUCCESSFUL @ develop 68a3306); propagate lock: status draft→verified, verification_lock→true. draft count 1→0; verified count 21→22. Mirrors VP-021 lock propagation pattern. | 2026-06-10: F2 delta issue #8 — VP-023 added (DNP3 data-link parse safety and FC classification; draft; Kani; P1; analyzer/dnp3.rs). total 22→23, p1 8→9, kani 9→10, draft 0→1. 4 harnesses: verify_parse_dnp3_dl_header_safety (sub-A), verify_is_valid_dnp3_frame_gate (sub-C), verify_classify_dnp3_fc_total (sub-B), verify_compute_dnp3_frame_len (sub-D). | 2026-06-10: H-3/H-4 coherence fixes (issue #8) — VP-023 Verified-BCs scope clarified: BC-2.15.001..007 only; BC-2.15.008 and BC-2.15.009 explicitly excluded (unit-test-only, not Kani obligations). VP-023 draft→verified lifecycle note added documenting F6 lock obligation and count transition (verified 22→23, draft 1→0) mirroring VP-021/VP-022 pattern. No VP counts changed. | 2026-06-12: Phase-F6 — VP-023 (DNP3 data-link frame parse safety and FC classification) locked/verified @ develop e685664. status draft→verified, verification_lock→true. verified count 22→23, draft count 1→0. | 2026-06-12: F2 delta ARP security analyzer — VP-024 added (ARP frame parse safety and binding-table invariant; draft; Kani primary + proptest Sub-C; P1; src/analyzer/arp.rs + src/decoder.rs). total 23→24, p1 9→10, kani 10→11, draft 0→1. | 2026-06-13: Corpus-wide consistency audit remediation (VP-1): VP-023 lifecycle note qualified — 'Total VP count (23), Kani count (10), P1 count (9)' were pre-VP-024 values at time of VP-023 lock; updated to reflect VP-024 addition: total 23→24, Kani 10→11, P1 9→10. Version bump 2.0→2.1. | 2026-06-13: Pass-15 A-01 reconciliation — VP-024 Verified-BCs catalog-row corrected to BC-2.16.001, .002, .003, .005, .006 (5 BCs; .004 excluded); BC-2.16.007 removed from formal scope per vp-024-arp-parse-safety.md v1.1 (F-A04) which is authoritative source of truth. Footnote [^vp024-bc-scope] updated to clarify BC-2.16.007 is satisfied by unit test (STORY-113), not Kani, and is NOT a VP-024 Kani-verified BC. No VP counts changed. Version bump 2.1→2.2. | 2026-06-19: F2 pcapng reader remediation (ADR-009 rev 4) — VP-025 through VP-030 added (pcapng framing BCs; draft; SS-01 reader.rs). Resolves C-3/DF-CANONICAL-FRAME-HOLDOUT-001. VP-025 Kani (timestamp totality, BC-2.01.014); VP-026 Kani (SHB parse safety, BC-2.01.010); VP-027 Kani (EPB parse safety, BC-2.01.012); VP-028 cargo-fuzz (pcapng reader no-panic, BC-2.01.017); VP-029 proptest (block-walk skip correctness, BC-2.01.015); VP-030 proptest (multi-IDB agreement totality, BC-2.01.018). total 24→30, p1 10→16, kani 11→14, fuzz 1→2, proptest 7→9, draft 0→6. Version bump 2.2→2.3. | 2026-06-19: Pass-2 adversarial remediation (ADR-009 rev 5) — I-1: VP-025/026/027 module column re-anchored from 'reader.rs' to 'reader.rs (pcapng_pure_core fns)' — Kani targets pure-core sub-functions (pcapng_timestamp_to_secs_usecs, pure SHB-body decode, pure EPB field decode), NOT the effectful from_pcap_reader<R: Read> entry point. VP-028/029/030 module anchor unchanged (proptest/fuzz correctly target the integration layer). I-2: footnote [^vp025-027-module-anchor] added documenting VP-025 Kani unwind-bound requirement (Option A: precomputed lookup table preferred; Option B: #[kani::unwind(128)]); must be resolved before STORY-125 F3 decomposition. No VP counts changed. Version bump 2.3→2.4. | 2026-06-19: Pass-3 adversarial remediation (ADR-009 rev 6 / Decision 18 / M-2) — VP-031 added (SPB captured-len computation correctness; proptest; P1; reader.rs (pcapng_pure_core fns); draft; BC-2.01.013). Fills SPB framing VP gap per DF-CANONICAL-FRAME-HOLDOUT-001: cargo-fuzz VP-028 covers no-panic but cannot express arithmetic relationship between original_len, snaplen, and returned slice length. VP-031 provides the missing arithmetic correctness property. total 30→31, p1 16→17, proptest 9→10, draft 6→7. Version bump 2.4→2.5. | 2026-06-19: Pass-4 adversarial remediation (ADR-009 rev 7 / H-3) — VP-030 RESTATED: domain narrowed from 'any sequence of IDB linktype u16 values' to 'WHITELISTED DataLink values only' (non-whitelisted values short-circuit to E-INP-001 before the conflict check is ever reached; the original domain included unreachable sequences). Comparison unit pinned to DataLink (not raw u16). Property restated: all-equal whitelisted DataLink → Ok; first-differing whitelisted DataLink → Err(E-INP-011) on that IDB; non-whitelisted → E-INP-001 (out of VP-030 scope). No VP counts changed (31 total; proptest 10; draft 7). Version bump 2.5→2.6."
+total_vps: 31
 p0_count: 8
-p1_count: 16
+p1_count: 17
 test_sufficient_count: 6
 kani_count: 14
-proptest_count: 9
+proptest_count: 10
 fuzz_count: 2
 integration_unit_count: 5
 ---
@@ -31,12 +31,12 @@ integration_unit_count: 5
 
 | Total VPs | P0 | P1 | Test-Sufficient |
 |-----------|----|----|-----------------|
-| 30 | 8 | 16 | 6 |
+| 31 | 8 | 17 | 6 |
 
 | Tool | Count | VP IDs |
 |------|-------|--------|
 | Kani | 14 | VP-001, VP-002, VP-003, VP-004, VP-005, VP-007, VP-009, VP-015, VP-022, VP-023, VP-024, VP-025, VP-026, VP-027 |
-| proptest | 9 | VP-006, VP-010, VP-011, VP-012, VP-013, VP-014, VP-021, VP-029, VP-030 |
+| proptest | 10 | VP-006, VP-010, VP-011, VP-012, VP-013, VP-014, VP-021, VP-029, VP-030, VP-031 |
 | cargo-fuzz | 2 | VP-008, VP-028 |
 | integration/unit | 5 | VP-016, VP-017, VP-018, VP-019, VP-020 |
 
@@ -44,8 +44,8 @@ integration_unit_count: 5
 > proptest; counted under proptest. VP-022 uses Kani only. VP-023 uses Kani only.
 > VP-024 uses Kani (primary, counted) + proptest (Sub-C); counted under Kani per
 > convention. VP-025, VP-026, VP-027 use Kani only. VP-028 uses cargo-fuzz only.
-> VP-029 and VP-030 use proptest only. Each VP is counted exactly once.
-> Totals: 14+9+2+5 = 30.
+> VP-029, VP-030, and VP-031 use proptest only. Each VP is counted exactly once.
+> Totals: 14+10+2+5 = 31.
 
 ## Complete VP Catalog
 
@@ -80,7 +80,8 @@ integration_unit_count: 5
 | VP-027 | pcapng EPB Parse Safety and interface_id Bounds | reader.rs (pcapng_pure_core fns) [b] | Kani | P1 | draft | BC-2.01.012 |
 | VP-028 | pcapng Reader No-Panic (Full Path Fuzz) | reader.rs | cargo-fuzz | P1 | draft | BC-2.01.017 |
 | VP-029 | pcapng Block-Walk Skip Correctness and Forward Progress | reader.rs | proptest | P1 | draft | BC-2.01.015 |
-| VP-030 | pcapng Multi-IDB Linktype Agreement Totality | reader.rs | proptest | P1 | draft | BC-2.01.018 |
+| VP-030 | pcapng Multi-IDB Linktype Agreement Totality (WHITELISTED domain) | reader.rs | proptest | P1 | draft | BC-2.01.018 |
+| VP-031 | pcapng SPB Captured-Len Computation Correctness | reader.rs (pcapng_pure_core fns) [b] | proptest | P1 | draft | BC-2.01.013 |
 
 ## P0 Properties (required before Phase 5 gate)
 
@@ -110,7 +111,8 @@ integration_unit_count: 5
 - VP-027: pcapng EPB parse safety and interface_id bounds [NEW — SS-01 pcapng, ADR-009 rev 4]
 - VP-028: pcapng reader no-panic (cargo-fuzz, F6 hardening deliverable) [NEW — SS-01 pcapng, ADR-009 rev 4]
 - VP-029: pcapng block-walk skip correctness and forward progress [NEW — SS-01 pcapng, ADR-009 rev 4]
-- VP-030: pcapng multi-IDB linktype agreement totality [NEW — SS-01 pcapng, ADR-009 rev 4]
+- VP-030: pcapng multi-IDB linktype agreement totality — RESTATED (ADR-009 rev 7 / H-3): domain = WHITELISTED DataLink values only; non-whitelisted → E-INP-001 (out of VP-030 scope); comparison unit = DataLink not raw u16 [NEW — SS-01 pcapng, ADR-009 rev 4; restated rev 7]
+- VP-031: pcapng SPB captured-len computation correctness — proptest arithmetic invariant for min(original_len, snaplen, body.len()) clamping (fills SPB framing VP gap per DF-CANONICAL-FRAME-HOLDOUT-001) [NEW — SS-01 pcapng, ADR-009 rev 6]
 
 ## Test-Sufficient Properties (VP-016..VP-021)
 
@@ -165,14 +167,16 @@ itself did not change totals; the subsequent VP-024 addition did.
 
 ## Consistency Invariants (machine-enforced by validate-vp-consistency.sh)
 
-- VP-INDEX total (30) must equal verification-architecture.md row count (30)
-- VP-INDEX total (30) must equal verification-coverage-matrix.md VP row count (30)
-- verification-coverage-matrix.md Totals row: Kani(14) + proptest(9) + fuzz(2) + integration/unit(5) = 30
-- P0 count (8) + P1 count (16) + test-sufficient (6) = 30; draft count 6 (VP-025..030); verified 24
+- VP-INDEX total (31) must equal verification-architecture.md row count (31)
+- VP-INDEX total (31) must equal verification-coverage-matrix.md VP row count (31)
+- verification-coverage-matrix.md Totals row: Kani(14) + proptest(10) + fuzz(2) + integration/unit(5) = 31
+- P0 count (8) + P1 count (17) + test-sufficient (6) = 31; draft count 7 (VP-025..031); verified 24
 
-> Note: VP-025 through VP-030 are status=draft pending BC revisions by the PO (ADR-009
-> rev 4 PO BC-Change Dispatch) and F3 story decomposition. They will transition to
+> Note: VP-025 through VP-031 are status=draft pending BC revisions by the PO (ADR-009
+> rev 4/5/6/7 PO BC-Change Dispatch) and F3 story decomposition. They will transition to
 > verified at F6 hardening per the standard lifecycle (VP-022/023/024 pattern).
+> VP-030 was restated in ADR-009 rev 7 (H-3): domain narrowed to WHITELISTED DataLink
+> values only; tool/phase/status/counts unchanged.
 
 [^vp025-027-module-anchor]: **VP-025 / VP-026 / VP-027 module anchor clarification (I-1 resolution,
 ADR-009 rev 5).** The Kani target for these three VPs is NOT `from_pcap_reader<R: Read>`

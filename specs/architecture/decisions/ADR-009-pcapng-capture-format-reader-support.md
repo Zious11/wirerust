@@ -9,7 +9,7 @@ supersedes: null
 superseded_by: null
 ---
 
-# ADR-009: pcapng Capture-Format Reader Support (rev 5)
+# ADR-009: pcapng Capture-Format Reader Support (rev 7)
 
 > **One-per-file:** Each architectural decision lives in its own file.
 > Filename convention: `ADR-NNN-<short-name>.md` (e.g., `ADR-001-rust-dispatcher.md`)
@@ -297,6 +297,99 @@ error code) is reported at the IDB stage and parsing aborts before any packets a
 emitted from that interface. The PO must update BC-2.01.016 to specify: "linktype check
 fires at IDB-parse time, not at first-packet time."
 
+**Decision 16 — Single-section only: per-section interface-table reset is DEAD SPEC (resolves H-5).** [NEW — rev 6.] Because Decision 7 rejects any second SHB with E-INP-012 before parsing begins, the "interface table resets at each SHB" behavior mandated by BC-2.01.011 Inv 2 and BC-2.01.018 Inv 4 + EC-005 can NEVER execute in wirerust. There is no code path by which a second section's IDB list could be processed or the interface table cleared between sections. The per-section reset behaviour is therefore DEAD SPEC — it describes a code path that is statically unreachable given Decision 7. This is explicitly DEFERRED to the future multi-section escape hatch (if that hatch is ever opened, the per-section reset must be implemented at that time). The architect records this as a conscious scope narrowing, not an oversight. The PO must remove or mark-deferred the per-section-reset invariant from BC-2.01.011 and BC-2.01.018, and correct BC-2.01.018 EC-005 so that a multi-section file is rejected with E-INP-012 at the second SHB (not "succeeds individually per section").
+
+**Decision 17 — IDB error-code precedence at IDB-parse time (resolves M-7).** [NEW — rev 6.] When an IDB is encountered, three error conditions may apply, and their evaluation order is architecturally fixed:
+
+  1. **E-INP-013 FIRST — position check (IDB-after-first-packet-block):** If `packets_emitted > 0` at IDB-parse time, the IDB is immediately rejected with E-INP-013 and processing stops. The IDB body is NOT decoded; its linktype is NOT examined. A late IDB that also conflicts on linktype still receives only E-INP-013 — it is rejected by POSITION before its CONTENT is examined. It is never admitted to the interface table.
+
+  2. **E-INP-001 SECOND — linktype whitelist (content gate):** If the IDB is positionally valid (`packets_emitted == 0`), the IDB body is decoded and the `linktype` field is checked against the whitelist. If the linktype is not on the whitelist, the reader returns E-INP-001 immediately (at IDB-parse time per Decision 15 amendment) and parsing aborts before any packets from that interface are emitted.
+
+  3. **E-INP-011 THIRD — multi-IDB linktype agreement:** If the IDB is positionally valid and the linktype is on the whitelist, the linktype is compared against the linktype of all previously registered IDBs. If the new IDB's linktype conflicts with the existing interface table's agreed linktype, the reader returns E-INP-011 immediately on that IDB, before any packets from that interface are consumed.
+
+This precedence is architecturally motivated: POSITION errors are cheaper to check (no decode required) and represent structural violations; CONTENT errors (whitelist) require a decode but are caught before table mutation; AGREEMENT errors require prior table state. The PO must state this precedence ordering in BC-2.01.011, BC-2.01.016, and BC-2.01.018, and add an edge-case scenario: "late IDB that also conflicts on linktype → E-INP-013 wins (position wins over content)."
+
+**Decision 18 — VP-031: SPB captured-len computation correctness (proptest, resolves M-2).** [NEW — rev 6.] HS-107 asserts byte-exact SPB captured-len arithmetic (`min(original_len, snaplen, block_body_available)`) but `cargo-fuzz` (VP-028) cannot express this as a typed property — fuzzing exercises no-panic but cannot assert arithmetic relationships between fields. VP-031 is assigned as a dedicated proptest VP for BC-2.01.013 covering SPB captured-len computation correctness:
+
+  - **Property:** For all `(original_len: u32, snaplen: u32, body: &[u8])` with `body.len() <= u32::MAX as usize`: `captured_len == min(original_len, snaplen, body.len() as u32)`, the returned slice has exactly `captured_len` bytes, and no out-of-bounds access occurs.
+  - **Tool:** proptest (pure arithmetic predicate over a pure-core helper — no I/O, no block framing).
+  - **Phase:** P1.
+  - **Module:** `reader.rs (pcapng_pure_core fns)` — the SPB snaplen-clamp helper function is a pure-core sub-function colocated in `src/reader.rs`, extracted from the block-walk loop exactly as the EPB field-decode function (VP-027) is.
+  - **Status:** draft (pending F3 story decomposition).
+
+VP-031 gives SPB a real framing VP per DF-CANONICAL-FRAME-HOLDOUT-001. It is NOT a fuzz-only-covered BC. See VP-INDEX and verification-coverage-matrix.md for updated counts (total 30→31, proptest 9→10, P1 16→17).
+
+**Decision 19 — Zero-packet notice gating (SOUL-#4 silent-failure-prevention anchor).** [NEW — rev 7, resolves M-4.] A pcapng file that is STRUCTURALLY VALID — parses to EOF without error — but yields `packets.len() == 0` MUST emit exactly one stderr notice before exit 0. This is the one-shot zero-packet notice:
+
+  - Format: `"notice: <filename>: 0 packets read from pcapng file"` (or equivalent — the exact wording is owned by the PO; the MANDATORY content is: zero-packet count, filename, and the word "notice" at severity).
+  - If any blocks were skipped (unknown types, OPB, etc.), the skipped-block count MUST be appended: `"notice: <filename>: 0 packets read from pcapng file (N blocks skipped)"`.
+  - Block body bytes MUST NOT appear in the notice or in any diagnostic output (SEC-007 / DSB key material).
+  - One notice per file, not per block. The notice fires at the end of the block-walk when `packets.len() == 0`, not during the walk.
+  - Exit code: 0. A structurally valid zero-packet file is not an error.
+  - A file that yields a parse error (e.g., malformed SHB, unknown EOF) does NOT use this notice path; it emits a normal error and exits 1.
+
+Rationale: silently returning an empty `PcapSource` from a valid pcapng file is SOUL-#4 silent-failure (the user gets no output and no explanation). The notice is the minimum diagnostic required to distinguish "no packets in this valid file" from "file unreadable." BC-2.01.009 PC6 and BC-2.01.015 PC9 MUST cite THIS decision (Decision 19) — they currently mis-cite Decision 17 (IDB error-code precedence), which is unrelated. The PO must correct those citations.
+
+**Decision 20 — Uniform block error-code rule (CORRECTS pass-3 over-narrowing; resolves H-1).** [NEW — rev 7.] One rule applies to ALL block types on the raw-block path. Three mutually-exclusive tiers, evaluated in order:
+
+**Tier 1 — Framing rejection (E-INP-010):** Fired by the CRATE before wirerust sees the block body.
+  - `block_total_length < 12` → crate returns `Err(InvalidField("Block: initial_len < 12"))`.
+  - `block_total_length % 4 != 0` → crate returns `Err` (misalignment).
+  - EOF before trailing-length field → crate returns `Err`.
+  - wirerust maps all `Err` from `next_raw_block` to **E-INP-010** (framing error).
+  - The block body is NOT decoded; the block type is NOT examined.
+
+**Tier 2 — Body-decode failure (E-INP-008):** Fired by wirerust after the crate hands a valid RawBlock.
+  - The crate has framed the block (`block_total_length >= 12`, aligned, trailer present).
+  - The crate passes the block to wirerust with `body = block_data[0 .. block_total_length - 12]`.
+  - If `body.len() < BLOCK_FIXED_FIELD_BYTES` for the block type, wirerust returns **E-INP-008**.
+  - Per-block fixed-field minimums (body-relative, i.e., not counting the 12-byte outer header):
+
+  | Block type | Block code | Body fixed-field bytes | Window for E-INP-008 (total btl range) |
+  |------------|-----------|----------------------|----------------------------------------|
+  | SHB | 0x0A0D0D0A | 16 (BOM:4 + major:2 + minor:2 + section_length:8) | 12 <= btl < 28 |
+  | IDB | 0x00000001 | 8 (linktype:2 + reserved:2 + snaplen:4) | 12 <= btl < 20 |
+  | EPB | 0x00000006 | 20 (interface_id:4 + ts_high:4 + ts_low:4 + captured_len:4 + original_len:4) | 12 <= btl < 32 |
+  | SPB | 0x00000003 | 4 (original_len:4) | btl == 12 exactly (12-4=8 body; 4 fixed; SPB with btl=12 has 0 bytes of packet data) |
+
+  - SEMANTICALLY INVALID body (body bytes long enough but content wrong): also E-INP-008.
+    Example: SHB with correct body length but BOM != 0x1A2B3C4D / 0x4D3C2B1A, OR SHB major version != 1 → E-INP-008.
+  - Unknown block types: no fixed-field check; skip via block_total_length (Decision 2). E-INP-010 from crate if framing fails.
+
+**Tier 3 — Well-formed:** Body long enough and semantically valid → proceed with full decode.
+
+**Correction of pass-3 over-narrowing:** The pass-3 review (ADR-009 rev 5/6) asserted that "SHB body-too-short is unconstructible on the raw-block path." This is INCORRECT. A block with `btl=16` is aligned (16 % 4 == 0), >= 12, and the crate accepts it; wirerust receives a body of 4 bytes (btl-12=4), which is shorter than the SHB fixed-field minimum of 16 bytes. Therefore the SHB body-too-short → E-INP-008 case IS constructible and MUST be handled. Similarly for EPB (btl=12 → body=0 bytes, < 20) and SPB (btl=12 → body=0 bytes, < 4).
+
+**PO actions required:**
+  - BC-2.01.010 (SHB): RE-ADD the SHB body-too-short → E-INP-008 case (window 12 <= btl < 28). State the SHB fixed-field minimum as 16 body bytes. State the E-INP-008/E-INP-010 split: framing failure (crate rejects btl < 12) → E-INP-010; body-too-short (crate accepts btl >= 12, wirerust body-decode fails) → E-INP-008; semantic failure (bad BOM, wrong major version) → E-INP-008.
+  - BC-2.01.012 (EPB): State the EPB fixed-field minimum as 20 body bytes; window 12 <= btl < 32 → E-INP-008. Align with the table above.
+  - BC-2.01.013 (SPB): State the SPB fixed-field minimum as 4 body bytes; btl = 12 → body = 0 bytes < 4 → E-INP-008. Align with the table above.
+  - BC-2.01.011 (IDB): State the IDB fixed-field minimum as 8 body bytes; window 12 <= btl < 20 → E-INP-008. Already partially correct; align with the table.
+  - error-taxonomy.md: Update E-INP-008 scope text to state: "wirerust body-decode failure for any block type after successful crate framing — body shorter than the block's required fixed-field bytes, or body semantically invalid (SHB: bad BOM or major!=1)." Update E-INP-010 scope text to state: "block framing rejection by pcap-file 2.0.0 crate — btl < 12, btl % 4 != 0, or EOF before trailer."
+
+**Decision 21 — if_tsoffset OUT OF SCOPE this cycle (resolves M-2 option-walk gap).** [NEW — rev 7.] wirerust MUST NOT extract `if_tsoffset` (IDB option code 10) in this cycle. Extracting an option without applying it is architecturally deceptive — it implies the value is used when it is not. The limitation is:
+
+  - `if_tsoffset` is a signed 64-bit value (pcapng spec option code 10) added to the raw timestamp ticks before applying `if_tsresol`. Its effect is small and its presence is rare in the target corpus (Wireshark/PacketLife captures do not set it).
+  - wirerust's BC-2.01.014 timestamp helper takes `(ts_high, ts_low, if_tsresol)` only. Adding `if_tsoffset` requires a 64-bit signed intermediate, extending the overflow surface and the VP-025 Kani proof domain.
+  - Scope deferral: future cycle escape hatch. When `if_tsoffset` support is introduced: (a) extend the pure-core helper signature to `(ts_high: u32, ts_low: u32, if_tsresol: u8, if_tsoffset: i64) -> (u32, u32)`; (b) add a new VP covering signed overflow for the offset addition; (c) update IDB option parsing to extract code 10.
+
+**PO actions required:**
+  - BC-2.01.011 PC6 (IDB options walk): REMOVE "and if_tsoffset (code 10)" from the options-walk description. The IDB options walk MUST enumerate only the options that wirerust actually processes: `if_tsresol` (code 9). Add a limitation note: "if_tsoffset (option code 10) is NOT extracted or applied in this cycle; its effect on timestamps is silently ignored."
+  - BC-2.01.014: Add a limitation note in the specification: "This helper does not accept or apply if_tsoffset (IDB option code 10). Files with if_tsoffset set will have a timestamp bias equal to the offset value × 1/ticks_per_sec seconds. This is an accepted limitation for this cycle."
+
+**VP-030 RESTATEMENT (resolves H-3).** [NEW — rev 7.] VP-030 as written in ADR-009 rev 6 and VP-INDEX v2.5 is unsatisfiable in its current domain: "any sequence of IDB linktype u16 values" includes non-whitelisted values, but non-whitelisted linktypes trigger E-INP-001 at IDB-parse time (Decision 17 step 2) before the multi-IDB agreement check (Decision 17 step 3 / E-INP-011) is ever reached. A proptest generating arbitrary u16 linktype values will saturate on E-INP-001 rejections for non-whitelisted values and never exercise the agreement check.
+
+Restated property (VP-030 v2): generate sequences of **WHITELISTED DataLink values only** (the domain where the E-INP-011 conflict check is reachable). The whitelist precedes the conflict check in Decision 17 IDB evaluation order; non-whitelisted values short-circuit to E-INP-001 at the FIRST IDB and the conflict check is never reached. Pin the comparison unit to `DataLink` (not raw u16). Property:
+  - All-equal sequence of whitelisted DataLink values → Ok; `PcapSource.datalink` equals that value.
+  - First-differing whitelisted DataLink value in the sequence → Err(E-INP-011) immediately on that IDB; no subsequent IDBs are processed.
+  - Non-whitelisted DataLink value → E-INP-001 (out of VP-030 scope; covered by BC-2.01.016 integration tests).
+
+**M-5 — Block sequence numbering convention.** [NEW — rev 7.] The `block #<seq>` field referenced in E-INP-010, E-INP-012, and E-INP-013 error context strings MUST use a UNIFORM 1-based block index counting the SHB as block #1. Every block seen by the crate's `next_raw_block` call increments the counter, regardless of block type. The counter starts at 1 when the first block is returned, not at 0.
+
+Rationale: 1-based indexing is the human-readable convention (consistent with Wireshark's "frame #N" display); 0-based indexing is the internal array-index convention. Error messages are for humans; use 1-based. Uniformity across all three error codes prevents off-by-one inconsistencies in error message context between error sites.
+
+PO actions: Update E-INP-010, E-INP-012, and E-INP-013 entries in error-taxonomy.md to state "block #<seq> where seq is the 1-based block index (SHB = block #1)" in the Context field. Remove any existing "0-based" qualifiers.
+
 **Fallback — Option C (hand-roll, +0 crates).** If during implementation `pcap-file`
 2.0.0's `RawBlock` / `next_raw_block` path exhibits a defect (incorrect byte-order
 handling, forward-progress violation not caught by the spike), the escalation path is a
@@ -415,7 +508,7 @@ zero-copy peek for non-seekable streams.
   scope of STORY-123 through STORY-127. It must be added to the cycle manifest and
   wave scheduling before F3 story decomposition.
 
-### Verification Properties Assigned (rev 4)
+### Verification Properties Assigned (rev 4, updated through rev 6)
 
 The following VPs are assigned by this ADR to the BC-2.01.NNN framing contracts. All
 are new (previously unassigned, VP-NNN = `—`). Resolves C-3 / DF-CANONICAL-FRAME-
@@ -428,13 +521,17 @@ HOLDOUT-001.
 | VP-027 | BC-2.01.012 | Kani | P1 | EPB parse safety: no panic; interface_id bounds-check before table index; captured_len guard precedes allocation; returns Err for all invalid inputs |
 | VP-028 | BC-2.01.017 | cargo-fuzz | P1 | pcapng reader no-panic: PcapSource::from_pcap_reader returns Ok or Err for any byte sequence; no panic, no infinite loop (F6 hardening deliverable) |
 | VP-029 | BC-2.01.015 | proptest | P1 | Block-walk skip correctness: unknown-block skip always advances past block_total_length bytes; no infinite loop; loop terminates for any valid/malformed block sequence |
-| VP-030 | BC-2.01.018 | proptest | P1 | Multi-IDB linktype agreement totality: any sequence of IDB linktype u16 values either all-equal (accepted) or first-conflict returns E-INP-011 |
+| VP-030 | BC-2.01.018 | proptest | P1 | Multi-IDB linktype agreement totality (RESTATED rev 7 / H-3): any sequence of WHITELISTED DataLink values either all-equal → Ok(PcapSource.datalink = that value), or first-differing whitelisted DataLink → Err(E-INP-011) immediately on that IDB. Non-whitelisted values short-circuit to E-INP-001 at first IDB (before conflict check) — NOT in VP-030 domain. Comparison unit: DataLink (not raw u16). |
+| VP-031 | BC-2.01.013 | proptest | P1 | SPB captured-len computation correctness: for all (original_len: u32, snaplen: u32, body: &[u8]), captured_len == min(original_len, snaplen, body.len()); returned slice has exactly captured_len bytes; no out-of-bounds access (resolves M-2 / DF-CANONICAL-FRAME-HOLDOUT-001) |
 
-Note: BC-2.01.013 (SPB) is covered under VP-028 (fuzz) rather than a dedicated Kani VP
-because the SPB on the raw-block path requires caller-side snaplen clamping logic that
-is not a pure arithmetic invariant — it is behavioral. BC-2.01.011 (IDB parse) is
-covered under VP-027's interface-table accumulation proof. BC-2.01.016 (linktype
-whitelist) is test-sufficient (integration test, no new formal VP).
+Note: BC-2.01.013 (SPB) is now covered by VP-031 (proptest, P1) for arithmetic
+correctness of the snaplen-clamp/captured-len computation, AND by VP-028 (fuzz) for
+the full no-panic contract on the raw-block path. VP-031 fills the framing VP gap
+identified in M-2: cargo-fuzz cannot express the arithmetic relationship between
+original_len, snaplen, and the returned slice length, which is the core HS-107
+assertion. BC-2.01.011 (IDB parse) is covered under VP-027's interface-table
+accumulation proof. BC-2.01.016 (linktype whitelist) is test-sufficient (integration
+test, no new formal VP).
 
 #### VP-025 Kani Provability Note — unwind bound (I-2 resolution, rev 5)
 
@@ -478,10 +575,11 @@ This map makes gaps visible; each row must be satisfied before the Phase 4 gate 
 |----|---------------|-----------------|--------|
 | BC-2.01.010 | SHB parse / byte-order detection | HS-103 | AUTHORED |
 | BC-2.01.012 | EPB parse / interface_id bounds | HS-104 | AUTHORED |
-| BC-2.01.013 | SPB parse / snaplen clamping | HS-107 | AUTHORED |
+| BC-2.01.013 | SPB parse / snaplen clamping | HS-107 | AUTHORED (VP-031 proptest + VP-028 fuzz) |
 | BC-2.01.014 | Pure-core timestamp normalization | HS-101, HS-102 | AUTHORED |
 | BC-2.01.015 | Block-walk skip / forward progress | HS-105 | AUTHORED |
 | BC-2.01.018 | Multi-IDB linktype agreement | HS-106 | AUTHORED |
+| BC-2.01.009 / BC-2.01.015 | Zero-packet notice (valid file, 0 packets) | HS-108 | MISSING — PO must author |
 
 **C-2 resolved: HS-107 is now AUTHORED** (`.factory/holdout-scenarios/HS-107-pcapng-spb-framing-truncation-padding-and-no-idb.md`; reflected in HS-INDEX v2.1). BC-2.01.013 SPB parsing and snaplen clamping are fully covered at the Phase 4 holdout gate.
 
@@ -530,6 +628,10 @@ BC-change dispatch documented for PO.
 **Rev 5 (2026-06-19):** Pass-2 adversarial remediation — architect-owned items. Added Decision 15 (interleaved-IDB policy: IDB-after-first-packet-block → E-INP-013, reject with clear error; linktype-whitelist timing: check at IDB-parse time, not deferred). Added HS-completeness map (framing BC → holdout HS-NNN; flags BC-2.01.013 SPB as MISSING HS-107 — PO to author). Added VP-025 Kani provability note with unwind-bound analysis: Option A (precomputed power-of-ten lookup for e∈[0,19], preferred) and Option B (explicit `#[kani::unwind(128)]` on harness). Error code E-INP-013 introduced for interleaved-IDB rejection; PO must add to error-taxonomy.md. VP-025/026/027 module re-anchor from `reader.rs` to `reader.rs (pcapng_pure_core fns)` recorded in VP-INDEX and arch docs (I-1 resolution).
 
 **Rev 5 minor correction (2026-06-19):** HS-Completeness Map BC-2.01.013 row updated from MISSING to AUTHORED; C-2 flag resolved. HS-107 (`HS-107-pcapng-spb-framing-truncation-padding-and-no-idb.md`) authored and reflected in HS-INDEX v2.1.
+
+**Rev 6 (2026-06-19):** Pass-3 adversarial remediation — dead-spec reconciliation, error-code precedence, and SPB framing VP. Added Decision 16 (H-5: per-section interface-table reset is DEAD SPEC — unreachable given Decision 7 single-section-only constraint; explicitly deferred to future multi-section escape hatch; PO must delete/defer the reset invariant in BC-2.01.011 and BC-2.01.018 and correct EC-005 so multi-section file is rejected with E-INP-012 at second SHB). Added Decision 17 (M-7: IDB error-code precedence fixed at three-level ordering: E-INP-013 position check FIRST, E-INP-001 whitelist SECOND, E-INP-011 multi-IDB agreement THIRD; PO must state this in BC-2.01.011/016/018 and add late-IDB-with-conflicting-linktype edge case). Added Decision 18 and VP-031 (M-2: SPB captured-len computation correctness as dedicated proptest VP for BC-2.01.013; fills framing VP gap; VP-028 fuzz continues to cover no-panic; total 30→31, proptest 9→10, P1 16→17). Updated VP table to include VP-031 row; updated BC-2.01.013 coverage note. O-3 process-gap noted in PO BC-change dispatch.
+
+**Rev 7 (2026-06-19):** Pass-4 adversarial remediation — zero-packet notice, uniform block error-code rule, if_tsoffset scope deferral, VP-030 restatement, seq convention, HS-completeness map extension. Added Decision 19 (M-4: zero-packet notice — valid pcapng with 0 packets emits exactly one stderr notice, exit 0, skipped-block count when >0, no block bodies logged; SOUL-#4 anchor; BC-2.01.009 PC6 / BC-2.01.015 PC9 must re-cite this decision not Decision 17). Added Decision 20 (H-1: uniform block error-code rule — corrects pass-3 "SHB body-too-short unconstructible" claim; three-tier rule: crate framing failure → E-INP-010; wirerust body-decode failure or semantic failure → E-INP-008; well-formed → proceed; per-block fixed-field minimums table: SHB=16, IDB=8, EPB=20, SPB=4 body bytes; PO must RE-ADD SHB body-too-short to BC-2.01.010, align EPB/SPB/IDB BCs and error-taxonomy E-INP-008/010 scope text). Added Decision 21 (M-2 option-walk: if_tsoffset code 10 MUST NOT be extracted or applied this cycle; out-of-scope deferral with future escape hatch; PO must remove "and if_tsoffset (code 10)" from BC-2.01.011 PC6 and add limitation note to BC-2.01.014). Added VP-030 restatement (H-3: VP-030 domain narrowed to WHITELISTED DataLink values only; non-whitelisted values short-circuit to E-INP-001 before the conflict check; comparison unit pinned to DataLink not raw u16). Added M-5 seq convention (1-based block index, SHB = block #1; E-INP-010/012/013 context strings must be consistent). Added HS-108 to HS-completeness map (zero-packet notice end-to-end; MISSING — PO must author). VP-030 restatement propagated to VP-INDEX v2.6, verification-architecture.md v2.2, and verification-coverage-matrix.md v1.16.
 
 ### PO BC-Change Dispatch (rev 4)
 
@@ -688,6 +790,66 @@ architect does not edit BC files; this section is the handoff specification.
   (lookup table) is preferred: no loop in the pure-core function, proof trivially bounded,
   faster runtime on the common e=6 path." See ADR-009 rev 5 VP-025 Kani Provability Note
   for full analysis.
+
+**Rev 6 additions — PO must also action the following (Decisions 16/17/18 + O-3 dispatch):**
+
+**BC-2.01.011 (IDB) — per-section-reset removal (Decision 16 / H-5):**
+- Delete or mark DEFERRED any invariant text that states the interface table resets at each SHB. Because wirerust is single-section-only (Decision 7 rejects the second SHB with E-INP-012 before any second section is parsed), there is no code path by which a per-section reset can ever execute. The invariant describes unreachable behavior; retaining it creates a spec/implementation contradiction. Mark it: "DEFERRED — not implemented; will be required if the single-section constraint is ever lifted." Do NOT implement a reset; do NOT attempt to test it.
+- Add the IDB error-code precedence per Decision 17: "If an IDB arrives after the first packet block has been emitted (E-INP-013, position check), the position check fires FIRST, before the linktype whitelist check (E-INP-001) or multi-IDB agreement check (E-INP-011). An IDB that is both late AND has a conflicting linktype receives E-INP-013 only."
+- Add edge case: "late IDB (after first packet block) that also conflicts on linktype → E-INP-013 wins; E-INP-001 is never evaluated."
+
+**BC-2.01.016 (linktype whitelist) — precedence clarification (Decision 17 / M-7):**
+- State that E-INP-001 is the SECOND check in the IDB evaluation order, after E-INP-013 (position) and before E-INP-011 (agreement). The whitelist check is reached only when the IDB is positionally valid (`packets_emitted == 0`).
+
+**BC-2.01.018 (multi-IDB / per-file isolation) — two changes (Decisions 16 and 17 / H-5 and M-7):**
+- Delete or mark DEFERRED any invariant or edge-case text (Inv 4, EC-005) asserting that "each section succeeds individually" or that a multi-section file is parsed per-section. The correct behavior is: the second SHB is rejected with E-INP-012 (not parsed). Correct EC-005: "a pcapng file with two SHB blocks is rejected with E-INP-012 at the second SHB; processing stops; the second section is not parsed; there is no per-section success outcome."
+- State that E-INP-011 is the THIRD check in the IDB evaluation order (after E-INP-013 and E-INP-001 per Decision 17). Add edge case: "late IDB that also conflicts on linktype → E-INP-013 wins."
+
+**BC-2.01.013 (SPB) — add VP-031 (Decision 18 / M-2):**
+- Add VP-031 to Verification Properties cell.
+- VP-031 covers: for all `(original_len: u32, snaplen: u32, body: &[u8])`, `captured_len == min(original_len, snaplen, body.len() as u32)`; the returned slice has exactly `captured_len` bytes; no out-of-bounds access. Tool: proptest. Phase: P1. Module: `reader.rs (pcapng_pure_core fns)`.
+- Note: VP-028 (cargo-fuzz) remains assigned to BC-2.01.017 and also exercises SPB via the full pcapng reader no-panic property. VP-031 is the arithmetic/correctness VP; VP-028 is the structural no-panic VP. Both are required.
+
+**O-3 (process-gap) — stale "taxonomy updated in a separate burst" notes:**
+- Sweep all BCs in the BC-2.01.NNN series for any note of the form "E-INP-NNN to be added to error-taxonomy.md in a separate burst" or "taxonomy update pending." In particular, E-INP-013 is now in error-taxonomy.md (added per rev 5 dispatch). Any BC referencing E-INP-013 as "pending taxonomy addition" should have that note removed and replaced with "E-INP-013: error-taxonomy.md v2.8 or later." Perform a sweep of all pcapng BCs (BC-2.01.009 through BC-2.01.018) for stale process-gap notes and remove them.
+
+**Rev 7 additions — PO must also action the following (Decisions 19/20/21 + H-3/M-5/H-4 dispatch):**
+
+**BC-2.01.009 (pcapng acceptance) and BC-2.01.015 (block-walk skip) — zero-packet notice citation fix (Decision 19 / M-4):**
+- BC-2.01.009 PC6: correct the decision citation from "Decision 17" to "Decision 19." Add postcondition text: "A structurally valid pcapng file that yields `packets.len() == 0` MUST emit exactly one stderr notice before exit 0; see Decision 19 for format."
+- BC-2.01.015 PC9: same correction — replace mis-citation of "Decision 17" with "Decision 19." Add: "The zero-packet notice fires at end of block-walk when packets.len()==0; skipped-block count appended when >0; block body bytes MUST NOT appear in the notice (SEC-007)."
+
+**BC-2.01.010 (SHB) — re-add body-too-short E-INP-008 case (Decision 20 / H-1):**
+- RE-ADD the case: `12 <= block_total_length < 28` → wirerust body-decode failure → **E-INP-008**. The crate accepts btl >= 12 (framing ok); wirerust receives a body of btl-12 bytes; if body < 16 bytes (SHB fixed-field minimum), wirerust MUST return E-INP-008. The pass-3 claim "SHB body-too-short is unconstructible" is incorrect; this case IS constructible and MUST be handled.
+- State clearly: framing failure (btl < 12, crate rejects) → E-INP-010; body-decode failure (btl >= 12 but body < 16) → E-INP-008; semantic failure (body >= 16, bad BOM or major != 1) → E-INP-008; well-formed → proceed.
+- Add holdout scenario: SHB with `block_total_length = 16` (body = 4 bytes, < 16 fixed-field minimum) → E-INP-008.
+
+**BC-2.01.011 (IDB) — if_tsoffset removal + body-too-short note (Decisions 20 / 21):**
+- PC6 options walk: REMOVE "and if_tsoffset (code 10)." The IDB options walk extracts only `if_tsresol` (code 9) in this cycle. Add limitation: "if_tsoffset (option code 10) is NOT extracted or applied in this cycle."
+- Add body-too-short note per Decision 20 table: IDB `12 <= btl < 20` → body < 8 fixed-field bytes → E-INP-008.
+
+**BC-2.01.012 (EPB) — body-too-short note (Decision 20 / H-1):**
+- Add or verify: EPB `12 <= btl < 32` → body < 20 fixed-field bytes → E-INP-008. Already partially implied by the fixed-overhead constant; make it explicit per the Decision 20 table.
+
+**BC-2.01.013 (SPB) — body-too-short note (Decision 20 / H-1):**
+- Add: SPB `btl == 12` → body = 0 bytes < 4 fixed-field bytes → E-INP-008. (btl < 12 is framing failure → E-INP-010 from crate; btl == 12 is the minimum accepted btl with 0-byte body.) Add holdout scenario: SPB with `block_total_length = 12` → E-INP-008.
+
+**BC-2.01.014 (timestamp helper) — if_tsoffset limitation note (Decision 21):**
+- Add limitation: "This helper does not accept or apply if_tsoffset (IDB option code 10). Files with if_tsoffset set will have a timestamp bias equal to offset × 1/ticks_per_sec seconds. This is an accepted limitation for this cycle; see Decision 21."
+
+**error-taxonomy.md — E-INP-008 and E-INP-010 scope text updates (Decision 20 / H-1):**
+- E-INP-008 scope: "wirerust body-decode failure for any block type after successful crate framing — body shorter than the block's required fixed-field bytes (SHB: 16 body bytes, IDB: 8, EPB: 20, SPB: 4), or body semantically invalid (SHB: BOM != known magic or major version != 1)."
+- E-INP-010 scope: "block framing rejection by pcap-file 2.0.0 — block_total_length < 12, block_total_length % 4 != 0, or EOF before trailing length field. The crate owns this check; wirerust maps all next_raw_block Err variants to E-INP-010."
+
+**error-taxonomy.md — E-INP-010 / E-INP-012 / E-INP-013 context string seq convention (M-5):**
+- Update Context field of E-INP-010, E-INP-012, and E-INP-013 to state: "block #<seq> where seq is the 1-based block index; the SHB is block #1; every block returned by next_raw_block increments the counter." Remove any 0-based qualifier.
+
+**Holdout scenarios — author HS-108 (H-4):**
+- HS-108: "Zero-packet notice end-to-end." Required scenarios: (a) valid pcapng file with SHB + IDB + no EPBs/SPBs → stdout empty, stderr contains exactly one notice, exit 0; (b) same file but with 2 unknown-type blocks skipped → notice includes "(2 blocks skipped)"; (c) malformed pcapng (parse error) → normal error on stderr, exit 1, NO zero-packet notice.
+- HS-108 is MISSING. The Phase 4 gate cannot test the zero-packet notice (Decision 19 / SOUL-#4 anchor) without it.
+
+**VP-030 — domain restatement (H-3):**
+- Update BC-2.01.018 Verification Properties entry for VP-030: "VP-030 (proptest, P1): generates sequences of WHITELISTED DataLink values only (the domain where the E-INP-011 conflict check is reachable). Non-whitelisted values short-circuit to E-INP-001 at IDB-parse time and never reach the agreement check. Property: all-equal → Ok; first-differing whitelisted DataLink → Err(E-INP-011) on that IDB. Comparison unit: DataLink, not raw u16."
 
 ## Alternatives Considered
 

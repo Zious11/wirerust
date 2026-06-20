@@ -2,7 +2,7 @@
 artifact: architecture-section
 section: verification-coverage-matrix
 traces_to: ARCH-INDEX.md
-version: "1.14"
+version: "1.16"
 status: verified
 producer: architect
 timestamp: 2026-05-20T00:00:00Z
@@ -64,6 +64,12 @@ modified:
   - date: 2026-06-19
     actor: architect
     reason: "Pass-2 adversarial remediation (ADR-009 rev 5, I-1/I-2): VP-025/VP-026/VP-027 Module cell in VP-to-Module table re-anchored from 'reader.rs' to 'reader.rs (pcapng_pure_core fns) [b]'. reader.rs Per-Module row annotated [b]. Footnote [b] and coverage note added: Kani targets are pure-core sub-functions within reader.rs (not from_pcap_reader); VP-025 Kani unwind bound must be resolved before STORY-125 F3 decomposition. No VP counts, tool counts, or Totals row values changed. Version bump 1.13→1.14."
+  - date: 2026-06-19
+    actor: architect
+    reason: "Pass-3 adversarial remediation (ADR-009 rev 6 / Decision 18 / M-2): VP-031 added to VP-to-Module table (proptest; P1; draft; reader.rs (pcapng_pure_core fns) [b]; BC-2.01.013). reader.rs Per-Module row proptest count 2→3; Total VPs 6→7. Grand Totals row proptest 9→10, overall 30→31. Coverage note added for VP-031. Version bump 1.14→1.15."
+  - date: 2026-06-19
+    actor: architect
+    reason: "Pass-4 adversarial remediation (ADR-009 rev 7 / H-3): VP-030 Property cell in VP-to-Module table restated — domain narrowed to WHITELISTED DataLink values only; non-whitelisted values short-circuit to E-INP-001 before conflict check (out of VP-030 scope); comparison unit = DataLink not raw u16. No row additions, no count changes. Coverage note updated. Version bump 1.15→1.16."
 ---
 
 # Verification Coverage Matrix
@@ -101,7 +107,8 @@ modified:
 | VP-027 | pcapng EPB parse safety: no panic, interface_id bounds-check, guard-before-allocate, Err for invalid fields | reader.rs (pcapng_pure_core fns) [b] | Kani | P1 | draft |
 | VP-028 | pcapng reader no-panic (cargo-fuzz fuzz_pcapng_reader, F6 hardening) | reader.rs | cargo-fuzz | P1 | draft |
 | VP-029 | pcapng block-walk skip: always terminates, Err-breaks loop, cursor advances >= 12 bytes per Ok | reader.rs | proptest | P1 | draft |
-| VP-030 | pcapng multi-IDB linktype agreement totality: all-equal → Ok, first-conflict → Err(E-INP-011) | reader.rs | proptest | P1 | draft |
+| VP-030 | pcapng multi-IDB linktype agreement totality (RESTATED rev 7 / H-3): WHITELISTED DataLink domain only; all-equal → Ok, first-differing whitelisted DataLink → Err(E-INP-011); non-whitelisted → E-INP-001 (out of scope); comparison unit DataLink not raw u16 | reader.rs | proptest | P1 | draft |
+| VP-031 | pcapng SPB captured-len arithmetic correctness: captured_len == min(original_len, snaplen, body.len()); slice length == captured_len; no OOB for all (u32, u32, &[u8]) inputs | reader.rs (pcapng_pure_core fns) [b] | proptest | P1 | draft |
 
 
 ## Per-Module Coverage Totals
@@ -124,8 +131,8 @@ modified:
 | analyzer/modbus.rs | 1 (VP-022) | 0 | 0 | 0 | 1 |
 | analyzer/dnp3.rs | 1 (VP-023) | 0 | 0 | 0 | 1 |
 | analyzer/arp.rs | 1 (VP-024) [a] | 0 | 0 | 0 | 1 |
-| reader.rs | 3 (VP-025, VP-026, VP-027) [b] | 2 (VP-029, VP-030) | 1 (VP-028) | 0 | 6 |
-| **Totals** | **14** | **9** | **2** | **5** | **30** |
+| reader.rs | 3 (VP-025, VP-026, VP-027) [b] | 3 (VP-029, VP-030, VP-031) [b] | 1 (VP-028) | 0 | 7 |
+| **Totals** | **14** | **10** | **2** | **5** | **31** |
 
 
 ## Coverage Notes
@@ -174,11 +181,27 @@ modified:
   harnesses; they are not counted in the VP totals above. VP-012 (proptest, P1, verified) is
   the sole formal VP touching reporter/terminal.rs; its scope is unchanged.
 
-- VP-025 through VP-030 (reader.rs) are status=draft pending BC revisions by the PO
-  per ADR-009 rev 4/5 PO BC-Change Dispatch and F3 story decomposition. VP-028
+- VP-030 RESTATED (ADR-009 rev 7 / H-3): VP-030 domain was narrowed from "any sequence of
+  IDB linktype u16 values" to "WHITELISTED DataLink values only." The original domain was
+  unsatisfiable: non-whitelisted u16 values trigger E-INP-001 at IDB-parse time (Decision 17
+  step 2 — whitelist check) before the E-INP-011 multi-IDB agreement check (step 3) is ever
+  reached. A proptest with arbitrary u16 values would saturate on E-INP-001 rejections and never
+  exercise the agreement property. The restated domain (whitelisted DataLink values) is exactly
+  the domain where the conflict check is reachable. Comparison unit is DataLink (not raw u16).
+  Non-whitelisted values are out of VP-030 scope; they are covered by BC-2.01.016 integration tests.
+  Tool/phase/status/counts unchanged.
+
+- VP-025 through VP-031 (reader.rs) are status=draft pending BC revisions by the PO
+  per ADR-009 rev 4/5/6/7 PO BC-Change Dispatch and F3 story decomposition. VP-028
   (cargo-fuzz) is explicitly an F6 hardening deliverable; it is NOT expected to be
-  exercised in F3/F4. VP-025, VP-026, VP-027 (Kani) and VP-029, VP-030 (proptest)
-  will transition to verified at F6 per the VP-022/VP-023/VP-024 lifecycle pattern.
+  exercised in F3/F4. VP-025, VP-026, VP-027 (Kani) and VP-029, VP-030, VP-031
+  (proptest) will transition to verified at F6 per the VP-022/VP-023/VP-024 lifecycle
+  pattern. VP-031 (proptest) was added in Pass-3 (ADR-009 rev 6 / Decision 18) to
+  provide the arithmetic correctness VP for BC-2.01.013 SPB snaplen clamping — VP-028
+  cargo-fuzz covers no-panic but cannot assert the arithmetic relationship
+  captured_len == min(original_len, snaplen, body.len()); VP-031 fills that gap per
+  DF-CANONICAL-FRAME-HOLDOUT-001. Note that BC-2.01.013 now carries DUAL VP coverage:
+  VP-031 (arithmetic correctness, proptest) + VP-028 (no-panic, cargo-fuzz).
 
   [b] **VP-025 / VP-026 / VP-027 module anchor: reader.rs (pcapng_pure_core fns)**
   (I-1 resolution, ADR-009 rev 5). Kani targets are pure-core helper functions

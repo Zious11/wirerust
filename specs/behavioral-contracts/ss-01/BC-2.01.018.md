@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.4"
+version: "1.5"
 status: draft
 producer: product-owner
 timestamp: 2026-06-19T00:00:00Z
@@ -13,6 +13,7 @@ capability: CAP-01
 lifecycle_status: active
 introduced: v0.10.0-pcapng
 modified:
+  - "v1.5: Pass-4 remediation R3b (ADR-009 rev 7) — (H-3/VP-030 restate) VP-030 restated: domain narrowed to WHITELISTED DataLink values only (the subdomain reachable by the E-INP-011 conflict check; non-whitelisted values short-circuit to E-INP-001 at whitelist check #2 per Decision 17 and are OUT of VP-030 scope — covered by BC-2.01.016 integration tests). Comparison unit changed from 'u16' to 'DataLink' (the typed enum value the reader holds). Property updated: all-equal whitelisted → Ok (PcapSource.datalink = that DataLink), first-differing whitelisted → Err(E-INP-011) on that IDB. Non-whitelisted short-circuit documented in VP-030 row notes. — 2026-06-20"
   - "v1.4: Pass-3 re-audit FINDING-P3-002 — Related BCs annotation corrected: 'agreement check runs first; whitelist check runs second' was REVERSED. Per Decision 17 the correct order is: E-INP-013 position check FIRST, E-INP-001 whitelist check SECOND, E-INP-011 agreement/conflict THIRD. Annotation now reads 'whitelist check runs second; agreement/conflict check runs third'. Normative sections (AC-001, Invariant 3, Postconditions) were already correct and are unchanged. — 2026-06-19"
   - "v1.3: Pass-3 Q2 remediation — H-5 (Decision 16): Invariant 4 'each section's IDB table resets at SHB boundary' DELETED/DEFERRED — unreachable under single-section constraint; Decision 7 rejects any second SHB with E-INP-012 before section-2 IDB is parsed. EC-005 corrected: a pcapng with two SHB blocks is REJECTED with E-INP-012 at the second SHB; processing stops; the second section is NOT parsed; there is NO per-section success outcome; removed incorrect 'sections never interleave' success framing. M-7 (Decision 17): stated E-INP-011 is the THIRD check (after E-INP-013 position + E-INP-001 whitelist); added EC-010 (late IDB after packets with conflicting linktype => E-INP-013 wins; E-INP-011 never evaluated). O-3: no stale separate-burst notes found in .018 (E-INP-011/012 already live in taxonomy). Authority: ADR-009 rev 6. — 2026-06-19"
   - "v1.2: ADR-009 rev 4 Burst B — Add VP-030 to Verification Properties. KEEP multi-IDB linktype-conflict rule (all IDBs must agree; first conflict → E-INP-011 before any packet). MOVE directory-mode per-file-isolation claim: AC-002 re-attributed to STORY-128 (main.rs loop refactor) per ADR-009 Decision 12; AC-002 now documents that STORY-128 owns this behavior. BC-2.01.018 owns the CONFLICT RULE, not the main.rs loop behavior. Add holdout: two-IDB-different-linktypes (→ E-INP-011); two-IDB-same-linktype (→ accepted). — 2026-06-19"
@@ -127,7 +128,7 @@ common case of a single IDB) succeed normally.
 
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| VP-030 | Multi-IDB linktype agreement totality: any sequence of IDB linktype u16 values either all-equal (accepted, Ok) or first-conflict returns E-INP-011 immediately; no sequence produces a panic or silent incorrect result | proptest (P1): generate arbitrary Vec<u16> as IDB linktype sequence; assert all-same → Ok, any-different → Err with E-INP-011 context |
+| VP-030 | Multi-IDB linktype agreement totality (domain: WHITELISTED DataLink values only — non-whitelisted values short-circuit to E-INP-001 at whitelist check #2 per Decision 17 and are OUT of this VP's scope; covered by BC-2.01.016 integration tests). Comparison unit: `DataLink` enum (NOT raw u16). Property: any sequence of whitelisted `DataLink` values either all-equal → `Ok(PcapSource { datalink: <that DataLink> })`, or first-differing whitelisted value → `Err(E-INP-011)` on the IDB that introduces the conflict; no sequence produces a panic or silent incorrect result. | proptest (P1): generate arbitrary `Vec<DataLink>` restricted to the whitelist set `{ETHERNET, RAW, IPV4, IPV6, LINUX_SLL}`; assert all-same → Ok with `PcapSource.datalink` equal to that variant, any-different → Err with E-INP-011 context citing the conflicting interface index and both variant names |
 | — | Single-IDB pcapng always passes agreement check (holdout: single-IDB file) | unit: craft single-IDB pcapng; assert Ok |
 | — | Two-IDB different linktypes → E-INP-011 before any packet (holdout: two IDBs linktype 1 & 113) | unit: craft two-IDB pcapng with ETHERNET then LINUX_SLL; assert Err E-INP-011; confirm no packets returned |
 | — | Two-IDB same linktype (holdout: both linktype 1) → Ok | unit: craft two-IDB ETHERNET pcapng; assert Ok with datalink=ETHERNET |

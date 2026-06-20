@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.4"
 status: draft
 producer: product-owner
 timestamp: 2026-06-19T00:00:00Z
@@ -13,6 +13,8 @@ capability: CAP-02
 lifecycle_status: active
 introduced: v0.10.0-pcapng
 modified:
+  - "v1.4: Pass-4 remediation R3b (ADR-009 rev 7) — (L-1) Verified numeric DLT annotations in Postcondition 2 error message against pcap LINKTYPE registry (tcpdump.org / IANA draft-ietf-opsawg-pcaplinktype): ETHERNET=1, Raw IP=101, Linux Cooked=113, IPv4=228, IPv6=229 — all five are correct. No numeric value change required; annotation added to Postcondition 2 to document verification source. — 2026-06-20"
+  - "v1.3: Pass-3 remediation Burst Q3 (ADR-009 rev 6) — (M-7/Decision 17) whitelist-check precedence added to Preconditions and Invariants: the whitelist check is the SECOND check at IDB-parse time — reached only when packets_emitted==0 (after the E-INP-013 position check passes). It fires before the BC-2.01.018 E-INP-011 conflict check (whitelist is 2nd, conflict is 3rd). — 2026-06-19"
   - "v1.2: Pass-2 remediation Burst P2b (ADR-009 rev 5) — (I-5/Decision 15 amendment) rewrite Description and Preconditions to make clear whitelist fires at IDB-PARSE TIME, not deferred to post-multi-IDB-check. Remove all text implying check is 'after all IDBs' or 'at first packet'. (I-11) add Test: citations to ACs. — 2026-06-19"
   - "v1.1: ADR-009 rev 4 Burst B — No VP assigned (test-sufficient; ADR-009 dispatch confirmed). Confirm mirrors BC-2.01.001 (CAP-02). Add no-panic AC (SEC-005). Add explicit mirror-confirmation note. Minimal normative change. — 2026-06-19"
 deprecated: null
@@ -43,8 +45,18 @@ does NOT wait until "after all IDBs are parsed" or "at first packet time".
 2. The block-walk loop has reached an IDB block and decoded its body (the `linktype` field is
    now available).
 3. **The whitelist check fires here — at IDB-parse time — before any packet block is
-   consumed from this interface.** There is no dependency on the multi-IDB agreement check
-   (BC-2.01.018); the whitelist fires independently per IDB as each IDB is parsed.
+   consumed from this interface.** The check order at IDB-parse time is (M-7 / ADR-009
+   Decision 17):
+   - **1st check:** E-INP-013 position guard (BC-2.01.011) — rejects IDBs that appear
+     after the first packet block (`packets_emitted > 0`). The whitelist check is only
+     reached when this guard passes (i.e., `packets_emitted == 0`).
+   - **2nd check (this BC):** Whitelist check — rejects unsupported `linktype` values
+     with E-INP-001. Fires immediately upon IDB body decode; no dependency on
+     the multi-IDB agreement check.
+   - **3rd check:** E-INP-011 multi-IDB linktype conflict check (BC-2.01.018) — fires
+     after the interface table is fully built. Only reached if the whitelist check passes.
+   There is no dependency between this (2nd) check and the multi-IDB agreement check
+   (3rd); each check is independent and fires in the stated order per IDB.
 
 ## Postconditions
 
@@ -56,6 +68,12 @@ does NOT wait until "after all IDBs are parsed" or "at first packet time".
    - `{linktype:?}` is the `DataLink` enum Debug variant name (same as BC-2.01.001).
    - No packets are returned.
    - No panic occurs.
+   - **L-1 numeric annotation (verified 2026-06-20 against pcap LINKTYPE registry /
+     IANA draft-ietf-opsawg-pcaplinktype):** ETHERNET=1 (LINKTYPE_ETHERNET /
+     DLT_EN10MB), Raw IP=101 (LINKTYPE_RAW / DLT_RAW), Linux Cooked=113
+     (LINKTYPE_LINUX_SLL / DLT_LINUX_SLL), IPv4=228 (LINKTYPE_IPV4 / DLT_IPV4),
+     IPv6=229 (LINKTYPE_IPV6 / DLT_IPV6). All five numeric annotations in the
+     message format are correct; no correction was needed.
 3. `PcapSource.datalink` is always a whitelisted value; this invariant holds for both
    classic-pcap and pcapng.
 
@@ -84,11 +102,16 @@ does NOT wait until "after all IDBs are parsed" or "at first packet time".
    the whitelist is a breaking change to BOTH BC-2.01.001 and BC-2.01.016.
 2. The error message format is identical to BC-2.01.001 Postcondition 2 (E-INP-001); the
    same error taxonomy entry applies.
-3. This check fires at IDB-parse time. The multi-IDB agreement check (BC-2.01.018) is a
-   separate, independent check that runs after the interface table is fully built. A
-   multi-IDB conflict produces E-INP-011 (BC-2.01.018), not E-INP-001. However, if any
-   individual IDB fails the whitelist check first (at IDB-parse time), E-INP-001 is
-   returned before the multi-IDB check can run.
+3. **Check ordering at IDB-parse time (M-7 / ADR-009 Decision 17):** The whitelist check is
+   the SECOND of three checks performed per IDB:
+   - 1st: E-INP-013 position guard (BC-2.01.011) — `packets_emitted == 0` required.
+   - 2nd (this invariant): whitelist check — fires only after the position guard passes;
+     returns E-INP-001 immediately for any non-whitelisted `linktype`.
+   - 3rd: E-INP-011 multi-IDB conflict check (BC-2.01.018) — runs after the interface
+     table is fully built; only reached if checks 1 and 2 both pass.
+   A whitelist violation returns E-INP-001 at check-2 time and preempts the conflict
+   check (check 3). The multi-IDB check (check 3) only fires when all individual IDBs
+   have cleared the whitelist.
 
 ## Edge Cases
 

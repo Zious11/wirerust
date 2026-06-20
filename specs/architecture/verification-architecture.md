@@ -2,7 +2,7 @@
 artifact: architecture-section
 section: verification-architecture
 traces_to: ARCH-INDEX.md
-version: "2.0"
+version: "2.2"
 status: verified
 producer: architect
 timestamp: 2026-05-20T00:00:00Z
@@ -52,6 +52,12 @@ modified:
   - date: 2026-06-19
     actor: architect
     reason: "Pass-2 adversarial remediation (ADR-009 rev 5, I-1/I-2): VP-025/VP-026/VP-027 Module cell in Should Prove table updated from 'reader.rs' to 'reader.rs (pcapng_pure_core fns) [b]' — Kani targets pure-core helper functions, not the effectful from_pcap_reader entry point. VP-028/029/030 module unchanged. Footnote [b] added documenting the pure-core anchor and VP-025 Kani unwind-bound requirement (Option A: lookup table preferred; Option B: #[kani::unwind(128)]). Version bump 1.9→2.0."
+  - date: 2026-06-19
+    actor: architect
+    reason: "Pass-3 adversarial remediation (ADR-009 rev 6 / Decision 18 / M-2): VP-031 added to Should Prove table (P1, proptest, reader.rs (pcapng_pure_core fns) [b], BC-2.01.013). Fills SPB framing VP gap: VP-028 cargo-fuzz covers no-panic but cannot assert arithmetic correctness of captured_len = min(original_len, snaplen, body.len()); VP-031 provides the proptest arithmetic invariant per DF-CANONICAL-FRAME-HOLDOUT-001. Tooling table proptest row updated VP-029/030 (9) → VP-029/030/031 (10). P1 count 16→17. Total 30→31. Version bump 2.0→2.1."
+  - date: 2026-06-19
+    actor: architect
+    reason: "Pass-4 adversarial remediation (ADR-009 rev 7 / H-3): VP-030 row in Should Prove table restated — domain narrowed to WHITELISTED DataLink values only; comparison unit pinned to DataLink not raw u16; non-whitelisted values short-circuit to E-INP-001 before the conflict check (out of VP-030 scope). No VP counts, tool assignments, or Totals changed. Version bump 2.1→2.2."
 ---
 
 # Verification Architecture
@@ -90,7 +96,8 @@ modified:
 | VP-027 | pcapng EPB parse safety and interface_id bounds: EPB decode never panics; interface_id is bounds-checked against interface table size before any index operation (out-of-range → Err); captured_len guard (captured_len <= block_total_length - 32) precedes any data allocation; Err returned for all invalid field combinations | (no-panic + bounds-check + guard-before-allocate) | reader.rs (pcapng_pure_core fns) [b] | Kani |
 | VP-028 | pcapng reader no-panic (full path fuzz): PcapSource::from_pcap_reader returns Ok(_) or Err(_) for any arbitrary byte sequence; no panic, no infinite loop; F6 hardening deliverable (cargo-fuzz target: fuzz_pcapng_reader) | (no-panic + termination) | reader.rs | cargo-fuzz |
 | VP-029 | pcapng block-walk skip correctness and forward progress: for any sequence of raw blocks (valid, malformed, unknown-type), the block-walk loop always terminates; each Ok(_) iteration advances the cursor by at least 12 bytes (block header minimum); loop breaks on Err(_) without spinning | (termination + forward-progress) | reader.rs | proptest |
-| VP-030 | pcapng multi-IDB linktype agreement totality: for any sequence of IDB linktype u16 values, the reader either (a) accepts all (all-equal) producing PcapSource.datalink = that linktype, or (b) returns Err(E-INP-011) immediately on the first conflicting IDB; no third outcome | (totality + determinism) | reader.rs | proptest |
+| VP-030 | pcapng multi-IDB linktype agreement totality (RESTATED rev 7 / H-3): for sequences of WHITELISTED DataLink values only (the domain where the E-INP-011 conflict check is reachable), the reader either (a) accepts all (all-equal) producing PcapSource.datalink = that DataLink, or (b) returns Err(E-INP-011) immediately on the first differing whitelisted DataLink; no third outcome. Non-whitelisted values short-circuit to E-INP-001 at first IDB (before conflict check) — NOT in VP-030 domain. Comparison unit: DataLink, not raw u16. | (totality + determinism; whitelisted domain) | reader.rs | proptest |
+| VP-031 | pcapng SPB captured-len computation correctness: for all (original_len: u32, snaplen: u32, body: &[u8]), the computed captured_len == min(original_len, snaplen, body.len() as u32); the returned slice has exactly captured_len bytes; no out-of-bounds access for any combination of inputs (resolves M-2 / DF-CANONICAL-FRAME-HOLDOUT-001) | (arithmetic correctness + bounds safety) | reader.rs (pcapng_pure_core fns) [b] | proptest |
 
 [a] VP-024 umbrella is anchored to `analyzer/arp.rs` (Sub-B/C/D targets). Sub-A Kani harnesses
 (`verify_extract_arp_frame_safety`, `verify_extract_arp_frame_eth_ipv4_correctness`,
@@ -149,7 +156,8 @@ to be non-vacuous over symbolic `e`; see ADR-009 rev 5 VP-025 Kani Provability N
 - VP-027: pcapng EPB parse safety and interface_id bounds (guard-before-allocate) [NEW — SS-01 pcapng, ADR-009 rev 4]
 - VP-028: pcapng reader no-panic, cargo-fuzz (F6 hardening deliverable) [NEW — SS-01 pcapng, ADR-009 rev 4]
 - VP-029: pcapng block-walk skip correctness and forward progress [NEW — SS-01 pcapng, ADR-009 rev 4]
-- VP-030: pcapng multi-IDB linktype agreement totality [NEW — SS-01 pcapng, ADR-009 rev 4]
+- VP-030: pcapng multi-IDB linktype agreement totality — RESTATED (ADR-009 rev 7 / H-3): domain = WHITELISTED DataLink values only; comparison unit = DataLink; non-whitelisted values → E-INP-001 (out of VP-030 scope) [NEW — SS-01 pcapng, ADR-009 rev 4; restated rev 7]
+- VP-031: pcapng SPB captured-len computation correctness (proptest arithmetic invariant; fills SPB framing VP gap per DF-CANONICAL-FRAME-HOLDOUT-001) [NEW — SS-01 pcapng, ADR-009 rev 6]
 
 
 ## Tooling Selection
@@ -159,7 +167,7 @@ See `tooling-selection.md` for full rationale. Summary:
 | Tool | Target Properties | Scope |
 |------|-----------------|-------|
 | Kani (model checker) | State machine reachability, arithmetic overflow, pointer safety | VP-001, VP-002, VP-003, VP-004, VP-005, VP-007, VP-009, VP-015, VP-022, VP-023, VP-024, VP-025, VP-026, VP-027 |
-| proptest | Property-based: generate random inputs, check invariants | VP-006, VP-010..014, VP-021, VP-029, VP-030 |
+| proptest | Property-based: generate random inputs, check invariants | VP-006, VP-010..014, VP-021, VP-029, VP-030, VP-031 |
 | cargo-fuzz (libFuzzer) | No-panic for parser entry points | VP-008, VP-028 |
 | cargo-mutants | Mutation coverage for domain logic | SS-06, SS-07, SS-08, SS-10 |
 

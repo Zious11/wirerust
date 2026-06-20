@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: product-owner
 timestamp: 2026-06-19T00:00:00Z
@@ -13,6 +13,7 @@ capability: CAP-01
 lifecycle_status: active
 introduced: v0.10.0-pcapng
 modified:
+  - "v1.4: Pass-3 remediation Burst Q3 (ADR-009 rev 6) — (H-3) E-INP-001 added to PC1 context-string list: 'pcapng Interface Description Block link type rejected' → E-INP-001 (whitelist Err raised at IDB-parse time paths through this cross-cutting contract). Error Taxonomy traceability field updated to include E-INP-001. Description updated to note taxonomy range includes E-INP-001. — 2026-06-19"
   - "v1.3: Pass-2 remediation Burst P2b (ADR-009 rev 5) — (C-4 CRITICAL) EC-002 error code corrected: EPB OOB on non-empty table → E-INP-010 (was E-INP-008). EC-005 minimum corrected: 'below minimum 8' → 'below minimum 12' (ADR Decision 8; crate rejects block_total_length < 12). (O-2) PC1 context strings extended: add E-INP-009 'before any Interface Description Block' context wording. Add E-INP-013 (interleaved-IDB) reference to edge-case map and Error Taxonomy field. (I-11) add Test: citations to ACs. — 2026-06-19"
   - "v1.2: ADR-009 rev 4 Burst B — Add VP-028 (cargo-fuzz fuzz_pcapng_reader) to Verification Properties, explicitly tagged as F6 hardening deliverable NOT F3. State that the no-panic-on-malformed-input contract is the cross-cutting parent of per-BC no-panic ACs. Add PC3 (no panic, no infinite loop). — 2026-06-19"
   - "v1.1: 2026-06-19 — added E-INP-012 to Error Taxonomy traceability field (cosmetic consistency; no normative behavior change)"
@@ -29,11 +30,15 @@ removal_reason: null
 ## Description
 
 All pcapng parse failures (truncated SHB, truncated IDB, truncated EPB, truncated SPB,
-invalid block-total-length, missing IDB before EPB, malformed block structure) MUST surface
-as `Err(anyhow::Error)` via the existing `?` propagation chain — the same mechanism used
-by the classic-pcap path. Each error MUST be wrapped with `anyhow::Context` text that
-identifies the block type and, where applicable, the interface index or block sequence
-number. The error ultimately maps to one of the taxonomy entries (E-INP-008 through E-INP-013). No pcapng parse error produces a `panic!` or an `unwrap` in production code.
+invalid block-total-length, missing IDB before EPB, malformed block structure, unsupported
+IDB link type) MUST surface as `Err(anyhow::Error)` via the existing `?` propagation chain
+— the same mechanism used by the classic-pcap path. Each error MUST be wrapped with
+`anyhow::Context` text that identifies the block type and, where applicable, the interface
+index or block sequence number. The error ultimately maps to one of the taxonomy entries
+(E-INP-001, E-INP-008 through E-INP-013). E-INP-001 applies when the IDB linktype whitelist
+check fires at IDB-parse time (BC-2.01.016); E-INP-008 through E-INP-013 cover the remaining
+pcapng structural error classes. No pcapng parse error produces a `panic!` or an `unwrap`
+in production code.
 
 **Cross-cutting no-panic parent:** This BC is the authoritative cross-cutting contract for
 the no-panic property across the entire pcapng reader. The per-BC no-panic ACs (SEC-005)
@@ -60,6 +65,7 @@ across the full input space.
      - `"Failed to skip pcapng block (type=0x{block_type:08X})"` (→ E-INP-010)
      - `"pcapng Enhanced Packet Block encountered before any Interface Description Block"` (→ E-INP-009)
      - `"pcapng Simple Packet Block encountered before any Interface Description Block"` (→ E-INP-009)
+     - `"pcapng Interface Description Block link type rejected"` (→ E-INP-001; context string wraps the root `Err` from the BC-2.01.016 whitelist check; the full message rendered to the user is the E-INP-001 format: `"Unsupported pcap link type: <type>. Supported: ..."` propagated via the anyhow chain)
 2. No partial `PcapSource` is returned on parse error; the entire operation fails.
 3. **No panic, no infinite loop (cross-cutting no-panic contract):** For ANY byte sequence
    fed to `PcapSource::from_pcap_reader`, the function returns `Ok(_)` or `Err(_)` — it
@@ -122,7 +128,7 @@ across the full input space.
 | Architecture Module | SS-01 (reader.rs, C-4) |
 | Stories | STORY-126 |
 | ADR Reference | ADR-009 Consequences: "Adding *.pcapng to the src/main.rs directory glob means malformed pcapng files that were silently excluded now produce errors at the reader level" |
-| Error Taxonomy | E-INP-008, E-INP-009, E-INP-010, E-INP-011, E-INP-012, E-INP-013 (new entries; see taxonomy) |
+| Error Taxonomy | E-INP-001 (pcapng IDB linktype whitelist, raised by BC-2.01.016 at IDB-parse time; same code and message format as classic-pcap path), E-INP-008, E-INP-009, E-INP-010, E-INP-011, E-INP-012, E-INP-013 (see taxonomy) |
 
 ## Related BCs
 
