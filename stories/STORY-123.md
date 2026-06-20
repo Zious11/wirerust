@@ -26,7 +26,6 @@ inputs:
   - .factory/specs/architecture/decisions/ADR-009-pcapng-capture-format-reader-support.md
   - .factory/specs/behavioral-contracts/ss-01/BC-2.01.009.md
   - .factory/specs/behavioral-contracts/ss-01/BC-2.01.010.md
-input-hash: ""
 # Dependency anchor: STORY-123 has no depends_on because it is the foundation
 #   of the entire pcapng reader stack. All other pcapng stories depend on this
 #   story's magic-byte probe and SHB parsing infrastructure.
@@ -122,7 +121,7 @@ SHB errors are routed according to the uniform 4-way split from ADR-009 Decision
 `test_BC_2_01_010_shb_framing_rejection_e_inp_010` (btl=8 → crate rejects → E-INP-010),
 `test_BC_2_01_010_invalid_bom_e_inp_008`
 
-### AC-008 (traces to BC-2.01.010 postcondition 4 — multi-section rejection)
+### AC-008 (traces to BC-2.01.010 AC-002 — multi-section rejection)
 A second Section Header Block encountered anywhere after the first is REJECTED with `Err`
 mapping to E-INP-012. The rejection fires before any byte-order reset. The error message
 includes a remediation hint directing to `mergecap -w out.pcapng <file>` or `editcap`.
@@ -160,7 +159,7 @@ The `arp-baseline-16pkt.cap` fixture (pcapng with `.cap` extension) MUST return
 | BC | Version | Clauses Covered |
 |----|---------|-----------------|
 | BC-2.01.009 | v1.7 | PC3 (probe consumes no bytes), PC1 (pcapng routing), PC2 (classic routing), PC4 (unrecognized magic), PC6 (zero-packet notice emission via main.rs), PC5 (smb3/arp-baseline.cap fixtures), Inv1 (4-byte peek), Inv3 (probe not duplicated), Inv4 (SHB magic endian-independent), AC-007 (BufReader wrap-site) |
-| BC-2.01.010 | v2.1 | PC1 (canonical BOM table + section-wide endianness authority), PC2 (major version), PC3 (section_length ignored), PC4 (multi-section rejection → E-INP-012), PC5 (4-way error routing), Inv4 (section-wide endianness scope) |
+| BC-2.01.010 | v2.1 | PC1 (canonical BOM table + section-wide endianness authority), PC2 (major version), PC3 (section_length ignored), AC-002 (multi-section rejection → E-INP-012), PC5 (4-way error routing), Inv4 (section-wide endianness scope) |
 
 ## Architecture Mapping
 

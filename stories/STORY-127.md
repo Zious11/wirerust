@@ -24,7 +24,6 @@ wave: 55
 inputs:
   - .factory/specs/architecture/decisions/ADR-009-pcapng-capture-format-reader-support.md
   - .factory/specs/behavioral-contracts/ss-12/BC-2.12.011.md
-input-hash: ""
 # Dependency anchor: STORY-127 depends on STORY-123..126 because resolve_targets
 #   (main.rs) now accepts pcapng files, and the E2E corpus tests exercise the
 #   full reader stack (SHB+IDB+EPB+SPB+skip) that those stories implement. An

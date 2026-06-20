@@ -26,7 +26,6 @@ inputs:
   - .factory/specs/architecture/decisions/ADR-009-pcapng-capture-format-reader-support.md
   - .factory/specs/behavioral-contracts/ss-01/BC-2.01.012.md
   - .factory/specs/behavioral-contracts/ss-01/BC-2.01.014.md
-input-hash: ""
 # Dependency anchor: STORY-125 depends on STORY-123 because the SHB parse and
 #   pcapng routing are prerequisites for EPB parsing; STORY-125 depends on
 #   STORY-124 because the interface table (Vec<InterfaceInfo> with if_tsresol)

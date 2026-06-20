@@ -1,10 +1,10 @@
 ---
 pipeline: FEATURE
 phase: F3
-phase_status: "F3 IN PROGRESS — CREATE+INTEGRATE COMPLETE (STORY-123..128 committed; E-19; Waves 51-56; STORY-INDEX 81 stories/56 waves/521 pts; dependency-graph v3.0 acyclic; epics.md v1.7; HS-001 rewritten to acceptance; input-hashes regenerated). NEXT: F3 gate (consistency audit + human approval) then F4 per-story TDD delivery. F2 CONVERGED+APPROVED — do NOT re-run."
+phase_status: "F3 GATE — consistency audit PASS (1 HIGH + 2 Minor all remediated D-167); awaiting human approval. On approval → F4 per-story TDD delivery (Waves 51-56, STORY-123..128). F2 CONVERGED+APPROVED — do NOT re-run."
 product: wirerust
 mode: brownfield
-timestamp: 2026-06-21T00:30:00Z
+timestamp: 2026-06-21T01:15:00Z
 
 # Release chain
 released_version: v0.9.2
@@ -63,11 +63,11 @@ convergence_trajectory: "Detail: cycles/v0.1.0-greenfield-spec/convergence-traje
 
 # VSDD Pipeline State — wirerust
 
-## SESSION RESUME CHECKPOINT (2026-06-21 — F3 CREATE+INTEGRATE COMPLETE / D-166 / AWAITING F3 GATE)
+## SESSION RESUME CHECKPOINT (2026-06-21 — F3 GATE PASS + REMEDIATED / D-167 / AWAITING HUMAN APPROVAL)
 
 **WARNING: DO NOT RE-RUN F2 ADVERSARIAL CONVERGENCE. F2 IS CONVERGED + HUMAN-APPROVED (D-164).**
 
-**Previous checkpoint (D-165 — F3 CREATE IN-FLIGHT) archived to:
+**Previous checkpoint (D-166 — F3 CREATE+INTEGRATE COMPLETE) archived to:
 `.factory/cycles/feature-pcapng-reader/session-checkpoints.md`**
 
 ### PIPELINE POSITION
@@ -75,21 +75,23 @@ convergence_trajectory: "Detail: cycles/v0.1.0-greenfield-spec/convergence-traje
 - **Mode:** FEATURE. **Cycle:** feature-pcapng-reader (FE-001 pcapng capture-format reader support).
 - **F1 (delta analysis):** COMPLETE.
 - **F2 (spec evolution):** COMPLETE + ADVERSARIALLY CONVERGED (3 consecutive clean passes 8/9/10, all 0 HIGH / 0 CRITICAL; trajectory 23/24/17/13/13/13/12/8/4/5) + HUMAN-APPROVED.
-- **CURRENT PHASE: F3 (incremental story decomposition) — CREATE+INTEGRATE COMPLETE. Awaiting F3 gate.**
+- **F3 (incremental story decomposition):** CREATE+INTEGRATE COMPLETE (D-166). Consistency audit COMPLETE (D-167): CONDITIONAL PASS → all 3 findings remediated. **AWAITING HUMAN APPROVAL.**
+- **NEXT: Human approves F3 gate → F4 per-story TDD delivery (Waves 51-56, STORY-123..128).**
 
-### F3 COMPLETE WORK (D-166)
+### F3 COMPLETE WORK (D-166 + D-167)
 
 - STORY-123..128 written and committed (E-19 pcapng reader, Waves 51-56, 37 pts).
-- STORY-INDEX v2.5: 81 stories / 56 waves / 521 pts.
+- STORY-INDEX v2.6: 81 stories / 56 waves / 521 pts (v2.5 + scope clarity note).
 - dependency-graph v3.0: acyclic, STORY-123..128 edges wired.
 - epics.md v1.7: E-19 added.
 - HS-001 rewritten to pcapng-ACCEPTANCE (v2.0, BC-2.01.009) — was pcapng-rejection.
 - Input-hashes regenerated: all STORY-NNN (MATCH=78, STALE=0, ERROR=3 pre-existing); HS-001 (946cb06), HS-104 (a8907f2), HS-107 (d11e6ab), HS-108 (3f3958a).
 - HS-INDEX v2.6: stale anomaly for HS-001 CLEARED; HS-001 row updated to ACTIVE.
+- **D-167 remediation:** F3-CV-001 (STORY-123 AC-008 clause PC4→AC-002); F3-CV-003 (input-hash dedup x6 STORY-123..128); F3-CV-002 (STORY-INDEX scope note, v2.5→v2.6). All REMEDIATED + COMMITTED.
 
 ### F3 REMAINING STEPS
 
-1. **F3 gate:** consistency audit (`vsdd-factory:consistency-validation`) + human approval.
+1. **Human approval:** F3 gate approval.
 2. **F4:** per-story TDD delivery (per-story-delivery) — STORY-123 first (no deps).
 
 ### IMPLEMENTATION-TIME CARRY-FORWARDS FOR F4
@@ -102,11 +104,11 @@ convergence_trajectory: "Detail: cycles/v0.1.0-greenfield-spec/convergence-traje
 
 ### A. EXACT POSITION
 
-- **Status:** FEATURE mode — pcapng reader cycle open. F2 converged + human-approved (D-164). F3 CREATE+INTEGRATE COMPLETE (D-166, committed). F3 gate pending.
+- **Status:** FEATURE mode — pcapng reader cycle open. F2 converged + human-approved (D-164). F3 GATE PASS-pending-human-approval (D-167). All 3 F3 consistency findings remediated and committed.
 - **Active cycle:** `feature-pcapng-reader` (cycle manifest: `.factory/cycles/feature-pcapng-reader/cycle-manifest.md`)
 - **Feature:** FE-001 — pcapng capture-format reader support. Status: IN PROGRESS.
 - **Spec versions (F2 converged):** prd.md v1.33, error-taxonomy v3.7 (next_free E-INP-014), nfr-catalog v2.3, ADR-009 rev 9, VP-INDEX v2.8 (total 31), BC-INDEX v1.68, BC-2.01.009 v1.7, .010 v2.1, .011 v1.7, .012 v1.9, .013 v1.9, .014 v1.5, .015 v1.8, .016 v1.4, .017 v1.6, .018 v1.6, BC-2.12.011 v1.5. 302 active BCs.
-- **F3 artifacts (D-166):** STORY-123..128 (committed), STORY-INDEX v2.5 (81/56/521), dependency-graph v3.0, epics.md v1.7 (E-19), HS-001 v2.0 (active), HS-INDEX v2.6.
+- **F3 artifacts (D-166+D-167):** STORY-123..128 (committed; AC-008 clause corrected; input-hash dedup), STORY-INDEX v2.6 (81/56/521), dependency-graph v3.0, epics.md v1.7 (E-19), HS-001 v2.0 (active), HS-INDEX v2.6.
 - **Latest release:** `v0.9.2` (tag obj `a298dbe`, main `b73b242`). develop = main = `b73b242`.
 
 ### B. GROUND-TRUTH SHAs / WORKTREE STATE
@@ -125,10 +127,11 @@ convergence_trajectory: "Detail: cycles/v0.1.0-greenfield-spec/convergence-traje
 
 - F1 delta analysis: COMPLETE.
 - F2 spec evolution + adversarial convergence + human gate: COMPLETE (D-164).
-- F3 CREATE: STORY-123..128 COMPLETE + COMMITTED (D-166).
-- F3 INTEGRATE: STORY-INDEX/dependency-graph v3.0/epics.md v1.7 COMPLETE + COMMITTED (D-166).
+- F3 CREATE: STORY-123..128 COMPLETE + COMMITTED (D-166 + D-167 clause fix + dedup).
+- F3 INTEGRATE: STORY-INDEX v2.6/dependency-graph v3.0/epics.md v1.7 COMPLETE + COMMITTED.
 - F3 holdout work: HS-001 rewritten to acceptance, HS-104/107/108 input-hashes regenerated (D-166).
 - F3 input-hashes: all stories MATCH (78 MATCH / 0 STALE / 3 pre-existing ERRORs = STORY-091/121 no-inputs-block).
+- F3 gate consistency audit: ALL FINDINGS REMEDIATED (D-167). Gate = PASS-pending-human-approval.
 - All prior cycles: RELEASED (v0.9.2 latest).
 
 ### D. OPEN ITEMS (lower priority)
@@ -141,7 +144,7 @@ convergence_trajectory: "Detail: cycles/v0.1.0-greenfield-spec/convergence-traje
 
 ## Status
 
-**FEATURE MODE — pcapng reader cycle OPEN (feature-pcapng-reader). F2 ADVERSARIAL CONVERGED (D-164) + HUMAN-APPROVED. F3 CREATE+INTEGRATE COMPLETE (D-166): STORY-123..128 committed, STORY-INDEX 81/56/521, epics.md v1.7, HS-001 rewritten to acceptance, input-hashes regenerated. NEXT: F3 gate (consistency audit + human approval) then F4 per-story TDD delivery.**
+**FEATURE MODE — pcapng reader cycle OPEN (feature-pcapng-reader). F2 ADVERSARIAL CONVERGED (D-164) + HUMAN-APPROVED. F3 GATE PASS (D-167) — consistency audit returned CONDITIONAL PASS; 1 HIGH + 2 Minor all remediated (STORY-123 AC-008 clause fix, input-hash dedup x6, STORY-INDEX scope note v2.6). AWAITING HUMAN APPROVAL → F4 per-story TDD delivery (Waves 51-56, STORY-123..128).**
 
 Latest release: v0.9.2 (tag obj `a298dbe`, main `b73b242`, 4 binaries). develop = main = `b73b242`. Zero divergence.
 Active feature: FE-001 pcapng capture-format reader support. ADR-009, 10 new BCs, 1 retired BC.
@@ -168,7 +171,7 @@ Maintenance maint-2026-06-17: COMPLETE. NON-BLOCKING. Report: `.factory/maintena
 | E-18/E-8 STORY-119 cycle (F1-F7) + v0.9.0 | **RELEASED + CLOSED 2026-06-19** | STORY-120/122/119; 293 BCs; tag v0.9.0 986e148. Detail: cycles/feature-story-119-grouped-collapse/ |
 | v0.9.1 patch | **RELEASED 2026-06-19** | Doc/help; PRs #277/#278; tag v0.9.1 ad4eec8 |
 | v0.9.2 patch | **RELEASED 2026-06-19** | DNP3 determinism + E2E fixtures; PRs #279/#280; tag v0.9.2 b73b242 |
-| **Feature pcapng-reader (F1+F2+F3)** | **F3 CREATE+INTEGRATE COMPLETE (D-166) — F2 CONVERGED+HUMAN-APPROVED (D-164, 3 clean passes 8/9/10 all 0H/0C); STORY-123..128 committed; E-19; Waves 51-56; STORY-INDEX 81/56/521; HS-001 rewritten; input-hashes MATCH; F3 gate pending; trajectory 23/24/17/13/13/13/12/8/4/5** | FE-001 IN PROGRESS. F2 CONVERGED+APPROVED. F3 CREATE: STORY-123..128 (D-166). F3 INTEGRATE: STORY-INDEX v2.5/dependency-graph v3.0/epics.md v1.7 (D-166). HS-001 pcapng-acceptance rewrite DONE. Input-hashes regenerated (78 MATCH/0 STALE). F3 gate next. Cycle: feature-pcapng-reader |
+| **Feature pcapng-reader (F1+F2+F3)** | **F3 GATE PASS-pending-human-approval (D-167) — consistency audit CONDITIONAL PASS; 1 HIGH + 2 Minor all remediated; F2 CONVERGED+HUMAN-APPROVED (D-164, 3 clean passes 8/9/10 all 0H/0C); STORY-123..128 committed (AC-008 clause corrected, input-hash dedup); STORY-INDEX v2.6; trajectory 23/24/17/13/13/13/12/8/4/5** | FE-001 IN PROGRESS. F2 CONVERGED+APPROVED. F3 CREATE: STORY-123..128 (D-166+D-167). F3 INTEGRATE: STORY-INDEX v2.6/dependency-graph v3.0/epics.md v1.7. F3 gate: PASS-pending-human-approval. Awaiting human → F4. Cycle: feature-pcapng-reader |
 
 ## Decisions Log
 
@@ -200,6 +203,7 @@ D-131..D-135: `cycles/feature-story-119-grouped-collapse/decisions-archive.md`
 | D-162 | F2 pass-8 focused re-audit: CLEAN (FINDING-P8-001 only — minor metadata). HS-INDEX v2.4→v2.5: behavioral-subtleties by-category cell corrected 39→40 (pcapng-holdouts note undercounted HS-106 by 1; 40+20+18+21+10=109=TOTAL). HS-109 byte-exact verified, all M-fixes verified, invariants intact. CLEAN-PASS remains 1/3 (metadata fix does not reset counter). spec-changelog [pcapng-f2-pass8-reaudit-hsindex-count-2026-06-20] prepended. Adversary pass-9 pending (targeting clean-pass 2/3). 302 BCs unchanged. | 2026-06-20 |
 | D-163 | F2 adversary pass-9 CLEAN (0C/0H/1M/3L) — CLEAN-PASS 2/3 (BC-5.39.001). Novelty LOW. Adversary stated "the spec has effectively converged." MEDIUM-1: error-taxonomy v3.5→v3.6 — E-INP-009 Message Format updated to per-block-type parameterized strings: EPB "EPB references interface_id=<id> but interface table is empty — no IDB has been parsed" (mandated by BC-2.01.012 PC5a); SPB "SPB encountered but interface table is empty — no IDB has been parsed" (mandated by BC-2.01.013 PC5/AC-001); Notes updated; BC-refs: BC-2.01.012, BC-2.01.013, BC-2.01.017. LOW-1 (SPB E-INP-009 message unconstrained): aligned via MEDIUM-1 fix. LOW-2: HS-104 v1.4→v1.5 — Case E downgraded: btl=47 (47%4=3) rejected by crate alignment check (E-INP-010 primary) before PC6b (padding-overrun → E-INP-008) can run; Case E now asserts NO-PANIC / graceful-Err; E-INP-010 primary path; PC6b noted DEFENSE-IN-DEPTH / unreachable on non-4-aligned block per BC-2.01.012 PC6b. LOW-3: BC-2.01.012 v1.7→v1.8 — PC6 split into PC6a (captured_len/padding guard) and PC6b (padding-overrun guard; defense-in-depth; unreachable when crate alignment rejection fires first); PC9 dedup note added. BC-2.01.013 v1.8→v1.9 (LOW-1 sibling audit trail; no normative change). BC-INDEX v1.66→v1.67 (BC-2.01.012 v1.7→v1.8; BC-2.01.013 v1.8→v1.9 annotations synced). spec-changelog [pcapng-f2-pass9-clean-and-remediation-2026-06-20] prepended. Pass-9 record: cycles/feature-pcapng-reader/f2-adversarial-spec-review-pass9.md. CLEAN-PASS counter: 2/3. Adversary pass-10 pending (targeting clean-pass 3/3 → CONVERGENCE). F3 BLOCKED until pass-10 clean. 302 BCs unchanged. | 2026-06-20 |
 | D-165 | Session paused for clear/resume during F3 story-creation. Durable checkpoint written (STATE.md SESSION RESUME CHECKPOINT section replaced; prior checkpoint archived to cycles/feature-pcapng-reader/session-checkpoints.md). F2 CONVERGED+HUMAN-APPROVED — do NOT re-run F2 adversarial convergence. F3 CREATE burst was in-flight (STORY-123..128 being written to .factory/stories/ by story-writer; NOT committed). f2-consistency-audit.md committed in this burst (was the sole uncommitted state file). On resume: factory-worktree-health first; then reconcile STORY-123..128 on disk; continue F3 CREATE/INTEGRATE. | 2026-06-20 |
+| D-167 | **F3 gate consistency audit CONDITIONAL PASS — all findings remediated (D-167).** F3-CV-001 (HIGH): STORY-123 AC-008 clause label corrected from "BC-2.01.010 postcondition 4" → "BC-2.01.010 AC-002" (multi-section rejection reference; behavior unchanged). F3-CV-003 (Minor): duplicate empty `input-hash: ""` frontmatter stanza removed from STORY-123..128; each now has exactly one populated input-hash (123=72a3650, 124=7ec43f8, 125=d81b9f3, 126=ade60b6, 127=07aace6, 128=6123d78). F3-CV-002 (Minor): STORY-INDEX point-scope clarity note added; version bumped v2.5→v2.6; no numeric changes. Hash scan post-remediation: MATCH=78 / STALE=0 / ERROR=3 (pre-existing STORY-001/091/121). Gate verdict: PASS-pending-human-approval. [process-gap] `compute-input-hash --write` appends a duplicate `input-hash:` line instead of replacing in-place — manifested on HS files (D-166) and stories (F3-CV-003). Candidate follow-up story at cycle-close per S-7.02; requires research-agent validation (DF-VALIDATION-001) before any GitHub issue. | 2026-06-21 |
 | D-166 | **F3 CREATE+INTEGRATE COMPLETE** for feature-pcapng-reader (FE-001). CREATE: STORY-123 (pre-existing, BC-2.01.009/.010, 5 pts, Wave 51) + STORY-124 (BC-2.01.011/.016/.018, 8 pts, Wave 52) + STORY-125 (BC-2.01.012/.014, 8 pts, Wave 53) + STORY-126 (BC-2.01.013/.015/.017, 8 pts, Wave 54) + STORY-127 (BC-2.12.011 magic-byte glob + E2E corpus, 5 pts, Wave 55) + STORY-128 (main.rs per-file isolation loop, 3 pts, Wave 56). INTEGRATE arithmetic: +6 stories (75→81), +6 waves (50→56), +37 pts (484→521 total; wave-table 479→516; epic-table 487→524). STORY-INDEX v2.5, dependency-graph v3.0 (acyclic), epics.md v1.7 (E-19 added). HS-001 rewritten: rejection→acceptance (v2.0, BC-2.01.009, ADR-009 rev 9, lifecycle_status active). ADR-009 added to HS-104/107 inputs (already in HS-108). Input-hashes regenerated: `bin/compute-input-hash --write --scan` → 78 MATCH / 0 STALE / 3 pre-existing ERRORs (STORY-091/121 no-inputs-block, carry-forward). HS-001 (946cb06), HS-104 (a8907f2), HS-107 (d11e6ab), HS-108 (3f3958a). HS-INDEX v2.6 stale anomaly CLEARED. F3 implementation-time carry-forwards encoded in STORY files: F-06 multi-section reject (STORY-123 AC), F-07 explicit skip-arm enumeration (STORY-126 AC), Kani base-2 coverage (STORY-125 AC). Framing-constant validator script O-1 scope deferred to F4. Next: F3 gate (consistency audit + human approval). | 2026-06-21 |
 | D-164 | **F2 ADVERSARIAL CONVERGENCE ACHIEVED.** Pass-10 CLEAN (0C/0H/2M/3L) — CLEAN-PASS 3/3 (BC-5.39.001). Three consecutive passes (8/9/10) all 0 CRITICAL / 0 HIGH. Novelty LOW. MEDIUM-1: BC-2.01.012 v1.8→v1.9 — stale snaplen false-attribution removed from PC6b annotation; PC6b is padding-overrun guard (defense-in-depth) ONLY, not snaplen enforcement; per Decision 9 amend (ADR-009 rev 8) EPB does not enforce snaplen. MEDIUM-2: HS-109 v1.0→v1.1 — VP-026 mis-anchor corrected to VP-027 (IDB body-decode holdout correctly anchors to BC-2.01.011 body-decode VP; VP-026 anchors to BC-2.01.010 SHB parse safety). LOW-1: BC-2.01.011 v1.6→v1.7 — PC6 carve-out precision: if_tsresol IS used for timestamp scaling (BC-2.01.014) but MUST NOT be applied to captured_len per Decision 9 amend + Decision 22; snaplen extraction is diagnostic only. LOW-2: HS-104 v1.5→v1.6 — Case D discriminant explicit (E-INP-010 WHERE interface_id >= idb_count AND non-empty table; discriminant: OOB check, not body-length check). LOW-3: error-taxonomy v3.6→v3.7 — E-INP-009 Notes source-location updated to owning-BC + function-name convention. Process-gap: ADR-009 "Current Canonical Constants" governing table added (single source of truth for per-block fixed overhead, error codes, VP+HS assignments; root-cause of MEDIUM-2 VP mis-anchor). BC-INDEX v1.67→v1.68. spec-changelog [pcapng-f2-pass10-clean-CONVERGED-2026-06-20] prepended. Pass-10 record: cycles/feature-pcapng-reader/f2-adversarial-spec-review-pass10.md. Trajectory: 23/24/17/13/13/13/12/8/4/5 (last 3 = 0H/0C). 302 BCs unchanged. error-taxonomy next_free E-INP-014 unchanged. VP-INDEX total 31 unchanged. F2 human gate pending (consistency verification + F2 approval) → F3 story decomposition. | 2026-06-20 |
 | D-161 | F2 adversary pass-8 CLEAN (0C/0H/3M/5L) — CLEAN-PASS 1/3 (BC-5.39.001). Convergence milestone: trajectory 23/24/17/13/13/13/12/8; all framing BCs have VP+holdout; per-block constants agree across 6 docs; holdout arithmetic self-consistent; all 4 pass-7 fixes propagated zero-stale-siblings. M-1: error-taxonomy v3.4→v3.5 — E-INP-008 SPB body-too-short entry cites SPB_FIXED_MIN=16; btl=12 (body=0<4 → E-INP-008) vs btl=16 (body=4, minimum valid SPB) boundary clarified. M-2: HS-109 v1.0 authored (IDB body-decode holdout gap — 5 cases: btl=16 body<8→E-INP-008; reserved!=0→E-INP-008; options-TLV OOB→E-INP-008; if_tsresol option_length=4→E-INP-008; positive control); HS-INDEX v2.3→v2.4 (greenfield 108→109; all-namespace 181→182; must_pass 108). M-3: BC-2.01.013 v1.7→v1.8 — AC-001 test name renamed test_BC_2_01_013_snaplen_lookup_guarded → test_BC_2_01_013_empty_interface_table_guarded (DF-AC-TEST-NAME-SYNC-001; stale snaplen reference; AC-001 scopes empty-table E-INP-009; EC-008 body-too-short handled distinctly by AC-004a; no normative change). O-2: ADR-009 rev 9 status: proposed→accepted (no content change). O-1 (framing-constant validator cross-doc script) DEFERRED-TO-F3 — F3 story decomposition checklist should evaluate bin/ script scope. BC-INDEX v1.65→v1.66. spec-changelog [pcapng-f2-pass8-clean-and-medium-remediation-2026-06-20] prepended. Pass-8 record: cycles/feature-pcapng-reader/f2-adversarial-spec-review-pass8.md. Adversary pass-9 pending (targeting clean-pass 2/3). 302 BCs unchanged. **F3-entry O-1 checklist item:** Evaluate whether `bin/framing-constant-validator` should be scoped as part of F3 implementation stories (cross-doc grep of per-block constants across BC, ADR-009, HS-INDEX, error-taxonomy, VP-INDEX, verification-architecture). | 2026-06-20 |
@@ -245,6 +249,7 @@ Full tech-debt register: `.factory/tech-debt-register.md`.
 | DRIFT-DEVELOP-SYNC-BPBYPASS-001 | main→develop sync bypassed branch-protection; informational. | INFORMATIONAL |
 | PG-F7-R4-POST-FIXBURST-SIBLING-SWEEP-001 | Post-fix bursts must sweep consuming BCs + story post-delivery notes + VP docs. | CODIFIED |
 | BUG-DNP3-CONTROL-OP-DETERMINISM-001 | RESOLVED in v0.9.2 (D-135). FlowKey Ord + sort; 3 regression tests. | RESOLVED |
+| [process-gap] COMPUTE-INPUT-HASH-DEDUP-001 | `compute-input-hash --write` appends duplicate `input-hash:` line instead of replacing in-place (manifested D-166 HS files + D-167 story dedup). Candidate follow-up story at cycle-close. DF-VALIDATION-001 required before GitHub issue. | LOGGED — cycle-close candidate |
 
 *(Engine-notes and additional low-severity drift items: cycles/feature-story-119-grouped-collapse/ and cycles/feature-arp-v0.7.0/.)*
 

@@ -28,7 +28,6 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-01/BC-2.01.013.md
   - .factory/specs/behavioral-contracts/ss-01/BC-2.01.015.md
   - .factory/specs/behavioral-contracts/ss-01/BC-2.01.017.md
-input-hash: ""
 # Dependency anchor: STORY-126 depends on STORY-123 because SHB parse and
 #   byte-order state are prerequisites for SPB and block-walk dispatch. STORY-126
 #   depends on STORY-124 because the interface table existence check (empty-table

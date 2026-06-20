@@ -10,6 +10,16 @@ Archived session resume checkpoints (superseded). Latest checkpoint is in STATE.
 
 ---
 
+## Archived: F3 CREATE+INTEGRATE COMPLETE (D-166) — AWAITING F3 GATE (consistency audit + human approval)
+
+**Archived when:** F3 gate consistency audit findings all remediated (D-167); new checkpoint supersedes.
+
+### PIPELINE STATUS: FEATURE MODE — F3 CREATE+INTEGRATE COMPLETE (D-166); STORY-123..128 COMMITTED; STORY-INDEX v2.5 (81/56/521); DEPENDENCY-GRAPH v3.0 ACYCLIC; EPICS.MD v1.7 (E-19); HS-001 REWRITTEN TO ACCEPTANCE (v2.0); INPUT-HASHES MATCH=78/STALE=0/ERROR=3; HS-INDEX v2.6; F2 CONVERGED+HUMAN-APPROVED (D-164); F3 GATE PENDING (CONSISTENCY AUDIT + HUMAN APPROVAL)
+
+Active cycle: **feature-pcapng-reader**. F2 adversarial convergence ACHIEVED (passes 8/9/10 all 0H/0C — D-164; clean-pass 3/3). F2 human gate PASSED. F3 CREATE: STORY-123..128 written and committed (BC→story mapping: STORY-123=BC-2.01.009/010; STORY-124=BC-2.01.011/016/018; STORY-125=BC-2.01.012/014; STORY-126=BC-2.01.013/015/017; STORY-127=BC-2.12.011 magic-byte glob + E2E corpus; STORY-128=main.rs per-file isolation loop). F3 INTEGRATE: STORY-INDEX v2.5 (81/56/521), dependency-graph v3.0, epics.md v1.7 (E-19), HS-001 v2.0 (acceptance rewrite), HS-INDEX v2.6. Input-hashes regenerated: bin/compute-input-hash --write --scan → 78 MATCH / 0 STALE / 3 pre-existing ERRORs (STORY-001/091/121). HS-001 (946cb06), HS-104 (a8907f2), HS-107 (d11e6ab), HS-108 (3f3958a). F3 gate (consistency audit) dispatched; results pending. No open PRs. No in-flight story worktrees.
+
+---
+
 ## Archived: F2 ADVERSARIAL CONVERGED (D-164) — CLEAN-PASS 3/3 (BC-5.39.001) / F2 HUMAN-APPROVED / F3 IN PROGRESS (STORY-123..128 CREATE IN-FLIGHT)
 
 **Archived when:** F3 session-pause durable checkpoint (D-165) — F3 story-creation burst in-flight; session cleared for cold resume.

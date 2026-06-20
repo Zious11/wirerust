@@ -24,7 +24,6 @@ wave: 56
 inputs:
   - .factory/specs/architecture/decisions/ADR-009-pcapng-capture-format-reader-support.md
   - .factory/specs/behavioral-contracts/ss-01/BC-2.01.018.md
-input-hash: ""
 # Dependency anchor: STORY-128 depends on STORY-127 because the per-file
 #   isolation loop operates on the file list produced by the refactored
 #   resolve_targets (STORY-127). STORY-128 must not be dispatched before

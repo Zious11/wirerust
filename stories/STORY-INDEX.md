@@ -1,6 +1,6 @@
 ---
 document_type: story-index
-version: "2.5"
+version: "2.6"
 status: draft
 producer: story-writer
 timestamp: 2026-06-18T00:00:00Z
@@ -8,6 +8,7 @@ phase: 3
 total_stories: 81
 total_waves: 56
 total_points: 521  # = 516 wave-table scheduled product (excl. STORY-091/STORY-121 wave-TBD) + 5 (STORY-091 tooling, wave TBD); epic-table grand total = 524; arithmetic: 484 pre-FE-001 + 37 (STORY-123..128 E-19 pcapng) = 521; wave-table: 479 pre-FE-001 + 37 = 516; epic-table: 487 pre-FE-001 + 37 = 524; stories: 75 + 6 = 81; waves: 50 + 6 = 56
+# v2.6 (2026-06-20): F3-gate remediation — clarity note added for the three point-total scopes (F3-CV-002); no numeric changes.
 # v2.5 (2026-06-20): FE-001 pcapng reader support INTEGRATE sub-burst — E-19 added (STORY-123..128, 6 stories, 37 pts, Waves 51-56).
 # ARITHMETIC: 484 pre-FE-001 + 37 (5+8+8+8+5+3) = 521 total_points; wave-table scheduled: 479+37=516; epic-table: 487+37=524; stories: 75+6=81; waves: 50+6=56.
 # STORY-091 and STORY-121 remain wave-TBD and are excluded from wave-table scheduled total as before.
@@ -312,6 +313,7 @@ traces_to:
 - Total stories: **81** (48 greenfield product + 1 tooling STORY-091 + 3 F3 feature STORY-097/098/099 + 6 Feature-#7 STORY-100..105 + 5 Feature-#8 STORY-106..110 + 5 Feature-#9 STORY-111..115 + 2 E-17 F3 STORY-116..117 + 3 E-18 F3 STORY-118/STORY-119/STORY-122 + 1 Issue-#62 F3 STORY-120 + 1 D-103 process-gap STORY-121 + 6 E-19 FE-001 pcapng STORY-123..128)
 - Total waves: **56** (Waves 40–44 added for Feature #9 ARP; Waves 45–46 added for E-17 QinQ/MACsec hardening; Wave 47 added for E-18 finding-collapse STORY-118; Wave 48 added for Issue-#62 STORY-120; Wave 49 added for STORY-122 (D-120 split A: enum→struct reshape); Wave 50 added for STORY-119/B (D-120 split B: render path + CLI flip, 2026-06-18); Waves 51–56 added for E-19 FE-001 pcapng reader support (STORY-123..128, 2026-06-20); STORY-091 wave TBD; STORY-121 wave TBD)
 - Total points: **521** (484 pre-FE-001 + 37 E-19 pcapng [5+8+8+8+5+3]; wave-table scheduled row shows 516 — excl. STORY-091+STORY-121 wave-TBD; epic table shows 524)
+  > **Point-scope key (three counts, none wrong):** (1) `total_points: 521` in frontmatter = all 79 scheduled product stories + STORY-091 tooling (5 pts); excludes STORY-121 (wave-TBD, 3 pts). (2) Wave-table "TOTAL" row = **516** = the 79 scheduled product stories only; excludes both STORY-091 and STORY-121 (both wave-TBD). (3) Epic-table "TOTAL" row = **524** = all 81 stories including both STORY-091 (5 pts) and STORY-121 (3 pts). The three counts differ solely by which wave-TBD tooling stories are included.
 - Graph is acyclic: **Yes** (Kahn topological sort verified; Feature-#7 dependency chain: STORY-100 → {STORY-101 ∥ STORY-102} → STORY-103 → STORY-104 → STORY-105; Feature-#8 DNP3 chain: STORY-100 → STORY-106 → STORY-107 → STORY-108 → STORY-109 → STORY-110; Feature-#9 ARP chain: STORY-110 → STORY-111 → STORY-112 → STORY-113 → STORY-114 → STORY-115; E-17 hardening chain: STORY-115 → STORY-116 → STORY-117; E-18/E-8 collapse chain: STORY-118 (no predecessor) → STORY-120 (no predecessor) → STORY-122 (wave 49) → STORY-119/B (wave 50); E-19 pcapng chain: STORY-123 (no predecessor) → STORY-124 → {STORY-125 ∥ STORY-126} → STORY-127 → STORY-128; no back-edges into existing graph; 81 = 79 product stories + STORY-091 tooling + STORY-121 tooling)
 - All 10 product epics + E-11 (Tooling, 2 stories: STORY-091 + STORY-121) + E-12 (Pcap Timestamps) + E-13 (Multi-Tag Migration) + E-14 (Modbus) + E-15 (DNP3) + E-16 (ARP) + E-17 (ARP QinQ/MACsec Hardening) + E-18 (Terminal Finding-Collapse) + E-19 (pcapng Capture-Format Reader Support) covered: **Yes**
 - All 219 greenfield BCs assigned + F2 additions + BC-2.09.001/006 (shared, extended in STORY-100) + BC-2.10.005/007/008 (extended in STORY-100) + BC-2.11.001/013/015/017/020/024 (extended in STORY-101) + BC-2.14.001..025 (new Modbus BCs in STORY-102..105) + BC-2.15.001..024 (new DNP3 BCs in STORY-106..110) + BC-2.02.009 (revised in STORY-111) + BC-2.16.001..015 (new ARP BCs in STORY-111..115) + BC-2.16.009 v1.10 EC-009 / BC-2.16.015 v1.9 EC-009 (E-17 MACsec documented-limitation extensions in STORY-116/117) + BC-2.11.025/026/027/028/029 (new E-18 collapse BCs in STORY-118; BC-2.11.010/013/017/019 extended/versioned — not new BCs) + BC-2.11.030/031/032/033/034 (5 new grouped-mode-collapse BCs in STORY-119/B): **Yes** (total 293 BCs; explicit tally: 219 greenfield + 25 Modbus + 24 DNP3 + 15 ARP + 5 E-18 flat-collapse + 5 E-18 grouped-collapse = 293; E-17 + all extensions = versioning of existing BCs, +0; D-120 split adds no new BCs)

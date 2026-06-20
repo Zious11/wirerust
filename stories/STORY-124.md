@@ -28,7 +28,6 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-01/BC-2.01.011.md
   - .factory/specs/behavioral-contracts/ss-01/BC-2.01.016.md
   - .factory/specs/behavioral-contracts/ss-01/BC-2.01.018.md
-input-hash: ""
 # Dependency anchor: STORY-124 depends on STORY-123 because the IDB parser
 #   requires the SHB parse and magic-byte probe infrastructure established by
 #   STORY-123; the byte-order state and pcapng routing established by STORY-123
