@@ -14,6 +14,104 @@ changes, invariant rewrites).
 
 ---
 
+## [pcapng-f2-pass7-remediation-2026-06-20] — 2026-06-20
+
+### PASS-7 REMEDIATION: 1C/3H/4M FINDINGS FIXED — D-159
+
+**Trigger:** F2 pass-7 adversarial review (D-158) — 1C/3H/4M/4L (4L all CONVERGED GREEN).
+Novelty MODERATE (down from HIGH). Trajectory P1:23/P2:24/P3:17/P4:13/P5:13/P6:13/P7:12 —
+count declining; convergence approaching. Clean-pass counter 0/3. Adversary pass-8 pending.
+
+**F-1 (CRITICAL — OPB counter "both" model; HS-108 Case D/E subset violation):**
+BC-2.01.015 PC9/AC-003/AC-006 establishes the dual-counter model: OPB skip arm increments
+BOTH `skipped_blocks` AND `opb_skipped` (subset invariant: opb_skipped <= skipped_blocks).
+HS-108 Case D asserted `skipped_blocks=0, opb_skipped=3` and Case E asserted
+`skipped_blocks=2, opb_skipped=1` — both violated the subset invariant and would fail a
+test suite written against the BC. Root cause: HS-108 authored in D-150 (pass-4 H-4)
+before opb_skipped sub-counter was added in D-153 (pass-5 H-2); D-153 updated the BC
+but not HS-108 Cases D/E.
+BC-2.01.015 v1.7→v1.8: "both" model invariant restated explicitly in PC9/AC-003/AC-006;
+subset postcondition pinned. HS-108 v1.3→v1.4: Case D corrected to skipped_blocks=3/
+opb_skipped=3; Case E corrected to skipped_blocks=3/opb_skipped=1 (2 NRBs + 1 OPB = 3
+total skips).
+
+**F-2 (HIGH — obsolete_packet_blocks → opb_skipped rename; HS-108 6× stale field):**
+HS-108 Cases D/E used non-existent field `obsolete_packet_blocks` (6 occurrences) — a
+stale draft artifact from HS-108 v1.0 (D-150) not updated when D-153 introduced the
+canonical field name `opb_skipped` in BC-2.01.015/BC-2.01.009. An implementation against
+the BCs would use `opb_skipped`; holdout used non-existent field → assertion mismatch or
+compile-fail.
+HS-108 v1.3→v1.4: all 6 occurrences of `obsolete_packet_blocks` renamed to `opb_skipped`.
+
+**F-3 (HIGH — notice DISPLAY arithmetic undefined for mixed-skip case; BC-2.01.009 PC6):**
+BC-2.01.009 PC6 specified appending an OPB clause when opb_skipped>0 but did NOT specify
+subtracting opb_skipped from the generic count to produce the non-OPB display segment.
+HS-108 Case E showed "2 generic + 1 OPB" but this was not derivable from the BC without
+knowing the subtraction convention — an implementation could emit "3 blocks skipped (incl.
+1 OPB)" (double-counting the total).
+BC-2.01.009 v1.6→v1.7: PC6 notice DISPLAY arithmetic made explicit — generic segment
+G=(skipped_blocks-opb_skipped) emitted only when G>0; 3-way notice format normalized:
+OPB-only (G=0, opb_skipped>0) / generic-only (G>0, opb_skipped=0) / mixed (both >0).
+HS-108 v1.4: Case D G=0 → no generic segment; Case E G=2 → generic segment "2" (not "3").
+
+**F-4 (HIGH — EPB decode precedence unpinned; BC-2.01.012 Precondition 1 contradiction):**
+BC-2.01.012 Precondition 1 asserted "interface table is non-empty" as a caller obligation;
+PC5a defines behavior when the table IS empty (E-INP-009). These cannot both be correct —
+a precondition violation is undefined behavior, making PC5a dead spec if Precondition 1
+were enforced by callers. Additionally, EPB body-decode check ordering was not stated as
+a formal precedence postcondition, leaving implementers free to reorder checks.
+BC-2.01.012 v1.6→v1.7: Precondition 1 "non-empty" obligation removed; EPB decode
+precedence postcondition added (binding check order): body.len() guard → read
+interface_id → empty-table-E-INP-009 → OOB-E-INP-010 → captured_len/padding.
+
+**F-5/F-7 (MEDIUM — block_body_available → spb_data_available symbol-rename lag):**
+HS-107 v1.5 still used retired symbol `block_body_available` throughout (Cases A/B/C/D/E
+rationale and assertions). BC-2.01.013 v1.6 EC-001/EC-002/EC-003 and Canonical Test Vectors
+also retained `block_body_available` (D-156 v1.6 changelog claimed "everywhere" rename but
+EC/vector sections lagged — same changelog-lie defect class as pass-3 C-1 / Lesson 8).
+Decision 22 (ADR-009 rev 9, D-156) established canonical `spb_data_available`.
+HS-107 v1.5→v1.6: all remaining `block_body_available` → `spb_data_available` (Scenario
+header, Cases A/B/C/D/E, key-observables, Behavioral Contract Linkage table, Evaluation
+Rubric, Verification Approach); stated once that spb_data_available = body.len()-4 =
+block_total_length-16.
+BC-2.01.013 v1.6→v1.7: block_body_available → spb_data_available in EC-001/EC-002/EC-003
+and Canonical Test Vectors.
+
+**F-6 (MEDIUM [process-gap] — HS-104/107/108 input-hash "tbd"; ADR-009 not in holdout inputs):**
+HS-104/107/108 carry input-hash "tbd" — drift tripwire disabled on three must-pass holdouts
+covering F2 convergence gate scenarios (EPB discriminant / SPB framing / zero-packet notice).
+Governing decisions (15/17/19/20/22) live in ADR-009; ADR-009 not listed as holdout input
+for any of these three.
+DEFERRED-TO-F2-CONVERGENCE: computing input-hash on a still-churning spec goes stale each
+pass; compute via `bin/compute-input-hash --write` once F2 reaches 3-clean-pass convergence,
+before the F2 gate. Added to F2-gate / F3-entry checklist (STATE.md Section D, item 8).
+
+**F-8 (MEDIUM — BC-2.01.013 lacks btl=14 alignment-violation fixture in EC-005):**
+HS-107 Case E (btl=14 → E-INP-010 alignment violation) was corrected in D-156 (F-M1), but
+BC-2.01.013 EC-005 only illustrated btl=8 (below-minimum) — the alignment-violation class
+was absent from the governing BC's canonical test vectors.
+BC-2.01.013 v1.6→v1.7: btl=14 misaligned (14%4=2) → E-INP-010 fixture added to EC-005,
+complementing the existing btl=8 below-minimum fixture.
+
+**Version bumps this burst:**
+
+| Artifact | Before | After | Findings addressed |
+|----------|--------|-------|--------------------|
+| BC-2.01.009 | v1.6 | v1.7 | F-3 (notice display arithmetic / PC6 subtraction convention) |
+| BC-2.01.012 | v1.6 | v1.7 | F-4 (PC1 contradiction removed; EPB decode precedence postcondition) |
+| BC-2.01.013 | v1.6 | v1.7 | F-7 (spb_data_available rename EC-001/002/003 + test vectors), F-8 (btl=14 fixture) |
+| BC-2.01.015 | v1.7 | v1.8 | F-1 ("both" model canonical; subset invariant pinned) |
+| HS-107 | v1.5 | v1.6 | F-5 (block_body_available → spb_data_available throughout) |
+| HS-108 | v1.3 | v1.4 | F-1 (Case D/E counters corrected), F-2 (obsolete_packet_blocks→opb_skipped 6×), F-3 (display arithmetic explicit) |
+| BC-INDEX | v1.63 | v1.64 | 4 BC annotations synced (BC-2.01.009/012/013/015) |
+
+All pass-7 findings F-1..F-8 marked FIXED pending pass-8 verification.
+4L findings (F-L1..F-L4): all CONVERGED GREEN / INFORMATIONAL — no action taken.
+F-6 [process-gap]: DEFERRED-TO-F2-CONVERGENCE (see above and tracker).
+Clean-pass counter 0/3. Adversary pass-8 pending.
+
+---
+
 ## [pcapng-f2-pass6-reaudit-minors-2026-06-20] — 2026-06-20
 
 ### PASS-6 RE-AUDIT: 2 Minor FIXED (FINDING-P6-001/002) — D-157
