@@ -306,44 +306,33 @@ fn shb_with_invalid_bom() -> Vec<u8> {
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
-// AC-012 Fixture Discovery and arp-baseline-16pkt.cap reconciliation
+// AC-012 Fixture: arp-baseline-16pkt.cap (SYNTHETIC, runtime-generated)
 // ──────────────────────────────────────────────────────────────────────────────
 //
-// F3 FOLLOW-UP ITEM: arp-baseline-16pkt.cap fixture reconciliation
+// The AC-012 fixture `arp-baseline-16pkt.cap` is SYNTHETIC — it does NOT exist
+// as a static file in tests/fixtures/. Instead it is generated at runtime into
+// std::env::temp_dir() by `ensure_arp_baseline_fixture()` (see below).
 //
-// The story (AC-012) specifies that `tests/fixtures/arp-baseline-16pkt.cap`
-// is a "pcapng file with a .cap extension" that must yield Ok(PcapSource)
-// with 16 packets.
+// Rationale: the authentic PacketLife `arp-baseline-16pkt.cap` referenced in
+// ADR-009 Decision 11 was not present at test-suite authorship time. Rather than
+// silently omit AC-012, a synthetic 16-EPB pcapng fixture is generated in
+// temp_dir() so the test exercises the real behaviors:
+//   - content-based routing (.cap extension, pcapng magic bytes) (BC-2.01.009 PC5)
+//   - 16-packet count assertion (AC-012)
+//   - from_file → from_pcap_reader → magic-probe path (ADR-009 Decision 11)
 //
-// FINDING: The file `tests/fixtures/arp-baseline-16pkt.cap` does NOT EXIST
-// in the fixture directory at the time of this test suite authorship. The
-// fixture directory contains: dns.cap, http-full.cap, nfs_bad_stalls.cap,
-// teardrop.cap, v6-http.cap (all classic .cap files) and smb3.pcapng (pcapng).
-// There is no arp-baseline-16pkt.cap file.
+// The synthetic fixture has exactly 16 EPB packets and a .cap extension; it
+// does NOT contain real ARP traffic.
 //
-// ADR-009 Decision 11 lists `arp-baseline-16pkt.cap` as the ADR's lead motivator
-// file ("captured on PacketLife") and specifies it is stored as pcapng with a
-// .cap extension. It was NOT present in the fixture directory when this test suite
-// was authored.
+// DEFERRED FINDING F-5: before Phase-4 holdout evaluation (HS-103 etc.), the
+// implementer or PO MUST replace the synthetic bytes with the authentic PacketLife
+// capture so the holdout tests exercise real packet content. The synthetic fixture
+// is fit-for-purpose for Phase-3 TDD regression but not for Phase-4 semantic
+// holdout evaluation.
 //
-// DECISION (Test Writer): Rather than silently omit the AC-012 test or create a
-// synthetic fixture that may not match the intended capture, this test suite:
-//   (a) Creates a synthetic minimal pcapng fixture with exactly 16 EPB packets
-//       at `tests/fixtures/arp-baseline-16pkt.cap`, programmatically generated
-//       using canonical constants. This fixture satisfies AC-012's 16-packet
-//       assertion and enables Red Gate verification.
-//   (b) Documents this as a FIXTURE SUBSTITUTION that the implementer and PO
-//       must replace with the authentic PacketLife fixture before Phase-4
-//       holdout evaluation (HS-103 etc.). The synthetic fixture has .cap
-//       extension and starts with PCAPNG_MAGIC, which is the AC-012 proof
-//       scenario: magic-byte probe routes by content not extension.
-//   (c) The test `test_BC_2_01_009_arp_baseline_cap_accepted` uses
-//       `tests/fixtures/arp-baseline-16pkt.cap` via `PcapSource::from_file`;
-//       the from_file → from_pcap_reader → magic-probe routing is the
-//       behavior under test (AC-012, BC-2.01.009 PC5 / ADR-009 Decision 11).
-//
-// This reconciliation must be recorded as a DONE_WITH_CONCERNS item:
-// the fixture substitution is explicit and logged here, not silently fudged.
+// tests/fixtures/ is intentionally clean of arp-baseline-16pkt.cap at runtime;
+// any static version of that file in tests/fixtures/ is a hygiene defect and
+// should be removed (the test writes to temp_dir() only).
 
 /// Build a minimal pcapng file with exactly `n` valid EPB packets.
 ///
@@ -1426,12 +1415,14 @@ fn test_BC_2_01_009_shb_only_zero_packet_notice() {
 /// file extension — a .cap file is correctly routed to the pcapng branch if
 /// its first 4 bytes are PCAPNG_MAGIC.
 ///
-/// FIXTURE NOTE: arp-baseline-16pkt.cap did NOT exist at test-suite authorship
-/// time. A synthetic fixture is created by ensure_arp_baseline_fixture().
-/// See the F3 FOLLOW-UP ITEM note at the top of this file.
-/// The synthetic fixture has exactly 16 EPB packets and a .cap extension.
-/// The implementer / PO must replace it with the authentic PacketLife capture
-/// before Phase-4 holdout evaluation.
+/// FIXTURE NOTE: the AC-012 fixture is SYNTHETIC, generated at runtime into
+/// `std::env::temp_dir()` by `ensure_arp_baseline_fixture()`. It is NOT a
+/// static file in tests/fixtures/. The synthetic fixture has exactly 16 EPB
+/// packets and a .cap extension, which is sufficient to prove content-based
+/// routing (BC-2.01.009 PC5). It does NOT contain real ARP traffic.
+///
+/// DEFERRED FINDING F-5: the authentic PacketLife capture must replace the
+/// synthetic bytes before Phase-4 holdout evaluation (HS-103 etc.).
 #[test]
 fn test_BC_2_01_009_arp_baseline_cap_accepted() {
     let path = ensure_arp_baseline_fixture();
