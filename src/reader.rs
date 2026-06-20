@@ -290,13 +290,15 @@ pub fn parse_shb_body(body: &[u8]) -> Result<ShbInfo> {
 /// - Unknown option codes are silently skipped (value + 4-byte-aligned padding
 ///   consumed). Exception: code 9 is not "unknown" — it receives enforcement.
 /// - `if_tsoffset` (code 10) is silently skipped (Decision 21).
+/// - `option_code` and `option_length` are decoded using the section endianness
+///   established by the SHB BOM (BC-2.01.010 Invariant 4).
 ///
 /// # Panics
 ///
 /// Never panics. All error conditions return `Err`. `unwrap()`, `expect()`,
 /// `panic!()`, and unchecked slice indexing are prohibited (SEC-005 /
 /// BC-2.01.011 AC-001).
-pub fn parse_idb_options(body: &[u8]) -> Result<u8> {
+pub fn parse_idb_options(body: &[u8], endianness: SectionEndianness) -> Result<u8> {
     // The options region begins at body offset 8 (after the 8-byte IDB fixed fields:
     // linktype:2 + reserved:2 + snaplen:4). If the body has no bytes beyond the fixed
     // fields, there are no options → return the default.
@@ -310,8 +312,10 @@ pub fn parse_idb_options(body: &[u8]) -> Result<u8> {
     };
 
     // Walk the TLV options region (BC-2.01.011 PC6).
-    // Each TLV: option_code:u16 (LE) + option_length:u16 (LE) + value (option_length bytes)
+    // Each TLV: option_code:u16 + option_length:u16 + value (option_length bytes)
     // + padding to next 4-byte boundary.
+    // BC-2.01.010 Invariant 4: option_code and option_length MUST be decoded with
+    // the section endianness established by the SHB BOM — NOT hardcoded LE.
     let mut cursor = 0usize;
     let remaining = opts;
 
@@ -322,8 +326,22 @@ pub fn parse_idb_options(body: &[u8]) -> Result<u8> {
             break;
         }
 
-        let opt_code = u16::from_le_bytes([remaining[cursor], remaining[cursor + 1]]);
-        let opt_len = u16::from_le_bytes([remaining[cursor + 2], remaining[cursor + 3]]) as usize;
+        let opt_code = match endianness {
+            SectionEndianness::BigEndian => {
+                u16::from_be_bytes([remaining[cursor], remaining[cursor + 1]])
+            }
+            SectionEndianness::LittleEndian => {
+                u16::from_le_bytes([remaining[cursor], remaining[cursor + 1]])
+            }
+        };
+        let opt_len = match endianness {
+            SectionEndianness::BigEndian => {
+                u16::from_be_bytes([remaining[cursor + 2], remaining[cursor + 3]]) as usize
+            }
+            SectionEndianness::LittleEndian => {
+                u16::from_le_bytes([remaining[cursor + 2], remaining[cursor + 3]]) as usize
+            }
+        };
         cursor += 4;
 
         // opt_endofopt (code 0) terminates the walk immediately.
@@ -720,7 +738,9 @@ impl PcapSource {
 
                     // All three checks passed. Extract if_tsresol from the IDB options TLV.
                     // parse_idb_options walks body[8..] for the if_tsresol option (code 9).
-                    let if_tsresol = parse_idb_options(blk_body)
+                    // BC-2.01.010 Invariant 4: propagate section_endianness so option
+                    // code/length are decoded with the correct byte order.
+                    let if_tsresol = parse_idb_options(blk_body, section_endianness)
                         .context("IDB options TLV parse failed (E-INP-008)")?;
 
                     // Push to interface table (BC-2.01.011 PC3 / Invariant 1).

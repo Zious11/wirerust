@@ -48,7 +48,7 @@
 use std::io::Cursor;
 
 use proptest::prelude::*;
-use wirerust::reader::{InterfaceInfo, PcapSource, parse_idb_options};
+use wirerust::reader::{InterfaceInfo, PcapSource, SectionEndianness, parse_idb_options};
 
 // ── pcapng canonical constants (mirrors ADR-009 / bc_2_01_story123_pcapng_tests) ─
 //
@@ -285,7 +285,7 @@ fn test_BC_2_01_011_if_tsresol_stored_in_interface_info() {
     // opt_endofopt terminator
     body.extend_from_slice(&opt_endofopt_le());
 
-    let result = parse_idb_options(&body);
+    let result = parse_idb_options(&body, SectionEndianness::LittleEndian);
     assert!(
         result.is_ok(),
         "parse_idb_options with if_tsresol=9 must return Ok; got: {:?}",
@@ -310,7 +310,7 @@ fn test_BC_2_01_011_if_tsresol_absent_default() {
     body.extend_from_slice(&0u16.to_le_bytes()); // reserved
     body.extend_from_slice(&65535u32.to_le_bytes()); // snaplen
 
-    let result = parse_idb_options(&body);
+    let result = parse_idb_options(&body, SectionEndianness::LittleEndian);
     assert!(
         result.is_ok(),
         "parse_idb_options with no options must return Ok; got: {:?}",
@@ -340,7 +340,7 @@ fn test_BC_2_01_011_if_tsresol_wrong_length_e_inp_008() {
     body.extend_from_slice(&65535u32.to_le_bytes());
     body.extend_from_slice(&opt_if_tsresol_wrong_length_le());
 
-    let result = parse_idb_options(&body);
+    let result = parse_idb_options(&body, SectionEndianness::LittleEndian);
     assert!(
         result.is_err(),
         "parse_idb_options with if_tsresol option_length=4 MUST return Err (F-M5/E-INP-008)"
@@ -381,7 +381,7 @@ fn test_BC_2_01_011_options_malformed_length_e_inp_008() {
     body.extend_from_slice(&65535u32.to_le_bytes());
     body.extend_from_slice(&opt_malformed_overrun_le());
 
-    let result = parse_idb_options(&body);
+    let result = parse_idb_options(&body, SectionEndianness::LittleEndian);
     assert!(
         result.is_err(),
         "parse_idb_options with overrunning option_length MUST return Err (E-INP-008)"
@@ -419,7 +419,7 @@ fn test_BC_2_01_011_if_tsresol_nanosecond() {
     body.extend_from_slice(&opt_if_tsresol_le(0x09)); // nanosecond base-10
     body.extend_from_slice(&opt_endofopt_le());
 
-    let result = parse_idb_options(&body);
+    let result = parse_idb_options(&body, SectionEndianness::LittleEndian);
     assert!(
         result.is_ok(),
         "if_tsresol=0x09 must parse Ok; got: {:?}",
@@ -443,7 +443,7 @@ fn test_BC_2_01_011_if_tsresol_base2() {
     body.extend_from_slice(&opt_if_tsresol_le(0x8A)); // base-2 exponent 10 (bit7=1)
     body.extend_from_slice(&opt_endofopt_le());
 
-    let result = parse_idb_options(&body);
+    let result = parse_idb_options(&body, SectionEndianness::LittleEndian);
     assert!(
         result.is_ok(),
         "if_tsresol=0x8A must parse Ok; got: {:?}",
@@ -455,6 +455,44 @@ fn test_BC_2_01_011_if_tsresol_base2() {
         "must extract 0x8A verbatim (raw byte, no interpretation)"
     );
     // SCOPE EXCLUSION: base-2 tick-per-second computation is STORY-125 / BC-2.01.014.
+}
+
+/// BC-2.01.010 Invariant 4 / BC-2.01.011 PC6 — pure-core BE path: parse_idb_options
+/// correctly decodes option_code and option_length in big-endian byte order.
+///
+/// Pins the BE path at the unit level (mirrors the LE extraction tests above).
+/// The if_tsresol value byte (0x09) is endianness-independent (single byte); only
+/// the 2-byte option_code and option_length fields require BE decoding.
+///
+/// Fixture: body = 8 fixed bytes (BE fields) + BE if_tsresol TLV (value=9) + BE endofopt.
+/// Expected: Ok(0x09).
+///
+/// E-INP code: none (happy path).
+#[test]
+fn test_BC_2_01_011_be_idb_options_pure_core() {
+    // Build a body with BE-encoded fixed fields and a BE if_tsresol TLV.
+    // The fixed-field bytes are endianness-irrelevant to parse_idb_options (skipped at
+    // offset 0–7); we use BE encoding for documentary correctness.
+    let mut body = Vec::new();
+    body.extend_from_slice(&DL_ETHERNET.to_be_bytes()); // linktype BE (skipped by opts walk)
+    body.extend_from_slice(&0u16.to_be_bytes()); // reserved BE (skipped)
+    body.extend_from_slice(&65535u32.to_be_bytes()); // snaplen BE (skipped)
+    // BE if_tsresol TLV: code=9 as 00 09, length=1 as 00 01, value=0x09, 3 pad bytes.
+    body.extend_from_slice(&opt_if_tsresol_be(0x09));
+    // BE opt_endofopt: 00 00 00 00.
+    body.extend_from_slice(&opt_endofopt_be());
+
+    let result = parse_idb_options(&body, SectionEndianness::BigEndian);
+    assert!(
+        result.is_ok(),
+        "parse_idb_options(BigEndian) with BE if_tsresol TLV must return Ok; got: {:?}",
+        result.unwrap_err()
+    );
+    assert_eq!(
+        result.unwrap(),
+        0x09,
+        "BE parse_idb_options must extract if_tsresol value 0x09 verbatim"
+    );
 }
 
 // ─── Integration tests via PcapSource::from_pcap_reader ──────────────────────
@@ -1300,6 +1338,143 @@ fn test_BC_2_01_011_two_idbs_different_linktype() {
     assert!(
         err_msg.contains("E-INP-011") || err_msg.contains("conflict"),
         "error must mention conflict or E-INP-011; got: {err_msg}"
+    );
+}
+
+// ── BC-2.01.010 Invariant 4 / BC-2.01.011 PC6 — BE options walk ──────────────
+//
+// The following helper and integration test expose the hardcoded-LE bug in
+// parse_idb_options (lines 325-326 of reader.rs): opt_code and opt_len are both
+// decoded with u16::from_le_bytes regardless of section endianness.
+//
+// For a genuine big-endian pcapng:
+//   BE if_tsresol TLV on-disk (code=9, length=1, value=9):
+//     00 09  <- opt_code in big-endian: 9
+//     00 01  <- opt_length in big-endian: 1
+//     09     <- value byte: 9 (nanosecond)
+//     00 00 00 <- 3 pad bytes (1+3=4, 4-byte aligned)
+//
+//   LE-misread (current bug):
+//     opt_code  = u16::from_le_bytes([0x00, 0x09]) = 0x0900 = 2304  (not 9)
+//     opt_len   = u16::from_le_bytes([0x00, 0x01]) = 0x0100 = 256   (not 1)
+//
+//   The overrun guard then fires: cursor (4) + opt_len (256) > remaining.len() (8)
+//   → E-INP-008, rejecting a structurally valid file.
+//
+// This violates BC-2.01.010 Invariant 4: the SHB-established section endianness MUST
+// govern ALL multi-byte field decoding in ALL blocks, including option code/length.
+
+/// Encode the if_tsresol option (code 9, length 1, value=`value`) in big-endian byte order.
+///
+/// On-disk layout (big-endian encoding of all multi-byte fields):
+///   00 09          <- option_code = 9 as u16 big-endian
+///   00 01          <- option_length = 1 as u16 big-endian
+///   <value>        <- the single exponent byte
+///   00 00 00       <- 3 pad bytes to reach 4-byte alignment (1 + 3 = 4)
+///
+/// A correct BE-aware options decoder reads opt_code=9, opt_len=1, value=`value`.
+/// The current LE-only decoder misreads opt_code=0x0900=2304 and opt_len=0x0100=256,
+/// then triggers a spurious E-INP-008 overrun on the 256-byte bounds check.
+fn opt_if_tsresol_be(value: u8) -> Vec<u8> {
+    let mut v = Vec::with_capacity(8);
+    v.extend_from_slice(&OPT_IF_TSRESOL.to_be_bytes()); // 00 09 (big-endian)
+    v.extend_from_slice(&1u16.to_be_bytes()); // 00 01 (length=1 big-endian)
+    v.push(value); // the exponent byte
+    v.extend_from_slice(&[0u8; 3]); // 3 pad bytes (1 + 3 = 4, aligned)
+    v
+}
+
+/// Encode the opt_endofopt terminator (code 0, length 0) in big-endian byte order.
+///
+/// Both fields are 0, so the on-disk bytes are 00 00 00 00 — palindromic.
+/// Encoded explicitly as BE for documentation completeness.
+fn opt_endofopt_be() -> Vec<u8> {
+    let mut v = Vec::with_capacity(4);
+    v.extend_from_slice(&OPT_ENDOFOPT.to_be_bytes()); // 00 00
+    v.extend_from_slice(&0u16.to_be_bytes()); // 00 00 (length=0)
+    v
+}
+
+/// RED GATE — BC-2.01.010 Invariant 4 / BC-2.01.011 PC6: genuine BE pcapng with
+/// an if_tsresol IDB option MUST be accepted; the current LE-only options decoder
+/// rejects it with a spurious E-INP-008 overrun.
+///
+/// # What this tests
+///
+/// A fully valid big-endian pcapng stream is built:
+///   - be_shb(): SHB with on-disk BOM 1A 2B 3C 4D (big-endian section)
+///   - be_idb(ETHERNET, 0, opts): IDB with all framing and body fields big-endian,
+///     options region = BE if_tsresol(value=9) + BE opt_endofopt
+///
+/// The options region bytes on-disk are:
+///   00 09  <- opt_code=9 in BE
+///   00 01  <- opt_len=1 in BE
+///   09     <- value byte (nanosecond resolution, non-default → fix is observable)
+///   00 00 00 <- 3 pad bytes
+///   00 00 00 00 <- opt_endofopt in BE
+///
+/// A correct endianness-aware options walk (the fix) reads: opt_code=9, opt_len=1,
+/// value=9 → Ok(0x09). Result: the parse succeeds.
+///
+/// The current LE-only walk misreads: opt_code=0x0900=2304, opt_len=0x0100=256.
+/// The bounds check cursor(4)+256 > remaining_len(12) fires → Err(E-INP-008),
+/// wrongly rejecting a structurally valid file.
+///
+/// # Violation
+///
+/// BC-2.01.010 Invariant 4: "The endianness established by the SHB BOM applies to
+/// ALL multi-byte fields in ALL blocks of this section — block lengths, interface_id,
+/// captured_len, timestamps, option code/length, and all other numeric fields."
+///
+/// # Contract
+///
+/// A correctly implemented parse_idb_options (or its successor that takes section
+/// endianness) MUST accept this file and return Ok. This test MUST FAIL against the
+/// current LE-only implementation and MUST PASS once the fix is applied.
+///
+/// # Red Gate confirmation
+///
+/// Current failure: Err("IDB options TLV overrun: option code 2304 declares length 256
+/// but only N bytes remain in the options region (E-INP-008: malformed IDB options TLV)")
+/// → the test assertion `result.is_ok()` fails.
+///
+/// BC contract pinned: BC-2.01.010 Invariant 4 (section-wide endianness authority).
+/// BC-2.01.011 PC6 (options TLV walk uses section endianness for code/length decode).
+/// E-INP code NOT expected: E-INP-008 (this file is structurally valid; the error is spurious).
+#[test]
+fn test_BC_2_01_011_be_idb_options_accepted() {
+    // Build the genuine BE options region: if_tsresol(value=9) + endofopt.
+    // Using value=9 (nanosecond) — a non-default value so the fix is meaningfully exercised
+    // (default=6 would pass even if the option were silently skipped rather than correctly parsed).
+    let mut opts = Vec::new();
+    opts.extend_from_slice(&opt_if_tsresol_be(0x09)); // code=9, len=1, value=9 — all BE
+    opts.extend_from_slice(&opt_endofopt_be()); // 00 00 00 00
+
+    // Build the complete big-endian pcapng stream: SHB + IDB(ETHERNET, no reserved, opts).
+    let mut bytes = be_shb();
+    bytes.extend_from_slice(&be_idb(DL_ETHERNET, 0, &opts));
+
+    // This file is structurally valid. A correct BE-aware parser MUST return Ok.
+    // The current LE-only parse_idb_options WRONGLY returns Err(E-INP-008) because it
+    // misreads opt_len as 256 (0x0100 LE-misread of 00 01 BE) and the overrun guard fires.
+    let result = PcapSource::from_pcap_reader(Cursor::new(bytes));
+
+    // Assertion: the current code produces Err (spurious E-INP-008).
+    // Once the fix is applied, result.is_ok() must hold instead.
+    // This assertion documents the RED state — it MUST FAIL against the current code.
+    assert!(
+        result.is_ok(),
+        "genuine BE pcapng with BE-encoded if_tsresol IDB option MUST be accepted \
+         (BC-2.01.010 Invariant 4: section endianness governs option code/length decoding); \
+         current LE-only parse_idb_options wrongly rejects it with E-INP-008 — \
+         actual error: {:?}",
+        result.unwrap_err()
+    );
+    let source = result.unwrap();
+    assert_eq!(
+        source.datalink,
+        pcap_file::DataLink::ETHERNET,
+        "BE IDB with ETHERNET linktype must decode correctly as ETHERNET (not 0x0100=256)"
     );
 }
 
