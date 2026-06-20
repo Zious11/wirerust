@@ -1,7 +1,7 @@
 ---
 document_type: prd-supplement-test-vectors
 level: L3
-version: "2.1"
+version: "2.2"
 status: draft
 producer: product-owner
 timestamp: 2026-06-12T02:00:00Z
@@ -71,11 +71,23 @@ modified:
 |-------|----------------|----------|-------|
 | pcap with valid header but zero data records | Ok(PcapSource { packets: [] }) | happy-path | Header-only file accepted without error |
 
-#### BC-2.01.004 -- Reject pcapng
+#### ~~BC-2.01.004 -- Reject pcapng~~ [RETIRED — replaced by BC-2.01.009]
+
+> **RETIRED 2026-06-19 (F2 pcapng-reader-support).** BC-2.01.004 is superseded by BC-2.01.009.
+> The test vector below is INVERTED — pcapng now returns Ok, not Err. See BC-2.01.009 vectors below.
 
 | Input | Expected Output | Category | Notes |
 |-------|----------------|----------|-------|
-| file with pcapng magic bytes (0x0A0D0D0A) | Err("Failed to parse pcap header: ...") | error | E-INP-002; pcapng magic fails PcapReader::new |
+| ~~file with pcapng magic bytes (0x0A0D0D0A)~~ | ~~Err("Failed to parse pcap header: ...")~~ | ~~error~~ | ~~E-INP-002; pcapng magic fails PcapReader::new~~ — **STALE: inverted by F2; pcapng now Ok via BC-2.01.009** |
+
+#### BC-2.01.009 -- Accept pcapng via Magic-Byte Probe (F2)
+
+| Input | Expected Output | Category | Notes |
+|-------|----------------|----------|-------|
+| `tests/fixtures/smb3.pcapng` (former negative fixture) | `Ok(PcapSource)` with `packets.len() > 0` | happy-path | Behavioral inversion of BC-2.01.004; probe detects SHB magic 0x0A0D0D0A |
+| Classic `tests/fixtures/*.pcap` files | `Ok(PcapSource)` via classic-pcap path unchanged | regression | Probe routes to classic path on non-pcapng magic |
+| Stream of 2 bytes only | `Err` | error | Too short for probe |
+| 4 bytes `[0xDE, 0xAD, 0xBE, 0xEF]` | `Err` containing "unrecognized pcap magic" or equivalent | error | E-INP-002 / unrecognized magic |
 
 #### BC-2.01.006 / 007 -- Error Surface
 

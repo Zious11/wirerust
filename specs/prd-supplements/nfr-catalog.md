@@ -1,7 +1,7 @@
 ---
 document_type: prd-supplement-nfr-catalog
 level: L3
-version: "2.1"
+version: "2.2"
 modified:
   - "v1.5: Pass-12 corpus-cleanup F-C-P12-001: NFR-MNT-009 source anchor re-anchored from stale :122-156 (projections at 160-167) to current technique_info :128-182 (fn@:128, let info=match id@:129, _ => return None@:179, }@:182); projections technique_name@:186-188, technique_tactic@:192-194. — 2026-06-13"
   - "v1.6: Pass-13 F-C-P13-002: NFR-OBS-004 Target corrected from 'All 15 emitted technique IDs resolve in lookup (current; 17 after STORY-114 — PLANNED)'; seeded vs emitted distinction aligns with test name `known_emitted_technique_ids_resolve_in_lookup` and BC-2.10.008. — 2026-06-13"
@@ -10,6 +10,7 @@ modified:
   - "v1.9: Pass-17 D-01 — NFR-OBS-010 AC cell 'all four fields' disambiguated to 'all four optional-presence fields — mitre_techniques (omitted when empty via Vec::is_empty) and the three Option fields source_ip/timestamp/direction (omitted when None via Option::is_none)'. — 2026-06-13"
   - "v2.0: Pass-19 C-02 — NFR-PERF-003 dispatcher.rs anchors corrected: routes:HashMap :43→:61; cache lookup :133-154→:269-290. NFR-OBS-005 dispatcher.rs anchors corrected: counter field :53→:77; accessor :80-81→fn unclassified_flows() :117-119; incremented :188-191→on_flow_close None arm :357. — 2026-06-13"
   - "v2.1: P19 straggler anchor sweep — NFR-RES-011 http.rs:21→:23, cap sites :513/:525→:546/:558; NFR-RES-012 http.rs:22→:24, TooManyHeaders :416-428→:435-449, :475-487→:496-509; NFR-RES-013 http.rs:23→:25 (MAX_URIS), cap guard :391-393→:406; NFR-RES-014 http.rs:24→:26, tls.rs:30→:31 (MAX_MAP_ENTRIES); NFR-RES-015 tls.rs:29→:30 (MAX_BUF), cap sites :761/:768→:822/:829; NFR-RES-016 tls.rs:31-33→:32-34 (MAX_RECORD_PAYLOAD const), guard :643-653→:689; NFR-RES-017 http.rs:80→:82 (POISON_THRESHOLD). Verified against src/analyzer/http.rs and src/analyzer/tls.rs. — 2026-06-13"
+  - "v2.2: F2 pcapng-reader-support (FE-001, ADR-009) — NFR-COMPAT-001 revised: pcapng is now a SUPPORTED input format (BC-2.01.009 magic-byte probe; BC-2.01.010..018). Requirement text updated from 'Only classic pcap accepted' to 'Classic pcap and pcapng accepted'. Test references updated: `test_pcapng_rejected` → `test_pcapng_accepted` (inversion). Status remains N/A (new behavior is correctly specified). — 2026-06-19"
 status: reviewed
 producer: product-owner
 timestamp: 2026-06-08T00:00:00Z
@@ -183,7 +184,7 @@ traces_to: .factory/specs/prd.md
 
 | ID | Category | Requirement | Target | Validation Method | Priority | Risk Source | Status |
 |----|----------|-------------|--------|------------------|----------|-------------|--------|
-| NFR-COMPAT-001 | Compatibility | Only classic pcap accepted; 5 link types: Ethernet (1), RAW (101), Linux SLL (113), IPv4 (228), IPv6 (229); all others rejected with message listing supported types | 0 unsupported-link-type pcaps silently accepted | Tests: `test_unsupported_link_type_rejected`; `test_pcapng_rejected` | P0 | N/A | N/A -- src/reader.rs:50-61 |
+| NFR-COMPAT-001 | Compatibility | Classic pcap AND pcapng accepted; 5 link types whitelisted: Ethernet (1), RAW (101), Linux SLL (113), IPv4 (228), IPv6 (229); all other link types rejected with message listing supported types. pcapng accepted via magic-byte probe (BC-2.01.009); pcapng with unsupported link type rejects E-INP-001; multi-IDB linktype conflict rejects E-INP-011 | 0 unsupported-link-type pcaps/pcapngs silently accepted; pcapng with valid ETHERNET link type returns Ok | Tests: `test_unsupported_link_type_rejected`; `test_pcapng_accepted` (inversion of former `test_pcapng_rejected`; BC-2.01.009 EC-001) | P0 | N/A | N/A (F2 pcapng support; src/reader.rs; BC-2.01.009..018) -- **F2 delta:** `test_pcapng_rejected` must be renamed/inverted to `test_pcapng_accepted` by implementer (STORY-123) |
 | NFR-COMPAT-002 | Compatibility | Output formats: terminal (default) and JSON (`--output-format json` / `--json`). CSV declared via `OutputFormat::Csv` and `CsvReporter` is wired (remediation cycle) | All three output paths produce non-empty output | Tests: reporter tests for json, terminal, csv | P0 | NFR-VIO-005 | CLOSED (remediation cycle) -- `CsvReporter` wired; `--output-format csv` and `--csv <FILE>` now produce CSV output |
 
 
@@ -219,6 +220,7 @@ traces_to: .factory/specs/prd.md
 
 Total NFRs: 80 (4 PERF + 8 SEC + 11 REL + 10 OBS + 24 RES + 11 MNT + 5 PORT + 5 SUP + 2 COMPAT)
 (v1.3: +1 NFR-RES-024 added; NFR-RES-022 status corrected OPEN→CLOSED)
+(v2.2: NFR-COMPAT-001 revised to reflect pcapng support; no count change)
 
 
 ## NFR Violation Dispositions (from Pass-4 R2)
@@ -229,7 +231,7 @@ are recorded here for traceability. Closed items were addressed in PRs #69-#98.
 | VIO ID | Description | Disposition | Status |
 |--------|------------|-------------|--------|
 | NFR-VIO-001 | "Multi-GB captures" README claim vs. eager `Vec<RawPacket>` load | document-and-accept | OPEN-DEBT -- eager full-file load is a separate architectural concern from O-01 (timestamp threading, CLOSED); streaming refactor deferred |
-| NFR-VIO-002 | `resolve_targets` glob included `*.pcapng` but reader rejects pcapng | fix (S) | CLOSED -- pcapng extension excluded from glob in remediation cycle |
+| NFR-VIO-002 | `resolve_targets` glob included `*.pcapng` but reader rejects pcapng | fix (S) | CLOSED -- pcapng extension excluded from glob in remediation cycle. **F2 re-open note (2026-06-19):** pcapng is now supported (BC-2.01.009). The glob exclusion is now INCORRECT behavior (pcapng should be included). STORY-127 will re-add `*.pcapng` to the glob. Status: CLOSED for the original violation; NEW forward-action for STORY-127 glob update. |
 | NFR-VIO-003 | 8 unwired CLI flags (`--threats`, `--beacon`, `--filter`, `--verbose`, `--hosts`, `--services`, `--json <FILE>`, `--csv <FILE>`) | fix (mixed) | CLOSED -- unwired flags removed; `--json`/`--csv` wired; `--hosts` wired (LESSON-P1.03) |
 | NFR-VIO-004 | `--json/--csv <FILE>` wrote to stdout, not the specified file | fix (S) | CLOSED -- `std::fs::write` wired in `write_output()` |
 | NFR-VIO-005 | `OutputFormat::Csv` declared but dispatch fell through to terminal | fix (M) | CLOSED -- CsvReporter implemented and wired |

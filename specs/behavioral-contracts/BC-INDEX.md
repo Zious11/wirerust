@@ -1,7 +1,7 @@
 ---
 document_type: bc-index
 level: L3
-version: "1.51"
+version: "1.52"
 status: draft
 producer: product-owner
 timestamp: 2026-06-18T00:00:00Z
@@ -14,7 +14,9 @@ traces_to: .factory/specs/prd.md
 > **Navigation:** This file is the master index of all BC-S.SS.NNN contracts. Each entry
 > links to the individual BC file. BCs are sharded into per-subsystem directories (ss-NN/).
 >
-> All BCs are marked [WRITTEN]. Body files have been verified on disk for all 293 entries (288 prior + 5 new BC-2.11.030–034 for STORY-119 grouped-collapse).
+> All BCs are marked [WRITTEN]. Body files have been verified on disk for all 303 entries (293 prior + 10 new BC-2.01.009–018 for F2 pcapng-reader-support; BC-2.01.004 retired).
+>
+> **v1.52 2026-06-19 (F2 pcapng-reader-support spec evolution — INTEGRATE sub-burst):** 10 new SS-01 BCs (BC-2.01.009–018) added for pcapng reader support (ADR-009, FE-001). BC-2.01.004 ("Reject pcapng-Format Input at Reader Level") RETIRED — behavioral inversion: pcapng now accepted via BC-2.01.009 magic-byte probe. BC-2.01.001 v1.6→v1.7 (EC-005 scoped to classic-pcap-only path). BC-2.01.002 v1.5→v1.6 (Description/Preconditions scoped to classic-pcap branch; F2 scope note added). SS-01 BC count: 8→18 (net 17 active after BC-2.01.004 retirement). Total active BCs: 293→302 (net +10 new, BC-2.01.004 retired = 1 retired).
 >
 > **v1.51 2026-06-18 (STORY-119 split D-120 — traceability backlink update):** 12 SS-11 BCs updated. Traceability "Stories:" fields re-allocated per orchestrator decision D-120: enum→struct reshape goes to STORY-122 (A, wave 49); net-new grouped-collapse render path goes to STORY-119 (B, wave 50). BC-2.11.013/014/016 (tactic-bucket headers, within-bucket sort, em-dash MITRE): STORY-078 + STORY-122(A) + STORY-119(B). BC-2.11.025 (flat-mode collapse key + Inv5 per-bucket): STORY-118 + STORY-119(B). BC-2.11.026/027 (flat suffix / flat K=3 sampling): STORY-118 + STORY-122(A) + STORY-119(B). BC-2.11.028 (--no-collapse dual-scope): STORY-118 + STORY-122(A) + STORY-119(B). BC-2.11.030 (CLI default-collapse mapping): STORY-119(B) PRIMARY + scope note (STORY-122 leaves CLI unchanged). BC-2.11.031/032/033/034 (grouped-collapse render path): STORY-119(B) PRIMARY only. No normative BC content changed. Total: 293 BCs unchanged.
 >
@@ -49,22 +51,38 @@ traces_to: .factory/specs/prd.md
 > total to 283 active L3 BCs.
 >
 > **Status as of Phase 1a (current):**
-> - Fully written: 293 BCs (all body files verified on disk; 288 prior + 5 new BC-2.11.030–034 for STORY-119 grouped-collapse)
+> - Fully written: 303 BCs on disk (293 prior + 10 new BC-2.01.009–018 for F2 pcapng-reader-support)
+> - Active: 302 BCs (303 on disk − 1 retired: BC-2.01.004)
 > - Remaining: 0 BCs
-> - PRD index (prd.md): UPDATED -- all 293 L3 BC IDs are registered
+> - PRD index (prd.md): UPDATED -- all 302 active L3 BC IDs registered; BC-2.01.004 struck through as retired
 
 ## ss-01: PCAP File Ingestion (CAP-01)
 
+> 18 BCs total on disk (17 active + 1 retired); 17 active; 0 planned.
+> BCs 001-008: classic-pcap ingestion (brownfield ingestion corpus).
+> BC-004: RETIRED (behavioral inversion; superseded by BC-2.01.009).
+> BCs 009-018: pcapng reader support (greenfield, F2, ADR-009, FE-001, v0.10.0).
+
 | BC ID | Title | Priority | Status | Origin |
 |-------|-------|----------|--------|--------|
-| BC-2.01.001 | Accept Supported Link Types and Reject Unsupported at File Open | P0 | [WRITTEN] | BC-RDR-001 |
-| BC-2.01.002 | Read All Packets from PCAP as Vec<RawPacket> Preserving Timestamps | P0 | [WRITTEN] | BC-RDR-002 |
+| BC-2.01.001 | Accept Supported Link Types and Reject Unsupported at File Open | P0 | [WRITTEN] | BC-RDR-001 | <!-- v1.7: F2 pcapng — EC-005 scoped to classic-pcap-only path (pcapng now routed via BC-2.01.009 probe) -->
+| BC-2.01.002 | Read All Packets from PCAP as Vec<RawPacket> Preserving Timestamps | P0 | [WRITTEN] | BC-RDR-002 | <!-- v1.6: F2 pcapng — Description/Preconditions scoped to classic-pcap branch; from_pcap_reader now has pcapng branch (BC-2.01.009–015) -->
 | BC-2.01.003 | Accept PCAP with Zero Packets Without Error | P1 | [WRITTEN] | BC-RDR-003 |
-| BC-2.01.004 | Reject pcapng-Format Input at Reader Level | P0 | [WRITTEN] | BC-RDR-004 |
+| ~~BC-2.01.004~~ | ~~Reject pcapng-Format Input at Reader Level~~ | ~~P0~~ | [RETIRED] | BC-RDR-004 | <!-- RETIRED 2026-06-19 F2 pcapng-reader-support: behavioral inversion — pcapng now accepted. superseded_by: BC-2.01.009 -->
 | BC-2.01.005 | Convert PCAP Record Timestamp to (timestamp_secs: u32, timestamp_usecs: u32) | P1 | [WRITTEN] | BC-RDR-005 |
 | BC-2.01.006 | Surface PCAP Header Parse Errors with Anyhow Context | P1 | [WRITTEN] | BC-RDR-006 |
 | BC-2.01.007 | Surface Per-Packet Read Errors with Anyhow Context | P1 | [WRITTEN] | BC-RDR-007 |
 | BC-2.01.008 | from_file Opens via BufReader and Delegates to from_pcap_reader | P2 | [WRITTEN] | BC-RDR-008 |
+| BC-2.01.009 | Accept pcapng Format: Transparent Detection via Magic-Byte Probe | P0 | [WRITTEN] | feature-pcapng-F2 | <!-- v1.0: supersedes BC-2.01.004; greenfield; ADR-009 Decision 5/6; STORY-123 -->
+| BC-2.01.010 | Parse pcapng Section Header Block (SHB): Byte-Order Detection and Version | P0 | [WRITTEN] | feature-pcapng-F2 | <!-- v1.0: greenfield; ADR-009 Decision 1/2; STORY-123 -->
+| BC-2.01.011 | Parse pcapng Interface Description Block (IDB): Link Type and Timestamp Resolution | P0 | [WRITTEN] | feature-pcapng-F2 | <!-- v1.0: greenfield; ADR-009 Decision 2/3/4; STORY-124 -->
+| BC-2.01.012 | Parse pcapng Enhanced Packet Block (EPB): Packet Data and Timestamp | P0 | [WRITTEN] | feature-pcapng-F2 | <!-- v1.0: greenfield; ADR-009 Decision 2/4; STORY-125 -->
+| BC-2.01.013 | Parse pcapng Simple Packet Block (SPB): Packet Data Without Timestamp | P1 | [WRITTEN] | feature-pcapng-F2 | <!-- v1.0: greenfield; ADR-009 Decision 2; STORY-126 -->
+| BC-2.01.014 | Pure-Core 64-bit pcapng Timestamp Normalization to (ts_sec, ts_usecs) | P0 | [WRITTEN] | feature-pcapng-F2 | <!-- v1.0: greenfield; ADR-009 Decision 4; Kani target; STORY-125 -->
+| BC-2.01.015 | Unknown pcapng Block Types Are Silently Skipped via block-total-length | P1 | [WRITTEN] | feature-pcapng-F2 | <!-- v1.0: greenfield; ADR-009 Decision 2; STORY-126 -->
+| BC-2.01.016 | Reject pcapng with Unsupported Link Type in IDB (Mirrors BC-2.01.001) | P0 | [WRITTEN] | feature-pcapng-F2 | <!-- v1.0: greenfield; CAP-02; identical whitelist to BC-2.01.001; STORY-124 -->
+| BC-2.01.017 | pcapng Block-Level Parse Errors Surface via anyhow Context Chain | P1 | [WRITTEN] | feature-pcapng-F2 | <!-- v1.0: greenfield; E-INP-008..011; STORY-126 -->
+| BC-2.01.018 | Multi-IDB Link-Type Agreement Policy: Conflict Returns Error (Fail-Closed) | P0 | [WRITTEN] | feature-pcapng-F2 | <!-- v1.0: greenfield; ADR-009 Decision 3; E-INP-011; STORY-124 -->
 
 ## ss-02: Link-Type Gating / Packet Decoding (CAP-02 + CAP-03)
 
@@ -482,7 +500,8 @@ traces_to: .factory/specs/prd.md
 
 | Ingestion group | Count | Mapped to L3 |
 |----------------|-------|--------------|
-| BC-RDR-001..008 | 8 | BC-2.01.001..008 |
+| BC-RDR-001..008 | 8 | BC-2.01.001..008 (BC-2.01.004 RETIRED — superseded by BC-2.01.009) |
+| feature-pcapng-F2 (pcapng reader) | 10 | BC-2.01.009..018 |
 | BC-DEC-001..015 | 15 | BC-2.02.001..015 (BC-2.02.009 revised to v1.6 in F2 ARP delta) |
 | BC-RAS-001..054 + issue-#100 F2 | 55 | BC-2.04.001..055 |
 | BC-DSP-001..009 | 9 | BC-2.05.001..009 |
@@ -502,7 +521,7 @@ traces_to: .factory/specs/prd.md
 | feature-008-F2 DNP3/ICS (greenfield) | 24 | BC-2.15.001..024 |
 | feature-009-F2 ARP security (greenfield) | 15 | BC-2.16.001..015 |
 
-**Total BCs: 293. Canonical derivation: 218 draft ingestion BCs produced − 6 retired (BC-ABS-004..009) = 212 active from ingestion; + 5 post-ingestion pass-4 additions (BC-2.11.020..024) = 217; + 2 Feature Mode F2 additions (BC-2.04.055, BC-2.09.007) for issue #100 = 219 active BCs; + 25 Feature Mode F2 additions (BC-2.14.001..025) for issue #7 Modbus/ICS analyzer = 244 active BCs; + 22 Feature Mode F2 additions (BC-2.15.001..022) for issue #8 DNP3/ICS analyzer = 266 active BCs; + 2 research must-add additions (BC-2.15.023..024) for issue #8 post-gate F2 scope validation = 268 active BCs; + 15 Feature Mode F2 additions (BC-2.16.001..015) for issue #9 ARP security analyzer = 283 active BCs; + 5 Feature Mode F2 additions (BC-2.11.025..029) for issue #259 terminal finding collapse (v0.8.0) = 288 active BCs; + 5 Feature Mode F2 additions (BC-2.11.030..034) for STORY-119 grouped-collapse (v0.9.0) = 293 active BCs. BC-2.02.009 was revised to v1.6 (ADR-008 Decision 1, three-way postcondition) — a revision, not a new BC; count unchanged at each prior step. The mapping table above has 223 physical rows (218 ingestion-batch rows + 5 pass-4 rows) for pre-Modbus BCs; SS-14 adds 25 greenfield rows not in the ingestion batch; SS-15 adds 24 greenfield rows; SS-16 adds 15 greenfield rows; issue-#259 adds 5 greenfield rows to SS-11; STORY-119 adds 5 more greenfield rows to SS-11 (total SS-11: 34 BCs).**
+**Total BCs on disk: 303. Active: 302. Canonical derivation: 218 draft ingestion BCs produced − 6 retired (BC-ABS-004..009) = 212 active from ingestion; + 5 post-ingestion pass-4 additions (BC-2.11.020..024) = 217; + 2 Feature Mode F2 additions (BC-2.04.055, BC-2.09.007) for issue #100 = 219 active BCs; + 25 Feature Mode F2 additions (BC-2.14.001..025) for issue #7 Modbus/ICS analyzer = 244 active BCs; + 22 Feature Mode F2 additions (BC-2.15.001..022) for issue #8 DNP3/ICS analyzer = 266 active BCs; + 2 research must-add additions (BC-2.15.023..024) for issue #8 post-gate F2 scope validation = 268 active BCs; + 15 Feature Mode F2 additions (BC-2.16.001..015) for issue #9 ARP security analyzer = 283 active BCs; + 5 Feature Mode F2 additions (BC-2.11.025..029) for issue #259 terminal finding collapse (v0.8.0) = 288 active BCs; + 5 Feature Mode F2 additions (BC-2.11.030..034) for STORY-119 grouped-collapse (v0.9.0) = 293 active BCs; + 10 Feature Mode F2 additions (BC-2.01.009..018) for pcapng reader support (ADR-009, FE-001, v0.10.0) = 303 on disk; − 1 retired (BC-2.01.004, behavioral inversion) = 302 active BCs. BC-2.02.009 was revised to v1.6 (ADR-008 Decision 1, three-way postcondition) — a revision, not a new BC; count unchanged at each prior step. The mapping table above has 223 physical rows (218 ingestion-batch rows + 5 pass-4 rows) for pre-Modbus BCs; SS-14 adds 25 greenfield rows not in the ingestion batch; SS-15 adds 24 greenfield rows; SS-16 adds 15 greenfield rows; issue-#259 adds 5 greenfield rows to SS-11; STORY-119 adds 5 more greenfield rows to SS-11 (total SS-11: 34 BCs); pcapng-F2 adds 10 rows to SS-01 (total SS-01: 18 on disk / 17 active). 1 BC retired in pcapng-F2 (BC-2.01.004).**
 
 Note: BC-ABS-004 (--hosts unwired), BC-ABS-005 (--services unwired), BC-ABS-006 (--json
 file unwired), BC-ABS-007 (CSV unwired), BC-ABS-009 (no e2e CLI tests) are RETIRED --

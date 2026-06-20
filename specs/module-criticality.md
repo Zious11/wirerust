@@ -63,7 +63,7 @@ modified:
 
 | Module | File | Rationale |
 |--------|------|-----------|
-| PCAP reader | reader.rs | File I/O is effectful shell. The critical security property (pcapng rejection) is BC-2.01.004 -- test-sufficient. |
+| PCAP reader | reader.rs | File I/O is effectful shell. The critical security property (formerly pcapng rejection per BC-2.01.004; now pcapng acceptance and routing via BC-2.01.009 magic-byte probe) is test-sufficient. **F2 delta (2026-06-19):** BC-2.01.004 RETIRED; BC-2.01.009 is the new routing anchor. reader.rs now branches on magic bytes to classic-pcap vs. pcapng parse paths. |
 | JSON reporter | reporter/json.rs | Serde handles the heavy lifting. Deterministic key order (BTreeMap) is a correctness concern but not a forensic-correctness invariant. |
 | Terminal reporter | reporter/terminal.rs | escape_for_terminal is CRITICAL (see above); the rest of the rendering logic (colorization, MITRE grouping) is MEDIUM. |
 | Summary accumulator | summary.rs | Counts only; no security invariants. |

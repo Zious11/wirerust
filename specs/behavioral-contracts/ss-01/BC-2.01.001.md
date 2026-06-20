@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.6"
+version: "1.7"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -19,6 +19,7 @@ modified:
   - v1.4: Phase 3 per-story adversarial review — corrected Architecture Anchor line ranges: DataLink match block closes at :61, not :60; Traceability Architecture Module updated to match — 2026-05-21
   - v1.5: Phase 3 per-story adversarial review — F-8.1: corrected Traceability "Architecture Module" range from reader.rs:46-61 to reader.rs:50-61 (46 is the header-parse line, not the link-type gate); F-9.06: rewrote EC-004 to remove out-of-scope decoder `from_ip` reference, keeping behavior description within reader link-type-gate scope — 2026-05-21
   - v1.6: DF-16.A citation fix — re-anchored capability from CAP-01 to CAP-02 (link-type gating is explicitly CAP-02's domain per cap-02-link-type-gating.md; this BC describes the 5-element whitelist acceptance/rejection gate at reader.rs:50-61, not the packet-vector loading of CAP-01); corrected broken capabilities.md §CAP-NN citation to per-cap file path — 2026-05-28
+  - v1.7: F2 pcapng-reader-support — EC-005 updated: pcapng files now route via the magic-byte probe (BC-2.01.009) and no longer fail at this BC's link-type gate; EC-005 now correctly scopes this BC to the classic-pcap path only — 2026-06-19
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -68,7 +69,7 @@ unsupported file are processed. This contract is enforced in `src/reader.rs:50-6
 | EC-002 | DataLink = ETHERNET (most common case) | Returns Ok(PcapSource { datalink: ETHERNET, ... }) |
 | EC-003 | DataLink = LINUX_SLL (tcpdump -i any captures) | Returns Ok(PcapSource { datalink: LINUX_SLL, ... }) |
 | EC-004 | DataLink = RAW and DataLink = IPV4 | Both are members of the accepted whitelist; the reader's link-type gate returns Ok(PcapSource) for each without any decode step |
-| EC-005 | pcapng file (different magic number) | pcap_file crate header parse fails before link-type check; error wraps as "Failed to parse pcap header" |
+| EC-005 | pcapng file passed to classic-pcap path (hypothetical; should not occur after BC-2.01.009 probe) | pcap_file crate header parse fails before link-type check; error wraps as "Failed to parse pcap header" (E-INP-002). NOTE: After BC-2.01.009 (F2), pcapng files are routed to the pcapng parse path before reaching this BC; this edge case only applies if the probe is somehow bypassed. |
 
 ## Canonical Test Vectors
 

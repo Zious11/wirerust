@@ -37,7 +37,7 @@ TCP stream-reassembly anomalies. Single Rust crate, Rust 2024 edition, MSRV 1.91
 - No async runtime (synchronous pipeline only)
 - No unsafe blocks in product source
 - No process-to-process state (binary is the complete unit)
-- Classic pcap only; pcapng rejected at reader boundary
+- Classic pcap AND pcapng supported (F2 delta 2026-06-19, ADR-009); magic-byte probe in reader.rs routes to the appropriate parser; formerly "pcapng rejected at reader boundary" — now accepted
 
 
 ## 5-Layer Pipeline

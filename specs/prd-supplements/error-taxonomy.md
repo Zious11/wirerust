@@ -1,7 +1,7 @@
 ---
 document_type: prd-supplement-error-taxonomy
 level: L3
-version: "2.2"
+version: "2.3"
 status: draft
 producer: product-owner
 timestamp: 2026-06-12T02:00:00Z
@@ -27,6 +27,7 @@ traces_to: .factory/specs/prd.md
 modified:
   - "v2.0: ARP-F2 Pass-14 remediation C-05 + C-07: (C-05) removed src/analyzer/arp.rs from inputs (not in develop HEAD; forward-reference to STORY-111); set input-hash to N/A with deferred-hash rationale comment. (C-07) E-ARP-002 Notes rewritten for clarity: 'within the average since window-start within the 60-second flap window' → explicit rate formula count/max(1,elapsed) prose; detector is average-rate not sliding-window; window semantics clarified. Version 1.9→2.0. — 2026-06-13"
   - "v2.2: D-068 remediation sweep — E-ARP-005 Notes corrected: 'MITRE techniques T0830 and T1557.002 attached to both forms' was unconditional and violated D-068. Replaced with conditional form: T0830 and T1557.002 attached ONLY on the GARP-that-conflicts path (BC-2.16.014); benign non-conflicting GARP emits mitre_techniques=[] per D-068. — 2026-06-14"
+  - "v2.3: F2 pcapng-reader-support (FE-001, ADR-009) — (1) E-INP-008..011 added (pcapng block-level parse failures, EPB-before-IDB, EPB/SPB data truncation, multi-IDB linktype conflict). (2) E-INP-002 Notes revised: removed 'or pcapng format' trigger condition — pcapng files now route to E-INP-008..011 via BC-2.01.009 magic-byte probe, not E-INP-002. next_free_error_code = E-INP-012. — 2026-06-19"
   - "v2.1: P19 straggler anchor sweep — E-ANA-001 http.rs:405/:463 → :424/:484 (parse_errors increment); E-ANA-002 request block :406-415 → :424-434, response block :464-473 → :484-494; E-ANA-003 tls.rs:643-653 → :689-699; E-ANA-006 http.rs:375-389 → :390-394; E-ANA-007 tls.rs increment helper :372-375 → :379-384, call sites :387/:416/:494/:549/:564/:568 → :398/:427/:520/:593/:608/:612; E-ANA-008 http.rs:391-392 → :406; E-RAS-003 mod.rs :461/:495/:524 → :479/:515/:546, lifecycle.rs :101/:121 → :111/:141. Verified against src. — 2026-06-13"
 ---
 
@@ -64,12 +65,16 @@ modified:
 | Error Code | Category | Severity | Exit Code | Source Location | Message Format | BC Ref | Notes |
 |-----------|----------|----------|-----------|----------------|----------------|--------|-------|
 | E-INP-001 | Input | `broken` | 1 | `src/reader.rs:56-60` | `Unsupported pcap link type: <type>. Supported: Ethernet (1), Raw IP (101), Linux Cooked (113), IPv4 (228), IPv6 (229)` | BC-2.01.001, BC-2.02.008 | Surfaced via anyhow chain. `<type>` is `DataLink` Debug repr (e.g. `UNKNOWN(166)`) |
-| E-INP-002 | Input | `broken` | 1 | `src/reader.rs:46` | `Failed to parse pcap header: <underlying>` | BC-2.01.006 | `pcap_file::pcap::PcapReader::new` failure; wrong magic number, truncated file, or pcapng format |
+| E-INP-002 | Input | `broken` | 1 | `src/reader.rs:46` | `Failed to parse pcap header: <underlying>` | BC-2.01.006 | `pcap_file::pcap::PcapReader::new` failure; wrong magic number or truncated classic-pcap file. **F2 note:** pcapng files are NO LONGER a trigger for E-INP-002; the BC-2.01.009 magic-byte probe routes pcapng files to E-INP-008..011 before reaching this path. |
 | E-INP-003 | Input | `broken` | 1 | `src/reader.rs:70` | `Failed to read packet: <underlying>` | BC-2.01.007 | Per-packet `next_raw_packet()` failure; corrupt or truncated payload |
 | E-INP-004 | Input | `broken` | 1 | `src/reader.rs:86-87` | `Failed to open <path>: <os-error>` | BC-2.12.012 | `std::fs::File::open` failure; file not found, permission denied |
 | E-INP-005 | Input | `broken` | 1 | `src/main.rs:147`, `src/main.rs:260` | `Failed to read <path>: <underlying>` | BC-2.12.012 | Wraps E-INP-001..003; `with_context` adds file path. Surfaced via `PcapSource::from_file` in the capture loop |
 | E-INP-006 | Input | `broken` | 1 | `src/main.rs:363` | `Target not found: <target>` | BC-2.12.012 | `anyhow::bail!` when target path is neither file nor directory |
 | E-INP-007 | Input | `degraded` | 0 | `src/main.rs:170-177` | `Warning: failed to decode packet (<error>). Further errors counted silently.` | BC-2.12.014 | Printed to stderr ONCE per run; subsequent decode errors are counted into `Summary.skipped_packets` silently. Only the first decode error per run produces a message. |
+| E-INP-008 | Input | `broken` | 1 | `src/reader.rs` (pcapng SHB/IDB parse path) | `Failed to parse pcapng <block-type>: <underlying>` | BC-2.01.010, BC-2.01.011, BC-2.01.017 | Covers structural parse failures at the SHB or IDB level: truncated file, missing BOM, malformed block-total-length, unsupported major version. `<block-type>` is one of "Section Header Block", "Interface Description Block". `<underlying>` is the anyhow root cause. Surfaced via anyhow chain; ultimate wrapper is E-INP-005 ("Failed to read \<path\>: \<underlying\>"). |
+| E-INP-009 | Input | `broken` | 1 | `src/reader.rs` (pcapng EPB parse path, pre-IDB guard) | `pcapng Enhanced Packet Block encountered before any Interface Description Block` | BC-2.01.012, BC-2.01.017 | Emitted when an EPB is encountered and the interface table is empty (no IDB has been seen in the current section). This is a pcapng structural violation. The file is broken — no safe way to interpret the packet's linktype or timestamp resolution. |
+| E-INP-010 | Input | `broken` | 1 | `src/reader.rs` (pcapng EPB/SPB/unknown-block parse path) | `Failed to parse pcapng <block-type> (block #<seq>): <underlying>` | BC-2.01.012, BC-2.01.013, BC-2.01.015, BC-2.01.017 | Covers packet-data-level truncation in EPB and SPB (captured_length inconsistent with block_total_length), and block_total_length < 8 in unknown-block skip. `<block-type>` is "Enhanced Packet Block", "Simple Packet Block", or "unknown block (type=0x{N:08X})". `<seq>` is the 1-based block sequence number within the file for debuggability. |
+| E-INP-011 | Input | `broken` | 1 | `src/reader.rs` (pcapng multi-IDB agreement check) | `pcapng multi-interface link-type conflict: interface 0 has <first:?>, interface <n> has <other:?>` | BC-2.01.018, BC-2.01.017 | Emitted when two or more IDBs in a section carry different `linktype` values. `<first:?>` and `<other:?>` are the `DataLink` Debug repr values. This reflects the fail-closed multi-IDB policy (ADR-009 Decision 3). Known limitation: rejects legitimate multi-NIC captures mixing Ethernet and Linux Cooked interfaces. |
 
 ### DEC: Decoder Errors
 

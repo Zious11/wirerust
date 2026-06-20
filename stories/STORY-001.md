@@ -2,16 +2,16 @@
 document_type: story
 story_id: "STORY-001"
 epic_id: "E-1"
-version: "1.5"
+version: "1.6"
 status: completed
 producer: story-writer
-timestamp: 2026-06-08T00:00:00Z
+timestamp: 2026-06-19T00:00:00Z
 phase: 2
 inputs:
   - .factory/specs/behavioral-contracts/ss-01/BC-2.01.001.md
   - .factory/specs/behavioral-contracts/ss-01/BC-2.01.002.md
   - .factory/specs/behavioral-contracts/ss-01/BC-2.01.003.md
-  - .factory/specs/behavioral-contracts/ss-01/BC-2.01.004.md
+  - .factory/specs/behavioral-contracts/ss-01/BC-2.01.004.md  # RETIRED 2026-06-19: superseded by BC-2.01.009 (behavioral inversion); file retained per append-only-numbering policy
   - .factory/specs/behavioral-contracts/ss-01/BC-2.01.005.md
   - .factory/specs/behavioral-contracts/ss-01/BC-2.01.006.md
   - .factory/specs/behavioral-contracts/ss-01/BC-2.01.007.md
@@ -26,7 +26,7 @@ behavioral_contracts:
   - BC-2.01.001
   - BC-2.01.002
   - BC-2.01.003
-  - BC-2.01.004
+  - BC-2.01.004  # RETIRED 2026-06-19 — superseded by BC-2.01.009; AC-006 behavior INVERTED by STORY-123
   - BC-2.01.005
   - BC-2.01.006
   - BC-2.01.007
@@ -63,7 +63,7 @@ implementation_strategy: brownfield-formalization
 | BC-2.01.001 | Accept Supported Link Types and Reject Unsupported at File Open |
 | BC-2.01.002 | Read All Packets from PCAP as Vec<RawPacket> Preserving Timestamps |
 | BC-2.01.003 | Accept PCAP with Zero Packets Without Error |
-| BC-2.01.004 | Reject pcapng-Format Input at Reader Level |
+| ~~BC-2.01.004~~ | ~~Reject pcapng-Format Input at Reader Level~~ — **[RETIRED 2026-06-19]** Superseded by BC-2.01.009 ("Accept pcapng Format: Transparent Detection via Magic-Byte Probe"). The rejection postcondition this story delivered (pcapng → Err) is INVERTED by STORY-123 (pcapng → Ok). AC-006 below is annotated accordingly. |
 | BC-2.01.005 | Convert PCAP Record Timestamp to (timestamp_secs: u32, timestamp_usecs: u32) |
 | BC-2.01.006 | Surface PCAP Header Parse Errors with Anyhow Context |
 | BC-2.01.007 | Surface Per-Packet Read Errors with Anyhow Context |
@@ -92,9 +92,16 @@ Each `RawPacket` in the returned `Vec` has `timestamp_secs` equal to the pcap re
 A pcap containing only the global header (zero packet records) returns `Ok(PcapSource { packets: vec![], datalink })` without error or panic.
 - **Test:** `test_BC_2_01_003_zero_packet_pcap()`
 
-### AC-006 (traces to BC-2.01.004 postcondition 1)
+### AC-006 (traces to BC-2.01.004 postcondition 1) [SUPERSEDED — see note]
 Passing a pcapng-format file to `from_file` returns `Err` with message containing "Failed to parse pcap header"; no packets are returned.
 - **Test:** `test_BC_2_01_004_rejects_pcapng()`
+- **[BEHAVIORAL INVERSION — 2026-06-19]** BC-2.01.004 was RETIRED and superseded by BC-2.01.009
+  ("Accept pcapng Format: Transparent Detection via Magic-Byte Probe"). STORY-001 delivered
+  rejection behavior as specified at the time. STORY-123 (F2 pcapng-reader-support) inverts
+  this: `test_BC_2_01_004_rejects_pcapng` must be updated to assert `Ok`, not `Err`, and
+  `smb3.pcapng` reverts from negative-coverage to positive-coverage. The AC-006 text above
+  reflects what STORY-001 delivered historically; it is no longer the correct runtime behavior
+  after STORY-123 ships.
 
 ### AC-007 (traces to BC-2.01.005 postcondition 2)
 For a nanosecond-resolution pcap record with `ts_frac = 500_000`, the resulting `RawPacket.timestamp_usecs` equals 500 (sub-microsecond precision is discarded by integer division).
@@ -126,7 +133,7 @@ Calling `from_file` on a path that does not exist returns `Err` with context "Fa
 |----|----------|-------------------|
 | EC-001 | DataLink = IEEE 802.11 (numeric 105) | Err("Unsupported pcap link type: ...") |
 | EC-002 | Zero-packet pcap (header only, 24 bytes) | Ok(PcapSource { packets: [] }) |
-| EC-003 | pcapng file (different magic number) | Err("Failed to parse pcap header") |
+| EC-003 | pcapng file (different magic number) | ~~Err("Failed to parse pcap header")~~ **[INVERTED by STORY-123/BC-2.01.009 — now Ok(PcapSource)]** |
 | EC-004 | Truncated packet record mid-stream | Err("Failed to read packet") |
 | EC-005 | Packet ts_sec = u32::MAX | Stored as-is; no wrapping or error |
 | EC-006 | Nanosecond-resolution ts_frac = 500_000 | timestamp_usecs = 500 (integer division) |
@@ -199,6 +206,7 @@ Calling `from_file` on a path that does not exist returns `Err` with context "Fa
 
 | Version | Date | Author | Change |
 |---------|------|--------|--------|
+| 1.6 | 2026-06-19 | story-writer | F2 pcapng-reader-support re-anchor: BC-2.01.004 retired (superseded by BC-2.01.009). `inputs:` entry annotated as retired (file retained per append-only-numbering policy). `bcs:` entry annotated as retired/STORY-123-inverted. Body BC table row struck through with RETIRED annotation. AC-006 annotated with behavioral inversion note (STORY-123 inverts rejection → acceptance; test must be updated). EC-003 struck through with STORY-123/BC-2.01.009 inversion note. Historical truth preserved: STORY-001 delivered rejection as specified; STORY-123 owns the acceptance behavior. |
 | 1.4 | 2026-05-28 | story-writer | DF-16.A propagation: BC-2.01.001 re-anchored capability CAP-01→CAP-02 (v1.6). No body text references CAP numbers; change is BC-internal. input-hash bumped a1dc7b8→9d26ee7 to reflect BC-2.01.001 v1.6 content. DF-SIBLING-SWEEP-001: grep confirmed no CAP-01 occurrence in story body. |
 | 1.5 | 2026-05-29 | state-manager | input-hash corrected via canonical bin/compute-input-hash --update (prior value `9d26ee7` was hand-computed sha256 over sorted inputs-file list; tool uses MD5 over inputs-order file list). New value: `2ac856f`. |
 | 1.3 | 2026-05-21 | phase-3-adversarial-review | F-9.01 [Major]: AC-002 updated to require the rejected DataLink variant name in Debug form (e.g. "IEEE802_11") in addition to "Unsupported pcap link type", aligning AC text with BC-2.01.001 v1.3 postcondition 2 and EC-001. F-10.1 [Minor]: AC-004 trace annotation widened from "BC-2.01.002 postcondition 2" to "BC-2.01.002 postcondition 2 + BC-2.01.005 postcondition 1/2" to match dual-credit already present in the red-gate log. |

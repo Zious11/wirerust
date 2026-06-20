@@ -168,7 +168,7 @@ CAP-12. Behavioral contracts BC-CLI-* and BC-SUM-* are anchored here, not to CAP
 
 | Term | Definition |
 |---|---|
-| pcap (classic) | PCAP format with global header; NOT pcapng. wirerust reads only classic pcap. |
+| pcap (classic) | PCAP format with global header; NOT pcapng. wirerust reads classic pcap natively. **F2 note:** pcapng is now also supported via BC-2.01.009 magic-byte probe (ADR-009, 2026-06-19). |
 | FlowKey | Canonically-ordered (ip_a:port_a <= ip_b:port_b) tuple identifying a TCP connection. |
 | Finding | The core output type: a structured forensic observation with category, verdict, confidence, MITRE technique, raw summary, and raw evidence strings. |
 | content-first dispatch | Protocol identification by inspecting the first 5 bytes of reassembled TCP data before consulting port numbers (ADR 0001). |

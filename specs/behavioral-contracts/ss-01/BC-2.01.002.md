@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.5"
+version: "1.6"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -18,6 +18,7 @@ modified:
   - v1.3: Phase 3 per-story adversarial review — corrected Architecture Anchor line ranges: packet loop closes at :80 (not :79); timestamp conversion block ends at :73 (not :74) — 2026-05-21
   - v1.4: Phase 3 per-story adversarial review pass 5 — corrected Description and Source Evidence Path: from_pcap_reader spans reader.rs:45-83 (full function); 69-80 is the packet-read loop sub-anchor, not the full function extent — 2026-05-21
   - v1.5: DF-16.A citation fix — corrected broken capabilities.md §CAP-NN citation to per-cap file path; capability anchor remains CAP-01 (this BC is the core packet-vector loading loop, which is CAP-01's primary concern per cap-01-pcap-ingestion.md) — 2026-05-28
+  - v1.6: F2 pcapng-reader-support — Precondition 2 scoped to classic-pcap branch: from_pcap_reader now has a pcapng branch (BC-2.01.009–BC-2.01.015 govern that path); this BC covers only the classic-pcap path after the magic-byte probe. Description updated to clarify scope. — 2026-06-19
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -30,11 +31,15 @@ removal_reason: null
 
 ## Description
 
-After link-type acceptance, the reader performs an eager in-memory load of all pcap packets
-into a `Vec<RawPacket>`. Each `RawPacket` carries the raw frame bytes and a split timestamp
-(seconds and microseconds) copied from the pcap record header. The entire file must fit in RAM
-because no streaming or lazy-read mode exists. This contract covers `PcapSource::from_pcap_reader`
-in `src/reader.rs:45-83` (full function extent; the packet-read loop is the sub-anchor at 69-80).
+After link-type acceptance, the reader performs an eager in-memory load of all **classic-pcap**
+packets into a `Vec<RawPacket>`. Each `RawPacket` carries the raw frame bytes and a split
+timestamp (seconds and microseconds) copied from the pcap record header. The entire file must
+fit in RAM because no streaming or lazy-read mode exists. This contract covers the classic-pcap
+branch of `PcapSource::from_pcap_reader` in `src/reader.rs:45-83` (full function extent;
+the packet-read loop is the sub-anchor at 69-80). **F2 scope note:** After BC-2.01.009 adds
+a magic-byte probe to `from_pcap_reader`, the pcapng branch (BC-2.01.010–BC-2.01.015) is
+taken when the stream begins with pcapng SHB magic; this BC governs only the classic-pcap
+branch taken when classic-pcap magic is detected.
 
 ## Preconditions
 

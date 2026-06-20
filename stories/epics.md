@@ -1,6 +1,6 @@
 ---
 document_type: epics
-version: "1.4"
+version: "1.5"
 status: draft
 producer: story-writer
 phase: 2
@@ -9,7 +9,8 @@ modified:
   - "2026-06-17 v1.2: E-18 Terminal Finding-Collapse (issue #259) added — STORY-118 + STORY-119 (deferred). total_bcs 283→288 (+5 new BC-2.11.025–029; 4 existing BCs extended/versioned — count unchanged)."
   - "2026-06-17 v1.3: Adversarial Burst 3 remediation — E-8 story count 7→5 (Estimated Story Count Summary table; actual E-8 roster is STORY-076..080 = 5 stories). Column sum now 72, matching Total row."
   - "2026-06-17 v1.4: Adversarial Burst 4 remediation — Coverage Check body updated to 288 BCs: added E-18 row to Per-Epic BC Assignment table (BC-2.11.025..029, 5), added E-17 row (extensions, 0), updated TOTAL 283→288, updated Arithmetic Verification block (+E-18 line, ✓ 288/288), updated Coverage confirmed assertion 283→288."
-total_bcs: 288
+  - "2026-06-19 v1.5: F2 pcapng-reader-support re-anchor — E-1 BC list: BC-2.01.004 struck through [RETIRED], BC-2.01.009–018 (10 new SS-01 BCs) added. E-1 SS-01 count 8→17 active (+9 net). E-1 total 23→32. total_bcs 288→297 (net +9: 10 new BC-2.01.009–018 minus 1 retired BC-2.01.004). Arithmetic Verification and Coverage Confirmed updated."
+total_bcs: 297
 traces_to:
   - .factory/specs/prd.md
   - .factory/specs/behavioral-contracts/BC-INDEX.md
@@ -34,8 +35,10 @@ traces_to:
   structured ParsedPacket representation — with clear, attributed error messages when
   files are malformed or formats are unsupported (pcapng, unknown link types).
 - **BCs:**
-  BC-2.01.001, BC-2.01.002, BC-2.01.003, BC-2.01.004, BC-2.01.005, BC-2.01.006,
+  BC-2.01.001, BC-2.01.002, BC-2.01.003, ~~BC-2.01.004~~ [RETIRED 2026-06-19 — superseded by BC-2.01.009; behavioral inversion: pcapng now accepted], BC-2.01.005, BC-2.01.006,
   BC-2.01.007, BC-2.01.008,
+  BC-2.01.009, BC-2.01.010, BC-2.01.011, BC-2.01.012, BC-2.01.013, BC-2.01.014,
+  BC-2.01.015, BC-2.01.016, BC-2.01.017, BC-2.01.018,
   BC-2.02.001, BC-2.02.002, BC-2.02.003, BC-2.02.004, BC-2.02.005, BC-2.02.006,
   BC-2.02.007, BC-2.02.008, BC-2.02.009, BC-2.02.010, BC-2.02.011, BC-2.02.012,
   BC-2.02.013, BC-2.02.014, BC-2.02.015
@@ -268,7 +271,7 @@ the same test vehicle (CLI invocation with obsolete flag).
 
 | Epic | Subsystems | BCs Assigned | Count |
 |------|-----------|--------------|-------|
-| E-1: PCAP Ingestion and Packet Decoding | SS-01, SS-02 | BC-2.01.001..008, BC-2.02.001..015 | 23 |
+| E-1: PCAP Ingestion and Packet Decoding | SS-01, SS-02 | BC-2.01.001..003, ~~BC-2.01.004~~ [RETIRED], BC-2.01.005..008, BC-2.01.009..018 (F2 pcapng), BC-2.02.001..015 | 32 (17 active SS-01 + 15 SS-02; BC-2.01.004 retired) |
 | E-2: TCP Stream Reassembly Engine | SS-04 | BC-2.04.001..054 | 54 |
 | E-3: Content-First Protocol Dispatch | SS-05 | BC-2.05.001..009 | 9 |
 | E-4: HTTP Traffic Analysis and Threat Detection | SS-06 | BC-2.06.001..026 | 26 |
@@ -285,12 +288,12 @@ the same test vehicle (CLI invocation with obsolete flag).
 | E-16: ARP Security Analyzer | SS-16 (new) | BC-2.16.001..015 | 15 |
 | E-17: ARP QinQ/MACsec Offset Hardening | SS-16 | BC-2.16.009 EC-008/009, BC-2.16.015 PC-7b/EC-008/009 (extensions) | 0 (extensions, not new BCs) |
 | E-18: Terminal Finding-Collapse | SS-11 | BC-2.11.025..029 | 5 |
-| **TOTAL** | | | **288** |
+| **TOTAL** | | | **297** (288 prior + 9 net: BC-2.01.009–018 +10, BC-2.01.004 retired -1) |
 
 ### Arithmetic Verification
 
 ```
-E-1:  8 (SS-01) + 15 (SS-02) = 23
+E-1:  17 active SS-01 (8 original − 1 retired BC-2.01.004 + 10 new BC-2.01.009–018) + 15 (SS-02) = 32
 E-2:  54 (SS-04)              = 54
 E-3:  9 (SS-05)               =  9
 E-4:  26 (SS-06)              = 26
@@ -302,15 +305,15 @@ E-9:  21 (SS-12)              = 21
 E-10: 4 (SS-13)               =  4
 E-12: 2 (BC-2.04.055, BC-2.09.007) = 2
                       --------
-                      219 (pre-feature subtotal)
+                      228 (pre-feature subtotal; was 219 + 9 net F2 SS-01)
 E-14: 25 (SS-14, BC-2.14.001..025) = 25
 E-15: 24 (SS-15, BC-2.15.001..024) = 24
 E-16: 15 (SS-16, BC-2.16.001..015) = 15
                       --------
-                      283 (pre-E-18 subtotal)
+                      292 (pre-E-18 subtotal)
 E-18:  5 (SS-11, BC-2.11.025..029) =  5
                       --------
-                      288 / 288  ✓
+                      297 / 297  ✓
 ```
 
 Note: E-11 (Tooling) has 0 BCs authored yet (STORY-091 pending). E-12 BCs are feature-mode
@@ -341,8 +344,8 @@ non-overlapping. No BC appears in more than one epic row above.
 | SS-12 | CLI / Entry | E-9 |
 | SS-13 | Absent Behaviors | E-10 |
 
-**Coverage confirmed: 288 / 288 BCs assigned, 0 unassigned, 0 double-assigned.**
-(219 pre-feature + 25 E-14 Modbus + 24 E-15 DNP3 + 15 E-16 ARP + 5 E-18 Collapse = 288)
+**Coverage confirmed: 297 / 297 active BCs assigned, 0 unassigned, 0 double-assigned.**
+(228 pre-feature [219 prior + 9 net F2 SS-01: BC-2.01.009–018 +10, BC-2.01.004 retired -1] + 25 E-14 Modbus + 24 E-15 DNP3 + 15 E-16 ARP + 5 E-18 Collapse = 297)
 
 ---
 

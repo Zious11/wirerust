@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.4"
+version: "1.5"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -11,21 +11,30 @@ extracted_from: src/reader.rs
 traces_to: .factory/specs/domain/domain-spec.md
 subsystem: SS-01
 capability: CAP-01
-lifecycle_status: active
+lifecycle_status: retired
 introduced: v0.1.0-brownfield
 modified:
   - v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21
   - v1.3: Phase 3 per-story adversarial review — corrected Invariant 2: smb3.pcapng IS now used as an active negative-coverage assertion by test_BC_2_01_004_rejects_pcapng delivered in STORY-001 — 2026-05-21
   - v1.4: DF-16.A citation fix — corrected broken capabilities.md §CAP-NN citation to per-cap file path — 2026-05-28
+  - v1.5: F2 pcapng-reader-support spec evolution — RETIRED. This BC is superseded by BC-2.01.009 (behavioral inversion: pcapng is now accepted, not rejected). test_BC_2_01_004_rejects_pcapng must be updated to assert Ok, not Err. The smb3.pcapng fixture reverts from negative-coverage to positive-coverage use. — 2026-06-19
 deprecated: null
-deprecated_by: null
-replacement: null
-retired: null
+deprecated_by: "v0.10.0-pcapng-F2"
+replacement: BC-2.01.009
+retired: "v0.10.0-pcapng-F2"
 removed: null
-removal_reason: null
+removal_reason: "Behavioral inversion: pcapng is now accepted (BC-2.01.009 magic-byte probe routes to pcapng parser). The rejection postcondition this BC described is no longer correct."
+superseded_by: BC-2.01.009
 ---
 
-# BC-2.01.004: Reject pcapng-Format Input at Reader Level
+# ~~BC-2.01.004: Reject pcapng-Format Input at Reader Level~~ [RETIRED — superseded by BC-2.01.009]
+
+> **RETIRED (2026-06-19, F2 pcapng-reader-support spec evolution).** This BC is superseded by
+> BC-2.01.009 ("Accept pcapng Format: Transparent Detection via Magic-Byte Probe"). The
+> behavioral postconditions of this BC (pcapng → Err) are inverted by BC-2.01.009 (pcapng → Ok).
+> The `smb3.pcapng` fixture changes from negative-coverage to positive-coverage. The
+> `test_BC_2_01_004_rejects_pcapng` test must be updated. This file is retained per
+> append-only-numbering policy; the ID BC-2.01.004 is never reused.
 
 ## Description
 

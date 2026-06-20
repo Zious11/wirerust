@@ -99,9 +99,11 @@ before packet processing:
 
 1. If the path is a file: return it as-is (no extension filter applied).
 2. If the path is a directory: read all entries; keep only files whose
-   extension is exactly `pcap`. Extension `pcapng` is excluded
-   (LESSON-P0.02: pcapng is not supported by reader.rs). Results are
-   sorted alphabetically for deterministic ordering.
+   extension is exactly `pcap`. Extension `pcapng` is currently excluded
+   (LESSON-P0.02: original behavior). **F2 note (2026-06-19):** pcapng is now
+   SUPPORTED by reader.rs (BC-2.01.009). STORY-127 will update this glob to
+   include `*.pcapng`. Until STORY-127 lands, pcapng files must be passed
+   explicitly. Results are sorted alphabetically for deterministic ordering.
 3. If the path is neither file nor directory: bail with
    "Target not found: <path>".
 

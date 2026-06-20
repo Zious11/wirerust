@@ -1,10 +1,10 @@
 ---
-pipeline: STEADY_STATE
-phase: IDLE
-phase_status: "AT REST — NO phase in progress. E-18 grouped-collapse cycle CLOSED (D-133). v0.9.0/v0.9.1/v0.9.2 all RELEASED 2026-06-19. Next action is HUMAN-DIRECTED."
+pipeline: FEATURE
+phase: F2
+phase_status: "F2 COMPLETE — pcapng reader feature cycle OPEN (feature-pcapng-reader). F1 delta analysis + F2 spec evolution done. F3 story decomposition NEXT."
 product: wirerust
 mode: brownfield
-timestamp: 2026-06-19T00:00:10Z
+timestamp: 2026-06-19T01:00:00Z
 
 # Release chain
 released_version: v0.9.2
@@ -40,8 +40,8 @@ adversary_gate: SATISFIED
 
 # Story tracking
 stories_delivered: 71
-current_cycle: feature-story-119-grouped-collapse  # CLOSED
-current_wave: 50  # FINAL — CLOSED (STORY-INDEX.md: 75 stories / 50 waves)
+current_cycle: feature-pcapng-reader
+current_wave: F2-complete  # F3 decomposition pending; STORY-123..127 expected
 
 # DTU
 dtu_required: false
@@ -63,24 +63,25 @@ convergence_trajectory: "Detail: cycles/v0.1.0-greenfield-spec/convergence-traje
 
 # VSDD Pipeline State — wirerust
 
-## Session Resume Checkpoint (2026-06-19 — AT REST / STEADY-STATE)
+## Session Resume Checkpoint (2026-06-19 — F2 COMPLETE / pcapng-reader cycle OPEN)
 
-**Previous checkpoint (v0.9.2 RELEASED; BUG-DNP3 closed) archived to:
+**Previous checkpoint (AT REST / v0.9.2 RELEASED) archived to:
 `.factory/cycles/feature-story-119-grouped-collapse/session-checkpoints.md`**
 
-### PIPELINE STATUS: AT REST
+### PIPELINE STATUS: FEATURE MODE — F2 COMPLETE, F3 NEXT
 
-The factory is **idle / steady-state**. NO phase is in progress. NO in-flight story worktrees exist. NO open PRs. The E-18 grouped-collapse cycle is CLOSED. Three releases shipped 2026-06-19: v0.9.0, v0.9.1, v0.9.2.
-
-**On resume, the pipeline is HUMAN-DIRECTED. Present the open items (Section D) and await direction.**
+Active cycle: **feature-pcapng-reader**. F1 (delta analysis) + F2 (spec evolution) COMPLETE. F3 (story decomposition) is next. No in-flight story worktrees. No open PRs.
 
 ### A. EXACT POSITION
 
-- **Status:** IDLE — AT REST. All feature cycles closed. No active worktrees beyond main + .factory.
-- **Latest release:** `v0.9.2` (tag object `a298dbe`) on main commit `b73b242`. 4 binaries published. GitHub Release isDraft=false. `release.yml` run 27852584971 SUCCESS.
-- **Release chain (this session):** v0.9.0 (main 986e148) → v0.9.1 (main ad4eec8) → v0.9.2 (main b73b242). Prior chain intact: v0.8.0/v0.7.1/v0.7.0/v0.6.0/v0.5.0/v0.4.0/v0.3.0/v0.2.0/v0.1.0.
-- **Cycle closed:** E-18 / STORY-119 grouped-collapse. STORY-120 (PRs #266/#267), STORY-122 (PR #268), STORY-119/B (PR #269). F1-F7 ALL COMPLETE (D-133).
-- **BUG resolved:** BUG-DNP3-CONTROL-OP-DETERMINISM-001 CLOSED in v0.9.2 (PR #279, commit `dd99f58`; FlowKey derives Ord + sort-before-enumerate; 5 identical md5 runs verified; 3 regression tests in `tests/dnp3_determinism_tests.rs`).
+- **Status:** FEATURE mode — pcapng reader cycle open. F2 complete. F3 pending.
+- **Active cycle:** `feature-pcapng-reader` (cycle manifest: `.factory/cycles/feature-pcapng-reader/cycle-manifest.md`)
+- **Feature:** FE-001 — pcapng capture-format reader support. Status: IN PROGRESS (moved from CANDIDATE).
+- **ADR created:** ADR-009 — Option A selected (pcap-file 2.0.0, +0 transitive deps).
+- **BCs added:** BC-2.01.009..018 (10 new). BC-2.01.004 RETIRED (superseded by BC-2.01.009). BC-INDEX v1.52.
+- **Spec versions:** prd.md v1.29, error-taxonomy v2.3, nfr-catalog v2.2, test-vectors v2.2, STORY-001 v1.6, epics.md v1.5.
+- **Latest release (prior cycle):** `v0.9.2` (tag obj `a298dbe`, main `b73b242`).
+- **develop:** `b73b242` (= main; zero divergence).
 
 ### B. GROUND-TRUTH SHAs / WORKTREE STATE
 
@@ -88,46 +89,39 @@ The factory is **idle / steady-state**. NO phase is in progress. NO in-flight st
 |--------|------|-------|
 | develop | `b73b242` | FF'd to main post-v0.9.2; zero divergence |
 | main | `b73b242` | release/0.9.2 PR #280 merged |
+| factory-artifacts | `git -C .factory log -1` | current burst |
 | origin/develop | `b73b242` | synced |
-| origin/main | `b73b242` | synced |
-| factory-artifacts | `git -C .factory log -1` | this commit |
 
-- **Tag v0.9.2:** tag object `a298dbe` on commit `b73b242`. Latest tag.
-- **Active worktrees:** EXACTLY TWO — main repo (develop) and `.factory/` (factory-artifacts). No `.worktrees/*` story/release worktrees.
+- **Active worktrees:** EXACTLY TWO — main repo (develop) and `.factory/` (factory-artifacts).
 - **Open PRs:** None.
 
 ### C. WHAT IS COMPLETE — DO NOT REDO
 
-- E-18 full cycle F1-F7: COMPLETE and RELEASED (D-133). PRs #266-#270/#273/#274/#275.
-- v0.9.1 patch (D-134): PRs #277/#278; tag v0.9.1 on main ad4eec8.
-- v0.9.2 patch (D-135): PRs #279/#280; tag v0.9.2 on main b73b242; DNP3 determinism fixed.
-- Maintenance maint-2026-06-17: COMPLETE (PRs #261/#262; 5 items deferred; 0 blocking).
-- F7 convergence rounds 1-5: R5 triple CLEAN 3/3 (develop 1c89b52). develop sync: FF to main b73b242.
+- F1 delta analysis: COMPLETE. `.factory/phase-f1-delta-analysis/pcapng-reader-support-delta-analysis.md`.
+- F2 spec evolution: COMPLETE. ADR-009, BC-2.01.009..018, BC-INDEX v1.52, prd.md v1.29, E-INP-008..011, error-taxonomy v2.3, epics.md v1.5.
+- All prior cycles: E-18 F1-F7 RELEASED (v0.9.0/v0.9.1/v0.9.2), maint-2026-06-17 COMPLETE.
 
-### D. ON RESUME — OPEN ITEMS (present these to human)
+### D. ON RESUME — F3 ENTRY CHECKLIST
 
-**1. DNS-TUNNELING-COVERAGE-001 (OPEN — HUMAN DECISION REQUIRED)**
-DNS analyzer is statistics-only by design (BC-2.08.004, `src/analyzer/dns.rs` returns empty findings). Tunneling detection (qname entropy/length, label cardinality, record-type skew, query-rate/NXDOMAIN, up/down byte ratio) = NEW FEATURE. Fixtures ready: `tests/fixtures/E2E-PCAPS.md` has `dns-tunnel-iodine.pcap` + dnscat2 links (bundled v0.9.2). Human decision on whether to scope via F1-F7 is PENDING.
+**REQUIRED BEFORE F3 STORY DECOMPOSITION:**
+1. Run `bin/compute-input-hash --write --scan` — generate input-hashes for STORY-123..127 and verify existing stories.
+2. Revise/retire BC-2.12.011 (directory glob "*.pcapng excluded") when decomposing STORY-127.
+3. Update HS-001 + HS-INDEX (cite retired BC-2.01.004) — PO action in F3.
+4. Propagate VP assignments for BC-2.01.009..018 (architect/VP-INDEX).
 
-**2. STORY-121 (OPEN DRAFT — HUMAN DECISION REQUIRED)**
-E-11 self-improvement draft holds process-gap follow-ups: D-127 orchestrator relay-trust handoff; post-fixburst consuming-artifact sweep; BC canonical-test-vector verbatim citation (PG-62-PERSTORY-TESTS-TO-BUG); post-merge anchor revalidation (PG-62-F5-POSTMERGE-ANCHOR-001). Human decision: widen scope or split.
-
-**3. pcapng reader support (CANDIDATE FEATURE — HUMAN DECISION REQUIRED)**
-Large TLS-heavy captures and `arp-baseline-16pkt.cap` rejected (pcapng format). Reference: `tests/fixtures/E2E-PCAPS.md` "Coverage gaps" + `.factory/research/e2e-pcap-candidates.md`. Candidate for next feature cycle.
-
-**4. Roadmap candidates (post-v0.9.2):**
-Issue #3 C2 beaconing | Issue #4 CSV+SQLite reporters | Issue #6 rayon parallel (O-07) | PCAP-CORPUS-001 storage backend (TABLED).
-
-**5. Pre-existing deferred (visibility only):**
-SEC-001 (MITRE IDs not escaped — LOW, non-exploitable; DF-VALIDATION-001 before issue); W7.1 cargo-public-api; input-hash CI gate; 5 TD-MAINT-* items; TD-E18-SEMVER-CHECKS-001; F7 LOW residuals (ADR banner, no-compile_fail doctest ACCEPTED).
+**OTHER OPEN ITEMS (lower priority):**
+- DNS-TUNNELING-COVERAGE-001: OPEN — human decision pending.
+- STORY-121 (E-11 process-gap): OPEN DRAFT — scope decision pending.
+- Roadmap: Issue #3 C2 beaconing | Issue #4 CSV+SQLite | Issue #6 rayon (O-07).
 
 ---
 
 ## Status
 
-**wirerust v0.9.2 RELEASED 2026-06-19 (D-135). AT REST — IDLE. No phase in progress.**
+**FEATURE MODE — pcapng reader cycle OPEN (feature-pcapng-reader). F2 COMPLETE. F3 NEXT.**
 
-Latest: v0.9.2 (tag obj `a298dbe`, main `b73b242`, 4 binaries). develop = main = `b73b242`. Zero divergence.
+Latest release: v0.9.2 (tag obj `a298dbe`, main `b73b242`, 4 binaries). develop = main = `b73b242`. Zero divergence.
+Active feature: FE-001 pcapng capture-format reader support. ADR-009, 10 new BCs, 1 retired BC.
 Maintenance maint-2026-06-17: COMPLETE. NON-BLOCKING. Report: `.factory/maintenance/sweep-report-2026-06-17.md`.
 
 ## Phase Progress
@@ -151,6 +145,7 @@ Maintenance maint-2026-06-17: COMPLETE. NON-BLOCKING. Report: `.factory/maintena
 | E-18/E-8 STORY-119 cycle (F1-F7) + v0.9.0 | **RELEASED + CLOSED 2026-06-19** | STORY-120/122/119; 293 BCs; tag v0.9.0 986e148. Detail: cycles/feature-story-119-grouped-collapse/ |
 | v0.9.1 patch | **RELEASED 2026-06-19** | Doc/help; PRs #277/#278; tag v0.9.1 ad4eec8 |
 | v0.9.2 patch | **RELEASED 2026-06-19** | DNP3 determinism + E2E fixtures; PRs #279/#280; tag v0.9.2 b73b242 |
+| **Feature pcapng-reader (F1+F2)** | **F2 COMPLETE — F3 NEXT** | FE-001 IN PROGRESS. ADR-009, BC-2.01.009..018 (10 new, 1 retired), prd v1.29. Cycle: feature-pcapng-reader |
 
 ## Decisions Log
 
@@ -163,6 +158,7 @@ D-131..D-135: `cycles/feature-story-119-grouped-collapse/decisions-archive.md`
 | D-133 | v0.9.0 RELEASED; E-18/STORY-119 cycle CLOSED. Cycle-closing checklist COMPLETE (S-7.02). DNS-TUNNELING-COVERAGE-001 filed. | 2026-06-19 |
 | D-134 | v0.9.1 RELEASED — doc/help patch (--no-collapse help text + README flag names). PRs #277/#278; tag v0.9.1 ad4eec8. | 2026-06-19 |
 | D-135 | v0.9.2 RELEASED — DNP3 determinism FIXED (FlowKey Ord + sort; PR #279 commit dd99f58). BUG-DNP3-CONTROL-OP-DETERMINISM-001 CLOSED. PRs #279/#280; tag v0.9.2 obj a298dbe. | 2026-06-19 |
+| D-136 | F1+F2 COMPLETE for pcapng reader feature (FE-001). Cycle: feature-pcapng-reader. ADR-009 created. 10 new BCs (BC-2.01.009..018); BC-2.01.004 RETIRED/inverted (superseded by BC-2.01.009). BC-2.01.001/002 extended. E-INP-008..011 added. STORY-001→v1.6, epics.md→v1.5 re-anchored. Option A (pcap-file 2.0.0, +0 deps) selected. Scope includes E2E corpus expansion (human-approved). F3 story decomposition is next. | 2026-06-19 |
 
 ## Blocking Issues
 
@@ -177,7 +173,7 @@ Full tech-debt register: `.factory/tech-debt-register.md`.
 |----|---------|--------|
 | DNS-TUNNELING-COVERAGE-001 | DNS analyzer statistics-only (BC-2.08.004); tunneling detection = new feature; fixtures in E2E-PCAPS.md. | OPEN — human decision |
 | STORY-121 | E-11 process-gap follow-ups (D-127 relay-trust; post-fixburst sweep; BC canonical vectors; anchor revalidation). | OPEN DRAFT — scope decision |
-| FE-001 (pcapng) | pcapng format unsupported; large TLS + arp-baseline-16pkt.cap blocked. | CANDIDATE FEATURE |
+| FE-001 (pcapng) | pcapng format unsupported; large TLS + arp-baseline-16pkt.cap blocked. | **IN PROGRESS** — feature-pcapng-reader cycle open; F2 complete |
 | SEC-001 | MITRE IDs not escaped — LOW, non-exploitable (embedded lookup). DF-VALIDATION-001 required before issue. | DEFERRED LOW |
 | W7.1 | `cargo public-api` baseline not established. | DEFERRED |
 | INPUT-HASH-CI-GATE | Input-hash drift check not in develop CI (factory-artifacts not in develop tree). | DEFERRED |
@@ -200,10 +196,10 @@ Full tech-debt register: `.factory/tech-debt-register.md`.
 
 ## Deferred Next-Work Backlog
 
-1. **PCAP-CORPUS-001:** TABLED — human decision.
+1. **pcapng reader support (FE-001):** IN PROGRESS — feature-pcapng-reader cycle, F3 decomposition next.
 2. **DNS-TUNNELING-COVERAGE-001:** OPEN — human decision on feature scope. Fixtures ready.
 3. **STORY-121 (E-11 process-gap):** OPEN DRAFT — human decision on scope.
-4. **pcapng reader support:** CANDIDATE — human decision.
+4. **PCAP-CORPUS-001:** TABLED — human decision.
 5. **Roadmap:** Issue #3 C2 beaconing | Issue #4 CSV+SQLite | Issue #6 rayon.
 
 ## Governance Policy

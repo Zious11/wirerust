@@ -5,10 +5,11 @@ cap_id: CAP-01
 title: PCAP File Ingestion
 status: descriptive (brownfield) -- reconciled against develop HEAD 0082a0c
 reconciled: 2026-05-20
-version: "1.1"
+version: "1.2"
 changelog:
   - 2026-05-21: Phase 3 per-story adversarial review — corrected Scope/limitations: smb3.pcapng IS now used as an active negative-test fixture (test_BC_2_01_004_rejects_pcapng, STORY-001)
   - "v1.1: Burst-10 (O-01-closure) — Scope/limitations timestamp note updated: O-01 CLOSED; timestamp_secs now threaded to Finding.timestamp (STORY-097/098/099; STORY-102..110); BC-2.04.054 sole exception. — 2026-06-13"
+  - "v1.2: F2 pcapng-reader-support (ADR-009, FE-001) — Scope/limitations revised: pcapng is now SUPPORTED (BC-2.01.009 magic-byte probe). smb3.pcapng changes from negative-test fixture to positive-test fixture. BC-2.01.004 RETIRED. Directory glob note updated (STORY-127 will include *.pcapng). — 2026-06-19"
 ---
 
 # CAP-01: PCAP File Ingestion
@@ -29,8 +30,10 @@ begins. No streaming/lazy-read mode exists.
 ## Target resolution (main.rs:344-364)
 
 - **Single file:** any extension accepted (no extension filter).
-- **Directory:** expands `*.pcap` only. `*.pcapng` was removed from the glob by
-  LESSON-P0.02 (#69) because reader.rs rejects pcapng at the format-header level.
+- **Directory:** currently expands `*.pcap` only. `*.pcapng` was removed from the glob by
+  LESSON-P0.02 (#69) because reader.rs rejected pcapng at the format-header level.
+  **F2 note (2026-06-19):** pcapng is now SUPPORTED (BC-2.01.009). STORY-127 will update the
+  glob to include `*.pcapng`. Until STORY-127 lands, pcapng files must be passed explicitly.
 
 ## In-memory load (C-4 PcapSource::from_file)
 
@@ -54,10 +57,12 @@ strict-first then lax-fallback strategy (see CAP-03).
 
 ## Scope / limitations
 
-- Classic pcap ONLY. pcapng is NOT supported; reader.rs returns an error for pcapng files.
-- smb3.pcapng is used as an active negative-test fixture: `test_BC_2_01_004_rejects_pcapng`
-  (delivered in STORY-001) asserts that passing it to `from_file` returns Err containing
-  "Failed to parse pcap header". It is no longer merely a future-coverage placeholder.
+- Classic pcap AND pcapng supported (F2 delta, 2026-06-19, ADR-009, FE-001). reader.rs now
+  uses a magic-byte probe (BC-2.01.009) to route to the appropriate parser. pcapng files with
+  valid SHB/IDB/EPB blocks are parsed to `Vec<RawPacket>` identically to classic pcap output.
+- smb3.pcapng was an active negative-test fixture: `test_BC_2_01_004_rejects_pcapng`
+  (STORY-001) asserted Err. **After F2 (STORY-123), this test MUST be rewritten as a positive
+  acceptance test.** smb3.pcapng is now a positive-coverage fixture. BC-2.01.004 is RETIRED.
 - Timestamp fields (`timestamp_secs`, `timestamp_usecs`) are read and stored in `RawPacket`
   and are threaded through to `Finding.timestamp` at 21 of 22 emission sites (STORY-097/098/099
   for http/tls/reassembly; STORY-102..110 for modbus/dnp3). Domain-debt O-01 is CLOSED.

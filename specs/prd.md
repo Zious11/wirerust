@@ -1,7 +1,7 @@
 ---
 document_type: prd
 level: L3
-version: "1.28"
+version: "1.29"
 status: draft
 producer: product-owner
 timestamp: 2026-06-17T00:00:00Z
@@ -411,6 +411,16 @@ supplements:
 >
 > No new BCs; no BC count change (283). See `spec-changelog.md` §[prd-v1.25-ss15-titlesync-2026-06-14].
 
+> **Version 1.29 delta (2026-06-19 — F2 pcapng-reader-support, ADR-009, FE-001):** pcapng is
+> now a SUPPORTED input format. 10 new BCs (BC-2.01.009–018) added to §2.1 for pcapng block-walk
+> reader (magic-byte probe, SHB, IDB, EPB, SPB, unknown-block skip, timestamp normalization,
+> link-type gating, error surfacing, multi-IDB agreement policy). BC-2.01.004 RETIRED (behavioral
+> inversion: pcapng was rejected, now accepted). §1.5 Out-of-Scope: pcapng item struck out and
+> marked REMOVED from out-of-scope. BC-2.01.001 v1.6→v1.7 (EC-005 scope note). BC-2.01.002
+> v1.5→v1.6 (classic-pcap-branch scope note). error-taxonomy.md v2.2→v2.3 (E-INP-008..011 added;
+> E-INP-002 notes revised). nfr-catalog.md v2.1→v2.2 (NFR-COMPAT-001 revised). Total active
+> BCs: 293→302 (303 on disk − 1 retired). See `spec-changelog.md` §[pcapng-f2-2026-06-19].
+
 > **Supplement Model:** Sections 3-5 reference extracted supplement files under
 > `prd-supplements/`. These supplements are produced in a SEPARATE burst (Phase 1b).
 > Entries in those sections are summary stubs until the supplement burst completes.
@@ -471,7 +481,7 @@ Rust source files, 3,868 source LOC, 282 tests, single crate, Rust 2024 edition,
 > Machine-consumed constraint list. The adversary and consistency-validator check that no story
 > AC implements any feature listed here. Be explicit and unambiguous.
 
-- pcapng format support (wirerust reads classic pcap ONLY; pcapng files are rejected at the reader boundary)
+- ~~pcapng format support (wirerust reads classic pcap ONLY; pcapng files are rejected at the reader boundary)~~ **REMOVED from out-of-scope (F2 pcapng-reader-support, ADR-009, 2026-06-19): pcapng is now a SUPPORTED input format via BC-2.01.009–018 magic-byte probe and block-walk reader.**
 - Live network capture / sniffing (no network I/O of any kind; offline pcap files only)
 - HTTP/2 or HTTP/3 analysis (HTTP/1.x only; H2 frames will be parsed as unknown bytes)
 - DNS-based detection findings (DNS is statistics-only: query/response counts only; no NXDOMAIN flood, no tunneling detection)
@@ -539,20 +549,32 @@ Rust source files, 3,868 source LOC, 282 tests, single crate, Rust 2024 edition,
 > flag (default on in v0.3.x) emits the old scalar `mitre_technique` key alongside the new
 > array for a deprecation window, following the Zeek dual-field approach.
 
-### 2.1 PCAP File Ingestion (CAP-01)
+### 2.1 PCAP File Ingestion / pcapng Reader Support (CAP-01)
+
+> **F2 pcapng-reader-support delta (2026-06-19, ADR-009, FE-001):** BC-2.01.004 RETIRED (behavioral inversion). 10 new BCs (BC-2.01.009–018) added for pcapng support. pcapng is now a SUPPORTED input format.
 
 | BC ID | Title | Priority | Origin BC |
 |-------|-------|----------|-----------|
-| BC-2.01.001 | Accept supported link types and reject unsupported at file open | P0 | BC-RDR-001 |
-| BC-2.01.002 | Read all packets from pcap as Vec<RawPacket> preserving timestamps | P0 | BC-RDR-002 |
+| BC-2.01.001 | Accept Supported Link Types and Reject Unsupported at File Open | P0 | BC-RDR-001 |
+| BC-2.01.002 | Read All Packets from PCAP as Vec<RawPacket> Preserving Timestamps (classic-pcap branch) | P0 | BC-RDR-002 |
 | BC-2.01.003 | Accept pcap with zero packets (header-only) without error | P1 | BC-RDR-003 |
-| BC-2.01.004 | Reject pcapng-format input at reader level | P0 | BC-RDR-004 |
+| ~~BC-2.01.004~~ | ~~Reject pcapng-format input at reader level~~ [RETIRED — superseded by BC-2.01.009] | ~~P0~~ | BC-RDR-004 |
 | BC-2.01.005 | Convert pcap record timestamp to (timestamp_secs: u32, timestamp_usecs: u32) | P1 | BC-RDR-005 |
 | BC-2.01.006 | Surface pcap header parse errors with anyhow context | P1 | BC-RDR-006 |
 | BC-2.01.007 | Surface per-packet read errors with anyhow context | P1 | BC-RDR-007 |
 | BC-2.01.008 | from_file opens via BufReader and delegates to from_pcap_reader | P2 | BC-RDR-008 |
+| BC-2.01.009 | Accept pcapng Format: Transparent Detection via Magic-Byte Probe | P0 | feature-pcapng-F2 |
+| BC-2.01.010 | Parse pcapng Section Header Block (SHB): Byte-Order Detection and Version | P0 | feature-pcapng-F2 |
+| BC-2.01.011 | Parse pcapng Interface Description Block (IDB): Link Type and Timestamp Resolution | P0 | feature-pcapng-F2 |
+| BC-2.01.012 | Parse pcapng Enhanced Packet Block (EPB): Packet Data and Timestamp | P0 | feature-pcapng-F2 |
+| BC-2.01.013 | Parse pcapng Simple Packet Block (SPB): Packet Data Without Timestamp | P1 | feature-pcapng-F2 |
+| BC-2.01.014 | Pure-Core 64-bit pcapng Timestamp Normalization to (ts_sec, ts_usecs) | P0 | feature-pcapng-F2 |
+| BC-2.01.015 | Unknown pcapng Block Types Are Silently Skipped via block-total-length | P1 | feature-pcapng-F2 |
+| BC-2.01.016 | Reject pcapng with Unsupported Link Type in IDB (Mirrors BC-2.01.001) | P0 | feature-pcapng-F2 |
+| BC-2.01.017 | pcapng Block-Level Parse Errors Surface via anyhow Context Chain | P1 | feature-pcapng-F2 |
+| BC-2.01.018 | Multi-IDB Link-Type Agreement Policy: Conflict Returns Error (Fail-Closed) | P0 | feature-pcapng-F2 |
 
-> Full contracts: `behavioral-contracts/ss-01/BC-2.01.001.md` through `BC-2.01.008.md`
+> Full contracts: `behavioral-contracts/ss-01/BC-2.01.001.md` through `BC-2.01.018.md` (BC-2.01.004 retired)
 
 ### 2.2 Link-Type Gating (CAP-02)
 

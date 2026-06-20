@@ -39,6 +39,9 @@ modified:
   - date: 2026-06-18
     actor: architect
     reason: "F3 scope correction (issue #62): ADR-0003 v0.9.0 migration-map code block corrected — original snippet used *mitre and no_collapse which are out of scope inside run_analyze; corrected to use the in-scope params show_mitre_grouping and collapse_findings (function signature lines 107-108). Prose added to make explicit that the --mitre/--no-collapse → bool resolution stays at the main() call site (lines 79-80), collapse_findings_from_flag is unchanged, and the run_analyze signature is unchanged. Behavior is identical; only the variable names/layer cited in the migration map are corrected."
+  - date: 2026-06-19
+    actor: architect
+    reason: "F2 Phase Spec Evolution (FE-001 pcapng reader support): ADR-009 added to Architecture Decisions table — magic-byte auto-detection, Option A parser (pcap-file 2.0.0 PcapNgReader +0 crates), SHB/IDB/EPB/SPB block coverage, multi-IDB link-type-agreement policy, pure-core timestamp-conversion helper, BC-2.01.004 retired/inverted. SS-01 affected."
 phase: 1c
 origin: brownfield
 deployment_topology: single-service
@@ -186,6 +189,7 @@ or any network-related call. This is the basis for the "offline" forensic-tool g
 | ADR 0006 | 2026-06-09 | Multi-technique Finding attribution: `mitre_technique: Option<String>` → `mitre_techniques: Vec<String>`; one-finding-N-tags aligned with Sigma/Elastic standard; volume control via aggregation not tag-suppression; v0.3.0 breaking schema change | SS-09, SS-10, SS-11, SS-14 |
 | ADR 0007 | 2026-06-10 | DNP3 TCP integration (Issue #8): port-20000 Rule 6 port-fallback classification, `DispatchTarget::Dnp3`, carry-buffer + CRC-block-skip parse, FIR=1-only app-layer extract, corrected MITRE technique set (T1691.001+T0827 new; T0803/T0855 revoked in ics-attack-19.1), new `MitreTactic::IcsImpact` variant, VP-004 oracle extension, VP-007 SEEDED 21→23 | SS-05, SS-10, SS-15 |
 | ADR 0008 | 2026-06-12 | ARP link-layer integration: `DecodedFrame` enum from `decode_packet` (Ip/Arp variants), `ArpFrame` struct, etherparse 0.20 `NetSlice::Arp`/`LaxNetSlice::Arp` match fix, `ArpAnalyzer` binding table (MAX_ARP_BINDINGS=65536 LRU), 5 detections (D1 spoof/D2 GARP/D3 storm/D11 malformed/D12 L2/L3 mismatch), MITRE T0830+T1557.002, VP-007 SEEDED 23→25, BC-2.02.009 revised | SS-02, SS-10, SS-16 |
+| ADR 0009 | 2026-06-19 | pcapng capture-format reader support: magic-byte auto-detection (peek without consuming), Option A parser (pcap-file 2.0.0 PcapNgReader, +0 new crates), SHB/IDB/EPB/SPB block coverage, multi-IDB link-type-agreement policy, pure-core timestamp-conversion helper (if_tsresol/if_tsoffset), BC-2.01.004 retired/inverted | SS-01 |
 
 ADRs 0001–0004 are canonical and reside in `docs/adr/`. ADR 0005 onwards reside in
 `.factory/specs/architecture/decisions/`. Architecture section files reference them by ID

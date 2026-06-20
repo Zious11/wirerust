@@ -14,6 +14,46 @@ changes, invariant rewrites).
 
 ---
 
+## [pcapng-f2-2026-06-19] — 2026-06-19
+
+### MINOR: F2 pcapng Reader Support — Spec Evolution INTEGRATE Sub-Burst (FE-001, ADR-009)
+
+**Trigger:** F2 pcapng-reader-support CREATE sub-burst produced 10 new BC files (BC-2.01.009–018) and staged error taxonomy addendum. This INTEGRATE sub-burst splices all artifacts into master spec indexes.
+
+#### Changes
+
+| Artifact | Change | Version |
+|----------|--------|---------|
+| `BC-INDEX.md` | 10 new SS-01 rows (BC-2.01.009–018); BC-2.01.004 struck as [RETIRED]; BC-2.01.001 v1.6→v1.7 annotation; BC-2.01.002 v1.5→v1.6 annotation; total active BCs 293→302; header status updated | v1.51→v1.52 |
+| `ss-01/BC-2.01.004.md` | RETIRED: lifecycle_status active→retired; deprecated_by/replacement/retired/removal_reason set; superseded_by: BC-2.01.009; v1.4→v1.5 | v1.4→v1.5 |
+| `ss-01/BC-2.01.001.md` | EC-005 updated: pcapng now routed via BC-2.01.009 before reaching this BC's classic-pcap path | v1.6→v1.7 |
+| `ss-01/BC-2.01.002.md` | Description/Preconditions scoped to classic-pcap branch; F2 scope note added | v1.5→v1.6 |
+| `prd-supplements/error-taxonomy.md` | E-INP-008..011 added (pcapng block parse failures); E-INP-002 "or pcapng format" note removed; staging addendum marked CONSUMED | v2.2→v2.3 |
+| `prd-supplements/nfr-catalog.md` | NFR-COMPAT-001 revised: pcapng is now SUPPORTED; test reference updated | v2.1→v2.2 |
+| `prd-supplements/test-vectors.md` | BC-2.01.004 test vector struck/annotated STALE; BC-2.01.009 test vectors added | v2.1→v2.2 |
+| `prd.md` | §1.5 pcapng out-of-scope item struck/removed; §2.1 table updated (BC-2.01.004 retired, BC-2.01.009–018 added) | v1.28→v1.29 |
+| `specs/module-criticality.md` | PCAP reader row: BC-2.01.004 reference updated to BC-2.01.009 | v1.4 (note added) |
+
+#### BC Retirement
+
+- **BC-2.01.004** "Reject pcapng-Format Input at Reader Level" — **RETIRED** (behavioral inversion).
+  - Reason: pcapng is now accepted, not rejected. The postconditions of BC-2.01.004 (pcapng → Err) are exactly inverted by BC-2.01.009 (pcapng → Ok via magic-byte probe).
+  - `superseded_by: BC-2.01.009`
+  - `test_BC_2_01_004_rejects_pcapng` must be rewritten as a positive acceptance test (STORY-123 scope).
+  - ID BC-2.01.004 is never reused (append-only-numbering policy).
+
+#### New BCs
+
+10 new greenfield BCs (SS-01): BC-2.01.009 (magic probe), BC-2.01.010 (SHB parse), BC-2.01.011 (IDB parse), BC-2.01.012 (EPB parse), BC-2.01.013 (SPB parse), BC-2.01.014 (timestamp normalization, Kani target), BC-2.01.015 (unknown block skip), BC-2.01.016 (pcapng link-type gating, CAP-02), BC-2.01.017 (error surface), BC-2.01.018 (multi-IDB agreement, fail-closed).
+
+#### Deferred / Not Yet Addressed
+
+- **BC-2.12.011** ("Directory Target Expands to *.pcap Sorted; *.pcapng Excluded"): This BC still describes the OLD behavior (pcapng excluded from glob). The F1 delta specifies that STORY-127 must update the glob to include `*.pcapng`. BC-2.12.011 will need a revision (or retirement + replacement) when STORY-127 is decomposed. **Not touched in this burst** — STORY-127 is the implementing story; BC-2.12.011 retirement/revision is an F3 task.
+- **Downstream story input-hashes**: STORY-123, STORY-124, STORY-125, STORY-126, STORY-127 (when decomposed) will need their `input-hash:` fields recomputed after this INTEGRATE burst. Run `bin/compute-input-hash --write --scan` at F3 entry per CLAUDE.md policy.
+- **Stories citing BC-2.01.004**: STORY-001 body cites BC-2.01.004 in its BC table and AC-006. Story-writer must re-anchor STORY-001 per bc_array_changes_propagate_to_body_and_acs policy (see task output below).
+
+---
+
 ## [story-119-f2-adv-round5-remediation-2026-06-18] — 2026-06-18
 
 ### PATCH: STORY-119 F2 Adversarial Round-5 Remediation — BC-030 Content-Based Citation (ends line-number churn); STORY-119 BC-030 Stamp Re-Sync v1.2→v1.4; ADR-0003 Binary-Crate False Premise Corrected; Research-Doc Correction Note
