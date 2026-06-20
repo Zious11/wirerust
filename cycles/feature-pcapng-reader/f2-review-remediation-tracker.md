@@ -8,9 +8,9 @@ sources:
   - performance-review
   - adversarial-spec-review-pass2 (ADV-F2-PASS2)
 date_created: 2026-06-19
-status: PASS7-REMEDIATED-PASS8-PENDING
+status: PASS8-CLEAN-PASS1-OF-3
 f3_blocked: true
-f3_blocker_reason: "Adversarial reconvergence required (3 clean passes). Pass-1 items addressed (D-142/D-143). Pass-2 items addressed (D-144). Pass-2 cross-seam re-audit CLEAN (D-145). Pass-3 NOT CLEAN (D-146): 1C/5H/7M/4L. Pass-3 remediation COMPLETE (D-147). Pass-3 cross-seam re-audit gap fixes COMPLETE (D-148). Pass-4 NOT CLEAN (D-149): 1C/4H/5M/3L, HIGH novelty. Pass-4 remediation COMPLETE (D-150). Pass-4 re-audit 3 Major boundary gaps FIXED (D-151): FINDING-P4-001/002/003. Pass-5 NOT CLEAN (D-152): 1C/4H/5M/3L, HIGH novelty — TRAJECTORY PLATEAU (23/24/17/13/13). Pass-5 remediation COMPLETE (D-153): all 1C/4H/5M/3L FIXED. Pass-5 re-audit CLEAN (D-154): 4 Minor findings FIXED (FINDING-P5-001/002/003/004); 6 seams CLEAN. Pass-5 fully remediated + consistency-verified. Pass-6 NOT CLEAN (D-155): 0C/4H/5M/4L — FIRST zero-critical pass; count plateau 13 (P4/5/6), severity declining. Pass-6 remediation COMPLETE (D-156): all 0C/4H/5M/4L FIXED. Pass-6 re-audit CLEAN (D-157): 2 Minor findings FIXED (FINDING-P6-001/002); 10 seams CLEAN. Pass-7 NOT CLEAN (D-158): 1C/3H/4M/4L; novelty MODERATE; 2 axes CONVERGED. Pass-7 remediation COMPLETE (D-159): all 1C/3H/4M FIXED; 4L CONVERGED GREEN. Pass-7 re-audit minors FIXED (D-160): FINDING-P7-001/002 (metadata + rubric gate). Adversary pass-8 pending. Clean-pass counter 0/3."
+f3_blocker_reason: "Adversarial reconvergence required (3 clean passes). Pass-1 items addressed (D-142/D-143). Pass-2 items addressed (D-144). Pass-2 cross-seam re-audit CLEAN (D-145). Pass-3 NOT CLEAN (D-146): 1C/5H/7M/4L. Pass-3 remediation COMPLETE (D-147). Pass-3 cross-seam re-audit gap fixes COMPLETE (D-148). Pass-4 NOT CLEAN (D-149): 1C/4H/5M/3L, HIGH novelty. Pass-4 remediation COMPLETE (D-150). Pass-4 re-audit 3 Major boundary gaps FIXED (D-151): FINDING-P4-001/002/003. Pass-5 NOT CLEAN (D-152): 1C/4H/5M/3L, HIGH novelty — TRAJECTORY PLATEAU (23/24/17/13/13). Pass-5 remediation COMPLETE (D-153): all 1C/4H/5M/3L FIXED. Pass-5 re-audit CLEAN (D-154): 4 Minor findings FIXED (FINDING-P5-001/002/003/004); 6 seams CLEAN. Pass-5 fully remediated + consistency-verified. Pass-6 NOT CLEAN (D-155): 0C/4H/5M/4L — FIRST zero-critical pass; count plateau 13 (P4/5/6), severity declining. Pass-6 remediation COMPLETE (D-156): all 0C/4H/5M/4L FIXED. Pass-6 re-audit CLEAN (D-157): 2 Minor findings FIXED (FINDING-P6-001/002); 10 seams CLEAN. Pass-7 NOT CLEAN (D-158): 1C/3H/4M/4L; novelty MODERATE; 2 axes CONVERGED. Pass-7 remediation COMPLETE (D-159): all 1C/3H/4M FIXED; 4L CONVERGED GREEN. Pass-7 re-audit minors FIXED (D-160): FINDING-P7-001/002 (metadata + rubric gate). Pass-8 CLEAN (D-161): 0C/0H/3M/5L — CLEAN-PASS 1/3 (BC-5.39.001). M-1/M-2/M-3/O-2 FIXED. O-1 DEFERRED-TO-F3. Adversary pass-9 pending. Clean-pass counter 1/3."
 ---
 
 # F2 Review Remediation Tracker — pcapng Reader
@@ -650,6 +650,62 @@ Clean-pass counter: 0/3. Remediation round-7 required.
 
 ---
 
+---
+
+## Pass-8 Adversarial Findings (ADV-F2-PASS8 — D-161 burst — 2026-06-20)
+
+**Overall verdict:** 0 CRITICAL / 0 HIGH / 3 MEDIUM / 5 LOW. **CLEAN — 0C/0H.**
+**Clean-pass counter: 1/3 (BC-5.39.001).**
+**Trajectory:** P1:23 / P2:24 / P3:17 / P4:13 / P5:13 / P6:13 / P7:12 / P8:8
+
+Full pass record: `.factory/cycles/feature-pcapng-reader/f2-adversarial-spec-review-pass8.md`
+
+### Pass-8 Medium Findings
+
+| ID | Severity | Finding Summary | Status |
+|----|----------|----------------|--------|
+| M-1 | MEDIUM | error-taxonomy SPB-fixed-min prose gap — E-INP-008 SPB body-too-short entry omitted SPB_FIXED_MIN=16 anchor; btl=12/btl=16 boundary not stated. | FIXED — error-taxonomy v3.4→v3.5: SPB_FIXED_MIN=16 cited; btl=12 (body=0<4) vs btl=16 (body=4, min valid SPB) boundary clarified; EC-008 cross-ref added. D-161. |
+| M-2 | MEDIUM | IDB body-decode holdout gap — BC-2.01.011 was the only framing BC without a dedicated body-decode error-path holdout; no HS covered constructible IDB body-short window (12<=btl<20), malformed options-TLV, or if_tsresol option_length mismatch. | FIXED — HS-109 v1.0 authored (5 cases: btl=16 body<8→E-INP-008; reserved!=0→E-INP-008; options-TLV OOB→E-INP-008; if_tsresol option_length=4→E-INP-008; positive control). HS-INDEX v2.3→v2.4 (greenfield 108→109; all-namespace 181→182; must_pass 108). D-161. |
+| M-3 | MEDIUM | BC-2.01.013 AC-001 test name `test_BC_2_01_013_snaplen_lookup_guarded` stale — snaplen removed from SPB path in D-153 (ADR-009 rev 8 Decision 9 amend); AC-001 guards empty-interface-table (E-INP-009), not snaplen; DF-AC-TEST-NAME-SYNC-001 violation. | FIXED — BC-2.01.013 v1.7→v1.8: AC-001 test name → `test_BC_2_01_013_empty_interface_table_guarded`; scope note clarified; AC-004a/EC-008 body-too-short non-redundancy noted; no normative change. BC-INDEX v1.65→v1.66. D-161. |
+
+### Pass-8 Low Findings (all CONVERGED GREEN or FIXED via M-2)
+
+| ID | Severity | Finding Summary | Status |
+|----|----------|----------------|--------|
+| L-1 | LOW | VP-INDEX total_vps=31 count propagation. | CONVERGED GREEN — VP-INDEX v2.8 total 31 confirmed; no action. |
+| L-2 | LOW | error-taxonomy next_free E-INP-014 confirmed. | CONVERGED GREEN — no new error codes added in pass-7/8; no action. |
+| L-3 | LOW | BC count 302 propagation. | CONVERGED GREEN — BC-INDEX v1.66 confirms 302; no action. |
+| L-4 | LOW | HS-INDEX all-namespace count. | FIXED (via M-2) — HS-INDEX v2.4 all-namespace=182 (was 181). |
+| L-5 | LOW | ADR-009 status field. | FIXED (via O-2) — ADR-009 status: proposed→accepted. |
+
+### Pass-8 Process-Gap Observations
+
+| ID | Category | Observation | Status |
+|----|----------|-------------|--------|
+| O-1 | process-gap | No machine-checkable framing-constant validator — 6 documents independently state same per-block constants; no cross-doc validator to catch future drift. Root-cause class of H-2/C-3/SPB-three-way-min failures. | DEFERRED-TO-F3 — bin/ script addition out of scope for F2 spec-only phase; F3 story decomposition checklist should evaluate `bin/framing-constant-validator` scope. |
+| O-2 | observation | ADR-009 status: proposed (stale); should be accepted since rev 1 adoption. | FIXED — ADR-009 rev 9 status: proposed→accepted. D-161. |
+
+---
+
+## Pass-8 Remediation Summary (D-161 — 2026-06-20)
+
+**Verdict:** Pass-8 CLEAN (0C/0H/3M/5L). All 3 MEDIUM findings FIXED. O-2 FIXED. O-1 DEFERRED-TO-F3. **CLEAN-PASS 1/3.** Adversary pass-9 is next.
+
+**Artifacts updated in this burst (6 artifacts):**
+
+| Artifact | Before | After | Findings addressed |
+|----------|--------|-------|--------------------|
+| error-taxonomy | v3.4 | v3.5 | M-1 (SPB-fixed-min prose gap) |
+| HS-109 | — | v1.0 (new) | M-2 (IDB body-decode holdout — 5 cases) |
+| HS-INDEX | v2.3 | v2.4 | M-2 (greenfield 108→109; all-namespace 181→182) |
+| BC-2.01.013 | v1.7 | v1.8 | M-3 (AC-001 test name DF-AC-TEST-NAME-SYNC-001) |
+| ADR-009 | rev 9 | rev 9 (status) | O-2 (status: proposed→accepted) |
+| BC-INDEX | v1.65 | v1.66 | M-3 annotation sync; clean-pass 1/3 recorded |
+| spec-changelog | — | — | [pcapng-f2-pass8-clean-and-medium-remediation-2026-06-20] prepended |
+| STATE.md | — | — | phase_status + spec-versions + D-161 added; clean-pass 1/3 recorded |
+
+---
+
 **F-6 Deferral Note (DEFERRED-TO-F2-CONVERGENCE):**
 Rationale: HS-104/107/108 input-hashes computed on a still-churning spec go stale after each
 remediation pass. Each burst changes governing BCs (currently BC-2.01.009/012/013/015) and
@@ -663,3 +719,5 @@ the F3-entry checklist so it cannot be lost.
 - [ ] **Item 8 (pre-F2-gate):** Run `bin/compute-input-hash --write` on HS-104, HS-107, HS-108.
   Add ADR-009 to each holdout's `inputs:` list before running the hash. Execute only after F2
   reaches 3-clean-pass convergence. (F-6 DEFERRED-TO-F2-CONVERGENCE — D-159)
+
+**Clean-pass counter as of D-161: 1/3. Adversary pass-9 pending (targeting clean-pass 2/3).**

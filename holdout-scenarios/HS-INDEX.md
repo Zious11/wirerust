@@ -1,13 +1,13 @@
 ---
 document_type: holdout-scenario-index
 level: ops
-version: "2.3"  # Pass-4 R4 / ADR-009 rev 7: added HS-108 (zero-packet notice end-to-end — BC-2.01.009 PC6 / BC-2.01.015 PC9 / H-4). Greenfield total now 108. All-namespace total now 181 (greenfield=108, feature DNP3=32 + ARP=28 + collapse=13 = 73). Also bumped HS-103 (v1.5 +Case D btl=16→E-INP-008), HS-104 (v1.2 +Case E non-mult-4 padding-aware bound), HS-107 (v1.3 +Case F btl=12→E-INP-008) per Decision 20 holdouts. Prior: v2.2 P3-re-audit FINDING-P3-003+P3-004: HS-107 VP column updated. P3-Burst-Hold v2.1: added HS-107. F2-Burst-C v2.0: added HS-101..106. F3-Phase-47 v1.8: added wave-47 finding-collapse feature holdouts.
+version: "2.4"  # Pass-8 M-2 remediation: added HS-109 (IDB body-decode framing/error holdout — BC-2.01.011 / VP-026 / VP-027). Closes gap where IDB was the only framing BC with no holdout for body-decode error paths. 5 cases: (a) btl=16 body<8→E-INP-008; (b) reserved!=0→E-INP-008; (c) options-TLV OOB→E-INP-008; (d) if_tsresol option_length=4→E-INP-008; (e) positive control. Greenfield total now 109. All-namespace total now 182. Prior v2.3: Pass-4 R4 / ADR-009 rev 7: added HS-108 (zero-packet notice end-to-end — BC-2.01.009 PC6 / BC-2.01.015 PC9 / H-4). Greenfield total was 108. All-namespace total was 181 (greenfield=108, feature DNP3=32 + ARP=28 + collapse=13 = 73). Also bumped HS-103 (v1.5 +Case D btl=16→E-INP-008), HS-104 (v1.2 +Case E non-mult-4 padding-aware bound), HS-107 (v1.3 +Case F btl=12→E-INP-008) per Decision 20 holdouts.
 status: draft
 producer: product-owner
 timestamp: 2026-06-19T00:00:00Z
 phase: 2
-total_scenarios: 108  # greenfield namespace only; all-namespace total = 181 (see feature_holdout_seeds + Totals table)
-must_pass_count: 107
+total_scenarios: 109  # greenfield namespace only; all-namespace total = 182 (see feature_holdout_seeds + Totals table)
+must_pass_count: 108
 should_pass_count: 1
 total_waves: 27
 feature_holdout_seeds:
@@ -22,7 +22,7 @@ traces_to:
 
 # wirerust Holdout Scenario Index
 
-> **Authoritative registry of all 108 holdout scenarios for the v0.1.0-greenfield-spec cycle,**
+> **Authoritative registry of all 109 holdout scenarios for the v0.1.0-greenfield-spec cycle,**
 > **plus feature holdouts for DNP3 (waves 35-39), ARP (waves 40-44), and Finding-Collapse (wave 47).**
 > Holdout scenarios are sealed evaluations used by the holdout-evaluator agent only.
 > They must NEVER be shown to implementer or test-writer agents.
@@ -39,10 +39,10 @@ traces_to:
 
 | Check | Result |
 |-------|--------|
-| Total HS files present | 108 (HS-001..HS-108) — greenfield set only; see Feature Holdouts section below for DNP3/ARP/collapse |
-| Sequential numbering (no gaps) | PASS — all integers 1..108 present (greenfield HS-NNN sequence) |
+| Total HS files present | 109 (HS-001..HS-109) — greenfield set only; see Feature Holdouts section below for DNP3/ARP/collapse |
+| Sequential numbering (no gaps) | PASS — all integers 1..109 present (greenfield HS-NNN sequence) |
 | Duplicate IDs | NONE |
-| Empty `behavioral_contracts` fields | NONE — all 108 non-empty |
+| Empty `behavioral_contracts` fields | NONE — all 109 non-empty |
 | All waves 1-27 covered | PASS — see per-wave table below (greenfield waves; DNP3 waves 35-39 are in the feature tree) |
 
 ---
@@ -53,14 +53,14 @@ traces_to:
 
 | Metric | Count |
 |--------|-------|
-| Total scenarios (greenfield namespace) | 108 |
-| must-pass (`must_pass: true`) | 107 |
+| Total scenarios (greenfield namespace) | 109 |
+| must-pass (`must_pass: true`) | 108 |
 | should-pass (`must_pass: false`) | 1 |
 | Categories | 5 |
 | Feature holdouts — DNP3 (waves 35-39) | 32 |
 | Feature holdouts — ARP (waves 40-44) | 28 |
 | Feature holdouts — finding-collapse (wave 47) | 13 |
-| **All-namespace total** | **181** |
+| **All-namespace total** | **182** |
 
 ### By Category
 
@@ -69,26 +69,28 @@ traces_to:
 | behavioral-subtleties | 39 |
 | edge-case-combinations | 20 |
 | integration-boundaries | 18 |
-| security-probes | 20 |
+| security-probes | 21 |
 | real-world-corpus | 10 |
-| pcapng-holdouts (new — HS-101..108) | 8 |
-| **TOTAL** | **108** |
+| pcapng-holdouts (new — HS-101..109) | 9 |
+| **TOTAL** | **109** |
 
-> **Note on pcapng-holdouts category:** HS-101..108 are counted in their per-file categories
-> (behavioral-subtleties: HS-101, HS-105, HS-106, HS-108; security-probes: HS-102, HS-104, HS-107;
-> edge-case-combinations: HS-103) AND summarized as a named group here for F2/P4 burst audit
+> **Note on pcapng-holdouts category:** HS-101..109 are counted in their per-file categories
+> (behavioral-subtleties: HS-101, HS-105, HS-106, HS-108; security-probes: HS-102, HS-104, HS-107, HS-109;
+> edge-case-combinations: HS-103) AND summarized as a named group here for F2/P3/P4/P8 burst audit
 > convenience. The per-file `category` field is authoritative. Category counts above include
-> these 8 scenarios distributed as: behavioral-subtleties +3 (HS-101, HS-105, HS-108; HS-106
-> already included), edge-case-combinations +1 (HS-103), security-probes +3 (HS-102, HS-104,
-> HS-107). HS-107 (SPB framing holdout) was added in P3-Burst-Hold to close the C-2/I-14 gap.
+> these 9 scenarios distributed as: behavioral-subtleties +3 (HS-101, HS-105, HS-108; HS-106
+> already included), edge-case-combinations +1 (HS-103), security-probes +4 (HS-102, HS-104,
+> HS-107, HS-109). HS-107 (SPB framing holdout) was added in P3-Burst-Hold to close the C-2/I-14 gap.
 > HS-108 (zero-packet notice end-to-end) was added in Pass-4 R4 for H-4 / BC-2.01.009 PC6 /
-> BC-2.01.015 PC9 disambiguation coverage.
+> BC-2.01.015 PC9 disambiguation coverage. HS-109 (IDB body-decode framing error paths) was added
+> in Pass-8 remediation to close M-2 gap: IDB was the only framing BC without a holdout for
+> body-decode error paths (SHB/EPB/SPB had HS-103/104/107).
 
 ### By Epic
 
 | Epic | Description | Count |
 |------|-------------|-------|
-| E-1 | PCAP Ingestion and Packet Decoding | 16 |
+| E-1 | PCAP Ingestion and Packet Decoding | 17 |
 | E-2 | TCP Stream Reassembly Engine | 28 |
 | E-3 | Content-First Protocol Dispatch | 5 |
 | E-4 | HTTP Traffic Analysis and Threat Detection | 10 |
@@ -98,15 +100,18 @@ traces_to:
 | E-8 | Reporting and Output Formats | 15 |
 | E-9 | CLI, Entry Point, and Analysis Orchestration | 12 |
 | E-10 | Absent Behavior Contracts (Flag Rejection) | 1 |
-| E-11 (pcapng-F2/P4) | pcapng Reader Feature — F2 Burst C + P3 + Pass-4 R4 Holdouts | 8 |
-| **TOTAL** | | **108** |
+| E-11 (pcapng-F2/P4/P8) | pcapng Reader Feature — F2 Burst C + P3 + Pass-4 R4 + Pass-8 M-2 Holdouts | 9 |
+| **TOTAL** | | **109** |
 
 > Each scenario is counted once under its primary `epic_id` from frontmatter.
 > Counts are derived directly from the Scenario Index rows below.
-> HS-101..108 use epic_id "E-1" (PCAP Ingestion) but are additionally tracked under
-> the pcapng-F2 / P3 / P4 grouping above for burst audit visibility.
+> HS-101..109 use epic_id "E-1" (PCAP Ingestion) but are additionally tracked under
+> the pcapng-F2 / P3 / P4 / P8 grouping above for burst audit visibility.
 > HS-107 (SPB framing) was added in P3-Burst-Hold to close the C-2/I-14 gap per ADR-009 rev 5.
 > HS-108 (zero-packet notice) was added in Pass-4 R4 per ADR-009 rev 7 H-4 / BC-2.01.009 PC6.
+> HS-109 (IDB body-decode framing error paths) was added in Pass-8 M-2 remediation to close the
+> gap where BC-2.01.011 (IDB) had no holdout for body-decode error paths (BC-2.01.010/012/013
+> all had holdouts; BC-2.01.011 did not).
 
 ---
 
@@ -115,10 +120,10 @@ traces_to:
 > **Note on Count column arithmetic:** The Count column intentionally counts each multi-wave
 > scenario once in every wave it spans. A scenario assigned to waves 15-18 therefore contributes
 > +1 to each of waves 15, 16, 17, and 18. As a result, the Count column total across all 27 waves
-> exceeds 108 by design — it is not an arithmetic error. The authoritative distinct-scenario total
-> is **108** (greenfield namespace), verified by the By-Epic and By-Category tables above, each of
-> which sums to exactly 108 because each scenario is counted only once.
-> (HS-101..108 are assigned wave "TBD (F2/P3/P4 pcapng reader)" and do not appear in the wave rows
+> exceeds 109 by design — it is not an arithmetic error. The authoritative distinct-scenario total
+> is **109** (greenfield namespace), verified by the By-Epic and By-Category tables above, each of
+> which sums to exactly 109 because each scenario is counted only once.
+> (HS-101..109 are assigned wave "TBD (F2/P3/P4/P8 pcapng reader)" and do not appear in the wave rows
 > below; they are additive to the greenfield count but do not yet have wave assignments.)
 
 Every wave 1-27 has at least one scenario. Column shows count of scenarios covering that wave
@@ -160,7 +165,7 @@ Every wave 1-27 has at least one scenario. Column shows count of scenarios cover
 
 ## Scenario Index
 
-All 107 scenarios, one row each, grouped by epic.
+All 109 scenarios, one row each, grouped by epic.
 
 ### Epic E-1: PCAP Ingestion and Packet Decoding (Waves 1-3)
 
@@ -182,6 +187,7 @@ All 107 scenarios, one row each, grouped by epic.
 | [HS-106](HS-106-pcapng-multi-idb-linktype-agreement-policy.md) | pcapng Multi-IDB Linktype Agreement Policy — Conflict Rejected, Uniform Accepted | behavioral-subtleties | must-pass | TBD (F2 pcapng reader) | BC-2.01.018 (VP-030) |
 | [HS-107](HS-107-pcapng-spb-framing-truncation-padding-and-no-idb.md) | pcapng SPB Framing — Truncation, Padding Strip, No-IDB Guard, Minimum-Length Rejection, and Body-Too-Short (E-INP-008 vs E-INP-010 Split) | security-probes | must-pass | TBD (P3 pcapng reader) | BC-2.01.013 (VP-028, VP-031) |
 | [HS-108](HS-108-pcapng-zero-packet-notice-end-to-end.md) | pcapng Zero-Packet Notice — End-to-End Stderr Notice, Skip-Count Inclusion, and Error vs. Notice Disambiguation | behavioral-subtleties | must-pass | TBD (P4 pcapng reader) | BC-2.01.009 (PC6), BC-2.01.015 (PC9) |
+| [HS-109](HS-109-pcapng-idb-body-decode-framing-error-paths.md) | pcapng IDB Body-Decode Framing — Body-Too-Short, Reserved Field, Malformed Options TLV, if_tsresol Length Enforcement, and Positive Control | security-probes | must-pass | TBD (P8 pcapng reader) | BC-2.01.011 (VP-026, VP-027) |
 
 ### Epic E-2: TCP Stream Reassembly Engine (Waves 4-11)
 
@@ -329,10 +335,11 @@ was inverted by BC-2.01.009 (F2 pcapng reader feature). The stale banner and fro
 `lifecycle_status: stale` have been in place since 2026-06-19. Rewrite is F3/STORY-127
 scope. HS-001 is excluded from the active gate set until rewritten.
 
-**Known — HS-101..108 wave TBD:** These eight scenarios were authored in F2 Burst C (HS-101..106),
-P3-Burst-Hold (HS-107), and Pass-4 R4 (HS-108) before story decomposition assigned wave numbers.
-Wave column is "TBD (F2/P3/P4 pcapng reader)". Story-writer must update this column after story
-decomposition assigns wave numbers. This is a documentation gap, not a scenario defect.
+**Known — HS-101..109 wave TBD:** These nine scenarios were authored in F2 Burst C (HS-101..106),
+P3-Burst-Hold (HS-107), Pass-4 R4 (HS-108), and Pass-8 M-2 remediation (HS-109) before story
+decomposition assigned wave numbers. Wave column is "TBD (F2/P3/P4/P8 pcapng reader)".
+Story-writer must update this column after story decomposition assigns wave numbers. This is a
+documentation gap, not a scenario defect.
 
 **Fixed — HS-103 Case C error code (P3-Burst-Hold I-8):** HS-103 Case C previously expected
 E-INP-008; corrected to E-INP-010 in v1.3. A 15-byte file (below SHB minimum) cannot be framed
@@ -361,15 +368,26 @@ end-to-end scenario with 3 cases: (a) valid SHB+IDB no EPB/SPB → notice withou
 exit 0; (b) valid pcapng with 2 skipped unknown blocks → notice with "(2 block(s) skipped)",
 exit 0; (c) malformed pcapng (EPB before IDB, E-INP-009) → error, exit 1, NO notice.
 
+**Added — HS-109 (Pass-8 M-2 / BC-2.01.011 IDB body-decode error paths):** IDB was the only
+framing BC with no holdout covering body-decode error paths (SHB/EPB/SPB all had HS-103/104/107).
+HS-109 closes this gap with 5 cases: (a) btl=16 → body=4 < 8 IDB fixed-field minimum → E-INP-008
+(mirrors HS-103 Case D for SHB); (b) reserved field non-zero → E-INP-008 (structural IDB error);
+(c) options-TLV option_length exceeds remaining body → E-INP-008 (bounds-check fires before OOB);
+(d) if_tsresol (code 9) option_length=4 (not 1) → E-INP-008 (semantic length enforcement per
+F-M5/ADR-009 rev 9); (e) well-formed IDB + EPB → exit 0, total_packets=1 (positive control).
+All error cases produce E-INP-008 (wirerust body-decode path), NOT E-INP-010 (crate framing path).
+
 All other checks passed for the greenfield set:
 
-- HS-001 through HS-108 present with no other gaps or duplicates (greenfield HS-NNN sequence)
-- All 108 `behavioral_contracts` fields are non-empty
+- HS-001 through HS-109 present with no other gaps or duplicates (greenfield HS-NNN sequence)
+- All 109 `behavioral_contracts` fields are non-empty
 - All 27 waves (1-27) have at least one scenario (HS-101..108 are additive; no existing wave is affected)
 - One should-pass scenario: HS-025 (ICS Tactic Display — lower priority feature)
-- HS-001..100 carry concrete per-file `inputs`; HS-101..108 carry BC `inputs` (story inputs added after story decomposition)
+- HS-001..100 carry concrete per-file `inputs`; HS-101..109 carry BC `inputs` (story inputs added after story decomposition)
 
 > **Note:** This index covers the v0.1.0 greenfield holdout set (HS-NNN sequence, waves 1-27).
+> Greenfield total is 109 (HS-001..HS-109). All-namespace total is 182 (greenfield=109,
+> feature DNP3=32 + ARP=28 + collapse=13 = 73).
 > Feature-mode holdouts for SS-15 DNP3 (v0.6.0, waves 35-39) use the HS-W35-NNN / HS-W38-NNN
 > namespace and are tracked separately in the feature holdout tree — see the
 > "Feature Holdouts (SS-15 DNP3, waves 35-39)" section below.

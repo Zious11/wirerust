@@ -14,6 +14,34 @@ changes, invariant rewrites).
 
 ---
 
+## [pcapng-f2-pass8-clean-and-medium-remediation-2026-06-20] — 2026-06-20
+
+### PASS-8 CLEAN (0H/0C) — CLEAN-PASS 1/3; 3 MEDIUM REMEDIATED; ADR-009 ACCEPTED — D-161
+
+**Trigger:** F2 adversary pass-8 completed with verdict CLEAN (0C/0H/3M/5L). This is
+clean-pass 1 of 3 required (BC-5.39.001). All 3 MEDIUM findings and O-2 observation
+remediated in this burst. O-1 DEFERRED-TO-F3.
+
+**Version bumps this burst:**
+
+| Artifact | Before | After | Reason |
+|----------|--------|-------|--------|
+| error-taxonomy | v3.4 | v3.5 | M-1: SPB-fixed-min prose — E-INP-008 SPB entry cites SPB_FIXED_MIN=16; btl=12/btl=16 boundary clarified |
+| HS-109 | — | v1.0 (new) | M-2: IDB body-decode holdout gap — 5 cases covering btl=16 body<8, reserved!=0, options-TLV OOB, if_tsresol length!=1, positive control |
+| HS-INDEX | v2.3 | v2.4 | M-2: HS-109 added; greenfield 108→109; all-namespace 181→182; must_pass 108 |
+| BC-2.01.013 | v1.7 | v1.8 | M-3: AC-001 test name renamed (snaplen_lookup_guarded → empty_interface_table_guarded per DF-AC-TEST-NAME-SYNC-001); scope note clarified |
+| ADR-009 | rev 9 | rev 9 (status) | O-2: status field proposed→accepted (no content change) |
+| BC-INDEX | v1.65 | v1.66 | BC-2.01.013 v1.7→v1.8 annotation sync; clean-pass 1/3 recorded |
+
+**Clean-pass milestone:** Pass-8 is clean-pass 1/3. Trajectory: 23/24/17/13/13/13/12/8.
+Adversary pass-9 pending (targeting clean-pass 2/3). F3 BLOCKED until 3 consecutive clean passes.
+
+**O-1 disposition:** Framing-constant validator (cross-document grep of per-block constants)
+DEFERRED-TO-F3. A bin/ script cannot be added in F2 spec-only phase. F3 story decomposition
+checklist should evaluate whether to scope this as an implementation-story add-on.
+
+---
+
 ## [pcapng-f2-pass7-reaudit-minors-2026-06-20] — 2026-06-20
 
 ### PASS-7 RE-AUDIT: 2 MINOR METADATA/RUBRIC FINDINGS FIXED — D-160

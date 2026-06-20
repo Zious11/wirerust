@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.7"
+version: "1.8"
 status: draft
 producer: product-owner
 timestamp: 2026-06-19T00:00:00Z
@@ -15,6 +15,7 @@ introduced: v0.10.0-pcapng
 modified:
   - "v1.6: Pass-6 remediation T1 — ADR-009 rev 9 Decision 22: resolved contradictory body-bound definitions. On the raw path RawBlock.body = [original_len:4][padded data], so the available data bytes after original_len = spb_data_available = body.len() - 4 (NOT body.len(), which is 4 bytes too large). Canonical formula everywhere: captured_len = min(original_len, spb_data_available) = min(original_len, body.len() - 4). Deleted all 'equivalently body.len()' / 'body.len() as the bound' text. Updated: Description (define spb_data_available symbol), PC1 (use spb_data_available), Invariant-2 (canonical symbol definition), AC-002 (min(original_len, body.len()-4)), EC-007 (captured_len = body.len()-4 when original_len > spb_data_available), VP-031 row (property min(original_len, body.len()-4); domain starts where body.len()>=4, else E-INP-008 body-too-short), Architecture Anchors (remove body.len() bare equivalences). — 2026-06-20"
   - "v1.7: Pass-7 remediation per ADR-009 rev 9 (F-7 symbol rename; F-8 misaligned fixture) — (F-7) Renamed retired symbol `block_body_available` → `spb_data_available` in EC-001, EC-002, EC-003, and Canonical Test Vectors; each value confirmed as min(original_len, body.len()-4). Also updated stale `block_body_available` reference in Precondition 4. (F-8) Expanded EC-005 to enumerate both crate-rejection sub-cases: (a) btl < 12 (e.g., btl=8) → crate rejects → E-INP-010; (b) btl=14 (>=12 but 14%4!=0) → crate rejects for 4-byte alignment → E-INP-010. Added canonical test vector for the btl=14 misaligned case so the BC's enumerated cases match HS-107 Case E and make clear that E-INP-010 fires for misalignment (not only for btl<12). No residual `block_body_available` occurrences remain in EC-001–EC-003 or Canonical Test Vectors. — 2026-06-20"
+  - "v1.8: Pass-8 M-3 remediation (DF-AC-TEST-NAME-SYNC-001) — AC-001 test name renamed: `test_BC_2_01_013_snaplen_lookup_guarded` → `test_BC_2_01_013_empty_interface_table_guarded`. Snaplen was removed from the SPB path (ADR-009 rev 8 Decision 9 amendment / rev 9 F-M3); the old name was stale. AC-001 scope note clarified: the guard solely prevents an unchecked index on an empty interface table (E-INP-009 path); the body-too-short error path (btl=12 → body=0 < 4 → E-INP-008) is handled distinctly by AC-004a/EC-008, so these ACs are non-redundant. No normative behavior change. — 2026-06-20"
   - "v1.5: Pass-5 remediation S2 — ADR-009 rev 8 Decision 9 amendment: snaplen DROPPED from SPB captured_len. Decision 9 states snaplen is NOT enforced for SPB (same as EPB). captured_len now = min(original_len, block_body_available) everywhere — block_body_available = body.len() is the authoritative on-disk bound. Removed snaplen from: Description, PC1, AC-002, EC-007, EC-001, Invariant 2, Canonical Test Vectors, Architecture Anchors. VP-031 updated: captured_len == min(original_len, body.len() as u32). EC-007 'snaplen wins' case restated: original_len > block_body_available → data clamped to block_body_available. HS-107 VP row description corrected to match HS-107 actual scope (SPB framing truncation/padding/no-IDB, incl. Case F btl=12→E-INP-008). Removed 4x stale '(HS-107 btl=12→E-INP-008 holdout deferred to a separate burst.)' notes — HS-107 Case F now covers it. — 2026-06-20"
   - "v1.4: Pass-4 remediation R2 — Decision 20: added body-too-short E-INP-008 case for SPB: btl=12 (aligned, >=12, crate frames and returns block) → body=0 bytes < 4 SPB fixed-field bytes (original_len:u32) → wirerust body-decode → E-INP-008. Distinguishes from btl<12/misaligned/EOF → crate Err → E-INP-010. Updated Postcondition 6, added EC-008, added AC-004a body-truncation test, updated Canonical Test Vectors and Traceability. M-1: removed 'crate enforces body minimum' over-claim from Architecture Anchors — wirerust checks body.len()>=4 itself on the raw path before decoding SPB fixed fields. Authority: ADR-009 rev 7 Decision 20, per-block fixed-field minimum SPB=4. — 2026-06-20"
   - "v1.1: F2 Burst-A remediation per ADR-009 rev 4 PO dispatch — (1) Corrected SPB body-relative fixed overhead to 4 bytes (original_len: u32 only; H-2 fix — was incorrectly stated as 20 bytes in the Description and Postcondition 1). (2) Corrected minimum block_total_length to 16 bytes (12 outer + 4 body-fixed); available padded-data bytes = block_total_length - 16. (3) Added explicit note: RawBlock `data` includes padding — caller MUST compute captured_len = min(original_len, snaplen) and strip accordingly. (4) Added SPB-without-IDB case as E-INP-009 (empty interface table; do NOT index idb[0] unguarded — H-4). (5) Added no-panic AC (SEC-005). (6) Removed incorrect 'block_total_length - 20' formula from Postcondition 1 (20 was the EPB overhead, not SPB). — 2026-06-19"
@@ -94,8 +95,11 @@ specification. Timestamp fields on `RawPacket` are always set to zero for SPBs.
   non-empty before processing an SPB. If the interface table is empty, return `Err` mapping
   to E-INP-009 rather than indexing an empty Vec. Snaplen from `idb[0]` is NOT used in
   the SPB `captured_len` computation (ADR-009 rev 8 Decision 9 amendment); this guard
-  solely prevents an unchecked index on an empty table.
-  **Test:** `test_BC_2_01_013_snaplen_lookup_guarded`
+  solely prevents an unchecked index on an empty table (the structural precondition for
+  E-INP-009). **Scope note:** this AC covers only the empty-table index guard (EC-006). The
+  body-too-short error path (btl=12 → body=0 < 4 bytes → E-INP-008) is a distinct concern
+  handled by AC-004a and EC-008; these two ACs are non-redundant.
+  **Test:** `test_BC_2_01_013_empty_interface_table_guarded`
 - **AC-002 (padding strip):** The raw `data` slice from the crate INCLUDES padding bytes to
   the 4-byte boundary. On the raw path `RawBlock.body = [original_len:4][padded data]`, so
   the available data bytes after `original_len` = `spb_data_available = body.len() - 4`.

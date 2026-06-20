@@ -1,7 +1,7 @@
 ---
 document_type: adr
 adr_id: ADR-009
-status: proposed
+status: accepted
 date: 2026-06-19
 subsystems_affected:
   - SS-01
@@ -10,6 +10,20 @@ superseded_by: null
 ---
 
 # ADR-009: pcapng Capture-Format Reader Support (rev 9)
+
+## Status
+
+**Accepted** — 2026-06-20.
+
+Lifecycle transition; revision number remains rev 9 (status change is not a
+decision-content revision). All 10 behavioral contracts (BC-2.01.004 retired/inverted
+plus BC-2.01.005..018), all seven verification properties (VP-025..031), and 8
+Phase-4 holdout scenarios were authored against this ADR as a normative source of
+truth throughout the F2 feature cycle. F2 adversarial convergence reached its first
+clean pass at pass 8 (0 HIGH / 0 CRITICAL findings). Status promoted from `proposed`
+to `accepted` to reflect full downstream adoption and clean spec convergence.
+
+---
 
 > **One-per-file:** Each architectural decision lives in its own file.
 > Filename convention: `ADR-NNN-<short-name>.md` (e.g., `ADR-001-rust-dispatcher.md`)
