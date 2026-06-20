@@ -1,7 +1,7 @@
 ---
 document_type: holdout-scenario-index
 level: ops
-version: "2.1"  # P3-Burst-Hold v2.1: added HS-107 (SPB framing holdout — BC-2.01.013 / VP-028 / C-2/I-14 gap). Greenfield total now 107. All-namespace total now 180 (greenfield=107, feature DNP3=32 + ARP=28 + collapse=13 = 73). F2-Burst-C v2.0: added 6 pcapng holdout scenarios (HS-101..106) for VP-025..030 per ADR-009 rev 4 / C-3 / DF-CANONICAL-FRAME-HOLDOUT-001. Greenfield total was 106. F3-Phase-47 v1.8: added wave-47 finding-collapse feature holdouts (13 scenarios, HS-W47-001..013, P0 all, STORY-118 / issue-259). v1.9: docs-only — add all-namespace total note per F3 audit (greenfield=106, feature DNP3=32 + ARP=28 + collapse=13 = 73, all-namespace=179).
+version: "2.2"  # P3-re-audit FINDING-P3-003+P3-004: HS-107 row VP column updated from "(VP-028)" to "(VP-028, VP-031)" — adds SPB framing proptest assigned in pass-3. P3-Burst-Hold v2.1: added HS-107 (SPB framing holdout — BC-2.01.013 / VP-028 / C-2/I-14 gap). Greenfield total now 107. All-namespace total now 180 (greenfield=107, feature DNP3=32 + ARP=28 + collapse=13 = 73). F2-Burst-C v2.0: added 6 pcapng holdout scenarios (HS-101..106) for VP-025..030 per ADR-009 rev 4 / C-3 / DF-CANONICAL-FRAME-HOLDOUT-001. Greenfield total was 106. F3-Phase-47 v1.8: added wave-47 finding-collapse feature holdouts (13 scenarios, HS-W47-001..013, P0 all, STORY-118 / issue-259). v1.9: docs-only — add all-namespace total note per F3 audit (greenfield=106, feature DNP3=32 + ARP=28 + collapse=13 = 73, all-namespace=179).
 status: draft
 producer: product-owner
 timestamp: 2026-06-19T00:00:00Z
@@ -177,7 +177,7 @@ All 107 scenarios, one row each, grouped by epic.
 | [HS-104](HS-104-pcapng-epb-framing-interface-id-bounds-and-captured-len-guard.md) | pcapng EPB Framing — Interface-ID Bounds Checks and Captured-Len Guard | security-probes | must-pass | TBD (F2 pcapng reader) | BC-2.01.012 (VP-027) |
 | [HS-105](HS-105-pcapng-block-walk-skip-forward-progress-and-dsb.md) | pcapng Block-Walk Skip — Forward Progress at End-of-Stream and DSB Followed by Valid EPB | behavioral-subtleties | must-pass | TBD (F2 pcapng reader) | BC-2.01.015 (VP-029) |
 | [HS-106](HS-106-pcapng-multi-idb-linktype-agreement-policy.md) | pcapng Multi-IDB Linktype Agreement Policy — Conflict Rejected, Uniform Accepted | behavioral-subtleties | must-pass | TBD (F2 pcapng reader) | BC-2.01.018 (VP-030) |
-| [HS-107](HS-107-pcapng-spb-framing-truncation-padding-and-no-idb.md) | pcapng SPB Framing — Truncation, Padding Strip, No-IDB Guard, and Minimum-Length Rejection | security-probes | must-pass | TBD (P3 pcapng reader) | BC-2.01.013 (VP-028) |
+| [HS-107](HS-107-pcapng-spb-framing-truncation-padding-and-no-idb.md) | pcapng SPB Framing — Truncation, Padding Strip, No-IDB Guard, and Minimum-Length Rejection | security-probes | must-pass | TBD (P3 pcapng reader) | BC-2.01.013 (VP-028, VP-031) |
 
 ### Epic E-2: TCP Stream Reassembly Engine (Waves 4-11)
 

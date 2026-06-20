@@ -1,10 +1,10 @@
 ---
 document_type: bc-index
 level: L3
-version: "1.56"
+version: "1.57"
 status: draft
 producer: product-owner
-timestamp: 2026-06-19T23:30:00Z
+timestamp: 2026-06-19T23:45:00Z
 phase: 1a
 traces_to: .factory/specs/prd.md
 ---
@@ -15,6 +15,8 @@ traces_to: .factory/specs/prd.md
 > links to the individual BC file. BCs are sharded into per-subsystem directories (ss-NN/).
 >
 > All BCs are marked [WRITTEN]. Body files have been verified on disk for all 303 entries (293 prior + 10 new BC-2.01.009–018 for F2 pcapng-reader-support; BC-2.01.004 retired).
+>
+> **v1.57 2026-06-19 (F2 pass-3 cross-seam re-audit gap fixes — pcapng-f2-pass3-reaudit-fixes-2026-06-19):** BC-2.01.018 inline annotation synced v1.3→v1.4 (P3-002: Related-BCs order fix applied in pass-3 re-audit). error-taxonomy v3.0 (P3-001: E-INP-008 scope note clarification). HS-107 v1.2 (P3-003: VP-031 traceability added; P3-004: Case B three-way min explicit). HS-INDEX v2.2 (HS-107 VP column updated VP-028→VP-028,VP-031). Active BC count stays 302. D-148.
 >
 > **v1.56 2026-06-19 (F2 pass-3 adversarial remediation — pcapng-f2-pass3-remediation-2026-06-19):** Inline version annotations synced to on-disk BC frontmatter for 10 BCs: BC-2.01.009 v1.2→v1.3 (M-1 traceability path corrected + pass-3 FIXED); BC-2.01.010 v1.7→v1.8 (H-1 E-INP-008 narrowed to semantic-only / SHB framing→E-INP-010; H-2 IDB constructible-fixture window 12<=btl<20); BC-2.01.011 v1.2→v1.3 (H-2 IDB fixture window; H-5 per-SHB reset dead-spec deferred — Decision 16); BC-2.01.012 v1.2→v1.3 (H-5 dead-spec; O-1 PC5 re-cite); BC-2.01.013 v1.2→v1.3 (C-1 SPB three-way min panic fix; H-4 EC-007/Case-B propagated); BC-2.01.014 v1.2→v1.3 (M-4 ts_high==0 parity scope); BC-2.01.015 v1.3→v1.4 (H-5 dead-spec; Decision 16); BC-2.01.016 v1.2→v1.3 (H-3 E-INP-001 wired into BC-2.01.017); BC-2.01.017 v1.3→v1.4 (H-3 E-INP-001 added to error-code table; error-taxonomy v2.9); BC-2.01.018 v1.2→v1.3 (H-5 dead-spec EC-005 → E-INP-012; Decision 16). Active count stays 302. VP-INDEX v2.5 (VP-031 SPB proptest; total 31). ADR-009 rev 6 (Decision 16 dead-spec / Decision 17 precedence / Decision 18 VP-031). error-taxonomy v2.9 (next_free E-INP-014). verification-architecture.md v2.1. verification-coverage-matrix.md v1.15. HS-103 v1.4; HS-104 v1.1; HS-107 v1.1. D-147.
 >
@@ -90,7 +92,7 @@ traces_to: .factory/specs/prd.md
 | BC-2.01.015 | Unknown pcapng Block Types Are Silently Skipped via block-total-length | P1 | [WRITTEN] | feature-pcapng-F2 | <!-- v1.4: greenfield; ADR-009 Decision 2; STORY-126; v1.1: skip-arm enumeration; v1.2: forward-progress AC, VP-029; v1.3: E-INP-013 route (Decision 15); v1.4: H-5 per-SHB reset dead-spec note removed — second SHB rejected before reset fires (Decision 16 / Decision 7) -->
 | BC-2.01.016 | Reject pcapng with Unsupported Link Type in IDB (Mirrors BC-2.01.001) | P0 | [WRITTEN] | feature-pcapng-F2 | <!-- v1.3: greenfield; CAP-02; identical whitelist to BC-2.01.001; STORY-124; v1.1: no-panic AC; v1.2: linktype-whitelist at IDB-parse time (Decision 15); v1.3: H-3 E-INP-001 wired — BC-2.01.016 now registered as BC-ref in error-taxonomy E-INP-001 entry -->
 | BC-2.01.017 | pcapng Block-Level Parse Errors Surface via anyhow Context Chain | P1 | [WRITTEN] | feature-pcapng-F2 | <!-- v1.4: greenfield; STORY-126; v1.1: trace updated; v1.2: VP-028 cargo-fuzz, E-INP-009 routing; v1.3: E-INP-013 added (Decision 15); v1.4: H-3 E-INP-001 added to error-code table (linktype reject; range now E-INP-001 + E-INP-008..E-INP-013); error-taxonomy v2.9 -->
-| BC-2.01.018 | Multi-IDB Link-Type Agreement Policy: Conflict Returns Error (Fail-Closed) | P0 | [WRITTEN] | feature-pcapng-F2 | <!-- v1.3: greenfield; ADR-009 Decision 3; E-INP-011; STORY-124; v1.1: actionable E-INP-011 message, isolation AC; v1.2: STORY-128 re-attribution, OPB-only zero-packet, VP-030; v1.3: H-5 dead-spec EC-005 corrected — multi-section rejected via E-INP-012 (Decision 7), not "succeeds per section"; per-SHB reset deferred (Decision 16) -->
+| BC-2.01.018 | Multi-IDB Link-Type Agreement Policy: Conflict Returns Error (Fail-Closed) | P0 | [WRITTEN] | feature-pcapng-F2 | <!-- v1.4: greenfield; ADR-009 Decision 3; E-INP-011; STORY-124; v1.1: actionable E-INP-011 message, isolation AC; v1.2: STORY-128 re-attribution, OPB-only zero-packet, VP-030; v1.3: H-5 dead-spec EC-005 corrected — multi-section rejected via E-INP-012 (Decision 7), not "succeeds per section"; per-SHB reset deferred (Decision 16); v1.4: P3-002 Related-BCs order fix (pass-3 re-audit gap) --> |
 
 ## ss-02: Link-Type Gating / Packet Decoding (CAP-02 + CAP-03)
 

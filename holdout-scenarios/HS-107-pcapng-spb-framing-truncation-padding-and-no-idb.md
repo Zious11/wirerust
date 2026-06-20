@@ -1,7 +1,7 @@
 ---
 document_type: holdout-scenario
 level: ops
-version: "1.0"
+version: "1.2"  # P3-re-audit FINDING-P3-003: added VP-031 (SPB framing proptest) to verification_properties. FINDING-P3-004: Case B captured_len restated as three-way min(original_len=200, snaplen=100, block_body_available=100)=100 to match BC-2.01.013 three-way contract.
 status: draft
 producer: product-owner
 timestamp: 2026-06-19T00:00:00Z
@@ -19,6 +19,7 @@ behavioral_contracts:
   - BC-2.01.013
 verification_properties:
   - VP-028
+  - VP-031
 lifecycle_status: active
 introduced: v0.9.x-pcapng-reader
 last_evaluated: null
@@ -68,13 +69,8 @@ block_total_length = 12 (outer header: type[4]+total_len[4]+trailing_len[4]) + 4
      section_length=`FF FF FF FF FF FF FF FF`)
    - IDB (block_type=`01 00 00 00`, linktype=1 Ethernet, snaplen=65535;
      block_total_length=20: 12 outer + 8 body-fixed for linktype[2]+reserved[2]+snaplen[4])
-   - SPB with a 20-byte Ethernet payload:
-     ```
-     block_type:         03 00 00 00
-     block_total_length: 28 00 00 00   # 16 + 12 (20 bytes padded to 24; but 20%4=0, no padding)
-                                        # Actually 16 + 20 = 36; LE: 24 00 00 00
-     ```
-     Corrected: N=20, padding=(4-20%4)%4=0, block_total_length=16+20=36 (LE: `24 00 00 00`).
+   - SPB with a 20-byte Ethernet payload (N=20, padding=(4-20%4)%4=0,
+     block_total_length=16+20=36, LE: `24 00 00 00`):
      ```
      block_type:         03 00 00 00
      block_total_length: 24 00 00 00   # 36 decimal
@@ -113,8 +109,12 @@ Hex: 03 00 00 00  24 00 00 00  14 00 00 00
      ```
 2. The user runs `wirerust analyze spb_snaplen_clamp.pcapng --json`.
 3. The tool exits 0. `total_packets: 1`. The `RawPacket` data length is 100 bytes
-   (`captured_len = min(200, 100) = 100`; snaplen wins). The tool does NOT attempt to
-   read 200 bytes from a 100-byte block body; no out-of-bounds read occurs.
+   (`captured_len = min(original_len=200, snaplen=100, block_body_available=100) = 100`;
+   all three limits coincide here — snaplen and block_body_available both cap at 100;
+   a two-way `min(original_len, snaplen)` impl would produce the same result in this fixture,
+   but would diverge if block_body_available < snaplen, e.g. a file truncated mid-body).
+   The tool does NOT attempt to read 200 bytes from a 100-byte block body; no out-of-bounds
+   read occurs.
 
 ### Case C — SPB with original_len NOT 4-byte-aligned (padding bytes stripped)
 
@@ -149,12 +149,8 @@ not the padded length of 16.
 1. A crafted pcapng file is presented containing:
    - SHB (LE, same as Case A)
    - **NO IDB** — the interface table is empty when the SPB arrives
-   - SPB with a minimal 4-byte payload:
-     ```
-     block_type:         03 00 00 00
-     block_total_length: 18 00 00 00   # 16 + 4 = 20 (wait: 16+4=20, LE: 14 00 00 00)
-     ```
-     Corrected: N=4, padding=0, block_total_length=16+4=20 (LE: `14 00 00 00`).
+   - SPB with a minimal 4-byte payload (N=4, padding=0,
+     block_total_length=16+4=20, LE: `14 00 00 00`):
      ```
      block_type:         03 00 00 00
      block_total_length: 14 00 00 00   # 20 decimal
@@ -244,8 +240,9 @@ Expect: non-zero exit, error on stderr consistent with E-INP-010, no JSON on std
 - **Padding-strip correctness** (weight: 0.30): Cases A and C — `data.len()` is exactly
   `captured_len = min(original_len, snaplen)` after the crate's padded slice is trimmed.
   Case A confirms no truncation when not needed. Case C confirms padding bytes are NOT included.
-- **Snaplen clamp correctness** (weight: 0.25): Case B — `data.len() == snaplen` (100) when
-  `original_len` (200) exceeds `snaplen`; no read beyond block body.
+- **Snaplen clamp correctness** (weight: 0.25): Case B — `data.len() == 100` when
+  `min(original_len=200, snaplen=100, block_body_available=100) = 100`; no read beyond block body.
+  The three-way min makes the bound observable: all three limits converge to 100 in this fixture.
 - **No-panic safety** (weight: 0.25): Cases D and E — unchecked `idb[0]` access and
   below-minimum block size both return graceful `Err`, never panic or produce Rust backtraces.
 - **Error specificity** (weight: 0.10): Cases D and E produce distinct errors (E-INP-009 vs

@@ -10,7 +10,7 @@ sources:
 date_created: 2026-06-19
 status: PASS3-REMEDIATED-PASS4-PENDING
 f3_blocked: true
-f3_blocker_reason: "Adversarial reconvergence required (3 clean passes). Pass-1 items addressed (D-142/D-143). Pass-2 items addressed (D-144). Pass-2 cross-seam re-audit CLEAN (D-145). Pass-3 NOT CLEAN (D-146): 1C/5H/7M/4L. Pass-3 remediation COMPLETE (D-147): all pass-3 findings FIXED pending pass-4 verification. Clean-pass counter 0/3."
+f3_blocker_reason: "Adversarial reconvergence required (3 clean passes). Pass-1 items addressed (D-142/D-143). Pass-2 items addressed (D-144). Pass-2 cross-seam re-audit CLEAN (D-145). Pass-3 NOT CLEAN (D-146): 1C/5H/7M/4L. Pass-3 remediation COMPLETE (D-147): all pass-3 findings FIXED pending pass-4 verification. Pass-3 cross-seam re-audit gap fixes COMPLETE (D-148): 4 gaps (FINDING-P3-001..004) FIXED; all 12 seams now clean. Clean-pass counter 0/3."
 ---
 
 # F2 Review Remediation Tracker — pcapng Reader
@@ -246,3 +246,20 @@ Clean-pass counter: 0/3. Remediation round-3 required.
 | O-2 | LOW | HS-107 Case A/D contain stale pre-correction byte lines (pre-D-143/D-144). | FIXED — HS-107 v1.1: stale pre-correction hex lines removed from Case A and Case D; only corrected byte values remain (D-147). Pending pass-4 verification. |
 | O-3 | LOW [process-gap] | Stale "taxonomy updated in separate burst" forward-reference notes for error codes that have since landed; no validator that forward-referenced codes exist on disk. | FIXED — BC-2.01.017 v1.4: stale forward-reference notes removed (D-147). Pending pass-4 verification. |
 | O-4 | informational | VP-INDEX arithmetic GREEN — no action required. | CLOSED |
+
+---
+
+## Pass-3 Cross-Seam Re-Audit (D-148 burst — 2026-06-19)
+
+**Audit scope:** 12 seams across error-taxonomy, BC-INDEX, HS-INDEX, VP-INDEX, ADR-009, and per-BC
+files after D-147 pass-3 remediation burst.
+**Verdict:** PARTIALLY CLEAN — 8/12 seams clean; 4 prose-layer gaps identified and fixed in D-148.
+
+| ID | Severity | Seam | Finding | Status |
+|----|----------|------|---------|--------|
+| FINDING-P3-001 | Major | error-taxonomy E-INP-008 scope note | After H-1/H-2 narrowing (D-147), E-INP-008 scope note remained ambiguous — did not explicitly exclude framing/length truncation paths that now route to E-INP-010. Implementer reading taxonomy alone could mis-route truncated SHB/IDB frames to E-INP-008. | FIXED — error-taxonomy v2.9→v3.0: scope note now explicitly states E-INP-008 fires only for semantic validation failures (invalid BOM bytes, major version != 1); framing/length truncation routes to E-INP-010. D-148. |
+| FINDING-P3-002 | Minor | BC-2.01.018 Related-BCs order | BC-2.01.018 v1.3 Related-BCs list introduced during H-5 dead-spec fix (D-147) had non-canonical ordering — did not follow BC numeric sequence. Annotation in BC-INDEX still showed v1.3. | FIXED — BC-2.01.018 v1.3→v1.4: Related-BCs list reordered to canonical numeric sequence; no normative content changed. BC-INDEX v1.56→v1.57 (annotation synced to v1.4). D-148. |
+| FINDING-P3-003 | Minor | HS-107 VP-031 traceability | HS-107 verification_properties listed only VP-028 (cargo-fuzz) after D-147. VP-031 (SPB captured-len proptest, assigned in D-147 M-2 / ADR-009 Decision 18) was not reflected in HS-107 traceability or HS-INDEX VP column. | FIXED — HS-107 v1.1→v1.2: VP-031 added to verification_properties. HS-INDEX v2.1→v2.2: HS-107 row VP column updated from "(VP-028)" to "(VP-028, VP-031)". D-148. |
+| FINDING-P3-004 | Obs | HS-107 Case B three-way min prose | HS-107 Case B captured_len computation prose still referenced the pre-D-147 two-way min form, inconsistent with BC-2.01.013 PC1 three-way contract fixed in C-1 (D-147). | FIXED — HS-107 v1.2 (same bump as P3-003): Case B captured_len explicitly restated as three-way min(original_len=200, snaplen=100, block_body_available=100)=100 to match BC-2.01.013 PC1 contract. D-148. |
+
+All 8 remaining seams (1-4, 6-7, 9-11) verified CLEAN against disk after D-147. D-148 closes all 4 prose-layer gaps. Cross-seam re-audit verdict: CLEAN (all 12 seams now pass).

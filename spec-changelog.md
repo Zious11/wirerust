@@ -14,6 +14,38 @@ changes, invariant rewrites).
 
 ---
 
+## [pcapng-f2-pass3-reaudit-fixes-2026-06-19] — 2026-06-19
+
+### PASS-3 CROSS-SEAM RE-AUDIT GAP FIXES: 4 ITEMS (1 Major / 2 Minor / 1 Obs) — ALL FIXED
+
+**Trigger:** F2 pass-3 cross-seam re-audit identified 4 prose-layer gaps not caught during the
+pass-3 remediation burst (D-147). All 4 gaps are fixed in this burst. 8 of 12 re-audit seams
+were already clean. Pass-4 adversary dispatch is next.
+
+- **P3-001 (error-taxonomy E-INP-008 scope note — v3.0):** [Major] E-INP-008 scope note in
+  error-taxonomy was ambiguous after the H-1/H-2 semantic-only narrowing applied in D-147. The
+  scope note now explicitly states that E-INP-008 fires only for semantic validation failures
+  (invalid BOM bytes, major version != 1) and never for framing/length truncation (which routes
+  to E-INP-010). error-taxonomy v2.9→v3.0.
+
+- **P3-002 (BC-2.01.018 Related-BCs order fix — v1.4):** [Minor] BC-2.01.018 Related-BCs list
+  had an ordering inconsistency introduced during the H-5 dead-spec fix (D-147): the list order
+  did not follow the canonical BC numeric sequence. Reordered to canonical form. No normative
+  content changed. BC-2.01.018 v1.3→v1.4. BC-INDEX v1.56→v1.57.
+
+- **P3-003 (HS-107 VP-031 traceability — v1.2):** [Minor] HS-107 verification_properties field
+  listed only VP-028 (cargo-fuzz) after the pass-3 remediation burst, but VP-031 (SPB
+  captured-len proptest, assigned in D-147 M-2) was not added to the HS-107 traceability block.
+  Added VP-031 to HS-107 verification_properties. HS-107 v1.1→v1.2. HS-INDEX v2.1→v2.2
+  (HS-107 row VP column updated from "(VP-028)" to "(VP-028, VP-031)").
+
+- **P3-004 (HS-107 Case B three-way min — v1.2):** [Obs] HS-107 Case B captured_len
+  computation prose referenced the two-way form prior to the C-1/H-4 fix (D-147); updated to
+  explicit three-way `min(original_len=200, snaplen=100, block_body_available=100)=100` to match
+  BC-2.01.013 PC1 three-way contract. HS-107 v1.2 (same bump as P3-003).
+
+---
+
 ## [pcapng-f2-pass3-remediation-2026-06-19] — 2026-06-19
 
 ### PASS-3 ADVERSARIAL REMEDIATION: 1 CRITICAL / 5 HIGH / 7 MEDIUM / 4 LOW — HIGH novelty
