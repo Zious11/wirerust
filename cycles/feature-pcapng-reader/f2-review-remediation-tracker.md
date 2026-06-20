@@ -8,9 +8,9 @@ sources:
   - performance-review
   - adversarial-spec-review-pass2 (ADV-F2-PASS2)
 date_created: 2026-06-19
-status: PASS3-REMEDIATED-PASS4-PENDING
+status: PASS4-NOT-CLEAN-REMEDIATION-PENDING
 f3_blocked: true
-f3_blocker_reason: "Adversarial reconvergence required (3 clean passes). Pass-1 items addressed (D-142/D-143). Pass-2 items addressed (D-144). Pass-2 cross-seam re-audit CLEAN (D-145). Pass-3 NOT CLEAN (D-146): 1C/5H/7M/4L. Pass-3 remediation COMPLETE (D-147): all pass-3 findings FIXED pending pass-4 verification. Pass-3 cross-seam re-audit gap fixes COMPLETE (D-148): 4 gaps (FINDING-P3-001..004) FIXED; all 12 seams now clean. Clean-pass counter 0/3."
+f3_blocker_reason: "Adversarial reconvergence required (3 clean passes). Pass-1 items addressed (D-142/D-143). Pass-2 items addressed (D-144). Pass-2 cross-seam re-audit CLEAN (D-145). Pass-3 NOT CLEAN (D-146): 1C/5H/7M/4L. Pass-3 remediation COMPLETE (D-147): all pass-3 findings FIXED pending pass-4 verification. Pass-3 cross-seam re-audit gap fixes COMPLETE (D-148): 4 gaps (FINDING-P3-001..004) FIXED; all 12 seams now clean. Pass-4 NOT CLEAN (D-149): 1C/4H/5M/3L, HIGH novelty. EPB/SPB sibling-propagation gap (C-1); false-unconstructibility over-correction in E-INP-008 (H-1); consume(4) cursor-break (H-2); VP-030 unsatisfiable (H-3); zero-packet holdout gap/SOUL-4 (H-4). Clean-pass counter 0/3. Remediation round-4 pending."
 ---
 
 # F2 Review Remediation Tracker — pcapng Reader
@@ -263,3 +263,46 @@ files after D-147 pass-3 remediation burst.
 | FINDING-P3-004 | Obs | HS-107 Case B three-way min prose | HS-107 Case B captured_len computation prose still referenced the pre-D-147 two-way min form, inconsistent with BC-2.01.013 PC1 three-way contract fixed in C-1 (D-147). | FIXED — HS-107 v1.2 (same bump as P3-003): Case B captured_len explicitly restated as three-way min(original_len=200, snaplen=100, block_body_available=100)=100 to match BC-2.01.013 PC1 contract. D-148. |
 
 All 8 remaining seams (1-4, 6-7, 9-11) verified CLEAN against disk after D-147. D-148 closes all 4 prose-layer gaps. Cross-seam re-audit verdict: CLEAN (all 12 seams now pass).
+
+---
+
+---
+
+## Pass-4 Adversarial Findings (ADV-F2-PASS4 — D-149 burst — 2026-06-19)
+
+**Overall verdict:** 1 CRITICAL / 4 HIGH / 5 MEDIUM / 3 LOW. HIGH novelty class (EPB/SPB sibling-propagation gap; false-unconstructibility over-correction; VP satisfiability failure; SOUL #4 holdout gap).
+**Key pattern:** Pass-3 remediation introduced two new defect classes: (1) sibling-BC sweep failure (SPB fix not propagated to EPB), and (2) false-unconstructibility over-correction (SHB E-INP-008 narrowing based on wrong "crate rejects btl<12" premise for btl=16).
+Clean-pass counter: 0/3. Remediation round-4 required.
+
+### Pass-4 Critical Findings
+
+| ID | Severity | Finding Summary | Status |
+|----|----------|----------------|--------|
+| C-1 | CRITICAL | BC-2.01.012 EPB captured_len guard: SPB three-way min fix (D-147) not propagated to EPB sibling. Current guard `captured_len <= block_total_length-32` ignores 4-byte padding term AND lacks "bound by body.len() unconditionally first" clause. Non-mult-of-4 captured_len causes padded slice overrun. HS-104 only tests mult-of-4 so cannot catch this. Fix: add padding term `EPB_FIXED + captured_len + pad(captured_len) <= body.len()`; add unconditional body.len() bound; add non-mult-of-4 boundary case to HS-104. | OPEN — remediation round-4 pending |
+
+### Pass-4 High Findings
+
+| ID | Severity | Finding Summary | Status |
+|----|----------|----------------|--------|
+| H-1 | HIGH | body-decode-truncation error code inconsistent across block types. Pass-3 narrowed SHB E-INP-008 to semantic-only on FALSE "unconstructible" premise: btl=16 (valid framing) → body=4 bytes < 16-byte SHB minimum body IS constructible via crate framing success. IDB uses 12<=btl<20 window for E-INP-008; SPB/EPB route body-too-short to E-INP-010. No uniform rule. Fix: establish uniform body-decode-truncation routing rule; un-narrow SHB E-INP-008 to cover constructible body-short case (btl=16 → body=4 example). | OPEN — remediation round-4 pending |
+| H-2 | HIGH | BC-2.01.009 probe `consume(4)` breaks invariant and every downstream block parse. Dispatch requires byte-0 un-consumed for block-parser re-read; consume(4) advances past block-type bytes before dispatch → every block parse receives wrong bytes. Fix: remove all consume(4); probe is peek-only via fill_buf (no cursor advance). | OPEN — remediation round-4 pending |
+| H-3 | HIGH | VP-030 (multi-IDB agreement) specified over arbitrary u16 inputs but non-whitelisted linktypes short-circuit to E-INP-001 (step 2 in Decision 17 precedence) before E-INP-011 conflict check (step 3). VP-030 as written is unsatisfiable — virtually all arbitrary u16 pairs hit E-INP-001 and never reach the code under test. Fix: scope VP-030 to whitelisted DataLink values; pin comparison unit to DataLink (not u16); add separate E-INP-011 conflict-path coverage requirement. | OPEN — remediation round-4 pending |
+| H-4 | HIGH | No holdout scenario for zero-packet one-shot notice (SOUL #4 property). Pass-3 M-3 broadened the notice (D-147) but no HS covers it. Also: BC-2.01.009 lacks disambiguation rule between zero-packet success (Ok + notice) and EPB-before-IDB error path (Err). Fix: author HS-108 for zero-packet success case (IDB-only pcapng, no packet blocks → Ok + notice); add disambiguation rule to BC-2.01.009. | OPEN — remediation round-4 pending |
+
+### Pass-4 Medium Findings
+
+| ID | Severity | Finding Summary | Status |
+|----|----------|----------------|--------|
+| M-1 | MEDIUM | "crate enforces body-minimum" over-claim in BC-2.01.012 AC-003 (and potentially BC-2.01.011/BC-2.01.013). On raw-block path wirerust — not the crate — performs the body-length guard. Attributing enforcement to the crate may cause implementer to omit the guard. Fix: attribute body-minimum enforcement to wirerust's pre-slice guard in all affected BCs. | OPEN — remediation round-4 pending |
+| M-2 | MEDIUM | if_tsoffset (IDB option code 10) extracted in BC-2.01.011 PC6 but no if_tsoffset term in BC-2.01.014 timestamp formula → silent timestamp offset wrongness for any file using this option. Fix: either declare out-of-scope (document; add ADR note) or apply in BC-2.01.014 formula. | OPEN — remediation round-4 pending |
+| M-3 | MEDIUM | BC-2.01.012 PC8 over-promises: arp-baseline-16pkt.cap (full-capture only) cited as covering both EC-008 (captured_len < original_len) and EC-009 (captured_len == original_len). ARP fixture has no truncated packets; EC-008 boundary fidelity has no concrete test vector. Fix: scope PC8 to EC-009 only; move EC-008 boundary case to HS-104. | OPEN — remediation round-4 pending |
+| M-4 | MEDIUM | BC-2.01.009 PC6 / BC-2.01.015 PC9 cite "ADR Decision 17" for zero-packet notice behavior. Decision 17 is IDB-parse precedence order — not zero-packet notice. Zero-packet broadening (pass-3 M-3) has no numbered ADR Decision. Fix: add a Decision for zero-packet notice, or remove mis-anchor and cite BC directly. | OPEN — remediation round-4 pending |
+| M-5 | MEDIUM | Block sequence numbering convention inconsistent: E-INP-012 counts SHB in "#seq within file" (SHB = block 1); E-INP-010 and E-INP-013 count "block N after SHB". Different conventions produce different numeric values for the same physical block, confusing users comparing error messages. Fix: pin one convention in error-taxonomy preamble; apply consistently across all E-INP-NNN templates. | OPEN — remediation round-4 pending |
+
+### Pass-4 Low Findings
+
+| ID | Severity | Finding Summary | Status |
+|----|----------|----------------|--------|
+| L-1 | LOW | BC-2.01.016 numeric DLT codes in error message need source verification against pcap-file 2.0.0 DataLink enum discriminants and official linktype registry. | OPEN — verify and correct if discrepant |
+| L-2 | LOW | BC-2.01.011 EC-003 contains unescaped pipe `0x80 \| 0x0A` in Markdown table cell → table corruption when rendered. Fix: wrap in code span. | OPEN — cosmetic fix |
+| L-3 | LOW [process-gap] | error-taxonomy input-hash still N/A — error contract is outside drift guard. Must run bin/compute-input-hash --write before F3 story decomposition. Same as D-141 O-2; not yet actioned. | OPEN — pre-F3 obligation |
