@@ -1,7 +1,7 @@
 ---
 document_type: holdout-scenario
 level: ops
-version: "1.1"  # H-4 / Pass-4 R4 / ADR-009 rev 7: initial authoring. Three cases: (a) valid pcapng SHB+IDB, no EPB/SPB → stdout empty, exactly one stderr notice (no skip count), exit 0; (b) valid pcapng with 2 unknown-type skipped blocks, no packets → notice includes skipped-block count, exit 0; (c) malformed pcapng (EPB before any IDB) → E-INP-009, exit 1, NO zero-packet notice. Maps to BC-2.01.009 PC6 / BC-2.01.015 PC9. Pass-5 S4 (ADR-009 rev 8): added cases (d) OPB-only fixture → notice with OPB count + mergecap hint, exit 0; (e) 2 NRBs + 1 OPB fixture → notice shows OPB count distinctly from NRB skips, exit 0. Canonical notice format updated to "notice: <filename>: 0 packets read from pcapng file (...)".
+version: "1.2"  # H-4 / Pass-4 R4 / ADR-009 rev 7: initial authoring. Three cases: (a) valid pcapng SHB+IDB, no EPB/SPB → stdout empty, exactly one stderr notice (no skip count), exit 0; (b) valid pcapng with 2 unknown-type skipped blocks, no packets → notice includes skipped-block count, exit 0; (c) malformed pcapng (EPB before any IDB) → E-INP-009, exit 1, NO zero-packet notice. Maps to BC-2.01.009 PC6 / BC-2.01.015 PC9. Pass-5 S4 (ADR-009 rev 8): added cases (d) OPB-only fixture → notice with OPB count + mergecap hint, exit 0; (e) 2 NRBs + 1 OPB fixture → notice shows OPB count distinctly from NRB skips, exit 0. Canonical notice format updated to "notice: <filename>: 0 packets read from pcapng file (...)". Pass-5 re-audit: (P5-001) removed stale VP-025 from verification_properties (VP-025 is the SHB Kani timestamp proof; no relationship to zero-packet NOTICE); (P5-002) standardized Cases D/E mergecap hint to BC-2.01.009 PC6 canonical form "re-save with mergecap".
 status: draft
 producer: product-owner
 timestamp: 2026-06-20T00:00:00Z
@@ -19,8 +19,7 @@ epic_id: "E-1"
 behavioral_contracts:
   - BC-2.01.009
   - BC-2.01.015
-verification_properties:
-  - VP-025
+verification_properties: []
 lifecycle_status: active
 introduced: v0.9.x-pcapng-reader
 last_evaluated: null
@@ -254,7 +253,7 @@ Full OPB hex (32 bytes):
    - **Stderr:** contains exactly ONE notice in the canonical format. The notice MUST:
      - Contain the zero-packet substring: `"0 packets read from pcapng file"`.
      - Include the OPB count with mergecap remediation hint, for example:
-       `"notice: opb_only_no_epb.pcapng: 0 packets read from pcapng file (includes 1 obsolete Packet Block whose data was not analyzed; re-capture or convert with mergecap -F pcapng to modernize)"`.
+       `"notice: opb_only_no_epb.pcapng: 0 packets read from pcapng file (includes 1 obsolete Packet Block whose data was not analyzed; re-save with mergecap)"`.
      - The literal `1` (OPB count) and the word `"obsolete"` MUST both appear in the notice.
      - The mergecap hint MUST be present (guideline: `"convert with mergecap"` or equivalent
        explicit remediation directive).
@@ -312,7 +311,7 @@ Full NRB hex (16 bytes):
      - Contain the zero-packet substring: `"0 packets read from pcapng file"`.
      - Report the OPB count DISTINCTLY from the NRB skip count. Both counts MUST appear
        separately in the notice. A compliant example:
-       `"notice: nrb_plus_opb_no_packets.pcapng: 0 packets read from pcapng file (2 block(s) skipped as unsupported; includes 1 obsolete Packet Block whose data was not analyzed; re-capture or convert with mergecap -F pcapng to modernize)"`.
+       `"notice: nrb_plus_opb_no_packets.pcapng: 0 packets read from pcapng file (2 block(s) skipped as unsupported; includes 1 obsolete Packet Block whose data was not analyzed; re-save with mergecap)"`.
      - The literal `2` (NRB skip count) AND the literal `1` (OPB count) AND the word
        `"obsolete"` AND `"mergecap"` MUST ALL appear in the notice.
      - The OPB count (`1`) and the generic skip count (`2`) MUST be presented as distinct

@@ -1736,6 +1736,622 @@ resolved before Phase-4 holdout evaluation.
 | FINDING-P3-002 | MINOR | v3.0 audit — BC-2.01.018 Related BCs annotation reverses whitelist/conflict order | OPEN |
 | FINDING-P3-003 | OBS | v3.0 audit — HS-107 + HS-INDEX omit VP-031 cross-reference | RESOLVED (HS-INDEX v2.3 updated VP column) |
 | FINDING-P3-004 | MINOR | v3.0 audit — HS-107 Case B shows two-way min expression | OPEN |
-| FINDING-P4-001 | MAJOR | v4.0 audit — BC-2.01.011 PC5 tail sentence restricts E-INP-008 to SHB/IDB only (stale pre-Decision-20) | OPEN |
-| FINDING-P4-002 | MAJOR | v4.0 audit — error-taxonomy v3.1 E-INP-010 Note says E-INP-008 not used for EPB/SPB (contradicts E-INP-008 scope in same document) | OPEN |
-| FINDING-P4-003 | MAJOR | v4.0 audit — error-taxonomy v3.1 E-INP-010 items (d)/(e) classify EPB/SPB body-decode failures as E-INP-010 (stale pre-Decision-20) | OPEN |
+| FINDING-P4-001 | MAJOR | v4.0 audit — BC-2.01.011 PC5 tail sentence restricts E-INP-008 to SHB/IDB only (stale pre-Decision-20) | RESOLVED (BC-2.01.011 v1.5 / BC-INDEX v1.59) |
+| FINDING-P4-002 | MAJOR | v4.0 audit — error-taxonomy v3.1 E-INP-010 Note says E-INP-008 not used for EPB/SPB (contradicts E-INP-008 scope in same document) | RESOLVED (error-taxonomy v3.2 / BC-INDEX v1.59) |
+| FINDING-P4-003 | MAJOR | v4.0 audit — error-taxonomy v3.1 E-INP-010 items (d)/(e) classify EPB/SPB body-decode failures as E-INP-010 (stale pre-Decision-20) | RESOLVED (error-taxonomy v3.2 / BC-INDEX v1.59) |
+
+---
+
+## v5.0 Append — F2 Pass-5 Remediation Cross-Seam Audit
+
+**Audit date:** 2026-06-20
+**Scope:** F2 Pass-5 remediation — 4 parallel PO bursts + architect rev 8 (ADR-009 rev 8). Ten
+seams from the Pass-5 audit brief checked against disk.
+
+**Artifacts checked (Pass-5 versions):**
+
+- error-taxonomy.md v3.3
+- BC-2.01.009 v1.5, BC-2.01.010 v1.9 (unchanged in Pass-5), BC-2.01.011 v1.5,
+  BC-2.01.012 v1.5, BC-2.01.013 v1.5, BC-2.01.014 v1.5, BC-2.01.015 v1.6,
+  BC-2.01.018 v1.6
+- VP-INDEX v2.7
+- verification-architecture.md v2.3
+- verification-coverage-matrix.md v1.17
+- HS-104 v1.3, HS-107 v1.4, HS-108 v1.1
+- BC-INDEX v1.60
+
+---
+
+### Seam 1 — C-1 EPB→E-INP-008 at all sites: CLEAN
+
+**Check:** BC-2.01.012 v1.5 PC6a/PC6b, AC-002, AC-006, EC-010, canonical vectors, VP-027 all
+use E-INP-008 for EPB bound-by-body and padding-overrun; E-INP-010 in this BC is STRICTLY crate
+framing (EC-012, interface_id OOB); HS-104 v1.3 Cases D/E → E-INP-008; error-taxonomy v3.3
+E-INP-008 scope includes EPB padding-overrun and bound-by-body; E-INP-010 scope boundary
+statement consistent.
+
+**Findings:**
+
+- BC-2.01.012 v1.5 changelog (v1.5): EPB body-decode failures reclassified E-INP-010 →
+  E-INP-008 at all sites per ADR-009 rev 8 C-1. Explicitly updated: PC6a (bound-by-body →
+  E-INP-008); PC6b (padding-overrun → E-INP-008); AC-002 both sub-checks → E-INP-008;
+  AC-006 one-over case → E-INP-008; EC-010 → E-INP-008; canonical test vectors →
+  E-INP-008; VP-027 updated. E-INP-010 in this BC now STRICTLY: (i) crate framing
+  rejection EC-012 (btl<12/misaligned/EOF); (ii) EPB interface_id OOB on non-empty table
+  (EC-006/007/PC5). PASS.
+
+- BC-2.01.012 v1.5 PC6a (on-disk text): "captured_len <= body.len() ... return Err mapping
+  to E-INP-008 (wirerust body-decode failure — crate already framed the block)." PASS.
+
+- BC-2.01.012 v1.5 PC6b (on-disk text): "EPB_FIXED_OVERHEAD_BYTES(20) + captured_len +
+  pad_len(captured_len) <= body.len() ... Failure → Err mapping to E-INP-008 (wirerust
+  body-decode failure — block-length inconsistency / padding overrun)." PASS.
+
+- BC-2.01.012 v1.5 EC-010: "Err mapping to E-INP-008 (wirerust body-decode failure —
+  padded total exceeds body; crate framed the block successfully, wirerust rejects the
+  padded extent)." PASS.
+
+- BC-2.01.012 v1.5 AC-006: "A captured_len one byte larger ... MUST return Err mapping to
+  E-INP-008." PASS.
+
+- BC-2.01.012 v1.5 VP-027: "padding-overrun (20+captured_len+pad_len>body.len()) →
+  Err(E-INP-008); bound-by-body (captured_len>body.len()-20) → Err(E-INP-008); NOT
+  E-INP-010 (rev 8 / C-1 / Decision 20 clarification)." PASS.
+
+- error-taxonomy v3.3 E-INP-008 scope: explicitly lists "EPB captured_len > body.len() - 20
+  (bound-by-body failure)" and "EPB 20 + captured_len + pad_len(captured_len) > body.len()
+  (padding-overrun)" as subcategory (a) body-decode failures. PASS.
+
+- error-taxonomy v3.3 E-INP-008 scope boundary note: "E-INP-010 is STRICTLY crate-side
+  framing rejection; ALL wirerust-computed body-decode failures (body-too-short, bound-by-body,
+  padding-overrun) use E-INP-008." PASS.
+
+- error-taxonomy v3.3 E-INP-010 scope boundary: "Scope boundary (Decision 20 / rev 8 uniform
+  rule): EPB body < 20 fixed-field bytes, EPB captured_len > body.len() - 20 (bound-by-body),
+  and EPB 20 + captured_len + pad_len > body.len() (padding-overrun) are ALL E-INP-008 (not
+  E-INP-010)." Consistent. PASS.
+
+- HS-104 v1.3 Case D: "E-INP-008 (wirerust body-decode failure — crate framed the block;
+  wirerust rejects the body content)." PASS.
+
+- HS-104 v1.3 Case E: "E-INP-008 (wirerust body-decode failure — crate already framed the
+  block with btl >= 12; wirerust body-decode discovers the padding overrun)." PASS.
+
+- HS-104 v1.3 BC Linkage table: Cases D/E both → E-INP-008. No residual E-INP-010 in either
+  case. PASS.
+
+**SEAM 1: CLEAN**
+
+---
+
+### Seam 2 — SPB snaplen DROP: CLEAN
+
+**Check:** BC-2.01.013 v1.5 uses captured_len = min(original_len, block_body_available)
+everywhere; no snaplen term; VP-031 formula = min(original_len, body.len() as u32); HS-107 v1.4
+no stale snaplen-clamp wording; Case B = body-bound (block_body_available, NOT snaplen); no
+stale "deferred to a separate burst" notes in BC-2.01.013.
+
+**Findings:**
+
+- BC-2.01.013 v1.5 changelog (v1.5): "snaplen DROPPED from SPB captured_len. Decision 9 states
+  snaplen is NOT enforced for SPB (same as EPB). captured_len now = min(original_len,
+  block_body_available) everywhere. Removed snaplen from: Description, PC1, AC-002, EC-007,
+  EC-001, Invariant 2, Canonical Test Vectors, Architecture Anchors. VP-031 updated:
+  captured_len == min(original_len, body.len() as u32). ... Removed 4x stale '(HS-107
+  btl=12→E-INP-008 holdout deferred to a separate burst.)' notes." PASS.
+
+- BC-2.01.013 v1.5 Description: "Per ADR-009 rev 8 Decision 9 amendment, snaplen is NOT
+  applied for SPB ... captured_len = min(original_len, block_body_available)." PASS.
+
+- BC-2.01.013 v1.5 PC1: "captured_len = min(original_len, block_body_available)" — two-way
+  formula only, no snaplen term. PASS.
+
+- BC-2.01.013 v1.5 AC-002: "captured_len = min(original_len, block_body_available) where
+  block_body_available = block_total_length - 16 (equivalently, body.len()). Snaplen is NOT
+  applied for SPB (ADR-009 rev 8 Decision 9 amendment)." PASS.
+
+- BC-2.01.013 v1.5 Invariant 2: "Packet data is bounded by min(original_len,
+  block_body_available) ... Snaplen is NOT applied ... (ADR-009 rev 8 Decision 9 amendment)."
+  PASS.
+
+- BC-2.01.013 v1.5 EC-001, EC-007, Canonical Test Vectors: all use the two-way formula; snaplen
+  absent. EC-007 rationale: "snaplen is NOT applied (ADR-009 rev 8 Decision 9 amendment)." PASS.
+
+- BC-2.01.013 v1.5 VP-031 row: "For all (original_len: u32, body: &[u8]): captured_len ==
+  min(original_len, body.len() as u32) ... Snaplen is excluded from the pure-core helper
+  domain (ADR-009 rev 8 Decision 9 amendment)." PASS.
+
+- Stale deferral notes: grep confirmed zero occurrences of "deferred to a separate burst" in
+  BC-2.01.013 v1.5. All 4 were removed in v1.5. PASS.
+
+- HS-107 v1.4 Case B: "captured_len = min(original_len=200, block_body_available=100) = 100
+  (the on-disk body is the authoritative bound — snaplen is NOT applied to SPB)." Two-way
+  formula with explicit note that snaplen is not applied. Consistent with BC-2.01.013 v1.5.
+  PASS.
+
+- HS-107 v1.4 BC Linkage table: "Postcondition 1 — data bounded by min(original_len,
+  block_body_available); snaplen not applied." PASS.
+
+- HS-107 v1.4 Rubric: "snaplen is NOT applied for SPB (ADR-009 rev 8 Decision 9 amendment)."
+  PASS.
+
+**SEAM 2: CLEAN**
+
+---
+
+### Seam 3 — Uniform error rule (Decision 20): CLEAN
+
+**Check:** body-too-short→E-INP-008 for all four block types (SHB=16, IDB=8, EPB=20, SPB=4);
+framing<12→E-INP-010; EPB padding/bound→E-INP-008; error-taxonomy v3.3 E-INP-008/010 scopes
+consistent with all normative BCs.
+
+**Findings:**
+
+- error-taxonomy v3.3 E-INP-008 scope (body-decode failures for ALL block types): SHB body<16,
+  IDB body<8, EPB body<20, SPB body<4, EPB bound-by-body, EPB padding-overrun — all listed as
+  subcategory (a) body-decode failures → E-INP-008. PASS.
+
+- error-taxonomy v3.3 E-INP-010 scope (crate-framing rejections only): btl<12 / misaligned /
+  EOF; EPB interface_id OOB on non-empty table; unknown-block framing errors. Items (d) and (e)
+  (EPB body<20 and SPB body<4) were removed in v3.2; v3.3 adds the boundary clarification note
+  in E-INP-010 that EPB body-decode failures use E-INP-008. PASS.
+
+- BC-2.01.011 v1.5 PC5 (IDB uniform rule): "Uniform rule (Decision 20): E-INP-008 covers
+  wirerust body-decode failures for ALL block types" — stale PC5 tail sentence removed.
+  FINDING-P4-001 RESOLVED. PASS.
+
+- BC-2.01.012 v1.5 PC6a/PC6b and EC-010/EC-011: EPB body-decode failures → E-INP-008 at all
+  sites (C-1 reclassification). PASS.
+
+- BC-2.01.013 v1.5 PC4/EC-008/AC-004a: SPB btl=12 → body=0 < 4 → E-INP-008. PASS.
+
+- BC-2.01.010 v1.9 PC5: "E-INP-008 (NOT E-INP-010)" for SHB body-too-short path; EC-005:
+  btl=16 → body=4 < 16 → E-INP-008. PASS.
+
+- Cross-BC consistency: all four block types now route body-decode failures to E-INP-008 and
+  crate-framing failures to E-INP-010. No contradiction found among BC-2.01.010/011/012/013
+  or error-taxonomy v3.3. PASS.
+
+**SEAM 3: CLEAN**
+
+---
+
+### Seam 4 — H-1 precedence (Decision 17): CLEAN
+
+**Check:** BC-2.01.018 v1.6 EC-006 (ETHERNET then IEEE802_11 → E-INP-001 on 2nd IDB at
+whitelist check #2; E-INP-011 conflict check #3 never reached because whitelist preempts); EC-008
+(two IEEE802_11 → E-INP-001 on FIRST IDB at whitelist check #2; second IDB never parsed);
+E-INP-011 reachable ONLY when both IDBs whitelisted AND differ.
+
+**Findings:**
+
+- BC-2.01.018 v1.6 changelog (v1.6): "EC-006 CORRECTED: ETHERNET (whitelisted) then IEEE802_11
+  (non-whitelisted) → E-INP-001 fires on the SECOND IDB at whitelist check (#2); E-INP-011
+  conflict check (#3) is NEVER reached because whitelist preempts conflict. ... EC-008
+  RE-DERIVED: two IEEE802_11 IDBs — the FIRST IDB (non-whitelisted) already triggers E-INP-001
+  at whitelist check (#2) during first-IDB parse time; the second IDB is NEVER parsed. E-INP-011
+  conflict check is reachable ONLY when BOTH IDBs are whitelisted AND differ." PASS.
+
+- BC-2.01.018 v1.6 EC-006 (on-disk text): "E-INP-001 fires on the SECOND IDB at whitelist
+  check (#2 per Decision 17); E-INP-011 conflict check (#3) is NEVER reached because whitelist
+  preempts conflict." PASS.
+
+- BC-2.01.018 v1.6 EC-008 (on-disk text): "E-INP-001 fires on the FIRST IDB at whitelist
+  check (#2 per Decision 17) during first-IDB parse time; the second IDB is NEVER parsed and
+  the agreement between the two IDBs is completely unobservable. The defunct narrative ... is
+  abandoned. Correct behavior: IEEE802_11 hits whitelist check (#2) → E-INP-001 immediately."
+  PASS.
+
+- BC-2.01.018 v1.6 Description and Invariants: "E-INP-011 is the THIRD check in the IDB-parse
+  precedence (Decision 17): the E-INP-013 position check runs first ... and the E-INP-001
+  whitelist check runs second. E-INP-011 fires only if both prior checks pass." PASS.
+
+- BC-2.01.018 v1.6 Related BCs: "BC-2.01.016 — composes with (whitelist check runs second;
+  agreement/conflict check runs third — per Decision 17: E-INP-013 position FIRST, E-INP-001
+  whitelist SECOND, E-INP-011 conflict THIRD)." FINDING-P3-002 RESOLVED. PASS.
+
+- E-INP-011 reachability: confirmed only via EC-003 (ETHERNET then LINUX_SLL, both
+  whitelisted) and EC-004 (three whitelisted, all agree then differ). Non-whitelisted IDBs
+  short-circuit to E-INP-001 at whitelist check (#2) before E-INP-011 is ever evaluated. PASS.
+
+**SEAM 4: CLEAN**
+
+---
+
+### Seam 5 — M-5 notice (zero-packet emission from main.rs): PASS WITH GAPS
+
+**Check:** BC-2.01.009 v1.5 PC6 (emission from main.rs; PcapSource exposes skipped_blocks:u32
++ opb_skipped:u32; format "notice: <filename>: 0 packets read from <pcap|pcapng> file";
+opb_skipped>0 → mergecap hint; classic empty-pcap symmetry) consistent with BC-2.01.015 v1.6
+(counters SURFACED not emitted; opb_skipped sub-count; opb_skipped<=skipped_blocks) and HS-108
+v1.1 (Cases d/e use canonical format + OPB-distinct count) and ADR Decision 19.
+
+**Findings:**
+
+- BC-2.01.009 v1.5 PC6: Emission moves from reader to main.rs. PcapSource exposes
+  skipped_blocks:u32 and opb_skipped:u32. Canonical format "notice: <filename>: 0 packets
+  read from <pcap|pcapng> file"; when opb_skipped>0 appends "(includes N obsolete Packet
+  Blocks whose data was not analyzed; re-save with mergecap)". Classic empty-pcap symmetry
+  present (EC-009). from_pcap_reader itself MUST NOT emit to stderr. PASS.
+
+- BC-2.01.015 v1.6 PC9: "BC-2.01.015 maintains two counters, both SURFACED as public fields
+  on PcapSource (NOT emitted by the reader)." opb_skipped:u32 is sub-count of
+  skipped_blocks:u32; "every OPB skip increments BOTH skipped_blocks and opb_skipped." PASS.
+
+- BC-2.01.015 v1.6 AC-006: "from_pcap_reader MUST NOT emit any stderr output — it surfaces
+  the counters and returns." opb_skipped <= skipped_blocks invariant explicit. PASS.
+
+- HS-108 v1.1 Cases D/E: Case D (OPB-only) and Case E (NRBs + OPB) both present with OPB
+  count distinct from NRB/generic skip count. Evaluator byte-exact assertion: checks for
+  "0 packets read from pcapng file", "1" (OPB count), "obsolete", "mergecap" as substrings.
+  PASS.
+
+- GAP: BC-2.01.009 v1.5 PC6 normative text for OPB hint: "re-save with mergecap". HS-108
+  v1.1 Cases D/E illustrative example: "re-capture or convert with mergecap -F pcapng to
+  modernize". The normative wording and the holdout example use different hint strings. The
+  evaluator rubric checks for "mergecap" substring only, so the gate passes, but the
+  divergence between the normative notice template in BC-2.01.009 and the illustrative example
+  in HS-108 is a documentation inconsistency that could confuse an implementer. GAP — see
+  FINDING-P5-002 below.
+
+- GAP: HS-108 v1.1 frontmatter `verification_properties: [VP-025]`. VP-025 is the Kani
+  timestamp proof (BC-2.01.014). HS-108 tests zero-packet notice emission (BC-2.01.009 PC6)
+  and skip-counter surfacing (BC-2.01.015 PC9). No causal relationship exists between VP-025
+  (timestamp conversion totality) and the notice behavior tested by HS-108. GAP — see
+  FINDING-P5-001 below.
+
+**SEAM 5: PASS WITH FINDING-P5-001 (Minor) and FINDING-P5-002 (Minor)**
+
+---
+
+### Seam 6 — M-3 saturation (µs fast-path): CLEAN
+
+**Check:** BC-2.01.014 v1.5 PC4 uses (ticks / 1_000_000).min(u32::MAX as u64) as u32; large
+ts_high canonical vector (ts_high=4295 → ts_sec=u32::MAX); VP-025 harness requires it.
+
+**Findings:**
+
+- BC-2.01.014 v1.5 changelog (v1.5): "Fixed µs fast-path saturation gap: the if_tsresol=6
+  shortcut MUST apply .min(u32::MAX as u64) as u32 to ts_sec ... the prior wording 'ts_sec =
+  ticks / 1_000_000' was a bare division ... Rewrote PC4 to be explicit: fast path uses
+  (ticks / 1_000_000).min(u32::MAX as u64) as u32. Added canonical saturation test vector
+  (ts_high=4295 ...). Noted VP-025 Kani harness MUST include this vector." PASS.
+
+- BC-2.01.014 v1.5 PC4 (on-disk text): "ts_sec = (ticks / 1_000_000).min(u32::MAX as u64)
+  as u32" — explicit saturation. PASS.
+
+- BC-2.01.014 v1.5 EC-013 (on-disk text): "ts_high=4295, ts_low=0, if_tsresol=6 (µs fast
+  path, ts_high large enough that ticks/1_000_000 > u32::MAX) | ts_sec=u32::MAX (saturated
+  via .min(u32::MAX as u64)); ts_usecs=0; NO PANIC." Canonical saturation test vector
+  present. PASS.
+
+- BC-2.01.014 v1.5 VP-025 row: "Fast-path saturation (M-3): the VP-025 Kani harness MUST NOT
+  short-circuit the if_tsresol == 6 branch ... the saturation test vector (ts_high=4295,
+  ts_low=0, if_tsresol=6) → ts_sec=u32::MAX must be included as a concrete assertion in the
+  Kani harness." PASS.
+
+- Canonical test vectors table: "ts_high=4295, ts_low=0, if_tsresol=6 | ts_sec=u32::MAX
+  (saturated; ticks=4295*2^32=18_448_744_073_709_551_616; ticks/1_000_000=18_448_744_073_709
+  which exceeds u32::MAX=4_294_967_295; fast path MUST saturate via .min(u32::MAX as u64))."
+  PASS.
+
+- VP-INDEX v2.7 VP-025: "ts_sec saturated (.min(u32::MAX)) for all inputs ... Kani harness
+  MUST include large-ts_high vector where ticks/ticks_per_sec > u32::MAX to lock the
+  saturation (rev 8 / M-3)." Consistent. PASS.
+
+- verification-architecture.md v2.3 VP-025 row: "ts_sec saturated (.min(u32::MAX)), saturating
+  arithmetic for all (u32,u32,u8); large-ts_high Kani vector required (rev 8 / M-3)."
+  Consistent. PASS.
+
+**SEAM 6: CLEAN**
+
+---
+
+### Seam 7 — M-1 (BC-2.01.009 Precondition 3 deleted): CLEAN
+
+**Check:** BC-2.01.009 v1.5 Preconditions section has only PC1 and PC2; old PC3 ("at least 4
+bytes available") is absent.
+
+**Findings:**
+
+- BC-2.01.009 v1.5 changelog (v1.5): "(M-1) Deleted Precondition 3 ('at least 4 bytes
+  available') — contradicts EC-003 (graceful Err on <4 bytes); <4-byte case is a runtime
+  condition handled by postcondition, NOT an input precondition." PASS.
+
+- BC-2.01.009 v1.5 Preconditions section (on-disk): Two preconditions present — PC1 (readable
+  byte stream is passed) and PC2 (stream supports non-destructive peek via fill_buf). No PC3
+  exists. PASS.
+
+- BC-2.01.009 v1.5 EC-003: "Stream under 4 bytes (truncated header) | Returns Err wrapping the
+  short-read error." Correctly modeled as a runtime output condition, not a precondition.
+  PASS.
+
+**SEAM 7: CLEAN**
+
+---
+
+### Seam 8 — M-4 (BufReader wrap AC-007): CLEAN
+
+**Check:** BC-2.01.009 v1.5 AC-007 pins that from_pcap_reader MUST internally wrap R:Read in
+BufReader before probe; same BufReader instance fed to fill_buf and downstream parsers;
+unbuffered-Read regression test cited.
+
+**Findings:**
+
+- BC-2.01.009 v1.5 AC-007 (on-disk text): "from_pcap_reader<R: Read> MUST internally wrap its
+  R argument in std::io::BufReader before performing the magic-byte probe or calling any
+  downstream parser. The SAME BufReader<R> instance MUST be passed to both: BufReader::fill_buf()
+  for the peek (zero consumption), AND [downstream parsers]. Double-wrapping (if the caller
+  already passes a BufReader) is acceptable and idempotent ... The wrap MUST NOT be conditional
+  on R's type." PASS.
+
+- BC-2.01.009 v1.5 AC-007 regression test: "test_BC_2_01_009_unbuffered_read_routes_correctly
+  — pass an unbuffered Cursor<&[u8]> as R and assert correct probe and routing; this test would
+  panic or misroute if the BufReader wrap is absent." PASS.
+
+- BC-2.01.009 v1.5 canonical test vectors table: "Unbuffered Cursor<&[u8]> with valid pcapng
+  SHB | Ok(PcapSource) with correct routing (proves internal BufReader wrap) | regression
+  (AC-007)." PASS.
+
+**SEAM 8: CLEAN**
+
+---
+
+### Seam 9 — H-4 (BC-2.01.013 VP-031 description and stale deferral notes): CLEAN
+
+**Check:** VP-031 row description in BC-2.01.013 v1.5 matches HS-107 actual scope (SPB framing
+truncation/padding/no-IDB including Case F btl=12→E-INP-008); zero stale "deferred to a separate
+burst" notes in BC-2.01.013; BC-2.01.010 similarly checked.
+
+**Findings:**
+
+- BC-2.01.013 v1.5 VP-031 row description: "For all (original_len: u32, body: &[u8]):
+  captured_len == min(original_len, body.len() as u32) ... Snaplen is excluded from the
+  pure-core helper domain (ADR-009 rev 8 Decision 9 amendment)." HS-107 description in BC
+  references Case F (btl=12→E-INP-008) via the v1.5 changelog note. PASS.
+
+- BC-2.01.013 v1.5 stale deferral notes: grep confirms ZERO occurrences of "deferred to a
+  separate burst" in BC-2.01.013 v1.5. All 4 removed. PASS.
+
+- BC-2.01.010 v1.9 stale deferral notes: grep confirms FOUR remaining "deferred to a separate
+  burst" annotations in BC-2.01.010 v1.9: at line 73 (PC5 case b tail), line 110 (AC-004a
+  tail), line 146 (EC-005 tail), and line 150 (EC-009 tail referencing "HS-103 Case C fix
+  deferred to holdout burst"). HS-103 v1.5 was authored in Pass-4 and now contains Case D
+  (btl=16→E-INP-008) and Case C (btl<12/misaligned→E-INP-010). All four holdout cases exist
+  on disk; the "deferred to a separate burst" notes are factually stale. GAP — see
+  FINDING-P5-003 below.
+
+**SEAM 9: PASS WITH FINDING-P5-003 (Minor)**
+
+---
+
+### Seam 10 — Versions, next_free E-INP-014, VP-INDEX total 31, 302 active BCs, BC-INDEX inline == frontmatter: CLEAN
+
+**Check:** All 6 Pass-5 BCs show monotonic version increments; error-taxonomy v3.3 next_free
+E-INP-014; VP-INDEX v2.7 total 31 (kani=14, proptest=10, fuzz=2, integration/unit=5) consistent
+with both architecture docs; BC-INDEX v1.60 active count 302; inline version annotations for 6
+BCs match on-disk frontmatter.
+
+**Findings:**
+
+- Version increments (Pass-4 → Pass-5):
+  BC-2.01.009 v1.4→v1.5, BC-2.01.012 v1.4→v1.5, BC-2.01.013 v1.4→v1.5,
+  BC-2.01.014 v1.4→v1.5, BC-2.01.015 v1.5→v1.6, BC-2.01.018 v1.5→v1.6.
+  All monotonic. Unchanged BCs: BC-2.01.010 v1.9, BC-2.01.011 v1.5 (stable from Pass-4
+  boundary), BC-2.01.016 v1.4, BC-2.01.017 v1.4. PASS.
+
+- error-taxonomy v3.3 next_free: E-INP-013 row tail: "next_free_error_code: E-INP-014." No
+  E-INP-014 defined anywhere in the taxonomy. PASS.
+
+- VP-INDEX v2.7 totals: total_vps=31, kani=14, proptest=10, fuzz=2, integration/unit=5.
+  Arithmetic: 14+10+2+5=31 ✓. Phase counts: p0=8, p1=17, test_sufficient=6; 8+17+6=31 ✓.
+  No VP count changes in Pass-5 (property updates only for VP-025/027/031). PASS.
+
+- verification-architecture.md v2.3 changelog: "VP property updates only — no VP count changes
+  (total 31 / Kani 14 / proptest 10 / fuzz 2 / integration-unit 5 unchanged)." Consistent
+  with VP-INDEX v2.7. PASS.
+
+- verification-coverage-matrix.md v1.17 Totals row: Kani=14, proptest=10, fuzz=2,
+  integration/unit=5 = 31. Consistent. PASS.
+
+- BC-INDEX v1.60: "Active BC count stays 302" confirmed in v1.60 header commentary. PASS.
+
+- BC-INDEX v1.60 inline version annotations for 6 Pass-5 BCs: BC-2.01.009 v1.5, BC-2.01.012
+  v1.5, BC-2.01.013 v1.5, BC-2.01.014 v1.5, BC-2.01.015 v1.6, BC-2.01.018 v1.6 — all match
+  on-disk frontmatter versions confirmed during this audit. PASS.
+
+- E-INP-008 BC Ref column contains BC-2.01.010, BC-2.01.011, BC-2.01.012, BC-2.01.017 but
+  NOT BC-2.01.013. SPB body-too-short → E-INP-008 is normative in BC-2.01.013 v1.5
+  (AC-004a, PC4, EC-008). GAP — see FINDING-P5-004 below. (Note: this gap was first
+  identified in the prior-session analysis as GAP-3 and survives into v3.3.)
+
+**SEAM 10: PASS WITH FINDING-P5-004 (Minor)**
+
+---
+
+## v5.0 Findings
+
+### FINDING-P5-001 — Minor (Seam 5)
+
+**HS-108 v1.1 frontmatter `verification_properties: [VP-025]` is a misattribution**
+
+**File:** `/Users/zious/Documents/GITHUB/wirerust/.factory/holdout-scenarios/HS-108-pcapng-zero-packet-notice-end-to-end.md`
+**Frontmatter version:** v1.1
+**Location:** frontmatter `verification_properties` field
+
+**Current value:** `[VP-025]`
+
+**What is wrong:** VP-025 is the Kani timestamp conversion totality proof targeting
+`pcapng_timestamp_to_secs_usecs(ts_high, ts_low, if_tsresol)` in BC-2.01.014. HS-108 tests the
+zero-packet notice emission contract (BC-2.01.009 PC6) and skip-counter surfacing
+(BC-2.01.015 PC9). No causal or traceability relationship exists between VP-025 (timestamp
+arithmetic) and HS-108 (notice emission behavior). The misattribution appears to be a copy-paste
+artifact from another holdout scenario.
+
+**Correct value:** There is no existing VP that covers the zero-packet notice emission behavior.
+The correct value should be `[]` (empty — HS-108 is an integration-level behavioral holdout not
+tied to a formal VP) or, if a notice-emission VP is created in a future pass, it should reference
+that VP instead.
+
+**Impact:** Minor. The normative content of HS-108 (cases A-E and evaluator rubric) is correct
+and would not cause a phase-4 gate failure. The misattribution is a traceability defect only. A
+reader scanning the VP-to-holdout traceability would incorrectly conclude VP-025 has a holdout
+scenario that exercises timestamp behavior.
+
+**Remediation:** Update HS-108 v1.1 frontmatter to `verification_properties: []` and add a
+comment: `# No formal VP covers notice emission; tested behaviorally via integration scenarios.`
+
+---
+
+### FINDING-P5-002 — Minor (Seam 5)
+
+**OPB notice hint text diverges between BC-2.01.009 PC6 normative spec and HS-108 Cases D/E illustrative example**
+
+**File 1:** `/Users/zious/Documents/GITHUB/wirerust/.factory/specs/behavioral-contracts/ss-01/BC-2.01.009.md`
+**Location:** Postcondition 6, OPB appendage clause
+
+**Normative text (BC-2.01.009 PC6):**
+> `(includes N obsolete Packet Blocks whose data was not analyzed; re-save with mergecap)`
+
+**File 2:** `/Users/zious/Documents/GITHUB/wirerust/.factory/holdout-scenarios/HS-108-pcapng-zero-packet-notice-end-to-end.md`
+**Location:** Cases D and E illustrative example strings
+
+**HS-108 example text (Cases D/E):**
+> `(includes 1 obsolete Packet Block whose data was not analyzed; re-capture or convert with mergecap -F pcapng to modernize)`
+
+**What is wrong:** The normative notice template in BC-2.01.009 PC6 specifies "re-save with
+mergecap" as the hint text. The HS-108 holdout examples use "re-capture or convert with
+mergecap -F pcapng to modernize" — a longer and differently-worded string. An implementer
+reading BC-2.01.009 to understand the notice format will produce "re-save with mergecap" text.
+An implementer reading HS-108 cases D/E as a template will produce the longer string. The
+evaluator rubric only checks for the "mergecap" substring, so the gate passes for either
+wording, but the inconsistency is a documentation hazard.
+
+**Impact:** Minor. No gate outcome depends on the exact wording beyond the "mergecap" substring
+check. However, the two authoritative documents should agree on the canonical hint wording to
+prevent implementer confusion.
+
+**Remediation:** Align HS-108 Cases D/E illustrative examples to use the BC-2.01.009 PC6
+canonical wording: `"re-save with mergecap"`. Or alternatively, update BC-2.01.009 PC6 to
+use the HS-108 wording and update the rubric accordingly. The BC-2.01.009 PC6 text should be
+the normative source.
+
+---
+
+### FINDING-P5-003 — Minor (Seam 9)
+
+**BC-2.01.010 v1.9 contains 4 stale "deferred to a separate burst" annotations referencing HS-103**
+
+**File:** `/Users/zious/Documents/GITHUB/wirerust/.factory/specs/behavioral-contracts/ss-01/BC-2.01.010.md`
+**Frontmatter version:** v1.9
+**Locations:**
+- Line 73: `deferred to a separate burst.) The constructible window is confirmed by ADR-009 rev 7`
+- Line 110: `E-INP-008. (HS-103 btl=16→E-INP-008 holdout deferred to a separate burst.)`
+- Line 146 (EC-005): `(HS-103 btl=16 holdout deferred to a separate burst.)`
+- Line 150 (EC-009): `HS-103 Case C fix deferred to holdout burst.`
+
+**What is wrong:** HS-103 v1.5 was authored in Pass-4 (BC-INDEX v1.58 / ADR-009 rev 7) and now
+contains both the cases that BC-2.01.010 v1.9 marks as "deferred":
+
+- Case C (btl<12/misaligned → E-INP-010): present in HS-103 v1.5, and it was already present
+  as far back as v1.4. The "HS-103 Case C fix deferred to holdout burst" annotation in EC-009
+  is factually stale as of Pass-4.
+- Case D (btl=16 → E-INP-008): added to HS-103 v1.5 specifically to cover the
+  btl=16/body-too-short E-INP-008 constructible window. The "deferred to a separate burst"
+  annotations on lines 73, 110, and 146 (EC-005) are all stale as of Pass-4.
+
+BC-2.01.013 v1.5 fixed the analogous set of stale deferral notes in that file. BC-2.01.010
+received no Pass-5 update and retains all 4 stale annotations.
+
+**Impact:** Minor. No normative routing is affected — all four occurrences are parenthetical
+annotations, not normative text. The actual behavior specifications (E-INP-008 for body-decode,
+E-INP-010 for crate-framing) are correct in the surrounding normative text. A reader scanning
+BC-2.01.010 would correctly conclude the holdout cases still need to be authored, when in fact
+they exist in HS-103 v1.5.
+
+**Remediation:** Remove the four "deferred to a separate burst" annotations from BC-2.01.010 and
+replace with cross-references to HS-103: e.g., `(Covered by HS-103 v1.5 Case D.)` and
+`(Covered by HS-103 v1.5 Case C.)` Version-bump BC-2.01.010 to v2.0 and add a v2.0 entry to
+BC-INDEX.
+
+---
+
+### FINDING-P5-004 — Minor (Seam 10)
+
+**error-taxonomy v3.3 E-INP-008 BC Ref column omits BC-2.01.013**
+
+**File:** `/Users/zious/Documents/GITHUB/wirerust/.factory/specs/prd-supplements/error-taxonomy.md`
+**Frontmatter version:** v3.3
+**Location:** E-INP-008 table row, BC Ref column
+
+**Current value:** `BC-2.01.010, BC-2.01.011, BC-2.01.012, BC-2.01.017`
+
+**What is wrong:** BC-2.01.013 v1.5 normatively routes SPB body < 4 bytes → E-INP-008 (PC4,
+AC-004a, EC-008). This is an E-INP-008 emission site specified in BC-2.01.013. The E-INP-008
+BC Ref column does not include BC-2.01.013, meaning a developer using the taxonomy as a
+cross-reference cannot discover BC-2.01.013's contribution to E-INP-008. The E-INP-008 scope
+Notes text correctly describes "SPB body < 4 bytes (original_len)" as an E-INP-008 case, so
+the normative scope is correct; only the BC Ref traceability column is incomplete.
+
+Note: The companion issue (BC-2.01.013 still listed in E-INP-010 BC Ref column) also exists
+on disk — E-INP-010 BC Ref shows `BC-2.01.012, BC-2.01.013, BC-2.01.015, BC-2.01.017`. Since
+BC-2.01.013's SPB crate-framing rejection path (EC-005: btl<12→E-INP-010) is still a valid
+E-INP-010 emission site (only the body-decode path moved to E-INP-008), BC-2.01.013 legitimately
+belongs in E-INP-010 BC Ref as well. The primary gap is the MISSING entry in E-INP-008 BC Ref.
+
+**Impact:** Minor. Traceability gap only; the normative scope text is correct. A developer
+cross-referencing E-INP-008 from the taxonomy will miss BC-2.01.013 as a source.
+
+**Remediation:** Add BC-2.01.013 to the E-INP-008 BC Ref column: `BC-2.01.010, BC-2.01.011,
+BC-2.01.012, BC-2.01.013, BC-2.01.017`. Version-bump error-taxonomy to v3.4.
+
+---
+
+## v5.0 Summary — Cross-Seam Audit
+
+| Seam | Topic | Result |
+|------|-------|--------|
+| 1 | C-1 EPB→E-INP-008 at all sites (bound-by-body, padding-overrun) | CLEAN |
+| 2 | SPB snaplen DROP — min(original_len, block_body_available) everywhere | CLEAN |
+| 3 | Uniform error rule (Decision 20) — body-decode→E-INP-008, framing→E-INP-010 | CLEAN |
+| 4 | H-1 precedence — EC-006/EC-008 corrected; E-INP-011 reachable only when both whitelisted AND differ | CLEAN |
+| 5 | M-5 notice — emission from main.rs; PcapSource fields; HS-108 Cases D/E | PASS WITH FINDING-P5-001 (Minor) + FINDING-P5-002 (Minor) |
+| 6 | M-3 saturation — µs fast-path (ticks/1M).min(u32::MAX); ts_high=4295 → u32::MAX; VP-025 | CLEAN |
+| 7 | M-1 — BC-2.01.009 Precondition 3 deleted | CLEAN |
+| 8 | M-4 — AC-007 BufReader wrap-site pinned; unbuffered regression test | CLEAN |
+| 9 | H-4 — BC-2.01.013 VP-031 description; stale deferral notes | PASS WITH FINDING-P5-003 (Minor) |
+| 10 | Versions monotonic; next_free E-INP-014; VP-INDEX total 31; 302 active BCs; BC-INDEX inline == frontmatter | PASS WITH FINDING-P5-004 (Minor) |
+
+**Overall v5.0 verdict: NOT CLEAN — 4 Minor gaps found.**
+
+| ID | Severity | Seam | Summary |
+|----|----------|------|---------|
+| FINDING-P5-001 | Minor | 5 | HS-108 frontmatter `verification_properties: [VP-025]` — VP-025 is timestamp Kani proof, unrelated to notice emission tested by HS-108 |
+| FINDING-P5-002 | Minor | 5 | OPB notice hint wording differs: BC-2.01.009 PC6 says "re-save with mergecap"; HS-108 Cases D/E say "re-capture or convert with mergecap -F pcapng to modernize" |
+| FINDING-P5-003 | Minor | 9 | BC-2.01.010 v1.9 has 4 stale "deferred to a separate burst" annotations for HS-103 — HS-103 v1.5 (Pass-4) already covers these cases |
+| FINDING-P5-004 | Minor | 10 | error-taxonomy v3.3 E-INP-008 BC Ref column omits BC-2.01.013 (SPB body<4→E-INP-008 is normative in BC-2.01.013 v1.5) |
+
+All 4 findings are Minor severity. No findings are Major or Critical. No blocking findings
+against phase-4 gate. The primary seam claims (C-1 reclassification, SPB snaplen drop, uniform
+error rule, H-1 precedence fix, M-3 saturation, M-1/M-4 BufReader) are all CLEAN on disk.
+
+---
+
+## Updated Open Findings Register
+
+| ID | Severity | Source | Status |
+|----|----------|--------|--------|
+| FINDING-001 | HIGH | v1.0 audit — ADR-009 Status section stale contradiction | OPEN |
+| FINDING-002 | HIGH | v1.0 audit — epics.md total_bcs 297 vs BC-INDEX 302 | OPEN |
+| FINDING-003 | MEDIUM | v1.0 audit — prd.md RTM missing BC-2.01.009-018 rows | OPEN |
+| FINDING-004 | MEDIUM | v1.0 audit — BC-INDEX updated timestamp stale | OPEN |
+| FINDING-P2-001 | LOW | v2.0 audit — ADR-009 HS-completeness map HS-107 shown MISSING | OPEN |
+| FINDING-P3-002 | MINOR | v3.0 audit — BC-2.01.018 Related BCs annotation reverses whitelist/conflict order | RESOLVED (BC-2.01.018 v1.4 Pass-3 re-audit fix; v1.6 Seam 4 CLEAN) |
+| FINDING-P3-004 | MINOR | v3.0 audit — HS-107 Case B shows two-way min expression | RESOLVED (HS-107 v1.4 Case B now body-bound rationale) |
+| FINDING-P4-001 | MAJOR | v4.0 audit — BC-2.01.011 PC5 tail sentence stale pre-Decision-20 | RESOLVED (BC-2.01.011 v1.5 / BC-INDEX v1.59) |
+| FINDING-P4-002 | MAJOR | v4.0 audit — error-taxonomy v3.1 E-INP-010 Note contradicts E-INP-008 scope | RESOLVED (error-taxonomy v3.2 / BC-INDEX v1.59) |
+| FINDING-P4-003 | MAJOR | v4.0 audit — error-taxonomy v3.1 E-INP-010 items (d)/(e) stale pre-Decision-20 | RESOLVED (error-taxonomy v3.2 / BC-INDEX v1.59) |
+| FINDING-P5-001 | MINOR | v5.0 audit — HS-108 frontmatter verification_properties: [VP-025] is misattribution | OPEN |
+| FINDING-P5-002 | MINOR | v5.0 audit — OPB notice hint text diverges: BC-2.01.009 "re-save with mergecap" vs HS-108 "re-capture or convert with mergecap -F pcapng to modernize" | OPEN |
+| FINDING-P5-003 | MINOR | v5.0 audit — BC-2.01.010 v1.9 has 4 stale "deferred to a separate burst" annotations (HS-103 v1.5 covers those cases) | OPEN |
+| FINDING-P5-004 | MINOR | v5.0 audit — error-taxonomy v3.3 E-INP-008 BC Ref column omits BC-2.01.013 | OPEN |

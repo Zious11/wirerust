@@ -14,6 +14,48 @@ changes, invariant rewrites).
 
 ---
 
+## [pcapng-f2-pass5-reaudit-minors-2026-06-20] — 2026-06-20
+
+### PASS-5 RE-AUDIT: 4 MINOR FINDINGS FIXED — 6 SEAMS CLEAN — D-154
+
+**Trigger:** F2 pass-5 re-audit (consistency-validator) — CLEAN on 6 seams; 4 Minor findings
+fixed. No Major or Critical findings. Pass-5 fully remediated + consistency-verified. Adversary
+pass-6 pending. Clean-pass counter 0/3.
+
+**Version bumps (4 artifacts):**
+- BC-2.01.010 v1.9→v2.0
+- HS-108 v1.1→v1.2
+- error-taxonomy v3.3→v3.4
+- BC-INDEX v1.60→v1.61
+
+302 active BCs unchanged.
+
+---
+
+**P5-001 (Minor — HS-108 VP ref→[]):**
+HS-108 `verification_properties` field carried a placeholder VP reference. HS-108 is a
+seam-level end-to-end holdout (OPB-only notice; zero-packet disambiguation); it exercises
+multiple BCs holistically and does not trace to a single formal VP. Corrected to `[]`
+(empty list, explicitly intentional per HS-108 design note).
+
+**P5-002 (Minor — HS-108 OPB hint wording aligned to BC-2.01.009):**
+HS-108 Cases d/e mergecap hint used informal phrasing. Aligned to the canonical hint wording
+established in BC-2.01.009 v1.5 / Decision 19 amend: `mergecap -w out.pcapng <file>`.
+
+**P5-003 (Minor — BC-2.01.010 stale deferral notes replaced with HS-103 case refs):**
+BC-2.01.010 body contained stale "deferred to a separate burst" deferral notes referencing
+holdout scenarios that now exist. Replaced with explicit HS-103 case cross-references:
+HS-103 Case D (btl=16 → E-INP-008 SHB body-too-short constructible case) and HS-103 Case B
+(btl=8 → E-INP-008 BOM-bad). BC-2.01.010 v1.9→v2.0. BC-INDEX v1.60→v1.61 (annotation synced).
+
+**P5-004 (Minor — error-taxonomy E-INP-008 BC-ref +BC-2.01.013):**
+error-taxonomy E-INP-008 `BC-references` column listed BC-2.01.010/011/012 but omitted
+BC-2.01.013. BC-2.01.013 v1.5 now routes SPB body-too-short (block_body_available < 4) to
+E-INP-008 per Decision 20 uniform rule. Added BC-2.01.013 to E-INP-008 BC-ref list.
+error-taxonomy v3.3→v3.4.
+
+---
+
 ## [pcapng-f2-pass5-remediation-2026-06-20] — 2026-06-20
 
 ### PASS-5 REMEDIATION: 1C/4H/5M/3L ALL FIXED — PASS-6 PENDING — D-153

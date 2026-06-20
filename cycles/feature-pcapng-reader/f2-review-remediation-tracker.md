@@ -8,9 +8,9 @@ sources:
   - performance-review
   - adversarial-spec-review-pass2 (ADV-F2-PASS2)
 date_created: 2026-06-19
-status: PASS5-REMEDIATION-COMPLETE-PASS6-PENDING
+status: PASS5-FULLY-REMEDIATED-CONSISTENCY-VERIFIED-PASS6-PENDING
 f3_blocked: true
-f3_blocker_reason: "Adversarial reconvergence required (3 clean passes). Pass-1 items addressed (D-142/D-143). Pass-2 items addressed (D-144). Pass-2 cross-seam re-audit CLEAN (D-145). Pass-3 NOT CLEAN (D-146): 1C/5H/7M/4L. Pass-3 remediation COMPLETE (D-147). Pass-3 cross-seam re-audit gap fixes COMPLETE (D-148). Pass-4 NOT CLEAN (D-149): 1C/4H/5M/3L, HIGH novelty. Pass-4 remediation COMPLETE (D-150). Pass-4 re-audit 3 Major boundary gaps FIXED (D-151): FINDING-P4-001/002/003. Pass-5 NOT CLEAN (D-152): 1C/4H/5M/3L, HIGH novelty — TRAJECTORY PLATEAU (23/24/17/13/13). Pass-5 remediation COMPLETE (D-153): all 1C/4H/5M/3L FIXED pending pass-6 verification. Clean-pass counter 0/3. Adversary pass-6 pending."
+f3_blocker_reason: "Adversarial reconvergence required (3 clean passes). Pass-1 items addressed (D-142/D-143). Pass-2 items addressed (D-144). Pass-2 cross-seam re-audit CLEAN (D-145). Pass-3 NOT CLEAN (D-146): 1C/5H/7M/4L. Pass-3 remediation COMPLETE (D-147). Pass-3 cross-seam re-audit gap fixes COMPLETE (D-148). Pass-4 NOT CLEAN (D-149): 1C/4H/5M/3L, HIGH novelty. Pass-4 remediation COMPLETE (D-150). Pass-4 re-audit 3 Major boundary gaps FIXED (D-151): FINDING-P4-001/002/003. Pass-5 NOT CLEAN (D-152): 1C/4H/5M/3L, HIGH novelty — TRAJECTORY PLATEAU (23/24/17/13/13). Pass-5 remediation COMPLETE (D-153): all 1C/4H/5M/3L FIXED. Pass-5 re-audit CLEAN (D-154): 4 Minor findings FIXED (FINDING-P5-001/002/003/004); 6 seams CLEAN. Pass-5 fully remediated + consistency-verified. Clean-pass counter 0/3. Adversary pass-6 pending."
 ---
 
 # F2 Review Remediation Tracker — pcapng Reader
@@ -442,3 +442,29 @@ Clean-pass counter: 0/3. Remediation round-5 required.
 | HS-107 | v1.3 | v1.4 | H-3 (snaplen dropped; Case B rationale), H-4 (stale deferral note removed) |
 | HS-108 | v1.0 | v1.1 | H-2 (Cases d/e added: OPB-only; mixed NRB+OPB) |
 | BC-INDEX | v1.59 | v1.60 | all 6 changed BCs synced |
+
+---
+
+## Pass-5 Re-audit Findings (consistency-validator — D-154 burst — 2026-06-20)
+
+**Overall verdict:** 4 Minor findings. 0 Major / 0 Critical. 6 seams CLEAN. Pass-5 fully
+remediated + consistency-verified. Adversary pass-6 pending. Clean-pass counter 0/3.
+
+| ID | Severity | Finding Summary | Status |
+|----|----------|----------------|--------|
+| FINDING-P5-001 | Minor | HS-108 v1.1 `verification_properties` field carried a placeholder VP reference. HS-108 is a seam-level end-to-end holdout (OPB-only notice; zero-packet disambiguation) exercising multiple BCs holistically — it does not trace to a single formal VP. | FIXED — HS-108 v1.1→v1.2: verification_properties→[] (explicitly empty; design note added). D-154. |
+| FINDING-P5-002 | Minor | HS-108 Cases d/e mergecap hint used informal phrasing inconsistent with the canonical hint established in BC-2.01.009 v1.5 and Decision 19 amend. | FIXED — HS-108 v1.2: Cases d/e mergecap hint aligned to canonical form `mergecap -w out.pcapng <file>`. D-154. |
+| FINDING-P5-003 | Minor | BC-2.01.010 body contained stale "deferred to a separate burst" deferral notes referencing holdout scenarios that now exist (HS-103 Cases B and D authored in D-143/D-150). Notes were self-contradictory — they deferred creation of scenarios that had already been created. | FIXED — BC-2.01.010 v1.9→v2.0: stale deferral notes replaced with explicit HS-103 case cross-references (Case D: btl=16 → E-INP-008 SHB body-too-short constructible case; Case B: btl=8 → E-INP-008 BOM-bad). BC-INDEX v1.60→v1.61 annotation synced. D-154. |
+| FINDING-P5-004 | Minor | error-taxonomy E-INP-008 `BC-references` column listed BC-2.01.010/011/012 but omitted BC-2.01.013. BC-2.01.013 v1.5 routes SPB body-too-short (block_body_available < 4) to E-INP-008 per Decision 20 uniform rule. Incomplete BC-ref list could mislead implementers checking which BCs govern E-INP-008. | FIXED — error-taxonomy v3.3→v3.4: BC-2.01.013 added to E-INP-008 BC-references. D-154. |
+
+**Artifacts updated in this burst (4 artifacts):**
+
+| Artifact | Before | After | Findings addressed |
+|----------|--------|-------|--------------------|
+| BC-2.01.010 | v1.9 | v2.0 | FINDING-P5-003 (stale deferral notes→HS-103 case refs) |
+| HS-108 | v1.1 | v1.2 | FINDING-P5-001 (VP ref→[]), FINDING-P5-002 (hint wording aligned) |
+| error-taxonomy | v3.3 | v3.4 | FINDING-P5-004 (E-INP-008 BC-ref +BC-2.01.013) |
+| BC-INDEX | v1.60 | v1.61 | FINDING-P5-003 annotation sync (BC-2.01.010 v1.9→v2.0) |
+
+**Re-audit verdict:** CLEAN. All 6 seams pass. 4 Minor findings FIXED. Pass-5 fully
+remediated + consistency-verified. Adversary pass-6 is next. Clean-pass counter 0/3.

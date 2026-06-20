@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.9"
+version: "2.0"
 status: draft
 producer: product-owner
 timestamp: 2026-06-19T00:00:00Z
@@ -13,6 +13,7 @@ capability: CAP-01
 lifecycle_status: active
 introduced: v0.10.0-pcapng
 modified:
+  - "v2.0: Pass-5 re-audit FINDING-P5-003 — removed 4 stale 'deferred to a separate burst' annotations (HS-103 v1.5 already covers the referenced cases: Case D btl=16→E-INP-008 and Case C btl<12/misaligned→E-INP-010). Replaced deferral notes with explicit HS-103 case citations in Postcondition 5(b), AC-004a, EC-005, and EC-009. No normative behavior change. — 2026-06-20"
   - "v1.9: Pass-4 remediation R2 Decision 20 — RE-ADDED body-too-short E-INP-008 case for SHB. Pass-3 removal was WRONG: the 'unconstructible' premise was FALSE. A crate-framed RawBlock with block_total_length=16 (aligned, >=12) has a body of 4 bytes (16-12=4), which is < 16 SHB fixed-field bytes. The crate DOES return this block; wirerust body-decode then finds body < 16 and returns E-INP-008. The constructible window is 12<=btl<28 (body 0-15 bytes). Restated uniform 4-way split in Postcondition 5; restored AC-004 body-truncation test; restored EC-005 constructible fixture (btl=16, body=4). Traceability error taxonomy updated to include body-too-short path. Authority: ADR-009 rev 7, per-block fixed-field minimums: SHB=16. — 2026-06-20"
   - "v1.8: Pass-3 Q2 remediation H-1 — E-INP-008 narrowed for SHB to SEMANTIC failures ONLY: invalid Byte-Order Magic (on-disk bytes neither 1A 2B 3C 4D nor 4D 3C 2B 1A) and major_version != 1. The btl=28/body=15 fixture (PC5 case a, AC-004a, EC-005) is UNCONSTRUCTIBLE: a crate-framed RawBlock with block_total_length=28 always has a 16-byte body (28-12=16); the crate rejects btl<12 / unframable blocks with Err BEFORE wirerust sees them (E-INP-010). Removed unconstructible AC-004(a) body-truncation test and its EC-005 fixture; removed the two-case split from Postcondition 5 (now single case: all SHB framing/length truncation => E-INP-010); updated Traceability error taxonomy note. E-INP-008 for SHB now exclusively covers invalid BOM and bad major_version. Authority: ADR-009 rev 6 + spike /research/pcap-file-2.0.0-api-spike.md. — 2026-06-19"
   - "v1.7: Pass-2 P2a remediation — I-8: split SHB truncation error codes. AC-004/EC-005/EC-008 updated: (a) crate returns block (block_total_length>=12, %4==0) but wirerust body-decode finds body < 16 fixed bytes => wirerust body-decode Err => E-INP-008; (b) crate rejects block_total_length<12 / EOF / misalignment BEFORE returning block => crate framing Err => routed via BC-2.01.017 taxonomy to E-INP-010. EC-005 and EC-008 now specify E-INP-010 for sub-12-byte cases; EC-005 canonical fixture (27 bytes total, body=15 bytes) is case (a) => E-INP-008. New EC-009 captures crate-rejection case (block_total_length=8) => E-INP-010. BOM self-detection verified implementable: RawBlock.body[0..4] = raw BOM; read as BE u32, match 0x1A2B3C4D (big) / 0x4D3C2B1A (little) — spike confirms no regression. I-11: added Test: citations per AC. — 2026-06-19"
@@ -70,7 +71,7 @@ fixed body: BOM:4 + major:2 + minor:2 + section_length:8). The crate rejects
    - **(b) 12 ≤ btl < 28 (body 0–15 bytes)** — crate frames and returns the block; wirerust
      body-decode finds body < 16 SHB fixed-field bytes → **E-INP-008** (body-too-short).
      Constructible fixture: btl=16 → body=4 bytes < 16 → E-INP-008. (HS-103 btl=16 holdout
-     deferred to a separate burst.) The constructible window is confirmed by ADR-009 rev 7
+     covered by HS-103 v1.5 Case D.) The constructible window is confirmed by ADR-009 rev 7
      per-block fixed-field minimums: SHB fixed fields = 16 bytes; minimum total = 28.
    - **(c) btl ≥ 28, body ≥ 16, but invalid BOM or major_version ≠ 1** — semantic failures →
      **E-INP-008**.
@@ -107,14 +108,14 @@ fixed body: BOM:4 + major:2 + minor:2 + section_length:8). The crate rejects
   fields: BOM:4 + major:2 + minor:2 + section_length:8) causes wirerust body-decode to return
   `Err` mapped to **E-INP-008**. Constructible window: `12 ≤ block_total_length < 28`
   (body 0–15 bytes). Canonical fixture: `block_total_length = 16` → body = 4 bytes < 16 →
-  E-INP-008. (HS-103 btl=16→E-INP-008 holdout deferred to a separate burst.)
+  E-INP-008. (Covered by HS-103 v1.5 Case D: btl=16 → body=4 < 16 → E-INP-008.)
   **Test:** `test_BC_2_01_010_shb_body_truncated_e_inp_008`
 - **AC-004b (Framing rejection — E-INP-010):** Any SHB where the crate rejects before
   returning a block — `block_total_length < 12`, `block_total_length % 4 != 0`, or EOF before
   the block_total_length trailer — routes to **E-INP-010** via BC-2.01.017 taxonomy. wirerust
   never sees the block body in this case. Canonical fixture: SHB with `block_total_length = 8`
   (crate rejects; E-INP-010). Note: HS-103 Case C ("15 bytes total, btl misaligned") is also
-  this case; a separate holdout burst fixes HS-103.
+  this case; covered by HS-103 v1.5 Case C.
   **Test:** `test_BC_2_01_010_shb_framing_rejection_e_inp_010`
 - **AC-005 (no-panic — SEC-005):** This block parser MUST return `Err` for any malformed or
   truncated SHB byte sequence. `unwrap()`, `expect()`, `panic!()`, and `unreachable!()` are
@@ -143,11 +144,11 @@ fixed body: BOM:4 + major:2 + minor:2 + section_length:8). The crate rejects
 | EC-002 | Big-endian pcapng (less common; holdout scenario) | On-disk BOM bytes `1A 2B 3C 4D`; big-endian mode selected; all subsequent block fields read big-endian |
 | EC-003 | Section length = `0xFFFFFFFFFFFFFFFF` (unspecified) | Accepted; reader does not use section length for bounds |
 | EC-004 | Major version = 2 (future) | `Err` with "Unsupported pcapng major version: 2" context; no packets emitted |
-| EC-005 | SHB where crate returns a valid-framed RawBlock (btl=16, aligned, ≥12) but body is only 4 bytes (16−12=4) — wirerust body-decode finds body < 16 SHB fixed-field bytes | `Err` mapping to **E-INP-008** (body-too-short; wirerust body-decode path). No panic. Constructible window: 12≤btl<28. Canonical fixture: btl=16 → body=4 bytes < 16 → E-INP-008. (HS-103 btl=16 holdout deferred to a separate burst.) **Test:** `test_BC_2_01_010_shb_body_truncated_e_inp_008` |
+| EC-005 | SHB where crate returns a valid-framed RawBlock (btl=16, aligned, ≥12) but body is only 4 bytes (16−12=4) — wirerust body-decode finds body < 16 SHB fixed-field bytes | `Err` mapping to **E-INP-008** (body-too-short; wirerust body-decode path). No panic. Constructible window: 12≤btl<28. Canonical fixture: btl=16 → body=4 bytes < 16 → E-INP-008. (Covered by HS-103 v1.5 Case D.) **Test:** `test_BC_2_01_010_shb_body_truncated_e_inp_008` |
 | EC-006 | Multi-section pcapng (second SHB mid-file) | `Err` mapping to E-INP-012: "pcapng multi-section files are not supported (second Section Header Block at block #<seq>) (hint: split the capture into single-section files, or re-save with 'mergecap -w out.pcapng <file>' or 'editcap' which emit single-section pcapng)"; wirerust supports single-section pcapng only (scope decision; pcap-file 2.0.0 handles multi-section correctly but wirerust does not exercise that path). No byte-order reset is attempted before rejection. **Test:** `test_BC_2_01_010_second_shb_rejected_e_inp_012` |
 | EC-007 | Invalid BOM value (on-disk bytes neither `4D 3C 2B 1A` nor `1A 2B 3C 4D`) | `Err` mapping to E-INP-008; no panic (holdout: craft SHB with BOM on-disk bytes `DE AD BE EF`). **Test:** `test_BC_2_01_010_invalid_bom_e_inp_008` |
 | EC-008 | SHB with block_total_length < 12 (e.g., total = 8) — crate rejects before returning block | `Err` routed via BC-2.01.017 taxonomy to **E-INP-010** (crate framing rejection, not wirerust body-decode). No panic. **Test:** `test_BC_2_01_010_shb_framing_rejection_e_inp_010` |
-| EC-009 | SHB total length = 15 bytes (block_total_length < 12 or misaligned) — crate rejects (HS-103 Case C category) | `Err` mapping to **E-INP-010** (crate framing Err before block returned to wirerust); HS-103 Case C fix deferred to holdout burst. **Test:** `test_BC_2_01_010_hs103_case_c_e_inp_010` |
+| EC-009 | SHB total length = 15 bytes (block_total_length < 12 or misaligned) — crate rejects (HS-103 Case C) | `Err` mapping to **E-INP-010** (crate framing Err before block returned to wirerust); covered by HS-103 v1.5 Case C. **Test:** `test_BC_2_01_010_hs103_case_c_e_inp_010` |
 
 ## Canonical Test Vectors
 
