@@ -1,8 +1,8 @@
 //! STORY-123: pcapng Format Detection (Magic-Byte Probe) and SHB Parse
 //!
-//! TDD test suite — ALL tests in this file MUST FAIL until the implementation
-//! replaces the `todo!()` stubs in `src/reader.rs`. This is the Red Gate.
-//!
+//! TDD regression-guard suite — all tests in this file are GREEN (implementation
+//! complete). This suite pins the behavioral contracts in src/reader.rs and
+//! guards against regressions. Do NOT weaken assertions.
 //! Coverage map:
 //!   AC-001 → test_BC_2_01_009_unbuffered_read_routes_correctly
 //!             test_BC_2_01_009_pipe_stream_probe_observable
@@ -990,25 +990,13 @@ fn test_BC_2_01_010_bom_little_endian() {
 ///   - major_version = 1  encoded BE: `00 01`  (LE misread → 256 ≠ 1 → wrong)
 ///   - minor_version = 2  encoded BE: `00 02`  (LE misread → 512 ≠ 2 → wrong)
 ///
+/// # Regression guard: LE-always misread detection
+///
 /// A `parse_shb_body` that reads version fields unconditionally as LE will interpret
 /// `00 01` (BE major=1) as `0x0100 = 256`, triggering "Unsupported pcapng major
-/// version: 256" and returning Err — making this test RED against the current impl
-/// (reader.rs lines 206-207 use `u16::from_le_bytes` unconditionally).
-///
-/// # RED GATE EXPECTATION
-///
-/// Current reader.rs implementation (lines 206-207):
-///   `let major_version = u16::from_le_bytes([body[4], body[5]]);`
-///   `let minor_version = u16::from_le_bytes([body[6], body[7]]);`
-///
-/// With BE body bytes `[..., 00 01, 00 02, ...]`:
-///   - major decoded as LE: body[4]=0x00, body[5]=0x01 → u16::from_le_bytes([0,1]) = 256
-///   - major=256 ≠ 1 → Err("Unsupported pcapng major version: 256")
-///   - parse_shb_body returns Err, not Ok
-///   - `result.is_ok()` assertion FAILS → RED
-///
-/// The test becomes GREEN only when `parse_shb_body` applies section endianness
-/// (established by the BOM) to subsequent field decoding.
+/// version: 256" and returning Err. This test pins that `parse_shb_body` applies
+/// section endianness (established by the BOM) to subsequent field decoding —
+/// any regression to LE-always decoding will cause `major=256` and fail this test.
 #[test]
 fn test_BC_2_01_010_bom_big_endian() {
     // Spec-conforming big-endian SHB body: BOM says BE, so ALL fields are BE-encoded.
@@ -1642,10 +1630,13 @@ fn test_BC_2_01_009_classic_pcap_skipped_blocks_zero() {
 ///   - `packets[0].data == [0xBE, 0xEF, 0xCA, 0xFE]`
 ///   - `datalink == DataLink::ETHERNET`
 ///
-/// Under the current LE-always implementation the SHB btl is misread as
-/// 0x1C000000 = 469762048, causing an immediate "stream too short" error.
-/// This test is therefore RED now and becomes GREEN only when the implementer
-/// applies section-endianness to outer block framing fields.
+/// # Regression guard: LE-always misread detection
+///
+/// A LE-always implementation would read the SHB btl as 0x1C000000 = 469762048,
+/// triggering an immediate "stream too short" error. This test pins that the
+/// pcap-file 2.0.0 PcapNgParser/RawBlock path is used, which detects BE endianness
+/// from the BOM and correctly decodes all subsequent framing fields as big-endian.
+/// Any regression to LE-always outer-frame decoding will fail this test.
 ///
 /// See `genuine_be_pcapng_with_one_packet()` doc-comment for the full byte-by-byte
 /// breakdown of non-palindromic field values and their LE-misread consequences.
@@ -1670,21 +1661,17 @@ fn test_BC_2_01_010_genuine_be_section_end_to_end() {
 
     // ── PRIMARY ASSERTION: the entire file decodes without error ─────────────
     //
-    // CURRENT EXPECTED STATE: FAIL (RED GATE)
-    //
-    // The current LE-always implementation reads the SHB btl at bytes [4..8] as
-    // u32::from_le_bytes([0x00, 0x00, 0x00, 0x1C]) = 0x1C000000 = 469762048.
-    // This triggers the "stream too short for declared btl=469762048" error path
-    // before any body field is decoded. The test therefore currently returns
-    // Err(...) instead of Ok(PcapSource).
-    //
-    // PASS CONDITION: The implementer re-implements using the pcap-file 2.0.0
-    // PcapNgParser/RawBlock path, which detects BE endianness from the BOM and
-    // correctly decodes all subsequent framing fields as big-endian.
+    // Regression guard: a LE-always implementation would read the SHB btl at
+    // bytes [4..8] as u32::from_le_bytes([0x00, 0x00, 0x00, 0x1C]) = 0x1C000000
+    // = 469762048, triggering an immediate framing error. The pcap-file 2.0.0
+    // PcapNgParser path correctly detects BE endianness from the BOM and decodes
+    // all subsequent framing fields as big-endian. Any regression to LE-always
+    // outer-frame decoding will cause this assertion to fail.
     assert!(
         result.is_ok(),
         "BC-2.01.010 Invariant 4 / C-1: genuine BE pcapng (all fields BE) must decode \
-         without error; current LE-always impl fails here (RED); got: {:?}",
+         without error (regression: LE-always misread of SHB btl gives 469762048); \
+         got: {:?}",
         result.as_ref().err()
     );
 
@@ -1781,23 +1768,15 @@ fn test_BC_2_01_009_epb_before_idb_e_inp_009() {
 // ──────────────────────────────────────────────────────────────────────────────
 // SHB-ONLY DATALINK: architect-mandated NULL sentinel (not ETHERNET)
 //
-// Architect ruling: SHB-only file (no IDB) → PcapSource.datalink MUST be
-// DataLink::from(0) (reserved/NULL sentinel), NOT the fabricated DataLink::ETHERNET
-// it currently returns.
-//
-// The current implementation (reader.rs line 653):
-//   let final_datalink = datalink.unwrap_or(DataLink::ETHERNET);
-// This fabricates ETHERNET when no IDB was seen — which is wrong. The correct
-// sentinel for "no interface description seen" is DataLink::from(0) (the
-// reserved/NULL value in the IANA linktype registry).
+// Architect ruling (M-3): SHB-only file (no IDB) → PcapSource.datalink MUST be
+// DataLink::from(0) (reserved/NULL sentinel). reader.rs uses:
+//   let final_datalink = datalink.unwrap_or(DataLink::from(0));
+// Regression guard: any change back to DataLink::ETHERNET would fabricate linktype
+// code 1 when no IDB was seen — which is wrong per the IANA linktype registry.
 //
 // This test augments test_BC_2_01_009_shb_only_zero_packet_notice to additionally
 // assert the correct NULL sentinel. The existing test does NOT check datalink;
 // this test does.
-//
-// CURRENT STATE: RED (returns ETHERNET, not from(0)).
-// PASS CONDITION: implementer changes `unwrap_or(DataLink::ETHERNET)` to
-//   `unwrap_or(DataLink::from(0))` (the M-3 fix per the architect ruling).
 // ──────────────────────────────────────────────────────────────────────────────
 
 /// BC-2.01.009 EC-010 / architect ruling (M-3): SHB-only pcapng (no IDB, no
@@ -1809,10 +1788,11 @@ fn test_BC_2_01_009_epb_before_idb_e_inp_009() {
 /// downstream analyzers. The reserved/NULL value (code 0) correctly signals
 /// "no interface description was present in this file."
 ///
-/// This test is currently RED because reader.rs uses:
-///   `datalink.unwrap_or(DataLink::ETHERNET)`
-/// The implementer must change this to:
-///   `datalink.unwrap_or(DataLink::from(0))`
+/// # Regression guard
+///
+/// reader.rs uses `datalink.unwrap_or(DataLink::from(0))` (M-3 fix). Any
+/// regression to `unwrap_or(DataLink::ETHERNET)` will fail this test: the
+/// returned `DataLink::ETHERNET` (code 1) differs from `DataLink::from(0)`.
 ///
 /// This test does NOT conflict with test_BC_2_01_009_shb_only_zero_packet_notice;
 /// that test checks packets/skipped_blocks/opb_skipped only. This test checks
@@ -1837,21 +1817,18 @@ fn test_BC_2_01_009_shb_only_datalink_null_sentinel() {
         "SHB-only: packets.len() must be 0 (no EPB/SPB)"
     );
 
-    // ── THE CRITICAL ASSERTION (currently RED) ────────────────────────────────
+    // ── DATALINK NULL SENTINEL (regression guard) ─────────────────────────────
     //
     // DataLink::from(0) is the reserved/NULL sentinel per the IANA linktype
     // registry. It signals "no interface description was seen in this file."
-    //
-    // The current impl returns DataLink::ETHERNET (DataLink::from(1)) because
-    // it uses `datalink.unwrap_or(DataLink::ETHERNET)`. This is wrong.
-    //
-    // EXPECTED: DataLink::from(0)   (NULL sentinel — no IDB was present)
-    // ACTUAL:   DataLink::ETHERNET  (DataLink::from(1) — fabricated, incorrect)
+    // reader.rs uses `datalink.unwrap_or(DataLink::from(0))` (M-3 fix).
+    // A regression to `unwrap_or(DataLink::ETHERNET)` returns DataLink::from(1)
+    // which differs from DataLink::from(0) — this assertion catches it.
     let null_sentinel = pcap_file::DataLink::from(0);
     assert_eq!(
         source.datalink, null_sentinel,
         "SHB-only pcapng (no IDB): datalink must be DataLink::from(0) (NULL/reserved sentinel); \
-         current impl returns DataLink::ETHERNET which is wrong — there is no linktype \
-         information when no IDB is present (architect ruling M-3)"
+         regression to DataLink::ETHERNET (code 1) is wrong — no linktype information when \
+         no IDB is present (architect ruling M-3)"
     );
 }
