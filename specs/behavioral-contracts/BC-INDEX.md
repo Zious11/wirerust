@@ -1,10 +1,10 @@
 ---
 document_type: bc-index
 level: L3
-version: "1.53"
+version: "1.54"
 status: draft
 producer: product-owner
-timestamp: 2026-06-19T12:00:00Z
+timestamp: 2026-06-19T14:00:00Z
 phase: 1a
 traces_to: .factory/specs/prd.md
 ---
@@ -15,6 +15,8 @@ traces_to: .factory/specs/prd.md
 > links to the individual BC file. BCs are sharded into per-subsystem directories (ss-NN/).
 >
 > All BCs are marked [WRITTEN]. Body files have been verified on disk for all 303 entries (293 prior + 10 new BC-2.01.009–018 for F2 pcapng-reader-support; BC-2.01.004 retired).
+>
+> **v1.54 2026-06-19 (F2 re-audit consistency fixes — pcapng-f2-reaudit-fixes-2026-06-19):** Inline version annotations synced to on-disk BC frontmatter for 2 BCs: BC-2.01.009 v1.0→v1.1 (PC1 over-promise fixed: empty pcapng valid, ">=0 packets"; H5-1 FIXED); BC-2.01.010 v1.4→v1.6 (BOM byte-sequence consistency sweep — 9 statements normalized to unambiguous on-disk byte-sequence form; BOM-1 + BOM-mapping contradiction chain FIXED). Active BC count unchanged: 302. HS-INDEX all-namespace count corrected to 179 (IDX-1 FIXED). ADR-009 SPB formula + BE byte-order magic corrected (rev 4 minor corrections 1+2; H2-1 + BOM-3 FIXED). prd.md v1.33 §2.1 BC-2.12.011 description updated to magic-byte detection (PRD-BC2-1 FIXED). prd.md §7 RTM synced (v1.32→v1.33). D-143.
 >
 > **v1.53 2026-06-19 (F2 remediation burst — pcapng-f2-remediation-2026-06-19):** Inline version annotations synced to on-disk BC frontmatter for 10 remediated BCs: BC-2.01.010 v1.2→v1.4 (raw-block pivot ADR-009 rev 4, saturating arithmetic, SEC-005 no-panic, VP-026); BC-2.01.011 v1.0→v1.1 (if_tsresol API-spike clarification, VP-025 scope note); BC-2.01.012 v1.0→v1.1 (EPB_FIXED_OVERHEAD_BYTES=28, guard-before-allocate, E-INP-009/010 routing, VP-027); BC-2.01.013 v1.0→v1.1 (SPB overhead 16 bytes, SEC-005 no-panic); BC-2.01.014 v1.0→v1.1 (saturating arithmetic, VP-025 Kani totality over full u8 if_tsresol); BC-2.01.015 v1.1→v1.2 (forward-progress SEC-002, VP-029); BC-2.01.016 v1.0→v1.1 (SEC-005 no-panic); BC-2.01.017 v1.0→v1.2 (VP-028 cargo-fuzz, E-INP-009 routing); BC-2.01.018 v1.1→v1.2 (STORY-128 per-file isolation, OPB-only, VP-030); BC-2.12.011 v1.4→v1.5 (magic-byte content detection, C-2 resolved, STORY-127 scope). Active BC count stays 302. VP-025..030 assigned (VP-INDEX v2.3). HS-101..106 authored. NFR-PERF-005/006/007 added (nfr-catalog v2.3). error-taxonomy v2.7 (E-INP-009/010/012 routing corrected). ADR-009 rev 4 (raw-block pivot). STORY-128 (per-file isolation loop) recorded for F3. D-142.
 >
@@ -75,8 +77,8 @@ traces_to: .factory/specs/prd.md
 | BC-2.01.006 | Surface PCAP Header Parse Errors with Anyhow Context | P1 | [WRITTEN] | BC-RDR-006 |
 | BC-2.01.007 | Surface Per-Packet Read Errors with Anyhow Context | P1 | [WRITTEN] | BC-RDR-007 |
 | BC-2.01.008 | from_file Opens via BufReader and Delegates to from_pcap_reader | P2 | [WRITTEN] | BC-RDR-008 |
-| BC-2.01.009 | Accept pcapng Format: Transparent Detection via Magic-Byte Probe | P0 | [WRITTEN] | feature-pcapng-F2 | <!-- v1.0: supersedes BC-2.01.004; greenfield; ADR-009 Decision 5/6; STORY-123 -->
-| BC-2.01.010 | Parse pcapng Section Header Block (SHB): Byte-Order Detection and Version | P0 | [WRITTEN] | feature-pcapng-F2 | <!-- v1.4: greenfield; ADR-009 Decision 1/2; STORY-123; v1.1: F-06 reject AC; v1.2: rationale corrected (scope decision; pcap-file resets correctly); v1.3: no-panic AC (SEC-005); v1.4: F2 remediation — saturating ts arithmetic ref, SEC-005 explicit no-panic AC, VP-026 assigned -->
+| BC-2.01.009 | Accept pcapng Format: Transparent Detection via Magic-Byte Probe | P0 | [WRITTEN] | feature-pcapng-F2 | <!-- v1.1: supersedes BC-2.01.004; greenfield; ADR-009 Decision 5/6; STORY-123; v1.1: PC1 over-promise fixed — empty pcapng valid (>=0 packets); H5-1 FIXED -->
+| BC-2.01.010 | Parse pcapng Section Header Block (SHB): Byte-Order Detection and Version | P0 | [WRITTEN] | feature-pcapng-F2 | <!-- v1.6: greenfield; ADR-009 Decision 1/2; STORY-123; v1.1: F-06 reject AC; v1.2: rationale corrected (scope decision; pcap-file resets correctly); v1.3: no-panic AC (SEC-005); v1.4: F2 remediation — saturating ts arithmetic ref, SEC-005 explicit no-panic AC, VP-026 assigned; v1.5: BOM-1 fix — AC-001 parenthetical circular phrasing removed; v1.6: BOM consistency sweep — 9 statements normalized to on-disk byte-sequence form; v1.4 annotation corrected (BOM-mapping contradiction chain FIXED) -->
 | BC-2.01.011 | Parse pcapng Interface Description Block (IDB): Link Type and Timestamp Resolution | P0 | [WRITTEN] | feature-pcapng-F2 | <!-- v1.1: greenfield; ADR-009 Decision 2/3/4; STORY-124; v1.1: F2 remediation — if_tsresol handling clarified per API spike; VP-025 scope note added -->
 | BC-2.01.012 | Parse pcapng Enhanced Packet Block (EPB): Packet Data and Timestamp | P0 | [WRITTEN] | feature-pcapng-F2 | <!-- v1.1: greenfield; ADR-009 Decision 2/4; STORY-125; v1.1: F2 remediation — EPB_FIXED_OVERHEAD_BYTES=28 named; guard-before-allocate; E-INP-009/010 error-code routing fixed; VP-027 assigned -->
 | BC-2.01.013 | Parse pcapng Simple Packet Block (SPB): Packet Data Without Timestamp | P1 | [WRITTEN] | feature-pcapng-F2 | <!-- v1.1: greenfield; ADR-009 Decision 2; STORY-126; v1.1: F2 remediation — SPB overhead corrected to 16 bytes; no-panic AC (SEC-005) -->

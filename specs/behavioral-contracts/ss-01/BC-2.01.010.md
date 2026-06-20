@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.4"
+version: "1.6"
 status: draft
 producer: product-owner
 timestamp: 2026-06-19T00:00:00Z
@@ -13,7 +13,9 @@ capability: CAP-01
 lifecycle_status: active
 introduced: v0.10.0-pcapng
 modified:
-  - "v1.4: ADR-009 rev 4 Burst B — Add VP-026 to Verification Properties. Add no-panic AC (SEC-005). Correct EC-004: block_total_length<12 is rejected by crate (not 'no error'); remove 'EC-004 is minor version rejection' mislabeling by renumbering — major_version=2 moves to EC-004 (corrected), block_total_length<12 edge case added as EC-007. Align SHB minimum to 28 bytes total (12 outer + 16 body: BOM:4 + major:2 + minor:2 + section_length:8); update E-INP-008 threshold to 28. AC-004 truncation fixture updated to 27 bytes. Add no-panic AC-005. Add holdout scenarios: BE magic 0x4D3C2B1A, invalid BOM, SHB truncated at byte 15/27. ADR reference updated to include Decision 8. — 2026-06-19"
+  - "v1.6: BOM consistency sweep — eliminated all contradictory u32-value→endianness shorthand from Description, Postcondition 1, AC-001 opening, EC-001, EC-002, EC-007, and Canonical Test Vectors. Every BOM statement now uses unambiguous on-disk byte-sequence form: on-disk bytes 1A 2B 3C 4D ⇒ big-endian section; on-disk bytes 4D 3C 2B 1A ⇒ little-endian section. v1.4 changelog annotation corrected (BE magic was wrongly stated as '0x4D3C2B1A'; annotated as corrected). Consistent with HS-103 v1.2 (BE on-disk 1A 2B 3C 4D) and ADR-009. — 2026-06-19"
+  - "v1.5: BOM-1 remediation — AC-001 parenthetical replaced: removed circular 'wire big-endian encoding of 0x1A2B3C4D read big-endian' phrasing; now reads 'the Byte-Order Magic field is the u32 value 0x1A2B3C4D; in a big-endian section the on-disk bytes are 1A 2B 3C 4D, in a little-endian section the on-disk bytes are 4D 3C 2B 1A (the same logical value, opposite byte order); detection compares the read u32 against 0x1A2B3C4D (native) vs 0x4D3C2B1A (byte-swapped) to determine section endianness'. — 2026-06-19"
+  - "v1.4: ADR-009 rev 4 Burst B — Add VP-026 to Verification Properties. Add no-panic AC (SEC-005). Correct EC-004: block_total_length<12 is rejected by crate (not 'no error'); remove 'EC-004 is minor version rejection' mislabeling by renumbering — major_version=2 moves to EC-004 (corrected), block_total_length<12 edge case added as EC-007. Align SHB minimum to 28 bytes total (12 outer + 16 body: BOM:4 + major:2 + minor:2 + section_length:8); update E-INP-008 threshold to 28. AC-004 truncation fixture updated to 27 bytes. Add no-panic AC-005. Add holdout scenarios: BE magic 0x4D3C2B1A [CORRECTED in v1.6: BE on-disk bytes are 1A 2B 3C 4D, not 4D 3C 2B 1A; 4D 3C 2B 1A is the LE on-disk pattern], invalid BOM, SHB truncated at byte 15/27. ADR reference updated to include Decision 8. — 2026-06-19"
   - "v1.3: RC-2 flag-spelling consistency — AC-002 and EC-006: standardized remediation hint from 'mergecap -F pcapng' to 'mergecap -w out.pcapng <file>' to match ADR-009 Decision 7 form. Traceability Error Taxonomy note updated to reflect same. No normative behavior change. — 2026-06-19"
   - "v1.2: pcapng-multisection-decision correctness edits — AC-002 rationale reframed: rejection is a SCOPE decision (single-section corpus this cycle; multi-section is rare and absent from corpus), not a correctness workaround. pcap-file 2.0.0 correctly resets interface state per section (source-level verification 2026-06-19; F-06's INCONCLUSIVE premise superseded — see research/pcapng-multisection-decision.md). AC-002 and EC-006 updated to reference the E-INP-012 remediation hint (mergecap/editcap). Normative behavior (reject second SHB → E-INP-012) unchanged. — 2026-06-19"
   - "v1.1: F-06 completeness delta — EC-006 changed from 'reset byte order' (attempt) to REJECT with E-INP-012; AC added: second SHB in a single-section file is rejected; canonical test vector added for 2-section pcapng; error taxonomy cross-reference E-INP-012 added. — 2026-06-19"
@@ -31,7 +33,7 @@ removal_reason: null
 
 After the magic-byte probe (BC-2.01.009) identifies a pcapng stream, the reader MUST parse
 the Section Header Block (SHB, block type `0x0A0D0D0A`). The SHB carries a Byte-Order Magic
-field (`0x1A2B3C4D` LE or `0x4D3C2B1A` BE) that governs the endianness of all subsequent
+field (on-disk bytes `1A 2B 3C 4D` ⇒ big-endian, `4D 3C 2B 1A` ⇒ little-endian) that governs the endianness of all subsequent
 numeric fields in the section. The reader is on the RAW-BLOCK path (ADR-009 Decision 1,
 rev 4): `pcap-file` 2.0.0's `RawBlock` / `next_raw_block` API is used for block framing;
 wirerust decodes SHB body fields (BOM, major, minor, section_length) directly. The SHB
@@ -47,9 +49,12 @@ fixed body: BOM:4 + major:2 + minor:2 + section_length:8). The crate rejects
 
 ## Postconditions
 
-1. The SHB Byte-Order Magic is read and the byte order for the section is determined:
-   - `0x1A2B3C4D` read as big-endian bytes → little-endian mode (LE BOM = the value stored in LE bytes equals 0x1A2B3C4D; i.e., the pcapng spec encodes LE as 0x4D3C2B1A on wire). Conformant to pcapng spec: BOM wire value `0x4D3C2B1A` → LE; BOM wire value `0x1A2B3C4D` → BE.
-   - Any other BOM value returns `Err` (invalid Byte-Order Magic), mapped to E-INP-008.
+1. The SHB Byte-Order Magic is read and the byte order for the section is determined by the
+   four raw on-disk bytes at BOM position:
+   - On-disk bytes `1A 2B 3C 4D` ⇒ big-endian section (the u32 value `0x1A2B3C4D` read big-endian).
+   - On-disk bytes `4D 3C 2B 1A` ⇒ little-endian section (the same u32 value `0x1A2B3C4D`
+     stored in little-endian byte order; equivalently, a big-endian read yields `0x4D3C2B1A`).
+   - Any other four bytes ⇒ invalid Byte-Order Magic ⇒ `Err` mapped to E-INP-008.
 2. The pcapng major version MUST be 1; the minor version MAY be any value ≥ 0. A major
    version other than 1 returns `Err` with context identifying the unsupported version.
 3. The section length field in the SHB is accepted regardless of value (it may be `-1` / all
@@ -63,10 +68,13 @@ fixed body: BOM:4 + major:2 + minor:2 + section_length:8). The crate rejects
 
 ## Acceptance Criteria
 
-- **AC-001:** A well-formed SHB with wire BOM `0x4D3C2B1A` selects little-endian mode; a wire
-  BOM `0x1A2B3C4D` selects big-endian mode. Any other BOM value returns `Err` (E-INP-008).
-  Holdout: SHB with BE magic `0x4D3C2B1A` (wire big-endian encoding of 0x1A2B3C4D read
-  big-endian) is correctly identified as big-endian mode.
+- **AC-001:** Detection is by the four raw on-disk bytes at the BOM field position:
+  on-disk bytes `4D 3C 2B 1A` ⇒ little-endian section; on-disk bytes `1A 2B 3C 4D` ⇒
+  big-endian section. Any other four bytes ⇒ `Err` (E-INP-008). The Byte-Order Magic encodes
+  the u32 value `0x1A2B3C4D` in the section's native byte order; detection reads the field as
+  a big-endian u32 and compares: `0x1A2B3C4D` (unchanged) ⇒ big-endian section;
+  `0x4D3C2B1A` (byte-reversed) ⇒ little-endian section.
+  Holdout: SHB with on-disk bytes `1A 2B 3C 4D` is correctly identified as big-endian mode.
 - **AC-002:** A second Section Header Block encountered anywhere after the first is REJECTED
   with `Err` containing context that maps to E-INP-012. wirerust supports single-section
   pcapng files only (scope decision for this cycle — multi-section is rare and absent from
@@ -107,13 +115,13 @@ fixed body: BOM:4 + major:2 + minor:2 + section_length:8). The crate rejects
 
 | ID | Description | Expected Behavior |
 |----|-------------|-------------------|
-| EC-001 | Little-endian pcapng (most common on x86) | Wire BOM `0x4D3C2B1A`; little-endian mode selected |
-| EC-002 | Big-endian pcapng (less common; holdout scenario) | Wire BOM `0x1A2B3C4D`; big-endian mode selected; all subsequent block fields read big-endian |
+| EC-001 | Little-endian pcapng (most common on x86) | On-disk BOM bytes `4D 3C 2B 1A`; little-endian mode selected |
+| EC-002 | Big-endian pcapng (less common; holdout scenario) | On-disk BOM bytes `1A 2B 3C 4D`; big-endian mode selected; all subsequent block fields read big-endian |
 | EC-003 | Section length = `0xFFFFFFFFFFFFFFFF` (unspecified) | Accepted; reader does not use section length for bounds |
 | EC-004 | Major version = 2 (future) | `Err` with "Unsupported pcapng major version: 2" context; no packets emitted |
 | EC-005 | SHB truncated at 27 bytes (one short of 28-byte minimum) | `Err` mapping to E-INP-008; no panic. Canonical truncation fixture per M-1 resolution. |
 | EC-006 | Multi-section pcapng (second SHB mid-file) | `Err` mapping to E-INP-012: "pcapng multi-section files are not supported (second Section Header Block at block #<seq>) (hint: split the capture into single-section files, or re-save with 'mergecap -w out.pcapng <file>' or 'editcap' which emit single-section pcapng)"; wirerust supports single-section pcapng only (scope decision; pcap-file 2.0.0 handles multi-section correctly but wirerust does not exercise that path). No byte-order reset is attempted before rejection. |
-| EC-007 | Invalid BOM value (neither `0x4D3C2B1A` nor `0x1A2B3C4D`) | `Err` mapping to E-INP-008; no panic (holdout: craft SHB with BOM=`0xDEADBEEF`) |
+| EC-007 | Invalid BOM value (on-disk bytes neither `4D 3C 2B 1A` nor `1A 2B 3C 4D`) | `Err` mapping to E-INP-008; no panic (holdout: craft SHB with BOM on-disk bytes `DE AD BE EF`) |
 | EC-008 | SHB truncated at byte 15 (deep truncation; holdout scenario) | `Err` mapping to E-INP-008; no panic |
 
 ## Canonical Test Vectors
@@ -121,12 +129,12 @@ fixed body: BOM:4 + major:2 + minor:2 + section_length:8). The crate rejects
 | Input | Expected Output | Category |
 |-------|----------------|----------|
 | Well-formed little-endian pcapng SHB | Byte order = little-endian; version (1, 0); parse continues | happy-path |
-| Well-formed big-endian pcapng SHB (BE BOM `0x1A2B3C4D`) | Byte order = big-endian; version (1, 0); parse continues | happy-path (holdout) |
+| Well-formed big-endian pcapng SHB (on-disk BOM bytes `1A 2B 3C 4D`) | Byte order = big-endian; version (1, 0); parse continues | happy-path (holdout) |
 | SHB with section length = `0xFFFFFFFFFFFFFFFF` | Parse succeeds; section length ignored | edge-case |
 | SHB with major version = 2 | `Err` containing "unsupported" | error |
 | SHB truncated at byte 27 (< 28 bytes total) | `Err` (E-INP-008); no panic | error (canonical fixture, M-1) |
 | SHB truncated at byte 15 | `Err` (E-INP-008); no panic | error (holdout) |
-| SHB with invalid BOM (not 0x4D3C2B1A or 0x1A2B3C4D) | `Err` (E-INP-008); no panic | error (holdout) |
+| SHB with invalid BOM (on-disk bytes not `4D 3C 2B 1A` or `1A 2B 3C 4D`) | `Err` (E-INP-008); no panic | error (holdout) |
 | Crafted 2-section pcapng (SHB₁ + IDB + EPB + SHB₂) | `Err` (E-INP-012) after SHB₁ section; no packets from section 2 | error |
 
 ## Verification Properties
@@ -138,7 +146,7 @@ fixed body: BOM:4 + major:2 + minor:2 + section_length:8). The crate rejects
 | — | Truncated SHB never panics (covered by VP-026) | unit + fuzz: truncate well-formed SHB at every offset; assert no panic |
 | — | Major version ≠ 1 always returns Err | unit: inject major_version=2 SHB |
 | — | Second SHB in any stream always returns E-INP-012 Err | unit: craft 2-section pcapng; assert Err contains "multi-section" / E-INP-012 context |
-| — | Invalid BOM always returns Err (E-INP-008) | unit: inject BOM=0xDEADBEEF; assert Err |
+| — | Invalid BOM always returns Err (E-INP-008) | unit: inject BOM on-disk bytes `DE AD BE EF`; assert Err |
 
 ## Traceability
 

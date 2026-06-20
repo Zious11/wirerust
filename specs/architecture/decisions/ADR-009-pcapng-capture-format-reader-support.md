@@ -408,7 +408,7 @@ covered under VP-027's interface-table accumulation proof. BC-2.01.016 (linktype
 whitelist) is test-sufficient (integration test, no new formal VP).
 
 Holdout scenarios required by the PO per BC:
-- BC-2.01.010 (VP-026): byte-exact crafted SHB with BE byte-order magic `0x4D3C2B1A`;
+- BC-2.01.010 (VP-026): byte-exact crafted SHB with BE byte-order magic u32 `0x1A2B3C4D`, on-disk bytes `1A 2B 3C 4D` (LE section stores same u32 as on-disk bytes `4D 3C 2B 1A`);
   SHB with invalid Byte-Order Magic; SHB truncated at byte 15 (< 28 total).
 - BC-2.01.012 (VP-027): EPB with `interface_id = u32::MAX` on a 1-entry table (→ E-INP-009
   / E-INP-010); EPB with `captured_len = block_total_length - 31` (boundary valid); EPB
@@ -445,6 +445,10 @@ fuzzing mandate. Block enum corrections (9 variants, no #[non_exhaustive], no DS
 variant). VP-025 through VP-030 assigned to resolve C-3. Holdout scenarios specified.
 BC-change dispatch documented for PO.
 
+**Rev 4 minor correction (2026-06-19):** BC-2.01.013 dispatch note corrected: removed double-subtraction of original_len field; SPB fixed overhead is 16 bytes total (block-type:4 + block-total-length:4 + original-packet-length:4 + trailing block-total-length:4); available data = btl - 16; body-relative overhead = 4 bytes (original_len only). Now consistent with BC-2.01.013 v1.1.
+
+**Rev 4 minor correction 2 (2026-06-19):** Corrected two mislabeled BE byte-order magic values. The canonical BOM is u32 `0x1A2B3C4D`; a BE section stores it on-disk as bytes `1A 2B 3C 4D`; an LE section stores it on-disk as bytes `4D 3C 2B 1A`. Both holdout-scenario references (line ~411 and PO BC-change dispatch line ~464) previously and incorrectly named the BE case as `0x4D3C2B1A` (the LE on-disk byte sequence). Fixed per BC-2.01.010 v1.5 / HS-103 v1.2.
+
 ### PO BC-Change Dispatch (rev 4)
 
 The following BC changes are REQUIRED by the PO based on rev 4 decisions. The
@@ -459,7 +463,7 @@ architect does not edit BC files; this section is the handoff specification.
 - Align SHB minimum byte count: 28 bytes minimum total block_total_length (12 outer
   header + 16 body fixed fields: BOM:4 + major:2 + minor:2 + section_length:8).
   Update E-INP-008 threshold to 28 to match (M-1 resolution).
-- Add holdout scenario: BE byte-order magic `0x4D3C2B1A`; SHB truncated at byte 15.
+- Add holdout scenario: BE byte-order magic u32 `0x1A2B3C4D`, on-disk bytes `1A 2B 3C 4D` (LE section stores same u32 as on-disk bytes `4D 3C 2B 1A`); SHB truncated at byte 15.
 
 **BC-2.01.011 (IDB):**
 - Add no-panic AC per SEC-005.
@@ -490,9 +494,12 @@ architect does not edit BC files; this section is the handoff specification.
 
 **BC-2.01.013 (SPB):**
 - Correct SPB body-relative overhead to 4 bytes (original_len: u32 only).
-  Validation: `block_total_length - 16 - 4 = block_total_length - 20` bytes available
-  for padded packet data (12 outer + 4 body-fixed = 16 minimum; callers strip padding
-  to `captured_len = min(original_len, snaplen)`).
+  SPB total fixed overhead = 16 bytes (block-type:4 + block-total-length:4 +
+  original-packet-length:4 + trailing block-total-length:4). Available bytes for
+  padded packet data = `block_total_length - 16`; on the raw-block path the only
+  body-relative fixed overhead beyond the outer 12-byte frame is the 4-byte
+  `original_len` field (SPB_FIXED_OVERHEAD_BYTES = 4). Callers strip padding to
+  `captured_len = min(original_len, snaplen)`.
 - Add no-panic AC per SEC-005.
 - Add explicit note: `data` from the crate includes padding bytes; caller MUST compute
   `captured_len = min(original_len, snaplen_from_idb[0])` and slice accordingly.

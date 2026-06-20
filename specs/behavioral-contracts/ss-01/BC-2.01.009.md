@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.0"
+version: "1.1"
 status: draft
 producer: product-owner
 timestamp: 2026-06-19T00:00:00Z
@@ -12,7 +12,8 @@ subsystem: SS-01
 capability: CAP-01
 lifecycle_status: active
 introduced: v0.10.0-pcapng
-modified: []
+modified:
+  - "v1.1: H5-1 remediation — Postcondition 1 reworded: removed over-promise 'with at least one readable packet'; now reads 'returns Ok(PcapSource) for a valid pcapng file; packets contains one RawPacket per readable EPB/SPB in encounter order (possibly empty)'. packets.len() > 0 assertion demoted to fixture-specific test vector annotation for smb3.pcapng only, not a general postcondition. Parity with BC-2.01.002 EC-001 (empty pcapng) and OPB-only zero-packet case established. — 2026-06-19"
 supersedes: BC-2.01.004
 deprecated: null
 deprecated_by: null
@@ -44,7 +45,9 @@ its postconditions from rejection to acceptance.
 
 1. When the first 4 bytes are `[0x0A, 0x0D, 0x0D, 0x0A]` (pcapng SHB magic):
    the reader selects the pcapng parse path; returns `Ok(PcapSource)` for a valid pcapng
-   file with at least one readable packet.
+   file; `packets` contains one `RawPacket` per readable EPB/SPB in encounter order
+   (possibly empty — an OPB-only or zero-data-block pcapng is valid and yields
+   `packets.len() == 0`).
 2. When the first 4 bytes are a valid classic-pcap magic, the classic-pcap path (`PcapReader`)
    is taken exactly as before this feature; all classic-pcap behavioral contracts remain valid.
 3. The peek operation MUST NOT advance the stream position. After the probe, the stream
@@ -79,7 +82,7 @@ its postconditions from rejection to acceptance.
 
 | Input | Expected Output | Category |
 |-------|----------------|----------|
-| `tests/fixtures/smb3.pcapng` | `Ok(PcapSource)` with `packets.len() > 0` | happy-path (inversion of former negative test) |
+| `tests/fixtures/smb3.pcapng` | `Ok(PcapSource)`; `packets.len() > 0` for this specific fixture (smb3.pcapng contains EPBs) — this is a fixture assertion, NOT a general postcondition | happy-path (inversion of former negative test) |
 | `tests/fixtures/arp-baseline-16pkt.cap` (pcapng with `.cap` extension) | `Ok(PcapSource)` with 16 packets | happy-path |
 | Classic `tests/fixtures/*.pcap` files | `Ok(PcapSource)` via classic-pcap path unchanged | regression |
 | Stream of 2 bytes only | `Err` | error |

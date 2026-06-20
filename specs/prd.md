@@ -1,7 +1,7 @@
 ---
 document_type: prd
 level: L3
-version: "1.31"
+version: "1.33"
 status: draft
 producer: product-owner
 timestamp: 2026-06-17T00:00:00Z
@@ -410,6 +410,19 @@ supplements:
 >   post-feature-008-F2).
 >
 > No new BCs; no BC count change (283). See `spec-changelog.md` §[prd-v1.25-ss15-titlesync-2026-06-14].
+
+> **Version 1.33 delta (2026-06-19 — F2 re-audit PRD-BC2-1 remediation):**
+> PRD-BC2-1 (MEDIUM): §2.1 BC-2.12.011 index row description updated from stale pre-v1.5 wording
+> ("Directory target expands to all *.pcap files sorted; *.pcapng excluded from glob") to match
+> BC-2.12.011 v1.5: "Directory target expands to capture files detected by magic bytes (content
+> detection), not extension." No normative BC content changed; no BCs added or retired.
+
+> **Version 1.32 delta (2026-06-19 — §7 RTM sync to F2 remediation state):**
+> §7 RTM rows for BC-2.01.009–018 updated: Test Type column now carries VP assignments
+> (VP-025→BC-2.01.014, VP-026→BC-2.01.010, VP-027→BC-2.01.012, VP-028→BC-2.01.017,
+> VP-029→BC-2.01.015, VP-030→BC-2.01.018), corrected error-code routing (E-INP-008/009/010/011/012
+> per BC), and provisional story anchors (STORY-123..126 F3-planned). BC-2.12.011 row updated
+> with STORY-127 anchor. No normative BC content changed; no BCs added or retired.
 
 > **Version 1.31 delta (2026-06-19 — pcapng completeness deltas F-06/F-07/F-11):**
 > AC-level additions to BC-2.01.010 (F-06: multi-section SHB reject, E-INP-012), BC-2.01.015
@@ -883,7 +896,7 @@ Rust source files, 3,868 source LOC, 282 tests, single crate, Rust 2024 edition,
 | BC-2.12.008 | --all enables dns/http/tls together (boolean OR semantics) | P1 | BC-CLI-008 |
 | BC-2.12.009 | needs_reassembly = (--reassemble OR --http OR --tls); --no-reassemble forces off with warning | P0 | BC-CLI-009 |
 | BC-2.12.010 | NO_COLOR env var disables color even without --no-color flag | P2 | BC-CLI-010 |
-| BC-2.12.011 | Directory target expands to all *.pcap files sorted; *.pcapng excluded from glob | P1 | BC-CLI-011 |
+| BC-2.12.011 | Directory target expands to capture files detected by magic bytes (content detection), not extension | P1 | BC-CLI-011 |
 | BC-2.12.012 | Non-existent target yields bail! with Target not found message | P1 | BC-CLI-012 |
 | BC-2.12.013 | Per-target progress bar on stderr using indicatif | P2 | BC-CLI-013 |
 | BC-2.12.014 | Per-target decode errors counted into skipped_packets; only first error printed to stderr | P1 | BC-CLI-014 |
@@ -1418,16 +1431,16 @@ See `prd-supplements/error-taxonomy.md` for the complete E-xxx-NNN catalog.
 | BC-2.01.006 | CAP-01 | SS-01 (reader.rs) | P1 | unit |
 | BC-2.01.007 | CAP-01 | SS-01 (reader.rs) | P1 | unit |
 | BC-2.01.008 | CAP-01 | SS-01 (reader.rs) | P2 | inferred |
-| BC-2.01.009 | CAP-01 | SS-01 (reader.rs) | P0 | integration |
-| BC-2.01.010 | CAP-01 | SS-01 (reader.rs) | P0 | integration |
-| BC-2.01.011 | CAP-01 | SS-01 (reader.rs) | P0 | integration |
-| BC-2.01.012 | CAP-01 | SS-01 (reader.rs) | P0 | integration |
-| BC-2.01.013 | CAP-01 | SS-01 (reader.rs) | P1 | integration |
-| BC-2.01.014 | CAP-01 | SS-01 (reader.rs) | P0 | integration |
-| BC-2.01.015 | CAP-01 | SS-01 (reader.rs) | P1 | integration |
-| BC-2.01.016 | CAP-01 | SS-01 (reader.rs) | P0 | integration |
-| BC-2.01.017 | CAP-01 | SS-01 (reader.rs) | P1 | integration |
-| BC-2.01.018 | CAP-01 | SS-01 (reader.rs) | P0 | integration |
+| BC-2.01.009 | CAP-01 | SS-01 (reader.rs) | P0 | integration (STORY-123) |
+| BC-2.01.010 | CAP-01 | SS-01 (reader.rs) | P0 | integration+VP-026 (E-INP-008/012; STORY-123) |
+| BC-2.01.011 | CAP-01 | SS-01 (reader.rs) | P0 | integration (E-INP-008; STORY-124) |
+| BC-2.01.012 | CAP-01 | SS-01 (reader.rs) | P0 | integration+VP-027 (E-INP-009/010; STORY-125) |
+| BC-2.01.013 | CAP-01 | SS-01 (reader.rs) | P1 | integration (E-INP-009; STORY-126) |
+| BC-2.01.014 | CAP-01 | SS-01 (reader.rs) | P0 | integration+VP-025 (STORY-125) |
+| BC-2.01.015 | CAP-01 | SS-01 (reader.rs) | P1 | integration+VP-029 (E-INP-010; STORY-126) |
+| BC-2.01.016 | CAP-01 | SS-01 (reader.rs) | P0 | integration (E-INP-010; STORY-124) |
+| BC-2.01.017 | CAP-01 | SS-01 (reader.rs) | P1 | integration+VP-028/cargo-fuzz (E-INP-008/010; STORY-126) |
+| BC-2.01.018 | CAP-01 | SS-01 (reader.rs) | P0 | integration+VP-030 (E-INP-011; STORY-124) |
 | BC-2.02.001 | CAP-02 | SS-02 (decoder.rs) | P0 | unit |
 | BC-2.02.002 | CAP-02 | SS-02 (decoder.rs) | P0 | unit |
 | BC-2.02.003 | CAP-02 | SS-02 (decoder.rs) | P0 | unit |
@@ -1624,7 +1637,7 @@ See `prd-supplements/error-taxonomy.md` for the complete E-xxx-NNN catalog.
 | BC-2.12.008 | CAP-12 | SS-12 (main.rs) | P1 | inferred |
 | BC-2.12.009 | CAP-12 | SS-12 (main.rs) | P0 | inferred |
 | BC-2.12.010 | CAP-12 | SS-12 (main.rs) | P2 | inferred |
-| BC-2.12.011 | CAP-12 | SS-12 (main.rs) | P1 | inferred |
+| BC-2.12.011 | CAP-12 | SS-12 (main.rs) | P1 | inferred (STORY-127) |
 | BC-2.12.012 | CAP-12 | SS-12 (main.rs) | P1 | inferred |
 | BC-2.12.013 | CAP-12 | SS-12 (main.rs) | P2 | low |
 | BC-2.12.014 | CAP-12 | SS-12 (main.rs) | P1 | unit |

@@ -1,7 +1,7 @@
 ---
 document_type: holdout-scenario-index
 level: ops
-version: "2.0"  # F2-Burst-C v2.0: added 6 pcapng holdout scenarios (HS-101..106) for VP-025..030 per ADR-009 rev 4 / C-3 / DF-CANONICAL-FRAME-HOLDOUT-001. Greenfield total now 106. F3-Phase-47 v1.8: added wave-47 finding-collapse feature holdouts (13 scenarios, HS-W47-001..013, P0 all, STORY-118 / issue-259). v1.9: docs-only — add all-namespace total note per F3 audit (greenfield=100, feature DNP3=32 + ARP=28 + collapse=13 = 73, all-namespace=173).
+version: "2.0"  # F2-Burst-C v2.0: added 6 pcapng holdout scenarios (HS-101..106) for VP-025..030 per ADR-009 rev 4 / C-3 / DF-CANONICAL-FRAME-HOLDOUT-001. Greenfield total now 106. F3-Phase-47 v1.8: added wave-47 finding-collapse feature holdouts (13 scenarios, HS-W47-001..013, P0 all, STORY-118 / issue-259). v1.9: docs-only — add all-namespace total note per F3 audit (greenfield=106, feature DNP3=32 + ARP=28 + collapse=13 = 73, all-namespace=179).
 status: draft
 producer: product-owner
 timestamp: 2026-06-19T00:00:00Z

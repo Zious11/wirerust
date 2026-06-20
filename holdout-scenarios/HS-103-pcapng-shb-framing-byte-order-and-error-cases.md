@@ -1,7 +1,7 @@
 ---
 document_type: holdout-scenario
 level: ops
-version: "1.0"
+version: "1.2"  # BOM-3 fix: corrected Case A BOM on-disk bytes from 4D 3C 2B 1A (LE) to 1A 2B 3C 4D (BE); corrected case title and prose that misnamed 0x4D3C2B1A as the BE sentinel
 status: draft
 producer: product-owner
 timestamp: 2026-06-19T00:00:00Z
@@ -41,13 +41,16 @@ determines whether the file is little-endian or big-endian. This scenario tests 
 SHB-level boundary conditions that exercise the byte-order detection path and the two
 mandatory error returns.
 
-### Case A — Byte-exact BE-magic SHB (0x4D3C2B1A)
+### Case A — Byte-exact BE-magic SHB (0x1A2B3C4D)
 
 1. A crafted pcapng file is presented in big-endian format:
    - File starts with block_type 0x0A0D0D0A (same in both endians — this field is
      endian-neutral by pcapng spec design)
-   - block_total_length field: 0x00000000_1C000000 in big-endian = 28 bytes (minimum SHB)
-   - Byte-Order Magic (BOM): 0x4D3C2B1A — the big-endian sentinel (LE magic reversed)
+   - block_total_length field: u32 value 0x0000001C (= 28 bytes, minimum SHB).
+     Wire bytes in a BE-encoded section: `00 00 00 1C` (big-endian u32).
+     (For reference, the same field in an LE-encoded section would be `1C 00 00 00`.)
+   - Byte-Order Magic (BOM): the u32 value 0x1A2B3C4D stored big-endian; on-disk bytes `1A 2B 3C 4D`.
+     (For reference, a little-endian section stores the same logical value as `4D 3C 2B 1A` on disk.)
    - major_version: 0x0001 (BE), minor_version: 0x0000 (BE), section_length: 0xFFFFFFFFFFFFFFFF (BE, -1 = unknown)
    - Followed by one IDB (block_type=0x00000001 in BE) with linktype=1 (BE) and no options
    - Followed by one EPB (block_type=0x00000006 in BE) with a minimal Ethernet frame
@@ -80,7 +83,7 @@ mandatory error returns.
 | BC ID | Clause Tested | Scenario Aspect |
 |-------|--------------|-----------------|
 | BC-2.01.010 | Postcondition 1 — SHB with LE BOM accepted | (Baseline; covered by Cases A/B/C setup infrastructure) |
-| BC-2.01.010 | Postcondition 2 — SHB with BE BOM (0x4D3C2B1A) accepted; subsequent fields decoded BE | Case A: the BE-magic path must be recognized and used |
+| BC-2.01.010 | Postcondition 2 — SHB with BE BOM (on-disk `1A 2B 3C 4D`, u32 value 0x1A2B3C4D) accepted; subsequent fields decoded BE | Case A: the BE-magic path must be recognized and used |
 | BC-2.01.010 | Postcondition 3 — SHB with invalid BOM returns Err | Case B: invalid BOM must produce a graceful error, not a panic or silent wrong-decode |
 | BC-2.01.010 | Postcondition 4 / E-INP-008 — SHB block_total_length < 28 returns Err(E-INP-008) | Case C: truncated SHB below minimum size produces E-INP-008 |
 | BC-2.01.010 | No-panic invariant (SEC-005 AC) — must return Err for any malformed/truncated input | All cases: no panic permitted |

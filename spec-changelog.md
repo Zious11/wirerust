@@ -14,6 +14,56 @@ changes, invariant rewrites).
 
 ---
 
+## [pcapng-f2-reaudit-fixes-2026-06-19] — 2026-06-19
+
+### RE-AUDIT CONSISTENCY FIXES: 6 findings + BOM-mapping contradiction chain resolved
+
+**Trigger:** Post-remediation re-audit (consistency-validator pass) of the D-142 remediation
+burst identified 6 findings + a 4-document byte-order-magic contradiction chain. All findings
+fixed in this burst. Adversary reconvergence (pass 2) is next.
+
+**Findings resolved:**
+
+- **H5-1 (HIGH):** BC-2.01.009 PC1 over-promised "at least one readable packet" — contradicts
+  valid empty pcapng (BC-2.01.002 EC-001 parity) and OPB-only zero-packet case. Fixed: PC1
+  reworded to ">=0 packets" in BC-2.01.009 v1.1.
+- **BOM-mapping contradiction chain (MEDIUM aggregate):** 4-document error chain where BE/LE
+  byte-order-magic shorthand ("0xVALUE") was read-convention-dependent, causing mutually
+  contradictory assertions across ADR-009, BC-2.01.010, and HS-103. Root cause: ADR-009 had
+  a mislabeled BE magic value that propagated to BC-2.01.010 v1.4 and HS-103 v1.0. Fixed:
+  - BOM-3 (HS-103): ADR-009 rev 4 minor correction 2 — BE byte-order magic correctly stated
+    as on-disk bytes `1A 2B 3C 4D`; HS-103 v1.2 corrects Case A BOM bytes to `1A 2B 3C 4D`.
+  - BOM-2 (MEDIUM, HS-103): block_total_length encoding notation corrected (u32 not u64).
+  - BOM-1 (LOW, BC-2.01.010): AC-001 parenthetical circular phrasing removed (v1.5).
+  - BOM consistency sweep (BC-2.01.010 v1.6): 9 statements normalized to unambiguous
+    on-disk byte-sequence form; v1.4 annotation corrected.
+- **PRD-BC2-1 (MEDIUM):** PRD §2.1 BC-2.12.011 description still said extension-based
+  filtering (stale pre-v1.5 text). Fixed: prd.md v1.33 §2.1 updated to magic-byte
+  content detection; §7 RTM also synced (v1.32→v1.33).
+- **H2-1 (LOW):** ADR-009 PO dispatch SPB formula used `btl-20` (wrong); corrected to
+  `btl-16` (ADR-009 rev 4 minor correction 1).
+- **IDX-1 (LOW):** HS-INDEX version comment said all-namespace=173; Totals table correctly
+  shows 179. Fixed: version comment corrected to 179 in HS-INDEX v2.0 annotation.
+
+#### Version Bumps
+
+| Artifact | Change | Version |
+|----------|--------|---------|
+| `specs/prd.md` | §2.1 BC-2.12.011 description updated to magic-byte detection; §7 RTM synced (D-142 error-code routing + VP/story anchors). | v1.32 → v1.33 |
+| `specs/behavioral-contracts/ss-01/BC-2.01.009.md` | PC1 over-promise fixed: ">=0 packets"; H5-1 FIXED. | v1.0 → v1.1 |
+| `specs/behavioral-contracts/ss-01/BC-2.01.010.md` | BOM byte-sequence consistency sweep — 9 statements normalized; circular AC-001 parenthetical removed; BOM-1 + BOM-mapping contradiction chain FIXED. | v1.4 → v1.6 (via v1.5) |
+| `specs/architecture/decisions/ADR-009-pcapng-capture-format-reader-support.md` | Rev 4 minor corrections 1+2: SPB overhead formula corrected to btl-16 (H2-1); BE byte-order magic corrected to on-disk bytes `1A 2B 3C 4D` (BOM-3/BOM-mapping root cause). | rev 4 (minor corrections) |
+| `holdout-scenarios/HS-103-pcapng-shb-framing-byte-order-and-error-cases.md` | Case A BOM on-disk bytes corrected from `4D 3C 2B 1A` (LE) to `1A 2B 3C 4D` (BE); block_total_length encoding corrected (BOM-2 + BOM-3 FIXED). | v1.0 → v1.2 |
+| `holdout-scenarios/HS-INDEX.md` | Version comment all-namespace count corrected: 173 → 179 (IDX-1 FIXED). | v2.0 (comment corrected) |
+| `specs/behavioral-contracts/BC-INDEX.md` | Inline version annotations synced: BC-2.01.009 v1.0→v1.1; BC-2.01.010 v1.4→v1.6. | v1.53 → v1.54 |
+| `cycles/feature-pcapng-reader/f2-consistency-audit.md` | Re-audit section appended: 6 findings documented, status FIXED. | updated |
+
+#### Active BC Count
+
+302 active BCs — unchanged.
+
+---
+
 ## [pcapng-f2-remediation-2026-06-19] — 2026-06-19
 
 ### REMEDIATION: F2 Deep-Validation Findings — raw-block pivot + 3 PO bursts + holdout authoring

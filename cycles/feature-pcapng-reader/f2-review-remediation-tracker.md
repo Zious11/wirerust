@@ -7,9 +7,9 @@ sources:
   - security-review (SR-PCAPNG-F2)
   - performance-review
 date_created: 2026-06-19
-status: PARTIAL-REMEDIATED
+status: REAUDIT-FIXED
 f3_blocked: true
-f3_blocker_reason: "Adversarial reconvergence required (3 clean passes). Must-fix items addressed in D-142 burst. Pass 2 not yet dispatched. BLOCKED-ON-SPIKE items (H-2 final form, H-6/M-2/partial SEC-002) pending pass-2 verification."
+f3_blocker_reason: "Adversarial reconvergence required (3 clean passes). Must-fix items addressed (D-142). Re-audit 6 findings + BOM-mapping chain ALL FIXED (D-143). Pass 2 not yet dispatched. BLOCKED-ON-SPIKE items (H-2 final form, H-6/M-2/partial SEC-002) pending pass-2 verification."
 ---
 
 # F2 Review Remediation Tracker — pcapng Reader
@@ -113,10 +113,29 @@ from these BCs will produce ACs that cannot be implemented or tested until these
 
 ---
 
+---
+
+## Re-Audit Findings (D-143 burst — 2026-06-19)
+
+Post-remediation consistency-validator re-audit identified 6 findings + a BOM-mapping
+contradiction chain. All fixed in the D-143 burst.
+
+| ID | Severity | Finding | Status |
+|----|----------|---------|--------|
+| H5-1 | HIGH | BC-2.01.009 PC1 "at least one readable packet" over-promises; contradicts empty pcapng + OPB-only zero-packet case | FIXED — BC-2.01.009 v1.1: PC1 reworded to ">=0 packets" (D-143) |
+| BOM-2 | MEDIUM | HS-103 Case A block_total_length encoding notation wrong (u64 hex string instead of u32) | FIXED — HS-103 v1.2 (D-143) |
+| PRD-BC2-1 | MEDIUM | PRD §2.1 BC-2.12.011 description stale (extension-based filtering, pre-v1.5 text) | FIXED — prd.md v1.33 §2.1 updated to magic-byte detection; §7 RTM synced (D-143) |
+| BOM-mapping chain | MEDIUM (aggregate) | 4-document BE/LE byte-order-magic shorthand contradiction: ADR-009 BE magic mislabeled (root cause) → BC-2.01.010 v1.4 annotation wrong → HS-103 v1.0 Case A bytes wrong | FIXED — ADR-009 rev 4 minor corrections 1+2; BC-2.01.010 v1.5 (AC-001) + v1.6 (9-statement sweep); HS-103 v1.2 (BE bytes `1A 2B 3C 4D`). BOM now byte-sequence-canonical across all docs (D-143) |
+| BOM-1 | LOW | BC-2.01.010 AC-001 parenthetical "read big-endian" phrasing circular in LE-read context | FIXED — BC-2.01.010 v1.5: circular parenthetical removed (D-143) |
+| H2-1 | LOW | ADR-009 PO dispatch SPB formula uses btl-20 (wrong; should be btl-16) | FIXED — ADR-009 rev 4 minor correction 1: SPB formula corrected to btl-16 (D-143) |
+| IDX-1 | LOW | HS-INDEX version comment says all-namespace=173; Totals table correctly shows 179 | FIXED — HS-INDEX version comment corrected to 179 (D-143) |
+
+---
+
 ## F3 Entry Gate
 
 F3 story decomposition is **BLOCKED** until:
-1. All "Must-Fix Before F3" items above are remediated via BC/NFR amendments
+1. All "Must-Fix Before F3" items above are remediated via BC/NFR amendments — COMPLETE (D-142 + D-143)
 2. Adversarial reconvergence: 3 consecutive clean adversarial review passes (0 CRITICAL, 0 HIGH, <3 MEDIUM)
 3. pcap-file 2.0.0 API spike complete (unblocks H-1 final form, H-2, H-6, M-2, SEC-002/008)
-4. VP-NNN assigned to all 10 BCs (C-3 resolved)
+4. VP-NNN assigned to all 10 BCs (C-3 resolved) — COMPLETE (D-142)

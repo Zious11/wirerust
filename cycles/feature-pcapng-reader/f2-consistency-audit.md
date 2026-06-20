@@ -820,3 +820,713 @@ The three normative documents agree on:
 - E-INP-012 message includes mergecap/editcap remediation hint
 
 The two LOW findings (RC-1, RC-2) are cosmetic inconsistencies in the research document and ADR rationale prose respectively; they do not affect implementation guidance.
+
+---
+
+## Fresh-Context F2 Remediation Re-Audit — ADR-009 rev 4 / D-142 Burst
+
+**Audit date:** 2026-06-19
+**Auditor:** consistency-validator (fresh-context pass — no inherited session state)
+**Scope:** Full cross-document coherence check after three parallel PO bursts (A/B/C) plus
+architect ADR-009 rev 4 and holdout authoring (D-142). Covers:
+- Priority check: SHB Byte-Order Magic correctness and no conflation with block-type magic
+- E-INP-009/010 remap coherence
+- VP-025..030 traceability (BC cells, VP-INDEX, PRD RTM, holdout BC columns)
+- Timestamp totality (H-1), SPB/EPB overhead math (H-2), EC-004 forward-progress (SEC-002)
+- Skip-arm/DSB (M-2), magic-byte glob (C-2), per-file isolation re-attribution (C-1)
+- HS-INDEX integrity for HS-101..106
+- Spot-verification of all CRITICAL/HIGH items from the remediation tracker marked FIXED
+
+---
+
+### PRIORITY CHECK — Byte-Order Magic Correctness and No-Conflation
+
+The pcapng specification defines two distinct magic fields:
+
+1. **SHB block-type magic:** `0x0A0D0D0A` — the first 4 bytes of every pcapng file,
+   identifying the block type. This value is endian-neutral (palindromic bytes).
+2. **SHB Byte-Order Magic (BOM):** a 4-byte field inside the SHB body. The canonical
+   value is the u32 `0x1A2B3C4D`. In a LITTLE-endian file, these 4 bytes appear on disk
+   as `4D 3C 2B 1A` (wire value `0x4D3C2B1A`). In a BIG-endian file, these bytes appear
+   on disk as `1A 2B 3C 4D` (wire value `0x1A2B3C4D`).
+
+The audit question is: does each document use the correct value for the case it describes,
+and does any document confuse the BOM with the block-type magic?
+
+#### BOM Usage Per Document
+
+**ADR-009 (rev 4):**
+- Context section, line 52: "The SHB carries a Byte-Order Magic field (`0x1A2B3C4D`) that
+  governs endianness for all subsequent fields." This describes the canonical u32 value,
+  not the on-wire encoding. Correct as a spec reference.
+- Decision 2, SHB entry: "byte-order is determined from the Byte-Order Magic within the
+  SHB body before subsequent blocks are read." Correct; does not state a specific hex value.
+- Holdout spec in VP table, BC-2.01.010 row: "byte-exact crafted SHB with BE byte-order
+  magic `0x4D3C2B1A`." This is the wire value for a BE file. CORRECT: a big-endian file
+  has the BOM field encoded as `1A 2B 3C 4D` on disk, which a reader that reads it
+  big-endian sees as `0x1A2B3C4D` (match); a reader that reads it little-endian would
+  see `0x4D3C2B1A` — detecting the mismatch signals big-endian mode. The wire bytes of a
+  BE BOM are `1A 2B 3C 4D`, but the u32 value from those bytes interpreted as BE is
+  `0x1A2B3C4D`. ADR-009 calls the BE holdout file "BE byte-order magic `0x4D3C2B1A`"
+  which is the literal u32 you read when you misread the BE bytes as LE. This is a
+  CORRECT description from the "wire u32 as read in LE" perspective that the parser uses.
+- Block-type magic `0x0A0D0D0A` cited at Decision 2, SHB entry. Correct, distinct from BOM.
+- VERDICT: ADR-009 is CORRECT and does NOT conflate block-type magic with BOM.
+
+**BC-2.01.010 (v1.4):**
+- Description, line 34: "Byte-Order Magic field (`0x1A2B3C4D` LE or `0x4D3C2B1A` BE)"
+  — slightly ambiguous shorthand but the Postcondition 1 clarifies:
+  "BOM wire value `0x4D3C2B1A` → LE; BOM wire value `0x1A2B3C4D` → BE."
+  This is the correct pcapng spec interpretation.
+- AC-001: "A well-formed SHB with wire BOM `0x4D3C2B1A` selects little-endian mode; a
+  wire BOM `0x1A2B3C4D` selects big-endian mode."
+  LE file: 4 bytes `4D 3C 2B 1A`, read as u32-LE = `0x1A2B3C4D` (matches canonical).
+  BE file: 4 bytes `1A 2B 3C 4D`, read as u32-LE = `0x4D3C2B1A` (mismatch signals BE).
+  So "wire BOM `0x4D3C2B1A` → LE" means: the u32 you read from the 4 wire bytes,
+  interpreting them as LE, equals `0x1A2B3C4D`. That matches the canonical BOM and
+  confirms LE mode. And "wire BOM `0x1A2B3C4D` → BE" means: the u32 read as LE from
+  the wire bytes equals the reversed value — confirming BE mode. CORRECT per spec.
+- AC-001 holdout annotation: "SHB with BE magic `0x4D3C2B1A` (wire big-endian encoding
+  of 0x1A2B3C4D read big-endian)." This phrase is internally inconsistent: it says
+  "wire big-endian encoding" but then says "read big-endian", which would give
+  `0x1A2B3C4D` (the canonical match), not `0x4D3C2B1A`. The parenthetical is
+  **confusingly worded** — it appears to describe the LE interpretation of BE bytes as
+  `0x4D3C2B1A`, then adds "read big-endian" which contradicts the LE-read framing.
+  The actual intent is correct (the holdout tests the BE BOM path), but the parenthetical
+  explanation is misleading. **GAP-BOM-1 — see Finding BOM-1 below.**
+- Invariant 3: "The SHB magic bytes (`0x0A0D0D0A`) are not themselves byte-order-dependent;
+  they serve only to identify the block type. The BOM field inside the SHB body carries
+  the endianness signal." Correctly distinguishes block-type magic from BOM. PASS.
+- VERDICT: BC-2.01.010 is CORRECT on the normative values. One confusingly-worded
+  AC-001 parenthetical does not affect correctness but should be clarified.
+
+**HS-103 (v1.0):**
+- Case A header: "Byte-exact BE-magic SHB (0x4D3C2B1A)"
+- Case A body, BOM field: "`0x4D3C2B1A` — the big-endian sentinel (LE magic reversed)"
+- The description "LE magic reversed" is correct: the canonical BOM u32 is `0x1A2B3C4D`;
+  reversed = `0x4D3C2B1A`, which is what a LE reader sees when reading a BE BOM field.
+  This is the correct wire value for a BE file's BOM bytes interpreted as LE.
+- BC linkage table, row 2: "SHB with BE BOM (0x4D3C2B1A) accepted; subsequent fields
+  decoded BE | Case A: the BE-magic path must be recognized and used." CORRECT.
+- Case B BOM: `0xDEADBEEF` (invalid). CORRECT.
+- block_total_length BE encoding (Case A): "0x00000000_1C000000 in big-endian = 28 bytes"
+  — note: `0x1C = 28` as a single byte; the u32 `28 = 0x0000001C`. In BE, wire bytes
+  are `00 00 00 1C`. HS-103 writes "0x00000000_1C000000" which appears to be an
+  8-byte value split incorrectly. **GAP-BOM-2 — see Finding BOM-2 below.**
+- Block-type `0x0A0D0D0A` is correctly identified as "same in both endians." PASS.
+- No conflation of block-type magic with BOM. PASS.
+- VERDICT: HS-103 uses the correct BOM values. One encoding representation for
+  block_total_length appears erroneous.
+
+**BC-2.12.011 (v1.5):**
+- Lists "pcapng SHB: `0x0A0D0D0A` (bytes: 0A 0D 0D 0A)" — this is the block-type magic,
+  not the BOM. Correct context: BC-2.12.011 is about magic-byte content detection
+  (first 4 bytes of file), and the first 4 bytes of a pcapng file ARE the block-type
+  magic `0x0A0D0D0A`. Does NOT mention the BOM. No conflation. PASS.
+
+**Summary — Magic Correctness:**
+
+| Document | Block-type magic | BOM (LE) | BOM (BE) | Conflation? |
+|----------|-----------------|----------|----------|-------------|
+| ADR-009 rev 4 | `0x0A0D0D0A` (correct) | `0x1A2B3C4D` (canonical u32) | `0x4D3C2B1A` (wire-LE read of BE bytes, correct) | None |
+| BC-2.01.010 v1.4 | `0x0A0D0D0A` (Invariant 3) | `0x4D3C2B1A` wire → LE mode (correct) | `0x1A2B3C4D` wire → BE mode (correct) | None |
+| HS-103 v1.0 | `0x0A0D0D0A` (Case A intro, correct) | (baseline, not exercised in isolation) | `0x4D3C2B1A` (correct) | None |
+| BC-2.12.011 v1.5 | `0x0A0D0D0A` (file detection, correct) | N/A (file detection only) | N/A | None |
+
+**VERDICT: NO conflation of SHB block-type magic (`0x0A0D0D0A`) with Byte-Order Magic
+(`0x1A2B3C4D`/`0x4D3C2B1A`) in any document.** Magic values are correctly used for
+their respective roles in all four documents. Two presentation-level issues noted below
+as BOM-1 (LOW) and BOM-2 (MEDIUM).
+
+---
+
+### CROSS-DOC CHECKS
+
+#### Check 1 — E-INP-009/010 Remap Coherence
+
+**Claim marked FIXED in tracker (H-3/SEC-003, M-3):** empty-table → E-INP-009;
+OOB-non-empty → E-INP-010; no doc still routes empty-table → E-INP-008;
+E-INP-010 uses one canonical message template.
+
+**Verified on disk:**
+
+- **error-taxonomy.md v2.7 E-INP-009:** "Emitted when an EPB OR SPB is encountered and
+  the interface table is EMPTY." BC refs: BC-2.01.012, BC-2.01.013, BC-2.01.017. CORRECT.
+- **error-taxonomy.md v2.7 E-INP-010:** Unified canonical message template
+  `"Failed to parse pcapng <block-type> (block #<seq>): <underlying>"` covering: (a) EPB
+  interface_id OOB on NON-EMPTY table, (b) captured_len > btl-32, (c) EPB body < 20 bytes,
+  (d) SPB body < 4 bytes, (e) unknown-block < 12 bytes. ONE template. CORRECT.
+- **error-taxonomy.md v2.7 E-INP-008:** "Covers structural parse failures at the SHB or
+  IDB level: truncated file, missing BOM, malformed block-total-length, unsupported major
+  version." Scope is SHB/IDB ONLY. NOT used for EPB/SPB. CORRECT.
+- **BC-2.01.012 v1.1 PC5:** "EPB with interface_id referencing EMPTY table → E-INP-009.
+  EPB with interface_id OOB on NON-EMPTY table → E-INP-010." CORRECT.
+- **BC-2.01.012 v1.1 PC6:** "captured_len > btl-32 → E-INP-010." CORRECT.
+- **BC-2.01.013 v1.1 PC5:** "SPB with EMPTY interface table → E-INP-009." CORRECT.
+- **BC-2.01.013 v1.1 PC6:** "truncated SPB (btl < 16) → E-INP-010." CORRECT.
+- **PRD §7 RTM BC-2.01.012 row:** "integration+VP-027 (E-INP-009/010; STORY-125)."
+  Both error codes cited. CORRECT.
+- **PRD §7 RTM BC-2.01.013 row:** "integration (E-INP-009; STORY-126)." Only E-INP-009
+  cited; E-INP-010 (for SPB truncation) is not. This is incomplete but not incorrect
+  (the row notes the primary new error code introduced for SPB-before-IDB). LOW gap only.
+- **HS-104 Case A:** "EPB with interface_id = u32::MAX with EMPTY interface table →
+  E-INP-009." CORRECT. Case B: "EPB with interface_id = u32::MAX on 1-ENTRY table →
+  E-INP-010." CORRECT.
+- **No document routes empty-table → E-INP-008.** CONFIRMED by search across all docs.
+- **E-INP-010 single canonical message template:** Confirmed in error-taxonomy v2.7.
+  BC-2.01.012 PC5 uses the exact quoted string `"EPB interface_id={id} out of range
+  (table size={n})"` as the `<underlying>` component. Consistent with template. CORRECT.
+
+**VERDICT: PASS — E-INP-009/010 remap is coherent across all documents.**
+
+---
+
+#### Check 2 — VP Coherence (VP-025..030)
+
+**Sub-check 2a: Each VP appears in the owning BC's Verification Properties cell.**
+
+| VP | BC | Cell present? |
+|----|-----|--------------|
+| VP-025 | BC-2.01.014 v1.1 | YES — "VP-025 | pcapng_timestamp_to_secs_usecs totality..." |
+| VP-026 | BC-2.01.010 v1.4 | YES — "VP-026 | SHB parse safety..." |
+| VP-027 | BC-2.01.012 v1.1 | YES — "VP-027 | EPB parse safety..." |
+| VP-028 | BC-2.01.017 v1.2 | YES — "VP-028 | pcapng reader no-panic (Full Path Fuzz)..." |
+| VP-029 | BC-2.01.015 v1.2 | YES — "VP-029 | Block-walk skip correctness..." |
+| VP-030 | BC-2.01.018 v1.2 | YES — "VP-030 | Multi-IDB linktype agreement totality..." |
+
+PASS — all 6 VPs present in owning BC cell.
+
+**Sub-check 2b: Each VP appears in VP-INDEX v2.3 catalog.**
+
+VP-INDEX complete catalog rows VP-025..030 confirmed present (verified above).
+Tool/phase/status match ADR-009 rev 4 VP table exactly. PASS.
+
+**Sub-check 2c: VP-INDEX arithmetic self-consistency.**
+
+VP-INDEX frontmatter: total_vps=30, p0=8, p1=16, test_sufficient=6, kani=14,
+proptest=9, fuzz=2, integration_unit=5.
+
+- 8+16+6 = 30. CORRECT.
+- 14+9+2+5 = 30. CORRECT.
+- Summary table: Kani(14) + proptest(9) + fuzz(2) + integration/unit(5) = 30. CORRECT.
+- P1 list: VP-006..015, VP-022..030 = 16 entries (VP-006, 010, 011, 012, 013, 014, 015,
+  022, 023, 024, 025, 026, 027, 028, 029, 030 = 16). CORRECT.
+
+PASS — VP-INDEX arithmetic is internally consistent.
+
+**Sub-check 2d: Each VP appears in PRD §7 RTM.**
+
+PRD §7 RTM rows checked:
+- BC-2.01.010 row: "integration+VP-026" — VP-026 present. PASS.
+- BC-2.01.012 row: "integration+VP-027" — VP-027 present. PASS.
+- BC-2.01.014 row: "integration+VP-025" — VP-025 present. PASS.
+- BC-2.01.015 row: "integration+VP-029" — VP-029 present. PASS.
+- BC-2.01.017 row: "integration+VP-028/cargo-fuzz" — VP-028 present. PASS.
+- BC-2.01.018 row: "integration+VP-030" — VP-030 present. PASS.
+
+PASS — all 6 VPs appear in PRD §7 RTM.
+
+**Sub-check 2e: Each VP appears in the matching holdout HS-10x BC column.**
+
+| HS | VP in frontmatter | CORRECT |
+|----|------------------|---------|
+| HS-101 | VP-025 | YES (BC-2.01.014, VP-025) |
+| HS-102 | VP-025 | YES (BC-2.01.014, VP-025) |
+| HS-103 | VP-026 | YES (BC-2.01.010, VP-026) |
+| HS-104 | VP-027 | YES (BC-2.01.012, VP-027) |
+| HS-105 | VP-029 | YES (BC-2.01.015, VP-029) |
+| HS-106 | VP-030 | YES (BC-2.01.018, VP-030) |
+
+PASS.
+
+**Sub-check 2f: Confirm BCs that legitimately have no dedicated VP still show `—`.**
+
+BC-2.01.011 Verification Properties: all rows show `—` with a parenthetical noting
+coverage under VP-027. Stated as "covered by VP-027" rather than assigned VP-011.
+This is correct per ADR-009 dispatch: "No new VP assigned (covered by VP-027's
+interface-table accumulation proof)." PASS.
+
+BC-2.01.013 Verification Properties: all rows show `—` with "Covered under VP-028
+(cargo-fuzz) for full no-panic coverage." Correct per ADR-009 dispatch: "No dedicated
+Kani VP (VP-028 fuzz covers SPB field misparse)." PASS.
+
+BC-2.01.016 Verification Properties: all rows show `—`, with AC-003 stating "No new
+formal VP is assigned to this BC per ADR-009 dispatch." PASS.
+
+**VERDICT: PASS — VP-025..030 coherence is complete across BC cells, VP-INDEX, PRD RTM,
+and holdout BC columns.**
+
+---
+
+#### Check 3 — Timestamp Totality (H-1) Verification
+
+**Claim marked FIXED:** BC-2.01.014 v1.1 uses checked_pow / e-clamp-to-63 / u128
+intermediate; Invariant "no panic for any (u32,u32,u8)" is now satisfiable; VP-025
+references it; HS-101/102 exercise µs(6)/ns(9)/0x94/0xFF.
+
+**BC-2.01.014 v1.1 Postcondition 2 (base-10):**
+"`ticks_per_sec = 10u64.checked_pow(e as u32).unwrap_or(u64::MAX)`" — checked_pow
+with saturate to u64::MAX. CORRECT; no raw `10u64.pow(e)`.
+
+**BC-2.01.014 v1.1 Postcondition 3 (base-2):**
+"e MUST be CLAMPED to [0, 63]... `1u64.checked_shl(e_clamped as u32).unwrap_or(u64::MAX)`"
+— clamp then checked_shl. CORRECT; no raw `1u64 << e`.
+
+**BC-2.01.014 v1.1 u128 intermediate:**
+Postcondition 2: "`ts_usecs = (((ticks % ticks_per_sec) as u128 * 1_000_000u128) / ticks_per_sec as u128) as u32`"
+— explicit u128 cast. CORRECT.
+
+**BC-2.01.014 v1.1 Invariant 1:** "NO PANIC occurs for ANY `(u32, u32, u8)` input.
+This invariant is NOW ACTUALLY TRUE (prior formulas using `10u64.pow()` without
+`checked_pow` or `1u64 << e` without clamping could panic for large exponents —
+those forms are prohibited)." CORRECT; explicitly confirms the invariant is now
+satisfiable.
+
+**VP-025 reference:** BC-2.01.014 VP cell: "VP-025 | pcapng_timestamp_to_secs_usecs
+totality: no panic for ALL (u32, u32, u8) inputs..." CORRECT.
+
+**ADR-009 rev 4 Decision 4:** Lists checked_pow, e-clamp to [0,63], and u128 intermediate
+explicitly. Consistent with BC-2.01.014 v1.1. CORRECT.
+
+**HS-101:** Exercises if_tsresol=6 (Case A) and if_tsresol=9 (Case B). CORRECT.
+**HS-102:** Exercises if_tsresol=0xFF (Case A, e=127 must not panic) and if_tsresol=0x94
+(Case B, e=20, intermediate overflow territory). CORRECT.
+
+**No residual raw `10u64.pow(e)` or `1u64<<e` found in BC-2.01.014 body.** PASS.
+
+**VERDICT: PASS — H-1 is fully resolved. The timestamp helper spec is overflow-safe and
+the Kani invariant is now satisfiable.**
+
+---
+
+#### Check 4 — SPB/EPB Length Math (H-2)
+
+**Claim marked FIXED:** BC-2.01.013 SPB overhead = 4 bytes; BC-2.01.012 EPB overhead =
+20 bytes; validation `captured_len <= block_total_length - 32`; no leftover "20" for SPB.
+
+**BC-2.01.013 v1.1:**
+- Description: "SPB_FIXED_OVERHEAD_BYTES = 4 (body-relative: original_len field only)"
+- Postcondition 1: "available padded-data bytes = block_total_length - 16 (12-byte outer
+  header + 4-byte original_len field)"
+- AC-004: "SPB_FIXED_OVERHEAD_BYTES MUST equal 4." CORRECT.
+- Invariant 4: "SPB_FIXED_OVERHEAD_BYTES = 4 (body-relative: original_len: u32 only).
+  The minimum SPB block_total_length is 16 bytes (12 outer + 4 body-fixed)." CORRECT.
+- No "20 bytes" for SPB overhead anywhere in BC-2.01.013. PASS.
+
+**BC-2.01.012 v1.1:**
+- Description: "EPB_FIXED_OVERHEAD_BYTES = 20 (body-relative: interface_id:4 + ts_high:4
+  + ts_low:4 + captured_len:4 + original_len:4)"
+- Invariant 5: "EPB_FIXED_OVERHEAD_BYTES = 20 (body-relative)... combined minimum block
+  size is 32 bytes (12 + 20)."
+- Validation: "captured_len <= block_total_length - 32 (12 outer + 20 body-fixed = 32)"
+- CORRECT.
+
+**ADR-009 rev 4 Decision 2:**
+- EPB: "EPB_FIXED_OVERHEAD_BYTES = 20 (body-relative, i.e., not counting the outer
+  12-byte block header). Validation: captured_len <= block_total_length - 32." CORRECT.
+- SPB: "SPB_FIXED_OVERHEAD_BYTES = 4 (body-relative)." CORRECT.
+- PO BC-Change Dispatch, BC-2.01.013 section: "Correct SPB body-relative overhead to 4
+  bytes... Validation: block_total_length - 16 - 4 = block_total_length - 20 bytes
+  available for padded packet data (12 outer + 4 body-fixed = 16 minimum)."
+
+**DISCREPANCY DETECTED:** ADR-009 PO dispatch for BC-2.01.013 writes
+"block_total_length - 16 - 4 = block_total_length - 20" — but the formula in
+BC-2.01.013 v1.1 PC1 says "available padded-data bytes = block_total_length - 16
+(12-byte outer header + 4-byte original_len field)." The ADR dispatch uses
+`(btl - 16) - 4 = btl - 20` while the BC says `btl - 16`. One of these is wrong.
+
+Resolving: the 12-byte outer block header (block_type:4 + block_total_length:4 +
+trailing_total_length:4) is NOT part of the block body. The `original_len` field is
+the sole body-fixed field (4 bytes). Available padded data = btl - 12 (outer header)
+- 4 (original_len) = btl - 16. The BC-2.01.013 formula `btl - 16` is CORRECT.
+
+The ADR-009 dispatch formula "block_total_length - 16 - 4 = block_total_length - 20"
+erroneously double-subtracts the 4-byte original_len field. The ADR dispatch is a
+**PO handoff instruction** (not normative spec), and the normative BC-2.01.013 text
+is correct. However, the ADR dispatch's arithmetic is wrong and could mislead.
+**GAP-H2-1 — see Finding H2-1 below (LOW).**
+
+**VERDICT: PASS for normative BC content. BC-2.01.013 and BC-2.01.012 are internally
+consistent and correct. One LOW erratum in ADR-009 PO dispatch arithmetic.**
+
+---
+
+#### Check 5 — EC-004 / Forward-Progress (SEC-002)
+
+**Claim marked FIXED:** BC-2.01.015 EC-004 = crate rejects block_total_length < 12
+(not "8, no error"); forward-progress invariant present; BC-2.01.010 not contradicting.
+
+**BC-2.01.015 v1.2 EC-004:** "block_total_length = 8 | REJECTED by the crate
+(block_common.rs:101: threshold is < 12). The crate returns Err(...). The block-walk
+loop receives Err(_) and MUST break. The prior characterization 'no error' was INCORRECT
+— removed." CORRECT.
+
+**BC-2.01.015 v1.2 EC-005:** "block_total_length < 12 (any value below crate threshold)
+| REJECTED by crate with Err; caller breaks on Err." CORRECT.
+
+**BC-2.01.015 v1.2 AC-004 (forward-progress):** "The block-walk loop MUST break (or
+return) on any Err(_) from the crate's block reader. The documented rustdoc example
+with an empty Err(_) => {} arm is WRONG and MUST NOT be copied." CORRECT.
+
+**BC-2.01.015 v1.2 Invariant 2:** "The block-walk loop MUST break on Err(_). The
+crate's cursor does NOT advance on error; breaking is the caller's only obligation."
+CORRECT.
+
+**BC-2.01.010 v1.4 Description:** "The crate rejects block_total_length < 12 before
+returning any block (forward-progress contract, Decision 8)." CORRECT. No contradiction.
+
+**ADR-009 rev 4 Decision 8:** "malicious block_total_length = 8 is rejected before any
+block is returned — the crate does not hand a zero-advance block to the caller." CORRECT.
+
+**VERDICT: PASS — SEC-002 / forward-progress is fully resolved. No contradiction between
+BC-2.01.015 and BC-2.01.010.**
+
+---
+
+#### Check 6 — Skip-arm / DSB Treatment (M-2)
+
+**Claim marked FIXED:** BC-2.01.015 treats DSB as arriving via unknown block-type on
+the raw-block path (no named DSB variant); consistent with ADR-009 rev 4 + spike.
+
+**BC-2.01.015 v1.2 AC-001:** "IMPORTANT: DSB is NOT a named variant in
+`pcap_file::pcapng::Block` — there is no `DecryptionSecrets` enum arm. On the raw-block
+path, DSB arrives as a `RawBlock` with block-type bytes `0x0000000A` and is handled by
+the skip arm. Do NOT attempt to name-match on a DSB enum variant." CORRECT.
+
+**ADR-009 rev 4 Decision 2:** "There is NO `DecryptionSecrets` variant — DSB
+(type `0x0A`) arrives as `Block::Unknown` (`block_common.rs:217-251`)." CORRECT.
+"On the raw-block path, wirerust does not use the `Block` enum at all; block-type
+identification is done by reading the first 4 bytes of each `RawBlock` body." CORRECT.
+
+**VERDICT: PASS — DSB treatment is consistent.**
+
+---
+
+#### Check 7 — Magic-Byte Glob (C-2)
+
+**Claim marked FIXED:** BC-2.12.011 v1.5 content-detection; 5 accepted magic values
+consistent with BC-2.01.009 magic values; arp-baseline-16pkt.cap accepted.
+
+**BC-2.12.011 v1.5 accepted magics:** Classic LE `0xA1B2C3D4`, classic BE `0xD4C3B2A1`,
+ns-pcap LE `0xA1B23C4D`, ns-pcap BE `0x4D3CB2A1`, pcapng SHB `0x0A0D0D0A`. Five values.
+CORRECT.
+
+**BC-2.01.009 pcapng branch trigger:** "first 4 bytes are `[0x0A, 0x0D, 0x0D, 0x0A]`
+(pcapng SHB magic)." Same value. CONSISTENT.
+
+**BC-2.01.009 classic branch:** "first 4 bytes are a valid classic-pcap magic" —
+implicitly matches the four classic/ns-pcap values. CONSISTENT.
+
+**arp-baseline-16pkt.cap:** BC-2.12.011 v1.5 EC-002 explicitly covers this file.
+ADR-009 Decision 11 also resolves C-2 by name. PASS.
+
+**VERDICT: PASS — Magic-byte glob is consistent.**
+
+---
+
+#### Check 8 — Per-File Isolation Re-attribution (C-1)
+
+**Claim marked FIXED:** BC-2.01.018 + error-taxonomy E-INP-011/012 notes + BC-2.12.011
+consistently point per-file-isolation to STORY-128.
+
+**BC-2.01.018 v1.2 AC-002:** "Directory-Mode Per-File Isolation — OWNED BY STORY-128...
+BC-2.01.018 owns the multi-IDB CONFLICT RULE only." CORRECT re-attribution.
+
+**ADR-009 rev 4 Decision 12:** "STORY-128 will refactor this loop to catch-and-continue
+per file... BC-2.01.018 AC-002 and E-INP-011/012 per-file-isolation claims belong in
+STORY-128 (main.rs scope)." CORRECT.
+
+**error-taxonomy E-INP-011 Notes:** "In directory mode, this error fails the individual
+file but does NOT abort the overall run (per BC-2.01.018 AC-002)." The note says
+"per BC-2.01.018 AC-002" which is now re-attributed to STORY-128 via that same AC-002.
+The pointer is correct (BC-2.01.018 AC-002 IS the place that documents STORY-128 owns
+this). No contradiction. PASS.
+
+**error-taxonomy E-INP-012 Notes:** "In directory mode, this error fails the individual
+file but does NOT abort the overall run." No stale "BC-2.01.018" attribution here.
+PASS.
+
+**BC-2.12.011 v1.5 Stories field:** "STORY-127 (implements magic-byte content detection
+in resolve_targets, main.rs); STORY-128 (per-file isolation in main.rs loop — separate
+story, separate scope)." CORRECT.
+
+**VERDICT: PASS — Per-file isolation re-attribution is consistent across all documents.**
+
+---
+
+#### Check 9 — HS-INDEX Integrity for HS-101..106
+
+**HS-INDEX v2.0 registrations:**
+- HS-101 through HS-106 all listed in the pcapng table (lines 170-175). PASS.
+- All six have category, priority, wave (TBD), BC/VP references. PASS.
+- must_pass: all six are must-pass. PASS.
+- Greenfield total stated as 106 (HS-001..HS-106). PASS.
+- All-namespace total: 106 greenfield + 32 DNP3 + 28 ARP + 13 collapse = 179.
+  Header says "all-namespace total = 179" but the version comment says "v1.9:
+  all-namespace=173." **DISCREPANCY — see Finding IDX-1 below.**
+
+**VP columns in HS-INDEX pcapng table:**
+- HS-101: BC-2.01.014 (VP-025) — matches HS-101 frontmatter. PASS.
+- HS-102: BC-2.01.014 (VP-025) — matches HS-102 frontmatter. PASS.
+- HS-103: BC-2.01.010 (VP-026) — matches HS-103 frontmatter. PASS.
+- HS-104: BC-2.01.012 (VP-027) — matches HS-104 frontmatter. PASS.
+- HS-105: BC-2.01.015 (VP-029) — matches HS-105 frontmatter. PASS.
+- HS-106: BC-2.01.018 (VP-030) — matches HS-106 frontmatter. PASS.
+
+**VERDICT: PASS on BC/VP column correctness. One arithmetic discrepancy in all-namespace
+total (Finding IDX-1).**
+
+---
+
+#### Check 10 — Version Monotonicity and No New Dangling References
+
+**Version check for F2 remediation burst (D-142):**
+
+| Artifact | Prior version | D-142 version | Monotonic? |
+|----------|-------------|--------------|------------|
+| ADR-009 | rev 3 | rev 4 | YES |
+| BC-2.01.010 | v1.2 | v1.4 (skips v1.3) | See note |
+| BC-2.01.011 | v1.0 | v1.1 | YES |
+| BC-2.01.012 | v1.0 | v1.1 | YES |
+| BC-2.01.013 | v1.0 | v1.1 | YES |
+| BC-2.01.014 | v1.0 | v1.1 | YES |
+| BC-2.01.015 | v1.1 | v1.2 | YES |
+| BC-2.01.016 | v1.0 | v1.1 | YES |
+| BC-2.01.017 | v1.1 | v1.2 | YES |
+| BC-2.01.018 | v1.1 | v1.2 | YES |
+| BC-2.12.011 | v1.4 | v1.5 | YES |
+| error-taxonomy | v2.5 | v2.7 (skips v2.6) | See note |
+| VP-INDEX | v2.2 | v2.3 | YES |
+| nfr-catalog | v2.2 | v2.3 | YES |
+| HS-INDEX | v1.9 | v2.0 | YES |
+
+**Note on skips:** BC-2.01.010 shows v1.2 → v1.4 with a v1.3 entry also in the
+modified block. All three (v1.1, v1.2, v1.3, v1.4) are recorded in the changelog.
+Version numbering is sequential. PASS — intermediate versions exist.
+error-taxonomy v2.5 → v2.7 skips v2.6; v2.6 is present in the modified block as
+"v2.6: RC-2 flag-spelling consistency — E-INP-012 message: standardized remediation
+hint from 'mergecap -F pcapng' to 'mergecap -w out.pcapng <file>'." PASS.
+
+**Active BC count:** tracker says "Active BC count still 302." BC-INDEX v1.52 states
+302. CONSISTENT.
+
+**VERDICT: PASS — versions are monotonic and active BC count is stable.**
+
+---
+
+### SPOT-VERIFY: Critical/High Items from Remediation Tracker
+
+The following items are marked FIXED in the tracker and are verified on disk:
+
+| Item | Tracker claim | Disk verification | Status |
+|------|--------------|-------------------|--------|
+| C-1: Per-file isolation | STORY-128 scoped; BC-2.01.018 AC re-attributed | BC-2.01.018 v1.2 AC-002 documents STORY-128 ownership; ADR-009 Decision 12 present | CONFIRMED FIXED |
+| C-2: .cap extension pcapng | BC-2.12.011 v1.5 magic-byte glob; Decision 11 | BC-2.12.011 v1.5 EC-002 covers arp-baseline-16pkt.cap explicitly | CONFIRMED FIXED |
+| C-3: VP-NNN assignments | VP-025..030 in VP-INDEX v2.3; HS-101..106 authored | VP-INDEX v2.3 rows 25-30 present; HS-101..106 files on disk | CONFIRMED FIXED |
+| H-1/SEC-001/006: Timestamp arithmetic | BC-2.01.014 v1.1 saturating arithmetic | checked_pow, e-clamp to [0,63], u128 intermediate all confirmed in BC text | CONFIRMED FIXED |
+| H-2: SPB overhead | BC-2.01.013 v1.1 overhead corrected to 4 bytes; ADR Decision 8 raw-block pivot | BC-2.01.013 v1.1 says 4 bytes; ADR Decision 8 present; one LOW erratum in ADR dispatch arithmetic (Finding H2-1) | CONFIRMED FIXED (with H2-1 LOW note) |
+| H-3/SEC-003: E-INP-009 routing | BC-2.01.012 v1.1 PC5; error-taxonomy v2.7 | E-INP-009 routes empty-table; E-INP-010 routes OOB-non-empty; confirmed across all docs | CONFIRMED FIXED |
+| H-4: SPB-without-IDB / OPB-only | BC-2.01.018 v1.2 (H-4 noted under OPB-only as out-of-scope) | BC-2.01.013 v1.1 PC5 and AC-001: SPB-without-IDB → E-INP-009 (guard on idb.is_empty()) | CONFIRMED FIXED |
+| H-5: BC-2.01.009 PC1 | Reworded to ">= 0 packets" | BC-2.01.009 v1.0 PC1 line 47: "returns Ok(PcapSource) for a valid pcapng file with at least one readable packet." **NOT CHANGED to ">=0 packets."** | NOT FIXED — see Finding H5-1 |
+| SEC-002: forward-progress invariant | BC-2.01.015 v1.2 forward-progress AC; VP-029 | BC-2.01.015 v1.2 AC-004, Invariant 2, EC-004, EC-005 all confirm crate rejects <12; loop must break on Err | CONFIRMED FIXED |
+
+---
+
+### FINDINGS FROM THIS PASS
+
+#### Finding BOM-1 — LOW
+
+**File:** `/Users/zious/Documents/GITHUB/wirerust/.factory/specs/behavioral-contracts/ss-01/BC-2.01.010.md`
+**Location:** AC-001, line 68-69
+
+**Issue:** AC-001 contains the parenthetical: "Holdout: SHB with BE magic `0x4D3C2B1A`
+(wire big-endian encoding of 0x1A2B3C4D read big-endian)." The phrase "read big-endian"
+contradicts the LE-read framing used throughout the rest of the document. The BOM
+detection algorithm reads the 4 wire bytes as a LE u32 and checks whether the result
+is `0x4D3C2B1A` (→ LE mode) or `0x1A2B3C4D` (→ BE mode). Saying "read big-endian"
+implies the reader already knows the endianness before reading the BOM, which is
+circular. The intent is correct (test the BE BOM path) but the explanation is
+misleading for an implementer.
+
+**Severity:** LOW — normative behavior is correct; wording only.
+
+**Fix:** Replace the parenthetical with: "(wire value that a LE reader sees when the
+file is big-endian; signals BE mode because it does not match the canonical LE BOM
+`0x1A2B3C4D`)"
+
+---
+
+#### Finding BOM-2 — MEDIUM
+
+**File:** `/Users/zious/Documents/GITHUB/wirerust/.factory/holdout-scenarios/HS-103-pcapng-shb-framing-byte-order-and-error-cases.md`
+**Location:** Case A, block_total_length encoding, line 48-49
+
+**Issue:** Case A specifies: "block_total_length field: 0x00000000_1C000000 in
+big-endian = 28 bytes." The value `28 = 0x0000001C`. In big-endian encoding on wire,
+this u32 is 4 bytes: `00 00 00 1C`. The notation `0x00000000_1C000000` is an 8-byte
+(u64) hex string, not a u32. If read as a LE u32 the value would be `0x001C0000 = 1835008`,
+not 28. This is an erroneous representation.
+
+The correct representation for the block_total_length field in a BE pcapng file is:
+- u32 value = 28 = `0x0000001C`
+- Wire bytes (BE): `00 00 00 1C`
+
+**Severity:** MEDIUM — an implementer crafting the HS-103 test fixture from this
+spec could create an invalid fixture with the wrong total length, causing the test
+to fail for the wrong reason or accept a malformed file.
+
+**Fix:** Replace "block_total_length field: 0x00000000_1C000000 in big-endian = 28 bytes"
+with "block_total_length field: `0x0000001C` = 28; wire bytes (BE): `00 00 00 1C`"
+
+---
+
+#### Finding H2-1 — LOW
+
+**File:** `/Users/zious/Documents/GITHUB/wirerust/.factory/specs/architecture/decisions/ADR-009-pcapng-capture-format-reader-support.md`
+**Location:** PO BC-Change Dispatch, BC-2.01.013 section, line ~492
+
+**Issue:** The PO dispatch for BC-2.01.013 states: "Validation: block_total_length - 16
+- 4 = block_total_length - 20 bytes available for padded packet data (12 outer + 4
+body-fixed = 16 minimum; callers strip padding to captured_len)." The formula
+`btl - 16 - 4 = btl - 20` is arithmetically wrong: the 4-byte original_len field is
+already part of the `16` total (12 outer + 4 body-fixed = 16). The correct formula is
+`btl - 16` bytes available for padded data. The normative BC-2.01.013 text correctly
+says `btl - 16`, so the implementation guidance in the dispatch is the only place with
+the error.
+
+**Severity:** LOW — the normative BC text is correct; this is a PO dispatch annotation
+that an implementer might consult. The wrong `btl - 20` formula would cause the
+implementer to strip 4 more bytes than necessary from the SPB data, potentially
+truncating valid packet data.
+
+**Fix:** In the ADR-009 PO BC-Change Dispatch BC-2.01.013 section, replace
+"block_total_length - 16 - 4 = block_total_length - 20 bytes available" with
+"block_total_length - 16 bytes available for padded packet data (12-byte outer block
+header + 4-byte original_len = 16 bytes total overhead)"
+
+---
+
+#### Finding H5-1 — HIGH
+
+**File:** `/Users/zious/Documents/GITHUB/wirerust/.factory/specs/behavioral-contracts/ss-01/BC-2.01.009.md`
+**Location:** Postcondition 1, line 47
+
+**Issue:** BC-2.01.009 v1.0 Postcondition 1 reads: "the reader selects the pcapng
+parse path; returns `Ok(PcapSource)` for a valid pcapng file **with at least one readable
+packet**." The remediation tracker item H-5 is marked FIXED with the claim "BC-2.01.009
+PC1 reworded to '>=0 packets'." This change is NOT present on disk. The v1.0 frontmatter
+shows no modified block (modified: []), confirming the BC has never been amended.
+
+The "at least one readable packet" constraint conflicts with:
+- BC-2.01.002 EC-001 parity: a valid empty pcapng (0 EPBs) should return Ok(PcapSource)
+  with packets.len() == 0.
+- OPB-only files: silently skip all OPB blocks → Ok(PcapSource) with 0 packets.
+- Any pcapng with zero EPBs/SPBs is valid and should return Ok with empty Vec.
+
+This is a CRITICAL behavioral contract error: if the spec says "at least one readable
+packet" for Ok to be returned, then an empty-but-valid pcapng must return Err, which
+contradicts the spirit of the feature and the OPB-only zero-packet case (BC-2.01.018
+H-4 resolution).
+
+**Severity:** HIGH — the tracker marks this FIXED but the fix is absent from disk.
+This blocks the "OPB-only zero-packet case" from being implementable without
+contradicting BC-2.01.009.
+
+**Fix:** Amend BC-2.01.009 to v1.1. In Postcondition 1, replace "returns `Ok(PcapSource)`
+for a valid pcapng file with at least one readable packet" with "returns `Ok(PcapSource)`
+for a valid pcapng file (which may contain zero readable packets — e.g., files containing
+only OPB blocks or no packet blocks at all; see BC-2.01.018 and BC-2.01.015)." Update
+the modified block with the H-5 fix attribution.
+
+---
+
+#### Finding IDX-1 — LOW
+
+**File:** `/Users/zious/Documents/GITHUB/wirerust/.factory/holdout-scenarios/HS-INDEX.md`
+**Location:** version comment in frontmatter (line 4) and Totals table (line 63)
+
+**Issue:** The HS-INDEX version comment says "v1.9: docs-only — add all-namespace total
+note per F3 audit (greenfield=100, feature DNP3=32 + ARP=28 + collapse=13 = 73,
+all-namespace=173)." But the v2.0 update added 6 scenarios (HS-101..106) making
+greenfield=106. The Totals table correctly says 179 (106 + 73 = 179). However the
+version comment text from v1.9 remains embedded in the v2.0 version string and still
+says "all-namespace=173" — which was the v1.9 total before the 6 new scenarios were
+added. Additionally the v2.0 note only says "Greenfield total now 106" without updating
+the embedded all-namespace figure in the version comment string.
+
+**Severity:** LOW — the Totals table (179) is correct; the version comment string (173)
+is a leftover from v1.9 text that was not updated when the 6 new scenarios pushed the
+count to 179.
+
+**Fix:** In the version frontmatter comment, update the embedded "all-namespace=173" to
+"all-namespace=179" to match the Totals table.
+
+---
+
+#### Finding PRD-BC2-1 — MEDIUM
+
+**File:** `/Users/zious/Documents/GITHUB/wirerust/.factory/specs/prd.md`
+**Location:** §2 BC table, BC-2.12.011 row (line 893)
+
+**Issue:** The PRD §2 BC description for BC-2.12.011 (line 893) reads:
+"Directory target expands to all *.pcap files sorted; *.pcapng excluded from glob."
+This is the PRE-v1.5 description. BC-2.12.011 was fully rewritten in v1.5 to describe
+magic-byte content detection (not extension-based filtering). The PRD §2 description
+still reflects the old v1.4 behavior.
+
+**Severity:** MEDIUM — the PRD §2 BC table is a summary surface used for planning and
+holdout alignment. A stale description causes the PRD to contradict BC-2.12.011 v1.5.
+
+**Fix:** Update the PRD §2 BC-2.12.011 row description to:
+"Directory target expands to capture files detected by magic-byte content probe
+(pcapng `0x0A0D0D0A`, classic pcap `0xA1B2C3D4`/`0xD4C3B2A1`, ns-pcap variants);
+extension-independent; implements ADR-009 Decision 11."
+
+---
+
+### F2 Remediation Re-Audit Summary
+
+| Check | Result | Findings |
+|-------|--------|---------|
+| Priority: BOM correctness and no-conflation | PASS | BOM-1 (LOW), BOM-2 (MEDIUM) |
+| 1. E-INP-009/010 remap coherence | PASS | None |
+| 2. VP-025..030 coherence (BC cells, VP-INDEX, PRD RTM, holdouts) | PASS | None |
+| 3. Timestamp totality (H-1) | PASS | None |
+| 4. SPB/EPB overhead math (H-2) | PASS | H2-1 (LOW) |
+| 5. EC-004 / forward-progress (SEC-002) | PASS | None |
+| 6. Skip-arm / DSB (M-2) | PASS | None |
+| 7. Magic-byte glob (C-2) | PASS | None |
+| 8. Per-file isolation re-attribution (C-1) | PASS | None |
+| 9. HS-INDEX integrity | PASS | IDX-1 (LOW) |
+| 10. Version monotonicity / no new dangling refs | PASS | None |
+| Spot-verify FIXED items (C-1, C-2, C-3, H-1..5, SEC-002) | PARTIAL | H5-1 (HIGH) |
+| PRD §2 BC-2.12.011 description | FAIL | PRD-BC2-1 (MEDIUM) |
+
+**Verdict: NOT CLEAN — 6 findings.**
+
+| Finding | Severity | Description | Blocking F3? |
+|---------|----------|-------------|-------------|
+| H5-1 | HIGH | BC-2.01.009 PC1 still says "at least one readable packet" — tracker says FIXED but disk disagrees; conflicts with OPB-only zero-packet case | YES |
+| BOM-2 | MEDIUM | HS-103 block_total_length encoding notation is wrong (u64 hex string instead of u32) | YES (fixture authoring) |
+| PRD-BC2-1 | MEDIUM | PRD §2 BC-2.12.011 description still says extension-based filtering (stale pre-v1.5 text) | No (but should be fixed before F3 planning) |
+| BOM-1 | LOW | BC-2.01.010 AC-001 parenthetical explanation is misleading (says "read big-endian" in LE-read context) | No |
+| H2-1 | LOW | ADR-009 PO dispatch SPB formula btl-20 should be btl-16 | No |
+| IDX-1 | LOW | HS-INDEX version comment says all-namespace=173; Totals table correctly says 179 | No |
+
+**Blocking findings require remediation before F3 story decomposition:**
+
+1. **H5-1 (HIGH):** Amend BC-2.01.009 to v1.1; change PC1 from "at least one readable
+   packet" to "zero or more readable packets." This is the H-5 fix that the tracker
+   claims was applied but which is absent from disk.
+
+2. **BOM-2 (MEDIUM):** Correct HS-103 Case A block_total_length encoding from
+   `0x00000000_1C000000` to `0x0000001C` (28 decimal); add wire-bytes notation
+   `00 00 00 1C (BE)`. A test fixture author using this spec will craft a malformed file.
+
+Non-blocking (address in same cleanup burst):
+
+3. **PRD-BC2-1 (MEDIUM):** Update PRD §2 BC-2.12.011 row description to reflect v1.5
+   content-detection behavior.
+4. **BOM-1 (LOW):** Clarify BC-2.01.010 AC-001 parenthetical.
+5. **H2-1 (LOW):** Correct ADR-009 PO dispatch SPB formula.
+6. **IDX-1 (LOW):** Fix HS-INDEX version comment all-namespace count.
