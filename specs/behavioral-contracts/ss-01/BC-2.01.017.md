@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.5"
+version: "1.6"
 status: draft
 producer: product-owner
 timestamp: 2026-06-19T00:00:00Z
@@ -13,6 +13,7 @@ capability: CAP-01
 lifecycle_status: active
 introduced: v0.10.0-pcapng
 modified:
+  - "v1.6: Pass-6 minor consistency fixes (FINDING-P6-001 + FINDING-P6-002) — (P6-001) Related BCs annotations for BC-2.01.012 and BC-2.01.013 updated to include E-INP-008 (EPB/SPB body-decode failures) alongside E-INP-009 and E-INP-010; aligns with this file's own PC1 error-code split and Error Taxonomy field. (P6-002) PC1 SPB body-too-short window corrected from '[btl 16<=btl<20]' (which is the IDB window) to 'btl=12 only' (body=0 < SPB_FIXED_OVERHEAD_BYTES=4; crate successfully frames btl=12 but wirerust body-decode rejects zero-length body → E-INP-008); separately, EPB body-too-short window corrected from '[btl 32<=btl<52]' to '[btl 12<=btl<32]' (body 0..19 < EPB_FIXED_OVERHEAD_BYTES=20). Confirmed per-block body-too-short windows: SHB 12<=btl<28, IDB 12<=btl<20, EPB 12<=btl<32, SPB btl=12. — 2026-06-20"
   - "v1.5: Pass-6 remediation T3 F-H1 (ADR-009 rev 9) — This BC was MISSED in pass-4 and pass-5 dispatches; brought current here. PC1 EPB/SPB error-code mapping corrected per Decision 20 (rev 8): EPB/SPB BODY-DECODE failures (body-too-short, captured_len/padding overrun) → E-INP-008 (wirerust body-decode path); 'Failed to parse pcapng Enhanced Packet Block (packet <seq>)' and 'Failed to read pcapng Simple Packet Block' context strings now map to E-INP-008, NOT E-INP-010. E-INP-010 is STRICTLY crate framing rejection: btl<12/misaligned/EOF plus EPB interface_id OOB-on-non-empty (E-INP-010) and empty-table (E-INP-009). 'Failed to skip pcapng block' remains E-INP-010 (crate framing). Updated PC1 bullet list to reflect the full three-way split: body-decode→E-INP-008, interface_id empty→E-INP-009, interface_id OOB/framing→E-INP-010. Updated Description, EC-002, EC-003, and Error Taxonomy field to include E-INP-008 for EPB/SPB body-decode. — 2026-06-20"
   - "v1.4: Pass-3 remediation Burst Q3 (ADR-009 rev 6) — (H-3) E-INP-001 added to PC1 context-string list: 'pcapng Interface Description Block link type rejected' → E-INP-001 (whitelist Err raised at IDB-parse time paths through this cross-cutting contract). Error Taxonomy traceability field updated to include E-INP-001. Description updated to note taxonomy range includes E-INP-001. — 2026-06-19"
   - "v1.3: Pass-2 remediation Burst P2b (ADR-009 rev 5) — (C-4 CRITICAL) EC-002 error code corrected: EPB OOB on non-empty table → E-INP-010 (was E-INP-008). EC-005 minimum corrected: 'below minimum 8' → 'below minimum 12' (ADR Decision 8; crate rejects block_total_length < 12). (O-2) PC1 context strings extended: add E-INP-009 'before any Interface Description Block' context wording. Add E-INP-013 (interleaved-IDB) reference to edge-case map and Error Taxonomy field. (I-11) add Test: citations to ACs. — 2026-06-19"
@@ -64,8 +65,8 @@ across the full input space.
    - An anyhow context string identifying the block type, e.g.:
      - `"Failed to parse pcapng Section Header Block"` (→ E-INP-008; SHB structural body-decode)
      - `"Failed to parse pcapng Interface Description Block at interface index <N>"` (→ E-INP-008; IDB structural body-decode)
-     - `"Failed to parse pcapng Enhanced Packet Block (packet <seq>)"` (→ **E-INP-008**; EPB **body-decode** failure: body-too-short [btl 32≤btl<52], captured_len or padding overrun — wirerust body-decode path, crate successfully framed the block)
-     - `"Failed to read pcapng Simple Packet Block"` (→ **E-INP-008**; SPB **body-decode** failure: body-too-short [btl 16≤btl<20], length field overrun — wirerust body-decode path, crate successfully framed the block)
+     - `"Failed to parse pcapng Enhanced Packet Block (packet <seq>)"` (→ **E-INP-008**; EPB **body-decode** failure: body-too-short [btl 12<=btl<32, body 0..19 < EPB_FIXED_OVERHEAD_BYTES=20], captured_len or padding overrun — wirerust body-decode path, crate successfully framed the block)
+     - `"Failed to read pcapng Simple Packet Block"` (→ **E-INP-008**; SPB **body-decode** failure: body-too-short [btl=12 only, body=0 < SPB_FIXED_OVERHEAD_BYTES=4; btl=16 is minimum VALID SPB per BC-2.01.013 PC4], length field overrun — wirerust body-decode path, crate successfully framed the block)
      - `"Failed to skip pcapng block (type=0x{block_type:08X})"` (→ E-INP-010; crate framing rejection: btl<12/misaligned/EOF)
      - `"pcapng Enhanced Packet Block encountered before any Interface Description Block"` (→ E-INP-009; empty interface table)
      - `"pcapng Simple Packet Block encountered before any Interface Description Block"` (→ E-INP-009; empty interface table)
@@ -142,8 +143,8 @@ across the full input space.
 
 - BC-2.01.010 -- related (SHB parse errors surface via this contract; E-INP-008, E-INP-012)
 - BC-2.01.011 -- related (IDB parse errors surface via this contract; E-INP-008, E-INP-013)
-- BC-2.01.012 -- related (EPB parse errors surface via this contract; E-INP-009, E-INP-010)
-- BC-2.01.013 -- related (SPB parse errors surface via this contract; E-INP-009, E-INP-010)
+- BC-2.01.012 -- related (EPB parse errors surface via this contract; E-INP-008 body-decode, E-INP-009 empty-table, E-INP-010 OOB-non-empty/framing)
+- BC-2.01.013 -- related (SPB parse errors surface via this contract; E-INP-008 body-decode, E-INP-009 empty-table, E-INP-010 framing)
 - BC-2.01.015 -- related (unknown-block skip errors surface via this contract; E-INP-010)
 - BC-2.01.018 -- related (multi-IDB conflict surfaces as E-INP-011 via this contract)
 - BC-2.01.011 -- cross-ref: E-INP-013 (interleaved-IDB: late IDB encountered after first

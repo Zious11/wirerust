@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.6"
+version: "1.7"
 status: draft
 producer: product-owner
 timestamp: 2026-06-19T00:00:00Z
@@ -13,6 +13,7 @@ capability: CAP-01
 lifecycle_status: active
 introduced: v0.10.0-pcapng
 modified:
+  - "v1.7: Pass-7 remediation U1 (F-3) — PC6 generic skip segment rule made explicit: the notice parenthetical has two independently gated segments. (1) Generic segment: '(skipped_blocks - opb_skipped) block(s) skipped as unsupported' — emitted ONLY when (skipped_blocks - opb_skipped) > 0. (2) OPB clause: '(includes <opb_skipped> obsolete Packet Block(s) whose data was not analyzed; re-save with mergecap)' — emitted ONLY when opb_skipped > 0. So: Case D (skipped_blocks=1, opb_skipped=1) → no generic segment (1-1=0), OPB clause '1'. Case E (skipped_blocks=3, opb_skipped=1) → generic segment '2', OPB clause '1'. When both segments are present they appear space-separated in one parenthetical or as two adjacent parentheticals. Neither segment is emitted when its gate is zero. — 2026-06-20"
   - "v1.6: Pass-6 remediation T4 (ADR-009 rev 9) — (F-M4) Added EC-010: SHB-only pcapng (no IDB, no packet blocks, no skipped blocks) is structurally valid per pcapng spec. Yields Ok(PcapSource) with packets.len()==0, skipped_blocks==0, opb_skipped==0. The zero-packet notice IS emitted (canonical format, no parenthetical — skipped_blocks==0 and opb_skipped==0). Exit 0. An SHB alone constitutes a valid empty section; it is NOT an error. Added test vector and VP for this case. — 2026-06-20"
   - "v1.5: Pass-5 remediation S3 (ADR-009 rev 8) — (M-5) Rewrote PC6: emission moves from reader to main.rs; PcapSource now exposes skipped_blocks:u32 and opb_skipped:u32 (OPB sub-count); from_pcap_reader surfaces these; main.rs reads them and emits the notice. Canonical Decision 19 format: 'notice: <filename>: 0 packets read from <pcap|pcapng> file'; when opb_skipped>0 append '(includes N obsolete Packet Blocks whose data was not analyzed; re-save with mergecap)'. Classic empty pcap also triggers notice (classic/pcapng symmetry). Removed old 'reader emits / wirerust:' wording from PC6. (M-1) Deleted Precondition 3 ('at least 4 bytes available') — contradicts EC-003 (graceful Err on <4 bytes); <4-byte case is a runtime condition handled by postcondition, NOT an input precondition. (M-4) Added AC-007 pinning the BufReader wrap site: from_pcap_reader MUST internally wrap its R:Read in BufReader and feed the SAME BufReader to both fill_buf and downstream parsers. — 2026-06-20"
   - "v1.4: Pass-4 remediation R3a (ADR-009 rev 7) — (H-2 CRITICAL implementability) Removed all consume(4) references: the probe is PEEK-ONLY via BufReader::fill_buf() with ZERO consumption; BOTH branches (classic PcapReader AND pcapng RawBlock) receive the FULL un-consumed stream starting at byte 0. Implementing consume(4) would break every file — removed from Description and Precondition 2 and Postcondition 3. (Decision 19 / M-4) Fixed PC6 citation: 'Decision 17' corrected to 'Decision 19'. (H-4) Added explicit disambiguation rule in Postcondition 3 tail: a file is 'structurally-valid zero-packet' (notice, exit 0) IFF it parses to EOF with no error AND packets.len()==0; an EPB/SPB before any IDB is an ERROR (E-INP-009, exit 1), NOT a zero-packet success. — 2026-06-20"
@@ -103,11 +104,30 @@ acceptance.
    ```
    where `<pcap|pcapng>` is `pcap` for classic-pcap inputs and `pcapng` for pcapng inputs.
 
-   When `source.opb_skipped > 0`, the following clause is appended (space-separated):
+   The notice MAY be followed by one or two parenthetical segments, each independently gated:
+
+   **Generic skip segment** — emitted ONLY when `(source.skipped_blocks - source.opb_skipped) > 0`:
    ```
-   (includes N obsolete Packet Blocks whose data was not analyzed; re-save with mergecap)
+   (G block(s) skipped as unsupported)
+   ```
+   where `G = source.skipped_blocks - source.opb_skipped` (the count of non-OPB skipped blocks).
+   When `G == 0` this segment is OMITTED entirely — an OPB-only skip file has no generic segment.
+
+   **OPB clause** — emitted ONLY when `source.opb_skipped > 0`:
+   ```
+   (includes N obsolete Packet Block(s) whose data was not analyzed; re-save with mergecap)
    ```
    where `N = source.opb_skipped`.
+
+   When both segments are emitted they appear space-separated after the base notice line.
+   When neither gate is satisfied (both `G == 0` and `opb_skipped == 0`) no parenthetical
+   is appended.
+
+   **Derivation examples:**
+   - Case D: `skipped_blocks=1, opb_skipped=1` → G=0 → no generic segment; OPB clause "1".
+     Full notice: `"notice: <f>: 0 packets read from pcapng file (includes 1 obsolete Packet Block(s) whose data was not analyzed; re-save with mergecap)"`
+   - Case E: `skipped_blocks=3, opb_skipped=1` → G=2 → generic segment "2"; OPB clause "1".
+     Full notice: `"notice: <f>: 0 packets read from pcapng file (2 block(s) skipped as unsupported) (includes 1 obsolete Packet Block(s) whose data was not analyzed; re-save with mergecap)"`
 
    **Classic pcap symmetry:** A structurally valid EMPTY classic pcap file (zero packet
    records, valid global header) ALSO triggers this notice with `<pcap>` in the format.
@@ -159,7 +179,7 @@ acceptance.
 | EC-004 | File with 4-byte content that is neither pcap nor pcapng magic | Returns `Err` with unrecognized magic context. **Test:** `test_BC_2_01_009_unrecognized_magic` |
 | EC-005 | Non-seekable `Read` stream (pipe) | Probe uses `BufReader::fill_buf()` (peek, no seek) then routes; byte 0 remains the next readable byte after probe; works on non-seekable streams. **Test:** `test_BC_2_01_009_pipe_stream_probe_observable` (assert next-byte == original byte-0 after probe) |
 | EC-006 | Classic nanosecond-resolution pcap (`0xA1B23C4D`) | Routed to classic-pcap path; timestamp resolution handled by existing `TsResolution` branch. **Test:** `test_BC_2_01_009_nanosecond_pcap_routing` |
-| EC-007 | Non-empty pcapng with zero EPB/SPB (all OPB blocks) | `Ok(PcapSource)` with `packets.len() == 0`; `source.opb_skipped > 0`; main.rs emits notice: `"notice: <filename>: 0 packets read from pcapng file (includes N obsolete Packet Blocks whose data was not analyzed; re-save with mergecap)"`; exit code 0. **Test:** `test_BC_2_01_009_zero_packet_opb_only_notice` |
+| EC-007 | Non-empty pcapng with zero EPB/SPB (all OPB blocks) | `Ok(PcapSource)` with `packets.len() == 0`; `source.opb_skipped > 0`; `source.skipped_blocks == source.opb_skipped` (OPB increments both); G=(skipped_blocks - opb_skipped)=0 → no generic segment; main.rs emits notice: `"notice: <filename>: 0 packets read from pcapng file (includes N obsolete Packet Block(s) whose data was not analyzed; re-save with mergecap)"`; exit code 0. **Test:** `test_BC_2_01_009_zero_packet_opb_only_notice` |
 | EC-008 | Valid pcapng with IDB and SHB but zero EPB/SPB and zero skipped blocks (e.g., capture session opened but no packets recorded) | `Ok(PcapSource)` with `packets.len() == 0`; `source.skipped_blocks == 0`; main.rs emits notice: `"notice: <filename>: 0 packets read from pcapng file"`; exit code 0. **Test:** `test_BC_2_01_009_zero_packet_idb_only_no_skips_notice` |
 | EC-009 | Valid EMPTY classic pcap (valid global header, zero packet records) | `Ok(PcapSource)` with `packets.len() == 0`; main.rs emits notice: `"notice: <filename>: 0 packets read from pcap file"`; exit code 0. Classic/pcapng symmetry. **Test:** `test_BC_2_01_009_zero_packet_empty_classic_pcap_notice` |
 | EC-010 | SHB-only pcapng (no IDB, no packet blocks, no blocks of any kind after the SHB) — degenerate but structurally valid file (F-M4) | `Ok(PcapSource)` with `packets.len() == 0`; `source.skipped_blocks == 0`; `source.opb_skipped == 0`. main.rs emits notice: `"notice: <filename>: 0 packets read from pcapng file"` (no parenthetical segment — `skipped_blocks == 0` and `opb_skipped == 0`); exit code 0. An SHB alone is a valid empty pcapng section per spec §4.1; there are no blocks to skip and no packets to read. **Test:** `test_BC_2_01_009_shb_only_zero_packet_notice` |

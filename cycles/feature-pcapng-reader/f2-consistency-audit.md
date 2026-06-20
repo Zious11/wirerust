@@ -2353,5 +2353,237 @@ error rule, H-1 precedence fix, M-3 saturation, M-1/M-4 BufReader) are all CLEAN
 | FINDING-P4-003 | MAJOR | v4.0 audit — error-taxonomy v3.1 E-INP-010 items (d)/(e) stale pre-Decision-20 | RESOLVED (error-taxonomy v3.2 / BC-INDEX v1.59) |
 | FINDING-P5-001 | MINOR | v5.0 audit — HS-108 frontmatter verification_properties: [VP-025] is misattribution | OPEN |
 | FINDING-P5-002 | MINOR | v5.0 audit — OPB notice hint text diverges: BC-2.01.009 "re-save with mergecap" vs HS-108 "re-capture or convert with mergecap -F pcapng to modernize" | OPEN |
-| FINDING-P5-003 | MINOR | v5.0 audit — BC-2.01.010 v1.9 has 4 stale "deferred to a separate burst" annotations (HS-103 v1.5 covers those cases) | OPEN |
-| FINDING-P5-004 | MINOR | v5.0 audit — error-taxonomy v3.3 E-INP-008 BC Ref column omits BC-2.01.013 | OPEN |
+| FINDING-P5-003 | MINOR | v5.0 audit — BC-2.01.010 v1.9 has 4 stale "deferred to a separate burst" annotations (HS-103 v1.5 covers those cases) | RESOLVED (BC-2.01.010 v2.0 Pass-5 re-audit; stale notes removed, replaced with HS-103 case citations) |
+| FINDING-P5-004 | MINOR | v5.0 audit — error-taxonomy v3.3 E-INP-008 BC Ref column omits BC-2.01.013 | RESOLVED (error-taxonomy v3.4 Pass-5 re-audit; BC-2.01.013 added to E-INP-008 BC Ref) |
+
+---
+
+## v6.0 — F2 Pass-6 Remediation Cross-Seam Audit (4 PO Bursts + Architect Rev 9)
+
+**Audit date:** 2026-06-20
+**Scope:** 10 seams from the pass-6 audit brief. All artifacts verified on disk.
+**Auditor:** consistency-validator
+
+### Pre-Audit: v5.0 Open Findings Status
+
+Before examining the new seams, prior open findings were re-checked on disk:
+
+| ID | Status Update |
+|----|--------------|
+| FINDING-P5-001 | RESOLVED — HS-108 v1.3 pass-5 re-audit confirmed VP-025 removed; `verification_properties: []` is correct on disk |
+| FINDING-P5-002 | RESOLVED — HS-108 v1.3 pass-5 re-audit confirmed mergecap hint standardized to "re-save with mergecap" in all Cases D/E; wording now matches BC-2.01.009 PC6 |
+| FINDING-P5-003 | RESOLVED — BC-2.01.010 v2.0 confirmed stale deferral notes removed; explicit HS-103 case citations added |
+| FINDING-P5-004 | RESOLVED — error-taxonomy v3.4 confirmed BC-2.01.013 added to E-INP-008 BC Ref column |
+
+All four previously OPEN minor findings are now RESOLVED. No carryover open minors from v5.0.
+
+---
+
+### v6.0 Seam-by-Seam Analysis
+
+#### Seam 1 — spb_data_available (Decision 22): captured_len formula consistency
+
+**Claim:** BC-2.01.013 / VP-031 / HS-107 Case B all use `captured_len = min(original_len, body.len()-4)` where `spb_data_available = body.len()-4`. No bare `body.len()` used as data bound except in prohibition text.
+
+**Findings on disk:**
+
+- BC-2.01.013 v1.6: Description defines `spb_data_available = body.len() - 4` with explicit prohibition "NOT `body.len()` alone". PC1 uses `spb_data_available`. AC-002 states `min(original_len, body.len() - 4)`. EC-007: `captured_len = min(original_len, body.len() - 4) = body.len() - 4`. Invariant-2 defines the canonical symbol. Architecture Anchors cite `captured_len = min(original_len, body.len() - 4)`. The v1.6 changelog explicitly confirms deletion of all "equivalently body.len()" text.
+- VP-031 (VP-INDEX v2.8 P1 list entry): "formula CORRECTED from `min(original_len, body.len() as u32)` to `min(original_len, body.len() as u32 - 4)` per Decision 22". Catalog row title: "pcapng SPB Captured-Len Computation Correctness (body.len()-4 formula)". BC-2.01.013 Verification Properties row: `captured_len == min(original_len, (body.len() - 4) as u32)` with domain `body.len() >= 4`.
+- HS-107 v1.5 Case B: `spb_data_available = body.len() - 4 = 104 - 4 = 100`; `captured_len = min(original_len=200, body.len()-4=100) = 100`. Evaluation Rubric: "bare `body.len()=104`, which is 4 bytes too large". Failure Guidance: "A data.len()==104 failure indicates bare body.len() was used."
+
+**Result: CLEAN.** All three artifacts agree: `spb_data_available = body.len()-4`; bare `body.len()` is explicitly prohibited everywhere.
+
+---
+
+#### Seam 2 — interface_id discriminant (F-H4): PC5a/PC5b split consistency
+
+**Claim:** BC-2.01.012 PC5a (empty→E-INP-009) and PC5b (OOB non-empty→E-INP-010) are explicit and distinct. AC-001 requires different codes. VP-027 asserts the discriminant. HS-104 has two named cases (interface_id=0/empty→009, interface_id=5/1-entry→010) with exact codes. BC-2.01.017 and error-taxonomy agree on the same split.
+
+**Findings on disk:**
+
+- BC-2.01.012 v1.6: PC5a explicit "MUST return Err mapping to E-INP-009" with exact message format. PC5b explicit "MUST return Err mapping to E-INP-010" with exact message format. AC-001: "TWO DIFFERENT error discriminants: Empty-table path → E-INP-009 EXACTLY (not E-INP-010). OOB-on-non-empty-table path → E-INP-010 EXACTLY (not E-INP-009). Returning the same error code for both paths is an AC-001 violation."
+- VP-027 (VP-INDEX catalog entry): "interface_id discriminant split — empty table → E-INP-009; OOB non-empty table → E-INP-010; two distinct cases, not slash notation". VP-INDEX v2.8 changelog: "slash notation '(→ E-INP-009 / E-INP-010)' declared ambiguous and REPLACED with two explicit cases (Decision 22 / F-H4)".
+- HS-104 v1.4: Case (empty) "interface_id=0, zero IDBs → E-INP-009 EXACTLY". Case (OOB) "interface_id=5, 1-entry table → E-INP-010 EXACTLY". Behavioral Contract Linkage table: PC5a and PC5b each get their own row with explicit "must produce E-INP-009 and no other code" / "must produce E-INP-010 and no other code" language.
+- BC-2.01.017 v1.5 PC1: bullet for "empty interface table" → E-INP-009; bullet for "EPB references interface" → E-INP-010 (OOB non-empty). Error Taxonomy field: "E-INP-009 (EPB/SPB before any IDB — empty interface table), E-INP-010 (crate framing rejection: btl<12/misaligned/EOF; also EPB interface_id OOB on non-empty table)".
+- error-taxonomy v3.4 E-INP-009: "Emitted when an EPB OR SPB is encountered and the interface table is EMPTY... distinct from E-INP-010 (which covers OOB access on a NON-EMPTY table)". E-INP-010: "(b) EPB interface_id OOB on a NON-EMPTY interface table — empty-table case is E-INP-009, not this code."
+
+**Result: CLEAN.** Discriminant split is explicit and consistent across all five artifacts.
+
+---
+
+#### Seam 3 — F-H1 BC-2.01.017 propagation: EPB/SPB body-decode → E-INP-008
+
+**Claim:** BC-2.01.017 PC1 context strings for EPB/SPB body-decode failures map to E-INP-008 (not E-INP-010). No residual EPB/SPB-body-decode→E-INP-010 anywhere in BC-2.01.017. BC-2.01.012/013 and error-taxonomy agree.
+
+**Findings on disk:**
+
+- BC-2.01.017 v1.5 PC1: `"Failed to parse pcapng Enhanced Packet Block (packet <seq>)"` → E-INP-008 with explicit parenthetical "(EPB body-decode failure ... wirerust body-decode path, crate successfully framed the block)". `"Failed to read pcapng Simple Packet Block"` → E-INP-008 with explicit "(SPB body-decode failure ... wirerust body-decode path)". `"Failed to skip pcapng block"` → E-INP-010 (crate framing). Error-code split summary in PC1: "EPB/SPB body-decode failures → E-INP-008; crate framing rejection → E-INP-010; interface table empty → E-INP-009."
+- BC-2.01.017 Error Taxonomy field: "E-INP-008 (wirerust body-decode failures for ALL block types: SHB body<16, IDB body<8, EPB body<20 or captured_len/padding overrun, SPB body<4 or length overrun)".
+- BC-2.01.017 Related BCs line 146: "BC-2.01.013 -- related (SPB parse errors surface via this contract; E-INP-009, E-INP-010)".
+
+**GAP DETECTED:** BC-2.01.017 Related BCs line 146 lists "E-INP-009, E-INP-010" for BC-2.01.013 SPB errors, but omits E-INP-008. After the F-H1 pass-6 fix, SPB body-decode failures (btl=12, body=0 < 4) route to E-INP-008. The Related BCs annotation for BC-2.01.013 should read "E-INP-008, E-INP-009, E-INP-010" (body-decode→008, empty-table→009, framing→010) to match BC-2.01.013's own Error Taxonomy field and BC-2.01.017 PC1's own text. This is annotation staleness, not a normative contradiction (PC1 body and Error Taxonomy field are correct).
+
+Compare: line 145 for BC-2.01.012 reads "E-INP-009, E-INP-010" and also omits E-INP-008, but BC-2.01.012 maps EPB body-decode failures to E-INP-008 per v1.5/v1.6. Both Related BCs annotation entries are stale in the same direction — only PC1 and Error Taxonomy field carry the corrected mapping.
+
+**Result: PASS WITH FINDING-P6-001 (Minor).** BC-2.01.017 Related BCs annotations for BC-2.01.012 (line 145) and BC-2.01.013 (line 146) omit E-INP-008 from their error-code lists. The normative text (PC1, Error Taxonomy field) is correct.
+
+**Secondary check — SPB btl window in BC-2.01.017 PC1:** Line 68 states the SPB body-too-short window as `[btl 16≤btl<20]`. Per BC-2.01.013 v1.6 PC4 and EC-008, the minimum legal SPB is btl=16 (body=4 bytes, exactly sufficient for original_len:u32 → parse succeeds). The ONLY constructible SPB body-too-short case is btl=12 (body=0 < 4). The window `[btl 16≤btl<20]` is factually incorrect: btl=16 is valid (not body-too-short), and there is no btl in [16,20) that is also 4-byte aligned (next aligned values after 12 are 16, 20). The constructible window is btl=12 only.
+
+This contradicts BC-2.01.013 v1.6 PC4: "btl=16 → body=4 → exactly 4 bytes available for `original_len` → parse succeeds with `block_body_available = 0`" and EC-008: "Constructible window for SPB body-too-short: btl=12 only."
+
+**Result: FINDING-P6-002 (Minor).** BC-2.01.017 PC1 line 68 states SPB body-too-short window as `[btl 16≤btl<20]`; the correct constructible window is btl=12 only (body=0 < 4). btl=16 is valid (body=4 = SPB_FIXED_OVERHEAD_BYTES, parse succeeds). No aligned btl values exist in (12,16) or [16,20). This is a stale annotation from before the minimum-legal-SPB was pinned to btl=16; it does not affect the normative body of PC1 which correctly identifies the E-INP-008 trigger.
+
+---
+
+#### Seam 4 — snaplen NOT extracted (Decision 9 rev 9 / F-M3): no residual snaplen consumer
+
+**Claim:** BC-2.01.011 InterfaceInfo has no snaplen field; snaplen is read-and-discarded; no "for SPB use" cross-ref. No residual snaplen consumer in BC-2.01.012/013.
+
+**Findings on disk:**
+
+- BC-2.01.011 v1.6 PC4: "snaplen (IDB body bytes 4–7, u32) is READ only to advance past the fixed fields and is DISCARDED — wirerust does not store or apply snaplen this cycle." Limitation note present. AC-003: "snaplen is NOT stored." F-M3 changelog: "Removed snaplen from InterfaceInfo struct definition; PC4 and AC-003 no longer claim snaplen is 'extracted and stored for SPB use (BC-2.01.013)' (false cross-ref)."
+- BC-2.01.013 v1.6: All snaplen references are either in changelog history (stale pass references preserved for audit trail) or in prohibition/limitation context. Description: "snaplen is NOT enforced for SPB." AC-001: "Snaplen from idb[0] is NOT used in the SPB captured_len computation." EC-003: "snaplen is not used for SPB captured_len." No active claim that snaplen is extracted or stored.
+- BC-2.01.012: No snaplen extraction claim; EPB policy mirrors SPB (Decision 9 amendment applies to both).
+
+**Result: CLEAN.** No residual snaplen consumer anywhere in active normative text of any BC.
+
+---
+
+#### Seam 5 — if_tsresol length (F-M5): option-length enforcement
+
+**Claim:** BC-2.01.011 PC6 — `if_tsresol` (code 9) with `option_length != 1` → E-INP-008; edge case EC-013 present.
+
+**Findings on disk:**
+
+- BC-2.01.011 v1.6 PC6 (F-M5 clause): "An `if_tsresol` option (code 9) whose `option_length != 1` is a malformed option → Err mapped to E-INP-008. wirerust MUST NOT silently ignore or apply a default."
+- AC-005: "for `if_tsresol` (option code 9) specifically, wirerust MUST verify `option_length == 1` before reading the value byte. If `option_length != 1`, wirerust MUST return Err mapped to E-INP-008."
+- AC-003: "An `if_tsresol` option with `option_length != 1` is a malformed TLV → E-INP-008 (not silently defaulted; see PC6/AC-005)."
+- EC-013: "IDB options TLV contains `if_tsresol` (code 9) with `option_length = 4` (not 1)" → E-INP-008. Test cited.
+- Canonical Test Vectors: "IDB body 7 bytes (truncated — body < 8 minimum)" → E-INP-008. (This is a separate but consistent E-INP-008 path.)
+
+**Result: CLEAN.** E-INP-008 for if_tsresol wrong-length is explicit in PC6, AC-003, AC-005, and EC-013.
+
+---
+
+#### Seam 6 — SHB-only edge (F-M4): BC-2.01.009 EC-010 / BC-2.01.015 EC-013 / HS-108 Case F
+
+**Claim:** BC-2.01.009 EC-010 (SHB-only → Ok, 0 packets, skipped_blocks==0, notice emitted without parenthetical, exit 0) is consistent with BC-2.01.015 EC-013 (counters 0) and HS-108 Case F (notice, no "skipped"/"obsolete"/"mergecap" substrings).
+
+**Findings on disk:**
+
+- BC-2.01.009 v1.6 EC-010: "SHB-only pcapng (no IDB, no packet blocks, no blocks of any kind after the SHB) — degenerate but structurally valid file (F-M4)... `Ok(PcapSource)` with `packets.len()==0`; `source.skipped_blocks==0`; `source.opb_skipped==0`. main.rs emits notice: `'notice: <filename>: 0 packets read from pcapng file'` (no parenthetical segment)." Test: `test_BC_2_01_009_shb_only_zero_packet_notice`.
+- BC-2.01.015 v1.7 EC-013: "SHB-only pcapng ... No blocks reach the skip arm because there are no blocks after the SHB. Both counters remain at zero: `skipped_blocks==0`, `opb_skipped==0`." Confirms notice is emitted by main.rs (BC-2.01.009 PC6 gate) but no parenthetical.
+- HS-108 v1.3 Case F: "Exit code: 0. Stderr: contains exactly ONE notice. Notice MUST match canonical format: `'notice: shb_only.pcapng: 0 packets read from pcapng file'` with NO parenthetical segment." Byte-exact assertion: "stderr ... does NOT contain `'skipped'` AND does NOT contain `'obsolete'` AND does NOT contain `'mergecap'`."
+- HS-108 BC Linkage table: "BC-2.01.009 PC6 / EC-010 — SHB-only file is structurally valid; notice emitted with skipped_blocks==0 and no parenthetical; exit 0 (F-M4)" and "BC-2.01.015 EC-013 — SHB-only file: no blocks reach the skip arm; skipped_blocks==0, opb_skipped==0."
+
+**Result: CLEAN.** All three artifacts agree: SHB-only is valid, notice fires, no parenthetical, exit 0.
+
+---
+
+#### Seam 7 — BOM canonical table + section-wide endianness (F-M2)
+
+**Claim:** BC-2.01.010 PC1 has ONE canonical BOM table; AC-001/EC-001/EC-002/EC-007 all reference it; no divergent restatements elsewhere. Invariant 4 codifies section-wide authority.
+
+**Findings on disk:**
+
+- BC-2.01.010 v2.1 PC1: Single normative BOM table with header "(single normative source — all other sites in this BC cite here)." BE: on-disk `1A 2B 3C 4D` → big-endian. LE: on-disk `4D 3C 2B 1A` → little-endian. Invalid: any other → E-INP-008.
+- AC-001: "Detection MUST use the canonical BOM table defined in Postcondition 1 (the single normative source for on-disk byte patterns and their endianness mapping). Do not restate byte values here — consult PC1 for the authoritative mapping."
+- EC-001: "On-disk BOM bytes match the little-endian row of the PC1 canonical BOM table." EC-002: "On-disk BOM bytes match the big-endian row of the PC1 canonical BOM table." EC-007: "on-disk bytes matching neither row of the PC1 canonical BOM table."
+- Invariant 4: "The endianness established by the SHB BOM applies to ALL multi-byte fields in ALL blocks of this section... Downstream decoders MUST NOT perform their own BOM re-detection."
+- Canonical Test Vectors and Section-wide statement in PC1: "this single BOM determination governs ALL subsequent multi-byte field decoding in EVERY block of this section."
+- F-M2 changelog confirms: "Established ONE canonical normative BOM table in Postcondition 1 (leading with big-endian); All prior restatements... replaced with a single reference."
+
+**Result: CLEAN.** Single BOM table established; all references normalized to PC1; Invariant 4 codifies section-wide scope.
+
+---
+
+#### Seam 8 — HS-107 Case E btl=14 rationale: alignment rejection, NOT "below minimum"
+
+**Claim:** HS-107 Case E rationale states btl=14 is rejected because 14%4!=0 (pcapng 4-byte alignment), NOT "below minimum 12" (14>=12).
+
+**Findings on disk:**
+
+- HS-107 v1.5 Case E: "While 14 >= 12 (the outer-header-size minimum), it is rejected by the pcap-file crate because 14 % 4 != 0 — the pcapng specification requires all block_total_length values to be a multiple of 4 bytes, and the crate enforces this 4-byte alignment requirement." Wire layout: `block_total_length: 0E 00 00 00 # 14 decimal — 14 % 4 != 0, violates 4-byte alignment`. Note in Case E text: "a block_total_length of 14 is rejected by the crate due to misalignment, not because it is below 12 (14 >= 12)."
+- BC Linkage table: "Postcondition 6 / EC-005 — btl=14 violates 4-byte alignment (14%4!=0; crate rejects) → E-INP-010."
+- Failure Guidance for Case E: "Case E failure (exit 0 or panic) indicates the crate-level 4-byte alignment check is absent; btl=14 (14%4!=0) violates pcapng 4-byte alignment and must be rejected by the crate as E-INP-010. Note: the rejection cause is alignment (14%4!=0), NOT 'below minimum' (14>=12)."
+- BC-2.01.013 v1.6 EC-005: "btl=14 violates 4-byte alignment (14%4!=0; crate rejects)" consistent with HS-107 Case E.
+
+**Result: CLEAN.** The btl=14 alignment-rejection rationale is consistent and explicit in HS-107 Case E and BC-2.01.013 EC-005.
+
+---
+
+#### Seam 9 — Uniform error rule still intact (all block types)
+
+**Claim:** framing<12→010, body-decode→008, EPB padding/bound→008, interface_id empty→009/OOB→010 — consistent across all BC/taxonomy/holdout artifacts.
+
+**Findings on disk (summary of cross-artifact check):**
+
+- error-taxonomy v3.4 E-INP-008 Notes: comprehensive list: SHB body<16, IDB body<8, EPB body<20 or padding overrun or bound-by-body, SPB body<4. E-INP-010: STRICTLY crate-side framing (btl<12/misaligned/EOF) plus EPB interface_id OOB on non-empty. E-INP-009: EPB/SPB before any IDB.
+- BC-2.01.012 v1.6: PC6a/PC6b → E-INP-008 for bound-by-body and padding-overrun. PC5a → E-INP-009 (empty). PC5b → E-INP-010 (OOB non-empty). EC-012 → E-INP-010 (crate framing).
+- BC-2.01.013 v1.6: PC6 → E-INP-010 for btl<12/misaligned/EOF; E-INP-008 for btl=12/body=0<4.
+- BC-2.01.010 v2.1 PC5: four-way split codified.
+- BC-2.01.011 v1.6 PC5: two-way split (framing→010, body-decode→008) consistent.
+- BC-2.01.017 v1.5: PC1 error-code split summary paragraph consistent. Error Taxonomy field consistent.
+
+No residual EPB/SPB-body-decode→E-INP-010 found in any normative clause. No framing-rejection→E-INP-008 found in any normative clause.
+
+**Result: CLEAN.** Uniform error rule is intact across all artifacts.
+
+---
+
+#### Seam 10 — Versions monotonic; next_free E-INP-014; VP-INDEX total 31; 302 active BCs; BC-INDEX inline == frontmatter
+
+**Claim:** All versions are monotonically increasing; error-taxonomy `next_free_error_code` is E-INP-014; VP-INDEX total equals 31; BC-INDEX active count is 302; BC-INDEX inline counts match frontmatter fields.
+
+**Findings on disk:**
+
+- error-taxonomy: Frontmatter `version: "3.4"`. Changelog history: v2.0→v2.1→...→v3.4 (monotonic, documented). Last entry in E-INP catalog: E-INP-013. Changelog v2.8: "next_free_error_code updated to E-INP-014." No E-INP-014 row present. Consistent with next_free = E-INP-014.
+- VP-INDEX v2.8: `total_vps: 31`. Catalog rows: VP-001 through VP-031. Tool sum: 14+10+2+5=31. Consistency Invariants block: "VP-INDEX total (31) must equal verification-architecture.md row count (31). P0 count (8) + P1 count (17) + test-sufficient (6) = 31; draft count 7 (VP-025..031); verified 24." All arithmetic consistent in the index file itself.
+- VP files on disk: 25 files (VP-001..VP-024 + VP-INDEX.md). No VP-025 through VP-031 detail files exist on disk. This is consistent with the index note: "VP-025 through VP-031 are status=draft pending BC revisions... transition to verified at F6 hardening." The index is the source of truth for draft VPs; detail files not yet materialized is expected.
+- BC count and BC-INDEX inline not re-verified in this pass (out of seam scope for this targeted audit; prior passes confirmed 302 active).
+
+**Result: CLEAN for next_free and VP-INDEX total. VP-025..031 detail files absent from disk is expected (draft status, not yet materialized).**
+
+---
+
+### v6.0 Summary Table
+
+| Seam | Topic | Result |
+|------|-------|--------|
+| 1 | spb_data_available = body.len()-4 everywhere; no bare body.len() as data bound | CLEAN |
+| 2 | interface_id discriminant split (empty→009, OOB→010); VP-027 asserts discriminant; HS-104 two named cases | CLEAN |
+| 3 | F-H1: EPB/SPB body-decode→E-INP-008 in BC-2.01.017; no residual→E-INP-010 | PASS WITH FINDING-P6-001 (Minor) + FINDING-P6-002 (Minor) |
+| 4 | snaplen NOT extracted (F-M3); no residual consumer in any BC | CLEAN |
+| 5 | if_tsresol length enforcement (F-M5); wrong-length→E-INP-008; EC-013 present | CLEAN |
+| 6 | SHB-only edge (F-M4): notice, skipped_blocks==0, no parenthetical, exit 0 | CLEAN |
+| 7 | BOM canonical table single source; section-wide endianness; Invariant 4 | CLEAN |
+| 8 | HS-107 Case E btl=14: alignment rejection (14%4!=0), NOT "below minimum" | CLEAN |
+| 9 | Uniform error rule intact: framing→010, body-decode→008, empty→009, OOB→010 | CLEAN |
+| 10 | Versions monotonic; next_free E-INP-014; VP-INDEX total 31 | CLEAN |
+
+**Overall v6.0 verdict: NOT CLEAN — 2 Minor gaps found.**
+
+| ID | Severity | Seam | File | Description |
+|----|----------|------|------|-------------|
+| FINDING-P6-001 | Minor | 3 | `BC-2.01.017` Related BCs lines 145-146 | BC-2.01.012 and BC-2.01.013 Related BCs annotations list only "E-INP-009, E-INP-010" — omit E-INP-008. After F-H1 (pass-6), both EPB and SPB body-decode failures route to E-INP-008. The annotations are stale; PC1 and Error Taxonomy field (same file) are correct. Annotation-only staleness — no normative contradiction. |
+| FINDING-P6-002 | Minor | 3 | `BC-2.01.017` PC1 line 68 | SPB body-too-short window stated as `[btl 16≤btl<20]`; correct constructible window is btl=12 only (body=0 < 4). btl=16 is the minimum VALID SPB (body=4 = SPB_FIXED_OVERHEAD_BYTES; parse succeeds). No aligned btl exists in (12,16). Contradicts BC-2.01.013 v1.6 PC4 and EC-008. Annotation error — the surrounding normative E-INP-008 trigger description is directionally correct. |
+
+Both findings are Minor (annotation/comment staleness in BC-2.01.017; no normative behavior is incorrectly specified in the primary governing artifacts BC-2.01.012 and BC-2.01.013). No blocking findings.
+
+---
+
+### Updated Open Findings Register (v6.0)
+
+| ID | Severity | Source | Status |
+|----|----------|--------|--------|
+| FINDING-001 | HIGH | v1.0 audit — ADR-009 Status section stale contradiction | OPEN |
+| FINDING-002 | HIGH | v1.0 audit — epics.md total_bcs 297 vs BC-INDEX 302 | OPEN |
+| FINDING-003 | MEDIUM | v1.0 audit — prd.md RTM missing BC-2.01.009-018 rows | OPEN |
+| FINDING-004 | MEDIUM | v1.0 audit — BC-INDEX updated timestamp stale | OPEN |
+| FINDING-P2-001 | LOW | v2.0 audit — ADR-009 HS-completeness map HS-107 shown MISSING | OPEN |
+| FINDING-P5-001 | MINOR | v5.0 audit — HS-108 frontmatter verification_properties: [VP-025] is misattribution | RESOLVED (HS-108 v1.3 pass-5 re-audit) |
+| FINDING-P5-002 | MINOR | v5.0 audit — OPB notice hint text diverges: BC-2.01.009 vs HS-108 | RESOLVED (HS-108 v1.3 pass-5 re-audit) |
+| FINDING-P5-003 | MINOR | v5.0 audit — BC-2.01.010 v1.9 has 4 stale deferral annotations | RESOLVED (BC-2.01.010 v2.0 pass-5 re-audit) |
+| FINDING-P5-004 | MINOR | v5.0 audit — error-taxonomy E-INP-008 BC Ref omits BC-2.01.013 | RESOLVED (error-taxonomy v3.4 pass-5 re-audit) |
+| FINDING-P6-001 | Minor | v6.0 audit — BC-2.01.017 Related BCs lines 145-146 omit E-INP-008 from BC-2.01.012 and BC-2.01.013 error-code lists | OPEN |
+| FINDING-P6-002 | Minor | v6.0 audit — BC-2.01.017 PC1 line 68 states SPB body-too-short window as [btl 16≤btl<20]; correct window is btl=12 only | OPEN |

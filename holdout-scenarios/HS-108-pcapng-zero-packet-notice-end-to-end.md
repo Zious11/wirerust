@@ -1,7 +1,7 @@
 ---
 document_type: holdout-scenario
 level: ops
-version: "1.3"  # H-4 / Pass-4 R4 / ADR-009 rev 7: initial authoring. Three cases: (a) valid pcapng SHB+IDB, no EPB/SPB → stdout empty, exactly one stderr notice (no skip count), exit 0; (b) valid pcapng with 2 unknown-type skipped blocks, no packets → notice includes skipped-block count, exit 0; (c) malformed pcapng (EPB before any IDB) → E-INP-009, exit 1, NO zero-packet notice. Maps to BC-2.01.009 PC6 / BC-2.01.015 PC9. Pass-5 S4 (ADR-009 rev 8): added cases (d) OPB-only fixture → notice with OPB count + mergecap hint, exit 0; (e) 2 NRBs + 1 OPB fixture → notice shows OPB count distinctly from NRB skips, exit 0. Canonical notice format updated to "notice: <filename>: 0 packets read from pcapng file (...)". Pass-5 re-audit: (P5-001) removed stale VP-025 from verification_properties (VP-025 is the SHB Kani timestamp proof; no relationship to zero-packet NOTICE); (P5-002) standardized Cases D/E mergecap hint to BC-2.01.009 PC6 canonical form "re-save with mergecap". Pass-6 T4 (ADR-009 rev 9): added Case F (F-M4) — SHB-only pcapng (28-byte file, no IDB, no subsequent blocks) → notice with skipped_blocks==0, no parenthetical segment, exit 0. Confirms "valid file + zero packets" fires even with no IDB and no skip arm traversal.
+version: "1.4"  # H-4 / Pass-4 R4 / ADR-009 rev 7: initial authoring. Three cases: (a) valid pcapng SHB+IDB, no EPB/SPB → stdout empty, exactly one stderr notice (no skip count), exit 0; (b) valid pcapng with 2 unknown-type skipped blocks, no packets → notice includes skipped-block count, exit 0; (c) malformed pcapng (EPB before any IDB) → E-INP-009, exit 1, NO zero-packet notice. Maps to BC-2.01.009 PC6 / BC-2.01.015 PC9. Pass-5 S4 (ADR-009 rev 8): added cases (d) OPB-only fixture → notice with OPB count + mergecap hint, exit 0; (e) 2 NRBs + 1 OPB fixture → notice shows OPB count distinctly from NRB skips, exit 0. Canonical notice format updated to "notice: <filename>: 0 packets read from pcapng file (...)". Pass-5 re-audit: (P5-001) removed stale VP-025 from verification_properties (VP-025 is the SHB Kani timestamp proof; no relationship to zero-packet NOTICE); (P5-002) standardized Cases D/E mergecap hint to BC-2.01.009 PC6 canonical form "re-save with mergecap". Pass-6 T4 (ADR-009 rev 9): added Case F (F-M4) — SHB-only pcapng (28-byte file, no IDB, no subsequent blocks) → notice with skipped_blocks==0, no parenthetical segment, exit 0. Confirms "valid file + zero packets" fires even with no IDB and no skip arm traversal. Pass-7 U1 (F-1 CRITICAL, F-2 HIGH, F-3 HIGH) — F-1: Case D counter corrected to skipped_blocks==1/opb_skipped==1 (OPB increments BOTH per BC-2.01.015 PC9 "both" model); Case E corrected to skipped_blocks==3/opb_skipped==1 (2 NRBs + 1 OPB = 3 total skips). F-2: renamed all occurrences of non-existent field `obsolete_packet_blocks` to canonical `opb_skipped`. F-3: display arithmetic made explicit — generic segment G=(skipped_blocks-opb_skipped) emitted only when G>0; Case D G=0 → no generic segment; Case E G=2 → generic segment "2". Edge-condition note updated to remove "exclusive contribution" / ":497" language; rubric updated for arithmetic self-consistency.
 status: draft
 producer: product-owner
 timestamp: 2026-06-20T00:00:00Z
@@ -244,8 +244,9 @@ Full OPB hex (32 bytes):
      [EOF]
    ```
    The file is structurally valid. The block walk reaches EOF with `packets.len() == 0`,
-   `skipped_blocks == 0` (OPBs are tracked separately from generic unknown-type skips),
-   and `obsolete_packet_blocks == 1`.
+   `skipped_blocks == 1` (OPB increments BOTH `skipped_blocks` AND `opb_skipped` per
+   BC-2.01.015 PC9 "both" model), and `opb_skipped == 1`. Generic count G = (1 - 1) = 0,
+   so no generic skip segment appears in the notice.
 2. The user runs `wirerust analyze opb_only_no_epb.pcapng --json 2>&1`.
 3. Expected public-observable outcomes:
    - **Exit code: 0** (not an error — the file is structurally valid).
@@ -262,8 +263,10 @@ Full OPB hex (32 bytes):
 
 **Byte-exact assertion:** `stderr` contains the substring `"0 packets read from pcapng file"`
 AND contains `"1"` AND contains `"obsolete"` AND contains `"mergecap"`. `stdout` is empty.
-Exit code 0. `stderr` does NOT contain `"skipped as unsupported"` (OPB is reported via the
-distinct OPB-count path, not the generic skip-count path).
+Exit code 0. `stderr` does NOT contain `"skipped as unsupported"` (OPB increments both
+counters, but G = skipped_blocks - opb_skipped = 1 - 1 = 0, so no generic skip segment is
+emitted; the OPB-count path alone is used). Internal state: `skipped_blocks==1`,
+`opb_skipped==1`.
 
 ---
 
@@ -301,8 +304,10 @@ Full NRB hex (16 bytes):
      [EOF]
    ```
    The file is structurally valid. The block walk reaches EOF with `packets.len() == 0`,
-   `skipped_blocks == 2` (the two NRBs are non-packet, non-IDB, non-EPB/SPB blocks),
-   and `obsolete_packet_blocks == 1`.
+   `skipped_blocks == 3` (both NRBs increment `skipped_blocks` once each; the OPB also
+   increments `skipped_blocks` per BC-2.01.015 PC9 "both" model, giving 2 + 1 = 3 total),
+   and `opb_skipped == 1`. Generic count G = (3 - 1) = 2, so the generic segment
+   "(2 block(s) skipped as unsupported)" IS emitted alongside the OPB clause.
 2. The user runs `wirerust analyze nrb_plus_opb_no_packets.pcapng --json 2>&1`.
 3. Expected public-observable outcomes:
    - **Exit code: 0** (not an error).
@@ -319,9 +324,11 @@ Full NRB hex (16 bytes):
    - The notice MUST appear exactly ONCE on stderr.
 
 **Byte-exact assertion:** `stderr` contains the substring `"0 packets read from pcapng file"`
-AND contains `"2"` (skip count) AND contains `"1"` (OPB count) AND contains `"obsolete"`
-AND contains `"mergecap"`. `stderr` does NOT collapse OPB and non-packet skips into a single
-aggregate count. `stdout` is empty. Exit code 0.
+AND contains `"2"` (generic skip count G = skipped_blocks - opb_skipped = 3 - 1 = 2)
+AND contains `"1"` (OPB count, opb_skipped) AND contains `"obsolete"` AND contains
+`"mergecap"`. `stderr` does NOT collapse OPB and non-OPB skips into a single aggregate
+count of `3`. `stdout` is empty. Exit code 0. Internal state: `skipped_blocks==3`,
+`opb_skipped==1`.
 
 ---
 
@@ -382,8 +389,8 @@ contain `"obsolete"` AND does NOT contain `"mergecap"`. `stdout` is empty. Exit 
 | BC-2.01.015 | PC9 — skipped_blocks=0 when no blocks were skipped; BC-2.01.009 omits skip-count from notice | Case A: no skipped blocks → notice has no skip-count segment |
 | BC-2.01.009 | One-shot guard — notice emitted exactly once per file, not once per block | Cases A, B, D, E: notice appears exactly once on stderr |
 | BC-2.01.009 | SEC-007 — block body content NOT included in the notice message | Cases A, B, D, E: notice is a one-line human-readable string with no raw body bytes |
-| BC-2.01.009 | OPB-distinction — obsolete_packet_blocks count appears in notice DISTINCTLY from skipped_blocks; mergecap hint included | Case D: 1 OPB → notice includes OPB count (1) and mergecap hint; no generic skip-count |
-| BC-2.01.009 | OPB+NRB co-occurrence — both skip count (NRBs) and OPB count appear in notice as separate values; not collapsed | Case E: 2 NRBs + 1 OPB → notice shows "2 block(s) skipped" AND "1 obsolete Packet Block" as distinct entries |
+| BC-2.01.009 | OPB-distinction — opb_skipped count appears in notice DISTINCTLY via OPB clause; generic segment suppressed when G=0; mergecap hint included | Case D: 1 OPB → skipped_blocks=1, opb_skipped=1, G=0 → no generic segment; notice includes OPB count (1) and mergecap hint only |
+| BC-2.01.009 | OPB+NRB co-occurrence — G=(skipped_blocks-opb_skipped)=2 generic segment AND opb_skipped=1 OPB clause appear as separate values; not collapsed | Case E: 2 NRBs + 1 OPB → skipped_blocks=3, opb_skipped=1, G=2 → notice shows "2 block(s) skipped as unsupported" AND "1 obsolete Packet Block" as distinct entries |
 | BC-2.01.009 | PC6 / EC-010 — SHB-only file is structurally valid; notice emitted with skipped_blocks==0 and no parenthetical; exit 0 (F-M4) | Case F: SHB-only 28-byte file → notice without parenthetical; no "skipped", "obsolete", or "mergecap" in stderr |
 | BC-2.01.015 | EC-013 — SHB-only file: no blocks reach the skip arm; skipped_blocks==0, opb_skipped==0 | Case F: confirms both counters are zero and no parenthetical is added to the notice |
 
@@ -454,15 +461,18 @@ Notice appears exactly once (one-shot guard).
   non-zero with E-INP-009 error on stderr. The zero-packet notice MUST NOT appear.
   Conflating a structural error with a zero-packet success is the primary H-4 defect
   class this case guards against.
-- **Case D OPB-count with mergecap hint** (weight: 0.20): SHB+IDB+1 OPB file exits 0
-  with notice containing the zero-packet phrase, the OPB count (1), the word "obsolete",
-  and a mergecap remediation hint. The OPB is NOT reported via the generic skip-count path.
-  Confirms OPB-specific notice path is implemented and distinct from unknown-block skipping.
+- **Case D OPB-count with mergecap hint** (weight: 0.20): SHB+IDB+1 OPB file exits 0.
+  Internal state: `skipped_blocks==1`, `opb_skipped==1`. Generic count G = 1-1 = 0, so
+  no generic skip segment appears in the notice. Notice contains the zero-packet phrase,
+  the OPB count (1), the word "obsolete", and a mergecap remediation hint. The `stderr`
+  MUST NOT contain `"skipped as unsupported"` (that is the generic segment, gated on G>0).
+  Confirms OPB increments both counters; G-derivation suppresses generic segment correctly.
 - **Case E OPB count distinct from NRB skips** (weight: 0.10): SHB+IDB+2 NRBs+1 OPB
-  file exits 0 with notice showing both the skip count (2 for NRBs) and the OPB count (1)
-  as separate values. The notice MUST NOT collapse both into a single count of 3.
-  Confirms that wirerust distinguishes "blocks with packet data that were skipped" (OPBs)
-  from "blocks with no packet data that were skipped" (unknown/NRB).
+  file exits 0. Internal state: `skipped_blocks==3`, `opb_skipped==1`. Generic count
+  G = 3-1 = 2. Notice must show generic segment "(2 block(s) skipped as unsupported)"
+  AND OPB clause "(includes 1 obsolete Packet Block(s)…; re-save with mergecap)" as
+  separate values. MUST NOT collapse into a single count of 3. Confirms the
+  G=(skipped_blocks-opb_skipped) derivation produces correct display arithmetic.
 - **Case F SHB-only (weight: 0.10):** SHB-only 28-byte pcapng exits 0 with exactly one
   notice on stderr. Notice matches canonical format without any parenthetical segment
   (no skip count, no "obsolete", no "mergecap"). Confirms that "valid file + zero packets"
@@ -487,17 +497,21 @@ Notice appears exactly once (one-shot guard).
   should produce the notice or the error. The v1.4 rule is unambiguous: the notice fires
   only when the file parses to EOF with no error. An E-INP-009 error terminates the parse
   before EOF; the notice must not fire.
-- **Case D (SHB+IDB+OPB, no EPB/SPB, obsolete_packet_blocks=1):** The OPB contains
-  packet data bytes (captured_len=0 in the fixture, but non-zero in real captures). wirerust
-  tracks OPBs separately from unknown-type skipped blocks because OPBs carry actual packet
-  content that was NOT decoded or included in the analysis output. The notice must reflect
-  this with a mergecap hint so users understand data may be missing.
-- **Case E (2 NRBs + 1 OPB):** NRBs (Name Resolution Blocks) carry IP-to-name mappings,
-  not packet data. They are non-packet blocks (like unknown-type blocks) and contribute to
-  `skipped_blocks`. OPBs carry packet data and contribute to `obsolete_packet_blocks`. These
-  two counters serve different user-facing purposes and MUST remain distinct in the notice.
-  A count of `3` in the notice would be incorrect; the correct representation has `2` (NRBs)
-  and `1` (OPB) as separate values with separate labels.
+- **Case D (SHB+IDB+OPB, no EPB/SPB, skipped_blocks=1, opb_skipped=1):** The OPB
+  increments BOTH `skipped_blocks` AND `opb_skipped` per BC-2.01.015 PC9. Generic count
+  G = skipped_blocks - opb_skipped = 1 - 1 = 0, so NO generic skip segment is emitted.
+  Only the OPB clause is appended to the notice. The OPB contains packet data bytes
+  (captured_len=0 in the fixture, but non-zero in real captures). wirerust tracks OPBs via
+  `opb_skipped` so the notice includes a mergecap remediation hint, making clear that
+  actual packet content was NOT decoded or included in the analysis output.
+- **Case E (2 NRBs + 1 OPB, skipped_blocks=3, opb_skipped=1):** NRBs contribute only to
+  `skipped_blocks` (they are non-packet blocks); OPB contributes to BOTH `skipped_blocks`
+  AND `opb_skipped`. Total: skipped_blocks=2(NRBs)+1(OPB)=3; opb_skipped=1. Generic
+  count G = 3 - 1 = 2 → generic segment "(2 block(s) skipped as unsupported)" IS emitted.
+  OPB clause also emitted (opb_skipped=1 > 0). These two segments serve different user-
+  facing purposes — "blocks with no packet data skipped" vs "blocks with packet data
+  skipped" — and MUST remain distinct. A count of `3` in a single label would conflate
+  them and suppress the mergecap hint for the OPB-only portion.
 - **Case F (SHB-only, 28 bytes):** A pcapng file with only an SHB is the most degenerate
   valid pcapng file. The pcapng spec §4.1 permits this: the SHB "defines the most important
   characteristics of the capture file." No IDB is required for the file to be structurally
@@ -532,11 +546,13 @@ Case B failure (skip count not in notice): skipped_blocks counter is not passed 
 Case B failure (no notice at all): same as Case A PC6 absence; notice must fire for skipped-blocks files too.
 Case C failure (exit 0): EPB-before-IDB is being treated as zero-packet success instead of E-INP-009 error.
 Case C failure (notice on stderr): zero-packet notice must NOT appear when the file produced a parse error; notice is for valid-file-zero-packet only (H-4 disambiguation rule, BC-2.01.009 v1.4).
-Case D failure (no OPB count in notice): obsolete_packet_blocks counter not tracked or not passed to notice emitter; notice must include OPB count (1) and word 'obsolete'.
+Case D failure (no OPB count in notice): opb_skipped counter not tracked or not passed to notice emitter; notice must include OPB count (1) and word 'obsolete'. Internal state must be skipped_blocks==1, opb_skipped==1 (OPB increments BOTH counters per BC-2.01.015 PC9).
 Case D failure (no mergecap hint): OPB notice must include a mergecap remediation hint; missing hint means users cannot discover how to recover the packet data.
-Case D failure (OPB counted as generic skip): OPB appears in '2 block(s) skipped' path instead of the distinct OPB path; must be separate.
-Case E failure (counts collapsed): NRB skip count (2) and OPB count (1) merged into a single count of 3; they must appear as distinct values with distinct labels.
-Case E failure (OPB count absent): same as Case D failure; OPB must be counted and reported even when generic skip count is also present.
+Case D failure (generic segment in notice for OPB-only file): G = skipped_blocks - opb_skipped = 1 - 1 = 0, so the generic segment "(G block(s) skipped as unsupported)" MUST NOT appear; OPB clause is the only segment; presence of "skipped as unsupported" indicates the G-derivation is not implemented or skipped_blocks is wrong (e.g., 0 instead of 1 would also cause wrong display).
+Case D failure (skipped_blocks==0 reported): OPB must increment BOTH skipped_blocks AND opb_skipped; if skipped_blocks==0 the "both" model is not implemented.
+Case E failure (counts collapsed): skipped_blocks=3, opb_skipped=1; G=3-1=2; the generic segment must show "2" and the OPB clause must show "1" as distinct values with distinct labels; collapsing into a single count of 3 is incorrect and hides the mergecap-relevant OPB distinction.
+Case E failure (skipped_blocks==2 instead of 3): OPB must increment BOTH counters; if skipped_blocks==2 then only the 2 NRBs were counted and the OPB did not increment skipped_blocks — "both" model not implemented.
+Case E failure (OPB count absent): same as Case D failure; opb_skipped must be counted and reported even when generic skip count is also present.
 Case F failure (exit non-zero): SHB-only file is being rejected as a parse error; an SHB alone is a structurally valid pcapng section per spec §4.1; must return Ok, exit 0.
 Case F failure (no notice on stderr): notice gate is incorrectly conditioned on IDB presence or skipped_blocks>0; must fire for any valid file + zero packets regardless of whether an IDB was seen or any blocks were skipped.
 Case F failure (notice contains parenthetical): skipped_blocks==0 and opb_skipped==0 — the notice MUST NOT include any parenthetical segment; parenthetical is gated on non-zero counters.

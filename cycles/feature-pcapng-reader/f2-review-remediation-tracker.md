@@ -558,3 +558,49 @@ remediated + consistency-verified. Adversary pass-7 pending. Clean-pass counter 
 
 **Re-audit verdict:** CLEAN. All 10 seams pass. 2 Minor findings FIXED. Pass-6 fully
 remediated + consistency-verified. Adversary pass-7 is next. Clean-pass counter 0/3.
+
+---
+
+---
+
+## Pass-7 Adversarial Findings (ADV-F2-PASS7 — D-158 burst — 2026-06-20)
+
+**Overall verdict:** 1 CRITICAL / 3 HIGH / 4 MEDIUM / 4 LOW. Novelty MODERATE (down from HIGH).
+**Trajectory:** P1:23 / P2:24 / P3:17 / P4:13 / P5:13 / P6:13 / P7:12 — count declining, convergence approaching.
+**Two axes CONVERGED:** SPB body.len()-4 arithmetic (Decision 22 / VP-031 formula); VP-INDEX self-consistency (total_vps=31).
+**Open cluster:** OPB zero-packet-notice subsystem (rev-8/9 propagation lag: BC-2.01.015 PC9 vs HS-108 Cases D/E) + symbol-rename incompleteness (block_body_available → spb_data_available).
+Clean-pass counter: 0/3. Remediation round-7 required.
+
+**Full pass record:** `.factory/cycles/feature-pcapng-reader/f2-adversarial-spec-review-pass7.md`
+
+### Pass-7 Critical Findings
+
+| ID | Severity | Finding Summary | Status |
+|----|----------|----------------|--------|
+| F-1 | CRITICAL | OPB counter model contradiction: BC-2.01.015 PC9/AC-003/AC-006 establishes dual-counter model — OPB skip arm increments BOTH `skipped_blocks` AND `opb_skipped` (invariant: opb_skipped <= skipped_blocks, i.e., OPBs are a SUBSET of total skips). HS-108 Case D (3 OPBs) asserts `skipped_blocks=0, opb_skipped=3` — violates the subset invariant. HS-108 Case E (2 NRBs + 1 OPB) asserts `skipped_blocks=2, opb_skipped=1` — NRBs NOT included in skipped_blocks, making it a non-OPB counter not a total counter. A test suite written against BC-2.01.015 will FAIL the HS-108 holdout. Root cause: HS-108 authored in D-150 (pass-4 H-4) before opb_skipped sub-counter added in D-153 (pass-5 H-2); D-153 updated the BC but not HS-108 Cases D/E. Fix: keep BC "both" model; HS-108 Case D skipped_blocks=3; Case E skipped_blocks=3. | OPEN — remediation round-7 pending |
+
+### Pass-7 High Findings
+
+| ID | Severity | Finding Summary | Status |
+|----|----------|----------------|--------|
+| F-2 | HIGH | HS-108 uses non-existent field `obsolete_packet_blocks` (6× in Cases D/E expected outputs and notice assertions). Canonical field name per BC-2.01.015 AC-003 + BC-2.01.009 v1.5 is `opb_skipped`. The name `obsolete_packet_blocks` is a stale draft artifact from HS-108 v1.0 (D-150) not updated when D-153 introduced canonical naming. An implementation against the BCs would use `opb_skipped`; holdout uses non-existent field → wrong / compile-fail. Fix: rename all 6 occurrences `obsolete_packet_blocks` → `opb_skipped` in HS-108. | OPEN — remediation round-7 pending |
+| F-3 | HIGH | Zero-packet notice DISPLAY arithmetic undefined for mixed-skip case. BC-2.01.009 PC6 only specifies appending an OPB clause when opb_skipped>0; it does NOT specify subtracting opb_skipped from the generic count to produce the non-OPB display segment. HS-108 Case E shows "2 generic + 1 OPB" but this is not derivable from the BC without knowing the subtraction convention — an implementation could emit "3 blocks skipped (incl. 1 OPB)" (double-counting). Fix: BC-2.01.009 PC6 define generic segment = (skipped_blocks - opb_skipped), emitted only when > 0; normalize 3-way notice format (OPB-only / generic-only / mixed). | OPEN — remediation round-7 pending |
+| F-4 | HIGH | EPB decode precedence unpinned + BC-2.01.012 Precondition 1 contradicts PC5a. Precondition 1 asserts "interface table is non-empty" (caller obligation); PC5a defines behavior when it IS empty (E-INP-009). These cannot both be correct — a precondition violation is undefined behavior, making PC5a dead spec. Also, EPB body-decode check ordering not stated as a formal precedence postcondition (body.len() guard, read interface_id, empty-table, OOB, captured_len/padding). Fix: (1) Remove "non-empty" from Precondition 1; (2) Add precedence postcondition to BC-2.01.012 making check order explicit and binding. | OPEN — remediation round-7 pending |
+
+### Pass-7 Medium Findings
+
+| ID | Severity | Finding Summary | Status |
+|----|----------|----------------|--------|
+| F-5 | MEDIUM | HS-107 v1.5 still uses retired symbol `block_body_available` in Cases A/B/C/D/E rationale and assertions (numerically equal to body.len()-4 but using the retired name). Decision 22 (ADR-009 rev 9, D-156) established canonical rename to `spb_data_available`. BC-2.01.013 v1.6 uses `body.len()-4`; holdout uses retired symbol → assertion mismatch against correct implementation. Fix: rename `block_body_available` → `spb_data_available` throughout HS-107. | OPEN — remediation round-7 pending |
+| F-6 | MEDIUM [process-gap] | HS-104/107/108 input-hash "tbd" — drift tripwire disabled on three must-pass holdouts covering F2 convergence gate scenarios (EPB interface_id discriminant / SPB framing / zero-packet notice). Decisions 15/17/19/20/22 are governing decisions; ADR-009 not listed as holdout input for any of these three. Fix: run `bin/compute-input-hash --write` on HS-104/107/108; add ADR-009 to each holdout's inputs list. | OPEN — remediation round-7 pending |
+| F-7 | MEDIUM | BC-2.01.013 EC-001/EC-002/EC-003 + Canonical Test Vectors still use retired `block_body_available` (D-156 v1.6 changelog claimed "everywhere" rename complete but EC/vector sections lagged — same changelog-lie defect class as pass-3 C-1 / Lesson 8). Fix: rename `block_body_available` → `spb_data_available` in BC-2.01.013 EC-001/002/003 and Canonical Test Vectors. | OPEN — remediation round-7 pending |
+| F-8 | MEDIUM | BC-2.01.013 lacks the btl=14 misaligned-alignment-violation crate-rejection fixture. HS-107 Case E uses btl=14 rejected for alignment violation (14%4=2); D-156 F-M1 corrected the Case E rationale. But BC-2.01.013 EC-005 only illustrates btl=8 (<12, below minimum) — the alignment class is absent from the BC's canonical test vectors. An alignment-violation E-INP-010 case exists only in HS-107, not in the governing BC. Fix: add btl=14 misaligned→E-INP-010 example to BC-2.01.013 EC-005. | OPEN — remediation round-7 pending |
+
+### Pass-7 Low Findings (all CLOSED / CONVERGED)
+
+| ID | Severity | Finding Summary | Status |
+|----|----------|----------------|--------|
+| F-L1 | LOW | VP-INDEX total_vps=31 count propagation and self-consistency. | CONVERGED GREEN — no action |
+| F-L2 | LOW | SPB formula `min(original_len, body.len()-4)` (Decision 22 / BC-2.01.013 / VP-031) consistency. | CONVERGED GREEN — no action |
+| F-L3 | LOW | Section-wide endianness coverage for option code/length TLV fields. | CONVERGED GREEN — no action |
+| F-L4 | LOW | BC-2.01.018 VP-030/STORY-128 anchor note (pending-intent deferral per Lesson 11). | INFORMATIONAL — intentional tracked deferral |

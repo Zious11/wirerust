@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.6"
+version: "1.7"
 status: draft
 producer: product-owner
 timestamp: 2026-06-19T00:00:00Z
@@ -19,6 +19,7 @@ modified:
   - "v1.4: Pass-4 remediation per ADR-009 rev 7 (C-1, H-1/Decision-20, M-1, M-3) — (C-1) Replaced captured_len guard in PC3/AC-002/EC-009/EC-010/VP-027 with padding-aware bound: EPB_FIXED_OVERHEAD_BYTES(20) + captured_len + pad_len(captured_len) <= body.len() where pad_len(n)=(4-n%4)%4; added unconditional bound-by-body-first clause (captured_len can never exceed body.len()). (H-1/Decision-20) Added explicit mapping: 12 <= btl < 32 → body < 20 fixed-field bytes → wirerust body-decode failure → E-INP-008 (not E-INP-010); btl < 12 or btl misaligned → crate Err → E-INP-010; EPB fixed-field minimum = 20 body bytes. (M-1) Fixed AC-003: on the raw-block path the crate does NOT run its EnhancedPacketBlock parser; wirerust MUST itself check body.len() >= 20 before reading any EPB fixed field — the 20-byte check is NOT delegated to the crate. (M-3) Scoped PC8/test_BC_2_01_012_happy_path_n_packet_order_and_byte_fidelity to encounter-order + byte-fidelity on the 16-packet ARP fixture ONLY; moved EC-008 (zero-byte) and EC-009 (max-boundary) byte-fidelity claims to standalone ACs (AC-005/AC-006) and HS-104 cross-reference; removed over-claim that the single ARP fixture covers boundary cases. — 2026-06-20"
   - "v1.5: Pass-5 remediation per ADR-009 rev 8 (C-1 reclassification) — EPB body-decode failures reclassified from E-INP-010 → E-INP-008 at all sites. Decision 20 rule: the crate has already successfully framed the block (btl >= 12, aligned, trailing-length match) before any EPB body-decode runs; therefore wirerust body-decode rejections (captured_len > body.len() - 20 bound-by-body; 20 + captured_len + pad_len(captured_len) > body.len() padding-overrun) are wirerust body-decode failures → E-INP-008. Updated: PC6a (bound-by-body → E-INP-008); PC6b (padding-overrun → E-INP-008); AC-002 both sub-checks → E-INP-008; AC-006 one-over case → E-INP-008; EC-010 → E-INP-008; canonical test vectors rows for padding-overrun and bound-by-body → E-INP-008; VP-027 updated. E-INP-010 in this BC is now STRICTLY: (i) crate framing rejection (btl<12/misaligned/EOF) per EC-012; (ii) EPB interface_id OOB on non-empty table per EC-006/EC-007/PC5. — 2026-06-20"
   - "v1.6: Pass-6 remediation per ADR-009 rev 9 (F-H4 discriminant split) — PC5 split into two explicit sub-postconditions: PC5a (empty-table path → E-INP-009 with exact message format) and PC5b (OOB-on-non-empty path → E-INP-010 with exact message format). AC-001 strengthened to require the two discriminants to be DIFFERENT (empty⇒009, OOB-non-empty⇒010) — returning any single code for both cases is an AC violation. VP-027 updated: now asserts the discriminant itself (not just 'returns Err') for the empty-table vs OOB split. This resolves the F-H4 finding: prior text used ambiguous '(→ E-INP-009 / E-INP-010)' notation that did not specify which condition maps to which code. — 2026-06-20"
+  - "v1.7: Pass-7 remediation per ADR-009 rev 9 (F-4 EPB decode precedence) — (1) Removed contradictory 'interface table is non-empty' assertion from Precondition 1 (empty-table is a handled case → PC5a / E-INP-009, not a precondition for success). Rewrote Precondition 1 to describe the dependency on BC-2.01.011 for if_tsresol lookup only. (2) Added Postcondition 9: explicit EPB evaluation-order postcondition pinning the 5-step precedence — (i) body.len() >= 20 else E-INP-008; (ii) read interface_id; (iii) if table EMPTY → E-INP-009 (before any captured_len / data-slice decode); (iv) if interface_id >= table.len() on non-empty table → E-INP-010; (v) captured_len bound-by-body / padding-overrun → E-INP-008. Empty-table check (step iii) is evaluated AFTER the body.len()>=20 gate (step i) but BEFORE any data-slice body-decode (step v), and is independent of captured_len arithmetic. This makes HS-104 Case (empty) and HS-108 Case C (both demand E-INP-009 exactly) unambiguously derivable from the BC. — 2026-06-20"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -47,7 +48,11 @@ E-INP-008 (not E-INP-010) when the body is too short to hold the EPB fixed field
 
 ## Preconditions
 
-1. At least one IDB has been parsed; the interface table is non-empty (BC-2.01.011).
+1. The SHB has been parsed and byte order is established; BC-2.01.011 populates `if_tsresol`
+   for each parsed IDB. The interface table MAY be empty when an EPB is encountered — the
+   empty-table case is a handled error path (→ E-INP-009 via PC5a), NOT a precondition for
+   successful parsing. No assumption is made about whether any IDB has been seen before
+   this EPB; that state is checked at step (iii) of the EPB evaluation order (PC9).
 2. The block type reads `0x00000006` (after byte-order correction from SHB).
 3. The RawBlock body contains at least `EPB_FIXED_OVERHEAD_BYTES = 20` bytes. When
    `block_total_length` is in range `[12, 32)` the body is shorter than 20 bytes; wirerust
@@ -118,6 +123,40 @@ E-INP-008 (not E-INP-010) when the body is too short to hold the EPB fixed field
    EPB sequence. This test does NOT claim to exercise the zero-byte (EC-008) or
    max-boundary (EC-009) cases — those boundary cases are verified by AC-005, AC-006, and
    HS-104 respectively (see below).
+9. **EPB evaluation order (decode precedence):** The EPB parse path MUST evaluate checks in
+   this exact sequence with no reordering. Each step short-circuits on failure (returns `Err`
+   immediately); subsequent steps are not evaluated:
+
+   **(i) Minimum body length gate:** `body.len() >= 20` (EPB_FIXED_OVERHEAD_BYTES). If false
+   → return `Err` mapping to **E-INP-008** (body too short for EPB fixed fields; wirerust
+   body-decode failure; crate already successfully framed the block at btl >= 12).
+
+   **(ii) Read interface_id:** Read `interface_id: u32` from the first 4 bytes of the body
+   (little-endian, per SHB byte-order). This read is safe because step (i) guarantees
+   body.len() >= 20.
+
+   **(iii) Interface table empty check:** If the interface table length is zero (no IDB has
+   been parsed in the current section) → return `Err` mapping to **E-INP-009** with message
+   `"EPB references interface_id=<id> but interface table is empty — no IDB has been parsed"`.
+   This check MUST occur BEFORE any captured_len read or data-slice computation. A file
+   presenting EPBs before any IDB is a structural violation; the empty-table error is
+   independent of the captured_len field value.
+
+   **(iv) interface_id OOB check on non-empty table:** If the interface table is NON-EMPTY
+   but `interface_id >= table.len()` → return `Err` mapping to **E-INP-010** with message
+   `"EPB interface_id=<id> out of range (table size=<n>)"`.
+
+   **(v) captured_len validation (two-step, padding-aware):** Only reached if steps (i)–(iv)
+   all pass. First: unconditional bound-by-body — `captured_len <= body.len()`. If false →
+   `Err` mapping to **E-INP-008**. Second: padding-aware overhead —
+   `EPB_FIXED_OVERHEAD_BYTES(20) + captured_len + pad_len(captured_len) <= body.len()` where
+   `pad_len(n) = (4 - n % 4) % 4`. If false → `Err` mapping to **E-INP-008**.
+
+   **Implication for HS-104 and HS-108:** An EPB presented when the interface table is EMPTY
+   must produce E-INP-009 regardless of whether captured_len would also be malformed — the
+   empty-table check at step (iii) fires before any captured_len / data-slice arithmetic at
+   step (v). This makes the E-INP-009 outcome for the empty-table case unambiguous and
+   independently derivable from this BC.
 
 ## Acceptance Criteria
 

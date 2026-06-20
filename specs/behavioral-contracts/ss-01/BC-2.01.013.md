@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.6"
+version: "1.7"
 status: draft
 producer: product-owner
 timestamp: 2026-06-19T00:00:00Z
@@ -14,6 +14,7 @@ lifecycle_status: active
 introduced: v0.10.0-pcapng
 modified:
   - "v1.6: Pass-6 remediation T1 — ADR-009 rev 9 Decision 22: resolved contradictory body-bound definitions. On the raw path RawBlock.body = [original_len:4][padded data], so the available data bytes after original_len = spb_data_available = body.len() - 4 (NOT body.len(), which is 4 bytes too large). Canonical formula everywhere: captured_len = min(original_len, spb_data_available) = min(original_len, body.len() - 4). Deleted all 'equivalently body.len()' / 'body.len() as the bound' text. Updated: Description (define spb_data_available symbol), PC1 (use spb_data_available), Invariant-2 (canonical symbol definition), AC-002 (min(original_len, body.len()-4)), EC-007 (captured_len = body.len()-4 when original_len > spb_data_available), VP-031 row (property min(original_len, body.len()-4); domain starts where body.len()>=4, else E-INP-008 body-too-short), Architecture Anchors (remove body.len() bare equivalences). — 2026-06-20"
+  - "v1.7: Pass-7 remediation per ADR-009 rev 9 (F-7 symbol rename; F-8 misaligned fixture) — (F-7) Renamed retired symbol `block_body_available` → `spb_data_available` in EC-001, EC-002, EC-003, and Canonical Test Vectors; each value confirmed as min(original_len, body.len()-4). Also updated stale `block_body_available` reference in Precondition 4. (F-8) Expanded EC-005 to enumerate both crate-rejection sub-cases: (a) btl < 12 (e.g., btl=8) → crate rejects → E-INP-010; (b) btl=14 (>=12 but 14%4!=0) → crate rejects for 4-byte alignment → E-INP-010. Added canonical test vector for the btl=14 misaligned case so the BC's enumerated cases match HS-107 Case E and make clear that E-INP-010 fires for misalignment (not only for btl<12). No residual `block_body_available` occurrences remain in EC-001–EC-003 or Canonical Test Vectors. — 2026-06-20"
   - "v1.5: Pass-5 remediation S2 — ADR-009 rev 8 Decision 9 amendment: snaplen DROPPED from SPB captured_len. Decision 9 states snaplen is NOT enforced for SPB (same as EPB). captured_len now = min(original_len, block_body_available) everywhere — block_body_available = body.len() is the authoritative on-disk bound. Removed snaplen from: Description, PC1, AC-002, EC-007, EC-001, Invariant 2, Canonical Test Vectors, Architecture Anchors. VP-031 updated: captured_len == min(original_len, body.len() as u32). EC-007 'snaplen wins' case restated: original_len > block_body_available → data clamped to block_body_available. HS-107 VP row description corrected to match HS-107 actual scope (SPB framing truncation/padding/no-IDB, incl. Case F btl=12→E-INP-008). Removed 4x stale '(HS-107 btl=12→E-INP-008 holdout deferred to a separate burst.)' notes — HS-107 Case F now covers it. — 2026-06-20"
   - "v1.4: Pass-4 remediation R2 — Decision 20: added body-too-short E-INP-008 case for SPB: btl=12 (aligned, >=12, crate frames and returns block) → body=0 bytes < 4 SPB fixed-field bytes (original_len:u32) → wirerust body-decode → E-INP-008. Distinguishes from btl<12/misaligned/EOF → crate Err → E-INP-010. Updated Postcondition 6, added EC-008, added AC-004a body-truncation test, updated Canonical Test Vectors and Traceability. M-1: removed 'crate enforces body minimum' over-claim from Architecture Anchors — wirerust checks body.len()>=4 itself on the raw path before decoding SPB fixed fields. Authority: ADR-009 rev 7 Decision 20, per-block fixed-field minimum SPB=4. — 2026-06-20"
   - "v1.1: F2 Burst-A remediation per ADR-009 rev 4 PO dispatch — (1) Corrected SPB body-relative fixed overhead to 4 bytes (original_len: u32 only; H-2 fix — was incorrectly stated as 20 bytes in the Description and Postcondition 1). (2) Corrected minimum block_total_length to 16 bytes (12 outer + 4 body-fixed); available padded-data bytes = block_total_length - 16. (3) Added explicit note: RawBlock `data` includes padding — caller MUST compute captured_len = min(original_len, snaplen) and strip accordingly. (4) Added SPB-without-IDB case as E-INP-009 (empty interface table; do NOT index idb[0] unguarded — H-4). (5) Added no-panic AC (SEC-005). (6) Removed incorrect 'block_total_length - 20' formula from Postcondition 1 (20 was the EPB overhead, not SPB). — 2026-06-19"
@@ -54,7 +55,7 @@ specification. Timestamp fields on `RawPacket` are always set to zero for SPBs.
 2. The block type reads `0x00000003`.
 3. The interface table is checked before accessing `idb[0]`; if the table is empty, the
    call returns `Err` mapping to E-INP-009 (SPB-without-IDB).
-4. The crate requires `block_total_length >= 12` to return a block; blocks with btl < 12 / misaligned / EOF are rejected by the crate with E-INP-010 before wirerust receives them. A btl=12 block (body=0 bytes) is returned by the crate but wirerust body-decode will find insufficient bytes for the `original_len: u32` field and return E-INP-008. The minimum legal SPB carrying any data has `block_total_length = 16` (12 outer + 4 body-fixed for `original_len` + 0 padded data; btl=16 → body=4 → exactly 4 bytes available for `original_len` → parse succeeds with `block_body_available = 0`).
+4. The crate requires `block_total_length >= 12` to return a block; blocks with btl < 12 / misaligned / EOF are rejected by the crate with E-INP-010 before wirerust receives them. A btl=12 block (body=0 bytes) is returned by the crate but wirerust body-decode will find insufficient bytes for the `original_len: u32` field and return E-INP-008. The minimum legal SPB carrying any data has `block_total_length = 16` (12 outer + 4 body-fixed for `original_len` + 0 padded data; btl=16 → body=4 → exactly 4 bytes available for `original_len` → parse succeeds with `spb_data_available = 0`).
 
 ## Postconditions
 
@@ -145,11 +146,11 @@ specification. Timestamp fields on `RawPacket` are always set to zero for SPBs.
 
 | ID | Description | Expected Behavior |
 |----|-------------|-------------------|
-| EC-001 | SPB with `original_len > block body data` (truncated on disk) | Data slice bounded to `min(original_len, block_body_available)` bytes; `RawPacket.data.len() == block_body_available < original_len` |
-| EC-002 | SPB where `original_len` exactly matches `block_body_available` | Data sliced to `captured_len = original_len = block_body_available`; no truncation |
-| EC-003 | SPB in file with multiple IDBs (spec violation) | Guard only checks `idb.is_empty()`; if non-empty, table access succeeds (snaplen is not used for SPB captured_len); no panic; proceeds |
+| EC-001 | SPB with `original_len > block body data` (truncated on disk) | Data slice bounded to `min(original_len, spb_data_available)` bytes where `spb_data_available = body.len() - 4`; `RawPacket.data.len() == spb_data_available < original_len` |
+| EC-002 | SPB where `original_len` exactly matches `spb_data_available` (= `body.len() - 4`) | Data sliced to `captured_len = original_len = spb_data_available`; no truncation |
+| EC-003 | SPB in file with multiple IDBs (spec violation) | Guard only checks `idb.is_empty()`; if non-empty, table access succeeds (snaplen is not used for SPB captured_len; `spb_data_available` bound applied unconditionally); no panic; proceeds |
 | EC-004 | SPB with zero-byte data section (`original_len = 0`) | `RawPacket { data: vec![] }` produced |
-| EC-005 | SPB where btl < 12 (e.g., btl=8 — crate rejects before returning block; wirerust never sees the body) | `Err` mapping to **E-INP-010** (crate-rejection path; distinct from EC-008 which is the wirerust body-decode path). Note: btl=12 (body=0 < 4) is EC-008 → E-INP-008, not E-INP-010. |
+| EC-005 | SPB where the crate rejects the block before returning it to wirerust (two distinct sub-cases, both → E-INP-010): **(a) btl < 12** (e.g., btl=8 — below the outer-header minimum; crate rejects before returning block; wirerust never sees the body → E-INP-010); **(b) btl misaligned** (e.g., btl=14 — while 14 >= 12, the pcapng specification requires all block_total_length values to be a multiple of 4; 14 % 4 != 0 violates 4-byte alignment; crate rejects before returning block; wirerust never sees the body → E-INP-010). Both sub-cases are crate-level framing failures; E-INP-010 fires for alignment as well as for btl<12. Distinct from EC-008 (btl=12 → body=0 < 4 → wirerust body-decode → E-INP-008). HS-107 Case E exercises the btl=14 misaligned sub-case. |
 | EC-006 | SPB encountered before any IDB (empty interface table) | `Err` mapping to E-INP-009 (guard fires before any idb[0] access) |
 | EC-007 | `original_len` > `spb_data_available` (on-disk file shorter than original_len indicates truncation or intentional capture limit by the writing tool; `spb_data_available = body.len() - 4`) | `captured_len = min(original_len, body.len() - 4) = body.len() - 4`; data sliced to `spb_data_available` bytes; snaplen is NOT applied (ADR-009 rev 8 Decision 9 amendment) |
 | EC-008 | SPB with btl=12 (aligned, crate frames and returns block; body=0 bytes < 4 SPB fixed-field bytes for original_len:u32) | `Err` mapping to **E-INP-008** (body-too-short; wirerust body-decode checks body.len()>=4 itself). No panic. Constructible window for SPB body-too-short: btl=12 only (body=0). btl<12 would be E-INP-010. Covered by HS-107 Case F. **Test:** `test_BC_2_01_013_spb_body_truncated_e_inp_008` |
@@ -158,19 +159,20 @@ specification. Timestamp fields on `RawPacket` are always set to zero for SPBs.
 
 | Input | Expected Output | Category |
 |-------|----------------|----------|
-| SPB with 64 bytes of Ethernet frame data, `original_len=64`, `block_body_available=64` | `RawPacket { timestamp_secs: 0, timestamp_usecs: 0, data.len(): 64 }` | happy-path |
-| SPB with `original_len=1500`, block body 64 padded bytes (`block_body_available=64`) | `data.len() == 64` (`min(1500, 64) = 64`; bounded by on-disk body; snaplen not applied) | edge-case |
-| SPB with `original_len=100`, block body 100 bytes (`block_body_available=100`) | `data.len() == 100` (`min(100, 100) = 100`; no truncation needed) | edge-case |
+| SPB with 64 bytes of Ethernet frame data, `original_len=64`, `spb_data_available=64` (body.len()-4=64) | `RawPacket { timestamp_secs: 0, timestamp_usecs: 0, data.len(): 64 }` | happy-path |
+| SPB with `original_len=1500`, block body 64 padded bytes (`spb_data_available = body.len()-4 = 64`) | `data.len() == 64` (`min(1500, 64) = 64`; bounded by spb_data_available; snaplen not applied) | edge-case |
+| SPB with `original_len=100`, block body 100 bytes (`spb_data_available = body.len()-4 = 100`) | `data.len() == 100` (`min(100, 100) = 100`; no truncation needed) | edge-case |
 | SPB before any IDB (empty interface table) | `Err` (E-INP-009) | error |
 | SPB with btl=12 (crate returns block; body=0 bytes < 4 SPB fixed fields for original_len) | `Err` (E-INP-008); no panic | error (body-too-short; wirerust body-decode path) |
-| Truncated SPB (`block_total_length = 8`, btl < 12 — crate rejects before returning) | `Err` (E-INP-010) | error (crate-rejection path) |
+| SPB with btl=8 (btl < 12 — crate rejects before returning block) | `Err` (E-INP-010) | error (crate-rejection path; EC-005a) |
+| SPB with btl=14 (btl >= 12 but 14 % 4 != 0 — crate rejects for 4-byte alignment) | `Err` (E-INP-010) | error (crate-rejection path; EC-005b; HS-107 Case E) |
 
 ## Verification Properties
 
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
 | — | SPB always produces timestamp (0, 0) | unit: parse SPB; assert timestamp_secs=0, timestamp_usecs=0 |
-| — | SPB data length bounded by min(original_len, block_body_available); snaplen not applied | unit: SPB with original_len > block body; assert data.len() == block body available bytes |
+| — | SPB data length bounded by min(original_len, spb_data_available) where spb_data_available = body.len()-4; snaplen not applied | unit: SPB with original_len > block body; assert data.len() == spb_data_available bytes |
 | — | SPB-without-IDB returns E-INP-009, not panic | unit: SPB with empty interface table; assert Err(E-INP-009); no panic |
 | — | SPB padding stripped before RawPacket | unit: SPB with original_len not 4-byte aligned; assert data.len() == original_len (not padded length) |
 | — | Covered under VP-028 (cargo-fuzz) for full no-panic coverage | fuzz: fuzz SPB bytes, assert no panic (F6 hardening deliverable) |
