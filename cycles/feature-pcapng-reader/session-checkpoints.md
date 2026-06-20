@@ -1,12 +1,22 @@
 ---
 document_type: session-checkpoints
 cycle: feature-pcapng-reader
-phase: F2
+phase: F4
 ---
 
 # Session Checkpoints Archive — feature-pcapng-reader
 
 Archived session resume checkpoints (superseded). Latest checkpoint is in STATE.md.
+
+---
+
+## Archived: F4 STORY-123 IN ADVERSARIAL CONVERGENCE — Pass-1 Remediated (D-169)
+
+**Archived when:** D-170 — STORY-123 adversarial convergence ACHIEVED (3 clean passes, BC-5.39.001). New checkpoint supersedes.
+
+### PIPELINE STATUS: FEATURE MODE — F4 STORY-123 (Wave 51) IN ADVERSARIAL CONVERGENCE; PASS-1 REMEDIATED (1C/2H: crate-based reimpl + ADR-009 rev 10 Decision 23 + BC-2.01.010 v2.2); CONVERGENCE COUNTER 0/3; PASS-2 PENDING; STORY-123 HASH e6cff0e; STORY-124..128 STALE (ADR-009 rev 10); F2/F3 CONVERGED+APPROVED; 1736 TESTS (5b0a936)
+
+Active cycle: **feature-pcapng-reader**. F2 converged + human-approved (D-164). F3 gate PASSED + human-approved (D-168). F4 per-story TDD delivery IN PROGRESS — STORY-123 (Wave 51) in adversarial convergence (0/3 clean passes). Pass-1 remediation COMPLETE (D-169): (1) Crate-mandated reimpl — implementer made 3 attempts at hand-rolling; architect ruling per ADR-009 Decision 1 confirmed crate API (PcapNgParser) is only correct path; critical BE-decode bug (1C) traced to bypassing crate. (2) ADR-009 rev 10 Decision 23: first-SHB btl<12 → E-INP-008 not E-INP-010 (PcapNgParser::new surfaces btl<12 as InvalidField("invalid magic number") — indistinguishable from invalid BOM at crate API boundary). (3) BC-2.01.010 v2.2: AC-004b + EC-008 corrected to E-INP-008; PC5(a) exception note added; test name test_BC_2_01_010_shb_btl8_maps_to_e_inp_008. Worktree: feature/STORY-123-pcapng-format-detect HEAD 5b0a936 (1736 tests green). STORY-123 hash e6cff0e (MATCH). STORY-124..128 STALE — regenerate before Phase-4 entry gate. Cross-story deferrals F-2/F-3/F-5/F-7 recorded. NEXT: adversarial pass-2.
 
 ---
 
