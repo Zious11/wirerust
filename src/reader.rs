@@ -70,9 +70,6 @@ const IDB_BODY_FIXED_BYTES: usize = 8;
 /// captured_len:4 + original_len:4).
 const EPB_BODY_FIXED_BYTES: usize = 20;
 
-/// pcapng block outer frame overhead: block_type:4 + btl:4 + trailing_btl:4 = 12 bytes.
-const BLOCK_OVERHEAD: usize = 12;
-
 /// Default if_tsresol for pcapng (microseconds = 10^-6, per pcapng spec §4.4).
 const DEFAULT_TSRESOL: u8 = 6;
 
@@ -263,17 +260,15 @@ impl PcapSource {
 
         if magic == PCAPNG_MAGIC {
             // ── pcapng branch ─────────────────────────────────────────────
-            // ADR-009 Decision 1: use raw-block path.
-            // The BufReader still has byte 0 unconsumed; the pcapng reader reads
-            // from byte 0 (the SHB block_type 0x0A0D0D0A occupies bytes 0-3).
-            //
-            // We collect the stream into memory to use the slice-based block
-            // walker, consistent with the all-in-memory model (ADR-009 Decision 13).
+            // ADR-009 Decision 1: use PcapNgParser raw-block path (pcap-file 2.0.0).
+            // ADR-009 Decision 13: all-in-memory model.
+            // The BufReader still has byte 0 unconsumed; collect the full stream
+            // (including the already-peeked 4 bytes) into memory before parsing.
             let mut raw = Vec::new();
             buf_reader
                 .read_to_end(&mut raw)
                 .context("Failed to read pcapng stream")?;
-            Self::read_pcapng_slice(&raw)
+            Self::read_pcapng_crate(&raw)
         } else if CLASSIC_PCAP_MAGICS.contains(&magic) {
             // ── classic-pcap branch (unchanged) ───────────────────────────
             // The existing implementation path; structurally unchanged after the
@@ -329,188 +324,61 @@ impl PcapSource {
         }
     }
 
-    /// pcapng parse path operating on a fully-buffered raw byte slice.
+    /// pcapng parse path using `pcap-file` 2.0.0's `PcapNgParser` API.
     ///
-    /// ADR-009 Decision 1 (rev 4) — raw-block path. ADR-009 Decision 13 —
-    /// all-in-memory model.
+    /// ADR-009 Decision 1 (rev 5) — `PcapNgParser::new` + `next_raw_block` path.
+    /// ADR-009 Decision 13 — all-in-memory model (`raw` is a fully-buffered slice).
     ///
-    /// ## SHB btl endianness resolution (C-1 fix)
+    /// ## Error taxonomy (H-2)
     ///
-    /// The pcapng spec creates a chicken-and-egg problem for the SHB
-    /// block_total_length field: the BOM that establishes section endianness
-    /// appears AFTER the btl in the SHB wire layout. The resolution used here
-    /// mirrors the pcap-file crate's approach (read btl as big-endian, then
-    /// swap_bytes if the BOM indicates little-endian), with an additional
-    /// compatibility fallback:
+    /// - `PcapNgParser::new` `IncompleteBuffer` → E-INP-010 (framing: btl<12,
+    ///   misaligned, EOF-before-trailer).
+    /// - `PcapNgParser::new` `InvalidField("SectionHeaderBlock: block length < 16")`
+    ///   → E-INP-008 (wirerust body-decode: body too short).
+    /// - `PcapNgParser::new` `InvalidField("SectionHeaderBlock: invalid magic number")`
+    ///   → E-INP-008 (wirerust body-decode: invalid BOM).
+    /// - All other `PcapNgParser::new` errors → E-INP-010.
+    /// - `next_raw_block` errors → E-INP-010.
+    /// - `major_version != 1` → E-INP-008 (checked from `parser.section()`).
+    /// - Second SHB block encountered → E-INP-012.
+    /// - EPB before any IDB → E-INP-009.
     ///
-    /// 1. Read btl as big-endian (`btl_be`).
-    /// 2. Peek at body[0..4] (the BOM field) to determine section endianness.
-    /// 3. If LE BOM: effective btl = `btl_be.swap_bytes()` (LE interpretation).
-    ///    If BE BOM: effective btl = `btl_be` (BE interpretation).
-    /// 4. If the effective btl is implausible (< 12 or > stream length), fall
-    ///    back to reading btl as little-endian directly. This handles test fixtures
-    ///    that write outer framing fields in LE even when BOM signals BE — a
-    ///    non-conforming but historically present encoding in test corpora.
+    /// ## Section endianness (BC-2.01.010 Invariant 4)
     ///
-    /// This resolution correctly handles:
-    /// - Genuine LE pcapng (LE btl, LE BOM): step 3 swaps to LE value ✓
-    /// - Genuine BE pcapng (BE btl, BE BOM): step 3 keeps BE value ✓  (C-1 fix)
-    /// - LE-framing + BE-BOM fixture (legacy): step 4 fallback to LE read ✓
+    /// Section endianness is established once from `parser.section().endianness`
+    /// (derived by the crate from the SHB BOM). All IDB and EPB body multi-byte
+    /// fields are decoded using this endianness. The crate handles the SHB btl
+    /// chicken-and-egg problem (reads btl as BE, then swap_bytes for LE sections).
     ///
-    /// For subsequent blocks (IDB, EPB, etc.), btl is read using the section
-    /// endianness determined from the SHB BOM (BC-2.01.010 Invariant 4). The
-    /// genuine BE test vector has ALL subsequent fields in BE, so the section
-    /// endianness dispatch handles them correctly.
-    ///
-    /// The slice MUST start at byte 0 of the pcapng stream (first byte of the
-    /// SHB block_type field). The probe has already confirmed the magic.
-    fn read_pcapng_slice(raw: &[u8]) -> Result<PcapSource> {
-        // ── Parse the SHB (first block) ──────────────────────────────────────
-        // Outer block header: block_type(4) + btl(4) = 8 bytes minimum.
-        // We need at least 12 bytes (8 header + 4 body minimum = btl >= 12).
-        if raw.len() < BLOCK_OVERHEAD {
-            return Err(anyhow!(
-                "pcapng SHB framing error: stream too short for block header \
-                 (E-INP-010: crate framing rejection — btl < 12)"
-            ));
-        }
+    /// The slice MUST start at byte 0 of the pcapng stream. The probe has already
+    /// confirmed the leading 4 bytes are PCAPNG_MAGIC.
+    fn read_pcapng_crate(raw: &[u8]) -> Result<PcapSource> {
+        use pcap_file::pcapng::PcapNgParser;
+        use pcap_file::{Endianness, PcapError};
 
-        // Read block_type — the SHB magic is endian-independent.
-        let block_type = u32::from_le_bytes([raw[0], raw[1], raw[2], raw[3]]);
-        if block_type != SHB_BLOCK_TYPE {
-            return Err(anyhow!(
-                "pcapng stream does not begin with SHB block_type (got {block_type:08X})"
-            ));
-        }
-
-        // ── SHB btl: resolve endianness using peek-at-BOM heuristic (C-1 fix) ──
+        // ── Parse the SHB via pcap-file 2.0.0 PcapNgParser ──────────────────
         //
-        // The SHB BOM appears at raw[8..12] (after block_type[0..4] + btl[4..8]).
-        // We need ≥12 bytes total to safely peek at raw[8..12]. We have ≥12 from
-        // the BLOCK_OVERHEAD check above.
-        //
-        // Algorithm (mirrors pcap-file crate SHB logic plus LE-fallback):
-        //   btl_be  = big-endian read of raw[4..8]
-        //   bom_raw = raw[8..12] (BOM field of SHB body, always at fixed offset)
-        //   if bom == LE BOM: btl_candidate = btl_be.swap_bytes()
-        //   else:             btl_candidate = btl_be          (BE or unknown BOM)
-        //   if btl_candidate is plausible (12 ≤ btl ≤ stream): use btl_candidate
-        //   else: fallback — read raw[4..8] as little-endian (legacy LE-framing)
-        //
-        // "Plausible" = 12 ≤ btl ≤ raw.len() (the block must fit in the stream).
-        let btl_be = u32::from_be_bytes([raw[4], raw[5], raw[6], raw[7]]);
-        let bom_peek: [u8; 4] = [raw[8], raw[9], raw[10], raw[11]];
-        let btl_candidate = if bom_peek == SHB_BOM_LITTLE_ENDIAN {
-            btl_be.swap_bytes() // LE BOM → the LE-encoded btl value
-        } else {
-            btl_be // BE BOM or unknown BOM → keep BE-read value
-        };
-        let btl_is_plausible = btl_candidate >= 12 && btl_candidate as usize <= raw.len();
-        let (btl, btl_is_be_encoded) = if btl_is_plausible {
-            (btl_candidate, bom_peek != SHB_BOM_LITTLE_ENDIAN)
-        } else {
-            // Fallback: read btl as LE (handles LE-framed + BE-BOM fixtures).
-            let btl_le = u32::from_le_bytes([raw[4], raw[5], raw[6], raw[7]]);
-            (btl_le, false)
-        };
+        // PcapNgParser::new reads and validates the SHB block, detecting BOM
+        // endianness and returning (rem, parser). On error, map to the wirerust
+        // error taxonomy (H-2):
+        //   IncompleteBuffer                    → E-INP-010 (framing)
+        //   InvalidField("block length < 16")   → E-INP-008 (SHB body too short)
+        //   InvalidField("invalid magic number") → E-INP-008 (invalid BOM)
+        //   other InvalidField / IoError         → E-INP-010
+        // Error taxonomy (H-2):
+        //   InvalidField("block length < 16") → SHB body too short (body was reachable
+        //     but under 16 bytes) → E-INP-008 (wirerust body-decode failure).
+        //   All other crate errors (IncompleteBuffer, other InvalidField, IoError) →
+        //     framing-level rejections → E-INP-010 (crate-fired provenance).
+        let (mut src, mut parser) = PcapNgParser::new(raw).map_err(|e| match &e {
+            PcapError::InvalidField(msg) if msg.contains("block length < 16") => {
+                anyhow!("pcapng SHB body too short: {e} (E-INP-008: SHB body decode failure)")
+            }
+            _ => anyhow!("pcapng SHB parse failed: {e} (E-INP-010: crate framing rejection)"),
+        })?;
 
-        // ADR-009 Decision 20 Tier 1 / Decision 8: crate rejects btl < 12.
-        if btl < 12 {
-            return Err(anyhow!(
-                "pcapng SHB framing error: block_total_length={btl} < 12 \
-                 (E-INP-010: framing rejection — btl < 12)"
-            ));
-        }
-        if !btl.is_multiple_of(4) {
-            return Err(anyhow!(
-                "pcapng SHB framing error: block_total_length={btl} is not 4-byte aligned \
-                 (E-INP-010: framing rejection — btl not aligned)"
-            ));
-        }
-
-        let body_len = (btl as usize).saturating_sub(BLOCK_OVERHEAD);
-        let total_block_len = btl as usize;
-
-        // Check we have enough bytes for the full block (body + trailing btl).
-        if raw.len() < total_block_len {
-            return Err(anyhow!(
-                "pcapng SHB framing error: stream too short for declared btl={btl} \
-                 (E-INP-010: EOF before block trailer)"
-            ));
-        }
-
-        let body = &raw[8..8 + body_len];
-        // Trailing btl: read in the same byte order as the leading btl.
-        let trailer_start = 8 + body_len;
-        let trailer = if btl_is_be_encoded {
-            u32::from_be_bytes([
-                raw[trailer_start],
-                raw[trailer_start + 1],
-                raw[trailer_start + 2],
-                raw[trailer_start + 3],
-            ])
-        } else {
-            u32::from_le_bytes([
-                raw[trailer_start],
-                raw[trailer_start + 1],
-                raw[trailer_start + 2],
-                raw[trailer_start + 3],
-            ])
-        };
-        if trailer != btl {
-            return Err(anyhow!(
-                "pcapng SHB framing error: trailing btl={trailer} != leading btl={btl} \
-                 (E-INP-010: block integrity failure)"
-            ));
-        }
-
-        // ── Inline SHB body parse (endianness-aware) ─────────────────────────
-        //
-        // We cannot use parse_shb_body() here because that pure-core function always
-        // reads major/minor as LE (its unit tests supply LE-encoded bodies even for
-        // BE-BOM fixtures). The integration path must be endianness-aware:
-        //
-        // • body[0..4] = BOM → section_endianness (already known from bom_peek above)
-        // • body[4..6] = major_version — encoding follows btl encoding:
-        //   - btl_is_be_encoded=true  (genuine BE file): major is BE-encoded
-        //   - btl_is_be_encoded=false (LE file OR LE-framing legacy fixture): major is LE-encoded
-        // • body[6..8] = minor_version — same encoding as major
-        //
-        // BOM detection: body[0..4] must be in the canonical BOM table.
-        if body.len() < SHB_BODY_FIXED_BYTES {
-            return Err(anyhow!(
-                "pcapng SHB body too short: expected at least {} bytes, got {} \
-                 (E-INP-008: body-too-short)",
-                SHB_BODY_FIXED_BYTES,
-                body.len()
-            ));
-        }
-
-        // BOM is at body[0..4] = raw[8..12]; we already have bom_peek from above.
-        let section_endianness = if bom_peek == SHB_BOM_BIG_ENDIAN {
-            SectionEndianness::BigEndian
-        } else if bom_peek == SHB_BOM_LITTLE_ENDIAN {
-            SectionEndianness::LittleEndian
-        } else {
-            return Err(anyhow!(
-                "SHB BOM invalid: on-disk bytes {:02X} {:02X} {:02X} {:02X} match neither \
-                 big-endian (1A 2B 3C 4D) nor little-endian (4D 3C 2B 1A) row of the \
-                 canonical BOM table (E-INP-008: invalid BOM)",
-                bom_peek[0],
-                bom_peek[1],
-                bom_peek[2],
-                bom_peek[3]
-            ));
-        };
-
-        // major_version at body[4..6]: encoding tracks btl encoding (not solely BOM).
-        // Genuine BE file (btl_is_be_encoded=true): all body fields are BE.
-        // LE file or legacy LE-framing fixture (btl_is_be_encoded=false): body fields are LE.
-        let major_version = if btl_is_be_encoded {
-            u16::from_be_bytes([body[4], body[5]])
-        } else {
-            u16::from_le_bytes([body[4], body[5]])
-        };
+        // ── Validate major version (BC-2.01.010 PC2) ─────────────────────────
+        let major_version = parser.section().major_version;
         if major_version != 1 {
             return Err(anyhow!(
                 "Unsupported pcapng major version: {major_version} (only major version 1 is \
@@ -518,11 +386,18 @@ impl PcapSource {
             ));
         }
 
-        let mut pos = total_block_len;
+        // ── Derive section endianness from SHB BOM (BC-2.01.010 Inv 4) ──────
+        //
+        // The crate decodes the BOM from the SHB body and stores it in
+        // `parser.section().endianness`. All subsequent block body multi-byte fields
+        // MUST be decoded using this endianness (never re-detected per-block).
+        let section_endianness = match parser.section().endianness {
+            Endianness::Big => SectionEndianness::BigEndian,
+            Endianness::Little => SectionEndianness::LittleEndian,
+        };
 
         // ── Walk subsequent blocks ────────────────────────────────────────────
-        // BC-2.01.010 Invariant 4: use section_endianness for ALL subsequent
-        // multi-byte field decoding; MUST NOT re-detect per-block.
+        // BC-2.01.010 Invariant 4: section_endianness propagated to all decoders.
 
         let mut packets = Vec::new();
         let mut datalink: Option<DataLink> = None;
@@ -530,69 +405,14 @@ impl PcapSource {
         let mut opb_skipped: u32 = 0;
         let mut block_seq: u32 = 1; // SHB was block #1
 
-        while pos < raw.len() {
-            // Need at least 8 bytes to read block_type + btl.
-            if raw.len() - pos < 8 {
-                return Err(anyhow!(
-                    "pcapng block read error: truncated block header at offset {pos} \
-                     (E-INP-010: framing rejection by crate)"
-                ));
-            }
-
-            // Read block_type and btl using section endianness (BC-2.01.010 Inv 4).
-            // For genuine BE sections, both block_type and btl are BE-encoded.
-            let (blk_type, blk_btl) = match section_endianness {
-                SectionEndianness::LittleEndian => {
-                    let t =
-                        u32::from_le_bytes([raw[pos], raw[pos + 1], raw[pos + 2], raw[pos + 3]]);
-                    let b = u32::from_le_bytes([
-                        raw[pos + 4],
-                        raw[pos + 5],
-                        raw[pos + 6],
-                        raw[pos + 7],
-                    ]);
-                    (t, b)
-                }
-                SectionEndianness::BigEndian => {
-                    let t =
-                        u32::from_be_bytes([raw[pos], raw[pos + 1], raw[pos + 2], raw[pos + 3]]);
-                    let b = u32::from_be_bytes([
-                        raw[pos + 4],
-                        raw[pos + 5],
-                        raw[pos + 6],
-                        raw[pos + 7],
-                    ]);
-                    (t, b)
-                }
-            };
-
-            // ADR-009 Decision 20 Tier 1 / Decision 8: framing checks.
-            if blk_btl < 12 {
-                return Err(anyhow!(
-                    "pcapng block framing error at offset {pos}: btl={blk_btl} < 12 \
-                     (E-INP-010: framing rejection)"
-                ));
-            }
-            if !blk_btl.is_multiple_of(4) {
-                return Err(anyhow!(
-                    "pcapng block framing error at offset {pos}: btl={blk_btl} not aligned \
-                     (E-INP-010: framing rejection)"
-                ));
-            }
-            let blk_body_len = (blk_btl as usize).saturating_sub(BLOCK_OVERHEAD);
-            let blk_total = blk_btl as usize;
-
-            if raw.len() - pos < blk_total {
-                return Err(anyhow!(
-                    "pcapng block read error at offset {pos}: stream too short for btl={blk_btl} \
-                     (E-INP-010: EOF before block trailer)"
-                ));
-            }
-
-            let blk_body = &raw[pos + 8..pos + 8 + blk_body_len];
+        while !src.is_empty() {
+            let (rem, raw_block) = parser.next_raw_block(src).map_err(|e| {
+                anyhow!("pcapng block framing error: {e} (E-INP-010: crate framing rejection)")
+            })?;
+            src = rem;
             block_seq += 1;
 
-            match blk_type {
+            match raw_block.type_ {
                 SHB_BLOCK_TYPE => {
                     // BC-2.01.010 AC-002 / ADR-009 Decision 7: second SHB → E-INP-012.
                     return Err(anyhow!(
@@ -606,6 +426,7 @@ impl PcapSource {
 
                 IDB_BLOCK_TYPE => {
                     // BC-2.01.011 / ADR-009 Decision 2: parse IDB for linktype.
+                    let blk_body = raw_block.body.as_ref();
                     if blk_body.len() < IDB_BODY_FIXED_BYTES {
                         return Err(anyhow!(
                             "pcapng IDB body too short: expected at least {} bytes, got {} \
@@ -651,6 +472,7 @@ impl PcapSource {
 
                 EPB_BLOCK_TYPE => {
                     // BC-2.01.012 / ADR-009 Decision 2: EPB carries packet data.
+                    let blk_body = raw_block.body.as_ref();
                     if blk_body.len() < EPB_BODY_FIXED_BYTES {
                         return Err(anyhow!(
                             "pcapng EPB body too short: expected at least {} bytes, got {} \
@@ -748,14 +570,10 @@ impl PcapSource {
                     skipped_blocks = skipped_blocks.saturating_add(1);
                 }
             }
-
-            pos += blk_total;
         }
 
         // SHB-only files (no IDB) are structurally valid (BC-2.01.009 EC-010 / F-M4).
-        // M-3 fix (architect ruling): use DataLink::from(0) (NULL/reserved sentinel)
-        // when no IDB was seen. DataLink::NULL signals "no interface description was
-        // present in this file" — NOT the fabricated DataLink::ETHERNET (code 1).
+        // M-3 (architect ruling): DataLink::from(0) = NULL sentinel when no IDB seen.
         let final_datalink = datalink.unwrap_or(DataLink::from(0));
 
         Ok(PcapSource {
