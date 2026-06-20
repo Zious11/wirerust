@@ -10,6 +10,17 @@ Archived session resume checkpoints (superseded). Latest checkpoint is in STATE.
 
 ---
 
+## Checkpoint D-172 (2026-06-20 — F4 STORY-124 pass-1 remediated)
+
+Superseded by D-173 checkpoint (STORY-124 adversarially converged 3/3).
+
+- **Status:** F4 IN PROGRESS. STORY-124 (Wave 52) pass-1 NOT-CLEAN (3 HIGH). H-1/H-2 fixed in code (worktree feature/STORY-124-pcapng-idb HEAD 489f3ae). H-3 resolved via spec: ADR-009 rev 11 Decision 24 + BC-2.01.011 v1.8. Convergence counter 0/3.
+- **NEXT (at archive time):** Fresh adversarial pass (pass-2), targeting STORY-124 convergence.
+- **develop:** e4b940b. **main:** b73b242.
+- **F2:** CONVERGED + HUMAN-APPROVED (D-164). F3: GATE PASSED + HUMAN-APPROVED (D-168).
+
+---
+
 ## Checkpoint D-171 (2026-06-20 — F4 STORY-123 MERGED / Wave 52 begins)
 
 Superseded by D-172 checkpoint (STORY-124 pass-1 remediated).
