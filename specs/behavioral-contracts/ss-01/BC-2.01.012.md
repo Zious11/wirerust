@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.5"
+version: "1.6"
 status: draft
 producer: product-owner
 timestamp: 2026-06-19T00:00:00Z
@@ -18,6 +18,7 @@ modified:
   - "v1.3: Pass-3 remediation per ADR-009 rev 6 (M-5 / DF-BC-COMPLETENESS-SWEEP-001) — Added Postcondition 8: happy-path N-packet in-order + payload-fidelity guarantee, anchored to the arp-baseline-16pkt.cap fixture (16 packets). Added canonical test vector for this case. Added VP row for encounter-order and byte-fidelity. — 2026-06-19"
   - "v1.4: Pass-4 remediation per ADR-009 rev 7 (C-1, H-1/Decision-20, M-1, M-3) — (C-1) Replaced captured_len guard in PC3/AC-002/EC-009/EC-010/VP-027 with padding-aware bound: EPB_FIXED_OVERHEAD_BYTES(20) + captured_len + pad_len(captured_len) <= body.len() where pad_len(n)=(4-n%4)%4; added unconditional bound-by-body-first clause (captured_len can never exceed body.len()). (H-1/Decision-20) Added explicit mapping: 12 <= btl < 32 → body < 20 fixed-field bytes → wirerust body-decode failure → E-INP-008 (not E-INP-010); btl < 12 or btl misaligned → crate Err → E-INP-010; EPB fixed-field minimum = 20 body bytes. (M-1) Fixed AC-003: on the raw-block path the crate does NOT run its EnhancedPacketBlock parser; wirerust MUST itself check body.len() >= 20 before reading any EPB fixed field — the 20-byte check is NOT delegated to the crate. (M-3) Scoped PC8/test_BC_2_01_012_happy_path_n_packet_order_and_byte_fidelity to encounter-order + byte-fidelity on the 16-packet ARP fixture ONLY; moved EC-008 (zero-byte) and EC-009 (max-boundary) byte-fidelity claims to standalone ACs (AC-005/AC-006) and HS-104 cross-reference; removed over-claim that the single ARP fixture covers boundary cases. — 2026-06-20"
   - "v1.5: Pass-5 remediation per ADR-009 rev 8 (C-1 reclassification) — EPB body-decode failures reclassified from E-INP-010 → E-INP-008 at all sites. Decision 20 rule: the crate has already successfully framed the block (btl >= 12, aligned, trailing-length match) before any EPB body-decode runs; therefore wirerust body-decode rejections (captured_len > body.len() - 20 bound-by-body; 20 + captured_len + pad_len(captured_len) > body.len() padding-overrun) are wirerust body-decode failures → E-INP-008. Updated: PC6a (bound-by-body → E-INP-008); PC6b (padding-overrun → E-INP-008); AC-002 both sub-checks → E-INP-008; AC-006 one-over case → E-INP-008; EC-010 → E-INP-008; canonical test vectors rows for padding-overrun and bound-by-body → E-INP-008; VP-027 updated. E-INP-010 in this BC is now STRICTLY: (i) crate framing rejection (btl<12/misaligned/EOF) per EC-012; (ii) EPB interface_id OOB on non-empty table per EC-006/EC-007/PC5. — 2026-06-20"
+  - "v1.6: Pass-6 remediation per ADR-009 rev 9 (F-H4 discriminant split) — PC5 split into two explicit sub-postconditions: PC5a (empty-table path → E-INP-009 with exact message format) and PC5b (OOB-on-non-empty path → E-INP-010 with exact message format). AC-001 strengthened to require the two discriminants to be DIFFERENT (empty⇒009, OOB-non-empty⇒010) — returning any single code for both cases is an AC violation. VP-027 updated: now asserts the discriminant itself (not just 'returns Err') for the empty-table vs OOB split. This resolves the F-H4 finding: prior text used ambiguous '(→ E-INP-009 / E-INP-010)' notation that did not specify which condition maps to which code. — 2026-06-20"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -75,10 +76,22 @@ E-INP-008 (not E-INP-010) when the body is too short to hold the EPB fixed field
    `data` field carries only the captured bytes.
 4. The resulting `RawPacket` is appended to the `PcapSource.packets` vector in EPB encounter
    order.
-5. An EPB whose `interface_id` is evaluated against an EMPTY interface table (no IDB has been
-   seen in the current section) returns `Err` mapping to E-INP-009. An EPB whose `interface_id`
-   is out of range on a NON-EMPTY interface table returns `Err` mapping to E-INP-010 with
-   context string `"EPB interface_id={id} out of range (table size={n})"`.
+5. `interface_id` bounds checking produces two distinct discriminants depending on table state.
+   These MUST be different error codes — returning the same code for both paths is an
+   implementation defect and an AC-001 violation:
+
+   a. **PC5a (empty-table path):** An EPB whose `interface_id` is evaluated when the interface
+      table is EMPTY (no IDB has been parsed in the current section) MUST return `Err` mapping to
+      **E-INP-009**. The error message MUST be:
+      `"EPB references interface_id=<id> but interface table is empty — no IDB has been parsed"`
+      (where `<id>` is the decimal value of the `interface_id` field from the EPB).
+
+   b. **PC5b (OOB-on-non-empty-table path):** An EPB whose `interface_id` is >= the current
+      table size on a NON-EMPTY table (at least one IDB has been parsed) MUST return `Err`
+      mapping to **E-INP-010**. The error message MUST be:
+      `"EPB interface_id=<id> out of range (table size=<n>)"`
+      (where `<id>` is the decimal `interface_id` and `<n>` is the current table length).
+
 6. Packet data slice validation uses a two-step, padding-aware check (applied in this order,
    both BEFORE any allocation):
    a. **Bound-by-body first (unconditional):** `captured_len <= body.len()`. A
@@ -108,11 +121,16 @@ E-INP-008 (not E-INP-010) when the body is too short to hold the EPB fixed field
 
 ## Acceptance Criteria
 
-- **AC-001 (interface_id bounds-check before indexing):** The `interface_id` field MUST be
-  checked against the current interface table size before any indexing operation. The check
-  MUST distinguish empty-table (→ E-INP-009) from out-of-range-on-non-empty-table (→ E-INP-010).
-  An unchecked array index on `interface_id` is NOT permitted.
-  **Test:** `test_BC_2_01_012_interface_id_bounds_check`
+- **AC-001 (interface_id bounds-check before indexing with discriminant split):** The
+  `interface_id` field MUST be checked against the current interface table state before any
+  indexing operation. The check MUST produce TWO DIFFERENT error discriminants:
+  - Empty-table path (zero IDBs parsed) → E-INP-009 EXACTLY (not E-INP-010).
+  - OOB-on-non-empty-table path (>= 1 IDB parsed, but interface_id >= table.len()) → E-INP-010
+    EXACTLY (not E-INP-009).
+  Returning the same error code for both paths is an AC-001 violation. An unchecked array
+  index on `interface_id` is NOT permitted regardless of table state.
+  **Test:** `test_BC_2_01_012_interface_id_bounds_check` (must assert E-INP-009 for
+  empty-table case AND E-INP-010 for OOB-non-empty case and confirm they are different codes)
 - **AC-002 (guard-before-allocate, SEC-004):** Two validations MUST be performed BEFORE any
   memory allocation for packet data, in this order:
   1. Unconditional bound-by-body: `captured_len <= body.len()` — the data slice can NEVER
@@ -207,7 +225,7 @@ E-INP-008 (not E-INP-010) when the body is too short to hold the EPB fixed field
 
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| VP-027 | EPB parse safety: no panic; interface_id bounds-check before table index (empty-table → E-INP-009, OOB-non-empty → E-INP-010); body.len() >= 20 check (wirerust-owned) before any fixed-field read (body < 20 → E-INP-008); unconditional bound-by-body check (`captured_len <= body.len()`) → E-INP-008 on failure; padding-aware overhead check (`20 + captured_len + pad_len(captured_len) <= body.len()`) → E-INP-008 on failure; both precede any allocation; returns Err for all invalid inputs. Decision 20: crate-framing rejection (btl<12/misaligned/EOF) → E-INP-010; ALL wirerust body-decode failures (body-too-short, bound-by-body, padding-overrun) → E-INP-008 | Kani: `#[kani::proof]` over EPB byte sequences with symbolic interface_id, captured_len, and body length; includes body-length=19 (EC-011) and padded-overrun (EC-010) cases |
+| VP-027 | EPB parse safety: no panic; interface_id discriminant split — empty-table MUST return E-INP-009 (not E-INP-010), OOB-on-non-empty MUST return E-INP-010 (not E-INP-009); the two codes MUST be distinct (returning one code for both paths fails this VP); body.len() >= 20 check (wirerust-owned) before any fixed-field read (body < 20 → E-INP-008); unconditional bound-by-body check (`captured_len <= body.len()`) → E-INP-008 on failure; padding-aware overhead check (`20 + captured_len + pad_len(captured_len) <= body.len()`) → E-INP-008 on failure; both precede any allocation; returns Err for all invalid inputs. Decision 20: crate-framing rejection (btl<12/misaligned/EOF) → E-INP-010; ALL wirerust body-decode failures (body-too-short, bound-by-body, padding-overrun) → E-INP-008. ADR-009 rev 9: VP asserts the discriminant identity, not merely that an Err is returned. | Kani: `#[kani::proof]` over EPB byte sequences with symbolic interface_id, captured_len, and body length; includes empty-table (table.len()==0, any interface_id → assert E-INP-009), OOB-non-empty (table.len()==1, interface_id>=1 → assert E-INP-010), body-length=19 (EC-011 → assert E-INP-008), and padded-overrun (EC-010 → assert E-INP-008) cases |
 | — | `captured_len` is always used for data slice, never `original_len` | unit: EPB with captured < original; assert data.len() == captured |
 | — | Packet order preserved across multiple EPBs | unit: 3-EPB file; assert order matches |
 | — | Raw split ticks routed to BC-2.01.014 (not crate Duration) | unit: EPB with `if_tsresol=6` known-µs ticks; assert timestamp 1000× correct (regression guard for crate's ns-hardcode bug) |

@@ -9,7 +9,7 @@ supersedes: null
 superseded_by: null
 ---
 
-# ADR-009: pcapng Capture-Format Reader Support (rev 8)
+# ADR-009: pcapng Capture-Format Reader Support (rev 9)
 
 > **One-per-file:** Each architectural decision lives in its own file.
 > Filename convention: `ADR-NNN-<short-name>.md` (e.g., `ADR-001-rust-dispatcher.md`)
@@ -210,36 +210,20 @@ spike finding and MUST be corrected by the PO to match the crate behavior (`< 12
 rejected).
 
 **Decision 9 — Snaplen enforcement.** [NEW — rev 4, resolves O-4. AMENDED — rev 8,
-resolves H-3 + M-2.] The crate does NOT validate `captured_len <= snaplen` for either
-EPB or SPB (confirmed: `enhanced_packet.rs` EPB parser has no IDB access;
-`simple_packet.rs` has no snaplen reference). `snaplen` is stored on the IDB but never
-used for packet validation. wirerust may implement snaplen-enforcement as a caller-side
-check, but this is NOT required for this cycle.
+resolves H-3 + M-2. AMENDED AGAIN — rev 9, Decision 22 supersedes SPB formula; snaplen
+not extracted.] The crate does NOT validate `captured_len <= snaplen` for either EPB or
+SPB (confirmed: `enhanced_packet.rs` EPB parser has no IDB access; `simple_packet.rs`
+has no snaplen reference). `snaplen` is stored on the IDB but never used for packet
+validation. wirerust does NOT extract or store `snaplen` this cycle — there is no
+consumer of the value and extracting-but-not-using is architecturally deceptive
+(consistent with Decision 21's posture for `if_tsoffset`). The `snaplen` field in the
+IDB body is READ (it occupies bytes 4-7 of the IDB fixed fields and must be consumed to
+reach subsequent fields or option TLVs), but its value is DISCARDED.
 
-**Rev 8 amendment — SPB captured_len computation (resolves H-3 + M-2):** EPB already
-ignores snaplen (the crate validates only `captured_len + pad <= remaining body`). SPB
-must match this posture. wirerust MUST compute SPB `captured_len` as:
-
-  ```
-  captured_len = min(original_len, block_body_available)
-  ```
-
-where `block_body_available = body.len() as u32` (the raw bytes in the RawBlock body
-slice minus the 4-byte `original_len` header field). The `snaplen` term is DROPPED from
-the SPB captured-len formula. Rationale:
-
-  - The on-disk SPB body is authoritative: `block_body_available` is the real extent of
-    available packet data, including padding. Using it as the upper bound is sufficient
-    and avoids any risk of silent truncation from a stale or absent IDB snaplen.
-  - Symmetry with EPB: neither block type consults snaplen for captured-len derivation in
-    wirerust. Both use the on-disk block content as the authoritative bound.
-  - Decision 9 (rev 4) already stated "snaplen not enforced for either EPB or SPB."
-    This amendment makes that posture precise for the SPB's implicit captured-len formula.
-
-VP-031 property update (see VP-INDEX amendment): the VP-031 property now reads
-`captured_len == min(original_len, body.len() as u32)` (two-argument min, snaplen
-dropped). The PO must update BC-2.01.013 PC1/AC-002/EC-007 and HS-107 Case E
-accordingly (see PO BC-Change Dispatch, rev 8 additions).
+**Rev 8 amendment — SPB captured_len computation (resolves H-3 + M-2; formula CORRECTED
+by Decision 22 / rev 9):** EPB already ignores snaplen. SPB must match this posture.
+The `snaplen` term is DROPPED from the SPB captured-len formula. See Decision 22 for the
+canonical definition of `spb_data_available` and the corrected formula.
 
 **Decision 10 — Panic surface of pcap-file 2.0.0.** [NEW — rev 4, resolves SEC-008.]
 The crate is Result-clean on truncated/malformed input at the block framing layer
@@ -331,9 +315,9 @@ fires at IDB-parse time, not at first-packet time."
 
 This precedence is architecturally motivated: POSITION errors are cheaper to check (no decode required) and represent structural violations; CONTENT errors (whitelist) require a decode but are caught before table mutation; AGREEMENT errors require prior table state. The PO must state this precedence ordering in BC-2.01.011, BC-2.01.016, and BC-2.01.018, and add an edge-case scenario: "late IDB that also conflicts on linktype → E-INP-013 wins (position wins over content)."
 
-**Decision 18 — VP-031: SPB captured-len computation correctness (proptest, resolves M-2).** [NEW — rev 6. PROPERTY UPDATED — rev 8, Decision 9 amendment.] HS-107 asserts byte-exact SPB captured-len arithmetic but `cargo-fuzz` (VP-028) cannot express this as a typed property — fuzzing exercises no-panic but cannot assert arithmetic relationships between fields. VP-031 is assigned as a dedicated proptest VP for BC-2.01.013 covering SPB captured-len computation correctness:
+**Decision 18 — VP-031: SPB captured-len computation correctness (proptest, resolves M-2).** [NEW — rev 6. PROPERTY UPDATED — rev 8, Decision 9 amendment. PROPERTY CORRECTED — rev 9, Decision 22.] HS-107 asserts byte-exact SPB captured-len arithmetic but `cargo-fuzz` (VP-028) cannot express this as a typed property — fuzzing exercises no-panic but cannot assert arithmetic relationships between fields. VP-031 is assigned as a dedicated proptest VP for BC-2.01.013 covering SPB captured-len computation correctness:
 
-  - **Property (rev 8):** For all `(original_len: u32, body: &[u8])` with `body.len() <= u32::MAX as usize`: `captured_len == min(original_len, body.len() as u32)`, the returned slice has exactly `captured_len` bytes, and no out-of-bounds access occurs. The `snaplen` parameter has been DROPPED from the domain per Decision 9 rev 8 amendment (SPB captured_len uses only on-disk block body as the upper bound; see Decision 9 rev 8).
+  - **Property (rev 9 / Decision 22):** For all `(original_len: u32, body: &[u8])` with `body.len() >= 4` (the minimum SPB body with the 4-byte `original_len` field present): `captured_len == min(original_len, body.len() as u32 - 4)`, the returned slice has exactly `captured_len` bytes, and no out-of-bounds access occurs. The `spb_data_available` quantity is defined as `body.len() - 4` per Decision 22. The formula `body.len() as u32` used in rev 8 is INCORRECT — it failed to subtract the 4-byte `original_len` header that is part of the body slice. Decision 22 corrects this definitively.
   - **Tool:** proptest (pure arithmetic predicate over a pure-core helper — no I/O, no block framing).
   - **Phase:** P1.
   - **Module:** `reader.rs (pcapng_pure_core fns)` — the SPB body-clamp helper function is a pure-core sub-function colocated in `src/reader.rs`, extracted from the block-walk loop exactly as the EPB field-decode function (VP-027) is.
@@ -447,6 +431,46 @@ precedence), which is unrelated. The PO must correct those citations.
 **PO actions required:**
   - BC-2.01.011 PC6 (IDB options walk): REMOVE "and if_tsoffset (code 10)" from the options-walk description. The IDB options walk MUST enumerate only the options that wirerust actually processes: `if_tsresol` (code 9). Add a limitation note: "if_tsoffset (option code 10) is NOT extracted or applied in this cycle; its effect on timestamps is silently ignored."
   - BC-2.01.014: Add a limitation note in the specification: "This helper does not accept or apply if_tsoffset (IDB option code 10). Files with if_tsoffset set will have a timestamp bias equal to the offset value × 1/ticks_per_sec seconds. This is an accepted limitation for this cycle."
+
+**Decision 22 — Canonical SPB body_available definition and VP-031 formula correction (resolves F-H2/F-H3 btl-16 vs body.len() ambiguity).** [NEW — rev 9.] Rev 8's Decision 9 amendment introduced an ambiguity in the SPB captured-len formula. On the raw-block path the crate strips only the 12-byte outer block frame (type:4 + btl:4 + trailing-btl:4), yielding `RawBlock.body` = everything between the outer header and trailer. For SPB, `body` contains:
+
+  ```
+  [original_len: u32 (4 bytes)][padded_packet_data][...padding...]
+  ```
+
+Therefore `body.len() = block_total_length - 12`. The 4-byte `original_len` field is the SPB's fixed overhead within the body; it is NOT packet data. The rev 8 formula `captured_len = min(original_len, body.len() as u32)` is WRONG because it treated the entire body — including the `original_len` header — as available packet data, overstating the available data by 4 bytes.
+
+**Canonical definitions (rev 9):**
+
+  ```
+  spb_data_available  = body.len() - 4       // packet bytes available on-disk (strips original_len header)
+                      = block_total_length - 16  // equivalently: btl minus the full 16-byte SPB frame
+                                                 //   (type:4 + btl:4 + original_len:4 + trailing-btl:4)
+  captured_len        = min(original_len, spb_data_available)
+                      = min(original_len, body.len() - 4)
+  ```
+
+The name `spb_data_available` is the canonical symbol for this quantity. The expression `body.len() - 4` is the implementation form. The equivalent `block_total_length - 16` (btl-16) may be used interchangeably; `block_total_length - 12` (btl-12, which equals `body.len()`) is the WRONG bound and MUST NOT be used as the captured-len upper limit.
+
+**Implication for BC-2.01.013 (PO action required):** The text "equivalently body.len()" in any postcondition, invariant, or acceptance criterion for BC-2.01.013 is WRONG and MUST be deleted. PC1/Invariant-2/AC-002/EC-007/Architecture Anchors MUST use `min(original_len, spb_data_available)` = `min(original_len, body.len() - 4)`. HS-107 Case B data.len() assertion MUST read `data.len() == min(original_len, body.len() - 4)` (NOT `min(original_len, body.len())`).
+
+**Implication for VP-031:** Property domain is `(original_len: u32, body: &[u8])` where `body.len() >= 4`. Property: `captured_len == min(original_len, body.len() as u32 - 4)`; returned slice has exactly `captured_len` bytes; no OOB access. The helper function's contract must guard `body.len() >= 4`; if `body.len() < 4` the input is malformed (SPB body-too-short → E-INP-008 per Decision 20 table, btl == 12 → body = 0 bytes < 4 fixed-field bytes) and this case is out of VP-031's arithmetic domain (covered by VP-028 fuzz and the body-too-short guard in the block-walk path).
+
+**Symmetry note:** For EPB, the body contains `[interface_id:4][ts_high:4][ts_low:4][captured_len:4][original_len:4][packet_data][padding]` = 20 bytes fixed + data. The EPB captured-len upper bound for the guard is `body.len() - 20` (i.e., `block_total_length - 32`). The SPB analogue is `body.len() - 4` (i.e., `block_total_length - 16`). Both formulas subtract the block-specific fixed-field overhead from the body length; neither consults snaplen.
+
+**Decision 22 amendment to HS-104 — interface_id discriminant split (resolves F-H4):**
+HS-104 currently uses the ambiguous notation "(→ E-INP-009 / E-INP-010)" for interface_id failure cases. This is two DISTINCT conditions that produce DIFFERENT error codes. Split into two explicit cases:
+
+  - **HS-104 Case A (empty interface table):** EPB arrives with `interface_id = 0` and the interface table is empty (`table.len() == 0`) — i.e., no IDB has been parsed yet. The reader MUST return `Err` mapping to **E-INP-009** ("EPB references interface_id=0 but interface table is empty — no IDB has been parsed"). This is the SPB-without-IDB analogue for EPB.
+  - **HS-104 Case B (OOB on non-empty table):** EPB arrives with `interface_id >= table.len()` when `table.len() > 0`. The reader MUST return `Err` mapping to **E-INP-010** with context string `"EPB interface_id={id} out of range (table size={n})"`.
+
+The slash notation "(→ E-INP-009 / E-INP-010)" in HS-104, BC-2.01.012 PC5, and any VP-027 property text MUST be replaced with these two explicit cases. VP-027 property MUST assert the returned error DISCRIMINANT, not merely that an error is returned.
+
+**VP-027 discriminant property update (rev 9):** Extend VP-027's property to assert error discriminants for the interface_id cases:
+  - `interface_id` with EMPTY interface table (table.len() == 0) → `Err(E-INP-009)` (not merely Err, not E-INP-010)
+  - `interface_id >= table.len()` with NON-EMPTY table (table.len() > 0) → `Err(E-INP-010)` (not merely Err, not E-INP-009)
+
+The Kani harness for VP-027 MUST use a model where the interface table size is a symbolic boolean (empty vs. non-empty) with `interface_id` symbolic, and assert the specific error variant returned in each case.
 
 **VP-030 RESTATEMENT (resolves H-3).** [NEW — rev 7.] VP-030 as written in ADR-009 rev 6 and VP-INDEX v2.5 is unsatisfiable in its current domain: "any sequence of IDB linktype u16 values" includes non-whitelisted values, but non-whitelisted linktypes trigger E-INP-001 at IDB-parse time (Decision 17 step 2) before the multi-IDB agreement check (Decision 17 step 3 / E-INP-011) is ever reached. A proptest generating arbitrary u16 linktype values will saturate on E-INP-001 rejections for non-whitelisted values and never exercise the agreement check.
 
@@ -589,11 +613,11 @@ HOLDOUT-001.
 |-------|-------|------|-------|---------|
 | VP-025 | BC-2.01.014 | Kani | P1 | pcapng_timestamp_to_secs_usecs totality: no panic, ts_usecs in [0, 999_999], ts_sec saturated (`.min(u32::MAX)`) for all (u32, u32, u8) inputs; saturating arithmetic; MUST include large-ts_high vector where `(ts_high << 32 | ts_low) / ticks_per_sec > u32::MAX` to lock the saturation (rev 8 / M-3) |
 | VP-026 | BC-2.01.010 | Kani | P1 | SHB parse safety: no panic for any truncated/malformed SHB byte sequence; byte-order BOM detection correct for LE and BE magic values |
-| VP-027 | BC-2.01.012 | Kani | P1 | EPB parse safety: no panic; interface_id bounds-check before table index; captured_len guard precedes allocation; padding-overrun check (`20 + captured_len + pad_len > body.len()`) and bound-by-body check (`captured_len > body.len() - 20`) both → Err(E-INP-008) (NOT E-INP-010); returns Err for all invalid inputs (rev 8 / C-1) |
+| VP-027 | BC-2.01.012 | Kani | P1 | EPB parse safety: no panic; interface_id discriminant-checked — empty table → Err(E-INP-009), OOB on non-empty table → Err(E-INP-010) (NOT a slash; two distinct variants; rev 9 / Decision 22 / F-H4); captured_len guard precedes allocation; padding-overrun check (`20 + captured_len + pad_len > body.len()`) and bound-by-body check (`captured_len > body.len() - 20`) both → Err(E-INP-008) (NOT E-INP-010; rev 8 / C-1); returns Err for all invalid inputs |
 | VP-028 | BC-2.01.017 | cargo-fuzz | P1 | pcapng reader no-panic: PcapSource::from_pcap_reader returns Ok or Err for any byte sequence; no panic, no infinite loop (F6 hardening deliverable) |
 | VP-029 | BC-2.01.015 | proptest | P1 | Block-walk skip correctness: unknown-block skip always advances past block_total_length bytes; no infinite loop; loop terminates for any valid/malformed block sequence |
 | VP-030 | BC-2.01.018 | proptest | P1 | Multi-IDB linktype agreement totality (RESTATED rev 7 / H-3): any sequence of WHITELISTED DataLink values either all-equal → Ok(PcapSource.datalink = that value), or first-differing whitelisted DataLink → Err(E-INP-011) immediately on that IDB. Non-whitelisted values short-circuit to E-INP-001 at first IDB (before conflict check) — NOT in VP-030 domain. Comparison unit: DataLink (not raw u16). |
-| VP-031 | BC-2.01.013 | proptest | P1 | SPB captured-len computation correctness: for all (original_len: u32, body: &[u8]), captured_len == min(original_len, body.len() as u32); returned slice has exactly captured_len bytes; no out-of-bounds access. Snaplen term DROPPED (rev 8 / Decision 9 amendment, resolves H-3 + M-2). (resolves M-2 / DF-CANONICAL-FRAME-HOLDOUT-001) |
+| VP-031 | BC-2.01.013 | proptest | P1 | SPB captured-len computation correctness: for all (original_len: u32, body: &[u8]) with body.len() >= 4, captured_len == min(original_len, body.len() as u32 - 4) (i.e., min(original_len, spb_data_available)); returned slice has exactly captured_len bytes; no out-of-bounds access. Formula corrected from rev 8 (body.len() → body.len() - 4) per Decision 22 / rev 9. Snaplen DROPPED (Decision 9 rev 8). (resolves M-2 / F-H2 / F-H3 / DF-CANONICAL-FRAME-HOLDOUT-001) |
 
 Note: BC-2.01.013 (SPB) is now covered by VP-031 (proptest, P1) for arithmetic
 correctness of the on-disk-body-clamped captured-len computation (snaplen dropped per
@@ -705,6 +729,11 @@ BC-change dispatch documented for PO.
 **Rev 7 (2026-06-19):** Pass-4 adversarial remediation — zero-packet notice, uniform block error-code rule, if_tsoffset scope deferral, VP-030 restatement, seq convention, HS-completeness map extension. Added Decision 19 (M-4: zero-packet notice — valid pcapng with 0 packets emits exactly one stderr notice, exit 0, skipped-block count when >0, no block bodies logged; SOUL-#4 anchor; BC-2.01.009 PC6 / BC-2.01.015 PC9 must re-cite this decision not Decision 17). Added Decision 20 (H-1: uniform block error-code rule — corrects pass-3 "SHB body-too-short unconstructible" claim; three-tier rule: crate framing failure → E-INP-010; wirerust body-decode failure or semantic failure → E-INP-008; well-formed → proceed; per-block fixed-field minimums table: SHB=16, IDB=8, EPB=20, SPB=4 body bytes; PO must RE-ADD SHB body-too-short to BC-2.01.010, align EPB/SPB/IDB BCs and error-taxonomy E-INP-008/010 scope text). Added Decision 21 (M-2 option-walk: if_tsoffset code 10 MUST NOT be extracted or applied this cycle; out-of-scope deferral with future escape hatch; PO must remove "and if_tsoffset (code 10)" from BC-2.01.011 PC6 and add limitation note to BC-2.01.014). Added VP-030 restatement (H-3: VP-030 domain narrowed to WHITELISTED DataLink values only; non-whitelisted values short-circuit to E-INP-001 before the conflict check; comparison unit pinned to DataLink not raw u16). Added M-5 seq convention (1-based block index, SHB = block #1; E-INP-010/012/013 context strings must be consistent). Added HS-108 to HS-completeness map (zero-packet notice end-to-end; MISSING — PO must author). VP-030 restatement propagated to VP-INDEX v2.6, verification-architecture.md v2.2, and verification-coverage-matrix.md v1.16.
 
 **Rev 8 (2026-06-20):** Pass-5 adversarial remediation — Decision 20 clarification (C-1), Decision 9 amendment (H-3 + M-2), Decision 19 amendments (H-2 + M-5), VP property updates.
+
+**Rev 9 (2026-06-20):** Pass-6 adversarial remediation — architect-owned decisions.
+  - Decision 22 (canonical SPB block_body_available / F-H2 / F-H3): Defines `spb_data_available = body.len() - 4 = block_total_length - 16` as the canonical symbol for SPB available packet bytes, and `captured_len = min(original_len, spb_data_available)` as the canonical formula. CORRECTS the rev 8 formula `min(original_len, body.len())` which incorrectly included the 4-byte `original_len` header in the data bound. VP-031 property updated to `min(original_len, body.len() as u32 - 4)`. "equivalently body.len()" language in BC-2.01.013 is declared WRONG and must be deleted by PO.
+  - Decision 9 amendment (F-M3 / snaplen-not-extracted): wirerust does NOT extract or store `snaplen` this cycle — same posture as Decision 21 for `if_tsoffset`. `snaplen` is read (consumed as fixed-field bytes) and discarded. `InterfaceInfo` MUST NOT carry a `snaplen` field. PO must remove `snaplen` from BC-2.01.011 `InterfaceInfo` and from the false "for SPB use" cross-reference in BC-2.01.013.
+  - Decision 22 HS-104 discriminant split (F-H4 / VP-027): HS-104's ambiguous "(→ E-INP-009 / E-INP-010)" slash replaced with two explicit cases — empty table → E-INP-009; OOB on non-empty table → E-INP-010. VP-027 property extended to assert the error DISCRIMINANT, not merely that an Err is returned. PO must update BC-2.01.012 PC5 and HS-104 to remove the slash and state the two cases explicitly.
   - Decision 20 (C-1 EPB error-code clarification): EPB padding-overrun check (`20 + captured_len + pad_len(captured_len) > body.len()`) and bound-by-body check (`captured_len > body.len() - 20`) are WIRERUST body-decode failures → E-INP-008, NOT E-INP-010. The uniform rule now explicitly covers all wirerust-computed body/length-consistency failures for EPB as E-INP-008. PO must reclassify padding-overrun + bound-by-body in BC-2.01.012, error-taxonomy E-INP-010 item (c), HS-104 Case E, and VP-027.
   - Decision 9 amendment (H-3 + M-2 SPB captured_len): SPB captured_len formula changed from `min(original_len, snaplen, block_body_available)` to `min(original_len, block_body_available)` — snaplen DROPPED. Matches EPB (which ignores snaplen) and makes Decision 9's "snaplen not enforced" precise. VP-031 property domain narrowed to two-argument `min(original_len, body.len() as u32)`. PO must update BC-2.01.013 PC1/AC-002/EC-007, HS-107, and VP-031 property.
   - Decision 19 amendment 1 (H-2 OPB distinction): Zero-packet notice must distinguish OPB-bearing skipped blocks from non-packet skipped blocks (NRB/ISB/DSB/SJE). When OPB skipped, notice MUST state packet data from obsolete Packet Blocks was not ingested + remediation hint (mergecap). PcapSource must surface `opb_skipped: u32` so main.rs can emit the distinction. PO must update BC-2.01.009 and BC-2.01.015 with this distinction and the new `opb_skipped` field.
@@ -939,10 +968,11 @@ architect does not edit BC files; this section is the handoff specification.
 - VP-027 property must include: "padding-overrun (`20 + captured_len + pad_len(captured_len) > body.len()`) → Err(E-INP-008); bound-by-body (`captured_len > body.len() - 20`) → Err(E-INP-008)."
 - error-taxonomy.md E-INP-010 description: remove item (c) if it references EPB body-decode checks; add note "E-INP-010 is strictly crate-side framing rejection; wirerust body-decode failures use E-INP-008."
 
-**BC-2.01.013 (SPB) — drop snaplen from captured_len formula (Decision 9 rev 8 / H-3 + M-2):**
-- PC1/AC-002/EC-007: Update SPB captured_len formula from `min(original_len, snaplen, block_body_available)` to `min(original_len, block_body_available)`. Snaplen is NOT consulted for SPB captured-len derivation. `block_body_available` is `body.len() as u32` (raw bytes in the RawBlock body after the 4-byte original_len field).
-- HS-107 Case E: If a scenario relies on snaplen clamping SPB data, remove or restate it. SPB captured_len clamps only to `original_len` and `body.len()`.
-- VP-031 property: change from `min(original_len, snaplen, body.len() as u32)` to `min(original_len, body.len() as u32)`. The `snaplen` argument is removed from the pure-core helper domain. The property is now: "for all (original_len: u32, body: &[u8]), captured_len == min(original_len, body.len() as u32); returned slice has exactly captured_len bytes; no OOB access."
+**BC-2.01.013 (SPB) — drop snaplen from captured_len formula (Decision 9 rev 8 / H-3 + M-2); CORRECTED by Decision 22 / rev 9:**
+- PC1/AC-002/EC-007: Update SPB captured_len formula to `min(original_len, spb_data_available)` where `spb_data_available = body.len() - 4`. Snaplen is NOT consulted. The rev 8 formula `min(original_len, body.len())` was wrong (failed to subtract the 4-byte `original_len` header from the body). See Decision 22 for the canonical definition.
+- Delete any text using "equivalently body.len()" as the captured-len bound — this is incorrect and MUST be removed.
+- HS-107 Case B: data.len() assertion MUST read `data.len() == min(original_len, body.len() - 4)`. Any scenario using `body.len()` (without -4) as the upper bound is incorrect and must be corrected.
+- VP-031 property (rev 9): for all (original_len: u32, body: &[u8]) with body.len() >= 4, captured_len == min(original_len, body.len() as u32 - 4); returned slice has exactly captured_len bytes; no OOB access. The `snaplen` argument is removed from the pure-core helper domain.
 
 **BC-2.01.014 (timestamp helper) — µs fast path saturation + VP-025 vector (Decision 19 / M-3):**
 - Any µs fast path in BC-2.01.014 (e.g., a shortcut for the default tsresol=6 case) MUST apply the same ts_sec saturation (`.min(u32::MAX)`) as the general formula. The shortcut MUST NOT skip saturation under any input. State this explicitly in BC-2.01.014.
@@ -952,6 +982,34 @@ architect does not edit BC files; this section is the handoff specification.
 - BC-2.01.009: Update the zero-packet notice postcondition to state that PcapSource MUST surface `skipped_blocks: u32` and `opb_skipped: u32`. The notice is EMITTED from main.rs, NOT from from_pcap_reader. The notice format when OPB blocks were skipped MUST distinguish them (per Decision 19 rev 8 OPB distinction text). Add: "A structurally valid classic pcap file with zero packets MUST also emit the zero-packet notice with format `notice: <filename>: 0 packets read from pcap file`."
 - BC-2.01.015: Update the skipped-block counter postcondition to state that `PcapSource::skipped_blocks` includes OPB and that `PcapSource::opb_skipped` is the OPB-specific sub-count. The COUNTER is surfaced (not emitted) — main.rs reads it and emits the distinction.
 - HS-108 (MISSING — PO must author): extend the required scenarios to include: (d) valid pcapng with SHB + IDB + 1 OPB (no EPBs) → notice includes OPB count and re-save hint; (e) valid pcapng with 2 NRB blocks skipped + 1 OPB skipped → notice distinguishes OPB from NRB count.
+
+**Rev 9 additions — PO must action the following (Decision 22 / F-H2 / F-H3 / F-H4 / Decision 9 amendment):**
+
+**BC-2.01.013 (SPB) — canonical spb_data_available formula (Decision 22 / F-H2 / F-H3):**
+- ALL occurrences of `min(original_len, body.len())` or `min(original_len, block_body_available)` where `block_body_available` was defined as `body.len()` or `btl-12` MUST be replaced with `min(original_len, spb_data_available)` where `spb_data_available = body.len() - 4 = block_total_length - 16`.
+- Delete all text containing "equivalently body.len()" as the SPB captured-len bound — this phrase is wrong.
+- PC1: `captured_len == min(original_len, spb_data_available)` where `spb_data_available = body.len() - 4`.
+- Invariant-2: state `spb_data_available` as the canonical name; define it as `body.len() - 4 = block_total_length - 16`.
+- AC-002: assert `data.len() == captured_len == min(original_len, body.len() - 4)`.
+- EC-007: if `original_len > spb_data_available`, `captured_len = spb_data_available = body.len() - 4` (truncation to on-disk data extent).
+- Architecture Anchors: reference Decision 22 as the authoritative formula source.
+- HS-107 Case B: `data.len()` assertion MUST be `min(original_len, body.len() - 4)`. Remove any assertion using `body.len()` alone.
+
+**BC-2.01.011 (IDB) — snaplen not extracted (Decision 9 rev 9 amendment):**
+- Remove any specification text that states `snaplen` is stored on `InterfaceInfo` or accessible after IDB parsing.
+- State explicitly: "The `snaplen` field (IDB body bytes 4-7) is READ to advance past the fixed fields and is DISCARDED. wirerust does not store or apply `snaplen` in this cycle. Extracting a value without using it is deceptive (per Decision 21 precedent for `if_tsoffset`)."
+- Add limitation note: "snaplen is not enforced; captured packet lengths are bounded only by the on-disk block body extent (EPB: `block_total_length - 32`; SPB: `block_total_length - 16`)."
+- `InterfaceInfo` struct definition: REMOVE any `snaplen: u32` field. The struct carries only `linktype: DataLink` and `if_tsresol: u8` (plus any future fields explicitly required by a consumer).
+
+**BC-2.01.012 (EPB) — interface_id discriminant split (Decision 22 / F-H4):**
+- PC5: Split the current "(→ E-INP-009 / E-INP-010)" notation into TWO explicit postconditions:
+  - PC5a: EPB with `interface_id = 0` when interface table is EMPTY (no IDB parsed) → `Err(E-INP-009)`.
+  - PC5b: EPB with `interface_id >= table.len()` when table is NON-EMPTY → `Err(E-INP-010)` with context string `"EPB interface_id={id} out of range (table size={n})"`.
+- AC (acceptance criterion): "The interface_id check MUST distinguish empty-table from OOB-on-non-empty-table; the error code MUST differ between the two cases (E-INP-009 vs. E-INP-010)."
+- HS-104: Split the slash case into two explicit named cases as above. The ambiguous "(→ E-INP-009 / E-INP-010)" slash notation MUST be removed.
+
+**VP-027 — discriminant property addition (Decision 22 / F-H4):**
+- Add to VP-027 property text: "interface_id bounds-check MUST return E-INP-009 (not E-INP-010) when the interface table is empty; MUST return E-INP-010 (not E-INP-009) when `interface_id >= table.len()` on a non-empty table. The Kani harness MUST model table-size as symbolic (0 vs. positive) with symbolic `interface_id` and assert the discriminant of the returned error variant."
 
 ## Alternatives Considered
 

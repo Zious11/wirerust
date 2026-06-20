@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.6"
+version: "1.7"
 status: draft
 producer: product-owner
 timestamp: 2026-06-19T00:00:00Z
@@ -15,6 +15,7 @@ introduced: v0.10.0-pcapng
 modified:
   - "v1.1: F-07 completeness delta — explicitly enumerate all pcap-file Block variants that fall through to the skip path (NRB, ISB, DSB, SystemdJournalExport, obsolete Packet Block 0x2, Unknown); note that obsolete Packet Block 0x2 carries packet data but is treated as out-of-scope/skipped; add AC to prevent omitted match arm at implementation. — 2026-06-19"
   - "v1.2: F2 Burst-A remediation per ADR-009 rev 4 PO dispatch — (1) VP-029 added to Verification Properties. (2) EC-004 CORRECTED: `block_total_length = 8` is REJECTED by the crate (`block_common.rs:101`: `< 12` threshold), NOT '0 bytes consumed; no error'. Removed the false 'no error' claim; replaced with crate-accurate reject behavior. (3) EC-005 updated accordingly (threshold is now < 12, not < 8). (4) Added forward-progress invariant: block-walk loop MUST break on Err(_); the crate cursor does NOT advance on error (`read_buffer.rs:65`). (5) On the raw-block path, skip means ignoring the RawBlock body bytes (already in the body slice); the loop-break-on-error invariant covers all block types. (6) DSB log-guard note (SEC-007) added to AC-002: block body bytes MUST NOT be logged at any level. (7) Corrected AC-001 entry for DSB: DSB (type 0x0A) is NOT a named pcap-file Block variant — it arrives as Block::Unknown on the high-level API; on the raw-block path, block-type dispatch reads bytes 0-3 of each RawBlock body — no named DSB arm exists. (8) Added no-panic AC (SEC-005). — 2026-06-19"
+  - "v1.7: Pass-6 remediation T4 (ADR-009 rev 9) — (F-M4) Added EC-013: SHB-only pcapng (only an SHB, no IDB, no subsequent blocks of any type). No blocks reach the skip arm because there are no blocks after the SHB. Both counters remain at zero: skipped_blocks==0, opb_skipped==0. This is fully consistent with PC6/PC9: the emission trigger (BC-2.01.009 PC6 'valid file + zero packets') fires because the file is structurally valid and packets.len()==0 — but skipped_blocks==0 means no parenthetical segment is added to the notice. No contradiction with the notice gate. — 2026-06-20"
   - "v1.6: Pass-5 remediation S3 (ADR-009 rev 8) — (M-5) Rewrote PC9: counter is SURFACED via PcapSource fields (not emitted by reader); main.rs reads PcapSource.skipped_blocks and PcapSource.opb_skipped after from_pcap_reader returns Ok, then emits the notice. Added opb_skipped:u32 as a dedicated sub-counter incremented specifically when an obsolete Packet Block (OPB, type 0x00000002) is skipped; skipped_blocks:u32 is the total skip counter (all block types hitting the skip arm, including OPB). Updated AC-006 accordingly. — 2026-06-20"
   - "v1.5: Pass-4 remediation R3a (ADR-009 rev 7) — (Decision 19 / M-4) Fixed PC9 citation: 'Decision 17' corrected to 'Decision 19' in Postcondition 9 cross-reference. The skipped_blocks counter and its pass-to-caller semantics are unchanged. BC-2.01.009 owns the emission gate ('valid file + zero packets', Decision 19); BC-2.01.015 owns the counter. — 2026-06-20"
   - "v1.4: Pass-3 remediation Burst Q3 (ADR-009 rev 6) — (M-3) PC9 clarified: the emission trigger now lives in BC-2.01.009 as 'valid file + zero packets' (not 'zero packets AND skipped_blocks>0'). BC-2.01.015 retains the skipped_blocks counter and passes it to BC-2.01.009; BC-2.01.009 decides whether to include the count in the notice message. AC-006 updated to reflect that the counter is reported in the notice message when >0 but is NOT the gating condition. — 2026-06-19"
@@ -178,6 +179,7 @@ error, so retrying the same source after an error would spin (CWE-835).
 | EC-010 | Systemd Journal Export Block (type `0x00000009`) | Silently skipped; journal data NOT ingested; no warning |
 | EC-011 | pcapng file containing OPB blocks before and after EPBs | OPBs silently skipped; only EPBs produce packets; packet list is EPB-derived only |
 | EC-012 | DSB immediately followed by EPB | DSB skipped silently (body not logged); EPB parsed normally; packet produced |
+| EC-013 | SHB-only pcapng (no IDB, no subsequent blocks of any kind after the SHB) — F-M4 | No blocks enter the skip arm. `skipped_blocks == 0`; `opb_skipped == 0`. Neither counter is incremented. The notice is still emitted by main.rs (BC-2.01.009 PC6 gating condition: "valid file + zero packets" — not "skipped_blocks > 0"). Notice has no parenthetical segment. Exit 0. **Test:** `test_BC_2_01_015_shb_only_counters_zero` |
 
 ## Canonical Test Vectors
 
@@ -208,7 +210,7 @@ error, so retrying the same source after an error would spin (CWE-835).
 | L2 Domain Invariants | None directly |
 | Architecture Module | SS-01 (reader.rs, C-4) |
 | Stories | STORY-126 |
-| ADR Reference | ADR-009 rev 4 Decision 2 (unknown block types silently skipped; DSB has no named variant — arrives as Unknown), Decision 8 (forward-progress: crate rejects `< 12`; caller MUST break on Err), Decision 10 (panic surface), Decision 14 (VP-029 proptest), Decision 19 (skipped_blocks/opb_skipped surfaced via PcapSource; emission by main.rs; opb_skipped sub-count drives OPB mergecap appendage) — rev 8 |
+| ADR Reference | ADR-009 rev 4 Decision 2 (unknown block types silently skipped; DSB has no named variant — arrives as Unknown), Decision 8 (forward-progress: crate rejects `< 12`; caller MUST break on Err), Decision 10 (panic surface), Decision 14 (VP-029 proptest), Decision 19 (skipped_blocks/opb_skipped surfaced via PcapSource; emission by main.rs; opb_skipped sub-count drives OPB mergecap appendage) — rev 9 (F-M4: SHB-only file reaches no skip arm; skipped_blocks==0, opb_skipped==0; notice still emitted by main.rs gated on "valid file + zero packets") |
 
 ## Related BCs
 

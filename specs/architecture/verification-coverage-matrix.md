@@ -2,7 +2,7 @@
 artifact: architecture-section
 section: verification-coverage-matrix
 traces_to: ARCH-INDEX.md
-version: "1.17"
+version: "1.18"
 status: verified
 producer: architect
 timestamp: 2026-05-20T00:00:00Z
@@ -73,6 +73,9 @@ modified:
   - date: 2026-06-20
     actor: architect
     reason: "Pass-5 adversarial remediation (ADR-009 rev 8): VP property updates only — no row additions, no count changes (Totals row unchanged: Kani 14 / proptest 10 / fuzz 2 / integration-unit 5 = 31). VP-025 Property cell: ts_sec saturation (.min(u32::MAX)) and large-ts_high Kani vector added (M-3). VP-027 Property cell: padding-overrun and bound-by-body → Err(E-INP-008) NOT E-INP-010 added explicitly (C-1). VP-031 Property cell: snaplen DROPPED; formula now min(original_len, body.len() as u32) (Decision 9 rev 8 / H-3 + M-2). Coverage note updated. Version bump 1.16→1.17."
+  - date: 2026-06-20
+    actor: architect
+    reason: "Pass-6 adversarial remediation (ADR-009 rev 9): VP property updates only — no row additions, no count changes (Totals row unchanged: Kani 14 / proptest 10 / fuzz 2 / integration-unit 5 = 31). VP-027 Property cell: interface_id discriminant split — empty table → Err(E-INP-009); OOB non-empty table → Err(E-INP-010); slash notation removed; Kani harness must model table-size as symbolic boolean (Decision 22 / F-H4). VP-031 Property cell: formula CORRECTED from min(original_len, body.len() as u32) to min(original_len, body.len() as u32 - 4) = min(original_len, spb_data_available); canonical symbol spb_data_available = body.len()-4 = block_total_length-16; rev 8 formula was wrong by 4 bytes (included the original_len header in the data bound) (Decision 22 / F-H2 / F-H3). Coverage note updated. Version bump 1.17→1.18."
 ---
 
 # Verification Coverage Matrix
@@ -107,11 +110,11 @@ modified:
 | VP-024 | ARP frame parse safety (extract_arp_frame) + GARP totality + binding-table cap | analyzer/arp.rs | Kani | P1 | verified |
 | VP-025 | pcapng timestamp conversion totality: no panic, ts_usecs in [0,999999], ts_sec saturated (.min(u32::MAX)), saturating arithmetic for all (u32,u32,u8); large-ts_high Kani vector required (rev 8 / M-3) | reader.rs (pcapng_pure_core fns) [b] | Kani | P1 | draft |
 | VP-026 | pcapng SHB parse safety: no panic, byte-order BOM detection correct (LE/BE), Err for <28 bytes | reader.rs (pcapng_pure_core fns) [b] | Kani | P1 | draft |
-| VP-027 | pcapng EPB parse safety: no panic, interface_id bounds-check, guard-before-allocate; padding-overrun (20+captured_len+pad_len>body.len()) → Err(E-INP-008); bound-by-body (captured_len>body.len()-20) → Err(E-INP-008); NOT E-INP-010 (rev 8 / C-1) | reader.rs (pcapng_pure_core fns) [b] | Kani | P1 | draft |
+| VP-027 | pcapng EPB parse safety: no panic; interface_id discriminant — empty table → Err(E-INP-009); OOB non-empty table → Err(E-INP-010); slash notation removed (rev 9 / Decision 22 / F-H4); guard-before-allocate; padding-overrun (20+captured_len+pad_len>body.len()) → Err(E-INP-008); bound-by-body (captured_len>body.len()-20) → Err(E-INP-008); NOT E-INP-010 (rev 8 / C-1) | reader.rs (pcapng_pure_core fns) [b] | Kani | P1 | draft |
 | VP-028 | pcapng reader no-panic (cargo-fuzz fuzz_pcapng_reader, F6 hardening) | reader.rs | cargo-fuzz | P1 | draft |
 | VP-029 | pcapng block-walk skip: always terminates, Err-breaks loop, cursor advances >= 12 bytes per Ok | reader.rs | proptest | P1 | draft |
 | VP-030 | pcapng multi-IDB linktype agreement totality (RESTATED rev 7 / H-3): WHITELISTED DataLink domain only; all-equal → Ok, first-differing whitelisted DataLink → Err(E-INP-011); non-whitelisted → E-INP-001 (out of scope); comparison unit DataLink not raw u16 | reader.rs | proptest | P1 | draft |
-| VP-031 | pcapng SPB captured-len arithmetic correctness (snaplen-free): captured_len == min(original_len, body.len() as u32); slice length == captured_len; no OOB for all (u32, &[u8]) inputs; snaplen DROPPED (rev 8 / Decision 9) | reader.rs (pcapng_pure_core fns) [b] | proptest | P1 | draft |
+| VP-031 | pcapng SPB captured-len arithmetic correctness (spb_data_available formula): captured_len == min(original_len, body.len() as u32 - 4) = min(original_len, spb_data_available); slice length == captured_len; no OOB for all (u32, &[u8] with len>=4) inputs; formula CORRECTED from rev 8 (body.len() → body.len()-4 per Decision 22 / F-H2 / F-H3); snaplen DROPPED (rev 8 / Decision 9) | reader.rs (pcapng_pure_core fns) [b] | proptest | P1 | draft |
 
 
 ## Per-Module Coverage Totals
@@ -203,14 +206,24 @@ modified:
   provide the arithmetic correctness VP for BC-2.01.013 SPB body-clamping — VP-028
   cargo-fuzz covers no-panic but cannot assert the arithmetic relationship.
   **Rev 8 amendment (Decision 9 / H-3 + M-2):** VP-031 property narrowed — snaplen
-  DROPPED; formula is now `captured_len == min(original_len, body.len() as u32)`.
-  The property domain is now (original_len: u32, body: &[u8]); the snaplen argument
-  is removed from the pure-core helper per EPB/SPB symmetry.
+  DROPPED; formula was `captured_len == min(original_len, body.len() as u32)` (corrected
+  in rev 9 / Decision 22 — see below).
   VP-031 fills that gap per DF-CANONICAL-FRAME-HOLDOUT-001. BC-2.01.013 carries DUAL
   VP coverage: VP-031 (arithmetic correctness, proptest) + VP-028 (no-panic, cargo-fuzz).
   **Rev 8 property amendments also apply to VP-025** (ts_sec saturation + large-ts_high
   Kani vector, M-3) **and VP-027** (padding-overrun/bound-by-body → E-INP-008 explicit,
   C-1 / Decision 20 clarification). No VP counts changed.
+  **Rev 9 amendment (Decision 22 / F-H2 / F-H3):** VP-031 formula CORRECTED —
+  `min(original_len, body.len() as u32)` → `min(original_len, body.len() as u32 - 4)`.
+  On the raw-block path `RawBlock.body` for SPB includes the 4-byte `original_len`
+  fixed field followed by packet data; rev 8 incorrectly used the full body length as
+  the data bound. The canonical symbol `spb_data_available = body.len() - 4` (= btl-16)
+  is now defined in Decision 22. Property domain: (original_len: u32, body: &[u8])
+  with body.len() >= 4.
+  **Rev 9 amendment (Decision 22 / F-H4):** VP-027 interface_id check extended to
+  assert error DISCRIMINANT — empty table → E-INP-009 specifically; OOB non-empty →
+  E-INP-010 specifically. Slash notation removed. Kani harness must model table-size
+  as symbolic boolean. No VP counts changed.
 
   [b] **VP-025 / VP-026 / VP-027 module anchor: reader.rs (pcapng_pure_core fns)**
   (I-1 resolution, ADR-009 rev 5). Kani targets are pure-core helper functions

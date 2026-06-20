@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.5"
+version: "1.6"
 status: draft
 producer: product-owner
 timestamp: 2026-06-19T00:00:00Z
@@ -13,6 +13,7 @@ capability: CAP-01
 lifecycle_status: active
 introduced: v0.10.0-pcapng
 modified:
+  - "v1.6: Pass-6 remediation T3 (ADR-009 rev 9) — F-M3: snaplen is dead (nothing consumes it after SPB was dropped). Removed snaplen from InterfaceInfo struct definition; PC4 and AC-003 no longer claim snaplen is 'extracted and stored for SPB use (BC-2.01.013)' (false cross-ref). PC4 now states snaplen (IDB body bytes 4-7) is READ only to advance past the fixed fields and DISCARDED — wirerust does not store or apply snaplen this cycle (mirrors Decision 21 if_tsoffset). Added limitation note: snaplen is not enforced; captured lengths are bounded by on-disk block body extent (EPB: btl-32; SPB: btl-16). F-M5: added if_tsresol option-length enforcement — an if_tsresol (code 9) option whose option_length != 1 is a malformed option → Err(E-INP-008); wirerust MUST NOT silently ignore or default. Added EC-013 (if_tsresol with length=4 → E-INP-008). Updated AC-005, PC6, and edge-case table accordingly. — 2026-06-20"
   - "v1.5: Pass-4 remediation FINDING-P4-001 — GAP-1 closed: removed stale sentence from PC5 tail that claimed 'E-INP-008 covers SHB and IDB structural errors ONLY; EPB/SPB body truncation routes to E-INP-010'. Per Decision 20 the uniform rule is: crate-framed-but-body-too-short for ALL block types (SHB body<16, IDB body<8, EPB body<20, SPB body<4) → E-INP-008 (wirerust body-decode); btl<12/misaligned/EOF → E-INP-010 (crate framing rejection). No singling out of EPB/SPB as E-INP-010. Authority: ADR-009 rev 7 Decision 20. — 2026-06-20"
   - "v1.4: Pass-4 remediation R2 — Decision 20 (align wording to uniform rule): confirmed btl<12→E-INP-010 (crate rejects), 12<=btl<20→body<8→E-INP-008 (wirerust body-decode) as constructible window; wording in PC5 tightened. Decision 21 (M-2): REMOVED 'if_tsoffset (code 10)' from PC6 options-walk — wirerust does NOT extract if_tsoffset this cycle; added limitation note to PC6 and AC-003. M-1: removed 'crate enforces body>=8' over-claim from Architecture Anchors — wirerust checks body.len()>=8 itself on the raw path before decoding IDB fixed fields; the crate source reference clarified. L-2: EC-003 table cell fixed — unescaped pipe inside markdown table replaced with literal 0x8A (base-2 nanosecond-range if_tsresol value). Authority: ADR-009 rev 7 Decision 20, Decision 21. — 2026-06-20"
   - "v1.3: Pass-3 Q2 remediation — H-2: EC-008 constructible-window stated explicitly: the constructible E-INP-008 IDB body-truncation case is 12<=block_total_length<20 (crate frames the block; body is 0-7 bytes; wirerust body-decode finds <8 minimum bytes). btl<12 => crate Err => E-INP-010 (not constructible for IDB body-decode). H-5 (Decision 16): Invariant 2 'interface table resets at each SHB' deleted and deferred — unreachable under single-section constraint (Decision 7 rejects second SHB via E-INP-012 before any section-2 IDB is parsed); annotated DEFERRED. M-6: added IDB OPTIONS TLV-walking postcondition (PC6), AC-005 (bounds-check every option length against remaining body before reading value; opt_endofopt/end-of-body terminates walk; malformed option-length => E-INP-008; no panic/OOB), and EC-011 (option length > remaining body => E-INP-008). M-7 (Decision 17): added AC-006 (three-level IDB-parse precedence: (1) E-INP-013 position check FIRST; (2) E-INP-001 whitelist SECOND; (3) E-INP-011 conflict THIRD) and EC-012 (late IDB that also conflicts on linktype => E-INP-013 wins; E-INP-001/011 never evaluated). O-3: replaced 'E-INP-013 to be added in a separate burst' with 'E-INP-013: error-taxonomy.md v2.8'. Authority: ADR-009 rev 6. — 2026-06-19"
@@ -55,13 +56,17 @@ multi-IDB agreement check (BC-2.01.018). `if_tsresol` absent defaults to 10^-6 (
      to an effective exponent of 6 in base-10 (same as classic-pcap microsecond resolution).
 3. Both `linktype` and `if_tsresol` (or its default) are stored in an interface table keyed
    by the interface's 0-based index within the current section.
-4. The `snaplen` field is at IDB body bytes **4–7** (`u32`, after the 2-byte `linktype` @0-1
-   and the 2-byte `reserved` field @2-3). **Confirmed per spike Q-A3** (`interface_description.rs:45-52`):
-   wire layout is `linktype u16 @0-1`, `reserved u16 @2-3`, `snaplen u32 @4-7`. `snaplen` is
-   extracted and stored for SPB use (BC-2.01.013). wirerust mirrors the crate's `reserved == 0`
-   enforcement: a non-zero `reserved` field is a structural IDB error returning `Err` mapped to
-   E-INP-008. (The pcapng spec says reserved "should" be zero; the crate treats non-zero as an
-   error; wirerust matches this behavior.)
+4. The `snaplen` field (IDB body bytes **4–7**, `u32`, after `linktype u16 @0-1` and
+   `reserved u16 @2-3`) is **READ only to advance past the fixed fields and is DISCARDED** —
+   wirerust does not store or apply `snaplen` this cycle. **Confirmed per spike Q-A3**
+   (`interface_description.rs:45-52`): wire layout is `linktype u16 @0-1`, `reserved u16 @2-3`,
+   `snaplen u32 @4-7`. This matches the handling of `if_tsoffset` (Decision 21): a field that
+   must be consumed for cursor advancement but carries no consumer this cycle.
+   **Limitation:** `snaplen` is not enforced; captured packet lengths are bounded only by
+   on-disk block body extent (EPB: `block_total_length − 32`; SPB: `block_total_length − 16`).
+   wirerust mirrors the crate's `reserved == 0` enforcement: a non-zero `reserved` field is a
+   structural IDB error returning `Err` mapped to E-INP-008. (The pcapng spec says reserved
+   "should" be zero; the crate treats non-zero as an error; wirerust matches this behavior.)
 5. **IDB error routing — uniform split (ADR-009 rev 7 Decision 20).**
    - **btl < 12 / btl % 4 != 0 / EOF** — crate rejects before returning any block →
      **E-INP-010** (not the wirerust body-decode path; wirerust never sees the body).
@@ -87,6 +92,12 @@ multi-IDB agreement check (BC-2.01.018). `if_tsresol` absent defaults to 10^-6 (
    - Unknown option codes are silently skipped (length bytes consumed; padding consumed).
    - A malformed option-length that would cause an OOB read is treated as a structural IDB
      error: `Err` mapped to E-INP-008.
+   - **`if_tsresol` option-length enforcement (F-M5, ADR-009 rev 9):** An `if_tsresol` option
+     (code 9) whose `option_length != 1` is a **malformed option** → `Err` mapped to
+     **E-INP-008**. wirerust MUST NOT silently ignore or apply a default when `option_length`
+     is not exactly 1. The `if_tsresol` value is always a single byte; any other length
+     indicates a corrupt TLV. (Mirrors the `pcap-file` 2.0.0 crate requirement that
+     `IfTsResol(u8)` is encoded as exactly 1 byte.)
    - **Limitation (ADR-009 Decision 21):** `if_tsoffset` (option code 10) is NOT extracted or
      applied this cycle. Only `if_tsresol` (code 9) is extracted. Timestamp offsets embedded
      in IDB options are silently skipped as unknown option codes. This is a known limitation
@@ -105,10 +116,12 @@ multi-IDB agreement check (BC-2.01.018). `if_tsresol` absent defaults to 10^-6 (
   **Test:** `test_BC_2_01_011_interface_table_is_vec_indexed`
 - **AC-003 (if_tsresol feeds BC-2.01.014):** The `if_tsresol` value (or default of 6 when
   absent) extracted from each IDB MUST be stored in the `InterfaceInfo` struct alongside
-  `linktype` and `snaplen`. This value is consumed by the BC-2.01.014 timestamp conversion
-  helper on every EPB that references this interface. **Note (Decision 21):** `if_tsoffset`
-  (option code 10) is NOT extracted or applied this cycle — it is silently skipped as an
-  unknown option code. Only `if_tsresol` (code 9) is stored and propagated.
+  `linktype`. (`snaplen` is NOT stored — it is read-and-discarded per PC4 / F-M3.) This
+  value is consumed by the BC-2.01.014 timestamp conversion helper on every EPB that
+  references this interface. **Note (Decision 21):** `if_tsoffset` (option code 10) is NOT
+  extracted or applied this cycle — it is silently skipped as an unknown option code. Only
+  `if_tsresol` (code 9) is stored and propagated. An `if_tsresol` option with
+  `option_length != 1` is a malformed TLV → E-INP-008 (not silently defaulted; see PC6/AC-005).
   **Test:** `test_BC_2_01_011_if_tsresol_stored_in_interface_info`
 - **AC-004 (interleaved IDB rejection — Decision 15):** If an IDB block is encountered AFTER
   the first packet block has been emitted (i.e., `packets_emitted > 0` at parse time), wirerust
@@ -123,8 +136,12 @@ multi-IDB agreement check (BC-2.01.018). `if_tsresol` absent defaults to 10^-6 (
   exceeds the remaining bytes, wirerust MUST return `Err` mapped to E-INP-008. Consuming
   bytes past the end of the options region (OOB read / panic) is prohibited. `unwrap()`,
   `expect()`, `panic!()`, and slice-index-without-bounds-check are prohibited in the options
-  walk path.
-  **Test:** `test_BC_2_01_011_options_malformed_length_e_inp_008`
+  walk path. **Additionally (F-M5, ADR-009 rev 9):** for `if_tsresol` (option code 9)
+  specifically, wirerust MUST verify `option_length == 1` before reading the value byte.
+  If `option_length != 1`, wirerust MUST return `Err` mapped to **E-INP-008** — do NOT
+  silently ignore the option or fall back to the default exponent 6.
+  **Test:** `test_BC_2_01_011_options_malformed_length_e_inp_008`,
+  `test_BC_2_01_011_if_tsresol_wrong_length_e_inp_008`
 - **AC-006 (IDB-parse three-level precedence — M-7, Decision 17):** When an IDB is encountered,
   wirerust applies checks in this exact order:
   1. **E-INP-013 position check FIRST** — if `packets_emitted > 0`, return E-INP-013
@@ -159,13 +176,14 @@ multi-IDB agreement check (BC-2.01.018). `if_tsresol` absent defaults to 10^-6 (
 | EC-003 | `if_tsresol` = `0x8A` (i.e., bit 7 set + low 7 bits = 10; base-2, 2^-10 ≈ ~1ms) | Bit 7 set; base-2 exponent 10; conversion uses 2^10 = 1024 ticks/second. **Test:** `test_BC_2_01_011_if_tsresol_base2` |
 | EC-004 | Two IDBs with identical `linktype` | Both stored; interface table has 2 entries; multi-IDB policy check passes. **Test:** `test_BC_2_01_011_two_idbs_same_linktype` |
 | EC-005 | Two IDBs with different `linktype` | Stored individually; multi-IDB policy (BC-2.01.018) returns `Err`. **Test:** `test_BC_2_01_011_two_idbs_different_linktype` |
-| EC-006 | IDB with no options (options section empty) | `if_tsresol` defaults to 10^-6; `snaplen` still extracted from fixed fields @4-7. **Test:** `test_BC_2_01_011_idb_no_options` |
+| EC-006 | IDB with no options (options section empty) | `if_tsresol` defaults to 10^-6; `snaplen` is read-and-discarded from fixed fields @4-7 (not stored). **Test:** `test_BC_2_01_011_idb_no_options` |
 | EC-007 | `linktype` = `DataLink::ETHERNET` | Stored as-is; flows directly to `PcapSource.datalink`. **Test:** `test_BC_2_01_011_linktype_ethernet` |
 | EC-008 | IDB body fewer than 8 bytes (wirerust body-decode truncation). **Constructible window: 12 ≤ block_total_length < 20** — the crate frames and returns the block (btl≥12, alignment OK), but the body slice is 0–7 bytes (btl−12 < 8), so wirerust body-decode finds fewer than the 8 minimum bytes (linktype:2 + reserved:2 + snaplen:4). btl<12 is NOT this case — that is crate-rejection → E-INP-010. btl≥20 is NOT this case — body is ≥8 bytes, no truncation. Canonical fixture: btl=16 (body=4 bytes). | `Err` mapping to **E-INP-008** (IDB structural parse failure; wirerust body-decode finds body<8). No panic. **Test:** `test_BC_2_01_011_body_truncated_e_inp_008` |
 | EC-009 | IDB encountered after first packet block emitted (`packets_emitted > 0`) | `Err` mapping to **E-INP-013** ("pcapng interface description block after first packet block — unsupported ordering"); interface table not updated; processing stops. **Test:** `test_BC_2_01_011_late_idb_after_packet_rejected_e_inp_013` |
 | EC-010 | IDB `reserved` field non-zero | `Err` mapping to **E-INP-008** (structural IDB error; mirrors crate enforcement at `interface_description.rs:48-49`). **Test:** `test_BC_2_01_011_nonzero_reserved_e_inp_008` |
 | EC-011 | IDB options region contains an option with `option-length` exceeding the remaining body bytes (malformed TLV) | `Err` mapping to **E-INP-008** (IDB structural parse failure); no panic; no OOB read. **Test:** `test_BC_2_01_011_options_malformed_length_e_inp_008` |
 | EC-012 | Late IDB (`packets_emitted > 0`) that ALSO carries a `linktype` differing from the first IDB's (conflict) | `Err` mapping to **E-INP-013** (position check wins; E-INP-001 and E-INP-011 are never evaluated); no panic. **Test:** `test_BC_2_01_011_idb_precedence_e_inp_013_wins_over_conflict` |
+| EC-013 | IDB options TLV contains `if_tsresol` (code 9) with `option_length = 4` (not 1) | `Err` mapping to **E-INP-008** (malformed `if_tsresol` TLV; wirerust MUST NOT silently ignore or default to 6); no panic. **Test:** `test_BC_2_01_011_if_tsresol_wrong_length_e_inp_008` |
 
 ## Canonical Test Vectors
 
@@ -197,8 +215,8 @@ multi-IDB agreement check (BC-2.01.018). `if_tsresol` absent defaults to 10^-6 (
 | L2 Domain Invariants | None directly |
 | Architecture Module | SS-01 (reader.rs, C-4) |
 | Stories | STORY-124 |
-| ADR Reference | ADR-009 rev 7 Decision 2 (IDB coverage), Decision 3 (multi-IDB policy), Decision 4 (if_tsresol extraction), Decision 7/16 (single-section only; second SHB rejected; Invariant 2 deferred), Decision 8 (forward-progress contract; no-panic guarantee at framing layer), Decision 10 (panic surface), Decision 15 (interleaved IDB after first packet block => E-INP-013 rejection), Decision 17 (IDB-parse three-level precedence: E-INP-013 position > E-INP-001 whitelist > E-INP-011 conflict), Decision 20 (uniform error-code rule: btl<12→E-INP-010; 12≤btl<20→body<8→E-INP-008; per-block fixed-field minimum IDB=8), Decision 21 (if_tsoffset NOT extracted this cycle; only if_tsresol code 9 is extracted and applied) |
-| Error Taxonomy | E-INP-008 (IDB structural parse failure: (a) body < 8 bytes on wirerust body-decode path [constructible window: 12≤btl<20; wirerust checks body.len()>=8 itself]; (b) reserved != 0; (c) malformed options TLV length exceeding remaining body. btl<12 is NOT E-INP-008 — that is E-INP-010 via crate-rejection path), E-INP-010 (btl<12/misaligned/EOF — crate rejects before returning block), E-INP-013 (IDB after first packet block — error-taxonomy.md v2.8) |
+| ADR Reference | ADR-009 rev 9 Decision 2 (IDB coverage), Decision 3 (multi-IDB policy), Decision 4 (if_tsresol extraction), Decision 7/16 (single-section only; second SHB rejected; Invariant 2 deferred), Decision 8 (forward-progress contract; no-panic guarantee at framing layer), Decision 10 (panic surface), Decision 15 (interleaved IDB after first packet block => E-INP-013 rejection), Decision 17 (IDB-parse three-level precedence: E-INP-013 position > E-INP-001 whitelist > E-INP-011 conflict), Decision 20 (uniform error-code rule: btl<12→E-INP-010; 12≤btl<20→body<8→E-INP-008; per-block fixed-field minimum IDB=8), Decision 21 (if_tsoffset NOT extracted this cycle; only if_tsresol code 9 is extracted and applied; snaplen likewise read-and-discarded, no consumer after SPB dropped — F-M3) |
+| Error Taxonomy | E-INP-008 (IDB structural parse failure: (a) body < 8 bytes on wirerust body-decode path [constructible window: 12≤btl<20; wirerust checks body.len()>=8 itself]; (b) reserved != 0; (c) malformed options TLV length exceeding remaining body; (d) if_tsresol option (code 9) with option_length != 1 — malformed TLV, not silently defaulted. btl<12 is NOT E-INP-008 — that is E-INP-010 via crate-rejection path), E-INP-010 (btl<12/misaligned/EOF — crate rejects before returning block), E-INP-013 (IDB after first packet block — error-taxonomy.md v2.8) |
 
 ## Related BCs
 

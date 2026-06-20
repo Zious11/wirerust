@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.4"
+version: "1.5"
 status: draft
 producer: product-owner
 timestamp: 2026-06-19T00:00:00Z
@@ -13,6 +13,7 @@ capability: CAP-01
 lifecycle_status: active
 introduced: v0.10.0-pcapng
 modified:
+  - "v1.5: Pass-6 remediation T3 F-H1 (ADR-009 rev 9) — This BC was MISSED in pass-4 and pass-5 dispatches; brought current here. PC1 EPB/SPB error-code mapping corrected per Decision 20 (rev 8): EPB/SPB BODY-DECODE failures (body-too-short, captured_len/padding overrun) → E-INP-008 (wirerust body-decode path); 'Failed to parse pcapng Enhanced Packet Block (packet <seq>)' and 'Failed to read pcapng Simple Packet Block' context strings now map to E-INP-008, NOT E-INP-010. E-INP-010 is STRICTLY crate framing rejection: btl<12/misaligned/EOF plus EPB interface_id OOB-on-non-empty (E-INP-010) and empty-table (E-INP-009). 'Failed to skip pcapng block' remains E-INP-010 (crate framing). Updated PC1 bullet list to reflect the full three-way split: body-decode→E-INP-008, interface_id empty→E-INP-009, interface_id OOB/framing→E-INP-010. Updated Description, EC-002, EC-003, and Error Taxonomy field to include E-INP-008 for EPB/SPB body-decode. — 2026-06-20"
   - "v1.4: Pass-3 remediation Burst Q3 (ADR-009 rev 6) — (H-3) E-INP-001 added to PC1 context-string list: 'pcapng Interface Description Block link type rejected' → E-INP-001 (whitelist Err raised at IDB-parse time paths through this cross-cutting contract). Error Taxonomy traceability field updated to include E-INP-001. Description updated to note taxonomy range includes E-INP-001. — 2026-06-19"
   - "v1.3: Pass-2 remediation Burst P2b (ADR-009 rev 5) — (C-4 CRITICAL) EC-002 error code corrected: EPB OOB on non-empty table → E-INP-010 (was E-INP-008). EC-005 minimum corrected: 'below minimum 8' → 'below minimum 12' (ADR Decision 8; crate rejects block_total_length < 12). (O-2) PC1 context strings extended: add E-INP-009 'before any Interface Description Block' context wording. Add E-INP-013 (interleaved-IDB) reference to edge-case map and Error Taxonomy field. (I-11) add Test: citations to ACs. — 2026-06-19"
   - "v1.2: ADR-009 rev 4 Burst B — Add VP-028 (cargo-fuzz fuzz_pcapng_reader) to Verification Properties, explicitly tagged as F6 hardening deliverable NOT F3. State that the no-panic-on-malformed-input contract is the cross-cutting parent of per-BC no-panic ACs. Add PC3 (no panic, no infinite loop). — 2026-06-19"
@@ -36,8 +37,11 @@ IDB link type) MUST surface as `Err(anyhow::Error)` via the existing `?` propaga
 `anyhow::Context` text that identifies the block type and, where applicable, the interface
 index or block sequence number. The error ultimately maps to one of the taxonomy entries
 (E-INP-001, E-INP-008 through E-INP-013). E-INP-001 applies when the IDB linktype whitelist
-check fires at IDB-parse time (BC-2.01.016); E-INP-008 through E-INP-013 cover the remaining
-pcapng structural error classes. No pcapng parse error produces a `panic!` or an `unwrap`
+check fires at IDB-parse time (BC-2.01.016). Per Decision 20 (ADR-009 rev 8): EPB/SPB
+**body-decode** failures (body-too-short, captured_len/padding overrun after crate framing) →
+**E-INP-008** (wirerust body-decode path); crate-level framing rejection (btl<12/misaligned/EOF)
+and EPB `interface_id` OOB on a non-empty table → **E-INP-010**; EPB/SPB before any IDB
+(empty table) → **E-INP-009**. No pcapng parse error produces a `panic!` or an `unwrap`
 in production code.
 
 **Cross-cutting no-panic parent:** This BC is the authoritative cross-cutting contract for
@@ -58,14 +62,18 @@ across the full input space.
 1. The function returns `Err(anyhow::Error)` whose error chain contains at minimum:
    - The root cause from `pcap-file` 2.0.0's parser (e.g., an I/O error or a parse error).
    - An anyhow context string identifying the block type, e.g.:
-     - `"Failed to parse pcapng Section Header Block"` (→ E-INP-008)
-     - `"Failed to parse pcapng Interface Description Block at interface index <N>"` (→ E-INP-008)
-     - `"Failed to parse pcapng Enhanced Packet Block (packet <seq>)"` (→ E-INP-010)
-     - `"Failed to read pcapng Simple Packet Block"` (→ E-INP-010)
-     - `"Failed to skip pcapng block (type=0x{block_type:08X})"` (→ E-INP-010)
-     - `"pcapng Enhanced Packet Block encountered before any Interface Description Block"` (→ E-INP-009)
-     - `"pcapng Simple Packet Block encountered before any Interface Description Block"` (→ E-INP-009)
+     - `"Failed to parse pcapng Section Header Block"` (→ E-INP-008; SHB structural body-decode)
+     - `"Failed to parse pcapng Interface Description Block at interface index <N>"` (→ E-INP-008; IDB structural body-decode)
+     - `"Failed to parse pcapng Enhanced Packet Block (packet <seq>)"` (→ **E-INP-008**; EPB **body-decode** failure: body-too-short [btl 32≤btl<52], captured_len or padding overrun — wirerust body-decode path, crate successfully framed the block)
+     - `"Failed to read pcapng Simple Packet Block"` (→ **E-INP-008**; SPB **body-decode** failure: body-too-short [btl 16≤btl<20], length field overrun — wirerust body-decode path, crate successfully framed the block)
+     - `"Failed to skip pcapng block (type=0x{block_type:08X})"` (→ E-INP-010; crate framing rejection: btl<12/misaligned/EOF)
+     - `"pcapng Enhanced Packet Block encountered before any Interface Description Block"` (→ E-INP-009; empty interface table)
+     - `"pcapng Simple Packet Block encountered before any Interface Description Block"` (→ E-INP-009; empty interface table)
+     - `"pcapng Enhanced Packet Block references interface <id> but only <n> interfaces defined"` (→ E-INP-010; EPB interface_id OOB on non-empty table; distinct from empty-table E-INP-009)
      - `"pcapng Interface Description Block link type rejected"` (→ E-INP-001; context string wraps the root `Err` from the BC-2.01.016 whitelist check; the full message rendered to the user is the E-INP-001 format: `"Unsupported pcap link type: <type>. Supported: ..."` propagated via the anyhow chain)
+   **Error-code split (Decision 20, ADR-009 rev 8):** EPB/SPB body-decode failures → E-INP-008;
+   crate framing rejection (btl<12/misaligned/EOF) → E-INP-010; interface_id OOB on non-empty
+   table → E-INP-010; interface table empty → E-INP-009. These are NOT interchangeable.
 2. No partial `PcapSource` is returned on parse error; the entire operation fails.
 3. **No panic, no infinite loop (cross-cutting no-panic contract):** For ANY byte sequence
    fed to `PcapSource::from_pcap_reader`, the function returns `Ok(_)` or `Err(_)` — it
@@ -93,8 +101,8 @@ across the full input space.
 | ID | Description | Expected Behavior |
 |----|-------------|-------------------|
 | EC-001 | Truncated SHB | `Err` chain: root I/O error + "Failed to parse pcapng Section Header Block" context → E-INP-008 |
-| EC-002 | EPB references interface index 5 when only 2 IDBs exist | `Err` with context "Enhanced Packet Block references interface 5 but only 2 interfaces defined" → E-INP-010 (OOB on non-empty table; empty-table case is E-INP-009) |
-| EC-003 | EPB packet data truncated mid-block | `Err` with EPB context + block sequence hint → E-INP-010 |
+| EC-002 | EPB references interface index 5 when only 2 IDBs exist | `Err` with context "pcapng Enhanced Packet Block references interface 5 but only 2 interfaces defined" → **E-INP-010** (interface_id OOB on non-empty table; distinct from empty-table E-INP-009) |
+| EC-003 | EPB packet data truncated mid-block (crate frames block; wirerust body-decode finds captured_len or padding overrun) | `Err` with EPB context + block sequence hint → **E-INP-008** (wirerust EPB body-decode path; NOT E-INP-010, which is crate framing rejection) |
 | EC-004 | Multi-IDB linktype conflict | `Err` with context identifying conflicting types → E-INP-011 |
 | EC-005 | Unknown block with `block_total_length < 12` | `Err` with context "block_total_length=<N> is below minimum 12" → E-INP-010 (ADR-009 Decision 8: crate rejects block_total_length < 12, not < 8) |
 | EC-006 | IDB block appears after first EPB (interleaved ordering) | `Err` → E-INP-013: "pcapng interface description block after first packet block — unsupported ordering"; block sequence numbers of the late IDB and first packet block included in context |
@@ -127,8 +135,8 @@ across the full input space.
 | L2 Domain Invariants | None directly |
 | Architecture Module | SS-01 (reader.rs, C-4) |
 | Stories | STORY-126 |
-| ADR Reference | ADR-009 Consequences: "Adding *.pcapng to the src/main.rs directory glob means malformed pcapng files that were silently excluded now produce errors at the reader level" |
-| Error Taxonomy | E-INP-001 (pcapng IDB linktype whitelist, raised by BC-2.01.016 at IDB-parse time; same code and message format as classic-pcap path), E-INP-008, E-INP-009, E-INP-010, E-INP-011, E-INP-012, E-INP-013 (see taxonomy) |
+| ADR Reference | ADR-009 rev 9 Consequences: "Adding *.pcapng to the src/main.rs directory glob means malformed pcapng files that were silently excluded now produce errors at the reader level"; Decision 20 (uniform error-code split: EPB/SPB body-decode → E-INP-008; crate framing rejection → E-INP-010; interface_id empty → E-INP-009; interface_id OOB non-empty → E-INP-010) |
+| Error Taxonomy | E-INP-001 (pcapng IDB linktype whitelist, raised by BC-2.01.016 at IDB-parse time; same code and message format as classic-pcap path), E-INP-008 (wirerust body-decode failures for ALL block types: SHB body<16, IDB body<8, EPB body<20 or captured_len/padding overrun, SPB body<4 or length overrun — wherever crate framed successfully but wirerust body-decode rejects; per Decision 20 ADR-009 rev 8), E-INP-009 (EPB/SPB before any IDB — empty interface table), E-INP-010 (crate framing rejection: btl<12/misaligned/EOF; also EPB interface_id OOB on non-empty table), E-INP-011, E-INP-012, E-INP-013 (see taxonomy) |
 
 ## Related BCs
 

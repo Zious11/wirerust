@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.5"
+version: "1.6"
 status: draft
 producer: product-owner
 timestamp: 2026-06-19T00:00:00Z
@@ -13,6 +13,7 @@ capability: CAP-01
 lifecycle_status: active
 introduced: v0.10.0-pcapng
 modified:
+  - "v1.6: Pass-6 remediation T4 (ADR-009 rev 9) — (F-M4) Added EC-010: SHB-only pcapng (no IDB, no packet blocks, no skipped blocks) is structurally valid per pcapng spec. Yields Ok(PcapSource) with packets.len()==0, skipped_blocks==0, opb_skipped==0. The zero-packet notice IS emitted (canonical format, no parenthetical — skipped_blocks==0 and opb_skipped==0). Exit 0. An SHB alone constitutes a valid empty section; it is NOT an error. Added test vector and VP for this case. — 2026-06-20"
   - "v1.5: Pass-5 remediation S3 (ADR-009 rev 8) — (M-5) Rewrote PC6: emission moves from reader to main.rs; PcapSource now exposes skipped_blocks:u32 and opb_skipped:u32 (OPB sub-count); from_pcap_reader surfaces these; main.rs reads them and emits the notice. Canonical Decision 19 format: 'notice: <filename>: 0 packets read from <pcap|pcapng> file'; when opb_skipped>0 append '(includes N obsolete Packet Blocks whose data was not analyzed; re-save with mergecap)'. Classic empty pcap also triggers notice (classic/pcapng symmetry). Removed old 'reader emits / wirerust:' wording from PC6. (M-1) Deleted Precondition 3 ('at least 4 bytes available') — contradicts EC-003 (graceful Err on <4 bytes); <4-byte case is a runtime condition handled by postcondition, NOT an input precondition. (M-4) Added AC-007 pinning the BufReader wrap site: from_pcap_reader MUST internally wrap its R:Read in BufReader and feed the SAME BufReader to both fill_buf and downstream parsers. — 2026-06-20"
   - "v1.4: Pass-4 remediation R3a (ADR-009 rev 7) — (H-2 CRITICAL implementability) Removed all consume(4) references: the probe is PEEK-ONLY via BufReader::fill_buf() with ZERO consumption; BOTH branches (classic PcapReader AND pcapng RawBlock) receive the FULL un-consumed stream starting at byte 0. Implementing consume(4) would break every file — removed from Description and Precondition 2 and Postcondition 3. (Decision 19 / M-4) Fixed PC6 citation: 'Decision 17' corrected to 'Decision 19'. (H-4) Added explicit disambiguation rule in Postcondition 3 tail: a file is 'structurally-valid zero-packet' (notice, exit 0) IFF it parses to EOF with no error AND packets.len()==0; an EPB/SPB before any IDB is an ERROR (E-INP-009, exit 1), NOT a zero-packet success. — 2026-06-20"
   - "v1.3: Pass-3 remediation Burst Q3 (ADR-009 rev 6) — (M-3) PC6 broadened: the one-shot stderr notice now fires whenever a STRUCTURALLY VALID pcapng yields zero packets — regardless of skipped_blocks count (fixes silent-trap for IDB-only / SHB-only valid files where skipped_blocks==0). The skipped-block count is included in the message when >0; otherwise a generic 'wirerust: 0 packets read from a valid pcapng file' notice is emitted. Gating condition is 'valid file + zero packets', not 'zero packets AND skipped_blocks>0'. EC-007 updated to reflect broadened condition. VP updated accordingly. — 2026-06-19"
@@ -161,6 +162,7 @@ acceptance.
 | EC-007 | Non-empty pcapng with zero EPB/SPB (all OPB blocks) | `Ok(PcapSource)` with `packets.len() == 0`; `source.opb_skipped > 0`; main.rs emits notice: `"notice: <filename>: 0 packets read from pcapng file (includes N obsolete Packet Blocks whose data was not analyzed; re-save with mergecap)"`; exit code 0. **Test:** `test_BC_2_01_009_zero_packet_opb_only_notice` |
 | EC-008 | Valid pcapng with IDB and SHB but zero EPB/SPB and zero skipped blocks (e.g., capture session opened but no packets recorded) | `Ok(PcapSource)` with `packets.len() == 0`; `source.skipped_blocks == 0`; main.rs emits notice: `"notice: <filename>: 0 packets read from pcapng file"`; exit code 0. **Test:** `test_BC_2_01_009_zero_packet_idb_only_no_skips_notice` |
 | EC-009 | Valid EMPTY classic pcap (valid global header, zero packet records) | `Ok(PcapSource)` with `packets.len() == 0`; main.rs emits notice: `"notice: <filename>: 0 packets read from pcap file"`; exit code 0. Classic/pcapng symmetry. **Test:** `test_BC_2_01_009_zero_packet_empty_classic_pcap_notice` |
+| EC-010 | SHB-only pcapng (no IDB, no packet blocks, no blocks of any kind after the SHB) — degenerate but structurally valid file (F-M4) | `Ok(PcapSource)` with `packets.len() == 0`; `source.skipped_blocks == 0`; `source.opb_skipped == 0`. main.rs emits notice: `"notice: <filename>: 0 packets read from pcapng file"` (no parenthetical segment — `skipped_blocks == 0` and `opb_skipped == 0`); exit code 0. An SHB alone is a valid empty pcapng section per spec §4.1; there are no blocks to skip and no packets to read. **Test:** `test_BC_2_01_009_shb_only_zero_packet_notice` |
 
 ## Canonical Test Vectors
 
@@ -173,6 +175,7 @@ acceptance.
 | 4 bytes `[0xDE, 0xAD, 0xBE, 0xEF]` | `Err` containing "unrecognized pcap magic" or equivalent | error |
 | Unbuffered `Cursor<&[u8]>` with valid pcapng SHB | `Ok(PcapSource)` with correct routing (proves internal BufReader wrap) | regression (AC-007) |
 | Valid EMPTY classic pcap (no packet records) | `Ok(PcapSource)` with `packets.len()==0`; `source.skipped_blocks==0`; `source.opb_skipped==0` | edge-case (EC-009) |
+| SHB-only pcapng (28-byte file: SHB only, no IDB, no subsequent blocks) | `Ok(PcapSource)` with `packets.len()==0`; `source.skipped_blocks==0`; `source.opb_skipped==0`; main.rs emits `"notice: <filename>: 0 packets read from pcapng file"` (no parenthetical); exit 0 | edge-case (EC-010, F-M4) |
 
 ## Verification Properties
 
@@ -185,6 +188,7 @@ acceptance.
 | — | Valid IDB-only pcapng (zero skipped blocks): PcapSource.skipped_blocks==0; main.rs emits one-shot notice without OPB appendage (PC6 / M-3 / M-5) | integration (main.rs): craft pcapng with SHB + IDB only; assert `packets.len()==0`; assert `source.skipped_blocks==0`; assert stderr from main.rs contains `"notice: <filename>: 0 packets read from pcapng file"` (no OPB segment); assert exit code 0 |
 | — | Valid EMPTY classic pcap: main.rs emits one-shot notice with pcap variant (PC6 / M-5 classic symmetry) | integration (main.rs): valid global-header-only .pcap file; assert `packets.len()==0`; assert stderr from main.rs contains `"notice: <filename>: 0 packets read from pcap file"`; assert exit code 0 |
 | — | from_pcap_reader accepts unbuffered Read (AC-007 BufReader wrap-site) | unit: pass `Cursor<&[u8]>` (unbuffered) with valid pcapng SHB; assert `Ok(PcapSource)` routes to pcapng path; no panic or misroute **Test:** `test_BC_2_01_009_unbuffered_read_routes_correctly` |
+| — | SHB-only pcapng emits notice, skipped_blocks==0, opb_skipped==0 (EC-010 / F-M4) | integration (main.rs): craft 28-byte pcapng with SHB only (no IDB, no subsequent blocks); assert `Ok(PcapSource)`, `packets.len()==0`, `source.skipped_blocks==0`, `source.opb_skipped==0`; assert stderr from main.rs contains `"notice: <filename>: 0 packets read from pcapng file"` WITHOUT any parenthetical segment; assert no "skipped" or "obsolete" substring; assert exit code 0. **Test:** `test_BC_2_01_009_shb_only_zero_packet_notice` |
 
 ## Traceability
 
@@ -195,7 +199,7 @@ acceptance.
 | L2 Domain Invariants | None directly |
 | Architecture Module | SS-01 (reader.rs, C-4) |
 | Stories | STORY-123 |
-| ADR Reference | ADR-009 Decision 5 (magic-byte probe discipline), Decision 6 (BC-2.01.004 retirement), Decision 19 (canonical zero-packet notice format; emission in main.rs; PcapSource.skipped_blocks/opb_skipped fields) — rev 8 |
+| ADR Reference | ADR-009 Decision 5 (magic-byte probe discipline), Decision 6 (BC-2.01.004 retirement), Decision 19 (canonical zero-packet notice format; emission in main.rs; PcapSource.skipped_blocks/opb_skipped fields) — rev 9 (F-M4: SHB-only file is structurally valid, yields skipped_blocks==0, notice emitted, exit 0) |
 
 ## Related BCs
 

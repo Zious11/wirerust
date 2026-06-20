@@ -1,7 +1,7 @@
 ---
 document_type: holdout-scenario
 level: ops
-version: "1.4"  # Pass-5 S2 / ADR-009 rev 8 Decision 9 amendment: snaplen DROPPED from SPB captured_len throughout. captured_len = min(original_len, block_body_available) everywhere. Case B rationale updated: body-bound (block_body_available=100), not snaplen clamp. BC Linkage table and Rubric updated. No Case removed — all A–F retained. Stale deferral note about HS-107 Case F removed from BC-2.01.013 (covered here).
+version: "1.5"  # Pass-6 T1 / ADR-009 rev 9 Decision 22: canonical spb_data_available = body.len()-4 formula applied. Case B rationale updated: data.len()==100 confirmed correct under min(original_len=200, body.len()-4=104-4=100)=100; bare body.len() removed. Case E rationale corrected: btl=14 rejected NOT because 14<12 (14>=12) but because 14%4!=0 (pcapng 4-byte alignment requirement; crate rejects misaligned blocks). No cases added or removed.
 status: draft
 producer: product-owner
 timestamp: 2026-06-19T00:00:00Z
@@ -115,11 +115,14 @@ Snaplen not applied (ADR-009 rev 8 Decision 9 amendment).
      trailing_total_len: 74 00 00 00
      ```
 2. The user runs `wirerust analyze spb_snaplen_clamp.pcapng --json`.
-3. The tool exits 0. `total_packets: 1`. The `RawPacket` data length is 100 bytes
-   (`captured_len = min(original_len=200, block_body_available=100) = 100`;
-   the on-disk body is the authoritative bound — snaplen is NOT applied to SPB).
-   The tool does NOT attempt to read 200 bytes from a 100-byte block body; no out-of-bounds
-   read occurs.
+3. The tool exits 0. `total_packets: 1`. The `RawPacket` data length is 100 bytes.
+   Derivation: `block_total_length = 116`, so `body.len() = 116 - 12 = 104` (outer header
+   = type[4]+btl[4]+trailing_btl[4] = 12 bytes). `spb_data_available = body.len() - 4 =
+   104 - 4 = 100` (subtracts the `original_len` field within the body).
+   `captured_len = min(original_len=200, body.len()-4=100) = 100`. The bare `body.len()=104`
+   MUST NOT be used as the data bound — it is 4 bytes too large. Snaplen is NOT applied to
+   SPB (ADR-009 rev 8 Decision 9 amendment). The tool does NOT attempt to read 200 bytes
+   from a 100-byte padded-data region; no out-of-bounds read occurs.
 
 ### Case C — SPB with original_len NOT 4-byte-aligned (padding bytes stripped)
 
@@ -170,33 +173,35 @@ not the padded length of 16. Snaplen is NOT applied for SPB (ADR-009 rev 8 Decis
 
 **Exit code:** non-zero (process exits with a non-success status; exact code is 1 or 2).
 
-### Case E — Truncated SPB (block_total_length=14, below 12-byte crate minimum) → Err E-INP-010
+### Case E — Misaligned SPB (block_total_length=14, fails 4-byte alignment) → Err E-INP-010
 
 1. A crafted pcapng file is presented where the SPB block header claims
-   `block_total_length = 14` — which is below the 12-byte minimum that the pcap-file crate
-   requires to frame any block (type[4] + total_len[4] + trailing_len[4] = 12 bytes outer
-   header alone). The crate cannot frame this block and returns `Err` before wirerust
-   body-decode code runs. wirerust maps this to **E-INP-010** (crate-level framing failure).
+   `block_total_length = 14`. While 14 >= 12 (the outer-header-size minimum), it is
+   rejected by the pcap-file crate because 14 % 4 != 0 — the pcapng specification requires
+   all block_total_length values to be a multiple of 4 bytes, and the crate enforces this
+   4-byte alignment requirement. The crate returns `Err` before wirerust body-decode code
+   runs. wirerust maps this to **E-INP-010** (crate-level framing failure).
    ```
    block_type:         03 00 00 00
-   block_total_length: 0E 00 00 00   # 14 decimal — BELOW 12-byte crate framing minimum
+   block_total_length: 0E 00 00 00   # 14 decimal — 14 % 4 != 0, violates 4-byte alignment
    [at most 2 bytes — file may be truncated here]
    ```
-   Note: a block_total_length of 14 is rejected by the crate before wirerust sees a body.
-   The `original_len` field is never reached. This is E-INP-010 (crate-level), not E-INP-008
-   (wirerust body-decode-level).
+   Note: a block_total_length of 14 is rejected by the crate due to misalignment, not
+   because it is below 12 (14 >= 12). The `original_len` field is never reached. This is
+   E-INP-010 (crate-level alignment rejection), not E-INP-008 (wirerust body-decode-level).
 2. The user runs `wirerust analyze truncated_spb.pcapng --json 2>&1`.
 3. The tool exits non-zero. An error is printed to stderr referencing a truncated or
-   malformed block. The error is consistent with **E-INP-010** (crate-level framing failure).
-   No panic. No JSON output on stdout.
+   malformed block. The error is consistent with **E-INP-010** (crate-level framing failure
+   due to 4-byte alignment violation: 14 % 4 != 0). No panic. No JSON output on stdout.
 
 **Exit code:** non-zero.
 
 **Note — distinction from Cases D and F:** Case D is a structural error at the file level
 (no IDB seen at all before the SPB — E-INP-009). Case E is a crate-level framing error
-(block_total_length below the crate framing minimum of 12 — E-INP-010; wirerust body-decode
-is never reached). Case F is a wirerust body-decode error (btl=12 frames correctly but
-body=0 < 4 SPB fixed-fields — E-INP-008). All three are distinct error codes and paths.
+(block_total_length violates 4-byte alignment: 14 % 4 != 0 → E-INP-010; wirerust
+body-decode is never reached). Case F is a wirerust body-decode error (btl=12 frames
+correctly — 12 % 4 == 0, 12 >= 12 — but body=0 < 4 SPB fixed-fields → E-INP-008). All
+three are distinct error codes and paths.
 
 ### Case F — SPB with btl=12 (aligned, crate frames, body=0 < 4 SPB fixed-field) → Err E-INP-008
 
@@ -250,7 +255,7 @@ exactly 12 bytes the crate succeeds but delivers an empty body.
 | BC-2.01.013 | Postcondition 1 — captured_len = min(original_len, block_body_available); padding stripped; snaplen not applied | Cases A and C: correct data length after padding strip |
 | BC-2.01.013 | Postcondition 1 — data bounded by min(original_len, block_body_available) | Case B: on-disk body bound prevents over-read (snaplen NOT applied per ADR-009 rev 8 Decision 9 amendment) |
 | BC-2.01.013 | Postcondition 5 / AC-001 — empty interface table → E-INP-009 | Case D: guard fires before idb[0] access |
-| BC-2.01.013 | Postcondition 6 / EC-005 — block_total_length < 12 (crate framing failure) → E-INP-010 | Case E: crate cannot frame btl=14; crate Err → wirerust E-INP-010 |
+| BC-2.01.013 | Postcondition 6 / EC-005 — btl=14 violates 4-byte alignment (14%4!=0; crate rejects) → E-INP-010 | Case E: crate rejects btl=14 for alignment (not "below minimum" — 14>=12); crate Err → wirerust E-INP-010 |
 | BC-2.01.013 | Postcondition 6 / EC-005 — btl=12 (crate frames, body=0 < 4 SPB fixed-field) → E-INP-008 | Case F: Decision 20 body-too-short path; distinct from Case E crate framing path |
 | BC-2.01.013 | AC-002 (padding strip) — data.len() == captured_len, NOT padded length | Case C: primary padding-strip assertion |
 | BC-2.01.013 | AC-003 (no-panic, SEC-005) — Err returned for malformed inputs, no panic | Cases D, E, F: no panic on adversarial inputs |
@@ -288,7 +293,8 @@ wirerust analyze truncated_spb.pcapng --json 2>&1
 echo "Exit: $?"
 ```
 Expect: non-zero exit, error on stderr consistent with **E-INP-010** (crate-level framing
-failure — btl=14 cannot be framed by crate), no JSON on stdout.
+failure — btl=14 violates 4-byte alignment: 14%4!=0; crate rejects before wirerust sees a
+body), no JSON on stdout.
 
 ```
 wirerust analyze spb_btl12.pcapng --json 2>&1
@@ -305,8 +311,9 @@ body-decode rejects it). NOT E-INP-010. No JSON on stdout. No panic.
   trimmed. Snaplen is NOT applied. Case A confirms no truncation when not needed.
   Case C confirms padding bytes are NOT included.
 - **Body-bound correctness** (weight: 0.20): Case B — `data.len() == 100` when
-  `min(original_len=200, block_body_available=100) = 100`; no read beyond block body.
-  The body-available bound is the sole on-disk authority — snaplen is NOT applied for SPB
+  `min(original_len=200, body.len()-4 = 104-4 = 100) = 100`; no read beyond the
+  padded-data region. `spb_data_available = body.len() - 4` is the sole on-disk authority
+  (NOT bare `body.len()` = 104, which is 4 bytes too large). Snaplen is NOT applied for SPB
   (ADR-009 rev 8 Decision 9 amendment).
 - **No-panic safety** (weight: 0.25): Cases D, E, F — unchecked `idb[0]` access, crate
   framing failures, and body-too-short conditions all return graceful `Err`, never panic.
@@ -329,8 +336,10 @@ body-decode rejects it). NOT E-INP-010. No JSON on stdout. No panic.
   the implicit `idb[0]` access is always safe). The E-INP-009 case (Case D) exercises the
   guard for the zero-IDB case — a malformed but grammatically plausible file.
 - `SPB_FIXED_OVERHEAD_BYTES = 4` (body-relative) vs `EPB_FIXED_OVERHEAD_BYTES = 20` (body-
-  relative). Confusing these constants would cause a wrong minimum-length check and/or
-  incorrect padding-strip calculation. Case E probes whether the constant is correct.
+  relative). Confusing these constants would cause an incorrect padding-strip calculation.
+  Case C probes padding-strip correctness; Case F probes the body-too-short threshold
+  (body.len()-4 < 0, i.e., body.len() < 4). Case E probes the crate's 4-byte alignment
+  enforcement (btl=14, 14%4!=0 → E-INP-010).
 - Padding bytes are always 0x00 per the pcapng spec, but the EVALUATOR does NOT assume the
   implementation validates their value — the observable contract is only `data.len()`.
 - For Case C, the downstream Ethernet decoder may reject the 13-byte frame as too short
@@ -377,10 +386,10 @@ no error. A zero-padded payload is acceptable: `[00 * 20]`.
 
 "HOLDOUT LOW: HS-107 (satisfaction: 0.XX) — SPB framing has defects.
 Case A failure (exit non-zero) indicates SPB block parsing is absent or crashes on valid input.
-Case B failure (data.len() > 100) indicates the on-disk body-bound (block_body_available) is not being applied for SPBs — wirerust is reading past the block body. Note: snaplen is NOT applied for SPB (ADR-009 rev 8 Decision 9 amendment); the bound is block_body_available only.
+Case B failure (data.len() > 100) indicates the canonical spb_data_available bound (body.len()-4 = 104-4 = 100) is not being applied — wirerust is reading past the padded-data region. A data.len()==104 failure indicates bare body.len() was used (4 bytes too large). Note: snaplen is NOT applied for SPB (ADR-009 rev 8 Decision 9 amendment); the bound is min(original_len, body.len()-4) only.
 Case C failure (data.len() == 16 instead of 13) indicates padding bytes are not stripped.
 Case D failure (panic / index OOB) indicates the empty-interface-table guard (H-4 fix) is
 absent or not applied on the SPB path.
-Case E failure (exit 0 or panic) indicates the crate-level minimum framing check is absent; btl=14 cannot be framed by the crate and must produce E-INP-010.
+Case E failure (exit 0 or panic) indicates the crate-level 4-byte alignment check is absent; btl=14 (14%4!=0) violates pcapng 4-byte alignment and must be rejected by the crate as E-INP-010. Note: the rejection cause is alignment (14%4!=0), NOT "below minimum" (14>=12).
 Case F failure (exit 0, panic, or wrong error code E-INP-010 instead of E-INP-008) indicates the body-too-short path is missing or conflated with the crate framing path. btl=12 means the crate delivers a 0-byte body; wirerust body-decode MUST check body.len() >= 4 (for original_len) and return E-INP-008, not E-INP-010.
 See BC-2.01.013 (AC-001 through AC-004), VP-028, VP-031, ADR-009 rev 4 Decision 2 (SPB section), ADR-009 rev 7 Decision 20."

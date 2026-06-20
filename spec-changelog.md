@@ -14,6 +14,120 @@ changes, invariant rewrites).
 
 ---
 
+## [pcapng-f2-pass6-remediation-2026-06-20] — 2026-06-20
+
+### PASS-6 REMEDIATION: 4H/5M/4L FINDINGS FIXED — D-156
+
+**Trigger:** F2 pass-6 adversarial review (D-155) — 0C/4H/5M/4L. FIRST zero-critical pass.
+Trajectory P1:23/P2:24/P3:17/P4:13/P5:13/P6:13 — count plateau; severity declining
+(criticals 3/4/1/1/1/0). Remediation round-6 applied. Adversary pass-7 pending.
+Clean-pass counter 0/3.
+
+**F-H1 (HIGH — BC-2.01.017 EPB/SPB body-decode context strings → E-INP-008):**
+BC-2.01.017 PC1 mapped EPB/SPB body-decode context strings to E-INP-010, contradicting
+ADR-009 Decision 20 (uniform body-decode-truncation rule: body-too-short after crate
+framing → E-INP-008 at ALL block types). BC-2.01.017 had been omitted from pass-4 and
+pass-5 dispatch checklists — third cross-cutting-parent-BC-omission pattern (C-4/pass-2,
+H-3/pass-3, F-H1/pass-6). BC-2.01.017 v1.4→v1.5: EPB/SPB body-decode context strings
+corrected to E-INP-008; E-INP-010 scope in this BC now strictly crate-framing failures.
+F-L3 process-gap actioned: BC-2.01.017 sweep is now a mandatory per-burst checklist item
+per Lesson 12.
+
+**F-H2/F-H3 (HIGH — Decision 22: canonical spb_data_available=body.len()-4):**
+`block_body_available` had two definitions: BC-2.01.013 used "btl-16" (data bytes after
+original_len header) while VP-031 used bare "body.len()" (crate body slice = btl-12,
+includes 4-byte original_len field) — off by 4. HS-107 Case B asserted data.len()==100
+(btl-16) but VP-031 form gave min(200, 104)=104, contradicting the holdout. ADR-009
+Decision 22 (rev 9) established the canonical definition: `spb_data_available = body.len()-4`
+(crate provides a body slice that already omits 8-byte header+trailer, but still includes the
+4-byte original_len field; data bytes start after that). BC-2.01.013 v1.5→v1.6, VP-031
+formula corrected to min(original_len, body.len()-4). HS-107 v1.4→v1.5: Case B rationale
+annotated with derivation (body.len()=104; data_bytes=104-4=100).
+
+**F-H4 (HIGH — interface_id discriminant split E-INP-009/E-INP-010 in VP-027 and HS-104):**
+E-INP-009 (empty interface table) vs E-INP-010 (OOB on non-empty table) interface_id
+discriminant was unpinned. ADR-009 used ambiguous slash notation "(→ E-INP-009 / E-INP-010)";
+VP-027 proved no-panic+bounds but not the discriminant. HS-104 Cases A/B lacked exact code
+requirements. BC-2.01.012 v1.5→v1.6: EC-006/PC5 empty-table path explicitly → E-INP-009;
+EC-007 OOB path explicitly → E-INP-010; slash ambiguity removed. VP-027 extended to assert
+discriminant. HS-104 v1.3→v1.4: Case A renamed "Case (empty)" with E-INP-009 exact;
+Case B renamed "Case (OOB)" with E-INP-010 exact; byte-exact discriminant requirements
+pinned. ADR-009 rev 9 slash notation replaced with two explicit cases.
+
+**F-M1 (MEDIUM — HS-107 Case E alignment rationale):**
+HS-107 Case E (btl=14) rationale said "below 12-byte minimum" but 14>=12 (14 passes the
+framing check). Real rejection reason: alignment violation (14%4=2; pcapng requires
+4-byte-aligned btl). HS-107 v1.4→v1.5: Case E rationale corrected to alignment violation.
+
+**F-M2 (MEDIUM/process-gap — BOM canonical table + section-wide endianness):**
+LE/BE on-disk byte ordering restated across 4+ prose sites in BC-2.01.010, HS-103,
+ADR-009 — already corrected 3× but no single canonical anchor. BC-2.01.010 v2.0→v2.1:
+BOM canonical table added as §BOM-Canonical; all sibling BOM prose sites carry a
+cross-reference to this table per F-M2 canonical-anchor pattern (Lesson 13).
+
+**F-M3 (MEDIUM — snaplen dead extraction after Decision 9 amend):**
+BC-2.01.011 extracted snaplen and stored it in InterfaceInfo "for SPB use" but Decision 9
+(rev 8) dropped snaplen from SPB captured_len formula. snaplen became dead extraction —
+same anti-pattern condemned by Decision 21 for if_tsoffset. BC-2.01.011 v1.5→v1.6: snaplen
+extraction annotated as DIAGNOSTIC-ONLY — MUST NOT be applied to captured_len. Note aligned
+with Decision 9 amend and Decision 22.
+
+**F-M4 (MEDIUM — SHB-only zero-packet edge case):**
+SHB-only pcapng (no IDB, no packets, no subsequent blocks) zero-packet disposition was
+unspecified. HS-108 covered IDB-only / OPB-only / EPB-before-IDB but not SHB-only.
+HS-108 v1.2→v1.3: Case F (F-M4) added — SHB-only 28-byte pcapng → notice with
+skipped_blocks==0 (no parenthetical segment), exit 0. Confirms "valid file + zero packets"
+fires even with no IDB and no skip arm traversal. BC-2.01.009 edge case cross-reference added.
+
+**F-M5 (MEDIUM — if_tsresol option_length!=1 → E-INP-008):**
+if_tsresol option (code 9) with option_length!=1 was unspecified on the raw path. AC-005
+only checked `length <= remaining`; a 2-byte if_tsresol passed the length guard, silently
+delivering a wrong tsresol value. BC-2.01.011 v1.5→v1.6: AC-005 extended — option_length!=1
+→ E-INP-008 (malformed option; not a semantic failure but a format invariant violation).
+E-INP-008 trigger list in error-taxonomy confirmed (no new entry required; covered by
+existing "malformed option TLV" Notes already added in v2.9/D-147 M-6).
+
+**F-L1 (LOW — VP-025 scope note):**
+VP-025 Kani scope note referenced only "if_tsresol=6 path" after pass-5 saturation
+extension; general formula totality branches not listed. VP-025 scope note extended to
+list all formula branches (base-10 / base-2 / µs fast-path / saturation).
+
+**F-L2 (LOW — VP-INDEX count sweep):**
+VP-INDEX total_vps=31 confirmed by count-propagation sweep per S-7.02 discipline.
+VP-INDEX v2.7→v2.8 (VP-027 discriminant extension + VP-031 formula correction).
+BC count 302 confirmed (error-taxonomy next_free E-INP-014 unchanged).
+
+**F-L3 (LOW/process-gap — BC-2.01.017 checklist operationalized):**
+Root of F-H1: BC-2.01.017 omitted from pass-4 and pass-5 checklists. Per Lesson 12
+action, dispatch checklists now include mandatory item "Did BC-2.01.017 receive a version
+bump?" for any burst touching Decision 20 routing.
+
+**F-L4 (LOW — error-taxonomy E-INP-010 BC-refs stale):**
+E-INP-010 BC-references column included BCs whose body-decode paths moved to E-INP-008
+in D-151/D-153. Audit performed: E-INP-010 BC-refs updated to include only BCs with
+remaining crate-framing-failure paths.
+
+**Version bumps (~14 artifacts):**
+- BC-2.01.009 v1.5→v1.6
+- BC-2.01.010 v2.0→v2.1
+- BC-2.01.011 v1.5→v1.6
+- BC-2.01.012 v1.5→v1.6
+- BC-2.01.013 v1.5→v1.6
+- BC-2.01.015 v1.6→v1.7
+- BC-2.01.017 v1.4→v1.5
+- ADR-009 rev 8→rev 9
+- VP-INDEX v2.7→v2.8
+- verification-architecture.md v2.3→v2.4
+- verification-coverage-matrix.md v1.17→v1.18
+- HS-104 v1.3→v1.4
+- HS-107 v1.4→v1.5
+- HS-108 v1.2→v1.3
+- BC-INDEX v1.61→v1.62
+
+302 active BCs unchanged. error-taxonomy v3.4 unchanged (next_free E-INP-014 confirmed).
+
+---
+
 ## [pcapng-f2-pass5-reaudit-minors-2026-06-20] — 2026-06-20
 
 ### PASS-5 RE-AUDIT: 4 MINOR FINDINGS FIXED — 6 SEAMS CLEAN — D-154
