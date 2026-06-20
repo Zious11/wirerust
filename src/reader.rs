@@ -410,10 +410,25 @@ impl PcapSource {
         let mut block_seq: u32 = 1; // SHB was block #1
 
         while !src.is_empty() {
+            let prev_len = src.len();
             let (rem, raw_block) = parser.next_raw_block(src).map_err(|e| {
                 anyhow!("pcapng block framing error: {e} (E-INP-010: crate framing rejection)")
             })?;
             src = rem;
+            // Forward-progress guard (CWE-835 / ADR-009 Decision 8): if the crate
+            // returned Ok but consumed zero bytes, the loop would spin forever.
+            // This is a defensive guard — no known pcap-file 2.0.0 version triggers it on
+            // well-formed input; it fires only if a future crate regression produces a
+            // zero-advance Ok. Treat as a framing anomaly (E-INP-010 framing layer).
+            if src.len() >= prev_len {
+                return Err(anyhow!(
+                    "pcapng block walk stalled: no forward progress at block #{block_seq} \
+                     (rem={} bytes, prev={} bytes) \
+                     (E-INP-010: framing anomaly, zero-advance guard)",
+                    src.len(),
+                    prev_len
+                ));
+            }
             block_seq = block_seq.saturating_add(1);
 
             match raw_block.type_ {
