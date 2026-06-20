@@ -45,6 +45,9 @@ modified:
   - date: 2026-06-20
     actor: architect
     reason: "ADR-009 rev 9→rev 10 (Decision 23): first-SHB btl=8 maps to E-INP-008 (not E-INP-010). PcapNgParser::new raises InvalidField(invalid magic number) for btl-degenerate inputs — same arm as genuine invalid-BOM; indistinguishable at API level. No VP count change, no section file change, no subsystem change. BC-2.01.010 EC-008/AC-004b/PC5/Canonical Test Vectors require PO update. test_BC_2_01_010_shb_framing_rejection_e_inp_010 requires rename+reassertion by implementer (Decision 23 Implementer Directive). No code change needed — existing mapper is correct."
+  - date: 2026-06-20
+    actor: architect
+    reason: "ADR-009 rev 10→rev 11 (Decision 24): IDB structural validation (reserved!=0, block length<8) is enforced by InterfaceDescriptionBlock::from_slice inside next_raw_block (parser.rs:103-105, interface_description.rs:47-49) before wirerust receives the RawBlock. wirerust string-matches InvalidField('InterfaceDescriptionBlock: reserved != 0') and InvalidField('InterfaceDescriptionBlock: block length < 8') in map_err to produce E-INP-008; unmatched InvalidField falls through to E-INP-010 catch-all. Regression guard test_BC_2_01_011_nonzero_reserved_e_inp_008 pins E-INP-008 and refutes E-INP-010. Explicit IDB sibling of Decision 23 (SHB string coupling). BC-2.01.011 PC4/EC-010 require PO correction (BC incorrectly says wirerust mirrors the check; correct: wirerust delegates to crate and remaps via string match). No code change needed; no VP count change; no section file change; no subsystem change."
 phase: 1c
 origin: brownfield
 deployment_topology: single-service

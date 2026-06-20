@@ -9,11 +9,21 @@ supersedes: null
 superseded_by: null
 ---
 
-# ADR-009: pcapng Capture-Format Reader Support (rev 10)
+# ADR-009: pcapng Capture-Format Reader Support (rev 11)
 
 ## Status
 
 **Accepted** — 2026-06-20.
+
+**Rev 11 amendment — 2026-06-20:** Decision 24 added. IDB structural validation
+(`InterfaceDescriptionBlock::from_slice` in `pcap-file` 2.0.0) fires INSIDE `next_raw_block`
+before the `RawBlock` is returned to wirerust; the crate raises
+`PcapError::InvalidField("InterfaceDescriptionBlock: reserved != 0")` and
+`PcapError::InvalidField("InterfaceDescriptionBlock: block length < 8")` for malformed IDBs,
+and wirerust string-matches these messages in `read_pcapng_crate`'s `map_err` to produce
+E-INP-008. Decision 24 is the explicit IDB sibling of Decision 23 (SHB string coupling). The
+regression guard `test_BC_2_01_011_nonzero_reserved_e_inp_008` pins the mapping. BC-2.01.011
+PC4/EC-010 require PO correction. No code change needed — existing mapper is correct.
 
 **Rev 10 amendment — 2026-06-20:** Decision 20 amended to reflect empirical `pcap-file` 2.0.0
 crate behavior at the first-SHB boundary (`PcapNgParser::new`). The btl=8 first-SHB case now
@@ -655,6 +665,99 @@ PO actions: Update E-INP-010, E-INP-012, and E-INP-013 entries in error-taxonomy
   3. The doc comment must cite Decision 23 as the binding authority.
   The test MUST NOT assert `"E-INP-010"` anywhere. The weakened bare `is_err()` assertion is not acceptable.
 
+**Decision 24 — IDB structural validation is enforced by the crate at the `next_raw_block` boundary; wirerust remaps the crate error to E-INP-008 via documented string-coupling (rev 11 amendment; IDB sibling of Decision 23).** [NEW — rev 11.]
+
+**Scope:** This decision applies to IDB blocks encountered during the block-walk loop
+(`next_raw_block`), which calls `try_into_block` → `InterfaceDescriptionBlock::from_slice`
+on every raw block whose type code is `0x00000001`. This is distinct from the first-SHB
+path (`PcapNgParser::new`) documented in Decision 23.
+
+**Empirical crate behavior (`pcap-file` 2.0.0` source):** `next_raw_block` calls
+`try_into_block` internally; for an IDB, `try_into_block` delegates to
+`InterfaceDescriptionBlock::from_slice` (`parser.rs:103-105`,
+`interface_description.rs:47-49`). That function validates two structural fields
+BEFORE returning the `RawBlock` to wirerust:
+
+  1. `reserved != 0` — the 2-byte reserved field in the IDB fixed fields MUST be zero.
+     Violation: crate returns `Err(PcapError::InvalidField("InterfaceDescriptionBlock: reserved != 0"))`.
+  2. `block length < 8` — the IDB body must be at least 8 bytes (linktype:2 + reserved:2 +
+     snaplen:4). Violation: crate returns `Err(PcapError::InvalidField("InterfaceDescriptionBlock: block length < 8"))`.
+
+Because both checks fire INSIDE `next_raw_block` before any `RawBlock` is returned to
+wirerust, the `RawBlock.body` is INACCESSIBLE on the `Err` path. wirerust CANNOT perform
+its own raw-body reserved/length check for IDBs (unlike the EPB/SPB paths, where
+wirerust receives a `RawBlock` and decodes the body itself).
+
+**Mapping (binding):** wirerust's `read_pcapng_crate` `map_err` handler string-matches the
+crate's `InvalidField` messages to remap them to the correct wirerust error code:
+
+| Condition | Crate error | wirerust error code |
+|-----------|------------|---------------------|
+| IDB `reserved` field != 0 (structural) | `InvalidField("InterfaceDescriptionBlock: reserved != 0")` | **E-INP-008** |
+| IDB body < 8 bytes (block length < 8) | `InvalidField("InterfaceDescriptionBlock: block length < 8")` | **E-INP-008** |
+| Any other unmatched `InvalidField` from `next_raw_block` | `InvalidField(<msg>)` catch-all | **E-INP-010** (safe but imprecise fallback — never panics) |
+
+**Rationale for E-INP-008 (not E-INP-010):** Both conditions represent IDB structural
+content failures — the block was framed successfully by the outer 12-byte header checks
+(Decision 20 Tier 1 / Decision 8: `btl >= 12`, aligned, trailer present), but the IDB
+body content is malformed. This is consistent with BC-2.01.011's intent that malformed
+IDB structure maps to body-decode failure (E-INP-008), not to crate framing rejection
+(E-INP-010). The error-taxonomy distinction is: E-INP-010 is strictly crate-side framing
+rejection (`btl < 12`, misalignment, EOF); E-INP-008 is wirerust body-decode failure,
+which includes the crate raising `InvalidField` for IDB-specific structural constraints
+that fire after framing succeeds.
+
+**This coupling is LOAD-BEARING and BRITTLE to a `pcap-file` version bump.** If
+`pcap-file` is upgraded to a version that changes the wording of these two
+`InvalidField` messages, the string match in `read_pcapng_crate` will FAIL SILENTLY to
+match, and the reserved!=0 and block-length<8 cases will fall through to the
+`E-INP-010` catch-all. This is a safe degradation (never panics, always returns an
+error) but it is imprecise — the error code would change from E-INP-008 to E-INP-010,
+which contradicts BC-2.01.011's intent.
+
+**Regression guard (mitigation):** The test `test_BC_2_01_011_nonzero_reserved_e_inp_008`
+is the mandatory regression guard. It:
+  - Constructs a crafted byte stream with `reserved != 0` in the IDB fixed fields.
+  - Asserts that `read_pcapng_crate` returns an error containing `"E-INP-008"`.
+  - Asserts that the error does NOT contain `"E-INP-010"` (refutes the imprecise fallback).
+
+This test will **FAIL LOUDLY** if the crate's message wording changes — ensuring that
+a `pcap-file` version bump cannot silently break the contract undetected. The test MUST
+be retained and MUST NOT be weakened to a bare `is_err()` assertion.
+
+**Version-pin recommendation:** Pin `pcap-file` to its minor version (e.g., `"2.0"` in
+Cargo.toml, not `"2"`) to gate string-coupling breakage to explicit minor bumps. Any
+minor bump that changes these messages will surface as a test failure before merge.
+
+**Relationship to Decision 23 (SHB string-coupling sibling):** Decision 23 documented
+the SHB string-coupling at the `PcapNgParser::new` boundary: the crate surfaces
+`InvalidField("SectionHeaderBlock: invalid magic number")` for btl-degenerate SHBs, and
+wirerust string-matches this to E-INP-008 via the existing invalid-magic arm. Decision
+24 is the explicit IDB sibling: the crate surfaces two distinct `InvalidField` messages
+for structural IDB failures inside `next_raw_block`, and wirerust string-matches them to
+E-INP-008. Both decisions document LOAD-BEARING string couplings that are invisible in
+the type system and require regression guard tests to detect crate message changes. The
+two decisions together enumerate the full set of crate-boundary string-couplings in
+`read_pcapng_crate`'s `map_err`.
+
+**PO actions required (rev 11):**
+  - **BC-2.01.011 PC4:** The postcondition currently says wirerust "mirrors" the
+    `reserved != 0` check. This is INACCURATE. The correct statement is: "The `pcap-file`
+    2.0.0 crate validates `reserved == 0` inside `next_raw_block` via
+    `InterfaceDescriptionBlock::from_slice` (`interface_description.rs:47-49`) BEFORE
+    returning the `RawBlock` to wirerust. wirerust CANNOT access the `RawBlock.body` on
+    the `Err` path; it instead string-matches
+    `InvalidField('InterfaceDescriptionBlock: reserved != 0')` in `map_err` and remaps
+    to E-INP-008. wirerust does not perform its own raw-body reserved check for IDBs."
+  - **BC-2.01.011 EC-010:** Correct analogously: the block-length<8 error code is
+    produced by the crate (`InvalidField('InterfaceDescriptionBlock: block length < 8')`)
+    and remapped to E-INP-008 by wirerust string-matching in `map_err`, not by a
+    wirerust-side body-length guard.
+  - Both PC4 and EC-010 should cite Decision 24 (ADR-009 rev 11) as the binding authority.
+  - Add a brittleness note: "This mapping relies on `pcap-file` 2.0.0's exact error message
+    wording. The regression guard `test_BC_2_01_011_nonzero_reserved_e_inp_008` pins E-INP-008
+    and refutes E-INP-010; it MUST be retained across all version bumps."
+
 **Fallback — Option C (hand-roll, +0 crates).** If during implementation `pcap-file`
 2.0.0's `RawBlock` / `next_raw_block` path exhibits a defect (incorrect byte-order
 handling, forward-progress violation not caught by the spike), the escalation path is a
@@ -911,6 +1014,26 @@ BC-change dispatch documented for PO.
   - VP-025 (M-3): Property updated to note ts_sec saturates (`.min(u32::MAX)`) and MUST include large-ts_high vector where ticks/ticks_per_sec > u32::MAX to lock the saturation. PO must ensure BC-2.01.014 µs fast path also saturates ts_sec.
   - VP-027 (C-1): Property updated to explicitly state padding-overrun and bound-by-body → Err(E-INP-008) not E-INP-010.
   - VP-031 (Decision 9 amendment): Property domain changed from `(original_len, snaplen, body)` to `(original_len, body)` with `min(original_len, body.len() as u32)`. No VP count changes (total 31, proptest 10, P1 17 unchanged).
+
+**Rev 10 (2026-06-20):** Decision 23 — first-SHB `btl=8` maps to E-INP-008, not
+E-INP-010. `PcapNgParser::new` raises `InvalidField("SectionHeaderBlock: invalid magic
+number")` for btl-degenerate inputs; indistinguishable from genuine invalid-BOM at the
+API level. Existing mapper arm already correct. Implementer Directive: rename and
+re-assert `test_BC_2_01_010_shb_framing_rejection_e_inp_010` to pin E-INP-008 and
+refute E-INP-010. PO must correct BC-2.01.010 EC-008/AC-004b/PC5/Canonical Test
+Vectors. No VP count change; no section file change; no subsystem change.
+
+**Rev 11 (2026-06-20):** Decision 24 — IDB structural validation (`reserved != 0` and
+`block length < 8`) is enforced by `InterfaceDescriptionBlock::from_slice` inside
+`next_raw_block` (`parser.rs:103-105`, `interface_description.rs:47-49`) before wirerust
+receives the `RawBlock`. The `RawBlock.body` is inaccessible on the `Err` path; wirerust
+string-matches `InvalidField("InterfaceDescriptionBlock: reserved != 0")` and
+`InvalidField("InterfaceDescriptionBlock: block length < 8")` in `map_err` to produce
+E-INP-008. Any unmatched `InvalidField` falls through to the E-INP-010 catch-all (safe
+degradation). Regression guard `test_BC_2_01_011_nonzero_reserved_e_inp_008` pins
+E-INP-008 and refutes E-INP-010. PO must correct BC-2.01.011 PC4/EC-010. Explicit IDB
+sibling of Decision 23 (SHB string coupling). No code change needed; no VP count change;
+no section file change; no subsystem change.
 
 ### PO BC-Change Dispatch (rev 4)
 
@@ -1180,6 +1303,30 @@ architect does not edit BC files; this section is the handoff specification.
 
 **VP-027 — discriminant property addition (Decision 22 / F-H4):**
 - Add to VP-027 property text: "interface_id bounds-check MUST return E-INP-009 (not E-INP-010) when the interface table is empty; MUST return E-INP-010 (not E-INP-009) when `interface_id >= table.len()` on a non-empty table. The Kani harness MUST model table-size as symbolic (0 vs. positive) with symbolic `interface_id` and assert the discriminant of the returned error variant."
+
+**Rev 11 additions — PO must action the following (Decision 24 / IDB string-coupling):**
+
+**BC-2.01.011 (IDB) — PC4 and EC-010 correction (Decision 24 / rev 11):**
+- **PC4:** Remove any text stating that wirerust "mirrors" or "re-checks" the IDB
+  `reserved != 0` field on the raw block body. The correct statement is: "The `pcap-file`
+  2.0.0 crate validates `reserved == 0` inside `next_raw_block` via
+  `InterfaceDescriptionBlock::from_slice` (`interface_description.rs:47-49`) before
+  returning the `RawBlock` to wirerust. The `RawBlock.body` is inaccessible on the `Err`
+  path; wirerust string-matches `PcapError::InvalidField('InterfaceDescriptionBlock: reserved
+  != 0')` in `read_pcapng_crate`'s `map_err` and remaps this error to **E-INP-008**. wirerust
+  does NOT perform its own raw-body `reserved` check for IDBs. This string-coupling is
+  load-bearing; cite Decision 24 (ADR-009 rev 11) as the binding authority."
+- **EC-010:** Correct analogously for the block-length<8 error path: "The crate raises
+  `PcapError::InvalidField('InterfaceDescriptionBlock: block length < 8')` when the IDB
+  body is shorter than 8 bytes; wirerust string-matches this message in `map_err` and
+  remaps to **E-INP-008**. Any unmatched `InvalidField` variant falls through to the
+  E-INP-010 catch-all. Both PC4 and EC-010 rely on exact crate message wording; see
+  Decision 24 for brittleness analysis and regression guard requirement."
+- **Brittleness note (add to both PC4 and EC-010):** "This mapping is brittle to a
+  `pcap-file` version bump that changes the message wording. The regression guard
+  `test_BC_2_01_011_nonzero_reserved_e_inp_008` MUST pin E-INP-008 AND refute E-INP-010
+  (not a bare `is_err()` assertion). This test will fail loudly if the crate message changes,
+  preventing silent contract regression."
 
 ## Alternatives Considered
 

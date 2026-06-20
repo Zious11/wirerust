@@ -36,7 +36,7 @@ inputs:
 #   BC-2.01.016, and BC-2.01.018 are all SS-01 behavioral contracts per their
 #   traceability tables, anchored to src/reader.rs (C-4) per ARCH-INDEX
 #   Subsystem Registry.
-input-hash: "7ec43f8"
+input-hash: "875a402"
 ---
 
 # STORY-124: IDB Parse (Link Type + if_tsresol), Interface Whitelist, and Multi-IDB Agreement

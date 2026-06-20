@@ -1,10 +1,10 @@
 ---
 pipeline: FEATURE
 phase: F4
-phase_status: "F4 IN PROGRESS — STORY-123 (Wave 51) MERGED to develop (PR #281, e4b940b). Reader pcapng core landed. NEXT: Wave 52 STORY-124 (IDB + interface whitelist BC-2.01.016 + multi-IDB conflict BC-2.01.018→E-INP-011). Autonomous wave-by-wave. F2/F3 CONVERGED+APPROVED."
+phase_status: "F4 STORY-124 (Wave 52) IN ADVERSARIAL CONVERGENCE — pass-1 NOT-CLEAN (3 HIGH: H-1 E-INP-011 missing tcpdump hint, H-2 tests under-verified it, H-3 IDB reserved-check string-coupling undocumented). H-1/H-2 fixed in code (worktree 489f3ae); H-3 resolved via spec docs (ADR-009 rev 11 Decision 24 + BC-2.01.011 v1.8). Convergence counter 0/3 — next: fresh adversarial pass. F2/F3 CONVERGED+APPROVED."
 product: wirerust
 mode: brownfield
-timestamp: 2026-06-20T14:00:00Z
+timestamp: 2026-06-20T15:30:00Z
 
 # Release chain
 released_version: v0.9.2
@@ -63,14 +63,14 @@ convergence_trajectory: "Detail: cycles/v0.1.0-greenfield-spec/convergence-traje
 
 # VSDD Pipeline State — wirerust
 
-## SESSION RESUME CHECKPOINT (2026-06-20 — F4 STORY-123 MERGED / Wave 52 begins / D-171)
+## SESSION RESUME CHECKPOINT (2026-06-20 — F4 STORY-124 pass-1 remediated / D-172)
 
 **WARNING: DO NOT RE-RUN F2 ADVERSARIAL CONVERGENCE. F2 IS CONVERGED + HUMAN-APPROVED (D-164).**
 **WARNING: DO NOT RE-RUN F3 GATE. F3 IS GATE-PASSED + HUMAN-APPROVED (D-168).**
 **WARNING: DO NOT RE-RUN STORY-123 ADVERSARIAL CONVERGENCE. BC-5.39.001 SATISFIED — 3 CLEAN PASSES (D-170).**
 **WARNING: DO NOT RE-RUN STORY-123 PR. PR #281 MERGED (e4b940b). WAVE 51 COMPLETE (D-171).**
 
-**Previous checkpoint (D-170 — STORY-123 ADVERSARIALLY CONVERGED / demos → PR → merge pending) archived to:
+**Previous checkpoint (D-171 — STORY-123 MERGED / Wave 52 begins) archived to:
 `.factory/cycles/feature-pcapng-reader/session-checkpoints.md`**
 
 ### PIPELINE POSITION
@@ -79,17 +79,17 @@ convergence_trajectory: "Detail: cycles/v0.1.0-greenfield-spec/convergence-traje
 - **F1 (delta analysis):** COMPLETE.
 - **F2 (spec evolution):** COMPLETE + ADVERSARIALLY CONVERGED + HUMAN-APPROVED (D-164).
 - **F3 (incremental story decomposition):** COMPLETE + GATE PASSED + HUMAN-APPROVED (D-168).
-- **F4 (per-story TDD delivery):** IN PROGRESS — STORY-123 (Wave 51) MERGED to develop (PR #281, merge commit e4b940b; AI APPROVE + security CLEAN + CI 10/10 green). Wave 52 STORY-124 begins.
-- **NEXT: Wave 52 — STORY-124 (IDB parse + interface whitelist BC-2.01.016 + multi-IDB conflict BC-2.01.018→E-INP-011). Autonomous wave-by-wave.**
+- **F4 (per-story TDD delivery):** IN PROGRESS — STORY-124 (Wave 52) pass-1 remediation COMPLETE (D-172). Convergence counter 0/3.
+- **NEXT: Wave 52 — STORY-124 — dispatch fresh adversarial pass (pass-2, targeting convergence).**
 
-### F4 STORY-123 DELIVERY SUMMARY (D-171)
+### F4 STORY-124 PASS-1 REMEDIATION SUMMARY (D-172)
 
-STORY-123 (feat: pcapng format detection + SHB parse) MERGED via PR #281, merge commit e4b940b. AI review APPROVE (0 blocking; 1 nitpick: stale "ADR-009 rev 9" doc-comment refs in reader.rs — ADR is now rev 10; batch into doc sweep or STORY-124 PR). Security review CLEAN (0 Critical/High; SEC-005 verified). CI 10/10 green. develop=e4b940b. Wave 51 complete. stories_delivered: 71→72.
+STORY-124 (IDB parse + interface whitelist + multi-IDB conflict) adversarial pass-1: NOT-CLEAN (3 HIGH). H-1 (E-INP-011 actionable message missing `tcpdump -i any` / single-link-type hint per BC-2.01.018 AC-001(b)) and H-2 (tests under-verified the hint) fixed in code — worktree `feature/STORY-124-pcapng-idb`, HEAD `489f3ae`. H-3 (IDB reserved-check string-coupling undocumented) resolved via spec: ADR-009 rev 11 Decision 24 (architect) records that `next_raw_block` validates IDB reserved/length fields internally, returning Err before body is parsed, so wirerust cannot pre-check reserved; IDB error-code routing delegates to crate and remaps; BC-2.01.011 v1.8 (product-owner) corrects PC4/EC-010 from "mirrors" to "delegates+remaps." STORY-124 input-hash regenerated: 875a402 (MATCH). Convergence counter 0/3 — fresh adversarial pass next.
 
 ### F4 DELIVERY ORDER
 
 1. **STORY-123** (Wave 51) — magic-byte probe + SHB parse — **MERGED** (PR #281, e4b940b).
-2. **STORY-124** (Wave 52) — IDB parse + interface whitelist + multi-IDB conflict — **IN PROGRESS**
+2. **STORY-124** (Wave 52) — IDB parse + interface whitelist + multi-IDB conflict — **IN ADVERSARIAL CONVERGENCE (0/3, pass-1 remediated D-172)**
 3. STORY-125 (Wave 53) — EPB parse + Kani VP proof (carry: F-2 padding-overrun + F-3 if_tsresol)
 4. STORY-126 (Wave 54) — SPB parse + skip-block enumeration
 5. STORY-127 (Wave 55) — magic-byte glob + E2E corpus
@@ -97,12 +97,12 @@ STORY-123 (feat: pcapng format detection + SHB parse) MERGED via PR #281, merge 
 
 ### A. EXACT POSITION
 
-- **Status:** FEATURE mode — pcapng reader cycle open. F4 per-story TDD delivery IN PROGRESS — STORY-124 (Wave 52) starting.
+- **Status:** FEATURE mode — pcapng reader cycle open. F4 per-story TDD delivery IN PROGRESS — STORY-124 (Wave 52) pass-1 remediated; fresh adversarial pass next.
 - **Active cycle:** `feature-pcapng-reader` (cycle manifest: `.factory/cycles/feature-pcapng-reader/cycle-manifest.md`)
 - **Feature:** FE-001 — pcapng capture-format reader support. Status: IN PROGRESS.
-- **Spec versions (post-D-171):** prd.md v1.33, error-taxonomy v3.7 (next_free E-INP-014), nfr-catalog v2.3, ADR-009 rev 10, VP-INDEX v2.8 (total 31), BC-INDEX v1.68, BC-2.01.009 v1.7, .010 v2.2, .011 v1.7, .012 v1.9, .013 v1.9, .014 v1.5, .015 v1.8, .016 v1.4, .017 v1.6, .018 v1.6, BC-2.12.011 v1.5. 302 active BCs.
+- **Spec versions (post-D-172):** prd.md v1.33, error-taxonomy v3.7 (next_free E-INP-014), nfr-catalog v2.3, ADR-009 rev 11, VP-INDEX v2.8 (total 31), BC-INDEX v1.68, BC-2.01.009 v1.7, .010 v2.2, .011 v1.8, .012 v1.9, .013 v1.9, .014 v1.5, .015 v1.8, .016 v1.4, .017 v1.6, .018 v1.6, BC-2.12.011 v1.5. 302 active BCs.
 - **Latest release:** `v0.9.2` (tag obj `a298dbe`, main `b73b242`). develop=e4b940b (STORY-123 merged). main=b73b242.
-- **Worktrees:** main repo (develop, HEAD e4b940b) + `.factory/` (factory-artifacts). STORY-123 worktree cleaned up post-merge.
+- **Worktrees:** main repo (develop, HEAD e4b940b) + `.factory/` (factory-artifacts) + STORY-124 worktree (feature/STORY-124-pcapng-idb, HEAD 489f3ae).
 
 ### B. GROUND-TRUTH SHAs / WORKTREE STATE
 
@@ -110,10 +110,11 @@ STORY-123 (feat: pcapng format detection + SHB parse) MERGED via PR #281, merge 
 |--------|------|-------|
 | develop | `e4b940b` | STORY-123 PR #281 merged; pcapng core landed |
 | main | `b73b242` | release/0.9.2 PR #280 merged; unchanged |
+| feature/STORY-124-pcapng-idb | `489f3ae` | H-1/H-2 code fixes applied; awaiting fresh adversarial pass |
 | factory-artifacts | `git -C .factory log -1` | run this to get current SHA |
 
-- **Active worktrees:** EXACTLY TWO — main repo (develop, e4b940b) and `.factory/` (factory-artifacts).
-- **Open PRs:** None. STORY-124 branch not yet cut.
+- **Active worktrees:** THREE — main repo (develop, e4b940b), `.factory/` (factory-artifacts), STORY-124 worktree (489f3ae).
+- **Open PRs:** None — STORY-124 PR not yet open (awaiting adversarial convergence).
 
 ### C. WHAT IS COMPLETE — DO NOT REDO
 
@@ -125,7 +126,8 @@ STORY-123 (feat: pcapng format detection + SHB parse) MERGED via PR #281, merge 
 - F3 gate consistency audit: ALL FINDINGS REMEDIATED (D-167). Gate = PASSED + HUMAN-APPROVED (D-168).
 - STORY-123 pass-1 adversarial remediation: COMPLETE (D-169). ADR-009 rev 10, BC-2.01.010 v2.2.
 - STORY-123 adversarial convergence: COMPLETE (D-170). 3 clean passes; BC-5.39.001 SATISFIED.
-- **STORY-123 PR #281 MERGED (e4b940b, D-171). Wave 51 COMPLETE. stories_delivered=72.**
+- STORY-123 PR #281 MERGED (e4b940b, D-171). Wave 51 COMPLETE. stories_delivered=72.
+- **STORY-124 pass-1 adversarial remediation: COMPLETE (D-172). ADR-009 rev 11 Decision 24, BC-2.01.011 v1.8. H-1/H-2 code-fixed (489f3ae). STORY-124 input-hash 875a402 MATCH.**
 - All prior cycles: RELEASED (v0.9.2 latest).
 
 ### D. OPEN ITEMS (lower priority)
@@ -134,20 +136,21 @@ STORY-123 (feat: pcapng format detection + SHB parse) MERGED via PR #281, merge 
 - STORY-121 (E-11 process-gap): OPEN DRAFT — scope decision pending.
 - Roadmap: Issue #3 C2 beaconing | Issue #4 CSV+SQLite | Issue #6 rayon (O-07).
 - DEVELOP-BRANCH-PROTECTION-001: Governance gap logged (non-blocking); see Drift Items.
-- STORY-124..128 input-hashes STALE (ADR-009 rev 10 change): regenerate before Phase-4 entry gate.
+- STORY-125..128 input-hashes STALE (ADR-009 rev 10/11 change): regenerate before Wave 53 entry gate.
 - STORY-123-PIPE-FILLBUF-001: pipe-robustness backlog item (non-blocking); see Drift Items.
 - F-7 VP-026 re-scope: dual-decoder drift risk; Phase-6 action; see Drift Items.
 - O-1 doc-precision: btl=16 test docstring characterization; Phase-6 action; see Drift Items.
 - STORY-123-ADR-REV-DOC-001: stale "ADR-009 rev 9" doc-comments in reader.rs (PR #281 R-1 nitpick); batch into doc sweep or STORY-124 PR; see Drift Items (D-171).
+- PCAP-FILE-VERSION-PIN-001: [LOW, backlog] pin pcap-file to minor version; see Drift Items (D-172).
 
 ---
 
 ## Status
 
-**FEATURE MODE — pcapng reader cycle OPEN (feature-pcapng-reader). F2 ADVERSARIAL CONVERGED + HUMAN-APPROVED (D-164). F3 GATE PASSED + HUMAN-APPROVED (D-168). F4 IN PROGRESS — STORY-123 (Wave 51) MERGED (PR #281, e4b940b, D-171). Wave 52 STORY-124 begins. Autonomous wave-by-wave cadence.**
+**FEATURE MODE — pcapng reader cycle OPEN (feature-pcapng-reader). F2 ADVERSARIAL CONVERGED + HUMAN-APPROVED (D-164). F3 GATE PASSED + HUMAN-APPROVED (D-168). F4 IN PROGRESS — STORY-124 (Wave 52) IN ADVERSARIAL CONVERGENCE 0/3 — pass-1 remediated (D-172). ADR-009 rev 11 Decision 24 + BC-2.01.011 v1.8 committed. Next: fresh adversarial pass.**
 
 Latest release: v0.9.2 (tag obj `a298dbe`, main `b73b242`, 4 binaries). develop=e4b940b (STORY-123 landed). main=b73b242. stories_delivered=72.
-Active feature: FE-001 pcapng capture-format reader support. ADR-009, 10 new BCs, 1 retired BC.
+Active feature: FE-001 pcapng capture-format reader support. ADR-009 rev 11, 10 new BCs, 1 retired BC.
 Maintenance maint-2026-06-17: COMPLETE. NON-BLOCKING. Report: `.factory/maintenance/sweep-report-2026-06-17.md`.
 
 ## Phase Progress
@@ -171,7 +174,7 @@ Maintenance maint-2026-06-17: COMPLETE. NON-BLOCKING. Report: `.factory/maintena
 | E-18/E-8 STORY-119 cycle (F1-F7) + v0.9.0 | **RELEASED + CLOSED 2026-06-19** | STORY-120/122/119; 293 BCs; tag v0.9.0 986e148. Detail: cycles/feature-story-119-grouped-collapse/ |
 | v0.9.1 patch | **RELEASED 2026-06-19** | Doc/help; PRs #277/#278; tag v0.9.1 ad4eec8 |
 | v0.9.2 patch | **RELEASED 2026-06-19** | DNP3 determinism + E2E fixtures; PRs #279/#280; tag v0.9.2 b73b242 |
-| **Feature pcapng-reader (F1+F2+F3+F4)** | **F4 IN PROGRESS — STORY-123 (Wave 51) MERGED (PR #281, e4b940b, D-171). AI APPROVE + security CLEAN + CI 10/10. Wave 52 STORY-124 begins (IDB + interface whitelist BC-2.01.016 + multi-IDB conflict BC-2.01.018→E-INP-011). F3 GATE PASSED+HUMAN-APPROVED (D-168). F2 CONVERGED+HUMAN-APPROVED (D-164).** | FE-001 IN PROGRESS. ADR-009 rev 10. BC-2.01.010 v2.2. stories_delivered=72. Cycle: feature-pcapng-reader |
+| **Feature pcapng-reader (F1+F2+F3+F4)** | **F4 IN PROGRESS — STORY-124 (Wave 52) IN ADVERSARIAL CONVERGENCE (0/3). Pass-1 NOT-CLEAN (3H); H-1/H-2 code-fixed (489f3ae); H-3 spec-documented (ADR-009 rev 11 Decision 24 + BC-2.01.011 v1.8, D-172). Next: fresh adversarial pass. STORY-123 (Wave 51) MERGED (PR #281, e4b940b, D-171). F3 GATE PASSED+HUMAN-APPROVED (D-168). F2 CONVERGED+HUMAN-APPROVED (D-164).** | FE-001 IN PROGRESS. ADR-009 rev 11. BC-2.01.011 v1.8. stories_delivered=72. Cycle: feature-pcapng-reader |
 
 ## Decisions Log
 
@@ -208,6 +211,7 @@ D-131..D-135: `cycles/feature-story-119-grouped-collapse/decisions-archive.md`
 | D-169 | **STORY-123 Wave-51 adversarial pass-1 remediation COMPLETE (single-commit burst, factory-artifacts).** Three-part remediation: (1) Crate-mandated reimplementation — implementer made 3 attempts at hand-rolling pcapng framing before architect ruling confirmed crate API is the only correct path (ADR-009 Decision 1); the critical BE-decode bug (1C) was traced to bypassing the crate. (2) ADR-009 rev 10 Decision 23 (architect) — first-SHB btl<12 routes to E-INP-008 not E-INP-010: `PcapNgParser::new` surfaces btl<12 as `InvalidField("invalid magic number")`, indistinguishable from invalid BOM at crate API boundary; wirerust therefore maps it to E-INP-008; E-INP-010 reserved for subsequent-block framing rejections (next_raw_block) and first-SHB IncompleteBuffer/EOF. (3) BC-2.01.010 v2.2 (product-owner) — AC-004b + EC-008 corrected to E-INP-008; PC5(a) exception note added; test name corrected to `test_BC_2_01_010_shb_btl8_maps_to_e_inp_008` (state-manager mechanical alignment: replaced PO's `test_BC_2_01_010_shb_framing_rejection_e_inp_008` with architect Decision 23 actual test name in AC-004b, EC-008, and v2.2 changelog). STORY-123 updated: status=in-progress, BC version reference v2.2, AC-007/EC-009/Test Plan aligned to Decision 23, deferred findings F-2/F-3/F-5/F-7 appended. Input-hash regenerated: e6cff0e (MATCH). STORY-124..128 STALE (ADR-009 rev 10 input change — expected; regenerate before Phase-4 entry). Cross-story deferrals recorded in STORY-123 and STATE.md Drift Items. Convergence counter 0/3; adversarial pass-2 next. | 2026-06-21 |
 | D-170 | **STORY-123 (Wave 51) adversarial convergence ACHIEVED — BC-5.39.001 SATISFIED (3 consecutive clean passes, D-170).** Convergence trajectory: pass-1 (1 Critical + 2 High: BE-decode bug rooted in hand-rolled framing bypassing crate + ADR-009 deviation from pcap-file 2.0.0 per Decision 1) → crate-based reimpl via PcapNgParser + ADR-009 rev 10 Decision 23 first-SHB btl<12→E-INP-008 + BC-2.01.010 v2.2; pass-2 (2 Major: test-pinning gaps) → fixed; pass-3 (1 Major: missing positive E-INP-010 test for valid subsequent-block framing rejection) → fixed; then CLEAN / CLEAN / CLEAN. Note: 3 implementer attempts were required (hand-roll rejected twice by architect before crate-only path confirmed via ADR-009 Decision 1 ruling) — lesson candidate for per-story implementation discipline. 3 non-blocking backlog items surfaced during convergence recorded to Drift Items: STORY-123-PIPE-FILLBUF-001 (fill_buf() single-call pipe-robustness; non-blocking because no stdin/pipe CLI path exists + EC-005 prescribes fill_buf()); VP-026 dual-decoder drift risk (parse_shb_body is off live path; Phase-6 VP-026 re-scope obligation); O-1 doc-precision (btl=16 test docstring crate-arm characterization; Phase-6 VP work). Code on feature/STORY-123-pcapng-format-detect HEAD 48fe536 (1736 tests green, clippy/fmt clean). NEXT: demos → PR (pr-manager 9-step) → merge → worktree cleanup → Wave 52 STORY-124. | 2026-06-20 |
 | D-171 | **STORY-123 MERGED (PR #281, merge commit e4b940b). Wave 51 COMPLETE.** AI review APPROVE (0 blocking; 1 nitpick R-1: stale "ADR-009 rev 9" doc-comment refs in reader.rs — ADR is now rev 10; batch into doc sweep or STORY-124 PR). Security review CLEAN (0 Critical/High; SEC-005 verified). CI 10/10 green. develop=e4b940b (was b73b242). stories_delivered: 71→72. ADR-REV-DOC drift item filed (STORY-123-ADR-REV-DOC-001). Wave 52 (STORY-124: IDB parse + interface whitelist BC-2.01.016 + multi-IDB conflict BC-2.01.018→E-INP-011) begins. Autonomous wave-by-wave cadence continues. | 2026-06-20 |
+| D-172 | **STORY-124 pass-1 adversarial remediation COMPLETE (single-commit burst, factory-artifacts).** Three-finding remediation: H-1 (E-INP-011 actionable message in BC-2.01.018 AC-001(b) was missing the tcpdump single-link-type hint `tcpdump -i any` / `tcpdump -i eth0`): fixed in code — E-INP-011 message now carries the hint; worktree `feature/STORY-124-pcapng-idb` HEAD `489f3ae`. H-2 (tests under-verified the hint — conflict tests and VP-030 oracle did not pin the hint text): fixed in code — conflict tests + VP-030 oracle now pin the `tcpdump -i any` / `tcpdump -i eth0` hint; HEAD `489f3ae`. H-3 (IDB reserved-check string-coupling undocumented — BC-2.01.011 PC4/EC-010 stated wirerust "mirrors" the crate's error for reserved-field violations, but actually the crate validates IDB reserved/length internally via `next_raw_block` returning Err before the body is parsed, so wirerust cannot pre-check reserved; the spec overclaimed a coupling that is empirically impossible): resolved via spec documentation — ADR-009 rev 11 Decision 24 (architect; IDB sibling of Decision 23) records the delegation+remap pattern; BC-2.01.011 v1.8 (product-owner) corrects PC4/EC-010 from "mirrors" to "delegates+remaps." STORY-124 input-hash regenerated via `bin/compute-input-hash --write`: 875a402 (MATCH; scan: 73 MATCH / 5 STALE {STORY-125..128 pre-existing + STORY-123 post-ADR-rev-10} / 3 ERROR pre-existing). Convergence counter 0/3 — fresh adversarial pass next. | 2026-06-20 |
 | D-166 | **F3 CREATE+INTEGRATE COMPLETE** for feature-pcapng-reader (FE-001). CREATE: STORY-123 (pre-existing, BC-2.01.009/.010, 5 pts, Wave 51) + STORY-124 (BC-2.01.011/.016/.018, 8 pts, Wave 52) + STORY-125 (BC-2.01.012/.014, 8 pts, Wave 53) + STORY-126 (BC-2.01.013/.015/.017, 8 pts, Wave 54) + STORY-127 (BC-2.12.011 magic-byte glob + E2E corpus, 5 pts, Wave 55) + STORY-128 (main.rs per-file isolation loop, 3 pts, Wave 56). INTEGRATE arithmetic: +6 stories (75→81), +6 waves (50→56), +37 pts (484→521 total; wave-table 479→516; epic-table 487→524). STORY-INDEX v2.5, dependency-graph v3.0 (acyclic), epics.md v1.7 (E-19 added). HS-001 rewritten: rejection→acceptance (v2.0, BC-2.01.009, ADR-009 rev 9, lifecycle_status active). ADR-009 added to HS-104/107 inputs (already in HS-108). Input-hashes regenerated: `bin/compute-input-hash --write --scan` → 78 MATCH / 0 STALE / 3 pre-existing ERRORs (STORY-091/121 no-inputs-block, carry-forward). HS-001 (946cb06), HS-104 (a8907f2), HS-107 (d11e6ab), HS-108 (3f3958a). HS-INDEX v2.6 stale anomaly CLEARED. F3 implementation-time carry-forwards encoded in STORY files: F-06 multi-section reject (STORY-123 AC), F-07 explicit skip-arm enumeration (STORY-126 AC), Kani base-2 coverage (STORY-125 AC). Framing-constant validator script O-1 scope deferred to F4. Next: F3 gate (consistency audit + human approval). | 2026-06-21 |
 | D-164 | **F2 ADVERSARIAL CONVERGENCE ACHIEVED.** Pass-10 CLEAN (0C/0H/2M/3L) — CLEAN-PASS 3/3 (BC-5.39.001). Three consecutive passes (8/9/10) all 0 CRITICAL / 0 HIGH. Novelty LOW. MEDIUM-1: BC-2.01.012 v1.8→v1.9 — stale snaplen false-attribution removed from PC6b annotation; PC6b is padding-overrun guard (defense-in-depth) ONLY, not snaplen enforcement; per Decision 9 amend (ADR-009 rev 8) EPB does not enforce snaplen. MEDIUM-2: HS-109 v1.0→v1.1 — VP-026 mis-anchor corrected to VP-027 (IDB body-decode holdout correctly anchors to BC-2.01.011 body-decode VP; VP-026 anchors to BC-2.01.010 SHB parse safety). LOW-1: BC-2.01.011 v1.6→v1.7 — PC6 carve-out precision: if_tsresol IS used for timestamp scaling (BC-2.01.014) but MUST NOT be applied to captured_len per Decision 9 amend + Decision 22; snaplen extraction is diagnostic only. LOW-2: HS-104 v1.5→v1.6 — Case D discriminant explicit (E-INP-010 WHERE interface_id >= idb_count AND non-empty table; discriminant: OOB check, not body-length check). LOW-3: error-taxonomy v3.6→v3.7 — E-INP-009 Notes source-location updated to owning-BC + function-name convention. Process-gap: ADR-009 "Current Canonical Constants" governing table added (single source of truth for per-block fixed overhead, error codes, VP+HS assignments; root-cause of MEDIUM-2 VP mis-anchor). BC-INDEX v1.67→v1.68. spec-changelog [pcapng-f2-pass10-clean-CONVERGED-2026-06-20] prepended. Pass-10 record: cycles/feature-pcapng-reader/f2-adversarial-spec-review-pass10.md. Trajectory: 23/24/17/13/13/13/12/8/4/5 (last 3 = 0H/0C). 302 BCs unchanged. error-taxonomy next_free E-INP-014 unchanged. VP-INDEX total 31 unchanged. F2 human gate pending (consistency verification + F2 approval) → F3 story decomposition. | 2026-06-20 |
 | D-161 | F2 adversary pass-8 CLEAN (0C/0H/3M/5L) — CLEAN-PASS 1/3 (BC-5.39.001). Convergence milestone: trajectory 23/24/17/13/13/13/12/8; all framing BCs have VP+holdout; per-block constants agree across 6 docs; holdout arithmetic self-consistent; all 4 pass-7 fixes propagated zero-stale-siblings. M-1: error-taxonomy v3.4→v3.5 — E-INP-008 SPB body-too-short entry cites SPB_FIXED_MIN=16; btl=12 (body=0<4 → E-INP-008) vs btl=16 (body=4, minimum valid SPB) boundary clarified. M-2: HS-109 v1.0 authored (IDB body-decode holdout gap — 5 cases: btl=16 body<8→E-INP-008; reserved!=0→E-INP-008; options-TLV OOB→E-INP-008; if_tsresol option_length=4→E-INP-008; positive control); HS-INDEX v2.3→v2.4 (greenfield 108→109; all-namespace 181→182; must_pass 108). M-3: BC-2.01.013 v1.7→v1.8 — AC-001 test name renamed test_BC_2_01_013_snaplen_lookup_guarded → test_BC_2_01_013_empty_interface_table_guarded (DF-AC-TEST-NAME-SYNC-001; stale snaplen reference; AC-001 scopes empty-table E-INP-009; EC-008 body-too-short handled distinctly by AC-004a; no normative change). O-2: ADR-009 rev 9 status: proposed→accepted (no content change). O-1 (framing-constant validator cross-doc script) DEFERRED-TO-F3 — F3 story decomposition checklist should evaluate bin/ script scope. BC-INDEX v1.65→v1.66. spec-changelog [pcapng-f2-pass8-clean-and-medium-remediation-2026-06-20] prepended. Pass-8 record: cycles/feature-pcapng-reader/f2-adversarial-spec-review-pass8.md. Adversary pass-9 pending (targeting clean-pass 2/3). 302 BCs unchanged. **F3-entry O-1 checklist item:** Evaluate whether `bin/framing-constant-validator` should be scoped as part of F3 implementation stories (cross-doc grep of per-block constants across BC, ADR-009, HS-INDEX, error-taxonomy, VP-INDEX, verification-architecture). | 2026-06-20 |
@@ -261,7 +265,8 @@ Full tech-debt register: `.factory/tech-debt-register.md`.
 | F-7 (STORY-123 adv-pass-1) | [observation → Phase-6] `parse_shb_body` (VP-026 Kani target) is NOT on the live integration path — the crate parses the SHB in `PcapNgParser::new`; VP-026 target may need re-scoping in Phase-6. Live BE/major behavior IS covered end-to-end by `test_BC_2_01_010_genuine_be_section_end_to_end`. Phase-6 VP-026 retarget must either route live SHB through `parse_shb_body` or formally document it as a verification-only surrogate. | OBSERVATION → Phase-6 |
 | STORY-123-PIPE-FILLBUF-001 | [backlog, MEDIUM] `from_pcap_reader`'s probe uses a single `BufReader::fill_buf()` and hard-fails on <4 bytes; on a real non-seekable pipe a first `read()` may return 1–3 bytes, causing a valid pcapng to be mis-rejected. NON-BLOCKING: CLI has no stdin/pipe path (`main.rs` uses `from_file` only) AND BC-2.01.009 EC-005 itself prescribes the `fill_buf()` mechanism. A proper fix (fill-accumulation loop) would require an EC-005 spec refinement + a genuine partial-read test (not Cursor). Route: pipe-robustness hardening backlog; revisit if/when stdin input is added. DF-VALIDATION-001 required before GitHub issue. | BACKLOG — non-blocking; stdin/pipe path absent |
 | O-1-STORY-123-DOC (D-170) | [doc-precision, LOW, Phase-6] The btl=16 test docstring / `reader.rs:374` comment names the "block length < 16" crate arm, but for that fixture (valid LE BOM at body) the crate may surface a different `InvalidField` arm. Contract assertion (E-INP-008 AND NOT E-INP-010) is correct regardless. Characterize crate-internal arms empirically during Phase-6 VP work. | DEFERRED → Phase-6 VP work |
-| STORY-123-ADR-REV-DOC-001 (D-171) | [doc-precision, LOW] Two `reader.rs` doc-comments cite "ADR-009 rev 9" but ADR is now rev 10 (PR #281 review R-1 nitpick from AI reviewer). Non-blocking; batch into a doc sweep or include in STORY-124 PR. DF-VALIDATION-001 not required (live artifact — verified by reviewer). | DEFERRED → doc sweep / STORY-124 PR |
+| STORY-123-ADR-REV-DOC-001 (D-171) | [doc-precision, LOW] Two `reader.rs` doc-comments cite "ADR-009 rev 9" but ADR is now rev 11 (PR #281 review R-1 nitpick from AI reviewer). Non-blocking; batch into a doc sweep or include in STORY-124 PR. DF-VALIDATION-001 not required (live artifact — verified by reviewer). | DEFERRED → doc sweep / STORY-124 PR |
+| PCAP-FILE-VERSION-PIN-001 (D-172) | [LOW, backlog] Architect recommends pinning `pcap-file` to its minor version (currently `"2"` in Cargo.toml) to gate crate-error-message breakage (H-3 string-coupling; BC-2.01.011 EC-010 delegates+remaps crate error) to explicit version bumps. Non-blocking: regression guard `test_BC_2_01_011_nonzero_reserved_e_inp_008` fails loudly on message change, surfacing any drift before merge. Candidate for inclusion in STORY-124 PR or a maintenance sweep. DF-VALIDATION-001 required before GitHub issue. | BACKLOG — non-blocking |
 
 *(Engine-notes and additional low-severity drift items: cycles/feature-story-119-grouped-collapse/ and cycles/feature-arp-v0.7.0/.)*
 
