@@ -218,9 +218,11 @@ pcapng file.
 ### Status as of 2026-06-19
 
 Proposed. `pcap-file` 2.0.0's pcapng module is dead code in the compiled binary;
-`src/reader.rs` does not import it. No pcapng story has yet been assigned. Implementation
-is planned for STORY-123 through STORY-127 (F2–F4 cycle). BC-2.01.004 remains active
-until STORY-123 retires it.
+`src/reader.rs` does not import it. BC-2.01.004 ("Reject pcapng-Format Input at Reader
+Level") was RETIRED during F2 spec evolution and is superseded by BC-2.01.009 ("Accept
+pcapng Format: Transparent Detection via Magic-Byte Probe"); the spec changes are complete.
+Only the implementation remains pending, scheduled across STORY-123 through STORY-127
+(F3 story decomposition forthcoming).
 
 ## Alternatives Considered
 

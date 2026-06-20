@@ -4,7 +4,7 @@ level: L3
 version: "1.52"
 status: draft
 producer: product-owner
-timestamp: 2026-06-18T00:00:00Z
+timestamp: 2026-06-19T00:00:00Z
 phase: 1a
 traces_to: .factory/specs/prd.md
 ---

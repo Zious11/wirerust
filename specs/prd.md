@@ -1,7 +1,7 @@
 ---
 document_type: prd
 level: L3
-version: "1.29"
+version: "1.30"
 status: draft
 producer: product-owner
 timestamp: 2026-06-17T00:00:00Z
@@ -410,6 +410,11 @@ supplements:
 >   post-feature-008-F2).
 >
 > No new BCs; no BC count change (283). See `spec-changelog.md` §[prd-v1.25-ss15-titlesync-2026-06-14].
+
+> **Version 1.30 delta (2026-06-19 — F2 audit FINDING-003 remediation):** §7 RTM corrected:
+> BC-2.01.004 RTM row struck through [RETIRED → BC-2.01.009]; 10 new RTM rows added for
+> BC-2.01.009–018 (CAP-01, SS-01, priorities per §2.1, test type: integration — not yet
+> delivered; F3 stories STORY-123..127). No normative BC content changed.
 
 > **Version 1.29 delta (2026-06-19 — F2 pcapng-reader-support, ADR-009, FE-001):** pcapng is
 > now a SUPPORTED input format. 10 new BCs (BC-2.01.009–018) added to §2.1 for pcapng block-walk
@@ -1400,11 +1405,21 @@ See `prd-supplements/error-taxonomy.md` for the complete E-xxx-NNN catalog.
 | BC-2.01.001 | CAP-01 | SS-01 (reader.rs) | P0 | unit |
 | BC-2.01.002 | CAP-01 | SS-01 (reader.rs) | P0 | unit |
 | BC-2.01.003 | CAP-01 | SS-01 (reader.rs) | P1 | unit |
-| BC-2.01.004 | CAP-01 | SS-01 (reader.rs) | P0 | unit |
+| ~~BC-2.01.004~~ | ~~CAP-01~~ | ~~SS-01 (reader.rs)~~ | ~~P0~~ | ~~unit~~ [RETIRED → BC-2.01.009] |
 | BC-2.01.005 | CAP-01 | SS-01 (reader.rs) | P1 | unit |
 | BC-2.01.006 | CAP-01 | SS-01 (reader.rs) | P1 | unit |
 | BC-2.01.007 | CAP-01 | SS-01 (reader.rs) | P1 | unit |
 | BC-2.01.008 | CAP-01 | SS-01 (reader.rs) | P2 | inferred |
+| BC-2.01.009 | CAP-01 | SS-01 (reader.rs) | P0 | integration |
+| BC-2.01.010 | CAP-01 | SS-01 (reader.rs) | P0 | integration |
+| BC-2.01.011 | CAP-01 | SS-01 (reader.rs) | P0 | integration |
+| BC-2.01.012 | CAP-01 | SS-01 (reader.rs) | P0 | integration |
+| BC-2.01.013 | CAP-01 | SS-01 (reader.rs) | P1 | integration |
+| BC-2.01.014 | CAP-01 | SS-01 (reader.rs) | P0 | integration |
+| BC-2.01.015 | CAP-01 | SS-01 (reader.rs) | P1 | integration |
+| BC-2.01.016 | CAP-01 | SS-01 (reader.rs) | P0 | integration |
+| BC-2.01.017 | CAP-01 | SS-01 (reader.rs) | P1 | integration |
+| BC-2.01.018 | CAP-01 | SS-01 (reader.rs) | P0 | integration |
 | BC-2.02.001 | CAP-02 | SS-02 (decoder.rs) | P0 | unit |
 | BC-2.02.002 | CAP-02 | SS-02 (decoder.rs) | P0 | unit |
 | BC-2.02.003 | CAP-02 | SS-02 (decoder.rs) | P0 | unit |

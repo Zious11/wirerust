@@ -20,17 +20,24 @@ epic_id: "E-1"
 behavioral_contracts:
   - BC-2.01.001
   - BC-2.01.004
-lifecycle_status: active
+lifecycle_status: stale
 introduced: v0.1.0-greenfield-spec
 last_evaluated: null
 staleness_check: null
-stale_reason: null
+stale_reason: "pcapng-rejection expectation (Step 5, BC-2.01.004) inverted by F2 pcapng-reader-support (BC-2.01.009 now accepts pcapng). Scenario rewrite is F3 scope (STORY-127)."
 retired: null
 assumption_source: null
 risk_source: null
 ---
 
 # Holdout Scenario: PCAP Link-Type Boundary — Accepted vs. Rejected at File Open
+
+> **[STALE — 2026-06-19] This scenario's pcapng-rejection expectation (Step 5 below, and the
+> BC-2.01.004 table row) is INVERTED by the F2 pcapng-reader-support feature (ADR-009). As of
+> BC-2.01.009, pcapng is now an ACCEPTED input format — the `sample.pcapng` file in Step 5
+> should be ACCEPTED (exit 0), not rejected. BC-2.01.004 is RETIRED. This scenario must be
+> fully rewritten in F3 when STORY-127 is decomposed. Until then, do NOT use this scenario as
+> a gate for pcapng rejection behavior.**
 
 > **WARNING:** This file must NEVER be shown to the implementer or test-writer agents.
 

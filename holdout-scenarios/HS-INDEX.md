@@ -148,7 +148,7 @@ All 100 scenarios, one row each, grouped by epic.
 
 | HS ID | Title | Category | Priority | Waves | Behavioral Contracts |
 |-------|-------|----------|----------|-------|---------------------|
-| [HS-001](HS-001-pcap-link-type-gating.md) | PCAP Link-Type Boundary — Accepted vs. Rejected at File Open | integration-boundaries | must-pass | 1 | BC-2.01.001, BC-2.01.004 |
+| [HS-001](HS-001-pcap-link-type-gating.md) | PCAP Link-Type Boundary — Accepted vs. Rejected at File Open **[STALE — 2026-06-19: pcapng-rejection expectation inverted by BC-2.01.009; rewrite F3/STORY-127]** | integration-boundaries | must-pass | 1 | BC-2.01.001, ~~BC-2.01.004~~ (retired → BC-2.01.009) |
 | [HS-002](HS-002-pcap-zero-packet-and-error-surfaces.md) | Empty Capture and Corrupt-Header Behavior at Ingest | edge-case-combinations | must-pass | 1 | BC-2.01.002, BC-2.01.003, BC-2.01.006, BC-2.01.007 |
 | [HS-003](HS-003-ethernet-ipv4-ipv6-decode-paths.md) | Ethernet, RAW IPv4, and IPv6 Link-Layer Decode Correctness | integration-boundaries | must-pass | 2 | BC-2.02.001, BC-2.02.003, BC-2.02.005, BC-2.02.007 |
 | [HS-004](HS-004-linux-sll-icmp-non-ip-rejection.md) | Linux SLL Cooked Capture, ICMP Classification, and Non-IP Frame Handling | edge-case-combinations | must-pass | 2 | BC-2.02.006, BC-2.02.009, BC-2.02.010, BC-2.02.011 |

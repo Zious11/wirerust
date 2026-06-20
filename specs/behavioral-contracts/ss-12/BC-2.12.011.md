@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -16,6 +16,7 @@ introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
   - "v1.3: DF-SIBLING-SWEEP-001 — fix stale main.rs line anchor: resolve_targets range 340-360 → 344-364 (fn at 344, bail at 363, closing at 364); also fix inline ref in capability anchor justification and description; verified against HEAD cfe0112a — 2026-06-01"
+  - "v1.4: F2 audit FINDING-004 — annotate Related BCs BC-2.01.004 ref as STALE (pcapng now accepted via BC-2.01.009); add F3/STORY-127 forward-action note — 2026-06-19"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -93,7 +94,14 @@ included.
 ## Related BCs
 
 - BC-2.12.012 -- composes with (non-existent targets handled by the else branch)
-- BC-2.01.004 -- related to (pcapng is rejected at reader level; here it is excluded before reader)
+- ~~BC-2.01.004~~ -- [STALE — 2026-06-19] related to (pcapng is rejected at reader level; here it is excluded before reader). **This rationale is now inverted**: BC-2.01.004 was RETIRED by the F2 pcapng-reader-support feature (ADR-009); pcapng is now ACCEPTED via BC-2.01.009 magic-byte probe. The `*.pcapng` directory-glob exclusion in this BC will be revised or retired when STORY-127 is decomposed in F3.
+
+> **F3 FORWARD ACTION (STORY-127):** This BC describes `resolve_targets` excluding `*.pcapng`
+> from directory glob expansion. That behavior was correct when reader.rs rejected pcapng.
+> Now that BC-2.01.009 accepts pcapng, STORY-127 will update `resolve_targets` to include
+> `*.pcapng`. At that point this BC requires revision (update Postcondition 2, Invariants,
+> Edge Cases EC-001, and Canonical Test Vectors) or retirement + replacement. Do NOT implement
+> this change before STORY-127 is formally decomposed.
 
 ## Architecture Anchors
 

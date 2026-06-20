@@ -1,6 +1,6 @@
 ---
 document_type: epics
-version: "1.5"
+version: "1.6"
 status: draft
 producer: story-writer
 phase: 2
@@ -10,7 +10,8 @@ modified:
   - "2026-06-17 v1.3: Adversarial Burst 3 remediation — E-8 story count 7→5 (Estimated Story Count Summary table; actual E-8 roster is STORY-076..080 = 5 stories). Column sum now 72, matching Total row."
   - "2026-06-17 v1.4: Adversarial Burst 4 remediation — Coverage Check body updated to 288 BCs: added E-18 row to Per-Epic BC Assignment table (BC-2.11.025..029, 5), added E-17 row (extensions, 0), updated TOTAL 283→288, updated Arithmetic Verification block (+E-18 line, ✓ 288/288), updated Coverage confirmed assertion 283→288."
   - "2026-06-19 v1.5: F2 pcapng-reader-support re-anchor — E-1 BC list: BC-2.01.004 struck through [RETIRED], BC-2.01.009–018 (10 new SS-01 BCs) added. E-1 SS-01 count 8→17 active (+9 net). E-1 total 23→32. total_bcs 288→297 (net +9: 10 new BC-2.01.009–018 minus 1 retired BC-2.01.004). Arithmetic Verification and Coverage Confirmed updated."
-total_bcs: 297
+  - "2026-06-19 v1.6: FINDING-002 correction — BC-2.11.030–034 (5 grouped-collapse BCs added in BC-INDEX v1.44 for STORY-119) were missing from epics.md. Added to E-18 row. total_bcs corrected 297→302 (verified against BC-INDEX v1.52 ground truth: 302 active BCs). Arithmetic Verification and Coverage Confirmed updated."
+total_bcs: 302
 traces_to:
   - .factory/specs/prd.md
   - .factory/specs/behavioral-contracts/BC-INDEX.md
@@ -287,8 +288,8 @@ the same test vehicle (CLI invocation with obsolete flag).
 | E-15: DNP3/ICS Analyzer | SS-15 (new), SS-05, SS-12 | BC-2.15.001..024 | 24 |
 | E-16: ARP Security Analyzer | SS-16 (new) | BC-2.16.001..015 | 15 |
 | E-17: ARP QinQ/MACsec Offset Hardening | SS-16 | BC-2.16.009 EC-008/009, BC-2.16.015 PC-7b/EC-008/009 (extensions) | 0 (extensions, not new BCs) |
-| E-18: Terminal Finding-Collapse | SS-11 | BC-2.11.025..029 | 5 |
-| **TOTAL** | | | **297** (288 prior + 9 net: BC-2.01.009–018 +10, BC-2.01.004 retired -1) |
+| E-18: Terminal Finding-Collapse | SS-11 | BC-2.11.025..029 (flat-mode collapse, STORY-118), BC-2.11.030..034 (grouped-collapse, STORY-119) | 10 |
+| **TOTAL** | | | **302** (297 prior + 5: BC-2.11.030–034 added; pre-pcapng baseline was 293, then +10 BC-2.01.009–018 −1 retired BC-2.01.004 = 302) |
 
 ### Arithmetic Verification
 
@@ -311,9 +312,9 @@ E-15: 24 (SS-15, BC-2.15.001..024) = 24
 E-16: 15 (SS-16, BC-2.16.001..015) = 15
                       --------
                       292 (pre-E-18 subtotal)
-E-18:  5 (SS-11, BC-2.11.025..029) =  5
+E-18: 10 (SS-11, BC-2.11.025..029 flat-collapse + BC-2.11.030..034 grouped-collapse) = 10
                       --------
-                      297 / 297  ✓
+                      302 / 302  ✓
 ```
 
 Note: E-11 (Tooling) has 0 BCs authored yet (STORY-091 pending). E-12 BCs are feature-mode
@@ -344,8 +345,8 @@ non-overlapping. No BC appears in more than one epic row above.
 | SS-12 | CLI / Entry | E-9 |
 | SS-13 | Absent Behaviors | E-10 |
 
-**Coverage confirmed: 297 / 297 active BCs assigned, 0 unassigned, 0 double-assigned.**
-(228 pre-feature [219 prior + 9 net F2 SS-01: BC-2.01.009–018 +10, BC-2.01.004 retired -1] + 25 E-14 Modbus + 24 E-15 DNP3 + 15 E-16 ARP + 5 E-18 Collapse = 297)
+**Coverage confirmed: 302 / 302 active BCs assigned, 0 unassigned, 0 double-assigned.**
+(228 pre-feature [219 prior + 9 net F2 SS-01: BC-2.01.009–018 +10, BC-2.01.004 retired -1] + 25 E-14 Modbus + 24 E-15 DNP3 + 15 E-16 ARP + 10 E-18 Collapse [5 flat BC-2.11.025–029 + 5 grouped BC-2.11.030–034] = 302)
 
 ---
 
@@ -455,7 +456,8 @@ probe test. The two stories are strictly linear (STORY-116 → STORY-117). Both 
   subcommand restores per-finding output for scripting or detailed triage. Grouped/`--mitre`
   mode bypasses collapse in v0.8.0 (deferred to STORY-119).
 - **BCs:**
-  BC-2.11.025, BC-2.11.026, BC-2.11.027, BC-2.11.028, BC-2.11.029 (new — E-18);
+  BC-2.11.025, BC-2.11.026, BC-2.11.027, BC-2.11.028, BC-2.11.029 (flat-mode collapse — STORY-118);
+  BC-2.11.030, BC-2.11.031, BC-2.11.032, BC-2.11.033, BC-2.11.034 (grouped-collapse — STORY-119);
   BC-2.11.010 v1.8, BC-2.11.013 v1.11, BC-2.11.017 v1.13, BC-2.11.019 v1.6 (extended)
 - **Subsystems touched:** SS-11 (reporter/terminal.rs), SS-12 (cli.rs, main.rs — thin wiring)
 - **Estimated stories:** 2 (STORY-118 scheduled Wave 47; STORY-119 deferred)

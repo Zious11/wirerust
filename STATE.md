@@ -4,7 +4,7 @@ phase: F2
 phase_status: "F2 COMPLETE — pcapng reader feature cycle OPEN (feature-pcapng-reader). F1 delta analysis + F2 spec evolution done. F3 story decomposition NEXT."
 product: wirerust
 mode: brownfield
-timestamp: 2026-06-19T01:00:00Z
+timestamp: 2026-06-19T02:00:00Z
 
 # Release chain
 released_version: v0.9.2
@@ -68,9 +68,9 @@ convergence_trajectory: "Detail: cycles/v0.1.0-greenfield-spec/convergence-traje
 **Previous checkpoint (AT REST / v0.9.2 RELEASED) archived to:
 `.factory/cycles/feature-story-119-grouped-collapse/session-checkpoints.md`**
 
-### PIPELINE STATUS: FEATURE MODE — F2 COMPLETE, F3 NEXT
+### PIPELINE STATUS: FEATURE MODE — F2 COMPLETE (consistency-verified), F3 NEXT
 
-Active cycle: **feature-pcapng-reader**. F1 (delta analysis) + F2 (spec evolution) COMPLETE. F3 (story decomposition) is next. No in-flight story worktrees. No open PRs.
+Active cycle: **feature-pcapng-reader**. F1 (delta analysis) + F2 (spec evolution) COMPLETE. F2 fresh-context consistency audit COMPLETE — 6 findings (2 HIGH, 2 MED, 2 LOW), ALL fixed and re-audited CLEAN (D-137). F3 (story decomposition) is next. No in-flight story worktrees. No open PRs.
 
 ### A. EXACT POSITION
 
@@ -79,7 +79,7 @@ Active cycle: **feature-pcapng-reader**. F1 (delta analysis) + F2 (spec evolutio
 - **Feature:** FE-001 — pcapng capture-format reader support. Status: IN PROGRESS (moved from CANDIDATE).
 - **ADR created:** ADR-009 — Option A selected (pcap-file 2.0.0, +0 transitive deps).
 - **BCs added:** BC-2.01.009..018 (10 new). BC-2.01.004 RETIRED (superseded by BC-2.01.009). BC-INDEX v1.52.
-- **Spec versions:** prd.md v1.29, error-taxonomy v2.3, nfr-catalog v2.2, test-vectors v2.2, STORY-001 v1.6, epics.md v1.5.
+- **Spec versions:** prd.md v1.30, error-taxonomy v2.3, nfr-catalog v2.2, test-vectors v2.2, STORY-001 v1.6, epics.md v1.6, BC-2.12.011 v1.4.
 - **Latest release (prior cycle):** `v0.9.2` (tag obj `a298dbe`, main `b73b242`).
 - **develop:** `b73b242` (= main; zero divergence).
 
@@ -145,7 +145,7 @@ Maintenance maint-2026-06-17: COMPLETE. NON-BLOCKING. Report: `.factory/maintena
 | E-18/E-8 STORY-119 cycle (F1-F7) + v0.9.0 | **RELEASED + CLOSED 2026-06-19** | STORY-120/122/119; 293 BCs; tag v0.9.0 986e148. Detail: cycles/feature-story-119-grouped-collapse/ |
 | v0.9.1 patch | **RELEASED 2026-06-19** | Doc/help; PRs #277/#278; tag v0.9.1 ad4eec8 |
 | v0.9.2 patch | **RELEASED 2026-06-19** | DNP3 determinism + E2E fixtures; PRs #279/#280; tag v0.9.2 b73b242 |
-| **Feature pcapng-reader (F1+F2)** | **F2 COMPLETE — F3 NEXT** | FE-001 IN PROGRESS. ADR-009, BC-2.01.009..018 (10 new, 1 retired), prd v1.29. Cycle: feature-pcapng-reader |
+| **Feature pcapng-reader (F1+F2)** | **F2 COMPLETE (consistency-verified) — F3 NEXT** | FE-001 IN PROGRESS. ADR-009, BC-2.01.009..018 (10 new, 1 retired), prd v1.30, epics v1.6 (302 active BCs). F2 audit: 6 findings ALL CLOSED (D-137). Cycle: feature-pcapng-reader |
 
 ## Decisions Log
 
@@ -159,6 +159,7 @@ D-131..D-135: `cycles/feature-story-119-grouped-collapse/decisions-archive.md`
 | D-134 | v0.9.1 RELEASED — doc/help patch (--no-collapse help text + README flag names). PRs #277/#278; tag v0.9.1 ad4eec8. | 2026-06-19 |
 | D-135 | v0.9.2 RELEASED — DNP3 determinism FIXED (FlowKey Ord + sort; PR #279 commit dd99f58). BUG-DNP3-CONTROL-OP-DETERMINISM-001 CLOSED. PRs #279/#280; tag v0.9.2 obj a298dbe. | 2026-06-19 |
 | D-136 | F1+F2 COMPLETE for pcapng reader feature (FE-001). Cycle: feature-pcapng-reader. ADR-009 created. 10 new BCs (BC-2.01.009..018); BC-2.01.004 RETIRED/inverted (superseded by BC-2.01.009). BC-2.01.001/002 extended. E-INP-008..011 added. STORY-001→v1.6, epics.md→v1.5 re-anchored. Option A (pcap-file 2.0.0, +0 deps) selected. Scope includes E2E corpus expansion (human-approved). F3 story decomposition is next. | 2026-06-19 |
+| D-137 | F2 fresh-context consistency audit COMPLETE: 6 findings (2 HIGH, 2 MED, 2 LOW), ALL fixed and re-audited CLEAN. Latent pre-existing epics.md arithmetic bug corrected: BC-2.11.030–034 (STORY-119 grouped-collapse) were missing from epics coverage table; active BC total corrected 297→302 (matches BC-INDEX v1.52 ground truth). Artifacts updated: ADR-009→Status block (FINDING-001), epics.md→v1.6 (FINDING-002), prd.md→v1.30 §7 RTM (FINDING-003), BC-2.12.011→v1.4 (FINDING-004), BC-INDEX timestamp (FINDING-005), HS-001 lifecycle_status:stale + HS-INDEX (FINDING-006). Audit report: cycles/feature-pcapng-reader/f2-consistency-audit.md. | 2026-06-19 |
 
 ## Blocking Issues
 
