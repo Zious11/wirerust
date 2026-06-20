@@ -1,7 +1,7 @@
 ---
 pipeline: FEATURE
 phase: F2
-phase_status: "F2 COMPLETE (spec-complete + consistency-verified + completeness-validated) — pcapng reader feature cycle OPEN (feature-pcapng-reader). F1 delta analysis + F2 spec evolution done. F2 completeness validation CLEAN (D-138). F3 story decomposition NEXT."
+phase_status: "F2 deep-validation found defects; remediation in progress; F3 BLOCKED until adversarial convergence (3 clean passes) — pcapng reader feature cycle OPEN (feature-pcapng-reader). Adversary pass-1: 3C/6H/7M/3L. Security: 0C/2H/4M/3L. Performance: 0C/3H/2M/1L. Cross-confirmed timestamp-overflow defect (Kani-breaking). Remediation tracker created; pcap-file API spike dispatched (keystone). D-141."
 product: wirerust
 mode: brownfield
 timestamp: 2026-06-19T04:00:00Z
@@ -63,14 +63,14 @@ convergence_trajectory: "Detail: cycles/v0.1.0-greenfield-spec/convergence-traje
 
 # VSDD Pipeline State — wirerust
 
-## Session Resume Checkpoint (2026-06-19 — F2 COMPLETE + COMPLETENESS-VALIDATED / pcapng-reader cycle OPEN)
+## Session Resume Checkpoint (2026-06-19 — F2 DEEP-VALIDATION COMPLETE / defects found / F3 BLOCKED / remediation in progress)
 
-**Previous checkpoint (F2 COMPLETE / consistency-verified) archived to:
+**Previous checkpoint (F2 COMPLETE / spec-complete + consistency-verified + completeness-validated) archived to:
 `.factory/cycles/feature-pcapng-reader/session-checkpoints.md`**
 
-### PIPELINE STATUS: FEATURE MODE — F2 COMPLETE (spec-complete + consistency-verified + completeness-validated), F3 NEXT
+### PIPELINE STATUS: FEATURE MODE — F2 DEEP-VALIDATION DEFECTS FOUND; REMEDIATION IN PROGRESS; F3 BLOCKED
 
-Active cycle: **feature-pcapng-reader**. F1 (delta analysis) + F2 (spec evolution) COMPLETE. F2 fresh-context consistency audit COMPLETE — 6 findings ALL CLOSED (D-137). F2 research-agent completeness validation COMPLETE — CLEAN for intended corpus; F-06/F-07/F-08/F-11 applied as AC-level deltas; 302 active BCs unchanged; re-audited CLEAN (D-138). F3 (story decomposition) is next. No in-flight story worktrees. No open PRs.
+Active cycle: **feature-pcapng-reader**. F1 + F2 spec-evolution + F2 consistency audit + F2 completeness validation ALL COMPLETE (D-136..D-140). F2 deep-validation (human-requested, adversary + security + performance) COMPLETE (D-141): adversary 3C/6H/7M/3L, security 0C/2H/4M/3L, performance 3H/2M/1L. Cross-confirmed timestamp-overflow defect (Kani-breaking). 29 unique findings (deduplicated). Remediation tracker: cycles/feature-pcapng-reader/f2-review-remediation-tracker.md. Adversary pass-1: cycles/feature-pcapng-reader/f2-adversarial-spec-review-pass1.md. F3 BLOCKED — remediation + adversarial reconvergence (3 clean passes) required. pcap-file API spike dispatched (keystone, unblocks H-1/H-2/H-6/M-2/SEC-002/SEC-008). No in-flight story worktrees. No open PRs.
 
 ### A. EXACT POSITION
 
@@ -127,7 +127,7 @@ Active cycle: **feature-pcapng-reader**. F1 (delta analysis) + F2 (spec evolutio
 
 ## Status
 
-**FEATURE MODE — pcapng reader cycle OPEN (feature-pcapng-reader). F2 COMPLETE. F3 NEXT.**
+**FEATURE MODE — pcapng reader cycle OPEN (feature-pcapng-reader). F2 DEEP-VALIDATION: defects found. F3 BLOCKED — remediation + 3 clean adversary passes required.**
 
 Latest release: v0.9.2 (tag obj `a298dbe`, main `b73b242`, 4 binaries). develop = main = `b73b242`. Zero divergence.
 Active feature: FE-001 pcapng capture-format reader support. ADR-009, 10 new BCs, 1 retired BC.
@@ -154,7 +154,7 @@ Maintenance maint-2026-06-17: COMPLETE. NON-BLOCKING. Report: `.factory/maintena
 | E-18/E-8 STORY-119 cycle (F1-F7) + v0.9.0 | **RELEASED + CLOSED 2026-06-19** | STORY-120/122/119; 293 BCs; tag v0.9.0 986e148. Detail: cycles/feature-story-119-grouped-collapse/ |
 | v0.9.1 patch | **RELEASED 2026-06-19** | Doc/help; PRs #277/#278; tag v0.9.1 ad4eec8 |
 | v0.9.2 patch | **RELEASED 2026-06-19** | DNP3 determinism + E2E fixtures; PRs #279/#280; tag v0.9.2 b73b242 |
-| **Feature pcapng-reader (F1+F2)** | **F2 COMPLETE (spec-complete + consistency-verified + completeness-validated) — F3 NEXT** | FE-001 IN PROGRESS. ADR-009 rev 3, BC-2.01.009..018 (10 new, 1 retired), prd v1.31, epics v1.6 (302 active BCs). F2 audit CLEAN (D-137). F2 completeness CLEAN (D-138): F-06/F-07/F-08/F-11 AC deltas applied; E-INP-012 added; 302 BCs unchanged. F-06 SUPERSEDED (D-139): pcap-file 2.0.0 resets correctly; reject = scope decision. Cycle: feature-pcapng-reader |
+| **Feature pcapng-reader (F1+F2)** | **F2 DEEP-VALIDATION: defects found; remediation in progress; F3 BLOCKED** | FE-001 IN PROGRESS. F2 spec-evolution + consistency + completeness COMPLETE (D-136..D-140). Deep-validation (D-141): adv 3C/6H/7M/3L + sec 0C/2H/4M/3L + perf 3H/2M/1L = 29 unique findings. Cross-confirmed timestamp-overflow (Kani-breaking). Tracker: f2-review-remediation-tracker.md. F3 blocked: remediation + 3 clean adversary passes + pcap-file API spike. Cycle: feature-pcapng-reader |
 
 ## Decisions Log
 
@@ -173,6 +173,7 @@ D-131..D-135: `cycles/feature-story-119-grouped-collapse/decisions-archive.md`
 | D-139 | Multi-section pcapng question RESOLVED via source-level research (pcap-file 2.0.0 resets interface table per section correctly — `self.interfaces.clear()` on every `Block::SectionHeader`; confirmed from source, 2026-06-19). The feared mis-attribution class of bug (F-06 MEDIUM) was a Wireshark-era defect, not a pcap-file defect. REJECT decision retained as a SCOPE decision — multi-section is rare and absent from the intended corpus; support is a cheap future-cycle escape hatch (~10-60 LOC). ADR-009 → rev 3 (Decision 7 rationale corrected; F-06 SUPERSEDED; mergecap hint canonical: `mergecap -w out.pcapng <file>`). BC-2.01.010 → v1.3 (AC-002 reframed as scope decision; library-reset acknowledgement added; mergecap hint canonical: `mergecap -w out.pcapng <file>`). error-taxonomy → v2.6 (E-INP-012 Notes corrected; mergecap hint canonical: `mergecap -w out.pcapng <file>`). Research: research/pcapng-multisection-decision.md (RESEARCH-INDEX updated). F2 completeness report annotated: F-06 SUPERSEDED block + scorecard/summary updated to RESOLVED. f2-consistency-audit.md: rationale-correction re-audit added — CLEAN (2 LOW cosmetics RC-1/RC-2 both closed). BC count unchanged (302). F2 fully spec-complete, consistency- and completeness-validated. F3 NEXT. RC-2 final-aligned (ADR-009 mergecap reverted to canonical `-w` form, 2026-06-19). | 2026-06-19 |
 
 | D-140 | Post-D-139 reconciliation: STATE.md spec-version references corrected to on-disk truth (BC-2.01.010 v1.3, error-taxonomy v2.6, ADR-009 rev 3); mergecap remediation hint standardized to `mergecap -w out.pcapng <file>` across all 3 docs (ADR-009 architect-reverted from an out-of-lane state-manager edit). PROCESS-GAP[process-gap]: state-manager performed ADR content edits during the D-139 commit burst — state-manager must not edit spec/ADR content; only state/index files. Logged for cycle-close lessons (cycles/feature-pcapng-reader/lessons.md). | 2026-06-19 |
+| D-141 | F2 deep-validation pass (adversary + security + performance, human-requested): adversary 3C/6H/7M/3L, security 0C/2H/4M/3L, performance 3H/2M/1L. Cross-confirmed timestamp-overflow defect (Kani-breaking; adv H-1 == sec SEC-001/006). Consolidated remediation tracker created (29 unique findings, deduplicated): cycles/feature-pcapng-reader/f2-review-remediation-tracker.md. Adversary pass-1 persisted: cycles/feature-pcapng-reader/f2-adversarial-spec-review-pass1.md. pcap-file API spike dispatched (keystone — unblocks H-1 final form, H-2, H-6, M-2, SEC-002, SEC-008). F2 NOT yet converged — remediation + adversarial reconvergence required (3 clean passes, per DF-ADVERSARY-METHODOLOGY-001) before F3. Three [process-gap] items logged to lessons.md: O-1 (VP placeholders reached WRITTEN with VP-NNN=—), O-2 (error-taxonomy input-hash N/A violates DF-INPUT-HASH-CANONICAL-001), C-1 (per-file-isolation claim inserted without owning implementation story). | 2026-06-19 |
 
 ## Blocking Issues
 
