@@ -8,8 +8,12 @@ sources:
   - performance-review
   - adversarial-spec-review-pass2 (ADV-F2-PASS2)
 date_created: 2026-06-19
-status: PASS9-CLEAN-PASS2-OF-3
-f3_blocked: true
+status: F2-ADVERSARIAL-CONVERGED-3-OF-3
+f3_blocked: false
+f3_blocked_was: true
+convergence_achieved: true
+convergence_decision: D-164
+convergence_clean_passes: [8, 9, 10]
 f3_blocker_reason: "Adversarial reconvergence required (3 clean passes). Pass-1 items addressed (D-142/D-143). Pass-2 items addressed (D-144). Pass-2 cross-seam re-audit CLEAN (D-145). Pass-3 NOT CLEAN (D-146): 1C/5H/7M/4L. Pass-3 remediation COMPLETE (D-147). Pass-3 cross-seam re-audit gap fixes COMPLETE (D-148). Pass-4 NOT CLEAN (D-149): 1C/4H/5M/3L, HIGH novelty. Pass-4 remediation COMPLETE (D-150). Pass-4 re-audit 3 Major boundary gaps FIXED (D-151): FINDING-P4-001/002/003. Pass-5 NOT CLEAN (D-152): 1C/4H/5M/3L, HIGH novelty — TRAJECTORY PLATEAU (23/24/17/13/13). Pass-5 remediation COMPLETE (D-153): all 1C/4H/5M/3L FIXED. Pass-5 re-audit CLEAN (D-154): 4 Minor findings FIXED (FINDING-P5-001/002/003/004); 6 seams CLEAN. Pass-5 fully remediated + consistency-verified. Pass-6 NOT CLEAN (D-155): 0C/4H/5M/4L — FIRST zero-critical pass; count plateau 13 (P4/5/6), severity declining. Pass-6 remediation COMPLETE (D-156): all 0C/4H/5M/4L FIXED. Pass-6 re-audit CLEAN (D-157): 2 Minor findings FIXED (FINDING-P6-001/002); 10 seams CLEAN. Pass-7 NOT CLEAN (D-158): 1C/3H/4M/4L; novelty MODERATE; 2 axes CONVERGED. Pass-7 remediation COMPLETE (D-159): all 1C/3H/4M FIXED; 4L CONVERGED GREEN. Pass-7 re-audit minors FIXED (D-160): FINDING-P7-001/002 (metadata + rubric gate). Pass-8 CLEAN (D-161): 0C/0H/3M/5L — CLEAN-PASS 1/3 (BC-5.39.001). M-1/M-2/M-3/O-2 FIXED. O-1 DEFERRED-TO-F3. Pass-8 focused re-audit CLEAN (D-162): FINDING-P8-001 FIXED — HS-INDEX v2.5 behavioral-subtleties 39→40 (minor metadata; CLEAN-PASS counter unchanged, still 1/3). Adversary pass-9 pending. Clean-pass counter 1/3."
 ---
 
@@ -789,3 +793,69 @@ Full pass record: `.factory/cycles/feature-pcapng-reader/f2-adversarial-spec-rev
 | f2-review-remediation-tracker.md | — | — | Pass-9 section added; status PASS9-CLEAN-PASS2-OF-3 |
 
 **Clean-pass counter as of D-163: 2/3. Adversary pass-10 pending (targeting clean-pass 3/3 → CONVERGENCE). F3 BLOCKED until pass-10 clean.**
+
+---
+
+---
+
+## Pass-10 Adversarial Findings (ADV-F2-PASS10 — D-164 burst — 2026-06-20)
+
+**Overall verdict:** 0 CRITICAL / 0 HIGH / 2 MEDIUM / 3 LOW. **CLEAN — 0C/0H.**
+**CLEAN-PASS 3/3 (BC-5.39.001). F2 ADVERSARIAL CONVERGENCE ACHIEVED.**
+**Trajectory:** P1:23 / P2:24 / P3:17 / P4:13 / P5:13 / P6:13 / P7:12 / P8:8 / P9:4 / P10:5
+
+Full pass record: `.factory/cycles/feature-pcapng-reader/f2-adversarial-spec-review-pass10.md`
+
+### Pass-10 Medium Findings
+
+| ID | Severity | Finding Summary | Status |
+|----|----------|----------------|--------|
+| MEDIUM-1 | MEDIUM | BC-2.01.012 PC6b stale snaplen false-attribution annotation — note attributed the padding-overrun guard to "snaplen enforcement." Per Decision 9 amend (ADR-009 rev 8) EPB does not enforce snaplen; PC6b is padding-overrun guard (defense-in-depth) only. | FIXED — BC-2.01.012 v1.8→v1.9: stale snaplen annotation removed from PC6b; normative annotation reads "padding-overrun guard (defense-in-depth; not snaplen enforcement)" per Decision 9 amend. D-164. |
+| MEDIUM-2 | MEDIUM | HS-109 VP-026 mis-anchor — HS-109 listed VP-026 (anchored to BC-2.01.010 SHB parse safety) as verification property. Correct VP for IDB body-decode holdout is VP-027 (EPB/IDB body-decode; BC-2.01.011 body-decode paths). Mis-anchor would allow evaluator to accept implementation passing VP-026 SHB-scoped coverage without IDB-specific coverage. | FIXED — HS-109 v1.0→v1.1: VP-026 replaced with VP-027 in verification_properties. ADR-009 "Current Canonical Constants" governing table added (single source of truth for per-block VP+HS assignments; process-gap resolution). D-164. |
+
+### Pass-10 Low Findings
+
+| ID | Severity | Finding Summary | Status |
+|----|----------|----------------|--------|
+| LOW-1 | LOW | BC-2.01.011 PC6 carve-out precision — "diagnostic only" phrasing did not distinguish which uses are permitted; if_tsresol IS used for timestamp scaling (BC-2.01.014) but MUST NOT be applied to captured_len. | FIXED — BC-2.01.011 v1.6→v1.7: PC6 reworded to explicitly state timestamp-scaling use permitted; captured_len application prohibited per Decision 9 amend + Decision 22. D-164. |
+| LOW-2 | LOW | HS-104 Case D discriminant wording — expected-output section lacked the discriminant condition (interface_id >= idb_count) making the holdout under-specified; evaluator could accept E-INP-010 returned for wrong reason. | FIXED — HS-104 v1.5→v1.6: Case D expected outputs updated — "returns Err(E-INP-010) WHERE: interface table is non-empty AND interface_id >= idb_count; discriminant: OOB check, not body-length check." D-164. |
+| LOW-3 | LOW | error-taxonomy E-INP-009 Notes source-location used informal path category "EPB/SPB parse path" instead of the owning-BC + function-name convention used in all other E-INP-NNN rows. | FIXED — error-taxonomy v3.6→v3.7: E-INP-009 Notes source-location updated to "source: BC-2.01.012 PC5a (EPB; pcapng_epb_to_packet) / BC-2.01.013 PC5 AC-001 (SPB; pcapng_spb_to_packet)". D-164. |
+
+---
+
+## Pass-10 Remediation Summary (D-164 — 2026-06-20)
+
+**Verdict:** Pass-10 CLEAN (0C/0H/2M/3L). All findings FIXED. **CLEAN-PASS 3/3. F2 ADVERSARIAL CONVERGENCE ACHIEVED.** F2 human gate pending (consistency verification + F2 approval). F3 story decomposition is next after gate.
+
+**Artifacts updated in this burst (7 artifacts):**
+
+| Artifact | Before | After | Findings addressed |
+|----------|--------|-------|--------------------|
+| BC-2.01.012 | v1.8 | v1.9 | MEDIUM-1 (snaplen false-attribution removed from PC6b) |
+| HS-109 | v1.0 | v1.1 | MEDIUM-2 (VP-026→VP-027 mis-anchor corrected) |
+| BC-2.01.011 | v1.6 | v1.7 | LOW-1 (PC6 carve-out precision) |
+| HS-104 | v1.5 | v1.6 | LOW-2 (Case D discriminant wording) |
+| error-taxonomy | v3.6 | v3.7 | LOW-3 (E-INP-009 Notes source-location convention) |
+| ADR-009 | rev 9 | rev 9 (table added) | MEDIUM-2 process-gap (canonical-constants governing table) |
+| BC-INDEX | v1.67 | v1.68 | BC-2.01.011 v1.6→v1.7; BC-2.01.012 v1.8→v1.9 annotations synced |
+| spec-changelog | — | — | [pcapng-f2-pass10-clean-CONVERGED-2026-06-20] prepended |
+| STATE.md | — | — | phase_status + spec-versions + D-164 + CLEAN-PASS 3/3 + F2 CONVERGED recorded |
+| f2-review-remediation-tracker.md | — | — | Pass-10 section added; status F2-ADVERSARIAL-CONVERGED-3-OF-3 |
+
+**Clean-pass counter as of D-164: 3/3. F2 ADVERSARIAL CONVERGENCE ACHIEVED.**
+
+---
+
+## F2-Gate / F3-Entry Checklist (NOW ACTIONABLE — F2 convergence achieved D-164)
+
+- [ ] **Item 8 (pre-F2-gate):** Run `bin/compute-input-hash --write` on HS-104, HS-107, HS-108.
+  Add ADR-009 to each holdout's `inputs:` list. (F-6 NOW ACTIONABLE — previously
+  DEFERRED-TO-F2-CONVERGENCE — D-159.)
+- [ ] **O-1:** Evaluate `bin/framing-constant-validator` scope for F3 implementation stories.
+  (DEFERRED-TO-F3 — D-161.)
+- [ ] **STORY-128 existence verification:** Confirm STORY-128 on-disk before F3 entry.
+  (PG-2 — D-152.)
+- [ ] **arp-baseline-16pkt.cap params:** Verify SHB/IDB params vs BC-2.01.012 canonical-vector claim.
+  (PG-3 — D-152.)
+- [ ] **BC-2.12.011 F3 rewrite:** Revise when decomposing STORY-127 (directory glob).
+- [ ] **HS-001 + HS-INDEX F3 update:** Cite retired BC-2.01.004; PO action in F3.

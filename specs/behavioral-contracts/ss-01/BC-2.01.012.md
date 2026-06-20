@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.8"
+version: "1.9"
 status: draft
 producer: product-owner
 timestamp: 2026-06-19T00:00:00Z
@@ -20,6 +20,7 @@ modified:
   - "v1.5: Pass-5 remediation per ADR-009 rev 8 (C-1 reclassification) — EPB body-decode failures reclassified from E-INP-010 → E-INP-008 at all sites. Decision 20 rule: the crate has already successfully framed the block (btl >= 12, aligned, trailing-length match) before any EPB body-decode runs; therefore wirerust body-decode rejections (captured_len > body.len() - 20 bound-by-body; 20 + captured_len + pad_len(captured_len) > body.len() padding-overrun) are wirerust body-decode failures → E-INP-008. Updated: PC6a (bound-by-body → E-INP-008); PC6b (padding-overrun → E-INP-008); AC-002 both sub-checks → E-INP-008; AC-006 one-over case → E-INP-008; EC-010 → E-INP-008; canonical test vectors rows for padding-overrun and bound-by-body → E-INP-008; VP-027 updated. E-INP-010 in this BC is now STRICTLY: (i) crate framing rejection (btl<12/misaligned/EOF) per EC-012; (ii) EPB interface_id OOB on non-empty table per EC-006/EC-007/PC5. — 2026-06-20"
   - "v1.6: Pass-6 remediation per ADR-009 rev 9 (F-H4 discriminant split) — PC5 split into two explicit sub-postconditions: PC5a (empty-table path → E-INP-009 with exact message format) and PC5b (OOB-on-non-empty path → E-INP-010 with exact message format). AC-001 strengthened to require the two discriminants to be DIFFERENT (empty⇒009, OOB-non-empty⇒010) — returning any single code for both cases is an AC violation. VP-027 updated: now asserts the discriminant itself (not just 'returns Err') for the empty-table vs OOB split. This resolves the F-H4 finding: prior text used ambiguous '(→ E-INP-009 / E-INP-010)' notation that did not specify which condition maps to which code. — 2026-06-20"
   - "v1.7: Pass-7 remediation per ADR-009 rev 9 (F-4 EPB decode precedence) — (1) Removed contradictory 'interface table is non-empty' assertion from Precondition 1 (empty-table is a handled case → PC5a / E-INP-009, not a precondition for success). Rewrote Precondition 1 to describe the dependency on BC-2.01.011 for if_tsresol lookup only. (2) Added Postcondition 9: explicit EPB evaluation-order postcondition pinning the 5-step precedence — (i) body.len() >= 20 else E-INP-008; (ii) read interface_id; (iii) if table EMPTY → E-INP-009 (before any captured_len / data-slice decode); (iv) if interface_id >= table.len() on non-empty table → E-INP-010; (v) captured_len bound-by-body / padding-overrun → E-INP-008. Empty-table check (step iii) is evaluated AFTER the body.len()>=20 gate (step i) but BEFORE any data-slice body-decode (step v), and is independent of captured_len arithmetic. This makes HS-104 Case (empty) and HS-108 Case C (both demand E-INP-009 exactly) unambiguously derivable from the BC. — 2026-06-20"
+  - "v1.9: Pass-10 remediation (MEDIUM-1) — Removed false snaplen-attribution from PC3 and EC-002 (and the canonical test vector row). Both sites now read: captured-length-truncated by the writing tool (captured_len < original_len on the wire); wirerust copies exactly captured_len bytes and does NOT compute or apply snaplen (Decision 9 amendment: snaplen is read-and-discarded by BC-2.01.011; InterfaceInfo has no snaplen field). Invariant 2 (captured_len used for data slicing, never original_len) is unchanged. — 2026-06-20"
   - "v1.8: Pass-9 remediation (LOW-2, LOW-3) — (LOW-3) Added explicit PC6a/PC6b anchor labels to Postcondition 6 sub-items (consistent with PC5a/PC5b) so HS-104 citations resolve; PC9 step (v) now REFERENCES PC6a/PC6b instead of restating the rule (one canonical statement). (LOW-2) PC6b (padding-overrun check) marked as DEFENSE-IN-DEPTH: on a crate-framed (4-aligned) block btl-32 is a multiple of 4, so the maximum valid captured_len requires no padding, making the 20+captured_len+pad_len(captured_len) > body.len() overrun condition unreachable via a well-framed block — the crate's alignment rejection (E-INP-010) subsumes it before PC6b can fire. PC6a (unconditional bound-by-body: captured_len > body.len()) remains the live, reachable guard. Updated AC-002 and VP-027 to reflect PC6b defense-in-depth status. — 2026-06-20"
 deprecated: null
 deprecated_by: null
@@ -78,8 +79,11 @@ E-INP-008 (not E-INP-010) when the body is too short to hold the EPB fixed field
    `interface_id` (defaulting to `6u8` when absent from the IDB). The helper owns the
    `ticks = (ts_high as u64) << 32 | ts_low as u64` combine and all subsequent arithmetic.
 3. Packet data is copied from the EPB body bounded by `captured_len` bytes (not
-   `original_len`). If `captured_len < original_len`, the packet is snaplen-truncated; the
-   `data` field carries only the captured bytes.
+   `original_len`). If `captured_len < original_len`, the packet is captured-length-truncated
+   by the writing tool (`captured_len < original_len` on the wire); wirerust copies exactly
+   `captured_len` bytes and does NOT compute or apply snaplen (Decision 9 amendment: snaplen
+   is read-and-discarded by BC-2.01.011 IDB parsing; `InterfaceInfo` has no snaplen field).
+   The `data` field carries only the captured bytes.
 4. The resulting `RawPacket` is appended to the `PcapSource.packets` vector in EPB encounter
    order.
 5. `interface_id` bounds checking produces two distinct discriminants depending on table state.
@@ -250,7 +254,7 @@ E-INP-008 (not E-INP-010) when the body is too short to hold the EPB fixed field
 | ID | Description | Expected Behavior |
 |----|-------------|-------------------|
 | EC-001 | `captured_len == original_len` (no truncation) | Data copied in full; normal case |
-| EC-002 | `captured_len < original_len` (snaplen-truncated) | Data bounded to `captured_len`; truncated `RawPacket` produced; downstream decoder handles via lax fallback |
+| EC-002 | `captured_len < original_len` (captured-length-truncated by the writing tool) | Data bounded to `captured_len`; wirerust copies exactly `captured_len` bytes and does NOT compute or apply snaplen (Decision 9 amendment); truncated `RawPacket` produced; downstream decoder handles via lax fallback |
 | EC-003 | `ts_high = 0, ts_low = 0` | `timestamp_secs=0, timestamp_usecs=0`; valid zero-epoch packet |
 | EC-004 | `ts_high` and `ts_low` combine to a very large u64 (near u64::MAX) | BC-2.01.014 saturating arithmetic handles; `ts_sec` saturates at u32::MAX; no panic |
 | EC-005 | EPB `interface_id = 0` with EMPTY interface table (no IDB seen yet) | `Err` mapping to E-INP-009 (empty-table path) |
@@ -268,7 +272,7 @@ E-INP-008 (not E-INP-010) when the body is too short to hold the EPB fixed field
 |-------|----------------|----------|
 | EPB with `ts_high=0, ts_low=1000000`, `if_tsresol` absent (default µs) | `RawPacket { timestamp_secs: 1, timestamp_usecs: 0 }` | happy-path |
 | EPB with `ts_high=0, ts_low=1500000000`, `if_tsresol=0x09` (nanoseconds) | `RawPacket { timestamp_secs: 1, timestamp_usecs: 500000 }` | happy-path |
-| EPB with `captured_len=64, original_len=1500` | `RawPacket { data.len() == 64 }` (snaplen-truncated) | edge-case |
+| EPB with `captured_len=64, original_len=1500` | `RawPacket { data.len() == 64 }` (captured-length-truncated; snaplen not applied — Decision 9 amendment) | edge-case |
 | EPB with `interface_id=0`, empty interface table (no IDB) | `Err` mapping to E-INP-009 | error |
 | EPB with `interface_id=5`, one IDB (index 0 only) | `Err` mapping to E-INP-010; context includes `"interface_id=5 out of range (table size=1)"` | error |
 | EPB where `20 + captured_len + pad_len(captured_len) == body.len()` (exact padding-aware boundary) | `Ok(RawPacket)` with `data.len() == captured_len` | boundary-valid (EC-009) |

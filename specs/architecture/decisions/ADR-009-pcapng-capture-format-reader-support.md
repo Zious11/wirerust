@@ -25,6 +25,124 @@ to `accepted` to reflect full downstream adoption and clean spec convergence.
 
 ---
 
+## Current Canonical Constants (single source of truth)
+
+> This table is the canonical reference for all pcapng reader constants and formulas
+> converged through rev 9. If any BC, taxonomy document, holdout scenario, or story
+> disagrees with a value here, THIS table governs and the discrepancy is a defect.
+> Keep this table in sync with the Decisions above whenever a future revision changes
+> a constant or formula; do not rely on changelog archaeology.
+
+### Block Frame Overhead
+
+- Frame overhead = **12 bytes** per block (block_type:4 + block_total_length:4 + trailing block_total_length:4).
+- `RawBlock.body` = `block_total_length - 12`.
+
+### Per-Block Fixed-Field Minimums (body bytes, i.e., not counting the 12-byte outer header)
+
+| Block | Type code | Body fixed-field bytes | Composition |
+|-------|-----------|----------------------|-------------|
+| SHB | `0x0A0D0D0A` | 16 | BOM:4 + major:2 + minor:2 + section_length:8 |
+| IDB | `0x00000001` | 8 | linktype:2 + reserved:2 + snaplen:4 |
+| EPB | `0x00000006` | 20 | interface_id:4 + ts_high:4 + ts_low:4 + captured_len:4 + original_len:4 |
+| SPB | `0x00000003` | 4 | original_len:4 |
+
+### E-INP-008 Windows (body-too-short, crate accepted the block but wirerust body-decode fails)
+
+| Block | btl range that triggers E-INP-008 |
+|-------|------------------------------------|
+| SHB | `12 <= btl < 28` |
+| IDB | `12 <= btl < 20` |
+| EPB | `12 <= btl < 32` |
+| SPB | `btl == 12` exactly (body = 0 bytes < 4 fixed-field bytes) |
+
+Note: `btl < 12` is a crate framing failure → **E-INP-010** (not E-INP-008). The boundary is: crate rejects `btl < 12`; crate accepts `btl >= 12`; wirerust then rejects body < fixed minimum as E-INP-008.
+
+### EPB Captured-Len Bounds
+
+- **PC6a (live guard):** `captured_len <= body.len() - 20` (equivalently `block_total_length - 32`). Violated → **E-INP-008** (wirerust body-decode, NOT E-INP-010).
+- **PC6b (padding-overrun):** `20 + captured_len + pad_len(captured_len) <= body.len()`. Violated → **E-INP-008**. This is defense-in-depth; unreachable on a spec-compliant 4-aligned block where PC6a holds.
+
+### SPB Captured-Len Formula (canonical, rev 9 / Decision 22)
+
+```
+spb_data_available = body.len() - 4        # strips the 4-byte original_len header from the body
+                   = block_total_length - 16  # equivalently: btl minus the full 16-byte SPB frame
+captured_len       = min(original_len, spb_data_available)
+                   = min(original_len, body.len() - 4)
+```
+
+- `block_total_length - 12` (= `body.len()`) is the **wrong** bound for captured_len; it must never be used as the upper limit.
+- `snaplen` is **NOT** consulted (read from IDB fixed fields and discarded; Decision 9 / rev 9).
+
+### Error-Code Assignment
+
+| Condition | Error code |
+|-----------|-----------|
+| Framing rejection by crate (btl < 12, btl % 4 != 0, EOF before trailer) | E-INP-010 |
+| wirerust body-decode failure (body < fixed minimum, EPB padding/bound, malformed options, if_tsresol option length != 1) | E-INP-008 |
+| EPB/SPB arrives with empty interface table (no IDB parsed yet) | E-INP-009 |
+| EPB interface_id >= table.len() on a NON-EMPTY interface table | E-INP-010 |
+| Multi-IDB linktype conflict (second IDB has different whitelisted linktype) | E-INP-011 |
+| Second SHB encountered (multi-section file, unsupported) | E-INP-012 |
+| IDB encountered after first packet block has been emitted | E-INP-013 |
+
+### IDB Error-Code Precedence at IDB-Parse Time (Decision 17)
+
+1. **E-INP-013 first** — position check (`packets_emitted > 0`). IDB body is NOT decoded.
+2. **E-INP-001 second** — linktype whitelist check (content gate, fires at IDB-parse time).
+3. **E-INP-011 third** — multi-IDB linktype agreement (requires prior table state).
+
+A late IDB that also conflicts on linktype receives only E-INP-013 (position wins over content).
+
+### snaplen and if_tsoffset
+
+- **snaplen:** read from IDB body bytes 4-7 (consumed to advance past fixed fields) and **discarded**. NOT stored on `InterfaceInfo`. NOT applied to captured_len for EPB or SPB. (Decision 9 rev 9.)
+- **if_tsoffset (IDB option code 10):** NOT extracted or applied this cycle. (Decision 21.)
+- `InterfaceInfo` carries only `linktype: DataLink` and `if_tsresol: u8`.
+
+### Timestamp Conversion (BC-2.01.014 pure-core helper; Decision 4)
+
+- Input: `(ts_high: u32, ts_low: u32, if_tsresol: u8)`. Default when if_tsresol absent from IDB: **6** (10^-6, microseconds).
+- **Base-10** (`bit7 = 0`, e = if_tsresol & 0x7F): `ticks_per_sec = lookup_table[e]` for e in [0, 19]; saturate to u64::MAX for e >= 20. (Option A preferred; no loop — Kani-decidable. Option B: `10u64.checked_pow(e).unwrap_or(u64::MAX)` with `#[kani::unwind(128)]`.)
+- **Base-2** (`bit7 = 1`, e = if_tsresol & 0x7F): clamp e to [0, 63]; `ticks_per_sec = 1u64.checked_shl(e as u32).unwrap_or(u64::MAX)`. e >= 64 panics without the clamp.
+- `ts_sec = ((ts_high as u64) << 32 | ts_low as u64) / ticks_per_sec`; saturate to u32::MAX via `.min(u32::MAX)`.
+- `ts_usecs = ((ticks % ticks_per_sec) * 1_000_000) / ticks_per_sec`; intermediate must use **u128** or `u64::saturating_mul` (overflows u64 for base-2 e >= 43).
+
+### Block Sequence Numbering
+
+- 1-based. SHB = block #1. Every block returned by `next_raw_block` increments the counter regardless of type.
+
+### Link-Type Whitelist
+
+`{ ETHERNET = 1, RAW = 101, IPV4 = 228, IPV6 = 229, LINUX_SLL = 113 }`
+
+### Zero-Packet Notice
+
+- Emitted from **main.rs** (not from the reader); fires when `packets.len() == 0` on a structurally valid file (exit 0).
+- `PcapSource` surfaces: `skipped_blocks: u32` (all skipped blocks) and `opb_skipped: u32` (OPB subset). `opb_skipped <= skipped_blocks` always.
+- OPB (type `0x00000002`) increments **both** counters.
+- Notice format when `opb_skipped > 0`: must explicitly state OPB packet data was not ingested + mergecap remediation hint.
+- Classic-pcap empty file (valid header, zero packets) also emits zero-packet notice with format `notice: <filename>: 0 packets read from pcap file`.
+- SHB-only file (no IDB, no packet blocks) also triggers the notice.
+- Block body bytes MUST NOT appear in the notice (SEC-007 / DSB key material).
+
+### Verification Properties (VP-025..031)
+
+| VP-ID | Tool | Phase | BC(s) | Property (short) |
+|-------|------|-------|-------|-----------------|
+| VP-025 | Kani | P1 | BC-2.01.014 | Timestamp helper totality — no panic, ts_usecs in [0, 999_999], ts_sec saturates at u32::MAX; must include large-ts_high saturation vector |
+| VP-026 | Kani | P1 | BC-2.01.010 | SHB parse safety — no panic, byte-order BOM correct for LE/BE |
+| VP-027 | Kani | P1 | BC-2.01.012 | EPB parse safety — no panic; empty-table → E-INP-009 discriminant; OOB-non-empty → E-INP-010 discriminant; padding/bound → E-INP-008 |
+| VP-028 | cargo-fuzz | P1 | BC-2.01.017 | pcapng reader no-panic: Ok or Err for any byte sequence; no panic, no infinite loop |
+| VP-029 | proptest | P1 | BC-2.01.015 | Block-walk skip — always advances past btl; no infinite loop; terminates |
+| VP-030 | proptest | P1 | BC-2.01.018 | Multi-IDB linktype agreement over WHITELISTED DataLink values only; comparison unit: DataLink |
+| VP-031 | proptest | P1 | BC-2.01.013 | SPB captured-len correctness: `min(original_len, body.len() as u32 - 4)` for all (u32, &[u8]) with body.len() >= 4; returned slice has exactly captured_len bytes |
+
+**VP totals: 31** (Kani 14 / proptest 10 / fuzz 2 / int-unit 5). pcapng VPs are VP-025..031.
+
+---
+
 > **One-per-file:** Each architectural decision lives in its own file.
 > Filename convention: `ADR-NNN-<short-name>.md` (e.g., `ADR-001-rust-dispatcher.md`)
 > ADR IDs are sequential 3-digit (`ADR-001`, `ADR-002`, ...). Once issued, never renumber.

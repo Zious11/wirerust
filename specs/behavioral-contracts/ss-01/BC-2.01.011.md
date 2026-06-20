@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.6"
+version: "1.7"
 status: draft
 producer: product-owner
 timestamp: 2026-06-19T00:00:00Z
@@ -13,6 +13,7 @@ capability: CAP-01
 lifecycle_status: active
 introduced: v0.10.0-pcapng
 modified:
+  - "v1.7: Pass-10 remediation (LOW-1) — Added carve-out to the 'unknown option codes are silently skipped' bullet in PC6: the parenthetical now explicitly states this applies ONLY to option codes wirerust does not specially handle; code 9 / if_tsresol is NOT in this set and is subject to the option_length==1 enforcement rule → E-INP-008 on length!=1. Prevents the ambiguity where a reader could infer if_tsresol is silently skipped when option_length!=1. — 2026-06-20"
   - "v1.6: Pass-6 remediation T3 (ADR-009 rev 9) — F-M3: snaplen is dead (nothing consumes it after SPB was dropped). Removed snaplen from InterfaceInfo struct definition; PC4 and AC-003 no longer claim snaplen is 'extracted and stored for SPB use (BC-2.01.013)' (false cross-ref). PC4 now states snaplen (IDB body bytes 4-7) is READ only to advance past the fixed fields and DISCARDED — wirerust does not store or apply snaplen this cycle (mirrors Decision 21 if_tsoffset). Added limitation note: snaplen is not enforced; captured lengths are bounded by on-disk block body extent (EPB: btl-32; SPB: btl-16). F-M5: added if_tsresol option-length enforcement — an if_tsresol (code 9) option whose option_length != 1 is a malformed option → Err(E-INP-008); wirerust MUST NOT silently ignore or default. Added EC-013 (if_tsresol with length=4 → E-INP-008). Updated AC-005, PC6, and edge-case table accordingly. — 2026-06-20"
   - "v1.5: Pass-4 remediation FINDING-P4-001 — GAP-1 closed: removed stale sentence from PC5 tail that claimed 'E-INP-008 covers SHB and IDB structural errors ONLY; EPB/SPB body truncation routes to E-INP-010'. Per Decision 20 the uniform rule is: crate-framed-but-body-too-short for ALL block types (SHB body<16, IDB body<8, EPB body<20, SPB body<4) → E-INP-008 (wirerust body-decode); btl<12/misaligned/EOF → E-INP-010 (crate framing rejection). No singling out of EPB/SPB as E-INP-010. Authority: ADR-009 rev 7 Decision 20. — 2026-06-20"
   - "v1.4: Pass-4 remediation R2 — Decision 20 (align wording to uniform rule): confirmed btl<12→E-INP-010 (crate rejects), 12<=btl<20→body<8→E-INP-008 (wirerust body-decode) as constructible window; wording in PC5 tightened. Decision 21 (M-2): REMOVED 'if_tsoffset (code 10)' from PC6 options-walk — wirerust does NOT extract if_tsoffset this cycle; added limitation note to PC6 and AC-003. M-1: removed 'crate enforces body>=8' over-claim from Architecture Anchors — wirerust checks body.len()>=8 itself on the raw path before decoding IDB fixed fields; the crate source reference clarified. L-2: EC-003 table cell fixed — unescaped pipe inside markdown table replaced with literal 0x8A (base-2 nanosecond-range if_tsresol value). Authority: ADR-009 rev 7 Decision 20, Decision 21. — 2026-06-20"
@@ -90,6 +91,9 @@ multi-IDB agreement check (BC-2.01.018). `if_tsresol` absent defaults to 10^-6 (
      wirerust returns `Err` mapped to **E-INP-008** (no panic, no OOB access).
    - `opt_endofopt` (option-code 0) or end-of-body terminates the options walk immediately.
    - Unknown option codes are silently skipped (length bytes consumed; padding consumed).
+     **(This applies ONLY to option codes wirerust does not specially handle; code 9 /
+     `if_tsresol` is NOT in this set and is subject to the `option_length == 1` enforcement
+     rule below → E-INP-008 on `option_length != 1`.)**
    - A malformed option-length that would cause an OOB read is treated as a structural IDB
      error: `Err` mapped to E-INP-008.
    - **`if_tsresol` option-length enforcement (F-M5, ADR-009 rev 9):** An `if_tsresol` option

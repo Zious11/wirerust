@@ -1,7 +1,7 @@
 ---
 document_type: holdout-scenario
 level: ops
-version: "1.0"  # Pass-8 M-2 remediation: IDB (BC-2.01.011) was the only framing BC whose body-decode error paths had NO holdout (only unit-test ACs). SHB/EPB/SPB all have holdouts (HS-103/104/107). This scenario closes that gap with 5 cases: (a) btl=16 body-too-short → E-INP-008; (b) reserved!=0 structural → E-INP-008; (c) options-TLV malformed length → E-INP-008; (d) if_tsresol code 9 with option_length=4 → E-INP-008; (e) well-formed IDB positive control → parses Ok.
+version: "1.1"  # Pass-8 M-2 remediation: IDB (BC-2.01.011) was the only framing BC whose body-decode error paths had NO holdout (only unit-test ACs). SHB/EPB/SPB all have holdouts (HS-103/104/107). This scenario closes that gap with 5 cases: (a) btl=16 body-too-short → E-INP-008; (b) reserved!=0 structural → E-INP-008; (c) options-TLV malformed length → E-INP-008; (d) if_tsresol code 9 with option_length=4 → E-INP-008; (e) well-formed IDB positive control → parses Ok. | Pass-10 MEDIUM-2 fix: verification_properties corrected to [VP-027] only — VP-026 anchors to BC-2.01.010 (SHB parse safety), which is unrelated to IDB body-decode (BC-2.01.011). BC-2.01.011 Verification Properties table cites VP-027 only. Removed VP-026 mis-anchor.
 status: draft
 producer: product-owner
 timestamp: 2026-06-20T00:00:00Z
@@ -18,7 +18,6 @@ epic_id: "E-1"
 behavioral_contracts:
   - BC-2.01.011
 verification_properties:
-  - VP-026
   - VP-027
 lifecycle_status: active
 introduced: v0.9.x-pcapng-reader
@@ -565,4 +564,4 @@ Case B failure (exit 0 or panic) indicates the IDB reserved-field check is absen
 Case C failure (exit 0, panic, or index OOB backtrace) indicates the IDB options-walk TLV bounds-check is absent; option_length=32 with 0 remaining bytes must be caught before any slice access. A 'index out of bounds' Rust backtrace is a FAILURE.
 Case D failure (exit 0 or silent default to microseconds exponent) indicates the if_tsresol option_length semantic enforcement (AC-005 / F-M5 / ADR-009 rev 9) is absent. option_length=4 for if_tsresol (code 9) MUST produce E-INP-008 — NOT a silent fallback to the default exponent 6.
 Case E failure (exit non-zero or total_packets != 1) indicates a regression in IDB happy-path parsing; a well-formed IDB+EPB file must parse successfully and produce exactly one packet.
-See BC-2.01.011 PC4/PC5/PC6/AC-001/AC-005/EC-008/EC-010/EC-011/EC-013, VP-026, VP-027, ADR-009 rev 7 Decision 20, ADR-009 rev 9 F-M5."
+See BC-2.01.011 PC4/PC5/PC6/AC-001/AC-005/EC-008/EC-010/EC-011/EC-013, VP-027, ADR-009 rev 7 Decision 20, ADR-009 rev 9 F-M5."

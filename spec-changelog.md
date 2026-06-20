@@ -14,6 +14,47 @@ changes, invariant rewrites).
 
 ---
 
+## [pcapng-f2-pass10-clean-CONVERGED-2026-06-20] — 2026-06-20
+
+### PASS-10 CLEAN (0C/0H/2M/3L) — CLEAN-PASS 3/3 — F2 ADVERSARIAL CONVERGENCE ACHIEVED — D-164
+
+**Trigger:** Adversary pass-10 completed with verdict CLEAN (0 CRITICAL / 0 HIGH / 2 MEDIUM
+/ 3 LOW). CLEAN-PASS 3 of 3 (BC-5.39.001). Three consecutive passes (8/9/10) all 0H/0C.
+F2 adversarial convergence ACHIEVED. Novelty LOW. All pass-10 findings remediated in this
+burst. F2 is now ready for human gate (consistency verification + F2 approval) then F3
+story decomposition.
+
+**Findings:**
+
+- **MEDIUM-1:** BC-2.01.012 PC6b stale snaplen false-attribution annotation — removed;
+  PC6b is padding-overrun guard only, not snaplen enforcement.
+- **MEDIUM-2:** HS-109 VP-026 mis-anchor — corrected to VP-027 (IDB body-decode VP for
+  BC-2.01.011; VP-026 anchors to BC-2.01.010 SHB parse safety); ADR-009 "Current Canonical
+  Constants" governing table added as process-gap fix.
+- **LOW-1:** BC-2.01.011 PC6 carve-out precision — clarified that if_tsresol IS used for
+  timestamp scaling (BC-2.01.014) but MUST NOT be applied to captured_len.
+- **LOW-2:** HS-104 Case D discriminant wording — OOB condition now explicit:
+  interface_id >= idb_count on non-empty table.
+- **LOW-3:** error-taxonomy E-INP-009 Notes source-location — updated to owning-BC +
+  function-name convention matching all other E-INP-NNN rows.
+
+**Version bumps:**
+
+| Artifact | Before | After |
+|----------|--------|-------|
+| BC-2.01.011 | v1.6 | v1.7 |
+| BC-2.01.012 | v1.8 | v1.9 |
+| error-taxonomy | v3.6 | v3.7 |
+| HS-109 | v1.0 | v1.1 |
+| HS-104 | v1.5 | v1.6 |
+| ADR-009 | rev 9 | rev 9 (canonical-constants table added) |
+| BC-INDEX | v1.67 | v1.68 |
+
+**302 active BCs unchanged. error-taxonomy next_free E-INP-014 unchanged.
+VP-INDEX total 31 unchanged.**
+
+---
+
 ## [pcapng-f2-pass9-clean-and-remediation-2026-06-20] — 2026-06-20
 
 ### PASS-9 CLEAN (0C/0H/1M/3L) — CLEAN-PASS 2/3 (BC-5.39.001) — D-163

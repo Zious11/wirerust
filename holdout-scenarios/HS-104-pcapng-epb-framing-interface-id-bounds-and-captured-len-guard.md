@@ -1,7 +1,7 @@
 ---
 document_type: holdout-scenario
 level: ops
-version: "1.5"  # Pass-9 (LOW-2 + LOW-3): Case E downgraded — fixture uses non-4-aligned btl=47 which the crate rejects as E-INP-010 BEFORE PC6b (padding-overrun) can run. Case E now asserts NO-PANIC / graceful-Err; E-INP-010 (crate alignment rejection) is the expected primary path; PC6b (padding-overrun → E-INP-008) is noted as DEFENSE-IN-DEPTH / unreachable on a well-framed block per BC-2.01.012 PC6b. BC Linkage table, Evaluation Rubric, Edge Conditions, Failure Guidance, and Verification Approach updated to match. BC-2.01.012 v1.8 now carries explicit PC6a/PC6b anchor labels; this file's PC6a/PC6b citations now resolve.
+version: "1.6"  # Pass-9 (LOW-2 + LOW-3): Case E downgraded — fixture uses non-4-aligned btl=47 which the crate rejects as E-INP-010 BEFORE PC6b (padding-overrun) can run. Case E now asserts NO-PANIC / graceful-Err; E-INP-010 (crate alignment rejection) is the expected primary path; PC6b (padding-overrun → E-INP-008) is noted as DEFENSE-IN-DEPTH / unreachable on a well-framed block per BC-2.01.012 PC6b. BC Linkage table, Evaluation Rubric, Edge Conditions, Failure Guidance, and Verification Approach updated to match. BC-2.01.012 v1.8 now carries explicit PC6a/PC6b anchor labels; this file's PC6a/PC6b citations now resolve. | Pass-10 LOW-2 fix: Case D Verification-Approach block now pins E-INP-008 discriminant, matching how Cases (empty)/(OOB) already pin their discriminants — prevents an impl returning E-INP-010 from wrongly passing Case D.
 status: draft
 producer: product-owner
 timestamp: 2026-06-19T00:00:00Z
@@ -210,7 +210,7 @@ Expect: exit 0, one packet in JSON output (total_packets = 1).
 wirerust analyze epb_boundary_invalid.pcapng --json 2>&1
 echo "Exit: $?"
 ```
-Expect: non-zero exit, error on stderr, no JSON on stdout.
+Expect: non-zero exit, error on stderr consistent with **E-INP-008** (wirerust body-decode failure — crate framed the block; wirerust rejects the body content), no JSON on stdout.
 
 ```
 wirerust analyze epb_nonmult4_boundary.pcapng --json 2>&1
