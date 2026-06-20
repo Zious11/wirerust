@@ -14,6 +14,46 @@ changes, invariant rewrites).
 
 ---
 
+## [pcapng-f2-pass4-reaudit-boundary-fixes-2026-06-20] — 2026-06-20
+
+### PASS-4 RE-AUDIT BOUNDARY FIXES: 3 MAJOR GAPS CLOSED — FINDING-P4-001 / FINDING-P4-002 / FINDING-P4-003
+
+**Trigger:** F2 pass-4 cross-seam re-audit identified 3 Major boundary-consistency gaps between
+BC-2.01.011 and error-taxonomy after the D-150 pass-4 remediation burst. All 3 gaps closed in
+this burst. Re-audit of seams 2-12 was otherwise CLEAN. Adversary pass-5 pending.
+
+**Version bumps (2 artifacts):** BC-2.01.011 v1.4→v1.5; error-taxonomy v3.1→v3.2.
+BC-INDEX v1.58→v1.59 (inline annotation synced). 302 active BCs unchanged.
+
+**FINDING-P4-001 (Major — BC-2.01.011 v1.5):** PC5 tail sentence in BC-2.01.011 v1.4 contained a
+stale boundary statement: "E-INP-008 covers SHB and IDB structural errors ONLY; EPB/SPB body
+truncation routes to E-INP-010 per error-taxonomy." This directly contradicted ADR-009 rev 7
+Decision 20 (uniform body-decode-truncation rule), which establishes that crate-framed-but-body-too-short
+for ALL block types — including EPB body<20 and SPB body<4 — maps to E-INP-008 (not E-INP-010). The
+stale sentence was a copy-carry-forward from BC-2.01.011 v1.2 (pass-2 remediation), not updated when
+Decision 20 was applied in v1.4. Fixed: stale PC5 tail sentence removed; normative routing now
+consistent with Decision 20 and the error-taxonomy E-INP-008 row.
+
+**FINDING-P4-002 (Major — error-taxonomy v3.2):** E-INP-010 Notes in error-taxonomy v3.1 retained a
+stale tail note: "E-INP-008 is RESERVED for SHB/IDB body-decode failures only ... it is NOT used for
+EPB/SPB errors." This contradicted the E-INP-008 normative row (which explicitly lists EPB body<20 /
+SPB body<4 as E-INP-008 triggers) and contradicted Decision 20. The note was a legacy remnant from
+v2.7 that survived the v3.0/v3.1 rewrites. Fixed: stale tail note removed from E-INP-010 Notes.
+
+**FINDING-P4-003 (Major — error-taxonomy v3.2):** E-INP-010 scope in error-taxonomy v3.1 listed items
+(d) "EPB body truncated (<20 fixed-field bytes)" and (e) "SPB body truncated (<4 bytes)" as E-INP-010
+triggers. Per Decision 20 these are E-INP-008 cases — btl >= 12 so the crate frames the block
+successfully; wirerust body-decode finds the body too short → E-INP-008. Items (d) and (e) were
+misclassified vestiges of the pre-Decision-20 taxonomy (v2.7). Fixed: items (d) and (e) removed from
+E-INP-010. E-INP-010 boundary clarified: btl<12/misaligned/EOF → E-INP-010 (framing); 12<=btl<block-
+fixed-min → E-INP-008 (body-decode); EPB block-fixed-min=32, SPB block-fixed-min=16.
+
+**E-INP-008 row integrity confirmed:** The E-INP-008 normative row was NOT modified — it already
+correctly listed EPB body<20 / SPB body<4 as E-INP-008 triggers. The fixes above removed contradictions
+in E-INP-010 Notes and BC-2.01.011 PC5 that pointed the wrong way.
+
+---
+
 ## [pcapng-f2-pass4-remediation-2026-06-20] — 2026-06-20
 
 ### PASS-4 ADVERSARIAL REMEDIATION: 1 CRITICAL / 4 HIGH / 5 MEDIUM / 3 LOW — HIGH novelty; D-150

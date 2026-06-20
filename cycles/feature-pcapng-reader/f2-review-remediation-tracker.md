@@ -8,9 +8,9 @@ sources:
   - performance-review
   - adversarial-spec-review-pass2 (ADV-F2-PASS2)
 date_created: 2026-06-19
-status: PASS4-REMEDIATED-PASS5-PENDING
+status: PASS4-REAUDIT-CLEAN-PASS5-PENDING
 f3_blocked: true
-f3_blocker_reason: "Adversarial reconvergence required (3 clean passes). Pass-1 items addressed (D-142/D-143). Pass-2 items addressed (D-144). Pass-2 cross-seam re-audit CLEAN (D-145). Pass-3 NOT CLEAN (D-146): 1C/5H/7M/4L. Pass-3 remediation COMPLETE (D-147): all pass-3 findings FIXED pending pass-4 verification. Pass-3 cross-seam re-audit gap fixes COMPLETE (D-148): 4 gaps (FINDING-P3-001..004) FIXED; all 12 seams now clean. Pass-4 NOT CLEAN (D-149): 1C/4H/5M/3L, HIGH novelty. Pass-4 remediation COMPLETE (D-150): all findings FIXED pending pass-5 verification. Clean-pass counter 0/3. Adversary pass-5 pending."
+f3_blocker_reason: "Adversarial reconvergence required (3 clean passes). Pass-1 items addressed (D-142/D-143). Pass-2 items addressed (D-144). Pass-2 cross-seam re-audit CLEAN (D-145). Pass-3 NOT CLEAN (D-146): 1C/5H/7M/4L. Pass-3 remediation COMPLETE (D-147): all pass-3 findings FIXED pending pass-4 verification. Pass-3 cross-seam re-audit gap fixes COMPLETE (D-148): 4 gaps (FINDING-P3-001..004) FIXED; all 12 seams now clean. Pass-4 NOT CLEAN (D-149): 1C/4H/5M/3L, HIGH novelty. Pass-4 remediation COMPLETE (D-150): all findings FIXED pending pass-5 verification. Pass-4 re-audit 3 Major boundary gaps FIXED (D-151): FINDING-P4-001/002/003 — BC-2.01.011 v1.5, error-taxonomy v3.2; seams 2-12 CLEAN. Clean-pass counter 0/3. Adversary pass-5 pending."
 ---
 
 # F2 Review Remediation Tracker — pcapng Reader
@@ -338,3 +338,28 @@ Clean-pass counter: 0/3. Remediation round-4 required.
 | HS-108 | — | v1.0 (new) | H-4 |
 | HS-INDEX | v2.2 | v2.3 | H-4 (HS-108 added; all-namespace=181) |
 | BC-INDEX | v1.57 | v1.58 | all 9 BCs synced |
+
+---
+
+## Pass-4 Cross-Seam Re-Audit (D-151 burst — 2026-06-20)
+
+**Audit scope:** 12 seams across BC-2.01.011, error-taxonomy, BC-INDEX, and sibling normative text
+after D-150 pass-4 remediation burst.
+**Verdict:** MOSTLY CLEAN — 9/12 seams clean; 3 Major boundary-consistency gaps identified and fixed
+in D-151. Seams 2-12 otherwise CLEAN. Cross-seam re-audit verdict: CLEAN (all 12 seams now pass).
+
+| ID | Severity | Seam | Finding | Status |
+|----|----------|------|---------|--------|
+| FINDING-P4-001 | Major | BC-2.01.011 PC5 tail vs. Decision 20 | BC-2.01.011 v1.4 contained a stale tail sentence in PC5 (carried from v1.2 pass-2 remediation): "E-INP-008 covers SHB and IDB structural errors ONLY; EPB/SPB body truncation routes to E-INP-010 per error-taxonomy." This directly contradicted ADR-009 rev 7 Decision 20, which establishes the uniform body-decode-truncation rule: crate-framed-but-body-too-short for ALL block types (SHB body<16, IDB body<8, EPB body<20, SPB body<4) → E-INP-008; btl<12/misaligned/EOF → E-INP-010. The stale sentence was not removed when Decision 20 was applied in v1.4. | FIXED — BC-2.01.011 v1.4→v1.5: stale PC5 tail sentence removed. Normative routing in PC5 now consistent with Decision 20 and the E-INP-008 normative row. BC-INDEX v1.58→v1.59 (annotation synced). D-151. |
+| FINDING-P4-002 | Major | error-taxonomy E-INP-010 Notes — stale SHB/IDB-only tail note | error-taxonomy v3.1 E-INP-010 Notes retained a stale tail note: "E-INP-008 is RESERVED for SHB/IDB body-decode failures ... it is NOT used for EPB/SPB errors." This contradicted the E-INP-008 normative row (which explicitly lists EPB body<20 / SPB body<4 as E-INP-008 triggers) and contradicted Decision 20. The note was a legacy remnant from v2.7 (pre-Decision-20) that survived the v3.0/v3.1 rewrites targeting the scope note and preamble. | FIXED — error-taxonomy v3.1→v3.2: stale "SHB/IDB only" tail note removed from E-INP-010 Notes. E-INP-010 boundary clarification updated to match Decision 20 split. D-151. |
+| FINDING-P4-003 | Major | error-taxonomy E-INP-010 scope items d/e — EPB/SPB body-too-short mis-classified | error-taxonomy v3.1 E-INP-010 scope listed item (d) "EPB body truncated (<20 fixed-field bytes)" and item (e) "SPB body truncated (<4 bytes)" as E-INP-010 triggers. Per Decision 20 these are E-INP-008 cases: btl >= 12 means the crate successfully frames the block; wirerust body-decode finds the body too short → E-INP-008 (not E-INP-010). Items (d) and (e) were misclassified vestiges of the pre-Decision-20 taxonomy (v2.7). The E-INP-008 row already correctly listed EPB body<20 / SPB body<4 — the E-INP-010 items created a direct contradiction. | FIXED — error-taxonomy v3.2: items (d) and (e) removed from E-INP-010. E-INP-010 scope boundary restated: btl<12/misaligned/EOF → E-INP-010 (framing); 12<=btl<block-fixed-min → E-INP-008 (body-decode); EPB block-fixed-min=32, SPB block-fixed-min=16. E-INP-008 row unmodified (already correct). D-151. |
+
+All 9 remaining seams verified CLEAN against disk after D-150. D-151 closes all 3 Major boundary gaps. Cross-seam re-audit verdict: CLEAN (all 12 seams now pass).
+
+**Artifacts updated in this burst (2 normative artifacts + index):**
+
+| Artifact | Before | After | Findings addressed |
+|----------|--------|-------|--------------------|
+| BC-2.01.011 | v1.4 | v1.5 | FINDING-P4-001 |
+| error-taxonomy | v3.1 | v3.2 | FINDING-P4-002, FINDING-P4-003 |
+| BC-INDEX | v1.58 | v1.59 | FINDING-P4-001 annotation sync |
