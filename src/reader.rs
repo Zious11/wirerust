@@ -574,7 +574,8 @@ impl PcapSource {
                 //   - "block length < 8"  — IDB body too short (wirerust's body-decode window:
                 //     12 ≤ btl < 20; crate frames the block but body < 8 IDB fixed-field bytes).
                 //     Per Decision 20 Tier 2: body-decode failure → E-INP-008.
-                //   - "reserved != 0"     — structural IDB error (mirrors spec-required check).
+                //   - "reserved != 0"     — crate-enforced structural IDB error; wirerust remaps
+                //     to E-INP-008 (ADR-009 Decision 24).
                 //     Per Decision 20 Tier 2: structural body-decode failure → E-INP-008.
                 //
                 // All other crate errors are Tier 1 framing rejections → E-INP-010.
@@ -582,7 +583,7 @@ impl PcapSource {
                 // STRING-COUPLING NOTE (ADR-009 Decision 23 precedent / H-3):
                 // The "reserved != 0" check below is a deliberate string-coupling on the pcap-file
                 // crate's error message (PcapError::InvalidField "InterfaceDescriptionBlock:
-                // reserved != 0", defined in interface_description.rs:48-49).
+                // reserved != 0", defined in interface_description.rs:47-49).
                 //
                 // Empirical finding (2026-06-20): next_raw_block calls try_into_block for IDB
                 // blocks internally (parser.rs:104). try_into_block invokes
@@ -592,15 +593,13 @@ impl PcapSource {
                 // to wirerust. A wirerust-side reserved pre-check is therefore impossible on the
                 // next_raw_block API surface (the body is inaccessible from the Err path).
                 //
-                // BC-2.01.011 PC4/EC-010 claims wirerust "mirrors" the reserved==0 check, but
-                // in practice the crate is the sole enforcer; wirerust only remaps the error
-                // code. This string-coupling is load-bearing: if the crate changes its error
-                // message text, this branch silently falls through to E-INP-010. PO correction
-                // needed to BC-2.01.011 PC4/EC-010 to document this as crate-enforced-only.
-                //
-                // Mitigation: if the crate's message ever changes, test
-                // test_BC_2_01_011_nonzero_reserved_e_inp_008 will catch the regression
-                // (it asserts E-INP-008 is present and E-INP-010 is absent).
+                // The IDB reserved/length validation is crate-enforced inside next_raw_block;
+                // wirerust remaps the InvalidField error to E-INP-008 per ADR-009 Decision 24
+                // (rev 11). BC-2.01.011 v1.8 documents this as crate-enforced delegation, not
+                // mirroring. The string-coupling on "reserved != 0" is load-bearing and is
+                // guarded by test_BC_2_01_011_nonzero_reserved_e_inp_008 (asserts E-INP-008
+                // present and E-INP-010 absent); a crate message change will cause that test to
+                // catch the regression.
                 let msg = e.to_string();
                 if msg.contains("block length < 8") {
                     anyhow!(
@@ -610,8 +609,7 @@ impl PcapSource {
                 } else if msg.contains("reserved != 0") {
                     anyhow!(
                         "pcapng IDB reserved field is non-zero (structural IDB error) \
-                         (E-INP-008: reserved != 0; mirrors crate enforcement at \
-                         interface_description.rs:48-49)"
+                         (E-INP-008: pcapng IDB reserved field must be zero)"
                     )
                 } else {
                     anyhow!("pcapng block framing error: {e} (E-INP-010: crate framing rejection)")
