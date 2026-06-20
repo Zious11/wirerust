@@ -1,7 +1,7 @@
 ---
 pipeline: FEATURE
-phase: F2
-phase_status: "F2 adversary CONVERGED — 3 consecutive clean passes (8/9/10, all 0H/0C); CLEAN-PASS 3/3 (BC-5.39.001). Pass-10 findings remediated (MEDIUM-1 BC-2.01.012 snaplen false-attribution; MEDIUM-2 HS-109 VP-026 mis-anchor; LOW-1/2/3 FIXED); ADR-009 canonical-constants governing table added. Trajectory 23/24/17/13/13/13/12/8/4/5. F2 ready for human gate (consistency verification + F2 approval) → then F3 story decomposition. D-164."
+phase: F3
+phase_status: "F3 IN PROGRESS — story-creation burst dispatched (STORY-123..128 being written; NOT yet committed to factory-artifacts). F2 CONVERGED (3 clean passes 8/9/10 all 0H/0C) + HUMAN-APPROVED. Session paused for clear/resume (D-165). On resume: check STORY-123..128 on disk; continue F3 CREATE then INTEGRATE."
 product: wirerust
 mode: brownfield
 timestamp: 2026-06-20T23:59:00Z
@@ -41,7 +41,7 @@ adversary_gate: SATISFIED
 # Story tracking
 stories_delivered: 71
 current_cycle: feature-pcapng-reader
-current_wave: F2-complete  # F3 decomposition pending; STORY-123..127 expected
+current_wave: F3-in-progress  # STORY-123..128 CREATE burst dispatched; not yet committed
 
 # DTU
 dtu_required: false
@@ -63,26 +63,63 @@ convergence_trajectory: "Detail: cycles/v0.1.0-greenfield-spec/convergence-traje
 
 # VSDD Pipeline State — wirerust
 
-## Session Resume Checkpoint (2026-06-20 — F2 ADVERSARIAL CONVERGED — CLEAN-PASS 3/3 (D-164) / F2 HUMAN GATE PENDING / F3 NEXT)
+## SESSION RESUME CHECKPOINT (2026-06-20 — F3 IN PROGRESS — STORY-123..128 CREATE IN-FLIGHT / D-165 / SESSION PAUSED FOR CLEAR/RESUME)
 
-**Previous checkpoint (F2 PASS-9 CLEAN (0H/0C) — CLEAN-PASS 2/3 / PASS-9 REMEDIATED (D-163) / PASS-10 PENDING / F3 BLOCKED) archived to:
+**WARNING: ON RESUME — DO NOT RE-RUN F2 ADVERSARIAL CONVERGENCE. F2 IS CONVERGED + HUMAN-APPROVED.**
+
+**Previous checkpoint (F2 ADVERSARIAL CONVERGED D-164 / F2 HUMAN GATE PENDING / F3 NEXT) archived to:
 `.factory/cycles/feature-pcapng-reader/session-checkpoints.md`**
 
-### PIPELINE STATUS: FEATURE MODE — F2 ADVERSARIAL CONVERGED (CLEAN-PASS 3/3); PASS-10 CLEAN (0C/0H/2M/3L); MEDIUM-1 BC-2.01.012 v1.9 (snaplen false-attribution removed); MEDIUM-2 HS-109 v1.1 (VP-026→VP-027); LOW-1/2/3 FIXED; ADR-009 CANONICAL-CONSTANTS TABLE ADDED; BC-INDEX v1.68; error-taxonomy v3.7; TRAJECTORY 23/24/17/13/13/13/12/8/4/5 (LAST 3 = 0H/0C); D-164; F2 HUMAN GATE PENDING (consistency verification + F2 approval) → F3 STORY DECOMPOSITION
+### PIPELINE POSITION
 
-Active cycle: **feature-pcapng-reader**. F2 adversarial convergence ACHIEVED — passes 8/9/10 all 0 CRITICAL / 0 HIGH (BC-5.39.001 clean-pass 3/3 satisfied). Pass-10 (D-164): 0C/0H/2M/3L. MEDIUM-1 (BC-2.01.012 v1.8→v1.9: stale snaplen false-attribution removed from PC6b annotation; per Decision 9 amend EPB does not enforce snaplen; PC6b is padding-overrun guard only). MEDIUM-2 (HS-109 v1.0→v1.1: VP-026 mis-anchor corrected to VP-027 — IDB body-decode holdout correctly anchors to BC-2.01.011 body-decode VP; VP-026 anchors to BC-2.01.010 SHB parse safety). LOW-1 (BC-2.01.011 v1.6→v1.7: PC6 carve-out precision — if_tsresol IS used for timestamp scaling but MUST NOT be applied to captured_len). LOW-2 (HS-104 v1.5→v1.6: Case D discriminant explicit). LOW-3 (error-taxonomy v3.6→v3.7: E-INP-009 Notes source-location updated to owning-BC + function-name convention). Process-gap: ADR-009 "Current Canonical Constants" governing table added as single source of truth for per-block overhead, error codes, VP+HS assignments. Trajectory 23/24/17/13/13/13/12/8/4/5 (last 3 = 0H/0C). STORY-128 + STORY-127 scoped for F3. No in-flight story worktrees. No open PRs. **BEHAVIORAL DECISIONS TO SURFACE AT F2 HUMAN GATE: Decision 15 (interleaved-IDB reject → E-INP-013); Decision 16 (per-SHB reset dead-spec deferred); Decision 17 (IDB-parse precedence order); Decision 19 (zero-packet notice gating — amended rev 8: emission from main.rs, canonical format); Decision 20 (uniform block error-code rule); Decision 21 (if_tsoffset out-of-scope); Decision 22 (canonical spb_data_available=body.len()-4).**
+- **Mode:** FEATURE. **Cycle:** feature-pcapng-reader (FE-001 pcapng capture-format reader support).
+- **F1 (delta analysis):** COMPLETE.
+- **F2 (spec evolution):** COMPLETE + ADVERSARIALLY CONVERGED (3 consecutive clean passes 8/9/10, all 0 HIGH / 0 CRITICAL; trajectory 23/24/17/13/13/13/12/8/4/5) + HUMAN-APPROVED at the F2 gate (proceed to F3).
+- **CURRENT PHASE: F3 (incremental story decomposition) — IN PROGRESS.**
+
+### F3 STATUS (what was happening at pause)
+
+The F3 CREATE sub-burst was dispatched to create STORY-123 through STORY-128. **ON RESUME: check which of STORY-123..128 exist on disk under `.factory/stories/` and whether they are complete; re-run or continue the CREATE burst for any missing/incomplete story. Do NOT assume they are committed — they were NOT staged in this checkpoint commit.**
+
+BC to story mapping:
+- STORY-123 = BC-2.01.009/010 (format detect + SHB)
+- STORY-124 = BC-2.01.011/016/018 (IDB + whitelist + multi-IDB)
+- STORY-125 = BC-2.01.012/014 (EPB + timestamp)
+- STORY-126 = BC-2.01.013/015/017 (SPB + skip + error-surface)
+- STORY-127 = BC-2.12.011 magic-byte glob + E2E corpus wiring
+- STORY-128 = main.rs per-file isolation loop
+
+### F3 REMAINING STEPS (after CREATE completes)
+
+1. story-writer INTEGRATE: dependency graph + wave schedule (Waves 51-56), STORY-INDEX, epics update — split create/integrate; dispatch state-manager LAST.
+2. Regenerate story input-hashes via `bin/compute-input-hash --write` (F-6 deferral, now actionable post-convergence; also run on HS-104/107/108 + add ADR-009 to holdout inputs).
+3. HS-001 holdout rewrite (was pcapng-rejection; now pcapng-acceptance per BC-2.01.009) — PO.
+4. Carried F3-entry items: framing-constant validator script O-1 (cross-branch bin/); STORY-128 main.rs scope; arp-baseline-16pkt.cap SHB/IDB fixture-param verification.
+5. F3 gate (consistency audit + human approval) then F4 (per-story TDD implementation via per-story-delivery).
+
+### KEY GROUND TRUTH (for resume verification)
+
+- factory-artifacts latest commit before this checkpoint: D-164 `81a71af` (F2 CONVERGED). This checkpoint = D-165 (next after D-164).
+- Converged spec versions: ADR-009 rev 9 accepted (with governing "Current Canonical Constants" table); BC-2.01.009 v1.7, .010 v2.1, .011 v1.7, .012 v1.9, .013 v1.9, .014 v1.5, .015 v1.8, .016 v1.4, .017 v1.6, .018 v1.6; BC-2.12.011 v1.5; error-taxonomy v3.7; VP-INDEX v2.8 (VP-025..031); HS-101..109; BC-INDEX v1.68; 302 active BCs.
+- Convergence trajectory (total findings/pass): 23/24/17/13/13/13/12/8/4/5 (passes 8/9/10 all 0H/0C).
+- develop=main=`b73b242` (v0.9.2 released); pcapng feature is spec-only so far (no source code — that is F4).
+- f2-consistency-audit.md: committed in this checkpoint burst (was the only uncommitted state file).
+- STORY-123..128: written by in-flight story-writer CREATE burst; NOT staged, NOT committed. Reconcile on disk at resume.
+
+### RESUME INSTRUCTION
+
+**On resume: run `vsdd-factory:factory-worktree-health` (devops-engineer) FIRST. Then verify which STORY-123..128 files exist and are complete on disk under `.factory/stories/`; continue F3 from the CREATE/INTEGRATE step. F2 is CONVERGED+APPROVED — do NOT re-run F2 adversarial convergence.**
 
 ### A. EXACT POSITION
 
-- **Status:** FEATURE mode — pcapng reader cycle open. F2 adversarial convergence ACHIEVED (passes 8/9/10 all 0H/0C — D-164; clean-pass 3/3). F2 human gate pending (consistency verification + F2 approval). F3 story decomposition is next after gate.
+- **Status:** FEATURE mode — pcapng reader cycle open. F2 adversarially converged + human-approved (D-164). F3 story decomposition IN PROGRESS — CREATE burst dispatched for STORY-123..128 (not committed).
 - **Active cycle:** `feature-pcapng-reader` (cycle manifest: `.factory/cycles/feature-pcapng-reader/cycle-manifest.md`)
 - **Feature:** FE-001 — pcapng capture-format reader support. Status: IN PROGRESS (moved from CANDIDATE).
-- **ADR created:** ADR-009 rev 3 — Option A selected (pcap-file 2.0.0, +0 transitive deps). Decision 7: multi-section reject as SCOPE decision (rev 2); rationale corrected via source research (rev 3 — F-06 SUPERSEDED; pcap-file 2.0.0 resets correctly).
-- **BCs added:** BC-2.01.009..018 (10 new). BC-2.01.004 RETIRED (superseded by BC-2.01.009). BC-INDEX v1.52 (inline version comments synced).
-- **Spec versions:** prd.md v1.33, error-taxonomy v3.7 (next_free E-INP-014; E-INP-009 source-location to owning-BC+function convention — D-164), nfr-catalog v2.3, ADR-009 rev 9 (Decision 22: canonical spb_data_available=body.len()-4; status=accepted; canonical-constants governing table added — D-164), VP-INDEX v2.8 (total 31; unchanged), BC-INDEX v1.68, BC-2.01.009 v1.7, BC-2.01.010 v2.1, BC-2.01.011 v1.7 (PC6 carve-out precision — D-164), BC-2.01.012 v1.9 (MEDIUM-1 snaplen false-attribution removed from PC6b — D-164), BC-2.01.013 v1.9, BC-2.01.014 v1.5, BC-2.01.015 v1.8, BC-2.01.016 v1.4, BC-2.01.017 v1.6, BC-2.01.018 v1.6, BC-2.12.011 v1.5, HS-103 v1.5, HS-104 v1.6 (LOW-2 Case D discriminant explicit — D-164), HS-107 v1.6, HS-108 v1.5, HS-109 v1.1 (MEDIUM-2 VP-026→VP-027 corrected — D-164), HS-INDEX v2.5 (greenfield=109; all-namespace=182; behavioral-subtleties=40), verification-architecture v2.4, verification-coverage-matrix v1.18. STORY-001 v1.6, epics.md v1.6, test-vectors v2.2.
+- **ADR created:** ADR-009 rev 9 accepted — Option A (pcap-file 2.0.0, +0 transitive deps). Canonical-constants governing table added (D-164).
+- **BCs added:** BC-2.01.009..018 (10 new). BC-2.01.004 RETIRED (superseded by BC-2.01.009). BC-INDEX v1.68.
+- **Spec versions:** prd.md v1.33, error-taxonomy v3.7 (next_free E-INP-014), nfr-catalog v2.3, ADR-009 rev 9, VP-INDEX v2.8 (total 31), BC-INDEX v1.68, BC-2.01.009 v1.7, BC-2.01.010 v2.1, BC-2.01.011 v1.7, BC-2.01.012 v1.9, BC-2.01.013 v1.9, BC-2.01.014 v1.5, BC-2.01.015 v1.8, BC-2.01.016 v1.4, BC-2.01.017 v1.6, BC-2.01.018 v1.6, BC-2.12.011 v1.5, HS-103 v1.5, HS-104 v1.6, HS-107 v1.6, HS-108 v1.5, HS-109 v1.1, HS-INDEX v2.5 (greenfield=109; all-namespace=182; behavioral-subtleties=40), verification-architecture v2.4, verification-coverage-matrix v1.18. STORY-001 v1.6, epics.md v1.6, test-vectors v2.2.
 - **Latest release (prior cycle):** `v0.9.2` (tag obj `a298dbe`, main `b73b242`).
 - **develop:** `b73b242` (= main; zero divergence).
-- **Completeness report:** `.factory/research/pcapng-spec-completeness-validation.md`
 - **F2 audit:** `.factory/cycles/feature-pcapng-reader/f2-consistency-audit.md`
 
 ### B. GROUND-TRUTH SHAs / WORKTREE STATE
@@ -91,7 +128,7 @@ Active cycle: **feature-pcapng-reader**. F2 adversarial convergence ACHIEVED —
 |--------|------|-------|
 | develop | `b73b242` | FF'd to main post-v0.9.2; zero divergence |
 | main | `b73b242` | release/0.9.2 PR #280 merged |
-| factory-artifacts | `git -C .factory log -1` | current burst |
+| factory-artifacts | `git -C .factory log -1` | run this to get current SHA |
 | origin/develop | `b73b242` | synced |
 
 - **Active worktrees:** EXACTLY TWO — main repo (develop) and `.factory/` (factory-artifacts).
@@ -100,26 +137,25 @@ Active cycle: **feature-pcapng-reader**. F2 adversarial convergence ACHIEVED —
 ### C. WHAT IS COMPLETE — DO NOT REDO
 
 - F1 delta analysis: COMPLETE. `.factory/phase-f1-delta-analysis/pcapng-reader-support-delta-analysis.md`.
-- F2 spec evolution: COMPLETE. ADR-009 rev 3, BC-2.01.009..018, BC-INDEX v1.52, prd.md v1.31, E-INP-008..012, error-taxonomy v2.6, epics.md v1.6.
+- F2 spec evolution: COMPLETE. ADR-009 rev 9, BC-2.01.009..018, BC-INDEX v1.68, prd.md v1.33, error-taxonomy v3.7, epics.md v1.6.
+- F2 adversarial convergence: COMPLETE (D-164 — passes 8/9/10 all 0H/0C; BC-5.39.001 3/3).
 - F2 consistency audit: COMPLETE. 6 findings ALL CLOSED. Report: `.factory/cycles/feature-pcapng-reader/f2-consistency-audit.md` (D-137).
-- F2 completeness validation: COMPLETE (research-agent). F-06/F-07/F-08/F-11 AC deltas applied. 302 active BCs unchanged. Report: `.factory/research/pcapng-spec-completeness-validation.md` (D-138).
+- F2 completeness validation: COMPLETE (research-agent). 302 active BCs unchanged. Report: `.factory/research/pcapng-spec-completeness-validation.md` (D-138).
+- F2 human gate: PASSED (F2 approved; proceed to F3).
 - All prior cycles: E-18 F1-F7 RELEASED (v0.9.0/v0.9.1/v0.9.2), maint-2026-06-17 COMPLETE.
 
-### D. ON RESUME — F3 ENTRY CHECKLIST
+### D. F3 FOLLOW-UPS / CHECKLIST (on resume)
 
-**REQUIRED BEFORE F3 STORY DECOMPOSITION:**
-1. Run `bin/compute-input-hash --write --scan` — generate input-hashes for STORY-123..127 and verify existing stories.
-2. Revise/retire BC-2.12.011 (directory glob "*.pcapng excluded") when decomposing STORY-127.
-3. Update HS-001 + HS-INDEX (cite retired BC-2.01.004) — PO action in F3.
-4. Propagate VP assignments for BC-2.01.009..018 (architect/VP-INDEX).
-
-**F2-GATE PRE-CHECK (F2 convergence ACHIEVED — these are now actionable):**
-8. Run `bin/compute-input-hash --write` on HS-104, HS-107, HS-108; add ADR-009 to each holdout's inputs list. (F-6 NOW ACTIONABLE — F2 convergence achieved D-164; previously DEFERRED-TO-F2-CONVERGENCE — D-159.)
-
-**COMPLETENESS-DERIVED F3 FOLLOW-UPS (from D-138 — MUST reach F3 stories):**
-5. F-06: STORY for SHB parsing (STORY-123) must implement multi-section reject (E-INP-012) + craft a 2-section pcapng test fixture. pcap-file 2.0.0 multi-section reset behavior is RESOLVED (source-verified 2026-06-19 — correctly resets per section); reject retained as a scope decision (D-139). No runtime probe required for the reject path; a 2-section regression fixture remains nice-to-have only if SUPPORT is ever adopted. BC-2.01.010 AC-002 reject assertion ships as-is.
-6. F-05: BC-2.01.014 Kani proof MUST cover the full u8 if_tsresol space (base-2 branch has no corpus coverage) — enforce in the timestamp story (STORY-125).
-7. F-07: implementer must provide explicit match arms for every enumerated skip block (NRB/ISB/DSB/SystemdJournal/obsolete-Packet/Unknown) — no todo!()/wildcard that silently drops.
+1. Verify and complete STORY-123..128 CREATE burst (reconcile on disk first).
+2. INTEGRATE sub-burst: dependency graph + Waves 51-56 + STORY-INDEX + epics update.
+3. `bin/compute-input-hash --write` on STORY-123..128 + HS-104/107/108 (add ADR-009 to holdout inputs).
+4. HS-001 holdout rewrite (pcapng-acceptance per BC-2.01.009) — PO.
+5. Framing-constant validator script O-1 scope decision (cross-branch bin/).
+6. arp-baseline-16pkt.cap SHB/IDB fixture-param verification (STORY-123 precondition).
+7. F-06: STORY-123 must implement multi-section reject (E-INP-012) + 2-section fixture.
+8. F-07: STORY-126 must enumerate explicit match arms for all skip-blocks (no wildcard silent drop).
+9. BC-2.01.014 Kani proof (STORY-125) must cover full u8 if_tsresol space (base-2 branch).
+10. F3 gate (consistency audit + human approval) then F4.
 
 **OTHER OPEN ITEMS (lower priority):**
 - DNS-TUNNELING-COVERAGE-001: OPEN — human decision pending.
@@ -130,7 +166,7 @@ Active cycle: **feature-pcapng-reader**. F2 adversarial convergence ACHIEVED —
 
 ## Status
 
-**FEATURE MODE — pcapng reader cycle OPEN (feature-pcapng-reader). F2 ADVERSARIAL CONVERGED (D-164): CLEAN-PASS 3/3 (BC-5.39.001). Pass-10 CLEAN 0C/0H/2M/3L. Novelty LOW. MEDIUM-1/2 + LOW-1/2/3 FIXED. ADR-009 canonical-constants governing table added. TRAJECTORY 23/24/17/13/13/13/12/8/4/5 (last 3 = 0H/0C). F2 HUMAN GATE PENDING (consistency verification + F2 approval). F3 story decomposition is next.**
+**FEATURE MODE — pcapng reader cycle OPEN (feature-pcapng-reader). F2 ADVERSARIAL CONVERGED (D-164) + HUMAN-APPROVED. F3 IN PROGRESS: story-writer CREATE burst dispatched for STORY-123..128 (not committed). Session paused for clear/resume (D-165). On resume: reconcile STORY-123..128 on disk then continue F3 INTEGRATE.**
 
 Latest release: v0.9.2 (tag obj `a298dbe`, main `b73b242`, 4 binaries). develop = main = `b73b242`. Zero divergence.
 Active feature: FE-001 pcapng capture-format reader support. ADR-009, 10 new BCs, 1 retired BC.
@@ -157,7 +193,7 @@ Maintenance maint-2026-06-17: COMPLETE. NON-BLOCKING. Report: `.factory/maintena
 | E-18/E-8 STORY-119 cycle (F1-F7) + v0.9.0 | **RELEASED + CLOSED 2026-06-19** | STORY-120/122/119; 293 BCs; tag v0.9.0 986e148. Detail: cycles/feature-story-119-grouped-collapse/ |
 | v0.9.1 patch | **RELEASED 2026-06-19** | Doc/help; PRs #277/#278; tag v0.9.1 ad4eec8 |
 | v0.9.2 patch | **RELEASED 2026-06-19** | DNP3 determinism + E2E fixtures; PRs #279/#280; tag v0.9.2 b73b242 |
-| **Feature pcapng-reader (F1+F2)** | **F2 ADVERSARIAL CONVERGED (D-164) — CLEAN-PASS 3/3 (BC-5.39.001); passes 8/9/10 all 0H/0C; pass-10 0C/0H/2M/3L; MEDIUM-1/2 + LOW-1/2/3 FIXED; ADR-009 canonical-constants table; BC-2.01.011 v1.7; BC-2.01.012 v1.9; error-taxonomy v3.7; HS-104 v1.6; HS-109 v1.1; BC-INDEX v1.68; trajectory 23/24/17/13/13/13/12/8/4/5; F2 HUMAN GATE PENDING** | FE-001 IN PROGRESS. F2 remediation COMPLETE (D-142). Re-audit ALL FIXED (D-143). Pass-2 remediation COMPLETE (D-144): 4C/8H/6M/6L; ADR-009 rev 5. Pass-2 cross-seam re-audit CLEAN (D-145). Pass-3 NOT CLEAN (D-146): 1C/5H/7M/4L. Pass-3 remediation COMPLETE (D-147). Pass-3 cross-seam re-audit gap fixes COMPLETE (D-148): 4 gaps (1 Major/2 Minor/1 Obs). Pass-4 NOT CLEAN (D-149): 1C/4H/5M/3L HIGH novelty. Pass-4 remediation COMPLETE (D-150): EPB padding-aware bound (C-1); Decision 20 uniform error-code rule + SHB E-INP-008 body-too-short re-added correcting pass-3 over-narrowing (H-1); peek-only probe (H-2); VP-030 restated — whitelisted DataLink (H-3); HS-108 zero-packet notice (H-4); ADR-009 rev 7 Decisions 19/20/21. Pass-4 re-audit boundary fixes COMPLETE (D-151): 3 Major gaps — FINDING-P4-001 (BC-2.01.011 v1.5 stale PC5 tail); FINDING-P4-002/003 (error-taxonomy v3.2 stale SHB/IDB-only note + E-INP-010 items d/e mis-classified). Pass-5 NOT CLEAN (D-152): 1C/4H/5M/3L HIGH novelty — PLATEAU (P4:13/P5:13). Pass-5 remediation COMPLETE (D-153): C-1 E-INP-010 item c reclassified → E-INP-008 (error-taxonomy v3.3; HS-104 v1.3); H-1 BC-2.01.018 EC-008 reclassified E-INP-011→E-INP-001 (Decision 17); H-2 OPB-distinct notice (opb_skipped field; HS-108 v1.1); H-3 SPB snaplen dropped (Decision 9 amend; HS-107 v1.4); H-4 HS-107 VV corrected + stale notes removed; M-1..M-5 FIXED; ADR-009 rev 8; BC-INDEX v1.60. Pass-5 re-audit CLEAN (D-154): 4 Minor findings FIXED. Pass-6 NOT CLEAN (D-155): 0C/4H/5M/4L — FIRST zero-critical pass; trajectory plateau P4/P5/P6=13. Pass-6 remediation COMPLETE (D-156): ADR-009 rev 9; BC-INDEX v1.62. Pass-6 re-audit CLEAN (D-157): 2 Minor FIXED. Pass-7 NOT CLEAN (D-158): 1C/3H/4M/4L; novelty MODERATE. Pass-7 remediation COMPLETE (D-159). Pass-7 re-audit minors FIXED (D-160). Pass-8 CLEAN (D-161): CLEAN-PASS 1/3. Focused re-audit CLEAN (D-162). Pass-9 CLEAN (D-163): CLEAN-PASS 2/3. **Pass-10 CLEAN (D-164): CLEAN-PASS 3/3. F2 ADVERSARIAL CONVERGENCE ACHIEVED.** F2 human gate pending. Cycle: feature-pcapng-reader |
+| **Feature pcapng-reader (F1+F2+F3)** | **F3 IN PROGRESS (D-165) — F2 CONVERGED+HUMAN-APPROVED (D-164, 3 clean passes 8/9/10 all 0H/0C); STORY-123..128 CREATE burst dispatched (not committed); F3 INTEGRATE pending; trajectory 23/24/17/13/13/13/12/8/4/5** | FE-001 IN PROGRESS. F2 remediation COMPLETE (D-142). Re-audit ALL FIXED (D-143). Pass-2 remediation COMPLETE (D-144): 4C/8H/6M/6L; ADR-009 rev 5. Pass-2 cross-seam re-audit CLEAN (D-145). Pass-3 NOT CLEAN (D-146): 1C/5H/7M/4L. Pass-3 remediation COMPLETE (D-147). Pass-3 cross-seam re-audit gap fixes COMPLETE (D-148): 4 gaps (1 Major/2 Minor/1 Obs). Pass-4 NOT CLEAN (D-149): 1C/4H/5M/3L HIGH novelty. Pass-4 remediation COMPLETE (D-150): EPB padding-aware bound (C-1); Decision 20 uniform error-code rule + SHB E-INP-008 body-too-short re-added correcting pass-3 over-narrowing (H-1); peek-only probe (H-2); VP-030 restated — whitelisted DataLink (H-3); HS-108 zero-packet notice (H-4); ADR-009 rev 7 Decisions 19/20/21. Pass-4 re-audit boundary fixes COMPLETE (D-151): 3 Major gaps — FINDING-P4-001 (BC-2.01.011 v1.5 stale PC5 tail); FINDING-P4-002/003 (error-taxonomy v3.2 stale SHB/IDB-only note + E-INP-010 items d/e mis-classified). Pass-5 NOT CLEAN (D-152): 1C/4H/5M/3L HIGH novelty — PLATEAU (P4:13/P5:13). Pass-5 remediation COMPLETE (D-153): C-1 E-INP-010 item c reclassified → E-INP-008 (error-taxonomy v3.3; HS-104 v1.3); H-1 BC-2.01.018 EC-008 reclassified E-INP-011→E-INP-001 (Decision 17); H-2 OPB-distinct notice (opb_skipped field; HS-108 v1.1); H-3 SPB snaplen dropped (Decision 9 amend; HS-107 v1.4); H-4 HS-107 VV corrected + stale notes removed; M-1..M-5 FIXED; ADR-009 rev 8; BC-INDEX v1.60. Pass-5 re-audit CLEAN (D-154): 4 Minor findings FIXED. Pass-6 NOT CLEAN (D-155): 0C/4H/5M/4L — FIRST zero-critical pass; trajectory plateau P4/P5/P6=13. Pass-6 remediation COMPLETE (D-156): ADR-009 rev 9; BC-INDEX v1.62. Pass-6 re-audit CLEAN (D-157): 2 Minor FIXED. Pass-7 NOT CLEAN (D-158): 1C/3H/4M/4L; novelty MODERATE. Pass-7 remediation COMPLETE (D-159). Pass-7 re-audit minors FIXED (D-160). Pass-8 CLEAN (D-161): CLEAN-PASS 1/3. Focused re-audit CLEAN (D-162). Pass-9 CLEAN (D-163): CLEAN-PASS 2/3. **Pass-10 CLEAN (D-164): CLEAN-PASS 3/3. F2 ADVERSARIAL CONVERGENCE ACHIEVED.** F2 human gate pending. Cycle: feature-pcapng-reader |
 
 ## Decisions Log
 
@@ -188,6 +224,7 @@ D-131..D-135: `cycles/feature-story-119-grouped-collapse/decisions-archive.md`
 | D-159 | F2 pass-7 remediation COMPLETE. All 1C/3H/4M FIXED pending pass-8 verification. 4L findings CONVERGED GREEN — no action. F-1 (CRITICAL): BC-2.01.015 v1.7→v1.8 — OPB counter "both" model canonical: OPB skip arm increments BOTH skipped_blocks AND opb_skipped (subset invariant opb_skipped<=skipped_blocks); HS-108 v1.3→v1.4 Case D corrected (skipped_blocks=1/opb_skipped=1 for 1 OPB); Case E corrected (skipped_blocks=3/opb_skipped=1 for 2 NRBs + 1 OPB). F-2 (HIGH): HS-108 v1.4 — all 6 occurrences of non-existent field `obsolete_packet_blocks` renamed to canonical `opb_skipped`. F-3 (HIGH): BC-2.01.009 v1.6→v1.7 — PC6 notice DISPLAY arithmetic explicit: generic segment G=(skipped_blocks-opb_skipped) emitted only when G>0; 3-way notice format normalized (OPB-only / generic-only / mixed). F-4 (HIGH): BC-2.01.012 v1.6→v1.7 — Precondition 1 "non-empty interface table" contradiction removed; EPB decode precedence postcondition added (binding check order: body.len() guard → read interface_id → empty-table-E-INP-009 → OOB-E-INP-010 → captured_len/padding). F-5/F-7 (MED): HS-107 v1.5→v1.6 — block_body_available → spb_data_available throughout (all cases); BC-2.01.013 v1.6→v1.7 — same rename in EC-001/002/003 + Canonical Test Vectors; F-8 (MED): BC-2.01.013 v1.7 — btl=14 misaligned (14%4=2 → E-INP-010) fixture added to EC-005. F-6 (MED [process-gap]): DEFERRED-TO-F2-CONVERGENCE — compute `bin/compute-input-hash --write` on HS-104/107/108 + add ADR-009 to holdout inputs once F2 reaches 3-clean-pass convergence, before F2 gate; added to F3-entry checklist item 8. BC-INDEX v1.63→v1.64 (4 BC annotations synced). spec-changelog [pcapng-f2-pass7-remediation-2026-06-20] prepended. Adversary pass-8 pending. Clean-pass counter 0/3. (Note: BC-INDEX v1.64 Case D annotation metadata error corrected in D-160.) | 2026-06-20 |
 | D-162 | F2 pass-8 focused re-audit: CLEAN (FINDING-P8-001 only — minor metadata). HS-INDEX v2.4→v2.5: behavioral-subtleties by-category cell corrected 39→40 (pcapng-holdouts note undercounted HS-106 by 1; 40+20+18+21+10=109=TOTAL). HS-109 byte-exact verified, all M-fixes verified, invariants intact. CLEAN-PASS remains 1/3 (metadata fix does not reset counter). spec-changelog [pcapng-f2-pass8-reaudit-hsindex-count-2026-06-20] prepended. Adversary pass-9 pending (targeting clean-pass 2/3). 302 BCs unchanged. | 2026-06-20 |
 | D-163 | F2 adversary pass-9 CLEAN (0C/0H/1M/3L) — CLEAN-PASS 2/3 (BC-5.39.001). Novelty LOW. Adversary stated "the spec has effectively converged." MEDIUM-1: error-taxonomy v3.5→v3.6 — E-INP-009 Message Format updated to per-block-type parameterized strings: EPB "EPB references interface_id=<id> but interface table is empty — no IDB has been parsed" (mandated by BC-2.01.012 PC5a); SPB "SPB encountered but interface table is empty — no IDB has been parsed" (mandated by BC-2.01.013 PC5/AC-001); Notes updated; BC-refs: BC-2.01.012, BC-2.01.013, BC-2.01.017. LOW-1 (SPB E-INP-009 message unconstrained): aligned via MEDIUM-1 fix. LOW-2: HS-104 v1.4→v1.5 — Case E downgraded: btl=47 (47%4=3) rejected by crate alignment check (E-INP-010 primary) before PC6b (padding-overrun → E-INP-008) can run; Case E now asserts NO-PANIC / graceful-Err; E-INP-010 primary path; PC6b noted DEFENSE-IN-DEPTH / unreachable on non-4-aligned block per BC-2.01.012 PC6b. LOW-3: BC-2.01.012 v1.7→v1.8 — PC6 split into PC6a (captured_len/padding guard) and PC6b (padding-overrun guard; defense-in-depth; unreachable when crate alignment rejection fires first); PC9 dedup note added. BC-2.01.013 v1.8→v1.9 (LOW-1 sibling audit trail; no normative change). BC-INDEX v1.66→v1.67 (BC-2.01.012 v1.7→v1.8; BC-2.01.013 v1.8→v1.9 annotations synced). spec-changelog [pcapng-f2-pass9-clean-and-remediation-2026-06-20] prepended. Pass-9 record: cycles/feature-pcapng-reader/f2-adversarial-spec-review-pass9.md. CLEAN-PASS counter: 2/3. Adversary pass-10 pending (targeting clean-pass 3/3 → CONVERGENCE). F3 BLOCKED until pass-10 clean. 302 BCs unchanged. | 2026-06-20 |
+| D-165 | Session paused for clear/resume during F3 story-creation. Durable checkpoint written (STATE.md SESSION RESUME CHECKPOINT section replaced; prior checkpoint archived to cycles/feature-pcapng-reader/session-checkpoints.md). F2 CONVERGED+HUMAN-APPROVED — do NOT re-run F2 adversarial convergence. F3 CREATE burst was in-flight (STORY-123..128 being written to .factory/stories/ by story-writer; NOT committed). f2-consistency-audit.md committed in this burst (was the sole uncommitted state file). On resume: factory-worktree-health first; then reconcile STORY-123..128 on disk; continue F3 CREATE/INTEGRATE. | 2026-06-20 |
 | D-164 | **F2 ADVERSARIAL CONVERGENCE ACHIEVED.** Pass-10 CLEAN (0C/0H/2M/3L) — CLEAN-PASS 3/3 (BC-5.39.001). Three consecutive passes (8/9/10) all 0 CRITICAL / 0 HIGH. Novelty LOW. MEDIUM-1: BC-2.01.012 v1.8→v1.9 — stale snaplen false-attribution removed from PC6b annotation; PC6b is padding-overrun guard (defense-in-depth) ONLY, not snaplen enforcement; per Decision 9 amend (ADR-009 rev 8) EPB does not enforce snaplen. MEDIUM-2: HS-109 v1.0→v1.1 — VP-026 mis-anchor corrected to VP-027 (IDB body-decode holdout correctly anchors to BC-2.01.011 body-decode VP; VP-026 anchors to BC-2.01.010 SHB parse safety). LOW-1: BC-2.01.011 v1.6→v1.7 — PC6 carve-out precision: if_tsresol IS used for timestamp scaling (BC-2.01.014) but MUST NOT be applied to captured_len per Decision 9 amend + Decision 22; snaplen extraction is diagnostic only. LOW-2: HS-104 v1.5→v1.6 — Case D discriminant explicit (E-INP-010 WHERE interface_id >= idb_count AND non-empty table; discriminant: OOB check, not body-length check). LOW-3: error-taxonomy v3.6→v3.7 — E-INP-009 Notes source-location updated to owning-BC + function-name convention. Process-gap: ADR-009 "Current Canonical Constants" governing table added (single source of truth for per-block fixed overhead, error codes, VP+HS assignments; root-cause of MEDIUM-2 VP mis-anchor). BC-INDEX v1.67→v1.68. spec-changelog [pcapng-f2-pass10-clean-CONVERGED-2026-06-20] prepended. Pass-10 record: cycles/feature-pcapng-reader/f2-adversarial-spec-review-pass10.md. Trajectory: 23/24/17/13/13/13/12/8/4/5 (last 3 = 0H/0C). 302 BCs unchanged. error-taxonomy next_free E-INP-014 unchanged. VP-INDEX total 31 unchanged. F2 human gate pending (consistency verification + F2 approval) → F3 story decomposition. | 2026-06-20 |
 | D-161 | F2 adversary pass-8 CLEAN (0C/0H/3M/5L) — CLEAN-PASS 1/3 (BC-5.39.001). Convergence milestone: trajectory 23/24/17/13/13/13/12/8; all framing BCs have VP+holdout; per-block constants agree across 6 docs; holdout arithmetic self-consistent; all 4 pass-7 fixes propagated zero-stale-siblings. M-1: error-taxonomy v3.4→v3.5 — E-INP-008 SPB body-too-short entry cites SPB_FIXED_MIN=16; btl=12 (body=0<4 → E-INP-008) vs btl=16 (body=4, minimum valid SPB) boundary clarified. M-2: HS-109 v1.0 authored (IDB body-decode holdout gap — 5 cases: btl=16 body<8→E-INP-008; reserved!=0→E-INP-008; options-TLV OOB→E-INP-008; if_tsresol option_length=4→E-INP-008; positive control); HS-INDEX v2.3→v2.4 (greenfield 108→109; all-namespace 181→182; must_pass 108). M-3: BC-2.01.013 v1.7→v1.8 — AC-001 test name renamed test_BC_2_01_013_snaplen_lookup_guarded → test_BC_2_01_013_empty_interface_table_guarded (DF-AC-TEST-NAME-SYNC-001; stale snaplen reference; AC-001 scopes empty-table E-INP-009; EC-008 body-too-short handled distinctly by AC-004a; no normative change). O-2: ADR-009 rev 9 status: proposed→accepted (no content change). O-1 (framing-constant validator cross-doc script) DEFERRED-TO-F3 — F3 story decomposition checklist should evaluate bin/ script scope. BC-INDEX v1.65→v1.66. spec-changelog [pcapng-f2-pass8-clean-and-medium-remediation-2026-06-20] prepended. Pass-8 record: cycles/feature-pcapng-reader/f2-adversarial-spec-review-pass8.md. Adversary pass-9 pending (targeting clean-pass 2/3). 302 BCs unchanged. **F3-entry O-1 checklist item:** Evaluate whether `bin/framing-constant-validator` should be scoped as part of F3 implementation stories (cross-doc grep of per-block constants across BC, ADR-009, HS-INDEX, error-taxonomy, VP-INDEX, verification-architecture). | 2026-06-20 |
 | D-160 | F2 pass-7 re-audit minors FIXED. FINDING-P7-001 (Minor, metadata): BC-INDEX inline annotation for BC-2.01.015 v1.8 and STATE.md D-159 entry both described Case D wrong ("Case D (3 OPBs) skipped_blocks=3"); corrected to "Case D (1 OPB) skipped_blocks=1/opb_skipped=1" per normative HS-108 v1.5 "both" model (1 OPB → skipped_blocks increments once, opb_skipped increments once). FINDING-P7-002 (Minor, rubric gate): HS-108 v1.4→v1.5 — Case B and Case F rubric gates corrected from bare `skipped_blocks > 0` to canonical `(skipped_blocks - opb_skipped) > 0` (G > 0); numerically equivalent for Cases B/F (opb_skipped==0) but prevents OPB-only regression. BC-INDEX v1.64→v1.65. spec-changelog [pcapng-f2-pass7-reaudit-minors-2026-06-20] prepended. Remediation tracker P7-001/P7-002 FIXED. Clean-pass counter 0/3. Adversary pass-8 pending. | 2026-06-20 |
