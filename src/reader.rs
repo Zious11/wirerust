@@ -578,6 +578,29 @@ impl PcapSource {
                 //     Per Decision 20 Tier 2: structural body-decode failure → E-INP-008.
                 //
                 // All other crate errors are Tier 1 framing rejections → E-INP-010.
+                //
+                // STRING-COUPLING NOTE (ADR-009 Decision 23 precedent / H-3):
+                // The "reserved != 0" check below is a deliberate string-coupling on the pcap-file
+                // crate's error message (PcapError::InvalidField "InterfaceDescriptionBlock:
+                // reserved != 0", defined in interface_description.rs:48-49).
+                //
+                // Empirical finding (2026-06-20): next_raw_block calls try_into_block for IDB
+                // blocks internally (parser.rs:104). try_into_block invokes
+                // InterfaceDescriptionBlock::from_slice which checks reserved != 0 and returns
+                // Err BEFORE returning the RawBlock. Wirerust never receives the RawBlock body
+                // for a reserved!=0 IDB — the crate fully validates and rejects before returning
+                // to wirerust. A wirerust-side reserved pre-check is therefore impossible on the
+                // next_raw_block API surface (the body is inaccessible from the Err path).
+                //
+                // BC-2.01.011 PC4/EC-010 claims wirerust "mirrors" the reserved==0 check, but
+                // in practice the crate is the sole enforcer; wirerust only remaps the error
+                // code. This string-coupling is load-bearing: if the crate changes its error
+                // message text, this branch silently falls through to E-INP-010. PO correction
+                // needed to BC-2.01.011 PC4/EC-010 to document this as crate-enforced-only.
+                //
+                // Mitigation: if the crate's message ever changes, test
+                // test_BC_2_01_011_nonzero_reserved_e_inp_008 will catch the regression
+                // (it asserts E-INP-008 is present and E-INP-010 is absent).
                 let msg = e.to_string();
                 if msg.contains("block length < 8") {
                     anyhow!(
@@ -682,14 +705,18 @@ impl PcapSource {
                     // CHECK 3 — E-INP-011: multi-IDB linktype agreement (BC-2.01.018 / Decision 17
                     // check 3). Compare against the first registered interface's linktype.
                     // Lazy check: first mismatch fires immediately (BC-2.01.018 PC4).
-                    // Message format: "pcapng multi-interface link-type conflict: interface 0 has
-                    // {first:?}, interface {n} has {other:?}" (BC-2.01.018 PC2 exact wording).
+                    // Message format per error-taxonomy E-INP-011 and BC-2.01.018 AC-001(b):
+                    //   "pcapng multi-interface link-type conflict: interface 0 has {first:?},
+                    //    interface {n} has {other:?} (hint: ...tcpdump -i any...)"
                     if !interfaces.is_empty() && interfaces[0].linktype != new_dl {
                         let first = interfaces[0].linktype;
                         let n = interfaces.len(); // 0-based index of the new (conflicting) IDB
                         return Err(anyhow!(
                             "pcapng multi-interface link-type conflict: interface 0 has \
-                             {first:?}, interface {n} has {new_dl:?} (E-INP-011)"
+                             {first:?}, interface {n} has {new_dl:?} \
+                             (hint: this commonly occurs with 'tcpdump -i any' captures that \
+                             mix link types; wirerust requires a single link type per file) \
+                             (E-INP-011)"
                         ));
                     }
 

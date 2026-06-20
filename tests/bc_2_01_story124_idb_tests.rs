@@ -964,6 +964,17 @@ fn test_BC_2_01_018_two_idbs_different_linktype_e_inp_011() {
         "error must contain E-INP-011; got: {err_msg}"
     );
 
+    // BC-2.01.018 AC-001(b) / error-taxonomy E-INP-011: mandatory hint must be present.
+    // The hint identifies the common trigger and required remediation.
+    assert!(
+        err_msg.contains("tcpdump -i any"),
+        "error must contain hint 'tcpdump -i any'; got: {err_msg}"
+    );
+    assert!(
+        err_msg.contains("single link type"),
+        "error must contain hint 'single link type'; got: {err_msg}"
+    );
+
     // Discriminating: sibling codes must NOT appear.
     assert!(
         !err_msg.contains("E-INP-001"),
@@ -1015,6 +1026,15 @@ fn test_BC_2_01_018_three_idbs_third_conflicts() {
     assert!(
         err_msg.contains("E-INP-011"),
         "must contain E-INP-011; got: {err_msg}"
+    );
+    // BC-2.01.018 AC-001(b) / error-taxonomy E-INP-011: mandatory hint must be present.
+    assert!(
+        err_msg.contains("tcpdump -i any"),
+        "error must contain hint 'tcpdump -i any'; got: {err_msg}"
+    );
+    assert!(
+        err_msg.contains("single link type"),
+        "error must contain hint 'single link type'; got: {err_msg}"
     );
     assert!(
         !err_msg.contains("E-INP-001"),
@@ -1220,6 +1240,15 @@ proptest! {
                     prop_assert!(
                         err_msg.contains("E-INP-011"),
                         "Err must contain E-INP-011; got: {err_msg}"
+                    );
+                    // BC-2.01.018 AC-001(b) / error-taxonomy E-INP-011: mandatory hint (H-2 pin).
+                    prop_assert!(
+                        err_msg.contains("tcpdump -i any"),
+                        "Err must contain hint 'tcpdump -i any'; got: {err_msg}"
+                    );
+                    prop_assert!(
+                        err_msg.contains("single link type"),
+                        "Err must contain hint 'single link type'; got: {err_msg}"
                     );
                 }
             }
