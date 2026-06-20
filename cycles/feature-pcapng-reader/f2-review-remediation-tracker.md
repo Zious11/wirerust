@@ -8,9 +8,9 @@ sources:
   - performance-review
   - adversarial-spec-review-pass2 (ADV-F2-PASS2)
 date_created: 2026-06-19
-status: PASS3-RECEIVED-NOT-CLEAN
+status: PASS3-REMEDIATED-PASS4-PENDING
 f3_blocked: true
-f3_blocker_reason: "Adversarial reconvergence required (3 clean passes). Pass-1 items addressed (D-142/D-143). Pass-2 items addressed (D-144). Pass-2 cross-seam re-audit CLEAN (D-145). Pass-3 received NOT CLEAN: 1C/5H/7M/4L, novelty HIGH. Remediation round-3 pending or human strategy decision."
+f3_blocker_reason: "Adversarial reconvergence required (3 clean passes). Pass-1 items addressed (D-142/D-143). Pass-2 items addressed (D-144). Pass-2 cross-seam re-audit CLEAN (D-145). Pass-3 NOT CLEAN (D-146): 1C/5H/7M/4L. Pass-3 remediation COMPLETE (D-147): all pass-3 findings FIXED pending pass-4 verification. Clean-pass counter 0/3."
 ---
 
 # F2 Review Remediation Tracker — pcapng Reader
@@ -214,35 +214,35 @@ Clean-pass counter: 0/3. Remediation round-3 required.
 
 | ID | Severity | Finding Summary | Status |
 |----|----------|----------------|--------|
-| C-1 | CRITICAL | BC-2.01.013 PC1 (line ~55) + AC-002 (~75) still use two-way `min(original_len, snaplen)` while EC-001/Invariant-2/VP already state three-way `min(..., block_body_available)`. v1.2 changelog FALSELY claimed PC1 was fixed (partial-fix-propagation). Two-way form → out-of-bounds slice panic on malformed SPB; violates no-panic AC + HS-107 Case B. | OPEN |
+| C-1 | CRITICAL | BC-2.01.013 PC1 (line ~55) + AC-002 (~75) still use two-way `min(original_len, snaplen)` while EC-001/Invariant-2/VP already state three-way `min(..., block_body_available)`. v1.2 changelog FALSELY claimed PC1 was fixed (partial-fix-propagation). Two-way form → out-of-bounds slice panic on malformed SPB; violates no-panic AC + HS-107 Case B. | FIXED — BC-2.01.013 v1.3: PC1+AC-002+EC-007+Case-B all updated to three-way min(original_len, snaplen, block_body_available); VP-031 proptest assigned (D-147). Pending pass-4 verification. |
 
 ### Pass-3 High Findings
 
 | ID | Severity | Finding Summary | Status |
 |----|----------|----------------|--------|
-| H-1 | HIGH | BC-2.01.010 PC5 / AC-004 / EC-005 — E-INP-008 SHB body-truncation fixture is UNCONSTRUCTIBLE (crate rejects btl<12; cannot frame body<btl-12). Real SHB framing truncation routes to E-INP-010 via crate Err. Fix: narrow E-INP-008 to semantic failures (invalid BOM, major!=1); all SHB framing truncation → E-INP-010. | OPEN |
-| H-2 | HIGH | BC-2.01.011 same unconstructible-fixture issue for IDB. Constructible E-INP-008 window is 12<=btl<20 (body 0-7 bytes). BC must state this window explicitly; remove "crate returned a short body" language. | OPEN |
-| H-3 | HIGH | E-INP-001 (linktype whitelist, BC-2.01.016) orphaned — not in error-taxonomy E-INP-001 BC-ref; not in BC-2.01.017 context strings or error-code range (current range 008-013). Fix: add BC-2.01.016 to E-INP-001 BC-ref; add E-INP-001 to BC-2.01.017. | OPEN |
-| H-4 | HIGH | BC-2.01.013 EC-007 / Case-B SPB snaplen/padding self-contradiction (same root as C-1; three-way min fix did not propagate to EC-007 and Case-B). | OPEN |
-| H-5 | HIGH | Multi-section interface-table reset is DEAD SPEC — BC-2.01.011 Inv 2 + BC-2.01.018 Inv 4/EC-005 mandate per-SHB reset, but Decision 7 rejects the 2nd SHB before any reset. Fix: delete/defer per-section-reset invariants; correct BC-2.01.018 EC-005 (multi-section → E-INP-012, not "succeeds per section"). | OPEN |
+| H-1 | HIGH | BC-2.01.010 PC5 / AC-004 / EC-005 — E-INP-008 SHB body-truncation fixture is UNCONSTRUCTIBLE (crate rejects btl<12; cannot frame body<btl-12). Real SHB framing truncation routes to E-INP-010 via crate Err. Fix: narrow E-INP-008 to semantic failures (invalid BOM, major!=1); all SHB framing truncation → E-INP-010. | FIXED — BC-2.01.010 v1.8: E-INP-008 scoped to semantic failures (invalid BOM / major!=1) only; SHB framing truncation explicitly routes to E-INP-010; error-taxonomy v2.9 E-INP-008 Notes updated (D-147). Pending pass-4 verification. |
+| H-2 | HIGH | BC-2.01.011 same unconstructible-fixture issue for IDB. Constructible E-INP-008 window is 12<=btl<20 (body 0-7 bytes). BC must state this window explicitly; remove "crate returned a short body" language. | FIXED — BC-2.01.011 v1.3: constructible E-INP-008 window 12<=btl<20 stated; "crate returned a short body" language removed (D-147). Pending pass-4 verification. |
+| H-3 | HIGH | E-INP-001 (linktype whitelist, BC-2.01.016) orphaned — not in error-taxonomy E-INP-001 BC-ref; not in BC-2.01.017 context strings or error-code range (current range 008-013). Fix: add BC-2.01.016 to E-INP-001 BC-ref; add E-INP-001 to BC-2.01.017. | FIXED — error-taxonomy v2.9: BC-2.01.016 added to E-INP-001 BC-ref; BC-2.01.017 v1.4: E-INP-001 added to error-code table (range now E-INP-001 + E-INP-008..013) (D-147). Pending pass-4 verification. |
+| H-4 | HIGH | BC-2.01.013 EC-007 / Case-B SPB snaplen/padding self-contradiction (same root as C-1; three-way min fix did not propagate to EC-007 and Case-B). | FIXED — BC-2.01.013 v1.3: EC-007 and Case-B updated to three-way min(original_len, snaplen, block_body_available) (same version bump as C-1 fix) (D-147). Pending pass-4 verification. |
+| H-5 | HIGH | Multi-section interface-table reset is DEAD SPEC — BC-2.01.011 Inv 2 + BC-2.01.018 Inv 4/EC-005 mandate per-SHB reset, but Decision 7 rejects the 2nd SHB before any reset. Fix: delete/defer per-section-reset invariants; correct BC-2.01.018 EC-005 (multi-section → E-INP-012, not "succeeds per section"). | FIXED — ADR-009 rev 6 Decision 16 (per-SHB-reset dead-spec deferred); BC-2.01.011 v1.3 / BC-2.01.012 v1.3 / BC-2.01.015 v1.4 / BC-2.01.018 v1.3: reset invariants removed/deferred; BC-2.01.018 EC-005 corrected to E-INP-012 reject (D-147). Pending pass-4 verification. |
 
 ### Pass-3 Medium Findings
 
 | ID | Severity | Finding Summary | Status |
 |----|----------|----------------|--------|
-| M-1 | MEDIUM | BC-2.01.013 traceability cites wrong HS-107 path (`.factory/specs/holdout-scenarios/` doesn't exist; real is `.factory/holdout-scenarios/`). | OPEN |
-| M-2 | MEDIUM | HS-107 bound to VP-028 (fuzz) but asserts byte-exact framing arithmetic fuzz can't express. SPB has no Kani/proptest VP. Fix: add SPB captured-len proptest/unit VP OR document holdout-only. | OPEN |
-| M-3 | MEDIUM | Zero-packet one-shot notice only fires when skipped_blocks>0; IDB-only/SHB-only valid files still silently yield zero packets (SOUL #4). Fix: broaden to "valid file, zero packets" regardless of skip count. | OPEN |
-| M-4 | MEDIUM | BC-2.01.014 Inv 2 over-claims classic-pcap parity for ts_high>0 (classic stores raw u32 secs; pcapng saturates). Fix: scope parity to ts_high==0. | OPEN |
-| M-5 | MEDIUM | No BC owns the valid single-section N-packet in-order + payload-fidelity happy path (completeness gap; arp-baseline-16pkt.cap only a test-vector line). Fix: add postcondition with 16-packet anchor. | OPEN |
-| M-6 | MEDIUM | Block OPTIONS TLV walking unspecified — IDB if_tsresol is an option; raw path must parse options TLV (code:2+len:2+padded value); no bounds-check/no-panic spec → over-read attack surface. Fix: add IDB options-walk postcondition + malformed-option-length → E-INP-008 + edge case. | OPEN |
-| M-7 | MEDIUM | Precedence undefined at IDB-parse among E-INP-013 (interleaved), E-INP-001 (whitelist), E-INP-011 (conflict). Fix: define order (suggest 013 position-check first, then 001, then 011). | OPEN |
+| M-1 | MEDIUM | BC-2.01.013 traceability cites wrong HS-107 path (`.factory/specs/holdout-scenarios/` doesn't exist; real is `.factory/holdout-scenarios/`). | FIXED — BC-2.01.009 v1.3 + BC-2.01.013 v1.3: traceability path corrected to `.factory/holdout-scenarios/` (D-147). Pending pass-4 verification. |
+| M-2 | MEDIUM | HS-107 bound to VP-028 (fuzz) but asserts byte-exact framing arithmetic fuzz can't express. SPB has no Kani/proptest VP. Fix: add SPB captured-len proptest/unit VP OR document holdout-only. | FIXED — VP-031 added (SPB captured-len computation correctness; proptest; P1; reader.rs pcapng_pure_core fns; BC-2.01.013). VP-INDEX v2.5 (total 31). ADR-009 rev 6 Decision 18 (D-147). Pending pass-4 verification. |
+| M-3 | MEDIUM | Zero-packet one-shot notice only fires when skipped_blocks>0; IDB-only/SHB-only valid files still silently yield zero packets (SOUL #4). Fix: broaden to "valid file, zero packets" regardless of skip count. | FIXED — BC-2.01.011 v1.3: zero-packet notice broadened to fire on "valid file, zero packets" regardless of skip count (D-147). Pending pass-4 verification. |
+| M-4 | MEDIUM | BC-2.01.014 Inv 2 over-claims classic-pcap parity for ts_high>0 (classic stores raw u32 secs; pcapng saturates). Fix: scope parity to ts_high==0. | FIXED — BC-2.01.014 v1.3: parity claim scoped to ts_high==0; ts_high>0 explicitly noted as saturating (not equivalent to classic raw u32) (D-147). Pending pass-4 verification. |
+| M-5 | MEDIUM | No BC owns the valid single-section N-packet in-order + payload-fidelity happy path (completeness gap; arp-baseline-16pkt.cap only a test-vector line). Fix: add postcondition with 16-packet anchor. | FIXED — BC-2.01.009 v1.3: postcondition added with 16-packet anchor (arp-baseline-16pkt.cap) (D-147). Pending pass-4 verification. |
+| M-6 | MEDIUM | Block OPTIONS TLV walking unspecified — IDB if_tsresol is an option; raw path must parse options TLV (code:2+len:2+padded value); no bounds-check/no-panic spec → over-read attack surface. Fix: add IDB options-walk postcondition + malformed-option-length → E-INP-008 + edge case. | FIXED — BC-2.01.011 v1.3: IDB options-walk postcondition added; malformed option length → E-INP-008 specified; no-panic AC extended to TLV path. error-taxonomy v2.9: E-INP-008 Notes updated (D-147). Pending pass-4 verification. |
+| M-7 | MEDIUM | Precedence undefined at IDB-parse among E-INP-013 (interleaved), E-INP-001 (whitelist), E-INP-011 (conflict). Fix: define order (suggest 013 position-check first, then 001, then 011). | FIXED — ADR-009 rev 6 Decision 17: precedence order defined as E-INP-013 (position-check first) → E-INP-001 (whitelist) → E-INP-011 (conflict). BC-2.01.016 v1.3 + BC-2.01.018 v1.3 carry precedence note (D-147). Pending pass-4 verification. |
 
 ### Pass-3 Low / Observation Findings
 
 | ID | Severity | Finding Summary | Status |
 |----|----------|----------------|--------|
-| O-1 | LOW | HS-104 cites BC-2.01.012 PC3/PC4 but interface_id cases are PC5. | OPEN |
-| O-2 | LOW | HS-107 Case A/D contain stale pre-correction byte lines (pre-D-143/D-144). | OPEN |
-| O-3 | LOW [process-gap] | Stale "taxonomy updated in separate burst" forward-reference notes for error codes that have since landed; no validator that forward-referenced codes exist on disk. | OPEN |
+| O-1 | LOW | HS-104 cites BC-2.01.012 PC3/PC4 but interface_id cases are PC5. | FIXED — HS-104 v1.1: interface_id cases re-cited from PC3/PC4 to PC5 (D-147). Pending pass-4 verification. |
+| O-2 | LOW | HS-107 Case A/D contain stale pre-correction byte lines (pre-D-143/D-144). | FIXED — HS-107 v1.1: stale pre-correction hex lines removed from Case A and Case D; only corrected byte values remain (D-147). Pending pass-4 verification. |
+| O-3 | LOW [process-gap] | Stale "taxonomy updated in separate burst" forward-reference notes for error codes that have since landed; no validator that forward-referenced codes exist on disk. | FIXED — BC-2.01.017 v1.4: stale forward-reference notes removed (D-147). Pending pass-4 verification. |
 | O-4 | informational | VP-INDEX arithmetic GREEN — no action required. | CLOSED |

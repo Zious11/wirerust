@@ -14,6 +14,113 @@ changes, invariant rewrites).
 
 ---
 
+## [pcapng-f2-pass3-remediation-2026-06-19] — 2026-06-19
+
+### PASS-3 ADVERSARIAL REMEDIATION: 1 CRITICAL / 5 HIGH / 7 MEDIUM / 4 LOW — HIGH novelty
+
+**Trigger:** F2 adversarial pass-3 identified 1C/5H/7M/4L findings, HIGH novelty class
+(partial-fix-propagation + sibling-layer + dead-spec — new class not anticipated by prior passes).
+All must-fix items remediated in this burst. Pass-4 is next; F3 remains BLOCKED until 3 clean passes.
+
+**Critical finding (1):**
+
+- **C-1 (SPB three-way min panic fix):** BC-2.01.013 v1.2 changelog falsely claimed PC1 was fixed
+  (three-way `min(original_len, snaplen, block_body_available)` applied); on-disk PC1 and AC-002
+  still used two-way `min(original_len, snaplen)` → out-of-bounds slice panic on malformed SPB.
+  Fix propagated to PC1, AC-002, EC-007, and Case-B. VP-031 (SPB proptest) assigned to cover
+  arithmetic correctness that fuzz (VP-028) cannot express. BC-2.01.013 v1.3. ADR-009 rev 6
+  Decision 18 (VP-031).
+
+**High findings (5):**
+
+- **H-1 (E-INP-008 narrowed to semantic failures):** BC-2.01.010 PC5/AC-004/EC-005 — E-INP-008
+  SHB body-truncation fixture was unconstructible (crate rejects btl<12; framing truncation routes
+  to E-INP-010 via crate Err). Fix: E-INP-008 now fires ONLY for semantic failures (invalid BOM,
+  major version != 1); all SHB framing/length truncation routes to E-INP-010. BC-2.01.010 v1.8.
+  error-taxonomy v2.9 (E-INP-008 Notes updated).
+- **H-2 (IDB constructible-fixture window 12<=btl<20):** BC-2.01.011 same unconstructible-fixture
+  issue for IDB. Constructible E-INP-008 window is 12<=btl<20 (body 0–7 bytes). BC now states this
+  window explicitly; "crate returned a short body" language removed. BC-2.01.011 v1.3. BC-2.01.010
+  v1.8 (same fix stated for SHB).
+- **H-3 (E-INP-001 wired into taxonomy + BC-2.01.017):** E-INP-001 (linktype whitelist, BC-2.01.016)
+  was orphaned — not in error-taxonomy E-INP-001 BC-ref; not in BC-2.01.017 error-code table (which
+  covered only E-INP-008..E-INP-013). Fix: BC-2.01.016 added to E-INP-001 BC-ref in error-taxonomy
+  v2.9; E-INP-001 added to BC-2.01.017 v1.4 error-code table (range now E-INP-001 + E-INP-008..013).
+- **H-4 (SPB EC-007/Case-B three-way min propagation):** BC-2.01.013 EC-007 and Case-B still used
+  two-way min (same root as C-1; fix did not propagate). Both updated to three-way form. BC-2.01.013
+  v1.3 (same version bump as C-1 fix).
+- **H-5 (multi-section interface-table reset dead spec — Decision 16):** BC-2.01.011 Inv 2 +
+  BC-2.01.018 Inv 4/EC-005 mandated per-SHB interface-table reset, but Decision 7 rejects the 2nd
+  SHB before any reset fires — dead spec. Fix: per-section-reset invariants removed/deferred;
+  BC-2.01.018 EC-005 corrected (multi-section → E-INP-012, not "succeeds per section"). ADR-009
+  rev 6 Decision 16 (dead-spec deferral). BC-2.01.011 v1.3, BC-2.01.012 v1.3, BC-2.01.015 v1.4,
+  BC-2.01.018 v1.3.
+
+**Medium findings (7):**
+
+- **M-2 (VP-031 SPB framing proptest):** HS-107 was bound to VP-028 (fuzz) but asserts byte-exact
+  framing arithmetic that fuzz cannot express. Added VP-031 (SPB captured-len computation
+  proptest; P1; reader.rs pcapng_pure_core fns; BC-2.01.013). VP-INDEX v2.5 (total 31).
+  ADR-009 rev 6 Decision 18.
+- **M-3 (zero-packet notice broadened):** One-shot notice only fired when skipped_blocks>0;
+  IDB-only/SHB-only valid files silently yielded zero packets (SOUL #4 violation). Notice
+  broadened to "valid file, zero packets" regardless of skip count. BC-2.01.011 v1.3.
+- **M-4 (timestamp parity scoped to ts_high==0):** BC-2.01.014 Inv 2 over-claimed classic-pcap
+  parity for ts_high>0 (classic stores raw u32 secs; pcapng saturates — not equivalent). Parity
+  claim scoped to ts_high==0. BC-2.01.014 v1.3.
+- **M-5 (N-packet happy-path postcondition + arp-baseline-16pkt.cap):** No BC owned the valid
+  single-section N-packet in-order + payload-fidelity happy path. Postcondition added with
+  16-packet anchor (arp-baseline-16pkt.cap). BC-2.01.009 v1.3.
+- **M-6 (IDB options TLV walking + bounds checks):** IDB if_tsresol is an option carried in a
+  TLV structure (code:2+len:2+padded value); raw path must parse options TLV with bounds
+  checks. No spec for malformed-option-length → E-INP-008. Fix: IDB options-walk postcondition
+  added; malformed option length routes to E-INP-008. BC-2.01.011 v1.3. error-taxonomy v2.9.
+- **M-7 (IDB-parse error-code precedence — Decision 17):** Precedence undefined among E-INP-013
+  (interleaved IDB), E-INP-001 (whitelist), E-INP-011 (conflict) at IDB-parse time. Fix: order
+  defined as E-INP-013 position-check first, then E-INP-001 whitelist, then E-INP-011 conflict.
+  ADR-009 rev 6 Decision 17. BC-2.01.016 v1.3 / BC-2.01.018 v1.3 (precedence note).
+- **M-1 (BC-2.01.013 traceability path):** HS-107 path in traceability cited
+  `.factory/specs/holdout-scenarios/` (does not exist); corrected to `.factory/holdout-scenarios/`.
+  BC-2.01.009 v1.3 / BC-2.01.013 v1.3.
+
+**Low/observation findings (4):**
+
+- **O-1 (HS-104 PC5 re-cite):** HS-104 cited BC-2.01.012 PC3/PC4 for interface_id cases;
+  corrected to PC5. HS-104 v1.1.
+- **O-2 (HS-107 stale byte lines):** HS-107 Case A/D contained stale pre-correction hex lines
+  (pre-D-143/D-144). Removed; only corrected values remain. HS-107 v1.1.
+- **O-3 (stale forward-reference notes):** Stale "taxonomy updated in separate burst" notes for
+  error codes that have since landed. Removed from affected BCs. BC-2.01.017 v1.4.
+- **O-4 (VP-INDEX arithmetic):** CLOSED — no action required.
+
+**Version bumps in this burst (~18 artifacts):**
+
+| Artifact | Version |
+|----------|---------|
+| BC-2.01.009 | v1.2 → v1.3 |
+| BC-2.01.010 | v1.7 → v1.8 |
+| BC-2.01.011 | v1.2 → v1.3 |
+| BC-2.01.012 | v1.2 → v1.3 |
+| BC-2.01.013 | v1.2 → v1.3 |
+| BC-2.01.014 | v1.2 → v1.3 |
+| BC-2.01.015 | v1.3 → v1.4 |
+| BC-2.01.016 | v1.2 → v1.3 |
+| BC-2.01.017 | v1.3 → v1.4 |
+| BC-2.01.018 | v1.2 → v1.3 |
+| error-taxonomy | v2.8 → v2.9 |
+| ADR-009 | rev 5 → rev 6 |
+| VP-INDEX | v2.4 → v2.5 |
+| verification-architecture.md | v2.0 → v2.1 |
+| verification-coverage-matrix.md | v1.14 → v1.15 |
+| HS-103 | v1.3 → v1.4 |
+| HS-104 | v1.0 → v1.1 |
+| HS-107 | v1.0 → v1.1 |
+| BC-INDEX | v1.55 → v1.56 |
+
+**Decision log:** D-147.
+
+---
+
 ## [pcapng-f2-pass2-remediation-2026-06-19] — 2026-06-19
 
 ### PASS-2 ADVERSARIAL REMEDIATION: 4 CRITICAL / 8 HIGH / 6 MEDIUM / 6 LOW — HIGH novelty

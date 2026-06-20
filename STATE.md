@@ -1,7 +1,7 @@
 ---
 pipeline: FEATURE
 phase: F2
-phase_status: "F2 adversary pass-3: 1C/5H/7M/4L, NOT clean (novelty HIGH). Clean-pass counter 0/3. Remediation round-3 pending OR human strategy decision."
+phase_status: "F2 pass-3 remediation applied; adversary pass-4 pending; clean-pass counter 0/3; F3 BLOCKED"
 product: wirerust
 mode: brownfield
 timestamp: 2026-06-19T04:00:00Z
@@ -63,14 +63,14 @@ convergence_trajectory: "Detail: cycles/v0.1.0-greenfield-spec/convergence-traje
 
 # VSDD Pipeline State — wirerust
 
-## Session Resume Checkpoint (2026-06-19 — F2 PASS-3 NOT CLEAN / REMEDIATION ROUND-3 PENDING / F3 BLOCKED)
+## Session Resume Checkpoint (2026-06-19 — F2 PASS-3 REMEDIATED / PASS-4 PENDING / F3 BLOCKED)
 
-**Previous checkpoint (F2 PASS-2 RE-AUDIT CLEAN / PASS-3 PENDING) archived to:
+**Previous checkpoint (F2 PASS-3 NOT CLEAN / REMEDIATION ROUND-3 PENDING) archived to:
 `.factory/cycles/feature-pcapng-reader/session-checkpoints.md`**
 
-### PIPELINE STATUS: FEATURE MODE — F2 ADVERSARY PASS-3 NOT CLEAN (1C/5H/7M/4L); REMEDIATION ROUND-3 PENDING; F3 BLOCKED
+### PIPELINE STATUS: FEATURE MODE — F2 PASS-3 REMEDIATION APPLIED (D-147); ADVERSARY PASS-4 PENDING; CLEAN-PASS COUNTER 0/3; F3 BLOCKED
 
-Active cycle: **feature-pcapng-reader**. F2 pass-3 adversarial review NOT CLEAN (D-146): 1C/5H/7M/4L, novelty HIGH (partial-fix-propagation + sibling-layer + dead-spec class). Clean-pass counter 0/3. Process-gap: BC-2.01.013 v1.2 changelog claimed PC1 fixed (three-way min) but on-disk text still has two-way min (C-1). Remediation round-3 required OR human strategy decision. F3 BLOCKED. Pass-2 cross-seam re-audit was CLEAN (D-145). STORY-128 + STORY-127 scoped for F3. No in-flight story worktrees. No open PRs. **BEHAVIORAL DECISION TO SURFACE AT F2 HUMAN GATE: Decision 15 (interleaved-IDB reject → E-INP-013).**
+Active cycle: **feature-pcapng-reader**. F2 pass-3 adversarial review remediation complete (D-147): C-1 SPB three-way min panic fix; H-1/H-2 E-INP-008 narrowed to semantic-only / IDB fixture window 12<=btl<20; H-3 E-INP-001 wired into taxonomy+BC-2.01.017; H-4 SPB EC-007/Case-B propagated; H-5 per-SHB reset dead-spec deferred Decision 16; M-2 VP-031 SPB proptest; M-3 zero-packet notice broadened; M-4 ts_high==0 parity scope; M-5 N-packet postcondition; M-6 options-TLV walking; M-7 precedence Decision 17; O-1/O-2/O-3 fixed. ADR-009 rev 6 (Decisions 16/17/18). Clean-pass counter 0/3. F3 BLOCKED. Pass-4 adversary dispatch is next. STORY-128 + STORY-127 scoped for F3. No in-flight story worktrees. No open PRs. **BEHAVIORAL DECISIONS TO SURFACE AT F2 HUMAN GATE: Decision 15 (interleaved-IDB reject → E-INP-013); Decision 16 (per-SHB reset dead-spec deferred); Decision 17 (IDB-parse precedence order).**
 
 ### A. EXACT POSITION
 
@@ -79,7 +79,7 @@ Active cycle: **feature-pcapng-reader**. F2 pass-3 adversarial review NOT CLEAN 
 - **Feature:** FE-001 — pcapng capture-format reader support. Status: IN PROGRESS (moved from CANDIDATE).
 - **ADR created:** ADR-009 rev 3 — Option A selected (pcap-file 2.0.0, +0 transitive deps). Decision 7: multi-section reject as SCOPE decision (rev 2); rationale corrected via source research (rev 3 — F-06 SUPERSEDED; pcap-file 2.0.0 resets correctly).
 - **BCs added:** BC-2.01.009..018 (10 new). BC-2.01.004 RETIRED (superseded by BC-2.01.009). BC-INDEX v1.52 (inline version comments synced).
-- **Spec versions:** prd.md v1.33, error-taxonomy v2.8 (E-INP-013; next_free E-INP-014), nfr-catalog v2.3, ADR-009 rev 5 (Decision 15 interleaved-IDB), VP-INDEX v2.4, BC-INDEX v1.55, BC-2.01.009 v1.2, BC-2.01.010 v1.7, BC-2.01.011 v1.2, BC-2.01.012 v1.2, BC-2.01.013 v1.2, BC-2.01.014 v1.2, BC-2.01.015 v1.3, BC-2.01.016 v1.2, BC-2.01.017 v1.3, BC-2.01.018 v1.2, BC-2.12.011 v1.5, HS-103 v1.3, HS-107 v1.0 (new), HS-INDEX v2.1 (all-namespace=180), verification-architecture v2.0, verification-coverage-matrix v1.14. STORY-001 v1.6, epics.md v1.6, test-vectors v2.2.
+- **Spec versions:** prd.md v1.33, error-taxonomy v2.9 (next_free E-INP-014), nfr-catalog v2.3, ADR-009 rev 6 (Decision 16 dead-spec / Decision 17 precedence / Decision 18 VP-031), VP-INDEX v2.5 (VP-031; total 31), BC-INDEX v1.56, BC-2.01.009 v1.3, BC-2.01.010 v1.8, BC-2.01.011 v1.3, BC-2.01.012 v1.3, BC-2.01.013 v1.3, BC-2.01.014 v1.3, BC-2.01.015 v1.4, BC-2.01.016 v1.3, BC-2.01.017 v1.4, BC-2.01.018 v1.3, BC-2.12.011 v1.5, HS-103 v1.4, HS-104 v1.1, HS-107 v1.1, HS-INDEX v2.1 (all-namespace=180), verification-architecture v2.1, verification-coverage-matrix v1.15. STORY-001 v1.6, epics.md v1.6, test-vectors v2.2.
 - **Latest release (prior cycle):** `v0.9.2` (tag obj `a298dbe`, main `b73b242`).
 - **develop:** `b73b242` (= main; zero divergence).
 - **Completeness report:** `.factory/research/pcapng-spec-completeness-validation.md`
@@ -127,7 +127,7 @@ Active cycle: **feature-pcapng-reader**. F2 pass-3 adversarial review NOT CLEAN 
 
 ## Status
 
-**FEATURE MODE — pcapng reader cycle OPEN (feature-pcapng-reader). F2 PASS-3 NOT CLEAN (1C/5H/7M/4L, D-146). F3 BLOCKED — adversarial reconvergence (3 clean passes) required. Remediation round-3 pending OR human strategy decision.**
+**FEATURE MODE — pcapng reader cycle OPEN (feature-pcapng-reader). F2 PASS-3 REMEDIATION APPLIED (D-147). Pass-4 adversary dispatch next. Clean-pass counter 0/3. F3 BLOCKED — adversarial reconvergence (3 clean passes) required.**
 
 Latest release: v0.9.2 (tag obj `a298dbe`, main `b73b242`, 4 binaries). develop = main = `b73b242`. Zero divergence.
 Active feature: FE-001 pcapng capture-format reader support. ADR-009, 10 new BCs, 1 retired BC.
@@ -154,7 +154,7 @@ Maintenance maint-2026-06-17: COMPLETE. NON-BLOCKING. Report: `.factory/maintena
 | E-18/E-8 STORY-119 cycle (F1-F7) + v0.9.0 | **RELEASED + CLOSED 2026-06-19** | STORY-120/122/119; 293 BCs; tag v0.9.0 986e148. Detail: cycles/feature-story-119-grouped-collapse/ |
 | v0.9.1 patch | **RELEASED 2026-06-19** | Doc/help; PRs #277/#278; tag v0.9.1 ad4eec8 |
 | v0.9.2 patch | **RELEASED 2026-06-19** | DNP3 determinism + E2E fixtures; PRs #279/#280; tag v0.9.2 b73b242 |
-| **Feature pcapng-reader (F1+F2)** | **F2 PASS-3 NOT CLEAN (D-146); remediation round-3 pending; F3 BLOCKED** | FE-001 IN PROGRESS. F2 remediation COMPLETE (D-142). Re-audit ALL FIXED (D-143). Pass-2 remediation COMPLETE (D-144): 4C/8H/6M/6L; ADR-009 rev 5. Pass-2 cross-seam re-audit CLEAN (D-145). Pass-3 NOT CLEAN (D-146): 1C/5H/7M/4L, novelty HIGH (changelog-lie on C-1 + dead-spec + sibling-layer). Clean-pass counter 0/3. Remediation round-3 or human strategy decision required. Decision 15 (interleaved-IDB) flagged for F2 human gate. Cycle: feature-pcapng-reader |
+| **Feature pcapng-reader (F1+F2)** | **F2 PASS-3 REMEDIATION APPLIED (D-147); pass-4 pending; clean-pass 0/3; F3 BLOCKED** | FE-001 IN PROGRESS. F2 remediation COMPLETE (D-142). Re-audit ALL FIXED (D-143). Pass-2 remediation COMPLETE (D-144): 4C/8H/6M/6L; ADR-009 rev 5. Pass-2 cross-seam re-audit CLEAN (D-145). Pass-3 NOT CLEAN (D-146): 1C/5H/7M/4L. Pass-3 remediation COMPLETE (D-147): C-1 SPB panic, H-1/H-2 E-INP-008 semantic-only, H-3 E-INP-001 wired, H-4 EC-007 propagated, H-5 dead-spec Decision 16, M-2 VP-031, M-3/M-4/M-5/M-6/M-7 addressed. ADR-009 rev 6. Decisions 16/17/18 flagged for F2 human gate. Cycle: feature-pcapng-reader |
 
 ## Decisions Log
 
@@ -179,6 +179,7 @@ D-131..D-135: `cycles/feature-story-119-grouped-collapse/decisions-archive.md`
 | D-144 | F2 adversary pass-2: 4C/8H/6M/6L, HIGH novelty (new wire-format + partial-fix-regression findings). Remediated: ADR-009 rev 5 (Decision 15 interleaved-IDB → E-INP-013 reject; linktype-whitelist timing at IDB-parse; HS-completeness map); C-1 IDB snaplen offset 4–7 (BC-2.01.010 v1.7); C-2 HS-107 authored (SPB framing/snaplen holdout; HS-INDEX v2.1 greenfield=107/all-namespace=180); C-3 frame-overhead 12 bytes (ADR-009 rev 5 Decision 8 update); C-4 stale codes BC-2.01.017 (E-INP-013 added; error-table now E-INP-008..E-INP-013; v1.3); VP-INDEX v2.4 re-anchor + Kani unwind note (I-1/I-2); zero-packet one-shot notice BC-2.01.011 v1.2 (I-3); E-INP-008/010 boundary BC-2.01.010/012 (I-9); verification-architecture v2.0 + verification-coverage-matrix v1.14 (O-5). error-taxonomy v2.8 (E-INP-013 added; next_free E-INP-014). BC-INDEX v1.55 (9 BCs synced). All pass-2 C/I items marked FIXED pending pass-3 verification. **NEW BEHAVIORAL DECISION (flag for F2 human gate): Decision 15 — interleaved-IDB reject (IDB after first packet block → E-INP-013 fail-closed; full interleaved-IDB support deferred to future live-capture cycle).** Pass-3 next. | 2026-06-19 |
 | D-145 | F2 pass-2 remediation consistency-verified CLEAN: cross-seam re-audit CLEAN on all 12 seams (f2-consistency-audit.md v2.0); 1 LOW finding — ADR-009 HS-map HS-107 status showed DRAFT (stale). Fixed by architect: ADR-009 rev 5 HS-map updated — HS-107 now AUTHORED. ADR stays rev 5. Adversary pass-3 pending. | 2026-06-19 |
 | D-146 | F2 adversary pass-3: NOT CLEAN. 1C/5H/7M/4L, novelty HIGH (partial-fix-propagation + sibling-layer + dead-spec class). C-1: BC-2.01.013 v1.2 changelog FALSELY claimed PC1 fixed (three-way min); on-disk PC1+AC-002 still use two-way min → out-of-bounds slice panic on malformed SPB. H-1/H-2: E-INP-008 body-truncation fixtures unconstructible for SHB/IDB (crate rejects framing truncation; routes to E-INP-010). H-3: E-INP-001 linktype-whitelist orphaned from error-taxonomy BC-ref and BC-2.01.017. H-4: BC-2.01.013 EC-007/Case-B not updated with three-way min (same root as C-1). H-5: per-SHB interface-table reset is dead spec (Decision 7 rejects 2nd SHB before reset fires). M-1..M-7: path error, VP gap, zero-packet notice breadth, parity over-claim, happy-path postcondition missing, options-TLV parse unspecified, error-code precedence undefined. O-1/O-2: stale HS-104 citation + HS-107 byte lines. O-3: stale forward-reference notes + no forward-reference validator. Process-gap: changelog claims must be disk-verified before any pass is declared complete. Clean-pass counter: 0/3. Remediation round-3 pending OR human strategy decision. Pass-3 record: cycles/feature-pcapng-reader/f2-adversarial-spec-review-pass3.md. | 2026-06-19 |
+| D-147 | F2 adversary pass-3 (1C/5H/7M/4L) remediated: ADR-009 rev 6 (Decision 16 per-SHB-reset dead-spec deferred; Decision 17 IDB-parse precedence E-INP-013→001→011; Decision 18 VP-031 SPB captured-len proptest). C-1 SPB three-way min(original_len, snaplen, block_body_available) panic fix propagated to BC-2.01.013 PC1+AC-002+EC-007+Case-B (v1.3). H-1/H-2 E-INP-008 narrowed to semantic-only (invalid BOM / major!=1); SHB/IDB framing truncation routes to E-INP-010; IDB constructible-fixture window 12<=btl<20 stated (BC-2.01.010 v1.8, BC-2.01.011 v1.3). H-3 E-INP-001 wired: BC-2.01.016 added to error-taxonomy E-INP-001 BC-ref; E-INP-001 added to BC-2.01.017 v1.4 error-code table. H-4 EC-007/Case-B three-way min propagated (BC-2.01.013 v1.3). H-5 per-SHB reset dead-spec removed from BC-2.01.011/012/015/018; BC-2.01.018 EC-005 corrected to E-INP-012 reject. M-2 VP-031 added (VP-INDEX v2.5; total 31). M-3 zero-packet notice broadened to "valid file, zero packets" regardless of skip count. M-4 ts_high==0 parity scope (BC-2.01.014 v1.3). M-5 N-packet postcondition + arp-baseline-16pkt.cap anchor (BC-2.01.009 v1.3). M-6 IDB options-TLV walking + malformed-option-length → E-INP-008 spec (BC-2.01.011 v1.3; error-taxonomy v2.9). M-7 IDB-parse precedence defined: E-INP-013 first, E-INP-001 second, E-INP-011 third (ADR-009 Decision 17). O-1 HS-104 v1.1 PC5 re-cite. O-2 HS-107 v1.1 stale hex lines removed. O-3 stale forward-reference notes removed. BC-INDEX v1.56 (all 10 BCs synced). All pass-3 findings marked FIXED pending pass-4. **BEHAVIORAL DECISIONS flagged for F2 human gate: Decision 15 (interleaved-IDB), Decision 16 (dead-spec deferral), Decision 17 (precedence order).** Pass-4 adversary dispatch next. Clean-pass counter: 0/3. | 2026-06-19 |
 
 ## Blocking Issues
 
