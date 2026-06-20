@@ -8,9 +8,9 @@ sources:
   - performance-review
   - adversarial-spec-review-pass2 (ADV-F2-PASS2)
 date_created: 2026-06-19
-status: PASS5-FULLY-REMEDIATED-CONSISTENCY-VERIFIED-PASS6-PENDING
+status: PASS6-NOT-CLEAN-REMEDIATION-PENDING
 f3_blocked: true
-f3_blocker_reason: "Adversarial reconvergence required (3 clean passes). Pass-1 items addressed (D-142/D-143). Pass-2 items addressed (D-144). Pass-2 cross-seam re-audit CLEAN (D-145). Pass-3 NOT CLEAN (D-146): 1C/5H/7M/4L. Pass-3 remediation COMPLETE (D-147). Pass-3 cross-seam re-audit gap fixes COMPLETE (D-148). Pass-4 NOT CLEAN (D-149): 1C/4H/5M/3L, HIGH novelty. Pass-4 remediation COMPLETE (D-150). Pass-4 re-audit 3 Major boundary gaps FIXED (D-151): FINDING-P4-001/002/003. Pass-5 NOT CLEAN (D-152): 1C/4H/5M/3L, HIGH novelty — TRAJECTORY PLATEAU (23/24/17/13/13). Pass-5 remediation COMPLETE (D-153): all 1C/4H/5M/3L FIXED. Pass-5 re-audit CLEAN (D-154): 4 Minor findings FIXED (FINDING-P5-001/002/003/004); 6 seams CLEAN. Pass-5 fully remediated + consistency-verified. Clean-pass counter 0/3. Adversary pass-6 pending."
+f3_blocker_reason: "Adversarial reconvergence required (3 clean passes). Pass-1 items addressed (D-142/D-143). Pass-2 items addressed (D-144). Pass-2 cross-seam re-audit CLEAN (D-145). Pass-3 NOT CLEAN (D-146): 1C/5H/7M/4L. Pass-3 remediation COMPLETE (D-147). Pass-3 cross-seam re-audit gap fixes COMPLETE (D-148). Pass-4 NOT CLEAN (D-149): 1C/4H/5M/3L, HIGH novelty. Pass-4 remediation COMPLETE (D-150). Pass-4 re-audit 3 Major boundary gaps FIXED (D-151): FINDING-P4-001/002/003. Pass-5 NOT CLEAN (D-152): 1C/4H/5M/3L, HIGH novelty — TRAJECTORY PLATEAU (23/24/17/13/13). Pass-5 remediation COMPLETE (D-153): all 1C/4H/5M/3L FIXED. Pass-5 re-audit CLEAN (D-154): 4 Minor findings FIXED (FINDING-P5-001/002/003/004); 6 seams CLEAN. Pass-5 fully remediated + consistency-verified. Pass-6 NOT CLEAN (D-155): 0C/4H/5M/4L — FIRST zero-critical pass; count plateau 13 (P4/5/6), severity declining. Remediation round-6 pending. Clean-pass counter 0/3."
 ---
 
 # F2 Review Remediation Tracker — pcapng Reader
@@ -468,3 +468,43 @@ remediated + consistency-verified. Adversary pass-6 pending. Clean-pass counter 
 
 **Re-audit verdict:** CLEAN. All 6 seams pass. 4 Minor findings FIXED. Pass-5 fully
 remediated + consistency-verified. Adversary pass-6 is next. Clean-pass counter 0/3.
+
+---
+
+---
+
+## Pass-6 Adversarial Findings (ADV-F2-PASS6 — D-155 burst — 2026-06-20)
+
+**Overall verdict:** 0 CRITICAL / 4 HIGH / 5 MEDIUM / 4 LOW. **FIRST PASS WITH ZERO CRITICALS.**
+**Trajectory:** P1:23 / P2:24 / P3:17 / P4:13 / P5:13 / P6:13 — count plateau; severity declining (criticals: 3/4/1/1/1/0).
+Clean-pass counter: 0/3. Remediation round-6 required.
+
+**Full pass record:** `.factory/cycles/feature-pcapng-reader/f2-adversarial-spec-review-pass6.md`
+
+### Pass-6 High Findings
+
+| ID | Severity | Finding Summary | Status |
+|----|----------|----------------|--------|
+| F-H1 | HIGH | BC-2.01.017 v1.4 PC1 maps EPB/SPB body-decode context strings → E-INP-010, contradicting Decision 20 (body-decode → E-INP-008). BC-2.01.017 was OMITTED from pass-4 and pass-5 dispatch checklists — un-propagated fix. Third occurrence of cross-cutting-parent-BC-omission pattern (C-4/pass-2, H-3/pass-3, F-H1/pass-6). Fix: BC-2.01.017 v1.4→v1.5: EPB/SPB body-decode context strings → E-INP-008; E-INP-010 only for crate framing + EPB interface_id OOB. | OPEN |
+| F-H2 | HIGH | `block_body_available` defined two ways: BC-2.01.013 "btl-16" (data bytes after original_len) vs VP-031 "body.len()" (= btl-12, includes 4-byte original_len field) — off by 4. On raw path RawBlock.body = btl-12 (header+trailer stripped); data bytes start after 4-byte original_len. Fix: define ONE canonical symbol (`block_body_available = body.len()-4`); VP-031 must use `min(original_len, body.len()-4)`; delete false "equivalently body.len()" prose. | OPEN |
+| F-H3 | HIGH | HS-107 Case B (btl=116, original_len=200) asserts data.len()==100 (btl-16) but VP-031 "body.len()" form gives min(200, 104)=104 — holdout vs VP disagree by 4. Same root as F-H2. Fix aligned via F-H2 fix; HS-107 Case B rationale should annotate `body.len()=104; data_bytes=104-4=100`. | OPEN |
+| F-H4 | HIGH | E-INP-009 (empty table) vs E-INP-010 (OOB non-empty) interface_id discriminant has NO holdout or VP pinning the EXACT code returned. ADR-009 HS-104 description uses ambiguous "(→ E-INP-009 / E-INP-010)" slash. VP-027 proves no-panic+bounds but not the discriminant. Fix: explicit HS-104 cases (empty→E-INP-009, OOB→E-INP-010); extend VP-027 to assert discriminant; remove ADR-009 slash ambiguity. | OPEN |
+
+### Pass-6 Medium Findings
+
+| ID | Severity | Finding Summary | Status |
+|----|----------|----------------|--------|
+| F-M1 | MEDIUM | HS-107 Case E btl=14 rationale says "below 12-byte minimum" but 14>=12; real cause is alignment violation (14%4=2). BC-2.01.013 EC-005 uses btl=8. Fix: correct Case E rationale to alignment, OR change btl to 8 to match EC-005. | OPEN |
+| F-M2 | MEDIUM [process-gap] | BOM LE/BE on-disk byte ordering restated in prose 4+ times across BC-2.01.010 / HS-103 / ADR-009. Corrected 3× already; no shared canonical table anchor — each future correction must update N sites. Fix: designate ONE canonical BOM table (BC-2.01.010 §BOM-Canonical or ADR-009 §BOM); all other sites replace inline bytes with a cross-reference. | OPEN |
+| F-M3 | MEDIUM | snaplen extracted and stored in InterfaceInfo (BC-2.01.011 PC4/AC-003 "for SPB use") but NOTHING consumes it after Decision 9 amend (SPB formula dropped snaplen). Dead extraction; same anti-pattern condemned by Decision 21 for if_tsoffset. Fix: drop snaplen extraction OR replace "for SPB use" with explicit "diagnostic only; MUST NOT be applied to captured_len" note. | OPEN |
+| F-M4 | MEDIUM | SHB-only file (no IDB/packets/skips) zero-packet disposition unspecified — notice vs Err undefined. HS-108 covers IDB-only / OPB-only / EPB-before-IDB but not SHB-only. Fix: add BC-2.01.009 edge case + HS-108 Case f for SHB-only → Ok+notice (or documented Err). | OPEN |
+| F-M5 | MEDIUM | if_tsresol option (code 9) with option_length != 1 unspecified on raw path. AC-005 only checks `length <= remaining`; a 2-byte if_tsresol passes the length guard, silently delivering a wrong tsresol value. Fix: BC-2.01.011 AC-005 (or new AC): "if_tsresol option_length != 1 → E-INP-008"; add to error-taxonomy E-INP-008 trigger list. | OPEN |
+
+### Pass-6 Low Findings
+
+| ID | Severity | Finding Summary | Status |
+|----|----------|----------------|--------|
+| F-L1 | LOW | VP-025 Kani scope note references only "if_tsresol=6 path" after pass-5 saturation extension; general formula totality branches not listed in scope note. Annotation drift; no functional impact. Fix: extend scope note to reference all formula branches. | OPEN |
+| F-L2 | LOW | VP-INDEX count coherence (total_vps=31) not independently verified this pass. Recommend count-propagation sweep before F3 entry per S-7.02 discipline. Non-blocking for remediation round-6. | OPEN |
+| F-L3 | LOW [process-gap] | BC-2.01.017 omitted from pass-4 AND pass-5 dispatch checklists (root of F-H1). Third occurrence of this defect class. Action: extend Lesson 7 / DF-ERROR-CODE-PARENT-BC-SWEEP-001 with a mandatory per-burst checklist item: "Did BC-2.01.017 receive a version bump?" | OPEN |
+| F-L4 | LOW | error-taxonomy E-INP-010 BC-references column still includes BCs whose body-decode paths moved to E-INP-008 (D-151/D-153). Stale BC entries confuse scope. Fix: audit E-INP-010 BC-refs; remove BCs with no remaining framing-failure path to E-INP-010. | OPEN |
