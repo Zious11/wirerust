@@ -1,7 +1,7 @@
 ---
 document_type: prd
 level: L3
-version: "1.30"
+version: "1.31"
 status: draft
 producer: product-owner
 timestamp: 2026-06-17T00:00:00Z
@@ -411,6 +411,14 @@ supplements:
 >
 > No new BCs; no BC count change (283). See `spec-changelog.md` §[prd-v1.25-ss15-titlesync-2026-06-14].
 
+> **Version 1.31 delta (2026-06-19 — pcapng completeness deltas F-06/F-07/F-11):**
+> AC-level additions to BC-2.01.010 (F-06: multi-section SHB reject, E-INP-012), BC-2.01.015
+> (F-07: enumerate all skip-arm variants — NRB, ISB, DSB, SystemdJournalExport, OPB 0x2,
+> Unknown), and BC-2.01.018 (F-11: per-file error isolation in directory mode, actionable
+> E-INP-011 hint). E-INP-012 added to error-taxonomy.md (multi-section SHB reject);
+> E-INP-011 Notes revised (tcpdump -i any actionable hint). No new BCs; active BC count
+> unchanged at 302. See `spec-changelog.md` §[pcapng-completeness-f06-f07-f11-2026-06-19].
+>
 > **Version 1.30 delta (2026-06-19 — F2 audit FINDING-003 remediation):** §7 RTM corrected:
 > BC-2.01.004 RTM row struck through [RETIRED → BC-2.01.009]; 10 new RTM rows added for
 > BC-2.01.009–018 (CAP-01, SS-01, priorities per §2.1, test type: integration — not yet

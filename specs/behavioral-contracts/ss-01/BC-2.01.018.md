@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.0"
+version: "1.1"
 status: draft
 producer: product-owner
 timestamp: 2026-06-19T00:00:00Z
@@ -12,7 +12,8 @@ subsystem: SS-01
 capability: CAP-01
 lifecycle_status: active
 introduced: v0.10.0-pcapng
-modified: []
+modified:
+  - "v1.1: F-11 completeness delta — (1) Add AC for directory-mode per-file error isolation: E-INP-011 on one file does not abort the full run; (2) Add AC clarifying common user trigger (tcpdump -i any) in E-INP-011 message; cross-reference BC-2.12.011 directory-mode isolation. — 2026-06-19"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -33,6 +34,22 @@ policy is **fail-closed**: all IDBs encountered within a section MUST carry the 
 value. If any two IDBs differ, the reader returns `Err` immediately with context identifying
 the conflicting link types, mapping to E-INP-011. Files where all IDBs agree (including the
 common case of a single IDB) succeed normally.
+
+## Acceptance Criteria
+
+- **AC-001:** When two or more IDBs in a single pcapng section carry differing `linktype` values,
+  the reader returns `Err` with a message that (a) identifies the conflicting link types by
+  `DataLink` Debug repr and (b) includes a hint that this commonly arises from `tcpdump -i any`
+  captures mixing link types, and that wirerust requires a single link type per file. The exact
+  message format is defined by E-INP-011.
+- **AC-002 (Directory-Mode Per-File Isolation):** In directory mode (`--target <dir>`), a pcapng
+  file that fails with E-INP-011 (multi-IDB link-type conflict) MUST fail PER-FILE only. The
+  remaining files in the directory continue to be processed. The overall run exit code is
+  non-zero (exit 1) to indicate at least one file failed, but the run MUST NOT abort at the
+  first conflicting file. This per-file error isolation is the directory-mode contract from
+  BC-2.12.011 and applies to all file-level ingestion errors including E-INP-011.
+  - Cross-reference: BC-2.12.011 governs `resolve_targets`; per-file error isolation is a
+    property of the main.rs capture loop when iterating over resolved targets.
 
 ## Preconditions
 
@@ -78,6 +95,7 @@ common case of a single IDB) succeed normally.
 | EC-006 | Two IDBs: `ETHERNET` (whitelisted) then `IEEE802_11` (non-whitelisted) | E-INP-011 fires first (linktype mismatch); E-INP-001 whitelist check is never reached |
 | EC-007 | pcapng file with 0 IDBs before first EPB | No IDB error: separate error path (E-INP-009 / BC-2.01.017); this BC's check is never reached |
 | EC-008 | Two IDBs both `IEEE802_11` (non-whitelisted but agreeing) | E-INP-011 does NOT fire (they agree); E-INP-001 (BC-2.01.016 whitelist check) fires instead |
+| EC-009 | Directory with file_a.pcapng (ETHERNET+LINUX_SLL conflict) and file_b.pcapng (ETHERNET only) | E-INP-011 on file_a; file_b processed successfully; overall exit code 1 (at least one failure) |
 
 ## Canonical Test Vectors
 

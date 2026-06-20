@@ -74,15 +74,15 @@ traces_to: .factory/specs/prd.md
 | BC-2.01.007 | Surface Per-Packet Read Errors with Anyhow Context | P1 | [WRITTEN] | BC-RDR-007 |
 | BC-2.01.008 | from_file Opens via BufReader and Delegates to from_pcap_reader | P2 | [WRITTEN] | BC-RDR-008 |
 | BC-2.01.009 | Accept pcapng Format: Transparent Detection via Magic-Byte Probe | P0 | [WRITTEN] | feature-pcapng-F2 | <!-- v1.0: supersedes BC-2.01.004; greenfield; ADR-009 Decision 5/6; STORY-123 -->
-| BC-2.01.010 | Parse pcapng Section Header Block (SHB): Byte-Order Detection and Version | P0 | [WRITTEN] | feature-pcapng-F2 | <!-- v1.0: greenfield; ADR-009 Decision 1/2; STORY-123 -->
+| BC-2.01.010 | Parse pcapng Section Header Block (SHB): Byte-Order Detection and Version | P0 | [WRITTEN] | feature-pcapng-F2 | <!-- v1.1: greenfield; ADR-009 Decision 1/2; STORY-123 -->
 | BC-2.01.011 | Parse pcapng Interface Description Block (IDB): Link Type and Timestamp Resolution | P0 | [WRITTEN] | feature-pcapng-F2 | <!-- v1.0: greenfield; ADR-009 Decision 2/3/4; STORY-124 -->
 | BC-2.01.012 | Parse pcapng Enhanced Packet Block (EPB): Packet Data and Timestamp | P0 | [WRITTEN] | feature-pcapng-F2 | <!-- v1.0: greenfield; ADR-009 Decision 2/4; STORY-125 -->
 | BC-2.01.013 | Parse pcapng Simple Packet Block (SPB): Packet Data Without Timestamp | P1 | [WRITTEN] | feature-pcapng-F2 | <!-- v1.0: greenfield; ADR-009 Decision 2; STORY-126 -->
 | BC-2.01.014 | Pure-Core 64-bit pcapng Timestamp Normalization to (ts_sec, ts_usecs) | P0 | [WRITTEN] | feature-pcapng-F2 | <!-- v1.0: greenfield; ADR-009 Decision 4; Kani target; STORY-125 -->
-| BC-2.01.015 | Unknown pcapng Block Types Are Silently Skipped via block-total-length | P1 | [WRITTEN] | feature-pcapng-F2 | <!-- v1.0: greenfield; ADR-009 Decision 2; STORY-126 -->
+| BC-2.01.015 | Unknown pcapng Block Types Are Silently Skipped via block-total-length | P1 | [WRITTEN] | feature-pcapng-F2 | <!-- v1.1: greenfield; ADR-009 Decision 2; STORY-126 -->
 | BC-2.01.016 | Reject pcapng with Unsupported Link Type in IDB (Mirrors BC-2.01.001) | P0 | [WRITTEN] | feature-pcapng-F2 | <!-- v1.0: greenfield; CAP-02; identical whitelist to BC-2.01.001; STORY-124 -->
 | BC-2.01.017 | pcapng Block-Level Parse Errors Surface via anyhow Context Chain | P1 | [WRITTEN] | feature-pcapng-F2 | <!-- v1.0: greenfield; E-INP-008..011; STORY-126 -->
-| BC-2.01.018 | Multi-IDB Link-Type Agreement Policy: Conflict Returns Error (Fail-Closed) | P0 | [WRITTEN] | feature-pcapng-F2 | <!-- v1.0: greenfield; ADR-009 Decision 3; E-INP-011; STORY-124 -->
+| BC-2.01.018 | Multi-IDB Link-Type Agreement Policy: Conflict Returns Error (Fail-Closed) | P0 | [WRITTEN] | feature-pcapng-F2 | <!-- v1.1: greenfield; ADR-009 Decision 3; E-INP-011; STORY-124 -->
 
 ## ss-02: Link-Type Gating / Packet Decoding (CAP-02 + CAP-03)
 

@@ -14,6 +14,66 @@ changes, invariant rewrites).
 
 ---
 
+## [pcapng-completeness-f06-f07-f11-2026-06-19] — 2026-06-19
+
+### PATCH: pcapng Completeness Deltas F-06, F-07, F-11 — AC-Level Additions Only
+
+**Trigger:** pcapng-spec-completeness-validation identified three MEDIUM-severity gaps in the
+F2 pcapng BC set. All three are addressed as AC additions to existing BCs and an E-INP-012
+error taxonomy entry. No new BCs were created; active BC count is unchanged at 302.
+
+#### Changes
+
+| Artifact | Change | Version |
+|----------|--------|---------|
+| `ss-01/BC-2.01.010.md` | F-06: AC section added (AC-001..004); EC-006 changed from "reset byte order" to REJECT with E-INP-012; Canonical Test Vector added for 2-section pcapng; Verification Property added for second-SHB Err guarantee; Invariant 1 rewritten to reflect single-section scope; E-INP-012 cross-reference added to Traceability | v1.0→v1.1 |
+| `ss-01/BC-2.01.015.md` | F-07: AC section added (AC-001..003) enumerating ALL skip-arm variants (NRB, ISB, DSB, SystemdJournalExport, OPB 0x2, Unknown); Invariant 2 rewritten with full variant list + type codes; EC-008..011 added for NRB, DSB, SystemdJournal, and mixed-OPB+EPB | v1.0→v1.1 |
+| `ss-01/BC-2.01.018.md` | F-11: AC section added (AC-001..002); AC-001 refines E-INP-011 message hint (tcpdump -i any actionable guidance); AC-002 specifies per-file error isolation in directory mode (E-INP-011 fails per-file, not aborting full run); EC-009 added for directory mode partial-failure scenario | v1.0→v1.1 |
+| `prd-supplements/error-taxonomy.md` | F-06: E-INP-012 added (multi-section SHB reject, broken, exit 1); F-11: E-INP-011 Notes refined with actionable tcpdump hint and per-file isolation note; next_free = E-INP-013 | v2.3→v2.4 |
+| `prd.md` | Version 1.30→1.31 delta note added (no RTM row changes required — no new BCs, no new subsystems; E-INP-012 is an error taxonomy entry only) | v1.30→v1.31 |
+| `spec-changelog.md` | This entry | — |
+
+#### F-06: Multi-Section SHB Reject (BC-2.01.010, E-INP-012)
+
+**Decision:** REJECT second/mid-stream SHB with a clear error rather than attempt to verify
+and reset byte-order context. Rationale: the entire intended corpus is single-section pcapng;
+multi-section support would require non-trivial interface-table bookkeeping and is out of scope.
+
+**E-INP-012 definition:**
+- Code: `E-INP-012`
+- Category: `INP`
+- Severity: `broken`
+- Exit code: 1
+- Message format: `pcapng multi-section files are not supported (second Section Header Block at block #<seq>)`
+- BC reference: BC-2.01.010, BC-2.01.017
+
+#### F-07: Enumerate Skip-Arms (BC-2.01.015)
+
+All pcap-file Block variants that are NOT SHB/IDB/EPB/SPB must have explicit match arms in
+the implementation to prevent omitted-arm panics. Enumerated in AC-001:
+- NameResolutionBlock (NRB, `0x00000004`) — no packet data
+- InterfaceStatisticsBlock (ISB, `0x00000005`) — no packet data
+- DecryptionSecretsBlock (DSB, `0x0000000A`) — no packet data
+- SystemdJournalExportBlock (`0x00000009`) — no packet data
+- Obsolete Packet Block (OPB, `0x00000002`) — carries packet data but is obsolete/out-of-scope; skipped; EPB interpretation unaffected
+- Unknown/future block types — skipped via block_total_length
+
+#### F-11: Actionable Conflict Error + Per-File Failure (BC-2.01.018, E-INP-011)
+
+E-INP-011 message now includes an actionable hint identifying `tcpdump -i any` as the
+most common trigger and stating the wirerust requirement (single link type per file).
+BC-2.01.018 AC-002 explicitly specifies that in directory mode, E-INP-011 on one file
+does NOT abort the full run (per-file isolation consistent with BC-2.12.011 directory-mode
+contract).
+
+#### No-Touch Scope
+
+- ADR-009: not touched (architect owns)
+- epics.md: not touched
+- BC count: 302 active (unchanged)
+
+---
+
 ## [pcapng-f2-2026-06-19] — 2026-06-19
 
 ### MINOR: F2 pcapng Reader Support — Spec Evolution INTEGRATE Sub-Burst (FE-001, ADR-009)

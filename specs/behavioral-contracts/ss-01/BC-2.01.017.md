@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.0"
+version: "1.1"
 status: draft
 producer: product-owner
 timestamp: 2026-06-19T00:00:00Z
@@ -12,7 +12,8 @@ subsystem: SS-01
 capability: CAP-01
 lifecycle_status: active
 introduced: v0.10.0-pcapng
-modified: []
+modified:
+  - v1.1: 2026-06-19 — added E-INP-012 to Error Taxonomy traceability field (cosmetic consistency; no normative behavior change)
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -101,7 +102,7 @@ E-INP-011). No pcapng parse error produces a `panic!` or an `unwrap` in producti
 | Architecture Module | SS-01 (reader.rs, C-4) |
 | Stories | STORY-126 |
 | ADR Reference | ADR-009 Consequences: "Adding *.pcapng to the src/main.rs directory glob means malformed pcapng files that were silently excluded now produce errors at the reader level" |
-| Error Taxonomy | E-INP-008, E-INP-009, E-INP-010, E-INP-011 (new entries; see proposed taxonomy addendum) |
+| Error Taxonomy | E-INP-008, E-INP-009, E-INP-010, E-INP-011, E-INP-012 (new entries; see proposed taxonomy addendum) |
 
 ## Related BCs
 

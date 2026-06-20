@@ -86,6 +86,15 @@ extraction), EPB (packet data and 64-bit timestamp), and SPB (packet data, no
 timestamp). Unknown block types MUST be silently skipped using the block-total-length
 field; neither a warning nor an error is emitted for unknown types.
 
+The obsolete **Packet Block (type `0x00000002`, OPB)** is SKIPPED, not read. OPB is the
+only skipped block type that carries captured packet bytes. This skip is a recorded
+decision: OPB is marked obsolete in the pcapng specification (SHOULD NOT appear in new
+files), is absent from every tool-generated capture in the intended corpus
+(`arp-baseline-16pkt.cap`, `smb3.pcapng`, `dump.pcapng`, `tls12-dsb.pcapng` — all
+Wireshark/dumpcap output), and OPB support is out of scope for this cycle. A future
+cycle may promote `Block::Packet` to a packet-producing arm cheaply given OPB's
+EPB-like layout. (Source: completeness-validation finding F-08, 2026-06-19.)
+
 **Decision 3 — Multi-IDB policy.** A pcapng file may contain multiple IDB blocks.
 wirerust requires all IDB blocks in a section to agree on `linktype`. If two or
 more IDBs carry differing `linktype` values, the reader returns an error with context
@@ -116,6 +125,26 @@ at Reader Level") is retired and its normative postconditions are inverted. The 
 for `smb3.pcapng` in the same story that retires the BC. The replacement BC
 (BC-2.01.009, "Accept pcapng Format: Transparent Detection via Magic-Byte Probe")
 supersedes BC-2.01.004.
+
+**Decision 7 — Single-section pcapng only; second SHB is REJECTED.** wirerust supports
+single-section pcapng files only. If the parser encounters a second Section Header Block
+mid-stream, the reader MUST return an error (`E-INP-012`, "multi-section pcapng not
+supported") rather than attempting per-section interface-index reset and re-parse.
+Rationale: (1) `pcap-file` 2.0.0's `PcapNgReader` accumulates IDBs in a single growing
+interface list with no visible per-section reset when a second SHB is encountered
+(completeness-validation finding F-06, 2026-06-19 — confirmed from API shape and source
+reading; unverified by runtime test); attempting to read a multi-section file with an
+implementation that does not correctly reset per-section state would silently mis-attribute
+packets from later sections to first-section interfaces, a class of silent data corruption
+more harmful than a clear error. (2) The entire intended corpus
+(`arp-baseline-16pkt.cap`, `smb3.pcapng`, `dump.pcapng`, `tls12-dsb.pcapng`) is
+single-section; Wireshark and dumpcap produce single-section pcapng by default. (3)
+Reject-with-clear-error is the tight-scope safe choice aligned with this cycle's posture.
+The normative BC home for this acceptance criterion is BC-2.01.010 (product-owner is
+adding the AC). A future cycle may add correct multi-section support if multi-section
+captures become a user requirement, using either a patched parser or per-section
+state management in wirerust's own reader layer. (Source: completeness-validation
+finding F-06, 2026-06-19.)
 
 **Fallback — Option C (hand-roll, +0 crates).** If during implementation
 `pcap-file` 2.0.0's pcapng reader exhibits a snaplen/truncation defect analogous to
@@ -193,6 +222,10 @@ pcapng file.
   zero changes.
 - BC-2.01.004's test inversion (reject → accept for `smb3.pcapng`) corrects a
   fixture-level lie that has persisted since brownfield ingestion.
+- The OPB skip (Decision 2, F-08) and the multi-section rejection (Decision 7, F-06)
+  are explicitly recorded decisions, not silent gaps: implementers and readers of this
+  ADR know exactly what wirerust does with legacy OPB content and with multi-section
+  files.
 
 ### Negative / Trade-offs
 
@@ -214,8 +247,18 @@ pcapng file.
 - The multi-IDB link-type-agreement policy will reject legitimate multi-NIC capture
   files that mix Ethernet and, e.g., Linux Cooked interfaces. This is a known
   limitation, documented in BC-2.01.018.
+- Obsolete Packet Block (`0x00000002`, OPB) packets are **silently skipped, not read**
+  (Decision 2, F-08). Any pcapng file captured by legacy tooling that emits OPB
+  instead of EPB will appear to contain zero packets. This is an accepted limitation
+  because OPB is absent from all modern capture tooling and from the entire intended
+  corpus; a future cycle may promote `Block::Packet` to a packet-producing arm.
+- wirerust **rejects multi-section pcapng files** with `E-INP-012` (Decision 7, F-06).
+  Files produced by concatenating pcapng captures (`cat a.pcapng b.pcapng`) or by merge
+  tools that emit multiple SHBs will not be read. This is the safe fail-closed choice
+  given `pcap-file` 2.0.0's unverified per-section reset behavior and the single-section
+  nature of the intended corpus; per-section reset support is a future-cycle enhancement.
 
-### Status as of 2026-06-19
+### Status as of 2026-06-19 (rev 2)
 
 Proposed. `pcap-file` 2.0.0's pcapng module is dead code in the compiled binary;
 `src/reader.rs` does not import it. BC-2.01.004 ("Reject pcapng-Format Input at Reader
@@ -223,6 +266,10 @@ Level") was RETIRED during F2 spec evolution and is superseded by BC-2.01.009 ("
 pcapng Format: Transparent Detection via Magic-Byte Probe"); the spec changes are complete.
 Only the implementation remains pending, scheduled across STORY-123 through STORY-127
 (F3 story decomposition forthcoming).
+
+**Rev 2 (2026-06-19):** Added Decision 7 (multi-section rejection, E-INP-012) and
+expanded Decision 2 with an explicit OPB-skip record, both sourced from pcapng spec
+completeness-validation findings F-06 and F-08. Consequences updated accordingly.
 
 ## Alternatives Considered
 

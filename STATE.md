@@ -1,10 +1,10 @@
 ---
 pipeline: FEATURE
 phase: F2
-phase_status: "F2 COMPLETE — pcapng reader feature cycle OPEN (feature-pcapng-reader). F1 delta analysis + F2 spec evolution done. F3 story decomposition NEXT."
+phase_status: "F2 COMPLETE (spec-complete + consistency-verified + completeness-validated) — pcapng reader feature cycle OPEN (feature-pcapng-reader). F1 delta analysis + F2 spec evolution done. F2 completeness validation CLEAN (D-138). F3 story decomposition NEXT."
 product: wirerust
 mode: brownfield
-timestamp: 2026-06-19T02:00:00Z
+timestamp: 2026-06-19T03:00:00Z
 
 # Release chain
 released_version: v0.9.2
@@ -63,25 +63,27 @@ convergence_trajectory: "Detail: cycles/v0.1.0-greenfield-spec/convergence-traje
 
 # VSDD Pipeline State — wirerust
 
-## Session Resume Checkpoint (2026-06-19 — F2 COMPLETE / pcapng-reader cycle OPEN)
+## Session Resume Checkpoint (2026-06-19 — F2 COMPLETE + COMPLETENESS-VALIDATED / pcapng-reader cycle OPEN)
 
-**Previous checkpoint (AT REST / v0.9.2 RELEASED) archived to:
-`.factory/cycles/feature-story-119-grouped-collapse/session-checkpoints.md`**
+**Previous checkpoint (F2 COMPLETE / consistency-verified) archived to:
+`.factory/cycles/feature-pcapng-reader/session-checkpoints.md`**
 
-### PIPELINE STATUS: FEATURE MODE — F2 COMPLETE (consistency-verified), F3 NEXT
+### PIPELINE STATUS: FEATURE MODE — F2 COMPLETE (spec-complete + consistency-verified + completeness-validated), F3 NEXT
 
-Active cycle: **feature-pcapng-reader**. F1 (delta analysis) + F2 (spec evolution) COMPLETE. F2 fresh-context consistency audit COMPLETE — 6 findings (2 HIGH, 2 MED, 2 LOW), ALL fixed and re-audited CLEAN (D-137). F3 (story decomposition) is next. No in-flight story worktrees. No open PRs.
+Active cycle: **feature-pcapng-reader**. F1 (delta analysis) + F2 (spec evolution) COMPLETE. F2 fresh-context consistency audit COMPLETE — 6 findings ALL CLOSED (D-137). F2 research-agent completeness validation COMPLETE — CLEAN for intended corpus; F-06/F-07/F-08/F-11 applied as AC-level deltas; 302 active BCs unchanged; re-audited CLEAN (D-138). F3 (story decomposition) is next. No in-flight story worktrees. No open PRs.
 
 ### A. EXACT POSITION
 
-- **Status:** FEATURE mode — pcapng reader cycle open. F2 complete. F3 pending.
+- **Status:** FEATURE mode — pcapng reader cycle open. F2 complete (spec-complete + consistency-verified + completeness-validated). F3 pending.
 - **Active cycle:** `feature-pcapng-reader` (cycle manifest: `.factory/cycles/feature-pcapng-reader/cycle-manifest.md`)
 - **Feature:** FE-001 — pcapng capture-format reader support. Status: IN PROGRESS (moved from CANDIDATE).
-- **ADR created:** ADR-009 — Option A selected (pcap-file 2.0.0, +0 transitive deps).
-- **BCs added:** BC-2.01.009..018 (10 new). BC-2.01.004 RETIRED (superseded by BC-2.01.009). BC-INDEX v1.52.
-- **Spec versions:** prd.md v1.30, error-taxonomy v2.3, nfr-catalog v2.2, test-vectors v2.2, STORY-001 v1.6, epics.md v1.6, BC-2.12.011 v1.4.
+- **ADR created:** ADR-009 rev 2 — Option A selected (pcap-file 2.0.0, +0 transitive deps). Decision 7 added (multi-section reject; rev 2).
+- **BCs added:** BC-2.01.009..018 (10 new). BC-2.01.004 RETIRED (superseded by BC-2.01.009). BC-INDEX v1.52 (inline version comments synced).
+- **Spec versions:** prd.md v1.31, error-taxonomy v2.4, BC-2.01.010 v1.1, BC-2.01.015 v1.1, BC-2.01.017 v1.1, BC-2.01.018 v1.1, nfr-catalog v2.2, test-vectors v2.2, STORY-001 v1.6, epics.md v1.6, BC-2.12.011 v1.4.
 - **Latest release (prior cycle):** `v0.9.2` (tag obj `a298dbe`, main `b73b242`).
 - **develop:** `b73b242` (= main; zero divergence).
+- **Completeness report:** `.factory/research/pcapng-spec-completeness-validation.md`
+- **F2 audit:** `.factory/cycles/feature-pcapng-reader/f2-consistency-audit.md`
 
 ### B. GROUND-TRUTH SHAs / WORKTREE STATE
 
@@ -98,7 +100,9 @@ Active cycle: **feature-pcapng-reader**. F1 (delta analysis) + F2 (spec evolutio
 ### C. WHAT IS COMPLETE — DO NOT REDO
 
 - F1 delta analysis: COMPLETE. `.factory/phase-f1-delta-analysis/pcapng-reader-support-delta-analysis.md`.
-- F2 spec evolution: COMPLETE. ADR-009, BC-2.01.009..018, BC-INDEX v1.52, prd.md v1.29, E-INP-008..011, error-taxonomy v2.3, epics.md v1.5.
+- F2 spec evolution: COMPLETE. ADR-009 rev 2, BC-2.01.009..018, BC-INDEX v1.52, prd.md v1.31, E-INP-008..012, error-taxonomy v2.4, epics.md v1.6.
+- F2 consistency audit: COMPLETE. 6 findings ALL CLOSED. Report: `.factory/cycles/feature-pcapng-reader/f2-consistency-audit.md` (D-137).
+- F2 completeness validation: COMPLETE (research-agent). F-06/F-07/F-08/F-11 AC deltas applied. 302 active BCs unchanged. Report: `.factory/research/pcapng-spec-completeness-validation.md` (D-138).
 - All prior cycles: E-18 F1-F7 RELEASED (v0.9.0/v0.9.1/v0.9.2), maint-2026-06-17 COMPLETE.
 
 ### D. ON RESUME — F3 ENTRY CHECKLIST
@@ -108,6 +112,11 @@ Active cycle: **feature-pcapng-reader**. F1 (delta analysis) + F2 (spec evolutio
 2. Revise/retire BC-2.12.011 (directory glob "*.pcapng excluded") when decomposing STORY-127.
 3. Update HS-001 + HS-INDEX (cite retired BC-2.01.004) — PO action in F3.
 4. Propagate VP assignments for BC-2.01.009..018 (architect/VP-INDEX).
+
+**COMPLETENESS-DERIVED F3 FOLLOW-UPS (from D-138 — MUST reach F3 stories):**
+5. F-06: STORY for SHB parsing (STORY-123) must implement multi-section reject + craft a 2-section test fixture; the multi-section reset behavior of pcap-file 2.0.0 is INCONCLUSIVE — verify at implementation.
+6. F-05: BC-2.01.014 Kani proof MUST cover the full u8 if_tsresol space (base-2 branch has no corpus coverage) — enforce in the timestamp story (STORY-125).
+7. F-07: implementer must provide explicit match arms for every enumerated skip block (NRB/ISB/DSB/SystemdJournal/obsolete-Packet/Unknown) — no todo!()/wildcard that silently drops.
 
 **OTHER OPEN ITEMS (lower priority):**
 - DNS-TUNNELING-COVERAGE-001: OPEN — human decision pending.
@@ -145,7 +154,7 @@ Maintenance maint-2026-06-17: COMPLETE. NON-BLOCKING. Report: `.factory/maintena
 | E-18/E-8 STORY-119 cycle (F1-F7) + v0.9.0 | **RELEASED + CLOSED 2026-06-19** | STORY-120/122/119; 293 BCs; tag v0.9.0 986e148. Detail: cycles/feature-story-119-grouped-collapse/ |
 | v0.9.1 patch | **RELEASED 2026-06-19** | Doc/help; PRs #277/#278; tag v0.9.1 ad4eec8 |
 | v0.9.2 patch | **RELEASED 2026-06-19** | DNP3 determinism + E2E fixtures; PRs #279/#280; tag v0.9.2 b73b242 |
-| **Feature pcapng-reader (F1+F2)** | **F2 COMPLETE (consistency-verified) — F3 NEXT** | FE-001 IN PROGRESS. ADR-009, BC-2.01.009..018 (10 new, 1 retired), prd v1.30, epics v1.6 (302 active BCs). F2 audit: 6 findings ALL CLOSED (D-137). Cycle: feature-pcapng-reader |
+| **Feature pcapng-reader (F1+F2)** | **F2 COMPLETE (spec-complete + consistency-verified + completeness-validated) — F3 NEXT** | FE-001 IN PROGRESS. ADR-009 rev 2, BC-2.01.009..018 (10 new, 1 retired), prd v1.31, epics v1.6 (302 active BCs). F2 audit CLEAN (D-137). F2 completeness CLEAN (D-138): F-06/F-07/F-08/F-11 AC deltas applied; E-INP-012 added; 302 BCs unchanged. Cycle: feature-pcapng-reader |
 
 ## Decisions Log
 
@@ -160,6 +169,7 @@ D-131..D-135: `cycles/feature-story-119-grouped-collapse/decisions-archive.md`
 | D-135 | v0.9.2 RELEASED — DNP3 determinism FIXED (FlowKey Ord + sort; PR #279 commit dd99f58). BUG-DNP3-CONTROL-OP-DETERMINISM-001 CLOSED. PRs #279/#280; tag v0.9.2 obj a298dbe. | 2026-06-19 |
 | D-136 | F1+F2 COMPLETE for pcapng reader feature (FE-001). Cycle: feature-pcapng-reader. ADR-009 created. 10 new BCs (BC-2.01.009..018); BC-2.01.004 RETIRED/inverted (superseded by BC-2.01.009). BC-2.01.001/002 extended. E-INP-008..011 added. STORY-001→v1.6, epics.md→v1.5 re-anchored. Option A (pcap-file 2.0.0, +0 deps) selected. Scope includes E2E corpus expansion (human-approved). F3 story decomposition is next. | 2026-06-19 |
 | D-137 | F2 fresh-context consistency audit COMPLETE: 6 findings (2 HIGH, 2 MED, 2 LOW), ALL fixed and re-audited CLEAN. Latent pre-existing epics.md arithmetic bug corrected: BC-2.11.030–034 (STORY-119 grouped-collapse) were missing from epics coverage table; active BC total corrected 297→302 (matches BC-INDEX v1.52 ground truth). Artifacts updated: ADR-009→Status block (FINDING-001), epics.md→v1.6 (FINDING-002), prd.md→v1.30 §7 RTM (FINDING-003), BC-2.12.011→v1.4 (FINDING-004), BC-INDEX timestamp (FINDING-005), HS-001 lifecycle_status:stale + HS-INDEX (FINDING-006). Audit report: cycles/feature-pcapng-reader/f2-consistency-audit.md. | 2026-06-19 |
+| D-138 | F2 completeness validation (research-agent) COMPLETE for intended corpus. Verdict: COMPLETE. Confirmed-OK: DSB-for-TLS skip (safely out of scope), power-of-2 if_tsresol already covered by BC-2.01.011/BC-2.01.014. Gaps applied as AC-level deltas (no new BCs; active count stays 302): F-06 MEDIUM — single-section-only policy, second SHB rejected with new error E-INP-012, AC added to BC-2.01.010 v1.1, ADR-009 Decision 7 rev 2; F-07 — BC-2.01.015 v1.1 enumerates all skip-arms (NRB/ISB/DSB/SystemdJournal/obsolete-Packet/Unknown); F-08 — ADR-009 rev 2 records obsolete Packet Block (0x2) skipped not read; F-11 — BC-2.01.018 v1.1 actionable E-INP-011 message + directory-mode per-file isolation AC (xref BC-2.12.011). E-INP-012 added to error-taxonomy v2.4; E-INP-011 refined; BC-2.01.017 v1.1 trace updated. prd.md v1.31, ADR-009 rev 2. F2 now spec-complete + consistency-verified + completeness-validated. Report: research/pcapng-spec-completeness-validation.md. | 2026-06-19 |
 
 ## Blocking Issues
 

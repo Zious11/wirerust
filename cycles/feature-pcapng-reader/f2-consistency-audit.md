@@ -432,3 +432,171 @@ Note: prd.md §7 version was not independently verified in this pass (the task s
 | FINDING-006 (HS-001 / HS-INDEX staleness) | LOW | CLOSED |
 
 The F2 spec burst is internally consistent. The 4 known-open F3 items (BC-2.12.011 rewrite, HS-001 rewrite, STORY-123-127 input-hash generation, VP assignments for BC-2.01.009-018) remain correctly tracked in STATE.md and cycle-manifest and are not blocking F2 closure.
+
+---
+
+## Focused Re-Audit: F-06/F-07/F-08/F-11 Completeness Deltas
+
+**Re-audit date:** 2026-06-19
+**Auditor:** consistency-validator
+**Scope:** NARROW — only the F-06/F-07/F-08/F-11 delta just applied (E-INP-012 addition, BC-2.01.010 v1.1, BC-2.01.015 v1.1, BC-2.01.018 v1.1, error-taxonomy v2.4, prd v1.31, ADR-009 rev 2). The broader F2 surface was CLEAN per the prior pass; this pass does not re-audit it.
+
+---
+
+### Check 1 — E-INP-012 Integrity
+
+**Source:** error-taxonomy.md v2.4, line 79.
+
+Results:
+
+- **Present:** E-INP-012 row exists in the INP table. PASS.
+- **Sequential:** Table runs E-INP-008, 009, 010, 011, 012. No collision with E-INP-008..011 (all assigned in v2.3). No gap. PASS.
+- **Fields complete:** Error Code, Category (`Input`), Severity (`broken`), Exit Code (`1`), Source Location (`src/reader.rs` pcapng SHB re-encounter check), Message Format (contains `block #<seq>` identifier), BC Ref (`BC-2.01.010, BC-2.01.017`), Notes (explains single-section scope, no byte-order reset, directory-mode per-file isolation). PASS.
+- **BC-2.01.010 exists:** Confirmed on disk at `/Users/zious/Documents/GITHUB/wirerust/.factory/specs/behavioral-contracts/ss-01/BC-2.01.010.md`. PASS.
+- **BC-2.01.017 exists:** Confirmed on disk at `/Users/zious/Documents/GITHUB/wirerust/.factory/specs/behavioral-contracts/ss-01/BC-2.01.017.md`. PASS.
+- **next_free = E-INP-013:** v2.4 changelog states "next_free_error_code = E-INP-013." v2.3 stated "next_free_error_code = E-INP-012." Transition is correct: v2.3 consumed nothing (E-INP-012 was still free), v2.4 adds E-INP-012 and advances free pointer to E-INP-013. PASS.
+- **Directory-mode note consistent:** E-INP-012 Notes state "In directory mode, this error fails the individual file but does NOT abort the overall run." This matches BC-2.01.018 AC-002 and E-INP-011 Notes (same per-file isolation language). PASS.
+- **Minor observation — BC-2.01.017 Error Taxonomy field:** BC-2.01.017 Traceability section (line 104) lists `E-INP-008, E-INP-009, E-INP-010, E-INP-011` and does not include E-INP-012. BC-2.01.017 was written before F-06 and was not bumped as part of this delta. The omission is LOW severity: BC-2.01.010 (not BC-2.01.017) is the normative home for E-INP-012 per ADR-009 Decision 7, and E-INP-012 already references BC-2.01.017 in its BC Ref column (bidirectional trace exists from the taxonomy side). However, BC-2.01.017's own traceability table is incomplete for E-INP-012. This is a cosmetic doc gap, not a semantic one — BC-2.01.017's invariant is that all pcapng parse errors surface via anyhow chain; E-INP-012 does so. **Severity: LOW (cosmetic). Not blocking.**
+
+**Check 1 verdict: PASS with one LOW observation.**
+
+---
+
+### Check 2 — F-06 Alignment: BC-2.01.010 v1.1 ↔ ADR-009 Decision 7
+
+**BC-2.01.010 v1.1 verified items:**
+
+- **AC-002 present:** "A second Section Header Block encountered anywhere after the first is REJECTED with `Err` containing context that maps to E-INP-012." Present and explicit. PASS.
+- **E-INP-012 reference in AC-002:** "context that maps to E-INP-012" — correct. PASS.
+- **"No byte-order reset" language:** AC-002 states "The second SHB's byte-order reset MUST NOT be applied before rejection." Invariant 1 repeats: "Attempting to reset byte order on a second SHB is NOT permitted." EC-006 states "No byte-order reset is attempted." **No leftover "resets byte order" language remains.** PASS.
+- **EC-006 updated:** Previously described the old behavior (attempt reset); now reads "Err mapping to E-INP-012: 'pcapng multi-section files are not supported (second Section Header Block at block #<seq>)'; wirerust supports single-section pcapng only. No byte-order reset is attempted." Correct. PASS.
+- **Canonical test vector added:** Row "Crafted 2-section pcapng (SHB₁ + IDB + EPB + SHB₂) | `Err` (E-INP-012) after SHB₁ section; no packets from section 2 | error" is present. PASS.
+- **Error Taxonomy in Traceability section:** "E-INP-008 (truncated SHB), E-INP-012 (multi-section SHB reject — single-section scope)" — both present, E-INP-012 correctly attributed. PASS.
+- **Modified changelog in v1.1 frontmatter:** "v1.1: F-06 completeness delta — EC-006 changed from 'reset byte order' (attempt) to REJECT with E-INP-012; AC added: second SHB in a single-section file is rejected; canonical test vector added for 2-section pcapng; error taxonomy cross-reference E-INP-012 added. — 2026-06-19." Accurate description of what changed. PASS.
+
+**ADR-009 Decision 7 cross-check:**
+
+- Decision 7 states: "wirerust supports single-section pcapng files only... the reader MUST return an error (`E-INP-012`, 'multi-section pcapng not supported')... The normative BC home for this acceptance criterion is BC-2.01.010." PASS — BC-2.01.010 AC-002 is that normative home.
+- Decision 7 states "attempting to read a multi-section file with an implementation that does not correctly reset per-section state would silently mis-attribute packets from later sections." BC-2.01.010 AC-002 states the second SHB's byte-order reset "MUST NOT be applied before rejection." The two documents agree: no reset attempted, just reject. PASS.
+- ADR-009 Consequences (negative) states: "wirerust rejects multi-section pcapng files with `E-INP-012` (Decision 7, F-06)." Consistent with BC-2.01.010 AC-002 and E-INP-012 entry. PASS.
+- **No contradiction detected** between ADR-009 Decision 7 and BC-2.01.010 v1.1. PASS.
+
+**Check 2 verdict: PASS — clean alignment, no contradiction.**
+
+---
+
+### Check 3 — F-07: BC-2.01.015 v1.1 Skip-Arm Enumeration
+
+**Skip-arm variants enumerated in AC-001:**
+
+- `NameResolutionBlock` (NRB, type `0x00000004`) — silently skipped. Present. PASS.
+- `InterfaceStatisticsBlock` (ISB, type `0x00000005`) — silently skipped. Present. PASS.
+- `DecryptionSecretsBlock` (DSB, type `0x0000000A`) — silently skipped. Present. PASS.
+- `SystemdJournalExportBlock` (type `0x00000009`) — silently skipped. Present. PASS.
+- Obsolete Packet Block (OPB, type `0x00000002`) — present with explicit note: "carries captured packet data **but** is an obsolete/deprecated block type superseded by EPB; wirerust treats it as out-of-scope and skips it silently." Present. PASS.
+- Unknown/future block types — silently skipped via `block_total_length`. Present. PASS.
+
+**OPB note consistency with ADR-009 F-08 wording:**
+
+- BC-2.01.015 AC-001 OPB note: "OPB packet data is intentionally NOT ingested. Captures relying solely on OPB (very old tcpdump versions) will yield zero packets from those blocks." 
+- ADR-009 Decision 2 OPB paragraph: "OPB is marked obsolete in the pcapng specification... OPB support is out of scope for this cycle." Consequences section: "Obsolete Packet Block packets are silently skipped, not read... Any pcapng file captured by legacy tooling that emits OPB instead of EPB will appear to contain zero packets."
+- **Both say: skip silently, no packets ingested, out-of-scope.** No contradiction. PASS.
+
+**Invariant 2 updated:** Lists "NameResolutionBlock (NRB), InterfaceStatisticsBlock (ISB), DecryptionSecretsBlock (DSB), SystemdJournalExportBlock, obsolete Packet Block (OPB, type `0x00000002`), and all unknown/future block types." All six skip categories present. PASS.
+
+**AC-002 no-diagnostic invariant:** "For each variant above, the skip MUST NOT emit any warning, error, or finding." Consistent with ADR-009 Decision 2 ("neither a warning nor an error is emitted for unknown types"). PASS.
+
+**Modified changelog in v1.1 frontmatter:** "v1.1: F-07 completeness delta — explicitly enumerate all pcap-file Block variants that fall through to the skip path (NRB, ISB, DSB, SystemdJournalExport, obsolete Packet Block 0x2, Unknown); note that obsolete Packet Block 0x2 carries packet data but is treated as out-of-scope/skipped; add AC to prevent omitted match arm at implementation. — 2026-06-19." Accurate. PASS.
+
+**Check 3 verdict: PASS — OPB note consistent with ADR-009 F-08, no contradiction.**
+
+---
+
+### Check 4 — F-11: BC-2.01.018 v1.1 Directory-Mode Per-File Isolation
+
+**AC-002 content:**
+
+- States: "In directory mode (`--target <dir>`), a pcapng file that fails with E-INP-011 (multi-IDB link-type conflict) MUST fail PER-FILE only. The remaining files in the directory continue to be processed. The overall run exit code is non-zero (exit 1) to indicate at least one file failed, but the run MUST NOT abort at the first conflicting file."
+- Cross-reference: "per-file error isolation is the directory-mode contract from BC-2.12.011 and applies to all file-level ingestion errors including E-INP-011."
+
+**BC-2.12.011 cross-reference validation:**
+
+- BC-2.12.011 is at `/Users/zious/Documents/GITHUB/wirerust/.factory/specs/behavioral-contracts/ss-12/BC-2.12.011.md`. File exists. PASS.
+- BC-2.12.011 governs `resolve_targets` (directory expansion to sorted file list). It expands a directory to individual file paths that are then iterated by main.rs's capture loop. The per-file error isolation (each file's error does not abort the overall run) is a property of the capture loop iteration logic, not of `resolve_targets` itself. BC-2.01.018 AC-002 correctly identifies this: "per-file error isolation is a property of the main.rs capture loop when iterating over resolved targets."
+- **Precision check:** BC-2.01.018 AC-002 says "This per-file error isolation is the directory-mode contract from BC-2.12.011." BC-2.12.011 describes the directory expansion (which files are returned), not the loop's error-handling posture. The cross-reference is loose but not wrong — BC-2.12.011 is the BC governing directory mode, and the isolation behavior is a natural extension of that scope. The statement is architecturally accurate: once `resolve_targets` hands back the file list, the loop's per-file error handling is the implementation of directory-mode isolation. The reference is functional, not dangling. PASS.
+- **No dangling cross-ref:** BC-2.12.011 exists on disk, is active (lifecycle_status: active), and is the correct SS-12 directory-mode BC. The F3 forward-action note in BC-2.12.011 describes the planned *.pcapng glob change but does not affect the per-file isolation contract. PASS.
+
+**E-INP-011 message actionable hint:**
+
+- E-INP-011 Notes (error-taxonomy.md line 78) state: "The actionable hint in the message identifies the most common real-world trigger (`tcpdump -i any` mixing Ethernet + Linux Cooked) and states the remediation (single link type required)." This matches the F-11 delta intent.
+- BC-2.01.018 AC-001 describes the message format: "(a) identifies the conflicting link types by `DataLink` Debug repr and (b) includes a hint that this commonly arises from `tcpdump -i any` captures mixing link types, and that wirerust requires a single link type per file. The exact message format is defined by E-INP-011." Consistent. PASS.
+
+**EC-009 added to BC-2.01.018 Edge Cases:** "Directory with file_a.pcapng (ETHERNET+LINUX_SLL conflict) and file_b.pcapng (ETHERNET only) | E-INP-011 on file_a; file_b processed successfully; overall exit code 1 (at least one failure)." This is the canonical directory-mode isolation test case. Present. PASS.
+
+**Modified changelog in v1.1 frontmatter:** "v1.1: F-11 completeness delta — (1) Add AC for directory-mode per-file error isolation: E-INP-011 on one file does not abort the full run; (2) Add AC clarifying common user trigger (tcpdump -i any) in E-INP-011 message; cross-reference BC-2.12.011 directory-mode isolation. — 2026-06-19." Accurate. PASS.
+
+**Check 4 verdict: PASS — BC-2.12.011 cross-reference is functional and not dangling.**
+
+---
+
+### Check 5 — No Count Drift
+
+**ss-01 BC files on disk:** 18 BC files (BC-2.01.001..018) + 1 staging artifact (ERROR-TAXONOMY-ADDENDUM-pcapng.md) = 19 files. No new BC files were added by the F-06/F-07/F-08/F-11 delta (those deltas are AC-level amendments to existing BCs, not new BCs). PASS.
+
+**BC-INDEX active count:** Header states "Active: 302 BCs (303 on disk − 1 retired: BC-2.01.004)." The three amended BCs (BC-2.01.010, BC-2.01.015, BC-2.01.018) are all [WRITTEN] active rows; no rows were added or removed from BC-INDEX. PASS.
+
+**epics.md total_bcs:** Frontmatter line 14: `total_bcs: 302`. Consistent with BC-INDEX. PASS.
+
+**BC-INDEX annotation comments for amended BCs:** The inline comments for BC-2.01.010, BC-2.01.015, and BC-2.01.018 still read `v1.0` (not updated to reflect v1.1 version bumps). This is a cosmetic annotation gap — the BC body files themselves have correct v1.1 frontmatter, and BC-INDEX comments are non-normative change-tracking annotations, not version-of-record. **Severity: LOW (cosmetic). Not blocking.**
+
+**Check 5 verdict: PASS with one LOW observation.**
+
+---
+
+### Check 6 — Version Monotonicity
+
+| Artifact | Prior version | Current version | Monotonic? | Changelog present? |
+|----------|--------------|-----------------|------------|-------------------|
+| BC-2.01.010 | v1.0 | v1.1 | YES | YES — "v1.1: F-06 completeness delta..." |
+| BC-2.01.015 | v1.0 | v1.1 | YES | YES — "v1.1: F-07 completeness delta..." |
+| BC-2.01.018 | v1.0 | v1.1 | YES | YES — "v1.1: F-11 completeness delta..." |
+| error-taxonomy.md | v2.3 | v2.4 | YES | YES — "v2.4: F-06/F-11 pcapng completeness deltas..." |
+| prd.md | v1.30 | v1.31 | YES | YES — "Version 1.31 delta (2026-06-19 — pcapng completeness deltas F-06/F-07/F-11)..." |
+| ADR-009 | rev 1 (implied) | rev 2 | YES | YES — "Rev 2 (2026-06-19): Added Decision 7..." |
+
+All version bumps are monotonic. All changelog entries are present and accurately describe the normative changes made. PASS.
+
+**One note on ADR-009 versioning:** ADR-009 uses a prose "rev 2" annotation in the Status section rather than a `version:` frontmatter field (the ADR frontmatter uses `date:` and `status:`, not `version:`). This is consistent with the existing ADR template for this project — ADRs are not semantically versioned via frontmatter. No issue.
+
+**Check 6 verdict: PASS.**
+
+---
+
+### Re-Audit Summary
+
+| Check | Scope | Result | Gaps |
+|-------|-------|--------|------|
+| 1. E-INP-012 integrity | Presence, sequencing, fields, BC refs, next_free | PASS | LOW: BC-2.01.017 traceability section does not list E-INP-012 (cosmetic) |
+| 2. F-06 alignment | BC-2.01.010 AC-002 ↔ ADR-009 Decision 7; no contradiction | PASS | None |
+| 3. F-07 skip-arm enumeration | BC-2.01.015 v1.1 NRB/ISB/DSB/SystemdJournal/OPB/Unknown list; OPB consistency with F-08 | PASS | None |
+| 4. F-11 per-file isolation | BC-2.01.018 AC-002; BC-2.12.011 cross-ref validity | PASS | None |
+| 5. Count drift | ss-01 file count, BC-INDEX active count, epics.md total_bcs | PASS | LOW: BC-INDEX inline comments for 3 amended BCs still show v1.0 annotation |
+| 6. Version monotonicity | All 6 artifacts; changelog entries | PASS | None |
+
+**LOW gaps identified (2):**
+
+- **LOW-A:** BC-2.01.017 Error Taxonomy field lists `E-INP-008..011` but not E-INP-012. BC-2.01.017 was not bumped as part of the F-06 delta. The gap is cosmetic — E-INP-012 cross-references BC-2.01.017 in the taxonomy table, preserving the bidirectional trace. Remediation: bump BC-2.01.017 to v1.1 and add E-INP-012 to its Error Taxonomy field. Not blocking.
+- **LOW-B:** BC-INDEX inline annotation comments for BC-2.01.010, BC-2.01.015, and BC-2.01.018 still read `v1.0` (were not updated when the BCs were bumped to v1.1). BC-INDEX comments are non-normative. Remediation: update three inline comments from `v1.0` to `v1.1` in a cleanup pass. Not blocking.
+
+**No CRITICAL, MAJOR, or MEDIUM findings.**
+
+---
+
+### Re-Audit Final Verdict
+
+**CLEAN** — all F-06/F-07/F-08/F-11 delta cross-references are consistent. No blocking gaps. Two LOW cosmetic observations recorded above; neither blocks F3 entry.
+
+| Finding | Severity | Blocking? |
+|---------|----------|-----------|
+| LOW-A: BC-2.01.017 missing E-INP-012 in traceability | LOW | No |
+| LOW-B: BC-INDEX inline comment version annotations stale for 3 BCs | LOW | No |

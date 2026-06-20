@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.0"
+version: "1.1"
 status: draft
 producer: product-owner
 timestamp: 2026-06-19T00:00:00Z
@@ -12,7 +12,8 @@ subsystem: SS-01
 capability: CAP-01
 lifecycle_status: active
 introduced: v0.10.0-pcapng
-modified: []
+modified:
+  - "v1.1: F-06 completeness delta — EC-006 changed from 'reset byte order' (attempt) to REJECT with E-INP-012; AC added: second SHB in a single-section file is rejected; canonical test vector added for 2-section pcapng; error taxonomy cross-reference E-INP-012 added. — 2026-06-19"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -52,10 +53,26 @@ version, and establishes the parsing context passed to IDB and EPB/SPB parsers. 
 5. A truncated SHB (fewer bytes than the minimum SHB fixed fields) returns `Err` mapped to
    E-INP-008.
 
+## Acceptance Criteria
+
+- **AC-001:** A well-formed SHB with BOM `0x4D3C2B1A` selects little-endian mode; a BOM of
+  `0x1A2B3C4D` selects big-endian mode. No other BOM value is valid.
+- **AC-002:** A second Section Header Block encountered anywhere after the first is REJECTED
+  with `Err` containing context that maps to E-INP-012. wirerust supports single-section
+  pcapng files only. The second SHB's byte-order reset MUST NOT be applied before rejection.
+  - Canonical fixture: a crafted 2-section pcapng file (SHB₁ + IDB + EPB + SHB₂); expected
+    result: reader returns `Err` after consuming SHB₁ and before yielding any packet from
+    section 2.
+- **AC-003:** A pcapng major version other than 1 returns `Err` immediately; no packets are
+  emitted from that section.
+- **AC-004:** A truncated SHB (fewer bytes than the minimum SHB fixed fields, i.e. < 28 bytes)
+  returns `Err` mapping to E-INP-008; no panic.
+
 ## Invariants
 
-1. Byte-order detection is done once per section. If the stream contains multiple SHBs (a
-   rare but legal multi-section pcapng), each SHB resets the byte order for its section.
+1. Byte-order detection is done once per file. A second SHB constitutes a multi-section file;
+   wirerust does NOT support multi-section pcapng and MUST reject it with E-INP-012 (see
+   AC-002 above). Attempting to reset byte order on a second SHB is NOT permitted.
 2. The pcapng specification requires `major_version == 1`; wirerust enforces this hard
    constraint and returns an error for non-1 major versions.
 3. The SHB magic bytes (`0x0A0D0D0A`) are not themselves byte-order-dependent; they serve only
@@ -70,7 +87,7 @@ version, and establishes the parsing context passed to IDB and EPB/SPB parsers. 
 | EC-003 | Section length = `0xFFFFFFFFFFFFFFFF` (unspecified) | Accepted; reader does not use section length for bounds |
 | EC-004 | Major version = 2 (future) | `Err` with "Unsupported pcapng major version: 2" context |
 | EC-005 | SHB truncated at 8 bytes (missing BOM) | `Err` mapping to E-INP-008 |
-| EC-006 | Multi-section pcapng (second SHB mid-file) | Second SHB resets byte order; blocks after it are parsed with new context |
+| EC-006 | Multi-section pcapng (second SHB mid-file) | `Err` mapping to E-INP-012: "pcapng multi-section files are not supported (second Section Header Block at block #<seq>)"; wirerust supports single-section pcapng only. No byte-order reset is attempted. |
 
 ## Canonical Test Vectors
 
@@ -81,6 +98,7 @@ version, and establishes the parsing context passed to IDB and EPB/SPB parsers. 
 | SHB with section length = `0xFFFFFFFFFFFFFFFF` | Parse succeeds; section length ignored | edge-case |
 | SHB with major version = 2 | `Err` containing "unsupported" | error |
 | Truncated SHB (first 8 bytes only) | `Err` (E-INP-008) | error |
+| Crafted 2-section pcapng (SHB₁ + IDB + EPB + SHB₂) | `Err` (E-INP-012) after SHB₁ section; no packets from section 2 | error |
 
 ## Verification Properties
 
@@ -89,6 +107,7 @@ version, and establishes the parsing context passed to IDB and EPB/SPB parsers. 
 | — | Both byte orders produce identical `PcapSource` from identical logical content | unit: craft same-content pcapng in big-endian and little-endian; assert equal packet data |
 | — | Truncated SHB never panics | fuzz: fuzz SHB bytes, assert no panic |
 | — | Major version ≠ 1 always returns Err | unit: inject major_version=2 SHB |
+| — | Second SHB in any stream always returns E-INP-012 Err | unit: craft 2-section pcapng; assert Err contains "multi-section" / E-INP-012 context |
 
 ## Traceability
 
@@ -100,6 +119,7 @@ version, and establishes the parsing context passed to IDB and EPB/SPB parsers. 
 | Architecture Module | SS-01 (reader.rs, C-4) |
 | Stories | STORY-123 |
 | ADR Reference | ADR-009 Decision 1 (use pcap-file 2.0.0 PcapNgReader), Decision 2 (SHB block coverage) |
+| Error Taxonomy | E-INP-008 (truncated SHB), E-INP-012 (multi-section SHB reject — single-section scope) |
 
 ## Related BCs
 
