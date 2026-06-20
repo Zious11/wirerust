@@ -410,7 +410,7 @@ impl PcapSource {
                 anyhow!("pcapng block framing error: {e} (E-INP-010: crate framing rejection)")
             })?;
             src = rem;
-            block_seq += 1;
+            block_seq = block_seq.saturating_add(1);
 
             match raw_block.type_ {
                 SHB_BLOCK_TYPE => {
