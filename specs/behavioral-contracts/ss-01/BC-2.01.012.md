@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.7"
+version: "1.8"
 status: draft
 producer: product-owner
 timestamp: 2026-06-19T00:00:00Z
@@ -20,6 +20,7 @@ modified:
   - "v1.5: Pass-5 remediation per ADR-009 rev 8 (C-1 reclassification) — EPB body-decode failures reclassified from E-INP-010 → E-INP-008 at all sites. Decision 20 rule: the crate has already successfully framed the block (btl >= 12, aligned, trailing-length match) before any EPB body-decode runs; therefore wirerust body-decode rejections (captured_len > body.len() - 20 bound-by-body; 20 + captured_len + pad_len(captured_len) > body.len() padding-overrun) are wirerust body-decode failures → E-INP-008. Updated: PC6a (bound-by-body → E-INP-008); PC6b (padding-overrun → E-INP-008); AC-002 both sub-checks → E-INP-008; AC-006 one-over case → E-INP-008; EC-010 → E-INP-008; canonical test vectors rows for padding-overrun and bound-by-body → E-INP-008; VP-027 updated. E-INP-010 in this BC is now STRICTLY: (i) crate framing rejection (btl<12/misaligned/EOF) per EC-012; (ii) EPB interface_id OOB on non-empty table per EC-006/EC-007/PC5. — 2026-06-20"
   - "v1.6: Pass-6 remediation per ADR-009 rev 9 (F-H4 discriminant split) — PC5 split into two explicit sub-postconditions: PC5a (empty-table path → E-INP-009 with exact message format) and PC5b (OOB-on-non-empty path → E-INP-010 with exact message format). AC-001 strengthened to require the two discriminants to be DIFFERENT (empty⇒009, OOB-non-empty⇒010) — returning any single code for both cases is an AC violation. VP-027 updated: now asserts the discriminant itself (not just 'returns Err') for the empty-table vs OOB split. This resolves the F-H4 finding: prior text used ambiguous '(→ E-INP-009 / E-INP-010)' notation that did not specify which condition maps to which code. — 2026-06-20"
   - "v1.7: Pass-7 remediation per ADR-009 rev 9 (F-4 EPB decode precedence) — (1) Removed contradictory 'interface table is non-empty' assertion from Precondition 1 (empty-table is a handled case → PC5a / E-INP-009, not a precondition for success). Rewrote Precondition 1 to describe the dependency on BC-2.01.011 for if_tsresol lookup only. (2) Added Postcondition 9: explicit EPB evaluation-order postcondition pinning the 5-step precedence — (i) body.len() >= 20 else E-INP-008; (ii) read interface_id; (iii) if table EMPTY → E-INP-009 (before any captured_len / data-slice decode); (iv) if interface_id >= table.len() on non-empty table → E-INP-010; (v) captured_len bound-by-body / padding-overrun → E-INP-008. Empty-table check (step iii) is evaluated AFTER the body.len()>=20 gate (step i) but BEFORE any data-slice body-decode (step v), and is independent of captured_len arithmetic. This makes HS-104 Case (empty) and HS-108 Case C (both demand E-INP-009 exactly) unambiguously derivable from the BC. — 2026-06-20"
+  - "v1.8: Pass-9 remediation (LOW-2, LOW-3) — (LOW-3) Added explicit PC6a/PC6b anchor labels to Postcondition 6 sub-items (consistent with PC5a/PC5b) so HS-104 citations resolve; PC9 step (v) now REFERENCES PC6a/PC6b instead of restating the rule (one canonical statement). (LOW-2) PC6b (padding-overrun check) marked as DEFENSE-IN-DEPTH: on a crate-framed (4-aligned) block btl-32 is a multiple of 4, so the maximum valid captured_len requires no padding, making the 20+captured_len+pad_len(captured_len) > body.len() overrun condition unreachable via a well-framed block — the crate's alignment rejection (E-INP-010) subsumes it before PC6b can fire. PC6a (unconditional bound-by-body: captured_len > body.len()) remains the live, reachable guard. Updated AC-002 and VP-027 to reflect PC6b defense-in-depth status. — 2026-06-20"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -99,16 +100,27 @@ E-INP-008 (not E-INP-010) when the body is too short to hold the EPB fixed field
 
 6. Packet data slice validation uses a two-step, padding-aware check (applied in this order,
    both BEFORE any allocation):
-   a. **Bound-by-body first (unconditional):** `captured_len <= body.len()`. A
-      `captured_len` that exceeds the body byte count is impossible in a valid block and MUST
-      return `Err` mapping to **E-INP-008** (wirerust body-decode failure — crate already
-      framed the block; wirerust rejects the body content).
-   b. **Padding-aware overhead check:** `EPB_FIXED_OVERHEAD_BYTES(20) + captured_len +
-      pad_len(captured_len) <= body.len()` where `pad_len(n) = (4 - n % 4) % 4`. A
-      `captured_len` that passes the old `captured_len <= block_total_length - 32` formula
-      but whose padded total exceeds `body.len()` is malformed and MUST return `Err` mapping
-      to **E-INP-008** (wirerust body-decode failure — block-length inconsistency / padding
-      overrun; crate framed the block successfully, wirerust body-decode rejects it).
+
+   **PC6a (bound-by-body, unconditional — LIVE REACHABLE GUARD):** `captured_len <=
+   body.len()`. A `captured_len` that exceeds the body byte count is impossible in a valid
+   block and MUST return `Err` mapping to **E-INP-008** (wirerust body-decode failure —
+   crate already framed the block; wirerust rejects the body content). This check is
+   independently reachable: if the crate delivers a block whose captured_len field in the
+   raw bytes exceeds the available body, PC6a fires.
+
+   **PC6b (padding-aware overhead — DEFENSE-IN-DEPTH; unreachable on a crate-framed
+   4-aligned block):** `EPB_FIXED_OVERHEAD_BYTES(20) + captured_len + pad_len(captured_len)
+   <= body.len()` where `pad_len(n) = (4 - n % 4) % 4`. A `captured_len` that passes
+   PC6a but whose padded total exceeds `body.len()` MUST return `Err` mapping to
+   **E-INP-008** (wirerust body-decode failure — padding overrun). **Reachability note:**
+   The crate rejects any `block_total_length` that is not 4-byte aligned before handing
+   the block to wirerust (producing E-INP-010). On a well-framed (4-aligned) block,
+   `btl - 32` is a multiple of 4, meaning the maximum valid `captured_len` (= btl - 32)
+   requires no padding; the padded extent therefore never exceeds the data zone. Consequently,
+   the PC6b overrun condition (`pad_len(captured_len) > 0` AND padded total exceeds body)
+   cannot be triggered by any block that passes the crate's alignment gate. PC6b is retained
+   as a guarded invariant and defense-in-depth safety net against crate bugs or future
+   refactoring, but it is NOT a live operational gate for well-framed pcapng input.
 7. No EPB is silently dropped on parse error — the error propagates immediately.
 8. For a valid single-section pcapng file containing N EPBs, the resulting
    `PcapSource.packets` vector has exactly `packets.len() == N` entries. Packets appear in
@@ -147,10 +159,12 @@ E-INP-008 (not E-INP-010) when the body is too short to hold the EPB fixed field
    `"EPB interface_id=<id> out of range (table size=<n>)"`.
 
    **(v) captured_len validation (two-step, padding-aware):** Only reached if steps (i)–(iv)
-   all pass. First: unconditional bound-by-body — `captured_len <= body.len()`. If false →
-   `Err` mapping to **E-INP-008**. Second: padding-aware overhead —
-   `EPB_FIXED_OVERHEAD_BYTES(20) + captured_len + pad_len(captured_len) <= body.len()` where
-   `pad_len(n) = (4 - n % 4) % 4`. If false → `Err` mapping to **E-INP-008**.
+   all pass. Apply in order: **PC6a** (unconditional bound-by-body — live, reachable guard):
+   if `captured_len > body.len()` → `Err` mapping to **E-INP-008**. Then **PC6b**
+   (padding-aware overhead — defense-in-depth, unreachable on a crate-framed 4-aligned
+   block): if `EPB_FIXED_OVERHEAD_BYTES(20) + captured_len + pad_len(captured_len) >
+   body.len()` → `Err` mapping to **E-INP-008**. See PC6 for the canonical statement of
+   both sub-checks, including the PC6b reachability note.
 
    **Implication for HS-104 and HS-108:** An EPB presented when the interface table is EMPTY
    must produce E-INP-009 regardless of whether captured_len would also be malformed — the
@@ -172,14 +186,17 @@ E-INP-008 (not E-INP-010) when the body is too short to hold the EPB fixed field
   empty-table case AND E-INP-010 for OOB-non-empty case and confirm they are different codes)
 - **AC-002 (guard-before-allocate, SEC-004):** Two validations MUST be performed BEFORE any
   memory allocation for packet data, in this order:
-  1. Unconditional bound-by-body: `captured_len <= body.len()` — the data slice can NEVER
-     exceed the raw body length regardless of `block_total_length`. Failure → `Err` mapping
-     to **E-INP-008** (wirerust body-decode failure; crate already framed the block).
-  2. Padding-aware overhead: `EPB_FIXED_OVERHEAD_BYTES(20) + captured_len + pad_len(captured_len)
-     <= body.len()` where `pad_len(n) = (4 - n % 4) % 4`. Passing the old
-     `captured_len <= btl - 32` check without also satisfying this padding-aware bound is
-     insufficient — both checks are required. Failure → `Err` mapping to **E-INP-008**
-     (wirerust body-decode failure; padding overrun discovered after crate framing succeeded).
+  1. **PC6a** — Unconditional bound-by-body: `captured_len <= body.len()` — the data slice can
+     NEVER exceed the raw body length regardless of `block_total_length`. Failure → `Err`
+     mapping to **E-INP-008** (wirerust body-decode failure; crate already framed the block).
+     This is the live, operationally reachable guard.
+  2. **PC6b** — Padding-aware overhead: `EPB_FIXED_OVERHEAD_BYTES(20) + captured_len +
+     pad_len(captured_len) <= body.len()` where `pad_len(n) = (4 - n % 4) % 4`. Failure →
+     `Err` mapping to **E-INP-008** (wirerust body-decode failure; padding overrun). This
+     check is DEFENSE-IN-DEPTH: on a crate-framed 4-aligned block, the crate's alignment
+     rejection (E-INP-010) subsumes the condition before PC6b can fire. The check MUST still
+     be coded and MUST still fire if (hypothetically) a non-aligned block bypassed the crate
+     gate — it is a safety net, not a dead letter.
   Allocating based on an attacker-controlled `captured_len` without both checks is prohibited.
   **Test:** `test_BC_2_01_012_guard_before_allocate`
 - **AC-003 (no-panic, SEC-005):** This block parser MUST return `Err` for any malformed or
@@ -264,7 +281,7 @@ E-INP-008 (not E-INP-010) when the body is too short to hold the EPB fixed field
 
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| VP-027 | EPB parse safety: no panic; interface_id discriminant split — empty-table MUST return E-INP-009 (not E-INP-010), OOB-on-non-empty MUST return E-INP-010 (not E-INP-009); the two codes MUST be distinct (returning one code for both paths fails this VP); body.len() >= 20 check (wirerust-owned) before any fixed-field read (body < 20 → E-INP-008); unconditional bound-by-body check (`captured_len <= body.len()`) → E-INP-008 on failure; padding-aware overhead check (`20 + captured_len + pad_len(captured_len) <= body.len()`) → E-INP-008 on failure; both precede any allocation; returns Err for all invalid inputs. Decision 20: crate-framing rejection (btl<12/misaligned/EOF) → E-INP-010; ALL wirerust body-decode failures (body-too-short, bound-by-body, padding-overrun) → E-INP-008. ADR-009 rev 9: VP asserts the discriminant identity, not merely that an Err is returned. | Kani: `#[kani::proof]` over EPB byte sequences with symbolic interface_id, captured_len, and body length; includes empty-table (table.len()==0, any interface_id → assert E-INP-009), OOB-non-empty (table.len()==1, interface_id>=1 → assert E-INP-010), body-length=19 (EC-011 → assert E-INP-008), and padded-overrun (EC-010 → assert E-INP-008) cases |
+| VP-027 | EPB parse safety: no panic; interface_id discriminant split — empty-table MUST return E-INP-009 (not E-INP-010), OOB-on-non-empty MUST return E-INP-010 (not E-INP-009); the two codes MUST be distinct (returning one code for both paths fails this VP); body.len() >= 20 check (wirerust-owned) before any fixed-field read (body < 20 → E-INP-008); PC6a unconditional bound-by-body check (`captured_len <= body.len()`) → E-INP-008 on failure (live reachable guard); PC6b padding-aware overhead check (`20 + captured_len + pad_len(captured_len) <= body.len()`) → E-INP-008 on failure (defense-in-depth; unreachable on a crate-framed 4-aligned block — crate alignment rejection subsumes this path); both precede any allocation; returns Err for all invalid inputs. Decision 20: crate-framing rejection (btl<12/misaligned/EOF) → E-INP-010; ALL wirerust body-decode failures (body-too-short, PC6a bound-by-body, PC6b padding-overrun) → E-INP-008. ADR-009 rev 9: VP asserts the discriminant identity, not merely that an Err is returned. Note: Kani proof for the PC6b (padded-overrun) branch requires a synthetic non-4-aligned body bypassing the crate gate — the proof harness must inject this directly as it cannot be reached via normal crate block delivery. | Kani: `#[kani::proof]` over EPB byte sequences with symbolic interface_id, captured_len, and body length; includes empty-table (table.len()==0, any interface_id → assert E-INP-009), OOB-non-empty (table.len()==1, interface_id>=1 → assert E-INP-010), body-length=19 (EC-011 → assert E-INP-008), and padded-overrun (EC-010 → assert E-INP-008, injected via synthetic non-aligned body) cases |
 | — | `captured_len` is always used for data slice, never `original_len` | unit: EPB with captured < original; assert data.len() == captured |
 | — | Packet order preserved across multiple EPBs | unit: 3-EPB file; assert order matches |
 | — | Raw split ticks routed to BC-2.01.014 (not crate Duration) | unit: EPB with `if_tsresol=6` known-µs ticks; assert timestamp 1000× correct (regression guard for crate's ns-hardcode bug) |

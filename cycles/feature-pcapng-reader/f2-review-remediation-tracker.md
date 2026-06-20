@@ -8,7 +8,7 @@ sources:
   - performance-review
   - adversarial-spec-review-pass2 (ADV-F2-PASS2)
 date_created: 2026-06-19
-status: PASS8-CLEAN-PASS1-OF-3-REAUDIT-CLEAN
+status: PASS9-CLEAN-PASS2-OF-3
 f3_blocked: true
 f3_blocker_reason: "Adversarial reconvergence required (3 clean passes). Pass-1 items addressed (D-142/D-143). Pass-2 items addressed (D-144). Pass-2 cross-seam re-audit CLEAN (D-145). Pass-3 NOT CLEAN (D-146): 1C/5H/7M/4L. Pass-3 remediation COMPLETE (D-147). Pass-3 cross-seam re-audit gap fixes COMPLETE (D-148). Pass-4 NOT CLEAN (D-149): 1C/4H/5M/3L, HIGH novelty. Pass-4 remediation COMPLETE (D-150). Pass-4 re-audit 3 Major boundary gaps FIXED (D-151): FINDING-P4-001/002/003. Pass-5 NOT CLEAN (D-152): 1C/4H/5M/3L, HIGH novelty — TRAJECTORY PLATEAU (23/24/17/13/13). Pass-5 remediation COMPLETE (D-153): all 1C/4H/5M/3L FIXED. Pass-5 re-audit CLEAN (D-154): 4 Minor findings FIXED (FINDING-P5-001/002/003/004); 6 seams CLEAN. Pass-5 fully remediated + consistency-verified. Pass-6 NOT CLEAN (D-155): 0C/4H/5M/4L — FIRST zero-critical pass; count plateau 13 (P4/5/6), severity declining. Pass-6 remediation COMPLETE (D-156): all 0C/4H/5M/4L FIXED. Pass-6 re-audit CLEAN (D-157): 2 Minor findings FIXED (FINDING-P6-001/002); 10 seams CLEAN. Pass-7 NOT CLEAN (D-158): 1C/3H/4M/4L; novelty MODERATE; 2 axes CONVERGED. Pass-7 remediation COMPLETE (D-159): all 1C/3H/4M FIXED; 4L CONVERGED GREEN. Pass-7 re-audit minors FIXED (D-160): FINDING-P7-001/002 (metadata + rubric gate). Pass-8 CLEAN (D-161): 0C/0H/3M/5L — CLEAN-PASS 1/3 (BC-5.39.001). M-1/M-2/M-3/O-2 FIXED. O-1 DEFERRED-TO-F3. Pass-8 focused re-audit CLEAN (D-162): FINDING-P8-001 FIXED — HS-INDEX v2.5 behavioral-subtleties 39→40 (minor metadata; CLEAN-PASS counter unchanged, still 1/3). Adversary pass-9 pending. Clean-pass counter 1/3."
 ---
@@ -742,3 +742,50 @@ the F3-entry checklist so it cannot be lost.
 | STATE.md | — | — | D-162 added; HS-INDEX v2.5 noted; phase_status + checkpoint updated |
 
 **Clean-pass counter as of D-162: 1/3. CLEAN-PASS 1/3 confirmed. Adversary pass-9 pending (targeting clean-pass 2/3).**
+
+---
+
+---
+
+## Pass-9 Adversarial Findings (ADV-F2-PASS9 — D-163 burst — 2026-06-20)
+
+**Overall verdict:** 0 CRITICAL / 0 HIGH / 1 MEDIUM / 3 LOW. **CLEAN — 0C/0H.** CLEAN-PASS 2/3.
+**Novelty:** LOW — adversary stated "the spec has effectively converged."
+**Trajectory:** P1:23 / P2:24 / P3:17 / P4:13 / P5:13 / P6:13 / P7:12 / P8:8 / P9:4
+
+Full pass record: `.factory/cycles/feature-pcapng-reader/f2-adversarial-spec-review-pass9.md`
+
+### Pass-9 Medium Findings
+
+| ID | Severity | Finding Summary | Status |
+|----|----------|----------------|--------|
+| MEDIUM-1 | MEDIUM | E-INP-009 taxonomy message not parameterized — EPB+SPB per-block-type message strings absent from error-taxonomy row; implementer cannot derive canonical messages from taxonomy alone. Mirror of E-INP-010 parameterization pattern. | FIXED — error-taxonomy v3.5→v3.6: E-INP-009 Message Format updated to per-block-type strings (EPB: "EPB references interface_id=<id>..." mandated by BC-2.01.012 PC5a; SPB: "SPB encountered..." mandated by BC-2.01.013 PC5/AC-001). Notes + BC-refs updated. D-163. |
+
+### Pass-9 Low Findings (all FIXED)
+
+| ID | Severity | Finding Summary | Status |
+|----|----------|----------------|--------|
+| LOW-1 | LOW | SPB E-INP-009 message string unconstrained in taxonomy — BC-2.01.013 AC-001 mandates the SPB message but taxonomy row was silent. Addressed jointly with MEDIUM-1. | FIXED — aligned via MEDIUM-1 fix: error-taxonomy v3.6 SPB message mandated by BC-2.01.013 cited. D-163. |
+| LOW-2 | LOW | HS-104 Case E padding-overrun unreachable-on-aligned-block — btl=47 (47%4=3) rejected by crate alignment check (E-INP-010 primary) before PC6b (padding-overrun → E-INP-008) can run. Case E asserted E-INP-008 as primary but E-INP-010 is the actual primary path; PC6b is defense-in-depth. BC-2.01.012 v1.8 now carries explicit PC6a/PC6b anchor labels. | FIXED — HS-104 v1.4→v1.5: Case E downgraded — E-INP-010 (crate alignment rejection) is primary expected path; PC6b noted DEFENSE-IN-DEPTH / unreachable on non-4-aligned block per BC-2.01.012 PC6b. BC Linkage, Rubric, Edge Conditions, Failure Guidance, Verification Approach updated. D-163. |
+| LOW-3 | LOW | PC6a/PC6b anchor labels missing from BC-2.01.012 Postcondition 6 — HS-104 Case E cites "PC6b (padding-overrun)" but BC-2.01.012 had no PC6a/PC6b sub-labels making the citation unresolvable. PC9 (no-panic) partially duplicates PC6b defense-in-depth coverage (redundancy). | FIXED — BC-2.01.012 v1.7→v1.8: Postcondition 6 split into labeled PC6a (captured_len/padding guard) and PC6b (padding-overrun guard; defense-in-depth; unreachable when crate alignment fires first). PC9 dedup note added. D-163. |
+
+---
+
+## Pass-9 Remediation Summary (D-163 — 2026-06-20)
+
+**Verdict:** Pass-9 CLEAN (0C/0H/1M/3L). All findings FIXED. **CLEAN-PASS 2/3.** Adversary pass-10 pending (targeting CONVERGENCE / clean-pass 3/3). F3 BLOCKED until pass-10 clean.
+
+**Artifacts updated in this burst (5 artifacts):**
+
+| Artifact | Before | After | Findings addressed |
+|----------|--------|-------|--------------------|
+| error-taxonomy | v3.5 | v3.6 | MEDIUM-1 / LOW-1 (E-INP-009 per-block-type parameterized messages) |
+| BC-2.01.012 | v1.7 | v1.8 | LOW-3 (PC6a/PC6b anchor labels; PC9 dedup note) |
+| BC-2.01.013 | v1.8 | v1.9 | LOW-1 sibling (SPB E-INP-009 audit trail; no normative change) |
+| HS-104 | v1.4 | v1.5 | LOW-2 (Case E: E-INP-010 primary / PC6b defense-in-depth) |
+| BC-INDEX | v1.66 | v1.67 | BC-2.01.012 v1.7→v1.8; BC-2.01.013 v1.8→v1.9 annotations synced |
+| spec-changelog | — | — | [pcapng-f2-pass9-clean-and-remediation-2026-06-20] prepended |
+| STATE.md | — | — | phase_status + spec-versions + D-163 + CLEAN-PASS 2/3 recorded |
+| f2-review-remediation-tracker.md | — | — | Pass-9 section added; status PASS9-CLEAN-PASS2-OF-3 |
+
+**Clean-pass counter as of D-163: 2/3. Adversary pass-10 pending (targeting clean-pass 3/3 → CONVERGENCE). F3 BLOCKED until pass-10 clean.**

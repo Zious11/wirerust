@@ -14,6 +14,41 @@ changes, invariant rewrites).
 
 ---
 
+## [pcapng-f2-pass9-clean-and-remediation-2026-06-20] — 2026-06-20
+
+### PASS-9 CLEAN (0C/0H/1M/3L) — CLEAN-PASS 2/3 (BC-5.39.001) — D-163
+
+**Trigger:** Adversary pass-9 completed with verdict CLEAN (0 CRITICAL / 0 HIGH). Novelty
+LOW. Adversary stated "the spec has effectively converged." All pass-9 findings
+(MEDIUM-1 + LOW-1 + LOW-2 + LOW-3) remediated in this burst. Clean-pass counter advanced
+to 2/3. Adversary pass-10 pending (targeting clean-pass 3/3 → CONVERGENCE).
+
+**Findings:**
+
+- **MEDIUM-1:** E-INP-009 taxonomy message not parameterized — EPB+SPB message strings
+  absent from error-taxonomy row. Mirror of the E-INP-010 parameterization pattern.
+- **LOW-1:** SPB E-INP-009 message string unconstrained in taxonomy (addressed jointly
+  with MEDIUM-1).
+- **LOW-2:** HS-104 Case E padding-overrun unreachable-on-aligned-block — btl=47 (47%4=3)
+  rejected by crate alignment check (E-INP-010) before PC6b (padding-overrun → E-INP-008)
+  can run. PC6b is now documented as DEFENSE-IN-DEPTH.
+- **LOW-3:** PC6a/PC6b anchors missing from BC-2.01.012 Postcondition 6; PC9 dedup note
+  added.
+
+**Version bumps this burst:**
+
+| Artifact | Before | After | Reason |
+|----------|--------|-------|--------|
+| error-taxonomy | v3.5 | v3.6 | MEDIUM-1 / LOW-1: E-INP-009 parameterized EPB+SPB message strings; Notes updated |
+| BC-2.01.012 | v1.7 | v1.8 | LOW-3: PC6a/PC6b anchor labels added to PC6; PC9 dedup note |
+| BC-2.01.013 | v1.8 | v1.9 | LOW-1 sibling: SPB E-INP-009 AC-001 confirmed in taxonomy; no normative change |
+| HS-104 | v1.4 | v1.5 | LOW-2: Case E downgraded — E-INP-010 primary path; PC6b defense-in-depth |
+| BC-INDEX | v1.66 | v1.67 | BC-2.01.012 v1.7→v1.8; BC-2.01.013 v1.8→v1.9 annotations synced |
+
+**Clean-pass counter:** 2/3 (BC-5.39.001). Adversary pass-10 pending (targeting clean-pass 3/3 → CONVERGENCE). F3 BLOCKED until pass-10 CLEAN.
+
+---
+
 ## [pcapng-f2-pass8-reaudit-hsindex-count-2026-06-20] — 2026-06-20
 
 ### PASS-8 FOCUSED RE-AUDIT: HS-INDEX BY-CATEGORY CELL CORRECTED (P8-001) — D-162
