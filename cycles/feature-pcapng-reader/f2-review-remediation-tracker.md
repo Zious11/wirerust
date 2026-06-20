@@ -8,9 +8,9 @@ sources:
   - performance-review
   - adversarial-spec-review-pass2 (ADV-F2-PASS2)
 date_created: 2026-06-19
-status: PASS5-NOT-CLEAN-REMEDIATION-ROUND5-PENDING
+status: PASS5-REMEDIATION-COMPLETE-PASS6-PENDING
 f3_blocked: true
-f3_blocker_reason: "Adversarial reconvergence required (3 clean passes). Pass-1 items addressed (D-142/D-143). Pass-2 items addressed (D-144). Pass-2 cross-seam re-audit CLEAN (D-145). Pass-3 NOT CLEAN (D-146): 1C/5H/7M/4L. Pass-3 remediation COMPLETE (D-147). Pass-3 cross-seam re-audit gap fixes COMPLETE (D-148). Pass-4 NOT CLEAN (D-149): 1C/4H/5M/3L, HIGH novelty. Pass-4 remediation COMPLETE (D-150). Pass-4 re-audit 3 Major boundary gaps FIXED (D-151): FINDING-P4-001/002/003. Pass-5 NOT CLEAN (D-152): 1C/4H/5M/3L, HIGH novelty — TRAJECTORY PLATEAU (23/24/17/13/13). Clean-pass counter 0/3. Remediation round-5 pending."
+f3_blocker_reason: "Adversarial reconvergence required (3 clean passes). Pass-1 items addressed (D-142/D-143). Pass-2 items addressed (D-144). Pass-2 cross-seam re-audit CLEAN (D-145). Pass-3 NOT CLEAN (D-146): 1C/5H/7M/4L. Pass-3 remediation COMPLETE (D-147). Pass-3 cross-seam re-audit gap fixes COMPLETE (D-148). Pass-4 NOT CLEAN (D-149): 1C/4H/5M/3L, HIGH novelty. Pass-4 remediation COMPLETE (D-150). Pass-4 re-audit 3 Major boundary gaps FIXED (D-151): FINDING-P4-001/002/003. Pass-5 NOT CLEAN (D-152): 1C/4H/5M/3L, HIGH novelty — TRAJECTORY PLATEAU (23/24/17/13/13). Pass-5 remediation COMPLETE (D-153): all 1C/4H/5M/3L FIXED pending pass-6 verification. Clean-pass counter 0/3. Adversary pass-6 pending."
 ---
 
 # F2 Review Remediation Tracker — pcapng Reader
@@ -380,39 +380,65 @@ Clean-pass counter: 0/3. Remediation round-5 required.
 
 | ID | Severity | Finding Summary | Status |
 |----|----------|----------------|--------|
-| C-1 | CRITICAL | EPB padding-aware overrun + bound-by-body checks routed to E-INP-010 (BC-2.01.012 EC-010 + error-taxonomy item (c) + HS-104 Case E). Per Decision 20 uniform rule these are wirerust body-decode failures → E-INP-008. D-151 closed items (d)/(e) but left item (c) (padding-overrun) on E-INP-010. Partial-fix sibling miss. Fix: reclassify padding-overrun + bound-by-body to E-INP-008 in BC-2.01.012 EC-010, error-taxonomy item (c), HS-104 Case E, VP-027. | OPEN — remediation round-5 pending |
+| C-1 | CRITICAL | EPB padding-aware overrun + bound-by-body checks routed to E-INP-010 (BC-2.01.012 EC-010 + error-taxonomy item (c) + HS-104 Case E). Per Decision 20 uniform rule these are wirerust body-decode failures → E-INP-008. D-151 closed items (d)/(e) but left item (c) (padding-overrun) on E-INP-010. Partial-fix sibling miss. Fix: reclassify padding-overrun + bound-by-body to E-INP-008 in BC-2.01.012 EC-010, error-taxonomy item (c), HS-104 Case E, VP-027. | FIXED — BC-2.01.012 v1.5 (EC-010 + AC-002 + AC-006 + VP-027 all → E-INP-008); error-taxonomy v3.3 (item c reclassified + E-INP-008 row updated); HS-104 v1.3 (Cases D/E reclassified E-INP-010→E-INP-008) (D-153). Pending pass-6 verification. |
 
 ### Pass-5 High Findings
 
 | ID | Severity | Finding Summary | Status |
 |----|----------|----------------|--------|
-| H-1 | HIGH | BC-2.01.018 EC-006 + EC-008 contradict Decision 17 precedence. EC-006 omits whitelist step from narrative (outcome E-INP-011 is correct but derivation wrong). EC-008 claims E-INP-011 for non-whitelisted first IDB + whitelisted second IDB — but per Decision 17 step 2, the non-whitelisted first IDB hits whitelist check → E-INP-001 before the second IDB is ever parsed. EC-008 error code must be E-INP-001. Fix: EC-006 add step derivation; EC-008 reclassify to E-INP-001 + rewrite narrative. | OPEN — remediation round-5 pending |
-| H-2 | HIGH | OPB-only file → silent packet-data loss (SOUL #4 incomplete). Zero-packet notice does not distinguish obsolete-Packet-Block data-bearing skips from non-data-bearing skips (NRB/ISB/DSB). User has a file with packets; wirerust returns Ok(zero packets) + generic notice with no signal that OPB data was not ingested. Fix: BC-2.01.015 OPB skip-arm must emit dedicated obsolete-block-data notice; BC-2.01.009 must distinguish OPB notice from generic zero-packet notice; add HS-108 Case D (OPB-only). | OPEN — remediation round-5 pending |
-| H-3 | HIGH | SPB silent truncation when block_body_available > snaplen — three-way min `min(original_len, snaplen, block_body_available)` enforces advisory snaplen, discarding on-disk bytes. EPB ignores snaplen (no explicit captured_len field conflict); BC-2.01.013 PC1/AC-002 contradict ADR-009 Decision 9 ("neither EPB nor SPB enforces snaplen"). Fix: drop snaplen from SPB formula → `min(original_len, block_body_available)`; update Decision 9, BC-2.01.013 PC1/AC-002, VP-031, HS-107 Case B. | OPEN — remediation round-5 pending |
-| H-4 | HIGH | BC-2.01.013 VV table mis-describes HS-107 as "real-world no-false-positives" (HS-107 is truncation/padding/no-IDB boundary scenario). Also 4× stale "HS-107 btl=12 holdout deferred to a separate burst" notes in BC-2.01.013 body (HS-107 Case F now EXISTS — notes are stale). Fix: correct VV description; remove 4 stale deferral notes. | OPEN — remediation round-5 pending |
+| H-1 | HIGH | BC-2.01.018 EC-006 + EC-008 contradict Decision 17 precedence. EC-006 omits whitelist step from narrative (outcome E-INP-011 is correct but derivation wrong). EC-008 claims E-INP-011 for non-whitelisted first IDB + whitelisted second IDB — but per Decision 17 step 2, the non-whitelisted first IDB hits whitelist check → E-INP-001 before the second IDB is ever parsed. EC-008 error code must be E-INP-001. Fix: EC-006 add step derivation; EC-008 reclassify to E-INP-001 + rewrite narrative. | FIXED — BC-2.01.018 v1.6: EC-006 step derivation added (whitelist check step 2 preempts conflict check step 3); EC-008 reclassified E-INP-011→E-INP-001 (non-whitelisted first IDB hits whitelist check → E-INP-001; second IDB never parsed; E-INP-011 reachable only when both IDBs whitelisted and differ) (D-153). Pending pass-6 verification. |
+| H-2 | HIGH | OPB-only file → silent packet-data loss (SOUL #4 incomplete). Zero-packet notice does not distinguish obsolete-Packet-Block data-bearing skips from non-data-bearing skips (NRB/ISB/DSB). User has a file with packets; wirerust returns Ok(zero packets) + generic notice with no signal that OPB data was not ingested. Fix: BC-2.01.015 OPB skip-arm must emit dedicated obsolete-block-data notice; BC-2.01.009 must distinguish OPB notice from generic zero-packet notice; add HS-108 Case D (OPB-only). | FIXED — BC-2.01.015 v1.6: opb_skipped:u32 sub-counter added (dedicated OPB skip count); skipped_blocks:u32 remains total; PC9 rewritten (counters via PcapSource fields; main.rs emits); AC-006 updated; BC-2.01.009 v1.5 (notice format + opb_skipped); HS-108 v1.1 Cases d/e added (OPB-only → notice + mergecap hint; 2 NRBs + 1 OPB → distinct OPB count in notice) (D-153). Pending pass-6 verification. |
+| H-3 | HIGH | SPB silent truncation when block_body_available > snaplen — three-way min `min(original_len, snaplen, block_body_available)` enforces advisory snaplen, discarding on-disk bytes. EPB ignores snaplen (no explicit captured_len field conflict); BC-2.01.013 PC1/AC-002 contradict ADR-009 Decision 9 ("neither EPB nor SPB enforces snaplen"). Fix: drop snaplen from SPB formula → `min(original_len, block_body_available)`; update Decision 9, BC-2.01.013 PC1/AC-002, VP-031, HS-107 Case B. | FIXED — BC-2.01.013 v1.5: snaplen dropped from all SPB captured_len sites (Description/PC1/AC-002/EC-007/EC-001/Invariant-2/Test-Vectors/Arch-Anchors); captured_len = min(original_len, block_body_available); VP-031 updated; ADR-009 rev 8 Decision 9 amended (snaplen dropped for SPB); HS-107 v1.4 Case B rationale corrected (D-153). Pending pass-6 verification. |
+| H-4 | HIGH | BC-2.01.013 VV table mis-describes HS-107 as "real-world no-false-positives" (HS-107 is truncation/padding/no-IDB boundary scenario). Also 4× stale "HS-107 btl=12 holdout deferred to a separate burst" notes in BC-2.01.013 body (HS-107 Case F now EXISTS — notes are stale). Fix: correct VV description; remove 4 stale deferral notes. | FIXED — BC-2.01.013 v1.5: VV description corrected ("SPB framing truncation, padding, no-IDB boundary scenarios incl. Case F btl=12→E-INP-008"); 4× stale deferral notes removed (D-153). Pending pass-6 verification. |
 
 ### Pass-5 Medium Findings
 
 | ID | Severity | Finding Summary | Status |
 |----|----------|----------------|--------|
-| M-1 | MEDIUM | BC-2.01.009 Precondition 3 (>=4 bytes readable) contradicts EC-003 (graceful Err on truncated stream). Precondition inverts trust model — internal check should be an implementation invariant returning Err, not a caller obligation. Fix: delete Precondition 3; EC-003 already covers the graceful Err path. | OPEN — remediation round-5 pending |
-| M-2 | MEDIUM | ADR Decision 9 ↔ BC-2.01.013+VP-031 contradiction on SPB snaplen enforcement (ADR-level statement of H-3). Fix aligned via H-3 fix. | OPEN — remediation round-5 pending (aligned with H-3) |
-| M-3 | MEDIUM | BC-2.01.014 PC4 µs fast-path `ts_sec = ticks/1_000_000 as u32` lacks `.min(u32::MAX)` saturation → wraps where general formula saturates; diverges at large ts_high; threatens VP-025 Kani coverage. Fix: add saturation to fast-path ts_sec; add large-ts_high canonical vector; update VP-025 harness. | OPEN — remediation round-5 pending |
-| M-4 | MEDIUM | `from_pcap_reader` BufReader wrap-site unspecified (peek + move-into-PcapReader::new ordering); no AC pinning internal wrap; no regression test for unbuffered Read. Fix: AC pinning wrap-before-peek; regression test. | OPEN — remediation round-5 pending |
-| M-5 | MEDIUM | Zero-packet notice format mismatch: BC-2.01.009 says "wirerust:" prefix; Decision 19 requires "notice: <filename>:". Layering violation: reader has no filename. Classic-pcap zero-packet asymmetry. Fix: emit from main.rs (filename available); reconcile format; decide classic symmetry. | OPEN — remediation round-5 pending |
+| M-1 | MEDIUM | BC-2.01.009 Precondition 3 (>=4 bytes readable) contradicts EC-003 (graceful Err on truncated stream). Precondition inverts trust model — internal check should be an implementation invariant returning Err, not a caller obligation. Fix: delete Precondition 3; EC-003 already covers the graceful Err path. | FIXED — BC-2.01.009 v1.5: Precondition 3 deleted (D-153). Pending pass-6 verification. |
+| M-2 | MEDIUM | ADR Decision 9 ↔ BC-2.01.013+VP-031 contradiction on SPB snaplen enforcement (ADR-level statement of H-3). Fix aligned via H-3 fix. | FIXED — aligned via H-3 fix: ADR-009 rev 8 Decision 9 amended + BC-2.01.013 v1.5 + VP-031 updated (D-153). Pending pass-6 verification. |
+| M-3 | MEDIUM | BC-2.01.014 PC4 µs fast-path `ts_sec = ticks/1_000_000 as u32` lacks `.min(u32::MAX)` saturation → wraps where general formula saturates; diverges at large ts_high; threatens VP-025 Kani coverage. Fix: add saturation to fast-path ts_sec; add large-ts_high canonical vector; update VP-025 harness. | FIXED — BC-2.01.014 v1.5: PC4 fast path rewritten as `(ticks / 1_000_000).min(u32::MAX as u64) as u32`; canonical saturation vector added; VP-025 Kani scope extended to if_tsresol=6 path with ts_high=u32::MAX (D-153). Pending pass-6 verification. |
+| M-4 | MEDIUM | `from_pcap_reader` BufReader wrap-site unspecified (peek + move-into-PcapReader::new ordering); no AC pinning internal wrap; no regression test for unbuffered Read. Fix: AC pinning wrap-before-peek; regression test. | FIXED — BC-2.01.009 v1.5: AC-007 added pinning BufReader wrap-site (from_pcap_reader MUST internally wrap R:Read in BufReader and feed the SAME BufReader to both fill_buf peek and downstream parsers) (D-153). Pending pass-6 verification. |
+| M-5 | MEDIUM | Zero-packet notice format mismatch: BC-2.01.009 says "wirerust:" prefix; Decision 19 requires "notice: <filename>:". Layering violation: reader has no filename. Classic-pcap zero-packet asymmetry. Fix: emit from main.rs (filename available); reconcile format; decide classic symmetry. | FIXED — BC-2.01.009 v1.5 + BC-2.01.015 v1.6: notice emission moved to main.rs; PcapSource.skipped_blocks + opb_skipped fields exposed; canonical format per Decision 19 (amended rev 8): "notice: <filename>: 0 packets read from <pcap|pcapng> file"; classic empty-pcap also triggers notice (symmetry); ADR-009 Decision 19 amended (D-153). Pending pass-6 verification. |
 
 ### Pass-5 Low Findings
 
 | ID | Severity | Finding Summary | Status |
 |----|----------|----------------|--------|
-| L-1 | LOW | VP-INDEX VP-031 count propagation unverified this pass. Recommend count sweep before F3 entry. | OPEN — informational |
-| L-2 | LOW | BC-2.01.012/HS-104 dual btl-32 vs body.len() framing: relationship between btl−32 and body.len() not stated; confusing dual framing. Fix: add derivation note or pick one framing. | OPEN — cosmetic |
-| L-3 | LOW | error-taxonomy next_free changelog trail cosmetic (live value E-INP-014 correct; trailing whitespace in 2 lines). | OPEN — cosmetic |
+| L-1 | LOW | VP-INDEX VP-031 count propagation unverified this pass. Recommend count sweep before F3 entry. | FIXED — count sweep confirmed: VP-INDEX v2.7 total_vps=31 (unchanged by pass-5 remediation; VP-031 already counted); BC-INDEX v1.60 carries 302 active BCs; error-taxonomy next_free E-INP-014 confirmed (D-153). Pending pass-6 verification. |
+| L-2 | LOW | BC-2.01.012/HS-104 dual btl-32 vs body.len() framing: relationship between btl−32 and body.len() not stated; confusing dual framing. Fix: add derivation note or pick one framing. | FIXED — BC-2.01.012 v1.5: body.len() framing is authoritative on-disk bound; btl−32 derivation noted as wire arithmetic for reference; E-INP-010 now strictly crate-framing failures (btl<12/misaligned/EOF), body.len() is the body-decode bound (D-153). Pending pass-6 verification. |
+| L-3 | LOW | error-taxonomy next_free changelog trail cosmetic (live value E-INP-014 correct; trailing whitespace in 2 lines). | FIXED — error-taxonomy v3.3: trailing whitespace removed; next_free E-INP-014 confirmed (D-153). Pending pass-6 verification. |
 
 ### Pass-5 Process-Gap Observations
 
 | ID | Category | Observation |
 |----|----------|-------------|
 | PG-1 | process-gap | "Deferred to a separate burst" idiom in BC-2.01.010 and BC-2.01.013 (4×) has no burst tracker ID. Some notes are stale (H-4). Introduce TRACKED-DEFERRAL-NNN idiom with mandatory tracker row. |
-| PG-2 | process-gap | STORY-128 existence unconfirmed — BC-2.01.018 EC-009 / BC-2.12.011 trace to it; verify on-disk before F3 entry. |
-| PG-3 | process-gap | arp-baseline-16pkt.cap SHB/IDB params (LE? if_tsresol?) unverified vs BC-2.01.012 canonical-vector claim. Run `file` + magic-byte check before F3. |
+| PG-2 | process-gap | STORY-128 existence unconfirmed — BC-2.01.018 EC-009 / BC-2.12.011 trace to it; verify on-disk before F3 entry. DEFERRED to F3-entry checklist. |
+| PG-3 | process-gap | arp-baseline-16pkt.cap SHB/IDB params (LE? if_tsresol?) unverified vs BC-2.01.012 canonical-vector claim. Run `file` + magic-byte check before F3. DEFERRED to F3-entry checklist. |
+
+---
+
+## Pass-5 Remediation Summary (D-153 — 2026-06-20)
+
+**Verdict:** All 1C/4H/5M/3L pass-5 findings FIXED pending pass-6 verification. L-1/L-2/L-3 FIXED. PG-2/PG-3 deferred (F3-entry checklist). Clean-pass counter 0/3. Adversary pass-6 is next.
+
+**Artifacts updated in this burst (~14 artifacts):**
+
+| Artifact | Before | After | Findings addressed |
+|----------|--------|-------|--------------------|
+| BC-2.01.009 | v1.4 | v1.5 | M-1 (PC3 deleted), M-4 (AC-007 BufReader wrap), M-5 (notice→main.rs; PcapSource fields; Decision 19 amend) |
+| BC-2.01.012 | v1.4 | v1.5 | C-1 (E-INP-010→E-INP-008 reclassification), L-2 (dual framing derivation) |
+| BC-2.01.013 | v1.4 | v1.5 | H-3 (snaplen dropped), H-4 (VV corrected; stale notes removed), M-2 (aligned via H-3) |
+| BC-2.01.014 | v1.4 | v1.5 | M-3 (µs fast-path saturation) |
+| BC-2.01.015 | v1.5 | v1.6 | H-2 (opb_skipped counter; PC9 rewrite; M-5 emission-site) |
+| BC-2.01.018 | v1.5 | v1.6 | H-1 (EC-006 derivation + EC-008 reclassified E-INP-001) |
+| error-taxonomy | v3.2 | v3.3 | C-1 (item c reclassified + E-INP-008 row updated), L-3 (cosmetic) |
+| ADR-009 | rev 7 | rev 8 | H-3/M-2 (Decision 9 amend: snaplen dropped for SPB), M-5 (Decision 19 amend: notice format + emission from main.rs) |
+| VP-INDEX | v2.6 | v2.7 | L-1 (count propagation verified) |
+| verification-architecture.md | v2.2 | v2.3 | H-1/H-2/H-3 coherence |
+| verification-coverage-matrix.md | v1.16 | v1.17 | H-1/H-2/H-3 coherence |
+| HS-104 | v1.2 | v1.3 | C-1 (Cases D/E reclassified E-INP-010→E-INP-008) |
+| HS-107 | v1.3 | v1.4 | H-3 (snaplen dropped; Case B rationale), H-4 (stale deferral note removed) |
+| HS-108 | v1.0 | v1.1 | H-2 (Cases d/e added: OPB-only; mixed NRB+OPB) |
+| BC-INDEX | v1.59 | v1.60 | all 6 changed BCs synced |

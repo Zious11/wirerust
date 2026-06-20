@@ -9,7 +9,7 @@ supersedes: null
 superseded_by: null
 ---
 
-# ADR-009: pcapng Capture-Format Reader Support (rev 7)
+# ADR-009: pcapng Capture-Format Reader Support (rev 8)
 
 > **One-per-file:** Each architectural decision lives in its own file.
 > Filename convention: `ADR-NNN-<short-name>.md` (e.g., `ADR-001-rust-dispatcher.md`)
@@ -209,15 +209,37 @@ example is WRONG and MUST NOT be copied; it spins. The BC-2.01.015 EC-004 note t
 spike finding and MUST be corrected by the PO to match the crate behavior (`< 12` is
 rejected).
 
-**Decision 9 — Snaplen enforcement.** [NEW — rev 4, resolves O-4.] The crate does NOT
-validate `captured_len <= snaplen` for either EPB or SPB (confirmed: `enhanced_packet.rs`
-EPB parser has no IDB access; `simple_packet.rs` has no snaplen reference). `snaplen` is
-stored on the IDB but never used for packet validation. wirerust may implement
-snaplen-enforcement as a caller-side check via `parser.packet_interface(&epb)` /
-`reader.packet_interface(&epb)` (`parser.rs:124-126`), but this is NOT required for this
-cycle. Parity with the classic path (which uses `next_raw_packet()` to avoid a crate
-snaplen-rejection bug) is noted: there is no analogous bug on the pcapng path because
-the crate never rejects on snaplen in the first place.
+**Decision 9 — Snaplen enforcement.** [NEW — rev 4, resolves O-4. AMENDED — rev 8,
+resolves H-3 + M-2.] The crate does NOT validate `captured_len <= snaplen` for either
+EPB or SPB (confirmed: `enhanced_packet.rs` EPB parser has no IDB access;
+`simple_packet.rs` has no snaplen reference). `snaplen` is stored on the IDB but never
+used for packet validation. wirerust may implement snaplen-enforcement as a caller-side
+check, but this is NOT required for this cycle.
+
+**Rev 8 amendment — SPB captured_len computation (resolves H-3 + M-2):** EPB already
+ignores snaplen (the crate validates only `captured_len + pad <= remaining body`). SPB
+must match this posture. wirerust MUST compute SPB `captured_len` as:
+
+  ```
+  captured_len = min(original_len, block_body_available)
+  ```
+
+where `block_body_available = body.len() as u32` (the raw bytes in the RawBlock body
+slice minus the 4-byte `original_len` header field). The `snaplen` term is DROPPED from
+the SPB captured-len formula. Rationale:
+
+  - The on-disk SPB body is authoritative: `block_body_available` is the real extent of
+    available packet data, including padding. Using it as the upper bound is sufficient
+    and avoids any risk of silent truncation from a stale or absent IDB snaplen.
+  - Symmetry with EPB: neither block type consults snaplen for captured-len derivation in
+    wirerust. Both use the on-disk block content as the authoritative bound.
+  - Decision 9 (rev 4) already stated "snaplen not enforced for either EPB or SPB."
+    This amendment makes that posture precise for the SPB's implicit captured-len formula.
+
+VP-031 property update (see VP-INDEX amendment): the VP-031 property now reads
+`captured_len == min(original_len, body.len() as u32)` (two-argument min, snaplen
+dropped). The PO must update BC-2.01.013 PC1/AC-002/EC-007 and HS-107 Case E
+accordingly (see PO BC-Change Dispatch, rev 8 additions).
 
 **Decision 10 — Panic surface of pcap-file 2.0.0.** [NEW — rev 4, resolves SEC-008.]
 The crate is Result-clean on truncated/malformed input at the block framing layer
@@ -309,28 +331,76 @@ fires at IDB-parse time, not at first-packet time."
 
 This precedence is architecturally motivated: POSITION errors are cheaper to check (no decode required) and represent structural violations; CONTENT errors (whitelist) require a decode but are caught before table mutation; AGREEMENT errors require prior table state. The PO must state this precedence ordering in BC-2.01.011, BC-2.01.016, and BC-2.01.018, and add an edge-case scenario: "late IDB that also conflicts on linktype → E-INP-013 wins (position wins over content)."
 
-**Decision 18 — VP-031: SPB captured-len computation correctness (proptest, resolves M-2).** [NEW — rev 6.] HS-107 asserts byte-exact SPB captured-len arithmetic (`min(original_len, snaplen, block_body_available)`) but `cargo-fuzz` (VP-028) cannot express this as a typed property — fuzzing exercises no-panic but cannot assert arithmetic relationships between fields. VP-031 is assigned as a dedicated proptest VP for BC-2.01.013 covering SPB captured-len computation correctness:
+**Decision 18 — VP-031: SPB captured-len computation correctness (proptest, resolves M-2).** [NEW — rev 6. PROPERTY UPDATED — rev 8, Decision 9 amendment.] HS-107 asserts byte-exact SPB captured-len arithmetic but `cargo-fuzz` (VP-028) cannot express this as a typed property — fuzzing exercises no-panic but cannot assert arithmetic relationships between fields. VP-031 is assigned as a dedicated proptest VP for BC-2.01.013 covering SPB captured-len computation correctness:
 
-  - **Property:** For all `(original_len: u32, snaplen: u32, body: &[u8])` with `body.len() <= u32::MAX as usize`: `captured_len == min(original_len, snaplen, body.len() as u32)`, the returned slice has exactly `captured_len` bytes, and no out-of-bounds access occurs.
+  - **Property (rev 8):** For all `(original_len: u32, body: &[u8])` with `body.len() <= u32::MAX as usize`: `captured_len == min(original_len, body.len() as u32)`, the returned slice has exactly `captured_len` bytes, and no out-of-bounds access occurs. The `snaplen` parameter has been DROPPED from the domain per Decision 9 rev 8 amendment (SPB captured_len uses only on-disk block body as the upper bound; see Decision 9 rev 8).
   - **Tool:** proptest (pure arithmetic predicate over a pure-core helper — no I/O, no block framing).
   - **Phase:** P1.
-  - **Module:** `reader.rs (pcapng_pure_core fns)` — the SPB snaplen-clamp helper function is a pure-core sub-function colocated in `src/reader.rs`, extracted from the block-walk loop exactly as the EPB field-decode function (VP-027) is.
+  - **Module:** `reader.rs (pcapng_pure_core fns)` — the SPB body-clamp helper function is a pure-core sub-function colocated in `src/reader.rs`, extracted from the block-walk loop exactly as the EPB field-decode function (VP-027) is.
   - **Status:** draft (pending F3 story decomposition).
 
-VP-031 gives SPB a real framing VP per DF-CANONICAL-FRAME-HOLDOUT-001. It is NOT a fuzz-only-covered BC. See VP-INDEX and verification-coverage-matrix.md for updated counts (total 30→31, proptest 9→10, P1 16→17).
+VP-031 gives SPB a real framing VP per DF-CANONICAL-FRAME-HOLDOUT-001. It is NOT a fuzz-only-covered BC. See VP-INDEX and verification-coverage-matrix.md for updated counts (total 30→31, proptest 9→10, P1 16→17; counts unchanged at rev 8 — property domain change only).
 
-**Decision 19 — Zero-packet notice gating (SOUL-#4 silent-failure-prevention anchor).** [NEW — rev 7, resolves M-4.] A pcapng file that is STRUCTURALLY VALID — parses to EOF without error — but yields `packets.len() == 0` MUST emit exactly one stderr notice before exit 0. This is the one-shot zero-packet notice:
+**Decision 19 — Zero-packet notice gating (SOUL-#4 silent-failure-prevention anchor).** [NEW — rev 7, resolves M-4. AMENDED — rev 8, resolves H-2 + M-5.] A capture file that is STRUCTURALLY VALID — parses to EOF without error — but yields `packets.len() == 0` MUST emit exactly one stderr notice before exit 0. This is the one-shot zero-packet notice.
 
-  - Format: `"notice: <filename>: 0 packets read from pcapng file"` (or equivalent — the exact wording is owned by the PO; the MANDATORY content is: zero-packet count, filename, and the word "notice" at severity).
-  - If any blocks were skipped (unknown types, OPB, etc.), the skipped-block count MUST be appended: `"notice: <filename>: 0 packets read from pcapng file (N blocks skipped)"`.
+**Emission point (rev 8 amendment, resolves M-5):** The notice is EMITTED from
+`main.rs`, NOT from the reader (`from_pcap_reader` / `PcapSource`). Rationale: only
+`main.rs` has the filename available; `from_pcap_reader` has no filename and already
+returns `Result`; diagnostics belong in `main.rs` per the project's E-INP-007 pattern.
+`from_pcap_reader`/`PcapSource` MUST SURFACE the data needed so that `main.rs` can
+emit the notice:
+
+  - `PcapSource::skipped_blocks: u32` — count of all blocks skipped (unknown types,
+    OPB, etc.) during the walk.
+  - `PcapSource::opb_skipped: u32` — count of blocks skipped that were specifically
+    Obsolete Packet Blocks (block type `0x00000002`). A non-zero value means OPB packet
+    data was silently discarded.
+  - The `packets.is_empty()` check is the primary condition `main.rs` tests.
+
+**OPB distinction (rev 8 amendment, resolves H-2):** When any skipped blocks include
+OPB (Obsolete Packet Block, type `0x00000002`), the notice MUST state explicitly that
+packet data from obsolete Packet Blocks was not ingested. The notice format with OPB
+present is:
+
+  ```
+  notice: <filename>: 0 packets read from pcapng file
+  (N blocks skipped, including M obsolete Packet Blocks whose packet data was not analyzed — re-save with mergecap to convert to EPB)
+  ```
+
+  When skipped blocks include no OPB:
+  ```
+  notice: <filename>: 0 packets read from pcapng file (N blocks skipped)
+  ```
+
+  When no blocks were skipped:
+  ```
+  notice: <filename>: 0 packets read from pcapng file
+  ```
+
+  The exact wording is owned by the PO; the MANDATORY distinction is: if `opb_skipped >
+  0`, the notice MUST differentiate OPB-bearing skipped blocks from non-packet-bearing
+  skipped blocks (NRB/ISB/DSB/SJE) and MUST state that packet data was not ingested.
+  A remediation hint (mergecap) MUST accompany any OPB notice.
+
+**Classic-pcap symmetry (rev 8 amendment, resolves M-5):** A structurally valid EMPTY
+classic pcap file (valid header, zero packets) MUST ALSO emit the same zero-packet
+notice. Consistency requires that the "zero packets from a valid file" diagnostic fires
+for both file formats, not only for pcapng. `main.rs` owns this for classic pcap as
+well. The classic-pcap notice format: `"notice: <filename>: 0 packets read from pcap file"`.
+
+**Remaining invariants (unchanged from rev 7):**
   - Block body bytes MUST NOT appear in the notice or in any diagnostic output (SEC-007 / DSB key material).
-  - One notice per file, not per block. The notice fires at the end of the block-walk when `packets.len() == 0`, not during the walk.
+  - One notice per file, not per block.
   - Exit code: 0. A structurally valid zero-packet file is not an error.
-  - A file that yields a parse error (e.g., malformed SHB, unknown EOF) does NOT use this notice path; it emits a normal error and exits 1.
+  - A file that yields a parse error does NOT use this notice path; it emits a normal error and exits 1.
 
-Rationale: silently returning an empty `PcapSource` from a valid pcapng file is SOUL-#4 silent-failure (the user gets no output and no explanation). The notice is the minimum diagnostic required to distinguish "no packets in this valid file" from "file unreadable." BC-2.01.009 PC6 and BC-2.01.015 PC9 MUST cite THIS decision (Decision 19) — they currently mis-cite Decision 17 (IDB error-code precedence), which is unrelated. The PO must correct those citations.
+Rationale: silently returning an empty `PcapSource` from a valid file is SOUL-#4
+silent-failure. The notice is the minimum diagnostic required to distinguish "no packets
+in this valid file" from "file unreadable." BC-2.01.009 PC6 and BC-2.01.015 PC9 MUST
+cite THIS decision (Decision 19) — they currently mis-cite Decision 17 (IDB error-code
+precedence), which is unrelated. The PO must correct those citations.
 
-**Decision 20 — Uniform block error-code rule (CORRECTS pass-3 over-narrowing; resolves H-1).** [NEW — rev 7.] One rule applies to ALL block types on the raw-block path. Three mutually-exclusive tiers, evaluated in order:
+**Decision 20 — Uniform block error-code rule (CORRECTS pass-3 over-narrowing; resolves H-1). CLARIFIED — rev 8, resolves C-1.** [NEW — rev 7.] One rule applies to ALL block types on the raw-block path. Three mutually-exclusive tiers, evaluated in order:
 
 **Tier 1 — Framing rejection (E-INP-010):** Fired by the CRATE before wirerust sees the block body.
   - `block_total_length < 12` → crate returns `Err(InvalidField("Block: initial_len < 12"))`.
@@ -355,6 +425,7 @@ Rationale: silently returning an empty `PcapSource` from a valid pcapng file is 
   - SEMANTICALLY INVALID body (body bytes long enough but content wrong): also E-INP-008.
     Example: SHB with correct body length but BOM != 0x1A2B3C4D / 0x4D3C2B1A, OR SHB major version != 1 → E-INP-008.
   - Unknown block types: no fixed-field check; skip via block_total_length (Decision 2). E-INP-010 from crate if framing fails.
+  - **EPB padding-overrun check (rev 8 clarification, resolves C-1):** After wirerust decodes the EPB fixed fields (including `captured_len`), it must verify that `captured_len + pad_len(captured_len) <= body.len()` (i.e., the padded extent fits within the block body). This is a WIRERUST body-decode check performed AFTER the crate has framed the block successfully. A violation → **E-INP-008**, NOT E-INP-010. The crate already validated `captured_len + pad <= remaining body` internally at `enhanced_packet.rs:55-57` on the high-level path, but wirerust on the RAW path recomputes this from the raw body slice and must signal the same condition as E-INP-008. Similarly, the bound-by-body check `captured_len <= body.len()` is a wirerust body-decode constraint → **E-INP-008**. Summary: ALL wirerust-computed body/length-consistency failures for EPB (body-too-short for fixed fields, captured_len > body.len(), padded extent > body.len()) → E-INP-008. Only crate framing rejection (btl < 12, misaligned, EOF before trailer) → E-INP-010.
 
 **Tier 3 — Well-formed:** Body long enough and semantically valid → proceed with full decode.
 
@@ -362,10 +433,10 @@ Rationale: silently returning an empty `PcapSource` from a valid pcapng file is 
 
 **PO actions required:**
   - BC-2.01.010 (SHB): RE-ADD the SHB body-too-short → E-INP-008 case (window 12 <= btl < 28). State the SHB fixed-field minimum as 16 body bytes. State the E-INP-008/E-INP-010 split: framing failure (crate rejects btl < 12) → E-INP-010; body-too-short (crate accepts btl >= 12, wirerust body-decode fails) → E-INP-008; semantic failure (bad BOM, wrong major version) → E-INP-008.
-  - BC-2.01.012 (EPB): State the EPB fixed-field minimum as 20 body bytes; window 12 <= btl < 32 → E-INP-008. Align with the table above.
+  - BC-2.01.012 (EPB): State the EPB fixed-field minimum as 20 body bytes; window 12 <= btl < 32 → E-INP-008. Align with the table above. ALSO state explicitly: EPB padding-overrun (`20 + captured_len + pad_len(captured_len) > body.len()`) → E-INP-008; bound-by-body check (`captured_len > body.len() - 20`) → E-INP-008. All wirerust-computed body/length-consistency failures → E-INP-008 (NOT E-INP-010). Reclassify padding-overrun + bound-by-body from E-INP-010 → E-INP-008 in BC-2.01.012, error-taxonomy E-INP-010 item (c), HS-104 Case E, and VP-027 property description.
   - BC-2.01.013 (SPB): State the SPB fixed-field minimum as 4 body bytes; btl = 12 → body = 0 bytes < 4 → E-INP-008. Align with the table above.
   - BC-2.01.011 (IDB): State the IDB fixed-field minimum as 8 body bytes; window 12 <= btl < 20 → E-INP-008. Already partially correct; align with the table.
-  - error-taxonomy.md: Update E-INP-008 scope text to state: "wirerust body-decode failure for any block type after successful crate framing — body shorter than the block's required fixed-field bytes, or body semantically invalid (SHB: bad BOM or major!=1)." Update E-INP-010 scope text to state: "block framing rejection by pcap-file 2.0.0 crate — btl < 12, btl % 4 != 0, or EOF before trailer."
+  - error-taxonomy.md: Update E-INP-008 scope text to state: "wirerust body-decode failure for any block type after successful crate framing — body shorter than the block's required fixed-field bytes, body semantically invalid (SHB: bad BOM or major!=1), or EPB body/length-consistency failure (padding-overrun, captured_len > body extent)." Update E-INP-010 scope text to state: "block framing rejection by pcap-file 2.0.0 crate — btl < 12, btl % 4 != 0, or EOF before trailer. Does NOT include wirerust body-decode checks computed after successful crate framing."
 
 **Decision 21 — if_tsoffset OUT OF SCOPE this cycle (resolves M-2 option-walk gap).** [NEW — rev 7.] wirerust MUST NOT extract `if_tsoffset` (IDB option code 10) in this cycle. Extracting an option without applying it is architecturally deceptive — it implies the value is used when it is not. The limitation is:
 
@@ -508,7 +579,7 @@ zero-copy peek for non-seekable streams.
   scope of STORY-123 through STORY-127. It must be added to the cycle manifest and
   wave scheduling before F3 story decomposition.
 
-### Verification Properties Assigned (rev 4, updated through rev 6)
+### Verification Properties Assigned (rev 4, updated through rev 8)
 
 The following VPs are assigned by this ADR to the BC-2.01.NNN framing contracts. All
 are new (previously unassigned, VP-NNN = `—`). Resolves C-3 / DF-CANONICAL-FRAME-
@@ -516,22 +587,22 @@ HOLDOUT-001.
 
 | VP-ID | BC(s) | Tool | Phase | Property |
 |-------|-------|------|-------|---------|
-| VP-025 | BC-2.01.014 | Kani | P1 | pcapng_timestamp_to_secs_usecs totality: no panic, ts_usecs in [0, 999_999], ts_sec plausible, for all (u32, u32, u8) inputs with saturating arithmetic |
+| VP-025 | BC-2.01.014 | Kani | P1 | pcapng_timestamp_to_secs_usecs totality: no panic, ts_usecs in [0, 999_999], ts_sec saturated (`.min(u32::MAX)`) for all (u32, u32, u8) inputs; saturating arithmetic; MUST include large-ts_high vector where `(ts_high << 32 | ts_low) / ticks_per_sec > u32::MAX` to lock the saturation (rev 8 / M-3) |
 | VP-026 | BC-2.01.010 | Kani | P1 | SHB parse safety: no panic for any truncated/malformed SHB byte sequence; byte-order BOM detection correct for LE and BE magic values |
-| VP-027 | BC-2.01.012 | Kani | P1 | EPB parse safety: no panic; interface_id bounds-check before table index; captured_len guard precedes allocation; returns Err for all invalid inputs |
+| VP-027 | BC-2.01.012 | Kani | P1 | EPB parse safety: no panic; interface_id bounds-check before table index; captured_len guard precedes allocation; padding-overrun check (`20 + captured_len + pad_len > body.len()`) and bound-by-body check (`captured_len > body.len() - 20`) both → Err(E-INP-008) (NOT E-INP-010); returns Err for all invalid inputs (rev 8 / C-1) |
 | VP-028 | BC-2.01.017 | cargo-fuzz | P1 | pcapng reader no-panic: PcapSource::from_pcap_reader returns Ok or Err for any byte sequence; no panic, no infinite loop (F6 hardening deliverable) |
 | VP-029 | BC-2.01.015 | proptest | P1 | Block-walk skip correctness: unknown-block skip always advances past block_total_length bytes; no infinite loop; loop terminates for any valid/malformed block sequence |
 | VP-030 | BC-2.01.018 | proptest | P1 | Multi-IDB linktype agreement totality (RESTATED rev 7 / H-3): any sequence of WHITELISTED DataLink values either all-equal → Ok(PcapSource.datalink = that value), or first-differing whitelisted DataLink → Err(E-INP-011) immediately on that IDB. Non-whitelisted values short-circuit to E-INP-001 at first IDB (before conflict check) — NOT in VP-030 domain. Comparison unit: DataLink (not raw u16). |
-| VP-031 | BC-2.01.013 | proptest | P1 | SPB captured-len computation correctness: for all (original_len: u32, snaplen: u32, body: &[u8]), captured_len == min(original_len, snaplen, body.len()); returned slice has exactly captured_len bytes; no out-of-bounds access (resolves M-2 / DF-CANONICAL-FRAME-HOLDOUT-001) |
+| VP-031 | BC-2.01.013 | proptest | P1 | SPB captured-len computation correctness: for all (original_len: u32, body: &[u8]), captured_len == min(original_len, body.len() as u32); returned slice has exactly captured_len bytes; no out-of-bounds access. Snaplen term DROPPED (rev 8 / Decision 9 amendment, resolves H-3 + M-2). (resolves M-2 / DF-CANONICAL-FRAME-HOLDOUT-001) |
 
 Note: BC-2.01.013 (SPB) is now covered by VP-031 (proptest, P1) for arithmetic
-correctness of the snaplen-clamp/captured-len computation, AND by VP-028 (fuzz) for
-the full no-panic contract on the raw-block path. VP-031 fills the framing VP gap
-identified in M-2: cargo-fuzz cannot express the arithmetic relationship between
-original_len, snaplen, and the returned slice length, which is the core HS-107
-assertion. BC-2.01.011 (IDB parse) is covered under VP-027's interface-table
-accumulation proof. BC-2.01.016 (linktype whitelist) is test-sufficient (integration
-test, no new formal VP).
+correctness of the on-disk-body-clamped captured-len computation (snaplen dropped per
+Decision 9 rev 8), AND by VP-028 (fuzz) for the full no-panic contract on the raw-block
+path. VP-031 fills the framing VP gap identified in M-2: cargo-fuzz cannot express the
+arithmetic relationship between original_len and the returned slice length, which is the
+core HS-107 assertion. BC-2.01.011 (IDB parse) is covered under VP-027's
+interface-table accumulation proof. BC-2.01.016 (linktype whitelist) is test-sufficient
+(integration test, no new formal VP).
 
 #### VP-025 Kani Provability Note — unwind bound (I-2 resolution, rev 5)
 
@@ -632,6 +703,15 @@ BC-change dispatch documented for PO.
 **Rev 6 (2026-06-19):** Pass-3 adversarial remediation — dead-spec reconciliation, error-code precedence, and SPB framing VP. Added Decision 16 (H-5: per-section interface-table reset is DEAD SPEC — unreachable given Decision 7 single-section-only constraint; explicitly deferred to future multi-section escape hatch; PO must delete/defer the reset invariant in BC-2.01.011 and BC-2.01.018 and correct EC-005 so multi-section file is rejected with E-INP-012 at second SHB). Added Decision 17 (M-7: IDB error-code precedence fixed at three-level ordering: E-INP-013 position check FIRST, E-INP-001 whitelist SECOND, E-INP-011 multi-IDB agreement THIRD; PO must state this in BC-2.01.011/016/018 and add late-IDB-with-conflicting-linktype edge case). Added Decision 18 and VP-031 (M-2: SPB captured-len computation correctness as dedicated proptest VP for BC-2.01.013; fills framing VP gap; VP-028 fuzz continues to cover no-panic; total 30→31, proptest 9→10, P1 16→17). Updated VP table to include VP-031 row; updated BC-2.01.013 coverage note. O-3 process-gap noted in PO BC-change dispatch.
 
 **Rev 7 (2026-06-19):** Pass-4 adversarial remediation — zero-packet notice, uniform block error-code rule, if_tsoffset scope deferral, VP-030 restatement, seq convention, HS-completeness map extension. Added Decision 19 (M-4: zero-packet notice — valid pcapng with 0 packets emits exactly one stderr notice, exit 0, skipped-block count when >0, no block bodies logged; SOUL-#4 anchor; BC-2.01.009 PC6 / BC-2.01.015 PC9 must re-cite this decision not Decision 17). Added Decision 20 (H-1: uniform block error-code rule — corrects pass-3 "SHB body-too-short unconstructible" claim; three-tier rule: crate framing failure → E-INP-010; wirerust body-decode failure or semantic failure → E-INP-008; well-formed → proceed; per-block fixed-field minimums table: SHB=16, IDB=8, EPB=20, SPB=4 body bytes; PO must RE-ADD SHB body-too-short to BC-2.01.010, align EPB/SPB/IDB BCs and error-taxonomy E-INP-008/010 scope text). Added Decision 21 (M-2 option-walk: if_tsoffset code 10 MUST NOT be extracted or applied this cycle; out-of-scope deferral with future escape hatch; PO must remove "and if_tsoffset (code 10)" from BC-2.01.011 PC6 and add limitation note to BC-2.01.014). Added VP-030 restatement (H-3: VP-030 domain narrowed to WHITELISTED DataLink values only; non-whitelisted values short-circuit to E-INP-001 before the conflict check; comparison unit pinned to DataLink not raw u16). Added M-5 seq convention (1-based block index, SHB = block #1; E-INP-010/012/013 context strings must be consistent). Added HS-108 to HS-completeness map (zero-packet notice end-to-end; MISSING — PO must author). VP-030 restatement propagated to VP-INDEX v2.6, verification-architecture.md v2.2, and verification-coverage-matrix.md v1.16.
+
+**Rev 8 (2026-06-20):** Pass-5 adversarial remediation — Decision 20 clarification (C-1), Decision 9 amendment (H-3 + M-2), Decision 19 amendments (H-2 + M-5), VP property updates.
+  - Decision 20 (C-1 EPB error-code clarification): EPB padding-overrun check (`20 + captured_len + pad_len(captured_len) > body.len()`) and bound-by-body check (`captured_len > body.len() - 20`) are WIRERUST body-decode failures → E-INP-008, NOT E-INP-010. The uniform rule now explicitly covers all wirerust-computed body/length-consistency failures for EPB as E-INP-008. PO must reclassify padding-overrun + bound-by-body in BC-2.01.012, error-taxonomy E-INP-010 item (c), HS-104 Case E, and VP-027.
+  - Decision 9 amendment (H-3 + M-2 SPB captured_len): SPB captured_len formula changed from `min(original_len, snaplen, block_body_available)` to `min(original_len, block_body_available)` — snaplen DROPPED. Matches EPB (which ignores snaplen) and makes Decision 9's "snaplen not enforced" precise. VP-031 property domain narrowed to two-argument `min(original_len, body.len() as u32)`. PO must update BC-2.01.013 PC1/AC-002/EC-007, HS-107, and VP-031 property.
+  - Decision 19 amendment 1 (H-2 OPB distinction): Zero-packet notice must distinguish OPB-bearing skipped blocks from non-packet skipped blocks (NRB/ISB/DSB/SJE). When OPB skipped, notice MUST state packet data from obsolete Packet Blocks was not ingested + remediation hint (mergecap). PcapSource must surface `opb_skipped: u32` so main.rs can emit the distinction. PO must update BC-2.01.009 and BC-2.01.015 with this distinction and the new `opb_skipped` field.
+  - Decision 19 amendment 2 (M-5 emission point + symmetry): Notice emitted from main.rs (not reader); PcapSource surfaces `skipped_blocks`, `opb_skipped`, and empty-packets condition; notice format unified per Decision 19 authority; classic-pcap empty files also get zero-packet notice for consistency. PO must update BC-2.01.009 (emission point) and BC-2.01.015 (counter surfaced not emitted).
+  - VP-025 (M-3): Property updated to note ts_sec saturates (`.min(u32::MAX)`) and MUST include large-ts_high vector where ticks/ticks_per_sec > u32::MAX to lock the saturation. PO must ensure BC-2.01.014 µs fast path also saturates ts_sec.
+  - VP-027 (C-1): Property updated to explicitly state padding-overrun and bound-by-body → Err(E-INP-008) not E-INP-010.
+  - VP-031 (Decision 9 amendment): Property domain changed from `(original_len, snaplen, body)` to `(original_len, body)` with `min(original_len, body.len() as u32)`. No VP count changes (total 31, proptest 10, P1 17 unchanged).
 
 ### PO BC-Change Dispatch (rev 4)
 
@@ -850,6 +930,28 @@ architect does not edit BC files; this section is the handoff specification.
 
 **VP-030 — domain restatement (H-3):**
 - Update BC-2.01.018 Verification Properties entry for VP-030: "VP-030 (proptest, P1): generates sequences of WHITELISTED DataLink values only (the domain where the E-INP-011 conflict check is reachable). Non-whitelisted values short-circuit to E-INP-001 at IDB-parse time and never reach the agreement check. Property: all-equal → Ok; first-differing whitelisted DataLink → Err(E-INP-011) on that IDB. Comparison unit: DataLink, not raw u16."
+
+**Rev 8 additions — PO must action the following (Decision 20 C-1, Decision 9 amendment, Decision 19 amendments, VP property updates):**
+
+**BC-2.01.012 (EPB) — reclassify padding-overrun + bound-by-body → E-INP-008 (Decision 20 / C-1):**
+- In BC-2.01.012, error-taxonomy, HS-104 Case E, and VP-027: RECLASSIFY the EPB padding-overrun check (`20 + captured_len + pad_len(captured_len) > body.len()`) and the bound-by-body check (`captured_len > body.len() - 20`) from E-INP-010 → **E-INP-008**. These are WIRERUST body-decode failures computed AFTER the crate successfully frames the block. Framing (btl < 12, misaligned) is crate-owned → E-INP-010. Body-decode (body too short for fixed fields, padded extent overruns available bytes, captured_len exceeds body) is wirerust-owned → E-INP-008. The uniform rule (Decision 20 Tier 2) governs; C-1 makes this explicit for the EPB overrun cases.
+- HS-104 Case E must be updated: "EPB with captured_len = N and padding such that captured_len + pad_len > body.len() → E-INP-008 (NOT E-INP-010)."
+- VP-027 property must include: "padding-overrun (`20 + captured_len + pad_len(captured_len) > body.len()`) → Err(E-INP-008); bound-by-body (`captured_len > body.len() - 20`) → Err(E-INP-008)."
+- error-taxonomy.md E-INP-010 description: remove item (c) if it references EPB body-decode checks; add note "E-INP-010 is strictly crate-side framing rejection; wirerust body-decode failures use E-INP-008."
+
+**BC-2.01.013 (SPB) — drop snaplen from captured_len formula (Decision 9 rev 8 / H-3 + M-2):**
+- PC1/AC-002/EC-007: Update SPB captured_len formula from `min(original_len, snaplen, block_body_available)` to `min(original_len, block_body_available)`. Snaplen is NOT consulted for SPB captured-len derivation. `block_body_available` is `body.len() as u32` (raw bytes in the RawBlock body after the 4-byte original_len field).
+- HS-107 Case E: If a scenario relies on snaplen clamping SPB data, remove or restate it. SPB captured_len clamps only to `original_len` and `body.len()`.
+- VP-031 property: change from `min(original_len, snaplen, body.len() as u32)` to `min(original_len, body.len() as u32)`. The `snaplen` argument is removed from the pure-core helper domain. The property is now: "for all (original_len: u32, body: &[u8]), captured_len == min(original_len, body.len() as u32); returned slice has exactly captured_len bytes; no OOB access."
+
+**BC-2.01.014 (timestamp helper) — µs fast path saturation + VP-025 vector (Decision 19 / M-3):**
+- Any µs fast path in BC-2.01.014 (e.g., a shortcut for the default tsresol=6 case) MUST apply the same ts_sec saturation (`.min(u32::MAX)`) as the general formula. The shortcut MUST NOT skip saturation under any input. State this explicitly in BC-2.01.014.
+- VP-025 Kani harness: MUST include a large-ts_high vector where `ticks / ticks_per_sec > u32::MAX` (e.g., ts_high = u32::MAX, ts_low = u32::MAX, if_tsresol = 6) so the saturation `.min(u32::MAX)` is exercised and locked by the proof.
+
+**BC-2.01.009 (pcapng acceptance) and BC-2.01.015 (block-walk skip) — zero-packet notice OPB distinction + emission point (Decision 19 rev 8 / H-2 + M-5):**
+- BC-2.01.009: Update the zero-packet notice postcondition to state that PcapSource MUST surface `skipped_blocks: u32` and `opb_skipped: u32`. The notice is EMITTED from main.rs, NOT from from_pcap_reader. The notice format when OPB blocks were skipped MUST distinguish them (per Decision 19 rev 8 OPB distinction text). Add: "A structurally valid classic pcap file with zero packets MUST also emit the zero-packet notice with format `notice: <filename>: 0 packets read from pcap file`."
+- BC-2.01.015: Update the skipped-block counter postcondition to state that `PcapSource::skipped_blocks` includes OPB and that `PcapSource::opb_skipped` is the OPB-specific sub-count. The COUNTER is surfaced (not emitted) — main.rs reads it and emits the distinction.
+- HS-108 (MISSING — PO must author): extend the required scenarios to include: (d) valid pcapng with SHB + IDB + 1 OPB (no EPBs) → notice includes OPB count and re-save hint; (e) valid pcapng with 2 NRB blocks skipped + 1 OPB skipped → notice distinguishes OPB from NRB count.
 
 ## Alternatives Considered
 

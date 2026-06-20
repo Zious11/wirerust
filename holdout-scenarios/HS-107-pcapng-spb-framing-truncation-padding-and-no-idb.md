@@ -1,7 +1,7 @@
 ---
 document_type: holdout-scenario
 level: ops
-version: "1.3"  # Pass-4 R4 / ADR-009 rev 7 Decision 20: added Case F — btl=12 (aligned, crate frames, body=0 < 4 SPB fixed-field original_len) → E-INP-008 (body-too-short). Distinct from Case E misaligned/btl<12 → E-INP-010 (crate framing failure). Prior: v1.2 P3-re-audit FINDING-P3-003/004: added VP-031, restated Case B three-way min.
+version: "1.4"  # Pass-5 S2 / ADR-009 rev 8 Decision 9 amendment: snaplen DROPPED from SPB captured_len throughout. captured_len = min(original_len, block_body_available) everywhere. Case B rationale updated: body-bound (block_body_available=100), not snaplen clamp. BC Linkage table and Rubric updated. No Case removed — all A–F retained. Stale deferral note about HS-107 Case F removed from BC-2.01.013 (covered here).
 status: draft
 producer: product-owner
 timestamp: 2026-06-19T00:00:00Z
@@ -42,7 +42,9 @@ format means the framing semantics differ materially from the Enhanced Packet Bl
 `SPB_FIXED_OVERHEAD_BYTES = 4` (body-relative: the `original_len: u32` field only), giving a
 minimum `block_total_length` of 16 bytes (12-byte outer header + 4-byte body-fixed). The
 outer `data` slice from the crate INCLUDES 32-bit padding bytes; wirerust MUST strip them via
-`captured_len = min(original_len, snaplen_from_idb[0])` before producing a `RawPacket`.
+`captured_len = min(original_len, block_body_available)` where
+`block_body_available = block_total_length - 16` before producing a `RawPacket`. Snaplen is
+NOT applied for SPB (ADR-009 rev 8 Decision 9 amendment; same policy as EPB).
 
 This is the only holdout scenario covering SPB; BC-2.01.013 has no other holdout (C-2 / I-14
 gap from ADR-009 rev 5 HS-completeness map). Case F (btl=12 → E-INP-008) was added in
@@ -64,7 +66,7 @@ block_total_length = 12 (outer header: type[4]+total_len[4]+trailing_len[4]) + 4
                    = 16 + ceil(N/4)*4
 ```
 
-### Case A — SPB with original_len <= snaplen (no truncation, data returned intact)
+### Case A — SPB with original_len <= block_body_available (no truncation, data returned intact)
 
 1. A crafted pcapng file is presented containing:
    - SHB (little-endian, block_total_length=28, BOM=`4D 3C 2B 1A`, major=1, minor=0,
@@ -76,7 +78,7 @@ block_total_length = 12 (outer header: type[4]+total_len[4]+trailing_len[4]) + 4
      ```
      block_type:         03 00 00 00
      block_total_length: 24 00 00 00   # 36 decimal
-     original_len:       14 00 00 00   # 20 decimal — original_len <= snaplen (65535)
+     original_len:       14 00 00 00   # 20 decimal — original_len == block_body_available (no truncation)
      packet_data:        [20 bytes of valid Ethernet frame payload]
      trailing_total_len: 24 00 00 00
      ```
@@ -90,31 +92,32 @@ Hex: 03 00 00 00  24 00 00 00  14 00 00 00
      [20 bytes of Ethernet frame data, e.g. FF FF FF FF FF FF DE AD BE EF 00 01 08 00 45 00 00 00 00 00]
      24 00 00 00
 ```
-`original_len = 0x14 = 20`. `block_total_length = 0x24 = 36`. Available padded data =
-36 - 16 = 20 bytes. `captured_len = min(20, 65535) = 20`. `data.len() == 20`. No padding.
+`original_len = 0x14 = 20`. `block_total_length = 0x24 = 36`. `block_body_available` =
+36 - 16 = 20 bytes. `captured_len = min(20, 20) = 20`. `data.len() == 20`. No padding.
+Snaplen not applied (ADR-009 rev 8 Decision 9 amendment).
 
-### Case B — SPB with original_len > snaplen (captured data clamped to snaplen)
+### Case B — SPB with original_len > block_body_available (data bounded by on-disk body)
 
 1. A crafted pcapng file is presented containing:
    - SHB (LE, same as Case A)
-   - IDB with snaplen=100 (LE: `64 00 00 00` at body offset 4; block_total_length=20)
-   - SPB where a 200-byte packet was captured but snaplen=100 limits what was stored.
-     The block body holds 100 bytes of actual data plus 0 padding bytes (100%4==0).
+   - IDB with snaplen=100 (LE: `64 00 00 00` at body offset 4; block_total_length=20).
+     Note: snaplen is present in the IDB as a file field but is NOT used by wirerust in
+     the SPB `captured_len` computation (ADR-009 rev 8 Decision 9 amendment).
+   - SPB where a 200-byte packet was captured but the block body holds only 100 bytes
+     of actual data (block_body_available = 116 - 16 = 100). Padding = 0 (100%4==0).
      `block_total_length = 16 + 100 = 116` (LE: `74 00 00 00`).
      `original_len = 200` (LE: `C8 00 00 00`).
      ```
      block_type:         03 00 00 00
      block_total_length: 74 00 00 00   # 116 decimal
-     original_len:       C8 00 00 00   # 200 decimal — original_len > snaplen
+     original_len:       C8 00 00 00   # 200 decimal — original_len > block_body_available
      packet_data:        [100 bytes]
      trailing_total_len: 74 00 00 00
      ```
 2. The user runs `wirerust analyze spb_snaplen_clamp.pcapng --json`.
 3. The tool exits 0. `total_packets: 1`. The `RawPacket` data length is 100 bytes
-   (`captured_len = min(original_len=200, snaplen=100, block_body_available=100) = 100`;
-   all three limits coincide here — snaplen and block_body_available both cap at 100;
-   a two-way `min(original_len, snaplen)` impl would produce the same result in this fixture,
-   but would diverge if block_body_available < snaplen, e.g. a file truncated mid-body).
+   (`captured_len = min(original_len=200, block_body_available=100) = 100`;
+   the on-disk body is the authoritative bound — snaplen is NOT applied to SPB).
    The tool does NOT attempt to read 200 bytes from a 100-byte block body; no out-of-bounds
    read occurs.
 
@@ -143,8 +146,8 @@ Hex: 03 00 00 00  24 00 00 00  14 00 00 00
    cannot be constructed from 13 bytes — the tool may emit a decode-skip for the frame, but
    must not panic and must NOT include the padding bytes in the data slice).
 
-**Key observable:** `data.len()` MUST equal `captured_len = min(original_len=13, snaplen=65535) = 13`,
-not the padded length of 16.
+**Key observable:** `data.len()` MUST equal `captured_len = min(original_len=13, block_body_available=16) = 13`,
+not the padded length of 16. Snaplen is NOT applied for SPB (ADR-009 rev 8 Decision 9 amendment).
 
 ### Case D — SPB before any IDB (empty interface table) → Err E-INP-009
 
@@ -244,14 +247,14 @@ exactly 12 bytes the crate succeeds but delivers an empty body.
 
 | BC ID | Clause Tested | Scenario Aspect |
 |-------|--------------|-----------------|
-| BC-2.01.013 | Postcondition 1 — captured_len = min(original_len, snaplen); padding stripped | Cases A and C: correct data length after padding strip |
-| BC-2.01.013 | Postcondition 1 — data bounded by min(original_len, snaplen, block_body) | Case B: snaplen clamp prevents over-read |
+| BC-2.01.013 | Postcondition 1 — captured_len = min(original_len, block_body_available); padding stripped; snaplen not applied | Cases A and C: correct data length after padding strip |
+| BC-2.01.013 | Postcondition 1 — data bounded by min(original_len, block_body_available) | Case B: on-disk body bound prevents over-read (snaplen NOT applied per ADR-009 rev 8 Decision 9 amendment) |
 | BC-2.01.013 | Postcondition 5 / AC-001 — empty interface table → E-INP-009 | Case D: guard fires before idb[0] access |
 | BC-2.01.013 | Postcondition 6 / EC-005 — block_total_length < 12 (crate framing failure) → E-INP-010 | Case E: crate cannot frame btl=14; crate Err → wirerust E-INP-010 |
 | BC-2.01.013 | Postcondition 6 / EC-005 — btl=12 (crate frames, body=0 < 4 SPB fixed-field) → E-INP-008 | Case F: Decision 20 body-too-short path; distinct from Case E crate framing path |
 | BC-2.01.013 | AC-002 (padding strip) — data.len() == captured_len, NOT padded length | Case C: primary padding-strip assertion |
 | BC-2.01.013 | AC-003 (no-panic, SEC-005) — Err returned for malformed inputs, no panic | Cases D, E, F: no panic on adversarial inputs |
-| BC-2.01.013 | Invariant 2 — data bounded by min(original_len, snaplen) and block body | Cases B and C: bounds invariant |
+| BC-2.01.013 | Invariant 2 — data bounded by min(original_len, block_body_available); snaplen not applied | Cases B and C: bounds invariant |
 | BC-2.01.013 | Invariant 3 — RawPacket.timestamp_secs = 0, timestamp_usecs = 0 for SPBs | Case A: SPB timestamps are zero |
 
 ## Verification Approach
@@ -266,7 +269,7 @@ Expect: exit 0, `"total_packets": 1`, packet data length 20 bytes when examined.
 wirerust analyze spb_snaplen_clamp.pcapng --json
 echo "Exit: $?"
 ```
-Expect: exit 0, `"total_packets": 1`, packet data clamped to 100 bytes (not 200).
+Expect: exit 0, `"total_packets": 1`, packet data bounded by block_body_available=100 bytes (not original_len=200; snaplen not applied).
 
 ```
 wirerust analyze spb_unaligned.pcapng --json
@@ -298,11 +301,13 @@ body-decode rejects it). NOT E-INP-010. No JSON on stdout. No panic.
 ## Evaluation Rubric
 
 - **Padding-strip correctness** (weight: 0.25): Cases A and C — `data.len()` is exactly
-  `captured_len = min(original_len, snaplen)` after the crate's padded slice is trimmed.
-  Case A confirms no truncation when not needed. Case C confirms padding bytes are NOT included.
-- **Snaplen clamp correctness** (weight: 0.20): Case B — `data.len() == 100` when
-  `min(original_len=200, snaplen=100, block_body_available=100) = 100`; no read beyond block body.
-  The three-way min makes the bound observable: all three limits converge to 100 in this fixture.
+  `captured_len = min(original_len, block_body_available)` after the crate's padded slice is
+  trimmed. Snaplen is NOT applied. Case A confirms no truncation when not needed.
+  Case C confirms padding bytes are NOT included.
+- **Body-bound correctness** (weight: 0.20): Case B — `data.len() == 100` when
+  `min(original_len=200, block_body_available=100) = 100`; no read beyond block body.
+  The body-available bound is the sole on-disk authority — snaplen is NOT applied for SPB
+  (ADR-009 rev 8 Decision 9 amendment).
 - **No-panic safety** (weight: 0.25): Cases D, E, F — unchecked `idb[0]` access, crate
   framing failures, and body-too-short conditions all return graceful `Err`, never panic.
 - **E-INP-008 / E-INP-010 split (Decision 20)** (weight: 0.15): Case E produces E-INP-010
@@ -372,7 +377,7 @@ no error. A zero-padded payload is acceptable: `[00 * 20]`.
 
 "HOLDOUT LOW: HS-107 (satisfaction: 0.XX) — SPB framing has defects.
 Case A failure (exit non-zero) indicates SPB block parsing is absent or crashes on valid input.
-Case B failure (data.len() > 100) indicates snaplen clamping is missing for SPBs.
+Case B failure (data.len() > 100) indicates the on-disk body-bound (block_body_available) is not being applied for SPBs — wirerust is reading past the block body. Note: snaplen is NOT applied for SPB (ADR-009 rev 8 Decision 9 amendment); the bound is block_body_available only.
 Case C failure (data.len() == 16 instead of 13) indicates padding bytes are not stripped.
 Case D failure (panic / index OOB) indicates the empty-interface-table guard (H-4 fix) is
 absent or not applied on the SPB path.

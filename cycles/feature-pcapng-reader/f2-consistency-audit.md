@@ -1216,3 +1216,526 @@ section.
 | FINDING-P3-002 | MINOR | v3.0 audit — BC-2.01.018 Related BCs annotation reverses whitelist/conflict order | OPEN |
 | FINDING-P3-003 | OBS | v3.0 audit — HS-107 + HS-INDEX omit VP-031 cross-reference | OPEN |
 | FINDING-P3-004 | MINOR | v3.0 audit — HS-107 Case B shows two-way min expression | OPEN |
+
+---
+
+## v4.0 Append — F2 Pass-4 Remediation Cross-Seam Audit
+
+**Audit date:** 2026-06-20
+**Scope:** F2 Pass-4 remediation — 5 parallel PO bursts + architect rev 7. Seams 1-12 from the
+Pass-4 audit brief checked against disk.
+
+**Artifacts checked (Pass-4 versions):**
+
+- error-taxonomy.md v3.1
+- BC-2.01.009 v1.4, BC-2.01.010 v1.9, BC-2.01.011 v1.4, BC-2.01.012 v1.4,
+  BC-2.01.013 v1.4, BC-2.01.014 v1.4, BC-2.01.015 v1.5, BC-2.01.016 v1.4,
+  BC-2.01.017 v1.5, BC-2.01.018 v1.5
+- VP-INDEX v2.6
+- HS-INDEX v2.3, HS-103 v1.5, HS-104 v1.2, HS-107 v1.3, HS-108 v1.0
+- BC-INDEX v1.58
+
+---
+
+### Seam 1 — Uniform error-code rule (Decision 20): GAPS
+
+**Check:** E-INP-008 covers all four block types' wirerust body-decode failures (SHB=16,
+IDB=8, EPB=20, SPB=4 fixed-field minimums); E-INP-010 covers crate framing rejections
+(btl<12/misaligned/EOF) and EPB padding-aware over-read; no cross-wiring between the two
+paths; all normative BCs, holdouts, and error-taxonomy consistent.
+
+**Findings:**
+
+- BC-2.01.010 v1.9 PC5: Four-way uniform split restated. Cases: (a) btl<12/misaligned/EOF →
+  E-INP-010 (crate Err); (b) 12<=btl<28 → body<16 SHB bytes → wirerust body-decode →
+  E-INP-008; (c) btl>=28 but invalid BOM or major_version!=1 → E-INP-008 (semantic);
+  (d) well-formed → continues. AC-004a (btl=16 → body=4 < 16 → E-INP-008) and AC-004b
+  (btl<12 → E-INP-010) both present and consistent with Decision 20. PASS.
+
+- BC-2.01.012 v1.4 Description and PC3: A block_total_length in range [12, 32) produces a
+  body shorter than 20 bytes; wirerust MUST return E-INP-008 (not E-INP-010) when the body
+  is too short. EC-011: btl∈[12,32) → body<20 → E-INP-008. Architecture Anchors: "E-INP-008
+  (NOT E-INP-010)". M-1 fix: wirerust MUST itself check body.len() >= 20; not delegated to
+  crate. PASS.
+
+- BC-2.01.013 v1.4 PC4: btl=12 (aligned, >=12, crate frames and returns block) → body=0
+  bytes < 4 SPB fixed-field bytes → wirerust body-decode → E-INP-008. Distinguishes from
+  btl<12/misaligned/EOF → crate Err → E-INP-010. M-1 fix: wirerust checks body.len()>=4
+  itself. PASS.
+
+- error-taxonomy v3.1 E-INP-008 scope (Decision 20): explicitly lists EPB body < 20 bytes
+  and SPB body < 4 bytes as E-INP-008 subcategory (a). PASS.
+
+- BC-2.01.011 v1.4 PC5 (lines 72-73): The two uniform-split bullet points are correct.
+  However the tail sentence reads: "E-INP-008 covers SHB and IDB structural errors ONLY.
+  EPB/SPB body truncation routes to E-INP-010 per error-taxonomy.md — E-INP-008 is NOT
+  reused for packet-block truncation." This sentence is stale pre-Decision-20 wording.
+  It directly contradicts: (1) BC-2.01.012 v1.4 which routes EPB body<20 to E-INP-008;
+  (2) BC-2.01.013 v1.4 which routes SPB body<4 to E-INP-008; (3) error-taxonomy v3.1
+  E-INP-008 scope which explicitly includes EPB and SPB body-decode failures. GAP —
+  see FINDING-P4-001 below.
+
+- error-taxonomy v3.1 E-INP-010 Notes tail: "Note: E-INP-008 is RESERVED for SHB/IDB
+  body-decode failures (see that row); it is NOT used for EPB/SPB errors." This directly
+  contradicts the E-INP-008 row in the same document whose scope explicitly lists EPB
+  body<20 and SPB body<4 as E-INP-008 cases. GAP — see FINDING-P4-002 below.
+
+- error-taxonomy v3.1 E-INP-010 items (d) and (e): item (d) "EPB body truncated (< 20
+  fixed-field bytes)" and item (e) "SPB body truncated (< 4 bytes for original_len field,
+  i.e., block_total_length < 16)" classify wirerust body-decode failures as E-INP-010. Per
+  Decision 20 and BC-2.01.012/013, these are E-INP-008 cases, not E-INP-010 cases. The
+  additional note in item (e) "block_total_length < 16" is also imprecise: the E-INP-008
+  constructible window for SPB is btl=12 (body=0 < 4) through btl=15 (body=3 < 4); btl<12
+  is the crate framing error (E-INP-010), not a body-decode case. GAP — see FINDING-P4-003
+  below.
+
+**SEAM 1: GAPS — FINDING-P4-001 (Major), FINDING-P4-002 (Major), FINDING-P4-003 (Major)**
+
+---
+
+### Seam 2 — H-2 peek-only probe (BC-2.01.009): CLEAN
+
+**Check:** BC-2.01.009 v1.4 removes all consume(4) references; probe is PEEK-ONLY via
+BufReader::fill_buf() with ZERO consumption; both pcap and pcapng branches receive the
+full un-consumed stream.
+
+**Findings:**
+
+- BC-2.01.009 v1.4 changelog (v1.4): "Removed all consume(4) references: the probe is
+  PEEK-ONLY via BufReader::fill_buf() with ZERO consumption; BOTH branches (classic PcapReader
+  AND pcapng RawBlock) receive the FULL un-consumed stream starting at byte 0. Implementing
+  consume(4) would break every file — removed from Description and Precondition 2 and
+  Postcondition 3." Explicit removal confirmed. PASS.
+
+- BC-2.01.009 v1.4 Description and PC2: no consume() call present. PASS.
+
+- BC-2.01.009 v1.4 PC3: "the probe consumes no bytes; the next read on the same BufReader
+  returns the byte that was at offset 0" (peek-only semantics preserved). PASS.
+
+**SEAM 2: CLEAN**
+
+---
+
+### Seam 3 — Decision 19 zero-packet notice gating condition: CLEAN
+
+**Check:** BC-2.01.009 v1.4 PC6 cites Decision 19 (not Decision 17); gating condition is
+"valid file + zero packets" (NOT "skipped_blocks > 0"); BC-2.01.015 v1.5 PC9 counter feeds
+but does not gate.
+
+**Findings:**
+
+- BC-2.01.009 v1.4 changelog (v1.4): "Decision 19 / M-4) Fixed PC6 citation: 'Decision 17'
+  corrected to 'Decision 19'." Citation corrected. PASS.
+
+- BC-2.01.009 v1.4 PC6: trigger = "valid file + zero packets" citing Decision 19. EC-008:
+  IDB-only (zero skipped blocks) → notice without skip count. Gating condition is not
+  skipped_blocks > 0. PASS.
+
+- BC-2.01.015 v1.5 PC9 and AC-006: "counter feeds notice but trigger is owned by
+  BC-2.01.009"; gating condition is "valid file + zero packets" (Decision 19). PASS.
+
+- BC-2.01.009 v1.4 PC3 tail (H-4 disambiguation): "a file is 'structurally-valid
+  zero-packet' (notice, exit 0) IFF it parses to EOF with no error AND packets.len()==0;
+  an EPB/SPB before any IDB is an ERROR (E-INP-009, exit 1), NOT a zero-packet success."
+  Explicit disambiguation rule present. PASS.
+
+- HS-108 v1.0 confirms: three cases — (A) SHB+IDB no EPB/SPB → notice without skip count,
+  exit 0; (B) 2 unknown blocks → notice with "2 block(s) skipped", exit 0; (C) EPB before
+  IDB → E-INP-009, exit 1, NO notice. Consistent. PASS.
+
+**SEAM 3: CLEAN**
+
+---
+
+### Seam 4 — EPB padding-aware bound (C-1): CLEAN
+
+**Check:** BC-2.01.012 v1.4 PC3/AC-002 has two-step check: (1) unconditional captured_len
+<= body.len(); (2) 20 + captured_len + pad_len(captured_len) <= body.len(); HS-104 v1.2
+Case E exercises non-mult-4 captured_len path.
+
+**Findings:**
+
+- BC-2.01.012 v1.4 Description: "two-step check: first, captured_len can never exceed
+  body.len() (unconditional bound-by-body); second, the padding-aware overhead test
+  EPB_FIXED_OVERHEAD_BYTES(20) + captured_len + pad_len(captured_len) <= body.len()
+  (where pad_len(n) = (4 - n%4) % 4) must pass before any allocation." Two-step form
+  present. PASS.
+
+- BC-2.01.012 v1.4 AC-002/EC-009/EC-010: updated to padding-aware bound per v1.4 changelog
+  (C-1 fix). PASS.
+
+- HS-104 v1.2 Case E: captured_len ≡ 3 mod 4, raw check passes but padded extent overflows
+  → E-INP-010. Exercises the case where pad_len(captured_len) pushes the padded extent past
+  body.len(). PASS.
+
+- HS-INDEX v2.3 entry for HS-104: v1.2 listed, Case E present. PASS.
+
+**SEAM 4: CLEAN**
+
+---
+
+### Seam 5 — M-1 body-minimum guard owned by wirerust: CLEAN
+
+**Check:** BC-2.01.011 v1.4, BC-2.01.012 v1.4, BC-2.01.013 v1.4 all state that wirerust
+performs the body-minimum check itself on the raw path; "crate enforces" over-claim removed
+from Architecture Anchors in each.
+
+**Findings:**
+
+- BC-2.01.011 v1.4 changelog (v1.4): "M-1: removed 'crate enforces body>=8' over-claim from
+  Architecture Anchors — wirerust checks body.len()>=8 itself on the raw path before decoding
+  IDB fixed fields." Over-claim removed. PASS.
+
+- BC-2.01.012 v1.4 PC3 and AC-003: "on the raw-block path the crate does NOT run its
+  EnhancedPacketBlock parser; wirerust MUST itself check body.len() >= 20 before reading any
+  EPB fixed field — the 20-byte check is NOT delegated to the crate." Explicit ownership
+  stated. PASS.
+
+- BC-2.01.013 v1.4 changelog (v1.4): "M-1: removed 'crate enforces body minimum' over-claim
+  from Architecture Anchors — wirerust checks body.len()>=4 itself on the raw path before
+  decoding SPB fixed fields." PASS.
+
+**SEAM 5: CLEAN**
+
+---
+
+### Seam 6 — Decision 21 if_tsoffset limitation: CLEAN
+
+**Check:** BC-2.01.011 v1.4 PC6 limitation note: if_tsoffset (option code 10) NOT extracted
+this cycle. BC-2.01.014 v1.4 limitation note matches. No BC claims to apply if_tsoffset.
+
+**Findings:**
+
+- BC-2.01.011 v1.4 PC6 (lines 86-89): "Limitation (ADR-009 Decision 21): if_tsoffset
+  (option code 10) is NOT extracted or applied this cycle. Only if_tsresol (code 9) is
+  extracted. Timestamp offsets embedded in IDB options are silently skipped as unknown option
+  codes. This is a known limitation scoped out for this cycle." PASS.
+
+- BC-2.01.011 v1.4 AC-003: Decision 21 limitation note also present in the AC. PASS.
+
+- BC-2.01.014 v1.4 limitation note: does NOT apply if_tsoffset. PASS.
+
+- No BC in the SS-01 set claims to extract or apply if_tsoffset. PASS.
+
+**SEAM 6: CLEAN**
+
+---
+
+### Seam 7 — Block #<seq> numbering convention (M-5): CLEAN
+
+**Check:** error-taxonomy v3.1 preamble pins the 1-based block-sequence numbering convention
+(SHB=block #1, each next_raw_block increments); E-INP-010/012/013 Context fields all use
+this convention; conflicting "first block after SHB = #1" wording removed.
+
+**Findings:**
+
+- error-taxonomy v3.1 preamble (Block #<seq> numbering convention note): "SHB is block #1;
+  each next_raw_block call increments the counter. Consequently: the first IDB (immediately
+  after the SHB) is block #2; the first EPB is block #3 in a single-IDB file. This convention
+  is the single source of truth for all E-INP-010, E-INP-012, and E-INP-013 Context fields
+  below. The earlier wording 'first block after the SHB = #1' that appeared in some entries
+  was incorrect and has been removed." Present and correct. PASS.
+
+- error-taxonomy v3.1 v3.1 changelog: "(M-5): block #<seq> numbering convention pinned in
+  taxonomy header AND in E-INP-010/012/013 Context fields: 1-based; SHB is block #1; each
+  next_raw_block call increments the counter. Conflicting 'first block after the SHB = #1'
+  wording removed from E-INP-010 and E-INP-013 so all three entries agree with E-INP-012."
+  PASS.
+
+- E-INP-010, E-INP-012, E-INP-013 Context fields: all three carry the "`<seq>` convention
+  (M-5)" annotation with consistent "1-based; the SHB is block #1" wording. PASS.
+
+**SEAM 7: CLEAN**
+
+---
+
+### Seam 8 — VP-030 domain narrowing (H-3): CLEAN
+
+**Check:** VP-INDEX v2.6 VP-030 restated: domain = WHITELISTED DataLink values only;
+comparison unit = DataLink enum (not raw u16); non-whitelisted → E-INP-001 (out of VP-030
+scope). BC-2.01.018 v1.5 consistent.
+
+**Findings:**
+
+- VP-INDEX v2.6 changelog (Pass-4 entry): "VP-030 RESTATED: domain narrowed from 'any
+  sequence of IDB linktype u16 values' to 'WHITELISTED DataLink values only' (non-whitelisted
+  values short-circuit to E-INP-001 before the conflict check is ever reached; the original
+  domain included unreachable sequences). Comparison unit pinned to DataLink (not raw u16).
+  Property restated: all-equal whitelisted DataLink → Ok; first-differing whitelisted DataLink
+  → Err(E-INP-011) on that IDB; non-whitelisted → E-INP-001 (out of VP-030 scope). No VP
+  counts changed (31 total; proptest 10; draft 7)." PASS.
+
+- BC-2.01.018 v1.5: VP-030 description in Verification Properties table reflects narrowed
+  domain (WHITELISTED) and DataLink comparison unit. PASS.
+
+- VP counts unchanged at 31; arithmetic consistent (8+17+6=31; 14+10+2+5=31). PASS.
+
+**SEAM 8: CLEAN**
+
+---
+
+### Seam 9 — HS-108 authoring and HS-INDEX consistency: CLEAN
+
+**Check:** HS-108 exists on disk with the three cases (A: SHB+IDB zero-packet notice;
+B: 2 unknown blocks notice with skip count; C: EPB before IDB → E-INP-009). HS-INDEX v2.3
+total_scenarios=108, must_pass=107, should_pass=1.
+
+**Findings:**
+
+- HS-108 file exists: `.factory/holdout-scenarios/HS-108-pcapng-zero-packet-notice-end-to-end.md`
+  v1.0. Present. PASS.
+
+- HS-108 three cases confirmed: (A) SHB+IDB only → notice without skip count, exit 0;
+  (B) 2 unknown blocks → notice with skip count, exit 0; (C) EPB before IDB → E-INP-009,
+  exit 1, NO notice. H-4 disambiguation rule exercised in Case C. PASS.
+
+- HS-INDEX v2.3 frontmatter: total_scenarios=108, must_pass_count=107, should_pass_count=1.
+  All-namespace total=181 documented. HS-108 present in catalog. PASS.
+
+- HS-INDEX v2.3 changelog note: "Pass-4 R4 / ADR-009 rev 7: added HS-108 (zero-packet notice
+  end-to-end — BC-2.01.009 PC6 / BC-2.01.015 PC9 / H-4). Greenfield total now 108. All-
+  namespace total now 181." Consistent with frontmatter. PASS.
+
+- HS-103 v1.5 Case D (btl=16→E-INP-008): present per HS-INDEX v2.3 changelog. Exercises
+  SHB constructible body-truncation fixture per Decision 20 restoration. PASS.
+
+- HS-104 v1.2 Case E (non-mult-4 captured_len, padded extent overflows): present per
+  HS-INDEX v2.3 changelog. PASS.
+
+- HS-107 v1.3 Case F (btl=12→E-INP-008 for SPB): present per HS-INDEX v2.3 changelog.
+  Exercises SPB constructible body-truncation fixture per Decision 20. PASS.
+
+- Prior findings FINDING-P3-003 and FINDING-P3-004 (HS-107 VP column missing VP-031, Case B
+  two-way min): HS-INDEX v2.3 version note references "P3-re-audit FINDING-P3-003+P3-004:
+  HS-107 VP column updated." These are resolved. No re-open needed. PASS.
+
+**SEAM 9: CLEAN**
+
+---
+
+### Seam 10 — BC-INDEX v1.58 counts and inline versions: CLEAN
+
+**Check:** BC-INDEX v1.58 active count = 302; all 10 SS-01 Pass-4 BCs have inline version
+annotations matching on-disk frontmatter; epics.md discrepancy (FINDING-002) is pre-existing
+and not introduced by Pass-4.
+
+**Findings:**
+
+- BC-INDEX v1.58: "Active: 302" confirmed. 302 - 0 new BCs this pass (all 10 SS-01 BCs were
+  existing; Pass-4 only bumped versions). Active count unchanged from v1.56. PASS.
+
+- Inline version annotations in BC-INDEX v1.58 for the 10 audited Pass-4 BCs: BC-2.01.009
+  v1.4, BC-2.01.010 v1.9, BC-2.01.011 v1.4, BC-2.01.012 v1.4, BC-2.01.013 v1.4,
+  BC-2.01.014 v1.4, BC-2.01.015 v1.5, BC-2.01.016 v1.4, BC-2.01.017 v1.5, BC-2.01.018 v1.5
+  — all match on-disk frontmatter versions confirmed during this audit. PASS.
+
+- epics.md total_bcs discrepancy (FINDING-002: 297 vs 302) is pre-existing from v1.0 audit.
+  No new drift introduced by Pass-4. OPEN but not a Pass-4 regression. PASS (no new finding).
+
+**SEAM 10: CLEAN**
+
+---
+
+### Seam 11 — Version monotonicity and next_free_error_code: CLEAN
+
+**Check:** All 10 Pass-4 BCs show monotonic version increments from their Pass-3 versions;
+error-taxonomy v3.1 next_free_error_code = E-INP-014; no new ID collisions.
+
+**Findings:**
+
+- Version increments (Pass-3 → Pass-4):
+  BC-2.01.009 v1.3→v1.4, BC-2.01.010 v1.8→v1.9, BC-2.01.011 v1.3→v1.4,
+  BC-2.01.012 v1.3→v1.4, BC-2.01.013 v1.3→v1.4, BC-2.01.014 v1.3→v1.4,
+  BC-2.01.015 v1.4→v1.5, BC-2.01.016 v1.3→v1.4, BC-2.01.017 v1.4→v1.5,
+  BC-2.01.018 v1.3→v1.5. All monotonic. PASS.
+
+- error-taxonomy v3.1 E-INP-013 row tail: "next_free_error_code: E-INP-014." Confirmed;
+  no E-INP-014 defined anywhere in the taxonomy. PASS.
+
+- VP-INDEX v2.6 total_vps=31, counts consistent (14+10+2+5=31; 8+17+6=31). No new VPs added
+  in Pass-4 (VP-030 restated in place, no count change). PASS.
+
+- HS-INDEX v2.3 total_scenarios=108. Previously 107 (v2.2); Pass-4 added HS-108 (+1). PASS.
+
+**SEAM 11: CLEAN**
+
+---
+
+### Seam 12 — VP-INDEX self-consistency (criteria 78): CLEAN
+
+**Check:** VP-INDEX v2.6 total_vps=31 equals sum of tool counts (kani=14, proptest=10,
+fuzz=2, integration/unit=5); equals sum of phase counts (p0=8, p1=17, test_sufficient=6).
+
+**Findings:**
+
+- Tool total: 14+10+2+5=31. Matches total_vps=31. PASS.
+- Phase total: 8+17+6=31. Matches total_vps=31. PASS.
+- VP-030 restatement did not change counts; all consistency invariant annotations in VP-INDEX
+  v2.6 reflect the correct post-restatement totals. PASS.
+
+**SEAM 12: CLEAN**
+
+---
+
+## v4.0 Findings
+
+### FINDING-P4-001 — Major (Seam 1)
+
+**BC-2.01.011 v1.4 PC5 tail sentence contains stale pre-Decision-20 routing rule**
+
+**File:** `/Users/zious/Documents/GITHUB/wirerust/.factory/specs/behavioral-contracts/ss-01/BC-2.01.011.md`
+**Frontmatter version:** v1.4
+**Location:** Postcondition 5, tail sentence (after the two uniform-split bullet points)
+
+**Current text:**
+> "E-INP-008 covers SHB and IDB structural errors ONLY. EPB/SPB body truncation routes to
+> E-INP-010 per error-taxonomy.md — E-INP-008 is NOT reused for packet-block truncation."
+
+**What is wrong:** Decision 20 (ADR-009 rev 7) established the uniform four-way rule that
+routes wirerust body-decode failures for ALL four block types (SHB, IDB, EPB, SPB) to
+E-INP-008. The two bullet points immediately above this sentence in PC5 are correct and
+reflect Decision 20. However, this tail sentence was carried forward from BC-2.01.011 v1.2
+(Pass-2) where E-INP-008 did apply only to SHB/IDB, and was NOT updated during Pass-4 to
+reflect the expanded scope. It now directly contradicts:
+
+1. **BC-2.01.012 v1.4** — PC3, Description, and EC-011 explicitly route EPB body<20 to
+   E-INP-008 with the note "not E-INP-010."
+2. **BC-2.01.013 v1.4** — PC4 routes SPB body<4 (btl=12, body=0) to E-INP-008.
+3. **error-taxonomy v3.1 E-INP-008 scope** — explicitly lists "EPB body < 20 bytes; SPB
+   body < 4 bytes (original_len)" as E-INP-008 subcategory (a).
+
+**Risk:** The IDB BC is the first block-type BC an implementer reads when building the block
+walker. Finding this sentence in BC-2.01.011 — before reading BC-2.01.012 or BC-2.01.013 —
+will cause the implementer to wire EPB/SPB body-too-short paths to E-INP-010, directly
+contradicting the normative EPB and SPB BCs.
+
+**Remediation:** Remove the tail sentence and replace with:
+> "Note: per Decision 20, E-INP-008 applies to wirerust body-decode failures for ALL four
+> block types (SHB, IDB, EPB, SPB). EPB body<20 → E-INP-008 (BC-2.01.012 EC-011); SPB
+> body<4 → E-INP-008 (BC-2.01.013 PC4). E-INP-010 is strictly the crate-framing path."
+
+---
+
+### FINDING-P4-002 — Major (Seam 1)
+
+**error-taxonomy v3.1 E-INP-010 Note contradicts E-INP-008's own scope within the same document**
+
+**File:** `/Users/zious/Documents/GITHUB/wirerust/.factory/specs/prd-supplements/error-taxonomy.md`
+**Frontmatter version:** v3.1
+**Location:** E-INP-010 row, Notes field, tail sentence
+
+**Current text (tail sentence of E-INP-010 Notes):**
+> "Note: E-INP-008 is RESERVED for SHB/IDB body-decode failures (see that row); it is NOT
+> used for EPB/SPB errors."
+
+**What is wrong:** In the same document, one row above, the E-INP-008 Notes field (which v3.1
+explicitly updated for Decision 20) reads:
+> "Two subcategories: (a) Block body shorter than required fixed-field bytes — SHB body < 16
+> bytes; IDB body < 8 bytes; **EPB body < 20 bytes; SPB body < 4 bytes** (original_len)."
+
+The E-INP-010 tail note directly contradicts the E-INP-008 scope within the same version of
+the same document. A developer reading E-INP-010 after E-INP-008 encounters a contradiction
+with no resolution path. The E-INP-010 Note appears to be a carry-over from v2.9/v3.0 that
+was not excised when the E-INP-008 scope was expanded in v3.1 to cover EPB and SPB.
+
+**Risk:** The Note gives the false appearance that E-INP-010 is authoritative for EPB/SPB
+errors, overriding the E-INP-008 scope. An implementer who reads the Note but not the
+E-INP-008 scope body will misroute EPB/SPB body-too-short paths to E-INP-010.
+
+**Remediation:** Remove the tail sentence from E-INP-010 Notes, or replace with:
+> "Note: E-INP-008 covers SHB and IDB framing-on-body failures AND EPB/SPB wirerust
+> body-decode failures (body shorter than required fixed-field bytes); see that row's scope
+> (Decision 20). E-INP-010 covers crate-level framing rejections and EPB padding-aware
+> over-read."
+
+---
+
+### FINDING-P4-003 — Major (Seam 1)
+
+**error-taxonomy v3.1 E-INP-010 items (d) and (e) classify wirerust body-decode failures as E-INP-010**
+
+**File:** `/Users/zious/Documents/GITHUB/wirerust/.factory/specs/prd-supplements/error-taxonomy.md`
+**Frontmatter version:** v3.1
+**Location:** E-INP-010 row, Notes field, items (d) and (e)
+
+**Current text:**
+> "(d) EPB body truncated (< 20 fixed-field bytes). (e) SPB body truncated (< 4 bytes for
+> original_len field, i.e., block_total_length < 16)."
+
+**What is wrong:** These items describe wirerust body-decode failures — cases where pcap-file
+2.0.0 successfully frames the block (btl >= 12, aligned, trailing length matches) and returns
+a block body, but wirerust's own decode finds the body is shorter than the required fixed
+fields. Per Decision 20 and the E-INP-008 scope in the same document, these are E-INP-008
+cases, not E-INP-010 cases. Item (e) also contains an inaccurate parenthetical: "i.e.,
+block_total_length < 16" — the E-INP-008 constructible window for SPB is 12 <= btl <= 15
+(body 0–3 bytes); btl < 12 is the crate framing rejection (which IS E-INP-010). So the
+parenthetical describes a mixed window that straddles both error codes.
+
+**Evidence triangle:**
+- BC-2.01.012 v1.4 EC-011 and Description: btl∈[12,32) → body<20 → "E-INP-008 (not E-INP-010)"
+- BC-2.01.013 v1.4 PC4: btl=12 → body=0 < 4 → E-INP-008
+- error-taxonomy v3.1 E-INP-008 scope: EPB body<20 and SPB body<4 listed as E-INP-008 subcategory (a)
+
+**Risk:** Items (d) and (e) in E-INP-010 are stale pre-Decision-20 entries that directly
+conflict with the normative BCs. An implementer mapping error codes from E-INP-010 will
+misroute EPB/SPB body-too-short failures.
+
+**Remediation:** Remove items (d) and (e) from E-INP-010 Notes, and add a cross-reference:
+> "Note: EPB body < 20 bytes and SPB body < 4 bytes are E-INP-008 cases (wirerust body-decode
+> failures), NOT E-INP-010. See E-INP-008 scope for the full boundary (Decision 20)."
+Adjust E-INP-010 item (e) for the crate-framing case: "SPB block_total_length < 12 or
+misaligned → crate Err → E-INP-010" (distinct from the wirerust body-decode case).
+
+---
+
+## v4.0 Summary — Cross-Seam Audit
+
+| Seam | Topic | Result |
+|------|-------|--------|
+| 1 | Uniform error-code rule (Decision 20) — E-INP-008/E-INP-010 boundary | GAPS: 3 Major findings |
+| 2 | H-2 peek-only probe — consume(4) removed from BC-2.01.009 | CLEAN |
+| 3 | Decision 19 zero-packet notice gating condition | CLEAN |
+| 4 | EPB padding-aware bound (C-1) — two-step check | CLEAN |
+| 5 | M-1 body-minimum guard owned by wirerust, not crate | CLEAN |
+| 6 | Decision 21 if_tsoffset limitation noted and scoped out | CLEAN |
+| 7 | Block #<seq> numbering convention (M-5) pinned in taxonomy | CLEAN |
+| 8 | VP-030 domain narrowed to whitelisted DataLink values (H-3) | CLEAN |
+| 9 | HS-108 authored; HS-103/104/107 Decision 20 cases added | CLEAN |
+| 10 | BC-INDEX v1.58 counts and inline versions consistent | CLEAN |
+| 11 | Version monotonicity; next_free E-INP-014; VP/HS counts | CLEAN |
+| 12 | VP-INDEX self-consistency arithmetic | CLEAN |
+
+**Overall v4.0 verdict: NOT CLEAN — 3 Major gaps found, all in Seam 1.**
+
+All three gaps are co-located at the E-INP-008/E-INP-010 boundary and stem from the same
+root cause: the Decision 20 ("uniform error-code rule") expansion of E-INP-008 to cover EPB
+and SPB wirerust body-decode failures was applied correctly to the E-INP-008 scope entry and
+to BC-2.01.012/013, but two residual pre-Decision-20 artifacts were NOT purged:
+
+1. The tail sentence in BC-2.01.011 PC5 that restricts E-INP-008 to SHB/IDB.
+2. The E-INP-010 Note and items (d)/(e) that assign EPB/SPB body truncation to E-INP-010.
+
+These are specification contradictions, not ambiguities. They will cause incorrect
+implementation if an implementer reads any of the three stale locations as authoritative.
+
+No blocking findings against Seams 2-12. The three Major findings in Seam 1 should be
+resolved before Phase-4 holdout evaluation.
+
+---
+
+## Updated Open Findings Register
+
+| ID | Severity | Source | Status |
+|----|----------|--------|--------|
+| FINDING-001 | HIGH | v1.0 audit — ADR-009 Status section stale contradiction | OPEN |
+| FINDING-002 | HIGH | v1.0 audit — epics.md total_bcs 297 vs BC-INDEX 302 | OPEN |
+| FINDING-003 | MEDIUM | v1.0 audit — prd.md RTM missing BC-2.01.009-018 rows | OPEN |
+| FINDING-004 | MEDIUM | v1.0 audit — BC-INDEX updated timestamp stale | OPEN |
+| FINDING-P2-001 | LOW | v2.0 audit — ADR-009 HS-completeness map HS-107 shown MISSING | OPEN |
+| FINDING-P3-001 | MAJOR | v3.0 audit — error-taxonomy E-INP-008 Notes not updated for SHB semantic-only narrowing | RESOLVED (v3.1 correctly updated the Notes) |
+| FINDING-P3-002 | MINOR | v3.0 audit — BC-2.01.018 Related BCs annotation reverses whitelist/conflict order | OPEN |
+| FINDING-P3-003 | OBS | v3.0 audit — HS-107 + HS-INDEX omit VP-031 cross-reference | RESOLVED (HS-INDEX v2.3 updated VP column) |
+| FINDING-P3-004 | MINOR | v3.0 audit — HS-107 Case B shows two-way min expression | OPEN |
+| FINDING-P4-001 | MAJOR | v4.0 audit — BC-2.01.011 PC5 tail sentence restricts E-INP-008 to SHB/IDB only (stale pre-Decision-20) | OPEN |
+| FINDING-P4-002 | MAJOR | v4.0 audit — error-taxonomy v3.1 E-INP-010 Note says E-INP-008 not used for EPB/SPB (contradicts E-INP-008 scope in same document) | OPEN |
+| FINDING-P4-003 | MAJOR | v4.0 audit — error-taxonomy v3.1 E-INP-010 items (d)/(e) classify EPB/SPB body-decode failures as E-INP-010 (stale pre-Decision-20) | OPEN |

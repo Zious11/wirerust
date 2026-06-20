@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.5"
+version: "1.6"
 status: draft
 producer: product-owner
 timestamp: 2026-06-19T00:00:00Z
@@ -15,6 +15,7 @@ introduced: v0.10.0-pcapng
 modified:
   - "v1.1: F-07 completeness delta — explicitly enumerate all pcap-file Block variants that fall through to the skip path (NRB, ISB, DSB, SystemdJournalExport, obsolete Packet Block 0x2, Unknown); note that obsolete Packet Block 0x2 carries packet data but is treated as out-of-scope/skipped; add AC to prevent omitted match arm at implementation. — 2026-06-19"
   - "v1.2: F2 Burst-A remediation per ADR-009 rev 4 PO dispatch — (1) VP-029 added to Verification Properties. (2) EC-004 CORRECTED: `block_total_length = 8` is REJECTED by the crate (`block_common.rs:101`: `< 12` threshold), NOT '0 bytes consumed; no error'. Removed the false 'no error' claim; replaced with crate-accurate reject behavior. (3) EC-005 updated accordingly (threshold is now < 12, not < 8). (4) Added forward-progress invariant: block-walk loop MUST break on Err(_); the crate cursor does NOT advance on error (`read_buffer.rs:65`). (5) On the raw-block path, skip means ignoring the RawBlock body bytes (already in the body slice); the loop-break-on-error invariant covers all block types. (6) DSB log-guard note (SEC-007) added to AC-002: block body bytes MUST NOT be logged at any level. (7) Corrected AC-001 entry for DSB: DSB (type 0x0A) is NOT a named pcap-file Block variant — it arrives as Block::Unknown on the high-level API; on the raw-block path, block-type dispatch reads bytes 0-3 of each RawBlock body — no named DSB arm exists. (8) Added no-panic AC (SEC-005). — 2026-06-19"
+  - "v1.6: Pass-5 remediation S3 (ADR-009 rev 8) — (M-5) Rewrote PC9: counter is SURFACED via PcapSource fields (not emitted by reader); main.rs reads PcapSource.skipped_blocks and PcapSource.opb_skipped after from_pcap_reader returns Ok, then emits the notice. Added opb_skipped:u32 as a dedicated sub-counter incremented specifically when an obsolete Packet Block (OPB, type 0x00000002) is skipped; skipped_blocks:u32 is the total skip counter (all block types hitting the skip arm, including OPB). Updated AC-006 accordingly. — 2026-06-20"
   - "v1.5: Pass-4 remediation R3a (ADR-009 rev 7) — (Decision 19 / M-4) Fixed PC9 citation: 'Decision 17' corrected to 'Decision 19' in Postcondition 9 cross-reference. The skipped_blocks counter and its pass-to-caller semantics are unchanged. BC-2.01.009 owns the emission gate ('valid file + zero packets', Decision 19); BC-2.01.015 owns the counter. — 2026-06-20"
   - "v1.4: Pass-3 remediation Burst Q3 (ADR-009 rev 6) — (M-3) PC9 clarified: the emission trigger now lives in BC-2.01.009 as 'valid file + zero packets' (not 'zero packets AND skipped_blocks>0'). BC-2.01.015 retains the skipped_blocks counter and passes it to BC-2.01.009; BC-2.01.009 decides whether to include the count in the notice message. AC-006 updated to reflect that the counter is reported in the notice message when >0 but is NOT the gating condition. — 2026-06-19"
   - "v1.3: Pass-2 remediation per ADR-009 rev 5 (C-3, I-3, I-11) — (C-3) Canonical Test Vector body-byte count corrected: block_total_length=20 has 20-12=8 body bytes (not 12; pcapng frame overhead is 12 bytes: type:4 + total_len:4 + trailing_total_len:4). Test vector updated accordingly. (I-3) Added skipped_blocks counter concept and cross-reference to BC-2.01.009 for the one-shot stderr notice: when packet-bearing blocks are skipped and packet count reaches zero on a non-empty file, BC-2.01.009 emits a one-shot E-INP-007-style notice with the count of skipped blocks (no body bytes logged — SEC-007). BC-2.01.015 owns the counter; emission is BC-2.01.009's responsibility. Added Postcondition 9 and AC-006. (I-11) Added Test: citations to all ACs. — 2026-06-19"
@@ -64,16 +65,30 @@ error, so retrying the same source after an error would spin (CWE-835).
 8. If the crate returns `Err(_)` for any block (including a malformed unknown block), the
    block-walk loop MUST break immediately. The loop MUST NOT retry the same source after
    an error.
-9. BC-2.01.015 maintains a `skipped_blocks: u64` counter incremented once per skipped block
-   (any block falling through to the skip arm). This counter is passed to the caller context
-   at end-of-file. **The emission trigger is owned by BC-2.01.009 and is "valid file + zero
-   packets"** (M-3 / ADR-009 rev 7 Decision 19): BC-2.01.009 emits the one-shot stderr
-   notice whenever the pcapng file is structurally valid and the packet list is empty —
-   regardless of whether `skipped_blocks > 0`. The `skipped_blocks` count from this counter
-   is included in the notice message when it is greater than zero; it is NOT the gating
-   condition for notice emission. Block body bytes MUST NOT appear in this notice (SEC-007).
-   This cross-reference is bidirectional: BC-2.01.015 owns the counter; BC-2.01.009 owns
-   the emission decision and message format.
+9. (Counter surfacing — M-5 / ADR-009 rev 8 Decision 19) BC-2.01.015 maintains two counters,
+   both SURFACED as public fields on `PcapSource` (NOT emitted by the reader):
+   - `skipped_blocks: u32` — incremented once per block entering the skip arm, regardless of
+     block type. This is the total skip counter (includes OPB, NRB, ISB, DSB, SJE, Unknown,
+     and any future unknown types).
+   - `opb_skipped: u32` — incremented once per block specifically identified as an obsolete
+     Packet Block (OPB, type `0x00000002`). This is a sub-count of `skipped_blocks`; every
+     OPB skip increments BOTH `skipped_blocks` and `opb_skipped`. When a non-OPB unknown
+     block is skipped, only `skipped_blocks` is incremented.
+
+   After `from_pcap_reader` returns `Ok(source)`, **main.rs** reads `source.skipped_blocks`
+   and `source.opb_skipped` to construct the notice message (BC-2.01.009 PC6 canonical
+   format). `from_pcap_reader` itself MUST NOT emit anything to stderr — it is a library
+   function with no access to the filename.
+
+   **The emission trigger is owned by BC-2.01.009 and is "valid file + zero packets"**
+   (M-3 / ADR-009 rev 7/8 Decision 19): main.rs emits the one-shot stderr notice whenever
+   the file is structurally valid and `packets.is_empty()` — regardless of whether
+   `skipped_blocks > 0`. When `opb_skipped > 0`, the OPB appendage clause is added to the
+   notice. When `skipped_blocks > 0` but `opb_skipped == 0`, the notice is emitted without
+   the OPB appendage. When `skipped_blocks == 0`, the notice is emitted without any skip
+   segment. `skipped_blocks` is NOT the gating condition for emission. Block body bytes MUST
+   NOT appear in this notice (SEC-007). The counters MUST NOT overflow — use `u32` with
+   `saturating_add` (realistic pcapng files cannot contain 2^32 blocks).
 
 ## Acceptance Criteria
 
@@ -96,11 +111,16 @@ error, so retrying the same source after an error would spin (CWE-835).
   diagnostic output. DSB (type `0x0000000A`) carries TLS key material; logging its bytes
   would be a security violation.
   **Test:** `test_BC_2_01_015_no_output_on_skip`
-- **AC-003 (OPB is skipped, not parsed):** OPB (type `0x00000002`) carries packet data but is
-  an obsolete/deprecated block superseded by EPB. wirerust treats it as out-of-scope and skips
-  it silently. OPB packet data is intentionally NOT ingested. Captures relying solely on OPB
-  will yield zero packets from those blocks.
-  **Test:** `test_BC_2_01_015_opb_skipped_not_parsed`
+- **AC-003 (OPB is skipped, not parsed; increments opb_skipped):** OPB (type `0x00000002`)
+  carries packet data but is an obsolete/deprecated block superseded by EPB. wirerust treats
+  it as out-of-scope and skips it silently. OPB packet data is intentionally NOT ingested.
+  Captures relying solely on OPB will yield zero packets from those blocks. When an OPB is
+  skipped, BOTH `skipped_blocks` AND `opb_skipped` are incremented (saturating). This
+  sub-counter is what main.rs uses to determine whether to append the OPB mergecap clause
+  to the Decision 19 notice.
+  **Test:** `test_BC_2_01_015_opb_skipped_not_parsed` — assert OPB-only pcapng yields
+  `packets.len()==0`; `source.skipped_blocks == N`; `source.opb_skipped == N` (same N
+  since all skips are OPB); non-OPB unknown block increments only `skipped_blocks`.
 - **AC-004 (forward-progress / loop-break-on-error):** The block-walk loop MUST `break` (or
   return) on any `Err(_)` from the crate's block reader. The documented rustdoc example
   with an empty `Err(_) => {}` arm is WRONG and MUST NOT be copied — it would spin on the
@@ -110,17 +130,23 @@ error, so retrying the same source after an error would spin (CWE-835).
 - **AC-005 (no-panic, SEC-005):** The skip path and the block-walk loop MUST NOT contain
   `unwrap()`, `expect()`, or `panic!()` reachable from the skip arm.
   **Test:** `test_BC_2_01_015_no_panic_skip_path`
-- **AC-006 (skipped_blocks counter, cross-ref BC-2.01.009):**
-  The block-walk loop MUST maintain a `skipped_blocks: u64` counter, incrementing it once per
-  block entering the skip arm. At end-of-file, the counter value is passed to BC-2.01.009's
-  notice-emission logic. **The gating condition for emission is "valid file + zero packets"
-  (BC-2.01.009 PC6), not "skipped_blocks > 0"**: BC-2.01.009 will emit the one-shot notice
-  even when `skipped_blocks == 0` (e.g., an IDB-only file with no packet blocks and no
-  skipped blocks). When `skipped_blocks > 0`, the count is included in the notice message;
-  when `skipped_blocks == 0`, the notice is emitted without a skip-count segment.
-  The notice MUST NOT include block body bytes (SEC-007). The counter itself MUST NOT overflow
-  (use saturating_add or u64 — realistic file sizes cannot approach u64::MAX blocks).
-  **Test:** `test_BC_2_01_015_skipped_blocks_counter_and_notice`
+- **AC-006 (counter surfacing on PcapSource, cross-ref BC-2.01.009 — M-5):**
+  The block-walk loop MUST maintain two `u32` counters, both stored as public fields on the
+  returned `PcapSource`:
+  - `skipped_blocks: u32` — incremented (saturating) once per block entering the skip arm
+    (ALL unknown block types, including OPB).
+  - `opb_skipped: u32` — incremented (saturating) ONLY when the skipped block is OPB
+    (type `0x00000002`). Always `opb_skipped <= skipped_blocks`.
+  `from_pcap_reader` MUST NOT emit any stderr output — it surfaces the counters and returns.
+  **main.rs** reads the counters AFTER `Ok(source)` is returned and constructs the
+  canonical Decision 19 notice (if `packets.is_empty()`). The gating condition for
+  emission remains **"valid file + zero packets"** (BC-2.01.009 PC6): the notice is emitted
+  even when `skipped_blocks == 0`. The notice MUST NOT include block body bytes (SEC-007).
+  Counters use `saturating_add` — `u32` is sufficient; realistic pcapng files cannot
+  approach 4 billion blocks.
+  **Test:** `test_BC_2_01_015_skipped_blocks_counter_and_notice` — verify both counter
+  fields on returned `PcapSource`; verify OPB increments both counters; verify non-OPB
+  skip increments only `skipped_blocks`.
 
 ## Invariants
 
@@ -182,7 +208,7 @@ error, so retrying the same source after an error would spin (CWE-835).
 | L2 Domain Invariants | None directly |
 | Architecture Module | SS-01 (reader.rs, C-4) |
 | Stories | STORY-126 |
-| ADR Reference | ADR-009 rev 4 Decision 2 (unknown block types silently skipped; DSB has no named variant — arrives as Unknown), Decision 8 (forward-progress: crate rejects `< 12`; caller MUST break on Err), Decision 10 (panic surface), Decision 14 (VP-029 proptest) |
+| ADR Reference | ADR-009 rev 4 Decision 2 (unknown block types silently skipped; DSB has no named variant — arrives as Unknown), Decision 8 (forward-progress: crate rejects `< 12`; caller MUST break on Err), Decision 10 (panic surface), Decision 14 (VP-029 proptest), Decision 19 (skipped_blocks/opb_skipped surfaced via PcapSource; emission by main.rs; opb_skipped sub-count drives OPB mergecap appendage) — rev 8 |
 
 ## Related BCs
 

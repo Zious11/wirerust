@@ -2,7 +2,7 @@
 artifact: architecture-section
 section: verification-architecture
 traces_to: ARCH-INDEX.md
-version: "2.2"
+version: "2.3"
 status: verified
 producer: architect
 timestamp: 2026-05-20T00:00:00Z
@@ -58,6 +58,9 @@ modified:
   - date: 2026-06-19
     actor: architect
     reason: "Pass-4 adversarial remediation (ADR-009 rev 7 / H-3): VP-030 row in Should Prove table restated — domain narrowed to WHITELISTED DataLink values only; comparison unit pinned to DataLink not raw u16; non-whitelisted values short-circuit to E-INP-001 before the conflict check (out of VP-030 scope). No VP counts, tool assignments, or Totals changed. Version bump 2.1→2.2."
+  - date: 2026-06-20
+    actor: architect
+    reason: "Pass-5 adversarial remediation (ADR-009 rev 8): VP property updates only — no VP count changes (total 31 / Kani 14 / proptest 10 / fuzz 2 / integration-unit 5 unchanged). VP-025 row: ts_sec saturation (.min(u32::MAX)) and large-ts_high Kani vector added to property (M-3). VP-027 row: padding-overrun and bound-by-body → Err(E-INP-008) NOT E-INP-010 added explicitly (C-1 / Decision 20 clarification). VP-031 row: snaplen DROPPED from property domain; formula is now min(original_len, body.len() as u32) (Decision 9 rev 8 / H-3 + M-2 SPB snaplen asymmetry fix). P1 list entries updated for VP-025/027/031. Version bump 2.2→2.3."
 ---
 
 # Verification Architecture
@@ -91,13 +94,13 @@ modified:
 | VP-022 | Modbus MBAP parse safety and function-code boundary classification: (A) parse_mbap_header never panics and returns None for <8-byte inputs; (B) classify_fc is total over all 256 FC values; (C) exception detection iff fc >= 0x80 | (no-panic + boundary) | analyzer/modbus.rs | Kani |
 | VP-023 | DNP3 data-link frame parse safety and FC classification: (A) parse_dnp3_dl_header never panics, None for <10-byte inputs; (B) classify_dnp3_fc total over all 256 FC values, Control/Restart/Write sets correct; (C) validity gate true iff sync==0x0564 and LENGTH>=5; (D) compute_dnp3_frame_len correct over all LENGTH 5..=255, result in [10,292] | (no-panic + boundary + arithmetic) | analyzer/dnp3.rs | Kani |
 | VP-024 | ARP frame parse safety and binding-table invariant: (A) extract_arp_frame never panics on any valid ArpPacketSlice input; Some(ArpFrame) for Eth/IPv4, None otherwise; (B) GARP detection total: is_gratuitous_arp(f)==(f.sender_ip==f.target_ip) for all ArpFrame; (C) binding-table last-write-wins determinism and no-duplicate-key; (D) MAX_ARP_BINDINGS cap never exceeded | (no-panic + GARP totality + binding-table invariant) | analyzer/arp.rs + decoder.rs [a] | Kani |
-| VP-025 | pcapng timestamp conversion totality: pcapng_timestamp_to_secs_usecs(ts_high, ts_low, if_tsresol) never panics for any (u32, u32, u8) input; ts_usecs always in [0, 999_999]; saturating arithmetic for base-10 pow overflow (e>=20) and base-2 shift clamp (e clamped to [0,63]); intermediate u128 product prevents u64 overflow | (no-panic + arithmetic totality + range invariant) | reader.rs (pcapng_pure_core fns) [b] | Kani |
+| VP-025 | pcapng timestamp conversion totality: pcapng_timestamp_to_secs_usecs(ts_high, ts_low, if_tsresol) never panics for any (u32, u32, u8) input; ts_usecs always in [0, 999_999]; ts_sec saturated (.min(u32::MAX)) for all inputs; saturating arithmetic for base-10 pow overflow (e>=20) and base-2 shift clamp (e clamped to [0,63]); intermediate u128 product prevents u64 overflow; Kani harness MUST include large-ts_high vector where ticks/ticks_per_sec > u32::MAX to lock the saturation (rev 8 / M-3) | (no-panic + arithmetic totality + range invariant + saturation-locked) | reader.rs (pcapng_pure_core fns) [b] | Kani |
 | VP-026 | pcapng SHB parse safety and byte-order detection: SHB byte-order BOM detection correct for LE magic (0x1A2B3C4D) and BE magic (0x4D3C2B1A); no panic for any truncated/malformed SHB byte sequence; SHB < 28 bytes returns Err | (no-panic + byte-order correctness) | reader.rs (pcapng_pure_core fns) [b] | Kani |
-| VP-027 | pcapng EPB parse safety and interface_id bounds: EPB decode never panics; interface_id is bounds-checked against interface table size before any index operation (out-of-range → Err); captured_len guard (captured_len <= block_total_length - 32) precedes any data allocation; Err returned for all invalid field combinations | (no-panic + bounds-check + guard-before-allocate) | reader.rs (pcapng_pure_core fns) [b] | Kani |
+| VP-027 | pcapng EPB parse safety and interface_id bounds: EPB decode never panics; interface_id is bounds-checked against interface table size before any index operation (out-of-range → Err); captured_len guard (captured_len <= block_total_length - 32) precedes any data allocation; padding-overrun (20 + captured_len + pad_len(captured_len) > body.len()) → Err(E-INP-008); bound-by-body (captured_len > body.len() - 20) → Err(E-INP-008); these are wirerust body-decode failures NOT E-INP-010 (crate framing); Err returned for all invalid field combinations (rev 8 / C-1 / Decision 20 clarification) | (no-panic + bounds-check + guard-before-allocate + padding-overrun-classified) | reader.rs (pcapng_pure_core fns) [b] | Kani |
 | VP-028 | pcapng reader no-panic (full path fuzz): PcapSource::from_pcap_reader returns Ok(_) or Err(_) for any arbitrary byte sequence; no panic, no infinite loop; F6 hardening deliverable (cargo-fuzz target: fuzz_pcapng_reader) | (no-panic + termination) | reader.rs | cargo-fuzz |
 | VP-029 | pcapng block-walk skip correctness and forward progress: for any sequence of raw blocks (valid, malformed, unknown-type), the block-walk loop always terminates; each Ok(_) iteration advances the cursor by at least 12 bytes (block header minimum); loop breaks on Err(_) without spinning | (termination + forward-progress) | reader.rs | proptest |
 | VP-030 | pcapng multi-IDB linktype agreement totality (RESTATED rev 7 / H-3): for sequences of WHITELISTED DataLink values only (the domain where the E-INP-011 conflict check is reachable), the reader either (a) accepts all (all-equal) producing PcapSource.datalink = that DataLink, or (b) returns Err(E-INP-011) immediately on the first differing whitelisted DataLink; no third outcome. Non-whitelisted values short-circuit to E-INP-001 at first IDB (before conflict check) — NOT in VP-030 domain. Comparison unit: DataLink, not raw u16. | (totality + determinism; whitelisted domain) | reader.rs | proptest |
-| VP-031 | pcapng SPB captured-len computation correctness: for all (original_len: u32, snaplen: u32, body: &[u8]), the computed captured_len == min(original_len, snaplen, body.len() as u32); the returned slice has exactly captured_len bytes; no out-of-bounds access for any combination of inputs (resolves M-2 / DF-CANONICAL-FRAME-HOLDOUT-001) | (arithmetic correctness + bounds safety) | reader.rs (pcapng_pure_core fns) [b] | proptest |
+| VP-031 | pcapng SPB captured-len computation correctness (snaplen-free): for all (original_len: u32, body: &[u8]), the computed captured_len == min(original_len, body.len() as u32); the returned slice has exactly captured_len bytes; no out-of-bounds access for any combination of inputs. Snaplen DROPPED from property domain per Decision 9 rev 8 (matches EPB posture; block_body_available is the authoritative on-disk bound). (resolves M-2 + H-3 / DF-CANONICAL-FRAME-HOLDOUT-001) | (arithmetic correctness + bounds safety; two-arg min, snaplen-free) | reader.rs (pcapng_pure_core fns) [b] | proptest |
 
 [a] VP-024 umbrella is anchored to `analyzer/arp.rs` (Sub-B/C/D targets). Sub-A Kani harnesses
 (`verify_extract_arp_frame_safety`, `verify_extract_arp_frame_eth_ipv4_correctness`,
@@ -151,13 +154,13 @@ to be non-vacuous over symbolic `e`; see ADR-009 rev 5 VP-025 Kani Provability N
 - VP-022: Modbus MBAP parse safety and function-code boundary classification [NEW — SS-14]
 - VP-023: DNP3 data-link frame parse safety and function-code classification [NEW — SS-15]
 - VP-024: ARP frame parse safety and binding-table invariant [NEW — SS-16]
-- VP-025: pcapng timestamp conversion totality (no panic, saturating arithmetic, ts_usecs in [0,999999]) [NEW — SS-01 pcapng, ADR-009 rev 4]
+- VP-025: pcapng timestamp conversion totality (no panic, saturating arithmetic, ts_usecs in [0,999999], ts_sec saturated .min(u32::MAX), large-ts_high Kani vector locking saturation) [NEW — SS-01 pcapng, ADR-009 rev 4; amended rev 8 / M-3]
 - VP-026: pcapng SHB parse safety and byte-order detection [NEW — SS-01 pcapng, ADR-009 rev 4]
-- VP-027: pcapng EPB parse safety and interface_id bounds (guard-before-allocate) [NEW — SS-01 pcapng, ADR-009 rev 4]
+- VP-027: pcapng EPB parse safety, interface_id bounds (guard-before-allocate), and padding-overrun/bound-by-body → Err(E-INP-008) classification [NEW — SS-01 pcapng, ADR-009 rev 4; amended rev 8 / C-1]
 - VP-028: pcapng reader no-panic, cargo-fuzz (F6 hardening deliverable) [NEW — SS-01 pcapng, ADR-009 rev 4]
 - VP-029: pcapng block-walk skip correctness and forward progress [NEW — SS-01 pcapng, ADR-009 rev 4]
 - VP-030: pcapng multi-IDB linktype agreement totality — RESTATED (ADR-009 rev 7 / H-3): domain = WHITELISTED DataLink values only; comparison unit = DataLink; non-whitelisted values → E-INP-001 (out of VP-030 scope) [NEW — SS-01 pcapng, ADR-009 rev 4; restated rev 7]
-- VP-031: pcapng SPB captured-len computation correctness (proptest arithmetic invariant; fills SPB framing VP gap per DF-CANONICAL-FRAME-HOLDOUT-001) [NEW — SS-01 pcapng, ADR-009 rev 6]
+- VP-031: pcapng SPB captured-len computation correctness (snaplen-free, proptest arithmetic invariant; min(original_len, body.len() as u32); fills SPB framing VP gap per DF-CANONICAL-FRAME-HOLDOUT-001) [NEW — SS-01 pcapng, ADR-009 rev 6; amended rev 8 / Decision 9]
 
 
 ## Tooling Selection

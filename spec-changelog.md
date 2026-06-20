@@ -14,6 +14,120 @@ changes, invariant rewrites).
 
 ---
 
+## [pcapng-f2-pass5-remediation-2026-06-20] — 2026-06-20
+
+### PASS-5 REMEDIATION: 1C/4H/5M/3L ALL FIXED — PASS-6 PENDING — D-153
+
+**Trigger:** F2 adversary pass-5 (D-152) — NOT CLEAN: 1C/4H/5M/3L, HIGH novelty (trajectory plateau
+P1:23/P2:24/P3:17/P4:13/P5:13). All pass-5 findings remediated in this burst. Adversary pass-6 pending.
+Clean-pass counter 0/3. F3 still BLOCKED.
+
+**Version bumps (~14 artifacts):**
+- BC-2.01.009 v1.4→v1.5
+- BC-2.01.012 v1.4→v1.5
+- BC-2.01.013 v1.4→v1.5
+- BC-2.01.014 v1.4→v1.5
+- BC-2.01.015 v1.5→v1.6
+- BC-2.01.018 v1.5→v1.6
+- BC-INDEX v1.59→v1.60
+- error-taxonomy v3.2→v3.3
+- ADR-009 rev 7→rev 8
+- VP-INDEX v2.6→v2.7
+- verification-architecture.md v2.2→v2.3
+- verification-coverage-matrix.md v1.16→v1.17
+- HS-104 v1.2→v1.3
+- HS-107 v1.3→v1.4
+- HS-108 v1.0→v1.1
+
+302 active BCs unchanged.
+
+---
+
+**C-1 (CRITICAL — E-INP-010→E-INP-008 reclassification for EPB body-decode failures):**
+BC-2.01.012 v1.5: EPB body-decode failures reclassified from E-INP-010 → E-INP-008 at all
+body-decode sites. D-150 fixed items (d)/(e) (body-too-short mis-classified in error-taxonomy)
+but left item (c) (padding-overrun in EC-010 and HS-104 Case E) still on E-INP-010 — partial-fix
+sibling miss. Per Decision 20 uniform rule: the crate has already successfully framed the block
+(btl >= 12, aligned, trailing-length match) before any EPB body-decode runs; wirerust body-decode
+rejections (bound-by-body: captured_len > body.len() - 20; padding-overrun: 20 + captured_len +
+pad_len > body.len()) are body-decode failures → E-INP-008. Updated in BC-2.01.012: PC6a, PC6b,
+AC-002, AC-006, EC-010, canonical test vector rows, VP-027. error-taxonomy v3.3: E-INP-010
+item (c) reclassified to E-INP-008; E-INP-008 row updated. HS-104 v1.3: Cases D and E
+reclassified E-INP-010 → E-INP-008.
+
+**H-1 (HIGH — BC-2.01.018 EC-006/EC-008 contradiction of Decision 17 precedence):**
+BC-2.01.018 v1.6: EC-006 step derivation added — ETHERNET (whitelisted) + IEEE802_11
+(non-whitelisted): whitelist check step 2 fires on second IDB → E-INP-001; E-INP-011 conflict
+check step 3 never reached. EC-008 reclassified E-INP-011 → E-INP-001: two IEEE802_11 IDBs —
+first IDB non-whitelisted triggers E-INP-001 at whitelist check step 2 (first-IDB parse time);
+second IDB never parsed; agreement unobservable. E-INP-011 conflict check is now correctly
+stated as reachable ONLY when BOTH IDBs whitelisted AND differ (e.g. ETHERNET then RAW). Per
+Decision 17 precedence: E-INP-013 position-check first → E-INP-001 whitelist second →
+E-INP-011 conflict third.
+
+**H-2 (HIGH — OPB-distinct notice + HS-108 Cases d/e):**
+BC-2.01.015 v1.6: opb_skipped:u32 sub-counter added — incremented specifically for obsolete
+Packet Block (OPB, type 0x00000002) skips; skipped_blocks:u32 remains total-skip counter.
+PC9 rewritten: counters surfaced via PcapSource fields (reader has no filename); main.rs reads
+PcapSource.skipped_blocks and PcapSource.opb_skipped after from_pcap_reader returns Ok, emits
+notice: when opb_skipped > 0, notice appends "(includes N obsolete Packet Blocks whose data was
+not analyzed; re-save with mergecap)". AC-006 updated to document both counters. HS-108 v1.1:
+Cases d/e added (OPB-only → notice with OPB count + mergecap hint; 2 NRBs + 1 OPB → notice
+shows OPB count distinctly from NRB skips).
+
+**H-3/M-2 (HIGH+MEDIUM — SPB snaplen dropped, Decision 9 amendment):**
+BC-2.01.013 v1.5: snaplen DROPPED from SPB captured_len formula throughout. ADR Decision 9 states
+neither EPB nor SPB enforces snaplen; Decision 9 amended (rev 8) to be explicit that captured_len
+for SPB = min(original_len, block_body_available) with no snaplen term. Updated: Description, PC1,
+AC-002, EC-007, EC-001, Invariant 2, Canonical Test Vectors, Architecture Anchors. VP-031 updated:
+captured_len == min(original_len, body.len() as u32). HS-107 v1.4: Case B rationale updated
+(body-bound, not snaplen clamp); all A–F Cases retained; VP-031 property updated.
+
+**H-4 (HIGH — HS-107 VV description corrected + stale deferral notes removed):**
+BC-2.01.013 v1.5: VV (Verification Value) table mis-described HS-107 as
+"real-world no-false-positives"; corrected to accurate description: "SPB framing truncation,
+padding, and no-IDB boundary scenarios (incl. Case F btl=12→E-INP-008)". 4× stale
+"HS-107 btl=12 holdout deferred to a separate burst" notes removed — HS-107 Case F now
+exists on disk and covers the btl=12→E-INP-008 case.
+
+**M-1 (MEDIUM — Precondition 3 deleted from BC-2.01.009):**
+BC-2.01.009 v1.5: Precondition 3 ("at least 4 bytes available") deleted. The precondition
+contradicts EC-003 (graceful Err on <4-byte stream) and inverts the trust model — the
+<4-byte condition is a runtime error handled by postcondition (returns Err), not a caller
+obligation. EC-003 already covers the graceful Err path; removing PC3 aligns the contract.
+
+**M-3 (MEDIUM — µs fast-path saturation):**
+BC-2.01.014 v1.5: PC4 if_tsresol=6 fast path now explicitly uses
+`(ticks / 1_000_000).min(u32::MAX as u64) as u32` for ts_sec (same saturation as general
+formula in PC2/PC3); prior bare `ticks / 1_000_000 as u32` wraps where general formula
+saturates, diverging at large ts_high and threatening VP-025 totality. Canonical saturation
+test vector added (ts_high large enough that ticks/1_000_000 > u32::MAX). VP-025 Kani harness
+scope extended to include if_tsresol=6 path with ts_high=u32::MAX.
+
+**M-4 (MEDIUM — BufReader wrap-site AC):**
+BC-2.01.009 v1.5: AC-007 added pinning the BufReader wrap site — from_pcap_reader MUST
+internally wrap its R:Read in BufReader and feed the SAME BufReader to both the fill_buf
+peek step AND all downstream parsers (pcapng branch and classic-pcap branch). This ensures
+the peek is buffered and the downstream read sees un-consumed bytes at offset 0. No separate
+unbuffered Read regression test required by this AC; implementation must use single BufReader.
+
+**M-5 (MEDIUM — notice moved to main.rs, PcapSource fields, classic symmetry, Decision 19 amend):**
+BC-2.01.009 v1.5 and BC-2.01.015 v1.6 jointly: notice emission responsibility moved from
+reader to main.rs (which has the filename). PcapSource exposes skipped_blocks:u32 and
+opb_skipped:u32. from_pcap_reader surfaces these fields; main.rs reads them after
+from_pcap_reader returns Ok and emits the notice. Canonical format per Decision 19 (amended
+rev 8): `"notice: <filename>: 0 packets read from <pcap|pcapng> file"` — classic empty pcap
+also triggers notice (classic/pcapng symmetry). When opb_skipped > 0, appends "(includes N
+obsolete Packet Blocks whose data was not analyzed; re-save with mergecap)". ADR-009
+Decision 19 amended (rev 8) to record emission-site + format canonical form.
+
+**Observations deferred to F3:**
+- PG-2 (STORY-128 existence) — BC-2.01.018 traces to STORY-128; verify on-disk before F3 entry.
+- PG-3 (arp-baseline-16pkt.cap SHB/IDB params) — verify file SHB/IDB params before F3 entry.
+Both carried as F3-entry checklist items, not blocking this burst.
+
+---
+
 ## [pcapng-f2-pass4-reaudit-boundary-fixes-2026-06-20] — 2026-06-20
 
 ### PASS-4 RE-AUDIT BOUNDARY FIXES: 3 MAJOR GAPS CLOSED — FINDING-P4-001 / FINDING-P4-002 / FINDING-P4-003

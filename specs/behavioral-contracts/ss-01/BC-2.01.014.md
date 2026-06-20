@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.4"
+version: "1.5"
 status: draft
 producer: product-owner
 timestamp: 2026-06-19T00:00:00Z
@@ -15,6 +15,7 @@ introduced: v0.10.0-pcapng
 modified:
   - "v1.1: F2 Burst-A remediation per ADR-009 rev 4 PO dispatch — (1) VP-025 added to Verification Properties. (2) Required SATURATING arithmetic throughout (H-1/SEC-001/SEC-006): base-10 uses checked_pow (saturate to u64::MAX on overflow); base-2 exponent e CLAMPED to [0,63] before shift (e >= 64 panics in Rust with overflow-checks=true — clamping is mandatory); intermediate product (ticks % ticks_per_sec) * 1_000_000 MUST use u128 or saturating_mul (overflows u64 for base-2 e >= 43). (3) Updated EC-006: added explicit statement that e >= 64 panics without clamping and that the spec mandates clamping; also added base-2 e=63 as a tested boundary. (4) Added new edge cases: EC-009 (if_tsresol=6 µs default), EC-010 (if_tsresol=9 ns), EC-011 (if_tsresol=0x94 base-2 e=20), EC-012 (if_tsresol=0xFF base-2 e=127, must not panic). (5) Updated Postcondition 2 and 3 to specify saturating formulas. (6) Updated Invariant 1: 'no panics' is NOW ACTUALLY TRUE with the saturating formula — prior version with `pow` could panic for large base-10 exponents. (7) Clarified that this helper is LOAD-BEARING (drives off raw split ticks from RawBlock; crate's high-level EPB is ns-hardcoded and wrong). — 2026-06-19"
   - "v1.2: Pass-2 remediation per ADR-009 rev 5 (I-9, I-2, I-11) — (I-9) EC-006 corrected: was if_tsresol=0x3F (bit7=0 → base-10, not base-2; e=63); fixed to if_tsresol=0xBF (bit7=1 → base-2, e=63). Panic counter-example changed from 0x40 (base-10 e=64, checked_pow saturates — no panic) to 0xC0 (base-2 e=64 — shift panic without clamp). EC-006 now correctly illustrates the base-2 e=63 boundary and the necessity of clamping for e=64. (I-2) Added Kani implementation note to VP-025 row: base-10 branch MUST use precomputed ticks_per_sec lookup table for e∈[0,19] (Option A, preferred, keeps Kani proof bounded) OR VP-025 harness carries #[kani::unwind(128)] (Option B). Without one of these, the Kani proof is vacuous. (I-11) Added Test: citations to all unit/integration VP rows. — 2026-06-19"
+  - "v1.5: Pass-5 remediation S3 (ADR-009 rev 8) — (M-3) Fixed µs fast-path saturation gap: the if_tsresol=6 shortcut MUST apply .min(u32::MAX as u64) as u32 to ts_sec (same saturation as the general formula in PC2/PC3); the prior wording 'ts_sec = ticks / 1_000_000' was a bare division that wraps where the general formula saturates, diverging at large ts_high and threatening VP-025's totality claim. Rewrote PC4 to be explicit: fast path uses (ticks / 1_000_000).min(u32::MAX as u64) as u32. Added canonical saturation test vector (ts_high large enough that ticks/1_000_000 > u32::MAX). Noted VP-025 Kani harness MUST include this vector / cover if_tsresol=6 path with ts_high=u32::MAX. — 2026-06-20"
   - "v1.4: Pass-4 remediation R3a (ADR-009 rev 7) — (Decision 21) Added if_tsoffset limitation note to Description: this helper does NOT apply if_tsoffset (IDB option code 10); files with if_tsoffset set carry a timestamp bias of offset×(1/ticks_per_sec); this is an accepted limitation this cycle per ADR Decision 21. Function signature unchanged: (ts_high, ts_low, if_tsresol). — 2026-06-20"
   - "v1.3: Pass-3 remediation per ADR-009 rev 6 (M-4 / timestamp parity) — Corrected Invariant 2: the 'numerically identical to classic-pcap' claim is qualified to ts_high==0 AND ts_sec <= u32::MAX only; pcapng additionally represents the high 32 bits via ts_high, which classic pcap's wire format cannot encode. Updated regression-guard VP row and EC-009 to scope to the ts_high==0 domain. — 2026-06-19"
 deprecated: null
@@ -83,12 +84,22 @@ accepted or applied.
      is excluded by the clamp).
    - Same `ts_sec` and `ts_usecs` formulas as Postcondition 2 (using u128 intermediate).
 
-4. `if_tsresol = 6` (default, base-10, 10^-6, microseconds):
+4. `if_tsresol = 6` (default, base-10, 10^-6, microseconds) — µs fast path:
    - `ticks_per_sec = 1_000_000`
-   - `ts_sec = ticks / 1_000_000` (safe; u64 / u64)
+   - `ts_sec = (ticks / 1_000_000).min(u32::MAX as u64) as u32`
+     **SATURATION IS MANDATORY.** The bare `ticks / 1_000_000 as u32` cast WRAPS for large
+     `ts_high` (e.g., `ts_high ≥ 1` makes `ticks ≥ 2^32`, so `ticks / 1_000_000 > u32::MAX`
+     for sufficiently large `ts_high`), producing a value smaller than u32::MAX rather than
+     capping at u32::MAX. This diverges from the general formula in Postconditions 2 and 3,
+     which both apply `.min(u32::MAX as u64)` — and it threatens VP-025's totality claim that
+     `ts_sec ≤ u32::MAX` for all inputs. No shortcut in this fast path may skip the `.min()`
+     saturation. The `.min()` is a no-op for any timestamp representable within a u32 (i.e.,
+     for all ts_high==0 captures with ts_sec in the u32 range — the common case); it only
+     takes effect for post-Y2106 or high-ts_high inputs.
    - `ts_usecs = (ticks % 1_000_000) as u32` (remainder < 1_000_000; fits u32; no intermediate overflow)
-   - This is the canonical fast path. Mathematically equivalent to the general formula, but
-     the simpler form avoids the u128 intermediate for this critical common case.
+   - This is the canonical fast path. Mathematically equivalent to the general formula for
+     the µs case, but the simpler form avoids the u128 intermediate for this critical common
+     case — provided the `.min(u32::MAX as u64)` saturation is preserved.
 
 5. `if_tsresol = 9` (nanoseconds, base-10, 10^-9):
    - `ticks_per_sec = 1_000_000_000`
@@ -146,6 +157,7 @@ accepted or applied.
 | EC-010 | `if_tsresol=9` (nanoseconds), `ticks=2_000_000_500` | `ts_sec=2, ts_usecs=0` (500 ns rounds down to 0 µs) |
 | EC-011 | `if_tsresol=0x94` (base-2, e=20) | `e_clamped=20`; `ticks_per_sec=1<<20=1_048_576`; `ts_sec=ticks/1_048_576`; `ts_usecs` via u128 intermediate; NO PANIC |
 | EC-012 | `if_tsresol=0xFF` (base-2, e=127, out of u64-shift range) | `e_clamped=63`; `ticks_per_sec=1u64<<63=9_223_372_036_854_775_808`; `ts_sec=0` (any realistic ticks << this); `ts_usecs=0`; NO PANIC |
+| EC-013 | `ts_high=4295, ts_low=0, if_tsresol=6` (µs fast path, ts_high large enough that ticks/1_000_000 > u32::MAX) | `ts_sec=u32::MAX` (saturated via `.min(u32::MAX as u64)`); `ts_usecs=0`; NO PANIC. This is the FAST-PATH SATURATION test (M-3): without `.min()`, the bare `as u32` cast wraps and produces a value < u32::MAX, diverging from the general formula. VP-025 Kani harness MUST include this assertion. |
 
 ## Canonical Test Vectors
 
@@ -159,12 +171,13 @@ accepted or applied.
 | `ts_high=1, ts_low=0, if_tsresol=6` | `ts_sec = (2^32 / 1_000_000)`, `ts_usecs = (2^32 % 1_000_000)` | happy-path |
 | `ts_high=0, ts_low=0, if_tsresol=0xFF` | `(0, 0)`, no panic (e=127 clamped to 63) | edge-case (EC-012) |
 | `ts_high=0, ts_low=1_048_576, if_tsresol=0x94` | `ts_sec=1`, `ts_usecs=0` (base-2 e=20: 1<<20=1_048_576 ticks/sec) | edge-case (EC-011) |
+| `ts_high=4295, ts_low=0, if_tsresol=6` | `ts_sec=u32::MAX` (saturated; `ticks=4295*2^32=18_448_744_073_709_551_616`; `ticks/1_000_000=18_448_744_073_709` which exceeds `u32::MAX=4_294_967_295`; fast path MUST saturate via `.min(u32::MAX as u64)`); `ts_usecs=0`; NO PANIC — fast-path saturation guard (M-3 / VP-025) | saturation (M-3) |
 
 ## Verification Properties
 
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| VP-025 | `pcapng_timestamp_to_secs_usecs` totality: no panic for ALL (u32, u32, u8) inputs with saturating arithmetic; `ts_usecs` always in [0, 999_999]; `ts_sec` plausible (≤ u32::MAX); denominator never 0 | Kani: `#[kani::proof]` over full symbolic input space (u32 × u32 × u8 = 2^65 inputs; Kani explores exhaustively via bounded model checking). **Implementation note (I-2):** the base-10 branch MUST use a precomputed ticks_per_sec lookup table for e∈[0,19] (saturating to u64::MAX for e≥20) — **Option A (preferred)**: keeps the Kani proof bounded without unwind annotations; OR the VP-025 Kani harness carries `#[kani::unwind(128)]` — **Option B**. Without one of these, the Kani proof over the base-10 `checked_pow` loop is vacuous (Kani will not explore all paths). Option A is preferred. |
+| VP-025 | `pcapng_timestamp_to_secs_usecs` totality: no panic for ALL (u32, u32, u8) inputs with saturating arithmetic; `ts_usecs` always in [0, 999_999]; `ts_sec` plausible (≤ u32::MAX); denominator never 0 | Kani: `#[kani::proof]` over full symbolic input space (u32 × u32 × u8 = 2^65 inputs; Kani explores exhaustively via bounded model checking). **Implementation note (I-2):** the base-10 branch MUST use a precomputed ticks_per_sec lookup table for e∈[0,19] (saturating to u64::MAX for e≥20) — **Option A (preferred)**: keeps the Kani proof bounded without unwind annotations; OR the VP-025 Kani harness carries `#[kani::unwind(128)]` — **Option B**. Without one of these, the Kani proof over the base-10 `checked_pow` loop is vacuous (Kani will not explore all paths). Option A is preferred. **Fast-path saturation (M-3):** the VP-025 Kani harness MUST NOT short-circuit the `if_tsresol == 6` branch — this branch now includes a `.min(u32::MAX as u64) as u32` saturation that the Kani proof must verify holds (i.e., `ts_sec ≤ u32::MAX` even when `ticks / 1_000_000 > u32::MAX`, e.g., `ts_high ≥ 4295`). The saturation test vector `(ts_high=4295, ts_low=0, if_tsresol=6) → ts_sec=u32::MAX` must be included as a concrete assertion in the Kani harness. |
 | — | `if_tsresol=6` result matches classic-pcap microsecond result for same epoch (ts_high==0, ts_sec <= u32::MAX domain only — Invariant 2 qualification) | unit: compare against classic-pcap timestamp extraction with ts_high=0 inputs; assert numerical parity within the ts_high==0 / u32-range domain **Test:** `test_BC_2_01_014_usecs_default_matches_classic_pcap` |
 | — | `if_tsresol=0xFF` (e=127) does not panic | unit: assert result = (0, 0) or (0, small) without panic **Test:** `test_BC_2_01_014_e127_no_panic` |
 | — | `if_tsresol=0x94` (e=20) produces correct result for known ticks | unit: `ticks=1_048_576, if_tsresol=0x94` → `(1, 0)` **Test:** `test_BC_2_01_014_base2_e20_known_vector` |
@@ -179,7 +192,7 @@ accepted or applied.
 | L2 Domain Invariants | None directly |
 | Architecture Module | SS-01 (reader.rs or dedicated pure-core module, C-4) |
 | Stories | STORY-125 |
-| ADR Reference | ADR-009 rev 4 Decision 4 (pure-core timestamp helper, LOAD-BEARING, saturating arithmetic, Kani-provable VP-025); Decision 1 (raw-block path — helper feeds off raw split ticks, not crate Duration) |
+| ADR Reference | ADR-009 rev 4 Decision 4 (pure-core timestamp helper, LOAD-BEARING, saturating arithmetic, Kani-provable VP-025); Decision 1 (raw-block path — helper feeds off raw split ticks, not crate Duration); rev 8: µs fast path (if_tsresol=6) MUST apply .min(u32::MAX as u64) saturation — bare as u32 wraps where general formula saturates, invalidating VP-025 totality claim |
 
 ## Related BCs
 

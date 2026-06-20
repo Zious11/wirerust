@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.4"
+version: "1.5"
 status: draft
 producer: product-owner
 timestamp: 2026-06-19T00:00:00Z
@@ -13,6 +13,7 @@ capability: CAP-01
 lifecycle_status: active
 introduced: v0.10.0-pcapng
 modified:
+  - "v1.5: Pass-4 remediation FINDING-P4-001 — GAP-1 closed: removed stale sentence from PC5 tail that claimed 'E-INP-008 covers SHB and IDB structural errors ONLY; EPB/SPB body truncation routes to E-INP-010'. Per Decision 20 the uniform rule is: crate-framed-but-body-too-short for ALL block types (SHB body<16, IDB body<8, EPB body<20, SPB body<4) → E-INP-008 (wirerust body-decode); btl<12/misaligned/EOF → E-INP-010 (crate framing rejection). No singling out of EPB/SPB as E-INP-010. Authority: ADR-009 rev 7 Decision 20. — 2026-06-20"
   - "v1.4: Pass-4 remediation R2 — Decision 20 (align wording to uniform rule): confirmed btl<12→E-INP-010 (crate rejects), 12<=btl<20→body<8→E-INP-008 (wirerust body-decode) as constructible window; wording in PC5 tightened. Decision 21 (M-2): REMOVED 'if_tsoffset (code 10)' from PC6 options-walk — wirerust does NOT extract if_tsoffset this cycle; added limitation note to PC6 and AC-003. M-1: removed 'crate enforces body>=8' over-claim from Architecture Anchors — wirerust checks body.len()>=8 itself on the raw path before decoding IDB fixed fields; the crate source reference clarified. L-2: EC-003 table cell fixed — unescaped pipe inside markdown table replaced with literal 0x8A (base-2 nanosecond-range if_tsresol value). Authority: ADR-009 rev 7 Decision 20, Decision 21. — 2026-06-20"
   - "v1.3: Pass-3 Q2 remediation — H-2: EC-008 constructible-window stated explicitly: the constructible E-INP-008 IDB body-truncation case is 12<=block_total_length<20 (crate frames the block; body is 0-7 bytes; wirerust body-decode finds <8 minimum bytes). btl<12 => crate Err => E-INP-010 (not constructible for IDB body-decode). H-5 (Decision 16): Invariant 2 'interface table resets at each SHB' deleted and deferred — unreachable under single-section constraint (Decision 7 rejects second SHB via E-INP-012 before any section-2 IDB is parsed); annotated DEFERRED. M-6: added IDB OPTIONS TLV-walking postcondition (PC6), AC-005 (bounds-check every option length against remaining body before reading value; opt_endofopt/end-of-body terminates walk; malformed option-length => E-INP-008; no panic/OOB), and EC-011 (option length > remaining body => E-INP-008). M-7 (Decision 17): added AC-006 (three-level IDB-parse precedence: (1) E-INP-013 position check FIRST; (2) E-INP-001 whitelist SECOND; (3) E-INP-011 conflict THIRD) and EC-012 (late IDB that also conflicts on linktype => E-INP-013 wins; E-INP-001/011 never evaluated). O-3: replaced 'E-INP-013 to be added in a separate burst' with 'E-INP-013: error-taxonomy.md v2.8'. Authority: ADR-009 rev 6. — 2026-06-19"
   - "v1.2: Pass-2 P2a remediation — C-1 (CRITICAL): PC4 and Architecture Anchor corrected: snaplen is at IDB body bytes 4-7, NOT 2-5. Spike Q-A3 confirms IDB wire layout: linktype u16 @0-1, reserved u16 @2-3, snaplen u32 @4-7 (interface_description.rs:45-52). Added: crate enforces reserved==0 and body>=8; wirerust mirrors these checks (non-zero reserved or body<8 is a structural IDB error => E-INP-008). I-7 / PC5 corrected: E-INP-008 covers SHB/IDB structural errors ONLY; EPB/SPB body truncation => E-INP-010 per error-taxonomy. Decision 15 / I-5/I-6: added AC-004 — IDB after first packet block has been emitted (packets_emitted>0) returns Err mapping to NEW code E-INP-013; interface table not updated; processing stops. I-11: added Test: citations per AC. — 2026-06-19"
@@ -69,8 +70,11 @@ multi-IDB agreement check (BC-2.01.018). `if_tsresol` absent defaults to 10^-6 (
      → **E-INP-008** (IDB structural parse failure; wirerust body-decode path). Constructible
      window confirmed by ADR-009 rev 7 per-block fixed-field minimum: IDB = 8 bytes.
      Canonical fixture: btl=16 → body=4 bytes < 8 → E-INP-008.
-   E-INP-008 covers SHB and IDB structural errors ONLY. EPB/SPB body truncation routes to
-   E-INP-010 per error-taxonomy.md — E-INP-008 is NOT reused for packet-block truncation.
+   **Uniform rule (Decision 20):** E-INP-008 covers wirerust body-decode failures for ALL block
+   types — SHB body < 16 bytes, IDB body < 8 bytes, EPB body < 20 bytes, SPB body < 4 bytes —
+   wherever the crate successfully framed the block but wirerust's own decode rejects the body.
+   btl < 12 / misaligned / EOF is always E-INP-010 (crate framing rejection) regardless of
+   block type. There is no per-block-type exception to this split.
 6. **IDB OPTIONS TLV-walking (M-6, raw path).** On the raw-block path wirerust parses IDB
    options itself. The options region begins at IDB body offset 8 (immediately after the 8-byte
    fixed fields). Each option is a TLV: option-code u16 + option-length u16 + value bytes,
