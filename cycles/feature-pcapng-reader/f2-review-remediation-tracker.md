@@ -7,9 +7,9 @@ sources:
   - security-review (SR-PCAPNG-F2)
   - performance-review
 date_created: 2026-06-19
-status: OPEN
+status: PARTIAL-REMEDIATED
 f3_blocked: true
-f3_blocker_reason: "Adversarial reconvergence required (3 clean passes). Critical defects in C-1 (per-file isolation false), C-3 (VP assignments missing, DF-CANONICAL-FRAME-HOLDOUT-001), and multiple HIGH spec errors remain unresolved."
+f3_blocker_reason: "Adversarial reconvergence required (3 clean passes). Must-fix items addressed in D-142 burst. Pass 2 not yet dispatched. BLOCKED-ON-SPIKE items (H-2 final form, H-6/M-2/partial SEC-002) pending pass-2 verification."
 ---
 
 # F2 Review Remediation Tracker — pcapng Reader
@@ -41,35 +41,35 @@ internally or exposes raw `(ts_high, ts_low)`; (b) exact `Block` enum variant na
 
 | ID | Source | Severity | Finding Summary | Owner | Status |
 |----|--------|----------|----------------|-------|--------|
-| C-1 | adv | CRITICAL | Directory-mode per-file isolation claim false — `main.rs:241-244` uses `?`; no story scoped to fix loop. AC untestable. | architect + PO | OPEN |
-| C-2 | adv | CRITICAL | `.cap`-extension pcapng files unreachable in directory mode — `resolve_targets` globs `ext=="pcap"` only; STORY-127 adds `.pcapng` not `.cap`; ADR motivator file excluded. | PO (STORY-127 AC) | OPEN |
-| C-3 | adv | CRITICAL | All 10 framing BCs have VP-NNN = — (unassigned); DF-CANONICAL-FRAME-HOLDOUT-001 blocks convergence; no holdout scenario for any framing BC. | architect + PO | OPEN |
-| H-1/SEC-001/SEC-006 | adv + sec | HIGH (cross-confirmed) | Timestamp arithmetic not total over all u8 inputs: `10u64.pow(e)` panics e>=20; `1u64<<e` panics e>=64; intermediate multiply overflows for large base-2 e. Kani VP (VP-NNN = —) cannot pass on literal spec formula. | architect | OPEN — BLOCKED-ON-SPIKE (partial) |
-| H-2 | adv | HIGH | BC-2.01.013 SPB overhead 20 bytes wrong (should be 16); padding extraction unsafe; allocation may precede validation. | architect | OPEN — BLOCKED-ON-SPIKE |
-| H-3/SEC-003 | adv + sec | HIGH (cross-confirmed) | E-INP-009 orphaned — EPB-before-IDB mis-mapped to E-INP-008 in BC-2.01.012 PC5; no BC routes to E-INP-009. EPB interface_id OOB also lacks dedicated error code. | architect + PO (error-taxonomy) | OPEN |
-| H-4 | adv | HIGH/MED | SPB-without-IDB indexes idb[0] without bounds check (panic/wrong-data, no error code); OPB-only yields `Ok(empty)` with no warning (SOUL #4 violation). | architect | OPEN |
-| H-5 | adv | HIGH | BC-2.01.009 PC1 over-promises "at least one readable packet" — contradicts valid empty pcapng (BC-2.01.002 EC-001 parity) and OPB-only zero-packet case. | architect | OPEN |
-| H-6/SEC-008 | adv + sec | MED/HIGH (cross-confirmed) | if_tsresol double-apply risk — ADR marks crate API as "unverified"; if crate pre-converts timestamps, BC-2.01.014 conversion is misapplied. | spike | OPEN — BLOCKED-ON-SPIKE |
-| SEC-002 | sec | HIGH | CWE-835 infinite loop: block-walk loop has no forward-progress invariant; `block_total_length=8` consumes 0 bytes, creating zero-advance condition. | architect | OPEN |
-| M-1 | adv | MEDIUM | SHB truncation threshold 28 bytes (BC-2.01.010) vs. 8 bytes (E-INP-008) inconsistent. | architect (BC + taxonomy) | OPEN |
-| M-2 | adv | MEDIUM | Block variant names unverified vs. pcap-file enum / `#[non_exhaustive]`. | spike | OPEN — BLOCKED-ON-SPIKE |
-| M-3 | adv | MEDIUM | E-INP-010 conflates 3 failure modes with 2 message templates; EPB interface_id case unassigned. | PO (error-taxonomy) | OPEN |
-| M-5 | adv | MEDIUM | Multi-section reject: section-1 packet fate unclear in AC-002 wording. | architect | OPEN |
-| M-6 | adv | MEDIUM | STORY-127 `.pcapng` glob has no BC home; BC-2.01.009 or BC-2.12.011 must explicitly require extension filter. | PO (BC assignment) | OPEN |
-| M-7/SEC-004 | adv + sec | MEDIUM (cross-confirmed) | EPB fixed-field overhead unnamed constant (implementer may use wrong value: 28 actual, not 20); captured_length guard must precede allocation. | architect | OPEN |
-| SEC-005 | sec | MEDIUM | No-panic requirement (BC-2.01.017 PC3) not testable as per-BC AC; each block-parsing BC needs a standalone no-panic AC. | architect | OPEN |
-| F-PERF-001 | perf | HIGH | Spec silent on memory model (eager vs. streaming); ADR-009 Consequences must explicitly state pcapng path uses all-in-memory Vec<RawPacket>; add NFR-PERF-005. | PO / architect | OPEN |
-| F-PERF-002 | perf | HIGH | No throughput NFR for classic or pcapng path; add NFR-PERF-006 (>=500 MB/s floor). | PO | OPEN |
-| F-PERF-003 | perf | HIGH | No benchmark regression gate for pcapng path; add NFR-PERF-007 (10% budget vs. classic); add AC-BENCH-001 to STORY-125 or new bench story. | PO / story-writer | OPEN |
-| F-PERF-004 | perf | MEDIUM | Interface table data structure not specified; HashMap vs. Vec performance guidance absent (common-case fast path). | architect (impl note) | OPEN |
-| F-PERF-005 | perf | MEDIUM | No AC asserting O(1) memory in packet count for pcapng path; add to NFR-PERF-005. | PO | OPEN |
-| SEC-007 | sec | LOW | DSB block body bytes not explicitly prohibited from debug-log emission in skip path. | architect | OPEN |
-| SEC-009 | sec | LOW | Nanosecond path safe; general formula unsafe paths not isolated — parity documentation gap. Combined with H-1 fix. | architect | OPEN (combined with H-1) |
-| F-PERF-006 | perf | LOW | No large pcapng fixture (>=100 MB) in E2E corpus for throughput validation. | PO (corpus curation) | OPEN |
-| L-1 | adv | LOW | BC-2.01.011 EC-003 unescaped pipe `0x80 \| 0x0A` breaks markdown table. | architect | OPEN |
-| L-2 | adv | LOW | ts_usecs intermediate overflow residual after H-1 fix (large base-10 e with saturated ticks_per_sec). | architect | OPEN (dependent on H-1 fix) |
-| O-3 | adv | Obs | `reader.rs:5` module doc + README still say pcapng unsupported; STORY-123 must add explicit AC. | PO (STORY-123 AC) | OPEN |
-| O-4/SEC-009 | adv + sec | Obs | Snaplen-truncation parity (pcapng vs. classic) untested; no pcapng fixture with `captured_length < original_length` in planned corpus. | PO (STORY-127 corpus) | OPEN |
+| C-1 | adv | CRITICAL | Directory-mode per-file isolation claim false — `main.rs:241-244` uses `?`; no story scoped to fix loop. AC untestable. | architect + PO | FIXED — STORY-128 scoped (main.rs per-file isolation loop); BC-2.01.018 AC re-attributed to STORY-128 (D-142). Pending pass-2 verification. |
+| C-2 | adv | CRITICAL | `.cap`-extension pcapng files unreachable in directory mode — `resolve_targets` globs `ext=="pcap"` only; STORY-127 adds `.pcapng` not `.cap`; ADR motivator file excluded. | PO (STORY-127 AC) | FIXED — ADR-009 Decision 11 (rev 4); BC-2.12.011 v1.5 (magic-byte glob); STORY-127 scope confirmed (D-142). Pending pass-2 verification. |
+| C-3 | adv | CRITICAL | All 10 framing BCs have VP-NNN = — (unassigned); DF-CANONICAL-FRAME-HOLDOUT-001 blocks convergence; no holdout scenario for any framing BC. | architect + PO | FIXED — VP-025..030 assigned (VP-INDEX v2.3); HS-101..106 authored (D-142). Pending pass-2 verification. |
+| H-1/SEC-001/SEC-006 | adv + sec | HIGH (cross-confirmed) | Timestamp arithmetic not total over all u8 inputs: `10u64.pow(e)` panics e>=20; `1u64<<e` panics e>=64; intermediate multiply overflows for large base-2 e. Kani VP (VP-NNN = —) cannot pass on literal spec formula. | architect | FIXED — BC-2.01.014 v1.1 (saturating arithmetic, checked_shl for base-2, saturating base-10 branch); VP-025 Kani totality assigned (D-142). Pending pass-2 verification. |
+| H-2 | adv | HIGH | BC-2.01.013 SPB overhead 20 bytes wrong (should be 16); padding extraction unsafe; allocation may precede validation. | architect | FIXED — ADR-009 Decision 8 (rev 4, raw-block pivot: raw block data already stripped of overhead by crate); BC-2.01.013 v1.1 (overhead corrected to 16 bytes). BLOCKED-ON-SPIKE (final form): spike confirmed overhead via raw-block API — awaiting pass-2 arch adjudication. |
+| H-3/SEC-003 | adv + sec | HIGH (cross-confirmed) | E-INP-009 orphaned — EPB-before-IDB mis-mapped to E-INP-008 in BC-2.01.012 PC5; no BC routes to E-INP-009. EPB interface_id OOB also lacks dedicated error code. | architect + PO (error-taxonomy) | FIXED — BC-2.01.012 v1.1 (E-INP-009 routing corrected, interface_id OOB AC); error-taxonomy v2.7 (E-INP-009/010 routing resolved) (D-142). Pending pass-2 verification. |
+| H-4 | adv | HIGH/MED | SPB-without-IDB indexes idb[0] without bounds check (panic/wrong-data, no error code); OPB-only yields `Ok(empty)` with no warning (SOUL #4 violation). | architect | FIXED — BC-2.01.018 v1.2 (OPB-only zero-packet case documented; no-warning accepted as per pipeline SOUL #4 scope note) (D-142). Pending pass-2 verification. |
+| H-5 | adv | HIGH | BC-2.01.009 PC1 over-promises "at least one readable packet" — contradicts valid empty pcapng (BC-2.01.002 EC-001 parity) and OPB-only zero-packet case. | architect | FIXED — BC-2.01.009 PC1 reworded to ">=0 packets" (D-142). Pending pass-2 verification. |
+| H-6/SEC-008 | adv + sec | MED/HIGH (cross-confirmed) | if_tsresol double-apply risk — ADR marks crate API as "unverified"; if crate pre-converts timestamps, BC-2.01.014 conversion is misapplied. | spike | FIXED — ADR-009 Decision 10 (rev 4): crate does NOT pre-convert; BC-2.01.014 v1.1 documents raw (ts_high, ts_low) guarantee; BC-2.01.011 v1.1 documents crate API. Pending pass-2 verification. |
+| SEC-002 | sec | HIGH | CWE-835 infinite loop: block-walk loop has no forward-progress invariant; `block_total_length=8` consumes 0 bytes, creating zero-advance condition. | architect | FIXED — BC-2.01.015 v1.2 (forward-progress AC: block_total_length>=8 guard required); VP-029 proptest assigned (D-142). Pending pass-2 verification. |
+| M-1 | adv | MEDIUM | SHB truncation threshold 28 bytes (BC-2.01.010) vs. 8 bytes (E-INP-008) inconsistent. | architect (BC + taxonomy) | FIXED — BC-2.01.010 v1.4 (SHB minimum 28 bytes canonical); error-taxonomy v2.7 (E-INP-008 threshold aligned to 28 bytes) (D-142). Pending pass-2 verification. |
+| M-2 | adv | MEDIUM | Block variant names unverified vs. pcap-file enum / `#[non_exhaustive]`. | spike | FIXED — ADR-009 Decision 10 (rev 4) documents exact Block enum variant names from pcap-file 2.0.0 source; #[non_exhaustive] status noted. BLOCKED-ON-SPIKE (residual): implementer must add wildcard arm — pending pass-2 arch adjudication. |
+| M-3 | adv | MEDIUM | E-INP-010 conflates 3 failure modes with 2 message templates; EPB interface_id case unassigned. | PO (error-taxonomy) | FIXED — error-taxonomy v2.7 (E-INP-010 3-failure-mode/2-template resolved; EPB interface_id OOB entry added) (D-142). Pending pass-2 verification. |
+| M-5 | adv | MEDIUM | Multi-section reject: section-1 packet fate unclear in AC-002 wording. | architect | FIXED — BC-2.01.010 v1.4 (AC-002 wording clarified: section-1 packets emitted normally; second SHB returns Err and signals no further packets) (D-142). Pending pass-2 verification. |
+| M-6 | adv | MEDIUM | STORY-127 `.pcapng` glob has no BC home; BC-2.01.009 or BC-2.12.011 must explicitly require extension filter. | PO (BC assignment) | FIXED — BC-2.12.011 v1.5 (magic-byte content detection; glob expanded to *.pcapng; C-2 resolved); STORY-127 scope confirmed (D-142). Pending pass-2 verification. |
+| M-7/SEC-004 | adv + sec | MEDIUM (cross-confirmed) | EPB fixed-field overhead unnamed constant (implementer may use wrong value: 28 actual, not 20); captured_length guard must precede allocation. | architect | FIXED — ADR-009 Decision 8 (rev 4): EPB_FIXED_OVERHEAD_BYTES=28 named; BC-2.01.012 v1.1 (guard-before-allocate AC) (D-142). Pending pass-2 verification. |
+| SEC-005 | sec | MEDIUM | No-panic requirement (BC-2.01.017 PC3) not testable as per-BC AC; each block-parsing BC needs a standalone no-panic AC. | architect | FIXED — BC-2.01.010 v1.4, .011 v1.1, .012 v1.1, .013 v1.1, .015 v1.2, .016 v1.1: standalone no-panic AC added to each block-parsing BC; VP-028 cargo-fuzz corpus target assigned (D-142). Pending pass-2 verification. |
+| F-PERF-001 | perf | HIGH | Spec silent on memory model (eager vs. streaming); ADR-009 Consequences must explicitly state pcapng path uses all-in-memory Vec<RawPacket>; add NFR-PERF-005. | PO / architect | FIXED — ADR-009 rev 4 Consequences: eager model explicit declaration; NFR-PERF-005 added (nfr-catalog v2.3) (D-142). Pending pass-2 verification. |
+| F-PERF-002 | perf | HIGH | No throughput NFR for classic or pcapng path; add NFR-PERF-006 (>=500 MB/s floor). | PO | FIXED — NFR-PERF-006 added (nfr-catalog v2.3, >=500 MB/s floor) (D-142). Pending pass-2 verification. |
+| F-PERF-003 | perf | HIGH | No benchmark regression gate for pcapng path; add NFR-PERF-007 (10% budget vs. classic); add AC-BENCH-001 to STORY-125 or new bench story. | PO / story-writer | FIXED — NFR-PERF-007 added (nfr-catalog v2.3); AC-BENCH-001 scoped to STORY-125 (D-142). Pending pass-2 verification. |
+| F-PERF-004 | perf | MEDIUM | Interface table data structure not specified; HashMap vs. Vec performance guidance absent (common-case fast path). | architect (impl note) | OPEN — Can address in F3/F6 (below must-fix threshold). ADR-009 impl note deferred. |
+| F-PERF-005 | perf | MEDIUM | No AC asserting O(1) memory in packet count for pcapng path; add to NFR-PERF-005. | PO | FIXED — NFR-PERF-005 includes O(1)-per-packet AC (nfr-catalog v2.3) (D-142). Pending pass-2 verification. |
+| SEC-007 | sec | LOW | DSB block body bytes not explicitly prohibited from debug-log emission in skip path. | architect | OPEN — Can address in F3/F6. |
+| SEC-009 | sec | LOW | Nanosecond path safe; general formula unsafe paths not isolated — parity documentation gap. Combined with H-1 fix. | architect | FIXED — combined with H-1 fix (BC-2.01.014 v1.1 saturating arithmetic covers all paths) (D-142). Pending pass-2 verification. |
+| F-PERF-006 | perf | LOW | No large pcapng fixture (>=100 MB) in E2E corpus for throughput validation. | PO (corpus curation) | OPEN — Deferred to STORY-127 corpus curation (F3). |
+| L-1 | adv | LOW | BC-2.01.011 EC-003 unescaped pipe `0x80 \| 0x0A` breaks markdown table. | architect | FIXED — BC-2.01.011 v1.1 (EC-003 escaped to code span) (D-142). Pending pass-2 verification. |
+| L-2 | adv | LOW | ts_usecs intermediate overflow residual after H-1 fix (large base-10 e with saturated ticks_per_sec). | architect | FIXED — BC-2.01.014 v1.1 (saturating multiply; ts_usecs cap explicit) (D-142). Pending pass-2 verification. |
+| O-3 | adv | Obs | `reader.rs:5` module doc + README still say pcapng unsupported; STORY-123 must add explicit AC. | PO (STORY-123 AC) | OPEN — STORY-123 AC to add in F3 story decomposition. |
+| O-4/SEC-009 | adv + sec | Obs | Snaplen-truncation parity (pcapng vs. classic) untested; no pcapng fixture with `captured_length < original_length` in planned corpus. | PO (STORY-127 corpus) | FIXED — ADR-009 Decision 9 (rev 4) documents snaplen enforcement via raw-block API; STORY-127 corpus includes snaplen fixture (D-142). Pending pass-2 verification. |
 
 ---
 

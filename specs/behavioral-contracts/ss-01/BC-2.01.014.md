@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.0"
+version: "1.1"
 status: draft
 producer: product-owner
 timestamp: 2026-06-19T00:00:00Z
@@ -12,7 +12,8 @@ subsystem: SS-01
 capability: CAP-01
 lifecycle_status: active
 introduced: v0.10.0-pcapng
-modified: []
+modified:
+  - "v1.1: F2 Burst-A remediation per ADR-009 rev 4 PO dispatch — (1) VP-025 added to Verification Properties. (2) Required SATURATING arithmetic throughout (H-1/SEC-001/SEC-006): base-10 uses checked_pow (saturate to u64::MAX on overflow); base-2 exponent e CLAMPED to [0,63] before shift (e >= 64 panics in Rust with overflow-checks=true — clamping is mandatory); intermediate product (ticks % ticks_per_sec) * 1_000_000 MUST use u128 or saturating_mul (overflows u64 for base-2 e >= 43). (3) Updated EC-006: added explicit statement that e >= 64 panics without clamping and that the spec mandates clamping; also added base-2 e=63 as a tested boundary. (4) Added new edge cases: EC-009 (if_tsresol=6 µs default), EC-010 (if_tsresol=9 ns), EC-011 (if_tsresol=0x94 base-2 e=20), EC-012 (if_tsresol=0xFF base-2 e=127, must not panic). (5) Updated Postcondition 2 and 3 to specify saturating formulas. (6) Updated Invariant 1: 'no panics' is NOW ACTUALLY TRUE with the saturating formula — prior version with `pow` could panic for large base-10 exponents. (7) Clarified that this helper is LOAD-BEARING (drives off raw split ticks from RawBlock; crate's high-level EPB is ns-hardcoded and wrong). — 2026-06-19"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -27,49 +28,90 @@ removal_reason: null
 
 A pure-core function `pcapng_timestamp_to_secs_usecs(ts_high: u32, ts_low: u32, if_tsresol: u8) -> (u32, u32)`
 converts a pcapng EPB 64-bit timestamp to the `(timestamp_secs: u32, timestamp_usecs: u32)`
-pair used by `RawPacket`. The function has no I/O, no global state, and is deterministic; it
-is the designated target for Kani property verification (ADR-009 Decision 4). The `if_tsresol`
-byte encodes either a base-10 exponent (bit 7 clear) or a base-2 exponent (bit 7 set) per the
-pcapng specification. When `if_tsresol` is absent at the IDB level, callers MUST pass `6`
-(the default 10^-6 microsecond resolution) to this function.
+pair used by `RawPacket`. This helper is LOAD-BEARING on the raw-block path (ADR-009 Decision 1
+rev 4): it drives off the raw split ticks from `RawBlock`; the crate's high-level
+`EnhancedPacketBlock::timestamp` is ns-hardcoded (`Duration::from_nanos`) and never applies
+`if_tsresol`, making it WRONG for any non-nanosecond capture (the common case — Wireshark
+default — is microsecond, tsresol=6). The function has no I/O, no global state, and is
+deterministic; it is the designated Kani proof target (VP-025, ADR-009 Decision 4).
+ALL intermediate arithmetic MUST use saturating or checked operations (H-1/SEC-001/SEC-006).
+When `if_tsresol` is absent at the IDB level, callers MUST pass `6` (10^-6, microseconds —
+the pcapng specification default).
 
 ## Preconditions
 
 1. Function is called with `(ts_high: u32, ts_low: u32, if_tsresol: u8)`.
-2. `if_tsresol` is either the value extracted from the IDB `if_tsresol` TLV option, or
-   the constant `6u8` when that option is absent.
+2. `if_tsresol` is either the value extracted from the IDB `if_tsresol` TLV option (code 9),
+   or the constant `6u8` when that option is absent from the IDB.
 3. No I/O is performed before or during this function.
+4. Inputs are raw split ticks from `RawBlock` body bytes — NOT from `EnhancedPacketBlock::timestamp`
+   (the crate's Duration, which is incorrect for non-nanosecond captures).
 
 ## Postconditions
 
 1. The 64-bit timestamp in ticks is computed as `ticks: u64 = (ts_high as u64) << 32 | ts_low as u64`.
+   This shift is safe: both operands are u64 (`u32 as u64`); the high half occupies bits 32-63
+   exactly; adding the low u32 cannot overflow u64.
+
 2. If bit 7 of `if_tsresol` is clear (base-10 exponent `e = if_tsresol & 0x7F`):
-   - `ticks_per_sec: u64 = 10u64.pow(e as u32)`
-   - `ts_sec: u32 = (ticks / ticks_per_sec) as u32` (saturating cast, capped at u32::MAX)
-   - `ts_usecs: u32 = ((ticks % ticks_per_sec) * 1_000_000 / ticks_per_sec) as u32`
+   - `ticks_per_sec: u64 = 10u64.checked_pow(e as u32).unwrap_or(u64::MAX)`
+     (saturate to u64::MAX on overflow — prevents panic for large e; if saturated, ts_usecs = 0).
+   - `ts_sec: u32 = (ticks / ticks_per_sec).min(u32::MAX as u64) as u32` (saturating cast,
+     capped at u32::MAX — Y2106 boundary, same limitation as classic pcap).
+   - The intermediate product `(ticks % ticks_per_sec) * 1_000_000` MUST be computed in u128
+     or via `u64::saturating_mul` to avoid overflow (overflows u64 for large ticks_per_sec).
+   - `ts_usecs: u32 = (((ticks % ticks_per_sec) as u128 * 1_000_000u128) / ticks_per_sec as u128) as u32`
+
 3. If bit 7 of `if_tsresol` is set (base-2 exponent `e = if_tsresol & 0x7F`):
-   - `ticks_per_sec: u64 = 1u64 << e` (2^e ticks per second)
-   - Same `ts_sec` and `ts_usecs` formulas as above.
-4. `if_tsresol = 6` (default, base-10, 10^-6):
+   - `e` MUST be CLAMPED to [0, 63] before the shift: `let e_clamped = e.min(63)`.
+     Reason: Rust panics on `1u64.checked_shl(e as u32)` when `e >= 64` with
+     `overflow-checks = true` (wirerust release profile has `overflow-checks = true`).
+     Clamping is MANDATORY; omitting it makes the no-panic invariant false.
+   - `ticks_per_sec: u64 = 1u64.checked_shl(e_clamped as u32).unwrap_or(u64::MAX)`
+     (saturate to u64::MAX; if e_clamped = 63, `1u64 << 63` = 9_223_372_036_854_775_808 which
+     fits u64 and is a valid result; `checked_shl` returns None only for shift >= 64, which
+     is excluded by the clamp).
+   - Same `ts_sec` and `ts_usecs` formulas as Postcondition 2 (using u128 intermediate).
+
+4. `if_tsresol = 6` (default, base-10, 10^-6, microseconds):
    - `ticks_per_sec = 1_000_000`
-   - `ts_sec = ticks / 1_000_000`
-   - `ts_usecs = ticks % 1_000_000`
-   - This is the canonical fast path; it is mathematically equivalent to the general formula.
+   - `ts_sec = ticks / 1_000_000` (safe; u64 / u64)
+   - `ts_usecs = (ticks % 1_000_000) as u32` (remainder < 1_000_000; fits u32; no intermediate overflow)
+   - This is the canonical fast path. Mathematically equivalent to the general formula, but
+     the simpler form avoids the u128 intermediate for this critical common case.
+
 5. `if_tsresol = 9` (nanoseconds, base-10, 10^-9):
    - `ticks_per_sec = 1_000_000_000`
-   - `ts_usecs = ((ticks % 1_000_000_000) / 1_000) as u32` (convert ns remainder to µs)
-6. When `ticks / ticks_per_sec > u32::MAX`, `ts_sec` saturates at `u32::MAX` (Y2106 boundary; same limitation as classic pcap).
-7. Division by zero is impossible: `ticks_per_sec` is always ≥ 1 (minimum: base-10 e=0 → 10^0=1; base-2 e=0 → 2^0=1).
+   - `ts_usecs = ((ticks % 1_000_000_000) as u128 * 1_000_000u128 / 1_000_000_000u128) as u32`
+     (equivalently: `(ticks % 1_000_000_000) / 1_000` — converts ns remainder to µs)
+
+6. When `ticks / ticks_per_sec > u32::MAX`, `ts_sec` saturates at `u32::MAX` (Y2106 boundary;
+   same limitation as classic pcap). No panic; saturation is the documented behavior.
+
+7. Division by zero is impossible: `ticks_per_sec` is always ≥ 1.
+   - Base-10, e=0: `10^0 = 1`. `checked_pow(0) = Some(1)`.
+   - Base-2, e=0 (or clamped to 0): `2^0 = 1`. `checked_shl(0) = Some(1)`.
+   - Saturated u64::MAX: divisor is u64::MAX ≥ 1.
+   - Therefore the denominator can never be 0.
 
 ## Invariants
 
-1. The function is pure: no I/O, no global state reads/writes, no panics for any u8 `if_tsresol` value.
+1. The function is pure: no I/O, no global state reads/writes. With the saturating arithmetic
+   prescribed above, NO PANIC occurs for ANY `(u32, u32, u8)` input. This invariant is NOW
+   ACTUALLY TRUE (prior formulas using `10u64.pow()` without `checked_pow` or `1u64 << e`
+   without clamping could panic for large exponents — those forms are prohibited).
 2. `if_tsresol = 6` (default µs) produces results numerically identical to the classic-pcap
    microsecond-resolution path (`ts_frac` used as-is in BC-2.01.002 Postcondition 2).
 3. The returned `ts_usecs` is always in the range [0, 999_999]; it MUST NOT exceed 999_999.
 4. Division by zero cannot occur (see Postcondition 7).
 5. The function signature takes only scalar integers; it has no dependency on any crate types
-   other than Rust primitives.
+   other than Rust primitives and the u128 builtin.
+6. Base-2 exponent `e` is ALWAYS clamped to [0, 63] before any shift. The unclamped
+   `if_tsresol & 0x7F` value MAY be in [0, 127]; values in [64, 127] are valid `if_tsresol`
+   bytes per the pcapng spec but represent sub-femtosecond resolutions unreachable in practice.
+   Clamping to 63 saturates `ticks_per_sec` at `u64::MAX` (via `checked_shl` returning None
+   for shifts ≥ 64 after clamping makes this unreachable — alternatively, clamping to 63
+   means `1u64 << 63` which is a valid u64). Either path: no panic.
 
 ## Edge Cases
 
@@ -78,11 +120,15 @@ pcapng specification. When `if_tsresol` is absent at the IDB level, callers MUST
 | EC-001 | `ts_high=0, ts_low=0` (epoch) | `(0, 0)` |
 | EC-002 | Default µs (`if_tsresol=6`), `ticks=1_500_000_500` | `ts_sec=1500, ts_usecs=500` |
 | EC-003 | Nanoseconds (`if_tsresol=9`), `ticks=1_500_000_000_500` | `ts_sec=1500, ts_usecs=0` (500 ns < 1 µs rounds down) |
-| EC-004 | `if_tsresol=0` (base-10, 10^0=1 tick/sec, 1-second resolution) | `ticks_per_sec=1`; `ts_sec=ticks as u32`; `ts_usecs=0` |
+| EC-004 | `if_tsresol=0` (base-10, 10^0=1 tick/sec, 1-second resolution) | `ticks_per_sec=1`; `ts_sec=(ticks).min(u32::MAX as u64) as u32`; `ts_usecs=0` |
 | EC-005 | `if_tsresol=0x80` (base-2, 2^0=1 tick/sec, 1-second resolution) | Same output as EC-004 |
-| EC-006 | `if_tsresol=0x3F` (base-2, 2^63 ticks/sec — sub-femtosecond) | `ticks_per_sec=2^63`; ticks likely < ticks_per_sec; `ts_sec=0, ts_usecs=0` |
-| EC-007 | `ts_high=u32::MAX, ts_low=u32::MAX` (maximum u64 ticks) | `ts_sec` saturates at u32::MAX; no panic |
+| EC-006 | `if_tsresol=0x3F` (base-2, e=63) | `e_clamped=63`; `ticks_per_sec=1u64<<63`; ticks likely << ticks_per_sec; `ts_sec=0, ts_usecs=0`; NO PANIC. Without the e-clamp, `if_tsresol=0x40` (e=64) would panic; clamping is mandatory. |
+| EC-007 | `ts_high=u32::MAX, ts_low=u32::MAX` (maximum u64 ticks) | `ts_sec` saturates at u32::MAX; `ts_usecs` computed from remainder; NO PANIC |
 | EC-008 | `if_tsresol=6` (default), `ticks=1_000_000` exactly | `ts_sec=1, ts_usecs=0` |
+| EC-009 | `if_tsresol=6` (µs default), pcapng file with known packet timestamp | REGRESSION GUARD: confirms 1000× timestamp bug absent; a Wireshark-default µs capture must NOT produce timestamps 1000× too large (crate's ns-hardcode bug) |
+| EC-010 | `if_tsresol=9` (nanoseconds), `ticks=2_000_000_500` | `ts_sec=2, ts_usecs=0` (500 ns rounds down to 0 µs) |
+| EC-011 | `if_tsresol=0x94` (base-2, e=20) | `e_clamped=20`; `ticks_per_sec=1<<20=1_048_576`; `ts_sec=ticks/1_048_576`; `ts_usecs` via u128 intermediate; NO PANIC |
+| EC-012 | `if_tsresol=0xFF` (base-2, e=127, out of u64-shift range) | `e_clamped=63`; `ticks_per_sec=1u64<<63=9_223_372_036_854_775_808`; `ts_sec=0` (any realistic ticks << this); `ts_usecs=0`; NO PANIC |
 
 ## Canonical Test Vectors
 
@@ -92,17 +138,20 @@ pcapng specification. When `if_tsresol` is absent at the IDB level, callers MUST
 | `ts_high=0, ts_low=1_500_000, if_tsresol=6` | `(1, 500_000)` — 1.5 seconds | happy-path |
 | `ts_high=0, ts_low=1_500_000_000, if_tsresol=9` | `(1, 500_000)` — 1.5 seconds from ns ticks | happy-path |
 | `ts_high=0, ts_low=0, if_tsresol=6` | `(0, 0)` | edge-case |
-| `ts_high=u32::MAX, ts_low=u32::MAX, if_tsresol=6` | `ts_sec=u32::MAX` (saturated), no panic | edge-case |
+| `ts_high=u32::MAX, ts_low=u32::MAX, if_tsresol=6` | `ts_sec=u32::MAX` (saturated), `ts_usecs` in [0,999_999], no panic | edge-case |
 | `ts_high=1, ts_low=0, if_tsresol=6` | `ts_sec = (2^32 / 1_000_000)`, `ts_usecs = (2^32 % 1_000_000)` | happy-path |
+| `ts_high=0, ts_low=0, if_tsresol=0xFF` | `(0, 0)`, no panic (e=127 clamped to 63) | edge-case (EC-012) |
+| `ts_high=0, ts_low=1_048_576, if_tsresol=0x94` | `ts_sec=1`, `ts_usecs=0` (base-2 e=20: 1<<20=1_048_576 ticks/sec) | edge-case (EC-011) |
 
 ## Verification Properties
 
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| — | No panic for any (u32, u32, u8) input combination | Kani: `#[kani::proof]` over full input space |
-| — | `ts_usecs` always in [0, 999_999] | Kani: assert `ts_usecs < 1_000_000` |
-| — | `if_tsresol=6` result == classic-pcap microsecond result for same epoch | unit: compare against classic-pcap timestamp extraction |
-| — | Division by zero impossible | Kani: prove denominator always >= 1 |
+| VP-025 | `pcapng_timestamp_to_secs_usecs` totality: no panic for ALL (u32, u32, u8) inputs with saturating arithmetic; `ts_usecs` always in [0, 999_999]; `ts_sec` plausible (≤ u32::MAX); denominator never 0 | Kani: `#[kani::proof]` over full symbolic input space (u32 × u32 × u8 = 2^65 inputs; Kani explores exhaustively via bounded model checking) |
+| — | `if_tsresol=6` result matches classic-pcap microsecond result for same epoch | unit: compare against classic-pcap timestamp extraction |
+| — | `if_tsresol=0xFF` (e=127) does not panic | unit: assert result = (0, 0) or (0, small) without panic |
+| — | `if_tsresol=0x94` (e=20) produces correct result for known ticks | unit: `ticks=1_048_576, if_tsresol=0x94` → `(1, 0)` |
+| — | ts_usecs regression guard for µs-default captures | integration: pcapng file with known ts values and `if_tsresol=6`; assert timestamp_secs and timestamp_usecs are correct (proves 1000× bug absent) |
 
 ## Traceability
 
@@ -113,19 +162,21 @@ pcapng specification. When `if_tsresol` is absent at the IDB level, callers MUST
 | L2 Domain Invariants | None directly |
 | Architecture Module | SS-01 (reader.rs or dedicated pure-core module, C-4) |
 | Stories | STORY-125 |
-| ADR Reference | ADR-009 Decision 4 (pure-core timestamp-conversion helper, Kani-provable, free function with no I/O) |
+| ADR Reference | ADR-009 rev 4 Decision 4 (pure-core timestamp helper, LOAD-BEARING, saturating arithmetic, Kani-provable VP-025); Decision 1 (raw-block path — helper feeds off raw split ticks, not crate Duration) |
 
 ## Related BCs
 
 - BC-2.01.011 -- depends on (if_tsresol value comes from IDB parsing in BC-2.01.011)
-- BC-2.01.012 -- composed by (EPB parsing calls this function for each packet)
+- BC-2.01.012 -- composed by (EPB parsing passes raw (ts_high, ts_low) to this function)
 - BC-2.01.002 -- mirrors (classic-pcap analog uses ts_frac directly; this BC extends the pattern to pcapng)
 
 ## Architecture Anchors
 
-- ADR-009 Decision 4: "pure-core timestamp-conversion helper MUST be extracted (free function or standalone module, no I/O), taking (ts_high: u32, ts_low: u32, if_tsresol: u8) and returning (ts_sec: u32, ts_usecs: u32)"
-- pcapng spec IETF draft §if_tsresol: option code 9; bit 7 = base selector (0=10, 1=2); bits 0-6 = exponent
-- Kani: designated formal verification target per ADR-009
+- ADR-009 rev 4 Decision 4: saturating arithmetic mandate — `checked_pow`, e-clamp to [0,63], u128 intermediate for `(ticks % ticks_per_sec) * 1_000_000`
+- ADR-009 rev 4: "BC-2.01.014 pure-core helper is LOAD-BEARING, not redundant. The H-1/SEC-001/SEC-006 overflow guards are real fixes that the Kani proof (VP-025) will verify."
+- `enhanced_packet.rs:46-48,65` (pcap-file 2.0.0 source): confirms crate hard-codes ns, never applies `if_tsresol` — raw ticks not recoverable from `EnhancedPacketBlock::timestamp`
+- pcapng spec IETF draft §if_tsresol: option code 9; bit 7 = base selector (0=base-10, 1=base-2); bits 0-6 = exponent; default = 6 (10^-6, microseconds) when option absent
+- Kani: designated formal verification target per ADR-009 rev 4 (VP-025)
 
 ## Purity Classification
 
@@ -135,4 +186,4 @@ pcapng specification. When `if_tsresol` is absent at the IDB level, callers MUST
 | **Global state access** | none |
 | **Deterministic** | yes — same inputs always produce same output |
 | **Thread safety** | trivially safe (pure function, no shared state) |
-| **Overall classification** | pure core — designated Kani verification target |
+| **Overall classification** | pure core — designated Kani verification target (VP-025) |

@@ -64,18 +64,43 @@ Retrieve: `git -C .factory log --oneline` to find the F2-complete burst SHA.
 |----------|--------------|-------------|-------------|
 | BC-2.01.004 | BC-2.01.009 | BC-2.01.009 (pcapng format detection contract) | F3 delivery |
 
+## F2 Remediation Burst (D-142 — 2026-06-19)
+
+| Artifact | Change | Version |
+|----------|--------|---------|
+| ADR-009 | Raw-block pivot (rev 4): SPB overhead, snaplen, panic surface, directory glob | rev 3 → rev 4 |
+| VP-025..030 | NEW — 6 VPs assigned for pcapng framing BCs | n/a → draft |
+| BC-2.01.010..018 | F2 remediation: saturating arithmetic, guard-before-allocate, SEC-005 no-panic ACs, STORY-128 re-attribution | various → updated |
+| BC-2.12.011 | Magic-byte glob; C-2 resolved | v1.4 → v1.5 |
+| error-taxonomy | E-INP-009/010 routing resolved; E-INP-012 Notes corrected | v2.6 → v2.7 |
+| nfr-catalog | NFR-PERF-005/006/007 added | v2.2 → v2.3 |
+| HS-101..106 | NEW — 6 pcapng holdout scenarios; HS-INDEX v2.0 | n/a → v1.0 each |
+| BC-INDEX | Inline version annotations synced | v1.52 → v1.53 |
+
+**Must-fix items ADDRESSED (D-142):** C-1, C-2, C-3, H-1, H-2 (partial), H-3, H-4, H-5, H-6, SEC-002, M-1, M-2 (partial), M-3, M-5, M-6, M-7, SEC-004, SEC-005, F-PERF-001, F-PERF-002, F-PERF-003, F-PERF-005, SEC-009, L-1, L-2, O-4.
+
+**Findings NOT yet addressed (awaiting pass-2 or deferred to F3/F6):**
+- H-2/M-2 BLOCKED-ON-SPIKE residuals: pass-2 arch adjudication required.
+- F-PERF-004: deferred to ADR-009 impl note (F3/F6).
+- SEC-007: deferred to F3/F6.
+- F-PERF-006: deferred to STORY-127 corpus curation (F3).
+- O-3: STORY-123 AC to add in F3 story decomposition.
+- **HS-001 rewrite**: deferred to F3 (PO action — cites retired BC-2.01.004).
+- **PRD §7 RTM staleness**: flagged for orchestrator/PO — new error-code routing (E-INP-009/010), VP-025..030 and STORY-128 not yet reflected in PRD §7 RTM. Route to PO before F3 story decomposition.
+
 ## Open F3 Follow-Ups (MUST NOT BE LOST)
 
-1. BC-2.12.011 (directory glob "*.pcapng excluded") must be revised/retired+replaced when STORY-127 is decomposed.
-2. HS-001 holdout scenario + HS-INDEX cite retired BC-2.01.004 — holdout must be updated/added in F3 (PO).
-3. Story input-hashes for new STORY-123..127 must be generated at F3 entry (`bin/compute-input-hash --write --scan`).
-4. VP assignments for BC-2.01.009..018 to be propagated post-F2 (architect/VP-INDEX).
+1. **STORY-127** (magic-byte glob + corpus + BC-2.12.011 impl) — SCOPED IN F3. BC-2.12.011 v1.5 is the spec anchor.
+2. **STORY-128** (main.rs per-file isolation loop) — NEW, SCOPED IN F3. BC-2.01.018 AC is the spec anchor.
+3. HS-001 holdout scenario + HS-INDEX cite retired BC-2.01.004 — rewrite/update in F3 (PO). DEFERRED.
+4. Story input-hashes for new STORY-123..128 must be generated at F3 entry (`bin/compute-input-hash --write --scan`).
+5. **PRD §7 RTM sync** — FLAGGED FOR PO: E-INP-009/010 routing, VP-025..030 story-anchors, STORY-128 anchor not reflected. Route before F3 story decomposition.
 
 ### Completeness-Derived F3 Follow-Ups (from D-138)
 
-5. **F-06 (STORY-123 / SHB parsing):** Implement multi-section reject + craft a 2-section pcapng test fixture. The multi-section reset behavior of pcap-file 2.0.0 is INCONCLUSIVE — verify at implementation.
-6. **F-05 (STORY-125 / timestamp):** BC-2.01.014 Kani proof MUST cover the full u8 if_tsresol space (base-2 branch has no corpus coverage) — enforce in the timestamp story.
-7. **F-07 (all skip-block stories):** Implementer must provide explicit match arms for every enumerated skip block (NRB/ISB/DSB/SystemdJournal/obsolete-Packet/Unknown) — no todo!()/wildcard that silently drops.
+6. **F-06 (STORY-123 / SHB parsing):** Implement multi-section reject + craft a 2-section pcapng test fixture. pcap-file 2.0.0 resets correctly (D-139); reject is scope decision.
+7. **F-05 (STORY-125 / timestamp):** BC-2.01.014 v1.1 + VP-025 Kani: proof MUST cover the full u8 if_tsresol space. Enforce in STORY-125.
+8. **F-07 (all skip-block stories):** Implementer must provide explicit match arms for every enumerated skip block (NRB/ISB/DSB/SystemdJournal/obsolete-Packet/Unknown) — no todo!()/wildcard. BC-2.01.015 v1.2 is authoritative.
 
 ## Tech Debt Created
 

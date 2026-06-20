@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: product-owner
 timestamp: 2026-06-19T00:00:00Z
@@ -13,7 +13,8 @@ capability: CAP-01
 lifecycle_status: active
 introduced: v0.10.0-pcapng
 modified:
-  - v1.1: 2026-06-19 — added E-INP-012 to Error Taxonomy traceability field (cosmetic consistency; no normative behavior change)
+  - "v1.2: ADR-009 rev 4 Burst B — Add VP-028 (cargo-fuzz fuzz_pcapng_reader) to Verification Properties, explicitly tagged as F6 hardening deliverable NOT F3. State that the no-panic-on-malformed-input contract is the cross-cutting parent of per-BC no-panic ACs. Add PC3 (no panic, no infinite loop). — 2026-06-19"
+  - "v1.1: 2026-06-19 — added E-INP-012 to Error Taxonomy traceability field (cosmetic consistency; no normative behavior change)"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -34,6 +35,13 @@ identifies the block type and, where applicable, the interface index or block se
 number. The error ultimately maps to one of the four new taxonomy entries (E-INP-008 through
 E-INP-011). No pcapng parse error produces a `panic!` or an `unwrap` in production code.
 
+**Cross-cutting no-panic parent:** This BC is the authoritative cross-cutting contract for
+the no-panic property across the entire pcapng reader. The per-BC no-panic ACs (SEC-005)
+in BC-2.01.010 AC-005, BC-2.01.011 AC-001, BC-2.01.016 AC-002, BC-2.01.018 (postconditions)
+are per-block specializations of this contract. BC-2.01.017 PC3 (below) is the top-level
+statement. VP-028 (cargo-fuzz, F6) is the primary vehicle for proving this contract
+across the full input space.
+
 ## Preconditions
 
 1. A pcapng parse error has been detected at any block level (SHB, IDB, EPB, SPB, or
@@ -51,9 +59,15 @@ E-INP-011). No pcapng parse error produces a `panic!` or an `unwrap` in producti
      - `"Failed to read pcapng Simple Packet Block"`
      - `"Failed to skip pcapng block (type=0x{block_type:08X})"`
 2. No partial `PcapSource` is returned on parse error; the entire operation fails.
-3. No panic, no `unwrap`, no `expect` in the pcapng code path (same invariant as the
-   classic-pcap path).
-4. The error is visible to the caller (e.g., `main.rs`) via the existing
+3. **No panic, no infinite loop (cross-cutting no-panic contract):** For ANY byte sequence
+   fed to `PcapSource::from_pcap_reader`, the function returns `Ok(_)` or `Err(_)` — it
+   MUST NOT panic and MUST NOT loop indefinitely. This is the top-level statement of the
+   no-panic guarantee across the full pcapng reader path. The block-walk loop MUST break on
+   `Err(_)` from the crate (ADR-009 Decision 8). Per-BC AC (SEC-005) in BC-2.01.010/011/016
+   are specializations of this postcondition. **VP-028** (cargo-fuzz `fuzz_pcapng_reader`,
+   F6 hardening deliverable — NOT an F3 obligation) is the primary verification vehicle.
+4. No `unwrap`, no `expect` in the pcapng code path (same invariant as the classic-pcap path).
+5. The error is visible to the caller (e.g., `main.rs`) via the existing
    `with_context(|| format!("Failed to read {:?}", path))` wrapper (E-INP-005),
    which wraps pcapng errors identically to classic-pcap errors.
 
@@ -88,7 +102,8 @@ E-INP-011). No pcapng parse error produces a `panic!` or an `unwrap` in producti
 
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| — | No panic on malformed pcapng (any truncation point) | fuzz: truncate well-formed pcapng at every offset; assert no panic |
+| VP-028 | pcapng reader no-panic: `PcapSource::from_pcap_reader` returns `Ok` or `Err` for any byte sequence; no panic, no infinite loop. **F6 hardening deliverable — NOT an F3 obligation.** The cargo-fuzz harness `fuzz_pcapng_reader` exercises the full block-walk path including edge cases not reached by unit tests. | cargo-fuzz (F6 Phase) |
+| — | No panic on malformed pcapng (any truncation point) — covered by VP-028 | unit: truncate well-formed pcapng at every offset; assert no panic (F3 unit tests; VP-028 fuzz extends coverage in F6) |
 | — | Every error path includes a context string | code review: grep for bare `?` in pcapng paths |
 | — | E-INP-005 wrapping applies to pcapng errors identically to classic-pcap | unit: assert error chain contains both "Failed to read {path}" and a pcapng block context |
 

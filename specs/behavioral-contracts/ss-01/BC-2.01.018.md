@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: product-owner
 timestamp: 2026-06-19T00:00:00Z
@@ -13,6 +13,7 @@ capability: CAP-01
 lifecycle_status: active
 introduced: v0.10.0-pcapng
 modified:
+  - "v1.2: ADR-009 rev 4 Burst B — Add VP-030 to Verification Properties. KEEP multi-IDB linktype-conflict rule (all IDBs must agree; first conflict → E-INP-011 before any packet). MOVE directory-mode per-file-isolation claim: AC-002 re-attributed to STORY-128 (main.rs loop refactor) per ADR-009 Decision 12; AC-002 now documents that STORY-128 owns this behavior. BC-2.01.018 owns the CONFLICT RULE, not the main.rs loop behavior. Add holdout: two-IDB-different-linktypes (→ E-INP-011); two-IDB-same-linktype (→ accepted). — 2026-06-19"
   - "v1.1: F-11 completeness delta — (1) Add AC for directory-mode per-file error isolation: E-INP-011 on one file does not abort the full run; (2) Add AC clarifying common user trigger (tcpdump -i any) in E-INP-011 message; cross-reference BC-2.12.011 directory-mode isolation. — 2026-06-19"
 deprecated: null
 deprecated_by: null
@@ -42,14 +43,18 @@ common case of a single IDB) succeed normally.
   `DataLink` Debug repr and (b) includes a hint that this commonly arises from `tcpdump -i any`
   captures mixing link types, and that wirerust requires a single link type per file. The exact
   message format is defined by E-INP-011.
-- **AC-002 (Directory-Mode Per-File Isolation):** In directory mode (`--target <dir>`), a pcapng
-  file that fails with E-INP-011 (multi-IDB link-type conflict) MUST fail PER-FILE only. The
-  remaining files in the directory continue to be processed. The overall run exit code is
-  non-zero (exit 1) to indicate at least one file failed, but the run MUST NOT abort at the
-  first conflicting file. This per-file error isolation is the directory-mode contract from
-  BC-2.12.011 and applies to all file-level ingestion errors including E-INP-011.
-  - Cross-reference: BC-2.12.011 governs `resolve_targets`; per-file error isolation is a
-    property of the main.rs capture loop when iterating over resolved targets.
+- **AC-002 (Directory-Mode Per-File Isolation — OWNED BY STORY-128):** [Re-attributed per
+  ADR-009 Decision 12, rev 4.] The directory-mode per-file error isolation behavior (catch
+  reader errors per-file, do not propagate via `?`, accumulate errors, report to stderr, set
+  exit code 1 if any file failed) is OWNED BY STORY-128 (src/main.rs:241-244 loop refactor),
+  NOT by this BC (reader.rs scope). BC-2.01.018 owns the multi-IDB CONFLICT RULE only (all
+  IDBs must agree; first conflict → E-INP-011; reader returns Err immediately). The main.rs
+  loop's catch-and-continue behavior is the responsibility of STORY-128 and applies to ALL
+  reader error classes, not only E-INP-011. BC-2.01.018 makes no postcondition about what
+  happens after the reader returns Err — that is main.rs scope.
+  - Implementation note: E-INP-011 is produced BEFORE any packet is returned (Postcondition
+    4: "lazy check; first mismatch triggers error immediately"). STORY-128 catches this Err
+    at the directory-loop boundary and continues to the next file.
 
 ## Preconditions
 
@@ -95,7 +100,7 @@ common case of a single IDB) succeed normally.
 | EC-006 | Two IDBs: `ETHERNET` (whitelisted) then `IEEE802_11` (non-whitelisted) | E-INP-011 fires first (linktype mismatch); E-INP-001 whitelist check is never reached |
 | EC-007 | pcapng file with 0 IDBs before first EPB | No IDB error: separate error path (E-INP-009 / BC-2.01.017); this BC's check is never reached |
 | EC-008 | Two IDBs both `IEEE802_11` (non-whitelisted but agreeing) | E-INP-011 does NOT fire (they agree); E-INP-001 (BC-2.01.016 whitelist check) fires instead |
-| EC-009 | Directory with file_a.pcapng (ETHERNET+LINUX_SLL conflict) and file_b.pcapng (ETHERNET only) | E-INP-011 on file_a; file_b processed successfully; overall exit code 1 (at least one failure) |
+| EC-009 | Directory with file_a.pcapng (ETHERNET+LINUX_SLL conflict) and file_b.pcapng (ETHERNET only) | **STORY-128 scope (re-attributed per ADR-009 Decision 12):** E-INP-011 on file_a; STORY-128 main.rs loop catches Err and continues; file_b processed successfully; overall exit code 1. BC-2.01.018 owns only the E-INP-011 production; the catch-and-continue is STORY-128. |
 
 ## Canonical Test Vectors
 
@@ -110,9 +115,10 @@ common case of a single IDB) succeed normally.
 
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| — | Single-IDB pcapng always passes agreement check | unit: craft single-IDB pcapng; assert Ok |
-| — | Mixed-linktype pcapng always returns Err with E-INP-011 context | unit: craft two-IDB pcapng with differing linktypes; assert Err contains "link-type conflict" |
-| — | Agreeing two-IDB pcapng passes and sets correct datalink | unit: two-IDB ETHERNET pcapng; assert Ok with datalink=ETHERNET |
+| VP-030 | Multi-IDB linktype agreement totality: any sequence of IDB linktype u16 values either all-equal (accepted, Ok) or first-conflict returns E-INP-011 immediately; no sequence produces a panic or silent incorrect result | proptest (P1): generate arbitrary Vec<u16> as IDB linktype sequence; assert all-same → Ok, any-different → Err with E-INP-011 context |
+| — | Single-IDB pcapng always passes agreement check (holdout: single-IDB file) | unit: craft single-IDB pcapng; assert Ok |
+| — | Two-IDB different linktypes → E-INP-011 before any packet (holdout: two IDBs linktype 1 & 113) | unit: craft two-IDB pcapng with ETHERNET then LINUX_SLL; assert Err E-INP-011; confirm no packets returned |
+| — | Two-IDB same linktype (holdout: both linktype 1) → Ok | unit: craft two-IDB ETHERNET pcapng; assert Ok with datalink=ETHERNET |
 
 ## Traceability
 
@@ -122,8 +128,8 @@ common case of a single IDB) succeed normally.
 | Capability Anchor Justification | CAP-01 ("PCAP File Ingestion") per domain/capabilities/cap-01-pcap-ingestion.md -- the multi-IDB agreement policy is a constraint on the ingestion pipeline's ability to produce a single `PcapSource.datalink` value; enforcing it here preserves CAP-01's output contract without changes to downstream consumers |
 | L2 Domain Invariants | None directly |
 | Architecture Module | SS-01 (reader.rs, C-4) |
-| Stories | STORY-124 |
-| ADR Reference | ADR-009 Decision 3 ("wirerust requires all IDB blocks in a section to agree on linktype; if two or more IDBs carry differing linktype values, the reader returns an error with context identifying the conflicting link types"), Consequences (known limitation: multi-NIC captures with different interfaces) |
+| Stories | STORY-124 (multi-IDB conflict rule, reader.rs); STORY-128 (directory-mode per-file isolation, main.rs — owns AC-002 re-attribution per Decision 12) |
+| ADR Reference | ADR-009 Decision 3 ("wirerust requires all IDB blocks in a section to agree on linktype; if two or more IDBs carry differing linktype values, the reader returns an error with context identifying the conflicting link types"), Decision 12 (per-file isolation is STORY-128 main.rs scope, not reader.rs scope), Consequences (known limitation: multi-NIC captures with different interfaces) |
 | Error Taxonomy | E-INP-011 (new entry; proposed taxonomy addendum) |
 | Known Limitation | Rejects legitimate multi-NIC captures mixing Ethernet and Linux Cooked interfaces. Documented per ADR-009. Revisit if mixed-interface captures become a user requirement. |
 

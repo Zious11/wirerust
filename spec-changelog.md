@@ -14,6 +14,56 @@ changes, invariant rewrites).
 
 ---
 
+## [pcapng-f2-remediation-2026-06-19] — 2026-06-19
+
+### REMEDIATION: F2 Deep-Validation Findings — raw-block pivot + 3 PO bursts + holdout authoring
+
+**Trigger:** F2 deep-validation (adversary + security + performance) identified 29 unique findings (3C/6H/7M/3L
+adversary, 0C/2H/4M/3L security, 3H/2M/1L performance). This entry consolidates the remediation burst:
+ADR-009 rev 4 (architectural raw-block pivot), VP-025..030 assignment (resolves C-3/DF-CANONICAL-FRAME-HOLDOUT-001),
+BC and taxonomy revisions, HS-101..106 holdout authoring, NFR additions, STORY-128 scoping.
+
+#### Version Bumps
+
+| Artifact | Change | Version |
+|----------|--------|---------|
+| `specs/architecture/decisions/ADR-009-pcapng-capture-format-reader-support.md` | Rev 4 ARCHITECTURAL PIVOT — raw-block API (Decision 2 revised); SPB overhead 16 bytes (Decision 8, resolves H-2); snaplen enforcement via raw block (Decision 9, resolves O-4); panic surface documented (Decision 10, resolves SEC-008); directory glob extended to .pcapng/.cap (Decision 11, resolves C-2). | rev 3 → rev 4 |
+| `specs/verification-properties/VP-INDEX.md` | VP-025..030 added: VP-025 Kani timestamp totality (BC-2.01.014), VP-026 Kani SHB parse safety (BC-2.01.010), VP-027 Kani EPB parse safety (BC-2.01.012), VP-028 cargo-fuzz no-panic (BC-2.01.017), VP-029 proptest block-walk skip (BC-2.01.015), VP-030 proptest multi-IDB totality (BC-2.01.018). Resolves C-3/DF-CANONICAL-FRAME-HOLDOUT-001. total 24→30. | v2.2 → v2.3 |
+| `specs/behavioral-contracts/ss-01/BC-2.01.010.md` | Saturating arithmetic reference (ts formula); no-panic AC (SEC-005); VP-026 assigned. | v1.2 → v1.4 |
+| `specs/behavioral-contracts/ss-01/BC-2.01.011.md` | if_tsresol API-spike result documented; VP-025 scope note. | v1.0 → v1.1 |
+| `specs/behavioral-contracts/ss-01/BC-2.01.012.md` | EPB_FIXED_OVERHEAD_BYTES=28 named constant; guard-before-allocate AC; E-INP-009 routing corrected (H-3/SEC-003); VP-027 assigned. | v1.0 → v1.1 |
+| `specs/behavioral-contracts/ss-01/BC-2.01.013.md` | SPB overhead corrected to 16 bytes (H-2); no-panic AC (SEC-005). | v1.0 → v1.1 |
+| `specs/behavioral-contracts/ss-01/BC-2.01.014.md` | Saturating arithmetic for base-2 (checked_shl) and base-10 branches; overflow guards; VP-025 Kani obligation (full u8 space). | v1.0 → v1.1 |
+| `specs/behavioral-contracts/ss-01/BC-2.01.015.md` | Forward-progress invariant AC: block_total_length>=8 guard (SEC-002/CWE-835); VP-029 assigned. | v1.1 → v1.2 |
+| `specs/behavioral-contracts/ss-01/BC-2.01.016.md` | No-panic AC (SEC-005). | v1.0 → v1.1 |
+| `specs/behavioral-contracts/ss-01/BC-2.01.017.md` | VP-028 cargo-fuzz target assigned; E-INP-009 routing corrected. | v1.1 → v1.2 |
+| `specs/behavioral-contracts/ss-01/BC-2.01.018.md` | Per-file isolation AC re-attributed to STORY-128 (main.rs loop); OPB-only zero-packet case documented (H-4/H-5); VP-030 assigned. | v1.1 → v1.2 |
+| `specs/behavioral-contracts/ss-12/BC-2.12.011.md` | Magic-byte content detection for .pcapng/.cap files in directory mode; glob expansion revised to include pcapng; C-2 resolved; STORY-127 scope anchor. | v1.4 → v1.5 |
+| `specs/behavioral-contracts/BC-INDEX.md` | Inline version annotations synced to on-disk frontmatter for all 10 changed BCs + BC-2.12.011. Active BC count unchanged: 302. | v1.52 → v1.53 |
+| `specs/prd-supplements/error-taxonomy.md` | E-INP-009 (EPB-before-IDB orphan resolved; H-3/SEC-003); E-INP-010 (3-failure-mode/2-template ambiguity resolved; EPB interface_id OOB added; M-3); E-INP-012 Notes corrected (routing clarified). | v2.6 → v2.7 |
+| `specs/prd-supplements/nfr-catalog.md` | NFR-PERF-005 (eager memory model explicit declaration); NFR-PERF-006 (throughput floor >=500 MB/s); NFR-PERF-007 (pcapng vs. classic regression budget <=10%). | v2.2 → v2.3 |
+| `holdout-scenarios/HS-101..106` | NEW — 6 pcapng holdout scenarios authored: HS-101 (tsresol microsecond regression), HS-102 (timestamp overflow saturating guards), HS-103 (SHB framing/byte-order), HS-104 (EPB framing/interface-id bounds), HS-105 (block-walk skip/forward-progress), HS-106 (multi-IDB linktype agreement). Tied to VP-025..030. DF-CANONICAL-FRAME-HOLDOUT-001 satisfied. | n/a → v1.0 each |
+| `holdout-scenarios/HS-INDEX.md` | HS-101..106 registered. Greenfield total: 106. | v1.x → v2.0 |
+| `specs/architecture/verification-architecture.md` | VP-025..030 rows added to Provable Properties Catalog. | updated |
+| `specs/architecture/verification-coverage-matrix.md` | VP-025..030 rows added; reader.rs module row added; totals updated. | updated |
+
+#### Active BC Count
+
+302 active BCs — unchanged. No new BCs created; no retirements this burst.
+
+#### F3 Scope Items (recorded, not yet decomposed)
+
+- **STORY-128** (NEW — main.rs per-file isolation loop): per-file isolation from BC-2.01.018 AC re-attributed here. F3 decomposition scope.
+- **STORY-127** (magic-byte glob + corpus + BC-2.12.011 impl): scope confirmed. F3 decomposition scope.
+- **HS-001 rewrite**: deferred to F3 (cites retired BC-2.01.004; PO action).
+- **PRD §7 RTM sync**: may need follow-up for new error-codes (E-INP-009/010 routing) and VP/story anchors (VP-025..030, STORY-128). Flagged for orchestrator routing to PO.
+
+#### cargo-fuzz deferral
+
+Fuzz harness implementation (VP-028) deferred to F6 (formal hardening phase), per pipeline convention. Spec obligation recorded in VP-028 and BC-2.01.017. cargo-fuzz toolchain provisioning is an F6 prerequisite.
+
+---
+
 ## [pcapng-multisection-decision-correctness-2026-06-19] — 2026-06-19
 
 ### PATCH: Correctness Edits from pcapng Multi-Section Decision Research

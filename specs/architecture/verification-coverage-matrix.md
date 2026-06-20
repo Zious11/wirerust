@@ -2,7 +2,7 @@
 artifact: architecture-section
 section: verification-coverage-matrix
 traces_to: ARCH-INDEX.md
-version: "1.12"
+version: "1.13"
 status: verified
 producer: architect
 timestamp: 2026-05-20T00:00:00Z
@@ -58,6 +58,9 @@ modified:
   - date: 2026-06-17
     actor: product-owner
     reason: "F2 adversarial passes 12-14 (F-C01): sync BC-2.11.010 citation in Issue #259 coverage note from v1.7 → v1.8 (live BC is v1.8; prior stamp was stale). Version bump 1.11→1.12."
+  - date: 2026-06-19
+    actor: architect
+    reason: "F2 pcapng remediation (ADR-009 rev 4): VP-025 through VP-030 added (SS-01 pcapng, reader.rs). New module row reader.rs added. Kani 11→14 (VP-025, VP-026, VP-027); proptest 7→9 (VP-029, VP-030); cargo-fuzz 1→2 (VP-028). Total 24→30. Totals row updated. Version bump 1.12→1.13."
 ---
 
 # Verification Coverage Matrix
@@ -90,6 +93,12 @@ modified:
 | VP-022 | Modbus MBAP parse safety + FC boundary classification | analyzer/modbus.rs | Kani | P1 | verified |
 | VP-023 | DNP3 DL frame parse safety + FC classification + frame_len arithmetic | analyzer/dnp3.rs | Kani | P1 | verified |
 | VP-024 | ARP frame parse safety (extract_arp_frame) + GARP totality + binding-table cap | analyzer/arp.rs | Kani | P1 | verified |
+| VP-025 | pcapng timestamp conversion totality: no panic, ts_usecs in [0,999999], saturating arithmetic for all (u32,u32,u8) | reader.rs | Kani | P1 | draft |
+| VP-026 | pcapng SHB parse safety: no panic, byte-order BOM detection correct (LE/BE), Err for <28 bytes | reader.rs | Kani | P1 | draft |
+| VP-027 | pcapng EPB parse safety: no panic, interface_id bounds-check, guard-before-allocate, Err for invalid fields | reader.rs | Kani | P1 | draft |
+| VP-028 | pcapng reader no-panic (cargo-fuzz fuzz_pcapng_reader, F6 hardening) | reader.rs | cargo-fuzz | P1 | draft |
+| VP-029 | pcapng block-walk skip: always terminates, Err-breaks loop, cursor advances >= 12 bytes per Ok | reader.rs | proptest | P1 | draft |
+| VP-030 | pcapng multi-IDB linktype agreement totality: all-equal → Ok, first-conflict → Err(E-INP-011) | reader.rs | proptest | P1 | draft |
 
 
 ## Per-Module Coverage Totals
@@ -112,7 +121,8 @@ modified:
 | analyzer/modbus.rs | 1 (VP-022) | 0 | 0 | 0 | 1 |
 | analyzer/dnp3.rs | 1 (VP-023) | 0 | 0 | 0 | 1 |
 | analyzer/arp.rs | 1 (VP-024) [a] | 0 | 0 | 0 | 1 |
-| **Totals** | **11** | **7** | **1** | **5** | **24** |
+| reader.rs | 3 (VP-025, VP-026, VP-027) | 2 (VP-029, VP-030) | 1 (VP-028) | 0 | 6 |
+| **Totals** | **14** | **9** | **2** | **5** | **30** |
 
 
 ## Coverage Notes
@@ -160,6 +170,12 @@ modified:
   test_BC_2_11_028_*, test_BC_2_11_029_*). These are behavioral unit tests, NOT formal VP
   harnesses; they are not counted in the VP totals above. VP-012 (proptest, P1, verified) is
   the sole formal VP touching reporter/terminal.rs; its scope is unchanged.
+
+- VP-025 through VP-030 (reader.rs) are status=draft pending BC revisions by the PO
+  per ADR-009 rev 4 PO BC-Change Dispatch and F3 story decomposition. VP-028
+  (cargo-fuzz) is explicitly an F6 hardening deliverable; it is NOT expected to be
+  exercised in F3/F4. VP-025, VP-026, VP-027 (Kani) and VP-029, VP-030 (proptest)
+  will transition to verified at F6 per the VP-022/VP-023/VP-024 lifecycle pattern.
 
 - `module-criticality.md` defines kill-rate targets that constrain the minimum proof
   depth for each module. CRITICAL modules (reassembly/segment.rs, reassembly/flow.rs,

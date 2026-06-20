@@ -1,10 +1,10 @@
 ---
 document_type: bc-index
 level: L3
-version: "1.52"
+version: "1.53"
 status: draft
 producer: product-owner
-timestamp: 2026-06-19T00:00:00Z
+timestamp: 2026-06-19T12:00:00Z
 phase: 1a
 traces_to: .factory/specs/prd.md
 ---
@@ -15,6 +15,8 @@ traces_to: .factory/specs/prd.md
 > links to the individual BC file. BCs are sharded into per-subsystem directories (ss-NN/).
 >
 > All BCs are marked [WRITTEN]. Body files have been verified on disk for all 303 entries (293 prior + 10 new BC-2.01.009–018 for F2 pcapng-reader-support; BC-2.01.004 retired).
+>
+> **v1.53 2026-06-19 (F2 remediation burst — pcapng-f2-remediation-2026-06-19):** Inline version annotations synced to on-disk BC frontmatter for 10 remediated BCs: BC-2.01.010 v1.2→v1.4 (raw-block pivot ADR-009 rev 4, saturating arithmetic, SEC-005 no-panic, VP-026); BC-2.01.011 v1.0→v1.1 (if_tsresol API-spike clarification, VP-025 scope note); BC-2.01.012 v1.0→v1.1 (EPB_FIXED_OVERHEAD_BYTES=28, guard-before-allocate, E-INP-009/010 routing, VP-027); BC-2.01.013 v1.0→v1.1 (SPB overhead 16 bytes, SEC-005 no-panic); BC-2.01.014 v1.0→v1.1 (saturating arithmetic, VP-025 Kani totality over full u8 if_tsresol); BC-2.01.015 v1.1→v1.2 (forward-progress SEC-002, VP-029); BC-2.01.016 v1.0→v1.1 (SEC-005 no-panic); BC-2.01.017 v1.0→v1.2 (VP-028 cargo-fuzz, E-INP-009 routing); BC-2.01.018 v1.1→v1.2 (STORY-128 per-file isolation, OPB-only, VP-030); BC-2.12.011 v1.4→v1.5 (magic-byte content detection, C-2 resolved, STORY-127 scope). Active BC count stays 302. VP-025..030 assigned (VP-INDEX v2.3). HS-101..106 authored. NFR-PERF-005/006/007 added (nfr-catalog v2.3). error-taxonomy v2.7 (E-INP-009/010/012 routing corrected). ADR-009 rev 4 (raw-block pivot). STORY-128 (per-file isolation loop) recorded for F3. D-142.
 >
 > **v1.52 2026-06-19 (F2 pcapng-reader-support spec evolution — INTEGRATE sub-burst):** 10 new SS-01 BCs (BC-2.01.009–018) added for pcapng reader support (ADR-009, FE-001). BC-2.01.004 ("Reject pcapng-Format Input at Reader Level") RETIRED — behavioral inversion: pcapng now accepted via BC-2.01.009 magic-byte probe. BC-2.01.001 v1.6→v1.7 (EC-005 scoped to classic-pcap-only path). BC-2.01.002 v1.5→v1.6 (Description/Preconditions scoped to classic-pcap branch; F2 scope note added). SS-01 BC count: 8→18 (net 17 active after BC-2.01.004 retirement). Total active BCs: 293→302 (net +10 new, BC-2.01.004 retired = 1 retired).
 >
@@ -74,15 +76,15 @@ traces_to: .factory/specs/prd.md
 | BC-2.01.007 | Surface Per-Packet Read Errors with Anyhow Context | P1 | [WRITTEN] | BC-RDR-007 |
 | BC-2.01.008 | from_file Opens via BufReader and Delegates to from_pcap_reader | P2 | [WRITTEN] | BC-RDR-008 |
 | BC-2.01.009 | Accept pcapng Format: Transparent Detection via Magic-Byte Probe | P0 | [WRITTEN] | feature-pcapng-F2 | <!-- v1.0: supersedes BC-2.01.004; greenfield; ADR-009 Decision 5/6; STORY-123 -->
-| BC-2.01.010 | Parse pcapng Section Header Block (SHB): Byte-Order Detection and Version | P0 | [WRITTEN] | feature-pcapng-F2 | <!-- v1.2: greenfield; ADR-009 Decision 1/2; STORY-123; v1.1: F-06 reject AC; v1.2: rationale corrected (scope decision; pcap-file resets correctly) -->
-| BC-2.01.011 | Parse pcapng Interface Description Block (IDB): Link Type and Timestamp Resolution | P0 | [WRITTEN] | feature-pcapng-F2 | <!-- v1.0: greenfield; ADR-009 Decision 2/3/4; STORY-124 -->
-| BC-2.01.012 | Parse pcapng Enhanced Packet Block (EPB): Packet Data and Timestamp | P0 | [WRITTEN] | feature-pcapng-F2 | <!-- v1.0: greenfield; ADR-009 Decision 2/4; STORY-125 -->
-| BC-2.01.013 | Parse pcapng Simple Packet Block (SPB): Packet Data Without Timestamp | P1 | [WRITTEN] | feature-pcapng-F2 | <!-- v1.0: greenfield; ADR-009 Decision 2; STORY-126 -->
-| BC-2.01.014 | Pure-Core 64-bit pcapng Timestamp Normalization to (ts_sec, ts_usecs) | P0 | [WRITTEN] | feature-pcapng-F2 | <!-- v1.0: greenfield; ADR-009 Decision 4; Kani target; STORY-125 -->
-| BC-2.01.015 | Unknown pcapng Block Types Are Silently Skipped via block-total-length | P1 | [WRITTEN] | feature-pcapng-F2 | <!-- v1.1: greenfield; ADR-009 Decision 2; STORY-126 -->
-| BC-2.01.016 | Reject pcapng with Unsupported Link Type in IDB (Mirrors BC-2.01.001) | P0 | [WRITTEN] | feature-pcapng-F2 | <!-- v1.0: greenfield; CAP-02; identical whitelist to BC-2.01.001; STORY-124 -->
-| BC-2.01.017 | pcapng Block-Level Parse Errors Surface via anyhow Context Chain | P1 | [WRITTEN] | feature-pcapng-F2 | <!-- v1.0: greenfield; E-INP-008..011; STORY-126 -->
-| BC-2.01.018 | Multi-IDB Link-Type Agreement Policy: Conflict Returns Error (Fail-Closed) | P0 | [WRITTEN] | feature-pcapng-F2 | <!-- v1.1: greenfield; ADR-009 Decision 3; E-INP-011; STORY-124 -->
+| BC-2.01.010 | Parse pcapng Section Header Block (SHB): Byte-Order Detection and Version | P0 | [WRITTEN] | feature-pcapng-F2 | <!-- v1.4: greenfield; ADR-009 Decision 1/2; STORY-123; v1.1: F-06 reject AC; v1.2: rationale corrected (scope decision; pcap-file resets correctly); v1.3: no-panic AC (SEC-005); v1.4: F2 remediation — saturating ts arithmetic ref, SEC-005 explicit no-panic AC, VP-026 assigned -->
+| BC-2.01.011 | Parse pcapng Interface Description Block (IDB): Link Type and Timestamp Resolution | P0 | [WRITTEN] | feature-pcapng-F2 | <!-- v1.1: greenfield; ADR-009 Decision 2/3/4; STORY-124; v1.1: F2 remediation — if_tsresol handling clarified per API spike; VP-025 scope note added -->
+| BC-2.01.012 | Parse pcapng Enhanced Packet Block (EPB): Packet Data and Timestamp | P0 | [WRITTEN] | feature-pcapng-F2 | <!-- v1.1: greenfield; ADR-009 Decision 2/4; STORY-125; v1.1: F2 remediation — EPB_FIXED_OVERHEAD_BYTES=28 named; guard-before-allocate; E-INP-009/010 error-code routing fixed; VP-027 assigned -->
+| BC-2.01.013 | Parse pcapng Simple Packet Block (SPB): Packet Data Without Timestamp | P1 | [WRITTEN] | feature-pcapng-F2 | <!-- v1.1: greenfield; ADR-009 Decision 2; STORY-126; v1.1: F2 remediation — SPB overhead corrected to 16 bytes; no-panic AC (SEC-005) -->
+| BC-2.01.014 | Pure-Core 64-bit pcapng Timestamp Normalization to (ts_sec, ts_usecs) | P0 | [WRITTEN] | feature-pcapng-F2 | <!-- v1.1: greenfield; ADR-009 Decision 4; VP-025 Kani target; STORY-125; v1.1: F2 remediation — saturating arithmetic for base-2 and base-10 branches; overflow guards; VP-025 assigned (Kani totality over full u8 if_tsresol space) -->
+| BC-2.01.015 | Unknown pcapng Block Types Are Silently Skipped via block-total-length | P1 | [WRITTEN] | feature-pcapng-F2 | <!-- v1.2: greenfield; ADR-009 Decision 2; STORY-126; v1.1: explicit skip-arm enumeration (NRB/ISB/DSB/SystemdJournal/obsolete-Packet/Unknown); v1.2: F2 remediation — forward-progress invariant AC (SEC-002: block_total_length>=8 guard); VP-029 assigned -->
+| BC-2.01.016 | Reject pcapng with Unsupported Link Type in IDB (Mirrors BC-2.01.001) | P0 | [WRITTEN] | feature-pcapng-F2 | <!-- v1.1: greenfield; CAP-02; identical whitelist to BC-2.01.001; STORY-124; v1.1: F2 remediation — no-panic AC (SEC-005) -->
+| BC-2.01.017 | pcapng Block-Level Parse Errors Surface via anyhow Context Chain | P1 | [WRITTEN] | feature-pcapng-F2 | <!-- v1.2: greenfield; E-INP-008..011; STORY-126; v1.1: trace updated (F2 completeness); v1.2: F2 remediation — VP-028 cargo-fuzz target (no-panic corpus); E-INP-009 routing corrected -->
+| BC-2.01.018 | Multi-IDB Link-Type Agreement Policy: Conflict Returns Error (Fail-Closed) | P0 | [WRITTEN] | feature-pcapng-F2 | <!-- v1.2: greenfield; ADR-009 Decision 3; E-INP-011; STORY-124; v1.1: actionable E-INP-011 message + directory-mode isolation AC; v1.2: F2 remediation — per-file isolation re-attributed to STORY-128; PC1 OPB-only zero-packet case; VP-030 assigned -->
 
 ## ss-02: Link-Type Gating / Packet Decoding (CAP-02 + CAP-03)
 
@@ -349,7 +351,7 @@ traces_to: .factory/specs/prd.md
 | BC-2.12.008 | --all Enables dns/http/tls Together | P1 | [WRITTEN] | BC-CLI-008 |
 | BC-2.12.009 | needs_reassembly Logic; --no-reassemble Forces Off with Warning | P0 | [WRITTEN] | BC-CLI-009 |
 | BC-2.12.010 | NO_COLOR Env Var Disables Color | P2 | [WRITTEN] | BC-CLI-010 |
-| BC-2.12.011 | Directory Target Expands to *.pcap Sorted; *.pcapng Excluded | P1 | [WRITTEN] | BC-CLI-011 |
+| BC-2.12.011 | Directory Target Expands to *.pcap Sorted; *.pcapng Excluded | P1 | [WRITTEN] | BC-CLI-011 | <!-- v1.5: F2 remediation — magic-byte content detection for .pcapng files in directory mode; glob expansion revised; C-2 resolved; STORY-127 scope -->
 | BC-2.12.012 | Non-Existent Target Yields bail! with Target Not Found | P1 | [WRITTEN] | BC-CLI-012 |
 | BC-2.12.013 | Per-Target Progress Bar on stderr via indicatif | P2 | [WRITTEN] | BC-CLI-013 |
 | BC-2.12.014 | Per-Target Decode Errors Counted into skipped_packets | P1 | [WRITTEN] | BC-CLI-014 |

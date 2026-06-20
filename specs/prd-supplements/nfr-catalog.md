@@ -1,7 +1,7 @@
 ---
 document_type: prd-supplement-nfr-catalog
 level: L3
-version: "2.2"
+version: "2.3"
 modified:
   - "v1.5: Pass-12 corpus-cleanup F-C-P12-001: NFR-MNT-009 source anchor re-anchored from stale :122-156 (projections at 160-167) to current technique_info :128-182 (fn@:128, let info=match id@:129, _ => return None@:179, }@:182); projections technique_name@:186-188, technique_tactic@:192-194. — 2026-06-13"
   - "v1.6: Pass-13 F-C-P13-002: NFR-OBS-004 Target corrected from 'All 15 emitted technique IDs resolve in lookup (current; 17 after STORY-114 — PLANNED)'; seeded vs emitted distinction aligns with test name `known_emitted_technique_ids_resolve_in_lookup` and BC-2.10.008. — 2026-06-13"
@@ -10,6 +10,7 @@ modified:
   - "v1.9: Pass-17 D-01 — NFR-OBS-010 AC cell 'all four fields' disambiguated to 'all four optional-presence fields — mitre_techniques (omitted when empty via Vec::is_empty) and the three Option fields source_ip/timestamp/direction (omitted when None via Option::is_none)'. — 2026-06-13"
   - "v2.0: Pass-19 C-02 — NFR-PERF-003 dispatcher.rs anchors corrected: routes:HashMap :43→:61; cache lookup :133-154→:269-290. NFR-OBS-005 dispatcher.rs anchors corrected: counter field :53→:77; accessor :80-81→fn unclassified_flows() :117-119; incremented :188-191→on_flow_close None arm :357. — 2026-06-13"
   - "v2.1: P19 straggler anchor sweep — NFR-RES-011 http.rs:21→:23, cap sites :513/:525→:546/:558; NFR-RES-012 http.rs:22→:24, TooManyHeaders :416-428→:435-449, :475-487→:496-509; NFR-RES-013 http.rs:23→:25 (MAX_URIS), cap guard :391-393→:406; NFR-RES-014 http.rs:24→:26, tls.rs:30→:31 (MAX_MAP_ENTRIES); NFR-RES-015 tls.rs:29→:30 (MAX_BUF), cap sites :761/:768→:822/:829; NFR-RES-016 tls.rs:31-33→:32-34 (MAX_RECORD_PAYLOAD const), guard :643-653→:689; NFR-RES-017 http.rs:80→:82 (POISON_THRESHOLD). Verified against src/analyzer/http.rs and src/analyzer/tls.rs. — 2026-06-13"
+  - "v2.3: ADR-009 rev 4 Burst B — Add NFR-PERF-005 (pcapng all-in-memory Vec<RawPacket>; peak RSS <= pcapng_file_size * 2.0), NFR-PERF-006 (reader ingestion throughput both classic and pcapng paths >= 500 MB/s on 64MB/1500B synthetic fixture), NFR-PERF-007 (pcapng throughput >= 90% of classic on identical fixture). All three validated via criterion bench (F6 deliverable). Total NFR count: 83. — 2026-06-19"
   - "v2.2: F2 pcapng-reader-support (FE-001, ADR-009) — NFR-COMPAT-001 revised: pcapng is now a SUPPORTED input format (BC-2.01.009 magic-byte probe; BC-2.01.010..018). Requirement text updated from 'Only classic pcap accepted' to 'Classic pcap and pcapng accepted'. Test references updated: `test_pcapng_rejected` → `test_pcapng_accepted` (inversion). Status remains N/A (new behavior is correctly specified). — 2026-06-19"
 status: reviewed
 producer: product-owner
@@ -70,6 +71,9 @@ traces_to: .factory/specs/prd.md
 | NFR-PERF-002 | Performance | Single eager pass: full pcap loaded into `Vec<RawPacket>` before analysis begins; NOT streaming | RAM usage <= pcap_file_size * ~1.5 (Vec header overhead) | Load test with 1 GB pcap; measure RSS | P1 | NFR-VIO-001 | OPEN-DEBT -- README claim "multi-GB captures" overstates capability if RAM is constrained; documented as NFR-VIO-001 |
 | NFR-PERF-003 | Performance | Content-first dispatch classifies each flow exactly ONCE (or zero if data < 5 bytes and port unknown); result cached in `HashMap<FlowKey, DispatchTarget>` | O(1) per subsequent on_data call per flow | Benchmark: 10,000-flow pcap; confirm cache hit rate = 100% after first classification | P0 | N/A | N/A -- implemented correctly; `routes: HashMap<FlowKey, DispatchTarget>` at src/dispatcher.rs:61; cache lookup in `on_data` at src/dispatcher.rs:269-290 (`let target = if let Some(&cached) = self.routes.get(flow_key)`) |
 | NFR-PERF-004 | Performance | Overlap detection uses SIMD-friendly slice equality (`segment_data[..] != existing_data[..]`) rather than byte-by-byte comparison | Autovectorization confirmed by LLVM IR inspection or `cargo asm` | `cargo bench` (criterion harness present since Cargo.toml:50-52 `[[bench]] name = "pipeline"`); autovectorization assertion not yet exercised | P1 | N/A | OPEN-DEBT -- criterion bench harness now exists (Cargo.toml:50-52); benchmark exercises the hot path but autovectorization property (LLVM IR / cargo asm confirmation) is still unverified; confirmed as design intent via code comment at segment.rs:124 |
+| NFR-PERF-005 | Performance | pcapng reader uses the same all-in-memory `Vec<RawPacket>` model as the classic-pcap path (ADR-009 Decision 13); peak RSS for a pcapng capture of file size N is bounded at N × 2.0 (Vec<RawPacket> overhead plus pcap-file 2.0.0 internal block representation headroom) | Peak RSS <= pcapng_file_size × 2.0; measured on a 64 MB synthetic pcapng fixture | criterion bench `bench_pcapng_reader_rss` (F6 deliverable — bench harness is NOT an F3 obligation); RSS sampled via `/proc/self/status` VmRSS or OS equivalent | P1 | ADR-009 Decision 13 (F-PERF-001 resolution) | OPEN (F6 pending) -- pcapng reader not yet implemented; target established here for implementer guidance and F6 validation |
+| NFR-PERF-006 | Performance | pcapng reader ingestion throughput (both classic-pcap and pcapng paths) >= 500 MB/s on a 64 MB synthetic fixture with 1500-byte packets; throughput measured as bytes-read / wall-clock-time from first byte to last `RawPacket` appended | >= 500 MB/s on 64 MB / 1500-byte fixture (both paths independently) | criterion bench `bench_pcapng_reader_throughput` and `bench_classic_pcap_reader_throughput` (F6 deliverable — bench harness is NOT an F3 obligation); fixture generated in bench setup | P1 | ADR-009 Decision 13 (NFR-PERF-006) | OPEN (F6 pending) -- benchmark harness not yet created; throughput target based on pcap-file 2.0.0 RawBlock path overhead estimate |
+| NFR-PERF-007 | Performance | pcapng reader throughput >= 90% of classic-pcap reader throughput on an IDENTICAL synthetic packet fixture (same payload bytes, same packet count); regression guard ensures raw-block overhead does not degrade classic-path parity | pcapng_throughput / classic_throughput >= 0.90 on identical fixture | criterion bench comparison `bench_pcapng_vs_classic_throughput_parity` (F6 deliverable — bench harness is NOT an F3 obligation); identical fixture used for both paths | P1 | ADR-009 Decision 13 (NFR-PERF-007) | OPEN (F6 pending) -- 90% threshold derived from ADR-009 Consequences (pcapng ~2.0× RSS vs classic ~1.5× RSS; throughput impact expected < 10% given framing-layer similarity) |
 
 ### Security (NFR-SEC)
 
@@ -195,6 +199,9 @@ traces_to: .factory/specs/prd.md
 | NFR-PERF-001 | SS-02 (decoder.rs) | Zero-copy slice API must not be broken by any decoder refactor |
 | NFR-PERF-002 | SS-01 (reader.rs) | All-in-memory design constraint; streaming refactor is separate architectural debt (NFR-VIO-001) — unrelated to O-01 (timestamp threading; CLOSED) |
 | NFR-PERF-003 | SS-05 (dispatcher.rs) | Cache must be preserved; no per-packet re-classification |
+| NFR-PERF-005 | SS-01 (reader.rs — pcapng path) | peak RSS <= pcapng_file_size × 2.0; criterion bench F6; Vec<RawPacket> all-in-memory model |
+| NFR-PERF-006 | SS-01 (reader.rs — both paths) | >= 500 MB/s on 64MB/1500B fixture; criterion bench F6; both classic and pcapng paths |
+| NFR-PERF-007 | SS-01 (reader.rs — both paths) | pcapng >= 90% of classic throughput on identical fixture; parity guard; criterion bench F6 |
 | NFR-SEC-001..003 | SS-06, SS-07, SS-09, SS-11 | ADR 0003 must be maintained across all new analyzers and reporters |
 | NFR-SEC-008 | SS-07 (tls.rs) | MAX_RECORD_PAYLOAD must not be raised without RFC justification |
 | NFR-REL-001 | All (Cargo.toml) | overflow-checks=true must not be disabled in [profile.release] |
@@ -215,12 +222,13 @@ traces_to: .factory/specs/prd.md
 |-------|--------|----------|---------|
 | 70 | N/A (correctly implemented) | -- | No violation; describes correct current behavior |
 | 5 | CLOSED | -- | NFR-OBS-010 (Option symmetry, LESSON-P1.02), NFR-COMPAT-002 (CSV wired), NFR-SUP-002 (dev deps used), NFR-MNT-011 (rust-version=1.91, NFR-VIO-009 resolved), NFR-RES-022 (dropped_findings counter fully implemented; v1.2 OPEN status was wrong) |
-| 4 | OPEN | High/Medium | NFR-RES-023 (weak-cipher heap bound, GitHub #102), NFR-SUP-001 (rayon dep still present), NFR-PERF-004 (SIMD autovectorization unverified; bench harness exists), NFR-PORT-001 (single-platform CI) |
+| 7 | OPEN | High/Medium/Low | NFR-RES-023 (weak-cipher heap bound, GitHub #102), NFR-SUP-001 (rayon dep still present), NFR-PERF-004 (SIMD autovectorization unverified; bench harness exists), NFR-PORT-001 (single-platform CI), NFR-PERF-005 (pcapng RSS bound; F6 pending), NFR-PERF-006 (pcapng throughput >= 500 MB/s; F6 pending), NFR-PERF-007 (pcapng >= 90% of classic throughput; F6 pending) |
 | 1 | N/A (new in v1.3) | -- | NFR-RES-024 (DnsAnalyzer bounds — added to close catalog gap) |
 
-Total NFRs: 80 (4 PERF + 8 SEC + 11 REL + 10 OBS + 24 RES + 11 MNT + 5 PORT + 5 SUP + 2 COMPAT)
+Total NFRs: 83 (7 PERF + 8 SEC + 11 REL + 10 OBS + 24 RES + 11 MNT + 5 PORT + 5 SUP + 2 COMPAT)
 (v1.3: +1 NFR-RES-024 added; NFR-RES-022 status corrected OPEN→CLOSED)
 (v2.2: NFR-COMPAT-001 revised to reflect pcapng support; no count change)
+(v2.3: +3 NFR-PERF-005/006/007 added for pcapng memory model and throughput targets; F6 bench harness deliverables)
 
 
 ## NFR Violation Dispositions (from Pass-4 R2)

@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.0"
+version: "1.1"
 status: draft
 producer: product-owner
 timestamp: 2026-06-19T00:00:00Z
@@ -12,7 +12,8 @@ subsystem: SS-01
 capability: CAP-01
 lifecycle_status: active
 introduced: v0.10.0-pcapng
-modified: []
+modified:
+  - "v1.1: ADR-009 rev 4 Burst B — Add no-panic AC (SEC-005). Add implementation note: interface table MUST be Vec<InterfaceInfo> (O(1) by interface_id index), NOT HashMap. Note that if_tsresol/if_tsoffset captured here feed BC-2.01.014 timestamp conversion. Coverage note: VP-027 (assigned to BC-2.01.012) also proves interface-table accumulation. — 2026-06-19"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -54,6 +55,20 @@ multi-IDB agreement check (BC-2.01.018). `if_tsresol` absent defaults to 10^-6 (
 5. If the IDB is truncated below its minimum fixed-field size, returns `Err` mapping to
    E-INP-008 (pcapng SHB/structural parse failure — reused for any block-level truncation).
 
+## Acceptance Criteria
+
+- **AC-001 (no-panic — SEC-005):** This block parser MUST return `Err` for any malformed or
+  truncated IDB byte sequence. `unwrap()`, `expect()`, `panic!()`, and `unreachable!()` are
+  prohibited in the IDB parse path.
+- **AC-002 (interface table data structure):** The interface table MUST be a `Vec<InterfaceInfo>`
+  (indexed by 0-based interface_id, O(1) access). A `HashMap` is NOT permitted — EPB
+  `interface_id` is a 0-based sequential index into a per-section Vec, making Vec the correct
+  data structure. This resolves F-PERF MEDIUM finding (O(1) index vs. HashMap overhead).
+- **AC-003 (if_tsresol / if_tsoffset feeds BC-2.01.014):** The `if_tsresol` value (or default
+  of 6 when absent) extracted from each IDB MUST be stored in the `InterfaceInfo` struct
+  alongside `linktype` and `snaplen`. This value is consumed by the BC-2.01.014 timestamp
+  conversion helper on every EPB that references this interface.
+
 ## Invariants
 
 1. Interface indexes are 0-based and assigned in IDB encounter order within the section.
@@ -90,9 +105,10 @@ multi-IDB agreement check (BC-2.01.018). `if_tsresol` absent defaults to 10^-6 (
 
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| — | `if_tsresol` absent → default exponent 6 | unit: craft IDB with no options; verify stored exponent |
+| — (covered by VP-027) | Interface-table accumulation: interface_id bounds-check before table index; interface count matches IDB count in file | Kani VP-027 on BC-2.01.012 proves interface-table accumulation across the EPB path; IDB accumulation unit test verifies 3-IDB file has 3 entries |
+| — | `if_tsresol` absent → default exponent 6 | unit: craft IDB with no options; verify stored exponent = 6 |
 | — | Interface index increments in IDB order | unit: 3-IDB file; verify interface table has 3 entries at indexes 0, 1, 2 |
-| — | Truncated IDB never panics | fuzz: fuzz IDB bytes, assert no panic |
+| — | Truncated IDB returns Err; never panics (SEC-005) | unit + fuzz: fuzz IDB bytes, assert no panic |
 
 ## Traceability
 
@@ -103,7 +119,7 @@ multi-IDB agreement check (BC-2.01.018). `if_tsresol` absent defaults to 10^-6 (
 | L2 Domain Invariants | None directly |
 | Architecture Module | SS-01 (reader.rs, C-4) |
 | Stories | STORY-124 |
-| ADR Reference | ADR-009 Decision 2 (IDB coverage), Decision 3 (multi-IDB policy), Decision 4 (if_tsresol extraction) |
+| ADR Reference | ADR-009 Decision 2 (IDB coverage), Decision 3 (multi-IDB policy), Decision 4 (if_tsresol extraction), Decision 8 (forward-progress contract; no-panic guarantee at framing layer), Decision 10 (panic surface) |
 
 ## Related BCs
 

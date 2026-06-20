@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.0"
+version: "1.1"
 status: draft
 producer: product-owner
 timestamp: 2026-06-19T00:00:00Z
@@ -12,7 +12,8 @@ subsystem: SS-01
 capability: CAP-02
 lifecycle_status: active
 introduced: v0.10.0-pcapng
-modified: []
+modified:
+  - "v1.1: ADR-009 rev 4 Burst B — No VP assigned (test-sufficient; ADR-009 dispatch confirmed). Confirm mirrors BC-2.01.001 (CAP-02). Add no-panic AC (SEC-005). Add explicit mirror-confirmation note. Minimal normative change. — 2026-06-19"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -51,6 +52,19 @@ are parsed and the multi-IDB agreement check (BC-2.01.018) has passed; the accep
    - No panic occurs.
 3. `PcapSource.datalink` is always a whitelisted value; this invariant holds for both
    classic-pcap and pcapng.
+
+## Acceptance Criteria
+
+- **AC-001 (mirror of BC-2.01.001):** The link-type acceptance whitelist is IDENTICAL to
+  BC-2.01.001: exactly `{ETHERNET, RAW, IPV4, IPV6, LINUX_SLL}` (5 variants). Any change
+  to the whitelist is a coordinated breaking change to both BCs simultaneously.
+- **AC-002 (no-panic — SEC-005):** This whitelist check MUST return `Err` for any non-whitelisted
+  `DataLink` variant. `unwrap()`, `expect()`, `panic!()`, and `unreachable!()` are prohibited.
+  Since this is a pure match on an enum value, no panic path exists; this AC asserts that
+  the implementation retains that property through any future enum variant additions.
+- **AC-003 (no VP — test-sufficient):** No new formal VP is assigned to this BC per
+  ADR-009 dispatch. The integration test covering BC-2.01.001's whitelist (STORY-126)
+  is sufficient for this parallel check.
 
 ## Invariants
 

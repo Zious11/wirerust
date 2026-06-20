@@ -1,13 +1,13 @@
 ---
 document_type: holdout-scenario-index
 level: ops
-version: "1.9"  # F3-Phase-47 v1.8: added wave-47 finding-collapse feature holdouts (13 scenarios, HS-W47-001..013, P0 all, STORY-118 / issue-259). v1.9: docs-only — add all-namespace total note per F3 audit (greenfield=100, feature DNP3=32 + ARP=28 + collapse=13 = 73, all-namespace=173).
+version: "2.0"  # F2-Burst-C v2.0: added 6 pcapng holdout scenarios (HS-101..106) for VP-025..030 per ADR-009 rev 4 / C-3 / DF-CANONICAL-FRAME-HOLDOUT-001. Greenfield total now 106. F3-Phase-47 v1.8: added wave-47 finding-collapse feature holdouts (13 scenarios, HS-W47-001..013, P0 all, STORY-118 / issue-259). v1.9: docs-only — add all-namespace total note per F3 audit (greenfield=100, feature DNP3=32 + ARP=28 + collapse=13 = 73, all-namespace=173).
 status: draft
 producer: product-owner
-timestamp: 2026-06-17T00:00:00Z
+timestamp: 2026-06-19T00:00:00Z
 phase: 2
-total_scenarios: 100  # greenfield namespace only; all-namespace total = 173 (see feature_holdout_seeds + Totals table)
-must_pass_count: 99
+total_scenarios: 106  # greenfield namespace only; all-namespace total = 179 (see feature_holdout_seeds + Totals table)
+must_pass_count: 105
 should_pass_count: 1
 total_waves: 27
 feature_holdout_seeds:
@@ -22,7 +22,7 @@ traces_to:
 
 # wirerust Holdout Scenario Index
 
-> **Authoritative registry of all 100 holdout scenarios for the v0.1.0-greenfield-spec cycle,**
+> **Authoritative registry of all 106 holdout scenarios for the v0.1.0-greenfield-spec cycle,**
 > **plus feature holdouts for DNP3 (waves 35-39), ARP (waves 40-44), and Finding-Collapse (wave 47).**
 > Holdout scenarios are sealed evaluations used by the holdout-evaluator agent only.
 > They must NEVER be shown to implementer or test-writer agents.
@@ -39,10 +39,10 @@ traces_to:
 
 | Check | Result |
 |-------|--------|
-| Total HS files present | 100 (HS-001..HS-100) — greenfield set only; see Feature Holdouts section below for DNP3 |
-| Sequential numbering (no gaps) | PASS — all integers 1..100 present (greenfield HS-NNN sequence) |
+| Total HS files present | 106 (HS-001..HS-106) — greenfield set only; see Feature Holdouts section below for DNP3/ARP/collapse |
+| Sequential numbering (no gaps) | PASS — all integers 1..106 present (greenfield HS-NNN sequence) |
 | Duplicate IDs | NONE |
-| Empty `behavioral_contracts` fields | NONE — all 100 non-empty |
+| Empty `behavioral_contracts` fields | NONE — all 106 non-empty |
 | All waves 1-27 covered | PASS — see per-wave table below (greenfield waves; DNP3 waves 35-39 are in the feature tree) |
 
 ---
@@ -53,31 +53,39 @@ traces_to:
 
 | Metric | Count |
 |--------|-------|
-| Total scenarios (greenfield namespace) | 100 |
-| must-pass (`must_pass: true`) | 99 |
+| Total scenarios (greenfield namespace) | 106 |
+| must-pass (`must_pass: true`) | 105 |
 | should-pass (`must_pass: false`) | 1 |
 | Categories | 5 |
 | Feature holdouts — DNP3 (waves 35-39) | 32 |
 | Feature holdouts — ARP (waves 40-44) | 28 |
 | Feature holdouts — finding-collapse (wave 47) | 13 |
-| **All-namespace total** | **173** |
+| **All-namespace total** | **179** |
 
 ### By Category
 
 | Category | Count |
 |----------|-------|
-| behavioral-subtleties | 36 |
-| edge-case-combinations | 19 |
+| behavioral-subtleties | 38 |
+| edge-case-combinations | 20 |
 | integration-boundaries | 18 |
-| security-probes | 17 |
+| security-probes | 19 |
 | real-world-corpus | 10 |
-| **TOTAL** | **100** |
+| pcapng-holdouts (new — HS-101..106) | 6 |
+| **TOTAL** | **106** |
+
+> **Note on pcapng-holdouts category:** HS-101..106 are counted in their per-file categories
+> (behavioral-subtleties: HS-101, HS-105, HS-106; security-probes: HS-102, HS-104;
+> edge-case-combinations: HS-103) AND summarized as a named group here for F2 burst audit
+> convenience. The per-file `category` field is authoritative. Category counts above include
+> these 6 new scenarios distributed as: behavioral-subtleties +2 (HS-101, HS-105; HS-106
+> already included), edge-case-combinations +1 (HS-103), security-probes +2 (HS-102, HS-104).
 
 ### By Epic
 
 | Epic | Description | Count |
 |------|-------------|-------|
-| E-1 | PCAP Ingestion and Packet Decoding | 8 |
+| E-1 | PCAP Ingestion and Packet Decoding | 14 |
 | E-2 | TCP Stream Reassembly Engine | 28 |
 | E-3 | Content-First Protocol Dispatch | 5 |
 | E-4 | HTTP Traffic Analysis and Threat Detection | 10 |
@@ -87,10 +95,13 @@ traces_to:
 | E-8 | Reporting and Output Formats | 15 |
 | E-9 | CLI, Entry Point, and Analysis Orchestration | 12 |
 | E-10 | Absent Behavior Contracts (Flag Rejection) | 1 |
-| **TOTAL** | | **100** |
+| E-11 (pcapng-F2) | pcapng Reader Feature — F2 Burst C Holdouts | 6 |
+| **TOTAL** | | **106** |
 
 > Each scenario is counted once under its primary `epic_id` from frontmatter.
 > Counts are derived directly from the Scenario Index rows below.
+> HS-101..106 use epic_id "E-1" (PCAP Ingestion) but are additionally tracked under
+> the pcapng-F2 grouping above for F2 burst audit visibility.
 
 ---
 
@@ -156,6 +167,12 @@ All 100 scenarios, one row each, grouped by epic.
 | [HS-015](HS-015-real-world-corpus-clean-pcap.md) | Real-World Corpus — Well-Maintained Public PCAP (Low False Positive Rate) | real-world-corpus | must-pass | 1, 2, 3 | BC-2.01.001, BC-2.01.002, BC-2.02.001, BC-2.04.003 |
 | [HS-022](HS-022-decoder-malformed-packet-no-panic.md) | Decoder No-Panic Safety — Malformed and Truncated Packets | security-probes | must-pass | 2 | BC-2.02.007, BC-2.02.008, BC-2.02.009 |
 | [HS-023](HS-023-e1-e2-e6-e7-integration-summary.md) | Waves 1-5 Full Integration — PCAP -> Decode -> Reassembly -> DNS -> MITRE | integration-boundaries | must-pass | 1, 3, 4, 5 | BC-2.01.002, BC-2.04.028, BC-2.08.003, BC-2.10.003 |
+| [HS-101](HS-101-pcapng-timestamp-tsresol-microsecond-regression-guard.md) | pcapng Timestamp Tsresol — Microsecond Default and Nanosecond Fast-Path Regression Guard | behavioral-subtleties | must-pass | TBD (F2 pcapng reader) | BC-2.01.014 (VP-025) |
+| [HS-102](HS-102-pcapng-timestamp-tsresol-overflow-saturating-guards.md) | pcapng Timestamp Tsresol Overflow — Saturating Guards for Extreme and Adversarial Resolution Values | security-probes | must-pass | TBD (F2 pcapng reader) | BC-2.01.014 (VP-025) |
+| [HS-103](HS-103-pcapng-shb-framing-byte-order-and-error-cases.md) | pcapng SHB Framing — Big-Endian Byte-Order Magic, Invalid BOM, and Truncated SHB | edge-case-combinations | must-pass | TBD (F2 pcapng reader) | BC-2.01.010 (VP-026) |
+| [HS-104](HS-104-pcapng-epb-framing-interface-id-bounds-and-captured-len-guard.md) | pcapng EPB Framing — Interface-ID Bounds Checks and Captured-Len Guard | security-probes | must-pass | TBD (F2 pcapng reader) | BC-2.01.012 (VP-027) |
+| [HS-105](HS-105-pcapng-block-walk-skip-forward-progress-and-dsb.md) | pcapng Block-Walk Skip — Forward Progress at End-of-Stream and DSB Followed by Valid EPB | behavioral-subtleties | must-pass | TBD (F2 pcapng reader) | BC-2.01.015 (VP-029) |
+| [HS-106](HS-106-pcapng-multi-idb-linktype-agreement-policy.md) | pcapng Multi-IDB Linktype Agreement Policy — Conflict Rejected, Uniform Accepted | behavioral-subtleties | must-pass | TBD (F2 pcapng reader) | BC-2.01.018 (VP-030) |
 
 ### Epic E-2: TCP Stream Reassembly Engine (Waves 4-11)
 
@@ -298,13 +315,23 @@ All 100 scenarios, one row each, grouped by epic.
 
 ## Anomalies
 
-None detected. All checks passed for the greenfield set:
+**Known — HS-001 stale (pre-existing, F3 scope):** HS-001's pcapng-rejection expectation
+was inverted by BC-2.01.009 (F2 pcapng reader feature). The stale banner and frontmatter
+`lifecycle_status: stale` have been in place since 2026-06-19. Rewrite is F3/STORY-127
+scope. HS-001 is excluded from the active gate set until rewritten.
 
-- HS-001 through HS-100 present with no gaps or duplicates (greenfield HS-NNN sequence)
-- All 100 `behavioral_contracts` fields are non-empty
-- All 27 waves (1-27) have at least one scenario
+**Known — HS-101..106 wave TBD:** These six scenarios were authored in F2 Burst C before
+F3 story decomposition assigned wave numbers to STORY-123..128. Wave column is "TBD (F2
+pcapng reader)". Story-writer must update this column after F3 story decomposition assigns
+wave numbers. This is a documentation gap, not a scenario defect.
+
+All other checks passed for the greenfield set:
+
+- HS-001 through HS-106 present with no other gaps or duplicates (greenfield HS-NNN sequence)
+- All 106 `behavioral_contracts` fields are non-empty
+- All 27 waves (1-27) have at least one scenario (HS-101..106 are additive; no existing wave is affected)
 - One should-pass scenario: HS-025 (ICS Tactic Display — lower priority feature)
-- All 100 HS files carry concrete per-file `inputs` listing specific BC and story paths
+- HS-001..100 carry concrete per-file `inputs`; HS-101..106 carry BC `inputs` (story inputs added after F3 decomposition)
 
 > **Note:** This index covers the v0.1.0 greenfield holdout set (HS-NNN sequence, waves 1-27).
 > Feature-mode holdouts for SS-15 DNP3 (v0.6.0, waves 35-39) use the HS-W35-NNN / HS-W38-NNN
