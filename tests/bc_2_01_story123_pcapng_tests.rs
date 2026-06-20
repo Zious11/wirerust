@@ -1111,9 +1111,10 @@ fn test_BC_2_01_010_major_version_not_1_rejected() {
 /// btl%4==0); wirerust body-decode finds body < 16 → E-INP-008.
 /// Constructible window: 12 ≤ btl < 28; canonical fixture: btl=16 → body=4.
 ///
-/// The error must mention E-INP-008 or equivalent context ("body" or "truncated"
-/// or "too short"). It must NOT be E-INP-010 (which is only for crate framing
-/// rejections that never reach wirerust's body-decode).
+/// The error MUST contain "E-INP-008" (pinned) and MUST NOT contain "E-INP-010".
+/// E-INP-010 is reserved for crate framing rejections that never reach wirerust's
+/// body-decode. The crate fires InvalidField("block length < 16") for btl=16;
+/// the mapper routes this to E-INP-008 ("SHB body too short ... E-INP-008").
 #[test]
 fn test_BC_2_01_010_shb_body_truncated_e_inp_008() {
     let bytes = shb_body_truncated_btl16();
@@ -1124,22 +1125,18 @@ fn test_BC_2_01_010_shb_body_truncated_e_inp_008() {
     );
     let err_msg = format!("{:#}", result.unwrap_err());
     // Must be E-INP-008 (body-too-short), not E-INP-010 (framing rejection).
-    // E-INP-010 is the framing code; E-INP-008 is the wirerust body-decode code.
-    // The exact error string may not include "E-INP-008" literally; we check for
-    // context that indicates a body-length or parse failure.
+    // The crate fires InvalidField("block length < 16") for btl=16; the mapper
+    // routes this to E-INP-008 ("SHB body too short: ... E-INP-008: SHB body
+    // decode failure"). Pinning the error code guards against the mapper silently
+    // routing this to the catch-all E-INP-010 arm (BC-2.01.010 PC5(b)).
     assert!(
-        err_msg.to_lowercase().contains("e-inp-008")
-            || err_msg.to_lowercase().contains("body")
-            || err_msg.to_lowercase().contains("truncat")
-            || err_msg.to_lowercase().contains("too short")
-            || err_msg.to_lowercase().contains("fixed")
-            || err_msg.to_lowercase().contains("shb"),
-        "E-INP-008 path: error must mention body parse failure context; got: {err_msg}"
+        err_msg.contains("E-INP-008"),
+        "BC-2.01.010 PC5(b): btl=16 SHB must map to E-INP-008 (body-too-short); got: {err_msg}"
     );
-    // Must explicitly NOT contain E-INP-010 (which would indicate wrong routing).
     assert!(
-        !err_msg.to_lowercase().contains("e-inp-010"),
-        "E-INP-008 path must not be misrouted to E-INP-010; got: {err_msg}"
+        !err_msg.contains("E-INP-010"),
+        "BC-2.01.010 PC5(b): btl=16 SHB must NOT be misrouted to E-INP-010 (framing \
+         rejection); got: {err_msg}"
     );
 }
 
