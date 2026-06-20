@@ -1002,13 +1002,13 @@ fn test_BC_2_01_010_bom_big_endian() {
 
     let result = parse_shb_body(&body);
 
-    // PRIMARY ASSERTION — currently RED:
-    // parse_shb_body reads major via u16::from_le_bytes([0x00, 0x01]) = 256 ≠ 1 → Err.
-    // Correct BE-aware decode: u16::from_be_bytes([0x00, 0x01]) = 1 → Ok.
+    // REGRESSION GUARD: a return to LE-always version decode would read BE `00 01`
+    // as u16::from_le_bytes([0x00, 0x01]) = 256 ≠ 1 → Err. The BE-aware implementation
+    // (reader.rs:197-204) correctly decodes u16::from_be_bytes([0x00, 0x01]) = 1 → Ok.
     assert!(
         result.is_ok(),
         "spec-conforming BE body (BOM=1A2B3C4D, major/minor BE-encoded) must return Ok(ShbInfo); \
-         current impl reads version LE → major=256 → Err (RED GATE); got: {:?}",
+         regression to LE-always decode would read BE `00 01` as 256 and fail; got: {:?}",
         result.err()
     );
 
@@ -1025,7 +1025,7 @@ fn test_BC_2_01_010_bom_big_endian() {
     // BE bytes `00 01` → correct decode = 1; LE misread = 256.
     assert_eq!(
         info.major_version, 1,
-        "BE-encoded major_version (`00 01`) must decode to 1; LE misread gives 256 (RED)"
+        "BE-encoded major_version (`00 01`) must decode to 1; regression to LE-always decode gives 256"
     );
 
     // MINOR VERSION — non-palindromic detection:
