@@ -1052,13 +1052,20 @@ fn test_BC_2_01_010_bom_big_endian() {
 // AC-006: Major version validation (BC-2.01.010 PC2)
 // ──────────────────────────────────────────────────────────────────────────────
 
-/// AC-006 / BC-2.01.010 PC2 / AC-003: pcapng major version != 1 must return Err.
+/// AC-006 / BC-2.01.010 PC2 (PC5(c)) / AC-003: pcapng major version != 1 must
+/// return Err mapping to E-INP-008 (semantic failure — unsupported version).
 ///
-/// Canonical test vector: major_version=2 → Err with "unsupported" context.
+/// Canonical test vector: major_version=2 → Err containing "E-INP-008".
 /// Minor version is irrelevant; a non-1 major is always rejected.
+///
+/// The integration sub-cases (major=2 and major=0 via from_pcap_reader) are
+/// pinned to E-INP-008 and must NOT produce E-INP-010, mirroring the assertion
+/// pattern in test_BC_2_01_010_invalid_bom_e_inp_008 (BC-2.01.010 PC5(c)).
+/// reader.rs emits: "Unsupported pcapng major version: N ... E-INP-008: semantic
+/// failure" from the major-version check at reader.rs after PcapNgParser::new.
 #[test]
 fn test_BC_2_01_010_major_version_not_1_rejected() {
-    // Test with major=2 (EC-004: future version)
+    // ── pure-core unit: parse_shb_body with major=2 ─────────────────────────
     let mut body = Vec::with_capacity(16);
     body.extend_from_slice(&SHB_BOM_LE);
     body.extend_from_slice(&2u16.to_le_bytes()); // major = 2 (future, unsupported)
@@ -1074,11 +1081,13 @@ fn test_BC_2_01_010_major_version_not_1_rejected() {
     assert!(
         err_msg.to_lowercase().contains("unsupported")
             || err_msg.to_lowercase().contains("version"),
-        "error must mention 'unsupported' or 'version' for major!=1; got: {err_msg}"
+        "parse_shb_body: error must mention 'unsupported' or 'version' for major!=1; got: {err_msg}"
     );
 
-    // Also test via from_pcap_reader (integration path): craft an SHB-only
-    // pcapng with major=2 in the body.
+    // ── integration: from_pcap_reader with major=2 (BC-2.01.010 PC2 / PC5(c)) ──
+    // Pins E-INP-008 routing: the major-version check fires AFTER PcapNgParser::new
+    // succeeds (valid BOM), so the error is a semantic failure → E-INP-008, NOT
+    // the crate framing rejection → E-INP-010.
     {
         let shb_bytes = shb_only_pcapng(SHB_BOM_LE, 2, 0);
         let result = PcapSource::from_pcap_reader(Cursor::new(shb_bytes));
@@ -1086,9 +1095,40 @@ fn test_BC_2_01_010_major_version_not_1_rejected() {
             result.is_err(),
             "from_pcap_reader: major_version=2 SHB must return Err; got Ok"
         );
+        let err2 = format!("{:#}", result.unwrap_err());
+        assert!(
+            err2.contains("E-INP-008"),
+            "from_pcap_reader: major=2 must map to E-INP-008 (semantic failure, not framing \
+             rejection); got: {err2}"
+        );
+        assert!(
+            !err2.contains("E-INP-010"),
+            "from_pcap_reader: major=2 must NOT map to E-INP-010 (that is the crate framing \
+             code, not the semantic-failure code); got: {err2}"
+        );
     }
 
-    // major=0: also invalid.
+    // ── integration: from_pcap_reader with major=0 (BC-2.01.010 PC2 / PC5(c)) ──
+    // major=0 is equally invalid. Same E-INP-008 routing requirement.
+    {
+        let shb_bytes0 = shb_only_pcapng(SHB_BOM_LE, 0, 0);
+        let result0 = PcapSource::from_pcap_reader(Cursor::new(shb_bytes0));
+        assert!(
+            result0.is_err(),
+            "from_pcap_reader: major_version=0 SHB must return Err; got Ok"
+        );
+        let err0 = format!("{:#}", result0.unwrap_err());
+        assert!(
+            err0.contains("E-INP-008"),
+            "from_pcap_reader: major=0 must map to E-INP-008 (semantic failure); got: {err0}"
+        );
+        assert!(
+            !err0.contains("E-INP-010"),
+            "from_pcap_reader: major=0 must NOT map to E-INP-010; got: {err0}"
+        );
+    }
+
+    // ── pure-core unit: parse_shb_body with major=0 ─────────────────────────
     {
         let mut body0 = Vec::with_capacity(16);
         body0.extend_from_slice(&SHB_BOM_LE);
