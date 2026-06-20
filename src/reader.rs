@@ -130,9 +130,11 @@ pub struct ShbInfo {
 
 /// Decode a raw SHB body slice into [`ShbInfo`].
 ///
-/// Called by `from_pcap_reader` after the SHB outer frame is parsed. The
+/// Called as a pure-core helper (VP-026 Kani target) and by unit tests. The
 /// `body` slice is the bytes after the 12-byte outer block header (i.e.,
-/// starting with the 4-byte BOM field).
+/// starting with the 4-byte BOM field). The integration path uses
+/// `PcapNgParser` from the `pcap-file` crate for SHB framing; this function
+/// provides the pure-core contract verification target.
 ///
 /// # Error routing (BC-2.01.010 PC5)
 ///
@@ -144,14 +146,10 @@ pub struct ShbInfo {
 ///
 /// # Version field byte order
 ///
-/// The major/minor version fields are always read as little-endian. The
-/// pcapng spec §4.1 says fields after the BOM use the BOM's byte order, but
-/// the test suite's BE-BOM fixtures write version fields in LE (test comment:
-/// "LE in body for this fixture"). The only valid major/minor values in any
-/// real pcapng file are 1/0, which have identical LE and BE representations
-/// only when viewed as the canonical valid values `[0x01, 0x00]` and
-/// `[0x00, 0x00]`. Always reading LE satisfies all test vectors and is
-/// consistent with the test-writer's specification of this function's contract.
+/// Per the pcapng spec §4.1, all multi-byte fields in the SHB after the BOM
+/// are encoded in the byte order established by the BOM. This function decodes
+/// `major_version` and `minor_version` using the endianness determined from
+/// the BOM field (BC-2.01.010 PC1 / Invariant 4).
 ///
 /// # Panics
 ///
@@ -193,18 +191,20 @@ pub fn parse_shb_body(body: &[u8]) -> Result<ShbInfo> {
         ));
     };
 
-    // Parse major_version and minor_version always as little-endian.
+    // Parse major_version and minor_version in the byte order established by the BOM.
     //
-    // The pcapng spec §4.1 states that all multi-byte fields in the SHB (after
-    // the BOM) use the byte order indicated by the BOM. However, the test suite's
-    // BE-BOM fixtures intentionally write major/minor in little-endian encoding
-    // (test comment: "LE in body for this fixture") to isolate BOM detection from
-    // version-field byte-order parsing. Reading version fields as LE satisfies all
-    // test vectors in this story. Major version 1 and minor version 0 are the only
-    // valid values in any pcapng file in practice; their canonical LE representations
-    // are [0x01, 0x00] and [0x00, 0x00] respectively, so LE reading is unambiguous.
-    let major_version = u16::from_le_bytes([body[4], body[5]]);
-    let minor_version = u16::from_le_bytes([body[6], body[7]]);
+    // Per the pcapng spec §4.1, all multi-byte fields in the SHB after the BOM are
+    // encoded in the section endianness. A big-endian BOM (1A 2B 3C 4D) means
+    // major/minor are big-endian; a little-endian BOM (4D 3C 2B 1A) means they are
+    // little-endian (BC-2.01.010 PC1 / Invariant 4).
+    let major_version = match endianness {
+        SectionEndianness::BigEndian => u16::from_be_bytes([body[4], body[5]]),
+        SectionEndianness::LittleEndian => u16::from_le_bytes([body[4], body[5]]),
+    };
+    let minor_version = match endianness {
+        SectionEndianness::BigEndian => u16::from_be_bytes([body[6], body[7]]),
+        SectionEndianness::LittleEndian => u16::from_le_bytes([body[6], body[7]]),
+    };
 
     // BC-2.01.010 PC2: major_version must be 1; any other value → E-INP-008.
     if major_version != 1 {
