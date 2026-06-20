@@ -18,6 +18,7 @@
 //!   AC-007 → test_BC_2_01_010_shb_body_truncated_e_inp_008
 //!             test_BC_2_01_010_shb_btl8_maps_to_e_inp_008
 //!             test_BC_2_01_010_invalid_bom_e_inp_008
+//!   EC-009 → test_BC_2_01_010_hs103_case_c_e_inp_010  (positive E-INP-010 leg)
 //!   AC-008 → test_BC_2_01_010_second_shb_rejected_e_inp_012
 //!   AC-009 → test_BC_2_01_010_no_panic_fuzz
 //!   AC-010 → test_BC_2_01_009_shb_only_zero_packet_notice
@@ -303,6 +304,43 @@ fn shb_framing_btl8() -> Vec<u8> {
 ///   any other    → E-INP-008
 fn shb_with_invalid_bom() -> Vec<u8> {
     shb_only_pcapng([0xDE, 0xAD, 0xBE, 0xEF], 1, 0)
+}
+
+/// Build a valid SHB (28 bytes LE) followed by a truncated next block.
+///
+/// EC-009 / BC-2.01.010 PC5 case (d): valid first SHB is parsed successfully by
+/// `PcapNgParser::new`; the block walker then calls `next_raw_block` on a stream
+/// that starts with only 4 bytes of an IDB block_type header and no btl / body /
+/// trailing btl. The crate returns `IncompleteBuffer` ("Need more bytes") which
+/// the `next_raw_block` map_err at reader.rs:~417 maps to E-INP-010.
+///
+/// Fixture layout (32 bytes total):
+///   Bytes  0..28: valid LE SHB (block_type=0x0A0D0D0A, btl=28, BOM=LE, major=1, minor=0,
+///                               section_length=0xFFFFFFFFFFFFFFFF, trailing btl=28)
+///   Bytes 28..32: IDB block_type bytes [01 00 00 00] — EOF at byte 32 with no further data
+///
+/// Why E-INP-010 and NOT E-INP-008:
+///   PcapNgParser::new succeeds on the valid first SHB (no error at that stage).
+///   next_raw_block reads the remaining 4 bytes, sees block_type but cannot read the
+///   required btl u32 at offset +4 → IncompleteBuffer → catch-all arm → E-INP-010.
+///   The SHB body-decode path (which fires E-INP-008) is only reached after
+///   PcapNgParser::new returns a complete block with ≥12 outer bytes; this fixture
+///   never reaches that path.
+fn shb_valid_then_truncated_next_block() -> Vec<u8> {
+    let mut buf = Vec::with_capacity(32);
+    // Valid SHB (28 bytes, LE)
+    buf.extend_from_slice(&SHB_BLOCK_TYPE_U32.to_le_bytes()); // 0A 0D 0D 0A
+    buf.extend_from_slice(&28u32.to_le_bytes()); // btl = 28
+    buf.extend_from_slice(&SHB_BOM_LE); // 4D 3C 2B 1A
+    buf.extend_from_slice(&1u16.to_le_bytes()); // major = 1
+    buf.extend_from_slice(&0u16.to_le_bytes()); // minor = 0
+    buf.extend_from_slice(&0xFFFF_FFFF_FFFF_FFFFu64.to_le_bytes()); // section_length
+    buf.extend_from_slice(&28u32.to_le_bytes()); // trailing btl = 28
+    // Truncated IDB: only block_type present (4 bytes); stream ends here.
+    // next_raw_block needs ≥8 bytes to read type+btl; it gets 4 → IncompleteBuffer.
+    buf.extend_from_slice(&IDB_BLOCK_TYPE_U32.to_le_bytes()); // 01 00 00 00
+    assert_eq!(buf.len(), 32);
+    buf
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -1267,6 +1305,57 @@ fn test_BC_2_01_010_invalid_bom_e_inp_008() {
     assert!(
         !err2_msg.contains("E-INP-010"),
         "from_pcap_reader: invalid BOM must NOT map to E-INP-010; got: {err2_msg}"
+    );
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// EC-009 (BC-2.01.010 PC5 case d): positive E-INP-010 coverage
+// ──────────────────────────────────────────────────────────────────────────────
+
+/// EC-009 / BC-2.01.010 PC5 case (d): a valid first SHB followed by a truncated
+/// subsequent block stream (EOF mid-block) MUST produce E-INP-010.
+///
+/// This is the ONLY test in the suite that positively asserts E-INP-010.
+/// All other E-INP-010 references in the suite are NEGATIVE (asserting NOT E-INP-010).
+///
+/// Mechanism (verified empirically):
+///   1. `PcapNgParser::new` succeeds on the 28-byte LE SHB (no error).
+///   2. `src` is now the remaining 4 bytes (IDB block_type only).
+///   3. `src.is_empty()` is false (4 bytes remain) → block-walk loop entered.
+///   4. `parser.next_raw_block(src)` attempts to read ≥8 bytes (type + btl);
+///      finds only 4 bytes → returns `PcapError::IncompleteBuffer` ("Need more bytes").
+///   5. The `map_err` catch-all arm at reader.rs:~417 maps to E-INP-010.
+///
+/// Fixture: valid SHB (28 bytes LE, major=1) + 4 bytes IDB block_type [01 00 00 00].
+/// Stream total = 32 bytes; truncated after byte 31 (no btl / body / trailing btl).
+///
+/// Pinned assertions (closing the 4th leg of BC-2.01.010 PC5 named 4-way split):
+///   - result.is_err()
+///   - err_msg.contains("E-INP-010")
+///   - !err_msg.contains("E-INP-008")  ← routing discriminator
+#[test]
+fn test_BC_2_01_010_hs103_case_c_e_inp_010() {
+    let bytes = shb_valid_then_truncated_next_block();
+
+    let result = wirerust::reader::PcapSource::from_pcap_reader(Cursor::new(bytes));
+
+    assert!(
+        result.is_err(),
+        "EC-009 / PC5(d): valid SHB + truncated next block must return Err (E-INP-010); got Ok"
+    );
+    let err_msg = format!("{:#}", result.unwrap_err());
+
+    // PRIMARY: must produce E-INP-010 (crate IncompleteBuffer from next_raw_block).
+    assert!(
+        err_msg.contains("E-INP-010"),
+        "EC-009 / PC5(d): truncated-stream framing error must map to E-INP-010; got: {err_msg}"
+    );
+
+    // ROUTING DISCRIMINATOR: must NOT produce E-INP-008 (which would mean the error
+    // was misrouted to the SHB body-decode or major-version check path).
+    assert!(
+        !err_msg.contains("E-INP-008"),
+        "EC-009 / PC5(d): E-INP-010 must NOT be misrouted to E-INP-008; got: {err_msg}"
     );
 }
 
