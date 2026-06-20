@@ -3045,4 +3045,151 @@ does not affect any current holdout outcome.
 | FINDING-P6-001 | Minor | v6.0 audit — BC-2.01.017 Related BCs lines 145-146 omit E-INP-008 from BC-2.01.012 and BC-2.01.013 error-code lists | OPEN |
 | FINDING-P6-002 | Minor | v6.0 audit — BC-2.01.017 PC1 line 68 states SPB body-too-short window as [btl 16≤btl<20]; correct window is btl=12 only | OPEN |
 | FINDING-P7-001 | Minor | v7.0 audit — BC-INDEX v1.64 annotation + STATE.md line 73: metadata trail says "Case D (3 OPBs) skipped_blocks=3" but normative HS-108 body shows skipped_blocks==1, opb_skipped==1 (1 OPB) | RESOLVED — BC-INDEX v1.64→v1.65: Case D annotation corrected to "Case D (1 OPB) skipped_blocks=1/opb_skipped=1"; STATE.md D-159 entry corrected; spec-changelog D-159 body corrected. D-160. |
+| FINDING-P8-001 | MINOR | v8.0 audit (pass-8 focused check) — HS-INDEX By Category table: behavioral-subtleties row = 39, but actual scenario index rows with that category = 40. Sum of five explicit category rows (39+20+18+21+10 = 108) does not equal the TOTAL row (109). Root cause: HS-106 (behavioral-subtleties, added in F2 Burst C alongside HS-101..105) was counted in the note as "already included" and the pcapng-holdouts category incremented behavioral-subtleties by only +3 (HS-101,105,108) instead of +4 (HS-101,105,106,108). The pcapng-holdouts summary row (9) is non-additive (already in categories), so the table TOTAL of 109 is achieved only because the row counts are wrong. Actual correct value: behavioral-subtleties = 40. Pre-existing staleness; does not affect any gate-blocking check (total = 109 is correct; all scenario rows are present and consistent; by-epic total = 109 correct). | OPEN — pre-existing category-count staleness, no gate impact |
 | FINDING-P7-002 | Minor | v7.0 audit — HS-108 v1.4 evaluation rubric (Case B/F) describes generic-segment gate as "skipped_blocks > 0" instead of canonical "(skipped_blocks - opb_skipped) > 0" | RESOLVED — HS-108 v1.4→v1.5: Case B rubric gate and Case F body gate corrected to "(skipped_blocks - opb_skipped) > 0" (G > 0). D-160. |
+
+---
+
+## v8.0 Pass-8 MEDIUM Remediation Focused Check (2026-06-20)
+
+**Scope:** Focused fresh-context consistency verification on the 7 items specified by the pass-8 audit brief.
+**Auditor:** consistency-validator (fresh context)
+**Verdict v8.0:** CLEAN on items 1–7. ONE pre-existing MINOR gap in HS-INDEX By-Category arithmetic (FINDING-P8-001 above, no gate impact). No blocking findings.
+
+---
+
+### Check 1 — HS-109 (IDB body-decode holdout): byte arithmetic and observable correctness
+
+**File:** `.factory/holdout-scenarios/HS-109-pcapng-idb-body-decode-framing-error-paths.md` v1.0
+
+**IDB body layout verified:** linktype[2] + reserved[2] + snaplen[4] = 8 bytes (fixed fields). Outer overhead 12 bytes (type:4 + btl:4 + trailing_btl:4). IDB body-too-short window: 12 ≤ btl < 20, constructible 4-byte-aligned values = 12 and 16.
+
+**Case A (btl=16 → body=4 < 8 → E-INP-008):**
+- Fixture: 28-byte SHB + 16-byte IDB = 44 bytes. IDB hex `01 00 00 00 10 00 00 00 00 01 00 00 10 00 00 00`. btl=0x10=16; body=16-12=4 bytes; 4 < 8 IDB fixed-field minimum. CORRECT. btl=16 is crate-frameable (>=12, %4==0); wirerust body-decode path → E-INP-008 (not E-INP-010).
+
+**Case B (reserved=0x0100 → E-INP-008):**
+- Fixture: 28+20=48 bytes. IDB body: linktype=`01 00` (ETHERNET), reserved=`00 01` (LE: 0x0100, non-zero), snaplen=`FF FF 00 00`. btl=0x14=20; body=8 bytes (sufficient). Reserved field at body offset 2-3 = 0x0100 ≠ 0x0000. Structural check fires → E-INP-008. CORRECT. (Note: "00 01" in LE = 0x0100 = 256, which is indeed non-zero and unambiguous from ETHERNET linktype byte pattern 0x0001.)
+
+**Case C (options-TLV option_length=32 with 0 remaining body bytes → E-INP-008):**
+- Fixture: 28+24=52 bytes. IDB btl=0x18=24; body=12 bytes. Fixed fields: 8 bytes. Options region: 4 bytes (`02 00 20 00` = code:2, length:32). After TLV header, 0 bytes remain in body. 32 > 0 → OOB bounds check fires before any slice access → E-INP-008. CORRECT.
+
+**Case D (if_tsresol option_length=4 ≠ 1 → E-INP-008):**
+- Fixture: 28+32=60 bytes. IDB btl=0x20=32; body=20 bytes. Fixed: 8. if_tsresol TLV: `09 00 04 00 06 00 00 00` (code:9, length:4, value:4 bytes). opt_endofopt: `00 00 00 00` (4 bytes). Total body: 8+8+4=20. After TLV header (4 bytes), 12 bytes remain; option_length=4 ≤ 12 → OOB check PASSES. Semantic check: option_length=4 ≠ 1 for if_tsresol (code 9) → E-INP-008. CORRECT. Note: value bytes `06 00 00 00` contain 0x06 at offset 0 (the correct exponent) — a naive implementation might silently succeed by reading byte[0]; the contract requires rejection because option_length ≠ 1 regardless of value content.
+
+**Case E (well-formed IDB+EPB → exit 0, total_packets=1):**
+- Fixture: 28+32+48=108 bytes. IDB: btl=32, if_tsresol TLV with option_length=1, value=0x06 (correct). EPB: btl=0x30=48, interface_id=0, captured_len=0x0E=14, original_len=14, data=14 bytes, pad=2 bytes (14%4=2, pad=4-2=2). EPB body=48-12=36 bytes; fixed EPB fields=20; data+pad=16; total=36. CORRECT. total_packets MUST be 1.
+
+**Frontmatter:** behavioral_contracts: [BC-2.01.011], verification_properties: [VP-026, VP-027], epic_id: "E-1", category: "security-probes", must_pass: "true", input-hash: "tbd" (acceptable per F-6 deferral), status: draft. All present and correct.
+
+**BC linkage table:** PC5/EC-008 (Case A), PC4/EC-010 (Case B), PC6/AC-005/EC-011 (Case C), PC6/AC-005/EC-013 (Case D), PC1/PC2/PC3/AC-003 (Case E). All cross-references to BC-2.01.011 are internally consistent.
+
+**Result: PASS.** All 5 cases have byte-exact buildable fixtures and their asserted observables are arithmetically consistent.
+
+---
+
+### Check 2 — HS-INDEX v2.4: HS-109 row, counts, and gap check
+
+**File:** `.factory/holdout-scenarios/HS-INDEX.md` v2.4
+
+**HS-109 row present:** YES — in Epic E-1 table, category security-probes, must-pass, TBD (P8 pcapng reader), BC-2.01.011 (VP-026, VP-027).
+
+**Frontmatter counts:**
+- total_scenarios: 109. Actual [HS-NNN] rows in Scenario Index: 109. MATCH.
+- must_pass_count: 108. Scenarios with "should-pass" = 1 (HS-025). 109-1=108. MATCH.
+- should_pass_count: 1. Confirmed (HS-025 only). MATCH.
+- all-namespace total: 182 = 109 (greenfield) + 32 (DNP3) + 28 (ARP) + 13 (collapse) = 182. MATCH.
+- pcapng-holdouts group: 9 (HS-101..109). MATCH.
+- E-1 epic count: 17 (from By-Epic table). E-1 rows in Scenario Index: HS-001,002,003,004,005,015,022,023 (8) + HS-101..109 (9) = 17. MATCH.
+- E-11 epic description row: count = 9 (HS-101..109). MATCH.
+- By-Epic TOTAL: sum = 17+28+5+10+12+2+7+15+12+1+9 = 118? Let me count: 17+28=45, +5=50, +10=60, +12=72, +2=74, +7=81, +15=96, +12=108, +1=109, +9=118. Note: E-11 count (9) is also in E-1 (17 includes HS-101..109). The note clarifies HS-101..109 use epic_id "E-1" in frontmatter and are additionally tracked under E-11. By-Epic TOTAL row = 109. MATCH (each scenario counted once under its primary epic_id).
+- No HS-NNN gap in HS-001..HS-109: confirmed by Verification Results check "Sequential numbering (no gaps) PASS".
+
+**By Category internal arithmetic gap (FINDING-P8-001):** behavioral-subtleties row = 39 but actual index rows with that category = 40 (HS-106 is behavioral-subtleties and was miscounted as "already included" in the pcapng note; the note should say +4 not +3). Category row sum = 39+20+18+21+10 = 108 ≠ 109 (TOTAL row). This is a pre-existing documentation inconsistency — the TOTAL row and the scenario index rows are both correct at 109; only the behavioral-subtleties row is understated by 1. No gate impact.
+
+**Result: PASS on all gate-relevant counts. FINDING-P8-001 (MINOR, non-blocking).**
+
+---
+
+### Check 3 — error-taxonomy v3.5 (M-1): v3.2 changelog prose corrected, live rows unchanged
+
+**File:** `.factory/specs/prd-supplements/error-taxonomy.md` v3.5
+
+**v3.5 erratum:** The v3.5 changelog entry states it "corrected stale v3.2 changelog prose: the phrase 'SPB=16 (4 fixed + 12 block header)' wrongly implied btl=16 is a body-too-short failure." The current v3.2 changelog entry on disk now reads correctly: "SPB body-too-short window is btl=12 ONLY (body=0 < 4; btl=16 → body=4 = exactly sufficient → minimum VALID SPB, no error from body-decode alone)." The stale phrase has been removed from the v3.2 entry. The v3.5 record is accurate.
+
+**Live E-INP-008 row:** Unchanged and correct. Lists "SPB body < 4 bytes (original_len)" as a body-decode failure subcategory. The scope boundary is clearly stated: btl < 12 / misaligned / EOF → E-INP-010; 12 ≤ btl but wirerust body-decode rejects → E-INP-008. No SPB=16 confusion in the live row.
+
+**Live E-INP-010 row:** Unchanged and correct. Scope is strictly crate-side framing rejection. SPB body-too-short is correctly excluded from E-INP-010.
+
+**Per-block windows (from BC-INDEX v1.63, confirmed against live rows):** SHB 12≤btl<28, IDB 12≤btl<20, EPB 12≤btl<32, SPB btl=12 only. All consistent with E-INP-008 Notes subcategory (a) and with HS-109 Case A IDB window claim.
+
+**Result: PASS.**
+
+---
+
+### Check 4 — BC-2.01.013 v1.8 (M-3): AC-001 test name and scope note
+
+**File:** `.factory/specs/behavioral-contracts/ss-01/BC-2.01.013.md` v1.8
+
+**AC-001 test name:** `test_BC_2_01_013_empty_interface_table_guarded`. No residual `test_BC_2_01_013_snaplen_lookup_guarded` anywhere in the body sections (only appears correctly in the v1.8 changelog entry as the old name). CORRECT.
+
+**AC-001 scope note:** "this AC covers only the empty-table index guard (EC-006). The body-too-short error path (btl=12 → body=0 < 4 bytes → E-INP-008) is a distinct concern handled by AC-004a and EC-008; these two ACs are non-redundant." The scope note is present, correctly scoped, and non-redundant with AC-004a. CORRECT.
+
+**Result: PASS.**
+
+---
+
+### Check 5 — ADR-009 (O-2): status accepted, acceptance note, rev still 9
+
+**File:** `.factory/specs/architecture/decisions/ADR-009-pcapng-capture-format-reader-support.md`
+
+**Frontmatter status:** `status: accepted`. CORRECT.
+
+**Title:** "# ADR-009: pcapng Capture-Format Reader Support (rev 9)". Rev is still 9 as required (status change is not a content revision). CORRECT.
+
+**Status section (## Status):** "Accepted — 2026-06-20. Lifecycle transition; revision number remains rev 9 (status change is not a decision-content revision). All 10 behavioral contracts... F2 adversarial convergence reached its first clean pass at pass 8 (0 HIGH / 0 CRITICAL findings). Status promoted from `proposed` to `accepted` to reflect full downstream adoption and clean spec convergence." Acceptance note is present and substantive. CORRECT.
+
+**Decision content unchanged:** No new decisions added; all 22 decisions are at their prior revision levels. CORRECT.
+
+**Result: PASS.**
+
+---
+
+### Check 6 — BC-INDEX v1.66: BC-2.01.013 inline at v1.8, 302 active BCs
+
+**File:** `.factory/specs/behavioral-contracts/BC-INDEX.md` v1.66
+
+**BC-2.01.013 inline annotation:** Shows "v1.8: M-3 DF-AC-TEST-NAME-SYNC-001 — AC-001 test name renamed test_BC_2_01_013_snaplen_lookup_guarded → test_BC_2_01_013_empty_interface_table_guarded; stale snaplen reference removed; scope note clarifies AC-001 guards empty-interface-table E-INP-009 path; body-too-short EC-008 handled distinctly by AC-004a; no normative behavior change". Matches BC-2.01.013 on-disk v1.8 frontmatter and body. CORRECT.
+
+**Active BC count:** v1.66 changelog entry: "302 active BCs unchanged." BC count derivation section confirms 302. CORRECT.
+
+**Result: PASS.**
+
+---
+
+### Check 7 — Pass-8-clean invariant regression: per-block windows and error split
+
+Verified that the 5 artifacts checked above (HS-109, HS-INDEX, error-taxonomy, BC-2.01.013, ADR-009, BC-INDEX) do not disturb the pre-existing pass-8-clean invariant set:
+
+- **SHB framing window:** 12≤btl<28 → E-INP-008; btl<12/misaligned/EOF → E-INP-010. Confirmed in live E-INP-008 row ("SHB body < 16 bytes") and E-INP-010 row. UNCHANGED.
+- **IDB framing window:** 12≤btl<20 → E-INP-008; btl<12/misaligned/EOF → E-INP-010. Confirmed in live E-INP-008 row ("IDB body < 8 bytes") and HS-109 Case A (btl=16). UNCHANGED.
+- **EPB framing window:** 12≤btl<32 → E-INP-008 (body<20); captured_len/padding failures also E-INP-008; interface_id OOB on non-empty table → E-INP-010; empty table → E-INP-009. Confirmed in live E-INP-008/009/010 rows. UNCHANGED.
+- **SPB framing window:** btl=12 only → E-INP-008 (body=0 < 4); btl=16 → body=4 = minimum valid SPB. Confirmed in BC-2.01.013 v1.8 PC6/EC-008, live E-INP-008 row, and corrected v3.2 changelog. UNCHANGED.
+- **Error split integrity:** E-INP-008 = wirerust body-decode path; E-INP-009 = empty interface table; E-INP-010 = crate framing rejection + EPB OOB on non-empty table; E-INP-011 = multi-IDB linktype conflict; E-INP-012 = second SHB; E-INP-013 = late IDB. All boundaries intact in live rows. UNCHANGED.
+
+**Result: PASS. Pass-8-clean invariant set not disturbed.**
+
+---
+
+### Summary Table — v8.0 Pass-8 Focused Check
+
+| Item | Artifact | Check | Result |
+|------|----------|-------|--------|
+| 1 | HS-109 v1.0 | 5 cases byte-exact buildable; observables arithmetically consistent; BC linkage to BC-2.01.011; VP-026/VP-027 in frontmatter; input-hash tbd acceptable | PASS |
+| 2 | HS-INDEX v2.4 | HS-109 row present; total=109; must_pass=108; all-namespace=182; pcapng-holdouts=9; E-1=17; E-11=9; By-Epic TOTAL=109; no gaps | PASS (FINDING-P8-001 MINOR, non-blocking) |
+| 3 | error-taxonomy v3.5 | v3.2 changelog corrected (SPB=16 stale phrase removed); live E-INP-008/010 rows unchanged and correct; per-block windows consistent | PASS |
+| 4 | BC-2.01.013 v1.8 | AC-001 test name = empty_interface_table_guarded; no residual snaplen_lookup_guarded in body; scope note non-redundant with AC-004a | PASS |
+| 5 | ADR-009 | status: accepted; acceptance note present with justification; rev still 9; no decision-content change | PASS |
+| 6 | BC-INDEX v1.66 | BC-2.01.013 inline = v1.8; 302 active BCs | PASS |
+| 7 | Regression | Per-block windows SHB/IDB/EPB/SPB and E-INP-008/009/010 split all intact; pass-8-clean invariant set undisturbed | PASS |
+
+**Verdict v8.0: CLEAN.** 0 blocking findings. 1 pre-existing MINOR (FINDING-P8-001: behavioral-subtleties count = 39 in By-Category table vs 40 actual; non-gate-impacting).

@@ -8,9 +8,9 @@ sources:
   - performance-review
   - adversarial-spec-review-pass2 (ADV-F2-PASS2)
 date_created: 2026-06-19
-status: PASS8-CLEAN-PASS1-OF-3
+status: PASS8-CLEAN-PASS1-OF-3-REAUDIT-CLEAN
 f3_blocked: true
-f3_blocker_reason: "Adversarial reconvergence required (3 clean passes). Pass-1 items addressed (D-142/D-143). Pass-2 items addressed (D-144). Pass-2 cross-seam re-audit CLEAN (D-145). Pass-3 NOT CLEAN (D-146): 1C/5H/7M/4L. Pass-3 remediation COMPLETE (D-147). Pass-3 cross-seam re-audit gap fixes COMPLETE (D-148). Pass-4 NOT CLEAN (D-149): 1C/4H/5M/3L, HIGH novelty. Pass-4 remediation COMPLETE (D-150). Pass-4 re-audit 3 Major boundary gaps FIXED (D-151): FINDING-P4-001/002/003. Pass-5 NOT CLEAN (D-152): 1C/4H/5M/3L, HIGH novelty — TRAJECTORY PLATEAU (23/24/17/13/13). Pass-5 remediation COMPLETE (D-153): all 1C/4H/5M/3L FIXED. Pass-5 re-audit CLEAN (D-154): 4 Minor findings FIXED (FINDING-P5-001/002/003/004); 6 seams CLEAN. Pass-5 fully remediated + consistency-verified. Pass-6 NOT CLEAN (D-155): 0C/4H/5M/4L — FIRST zero-critical pass; count plateau 13 (P4/5/6), severity declining. Pass-6 remediation COMPLETE (D-156): all 0C/4H/5M/4L FIXED. Pass-6 re-audit CLEAN (D-157): 2 Minor findings FIXED (FINDING-P6-001/002); 10 seams CLEAN. Pass-7 NOT CLEAN (D-158): 1C/3H/4M/4L; novelty MODERATE; 2 axes CONVERGED. Pass-7 remediation COMPLETE (D-159): all 1C/3H/4M FIXED; 4L CONVERGED GREEN. Pass-7 re-audit minors FIXED (D-160): FINDING-P7-001/002 (metadata + rubric gate). Pass-8 CLEAN (D-161): 0C/0H/3M/5L — CLEAN-PASS 1/3 (BC-5.39.001). M-1/M-2/M-3/O-2 FIXED. O-1 DEFERRED-TO-F3. Adversary pass-9 pending. Clean-pass counter 1/3."
+f3_blocker_reason: "Adversarial reconvergence required (3 clean passes). Pass-1 items addressed (D-142/D-143). Pass-2 items addressed (D-144). Pass-2 cross-seam re-audit CLEAN (D-145). Pass-3 NOT CLEAN (D-146): 1C/5H/7M/4L. Pass-3 remediation COMPLETE (D-147). Pass-3 cross-seam re-audit gap fixes COMPLETE (D-148). Pass-4 NOT CLEAN (D-149): 1C/4H/5M/3L, HIGH novelty. Pass-4 remediation COMPLETE (D-150). Pass-4 re-audit 3 Major boundary gaps FIXED (D-151): FINDING-P4-001/002/003. Pass-5 NOT CLEAN (D-152): 1C/4H/5M/3L, HIGH novelty — TRAJECTORY PLATEAU (23/24/17/13/13). Pass-5 remediation COMPLETE (D-153): all 1C/4H/5M/3L FIXED. Pass-5 re-audit CLEAN (D-154): 4 Minor findings FIXED (FINDING-P5-001/002/003/004); 6 seams CLEAN. Pass-5 fully remediated + consistency-verified. Pass-6 NOT CLEAN (D-155): 0C/4H/5M/4L — FIRST zero-critical pass; count plateau 13 (P4/5/6), severity declining. Pass-6 remediation COMPLETE (D-156): all 0C/4H/5M/4L FIXED. Pass-6 re-audit CLEAN (D-157): 2 Minor findings FIXED (FINDING-P6-001/002); 10 seams CLEAN. Pass-7 NOT CLEAN (D-158): 1C/3H/4M/4L; novelty MODERATE; 2 axes CONVERGED. Pass-7 remediation COMPLETE (D-159): all 1C/3H/4M FIXED; 4L CONVERGED GREEN. Pass-7 re-audit minors FIXED (D-160): FINDING-P7-001/002 (metadata + rubric gate). Pass-8 CLEAN (D-161): 0C/0H/3M/5L — CLEAN-PASS 1/3 (BC-5.39.001). M-1/M-2/M-3/O-2 FIXED. O-1 DEFERRED-TO-F3. Pass-8 focused re-audit CLEAN (D-162): FINDING-P8-001 FIXED — HS-INDEX v2.5 behavioral-subtleties 39→40 (minor metadata; CLEAN-PASS counter unchanged, still 1/3). Adversary pass-9 pending. Clean-pass counter 1/3."
 ---
 
 # F2 Review Remediation Tracker — pcapng Reader
@@ -721,3 +721,24 @@ the F3-entry checklist so it cannot be lost.
   reaches 3-clean-pass convergence. (F-6 DEFERRED-TO-F2-CONVERGENCE — D-159)
 
 **Clean-pass counter as of D-161: 1/3. Adversary pass-9 pending (targeting clean-pass 2/3).**
+
+---
+
+## Pass-8 Focused Re-Audit Findings (D-162 — 2026-06-20)
+
+**Overall verdict:** CLEAN. 1 MINOR metadata finding (FINDING-P8-001) identified and FIXED.
+**CLEAN-PASS counter: still 1/3.** A metadata-only fix does not reset the clean-pass counter — pass-8 remains the 1st clean pass. Adversary pass-9 pending.
+
+| ID | Severity | Finding Summary | Status |
+|----|----------|----------------|--------|
+| FINDING-P8-001 | MINOR (metadata) | HS-INDEX By-Category table behavioral-subtleties cell showed 39 but correct count is 40. The 5 category rows summed to 108 but TOTAL=109. Root cause: the pcapng-holdouts note said "+3 (HS-101, HS-105, HS-108; HS-106 already included)" — the "already included" phrasing implied HS-106 was counted in the base before pcapng rows, when in fact HS-106 IS one of the 4 behavioral-subtleties pcapng additions. The TOTAL row (109) and the 109-scenario index were correct throughout. | FIXED — HS-INDEX v2.4→v2.5: behavioral-subtleties cell 39→40; pcapng-holdouts note corrected to "+4 (HS-101, HS-105, HS-106, HS-108)". Verification: 40+20+18+21+10=109=TOTAL. spec-changelog [pcapng-f2-pass8-reaudit-hsindex-count-2026-06-20] prepended. D-162. |
+
+**Artifacts updated in this burst (3 artifacts):**
+
+| Artifact | Before | After | Findings addressed |
+|----------|--------|-------|--------------------|
+| HS-INDEX | v2.4 | v2.5 | FINDING-P8-001 (behavioral-subtleties cell 39→40; pcapng-holdouts note corrected) |
+| spec-changelog | — | — | [pcapng-f2-pass8-reaudit-hsindex-count-2026-06-20] prepended |
+| STATE.md | — | — | D-162 added; HS-INDEX v2.5 noted; phase_status + checkpoint updated |
+
+**Clean-pass counter as of D-162: 1/3. CLEAN-PASS 1/3 confirmed. Adversary pass-9 pending (targeting clean-pass 2/3).**

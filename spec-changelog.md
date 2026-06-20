@@ -14,6 +14,32 @@ changes, invariant rewrites).
 
 ---
 
+## [pcapng-f2-pass8-reaudit-hsindex-count-2026-06-20] — 2026-06-20
+
+### PASS-8 FOCUSED RE-AUDIT: HS-INDEX BY-CATEGORY CELL CORRECTED (P8-001) — D-162
+
+**Trigger:** Pass-8 focused consistency check revealed one minor metadata gap (FINDING-P8-001):
+HS-INDEX By-Category table behavioral-subtleties cell showed 39, but the correct count is 40.
+The TOTAL (109) and the 109-scenario index were already correct. The pcapng-holdouts note
+had described the behavioral-subtleties additions as "+3 (HS-101, HS-105, HS-108; HS-106
+already included)" — this "already included" phrasing mistakenly suggested HS-106 was counted
+before the pcapng rows were added, causing a miscount of 1.
+
+**Finding:** FINDING-P8-001 (minor metadata) — behavioral-subtleties cell 39→40.
+Verification: 40+20+18+21+10 = 109 = TOTAL. Pass-8 focused re-audit CLEAN otherwise
+(HS-109 byte-exact, all M-fixes verified, invariants intact).
+
+**Version bumps this burst:**
+
+| Artifact | Before | After | Reason |
+|----------|--------|-------|--------|
+| HS-INDEX | v2.4 | v2.5 | FINDING-P8-001: behavioral-subtleties cell 39→40; pcapng-holdouts note clarified |
+
+**CLEAN-PASS counter:** Still 1/3. A metadata-only fix does not reset the clean-pass counter.
+Pass-8 remains the 1st clean pass. Adversary pass-9 pending (targeting clean-pass 2/3).
+
+---
+
 ## [pcapng-f2-pass8-clean-and-medium-remediation-2026-06-20] — 2026-06-20
 
 ### PASS-8 CLEAN (0H/0C) — CLEAN-PASS 1/3; 3 MEDIUM REMEDIATED; ADR-009 ACCEPTED — D-161

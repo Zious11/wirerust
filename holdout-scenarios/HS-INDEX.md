@@ -1,7 +1,7 @@
 ---
 document_type: holdout-scenario-index
 level: ops
-version: "2.4"  # Pass-8 M-2 remediation: added HS-109 (IDB body-decode framing/error holdout — BC-2.01.011 / VP-026 / VP-027). Closes gap where IDB was the only framing BC with no holdout for body-decode error paths. 5 cases: (a) btl=16 body<8→E-INP-008; (b) reserved!=0→E-INP-008; (c) options-TLV OOB→E-INP-008; (d) if_tsresol option_length=4→E-INP-008; (e) positive control. Greenfield total now 109. All-namespace total now 182. Prior v2.3: Pass-4 R4 / ADR-009 rev 7: added HS-108 (zero-packet notice end-to-end — BC-2.01.009 PC6 / BC-2.01.015 PC9 / H-4). Greenfield total was 108. All-namespace total was 181 (greenfield=108, feature DNP3=32 + ARP=28 + collapse=13 = 73). Also bumped HS-103 (v1.5 +Case D btl=16→E-INP-008), HS-104 (v1.2 +Case E non-mult-4 padding-aware bound), HS-107 (v1.3 +Case F btl=12→E-INP-008) per Decision 20 holdouts.
+version: "2.5"  # Pass-8 focused re-audit (FINDING-P8-001 FIXED): behavioral-subtleties by-category cell corrected 39→40 (HS-106 undercounted by 1 in the pcapng-holdouts note; all 5 category rows now sum to 109 = TOTAL). Focused re-audit CLEAN otherwise — HS-109 byte-exact, M-fixes verified, invariants intact. CLEAN-PASS 1/3 confirmed (metadata fix does not reset clean-pass counter). Prior v2.4: Pass-8 M-2 remediation: added HS-109 (IDB body-decode framing/error holdout — BC-2.01.011 / VP-026 / VP-027). Closes gap where IDB was the only framing BC with no holdout for body-decode error paths. 5 cases: (a) btl=16 body<8→E-INP-008; (b) reserved!=0→E-INP-008; (c) options-TLV OOB→E-INP-008; (d) if_tsresol option_length=4→E-INP-008; (e) positive control. Greenfield total now 109. All-namespace total now 182. Prior v2.3: Pass-4 R4 / ADR-009 rev 7: added HS-108 (zero-packet notice end-to-end — BC-2.01.009 PC6 / BC-2.01.015 PC9 / H-4). Greenfield total was 108. All-namespace total was 181 (greenfield=108, feature DNP3=32 + ARP=28 + collapse=13 = 73). Also bumped HS-103 (v1.5 +Case D btl=16→E-INP-008), HS-104 (v1.2 +Case E non-mult-4 padding-aware bound), HS-107 (v1.3 +Case F btl=12→E-INP-008) per Decision 20 holdouts.
 status: draft
 producer: product-owner
 timestamp: 2026-06-19T00:00:00Z
@@ -66,7 +66,7 @@ traces_to:
 
 | Category | Count |
 |----------|-------|
-| behavioral-subtleties | 39 |
+| behavioral-subtleties | 40 |
 | edge-case-combinations | 20 |
 | integration-boundaries | 18 |
 | security-probes | 21 |
@@ -78,9 +78,11 @@ traces_to:
 > (behavioral-subtleties: HS-101, HS-105, HS-106, HS-108; security-probes: HS-102, HS-104, HS-107, HS-109;
 > edge-case-combinations: HS-103) AND summarized as a named group here for F2/P3/P4/P8 burst audit
 > convenience. The per-file `category` field is authoritative. Category counts above include
-> these 9 scenarios distributed as: behavioral-subtleties +3 (HS-101, HS-105, HS-108; HS-106
-> already included), edge-case-combinations +1 (HS-103), security-probes +4 (HS-102, HS-104,
-> HS-107, HS-109). HS-107 (SPB framing holdout) was added in P3-Burst-Hold to close the C-2/I-14 gap.
+> these 9 scenarios distributed as: behavioral-subtleties +4 (HS-101, HS-105, HS-106, HS-108),
+> edge-case-combinations +1 (HS-103), security-probes +4 (HS-102, HS-104, HS-107, HS-109).
+> (FINDING-P8-001 FIXED: prior note said "+3 (HS-101, HS-105, HS-108; HS-106 already included)"
+> which undercounted — HS-106 is an additive pcapng entry; behavioral-subtleties corrected 39→40.)
+> HS-107 (SPB framing holdout) was added in P3-Burst-Hold to close the C-2/I-14 gap.
 > HS-108 (zero-packet notice end-to-end) was added in Pass-4 R4 for H-4 / BC-2.01.009 PC6 /
 > BC-2.01.015 PC9 disambiguation coverage. HS-109 (IDB body-decode framing error paths) was added
 > in Pass-8 remediation to close M-2 gap: IDB was the only framing BC without a holdout for
