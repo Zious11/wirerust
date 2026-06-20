@@ -600,3 +600,223 @@ All version bumps are monotonic. All changelog entries are present and accuratel
 |---------|----------|-----------|
 | LOW-A: BC-2.01.017 missing E-INP-012 in traceability | LOW | No |
 | LOW-B: BC-INDEX inline comment version annotations stale for 3 BCs | LOW | No |
+
+---
+
+## Focused Re-Audit: Rationale Correction (multi-section decision)
+
+**Re-audit date:** 2026-06-19
+**Auditor:** consistency-validator
+**Scope:** NARROW — verify the corrected multi-section rationale is consistent across ADR-009 (rev 3), BC-2.01.010 (v1.2), and error-taxonomy.md (v2.5). Confirm no surviving false-premise language outside clearly-marked SUPERSEDED blocks. The broader F2 surface was CLEAN per all prior passes; this pass does not re-audit it.
+
+---
+
+### Check R1 — No Surviving False-Premise Language
+
+**Criteria:** No document outside an explicitly marked SUPERSEDED block may present the following as current fact: that pcap-file 2.0.0 "accumulates" interfaces, "does not reset per section," has "unverified" per-section behavior, or "would mis-attribute" EPB interface IDs as a JUSTIFICATION for the reject decision.
+
+**ADR-009 scan:**
+
+- Line 136-137 (Decision 7 body): "Silent mis-attribution across sections is NOT a risk from this crate; the original F-06 premise that it 'accumulates IDBs with no per-section reset' was an inference from API shape and is superseded by source-level verification." This is corrected language — it explicitly refutes the false premise. PASS.
+- Line 288-292 (Rev 3 changelog): "The original rationale claimed `pcap-file` 2.0.0 accumulates IDBs without per-section reset and would silently mis-attribute packets across sections (F-06, 2026-06-19). This premise is FALSE." This is the Rev 3 correction record, presented as a historical correction, not as a current claim. PASS.
+- Line 264-271 (Consequences, negative trade-offs): "wirerust rejects multi-section pcapng files with `E-INP-012` (Decision 7, F-06 superseded). Files produced by raw concatenation will not be read. This is a scope-discipline choice: `pcap-file` 2.0.0 handles per-section interface reset correctly (verified from source 2026-06-19), so the reject is not a safety necessity — it is a deliberate deferral." Correctly frames reject as scope, not distrust. PASS.
+- No surviving unqualified claim that the library fails to reset per section. PASS.
+
+**BC-2.01.010 v1.2 scan:**
+
+- AC-002: "wirerust supports single-section pcapng files only (scope decision for this cycle — multi-section is rare and absent from the intended corpus; pcap-file 2.0.0 itself handles multi-section correctly at the library level, but wirerust does not exercise that path)." Correct framing; no distrust-of-library language. PASS.
+- Invariant 1: "This is a scope decision — multi-section pcapng is rare and absent from the intended corpus; pcap-file 2.0.0 handles multi-section correctly at the library level, but wirerust does not exercise that path." PASS.
+- EC-006: "wirerust supports single-section pcapng only (scope decision; pcap-file 2.0.0 handles multi-section correctly but wirerust does not exercise that path)." PASS.
+- Error Taxonomy field in Traceability: "E-INP-012 (multi-section SHB reject — scope decision; pcap-file 2.0.0 handles multi-section correctly; wirerust rejects as out-of-scope; message includes mergecap/editcap remediation hint)." PASS.
+- No surviving language claiming the library is unverified or would mis-attribute. PASS.
+
+**error-taxonomy.md v2.5 scan:**
+
+- E-INP-012 Notes: "wirerust supports single-section pcapng only (scope decision for this cycle — multi-section pcapng is rare and absent from the intended corpus); the rejection is a scope constraint, not a correctness workaround (pcap-file 2.0.0 itself correctly resets interface state per section, per source-level verification 2026-06-19)." Correct. PASS.
+- No surviving distrust-of-library language anywhere in the INP section. PASS.
+
+**completeness report (pcapng-spec-completeness-validation.md):**
+
+- F-06 finding body (lines 105-119): Contains original INCONCLUSIVE text ("accumulates IDBs in one growing interface list," "no visible per-section reset"). This text is inside a clearly-marked SUPERSEDED block beginning at line 103 with the banner "**[SUPERSEDED PREMISE — 2026-06-19]**" and the statement "The remainder of this finding is preserved verbatim for audit purposes." Permitted by the task's exemption rule. PASS.
+- Line 205 ("INCONCLUSIVE / verify in F3"): This line is in the standalone "What was confirmed vs. inconclusive" summary section, NOT inside the F-06 SUPERSEDED block. It still reads: "INCONCLUSIVE / verify in F3: whether `pcap-file` 2.0.0 actually resets interface state across multiple SHBs (API/source reading strongly suggests NOT, but no runtime test was run — F-06)." This is presented as a current-state summary item, not as historical audit-trail text inside a SUPERSEDED block. It has not been updated to reflect the source-level verification result. **GAP — see Finding RC-1 below.**
+- High-Risk Trap Scorecard (line 179): "#3 Multi-section files | GAP (parser may not reset per-section) — BC text correct, delivery uncertain | Add AC: reject-or-first-section + verify pcap-file behavior (F-06)." This remains in the scorecard as a GAP with "parser may not reset per-section" language, outside any SUPERSEDED block. **GAP — see Finding RC-1 below.**
+
+**Check R1 verdict: PASS for ADR-009, BC-2.01.010, error-taxonomy. GAP in completeness report summary section and scorecard (see RC-1).**
+
+---
+
+### Check R2 — Tri-Document Agreement on Corrected Rationale
+
+**Criteria:** ADR-009 Decision 7 (rev 3), BC-2.01.010 AC-002 (v1.2), and E-INP-012 (v2.5) must all (a) frame reject as a SCOPE decision, (b) explicitly acknowledge pcap-file 2.0.0 resets correctly, and (c) reference a future-cycle support escape hatch.
+
+**Scope framing:**
+
+| Document | Scope-decision language | Present? |
+|----------|------------------------|---------|
+| ADR-009 Decision 7 (rev 3) | "Reject is therefore a *scope* decision, not a distrust-of-library decision." | YES |
+| BC-2.01.010 AC-002 (v1.2) | "wirerust supports single-section pcapng files only (scope decision for this cycle)" | YES |
+| E-INP-012 Notes (v2.5) | "the rejection is a scope constraint, not a correctness workaround" | YES |
+
+PASS — all three use scope-decision framing.
+
+**pcap-file 2.0.0 resets correctly acknowledgement:**
+
+| Document | Acknowledgement language | Present? |
+|----------|------------------------|---------|
+| ADR-009 Decision 7 (rev 3) | "`pcap-file` 2.0.0 *does* correctly reset the interface table per section (`self.interfaces.clear()` on every `Block::SectionHeader`...) — confirmed by direct source inspection..." | YES |
+| BC-2.01.010 AC-002 (v1.2) | "pcap-file 2.0.0 itself handles multi-section correctly at the library level, but wirerust does not exercise that path" | YES |
+| E-INP-012 Notes (v2.5) | "pcap-file 2.0.0 itself correctly resets interface state per section, per source-level verification 2026-06-19" | YES |
+
+PASS — all three acknowledge the library resets correctly.
+
+**Future-cycle escape hatch:**
+
+| Document | Future-cycle language | Present? |
+|----------|--------------------|---------|
+| ADR-009 Decision 7 (rev 3) | "If a real user requirement appears, SUPPORT is cheap: the crate already surfaces `Block::SectionHeader`... dropping the reject branch plus ~10-60 LOC of cross-section linktype-agreement is all that is needed." | YES |
+| BC-2.01.010 AC-002 (v1.2) | "pcap-file 2.0.0 itself handles multi-section correctly at the library level" (implicit that enabling it is cheap) | PARTIAL — the escape-hatch LOC estimate is not repeated in BC-2.01.010, but the path is implicitly acknowledged. Acceptable: BC-2.01.010 is the normative AC document, not the rationale vehicle; the escape hatch belongs in the ADR. |
+| E-INP-012 Notes (v2.5) | No explicit "~10-60 LOC" note. Notes state reject is scope constraint. | PARTIAL — same reasoning applies; the error taxonomy is not the rationale vehicle. |
+
+PASS — escape hatch is fully present in ADR-009 (the rationale document); BC and taxonomy correctly defer rationale to the ADR.
+
+**Check R2 verdict: PASS — tri-document rationale agreement is consistent. No contradiction among the three.**
+
+---
+
+### Check R3 — Decision Unchanged (Second SHB Reject)
+
+**Criteria:** All three documents still specify second SHB → reject → E-INP-012, no byte-order reset before rejection, exit 1, directory-mode per-file isolation.
+
+| Property | ADR-009 Decision 7 | BC-2.01.010 AC-002 | E-INP-012 |
+|----------|-------------------|-------------------|-----------|
+| Second SHB → reject | YES ("MUST return an error") | YES ("is REJECTED with Err") | YES ("Emitted when a second SHB is encountered") |
+| Error code E-INP-012 | YES (named explicitly) | YES ("maps to E-INP-012") | YES (this is the E-INP-012 row) |
+| No byte-order reset before rejection | YES ("rather than attempting per-section interface-index reset") | YES ("The second SHB's byte-order reset MUST NOT be applied before rejection") | YES ("No byte-order reset is attempted before rejection") |
+| Exit 1 | YES (E-INP-012 is `broken` severity) | YES (E-INP-012 reference, maps to broken) | YES (`broken`, exit code `1`) |
+| Directory-mode per-file isolation | YES (Consequences: "Users can flatten any multi-section file") | YES (AC-002: references E-INP-012; EC-006 consistent) | YES ("In directory mode, this error fails the individual file but does NOT abort the overall run") |
+
+PASS — the normative decision is identical across all three documents. No contradiction.
+
+**Check R3 verdict: PASS.**
+
+---
+
+### Check R4 — E-INP-012 Message Contains mergecap/editcap Hint
+
+**Criteria:** E-INP-012 message contains the mergecap/editcap remediation hint; ADR-009 and BC-2.01.010 consistently describe this hint.
+
+**E-INP-012 message format (error-taxonomy.md line 80):**
+`pcapng multi-section files are not supported (second Section Header Block at block #<seq>) (hint: split the capture into single-section files, or re-save with 'mergecap -F pcapng' or 'editcap' which emit single-section pcapng)`
+
+Contains: "mergecap -F pcapng", "editcap". PASS.
+
+**ADR-009 Decision 7 (lines 152-154):** "The `E-INP-012` message SHOULD hint at the remediation: `mergecap -w out.pcapng <file>` or `editcap` flattens any multi-section file to single-section." ADR-009 uses `-w` flag form; E-INP-012 uses `-F pcapng` form. Both are valid `mergecap` invocations; `-F pcapng` is more explicit about the output format, which is preferable. The discrepancy is in flag spelling, not in the tool or intent. Both say mergecap and editcap produce single-section output. The normative message is in E-INP-012 (the error taxonomy); the ADR uses SHOULD language, not MUST. **Minor — see Finding RC-2 below.**
+
+**BC-2.01.010 AC-002 (v1.2):** "The E-INP-012 error message includes an actionable remediation hint directing users to `mergecap -F pcapng` or `editcap` to re-save multi-section captures as single-section files (see E-INP-012 in error-taxonomy.md)." Uses same `-F pcapng` flag form as E-INP-012. Consistent with E-INP-012. PASS.
+
+**ADR-009 Consequences (negative) (line 271):** "Users can flatten any multi-section file with `mergecap -w out.pcapng <file>` (the E-INP-012 message should hint at this)." Again uses `-w` form. Same minor discrepancy with E-INP-012 and BC-2.01.010.
+
+**Check R4 verdict: PASS on substance. Minor flag-spelling inconsistency between ADR-009 and the other two documents — see Finding RC-2.**
+
+---
+
+### Check R5 — Structural/Count Checks
+
+**ss-01 BC range:** Files on disk: BC-2.01.001 through BC-2.01.018 (18 files) plus ERROR-TAXONOMY-ADDENDUM-pcapng.md (staging artifact). No BC-2.01.019 or higher. ss-01 ends at BC-2.01.018. PASS.
+
+**Active BC count:** BC-INDEX states "Active: 302 BCs (303 on disk − 1 retired: BC-2.01.004)." No new BCs were introduced by the rationale correction (ADR-009 rev 3, BC-2.01.010 v1.2, error-taxonomy v2.5 are all amendments, not new artifacts). Count unchanged at 302. PASS.
+
+**error-taxonomy next_free:** The `next_free_error_code` field appears only in changelog annotations, not as a standalone body field. The v2.4 changelog entry states `next_free_error_code = E-INP-013`. The v2.5 changelog does not change the next-free pointer (v2.5 only amends E-INP-012's Notes text and message; it adds no new error code). E-INP-013 is not present in the catalog (correct — it is reserved, not yet assigned). PASS.
+
+**No new BCs introduced:** The rationale correction touches only ADR-009 (rev 3 prose), BC-2.01.010 (v1.2 AC/Invariant/EC text), and error-taxonomy.md (v2.5 E-INP-012 Notes). No new BC IDs, no new error codes, no new stories. PASS.
+
+**Check R5 verdict: PASS.**
+
+---
+
+### Check R6 — Version Monotonicity
+
+| Artifact | Prior version | Current version | Monotonic? | Changelog present? |
+|----------|--------------|-----------------|------------|-------------------|
+| ADR-009 | rev 2 | rev 3 | YES | YES — "Rev 3 (2026-06-19): Corrected the factual error in Decision 7's rationale..." |
+| BC-2.01.010 | v1.1 | v1.2 | YES | YES — "v1.2: pcapng-multisection-decision correctness edits — AC-002 rationale reframed..." |
+| error-taxonomy.md | v2.4 | v2.5 | YES | YES — "v2.5: pcapng-multisection-decision correctness edits — E-INP-012 message updated..." |
+
+All three version bumps are monotonic. All changelog entries are present and accurately describe the normative changes made. PASS.
+
+**Check R6 verdict: PASS.**
+
+---
+
+### Findings from This Pass
+
+#### Finding RC-1 — LOW
+
+**Two locations in completeness report (pcapng-spec-completeness-validation.md) present the false premise outside any SUPERSEDED block.**
+
+**File:** `/Users/zious/Documents/GITHUB/wirerust/.factory/research/pcapng-spec-completeness-validation.md`
+
+**Location 1:** Line 205, "What was confirmed vs. inconclusive" summary section:
+> "INCONCLUSIVE / verify in F3: whether `pcap-file` 2.0.0 actually resets interface state across multiple SHBs (API/source reading strongly suggests NOT, but no runtime test was run — F-06)."
+
+**Location 2:** Lines 178-181, High-Risk Trap Scorecard, row #3:
+> "#3 | Multi-section files | GAP (parser may not reset per-section) — BC text correct, delivery uncertain | Add AC: reject-or-first-section + verify pcap-file behavior (F-06)"
+
+These two items are presented as the document's current summary conclusions — they are not inside the F-06 SUPERSEDED block (which covers only lines 103-119). The F-06 SUPERSEDED block header correctly supersedes the F-06 finding body, but does NOT supersede these summary-section lines, which repeat the now-false INCONCLUSIVE/GAP status in the document's own conclusion section.
+
+**Severity: LOW.** The completeness report is a research artifact, not a normative spec. The three normative documents (ADR-009, BC-2.01.010, error-taxonomy) have all been correctly updated. The research document's summary is stale but does not drive implementation. The F-06 SUPERSEDED block is correctly placed to flag the finding text; the summary section was simply not updated as a parallel step.
+
+**Not blocking F3 entry.** The normative chain is clean.
+
+**Remediation (optional cleanup):** In the "What was confirmed vs. inconclusive" section, replace the INCONCLUSIVE bullet with a SUPERSEDED reference: "**SUPERSEDED (2026-06-19):** F-06 determined INCONCLUSIVE — source-level verification in `pcapng-multisection-decision.md` confirms pcap-file 2.0.0 resets correctly. Reject (E-INP-012) retained as a scope decision. See ADR-009 rev 3." Similarly update the Scorecard row #3 Status cell to "SUPERSEDED — pcap-file 2.0.0 resets correctly (source-verified 2026-06-19); reject is scope decision, not library defect."
+
+---
+
+#### Finding RC-2 — LOW
+
+**ADR-009 uses `mergecap -w out.pcapng <file>` while BC-2.01.010 v1.2 and E-INP-012 v2.5 use `mergecap -F pcapng`.**
+
+**File:** `/Users/zious/Documents/GITHUB/wirerust/.factory/specs/architecture/decisions/ADR-009-pcapng-capture-format-reader-support.md`
+**Lines:** 152 (Decision 7) and 271 (Consequences)
+
+**Discrepancy:** `-w out.pcapng` is a valid `mergecap` invocation (specifies output filename and infers format from extension). `-F pcapng` explicitly names the output format. BC-2.01.010 AC-002 and E-INP-012 use `-F pcapng`, which is the more descriptive form and will appear in the actual error message shown to users.
+
+**Severity: LOW.** Both invocations produce single-section pcapng output. The ADR text uses SHOULD language ("SHOULD hint at the remediation") and the normative message is defined in E-INP-012. No implementer will be misled. The discrepancy is cosmetic flag-spelling only.
+
+**Not blocking.**
+
+**Remediation (optional):** In ADR-009 lines 152 and 271, replace `mergecap -w out.pcapng <file>` with `mergecap -F pcapng -w out.pcapng <file>` to align with the E-INP-012 message text and BC-2.01.010 AC-002.
+
+---
+
+### Re-Audit Summary
+
+| Check | Scope | Result | Gaps |
+|-------|-------|--------|------|
+| R1. No surviving false-premise language | ADR-009, BC-2.01.010, error-taxonomy, completeness report | PASS with LOW gap | RC-1: completeness report summary section and scorecard not updated outside SUPERSEDED block |
+| R2. Tri-document rationale agreement | Scope framing, library-reset ack, escape hatch | PASS | None blocking |
+| R3. Decision unchanged | Second SHB → reject → E-INP-012; no reset; exit 1; per-file isolation | PASS | None |
+| R4. E-INP-012 message remediation hint | mergecap/editcap present; cross-doc consistency | PASS with LOW gap | RC-2: ADR-009 uses `-w` flag vs. `-F pcapng` in BC and taxonomy |
+| R5. Count and structural integrity | ss-01 ends at 018; active count 302; next_free E-INP-013 | PASS | None |
+| R6. Version monotonicity | ADR-009 rev 3, BC-2.01.010 v1.2, error-taxonomy v2.5 | PASS | None |
+
+**Findings from this pass:**
+
+| Finding | Severity | Blocking? |
+|---------|----------|-----------|
+| RC-1: Completeness report summary/scorecard stale (not inside SUPERSEDED block) | LOW | No |
+| RC-2: ADR-009 mergecap flag spelling differs from E-INP-012 and BC-2.01.010 | LOW | No |
+
+---
+
+### Re-Audit Final Verdict
+
+**CLEAN** — the rationale correction is internally consistent across all three normative documents. No blocking gaps. Two LOW cosmetic observations recorded; neither blocks F3 entry.
+
+The three normative documents agree on:
+- Reject is a scope decision, not a library-distrust decision
+- pcap-file 2.0.0 resets interface state per section correctly (source-verified 2026-06-19)
+- Second SHB → E-INP-012 → exit 1 → per-file isolation in directory mode
+- E-INP-012 message includes mergecap/editcap remediation hint
+
+The two LOW findings (RC-1, RC-2) are cosmetic inconsistencies in the research document and ADR rationale prose respectively; they do not affect implementation guidance.

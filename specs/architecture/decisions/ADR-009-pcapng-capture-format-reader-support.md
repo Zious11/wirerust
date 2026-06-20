@@ -130,21 +130,30 @@ supersedes BC-2.01.004.
 single-section pcapng files only. If the parser encounters a second Section Header Block
 mid-stream, the reader MUST return an error (`E-INP-012`, "multi-section pcapng not
 supported") rather than attempting per-section interface-index reset and re-parse.
-Rationale: (1) `pcap-file` 2.0.0's `PcapNgReader` accumulates IDBs in a single growing
-interface list with no visible per-section reset when a second SHB is encountered
-(completeness-validation finding F-06, 2026-06-19 — confirmed from API shape and source
-reading; unverified by runtime test); attempting to read a multi-section file with an
-implementation that does not correctly reset per-section state would silently mis-attribute
-packets from later sections to first-section interfaces, a class of silent data corruption
-more harmful than a clear error. (2) The entire intended corpus
-(`arp-baseline-16pkt.cap`, `smb3.pcapng`, `dump.pcapng`, `tls12-dsb.pcapng`) is
-single-section; Wireshark and dumpcap produce single-section pcapng by default. (3)
-Reject-with-clear-error is the tight-scope safe choice aligned with this cycle's posture.
-The normative BC home for this acceptance criterion is BC-2.01.010 (product-owner is
-adding the AC). A future cycle may add correct multi-section support if multi-section
-captures become a user requirement, using either a patched parser or per-section
-state management in wirerust's own reader layer. (Source: completeness-validation
-finding F-06, 2026-06-19.)
+Rationale: (1) `pcap-file` 2.0.0 *does* correctly reset the interface table per section
+(`self.interfaces.clear()` on every `Block::SectionHeader`, section-local resolution via
+`packet_interface()`) — confirmed by direct source inspection of `src/pcap_file/pcapng/parser.rs`
+in the 2.0.0 release (docs.rs, 2026-06-19). Silent mis-attribution across sections is NOT
+a risk from this crate; the original F-06 premise that it "accumulates IDBs with no
+per-section reset" was an inference from API shape and is superseded by source-level
+verification (see `.factory/research/pcapng-multisection-decision.md` Finding 1).
+Reject is therefore a *scope* decision, not a distrust-of-library decision. (2) Multi-section
+pcapng is rare in practice and absent from the entire intended corpus
+(`arp-baseline-16pkt.cap`, `smb3.pcapng`, `dump.pcapng`, `tls12-dsb.pcapng`): all are
+single-section files produced by Wireshark, dumpcap, or PacketLife. The only common source
+of multi-section files is raw `cat a.pcapng b.pcapng`; `mergecap`, `editcap`, and `dumpcap`
+all produce single-section output. Rejecting with `E-INP-012` blocks zero files in the
+target corpus. (3) Reject-with-clear-error is the tight-scope safe choice for this cycle:
+supporting multi-section would add cross-section `DataLink`-agreement logic that touches
+the deliberately-deferred per-packet-DataLink boundary, with zero corpus benefit. (4) If a
+real user requirement appears, SUPPORT is cheap: the crate already surfaces
+`Block::SectionHeader` to the consumer and maintains a correct section-local interface
+table; dropping the reject branch plus ~10-60 LOC of cross-section linktype-agreement is
+all that is needed. The `E-INP-012` message SHOULD hint at the remediation:
+`mergecap -F pcapng -w out.pcapng <file>` or `editcap` flattens any multi-section file to
+single-section. The normative BC home for this acceptance criterion is BC-2.01.010
+(product-owner is adding the AC). (Sources: `.factory/research/pcapng-multisection-decision.md`
+Findings 1-5, 2026-06-19; original F-06 premise superseded.)
 
 **Fallback — Option C (hand-roll, +0 crates).** If during implementation
 `pcap-file` 2.0.0's pcapng reader exhibits a snaplen/truncation defect analogous to
@@ -252,13 +261,16 @@ pcapng file.
   instead of EPB will appear to contain zero packets. This is an accepted limitation
   because OPB is absent from all modern capture tooling and from the entire intended
   corpus; a future cycle may promote `Block::Packet` to a packet-producing arm.
-- wirerust **rejects multi-section pcapng files** with `E-INP-012` (Decision 7, F-06).
-  Files produced by concatenating pcapng captures (`cat a.pcapng b.pcapng`) or by merge
-  tools that emit multiple SHBs will not be read. This is the safe fail-closed choice
-  given `pcap-file` 2.0.0's unverified per-section reset behavior and the single-section
-  nature of the intended corpus; per-section reset support is a future-cycle enhancement.
+- wirerust **rejects multi-section pcapng files** with `E-INP-012` (Decision 7, F-06
+  superseded). Files produced by raw concatenation (`cat a.pcapng b.pcapng`) will not
+  be read. This is a scope-discipline choice: `pcap-file` 2.0.0 handles per-section
+  interface reset correctly (verified from source 2026-06-19), so the reject is not
+  a safety necessity — it is a deliberate deferral. Multi-section is absent from the
+  entire intended corpus; support is a cheap future enhancement (~10-60 LOC) deferred
+  until a real user requirement appears. Users can flatten any multi-section file with
+  `mergecap -F pcapng -w out.pcapng <file>` (the E-INP-012 message should hint at this).
 
-### Status as of 2026-06-19 (rev 2)
+### Status as of 2026-06-19 (rev 3)
 
 Proposed. `pcap-file` 2.0.0's pcapng module is dead code in the compiled binary;
 `src/reader.rs` does not import it. BC-2.01.004 ("Reject pcapng-Format Input at Reader
@@ -270,6 +282,21 @@ Only the implementation remains pending, scheduled across STORY-123 through STOR
 **Rev 2 (2026-06-19):** Added Decision 7 (multi-section rejection, E-INP-012) and
 expanded Decision 2 with an explicit OPB-skip record, both sourced from pcapng spec
 completeness-validation findings F-06 and F-08. Consequences updated accordingly.
+
+**Rev 3 (2026-06-19):** Corrected the factual error in Decision 7's rationale. The
+original rationale claimed `pcap-file` 2.0.0 accumulates IDBs without per-section reset
+and would silently mis-attribute packets across sections (F-06, 2026-06-19). This premise
+is FALSE: direct source inspection of `src/pcap_file/pcapng/parser.rs` in the 2.0.0
+release confirms `self.interfaces.clear()` is called on every `Block::SectionHeader` and
+`packet_interface()` resolves interface_id against the section-local table. The
+Wireshark mis-attribution bug cited as the motivating risk (GitLab #16531) was
+Wireshark's bug, not pcap-file's. The REJECT decision (E-INP-012) is UNCHANGED and
+remains correct; only its justification is updated: reject is a scope-discipline and
+corpus-coverage decision (multi-section is rare, absent from all target files, and
+support touches the deferred per-packet-DataLink boundary), not a distrust-of-library
+decision. Consequences updated to remove "unverified per-section reset" language.
+Source: `.factory/research/pcapng-multisection-decision.md` (research-agent, 2026-06-19),
+Finding 1.
 
 ## Alternatives Considered
 
@@ -303,3 +330,4 @@ completeness-validation findings F-06 and F-08. Consequences updated accordingly
 - **Crate API authority:** docs.rs/pcap-file/2.0.0 (`pcapng` module, `InterfaceDescriptionBlock`, `InterfaceDescriptionOption` enum — `IfTsResol`/`IfTsOffset` confirmed present); crates.io API verified 2026-06-19
 - **Format specification:** IETF draft `draft-ietf-opsawg-pcapng` (canonical: `github.com/IETF-OPSAWG-WG/pcapng`); block types SHB `0x0A0D0D0A`, IDB `0x00000001`, SPB `0x00000003`, EPB `0x00000006`; `if_tsresol` IDB option code 9
 - **ADR precedent:** ADR-007 (hand-rolled DNP3 parser, Issue #8) — establishes "hand-roll binary parsers when no crate exists"; this ADR establishes the converse: "use the crate when it is already vendored and capable"
+- **Multi-section research (rev 3 correction):** `.factory/research/pcapng-multisection-decision.md` — source-level confirmation that `pcap-file` 2.0.0 resets interface table per section (`interfaces.clear()` on SHB); supersedes F-06 "likely does NOT reset" inference; establishes true reject rationale (scope/corpus, not library distrust)

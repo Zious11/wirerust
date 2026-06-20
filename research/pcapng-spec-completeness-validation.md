@@ -100,6 +100,8 @@ This is **not a gap** — the spec already avoids the decimal-only trap. Two min
 
 ### F-06 — `pcap-file` 2.0.0 likely does NOT reset interface state per section — GAP (MEDIUM severity, LOW corpus impact)
 
+> **[SUPERSEDED PREMISE — 2026-06-19]** The INCONCLUSIVE determination below — that pcap-file 2.0.0 "likely does NOT reset interface state per section" — has been superseded by source-level verification performed on 2026-06-19 (see `.factory/research/pcapng-multisection-decision.md`). pcap-file 2.0.0 DOES correctly reset interface state at each new SHB. The feared mis-attribution class of bug (F-04 Wireshark example) does NOT apply to pcap-file 2.0.0. **The REJECT decision (E-INP-012) is retained, but as a SCOPE decision — multi-section pcapng is rare and absent from the intended corpus — not as a correctness workaround for a library defect.** All downstream BC and error taxonomy text has been updated accordingly (BC-2.01.010 v1.2, error-taxonomy.md v2.5). The remainder of this finding is preserved verbatim for audit purposes.
+
 **Question #3/#4 (parser limitations).** Inspection of `pcap-file` 2.0.0's `PcapNgReader` (docs.rs API + source) indicates it tracks a **single "current" section** and accumulates IDBs in one growing interface list (`interfaces()` returns "all the current InterfaceDescriptionBlock") with **no visible per-section reset** when a second SHB is encountered. The `section()` accessor is singular ("the current SectionHeaderBlock").
 
 **Consequence:** For a genuine multi-section file, the parser would likely carry first-section interfaces into later sections, producing exactly the mis-attribution class of bug seen historically in Wireshark. This **contradicts the delivery of** BC-2.01.010 EC-006, BC-2.01.011 Invariant 2, and BC-2.01.018 EC-005, which assert correct per-section behavior. The BC text promises behavior the chosen parser may not provide.
@@ -175,7 +177,7 @@ One spec edge the BCs implicitly handle well: the rare malformed case `original_
 |---|------|--------|-----------|
 | #1 | DSB-for-TLS (`tls12-dsb.pcapng`) | **CONFIRMED-OK — safe to skip; corpus reads correctly** | None required; add DSB to BC-2.01.015 example list (F-07) |
 | #5 | Power-of-2 `if_tsresol` | **CONFIRMED-OK — already in BC-2.01.011 / BC-2.01.014** | Ensure base-2 unit/Kani test exists (no corpus file exercises it) |
-| #3 | Multi-section files | **GAP (parser may not reset per-section) — BC text correct, delivery uncertain** | **Add AC: reject-or-first-section + verify pcap-file behavior (F-06)** |
+| #3 | Multi-section files | **RESOLVED — REJECT as scope decision (single-section corpus; pcap-file 2.0.0 resets correctly, source-verified 2026-06-19; see pcapng-multisection-decision.md)** | None — F-06 SUPERSEDED; see SUPERSEDED block below |
 | #7 | Multi-linktype realism | **CONFIRMED-OK — fail-closed correct for corpus; 0 files rejected** | Improve E-INP-011 message; confirm per-file (not per-run) failure (F-11) |
 
 ---
@@ -200,7 +202,7 @@ These do NOT block the cycle. They close the flagged gaps explicitly so nothing 
 
 - **CONFIRMED from spec (high confidence):** complete block enumeration + codes; DSB carries no packet data and does not affect EPB decoding; per-section endianness and per-section interface-index scoping; `if_tsresol` base-10/base-2 encoding + microsecond default; Captured/Original length = libpcap incl_len/orig_len; universal skip-by-block-total-length guarantee.
 - **CONFIRMED from crate sources:** `pcap-file` 2.0.0 `Block` variants (no DSB/Custom variant → both route to `Unknown`); `IfTsResol(u8)` exposed as a raw, *uninterpreted* byte (so wirerust's pure-core conversion is correctly owned, not delegated).
-- **INCONCLUSIVE / verify in F3:** whether `pcap-file` 2.0.0 actually resets interface state across multiple SHBs (API/source reading strongly suggests NOT, but no runtime test was run — F-06). This is the one item that should be empirically settled before F3 locks the multi-section AC.
+- **RESOLVED (multi-section):** `pcap-file` 2.0.0 does correctly reset interface state per section (source-level verification 2026-06-19; F-06 SUPERSEDED — see pcapng-multisection-decision.md). wirerust rejects multi-section files as a scope decision (single-section corpus this cycle; gate decision: REJECT). Not a correctness workaround.
 - **NOT a gap (debunked concerns):** base-2 `if_tsresol` is already handled (was the suspected decimal-only trap); DSB is already safe (was the suspected TLS-corpus blocker).
 
 ---

@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-06-19T00:00:00Z
@@ -13,6 +13,8 @@ capability: CAP-01
 lifecycle_status: active
 introduced: v0.10.0-pcapng
 modified:
+  - "v1.3: RC-2 flag-spelling consistency — AC-002 and EC-006: standardized remediation hint from 'mergecap -F pcapng' to 'mergecap -w out.pcapng <file>' to match ADR-009 Decision 7 form. Traceability Error Taxonomy note updated to reflect same. No normative behavior change. — 2026-06-19"
+  - "v1.2: pcapng-multisection-decision correctness edits — AC-002 rationale reframed: rejection is a SCOPE decision (single-section corpus this cycle; multi-section is rare and absent from corpus), not a correctness workaround. pcap-file 2.0.0 correctly resets interface state per section (source-level verification 2026-06-19; F-06's INCONCLUSIVE premise superseded — see research/pcapng-multisection-decision.md). AC-002 and EC-006 updated to reference the E-INP-012 remediation hint (mergecap/editcap). Normative behavior (reject second SHB → E-INP-012) unchanged. — 2026-06-19"
   - "v1.1: F-06 completeness delta — EC-006 changed from 'reset byte order' (attempt) to REJECT with E-INP-012; AC added: second SHB in a single-section file is rejected; canonical test vector added for 2-section pcapng; error taxonomy cross-reference E-INP-012 added. — 2026-06-19"
 deprecated: null
 deprecated_by: null
@@ -59,7 +61,12 @@ version, and establishes the parsing context passed to IDB and EPB/SPB parsers. 
   `0x1A2B3C4D` selects big-endian mode. No other BOM value is valid.
 - **AC-002:** A second Section Header Block encountered anywhere after the first is REJECTED
   with `Err` containing context that maps to E-INP-012. wirerust supports single-section
-  pcapng files only. The second SHB's byte-order reset MUST NOT be applied before rejection.
+  pcapng files only (scope decision for this cycle — multi-section is rare and absent from
+  the intended corpus; pcap-file 2.0.0 itself handles multi-section correctly at the library
+  level, but wirerust does not exercise that path). The second SHB's byte-order reset MUST
+  NOT be applied before rejection. The E-INP-012 error message includes an actionable
+  remediation hint directing users to `mergecap -w out.pcapng <file>` or `editcap` to
+  re-save multi-section captures as single-section files (see E-INP-012 in error-taxonomy.md).
   - Canonical fixture: a crafted 2-section pcapng file (SHB₁ + IDB + EPB + SHB₂); expected
     result: reader returns `Err` after consuming SHB₁ and before yielding any packet from
     section 2.
@@ -72,7 +79,10 @@ version, and establishes the parsing context passed to IDB and EPB/SPB parsers. 
 
 1. Byte-order detection is done once per file. A second SHB constitutes a multi-section file;
    wirerust does NOT support multi-section pcapng and MUST reject it with E-INP-012 (see
-   AC-002 above). Attempting to reset byte order on a second SHB is NOT permitted.
+   AC-002 above). This is a scope decision — multi-section pcapng is rare and absent from
+   the intended corpus; pcap-file 2.0.0 handles multi-section correctly at the library level,
+   but wirerust does not exercise that path. Attempting to reset byte order on a second SHB
+   is NOT permitted — the rejection path fires before any reset can occur.
 2. The pcapng specification requires `major_version == 1`; wirerust enforces this hard
    constraint and returns an error for non-1 major versions.
 3. The SHB magic bytes (`0x0A0D0D0A`) are not themselves byte-order-dependent; they serve only
@@ -87,7 +97,7 @@ version, and establishes the parsing context passed to IDB and EPB/SPB parsers. 
 | EC-003 | Section length = `0xFFFFFFFFFFFFFFFF` (unspecified) | Accepted; reader does not use section length for bounds |
 | EC-004 | Major version = 2 (future) | `Err` with "Unsupported pcapng major version: 2" context |
 | EC-005 | SHB truncated at 8 bytes (missing BOM) | `Err` mapping to E-INP-008 |
-| EC-006 | Multi-section pcapng (second SHB mid-file) | `Err` mapping to E-INP-012: "pcapng multi-section files are not supported (second Section Header Block at block #<seq>)"; wirerust supports single-section pcapng only. No byte-order reset is attempted. |
+| EC-006 | Multi-section pcapng (second SHB mid-file) | `Err` mapping to E-INP-012: "pcapng multi-section files are not supported (second Section Header Block at block #<seq>) (hint: split the capture into single-section files, or re-save with 'mergecap -w out.pcapng <file>' or 'editcap' which emit single-section pcapng)"; wirerust supports single-section pcapng only (scope decision; pcap-file 2.0.0 handles multi-section correctly but wirerust does not exercise that path). No byte-order reset is attempted before rejection. |
 
 ## Canonical Test Vectors
 
@@ -119,7 +129,7 @@ version, and establishes the parsing context passed to IDB and EPB/SPB parsers. 
 | Architecture Module | SS-01 (reader.rs, C-4) |
 | Stories | STORY-123 |
 | ADR Reference | ADR-009 Decision 1 (use pcap-file 2.0.0 PcapNgReader), Decision 2 (SHB block coverage) |
-| Error Taxonomy | E-INP-008 (truncated SHB), E-INP-012 (multi-section SHB reject — single-section scope) |
+| Error Taxonomy | E-INP-008 (truncated SHB), E-INP-012 (multi-section SHB reject — scope decision; pcap-file 2.0.0 handles multi-section correctly; wirerust rejects as out-of-scope; message includes `mergecap -w out.pcapng <file>` / editcap remediation hint per ADR-009 Decision 7) |
 
 ## Related BCs
 

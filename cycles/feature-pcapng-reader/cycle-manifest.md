@@ -29,7 +29,7 @@ producer: orchestrator
 | Artifact | Change | Before | After |
 |----------|--------|--------|-------|
 | prd.md | pcapng support added — E-INP-008..011; F2 audit FINDING-003 — §7 RTM updated; F2 completeness — v1.31 (§-level completeness note) | v1.28 | v1.31 |
-| specs/architecture/decisions/ADR-009 | NEW — pcapng capture-format reader; Option A selected (pcap-file 2.0.0, +0 deps); rev 2 adds Decision 7 (multi-section reject) + obsolete-Packet-Block note | n/a | rev 2 |
+| specs/architecture/decisions/ADR-009 | NEW — pcapng capture-format reader; Option A selected (pcap-file 2.0.0, +0 deps); rev 2 adds Decision 7 (multi-section reject) + obsolete-Packet-Block note; rev 3 corrects Decision 7 rationale (reject = scope decision; pcap-file resets correctly, source-verified; F-06 SUPERSEDED; mergecap -F pcapng aligned) | n/a | rev 3 |
 | ARCH-INDEX.md | ADR-009 row added | pre-ADR-009 | updated |
 | BC-2.01.009..018 | 10 new BCs for pcapng reader support | n/a | v1.0 each |
 | BC-2.01.004 | Retired/inverted — superseded by BC-2.01.009 | active | RETIRED |
@@ -94,18 +94,18 @@ Retrieve: `git -C .factory log --oneline` to find the F2-complete burst SHA.
 |---------|----------|-------------|
 | Confirmed-OK: DSB-for-TLS | n/a | Safely out of scope; skip arm covered |
 | Confirmed-OK: power-of-2 if_tsresol | n/a | Already covered by BC-2.01.011/BC-2.01.014 |
-| F-06: single-section-only policy | MEDIUM | E-INP-012 added; AC to BC-2.01.010 v1.1; ADR-009 Decision 7 (rev 2) |
+| F-06: single-section-only policy | MEDIUM | E-INP-012 added; AC to BC-2.01.010 v1.1; ADR-009 Decision 7 (rev 2). **SUPERSEDED (D-139):** pcap-file 2.0.0 resets correctly; reject retained as scope decision; rationale corrected in ADR-009 rev 3 / BC-2.01.010 v1.2 / error-taxonomy v2.5. |
 | F-07: skip-arm enumeration | LOW | BC-2.01.015 v1.1 enumerates all skip-arms |
 | F-08: obsolete Packet Block (0x2) | LOW | ADR-009 rev 2 records it as skip-not-read |
 | F-11: E-INP-011 actionability | LOW | BC-2.01.018 v1.1: tcpdump hint + directory-mode isolation AC |
 
 **AC delta artifacts (no new BCs; 302 active BCs unchanged):**
-- BC-2.01.010 → v1.1 (multi-section reject AC + E-INP-012 reference)
+- BC-2.01.010 → v1.2 (v1.1: multi-section reject AC + E-INP-012; v1.2: rationale corrected — scope decision, library-reset ack, mergecap -F pcapng)
 - BC-2.01.015 → v1.1 (explicit skip-arm enumeration)
 - BC-2.01.017 → v1.1 (trace updated)
 - BC-2.01.018 → v1.1 (actionable E-INP-011 + directory isolation AC)
-- error-taxonomy.md → v2.4 (E-INP-012 added; E-INP-011 refined)
-- ADR-009 → rev 2 (Decision 7 + obsolete-Packet-Block note)
+- error-taxonomy.md → v2.5 (v2.4: E-INP-012 added; v2.5: E-INP-012 Notes corrected + mergecap -F pcapng aligned)
+- ADR-009 → rev 3 (rev 2: Decision 7 + obsolete-Packet-Block; rev 3: rationale corrected; F-06 SUPERSEDED; mergecap -F pcapng aligned)
 - prd.md → v1.31
 
 ## F2 Consistency Audit (D-137)
@@ -130,5 +130,6 @@ Active BC total: 302 (BC-INDEX v1.52 ground truth). Pre-pcapng baseline was 293 
 - Decision D-136: F1+F2 complete. ADR-009 created. Option A (pcap-file 2.0.0, +0 deps) selected. Scope includes E2E corpus expansion (human-approved).
 - Decision D-137: F2 consistency audit COMPLETE — 6 findings ALL CLOSED. See audit section above.
 - Decision D-138: F2 completeness validation (research-agent) COMPLETE for intended corpus. F-06/F-07/F-08/F-11 applied as AC deltas. 302 active BCs unchanged. Re-audited CLEAN. F2 now spec-complete + consistency-verified + completeness-validated.
+- Decision D-139: Multi-section pcapng question RESOLVED (source-level research — pcapng-multisection-decision.md). pcap-file 2.0.0 resets correctly. REJECT retained as scope decision. ADR-009 rev 3, BC-2.01.010 v1.2, error-taxonomy v2.5. F-06 SUPERSEDED. Re-audited CLEAN (f2-consistency-audit.md rationale-correction pass; 2 LOW cosmetics RC-1/RC-2 closed). F2 fully spec-complete, consistency- and completeness-validated. F3 NEXT.
 - Scope approved by human: pcapng capture-format reader support, FE-001 IN PROGRESS.
 - F3 (story decomposition) is next. Story input-hash generation required at F3 entry.

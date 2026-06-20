@@ -14,6 +14,43 @@ changes, invariant rewrites).
 
 ---
 
+## [pcapng-multisection-decision-correctness-2026-06-19] — 2026-06-19
+
+### PATCH: Correctness Edits from pcapng Multi-Section Decision Research
+
+**Trigger:** Source-level verification of pcap-file 2.0.0 (`.factory/research/pcapng-multisection-decision.md`)
+confirmed that the INCONCLUSIVE premise in F-06 of the completeness validation was FALSE: pcap-file 2.0.0
+DOES correctly reset interface state per section. F-06's feared mis-attribution (analogous to a historical
+Wireshark bug) does not apply to the library wirerust actually uses.
+
+**Decision unchanged:** REJECT second SHB → E-INP-012 is retained. The rationale is now correctly framed
+as a SCOPE decision (multi-section pcapng is rare, absent from corpus, and out of scope for this cycle),
+not a correctness workaround for a library defect.
+
+#### Changes
+
+| Artifact | Change | Version |
+|----------|--------|---------|
+| `prd-supplements/error-taxonomy.md` | E-INP-012 message updated: added actionable remediation hint (`mergecap -F pcapng` / `editcap`). Notes reframed: rejection is scope decision, not correctness workaround; pcap-file 2.0.0 handles multi-section correctly (source-verified 2026-06-19). | v2.4→v2.5 |
+| `ss-01/BC-2.01.010.md` | AC-002 rationale corrected: scope decision framing; pcap-file 2.0.0 library correctness noted. AC-002 and EC-006 updated to reference E-INP-012 remediation hint. Invariant 1 rewritten to distinguish scope vs. correctness. Error Taxonomy row updated. Normative behavior (reject second SHB → E-INP-012) unchanged. | v1.1→v1.2 |
+| `research/pcapng-spec-completeness-validation.md` | F-06 annotated with SUPERSEDED PREMISE notice: INCONCLUSIVE finding overturned by source-level verification; library does reset correctly; reject retained as scope decision. | annotation only (no version bump) |
+| `spec-changelog.md` | This entry | — |
+
+#### Normative behavior: UNCHANGED
+
+- BC-2.01.010 AC-002: second SHB → `Err` → E-INP-012. Unchanged.
+- E-INP-012: severity `broken`, exit 1. Unchanged.
+- BC count: 302 active. Unchanged.
+- ADR-009: not touched (architect owns).
+
+#### What changed
+
+- **E-INP-012 message:** added ` (hint: split the capture into single-section files, or re-save with 'mergecap -F pcapng' or 'editcap' which emit single-section pcapng)` to the message format.
+- **Rationale text** in BC-2.01.010 AC-002, Invariant 1, EC-006, and error-taxonomy.md Notes: changed from implying library-level uncertainty to explicitly stating this is a scope constraint with a correct library underneath.
+- **F-06 annotation:** completeness-validation research doc updated to record the superseded premise for audit continuity.
+
+---
+
 ## [pcapng-completeness-f06-f07-f11-2026-06-19] — 2026-06-19
 
 ### PATCH: pcapng Completeness Deltas F-06, F-07, F-11 — AC-Level Additions Only

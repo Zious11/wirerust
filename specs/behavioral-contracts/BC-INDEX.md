@@ -74,7 +74,7 @@ traces_to: .factory/specs/prd.md
 | BC-2.01.007 | Surface Per-Packet Read Errors with Anyhow Context | P1 | [WRITTEN] | BC-RDR-007 |
 | BC-2.01.008 | from_file Opens via BufReader and Delegates to from_pcap_reader | P2 | [WRITTEN] | BC-RDR-008 |
 | BC-2.01.009 | Accept pcapng Format: Transparent Detection via Magic-Byte Probe | P0 | [WRITTEN] | feature-pcapng-F2 | <!-- v1.0: supersedes BC-2.01.004; greenfield; ADR-009 Decision 5/6; STORY-123 -->
-| BC-2.01.010 | Parse pcapng Section Header Block (SHB): Byte-Order Detection and Version | P0 | [WRITTEN] | feature-pcapng-F2 | <!-- v1.1: greenfield; ADR-009 Decision 1/2; STORY-123 -->
+| BC-2.01.010 | Parse pcapng Section Header Block (SHB): Byte-Order Detection and Version | P0 | [WRITTEN] | feature-pcapng-F2 | <!-- v1.2: greenfield; ADR-009 Decision 1/2; STORY-123; v1.1: F-06 reject AC; v1.2: rationale corrected (scope decision; pcap-file resets correctly) -->
 | BC-2.01.011 | Parse pcapng Interface Description Block (IDB): Link Type and Timestamp Resolution | P0 | [WRITTEN] | feature-pcapng-F2 | <!-- v1.0: greenfield; ADR-009 Decision 2/3/4; STORY-124 -->
 | BC-2.01.012 | Parse pcapng Enhanced Packet Block (EPB): Packet Data and Timestamp | P0 | [WRITTEN] | feature-pcapng-F2 | <!-- v1.0: greenfield; ADR-009 Decision 2/4; STORY-125 -->
 | BC-2.01.013 | Parse pcapng Simple Packet Block (SPB): Packet Data Without Timestamp | P1 | [WRITTEN] | feature-pcapng-F2 | <!-- v1.0: greenfield; ADR-009 Decision 2; STORY-126 -->
