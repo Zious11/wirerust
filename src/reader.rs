@@ -385,6 +385,127 @@ pub fn pcapng_timestamp_to_secs_usecs(ts_high: u32, ts_low: u32, if_tsresol: u8)
     (ts_sec, ts_usecs)
 }
 
+// ─── Pure-core EPB body decoder (VP-027 Kani target) ────────────────────────
+
+/// Pure-core EPB body decoder (BC-2.01.012; VP-027 Kani target).
+///
+/// Decodes one Enhanced Packet Block body into a `RawPacket`, applying the
+/// 5-step evaluation order of BC-2.01.012 PC9 in the mandated sequence:
+///   (i)   body.len() >= EPB_FIXED_OVERHEAD_BYTES else E-INP-008
+///   (ii)  read interface_id
+///   (iii) empty interface table -> E-INP-009
+///   (iv)  interface_id OOB on non-empty table -> E-INP-010
+///   (v)   PC6a bound-by-body and PC6b padding-overrun -> E-INP-008
+///
+/// Pure: no I/O, no global state, no mutation of `interfaces`. The caller owns
+/// `packets.push(...)` and the `packets_emitted` increment. This is the VP-027
+/// Kani anchor per VP-INDEX footnote [^vp025-027-module-anchor].
+///
+/// `#[doc(hidden)]`: exported solely so the `#[cfg(kani)]` harness can call it
+/// without an I/O source; not part of the supported public API surface.
+#[doc(hidden)]
+pub fn decode_epb_body(
+    body: &[u8],
+    interfaces: &[InterfaceInfo],
+    endianness: SectionEndianness,
+) -> anyhow::Result<RawPacket> {
+    use anyhow::anyhow;
+
+    // (i) Minimum body length gate — E-INP-008 (BC-2.01.012 PC9 step i / AC-003).
+    if body.len() < EPB_FIXED_OVERHEAD_BYTES {
+        return Err(anyhow!(
+            "pcapng EPB body too short: expected at least {} bytes, got {} \
+             (E-INP-008: body-too-short)",
+            EPB_FIXED_OVERHEAD_BYTES,
+            body.len()
+        ));
+    }
+
+    // (ii) Read interface_id (bytes 0-3) in section endianness.
+    let interface_id = match endianness {
+        SectionEndianness::BigEndian => {
+            u32::from_be_bytes([body[0], body[1], body[2], body[3]])
+        }
+        SectionEndianness::LittleEndian => {
+            u32::from_le_bytes([body[0], body[1], body[2], body[3]])
+        }
+    };
+
+    // (iii) Empty-table check — E-INP-009 (PC5a / PC9 step iii).
+    if interfaces.is_empty() {
+        return Err(anyhow!(
+            "pcapng Enhanced Packet Block encountered before any Interface \
+             Description Block: EPB references interface_id={interface_id} but \
+             interface table is empty — no IDB has been parsed (E-INP-009)"
+        ));
+    }
+
+    // (iv) OOB-on-non-empty check — E-INP-010 (PC5b / PC9 step iv).
+    if interface_id as usize >= interfaces.len() {
+        let table_size = interfaces.len();
+        return Err(anyhow!(
+            "EPB interface_id={interface_id} out of range (table size={table_size}) \
+             (E-INP-010)"
+        ));
+    }
+
+    let iface = &interfaces[interface_id as usize];
+
+    // (v) Read remaining fixed fields (ts_high@4-7, ts_low@8-11, captured_len@12-15,
+    //     original_len@16-19) in section endianness.
+    let (ts_high, ts_low, captured_len, _original_len) = match endianness {
+        SectionEndianness::BigEndian => (
+            u32::from_be_bytes([body[4], body[5], body[6], body[7]]),
+            u32::from_be_bytes([body[8], body[9], body[10], body[11]]),
+            u32::from_be_bytes([body[12], body[13], body[14], body[15]]),
+            u32::from_be_bytes([body[16], body[17], body[18], body[19]]),
+        ),
+        SectionEndianness::LittleEndian => (
+            u32::from_le_bytes([body[4], body[5], body[6], body[7]]),
+            u32::from_le_bytes([body[8], body[9], body[10], body[11]]),
+            u32::from_le_bytes([body[12], body[13], body[14], body[15]]),
+            u32::from_le_bytes([body[16], body[17], body[18], body[19]]),
+        ),
+    };
+
+    // PC6a — bound-by-body (live reachable guard) -> E-INP-008.
+    let available = body.len().saturating_sub(EPB_FIXED_OVERHEAD_BYTES);
+    if captured_len as usize > available {
+        return Err(anyhow!(
+            "pcapng EPB captured_len {captured_len} exceeds available body \
+             bytes {available} (E-INP-008: captured_len > body extent)"
+        ));
+    }
+
+    // PC6b — padding-aware overrun (defense-in-depth) -> E-INP-008.
+    let pad_len = (4usize.wrapping_sub(captured_len as usize % 4)) % 4;
+    if EPB_FIXED_OVERHEAD_BYTES
+        .saturating_add(captured_len as usize)
+        .saturating_add(pad_len)
+        > body.len()
+    {
+        return Err(anyhow!(
+            "pcapng EPB padding-overrun: 20 + {captured_len} + {pad_len} > {} \
+             (E-INP-008: wirerust body-decode padding overrun; defense-in-depth)",
+            body.len()
+        ));
+    }
+
+    // Slice packet data bounded by captured_len (PC3 / Invariant 2).
+    let packet_data =
+        &body[EPB_FIXED_OVERHEAD_BYTES..EPB_FIXED_OVERHEAD_BYTES + captured_len as usize];
+
+    // Timestamp routing via the pure-core helper (PC2 / BC-2.01.014).
+    let (ts_sec, ts_usecs) =
+        pcapng_timestamp_to_secs_usecs(ts_high, ts_low, iface.if_tsresol);
+
+    Ok(RawPacket {
+        timestamp_secs: ts_sec,
+        timestamp_usecs: ts_usecs,
+        data: packet_data.to_vec(),
+    })
+}
+
 // ─── Pure-core helper: IDB options TLV walk ─────────────────────────────────
 
 /// Walk the IDB options region and extract the `if_tsresol` exponent byte.
@@ -929,160 +1050,11 @@ impl PcapSource {
 
                 EPB_BLOCK_TYPE => {
                     // BC-2.01.012 / ADR-009 Decision 2: EPB carries packet data.
-                    // 5-step evaluation order per BC-2.01.012 PC9 — MUST NOT be reordered.
+                    // Decode is delegated to the pure-core `decode_epb_body` (VP-027
+                    // Kani target); the caller owns the push + emitted-counter side effects.
                     let blk_body = raw_block.body.as_ref();
-
-                    // (i) Minimum body length gate — wirerust-owned check (M-1 / BC-2.01.012 AC-003).
-                    // The crate does NOT run EnhancedPacketBlock parser on the raw path.
-                    if blk_body.len() < EPB_FIXED_OVERHEAD_BYTES {
-                        return Err(anyhow!(
-                            "pcapng EPB body too short: expected at least {} bytes, got {} \
-                             (E-INP-008: body-too-short)",
-                            EPB_FIXED_OVERHEAD_BYTES,
-                            blk_body.len()
-                        ));
-                    }
-
-                    // (ii) Read interface_id from EPB body bytes 0-3 in section endianness.
-                    // Safe: body.len() >= 20 guaranteed by step (i).
-                    let interface_id = match section_endianness {
-                        SectionEndianness::BigEndian => {
-                            u32::from_be_bytes([blk_body[0], blk_body[1], blk_body[2], blk_body[3]])
-                        }
-                        SectionEndianness::LittleEndian => {
-                            u32::from_le_bytes([blk_body[0], blk_body[1], blk_body[2], blk_body[3]])
-                        }
-                    };
-
-                    // (iii) Interface table empty check — BEFORE any captured_len arithmetic.
-                    // PC5a / BC-2.01.017 PC1: empty-table → E-INP-009.
-                    // Context string mandated by BC-2.01.017 PC1 MUST prefix the underlying
-                    // taxonomy message so the full chain appears in any format (flat string
-                    // mirrors the SPB pattern, compatible with both .to_string() and {:#}).
-                    if interfaces.is_empty() {
-                        return Err(anyhow!(
-                            "pcapng Enhanced Packet Block encountered before any Interface \
-                             Description Block: EPB references interface_id={interface_id} but \
-                             interface table is empty — no IDB has been parsed (E-INP-009)"
-                        ));
-                    }
-
-                    // (iv) OOB-on-non-empty check — E-INP-010 (DIFFERENT from empty-table E-INP-009).
-                    // PC5b: interface_id >= table.len() on non-empty table → E-INP-010.
-                    // SEC-005: this bounds check MUST precede every index into interfaces[].
-                    if interface_id as usize >= interfaces.len() {
-                        let table_size = interfaces.len();
-                        return Err(anyhow!(
-                            "EPB interface_id={interface_id} out of range (table size={table_size}) \
-                             (E-INP-010)"
-                        ));
-                    }
-
-                    // Interface lookup is now safe — interface_id is in-bounds.
-                    let iface = &interfaces[interface_id as usize];
-
-                    // (v) Read remaining EPB fixed fields + captured_len validation.
-                    // Read ts_high @4-7, ts_low @8-11, captured_len @12-15, original_len @16-19.
-                    let (ts_high, ts_low, captured_len, _original_len) = match section_endianness {
-                        SectionEndianness::BigEndian => {
-                            let ts_high = u32::from_be_bytes([
-                                blk_body[4],
-                                blk_body[5],
-                                blk_body[6],
-                                blk_body[7],
-                            ]);
-                            let ts_low = u32::from_be_bytes([
-                                blk_body[8],
-                                blk_body[9],
-                                blk_body[10],
-                                blk_body[11],
-                            ]);
-                            let cl = u32::from_be_bytes([
-                                blk_body[12],
-                                blk_body[13],
-                                blk_body[14],
-                                blk_body[15],
-                            ]);
-                            let ol = u32::from_be_bytes([
-                                blk_body[16],
-                                blk_body[17],
-                                blk_body[18],
-                                blk_body[19],
-                            ]);
-                            (ts_high, ts_low, cl, ol)
-                        }
-                        SectionEndianness::LittleEndian => {
-                            let ts_high = u32::from_le_bytes([
-                                blk_body[4],
-                                blk_body[5],
-                                blk_body[6],
-                                blk_body[7],
-                            ]);
-                            let ts_low = u32::from_le_bytes([
-                                blk_body[8],
-                                blk_body[9],
-                                blk_body[10],
-                                blk_body[11],
-                            ]);
-                            let cl = u32::from_le_bytes([
-                                blk_body[12],
-                                blk_body[13],
-                                blk_body[14],
-                                blk_body[15],
-                            ]);
-                            let ol = u32::from_le_bytes([
-                                blk_body[16],
-                                blk_body[17],
-                                blk_body[18],
-                                blk_body[19],
-                            ]);
-                            (ts_high, ts_low, cl, ol)
-                        }
-                    };
-
-                    // PC6a (unconditional bound-by-body, LIVE REACHABLE GUARD — BC-2.01.012 PC6a):
-                    // captured_len can never exceed body.len() regardless of block_total_length.
-                    let available = blk_body.len().saturating_sub(EPB_FIXED_OVERHEAD_BYTES);
-                    if captured_len as usize > available {
-                        return Err(anyhow!(
-                            "pcapng EPB captured_len {captured_len} exceeds available body \
-                             bytes {available} (E-INP-008: captured_len > body extent)"
-                        ));
-                    }
-
-                    // PC6b (padding-aware overhead, DEFENSE-IN-DEPTH — BC-2.01.012 PC6b):
-                    // Unreachable via crate-framed 4-aligned blocks (crate alignment rejection
-                    // subsumes this path). Coded per BC-2.01.012 AC-002 as a safety net.
-                    // pad_len(n) = (4 - n % 4) % 4
-                    let pad_len = (4usize.wrapping_sub(captured_len as usize % 4)) % 4;
-                    if EPB_FIXED_OVERHEAD_BYTES
-                        .saturating_add(captured_len as usize)
-                        .saturating_add(pad_len)
-                        > blk_body.len()
-                    {
-                        return Err(anyhow!(
-                            "pcapng EPB padding-overrun: 20 + {captured_len} + {pad_len} > {} \
-                             (E-INP-008: wirerust body-decode padding overrun; defense-in-depth)",
-                            blk_body.len()
-                        ));
-                    }
-
-                    // Slice packet data bounded by captured_len (BC-2.01.012 PC3 / Invariant 2).
-                    let packet_data = &blk_body[EPB_FIXED_OVERHEAD_BYTES
-                        ..EPB_FIXED_OVERHEAD_BYTES + captured_len as usize];
-
-                    // Timestamp routing: call the pure-core helper with per-interface if_tsresol.
-                    // BC-2.01.012 PC2 / BC-2.01.014: helper owns the ticks combine and all arithmetic.
-                    // MUST NOT use EnhancedPacketBlock::timestamp (ns-hardcoded; wrong for µs captures).
-                    let (ts_sec, ts_usecs) =
-                        pcapng_timestamp_to_secs_usecs(ts_high, ts_low, iface.if_tsresol);
-
-                    packets.push(RawPacket {
-                        timestamp_secs: ts_sec,
-                        timestamp_usecs: ts_usecs,
-                        data: packet_data.to_vec(),
-                    });
-                    // Increment packets_emitted for E-INP-013 position check (AC-005 / Decision 15).
+                    let packet = decode_epb_body(blk_body, &interfaces, section_endianness)?;
+                    packets.push(packet);
                     packets_emitted = packets_emitted.saturating_add(1);
                 }
 
