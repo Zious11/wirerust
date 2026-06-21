@@ -135,11 +135,10 @@ fn le_opb() -> Vec<u8> {
 ///   - The loop breaks on Err from next_raw_block.
 ///   - The zero-advance guard fires if a future crate regression produces zero-advance Ok.
 ///
-/// RED trigger: if `spb_captured_len` is called during arbitrary byte processing,
-/// the `todo!()` will cause a panic (which proptest catches as a test failure).
-/// The SPB arm doesn't exist yet so this won't be called in the wildcard path.
-/// However, this test should be mostly GREEN currently (arbitrary bytes rarely form
-/// a valid SPB, and the wildcard arm handles unrecognized block types).
+/// GREEN: `spb_captured_len` (src/reader.rs:770-781) and the SPB dispatch arm are
+/// implemented. Arbitrary byte sequences rarely form a valid SPB header, but even
+/// when they do, the SPB arm returns Ok — never panics. The wildcard arm handles
+/// unrecognized block types. This test guards the totality invariant (BC-2.01.017 PC3).
 ///
 /// Note: proptest runs this as a regular test function; we configure 1000 cases.
 proptest! {
@@ -203,7 +202,8 @@ proptest! {
 ///
 /// This exercises named skip arms, OPB dual-counter, SPB parse, and unknown catch-all.
 ///
-/// RED: SPB arm calls `spb_captured_len` which is `todo!()` → panic.
+/// GREEN: The SPB arm calls `spb_captured_len` (src/reader.rs:770-781), which is
+/// implemented and returns the correct captured length — no panic possible.
 proptest! {
     #![proptest_config(ProptestConfig::with_cases(1000))]
 
@@ -277,10 +277,9 @@ proptest! {
 /// This is the canonical formula from ADR-009 Decision 22 / BC-2.01.013 Inv2 / AC-002.
 /// The bare `body.len()` (without -4) is WRONG — 4 bytes too large.
 ///
-/// ALL CASES in this proptest FAIL until `spb_captured_len` is implemented
-/// (currently `todo!()` → panics with "STORY-126: implement SPB captured_len formula").
-///
-/// We run 1000 cases per the STORY-126 requirement.
+/// All 1000 cases are GREEN: `spb_captured_len` (src/reader.rs:770-781) is implemented
+/// and returns `min(original_len, (body.len() - 4) as u32)` per ADR-009 Decision 22.
+/// This proptest guards against regressions in the arithmetic (e.g. off-by-4, saturation).
 proptest! {
     #![proptest_config(ProptestConfig::with_cases(1000))]
 
@@ -298,7 +297,7 @@ proptest! {
         let expected_captured_len = original_len.min(spb_data_available);
 
         // Call the pure-core helper.
-        // RED until implemented: todo!() panics with "STORY-126: implement..."
+        // GREEN: spb_captured_len (src/reader.rs:770-781) returns the correct value.
         let actual = spb_captured_len(original_len, &body);
 
         prop_assert_eq!(
@@ -336,8 +335,7 @@ proptest! {
 /// VP-031 (boundary) — body.len() exactly 4 (minimum legal): spb_data_available=0.
 ///
 /// For any original_len, captured_len must be 0 when body.len()==4.
-///
-/// RED: spb_captured_len is todo!().
+/// GREEN: `spb_captured_len` (src/reader.rs:770-781) returns 0 when body.len()-4=0.
 proptest! {
     #![proptest_config(ProptestConfig::with_cases(1000))]
 
@@ -348,7 +346,7 @@ proptest! {
         // body.len() = 4 = SPB_FIXED_OVERHEAD_BYTES → spb_data_available = 0
         let body = vec![0u8; 4];
 
-        // RED: todo!() panics
+        // GREEN: spb_captured_len returns 0 for body.len()=4 (spb_data_available=0).
         let actual = spb_captured_len(original_len, &body);
 
         prop_assert_eq!(
@@ -364,8 +362,7 @@ proptest! {
 /// VP-031 (saturation) — original_len=0 always yields captured_len=0 regardless of body.
 ///
 /// min(0, spb_data_available) = 0 for any spb_data_available.
-///
-/// RED: spb_captured_len is todo!().
+/// GREEN: `spb_captured_len` (src/reader.rs:770-781) returns 0 when original_len=0.
 proptest! {
     #![proptest_config(ProptestConfig::with_cases(1000))]
 
@@ -375,7 +372,7 @@ proptest! {
     ) {
         prop_assume!(body.len() >= SPB_FIXED_OVERHEAD_BYTES);
 
-        // RED: todo!() panics
+        // GREEN: spb_captured_len returns 0 when original_len=0 (min(0, anything)=0).
         let actual = spb_captured_len(0, &body);
 
         prop_assert_eq!(
@@ -389,8 +386,8 @@ proptest! {
 /// VP-031 (max original_len) — original_len=u32::MAX clamped to spb_data_available.
 ///
 /// For any body, captured_len = spb_data_available = body.len() - 4.
-///
-/// RED: spb_captured_len is todo!().
+/// GREEN: `spb_captured_len` (src/reader.rs:770-781) returns spb_data_available when
+/// original_len=u32::MAX (clamped by min()).
 proptest! {
     #![proptest_config(ProptestConfig::with_cases(1000))]
 
@@ -402,7 +399,7 @@ proptest! {
 
         let spb_data_available = (body.len() - SPB_FIXED_OVERHEAD_BYTES) as u32;
 
-        // RED: todo!() panics
+        // GREEN: spb_captured_len returns spb_data_available when original_len=u32::MAX.
         let actual = spb_captured_len(u32::MAX, &body);
 
         prop_assert_eq!(
@@ -419,8 +416,8 @@ proptest! {
 /// VP-031 (exact match) — when original_len == spb_data_available: no truncation.
 ///
 /// min(n, n) = n for any n. Captured_len == original_len == spb_data_available.
-///
-/// RED: spb_captured_len is todo!().
+/// GREEN: `spb_captured_len` (src/reader.rs:770-781) returns original_len when
+/// original_len == spb_data_available (identity case, no clamping).
 proptest! {
     #![proptest_config(ProptestConfig::with_cases(1000))]
 
@@ -434,7 +431,7 @@ proptest! {
         let spb_data_available = extra_body_len;
         let original_len = spb_data_available; // exact match
 
-        // RED: todo!() panics
+        // GREEN: spb_captured_len returns original_len unchanged when equal to spb_data_available.
         let actual = spb_captured_len(original_len, &body);
 
         prop_assert_eq!(
@@ -454,7 +451,8 @@ proptest! {
 /// (original_len, payload) combinations. For each: data.len() in the resulting
 /// RawPacket must match the canonical formula.
 ///
-/// RED: no SPB arm → no packet produced; packets.len() == 0 fails the assertion.
+/// GREEN: SPB arm (src/reader.rs:1158-1218) is implemented; each SPB produces exactly
+/// one RawPacket with data.len() == min(original_len, spb_data_available).
 proptest! {
     #![proptest_config(ProptestConfig::with_cases(1000))]
 
@@ -500,7 +498,7 @@ proptest! {
         prop_assert_eq!(
             source.packets.len(),
             1,
-            "SPB must produce exactly 1 packet (no SPB arm → 0 packets currently; RED)"
+            "regression: SPB arm must produce exactly 1 packet (src/reader.rs:1158-1218)"
         );
 
         let pkt = &source.packets[0];
