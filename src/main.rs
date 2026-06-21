@@ -61,7 +61,11 @@ use wirerust::summary::Summary;
 fn format_zero_packet_notice(path: &std::path::Path, source: &PcapSource) -> String {
     // Discriminant carried from the magic-byte probe in from_pcap_reader —
     // no second file open needed (BC-2.01.009 PC6 / Decision 19 / F-F5P1-003).
-    let file_kind = if source.is_pcapng { "pcapng file" } else { "pcap file" };
+    let file_kind = if source.is_pcapng {
+        "pcapng file"
+    } else {
+        "pcap file"
+    };
 
     let base = format!(
         "notice: {}: 0 packets read from {file_kind}",

@@ -213,7 +213,10 @@ mod kani_proofs {
                 let e = r.expect_err("empty table with valid-length body must Err");
                 let s = format!("{e:#}");
                 kani::assert(s.contains("E-INP-009"), "empty table -> E-INP-009 (PC5a)");
-                kani::assert(!s.contains("E-INP-010"), "empty table must NOT be E-INP-010");
+                kani::assert(
+                    !s.contains("E-INP-010"),
+                    "empty table must NOT be E-INP-010",
+                );
             } else {
                 // body too short -> E-INP-008 (PC9 step i precedes empty-table check).
                 let e = r.expect_err("short body must Err");
@@ -224,7 +227,10 @@ mod kani_proofs {
 
         // ---- Case B: NON-EMPTY table (len 1), symbolic interface_id ----
         {
-            let table = [InterfaceInfo { linktype: DataLink::ETHERNET, if_tsresol: 6 }];
+            let table = [InterfaceInfo {
+                linktype: DataLink::ETHERNET,
+                if_tsresol: 6,
+            }];
             let r = decode_epb_body(body, &table, endianness);
 
             if body_len < EPB_OVERHEAD {

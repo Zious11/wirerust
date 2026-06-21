@@ -429,12 +429,8 @@ pub fn decode_epb_body(
 
     // (ii) Read interface_id (bytes 0-3) in section endianness.
     let interface_id = match endianness {
-        SectionEndianness::BigEndian => {
-            u32::from_be_bytes([body[0], body[1], body[2], body[3]])
-        }
-        SectionEndianness::LittleEndian => {
-            u32::from_le_bytes([body[0], body[1], body[2], body[3]])
-        }
+        SectionEndianness::BigEndian => u32::from_be_bytes([body[0], body[1], body[2], body[3]]),
+        SectionEndianness::LittleEndian => u32::from_le_bytes([body[0], body[1], body[2], body[3]]),
     };
 
     // (iii) Empty-table check — E-INP-009 (PC5a / PC9 step iii).
@@ -502,8 +498,7 @@ pub fn decode_epb_body(
         &body[EPB_FIXED_OVERHEAD_BYTES..EPB_FIXED_OVERHEAD_BYTES + captured_len as usize];
 
     // Timestamp routing via the pure-core helper (PC2 / BC-2.01.014).
-    let (ts_sec, ts_usecs) =
-        pcapng_timestamp_to_secs_usecs(ts_high, ts_low, iface.if_tsresol);
+    let (ts_sec, ts_usecs) = pcapng_timestamp_to_secs_usecs(ts_high, ts_low, iface.if_tsresol);
 
     Ok(RawPacket {
         timestamp_secs: ts_sec,
