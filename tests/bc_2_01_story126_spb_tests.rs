@@ -1,50 +1,52 @@
 //! STORY-126: SPB Parse, Explicit Block-Skip Dispatch (F-07), and Error-Surface Contract
 //!
-//! TDD Red Gate suite — ALL tests in this file target UNIMPLEMENTED behavior except
-//! `test_BC_2_01_013_fixed_overhead_constant` (which is a regression guard on an
-//! already-exported const).
+//! Regression-guard suite for the STORY-126 SPB parsing implementation. All behavioral
+//! contracts exercised here are IMPLEMENTED: `spb_captured_len` (src/reader.rs:770-781)
+//! and the SPB dispatch arm (src/reader.rs:1158-1218) were delivered in STORY-126.
+//! These tests passed their Red Gate phase (all failed before implementation) and are
+//! now GREEN, guarding against future regressions.
 //!
-//! # Red Gate contract
+//! # Implementation status
 //!
-//! The following tests MUST FAIL before implementation (confirmed by `cargo test --all-targets`):
+//! The following tests were RED during the TDD Red Gate phase and turned GREEN after
+//! STORY-126 implementation (`cargo test --all-targets` is fully GREEN):
 //!
-//!   - `test_BC_2_01_013_empty_interface_table_guarded` — SPB arm doesn't exist; SPB falls to
-//!     wildcard `_` arm which increments `skipped_blocks` and returns Ok, not Err(E-INP-009).
-//!   - `test_BC_2_01_013_padding_strip` — no SPB arm; no packet produced.
-//!   - `test_BC_2_01_013_zero_timestamps` — no SPB arm; no packet produced.
-//!   - `test_BC_2_01_013_spb_body_truncated_e_inp_008` — no SPB arm; btl=12 SPB falls to `_`.
-//!   - `test_BC_2_01_013_fixed_overhead_constant` — GREEN (const already exported).
-//!   - `test_BC_2_01_013_no_panic_malformed` — SPB falls to `_`; returns Ok not Err.
-//!   - `test_BC_2_01_013_spb_be_endian` — no SPB arm; no packet produced.
-//!   - `test_BC_2_01_013_spb_le_endian` — no SPB arm; no packet produced.
-//!   - `test_BC_2_01_013_spb_zero_original_len` — no SPB arm; no packet produced.
-//!   - `test_BC_2_01_013_spb_truncated_original_len_exceeds_available` — no SPB arm.
-//!   - `test_BC_2_01_015_dispatch_known_and_skip_unknown` — NRB/ISB/SJE/DSB fall to wildcard;
-//!     no named arms exist yet so discriminant between OPB (dual-counter) and generic (single)
-//!     is already correct for OPB but the test also verifies named-arm behavior contract.
-//!   - `test_BC_2_01_015_opb_skipped_not_parsed` — OPB arm already in place; this part is GREEN.
-//!     The non-OPB unknown assertion passes. Status: likely GREEN.
-//!   - `test_BC_2_01_015_no_output_on_skip` — structural test; PASSES (no output currently).
-//!   - `test_BC_2_01_015_loop_break_on_error` — already breaks on error; GREEN.
-//!   - `test_BC_2_01_015_skipped_blocks_counter_and_notice` — OPB counter works; GREEN.
-//!   - `test_BC_2_01_015_shb_only_counters_zero` — GREEN (no blocks = zero counters).
-//!   - `test_BC_2_01_015_dsb_body_not_logged` — no DSB arm; body falls to `_`; SEC-007 holds
-//!     because wildcard already discards body. Status: GREEN (body never logged).
-//!   - `test_STORY_126_SPB_PACKETS_EMITTED_001` — RED: SPB falls to `_`, packets_emitted stays 0,
-//!     so a late IDB after SPB does NOT trigger E-INP-013 (the SPB doesn't increment
-//!     packets_emitted in the wildcard path). Current behavior: late IDB is accepted silently.
-//!   - `test_BC_2_01_017_all_error_paths_have_context` — SPB context string missing (no SPB arm).
-//!   - `test_BC_2_01_017_epb_before_idb_emits_einp009_context` — the EPB arm already emits a
-//!     message containing E-INP-009 but the EXACT context string may differ; asserting the
-//!     canonical BC-2.01.017 PC1 string "before any Interface Description Block" → check below.
-//!   - `test_BC_2_01_017_no_panic_truncated_pcapng` — structural; likely GREEN.
-//!   - `test_BC_2_01_017_spb_before_idb_emits_einp009_context` — RED (no SPB arm).
-//!   - `test_BC_2_01_017_spb_body_too_short_einp008_context` — RED (no SPB arm).
+//!   - `test_BC_2_01_013_empty_interface_table_guarded` — SPB arm handles empty interface
+//!     table; returns Err(E-INP-009) as required.
+//!   - `test_BC_2_01_013_padding_strip` — SPB arm strips padding; packet produced correctly.
+//!   - `test_BC_2_01_013_zero_timestamps` — SPB arm produces packet with zero timestamps.
+//!   - `test_BC_2_01_013_spb_body_truncated_e_inp_008` — SPB arm rejects btl=12 body with
+//!     E-INP-008.
+//!   - `test_BC_2_01_013_fixed_overhead_constant` — GREEN (const already exported; unchanged).
+//!   - `test_BC_2_01_013_no_panic_malformed` — SPB arm returns Err without panic.
+//!   - `test_BC_2_01_013_spb_be_endian` — SPB arm handles big-endian capture correctly.
+//!   - `test_BC_2_01_013_spb_le_endian` — SPB arm handles little-endian capture correctly.
+//!   - `test_BC_2_01_013_spb_zero_original_len` — SPB arm emits zero-length packet.
+//!   - `test_BC_2_01_013_spb_truncated_original_len_exceeds_available` — SPB arm truncates
+//!     captured_len to available bytes.
+//!   - `test_BC_2_01_015_dispatch_known_and_skip_unknown` — named arms for NRB/ISB/SJE/DSB
+//!     skip correctly; OPB dual-counter and generic single-counter discriminant verified.
+//!   - `test_BC_2_01_015_opb_skipped_not_parsed` — OPB skipped via dual-counter path.
+//!   - `test_BC_2_01_015_no_output_on_skip` — no spurious output on skipped blocks.
+//!   - `test_BC_2_01_015_loop_break_on_error` — loop breaks on error; no runaway.
+//!   - `test_BC_2_01_015_skipped_blocks_counter_and_notice` — OPB counter and notice verified.
+//!   - `test_BC_2_01_015_shb_only_counters_zero` — zero-block file yields zero counters.
+//!   - `test_BC_2_01_015_dsb_body_not_logged` — DSB body discarded; SEC-007 holds.
+//!   - `test_STORY_126_SPB_PACKETS_EMITTED_001` — SPB arm increments packets_emitted;
+//!     late IDB after SPB correctly triggers E-INP-013.
+//!   - `test_BC_2_01_017_all_error_paths_have_context` — SPB context string present.
+//!   - `test_BC_2_01_017_epb_before_idb_emits_einp009_context` — EPB before IDB emits
+//!     canonical BC-2.01.017 PC1 string "before any Interface Description Block".
+//!   - `test_BC_2_01_017_no_panic_truncated_pcapng` — no panic on truncated input.
+//!   - `test_BC_2_01_017_spb_before_idb_emits_einp009_context` — SPB before IDB emits
+//!     E-INP-009 with context.
+//!   - `test_BC_2_01_017_spb_body_too_short_einp008_context` — short SPB body emits
+//!     E-INP-008 with context.
 //!
-//! # What STAYS GREEN
+//! # Regression coverage
 //!
 //! STORY-123/124/125's existing tests in `bc_2_01_story123_pcapng_tests.rs`,
-//! `bc_2_01_story124_idb_tests.rs`, and `bc_2_01_story125_epb_tests.rs` MUST remain GREEN.
+//! `bc_2_01_story124_idb_tests.rs`, and `bc_2_01_story125_epb_tests.rs` remain GREEN.
 //! This file does NOT modify any source file.
 //!
 //! # Coverage map (AC → test → E-INP code)
@@ -825,10 +827,9 @@ fn test_STORY_126_SPB_PACKETS_EMITTED_001() {
 
 // ── spb_captured_len pure-core tests (VP-031 target) ─────────────────────────
 //
-// These tests call spb_captured_len directly. It is currently todo!(), so ALL
-// of these tests FAIL with a panic at runtime (caught as should_panic below OR
-// simply fail). We write them as direct assertions wrapped around todo!()-aware
-// execution to verify RED status cleanly.
+// These tests call spb_captured_len directly. The function is implemented
+// (src/reader.rs:770-781) and all tests in this section are GREEN, guarding
+// the captured-length arithmetic against regression.
 //
 // Note: proptest VP-031 is in tests/proptest_reader.rs. These are unit test
 // vectors from the BC-2.01.013 Canonical Test Vectors table.

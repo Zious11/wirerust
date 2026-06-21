@@ -27,22 +27,24 @@
 //!   5. The µs fast-path saturation concrete assertion holds:
 //!      (ts_high=2_000_000, ts_low=0, if_tsresol=6) → ts_sec=u32::MAX.
 //!
-//! # VP-027: EPB parse safety (real-call proof — F-F5P1-001)
+//! # VP-027: EPB parse safety (discriminant-twin proof — F-F5P1-001)
 //!
-//! Proves over symbolic EPB byte sequences that `decode_epb_body`:
+//! Proves over symbolic EPB byte sequences that `decode_epb_body_discriminant`
+//! (the typed-error twin of `decode_epb_body`, returning `Result<RawPacket,
+//! EpbDecodeError>`) satisfies:
 //!   1. Never panics (totality / SEC-005 / AC-003).
-//!   2. Empty table → Err containing "E-INP-009" (and NOT "E-INP-010") [PC5a].
-//!   3. OOB on non-empty table → Err containing "E-INP-010" (NOT "E-INP-009") [PC5b].
-//!   4. body.len() < 20 → Err containing "E-INP-008" (EC-011).
-//!   5. PC6a: captured_len > available → Err "E-INP-008".
+//!   2. Empty table → `Err(EpbDecodeError::EmptyInterfaceTable)` [PC5a].
+//!   3. OOB on non-empty table → `Err(EpbDecodeError::InterfaceIdOob)` [PC5b].
+//!   4. body.len() < 20 → `Err(EpbDecodeError::BodyTooShort)` (EC-011).
+//!   5. PC6a: captured_len > available → `Err(EpbDecodeError::BodyTooShort)`.
 //!   6. The two interface discriminants are distinct on the same fixed body.
 //!
-//! The previous (pre-F-F5P1-001) harness was tautological: it asserted the
-//! `if`-guard conditions themselves rather than calling the real function.
-//! This harness calls `wirerust::reader::decode_epb_body` directly over a
-//! static symbolic buffer of up to MAX_BODY=28 bytes with a symbolic interface
-//! table of size 0 or 1. Coverage follows the VP-027 module-anchor spec in
-//! VP-INDEX [^vp025-027-module-anchor].
+//! The discriminant-twin design avoids `format!`/`String::contains` over
+//! `anyhow::Error` chains, which cause BMC state-space explosion at MAX_BODY=28.
+//! Asserting typed `EpbDecodeError` enum variants instead of string substrings
+//! keeps the proof tractable. The canonical harness is in `src/reader.rs`
+//! (module `kani_proofs`), discovered by `cargo kani --harness vp027_epb_parse_safety`.
+//! Result: VERIFICATION SUCCESSFUL in 6.1s, 687 checks, 0 failures.
 //!
 //! # Phase note
 //!

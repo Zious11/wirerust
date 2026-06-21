@@ -27,14 +27,14 @@
 //! too large because it counts the `original_len` field itself (ADR-009 Decision 22 /
 //! BC-2.01.013 Inv2 / Architecture Compliance Rule 2).
 //!
-//! ## Red Gate status
+//! ## Implementation provenance
 //!
-//! - VP-029 tests: FAIL because `spb_captured_len` is `todo!()` which causes panics
-//!   on any proptest that exercises the SPB path. Additionally, the SPB arm doesn't
-//!   exist yet so SPB-heavy sequences fall to the wildcard. The termination property
-//!   itself should hold even with the wildcard, but any sequence that exercises
-//!   `spb_captured_len` panics.
-//! - VP-031 tests: ALL FAIL because `spb_captured_len` is `todo!()`.
+//! - VP-029 tests: GREEN after STORY-126. `spb_captured_len` is implemented
+//!   (src/reader.rs:770-781) and the SPB dispatch arm (src/reader.rs:1158-1218)
+//!   handles SPB blocks directly. These proptests now hold and guard the
+//!   block-walk termination invariant against regression.
+//! - VP-031 tests: GREEN after STORY-126. `spb_captured_len` is implemented;
+//!   these proptests guard the captured-length arithmetic invariant.
 //!
 //! ## Proptest configuration
 //!
@@ -155,14 +155,12 @@ proptest! {
             PcapSource::from_pcap_reader(Cursor::new(&bytes))
         });
         // The function must not panic (catch_unwind Ok = no panic).
-        // spb_captured_len todo!() IS a panic, so this will fail for any
-        // sequence that reaches the (not-yet-implemented) SPB arm.
-        // After implementation, all panics disappear.
+        // Regression guard: any panic here indicates a totality violation in
+        // the SPB path or another block-walk branch (BC-2.01.017 PC3 / SEC-005).
         prop_assert!(
             result.is_ok(),
-            "from_pcap_reader panicked on input (len={}): this violates the no-panic \
-             contract (BC-2.01.017 PC3 / SEC-005). If spb_captured_len todo!() is the \
-             cause, this will be RED until STORY-126 is implemented.",
+            "from_pcap_reader panicked on input (len={}): totality invariant violated — \
+             the reader must never panic regardless of input (BC-2.01.017 PC3 / SEC-005).",
             bytes.len()
         );
     }
@@ -231,12 +229,13 @@ proptest! {
         let result = std::panic::catch_unwind(|| {
             PcapSource::from_pcap_reader(Cursor::new(&bytes))
         });
-        // Must not panic. spb_captured_len todo!() causes this to FAIL (RED Gate)
-        // for any sequence containing an SPB (block_type_idx=0).
+        // Regression guard: the function must not panic for any structured block sequence.
+        // A panic here indicates a totality violation in the SPB arm or another dispatch
+        // path (BC-2.01.017 PC3 / SEC-005 / ADR-009 Decision 8).
         prop_assert!(
             result.is_ok(),
             "from_pcap_reader panicked on structured block sequence (len={} bytes, {} blocks): \
-             RED if SPB arm hits todo!() in spb_captured_len",
+             totality invariant violated — no block sequence may cause a panic",
             bytes.len(),
             block_types.len()
         );
