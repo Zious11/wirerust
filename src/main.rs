@@ -516,6 +516,41 @@ fn grouping_from_flag(show_mitre_grouping: bool) -> Grouping {
     }
 }
 
+/// Read the first 4 bytes of a file for magic-byte content detection.
+///
+/// Returns `None` if the file cannot be opened, the file has fewer than 4
+/// readable bytes, or any I/O error occurs.  The probe is intentionally
+/// silent — errors must not abort a directory scan.
+///
+/// Called by `resolve_targets` (BC-2.12.011 Inv5 / STORY-127).
+/// `pub(crate)` so the unit test suite in `tests/` can call it directly.
+///
+/// # STORY-127 stub — BC-5.38.001
+///
+/// Body is `todo!()` per Red Gate discipline. The implementer must:
+/// 1. Open the file with `std::fs::File::open(path)`.
+/// 2. Read exactly 4 bytes with `Read::read` (NOT `read_exact` — must tolerate
+///    short reads on files with < 4 bytes; return `None` if `n < 4`).
+/// 3. Return `Some([b0, b1, b2, b3])` on success, `None` on any failure.
+pub(crate) fn read_magic(path: &std::path::Path) -> Option<[u8; 4]> {
+    use std::io::Read as _;
+    let mut file = std::fs::File::open(path).ok()?;
+    let mut buf = [0u8; 4];
+    let n = file.read(&mut buf).ok()?;
+    if n < 4 { None } else { Some(buf) }
+}
+
+/// Magic byte sets for content-based capture file detection (BC-2.12.011).
+///
+/// Exactly 5 values per BC-2.12.011 Invariant 2.  A 6th value requires a BC revision.
+const CAPTURE_MAGICS: [[u8; 4]; 5] = [
+    [0xA1, 0xB2, 0xC3, 0xD4], // classic pcap LE microsecond
+    [0xD4, 0xC3, 0xB2, 0xA1], // classic pcap BE microsecond
+    [0xA1, 0xB2, 0x3C, 0x4D], // classic pcap LE nanosecond
+    [0x4D, 0x3C, 0xB2, 0xA1], // classic pcap BE nanosecond
+    [0x0A, 0x0D, 0x0D, 0x0A], // pcapng SHB
+];
+
 fn resolve_targets(target: &Path) -> Result<Vec<std::path::PathBuf>> {
     if target.is_file() {
         return Ok(vec![target.to_path_buf()]);
@@ -526,8 +561,8 @@ fn resolve_targets(target: &Path) -> Result<Vec<std::path::PathBuf>> {
             let entry = entry?;
             let path = entry.path();
             if path.is_file()
-                && let Some(ext) = path.extension()
-                && ext == "pcap"
+                && let Some(magic) = read_magic(&path)
+                && CAPTURE_MAGICS.contains(&magic)
             {
                 files.push(path);
             }
