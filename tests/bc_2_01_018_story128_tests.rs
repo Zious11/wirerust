@@ -1121,13 +1121,10 @@ mod story_128 {
             .success()
             // Base notice phrase must be present
             .stderr(predicate::str::contains("0 packets read from pcapng file"))
-            // OPB clause: count "1" must appear
-            .stderr(predicate::str::contains("1"))
-            // OPB clause: "obsolete" must appear (HS-108 Case D byte-exact)
-            // RED: current code does not emit "obsolete" → assertion FAILS here
-            .stderr(predicate::str::contains("obsolete"))
+            // OPB clause: count 1 + "obsolete" must appear as discriminating substring
+            // (HS-108 Case D byte-exact — tightened from weak contains("1") per O-1)
+            .stderr(predicate::str::contains("includes 1 obsolete"))
             // OPB clause: "mergecap" remediation hint must appear (HS-108 Case D)
-            // RED: current code does not emit "mergecap" → assertion FAILS here
             .stderr(predicate::str::contains("mergecap"))
             // Generic segment MUST NOT appear (G = 1-1 = 0, gate is false)
             .stderr(predicate::str::contains("skipped as unsupported").not());
@@ -1206,11 +1203,9 @@ mod story_128 {
             .assert()
             .success()
             .stderr(predicate::str::contains("0 packets read from pcapng file"))
-            // Generic segment: count G=2 must appear (HS-108 Case B byte-exact)
-            // RED: current code emits no parenthetical → "skipped as unsupported" absent
-            .stderr(predicate::str::contains("skipped as unsupported"))
-            // The count 2 must appear in the segment
-            .stderr(predicate::str::contains("2"))
+            // Generic segment: full discriminating substring G=2 (HS-108 Case B byte-exact)
+            // Tightened from weak contains("2") + contains("skipped as unsupported") per O-1.
+            .stderr(predicate::str::contains("2 block(s) skipped as unsupported"))
             // OPB clause MUST NOT appear (opb_skipped==0, gate is false)
             .stderr(predicate::str::contains("obsolete").not())
             .stderr(predicate::str::contains("mergecap").not());
@@ -1233,9 +1228,9 @@ mod story_128 {
             .assert()
             .success()
             .stderr(predicate::str::contains("0 packets read from pcapng file"))
-            // RED: "skipped as unsupported" absent in current notice
-            .stderr(predicate::str::contains("skipped as unsupported"))
-            .stderr(predicate::str::contains("2"))
+            // Generic segment: full discriminating substring G=2 (HS-108 Case B byte-exact)
+            // Tightened from weak contains("2") + separate contains("skipped") per O-1.
+            .stderr(predicate::str::contains("2 block(s) skipped as unsupported"))
             .stderr(predicate::str::contains("obsolete").not())
             .stderr(predicate::str::contains("mergecap").not());
     }
@@ -1292,20 +1287,14 @@ mod story_128 {
             .assert()
             .success()
             .stderr(predicate::str::contains("0 packets read from pcapng file"))
-            // Generic segment: G=2 — "skipped as unsupported" with count "2"
-            // RED: absent in current notice
-            .stderr(predicate::str::contains("skipped as unsupported"))
-            .stderr(predicate::str::contains("2"))
-            // OPB clause: opb_skipped=1 — "obsolete" and "mergecap" with count "1"
-            // RED: absent in current notice
-            .stderr(predicate::str::contains("obsolete"))
-            .stderr(predicate::str::contains("mergecap"))
-            .stderr(predicate::str::contains("1"));
+            // Generic segment: G=2 — full discriminating substring (HS-108 Case E, tightened per O-1)
+            .stderr(predicate::str::contains("2 block(s) skipped as unsupported"))
+            // OPB clause: opb_skipped=1 — full discriminating substring (HS-108 Case E, tightened per O-1)
+            .stderr(predicate::str::contains("includes 1 obsolete"))
+            .stderr(predicate::str::contains("mergecap"));
     }
 
     /// Same both-segments test via `summary` subcommand.
-    ///
-    /// RED: same reason — neither segment in current bare notice.
     #[test]
     fn test_BC_2_01_009_pc6_both_segments_nrb_plus_opb_summary() {
         let dir = tempfile::tempdir().expect("tempdir");
@@ -1320,13 +1309,11 @@ mod story_128 {
             .assert()
             .success()
             .stderr(predicate::str::contains("0 packets read from pcapng file"))
-            // RED: "skipped as unsupported" absent
-            .stderr(predicate::str::contains("skipped as unsupported"))
-            .stderr(predicate::str::contains("2"))
-            // RED: "obsolete" absent
-            .stderr(predicate::str::contains("obsolete"))
-            .stderr(predicate::str::contains("mergecap"))
-            .stderr(predicate::str::contains("1"));
+            // Generic segment: G=2 — full discriminating substring (HS-108 Case E, tightened per O-1)
+            .stderr(predicate::str::contains("2 block(s) skipped as unsupported"))
+            // OPB clause: opb_skipped=1 — full discriminating substring (HS-108 Case E, tightened per O-1)
+            .stderr(predicate::str::contains("includes 1 obsolete"))
+            .stderr(predicate::str::contains("mergecap"));
     }
 
     // -----------------------------------------------------------------------
