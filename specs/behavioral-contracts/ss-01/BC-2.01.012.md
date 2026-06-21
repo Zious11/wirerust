@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.9"
+version: "2.0"
 status: draft
 producer: product-owner
 timestamp: 2026-06-19T00:00:00Z
@@ -21,6 +21,7 @@ modified:
   - "v1.6: Pass-6 remediation per ADR-009 rev 9 (F-H4 discriminant split) — PC5 split into two explicit sub-postconditions: PC5a (empty-table path → E-INP-009 with exact message format) and PC5b (OOB-on-non-empty path → E-INP-010 with exact message format). AC-001 strengthened to require the two discriminants to be DIFFERENT (empty⇒009, OOB-non-empty⇒010) — returning any single code for both cases is an AC violation. VP-027 updated: now asserts the discriminant itself (not just 'returns Err') for the empty-table vs OOB split. This resolves the F-H4 finding: prior text used ambiguous '(→ E-INP-009 / E-INP-010)' notation that did not specify which condition maps to which code. — 2026-06-20"
   - "v1.7: Pass-7 remediation per ADR-009 rev 9 (F-4 EPB decode precedence) — (1) Removed contradictory 'interface table is non-empty' assertion from Precondition 1 (empty-table is a handled case → PC5a / E-INP-009, not a precondition for success). Rewrote Precondition 1 to describe the dependency on BC-2.01.011 for if_tsresol lookup only. (2) Added Postcondition 9: explicit EPB evaluation-order postcondition pinning the 5-step precedence — (i) body.len() >= 20 else E-INP-008; (ii) read interface_id; (iii) if table EMPTY → E-INP-009 (before any captured_len / data-slice decode); (iv) if interface_id >= table.len() on non-empty table → E-INP-010; (v) captured_len bound-by-body / padding-overrun → E-INP-008. Empty-table check (step iii) is evaluated AFTER the body.len()>=20 gate (step i) but BEFORE any data-slice body-decode (step v), and is independent of captured_len arithmetic. This makes HS-104 Case (empty) and HS-108 Case C (both demand E-INP-009 exactly) unambiguously derivable from the BC. — 2026-06-20"
   - "v1.9: Pass-10 remediation (MEDIUM-1) — Removed false snaplen-attribution from PC3 and EC-002 (and the canonical test vector row). Both sites now read: captured-length-truncated by the writing tool (captured_len < original_len on the wire); wirerust copies exactly captured_len bytes and does NOT compute or apply snaplen (Decision 9 amendment: snaplen is read-and-discarded by BC-2.01.011; InterfaceInfo has no snaplen field). Invariant 2 (captured_len used for data slicing, never original_len) is unchanged. — 2026-06-20"
+  - "v2.0: STORY-125 adversarial Minor-2 reconciliation — Corrected Invariant 6 to resolve spec-internal contradiction with Invariant 3. Prior text: 'original_len IS retained on the RawPacket.' This was mutually exclusive with Invariant 3 ('RawPacket struct is structurally identical to the classic-pcap RawPacket; no new fields are added'). Ground truth (confirmed from implementation): original_len IS read from the EPB body (the 5th fixed field at bytes 16-19) and IS used contextually alongside captured_len (EC-001/EC-002 truncation semantics), but is DISCARDED after reading (stored into _original_len / ignored) and is NOT retained on RawPacket. This matches the classic-pcap path, which also discards original_len. No observable behavior change — the code is correct; this is a wording correction only. No postcondition or AC asserted retention (only Invariant 6's second sentence was the offending claim). — 2026-06-20"
   - "v1.8: Pass-9 remediation (LOW-2, LOW-3) — (LOW-3) Added explicit PC6a/PC6b anchor labels to Postcondition 6 sub-items (consistent with PC5a/PC5b) so HS-104 citations resolve; PC9 step (v) now REFERENCES PC6a/PC6b instead of restating the rule (one canonical statement). (LOW-2) PC6b (padding-overrun check) marked as DEFENSE-IN-DEPTH: on a crate-framed (4-aligned) block btl-32 is a multiple of 4, so the maximum valid captured_len requires no padding, making the 20+captured_len+pad_len(captured_len) > body.len() overrun condition unreachable via a well-framed block — the crate's alignment rejection (E-INP-010) subsumes it before PC6b can fire. PC6a (unconditional bound-by-body: captured_len > body.len()) remains the live, reachable guard. Updated AC-002 and VP-027 to reflect PC6b defense-in-depth status. — 2026-06-20"
 deprecated: null
 deprecated_by: null
@@ -247,7 +248,14 @@ E-INP-008 (not E-INP-010) when the body is too short to hold the EPB fixed field
    (block_type:4 + block_total_length:4 + trailing_total_length:4) is NOT included in this
    constant. The combined minimum block size is therefore 32 bytes (12 + 20).
 6. The `captured_len` field is NOT retained on the parsed type (`data.len()` recovers it).
-   `original_len` IS retained on the RawPacket.
+   `original_len` is READ from the EPB body (the 5th 4-byte fixed field, bytes 16–19 of the
+   body) and is used contextually to characterise the captured/original-length relationship
+   (EC-001: `captured_len == original_len` — no truncation; EC-002: `captured_len <
+   original_len` — writing-tool truncation). After this contextual use, `original_len` is
+   DISCARDED and is NOT stored on `RawPacket`. This is consistent with Invariant 3: the
+   `RawPacket` struct is structurally identical to the classic-pcap `RawPacket`; no new
+   fields are added. The classic-pcap path likewise reads then discards `orig_len` from the
+   packet record header without storing it.
 
 ## Edge Cases
 

@@ -34,7 +34,7 @@ inputs:
 # Subsystem anchor: SS-01 owns this story's scope because BC-2.01.012 and
 #   BC-2.01.014 are both SS-01 behavioral contracts per their traceability
 #   tables, anchored to src/reader.rs (C-4) per ARCH-INDEX Subsystem Registry.
-input-hash: "cc08218"
+input-hash: "06da8d9"
 ---
 
 # STORY-125: EPB Parse and 64-bit Timestamp Normalization (Kani VP-025 + VP-027)
