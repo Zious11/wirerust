@@ -602,6 +602,80 @@ pub fn decode_epb_body_discriminant(
     })
 }
 
+// ─── Pure-core SHB body decoder discriminant (VP-026 Kani target) ───────────
+
+/// Typed error discriminant for `parse_shb_body` (Kani VP-026 / BC-2.01.010).
+///
+/// `#[doc(hidden)]`: exported solely for the `#[cfg(kani)]` harness. The production
+/// path (`parse_shb_body`) returns `anyhow::Result`; this enum lets the Kani proof
+/// discriminate error/success without triggering symbolic string formatting over
+/// `anyhow::Error` chains (which would make the BMC intractable over symbolic bytes,
+/// the same constraint that motivated `EpbDecodeError` for VP-027).
+#[doc(hidden)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ShbDecodeError {
+    /// body.len() < SHB_BODY_FIXED_BYTES (< 16) → E-INP-008 (body-too-short).
+    BodyTooShort,
+    /// BOM not in canonical table → E-INP-008 (invalid BOM).
+    InvalidBom,
+    /// major_version != 1 → E-INP-008 (unsupported version).
+    UnsupportedVersion,
+}
+
+/// Typed-error variant of `parse_shb_body` for Kani BMC (VP-026).
+///
+/// VERBATIM LIFT: identical decode logic to `parse_shb_body` — same guard order
+/// (length → BOM → major_version), the same canonical BOM table, the same
+/// BOM-derived endianness applied to the version fields, and the same
+/// `major_version == 1` gate. The ONLY difference is the error channel: this
+/// function returns `ShbDecodeError` instead of an `anyhow::Error` string, keeping
+/// Kani's symbolic state tractable (no `format!` over symbolic bytes). Production
+/// behavior is unchanged — `parse_shb_body` is the live path and is not modified;
+/// this twin exists solely to enable BMC-tractable VP-026 assertion checks
+/// (BC-2.01.010 / mirrors the VP-027 `decode_epb_body_discriminant` pattern).
+///
+/// `#[doc(hidden)]`: not part of the supported public API surface.
+#[doc(hidden)]
+pub fn parse_shb_body_discriminant(body: &[u8]) -> Result<ShbInfo, ShbDecodeError> {
+    // BC-2.01.010 PC5 case (b): body too short for SHB fixed fields → E-INP-008.
+    if body.len() < SHB_BODY_FIXED_BYTES {
+        return Err(ShbDecodeError::BodyTooShort);
+    }
+
+    // Read BOM bytes (body[0..4]) — raw on-disk bytes (BC-2.01.010 PC1 canonical table).
+    let bom: [u8; 4] = [body[0], body[1], body[2], body[3]];
+
+    // Canonical BOM table (BC-2.01.010 PC1): big-endian / little-endian / else error.
+    let endianness = if bom == SHB_BOM_BIG_ENDIAN {
+        SectionEndianness::BigEndian
+    } else if bom == SHB_BOM_LITTLE_ENDIAN {
+        SectionEndianness::LittleEndian
+    } else {
+        return Err(ShbDecodeError::InvalidBom);
+    };
+
+    // Parse major/minor in the byte order established by the BOM (BC-2.01.010 Invariant 4).
+    let major_version = match endianness {
+        SectionEndianness::BigEndian => u16::from_be_bytes([body[4], body[5]]),
+        SectionEndianness::LittleEndian => u16::from_le_bytes([body[4], body[5]]),
+    };
+    let minor_version = match endianness {
+        SectionEndianness::BigEndian => u16::from_be_bytes([body[6], body[7]]),
+        SectionEndianness::LittleEndian => u16::from_le_bytes([body[6], body[7]]),
+    };
+
+    // BC-2.01.010 PC2: major_version must be 1; any other value → E-INP-008.
+    if major_version != 1 {
+        return Err(ShbDecodeError::UnsupportedVersion);
+    }
+
+    Ok(ShbInfo {
+        endianness,
+        major_version,
+        minor_version,
+    })
+}
+
 // ─── Pure-core helper: IDB options TLV walk ─────────────────────────────────
 
 /// Walk the IDB options region and extract the `if_tsresol` exponent byte.
@@ -1293,8 +1367,245 @@ impl PcapSource {
 
 #[cfg(kani)]
 mod kani_proofs {
-    use super::{EpbDecodeError, InterfaceInfo, SectionEndianness, decode_epb_body_discriminant};
+    use super::{
+        EpbDecodeError, InterfaceInfo, SectionEndianness, ShbDecodeError,
+        decode_epb_body_discriminant, parse_shb_body_discriminant, pcapng_timestamp_to_secs_usecs,
+    };
     use pcap_file::DataLink;
+
+    /// VP-026: SHB parse safety + byte-order detection (BC-2.01.010).
+    ///
+    /// Proves, over a bounded symbolic SHB body, that the SHB body decode
+    /// (`parse_shb_body_discriminant`, the typed-error verbatim twin of the live
+    /// `parse_shb_body`):
+    ///   1. Never panics over any symbolic body of length [0, MAX_BODY] (totality /
+    ///      SEC-005 / BC-2.01.010 AC-005).
+    ///   2. body.len() < 16 → BodyTooShort (≡ E-INP-008, PC5 case b).
+    ///   3. BOM-based endianness detection is exact: on-disk `1A 2B 3C 4D` →
+    ///      BigEndian; `4D 3C 2B 1A` → LittleEndian; any other 4 bytes → InvalidBom
+    ///      (≡ E-INP-008) (BC-2.01.010 PC1 / Invariant 4).
+    ///   4. major_version == 1 gate: with a valid BOM and a 16+ byte body,
+    ///      major != 1 → UnsupportedVersion (≡ E-INP-008, PC2); major == 1 → Ok
+    ///      with the BOM-derived endianness recorded.
+    ///
+    /// Tractability mirrors VP-027: a fixed-capacity symbolic buffer sliced to a
+    /// symbolic length, a pure-fn target, and `#[kani::unwind]` to bound the
+    /// (compiler-emitted) array-compare loops over the 16-byte fixed region.
+    #[kani::proof]
+    #[kani::unwind(21)]
+    pub fn vp026_shb_parse_safety() {
+        // SHB fixed region is 16 bytes (SHB_BODY_FIXED_BYTES). A 20-byte symbolic
+        // buffer spans: < 16 (BodyTooShort), exactly 16, and a few trailing bytes.
+        const MAX_BODY: usize = 20;
+        let body_len: usize = kani::any_where(|n: &usize| *n <= MAX_BODY);
+
+        let mut buf = [0u8; MAX_BODY];
+        for b in buf.iter_mut() {
+            *b = kani::any();
+        }
+        let body: &[u8] = &buf[..body_len];
+
+        // (1) Totality: the call returns for every symbolic body (never panics).
+        let r = parse_shb_body_discriminant(body);
+
+        // (2) Short body → BodyTooShort, evaluated before any BOM read (PC5 case b).
+        if body_len < 16 {
+            let e = r.expect_err("body < 16 must Err");
+            kani::assert(
+                e == ShbDecodeError::BodyTooShort,
+                "VP-026(2): body < 16 -> BodyTooShort (E-INP-008 PC5b)",
+            );
+            return;
+        }
+
+        // body_len >= 16 from here: BOM and version fields are in-bounds.
+        let bom = [body[0], body[1], body[2], body[3]];
+        let is_big = bom == [0x1A, 0x2B, 0x3C, 0x4D];
+        let is_little = bom == [0x4D, 0x3C, 0x2B, 0x1A];
+
+        // (3) Endianness detection is exact and total over the BOM byte space.
+        if !is_big && !is_little {
+            let e = r.expect_err("invalid BOM must Err");
+            kani::assert(
+                e == ShbDecodeError::InvalidBom,
+                "VP-026(3): non-canonical BOM -> InvalidBom (E-INP-008 PC1)",
+            );
+            return;
+        }
+
+        // Valid BOM: recompute the expected endianness + major_version the same way
+        // the production decoder does, then assert the gate outcome.
+        let (expected_endianness, major) = if is_big {
+            (
+                SectionEndianness::BigEndian,
+                u16::from_be_bytes([body[4], body[5]]),
+            )
+        } else {
+            (
+                SectionEndianness::LittleEndian,
+                u16::from_le_bytes([body[4], body[5]]),
+            )
+        };
+
+        // (4) major_version == 1 gate (PC2).
+        if major != 1 {
+            let e = r.expect_err("major != 1 must Err");
+            kani::assert(
+                e == ShbDecodeError::UnsupportedVersion,
+                "VP-026(4a): major_version != 1 -> UnsupportedVersion (E-INP-008 PC2)",
+            );
+        } else {
+            let info = r.expect("valid BOM + major==1 must Ok");
+            kani::assert(
+                info.major_version == 1,
+                "VP-026(4b): success path records major_version == 1",
+            );
+            kani::assert(
+                info.endianness == expected_endianness,
+                "VP-026(4b): success records BOM-derived endianness (Invariant 4)",
+            );
+        }
+    }
+
+    /// VP-025: Timestamp conversion totality (BC-2.01.014 / ADR-009 rev 8 M-3).
+    ///
+    /// Proves, over a FULLY symbolic 64-bit tick counter (`ts_high: u32` +
+    /// `ts_low: u32` → the entire `[0, 2^64)` dividend space) that
+    /// `pcapng_timestamp_to_secs_usecs`:
+    ///   (a) never panics / never overflows (totality — BC-2.01.014 PC7 / SEC-005).
+    ///   (b) returns `ts_usecs ∈ [0, 999_999]` (BC-2.01.014 Invariant 3).
+    ///   (c) saturates `ts_sec` at `u32::MAX` — never wraps (BC-2.01.014 PC6 / M-3):
+    ///       `ts_sec == (ticks / ticks_per_sec).min(u32::MAX)`.
+    ///   (d) explicitly exercises the post-Y2106 case where the raw quotient
+    ///       `ticks / ticks_per_sec` exceeds `u32::MAX`, locking the `.min(u32::MAX)`
+    ///       saturation guard (VP-INDEX v2.9 line 109 / ADR-009 rev 8 M-3).
+    ///
+    /// Shared VP-025 claim-checker — verifies (a)-(d) for one `if_tsresol`.
+    ///
+    /// `if_tsresol` is passed as a **compile-time constant** from each harness so
+    /// the production fn's internal `ticks / ticks_per_sec` becomes a
+    /// division-by-constant — BMC-tractable (same property VP-027 relies on by
+    /// pinning `if_tsresol = 6`). A *symbolic* divisor here would force CBMC to
+    /// bit-blast a general 64-bit symbolic divider, which does not terminate in
+    /// practical time; hence the per-class harness split below.
+    ///
+    /// The saturation claim is verified by recomputing the saturated quotient with
+    /// the SAME concrete divisor and asserting exact equality:
+    ///   `ts_sec == (ticks / d).min(u32::MAX)`.
+    /// Because `d` is a compile-time constant in each harness, CBMC constant-folds
+    /// BOTH the production fn's division and this recomputed one (a probe confirmed
+    /// `ticks / 1_000_000` verifies in 0.02s), so the equality is BMC-cheap and
+    /// directly locks the M-3 `.min(u32::MAX)` guard (no `as u32` wrap). The
+    /// `if ts_sec == u32::MAX` branch additionally pins claim (d): the saturated
+    /// result corresponds to a true quotient `>= u32::MAX`.
+    fn vp025_check(if_tsresol: u8) {
+        let ts_high: u32 = kani::any();
+        let ts_low: u32 = kani::any(); // (ts_high, ts_low) ranges over all of [0, 2^64).
+
+        // (a) Totality: the call returns for every symbolic (ts_high, ts_low).
+        // Reaching this line (overflow-checks on under Kani) discharges
+        // no-panic / no-overflow.
+        let (ts_sec, ts_usecs) = pcapng_timestamp_to_secs_usecs(ts_high, ts_low, if_tsresol);
+
+        // (b) Microseconds fraction is always a valid microsecond (Invariant 3).
+        kani::assert(
+            ts_usecs <= 999_999,
+            "VP-025(b): ts_usecs in [0, 999_999] (BC-2.01.014 Invariant 3)",
+        );
+
+        // Recompute ticks_per_sec exactly as the production fn does. With a
+        // compile-time-constant `if_tsresol` this folds to a constant divisor.
+        let ticks: u64 = ((ts_high as u64) << 32) | (ts_low as u64);
+        let ticks_per_sec: u64 = if if_tsresol == 6 {
+            1_000_000
+        } else if if_tsresol & 0x80 == 0 {
+            let e = (if_tsresol & 0x7F) as u32;
+            10u64.checked_pow(e).unwrap_or(u64::MAX)
+        } else {
+            let e = (if_tsresol & 0x7F).min(63) as u32;
+            1u64.checked_shl(e).unwrap_or(u64::MAX)
+        };
+
+        // (c) ts_sec is the exact saturated quotient — division by the constant
+        // divisor is constant-folded by CBMC, so this is cheap. Locks .min(u32::MAX).
+        let expected_sec: u32 = (ticks / ticks_per_sec).min(u32::MAX as u64) as u32;
+        kani::assert(
+            ts_sec == expected_sec,
+            "VP-025(c): ts_sec == (ticks / ticks_per_sec).min(u32::MAX) — saturated, no wrap",
+        );
+
+        // (d) Post-Y2106 saturation guard (M-3): when the returned ts_sec is the
+        // saturated u32::MAX, the true quotient must be >= u32::MAX (not a wrap).
+        if ts_sec == u32::MAX {
+            kani::assert(
+                ticks / ticks_per_sec >= u32::MAX as u64,
+                "VP-025(d): saturated ts_sec==u32::MAX implies quotient >= u32::MAX (M-3 guard)",
+            );
+        }
+    }
+
+    /// VP-025: Timestamp conversion totality (BC-2.01.014 / ADR-009 rev 8 M-3).
+    ///
+    /// Canonical headline harness — the µs fast-path (`if_tsresol == 6`,
+    /// concrete divisor `1_000_000`). This is the EXACT case the M-3 saturation
+    /// guard targets (VP-INDEX v2.9 line 109: "large-ts_high vector where
+    /// ticks/ticks_per_sec > u32::MAX, µs fast path"). Over the FULLY symbolic
+    /// 64-bit tick counter `[0, 2^64)` it proves: (a) no panic / no overflow;
+    /// (b) `ts_usecs ∈ [0, 999_999]`; (c) `ts_sec` is the exact saturated quotient;
+    /// (d) for large ts the quotient saturates to `u32::MAX` (no wrap).
+    ///
+    /// Companion harnesses `vp025_timestamp_totality_base10` /
+    /// `vp025_timestamp_totality_base10_saturating` /
+    /// `vp025_timestamp_totality_base2` extend the same four claims to the other
+    /// `ticks_per_sec` divisor classes. The split keeps each divisor a compile-time
+    /// constant so the production fn's internal division stays BMC-tractable (a
+    /// symbolic divisor does not terminate; see `vp025_check`).
+    #[kani::proof]
+    pub fn vp025_timestamp_totality() {
+        vp025_check(6); // µs fast-path — M-3 critical case.
+    }
+
+    /// VP-025 base-10 sub-path (non-saturating): exercises the `BASE10_POWERS`
+    /// table hits for `e ∈ {0, 9, 19}` (10^0 = 1, 10^9 ns, 10^19 table max).
+    #[kani::proof]
+    pub fn vp025_timestamp_totality_base10() {
+        let sel: u8 = kani::any();
+        let if_tsresol = if sel == 0 {
+            0
+        } else if sel == 1 {
+            9
+        } else {
+            19
+        };
+        vp025_check(if_tsresol);
+    }
+
+    /// VP-025 base-10 saturating sub-path: `e ≥ 20` → divisor saturates to
+    /// `u64::MAX` (RESOLS `20`, `127`). With divisor u64::MAX the quotient is 0 for
+    /// all ticks < u64::MAX, so ts_sec never saturates — exercises the table
+    /// upper-bound guard and the `else { u64::MAX }` arm.
+    #[kani::proof]
+    pub fn vp025_timestamp_totality_base10_saturating() {
+        let big: bool = kani::any();
+        vp025_check(if big { 127 } else { 20 });
+    }
+
+    /// VP-025 base-2 sub-path: bit 7 set. Exercises `2^0` (0x80), `2^6` (0x86),
+    /// and the e-clamp-to-63 → `2^63` edge (0xBF, 0xFF) via `checked_shl`.
+    #[kani::proof]
+    pub fn vp025_timestamp_totality_base2() {
+        let sel: u8 = kani::any();
+        let if_tsresol = if sel == 0 {
+            0x80
+        } else if sel == 1 {
+            0x86
+        } else if sel == 2 {
+            0xBF
+        } else {
+            0xFF
+        };
+        vp025_check(if_tsresol);
+    }
 
     /// VP-027: EPB parse safety — real-call proof over symbolic body + interface table.
     ///
