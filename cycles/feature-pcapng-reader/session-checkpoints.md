@@ -1,12 +1,25 @@
 ---
 document_type: session-checkpoints
 cycle: feature-pcapng-reader
-phase: F5
+phase: F6
 ---
 
 # Session Checkpoints Archive — feature-pcapng-reader
 
 Archived session resume checkpoints (superseded). Latest checkpoint is in STATE.md.
+
+---
+
+## Checkpoint D-189 (2026-06-21 — F5 CONVERGED / 3 consecutive clean passes)
+
+Superseded by D-190 checkpoint (F5 CLOSED / F6 IN PROGRESS — SEC-001 resolved PR #292).
+
+- **Status:** F5 CONVERGED. 8 passes; 3 consecutive clean (passes 6/7/8). BC-5.39.001 SATISFIED.
+- **develop:** 3fc0e67. **main:** b73b242. stories_delivered=77.
+- **F5 trajectory:** Pass 1: 5 findings → Pass 2a: HALT → Pass 2: 3 findings → Pass 3: 1 → Pass 4: 1 → Pass 5: 2 → Pass 6: CLEAN → Pass 7: CLEAN → Pass 8: CLEAN.
+- **PAUSED:** Awaiting human approval before F6 (phase-by-phase cadence D-186).
+- **Open follow-ups at archive:** SEC-001/SEC-002 (F5P1) non-blocking; PG-F5-FRESHNESS-001 mitigated; PG-F5-DOCTENSE-TOKENS-001 OPEN HIGH.
+- **Spec versions at archive:** prd.md v1.33, ADR-009 rev 12, VP-INDEX v2.9 (VP-027 active), BC-INDEX v1.68. 302 active BCs.
 
 ---
 
