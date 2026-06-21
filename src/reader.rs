@@ -83,25 +83,25 @@ const DEFAULT_TSRESOL: u8 = 6;
 /// Generated at compile time; no runtime computation.
 /// Option A per BC-2.01.014 VP-025 note: keeps Kani proof bounded without #[kani::unwind].
 const BASE10_POWERS: [u64; 20] = [
-    1,                    // 10^0
-    10,                   // 10^1
-    100,                  // 10^2
-    1_000,                // 10^3
-    10_000,               // 10^4
-    100_000,              // 10^5
-    1_000_000,            // 10^6  (µs default)
-    10_000_000,           // 10^7
-    100_000_000,          // 10^8
-    1_000_000_000,        // 10^9  (ns)
-    10_000_000_000,       // 10^10
-    100_000_000_000,      // 10^11
-    1_000_000_000_000,    // 10^12
-    10_000_000_000_000,   // 10^13
-    100_000_000_000_000,  // 10^14
-    1_000_000_000_000_000,   // 10^15
-    10_000_000_000_000_000,  // 10^16
-    100_000_000_000_000_000, // 10^17
-    1_000_000_000_000_000_000, // 10^18
+    1,                          // 10^0
+    10,                         // 10^1
+    100,                        // 10^2
+    1_000,                      // 10^3
+    10_000,                     // 10^4
+    100_000,                    // 10^5
+    1_000_000,                  // 10^6  (µs default)
+    10_000_000,                 // 10^7
+    100_000_000,                // 10^8
+    1_000_000_000,              // 10^9  (ns)
+    10_000_000_000,             // 10^10
+    100_000_000_000,            // 10^11
+    1_000_000_000_000,          // 10^12
+    10_000_000_000_000,         // 10^13
+    100_000_000_000_000,        // 10^14
+    1_000_000_000_000_000,      // 10^15
+    10_000_000_000_000_000,     // 10^16
+    100_000_000_000_000_000,    // 10^17
+    1_000_000_000_000_000_000,  // 10^18
     10_000_000_000_000_000_000, // 10^19
 ];
 
@@ -329,26 +329,24 @@ pub fn pcapng_timestamp_to_secs_usecs(ts_high: u32, ts_low: u32, if_tsresol: u8)
         return (ts_sec, ts_usecs);
     }
 
-    let ticks_per_sec: u64;
-
-    if if_tsresol & 0x80 == 0 {
+    let ticks_per_sec: u64 = if if_tsresol & 0x80 == 0 {
         // BC-2.01.014 PC2: base-10, e = if_tsresol & 0x7F.
         // Option A: precomputed lookup table for e ∈ [0, 19]; saturate to u64::MAX for e ≥ 20.
         // This keeps the Kani VP-025 proof bounded without #[kani::unwind] annotations.
         let e = (if_tsresol & 0x7F) as usize;
-        ticks_per_sec = if e < BASE10_POWERS.len() {
+        if e < BASE10_POWERS.len() {
             BASE10_POWERS[e]
         } else {
             u64::MAX
-        };
+        }
     } else {
         // BC-2.01.014 PC3: base-2, e = if_tsresol & 0x7F.
         // MANDATORY: clamp e to [0, 63] before shift — 1u64 << 64 panics with overflow-checks.
         // wirerust release profile sets overflow-checks = true (ADR-009 rev 9 / BC-2.01.014 Inv6).
         let e = (if_tsresol & 0x7F).min(63) as u32;
         // checked_shl returns None only for shift >= 64; after clamp to 63 this is unreachable.
-        ticks_per_sec = 1u64.checked_shl(e).unwrap_or(u64::MAX);
-    }
+        1u64.checked_shl(e).unwrap_or(u64::MAX)
+    };
 
     // BC-2.01.014 PC2/PC3: compute ts_sec with mandatory saturation (PC6 / VP-025 totality).
     // ticks_per_sec >= 1 always (PC7: no division by zero).
@@ -356,8 +354,8 @@ pub fn pcapng_timestamp_to_secs_usecs(ts_high: u32, ts_low: u32, if_tsresol: u8)
 
     // BC-2.01.014 PC2/PC3: compute ts_usecs via u128 intermediate to prevent overflow.
     // (ticks % ticks_per_sec) * 1_000_000 overflows u64 for base-2 e >= 43.
-    let ts_usecs = (((ticks % ticks_per_sec) as u128 * 1_000_000u128) / ticks_per_sec as u128)
-        as u32;
+    let ts_usecs =
+        (((ticks % ticks_per_sec) as u128 * 1_000_000u128) / ticks_per_sec as u128) as u32;
 
     (ts_sec, ts_usecs)
 }
@@ -999,8 +997,8 @@ impl PcapSource {
                     }
 
                     // Slice packet data bounded by captured_len (BC-2.01.012 PC3 / Invariant 2).
-                    let packet_data = &blk_body
-                        [EPB_FIXED_OVERHEAD_BYTES..EPB_FIXED_OVERHEAD_BYTES + captured_len as usize];
+                    let packet_data = &blk_body[EPB_FIXED_OVERHEAD_BYTES
+                        ..EPB_FIXED_OVERHEAD_BYTES + captured_len as usize];
 
                     // Timestamp routing: call the pure-core helper with per-interface if_tsresol.
                     // BC-2.01.012 PC2 / BC-2.01.014: helper owns the ticks combine and all arithmetic.
