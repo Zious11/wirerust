@@ -68,10 +68,42 @@ const IDB_BODY_FIXED_BYTES: usize = 8;
 
 /// EPB body minimum: 20 bytes (interface_id:4 + ts_high:4 + ts_low:4 +
 /// captured_len:4 + original_len:4).
-const EPB_BODY_FIXED_BYTES: usize = 20;
+///
+/// Named `EPB_FIXED_OVERHEAD_BYTES` per BC-2.01.012 Inv5 / Architecture Compliance Rule 2.
+const EPB_FIXED_OVERHEAD_BYTES: usize = 20;
 
 /// Default if_tsresol for pcapng (microseconds = 10^-6, per pcapng spec §4.4).
 const DEFAULT_TSRESOL: u8 = 6;
+
+/// Precomputed powers of 10 for base-10 if_tsresol lookup (BC-2.01.014 / VP-025 Option A).
+///
+/// Index `e` holds `10^e` for `e ∈ [0, 19]`. Values for `e ≥ 20` exceed u64::MAX
+/// and are handled by saturating to u64::MAX at the call site.
+///
+/// Generated at compile time; no runtime computation.
+/// Option A per BC-2.01.014 VP-025 note: keeps Kani proof bounded without #[kani::unwind].
+const BASE10_POWERS: [u64; 20] = [
+    1,                          // 10^0
+    10,                         // 10^1
+    100,                        // 10^2
+    1_000,                      // 10^3
+    10_000,                     // 10^4
+    100_000,                    // 10^5
+    1_000_000,                  // 10^6  (µs default)
+    10_000_000,                 // 10^7
+    100_000_000,                // 10^8
+    1_000_000_000,              // 10^9  (ns)
+    10_000_000_000,             // 10^10
+    100_000_000_000,            // 10^11
+    1_000_000_000_000,          // 10^12
+    10_000_000_000_000,         // 10^13
+    100_000_000_000_000,        // 10^14
+    1_000_000_000_000_000,      // 10^15
+    10_000_000_000_000_000,     // 10^16
+    100_000_000_000_000_000,    // 10^17
+    1_000_000_000_000_000_000,  // 10^18
+    10_000_000_000_000_000_000, // 10^19
+];
 
 // ─── Public types ────────────────────────────────────────────────────────────
 
@@ -249,6 +281,83 @@ pub fn parse_shb_body(body: &[u8]) -> Result<ShbInfo> {
         major_version,
         minor_version,
     })
+}
+
+// ─── Pure-core helper: 64-bit pcapng timestamp normalization ────────────────
+
+/// Convert a pcapng EPB 64-bit split-tick timestamp to `(ts_sec, ts_usecs)`.
+///
+/// This is the designated pure-core Kani proof target (VP-025 / ADR-009 Decision 4 /
+/// BC-2.01.014). It is the ONLY place in wirerust that interprets the `if_tsresol`
+/// exponent byte — the EPB arm calls this function and MUST NOT perform timestamp
+/// arithmetic inline.
+///
+/// # Arguments
+///
+/// - `ts_high` — high 32 bits of the pcapng 64-bit tick counter (EPB body bytes 4-7).
+/// - `ts_low`  — low 32 bits of the pcapng 64-bit tick counter (EPB body bytes 8-11).
+/// - `if_tsresol` — raw `if_tsresol` byte from the IDB options TLV (code 9), or
+///   `6u8` (the pcapng spec default for microseconds) when the option is absent.
+///   Bit 7 selects the base: 0 → base-10 (`10^(e & 0x7F)` ticks/sec);
+///   1 → base-2 (`2^(e & 0x7F)` ticks/sec, e clamped to [0,63]).
+///
+/// # Returns
+///
+/// `(ts_sec: u32, ts_usecs: u32)` where:
+/// - `ts_sec` saturates at `u32::MAX` for post-Y2106 timestamps (BC-2.01.014 PC6).
+/// - `ts_usecs` is always in `[0, 999_999]` (BC-2.01.014 Invariant 3).
+///
+/// # Panics
+///
+/// Never panics for any `(u32, u32, u8)` input. VP-025 (Kani) formally verifies
+/// this totality claim over the full symbolic input space.
+///
+/// # Forbidden
+///
+/// MUST NOT call `EnhancedPacketBlock::timestamp` or any crate Duration type.
+/// Signature MUST contain only Rust primitive integer types (BC-2.01.014 BC).
+pub fn pcapng_timestamp_to_secs_usecs(ts_high: u32, ts_low: u32, if_tsresol: u8) -> (u32, u32) {
+    // BC-2.01.014 PC1: combine split ticks into 64-bit value.
+    // Safe: both operands are u64; shift is exactly 32; OR with u32 cannot overflow u64.
+    let ticks: u64 = ((ts_high as u64) << 32) | (ts_low as u64);
+
+    // BC-2.01.014 PC4: µs fast path (if_tsresol == 6 exactly, base-10, 10^6).
+    // MANDATORY saturation via .min(u32::MAX as u64) — bare as u32 wraps for large ts_high (M-3).
+    if if_tsresol == 6 {
+        let ts_sec = (ticks / 1_000_000).min(u32::MAX as u64) as u32;
+        let ts_usecs = (ticks % 1_000_000) as u32;
+        return (ts_sec, ts_usecs);
+    }
+
+    let ticks_per_sec: u64 = if if_tsresol & 0x80 == 0 {
+        // BC-2.01.014 PC2: base-10, e = if_tsresol & 0x7F.
+        // Option A: precomputed lookup table for e ∈ [0, 19]; saturate to u64::MAX for e ≥ 20.
+        // This keeps the Kani VP-025 proof bounded without #[kani::unwind] annotations.
+        let e = (if_tsresol & 0x7F) as usize;
+        if e < BASE10_POWERS.len() {
+            BASE10_POWERS[e]
+        } else {
+            u64::MAX
+        }
+    } else {
+        // BC-2.01.014 PC3: base-2, e = if_tsresol & 0x7F.
+        // MANDATORY: clamp e to [0, 63] before shift — 1u64 << 64 panics with overflow-checks.
+        // wirerust release profile sets overflow-checks = true (ADR-009 rev 9 / BC-2.01.014 Inv6).
+        let e = (if_tsresol & 0x7F).min(63) as u32;
+        // checked_shl returns None only for shift >= 64; after clamp to 63 this is unreachable.
+        1u64.checked_shl(e).unwrap_or(u64::MAX)
+    };
+
+    // BC-2.01.014 PC2/PC3: compute ts_sec with mandatory saturation (PC6 / VP-025 totality).
+    // ticks_per_sec >= 1 always (PC7: no division by zero).
+    let ts_sec = (ticks / ticks_per_sec).min(u32::MAX as u64) as u32;
+
+    // BC-2.01.014 PC2/PC3: compute ts_usecs via u128 intermediate to prevent overflow.
+    // (ticks % ticks_per_sec) * 1_000_000 overflows u64 for base-2 e >= 43.
+    let ts_usecs =
+        (((ticks % ticks_per_sec) as u128 * 1_000_000u128) / ticks_per_sec as u128) as u32;
+
+    (ts_sec, ts_usecs)
 }
 
 // ─── Pure-core helper: IDB options TLV walk ─────────────────────────────────
@@ -753,22 +862,57 @@ impl PcapSource {
 
                 EPB_BLOCK_TYPE => {
                     // BC-2.01.012 / ADR-009 Decision 2: EPB carries packet data.
+                    // 5-step evaluation order per BC-2.01.012 PC9 — MUST NOT be reordered.
                     let blk_body = raw_block.body.as_ref();
-                    if blk_body.len() < EPB_BODY_FIXED_BYTES {
+
+                    // (i) Minimum body length gate — wirerust-owned check (M-1 / BC-2.01.012 AC-003).
+                    // The crate does NOT run EnhancedPacketBlock parser on the raw path.
+                    if blk_body.len() < EPB_FIXED_OVERHEAD_BYTES {
                         return Err(anyhow!(
                             "pcapng EPB body too short: expected at least {} bytes, got {} \
                              (E-INP-008: body-too-short)",
-                            EPB_BODY_FIXED_BYTES,
+                            EPB_FIXED_OVERHEAD_BYTES,
                             blk_body.len()
                         ));
                     }
+
+                    // (ii) Read interface_id from EPB body bytes 0-3 in section endianness.
+                    // Safe: body.len() >= 20 guaranteed by step (i).
+                    let interface_id = match section_endianness {
+                        SectionEndianness::BigEndian => {
+                            u32::from_be_bytes([blk_body[0], blk_body[1], blk_body[2], blk_body[3]])
+                        }
+                        SectionEndianness::LittleEndian => {
+                            u32::from_le_bytes([blk_body[0], blk_body[1], blk_body[2], blk_body[3]])
+                        }
+                    };
+
+                    // (iii) Interface table empty check — BEFORE any captured_len arithmetic.
+                    // PC5a: empty-table → E-INP-009 with exact message (BC-2.01.012 PC5a).
                     if interfaces.is_empty() {
                         return Err(anyhow!(
-                            "pcapng EPB encountered before any IDB has been parsed \
-                             (E-INP-009: no interface table entry)"
+                            "EPB references interface_id={interface_id} but interface table is \
+                             empty — no IDB has been parsed (E-INP-009)"
                         ));
                     }
-                    let (ts_high, ts_low, captured_len) = match section_endianness {
+
+                    // (iv) OOB-on-non-empty check — E-INP-010 (DIFFERENT from empty-table E-INP-009).
+                    // PC5b: interface_id >= table.len() on non-empty table → E-INP-010.
+                    // SEC-005: this bounds check MUST precede every index into interfaces[].
+                    if interface_id as usize >= interfaces.len() {
+                        let table_size = interfaces.len();
+                        return Err(anyhow!(
+                            "EPB interface_id={interface_id} out of range (table size={table_size}) \
+                             (E-INP-010)"
+                        ));
+                    }
+
+                    // Interface lookup is now safe — interface_id is in-bounds.
+                    let iface = &interfaces[interface_id as usize];
+
+                    // (v) Read remaining EPB fixed fields + captured_len validation.
+                    // Read ts_high @4-7, ts_low @8-11, captured_len @12-15, original_len @16-19.
+                    let (ts_high, ts_low, captured_len, _original_len) = match section_endianness {
                         SectionEndianness::BigEndian => {
                             let ts_high = u32::from_be_bytes([
                                 blk_body[4],
@@ -788,7 +932,13 @@ impl PcapSource {
                                 blk_body[14],
                                 blk_body[15],
                             ]);
-                            (ts_high, ts_low, cl)
+                            let ol = u32::from_be_bytes([
+                                blk_body[16],
+                                blk_body[17],
+                                blk_body[18],
+                                blk_body[19],
+                            ]);
+                            (ts_high, ts_low, cl, ol)
                         }
                         SectionEndianness::LittleEndian => {
                             let ts_high = u32::from_le_bytes([
@@ -809,11 +959,19 @@ impl PcapSource {
                                 blk_body[14],
                                 blk_body[15],
                             ]);
-                            (ts_high, ts_low, cl)
+                            let ol = u32::from_le_bytes([
+                                blk_body[16],
+                                blk_body[17],
+                                blk_body[18],
+                                blk_body[19],
+                            ]);
+                            (ts_high, ts_low, cl, ol)
                         }
                     };
 
-                    let available = blk_body.len().saturating_sub(EPB_BODY_FIXED_BYTES);
+                    // PC6a (unconditional bound-by-body, LIVE REACHABLE GUARD — BC-2.01.012 PC6a):
+                    // captured_len can never exceed body.len() regardless of block_total_length.
+                    let available = blk_body.len().saturating_sub(EPB_FIXED_OVERHEAD_BYTES);
                     if captured_len as usize > available {
                         return Err(anyhow!(
                             "pcapng EPB captured_len {captured_len} exceeds available body \
@@ -821,17 +979,32 @@ impl PcapSource {
                         ));
                     }
 
-                    let packet_data = &blk_body
-                        [EPB_BODY_FIXED_BYTES..EPB_BODY_FIXED_BYTES + captured_len as usize];
+                    // PC6b (padding-aware overhead, DEFENSE-IN-DEPTH — BC-2.01.012 PC6b):
+                    // Unreachable via crate-framed 4-aligned blocks (crate alignment rejection
+                    // subsumes this path). Coded per BC-2.01.012 AC-002 as a safety net.
+                    // pad_len(n) = (4 - n % 4) % 4
+                    let pad_len = (4usize.wrapping_sub(captured_len as usize % 4)) % 4;
+                    if EPB_FIXED_OVERHEAD_BYTES
+                        .saturating_add(captured_len as usize)
+                        .saturating_add(pad_len)
+                        > blk_body.len()
+                    {
+                        return Err(anyhow!(
+                            "pcapng EPB padding-overrun: 20 + {captured_len} + {pad_len} > {} \
+                             (E-INP-008: wirerust body-decode padding overrun; defense-in-depth)",
+                            blk_body.len()
+                        ));
+                    }
 
-                    // Timestamp conversion with default tsresol=6 (µs; BC-2.01.014).
-                    let ticks: u64 = ((ts_high as u64) << 32) | (ts_low as u64);
-                    let ticks_per_sec: u64 = 10u64
-                        .checked_pow(u32::from(DEFAULT_TSRESOL))
-                        .unwrap_or(u64::MAX);
-                    let ts_sec = (ticks / ticks_per_sec).min(u32::MAX as u64) as u32;
-                    let ts_usecs = (((ticks % ticks_per_sec) as u128 * 1_000_000)
-                        / ticks_per_sec as u128) as u32;
+                    // Slice packet data bounded by captured_len (BC-2.01.012 PC3 / Invariant 2).
+                    let packet_data = &blk_body[EPB_FIXED_OVERHEAD_BYTES
+                        ..EPB_FIXED_OVERHEAD_BYTES + captured_len as usize];
+
+                    // Timestamp routing: call the pure-core helper with per-interface if_tsresol.
+                    // BC-2.01.012 PC2 / BC-2.01.014: helper owns the ticks combine and all arithmetic.
+                    // MUST NOT use EnhancedPacketBlock::timestamp (ns-hardcoded; wrong for µs captures).
+                    let (ts_sec, ts_usecs) =
+                        pcapng_timestamp_to_secs_usecs(ts_high, ts_low, iface.if_tsresol);
 
                     packets.push(RawPacket {
                         timestamp_secs: ts_sec,
