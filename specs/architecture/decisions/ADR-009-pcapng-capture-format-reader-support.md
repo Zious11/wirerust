@@ -9,11 +9,34 @@ supersedes: null
 superseded_by: null
 ---
 
-# ADR-009: pcapng Capture-Format Reader Support (rev 11)
+# ADR-009: pcapng Capture-Format Reader Support (rev 12)
 
 ## Status
 
 **Accepted** — 2026-06-20.
+
+**Rev 12 amendment — 2026-06-21:** Two merged decisions added (PR #287,
+develop=97c66b0, F5 fix cycle):
+
+(a) Decision 25 — `PcapSource::is_pcapng` discriminant. `PcapSource` now carries
+`is_pcapng: bool`, set at the format-branch point inside `from_pcap_reader` and
+consumed by `format_zero_packet_notice` in main.rs. This eliminates the redundant
+second `read_magic` call that `format_zero_packet_notice` previously made to
+discriminate "pcap file" vs "pcapng file" notice wording (F-F5P1-003). The TOCTOU
+mislabel risk (a file deleted between the two opens yielding the wrong format label
+in the notice, violating BC-2.01.009 PC6 wording symmetry) is fully closed. The
+`is_pcapng` field is the canonical discriminant for the "pcap|pcapng" notice wording
+per Decision 19. No BC version bump required — BC-2.01.009 PC6 already mandates the
+discriminated wording; this change makes the implementation reliably correct rather
+than TOCTOU-fragile.
+
+(b) Decision 26 — EPB decode extraction and VP-027 discriminant twin. The EPB
+fixed-field decode is now a pure `decode_epb_body` function extracted from the
+`EPB_BLOCK_TYPE` match arm (src/reader.rs). Formal verification of VP-027 uses a
+`decode_epb_body_discriminant` twin for Kani BMC tractability; the twin mirrors the
+production path line-by-line. The twin-faithfulness obligation (SEC-001) requires a
+`#[cfg(test)]` equivalence smoke test as a tracked follow-up; until present,
+divergence is detectable only by re-running `cargo kani`.
 
 **Rev 11 amendment — 2026-06-20:** Decision 24 added. IDB structural validation
 (`InterfaceDescriptionBlock::from_slice` in `pcap-file` 2.0.0) fires INSIDE `next_raw_block`
@@ -758,6 +781,69 @@ two decisions together enumerate the full set of crate-boundary string-couplings
     wording. The regression guard `test_BC_2_01_011_nonzero_reserved_e_inp_008` pins E-INP-008
     and refutes E-INP-010; it MUST be retained across all version bumps."
 
+**Decision 25 — `PcapSource::is_pcapng` discriminant for zero-packet notice wording (rev 12; resolves F-F5P1-003 / BC-2.01.009 PC6 TOCTOU mislabel).** [NEW — rev 12, merged PR #287, develop=97c66b0.]
+
+`format_zero_packet_notice` (main.rs) previously called `read_magic(path)` to re-open
+the file a second time solely to discriminate "pcap file" vs "pcapng file" in the notice
+wording (BC-2.01.009 PC6 EC-009 symmetry: empty classic-pcap → "pcap file"; empty
+pcapng → "pcapng file"). The first open already happened inside `PcapSource::from_file`
+→ `from_pcap_reader`, which branched on the identical magic at the format detection
+point. Two concrete defects arose: (a) redundant I/O — every zero-packet file paid two
+`open(2)` calls; (b) TOCTOU mislabel — if the file was deleted or replaced between the
+two opens, `read_magic` returned `None` and the code defaulted to "pcapng file",
+producing a spec-incorrect notice string for classic-pcap inputs.
+
+**Decision (binding):** `PcapSource` carries a new field `is_pcapng: bool`, set at the
+format-branch point inside `from_pcap_reader` (the pcapng branch sets `is_pcapng: true`;
+the classic-pcap branch sets `is_pcapng: false`). `format_zero_packet_notice` reads
+`source.is_pcapng` directly — no second `read_magic` call. The `read_magic` call in
+`resolve_targets` for directory-scan content detection is UNAFFECTED and MUST NOT be
+removed; only the call inside `format_zero_packet_notice` is eliminated.
+
+This decision closes the TOCTOU window: the format discriminant is known with certainty
+at the branch point and is never re-derived from I/O. The observable behavior (notice
+wording per BC-2.01.009 PC6) was already mandated by Decision 19; this change makes it
+reliably correct.
+
+**No BC version bump required.** BC-2.01.009 PC6 places no constraint on how the
+"pcap|pcapng" discriminant is obtained — only on what the notice string must say.
+
+**Decision 26 — Pure `decode_epb_body` extraction and VP-027 discriminant twin for Kani tractability (rev 12; resolves F-F5P1-001 / VP-027 tautological harness).** [NEW — rev 12, merged PR #287, develop=97c66b0.]
+
+The EPB fixed-field decode that was previously inlined in the `EPB_BLOCK_TYPE` match arm
+(src/reader.rs) has been extracted into a `pub #[doc(hidden)] fn decode_epb_body` pure
+function. This function:
+- Takes `(body: &[u8], interfaces: &[InterfaceInfo], endianness: SectionEndianness)`.
+- Returns `anyhow::Result<RawPacket>`.
+- Is pure by construction (no I/O, no global state, no mutation of `interfaces`); the
+  caller owns the `packets.push(...)` and `packets_emitted` side-effects.
+- Is the canonical VP-027 Kani anchor per the VP-INDEX footnote `[^vp025-027-module-anchor]`
+  and the adjudication F-F5P1-001.
+
+The extraction is a mechanical verbatim lift of the original inlined body (same error
+strings, same check order per BC-2.01.012 PC9). All existing STORY-125 regression tests
+remain green unchanged (error-message assertions are byte-identical).
+
+**Discriminant twin for Kani BMC tractability:** The Kani harness
+`reader::kani_proofs::vp027_epb_parse_safety` uses a companion function
+`decode_epb_body_discriminant` (an `EpbDecodeError` typed twin of `decode_epb_body`)
+for symbolic exploration. The twin mirrors the production path line-by-line; twin
+faithfulness was confirmed in PR review. BMC tractability: `MAX_BODY = 28` bytes;
+687 verification checks; `cargo kani` reports VERIFICATION SUCCESSFUL; non-vacuity
+confirmed via deliberate-flip negative test (temporarily asserted wrong error code,
+confirmed Kani FAILED).
+
+**Twin-drift risk (SEC-001):** The `decode_epb_body_discriminant` twin is not type-checked
+against `decode_epb_body` by the compiler. A future refactor of `decode_epb_body` that
+is not reflected in the twin would silently degrade the proof. Mitigation obligation: a
+`#[cfg(test)]` equivalence smoke test asserting that `decode_epb_body` and
+`decode_epb_body_discriminant` agree on all error discriminants for a representative
+input set. This smoke test is a TRACKED FOLLOW-UP; until present, twin drift is
+detectable only by re-running `cargo kani`. See VP-INDEX [c] and the SEC-001 note.
+
+**VP-027 status:** `draft` → `active` (real non-vacuous proof; F6 lock gate transitions
+it to `verified` per the standard VP-022/023/024 lifecycle). No VP count change.
+
 **Fallback — Option C (hand-roll, +0 crates).** If during implementation `pcap-file`
 2.0.0's `RawBlock` / `next_raw_block` path exhibits a defect (incorrect byte-order
 handling, forward-progress violation not caught by the spike), the escalation path is a
@@ -1034,6 +1120,20 @@ degradation). Regression guard `test_BC_2_01_011_nonzero_reserved_e_inp_008` pin
 E-INP-008 and refutes E-INP-010. PO must correct BC-2.01.011 PC4/EC-010. Explicit IDB
 sibling of Decision 23 (SHB string coupling). No code change needed; no VP count change;
 no section file change; no subsystem change.
+
+**Rev 12 (2026-06-21):** Two decisions added reflecting merged F5 fix (PR #287,
+develop=97c66b0). Decision 25 — `PcapSource::is_pcapng: bool` discriminant: format
+flag set at the branch point in `from_pcap_reader`, consumed by
+`format_zero_packet_notice` in main.rs; eliminates the redundant second `read_magic`
+call and the TOCTOU mislabel risk (F-F5P1-003 / BC-2.01.009 PC6 wording symmetry). No
+BC version bump required; no VP count change. Decision 26 — EPB decode extraction and
+VP-027 discriminant twin: `decode_epb_body` pure function extracted from the
+`EPB_BLOCK_TYPE` arm; Kani harness `vp027_epb_parse_safety` rewritten to call the real
+function (symbolic body + interface table, 687 checks, VERIFICATION SUCCESSFUL,
+non-vacuity confirmed); BMC tractability via `EpbDecodeError` discriminant twin
+`decode_epb_body_discriminant` (twin FAITHFUL per PR review); SEC-001 twin-drift
+follow-up tracked; VP-027 status draft→active. No VP count change; no section file
+change; no subsystem change.
 
 ### PO BC-Change Dispatch (rev 4)
 

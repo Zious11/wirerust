@@ -179,3 +179,17 @@ F5 adversary dispatch was attempted but hit transient model-availability error; 
 develop=e75a797. main=b73b242. TWO worktrees: main repo (develop) + .factory/ (factory-artifacts). All story worktrees CLOSED.
 
 RESUME ACTION from this checkpoint was: launch F5 scoped adversarial sweep (now recorded in D-187 SESSION RESUME CHECKPOINT in STATE.md).
+
+---
+
+## Checkpoint D-187 (2026-06-21 — SESSION PAUSED at F5 ENTRY)
+
+Superseded by D-188 checkpoint (F5 Pass-1 COMPLETE — NOT clean, all resolved, PR #287 merged 97c66b0).
+
+**Phase:** F5 IN PROGRESS (ENTRY — no pass started). **Mode:** FEATURE. **Cycle:** feature-pcapng-reader.
+
+Archived to session-checkpoints at D-188 (F5 Pass-1 complete burst). This was the SESSION PAUSED checkpoint.
+
+develop=e75a797 at pause. main=b73b242. TWO worktrees only. All story worktrees CLOSED. Input-drift MATCH.
+
+F5 adversary dispatch hit transient model-availability error before pause — nothing was lost. RESUME from D-188 checkpoint: F5 Pass 2 (fresh-context adversary, develop=97c66b0).

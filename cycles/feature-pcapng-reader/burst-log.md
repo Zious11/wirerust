@@ -76,3 +76,43 @@ F5-F7-INTAKE follow-up list recorded in D-184 decisions entry:
 - F-5 (authentic arp-baseline fixture for Phase-4 holdout)
 
 NEXT: F4 GATE — fresh-context consistency-validator audit across full pcapng delta + input-hash drift check (bin/compute-input-hash --scan) + STRUCTURED HUMAN APPROVAL. Then F5 (scoped adversarial refinement) → F6 (targeted hardening) → F7 (delta convergence + final gate).
+
+---
+
+## D-188 Burst — F5 Pass-1 Findings → Adjudication → Merged Fix → Spec Bumps (2026-06-21)
+
+**Decision:** D-188
+**Protocol:** Single-Commit Burst Protocol (TD-VSDD-053)
+**develop HEAD before:** e75a797 (post STORY-128/PR #286)
+**develop HEAD after:** 97c66b0 (PR #287 merged — F5 Pass-1 fix)
+**factory-artifacts commit:** this burst
+
+### Agents Dispatched
+
+- adversary (fresh-context, F5 holistic sweep): F5 Pass 1 report → NOT clean (1H/2M/2L)
+- formal-verifier: adjudicated F-F5P1-001 (VP-027 tautological harness) → UPHELD → Option A
+- architect: adjudicated F-F5P1-003 / O-2 → F-F5P1-003 OPTION A (is_pcapng field), O-2 DO NOT ALIGN
+- implementer: delivered PR #287 fix (decode_epb_body extraction + is_pcapng + VP-027 real harness)
+- state-manager: this burst
+
+### Files Touched (factory-artifacts)
+
+- `.factory/phase-f5-adversarial/pcapng-f5-pass1.md` — CREATED (F5 Pass-1 findings log)
+- `.factory/specs/behavioral-contracts/BC-INDEX.md` — BC-2.01.013 annotation v1.9→v1.10
+- `.factory/specs/architecture/ARCH-INDEX.md` — ADR-009 row updated rev 12; changelog entry added
+- `.factory/STATE.md` — frontmatter, checkpoint, Phase Progress, Drift Items, Decisions Log
+- `.factory/cycles/feature-pcapng-reader/burst-log.md` — this entry
+- `.factory/cycles/feature-pcapng-reader/session-checkpoints.md` — D-187 checkpoint archived
+
+### Spec Versions After Burst
+
+ADR-009 rev 12, VP-INDEX v2.9 (VP-027 status=active, 687 Kani checks), BC-2.01.013 v1.10, BC-INDEX v1.68 annotation, ARCH-INDEX v1.5 row+changelog. 302 active BCs unchanged.
+
+### Follow-up Drift Items (non-blocking)
+
+- SEC-001 (F5P1) [MED]: decode_epb_body / decode_epb_body_discriminant twin equivalence smoke test
+- SEC-002 (F5P1) [LOW]: replace wrapping_sub in PC6b with plain subtraction + auditor comment
+
+### Next Action
+
+F5 Pass 2 — fresh-context adversary sweep at develop=97c66b0. Target: 3 consecutive CLEAN passes (BC-5.39.001 F5 gate). PAUSE for human review before F6.

@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.9"
+version: "1.10"
 status: draft
 producer: product-owner
 timestamp: 2026-06-19T00:00:00Z
@@ -16,6 +16,7 @@ modified:
   - "v1.6: Pass-6 remediation T1 — ADR-009 rev 9 Decision 22: resolved contradictory body-bound definitions. On the raw path RawBlock.body = [original_len:4][padded data], so the available data bytes after original_len = spb_data_available = body.len() - 4 (NOT body.len(), which is 4 bytes too large). Canonical formula everywhere: captured_len = min(original_len, spb_data_available) = min(original_len, body.len() - 4). Deleted all 'equivalently body.len()' / 'body.len() as the bound' text. Updated: Description (define spb_data_available symbol), PC1 (use spb_data_available), Invariant-2 (canonical symbol definition), AC-002 (min(original_len, body.len()-4)), EC-007 (captured_len = body.len()-4 when original_len > spb_data_available), VP-031 row (property min(original_len, body.len()-4); domain starts where body.len()>=4, else E-INP-008 body-too-short), Architecture Anchors (remove body.len() bare equivalences). — 2026-06-20"
   - "v1.7: Pass-7 remediation per ADR-009 rev 9 (F-7 symbol rename; F-8 misaligned fixture) — (F-7) Renamed retired symbol `block_body_available` → `spb_data_available` in EC-001, EC-002, EC-003, and Canonical Test Vectors; each value confirmed as min(original_len, body.len()-4). Also updated stale `block_body_available` reference in Precondition 4. (F-8) Expanded EC-005 to enumerate both crate-rejection sub-cases: (a) btl < 12 (e.g., btl=8) → crate rejects → E-INP-010; (b) btl=14 (>=12 but 14%4!=0) → crate rejects for 4-byte alignment → E-INP-010. Added canonical test vector for the btl=14 misaligned case so the BC's enumerated cases match HS-107 Case E and make clear that E-INP-010 fires for misalignment (not only for btl<12). No residual `block_body_available` occurrences remain in EC-001–EC-003 or Canonical Test Vectors. — 2026-06-20"
   - "v1.8: Pass-8 M-3 remediation (DF-AC-TEST-NAME-SYNC-001) — AC-001 test name renamed: `test_BC_2_01_013_snaplen_lookup_guarded` → `test_BC_2_01_013_empty_interface_table_guarded`. Snaplen was removed from the SPB path (ADR-009 rev 8 Decision 9 amendment / rev 9 F-M3); the old name was stale. AC-001 scope note clarified: the guard solely prevents an unchecked index on an empty interface table (E-INP-009 path); the body-too-short error path (btl=12 → body=0 < 4 → E-INP-008) is handled distinctly by AC-004a/EC-008, so these ACs are non-redundant. No normative behavior change. — 2026-06-20"
+  - "v1.10: F5 adversarial O-2 adjudication (documentation-only) — added accepted-behavior note to Postcondition 5 documenting that the SPB decode path checks the empty-interface-table guard (E-INP-009) BEFORE the body-too-short guard (E-INP-008), which is the reverse of the EPB five-step precedence mandated by BC-2.01.012 PC9. The asymmetry is accepted: SPB has no interface_id body field, so the empty-table check does not depend on reading any body bytes and evaluating it first is semantically coherent. For the single constructible overlap case (btl=12, body=0, empty table) the implementation yields E-INP-009; EPB-aligned ordering would yield E-INP-008. Both correctly reject the block with no silent pass-through. BC-2.01.013 imposes no ordering constraint between these two guards; this is documentation-only — no normative change. Cross-reference: BC-2.01.012 PC9, finding O-2, adjudication F-F5P1-003-O2-adjudication.md. — 2026-06-21"
   - "v1.9: Pass-9 LOW-1 remediation — resolved sibling asymmetry with BC-2.01.012. Precondition 3, Postcondition 5, and AC-001 now mandate the exact SPB E-INP-009 message string: 'SPB encountered but interface table is empty — no IDB has been parsed' (mirrors EPB PC5a form from BC-2.01.012). The prior text said only 'Err mapping to E-INP-009' with no string, leaving the SPB message unconstrained (HS-107 Case D accepted 'or similar'). The mandated string is also registered in error-taxonomy.md E-INP-009 SPB row (v3.6). No other normative behavior change. — 2026-06-20"
   - "v1.5: Pass-5 remediation S2 — ADR-009 rev 8 Decision 9 amendment: snaplen DROPPED from SPB captured_len. Decision 9 states snaplen is NOT enforced for SPB (same as EPB). captured_len now = min(original_len, block_body_available) everywhere — block_body_available = body.len() is the authoritative on-disk bound. Removed snaplen from: Description, PC1, AC-002, EC-007, EC-001, Invariant 2, Canonical Test Vectors, Architecture Anchors. VP-031 updated: captured_len == min(original_len, body.len() as u32). EC-007 'snaplen wins' case restated: original_len > block_body_available → data clamped to block_body_available. HS-107 VP row description corrected to match HS-107 actual scope (SPB framing truncation/padding/no-IDB, incl. Case F btl=12→E-INP-008). Removed 4x stale '(HS-107 btl=12→E-INP-008 holdout deferred to a separate burst.)' notes — HS-107 Case F now covers it. — 2026-06-20"
   - "v1.4: Pass-4 remediation R2 — Decision 20: added body-too-short E-INP-008 case for SPB: btl=12 (aligned, >=12, crate frames and returns block) → body=0 bytes < 4 SPB fixed-field bytes (original_len:u32) → wirerust body-decode → E-INP-008. Distinguishes from btl<12/misaligned/EOF → crate Err → E-INP-010. Updated Postcondition 6, added EC-008, added AC-004a body-truncation test, updated Canonical Test Vectors and Traceability. M-1: removed 'crate enforces body minimum' over-claim from Architecture Anchors — wirerust checks body.len()>=4 itself on the raw path before decoding SPB fixed fields. Authority: ADR-009 rev 7 Decision 20, per-block fixed-field minimum SPB=4. — 2026-06-20"
@@ -82,6 +83,19 @@ specification. Timestamp fields on `RawPacket` are always set to zero for SPBs.
    mapping to E-INP-009. The caller MUST guard the `idb[0]` access; an unchecked index on an
    empty table is NOT permitted (H-4 fix). The error message MUST be:
    `"SPB encountered but interface table is empty — no IDB has been parsed"`.
+
+   **PC5 — Accepted-behavior note (O-2 / F-F5P1-003-O2-adjudication.md):** The SPB decode
+   path checks the empty-interface-table guard (PC5 / E-INP-009) BEFORE the body-too-short
+   guard (PC6 / E-INP-008). This is the REVERSE of the five-step EPB evaluation order
+   mandated by BC-2.01.012 PC9. The asymmetry is **accepted and correct**: SPB has no
+   `interface_id` body field — it always uses interface 0 — so the empty-table check does not
+   depend on reading any body bytes, and evaluating it first is semantically coherent. For the
+   single constructible overlap case (btl=12, body=0, empty table), the implementation yields
+   E-INP-009; EPB-aligned ordering (body-len check first) would yield E-INP-008. Both
+   correctly reject the block with no silent pass-through. BC-2.01.013 imposes no ordering
+   constraint between these two guards. This is documentation-only — no normative constraint
+   change. Cross-reference: BC-2.01.012 PC9 (EPB five-step precedence); finding O-2.
+
 6. **SPB error routing — uniform split (ADR-009 rev 7 Decision 20).**
    - **btl < 12 / btl % 4 != 0 / EOF** — crate rejects before returning any block →
      **E-INP-010**. wirerust never sees the body.
