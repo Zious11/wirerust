@@ -602,6 +602,80 @@ pub fn decode_epb_body_discriminant(
     })
 }
 
+// ─── Pure-core SHB body decoder discriminant (VP-026 Kani target) ───────────
+
+/// Typed error discriminant for `parse_shb_body` (Kani VP-026 / BC-2.01.010).
+///
+/// `#[doc(hidden)]`: exported solely for the `#[cfg(kani)]` harness. The production
+/// path (`parse_shb_body`) returns `anyhow::Result`; this enum lets the Kani proof
+/// discriminate error/success without triggering symbolic string formatting over
+/// `anyhow::Error` chains (which would make the BMC intractable over symbolic bytes,
+/// the same constraint that motivated `EpbDecodeError` for VP-027).
+#[doc(hidden)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ShbDecodeError {
+    /// body.len() < SHB_BODY_FIXED_BYTES (< 16) → E-INP-008 (body-too-short).
+    BodyTooShort,
+    /// BOM not in canonical table → E-INP-008 (invalid BOM).
+    InvalidBom,
+    /// major_version != 1 → E-INP-008 (unsupported version).
+    UnsupportedVersion,
+}
+
+/// Typed-error variant of `parse_shb_body` for Kani BMC (VP-026).
+///
+/// VERBATIM LIFT: identical decode logic to `parse_shb_body` — same guard order
+/// (length → BOM → major_version), the same canonical BOM table, the same
+/// BOM-derived endianness applied to the version fields, and the same
+/// `major_version == 1` gate. The ONLY difference is the error channel: this
+/// function returns `ShbDecodeError` instead of an `anyhow::Error` string, keeping
+/// Kani's symbolic state tractable (no `format!` over symbolic bytes). Production
+/// behavior is unchanged — `parse_shb_body` is the live path and is not modified;
+/// this twin exists solely to enable BMC-tractable VP-026 assertion checks
+/// (BC-2.01.010 / mirrors the VP-027 `decode_epb_body_discriminant` pattern).
+///
+/// `#[doc(hidden)]`: not part of the supported public API surface.
+#[doc(hidden)]
+pub fn parse_shb_body_discriminant(body: &[u8]) -> Result<ShbInfo, ShbDecodeError> {
+    // BC-2.01.010 PC5 case (b): body too short for SHB fixed fields → E-INP-008.
+    if body.len() < SHB_BODY_FIXED_BYTES {
+        return Err(ShbDecodeError::BodyTooShort);
+    }
+
+    // Read BOM bytes (body[0..4]) — raw on-disk bytes (BC-2.01.010 PC1 canonical table).
+    let bom: [u8; 4] = [body[0], body[1], body[2], body[3]];
+
+    // Canonical BOM table (BC-2.01.010 PC1): big-endian / little-endian / else error.
+    let endianness = if bom == SHB_BOM_BIG_ENDIAN {
+        SectionEndianness::BigEndian
+    } else if bom == SHB_BOM_LITTLE_ENDIAN {
+        SectionEndianness::LittleEndian
+    } else {
+        return Err(ShbDecodeError::InvalidBom);
+    };
+
+    // Parse major/minor in the byte order established by the BOM (BC-2.01.010 Invariant 4).
+    let major_version = match endianness {
+        SectionEndianness::BigEndian => u16::from_be_bytes([body[4], body[5]]),
+        SectionEndianness::LittleEndian => u16::from_le_bytes([body[4], body[5]]),
+    };
+    let minor_version = match endianness {
+        SectionEndianness::BigEndian => u16::from_be_bytes([body[6], body[7]]),
+        SectionEndianness::LittleEndian => u16::from_le_bytes([body[6], body[7]]),
+    };
+
+    // BC-2.01.010 PC2: major_version must be 1; any other value → E-INP-008.
+    if major_version != 1 {
+        return Err(ShbDecodeError::UnsupportedVersion);
+    }
+
+    Ok(ShbInfo {
+        endianness,
+        major_version,
+        minor_version,
+    })
+}
+
 // ─── Pure-core helper: IDB options TLV walk ─────────────────────────────────
 
 /// Walk the IDB options region and extract the `if_tsresol` exponent byte.
