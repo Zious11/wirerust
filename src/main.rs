@@ -619,7 +619,7 @@ fn grouping_from_flag(show_mitre_grouping: bool) -> Grouping {
     }
 }
 
-/// Read the first 4 bytes of a file for magic-byte content detection.
+/// Reads the first 4 bytes of a file for magic-byte content detection.
 ///
 /// Returns `None` if the file cannot be opened, the file has fewer than 4
 /// readable bytes, or any I/O error occurs.  The probe is intentionally
@@ -627,14 +627,6 @@ fn grouping_from_flag(show_mitre_grouping: bool) -> Grouping {
 ///
 /// Called by `resolve_targets` (BC-2.12.011 Inv5 / STORY-127).
 /// `pub(crate)` so the unit test suite in `tests/` can call it directly.
-///
-/// # STORY-127 stub — BC-5.38.001
-///
-/// Body is `todo!()` per Red Gate discipline. The implementer must:
-/// 1. Open the file with `std::fs::File::open(path)`.
-/// 2. Read exactly 4 bytes with `Read::read` (NOT `read_exact` — must tolerate
-///    short reads on files with < 4 bytes; return `None` if `n < 4`).
-/// 3. Return `Some([b0, b1, b2, b3])` on success, `None` on any failure.
 pub(crate) fn read_magic(path: &std::path::Path) -> Option<[u8; 4]> {
     use std::io::Read as _;
     let mut file = std::fs::File::open(path).ok()?;
