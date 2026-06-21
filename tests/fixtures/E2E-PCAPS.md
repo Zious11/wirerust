@@ -83,7 +83,7 @@ They live gitignored under `tests/fixtures/local-samples/` — never committed.
 | `gratuitous-arp-hsrp.cap` | 480 B | `e2fcc1276f31535d7e6bc5305e979ca1d5b83c7a0db1967d6334cd9b98afe7ad` | [PacketLife backup (epiecs/packetlife-backup)](https://github.com/epiecs/packetlife-backup) | ARP (6 GARP reply) | D2: 6 GARP findings fire (HSRP active-router sends sender_ip=10.0.0.6 in op=2 replies); no D1/D3 noise |
 | `arpspoof.pcap` | 14 MB | `0ce605556689edec01ef50703df7cc88c97a0d1731c4938d54cabcb28a71837a` | [researcher111/ARP-pcap-files](https://github.com/researcher111/ARP-pcap-files) | ARP (50 pkts), TCP/TLS/UDP/ICMP (16 234 total) | D1: 2 spoof findings (IP→MAC rebind for 192.168.1.1); D12: 5 L2/L3 MAC mismatch findings; 1 decode-error skipped; no D2/D3 |
 | `ppa-arp.pcap` | 144 B | `ea22826b52c96a2038d1c44eb0e7c35dbf40335f82a20cf94ef70bb821033f65` | [markofu/pcaps (PracticalPacketAnalysis)](https://github.com/markofu/pcaps) | ARP (1 req + 1 reply) | Benign baseline: 0 findings, 2 bindings tracked — no false positives on clean ARP request/reply pair |
-| `arp-baseline-16pkt.cap` | 2.2 KB | `d931e3c27cfb27d006dc6e912671443c88c243efd69b4671f900e0c06cf9ae25` | [PacketLife backup (epiecs/packetlife-backup)](https://github.com/epiecs/packetlife-backup) | ARP (pcapng wrapped in .cap extension) | **Format note:** wirerust rejects this file (`wrong magic number`) — it is a pcapng file despite the `.cap` extension. Wirerust's reader requires pcap-format magic; pcapng is not yet supported. File is retained for future pcapng support testing. |
+| `arp-baseline-16pkt.cap` | 2.2 KB | `d931e3c27cfb27d006dc6e912671443c88c243efd69b4671f900e0c06cf9ae25` | [PacketLife backup (epiecs/packetlife-backup)](https://github.com/epiecs/packetlife-backup) | ARP (pcapng wrapped in .cap extension) | **Format note:** wirerust accepts this file via content-based magic-byte detection (pcapng SHB magic `0x0A0D0D0A`; BC-2.12.011 / STORY-127 / ADR-009 Decision 11). The `.cap` extension is ignored; the file is detected and parsed by the pcapng reader stack (STORY-123..127), yielding 16 ARP packets. Resolves C-2. |
 
 ### Direct download URLs (ARP captures)
 
@@ -110,12 +110,12 @@ They live gitignored under `tests/fixtures/local-samples/` — never committed.
 
 ## Coverage gaps and notes
 
-- **pcapng not yet supported:** Large TLS-heavy captures of interest (including several
-  high-fidelity enterprise captures from Netresec and the Wireshark sample set) are available
-  only as pcapng files. Wirerust's reader requires classic pcap magic and rejects pcapng with
-  "wrong magic number" (see `arp-baseline-16pkt.cap` above for a concrete example). This
-  strengthens the case for adding pcapng support — it is the primary blocker for expanding the
-  TLS and mixed-protocol portions of the E2E corpus.
+- **pcapng now supported (STORY-123..127):** Wirerust accepts pcapng files via the pcapng
+  reader stack (STORY-123..127 / BC-2.12.011 / ADR-009). Content-based magic-byte detection
+  (resolve_targets, STORY-127) accepts any file whose first 4 bytes are the pcapng SHB magic
+  `0x0A0D0D0A`, regardless of extension (resolves C-2: `arp-baseline-16pkt.cap` now accepted
+  and parses to 16 ARP packets). Large TLS-heavy captures previously blocked by pcapng format
+  are now candidates for the E2E corpus.
 - **DNS tunneling detection not yet implemented:** `dns-tunnel-iodine.pcap` (and the
   dnscat2 captures above) currently produce 0 findings. They are retained as benign-parse
   baselines and future-detector fixtures for whenever DNS-tunneling analysis is added.

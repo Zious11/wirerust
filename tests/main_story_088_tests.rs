@@ -481,11 +481,11 @@ mod story_088 {
     // the new contract is the inverse of the old assertion.
 
     // -----------------------------------------------------------------------
-    // AC-011 (traces to BC-2.12.011 invariant 3)
+    // AC-011 (traces to BC-2.12.011 invariant 4)
     // Directory expansion is NOT recursive; subdirectories are skipped.
     // -----------------------------------------------------------------------
 
-    /// AC-011 (BC-2.12.011 invariant 3; EC-006): `resolve_targets` does NOT
+    /// AC-011 (BC-2.12.011 invariant 4; EC-011): `resolve_targets` does NOT
     /// recurse into subdirectories. Observable: a tempdir containing a
     /// subdirectory `subdir/nested.pcap` but no top-level `.pcap` files
     /// produces an empty expansion → `analyze <dir>` exits 0 with "Packets: 0".

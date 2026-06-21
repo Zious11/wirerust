@@ -51,13 +51,14 @@
 //!   - synthetic two-IDB pcapng              — built inline
 //!   - synthetic OPB-only pcapng             — built inline
 //!
-//! ## F-5 deferral status (determined by inspection in test_BC_2_12_011_arp_baseline_authenticity)
+//! ## F-5 deferral status
 //!
-//! The authentic PacketLife `arp-baseline-16pkt.cap` IS present at
-//! `tests/fixtures/local-samples/arp-baseline-16pkt.cap` with the correct sha256.
-//! F-5 is RESOLVED locally (authentic file present with 16 real EPBs).
-//! The file is gitignored; CI uses the synthetic fallback path.
-//! Phase-4 holdout must be run from an environment where local-samples/ is populated.
+//! The authentic PacketLife `arp-baseline-16pkt.cap` lives at
+//! `tests/fixtures/local-samples/arp-baseline-16pkt.cap` (gitignored).
+//! In a clean checkout (CI), that directory is empty and the synthetic fallback
+//! path runs by default.  The authentic file is fetched on demand via
+//! `bin/fetch-e2e-pcaps` (Phase-4 holdout requirement).  F-5 remains deferred
+//! to Phase-4; CI always exercises the synthetic path.
 #![allow(non_snake_case)]
 #![allow(clippy::doc_lazy_continuation)]
 
@@ -124,6 +125,59 @@ mod story_127 {
     fn write_short_file(dir: &TempDir, name: &str) {
         let path = dir.path().join(name);
         fs::write(path, [0x0A_u8, 0x0D, 0x0D]).expect("write_short_file: write failed");
+    }
+
+    // ── Classic pcap fixture builders (for F-1 positive oracle) ──────────────
+
+    /// Build a minimal valid classic-pcap file (40 bytes) producing exactly 1 packet.
+    ///
+    /// Structure:
+    ///   - 24-byte global header: magic(4) + version_major(2=2) + version_minor(2=4)
+    ///     + thiszone(4=0) + sigfigs(4=0) + snaplen(4=65535) + network(4=1/ETHERNET)
+    ///   - 16-byte packet record: ts_sec(4=0) + ts_usec_or_nsec(4=0)
+    ///     + incl_len(4=0) + orig_len(4=0) — zero-length capture, valid per spec.
+    ///
+    /// Multi-byte header fields are written in `endian` byte order as determined
+    /// by the magic value:
+    ///   - LE-magic variants ([D4C3B2A1] CLASSIC_BE, [4D3CB2A1] NS_BE): fields in LE
+    ///   - BE-magic variants ([A1B2C3D4] CLASSIC_LE, [A1B23C4D] NS_LE): fields in BE
+    ///
+    /// Naming follows the BC-2.12.011 test constant names (CLASSIC_LE/BE, NS_LE/BE).
+    fn classic_pcap_1pkt(magic: &[u8; 4], little_endian: bool) -> Vec<u8> {
+        let mut v = Vec::with_capacity(40);
+        // Global header
+        v.extend_from_slice(magic); // magic (4 bytes, verbatim)
+        if little_endian {
+            v.extend_from_slice(&2u16.to_le_bytes()); // version_major = 2
+            v.extend_from_slice(&4u16.to_le_bytes()); // version_minor = 4
+            v.extend_from_slice(&0i32.to_le_bytes()); // thiszone = 0
+            v.extend_from_slice(&0u32.to_le_bytes()); // sigfigs = 0
+            v.extend_from_slice(&65535u32.to_le_bytes()); // snaplen = 65535
+            v.extend_from_slice(&1u32.to_le_bytes()); // network = 1 (ETHERNET)
+            // Packet record (0-length capture)
+            v.extend_from_slice(&0u32.to_le_bytes()); // ts_sec = 0
+            v.extend_from_slice(&0u32.to_le_bytes()); // ts_usec = 0
+            v.extend_from_slice(&0u32.to_le_bytes()); // incl_len = 0
+            v.extend_from_slice(&0u32.to_le_bytes()); // orig_len = 0
+        } else {
+            v.extend_from_slice(&2u16.to_be_bytes()); // version_major = 2
+            v.extend_from_slice(&4u16.to_be_bytes()); // version_minor = 4
+            v.extend_from_slice(&0i32.to_be_bytes()); // thiszone = 0
+            v.extend_from_slice(&0u32.to_be_bytes()); // sigfigs = 0
+            v.extend_from_slice(&65535u32.to_be_bytes()); // snaplen = 65535
+            v.extend_from_slice(&1u32.to_be_bytes()); // network = 1 (ETHERNET)
+            // Packet record (0-length capture)
+            v.extend_from_slice(&0u32.to_be_bytes()); // ts_sec = 0
+            v.extend_from_slice(&0u32.to_be_bytes()); // ts_usec = 0
+            v.extend_from_slice(&0u32.to_be_bytes()); // incl_len = 0
+            v.extend_from_slice(&0u32.to_be_bytes()); // orig_len = 0
+        }
+        assert_eq!(
+            v.len(),
+            40,
+            "classic pcap with 1 pkt must be exactly 40 bytes"
+        );
+        v
     }
 
     // ── Inline pcapng fixture builders (for AC-009) ───────────────────────────
@@ -230,92 +284,125 @@ mod story_127 {
     // ── AC-001 ────────────────────────────────────────────────────────────────
 
     /// BC-2.12.011 PC1 + Inv1 + Inv2: `resolve_targets` accepts exactly the 5 canonical
-    /// magic values (LE, BE, ns-LE, ns-BE, pcapng-SHB).  Each is detected by content
-    /// regardless of file extension.
+    /// magic values (CLASSIC_LE, CLASSIC_BE, NS_LE, NS_BE, pcapng-SHB).  Each is detected
+    /// by content regardless of file extension.
     ///
-    /// Setup: create 1 file with a `.PCAP` (uppercase) extension containing CLASSIC_LE
-    /// magic.  Pre-refactor (stub): `ext == "pcap"` is case-sensitive — `.PCAP` is
-    /// excluded.  Pre-refactor Packets: 0.
+    /// ## Positive-inclusion oracle (F-1 fix)
     ///
-    /// Post-refactor: the magic-probe reads the first 4 bytes regardless of extension.
-    /// `[0xA1, 0xB2, 0xC3, 0xD4]` matches CLASSIC_LE → file IS included → reader
-    /// is invoked on the 8-byte content → reader errors (stream too short) → exit non-zero.
+    /// Each of the 5 magic variants is written as a **valid, minimal capture file** (valid
+    /// global header, 1 raw packet record) that the pcap/pcapng reader stack parses and
+    /// delivers as 1 raw packet to the analysis pipeline:
     ///
-    /// RED assertion (correct post-refactor behavior): exit NON-ZERO.
-    /// Under the stub: exit 0, Packets: 0 (`.PCAP` excluded by case-sensitive ext filter).
+    ///   - CLASSIC_BE  (D4 C3 B2 A1): minimal LE-native classic pcap, 1 empty pkt → "1-be.PCAP"
+    ///   - CLASSIC_LE  (A1 B2 C3 D4): minimal BE-native classic pcap, 1 empty pkt → "2-le.CAP"
+    ///   - NS_BE       (4D 3C B2 A1): minimal LE-native ns classic pcap, 1 empty pkt → "3-ns-be.data"
+    ///   - NS_LE       (A1 B2 3C 4D): minimal BE-native ns classic pcap, 1 empty pkt → "4-ns-le.txt"
+    ///   - PCAPNG      (0A 0D 0D 0A): minimal pcapng (SHB+IDB+EPB, empty payload) → "5-ng.bin"
+    ///   - reject.pcap: wrong magic [DE AD BE EF], `.pcap` extension → MUST be excluded
     ///
-    /// This test provides the cleanest discriminating RED gate for extension-independence:
-    /// - Stub: case-sensitive ext filter excludes `.PCAP` → exit 0.
-    /// - Post-refactor: magic probe ignores extension → `.PCAP` with valid magic included
-    ///   → reader errors → exit non-zero.
+    /// All 5 valid files use extensions that the pre-STORY-127 stub would NOT accept
+    /// (stub only accepted `.pcap` lowercase), proving content-based detection.
     ///
-    /// Also verifies BC-2.12.011 EC-012: "File with `.PCAP` (uppercase extension) but
-    /// valid LE magic → Accepted (extension ignored; magic matches)."
+    /// ## Discriminating oracle: "Skipped: 5 packets (decode errors)"
     ///
-    /// BC-2.12.011 PC1 / Inv1 / Inv2 / EC-012.
+    /// The 5 files each produce 1 raw packet with empty (0-byte) payload.  The
+    /// Ethernet decode stage fails on empty payloads ("Not enough data ...") →
+    /// each raw packet becomes a decode-error → "Skipped: N packets (decode errors)"
+    /// in stdout.  N = 5 if all 5 magic variants are detected; N = 4 if any
+    /// CAPTURE_MAGICS entry is missing (the corresponding file would be silently
+    /// excluded).  This makes the assertion individually sensitive to each of the 5
+    /// entries in CAPTURE_MAGICS.
     ///
-    /// RED: FAILS under stub (stub exits 0; post-refactor exits non-zero).
+    /// reject.pcap with wrong magic [DE AD BE EF] must be silently excluded — it
+    /// does NOT contribute a decode error (it is never passed to the reader).
+    ///
+    /// ## Byte-order convention for classic pcap variants
+    ///
+    /// The magic value itself identifies the byte order of the header fields that follow:
+    ///   - D4 C3 B2 A1 (CLASSIC_BE) → header fields in LE (little-endian native)
+    ///   - A1 B2 C3 D4 (CLASSIC_LE) → header fields in BE (big-endian native)
+    ///   - 4D 3C B2 A1 (NS_BE)      → header fields in LE
+    ///   - A1 B2 3C 4D (NS_LE)      → header fields in BE
+    ///
+    /// `classic_pcap_1pkt(magic, little_endian)` constructs the 40-byte file accordingly.
+    ///
+    /// BC-2.12.011 PC1 / Inv1 / Inv2 / EC-009 / EC-010 / EC-012.
     #[test]
     fn test_BC_2_12_011_all_5_magic_values_accepted() {
-        // ── Extension-independence via uppercase extension ─────────────────────
-        //
-        // Use a `.PCAP` file (uppercase, NOT matched by case-sensitive "pcap" filter)
-        // with CLASSIC_LE magic.  Each of the 5 magic values uses the same mechanism;
-        // we test all 5 using names like `a-le.PCAP`, `b-be.CAP`, etc.  All use
-        // extensions that don't match "pcap" or "cap" (or any extension the stub
-        // currently accepts) to prove content-based detection.
         let dir = tempfile::tempdir().expect("tempdir");
 
-        // All 5 magic values with extensions the stub does NOT accept:
-        write_magic_file(&dir, "classic-le.PCAP", &MAGIC_CLASSIC_LE); // uppercase → stub excludes
-        write_magic_file(&dir, "classic-be.CAP", &MAGIC_CLASSIC_BE); // .CAP uppercase → stub excludes
-        write_magic_file(&dir, "ns-le.pcapng", &MAGIC_NS_LE); // .pcapng → stub excludes
-        write_magic_file(&dir, "ns-be.cap", &MAGIC_NS_BE); // .cap → stub excludes (ext=="pcap" only)
-        write_magic_file(&dir, "pcapng.data", &MAGIC_PCAPNG); // .data → stub excludes
-        // 6th file with wrong magic and valid extension — must be excluded post-refactor.
+        // ── 5 valid minimal capture files, one per CAPTURE_MAGICS entry ───────
+        //
+        // Each file uses an extension that the pre-STORY-127 stub would NOT accept
+        // (stub only accepted ".pcap" lowercase).  Post-STORY-127 all 5 are detected
+        // by magic bytes alone.
+
+        // MAGIC_CLASSIC_BE = [D4 C3 B2 A1]: LE-native classic pcap.
+        // (All committed test fixtures use this magic — it is the most common format.)
+        // Extension ".PCAP" uppercase → stub excludes; content-detection includes it.
+        // EC-012: file with uppercase extension accepted when magic matches.
+        let bytes = classic_pcap_1pkt(&MAGIC_CLASSIC_BE, /* little_endian= */ true);
+        fs::write(dir.path().join("1-be.PCAP"), &bytes).expect("write 1-be.PCAP");
+
+        // MAGIC_CLASSIC_LE = [A1 B2 C3 D4]: BE-native classic pcap.
+        // Extension ".CAP" uppercase → stub excludes.
+        let bytes = classic_pcap_1pkt(&MAGIC_CLASSIC_LE, /* little_endian= */ false);
+        fs::write(dir.path().join("2-le.CAP"), &bytes).expect("write 2-le.CAP");
+
+        // MAGIC_NS_BE = [4D 3C B2 A1]: ns-resolution LE-native classic pcap.
+        // EC-009 (nanosecond LE magic accepted).  Extension ".data" → stub excludes.
+        let bytes = classic_pcap_1pkt(&MAGIC_NS_BE, /* little_endian= */ true);
+        fs::write(dir.path().join("3-ns-be.data"), &bytes).expect("write 3-ns-be.data");
+
+        // MAGIC_NS_LE = [A1 B2 3C 4D]: ns-resolution BE-native classic pcap.
+        // EC-010 (nanosecond BE magic accepted).  Extension ".txt" → stub excludes.
+        let bytes = classic_pcap_1pkt(&MAGIC_NS_LE, /* little_endian= */ false);
+        fs::write(dir.path().join("4-ns-le.txt"), &bytes).expect("write 4-ns-le.txt");
+
+        // MAGIC_PCAPNG = [0A 0D 0D 0A]: pcapng SHB magic.
+        // Build a valid minimal pcapng: SHB + IDB(ETHERNET) + EPB(empty payload) = 1 raw pkt.
+        // Extension ".bin" → stub excludes.
+        let mut pcapng_bytes = le_shb();
+        pcapng_bytes.extend_from_slice(&le_idb_ethernet());
+        pcapng_bytes.extend_from_slice(&le_epb_empty());
+        fs::write(dir.path().join("5-ng.bin"), &pcapng_bytes).expect("write 5-ng.bin");
+
+        // Wrong-magic file with a ".pcap" extension — must be EXCLUDED (silent skip).
+        // Pre-STORY-127 stub: accepted by extension → reader reports "unrecognized pcap
+        // magic".  Post-STORY-127: magic probe returns [DE AD BE EF] → not in
+        // CAPTURE_MAGICS → silently excluded.
         write_wrong_magic_file(&dir, "reject.pcap");
 
-        // Pre-refactor (stub): ext filter excludes all non-".pcap" files.
-        //   `reject.pcap` IS included (ext=="pcap") → reader fails (wrong magic) → exit 1.
+        // ── Positive-inclusion oracle ─────────────────────────────────────────
         //
-        // Post-refactor:
-        //   `reject.pcap` is EXCLUDED (wrong magic → read_magic returns mis-match → skip).
-        //   The 5 non-.pcap files ARE included (magic matches → reader invoked → errors on
-        //   8-byte truncated content → exit non-zero due to reader errors OR Packets: 0 if
-        //   all fail silently... but reader does NOT fail silently on malformed content).
+        // All 5 valid files must be detected by content and passed to the reader.
+        // Each file delivers 1 raw packet with 0-byte payload.  The Ethernet decode
+        // stage fails on empty payload ("Not enough data to decode Ethernet 2 header")
+        // → each raw packet becomes a decode error → "Skipped: 5 packets (decode
+        // errors)" in stdout.
         //
-        // Both stub and post-refactor exit non-zero — but for DIFFERENT reasons:
-        //   Stub:  reject.pcap wrong magic → reader error.
-        //   Post:  5 magic files → reader truncation errors.
+        // If ANY CAPTURE_MAGICS entry is missing (e.g. MAGIC_NS_BE removed):
+        //   3-ns-be.data is excluded → only 4 files processed → "Skipped: 4 packets"
+        //   → assertion "Skipped: 5" fails.
+        // This makes the assertion individually sensitive to ALL 5 magic entries.
         //
-        // Better discriminating RED oracle: assert that `reject.pcap` exits non-zero
-        // (stub behavior — reader gets wrong-magic .pcap → error "unrecognized pcap magic").
-        // That's exactly what AC-002 tests.
+        // ── Wrong-magic exclusion oracle ──────────────────────────────────────
         //
-        // For AC-001 specifically, assert the ABSENCE of "Packets: 0" with exit 0.
-        // This is what a CORRECT implementation produces when all .pcap extension is not needed:
-        // the 5 magic files ARE processed (errors occur, exit non-zero).
-        // Under the stub: all non-.pcap files excluded; reject.pcap included → also exit
-        // non-zero (wrong magic error).
-        //
-        // The truly unique discriminating assertion for AC-001 is:
-        //   STUB:  0 magic files processed (all excluded); only reject.pcap (which has
-        //          wrong magic) processed → "unrecognized pcap magic" error.
-        //   POST:  5 magic files processed; reject.pcap excluded (wrong magic silent skip).
-        //          Reader errors on truncated 8-byte files OR processes them.
-        //
-        // Observable: post-refactor, stderr does NOT contain "unrecognized pcap magic"
-        // (because reject.pcap is silently excluded). Stub: stderr DOES contain it
-        // (reject.pcap is included by ext filter).
+        // reject.pcap must be silently excluded (not passed to the reader).
+        // If reject.pcap were included: reader emits "unrecognized pcap magic" error
+        // AND adds 0 decode errors (reader rejects at header stage, before raw packet
+        // delivery) → Skipped count unchanged but stderr contains the error.
+        // Asserting stderr does NOT contain "unrecognized pcap magic" verifies exclusion.
         wirerust()
             .args(["analyze", dir.path().to_str().unwrap(), "--no-color"])
             .assert()
-            // RED: stub includes reject.pcap → reader reports "unrecognized pcap magic".
-            // Post-refactor: reject.pcap silently excluded → this error message absent.
+            // 5 raw packets processed (one per magic), all fail Ethernet decode:
+            .stdout(predicate::str::contains("Skipped: 5 packets"))
+            // Wrong-magic file silently excluded → reader never sees it → no magic error.
             .stderr(predicate::str::contains("unrecognized pcap magic").not());
-        // Note: we do NOT assert .success() — post-refactor may exit non-zero due to
-        // reader errors on the 5 truncated magic files. The discriminating assertion is
-        // the ABSENCE of the "unrecognized pcap magic" error for reject.pcap.
+        // Note: we do NOT assert .success() — the 5 decode errors may cause exit non-zero
+        // depending on wirerust's error-exit policy.  The discriminating assertion is
+        // "Skipped: 5" (positive oracle) + absence of "unrecognized pcap magic" (exclusion oracle).
     }
 
     // ── AC-002 ────────────────────────────────────────────────────────────────
@@ -761,10 +848,12 @@ mod story_127 {
     ///
     /// ## F-5 deferral status
     ///
-    /// The authentic `arp-baseline-16pkt.cap` IS present locally at
-    /// `tests/fixtures/local-samples/arp-baseline-16pkt.cap` with the correct sha256.
-    /// F-5 is RESOLVED locally (authentic PacketLife capture with 16 real ARP EPBs confirmed).
-    /// The file is gitignored; CI uses the synthetic fallback path.
+    /// The authentic `arp-baseline-16pkt.cap` lives at
+    /// `tests/fixtures/local-samples/arp-baseline-16pkt.cap` (gitignored).  In a clean
+    /// checkout — including CI — that directory is empty and the synthetic 16-packet
+    /// fallback runs by default.  The authentic file is fetched on demand via
+    /// `bin/fetch-e2e-pcaps` and is required for Phase-4 holdout validation.
+    /// F-5 remains deferred to Phase-4; CI always exercises the synthetic path.
     ///
     /// ## RED gate status
     ///
