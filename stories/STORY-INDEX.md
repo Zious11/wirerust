@@ -3,7 +3,7 @@ document_type: story-index
 version: "2.6"
 status: draft
 producer: story-writer
-timestamp: 2026-06-18T00:00:00Z
+timestamp: 2026-06-21T00:00:00Z
 phase: 3
 total_stories: 81
 total_waves: 56
@@ -152,7 +152,7 @@ traces_to:
 | STORY-125 | EPB Parse and 64-bit Timestamp Normalization (Kani VP-025 + VP-027) | E-19 | 53 | 8 | completed | STORY-123, STORY-124 |
 | STORY-126 | SPB Parse, Explicit Block-Skip Dispatch (F-07), and Error-Surface Contract | E-19 | 54 | 8 | completed | STORY-123, STORY-124 |
 | STORY-127 | Magic-Byte Glob (resolve_targets Content Detection) and E2E Corpus Wiring | E-19 | 55 | 5 | completed | STORY-123, STORY-124, STORY-125, STORY-126 |
-| STORY-128 | main.rs Per-File Error Isolation Loop (Catch-and-Continue) | E-19 | 56 | 3 | draft | STORY-127 |
+| STORY-128 | main.rs Per-File Error Isolation Loop (Catch-and-Continue) | E-19 | 56 | 3 | completed | STORY-127 |
 
 ---
 
@@ -242,7 +242,7 @@ traces_to:
 | E-16: ARP Security Analyzer (issue #9) | STORY-111, STORY-112, STORY-113, STORY-114, STORY-115 | 5 | 47 |
 | E-17: ARP QinQ/MACsec Offset Hardening (issue #253) | STORY-116, STORY-117 | 2 | 8 |
 | E-18: Terminal Finding-Collapse (issue #259, v0.8.0) | STORY-118, STORY-122, STORY-119 | 3 | 16 |
-| E-19: pcapng Capture-Format Reader Support (FE-001) | STORY-123, STORY-124, STORY-125, STORY-126, STORY-127, STORY-128 | 6 | 37 |
+| E-19: pcapng Capture-Format Reader Support (FE-001) — **COMPLETE (6/6 MERGED, D-184)** | STORY-123, STORY-124, STORY-125, STORY-126, STORY-127, STORY-128 | 6 | 37 |
 | **TOTAL** | | **81** | **524** |
 
 ---
@@ -306,7 +306,7 @@ traces_to:
 | 53 | STORY-125 | **DELIVERED & CLOSED** | #283 | 2c8f2a7 | 2026-06-20 |
 | 54 | STORY-126 | **DELIVERED & CLOSED** | #284 | 56a10e9 | 2026-06-20 |
 | 55 | STORY-127 | **DELIVERED & CLOSED** | #285 | e802b2e | 2026-06-20 |
-| 56 | STORY-128 | draft | — | — | — |
+| 56 | STORY-128 | **DELIVERED & CLOSED** | #286 | e75a797 | 2026-06-21 |
 
 ## Coverage Verification
 

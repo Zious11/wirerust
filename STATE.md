@@ -1,10 +1,10 @@
 ---
 pipeline: FEATURE
 phase: F4
-phase_status: "F4 STORY-128 (Wave 56) ADVERSARIALLY CONVERGED (3 clean passes, BC-5.39.001) — FINAL pcapng story. Code on feature/story-128-pcapng-perfile-isolation (1850 tests green). Delivered: main.rs per-file error isolation (run_analyze + run_summary catch-and-continue; batch always completes; any_error→exit 1 after write_output; single-file fail-closed; reader unchanged Inv1; closes BC-2.01.018 AC-002 deferred from STORY-124) + the zero-packet notice emission (BC-2.01.009 PC6 full format with gated generic-skip + OPB/mergecap segments + pcap/pcapng wording; deferred from STORY-123; HS-108 must-pass now satisfiable). NEXT: demos → PR → merge. AFTER STORY-128 MERGES: ALL 6 pcapng stories (123-128) merged → F4 GATE (consistency-validator audit + input-drift check + human approval) then F5/F6/F7. Autonomous wave-by-wave. F2/F3 CONVERGED+APPROVED."
+phase_status: "FEATURE pcapng-reader: F4 (delta implementation) COMPLETE — all 6 stories STORY-123..128 ADVERSARIALLY CONVERGED + MERGED to develop (e75a797). E-19 epic DONE. BCs delivered: BC-2.01.009..018 (SHB/IDB/EPB/SPB/skip/timestamp/multi-IDB/error-surface), BC-2.12.011 (content-based glob). Deferred items now LANDED: F-2 (EPB padding), F-3 (timestamp/if_tsresol), BC-2.01.018 AC-002 (per-file isolation), BC-2.01.009 PC6 (zero-packet notice). NEXT: F4 GATE (fresh-context consistency-validator audit across the full pcapng delta + input-hash drift check + STRUCTURED HUMAN APPROVAL) then F5 (scoped adversarial refinement) → F6 (targeted hardening: the deferred VP-025/026/027/028/029/030/031 Kani+fuzz runs + decode_epb_body extraction STORY-125-VP027-EXTRACT-001) → F7 (delta convergence + regression + final human gate). F2/F3 CONVERGED+APPROVED."
 product: wirerust
 mode: brownfield
-timestamp: 2026-06-20T23:59:00Z
+timestamp: 2026-06-21T00:00:00Z
 
 # Release chain
 released_version: v0.9.2
@@ -21,8 +21,8 @@ prior_release_commit: ad4eec8
 v090_release_tag: v0.9.0
 v090_release_commit: 986e148
 
-# Ground-truth HEADs (verified 2026-06-19 post-v0.9.2 release)
-develop_head: e802b2e
+# Ground-truth HEADs (verified 2026-06-21 post-STORY-128 merge)
+develop_head: e75a797
 main_head: b73b242
 factory_artifacts_head: "run: git -C .factory log -1 --format='%h %s'"
 
@@ -39,9 +39,9 @@ phase_7_to_release_gate: "PASSED (human-approved 2026-06-09 — D-045)"
 adversary_gate: SATISFIED
 
 # Story tracking
-stories_delivered: 76
+stories_delivered: 77
 current_cycle: feature-pcapng-reader
-current_wave: "56 (STORY-128) — FINAL pcapng story — ADVERSARIALLY CONVERGED (D-183)"
+current_wave: "F4 COMPLETE — F4 GATE pending (D-184)"
 
 # DTU
 dtu_required: false
@@ -63,7 +63,7 @@ convergence_trajectory: "Detail: cycles/v0.1.0-greenfield-spec/convergence-traje
 
 # VSDD Pipeline State — wirerust
 
-## SESSION RESUME CHECKPOINT (2026-06-20 — F4 STORY-128 ADVERSARIALLY CONVERGED / Wave 56 / FINAL pcapng story / D-183)
+## SESSION RESUME CHECKPOINT (2026-06-21 — F4 IMPLEMENTATION COMPLETE / ALL 6 pcapng stories MERGED / E-19 DONE / D-184)
 
 **WARNING: DO NOT RE-RUN F2 ADVERSARIAL CONVERGENCE. F2 IS CONVERGED + HUMAN-APPROVED (D-164).**
 **WARNING: DO NOT RE-RUN F3 GATE. F3 IS GATE-PASSED + HUMAN-APPROVED (D-168).**
@@ -78,8 +78,9 @@ convergence_trajectory: "Detail: cycles/v0.1.0-greenfield-spec/convergence-traje
 **WARNING: DO NOT RE-RUN STORY-127 ADVERSARIAL CONVERGENCE. BC-5.39.001 SATISFIED — 3 CLEAN PASSES (D-181).**
 **WARNING: DO NOT RE-MERGE STORY-127. PR #285 MERGED (e802b2e). WAVE 55 COMPLETE (D-182). stories_delivered=76.**
 **WARNING: DO NOT RE-RUN STORY-128 ADVERSARIAL CONVERGENCE. BC-5.39.001 SATISFIED — 3 CLEAN PASSES (D-183).**
+**WARNING: DO NOT RE-MERGE STORY-128. PR #286 MERGED (e75a797). WAVE 56 COMPLETE (D-184). stories_delivered=77. E-19 EPIC COMPLETE.**
 
-**Previous checkpoint (D-182 — STORY-127 MERGED / Wave 55 COMPLETE / Wave 56 STARTING) archived to:
+**Previous checkpoint (D-183 — STORY-128 ADVERSARIALLY CONVERGED / Wave 56 / FINAL pcapng story) archived to:
 `.factory/cycles/feature-pcapng-reader/session-checkpoints.md`**
 
 ### PIPELINE POSITION
@@ -88,37 +89,37 @@ convergence_trajectory: "Detail: cycles/v0.1.0-greenfield-spec/convergence-traje
 - **F1 (delta analysis):** COMPLETE.
 - **F2 (spec evolution):** COMPLETE + ADVERSARIALLY CONVERGED + HUMAN-APPROVED (D-164).
 - **F3 (incremental story decomposition):** COMPLETE + GATE PASSED + HUMAN-APPROVED (D-168).
-- **F4 (per-story TDD delivery):** IN PROGRESS — STORY-128 (Wave 56 — FINAL pcapng story) ADVERSARIALLY CONVERGED (D-183, 3 clean passes, BC-5.39.001). stories_delivered=76. NEXT: demos → PR → merge.
-- **NEXT: STORY-128 demos → PR (pr-manager 9-step) → merge → stories_delivered=77. THEN: ALL 6 pcapng stories (123-128) merged → F4 GATE (consistency-validator audit + input-drift check + human approval) then F5/F6/F7. Autonomous wave-by-wave.**
+- **F4 (delta implementation):** COMPLETE — ALL 6 stories STORY-123..128 ADVERSARIALLY CONVERGED + MERGED. E-19 epic DONE. stories_delivered=77.
+- **NEXT ACTION: F4 GATE — fresh-context consistency-validator audit across full pcapng delta + input-hash drift check (`bin/compute-input-hash --scan`) + STRUCTURED HUMAN APPROVAL. Then F5 → F6 → F7.**
 
-### F4 DELIVERY ORDER
+### F4 DELIVERY ORDER — ALL MERGED
 
-1. **STORY-123** (Wave 51) — magic-byte probe + SHB parse — **MERGED** (PR #281, e4b940b).
-2. **STORY-124** (Wave 52) — IDB parse + interface whitelist + multi-IDB conflict — **MERGED (PR #282, 2f762fda, D-174). Wave 52 COMPLETE.**
-3. **STORY-125** (Wave 53) — EPB parse + Kani VP proof — **MERGED (PR #283, 2c8f2a7, D-178). Wave 53 COMPLETE. stories_delivered=74.**
-4. **STORY-126** (Wave 54) — SPB parse + skip-block enumeration — **MERGED (PR #284, 56a10e9, D-180). Wave 54 COMPLETE. stories_delivered=75.**
-5. **STORY-127** (Wave 55) — magic-byte glob + E2E corpus — **MERGED (PR #285, e802b2e, D-182). Wave 55 COMPLETE. stories_delivered=76.**
-6. **STORY-128** (Wave 56) — main.rs per-file isolation loop — **ADVERSARIALLY CONVERGED (D-183, 3 clean passes). FINAL pcapng story. NEXT: demos → PR → merge.**
+1. **STORY-123** (Wave 51) — magic-byte probe + SHB parse — **MERGED** (PR #281, e4b940b, D-171).
+2. **STORY-124** (Wave 52) — IDB parse + interface whitelist + multi-IDB conflict — **MERGED (PR #282, 2f762fda, D-174).**
+3. **STORY-125** (Wave 53) — EPB parse + Kani VP proof — **MERGED (PR #283, 2c8f2a7, D-178). stories_delivered=74.**
+4. **STORY-126** (Wave 54) — SPB parse + skip-block enumeration — **MERGED (PR #284, 56a10e9, D-180). stories_delivered=75.**
+5. **STORY-127** (Wave 55) — magic-byte glob + E2E corpus — **MERGED (PR #285, e802b2e, D-182). stories_delivered=76.**
+6. **STORY-128** (Wave 56) — main.rs per-file isolation loop — **MERGED (PR #286, e75a797, D-184). stories_delivered=77. E-19 COMPLETE.**
 
 ### A. EXACT POSITION
 
-- **Status:** FEATURE mode — pcapng reader cycle open. F4 per-story TDD delivery IN PROGRESS — STORY-128 (Wave 56, FINAL) ADVERSARIALLY CONVERGED (D-183, 3 clean passes, BC-5.39.001). Code on feature/story-128-pcapng-perfile-isolation (HEAD 54fa481, 1850 tests green, clippy/fmt clean).
+- **Status:** FEATURE mode — F4 COMPLETE. E-19 epic (6/6 stories merged). develop=e75a797. STORY-128 worktree CLOSED post-merge.
 - **Active cycle:** `feature-pcapng-reader` (cycle manifest: `.factory/cycles/feature-pcapng-reader/cycle-manifest.md`)
-- **Feature:** FE-001 — pcapng capture-format reader support. Status: IN PROGRESS (final story converged, pending PR+merge).
-- **Spec versions (post-D-183):** prd.md v1.33, error-taxonomy v3.7 (next_free E-INP-014), nfr-catalog v2.3, ADR-009 rev 11, VP-INDEX v2.8 (total 31), BC-INDEX v1.68, BC-2.01.009 v1.7, .010 v2.2, .011 v1.8, .012 v2.0, .013 v1.9, .014 v1.6, .015 v1.8, .016 v1.4, .017 v1.6, .018 v1.6, BC-2.12.011 v1.5. 302 active BCs.
-- **Latest release:** `v0.9.2` (tag obj `a298dbe`, main `b73b242`). develop=e802b2e (STORY-127 merged, PR #285). main=b73b242.
-- **Worktrees:** main repo (develop, HEAD e802b2e) + `.factory/` (factory-artifacts) + STORY-128 worktree (feature/story-128-pcapng-perfile-isolation, HEAD 54fa481 — OPEN pending PR+merge).
+- **Feature:** FE-001 — pcapng capture-format reader support. Status: F4 DONE — F4 GATE pending.
+- **Spec versions (post-D-184):** prd.md v1.33, error-taxonomy v3.7 (next_free E-INP-014), nfr-catalog v2.3, ADR-009 rev 11, VP-INDEX v2.8 (total 31), BC-INDEX v1.68, BC-2.01.009 v1.7, .010 v2.2, .011 v1.8, .012 v2.0, .013 v1.9, .014 v1.6, .015 v1.8, .016 v1.4, .017 v1.6, .018 v1.6, BC-2.12.011 v1.5. 302 active BCs.
+- **Latest release:** `v0.9.2` (tag obj `a298dbe`, main `b73b242`). develop=e75a797 (STORY-128 merged, PR #286). main=b73b242.
+- **Worktrees:** main repo (develop, HEAD e75a797) + `.factory/` (factory-artifacts). STORY-128 worktree CLOSED.
 
 ### B. GROUND-TRUTH SHAs / WORKTREE STATE
 
 | Branch | HEAD | Notes |
 |--------|------|-------|
-| develop | `e802b2e` | STORY-127 PR #285 merged (Wave 55 COMPLETE) |
+| develop | `e75a797` | STORY-128 PR #286 merged (Wave 56 COMPLETE, E-19 DONE, D-184) |
 | main | `b73b242` | release/0.9.2 PR #280 merged; unchanged |
 | factory-artifacts | `git -C .factory log -1` | run this to get current SHA |
 
-- **Active worktrees:** THREE — main repo (develop, e802b2e), `.factory/` (factory-artifacts), STORY-128 worktree (feature/story-128-pcapng-perfile-isolation, 54fa481 — pending PR).
-- **Open PRs:** None yet (STORY-128 PR to be created post-demos).
+- **Active worktrees:** TWO — main repo (develop, e75a797), `.factory/` (factory-artifacts). STORY-128 worktree closed.
+- **Open PRs:** None.
 
 ### C. WHAT IS COMPLETE — DO NOT REDO
 
@@ -165,9 +166,9 @@ convergence_trajectory: "Detail: cycles/v0.1.0-greenfield-spec/convergence-traje
 
 ## Status
 
-**FEATURE MODE — pcapng reader cycle OPEN (feature-pcapng-reader). F2 ADVERSARIAL CONVERGED + HUMAN-APPROVED (D-164). F3 GATE PASSED + HUMAN-APPROVED (D-168). F4 IN PROGRESS — STORY-128 (Wave 56, FINAL) ADVERSARIALLY CONVERGED (D-183, 3 clean passes, BC-5.39.001). stories_delivered=76. NEXT: STORY-128 demos → PR → merge → F4 GATE then F5/F6/F7.**
+**FEATURE MODE — pcapng reader cycle OPEN (feature-pcapng-reader). F2 ADVERSARIAL CONVERGED + HUMAN-APPROVED (D-164). F3 GATE PASSED + HUMAN-APPROVED (D-168). F4 COMPLETE — ALL 6 pcapng stories STORY-123..128 MERGED (e75a797, D-184). E-19 epic DONE. stories_delivered=77. NEXT: F4 GATE (consistency-validator audit + input-drift check + human approval) then F5/F6/F7.**
 
-Latest release: v0.9.2 (tag obj `a298dbe`, main `b73b242`, 4 binaries). develop=e802b2e (STORY-127 merged, PR #285). main=b73b242. stories_delivered=76.
+Latest release: v0.9.2 (tag obj `a298dbe`, main `b73b242`, 4 binaries). develop=e75a797 (STORY-128 merged, PR #286, D-184). main=b73b242. stories_delivered=77.
 Active feature: FE-001 pcapng capture-format reader support. ADR-009 rev 11, 10 new BCs, 1 retired BC.
 Maintenance maint-2026-06-17: COMPLETE. NON-BLOCKING. Report: `.factory/maintenance/sweep-report-2026-06-17.md`.
 
@@ -192,7 +193,7 @@ Maintenance maint-2026-06-17: COMPLETE. NON-BLOCKING. Report: `.factory/maintena
 | E-18/E-8 STORY-119 cycle (F1-F7) + v0.9.0 | **RELEASED + CLOSED 2026-06-19** | STORY-120/122/119; 293 BCs; tag v0.9.0 986e148. Detail: cycles/feature-story-119-grouped-collapse/ |
 | v0.9.1 patch | **RELEASED 2026-06-19** | Doc/help; PRs #277/#278; tag v0.9.1 ad4eec8 |
 | v0.9.2 patch | **RELEASED 2026-06-19** | DNP3 determinism + E2E fixtures; PRs #279/#280; tag v0.9.2 b73b242 |
-| **Feature pcapng-reader (F1+F2+F3+F4)** | **F4 IN PROGRESS — STORY-128 (Wave 56, FINAL) ADVERSARIALLY CONVERGED (D-183, 3 clean passes, BC-5.39.001). Code on feature/story-128-pcapng-perfile-isolation (54fa481, 1850 tests). NEXT: demos → PR → merge → F4 GATE. All 5 prior stories (123-127) merged. stories_delivered=76. F3 GATE PASSED+HUMAN-APPROVED (D-168). F2 CONVERGED+HUMAN-APPROVED (D-164).** | FE-001 IN PROGRESS (final story pending PR). ADR-009 rev 11. BC-2.12.011 v1.5. stories_delivered=76. Cycle: feature-pcapng-reader |
+| **Feature pcapng-reader (F1+F2+F3+F4)** | **F4 COMPLETE — ALL 6 stories (STORY-123..128) MERGED to develop (e75a797, D-184). E-19 epic COMPLETE (6/6). stories_delivered=77. F4 GATE PENDING (consistency-validator + input-drift + human approval). F3 GATE PASSED+HUMAN-APPROVED (D-168). F2 CONVERGED+HUMAN-APPROVED (D-164).** | FE-001 F4 DONE. ADR-009 rev 11. BC-2.12.011 v1.5. stories_delivered=77. Cycle: feature-pcapng-reader |
 
 ## Decisions Log
 
@@ -234,6 +235,7 @@ D-131..D-135: `cycles/feature-story-119-grouped-collapse/decisions-archive.md`
 | D-174 | **STORY-124 MERGED (PR #282, 2f762fda) — Wave 52 COMPLETE. Wave 53 (STORY-125) begins.** Security review CLEAN (0 Critical/High/Medium). AI review APPROVE (0 blocking, 2 non-actionable observations). CI 10/10 green. develop=2f762fda. stories_delivered 72->73. STORY-124 worktree (feature/STORY-124-pcapng-idb) closed post-merge. NOTE: F-2 (EPB padding-overrun check: `20 + captured_len + pad_len(captured_len) <= body.len()` -> E-INP-008 per ADR-009 Decision 20/22) and F-3 (if_tsresol timestamp conversion: option-walk + BC-2.01.014 pure-core helper + VP-025 Kani) move from DEFERRED to IN-SCOPE for STORY-125; inject both as mandatory ACs/constraints when dispatching STORY-125. STORY-126-SPB-PACKETS-EMITTED-001 remains a MANDATORY STORY-126 constraint (SPB arm must increment packets_emitted before IDB position check). STORY-124-EINP013-MSG-001 (spec-reconciliation BC-2.01.011 AC-004 vs error-taxonomy E-INP-013) remains OPEN non-blocking backlog. | 2026-06-20 |
 | D-175 | **STORY-125 (Wave 53) TDD GREEN + BC-2.01.014 v1.6 EC-013 saturation vector corrected (D-175).** Implementer delivered EPB parse + timestamp resolution on worktree feature/story-125-pcapng-epb-timestamp HEAD 5ebd73d; 20/20 story tests green; full suite (STORY-123/124 + regressions) green; clippy/fmt clean. Fixes landed: (F-3) nanosecond 1000x timestamp bug — read_pcapng_crate now walks IDB if_tsresol options and calls BC-2.01.014 pure-core helper instead of hardcoded DEFAULT_TSRESOL=6; (SEC-005) interface_id OOB index-panic (→E-INP-010 bounds check before indexing); (F-2) EPB padding-overrun check PC6b (`20 + captured_len + pad_len(captured_len) <= body.len()` → E-INP-008). VP-025/027 Kani harnesses authored (run Phase-6). BC-2.01.014 v1.6 (spec-accuracy fix, product-owner authored): EC-013 canonical saturation test vector had impossible arithmetic — ts_high=4295 gives ticks=4295*2^32=18_446_884_536_320 (well below u64::MAX; divides to 18_446_884, far below u32::MAX — does NOT saturate at µs resolution). Corrected to ts_high=2_000_000, ts_low=0: ticks=2_000_000*2^32=8_589_934_592_000_000; ticks/1_000_000=8_589_934_592 > u32::MAX → ts_sec=u32::MAX (saturated). Implementation saturation logic was already correct; only the spec example numbers were wrong. STORY-125 input-hash regenerated: cc08218 (MATCH). Deferred: decode_epb_body extraction for VP-027 Kani to Phase-6 (STORY-125-VP027-EXTRACT-001). STORY-124-EINP013-MSG-001 and STORY-126-SPB-PACKETS-EMITTED-001 remain open (unchanged). F-2/F-3 IMPLEMENTED (done-pending-merge). NEXT: adversarial convergence (3 clean passes, BC-5.39.001). | 2026-06-20 |
 | D-178 | **STORY-125 MERGED (PR #283, 2c8f2a7) — Wave 53 COMPLETE. Wave 54 (STORY-126) begins.** AI review APPROVE (0 blocking, 13/13 ACs). Security review APPROVE (0 Critical/High/Medium, 2 tracked observations). CI 10/10 green. develop=2c8f2a7. stories_delivered 73→74. STORY-125 worktree (feature/story-125-pcapng-epb-timestamp) closed post-merge. MANDATORY STORY-126 constraints injected: (a) STORY-126-SPB-PACKETS-EMITTED-001 — SPB arm MUST increment packets_emitted BEFORE IDB position check so IDB-after-SPB triggers E-INP-013; (b) F-07 — block-skip MUST use EXPLICIT named match arms for all block types, NO wildcard silent drop (BC-2.01.015). | 2026-06-20 |
+| D-184 | **STORY-128 MERGED (PR #286, e75a797) — Wave 56 COMPLETE. E-19 epic COMPLETE (6/6 stories delivered+merged). F4 implementation phase DONE. stories_delivered 76→77.** AI review APPROVE (0 blocking, 4 LOW nits). Security PASS (0 Critical/High, 1 LOW SEC-001 pre-existing). CI 10/10 green. develop=e75a797. STORY-128 worktree closed post-merge. ALL pcapng deferred items now LANDED: BC-2.01.018 AC-002 (per-file isolation) + BC-2.01.009 PC6 (zero-packet notice). NEW DRIFT ITEM: SEC-001 [LOW] — ProgressStyle::with_template(...)? used in loop body; static string, not input-triggerable; future cleanup to unwrap_or_default(). F5-F7-INTAKE list: STORY-125-VP027-EXTRACT-001 (Phase-6 decode_epb_body extraction for VP-027), VP-025/026/028/029/030/031 Kani+proptest formal runs (Phase-6), STORY-124-EINP013-MSG-001 (E-INP-013 message richness reconciliation), STORY-123-PIPE-FILLBUF-001, PCAP-FILE-VERSION-PIN-001, STORY-123-ADR-REV-DOC-001, STORY-123-SHB-SEQ-MSG-001, STORY-126-SPB-PRECEDENCE-TEST-001, STORY-126-VP029-SPB-BREADTH-001, STORY-126-SPB-CAPTUREDLEN-PUBAPI-001, STORY-127-MAGIC-LABEL-NOMENCLATURE-001, STORY-128-RESOLVE-TARGETS-MULTITARGET-001, SEC-004, SEC-001, F-5 (authentic arp-baseline fixture for Phase-4 holdout). NEXT: F4 GATE (consistency-validator audit + input-drift check + human approval) then F5 → F6 → F7. | 2026-06-21 |
 | D-183 | **STORY-128 (Wave 56) ADVERSARIAL CONVERGENCE ACHIEVED — BC-5.39.001 SATISFIED (3 consecutive clean passes). FINAL pcapng story.** Trajectory: pass-1 NOT-CLEAN (C-1 CRITICAL: zero-packet notice OMITTED both mandatory BC-2.01.009 PC6 parenthetical segments — HS-108 must-pass Cases B/D/E = 0.50 rubric would FAIL in Phase-4; M-1 MAJOR: hardcoded "pcapng file" wording for classic pcap path; H-1 HIGH: notice tests under-pinned, only asserting "0 packets") → all fixed (full PC6 format via shared format_zero_packet_notice helper with two gated segments: generic-skip + OPB/NRB+OPB/mergecap hint; pcap/pcapng wording via read_magic; discriminating OPB/unknown/NRB+OPB/classic tests) → CLEAN/CLEAN/CLEAN. BC-2.01.018 AC-002 (per-file isolation: run_analyze + run_summary catch-and-continue; batch always completes; any_error→exit 1 after write_output; single-file fail-closed; reader unchanged Inv1; deferred from STORY-124) LANDED. BC-2.01.009 PC6 zero-packet notice (deferred from STORY-123; HS-108 must-pass Cases B/D/E now satisfiable) LANDED. New drift item: STORY-128-RESOLVE-TARGETS-MULTITARGET-001 [LOW] — a non-existent target PATH in a multi-target CLI invocation aborts the batch via resolve_targets(target)?; OUT of STORY-128's per-file-reader-error perimeter (STORY-127 owns resolve_targets); pre-existing, not regressed; consider multi-target finalize-robustness in a future hardening pass. The convergence loop caught a guaranteed Phase-4 holdout failure (C-1) on the FINAL story. Code on feature/story-128-pcapng-perfile-isolation (HEAD 54fa481, 1850 tests green, clippy/fmt clean). NEXT: demos → PR (pr-manager 9-step) → merge → stories_delivered=77 → ALL 6 pcapng stories merged → F4 GATE. | 2026-06-20 |
 | D-182 | **STORY-127 MERGED (PR #285, e802b2e) — Wave 55 COMPLETE. stories_delivered 75→76.** AI review APPROVE + security PASS (0 Critical/High) + CI 10/10 green. ADR-009 C-2 resolved (.cap pcapng accepted via content-based detection). Wave 56 (STORY-128 — FINAL pcapng story) begins. STORY-128 closes BC-2.01.018 AC-002 (per-file error isolation in main.rs processing loop — currently from_file(path)? aborts batch on first bad file; STORY-128 makes it catch-and-continue per ADR-009 Decision 12). | 2026-06-20 |
 | D-181 | **STORY-127 (Wave 55) ADVERSARIAL CONVERGENCE ACHIEVED — BC-5.39.001 SATISFIED (3 consecutive clean passes).** Trajectory: AC-004 test-design fix (expected STORY-128 per-file isolation; corrected to valid .cap fixture) + STORY-088 extension-test reconciliation per BC-2.12.011 v1.5 supersession (2 obsolete tests retired with tombstones, 1 converted to content-based); pass-1 NOT-CLEAN (F-1 positive magic-inclusion oracle missing for 3 of 5 magics — test was non-discriminating; F-2 stale E2E-PCAPS.md "pcapng not supported" doc) → fixed (positive magic-inclusion oracle + doc correction + O-1/O-2 doc fixes); then CLEAN/CLEAN/CLEAN. Delivered: content-based magic-byte directory detection (read_magic + 5 CAPTURE_MAGICS, content-over-extension, sorted, non-recursive, single-file preserved) replacing old extension filter; E2E corpus wiring (smb3/arp-baseline/two-IDB/OPB fixtures). Loop caught CI-breaking regression (3 obsolete extension tests) + non-mutation-sensitive magic test. Code on feature/story-127-pcapng-e2e-corpus (HEAD 7b70d97, 1828 tests green, clippy/fmt clean). NEXT: demos → PR → merge → Wave 56 STORY-128. | 2026-06-20 |
@@ -303,6 +305,7 @@ Full tech-debt register: `.factory/tech-debt-register.md`.
 | STORY-125-VP027-EXTRACT-001 (D-175) | [Phase-6 deferral] decode_epb_body extraction for VP-027 Kani harness: the Kani proof for VP-027 (EPB body decode totality) requires decode_epb_body to be a standalone extractable function for the harness to target. STORY-125 authored the VP-027 harness but the extraction of decode_epb_body was deferred to Phase-6 to avoid scope creep in Wave 53. Implement at Phase-6 entry alongside VP-025 harness execution. | DEFERRED → Phase-6 |
 | STORY-123-SHB-SEQ-MSG-001 (D-177) | [LOW, backlog, out-of-perimeter] During STORY-125 adversarial convergence, the adversary surfaced a minor out-of-perimeter observation: the second-SHB E-INP-012 block_seq message may have an off-by-one in the block sequence counter (off by 1 relative to the semantic "second SHB is block #N"). Low priority; does not affect current test suite green. DF-VALIDATION-001 required before filing a GitHub issue. | BACKLOG — validate before issue |
 | SEC-004 (D-180) | [LOW — CWE-835 forward-progress guard] PR #284 security review noted the SPB zero-advance guard (`E-INP-009` path) lacks a direct regression test targeting the CWE-835 scenario (body_len=0 or block_total_length < minimum causing zero advance). Currently covered indirectly via proptest VP-031 and the full SPB E-INP-008 path. Add a focused unit test that asserts the guard fires for zero-advance inputs. DF-VALIDATION-001 required before filing a GitHub issue. | BACKLOG — LOW follow-up from PR #284 security review |
+| SEC-001 (D-184) | [LOW] `ProgressStyle::with_template(...)?` used in loop body (progress bar setup); static string, not input-controllable or user-triggerable; zero exploitability. Pre-existing in codebase. Future cleanup: replace `?` with `.unwrap_or_default()` to suppress the error propagation. DF-VALIDATION-001 required before filing a GitHub issue. | DEFERRED LOW — pre-existing, not introduced by STORY-128 |
 | STORY-126-SPB-CAPTUREDLEN-PUBAPI-001 (D-180) | [LOW, W7.1] PR #284 AI review noted `spb_captured_len` helper is `pub` for proptest accessibility (VP-029/031). When W7.1 (`cargo public-api` baseline) is wired, this symbol will appear in the public-API surface. Include it explicitly in the initial baseline run so any future removal or rename triggers the API gate. Non-blocking until W7.1 is implemented. DF-VALIDATION-001 required before filing a GitHub issue. | BACKLOG — LOW, W7.1 dependency |
 | STORY-127-MAGIC-LABEL-NOMENCLATURE-001 (D-181) | [LOW, O-A cosmetic] The LE/BE labels on the classic-pcap magic constants (PCAP_MAGIC_LE / PCAP_MAGIC_BE) are inverted vs the libpcap on-disk convention: LE-capture files carry the LE-byte-order magic `D4 C3 B2 A1` which wirerust labels PCAP_MAGIC_BE; BE-capture files carry `A1 B2 C3 D4` labeled PCAP_MAGIC_LE. Code, tests, and BC-2.12.011 are mutually consistent and the `contains()` check is order-agnostic, so there is NO functional impact. Optional cosmetic relabel in a future cleanup cycle. DF-VALIDATION-001 required before GitHub issue. | BACKLOG — LOW, cosmetic |
 | BC-2.01.018-AC-002-ISOLATION (D-124/D-183) | [cross-story] BC-2.01.018 AC-002: per-file error isolation in main.rs processing loop — catch-and-continue on reader errors so batch always completes; any_error flag → exit 1 after write_output. Deferred from STORY-124 to STORY-128. | **DONE — IMPLEMENTED + CONVERGED in STORY-128 (D-183)** |
@@ -312,7 +315,7 @@ Full tech-debt register: `.factory/tech-debt-register.md`.
 
 ## Deferred Next-Work Backlog
 
-1. **pcapng reader support (FE-001):** IN PROGRESS — feature-pcapng-reader cycle. STORY-123 MERGED (PR #281). STORY-124 MERGED (PR #282). STORY-125 MERGED (PR #283, 2c8f2a7). STORY-126 MERGED (PR #284, 56a10e9, D-180). STORY-127 MERGED (PR #285, e802b2e, D-182). STORY-128 (Wave 56 — FINAL pcapng story) ADVERSARIALLY CONVERGED (D-183, 3 clean passes). NEXT: demos → PR → merge → F4 GATE.
+1. **pcapng reader support (FE-001):** F4 COMPLETE — feature-pcapng-reader cycle. ALL 6 stories merged: STORY-123 (PR #281), STORY-124 (PR #282), STORY-125 (PR #283), STORY-126 (PR #284), STORY-127 (PR #285), STORY-128 (PR #286, e75a797, D-184). E-19 epic DONE. stories_delivered=77. NEXT: F4 GATE (consistency-validator audit + input-drift check + human approval) then F5 → F6 → F7.
 2. **DNS-TUNNELING-COVERAGE-001:** OPEN — human decision on feature scope. Fixtures ready.
 3. **STORY-121 (E-11 process-gap):** OPEN DRAFT — human decision on scope.
 4. **PCAP-CORPUS-001:** TABLED — human decision.

@@ -137,3 +137,13 @@ Active cycle: **feature-pcapng-reader**. STORY-123 MERGED (PR #281, e4b940b, D-1
 ### PIPELINE STATUS: FEATURE MODE — F4 STORY-127 (Wave 55) ADVERSARIALLY CONVERGED — BC-5.39.001 SATISFIED (3 consecutive clean passes). Code on feature/story-127-pcapng-e2e-corpus (HEAD 7b70d97, 1828 tests green). Demos → PR → merge pending. F2/F3 CONVERGED+APPROVED.
 
 Active cycle: **feature-pcapng-reader**. STORY-123 MERGED (PR #281, e4b940b, D-171). STORY-124 MERGED (PR #282, 2f762fda, D-174). STORY-125 MERGED (PR #283, 2c8f2a7, D-178). STORY-126 MERGED (PR #284, 56a10e9, D-180). STORY-127 (Wave 55) ADVERSARIALLY CONVERGED (D-181): Trajectory: AC-004 test-design fix + STORY-088 extension-test reconciliation (2 retired with tombstones, 1 converted to content-based per BC-2.12.011 v1.5) → pass-1 NOT-CLEAN (F-1 non-discriminating oracle for 3 of 5 magics; F-2 stale E2E-PCAPS.md doc) → fixed → CLEAN/CLEAN/CLEAN. Loop caught CI-breaking regression (3 obsolete extension tests) + non-mutation-sensitive magic test. develop=56a10e9. main=b73b242. stories_delivered=75.
+
+---
+
+## Archived Checkpoint: D-183 — STORY-128 ADVERSARIALLY CONVERGED / Wave 56 / FINAL pcapng story / 2026-06-20
+
+**Archived when:** D-184 — STORY-128 PR #286 MERGED (e75a797). Wave 56 COMPLETE. E-19 epic COMPLETE. F4 DONE.
+
+### PIPELINE STATUS: FEATURE MODE — F4 STORY-128 (Wave 56, FINAL) ADVERSARIALLY CONVERGED — BC-5.39.001 SATISFIED (3 consecutive clean passes). Code on feature/story-128-pcapng-perfile-isolation (HEAD 54fa481, 1850 tests green). Demos → PR → merge pending. F2/F3 CONVERGED+APPROVED.
+
+Active cycle: **feature-pcapng-reader**. STORY-123 MERGED (PR #281, e4b940b, D-171). STORY-124 MERGED (PR #282, 2f762fda, D-174). STORY-125 MERGED (PR #283, 2c8f2a7, D-178). STORY-126 MERGED (PR #284, 56a10e9, D-180). STORY-127 MERGED (PR #285, e802b2e, D-182). STORY-128 (Wave 56, FINAL) ADVERSARIALLY CONVERGED (D-183): Trajectory: pass-1 NOT-CLEAN (C-1 CRITICAL: zero-packet notice OMITTED both mandatory BC-2.01.009 PC6 parenthetical segments — HS-108 must-pass Cases B/D/E would FAIL in Phase-4; M-1 MAJOR: hardcoded "pcapng file" wording for classic pcap; H-1 HIGH: notice tests under-pinned) → all fixed (full PC6 format via shared format_zero_packet_notice helper with gated segments + pcap/pcapng wording via read_magic; discriminating tests) → CLEAN/CLEAN/CLEAN. BC-2.01.018 AC-002 (per-file isolation) + BC-2.01.009 PC6 zero-packet notice both LANDED. Loop caught guaranteed Phase-4 holdout failure. develop=e802b2e. main=b73b242. stories_delivered=76.
