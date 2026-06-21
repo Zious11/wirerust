@@ -40,6 +40,58 @@ use wirerust::reporter::json::JsonReporter;
 use wirerust::reporter::terminal::{Collapse, FindingsRender, Grouping, TerminalReporter};
 use wirerust::summary::Summary;
 
+/// Format the BC-2.01.009 PC6 zero-packet notice for a valid file with 0 packets.
+///
+/// The notice has:
+///   - Base phrase: "notice: <path>: 0 packets read from <pcap|pcapng> file"
+///     - "pcapng file" when the file magic is the pcapng SHB magic (0x0A0D0D0A).
+///     - "pcap file" for any classic pcap magic.
+///   - Optional generic segment (G > 0): " (G block(s) skipped as unsupported)"
+///     where G = source.skipped_blocks.saturating_sub(source.opb_skipped).
+///   - Optional OPB clause (source.opb_skipped > 0):
+///     "(includes N obsolete Packet Block(s) whose data was not analyzed;
+///     re-save with mergecap)"
+///
+/// Both segments are independently gated.  When both are true, both appear
+/// space-separated after the base phrase.  When neither gate is true (G==0
+/// and opb_skipped==0), only the base phrase is emitted (HS-108 Case F).
+///
+/// ADR-009 Decision 19 / BC-2.01.009 PC6 / STORY-128 C-1 (OPB clause) +
+/// M-1 (classic-pcap wording) adversarial findings.
+fn format_zero_packet_notice(path: &std::path::Path, source: &PcapSource) -> String {
+    // Determine file format from the 4-byte magic.
+    // pcapng SHB magic is 0x0A 0x0D 0x0D 0x0A.
+    // Anything else (classic pcap LE/BE micro/nano) → "pcap file".
+    // On None (unreadable) we default to "pcapng file"; in practice a
+    // successfully-parsed zero-packet file always has a readable magic.
+    const PCAPNG_MAGIC: [u8; 4] = [0x0A, 0x0D, 0x0D, 0x0A];
+    let file_kind = match read_magic(path) {
+        Some(m) if m == PCAPNG_MAGIC => "pcapng file",
+        Some(_) => "pcap file",
+        None => "pcapng file",
+    };
+
+    let base = format!(
+        "notice: {}: 0 packets read from {file_kind}",
+        path.display()
+    );
+
+    // G = generic block count (skipped but not OPB-counted).
+    let g = source.skipped_blocks.saturating_sub(source.opb_skipped);
+    let n = source.opb_skipped;
+
+    match (g > 0, n > 0) {
+        (false, false) => base,
+        (true, false) => format!("{base} ({g} block(s) skipped as unsupported)"),
+        (false, true) => format!(
+            "{base} (includes {n} obsolete Packet Block(s) whose data was not analyzed; re-save with mergecap)"
+        ),
+        (true, true) => format!(
+            "{base} ({g} block(s) skipped as unsupported) (includes {n} obsolete Packet Block(s) whose data was not analyzed; re-save with mergecap)"
+        ),
+    }
+}
+
 fn main() -> Result<()> {
     let cli = Cli::parse();
 
@@ -258,12 +310,10 @@ fn run_analyze(
 
             // ADR-009 Decision 19 / BC-2.01.009 PC6: emit zero-packet notice when
             // a valid file contains no packets (e.g. SHB-only pcapng).
-            // This is in the Ok arm and is independent of the Err catch arm above.
+            // Full format includes gated OPB clause and generic-skip segment.
+            // See format_zero_packet_notice for BC-2.01.009 PC6 specification.
             if source.packets.is_empty() {
-                eprintln!(
-                    "notice: {}: 0 packets read from pcapng file",
-                    path.display()
-                );
+                eprintln!("{}", format_zero_packet_notice(path, &source));
                 continue;
             }
 
@@ -450,12 +500,11 @@ fn run_summary(
                 }
             };
 
-            // ADR-009 Decision 19: zero-packet notice for valid zero-packet files.
+            // ADR-009 Decision 19 / BC-2.01.009 PC6: zero-packet notice for valid
+            // zero-packet files.  Full format with gated OPB clause and generic-skip
+            // segment.  See format_zero_packet_notice for specification.
             if source.packets.is_empty() {
-                eprintln!(
-                    "notice: {}: 0 packets read from pcapng file",
-                    path.display()
-                );
+                eprintln!("{}", format_zero_packet_notice(path, &source));
                 continue;
             }
 
