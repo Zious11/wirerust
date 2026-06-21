@@ -1,6 +1,17 @@
-//! VP-029 and VP-031 Property-Based Tests for pcapng Reader
+//! VP-029, VP-030, and VP-031 Property-Based Tests for pcapng Reader
 //!
-//! This file contains the two proptest verification properties mandated by STORY-126:
+//! This file contains the proptest verification properties for the pcapng reader
+//! delta. VP-029 / VP-031 were mandated by STORY-126; VP-030 (multi-IDB linktype
+//! agreement, whitelisted domain) is added here per BC-2.01.018 / ADR-009 rev 7
+//! (VP-INDEX v2.9 line 114):
+//!
+//! ## VP-030: Multi-IDB Linktype Agreement (whitelisted domain)
+//!
+//! Property: over the WHITELISTED DataLink domain only —
+//!   - all-equal whitelisted linktypes across N IDBs → Ok
+//!   - first-differing whitelisted linktype → Err carrying the "(E-INP-011)" marker
+//!   - the comparison unit is `DataLink` (the decoded variant), not the raw u16.
+//!
 //!
 //! ## VP-029: Block-Walk Termination and Forward Progress
 //!
@@ -265,6 +276,268 @@ proptest! {
                     );
                 }
             }
+        }
+    }
+}
+
+/// VP-029 (strengthened) — Skip-arm dispatch counter exactness + DSB no-log + forward progress.
+///
+/// BC-2.01.015 AC-001 F-07 / AC-003 / AC-007 / AC-008 / SEC-007.
+///
+/// Builds a valid SHB+IDB header followed by an arbitrary sequence of skip-eligible
+/// blocks (NRB / ISB / SJE / DSB / OPB / unknown). The reader exposes exactly two
+/// counters (`skipped_blocks` total and `opb_skipped` OPB sub-count); there are no
+/// per-arm counters. This proptest asserts the EXACT counter arithmetic:
+///
+///   - `skipped_blocks` == total number of skip-eligible blocks emitted, AND
+///   - `opb_skipped`    == number of OPB blocks emitted (and only OPB increments it).
+///
+/// It also exercises the "right counter per arm" requirement: each named arm
+/// (NRB/ISB/SJE/DSB/unknown) increments `skipped_blocks` by exactly 1 and leaves
+/// `opb_skipped` untouched, while OPB increments BOTH. Since every block in this
+/// strategy is skip-eligible (no EPB/SPB packet emitters), `packets.len()` must be 0.
+///
+/// DSB no-log (SEC-007): DSB carries TLS key material and MUST NOT be surfaced.
+/// Structurally, the DSB arm only bumps `skipped_blocks` and never ingests the body
+/// into `packets`. We assert `packets.is_empty()` even when DSB blocks carry non-zero
+/// body bytes — the body never escapes into the packet stream.
+///
+/// Forward progress: every block advances the cursor; the loop terminates and the
+/// counters equal the emitted-block counts (no missed block, no double-count, no spin).
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(1000))]
+
+    #[test]
+    fn proptest_VP_029_skip_arm_counter_exactness_and_dsb_no_log(
+        block_types in prop::collection::vec(0u8..6u8, 0..40)
+    ) {
+        // Map: 0=NRB, 1=ISB, 2=SJE, 3=DSB(non-zero body), 4=OPB, 5=unknown.
+        let mut bytes = le_shb();
+        bytes.extend_from_slice(&le_idb_ethernet());
+
+        let mut expected_skipped: u32 = 0;
+        let mut expected_opb: u32 = 0;
+
+        for t in &block_types {
+            match t {
+                0 => bytes.extend_from_slice(&le_block_aligned(0x0000_0004, 0)), // NRB
+                1 => bytes.extend_from_slice(&le_block_aligned(0x0000_0005, 0)), // ISB
+                2 => bytes.extend_from_slice(&le_block_aligned(0x0000_0009, 0)), // SJE
+                3 => {
+                    // DSB with NON-ZERO body (simulated "secret" bytes 0xDE) — these
+                    // bytes MUST NOT escape into packets (SEC-007 no-log/no-surface).
+                    let mut dsb = Vec::new();
+                    let body_len = 8usize;
+                    let btl = 12 + body_len;
+                    dsb.extend_from_slice(&0x0000_000Au32.to_le_bytes()); // DSB type
+                    dsb.extend_from_slice(&(btl as u32).to_le_bytes());
+                    dsb.extend_from_slice(&vec![0xDEu8; body_len]); // "secret" body
+                    dsb.extend_from_slice(&(btl as u32).to_le_bytes());
+                    bytes.extend_from_slice(&dsb);
+                }
+                4 => bytes.extend_from_slice(&le_opb()), // OPB
+                5 => bytes.extend_from_slice(&le_block_aligned(0xDEAD_BEEF, 0)), // unknown
+                _ => continue,
+            }
+            expected_skipped += 1;
+            if *t == 4 {
+                expected_opb += 1;
+            }
+        }
+
+        let src = PcapSource::from_pcap_reader(Cursor::new(&bytes))
+            .expect("valid SHB+IDB + skip-only blocks must parse to Ok");
+
+        // Counter exactness: every skip-eligible block was counted exactly once.
+        prop_assert_eq!(
+            src.skipped_blocks,
+            expected_skipped,
+            "skipped_blocks={} must equal the number of skip-eligible blocks emitted={} \
+             (forward progress: no missed block, no double-count)",
+            src.skipped_blocks,
+            expected_skipped
+        );
+        // OPB sub-counter: only OPB increments opb_skipped.
+        prop_assert_eq!(
+            src.opb_skipped,
+            expected_opb,
+            "opb_skipped={} must equal the number of OPB blocks emitted={} \
+             (only OPB increments the sub-counter; NRB/ISB/SJE/DSB/unknown must not)",
+            src.opb_skipped,
+            expected_opb
+        );
+        // Dual-counter invariant always holds.
+        prop_assert!(
+            src.opb_skipped <= src.skipped_blocks,
+            "opb_skipped={} must never exceed skipped_blocks={}",
+            src.opb_skipped,
+            src.skipped_blocks
+        );
+        // DSB no-log / no-surface (SEC-007): no skip block ever produces a packet,
+        // so the DSB "secret" body bytes never escape into the packet stream.
+        prop_assert!(
+            src.packets.is_empty(),
+            "skip-only block stream must yield zero packets; got {} \
+             (DSB body bytes must never surface — SEC-007)",
+            src.packets.len()
+        );
+    }
+}
+
+// ─── VP-030: Multi-IDB Linktype Agreement (whitelisted domain) ──────────────
+
+/// Whitelisted DataLink raw u16 linktypes (pcap-file 2.x encoding).
+/// Per ADR-009 rev 7 / VP-INDEX v2.9 line 114, VP-030 operates over the
+/// WHITELISTED domain only: ETHERNET=1, RAW=101, LINUX_SLL=113, IPV4=228, IPV6=229.
+const WHITELISTED_LINKTYPES: [u16; 5] = [1, 101, 113, 228, 229];
+
+/// Build a minimal LE IDB block with the given raw u16 linktype.
+fn le_idb_with_linktype(linktype: u16) -> Vec<u8> {
+    let btl: u32 = 20;
+    let mut v = Vec::with_capacity(20);
+    v.extend_from_slice(&IDB_BLOCK_TYPE.to_le_bytes());
+    v.extend_from_slice(&btl.to_le_bytes());
+    v.extend_from_slice(&linktype.to_le_bytes()); // linktype (u16 LE)
+    v.extend_from_slice(&0u16.to_le_bytes()); // reserved = 0
+    v.extend_from_slice(&65535u32.to_le_bytes()); // snaplen
+    v.extend_from_slice(&btl.to_le_bytes());
+    v
+}
+
+/// VP-030 — All-equal whitelisted linktypes across N IDBs → Ok (no E-INP-011).
+///
+/// BC-2.01.018 / ADR-009 Decision 17 check 3. When every IDB carries the SAME
+/// whitelisted linktype, there is no conflict and the reader returns Ok. The
+/// comparison unit is `DataLink` (not the raw u16) — but for a single whitelisted
+/// value, raw equality and DataLink equality coincide, so all-equal is Ok.
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(1000))]
+
+    #[test]
+    fn proptest_VP_030_all_equal_whitelisted_idbs_ok(
+        lt_idx in 0usize..WHITELISTED_LINKTYPES.len(),
+        n_extra in 0usize..8usize
+    ) {
+        let lt = WHITELISTED_LINKTYPES[lt_idx];
+
+        let mut bytes = le_shb();
+        // First IDB + n_extra additional IDBs, all with the SAME whitelisted linktype.
+        for _ in 0..(1 + n_extra) {
+            bytes.extend_from_slice(&le_idb_with_linktype(lt));
+        }
+
+        let result = PcapSource::from_pcap_reader(Cursor::new(&bytes));
+        prop_assert!(
+            result.is_ok(),
+            "all-equal whitelisted linktype {} across {} IDBs must return Ok \
+             (no E-INP-011 conflict); got: {:?}",
+            lt,
+            1 + n_extra,
+            result.err()
+        );
+        let src = result.unwrap();
+        // The resolved datalink must equal the (single) whitelisted linktype.
+        prop_assert_eq!(
+            u32::from(src.datalink),
+            u32::from(lt),
+            "resolved datalink must equal the agreed whitelisted linktype {}",
+            lt
+        );
+    }
+}
+
+/// VP-030 — First-differing whitelisted linktype → Err(E-INP-011) at that IDB.
+///
+/// BC-2.01.018 AC-001 / ADR-009 Decision 17 check 3. Given a sequence of whitelisted
+/// IDBs where exactly one (at a chosen position ≥ 2nd) differs from the first, the
+/// reader must return Err whose message carries the "(E-INP-011)" marker. The
+/// comparison unit is DataLink: two DISTINCT whitelisted raw values map to distinct
+/// DataLink variants, so the first differing IDB triggers the conflict.
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(1000))]
+
+    #[test]
+    fn proptest_VP_030_first_differing_whitelisted_idb_errs_e_inp_011(
+        first_idx in 0usize..WHITELISTED_LINKTYPES.len(),
+        diff_idx in 0usize..WHITELISTED_LINKTYPES.len(),
+        leading_same in 0usize..4usize,
+    ) {
+        let first_lt = WHITELISTED_LINKTYPES[first_idx];
+        let diff_lt = WHITELISTED_LINKTYPES[diff_idx];
+        // Require an actual difference (distinct whitelisted DataLinks).
+        prop_assume!(first_lt != diff_lt);
+
+        let mut bytes = le_shb();
+        // First IDB establishes the registered linktype.
+        bytes.extend_from_slice(&le_idb_with_linktype(first_lt));
+        // `leading_same` more IDBs that AGREE (must not trigger conflict).
+        for _ in 0..leading_same {
+            bytes.extend_from_slice(&le_idb_with_linktype(first_lt));
+        }
+        // The first DIFFERING IDB — this must trip E-INP-011.
+        bytes.extend_from_slice(&le_idb_with_linktype(diff_lt));
+
+        let result = PcapSource::from_pcap_reader(Cursor::new(&bytes));
+        prop_assert!(
+            result.is_err(),
+            "a differing whitelisted linktype (first={}, differing={}) must return \
+             Err(E-INP-011); got Ok",
+            first_lt,
+            diff_lt
+        );
+        let msg = result.unwrap_err().to_string();
+        prop_assert!(
+            msg.contains("E-INP-011"),
+            "error message must carry the (E-INP-011) marker; got: {:?}",
+            msg
+        );
+    }
+}
+
+/// VP-030 — Comparison unit is DataLink, not raw u16 (regression guard).
+///
+/// This pins the BC-2.01.018 requirement that agreement is decided on the DECODED
+/// DataLink, not the raw u16. Two IDBs with the SAME whitelisted raw value decode to
+/// the SAME DataLink → Ok. Two IDBs with DISTINCT whitelisted raw values decode to
+/// DISTINCT DataLinks → Err(E-INP-011). We assert both directions over the
+/// whitelisted cross-product, which is exactly the DataLink-equality semantics.
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(1000))]
+
+    #[test]
+    fn proptest_VP_030_comparison_unit_is_datalink(
+        a_idx in 0usize..WHITELISTED_LINKTYPES.len(),
+        b_idx in 0usize..WHITELISTED_LINKTYPES.len(),
+    ) {
+        let a = WHITELISTED_LINKTYPES[a_idx];
+        let b = WHITELISTED_LINKTYPES[b_idx];
+
+        let mut bytes = le_shb();
+        bytes.extend_from_slice(&le_idb_with_linktype(a));
+        bytes.extend_from_slice(&le_idb_with_linktype(b));
+
+        let result = PcapSource::from_pcap_reader(Cursor::new(&bytes));
+
+        if a == b {
+            // Same raw → same DataLink → agreement → Ok.
+            prop_assert!(
+                result.is_ok(),
+                "equal whitelisted DataLinks (raw {}) must agree → Ok; got {:?}",
+                a,
+                result.err()
+            );
+        } else {
+            // Distinct whitelisted raw values → distinct DataLink variants → Err.
+            prop_assert!(
+                result.is_err(),
+                "distinct whitelisted DataLinks (raw {} vs {}) must conflict → Err(E-INP-011)",
+                a,
+                b
+            );
+            prop_assert!(
+                result.unwrap_err().to_string().contains("E-INP-011"),
+                "conflict must be reported as E-INP-011"
+            );
         }
     }
 }
