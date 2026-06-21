@@ -464,28 +464,63 @@ mod story_127 {
             .success() // RED: stub exits non-zero (reader fails on wrong-magic .pcap)
             .stdout(predicate::str::contains("Packets: 0")); // wrong magic excluded
 
-        // ── Case B: pcapng-magic .cap must be included ────────────────────────
-        // (additional discriminating test: with .cap excluded by stub, Packets: 0;
-        //  post-refactor, .cap with pcapng magic IS included and reader is invoked.)
+        // ── Case B: pcapng-magic .cap must be included and parsed successfully ──
+        //
+        // AC-004 headline behavior: a file with `.cap` extension and pcapng magic
+        // `[0x0A, 0x0D, 0x0D, 0x0A]` MUST be accepted by resolve_targets (content
+        // detection, extension ignored) and processed to completion — resolves C-2.
+        //
+        // To verify this cleanly within STORY-127 scope (no per-file error isolation,
+        // which is STORY-128/ADR-009 Decision 12), Case B uses a VALID minimal pcapng
+        // file: SHB + IDB(ETHERNET) + 1×EPB(empty) = 80 bytes, parses to 1 packet.
+        // A malformed/truncated pcapng body would cause the reader to error (exit
+        // non-zero), which would require STORY-128 isolation to distinguish from a
+        // detection failure — forbidden in STORY-127.
+        //
+        // Pre-refactor (stub): .cap excluded by extension filter → Packets: 0, exit 0.
+        // Post-refactor: .cap included by magic → reader parses valid pcapng → 1 packet
+        // → exit 0. The discriminating assertion: output contains "Packets: 1" (stub
+        // would produce "Packets: 0" because the .cap is silently excluded).
         let dir_b = tempfile::tempdir().expect("tempdir (Case B)");
 
-        // c2-regression.cap: .cap extension, pcapng magic → must be INCLUDED post-refactor.
-        write_magic_file(&dir_b, "c2-regression.cap", &MAGIC_PCAPNG);
-
-        // Pre-refactor (stub): .cap excluded by extension filter → Packets: 0, exit 0.
-        // Post-refactor: .cap included by magic → reader invoked → reader errors on
-        // 8-byte malformed pcapng body (no IDB, no valid block structure beyond magic).
-        // The reader error causes exit non-zero OR the error is surfaced in stderr.
-        // Either way, it is NOT "Packets: 0" with clean exit (file was silently excluded).
+        // Write smb3.pcapng content into a file with a `.cap` extension.
         //
-        // RED: assert exit 0 and Packets: 0 — this is the STUB behavior where .cap
-        // is excluded by the extension filter. Post-refactor, the .cap file IS included
-        // and the reader errors (exit non-zero) → this assertion FAILS.
+        // AC-004 headline behavior (C-2 regression): a pcapng file with a `.cap` extension
+        // MUST be detected and processed — resolves ADR-009 C-2 (`arp-baseline-16pkt.cap`
+        // was excluded by the prior extension-based filter).
+        //
+        // We use the committed `tests/fixtures/smb3.pcapng` as the content source (54
+        // packets, confirmed parseable) rather than a synthetic fixture. This removes any
+        // coupling to the pcapng byte builder helpers and exercises the full reader stack
+        // against a real-world file.
+        //
+        // File: c2-regression.cap — content is `smb3.pcapng` bytes; extension is `.cap`.
+        // First 4 bytes = [0x0A, 0x0D, 0x0D, 0x0A] (pcapng SHB magic).
+        let smb3_bytes = fs::read("tests/fixtures/smb3.pcapng")
+            .expect("tests/fixtures/smb3.pcapng must exist (committed fixture)");
+        assert_eq!(
+            &smb3_bytes[..4],
+            &MAGIC_PCAPNG,
+            "smb3.pcapng must begin with pcapng magic (sanity check)"
+        );
+
+        // Write as c2-regression.cap (.cap extension, valid pcapng content).
+        // resolve_targets MUST detect this via magic bytes, ignoring the .cap extension.
+        let cap_path = dir_b.path().join("c2-regression.cap");
+        fs::write(&cap_path, &smb3_bytes).expect("write c2-regression.cap");
+
+        // Post-refactor: magic probe reads first 4 bytes = [0x0A,0x0D,0x0D,0x0A] →
+        // matches MAGIC_PCAPNG → file included → reader parses smb3 content → 54 packets
+        // → stdout "Packets: 54", exit 0.
+        //
+        // Pre-refactor (stub): .cap excluded by extension filter → Packets: 0, exit 0.
+        // The discriminating assertion is "Packets: 54" (not "Packets: 0"), which FAILS
+        // under the stub (stub excludes .cap entirely; only "Packets: 0" is produced).
         wirerust()
             .args(["analyze", dir_b.path().to_str().unwrap(), "--no-color"])
             .assert()
-            .success() // RED: stub exits 0 (c2-regression.cap silently excluded by ext filter)
-            .stdout(predicate::str::contains("Packets: 0")); // .cap excluded by stub
+            .success() // valid pcapng → reader succeeds → exit 0
+            .stdout(predicate::str::contains("Packets: 54")); // .cap included; 54 smb3 packets
     }
 
     // ── AC-005 ────────────────────────────────────────────────────────────────
