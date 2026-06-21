@@ -240,9 +240,32 @@ proptest! {
             bytes.len(),
             block_types.len()
         );
-        // If no panic, verify the result is Ok or Err (not undefined).
+        // If no panic: verify forward progress — the function must have consumed the input
+        // (returned a result) rather than spinning indefinitely. The catch_unwind completing
+        // above already guarantees termination; here we assert the result is a meaningful
+        // outcome (Ok with packets/counters, or Err with a non-empty message).
         if let Ok(inner) = result {
-            prop_assert!(inner.is_ok() || inner.is_err());
+            match inner {
+                Ok(ref src) => {
+                    // Forward progress: at minimum, the SHB was processed.
+                    // skipped_blocks + packets.len() + opb_skipped are all ≥ 0 (trivially).
+                    // Meaningful check: the source struct is coherent (opb_skipped ≤ skipped_blocks).
+                    prop_assert!(
+                        src.opb_skipped <= src.skipped_blocks,
+                        "opb_skipped={} must never exceed skipped_blocks={} \
+                         (OPB increments both; non-OPB increments only skipped_blocks)",
+                        src.opb_skipped,
+                        src.skipped_blocks
+                    );
+                }
+                Err(ref e) => {
+                    // Forward progress on error path: the error message must be non-empty.
+                    prop_assert!(
+                        !e.to_string().is_empty(),
+                        "error message must be non-empty (error without context is a silent failure)"
+                    );
+                }
+            }
         }
     }
 }
