@@ -965,15 +965,13 @@ fn test_BC_2_01_013_spb_captured_len_max_original_len() {
 /// and continued parsing). The named-arm vs wildcard distinction is verified by
 /// the discriminating counter behavior for OPB (dual counter) vs generic (single).
 ///
-/// Note on current state: NRB/ISB/SJE/DSB currently fall to the wildcard `_` arm
-/// which ALSO increments skipped_blocks. So the counter total will be the same.
-/// The key behavioral distinction that WOULD fail is: DSB body bytes NOT logged
-/// (SEC-007) — this is structural and currently satisfied by the wildcard arm too.
-/// The F-07 requirement for EXPLICIT named arms is an implementation contract
-/// (architecture compliance rule 1), but the observable behavior tested here
-/// is counter incrementing and continued parsing. This test will be GREEN
-/// currently because the wildcard handles all of these correctly already.
-/// The test is included for completeness and to document the AC-006 contract.
+/// Implementation note: NRB/ISB/SJE/DSB are handled by EXPLICIT NAMED match arms at
+/// src/reader.rs:1228-1254 (NRB:1228, ISB:1235, SJE:1241, DSB:1247). Only genuinely
+/// unknown/unrecognized block types fall to the wildcard `_` arm (reader.rs:1256).
+/// The DSB arm satisfies SEC-007 (body bytes MUST NOT be logged) structurally — the
+/// named arm increments skipped_blocks and returns without touching body bytes.
+/// This test guards: named-arm dispatch + counter behavior + continued parsing
+/// (BC-2.01.015 AC-001 F-07, SEC-007 DSB boundary).
 #[test]
 fn test_BC_2_01_015_dispatch_known_and_skip_unknown() {
     // Build: SHB + IDB + NRB + ISB + SJE + DSB + unknown + EPB
