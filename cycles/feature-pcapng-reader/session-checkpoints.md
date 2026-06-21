@@ -10,6 +10,19 @@ Archived session resume checkpoints (superseded). Latest checkpoint is in STATE.
 
 ---
 
+## Checkpoint D-174 (2026-06-20 — F4 STORY-124 MERGED / Wave 52 COMPLETE)
+
+Superseded by D-175 checkpoint (STORY-125 TDD GREEN).
+
+- **Status:** F4 IN PROGRESS. STORY-124 (Wave 52) MERGED to develop (PR #282, 2f762fda). IDB parse + interface whitelist + multi-IDB conflict landed. stories_delivered=73. STORY-124 worktree closed. BC-5.39.001 SATISFIED (3 clean passes, D-173). Security CLEAN (0 Critical/High/Medium). AI review APPROVE (0 blocking). CI 10/10 green.
+- **NEXT (at archive time):** Wave 53 STORY-125 (EPB parse + BC-2.01.012/.014 + VP-025/027 Kani + F-2 padding-overrun + F-3 if_tsresol walk; both F-2/F-3 in-scope as mandatory ACs).
+- **develop:** 2f762fda. **main:** b73b242.
+- **F2:** CONVERGED + HUMAN-APPROVED (D-164). F3: GATE PASSED + HUMAN-APPROVED (D-168).
+- **ADR-009:** rev 11. **BC-2.01.014:** v1.5 at archive time.
+- **Open items at archive time:** STORY-124-EINP013-MSG-001 (LOW), STORY-126-SPB-PACKETS-EMITTED-001 (MEDIUM/MANDATORY), F-2/F-3 DEFERRED→STORY-125, STORY-125..128 input-hashes STALE (ADR-009 rev 10/11 change).
+
+---
+
 ## Checkpoint D-172 (2026-06-20 — F4 STORY-124 pass-1 remediated)
 
 Superseded by D-173 checkpoint (STORY-124 adversarially converged 3/3).
