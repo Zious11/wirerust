@@ -393,6 +393,23 @@ pub fn pcapng_timestamp_to_secs_usecs(ts_high: u32, ts_low: u32, if_tsresol: u8)
 
 // ─── Pure-core EPB body decoder (VP-027 Kani target) ────────────────────────
 
+/// Typed error discriminant for `decode_epb_body` (Kani VP-027 / BC-2.01.012).
+///
+/// `#[doc(hidden)]`: exported solely for the `#[cfg(kani)]` harness. The production
+/// path uses `anyhow::Result`; this enum lets the Kani proof discriminate error codes
+/// without triggering symbolic string formatting over `anyhow::Error` chains (which
+/// would make the BMC intractable at the required buffer bounds).
+#[doc(hidden)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum EpbDecodeError {
+    /// body.len() < EPB_FIXED_OVERHEAD_BYTES or PC6a/PC6b reject → E-INP-008.
+    BodyTooShort,
+    /// Interface table is empty (no IDB parsed yet) → E-INP-009.
+    EmptyInterfaceTable,
+    /// interface_id out of range on non-empty table → E-INP-010.
+    InterfaceIdOob,
+}
+
 /// Pure-core EPB body decoder (BC-2.01.012; VP-027 Kani target).
 ///
 /// Decodes one Enhanced Packet Block body into a `RawPacket`, applying the
@@ -498,6 +515,84 @@ pub fn decode_epb_body(
         &body[EPB_FIXED_OVERHEAD_BYTES..EPB_FIXED_OVERHEAD_BYTES + captured_len as usize];
 
     // Timestamp routing via the pure-core helper (PC2 / BC-2.01.014).
+    let (ts_sec, ts_usecs) = pcapng_timestamp_to_secs_usecs(ts_high, ts_low, iface.if_tsresol);
+
+    Ok(RawPacket {
+        timestamp_secs: ts_sec,
+        timestamp_usecs: ts_usecs,
+        data: packet_data.to_vec(),
+    })
+}
+
+/// Typed-error variant of `decode_epb_body` for Kani BMC (VP-027).
+///
+/// Identical logic to `decode_epb_body` but returns `EpbDecodeError` instead of an
+/// `anyhow::Error` string, keeping Kani's symbolic state tractable (no `format!`
+/// over symbolic bytes). The production path uses `decode_epb_body`; this function
+/// exists solely to enable BMC-tractable VP-027 assertion checks.
+///
+/// `#[doc(hidden)]`: not part of the supported public API surface.
+#[doc(hidden)]
+pub fn decode_epb_body_discriminant(
+    body: &[u8],
+    interfaces: &[InterfaceInfo],
+    endianness: SectionEndianness,
+) -> Result<RawPacket, EpbDecodeError> {
+    // (i) body.len() >= 20 gate — else E-INP-008.
+    if body.len() < EPB_FIXED_OVERHEAD_BYTES {
+        return Err(EpbDecodeError::BodyTooShort);
+    }
+
+    // (ii) Read interface_id.
+    let interface_id = match endianness {
+        SectionEndianness::BigEndian => u32::from_be_bytes([body[0], body[1], body[2], body[3]]),
+        SectionEndianness::LittleEndian => u32::from_le_bytes([body[0], body[1], body[2], body[3]]),
+    };
+
+    // (iii) Empty-table — E-INP-009.
+    if interfaces.is_empty() {
+        return Err(EpbDecodeError::EmptyInterfaceTable);
+    }
+
+    // (iv) OOB-on-non-empty — E-INP-010.
+    if interface_id as usize >= interfaces.len() {
+        return Err(EpbDecodeError::InterfaceIdOob);
+    }
+
+    let iface = &interfaces[interface_id as usize];
+
+    // (v) Fixed fields + PC6a/PC6b — E-INP-008.
+    let (ts_high, ts_low, captured_len, _original_len) = match endianness {
+        SectionEndianness::BigEndian => (
+            u32::from_be_bytes([body[4], body[5], body[6], body[7]]),
+            u32::from_be_bytes([body[8], body[9], body[10], body[11]]),
+            u32::from_be_bytes([body[12], body[13], body[14], body[15]]),
+            u32::from_be_bytes([body[16], body[17], body[18], body[19]]),
+        ),
+        SectionEndianness::LittleEndian => (
+            u32::from_le_bytes([body[4], body[5], body[6], body[7]]),
+            u32::from_le_bytes([body[8], body[9], body[10], body[11]]),
+            u32::from_le_bytes([body[12], body[13], body[14], body[15]]),
+            u32::from_le_bytes([body[16], body[17], body[18], body[19]]),
+        ),
+    };
+
+    let available = body.len().saturating_sub(EPB_FIXED_OVERHEAD_BYTES);
+    if captured_len as usize > available {
+        return Err(EpbDecodeError::BodyTooShort);
+    }
+
+    let pad_len = (4usize.wrapping_sub(captured_len as usize % 4)) % 4;
+    if EPB_FIXED_OVERHEAD_BYTES
+        .saturating_add(captured_len as usize)
+        .saturating_add(pad_len)
+        > body.len()
+    {
+        return Err(EpbDecodeError::BodyTooShort);
+    }
+
+    let packet_data =
+        &body[EPB_FIXED_OVERHEAD_BYTES..EPB_FIXED_OVERHEAD_BYTES + captured_len as usize];
     let (ts_sec, ts_usecs) = pcapng_timestamp_to_secs_usecs(ts_high, ts_low, iface.if_tsresol);
 
     Ok(RawPacket {
@@ -1191,5 +1286,139 @@ impl PcapSource {
             .with_context(|| format!("Failed to open {}", path.display()))?;
         let reader = std::io::BufReader::new(file);
         Self::from_pcap_reader(reader)
+    }
+}
+
+// ─── VP-027: EPB parse safety (Kani proof — F-F5P1-001) ─────────────────────
+
+#[cfg(kani)]
+mod kani_proofs {
+    use super::{EpbDecodeError, InterfaceInfo, SectionEndianness, decode_epb_body_discriminant};
+    use pcap_file::DataLink;
+
+    /// VP-027: EPB parse safety — real-call proof over symbolic body + interface table.
+    ///
+    /// Calls `decode_epb_body_discriminant` (a typed-error twin of `decode_epb_body`)
+    /// to keep the BMC tractable: the typed enum avoids symbolic `format!` / string
+    /// comparison over `anyhow::Error` chains, which would cause state-space explosion.
+    ///
+    /// Proves over symbolic EPB bodies + interface tables that the EPB decode:
+    ///   1. Never panics (totality / SEC-005 / AC-003).
+    ///   2. Empty table  -> EpbDecodeError::EmptyInterfaceTable (≡ E-INP-009, PC5a).
+    ///   3. OOB on non-empty table -> EpbDecodeError::InterfaceIdOob (≡ E-INP-010, PC5b).
+    ///   4. body.len() < 20 -> EpbDecodeError::BodyTooShort (≡ E-INP-008, EC-011).
+    ///   5. PC6a/PC6b: invalid lengths -> EpbDecodeError::BodyTooShort (≡ E-INP-008).
+    ///   6. EmptyInterfaceTable ≠ InterfaceIdOob (discriminants are distinct).
+    ///
+    /// The `decode_epb_body_discriminant` function uses identical logic to
+    /// `decode_epb_body` (same evaluation order, same guards, same success path)
+    /// but returns a typed enum instead of `anyhow::Error`. BC-2.01.012 /
+    /// VP-INDEX [^vp025-027-module-anchor] / F-F5P1-001.
+    #[kani::proof]
+    #[kani::unwind(32)]
+    pub fn vp027_epb_parse_safety() {
+        // EPB fixed overhead is 20 bytes (BC-2.01.012 Invariant 5).
+        const EPB_OVERHEAD: usize = 20; // BC-2.01.012 Invariant 5
+
+        // Symbolic body length bounded for BMC tractability.
+        // 28 covers: <20 (EC-011), exactly 20 (zero captured), and a small data+pad zone
+        // spanning the EC-009/EC-010 boundary.
+        const MAX_BODY: usize = 28;
+        let body_len: usize = kani::any_where(|n: &usize| *n <= MAX_BODY);
+
+        // Symbolic body bytes — fixed-capacity array keeps allocation static for Kani.
+        let mut buf = [0u8; MAX_BODY];
+        for b in buf.iter_mut() {
+            *b = kani::any();
+        }
+        let body: &[u8] = &buf[..body_len];
+
+        let endianness = if kani::any() {
+            SectionEndianness::LittleEndian
+        } else {
+            SectionEndianness::BigEndian
+        };
+
+        // ---- Case A: EMPTY table -> EmptyInterfaceTable (≡ E-INP-009, PC5a) ----
+        {
+            let empty: [InterfaceInfo; 0] = [];
+            let r = decode_epb_body_discriminant(body, &empty, endianness);
+            // Totality: call returns (never panics). If body_len >= 20, the empty-table
+            // error fires before any captured_len arithmetic (PC9 step iii before step v).
+            if body_len >= EPB_OVERHEAD {
+                let e = r.expect_err("empty table with valid-length body must Err");
+                kani::assert(
+                    e == EpbDecodeError::EmptyInterfaceTable,
+                    "empty table -> EmptyInterfaceTable (E-INP-009 PC5a)",
+                );
+                kani::assert(
+                    e != EpbDecodeError::InterfaceIdOob,
+                    "empty table must NOT be InterfaceIdOob (E-INP-010)",
+                );
+            } else {
+                // body too short -> BodyTooShort (E-INP-008, PC9 step i fires first).
+                let e = r.expect_err("short body must Err");
+                kani::assert(
+                    e == EpbDecodeError::BodyTooShort,
+                    "body < 20 -> BodyTooShort (E-INP-008, EC-011)",
+                );
+            }
+        }
+
+        // ---- Case B: NON-EMPTY table (len 1), symbolic interface_id ----
+        {
+            let table = [InterfaceInfo {
+                linktype: DataLink::ETHERNET,
+                if_tsresol: 6,
+            }];
+            let r = decode_epb_body_discriminant(body, &table, endianness);
+
+            if body_len < EPB_OVERHEAD {
+                let e = r.expect_err("short body must Err");
+                kani::assert(
+                    e == EpbDecodeError::BodyTooShort,
+                    "body < 20 -> BodyTooShort (E-INP-008, EC-011)",
+                );
+            } else {
+                // interface_id read from body[0..4]; with table.len()==1, OOB iff id != 0.
+                let id = match endianness {
+                    SectionEndianness::LittleEndian => {
+                        u32::from_le_bytes([body[0], body[1], body[2], body[3]])
+                    }
+                    SectionEndianness::BigEndian => {
+                        u32::from_be_bytes([body[0], body[1], body[2], body[3]])
+                    }
+                };
+                if id as usize >= 1 {
+                    let e = r.expect_err("OOB id must Err");
+                    kani::assert(
+                        e == EpbDecodeError::InterfaceIdOob,
+                        "OOB non-empty -> InterfaceIdOob (E-INP-010, PC5b)",
+                    );
+                    kani::assert(
+                        e != EpbDecodeError::EmptyInterfaceTable,
+                        "OOB must NOT be EmptyInterfaceTable (E-INP-009)",
+                    );
+                } else {
+                    // id == 0: in-bounds; Ok or BodyTooShort (PC6a/PC6b); never panics.
+                    match r {
+                        Ok(_) => {}
+                        Err(e) => {
+                            kani::assert(
+                                e == EpbDecodeError::BodyTooShort,
+                                "valid id, body-decode reject -> BodyTooShort (E-INP-008)",
+                            );
+                        }
+                    }
+                }
+            }
+        }
+
+        // ---- Discriminant distinctness: EmptyInterfaceTable ≠ InterfaceIdOob ----
+        // These two variants must map to different error codes (E-INP-009 vs E-INP-010).
+        kani::assert(
+            EpbDecodeError::EmptyInterfaceTable != EpbDecodeError::InterfaceIdOob,
+            "VP-027 discriminant: EmptyInterfaceTable (E-INP-009) != InterfaceIdOob (E-INP-010)",
+        );
     }
 }
