@@ -1288,8 +1288,8 @@ mod story_128 {
             // exit 0: structurally valid (EC-010 / F-M4)
             .success()
             // Base notice phrase MUST be present
-            // (this currently FAILS too because the notice itself is not yet
-            // implemented — but the gating assertions below pin the format constraint)
+            // (the zero-packet notice is implemented; this assertion and the
+            // gating assertions below pin the exact format constraint as a regression guard)
             .stderr(predicate::str::contains("0 packets read from pcapng file"))
             // No generic segment: skipped_blocks==0, so G==0 → gate false → OMITTED
             .stderr(predicate::str::contains("skipped").not())
