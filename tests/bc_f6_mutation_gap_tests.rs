@@ -861,6 +861,53 @@ fn test_BC_2_01_009_shb_invalid_field_non_matching_msg_routes_to_e_inp_010() {
             "Unsupported major version must NOT map to E-INP-010; got: {err_msg}"
         );
     }
+
+    // Sub-test E: THE DISCRIMINATING NEGATIVE CASE — mismatched BTL produces
+    // InvalidField("Block: initial_length != trailer_length"), which contains
+    // NEITHER "block length < 16" NOR "invalid magic number".
+    //
+    // Under correct code: falls to `_` arm → E-INP-010.
+    // Under mutation 1008:45 (guard 1 → true): routes to E-INP-008 via arm 1. TEST FAILS.
+    // Under mutation 1011:45 (guard 2 → true): guard 1 doesn't match (string lacks
+    //   "block length < 16"), guard 2 now forces true → routes to E-INP-008. TEST FAILS.
+    //
+    // This sub-test genuinely pins both 1008:45 and 1011:45.
+    {
+        // SHB with valid BOM and btl=28, but trailing BTL deliberately set to 99.
+        // The crate's inner_parse reads trailing_len=99, compares to initial_len=28,
+        // raises InvalidField("Block: initial_length != trailer_length").
+        let mut buf = Vec::new();
+        buf.extend_from_slice(&SHB_BLOCK_TYPE.to_le_bytes()); // block_type (4 bytes)
+        buf.extend_from_slice(&28u32.to_le_bytes()); // leading btl = 28 (4 bytes)
+        buf.extend_from_slice(&SHB_BOM_LE); // BOM LE (4 bytes)
+        buf.extend_from_slice(&1u16.to_le_bytes()); // major = 1 (2 bytes)
+        buf.extend_from_slice(&0u16.to_le_bytes()); // minor = 0 (2 bytes)
+        buf.extend_from_slice(&0xFFFF_FFFF_FFFF_FFFFu64.to_le_bytes()); // section_length (8 bytes)
+        buf.extend_from_slice(&99u32.to_le_bytes()); // trailing btl = 99 ≠ 28 (4 bytes)
+        assert_eq!(buf.len(), 28, "mismatched-BTL SHB must be exactly 28 bytes");
+
+        let result = PcapSource::from_pcap_reader(Cursor::new(buf));
+        assert!(
+            result.is_err(),
+            "Mismatched BTL SHB (leading=28, trailing=99) must return Err"
+        );
+        let err_msg = format!("{:#}", result.unwrap_err());
+        // Correct code: "Block: initial_length != trailer_length" → _ arm → E-INP-010.
+        // Mutation 1008:45 (guard 1 → true): routes to E-INP-008 instead. TEST FAILS.
+        // Mutation 1011:45 (guard 2 → true): guard 1 doesn't match, guard 2 forces
+        //   true → routes to E-INP-008 instead. TEST FAILS.
+        assert!(
+            err_msg.contains(E_INP_010),
+            "Mismatched BTL (non-matching InvalidField) MUST map to E-INP-010 (not E-INP-008); \
+             this is the discriminating negative case that kills mutations 1008:45 and 1011:45; \
+             got: {err_msg}"
+        );
+        assert!(
+            !err_msg.contains(E_INP_008),
+            "Mismatched BTL MUST NOT map to E-INP-008; mutation 1008:45 or 1011:45 would cause \
+             this — if you see E-INP-008 here, a mutation has survived; got: {err_msg}"
+        );
+    }
 }
 
 // Cluster 4, gap 884:29 (`< → <=`): magic peek — exactly 4 bytes is valid.
