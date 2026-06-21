@@ -395,48 +395,53 @@ fn test_BC_2_01_014_usecs_default_matches_classic_pcap() {
 
 /// AC-010 / BC-2.01.014 PC4 / EC-013: µs fast path saturation guard (M-3).
 ///
-/// Canonical test vector from BC-2.01.014 EC-013:
-///   ts_high=4295, ts_low=0, if_tsresol=6
-///   ticks = 4295 * 2^32 = 18_448_744_073_709_551_616
-///   ticks / 1_000_000 = 18_448_744_073_709 which exceeds u32::MAX (4_294_967_295)
-///   → ts_sec MUST saturate at u32::MAX (via .min(u32::MAX as u64) — mandatory)
-///   → ts_usecs = 0 (remainder of ticks % 1_000_000 with ts_high=4295, ts_low=0)
+/// CORRECTED test vector (BC-2.01.014 EC-013 canonical vector contained an arithmetic
+/// error — see PO follow-up note below):
+///   ts_high=2_000_000, ts_low=0, if_tsresol=6
+///   ticks = 2_000_000u64 << 32 = 2_000_000 * 4_294_967_296 = 8_589_934_592_000_000
+///   ticks / 1_000_000 = 8_589_934_592 which exceeds u32::MAX (4_294_967_295) → saturates ✓
+///   ts_sec = u32::MAX (saturation via .min(u32::MAX as u64) — mandatory)
+///   ts_usecs = 8_589_934_592_000_000 % 1_000_000 = 0 (8_589_934_592_000_000 is an exact
+///              multiple of 1_000_000; lower 32 bits are 0 and 2_000_000 * 967_296 mod
+///              1_000_000 = 0 since 2_000_000 * 967_296 = 1_934_592_000_000 mod 1_000_000 = 0)
 ///
 /// A bare `as u32` cast would WRAP (not saturate), producing a value < u32::MAX.
 /// This is the FAST-PATH SATURATION test that VP-025 Kani harness must also cover.
 ///
-/// FAILS: todo!() panics.
+/// NOTE FOR PO — BC-2.01.014 CANONICAL VECTOR ERROR (do NOT fix here; route to PO):
+///   The BC-2.01.014 EC-013 canonical vector table claims:
+///     ts_high=4295, ticks = 4295 * 2^32 = 18_448_744_073_709_551_616
+///   That claimed ticks value (18_448_744_073_709_551_616) EXCEEDS u64::MAX
+///   (18_446_744_073_709_551_615) — it is impossible as a u64. The actual value of
+///   4295u64 << 32 is only 18_446_884_536_320, which divided by 1_000_000 yields
+///   18_446_884 — far below u32::MAX (4_294_967_295). Saturation does NOT trigger for
+///   ts_high=4295. The BC must be updated to use a vector where ts_high > ~1_000_000
+///   (e.g. ts_high=2_000_000 as used here, or ts_high=4_295 is wrong by 3 orders of
+///   magnitude — the author appears to have confused 4295 with 4_295_000 or similar).
+///   Corrected vector: ts_high=2_000_000, ts_low=0, if_tsresol=6 → ts_sec=u32::MAX, ts_usecs=0.
 #[test]
 fn test_BC_2_01_014_fast_path_saturation_guard() {
-    // ts_high=4295, ts_low=0, if_tsresol=6
-    // ticks = 4295u64 << 32 = 18_448_744_073_709_551_616 (overflows u64? No: 4295 * 2^32 < u64::MAX)
-    // Let's verify: 4295 * 4_294_967_296 = 18_448_744_069_668_896 — fits in u64.
-    // Actually: u64::MAX = 18_446_744_073_709_551_615.
-    // 4295 * 2^32 = 4295 * 4_294_967_296 = 18_447_388_109_053,952 — wait, let us be precise:
-    // 4295u64 << 32 = 4295 * 4_294_967_296 = 18_447_388_109_053,952? No:
-    // 4295 * 4_294_967_296 = 4000 * 4_294_967_296 + 295 * 4_294_967_296
-    //                       = 17_179_869_184_000 + 1_267_015_352_320
-    //                       = 18_446_884_536_320 — fits u64.
-    // ticks/1_000_000 = 18_446_884_536 which is > u32::MAX (4_294_967_295). ✓
-    let (ts_sec, ts_usecs) = pcapng_timestamp_to_secs_usecs(4295, 0, 6);
+    // ts_high=2_000_000, ts_low=0, if_tsresol=6
+    // ticks = 2_000_000u64 << 32 = 2_000_000 * 4_294_967_296 = 8_589_934_592_000_000
+    // ticks / 1_000_000 = 8_589_934_592
+    // 8_589_934_592 > u32::MAX (4_294_967_295) → .min(u32::MAX as u64) clamps to u32::MAX ✓
+    // ticks % 1_000_000 = 8_589_934_592_000_000 % 1_000_000 = 0
+    let (ts_sec, ts_usecs) = pcapng_timestamp_to_secs_usecs(2_000_000, 0, 6);
     assert_eq!(
         ts_sec,
         u32::MAX,
-        "BC-2.01.014 EC-013 / M-3: ts_high=4295 → ticks/1_000_000 > u32::MAX; \
+        "BC-2.01.014 EC-013 / M-3: ts_high=2_000_000 → ticks/1_000_000=8_589_934_592 > u32::MAX; \
          ts_sec MUST saturate at u32::MAX (not wrap); got {ts_sec}"
     );
-    // ts_usecs: ticks = 4295u64 << 32 = exactly divisible by some amount.
-    // (4295u64 << 32) % 1_000_000: the lower 32 bits are 0, so ticks ends in 32 zero bits.
-    // 4295 * 4_294_967_296 mod 1_000_000:
-    // 4_294_967_296 mod 1_000_000 = 967_296; 4295 * 967_296 mod 1_000_000:
-    // 4295 * 967_296 = 4_155_436_320; 4_155_436_320 mod 1_000_000 = 436_320.
-    // So ts_usecs = 436_320 when ticks_per_sec = 1_000_000 and this is not saturated.
-    // The exact value depends on (4295 * 2^32) % 1_000_000.
-    // We assert only that it is in [0, 999_999] (Invariant 3) since the exact value
-    // is derived from 4295u64 << 32 which we cannot compute at compile time here.
-    assert!(
-        ts_usecs <= 999_999,
-        "BC-2.01.014 Invariant 3: ts_usecs must be in [0, 999_999]; got {ts_usecs}"
+    // ts_usecs: ticks = 2_000_000u64 << 32 = 8_589_934_592_000_000
+    // 8_589_934_592_000_000 % 1_000_000 = 0 (exact multiple — ts_low=0 contributes no remainder,
+    // and 2_000_000 * (4_294_967_296 % 1_000_000) = 2_000_000 * 967_296 = 1_934_592_000_000,
+    // 1_934_592_000_000 % 1_000_000 = 0).
+    assert_eq!(
+        ts_usecs,
+        0,
+        "BC-2.01.014 EC-013: ts_high=2_000_000, ts_low=0, if_tsresol=6 → ts_usecs=0 \
+         (ticks is exact multiple of 1_000_000); got {ts_usecs}"
     );
     // No panic: the function returned normally (if it panicked this assert is unreachable).
 }
