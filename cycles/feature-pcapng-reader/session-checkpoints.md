@@ -110,6 +110,16 @@ Active cycle: **feature-pcapng-reader**. F2 converged + human-approved (D-164). 
 
 ---
 
+## Archived Checkpoint: D-180 — STORY-126 MERGED / Wave 54 COMPLETE (2026-06-20)
+
+**Archived when:** D-181 — STORY-127 adversarial convergence ACHIEVED (BC-5.39.001 SATISFIED, 3 clean passes).
+
+### PIPELINE STATUS: FEATURE MODE — F4 STORY-126 (Wave 54) MERGED (PR #284, 56a10e9, D-180). Full pcapng reader stack (123/124/125/126) merged to develop. stories_delivered=75. Wave 55 STORY-127 (magic-byte glob BC-2.12.011 + E2E corpus) beginning. F2/F3 CONVERGED+APPROVED.
+
+Active cycle: **feature-pcapng-reader**. STORY-123 MERGED (PR #281, e4b940b, D-171). STORY-124 MERGED (PR #282, 2f762fda, D-174). STORY-125 MERGED (PR #283, 2c8f2a7, D-178). STORY-126 MERGED (PR #284, 56a10e9, D-180). Full pcapng reader stack merged. stories_delivered=75. Wave 55 STORY-127 beginning. develop=56a10e9. main=b73b242. New drift items: SEC-004 [LOW — CWE-835 forward-progress guard test]; STORY-126-SPB-CAPTUREDLEN-PUBAPI-001 [LOW, W7.1].
+
+---
+
 ## Archived Checkpoint: D-176 — STORY-125 PASS-1 REMEDIATED (2026-06-20)
 
 **Archived when:** D-177 — STORY-125 adversarial convergence ACHIEVED (BC-5.39.001 SATISFIED, 3 clean passes).
