@@ -438,8 +438,7 @@ fn test_BC_2_01_014_fast_path_saturation_guard() {
     // and 2_000_000 * (4_294_967_296 % 1_000_000) = 2_000_000 * 967_296 = 1_934_592_000_000,
     // 1_934_592_000_000 % 1_000_000 = 0).
     assert_eq!(
-        ts_usecs,
-        0,
+        ts_usecs, 0,
         "BC-2.01.014 EC-013: ts_high=2_000_000, ts_low=0, if_tsresol=6 → ts_usecs=0 \
          (ticks is exact multiple of 1_000_000); got {ts_usecs}"
     );
