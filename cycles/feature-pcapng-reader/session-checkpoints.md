@@ -1,12 +1,27 @@
 ---
 document_type: session-checkpoints
 cycle: feature-pcapng-reader
-phase: F4
+phase: F5
 ---
 
 # Session Checkpoints Archive — feature-pcapng-reader
 
 Archived session resume checkpoints (superseded). Latest checkpoint is in STATE.md.
+
+---
+
+## Checkpoint D-188 (2026-06-21 — F5 Pass-1 COMPLETE)
+
+Superseded by D-189 checkpoint (F5 CONVERGED — 3 consecutive clean passes).
+
+- **Status:** F5 IN PROGRESS. Pass 1 COMPLETE — NOT clean (1H/2M/2L, all RESOLVED via PR #287 merged 97c66b0). VP-027 now a genuine non-vacuous Kani proof (687 checks).
+- **NEXT (at archive time):** F5 Pass 2 (fresh-context adversary), pushing toward 3 consecutive clean passes.
+- **develop:** 97c66b0. **main:** b73b242.
+- **F4 GATE:** PASSED — human-approved (D-186). Consistency PASS 97/100. Input-drift RESOLVED (D-185).
+- **Merge chain this session:** e75a797 (base) → 97c66b0 (PR #287 merged).
+- **Spec bumps at archive:** BC-2.01.013 v1.10, VP-INDEX v2.9 (VP-027 draft→active), ADR-009 rev 12.
+- **Convergence trajectory at archive:** Pass 1: 5 findings (1H/2M/2L). Pass 2+: PENDING.
+- **Open items at archive:** SEC-001/SEC-002 (F5P1) non-blocking backlog. PG-F5-FRESHNESS-001 triggered.
 
 ---
 
