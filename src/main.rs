@@ -230,89 +230,108 @@ fn run_analyze(
     let mut dispatcher =
         StreamDispatcher::new(http_analyzer, tls_analyzer, modbus_analyzer, dnp3_analyzer);
 
-    // Capture loop wrapped in an immediately-invoked closure so any `?`-bail
-    // inside (e.g. unreadable pcap, malformed progress-bar template) is
-    // captured as an `Err` *without* short-circuiting `run_analyze` itself.
-    // This guarantees we always reach the reassembler `finalize` call below,
-    // which is what `impl Drop for TcpReassembler` only warns about — see
-    // LESSON-P0.03 / architecture smell #9 ("no-Drop / finalize-fragile").
-    let capture_result: Result<()> = (|| {
-        for target in targets {
-            let pcap_files = resolve_targets(target)?;
-            for path in &pcap_files {
-                let source = PcapSource::from_file(path)
-                    .with_context(|| format!("Failed to read {}", path.display()))?;
+    // STORY-128 (BC-2.01.018 AC-002 / ADR-009 Decision 12): per-file error isolation.
+    //
+    // The closure pattern has been replaced with a direct loop that catches per-file
+    // reader errors via `match` rather than `?`-propagation.  This guarantees:
+    //   - A bad file (any Err from PcapSource::from_file) never aborts the batch.
+    //   - The reassembler `finalize` call below is always reached (loop never bails).
+    //   - `any_error` accumulates whether any file failed; exit code is set after the loop.
+    //
+    // LESSON-P0.03 / architecture smell #9 ("no-Drop / finalize-fragile") is preserved:
+    // the loop body never `?`-bails, so `reassembler.finalize()` is always reached.
+    let mut any_error = false;
+    for target in targets {
+        let pcap_files = resolve_targets(target)?;
+        for path in &pcap_files {
+            // Per-file isolation: catch reader Err, report, continue (BC-2.01.018 AC-002).
+            let source = match PcapSource::from_file(path)
+                .with_context(|| format!("Failed to read {}", path.display()))
+            {
+                Ok(s) => s,
+                Err(e) => {
+                    eprintln!("error: {}: {e:#}", path.display());
+                    any_error = true;
+                    continue;
+                }
+            };
 
-                let pb = ProgressBar::new(source.packets.len() as u64);
-                pb.set_style(ProgressStyle::with_template(
-                    "[{elapsed_precise}] {bar:40} {pos}/{len} packets",
-                )?);
+            // ADR-009 Decision 19 / BC-2.01.009 PC6: emit zero-packet notice when
+            // a valid file contains no packets (e.g. SHB-only pcapng).
+            // This is in the Ok arm and is independent of the Err catch arm above.
+            if source.packets.is_empty() {
+                eprintln!(
+                    "notice: {}: 0 packets read from pcapng file",
+                    path.display()
+                );
+                continue;
+            }
 
-                for raw in &source.packets {
-                    match decode_packet(&raw.data, source.datalink) {
-                        Ok(DecodedFrame::Ip(parsed)) => {
-                            summary.ingest(&parsed);
-                            if enable_dns && dns_analyzer.can_decode(&parsed) {
-                                let findings = dns_analyzer.analyze(&parsed);
-                                all_findings.extend(findings);
-                            }
-                            if let Some(ref mut reasm) = reassembler {
-                                reasm.process_packet(&parsed, raw.timestamp_secs, &mut dispatcher);
-                            }
+            let pb = ProgressBar::new(source.packets.len() as u64);
+            pb.set_style(ProgressStyle::with_template(
+                "[{elapsed_precise}] {bar:40} {pos}/{len} packets",
+            )?);
+
+            for raw in &source.packets {
+                match decode_packet(&raw.data, source.datalink) {
+                    Ok(DecodedFrame::Ip(parsed)) => {
+                        summary.ingest(&parsed);
+                        if enable_dns && dns_analyzer.can_decode(&parsed) {
+                            let findings = dns_analyzer.analyze(&parsed);
+                            all_findings.extend(findings);
                         }
-                        // STORY-113: ArpAnalyzer wiring (BC-2.16.011; AC-015/AC-016).
-                        // ARP frames NEVER reach StreamDispatcher (Forbidden Dependency;
-                        // arp-architecture-delta.md §1; BC-2.16.015 Invariant 2).
-                        // process_arp is called only when --arp is active (enable_arp gate).
-                        Ok(DecodedFrame::Arp(arp_frame)) => {
-                            if enable_arp {
-                                let ts = raw.timestamp_secs;
-                                let findings = arp_analyzer.process_arp(&arp_frame, ts);
-                                all_findings.extend(findings);
-                            }
-                        }
-                        Err(ref e) if e.to_string().contains("Non-Ethernet/IPv4 ARP frame") => {
-                            // STORY-113: D11 malformed ARP notification (BC-2.16.009 PC3/PC4).
-                            // malformed_frames increments unconditionally (BC-2.16.009 PC4).
-                            // When --arp active: record_malformed emits D11 Finding and
-                            // increments both malformed_frames and malformed_findings (AC-012).
-                            // When --arp absent: only malformed_frames increments; no finding
-                            // emitted and malformed_findings unchanged (BC-2.16.009 PC4, ADR-008
-                            // Decision 7, BC-2.16.010 key 11).
-                            if enable_arp {
-                                all_findings.extend(arp_analyzer.record_malformed(raw.data.len()));
-                            } else {
-                                arp_analyzer.malformed_frames += 1;
-                            }
-                        }
-                        Err(e) => {
-                            if total_decode_errors == 0 {
-                                eprintln!(
-                                    "Warning: failed to decode packet ({e}). Further errors counted silently."
-                                );
-                            }
-                            total_decode_errors += 1;
+                        if let Some(ref mut reasm) = reassembler {
+                            reasm.process_packet(&parsed, raw.timestamp_secs, &mut dispatcher);
                         }
                     }
-                    pb.inc(1);
+                    // STORY-113: ArpAnalyzer wiring (BC-2.16.011; AC-015/AC-016).
+                    // ARP frames NEVER reach StreamDispatcher (Forbidden Dependency;
+                    // arp-architecture-delta.md §1; BC-2.16.015 Invariant 2).
+                    // process_arp is called only when --arp is active (enable_arp gate).
+                    Ok(DecodedFrame::Arp(arp_frame)) => {
+                        if enable_arp {
+                            let ts = raw.timestamp_secs;
+                            let findings = arp_analyzer.process_arp(&arp_frame, ts);
+                            all_findings.extend(findings);
+                        }
+                    }
+                    Err(ref e) if e.to_string().contains("Non-Ethernet/IPv4 ARP frame") => {
+                        // STORY-113: D11 malformed ARP notification (BC-2.16.009 PC3/PC4).
+                        // malformed_frames increments unconditionally (BC-2.16.009 PC4).
+                        // When --arp active: record_malformed emits D11 Finding and
+                        // increments both malformed_frames and malformed_findings (AC-012).
+                        // When --arp absent: only malformed_frames increments; no finding
+                        // emitted and malformed_findings unchanged (BC-2.16.009 PC4, ADR-008
+                        // Decision 7, BC-2.16.010 key 11).
+                        if enable_arp {
+                            all_findings.extend(arp_analyzer.record_malformed(raw.data.len()));
+                        } else {
+                            arp_analyzer.malformed_frames += 1;
+                        }
+                    }
+                    Err(e) => {
+                        if total_decode_errors == 0 {
+                            eprintln!(
+                                "Warning: failed to decode packet ({e}). Further errors counted silently."
+                            );
+                        }
+                        total_decode_errors += 1;
+                    }
                 }
-                pb.finish_and_clear();
+                pb.inc(1);
             }
+            pb.finish_and_clear();
         }
-        Ok(())
-    })();
+    }
 
     summary.skipped_packets = total_decode_errors;
 
-    // ALWAYS finalize the reassembler before propagating any capture error,
-    // so the segment-limit summary finding and per-flow flush still happen
-    // on the partial state captured before the bail.
+    // ALWAYS finalize the reassembler — the loop never ?-bails, so this is
+    // always reached regardless of per-file errors (preserves finalize guarantee).
     if let Some(ref mut reasm) = reassembler {
         reasm.finalize(&mut dispatcher);
         all_findings.extend(reasm.findings().to_vec());
     }
-
-    capture_result?;
 
     if let Some(http) = dispatcher.http_analyzer() {
         all_findings.extend(http.findings());
@@ -394,6 +413,13 @@ fn run_analyze(
     };
 
     write_output(&output, cli)?;
+
+    // STORY-128: exit code 1 iff any file failed (BC-2.01.018 AC-002).
+    // Deferred until after write_output so the summary is always emitted
+    // even when some files in the batch failed (good output is never suppressed).
+    if any_error {
+        std::process::exit(1);
+    }
     Ok(())
 }
 
@@ -406,11 +432,33 @@ fn run_summary(
     let mut summary = Summary::new();
     let mut total_decode_errors: u64 = 0;
 
+    // STORY-128 (BC-2.01.018 AC-002 / ADR-009 Decision 12): per-file error isolation
+    // for run_summary, mirroring the pattern in run_analyze.
+    let mut any_error = false;
     for target in targets {
         let pcap_files = resolve_targets(target)?;
         for path in &pcap_files {
-            let source = PcapSource::from_file(path)
-                .with_context(|| format!("Failed to read {}", path.display()))?;
+            // Per-file isolation: catch reader Err, report, continue.
+            let source = match PcapSource::from_file(path)
+                .with_context(|| format!("Failed to read {}", path.display()))
+            {
+                Ok(s) => s,
+                Err(e) => {
+                    eprintln!("error: {}: {e:#}", path.display());
+                    any_error = true;
+                    continue;
+                }
+            };
+
+            // ADR-009 Decision 19: zero-packet notice for valid zero-packet files.
+            if source.packets.is_empty() {
+                eprintln!(
+                    "notice: {}: 0 packets read from pcapng file",
+                    path.display()
+                );
+                continue;
+            }
+
             for raw in &source.packets {
                 match decode_packet(&raw.data, source.datalink) {
                     Ok(DecodedFrame::Ip(parsed)) => {
@@ -455,6 +503,12 @@ fn run_summary(
     };
 
     write_output(&output, cli)?;
+
+    // STORY-128: exit code 1 iff any file failed (BC-2.01.018 AC-002).
+    // Deferred until after write_output so the summary is always emitted.
+    if any_error {
+        std::process::exit(1);
+    }
     Ok(())
 }
 
