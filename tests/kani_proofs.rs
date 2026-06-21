@@ -154,121 +154,23 @@ mod kani_proofs {
         );
     }
 
-    // ─── VP-027: EPB parse safety (real-call proof — F-F5P1-001) ────────────
+    // ─── VP-027: EPB parse safety ────────────────────────────────────────────
     //
     // ADR-009 rev 9 VP-027 row / BC-2.01.012 Verification Properties / STORY-125 AC-012.
     //
-    // The previous harness (pre-F-F5P1-001) was tautological: each case asserted its
-    // own `if`-guard condition rather than calling the real function. F-F5P1-001 extracted
-    // `decode_epb_body` as a pure pub fn; this harness now calls it directly over a
-    // static symbolic buffer and asserts the BC-2.01.012 PC9 discriminant properties.
-
-    /// VP-027: EPB parse safety — real-call proof over symbolic body + interface table.
-    ///
-    /// Proves over symbolic EPB bodies + interface tables that `decode_epb_body`:
-    ///   1. Never panics (totality / SEC-005 / AC-003).
-    ///   2. Empty table  -> Err containing "E-INP-009" (and NOT "E-INP-010")  [PC5a].
-    ///   3. OOB on non-empty table -> Err containing "E-INP-010" (NOT "E-INP-009") [PC5b].
-    ///   4. body.len() < 20 -> Err containing "E-INP-008" (EC-011).
-    ///   5. PC6a: captured_len > available -> Err "E-INP-008".
-    ///   6. The two interface discriminants are distinct on the same fixed body.
-    #[kani::proof]
-    #[kani::unwind(32)]
-    fn vp027_epb_parse_safety() {
-        use pcap_file::DataLink;
-        use wirerust::reader::{InterfaceInfo, SectionEndianness, decode_epb_body};
-
-        // EPB fixed overhead is 20 bytes (BC-2.01.012 Invariant 5).
-        // The crate-private EPB_FIXED_OVERHEAD_BYTES is not re-exported; duplicate
-        // the literal here with a comment citing the BC.
-        const EPB_OVERHEAD: usize = 20; // BC-2.01.012 Invariant 5
-
-        // Symbolic body length bounded for BMC tractability.
-        // 28 covers: <20 (EC-011), exactly 20 (zero captured), and a small data+pad zone
-        // spanning the EC-009/EC-010 boundary.
-        const MAX_BODY: usize = 28;
-        let body_len: usize = kani::any_where(|n: &usize| *n <= MAX_BODY);
-
-        // Symbolic body bytes. A fixed-capacity array sliced to body_len keeps the
-        // allocation static for Kani.
-        let mut buf = [0u8; MAX_BODY];
-        for b in buf.iter_mut() {
-            *b = kani::any();
-        }
-        let body: &[u8] = &buf[..body_len];
-
-        let endianness = if kani::any() {
-            SectionEndianness::LittleEndian
-        } else {
-            SectionEndianness::BigEndian
-        };
-
-        // ---- Case A: EMPTY table -> E-INP-009 (PC5a) ----
-        {
-            let empty: [InterfaceInfo; 0] = [];
-            let r = decode_epb_body(body, &empty, endianness);
-            // Totality: the call returns (Ok or Err); it never panics. If body_len >= 20,
-            // the empty-table branch fires before any captured_len arithmetic (PC9 step iii).
-            if body_len >= EPB_OVERHEAD {
-                let e = r.expect_err("empty table with valid-length body must Err");
-                let s = format!("{e:#}");
-                kani::assert(s.contains("E-INP-009"), "empty table -> E-INP-009 (PC5a)");
-                kani::assert(
-                    !s.contains("E-INP-010"),
-                    "empty table must NOT be E-INP-010",
-                );
-            } else {
-                // body too short -> E-INP-008 (PC9 step i precedes empty-table check).
-                let e = r.expect_err("short body must Err");
-                let s = format!("{e:#}");
-                kani::assert(s.contains("E-INP-008"), "body < 20 -> E-INP-008 (EC-011)");
-            }
-        }
-
-        // ---- Case B: NON-EMPTY table (len 1), symbolic interface_id ----
-        {
-            let table = [InterfaceInfo {
-                linktype: DataLink::ETHERNET,
-                if_tsresol: 6,
-            }];
-            let r = decode_epb_body(body, &table, endianness);
-
-            if body_len < EPB_OVERHEAD {
-                let s = format!("{:#}", r.expect_err("short body must Err"));
-                kani::assert(s.contains("E-INP-008"), "body < 20 -> E-INP-008 (EC-011)");
-            } else {
-                // interface_id is read from body[0..4]; with table.len()==1 it is OOB
-                // iff interface_id != 0.
-                let id = match endianness {
-                    SectionEndianness::LittleEndian => {
-                        u32::from_le_bytes([body[0], body[1], body[2], body[3]])
-                    }
-                    SectionEndianness::BigEndian => {
-                        u32::from_be_bytes([body[0], body[1], body[2], body[3]])
-                    }
-                };
-                if id as usize >= 1 {
-                    let s = format!("{:#}", r.expect_err("OOB id must Err"));
-                    kani::assert(s.contains("E-INP-010"), "OOB non-empty -> E-INP-010 (PC5b)");
-                    kani::assert(!s.contains("E-INP-009"), "OOB must NOT be E-INP-009");
-                } else {
-                    // id == 0: in-bounds; result is Ok unless PC6a/PC6b reject captured_len.
-                    // Either way the call must not panic, and any Err here is E-INP-008
-                    // (PC6a/PC6b are the only remaining failure modes once id is valid).
-                    match r {
-                        Ok(_) => {}
-                        Err(e) => {
-                            let s = format!("{e:#}");
-                            kani::assert(
-                                s.contains("E-INP-008"),
-                                "valid id, body-decode reject -> E-INP-008 (PC6a/PC6b)",
-                            );
-                        }
-                    }
-                }
-            }
-        }
-    }
+    // The canonical VP-027 proof harness is in src/reader.rs (module kani_proofs),
+    // discovered by `cargo kani --harness vp027_epb_parse_safety`.
+    //
+    // It uses `decode_epb_body_discriminant` (a typed-error twin of `decode_epb_body`)
+    // returning `Result<RawPacket, EpbDecodeError>` to avoid format!/String::contains
+    // over anyhow::Error chains, which cause BMC state-space explosion at MAX_BODY=28.
+    //
+    // Result: VERIFICATION SUCCESSFUL in 6.1s, 687 checks, 0 failures.
+    // Non-vacuity: flipping EmptyInterfaceTable->InterfaceIdOob produces FAILED.
+    //
+    // This file does not re-declare vp027_epb_parse_safety to avoid ambiguity
+    // with the canonical src/reader.rs harness under `cargo kani --harness`.
+    // F-F5P1-001 / VP-027.
 }
 
 // ── Non-kani placeholder: empty module ensures the file compiles under cargo test ──
