@@ -109,7 +109,13 @@ mod kani_proofs {
             let (sat_sec, sat_usecs) = pcapng_timestamp_to_secs_usecs(2_000_000, 0, 6);
             // ticks = 2_000_000u64 << 32 = 8_589_934_592_000_000; / 1_000_000 = 8_589_934_592
             // > u32::MAX (4_294_967_295) → saturates to u32::MAX; ts_usecs = 0.
-            // (BC-2.01.014 v1.6 corrected vector; old 4295 was NOT arithmetically impossible.)
+            // (BC-2.01.014 v1.6 corrected vector; old ts_high=4295 was replaced for two reasons:
+            //  (a) the BC's claimed ticks value 4295 * 2^32 = 18_448_744_073_709_551_616 exceeds
+            //      u64::MAX (18_446_744_073_709_551_615) — arithmetically impossible as a u64; and
+            //  (b) the actual value 4295u64 << 32 = 18_446_884_536_320 divided by 1_000_000 yields
+            //      18_446_884 < u32::MAX — saturation does NOT trigger for ts_high=4295 at all.
+            //  ts_high=2_000_000 genuinely saturates: 2_000_000 << 32 / 1_000_000 = 8_589_934_592
+            //  > u32::MAX (4_294_967_295). See PO-note in bc_2_01_story125_epb_tests.rs.)
             kani::assert(
                 sat_sec == u32::MAX,
                 "VP-025 M-3 saturation: (2_000_000, 0, 6) → ts_sec must be u32::MAX \
