@@ -54,8 +54,26 @@ const SHB_BLOCK_TYPE: u32 = 0x0A0D_0D0A;
 /// OPB (obsolete Packet Block) type code.
 const OPB_BLOCK_TYPE: u32 = 0x0000_0002;
 
+/// SPB (Simple Packet Block) type code (BC-2.01.013 / ADR-009 Decision 22).
+const SPB_BLOCK_TYPE: u32 = 0x0000_0003;
+
+/// NRB (Name Resolution Block) type code — explicit skip arm (BC-2.01.015 AC-001 F-07).
+const NRB_BLOCK_TYPE: u32 = 0x0000_0004;
+
+/// ISB (Interface Statistics Block) type code — explicit skip arm (BC-2.01.015 AC-001 F-07).
+const ISB_BLOCK_TYPE: u32 = 0x0000_0005;
+
 /// EPB (Enhanced Packet Block) type code.
 const EPB_BLOCK_TYPE: u32 = 0x0000_0006;
+
+/// SJE (Systemd Journal Export Block) type code — explicit skip arm (BC-2.01.015 AC-001 F-07).
+const SJE_BLOCK_TYPE: u32 = 0x0000_0009;
+
+/// DSB (Decryption Secrets Block) type code — explicit skip arm; body bytes MUST NOT be logged
+/// (SEC-007: DSB carries TLS key material). No named `Block` enum variant exists in
+/// `pcap_file::pcapng::Block` for DSB (9-variant enum per block_common.rs:146-166);
+/// match the raw type bytes directly (BC-2.01.015 AC-001 F-07 / Architecture Compliance Rule 4).
+const DSB_BLOCK_TYPE: u32 = 0x0000_000A;
 
 /// IDB (Interface Description Block) type code.
 const IDB_BLOCK_TYPE: u32 = 0x0000_0001;
@@ -71,6 +89,13 @@ const IDB_BODY_FIXED_BYTES: usize = 8;
 ///
 /// Named `EPB_FIXED_OVERHEAD_BYTES` per BC-2.01.012 Inv5 / Architecture Compliance Rule 2.
 const EPB_FIXED_OVERHEAD_BYTES: usize = 20;
+
+/// SPB fixed overhead: 4 bytes (body-relative; `original_len: u32` only).
+///
+/// MUST NOT be confused with `EPB_FIXED_OVERHEAD_BYTES = 20`.
+/// Named `SPB_FIXED_OVERHEAD_BYTES` per BC-2.01.013 AC-004b / Architecture Compliance Rule 3.
+/// Minimum valid SPB btl = 12 outer + 4 body-fixed = 16 bytes total.
+pub const SPB_FIXED_OVERHEAD_BYTES: usize = 4;
 
 /// Default if_tsresol for pcapng (microseconds = 10^-6, per pcapng spec §4.4).
 const DEFAULT_TSRESOL: u8 = 6;
@@ -496,6 +521,48 @@ pub fn parse_idb_options(body: &[u8], endianness: SectionEndianness) -> Result<u
     Ok(DEFAULT_TSRESOL)
 }
 
+// ─── Pure-core helper: SPB captured-len arithmetic (BC-2.01.013 / VP-031) ───
+
+/// Compute the SPB `captured_len` from `original_len` and the SPB body slice.
+///
+/// This is the VP-031 pure-core proptest target (ADR-009 Decision 22 / BC-2.01.013 AC-002).
+/// It encapsulates the canonical formula so VP-031 can exercise it property-based:
+///
+///   `spb_data_available = body.len() - SPB_FIXED_OVERHEAD_BYTES`
+///   `captured_len       = min(original_len, spb_data_available as u32)`
+///
+/// # Precondition
+///
+/// `body.len() >= SPB_FIXED_OVERHEAD_BYTES` (≥ 4). The caller (SPB arm) MUST have
+/// already checked this and returned `Err` if not. Passing a shorter slice produces
+/// a saturating result via `saturating_sub`; the body-decode path guards this ahead
+/// of the call (BC-2.01.013 AC-004a).
+///
+/// # Returns
+///
+/// `captured_len: u32` in `[0, min(original_len, body.len()-4)]`.
+///
+/// The bare `body.len()` (WITHOUT subtracting 4) MUST NOT be used — it is 4 bytes
+/// too large because it counts the `original_len` field itself (ADR-009 Decision 22
+/// Inv2 / Architecture Compliance Rule 2 / BC-2.01.013 AC-002).
+///
+/// # Panics
+///
+/// Never panics. Uses `saturating_sub`; no overflow possible on u32 min.
+/// VP-031 (proptest) formally verifies this over arbitrary `(u32, Vec<u8>)` inputs.
+pub fn spb_captured_len(original_len: u32, body: &[u8]) -> u32 {
+    // ADR-009 Decision 22 / BC-2.01.013 AC-002 / Architecture Compliance Rule 2:
+    //   spb_data_available = body.len() - SPB_FIXED_OVERHEAD_BYTES  (canonical symbol)
+    //   captured_len       = min(original_len, spb_data_available)
+    //
+    // saturating_sub: if body.len() < SPB_FIXED_OVERHEAD_BYTES the caller guards this
+    // with an Err before calling here; saturating_sub yields 0 as a safe fallback.
+    // The bare body.len() (WITHOUT subtracting 4) MUST NOT be used — it is 4 bytes
+    // too large because it counts the original_len field itself.
+    let spb_data_available = (body.len().saturating_sub(SPB_FIXED_OVERHEAD_BYTES)) as u32;
+    original_len.min(spb_data_available)
+}
+
 // ─── PcapSource impl ─────────────────────────────────────────────────────────
 
 impl PcapSource {
@@ -888,11 +955,15 @@ impl PcapSource {
                     };
 
                     // (iii) Interface table empty check — BEFORE any captured_len arithmetic.
-                    // PC5a: empty-table → E-INP-009 with exact message (BC-2.01.012 PC5a).
+                    // PC5a / BC-2.01.017 PC1: empty-table → E-INP-009.
+                    // Context string mandated by BC-2.01.017 PC1 MUST prefix the underlying
+                    // taxonomy message so the full chain appears in any format (flat string
+                    // mirrors the SPB pattern, compatible with both .to_string() and {:#}).
                     if interfaces.is_empty() {
                         return Err(anyhow!(
-                            "EPB references interface_id={interface_id} but interface table is \
-                             empty — no IDB has been parsed (E-INP-009)"
+                            "pcapng Enhanced Packet Block encountered before any Interface \
+                             Description Block: EPB references interface_id={interface_id} but \
+                             interface table is empty — no IDB has been parsed (E-INP-009)"
                         ));
                     }
 
@@ -1015,14 +1086,110 @@ impl PcapSource {
                     packets_emitted = packets_emitted.saturating_add(1);
                 }
 
+                SPB_BLOCK_TYPE => {
+                    // BC-2.01.013 / ADR-009 Decision 22: SPB carries packet data without timestamp.
+                    // SPB has NO interface_id field → always uses interface 0.
+                    let blk_body = raw_block.body.as_ref();
+
+                    // (i) Empty-table guard (BC-2.01.013 AC-001 / BC-2.01.017 PC1 E-INP-009).
+                    // SPB always binds to interface 0; interface table must be non-empty.
+                    if interfaces.is_empty() {
+                        return Err(anyhow!(
+                            "pcapng Simple Packet Block encountered before any Interface \
+                             Description Block: SPB encountered but interface table is empty \
+                             — no IDB has been parsed (E-INP-009)"
+                        ));
+                    }
+
+                    // (ii) Body-length guard (BC-2.01.013 AC-004a / ADR-009 Decision 22).
+                    // The crate accepts btl=12 (body=0 bytes) as valid framing; wirerust
+                    // MUST check body.len() >= SPB_FIXED_OVERHEAD_BYTES (4) itself.
+                    if blk_body.len() < SPB_FIXED_OVERHEAD_BYTES {
+                        return Err(anyhow!(
+                            "Failed to read pcapng Simple Packet Block: body too short for \
+                             SPB fixed fields: expected at least {} bytes, got {} \
+                             (E-INP-008: body-too-short)",
+                            SPB_FIXED_OVERHEAD_BYTES,
+                            blk_body.len()
+                        ));
+                    }
+
+                    // (iii) Decode original_len from body[0..4] in section endianness.
+                    // Safe: body.len() >= 4 guaranteed by step (ii).
+                    let original_len = match section_endianness {
+                        SectionEndianness::BigEndian => {
+                            u32::from_be_bytes([blk_body[0], blk_body[1], blk_body[2], blk_body[3]])
+                        }
+                        SectionEndianness::LittleEndian => {
+                            u32::from_le_bytes([blk_body[0], blk_body[1], blk_body[2], blk_body[3]])
+                        }
+                    };
+
+                    // (iv) Compute captured_len via pure-core helper (ADR-009 Decision 22 / VP-031).
+                    // spb_data_available = body.len() - 4; captured_len = min(original_len, avail).
+                    let captured_len = spb_captured_len(original_len, blk_body) as usize;
+
+                    // (v) Slice packet data to exactly captured_len bytes (padding stripped).
+                    // body layout: [original_len:4][packet_data (+ padding)].
+                    // Safe: captured_len <= body.len()-4 <= body.len()-SPB_FIXED_OVERHEAD_BYTES by formula.
+                    let packet_data = &blk_body
+                        [SPB_FIXED_OVERHEAD_BYTES..SPB_FIXED_OVERHEAD_BYTES + captured_len];
+
+                    // (vi) SPB has no per-packet timestamp — produce zero timestamps
+                    // (BC-2.01.013 PC3 / AC-003 / zero-timestamp mandate).
+                    packets.push(RawPacket {
+                        timestamp_secs: 0,
+                        timestamp_usecs: 0,
+                        data: packet_data.to_vec(),
+                    });
+
+                    // (vii) MANDATORY: increment packets_emitted so a late IDB triggers E-INP-013
+                    // (STORY-126-SPB-PACKETS-EMITTED-001 / ADR-009 Decision 15).
+                    packets_emitted = packets_emitted.saturating_add(1);
+                }
+
                 OPB_BLOCK_TYPE => {
-                    // ADR-009 Decision 2: OPB skipped; both counters incremented.
+                    // BC-2.01.015 AC-001 F-07 / AC-003 / AC-007: OPB is obsolete.
+                    // Skip it; increment BOTH skipped_blocks AND opb_skipped (dual-counter).
+                    // OPB packet data intentionally NOT ingested (replaced by EPB).
                     skipped_blocks = skipped_blocks.saturating_add(1);
                     opb_skipped = opb_skipped.saturating_add(1);
                 }
 
+                NRB_BLOCK_TYPE => {
+                    // BC-2.01.015 AC-001 F-07: NRB (Name Resolution Block) — explicit skip arm.
+                    // Increments skipped_blocks only (no sub-counter).
+                    // No diagnostic output at any log level (AC-008 / SEC-007).
+                    skipped_blocks = skipped_blocks.saturating_add(1);
+                }
+
+                ISB_BLOCK_TYPE => {
+                    // BC-2.01.015 AC-001 F-07: ISB (Interface Statistics Block) — explicit skip arm.
+                    // Increments skipped_blocks only.
+                    skipped_blocks = skipped_blocks.saturating_add(1);
+                }
+
+                SJE_BLOCK_TYPE => {
+                    // BC-2.01.015 AC-001 F-07: SJE (Systemd Journal Export Block) — explicit skip arm.
+                    // Increments skipped_blocks only.
+                    skipped_blocks = skipped_blocks.saturating_add(1);
+                }
+
+                DSB_BLOCK_TYPE => {
+                    // BC-2.01.015 AC-001 F-07 / SEC-007: DSB (Decryption Secrets Block) — explicit
+                    // skip arm. Body bytes MUST NOT be logged, printed, or surfaced at any severity
+                    // level — DSB carries TLS key material (SEC-007).
+                    // No named Block enum variant exists for DSB; match raw type bytes directly
+                    // (Architecture Compliance Rule 4 / BC-2.01.015 AC-006 note).
+                    skipped_blocks = skipped_blocks.saturating_add(1);
+                }
+
                 _ => {
-                    // Unknown block: silently skip (SEC-007: do NOT log body bytes).
+                    // Deliberate documented unknown-block handler (BC-2.01.015 AC-001 F-07 catch-all).
+                    // This arm handles genuinely-unknown block types not listed above.
+                    // NOT a silent drop — this is the intentional explicit catch-all for unrecognized
+                    // block types. Increments skipped_blocks only.
+                    // No diagnostic output at any log level (AC-008).
                     skipped_blocks = skipped_blocks.saturating_add(1);
                 }
             }
