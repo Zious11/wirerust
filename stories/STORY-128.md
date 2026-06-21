@@ -35,7 +35,7 @@ inputs:
 #   ADR-009 Decision 12) designates STORY-128 as the owner of directory-mode
 #   per-file error isolation; the BC itself (reader-level conflict rule) lives
 #   in SS-01 but the isolation behavior owned by this story is in SS-12.
-input-hash: "6123d78"
+input-hash: "735a394"
 ---
 
 # STORY-128: main.rs Per-File Error Isolation Loop (Catch-and-Continue)

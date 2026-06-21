@@ -39,7 +39,7 @@ inputs:
 #   BC-2.01.015, and BC-2.01.017 are all SS-01 behavioral contracts per their
 #   traceability tables, anchored to src/reader.rs (C-4) per ARCH-INDEX
 #   Subsystem Registry.
-input-hash: "ade60b6"
+input-hash: "a59f35b"
 ---
 
 # STORY-126: SPB Parse, Explicit Block-Skip Dispatch (F-07), and Error-Surface Contract

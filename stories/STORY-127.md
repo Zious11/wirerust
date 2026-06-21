@@ -33,7 +33,7 @@ inputs:
 # Subsystem anchor: SS-12 owns this story's scope because BC-2.12.011 is an
 #   SS-12 behavioral contract (main.rs, C-1) per the ARCH-INDEX Subsystem
 #   Registry. resolve_targets lives in main.rs, not reader.rs.
-input-hash: "07aace6"
+input-hash: "3df9e4b"
 ---
 
 # STORY-127: Magic-Byte Glob (resolve_targets Content Detection) and E2E Corpus Wiring
