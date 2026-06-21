@@ -127,3 +127,13 @@ Active cycle: **feature-pcapng-reader**. STORY-123 MERGED (PR #281, e4b940b, D-1
 ### PIPELINE STATUS: FEATURE MODE — F4 STORY-125 (Wave 53) PASS-1 REMEDIATED — F-1 (VP-025 harness stale saturation vector 4295→2_000_000 fixed), M-1 (harness comment clarified), M-2 (BC-2.01.012 Inv6 contradiction → v2.0 reconciled). Worktree HEAD 3a31564 (1783 tests green, clippy/fmt clean). Convergence counter 0/3 — fresh clean passes next. F2/F3 CONVERGED+APPROVED.
 
 Active cycle: **feature-pcapng-reader**. STORY-123 MERGED (PR #281, e4b940b, D-171). STORY-124 MERGED (PR #282, 2f762fda, D-174). STORY-125 (Wave 53) adversarial pass-1 remediated (D-176): F-1 VP-025 Kani harness embedded stale 4295 saturation vector (pre-BC-2.01.014 v1.6) fixed to ts_high=2_000_000; M-1 misleading harness comment clarified; M-2 BC-2.01.012 Inv3/Inv6 contradiction (Inv6 wrongly claimed original_len IS retained; ground truth: read then discarded as `_original_len`, same as classic-pcap) → BC-2.01.012 v2.0 reconciles. No observable behavior change; implementation was already correct. F-2/F-3 IMPLEMENTED in STORY-125 (D-175, done-pending-merge). SEC-005 OOB fixed (→E-INP-010). Stories: 73 merged. develop=2f762fda. main=b73b242.
+
+---
+
+## Archived Checkpoint: D-181 — STORY-127 ADVERSARIALLY CONVERGED / Wave 55 / 2026-06-20
+
+**Archived when:** D-182 — STORY-127 PR #285 MERGED (e802b2e). Wave 55 COMPLETE. Wave 56 STORY-128 starting.
+
+### PIPELINE STATUS: FEATURE MODE — F4 STORY-127 (Wave 55) ADVERSARIALLY CONVERGED — BC-5.39.001 SATISFIED (3 consecutive clean passes). Code on feature/story-127-pcapng-e2e-corpus (HEAD 7b70d97, 1828 tests green). Demos → PR → merge pending. F2/F3 CONVERGED+APPROVED.
+
+Active cycle: **feature-pcapng-reader**. STORY-123 MERGED (PR #281, e4b940b, D-171). STORY-124 MERGED (PR #282, 2f762fda, D-174). STORY-125 MERGED (PR #283, 2c8f2a7, D-178). STORY-126 MERGED (PR #284, 56a10e9, D-180). STORY-127 (Wave 55) ADVERSARIALLY CONVERGED (D-181): Trajectory: AC-004 test-design fix + STORY-088 extension-test reconciliation (2 retired with tombstones, 1 converted to content-based per BC-2.12.011 v1.5) → pass-1 NOT-CLEAN (F-1 non-discriminating oracle for 3 of 5 magics; F-2 stale E2E-PCAPS.md doc) → fixed → CLEAN/CLEAN/CLEAN. Loop caught CI-breaking regression (3 obsolete extension tests) + non-mutation-sensitive magic test. develop=56a10e9. main=b73b242. stories_delivered=75.

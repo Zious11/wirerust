@@ -3,7 +3,7 @@ document_type: story
 story_id: STORY-127
 epic_id: E-19
 version: "1.0"
-status: draft
+status: completed
 # BC status: BCs authored and anchored below; all traces complete.
 producer: story-writer
 timestamp: 2026-06-20T00:00:00Z

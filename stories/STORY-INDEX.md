@@ -151,7 +151,7 @@ traces_to:
 | STORY-124 | IDB Parse (Link Type + if_tsresol), Interface Whitelist, and Multi-IDB Agreement | E-19 | 52 | 8 | completed | STORY-123 |
 | STORY-125 | EPB Parse and 64-bit Timestamp Normalization (Kani VP-025 + VP-027) | E-19 | 53 | 8 | completed | STORY-123, STORY-124 |
 | STORY-126 | SPB Parse, Explicit Block-Skip Dispatch (F-07), and Error-Surface Contract | E-19 | 54 | 8 | completed | STORY-123, STORY-124 |
-| STORY-127 | Magic-Byte Glob (resolve_targets Content Detection) and E2E Corpus Wiring | E-19 | 55 | 5 | draft | STORY-123, STORY-124, STORY-125, STORY-126 |
+| STORY-127 | Magic-Byte Glob (resolve_targets Content Detection) and E2E Corpus Wiring | E-19 | 55 | 5 | completed | STORY-123, STORY-124, STORY-125, STORY-126 |
 | STORY-128 | main.rs Per-File Error Isolation Loop (Catch-and-Continue) | E-19 | 56 | 3 | draft | STORY-127 |
 
 ---
@@ -305,7 +305,7 @@ traces_to:
 | 52 | STORY-124 | **DELIVERED & CLOSED** | #282 | 2f762fda | 2026-06-20 |
 | 53 | STORY-125 | **DELIVERED & CLOSED** | #283 | 2c8f2a7 | 2026-06-20 |
 | 54 | STORY-126 | **DELIVERED & CLOSED** | #284 | 56a10e9 | 2026-06-20 |
-| 55 | STORY-127 | draft | — | — | — |
+| 55 | STORY-127 | **DELIVERED & CLOSED** | #285 | e802b2e | 2026-06-20 |
 | 56 | STORY-128 | draft | — | — | — |
 
 ## Coverage Verification
