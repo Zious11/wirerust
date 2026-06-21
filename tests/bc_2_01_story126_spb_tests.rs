@@ -1133,11 +1133,30 @@ fn test_BC_2_01_015_dsb_body_not_logged() {
         result.is_ok(),
         "DSB + EPB must succeed; DSB body must be silently discarded"
     );
+    let source = result.unwrap();
     assert_eq!(
-        result.unwrap().packets.len(),
+        source.packets.len(),
         1,
         "EPB after DSB must produce 1 packet"
     );
+    // OBS-2 positive assertion (SEC-007 success path): the DSB sentinel bytes must NOT
+    // appear in ANY produced packet's data field. This ensures DSB payload never leaks
+    // into the packet stream, not just that it doesn't appear in error messages.
+    for (i, pkt) in source.packets.iter().enumerate() {
+        let pkt_as_str = String::from_utf8_lossy(&pkt.data);
+        assert!(
+            !pkt_as_str.contains(sentinel_str.as_ref()),
+            "SEC-007 violation: DSB TLS sentinel bytes appeared in packets[{i}].data — \
+             DSB payload must never leak into the packet stream"
+        );
+        // Also check raw byte containment (sentinel is ASCII, but guard both).
+        assert!(
+            !pkt.data
+                .windows(tls_sentinel.len())
+                .any(|w| w == tls_sentinel.as_slice()),
+            "SEC-007 violation: DSB TLS sentinel bytes (raw) found in packets[{i}].data"
+        );
+    }
 }
 
 /// AC-009 — loop MUST break on Err from next_raw_block (no CWE-835 spin).
@@ -1323,15 +1342,23 @@ fn test_BC_2_01_017_epb_before_idb_emits_einp009_context() {
         msg.contains(E_INP_009),
         "EPB-before-IDB error must contain E-INP-009, got: {msg}"
     );
-    // The canonical BC-2.01.017 PC1 string for EPB empty-table:
-    // "pcapng Enhanced Packet Block encountered before any Interface Description Block"
-    // We assert the invariant portion that distinguishes E-INP-009 from other EPB errors:
+    // BC-2.01.017 PC1: the EXACT EPB context string must be present in the rendered chain.
+    // This pins conformance — the OR condition is removed to prevent regression back to the
+    // pre-fix bare message that lacked the mandatory PC1 context prefix.
     assert!(
-        msg.contains("before any Interface Description Block")
-            || msg.contains("no IDB has been parsed"),
-        "EPB-before-IDB error must contain either the canonical PC1 string \
-         'before any Interface Description Block' or 'no IDB has been parsed' \
-         (E-INP-009 semantic), got: {msg}"
+        msg.contains(
+            "pcapng Enhanced Packet Block encountered before any Interface Description Block"
+        ),
+        "EPB-before-IDB error must contain the canonical BC-2.01.017 PC1 context string \
+         'pcapng Enhanced Packet Block encountered before any Interface Description Block', \
+         got: {msg}"
+    );
+    // The underlying taxonomy message must also be present (error-taxonomy v3.6).
+    assert!(
+        msg.contains("EPB references interface_id") && msg.contains("no IDB has been parsed"),
+        "EPB-before-IDB error must contain the taxonomy underlying message \
+         'EPB references interface_id=<id> but interface table is empty — no IDB has been parsed', \
+         got: {msg}"
     );
     assert!(
         !msg.contains(E_INP_008),

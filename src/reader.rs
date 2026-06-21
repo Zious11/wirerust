@@ -955,11 +955,15 @@ impl PcapSource {
                     };
 
                     // (iii) Interface table empty check — BEFORE any captured_len arithmetic.
-                    // PC5a: empty-table → E-INP-009 with exact message (BC-2.01.012 PC5a).
+                    // PC5a / BC-2.01.017 PC1: empty-table → E-INP-009.
+                    // Context string mandated by BC-2.01.017 PC1 MUST prefix the underlying
+                    // taxonomy message so the full chain appears in any format (flat string
+                    // mirrors the SPB pattern, compatible with both .to_string() and {:#}).
                     if interfaces.is_empty() {
                         return Err(anyhow!(
-                            "EPB references interface_id={interface_id} but interface table is \
-                             empty — no IDB has been parsed (E-INP-009)"
+                            "pcapng Enhanced Packet Block encountered before any Interface \
+                             Description Block: EPB references interface_id={interface_id} but \
+                             interface table is empty — no IDB has been parsed (E-INP-009)"
                         ));
                     }
 
