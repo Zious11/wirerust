@@ -59,16 +59,12 @@ use wirerust::summary::Summary;
 /// ADR-009 Decision 19 / BC-2.01.009 PC6 / STORY-128 C-1 (OPB clause) +
 /// M-1 (classic-pcap wording) adversarial findings.
 fn format_zero_packet_notice(path: &std::path::Path, source: &PcapSource) -> String {
-    // Determine file format from the 4-byte magic.
-    // pcapng SHB magic is 0x0A 0x0D 0x0D 0x0A.
-    // Anything else (classic pcap LE/BE micro/nano) → "pcap file".
-    // On None (unreadable) we default to "pcapng file"; in practice a
-    // successfully-parsed zero-packet file always has a readable magic.
-    const PCAPNG_MAGIC: [u8; 4] = [0x0A, 0x0D, 0x0D, 0x0A];
-    let file_kind = match read_magic(path) {
-        Some(m) if m == PCAPNG_MAGIC => "pcapng file",
-        Some(_) => "pcap file",
-        None => "pcapng file",
+    // Discriminant carried from the magic-byte probe in from_pcap_reader —
+    // no second file open needed (BC-2.01.009 PC6 / Decision 19 / F-F5P1-003).
+    let file_kind = if source.is_pcapng {
+        "pcapng file"
+    } else {
+        "pcap file"
     };
 
     let base = format!(
@@ -619,7 +615,7 @@ fn grouping_from_flag(show_mitre_grouping: bool) -> Grouping {
     }
 }
 
-/// Read the first 4 bytes of a file for magic-byte content detection.
+/// Reads the first 4 bytes of a file for magic-byte content detection.
 ///
 /// Returns `None` if the file cannot be opened, the file has fewer than 4
 /// readable bytes, or any I/O error occurs.  The probe is intentionally
@@ -627,14 +623,6 @@ fn grouping_from_flag(show_mitre_grouping: bool) -> Grouping {
 ///
 /// Called by `resolve_targets` (BC-2.12.011 Inv5 / STORY-127).
 /// `pub(crate)` so the unit test suite in `tests/` can call it directly.
-///
-/// # STORY-127 stub — BC-5.38.001
-///
-/// Body is `todo!()` per Red Gate discipline. The implementer must:
-/// 1. Open the file with `std::fs::File::open(path)`.
-/// 2. Read exactly 4 bytes with `Read::read` (NOT `read_exact` — must tolerate
-///    short reads on files with < 4 bytes; return `None` if `n < 4`).
-/// 3. Return `Some([b0, b1, b2, b3])` on success, `None` on any failure.
 pub(crate) fn read_magic(path: &std::path::Path) -> Option<[u8; 4]> {
     use std::io::Read as _;
     let mut file = std::fs::File::open(path).ok()?;
