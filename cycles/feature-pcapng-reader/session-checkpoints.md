@@ -147,3 +147,19 @@ Active cycle: **feature-pcapng-reader**. STORY-123 MERGED (PR #281, e4b940b, D-1
 ### PIPELINE STATUS: FEATURE MODE — F4 STORY-128 (Wave 56, FINAL) ADVERSARIALLY CONVERGED — BC-5.39.001 SATISFIED (3 consecutive clean passes). Code on feature/story-128-pcapng-perfile-isolation (HEAD 54fa481, 1850 tests green). Demos → PR → merge pending. F2/F3 CONVERGED+APPROVED.
 
 Active cycle: **feature-pcapng-reader**. STORY-123 MERGED (PR #281, e4b940b, D-171). STORY-124 MERGED (PR #282, 2f762fda, D-174). STORY-125 MERGED (PR #283, 2c8f2a7, D-178). STORY-126 MERGED (PR #284, 56a10e9, D-180). STORY-127 MERGED (PR #285, e802b2e, D-182). STORY-128 (Wave 56, FINAL) ADVERSARIALLY CONVERGED (D-183): Trajectory: pass-1 NOT-CLEAN (C-1 CRITICAL: zero-packet notice OMITTED both mandatory BC-2.01.009 PC6 parenthetical segments — HS-108 must-pass Cases B/D/E would FAIL in Phase-4; M-1 MAJOR: hardcoded "pcapng file" wording for classic pcap; H-1 HIGH: notice tests under-pinned) → all fixed (full PC6 format via shared format_zero_packet_notice helper with gated segments + pcap/pcapng wording via read_magic; discriminating tests) → CLEAN/CLEAN/CLEAN. BC-2.01.018 AC-002 (per-file isolation) + BC-2.01.009 PC6 zero-packet notice both LANDED. Loop caught guaranteed Phase-4 holdout failure. develop=e802b2e. main=b73b242. stories_delivered=76.
+
+---
+
+## Archived Checkpoint: D-184/D-185 (F4 COMPLETE + input-drift RESOLVED)
+
+**Archived when:** D-186 — F4 GATE APPROVED (human). F5 entered.
+
+### PIPELINE STATUS: FEATURE MODE — F4 COMPLETE / ALL 6 pcapng stories MERGED / E-19 DONE / input-drift RESOLVED (D-185) / F4 GATE pending human approval.
+
+Active cycle: **feature-pcapng-reader**. STORY-123 MERGED (PR #281, e4b940b, D-171). STORY-124 MERGED (PR #282, 2f762fda, D-174). STORY-125 MERGED (PR #283, 2c8f2a7, D-178). STORY-126 MERGED (PR #284, 56a10e9, D-180). STORY-127 MERGED (PR #285, e802b2e, D-182). STORY-128 MERGED (PR #286, e75a797, D-184). E-19 epic COMPLETE (6/6). stories_delivered=77. develop=e75a797. main=b73b242.
+
+Input-drift RESOLVED (D-185): STORY-123=5b74982, STORY-126=a59f35b, STORY-127=3df9e4b, STORY-128=735a394 regenerated. Scan: 78 MATCH / 0 STALE / 3 pre-existing ERROR (STORY-001/091/121 no-inputs-block). STORY-124/125 already MATCH.
+
+Spec versions (post-D-184): prd.md v1.33, error-taxonomy v3.7, nfr-catalog v2.3, ADR-009 rev 11, VP-INDEX v2.8 (total 31), BC-INDEX v1.68. 302 active BCs.
+
+NEXT (from this checkpoint): F4 GATE (consistency-validator audit + input-drift check + human approval) then F5 → F6 → F7.
