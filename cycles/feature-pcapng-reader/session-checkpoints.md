@@ -163,3 +163,19 @@ Input-drift RESOLVED (D-185): STORY-123=5b74982, STORY-126=a59f35b, STORY-127=3d
 Spec versions (post-D-184): prd.md v1.33, error-taxonomy v3.7, nfr-catalog v2.3, ADR-009 rev 11, VP-INDEX v2.8 (total 31), BC-INDEX v1.68. 302 active BCs.
 
 NEXT (from this checkpoint): F4 GATE (consistency-validator audit + input-drift check + human approval) then F5 → F6 → F7.
+
+---
+
+## Checkpoint D-186 — F4 GATE APPROVED / F5 IN PROGRESS (2026-06-21)
+
+Archived to session-checkpoints at D-187 (SESSION PAUSE). This checkpoint was the prior live resume point.
+
+**Phase:** F5 IN PROGRESS. **Mode:** FEATURE. **Cycle:** feature-pcapng-reader.
+
+F4 GATE APPROVED by human (D-186). Consistency-validator PASS 97/100 (0 blocking, 1 High-Advisory F-5 arp-baseline obligation, 2 Observations, 15 F5-F7-INTAKE items deferrable). Input-drift RESOLVED (D-185, all 78 pcapng stories MATCH).
+
+F5 adversary dispatch was attempted but hit transient model-availability error; was intentionally NOT retried before pause (D-187). Nothing was lost.
+
+develop=e75a797. main=b73b242. TWO worktrees: main repo (develop) + .factory/ (factory-artifacts). All story worktrees CLOSED.
+
+RESUME ACTION from this checkpoint was: launch F5 scoped adversarial sweep (now recorded in D-187 SESSION RESUME CHECKPOINT in STATE.md).
