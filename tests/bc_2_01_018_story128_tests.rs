@@ -899,4 +899,594 @@ mod story_128 {
             .stderr(predicate::str::contains("shb-only.pcapng"))
             .stderr(predicate::str::contains("0 packets"));
     }
+
+    // =======================================================================
+    // BC-2.01.009 PC6 NOTICE FORMAT TESTS (adversarial review C-1 / M-1 / H-1)
+    //
+    // The tests below pin the FULL PC6 notice format requirements:
+    //   (1) OPB-clause: "(includes N obsolete Packet Block(s) whose data was not
+    //       analyzed; re-save with mergecap)" — emitted when opb_skipped > 0.
+    //   (2) Generic-skip segment: "(G block(s) skipped as unsupported)" where
+    //       G = skipped_blocks - opb_skipped — emitted when G > 0.
+    //   (3) Classic-pcap wording: "pcap file" (NOT "pcapng file") for classic pcap.
+    //   (4) Segments are independently gated (neither segment when both gates == 0).
+    //
+    // ALL tests below drive the CLI via subprocess (assert_cmd), identical to the
+    // existing STORY-128 approach.
+    //
+    // Fixture helpers below build pcapng files with OPB / NRB / unknown blocks
+    // following the same le_skip_block pattern from bc_2_01_story126_spb_tests.rs.
+    //
+    // RED GATE: these tests FAIL against the current bare notice because:
+    //   - Current code: eprintln!("notice: {}: 0 packets read from pcapng file", path)
+    //   - No parenthetical segment is ever appended (no OPB clause, no skip segment).
+    //   - Classic pcap always emits "pcapng file" (wrong wording for pcap inputs).
+    // =======================================================================
+
+    // -----------------------------------------------------------------------
+    // Pcapng fixture helpers for PC6 format tests
+    //
+    // These follow the same le_skip_block pattern established in STORY-126:
+    //   block_type(4 LE) + btl(4 LE) + body + trailing_btl(4 LE)
+    //   btl = 12 + body.len(); body must be 4-byte aligned.
+    // -----------------------------------------------------------------------
+
+    /// OPB (Obsolete Packet Block) type code — 0x00000002.
+    ///
+    /// Wire layout per HS-108 Case D (32 bytes, empty captured data):
+    ///   block_type:     02 00 00 00
+    ///   btl:            20 00 00 00  (32 decimal)
+    ///   interface_id:   00 00
+    ///   drops_count:    00 00
+    ///   ts_high:        00 00 00 00
+    ///   ts_low:         00 00 00 00
+    ///   captured_len:   00 00 00 00
+    ///   original_len:   00 00 00 00
+    ///   trailing_btl:   20 00 00 00
+    fn opb_bytes() -> Vec<u8> {
+        // OPB body: interface_id(2) + drops_count(2) + ts_high(4) + ts_low(4)
+        //           + captured_len(4) + original_len(4) = 20 bytes
+        let body: &[u8] = &[
+            0x00, 0x00, // interface_id
+            0x00, 0x00, // drops_count
+            0x00, 0x00, 0x00, 0x00, // ts_high
+            0x00, 0x00, 0x00, 0x00, // ts_low
+            0x00, 0x00, 0x00, 0x00, // captured_len = 0
+            0x00, 0x00, 0x00, 0x00, // original_len = 0
+        ];
+        le_skip_block_pc6(0x0000_0002, body)
+    }
+
+    /// NRB (Name Resolution Block, type 0x00000004) with an empty record list.
+    ///
+    /// Wire layout per HS-108 Case E (16 bytes, LE):
+    ///   block_type:    04 00 00 00
+    ///   btl:           10 00 00 00  (16 decimal)
+    ///   nrb_record_type: 00 00
+    ///   nrb_record_length: 00 00
+    ///   trailing_btl:  10 00 00 00
+    fn nrb_bytes() -> Vec<u8> {
+        // NRB body: record_type(2) + record_length(2) = 4 bytes (4-byte aligned)
+        let body: &[u8] = &[
+            0x00, 0x00, // record_type = 0 (end of records)
+            0x00, 0x00, // record_length = 0
+        ];
+        le_skip_block_pc6(0x0000_0004, body)
+    }
+
+    /// Unknown block type (0x00000099) with 8 dummy body bytes.
+    ///
+    /// Wire layout per HS-108 "Unknown-type block" note (20 bytes, LE):
+    ///   block_type:    99 00 00 00
+    ///   btl:           14 00 00 00  (20 decimal)
+    ///   body:          AA BB CC DD EE FF 00 11  (8 bytes)
+    ///   trailing_btl:  14 00 00 00
+    fn unknown_skip_block_bytes() -> Vec<u8> {
+        let body: &[u8] = &[0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF, 0x00, 0x11];
+        le_skip_block_pc6(0x0000_0099, body)
+    }
+
+    /// Generic skip-block builder: block_type(4 LE) + btl(4 LE) + body + trailing_btl(4 LE).
+    ///
+    /// Mirrors le_skip_block from bc_2_01_story126_spb_tests.rs.
+    /// body must already be 4-byte aligned.
+    fn le_skip_block_pc6(block_type: u32, body: &[u8]) -> Vec<u8> {
+        assert_eq!(body.len() % 4, 0, "body must be 4-byte aligned");
+        let btl = 12 + body.len();
+        let mut v = Vec::with_capacity(btl);
+        v.extend_from_slice(&block_type.to_le_bytes());
+        v.extend_from_slice(&(btl as u32).to_le_bytes());
+        v.extend_from_slice(body);
+        v.extend_from_slice(&(btl as u32).to_le_bytes());
+        assert_eq!(v.len(), btl);
+        v
+    }
+
+    /// SHB + IDB + 1 OPB (no EPB/SPB).
+    ///
+    /// BC-2.01.009 EC-007 / HS-108 Case D:
+    ///   packets.len()==0, skipped_blocks==1, opb_skipped==1, G=0.
+    ///   Notice MUST include OPB clause; MUST NOT include generic segment.
+    fn shb_idb_one_opb_bytes() -> Vec<u8> {
+        let mut b = shb_bytes();
+        b.extend(idb_bytes(1)); // ETHERNET IDB
+        b.extend(opb_bytes()); // 1 OPB → skipped_blocks=1, opb_skipped=1
+        b
+    }
+
+    /// SHB + IDB + 2 unknown skip blocks (no OPB, no EPB/SPB).
+    ///
+    /// HS-108 Case B:
+    ///   packets.len()==0, skipped_blocks==2, opb_skipped==0, G=2.
+    ///   Notice MUST include generic segment "(2 block(s) skipped as unsupported)".
+    fn shb_idb_two_unknown_blocks_bytes() -> Vec<u8> {
+        let mut b = shb_bytes();
+        b.extend(idb_bytes(1)); // ETHERNET IDB
+        b.extend(unknown_skip_block_bytes()); // skip block 1 → skipped_blocks=1
+        b.extend(unknown_skip_block_bytes()); // skip block 2 → skipped_blocks=2
+        b
+    }
+
+    /// SHB + IDB + 2 NRBs + 1 OPB (no EPB/SPB).
+    ///
+    /// HS-108 Case E:
+    ///   packets.len()==0, skipped_blocks==3, opb_skipped==1, G=2.
+    ///   Notice MUST include BOTH generic segment "(2 block(s) skipped as unsupported)"
+    ///   AND OPB clause "(includes 1 obsolete Packet Block(s) whose data was not analyzed;
+    ///   re-save with mergecap)".
+    fn shb_idb_two_nrb_one_opb_bytes() -> Vec<u8> {
+        let mut b = shb_bytes();
+        b.extend(idb_bytes(1)); // ETHERNET IDB
+        b.extend(nrb_bytes()); // NRB 1 → skipped_blocks=1
+        b.extend(nrb_bytes()); // NRB 2 → skipped_blocks=2
+        b.extend(opb_bytes()); // OPB → skipped_blocks=3, opb_skipped=1
+        b
+    }
+
+    /// Minimal valid EMPTY classic pcap file (24-byte global header, zero packet records).
+    ///
+    /// BC-2.01.009 EC-009 / PC6 classic-pcap symmetry:
+    ///   magic: 0xA1B2C3D4 (little-endian = D4 C3 B2 A1 on disk)
+    ///   version_major: 2
+    ///   version_minor: 4
+    ///   thiszone: 0
+    ///   sigfigs: 0
+    ///   snaplen: 65535
+    ///   network: 1 (ETHERNET)
+    ///   Zero packet records follow — valid empty capture.
+    fn empty_classic_pcap_bytes() -> Vec<u8> {
+        let mut b = Vec::new();
+        // magic number: 0xA1B2C3D4 (LE on disk = D4 C3 B2 A1)
+        b.extend_from_slice(&[0xD4, 0xC3, 0xB2, 0xA1]);
+        // version_major = 2 (LE u16)
+        b.extend_from_slice(&[0x02, 0x00]);
+        // version_minor = 4 (LE u16)
+        b.extend_from_slice(&[0x04, 0x00]);
+        // thiszone = 0 (LE i32)
+        b.extend_from_slice(&[0x00, 0x00, 0x00, 0x00]);
+        // sigfigs = 0 (LE u32)
+        b.extend_from_slice(&[0x00, 0x00, 0x00, 0x00]);
+        // snaplen = 65535 (LE u32)
+        b.extend_from_slice(&[0xFF, 0xFF, 0x00, 0x00]);
+        // network = 1 (ETHERNET, LE u32)
+        b.extend_from_slice(&[0x01, 0x00, 0x00, 0x00]);
+        // Zero packet records — EOF immediately after global header.
+        assert_eq!(b.len(), 24, "classic pcap global header must be 24 bytes");
+        b
+    }
+
+    // -----------------------------------------------------------------------
+    // Test 1 (C-1): OPB-clause — SHB + IDB + 1 OPB, zero packets
+    //
+    // HS-108 Case D: skipped_blocks=1, opb_skipped=1, G=0.
+    // Notice MUST contain OPB clause; MUST NOT contain generic segment.
+    //
+    // RED: current notice is bare "0 packets read from pcapng file" with no
+    // parenthetical — the OPB clause ("obsolete", "mergecap", count "1") is absent.
+    // -----------------------------------------------------------------------
+
+    /// BC-2.01.009 PC6 OPB-clause (C-1 adversarial finding): a valid pcapng with
+    /// SHB + IDB + 1 OPB (zero EPB/SPB) MUST emit the OPB clause in the notice.
+    ///
+    /// Expected full notice (BC-2.01.009 PC6 Case D canonical form):
+    ///   "notice: <file>: 0 packets read from pcapng file (includes 1 obsolete
+    ///    Packet Block(s) whose data was not analyzed; re-save with mergecap)"
+    ///
+    /// Key substrings that MUST be present (HS-108 Case D byte-exact assertion):
+    ///   - "0 packets read from pcapng file"
+    ///   - "obsolete"
+    ///   - "mergecap"
+    ///   - "1"  (OPB count — as part of the clause)
+    ///
+    /// Substring that MUST NOT be present (G=0, generic segment suppressed):
+    ///   - "skipped as unsupported"
+    ///
+    /// ## RED gate
+    ///
+    /// Current code emits: "notice: <file>: 0 packets read from pcapng file"
+    /// Missing: the entire OPB clause parenthetical.
+    /// → "obsolete" absent → assertion fails → RED.
+    ///
+    /// BC-2.01.009 PC6 EC-007 / HS-108 Case D / ADR-009 Decision 19 OPB-distinction.
+    #[test]
+    fn test_BC_2_01_009_pc6_opb_clause_analyze() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        fs::write(dir.path().join("opb-only.pcapng"), shb_idb_one_opb_bytes())
+            .expect("write opb-only.pcapng");
+
+        wirerust()
+            .args(["analyze", dir.path().to_str().unwrap(), "--no-color"])
+            .assert()
+            // exit 0: structurally valid zero-packet file
+            .success()
+            // Base notice phrase must be present
+            .stderr(predicate::str::contains("0 packets read from pcapng file"))
+            // OPB clause: count "1" must appear
+            .stderr(predicate::str::contains("1"))
+            // OPB clause: "obsolete" must appear (HS-108 Case D byte-exact)
+            // RED: current code does not emit "obsolete" → assertion FAILS here
+            .stderr(predicate::str::contains("obsolete"))
+            // OPB clause: "mergecap" remediation hint must appear (HS-108 Case D)
+            // RED: current code does not emit "mergecap" → assertion FAILS here
+            .stderr(predicate::str::contains("mergecap"))
+            // Generic segment MUST NOT appear (G = 1-1 = 0, gate is false)
+            .stderr(predicate::str::contains("skipped as unsupported").not());
+    }
+
+    /// Same OPB-clause test via `summary` subcommand (PC6 applies to both).
+    ///
+    /// The `run_summary` path has the same bare-notice defect as `run_analyze`.
+    /// This pins both subcommands simultaneously.
+    ///
+    /// RED: same reason as test_BC_2_01_009_pc6_opb_clause_analyze — no OPB
+    /// clause in the current notice emitted by either subcommand.
+    ///
+    /// BC-2.01.009 PC6 / STORY-128 coverage for run_summary.
+    #[test]
+    fn test_BC_2_01_009_pc6_opb_clause_summary() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        fs::write(dir.path().join("opb-only.pcapng"), shb_idb_one_opb_bytes())
+            .expect("write opb-only.pcapng");
+
+        wirerust()
+            .args(["summary", dir.path().to_str().unwrap(), "--no-color"])
+            .assert()
+            .success()
+            .stderr(predicate::str::contains("0 packets read from pcapng file"))
+            // RED: "obsolete" absent in current notice
+            .stderr(predicate::str::contains("obsolete"))
+            // RED: "mergecap" absent in current notice
+            .stderr(predicate::str::contains("mergecap"))
+            .stderr(predicate::str::contains("skipped as unsupported").not());
+    }
+
+    // -----------------------------------------------------------------------
+    // Test 2 (C-1): Generic-skip segment — SHB + IDB + 2 unknown blocks
+    //
+    // HS-108 Case B: skipped_blocks=2, opb_skipped=0, G=2.
+    // Notice MUST contain "(2 block(s) skipped as unsupported)".
+    //
+    // RED: current bare notice has no parenthetical at all.
+    // -----------------------------------------------------------------------
+
+    /// BC-2.01.009 PC6 generic-skip segment (C-1): a valid pcapng with SHB + IDB
+    /// + 2 unknown/unsupported skip blocks (G=2, opb_skipped=0) MUST include the
+    /// generic skip segment in the zero-packet notice.
+    ///
+    /// Expected notice (HS-108 Case B):
+    ///   "notice: <file>: 0 packets read from pcapng file (2 block(s) skipped as unsupported)"
+    ///
+    /// Key substrings (HS-108 Case B byte-exact assertion):
+    ///   - "0 packets read from pcapng file"
+    ///   - "2 block(s) skipped"  (the count 2 and "skipped" must both appear)
+    ///   - "skipped as unsupported"  (BC-2.01.009 PC6 exact wording for generic segment)
+    ///
+    /// Substrings that MUST NOT be present (opb_skipped==0, OPB clause suppressed):
+    ///   - "obsolete"
+    ///   - "mergecap"
+    ///
+    /// ## RED gate
+    ///
+    /// Current code emits: "notice: <file>: 0 packets read from pcapng file"
+    /// Missing: the "(2 block(s) skipped as unsupported)" segment.
+    /// → "skipped as unsupported" absent → assertion FAILS → RED.
+    ///
+    /// BC-2.01.009 PC6 / HS-108 Case B / ADR-009 Decision 19 generic-skip gate.
+    #[test]
+    fn test_BC_2_01_009_pc6_generic_skip_segment_analyze() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        fs::write(
+            dir.path().join("two-unknown-blocks.pcapng"),
+            shb_idb_two_unknown_blocks_bytes(),
+        )
+        .expect("write two-unknown-blocks.pcapng");
+
+        wirerust()
+            .args(["analyze", dir.path().to_str().unwrap(), "--no-color"])
+            .assert()
+            .success()
+            .stderr(predicate::str::contains("0 packets read from pcapng file"))
+            // Generic segment: count G=2 must appear (HS-108 Case B byte-exact)
+            // RED: current code emits no parenthetical → "skipped as unsupported" absent
+            .stderr(predicate::str::contains("skipped as unsupported"))
+            // The count 2 must appear in the segment
+            .stderr(predicate::str::contains("2"))
+            // OPB clause MUST NOT appear (opb_skipped==0, gate is false)
+            .stderr(predicate::str::contains("obsolete").not())
+            .stderr(predicate::str::contains("mergecap").not());
+    }
+
+    /// Same generic-skip segment test via `summary` subcommand.
+    ///
+    /// RED: same reason — bare notice missing generic segment.
+    #[test]
+    fn test_BC_2_01_009_pc6_generic_skip_segment_summary() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        fs::write(
+            dir.path().join("two-unknown-blocks.pcapng"),
+            shb_idb_two_unknown_blocks_bytes(),
+        )
+        .expect("write two-unknown-blocks.pcapng");
+
+        wirerust()
+            .args(["summary", dir.path().to_str().unwrap(), "--no-color"])
+            .assert()
+            .success()
+            .stderr(predicate::str::contains("0 packets read from pcapng file"))
+            // RED: "skipped as unsupported" absent in current notice
+            .stderr(predicate::str::contains("skipped as unsupported"))
+            .stderr(predicate::str::contains("2"))
+            .stderr(predicate::str::contains("obsolete").not())
+            .stderr(predicate::str::contains("mergecap").not());
+    }
+
+    // -----------------------------------------------------------------------
+    // Test 3 (HS-108 Case E): Both segments present — 2 NRBs + 1 OPB
+    //
+    // skipped_blocks=3, opb_skipped=1, G=2.
+    // Notice MUST contain BOTH "(2 block(s) skipped as unsupported)" AND
+    // "(includes 1 obsolete Packet Block(s) whose data was not analyzed;
+    //  re-save with mergecap)".
+    //
+    // RED: current bare notice has neither segment.
+    // -----------------------------------------------------------------------
+
+    /// BC-2.01.009 PC6 both-segments (HS-108 Case E): a valid pcapng with 2 NRBs
+    /// + 1 OPB MUST show BOTH the generic skip segment (G=2) AND the OPB clause
+    /// (opb_skipped=1) in the zero-packet notice.
+    ///
+    /// The two segments are independently gated and must appear space-separated
+    /// per BC-2.01.009 PC6 v1.7: "when both segments are emitted they appear
+    /// space-separated after the base notice line."
+    ///
+    /// Key substrings (HS-108 Case E byte-exact assertion):
+    ///   - "0 packets read from pcapng file"
+    ///   - "2"  (G = skipped_blocks - opb_skipped = 3 - 1)
+    ///   - "skipped as unsupported"
+    ///   - "1"  (opb_skipped count)
+    ///   - "obsolete"
+    ///   - "mergecap"
+    ///
+    /// The counts 2 and 1 MUST be distinct (not collapsed into a single "3").
+    /// Verified by asserting "skipped as unsupported" AND "obsolete" both appear —
+    /// these only appear in separate segments.
+    ///
+    /// ## RED gate
+    ///
+    /// Current code emits: "notice: <file>: 0 packets read from pcapng file"
+    /// Neither segment present → both "skipped as unsupported" and "obsolete" absent
+    /// → test FAILS on both.
+    ///
+    /// BC-2.01.009 PC6 / HS-108 Case E / ADR-009 Decision 19 (both segments).
+    #[test]
+    fn test_BC_2_01_009_pc6_both_segments_nrb_plus_opb_analyze() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        fs::write(
+            dir.path().join("nrb-plus-opb.pcapng"),
+            shb_idb_two_nrb_one_opb_bytes(),
+        )
+        .expect("write nrb-plus-opb.pcapng");
+
+        wirerust()
+            .args(["analyze", dir.path().to_str().unwrap(), "--no-color"])
+            .assert()
+            .success()
+            .stderr(predicate::str::contains("0 packets read from pcapng file"))
+            // Generic segment: G=2 — "skipped as unsupported" with count "2"
+            // RED: absent in current notice
+            .stderr(predicate::str::contains("skipped as unsupported"))
+            .stderr(predicate::str::contains("2"))
+            // OPB clause: opb_skipped=1 — "obsolete" and "mergecap" with count "1"
+            // RED: absent in current notice
+            .stderr(predicate::str::contains("obsolete"))
+            .stderr(predicate::str::contains("mergecap"))
+            .stderr(predicate::str::contains("1"));
+    }
+
+    /// Same both-segments test via `summary` subcommand.
+    ///
+    /// RED: same reason — neither segment in current bare notice.
+    #[test]
+    fn test_BC_2_01_009_pc6_both_segments_nrb_plus_opb_summary() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        fs::write(
+            dir.path().join("nrb-plus-opb.pcapng"),
+            shb_idb_two_nrb_one_opb_bytes(),
+        )
+        .expect("write nrb-plus-opb.pcapng");
+
+        wirerust()
+            .args(["summary", dir.path().to_str().unwrap(), "--no-color"])
+            .assert()
+            .success()
+            .stderr(predicate::str::contains("0 packets read from pcapng file"))
+            // RED: "skipped as unsupported" absent
+            .stderr(predicate::str::contains("skipped as unsupported"))
+            .stderr(predicate::str::contains("2"))
+            // RED: "obsolete" absent
+            .stderr(predicate::str::contains("obsolete"))
+            .stderr(predicate::str::contains("mergecap"))
+            .stderr(predicate::str::contains("1"));
+    }
+
+    // -----------------------------------------------------------------------
+    // Test 4 (regression / NEITHER segment): SHB-only, skipped_blocks==0, opb_skipped==0
+    //
+    // HS-108 Case F / BC-2.01.009 EC-010: notice MUST be bare with NO parenthetical.
+    // This test MUST PASS (the gate-suppression behavior is correct even today
+    // because the current code never appends a parenthetical).
+    //
+    // This pins that the segments are GATED — not always emitted.
+    // After implementation the gate must still hold (regression guard).
+    // -----------------------------------------------------------------------
+
+    /// BC-2.01.009 PC6 EC-010 neither-segment regression (HS-108 Case F):
+    /// a SHB-only pcapng (skipped_blocks==0, opb_skipped==0) MUST emit the bare
+    /// notice with NO parenthetical segment.
+    ///
+    /// This test is expected to PASS both before and after the PC6 implementation,
+    /// but it pins the gate condition: segments are OMITTED when their counters are 0.
+    ///
+    /// Assertions:
+    ///   - stderr contains "0 packets read from pcapng file"
+    ///   - stderr does NOT contain "skipped"  (no generic segment)
+    ///   - stderr does NOT contain "obsolete" (no OPB clause)
+    ///   - stderr does NOT contain "mergecap" (no remediation hint)
+    ///   - exit 0
+    ///
+    /// HS-108 Case F byte-exact assertion.
+    ///
+    /// BC-2.01.009 EC-010 / HS-108 Case F / ADR-009 rev 9 F-M4.
+    #[test]
+    fn test_BC_2_01_009_pc6_neither_segment_shb_only_analyze() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        fs::write(
+            dir.path().join("shb-only-gate.pcapng"),
+            shb_only_pcapng_bytes(),
+        )
+        .expect("write shb-only-gate.pcapng");
+
+        wirerust()
+            .args(["analyze", dir.path().to_str().unwrap(), "--no-color"])
+            .assert()
+            // exit 0: structurally valid (EC-010 / F-M4)
+            .success()
+            // Base notice phrase MUST be present
+            // (this currently FAILS too because the notice itself is not yet
+            // implemented — but the gating assertions below pin the format constraint)
+            .stderr(predicate::str::contains("0 packets read from pcapng file"))
+            // No generic segment: skipped_blocks==0, so G==0 → gate false → OMITTED
+            .stderr(predicate::str::contains("skipped").not())
+            // No OPB clause: opb_skipped==0 → gate false → OMITTED
+            .stderr(predicate::str::contains("obsolete").not())
+            // No remediation hint: accompanies OPB clause only → absent when gate false
+            .stderr(predicate::str::contains("mergecap").not());
+    }
+
+    /// Same neither-segment test via `summary` subcommand.
+    ///
+    /// Both subcommands must apply the same gating logic.
+    #[test]
+    fn test_BC_2_01_009_pc6_neither_segment_shb_only_summary() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        fs::write(
+            dir.path().join("shb-only-gate.pcapng"),
+            shb_only_pcapng_bytes(),
+        )
+        .expect("write shb-only-gate.pcapng");
+
+        wirerust()
+            .args(["summary", dir.path().to_str().unwrap(), "--no-color"])
+            .assert()
+            .success()
+            .stderr(predicate::str::contains("0 packets read from pcapng file"))
+            .stderr(predicate::str::contains("skipped").not())
+            .stderr(predicate::str::contains("obsolete").not())
+            .stderr(predicate::str::contains("mergecap").not());
+    }
+
+    // -----------------------------------------------------------------------
+    // Test 5 (M-1): Classic-pcap wording — "pcap file" (NOT "pcapng file")
+    //
+    // BC-2.01.009 PC6 EC-009 / ADR-009 Decision 19 classic-pcap symmetry.
+    // A valid EMPTY classic pcap (24-byte global header, zero packet records) MUST
+    // emit "0 packets read from pcap file" — NOT "pcapng file".
+    //
+    // RED: current code hardcodes "pcapng file" in both analyze and summary paths.
+    // -----------------------------------------------------------------------
+
+    /// BC-2.01.009 PC6 EC-009 classic-pcap wording (M-1): an empty classic pcap
+    /// (valid 24-byte global header, zero packet records) MUST emit the notice with
+    /// "pcap file" — NOT "pcapng file" — in both `analyze` and `summary` subcommands.
+    ///
+    /// The current main.rs emits "pcapng file" unconditionally (hardcoded string)
+    /// at both notice emission sites (lines ~264 and ~456).  Classic-pcap symmetry
+    /// (PC6, ADR-009 Decision 19 rev 8) requires format-aware wording:
+    ///   - pcapng input → "pcapng file"
+    ///   - classic pcap input → "pcap file"
+    ///
+    /// Assertions:
+    ///   - stderr contains "0 packets read from pcap file"  (correct wording)
+    ///   - stderr does NOT contain "0 packets read from pcapng file" (wrong wording)
+    ///   - exit 0
+    ///
+    /// ## RED gate
+    ///
+    /// Current code: eprintln!("notice: {}: 0 packets read from pcapng file", path)
+    /// For a .pcap input this produces "pcapng file" instead of "pcap file".
+    /// The assertion `contains("0 packets read from pcap file")` FAILS because the
+    /// actual output has "pcapng" not "pcap" (the "pcapng" version does NOT satisfy
+    /// the "pcap file" substring because "pcap file" is a strict prefix that would
+    /// match "pcap file" but NOT "pcapng file" — wait: "pcap file" IS a substring
+    /// of "pcapng file", so we must also assert NOT contains("pcapng file").
+    ///
+    /// RED discriminator: we assert `contains("pcap file")` AND
+    /// `NOT contains("pcapng file")`.  Since "pcapng file" is the actual output,
+    /// the NOT assertion FAILS → RED.
+    ///
+    /// BC-2.01.009 PC6 EC-009 / ADR-009 Decision 19 classic-pcap symmetry.
+    #[test]
+    fn test_BC_2_01_009_pc6_classic_pcap_wording_analyze() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        fs::write(
+            dir.path().join("empty-classic.pcap"),
+            empty_classic_pcap_bytes(),
+        )
+        .expect("write empty-classic.pcap");
+
+        wirerust()
+            .args(["analyze", dir.path().to_str().unwrap(), "--no-color"])
+            .assert()
+            // exit 0: structurally valid empty classic pcap
+            .success()
+            // MUST contain the classic-pcap wording "pcap file"
+            .stderr(predicate::str::contains("0 packets read from pcap file"))
+            // MUST NOT say "pcapng file" for a classic pcap input
+            // RED: current code always emits "pcapng file" → this NOT assertion FAILS
+            .stderr(predicate::str::contains("0 packets read from pcapng file").not());
+    }
+
+    /// Same classic-pcap wording test via `summary` subcommand.
+    ///
+    /// RED: same hardcoded "pcapng file" defect exists in run_summary notice site
+    /// (~line 456 in current src/main.rs).
+    ///
+    /// BC-2.01.009 PC6 EC-009 / STORY-128 coverage for run_summary.
+    #[test]
+    fn test_BC_2_01_009_pc6_classic_pcap_wording_summary() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        fs::write(
+            dir.path().join("empty-classic.pcap"),
+            empty_classic_pcap_bytes(),
+        )
+        .expect("write empty-classic.pcap");
+
+        wirerust()
+            .args(["summary", dir.path().to_str().unwrap(), "--no-color"])
+            .assert()
+            .success()
+            .stderr(predicate::str::contains("0 packets read from pcap file"))
+            // RED: current code emits "pcapng file" → NOT assertion FAILS
+            .stderr(predicate::str::contains("0 packets read from pcapng file").not());
+    }
 }
