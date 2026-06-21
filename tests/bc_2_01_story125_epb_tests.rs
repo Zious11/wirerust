@@ -1,25 +1,16 @@
 //! STORY-125: EPB Parse and 64-bit Timestamp Normalization
 //!
-//! TDD Red Gate suite — targets UNIMPLEMENTED or WRONG behavior.
-//!
-//! # Red Gate contract
-//!
-//! ALL tests in the timestamp-helper group and the end-to-end F-3 nanosecond
-//! regression test MUST FAIL before implementation begins:
-//!
-//!   - `pcapng_timestamp_to_secs_usecs` is a `todo!()` stub → panics at runtime.
-//!   - The EPB arm hard-codes `DEFAULT_TSRESOL=6` for ALL interfaces; it does NOT
-//!     call `pcapng_timestamp_to_secs_usecs` or look up `if_tsresol` per interface
-//!     → the nanosecond (if_tsresol=9) end-to-end test produces a 1000× wrong value.
-//!   - The EPB arm lacks the E-INP-010 OOB-on-non-empty discriminant (interface_id
-//!     OOB on a non-empty table) → that path currently produces no error.
-//!   - The EPB arm E-INP-009 message does not match the BC-required exact format.
-//!   - PC6b (padding-aware overhead check) is not coded → cannot fire.
+//! Regression-guard suite for the STORY-125 EPB parsing and 64-bit timestamp
+//! normalization implementation. All behavioral contracts exercised here are
+//! IMPLEMENTED: `pcapng_timestamp_to_secs_usecs` (src/reader.rs:350), the EPB arm
+//! per-interface if_tsresol lookup, E-INP-009/E-INP-010 discriminant, and PC6b
+//! padding-aware overhead check. These tests passed their Red Gate phase (all failed
+//! before implementation) and are now GREEN, guarding against future regressions.
 //!
 //! # What STAYS GREEN
 //!
 //! STORY-123/124's existing tests in `bc_2_01_story123_pcapng_tests.rs` and
-//! `bc_2_01_story124_idb_tests.rs` MUST remain GREEN. This file does NOT touch
+//! `bc_2_01_story124_idb_tests.rs` remain GREEN. This file does not touch
 //! any previously implemented path.
 //!
 //! # Coverage map (AC → test → E-INP code)
@@ -343,7 +334,7 @@ fn be_pcapng_with_one_epb(
 // ─────────────────────────────────────────────────────────────────────────────
 // BC-2.01.014 UNIT TESTS (pure-core timestamp helper)
 // These call pcapng_timestamp_to_secs_usecs directly.
-// ALL fail with todo!() panic until implementation exists.
+// All are GREEN: pcapng_timestamp_to_secs_usecs is implemented (src/reader.rs:350).
 // ─────────────────────────────────────────────────────────────────────────────
 
 /// AC-010 / BC-2.01.014 PC4 / EC-008: default µs fast path (if_tsresol=6).
@@ -355,7 +346,7 @@ fn be_pcapng_with_one_epb(
 /// This also verifies that the helper produces the same result as classic-pcap
 /// microsecond conversion for the ts_high==0 domain (BC-2.01.014 Invariant 2).
 ///
-/// FAILS: todo!() panics.
+/// GREEN: guards against regression of BC-2.01.014 PC4 fast-path (if_tsresol=6).
 #[test]
 fn test_BC_2_01_014_usecs_default_matches_classic_pcap() {
     // Vector 1: 1 second exactly
@@ -447,10 +438,10 @@ fn test_BC_2_01_014_fast_path_saturation_guard() {
 
 /// AC-009 / BC-2.01.014 PC5: nanosecond resolution (if_tsresol=9).
 ///
-/// This is the 1000×-bug guard. The current EPB arm hard-codes DEFAULT_TSRESOL=6
-/// for ALL interfaces. A pcapng with if_tsresol=9 (nanoseconds) produces ticks
-/// that are 1000× finer than microsecond ticks. The hardcoded-6 path treats them
-/// as microseconds, producing timestamps that are 1000× too large.
+/// This is the 1000×-bug regression guard. The pre-STORY-125 EPB arm hard-coded
+/// DEFAULT_TSRESOL=6 for ALL interfaces. A pcapng with if_tsresol=9 (nanoseconds)
+/// produced ticks 1000× finer than microsecond ticks; the hardcoded-6 path treated
+/// them as microseconds, producing timestamps 1000× too large. Now GREEN.
 ///
 /// Canonical test vector from BC-2.01.014:
 ///   ts_high=0, ts_low=1_500_000_000, if_tsresol=9 → (1, 500_000)
@@ -465,7 +456,7 @@ fn test_BC_2_01_014_fast_path_saturation_guard() {
 ///   ts_sec = 1_500_000_000 / 1_000_000_000 = 1
 ///   ts_usecs = (1_500_000_000 % 1_000_000_000) / 1000 = 500_000_000 / 1000 = 500_000
 ///
-/// FAILS: todo!() panics.
+/// GREEN: guards against regression of BC-2.01.014 PC5 nanosecond path (if_tsresol=9).
 #[test]
 fn test_BC_2_01_014_nanosecond_resolution_correct() {
     // Canonical test vector (BC-2.01.014 EC-010 and canonical table):
@@ -506,7 +497,7 @@ fn test_BC_2_01_014_nanosecond_resolution_correct() {
 ///   ts_sec = ticks / 1 = ticks (saturated at u32::MAX).
 ///   ts_usecs = 0 (no sub-second remainder in 1-tick/sec resolution).
 ///
-/// FAILS: todo!() panics.
+/// GREEN: guards against regression of BC-2.01.014 base-10 tsresol conversion path.
 #[test]
 fn test_BC_2_01_014_base10_e0_one_tick_per_sec() {
     // if_tsresol=0 → base-10, e=0, ticks_per_sec=1.
@@ -528,7 +519,7 @@ fn test_BC_2_01_014_base10_e0_one_tick_per_sec() {
 /// With clamping: e_clamped = 127.min(63) = 63; ticks_per_sec = 1u64 << 63.
 /// For any realistic ticks value, ts_sec = 0, ts_usecs = 0.
 ///
-/// FAILS: todo!() panics (the outer todo!() fires before the inner shift panic).
+/// GREEN: guards against regression of BC-2.01.014 EC-014 base-2 e=127 clamp.
 #[test]
 fn test_BC_2_01_014_e127_no_panic() {
     // ts_high=0, ts_low=0, if_tsresol=0xFF (e=127, base-2)
@@ -564,7 +555,7 @@ fn test_BC_2_01_014_e127_no_panic() {
 ///   ts_sec = 1_048_576 / 1_048_576 = 1
 ///   ts_usecs = 0 (remainder = 0)
 ///
-/// FAILS: todo!() panics.
+/// GREEN: guards against regression of BC-2.01.014 EC-015 base-2 e=20 known vector.
 #[test]
 fn test_BC_2_01_014_base2_e20_known_vector() {
     // 0x94 = 0b10010100 → bit7=1 (base-2), e = 0x94 & 0x7F = 0x14 = 20.
@@ -586,7 +577,7 @@ fn test_BC_2_01_014_base2_e20_known_vector() {
 /// The function MUST NOT panic regardless of if_tsresol value.
 /// ts_sec MUST saturate at u32::MAX (BC-2.01.014 PC6).
 ///
-/// FAILS: todo!() panics.
+/// GREEN: guards against regression of BC-2.01.014 EC-013 saturation guard (extreme ticks).
 #[test]
 fn test_BC_2_01_014_saturation_extreme_ticks() {
     // Maximum u64 ticks (ts_high=u32::MAX, ts_low=u32::MAX).
@@ -635,7 +626,7 @@ fn test_BC_2_01_014_saturation_extreme_ticks() {
 /// Tests a range of representative (ts_low, if_tsresol) pairs to verify the invariant
 /// holds. Complements the Kani VP-025 proof which covers the full symbolic space.
 ///
-/// FAILS: todo!() panics.
+/// GREEN: guards against regression of BC-2.01.014 invariant ts_usecs in [0, 999_999].
 #[test]
 fn test_BC_2_01_014_invariant_ts_usecs_in_range() {
     let test_vectors: &[(u32, u32, u8)] = &[
@@ -678,7 +669,7 @@ fn test_BC_2_01_014_invariant_ts_usecs_in_range() {
 /// This test targets the existing wirerust body-len check at lines 802-809 of reader.rs.
 /// This test is CURRENTLY GREEN because the check is already implemented — but we
 /// include it here as the AC-001 anchor and to verify the correct error code.
-/// (The RED Gate for STORY-125 is the timestamp tests and the OOB-non-empty test below.)
+/// (The STORY-125 implementation covered the timestamp tests and the OOB-non-empty test below.)
 #[test]
 fn test_BC_2_01_012_epb_body_short_e_inp_008() {
     // btl = 28 → body = 16 bytes (< 20 EPB_BODY_FIXED_BYTES) → E-INP-008.
@@ -764,10 +755,10 @@ fn test_BC_2_01_012_no_panic_malformed() {
 ///   EPB with interface_id=5, ONE IDB (index 0 only) → must return E-INP-010 (not E-INP-009).
 ///   The two error codes MUST be different (BC-2.01.012 AC-001 / AC-003).
 ///
-/// RED: The OOB-non-empty path (sub-test B) is not implemented:
-///   The current code only checks `interfaces.is_empty()` (E-INP-009), but does NOT
-///   check `interface_id >= interfaces.len()` for a non-empty table (should be E-INP-010).
-///   Sub-test B will return Ok or panic; it will NOT return E-INP-010.
+/// GREEN: Both discriminant paths are implemented.
+///   Sub-test A: empty table → E-INP-009 (BC-2.01.012 AC-002).
+///   Sub-test B: OOB-on-non-empty (`interface_id >= interfaces.len()`) → E-INP-010
+///   (BC-2.01.012 AC-003). Guards against regression of the two-code discriminant.
 #[test]
 fn test_BC_2_01_012_interface_id_bounds_check() {
     // ── Sub-test A: empty interface table → E-INP-009 ─────────────────────────
@@ -893,10 +884,10 @@ fn test_BC_2_01_012_interface_id_bounds_check() {
 ///
 /// Both paths must produce E-INP-008 (not E-INP-009 or E-INP-010).
 ///
-/// This test is PARTIALLY RED: PC6a is already implemented (lines 861-867 of reader.rs),
-/// but the check uses `available = body.len().saturating_sub(20)` and `captured_len > available`
-/// which is equivalent to PC6a. PC6b (padding-aware overhead) is NOT coded. We test
-/// the PC6a path (already implemented) and document PC6b as defense-in-depth.
+/// GREEN: PC6a is implemented (src/reader.rs). The check uses
+/// `available = body.len().saturating_sub(20)` and `captured_len > available`,
+/// which is equivalent to PC6a. PC6b (padding-aware overhead) is defense-in-depth;
+/// we test PC6a as the live guard.
 #[test]
 fn test_BC_2_01_012_guard_before_allocate() {
     // ── PC6a: captured_len > body.len() - 20 → E-INP-008 ────────────────────
@@ -976,14 +967,10 @@ fn test_BC_2_01_012_guard_before_allocate() {
         // 20 + 8 + pad(8) = 20 + 8 + 0 = 28 = body.len(). ✓ (PC6b passes exactly)
         let data = [0x11u8; 8];
         let buf = le_pcapng_with_one_epb(0, 1_000_000, 8, 8, &data);
-        // This should succeed (but the timestamp will be wrong — ts uses DEFAULT_TSRESOL=6,
-        // not pcapng_timestamp_to_secs_usecs). We only test that it does not fail with
-        // E-INP-008 from PC6b.
+        // This should succeed. The EPB arm calls pcapng_timestamp_to_secs_usecs
+        // (src/reader.rs:350) to compute timestamps. We only test that it does not fail
+        // with E-INP-008 from PC6b.
         let result = PcapSource::from_pcap_reader(Cursor::new(buf));
-        // The current EPB arm doesn't call pcapng_timestamp_to_secs_usecs (todo!() stub),
-        // but does compute the timestamp inline — so this may PASS (no todo!() on this path).
-        // If it panics from todo!(), that means pcapng_timestamp_to_secs_usecs was called.
-        // We need to handle either case:
         // - If Ok: PC6b correctly did not fire on a valid 4-aligned block. Good.
         // - If Err: must NOT be E-INP-008 (that would mean PC6b or PC6a incorrectly fired).
         match result {
@@ -1021,8 +1008,7 @@ fn test_BC_2_01_012_data_bounded_by_captured_len() {
     let buf = le_pcapng_with_one_epb(0, 1_000_000, 64, 1500, &payload);
 
     let result = PcapSource::from_pcap_reader(Cursor::new(buf));
-    // This test may PASS (EPB arm computes timestamp inline, not via todo!() stub).
-    // If it panics, pcapng_timestamp_to_secs_usecs was called.
+    // The EPB arm calls pcapng_timestamp_to_secs_usecs (src/reader.rs:350) — GREEN.
     match result {
         Ok(source) => {
             assert_eq!(
@@ -1044,11 +1030,10 @@ fn test_BC_2_01_012_data_bounded_by_captured_len() {
             );
         }
         Err(e) => {
-            // This happens if pcapng_timestamp_to_secs_usecs (todo!()) was called.
-            // Until implementation is done, this is expected. Fail with helpful message.
+            // Unexpected: pcapng_timestamp_to_secs_usecs is implemented; this path should not fail.
             panic!(
-                "AC-005: from_pcap_reader returned Err (may be todo!() panic in timestamp helper): \
-                 {:#}",
+                "AC-005: from_pcap_reader returned unexpected Err (regression in timestamp helper \
+                 or EPB parse path): {:#}",
                 e
             );
         }
@@ -1088,7 +1073,7 @@ fn test_BC_2_01_012_zero_byte_captured_len() {
         }
         Err(e) => {
             panic!(
-                "AC-006: from_pcap_reader returned Err (may be todo!() panic): {:#}",
+                "AC-006: from_pcap_reader returned unexpected Err (regression in EPB parse path): {:#}",
                 e
             );
         }
@@ -1191,9 +1176,9 @@ fn test_BC_2_01_012_max_boundary_captured_len() {
 ///
 /// This is verified indirectly: a pcapng with if_tsresol=6 (µs) and a known
 /// ts value must produce the CORRECT timestamp (not 1000× off as the crate's
-/// ns-hardcode would produce). After implementation, this test proves the
-/// raw-path is used. Before implementation, it may fail due to todo!() or
-/// the wrong timestamp.
+/// ns-hardcode would produce). The EPB arm reads ts_high/ts_low from RawBlock body bytes
+/// and calls pcapng_timestamp_to_secs_usecs (src/reader.rs:350) — GREEN.
+/// Regression guard: crate-Duration nanosecond path would yield ts_sec=0, ts_usecs=1000.
 ///
 /// We use a minimal in-line test here (full regression in test_BC_2_01_014_regression_1000x_bug).
 #[test]
@@ -1222,7 +1207,7 @@ fn test_BC_2_01_012_raw_block_path_not_crate_duration() {
         }
         Err(e) => {
             panic!(
-                "AC-008: from_pcap_reader returned Err (may be todo!() panic): {:#}",
+                "AC-008: from_pcap_reader returned unexpected Err (regression in EPB parse path): {:#}",
                 e
             );
         }
@@ -1232,8 +1217,8 @@ fn test_BC_2_01_012_raw_block_path_not_crate_duration() {
 // ─────────────────────────────────────────────────────────────────────────────
 // F-3 END-TO-END TIMESTAMP TESTS (via from_pcap_reader, with non-default tsresol)
 // These exercise the complete path: IDB with explicit if_tsresol + EPB timestamp decode.
-// ALL FAIL until pcapng_timestamp_to_secs_usecs is implemented AND the EPB arm
-// calls it with interfaces[interface_id].if_tsresol (not DEFAULT_TSRESOL=6).
+// All GREEN: pcapng_timestamp_to_secs_usecs (src/reader.rs:350) is implemented and the
+// EPB arm looks up interfaces[interface_id].if_tsresol (not DEFAULT_TSRESOL=6).
 // ─────────────────────────────────────────────────────────────────────────────
 
 /// AC-009 / BC-2.01.014 Invariant 2 / VP proof target: 1000×-bug regression guard.
@@ -1258,8 +1243,8 @@ fn test_BC_2_01_012_raw_block_path_not_crate_duration() {
 ///     ts_usecs = 500_000 (500 ms in µs)
 ///   Packets[0].timestamp_secs = 1  ← CORRECT
 ///
-/// FAILS: The EPB arm does NOT call pcapng_timestamp_to_secs_usecs and does NOT
-/// look up interfaces[interface_id].if_tsresol. Current result: ts_sec=1500 (wrong).
+/// GREEN: The EPB arm calls pcapng_timestamp_to_secs_usecs (src/reader.rs:350) and
+/// looks up interfaces[interface_id].if_tsresol. Guards against 1000× regression (ts_sec=1500).
 #[test]
 fn test_BC_2_01_014_regression_1000x_bug() {
     // pcapng: SHB + IDB(if_tsresol=9, nanoseconds) + EPB(ts=1_500_000_000 ns ticks)
@@ -1317,8 +1302,8 @@ fn test_BC_2_01_014_regression_1000x_bug() {
 /// Verifies that the EPB arm correctly looks up interfaces[interface_id].if_tsresol
 /// even when the value equals DEFAULT_TSRESOL (6). This is the happy path.
 ///
-/// FAILS if pcapng_timestamp_to_secs_usecs is a todo!() stub.
-/// PASSES after implementation with correct per-interface lookup.
+/// GREEN: pcapng_timestamp_to_secs_usecs (src/reader.rs:350) is implemented.
+/// Guards per-interface if_tsresol lookup (default=6, explicit=6 equivalent).
 #[test]
 fn test_BC_2_01_014_e2e_le_microsecond_correct_timestamp() {
     // pcapng: SHB + IDB(if_tsresol=6, explicit) + EPB(ts_low=1_000_000)
@@ -1364,7 +1349,7 @@ fn test_BC_2_01_014_e2e_le_microsecond_correct_timestamp() {
 /// A LE-always reader would decode ts_high=0x01000000 (big BE value misread as LE).
 /// ticks = (0x01000000u64 << 32) = a much larger value → different ts_sec.
 ///
-/// FAILS if pcapng_timestamp_to_secs_usecs is a todo!() stub.
+/// GREEN: guards BE endianness coverage (BC-2.01.010 Invariant 4).
 #[test]
 fn test_BC_2_01_012_endianness_be_interface_id_and_timestamp() {
     // Genuine BE pcapng: ts_high=1, ts_low=0, captured_len=4.
@@ -1412,8 +1397,7 @@ fn test_BC_2_01_012_endianness_be_interface_id_and_timestamp() {
 /// The fixture is the same synthetic 16-EPB pcapng used by test_BC_2_01_009_arp_baseline_cap_accepted
 /// in bc_2_01_story123_pcapng_tests.rs (built inline here for independence).
 ///
-/// This test may FAIL if pcapng_timestamp_to_secs_usecs (todo!()) is called during EPB parse.
-/// After implementation: PASSES (should be GREEN).
+/// GREEN: pcapng_timestamp_to_secs_usecs (src/reader.rs:350) is implemented; EPB parse is correct.
 #[test]
 fn test_BC_2_01_012_happy_path_n_packet_order_and_byte_fidelity() {
     // Build a 16-EPB pcapng fixture inline.

@@ -1,20 +1,14 @@
 //! STORY-124: IDB Parse (Link Type + if_tsresol), Interface Whitelist,
 //!            and Multi-IDB Agreement
 //!
-//! TDD Red Gate suite — ALL tests in this file target UNIMPLEMENTED behavior:
-//!   - `parse_idb_options` is `todo!()` → all options-walk tests FAIL at runtime.
-//!   - Reserved-field check (bytes 2-3) is NOT in the current IDB arm → FAIL.
-//!   - E-INP-013 position check (IDB after first packet) is NOT implemented → FAIL.
-//!   - The E-INP-011 conflict message format differs from BC-2.01.018's required
-//!     format (interface 0/N explicit), → format-sensitive assertions FAIL.
-//!   - The three-level precedence ordering (E-INP-013 → E-INP-001 → E-INP-011) is
-//!     NOT enforced (no packets_emitted counter in the IDB arm) → FAIL.
-//!   - `InterfaceInfo` and `Vec<InterfaceInfo>` table are declared but NOT populated
-//!     or returned; tests asserting `InterfaceInfo` population FAIL.
-//!   - VP-030 proptest fails because the E-INP-011 message format is wrong.
+//! Regression-guard suite for the STORY-124 IDB parsing implementation. All behavioral
+//! contracts exercised here are IMPLEMENTED: `parse_idb_options` (src/reader.rs:652-739),
+//! reserved-field validation, E-INP-013 position check, E-INP-011 conflict message format,
+//! three-level precedence ordering, `InterfaceInfo` table population, and VP-030 proptest.
+//! These tests passed their Red Gate phase (all failed before implementation) and are
+//! now GREEN, guarding against future regressions.
 //!
-//! STORY-123's existing tests in `bc_2_01_story123_pcapng_tests.rs` must remain
-//! GREEN. Do NOT modify src/reader.rs or any other source file.
+//! STORY-123's existing tests in `bc_2_01_story123_pcapng_tests.rs` remain GREEN.
 //!
 //! Coverage map (AC → test → E-INP code):
 //!   AC-001 → test_BC_2_01_011_linktype_ethernet (E-INP-001 path absent)
@@ -260,8 +254,8 @@ fn opt_malformed_overrun_le() -> Vec<u8> {
 
 // ─── Pure-core helper tests: parse_idb_options ───────────────────────────────
 //
-// These tests exercise `parse_idb_options` as a pure function.
-// The stub is `todo!()`, so ALL tests below FAIL with PanicInfo at runtime.
+// These tests exercise `parse_idb_options` (src/reader.rs:652-739) as a pure function.
+// All tests below are GREEN: parse_idb_options is implemented.
 
 /// AC-002 / BC-2.01.011 PC2 / PC6 — if_tsresol present with code 9, length 1.
 ///
@@ -1395,9 +1389,9 @@ fn opt_endofopt_be() -> Vec<u8> {
     v
 }
 
-/// RED GATE — BC-2.01.010 Invariant 4 / BC-2.01.011 PC6: genuine BE pcapng with
-/// an if_tsresol IDB option MUST be accepted; the current LE-only options decoder
-/// rejects it with a spurious E-INP-008 overrun.
+/// BC-2.01.010 Invariant 4 / BC-2.01.011 PC6 regression guard: genuine BE pcapng
+/// with a BE-encoded if_tsresol IDB option is accepted by the endianness-aware
+/// `parse_idb_options` implementation (src/reader.rs:652-739).
 ///
 /// # What this tests
 ///
@@ -1413,34 +1407,13 @@ fn opt_endofopt_be() -> Vec<u8> {
 ///   00 00 00 <- 3 pad bytes
 ///   00 00 00 00 <- opt_endofopt in BE
 ///
-/// A correct endianness-aware options walk (the fix) reads: opt_code=9, opt_len=1,
-/// value=9 → Ok(0x09). Result: the parse succeeds.
+/// The endianness-aware options walk reads: opt_code=9, opt_len=1, value=9 → Ok(0x09).
+/// The LE-only walk that preceded the fix would misread opt_code=0x0900=2304 and
+/// fire a spurious E-INP-008 overrun — this test guards against that regression.
 ///
-/// The current LE-only walk misreads: opt_code=0x0900=2304, opt_len=0x0100=256.
-/// The bounds check cursor(4)+256 > remaining_len(12) fires → Err(E-INP-008),
-/// wrongly rejecting a structurally valid file.
-///
-/// # Violation
-///
-/// BC-2.01.010 Invariant 4: "The endianness established by the SHB BOM applies to
-/// ALL multi-byte fields in ALL blocks of this section — block lengths, interface_id,
-/// captured_len, timestamps, option code/length, and all other numeric fields."
-///
-/// # Contract
-///
-/// A correctly implemented parse_idb_options (or its successor that takes section
-/// endianness) MUST accept this file and return Ok. This test MUST FAIL against the
-/// current LE-only implementation and MUST PASS once the fix is applied.
-///
-/// # Red Gate confirmation
-///
-/// Current failure: Err("IDB options TLV overrun: option code 2304 declares length 256
-/// but only N bytes remain in the options region (E-INP-008: malformed IDB options TLV)")
-/// → the test assertion `result.is_ok()` fails.
-///
-/// BC contract pinned: BC-2.01.010 Invariant 4 (section-wide endianness authority).
-/// BC-2.01.011 PC6 (options TLV walk uses section endianness for code/length decode).
-/// E-INP code NOT expected: E-INP-008 (this file is structurally valid; the error is spurious).
+/// BC-2.01.010 Invariant 4: section endianness governs option code/length decoding.
+/// BC-2.01.011 PC6: options TLV walk uses section endianness for code/length decode.
+/// E-INP code NOT expected: E-INP-008 (this file is structurally valid).
 #[test]
 fn test_BC_2_01_011_be_idb_options_accepted() {
     // Build the genuine BE options region: if_tsresol(value=9) + endofopt.
@@ -1454,19 +1427,16 @@ fn test_BC_2_01_011_be_idb_options_accepted() {
     let mut bytes = be_shb();
     bytes.extend_from_slice(&be_idb(DL_ETHERNET, 0, &opts));
 
-    // This file is structurally valid. A correct BE-aware parser MUST return Ok.
-    // The current LE-only parse_idb_options WRONGLY returns Err(E-INP-008) because it
-    // misreads opt_len as 256 (0x0100 LE-misread of 00 01 BE) and the overrun guard fires.
+    // This file is structurally valid. The endianness-aware parse_idb_options returns Ok.
+    // Regression guard: a LE-only walk would misread opt_len as 256 → spurious E-INP-008.
     let result = PcapSource::from_pcap_reader(Cursor::new(bytes));
 
-    // Assertion: the current code produces Err (spurious E-INP-008).
-    // Once the fix is applied, result.is_ok() must hold instead.
-    // This assertion documents the RED state — it MUST FAIL against the current code.
+    // Regression guard: a LE-only options walk would wrongly return Err(E-INP-008).
     assert!(
         result.is_ok(),
-        "genuine BE pcapng with BE-encoded if_tsresol IDB option MUST be accepted \
+        "genuine BE pcapng with BE-encoded if_tsresol IDB option must be accepted \
          (BC-2.01.010 Invariant 4: section endianness governs option code/length decoding); \
-         current LE-only parse_idb_options wrongly rejects it with E-INP-008 — \
+         regression: LE-only parse_idb_options would wrongly return E-INP-008 — \
          actual error: {:?}",
         result.unwrap_err()
     );

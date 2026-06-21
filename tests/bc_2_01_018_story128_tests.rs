@@ -1,34 +1,26 @@
 //! STORY-128: main.rs Per-File Error Isolation Loop (Catch-and-Continue)
 //!
-//! TDD RED-GATE suite — all isolation tests in this file are RED against the
-//! pre-refactor loop.  The implementer must:
-//!   1. Add `let mut any_error = false;` before the per-file loop in `run_analyze`
+//! Regression-guard suite for the STORY-128 per-file error isolation implementation.
+//! All behavioral contracts exercised here are IMPLEMENTED. The implementation:
+//!   1. `let mut any_error = false;` before the per-file loop in `run_analyze`
 //!      (and analogously in `run_summary`).
-//!   2. Replace the `?`-propagation on `PcapSource::from_file(path).with_context(...)?`
-//!      with an explicit `match`:
+//!   2. Explicit `match` on `PcapSource::from_file(path)`:
 //!      - `Ok(source)` arm: existing processing (zero-packet notice check, analyzer dispatch).
 //!      - `Err(e)` arm: `eprintln!("error: {}: {e:#}", path.display()); any_error = true; continue;`
-//!   3. After the loop, add: `if any_error { std::process::exit(1); }` before `Ok(())`.
-//!   4. Emit the zero-packet notice (Decision 19) in the `Ok` arm when
-//!      `source.packets.is_empty()`:
-//!      `eprintln!("notice: {}: 0 packets read from pcapng file", path.display());`
-//!   NOTE: `src/reader.rs` MUST NOT be modified (STORY-128 Forbidden Dependencies).
+//!   3. After the loop: `if any_error { std::process::exit(1); }`.
+//!   4. Zero-packet notice (Decision 19) emitted in the `Ok` arm when
+//!      `source.packets.is_empty()`.
+//!   NOTE: `src/reader.rs` was not modified (STORY-128 Forbidden Dependencies).
 //!
-//! ## RED Gate Explanation (pre-refactor current state)
+//! ## Implementation (STORY-128 delivered)
 //!
-//! Current `run_analyze` wraps the per-file loop in an immediately-invoked closure
-//! and propagates reader errors via `?` (src/main.rs line 243-244):
+//! `run_analyze` and `run_summary` use a catch-and-continue per-file loop:
+//!   - `Ok(source)` arm: existing processing (zero-packet notice check, analyzer dispatch).
+//!   - `Err(e)` arm: `eprintln!("error: {}: {e:#}", path.display()); any_error = true; continue;`
+//!   - After the loop: `if any_error { std::process::exit(1); }`.
 //!
-//!   ```rust
-//!   let source = PcapSource::from_file(path)
-//!       .with_context(|| format!("Failed to read {}", path.display()))?;
-//!   ```
-//!
-//! This means the FIRST bad file causes the closure to return `Err`, which is
-//! stored in `capture_result` and then propagated at line 315 (`capture_result?`).
-//! All remaining files in the directory are NEVER processed.
-//!
-//! Current `run_summary` has the same pattern with a direct `?` at line 412-413.
+//! The zero-packet notice (Decision 19) is emitted in the `Ok` arm when
+//! `source.packets.is_empty()`. All tests below guard against regression of this behavior.
 //!
 //! ## Coverage map (BC-2.01.018 AC-002)
 //!
@@ -240,9 +232,9 @@ mod story_128 {
     // -----------------------------------------------------------------------
     // AC-001: Per-file isolation continues on error
     //
-    // Pre-refactor RED: the `?` on `from_file(...)?` aborts the closure on
-    // file_a's Err.  If file_a sorts BEFORE file_b, file_b is never processed.
-    // The test asserts catch-and-continue behavior → RED pre-implementation.
+    // GREEN: catch-and-continue per-file loop processes all files even when one fails.
+    // A regression (re-introducing `?` propagation) would abort on file_a's Err
+    // and never process file_b.
     // -----------------------------------------------------------------------
 
     /// AC-001 / BC-2.01.018 AC-002: directory with [bad.pcap (E-INP-011
@@ -250,19 +242,10 @@ mod story_128 {
     /// processes first.  The batch MUST complete; the good file MUST be analyzed;
     /// exit code MUST be 1; the bad file MUST produce an error notice on stderr.
     ///
-    /// ## Pre-refactor RED gate
+    /// ## Regression guard
     ///
     /// Files sorted: "a-conflict.pcapng" < "b-valid.pcapng" (alphabetic LE).
-    /// Current code: `from_file("a-conflict.pcapng")?` → Err(E-INP-011) →
-    /// closure returns Err → `capture_result?` propagates → `run_analyze` returns
-    /// Err early.  "b-valid.pcapng" is NEVER processed.
-    ///
-    /// The assertion `stdout contains "Packets: 1"` FAILS because the packet from
-    /// "b-valid.pcapng" is never counted: the run aborted after "a-conflict.pcapng".
-    ///
-    /// ## Expected post-refactor behavior
-    ///
-    /// match on `from_file("a-conflict.pcapng")` → Err arm:
+    /// Catch-and-continue: `from_file("a-conflict.pcapng")` → Err arm:
     ///   - eprintln!("error: a-conflict.pcapng: ... link-type conflict ...")
     ///   - any_error = true; continue;
     /// match on `from_file("b-valid.pcapng")` → Ok arm:
@@ -278,8 +261,8 @@ mod story_128 {
         let dir = tempfile::tempdir().expect("tempdir");
 
         // a-conflict.pcapng: ETHERNET + LINUX_SLL IDBs → E-INP-011.
-        // Sorts BEFORE b-valid.pcapng to maximize RED gate discrimination:
-        // current code aborts on this file, never reaching b-valid.pcapng.
+        // Sorts BEFORE b-valid.pcapng; regression guard: if `?` propagation returns,
+        // b-valid.pcapng would never be processed.
         fs::write(
             dir.path().join("a-conflict.pcapng"),
             conflict_pcapng_bytes(),
@@ -296,33 +279,21 @@ mod story_128 {
             .args(["analyze", dir.path().to_str().unwrap(), "--no-color"])
             .assert();
 
-        // RED: current code exits non-zero (aborts after a-conflict.pcapng Err)
-        // AND stdout does NOT contain "Skipped: 1 packets" because b-valid.pcapng
-        // is never processed.
-        //
-        // Post-refactor: exit 1 (any_error=true), b-valid.pcapng IS processed
-        // (1 raw packet with 0-byte payload → decode error → Skipped: 1 packets),
-        // AND stderr contains the a-conflict.pcapng error notice.
-        //
-        // Discriminating assertion: stderr contains the path-prefixed error for
-        // a-conflict.pcapng.  This is RED because current code propagates the
-        // Err to run_analyze (which returns Err to main → anyhow error chain,
-        // NOT the "error: <path>: ..." per-file format required by AC-001).
+        // GREEN: catch-and-continue loop exits 1 (any_error=true for a-conflict.pcapng)
+        // AND b-valid.pcapng IS processed (1 raw packet → decode error → Skipped: 1).
+        // Per-file error notice emitted on stderr with the path-prefixed format
+        //   "error: <path>/a-conflict.pcapng: ..."
+        // Regression guard: pre-implementation, run_analyze would abort on Err,
+        // skipping b-valid.pcapng and emitting an anyhow chain without per-file prefix.
         assert
             // Exit 1: any_error=true (a-conflict.pcapng failed)
             .failure()
-            // Per-file error notice for the bad file on stderr:
+            // Per-file error notice on stderr:
             //   "error: <path>/a-conflict.pcapng: ..."
-            // RED: current code emits the anyhow error chain without the
-            // "error: <path>:" prefix format (it's a top-level bail, not
-            // a per-file eprintln).
             .stderr(predicate::str::contains("a-conflict.pcapng"))
-            // The good file's packet MUST be counted in the final summary.
-            // "Skipped: 1 packets" or "Packets: 1" depending on decode result.
-            // Using "Skipped: 1" as the discriminator: current code never reaches
-            // b-valid.pcapng, so "Skipped: 1" is absent from stdout.
-            // RED: current code aborts before processing b-valid.pcapng →
-            // "Skipped: 1" is NOT in stdout → this assertion FAILS under current code.
+            // b-valid.pcapng IS processed: packet counted in final summary.
+            // "Skipped: 1 packets" discriminates from a regression where b-valid
+            // is never reached (regression would produce "Packets: 0" or "Skipped: 0").
             .stdout(predicate::str::contains("Skipped: 1 packets"));
     }
 
@@ -343,19 +314,13 @@ mod story_128 {
     /// BC-2.01.018 EC-003 canonical test vector: two IDBs ETHERNET then LINUX_SLL
     /// → E-INP-011 "interface 0 has ETHERNET, interface 1 has LINUX_SLL".
     ///
-    /// ## Pre-refactor RED gate
+    /// ## Regression guard
     ///
     /// Files sorted: "1-conflict.pcapng" < "2-good.pcapng".
-    /// Current code: aborts on "1-conflict.pcapng" Err → "2-good.pcapng" never
-    /// processed → stdout "Skipped: 1 packets" absent → test FAILS.
-    ///
-    /// ## Expected post-refactor behavior
-    ///
     /// Err arm for "1-conflict.pcapng": emits "error: <path>: ... link-type
     /// conflict ..." to stderr; any_error=true; continue.
-    /// Ok arm for "2-good.pcapng": processes 1 EPB (decode error on 0-byte
-    /// payload → Skipped: 1 packets in stdout).
-    /// exit 1 (any_error=true).
+    /// Ok arm for "2-good.pcapng": processes 1 EPB → Skipped: 1 packets in stdout.
+    /// exit 1 (any_error=true). Regression would skip "2-good.pcapng" entirely.
     ///
     /// BC-2.01.018 AC-002 EC-009 / ADR-009 Decision 12 / STORY-128 AC-002.
     #[test]
@@ -387,7 +352,7 @@ mod story_128 {
             .stderr(predicate::str::contains("1-conflict.pcapng"))
             // 2-good.pcapng IS processed: 1 EPB with 0-byte payload →
             // decode error → "Skipped: 1 packets" in stdout.
-            // RED: current code never reaches 2-good.pcapng.
+            // Regression guard: isolation ensures 2-good.pcapng is always processed.
             .stdout(predicate::str::contains("Skipped: 1 packets"));
     }
 
@@ -408,17 +373,12 @@ mod story_128 {
     /// ADR-009 Decision 12: "This fix benefits ALL reader errors, not only
     /// pcapng errors."
     ///
-    /// ## Pre-refactor RED gate
+    /// ## Regression guard
     ///
     /// Files sorted: "a-truncated.pcapng" < "b-valid.pcapng".
-    /// Current code: from_file("a-truncated.pcapng") → Err(E-INP-008) →
-    /// `?` propagates → run_analyze returns Err early.
-    /// "b-valid.pcapng" never processed → "Skipped: 1 packets" absent → FAILS.
-    ///
-    /// ## Expected post-refactor behavior
-    ///
     /// Err arm for "a-truncated.pcapng": eprintln per-file error; continue.
     /// Ok arm for "b-valid.pcapng": 1 EPB counted (decode error); Skipped: 1.
+    /// Regression (re-introducing `?` propagation) would skip "b-valid.pcapng".
     /// exit 1 (any_error=true).
     ///
     /// BC-2.01.018 AC-002 (all error classes) / ADR-009 Decision 12 / STORY-128 AC-003.
@@ -446,8 +406,7 @@ mod story_128 {
             .failure() // exit 1: truncated file failed
             // Path of the bad file MUST appear in stderr error notice.
             .stderr(predicate::str::contains("a-truncated.pcapng"))
-            // b-valid.pcapng IS processed: 1 EPB counted as decode error.
-            // RED: current code never reaches b-valid.pcapng.
+            // GREEN: b-valid.pcapng IS processed — 1 EPB counted as decode error.
             .stdout(predicate::str::contains("Skipped: 1 packets"));
     }
 
@@ -458,9 +417,8 @@ mod story_128 {
     // zero-packet notice.  The isolation Err arm for a sibling bad file MUST NOT
     // suppress the zero-packet notice from the Ok arm of the SHB-only file.
     //
-    // Pre-refactor RED: (a) the zero-packet notice is not emitted at all
-    // (it's part of STORY-128's implementation), AND (b) if the bad file sorts
-    // first, the SHB-only file is never reached.  Either condition makes this RED.
+    // GREEN: zero-packet notice is implemented (src/main.rs:61-89), and the
+    // catch-and-continue loop processes b-shb-only.pcapng even after a-conflict fails.
     // -----------------------------------------------------------------------
 
     /// AC-004 / BC-2.01.018 AC-002 + ADR-009 Decision 19: zero-packet notice is
@@ -484,12 +442,11 @@ mod story_128 {
     ///   - stderr contains "b-shb-only.pcapng" AND "0 packets" (zero-packet notice)
     ///   - exit code 1 (one file failed)
     ///
-    /// ## Pre-refactor RED gate
+    /// ## Regression guard
     ///
-    /// RED reason 1: zero-packet notice is NOT implemented in main.rs yet
-    ///   (STORY-128's implementation adds it) → "0 packets" absent from stderr.
-    /// RED reason 2: current code aborts on "a-conflict.pcapng" → "b-shb-only.pcapng"
-    ///   never processed → notice never emitted → doubly RED.
+    /// Guards that per-file isolation continues past a failed file AND the zero-packet
+    /// notice is emitted for the successful zero-packet file. Regression would cause
+    /// either the notice to disappear or the second file to be skipped.
     ///
     /// BC-2.01.018 AC-002 (zero-packet notice not suppressed) / ADR-009 Decision 19
     /// / STORY-128 AC-004.
@@ -524,8 +481,7 @@ mod story_128 {
             // Zero-packet notice for b-shb-only.pcapng on stderr.
             // ADR-009 Decision 19 format: "notice: <path>: 0 packets read from pcapng file"
             // We assert the path appears AND "0 packets" appears to pin the notice firing.
-            // RED reason 1: notice not yet implemented → "0 packets" absent.
-            // RED reason 2: current code aborts before reaching b-shb-only.pcapng.
+            // Regression guards: notice present AND second file was reached (isolation works).
             .stderr(predicate::str::contains("b-shb-only.pcapng"))
             .stderr(predicate::str::contains("0 packets"));
     }
@@ -534,8 +490,8 @@ mod story_128 {
     // ORDER INDEPENDENCE: bad file FIRST vs. LAST vs. MIDDLE
     //
     // These are the strongest isolation discriminators: if the bad file is
-    // first in sort order and current code aborts, all subsequent good files
-    // are never processed.  All three orderings MUST produce the same outcome:
+    // first in sort order and a pre-implementation abort would skip all subsequent files.
+    // All three orderings MUST produce the same outcome:
     // good files analyzed, bad file error on stderr, exit 1.
     // -----------------------------------------------------------------------
 
@@ -543,11 +499,9 @@ mod story_128 {
     /// ("a-bad.pcapng") sorts BEFORE the good files ("b-good.pcapng",
     /// "c-good.pcapng").  Both good files MUST be processed.
     ///
-    /// This is the canonical isolation discriminator: current code aborts after
-    /// "a-bad.pcapng" → "b-good.pcapng" and "c-good.pcapng" never processed.
-    ///
-    /// Post-refactor: isolation catches "a-bad.pcapng" Err; "b-good.pcapng"
+    /// GREEN regression guard: isolation catches "a-bad.pcapng" Err; "b-good.pcapng"
     /// and "c-good.pcapng" both processed (1 packet each); Skipped: 2 packets.
+    /// Regression (re-introducing `?`) would abort after "a-bad.pcapng".
     ///
     /// BC-2.01.018 AC-002 / STORY-128 EC-001.
     #[test]
@@ -575,7 +529,7 @@ mod story_128 {
             .stderr(predicate::str::contains("a-bad.pcapng"))
             // Both good files processed: 2 EPBs (0-byte payload each) → 2 decode errors
             // → "Skipped: 2 packets" in stdout.
-            // RED: current code aborts after a-bad.pcapng → 0 packets processed.
+            // Regression guard: abort on a-bad.pcapng would skip both good files.
             .stdout(predicate::str::contains("Skipped: 2 packets"));
     }
 
@@ -583,17 +537,12 @@ mod story_128 {
     /// ("c-bad.pcapng") sorts AFTER the good files ("a-good.pcapng",
     /// "b-good.pcapng").  Both good files are processed before the bad file.
     ///
-    /// This test is PARTIALLY GREEN under the current code: the good files
-    /// ARE processed before "c-bad.pcapng" (sort order means they execute
-    /// first).  But the exit code and error notice format differ:
-    ///   - Current code: "c-bad.pcapng" causes run_analyze to return Err →
-    ///     anyhow top-level error printed → exit 1.  The "Skipped: 2" DOES
-    ///     appear in stdout (good files processed first).  But the error
-    ///     message format is the anyhow chain, NOT the per-file "error: <path>:"
-    ///     prefix format required by AC-001.
+    /// GREEN: both good files are processed before "c-bad.pcapng" (sort order),
+    /// "c-bad.pcapng" triggers the Err arm (per-file "error: <path>:" notice to stderr),
+    /// any_error=true → exit 1. "Skipped: 2 packets" in stdout (both good files counted).
     ///
-    /// The discriminating assertion is that stderr contains the per-file
-    /// "error: <path>: ..." format (not just a raw anyhow chain dump).
+    /// Regression guard: the per-file "error: <path>: ..." format (not an anyhow
+    /// top-level chain) must appear on stderr for c-bad.pcapng.
     ///
     /// Post-refactor: stderr uses the per-file eprintln format.
     ///
@@ -621,8 +570,8 @@ mod story_128 {
         assert
             .failure() // exit 1: c-bad.pcapng failed
             // Per-file error format: "error: <path>/c-bad.pcapng: ..."
-            // RED: current code emits the anyhow chain via main's error propagation,
-            // NOT the per-file "error: <path>:" eprintln format.
+            // Regression guard: pre-implementation emitted anyhow chain without
+            // per-file "error: <path>:" prefix format.
             .stderr(predicate::str::contains("c-bad.pcapng"))
             // Both good files processed BEFORE the bad file:
             // 2 EPBs (0-byte payload) → 2 decode errors → Skipped: 2.
@@ -633,12 +582,9 @@ mod story_128 {
     /// ("b-bad.pcapng") sorts BETWEEN two good files ("a-good.pcapng",
     /// "c-good.pcapng").
     ///
-    /// Post-refactor: "a-good.pcapng" processed; "b-bad.pcapng" caught and
-    /// isolated; "c-good.pcapng" processed.  Both good files contribute to
-    /// "Skipped: 2 packets".
-    ///
-    /// RED: current code aborts after "b-bad.pcapng" → "c-good.pcapng" never
-    /// processed → "Skipped: 2 packets" absent (only 1 packet from a-good).
+    /// GREEN: "a-good.pcapng" processed; "b-bad.pcapng" caught and isolated;
+    /// "c-good.pcapng" processed. Both good files contribute to "Skipped: 2 packets".
+    /// Regression would abort after "b-bad.pcapng" and skip "c-good.pcapng".
     ///
     /// BC-2.01.018 AC-002 / STORY-128 EC-001 (order independence).
     #[test]
@@ -665,7 +611,6 @@ mod story_128 {
             .failure() // exit 1: b-bad.pcapng failed
             .stderr(predicate::str::contains("b-bad.pcapng"))
             // a-good AND c-good both processed: 2 packets total.
-            // RED: current code aborts on b-bad → c-good never processed → Skipped: 1.
             .stdout(predicate::str::contains("Skipped: 2 packets"));
     }
 
@@ -715,14 +660,13 @@ mod story_128 {
     ///
     /// BC-2.01.018 / STORY-128 EC-003.
     ///
-    /// ## Pre-refactor behavior
+    /// ## Regression guard
     ///
-    /// Current code: first bad file → Err → `?` propagates → run_analyze returns
-    /// Err early.  Second bad file never reaches the error arm.  The PROCESS
-    /// COMPLETES (no crash) but only the first error is reported (via anyhow),
-    /// NOT as a per-file "error: <path>:" notice.
+    /// GREEN: both bad files are processed through the Err arm;
+    /// per-file error notices emitted for both; any_error=true; exit 1.
     ///
-    /// ## Expected post-refactor behavior
+    /// Regression: `?` propagation would skip the second bad file and omit its
+    /// per-file error notice.
     ///
     /// Both bad files processed through the Err arm:
     ///   - eprintln("error: a-bad.pcapng: ..."); any_error=true; continue.
@@ -731,7 +675,7 @@ mod story_128 {
     /// Both paths appear in stderr.
     ///
     /// The discriminating assertion: BOTH paths appear in stderr.
-    /// RED: current code only reports the first bad file (second is never reached).
+    /// Regression guard: isolation ensures both files are attempted, not just the first.
     #[test]
     fn test_BC_2_01_018_all_bad_batch_no_panic_exit_one() {
         let dir = tempfile::tempdir().expect("tempdir");
@@ -751,8 +695,7 @@ mod story_128 {
         assert
             .failure() // exit 1
             // BOTH bad files must appear in stderr error notices.
-            // RED: current code aborts after "a-bad.pcapng" → "b-bad.pcapng"
-            // never processed → only "a-bad.pcapng" in stderr.
+            // Regression guard: abort after "a-bad.pcapng" would omit "b-bad.pcapng" from stderr.
             .stderr(predicate::str::contains("a-bad.pcapng"))
             .stderr(predicate::str::contains("b-bad.pcapng"));
     }
@@ -817,12 +760,9 @@ mod story_128 {
     /// Directory: [bad.pcapng (conflict → Err), good.pcapng (valid)].
     /// Bad file sorts FIRST ("a-" < "b-").
     ///
-    /// Pre-refactor RED: `summary` exits non-zero AND "b-good.pcapng" is never
-    /// processed → "Packets: 0" or no "Skipped" entry for the good file.
-    ///
-    /// Post-refactor: bad file error on stderr; good file processed;
-    /// summary shows 0 packets (EPB with 0-byte payload fails decode in
-    /// run_summary's decode loop, counted in skipped_packets) with exit 1.
+    /// GREEN: bad file error on stderr; good file processed; summary shows
+    /// 0 packets (EPB with 0-byte payload fails decode, counted in skipped_packets)
+    /// with exit 1. Regression would skip "b-good.pcapng" entirely.
     ///
     /// STORY-128 Architecture Mapping: isolation loop refactor applies to BOTH
     /// `run_analyze` and `run_summary` in src/main.rs.
@@ -849,7 +789,7 @@ mod story_128 {
             // b-good.pcapng IS processed: the EPB has 0-byte payload → decode error
             // in run_summary's loop → skipped_packets incremented.
             // The summary report shows "Skipped: 1 packets" even on the summary path.
-            // RED: current code aborts on a-bad → b-good never processed → Skipped absent.
+            // Regression guard: abort on a-bad would skip b-good → "Skipped: 1 packets" absent.
             .stdout(predicate::str::contains("Skipped: 1 packets"));
     }
 
@@ -868,18 +808,11 @@ mod story_128 {
     /// zero-packet notice emission itself, independent of AC-004 (which tests
     /// that the notice is not suppressed by sibling-file isolation).
     ///
-    /// ## Pre-refactor RED gate
+    /// ## Regression guard
     ///
-    /// The zero-packet notice is not yet emitted by main.rs (STORY-128 adds it).
-    /// Current code: valid SHB-only file → Ok arm → reader loop executes (0 packets)
-    /// → no notice emitted → "0 packets" absent from stderr → test FAILS.
-    ///
-    /// ## Expected post-refactor behavior
-    ///
-    /// After `Ok(source)` in the match arm, post-refactor code checks
-    /// `source.packets.is_empty()` and emits:
+    /// After `Ok(source)`, the implementation checks `source.packets.is_empty()` and emits:
     ///   "notice: <path>/shb-only.pcapng: 0 packets read from pcapng file"
-    /// Exit 0 (valid file, not an error).
+    /// Exit 0 (valid file, not an error). A regression would suppress the notice.
     ///
     /// ADR-009 Decision 19 / BC-2.01.009 PC6 / STORY-128 AC-004.
     #[test]
@@ -894,8 +827,8 @@ mod story_128 {
             .assert()
             // exit 0: valid zero-packet file is NOT an error (Decision 19).
             .success()
-            // Zero-packet notice MUST appear on stderr.
-            // RED: current code does not emit this notice → FAILS.
+            // Zero-packet notice (src/main.rs:61-89) MUST appear on stderr.
+            // Regression guard: notice absent → assertion fails.
             .stderr(predicate::str::contains("shb-only.pcapng"))
             .stderr(predicate::str::contains("0 packets"));
     }
@@ -917,10 +850,9 @@ mod story_128 {
     // Fixture helpers below build pcapng files with OPB / NRB / unknown blocks
     // following the same le_skip_block pattern from bc_2_01_story126_spb_tests.rs.
     //
-    // RED GATE: these tests FAIL against the current bare notice because:
-    //   - Current code: eprintln!("notice: {}: 0 packets read from pcapng file", path)
-    //   - No parenthetical segment is ever appended (no OPB clause, no skip segment).
-    //   - Classic pcap always emits "pcapng file" (wrong wording for pcap inputs).
+    // GREEN regression guards: format_zero_packet_notice (src/main.rs:61-89) is
+    // implemented with OPB clause, generic-skip segment, and pcap-vs-pcapng wording.
+    // Tests below guard against regression of the full PC6 notice format.
     // =======================================================================
 
     // -----------------------------------------------------------------------
@@ -1081,8 +1013,8 @@ mod story_128 {
     // HS-108 Case D: skipped_blocks=1, opb_skipped=1, G=0.
     // Notice MUST contain OPB clause; MUST NOT contain generic segment.
     //
-    // RED: current notice is bare "0 packets read from pcapng file" with no
-    // parenthetical — the OPB clause ("obsolete", "mergecap", count "1") is absent.
+    // GREEN: the OPB clause ("obsolete", "mergecap", count "1") is implemented
+    // in format_zero_packet_notice (src/main.rs:61-89).
     // -----------------------------------------------------------------------
 
     /// BC-2.01.009 PC6 OPB-clause (C-1 adversarial finding): a valid pcapng with
@@ -1101,11 +1033,11 @@ mod story_128 {
     /// Substring that MUST NOT be present (G=0, generic segment suppressed):
     ///   - "skipped as unsupported"
     ///
-    /// ## RED gate
+    /// ## Regression guard
     ///
-    /// Current code emits: "notice: <file>: 0 packets read from pcapng file"
-    /// Missing: the entire OPB clause parenthetical.
-    /// → "obsolete" absent → assertion fails → RED.
+    /// GREEN: the OPB clause "(includes N obsolete Packet Block(s) whose data was
+    /// not analyzed; re-save with mergecap)" is implemented in format_zero_packet_notice.
+    /// Regression: removing the OPB clause would make "obsolete" absent → assertion fails.
     ///
     /// BC-2.01.009 PC6 EC-007 / HS-108 Case D / ADR-009 Decision 19 OPB-distinction.
     #[test]
@@ -1135,8 +1067,8 @@ mod story_128 {
     /// The `run_summary` path has the same bare-notice defect as `run_analyze`.
     /// This pins both subcommands simultaneously.
     ///
-    /// RED: same reason as test_BC_2_01_009_pc6_opb_clause_analyze — no OPB
-    /// clause in the current notice emitted by either subcommand.
+    /// GREEN: same OPB clause regression guard via the `summary` subcommand.
+    /// The `run_summary` path has the same notice emission code.
     ///
     /// BC-2.01.009 PC6 / STORY-128 coverage for run_summary.
     #[test]
@@ -1150,9 +1082,8 @@ mod story_128 {
             .assert()
             .success()
             .stderr(predicate::str::contains("0 packets read from pcapng file"))
-            // RED: "obsolete" absent in current notice
+            // OPB clause contains "obsolete" and "mergecap" — regression guard.
             .stderr(predicate::str::contains("obsolete"))
-            // RED: "mergecap" absent in current notice
             .stderr(predicate::str::contains("mergecap"))
             .stderr(predicate::str::contains("skipped as unsupported").not());
     }
@@ -1163,7 +1094,7 @@ mod story_128 {
     // HS-108 Case B: skipped_blocks=2, opb_skipped=0, G=2.
     // Notice MUST contain "(2 block(s) skipped as unsupported)".
     //
-    // RED: current bare notice has no parenthetical at all.
+    // GREEN: the generic-skip segment "(N block(s) skipped as unsupported)" is implemented.
     // -----------------------------------------------------------------------
 
     /// BC-2.01.009 PC6 generic-skip segment (C-1): a valid pcapng with SHB + IDB
@@ -1182,11 +1113,10 @@ mod story_128 {
     ///   - "obsolete"
     ///   - "mergecap"
     ///
-    /// ## RED gate
+    /// ## Regression guard
     ///
-    /// Current code emits: "notice: <file>: 0 packets read from pcapng file"
-    /// Missing: the "(2 block(s) skipped as unsupported)" segment.
-    /// → "skipped as unsupported" absent → assertion FAILS → RED.
+    /// Guards that the generic-skip segment "(2 block(s) skipped as unsupported)"
+    /// appears in the notice (HS-108 Case B). A regression would suppress the segment.
     ///
     /// BC-2.01.009 PC6 / HS-108 Case B / ADR-009 Decision 19 generic-skip gate.
     #[test]
@@ -1213,7 +1143,7 @@ mod story_128 {
 
     /// Same generic-skip segment test via `summary` subcommand.
     ///
-    /// RED: same reason — bare notice missing generic segment.
+    /// GREEN: same generic-skip guard via the `summary` subcommand.
     #[test]
     fn test_BC_2_01_009_pc6_generic_skip_segment_summary() {
         let dir = tempfile::tempdir().expect("tempdir");
@@ -1243,7 +1173,7 @@ mod story_128 {
     // "(includes 1 obsolete Packet Block(s) whose data was not analyzed;
     //  re-save with mergecap)".
     //
-    // RED: current bare notice has neither segment.
+    // GREEN: both OPB clause and generic-skip segment are implemented.
     // -----------------------------------------------------------------------
 
     /// BC-2.01.009 PC6 both-segments (HS-108 Case E): a valid pcapng with 2 NRBs
@@ -1266,11 +1196,10 @@ mod story_128 {
     /// Verified by asserting "skipped as unsupported" AND "obsolete" both appear —
     /// these only appear in separate segments.
     ///
-    /// ## RED gate
+    /// ## Regression guard
     ///
-    /// Current code emits: "notice: <file>: 0 packets read from pcapng file"
-    /// Neither segment present → both "skipped as unsupported" and "obsolete" absent
-    /// → test FAILS on both.
+    /// GREEN: both OPB clause and generic-skip segment are implemented.
+    /// Regression: either missing segment would fail the corresponding assertion.
     ///
     /// BC-2.01.009 PC6 / HS-108 Case E / ADR-009 Decision 19 (both segments).
     #[test]
@@ -1320,8 +1249,8 @@ mod story_128 {
     // Test 4 (regression / NEITHER segment): SHB-only, skipped_blocks==0, opb_skipped==0
     //
     // HS-108 Case F / BC-2.01.009 EC-010: notice MUST be bare with NO parenthetical.
-    // This test MUST PASS (the gate-suppression behavior is correct even today
-    // because the current code never appends a parenthetical).
+    // GREEN: the gate-suppression behavior is correct — when skipped_blocks==0
+    // and opb_skipped==0, no parenthetical is appended.
     //
     // This pins that the segments are GATED — not always emitted.
     // After implementation the gate must still hold (regression guard).
@@ -1359,8 +1288,8 @@ mod story_128 {
             // exit 0: structurally valid (EC-010 / F-M4)
             .success()
             // Base notice phrase MUST be present
-            // (this currently FAILS too because the notice itself is not yet
-            // implemented — but the gating assertions below pin the format constraint)
+            // (the zero-packet notice is implemented; this assertion and the
+            // gating assertions below pin the exact format constraint as a regression guard)
             .stderr(predicate::str::contains("0 packets read from pcapng file"))
             // No generic segment: skipped_blocks==0, so G==0 → gate false → OMITTED
             .stderr(predicate::str::contains("skipped").not())
@@ -1399,7 +1328,8 @@ mod story_128 {
     // A valid EMPTY classic pcap (24-byte global header, zero packet records) MUST
     // emit "0 packets read from pcap file" — NOT "pcapng file".
     //
-    // RED: current code hardcodes "pcapng file" in both analyze and summary paths.
+    // GREEN: format_zero_packet_notice (src/main.rs:61-89) uses "pcap file" for
+    // classic pcap inputs and "pcapng file" for pcapng inputs.
     // -----------------------------------------------------------------------
 
     /// BC-2.01.009 PC6 EC-009 classic-pcap wording (M-1): an empty classic pcap
@@ -1417,19 +1347,11 @@ mod story_128 {
     ///   - stderr does NOT contain "0 packets read from pcapng file" (wrong wording)
     ///   - exit 0
     ///
-    /// ## RED gate
+    /// ## Regression guard
     ///
-    /// Current code: eprintln!("notice: {}: 0 packets read from pcapng file", path)
-    /// For a .pcap input this produces "pcapng file" instead of "pcap file".
-    /// The assertion `contains("0 packets read from pcap file")` FAILS because the
-    /// actual output has "pcapng" not "pcap" (the "pcapng" version does NOT satisfy
-    /// the "pcap file" substring because "pcap file" is a strict prefix that would
-    /// match "pcap file" but NOT "pcapng file" — wait: "pcap file" IS a substring
-    /// of "pcapng file", so we must also assert NOT contains("pcapng file").
-    ///
-    /// RED discriminator: we assert `contains("pcap file")` AND
-    /// `NOT contains("pcapng file")`.  Since "pcapng file" is the actual output,
-    /// the NOT assertion FAILS → RED.
+    /// GREEN: format_zero_packet_notice (src/main.rs:61-89) uses "pcap file" for
+    /// classic pcap inputs. Regression: hardcoding "pcapng file" would produce
+    /// "pcapng file" for .pcap inputs — the NOT assertion would catch it.
     ///
     /// BC-2.01.009 PC6 EC-009 / ADR-009 Decision 19 classic-pcap symmetry.
     #[test]
@@ -1448,14 +1370,14 @@ mod story_128 {
             .success()
             // MUST contain the classic-pcap wording "pcap file"
             .stderr(predicate::str::contains("0 packets read from pcap file"))
-            // MUST NOT say "pcapng file" for a classic pcap input
-            // RED: current code always emits "pcapng file" → this NOT assertion FAILS
+            // MUST NOT say "pcapng file" for a classic pcap input.
+            // Regression guard: hardcoding "pcapng file" would fail this NOT assertion.
             .stderr(predicate::str::contains("0 packets read from pcapng file").not());
     }
 
     /// Same classic-pcap wording test via `summary` subcommand.
     ///
-    /// RED: same hardcoded "pcapng file" defect exists in run_summary notice site
+    /// GREEN: run_summary also uses format_zero_packet_notice (src/main.rs:61-89)
     /// (~line 456 in current src/main.rs).
     ///
     /// BC-2.01.009 PC6 EC-009 / STORY-128 coverage for run_summary.
@@ -1473,7 +1395,7 @@ mod story_128 {
             .assert()
             .success()
             .stderr(predicate::str::contains("0 packets read from pcap file"))
-            // RED: current code emits "pcapng file" → NOT assertion FAILS
+            // Regression guard: "pcapng file" wording for classic pcap would fail this NOT assertion.
             .stderr(predicate::str::contains("0 packets read from pcapng file").not());
     }
 }
