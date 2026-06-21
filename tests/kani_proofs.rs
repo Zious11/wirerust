@@ -25,7 +25,7 @@
 //!   3. `ts_sec` is always ≤ u32::MAX (trivially true but asserted for Kani).
 //!   4. Both base-10 (bit7=0) AND base-2 (bit7=1) branches are covered.
 //!   5. The µs fast-path saturation concrete assertion holds:
-//!      (ts_high=4295, ts_low=0, if_tsresol=6) → ts_sec=u32::MAX.
+//!      (ts_high=2_000_000, ts_low=0, if_tsresol=6) → ts_sec=u32::MAX.
 //!
 //! # VP-027: EPB parse safety
 //!
@@ -84,7 +84,9 @@ mod kani_proofs {
     ///   P3: ts_sec ≤ u32::MAX (trivially true for u32 but included for Kani trace)
     ///
     /// Concrete saturation vector (M-3 / BC-2.01.014 EC-013 / STORY-125 AC-010):
-    ///   (ts_high=4295, ts_low=0, if_tsresol=6) → ts_sec MUST be u32::MAX.
+    ///   (ts_high=2_000_000, ts_low=0, if_tsresol=6) → ts_sec MUST be u32::MAX.
+    ///   ticks = 2_000_000u64 << 32 = 8_589_934_592_000_000; / 1_000_000 = 8_589_934_592
+    ///   > u32::MAX (4_294_967_295) → saturates to u32::MAX; ts_usecs = 0.
     ///   This covers the µs fast-path saturation requirement (.min(u32::MAX as u64)).
     ///
     /// Branch coverage note: Kani explores all 256 if_tsresol values symbolically,
@@ -104,12 +106,13 @@ mod kani_proofs {
         // bare-as-u32-wrap bug (missing .min(u32::MAX as u64) in fast path).
         // Run this before the symbolic call to ensure it is independently verifiable.
         {
-            let (sat_sec, sat_usecs) = pcapng_timestamp_to_secs_usecs(4295, 0, 6);
-            // ticks = 4295u64 << 32 = 18_446_884_536,320 (large, > u32::MAX * 1_000_000).
-            // ts_sec MUST saturate at u32::MAX (not wrap to a smaller value).
+            let (sat_sec, sat_usecs) = pcapng_timestamp_to_secs_usecs(2_000_000, 0, 6);
+            // ticks = 2_000_000u64 << 32 = 8_589_934_592_000_000; / 1_000_000 = 8_589_934_592
+            // > u32::MAX (4_294_967_295) → saturates to u32::MAX; ts_usecs = 0.
+            // (BC-2.01.014 v1.6 corrected vector; old 4295 was NOT arithmetically impossible.)
             kani::assert(
                 sat_sec == u32::MAX,
-                "VP-025 M-3 saturation: (4295, 0, 6) → ts_sec must be u32::MAX \
+                "VP-025 M-3 saturation: (2_000_000, 0, 6) → ts_sec must be u32::MAX \
                  (fast-path .min(u32::MAX as u64) is mandatory per BC-2.01.014 PC4)",
             );
             kani::assert(
