@@ -1,9 +1,10 @@
 //! STORY-127: Magic-Byte Glob (resolve_targets Content Detection) and E2E Corpus Wiring
 //!
-//! TDD RED-GATE suite — all tests in this file are RED against the stubs.
-//! The implementer must:
-//!   1. Implement `read_magic(path: &Path) -> Option<[u8; 4]>` in src/main.rs.
-//!   2. Refactor `resolve_targets` to call `read_magic` and match all 5 magic
+//! Regression-guard suite for the STORY-127 magic-byte glob implementation. All
+//! behavioral contracts exercised here are IMPLEMENTED: `read_magic` (src/main.rs:626-632)
+//! and content-based `resolve_targets` refactor. The implementation:
+//!   1. `read_magic(path: &Path) -> Option<[u8; 4]>` in src/main.rs.
+//!   2. `resolve_targets` calls `read_magic` and matches all 5 magic
 //!      values instead of filtering by extension.
 //!
 //! Coverage map:
@@ -29,14 +30,11 @@
 //! `--target` (positional arg to `analyze`).  This is the same approach used
 //! in `tests/main_story_088_tests.rs`.
 //!
-//! RED gate reasoning:
-//!   - The current `resolve_targets` only accepts `.pcap` extension files.
-//!   - `read_magic` is `todo!()` — it panics.
-//!   - Tests that write `.data`, `.cap`, or zero-extension files with valid magic
-//!     and then pass the directory to `analyze` will FAIL (files not included,
-//!     or panic from `todo!()`).
-//!   - Tests that write `.pcap` files with WRONG magic and expect exclusion will
-//!     FAIL (current code accepts them by extension alone, not by content).
+//! Implementation summary (GREEN):
+//!   - `resolve_targets` uses content-based magic detection, not extension filtering.
+//!   - `read_magic` is implemented (src/main.rs:626-632) — GREEN.
+//!   - Files with `.data`, `.cap`, or zero extension and valid magic are included.
+//!   - Files with `.pcap` extension but wrong magic are correctly excluded.
 //!
 //! ## Fixture notes (for implementer and test-writer)
 //!
@@ -413,31 +411,12 @@ mod story_127 {
     /// Setup: create `a.pcap` with the canonical CLASSIC_LE magic (must be included)
     /// and `b.pcap` with first bytes `[0xDE, 0xAD, 0xBE, 0xEF]` (must be excluded).
     ///
-    /// RED: the current resolve_targets accepts BOTH `a.pcap` and `b.pcap` by extension
-    /// alone (the `ext == "pcap"` filter accepts any file named *.pcap regardless of
-    /// content).  The reader then errors on `b.pcap`'s non-magic header.
-    /// Post-refactor: only `a.pcap` is included (magic matches); `b.pcap` is silently
-    /// skipped at the probe stage.  The observable post-refactor behavior is that the
-    /// directory scan produces 0 errors (b.pcap silently excluded, never passed to reader).
+    /// GREEN: `resolve_targets` uses content-based magic detection. A `.pcap` file with
+    /// wrong magic bytes is silently skipped at the probe stage — never passed to the reader.
     ///
-    /// The RED oracle: assert that the command exits 0 WITH "Packets: 0" (both are
-    /// currently processed: a.pcap with valid magic and b.pcap with wrong magic → reader
-    /// errors on b.pcap → exit non-zero or error message).  Wait, actually:
-    ///   - a.pcap has 8 bytes of CLASSIC_LE magic + zeros — the classic-pcap reader
-    ///     will fail on the truncated pcap (header parse error → bail! → exit non-zero).
-    ///   - b.pcap has wrong magic → current code accepts it by extension → reader fails.
-    ///
-    /// So with the STUB: analyze <dir> exits non-zero (reader errors on both files).
-    /// Post-refactor: only a.pcap included (b.pcap silently skipped); reader still errors
-    /// on truncated a.pcap.
-    ///
-    /// Better RED oracle: create a directory with ONLY the wrong-magic file.  The stub
-    /// extension-filter includes it (it's a .pcap), causing a reader error.  Post-refactor,
-    /// it's silently skipped → command exits 0 with "Packets: 0".
-    ///
-    /// RED: assert command exits 0 and stdout contains "Packets: 0".
-    /// This FAILS under the stub because the wrong-magic .pcap IS passed to the reader,
-    /// causing a non-zero exit.
+    /// Regression oracle: a directory with ONLY a wrong-magic `.pcap` file produces
+    /// exit 0 with "Packets: 0". A regression (reverting to extension filtering) would
+    /// pass the wrong-magic file to the reader, causing a non-zero exit.
     ///
     /// BC-2.12.011 PC2 / EC-004.
     #[test]
@@ -449,18 +428,13 @@ mod story_127 {
         // must be silently excluded.
         write_wrong_magic_file(&dir, "analysis.pcap");
 
-        // RED: the stub's extension filter accepts `analysis.pcap` (it is a ".pcap" file).
-        // The reader receives the wrong-magic file and fails to parse → exit non-zero.
-        //
-        // Post-refactor: `analysis.pcap` is silently skipped at the magic-probe stage
+        // GREEN: `analysis.pcap` is silently skipped at the magic-probe stage
         // (first 4 bytes [0xDE,0xAD,0xBE,0xEF] do not match any of the 5 magic values).
         // The command exits 0 with "Packets: 0".
-        //
-        // This assertion pins the CORRECT post-refactor behavior; it FAILS under the stub.
         wirerust()
             .args(["analyze", dir.path().to_str().unwrap(), "--no-color"])
             .assert()
-            .success() // RED: stub exits non-zero (reader error on wrong-magic file)
+            .success()
             .stdout(predicate::str::contains("Packets: 0")); // non-magic file excluded
     }
 
@@ -472,16 +446,9 @@ mod story_127 {
     /// Setup: create a 3-byte file with `.pcap` extension (too short for magic probe)
     /// and a valid CLASSIC_LE-magic `.pcap` file (8 bytes) as the control.
     ///
-    /// RED: the stub's `read_magic` is `todo!()` — it panics.  When resolve_targets
-    /// calls `read_magic` on any file, the thread panics and the test FAILS with a
-    /// panic message.
-    ///
-    /// Actually, with the current stub: resolve_targets uses ONLY extension filtering
-    /// (no call to read_magic at all).  The 3-byte `.pcap` file IS included by the
-    /// stub extension filter, passed to the reader, which fails on truncated content.
-    ///
-    /// RED oracle: assert "Packets: 0" with exit 0 (short file silently skipped).
-    /// Under the stub: 3-byte file passed to reader → exit non-zero.
+    /// GREEN regression guard: `read_magic` (src/main.rs:626-632) reads ≥4 bytes
+    /// before including a file. A 3-byte file returns `None` from `read_magic` and is
+    /// silently skipped — the content-based `resolve_targets` never passes it to the reader.
     ///
     /// BC-2.12.011 PC3 / EC-007.
     #[test]
@@ -491,13 +458,13 @@ mod story_127 {
         // 3-byte file named .pcap — must be silently skipped (too short for 4-byte probe).
         write_short_file(&dir, "short.pcap");
 
-        // RED: stub's extension filter includes short.pcap → reader fails (truncated)
-        // → exit non-zero.  Post-refactor: magic probe reads 3 bytes (< 4) → None
-        // → file silently skipped → Packets: 0, exit 0.
+        // GREEN: magic probe reads 3 bytes (< 4) → None → file silently skipped.
+        // Regression guard: if content detection regresses to extension-only, short.pcap
+        // would reach the reader, causing a truncation error and non-zero exit.
         wirerust()
             .args(["analyze", dir.path().to_str().unwrap(), "--no-color"])
             .assert()
-            .success() // RED: stub exits non-zero (reader error on truncated file)
+            .success() // short file is silently skipped, no error
             .stdout(predicate::str::contains("Packets: 0")); // short file excluded
     }
 
@@ -515,24 +482,14 @@ mod story_127 {
     ///   `c2-regression.cap`  — pcapng magic, `.cap` extension → MUST be included.
     ///   `bad-content.pcap`   — wrong magic `[0xDE,0xAD,0xBE,0xEF]`, `.pcap` extension → MUST be excluded.
     ///
-    /// RED: current resolve_targets extension filter:
-    ///   - `c2-regression.cap` is EXCLUDED (ext != "pcap").
-    ///   - `bad-content.pcap`  is INCLUDED (ext == "pcap", content ignored).
-    ///   - Reader fails on bad-content.pcap → exit non-zero.
-    ///
-    /// Post-refactor:
+    /// GREEN: content-based `resolve_targets`:
     ///   - `c2-regression.cap` is INCLUDED (pcapng magic detected by content).
     ///   - `bad-content.pcap`  is EXCLUDED (wrong magic, silently skipped).
-    ///   - Reader invoked only on c2-regression.cap (malformed 8-byte body → error or
-    ///     0 packets, but the file IS passed to the reader).
+    ///   - Reader is invoked only on c2-regression.cap.
     ///
-    /// The RED oracle asserts that bad-content.pcap is silently skipped (exit 0, Packets: 0),
-    /// which FAILS under the stub because bad-content.pcap IS included → reader error.
-    ///
-    /// Additionally, we need to verify c2-regression.cap IS included post-refactor.
-    /// A separate assertion: with ONLY c2-regression.cap in the directory, post-refactor
-    /// the reader is invoked (reader error or Packets: 0 from malformed content, but NOT
-    /// silently skipped / "Target not found").
+    /// Regression oracle: bad-content.pcap silently skipped (exit 0, Packets: 0).
+    /// Also verifies c2-regression.cap IS included (reader invoked — error or Packets: 0
+    /// from malformed content, but NOT silently skipped / "Target not found").
     ///
     /// BC-2.12.011 Inv1 / EC-002 / ADR-009 Decision 11 (resolves C-2).
     #[test]
@@ -543,12 +500,11 @@ mod story_127 {
         // bad-content.pcap: .pcap extension, wrong magic → must be EXCLUDED post-refactor.
         write_wrong_magic_file(&dir_a, "bad-content.pcap");
 
-        // RED: stub accepts bad-content.pcap by extension → reader error → exit non-zero.
-        // Post-refactor: bad-content.pcap silently skipped → exit 0, Packets: 0.
+        // GREEN: bad-content.pcap silently skipped (wrong magic) → exit 0, Packets: 0.
         wirerust()
             .args(["analyze", dir_a.path().to_str().unwrap(), "--no-color"])
             .assert()
-            .success() // RED: stub exits non-zero (reader fails on wrong-magic .pcap)
+            .success()
             .stdout(predicate::str::contains("Packets: 0")); // wrong magic excluded
 
         // ── Case B: pcapng-magic .cap must be included and parsed successfully ──
@@ -564,10 +520,8 @@ mod story_127 {
         // non-zero), which would require STORY-128 isolation to distinguish from a
         // detection failure — forbidden in STORY-127.
         //
-        // Pre-refactor (stub): .cap excluded by extension filter → Packets: 0, exit 0.
-        // Post-refactor: .cap included by magic → reader parses valid pcapng → 1 packet
-        // → exit 0. The discriminating assertion: output contains "Packets: 1" (stub
-        // would produce "Packets: 0" because the .cap is silently excluded).
+        // GREEN: .cap included by magic → reader parses valid pcapng → 1 packet → exit 0.
+        // Discriminating: "Packets: 1" (regression to extension-only would give "Packets: 0").
         let dir_b = tempfile::tempdir().expect("tempdir (Case B)");
 
         // Write smb3.pcapng content into a file with a `.cap` extension.
@@ -600,9 +554,8 @@ mod story_127 {
         // matches MAGIC_PCAPNG → file included → reader parses smb3 content → 54 packets
         // → stdout "Packets: 54", exit 0.
         //
-        // Pre-refactor (stub): .cap excluded by extension filter → Packets: 0, exit 0.
-        // The discriminating assertion is "Packets: 54" (not "Packets: 0"), which FAILS
-        // under the stub (stub excludes .cap entirely; only "Packets: 0" is produced).
+        // GREEN: .cap included by magic → reader parses smb3 content → 54 packets.
+        // Discriminating: "Packets: 54" (regression to extension-only would give "Packets: 0").
         wirerust()
             .args(["analyze", dir_b.path().to_str().unwrap(), "--no-color"])
             .assert()
@@ -621,21 +574,16 @@ mod story_127 {
     /// The sort test uses the same observable as STORY-088 EC-005: HTTP JSON recent_uris
     /// order proves that `a.pcap` was processed before `z.pcap`.
     ///
-    /// The STORY-127-specific RED assertion: `m.cap` (pcapng magic, `.cap` extension)
-    /// is EXCLUDED by the stub's extension filter → Packets: 17.  Post-refactor, `m.cap`
-    /// IS included → reader errors on malformed 8-byte body → exit non-zero.
+    /// GREEN regression guard (BC-2.12.011 PC5 / Inv3 / EC-003): content-based
+    /// `resolve_targets` includes `m.cap` (pcapng magic, `.cap` extension) → reader
+    /// errors on malformed 8-byte body → exit non-zero (any_error=true → exit 1).
     ///
-    /// RED assertion: assert command exits non-zero when `m.cap` is present.
-    /// Under the stub: exits 0 (m.cap excluded; only a.pcap + z.pcap processed).
-    /// Post-refactor: m.cap included → reader errors on malformed pcapng → exit non-zero.
+    /// The `.failure()` assertion verifies inclusion is active: extension-only filtering
+    /// would exclude `m.cap` → only a.pcap + z.pcap processed → exit 0 → the `.failure()`
+    /// assertion would fail, catching the regression.
     ///
-    /// Sort verification (GREEN even under stub — `files.sort()` already works for .pcap):
-    /// Not asserted here in the RED form; sort correctness is already pinned by STORY-088
-    /// EC-005.  The new RED discriminator for STORY-127 is the m.cap inclusion behavior.
-    ///
-    /// BC-2.12.011 PC5 / Inv3 / EC-003.
-    ///
-    /// RED: FAILS under stub (stub exits 0; post-refactor exits non-zero due to m.cap included).
+    /// Sort verification: `files.sort()` produces [a.pcap, m.cap, z.pcap]; pinned by
+    /// STORY-088 EC-005.
     #[test]
     fn test_BC_2_12_011_sorted_output() {
         let dir = tempfile::tempdir().expect("tempdir");
@@ -647,15 +595,12 @@ mod story_127 {
         fs::copy("tests/fixtures/http-ooo.pcap", dir_path.join("z.pcap")).unwrap();
         fs::copy("tests/fixtures/http.pcap", dir_path.join("a.pcap")).unwrap();
 
-        // m.cap: pcapng magic, `.cap` extension.
-        // Pre-refactor (stub): excluded by ext filter (only "pcap" extension accepted).
-        // Post-refactor: included by magic probe → reader errors on malformed 8-byte body.
-        // The error causes exit non-zero → the .success() assertion below FAILS.
+        // m.cap: pcapng magic, `.cap` extension — included by magic probe.
+        // Reader errors on the malformed 8-byte body → exit non-zero.
         write_magic_file(&dir, "m.cap", &MAGIC_PCAPNG);
 
-        // RED assertion: post-refactor exits NON-ZERO (m.cap included → reader error).
-        // Under the stub: m.cap excluded → a.pcap + z.pcap only → exit 0, Packets: 17.
-        // .failure() asserts exit non-zero — FAILS under stub (stub exits 0).
+        // GREEN: m.cap included by magic → reader error → exit non-zero.
+        // Regression (extension-only): m.cap excluded → a.pcap + z.pcap only → exit 0.
         wirerust()
             .args([
                 "analyze",
@@ -664,9 +609,7 @@ mod story_127 {
                 "--all",
             ])
             .assert()
-            // RED: stub exits 0 (m.cap excluded; a+z process cleanly).
-            // Post-refactor: m.cap included → reader errors on truncated pcapng → exit 1.
-            // .failure() FAILS under the stub (because stub exits 0).
+            // GREEN: m.cap included → reader errors on truncated pcapng → exit non-zero.
             .failure();
     }
 
@@ -706,15 +649,11 @@ mod story_127 {
     /// `a-readable.pcap` (a real pcap fixture — http.pcap — that parses cleanly).
     ///
     /// Sort order ensures `a-readable.pcap` is processed FIRST (alphabetically).
-    /// The stub extension filter includes BOTH files.  After processing `a-readable.pcap`
-    /// successfully, it attempts to open `b-unreadable.pcap` → permission denied → the
-    /// reader error exits non-zero AND stderr contains "Permission denied".
+    /// GREEN: `read_magic(b-unreadable.pcap)` returns `None` (permission denied)
+    /// → file silently skipped.  Only `a-readable.pcap` is included → exit 0.
     ///
-    /// Post-refactor: `read_magic(b-unreadable.pcap)` returns `None` (permission denied)
-    /// → file silently skipped.  Only `a-readable.pcap` is included.  Command exits 0.
-    ///
-    /// RED oracle: assert exit SUCCESS with "Packets: 1" (a-readable.pcap only).
-    /// Under the stub, `b-unreadable.pcap` is included → reader fails → exit non-zero.
+    /// Regression oracle: exit SUCCESS with "Packets: 1" (a-readable.pcap only).
+    /// Regression (extension filter) would include b-unreadable → reader fails → exit non-zero.
     ///
     /// Note: `chmod 000` is non-portable (Windows does not support Unix permissions).
     /// This test is `#[cfg(unix)]`.
@@ -741,27 +680,17 @@ mod story_127 {
         fs::set_permissions(&unreadable_path, fs::Permissions::from_mode(0o000))
             .expect("chmod 000 must succeed on Unix");
 
-        // RED: stub includes both .pcap files by extension (sorted: a-readable, b-unreadable).
-        //   Step 1: a-readable.pcap → reader processes http.pcap → 1 packet, ok.
-        //   Step 2: b-unreadable.pcap → reader.open() → permission denied → exit non-zero.
-        // The command exits 1 (reader error). "Packets: 1" never appears in stdout.
-        //
-        // Post-refactor:
+        // GREEN:
         //   Step 1: read_magic(a-readable.pcap) → CLASSIC_LE magic → included.
         //   Step 2: read_magic(b-unreadable.pcap) → permission denied → None → SKIPPED.
         //   Only a-readable.pcap included → reader produces 1 packet → exit 0.
         //   stderr does NOT contain "Permission denied" (probe failure is silent).
-        //
-        // RED assertion: exit SUCCESS and "Packets: 1".
-        // Under the stub, exit fails (b-unreadable → reader error) → .success() FAILS.
         wirerust()
             .args(["analyze", dir_path.to_str().unwrap(), "--no-color"])
             .assert()
-            // RED: stub exits non-zero (reader can't open b-unreadable.pcap).
-            // Post-refactor: b-unreadable silently skipped; a-readable → 1 packet → exit 0.
             .success()
             .stdout(predicate::str::contains("Packets: 1"))
-            // Discriminating: probe failure MUST NOT appear in stderr post-refactor.
+            // Discriminating: probe failure must NOT appear in stderr (silent skip).
             .stderr(predicate::str::contains("Permission denied").not());
 
         // Restore permissions so TempDir cleanup can delete the file.
@@ -855,18 +784,13 @@ mod story_127 {
     /// `bin/fetch-e2e-pcaps` and is required for Phase-4 holdout validation.
     /// F-5 remains deferred to Phase-4; CI always exercises the synthetic path.
     ///
-    /// ## RED gate status
+    /// ## Implementation status (GREEN)
     ///
-    /// Sub-cases 1 and 2 exercise `PcapSource::from_pcap_reader` / `from_file` — these
-    /// are library functions (not dependent on resolve_targets) and are expected to be
-    /// GREEN if STORY-123..126 are merged.  The STORY-127 worktree is branched from
-    /// develop at commit 56a10e9 which includes the merged pcapng reader stack.
+    /// Sub-cases 1 and 2 exercise `PcapSource::from_pcap_reader` / `from_file` — library
+    /// functions from the merged STORY-123..126 reader stack. All sub-cases are GREEN.
     ///
-    /// Sub-cases 3 and 4 also use the library reader directly and are expected GREEN
-    /// if the reader stack (EPB parse, OPB skip) is implemented.
-    ///
-    /// ALL sub-cases will be GREEN in E2E once the reader stack is complete.
-    /// The resolve_targets-dependent behavior (AC-001..008) tests are the RED tests.
+    /// Sub-cases 3 and 4 also use the library reader directly (EPB parse, OPB skip).
+    /// The resolve_targets-dependent behavior (AC-001..008) is also GREEN post-STORY-127.
     ///
     /// This test is marked as a single `#[test]` function with sub-case structure
     /// per the AC-009 specification.
