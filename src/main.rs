@@ -627,8 +627,8 @@ pub(crate) fn read_magic(path: &std::path::Path) -> Option<[u8; 4]> {
     use std::io::Read as _;
     let mut file = std::fs::File::open(path).ok()?;
     let mut buf = [0u8; 4];
-    let n = file.read(&mut buf).ok()?;
-    if n < 4 { None } else { Some(buf) }
+    file.read_exact(&mut buf).ok()?;
+    Some(buf)
 }
 
 /// Magic byte sets for content-based capture file detection (BC-2.12.011).
@@ -666,7 +666,7 @@ fn resolve_targets(target: &Path) -> Result<Vec<std::path::PathBuf>> {
 
 #[cfg(test)]
 mod tests {
-    use super::{collapse_findings_from_flag, grouping_from_flag};
+    use super::{collapse_findings_from_flag, grouping_from_flag, read_magic};
     use wirerust::reporter::terminal::Grouping;
 
     /// BC-2.11.028: flag absent (false) → collapse ON (true);
@@ -704,6 +704,42 @@ mod tests {
             grouping_from_flag(false),
             Grouping::Flat,
             "--mitre absent (show_mitre_grouping=false) must yield Grouping::Flat"
+        );
+    }
+
+    /// F-F5P5-002 — read_magic robustness: a file with fewer than 4 bytes returns None
+    /// (BC-2.12.011 Inv5 / EC-007).  A single `Read::read` may legally return <4 bytes
+    /// even for a ≥4-byte file; `read_exact` eliminates that race without changing the
+    /// short-file or unreadable-file semantics.
+    #[test]
+    fn test_read_magic_short_file_returns_none() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let path = dir.path().join("short.bin");
+        std::fs::write(&path, b"\xA1\xB2\xC3").expect("write short file");
+
+        // A 3-byte file — cannot fill 4-byte magic buffer → must return None.
+        assert_eq!(
+            read_magic(&path),
+            None,
+            "read_magic on a <4-byte file must return None (BC-2.12.011 EC-007)"
+        );
+    }
+
+    /// F-F5P5-002 — read_magic robustness: a ≥4-byte file with a known magic returns
+    /// exactly those 4 bytes (BC-2.12.011 Inv5 — reads the FIRST 4 BYTES).
+    #[test]
+    fn test_read_magic_valid_file_returns_first_four_bytes() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let path = dir.path().join("capture.pcapng");
+        // pcapng SHB magic followed by additional bytes — read_magic must return exactly
+        // the first 4 bytes and not be influenced by the bytes that follow.
+        let content: &[u8] = &[0x0A, 0x0D, 0x0D, 0x0A, 0xFF, 0xFF, 0xFF, 0xFF];
+        std::fs::write(&path, content).expect("write capture file");
+
+        assert_eq!(
+            read_magic(&path),
+            Some([0x0A, 0x0D, 0x0D, 0x0A]),
+            "read_magic must return the first 4 bytes of a ≥4-byte file (BC-2.12.011 Inv5)"
         );
     }
 }
