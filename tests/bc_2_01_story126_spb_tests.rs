@@ -422,7 +422,9 @@ fn le_pcapng_shb_spb_no_idb(data: &[u8]) -> Vec<u8> {
 ///   (c) E-INP-008 is NOT present (not a body-too-short error).
 ///   (d) E-INP-010 is NOT present (not a framing error).
 ///
-/// RED: SPB falls through to wildcard `_` arm → Ok returned, not Err(E-INP-009).
+/// RED-phase: before the SPB arm existed, SPB fell through to the wildcard `_` arm and
+/// returned Ok instead of Err(E-INP-009). This test was RED and turned GREEN once the
+/// SPB dispatch arm landed (reader.rs:1158). Guards the empty-table guard path.
 #[test]
 fn test_BC_2_01_013_empty_interface_table_guarded() {
     // Minimal payload so the SPB is well-formed (btl = 12 + 4 + 4 = 20).
@@ -462,7 +464,9 @@ fn test_BC_2_01_013_empty_interface_table_guarded() {
 /// original_len = 7. captured_len = min(7, 8) = 7.
 /// RawPacket.data.len() must be 7 (not 8 = padded, not 12 = body.len()).
 ///
-/// RED: no SPB arm → no packet produced.
+/// RED-phase: before the SPB arm existed, no packet was produced (SPB fell to `_`). This
+/// test was RED and turned GREEN once the SPB arm landed (reader.rs:1158). Guards the
+/// padding-strip arithmetic — if a refactor removed the arm, no packet would be produced.
 #[test]
 fn test_BC_2_01_013_padding_strip() {
     // 7-byte payload: not 4-aligned, so 1 pad byte appended in block → body = 4 + 8 = 12.
@@ -495,7 +499,9 @@ fn test_BC_2_01_013_padding_strip() {
 
 /// AC-003 — zero timestamps: every SPB packet has timestamp_secs=0, timestamp_usecs=0.
 ///
-/// RED: no SPB arm → no packet produced.
+/// RED-phase: before the SPB arm existed, no packet was produced. This test was RED and
+/// turned GREEN once the SPB arm landed (reader.rs:1158). Guards the zero-timestamp
+/// invariant — SPB packets must carry timestamp_secs=0 and timestamp_usecs=0.
 #[test]
 fn test_BC_2_01_013_zero_timestamps() {
     let payload = [0xDE, 0xAD, 0xBE, 0xEF]; // 4 bytes, no padding needed
@@ -528,7 +534,9 @@ fn test_BC_2_01_013_zero_timestamps() {
 ///
 /// We need IDB first so the empty-table guard doesn't fire before body-check.
 ///
-/// RED: no SPB arm → SPB falls to `_`, returns Ok (not Err).
+/// RED-phase: before the SPB arm existed, SPB fell to `_` and returned Ok instead of
+/// Err(E-INP-008). This test was RED and turned GREEN once the SPB arm landed
+/// (reader.rs:1158). Guards the body-too-short rejection path (btl=12, body=0 bytes).
 #[test]
 fn test_BC_2_01_013_spb_body_truncated_e_inp_008() {
     // Build SHB + IDB + SPB-with-btl=12 manually.
@@ -593,8 +601,10 @@ fn test_BC_2_01_013_fixed_overhead_constant() {
 ///   - btl=16 → body=4 bytes, spb_data_available=0, original_len=0 → empty packet (Ok)
 ///   - The core no-panic property; AC-012 (cross-cutting) covers arbitrary truncation.
 ///
-/// RED: No SPB arm → malformed SPB falls to `_`, producing Ok with 0 packets (acceptable
-///      from a no-panic standpoint), but the ASSERTIONS about packet count will fail.
+/// RED-phase: before the SPB arm existed, the wildcard `_` arm produced Ok with 0 packets
+/// rather than the expected 1-packet Ok — so the packet-count assertion was RED. This test
+/// turned GREEN once the SPB arm landed (reader.rs:1158). Guards the no-panic contract
+/// for minimum-valid SPB (btl=16, original_len=0) and the resulting empty-data packet.
 #[test]
 fn test_BC_2_01_013_no_panic_malformed() {
     // Case 1: btl=16 → body=4, spb_data_available=0, original_len=0 → Ok({data: []})
@@ -634,7 +644,9 @@ fn test_BC_2_01_013_no_panic_malformed() {
 /// Non-palindromic payload: [0x01, 0x02, 0x03, 0x04] (LE/BE differ in meaning).
 /// original_len=4, body=4+4=8 bytes → spb_data_available=4, captured_len=4.
 ///
-/// RED: no SPB arm → no packet produced.
+/// RED-phase: before the SPB arm existed, no packet was produced. This test was RED and
+/// turned GREEN once the SPB arm landed (reader.rs:1158). Guards correct LE field decoding
+/// — a refactor breaking endian selection would fail this assertion.
 #[test]
 fn test_BC_2_01_013_spb_le_endian() {
     // Non-palindromic 4-byte payload.
@@ -666,7 +678,9 @@ fn test_BC_2_01_013_spb_le_endian() {
 /// causing captured_len clamping to spb_data_available=4 anyway, but data would
 /// be misread or miscounted. We assert data.len()==4 exactly.
 ///
-/// RED: no SPB arm → no packet produced.
+/// RED-phase: before the SPB arm existed, no packet was produced. This test was RED and
+/// turned GREEN once the SPB arm landed (reader.rs:1158). Guards correct BE field decoding
+/// — reading original_len as LE on a BE fixture would produce a mismatched captured_len.
 #[test]
 fn test_BC_2_01_013_spb_be_endian() {
     // Non-palindromic 4-byte payload (same content, different encoding context).
@@ -696,7 +710,9 @@ fn test_BC_2_01_013_spb_be_endian() {
 /// spb_data_available = 4 - 4 = 0. captured_len = min(0, 0) = 0.
 /// Must produce RawPacket { data: vec![] }.
 ///
-/// RED: no SPB arm → no packet produced.
+/// RED-phase: before the SPB arm existed, no packet was produced. This test was RED and
+/// turned GREEN once the SPB arm landed (reader.rs:1158). Guards the zero-original_len
+/// path — the SPB arm must emit an empty-data packet rather than skipping the block.
 #[test]
 fn test_BC_2_01_013_spb_zero_original_len() {
     // Build SHB + IDB + SPB with original_len=0 and no data bytes.
@@ -740,7 +756,9 @@ fn test_BC_2_01_013_spb_zero_original_len() {
 ///   captured_len = min(1500, 64) = 64.
 ///   data.len() must be 64.
 ///
-/// RED: no SPB arm → no packet produced.
+/// RED-phase: before the SPB arm existed, no packet was produced. This test was RED and
+/// turned GREEN once the SPB arm landed (reader.rs:1158). Guards the clamping arithmetic
+/// — if a refactor removed the arm, no packet would be produced and the assertion fails.
 #[test]
 fn test_BC_2_01_013_spb_truncated_original_len_exceeds_available() {
     // 64 bytes of actual captured data (4-aligned; no padding needed).
@@ -777,24 +795,19 @@ fn test_BC_2_01_013_spb_truncated_original_len_exceeds_available() {
 /// An IDB appearing AFTER an SPB (which increments packets_emitted) must be rejected
 /// with E-INP-013 exactly as for EPB. This is the headline new constraint.
 ///
-/// Current behavior analysis (RED reason):
-///   - SPB currently has NO dedicated dispatch arm; it falls through to the wildcard `_` arm.
-///   - The wildcard arm only increments `skipped_blocks` — it does NOT increment
-///     `packets_emitted` (the counter used by the IDB arm to detect E-INP-013).
-///   - Therefore: a pcapng with SHB + IDB + SPB + IDB currently does NOT trigger E-INP-013
-///     because SPB increments `skipped_blocks` (not `packets_emitted`), leaving
-///     `packets_emitted = 0` when the second IDB is encountered.
-///   - Expected CURRENT behavior: the second IDB is accepted silently (Ok, 0 packets
-///     from the wildcard SPB skip — but IDB updates the interface table, no error).
-///   - Expected AFTER implementation: the SPB arm increments `packets_emitted` → the
-///     second IDB fires E-INP-013.
+/// RED-phase provenance: before the SPB arm existed, SPB fell to the wildcard `_` arm
+/// which incremented only `skipped_blocks` — not `packets_emitted`. As a result, a late
+/// IDB after SPB was accepted silently (no E-INP-013). The test was RED until the SPB
+/// arm (reader.rs:1158) landed and began incrementing `packets_emitted`, causing the
+/// second IDB to correctly fire E-INP-013.
 ///
 /// Discriminating assertions:
-///   (a) E-INP-013 IS present (AFTER implementation).
+///   (a) E-INP-013 IS present — SPB arm increments packets_emitted; late IDB is rejected.
 ///   (b) E-INP-008 is NOT present.
 ///   (c) E-INP-009 is NOT present (interface table is non-empty at SPB time).
 ///
-/// RED: SPB falls to `_`, packets_emitted stays 0, late IDB is accepted.
+/// Guards: if the SPB arm were removed or stopped incrementing packets_emitted, the late
+/// IDB would be accepted silently and this assertion would fail.
 #[test]
 fn test_STORY_126_SPB_PACKETS_EMITTED_001() {
     // Build: SHB + IDB + SPB + second IDB (late IDB after SPB).
@@ -806,9 +819,10 @@ fn test_STORY_126_SPB_PACKETS_EMITTED_001() {
     let result = PcapSource::from_pcap_reader(Cursor::new(bytes));
     assert!(
         result.is_err(),
-        "IDB after SPB must return Err(E-INP-013) — SPB increments packets_emitted; \
-         late IDB is unsupported ordering. Got Ok (current: SPB falls to wildcard, \
-         packets_emitted stays 0, late IDB accepted silently)"
+        "IDB after SPB must return Err(E-INP-013) — SPB arm (reader.rs:1158) increments \
+         packets_emitted; a late IDB is unsupported ordering and must be rejected. \
+         If this fails, the SPB arm may have been removed or no longer increments \
+         packets_emitted, allowing the late IDB to be accepted silently."
     );
     let msg = result.unwrap_err().to_string();
     assert!(
@@ -1266,7 +1280,8 @@ fn test_BC_2_01_015_shb_only_counters_zero() {
 /// contains the canonical context string from BC-2.01.017 PC1.
 ///
 /// Sub-test: SPB before IDB → context must contain "before any Interface Description Block".
-/// This is RED because the SPB arm doesn't exist yet; SPB falls to `_` and returns Ok.
+/// RED-phase: before the SPB arm existed, SPB fell to `_` and returned Ok instead of Err.
+/// This test was RED and turned GREEN once the SPB arm landed (reader.rs:1158).
 #[test]
 fn test_BC_2_01_017_all_error_paths_have_context() {
     // Sub-test 1: SPB before any IDB (E-INP-009).
@@ -1381,7 +1396,9 @@ fn test_BC_2_01_017_epb_before_idb_emits_einp009_context() {
 ///   (c) E-INP-008 is NOT present.
 ///   (d) E-INP-010 is NOT present.
 ///
-/// RED: no SPB arm; SPB falls to `_`; returns Ok not Err.
+/// RED-phase: before the SPB arm existed, SPB fell to `_` and returned Ok instead of
+/// Err(E-INP-009). This test was RED and turned GREEN once the SPB arm landed
+/// (reader.rs:1158). Guards the canonical BC-2.01.017 PC1 context string for SPB.
 #[test]
 fn test_BC_2_01_017_spb_before_idb_emits_einp009_context() {
     let payload = [0xAB_u8; 4];
@@ -1425,7 +1442,9 @@ fn test_BC_2_01_017_spb_before_idb_emits_einp009_context() {
 ///   (c) E-INP-009 is NOT present (IDB is present; this is body-too-short).
 ///   (d) E-INP-010 is NOT present (crate accepted btl=12; this is wirerust body-decode).
 ///
-/// RED: no SPB arm; falls to `_`; returns Ok not Err.
+/// RED-phase: before the SPB arm existed, SPB fell to `_` and returned Ok instead of
+/// Err(E-INP-008). This test was RED and turned GREEN once the SPB arm landed
+/// (reader.rs:1158). Guards the canonical BC-2.01.017 PC1 context string for short bodies.
 #[test]
 fn test_BC_2_01_017_spb_body_too_short_einp008_context() {
     let mut bytes = le_shb();
