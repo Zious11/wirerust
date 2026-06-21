@@ -191,6 +191,12 @@ pub struct PcapSource {
     /// Sub-count of `skipped_blocks` that were Obsolete Packet Blocks
     /// (type `0x00000002`). `opb_skipped <= skipped_blocks` always.
     pub opb_skipped: u32,
+    /// True when the source file was identified as pcapng via the magic-byte
+    /// probe (BC-2.01.009 PC3); false for classic-pcap. Populated by
+    /// `from_pcap_reader` at the branch point; consumed by
+    /// `format_zero_packet_notice` (main.rs) to choose notice wording
+    /// (BC-2.01.009 PC6 "pcap|pcapng" discriminant / Decision 19 / F-F5P1-003).
+    pub is_pcapng: bool,
 }
 
 // ─── SHB parse result ────────────────────────────────────────────────────────
@@ -775,6 +781,7 @@ impl PcapSource {
                 datalink,
                 skipped_blocks: 0,
                 opb_skipped: 0,
+                is_pcapng: false,
             })
         } else {
             Err(anyhow!(
@@ -1180,6 +1187,7 @@ impl PcapSource {
             datalink: final_datalink,
             skipped_blocks,
             opb_skipped,
+            is_pcapng: true,
         })
     }
 

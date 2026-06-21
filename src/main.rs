@@ -59,17 +59,9 @@ use wirerust::summary::Summary;
 /// ADR-009 Decision 19 / BC-2.01.009 PC6 / STORY-128 C-1 (OPB clause) +
 /// M-1 (classic-pcap wording) adversarial findings.
 fn format_zero_packet_notice(path: &std::path::Path, source: &PcapSource) -> String {
-    // Determine file format from the 4-byte magic.
-    // pcapng SHB magic is 0x0A 0x0D 0x0D 0x0A.
-    // Anything else (classic pcap LE/BE micro/nano) → "pcap file".
-    // On None (unreadable) we default to "pcapng file"; in practice a
-    // successfully-parsed zero-packet file always has a readable magic.
-    const PCAPNG_MAGIC: [u8; 4] = [0x0A, 0x0D, 0x0D, 0x0A];
-    let file_kind = match read_magic(path) {
-        Some(m) if m == PCAPNG_MAGIC => "pcapng file",
-        Some(_) => "pcap file",
-        None => "pcapng file",
-    };
+    // Discriminant carried from the magic-byte probe in from_pcap_reader —
+    // no second file open needed (BC-2.01.009 PC6 / Decision 19 / F-F5P1-003).
+    let file_kind = if source.is_pcapng { "pcapng file" } else { "pcap file" };
 
     let base = format!(
         "notice: {}: 0 packets read from {file_kind}",
