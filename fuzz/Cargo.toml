@@ -36,3 +36,10 @@ path = "fuzz_targets/fuzz_dnp3_parse.rs"
 test = false
 doc = false
 bench = false
+
+[[bin]]
+name = "fuzz_pcapng_reader"
+path = "fuzz_targets/fuzz_pcapng_reader.rs"
+test = false
+doc = false
+bench = false
