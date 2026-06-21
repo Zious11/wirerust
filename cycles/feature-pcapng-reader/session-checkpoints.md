@@ -107,3 +107,13 @@ Active cycle: **feature-pcapng-reader**. F2 pass-8 CLEAN (D-161)/focused re-audi
 ### PIPELINE STATUS: FEATURE MODE — F3 GATE PASS (D-167) — CONSISTENCY AUDIT CONDITIONAL PASS; 1 HIGH + 2 MINOR ALL REMEDIATED (STORY-123 AC-008 CLAUSE FIX, INPUT-HASH DEDUP x6, STORY-INDEX SCOPE NOTE v2.6); AWAITING HUMAN APPROVAL → F4 PER-STORY TDD DELIVERY (WAVES 51-56, STORY-123..128)
 
 Active cycle: **feature-pcapng-reader**. F2 converged + human-approved (D-164). F3 CREATE+INTEGRATE COMPLETE (D-166): STORY-123..128 committed; STORY-INDEX v2.6 (81/56/521); dependency-graph v3.0; epics.md v1.7 (E-19); HS-001 v2.0 (pcapng acceptance); HS-INDEX v2.6; input-hashes MATCH=78/STALE=0/ERROR=3. F3 gate consistency audit COMPLETE (D-167): CONDITIONAL PASS → all 3 findings remediated (F3-CV-001 AC-008 clause, F3-CV-003 dedup x6, F3-CV-002 STORY-INDEX v2.5→v2.6). Gate = PASS-pending-human-approval. NEXT: Human approval → F4 STORY-123 (Wave 51). 302 active BCs. Spec versions (F2 converged): prd.md v1.33, error-taxonomy v3.7, ADR-009 rev 9, VP-INDEX v2.8 (31 VPs), BC-INDEX v1.68. No in-flight story worktrees. No open PRs. develop = main = b73b242.
+
+---
+
+## Archived Checkpoint: D-176 — STORY-125 PASS-1 REMEDIATED (2026-06-20)
+
+**Archived when:** D-177 — STORY-125 adversarial convergence ACHIEVED (BC-5.39.001 SATISFIED, 3 clean passes).
+
+### PIPELINE STATUS: FEATURE MODE — F4 STORY-125 (Wave 53) PASS-1 REMEDIATED — F-1 (VP-025 harness stale saturation vector 4295→2_000_000 fixed), M-1 (harness comment clarified), M-2 (BC-2.01.012 Inv6 contradiction → v2.0 reconciled). Worktree HEAD 3a31564 (1783 tests green, clippy/fmt clean). Convergence counter 0/3 — fresh clean passes next. F2/F3 CONVERGED+APPROVED.
+
+Active cycle: **feature-pcapng-reader**. STORY-123 MERGED (PR #281, e4b940b, D-171). STORY-124 MERGED (PR #282, 2f762fda, D-174). STORY-125 (Wave 53) adversarial pass-1 remediated (D-176): F-1 VP-025 Kani harness embedded stale 4295 saturation vector (pre-BC-2.01.014 v1.6) fixed to ts_high=2_000_000; M-1 misleading harness comment clarified; M-2 BC-2.01.012 Inv3/Inv6 contradiction (Inv6 wrongly claimed original_len IS retained; ground truth: read then discarded as `_original_len`, same as classic-pcap) → BC-2.01.012 v2.0 reconciles. No observable behavior change; implementation was already correct. F-2/F-3 IMPLEMENTED in STORY-125 (D-175, done-pending-merge). SEC-005 OOB fixed (→E-INP-010). Stories: 73 merged. develop=2f762fda. main=b73b242.
