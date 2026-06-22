@@ -209,6 +209,32 @@ impl FlowDirection {
         };
 
         let offset = seq_offset(seq, isn);
+        let end_offset = offset + data.len() as u64;
+
+        // R1 fix (CWE-401 zombie segments): reject segments that end STRICTLY
+        // BELOW base_offset, i.e., entirely behind the flush cursor. Without
+        // this guard, such segments would pass all overlap/depth checks and
+        // insert permanently into the BTreeMap at offsets the flush cursor
+        // has already passed — where flush_contiguous() (which only advances
+        // forward) can never reach them. They accumulate silently until the
+        // 10K segment-count cap triggers SegmentLimitReached on every
+        // subsequent packet, causing a different form of DoS.
+        //
+        // Uses `< base_offset` (strict less-than) rather than `<=` so that
+        // segments ending exactly at base_offset (with no bytes strictly ahead
+        // of the cursor) are NOT rejected here: those are retransmissions of
+        // already-flushed data that may still overlap with other segments buffered
+        // at the same offset range, and the existing overlap/conflict logic handles
+        // them correctly through the normal overlap detection path.
+        //
+        // Returning OutOfWindow is semantically correct: all bytes in the segment
+        // are at offsets strictly less than base_offset, meaning they were already
+        // flushed (or never buffered past the cursor) and lie outside the current
+        // reassembly window.
+        if end_offset < self.base_offset {
+            self.out_of_window_count = self.out_of_window_count.saturating_add(1);
+            return InsertResult::OutOfWindow;
+        }
 
         // Reject segments too far ahead of base_offset (before overlap/depth checks)
         if offset > self.base_offset.saturating_add(max_receive_window as u64) {

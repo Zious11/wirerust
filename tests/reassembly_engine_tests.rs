@@ -8433,21 +8433,25 @@ fn test_BC_2_04_014_total_memory_equals_sum_of_flow_memory() {
 
 // ---- AC-005 (BC-2.04.015 postconditions 5-6) -------------------------------
 
-/// AC-005: Verifies the no-op-eviction rejection path: when max_flows is at capacity but
-/// total_memory <= memcap, evict_flows is called and exits at head under dual-conjunction
-/// termination (per BC-2.04.015 v1.3 Invariant 4); new flow's SYN is dropped, existing
-/// flow preserved.
+/// AC-005 (updated for R2 fix — CWE-407 / PERF-REASM-DOS-001):
 ///
-/// Per BC-2.04.015 v1.3 Invariant 4: when `total_memory == memcap` exactly, the
-/// dual-conjunction termination exits immediately — the existing flow is NOT evicted
-/// and the new flow is dropped. Setup: max_flows=1, memcap=4, flow A buffers 4 bytes
-/// (total == memcap, no eviction), B SYN arrives, evict_flows no-ops, B is dropped.
+/// When max_flows is at capacity and total_memory <= memcap, `evict_flows`
+/// is called and EVICTS the oldest flow to make room for the new one.
+///
+/// BEFORE the R2 fix, the break condition used `<= max_flows`, which caused
+/// a null-eviction storm: at exactly `max_flows`, the condition was immediately
+/// true and ZERO flows were evicted. This test now documents the CORRECT
+/// post-fix behavior where eviction fires and the oldest flow is removed.
+///
+/// Setup: max_flows=1, memcap=4, flow A buffers 4 bytes (total == memcap,
+/// no memcap eviction yet). B SYN arrives, evict_flows evicts A (1 eviction),
+/// B is admitted, flow_count stays at 1.
 #[test]
 #[allow(non_snake_case)]
 fn test_BC_2_04_015_new_flow_dropped_after_no_op_eviction_under_max_flows_only_pressure() {
     // max_flows=1, memcap=4. Flow A buffers 4 bytes (total == memcap; strict > not met,
-    // no memcap eviction). When B SYN arrives: dual-conjunction exits immediately — A stays,
-    // B dropped (BC-2.04.015 v1.3 Invariant 4).
+    // no memcap eviction). When B SYN arrives: evict_flows evicts A (R2 fix: `<` not `<=`
+    // for max_flows in the break condition), creating a slot for B.
     let config = ReassemblyConfig {
         max_flows: 1,
         memcap: 4,
@@ -8496,12 +8500,9 @@ fn test_BC_2_04_015_new_flow_dropped_after_no_op_eviction_under_max_flows_only_p
     );
 
     // Flow B SYN: get_or_create_flow calls evict_flows (flows.len()=1 >= max_flows=1).
-    // evict_flows: total=4 <= memcap=4 AND flows.len()=1 <= max_flows=1 → dual-conjunction
-    // breaks immediately — no eviction. Re-check: flows.len() still >= max_flows → B dropped.
-    // Per BC-2.04.015 v1.3 Invariant 4: dual-conjunction termination is mechanical
-    // (state-independent); flow A is preserved when total_memory does not exceed memcap.
-    // (Note: A is SynSent in this setup; the protection applies to any state, with
-    // Established being the most salient design-intent application.)
+    // R2 fix: break condition `< max_flows` (not `<= max_flows`) — at flows.len()=1
+    // the condition is false, so eviction proceeds and A is evicted. After evicting A:
+    // flows=0, memory=0 → `0 < 1` = true → breaks. B is then admitted.
     let syn_b = make_tcp_packet(
         client_b,
         22222,
@@ -8516,23 +8517,23 @@ fn test_BC_2_04_015_new_flow_dropped_after_no_op_eviction_under_max_flows_only_p
     );
     reassembler.process_packet(&syn_b, 2, &mut handler);
 
-    // evict_flows exited without evicting; B's SYN was dropped.
+    // R2 fix: evict_flows evicted A to free a slot for B.
     assert_eq!(
         reassembler.stats().evictions,
-        0,
-        "AC-005: no eviction fires when total_memory==memcap (dual-conjunction termination \
-         per BC-2.04.015 v1.3 Invariant 4)"
+        1,
+        "AC-005 (R2 fix): eviction fires when flows.len()==max_flows; A is evicted to admit B \
+         (old behavior was a null-eviction storm that caused CWE-407)"
     );
-    // Flow A still present (not evicted). Flow B was dropped.
+    // B is now the only flow (A was evicted, B was admitted).
     assert_eq!(
         reassembler.flow_count(),
         1,
-        "AC-005: flow A must still exist (B was dropped because eviction did nothing)"
+        "AC-005: flow_count must be 1 after A evicted and B admitted"
     );
     assert_eq!(
         reassembler.stats().flows_total,
-        1,
-        "AC-005: only 1 flow ever created (B was dropped before creation)"
+        2,
+        "AC-005: flows_total must be 2 (A + B were both created)"
     );
     reassembler.finalize(&mut handler);
 }
@@ -9555,9 +9556,13 @@ fn test_BC_2_04_015_both_eviction_paths_use_same_function() {
     // --- PATH 1: max_flows eviction entry point (via get_or_create_flow) ---
     // Setup: max_flows=1, memcap=3. Flow A buffers 3 bytes (total=3 == memcap, no early
     // eviction). Flow B SYN arrives: flows.len()=1 >= max_flows=1 → get_or_create_flow
-    // calls evict_flows. At evict_flows entry: total=3 <= memcap=3 → dual-conjunction
-    // terminates immediately, no eviction occurs. B is dropped (re-check still full).
-    // PATH 1 witness is the dual-conjunction no-op (evictions==0, B dropped); PATH 2 witness is CloseReason::MemoryPressure emission.
+    // calls evict_flows.
+    //
+    // R2 fix (CWE-407 / PERF-REASM-DOS-001): evict_flows now uses `< max_flows` (not
+    // `<= max_flows`) in the break condition. At flows.len()=1, `1 < 1` is false, so
+    // eviction proceeds and A is evicted (1 eviction). B is then admitted.
+    // This replaces the old "dual-conjunction no-op" behavior where the table was at
+    // capacity but evict_flows exited immediately without freeing any slot.
     {
         let config = ReassemblyConfig {
             max_flows: 1,
@@ -9568,7 +9573,7 @@ fn test_BC_2_04_015_both_eviction_paths_use_same_function() {
         let mut h = RecordingHandler::new();
         let server = [10, 0, 0, 2];
 
-        // Flow A: SynSent, buffer 3 bytes out-of-order (total=3 == memcap=3, no eviction).
+        // Flow A: SynSent, buffer 3 bytes out-of-order (total=3 == memcap=3, no memcap eviction).
         r.process_packet(
             &make_tcp_packet(
                 [10, 0, 0, 1],
@@ -9618,8 +9623,8 @@ fn test_BC_2_04_015_both_eviction_paths_use_same_function() {
         );
 
         // Flow B SYN: triggers get_or_create_flow PATH 1 entry into evict_flows.
-        // evict_flows dual-conjunction: total=3 <= 3 AND flows.len()=1 <= 1 → break.
-        // No eviction. B is dropped (flows.len() still >= max_flows after evict_flows).
+        // R2 fix: evict_flows evicts A (total=3 <= 3 AND flows=1 NOT < 1 → evict).
+        // After evicting A: flows=0, memory=0 → `0 <= 3 AND 0 < 1` → break. B is admitted.
         r.process_packet(
             &make_tcp_packet(
                 [10, 0, 0, 3],
@@ -9636,23 +9641,22 @@ fn test_BC_2_04_015_both_eviction_paths_use_same_function() {
             3,
             &mut h,
         );
-        // PATH 1 entry-point witness: evict_flows was called but terminated without
-        // evicting (dual-conjunction protects A). B was dropped, not A.
+        // PATH 1 entry-point witness (R2 fix): evict_flows evicted A and admitted B.
         assert_eq!(
             r.stats().evictions,
-            0,
-            "AC-013 PATH1: get_or_create_flow called evict_flows; no eviction \
-             because total<=memcap (dual-conjunction termination per BC-2.04.015 v1.3 Invariant 4)"
+            1,
+            "AC-013 PATH1 (R2 fix): get_or_create_flow called evict_flows; A evicted to \
+             admit B (CWE-407 null-eviction storm eliminated)"
         );
         assert_eq!(
             r.flow_count(),
             1,
-            "AC-013 PATH1: flow A preserved; B was dropped (table still full after evict_flows)"
+            "AC-013 PATH1: flow_count=1 after A evicted and B admitted"
         );
         assert_eq!(
             r.stats().flows_total,
-            1,
-            "AC-013 PATH1: only one flow ever created (B's SYN dropped)"
+            2,
+            "AC-013 PATH1: flows_total=2 (both A and B were created)"
         );
         r.finalize(&mut h);
     }
@@ -10237,27 +10241,31 @@ fn test_story_020_ec005_max_flows_only_pressure_drops_new_syn_preserves_existing
     );
     reassembler.process_packet(&syn_b, 2, &mut handler);
 
-    // evict_flows called but terminates immediately (dual-conjunction); A survives, B dropped.
+    // R2 fix (CWE-407): evict_flows now evicts A and admits B when flows.len()==max_flows.
+    // The old "dual-conjunction no-op" is replaced by actual eviction.
     assert_eq!(
         reassembler.stats().evictions,
-        0,
-        "EC-005: no eviction fires when total_memory==memcap — dual-conjunction \
-         termination per BC-2.04.015 v1.3 Invariant 4"
+        1,
+        "EC-005 (R2 fix): eviction fires when flows.len()==max_flows — A is evicted \
+         to make room for B (CWE-407 null-eviction storm eliminated)"
     );
     assert_eq!(
         reassembler.flow_count(),
         1,
-        "EC-005: flow A must survive (memory budget not exceeded), B was dropped"
+        "EC-005: flow_count=1 after A evicted and B admitted"
     );
     assert_eq!(
         reassembler.stats().flows_total,
-        1,
-        "EC-005: only flow A was ever created (B's SYN dropped per Invariant 4)"
+        2,
+        "EC-005: flows_total=2 (both A and B were created)"
     );
+    // A was evicted (close event with MemoryPressure reason).
     assert!(
-        !handler.close_events.iter().any(|(k, _)| *k == key_a),
-        "EC-005: flow A must NOT have been evicted (dual-conjunction termination \
-         per BC-2.04.015 v1.3 Invariant 4)"
+        handler
+            .close_events
+            .iter()
+            .any(|(k, r)| *k == key_a && *r == CloseReason::MemoryPressure),
+        "EC-005 (R2 fix): flow A must have been evicted with MemoryPressure reason"
     );
 
     reassembler.finalize(&mut handler);
@@ -14102,8 +14110,12 @@ fn test_BC_2_04_040_small_segment_run_is_per_direction() {
         "BC-2.04.040 PC3/INV-1: small_segment_run is per-direction — S2C run must remain independent of C2S run"
     );
 
-    // Now send 3 small S2C segments → S2C run should reach 3 and fire its own finding
-    for (s2c_seq, ts_val) in (2002_u32..).zip(ts..).take(3) {
+    // Now send 3 small S2C segments → S2C run should reach 3 and fire its own finding.
+    // The large response was 19 bytes at seq=2001 (offset=1..20), so after flush
+    // base_offset=20. Small segments must start at seq=2020 (offset=20) to be
+    // ahead of the flush cursor and not rejected as below-base-offset zombies
+    // (R1 fix: segments with end_offset < base_offset are rejected as OutOfWindow).
+    for (s2c_seq, ts_val) in (2020_u32..).zip(ts..).take(3) {
         reassembler.process_packet(
             &make_tcp_packet(
                 server, 80, client, 12345, s2c_seq, b"z", false, true, false, false,
@@ -17326,34 +17338,50 @@ fn test_r5b_flow_table_bounded_under_churn() {
     reassembler.finalize(&mut handler);
 }
 
-/// R1 (CWE-401 zombie segments): A segment whose end offset is AT OR BELOW the
-/// current `base_offset` (i.e., entirely behind the flush cursor) MUST be
+/// R1 (CWE-401 zombie segments): A segment whose end offset is STRICTLY BELOW
+/// the current `base_offset` (i.e., all bytes behind the flush cursor) MUST be
 /// rejected as OutOfWindow and MUST NOT be retained in the segment map.
 ///
 /// Before the fix, `insert_segment` only checked for segments AHEAD of the
-/// window but had no guard for segments below `base_offset`; such segments
-/// inserted permanently and accumulated until the segment-count cap.
+/// window but had no guard for segments entirely below `base_offset`; such
+/// segments inserted permanently and accumulated until the segment-count cap.
+///
+/// Note on ISN semantics: `set_isn(N)` sets `base_offset = 1`, so the first
+/// data byte is at seq = ISN+1.  With ISN=1000, `seq=1001` → offset=1.
+///
+/// The guard uses STRICT less-than (`end_offset < base_offset`): segments
+/// ending exactly AT base_offset are handled by the normal overlap path
+/// rather than rejected here, preserving existing ConflictingOverlap detection.
 #[test]
 fn test_r1_zombie_segment_rejected_below_base_offset() {
     let mut dir = FlowDirection::new();
-    dir.set_isn(0);
+    // ISN=1000: base_offset starts at 1. First data byte at seq=1001 (offset=1).
+    dir.set_isn(1000);
 
-    // Insert and flush 10 bytes — base_offset advances to 10.
-    let res = dir.insert_segment(0, b"0123456789", 10_485_760, 10_000, 10_485_760);
+    // Insert 10 bytes starting at seq=1001 (offsets 1..11) and flush.
+    // After flush: base_offset = 11.
+    let res = dir.insert_segment(1001, b"0123456789", 10_485_760, 10_000, 10_485_760);
     assert_eq!(res, InsertResult::Inserted);
     let flushed = dir.flush_contiguous();
     assert_eq!(flushed.len(), 1);
-    assert_eq!(dir.base_offset, 10, "base_offset must be 10 after flushing 10 bytes");
-    assert!(dir.segments_is_empty(), "segment map must be empty after flush");
+    assert_eq!(
+        dir.base_offset, 11,
+        "base_offset must be 11 after flushing 10 bytes from offset 1"
+    );
+    assert!(
+        dir.segments_is_empty(),
+        "segment map must be empty after flush"
+    );
 
-    // Now try to insert a segment ENTIRELY below base_offset (seq=0, len=5 → offsets 0..5).
-    // base_offset is 10, so [0, 5) is entirely below the flush cursor.
-    let res2 = dir.insert_segment(0, b"ABCDE", 10_485_760, 10_000, 10_485_760);
+    // Now try to insert a segment ENTIRELY below base_offset:
+    //   seq=1001 → offset=1, len=5 → end_offset=6.
+    //   base_offset is 11, so end_offset(6) < base_offset(11) → zombie rejected.
+    let res2 = dir.insert_segment(1001, b"ABCDE", 10_485_760, 10_000, 10_485_760);
     assert_eq!(
         res2,
         InsertResult::OutOfWindow,
-        "FAIL R1 (CWE-401): segment entirely below base_offset must return OutOfWindow; \
-         got {:?} — zombie segment was inserted into the map",
+        "FAIL R1 (CWE-401): segment entirely below base_offset (end=6 < base=11) \
+         must return OutOfWindow; got {:?} — zombie segment was inserted into the map",
         res2
     );
 
@@ -17462,8 +17490,7 @@ fn test_r4_frozen_timestamp_expiry_fires() {
     // flows_expired is still 0 because no ts > last_seen condition fires.
     let stats_after_p2 = reassembler.stats().clone();
     assert_eq!(
-        stats_after_p2.flows_expired,
-        0,
+        stats_after_p2.flows_expired, 0,
         "flows at ts=200 must NOT be expired by packets at ts=150 (non-monotonic \
          timestamps must not falsely retire flows)"
     );
