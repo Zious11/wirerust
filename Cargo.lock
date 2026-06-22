@@ -1653,7 +1653,6 @@ dependencies = [
  "pcap-file",
  "predicates",
  "proptest",
- "rayon",
  "serde",
  "serde_json",
  "tempfile",
