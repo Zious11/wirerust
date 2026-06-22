@@ -1,17 +1,13 @@
-Maintenance Sweep 1a — Dependency Audit Raw Scan
-Generated: 2026-06-17
-Working directory: /Users/zious/Documents/GITHUB/wirerust
-Tool availability: cargo-audit=installed, cargo-deny=installed, semgrep=NOT_INSTALLED, cargo-outdated=NOT_INSTALLED
+================================================================================
+WIRERUST DEPENDENCY AUDIT — RAW SCAN OUTPUT
+Date: 2026-06-22
+Tools: cargo-audit 0.22.1, cargo-deny 0.19.6
+Rust crate: wirerust v0.9.3 (193 locked dependencies)
+================================================================================
 
-==============================================================================
-TOOL: cargo audit
-COMMAND: cargo audit
-EXIT CODE: 0
-==============================================================================
-    Fetching advisory database from `https://github.com/RustSec/advisory-db.git`
-      Loaded 1134 security advisories (from /Users/zious/.cargo/advisory-db)
-    Updating crates.io index
-    Scanning Cargo.lock for vulnerabilities (193 crate dependencies)
+================================================================================
+SECTION 1: cargo audit
+================================================================================
 Crate:     rand
 Version:   0.8.5
 Warning:   unsound
@@ -24,20 +20,80 @@ rand 0.8.5
 └── phf_generator 0.11.3
     └── phf_codegen 0.11.3
         └── tls-parser 0.12.2
-            └── wirerust 0.7.1
+            └── wirerust 0.9.3
 
-warning: 1 allowed warning found
 
-RAW COUNTS:
-  vulnerabilities: 0
-  warnings (unsound): 1 (RUSTSEC-2026-0097 — rand 0.8.5, transitive via tls-parser)
-  total dependency crates scanned: 193
+================================================================================
+SECTION 2: cargo deny check (advisories, bans, licenses, sources)
+================================================================================
+advisories ok, bans ok, licenses ok, sources ok
 
-==============================================================================
-TOOL: cargo deny check
-COMMAND: cargo deny check
-EXIT CODE: 0
-==============================================================================
+================================================================================
+SECTION 3: cargo tree -i rayon (reverse dependency tree for rayon)
+================================================================================
+rayon v1.12.0
+├── criterion v0.8.2
+│   [dev-dependencies]
+│   └── wirerust v0.9.3 (/Users/zious/Documents/GITHUB/wirerust)
+└── wirerust v0.9.3 (/Users/zious/Documents/GITHUB/wirerust)
+
+================================================================================
+SECTION 4: cargo tree --duplicates (first 50 lines)
+================================================================================
+getrandom v0.3.4
+└── rand_core v0.9.5
+    ├── rand v0.9.4
+    │   └── proptest v1.11.0
+    │       [dev-dependencies]
+    │       └── wirerust v0.9.3 (/Users/zious/Documents/GITHUB/wirerust)
+    ├── rand_chacha v0.9.0
+    │   └── proptest v1.11.0 (*)
+    └── rand_xorshift v0.4.0
+        └── proptest v1.11.0 (*)
+
+getrandom v0.4.2
+└── tempfile v3.27.0
+    ├── proptest v1.11.0 (*)
+    └── rusty-fork v0.3.1
+        └── proptest v1.11.0 (*)
+    [dev-dependencies]
+    └── wirerust v0.9.3 (/Users/zious/Documents/GITHUB/wirerust)
+
+phf_shared v0.11.3
+├── phf_codegen v0.11.3
+│   [build-dependencies]
+│   └── tls-parser v0.12.2
+│       └── wirerust v0.9.3 (/Users/zious/Documents/GITHUB/wirerust)
+└── phf_generator v0.11.3
+    └── phf_codegen v0.11.3 (*)
+
+phf_shared v0.11.3
+└── phf v0.11.3
+    └── tls-parser v0.12.2 (*)
+
+rand v0.8.5
+└── phf_generator v0.11.3 (*)
+
+rand v0.9.4 (*)
+
+rand_core v0.6.4
+└── rand v0.8.5 (*)
+
+rand_core v0.9.5 (*)
+
+syn v1.0.109
+├── derive-into-owned v0.2.0 (proc-macro)
+│   └── pcap-file v2.0.0
+│       └── wirerust v0.9.3 (/Users/zious/Documents/GITHUB/wirerust)
+└── nom-derive-impl v0.10.1 (proc-macro)
+    └── nom-derive v0.10.1
+        └── tls-parser v0.12.2 (*)
+
+syn v2.0.117
+
+================================================================================
+END OF RAW SCAN
+================================================================================
 warning[license-not-encountered]: license was not encountered
    ┌─ /Users/zious/Documents/GITHUB/wirerust/deny.toml:34:6
    │
@@ -88,43 +144,43 @@ warning[license-not-encountered]: license was not encountered
 
 warning[duplicate]: found 2 duplicate entries for crate 'syn'
     ┌─ /Users/zious/Documents/GITHUB/wirerust/Cargo.lock:135:1
-    │
+    │  
 135 │ ╭ syn 1.0.109 registry+https://github.com/rust-lang/crates.io-index
 136 │ │ syn 2.0.117 registry+https://github.com/rust-lang/crates.io-index
     │ ╰─────────────────────────────────────────────────────────────────┘ lock entries
-    │
+    │  
     ├ syn v1.0.109
       ├── derive-into-owned v0.2.0
       │   └── pcap-file v2.0.0
-      │       └── wirerust v0.7.1
+      │       └── wirerust v0.9.3
       └── nom-derive-impl v0.10.1
           └── nom-derive v0.10.1
               └── tls-parser v0.12.2
-                  └── wirerust v0.7.1 (*)
+                  └── wirerust v0.9.3 (*)
     ├ syn v2.0.117
       ├── clap_derive v4.6.1
       │   └── clap v4.6.1
       │       ├── criterion v0.8.2
-      │       │   └── (dev) wirerust v0.7.1
-      │       └── wirerust v0.7.1 (*)
+      │       │   └── (dev) wirerust v0.9.3
+      │       └── wirerust v0.9.3 (*)
       ├── num_enum_derive v0.7.6
       │   └── num_enum v0.7.6
       │       └── tls-parser v0.12.2
-      │           └── wirerust v0.7.1 (*)
+      │           └── wirerust v0.9.3 (*)
       ├── serde_derive v1.0.228
       │   └── serde v1.0.228
       │       ├── chrono v0.4.45
-      │       │   └── wirerust v0.7.1 (*)
+      │       │   └── wirerust v0.9.3 (*)
       │       ├── ciborium v0.2.2
       │       │   └── criterion v0.8.2 (*)
       │       ├── criterion v0.8.2 (*)
       │       ├── tinytemplate v1.2.1
       │       │   └── criterion v0.8.2 (*)
-      │       └── wirerust v0.7.1 (*)
+      │       └── wirerust v0.9.3 (*)
       ├── thiserror-impl v1.0.69
       │   └── thiserror v1.0.69
       │       └── pcap-file v2.0.0
-      │           └── wirerust v0.7.1 (*)
+      │           └── wirerust v0.9.3 (*)
       ├── wasm-bindgen-macro-support v0.2.117
       │   └── wasm-bindgen-macro v0.2.117
       │       └── wasm-bindgen v0.2.117
@@ -139,7 +195,7 @@ warning[duplicate]: found 2 duplicate entries for crate 'syn'
       │           │   │       └── criterion v0.8.2 (*)
       │           │   └── web-time v1.1.0
       │           │       └── indicatif v0.18.4
-      │           │           └── wirerust v0.7.1 (*)
+      │           │           └── wirerust v0.9.3 (*)
       │           ├── plotters v0.3.7 (*)
       │           ├── web-sys v0.3.94 (*)
       │           └── web-time v1.1.0 (*)
@@ -156,79 +212,6 @@ warning[duplicate]: found 2 duplicate entries for crate 'syn'
               └── ppv-lite86 v0.2.21
                   └── rand_chacha v0.9.0
                       └── proptest v1.11.0
-                          └── (dev) wirerust v0.7.1 (*)
+                          └── (dev) wirerust v0.9.3 (*)
 
 advisories ok, bans ok, licenses ok, sources ok
-
-RAW COUNTS:
-  license-not-encountered warnings: 8 (0BSD, Apache-2.0 WITH LLVM-exception, BSD-2-Clause, CC0-1.0, ISC, MPL-2.0, Unicode-DFS-2016, Zlib)
-  duplicate crate warnings: 1 (syn v1.0.109 and v2.0.117)
-  advisories: ok (0 violations)
-  bans: ok (0 violations)
-  licenses: ok (0 violations)
-  sources: ok (0 violations)
-  total cargo-deny warnings: 9
-
-==============================================================================
-TOOL: cargo update --dry-run
-COMMAND: cargo update --dry-run
-EXIT CODE: 0
-==============================================================================
-    Updating crates.io index
-     Locking 40 packages to latest Rust 1.91 compatible versions
-    Updating autocfg v1.5.0 -> v1.5.1
-    Updating bitflags v2.11.0 -> v2.13.0
-    Updating block-buffer v0.12.0 -> v0.12.1
-    Updating bumpalo v3.20.2 -> v3.20.3
-    Updating cc v1.2.58 -> v1.2.64
-    Updating crypto-common v0.2.1 -> v0.2.2
-    Updating digest v0.11.2 -> v0.11.3
-    Updating either v1.15.0 -> v1.16.0
-    Updating fastrand v2.3.0 -> v2.4.1
-      Adding futures-core v0.3.32
-      Adding futures-task v0.3.32
-      Adding futures-util v0.3.32
-    Updating hashbrown v0.16.1 -> v0.17.1
-    Updating hybrid-array v0.4.10 -> v0.4.12
-    Updating indexmap v2.13.1 -> v2.14.0
-    Updating js-sys v0.3.94 -> v0.3.102
-    Updating libc v0.2.184 -> v0.2.186
-    Updating log v0.4.29 -> v0.4.32
-    Updating memchr v2.8.0 -> v2.8.2
-      Adding pin-project-lite v0.2.17
-    Updating rand v0.8.5 -> v0.8.6
-    Updating regex v1.12.3 -> v1.12.4
-    Updating regex-syntax v0.8.10 -> v0.8.11
-    Updating semver v1.0.27 -> v1.0.28
-    Updating shlex v1.3.0 -> v2.0.1
-    Updating siphasher v1.0.2 -> v1.0.3
-      Adding slab v0.4.12
-    Updating syn v2.0.117 -> v2.0.118
-    Updating toml_edit v0.25.10+spec-1.1.0 -> v0.25.12+spec-1.1.0
-    Updating typenum v1.19.0 -> v1.20.1
-    Updating wasip2 v1.0.2+wasi-0.2.9 -> v1.0.4+wasi-0.2.12
-    Updating wasm-bindgen v0.2.117 -> v0.2.125
-    Updating wasm-bindgen-macro v0.2.117 -> v0.2.125
-    Updating wasm-bindgen-macro-support v0.2.117 -> v0.2.125
-    Updating wasm-bindgen-shared v0.2.117 -> v0.2.125
-    Updating web-sys v0.3.94 -> v0.3.102
-    Updating winnow v1.0.1 -> v1.0.3
-      Adding wit-bindgen v0.57.1
-    Updating zerocopy v0.8.48 -> v0.8.52
-    Updating zerocopy-derive v0.8.48 -> v0.8.52
-warning: not updating lockfile due to dry run
-
-RAW COUNTS:
-  crates with available patch/minor updates: 35 (Updating lines)
-  new transitive crates that would be added: 5 (futures-core, futures-task, futures-util, pin-project-lite, slab, wit-bindgen — 6 Adding lines)
-  notable: rand 0.8.5 -> 0.8.6 (would resolve RUSTSEC-2026-0097)
-
-==============================================================================
-TOOL: semgrep
-STATUS: NOT_INSTALLED — skipped (install not attempted per scan-only directive)
-EXIT CODE: N/A
-
-==============================================================================
-TOOL: cargo-outdated
-STATUS: NOT_INSTALLED — skipped (cargo update --dry-run used instead)
-EXIT CODE: N/A
