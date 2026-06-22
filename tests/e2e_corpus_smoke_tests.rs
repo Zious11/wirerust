@@ -101,10 +101,15 @@ const EXPECTED: &[(&str, Expected)] = &[
     // ── Err captures (stable error substring) ─────────────────────────────
     // E-INP-011: multi-IDB link-type conflict (message ends with "(E-INP-011)")
     ("pcapng-example.pcapng", Expected::ErrContains("E-INP-011")),
-    // NULL link type not supported; message leads with "Unsupported pcap link type: NULL"
+    // NULL link type not supported. No E-INP-* code is assigned to this path
+    // (src/reader.rs whitelist check, line ~1213), so we pin to the stable
+    // message prefix rather than a structured code.  Do not pin the "NULL"
+    // discriminant — the invariant is the rejection of unsupported link types,
+    // not the specific variant name, which can change with pcap-file crate
+    // updates.
     (
         "pcapng-many-interfaces.pcapng",
-        Expected::ErrContains("Unsupported pcap link type: NULL"),
+        Expected::ErrContains("Unsupported pcap link type"),
     ),
     // E-INP-010: IfFcsLen IDB option rejection
     ("pcapng-spb-only.pcapng", Expected::ErrContains("E-INP-010")),
@@ -281,6 +286,7 @@ fn test_e2e_corpus_no_panic_across_all_local_captures() {
                         format!("MISMATCH(exp ERR({substr})/act Ok({packet_count}))")
                     }
                     Outcome::Panic(p) => {
+                        // Already recorded in panic_files above.
                         format!("PANIC({p})")
                     }
                 }
@@ -302,7 +308,7 @@ fn test_e2e_corpus_no_panic_across_all_local_captures() {
             }
         };
 
-        eprintln!("  {}  {}", label, file_name);
+        eprintln!("  {:<55}  {}", label, file_name);
     }
 
     // ── Aggregate summary ─────────────────────────────────────────────────────
@@ -313,6 +319,20 @@ fn test_e2e_corpus_no_panic_across_all_local_captures() {
         panic_files.len()
     );
 
+    // Primary contract: no capture may panic.  Assert this BEFORE the
+    // verified_count guard so that — in the degenerate case where all pinned
+    // captures happen to panic — we get the meaningful "panic" failure message
+    // naming offenders rather than the misleading "no entries verified" message.
+    // Pinned captures that panic still increment verified_count (the counter is
+    // updated before the outcome match), so the harness-bug guard fires correctly
+    // once panics are cleared.
+    assert!(
+        panic_files.is_empty(),
+        "[e2e-corpus-smoke] {} capture(s) caused a panic: {}",
+        panic_files.len(),
+        panic_files.join(", ")
+    );
+
     // When fixtures were present, at least one expected entry must have been
     // verified (guards against a bug where collect_captures skips everything or
     // the EXPECTED table is somehow empty).
@@ -321,14 +341,6 @@ fn test_e2e_corpus_no_panic_across_all_local_captures() {
         "[e2e-corpus-smoke] No pinned captures were verified — either the \
          EXPECTED table is empty or no expected filenames matched anything on \
          disk. This is a test-harness bug."
-    );
-
-    // Primary contract: no capture may panic.
-    assert!(
-        panic_files.is_empty(),
-        "[e2e-corpus-smoke] {} capture(s) caused a panic: {}",
-        panic_files.len(),
-        panic_files.join(", ")
     );
 
     // Regression contract: every pinned expectation that is present on disk
