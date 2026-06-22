@@ -1,10 +1,10 @@
 ---
 pipeline: FEATURE
 phase: F7
-phase_status: "FE-001 COMPLETE — F1–F7 all converged + human-approved (D-194). pcapng reader shipped to develop @ fcb8dce. Cycle feature-pcapng-reader CLOSED. RELEASED as v0.9.3 (2026-06-22, D-201). Pipeline quiesced."
+phase_status: "FE-001 COMPLETE — F1–F7 all converged + human-approved (D-194). pcapng reader shipped to develop @ fcb8dce. Cycle feature-pcapng-reader CLOSED. RELEASED as v0.9.3 (2026-06-22, D-201). CORPUS-OBS-PCAPNG-IFFCSLEN-001 RESOLVED + decision-thread (b) CLOSED (D-202). Pipeline quiesced."
 product: wirerust
 mode: brownfield
-timestamp: 2026-06-22T00:00:00Z
+timestamp: 2026-06-22T12:00:00Z
 
 # Release chain
 released_version: v0.9.3
@@ -23,8 +23,8 @@ v091_release_commit: ad4eec8
 v090_release_tag: v0.9.0
 v090_release_commit: 986e148
 
-# Ground-truth HEADs (updated 2026-06-22 D-201 — v0.9.3 release)
-develop_head: a7096e1
+# Ground-truth HEADs (updated 2026-06-22 D-202 — CORPUS-OBS-PCAPNG-IFFCSLEN-001 resolved)
+develop_head: dd3b069
 main_head: 2dbf461
 factory_artifacts_head: "run: git -C .factory log -1 --format='%h %s'"
 
@@ -65,20 +65,20 @@ convergence_trajectory: "Detail: cycles/v0.1.0-greenfield-spec/convergence-traje
 
 # VSDD Pipeline State — wirerust
 
-## SESSION PAUSED — SAFE TO CLEAR (D-201)
+## SESSION PAUSED — SAFE TO CLEAR (D-202)
 
-**Previous checkpoint (D-200 — E2E corpus smoke test) archived. Current checkpoint updated to D-201.**
+**Previous checkpoint (D-201 — v0.9.3 release) archived. Current checkpoint updated to D-202.**
 
-**WARNING: DO NOT re-run F2/F3/F4/F5/F6/F7 — all CONVERGED+COMPLETE+HUMAN-APPROVED. DO NOT re-run per-story adversarial convergence (STORY-123..128) — all 3-clean + merged. DO NOT re-run input-hash rebaseline (STORY-123..128 re-baselined at D-193, BENIGN). FE-001 cycle is CLOSED. v0.9.3 RELEASED (D-201, 2026-06-22) — decision-thread (a) CLOSED. PERF-REASM-DOS-001 (CWE-407+CWE-401) RESOLVED via PR #298 (b5b54d5) — reassembly DoS fix, NOT an FE-001 defect.**
+**WARNING: DO NOT re-run F2/F3/F4/F5/F6/F7 — all CONVERGED+COMPLETE+HUMAN-APPROVED. DO NOT re-run per-story adversarial convergence (STORY-123..128) — all 3-clean + merged. DO NOT re-run input-hash rebaseline (STORY-123..128 re-baselined at D-193, BENIGN). FE-001 cycle is CLOSED. v0.9.3 RELEASED (D-201, 2026-06-22) — decision-thread (a) CLOSED. PERF-REASM-DOS-001 (CWE-407+CWE-401) RESOLVED via PR #298 (b5b54d5) — reassembly DoS fix, NOT an FE-001 defect. CORPUS-OBS-PCAPNG-IFFCSLEN-001 RESOLVED + decision-thread (b) CLOSED (D-202, 2026-06-22) — synthetic SPB coverage accepted; root cause confirmed (non-conformant IfFcsLen option, legacy dumpcap 1.10.0rc); documented via PR #303 (dd3b069).**
 
-### GROUND-TRUTH HEADs (verified at D-201)
+### GROUND-TRUTH HEADs (verified at D-202)
 
-- **develop:** `a7096e1` — back-merge of main (v0.9.3) into develop; no divergence; develop is 1 commit ahead of main = the back-merge commit.
-- **main:** `2dbf461` — PR #302 merge commit (`chore: release v0.9.3`); tag `v0.9.3` on this commit.
+- **develop:** `dd3b069` — PR #303 merge commit (`docs(e2e): record root cause for SPB fixture rejection; resolve CORPUS-OBS-PCAPNG-IFFCSLEN-001`); `tests/fixtures/E2E-PCAPS.md` updated only.
+- **main:** `2dbf461` — PR #302 merge commit (`chore: release v0.9.3`); tag `v0.9.3` on this commit. Unchanged.
 - **factory-artifacts:** This commit's SHA (run: `git -C .factory log -1 --format='%h %s'` to resolve).
 - **Open PRs:** None.
 - **Worktrees:** main repo (develop) + `.factory/` only. No story/feature worktrees open.
-- **In-flight work:** Nothing running. Session fully quiesced.
+- **In-flight work:** Nothing running. Session fully quiesced. All three D-200-era decision threads now closed (a: D-201, b: D-202, c: D-200).
 
 ### PIPELINE STATUS
 
@@ -86,6 +86,7 @@ convergence_trajectory: "Detail: cycles/v0.1.0-greenfield-spec/convergence-traje
 - **PERF-REASM-DOS-001 (CWE-407 TCP-reassembly null-eviction DoS):** RESOLVED on develop (PR #298, b5b54d5, R1–R4; 75 s→0.76 s, 120 K flows). Root-cause doc: `.factory/phase-f6-hardening/reassembly-cwe407-dos-rootcause.md`. Not an FE-001 defect.
 - **E2E corpus enhanced (D-198):** 18 real pcapng/pcap captures registered via PRs #299/#300; sha256-pinned manifest at `.factory/code-delivery/E2E-PCAPS.md`; reproducible via `bin/fetch-e2e-pcaps`; captures gitignored under `tests/fixtures/local-samples/`. develop=e90b536.
 - **E2E corpus smoke test delivered (D-200):** PR #301 (merge `333fd62`) — `tests/e2e_corpus_smoke_tests.rs` (354 lines). Iterates all fetched captures via `PcapSource::from_file`; pins 26 Ok reader-packet-counts + 3 Err error-classes (E-INP-011, Unsupported pcap link type, E-INP-010); asserts NO PANIC via `catch_unwind`; self-skips when fixtures absent (CI stays green). Test-only — no production code, no new BC. 29 captures verified, 0 mismatch, 0 panic. CI 10/10 green. develop=333fd62.
+- **CORPUS-OBS-PCAPNG-IFFCSLEN-001 RESOLVED (D-202):** PR #303 (merge `dd3b069`) — root cause of SPB fixture rejection documented in `tests/fixtures/E2E-PCAPS.md`: `pcapng-spb-only.pcapng` carries a non-conformant `if_fcslen` option with `option_length = 4` (spec mandates 1 byte); crate correctly rejects per spec. File produced by legacy dumpcap 1.10.0rc — NOT a wirerust defect. Research confirmed no clean public SPB-only fixture exists. Synthetic SPB coverage (STORY-126, VP-031) retained and sufficient. Decision-thread (b) CLOSED. develop=dd3b069.
 
 ### OPEN FOLLOW-UPS / DRIFT ITEMS (carry forward — all have targets, none blocking)
 
@@ -93,7 +94,7 @@ convergence_trajectory: "Detail: cycles/v0.1.0-greenfield-spec/convergence-traje
 |----|---------|--------|
 | SEC-008 | Stream-path unbounded EPB accumulation (not CLI-reachable) | Streaming-reader hardening story |
 | PERF-REASM-NFR-001 | Formal NFR/VP for reassembly per-packet CPU O(1) amortised | Spec-hardening backlog |
-| CORPUS-OBS-PCAPNG-IFFCSLEN-001 | SPB-success path unexercised by real fixture (IfFcsLen rejection); synthetic coverage intact | Backlog — find cleaner SPB-only fixture or keep synthetic |
+| ~~CORPUS-OBS-PCAPNG-IFFCSLEN-001~~ | ~~SPB-success path unexercised by real fixture (IfFcsLen rejection); synthetic coverage intact~~ | **RESOLVED (D-202)** — root cause confirmed (non-conformant if_fcslen, legacy dumpcap 1.10.0rc); synthetic coverage accepted; PR #303 @ dd3b069. Option C1 (pre-strip normalization) documented as available-but-declined. |
 | CORPUS-OBS-LINKTYPE-NULL-001 | DLT_NULL(0) deliberate scope rejection; loopback support = future feature decision | Backlog — future feature |
 | DRIFT-F5-O1-017STRINGS | BC-2.01.017 PC1 illustrative strings diverge from shipped strings; non-blocking | Spec-housekeeping / maintenance |
 | INPUT-HASH-ERROR-PRESTORY | 3 stories (STORY-001/091/121) have persistent ERROR: missing/absent inputs blocks; pre-existing | Backlog / maintenance |
@@ -106,14 +107,16 @@ convergence_trajectory: "Detail: cycles/v0.1.0-greenfield-spec/convergence-traje
 ### DECISION THREADS AWAITING HUMAN
 
 (a) ~~**Patch-release decision** — CLOSED (D-201, 2026-06-22).~~ Released as v0.9.3: tag `v0.9.3` on main `2dbf461` (PR #302), GitHub Release with 4 binaries (run 27984557297). develop back-merged to `a7096e1`.
-(b) **Real SPB fixture:** Find a cleaner real SPB-only fixture with no IfFcsLen option for true SPB-success coverage (CORPUS-OBS-PCAPNG-IFFCSLEN-001). Current synthetic coverage is sufficient but a real fixture is preferred.
+(b) ~~**Real SPB fixture** — CLOSED (D-202, 2026-06-22).~~ Research confirmed no clean public real SPB-only pcapng exists — SPB is near-absent from public corpora; ecosystem synthesizes SPB for tests. Root cause of the one real candidate rejection byte-level verified: `pcapng-spb-only.pcapng` IDB (offset 0xCC) carries `if_fcslen` option (code 13) at offset 0x15C with `option_length = 4` (`0d00 0400 0400 0000`), but pcapng spec mandates 1-byte value. The `pcap-file` crate correctly rejects per spec; file was produced by legacy dumpcap 1.10.0rc — NOT a wirerust or crate defect. Synthetic SPB coverage (STORY-126 tests + VP-031 proptest) retained and deemed sufficient. Documented via PR #303 (`docs(e2e): record root cause for SPB fixture rejection; resolve CORPUS-OBS-PCAPNG-IFFCSLEN-001`), develop @ `dd3b069`. Declined alternative Option C1 (pre-strip/normalize non-conformant if_fcslen) documented as available-but-not-pursued — would relax E-INP-* strict validation stance; not a pending action item.
 (c) ~~**Optional E2E corpus test** — CLOSED (D-200, 2026-06-22).~~ Delivered via PR #301 (merge `333fd62`). `tests/e2e_corpus_smoke_tests.rs`: 29 captures, 0 panic, CI green. Thread closed.
+
+**All three decision threads now resolved. Pipeline fully quiesced with no open threads, no open PRs, no active cycle.**
 
 ### RESUME PROCEDURE (6 steps — execute in order)
 
 1. **Run `vsdd-factory:factory-worktree-health`** (BLOCKING) — verify .factory/ worktree is mounted on `factory-artifacts`, no detached HEAD, no drift.
 2. **Read this STATE.md** — absorb the full current state before taking any action.
-3. **Verify HEADs match:** `git log -1 --format='%h' develop` must be `a7096e1`; `git log -1 --format='%h' main` must be `2dbf461`.
+3. **Verify HEADs match:** `git log -1 --format='%h' develop` must be `dd3b069`; `git log -1 --format='%h' main` must be `2dbf461`.
 4. **Confirm no in-flight work:** `gh pr list` must return empty; no story worktrees open.
 5. **Confirm factory + develop trees are clean:** `git status` on develop; `git -C .factory status` on factory-artifacts.
 6. **No active cycle** — await human direction. Pick from Decision Threads above or start a new task.
@@ -162,7 +165,7 @@ prd.md v1.33, error-taxonomy v3.8 (next_free E-INP-016), nfr-catalog v2.3, ADR-0
 
 **FEATURE MODE — pcapng reader cycle CLOSED (feature-pcapng-reader). FE-001 COMPLETE (D-194, human-approved). F7 gate PASSED. F7-001/F7-002/F7-003 all DONE. F6 CONVERGED+F6-SEC LANDED — VP-INDEX v2.10 (31/31 verified), security PASS, mutation PASS. E-19 epic DONE. stories_delivered=77. Cycle-closing checklist SATISFIED (S-7.02). RELEASED as v0.9.3 (D-201, 2026-06-22). Pipeline quiesced. DO NOT re-run F5/F6/F7 — all CONVERGED+HUMAN-APPROVED.**
 
-Latest release: v0.9.3 (main `2dbf461`, tag `v0.9.3`, 4 binaries, run 27984557297). develop=a7096e1 (back-merge of v0.9.3 main). main=2dbf461. stories_delivered=77.
+Latest release: v0.9.3 (main `2dbf461`, tag `v0.9.3`, 4 binaries, run 27984557297). develop=dd3b069 (back-merge of v0.9.3 + PR #303 E2E-PCAPS.md root-cause doc). main=2dbf461. stories_delivered=77.
 FE-001 DELIVERED + RELEASED: pcapng capture-format reader (ADR-009 rev 13, BC-2.01.013 v1.10, VP-INDEX v2.10 (31/31 verified), BC-INDEX v1.69, 10 new BCs, 1 retired BC). CWE-407(+CWE-401) DoS fix (PR #298). E2E corpus smoke tests (PRs #299/#300/#301). New error codes E-INP-010..015.
 Maintenance maint-2026-06-17: COMPLETE. NON-BLOCKING. Report: `.factory/maintenance/sweep-report-2026-06-17.md`.
 
@@ -236,6 +239,7 @@ D-131..D-135: `cycles/feature-story-119-grouped-collapse/decisions-archive.md`
 | D-190 | **F5 CLOSED / F6 ENTRY — SEC-001 twin-equivalence trip-wire LANDED (PR #292, 662bd85).** Human approved F5→F6 gate with directive "fix SEC-001 first." SEC-001 resolved: new `tests/sec_001_twin_equivalence_tests.rs` (proptest 2000 cases + 6 unit anchors asserting production `decode_epb_body` ↔ twin `decode_epb_body_discriminant` parity; mutation-confirmed non-vacuous; code-review APPROVE 0 findings). develop advanced 3fc0e67→662bd85. PG-F5-DOCTENSE-TOKENS-001 policy fix DEFERRED-TO-MAINTENANCE per human directive. F6 first step: authentic arp-baseline-16pkt.cap fetch via bin/fetch-e2e-pcaps. | 2026-06-21 |
 | D-200 | **E2E corpus smoke test delivered (PR #301, merge `333fd62`). Decision thread (c) CLOSED.** `tests/e2e_corpus_smoke_tests.rs` (354 lines) merged to develop 2026-06-22. Iterates all fetched captures via `PcapSource::from_file` (real CLI dispatch path); pins 26 Ok reader-packet-counts + 3 Err error-classes (E-INP-011, Unsupported pcap link type, E-INP-010); asserts NO PANIC via `catch_unwind`; self-skips when `tests/fixtures/local-samples/` absent so CI stays green. Reproduce: `bin/fetch-e2e-pcaps`. Verification: 29 captures, 0 mismatch, 0 panic, CI 10/10 green. AI code review APPROVE (0 blocking). Security review 0 findings. Test-only — no production code, no new BC. develop advanced e90b536→333fd62 (PR #301, branch deleted, refs pruned). Threads (a) patch-release and (b) real SPB fixture remain OPEN. | 2026-06-22 |
 | D-201 | **v0.9.3 RELEASED — decision-thread (a) CLOSED.** PR #302 (`chore: release v0.9.3`) merged to main (`2dbf461`); annotated tag `v0.9.3` on main. GitHub Release 27984557297: 4 binaries published (aarch64-apple-darwin, x86_64-apple-darwin, x86_64-pc-windows-msvc, x86_64-unknown-linux-gnu). Release content: pcapng capture-format reader (FE-001, STORY-123..128, BC-2.12.011, ADR-009); CWE-407(+CWE-401) TCP-reassembly DoS fix (PR #298); F6 hardening; new input-validation error codes E-INP-010..015; E2E corpus smoke tests (PRs #299/#300/#301). back-merge of main → develop: `a7096e1` (no divergence). Prior deferral per D-194 SUPERSEDED. Thread (a) CLOSED. Thread (b) (real SPB fixture) remains OPEN. Pipeline quiesced. | 2026-06-22 |
+| D-202 | **CORPUS-OBS-PCAPNG-IFFCSLEN-001 RESOLVED — decision-thread (b) CLOSED.** External research (research-agent, 2026-06-22) confirmed no clean public real SPB-only pcapng exists — SPB is near-absent from public corpora; ecosystem synthesizes SPB for tests. Root cause of the one real candidate (`pcapng-spb-only.pcapng`) rejection byte-level verified: IDB (offset 0xCC) carries `if_fcslen` option (code 13) at offset 0x15C encoded as `option_length = 4` (`0d00 0400 0400 0000`), but pcapng spec mandates 1-byte value. The `pcap-file` crate correctly rejects per spec ("IfFcsLen length != 1"); file produced by legacy dumpcap 1.10.0rc — NOT a wirerust or crate defect. Upgrading `pcap-file` would not change this. Synthetic SPB coverage retained as sufficient and matching industry practice (STORY-126 tests: `tests/bc_2_01_story126_spb_tests.rs`; proptest VP-031: `tests/proptest_reader.rs`). Documented via PR #303 (`docs(e2e): record root cause for SPB fixture rejection; resolve CORPUS-OBS-PCAPNG-IFFCSLEN-001`) merged to develop @ `dd3b069`; only `tests/fixtures/E2E-PCAPS.md` changed. Declined alternative Option C1 (pre-strip/normalize non-conformant if_fcslen) documented as available-but-not-pursued — would relax E-INP-* strict validation stance. All three D-200-era decision threads now closed (a: D-201, b: D-202, c: D-200). develop_head advanced a7096e1→dd3b069. Pipeline fully quiesced. | 2026-06-22 |
 | D-200 | **E2E corpus smoke test (D-200): PR #301 (merge `333fd62`) merged.** `tests/e2e_corpus_smoke_tests.rs` (354 lines). 29 captures, 0 panic, CI green. Thread (c) CLOSED. develop=333fd62. | 2026-06-22 |
 | D-199 | **SESSION PAUSED — SAFE TO CLEAR.** D-198 checkpoint archived to `cycles/feature-pcapng-reader/session-checkpoints.md`. Stray `code-delivery/pcapng-corpus/` pr-manager artifact added to factory-artifacts. No cycle open. develop=e90b536, main=b73b242. Open threads: patch-release decision; real SPB fixture; optional E2E corpus test. All follow-ups carry forward (see D-199 checkpoint above). | 2026-06-22 |
 | D-198 | **E2E corpus enhanced with 17 real public captures (post-FE-001, PRs #299/#300); per-test-instance gap analysis recorded.** PR #299 (9003830): 7 pcapng block-diversity captures — SHB options, multi-IDB, EPB/SPB, NRB/ISB/DSB, big+little endian, nanosecond if_tsresol, block comments. PR #300 (e90b536): 10 analyzer-gap captures — mchow01 set6/set4 HTTP + markofu HTTP baseline; dmachard dnscat2/iodine/dns2tcp DNS-tunnel positives (future-detector fixtures, detector unimplemented); teardrop IP-frag. Plus 2 link-only entries (CUPID 657MB CC-BY-SA-4.0; MTA HTTP exercise). All registered in bin/fetch-e2e-pcaps + tests/fixtures/E2E-PCAPS.md (sha256-pinned, reproducible). Sources: Wireshark wiki/gitlab, mchow01/Bootcamp, dmachard/datasets-malicious-dns, markofu/pcaps — all local-use. Corpus smoke-test observations: CORPUS-OBS-PCAPNG-IFFCSLEN-001 (LOW — SimplePacketBlockSample.pcapng rejected by pcap-file crate on IfFcsLen IDB option, BC-2.01.013 SPB-success path unexercised by real fixture; backlog: find cleaner fixture or keep synthetic); CORPUS-OBS-LINKTYPE-NULL-001 (LOW — pcapng-many-interfaces.pcapng leads with DLT_NULL(0) not in BC-2.01.016 whitelist → E-INP-001; deliberate scope, loopback support = potential future feature). Confirmed keep-synthetic: TCP-segment conflicting-overlap/retransmit/out-of-window isolation; exotic DLTs RAW(101)/SLL(113)/IPv4(228)/IPv6(229). develop=e90b536. | 2026-06-22 |
@@ -340,7 +344,7 @@ Full tech-debt register: `.factory/tech-debt-register.md`.
 | INPUT-HASH-ERROR-PRESTORY (D-193) | [LOW, pre-existing, outside FE-001 scope] 3 stories have persistent ERROR status from `bin/compute-input-hash --scan`: STORY-001 (input file BC-2.01.004.md missing — retired BC, comment in inputs list causes tool failure), STORY-091 (no `inputs:` block in frontmatter), STORY-121 (no `inputs:` block in frontmatter). Pre-dates input-hash convention; not introduced by FE-001. Resolution path: backlog/maintenance — either update STORY-001 inputs list to remove retired BC reference, and add `inputs:` blocks to STORY-091/121. DF-VALIDATION-001 not required (direct tool observation). | DEFERRED — pre-existing, outside FE-001; target: backlog/maintenance |
 | PERF-REASM-DOS-001 (D-196/D-197) | [MEDIUM, CWE-407+CWE-401] `--all` TCP reassembly 100%-CPU runaway on pathological duplicate/overlapping-segment input (1 GB synthetic replicated-flow pcapng: 50 min at 100% CPU, RSS frozen ~1.18 GB). Root cause: (1) null-eviction off-by-one in `lifecycle.rs` (break `<= max_flows` → zero evictions per packet); (2) CWE-401 zombie segments below base_offset in `segment.rs`; (3) frozen-timestamp expiry suppression. Fix: R1-R4 (PR #298, b5b54d5). Result: 75 s→0.76 s (120K flows, 100× speedup). NOT an FE-001 defect. Detail: `.factory/phase-f6-hardening/reassembly-cwe407-dos-rootcause.md`. | **RESOLVED — PR #298 (b5b54d5, D-197). R1-R4 landed; 6 RED→GREEN tests; code + security review APPROVE.** |
 | PERF-REASM-NFR-001 (D-197) | [LOW, spec-hardening backlog] Consider a formal NFR/VP for "reassembly per-packet CPU is O(1) amortised under flow-table pressure." Currently encoded by regression tests (R5a/R5b/R3/R4 in reassembly_engine_tests.rs). DF-VALIDATION-001 not required (live artifact). | BACKLOG — LOW, spec-hardening target |
-| CORPUS-OBS-PCAPNG-IFFCSLEN-001 (D-198) | [LOW, corpus gap] SimplePacketBlockSample.pcapng rejected by pcap-file crate on an IfFcsLen IDB option (E-INP-010); BC-2.01.013 SPB-success path (real fixture) therefore unexercised. Synthetic SPB coverage intact. Target: backlog — find a cleaner real SPB-only fixture (no IfFcsLen) or keep synthetic. DF-VALIDATION-001 not required (direct test observation). | BACKLOG — LOW; synthetic SPB coverage kept |
+| CORPUS-OBS-PCAPNG-IFFCSLEN-001 (D-198/D-202) | [LOW, corpus gap] SimplePacketBlockSample.pcapng rejected by pcap-file crate on an IfFcsLen IDB option (`option_length = 4`; spec mandates 1 byte); BC-2.01.013 SPB-success path (real fixture) therefore unexercised. Root cause confirmed: file produced by legacy dumpcap 1.10.0rc — NOT a wirerust or crate defect. Research (2026-06-22) found no clean public real SPB-only pcapng. Synthetic SPB coverage (STORY-126, VP-031) retained as sufficient. Declined alternative Option C1 (pre-strip/normalize non-conformant if_fcslen) documented as available-but-not-pursued. PR #303 (dd3b069) records root cause in `tests/fixtures/E2E-PCAPS.md`. | **RESOLVED (D-202, 2026-06-22)** — synthetic coverage accepted; root cause documented; Option C1 declined |
 | CORPUS-OBS-LINKTYPE-NULL-001 (D-198) | [LOW, corpus observation] pcapng-many-interfaces.pcapng leads with DLT_NULL(0, BSD loopback) which is not in the BC-2.01.016 link-type whitelist — correctly rejected with E-INP-001 (deliberate scope decision). Loopback (DLT_NULL) support is a potential future feature decision. DF-VALIDATION-001 not required (direct test observation). | BACKLOG — LOW; scope-deliberate; loopback support = future feature decision |
 | NFR-PERF-005 RSS marginal overage (D-196) | [INFO, confirmed pattern] RSS / file-size ratio 2.0–2.23x confirmed across synthetic (--arp) + 200 MB 4SICS real (--all) + 1.17 GB CUPID real (--all). Slightly over the 2.0x target on real-world variable-packet-size + full-analyzer workloads; NFR-PERF-005 criterion bench (64 MB/1500B synthetic) remains the spec baseline. No action required; tracked as confirmation of existing marginal-overage NFR note. | CONFIRMED — existing tracked NFR note |
 
