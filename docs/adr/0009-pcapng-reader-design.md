@@ -250,7 +250,7 @@ mislabel window. The `skipped_blocks: u32` and `opb_skipped: u32` fields count
 skipped blocks during the pcapng block walk; they are always 0 for classic pcap.
 `main.rs` reads both to shape the zero-packet notice wording (BC-2.01.009 PC6).
 
-### Decision 20: SHB error-code remapping — `E-INP-010` to `E-INP-008` for body-decode failures
+### Decision 20: IDB error-code remapping — `E-INP-010` to `E-INP-008` for body-decode failures
 
 The `pcap-file` 2.0.0 crate processes IDB blocks internally inside
 `next_raw_block` before returning control to wirerust. Two crate-side IDB
