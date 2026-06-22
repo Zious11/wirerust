@@ -44,6 +44,36 @@ REAL_CAPTURES=(
   # iodine DNS-tunneling baseline — elastic/examples (Apache-2.0; credit Elastic)
   # wirerust produces 0 findings (DNS-tunneling not yet implemented); retained as benign-parse baseline and future-detector fixture
   "dns-tunnel-iodine.pcap|91fd221e07107507c8327a9d9487cd7f7531a1fd87cf543b1a76160ff0609b7b|https://raw.githubusercontent.com/elastic/examples/master/Security%20Analytics/dns_tunnel_detection/dns-tunnel-iodine.pcap"
+  # --- pcapng block-diversity suite (STORY-128 follow-up: exercises pcapng reader features) ---
+  # Canonical Wireshark pcapng example: SHB options (comment/hw/os/app), 2×IDB (LINUX_SLL + ETHERNET),
+  # DSB (TLS session keys / Decryption Secrets Block), NRB, EPB comments, 631 EPBs.
+  # Exercises E-INP-011 (multi-IDB link-type conflict — clean documented error, not a crash).
+  # Credit: Wireshark Foundation / SYNbit (@SYNbit); public sample at gitlab.com/wireshark/wireshark wiki.
+  "pcapng-example.pcapng|e00b21a95b4a3edb672170a685dd1b22dac4892f67f3318753045c2937bab6f8|https://gitlab.com/wireshark/wireshark/-/wikis/uploads/96afe21b136f715d5b96df4a646c57d9/pcapng-example.pcapng"
+  # arp-storm.pcap re-exported as pcapng by Wireshark, adding a Name Resolution Block (NRB).
+  # Exercises NRB parsing. 622 ARP request packets; wirerust processes all via pcapng reader.
+  # Credit: Wireshark Foundation; public sample at wiki.wireshark.org/SampleCaptures.
+  "220703_arp-storm-nrb.pcapng|0441878777852d48e4eb9db08ac688556149388408008c82f4307e5af06dfc92|https://wiki.wireshark.org/uploads/f59564719471dc67295224d1f18c4857/220703_arp-storm.pcapng"
+  # BIG-ENDIAN pcapng: byte-order magic 1A2B3C4D. DHCP/UDP, 4 packets.
+  # Exercises big-endian SHB/IDB/EPB decoding. From Wireshark test suite.
+  # Credit: Wireshark Foundation (test capture); BSD-style license via wireshark/wireshark repo.
+  "dhcp-big-endian.pcapng|d9706606fc3febb9740897d85818bd06edc76dc7538ea13d8a9131a988376dfb|https://gitlab.com/wireshark/wireshark/-/raw/master/test/captures/dhcp_big_endian.pcapng"
+  # EPB-level packet comments (opt_comment on individual EPB blocks). ICMP + UDP, 5 packets.
+  # Exercises EPB option parsing / comment extraction path. From Wireshark test suite.
+  # Credit: Wireshark Foundation; BSD-style license via wireshark/wireshark repo.
+  "pcapng-comments.pcapng|4115561b934beddf3ab7864402f78c86219f948eac55e07e7824d1853d868771|https://gitlab.com/wireshark/wireshark/-/raw/master/test/captures/comments.pcapng"
+  # DSB (Decryption Secrets Block, block type 0x0000000A) with DTLS 1.2 TLS session keys.
+  # 13 UDP/DTLS packets. Exercises DSB skip/read path in the pcapng reader.
+  # Credit: Wireshark Foundation (test capture); BSD-style license via wireshark/wireshark repo.
+  "dtls12-dsb.pcapng|23acb003e1e96f993f759289e3dd1853f6d1b5d1082c6cca711b3dff185aac53|https://gitlab.com/wireshark/wireshark/-/raw/master/test/captures/dtls12-aes128ccm8-dsb.pcapng"
+  # IDB with if_tsresol=0x09 (nanosecond timestamps, base-10 exponent 9). DHCP/UDP, 4 packets.
+  # Exercises nanosecond-resolution IDB option parsing. From Wireshark test suite.
+  # Credit: Wireshark Foundation; BSD-style license via wireshark/wireshark repo.
+  "dhcp-nanosecond-test.pcapng|efd90c0d4d35fde4d77557d188553df2a9536c0d0526590476154968e228d507|https://gitlab.com/wireshark/wireshark/-/raw/master/test/captures/dhcp-nanosecond.pcapng"
+  # ISB (Interface Statistics Block, block type 0x00000005). HTTP/TCP, 10 packets.
+  # Exercises ISB skip path in the pcapng reader. From Wireshark test suite.
+  # Credit: Wireshark Foundation; BSD-style license via wireshark/wireshark repo.
+  "http-brotli-isb.pcapng|dc3957f2348adc8f148cd776bef9e4bc2b3d062edc1b2aedc7c2a2b92b60b055|https://gitlab.com/wireshark/wireshark/-/raw/master/test/captures/http-brotli.pcapng"
 )
 
 # Link-only captures — NOT auto-fetched. They require manual browser download or are too
@@ -52,10 +82,17 @@ REAL_CAPTURES=(
 # dnscat2_dns_tunneling_1hr.pcap  (~2.35 MB)  — Active Countermeasures; Cloudflare bot-blocked
 # dnscat2_dns_tunneling_24hr.pcap (~82 MB)    — Active Countermeasures; Cloudflare bot-blocked
 # maccdc2012_00000.pcap           (~1 GB)     — Netresec/maccdc; optional large-scale stressor
+# asyncrat_1hr.pcapng             (~4.6 MB)   — Active Countermeasures; Cloudflare bot-blocked (HTTP 403)
+#                                               native pcapng, malware C2/HTTP/DNS/TLS AsyncRAT traffic
+# 042219_1000_7.pcapng            (~657 MB)   — CUPID dataset (Colorado U / CC BY-SA 4.0); large native
+#                                               multi-block pcapng (multiple IDBs, NRBs); direct HTTP 200
+#                                               URL: https://cupid-data-storage.nyc3.digitaloceanspaces.com/
+#                                                    Raw-Baseline-Data/042219_1000_7.pcapng
+#                                               Cite: "CUPID: Corpus for Understanding Packet Intrusion Data"
 #
 # To fetch manually: download via browser from the URLs in E2E-PCAPS.md and place the file
 # in tests/fixtures/local-samples/. SHA256 values from source are noted there but not
-# independently verified for the dnscat2 captures.
+# independently verified for the dnscat2 or asyncrat captures.
 
 # Synthetic capture: regenerated by its deterministic generator.
 SYNTH_NAME="modbus-large.pcap"

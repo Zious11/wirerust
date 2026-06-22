@@ -27,6 +27,21 @@ That downloads the real captures and regenerates the synthetic one into
 | `rsasnakeoil2.pcap` | ~24 KB | `f3f74008e2585d35479b7a234010a584803c240d82723f1f857bac0eb8a8db57` | [Wireshark SampleCaptures](https://wiki.wireshark.org/SampleCaptures) (no per-file license; public sample — credit Wireshark Foundation; not redistributed) | TLS/TCP (58 packets) | TLS weak-crypto detection: ServerHello+ClientHello SSL 3.0 (RFC 7568 prohibits SSLv3), ClientHello export/NULL/anonymous cipher suites (TLS_RSA_EXPORT_*). The only reliable classic-pcap TLS-handshake fixture found. |
 | `dns-tunnel-iodine.pcap` | ~76 KB | `91fd221e07107507c8327a9d9487cd7f7531a1fd87cf543b1a76160ff0609b7b` | [elastic/examples](https://github.com/elastic/examples) (Apache-2.0; credit Elastic) | DNS over UDP (434 packets; 222 queries / 212 responses) | iodine DNS-tunneling capture. **Note:** wirerust currently produces 0 findings (DNS-tunneling detection not yet implemented) — retained as a benign-parse baseline AND a future-detector fixture. Tracked as a coverage/feature gap. |
 
+## pcapng block-diversity suite
+
+These captures exercise specific pcapng reader features beyond the basic SHB+IDB+EPB path.
+All are genuine native pcapng (SHB magic `0x0A0D0D0A` verified). All are auto-fetchable.
+
+| File | Size | sha256 | Source | Protocols | pcapng Feature Exercised | Smoke-test Result |
+|------|------|--------|--------|-----------|--------------------------|-------------------|
+| `pcapng-example.pcapng` | 372 KB | `e00b21a95b4a3edb672170a685dd1b22dac4892f67f3318753045c2937bab6f8` | [Wireshark wiki SampleCaptures](https://wiki.wireshark.org/SampleCaptures) (public sample; credit Wireshark Foundation / SYNbit) | Mixed (TLS/TCP/ICMP; link types LINUX_SLL + ETHERNET) | **SHB options** (shb_comment, shb_hardware, shb_os, shb_userappl); **2×IDB** (different link types — LINUX_SLL + ETHERNET); **DSB** (Decryption Secrets Block, type `0x0000000A`, TLS session keys); **NRB** (Name Resolution Block); **EPB comments** (opt_comment on 4 packets); 631 EPBs. Triggers E-INP-011 (multi-IDB link-type conflict) — clean documented error, not a crash | exit=1 (E-INP-011: multi-interface link-type conflict); 0 packets processed (blocked at IDB validation) |
+| `220703_arp-storm-nrb.pcapng` | 68 KB | `0441878777852d48e4eb9db08ac688556149388408008c82f4307e5af06dfc92` | [Wireshark wiki SampleCaptures](https://wiki.wireshark.org/SampleCaptures) (public sample; credit Wireshark Foundation) | ARP (622 request packets) | **NRB** (Name Resolution Block, type `0x00000004`); single IDB; 622 EPBs; LE | exit=0; 622 ARP frames analyzed by ARP analyzer |
+| `dhcp-big-endian.pcapng` | 1.6 KB | `d9706606fc3febb9740897d85818bd06edc76dc7538ea13d8a9131a988376dfb` | [Wireshark test suite](https://gitlab.com/wireshark/wireshark/-/raw/master/test/captures/dhcp_big_endian.pcapng) (BSD-style; credit Wireshark Foundation) | DHCP/UDP (4 packets) | **Big-endian encoding** (byte-order magic `1A 2B 3C 4D`); SHB+IDB+EPB parsed as big-endian; link type ETHERNET | exit=0; 4 packets parsed |
+| `pcapng-comments.pcapng` | 836 B | `4115561b934beddf3ab7864402f78c86219f948eac55e07e7824d1853d868771` | [Wireshark test suite](https://gitlab.com/wireshark/wireshark/-/raw/master/test/captures/comments.pcapng) (BSD-style; credit Wireshark Foundation) | ICMP + UDP (5 packets) | **EPB-level opt_comment options** ("hello hello", "goodbye goodbye"); minimal focused test for packet-comment option path | exit=0; 5 packets parsed |
+| `dtls12-dsb.pcapng` | 2.0 KB | `23acb003e1e96f993f759289e3dd1853f6d1b5d1082c6cca711b3dff185aac53` | [Wireshark test suite](https://gitlab.com/wireshark/wireshark/-/raw/master/test/captures/dtls12-aes128ccm8-dsb.pcapng) (BSD-style; credit Wireshark Foundation) | DTLS 1.2 / UDP (13 packets) | **DSB** (Decryption Secrets Block, type `0x0000000A`) with DTLS TLS-key log; exercises DSB block read/skip path; LE | exit=0; 13 packets parsed |
+| `dhcp-nanosecond-test.pcapng` | 1.6 KB | `efd90c0d4d35fde4d77557d188553df2a9536c0d0526590476154968e228d507` | [Wireshark test suite](https://gitlab.com/wireshark/wireshark/-/raw/master/test/captures/dhcp-nanosecond.pcapng) (BSD-style; credit Wireshark Foundation) | DHCP/UDP (4 packets) | **IDB `if_tsresol` option** = `0x09` (base-10, exponent 9 = nanosecond timestamps); exercises nanosecond-resolution IDB option parsing path; LE | exit=0; 4 packets parsed |
+| `http-brotli-isb.pcapng` | 1.8 KB | `dc3957f2348adc8f148cd776bef9e4bc2b3d062edc1b2aedc7c2a2b92b60b055` | [Wireshark test suite](https://gitlab.com/wireshark/wireshark/-/raw/master/test/captures/http-brotli.pcapng) (BSD-style; credit Wireshark Foundation) | HTTP/TCP (10 packets) | **ISB** (Interface Statistics Block, type `0x00000005`); exercises ISB block skip/parse path; LE | exit=0; 10 packets parsed (HTTP service detected) |
+
 > A tiny committed fixture, `tests/fixtures/modbus-write.pcap` (8 packets), is
 > tracked in git and used by the automated test suite — it is **not** part of
 > this local-only set.
@@ -41,6 +56,13 @@ That downloads the real captures and regenerates the synthetic one into
 | `dnp3dataset_capture.pcap` | `https://raw.githubusercontent.com/igbe/DNP3-Dataset-Plus-SnortRules/master/dnp3dataset_capture.pcap` |
 | `rsasnakeoil2.pcap` | `https://gitlab.com/wireshark/wireshark/-/wikis/uploads/__moin_import__/attachments/SampleCaptures/rsasnakeoil2.pcap` |
 | `dns-tunnel-iodine.pcap` | `https://raw.githubusercontent.com/elastic/examples/master/Security%20Analytics/dns_tunnel_detection/dns-tunnel-iodine.pcap` |
+| `pcapng-example.pcapng` | `https://gitlab.com/wireshark/wireshark/-/wikis/uploads/96afe21b136f715d5b96df4a646c57d9/pcapng-example.pcapng` |
+| `220703_arp-storm-nrb.pcapng` | `https://wiki.wireshark.org/uploads/f59564719471dc67295224d1f18c4857/220703_arp-storm.pcapng` |
+| `dhcp-big-endian.pcapng` | `https://gitlab.com/wireshark/wireshark/-/raw/master/test/captures/dhcp_big_endian.pcapng` |
+| `pcapng-comments.pcapng` | `https://gitlab.com/wireshark/wireshark/-/raw/master/test/captures/comments.pcapng` |
+| `dtls12-dsb.pcapng` | `https://gitlab.com/wireshark/wireshark/-/raw/master/test/captures/dtls12-aes128ccm8-dsb.pcapng` |
+| `dhcp-nanosecond-test.pcapng` | `https://gitlab.com/wireshark/wireshark/-/raw/master/test/captures/dhcp-nanosecond.pcapng` |
+| `http-brotli-isb.pcapng` | `https://gitlab.com/wireshark/wireshark/-/raw/master/test/captures/http-brotli.pcapng` |
 
 ### Link-only captures (cannot be auto-fetched)
 
@@ -53,6 +75,8 @@ or are too large for routine automated fetching.
 | `dnscat2_dns_tunneling_1hr.pcap` | ~2.35 MB | from source / unverified | `https://www.activecountermeasures.com/wp-content/uploads/2021/06/dnscat2_dns_tunneling_1hr.pcap` | Active Countermeasures (public WordPress uploads) | **Manual download required** — Cloudflare bot-protection returns an HTML challenge page to automated curl/HEAD; must be fetched via a browser. SHA256 published by source but not independently verified by us. |
 | `dnscat2_dns_tunneling_24hr.pcap` | ~82 MB | from source / unverified | `https://www.activecountermeasures.com/wp-content/uploads/2021/06/dnscat2_dns_tunneling_24hr.pcap` | Active Countermeasures (public WordPress uploads) | Same bot-block caveat as 1hr variant. Optional given size. |
 | `maccdc2012_00000.pcap` | ~1 GB | unverified | `https://share.netresec.com/s/7qgDSGNGw2NY8ea/download/maccdc2012_00000.pcap` | Netresec public pcap collection (credit Netresec / maccdc) | Mixed-enterprise scale stressor (HTTP/TLS/DNS/SMB). Optional given 1 GB size; not included in standard fetch. |
+| `asyncrat_1hr.pcapng` | ~4.6 MB | unverified | `https://www.activecountermeasures.com/wp-content/uploads/2021/06/asyncrat_1hr.pcapng` | Active Countermeasures "Malware of the Day: AsyncRAT" (public blog resource) | **Native pcapng**, malware C2 traffic (AsyncRAT), HTTP/DNS/TLS. Exercises pcapng reader with real-world malware capture. Bot-blocked (HTTP 403 from Cloudflare to automated curl) — requires browser download. SHA256 not independently verified. |
+| `042219_1000_7.pcapng` | ~657 MB | unverified | `https://cupid-data-storage.nyc3.digitaloceanspaces.com/Raw-Baseline-Data/042219_1000_7.pcapng` | [CUPID dataset](https://github.com/kaylode/cupid) — Colorado University, CC BY-SA 4.0 (cite: "CUPID: Corpus for Understanding Packet Intrusion Data") | **Large native pcapng** with multiple IDBs and NRBs; real network baseline traffic. Exercises multi-block pcapng at scale. HTTP 200 (direct curl-able); excluded from auto-fetch due to 657 MB size. To add: `curl -fL -o tests/fixtures/local-samples/042219_1000_7.pcapng <URL>`. |
 
 ## Attribution
 
@@ -68,6 +92,27 @@ used in training material. They are not redistributed via this repo.
   Credit: Wireshark Foundation.
 - **`dns-tunnel-iodine.pcap`**: `elastic/examples` repository (Apache-2.0 license).
   Credit: Elastic.
+
+### pcapng block-diversity suite attribution
+
+- **`pcapng-example.pcapng`**: Wireshark Foundation SampleCaptures wiki. Public sample
+  authored by SYNbit (@SYNbit); no per-file license stated; distributed as a Wireshark
+  community example. Credit: Wireshark Foundation / SYNbit. Not redistributed.
+- **`220703_arp-storm-nrb.pcapng`**: Wireshark Foundation SampleCaptures wiki. Public
+  sample (arp-storm.pcap re-exported as pcapng with NRB). No per-file license stated.
+  Credit: Wireshark Foundation. Not redistributed.
+- **`dhcp-big-endian.pcapng`**, **`pcapng-comments.pcapng`**, **`dtls12-dsb.pcapng`**,
+  **`dhcp-nanosecond-test.pcapng`**, **`http-brotli-isb.pcapng`**: Wireshark test suite
+  captures (`test/captures/` in `wireshark/wireshark` GitLab repo). The Wireshark project
+  is released under the GNU GPLv2; test captures are generally considered BSD-style public
+  domain test assets, used locally for validation only, not redistributed.
+  Credit: Wireshark Foundation contributors.
+- **`asyncrat_1hr.pcapng`** (link-only): Active Countermeasures "Malware of the Day" blog
+  resource. Public download from WordPress uploads. SHA256 not independently verified.
+  Used locally only — not redistributed.
+- **`042219_1000_7.pcapng`** (link-only): CUPID dataset, Colorado University.
+  License: CC BY-SA 4.0. Cite: "CUPID: Corpus for Understanding Packet Intrusion Data."
+  Not redistributed; see dataset homepage for terms.
 
 ## ARP captures (D1 spoof / D2 GARP / D3 storm / D12 MAC mismatch)
 
