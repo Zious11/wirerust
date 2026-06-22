@@ -1,12 +1,24 @@
 ---
 document_type: session-checkpoints
 cycle: feature-pcapng-reader
-phase: F6
+phase: F7
 ---
 
 # Session Checkpoints Archive — feature-pcapng-reader
 
 Archived session resume checkpoints (superseded). Latest checkpoint is in STATE.md.
+
+---
+
+## Checkpoint D-192 (2026-06-22 — F6-SEC HARDENING COMPLETE / PAUSED FOR F7)
+
+Superseded by D-193 checkpoint (F7 reconciliation burst — consistency audit CONVERGED, input-drift RESOLVED).
+
+- **Status:** F6 CONVERGED + F6-SEC HARDENING LANDED. PR #296 (feddbd1): F6-SEC-A (4 GiB file-size gate E-INP-014, ADR-009 Decision 27) + F6-SEC-B (65535 interface cap E-INP-015, ADR-009 Decision 28) RESOLVED. SEC-008 latent debt logged.
+- **develop:** feddbd1. **main:** b73b242. **stories_delivered:** 77.
+- **Spec versions at archive:** BC-INDEX v1.68, error-taxonomy v3.8 (next_free E-INP-016), ADR-009 rev 13, VP-INDEX v2.10 (31/31 verified). 302 active BCs.
+- **PAUSED:** F7 requires human approval (cadence rule D-186, binding).
+- **Input-drift at archive:** STORY-123..128 STALE (F6-SEC BC bumps post-delivery; BENIGN — to be resolved in F7 burst).
 
 ---
 

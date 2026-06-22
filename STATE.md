@@ -1,7 +1,7 @@
 ---
 pipeline: FEATURE
-phase: F6
-phase_status: "F6 CONVERGED + F6-SEC HARDENING LANDED — all pcapng VPs proven+locked (VP-INDEX v2.10, 31/31 verified); security scan PASS; mutation gate PASS (94.4% strict / 100% equiv-adjusted @ 930d957); F6-SEC-A (4 GiB file-size gate E-INP-014) + F6-SEC-B (65535 interface cap E-INP-015) RESOLVED (PR #296 feddbd1); SEC-008 latent debt logged. NEXT: F7 five-dimensional delta convergence + full-codebase regression (final feature-mode gate)."
+phase: F7
+phase_status: "F7 delta convergence — consistency audit CONVERGED (5 dims pass); full regression green @ feddbd1; input-drift RESOLVED (STORY-123..128 re-baselined, BENIGN); F7-001 coverage-matrix v1.19 + F7-002 BC-INDEX v1.69 fixed; F7-003 README fix in PR (pending merge). PAUSED for final F7 human gate."
 product: wirerust
 mode: brownfield
 timestamp: 2026-06-22T00:00:00Z
@@ -41,7 +41,7 @@ adversary_gate: SATISFIED
 # Story tracking
 stories_delivered: 77
 current_cycle: feature-pcapng-reader
-current_wave: "F6 CONVERGED + F6-SEC HARDENING LANDED (D-192) — 31/31 VPs verified. PRs #293/#294/#295/#296 merged (feddbd1). F6-SEC-A/B RESOLVED (4 GiB ceiling + 65535 interface cap, PR #296). SEC-008 latent debt logged. PAUSED for human F7 approval. Cadence: phase-by-phase (D-186 binding)."
+current_wave: "F7 IN PROGRESS (D-193) — consistency audit CONVERGED; input-drift RESOLVED (STORY-123..128 BENIGN re-baselined); F7-001 coverage-matrix v1.19 + F7-002 BC-INDEX v1.69 committed; F7-003 README PR pending. PAUSED for final F7 human gate."
 
 # DTU
 dtu_required: false
@@ -63,11 +63,11 @@ convergence_trajectory: "Detail: cycles/v0.1.0-greenfield-spec/convergence-traje
 
 # VSDD Pipeline State — wirerust
 
-## SESSION RESUME CHECKPOINT (2026-06-22 — F6-SEC HARDENING COMPLETE / PAUSED FOR F7 / D-192)
+## SESSION RESUME CHECKPOINT (2026-06-22 — F7 RECONCILIATION COMPLETE / PAUSED FOR F7 HUMAN GATE / D-193)
 
-**WARNING: DO NOT re-run F2/F3/F4/F5/F6 — all CONVERGED+COMPLETE. DO NOT re-run per-story adversarial convergence (STORY-123..128) — all 3-clean + merged. DO NOT auto-proceed to F7 without human approval.**
+**WARNING: DO NOT re-run F2/F3/F4/F5/F6 — all CONVERGED+COMPLETE. DO NOT re-run per-story adversarial convergence (STORY-123..128) — all 3-clean + merged. DO NOT re-run input-hash rebaseline (STORY-123..128 re-baselined at D-193, BENIGN). DO NOT auto-proceed past F7 gate without human approval.**
 
-**Previous checkpoint (D-191 — F6 CONVERGED) archived to:
+**Previous checkpoint (D-192 — F6-SEC HARDENING COMPLETE) archived to:
 `.factory/cycles/feature-pcapng-reader/session-checkpoints.md`**
 
 ### RESUME PLAN (ordered, execute in sequence)
@@ -77,19 +77,19 @@ convergence_trajectory: "Detail: cycles/v0.1.0-greenfield-spec/convergence-traje
 **Step 2 — Ground truth (verify before any action):**
 - develop HEAD = `feddbd1` (PR #296 merged — F6-SEC-A 4 GiB file-size gate + F6-SEC-B 65535 interface cap)
 - main HEAD = `b73b242` (unchanged, v0.9.2)
-- factory-artifacts HEAD = D-192 burst commit (run `git -C .factory log -1 --format='%h %s'` to confirm)
+- factory-artifacts HEAD = D-193 burst commit (run `git -C .factory log -1 --format='%h %s'` to confirm)
 - EXACTLY TWO worktrees: main repo (develop) + `.factory/` (factory-artifacts). NO story worktrees.
-- Input-drift: all pcapng stories MATCH (resolved D-185). No stale hashes.
+- Input-drift: STORY-123..128 = MATCH (re-baselined D-193, BENIGN). STORY-001/091/121 = ERROR (pre-existing, outside FE-001 scope).
+- F7-003 README PR: pending merge on develop.
 
-**Step 3 — RESUME ACTION = AWAIT HUMAN APPROVAL FOR F7.**
-F6 gate ALL criteria met (D-191). F6-SEC hardening landed (D-192, PR #296 feddbd1): F6-SEC-A/B RESOLVED; SEC-008 latent debt logged. Cadence rule (D-186, human-set, binding): F7 requires human approval before proceeding.
+**Step 3 — RESUME ACTION = AWAIT HUMAN F7 GATE APPROVAL.**
+F7 consistency audit CONVERGED (D-193). Remediation items: F7-001 (coverage-matrix v1.19) DONE, F7-002 (BC-INDEX v1.69) DONE, input-drift RESOLVED. F7-003 (README) PR pending — merge before tagging. Cadence rule (D-186, human-set, binding): F7 human gate required before release.
 
-**F7 scope (when approved):**
-1. Delta convergence — fresh-context adversarial sweep of the full pcapng reader delta.
-2. Final regression + traceability sweep.
-3. Human F7 gate → release (v0.10.0 or v1.0.0 per product decision).
+**F7 remaining (when human approves):**
+1. Confirm F7-003 README PR merged.
+2. Human F7 gate → release decision (v0.10.0 or v1.0.0 per product decision).
 
-**Step 4 — Cadence (human-set, binding):** PHASE-BY-PHASE. F6 COMPLETE (incl. F6-SEC). F7 requires human approval. DO NOT auto-proceed.
+**Step 4 — Cadence (human-set, binding):** PHASE-BY-PHASE. F7 remediation COMPLETE. F7 human gate required. DO NOT auto-proceed to release.
 
 ### PIPELINE POSITION
 
@@ -100,9 +100,9 @@ F6 gate ALL criteria met (D-191). F6-SEC hardening landed (D-192, PR #296 feddbd
 - **F5 (scoped adversarial refinement):** CONVERGED + CLOSED (D-189/D-190). 8 passes; 5 PRs (#287..#291) + SEC-001 trip-wire PR #292 (662bd85). Convergence trajectory: Pass 1: 5 findings → Pass 2a: HALT → Pass 2: 3 findings → Pass 3: 1 finding → Pass 4: 1 finding → Pass 5: 2 findings → Pass 6: CLEAN → Pass 7: CLEAN → Pass 8: CLEAN.
 - **F6 (targeted formal hardening):** CONVERGED (D-191). PRs #293/#294/#295 merged (930d957). All 7 pcapng VPs locked. Security PASS. Mutation PASS. Packet-count CORRECT. F6-SEC hardening: PR #296 (feddbd1, D-192) — F6-SEC-A/B RESOLVED. PAUSED for F7 human approval.
 
-### SPEC VERSIONS (updated D-192 — F6-SEC hardening landed, develop=feddbd1)
+### SPEC VERSIONS (updated D-193 — F7 reconciliation, BC-INDEX v1.69, coverage-matrix v1.19)
 
-prd.md v1.33, error-taxonomy v3.8 (next_free E-INP-016), nfr-catalog v2.3, ADR-009 rev 13, VP-INDEX v2.10 (total 31, 31/31 verified), BC-INDEX v1.68, BC-2.01.009 v1.8, .010 v2.2, .011 v1.9, .012 v2.0, .013 v1.10, .014 v1.6, .015 v1.8, .016 v1.4, .017 v1.7, .018 v1.6, BC-2.12.011 v1.5. 302 active BCs.
+prd.md v1.33, error-taxonomy v3.8 (next_free E-INP-016), nfr-catalog v2.3, ADR-009 rev 13, VP-INDEX v2.10 (total 31, 31/31 verified), BC-INDEX v1.69, BC-2.01.009 v1.8, .010 v2.2, .011 v1.9, .012 v2.0, .013 v1.10, .014 v1.6, .015 v1.8, .016 v1.4, .017 v1.7, .018 v1.6, BC-2.12.011 v1.5. 302 active BCs. verification-coverage-matrix.md v1.19 (VP-025..031 status verified).
 
 ### F6 CONVERGENCE CHECKLIST (D-191 — all complete)
 
@@ -141,10 +141,10 @@ prd.md v1.33, error-taxonomy v3.8 (next_free E-INP-016), nfr-catalog v2.3, ADR-0
 
 ## Status
 
-**FEATURE MODE — pcapng reader cycle OPEN (feature-pcapng-reader). F6 CONVERGED + F6-SEC HARDENING LANDED (D-192) — VP-INDEX v2.10 (31/31 verified), security PASS (0 Crit/High), mutation PASS (94.4%/100% equiv), packet-count CORRECT. F6-SEC-A/B RESOLVED (PR #296 feddbd1). F5 CLOSED (D-190). F2 CONVERGED+HUMAN-APPROVED (D-164). F3 GATE PASSED+HUMAN-APPROVED (D-168). F4 COMPLETE+GATE PASSED+HUMAN-APPROVED (D-186). E-19 epic DONE (6 stories merged, e75a797). stories_delivered=77. PAUSED — F7 requires human approval. DO NOT auto-proceed.**
+**FEATURE MODE — pcapng reader cycle OPEN (feature-pcapng-reader). F7 IN PROGRESS (D-193). Consistency audit CONVERGED; input-drift RESOLVED (STORY-123..128 BENIGN, re-baselined); F7-001 coverage-matrix v1.19 + F7-002 BC-INDEX v1.69 committed; F7-003 README PR pending merge. F6 CONVERGED+F6-SEC LANDED (D-192) — VP-INDEX v2.10 (31/31 verified), security PASS, mutation PASS. E-19 epic DONE. stories_delivered=77. PAUSED — F7 human gate required. DO NOT auto-proceed to release.**
 
 Latest release: v0.9.2 (tag obj `a298dbe`, main `b73b242`, 4 binaries). develop=feddbd1 (F6-SEC hardening, D-192; PR #296). main=b73b242. stories_delivered=77.
-Active feature: FE-001 pcapng capture-format reader support. ADR-009 rev 13, BC-2.01.013 v1.10, VP-INDEX v2.10 (31/31 verified), 10 new BCs, 1 retired BC.
+Active feature: FE-001 pcapng capture-format reader support. ADR-009 rev 13, BC-2.01.013 v1.10, VP-INDEX v2.10 (31/31 verified), BC-INDEX v1.69, 10 new BCs, 1 retired BC. F7 consistency: CONVERGED (D-193).
 Maintenance maint-2026-06-17: COMPLETE. NON-BLOCKING. Report: `.factory/maintenance/sweep-report-2026-06-17.md`.
 
 ## Phase Progress
@@ -168,7 +168,7 @@ Maintenance maint-2026-06-17: COMPLETE. NON-BLOCKING. Report: `.factory/maintena
 | E-18/E-8 STORY-119 cycle (F1-F7) + v0.9.0 | **RELEASED + CLOSED 2026-06-19** | STORY-120/122/119; 293 BCs; tag v0.9.0 986e148. Detail: cycles/feature-story-119-grouped-collapse/ |
 | v0.9.1 patch | **RELEASED 2026-06-19** | Doc/help; PRs #277/#278; tag v0.9.1 ad4eec8 |
 | v0.9.2 patch | **RELEASED 2026-06-19** | DNP3 determinism + E2E fixtures; PRs #279/#280; tag v0.9.2 b73b242 |
-| **Feature pcapng-reader (F1..F6+F6-SEC / PAUSED FOR F7 D-192)** | **F6 CONVERGED (D-191) + F6-SEC HARDENING LANDED (D-192). PRs #293/#294/#295/#296 merged (feddbd1). All 7 pcapng VPs locked (VP-INDEX v2.10, 31/31 verified). Security PASS (0 Crit/High). Mutation PASS (94.4% strict / 100% equiv-adjusted). Packet-count CORRECT (16 EPBs). Full regression GREEN. F6-SEC-A/B RESOLVED (PR #296 feddbd1). SEC-001 RESOLVED (PR #292, D-190). F5 CLOSED (D-189/D-190). F4 GATE PASSED (D-186). ALL 6 stories (STORY-123..128) MERGED (e75a797). E-19 epic COMPLETE. stories_delivered=77. PAUSED — F7 requires human approval. DO NOT auto-proceed.** | FE-001 F6 CONVERGED + F6-SEC. VP-INDEX v2.10. ADR-009 rev 13. develop=feddbd1. Cycle: feature-pcapng-reader |
+| **Feature pcapng-reader (F7 IN PROGRESS / D-193)** | **F7 consistency audit CONVERGED (D-193). Input-drift RESOLVED: STORY-123..128 re-baselined (BENIGN). F7-001 coverage-matrix v1.19 DONE. F7-002 BC-INDEX v1.69 DONE. F7-003 README PR pending. F6 CONVERGED (D-191) + F6-SEC LANDED (D-192). PRs #293-#296 merged (feddbd1). VP-INDEX v2.10 (31/31 verified). Security PASS. Mutation PASS (94.4%/100% equiv). E-19 COMPLETE. stories_delivered=77. PAUSED — F7 human gate required.** | FE-001 F7 IN PROGRESS. BC-INDEX v1.69. coverage-matrix v1.19. develop=feddbd1. Cycle: feature-pcapng-reader |
 
 ## Decisions Log
 
@@ -214,6 +214,7 @@ D-131..D-135: `cycles/feature-story-119-grouped-collapse/decisions-archive.md`
 | D-188 | **F5 Pass-1 findings RESOLVED + MERGED (PR #287, develop=97c66b0).** F5 Pass 1 NOT clean: 1H (F-F5P1-001 VP-027 tautological harness), 2M (F-F5P1-002 read_magic doc stub tense; F-F5P1-003 format_zero_packet_notice TOCTOU + redundant open), 2L (O-1 weak digit assertions; O-2 SPB/EPB guard-ordering). BC completeness sweep 11/11 — 0 blockers. All resolved in PR #287: decode_epb_body extracted (VP-027 Kani anchor); vp027_epb_parse_safety rewritten with real call — 687 checks, VERIFICATION SUCCESSFUL, non-vacuity confirmed via deliberate-flip; read_magic doc-comment corrected; PcapSource.is_pcapng: bool field added (eliminates TOCTOU mislabel + redundant open); test assertions strengthened; BC-2.01.013 v1.10 O-2 accepted-behavior note. ADR-009 rev 12 (Decision 25: decode_epb_body extraction; Decision 26: is_pcapng carrier). VP-INDEX v2.9 (VP-027 status draft→active). BC-INDEX v1.68 annotation updated BC-2.01.013 v1.9→v1.10. ARCH-INDEX v1.5 ADR-009 row + changelog updated. Follow-up drift items SEC-001 (F5P1) [MED] and SEC-002 (F5P1) [LOW] filed — NON-BLOCKING, DO NOT block F6. NEXT: F5 Pass 2 (fresh-context adversary toward 3 consecutive clean passes), then PAUSE for human review before F6. | 2026-06-21 |
 | D-189 | **F5 CONVERGED — 3 consecutive clean adversarial passes (passes 6, 7, 8) on develop=3fc0e67.** Full pass record: Pass 1 NOT CLEAN (5 findings, 1H/2M/2L, PR #287 resolved). Pass 2a METHODOLOGY HALT (stale tree — PG-F5-FRESHNESS-001 triggered). Pass 2 NOT CLEAN (3 MED doc-tense, PR #288). Pass 3 NOT CLEAN (1 MED DF-SIBLING-SWEEP-001, PR #289). Pass 4 NOT CLEAN (1 MED per-test RED: lines, PR #290). Pass 5 NOT CLEAN (2 findings: F-F5P5-001 MED false wildcard doc + F-F5P5-002 LOW short-read risk, PR #291). Pass 6 CLEAN (BC sweep 11/11, 1 informational obs). Pass 7 CLEAN (security/correctness depth, VP-027 non-vacuous re-confirmed). Pass 8 CLEAN (traceability + test-quality depth; 2 LOW informational obs). BC-5.39.001 gate SATISFIED. F5-EXIT EVIDENCE: cargo test --all-targets ALL GREEN (exit 0); cargo kani --harness vp027_epb_parse_safety VERIFICATION SUCCESSFUL, 0/687 checks failed (6.25s). Develop merge chain: 97c66b0(PR#287)→292c5e4(#288)→5eaf587(#289)→2dd5209(#290)→3fc0e67(#291). Process-gap codifications: PG-F5-FRESHNESS-001 (post-merge fast-forward rule); PG-F5-DOCTENSE-TOKENS-001 (expand doc-tense sweep tokens). Non-blocking open items carried: SEC-001/SEC-002 (F5P1); DRIFT-F5-O1-017STRINGS. Detail: .factory/phase-f5-adversarial/pcapng-f5-convergence-summary.md. STATUS: PAUSED — awaiting human approval before F6. | 2026-06-21 |
 | D-190 | **F5 CLOSED / F6 ENTRY — SEC-001 twin-equivalence trip-wire LANDED (PR #292, 662bd85).** Human approved F5→F6 gate with directive "fix SEC-001 first." SEC-001 resolved: new `tests/sec_001_twin_equivalence_tests.rs` (proptest 2000 cases + 6 unit anchors asserting production `decode_epb_body` ↔ twin `decode_epb_body_discriminant` parity; mutation-confirmed non-vacuous; code-review APPROVE 0 findings). develop advanced 3fc0e67→662bd85. PG-F5-DOCTENSE-TOKENS-001 policy fix DEFERRED-TO-MAINTENANCE per human directive. F6 first step: authentic arp-baseline-16pkt.cap fetch via bin/fetch-e2e-pcaps. | 2026-06-21 |
+| D-193 | **F7 RECONCILIATION COMPLETE — consistency audit CONVERGED; doc/index remediation done; input-drift RESOLVED.** F7 consistency audit (5 dims): FINDING-F7-001 (coverage-matrix VP-025..031 status draft→verified) RESOLVED — spec-steward committed v1.19 prior to this burst. FINDING-F7-002 (BC-INDEX inline annotations stale for F6-SEC BC bumps) RESOLVED — BC-INDEX bumped v1.68→v1.69; v1.69 changelog entry records BC-2.01.009 v1.7→v1.8, BC-2.01.011 v1.7→v1.9, BC-2.01.017 v1.6→v1.7 (annotations were already updated in prior burst; this entry is the explicit F7 reconciliation audit confirmation). FINDING-F7-003 (README stale pcapng references) NOT YET RESOLVED — README PR pending merge on develop; must merge before factory-artifacts tag. Input-drift: STORY-123..128 re-baselined (BENIGN — post-delivery spec evolution from F6-SEC; delivered scope unchanged + spec-conformant). Pre-existing ERROR stories (STORY-001 missing BC-2.01.004 retired input, STORY-091/121 no inputs block) logged as drift item outside FE-001 scope. develop HEAD unchanged at feddbd1. | 2026-06-22 |
 | D-192 | **F6 GATE APPROVED (human) + F6-SEC hardening LANDED (PR #296, feddbd1). F6-SEC-A RESOLVED: 4 GiB file-size guard (MAX_PCAPNG_FILE_BYTES = 4_294_967_296) added to `from_file` before `read_to_end`; rejection surfaces as E-INP-014 (ADR-009 Decision 27; BC-2.01.009 v1.8, PC3 file-size gate, EC-011). F6-SEC-B RESOLVED: MAX_INTERFACE_TABLE_ENTRIES = 65535 cap added to IDB-parse loop; excess IDB rejected as E-INP-015 (ADR-009 Decision 28; BC-2.01.011 v1.9, PC4 interface cap, EC-014). error-taxonomy v3.8 (E-INP-014 file-too-large, E-INP-015 interface-cap; next_free E-INP-016). ADR-009 rev 13. SEC-008 (MEDIUM, latent debt) logged: residual unbounded EPB/packet accumulation on the `from_pcap_reader` STREAM path — NOT CLI-reachable; CLI always uses the now-gated `from_file`; documented per ADR-009 Decision 13 all-in-memory model; full fix = streaming-reader rework (target: streaming-reader hardening story). F6-SEC-C/D/E remain ACCEPTED (unchanged). Develop HEAD feddbd1. NEXT: F7 five-dimensional delta convergence + full-codebase regression (final feature-mode gate). | 2026-06-22 |
 | D-191 | **F6 CONVERGED — all pcapng VPs proven+locked (VP-INDEX v2.10, 31/31 verified). Develop HEAD 930d957 (merge chain: 662bd85 → 4ba7def(PR#293 Kani) → 1ca30a3(PR#294 proptest/fuzz) → 930d957(PR#295 mutation-gap tests)).** VP-025: 4 Kani harnesses (59 checks each), non-vacuous, per-divisor-constant split resolves I-2 unwind. VP-026: 272 Kani checks, non-vacuous, SHB twin-drift trip-wire added (sec_shb_twin_equivalence_tests.rs — proactive mirror of SEC-001 pattern). VP-027: re-confirmed SUCCESSFUL (687 checks, status active→verified). VP-028: cargo-fuzz 2,340,242 execs / 0 crashes. VP-029/030/031: proptest PASS (skip-arm counter exactness + DSB-no-log + termination; whitelisted DataLink multi-IDB; SPB body.len()-4 formula). Security scan PASS (0 Crit/High; F6-SEC-A/B DEFERRED per adjudication; F6-SEC-C/D/E accepted). Mutation gate PASS (94.4% strict / 100% equiv-adjusted; PR #295 closed 6 surviving non-equivalent mutants with 13 gap-closing tests; 6 proven-equivalent mutants remain — PG-F6-MUTANTS-HYGIENE optional annotation target). Packet-count CORRECT (manual block-walk: 1 SHB + 1 IDB + 16 EPBs, reader reads all 16, no bug). Full regression GREEN. F6 gate criteria all met. PAUSED — awaiting human approval before F7 (cadence rule D-186, binding). Detail: `.factory/phase-f6-hardening/pcapng-f6-convergence-summary.md`. | 2026-06-21 |
 | D-187 | **SESSION PAUSED at F5 entry — clean pause, safe to clear.** F5 adversary dispatch hit transient model-availability error; intentionally NOT retried before pause — nothing was lost, no partial work in flight. Ground truth at pause: develop=e75a797, main=b73b242 (unchanged), TWO worktrees only (main repo develop + .factory factory-artifacts). All 6 pcapng stories MERGED; full suite green; input-drift MATCH. RESUME PLAN recorded in SESSION RESUME CHECKPOINT: (1) run vsdd-factory:factory-worktree-health BLOCKING; (2) verify ground-truth SHAs; (3) launch F5 scoped adversarial sweep (holistic integration defect hunt over src/reader.rs + src/main.rs — cross-block error precedence, endianness, zero-packet notice composition, SEC-005, counter invariants); (4) phase-by-phase cadence — PAUSE for human review before F6; (5) run bin/fetch-e2e-pcaps BEFORE F6 holdout; (6) F6 formal work (VP-025..031 Kani+fuzz+proptest, STORY-125-VP027-EXTRACT-001, VP-026 re-scope) then F7 then release. F5-F7-INTAKE list (15 items) preserved in checkpoint. STATE.md D-187 committed to factory-artifacts (Single-Commit Burst Protocol). | 2026-06-21 |
@@ -306,11 +307,13 @@ Full tech-debt register: `.factory/tech-debt-register.md`.
 | BC-2.01.018-AC-002-ISOLATION (D-124/D-183) | [cross-story] BC-2.01.018 AC-002: per-file error isolation in main.rs processing loop — catch-and-continue on reader errors so batch always completes; any_error flag → exit 1 after write_output. Deferred from STORY-124 to STORY-128. | **DONE — IMPLEMENTED + CONVERGED in STORY-128 (D-183)** |
 | STORY-128-RESOLVE-TARGETS-MULTITARGET-001 (D-183) | [LOW, cross-story/integration] A non-existent target PATH in a multi-target CLI invocation aborts the batch via resolve_targets(target)? propagation. This is OUT of STORY-128's per-file-reader-error perimeter (STORY-127 owns resolve_targets). Pre-existing; not regressed by STORY-128. Consider multi-target finalize-robustness in a future hardening pass. DF-VALIDATION-001 required before GitHub issue. | BACKLOG — LOW, out-of-perimeter |
 
+| INPUT-HASH-ERROR-PRESTORY (D-193) | [LOW, pre-existing, outside FE-001 scope] 3 stories have persistent ERROR status from `bin/compute-input-hash --scan`: STORY-001 (input file BC-2.01.004.md missing — retired BC, comment in inputs list causes tool failure), STORY-091 (no `inputs:` block in frontmatter), STORY-121 (no `inputs:` block in frontmatter). Pre-dates input-hash convention; not introduced by FE-001. Resolution path: backlog/maintenance — either update STORY-001 inputs list to remove retired BC reference, and add `inputs:` blocks to STORY-091/121. DF-VALIDATION-001 not required (direct tool observation). | DEFERRED — pre-existing, outside FE-001; target: backlog/maintenance |
+
 *(Engine-notes and additional low-severity drift items: cycles/feature-story-119-grouped-collapse/ and cycles/feature-arp-v0.7.0/.)*
 
 ## Deferred Next-Work Backlog
 
-1. **pcapng reader support (FE-001):** F6 CONVERGED (D-191). PRs #293/#294/#295 merged. VP-INDEX v2.10 (31/31 verified). Security PASS (0 Crit/High). Mutation PASS (94.4% strict / 100% equiv). ALL 6 stories merged (STORY-123..128, e75a797). E-19 epic DONE. stories_delivered=77. **PAUSED — F7 requires human approval.** Next: await human F7 gate approval, then delta adversarial convergence + final regression + release.
+1. **pcapng reader support (FE-001):** F7 IN PROGRESS (D-193). Consistency audit CONVERGED. Input-drift RESOLVED. F7-001/F7-002 remediation DONE. F7-003 README PR pending. PAUSED — F7 human gate required. Next: confirm F7-003 README PR merged, then await human F7 gate approval → release decision.
 2. **DNS-TUNNELING-COVERAGE-001:** OPEN — human decision on feature scope. Fixtures ready.
 3. **STORY-121 (E-11 process-gap):** OPEN DRAFT — human decision on scope.
 4. **PCAP-CORPUS-001:** TABLED — human decision.

@@ -2,9 +2,9 @@
 artifact: architecture-section
 section: verification-coverage-matrix
 traces_to: ARCH-INDEX.md
-version: "1.18"
+version: "1.19"
 status: verified
-producer: architect
+producer: spec-steward
 timestamp: 2026-05-20T00:00:00Z
 modified:
   - date: 2026-06-02
@@ -76,6 +76,9 @@ modified:
   - date: 2026-06-20
     actor: architect
     reason: "Pass-6 adversarial remediation (ADR-009 rev 9): VP property updates only — no row additions, no count changes (Totals row unchanged: Kani 14 / proptest 10 / fuzz 2 / integration-unit 5 = 31). VP-027 Property cell: interface_id discriminant split — empty table → Err(E-INP-009); OOB non-empty table → Err(E-INP-010); slash notation removed; Kani harness must model table-size as symbolic boolean (Decision 22 / F-H4). VP-031 Property cell: formula CORRECTED from min(original_len, body.len() as u32) to min(original_len, body.len() as u32 - 4) = min(original_len, spb_data_available); canonical symbol spb_data_available = body.len()-4 = block_total_length-16; rev 8 formula was wrong by 4 bytes (included the original_len header in the data bound) (Decision 22 / F-H2 / F-H3). Coverage note updated. Version bump 1.17→1.18."
+  - date: 2026-06-22
+    actor: spec-steward
+    reason: "F7 consistency fix FINDING-F7-001 — VP-025..VP-031 Status reconciled draft→verified to match VP-INDEX v2.10. All 7 pcapng BCs were locked/verified at the F6 lock gate (develop 1ca30a3, PRs #293+#294, 2026-06-21): VP-025 (Kani 4 harnesses, 59 checks each), VP-026 (Kani 272 checks), VP-027 (Kani 687 checks, status active→verified at lock), VP-028 (cargo-fuzz 2,340,242 execs/0 crashes), VP-029 (proptest counter exactness + DSB-no-log + termination), VP-030 (proptest 3 cases WHITELISTED domain), VP-031 (proptest body.len()-4 formula). Coverage note updated to replace stale draft-pending prose with verified-lock evidence block mirroring VP-021..VP-024 style. Aggregate counts remain unchanged: total 31, verified 31, draft 0. Version bump 1.18→1.19."
 ---
 
 # Verification Coverage Matrix
@@ -108,13 +111,13 @@ modified:
 | VP-022 | Modbus MBAP parse safety + FC boundary classification | analyzer/modbus.rs | Kani | P1 | verified |
 | VP-023 | DNP3 DL frame parse safety + FC classification + frame_len arithmetic | analyzer/dnp3.rs | Kani | P1 | verified |
 | VP-024 | ARP frame parse safety (extract_arp_frame) + GARP totality + binding-table cap | analyzer/arp.rs | Kani | P1 | verified |
-| VP-025 | pcapng timestamp conversion totality: no panic, ts_usecs in [0,999999], ts_sec saturated (.min(u32::MAX)), saturating arithmetic for all (u32,u32,u8); large-ts_high Kani vector required (rev 8 / M-3) | reader.rs (pcapng_pure_core fns) [b] | Kani | P1 | draft |
-| VP-026 | pcapng SHB parse safety: no panic, byte-order BOM detection correct (LE/BE), Err for <28 bytes | reader.rs (pcapng_pure_core fns) [b] | Kani | P1 | draft |
-| VP-027 | pcapng EPB parse safety: no panic; interface_id discriminant — empty table → Err(E-INP-009); OOB non-empty table → Err(E-INP-010); slash notation removed (rev 9 / Decision 22 / F-H4); guard-before-allocate; padding-overrun (20+captured_len+pad_len>body.len()) → Err(E-INP-008); bound-by-body (captured_len>body.len()-20) → Err(E-INP-008); NOT E-INP-010 (rev 8 / C-1) | reader.rs (pcapng_pure_core fns) [b] | Kani | P1 | draft |
-| VP-028 | pcapng reader no-panic (cargo-fuzz fuzz_pcapng_reader, F6 hardening) | reader.rs | cargo-fuzz | P1 | draft |
-| VP-029 | pcapng block-walk skip: always terminates, Err-breaks loop, cursor advances >= 12 bytes per Ok | reader.rs | proptest | P1 | draft |
-| VP-030 | pcapng multi-IDB linktype agreement totality (RESTATED rev 7 / H-3): WHITELISTED DataLink domain only; all-equal → Ok, first-differing whitelisted DataLink → Err(E-INP-011); non-whitelisted → E-INP-001 (out of scope); comparison unit DataLink not raw u16 | reader.rs | proptest | P1 | draft |
-| VP-031 | pcapng SPB captured-len arithmetic correctness (spb_data_available formula): captured_len == min(original_len, body.len() as u32 - 4) = min(original_len, spb_data_available); slice length == captured_len; no OOB for all (u32, &[u8] with len>=4) inputs; formula CORRECTED from rev 8 (body.len() → body.len()-4 per Decision 22 / F-H2 / F-H3); snaplen DROPPED (rev 8 / Decision 9) | reader.rs (pcapng_pure_core fns) [b] | proptest | P1 | draft |
+| VP-025 | pcapng timestamp conversion totality: no panic, ts_usecs in [0,999999], ts_sec saturated (.min(u32::MAX)), saturating arithmetic for all (u32,u32,u8); large-ts_high Kani vector required (rev 8 / M-3) | reader.rs (pcapng_pure_core fns) [b] | Kani | P1 | verified |
+| VP-026 | pcapng SHB parse safety: no panic, byte-order BOM detection correct (LE/BE), Err for <28 bytes | reader.rs (pcapng_pure_core fns) [b] | Kani | P1 | verified |
+| VP-027 | pcapng EPB parse safety: no panic; interface_id discriminant — empty table → Err(E-INP-009); OOB non-empty table → Err(E-INP-010); slash notation removed (rev 9 / Decision 22 / F-H4); guard-before-allocate; padding-overrun (20+captured_len+pad_len>body.len()) → Err(E-INP-008); bound-by-body (captured_len>body.len()-20) → Err(E-INP-008); NOT E-INP-010 (rev 8 / C-1) | reader.rs (pcapng_pure_core fns) [b] | Kani | P1 | verified |
+| VP-028 | pcapng reader no-panic (cargo-fuzz fuzz_pcapng_reader, F6 hardening) | reader.rs | cargo-fuzz | P1 | verified |
+| VP-029 | pcapng block-walk skip: always terminates, Err-breaks loop, cursor advances >= 12 bytes per Ok | reader.rs | proptest | P1 | verified |
+| VP-030 | pcapng multi-IDB linktype agreement totality (RESTATED rev 7 / H-3): WHITELISTED DataLink domain only; all-equal → Ok, first-differing whitelisted DataLink → Err(E-INP-011); non-whitelisted → E-INP-001 (out of scope); comparison unit DataLink not raw u16 | reader.rs | proptest | P1 | verified |
+| VP-031 | pcapng SPB captured-len arithmetic correctness (spb_data_available formula): captured_len == min(original_len, body.len() as u32 - 4) = min(original_len, spb_data_available); slice length == captured_len; no OOB for all (u32, &[u8] with len>=4) inputs; formula CORRECTED from rev 8 (body.len() → body.len()-4 per Decision 22 / F-H2 / F-H3); snaplen DROPPED (rev 8 / Decision 9) | reader.rs (pcapng_pure_core fns) [b] | proptest | P1 | verified |
 
 
 ## Per-Module Coverage Totals
@@ -197,33 +200,33 @@ modified:
   Non-whitelisted values are out of VP-030 scope; they are covered by BC-2.01.016 integration tests.
   Tool/phase/status/counts unchanged.
 
-- VP-025 through VP-031 (reader.rs) are status=draft pending BC revisions by the PO
-  per ADR-009 rev 4/5/6/7/8 PO BC-Change Dispatch and F3 story decomposition. VP-028
-  (cargo-fuzz) is explicitly an F6 hardening deliverable; it is NOT expected to be
-  exercised in F3/F4. VP-025, VP-026, VP-027 (Kani) and VP-029, VP-030, VP-031
-  (proptest) will transition to verified at F6 per the VP-022/VP-023/VP-024 lifecycle
-  pattern. VP-031 (proptest) was added in Pass-3 (ADR-009 rev 6 / Decision 18) to
-  provide the arithmetic correctness VP for BC-2.01.013 SPB body-clamping — VP-028
-  cargo-fuzz covers no-panic but cannot assert the arithmetic relationship.
-  **Rev 8 amendment (Decision 9 / H-3 + M-2):** VP-031 property narrowed — snaplen
-  DROPPED; formula was `captured_len == min(original_len, body.len() as u32)` (corrected
-  in rev 9 / Decision 22 — see below).
-  VP-031 fills that gap per DF-CANONICAL-FRAME-HOLDOUT-001. BC-2.01.013 carries DUAL
-  VP coverage: VP-031 (arithmetic correctness, proptest) + VP-028 (no-panic, cargo-fuzz).
-  **Rev 8 property amendments also apply to VP-025** (ts_sec saturation + large-ts_high
-  Kani vector, M-3) **and VP-027** (padding-overrun/bound-by-body → E-INP-008 explicit,
-  C-1 / Decision 20 clarification). No VP counts changed.
-  **Rev 9 amendment (Decision 22 / F-H2 / F-H3):** VP-031 formula CORRECTED —
-  `min(original_len, body.len() as u32)` → `min(original_len, body.len() as u32 - 4)`.
-  On the raw-block path `RawBlock.body` for SPB includes the 4-byte `original_len`
-  fixed field followed by packet data; rev 8 incorrectly used the full body length as
-  the data bound. The canonical symbol `spb_data_available = body.len() - 4` (= btl-16)
-  is now defined in Decision 22. Property domain: (original_len: u32, body: &[u8])
-  with body.len() >= 4.
-  **Rev 9 amendment (Decision 22 / F-H4):** VP-027 interface_id check extended to
-  assert error DISCRIMINANT — empty table → E-INP-009 specifically; OOB non-empty →
-  E-INP-010 specifically. Slash notation removed. Kani harness must model table-size
-  as symbolic boolean. No VP counts changed.
+- VP-025 through VP-031 (reader.rs) are `verified` — all 7 pcapng BCs locked at the
+  F6 lock gate (2026-06-21 @ develop 1ca30a3, PRs #293 + #294). verification_lock=true
+  on all seven VP documents. Lock evidence by VP:
+  - VP-025: harnesses `vp025_timestamp_totality` (µs fast-path, M-3 saturation guard) +
+    `vp025_timestamp_totality_base10` + `vp025_timestamp_totality_base10_saturating` +
+    `vp025_timestamp_totality_base2` — all cargo kani VERIFICATION SUCCESSFUL (59 checks
+    each), non-vacuity confirmed; per-divisor-constant split resolves I-2 unwind note.
+  - VP-026: harness `vp026_shb_parse_safety` (#[kani::unwind(21)]), 272 checks
+    VERIFICATION SUCCESSFUL, non-vacuity confirmed; twin-drift tripwire
+    `tests/sec_shb_twin_equivalence_tests.rs` (6 unit tests + 2000-case proptest) guards
+    pure `parse_shb_body_discriminant` against divergence from production `parse_shb_body`.
+  - VP-027: harness `reader::kani_proofs::vp027_epb_parse_safety`, 687 checks
+    VERIFICATION SUCCESSFUL (proof fixed F-F5P1-001 @ develop 97c66b0; re-confirmed SUCCESSFUL
+    @ 1ca30a3); status active→verified at lock gate. SEC-001 twin-drift risk remains a tracked
+    follow-up obligation (see VP-INDEX v2.10 note).
+  - VP-028: fuzz target `fuzz/fuzz_targets/fuzz_pcapng_reader.rs`, 2,340,242 execs / 121s / 0
+    crashes.
+  - VP-029: proptest suite including `proptest_VP_029_skip_arm_counter_exactness_and_dsb_no_log`
+    (counter exactness + DSB-no-log + termination).
+  - VP-030: proptest `proptest_VP_030_all_equal_whitelisted_idbs_ok` +
+    `proptest_VP_030_first_differing_whitelisted_idb_errs_e_inp_011` +
+    `proptest_VP_030_comparison_unit_is_datalink` (WHITELISTED domain, rev 7 / H-3 restatement).
+  - VP-031: existing proptest confirmed correct against the `body.len()-4` formula (Decision 22 /
+    F-H2 / F-H3 correction). BC-2.01.013 carries DUAL VP coverage: VP-031 (arithmetic
+    correctness, proptest) + VP-028 (no-panic, cargo-fuzz).
+  Aggregate counts are unchanged: total 31 / verified 31 / draft 0. Grand Totals row
+  (Kani 14 / proptest 10 / fuzz 2 / integration-unit 5 = 31) is unchanged.
 
   [b] **VP-025 / VP-026 / VP-027 module anchor: reader.rs (pcapng_pure_core fns)**
   (I-1 resolution, ADR-009 rev 5). Kani targets are pure-core helper functions

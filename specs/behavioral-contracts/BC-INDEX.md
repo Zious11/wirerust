@@ -1,10 +1,10 @@
 ---
 document_type: bc-index
 level: L3
-version: "1.68"
+version: "1.69"
 status: draft
 producer: product-owner
-timestamp: 2026-06-20T23:59:00Z
+timestamp: 2026-06-22T00:00:00Z
 phase: 1a
 traces_to: .factory/specs/prd.md
 ---
@@ -15,6 +15,8 @@ traces_to: .factory/specs/prd.md
 > links to the individual BC file. BCs are sharded into per-subsystem directories (ss-NN/).
 >
 > All BCs are marked [WRITTEN]. Body files have been verified on disk for all 303 entries (293 prior + 10 new BC-2.01.009–018 for F2 pcapng-reader-support; BC-2.01.004 retired).
+>
+> **v1.69 2026-06-22 (F7 reconciliation — BC-INDEX inline annotations reconciled with F6-SEC on-disk BC versions):** FINDING-F7-002 RESOLVED. Inline version annotations synced to on-disk BC frontmatter for 3 BCs bumped by F6-SEC hardening (PR #296 feddbd1, D-192): BC-2.01.009 v1.7→v1.8 (PC3 E-INP-014 file-size gate added, ADR-009 Decision 27; EC-011 E-INP-014 file-too-large; EC-012 E-INP-015 interface-cap path updated); BC-2.01.011 v1.7→v1.9 (skipped v1.8 → v1.9: PC4 E-INP-015 interface-cap gate added (MAX_INTERFACE_TABLE_ENTRIES=65535), ADR-009 Decision 28; EC-014 E-INP-015 interface-cap path; v1.9 minor changelog-format alignment); BC-2.01.017 v1.6→v1.7 (E-INP-014 file-too-large and E-INP-015 interface-cap added to error-code table; range updated to E-INP-001 + E-INP-008..E-INP-015; next_free E-INP-016). Note: annotations were already updated to final versions (v1.8/v1.9/v1.7) in a prior burst; this entry records the explicit F7 reconciliation audit confirmation and version bump. 302 active BCs unchanged. D-193.
 >
 > **v1.68 2026-06-20 (F2 pass-10 CLEAN (0H/0C) + F2 ADVERSARIAL CONVERGENCE — pcapng-f2-pass10-clean-CONVERGED-2026-06-20):** Pass-10 CLEAN (0C/0H/2M/3L) — CLEAN-PASS 3/3 (BC-5.39.001). F2 ADVERSARIAL CONVERGENCE ACHIEVED: passes 8/9/10 all 0 HIGH / 0 CRITICAL. Novelty LOW. BC-2.01.011 inline annotation synced v1.6→v1.7 (LOW-1: PC6 carve-out precision — if_tsresol extracted for timestamp scaling (BC-2.01.014) MUST NOT be applied to captured_len; snaplen extraction is diagnostic only per Decision 9 amend + Decision 22). BC-2.01.012 inline annotation synced v1.8→v1.9 (MEDIUM-1: stale snaplen false-attribution removed from PC6b annotation; PC6b is padding-overrun guard / defense-in-depth only, not snaplen enforcement; per Decision 9 amend, EPB does not enforce snaplen). error-taxonomy v3.6→v3.7 (LOW-3: E-INP-009 Notes source-location updated to owning-BC + function-name convention). HS-109 v1.0→v1.1 (MEDIUM-2: VP-026 mis-anchor corrected to VP-027; IDB body-decode holdout correctly anchors to BC-2.01.011 body-decode VP; VP-026 anchors to BC-2.01.010 SHB parse safety). HS-104 v1.5→v1.6 (LOW-2: Case D discriminant wording — OOB condition explicit: interface_id >= idb_count on non-empty table). ADR-009 "Current Canonical Constants" governing table added (MEDIUM-2 process-gap resolution: single source of truth for per-block fixed overhead, error codes, VP+HS assignments). 302 active BCs unchanged. D-164.
 >

@@ -32,7 +32,7 @@ inputs:
 # Subsystem anchor: SS-01 owns this story's scope because BC-2.01.009 and
 #   BC-2.01.010 are both SS-01 behavioral contracts per their traceability
 #   tables, anchored to src/reader.rs (C-4) per ARCH-INDEX Subsystem Registry.
-input-hash: "5b74982"
+input-hash: "dc88884"
 ---
 
 # STORY-123: pcapng Format Detection (Magic-Byte Probe) and SHB Parse
