@@ -186,6 +186,14 @@ pub struct TcpFlow {
     pub partial: bool,
     pub first_seen: u32,
     pub last_seen: u32,
+    /// Packet index of the most recent packet processed on this flow.
+    ///
+    /// Updated alongside `last_seen` in `get_or_create_flow`. Used by the
+    /// R4 packet-index cadence sweep (`expire_idle_by_packet_index`) to expire
+    /// flows that are idle in terms of PACKETS RECEIVED rather than wall-clock
+    /// time — providing expiry even when capture timestamps are frozen or
+    /// non-monotonic.
+    pub last_activity_index: u64,
     initiator: Option<(IpAddr, u16)>,
     fin_count: u8,
 }
@@ -200,6 +208,7 @@ impl TcpFlow {
             partial: false,
             first_seen: timestamp,
             last_seen: timestamp,
+            last_activity_index: 0,
             initiator: None,
             fin_count: 0,
         }
