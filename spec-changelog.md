@@ -14,6 +14,32 @@ changes, invariant rewrites).
 
 ---
 
+## [arch-index-bc-count-reconciliation-maint-2026-06-22] — 2026-06-22
+
+### ARCH-INDEX v1.5 → v1.6 — Maintenance BC-count reconciliation (F-MAJ-001)
+
+**Trigger:** Maintenance Sweep 7 auto-fixable finding F-MAJ-001 — two BC-count annotations
+in the ARCH-INDEX Subsystem Registry were stale. BC-INDEX v1.69 (the authoritative source)
+was already correct; only the ARCH-INDEX annotation cells required update.
+
+**Changes:**
+
+- **SS-01 (PCAP Ingestion):** `BC Count` cell `8` → `17`. Reconciliation: 8 pre-FE-001
+  active + 10 new FE-001 BCs (BC-2.01.009..018) − 1 retired (BC-2.01.004) = 17 active.
+- **SS-11 (Reporting):** `BC Count` cell `29` → `34`. Reconciliation: 29 prior active + 5
+  grouped-collapse BCs (BC-2.11.030..034) = 34 active.
+
+**Impact:** Annotation-only correction. No BC content changed. No story, VP, or test is
+affected. BC-INDEX is unchanged. Traceability chain intact.
+
+**Version bumps:**
+
+| Artifact | Before | After |
+|----------|--------|-------|
+| ARCH-INDEX | v1.5 | v1.6 |
+
+---
+
 ## [pcapng-f2-pass10-clean-CONVERGED-2026-06-20] — 2026-06-20
 
 ### PASS-10 CLEAN (0C/0H/2M/3L) — CLEAN-PASS 3/3 — F2 ADVERSARIAL CONVERGENCE ACHIEVED — D-164

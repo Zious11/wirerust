@@ -1,7 +1,7 @@
 ---
 artifact: architecture-index
 level: L4
-version: "1.5"
+version: "1.6"
 status: verified
 producer: architect
 timestamp: 2026-05-20T00:00:00Z
@@ -51,6 +51,9 @@ modified:
   - date: 2026-06-21
     actor: architect
     reason: "ADR-009 rev 11→rev 12 (D-188, F5 Pass-1 fixes, PR #287 merged develop=97c66b0): Decision 25 — decode_epb_body extracted as pub #[doc(hidden)] pure-core function (VP-027 Kani anchor per footnote [^vp025-027-module-anchor]; F-F5P1-001 fix; genuine non-vacuous VP-027 proof now possible). Decision 26 — PcapSource.is_pcapng: bool discriminant field added to carry the pcap/pcapng format decision from from_pcap_reader branch point; format_zero_packet_notice reads is_pcapng instead of calling read_magic a second time, eliminating TOCTOU mislabel and redundant open (F-F5P1-003 fix; BC-2.01.009 PC6 Decision 19 implementation gap closed). SS-01 affected. No BC count change. BC-2.01.013 v1.10 (O-2 accepted-behavior note for SPB check-ordering asymmetry)."
+  - date: 2026-06-22
+    actor: spec-steward
+    reason: "Maintenance sweep maint-2026-06-22 (F-MAJ-001): reconcile stale BC-count annotations in Subsystem Registry. SS-01 (PCAP Ingestion) 8→17 (17 active = 8 pre-FE-001 + 10 new BC-2.01.009..018 − 1 retired BC-2.01.004). SS-11 (Reporting) 29→34 (34 active = 29 + 5 grouped-collapse BC-2.11.030..034). BC-INDEX v1.69 is the authoritative source and was already correct; only the ARCH-INDEX annotation was stale. Version bump 1.5→1.6."
 phase: 1c
 origin: brownfield
 deployment_topology: single-service
@@ -103,7 +106,7 @@ The SS-NN numbering matches the PRD section scheme (bc-2.NN.NNN).
 
 | SS-ID | Name | Capabilities | Primary Source Files | BC Count |
 |-------|------|-------------|---------------------|----------|
-| SS-01 | PCAP Ingestion | CAP-01 | reader.rs | 8 |
+| SS-01 | PCAP Ingestion | CAP-01 | reader.rs | 17 |
 | SS-02 | Packet Decoding | CAP-02 + CAP-03 | decoder.rs | 15 |
 | SS-04 | TCP Reassembly | CAP-04 | reassembly/{mod,flow,segment,handler,lifecycle,config,stats}.rs | 55 |
 | SS-05 | Protocol Dispatch | CAP-05 | dispatcher.rs, analyzer/mod.rs | 9 |
@@ -112,7 +115,7 @@ The SS-NN numbering matches the PRD section scheme (bc-2.NN.NNN).
 | SS-08 | DNS Analysis | CAP-08 | analyzer/dns.rs | 4 |
 | SS-09 | Finding Emission | CAP-09 | findings.rs | 7 |
 | SS-10 | MITRE Mapping | CAP-10 | mitre.rs | 9 |
-| SS-11 | Reporting | CAP-11 | reporter/{mod,json,terminal,csv}.rs | 29 |
+| SS-11 | Reporting | CAP-11 | reporter/{mod,json,terminal,csv}.rs | 34 |
 | SS-12 | CLI / Entry | CAP-12 | main.rs, cli.rs, lib.rs, summary.rs | 21 |
 | SS-13 | Absent Behaviors | CAP-12 | cli.rs (flag parse only) | 4 | <!-- intentional: SS-13 is a sub-classification of CAP-12 (absent/intentionally-excluded behaviors), not a separate capability; see prd.md §2.13 -->
 | SS-14 | Modbus/ICS Analysis | CAP-14 | analyzer/modbus.rs | 25 | <!-- Feature cycle issue #7; ADR-005; BC-2.14.001..025 all written; F2 adversarial review complete -->
