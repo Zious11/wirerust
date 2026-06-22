@@ -73,6 +73,16 @@ traces_to: STATE.md
 15. **[process-gap] Holdout input-hash "tbd" disabled drift detection on three must-pass holdouts for 3+ passes (F-6 from pass-7)** — HS-104, HS-107, and HS-108 retained `input-hash: tbd` across passes 4-7 despite being the mandatory verification scenarios for the F2 convergence gate. With `input-hash: tbd`, the drift tripwire (`bin/compute-input-hash --scan`) cannot detect when their governing BCs change without the holdouts being regenerated. Additionally, ADR-009 (which contains Decisions 15/17/19/20/22 that directly shape the holdout cases) was not listed in the `inputs:` list for any of these three holdouts. A holdout without a live input-hash is effectively unguarded against spec drift for its entire active period. **Rule:** No holdout scenario may enter an adversarial pass with `input-hash: tbd`. The holdout author (or the remediation-burst that completes a holdout) MUST run `bin/compute-input-hash --write` before committing. ADR-009 (or the cycle-governing ADR) MUST appear in the `inputs:` list of any holdout whose cases reference numbered decisions.
     _Discovered: adversarial spec review pass-7 (F-6), 2026-06-20. Decision: D-158._
 
+16. **[cycle-close] Cycle-closing checklist (S-7.02) SATISFIED at FE-001 cycle close (D-194)** — All 6 process-gap findings from this cycle confirmed with follow-up targets before cycle closure:
+   - PG-F5-FRESHNESS-001 (D-189): MITIGATED — mandatory post-merge fast-forward rule applied during F5; target: codify as permanent pr-manager/post-merge workflow step in a self-improvement story. Status: MITIGATED — follow-up story pending.
+   - PG-F5-DOCTENSE-TOKENS-001 (D-189/D-190): DEFERRED-TO-MAINTENANCE per human directive (D-190). Target: expand token list in policies.yaml in next maintenance sweep. Status: DEFERRED-TO-MAINTENANCE.
+   - PG-F6-MUTANTS-HYGIENE (D-191): DEFERRED maintenance. Target: annotate 6 proven-equivalent mutants with cargo-mutants skip/ignore in a maintenance sweep. Status: DEFERRED — maintenance.
+   - SEC-008 (D-192): DEFERRED — streaming-reader hardening story. Target: new hardening story to address residual unbounded EPB/packet accumulation on the `from_pcap_reader` STREAM path (not CLI-reachable; DF-VALIDATION-001 required before GitHub issue). Status: DEFERRED.
+   - INPUT-HASH-ERROR-PRESTORY (D-193): DEFERRED — backlog/maintenance. Target: update STORY-001 inputs list to remove retired BC-2.01.004 reference; add `inputs:` blocks to STORY-091/STORY-121. Status: DEFERRED — pre-existing, outside FE-001.
+   - DRIFT-F5-O1-017STRINGS (D-189): DEFERRED LOW — spec-housekeeping. Target: BC-2.01.017 PC1 illustrative string reconciliation with shipped strings; defer to next spec-housekeeping burst. DF-VALIDATION-001 required before GitHub issue. Status: DEFERRED LOW.
+   All 6 findings have targets. Checklist SATISFIED per S-7.02.
+   _Recorded: D-194 cycle-close, 2026-06-22._
+
 ## Policy Candidates
 
 | Lesson | Proposed Policy | Scope | Status |

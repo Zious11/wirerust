@@ -10,6 +10,17 @@ Archived session resume checkpoints (superseded). Latest checkpoint is in STATE.
 
 ---
 
+## Checkpoint D-193 (2026-06-22 — F7 RECONCILIATION COMPLETE / PAUSED FOR F7 HUMAN GATE)
+
+Superseded by D-194 checkpoint (FE-001 FEATURE COMPLETE — F7 gate human-approved, cycle closed).
+
+- **Status:** F7 consistency audit CONVERGED. F7-001 (coverage-matrix v1.19) DONE. F7-002 (BC-INDEX v1.69) DONE. F7-003 README PR pending merge on develop. Input-drift RESOLVED (STORY-123..128 re-baselined, BENIGN). PAUSED — awaiting human F7 gate approval.
+- **develop:** feddbd1. **main:** b73b242. **stories_delivered:** 77.
+- **Spec versions at archive:** BC-INDEX v1.69, coverage-matrix v1.19, ADR-009 rev 13, VP-INDEX v2.10 (31/31 verified), error-taxonomy v3.8 (next_free E-INP-016). 302 active BCs.
+- **Input-drift at archive:** STORY-123..128 = MATCH (re-baselined D-193, BENIGN). STORY-001/091/121 = ERROR (pre-existing, outside FE-001 scope).
+
+---
+
 ## Checkpoint D-192 (2026-06-22 — F6-SEC HARDENING COMPLETE / PAUSED FOR F7)
 
 Superseded by D-193 checkpoint (F7 reconciliation burst — consistency audit CONVERGED, input-drift RESOLVED).
