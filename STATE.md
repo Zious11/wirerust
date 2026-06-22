@@ -1,29 +1,31 @@
 ---
 pipeline: FEATURE
 phase: F7
-phase_status: "FE-001 COMPLETE — F1–F7 all converged + human-approved (D-194). pcapng reader shipped to develop @ fcb8dce. Cycle feature-pcapng-reader CLOSED. Not released (human: leave on develop for next planned release; latest release remains v0.9.2)."
+phase_status: "FE-001 COMPLETE — F1–F7 all converged + human-approved (D-194). pcapng reader shipped to develop @ fcb8dce. Cycle feature-pcapng-reader CLOSED. RELEASED as v0.9.3 (2026-06-22, D-201). Pipeline quiesced."
 product: wirerust
 mode: brownfield
-timestamp: 2026-06-23T00:00:00Z
+timestamp: 2026-06-22T00:00:00Z
 
 # Release chain
-released_version: v0.9.2
-released_at: "2026-06-19"
-release_tag: v0.9.2
-release_tag_object: a298dbe
-release_commit: b73b242
-release_url: https://github.com/Zious11/wirerust/releases/tag/v0.9.2
-release_yml_run: "27852584971 SUCCESS — 4 binaries published"
-prior_released_version: v0.9.1
+released_version: v0.9.3
+released_at: "2026-06-22"
+release_tag: v0.9.3
+release_commit: 2dbf461
+release_url: https://github.com/Zious11/wirerust/releases/tag/v0.9.3
+release_yml_run: "27984557297 SUCCESS — 4 binaries published"
+prior_released_version: v0.9.2
 prior_released_at: "2026-06-19"
-prior_release_tag: v0.9.1
-prior_release_commit: ad4eec8
+prior_release_tag: v0.9.2
+prior_release_tag_object: a298dbe
+prior_release_commit: b73b242
+v091_release_tag: v0.9.1
+v091_release_commit: ad4eec8
 v090_release_tag: v0.9.0
 v090_release_commit: 986e148
 
-# Ground-truth HEADs (updated 2026-06-22 D-200 — E2E corpus smoke test PR #301)
-develop_head: 333fd62
-main_head: b73b242
+# Ground-truth HEADs (updated 2026-06-22 D-201 — v0.9.3 release)
+develop_head: a7096e1
+main_head: 2dbf461
 factory_artifacts_head: "run: git -C .factory log -1 --format='%h %s'"
 
 # Pipeline completion
@@ -41,7 +43,7 @@ adversary_gate: SATISFIED
 # Story tracking
 stories_delivered: 77
 current_cycle: feature-pcapng-reader
-current_wave: "F7 PASSED + HUMAN-APPROVED (D-194) — FE-001 COMPLETE. pcapng reader shipped to develop @ fcb8dce (PR #297 merged). F7-001/F7-002/F7-003 all DONE. Cycle CLOSED. Release deferred per human decision."
+current_wave: "F7 PASSED + HUMAN-APPROVED (D-194) — FE-001 COMPLETE. pcapng reader shipped to develop @ fcb8dce (PR #297 merged). F7-001/F7-002/F7-003 all DONE. Cycle CLOSED. RELEASED as v0.9.3 (D-201, 2026-06-22, tag 2dbf461). Pipeline quiesced."
 
 # DTU
 dtu_required: false
@@ -63,24 +65,24 @@ convergence_trajectory: "Detail: cycles/v0.1.0-greenfield-spec/convergence-traje
 
 # VSDD Pipeline State — wirerust
 
-## SESSION PAUSED — SAFE TO CLEAR (D-200)
+## SESSION PAUSED — SAFE TO CLEAR (D-201)
 
-**Previous checkpoint (D-199 — quiesce) archived. Current checkpoint updated to D-200.**
+**Previous checkpoint (D-200 — E2E corpus smoke test) archived. Current checkpoint updated to D-201.**
 
-**WARNING: DO NOT re-run F2/F3/F4/F5/F6/F7 — all CONVERGED+COMPLETE+HUMAN-APPROVED. DO NOT re-run per-story adversarial convergence (STORY-123..128) — all 3-clean + merged. DO NOT re-run input-hash rebaseline (STORY-123..128 re-baselined at D-193, BENIGN). FE-001 cycle is CLOSED. Release is deferred per human decision (D-194); do NOT auto-trigger a release. PERF-REASM-DOS-001 (CWE-407+CWE-401) RESOLVED via PR #298 (b5b54d5) — reassembly DoS fix, NOT an FE-001 defect.**
+**WARNING: DO NOT re-run F2/F3/F4/F5/F6/F7 — all CONVERGED+COMPLETE+HUMAN-APPROVED. DO NOT re-run per-story adversarial convergence (STORY-123..128) — all 3-clean + merged. DO NOT re-run input-hash rebaseline (STORY-123..128 re-baselined at D-193, BENIGN). FE-001 cycle is CLOSED. v0.9.3 RELEASED (D-201, 2026-06-22) — decision-thread (a) CLOSED. PERF-REASM-DOS-001 (CWE-407+CWE-401) RESOLVED via PR #298 (b5b54d5) — reassembly DoS fix, NOT an FE-001 defect.**
 
-### GROUND-TRUTH HEADs (verified at D-200)
+### GROUND-TRUTH HEADs (verified at D-201)
 
-- **develop:** `333fd62` — PR #301 E2E corpus smoke test merged 2026-06-22. Matches `origin/develop`.
-- **main:** `b73b242` — Unchanged since v0.9.2 release.
+- **develop:** `a7096e1` — back-merge of main (v0.9.3) into develop; no divergence; develop is 1 commit ahead of main = the back-merge commit.
+- **main:** `2dbf461` — PR #302 merge commit (`chore: release v0.9.3`); tag `v0.9.3` on this commit.
 - **factory-artifacts:** This commit's SHA (run: `git -C .factory log -1 --format='%h %s'` to resolve).
-- **Open PRs:** None. (`gh pr list` returns empty.)
+- **Open PRs:** None.
 - **Worktrees:** main repo (develop) + `.factory/` only. No story/feature worktrees open.
 - **In-flight work:** Nothing running. Session fully quiesced.
 
 ### PIPELINE STATUS
 
-- **FE-001 (pcapng capture-format reader):** COMPLETE. F1–F7 all converged + human-approved (D-194). Shipped to develop @ fcb8dce (PR #297). UNRELEASED — latest release v0.9.2 (tag `a298dbe` on main `b73b242`). Cycle `feature-pcapng-reader` CLOSED. Release deferred per human decision (D-194); do NOT auto-trigger.
+- **FE-001 (pcapng capture-format reader):** COMPLETE. F1–F7 all converged + human-approved (D-194). Shipped to develop @ fcb8dce (PR #297). RELEASED as v0.9.3 (D-201, 2026-06-22) — PR #302 merged to main (`2dbf461`), tag `v0.9.3`, 4 binaries published (run 27984557297). Cycle `feature-pcapng-reader` CLOSED.
 - **PERF-REASM-DOS-001 (CWE-407 TCP-reassembly null-eviction DoS):** RESOLVED on develop (PR #298, b5b54d5, R1–R4; 75 s→0.76 s, 120 K flows). Root-cause doc: `.factory/phase-f6-hardening/reassembly-cwe407-dos-rootcause.md`. Not an FE-001 defect.
 - **E2E corpus enhanced (D-198):** 18 real pcapng/pcap captures registered via PRs #299/#300; sha256-pinned manifest at `.factory/code-delivery/E2E-PCAPS.md`; reproducible via `bin/fetch-e2e-pcaps`; captures gitignored under `tests/fixtures/local-samples/`. develop=e90b536.
 - **E2E corpus smoke test delivered (D-200):** PR #301 (merge `333fd62`) — `tests/e2e_corpus_smoke_tests.rs` (354 lines). Iterates all fetched captures via `PcapSource::from_file`; pins 26 Ok reader-packet-counts + 3 Err error-classes (E-INP-011, Unsupported pcap link type, E-INP-010); asserts NO PANIC via `catch_unwind`; self-skips when fixtures absent (CI stays green). Test-only — no production code, no new BC. 29 captures verified, 0 mismatch, 0 panic. CI 10/10 green. develop=333fd62.
@@ -103,7 +105,7 @@ convergence_trajectory: "Detail: cycles/v0.1.0-greenfield-spec/convergence-traje
 
 ### DECISION THREADS AWAITING HUMAN
 
-(a) **Patch-release decision:** develop carries FE-001 pcapng reader + CWE-407 DoS fix vs released v0.9.2. Human decides whether to cut a patch release now or bundle with next feature cycle.
+(a) ~~**Patch-release decision** — CLOSED (D-201, 2026-06-22).~~ Released as v0.9.3: tag `v0.9.3` on main `2dbf461` (PR #302), GitHub Release with 4 binaries (run 27984557297). develop back-merged to `a7096e1`.
 (b) **Real SPB fixture:** Find a cleaner real SPB-only fixture with no IfFcsLen option for true SPB-success coverage (CORPUS-OBS-PCAPNG-IFFCSLEN-001). Current synthetic coverage is sufficient but a real fixture is preferred.
 (c) ~~**Optional E2E corpus test** — CLOSED (D-200, 2026-06-22).~~ Delivered via PR #301 (merge `333fd62`). `tests/e2e_corpus_smoke_tests.rs`: 29 captures, 0 panic, CI green. Thread closed.
 
@@ -111,7 +113,7 @@ convergence_trajectory: "Detail: cycles/v0.1.0-greenfield-spec/convergence-traje
 
 1. **Run `vsdd-factory:factory-worktree-health`** (BLOCKING) — verify .factory/ worktree is mounted on `factory-artifacts`, no detached HEAD, no drift.
 2. **Read this STATE.md** — absorb the full current state before taking any action.
-3. **Verify HEADs match:** `git log -1 --format='%h' develop` must be `333fd62`; `git log -1 --format='%h' main` must be `b73b242`.
+3. **Verify HEADs match:** `git log -1 --format='%h' develop` must be `a7096e1`; `git log -1 --format='%h' main` must be `2dbf461`.
 4. **Confirm no in-flight work:** `gh pr list` must return empty; no story worktrees open.
 5. **Confirm factory + develop trees are clean:** `git status` on develop; `git -C .factory status` on factory-artifacts.
 6. **No active cycle** — await human direction. Pick from Decision Threads above or start a new task.
@@ -158,10 +160,10 @@ prd.md v1.33, error-taxonomy v3.8 (next_free E-INP-016), nfr-catalog v2.3, ADR-0
 
 ## Status
 
-**FEATURE MODE — pcapng reader cycle CLOSED (feature-pcapng-reader). FE-001 COMPLETE (D-194, human-approved). F7 gate PASSED. F7-001/F7-002/F7-003 all DONE. F6 CONVERGED+F6-SEC LANDED — VP-INDEX v2.10 (31/31 verified), security PASS, mutation PASS. E-19 epic DONE. stories_delivered=77. Cycle-closing checklist SATISFIED (S-7.02). Release deferred per human (D-194) — leave on develop for next planned release. Latest release remains v0.9.2. DO NOT re-run F5/F6/F7 — all CONVERGED+HUMAN-APPROVED.**
+**FEATURE MODE — pcapng reader cycle CLOSED (feature-pcapng-reader). FE-001 COMPLETE (D-194, human-approved). F7 gate PASSED. F7-001/F7-002/F7-003 all DONE. F6 CONVERGED+F6-SEC LANDED — VP-INDEX v2.10 (31/31 verified), security PASS, mutation PASS. E-19 epic DONE. stories_delivered=77. Cycle-closing checklist SATISFIED (S-7.02). RELEASED as v0.9.3 (D-201, 2026-06-22). Pipeline quiesced. DO NOT re-run F5/F6/F7 — all CONVERGED+HUMAN-APPROVED.**
 
-Latest release: v0.9.2 (tag obj `a298dbe`, main `b73b242`, 4 binaries). develop=333fd62 (PERF-REASM-DOS-001 fix PR #298 D-197; E2E corpus +17 captures PRs #299/#300 D-198; E2E corpus smoke test PR #301 D-200). main=b73b242. stories_delivered=77.
-FE-001 DELIVERED: pcapng capture-format reader (ADR-009 rev 13, BC-2.01.013 v1.10, VP-INDEX v2.10 (31/31 verified), BC-INDEX v1.69, 10 new BCs, 1 retired BC). Awaiting next release cycle.
+Latest release: v0.9.3 (main `2dbf461`, tag `v0.9.3`, 4 binaries, run 27984557297). develop=a7096e1 (back-merge of v0.9.3 main). main=2dbf461. stories_delivered=77.
+FE-001 DELIVERED + RELEASED: pcapng capture-format reader (ADR-009 rev 13, BC-2.01.013 v1.10, VP-INDEX v2.10 (31/31 verified), BC-INDEX v1.69, 10 new BCs, 1 retired BC). CWE-407(+CWE-401) DoS fix (PR #298). E2E corpus smoke tests (PRs #299/#300/#301). New error codes E-INP-010..015.
 Maintenance maint-2026-06-17: COMPLETE. NON-BLOCKING. Report: `.factory/maintenance/sweep-report-2026-06-17.md`.
 
 ## Phase Progress
@@ -185,7 +187,8 @@ Maintenance maint-2026-06-17: COMPLETE. NON-BLOCKING. Report: `.factory/maintena
 | E-18/E-8 STORY-119 cycle (F1-F7) + v0.9.0 | **RELEASED + CLOSED 2026-06-19** | STORY-120/122/119; 293 BCs; tag v0.9.0 986e148. Detail: cycles/feature-story-119-grouped-collapse/ |
 | v0.9.1 patch | **RELEASED 2026-06-19** | Doc/help; PRs #277/#278; tag v0.9.1 ad4eec8 |
 | v0.9.2 patch | **RELEASED 2026-06-19** | DNP3 determinism + E2E fixtures; PRs #279/#280; tag v0.9.2 b73b242 |
-| **Feature pcapng-reader (F7 PASSED / D-194 — COMPLETE)** | **FE-001 COMPLETE (D-194, human-approved). F7 gate PASSED. F7-001 coverage-matrix v1.19 DONE. F7-002 BC-INDEX v1.69 DONE. F7-003 README PR #297 merged (fcb8dce). F6 CONVERGED (D-191) + F6-SEC LANDED (D-192). PRs #293-#297 merged. VP-INDEX v2.10 (31/31 verified). Security PASS. Mutation PASS (94.4%/100% equiv). E-19 COMPLETE. stories_delivered=77. Release deferred per human (D-194). PERF-REASM-DOS-001 RESOLVED (D-197, PR #298, b5b54d5). E2E corpus +17 real captures (D-198, PRs #299/#300): pcapng block-diversity + HTTP + DNS-tunnel positives + IP-frag; 2 LOW corpus observations (CORPUS-OBS-PCAPNG-IFFCSLEN-001, CORPUS-OBS-LINKTYPE-NULL-001).** | FE-001 COMPLETE + PERF-REASM-DOS-001 RESOLVED + E2E corpus enhanced. develop=e90b536. Cycle: feature-pcapng-reader CLOSED |
+| **Feature pcapng-reader (F7 PASSED / D-194 — COMPLETE)** | **FE-001 COMPLETE (D-194, human-approved). F7 gate PASSED. F7-001 coverage-matrix v1.19 DONE. F7-002 BC-INDEX v1.69 DONE. F7-003 README PR #297 merged (fcb8dce). F6 CONVERGED (D-191) + F6-SEC LANDED (D-192). PRs #293-#297 merged. VP-INDEX v2.10 (31/31 verified). Security PASS. Mutation PASS (94.4%/100% equiv). E-19 COMPLETE. stories_delivered=77. PERF-REASM-DOS-001 RESOLVED (D-197, PR #298, b5b54d5). E2E corpus +17 real captures (D-198, PRs #299/#300): pcapng block-diversity + HTTP + DNS-tunnel positives + IP-frag; 2 LOW corpus observations (CORPUS-OBS-PCAPNG-IFFCSLEN-001, CORPUS-OBS-LINKTYPE-NULL-001). E2E corpus smoke test (PR #301, D-200).** | FE-001 COMPLETE + PERF-REASM-DOS-001 RESOLVED + E2E corpus enhanced. develop=e90b536. Cycle: feature-pcapng-reader CLOSED |
+| **v0.9.3 release** | **RELEASED 2026-06-22 (D-201)** | PR #302 (`chore: release v0.9.3`) → main merge `2dbf461`; tag `v0.9.3`; 4 binaries (run 27984557297); back-merge to develop `a7096e1`. Decision-thread (a) CLOSED. |
 
 ## Decisions Log
 
@@ -232,6 +235,8 @@ D-131..D-135: `cycles/feature-story-119-grouped-collapse/decisions-archive.md`
 | D-189 | **F5 CONVERGED — 3 consecutive clean adversarial passes (passes 6, 7, 8) on develop=3fc0e67.** Full pass record: Pass 1 NOT CLEAN (5 findings, 1H/2M/2L, PR #287 resolved). Pass 2a METHODOLOGY HALT (stale tree — PG-F5-FRESHNESS-001 triggered). Pass 2 NOT CLEAN (3 MED doc-tense, PR #288). Pass 3 NOT CLEAN (1 MED DF-SIBLING-SWEEP-001, PR #289). Pass 4 NOT CLEAN (1 MED per-test RED: lines, PR #290). Pass 5 NOT CLEAN (2 findings: F-F5P5-001 MED false wildcard doc + F-F5P5-002 LOW short-read risk, PR #291). Pass 6 CLEAN (BC sweep 11/11, 1 informational obs). Pass 7 CLEAN (security/correctness depth, VP-027 non-vacuous re-confirmed). Pass 8 CLEAN (traceability + test-quality depth; 2 LOW informational obs). BC-5.39.001 gate SATISFIED. F5-EXIT EVIDENCE: cargo test --all-targets ALL GREEN (exit 0); cargo kani --harness vp027_epb_parse_safety VERIFICATION SUCCESSFUL, 0/687 checks failed (6.25s). Develop merge chain: 97c66b0(PR#287)→292c5e4(#288)→5eaf587(#289)→2dd5209(#290)→3fc0e67(#291). Process-gap codifications: PG-F5-FRESHNESS-001 (post-merge fast-forward rule); PG-F5-DOCTENSE-TOKENS-001 (expand doc-tense sweep tokens). Non-blocking open items carried: SEC-001/SEC-002 (F5P1); DRIFT-F5-O1-017STRINGS. Detail: .factory/phase-f5-adversarial/pcapng-f5-convergence-summary.md. STATUS: PAUSED — awaiting human approval before F6. | 2026-06-21 |
 | D-190 | **F5 CLOSED / F6 ENTRY — SEC-001 twin-equivalence trip-wire LANDED (PR #292, 662bd85).** Human approved F5→F6 gate with directive "fix SEC-001 first." SEC-001 resolved: new `tests/sec_001_twin_equivalence_tests.rs` (proptest 2000 cases + 6 unit anchors asserting production `decode_epb_body` ↔ twin `decode_epb_body_discriminant` parity; mutation-confirmed non-vacuous; code-review APPROVE 0 findings). develop advanced 3fc0e67→662bd85. PG-F5-DOCTENSE-TOKENS-001 policy fix DEFERRED-TO-MAINTENANCE per human directive. F6 first step: authentic arp-baseline-16pkt.cap fetch via bin/fetch-e2e-pcaps. | 2026-06-21 |
 | D-200 | **E2E corpus smoke test delivered (PR #301, merge `333fd62`). Decision thread (c) CLOSED.** `tests/e2e_corpus_smoke_tests.rs` (354 lines) merged to develop 2026-06-22. Iterates all fetched captures via `PcapSource::from_file` (real CLI dispatch path); pins 26 Ok reader-packet-counts + 3 Err error-classes (E-INP-011, Unsupported pcap link type, E-INP-010); asserts NO PANIC via `catch_unwind`; self-skips when `tests/fixtures/local-samples/` absent so CI stays green. Reproduce: `bin/fetch-e2e-pcaps`. Verification: 29 captures, 0 mismatch, 0 panic, CI 10/10 green. AI code review APPROVE (0 blocking). Security review 0 findings. Test-only — no production code, no new BC. develop advanced e90b536→333fd62 (PR #301, branch deleted, refs pruned). Threads (a) patch-release and (b) real SPB fixture remain OPEN. | 2026-06-22 |
+| D-201 | **v0.9.3 RELEASED — decision-thread (a) CLOSED.** PR #302 (`chore: release v0.9.3`) merged to main (`2dbf461`); annotated tag `v0.9.3` on main. GitHub Release 27984557297: 4 binaries published (aarch64-apple-darwin, x86_64-apple-darwin, x86_64-pc-windows-msvc, x86_64-unknown-linux-gnu). Release content: pcapng capture-format reader (FE-001, STORY-123..128, BC-2.12.011, ADR-009); CWE-407(+CWE-401) TCP-reassembly DoS fix (PR #298); F6 hardening; new input-validation error codes E-INP-010..015; E2E corpus smoke tests (PRs #299/#300/#301). back-merge of main → develop: `a7096e1` (no divergence). Prior deferral per D-194 SUPERSEDED. Thread (a) CLOSED. Thread (b) (real SPB fixture) remains OPEN. Pipeline quiesced. | 2026-06-22 |
+| D-200 | **E2E corpus smoke test (D-200): PR #301 (merge `333fd62`) merged.** `tests/e2e_corpus_smoke_tests.rs` (354 lines). 29 captures, 0 panic, CI green. Thread (c) CLOSED. develop=333fd62. | 2026-06-22 |
 | D-199 | **SESSION PAUSED — SAFE TO CLEAR.** D-198 checkpoint archived to `cycles/feature-pcapng-reader/session-checkpoints.md`. Stray `code-delivery/pcapng-corpus/` pr-manager artifact added to factory-artifacts. No cycle open. develop=e90b536, main=b73b242. Open threads: patch-release decision; real SPB fixture; optional E2E corpus test. All follow-ups carry forward (see D-199 checkpoint above). | 2026-06-22 |
 | D-198 | **E2E corpus enhanced with 17 real public captures (post-FE-001, PRs #299/#300); per-test-instance gap analysis recorded.** PR #299 (9003830): 7 pcapng block-diversity captures — SHB options, multi-IDB, EPB/SPB, NRB/ISB/DSB, big+little endian, nanosecond if_tsresol, block comments. PR #300 (e90b536): 10 analyzer-gap captures — mchow01 set6/set4 HTTP + markofu HTTP baseline; dmachard dnscat2/iodine/dns2tcp DNS-tunnel positives (future-detector fixtures, detector unimplemented); teardrop IP-frag. Plus 2 link-only entries (CUPID 657MB CC-BY-SA-4.0; MTA HTTP exercise). All registered in bin/fetch-e2e-pcaps + tests/fixtures/E2E-PCAPS.md (sha256-pinned, reproducible). Sources: Wireshark wiki/gitlab, mchow01/Bootcamp, dmachard/datasets-malicious-dns, markofu/pcaps — all local-use. Corpus smoke-test observations: CORPUS-OBS-PCAPNG-IFFCSLEN-001 (LOW — SimplePacketBlockSample.pcapng rejected by pcap-file crate on IfFcsLen IDB option, BC-2.01.013 SPB-success path unexercised by real fixture; backlog: find cleaner fixture or keep synthetic); CORPUS-OBS-LINKTYPE-NULL-001 (LOW — pcapng-many-interfaces.pcapng leads with DLT_NULL(0) not in BC-2.01.016 whitelist → E-INP-001; deliberate scope, loopback support = potential future feature). Confirmed keep-synthetic: TCP-segment conflicting-overlap/retransmit/out-of-window isolation; exotic DLTs RAW(101)/SLL(113)/IPv4(228)/IPv6(229). develop=e90b536. | 2026-06-22 |
 | D-197 | **CWE-407 reassembly DoS RESOLVED (R1-R4, PR #298, b5b54d5); discovered via FE-001 large-pcapng scale validation.** Pre-existing reassembly-engine bug (NOT FE-001). Root-cause: (1) CWE-401 zombie segments — no below-base guard in `insert_segment`; (2) CWE-407 null-eviction off-by-one — break at `<= max_flows` evicted zero flows per packet; (3) frozen-timestamp expiry suppression on non-increasing pcap timestamps. Fix: R1 below-base zombie guard (OutOfWindow); R2 off-by-one (`<=`→`<`); R3 batch eviction to 90% headroom via EvictionTrigger (O(1) amortised per packet); R4 monotonic packet_index idle expiry (expiry_sweep_interval=8192, idle_packet_threshold=65536). Result: 75 s→0.76 s on 120K-flow synthetic (100× speedup). 6 RED→GREEN tests. Code review APPROVE; security review APPROVE (active flows never reaped). Root-cause doc: `.factory/phase-f6-hardening/reassembly-cwe407-dos-rootcause.md`. develop_head updated fcb8dce→b5b54d5. PERF-REASM-NFR-001 logged (LOW follow-up). | 2026-06-22 |
@@ -343,7 +348,7 @@ Full tech-debt register: `.factory/tech-debt-register.md`.
 
 ## Deferred Next-Work Backlog
 
-1. **pcapng reader support (FE-001):** COMPLETE (D-194). F7 gate human-approved. develop=e90b536 (PERF-REASM-DOS-001 fix D-197 + E2E corpus +17 real captures D-198). Release deferred per human — stays on develop for next planned release. Cycle CLOSED.
+1. **pcapng reader support (FE-001):** COMPLETE (D-194). RELEASED as v0.9.3 (D-201, 2026-06-22). Cycle CLOSED.
 2. **DNS-TUNNELING-COVERAGE-001:** OPEN — human decision on feature scope. Fixtures ready.
 3. **STORY-121 (E-11 process-gap):** OPEN DRAFT — human decision on scope.
 4. **PCAP-CORPUS-001:** TABLED — human decision.
