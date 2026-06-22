@@ -7,6 +7,126 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.9.3] - 2026-06-22
+
+### Added
+
+- **pcapng capture-format reader.** wirerust now reads pcapng files in addition to classic
+  pcap. Format is detected by a magic-byte probe on the first four bytes of the file
+  (pcapng SHB magic `0x0A0D0D0A`), so pcapng files are accepted regardless of file
+  extension — including when passing a directory, where the file list is now built by
+  magic-byte detection rather than by extension filter alone (`.pcapng` files were
+  previously excluded from directory expansion).
+
+  The reader parses four block types:
+
+  - **SHB** (Section Header Block) — both big- and little-endian byte orders.
+  - **IDB** (Interface Description Block) — up to 65,535 interfaces per file; all
+    interfaces in a single file must share the same link type. The `if_tsresol` IDB
+    option (code 9) is parsed to determine timestamp resolution; nanosecond captures
+    (e.g. `if_tsresol = 0x09`) are converted correctly to microseconds for analysis.
+  - **EPB** (Enhanced Packet Block) — packet data, interface ID lookup, and per-packet
+    timestamp reconstruction using the interface's `if_tsresol`.
+  - **SPB** (Simple Packet Block) — parsed and yielded as packets with no timestamp
+    (SPB carries no timestamp field).
+
+  The following block types are silently skipped: NRB (Name Resolution Block), ISB
+  (Interface Statistics Block), DSB (Decryption Secrets Block), OPB (Obsolete Packet
+  Block), and any unrecognized block type. Multi-section files (a second SHB) are
+  rejected — use `mergecap` or `editcap` to re-save as a single-section file.
+
+  The same five link types supported for classic pcap (Ethernet 1, Raw IP 101, Linux
+  Cooked/SLL 113, IPv4 228, IPv6 229) are supported for pcapng.
+
+  A 4 GiB per-file size cap (E-INP-014) is enforced via `fstat` on the already-open
+  file descriptor before the full file is loaded into memory.
+
+- **`PcapSource::is_pcapng` discriminant field.** The `PcapSource` struct now carries
+  a public `is_pcapng: bool` field that is `true` when the file was identified as pcapng
+  by magic-byte detection. Used internally for the zero-packet notice wording
+  ("pcapng file" vs. "pcap file").
+
+- **Per-file error isolation for batch analysis.** When analyzing a directory, a parse
+  error or read failure on one file is reported to stderr and skipped; remaining files
+  in the batch continue to be processed. Files that parse successfully but contain zero
+  packets emit a notice to stderr: "notice: \<path\>: 0 packets read from \<pcap|pcapng\>
+  file", with the OPB-clause appended when the file contained Obsolete Packet Blocks
+  that were skipped.
+
+- **New input-validation error codes** (pcapng-specific guards):
+
+  | Code | Condition |
+  |------|-----------|
+  | E-INP-010 | pcapng block framing rejection — crate-level framing error (btl misaligned, EOF mid-block, zero-advance forward-progress stall) or EPB interface ID out of range on a non-empty interface table. |
+  | E-INP-011 | Multi-IDB link-type conflict — a subsequent Interface Description Block declares a link type that differs from the first interface's link type. |
+  | E-INP-012 | Second Section Header Block — multi-section pcapng files are not supported. |
+  | E-INP-013 | IDB after first packet block — an Interface Description Block appears after the first EPB or SPB has already been emitted, an ordering not supported by wirerust. |
+  | E-INP-014 | File too large — pcapng file exceeds the 4 GiB in-memory limit; message instructs the user to split the capture or use a streaming tool. |
+  | E-INP-015 | Interface table cap exceeded — pcapng file declares more than 65,535 Interface Description Blocks. |
+
+  (Codes E-INP-008 and E-INP-009 — SHB/IDB/EPB body-too-short and empty interface
+  table, respectively — were also introduced in this delta as part of the pcapng reader
+  but do not appear in the above table as they describe internal structural failures
+  rather than user-actionable input constraints.)
+
+### Fixed
+
+- **TCP reassembly CWE-407 null-eviction storm (PR #298).** When the flow table reached
+  `max_flows` and a new flow arrived, the eviction loop's break condition (`<= max_flows`)
+  fired immediately on the first iteration, causing an O(F log F) sort with zero flows
+  actually evicted. On captures with frozen or duplicate timestamps — where the
+  time-based idle expiry never fires — every new flow beyond the cap triggered a full
+  sort with no eviction, producing quadratic behavior. On a 120,000-flow
+  frozen-timestamp capture the wall time was ~75 s before this fix.
+
+  Three mitigations were applied:
+
+  - **R1 (CWE-401 zombie segments):** Segments whose end offset lies strictly below the
+    reassembly flush cursor are now rejected instead of being inserted into the gap map,
+    preventing unbounded zombie segment accumulation.
+  - **R2 (null-eviction storm fix):** The break condition changed from `<= max_flows` to
+    `< max_flows`, ensuring at least one flow is evicted on each eviction call.
+  - **R3 (batch eviction to headroom):** `max_flows`-triggered eviction now evicts down
+    to 90% of `max_flows` in one call (headroom target = `max(1, max_flows * 9 / 10)`),
+    amortizing the O(F log F) sort across the next ~10% of new-flow admissions. The same
+    120,000-flow frozen-timestamp scenario completes in ~0.76 s after these fixes.
+
+- **R4 packet-index cadence expiry (defense-in-depth for frozen timestamps).** A
+  packet-index sweep runs every N packets (`expiry_sweep_interval`, configurable) and
+  expires flows idle for more than `idle_packet_threshold` packets, independent of
+  capture timestamps. This ensures idle flows are reclaimed even on captures where all
+  packet timestamps are identical or otherwise frozen.
+
+- **`read_magic` short-read race eliminated.** The magic-byte probe used by directory
+  expansion previously called `read()` and accepted a short read as a valid result, meaning
+  a file with exactly 4 bytes might not return all four bytes on a single `read()` call.
+  Changed to `read_exact()`, which either fills the buffer or returns an error, so files
+  shorter than 4 bytes correctly return `None` and files of exactly 4 bytes are read
+  reliably.
+
+- **pcapng block-walk forward-progress guard (CWE-835).** The block-walk loop now
+  checks that the parser advances after each block; a zero-advance result is treated as a
+  framing anomaly (E-INP-010) rather than looping indefinitely.
+
+- **pcapng file-size gate uses `fstat` on the open fd (CWE-367 advisory).** The size
+  check now calls `metadata()` on the already-open file descriptor rather than a second
+  path-based `stat()` call, closing the TOCTOU window between magic-byte detection and
+  size enforcement.
+
+- **pcapng IDB options TLV parsed with section endianness.** The `parse_idb_options`
+  function previously read option TLV fields as fixed little-endian. It now uses the
+  section endianness (big or little) detected from the SHB byte-order magic, so
+  `if_tsresol` and other IDB options are decoded correctly from big-endian pcapng files.
+
+### Security
+
+- CWE-407 + CWE-401 mitigated in the TCP reassembly engine (see Fixed — PR #298).
+- CWE-835 forward-progress guard added to the pcapng block-walk loop.
+- CWE-367 TOCTOU window for pcapng file-size gate closed by switching to `fstat` on
+  the open file descriptor.
+- Block sequence counter in the pcapng block-walk uses `saturating_add` to prevent
+  wraparound (SEC-005).
+
 ## [0.9.2] - 2026-06-19
 
 ### Fixed
@@ -460,7 +580,8 @@ Downstream consumers of wirerust JSON or CSV output must update for this release
 - Output sanitization in the terminal reporter guards against C1 control bytes
   in packet-derived strings.
 
-[Unreleased]: https://github.com/Zious11/wirerust/compare/v0.9.2...HEAD
+[Unreleased]: https://github.com/Zious11/wirerust/compare/v0.9.3...HEAD
+[0.9.3]: https://github.com/Zious11/wirerust/compare/v0.9.2...v0.9.3
 [0.9.2]: https://github.com/Zious11/wirerust/compare/v0.9.1...v0.9.2
 [0.9.1]: https://github.com/Zious11/wirerust/compare/v0.9.0...v0.9.1
 [0.9.0]: https://github.com/Zious11/wirerust/compare/v0.8.0...v0.9.0
