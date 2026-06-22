@@ -531,9 +531,31 @@ policies:
           per-story passes, "develop HEAD" means the worktree's base
           commit (the develop SHA the worktree was branched from).
 
+      Post-merge fast-forward sub-rule (v2, PG-F5-FRESHNESS-001,
+      PROP-FE001-05):
+        - After EVERY server-side `gh pr merge` to a shared branch
+          (develop or any base branch), the pr-manager MUST immediately
+          execute `git pull --ff-only origin develop` (or the
+          appropriate target branch) in the local working tree BEFORE
+          dispatching any same-session adversary pass or dependent agent
+          that reads that tree.
+        - Rationale: server-side merge via `gh pr merge` does NOT
+          advance the local branch. If a subsequent adversary dispatch
+          reads the local tree before the fast-forward, it reviews stale
+          code and produces void findings. This caused Pass-2a of F5 in
+          the FE-001 pcapng cycle to be voided (PG-F5-FRESHNESS-001).
+        - Procedure: (1) `gh pr merge <#> ...` completes; (2) immediately
+          run `git fetch origin && git pull --ff-only origin develop`;
+          (3) verify `git rev-parse HEAD` matches the expected merge SHA;
+          (4) THEN dispatch any adversary or dependent agent.
+        - If fast-forward cannot proceed (diverged local history), halt
+          and report to orchestrator — do NOT dispatch adversary on the
+          stale tree.
+
     severity: HIGH
     scope:
       - orchestrator
+      - pr-manager
       - adversary
     rationale: >
       W1.1 + W8.1 merged evidence: stale local develop produced 2
@@ -541,9 +563,14 @@ policies:
       reviewed a develop state that did not include recent story merges,
       causing it to flag already-resolved items as open. Diagnosing and
       dismissing false-positives cost approximately 1.5 adversarial passes.
-      The pattern is structural: develop advances frequently during a wave
-      and an orchestrator running multiple parallel dispatches can easily
-      diverge from origin without explicit freshness checks.
+
+      FE-001 F5 Pass-2a evidence (PG-F5-FRESHNESS-001): after gh pr merge
+      #287, local develop remained at pre-merge SHA e75a797 while origin
+      was at 97c66b0. The adversary correctly detected the staleness and
+      halted (correct adversary behavior), but the full adversary invocation
+      was wasted. The gap in the v1 policy was that it only required
+      freshness BEFORE dispatch, not a mandatory fast-forward AFTER merge.
+      The post-merge sub-rule closes this gap.
     enforcement: >
       Orchestrator MUST include a git-fetch-and-compare step in the
       wave-gate checklist and in the adversarial-dispatch template.
@@ -552,11 +579,21 @@ policies:
       SHA attestation MUST be flagged as methodology-incomplete and the
       adversary re-dispatched with an explicit "include SHA attestation"
       instruction.
+
+      pr-manager MUST inject the post-merge fast-forward into its step 9
+      (post-merge cleanup) sequence: after confirming the merge commit SHA
+      on develop, execute `git pull --ff-only origin develop` and include
+      the resulting HEAD SHA in the step-9 completion report. Orchestrator
+      MUST verify the step-9 report contains the post-fast-forward HEAD SHA
+      before dispatching any adversary pass that reads the develop tree.
     added: "2026-05-28"
-    version: v1
+    last-extended: "2026-06-22"
+    version: v2
     derived-from: >
       W1.1 + W8.1 (false-HIGH findings from stale develop; merged into
-      single policy 2026-05-28)
+      single policy 2026-05-28); extended v2 2026-06-22 (PG-F5-FRESHNESS-001
+      / PROP-FE001-05: post-merge fast-forward sub-rule; FE-001 F5 Pass-2a
+      methodology halt)
 
   - id: DF-ADVERSARY-TOOLCHAIN-PAIRING-001
     name: adversary-toolchain-pairing
@@ -1006,10 +1043,63 @@ policies:
 
       (a) Implementer GREEN-step sweep (mandatory before GREEN commit):
         - Grep ALL files in the story's own diff (git diff develop..HEAD --name-only)
-          for: "scaffold", "Red Gate", "RED GATE", "RED gate", "todo!()", "stub",
-          "uncalled", "skeleton", and any stale counts that this story changes.
-        - Every matching doc-comment MUST be converted to accurate GREEN or
-          past-tense provenance language before commit.
+          at ALL doc-comment depths (module/crate `//!`, function `///`, and inline
+          per-statement `// ...` lines in test bodies — NOT only the first doc-comment
+          line of a function or module) for the following tokens (case-insensitive
+          unless otherwise stated; also check assertion-message strings):
+
+          Core RED-gate markers (existing):
+            "scaffold", "Red Gate", "RED GATE", "RED gate", "todo!()", "stub",
+            "uncalled", "skeleton"
+
+          Bare RED markers (expanded — PROP-FE001-01):
+            "RED:"                  # bare per-test-body marker, e.g. "/// RED: reason"
+            "RED-phase"             # variant phrasing in provenance comments
+            "RED reason"            # "RED reason:" style
+            "RED because"           # "RED because..." style
+            Note: "was RED", "turned GREEN", "passed their Red Gate phase", "before the
+            <X> arm existed" are PAST-TENSE PROVENANCE — CORRECT and MUST NOT be flagged.
+
+          Behavioral-absence phrases (expanded — PROP-FE001-01):
+            "no .* arm"             # regex: "no <X> arm" (match arm for a variant)
+            "doesn't exist yet"     # negative-capability phrase
+            "does not exist yet"    # variant
+            "not yet implemented"   # stub marker
+            "currently has NO"      # present-tense absence claim
+            "currently fall"        # "currently falls", "currently fall(s)"
+            "falls to the wildcard" # wildcard-arm fallthrough status claim
+            "falls to `_`"          # backtick variant
+            "falls through to"      # generic fallthrough
+            "currently satisfied by" # passive implementation-status phrase
+            "will be GREEN currently" # conditional tense claim
+            "currently FAILS"        # present-false claim on a passing test
+
+          Stub markers (expanded — PROP-FE001-01):
+            "MUST FAIL"             # RED-gate stub directive surviving into GREEN
+            "unimplemented!()"      # Rust macro stub
+
+          Stale counts:
+            Any numeric counts this story explicitly changes (e.g., "23 IDs" post a
+            23→25 bump). Must be identified from story context, not a fixed token.
+
+        - Every matching doc-comment or assertion-message string MUST be converted to
+          accurate GREEN or past-tense provenance language before commit.
+
+        - EXPLICIT EXCLUSIONS — the following are CORRECT and MUST NOT be flagged:
+            * Past-tense provenance: "was RED", "turned GREEN when", "passed their Red
+              Gate phase", "before the <X> arm existed", "originally stubbed as",
+              "this was a RED-gate placeholder until STORY-NNN merged".
+            * Regression-guard framing: "This test guards against regression of X. It
+              FAILS if a future refactor removes Y." — the FAILS here is a future
+              conditional, not a present-false claim about current state.
+            * Explicitly-named deferrals: "deferred to F6", "F6 Kani stub",
+              "explicitly deferred AC-NNN" — may retain future-tense prose and MUST
+              name the deferral target.
+          The rule is: flag prose that PRESENTLY/FALSELY claims a shipped implementation
+          is absent (e.g., "there is no <X> arm" when the arm exists in the Green
+          commit). Do NOT flag accurate historical provenance or accurate regression
+          guard framing.
+
         - Exception: doc-comments that describe genuinely-deferred artifacts
           (e.g., F6 Kani stubs, explicitly-deferred ACs) may retain future-tense
           prose — those MUST name the deferral target (e.g., "F6 deferred").
@@ -1041,14 +1131,24 @@ policies:
           annotate: "// TODO-GREEN: update this comment at GREEN step."
 
       (d) Adversary doc-accuracy axis:
-        - MUST explicitly flag surviving "scaffold / Red Gate / stub / todo!() /
-          uncalled" module-level, test-banner, or in-test doc-comment language as
-          MEDIUM (not LOW cosmetic).
+        - MUST explicitly flag surviving tokens from the full expanded list in
+          section (a) above — "scaffold / Red Gate / stub / todo!() / uncalled /
+          RED: / no <X> arm / currently has NO / falls to wildcard / falls to `_` /
+          doesn't exist yet / not yet implemented / currently satisfied by /
+          currently FAILS / MUST FAIL / unimplemented!()" — at module-level,
+          test-banner, OR in-test per-line doc-comment depth — as MEDIUM (not LOW
+          cosmetic).
+        - MUST scan ALL doc-comment depths (module/crate `//!`, function `///`, and
+          per-statement inline `// ...` within test bodies), not only the first
+          doc-comment line of a function.
         - MUST flag stale count references (e.g., "23 IDs" after a 23→25 bump) as
           MEDIUM regardless of proximity to functional correctness issues.
         - MUST flag present-tense-false RED prose on a PASSING test as MEDIUM —
-          e.g., "this test currently fails / must fail until X" when the test is
-          green.
+          e.g., "this test currently fails / must fail until X / currently FAILS"
+          when the test is green.
+        - MUST NOT flag past-tense provenance ("was RED", "turned GREEN", "before
+          the <X> arm existed") or regression-guard framing ("will fail this test
+          if..."). See explicit exclusion list in section (a).
 
     severity: HIGH
     scope:
@@ -1082,20 +1182,34 @@ policies:
       Orchestrator MUST inject the GREEN-step sweep mandate into every implementer and
       test-writer dispatch: "Before committing the GREEN implementation, run a doc-tense
       sweep over ALL files in `git diff develop..HEAD --name-only`, INCLUDING any
-      newly-added test functions. Grep for: scaffold, Red Gate, RED GATE, todo!(),
-      stub, uncalled, skeleton, and any stale count values this story changes. Fix ALL
-      hits. Only F6-deferred or explicitly-named-deferred comments may retain
-      future-tense prose." Adversary MUST flag surviving stale RED prose as MEDIUM,
-      not LOW. The three-pass requirement (BC-5.39.001) is retained: STORY-115 evidence
-      confirms that pass 1 missed a whole-attack-class bypass (GARP-storm detection
-      unreachable) that passes 2 and 3 caught via fresh-context + BC-completeness sweep.
+      newly-added test functions, at ALL comment depths (module doc, function doc, AND
+      per-statement inline lines in test bodies). Grep for the FULL expanded token set
+      from DF-GREEN-DOC-TENSE-SWEEP section (a): scaffold, Red Gate, RED GATE, RED:,
+      RED-phase, todo!(), stub, uncalled, skeleton, MUST FAIL, unimplemented!(), no .*
+      arm, doesn't exist yet, does not exist yet, not yet implemented, currently has NO,
+      currently fall, falls to the wildcard, falls to `_`, falls through to, currently
+      satisfied by, will be GREEN currently, currently FAILS — plus any stale count
+      values this story changes. Fix ALL hits. Apply the explicit exclusions in section
+      (a): do NOT fix past-tense provenance or regression-guard framing. Only
+      F6-deferred or explicitly-named-deferred comments may retain future-tense prose."
+      Adversary MUST flag surviving stale RED prose as MEDIUM, not LOW. The three-pass
+      requirement (BC-5.39.001) is retained: STORY-115 evidence confirms that pass 1
+      missed a whole-attack-class bypass (GARP-storm detection unreachable) that passes
+      2 and 3 caught via fresh-context + BC-completeness sweep.
     added: "2026-06-15"
-    version: v1
+    last-extended: "2026-06-22"
+    version: v2
     derived-from: >
       PG-ARP-F4-REDBANNER-SWEEP (STORY-112); PG-ARP-F4-STALE-SKELETON-DOC (STORY-113);
       STORY-114 Step-4.5 F-1/F-2/F-3 (codified 2026-06-15 in lessons.md);
       PG-ARP-F4-REDTEST-DOC-TENSE sub-rule (STORY-115 Step-4.5; newly-added regression
-      test doc-comment missed by GREEN-step sweep; codified 2026-06-15)
+      test doc-comment missed by GREEN-step sweep; codified 2026-06-15); extended v2
+      2026-06-22 (PROP-FE001-01 / PG-F5-DOCTENSE-TOKENS-001: expanded token set to
+      cover bare RED: markers, behavioral-absence phrases, wildcard-fallthrough phrasing,
+      and stub markers; added explicit exclusion list for past-tense provenance and
+      regression-guard framing; all doc-comment depths now mandated; FE-001 F5 Passes
+      2-5 evidence — 4 adversary passes of docstring churn attributable to narrow
+      token set)
 
   - id: DF-CONSISTENCY-AUDIT-POST-FIXBURST-001
     name: consistency-audit-after-fix-burst-or-bc-enrichment
@@ -1171,3 +1285,161 @@ policies:
       PROCESS-GAP-P5-001 (11 Phase-5 adversarial passes surfacing recurring
       anchor/coherence drift; comprehensive post-P11 audit exemplar; S-7.02
       cycle-close disposition codified 2026-06-01); STORY-091 AC-011.
+
+  - id: DF-KANI-NONVACUITY-001
+    name: kani-harness-non-vacuity-gate
+    description: >
+      Any `#[kani::proof]` harness MUST call the production function by name
+      (or a faithfulness-guaranteed twin with a committed equivalence trip-wire
+      — see sanctioned mitigation below). It MUST NOT re-implement or inline
+      the production function's logic inside the proof body. A harness that
+      re-derives the logic it claims to verify generates a vacuously-true proof
+      that is mathematically void: it proves the inline copy matches itself,
+      not that the production function satisfies the property.
+
+      Mandatory harness authorship rules:
+
+        1. CALL, DO NOT COPY: The harness body MUST invoke the production
+           function by its exact exported name (e.g., `decode_epb_body(...)`,
+           not an inline re-derivation of its branches). If the function
+           cannot be called directly inside `#[cfg(kani)]` due to I/O or
+           trait bounds, use a discriminant twin (see rule 3).
+
+        2. ASSERT SPECIFIC OUTCOMES, NOT TAUTOLOGIES: The harness MUST assert
+           postconditions that would FAIL if the production function contained
+           a bug, not predicates that are logically implied by the `if`-guard
+           or precondition used to set up the call. Asserting the same guard
+           condition that was used to select the case-under-test is tautological.
+           Example of FORBIDDEN tautology:
+             ```rust
+             kani::assume(x < 10);
+             assert!(x < 10); // vacuous — the assume already guarantees this
+             ```
+           Example of CORRECT non-vacuous assertion:
+             ```rust
+             kani::assume(x < 10);
+             let result = production_fn(x);
+             assert_eq!(result, expected_value_for_x_lt_10);
+             ```
+
+        3. DISCRIMINANT TWINS — SANCTIONED MITIGATION ONLY: A discriminant
+           twin (a `#[cfg(kani)]`-scoped copy of a production function, used
+           for Kani BMC tractability) is permitted ONLY when:
+           (a) The production function cannot be called directly inside
+               `#[cfg(kani)]` (e.g., it has file I/O, dynamic dispatch
+               requiring concrete context, or a trait bound Kani cannot
+               resolve).
+           (b) A committed equivalence trip-wire test file exists and
+               verifies the twin's equivalence over a representative input
+               domain subset against the production function. The sanctioned
+               pattern is `tests/sec_NNN_twin_equivalence_tests.rs`
+               (proptest or unit tests exercising the equivalence over the
+               production function's full representative input domain).
+               See SEC-001 and SHB twin-equivalence trip-wires from FE-001
+               (PRs #292/#293) as reference implementations.
+           (c) The twin's function name MUST include "discriminant" or
+               "twin" to signal its non-production status.
+           A discriminant twin WITHOUT a committed equivalence trip-wire is
+           NOT a sanctioned mitigation — it carries the same silent-vacuity
+           risk as the inline-redeployment antipattern.
+
+      Per-story adversary blocking criterion:
+        For any story that delivers or modifies a `#[kani::proof]` harness,
+        the per-story adversary MUST evaluate the following as a BLOCKING
+        (HIGH/CRITICAL) checklist item BEFORE reporting the story clean:
+          (a) "Does each Kani harness call the production function by its
+              exact exported name — OR use a discriminant twin with a
+              committed equivalence trip-wire?" If the proof body contains
+              an inline copy of the logic it claims to verify, flag CRITICAL.
+          (b) "Do the harness assertions include at least one predicate that
+              would FAIL if the production function contained a plausible
+              bug in the path under test?" If all assertions are tautologies
+              implied by the assume() guards, flag HIGH.
+
+      F6 VP lock gate:
+        The formal-verifier MUST verify, before locking any VP to
+        `verification_lock: true`:
+          (a) The proof harness calls the production function (or a twin
+              with a committed equivalence trip-wire).
+          (b) At least one assertion is non-tautological.
+        A VP locked with a tautological harness is a PERMANENTLY-CORRUPTED
+        formal verification record. The VP lock gate is the last reliable
+        catch point before the record becomes immutable.
+
+    severity: HIGH
+    scope:
+      - adversary
+      - formal-verifier
+      - implementer
+      - test-writer
+      - orchestrator
+      - dispatch-templates
+    rationale: >
+      FE-001 F5 Pass-1 evidence (F-F5P1-001 / PAT-011 / D-188): STORY-125
+      delivered a VP-027 Kani harness that inlined `decode_epb_body` logic
+      directly in the proof body instead of calling `decode_epb_body`. The
+      harness was mathematically equivalent to asserting "my inline copy
+      equals my inline copy" — a tautology. This vacuous proof survived:
+        - Per-story adversarial convergence (3 clean passes in STORY-125)
+        - F4 gate consistency check (97/100 score)
+        - Human F4 gate approval (D-186)
+      It was caught ONLY by the F5 scoped-adversarial sweep, which reviewed
+      VP-027 from a VP-level holistic scope rather than per-story BC scope.
+      Had F5 not caught it, VP-027 would have been locked at F6 as "verified"
+      — a permanently corrupted formal verification record.
+
+      Root cause of per-story miss: the per-story adversary operates under
+      the story's own BC scope (BC-2.01.012/014 for STORY-125). The non-
+      vacuity obligation is expressed in VP-INDEX, not in the BC. A per-story
+      adversary without an explicit VP non-vacuity checklist item carries no
+      obligation to check harness-to-production-call discipline.
+
+      The SEC-001/SHB twin-equivalence trip-wire pattern (PRs #292/#293)
+      is the sanctioned structural mitigation for discriminant-twin drift:
+      once a trip-wire equivalence test is committed, any future drift
+      between the twin and the production function will cause a CI test
+      failure before a future delivery can land.
+    enforcement: >
+      Orchestrator MUST inject the following blocking checklist into every
+      per-story adversary dispatch that covers a story delivering or modifying
+      a `#[kani::proof]` harness:
+
+      "## Kani Non-Vacuity Gate (BLOCKING per DF-KANI-NONVACUITY-001)
+      For each Kani harness in this story's diff:
+      (1) Does the harness body call the production function by its exact
+          exported name, or use a discriminant twin with a committed
+          equivalence trip-wire test file? If the proof body inlines or
+          re-derives the production function's logic, flag CRITICAL —
+          tautological/vacuous proof.
+      (2) Does at least one `assert!` or `assert_eq!` in the harness assert
+          a postcondition that would FAIL if the production function contained
+          a plausible bug in the path under test? If all assertions are implied
+          by the assume() guards (tautological), flag HIGH.
+      Report pass/fail for BOTH criteria before declaring the story clean."
+
+      The formal-verifier MUST include the non-vacuity check in the VP lock
+      gate procedure for every VP being locked. A VP MUST NOT be locked to
+      `verification_lock: true` if either criterion above fails. Any VP that
+      fails the non-vacuity gate at F6 MUST be flagged as BLOCKED to the
+      orchestrator and MUST NOT be included in the VP lock PR.
+
+      Adversaries MUST flag a tautological harness as CRITICAL (not MEDIUM)
+      — a vacuous formal proof is an integrity violation of the verification
+      record, not a documentation issue.
+    added: "2026-06-22"
+    version: v1
+    references:
+      - PAT-011
+      - F-F5P1-001
+      - PROP-FE001-02
+    derived-from: >
+      PAT-011 (FE-001 F5 Pass-1; VP-027 tautological Kani harness surviving
+      3 clean per-story passes; caught only at F5 holistic scope; D-188;
+      codified 2026-06-22 as PROP-FE001-02). SEC-001 / SHB twin-equivalence
+      trip-wire pattern (PRs #292/#293, FE-001) cited as sanctioned mitigation
+      for discriminant twins. ENGINE-SIDE FOLLOW-UP REQUIRED: the per-story
+      adversary agent prompt in the dark-factory engine repo must be updated
+      to inject the non-vacuity checklist — that change is OUT OF SCOPE for
+      this repo's policies.yaml (different codebase). This policies.yaml
+      entry is the in-repo enforcement registration; the engine-repo prompt
+      update is a separate engine follow-up.
