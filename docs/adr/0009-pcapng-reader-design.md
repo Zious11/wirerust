@@ -147,7 +147,8 @@ captured_len       = min(original_len, spb_data_available)
 ```
 
 `snaplen` is **not** extracted or stored; it is read from IDB fixed fields and
-discarded. Neither EPB nor SPB validates `captured_len` against snaplen.
+discarded. Neither EPB nor SPB validates `captured_len` against snaplen. SPB
+packets always carry `timestamp_secs: 0, timestamp_usecs: 0` (BC-2.01.013 PC3).
 
 ### Decision 10: Error-code assignment
 
@@ -226,6 +227,103 @@ returning `anyhow::Result<RawPacket>`. This function is the Kani anchor for VP-0
 A `decode_epb_body_discriminant` twin function is used in the Kani harness for
 BMC tractability (checked at `MAX_BODY = 28` bytes); twin-faithfulness is verified
 by a `#[cfg(test)]` smoke test.
+
+### Decision 17: IDB error-code precedence — four-level evaluation order
+
+IDB blocks are evaluated in a fixed four-level precedence order. The position check
+(`E-INP-013`, fires when `packets_emitted > 0`) is always first; the IDB body is
+not decoded if this check fires. The interface-table cap check (`E-INP-015`,
+Decision 28) is second and also skips body decode. The link-type whitelist check
+(`E-INP-001`) is third, operating on the decoded `linktype` field. The multi-IDB
+agreement check (`E-INP-011`) is fourth and last. This ordering ensures that checks
+requiring no body parse run before more expensive body-decode operations, and that
+the cap guard (Decision 28) is inserted between the position and whitelist checks
+per the F6 security review.
+
+### Decision 19: `PcapSource::is_pcapng` and `skipped_blocks` / `opb_skipped` discriminants
+
+`PcapSource` carries two discriminant fields populated at format-branch time. The
+`is_pcapng: bool` field is set inside `from_pcap_reader` at the magic-byte branch
+point; `format_zero_packet_notice` in `main.rs` reads it to choose between "pcap
+file" and "pcapng file" wording without re-opening the file, closing a TOCTOU
+mislabel window. The `skipped_blocks: u32` and `opb_skipped: u32` fields count
+skipped blocks during the pcapng block walk; they are always 0 for classic pcap.
+`main.rs` reads both to shape the zero-packet notice wording (BC-2.01.009 PC6).
+
+### Decision 20: SHB error-code remapping — `E-INP-010` to `E-INP-008` for body-decode failures
+
+The `pcap-file` 2.0.0 crate processes IDB blocks internally inside
+`next_raw_block` before returning control to wirerust. Two crate-side IDB
+validation failures that are semantically Tier-2 body-decode failures are
+remapped from the crate's default framing-error surface to `E-INP-008`. The
+`"block length < 8"` message maps to `E-INP-008` because the IDB body is too
+short to contain the required fixed fields. The `"reserved != 0"` message also
+maps to `E-INP-008` as a structural body-decode failure (see Decision 24). All
+other crate errors from `next_raw_block` remain Tier-1 framing rejections and
+produce `E-INP-010`.
+
+### Decision 21: `snaplen` MUST NOT be stored; `if_tsoffset` (option code 10) is silently skipped
+
+`snaplen` is read from IDB body bytes 4–7 solely to advance the field cursor and
+is immediately discarded. It is not stored in `InterfaceInfo` and no consumer for
+it exists in this cycle. Adding `snaplen` to `InterfaceInfo` is explicitly
+prohibited (F-M3 / BC-2.01.011 PC4). Separately, `if_tsoffset` (IDB option code
+10) is silently skipped during the TLV options walk — its effect on timestamps is
+not applied, and this is an accepted limitation for the current cycle.
+
+### Decision 22: SPB block type code, captured-length formula, and zero timestamps
+
+The SPB block type code is `0x00000003`. SPB has no `interface_id` field and always
+binds to interface 0; if the interface table is empty when an SPB is encountered,
+wirerust returns `E-INP-009`. The captured-length formula is the pure-core
+`spb_captured_len` helper (VP-031 proptest target): `spb_data_available =
+body.len() - 4; captured_len = min(original_len, spb_data_available)`. Using the
+bare `body.len()` without subtracting 4 is explicitly prohibited because it counts
+the `original_len` field itself and would overcount available packet bytes. SPB
+carries no per-packet timestamp; every SPB packet produces `timestamp_secs: 0,
+timestamp_usecs: 0` (BC-2.01.013 PC3 zero-timestamp mandate).
+
+### Decision 23: String-coupling precedent for SHB btl-degenerate error mapping
+
+When a btl-degenerate SHB (body that triggers `InvalidField("SectionHeaderBlock:
+invalid magic number")`) is encountered on the `PcapNgParser::new` path, the crate
+surfaces a string-coupled error rather than the usual `RawBlock` framing error.
+wirerust string-matches this specific message to remap it to `E-INP-008` via the
+existing invalid-magic arm. This mapping is the first string-coupling precedent in
+the pcapng reader; it established the pattern that Decision 24 follows for IDB
+structural failures. The regression test `test_BC_2_01_010_shb_btl8_maps_to_e_inp_008`
+pins this assertion and must not be weakened.
+
+### Decision 24: IDB `reserved != 0` and `block length < 8` — string-coupling to `E-INP-008`
+
+The `pcap-file` 2.0.0 crate validates IDB structural fields (`reserved != 0` and
+`block length < 8`) inside `next_raw_block` via `InterfaceDescriptionBlock::from_slice`
+before returning the `RawBlock`. wirerust never receives the raw body for these
+failures and therefore cannot perform its own pre-check. Both `InvalidField`
+messages are string-matched in the `map_err` closure and remapped to `E-INP-008`
+(following the string-coupling precedent of Decision 23). The regression test
+`test_BC_2_01_011_nonzero_reserved_e_inp_008` pins the `E-INP-008` assertion
+and asserts `E-INP-010` is absent; this test catches any upstream crate message
+change.
+
+### Decision 27: 4 GiB file-size gate on the pcapng branch (`MAX_PCAPNG_FILE_BYTES`, `E-INP-014`)
+
+`from_file` checks the file size via `fstat` on the already-open file descriptor
+(not a second `stat()` call on the path) after the magic-byte probe confirms
+pcapng, before calling `read_to_end`. Files exceeding `MAX_PCAPNG_FILE_BYTES =
+4_294_967_296` (4 GiB) are rejected with `E-INP-014`. Using `fstat` on the open
+fd closes the CWE-367 TOCTOU path-substitution vector identified in the F6
+security review. The `from_pcap_reader<R: Read>` generic path is not gated because
+no `fs::metadata` is available for an opaque `Read` stream.
+
+### Decision 28: Interface-table cap at 65,535 entries; guard placed before body decode
+
+The interface table is capped at `MAX_INTERFACE_TABLE_ENTRIES = 65_535`. The cap
+check is the second step in the four-level IDB precedence (Decision 17): it fires
+after the position check but before body decode, so a full-table rejection does not
+pay the cost of options-TLV parsing. An IDB push that would exceed the cap returns
+`E-INP-015` immediately. No real-world capture approaches this count; the cap
+defends against adversarially crafted files filled with minimal IDB blocks.
 
 ## Link-Type Whitelist
 
