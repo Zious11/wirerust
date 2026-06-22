@@ -1227,6 +1227,15 @@ impl PcapSource {
                     let if_tsresol = parse_idb_options(blk_body, section_endianness)
                         .context("IDB options TLV parse failed (E-INP-008)")?;
 
+                    // F6-SEC-B: interface table cap (BC-2.01.011 PC4 + EC-014 / ADR-009 Decision 28).
+                    // Guard BEFORE push: reject when table would exceed MAX_INTERFACE_TABLE_ENTRIES.
+                    if interfaces.len() >= MAX_INTERFACE_TABLE_ENTRIES {
+                        return Err(anyhow!(
+                            "pcapng interface table too large: exceeds limit of \
+                             {MAX_INTERFACE_TABLE_ENTRIES} interfaces (E-INP-015)"
+                        ));
+                    }
+
                     // Push to interface table (BC-2.01.011 PC3 / Invariant 1).
                     // snaplen (body[4..8]) is read-and-discarded; NOT stored (F-M3).
                     interfaces.push(InterfaceInfo {
