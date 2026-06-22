@@ -84,6 +84,9 @@ const IDB_BLOCK_TYPE: u32 = 0x0000_0001;
 ///
 /// Files larger than this are rejected before `read_to_end` with E-INP-014
 /// (BC-2.01.009 PC3 + EC-011 / ADR-009 Decision 27).
+/// EC-012 specifies the exact error message text for E-INP-014 (error-taxonomy v3.8 /
+/// BC-2.01.017 v1.7): "pcapng file too large: {size} bytes exceeds limit of {limit}
+/// bytes (E-INP-014); use a streaming tool or split the capture".
 /// The reader path (`from_pcap_reader<R: Read>`) is NOT gated — no `fs::metadata`
 /// is available for a generic `Read` stream.
 const MAX_PCAPNG_FILE_BYTES: u64 = 4_294_967_296; // 4 GiB
@@ -1164,6 +1167,18 @@ impl PcapSource {
                         ));
                     }
 
+                    // F6-SEC-B early exit: interface table cap (BC-2.01.011 PC4 + EC-014 /
+                    // ADR-009 Decision 28). Guard BEFORE body decode — if the table is already
+                    // full, reject immediately without paying the cost of options TLV parsing.
+                    // (CR-003 fix: moved here from after parse_idb_options — same semantic,
+                    // avoids wasted work on the rejected IDB.)
+                    if interfaces.len() >= MAX_INTERFACE_TABLE_ENTRIES {
+                        return Err(anyhow!(
+                            "pcapng interface table too large: exceeds limit of \
+                             {MAX_INTERFACE_TABLE_ENTRIES} interfaces (E-INP-015)"
+                        ));
+                    }
+
                     // Now decode the IDB body (body-length check is wirerust's responsibility
                     // on the raw path — M-1 / BC-2.01.011 AC-007 Architecture Anchor).
                     let blk_body = raw_block.body.as_ref();
@@ -1226,15 +1241,6 @@ impl PcapSource {
                     // code/length are decoded with the correct byte order.
                     let if_tsresol = parse_idb_options(blk_body, section_endianness)
                         .context("IDB options TLV parse failed (E-INP-008)")?;
-
-                    // F6-SEC-B: interface table cap (BC-2.01.011 PC4 + EC-014 / ADR-009 Decision 28).
-                    // Guard BEFORE push: reject when table would exceed MAX_INTERFACE_TABLE_ENTRIES.
-                    if interfaces.len() >= MAX_INTERFACE_TABLE_ENTRIES {
-                        return Err(anyhow!(
-                            "pcapng interface table too large: exceeds limit of \
-                             {MAX_INTERFACE_TABLE_ENTRIES} interfaces (E-INP-015)"
-                        ));
-                    }
 
                     // Push to interface table (BC-2.01.011 PC3 / Invariant 1).
                     // snaplen (body[4..8]) is read-and-discarded; NOT stored (F-M3).
