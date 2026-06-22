@@ -1,0 +1,113 @@
+STORY-127 Red Gate Log
+Wave 55, Epic E-19 — Magic-Byte Glob (resolve_targets Content Detection) and E2E Corpus Wiring
+Generated: 2026-06-20
+Test file: tests/bc_2_12_011_story127_tests.rs
+Branch: feature/story-127-pcapng-e2e-corpus
+
+== cargo test --all-targets output (bc_2_12_011_story127_tests only) ==
+
+running 9 tests
+test story_127::test_BC_2_12_011_e2e_corpus_pcapng_reader_stack ... ok       [GREEN — expected; reader stack merged]
+test story_127::test_BC_2_12_011_empty_directory ... ok                        [GREEN — expected; correct in stub]
+test story_127::test_BC_2_12_011_subdir_skipped ... ok                         [GREEN — expected; is_file() in stub]
+test story_127::test_BC_2_12_011_all_5_magic_values_accepted ... FAILED       [RED — correct]
+test story_127::test_BC_2_12_011_non_magic_silently_skipped ... FAILED        [RED — correct]
+test story_127::test_BC_2_12_011_short_file_skipped ... FAILED                [RED — correct]
+test story_127::test_BC_2_12_011_cap_extension_pcapng_magic_accepted ... FAILED [RED — correct]
+test story_127::test_BC_2_12_011_sorted_output ... FAILED                      [RED — correct]
+test story_127::test_BC_2_12_011_io_error_on_probe_silently_skipped ... FAILED [RED — correct]
+
+test result: FAILED. 3 passed; 6 failed; 0 ignored; 0 measured; 0 filtered out
+
+== Red/Green summary ==
+
+RED (6 — must turn GREEN post-implementation):
+  AC-001 test_BC_2_12_011_all_5_magic_values_accepted
+    Reason: stub includes reject.pcap (wrong magic) by extension → reader reports
+    "unrecognized pcap magic" in stderr → .not() assertion fails.
+    Post-refactor: reject.pcap silently excluded at magic-probe stage → error absent.
+
+  AC-002 test_BC_2_12_011_non_magic_silently_skipped
+    Reason: stub includes analysis.pcap (wrong magic bytes) by ".pcap" extension filter
+    → reader fails with "unrecognized pcap magic" error → exit 1 → .success() fails.
+    Post-refactor: analysis.pcap silently excluded → exit 0 + "Packets: 0".
+
+  AC-003 test_BC_2_12_011_short_file_skipped
+    Reason: stub includes short.pcap (3 bytes, ".pcap" extension) by extension filter
+    → reader fails "stream too short: expected 4 bytes, got 3" → exit 1 → .success() fails.
+    Post-refactor: read_magic returns None (< 4 bytes) → silently skipped → exit 0.
+
+  AC-004 test_BC_2_12_011_cap_extension_pcapng_magic_accepted
+    Reason (Case A): stub includes bad-content.pcap (wrong magic) by ".pcap" extension
+    → reader "unrecognized pcap magic" → exit 1 → .success() fails.
+    Post-refactor: bad-content.pcap excluded (wrong magic) → exit 0, Packets: 0.
+    (Case B — .cap file with pcapng magic: stub exits 0 with Packets:0 due to ext
+    exclusion; that sub-case assertion passes under stub but will change post-refactor.)
+
+  AC-005 test_BC_2_12_011_sorted_output
+    Reason: m.cap (pcapng magic, ".cap" extension) excluded by stub ext filter →
+    only a.pcap + z.pcap → exit 0 → .failure() assertion fails (expects non-zero).
+    Post-refactor: m.cap included (pcapng magic matches) → reader errors on malformed
+    8-byte pcapng body → exit 1 → .failure() passes.
+
+  AC-007 test_BC_2_12_011_io_error_on_probe_silently_skipped [unix only]
+    Reason: stub includes b-unreadable.pcap (chmod 000, ".pcap" extension) by ext filter
+    → reader fails "Permission denied (os error 13)" → exit 1 → .success() fails.
+    Post-refactor: read_magic(b-unreadable.pcap) → None (permission denied) → silently
+    skipped → only a-readable.pcap included → exit 0, Packets: 1.
+
+GREEN (3 — expected; these are regression guards):
+  AC-006 test_BC_2_12_011_empty_directory
+    Reason: empty directory → Ok(vec![]) in both stub and post-refactor. GREEN regression guard.
+
+  AC-008 test_BC_2_12_011_subdir_skipped
+    Reason: is_file() already in stub's loop → subdirectory skipped correctly in both.
+    GREEN regression guard.
+
+  AC-009 test_BC_2_12_011_e2e_corpus_pcapng_reader_stack
+    Reason: exercises PcapSource::from_file / from_pcap_reader (library functions, not
+    resolve_targets). Reader stack is merged (STORY-123..126). Expected GREEN.
+    Sub-case 2 (arp-baseline): uses SYNTHETIC fallback (no local-samples/ in worktree).
+
+== STORY-123/124/125/126 status ==
+All 13 other test binaries: FULLY GREEN (0 failures).
+  - bc_2_01_story123_pcapng_tests: 31 passed
+  - bc_2_01_story124_idb_tests: 27 passed
+  - bc_2_01_story125_epb_tests: 20 passed
+  - bc_2_01_story126_spb_tests: 29 passed
+
+== arp-baseline-16pkt.cap authenticity finding (F-5) ==
+
+F-5 DEFERRAL STATUS: RESOLVED locally, PENDING in CI.
+
+Authentic file location: tests/fixtures/local-samples/arp-baseline-16pkt.cap
+sha256: d931e3c27cfb27d006dc6e912671443c88c243efd69b4671f900e0c06cf9ae25
+Expected (from E2E-PCAPS.md): d931e3c27cfb27d006dc6e912671443c88c243efd69b4671f900e0c06cf9ae25
+Match: YES — authentic PacketLife capture confirmed.
+
+Block structure (parsed):
+  Total blocks: 18
+  SHB: 1 (block_type=0x0A0D0D0A, btl=108)
+  IDB: 1 (block_type=0x00000001, btl=68)
+  EPB: 16 (block_type=0x00000006, btl varies 92..388)
+  SPB: 0
+  OPB: 0
+
+Actual packet count: 16 (verified by block-structure parse of authentic file)
+Claimed packet count (F-5 name): 16
+F-5 finding: AUTHENTIC FILE PRESENT with exactly 16 real ARP EPBs.
+
+The STORY-127 worktree does NOT have tests/fixtures/local-samples/ (gitignored).
+AC-009 sub-case 2 uses the SYNTHETIC fallback in worktree CI context.
+Phase-4 holdout must be run from an environment where local-samples/ is populated
+(e.g., the main checkout with bin/fetch-e2e-pcaps run).
+
+== BC ambiguities found ==
+
+None. BC-2.12.011 v1.5 is unambiguous. All 5 magic values, postconditions, and
+invariants map cleanly to the 9 test functions.
+
+The only design decision was test strategy for AC-001..008: Option B (CLI subprocess
+via assert_cmd) was used because read_magic is pub(crate) in src/main.rs and cannot
+be called directly from integration test files. This matches the STORY-088/STORY-127
+stub note.
