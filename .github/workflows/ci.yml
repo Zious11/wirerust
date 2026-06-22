@@ -141,16 +141,11 @@ jobs:
       - name: Install cargo-audit
         run: cargo install cargo-audit --locked
       - name: Run cargo audit
-        # --ignore flags suppress informational (non-vulnerability) advisories
-        # that are blocked by transitive dependency constraints:
-        #   RUSTSEC-2026-0097: rand 0.8.5 unsound (via phf_generator -> tls-parser
-        #     — rand upgrade is tls-parser upstream's responsibility; not a direct
-        #     dep and the unsound path requires a custom logger + reseed race)
         # RUSTSEC-2025-0119 (number_prefix unmaintained) was resolved by bumping
         # indicatif 0.17→0.18, which replaced number_prefix with unit-prefix.
-        run: |
-          cargo audit \
-            --ignore RUSTSEC-2026-0097
+        # RUSTSEC-2026-0097 (rand 0.8.5 unsound via phf_generator -> tls-parser)
+        # was resolved by bumping rand 0.8.5 -> 0.8.6 (maint-2026-06-22).
+        run: cargo audit
 
   deny:
     name: Deny
