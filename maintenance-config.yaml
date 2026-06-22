@@ -1,0 +1,28 @@
+# Maintenance sweep configuration — wirerust
+# Created: 2026-06-22
+# Owner: factory state-manager
+
+schedule:
+  cadence: weekly
+  day: Sunday
+  time_utc: "02:00"
+
+sweeps:
+  dependency_audit:
+    enabled: true
+  documentation_drift:
+    enabled: true
+  pattern_consistency:
+    enabled: true
+  holdout_freshness:
+    enabled: true
+  performance_baseline:
+    enabled: true
+
+merge_policy:
+  auto_merge: false
+
+gates:
+  require_holdout_pass: true
+  require_adversarial_review: true
+  require_regression_pass: true

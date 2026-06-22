@@ -52,11 +52,14 @@ dtu_clones_built: n/a
 dtu_services: []
 
 # Maintenance
-maintenance_run: COMPLETE
-maintenance_run_id: maint-2026-06-17
-maintenance_completed_at: "2026-06-17"
-maintenance_findings_count: 48
-maintenance_blocking: false
+maintenance_run: STARTED
+maintenance_run_id: maint-2026-06-22
+maintenance_started_at: "2026-06-22"
+maintenance_prior_run_id: maint-2026-06-17
+maintenance_prior_run_status: COMPLETE
+maintenance_prior_completed_at: "2026-06-17"
+maintenance_prior_findings_count: 48
+maintenance_prior_blocking: false
 
 # Convergence (archive pointer)
 adversary_convergence_counter: SATISFIED
@@ -125,6 +128,8 @@ prd.md v1.33, error-taxonomy v3.8 (next_free E-INP-016), nfr-catalog v2.3, ADR-0
 
 **FEATURE MODE — pcapng reader cycle CLOSED (feature-pcapng-reader). FE-001 COMPLETE (D-194, human-approved). RELEASED as v0.9.3 (D-201, 2026-06-22). Pipeline quiesced. D-203 SAFE-TO-CLEAR checkpoint written. DO NOT re-run F5/F6/F7 — all CONVERGED+HUMAN-APPROVED.**
 
+**MAINTENANCE SWEEP STARTED — maint-2026-06-22 (2026-06-22). Prior run maint-2026-06-17 COMPLETE/archived.**
+
 Latest release: v0.9.3 (main `2dbf461`, tag `v0.9.3`, 4 binaries, run 27984557297). develop=dd3b069. stories_delivered=77.
 
 ## Phase Progress
@@ -144,6 +149,7 @@ Latest release: v0.9.3 (main `2dbf461`, tag `v0.9.3`, 4 binaries, run 2798455729
 | Feature ARP (E-16) + v0.7.0 | RELEASED 2026-06-16 | STORY-111..115; VP-024 LOCKED. Detail: cycles/feature-arp-v0.7.0/ |
 | E-17 ARP QinQ/MACsec + v0.7.1 | RELEASED 2026-06-17 | STORY-116/117; tag v0.7.1 b98a72f |
 | Maintenance maint-2026-06-17 | COMPLETE 2026-06-17 | 2 PRs (#261/#262); 5 deferred; 0 blocking |
+| Maintenance maint-2026-06-22 | **STARTED 2026-06-22** | Sweep in progress; prior run maint-2026-06-17 archived |
 | E-18 finding-collapse (STORY-118) + v0.8.0 | RELEASED 2026-06-17 | STORY-118; SS-11=29 BCs. Detail: cycles/feature-collapse-v0.8.0/ |
 | E-18/E-8 STORY-119 cycle (F1-F7) + v0.9.0 | RELEASED + CLOSED 2026-06-19 | STORY-120/122/119; 293 BCs; tag v0.9.0 986e148. Detail: cycles/feature-story-119-grouped-collapse/ |
 | v0.9.1 patch | RELEASED 2026-06-19 | Doc/help; PRs #277/#278; tag v0.9.1 ad4eec8 |
