@@ -1,41 +1,114 @@
-//! Local-only E2E corpus smoke test.
+//! Local-only E2E corpus smoke test — pinned-expectation regression guard.
 //!
 //! This test iterates every capture file present in `tests/fixtures/local-samples/`
-//! and asserts that none of them panic when passed through
-//! [`wirerust::reader::PcapSource::from_file`] — the same entry point used by
-//! `src/main.rs`. Both `Ok` and `Err` results are accepted; the contract is
-//! strictly **no-panic / no-unwind**, not "must parse successfully."
+//! and passes each through [`wirerust::reader::PcapSource::from_file`] — the same
+//! entry point used by `src/main.rs`.
 //!
-//! Several captures in the corpus are *documented* to return clean errors:
-//! - `pcapng-spb-only.pcapng` → E-INP-010 (IfFcsLen IDB option rejection)
-//! - `pcapng-example.pcapng`  → E-INP-011 (multi-IDB link-type conflict)
-//! - `pcapng-many-interfaces.pcapng` → unsupported link type NULL
+//! # Pinned-expectation contract
 //!
-//! These `Err` results are expected and count as PASS.
+//! A static `EXPECTED` table maps each known capture filename to one of two
+//! expected outcomes:
 //!
-//! # Fixture hygiene
+//! - `Ok(packet_count)` — `PcapSource::from_file` returns `Ok` and
+//!   `source.packets.len()` equals the pinned count exactly.
+//! - `Err(substr)` — `from_file` returns `Err` and the error's `Display`
+//!   string **contains** the pinned substring (stable, structured token
+//!   preferred, e.g. `E-INP-010`).
 //!
-//! The captures are **gitignored** and not stored in the repository. To
-//! reproduce them locally run:
+//! These pins are regression guards on **reader-level** packet counts (which
+//! may differ from analyzer-level counts in the manifest). If any pinned
+//! capture produces a different result, the test fails and names the offender.
+//!
+//! Files present on disk that are NOT in the table are still exercised for
+//! no-panic (regression safety for dev-added captures) but do NOT cause a
+//! test failure — they are reported as `UNPINNED`.
+//!
+//! # Self-skip behaviour
+//!
+//! When `tests/fixtures/local-samples/` is absent or has zero capture files,
+//! the test prints a skip notice (mentioning `bin/fetch-e2e-pcaps`) and
+//! passes immediately. CI — which has no local-samples — stays green.
+//! **`#[ignore]` is not used** so the test remains in the default test run.
+//!
+//! # Reproducing fixtures
 //!
 //! ```bash
 //! bin/fetch-e2e-pcaps
 //! ```
 //!
-//! This places 28 capture files under `tests/fixtures/local-samples/`.
-//! When that directory is absent or empty the test self-skips (prints a notice
-//! and returns `Ok`) so CI — which has no local-samples — stays green.
+//! This places the 29 canonical captures under `tests/fixtures/local-samples/`.
 //!
 //! # Decision-thread reference
 //!
 //! Implements decision-thread (c) from `.factory/STATE.md` / PCAP-CORPUS-001:
 //! "a local-only test that iterates all fetched E2E captures asserting each
-//! parses without panic."
+//! parses without panic." The pinned expectation table strengthens this to
+//! catch behavioral regressions (wrong packet count, changed error class), not
+//! just panics.
 
 use std::panic::{self, AssertUnwindSafe};
 use std::path::{Path, PathBuf};
 
 use wirerust::reader::PcapSource;
+
+// ---------------------------------------------------------------------------
+// Pinned expectation table
+// ---------------------------------------------------------------------------
+
+/// The expected outcome for a single capture file.
+#[derive(Debug)]
+enum Expected {
+    /// `from_file` must return `Ok` and `source.packets.len()` must equal this.
+    OkCount(usize),
+    /// `from_file` must return `Err` whose `Display` string contains this
+    /// stable substring (typically a structured error code like `E-INP-010`).
+    ErrContains(&'static str),
+}
+
+/// Canonical per-capture expectation table.
+///
+/// Keys are bare filenames (no directory prefix). Values were recorded from
+/// the first verified run on the fetched corpus and are the authoritative
+/// reader-level baseline.
+const EXPECTED: &[(&str, Expected)] = &[
+    // ── Ok captures (reader packet count) ─────────────────────────────────
+    ("220703_arp-storm-nrb.pcapng", Expected::OkCount(622)),
+    ("4SICS-GeekLounge-151020.pcap", Expected::OkCount(246137)),
+    ("4SICS-GeekLounge-151021.pcap", Expected::OkCount(1253100)),
+    ("4SICS-GeekLounge-151022.pcap", Expected::OkCount(2274747)),
+    ("arp-baseline-16pkt.cap", Expected::OkCount(16)),
+    ("arp-storm.pcap", Expected::OkCount(622)),
+    ("arpspoof.pcap", Expected::OkCount(16285)),
+    ("dhcp-big-endian.pcapng", Expected::OkCount(4)),
+    ("dhcp-nanosecond-test.pcapng", Expected::OkCount(4)),
+    ("dnp3dataset_capture.pcap", Expected::OkCount(26058)),
+    ("dns-tunnel-dns2tcp.pcap", Expected::OkCount(26)),
+    ("dns-tunnel-dnscat2.pcap", Expected::OkCount(24)),
+    ("dns-tunnel-iodine-dmachard.pcap", Expected::OkCount(24)),
+    ("dns-tunnel-iodine.pcap", Expected::OkCount(438)),
+    ("dtls12-dsb.pcapng", Expected::OkCount(13)),
+    ("gratuitous-arp-hsrp.cap", Expected::OkCount(6)),
+    ("http-brotli-isb.pcapng", Expected::OkCount(10)),
+    ("http-creds-set4.pcap", Expected::OkCount(170)),
+    ("http-malspam-set6.pcap", Expected::OkCount(738)),
+    ("http-ppa-baseline.cap", Expected::OkCount(43)),
+    ("ip-frag-teardrop.cap", Expected::OkCount(17)),
+    ("modbus-large.pcap", Expected::OkCount(85)),
+    ("pcapng-comments.pcapng", Expected::OkCount(5)),
+    ("pcapng-dhcp-little-endian.pcapng", Expected::OkCount(4)),
+    ("ppa-arp.pcap", Expected::OkCount(2)),
+    ("rsasnakeoil2.pcap", Expected::OkCount(58)),
+    // ── Err captures (stable error substring) ─────────────────────────────
+    // E-INP-011: multi-IDB link-type conflict (message ends with "(E-INP-011)")
+    ("pcapng-example.pcapng", Expected::ErrContains("E-INP-011")),
+    // NULL link type not supported; message leads with "Unsupported pcap link type: NULL"
+    (
+        "pcapng-many-interfaces.pcapng",
+        Expected::ErrContains("Unsupported pcap link type: NULL"),
+    ),
+    // E-INP-010: IfFcsLen IDB option rejection
+    ("pcapng-spb-only.pcapng", Expected::ErrContains("E-INP-010")),
+];
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -53,7 +126,6 @@ fn collect_captures(dir: &Path) -> Vec<PathBuf> {
         .filter_map(|e| e.ok())
         .map(|e| e.path())
         .filter(|p| {
-            // Only regular files with a recognized capture extension.
             if !p.is_file() {
                 return false;
             }
@@ -71,8 +143,13 @@ fn collect_captures(dir: &Path) -> Vec<PathBuf> {
     paths
 }
 
+/// Build a lookup from filename → `Expected` from the static table.
+fn expected_map() -> std::collections::HashMap<&'static str, &'static Expected> {
+    EXPECTED.iter().map(|(name, exp)| (*name, exp)).collect()
+}
+
 // ---------------------------------------------------------------------------
-// Outcome enum (for per-file summary reporting)
+// Actual outcome (runtime)
 // ---------------------------------------------------------------------------
 
 enum Outcome {
@@ -108,13 +185,15 @@ fn test_e2e_corpus_no_panic_across_all_local_captures() {
         return;
     }
 
-    // ── Exercise each capture ─────────────────────────────────────────────────
+    let exp_map = expected_map();
+
+    // ── Per-file tracking ─────────────────────────────────────────────────────
     let mut panic_files: Vec<String> = Vec::new();
-    let mut ok_count = 0usize;
-    let mut err_count = 0usize;
+    let mut mismatches: Vec<String> = Vec::new();
+    let mut verified_count = 0usize;
 
     eprintln!(
-        "\n[e2e-corpus-smoke] Exercising {} capture(s):",
+        "\n[e2e-corpus-smoke] Exercising {} capture(s) against pinned expectation table:",
         captures.len()
     );
 
@@ -133,15 +212,10 @@ fn test_e2e_corpus_no_panic_across_all_local_captures() {
         let outcome = match result {
             Ok(Ok(source)) => {
                 let n = source.packets.len();
-                ok_count += 1;
                 Outcome::Ok { packet_count: n }
             }
-            Ok(Err(e)) => {
-                err_count += 1;
-                Outcome::Err(format!("{e:#}"))
-            }
+            Ok(Err(e)) => Outcome::Err(format!("{e:#}")),
             Err(payload) => {
-                // Extract a human-readable message from the panic payload.
                 let msg = if let Some(s) = payload.downcast_ref::<&str>() {
                     (*s).to_owned()
                 } else if let Some(s) = payload.downcast_ref::<String>() {
@@ -154,43 +228,115 @@ fn test_e2e_corpus_no_panic_across_all_local_captures() {
             }
         };
 
-        // Per-file summary line.
-        match &outcome {
-            Outcome::Ok { packet_count } => {
-                eprintln!("  OK  ({:>5} pkts)  {}", packet_count, file_name);
+        // ── Compare against pinned expectation ────────────────────────────
+        let label = match exp_map.get(file_name.as_str()) {
+            Some(Expected::OkCount(expected_n)) => {
+                // File is in the table — verify it.
+                verified_count += 1;
+                match &outcome {
+                    Outcome::Ok { packet_count } if packet_count == expected_n => {
+                        format!("OK({packet_count})")
+                    }
+                    Outcome::Ok { packet_count } => {
+                        let msg = format!(
+                            "{file_name}: expected Ok({expected_n}) but got Ok({packet_count})"
+                        );
+                        mismatches.push(msg);
+                        format!("MISMATCH(exp Ok({expected_n})/act Ok({packet_count}))")
+                    }
+                    Outcome::Err(e) => {
+                        let short: String = e.chars().take(80).collect();
+                        let msg =
+                            format!("{file_name}: expected Ok({expected_n}) but got Err({short})");
+                        mismatches.push(msg);
+                        format!("MISMATCH(exp Ok({expected_n})/act ERR)")
+                    }
+                    Outcome::Panic(p) => {
+                        // Already recorded in panic_files above.
+                        format!("PANIC({p})")
+                    }
+                }
             }
-            Outcome::Err(msg) => {
-                // Truncate long error messages for readability.
-                let short: String = msg.chars().take(120).collect();
-                eprintln!("  ERR           {}  [{}]", file_name, short);
+            Some(Expected::ErrContains(substr)) => {
+                verified_count += 1;
+                match &outcome {
+                    Outcome::Err(e) if e.contains(substr) => {
+                        format!("ERR({substr})")
+                    }
+                    Outcome::Err(e) => {
+                        let short: String = e.chars().take(80).collect();
+                        let msg = format!(
+                            "{file_name}: expected Err containing {substr:?} but \
+                             got Err({short})"
+                        );
+                        mismatches.push(msg);
+                        format!("MISMATCH(exp ERR({substr})/act ERR(different))")
+                    }
+                    Outcome::Ok { packet_count } => {
+                        let msg = format!(
+                            "{file_name}: expected Err containing {substr:?} but \
+                             got Ok({packet_count})"
+                        );
+                        mismatches.push(msg);
+                        format!("MISMATCH(exp ERR({substr})/act Ok({packet_count}))")
+                    }
+                    Outcome::Panic(p) => {
+                        format!("PANIC({p})")
+                    }
+                }
             }
-            Outcome::Panic(msg) => {
-                eprintln!("  PANIC         {}  [{}]", file_name, msg);
+            None => {
+                // Unknown capture — still exercise for no-panic but don't fail.
+                match &outcome {
+                    Outcome::Ok { packet_count } => {
+                        format!("UNPINNED Ok({packet_count}) -- add to expected table")
+                    }
+                    Outcome::Err(e) => {
+                        let short: String = e.chars().take(80).collect();
+                        format!("UNPINNED ERR({short}) -- add to expected table")
+                    }
+                    Outcome::Panic(p) => {
+                        format!("UNPINNED PANIC({p})")
+                    }
+                }
             }
-        }
+        };
+
+        eprintln!("  {}  {}", label, file_name);
     }
 
     // ── Aggregate summary ─────────────────────────────────────────────────────
     eprintln!(
-        "\n[e2e-corpus-smoke] Results: {} OK, {} ERR (expected), {} PANIC",
-        ok_count,
-        err_count,
+        "\n[e2e-corpus-smoke] Verified {verified_count} pinned entries, \
+         {} mismatch(es), {} panic(s)",
+        mismatches.len(),
         panic_files.len()
     );
 
-    // At least one capture must have been exercised when the directory was
-    // non-empty (guards against a bug in collect_captures silently skipping all).
+    // When fixtures were present, at least one expected entry must have been
+    // verified (guards against a bug where collect_captures skips everything or
+    // the EXPECTED table is somehow empty).
     assert!(
-        ok_count + err_count + panic_files.len() > 0,
-        "collect_captures returned paths but no capture was actually exercised — \
-         this is a bug in the test harness"
+        verified_count > 0,
+        "[e2e-corpus-smoke] No pinned captures were verified — either the \
+         EXPECTED table is empty or no expected filenames matched anything on \
+         disk. This is a test-harness bug."
     );
 
-    // The primary contract: no capture may panic.
+    // Primary contract: no capture may panic.
     assert!(
         panic_files.is_empty(),
         "[e2e-corpus-smoke] {} capture(s) caused a panic: {}",
         panic_files.len(),
         panic_files.join(", ")
+    );
+
+    // Regression contract: every pinned expectation that is present on disk
+    // must match exactly. Collect all failures and report them together.
+    assert!(
+        mismatches.is_empty(),
+        "[e2e-corpus-smoke] {} pinned expectation(s) did not match:\n  - {}",
+        mismatches.len(),
+        mismatches.join("\n  - ")
     );
 }
