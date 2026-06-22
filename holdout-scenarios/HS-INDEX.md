@@ -691,3 +691,32 @@ All other checks passed for the greenfield set:
 | Wave covered | 47 |
 | Story covered | STORY-118 |
 | Source file | `.factory/feature/wave-holdout-scenarios/wave-47-holdout.md` |
+
+---
+
+## Maintenance Note — maint-2026-06-22 (Sweep 4 Holdout Freshness)
+
+> **Recorded by product-owner on 2026-06-22. Cross-reference: `.factory/maintenance/po-backlog-maint-2026-06-22.md`**
+
+**The 73 feature-holdout seeds declared in this index remain UNIMPLEMENTED as of maint-2026-06-22.**
+No HS files have been authored for any of the following seed groups:
+
+| Feature | Seeds declared | HS files on disk | Status |
+|---------|---------------|-----------------|--------|
+| DNP3 (waves 35-39) | 32 | 0 | SEEDS ONLY — no concrete HS files |
+| ARP (waves 40-44) | 28 | 0 | SEEDS ONLY — no concrete HS files |
+| Finding-collapse (wave 47) | 13 | 0 | SEEDS ONLY — no concrete HS files |
+| Modbus | 0 declared | 0 | NO SEEDS, NO FILES |
+
+The seed declarations above (in each Feature Holdouts section) MUST NOT be deleted —
+they are the authoritative authoring targets for the next holdout authoring cycle.
+This note records the gap; it does not authorize removal of any seed row.
+
+**PO backlog items:**
+- PO-S4-004: DNP3 32 seeds — HIGH severity gap (security-relevant ICS, MITRE-mapped)
+- PO-S4-005: ARP 28 seeds — HIGH severity gap (T0830/T1557.002, live arpspoof.pcap findings)
+- PO-S4-006: Finding-collapse 13 seeds — MEDIUM severity gap
+- PO-S4-007: Modbus — MEDIUM severity gap (no seeds, no coverage)
+
+Recommended authoring order: DNP3 first, ARP second, then collapse + Modbus.
+No GitHub issues filed — pending research-agent validation per DF-VALIDATION-001.
