@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.6"
+version: "1.7"
 status: draft
 producer: product-owner
 timestamp: 2026-06-19T00:00:00Z
@@ -13,6 +13,7 @@ capability: CAP-01
 lifecycle_status: active
 introduced: v0.10.0-pcapng
 modified:
+  - "v1.7: F6 security hardening — (1) Description updated: taxonomy range extended to include E-INP-014 (file-size gate) and E-INP-015 (interface table cap). (2) Postcondition 1 context-string list extended: added E-INP-014 'pcapng file too large' entry (fires in from_file before BufReader construction) and E-INP-015 'pcapng interface table too large' entry (fires in IDB_BLOCK_TYPE arm before interfaces.push). (3) Error Taxonomy traceability field updated to include E-INP-014 and E-INP-015. No normative change to existing error routing. — 2026-06-21"
   - "v1.6: Pass-6 minor consistency fixes (FINDING-P6-001 + FINDING-P6-002) — (P6-001) Related BCs annotations for BC-2.01.012 and BC-2.01.013 updated to include E-INP-008 (EPB/SPB body-decode failures) alongside E-INP-009 and E-INP-010; aligns with this file's own PC1 error-code split and Error Taxonomy field. (P6-002) PC1 SPB body-too-short window corrected from '[btl 16<=btl<20]' (which is the IDB window) to 'btl=12 only' (body=0 < SPB_FIXED_OVERHEAD_BYTES=4; crate successfully frames btl=12 but wirerust body-decode rejects zero-length body → E-INP-008); separately, EPB body-too-short window corrected from '[btl 32<=btl<52]' to '[btl 12<=btl<32]' (body 0..19 < EPB_FIXED_OVERHEAD_BYTES=20). Confirmed per-block body-too-short windows: SHB 12<=btl<28, IDB 12<=btl<20, EPB 12<=btl<32, SPB btl=12. — 2026-06-20"
   - "v1.5: Pass-6 remediation T3 F-H1 (ADR-009 rev 9) — This BC was MISSED in pass-4 and pass-5 dispatches; brought current here. PC1 EPB/SPB error-code mapping corrected per Decision 20 (rev 8): EPB/SPB BODY-DECODE failures (body-too-short, captured_len/padding overrun) → E-INP-008 (wirerust body-decode path); 'Failed to parse pcapng Enhanced Packet Block (packet <seq>)' and 'Failed to read pcapng Simple Packet Block' context strings now map to E-INP-008, NOT E-INP-010. E-INP-010 is STRICTLY crate framing rejection: btl<12/misaligned/EOF plus EPB interface_id OOB-on-non-empty (E-INP-010) and empty-table (E-INP-009). 'Failed to skip pcapng block' remains E-INP-010 (crate framing). Updated PC1 bullet list to reflect the full three-way split: body-decode→E-INP-008, interface_id empty→E-INP-009, interface_id OOB/framing→E-INP-010. Updated Description, EC-002, EC-003, and Error Taxonomy field to include E-INP-008 for EPB/SPB body-decode. — 2026-06-20"
   - "v1.4: Pass-3 remediation Burst Q3 (ADR-009 rev 6) — (H-3) E-INP-001 added to PC1 context-string list: 'pcapng Interface Description Block link type rejected' → E-INP-001 (whitelist Err raised at IDB-parse time paths through this cross-cutting contract). Error Taxonomy traceability field updated to include E-INP-001. Description updated to note taxonomy range includes E-INP-001. — 2026-06-19"
@@ -33,16 +34,19 @@ removal_reason: null
 
 All pcapng parse failures (truncated SHB, truncated IDB, truncated EPB, truncated SPB,
 invalid block-total-length, missing IDB before EPB, malformed block structure, unsupported
-IDB link type) MUST surface as `Err(anyhow::Error)` via the existing `?` propagation chain
-— the same mechanism used by the classic-pcap path. Each error MUST be wrapped with
-`anyhow::Context` text that identifies the block type and, where applicable, the interface
-index or block sequence number. The error ultimately maps to one of the taxonomy entries
-(E-INP-001, E-INP-008 through E-INP-013). E-INP-001 applies when the IDB linktype whitelist
-check fires at IDB-parse time (BC-2.01.016). Per Decision 20 (ADR-009 rev 8): EPB/SPB
-**body-decode** failures (body-too-short, captured_len/padding overrun after crate framing) →
-**E-INP-008** (wirerust body-decode path); crate-level framing rejection (btl<12/misaligned/EOF)
-and EPB `interface_id` OOB on a non-empty table → **E-INP-010**; EPB/SPB before any IDB
-(empty table) → **E-INP-009**. No pcapng parse error produces a `panic!` or an `unwrap`
+IDB link type, file too large, interface table too large) MUST surface as `Err(anyhow::Error)`
+via the existing `?` propagation chain — the same mechanism used by the classic-pcap path.
+Each error MUST be wrapped with `anyhow::Context` text that identifies the block type and,
+where applicable, the interface index or block sequence number. The error ultimately maps to
+one of the taxonomy entries (E-INP-001, E-INP-008 through E-INP-015). E-INP-001 applies when
+the IDB linktype whitelist check fires at IDB-parse time (BC-2.01.016). Per Decision 20
+(ADR-009 rev 8): EPB/SPB **body-decode** failures (body-too-short, captured_len/padding overrun
+after crate framing) → **E-INP-008** (wirerust body-decode path); crate-level framing rejection
+(btl<12/misaligned/EOF) and EPB `interface_id` OOB on a non-empty table → **E-INP-010**;
+EPB/SPB before any IDB (empty table) → **E-INP-009**; file size exceeds
+`MAX_PCAPNG_FILE_BYTES` → **E-INP-014** (BC-2.01.009 PC3, F6 security hardening);
+interface table exceeds `MAX_INTERFACE_TABLE_ENTRIES` → **E-INP-015** (BC-2.01.011 PC4,
+F6 security hardening). No pcapng parse error produces a `panic!` or an `unwrap`
 in production code.
 
 **Cross-cutting no-panic parent:** This BC is the authoritative cross-cutting contract for
@@ -72,9 +76,12 @@ across the full input space.
      - `"pcapng Simple Packet Block encountered before any Interface Description Block"` (→ E-INP-009; empty interface table)
      - `"pcapng Enhanced Packet Block references interface <id> but only <n> interfaces defined"` (→ E-INP-010; EPB interface_id OOB on non-empty table; distinct from empty-table E-INP-009)
      - `"pcapng Interface Description Block link type rejected"` (→ E-INP-001; context string wraps the root `Err` from the BC-2.01.016 whitelist check; the full message rendered to the user is the E-INP-001 format: `"Unsupported pcap link type: <type>. Supported: ..."` propagated via the anyhow chain)
-   **Error-code split (Decision 20, ADR-009 rev 8):** EPB/SPB body-decode failures → E-INP-008;
+     - `"pcapng file too large: {size} bytes exceeds limit of {limit} bytes (E-INP-014); use a streaming tool or split the capture"` (→ E-INP-014; **F6 security hardening**; fired by `from_file` in the pcapng arm before `BufReader` construction when `fs::metadata(path)?.len() > MAX_PCAPNG_FILE_BYTES`; see BC-2.01.009 PC3)
+     - `"pcapng interface table too large: exceeds limit of 65535 interfaces (E-INP-015)"` (→ E-INP-015; **F6 security hardening**; fired in the `IDB_BLOCK_TYPE` arm before `interfaces.push(...)` when `interfaces.len() >= MAX_INTERFACE_TABLE_ENTRIES`; see BC-2.01.011 PC4)
+   **Error-code split (Decision 20, ADR-009 rev 8; extended F6):** EPB/SPB body-decode failures → E-INP-008;
    crate framing rejection (btl<12/misaligned/EOF) → E-INP-010; interface_id OOB on non-empty
-   table → E-INP-010; interface table empty → E-INP-009. These are NOT interchangeable.
+   table → E-INP-010; interface table empty → E-INP-009; file too large (F6) → E-INP-014;
+   interface table too large (F6) → E-INP-015. These are NOT interchangeable.
 2. No partial `PcapSource` is returned on parse error; the entire operation fails.
 3. **No panic, no infinite loop (cross-cutting no-panic contract):** For ANY byte sequence
    fed to `PcapSource::from_pcap_reader`, the function returns `Ok(_)` or `Err(_)` — it
@@ -137,7 +144,7 @@ across the full input space.
 | Architecture Module | SS-01 (reader.rs, C-4) |
 | Stories | STORY-126 |
 | ADR Reference | ADR-009 rev 9 Consequences: "Adding *.pcapng to the src/main.rs directory glob means malformed pcapng files that were silently excluded now produce errors at the reader level"; Decision 20 (uniform error-code split: EPB/SPB body-decode → E-INP-008; crate framing rejection → E-INP-010; interface_id empty → E-INP-009; interface_id OOB non-empty → E-INP-010) |
-| Error Taxonomy | E-INP-001 (pcapng IDB linktype whitelist, raised by BC-2.01.016 at IDB-parse time; same code and message format as classic-pcap path), E-INP-008 (wirerust body-decode failures for ALL block types: SHB body<16, IDB body<8, EPB body<20 or captured_len/padding overrun, SPB body<4 or length overrun — wherever crate framed successfully but wirerust body-decode rejects; per Decision 20 ADR-009 rev 8), E-INP-009 (EPB/SPB before any IDB — empty interface table), E-INP-010 (crate framing rejection: btl<12/misaligned/EOF; also EPB interface_id OOB on non-empty table), E-INP-011, E-INP-012, E-INP-013 (see taxonomy) |
+| Error Taxonomy | E-INP-001 (pcapng IDB linktype whitelist, raised by BC-2.01.016 at IDB-parse time; same code and message format as classic-pcap path), E-INP-008 (wirerust body-decode failures for ALL block types: SHB body<16, IDB body<8, EPB body<20 or captured_len/padding overrun, SPB body<4 or length overrun — wherever crate framed successfully but wirerust body-decode rejects; per Decision 20 ADR-009 rev 8), E-INP-009 (EPB/SPB before any IDB — empty interface table), E-INP-010 (crate framing rejection: btl<12/misaligned/EOF; also EPB interface_id OOB on non-empty table), E-INP-011, E-INP-012, E-INP-013 (see taxonomy), E-INP-014 (pcapng file too large — resource-exhaustion guard; from_file pcapng arm; fs::metadata size > MAX_PCAPNG_FILE_BYTES = 4 GiB; F6 security hardening), E-INP-015 (interface table too large — defense-in-depth IDB amplification cap at 65535 entries; IDB_BLOCK_TYPE arm before interfaces.push; F6 security hardening) |
 
 ## Related BCs
 

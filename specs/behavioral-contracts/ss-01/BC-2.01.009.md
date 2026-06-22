@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.7"
+version: "1.8"
 status: draft
 producer: product-owner
 timestamp: 2026-06-19T00:00:00Z
@@ -13,6 +13,7 @@ capability: CAP-01
 lifecycle_status: active
 introduced: v0.10.0-pcapng
 modified:
+  - "v1.8: F6 security hardening — added PC3 (file-size gate: from_file rejects pcapng files larger than MAX_PCAPNG_FILE_BYTES=4_294_967_296 bytes via fs::metadata before BufReader construction; returns E-INP-014 before reading the file into memory). Added EC-011 (file-size gate edge case: oversized pcapng in directory mode is isolated per BC-2.01.018 AC-002 and does not abort the scan). Error condition E-INP-014 cross-reference added. — 2026-06-21"
   - "v1.7: Pass-7 remediation U1 (F-3) — PC6 generic skip segment rule made explicit: the notice parenthetical has two independently gated segments. (1) Generic segment: '(skipped_blocks - opb_skipped) block(s) skipped as unsupported' — emitted ONLY when (skipped_blocks - opb_skipped) > 0. (2) OPB clause: '(includes <opb_skipped> obsolete Packet Block(s) whose data was not analyzed; re-save with mergecap)' — emitted ONLY when opb_skipped > 0. So: Case D (skipped_blocks=1, opb_skipped=1) → no generic segment (1-1=0), OPB clause '1'. Case E (skipped_blocks=3, opb_skipped=1) → generic segment '2', OPB clause '1'. When both segments are present they appear space-separated in one parenthetical or as two adjacent parentheticals. Neither segment is emitted when its gate is zero. — 2026-06-20"
   - "v1.6: Pass-6 remediation T4 (ADR-009 rev 9) — (F-M4) Added EC-010: SHB-only pcapng (no IDB, no packet blocks, no skipped blocks) is structurally valid per pcapng spec. Yields Ok(PcapSource) with packets.len()==0, skipped_blocks==0, opb_skipped==0. The zero-packet notice IS emitted (canonical format, no parenthetical — skipped_blocks==0 and opb_skipped==0). Exit 0. An SHB alone constitutes a valid empty section; it is NOT an error. Added test vector and VP for this case. — 2026-06-20"
   - "v1.5: Pass-5 remediation S3 (ADR-009 rev 8) — (M-5) Rewrote PC6: emission moves from reader to main.rs; PcapSource now exposes skipped_blocks:u32 and opb_skipped:u32 (OPB sub-count); from_pcap_reader surfaces these; main.rs reads them and emits the notice. Canonical Decision 19 format: 'notice: <filename>: 0 packets read from <pcap|pcapng> file'; when opb_skipped>0 append '(includes N obsolete Packet Blocks whose data was not analyzed; re-save with mergecap)'. Classic empty pcap also triggers notice (classic/pcapng symmetry). Removed old 'reader emits / wirerust:' wording from PC6. (M-1) Deleted Precondition 3 ('at least 4 bytes available') — contradicts EC-003 (graceful Err on <4 bytes); <4-byte case is a runtime condition handled by postcondition, NOT an input precondition. (M-4) Added AC-007 pinning the BufReader wrap site: from_pcap_reader MUST internally wrap its R:Read in BufReader and feed the SAME BufReader to both fill_buf and downstream parsers. — 2026-06-20"
@@ -55,6 +56,21 @@ acceptance.
    4 bytes from the filled buffer WITHOUT calling `consume()` — the stream position is
    unchanged after the peek. This pattern works on non-seekable streams (pipes, sockets)
    with no seek required.
+3. **(F6 file-size gate — E-INP-014)** When a caller is `from_file(path)` (i.e., a file-path
+   entry point rather than a raw `Read` stream), and the magic-byte probe confirms pcapng format,
+   wirerust MUST check `fs::metadata(path)?.len()` against `MAX_PCAPNG_FILE_BYTES`
+   (`= 4_294_967_296` bytes = 4 GiB) **before** constructing the `BufReader` or reading any
+   further file content. If the file size exceeds `MAX_PCAPNG_FILE_BYTES`, wirerust returns
+   `Err` with error code **E-INP-014** and the canonical message:
+   `"pcapng file too large: {size} bytes exceeds limit of {limit} bytes (E-INP-014); use a streaming tool or split the capture"`.
+   This guard is NOT applied to classic-pcap files (the check is inside the pcapng branch only,
+   after the magic-byte probe). It is NOT applied when the caller passes a raw `Read` stream
+   with no associated file path (e.g., a pipe). **Directory-mode interaction:** the `Err`
+   propagates through the per-file isolation mechanism (BC-2.01.018 AC-002); the oversized file
+   is reported as a per-file broken result and the scan of remaining files continues normally.
+   This is an interim mitigation for CWE-400 (unbounded `read_to_end` OOM DoS); the permanent
+   fix is a streaming-reader follow-up (ADR-009 Decision N, F6 security hardening, 4 GiB ceiling
+   chosen by human at F6 gate).
 
 ## Postconditions
 
@@ -183,6 +199,8 @@ acceptance.
 | EC-008 | Valid pcapng with IDB and SHB but zero EPB/SPB and zero skipped blocks (e.g., capture session opened but no packets recorded) | `Ok(PcapSource)` with `packets.len() == 0`; `source.skipped_blocks == 0`; main.rs emits notice: `"notice: <filename>: 0 packets read from pcapng file"`; exit code 0. **Test:** `test_BC_2_01_009_zero_packet_idb_only_no_skips_notice` |
 | EC-009 | Valid EMPTY classic pcap (valid global header, zero packet records) | `Ok(PcapSource)` with `packets.len() == 0`; main.rs emits notice: `"notice: <filename>: 0 packets read from pcap file"`; exit code 0. Classic/pcapng symmetry. **Test:** `test_BC_2_01_009_zero_packet_empty_classic_pcap_notice` |
 | EC-010 | SHB-only pcapng (no IDB, no packet blocks, no blocks of any kind after the SHB) — degenerate but structurally valid file (F-M4) | `Ok(PcapSource)` with `packets.len() == 0`; `source.skipped_blocks == 0`; `source.opb_skipped == 0`. main.rs emits notice: `"notice: <filename>: 0 packets read from pcapng file"` (no parenthetical segment — `skipped_blocks == 0` and `opb_skipped == 0`); exit code 0. An SHB alone is a valid empty pcapng section per spec §4.1; there are no blocks to skip and no packets to read. **Test:** `test_BC_2_01_009_shb_only_zero_packet_notice` |
+| EC-011 | pcapng file whose `fs::metadata` size exceeds `MAX_PCAPNG_FILE_BYTES` (4 GiB) — single-file mode | Returns `Err` with **E-INP-014**; message: `"pcapng file too large: {size} bytes exceeds limit of 4294967296 bytes (E-INP-014); use a streaming tool or split the capture"`. File is NOT opened or read beyond the magic-byte probe and `fs::metadata` call. Exit 1. **Test:** `test_BC_2_01_009_file_too_large_e_inp_014` |
+| EC-012 | pcapng file exceeding `MAX_PCAPNG_FILE_BYTES` encountered during directory scan | Returns `Err` (E-INP-014) for that file; per-file isolation (BC-2.01.018 AC-002) reports the error for the oversized file and continues scanning the remaining files in the directory. The overall scan does NOT abort; other valid files are processed normally. **Test:** `test_BC_2_01_009_file_too_large_directory_mode_isolation` |
 
 ## Canonical Test Vectors
 
@@ -219,7 +237,8 @@ acceptance.
 | L2 Domain Invariants | None directly |
 | Architecture Module | SS-01 (reader.rs, C-4) |
 | Stories | STORY-123 |
-| ADR Reference | ADR-009 Decision 5 (magic-byte probe discipline), Decision 6 (BC-2.01.004 retirement), Decision 19 (canonical zero-packet notice format; emission in main.rs; PcapSource.skipped_blocks/opb_skipped fields) — rev 9 (F-M4: SHB-only file is structurally valid, yields skipped_blocks==0, notice emitted, exit 0) |
+| Error Taxonomy | E-INP-014 (pcapng file too large; resource-exhaustion guard; fired by from_file before BufReader construction when fs::metadata size > MAX_PCAPNG_FILE_BYTES = 4 GiB; exit 1) |
+| ADR Reference | ADR-009 Decision 5 (magic-byte probe discipline), Decision 6 (BC-2.01.004 retirement), Decision 19 (canonical zero-packet notice format; emission in main.rs; PcapSource.skipped_blocks/opb_skipped fields) — rev 9 (F-M4: SHB-only file is structurally valid, yields skipped_blocks==0, notice emitted, exit 0); Decision N (F6 security hardening: interim file-size guard E-INP-014 applied at from_file entry on pcapng path via fs::metadata; MAX_PCAPNG_FILE_BYTES = 4_294_967_296 bytes; ceiling chosen by human at F6 gate; superseded when streaming-reader follow-up lands) |
 
 ## Related BCs
 

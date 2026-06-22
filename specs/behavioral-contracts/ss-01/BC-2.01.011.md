@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.8"
+version: "1.9"
 status: draft
 producer: product-owner
 timestamp: 2026-06-19T00:00:00Z
@@ -13,6 +13,7 @@ capability: CAP-01
 lifecycle_status: active
 introduced: v0.10.0-pcapng
 modified:
+  - "v1.9: F6 security hardening — added PC3 (interface table cap: if interfaces.len() >= MAX_INTERFACE_TABLE_ENTRIES (65_535) before a push, returns Err with E-INP-015; defense-in-depth against CWE-770 IDB amplification; pcapng interface_id is u32, so 65535 is a chosen cap, not a format limit). Added EC-014 for the cap edge case. Error Taxonomy field updated to include E-INP-015. ADR Reference updated to cite Decision N (F6). — 2026-06-21"
   - "v1.8: Spec-accuracy correction — PC4, EC-010, and Architecture Anchors corrected to accurately describe the IDB reserved-field validation mechanism. BEFORE: stated wirerust 'mirrors the crate's reserved==0 enforcement'. AFTER: the IDB reserved-field and minimum-length validation is ENFORCED BY THE CRATE inside next_raw_block (pcap-file 2.0.0 try_into_block → InterfaceDescriptionBlock::from_slice checks reserved!=0 and block length<8, returning Err BEFORE giving wirerust the RawBlock body); wirerust CANNOT inspect the reserved bytes itself. wirerust REMAPS the crate's InvalidField('InterfaceDescriptionBlock: reserved != 0' / '...block length < 8') error to E-INP-008 via documented string-coupling. This mirrors the SHB case per ADR-009 Decision 23. Observable contract unchanged: malformed IDB structure → E-INP-008, no panic. Authority: ADR-009 Decision 24 (rev 11). — 2026-06-20"
   - "v1.7: Pass-10 remediation (LOW-1) — Added carve-out to the 'unknown option codes are silently skipped' bullet in PC6: the parenthetical now explicitly states this applies ONLY to option codes wirerust does not specially handle; code 9 / if_tsresol is NOT in this set and is subject to the option_length==1 enforcement rule → E-INP-008 on length!=1. Prevents the ambiguity where a reader could infer if_tsresol is silently skipped when option_length!=1. — 2026-06-20"
   - "v1.6: Pass-6 remediation T3 (ADR-009 rev 9) — F-M3: snaplen is dead (nothing consumes it after SPB was dropped). Removed snaplen from InterfaceInfo struct definition; PC4 and AC-003 no longer claim snaplen is 'extracted and stored for SPB use (BC-2.01.013)' (false cross-ref). PC4 now states snaplen (IDB body bytes 4-7) is READ only to advance past the fixed fields and DISCARDED — wirerust does not store or apply snaplen this cycle (mirrors Decision 21 if_tsoffset). Added limitation note: snaplen is not enforced; captured lengths are bounded by on-disk block body extent (EPB: btl-32; SPB: btl-16). F-M5: added if_tsresol option-length enforcement — an if_tsresol (code 9) option whose option_length != 1 is a malformed option → Err(E-INP-008); wirerust MUST NOT silently ignore or default. Added EC-013 (if_tsresol with length=4 → E-INP-008). Updated AC-005, PC6, and edge-case table accordingly. — 2026-06-20"
@@ -45,6 +46,20 @@ multi-IDB agreement check (BC-2.01.018). `if_tsresol` absent defaults to 10^-6 (
 1. The SHB has been successfully parsed (BC-2.01.010); byte order is established.
 2. The block type field reads `0x00000001` (after byte-order correction).
 3. The IDB block-total-length is consistent with the block body size.
+4. **(F6 interface table cap — E-INP-015)** Before pushing a new `InterfaceInfo` entry into
+   the interface table, wirerust MUST check `interfaces.len() >= MAX_INTERFACE_TABLE_ENTRIES`
+   (where `MAX_INTERFACE_TABLE_ENTRIES = 65_535`). If the cap would be exceeded, wirerust
+   returns `Err` with error code **E-INP-015** and the canonical message:
+   `"pcapng interface table too large: exceeds limit of 65535 interfaces (E-INP-015)"`.
+   The interface table is NOT updated with the would-be 65536th entry. Processing stops
+   immediately for the current file.
+   **Design note:** The pcapng spec defines the EPB `interface_id` as a `u32` field, so 65535
+   is a chosen defense-in-depth cap, NOT a format-mandated limit. No real-world capture is
+   expected to exceed 65535 interfaces. Any file doing so is almost certainly crafted or corrupt.
+   This cap provides a secondary resource-exhaustion bound complementary to the file-size gate
+   (BC-2.01.009 PC3 / E-INP-014). **Directory-mode interaction:** the `Err` propagates through
+   per-file isolation (BC-2.01.018 AC-002); the affected file is skipped and the overall scan
+   continues normally.
 
 ## Postconditions
 
@@ -195,6 +210,7 @@ multi-IDB agreement check (BC-2.01.018). `if_tsresol` absent defaults to 10^-6 (
 | EC-011 | IDB options region contains an option with `option-length` exceeding the remaining body bytes (malformed TLV) | `Err` mapping to **E-INP-008** (IDB structural parse failure); no panic; no OOB read. **Test:** `test_BC_2_01_011_options_malformed_length_e_inp_008` |
 | EC-012 | Late IDB (`packets_emitted > 0`) that ALSO carries a `linktype` differing from the first IDB's (conflict) | `Err` mapping to **E-INP-013** (position check wins; E-INP-001 and E-INP-011 are never evaluated); no panic. **Test:** `test_BC_2_01_011_idb_precedence_e_inp_013_wins_over_conflict` |
 | EC-013 | IDB options TLV contains `if_tsresol` (code 9) with `option_length = 4` (not 1) | `Err` mapping to **E-INP-008** (malformed `if_tsresol` TLV; wirerust MUST NOT silently ignore or default to 6); no panic. **Test:** `test_BC_2_01_011_if_tsresol_wrong_length_e_inp_008` |
+| EC-014 | File containing exactly 65535 IDBs followed by a 65536th IDB | The 65536th IDB triggers the interface table cap guard before `interfaces.push(...)`: returns `Err` with **E-INP-015** (`"pcapng interface table too large: exceeds limit of 65535 interfaces (E-INP-015)"`); no panic; interface table has exactly 65535 entries at time of error. In directory mode, this error is isolated per BC-2.01.018 AC-002 and does not abort the overall scan. **Test:** `test_BC_2_01_011_interface_table_cap_e_inp_015` |
 
 ## Canonical Test Vectors
 
@@ -226,8 +242,8 @@ multi-IDB agreement check (BC-2.01.018). `if_tsresol` absent defaults to 10^-6 (
 | L2 Domain Invariants | None directly |
 | Architecture Module | SS-01 (reader.rs, C-4) |
 | Stories | STORY-124 |
-| ADR Reference | ADR-009 rev 11 Decision 2 (IDB coverage), Decision 3 (multi-IDB policy), Decision 4 (if_tsresol extraction), Decision 7/16 (single-section only; second SHB rejected; Invariant 2 deferred), Decision 8 (forward-progress contract; no-panic guarantee at framing layer), Decision 10 (panic surface), Decision 15 (interleaved IDB after first packet block => E-INP-013 rejection), Decision 17 (IDB-parse three-level precedence: E-INP-013 position > E-INP-001 whitelist > E-INP-011 conflict), Decision 20 (uniform error-code rule: btl<12→E-INP-010; 12≤btl<20→body<8→E-INP-008; per-block fixed-field minimum IDB=8), Decision 21 (if_tsoffset NOT extracted this cycle; only if_tsresol code 9 is extracted and applied; snaplen likewise read-and-discarded, no consumer after SPB dropped — F-M3), Decision 23 (SHB reserved-field delegation pattern — crate validates, wirerust remaps via string-coupling), **Decision 24 (IDB reserved-field and body-length validation is enforced by the crate inside next_raw_block; wirerust remaps InvalidField error to E-INP-008 via string-coupling; wirerust does not inspect reserved bytes directly — same pattern as Decision 23)** |
-| Error Taxonomy | E-INP-008 (IDB structural parse failure, four sources: (a) body < 8 bytes on wirerust body-decode path [constructible window: 12≤btl<20; wirerust checks body.len()>=8 itself on the raw path]; (b) reserved != 0 — detected by the crate inside next_raw_block and remapped by wirerust from InvalidField error via string-coupling (ADR-009 Decision 24 rev 11; wirerust does not inspect reserved bytes directly); (c) malformed options TLV length exceeding remaining body — wirerust detects during options walk; (d) if_tsresol option (code 9) with option_length != 1 — malformed TLV, not silently defaulted. btl<12 is NOT E-INP-008 — that is E-INP-010 via crate-rejection path), E-INP-010 (btl<12/misaligned/EOF — crate rejects before returning block), E-INP-013 (IDB after first packet block — error-taxonomy.md v2.8) |
+| ADR Reference | ADR-009 rev 11 Decision 2 (IDB coverage), Decision 3 (multi-IDB policy), Decision 4 (if_tsresol extraction), Decision 7/16 (single-section only; second SHB rejected; Invariant 2 deferred), Decision 8 (forward-progress contract; no-panic guarantee at framing layer), Decision 10 (panic surface), Decision 15 (interleaved IDB after first packet block => E-INP-013 rejection), Decision 17 (IDB-parse three-level precedence: E-INP-013 position > E-INP-001 whitelist > E-INP-011 conflict), Decision 20 (uniform error-code rule: btl<12→E-INP-010; 12≤btl<20→body<8→E-INP-008; per-block fixed-field minimum IDB=8), Decision 21 (if_tsoffset NOT extracted this cycle; only if_tsresol code 9 is extracted and applied; snaplen likewise read-and-discarded, no consumer after SPB dropped — F-M3), Decision 23 (SHB reserved-field delegation pattern — crate validates, wirerust remaps via string-coupling), **Decision 24 (IDB reserved-field and body-length validation is enforced by the crate inside next_raw_block; wirerust remaps InvalidField error to E-INP-008 via string-coupling; wirerust does not inspect reserved bytes directly — same pattern as Decision 23)**; Decision N (F6 security hardening: interface table cap MAX_INTERFACE_TABLE_ENTRIES=65_535 applied before every interfaces.push(); cap exceeded → E-INP-015; defense-in-depth measure complementary to E-INP-014 file-size gate) |
+| Error Taxonomy | E-INP-008 (IDB structural parse failure, four sources: (a) body < 8 bytes on wirerust body-decode path [constructible window: 12≤btl<20; wirerust checks body.len()>=8 itself on the raw path]; (b) reserved != 0 — detected by the crate inside next_raw_block and remapped by wirerust from InvalidField error via string-coupling (ADR-009 Decision 24 rev 11; wirerust does not inspect reserved bytes directly); (c) malformed options TLV length exceeding remaining body — wirerust detects during options walk; (d) if_tsresol option (code 9) with option_length != 1 — malformed TLV, not silently defaulted. btl<12 is NOT E-INP-008 — that is E-INP-010 via crate-rejection path), E-INP-010 (btl<12/misaligned/EOF — crate rejects before returning block), E-INP-013 (IDB after first packet block — error-taxonomy.md v2.8), E-INP-015 (interface table cap exceeded — more than 65535 IDBs in one section; defense-in-depth cap; error-taxonomy.md v3.8) |
 
 ## Related BCs
 

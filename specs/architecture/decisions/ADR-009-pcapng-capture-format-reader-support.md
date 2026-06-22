@@ -9,11 +9,32 @@ supersedes: null
 superseded_by: null
 ---
 
-# ADR-009: pcapng Capture-Format Reader Support (rev 12)
+# ADR-009: pcapng Capture-Format Reader Support (rev 13)
 
 ## Status
 
 **Accepted** — 2026-06-20.
+
+**Rev 13 amendment — 2026-06-21:** Two security hardening decisions added,
+both human-approved at the F6 gate (fix-now, pre-F7). Source: F6 security
+scan + adjudication (`.factory/phase-f6-hardening/f6-security-adjudication.md`,
+develop HEAD `662bd85`). Human gate decision: 4 GiB ceiling chosen; both fixes
+ordered to land before F7.
+
+(a) Decision 27 — Interim file-size guard (F6-SEC-A, CWE-400, E-INP-014).
+`MAX_PCAPNG_FILE_BYTES = 4_294_967_296` (4 GiB) constant gates `from_file`
+on the pcapng path; `fs::metadata(path).len()` checked BEFORE `read_to_end`;
+oversized files rejected with E-INP-014. The 4 GiB ceiling passes all current
+E2E corpus entries (200 MB 4SICS, 1 GB MACCDC). This is an INTERIM mitigation
+of the Decision 13 all-in-memory model; the streaming-reader rework is the
+permanent architectural fix (tracked). The guard applies to the path-based
+`from_file` entry only; `from_pcap_reader<R: Read>` has no file size to check.
+
+(b) Decision 28 — Interface-table cap (F6-SEC-B, CWE-770, defense-in-depth).
+`MAX_INTERFACE_TABLE_ENTRIES = 65535`; exceeding the limit during IDB parsing
+returns E-INP-015. Applies to both entry paths (guard is in the IDB parse arm).
+Note: pcapng `interface_id` is u32; 65535 is a chosen defensive cap, not a
+format limit.
 
 **Rev 12 amendment — 2026-06-21:** Two merged decisions added (PR #287,
 develop=97c66b0, F5 fix cycle):
@@ -844,6 +865,103 @@ detectable only by re-running `cargo kani`. See VP-INDEX [c] and the SEC-001 not
 **VP-027 status:** `draft` → `active` (real non-vacuous proof; F6 lock gate transitions
 it to `verified` per the standard VP-022/023/024 lifecycle). No VP count change.
 
+**Decision 27 — Interim file-size guard for `from_file` on the pcapng path (F6-SEC-A, CWE-400; human-approved fix-now at F6 gate).** [NEW — rev 13, F6 security hardening.]
+
+ADR-009 Decision 13 commits wirerust to an all-in-memory `Vec<RawPacket>` model.
+A crafted pcapng file approaching `usize::MAX` bytes would cause `read_to_end`
+to attempt a single allocation of that size, leading to OOM SIGKILL (CWE-400,
+unbounded resource consumption). The streaming-reader rework (tracked in the
+technical-debt register) is the permanent architectural fix; this decision
+records the approved interim mitigation.
+
+**Human gate decision (F6, 2026-06-21):** 4 GiB ceiling chosen. Rationale:
+passes all current E2E corpus entries — the largest tracked corpus file is the
+1 GB MACCDC 2012 stressor. The 4 GiB ceiling does not eliminate the 2x–3x
+memory amplification factor, but it bounds the worst-case single-file OOM
+surface to approximately 8–12 GB RSS, above which the OS will SIGKILL rather
+than silently thrash.
+
+**Constant (single source of truth):**
+```rust
+const MAX_PCAPNG_FILE_BYTES: u64 = 4_294_967_296; // 4 GiB
+```
+
+**Gate location:** `src/reader.rs`, inside the `from_file` method, on the
+pcapng-magic branch only, AFTER format detection and BEFORE `BufReader`
+construction and `read_to_end`. The check uses `fs::metadata(path)?.len()`.
+Classic-pcap files share `from_file` but are NOT gated by this constant; the
+guard fires only when the magic identifies the file as pcapng.
+
+**Error code:** E-INP-014 (category: INP, severity: broken, exit 1). Message
+format:
+`"pcapng file too large: {size} bytes exceeds limit of {MAX_PCAPNG_FILE_BYTES} bytes (E-INP-014); use a streaming tool or split the capture"`.
+
+**Scope boundary:** `from_pcap_reader<R: Read>` accepts a generic `Read` and
+has no access to file metadata; no size check is applied on that path.
+Directory-mode per-file isolation (BC-2.01.018 AC-002, Decision 12/STORY-128)
+already propagates this error as a per-file broken result without aborting the
+scan; no changes to `resolve_targets` or `main.rs` are required.
+
+**Status:** This is an INTERIM mitigation of the Decision 13 all-in-memory
+architectural constraint. The guard is superseded when the streaming-reader
+rework lands (future cycle). Cross-reference: F6 security adjudication
+F6-SEC-A, `.factory/phase-f6-hardening/f6-security-adjudication.md`.
+
+**BC impact (PO actions required):**
+- BC-2.01.009: Add Precondition for size gate; add E-INP-014 to error conditions.
+- BC-2.01.017: Add E-INP-014 to error-code table.
+- error-taxonomy.md: Add E-INP-014 entry.
+
+**Decision 28 — Interface-table cap (F6-SEC-B, CWE-770, defense-in-depth; human-approved fix-now at F6 gate).** [NEW — rev 13, F6 security hardening.]
+
+The interface table (`Vec<InterfaceInfo>`) grows by one entry per IDB block
+encountered during the block walk with no upper bound. A crafted file filled
+with minimum-size IDB blocks could exhaust heap memory via interface-table
+growth independently of (or compounding with) the raw-block buffer. This is a
+defense-in-depth cap applied after Decision 27's file-size ceiling; both guards
+were ordered to land in the same F6 burst by the human gate decision.
+
+**Constant (single source of truth):**
+```rust
+const MAX_INTERFACE_TABLE_ENTRIES: usize = 65_535;
+```
+
+**Rationale for 65535:** The pcapng spec allows `interface_id` to be any `u32`,
+so there is no format-mandated limit. No real-world capture in the intended
+corpus approaches this count. The value is chosen as a practical defensive
+ceiling that is orders of magnitude above any legitimate use case (a 65535-
+interface capture file is not a realistic forensic artifact) while being
+representable in a usize with negligible runtime cost to check.
+
+**Guard location:** `src/reader.rs`, in the `IDB_BLOCK_TYPE` match arm,
+IMMEDIATELY BEFORE `interfaces.push(...)`:
+```rust
+if interfaces.len() >= MAX_INTERFACE_TABLE_ENTRIES {
+    return Err(anyhow!(
+        "pcapng file has too many Interface Description Blocks: \
+         limit is {} (E-INP-015: interface table overflow)",
+        MAX_INTERFACE_TABLE_ENTRIES
+    ));
+}
+```
+
+**Error code:** E-INP-015 (next free after E-INP-014 which is consumed by
+Decision 27). Category: INP, severity: broken, exit 1.
+
+**Scope:** Both entry paths through the IDB parse arm (direct `from_file` and
+`from_pcap_reader`) are guarded by this check because the guard is in the
+shared IDB dispatch logic, not in `from_file`.
+
+**BC impact (PO actions required):**
+- BC-2.01.011: Add to PC3 or a new Precondition: "interface table MUST NOT
+  exceed `MAX_INTERFACE_TABLE_ENTRIES`; if exceeded, return E-INP-015 and abort
+  block walk."
+- BC-2.01.017 and BC-2.01.018: Add E-INP-015 to error-code tables.
+- error-taxonomy.md: Add E-INP-015 entry.
+
+Cross-reference: F6 security adjudication F6-SEC-B,
+`.factory/phase-f6-hardening/f6-security-adjudication.md`.
+
 **Fallback — Option C (hand-roll, +0 crates).** If during implementation `pcap-file`
 2.0.0's `RawBlock` / `next_raw_block` path exhibits a defect (incorrect byte-order
 handling, forward-progress violation not caught by the spike), the escalation path is a
@@ -1134,6 +1252,24 @@ non-vacuity confirmed); BMC tractability via `EpbDecodeError` discriminant twin
 `decode_epb_body_discriminant` (twin FAITHFUL per PR review); SEC-001 twin-drift
 follow-up tracked; VP-027 status draft→active. No VP count change; no section file
 change; no subsystem change.
+
+**Rev 13 (2026-06-21):** Two security hardening decisions added, human-approved at
+the F6 gate (fix-now, pre-F7; 4 GiB ceiling chosen by human policy decision). Source:
+F6 security scan + adjudication (`.factory/phase-f6-hardening/f6-security-adjudication.md`,
+develop HEAD `662bd85`). Decision 27 — Interim file-size guard (F6-SEC-A, CWE-400):
+`MAX_PCAPNG_FILE_BYTES = 4_294_967_296` (4 GiB) constant; `fs::metadata(path).len()`
+checked in `from_file` on the pcapng path BEFORE `read_to_end`; oversized files
+rejected with E-INP-014. INTERIM mitigation of Decision 13 all-in-memory model;
+streaming-reader rework remains the permanent architectural fix (tracked). Guard applies
+to path-based `from_file` only; `from_pcap_reader<R: Read>` is unaffected. BC impact:
+BC-2.01.009 new Precondition + E-INP-014; BC-2.01.017 error-code table; error-taxonomy
+E-INP-014 entry. Decision 28 — Interface-table cap (F6-SEC-B, CWE-770, defense-in-depth):
+`MAX_INTERFACE_TABLE_ENTRIES = 65_535`; guard in the IDB parse arm BEFORE
+`interfaces.push`; exceeding the limit returns E-INP-015. Note: pcapng `interface_id`
+is u32; 65535 is a chosen defensive ceiling, not a format limit. Applies to both entry
+paths (guard is in shared IDB dispatch logic). BC impact: BC-2.01.011 new Precondition;
+BC-2.01.017/BC-2.01.018 error-code tables; error-taxonomy E-INP-015 entry. No VP count
+change; no section file change; no subsystem change.
 
 ### PO BC-Change Dispatch (rev 4)
 
