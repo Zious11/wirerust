@@ -190,7 +190,10 @@ impl TcpReassembler {
         // with advancing timestamps, both run and the timestamp sweep dominates
         // (fires more often). On frozen-timestamp captures the timestamp sweep
         // never fires, so this cadence is the only expiry mechanism.
-        if self.packet_index.is_multiple_of(self.config.expiry_sweep_interval) {
+        if self
+            .packet_index
+            .is_multiple_of(self.config.expiry_sweep_interval)
+        {
             self.expire_idle_by_packet_index(handler);
         }
 
