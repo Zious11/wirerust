@@ -259,29 +259,15 @@ fn test_BC_2_01_003_zero_packet_pcap() {
     assert_eq!(source.datalink, DataLink::ETHERNET);
 }
 
-// ---------------------------------------------------------------------------
-// AC-006 / BC-2.01.004 postcondition 1
+// BC-2.01.004 is RETIRED — positive replacement is
+// test_BC_2_01_004_pcapng_accepted_positive_rewrite in
+// tests/bc_2_01_story123_pcapng_tests.rs
 //
-// A pcapng-format file returns Err with message containing
-// "Failed to parse pcap header"; no packets are returned.
-// ---------------------------------------------------------------------------
-#[test]
-fn test_BC_2_01_004_rejects_pcapng() {
-    // Use the existing smb3.pcapng fixture (BC-2.01.004 invariant 2).
-    let path = Path::new("tests/fixtures/smb3.pcapng");
-    assert!(
-        path.exists(),
-        "fixture tests/fixtures/smb3.pcapng must exist"
-    );
-
-    let result = PcapSource::from_file(path);
-    assert!(result.is_err(), "pcapng input must return Err");
-    let chain = format!("{:#}", result.unwrap_err());
-    assert!(
-        chain.contains("Failed to parse pcap header"),
-        "error chain must contain 'Failed to parse pcap header', got: {chain}"
-    );
-}
+// The probe-first architecture (BC-2.01.009) routes pcapng files to the
+// pcapng reader rather than rejecting them. BC-2.01.004 (pcapng rejection)
+// was superseded by BC-2.01.009 (magic-byte probe + SHB parse) as part of
+// STORY-123. The negative test (pcapng → Err) is DELETED; the positive
+// test (pcapng → Ok) lives in the story-123 test file.
 
 // ---------------------------------------------------------------------------
 // AC-007 / BC-2.01.005 postcondition 2 (nanosecond edge case)
@@ -307,31 +293,52 @@ fn test_BC_2_01_005_nanosecond_resolution_conversion() {
 // ---------------------------------------------------------------------------
 // AC-008 / BC-2.01.006 postcondition 1
 //
-// Passing a zero-byte file or a file with invalid pcap magic bytes to
-// from_file returns Err whose error chain contains "Failed to parse pcap header".
+// Passing a zero-byte stream or a stream with unrecognized magic bytes to
+// from_pcap_reader returns Err.
+//
+// RECONCILIATION (STORY-123): The probe-first architecture (BC-2.01.009)
+// changes the error messages relative to the original BC-2.01.006 spec.
+// The original spec required "Failed to parse pcap header" in the error
+// chain. After the magic-byte probe is inserted before the classic-pcap
+// path (AC-007 of BC-2.01.009), the error messages are:
+//
+//   - Empty input (0 bytes): probe's fill_buf sees 0 bytes and returns
+//     "stream too short: expected at least 4 bytes for pcap magic, got 0"
+//     BEFORE the classic-pcap reader is invoked.
+//
+//   - Unrecognized magic: probe returns
+//     "unrecognized pcap magic: DE AD BE EF" for the garbage bytes that
+//     do not match any known pcap or pcapng magic.
+//
+// BC-2.01.006 postcondition 1 (Err is returned for invalid input) is still
+// satisfied. The specific error string has changed. These updated assertions
+// reflect the new probe-first behavior and supersede the original BC-2.01.006
+// error-message contract for these two sub-cases.
 // ---------------------------------------------------------------------------
 #[test]
 fn test_BC_2_01_006_corrupt_header_error_message() {
     // Sub-case 1: empty byte slice (0 bytes, BC-2.01.006 EC-001)
+    // Probe sees 0 bytes → "stream too short: expected at least 4 bytes for pcap magic, got 0"
     {
         let result = PcapSource::from_pcap_reader(Cursor::new([] as [u8; 0]));
         assert!(result.is_err(), "empty input must return Err");
         let chain = format!("{:#}", result.unwrap_err());
         assert!(
-            chain.contains("Failed to parse pcap header"),
-            "empty input error must contain 'Failed to parse pcap header', got: {chain}"
+            chain.contains("stream too short"),
+            "empty input error must contain 'stream too short', got: {chain}"
         );
     }
 
-    // Sub-case 2: 10 garbage bytes (BC-2.01.006 test vector)
+    // Sub-case 2: 10 garbage bytes starting with 0xDEADBEEF (BC-2.01.006 test vector)
+    // Probe sees magic 0xDEADBEEF → "unrecognized pcap magic: DE AD BE EF"
     {
         let garbage = [0xDE, 0xAD, 0xBE, 0xEF, 0x00, 0x11, 0x22, 0x33, 0x44, 0x55u8];
         let result = PcapSource::from_pcap_reader(Cursor::new(garbage));
         assert!(result.is_err(), "garbage bytes must return Err");
         let chain = format!("{:#}", result.unwrap_err());
         assert!(
-            chain.contains("Failed to parse pcap header"),
-            "garbage error must contain 'Failed to parse pcap header', got: {chain}"
+            chain.contains("unrecognized pcap magic"),
+            "garbage error must contain 'unrecognized pcap magic', got: {chain}"
         );
     }
 }

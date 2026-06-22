@@ -40,6 +40,54 @@ use wirerust::reporter::json::JsonReporter;
 use wirerust::reporter::terminal::{Collapse, FindingsRender, Grouping, TerminalReporter};
 use wirerust::summary::Summary;
 
+/// Format the BC-2.01.009 PC6 zero-packet notice for a valid file with 0 packets.
+///
+/// The notice has:
+///   - Base phrase: "notice: <path>: 0 packets read from <pcap|pcapng> file"
+///     - "pcapng file" when the file magic is the pcapng SHB magic (0x0A0D0D0A).
+///     - "pcap file" for any classic pcap magic.
+///   - Optional generic segment (G > 0): " (G block(s) skipped as unsupported)"
+///     where G = source.skipped_blocks.saturating_sub(source.opb_skipped).
+///   - Optional OPB clause (source.opb_skipped > 0):
+///     "(includes N obsolete Packet Block(s) whose data was not analyzed;
+///     re-save with mergecap)"
+///
+/// Both segments are independently gated.  When both are true, both appear
+/// space-separated after the base phrase.  When neither gate is true (G==0
+/// and opb_skipped==0), only the base phrase is emitted (HS-108 Case F).
+///
+/// ADR-009 Decision 19 / BC-2.01.009 PC6 / STORY-128 C-1 (OPB clause) +
+/// M-1 (classic-pcap wording) adversarial findings.
+fn format_zero_packet_notice(path: &std::path::Path, source: &PcapSource) -> String {
+    // Discriminant carried from the magic-byte probe in from_pcap_reader —
+    // no second file open needed (BC-2.01.009 PC6 / Decision 19 / F-F5P1-003).
+    let file_kind = if source.is_pcapng {
+        "pcapng file"
+    } else {
+        "pcap file"
+    };
+
+    let base = format!(
+        "notice: {}: 0 packets read from {file_kind}",
+        path.display()
+    );
+
+    // G = generic block count (skipped but not OPB-counted).
+    let g = source.skipped_blocks.saturating_sub(source.opb_skipped);
+    let n = source.opb_skipped;
+
+    match (g > 0, n > 0) {
+        (false, false) => base,
+        (true, false) => format!("{base} ({g} block(s) skipped as unsupported)"),
+        (false, true) => format!(
+            "{base} (includes {n} obsolete Packet Block(s) whose data was not analyzed; re-save with mergecap)"
+        ),
+        (true, true) => format!(
+            "{base} ({g} block(s) skipped as unsupported) (includes {n} obsolete Packet Block(s) whose data was not analyzed; re-save with mergecap)"
+        ),
+    }
+}
+
 fn main() -> Result<()> {
     let cli = Cli::parse();
 
@@ -230,89 +278,106 @@ fn run_analyze(
     let mut dispatcher =
         StreamDispatcher::new(http_analyzer, tls_analyzer, modbus_analyzer, dnp3_analyzer);
 
-    // Capture loop wrapped in an immediately-invoked closure so any `?`-bail
-    // inside (e.g. unreadable pcap, malformed progress-bar template) is
-    // captured as an `Err` *without* short-circuiting `run_analyze` itself.
-    // This guarantees we always reach the reassembler `finalize` call below,
-    // which is what `impl Drop for TcpReassembler` only warns about — see
-    // LESSON-P0.03 / architecture smell #9 ("no-Drop / finalize-fragile").
-    let capture_result: Result<()> = (|| {
-        for target in targets {
-            let pcap_files = resolve_targets(target)?;
-            for path in &pcap_files {
-                let source = PcapSource::from_file(path)
-                    .with_context(|| format!("Failed to read {}", path.display()))?;
+    // STORY-128 (BC-2.01.018 AC-002 / ADR-009 Decision 12): per-file error isolation.
+    //
+    // The closure pattern has been replaced with a direct loop that catches per-file
+    // reader errors via `match` rather than `?`-propagation.  This guarantees:
+    //   - A bad file (any Err from PcapSource::from_file) never aborts the batch.
+    //   - The reassembler `finalize` call below is always reached (loop never bails).
+    //   - `any_error` accumulates whether any file failed; exit code is set after the loop.
+    //
+    // LESSON-P0.03 / architecture smell #9 ("no-Drop / finalize-fragile") is preserved:
+    // the loop body never `?`-bails, so `reassembler.finalize()` is always reached.
+    let mut any_error = false;
+    for target in targets {
+        let pcap_files = resolve_targets(target)?;
+        for path in &pcap_files {
+            // Per-file isolation: catch reader Err, report, continue (BC-2.01.018 AC-002).
+            let source = match PcapSource::from_file(path)
+                .with_context(|| format!("Failed to read {}", path.display()))
+            {
+                Ok(s) => s,
+                Err(e) => {
+                    eprintln!("error: {}: {e:#}", path.display());
+                    any_error = true;
+                    continue;
+                }
+            };
 
-                let pb = ProgressBar::new(source.packets.len() as u64);
-                pb.set_style(ProgressStyle::with_template(
-                    "[{elapsed_precise}] {bar:40} {pos}/{len} packets",
-                )?);
+            // ADR-009 Decision 19 / BC-2.01.009 PC6: emit zero-packet notice when
+            // a valid file contains no packets (e.g. SHB-only pcapng).
+            // Full format includes gated OPB clause and generic-skip segment.
+            // See format_zero_packet_notice for BC-2.01.009 PC6 specification.
+            if source.packets.is_empty() {
+                eprintln!("{}", format_zero_packet_notice(path, &source));
+                continue;
+            }
 
-                for raw in &source.packets {
-                    match decode_packet(&raw.data, source.datalink) {
-                        Ok(DecodedFrame::Ip(parsed)) => {
-                            summary.ingest(&parsed);
-                            if enable_dns && dns_analyzer.can_decode(&parsed) {
-                                let findings = dns_analyzer.analyze(&parsed);
-                                all_findings.extend(findings);
-                            }
-                            if let Some(ref mut reasm) = reassembler {
-                                reasm.process_packet(&parsed, raw.timestamp_secs, &mut dispatcher);
-                            }
+            let pb = ProgressBar::new(source.packets.len() as u64);
+            pb.set_style(ProgressStyle::with_template(
+                "[{elapsed_precise}] {bar:40} {pos}/{len} packets",
+            )?);
+
+            for raw in &source.packets {
+                match decode_packet(&raw.data, source.datalink) {
+                    Ok(DecodedFrame::Ip(parsed)) => {
+                        summary.ingest(&parsed);
+                        if enable_dns && dns_analyzer.can_decode(&parsed) {
+                            let findings = dns_analyzer.analyze(&parsed);
+                            all_findings.extend(findings);
                         }
-                        // STORY-113: ArpAnalyzer wiring (BC-2.16.011; AC-015/AC-016).
-                        // ARP frames NEVER reach StreamDispatcher (Forbidden Dependency;
-                        // arp-architecture-delta.md §1; BC-2.16.015 Invariant 2).
-                        // process_arp is called only when --arp is active (enable_arp gate).
-                        Ok(DecodedFrame::Arp(arp_frame)) => {
-                            if enable_arp {
-                                let ts = raw.timestamp_secs;
-                                let findings = arp_analyzer.process_arp(&arp_frame, ts);
-                                all_findings.extend(findings);
-                            }
-                        }
-                        Err(ref e) if e.to_string().contains("Non-Ethernet/IPv4 ARP frame") => {
-                            // STORY-113: D11 malformed ARP notification (BC-2.16.009 PC3/PC4).
-                            // malformed_frames increments unconditionally (BC-2.16.009 PC4).
-                            // When --arp active: record_malformed emits D11 Finding and
-                            // increments both malformed_frames and malformed_findings (AC-012).
-                            // When --arp absent: only malformed_frames increments; no finding
-                            // emitted and malformed_findings unchanged (BC-2.16.009 PC4, ADR-008
-                            // Decision 7, BC-2.16.010 key 11).
-                            if enable_arp {
-                                all_findings.extend(arp_analyzer.record_malformed(raw.data.len()));
-                            } else {
-                                arp_analyzer.malformed_frames += 1;
-                            }
-                        }
-                        Err(e) => {
-                            if total_decode_errors == 0 {
-                                eprintln!(
-                                    "Warning: failed to decode packet ({e}). Further errors counted silently."
-                                );
-                            }
-                            total_decode_errors += 1;
+                        if let Some(ref mut reasm) = reassembler {
+                            reasm.process_packet(&parsed, raw.timestamp_secs, &mut dispatcher);
                         }
                     }
-                    pb.inc(1);
+                    // STORY-113: ArpAnalyzer wiring (BC-2.16.011; AC-015/AC-016).
+                    // ARP frames NEVER reach StreamDispatcher (Forbidden Dependency;
+                    // arp-architecture-delta.md §1; BC-2.16.015 Invariant 2).
+                    // process_arp is called only when --arp is active (enable_arp gate).
+                    Ok(DecodedFrame::Arp(arp_frame)) => {
+                        if enable_arp {
+                            let ts = raw.timestamp_secs;
+                            let findings = arp_analyzer.process_arp(&arp_frame, ts);
+                            all_findings.extend(findings);
+                        }
+                    }
+                    Err(ref e) if e.to_string().contains("Non-Ethernet/IPv4 ARP frame") => {
+                        // STORY-113: D11 malformed ARP notification (BC-2.16.009 PC3/PC4).
+                        // malformed_frames increments unconditionally (BC-2.16.009 PC4).
+                        // When --arp active: record_malformed emits D11 Finding and
+                        // increments both malformed_frames and malformed_findings (AC-012).
+                        // When --arp absent: only malformed_frames increments; no finding
+                        // emitted and malformed_findings unchanged (BC-2.16.009 PC4, ADR-008
+                        // Decision 7, BC-2.16.010 key 11).
+                        if enable_arp {
+                            all_findings.extend(arp_analyzer.record_malformed(raw.data.len()));
+                        } else {
+                            arp_analyzer.malformed_frames += 1;
+                        }
+                    }
+                    Err(e) => {
+                        if total_decode_errors == 0 {
+                            eprintln!(
+                                "Warning: failed to decode packet ({e}). Further errors counted silently."
+                            );
+                        }
+                        total_decode_errors += 1;
+                    }
                 }
-                pb.finish_and_clear();
+                pb.inc(1);
             }
+            pb.finish_and_clear();
         }
-        Ok(())
-    })();
+    }
 
     summary.skipped_packets = total_decode_errors;
 
-    // ALWAYS finalize the reassembler before propagating any capture error,
-    // so the segment-limit summary finding and per-flow flush still happen
-    // on the partial state captured before the bail.
+    // ALWAYS finalize the reassembler — the loop never ?-bails, so this is
+    // always reached regardless of per-file errors (preserves finalize guarantee).
     if let Some(ref mut reasm) = reassembler {
         reasm.finalize(&mut dispatcher);
         all_findings.extend(reasm.findings().to_vec());
     }
-
-    capture_result?;
 
     if let Some(http) = dispatcher.http_analyzer() {
         all_findings.extend(http.findings());
@@ -394,6 +459,13 @@ fn run_analyze(
     };
 
     write_output(&output, cli)?;
+
+    // STORY-128: exit code 1 iff any file failed (BC-2.01.018 AC-002).
+    // Deferred until after write_output so the summary is always emitted
+    // even when some files in the batch failed (good output is never suppressed).
+    if any_error {
+        std::process::exit(1);
+    }
     Ok(())
 }
 
@@ -406,11 +478,32 @@ fn run_summary(
     let mut summary = Summary::new();
     let mut total_decode_errors: u64 = 0;
 
+    // STORY-128 (BC-2.01.018 AC-002 / ADR-009 Decision 12): per-file error isolation
+    // for run_summary, mirroring the pattern in run_analyze.
+    let mut any_error = false;
     for target in targets {
         let pcap_files = resolve_targets(target)?;
         for path in &pcap_files {
-            let source = PcapSource::from_file(path)
-                .with_context(|| format!("Failed to read {}", path.display()))?;
+            // Per-file isolation: catch reader Err, report, continue.
+            let source = match PcapSource::from_file(path)
+                .with_context(|| format!("Failed to read {}", path.display()))
+            {
+                Ok(s) => s,
+                Err(e) => {
+                    eprintln!("error: {}: {e:#}", path.display());
+                    any_error = true;
+                    continue;
+                }
+            };
+
+            // ADR-009 Decision 19 / BC-2.01.009 PC6: zero-packet notice for valid
+            // zero-packet files.  Full format with gated OPB clause and generic-skip
+            // segment.  See format_zero_packet_notice for specification.
+            if source.packets.is_empty() {
+                eprintln!("{}", format_zero_packet_notice(path, &source));
+                continue;
+            }
+
             for raw in &source.packets {
                 match decode_packet(&raw.data, source.datalink) {
                     Ok(DecodedFrame::Ip(parsed)) => {
@@ -455,6 +548,12 @@ fn run_summary(
     };
 
     write_output(&output, cli)?;
+
+    // STORY-128: exit code 1 iff any file failed (BC-2.01.018 AC-002).
+    // Deferred until after write_output so the summary is always emitted.
+    if any_error {
+        std::process::exit(1);
+    }
     Ok(())
 }
 
@@ -516,6 +615,33 @@ fn grouping_from_flag(show_mitre_grouping: bool) -> Grouping {
     }
 }
 
+/// Reads the first 4 bytes of a file for magic-byte content detection.
+///
+/// Returns `None` if the file cannot be opened, the file has fewer than 4
+/// readable bytes, or any I/O error occurs.  The probe is intentionally
+/// silent — errors must not abort a directory scan.
+///
+/// Called by `resolve_targets` (BC-2.12.011 Inv5 / STORY-127).
+/// `pub(crate)` so the unit test suite in `tests/` can call it directly.
+pub(crate) fn read_magic(path: &std::path::Path) -> Option<[u8; 4]> {
+    use std::io::Read as _;
+    let mut file = std::fs::File::open(path).ok()?;
+    let mut buf = [0u8; 4];
+    file.read_exact(&mut buf).ok()?;
+    Some(buf)
+}
+
+/// Magic byte sets for content-based capture file detection (BC-2.12.011).
+///
+/// Exactly 5 values per BC-2.12.011 Invariant 2.  A 6th value requires a BC revision.
+const CAPTURE_MAGICS: [[u8; 4]; 5] = [
+    [0xA1, 0xB2, 0xC3, 0xD4], // classic pcap LE microsecond
+    [0xD4, 0xC3, 0xB2, 0xA1], // classic pcap BE microsecond
+    [0xA1, 0xB2, 0x3C, 0x4D], // classic pcap LE nanosecond
+    [0x4D, 0x3C, 0xB2, 0xA1], // classic pcap BE nanosecond
+    [0x0A, 0x0D, 0x0D, 0x0A], // pcapng SHB
+];
+
 fn resolve_targets(target: &Path) -> Result<Vec<std::path::PathBuf>> {
     if target.is_file() {
         return Ok(vec![target.to_path_buf()]);
@@ -526,8 +652,8 @@ fn resolve_targets(target: &Path) -> Result<Vec<std::path::PathBuf>> {
             let entry = entry?;
             let path = entry.path();
             if path.is_file()
-                && let Some(ext) = path.extension()
-                && ext == "pcap"
+                && let Some(magic) = read_magic(&path)
+                && CAPTURE_MAGICS.contains(&magic)
             {
                 files.push(path);
             }
@@ -540,7 +666,7 @@ fn resolve_targets(target: &Path) -> Result<Vec<std::path::PathBuf>> {
 
 #[cfg(test)]
 mod tests {
-    use super::{collapse_findings_from_flag, grouping_from_flag};
+    use super::{collapse_findings_from_flag, grouping_from_flag, read_magic};
     use wirerust::reporter::terminal::Grouping;
 
     /// BC-2.11.028: flag absent (false) → collapse ON (true);
@@ -578,6 +704,42 @@ mod tests {
             grouping_from_flag(false),
             Grouping::Flat,
             "--mitre absent (show_mitre_grouping=false) must yield Grouping::Flat"
+        );
+    }
+
+    /// F-F5P5-002 — read_magic robustness: a file with fewer than 4 bytes returns None
+    /// (BC-2.12.011 Inv5 / EC-007).  A single `Read::read` may legally return <4 bytes
+    /// even for a ≥4-byte file; `read_exact` eliminates that race without changing the
+    /// short-file or unreadable-file semantics.
+    #[test]
+    fn test_read_magic_short_file_returns_none() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let path = dir.path().join("short.bin");
+        std::fs::write(&path, b"\xA1\xB2\xC3").expect("write short file");
+
+        // A 3-byte file — cannot fill 4-byte magic buffer → must return None.
+        assert_eq!(
+            read_magic(&path),
+            None,
+            "read_magic on a <4-byte file must return None (BC-2.12.011 EC-007)"
+        );
+    }
+
+    /// F-F5P5-002 — read_magic robustness: a ≥4-byte file with a known magic returns
+    /// exactly those 4 bytes (BC-2.12.011 Inv5 — reads the FIRST 4 BYTES).
+    #[test]
+    fn test_read_magic_valid_file_returns_first_four_bytes() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let path = dir.path().join("capture.pcapng");
+        // pcapng SHB magic followed by additional bytes — read_magic must return exactly
+        // the first 4 bytes and not be influenced by the bytes that follow.
+        let content: &[u8] = &[0x0A, 0x0D, 0x0D, 0x0A, 0xFF, 0xFF, 0xFF, 0xFF];
+        std::fs::write(&path, content).expect("write capture file");
+
+        assert_eq!(
+            read_magic(&path),
+            Some([0x0A, 0x0D, 0x0D, 0x0A]),
+            "read_magic must return the first 4 bytes of a ≥4-byte file (BC-2.12.011 Inv5)"
         );
     }
 }

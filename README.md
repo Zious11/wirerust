@@ -200,7 +200,27 @@ CLI flags:
 [^1]: D3 storm findings emit `mitre_techniques: []` (no technique attributed). T0814 attribution
 is pending validation per DF-VALIDATION-001 / BC-2.16.008 Invariant 3.
 
-## Supported Link Types
+## Supported Capture Formats
+
+Both classic pcap (libpcap) and pcapng files are supported. Format is detected
+automatically by a magic-byte probe on the first four bytes of the file — no
+file extension is required.
+
+**Classic pcap** (.pcap) — all four byte-order and timestamp-resolution variants
+(big/little-endian, microsecond/nanosecond) are accepted. Snaplen-truncated captures
+(e.g. `tcpdump -s 96`) are read correctly.
+
+**pcapng** (.pcapng) — the reader parses SHB, IDB, EPB, and SPB blocks. NRB, ISB,
+SJE, DSB (Decryption Secrets), OPB, and unrecognized block types are silently
+skipped. Up to 65,535 Interface Description Blocks are accepted per file; all
+interfaces in a single file must share the same link type. Multi-section files
+(a second SHB block) are not supported — use `mergecap` or `editcap` to
+re-save as a single-section file. The all-in-memory model imposes a 4 GiB
+per-file size cap (E-INP-014).
+
+### Supported Link Types
+
+The following link-layer types are supported in both classic pcap and pcapng files:
 
 | Type | ID | Status |
 |------|-----|--------|
@@ -209,7 +229,6 @@ is pending validation per DF-VALIDATION-001 / BC-2.16.008 Invariant 3.
 | Linux Cooked (SLL) | 113 | Supported |
 | IPv4 | 228 | Supported |
 | IPv6 | 229 | Supported |
-| pcapng | — | Not yet supported |
 
 ## Extending
 
@@ -266,7 +285,6 @@ See [open issues](https://github.com/Zious11/wirerust/issues) for planned featur
 - C2 beaconing detection
 - SQLite export
 - Parallel file processing
-- pcapng format support
 
 ## License
 

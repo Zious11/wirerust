@@ -8433,21 +8433,25 @@ fn test_BC_2_04_014_total_memory_equals_sum_of_flow_memory() {
 
 // ---- AC-005 (BC-2.04.015 postconditions 5-6) -------------------------------
 
-/// AC-005: Verifies the no-op-eviction rejection path: when max_flows is at capacity but
-/// total_memory <= memcap, evict_flows is called and exits at head under dual-conjunction
-/// termination (per BC-2.04.015 v1.3 Invariant 4); new flow's SYN is dropped, existing
-/// flow preserved.
+/// AC-005 (updated for R2 fix — CWE-407 / PERF-REASM-DOS-001):
 ///
-/// Per BC-2.04.015 v1.3 Invariant 4: when `total_memory == memcap` exactly, the
-/// dual-conjunction termination exits immediately — the existing flow is NOT evicted
-/// and the new flow is dropped. Setup: max_flows=1, memcap=4, flow A buffers 4 bytes
-/// (total == memcap, no eviction), B SYN arrives, evict_flows no-ops, B is dropped.
+/// When max_flows is at capacity and total_memory <= memcap, `evict_flows`
+/// is called and EVICTS the oldest flow to make room for the new one.
+///
+/// BEFORE the R2 fix, the break condition used `<= max_flows`, which caused
+/// a null-eviction storm: at exactly `max_flows`, the condition was immediately
+/// true and ZERO flows were evicted. This test now documents the CORRECT
+/// post-fix behavior where eviction fires and the oldest flow is removed.
+///
+/// Setup: max_flows=1, memcap=4, flow A buffers 4 bytes (total == memcap,
+/// no memcap eviction yet). B SYN arrives, evict_flows evicts A (1 eviction),
+/// B is admitted, flow_count stays at 1.
 #[test]
 #[allow(non_snake_case)]
 fn test_BC_2_04_015_new_flow_dropped_after_no_op_eviction_under_max_flows_only_pressure() {
     // max_flows=1, memcap=4. Flow A buffers 4 bytes (total == memcap; strict > not met,
-    // no memcap eviction). When B SYN arrives: dual-conjunction exits immediately — A stays,
-    // B dropped (BC-2.04.015 v1.3 Invariant 4).
+    // no memcap eviction). When B SYN arrives: evict_flows evicts A (R2 fix: `<` not `<=`
+    // for max_flows in the break condition), creating a slot for B.
     let config = ReassemblyConfig {
         max_flows: 1,
         memcap: 4,
@@ -8496,12 +8500,9 @@ fn test_BC_2_04_015_new_flow_dropped_after_no_op_eviction_under_max_flows_only_p
     );
 
     // Flow B SYN: get_or_create_flow calls evict_flows (flows.len()=1 >= max_flows=1).
-    // evict_flows: total=4 <= memcap=4 AND flows.len()=1 <= max_flows=1 → dual-conjunction
-    // breaks immediately — no eviction. Re-check: flows.len() still >= max_flows → B dropped.
-    // Per BC-2.04.015 v1.3 Invariant 4: dual-conjunction termination is mechanical
-    // (state-independent); flow A is preserved when total_memory does not exceed memcap.
-    // (Note: A is SynSent in this setup; the protection applies to any state, with
-    // Established being the most salient design-intent application.)
+    // R2 fix: break condition `< max_flows` (not `<= max_flows`) — at flows.len()=1
+    // the condition is false, so eviction proceeds and A is evicted. After evicting A:
+    // flows=0, memory=0 → `0 < 1` = true → breaks. B is then admitted.
     let syn_b = make_tcp_packet(
         client_b,
         22222,
@@ -8516,23 +8517,23 @@ fn test_BC_2_04_015_new_flow_dropped_after_no_op_eviction_under_max_flows_only_p
     );
     reassembler.process_packet(&syn_b, 2, &mut handler);
 
-    // evict_flows exited without evicting; B's SYN was dropped.
+    // R2 fix: evict_flows evicted A to free a slot for B.
     assert_eq!(
         reassembler.stats().evictions,
-        0,
-        "AC-005: no eviction fires when total_memory==memcap (dual-conjunction termination \
-         per BC-2.04.015 v1.3 Invariant 4)"
+        1,
+        "AC-005 (R2 fix): eviction fires when flows.len()==max_flows; A is evicted to admit B \
+         (old behavior was a null-eviction storm that caused CWE-407)"
     );
-    // Flow A still present (not evicted). Flow B was dropped.
+    // B is now the only flow (A was evicted, B was admitted).
     assert_eq!(
         reassembler.flow_count(),
         1,
-        "AC-005: flow A must still exist (B was dropped because eviction did nothing)"
+        "AC-005: flow_count must be 1 after A evicted and B admitted"
     );
     assert_eq!(
         reassembler.stats().flows_total,
-        1,
-        "AC-005: only 1 flow ever created (B was dropped before creation)"
+        2,
+        "AC-005: flows_total must be 2 (A + B were both created)"
     );
     reassembler.finalize(&mut handler);
 }
@@ -9555,9 +9556,13 @@ fn test_BC_2_04_015_both_eviction_paths_use_same_function() {
     // --- PATH 1: max_flows eviction entry point (via get_or_create_flow) ---
     // Setup: max_flows=1, memcap=3. Flow A buffers 3 bytes (total=3 == memcap, no early
     // eviction). Flow B SYN arrives: flows.len()=1 >= max_flows=1 → get_or_create_flow
-    // calls evict_flows. At evict_flows entry: total=3 <= memcap=3 → dual-conjunction
-    // terminates immediately, no eviction occurs. B is dropped (re-check still full).
-    // PATH 1 witness is the dual-conjunction no-op (evictions==0, B dropped); PATH 2 witness is CloseReason::MemoryPressure emission.
+    // calls evict_flows.
+    //
+    // R2 fix (CWE-407 / PERF-REASM-DOS-001): evict_flows now uses `< max_flows` (not
+    // `<= max_flows`) in the break condition. At flows.len()=1, `1 < 1` is false, so
+    // eviction proceeds and A is evicted (1 eviction). B is then admitted.
+    // This replaces the old "dual-conjunction no-op" behavior where the table was at
+    // capacity but evict_flows exited immediately without freeing any slot.
     {
         let config = ReassemblyConfig {
             max_flows: 1,
@@ -9568,7 +9573,7 @@ fn test_BC_2_04_015_both_eviction_paths_use_same_function() {
         let mut h = RecordingHandler::new();
         let server = [10, 0, 0, 2];
 
-        // Flow A: SynSent, buffer 3 bytes out-of-order (total=3 == memcap=3, no eviction).
+        // Flow A: SynSent, buffer 3 bytes out-of-order (total=3 == memcap=3, no memcap eviction).
         r.process_packet(
             &make_tcp_packet(
                 [10, 0, 0, 1],
@@ -9618,8 +9623,8 @@ fn test_BC_2_04_015_both_eviction_paths_use_same_function() {
         );
 
         // Flow B SYN: triggers get_or_create_flow PATH 1 entry into evict_flows.
-        // evict_flows dual-conjunction: total=3 <= 3 AND flows.len()=1 <= 1 → break.
-        // No eviction. B is dropped (flows.len() still >= max_flows after evict_flows).
+        // R2 fix: evict_flows evicts A (total=3 <= 3 AND flows=1 NOT < 1 → evict).
+        // After evicting A: flows=0, memory=0 → `0 <= 3 AND 0 < 1` → break. B is admitted.
         r.process_packet(
             &make_tcp_packet(
                 [10, 0, 0, 3],
@@ -9636,23 +9641,22 @@ fn test_BC_2_04_015_both_eviction_paths_use_same_function() {
             3,
             &mut h,
         );
-        // PATH 1 entry-point witness: evict_flows was called but terminated without
-        // evicting (dual-conjunction protects A). B was dropped, not A.
+        // PATH 1 entry-point witness (R2 fix): evict_flows evicted A and admitted B.
         assert_eq!(
             r.stats().evictions,
-            0,
-            "AC-013 PATH1: get_or_create_flow called evict_flows; no eviction \
-             because total<=memcap (dual-conjunction termination per BC-2.04.015 v1.3 Invariant 4)"
+            1,
+            "AC-013 PATH1 (R2 fix): get_or_create_flow called evict_flows; A evicted to \
+             admit B (CWE-407 null-eviction storm eliminated)"
         );
         assert_eq!(
             r.flow_count(),
             1,
-            "AC-013 PATH1: flow A preserved; B was dropped (table still full after evict_flows)"
+            "AC-013 PATH1: flow_count=1 after A evicted and B admitted"
         );
         assert_eq!(
             r.stats().flows_total,
-            1,
-            "AC-013 PATH1: only one flow ever created (B's SYN dropped)"
+            2,
+            "AC-013 PATH1: flows_total=2 (both A and B were created)"
         );
         r.finalize(&mut h);
     }
@@ -10237,27 +10241,31 @@ fn test_story_020_ec005_max_flows_only_pressure_drops_new_syn_preserves_existing
     );
     reassembler.process_packet(&syn_b, 2, &mut handler);
 
-    // evict_flows called but terminates immediately (dual-conjunction); A survives, B dropped.
+    // R2 fix (CWE-407): evict_flows now evicts A and admits B when flows.len()==max_flows.
+    // The old "dual-conjunction no-op" is replaced by actual eviction.
     assert_eq!(
         reassembler.stats().evictions,
-        0,
-        "EC-005: no eviction fires when total_memory==memcap — dual-conjunction \
-         termination per BC-2.04.015 v1.3 Invariant 4"
+        1,
+        "EC-005 (R2 fix): eviction fires when flows.len()==max_flows — A is evicted \
+         to make room for B (CWE-407 null-eviction storm eliminated)"
     );
     assert_eq!(
         reassembler.flow_count(),
         1,
-        "EC-005: flow A must survive (memory budget not exceeded), B was dropped"
+        "EC-005: flow_count=1 after A evicted and B admitted"
     );
     assert_eq!(
         reassembler.stats().flows_total,
-        1,
-        "EC-005: only flow A was ever created (B's SYN dropped per Invariant 4)"
+        2,
+        "EC-005: flows_total=2 (both A and B were created)"
     );
+    // A was evicted (close event with MemoryPressure reason).
     assert!(
-        !handler.close_events.iter().any(|(k, _)| *k == key_a),
-        "EC-005: flow A must NOT have been evicted (dual-conjunction termination \
-         per BC-2.04.015 v1.3 Invariant 4)"
+        handler
+            .close_events
+            .iter()
+            .any(|(k, r)| *k == key_a && *r == CloseReason::MemoryPressure),
+        "EC-005 (R2 fix): flow A must have been evicted with MemoryPressure reason"
     );
 
     reassembler.finalize(&mut handler);
@@ -14102,8 +14110,12 @@ fn test_BC_2_04_040_small_segment_run_is_per_direction() {
         "BC-2.04.040 PC3/INV-1: small_segment_run is per-direction — S2C run must remain independent of C2S run"
     );
 
-    // Now send 3 small S2C segments → S2C run should reach 3 and fire its own finding
-    for (s2c_seq, ts_val) in (2002_u32..).zip(ts..).take(3) {
+    // Now send 3 small S2C segments → S2C run should reach 3 and fire its own finding.
+    // The large response was 19 bytes at seq=2001 (offset=1..20), so after flush
+    // base_offset=20. Small segments must start at seq=2020 (offset=20) to be
+    // ahead of the flush cursor and not rejected as below-base-offset zombies
+    // (R1 fix: segments with end_offset < base_offset are rejected as OutOfWindow).
+    for (s2c_seq, ts_val) in (2020_u32..).zip(ts..).take(3) {
         reassembler.process_packet(
             &make_tcp_packet(
                 server, 80, client, 12345, s2c_seq, b"z", false, true, false, false,
@@ -17201,4 +17213,427 @@ fn test_json_finding_timestamp_serialization() {
         "BC-2.09.007 pc6 / EC-006: segment-limit summary finding with None timestamp \
          must NOT have 'timestamp' key in JSON (skip_serializing_if = Option::is_none)"
     );
+}
+
+// ===========================================================================
+// CWE-407 / PERF-REASM-DOS-001 — Eviction correctness + zombie guard + stagnation
+//
+// R5a: Defect 2 (PRIMARY) — eviction ACTUALLY evicts at least one flow.
+// R5b: Defect 2 — flow table stays bounded under high flow churn.
+// R1:  Defect 1 — segment BELOW base_offset is rejected (no zombie growth).
+// R4:  Defect 3 — idle flows expire even when timestamps are frozen.
+// R3:  Batch eviction — one sort amortizes across multiple new-flow admissions.
+// ===========================================================================
+
+/// R3 (CWE-407 / PERF-REASM-DOS-001): When `max_flows` pressure triggers eviction,
+/// the engine MUST evict a BATCH down to the headroom target (90% of max_flows)
+/// in a SINGLE `evict_flows` call — not evict exactly 1 and re-sort next time.
+///
+/// This prevents the O(F log F) sort from firing once per new-flow packet once
+/// the table is at capacity: with batch eviction, 10% of slots are freed in one
+/// pass, so ~10% of subsequent new-flow packets are admitted without re-sorting.
+///
+/// Uses `max_flows=20` so the headroom gap is `20 * 9/10 = 18`, meaning a batch
+/// of AT LEAST 2 flows must be evicted per trigger.  This distinguishes R3
+/// (batch) from R2-only (single-flow eviction).
+///
+/// Derivation:
+///   fill 20 → evict batch (20 - 18 = 2 evictions) → flows = 18 →
+///   admit new flow → flows = 19, evictions = 2.
+///
+/// The timing improvement is verified by the CLI benchmark, not here.
+#[test]
+fn test_r3_batch_eviction_to_headroom_target() {
+    const MAX_FLOWS: usize = 20;
+    // headroom_target = max(1, 20 * 9 / 10) = max(1, 18) = 18
+    let headroom_target = (MAX_FLOWS * 9 / 10).max(1);
+    // minimum evictions per trigger = MAX_FLOWS - headroom_target = 20 - 18 = 2
+    let min_batch_evictions = (MAX_FLOWS - headroom_target) as u64;
+
+    let config = ReassemblyConfig {
+        max_flows: MAX_FLOWS,
+        memcap: 1024 * 1024 * 1024, // 1 GB — memcap not the pressure point
+        flow_timeout_secs: 300,
+        ..ReassemblyConfig::default()
+    };
+    let mut reassembler = TcpReassembler::new(config);
+    let mut handler = RecordingHandler::new();
+
+    // Fill the table to exactly max_flows (flows 0..MAX_FLOWS-1).
+    for i in 0..MAX_FLOWS as u32 {
+        let pkt = make_flow_packet(i, 1);
+        reassembler.process_packet(&pkt, 1, &mut handler);
+    }
+    assert_eq!(
+        reassembler.flow_count(),
+        MAX_FLOWS,
+        "R3 pre-cond: table must be full before the over-cap packet"
+    );
+    assert_eq!(
+        reassembler.stats().evictions,
+        0,
+        "R3 pre-cond: no evictions should have occurred while filling to cap"
+    );
+
+    // Send ONE more packet for a new flow (flow index MAX_FLOWS).
+    // This is the FIRST over-cap packet — it triggers ONE evict_flows call.
+    // With R3, that one call evicts a batch of 2 (MAX_FLOWS - headroom_target).
+    let over_cap_pkt = make_flow_packet(MAX_FLOWS as u32, 1);
+    reassembler.process_packet(&over_cap_pkt, 1, &mut handler);
+
+    // After eviction + new-flow admission:
+    //   - evictions must be >= min_batch_evictions (2) — distinguishes R3 from R2
+    //   - flow_count must be <= max_flows (table remains bounded)
+    //
+    // Without R3 (R2-only): evictions == 1, flow_count == 20 (new flow dropped
+    // because 1 eviction left flows at 19, but the batch didn't free enough to
+    // clear the cap — the engine re-checks and drops).
+    // WITH R3: evictions >= 2, new flow admitted, flow_count == 19.
+    let actual_evictions = reassembler.stats().evictions;
+    assert!(
+        actual_evictions >= min_batch_evictions,
+        "FAIL R3: evictions {} must be >= {} (batch_size = max_flows - headroom_target \
+         = {} - {} = {}). Engine is NOT batch-evicting — R3 not implemented.",
+        actual_evictions,
+        min_batch_evictions,
+        MAX_FLOWS,
+        headroom_target,
+        min_batch_evictions
+    );
+    assert!(
+        reassembler.flow_count() <= MAX_FLOWS,
+        "FAIL R3: flow_count {} exceeded max_flows {} after batch eviction",
+        reassembler.flow_count(),
+        MAX_FLOWS
+    );
+
+    reassembler.finalize(&mut handler);
+}
+
+/// Helper: build a minimal TCP data packet (mid-stream, no SYN) with a
+/// synthesized 4-octet source IP derived from the flow index `n`.
+fn make_flow_packet(flow_idx: u32, _timestamp: u32) -> ParsedPacket {
+    // Spread flows across the 10.x.x.x range so each pair of
+    // (src_ip, src_port, dst_ip, dst_port) is unique.
+    let a = ((flow_idx >> 16) & 0xFF) as u8;
+    let b = ((flow_idx >> 8) & 0xFF) as u8;
+    let c = (flow_idx & 0xFF) as u8;
+    ParsedPacket {
+        src_ip: IpAddr::V4(Ipv4Addr::new(10, a, b, c)),
+        dst_ip: IpAddr::V4(Ipv4Addr::new(192, 168, 0, 1)),
+        protocol: Protocol::Tcp,
+        transport: TransportInfo::Tcp {
+            src_port: 50_000,
+            dst_port: 80,
+            seq_number: 1,
+            syn: false,
+            ack: false,
+            fin: false,
+            rst: false,
+        },
+        payload: vec![b'X'; 10],
+        packet_len: 64,
+    }
+}
+
+/// R5a (CWE-407 / PERF-REASM-DOS-001): Feeding more than `max_flows` distinct
+/// flows MUST trigger evictions.  Before the fix, `evict_flows` broke on
+/// iteration 0 (off-by-one on the `<=` guard) and evicted ZERO flows, so
+/// `stats.evictions` stayed 0.
+///
+/// Uses a small `max_flows = 10` to keep the test fast.
+#[test]
+fn test_r5a_eviction_actually_evicts() {
+    let config = ReassemblyConfig {
+        max_flows: 10,
+        memcap: 1024 * 1024 * 1024, // 1 GB — memcap not the pressure point
+        flow_timeout_secs: 300,
+        ..ReassemblyConfig::default()
+    };
+    let mut reassembler = TcpReassembler::new(config);
+    let mut handler = RecordingHandler::new();
+
+    // Feed 20 distinct flows — twice the cap — all at timestamp 1.
+    for i in 0..20_u32 {
+        let pkt = make_flow_packet(i, 1);
+        reassembler.process_packet(&pkt, 1, &mut handler);
+    }
+
+    let stats = reassembler.stats();
+    assert!(
+        stats.evictions > 0,
+        "FAIL R5a (CWE-407): evictions must be > 0 after exceeding max_flows; \
+         got {} (off-by-one in lifecycle.rs evict_flows break condition — \
+         `<=` should be `<` for max_flows)",
+        stats.evictions
+    );
+    assert!(
+        reassembler.flow_count() <= 10,
+        "FAIL R5a: flow_count {} must be <= max_flows (10) after eviction",
+        reassembler.flow_count()
+    );
+
+    reassembler.finalize(&mut handler);
+}
+
+/// R5b (CWE-407 / PERF-REASM-DOS-001): The flow table MUST remain bounded
+/// (never exceed `max_flows`) when many more distinct flows are fed than the
+/// cap allows.  This is the regression canary for the null-eviction storm:
+/// if eviction is broken the table grows without bound and CPU spins on each
+/// new flow.
+///
+/// Also asserts the counter invariant: after finalize,
+/// `evictions + flows_fin + flows_rst + flows_expired` accounts for every
+/// flow that was ever created minus those still open at finalize time.
+#[test]
+fn test_r5b_flow_table_bounded_under_churn() {
+    const MAX_FLOWS: usize = 100;
+    const TOTAL_FLOWS: usize = 10_000;
+
+    let config = ReassemblyConfig {
+        max_flows: MAX_FLOWS,
+        memcap: 1024 * 1024 * 1024,
+        flow_timeout_secs: 300,
+        ..ReassemblyConfig::default()
+    };
+    let mut reassembler = TcpReassembler::new(config);
+    let mut handler = RecordingHandler::new();
+
+    for i in 0..TOTAL_FLOWS as u32 {
+        let pkt = make_flow_packet(i, 1); // frozen timestamp — expiry must not mask eviction
+        reassembler.process_packet(&pkt, 1, &mut handler);
+
+        // Invariant: table NEVER exceeds cap, checked on every packet.
+        assert!(
+            reassembler.flow_count() <= MAX_FLOWS,
+            "FAIL R5b: flow_count {} exceeded max_flows {} at flow {} (null-eviction storm)",
+            reassembler.flow_count(),
+            MAX_FLOWS,
+            i
+        );
+    }
+
+    let stats = reassembler.stats();
+    assert!(
+        stats.evictions > 0,
+        "FAIL R5b: evictions must be > 0 after {} distinct flows with max_flows={}",
+        TOTAL_FLOWS,
+        MAX_FLOWS
+    );
+
+    reassembler.finalize(&mut handler);
+}
+
+/// R1 (CWE-401 zombie segments): A segment whose end offset is STRICTLY BELOW
+/// the current `base_offset` (i.e., all bytes behind the flush cursor) MUST be
+/// rejected as OutOfWindow and MUST NOT be retained in the segment map.
+///
+/// Before the fix, `insert_segment` only checked for segments AHEAD of the
+/// window but had no guard for segments entirely below `base_offset`; such
+/// segments inserted permanently and accumulated until the segment-count cap.
+///
+/// Note on ISN semantics: `set_isn(N)` sets `base_offset = 1`, so the first
+/// data byte is at seq = ISN+1.  With ISN=1000, `seq=1001` → offset=1.
+///
+/// The guard uses STRICT less-than (`end_offset < base_offset`): segments
+/// ending exactly AT base_offset are handled by the normal overlap path
+/// rather than rejected here, preserving existing ConflictingOverlap detection.
+#[test]
+fn test_r1_zombie_segment_rejected_below_base_offset() {
+    let mut dir = FlowDirection::new();
+    // ISN=1000: base_offset starts at 1. First data byte at seq=1001 (offset=1).
+    dir.set_isn(1000);
+
+    // Insert 10 bytes starting at seq=1001 (offsets 1..11) and flush.
+    // After flush: base_offset = 11.
+    let res = dir.insert_segment(1001, b"0123456789", 10_485_760, 10_000, 10_485_760);
+    assert_eq!(res, InsertResult::Inserted);
+    let flushed = dir.flush_contiguous();
+    assert_eq!(flushed.len(), 1);
+    assert_eq!(
+        dir.base_offset, 11,
+        "base_offset must be 11 after flushing 10 bytes from offset 1"
+    );
+    assert!(
+        dir.segments_is_empty(),
+        "segment map must be empty after flush"
+    );
+
+    // Now try to insert a segment ENTIRELY below base_offset:
+    //   seq=1001 → offset=1, len=5 → end_offset=6.
+    //   base_offset is 11, so end_offset(6) < base_offset(11) → zombie rejected.
+    let res2 = dir.insert_segment(1001, b"ABCDE", 10_485_760, 10_000, 10_485_760);
+    assert_eq!(
+        res2,
+        InsertResult::OutOfWindow,
+        "FAIL R1 (CWE-401): segment entirely below base_offset (end=6 < base=11) \
+         must return OutOfWindow; got {:?} — zombie segment was inserted into the map",
+        res2
+    );
+
+    // The map must not have grown.
+    assert!(
+        dir.segments_is_empty(),
+        "FAIL R1: segment map must remain empty after rejecting zombie below base_offset"
+    );
+}
+
+/// R4 (Defect 3 / timestamp stagnation): Idle flows MUST be expired even when
+/// ALL packet timestamps are COMPLETELY FROZEN (all identical).
+///
+/// ## Why timestamp-based expiry cannot handle this
+///
+/// The existing guard `if timestamp > self.last_expiry_sweep_secs` (mod.rs) never
+/// fires when timestamps are frozen — the FIRST packet sets `last_expiry_sweep_secs`
+/// to the frozen value, and all subsequent packets have `timestamp == last_expiry_sweep_secs`,
+/// so `>` is false forever.
+///
+/// Even if the sweep ran, `expire_idle_by_timeout` uses
+/// `current_time > flow.last_seen && (current_time - flow.last_seen) > timeout`:
+/// when every packet has `ts=T`, every flow has `last_seen=T`, so
+/// `current_time - flow.last_seen = 0`, which is never `> timeout` (timeout >= 0).
+///
+/// ## R4 production fix
+///
+/// Adds a PACKET-INDEX CADENCE to `process_packet`:
+/// - A monotonic `packet_index: u64` counter increments per processed packet.
+/// - Each `TcpFlow` tracks `last_activity_index: u64` (updated whenever the
+///   flow receives a packet, set alongside `last_seen`).
+/// - Every `expiry_sweep_interval` packets (config default 8192) a new
+///   `expire_idle_by_packet_index` sweep expires flows where
+///   `packet_index - flow.last_activity_index > idle_packet_threshold`.
+///
+/// ## Conservative threshold
+///
+/// `idle_packet_threshold` defaults to 65_536 (= 8 × expiry_sweep_interval).
+/// An active flow updating its `last_activity_index` every packet will have
+/// `current - last_activity` ≤ `expiry_sweep_interval` at sweep time —
+/// far below the threshold. Only flows that receive ZERO packets for 8 full
+/// sweep intervals (65_536 packets of other traffic) are marked idle.
+/// This is detection-evasion safe: an attacker sending ≥1 packet per 65_536
+/// packets of background traffic keeps the flow alive — but a flow that
+/// genuinely silent for that long is safe to expire.
+///
+/// ## Test scenario
+///
+/// Use a small `expiry_sweep_interval` (100) and `idle_packet_threshold` (300)
+/// to keep the test tractable.
+///
+/// 1. Create 20 IDLE flows at ts=1, packet_index ≈ 1..20.
+/// 2. Create 5 ACTIVE flows at ts=1, packet_index ≈ 21..25.
+/// 3. Push `idle_packet_threshold + expiry_sweep_interval + 1` = 401 more
+///    packets on the 5 ACTIVE flows only (5 flows × 80 packets each + padding),
+///    all at ts=1 (FROZEN). This advances `packet_index` well past the threshold.
+/// 4. Assert: `flows_expired > 0` (idle flows expired by packet-index sweep).
+/// 5. Assert: the 5 active flows still exist (their last_activity_index is current).
+///
+/// Without R4 production code this test fails because no expiry mechanism
+/// operates under fully frozen timestamps.
+#[test]
+fn test_r4_packet_index_cadence_expires_idle_flows_on_frozen_timestamps() {
+    // Small sweep interval and threshold to keep the test tractable.
+    // These are set via ReassemblyConfig fields added by the R4 production fix.
+    let sweep_interval: u64 = 100;
+    let idle_threshold: u64 = 300;
+
+    let config = ReassemblyConfig {
+        max_flows: 10_000,
+        memcap: 1024 * 1024 * 1024,
+        flow_timeout_secs: 9999, // deliberately huge — timestamp-based expiry MUST NOT fire
+        expiry_sweep_interval: sweep_interval,
+        idle_packet_threshold: idle_threshold,
+        ..ReassemblyConfig::default()
+    };
+    let mut reassembler = TcpReassembler::new(config);
+    let mut handler = RecordingHandler::new();
+
+    const IDLE_FLOWS: u32 = 20;
+    const ACTIVE_FLOWS: u32 = 5;
+    const FROZEN_TS: u32 = 1;
+
+    // Phase 1: create 20 idle flows at ts=FROZEN_TS.
+    // These flows will receive NO further packets.
+    for i in 0..IDLE_FLOWS {
+        let pkt = make_flow_packet(i, FROZEN_TS);
+        reassembler.process_packet(&pkt, FROZEN_TS, &mut handler);
+    }
+    assert_eq!(reassembler.flow_count(), IDLE_FLOWS as usize);
+    assert_eq!(
+        reassembler.stats().flows_expired,
+        0,
+        "phase1: no expiry yet"
+    );
+
+    // Phase 2: create 5 active flows at ts=FROZEN_TS.
+    // These will keep receiving packets and stay alive.
+    let active_base: u32 = 100_000;
+    for i in 0..ACTIVE_FLOWS {
+        let pkt = make_flow_packet(active_base + i, FROZEN_TS);
+        reassembler.process_packet(&pkt, FROZEN_TS, &mut handler);
+    }
+    assert_eq!(
+        reassembler.flow_count(),
+        (IDLE_FLOWS + ACTIVE_FLOWS) as usize
+    );
+
+    // Phase 3: keep pounding the 5 active flows with packets at ts=FROZEN_TS
+    // until packet_index has advanced past idle_threshold + sweep_interval.
+    // The timestamp NEVER advances — this exercises ONLY the packet-index path.
+    //
+    // We need to send enough packets to: (a) advance packet_index by at least
+    // idle_threshold + sweep_interval past the idle flows' last_activity_index,
+    // AND (b) trigger at least one sweep (every sweep_interval packets).
+    //
+    // Packets already sent: IDLE_FLOWS + ACTIVE_FLOWS = 25.
+    // We need to send at least (idle_threshold + sweep_interval) more = 400.
+    // Round up to 500 to ensure at least one full sweep fires after the threshold.
+    let burst_packets: u32 = 500;
+    for i in 0..burst_packets {
+        // Rotate across the 5 active flows so each stays truly active.
+        let flow_idx = active_base + (i % ACTIVE_FLOWS);
+        let pkt = make_flow_packet(flow_idx, FROZEN_TS);
+        reassembler.process_packet(&pkt, FROZEN_TS, &mut handler);
+    }
+
+    // Phase 4: assert idle flows were expired by packet-index cadence.
+    // Without R4 production code: flows_expired == 0 (no mechanism fires on frozen ts).
+    // With R4: packet-index sweep fires periodically and expires idle flows.
+    let stats = reassembler.stats().clone();
+    assert!(
+        stats.flows_expired > 0,
+        "FAIL R4 (packet-index cadence): flows_expired must be > 0 after {} packets \
+         at fully-frozen ts={}. Idle flows (last_activity at packet ≈ 0..{}) must \
+         be expired by packet-index sweep (threshold={}, interval={}). \
+         Without R4 production fix, timestamp-based expiry never fires (frozen ts).",
+        IDLE_FLOWS + ACTIVE_FLOWS + burst_packets,
+        FROZEN_TS,
+        IDLE_FLOWS,
+        idle_threshold,
+        sweep_interval,
+    );
+
+    // Phase 5: the 5 active flows must still be alive (their last_activity_index
+    // is recent — within idle_threshold of the current packet_index).
+    for i in 0..ACTIVE_FLOWS {
+        let key = {
+            let a = (((active_base + i) >> 16) & 0xFF) as u8;
+            let b = (((active_base + i) >> 8) & 0xFF) as u8;
+            let c = ((active_base + i) & 0xFF) as u8;
+            use std::net::{IpAddr, Ipv4Addr};
+            use wirerust::reassembly::flow::FlowKey;
+            FlowKey::new(
+                IpAddr::V4(Ipv4Addr::new(10, a, b, c)),
+                50_000,
+                IpAddr::V4(Ipv4Addr::new(192, 168, 0, 1)),
+                80,
+            )
+        };
+        assert!(
+            reassembler.flows_contains_key(&key),
+            "FAIL R4: active flow {} must survive packet-index expiry (last_activity is recent)",
+            active_base + i
+        );
+    }
+
+    reassembler.finalize(&mut handler);
 }

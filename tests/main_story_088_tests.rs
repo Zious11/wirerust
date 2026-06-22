@@ -347,52 +347,74 @@ mod story_088 {
     }
 
     // -----------------------------------------------------------------------
-    // AC-009 (traces to BC-2.12.011 postcondition 1)
-    // resolve_targets on a directory returns sorted Vec<PathBuf> of *.pcap only.
+    // AC-009 (traces to BC-2.12.011 postcondition 1, 5 / Invariant 3)
+    // resolve_targets on a directory returns ALL files with capture magic, sorted.
     // Observable: run analyze on a tempdir with a.pcap (http.pcap, 1 packet),
-    // z.pcap (http-ooo.pcap, 16 packets), and c.pcapng (excluded); assert:
-    //   1. command succeeds (pcapng excluded → no reader error)
-    //   2. sort order is observable via recent_uris in --json output:
-    //      sorted order (a first) → iuident URI appears before /1, /2...
-    //      unsorted/reversed (z first) → /1 appears before iuident URI
+    // z.pcap (http-ooo.pcap, 16 packets), and c.pcapng (smb3.pcapng, 54 packets,
+    // NOW INCLUDED by magic-byte detection); assert:
+    //   1. command succeeds (all three detected by content; exit 0)
+    //   2. total_packets = 71 (1 + 16 + 54; all three processed)
+    //   3. sort order observable via recent_uris in --json output:
+    //      sorted order is [a.pcap, c.pcapng, z.pcap]; a.pcap first →
+    //      iuident URI appears before /1
+    //
+    // CONVERTED from extension-based to content-based per BC-2.12.011 v1.5:
+    // The original AC-009 asserted "Packets: 17" (c.pcapng excluded) and
+    // "c.pcapng excluded → no reader error". Under BC-2.12.011 v1.5 (Invariant 1:
+    // "Detection is CONTENT-BASED. File extension is IGNORED"), c.pcapng is now
+    // ACCEPTED by magic-byte probe (0x0A0D0D0A = pcapng SHB magic). The
+    // exclusion-based observable is replaced by the all-three-included observable.
+    // Supersession: BC-2.12.011 v1.5 Invariant 1 / STORY-127 / ADR-009 Decision 11.
     // -----------------------------------------------------------------------
 
-    /// AC-009 (BC-2.12.011 postcondition 1, 2, 3, 4): `resolve_targets` on a
-    /// directory expands to sorted `.pcap` files only and processes them in
-    /// sorted alphabetical order. Observable via two mechanisms:
+    /// AC-009 (BC-2.12.011 PC1/PC5/Inv3; content-based detection): `resolve_targets`
+    /// on a directory expands to ALL files detected by magic-byte content, sorted.
     ///
-    ///   1. pcapng-excluded safety: `c.pcapng` excluded → command exits 0 (no
-    ///      reader error that would occur if pcapng were passed to the reader).
+    ///   Content-based detection: all three files are accepted by magic probe:
+    ///     a.pcap   ← http.pcap      (1 pkt;  LE magic 0xA1B2C3D4; HTTP iuident URI)
+    ///     c.pcapng ← smb3.pcapng    (54 pkts; pcapng SHB magic 0x0A0D0D0A)
+    ///     z.pcap   ← http-ooo.pcap  (16 pkts; LE magic 0xA1B2C3D4; HTTP /1.../5)
     ///
-    ///   2. Sort-order observable via `--all --json` recent_uris: the HTTP
-    ///      analyzer accumulates URIs in processing order. With sorted order
-    ///      (a.pcap first), `/v4/iuident.cab?0307011208` (from http.pcap, 1 pkt)
-    ///      appears BEFORE `/1` (from http-ooo.pcap, 16 pkts) in recent_uris.
-    ///      If `files.sort()` is removed and z.pcap is iterated first (observed
-    ///      on macOS APFS when z is created before a), `/1` would appear first
-    ///      and the iuident URI assertion order would fail.
+    ///   Lexicographic sort: [a.pcap, c.pcapng, z.pcap]. a.pcap is processed first.
     ///
-    /// Fixtures:
-    ///   a.pcap ← http.pcap       (1 packet;  HTTP HEAD /v4/iuident.cab...)
-    ///   z.pcap ← http-ooo.pcap   (16 packets; HTTP PUT/GET /1.../5)
-    ///   c.pcapng ← smb3.pcapng   (pcapng; must be excluded)
+    ///   Total packets: 1 + 54 + 16 = 71 (all three files processed).
+    ///
+    ///   Sort-order observable via `--all --json` recent_uris: the HTTP analyzer
+    ///   accumulates URIs in processing order. With sorted order (a.pcap first),
+    ///   `/v4/iuident.cab?0307011208` (from a.pcap, 1 pkt) appears BEFORE `/1`
+    ///   (from z.pcap, 16 pkts) in recent_uris. If `files.sort()` is removed and
+    ///   z.pcap is iterated first (observed on macOS APFS when z is created before
+    ///   a), `/1` would appear first and the iuident URI assertion order would fail.
+    ///
+    /// Note: z.pcap is created BEFORE a.pcap so that without sort(), read_dir
+    /// returns [z.pcap, ...] on macOS APFS (creation/inode order). With files.sort()
+    /// the order is always lexicographic [a.pcap, c.pcapng, z.pcap].
+    ///
+    /// CONVERSION NOTE: Original AC-009 (STORY-088 pre-BC-2.12.011-v1.5) asserted
+    /// "Packets: 17" (c.pcapng excluded) and "pcapng excluded → no reader error".
+    /// BC-2.12.011 v1.5 / STORY-127 replaces extension-based filtering with
+    /// magic-byte content detection; c.pcapng is now accepted (pcapng SHB magic).
+    /// Extension-based exclusion assertions are obsolete; this test is converted to
+    /// assert content-based ALL-three-included behavior. The sort-order observable
+    /// (iuident before /1) is preserved unchanged.
     ///
     /// Discriminating assertions:
-    ///   Positive: command exits 0 (pcapng excluded → no reader error).
-    ///   Positive: stdout contains "Packets: 17" (1+16; pcapng excluded).
+    ///   Positive: command exits 0 (all three files parsed cleanly).
+    ///   Positive: stdout contains "total_packets": 71 (1+54+16; all three included).
     ///   Positive: stdout (JSON) contains iuident URI before /1 (sort verified).
-    ///   Negative: the pcapng file is NOT passed to the reader.
     #[test]
-    fn test_resolve_targets_directory_pcap_only_sorted() {
+    fn test_resolve_targets_directory_sorted_content_detection() {
         let dir = tempfile::tempdir().expect("tempdir");
         let dir_path = dir.path();
 
         // Create z.pcap BEFORE a.pcap so that without sort(), read_dir would
         // return [z.pcap, a.pcap] on typical macOS APFS (creation/inode order).
-        // With files.sort(), the order is always [a.pcap, z.pcap].
+        // With files.sort(), the order is always [a.pcap, c.pcapng, z.pcap].
         fs::copy("tests/fixtures/http-ooo.pcap", dir_path.join("z.pcap")).unwrap();
         fs::copy("tests/fixtures/http.pcap", dir_path.join("a.pcap")).unwrap();
-        // smb3.pcapng is a pcapng file; if included it would cause a reader error
+        // smb3.pcapng: detected by pcapng SHB magic (0x0A0D0D0A) regardless of
+        // .pcapng extension — accepted under BC-2.12.011 v1.5 content-based detection.
+        // Sort position: c.pcapng sorts between a.pcap and z.pcap lexicographically.
         fs::copy("tests/fixtures/smb3.pcapng", dir_path.join("c.pcapng")).unwrap();
 
         let output = Command::cargo_bin("wirerust")
@@ -406,8 +428,9 @@ mod story_088 {
             ])
             .assert()
             .success()
-            // 1 (http.pcap) + 16 (http-ooo.pcap) = 17; c.pcapng excluded
-            .stdout(predicate::str::contains("\"total_packets\": 17"))
+            // 1 (a.pcap/http.pcap) + 54 (c.pcapng/smb3) + 16 (z.pcap/http-ooo) = 71
+            // BC-2.12.011 v1.5: all three detected by magic bytes; extension ignored.
+            .stdout(predicate::str::contains("\"total_packets\": 71"))
             .get_output()
             .stdout
             .clone();
@@ -416,14 +439,15 @@ mod story_088 {
 
         // Sort-order assertion: in sorted order (a.pcap first), the iuident URI
         // from http.pcap appears in recent_uris BEFORE the /1 URI from http-ooo.pcap.
+        // c.pcapng is between them lexicographically but carries no HTTP URIs.
         // If files.sort() is removed, z.pcap (http-ooo.pcap) is iterated first on
         // macOS APFS (created first above), so /1 appears before the iuident URI.
         let iuident_pos = stdout
             .find("/v4/iuident.cab")
-            .expect("iuident URI must appear in recent_uris (http.pcap processed)");
+            .expect("iuident URI must appear in recent_uris (a.pcap/http.pcap processed)");
         let slash1_pos = stdout
             .find("\"/1\"")
-            .expect("/1 URI must appear in recent_uris (http-ooo.pcap processed)");
+            .expect("/1 URI must appear in recent_uris (z.pcap/http-ooo.pcap processed)");
 
         assert!(
             iuident_pos < slash1_pos,
@@ -434,41 +458,34 @@ mod story_088 {
     }
 
     // -----------------------------------------------------------------------
-    // AC-010 (traces to BC-2.12.011 invariant 1)
-    // Extension matching is case-sensitive: .PCAP (uppercase) is excluded.
+    // AC-010 (BC-2.12.011 v1.5 — RETIRED)
+    //
+    // Original assertion: extension check `ext == "pcap"` is case-sensitive;
+    // a file named `test.PCAP` is excluded (Packets: 0).
+    //
+    // RETIRED by BC-2.12.011 v1.5 (STORY-127 / ADR-009 Decision 11):
+    // Invariant 1 now reads "Detection is CONTENT-BASED. File extension is IGNORED."
+    // A `.PCAP` file with valid LE magic is ACCEPTED (BC-2.12.011 EC-012:
+    // "File with `.PCAP` (uppercase extension) but valid LE magic → Accepted").
+    // Asserting Packets: 0 for a magic-bearing `.PCAP` file is now WRONG.
+    //
+    // Replacement coverage:
+    //   tests/bc_2_12_011_story127_tests.rs:
+    //     test_BC_2_12_011_all_5_magic_values_accepted (AC-001) — exercises
+    //     BC-2.12.011 EC-012: a `.PCAP` file with CLASSIC_LE magic IS accepted
+    //     by content-based detection; extension ignored.
     // -----------------------------------------------------------------------
 
-    /// AC-010 (BC-2.12.011 invariant 1; EC-002): Extension check is
-    /// `ext == "pcap"` (case-sensitive). A file named `test.PCAP` is excluded.
-    /// Observable: a tempdir containing ONLY `test.PCAP` and NO `.pcap` files
-    /// returns an empty list → `analyze <dir>` exits 0 with "Packets: 0".
-    ///
-    /// Discriminating assertions:
-    ///   Positive: command exits 0 (empty target list is Ok).
-    ///   Positive: stdout contains "Packets: 0" (no files processed).
-    ///   Negative: `test.PCAP` is NOT processed (would show Packets > 0 if it were).
-    #[test]
-    fn test_resolve_targets_case_sensitive_extension_exclusion() {
-        let dir = tempfile::tempdir().expect("tempdir");
-        let dir_path = dir.path();
-
-        // Copy an http fixture as .PCAP (uppercase) — must NOT be picked up
-        fs::copy(HTTP_FIXTURE, dir_path.join("test.PCAP")).unwrap();
-
-        Command::cargo_bin("wirerust")
-            .unwrap()
-            .args(["analyze", dir_path.to_str().unwrap(), "--no-color"])
-            .assert()
-            .success()
-            .stdout(predicate::str::contains("Packets: 0"));
-    }
+    // AC-010 test body DELETED — see tombstone above.
+    // Do NOT restore test_resolve_targets_case_sensitive_extension_exclusion;
+    // the new contract is the inverse of the old assertion.
 
     // -----------------------------------------------------------------------
-    // AC-011 (traces to BC-2.12.011 invariant 3)
+    // AC-011 (traces to BC-2.12.011 invariant 4)
     // Directory expansion is NOT recursive; subdirectories are skipped.
     // -----------------------------------------------------------------------
 
-    /// AC-011 (BC-2.12.011 invariant 3; EC-006): `resolve_targets` does NOT
+    /// AC-011 (BC-2.12.011 invariant 4; EC-011): `resolve_targets` does NOT
     /// recurse into subdirectories. Observable: a tempdir containing a
     /// subdirectory `subdir/nested.pcap` but no top-level `.pcap` files
     /// produces an empty expansion → `analyze <dir>` exits 0 with "Packets: 0".
@@ -640,35 +657,30 @@ mod story_088 {
     }
 
     // -----------------------------------------------------------------------
-    // EC-002 (STORY-088 EC-002 / BC-2.12.011 EC-005):
-    // .PCAP (uppercase) excluded — promoted to AC-010 above; kept here as the
-    // standalone EC stub for completeness.
+    // EC-002 (STORY-088 EC-002 / BC-2.12.011 — RETIRED)
+    //
+    // Original assertion: a directory with ONLY a `.PCAP` (uppercase) file
+    // returns Packets: 0 because `ext == "pcap"` is case-sensitive.
+    //
+    // RETIRED by BC-2.12.011 v1.5 (STORY-127 / ADR-009 Decision 11):
+    // BC-2.12.011 v1.5 EC-012 explicitly states: "File with `.PCAP` (uppercase
+    // extension) but valid LE magic → Accepted (extension ignored; magic matches)."
+    // A `.PCAP` file copied from HTTP_FIXTURE (which carries valid LE pcap magic
+    // 0xA1B2C3D4) is now ACCEPTED by content-based detection. The old Packets: 0
+    // assertion is the exact inverse of the correct post-v1.5 behavior.
+    //
+    // Replacement coverage:
+    //   tests/bc_2_12_011_story127_tests.rs:
+    //     test_BC_2_12_011_all_5_magic_values_accepted (AC-001) — exercises
+    //     BC-2.12.011 EC-012: a `.PCAP` (uppercase) file with CLASSIC_LE magic
+    //     IS accepted; `reject.pcap` with wrong magic is silently excluded.
+    //     This is the direct supersession of this EC-002 scenario.
     // -----------------------------------------------------------------------
 
-    /// EC-002 (BC-2.12.011 EC-005 / STORY-088 EC-002): A directory with only
-    /// a `.PCAP` (uppercase extension) file returns `Ok(vec![])` since
-    /// `ext == "pcap"` is case-sensitive. Observable: exits 0 with Packets: 0.
-    ///
-    /// Note: This scenario is also covered structurally by AC-010; this EC stub
-    /// provides the explicit edge-case formalization.
-    ///
-    /// Discriminating assertions:
-    ///   Positive: command exits 0 (no .pcap files found).
-    ///   Positive: stdout contains "Packets: 0".
-    #[test]
-    fn test_EC_002_uppercase_pcap_extension_excluded() {
-        let dir = tempfile::tempdir().expect("tempdir");
-        let dir_path = dir.path();
-
-        fs::copy(HTTP_FIXTURE, dir_path.join("data.PCAP")).unwrap();
-
-        Command::cargo_bin("wirerust")
-            .unwrap()
-            .args(["analyze", dir_path.to_str().unwrap(), "--no-color"])
-            .assert()
-            .success()
-            .stdout(predicate::str::contains("Packets: 0"));
-    }
+    // EC-002 test body DELETED — see tombstone above.
+    // Superseded by: BC-2.12.011 v1.5 / EC-012 / STORY-127
+    // Replacement: test_BC_2_12_011_all_5_magic_values_accepted in
+    //   tests/bc_2_12_011_story127_tests.rs
 
     // -----------------------------------------------------------------------
     // EC-003 (STORY-088 EC-003 / BC-2.12.009 EC-002):
