@@ -1150,12 +1150,13 @@ impl PcapSource {
                 }
 
                 IDB_BLOCK_TYPE => {
-                    // BC-2.01.011 / BC-2.01.016 / BC-2.01.018 / ADR-009 Decision 17.
+                    // BC-2.01.011 / BC-2.01.016 / BC-2.01.018 / ADR-009 Decisions 17 + 28.
                     //
-                    // THREE-LEVEL PRECEDENCE — apply in EXACT order (Decision 17):
+                    // FOUR-LEVEL PRECEDENCE — apply in EXACT order (Decision 17 + Decision 28):
                     //   1. E-INP-013 position check FIRST (body NOT decoded if fires)
-                    //   2. E-INP-001 whitelist check SECOND
-                    //   3. E-INP-011 conflict check THIRD
+                    //   2. E-INP-015 interface table cap SECOND (body NOT decoded if fires; Decision 28)
+                    //   3. E-INP-001 whitelist check THIRD
+                    //   4. E-INP-011 conflict check FOURTH
                     //
                     // CHECK 1 — E-INP-013: IDB after first packet block (Decision 15 / AC-004).
                     // `packets_emitted > 0` means a packet block has already been emitted.
