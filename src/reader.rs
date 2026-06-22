@@ -1402,9 +1402,16 @@ impl PcapSource {
 
         if magic == PCAPNG_MAGIC {
             // F6-SEC-A: file-size gate (BC-2.01.009 PC3 + EC-011 / ADR-009 Decision 27).
-            // Check fs::metadata AFTER magic probe confirms pcapng, BEFORE read_to_end.
+            // Check fstat AFTER magic probe confirms pcapng, BEFORE read_to_end.
             // `from_pcap_reader<R: Read>` is NOT gated (no fs::metadata available there).
-            let size = std::fs::metadata(path)
+            //
+            // SEC-002 hardening: use fstat on the already-open fd (buf_reader.get_ref())
+            // rather than a new path-based stat() call. This closes the path-substitution
+            // vector of the TOCTOU window (symlink swap, file replacement between open and
+            // stat). CWE-367 advisory from F6 security review 2026-06-21.
+            let size = buf_reader
+                .get_ref()
+                .metadata()
                 .with_context(|| format!("Failed to stat {}", path.display()))?
                 .len();
             if size > MAX_PCAPNG_FILE_BYTES {
