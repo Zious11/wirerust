@@ -74,6 +74,53 @@ REAL_CAPTURES=(
   # Exercises ISB skip path in the pcapng reader. From Wireshark test suite.
   # Credit: Wireshark Foundation; BSD-style license via wireshark/wireshark repo.
   "http-brotli-isb.pcapng|dc3957f2348adc8f148cd776bef9e4bc2b3d062edc1b2aedc7c2a2b92b60b055|https://gitlab.com/wireshark/wireshark/-/raw/master/test/captures/http-brotli.pcapng"
+  # --- pcapng analyzer-gap suite (BC-2.01.013 SPB path; multi-IDB link-type diversity; LE NRB) ---
+  # SPB-only capture: 1 SHB + 1 IDB + SPBs (Simple Packet Blocks, type 0x00000003).
+  # Exercises the SPB decoding path (BC-2.01.013). Triggers E-INP-010 (IfFcsLen IDB option
+  # framing rejection by pcap-file crate) — clean error, no crash, exit 0.
+  # Credit: Wireshark Foundation (Wireshark GitLab uploads); no per-file license; public sample.
+  "pcapng-spb-only.pcapng|b17e5343901407898ca4cd9612c06611c261780c49a2773a55668197024987a6|https://gitlab.com/wireshark/wireshark/uploads/306fa2c3b67bb7d3011a546698bbbae0/SimplePacketBlockSample.pcapng"
+  # 11 IDB + 11 ISB + NRB: exercises multi-interface + Interface Statistics Block skip path.
+  # First IDB has link type NULL (loopback, type 0) — triggers unsupported-link-type error,
+  # no crash, exit 0. From Wireshark Development/PcapNg wiki page.
+  # Credit: Wireshark Foundation; public sample at wiki.wireshark.org/Development/PcapNg.
+  "pcapng-many-interfaces.pcapng|9bf6c1b68fa59c9e246ddb9f95d0058945cda3dbec624f9e80ef7f27f8c71484|https://wiki.wireshark.org/uploads/__moin_import__/attachments/Development/PcapNg/many_interfaces.pcapng"
+  # DHCP little-endian pcapng: LE NRB control. SHB byte-order LE (magic D4C3B2A1 side).
+  # 4 DHCP/UDP packets. Parses clean, exit 0. From Wireshark wiki uploads.
+  # Credit: Wireshark Foundation; public sample at wiki.wireshark.org.
+  "pcapng-dhcp-little-endian.pcapng|32df980a23be310ad0db9960273ee193d6574d63b4f3a977f061d59de4ddcd2d|https://wiki.wireshark.org/uploads/02e9c71c4512bf63f4577a3487f92a62/dhcp_little_endian.pcapng"
+  # --- HTTP analyzer gap (classic pcap — exercises HTTP analyzer at depth) ---
+  # Real malicious HTTP traffic: malspam campaign downloading .hta + .exe payloads.
+  # 738 packets / 718 HTTP / 10 transactions; POST + GET to malspam C2 hosts.
+  # Credit: mchow01/Bootcamp (GitHub); no explicit LICENSE — local use only, not redistributed.
+  "http-malspam-set6.pcap|bffb320de4361fafae783d7d01145cb3d9ee6b2ef4b3c957c2cbe8826df55d8d|https://raw.githubusercontent.com/mchow01/Bootcamp/master/set6.pcap"
+  # HTTP 401 credential challenge: Tufts EECS grades URL; 168 packets / 75 HTTP / 3 transactions.
+  # Validates HTTP analyzer POST/auth flow detection path.
+  # Credit: mchow01/Bootcamp (GitHub); no explicit LICENSE — local use only, not redistributed.
+  "http-creds-set4.pcap|6c93e7253215c7ab66db466fe82bd51fa39967c1087cd37d9cf105378936cfb3|https://raw.githubusercontent.com/mchow01/Bootcamp/master/set4.pcap"
+  # Practical Packet Analysis HTTP baseline: classic pcap (.cap ext), LE magic d4c3b2a1.
+  # 43 packets / 41 HTTP / benign GET. HTTP analyzer baseline / regression reference.
+  # Credit: markofu/pcaps (GitHub, PracticalPacketAnalysis); no explicit LICENSE — local use only.
+  "http-ppa-baseline.cap|25a72bdf10339f2c29916920c8b9501d294923108de8f29b19aba7cc001ab60d|https://raw.githubusercontent.com/markofu/pcaps/master/PracticalPacketAnalysis/ppa-capture-files/http.cap"
+  # --- DNS-tunnel positives (classic pcap; future DNS-tunnel detector fixtures) ---
+  # dnscat2 DNS-tunneling: 24 packets, 24 DNS, 0 findings (detector not yet implemented).
+  # Retained as future-detector fixture and benign-parse baseline for DNS over UDP.
+  # Credit: dmachard/datasets-malicious-dns (GitHub); no explicit LICENSE — local use only.
+  "dns-tunnel-dnscat2.pcap|904817d65b4bc9949bbb969b5be504faa2c4c41b2041ec3e005b6ee25a20fd45|https://raw.githubusercontent.com/dmachard/datasets-malicious-dns/main/dnscat2.pcap"
+  # iodine DNS-tunneling (dmachard dataset): 24 packets, 24 DNS, 0 findings.
+  # Complements the elastic/examples iodine fixture. Different capture, same tool.
+  # Credit: dmachard/datasets-malicious-dns (GitHub); no explicit LICENSE — local use only.
+  "dns-tunnel-iodine-dmachard.pcap|5d9eb84014c98b4f4b21374178172e45ecfa54c881c1e5a8bdfc719832f6ad8a|https://raw.githubusercontent.com/dmachard/datasets-malicious-dns/main/iodine.pcap"
+  # dns2tcp DNS-tunneling: 26 packets, 26 DNS, 0 findings (detector not yet implemented).
+  # Future-detector fixture for a third DNS-tunnel tool (dns2tcp vs dnscat2 vs iodine).
+  # Credit: dmachard/datasets-malicious-dns (GitHub); no explicit LICENSE — local use only.
+  "dns-tunnel-dns2tcp.pcap|41a50974baa28c7731ed67a460d4e9bd9c0a6231c4ee660b2ee2ce798ab439aa|https://raw.githubusercontent.com/dmachard/datasets-malicious-dns/main/dns2tcp.pcap"
+  # --- IP fragmentation (classic pcap; teardrop DoS overlap) ---
+  # teardrop attack: 6 packets with malformed overlapping IP fragments (UDP payload).
+  # wirerust skips all 6 as decode errors (fragmented IP / no reassembly). Exit 0, no crash.
+  # Validates graceful handling of fragment overlap without panic.
+  # Credit: Wireshark SampleCaptures (wiki.wireshark.org); public sample.
+  "ip-frag-teardrop.cap|e8e4193ae426dabf549cc103c9e93e7d93c6ae049ee9259f1ce2ebdb7315a683|https://wiki.wireshark.org/uploads/__moin_import__/attachments/SampleCaptures/teardrop.cap"
 )
 
 # Link-only captures — NOT auto-fetched. They require manual browser download or are too
@@ -89,6 +136,11 @@ REAL_CAPTURES=(
 #                                               URL: https://cupid-data-storage.nyc3.digitaloceanspaces.com/
 #                                                    Raw-Baseline-Data/042219_1000_7.pcapng
 #                                               Cite: "CUPID: Corpus for Understanding Packet Intrusion Data"
+# 2014-12-15-traffic-analysis-exercise.pcap.zip (~unknown)
+#   — Malware Traffic Analysis (malware-traffic-analysis.net); password-protected zip (pw on MTA About page)
+#   URL: https://malware-traffic-analysis.net/2014/12/15/2014-12-15-traffic-analysis-exercise.pcap.zip
+#   Bot-blocked and requires password extraction — cannot be auto-fetched. Attribution required; see E2E-PCAPS.md.
+#   Content: HTTP malspam/bot traffic exercise pcap from 2014-12-15 MTA exercise.
 #
 # To fetch manually: download via browser from the URLs in E2E-PCAPS.md and place the file
 # in tests/fixtures/local-samples/. SHA256 values from source are noted there but not
