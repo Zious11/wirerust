@@ -17478,139 +17478,162 @@ fn test_r1_zombie_segment_rejected_below_base_offset() {
     );
 }
 
-/// R4 (Defect 3 / timestamp stagnation): Idle flows MUST be expired when
-/// timestamps advance past the timeout window, even when the SUBSEQUENT
-/// packets are frozen (non-increasing).
+/// R4 (Defect 3 / timestamp stagnation): Idle flows MUST be expired even when
+/// ALL packet timestamps are COMPLETELY FROZEN (all identical).
 ///
-/// The critical sub-case is a capture where:
-///   1. An initial burst of flows arrives at ts=T (last_expiry_sweep_secs=T).
-///   2. More packets arrive at ts < T (out-of-order / non-monotonic timestamps).
-///   3. Those flows from step 1, now `flow_timeout_secs` seconds stale, must
-///      eventually be swept — but because ts never advances past T again,
-///      the strict `>` guard in `process_packet` never fires.
+/// ## Why timestamp-based expiry cannot handle this
 ///
-/// Fix: add a packet-count cadence that re-runs `expire_idle_by_timeout`
-/// every N packets, regardless of whether timestamps have advanced.
+/// The existing guard `if timestamp > self.last_expiry_sweep_secs` (mod.rs) never
+/// fires when timestamps are frozen — the FIRST packet sets `last_expiry_sweep_secs`
+/// to the frozen value, and all subsequent packets have `timestamp == last_expiry_sweep_secs`,
+/// so `>` is false forever.
 ///
-/// For the expiry condition to actually trigger the SAME time-delta check is
-/// used: `(current_ts - last_seen) > timeout`.  With decreasing timestamps
-/// (`current_ts < last_seen`) the subtraction underflows for u32 (wraps to
-/// a huge value) — so flows look ancient.  The test uses LARGE timestamp values
-/// to avoid underflow: flows at ts=500, subsequent packets at ts=400 (100s
-/// behind), timeout=10s.  Without the count-cadence, these flows are never
-/// swept.  With it, they are.
+/// Even if the sweep ran, `expire_idle_by_timeout` uses
+/// `current_time > flow.last_seen && (current_time - flow.last_seen) > timeout`:
+/// when every packet has `ts=T`, every flow has `last_seen=T`, so
+/// `current_time - flow.last_seen = 0`, which is never `> timeout` (timeout >= 0).
 ///
-/// BEFORE fix (EXPECTED TO FAIL):
-///   After 2000 packets at ts=400 with flows created at ts=500 and timeout=10,
-///   the strict `>` guard never fires (400 < 500, never > 500).  Flows accumulate.
-///   flows_expired == 0 throughout.
+/// ## R4 production fix
 ///
-/// AFTER fix (EXPECTED TO PASS):
-///   The count-cadence triggers periodic sweeps even without ts advancing.
-///   (500 - 400) = 100 which wraps to huge for u32 subtraction... but wait,
-///   the code computes `current_time > flow.last_seen` first, so if current=400
-///   and last_seen=500, the `>` check fails (400 > 500 == false) and the flow
-///   is NOT expired. That's correct — non-monotonic timestamps shouldn't
-///   falsely expire flows.
+/// Adds a PACKET-INDEX CADENCE to `process_packet`:
+/// - A monotonic `packet_index: u64` counter increments per processed packet.
+/// - Each `TcpFlow` tracks `last_activity_index: u64` (updated whenever the
+///   flow receives a packet, set alongside `last_seen`).
+/// - Every `expiry_sweep_interval` packets (config default 8192) a new
+///   `expire_idle_by_packet_index` sweep expires flows where
+///   `packet_index - flow.last_activity_index > idle_packet_threshold`.
 ///
-/// Revised scenario: flows at ts=100 with timeout=0 (expire any flow with
-/// last_seen < current_ts).  Then 5000 packets at ts=100 (identical frozen).
-/// The first ts=100 packet sets last_expiry_sweep_secs=100. All subsequent
-/// ts=100 packets have (100 > 100) == false.  The count-cadence fires every
-/// N=1000 packets and calls expire_idle_by_timeout(100, ..) which checks
-/// (100 > flow.last_seen=100) → false → nothing expires.
+/// ## Conservative threshold
 ///
-/// BUT: if we then interleave a ts=101 packet among the frozen ts=100 packets,
-/// the ts-advance path fires AND the count-cadence must ALSO continue working.
+/// `idle_packet_threshold` defaults to 65_536 (= 8 × expiry_sweep_interval).
+/// An active flow updating its `last_activity_index` every packet will have
+/// `current - last_activity` ≤ `expiry_sweep_interval` at sweep time —
+/// far below the threshold. Only flows that receive ZERO packets for 8 full
+/// sweep intervals (65_536 packets of other traffic) are marked idle.
+/// This is detection-evasion safe: an attacker sending ≥1 packet per 65_536
+/// packets of background traffic keeps the flow alive — but a flow that
+/// genuinely silent for that long is safe to expire.
 ///
-/// Simplest demonstrably-RED test: all 3000 packets at ts=1 (fully frozen from
-/// the start). Flows created by packet 1..100 at ts=1 have last_seen=1.
-/// Packets 101..3000 also at ts=1. With timeout=0 and current_ts=1, (1-1)=0
-/// is NOT > 0, so time-based expiry correctly does NOT fire (no stale flows).
-/// This means: Defect 3 can ONLY cause ADDITIONAL expired flows if there exist
-/// flows where last_seen < current_ts. With a 100% frozen ts, no such flows
-/// ever exist. Defect 3's impact is ONLY observable under non-increasing
-/// (but not all-same) timestamps.
+/// ## Test scenario
 ///
-/// Correct test: ts DECREASES after initial flows are created (legal pcap
-/// capture scenario with reordered packets). Create flows at ts=200. Then
-/// send many packets at ts=150 (lower, but valid for this flow-type scenario —
-/// we're testing the expiry guard, not the per-flow handling). The expiry
-/// sweep at ts=150 should NOT expire the ts=200 flows (they are IN THE FUTURE
-/// relative to current time — non-monotonic timestamp artifact). After a long
-/// period at ts=150, send ONE packet at ts=300 which triggers the sweep and
-/// expires all ts=200 flows (300 - 200 = 100 > 0 = timeout).
+/// Use a small `expiry_sweep_interval` (100) and `idle_packet_threshold` (300)
+/// to keep the test tractable.
 ///
-/// The count-cadence ensures that even if ALL remaining packets are at ts=300,
-/// the sweep keeps firing.
+/// 1. Create 20 IDLE flows at ts=1, packet_index ≈ 1..20.
+/// 2. Create 5 ACTIVE flows at ts=1, packet_index ≈ 21..25.
+/// 3. Push `idle_packet_threshold + expiry_sweep_interval + 1` = 401 more
+///    packets on the 5 ACTIVE flows only (5 flows × 80 packets each + padding),
+///    all at ts=1 (FROZEN). This advances `packet_index` well past the threshold.
+/// 4. Assert: `flows_expired > 0` (idle flows expired by packet-index sweep).
+/// 5. Assert: the 5 active flows still exist (their last_activity_index is current).
+///
+/// Without R4 production code this test fails because no expiry mechanism
+/// operates under fully frozen timestamps.
 #[test]
-fn test_r4_frozen_timestamp_expiry_fires() {
+fn test_r4_packet_index_cadence_expires_idle_flows_on_frozen_timestamps() {
+    // Small sweep interval and threshold to keep the test tractable.
+    // These are set via ReassemblyConfig fields added by the R4 production fix.
+    let sweep_interval: u64 = 100;
+    let idle_threshold: u64 = 300;
+
     let config = ReassemblyConfig {
         max_flows: 10_000,
         memcap: 1024 * 1024 * 1024,
-        flow_timeout_secs: 0, // expire any flow where current_ts > last_seen
+        flow_timeout_secs: 9999, // deliberately huge — timestamp-based expiry MUST NOT fire
+        expiry_sweep_interval: sweep_interval,
+        idle_packet_threshold: idle_threshold,
         ..ReassemblyConfig::default()
     };
     let mut reassembler = TcpReassembler::new(config);
     let mut handler = RecordingHandler::new();
 
-    // Phase 1: Create 50 flows at ts=200.
-    // The first packet sets last_expiry_sweep_secs=200 (sweep runs, finds nothing).
-    for i in 0..50_u32 {
-        let pkt = make_flow_packet(i, 200);
-        reassembler.process_packet(&pkt, 200, &mut handler);
-    }
-    assert_eq!(reassembler.flow_count(), 50);
-    assert_eq!(reassembler.stats().flows_expired, 0);
+    const IDLE_FLOWS: u32 = 20;
+    const ACTIVE_FLOWS: u32 = 5;
+    const FROZEN_TS: u32 = 1;
 
-    // Phase 2: 1000 packets at ts=150 (NON-INCREASING — below the last seen 200).
-    // The `>` guard (150 > 200) is false, so the timestamp-advance sweep NEVER
-    // fires. The flows created at ts=200 have last_seen=200; with current_ts=150,
-    // (150 > 200) == false in the expiry filter, so they are correctly NOT expired
-    // (non-monotonic timestamps must not falsely retire flows).
-    for i in 50..1_050_u32 {
-        let pkt = make_flow_packet(i, 150);
-        reassembler.process_packet(&pkt, 150, &mut handler);
+    // Phase 1: create 20 idle flows at ts=FROZEN_TS.
+    // These flows will receive NO further packets.
+    for i in 0..IDLE_FLOWS {
+        let pkt = make_flow_packet(i, FROZEN_TS);
+        reassembler.process_packet(&pkt, FROZEN_TS, &mut handler);
     }
-    // These 1000 new flows at ts=150 are added; the original 50 at ts=200 remain.
-    // flows_expired is still 0 because no ts > last_seen condition fires.
-    let stats_after_p2 = reassembler.stats().clone();
+    assert_eq!(reassembler.flow_count(), IDLE_FLOWS as usize);
     assert_eq!(
-        stats_after_p2.flows_expired, 0,
-        "flows at ts=200 must NOT be expired by packets at ts=150 (non-monotonic \
-         timestamps must not falsely retire flows)"
+        reassembler.stats().flows_expired,
+        0,
+        "phase1: no expiry yet"
     );
 
-    // Phase 3: ONE packet at ts=300 (strictly > 200, which is last_expiry_sweep_secs).
-    // The timestamp-advance guard (300 > 200) fires, runs the expiry sweep.
-    // Flows with last_seen=200: (300 > 200) = true AND (300 - 200) = 100 > 0 → EXPIRED.
-    // Flows with last_seen=150: (300 > 150) = true AND (300 - 150) = 150 > 0 → EXPIRED.
-    // So ALL the idle flows should now expire.
-    let advance_pkt = make_flow_packet(99_999, 300);
-    reassembler.process_packet(&advance_pkt, 300, &mut handler);
+    // Phase 2: create 5 active flows at ts=FROZEN_TS.
+    // These will keep receiving packets and stay alive.
+    let active_base: u32 = 100_000;
+    for i in 0..ACTIVE_FLOWS {
+        let pkt = make_flow_packet(active_base + i, FROZEN_TS);
+        reassembler.process_packet(&pkt, FROZEN_TS, &mut handler);
+    }
+    assert_eq!(
+        reassembler.flow_count(),
+        (IDLE_FLOWS + ACTIVE_FLOWS) as usize
+    );
 
+    // Phase 3: keep pounding the 5 active flows with packets at ts=FROZEN_TS
+    // until packet_index has advanced past idle_threshold + sweep_interval.
+    // The timestamp NEVER advances — this exercises ONLY the packet-index path.
+    //
+    // We need to send enough packets to: (a) advance packet_index by at least
+    // idle_threshold + sweep_interval past the idle flows' last_activity_index,
+    // AND (b) trigger at least one sweep (every sweep_interval packets).
+    //
+    // Packets already sent: IDLE_FLOWS + ACTIVE_FLOWS = 25.
+    // We need to send at least (idle_threshold + sweep_interval) more = 400.
+    // Round up to 500 to ensure at least one full sweep fires after the threshold.
+    let burst_packets: u32 = 500;
+    for i in 0..burst_packets {
+        // Rotate across the 5 active flows so each stays truly active.
+        let flow_idx = active_base + (i % ACTIVE_FLOWS);
+        let pkt = make_flow_packet(flow_idx, FROZEN_TS);
+        reassembler.process_packet(&pkt, FROZEN_TS, &mut handler);
+    }
+
+    // Phase 4: assert idle flows were expired by packet-index cadence.
+    // Without R4 production code: flows_expired == 0 (no mechanism fires on frozen ts).
+    // With R4: packet-index sweep fires periodically and expires idle flows.
     let stats = reassembler.stats().clone();
     assert!(
         stats.flows_expired > 0,
-        "FAIL R4 (Defect 3 / timestamp stagnation): flows_expired must be > 0 \
-         after a ts=300 packet; flows at ts=200 and ts=150 should be swept \
-         (timeout=0, current_ts=300); got flows_expired={}",
-        stats.flows_expired
+        "FAIL R4 (packet-index cadence): flows_expired must be > 0 after {} packets \
+         at fully-frozen ts={}. Idle flows (last_activity at packet ≈ 0..{}) must \
+         be expired by packet-index sweep (threshold={}, interval={}). \
+         Without R4 production fix, timestamp-based expiry never fires (frozen ts).",
+        IDLE_FLOWS + ACTIVE_FLOWS + burst_packets,
+        FROZEN_TS,
+        IDLE_FLOWS,
+        idle_threshold,
+        sweep_interval,
     );
 
-    // Phase 4: 2000 more packets ALL at ts=300 (frozen again after the advance).
-    // count-cadence check: sweep fires periodically even without further ts advance.
-    // New flows created at ts=300 have delta=0 (300-300), so they are NOT expired.
-    // The sweep should still run without panicking and flow count stays bounded.
-    for i in 100_000..102_000_u32 {
-        let pkt = make_flow_packet(i, 300);
-        reassembler.process_packet(&pkt, 300, &mut handler);
+    // Phase 5: the 5 active flows must still be alive (their last_activity_index
+    // is recent — within idle_threshold of the current packet_index).
+    for i in 0..ACTIVE_FLOWS {
+        let key = {
+            let a = (((active_base + i) >> 16) & 0xFF) as u8;
+            let b = (((active_base + i) >> 8) & 0xFF) as u8;
+            let c = ((active_base + i) & 0xFF) as u8;
+            use std::net::{IpAddr, Ipv4Addr};
+            use wirerust::reassembly::flow::FlowKey;
+            FlowKey::new(
+                IpAddr::V4(Ipv4Addr::new(10, a, b, c)),
+                50_000,
+                IpAddr::V4(Ipv4Addr::new(192, 168, 0, 1)),
+                80,
+            )
+        };
+        assert!(
+            reassembler.flows_contains_key(&key),
+            "FAIL R4: active flow {} must survive packet-index expiry (last_activity is recent)",
+            active_base + i
+        );
     }
-    let stats2 = reassembler.stats();
-    assert!(
-        stats2.flows_expired >= stats.flows_expired,
-        "flows_expired must not decrease during the frozen-ts=300 phase"
-    );
 
     reassembler.finalize(&mut handler);
 }

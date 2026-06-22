@@ -111,6 +111,13 @@ pub struct TcpReassembler {
     /// per unique second of stream time while ensuring no idle flow escapes
     /// expiry for longer than one sweep period (BC-2.04.013 v1.5 PC0).
     last_expiry_sweep_secs: u32,
+    /// Monotonically increasing counter of packets processed by this engine.
+    ///
+    /// Incremented once per [`Self::process_packet`] call. Used by the R4
+    /// packet-index cadence sweep to expire idle flows independent of
+    /// capture timestamp monotonicity (defense-in-depth against frozen /
+    /// non-increasing timestamp captures).
+    packet_index: u64,
 }
 
 impl TcpReassembler {
@@ -134,6 +141,7 @@ impl TcpReassembler {
             total_memory: 0,
             finalized: false,
             last_expiry_sweep_secs: 0,
+            packet_index: 0,
         }
     }
 
@@ -149,6 +157,7 @@ impl TcpReassembler {
         handler: &mut dyn StreamHandler,
     ) {
         self.stats.packets_processed += 1;
+        self.packet_index += 1;
 
         // BC-2.04.013 v1.5 PC0 — idle-flow expiry wiring.
         //
@@ -169,6 +178,20 @@ impl TcpReassembler {
         if timestamp > self.last_expiry_sweep_secs {
             self.last_expiry_sweep_secs = timestamp;
             self.expire_idle_by_timeout(timestamp, handler);
+        }
+
+        // R4 — packet-index cadence sweep (defense-in-depth for frozen timestamps).
+        //
+        // Fires every `expiry_sweep_interval` packets regardless of timestamp
+        // monotonicity. Expires flows whose `last_activity_index` is more than
+        // `idle_packet_threshold` behind the current `packet_index`.
+        //
+        // This is ADDITIVE to the timestamp-based sweep above: on normal captures
+        // with advancing timestamps, both run and the timestamp sweep dominates
+        // (fires more often). On frozen-timestamp captures the timestamp sweep
+        // never fires, so this cadence is the only expiry mechanism.
+        if self.packet_index.is_multiple_of(self.config.expiry_sweep_interval) {
+            self.expire_idle_by_packet_index(handler);
         }
 
         // Skip non-TCP packets; extract TCP fields; build the flow key.
@@ -271,6 +294,9 @@ impl TcpReassembler {
 
         let flow = self.flows.get_mut(key).unwrap();
         flow.last_seen = timestamp;
+        // R4: track the packet index of the most recent activity on this flow
+        // so the packet-index cadence sweep can identify truly idle flows.
+        flow.last_activity_index = self.packet_index;
         true
     }
 
@@ -620,6 +646,36 @@ impl TcpReassembler {
         }
     }
 
+    /// Expire flows that have been silent for more than `idle_packet_threshold`
+    /// packets of processed traffic (R4 — packet-index cadence sweep).
+    ///
+    /// Called every `expiry_sweep_interval` packets from `process_packet`.
+    /// Unlike `expire_idle_by_timeout`, this method operates entirely in terms
+    /// of packet counts — it fires regardless of whether capture timestamps are
+    /// monotonic, frozen, or non-increasing.
+    ///
+    /// A flow is expired when:
+    ///   `self.packet_index - flow.last_activity_index > idle_packet_threshold`
+    ///
+    /// This is ADDITIVE to the timestamp-based sweep: on normal captures with
+    /// advancing timestamps, the timestamp sweep dominates. This sweep provides
+    /// defense-in-depth on frozen-timestamp captures (Defect 3 / CWE-407).
+    fn expire_idle_by_packet_index(&mut self, handler: &mut dyn StreamHandler) {
+        let threshold = self.config.idle_packet_threshold;
+        let current = self.packet_index;
+        let expired_keys: Vec<FlowKey> = self
+            .flows
+            .iter()
+            .filter(|(_, flow)| current.saturating_sub(flow.last_activity_index) > threshold)
+            .map(|(key, _)| key.clone())
+            .collect();
+
+        for key in expired_keys {
+            self.stats.flows_expired += 1;
+            self.close_flow(&key, CloseReason::Timeout, handler);
+        }
+    }
+
     /// Expire flows that have been idle longer than the configured timeout.
     pub fn expire_flows(&mut self, current_time: u32, handler: &mut dyn StreamHandler) {
         let timeout = self.config.flow_timeout_secs;
@@ -706,6 +762,15 @@ impl TcpReassembler {
     /// table is empty without needing access to the private `flows` field.
     pub fn flow_count(&self) -> usize {
         self.flows.len()
+    }
+
+    /// Return whether a flow with the given key currently exists in the table.
+    ///
+    /// Exposed for testing (R4 test) to assert that specific active flows
+    /// survived the packet-index cadence sweep while idle flows were expired.
+    #[doc(hidden)]
+    pub fn flows_contains_key(&self, key: &FlowKey) -> bool {
+        self.flows.contains_key(key)
     }
 
     /// Test-only: return the sum of memory_used() across all flows.

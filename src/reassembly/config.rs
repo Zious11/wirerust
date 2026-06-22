@@ -111,6 +111,43 @@ pub struct ReassemblyConfig {
     /// sequence hole), a different unit. The default `100` is a
     /// conservative engineering default with no count-based prior art.
     pub out_of_window_alert_threshold: u32,
+
+    /// How often (in packets processed) to run the packet-index-based idle
+    /// expiry sweep.  Every `expiry_sweep_interval` packets the engine scans
+    /// for flows whose `last_activity_index` is more than
+    /// [`Self::idle_packet_threshold`] behind the current packet counter.
+    ///
+    /// # R4 — defense-in-depth for frozen / non-increasing timestamps
+    ///
+    /// The existing timestamp-based sweep fires only when the capture
+    /// timestamp strictly advances (`timestamp > last_expiry_sweep_secs`).
+    /// On captures with frozen or non-monotonic timestamps the sweep never
+    /// fires, so idle flows accumulate unboundedly.  This packet-count
+    /// cadence is ADDITIVE (the timestamp path is unchanged) and provides
+    /// expiry regardless of timestamp monotonicity.
+    ///
+    /// Default `8_192`: amortizes the O(n) scan across enough packets that
+    /// the overhead is negligible on any realistic packet rate.
+    pub expiry_sweep_interval: u64,
+
+    /// Packets of silence after which a flow is considered idle and eligible
+    /// for packet-index-based expiry.  A flow is expired when
+    /// `current_packet_index - flow.last_activity_index > idle_packet_threshold`.
+    ///
+    /// # Conservative default (detection-evasion analysis)
+    ///
+    /// Default `65_536` = 8 × [`Self::expiry_sweep_interval`].  An active
+    /// flow that receives even one packet per sweep cycle has
+    /// `current - last_activity ≤ expiry_sweep_interval` at every sweep —
+    /// far below this threshold.  A flow is only expired if it receives
+    /// ZERO packets for 8 full sweep intervals of background traffic.
+    ///
+    /// An attacker trying to keep a flow alive by sending ≥1 packet per
+    /// 65_536 packets of other traffic can do so — but such a flow IS
+    /// genuinely active (it is receiving packets) and must NOT be expired.
+    /// Reducing the threshold increases false-positive expiry risk; raising
+    /// it increases the lag before truly idle flows are reaped.
+    pub idle_packet_threshold: u64,
 }
 
 impl Default for ReassemblyConfig {
@@ -127,6 +164,8 @@ impl Default for ReassemblyConfig {
             small_segment_max_bytes: 16,               // see field doc (LESSON-P2.05)
             small_segment_ignore_ports: vec![23, 513], // telnet, rlogin (LESSON-P2.05)
             out_of_window_alert_threshold: 100,        // see field doc (LESSON-P2.05)
+            expiry_sweep_interval: 8_192,              // see field doc (R4 / defense-in-depth)
+            idle_packet_threshold: 65_536,             // see field doc (R4 / conservative default)
         }
     }
 }
