@@ -51,6 +51,7 @@ use crate::decoder::{ParsedPacket, Protocol, TransportInfo};
 use crate::findings::{Confidence, Finding, ThreatCategory, Verdict};
 use crate::reassembly::flow::{FlowKey, FlowState, TcpFlow};
 use crate::reassembly::handler::{CloseReason, Direction, StreamHandler};
+use crate::reassembly::lifecycle::EvictionTrigger;
 use crate::reassembly::segment::InsertResult;
 
 const MAX_FINDINGS: usize = 10_000;
@@ -206,7 +207,7 @@ impl TcpReassembler {
 
         // Evict flows if the memcap was exceeded by this packet.
         if self.total_memory > self.config.memcap {
-            self.evict_flows(handler);
+            self.evict_flows(EvictionTrigger::MemCap, handler);
         }
     }
 
@@ -254,9 +255,10 @@ impl TcpReassembler {
         handler: &mut dyn StreamHandler,
     ) -> bool {
         if !self.flows.contains_key(key) {
-            // Enforce max_flows limit
+            // Enforce max_flows limit — R3: batch-evict to headroom target so
+            // the O(F log F) sort is amortised across ~10% of admissions.
             if self.flows.len() >= self.config.max_flows {
-                self.evict_flows(handler);
+                self.evict_flows(EvictionTrigger::MaxFlows, handler);
                 if self.flows.len() >= self.config.max_flows {
                     // Still at capacity after eviction — drop this packet
                     return false;

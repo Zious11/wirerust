@@ -27,6 +27,24 @@ use crate::reassembly::handler::{CloseReason, Direction, StreamHandler};
 
 use super::{MAX_FINDINGS, TcpReassembler};
 
+/// Identifies which resource constraint triggered a call to [`TcpReassembler::evict_flows`].
+///
+/// The trigger determines the stopping criterion used inside `evict_flows`:
+/// - [`MaxFlows`]: batch-evict down to a headroom target (90% of max_flows) so
+///   the O(F log F) sort is amortized across many subsequent admissions (R3 fix).
+/// - [`MemCap`]: evict until `total_memory <= memcap`; uses exact `< max_flows`
+///   stopping (no headroom) to preserve existing memcap-path test semantics.
+///
+/// [`MaxFlows`]: EvictionTrigger::MaxFlows
+/// [`MemCap`]: EvictionTrigger::MemCap
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(super) enum EvictionTrigger {
+    /// `flows.len() >= max_flows` — new-flow admission is blocked.
+    MaxFlows,
+    /// `total_memory > memcap` — memory ceiling exceeded.
+    MemCap,
+}
+
 /// One-shot guard: a `close_flow` call for a key not present in the flow
 /// table is a programming error. It warns at most once per process so a
 /// recurring bug does not flood stderr.
@@ -70,44 +88,51 @@ impl TcpReassembler {
     /// Evict flows when memcap or max_flows is exceeded.
     ///
     /// Strategy: evict non-established flows first (sorted by LRU), then
-    /// established flows by LRU.
+    /// established flows by LRU. A single O(F log F) sort runs at the START
+    /// of the call; the loop then closes flows in victim order until the
+    /// applicable stopping criterion is reached.
     ///
-    /// # Eviction break condition (R2 — CWE-407 / PERF-REASM-DOS-001)
+    /// # Trigger-specific break conditions (R2 + R3 — CWE-407 / PERF-REASM-DOS-001)
     ///
-    /// The break condition uses `<` for `max_flows` (not `<=`): we stop when
-    /// `flows.len() < max_flows`, meaning at least one slot is now free for
-    /// the caller to insert the new flow that triggered eviction.
+    /// ## `EvictionTrigger::MaxFlows` (R3 — batch eviction to headroom)
     ///
-    /// Before this fix, the break used `<=`:
+    /// Called from `get_or_create_flow` when `flows.len() >= max_flows`.
+    /// Evicts down to the headroom target:
+    ///
+    ///   `headroom_target = max(1, max_flows * 9 / 10)`
+    ///
+    /// Breaks when `flows.len() <= headroom_target && total_memory <= memcap`.
+    ///
+    /// With max_flows=100_000 the headroom target is 90_000. After one sort
+    /// call that evicts 10_001 flows, the next ~10_000 new-flow packets are
+    /// admitted without sorting. This amortizes the O(F log F) sort across
+    /// ~10% of the packet stream, reducing the storm from O(N * F log F)
+    /// to O((N/headroom_gap) * F log F).
+    ///
+    /// ## `EvictionTrigger::MemCap` (R2 fix — correct stopping point)
+    ///
+    /// Called from `process_packet` when `total_memory > memcap`.
+    /// Breaks when `total_memory <= memcap && flows.len() < max_flows`.
+    ///
+    /// The memcap path keeps `< max_flows` (not the headroom target): memcap
+    /// pressure does not benefit from headroom on the flow-count dimension,
+    /// and existing tests (BC-2.04.017 AC-010 etc.) are calibrated for
+    /// exact-cap semantics on this path.
+    ///
+    /// ## R2 fix history
+    ///
+    /// Before R2, the break used `<= max_flows` on both paths:
     ///   `if total_memory <= memcap && flows.len() <= max_flows { break }`
     ///
-    /// The call site in `get_or_create_flow` enters eviction at
-    /// `flows.len() >= max_flows`. At exactly `max_flows`, both conditions
-    /// were immediately true, so the O(F log F) candidate sort executed then
-    /// break fired on iteration 0 — evicting ZERO flows. Every subsequent
-    /// new-flow packet repeated the full sort. This is the null-eviction storm
-    /// (CWE-407 / PERF-REASM-DOS-001) documented as DEFECT 2.
-    ///
-    /// With `< max_flows`, at exactly `max_flows` the condition is false and
-    /// the loop continues to evict ≥ 1 flow, freeing the slot.
-    ///
-    /// The memcap side keeps `<=` because its call site at `mod.rs:208` enters
-    /// at `total_memory > memcap`; stopping at `<= memcap` is correct there.
-    ///
-    /// # Amortization note (R3 — deferred)
-    ///
-    /// Evicting exactly 1 flow per call (the R2 fix) still triggers the
-    /// O(F log F) sort on each new-flow packet once the cap is full. A
-    /// head-room target (evict down to 90% of max_flows) would amortize the
-    /// sort cost over ~10% of subsequent packets. However, head-room interacts
-    /// poorly with the EXISTING memcap-only tests (BC-2.04.017 AC-010 etc.)
-    /// because a single combined break condition cannot cleanly separate
-    /// "memcap pressure relieved" from "max_flows head-room reached" when
-    /// both caps are tight simultaneously. R3 is deferred pending a dedicated
-    /// engineering pass that adds a `reason` parameter to `evict_flows` so the
-    /// head-room target is applied ONLY on the max_flows-only call path.
-    pub(super) fn evict_flows(&mut self, handler: &mut dyn StreamHandler) {
-        // Sort once, then evict from the sorted list until under both caps.
+    /// At exactly `max_flows` both conditions were immediately true → O(F log F)
+    /// sort fired but zero flows were evicted (null-eviction storm, DEFECT 2).
+    pub(super) fn evict_flows(
+        &mut self,
+        trigger: EvictionTrigger,
+        handler: &mut dyn StreamHandler,
+    ) {
+        // Sort once per call — victim ordering: non-established first, then
+        // oldest last_seen first within each established/non-established group.
         let mut candidates: Vec<(FlowKey, bool, u32)> = self
             .flows
             .iter()
@@ -117,19 +142,25 @@ impl TcpReassembler {
             })
             .collect();
 
-        // Sort: non-established first, then by oldest last_seen
-        candidates.sort_by(|a, b| {
-            a.1.cmp(&b.1) // false (non-established) < true (established)
-                .then(a.2.cmp(&b.2)) // older first
-        });
+        // false (non-established) < true (established); older last_seen first
+        candidates.sort_by(|a, b| a.1.cmp(&b.1).then(a.2.cmp(&b.2)));
+
+        // Headroom target for MaxFlows trigger: evict to 90% of cap in one call,
+        // but capped at max_flows-1 to guarantee at least one eviction even when
+        // max_flows is small (e.g. max_flows=1 → headroom=0; max_flows=10 → headroom=9).
+        // MemCap trigger keeps exact-cap semantics (flows-1 target) to preserve
+        // existing test behaviour calibrated for that path.
+        let flow_count_target = match trigger {
+            EvictionTrigger::MaxFlows => {
+                let ninety_pct = self.config.max_flows * 9 / 10;
+                ninety_pct.min(self.config.max_flows.saturating_sub(1))
+            }
+            EvictionTrigger::MemCap => self.config.max_flows.saturating_sub(1),
+        };
 
         for (key, _, _) in &candidates {
-            // R2 fix (CWE-407 / PERF-REASM-DOS-001): use `< max_flows` (not
-            // `<= max_flows`) so that when flows.len() == max_flows the break
-            // condition is FALSE and at least 1 flow is evicted. The original
-            // `<=` caused the O(F log F) sort to fire on every new-flow packet
-            // at the cap while evicting nothing — the null-eviction storm.
-            if self.total_memory <= self.config.memcap && self.flows.len() < self.config.max_flows {
+            // Stop when BOTH resource constraints are satisfied at the target.
+            if self.total_memory <= self.config.memcap && self.flows.len() <= flow_count_target {
                 break;
             }
             self.stats.evictions += 1;

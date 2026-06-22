@@ -17222,7 +17222,93 @@ fn test_json_finding_timestamp_serialization() {
 // R5b: Defect 2 — flow table stays bounded under high flow churn.
 // R1:  Defect 1 — segment BELOW base_offset is rejected (no zombie growth).
 // R4:  Defect 3 — idle flows expire even when timestamps are frozen.
+// R3:  Batch eviction — one sort amortizes across multiple new-flow admissions.
 // ===========================================================================
+
+/// R3 (CWE-407 / PERF-REASM-DOS-001): When `max_flows` pressure triggers eviction,
+/// the engine MUST evict a BATCH down to the headroom target (90% of max_flows)
+/// in a SINGLE `evict_flows` call — not evict exactly 1 and re-sort next time.
+///
+/// This prevents the O(F log F) sort from firing once per new-flow packet once
+/// the table is at capacity: with batch eviction, 10% of slots are freed in one
+/// pass, so ~10% of subsequent new-flow packets are admitted without re-sorting.
+///
+/// Uses `max_flows=20` so the headroom gap is `20 * 9/10 = 18`, meaning a batch
+/// of AT LEAST 2 flows must be evicted per trigger.  This distinguishes R3
+/// (batch) from R2-only (single-flow eviction).
+///
+/// Derivation:
+///   fill 20 → evict batch (20 - 18 = 2 evictions) → flows = 18 →
+///   admit new flow → flows = 19, evictions = 2.
+///
+/// The timing improvement is verified by the CLI benchmark, not here.
+#[test]
+fn test_r3_batch_eviction_to_headroom_target() {
+    const MAX_FLOWS: usize = 20;
+    // headroom_target = max(1, 20 * 9 / 10) = max(1, 18) = 18
+    let headroom_target = (MAX_FLOWS * 9 / 10).max(1);
+    // minimum evictions per trigger = MAX_FLOWS - headroom_target = 20 - 18 = 2
+    let min_batch_evictions = (MAX_FLOWS - headroom_target) as u64;
+
+    let config = ReassemblyConfig {
+        max_flows: MAX_FLOWS,
+        memcap: 1024 * 1024 * 1024, // 1 GB — memcap not the pressure point
+        flow_timeout_secs: 300,
+        ..ReassemblyConfig::default()
+    };
+    let mut reassembler = TcpReassembler::new(config);
+    let mut handler = RecordingHandler::new();
+
+    // Fill the table to exactly max_flows (flows 0..MAX_FLOWS-1).
+    for i in 0..MAX_FLOWS as u32 {
+        let pkt = make_flow_packet(i, 1);
+        reassembler.process_packet(&pkt, 1, &mut handler);
+    }
+    assert_eq!(
+        reassembler.flow_count(),
+        MAX_FLOWS,
+        "R3 pre-cond: table must be full before the over-cap packet"
+    );
+    assert_eq!(
+        reassembler.stats().evictions,
+        0,
+        "R3 pre-cond: no evictions should have occurred while filling to cap"
+    );
+
+    // Send ONE more packet for a new flow (flow index MAX_FLOWS).
+    // This is the FIRST over-cap packet — it triggers ONE evict_flows call.
+    // With R3, that one call evicts a batch of 2 (MAX_FLOWS - headroom_target).
+    let over_cap_pkt = make_flow_packet(MAX_FLOWS as u32, 1);
+    reassembler.process_packet(&over_cap_pkt, 1, &mut handler);
+
+    // After eviction + new-flow admission:
+    //   - evictions must be >= min_batch_evictions (2) — distinguishes R3 from R2
+    //   - flow_count must be <= max_flows (table remains bounded)
+    //
+    // Without R3 (R2-only): evictions == 1, flow_count == 20 (new flow dropped
+    // because 1 eviction left flows at 19, but the batch didn't free enough to
+    // clear the cap — the engine re-checks and drops).
+    // WITH R3: evictions >= 2, new flow admitted, flow_count == 19.
+    let actual_evictions = reassembler.stats().evictions;
+    assert!(
+        actual_evictions >= min_batch_evictions,
+        "FAIL R3: evictions {} must be >= {} (batch_size = max_flows - headroom_target \
+         = {} - {} = {}). Engine is NOT batch-evicting — R3 not implemented.",
+        actual_evictions,
+        min_batch_evictions,
+        MAX_FLOWS,
+        headroom_target,
+        min_batch_evictions
+    );
+    assert!(
+        reassembler.flow_count() <= MAX_FLOWS,
+        "FAIL R3: flow_count {} exceeded max_flows {} after batch eviction",
+        reassembler.flow_count(),
+        MAX_FLOWS
+    );
+
+    reassembler.finalize(&mut handler);
+}
 
 /// Helper: build a minimal TCP data packet (mid-stream, no SYN) with a
 /// synthesized 4-octet source IP derived from the flow index `n`.
