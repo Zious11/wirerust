@@ -78,6 +78,25 @@ const DSB_BLOCK_TYPE: u32 = 0x0000_000A;
 /// IDB (Interface Description Block) type code.
 const IDB_BLOCK_TYPE: u32 = 0x0000_0001;
 
+// ─── DoS guard constants (BC-2.01.009 EC-011/EC-012, BC-2.01.011 EC-014) ────
+
+/// Maximum pcapng file size accepted by the PATH-based `from_file` entry.
+///
+/// Files larger than this are rejected before `read_to_end` with E-INP-014
+/// (BC-2.01.009 PC3 + EC-011 / ADR-009 Decision 27).
+/// EC-012 specifies the exact error message text for E-INP-014 (error-taxonomy v3.8 /
+/// BC-2.01.017 v1.7): "pcapng file too large: {size} bytes exceeds limit of {limit}
+/// bytes (E-INP-014); use a streaming tool or split the capture".
+/// The reader path (`from_pcap_reader<R: Read>`) is NOT gated — no `fs::metadata`
+/// is available for a generic `Read` stream.
+const MAX_PCAPNG_FILE_BYTES: u64 = 4_294_967_296; // 4 GiB
+
+/// Maximum number of Interface Description Blocks (IDBs) per pcapng file.
+///
+/// If the interface table would grow beyond this limit, parsing is halted
+/// immediately with E-INP-015 (BC-2.01.011 PC4 + EC-014 / ADR-009 Decision 28).
+const MAX_INTERFACE_TABLE_ENTRIES: usize = 65_535;
+
 /// SHB body minimum: 16 bytes (BOM:4 + major:2 + minor:2 + section_length:8).
 const SHB_BODY_FIXED_BYTES: usize = 16;
 
@@ -1131,12 +1150,13 @@ impl PcapSource {
                 }
 
                 IDB_BLOCK_TYPE => {
-                    // BC-2.01.011 / BC-2.01.016 / BC-2.01.018 / ADR-009 Decision 17.
+                    // BC-2.01.011 / BC-2.01.016 / BC-2.01.018 / ADR-009 Decisions 17 + 28.
                     //
-                    // THREE-LEVEL PRECEDENCE — apply in EXACT order (Decision 17):
+                    // FOUR-LEVEL PRECEDENCE — apply in EXACT order (Decision 17 + Decision 28):
                     //   1. E-INP-013 position check FIRST (body NOT decoded if fires)
-                    //   2. E-INP-001 whitelist check SECOND
-                    //   3. E-INP-011 conflict check THIRD
+                    //   2. E-INP-015 interface table cap SECOND (body NOT decoded if fires; Decision 28)
+                    //   3. E-INP-001 whitelist check THIRD
+                    //   4. E-INP-011 conflict check FOURTH
                     //
                     // CHECK 1 — E-INP-013: IDB after first packet block (Decision 15 / AC-004).
                     // `packets_emitted > 0` means a packet block has already been emitted.
@@ -1145,6 +1165,18 @@ impl PcapSource {
                         return Err(anyhow!(
                             "pcapng interface description block after first packet block — \
                              unsupported ordering (E-INP-013)"
+                        ));
+                    }
+
+                    // F6-SEC-B early exit: interface table cap (BC-2.01.011 PC4 + EC-014 /
+                    // ADR-009 Decision 28). Guard BEFORE body decode — if the table is already
+                    // full, reject immediately without paying the cost of options TLV parsing.
+                    // (CR-003 fix: moved here from after parse_idb_options — same semantic,
+                    // avoids wasted work on the rejected IDB.)
+                    if interfaces.len() >= MAX_INTERFACE_TABLE_ENTRIES {
+                        return Err(anyhow!(
+                            "pcapng interface table too large: exceeds limit of \
+                             {MAX_INTERFACE_TABLE_ENTRIES} interfaces (E-INP-015)"
                         ));
                     }
 
@@ -1358,8 +1390,51 @@ impl PcapSource {
     pub fn from_file(path: &std::path::Path) -> Result<Self> {
         let file = std::fs::File::open(path)
             .with_context(|| format!("Failed to open {}", path.display()))?;
-        let reader = std::io::BufReader::new(file);
-        Self::from_pcap_reader(reader)
+        let mut buf_reader = std::io::BufReader::new(file);
+
+        // Peek 4 bytes to detect format (BC-2.01.009 PC3 / Invariant 1).
+        // fill_buf() fills the internal buffer without consuming bytes.
+        let magic: [u8; 4] = {
+            let filled = buf_reader
+                .fill_buf()
+                .context("Failed to read pcap magic bytes")?;
+            if filled.len() < 4 {
+                return Err(anyhow!(
+                    "stream too short: expected at least 4 bytes for pcap magic, got {}",
+                    filled.len()
+                ));
+            }
+            [filled[0], filled[1], filled[2], filled[3]]
+        };
+
+        if magic == PCAPNG_MAGIC {
+            // F6-SEC-A: file-size gate (BC-2.01.009 PC3 + EC-011 / ADR-009 Decision 27).
+            // Check fstat AFTER magic probe confirms pcapng, BEFORE read_to_end.
+            // `from_pcap_reader<R: Read>` is NOT gated (no fs::metadata available there).
+            //
+            // SEC-002 hardening: use fstat on the already-open fd (buf_reader.get_ref())
+            // rather than a new path-based stat() call. This closes the path-substitution
+            // vector of the TOCTOU window (symlink swap, file replacement between open and
+            // stat). CWE-367 advisory from F6 security review 2026-06-21.
+            let size = buf_reader
+                .get_ref()
+                .metadata()
+                .with_context(|| format!("Failed to stat {}", path.display()))?
+                .len();
+            if size > MAX_PCAPNG_FILE_BYTES {
+                return Err(anyhow!(
+                    "pcapng file too large: {size} bytes exceeds limit of \
+                     {MAX_PCAPNG_FILE_BYTES} bytes (E-INP-014); \
+                     use a streaming tool or split the capture"
+                ));
+            }
+            // Size is within bounds — proceed with the full stream already open.
+            Self::from_pcap_reader(buf_reader)
+        } else {
+            // Classic-pcap path or error: delegate to from_pcap_reader directly.
+            // The BufReader has the magic bytes still unconsumed.
+            Self::from_pcap_reader(buf_reader)
+        }
     }
 }
 
