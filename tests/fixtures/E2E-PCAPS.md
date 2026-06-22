@@ -41,10 +41,41 @@ All are genuine native pcapng (SHB magic `0x0A0D0D0A` verified). All are auto-fe
 | `dtls12-dsb.pcapng` | 2.0 KB | `23acb003e1e96f993f759289e3dd1853f6d1b5d1082c6cca711b3dff185aac53` | [Wireshark test suite](https://gitlab.com/wireshark/wireshark/-/raw/master/test/captures/dtls12-aes128ccm8-dsb.pcapng) (BSD-style; credit Wireshark Foundation) | DTLS 1.2 / UDP (13 packets) | **DSB** (Decryption Secrets Block, type `0x0000000A`) with DTLS TLS-key log; exercises DSB block read/skip path; LE | exit=0; 13 packets parsed |
 | `dhcp-nanosecond-test.pcapng` | 1.6 KB | `efd90c0d4d35fde4d77557d188553df2a9536c0d0526590476154968e228d507` | [Wireshark test suite](https://gitlab.com/wireshark/wireshark/-/raw/master/test/captures/dhcp-nanosecond.pcapng) (BSD-style; credit Wireshark Foundation) | DHCP/UDP (4 packets) | **IDB `if_tsresol` option** = `0x09` (base-10, exponent 9 = nanosecond timestamps); exercises nanosecond-resolution IDB option parsing path; LE | exit=0; 4 packets parsed |
 | `http-brotli-isb.pcapng` | 1.8 KB | `dc3957f2348adc8f148cd776bef9e4bc2b3d062edc1b2aedc7c2a2b92b60b055` | [Wireshark test suite](https://gitlab.com/wireshark/wireshark/-/raw/master/test/captures/http-brotli.pcapng) (BSD-style; credit Wireshark Foundation) | HTTP/TCP (10 packets) | **ISB** (Interface Statistics Block, type `0x00000005`); exercises ISB block skip/parse path; LE | exit=0; 10 packets parsed (HTTP service detected) |
+| `pcapng-spb-only.pcapng` | 3.1 KB | `b17e5343901407898ca4cd9612c06611c261780c49a2773a55668197024987a6` | [Wireshark GitLab uploads](https://gitlab.com/wireshark/wireshark/uploads/306fa2c3b67bb7d3011a546698bbbae0/SimplePacketBlockSample.pcapng) (public sample; credit Wireshark Foundation) | UDP (SPB-wrapped, 1 IDB) | **SPB** (Simple Packet Block, type `0x00000003`, BC-2.01.013); SHB+IDB+SPBs only, no EPBs. Triggers E-INP-010 (IfFcsLen IDB option framing rejection by pcap-file crate) — clean error, no crash | exit=0 (E-INP-010: IDB IfFcsLen option rejection); 0 packets processed (crate rejects before dispatch) |
+| `pcapng-many-interfaces.pcapng` | 20 KB | `9bf6c1b68fa59c9e246ddb9f95d0058945cda3dbec624f9e80ef7f27f8c71484` | [Wireshark wiki Development/PcapNg](https://wiki.wireshark.org/Development/PcapNg) (public sample; credit Wireshark Foundation) | Mixed (loopback / NULL link type; 11 IDBs + 11 ISBs + NRB) | **11×IDB + 11×ISB + NRB** at once; first IDB has link type NULL (0 = BSD loopback). Triggers unsupported-link-type error — clean, no crash | exit=0 (unsupported link type NULL); 0 packets processed |
+| `pcapng-dhcp-little-endian.pcapng` | 1.5 KB | `32df980a23be310ad0db9960273ee193d6574d63b4f3a977f061d59de4ddcd2d` | [Wireshark wiki uploads](https://wiki.wireshark.org/uploads/02e9c71c4512bf63f4577a3487f92a62/dhcp_little_endian.pcapng) (public sample; credit Wireshark Foundation) | DHCP/UDP (4 packets) | **LE NRB control**: LE-encoded pcapng with Name Resolution Block; complements `dhcp-big-endian.pcapng` for endian-pair coverage | exit=0; 4 packets parsed (4 UDP) |
 
 > A tiny committed fixture, `tests/fixtures/modbus-write.pcap` (8 packets), is
 > tracked in git and used by the automated test suite — it is **not** part of
 > this local-only set.
+
+## HTTP analyzer gap
+
+Real HTTP captures for depth-testing the HTTP analyzer. All are classic pcap (LE magic `d4 c3 b2 a1` verified). All are auto-fetchable.
+
+| File | Size | sha256 | Source | Protocols | Validates |
+|------|------|--------|--------|-----------|-----------|
+| `http-malspam-set6.pcap` | 658 KB | `bffb320de4361fafae783d7d01145cb3d9ee6b2ef4b3c957c2cbe8826df55d8d` | [mchow01/Bootcamp](https://github.com/mchow01/Bootcamp) (no explicit LICENSE — local use only, not redistributed) | HTTP/TCP (738 packets; 718 HTTP; 10 transactions) | Real malspam campaign: POSTs to C2 hosts (`myapplicationsdownload.download`, `josephioseph.com`); downloads `.hta` + `.exe` payloads via GET. HTTP analyzer output: 8× POST + 2× GET, 8×200 + 2×404; IE7 + "Charon; Inferno" user-agents. Validates HTTP analyzer malicious-request detection path. |
+| `http-creds-set4.pcap` | 17 KB | `6c93e7253215c7ab66db466fe82bd51fa39967c1087cd37d9cf105378936cfb3` | [mchow01/Bootcamp](https://github.com/mchow01/Bootcamp) (no explicit LICENSE — local use only, not redistributed) | HTTP/TCP (168 packets; 75 HTTP; 3 transactions) | HTTP 401 credential challenge to Tufts EECS grades URL; 3× GET, 3×401 status. Validates HTTP auth-flow and 4xx status tracking. |
+| `http-ppa-baseline.cap` | 25 KB | `25a72bdf10339f2c29916920c8b9501d294923108de8f29b19aba7cc001ab60d` | [markofu/pcaps (PracticalPacketAnalysis)](https://github.com/markofu/pcaps) (no explicit LICENSE — local use only, not redistributed) | HTTP/TCP (43 packets; 41 HTTP) | Benign HTTP GET baseline from Practical Packet Analysis. Regression reference: 0 malicious findings. `.cap` extension; classic pcap format (verified by magic). |
+
+## DNS-tunnel positives
+
+Classic pcap captures of real DNS-tunneling tool traffic. All are auto-fetchable. wirerust currently produces 0 findings for all (DNS-tunneling detector not yet implemented). Retained as future-detector fixtures and benign-parse baselines.
+
+| File | Size | sha256 | Source | Protocols | Validates |
+|------|------|--------|--------|-----------|-----------|
+| `dns-tunnel-dnscat2.pcap` | 3.5 KB | `904817d65b4bc9949bbb969b5be504faa2c4c41b2041ec3e005b6ee25a20fd45` | [dmachard/datasets-malicious-dns](https://github.com/dmachard/datasets-malicious-dns) (no explicit LICENSE — local use only, not redistributed) | DNS/UDP (24 packets, 2 hosts) | dnscat2 DNS-tunnel traffic. 0 findings (detector unimplemented). Future-detector fixture for DNS-tunnel detection. Parses cleanly. |
+| `dns-tunnel-iodine-dmachard.pcap` | 3.4 KB | `5d9eb84014c98b4f4b21374178172e45ecfa54c881c1e5a8bdfc719832f6ad8a` | [dmachard/datasets-malicious-dns](https://github.com/dmachard/datasets-malicious-dns) (no explicit LICENSE — local use only, not redistributed) | DNS/UDP (24 packets, 2 hosts) | iodine DNS-tunnel traffic (dmachard dataset). Complements the `dns-tunnel-iodine.pcap` (Elastic) fixture — different capture, same tool. 0 findings. |
+| `dns-tunnel-dns2tcp.pcap` | 4.4 KB | `41a50974baa28c7731ed67a460d4e9bd9c0a6231c4ee660b2ee2ce798ab439aa` | [dmachard/datasets-malicious-dns](https://github.com/dmachard/datasets-malicious-dns) (no explicit LICENSE — local use only, not redistributed) | DNS/UDP (26 packets, 2 hosts) | dns2tcp DNS-tunnel traffic. Third distinct tool alongside dnscat2/iodine. 0 findings. Future-detector fixture. |
+
+## IP fragmentation
+
+Classic pcap captures exercising IP fragment handling.
+
+| File | Size | sha256 | Source | Protocols | Validates |
+|------|------|--------|--------|-----------|-----------|
+| `ip-frag-teardrop.cap` | 1.8 KB | `e8e4193ae426dabf549cc103c9e93e7d93c6ae049ee9259f1ce2ebdb7315a683` | [Wireshark SampleCaptures](https://wiki.wireshark.org/SampleCaptures) (public sample; credit Wireshark Foundation) | IP (6 fragmented packets; 2 ICMP + 2 UDP + 2 Other(17)) | teardrop DoS attack: malformed overlapping IP fragments. wirerust skips all 6 as decode errors (no IP-reassembly path). Validates graceful skip-and-continue on fragment overlap without crash. Exit 0. |
 
 ## Direct download URLs (real captures)
 
@@ -63,6 +94,16 @@ All are genuine native pcapng (SHB magic `0x0A0D0D0A` verified). All are auto-fe
 | `dtls12-dsb.pcapng` | `https://gitlab.com/wireshark/wireshark/-/raw/master/test/captures/dtls12-aes128ccm8-dsb.pcapng` |
 | `dhcp-nanosecond-test.pcapng` | `https://gitlab.com/wireshark/wireshark/-/raw/master/test/captures/dhcp-nanosecond.pcapng` |
 | `http-brotli-isb.pcapng` | `https://gitlab.com/wireshark/wireshark/-/raw/master/test/captures/http-brotli.pcapng` |
+| `pcapng-spb-only.pcapng` | `https://gitlab.com/wireshark/wireshark/uploads/306fa2c3b67bb7d3011a546698bbbae0/SimplePacketBlockSample.pcapng` |
+| `pcapng-many-interfaces.pcapng` | `https://wiki.wireshark.org/uploads/__moin_import__/attachments/Development/PcapNg/many_interfaces.pcapng` |
+| `pcapng-dhcp-little-endian.pcapng` | `https://wiki.wireshark.org/uploads/02e9c71c4512bf63f4577a3487f92a62/dhcp_little_endian.pcapng` |
+| `http-malspam-set6.pcap` | `https://raw.githubusercontent.com/mchow01/Bootcamp/master/set6.pcap` |
+| `http-creds-set4.pcap` | `https://raw.githubusercontent.com/mchow01/Bootcamp/master/set4.pcap` |
+| `http-ppa-baseline.cap` | `https://raw.githubusercontent.com/markofu/pcaps/master/PracticalPacketAnalysis/ppa-capture-files/http.cap` |
+| `dns-tunnel-dnscat2.pcap` | `https://raw.githubusercontent.com/dmachard/datasets-malicious-dns/main/dnscat2.pcap` |
+| `dns-tunnel-iodine-dmachard.pcap` | `https://raw.githubusercontent.com/dmachard/datasets-malicious-dns/main/iodine.pcap` |
+| `dns-tunnel-dns2tcp.pcap` | `https://raw.githubusercontent.com/dmachard/datasets-malicious-dns/main/dns2tcp.pcap` |
+| `ip-frag-teardrop.cap` | `https://wiki.wireshark.org/uploads/__moin_import__/attachments/SampleCaptures/teardrop.cap` |
 
 ### Link-only captures (cannot be auto-fetched)
 
@@ -77,6 +118,7 @@ or are too large for routine automated fetching.
 | `maccdc2012_00000.pcap` | ~1 GB | unverified | `https://share.netresec.com/s/7qgDSGNGw2NY8ea/download/maccdc2012_00000.pcap` | Netresec public pcap collection (credit Netresec / maccdc) | Mixed-enterprise scale stressor (HTTP/TLS/DNS/SMB). Optional given 1 GB size; not included in standard fetch. |
 | `asyncrat_1hr.pcapng` | ~4.6 MB | unverified | `https://www.activecountermeasures.com/wp-content/uploads/2021/06/asyncrat_1hr.pcapng` | Active Countermeasures "Malware of the Day: AsyncRAT" (public blog resource) | **Native pcapng**, malware C2 traffic (AsyncRAT), HTTP/DNS/TLS. Exercises pcapng reader with real-world malware capture. Bot-blocked (HTTP 403 from Cloudflare to automated curl) — requires browser download. SHA256 not independently verified. |
 | `042219_1000_7.pcapng` | ~657 MB | unverified | `https://cupid-data-storage.nyc3.digitaloceanspaces.com/Raw-Baseline-Data/042219_1000_7.pcapng` | [CUPID dataset](https://github.com/kaylode/cupid) — Colorado University, CC BY-SA 4.0 (cite: "CUPID: Corpus for Understanding Packet Intrusion Data") | **Large native pcapng** with multiple IDBs and NRBs; real network baseline traffic. Exercises multi-block pcapng at scale. HTTP 200 (direct curl-able); excluded from auto-fetch due to 657 MB size. To add: `curl -fL -o tests/fixtures/local-samples/042219_1000_7.pcapng <URL>`. |
+| `2014-12-15-traffic-analysis-exercise.pcap.zip` | unknown | unverified | `https://malware-traffic-analysis.net/2014/12/15/2014-12-15-traffic-analysis-exercise.pcap.zip` | [Malware Traffic Analysis](https://malware-traffic-analysis.net) — Brad Duncan; see MTA "About" page for terms (password-protected zip; password listed on MTA About page) | **Bot-blocked + password-protected** — cannot be auto-fetched. Password-zip must be downloaded via browser; password on MTA About page. Contains HTTP malspam/bot traffic from MTA 2014-12-15 exercise. Attribution required if used in training material. |
 
 ## Attribution
 
@@ -107,12 +149,49 @@ used in training material. They are not redistributed via this repo.
   is released under the GNU GPLv2; test captures are generally considered BSD-style public
   domain test assets, used locally for validation only, not redistributed.
   Credit: Wireshark Foundation contributors.
+- **`pcapng-spb-only.pcapng`**: Wireshark GitLab uploads. Public sample originally posted
+  to demonstrate SPB (Simple Packet Block) format; no per-file license stated. Credit:
+  Wireshark Foundation. Not redistributed.
+- **`pcapng-many-interfaces.pcapng`**: Wireshark wiki Development/PcapNg page. Public
+  sample demonstrating multi-IDB pcapng structure. No per-file license stated. Credit:
+  Wireshark Foundation. Not redistributed.
+- **`pcapng-dhcp-little-endian.pcapng`**: Wireshark wiki uploads. Public sample demonstrating
+  LE pcapng with NRB. No per-file license stated. Credit: Wireshark Foundation. Not redistributed.
 - **`asyncrat_1hr.pcapng`** (link-only): Active Countermeasures "Malware of the Day" blog
   resource. Public download from WordPress uploads. SHA256 not independently verified.
   Used locally only — not redistributed.
 - **`042219_1000_7.pcapng`** (link-only): CUPID dataset, Colorado University.
   License: CC BY-SA 4.0. Cite: "CUPID: Corpus for Understanding Packet Intrusion Data."
   Not redistributed; see dataset homepage for terms.
+
+### HTTP analyzer captures attribution
+
+- **`http-malspam-set6.pcap`** and **`http-creds-set4.pcap`**: `mchow01/Bootcamp` GitHub
+  repository. No explicit LICENSE file — all-rights-reserved presumed. Used locally for
+  validation only, not redistributed. Credit: mchow01 (GitHub).
+- **`http-ppa-baseline.cap`**: Practical Packet Analysis sample captures, re-hosted in
+  `markofu/pcaps` (no explicit license). Used locally for validation only — not
+  redistributed. Credit: Chris Sanders / No Starch Press.
+
+### DNS-tunnel captures attribution
+
+- **`dns-tunnel-dnscat2.pcap`**, **`dns-tunnel-iodine-dmachard.pcap`**,
+  **`dns-tunnel-dns2tcp.pcap`**: `dmachard/datasets-malicious-dns` GitHub repository.
+  No explicit LICENSE file — used locally for validation only, not redistributed.
+  Credit: dmachard (GitHub).
+
+### IP fragmentation captures attribution
+
+- **`ip-frag-teardrop.cap`**: Wireshark Foundation public SampleCaptures collection.
+  No per-file license stated; distributed as a public sample. Credit: Wireshark Foundation.
+  Not redistributed.
+
+### MTA exercise attribution (link-only)
+
+- **`2014-12-15-traffic-analysis-exercise.pcap.zip`**: Malware Traffic Analysis
+  (malware-traffic-analysis.net) by Brad Duncan. Password-protected zip; password on MTA
+  About page. Attribution required if used in training material — credit Brad Duncan /
+  malware-traffic-analysis.net. Not redistributed.
 
 ## ARP captures (D1 spoof / D2 GARP / D3 storm / D12 MAC mismatch)
 
@@ -161,9 +240,17 @@ They live gitignored under `tests/fixtures/local-samples/` — never committed.
   `0x0A0D0D0A`, regardless of extension (resolves C-2: `arp-baseline-16pkt.cap` now accepted
   and parses to 16 ARP packets). Large TLS-heavy captures previously blocked by pcapng format
   are now candidates for the E2E corpus.
-- **DNS tunneling detection not yet implemented:** `dns-tunnel-iodine.pcap` (and the
-  dnscat2 captures above) currently produce 0 findings. They are retained as benign-parse
-  baselines and future-detector fixtures for whenever DNS-tunneling analysis is added.
+- **DNS tunneling detection not yet implemented:** `dns-tunnel-iodine.pcap` (Elastic),
+  `dns-tunnel-dnscat2.pcap`, `dns-tunnel-iodine-dmachard.pcap`, and `dns-tunnel-dns2tcp.pcap`
+  (all dmachard) currently produce 0 findings. They are retained as benign-parse baselines
+  and future-detector fixtures (covering three distinct DNS-tunnel tools: dnscat2, iodine,
+  dns2tcp) for whenever DNS-tunneling analysis is added.
+- **HTTP analyzer depth:** `http-malspam-set6.pcap`, `http-creds-set4.pcap`, and
+  `http-ppa-baseline.cap` exercise the HTTP analyzer at 3–10 transactions with real-world
+  payloads and malicious URIs. The HTTP analyzer currently parses transactions and tracks
+  hosts/UAs/status-codes but has no malicious-detection findings.
+- **IP fragmentation not reassembled:** `ip-frag-teardrop.cap` confirms wirerust skips
+  fragmented IP packets as decode errors without crashing. No IP-reassembly path exists yet.
 - **Full research write-up:** The evaluation methodology, candidate evaluation, and rationale
   for all selections above is documented at `.factory/research/e2e-pcap-candidates.md`.
 
