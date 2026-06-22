@@ -244,3 +244,20 @@ Archived to session-checkpoints at D-188 (F5 Pass-1 complete burst). This was th
 develop=e75a797 at pause. main=b73b242. TWO worktrees only. All story worktrees CLOSED. Input-drift MATCH.
 
 F5 adversary dispatch hit transient model-availability error before pause — nothing was lost. RESUME from D-188 checkpoint: F5 Pass 2 (fresh-context adversary, develop=97c66b0).
+
+---
+
+## Archived Checkpoint: D-198 (E2E corpus enhancement / develop=e90b536)
+
+**Archived when:** D-199 — SESSION PAUSED (safe-to-clear). Superseded by D-199 SESSION PAUSED checkpoint in STATE.md.
+
+### PIPELINE POSITION — FE-001 COMPLETE + PERF-REASM-DOS-001 RESOLVED + E2E CORPUS ENHANCED (D-198)
+
+- **Mode:** FEATURE. **Cycle:** feature-pcapng-reader. **Status: CLOSED.**
+- **F1–F7:** All COMPLETE + CONVERGED + HUMAN-APPROVED (D-194). pcapng reader shipped to develop @ fcb8dce. stories_delivered=77. E-19 epic DONE.
+- **PERF-REASM-DOS-001 (CWE-407+CWE-401):** RESOLVED — PR #298 (b5b54d5, D-197). TCP reassembly null-eviction DoS fix. 75 s→0.76 s. Root-cause doc at `.factory/phase-f6-hardening/reassembly-cwe407-dos-rootcause.md`.
+- **E2E corpus enhanced (D-198):** 18 real pcapng/pcap captures registered (PRs #299/#300, sha256-pinned). develop=e90b536. `bin/fetch-e2e-pcaps` fetches all; captures gitignored under `tests/fixtures/local-samples/`.
+
+develop=e90b536. main=b73b242. TWO worktrees: main repo (develop) + .factory/ (factory-artifacts). No story/feature worktrees open. No open PRs. Latest release v0.9.2. Release deferred per human (D-194).
+
+Open follow-ups at D-198: SEC-008, PERF-REASM-NFR-001, CORPUS-OBS-PCAPNG-IFFCSLEN-001, CORPUS-OBS-LINKTYPE-NULL-001, DRIFT-F5-O1-017STRINGS, INPUT-HASH-ERROR-PRESTORY (3 stories), DNS-TUNNELING-COVERAGE-001, STORY-121 draft. All non-blocking.
