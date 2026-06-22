@@ -481,7 +481,7 @@ Every construction site translates old bool pairs to enum variants as follows:
 | `show_mitre_grouping: false, collapse_findings: false` | `render: FindingsRender::FlatExpanded` | Pre-v0.8.0 behavior |
 
 The `--mitre` / `--no-collapse` → bool resolution stays at the `main()` call site
-(`src/main.rs` lines 79-80), unchanged by this refactor:
+(inside `main()`, before the `Commands` match), unchanged by this refactor:
 
 ```rust
 // main() call site — unchanged:
@@ -490,9 +490,9 @@ collapse_findings_from_flag(*no_collapse),  // → collapse_findings: bool
 ```
 
 Inside `run_analyze`, the in-scope parameters are `show_mitre_grouping: bool` and
-`collapse_findings: bool` (function signature `src/main.rs` lines 107-108).
+`collapse_findings: bool` (see `fn run_analyze` signature in `src/main.rs`).
 The `run_analyze` signature is unchanged. The bool → enum translation at the
-`TerminalReporter` construction site (`src/main.rs` ~line 373) becomes:
+`TerminalReporter` construction site (inside `run_analyze`) becomes:
 
 ```rust
 // at the TerminalReporter construction site inside run_analyze;
@@ -727,7 +727,7 @@ The three existing functions (`render_findings_grouped`, `render_findings_collap
 ### CLI → Render Mode Wiring (two-phase: STORY-122/A then STORY-119/B)
 
 `src/main.rs` `run_analyze` TerminalReporter construction site
-(orthogonal 2-if struct construction at `src/main.rs:383-390`; `run_summary` inert site at `src/main.rs:451-454`).
+(orthogonal 2-if struct construction inside `run_analyze`; `run_summary` inert site inside `run_summary`).
 
 `show_mitre_grouping` ← `*mitre` (CLI `--mitre` flag).
 `collapse_findings` ← `collapse_findings_from_flag(*no_collapse)` (unchanged: `!no_collapse`).
@@ -773,12 +773,13 @@ constructs `{Grouped, Collapsed}` instead of `{Grouped, Expanded}`. Second, it i
 the placeholder `render_findings_grouped` to the new function. `--no-collapse` becomes
 dual-scope (suppresses collapse in both flat and grouped modes).
 
-Note: the shipped code at `src/main.rs:384` does not inline the grouping expression; it calls
-the named helper `grouping_from_flag(show_mitre_grouping)` (defined at `src/main.rs:511`),
-which encapsulates the `if show_mitre_grouping { Grouping::Grouped } else { Grouping::Flat }`
-logic. The collapse boolean is derived upstream by `collapse_findings_from_flag(*no_collapse)`
-(called at `src/main.rs:80`, defined at `src/main.rs:502`), which is `!no_collapse`. The
-2-if structure and all four CLI combinations in the table below remain correct.
+Note: the shipped code inside `run_analyze` does not inline the grouping expression; it calls
+the named helper `grouping_from_flag(show_mitre_grouping)` (defined as a file-level function
+in `src/main.rs`), which encapsulates the
+`if show_mitre_grouping { Grouping::Grouped } else { Grouping::Flat }` logic. The collapse
+boolean is derived upstream by `collapse_findings_from_flag(*no_collapse)` (called at the
+`main()` call site, defined as a file-level function in `src/main.rs`), which is `!no_collapse`.
+The 2-if structure and all four CLI combinations in the table below remain correct.
 
 | CLI flags (Phase B) | Resulting struct | Behavior |
 |--------------------|-----------------|----------|
