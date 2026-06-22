@@ -217,10 +217,7 @@ fn pcapng_with_n_idbs(n: usize) -> Vec<u8> {
 fn test_BC_2_01_011_interface_cap_rejects_65536_idbs() {
     let buf = pcapng_with_n_idbs(MAX_INTERFACE_TABLE_ENTRIES + 1);
     let result = PcapSource::from_pcap_reader(Cursor::new(buf));
-    assert!(
-        result.is_err(),
-        "expected Err for 65536 IDBs, got Ok"
-    );
+    assert!(result.is_err(), "expected Err for 65536 IDBs, got Ok");
     let msg = format!("{:#}", result.unwrap_err());
     assert!(
         msg.contains("E-INP-015"),
@@ -306,7 +303,10 @@ fn test_BC_2_01_009_file_size_gate_exact_error_message() {
     }
 
     let result = PcapSource::from_file(&path);
-    let msg = format!("{:#}", result.expect_err("expected Err for oversized pcapng"));
+    let msg = format!(
+        "{:#}",
+        result.expect_err("expected Err for oversized pcapng")
+    );
 
     // Exact framing from error-taxonomy v3.8 / BC-2.01.017 v1.7.
     assert!(
