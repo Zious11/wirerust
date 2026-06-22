@@ -41,7 +41,7 @@ All are genuine native pcapng (SHB magic `0x0A0D0D0A` verified). All are auto-fe
 | `dtls12-dsb.pcapng` | 2.0 KB | `23acb003e1e96f993f759289e3dd1853f6d1b5d1082c6cca711b3dff185aac53` | [Wireshark test suite](https://gitlab.com/wireshark/wireshark/-/raw/master/test/captures/dtls12-aes128ccm8-dsb.pcapng) (BSD-style; credit Wireshark Foundation) | DTLS 1.2 / UDP (13 packets) | **DSB** (Decryption Secrets Block, type `0x0000000A`) with DTLS TLS-key log; exercises DSB block read/skip path; LE | exit=0; 13 packets parsed |
 | `dhcp-nanosecond-test.pcapng` | 1.6 KB | `efd90c0d4d35fde4d77557d188553df2a9536c0d0526590476154968e228d507` | [Wireshark test suite](https://gitlab.com/wireshark/wireshark/-/raw/master/test/captures/dhcp-nanosecond.pcapng) (BSD-style; credit Wireshark Foundation) | DHCP/UDP (4 packets) | **IDB `if_tsresol` option** = `0x09` (base-10, exponent 9 = nanosecond timestamps); exercises nanosecond-resolution IDB option parsing path; LE | exit=0; 4 packets parsed |
 | `http-brotli-isb.pcapng` | 1.8 KB | `dc3957f2348adc8f148cd776bef9e4bc2b3d062edc1b2aedc7c2a2b92b60b055` | [Wireshark test suite](https://gitlab.com/wireshark/wireshark/-/raw/master/test/captures/http-brotli.pcapng) (BSD-style; credit Wireshark Foundation) | HTTP/TCP (10 packets) | **ISB** (Interface Statistics Block, type `0x00000005`); exercises ISB block skip/parse path; LE | exit=0; 10 packets parsed (HTTP service detected) |
-| `pcapng-spb-only.pcapng` | 3.1 KB | `b17e5343901407898ca4cd9612c06611c261780c49a2773a55668197024987a6` | [Wireshark GitLab uploads](https://gitlab.com/wireshark/wireshark/uploads/306fa2c3b67bb7d3011a546698bbbae0/SimplePacketBlockSample.pcapng) (public sample; credit Wireshark Foundation) | UDP (SPB-wrapped, 1 IDB) | **SPB** (Simple Packet Block, type `0x00000003`, BC-2.01.013); SHB+IDB+SPBs only, no EPBs. Triggers E-INP-010 (IfFcsLen IDB option framing rejection by pcap-file crate) — clean error, no crash | exit=0 (E-INP-010: IDB IfFcsLen option rejection); 0 packets processed (crate rejects before dispatch) |
+| `pcapng-spb-only.pcapng` | 3.1 KB | `b17e5343901407898ca4cd9612c06611c261780c49a2773a55668197024987a6` | [Wireshark GitLab uploads](https://gitlab.com/wireshark/wireshark/uploads/306fa2c3b67bb7d3011a546698bbbae0/SimplePacketBlockSample.pcapng) (public sample; credit Wireshark Foundation) | UDP (SPB-wrapped, 1 IDB) | **SPB** (Simple Packet Block, type `0x00000003`, BC-2.01.013); SHB+IDB+SPBs only, no EPBs. Triggers E-INP-010 (IfFcsLen IDB option framing rejection by pcap-file crate) — clean error, no crash. Root cause: file is non-conformant (see note CORPUS-OBS-PCAPNG-IFFCSLEN-001 below — RESOLVED) | exit=1 (E-INP-010: IDB IfFcsLen option rejection — file is non-conformant, not a wirerust defect); 0 packets processed (crate rejects before dispatch) |
 | `pcapng-many-interfaces.pcapng` | 20 KB | `9bf6c1b68fa59c9e246ddb9f95d0058945cda3dbec624f9e80ef7f27f8c71484` | [Wireshark wiki Development/PcapNg](https://wiki.wireshark.org/Development/PcapNg) (public sample; credit Wireshark Foundation) | Mixed (loopback / NULL link type; 11 IDBs + 11 ISBs + NRB) | **11×IDB + 11×ISB + NRB** at once; first IDB has link type NULL (0 = BSD loopback). Triggers unsupported-link-type error — clean, no crash | exit=0 (unsupported link type NULL); 0 packets processed |
 | `pcapng-dhcp-little-endian.pcapng` | 1.5 KB | `32df980a23be310ad0db9960273ee193d6574d63b4f3a977f061d59de4ddcd2d` | [Wireshark wiki uploads](https://wiki.wireshark.org/uploads/02e9c71c4512bf63f4577a3487f92a62/dhcp_little_endian.pcapng) (public sample; credit Wireshark Foundation) | DHCP/UDP (4 packets) | **LE NRB control**: LE-encoded pcapng with Name Resolution Block; complements `dhcp-big-endian.pcapng` for endian-pair coverage | exit=0; 4 packets parsed (4 UDP) |
 
@@ -251,6 +251,25 @@ They live gitignored under `tests/fixtures/local-samples/` — never committed.
   hosts/UAs/status-codes but has no malicious-detection findings.
 - **IP fragmentation not reassembled:** `ip-frag-teardrop.cap` confirms wirerust skips
   fragmented IP packets as decode errors without crashing. No IP-reassembly path exists yet.
+- **CORPUS-OBS-PCAPNG-IFFCSLEN-001 — RESOLVED (2026-06-22):** `pcapng-spb-only.pcapng`
+  (Wireshark GitLab "SimplePacketBlockSample.pcapng", 3188 bytes, produced by dumpcap 1.10.0rc
+  per the SHB `shb_userappl` option) is rejected with E-INP-010 because the file itself is
+  non-conformant, not because of any wirerust or `pcap-file` crate defect. Specifically: its
+  IDB at file offset `0xCC` carries an `if_fcslen` option (option code 13 / `0x000d`) at offset
+  `0x15C` encoded as `0d00 0400 0400 0000` — i.e. `option_length = 4` (a 4-byte value). The
+  pcapng specification (IETF draft-tuexen-opsawg-pcapng; Wireshark Development/PcapNg wiki)
+  defines `if_fcslen` as a 1-byte (8-bit) value. The `pcap-file` crate (v2) correctly enforces
+  this: `if slice.len() != 1 { Err("IfFcsLen length != 1") }`. The rejection is therefore
+  spec-correct behavior applied to a malformed legacy file; upgrading `pcap-file` does not
+  change this (the strict 1-byte check is present in master / 3.0.0-rc.2 as well). No clean,
+  public, real SPB-only pcapng without this defect is available — SPB is near-absent from public
+  capture corpora; the ecosystem (libpcap, Wireshark, rusticata pcap-parser, the Python `pcapng`
+  lib) synthesizes SPB for testing rather than capturing it in the wild. wirerust's SPB success
+  path is covered by synthetic tests: `tests/bc_2_01_story126_spb_tests.rs` (LE/BE, padding
+  strip, zero timestamps, original_len truncation, empty-interface-table guard, no-panic-on-
+  malformed, packets-emitted, late-IDB→E-INP-013) and `tests/proptest_reader.rs`
+  (VP-031 `spb_captured_len` properties). Synthetic SPB coverage is sufficient and matches
+  industry practice; no real SPB fixture is warranted. Observation closed as **accepted**.
 - **Full research write-up:** The evaluation methodology, candidate evaluation, and rationale
   for all selections above is documented at `.factory/research/e2e-pcap-candidates.md`.
 
