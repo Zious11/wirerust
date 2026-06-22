@@ -78,6 +78,22 @@ const DSB_BLOCK_TYPE: u32 = 0x0000_000A;
 /// IDB (Interface Description Block) type code.
 const IDB_BLOCK_TYPE: u32 = 0x0000_0001;
 
+// ─── DoS guard constants (BC-2.01.009 EC-011/EC-012, BC-2.01.011 EC-014) ────
+
+/// Maximum pcapng file size accepted by the PATH-based `from_file` entry.
+///
+/// Files larger than this are rejected before `read_to_end` with E-INP-014
+/// (BC-2.01.009 PC3 + EC-011 / ADR-009 Decision 27).
+/// The reader path (`from_pcap_reader<R: Read>`) is NOT gated — no `fs::metadata`
+/// is available for a generic `Read` stream.
+const MAX_PCAPNG_FILE_BYTES: u64 = 4_294_967_296; // 4 GiB
+
+/// Maximum number of Interface Description Blocks (IDBs) per pcapng file.
+///
+/// If the interface table would grow beyond this limit, parsing is halted
+/// immediately with E-INP-015 (BC-2.01.011 PC4 + EC-014 / ADR-009 Decision 28).
+const MAX_INTERFACE_TABLE_ENTRIES: usize = 65_535;
+
 /// SHB body minimum: 16 bytes (BOM:4 + major:2 + minor:2 + section_length:8).
 const SHB_BODY_FIXED_BYTES: usize = 16;
 
@@ -1358,8 +1374,44 @@ impl PcapSource {
     pub fn from_file(path: &std::path::Path) -> Result<Self> {
         let file = std::fs::File::open(path)
             .with_context(|| format!("Failed to open {}", path.display()))?;
-        let reader = std::io::BufReader::new(file);
-        Self::from_pcap_reader(reader)
+        let mut buf_reader = std::io::BufReader::new(file);
+
+        // Peek 4 bytes to detect format (BC-2.01.009 PC3 / Invariant 1).
+        // fill_buf() fills the internal buffer without consuming bytes.
+        let magic: [u8; 4] = {
+            let filled = buf_reader
+                .fill_buf()
+                .context("Failed to read pcap magic bytes")?;
+            if filled.len() < 4 {
+                return Err(anyhow!(
+                    "stream too short: expected at least 4 bytes for pcap magic, got {}",
+                    filled.len()
+                ));
+            }
+            [filled[0], filled[1], filled[2], filled[3]]
+        };
+
+        if magic == PCAPNG_MAGIC {
+            // F6-SEC-A: file-size gate (BC-2.01.009 PC3 + EC-011 / ADR-009 Decision 27).
+            // Check fs::metadata AFTER magic probe confirms pcapng, BEFORE read_to_end.
+            // `from_pcap_reader<R: Read>` is NOT gated (no fs::metadata available there).
+            let size = std::fs::metadata(path)
+                .with_context(|| format!("Failed to stat {}", path.display()))?
+                .len();
+            if size > MAX_PCAPNG_FILE_BYTES {
+                return Err(anyhow!(
+                    "pcapng file too large: {size} bytes exceeds limit of \
+                     {MAX_PCAPNG_FILE_BYTES} bytes (E-INP-014); \
+                     use a streaming tool or split the capture"
+                ));
+            }
+            // Size is within bounds — proceed with the full stream already open.
+            Self::from_pcap_reader(buf_reader)
+        } else {
+            // Classic-pcap path or error: delegate to from_pcap_reader directly.
+            // The BufReader has the magic bytes still unconsumed.
+            Self::from_pcap_reader(buf_reader)
+        }
     }
 }
 
