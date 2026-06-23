@@ -23,8 +23,8 @@ v091_release_commit: ad4eec8
 v090_release_tag: v0.9.0
 v090_release_commit: 986e148
 
-# Ground-truth HEADs (verified at D-203 — 2026-06-22)
-develop_head: dd3b069
+# Ground-truth HEADs (verified at D-204 — 2026-06-23)
+develop_head: e4abbe2
 main_head: 2dbf461
 factory_artifacts_head: "run: git -C .factory log -1 --format='%h %s'"
 
@@ -52,9 +52,10 @@ dtu_clones_built: n/a
 dtu_services: []
 
 # Maintenance
-maintenance_run: DETECTION-COMPLETE
+maintenance_run: COMPLETE
 maintenance_run_id: maint-2026-06-22
 maintenance_started_at: "2026-06-22"
+maintenance_completed_at: "2026-06-23"
 maintenance_findings_count: 38
 maintenance_blocking: false
 maintenance_prior_run_id: maint-2026-06-17
@@ -70,9 +71,9 @@ convergence_trajectory: "Detail: cycles/v0.1.0-greenfield-spec/convergence-traje
 
 # VSDD Pipeline State — wirerust
 
-## SESSION PAUSED — SAFE TO CLEAR (D-203)
+## SESSION PAUSED — SAFE TO CLEAR (D-204)
 
-**Previous checkpoint: D-202 (CORPUS-OBS-PCAPNG-IFFCSLEN-001 resolved, 2026-06-22). Archived; all decisions from that checkpoint remain final.**
+**Previous checkpoint: D-203 (pipeline quiesced, 2026-06-22). Archived; all decisions from that checkpoint remain final. D-204: maint-2026-06-22 COMPLETE (2026-06-23) — PRs #304/#305 merged, 0 blocking.**
 
 **WARNING — DO NOT REDO:**
 - Do NOT re-cut the v0.9.3 release. It shipped. Tag `v0.9.3` is on main `2dbf461`, GitHub Release with 4 binaries (run 27984557297) is live.
@@ -81,16 +82,16 @@ convergence_trajectory: "Detail: cycles/v0.1.0-greenfield-spec/convergence-traje
 - Do NOT re-run F2/F3/F4/F5/F6/F7 — all phases CONVERGED+COMPLETE+HUMAN-APPROVED.
 - Do NOT re-run input-hash rebaseline (STORY-123..128 re-baselined at D-193, BENIGN).
 
-### GROUND-TRUTH HEADs (verified at D-203 — 2026-06-22)
+### GROUND-TRUTH HEADs (verified at D-204 — 2026-06-23)
 
 Re-verify on resume before taking any action:
 
-- **develop:** `dd3b069` — PR #303 merge commit (`docs(e2e): record root cause for SPB fixture rejection; resolve CORPUS-OBS-PCAPNG-IFFCSLEN-001`). Verify: `git log -1 --format='%h' develop` must equal `dd3b069`.
+- **develop:** `e4abbe2` — PR #305 merge commit (docs drift + public ADR-0009). Two maintenance PRs merged since D-203: PR #304 (e458ce2) deps hygiene, PR #305 (e4abbe2) docs/ADR-0009. Verify: `git log -1 --format='%h' develop` must equal `e4abbe2`.
 - **main:** `2dbf461` — PR #302 merge commit (`chore: release v0.9.3`); tag `v0.9.3` on this commit. Unchanged. Verify: `git log -1 --format='%h' main` must equal `2dbf461`.
-- **factory-artifacts:** local == remote at the commit produced by this D-203 checkpoint. Verify: `git -C .factory status` must be clean; `git -C .factory log -1 --format='%h %s'` for reference.
+- **factory-artifacts:** local == remote at the commit produced by this D-204 checkpoint. Verify: `git -C .factory status` must be clean; `git -C .factory log -1 --format='%h %s'` for reference.
 - **Open PRs:** None. Verify: `gh pr list` must return empty.
 - **Worktrees:** main repo (develop) + `.factory/` only. No story/feature worktrees open.
-- **In-flight work:** Nothing running. Session fully quiesced. All three D-200-era decision threads closed.
+- **In-flight work:** Nothing running. Session fully quiesced. maint-2026-06-22 COMPLETE. Pipeline remains quiesced (no open PRs, no active cycle).
 
 ### WHAT WAS ACCOMPLISHED THIS SESSION
 
@@ -103,7 +104,7 @@ Re-verify on resume before taking any action:
 
 1. **Run `vsdd-factory:factory-worktree-health`** (BLOCKING) — verify `.factory/` worktree is mounted on `factory-artifacts`, no detached HEAD, no drift.
 2. **Read this STATE.md** in full — absorb current state before taking any action.
-3. **Verify HEADs match:** `git log -1 --format='%h' develop` must be `dd3b069`; `git log -1 --format='%h' main` must be `2dbf461`.
+3. **Verify HEADs match:** `git log -1 --format='%h' develop` must be `e4abbe2`; `git log -1 --format='%h' main` must be `2dbf461`.
 4. **Confirm no in-flight work:** `gh pr list` must return empty; no story worktrees open (`git worktree list`).
 5. **Confirm both trees are clean:** `git status` on develop; `git -C .factory status` on factory-artifacts.
 6. **No active cycle** — await human direction. Options: start a new feature cycle, maintenance sweep, or other task.
@@ -118,7 +119,7 @@ Re-verify on resume before taking any action:
 | STORY-121 | E-11 process-gap follow-ups. Open draft — human decision on scope. | OPEN DRAFT |
 | INPUT-HASH-ERROR-PRESTORY | STORY-001/091/121 have persistent ERROR from `bin/compute-input-hash --scan` (missing/absent inputs blocks; pre-existing). | BACKLOG |
 
-**Not open (resolved — do not reopen):** CORPUS-OBS-PCAPNG-IFFCSLEN-001 (D-202), decision-threads (a)/(b)/(c) (D-200/D-201/D-202), PERF-REASM-DOS-001 (D-197, PR #298), D-194 FE-001 release deferral (released as v0.9.3), CORPUS-OBS-LINKTYPE-NULL-001 (accepted scope decision), all F6 checklist items, all D-200-era items.
+**Not open (resolved — do not reopen):** CORPUS-OBS-PCAPNG-IFFCSLEN-001 (D-202), decision-threads (a)/(b)/(c) (D-200/D-201/D-202), PERF-REASM-DOS-001 (D-197, PR #298), D-194 FE-001 release deferral (released as v0.9.3), CORPUS-OBS-LINKTYPE-NULL-001 (accepted scope decision), all F6 checklist items, all D-200-era items. maint-2026-06-22 COMPLETE (D-204, 2026-06-23) — see `.factory/maintenance/sweep-report-2026-06-22.md`.
 
 ### SPEC VERSIONS (final at FE-001 cycle close — D-193/D-194)
 
@@ -130,9 +131,9 @@ prd.md v1.33, error-taxonomy v3.8 (next_free E-INP-016), nfr-catalog v2.3, ADR-0
 
 **FEATURE MODE — pcapng reader cycle CLOSED (feature-pcapng-reader). FE-001 COMPLETE (D-194, human-approved). RELEASED as v0.9.3 (D-201, 2026-06-22). Pipeline quiesced. D-203 SAFE-TO-CLEAR checkpoint written. DO NOT re-run F5/F6/F7 — all CONVERGED+HUMAN-APPROVED.**
 
-**MAINTENANCE SWEEP DETECTION COMPLETE — maint-2026-06-22 (2026-06-22). 0 blocking. F-MAJ-001 fixed (ARCH-INDEX v1.6 a6efb23). Fix PRs (deps + docs) pending human scope decision. Report: .factory/maintenance/sweep-report-2026-06-22.md. Prior run maint-2026-06-17 COMPLETE/archived.**
+**MAINTENANCE SWEEP COMPLETE — maint-2026-06-22 (2026-06-23). 0 blocking. F-MAJ-001 fixed (ARCH-INDEX v1.6 a6efb23). PR #304 deps hygiene (e458ce2) + PR #305 docs drift/ADR-0009 (e4abbe2) merged. 2 LOWs deferred (ADV-4, DRIFT-READER-ADR-CITATION-001); 1 engine-note (DRIFT-ENGINE-PRMGR-BLOCKING-001). Report: .factory/maintenance/sweep-report-2026-06-22.md. Prior run maint-2026-06-17 COMPLETE/archived.**
 
-Latest release: v0.9.3 (main `2dbf461`, tag `v0.9.3`, 4 binaries, run 27984557297). develop=dd3b069. stories_delivered=77.
+Latest release: v0.9.3 (main `2dbf461`, tag `v0.9.3`, 4 binaries, run 27984557297). develop=e4abbe2. stories_delivered=77.
 
 ## Phase Progress
 
@@ -151,7 +152,7 @@ Latest release: v0.9.3 (main `2dbf461`, tag `v0.9.3`, 4 binaries, run 2798455729
 | Feature ARP (E-16) + v0.7.0 | RELEASED 2026-06-16 | STORY-111..115; VP-024 LOCKED. Detail: cycles/feature-arp-v0.7.0/ |
 | E-17 ARP QinQ/MACsec + v0.7.1 | RELEASED 2026-06-17 | STORY-116/117; tag v0.7.1 b98a72f |
 | Maintenance maint-2026-06-17 | COMPLETE 2026-06-17 | 2 PRs (#261/#262); 5 deferred; 0 blocking |
-| Maintenance maint-2026-06-22 | **DETECTION-COMPLETE 2026-06-22** | 38 observations; 0 blocking; FAIL-BUG 0; F-MAJ-001 fixed (a6efb23); deps+docs fix PRs pending |
+| Maintenance maint-2026-06-22 | **COMPLETE 2026-06-23** | 38 observations; 0 blocking; FAIL-BUG 0; F-MAJ-001 fixed (a6efb23); PR #304 deps (e458ce2) + PR #305 docs (e4abbe2) merged. 2 LOWs deferred; 1 engine-note. |
 | E-18 finding-collapse (STORY-118) + v0.8.0 | RELEASED 2026-06-17 | STORY-118; SS-11=29 BCs. Detail: cycles/feature-collapse-v0.8.0/ |
 | E-18/E-8 STORY-119 cycle (F1-F7) + v0.9.0 | RELEASED + CLOSED 2026-06-19 | STORY-120/122/119; 293 BCs; tag v0.9.0 986e148. Detail: cycles/feature-story-119-grouped-collapse/ |
 | v0.9.1 patch | RELEASED 2026-06-19 | Doc/help; PRs #277/#278; tag v0.9.1 ad4eec8 |
@@ -171,6 +172,7 @@ D-136..D-202: `cycles/feature-pcapng-reader/decisions-archive.md` (archived at c
 | D-201 | v0.9.3 RELEASED. PR #302 merged to main `2dbf461`; tag `v0.9.3`; 4 binaries run 27984557297; develop back-merged `a7096e1`. Decision-thread (a) CLOSED. | 2026-06-22 |
 | D-202 | CORPUS-OBS-PCAPNG-IFFCSLEN-001 RESOLVED. Root cause: non-conformant `if_fcslen` in legacy dumpcap 1.10.0rc file — NOT a wirerust defect. Synthetic SPB coverage accepted. PR #303 (dd3b069). Decision-thread (b) CLOSED. | 2026-06-22 |
 | D-203 | SESSION PAUSED — SAFE TO CLEAR checkpoint written. All three D-200-era decision threads closed. Pipeline fully quiesced: no open PRs, no active cycle, no in-flight work. | 2026-06-22 |
+| D-204 | Maintenance sweep maint-2026-06-22 COMPLETE. 7 sweeps run (DTU+a11y N/A), 0 blocking, 0 holdout FAIL-BUG. Fixes merged: PR #304 deps hygiene (rayon removed, rand→0.8.6 clears RUSTSEC-2026-0097, zerocopy bump) e458ce2; PR #305 docs drift + public ADR-0009 e4abbe2. F-MAJ-001 fixed (ARCH-INDEX v1.6 a6efb23). 2 LOWs deferred (ADV-4, DRIFT-READER-ADR-CITATION-001); 1 engine-note (DRIFT-ENGINE-PRMGR-BLOCKING-001). PO backlog recorded (holdout staleness + DNP3/ARP/Modbus/collapse coverage gap). develop dd3b069→e4abbe2. | 2026-06-23 |
 
 ## Governance Policy
 
