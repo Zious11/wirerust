@@ -200,6 +200,44 @@ pub fn technique_tactic(id: &str) -> Option<MitreTactic> {
     technique_info(id).map(|(_, tactic)| tactic)
 }
 
+/// Resolves a technique ID to the canonical MITRE ATT&CK tactic TA-prefix ID
+/// string for the technique's parent tactic (BC-2.11.035 Catalog Extension).
+///
+/// Returns `None` when the technique ID does not resolve in the catalog.
+/// Mapping is: each `MitreTactic` variant → its canonical TA-prefix string
+/// (e.g., `Discovery` → `"TA0007"`, `IcsImpact` → `"TA0105"`).
+///
+/// The match on `MitreTactic` is exhaustive so a future variant added to the
+/// enum without updating this table produces a compile error.
+pub fn technique_tactic_id(id: &str) -> Option<&'static str> {
+    let tactic = technique_tactic(id)?;
+    // Exhaustive match over every current MitreTactic variant — a new variant
+    // added to the enum WITHOUT updating this table produces a compile error,
+    // enforcing the BC-2.11.035 invariant that the mapping cannot silently drift.
+    // Note: `#[non_exhaustive]` on the enum applies only to external crates;
+    // within this crate the match is fully exhaustive and no wildcard arm is needed.
+    let ta_id = match tactic {
+        MitreTactic::Reconnaissance => "TA0043",
+        MitreTactic::ResourceDevelopment => "TA0042",
+        MitreTactic::InitialAccess => "TA0001",
+        MitreTactic::Execution => "TA0002",
+        MitreTactic::Persistence => "TA0003",
+        MitreTactic::PrivilegeEscalation => "TA0004",
+        MitreTactic::DefenseEvasion => "TA0005",
+        MitreTactic::CredentialAccess => "TA0006",
+        MitreTactic::Discovery => "TA0007",
+        MitreTactic::LateralMovement => "TA0008",
+        MitreTactic::Collection => "TA0009",
+        MitreTactic::CommandAndControl => "TA0011",
+        MitreTactic::Exfiltration => "TA0010",
+        MitreTactic::Impact => "TA0040",
+        MitreTactic::IcsInhibitResponseFunction => "TA0107",
+        MitreTactic::IcsImpairProcessControl => "TA0106",
+        MitreTactic::IcsImpact => "TA0105",
+    };
+    Some(ta_id)
+}
+
 // ── VP-007: MITRE Technique ID Format and Catalog Completeness ────────────────
 //
 // Sub-property A (ID format): every seeded ID matches `T[0-9]{4}` or
@@ -498,6 +536,23 @@ mod vp007_format_tests {
             "technique_info resolves {resolved} IDs but SEEDED_TECHNIQUE_IDS has \
              {} — the catalogue and the seeded list have drifted",
             SEEDED_TECHNIQUE_IDS.len()
+        );
+
+        // --- BC-2.11.035 Catalog Extension: technique_tactic_id drift guard ----
+        // Every seeded ID that resolves in technique_info must also return Some
+        // from technique_tactic_id — the TA-ID mapping table must be exhaustive.
+        for id in SEEDED_TECHNIQUE_IDS {
+            assert!(
+                technique_tactic_id(id).is_some(),
+                "seeded ID {id} resolves in technique_info but technique_tactic_id \
+                 returns None — the MitreTactic→TA-ID mapping table is incomplete; \
+                 add the new MitreTactic variant to technique_tactic_id"
+            );
+        }
+        // Canary: unknown ID must also return None from technique_tactic_id.
+        assert!(
+            technique_tactic_id("T9999").is_none(),
+            "canary T9999 must return None from technique_tactic_id"
         );
     }
 }

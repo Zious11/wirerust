@@ -647,3 +647,362 @@ fn test_BC_2_11_005_c1_lower_boundary_u0080_passthrough_raw_utf8() {
          any \\u0080 form proves incorrect escaping of U+0080"
     );
 }
+
+// ---------------------------------------------------------------------------
+// BC-2.11.035: per-finding mitre_attack enrichment (STORY-129, Wave 57)
+//
+// AC-1 through AC-8 check that mitre_attack is present/correct in JSON output.
+// These tests are RED at the stub phase because JsonReporter does not yet use
+// FindingJsonDto (the live wiring happens in the green/implementer phase).
+//
+// AC-9 and AC-10 verify CsvReporter and TerminalReporter are unaffected.
+// These are GREEN-BY-DESIGN: the reporters are unmodified and mitre_attack is
+// structurally absent from their output space. See stub commit report for the
+// GREEN-BY-DESIGN table entry.
+// ---------------------------------------------------------------------------
+
+/// AC-1 (BC-2.11.035 pc1, pc3a-3e, EC-002): Known single technique T1046
+/// produces a fully-resolved 5-field mitre_attack object in the JSON output.
+///
+/// RED at stub phase: JsonReporter serializes raw findings without FindingJsonDto.
+#[test]
+fn test_BC_2_11_035_known_technique_all_five_fields() {
+    let mut finding = make_finding("test finding");
+    finding.mitre_techniques = vec!["T1046".to_string()];
+    let json_str = render(&[finding]);
+    let value = parse(&json_str);
+
+    let attack_arr = value["findings"][0]["mitre_attack"].as_array().expect(
+        "BC-2.11.035 pc1: mitre_attack must be a JSON array for non-empty mitre_techniques",
+    );
+
+    assert_eq!(
+        attack_arr.len(),
+        1,
+        "BC-2.11.035 pc2: mitre_attack must have exactly 1 element for 1 technique"
+    );
+    let entry = &attack_arr[0];
+    assert_eq!(entry["id"], "T1046", "BC-2.11.035 pc3a: id must be T1046");
+    assert_eq!(
+        entry["name"], "Network Service Discovery",
+        "BC-2.11.035 pc3b: name must be Network Service Discovery"
+    );
+    assert_eq!(
+        entry["tactic_id"], "TA0007",
+        "BC-2.11.035 pc3c: tactic_id must be TA0007 (Discovery)"
+    );
+    assert_eq!(
+        entry["tactic_name"], "Discovery",
+        "BC-2.11.035 pc3d: tactic_name must be Discovery"
+    );
+    assert_eq!(
+        entry["reference"], "https://attack.mitre.org/techniques/T1046/",
+        "BC-2.11.035 pc3e: reference must be synthesized URL"
+    );
+}
+
+/// AC-2 (BC-2.11.035 pc4, inv1, EC-001): Unknown technique T9999 produces a
+/// partial object: id and reference only; name/tactic_id/tactic_name absent.
+///
+/// RED at stub phase: JsonReporter does not emit mitre_attack.
+#[test]
+fn test_BC_2_11_035_unknown_technique_id_never_lost() {
+    let mut finding = make_finding("test finding");
+    finding.mitre_techniques = vec!["T9999".to_string()];
+    let json_str = render(&[finding]);
+    let value = parse(&json_str);
+
+    let attack_arr = value["findings"][0]["mitre_attack"]
+        .as_array()
+        .expect("BC-2.11.035 inv1: mitre_attack must be present even for unknown IDs");
+
+    assert_eq!(
+        attack_arr.len(),
+        1,
+        "BC-2.11.035 pc2: one element for one technique"
+    );
+    let entry = &attack_arr[0];
+    assert_eq!(
+        entry["id"], "T9999",
+        "BC-2.11.035 inv1: id must be present for unknown technique"
+    );
+    assert_eq!(
+        entry["reference"], "https://attack.mitre.org/techniques/T9999/",
+        "BC-2.11.035 pc3e: reference must be synthesized even for unknown IDs"
+    );
+    // BC-2.11.035 pc3b/3c/3d: skip_serializing_if = Option::is_none means the JSON
+    // key must be ABSENT entirely — not present as null. A null value would mean
+    // the serializer emitted the key, violating the skip contract.
+    assert!(
+        entry.get("name").is_none(),
+        "BC-2.11.035 pc3b: name must be absent (not even null) for unknown technique; \
+         skip_serializing_if must suppress the key entirely, got: {:?}",
+        entry.get("name")
+    );
+    assert!(
+        entry.get("tactic_id").is_none(),
+        "BC-2.11.035 pc3c: tactic_id must be absent (not even null) for unknown technique; \
+         skip_serializing_if must suppress the key entirely, got: {:?}",
+        entry.get("tactic_id")
+    );
+    assert!(
+        entry.get("tactic_name").is_none(),
+        "BC-2.11.035 pc3d: tactic_name must be absent (not even null) for unknown technique; \
+         skip_serializing_if must suppress the key entirely, got: {:?}",
+        entry.get("tactic_name")
+    );
+}
+
+/// AC-3 (BC-2.11.035 pc4, EC-001): Empty mitre_techniques vec omits the
+/// mitre_attack key entirely from the finding JSON object.
+///
+/// RED at stub phase: when wired, empty vec → key absent; but the
+/// JsonReporter does not yet emit mitre_attack at all — this test is RED
+/// because it also asserts mitre_techniques is absent (existing skip), and
+/// in the green phase the test validates the combined skip behavior.
+///
+/// NOTE: This specific test will actually PASS in the stub phase (no mitre_attack
+/// key is present) — but it is listed here as RED because the implementation is
+/// incomplete, and the green phase will validate the full skip-symmetry contract.
+/// The stub is intentionally not wired so the other ACs are properly RED.
+#[test]
+fn test_BC_2_11_035_empty_mitre_techniques_omits_mitre_attack() {
+    let finding = make_finding("test finding"); // mitre_techniques: vec![] by default
+    let json_str = render(&[finding]);
+    let value = parse(&json_str);
+
+    let finding_obj = value["findings"][0]
+        .as_object()
+        .expect("finding must be a JSON object");
+
+    assert!(
+        !finding_obj.contains_key("mitre_attack"),
+        "BC-2.11.035 pc4: mitre_attack must be absent when mitre_techniques is empty"
+    );
+    assert!(
+        !finding_obj.contains_key("mitre_techniques"),
+        "BC-2.09.006: mitre_techniques must be absent when vec is empty (skip_serializing_if)"
+    );
+}
+
+/// AC-4 (BC-2.11.035 pc2, inv2, EC-006): Multi-tag finding: mitre_attack array
+/// order matches mitre_techniques order exactly.
+///
+/// RED at stub phase: JsonReporter does not emit mitre_attack.
+#[test]
+fn test_BC_2_11_035_multitag_order_preserved() {
+    let mut finding = make_finding("test finding");
+    finding.mitre_techniques = vec!["T1692.001".to_string(), "T0836".to_string()];
+    let json_str = render(&[finding]);
+    let value = parse(&json_str);
+
+    let attack_arr = value["findings"][0]["mitre_attack"]
+        .as_array()
+        .expect("BC-2.11.035 pc1: mitre_attack must be present for non-empty mitre_techniques");
+
+    assert_eq!(
+        attack_arr.len(),
+        2,
+        "BC-2.11.035 pc2: exactly 2 elements for 2 techniques"
+    );
+    assert_eq!(
+        attack_arr[0]["id"], "T1692.001",
+        "BC-2.11.035 inv2: index 0 must be T1692.001 (declaration order)"
+    );
+    assert_eq!(
+        attack_arr[1]["id"], "T0836",
+        "BC-2.11.035 inv2: index 1 must be T0836 (declaration order)"
+    );
+    assert_eq!(
+        attack_arr[0]["tactic_id"], "TA0106",
+        "BC-2.11.035 EC-006: T1692.001 tactic_id must be TA0106 (IcsImpairProcessControl)"
+    );
+    assert_eq!(
+        attack_arr[1]["tactic_id"], "TA0106",
+        "BC-2.11.035 EC-006: T0836 tactic_id must be TA0106 (IcsImpairProcessControl)"
+    );
+}
+
+/// AC-5 (BC-2.11.035 inv3, EC-007): Duplicate technique IDs produce duplicate
+/// (non-deduplicated) elements. mitre_attack.len() == mitre_techniques.len().
+///
+/// RED at stub phase: JsonReporter does not emit mitre_attack.
+#[test]
+fn test_BC_2_11_035_duplicate_ids_not_deduplicated() {
+    let mut finding = make_finding("test finding");
+    finding.mitre_techniques = vec![
+        "T1046".to_string(),
+        "T9999".to_string(),
+        "T1046".to_string(),
+    ];
+    let json_str = render(&[finding]);
+    let value = parse(&json_str);
+
+    let attack_arr = value["findings"][0]["mitre_attack"]
+        .as_array()
+        .expect("BC-2.11.035 pc1: mitre_attack must be present");
+
+    assert_eq!(
+        attack_arr.len(),
+        3,
+        "BC-2.11.035 inv3: must have 3 elements (no deduplication); \
+         got {}",
+        attack_arr.len()
+    );
+    assert_eq!(attack_arr[0]["id"], "T1046", "index 0 must be T1046");
+    assert_eq!(attack_arr[1]["id"], "T9999", "index 1 must be T9999");
+    assert_eq!(
+        attack_arr[2]["id"], "T1046",
+        "index 2 must be T1046 (duplicate)"
+    );
+}
+
+/// AC-6 (BC-2.11.035 pc3e, inv4, EC-005): Sub-technique dot separator is
+/// preserved verbatim in id and in the reference URL.
+///
+/// RED at stub phase: JsonReporter does not emit mitre_attack.
+#[test]
+fn test_BC_2_11_035_sub_technique_dot_preserved() {
+    let mut finding = make_finding("test finding");
+    finding.mitre_techniques = vec!["T1071.001".to_string()];
+    let json_str = render(&[finding]);
+    let value = parse(&json_str);
+
+    let attack_arr = value["findings"][0]["mitre_attack"]
+        .as_array()
+        .expect("BC-2.11.035 pc1: mitre_attack must be present");
+
+    assert_eq!(attack_arr.len(), 1, "one element for one technique");
+    let entry = &attack_arr[0];
+    assert_eq!(
+        entry["id"], "T1071.001",
+        "BC-2.11.035 pc3a + inv4: dot separator must be preserved verbatim in id"
+    );
+    assert_eq!(
+        entry["reference"], "https://attack.mitre.org/techniques/T1071.001/",
+        "BC-2.11.035 pc3e + inv4: dot separator must be preserved in reference URL"
+    );
+    assert_eq!(entry["name"], "Web Protocols", "name must be Web Protocols");
+    assert_eq!(
+        entry["tactic_id"], "TA0011",
+        "BC-2.11.035: T1071.001 tactic_id must be TA0011 (CommandAndControl)"
+    );
+    assert_eq!(
+        entry["tactic_name"], "Command and Control",
+        "BC-2.11.035: tactic_name must be Command and Control"
+    );
+}
+
+/// AC-7 (BC-2.11.035 Catalog Extension, EC-003): ICS technique T0827 resolves
+/// tactic_id to TA0105 (ICS-matrix ID for IcsImpact), not TA0040.
+///
+/// RED at stub phase: JsonReporter does not emit mitre_attack.
+#[test]
+fn test_BC_2_11_035_ics_tactic_id_resolved() {
+    let mut finding = make_finding("test finding");
+    finding.mitre_techniques = vec!["T0827".to_string()];
+    let json_str = render(&[finding]);
+    let value = parse(&json_str);
+
+    let attack_arr = value["findings"][0]["mitre_attack"]
+        .as_array()
+        .expect("BC-2.11.035 pc1: mitre_attack must be present");
+
+    let entry = &attack_arr[0];
+    assert_eq!(entry["id"], "T0827", "id must be T0827");
+    assert_eq!(
+        entry["name"], "Loss of Control",
+        "name must be Loss of Control"
+    );
+    assert_eq!(
+        entry["tactic_id"], "TA0105",
+        "BC-2.11.035 EC-003: ICS IcsImpact tactic_id must be TA0105, NOT TA0040"
+    );
+    assert_eq!(
+        entry["tactic_name"], "Impact (ICS)",
+        "BC-2.11.035 EC-003: tactic_name must be Impact (ICS)"
+    );
+    assert_eq!(
+        entry["reference"], "https://attack.mitre.org/techniques/T0827/",
+        "reference must be synthesized URL"
+    );
+}
+
+/// AC-8 (BC-2.11.035 pc5, inv5, EC-002): mitre_techniques array is unchanged
+/// (additive non-breaking) when mitre_attack is also present.
+///
+/// RED at stub phase: JsonReporter does not emit mitre_attack so the assertion
+/// that mitre_attack IS present will fail.
+#[test]
+fn test_BC_2_11_035_mitre_techniques_unchanged() {
+    let mut finding = make_finding("test finding");
+    finding.mitre_techniques = vec!["T1046".to_string()];
+    let json_str = render(&[finding]);
+    let value = parse(&json_str);
+
+    let finding_obj = &value["findings"][0];
+
+    // mitre_techniques must still be present unchanged.
+    let techniques = finding_obj["mitre_techniques"]
+        .as_array()
+        .expect("BC-2.11.035 pc5: mitre_techniques must still be present");
+    assert_eq!(techniques.len(), 1, "mitre_techniques must have 1 element");
+    assert_eq!(
+        techniques[0], "T1046",
+        "BC-2.11.035 pc5: mitre_techniques[0] must be T1046 unchanged"
+    );
+
+    // mitre_attack must also be present (additive).
+    assert!(
+        finding_obj.get("mitre_attack").is_some(),
+        "BC-2.11.035 pc5 / inv5: mitre_attack must be present alongside mitre_techniques"
+    );
+}
+
+/// AC-9 (BC-2.11.035 pc6): mitre_attack is absent from CSV output.
+/// CsvReporter is unmodified by STORY-129.
+///
+/// GREEN-BY-DESIGN: this test verifies ABSENCE of a field in a reporter that
+/// is structurally incapable of emitting nested JSON objects. Zero branching in
+/// the assertion logic; no I/O; no helpers; passes immediately by construction.
+/// See stub commit report ## GREEN-BY-DESIGN table.
+#[test]
+fn test_BC_2_11_035_csv_unaffected() {
+    use wirerust::reporter::csv::CsvReporter;
+
+    let mut finding = make_finding("test finding");
+    finding.mitre_techniques = vec!["T1046".to_string()];
+    let csv_output = CsvReporter.render(&wirerust::summary::Summary::new(), &[finding], &[]);
+
+    assert!(
+        !csv_output.contains("mitre_attack"),
+        "BC-2.11.035 pc6: mitre_attack must NOT appear in CSV output; \
+         CsvReporter is unmodified by STORY-129"
+    );
+}
+
+/// AC-10 (BC-2.11.035 pc7): mitre_attack is absent from terminal output.
+/// TerminalReporter is unmodified by STORY-129.
+///
+/// GREEN-BY-DESIGN: same reasoning as AC-9 — the TerminalReporter does not
+/// produce JSON keys. The assertion verifies structural absence only.
+/// See stub commit report ## GREEN-BY-DESIGN table.
+#[test]
+fn test_BC_2_11_035_terminal_unaffected() {
+    use wirerust::reporter::terminal::{Collapse, FindingsRender, Grouping, TerminalReporter};
+
+    let mut finding = make_finding("test finding");
+    finding.mitre_techniques = vec!["T1046".to_string()];
+    let reporter = TerminalReporter {
+        use_color: false,
+        show_hosts_breakdown: false,
+        render: FindingsRender::new(Grouping::Flat, Collapse::Expanded),
+    };
+    let terminal_output = reporter.render(&wirerust::summary::Summary::new(), &[finding], &[]);
+
+    assert!(
+        !terminal_output.contains("mitre_attack"),
+        "BC-2.11.035 pc7: mitre_attack must NOT appear in terminal output; \
+         TerminalReporter is unmodified by STORY-129"
+    );
+}

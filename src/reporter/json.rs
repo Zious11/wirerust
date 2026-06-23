@@ -15,6 +15,7 @@ use serde_json::json;
 use crate::analyzer::AnalysisSummary;
 use crate::findings::Finding;
 use crate::reporter::Reporter;
+use crate::reporter::json_dto::FindingJsonDto;
 use crate::summary::Summary;
 
 /// ATT&CK for ICS domain identifier — constant, not dynamic.
@@ -52,6 +53,9 @@ impl Reporter for JsonReporter {
             .map(|(k, v)| (k.clone(), *v))
             .collect();
 
+        let findings_dto: Vec<FindingJsonDto<'_>> =
+            findings.iter().map(FindingJsonDto::from).collect();
+
         let output = json!({
             "summary": {
                 "total_packets": summary.total_packets,
@@ -61,7 +65,7 @@ impl Reporter for JsonReporter {
                 "protocols": protocols,
                 "services": services,
             },
-            "findings": findings,
+            "findings": findings_dto,
             "analyzers": analyzer_summaries,
             "mitre_domain": MITRE_DOMAIN,
             "mitre_attack_version": MITRE_ATTACK_VERSION,
