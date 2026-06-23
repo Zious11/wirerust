@@ -67,6 +67,18 @@ pub enum MitreTactic {
     /// impact-category findings.  Distinct from the Enterprise `Impact` tactic.
     /// Added atomically with T0827 emission (STORY-109, VP-007 obligation).
     IcsImpact,
+    /// ICS Discovery tactic (TA0102) — T0846 "Remote System Discovery" and
+    /// T0888 "Remote System Information Discovery". Distinct from Enterprise
+    /// Discovery (TA0007). Added in F5 to emit the authoritative ICS-matrix TA-id.
+    IcsDiscovery,
+    /// ICS Collection tactic (TA0100) — T0830 "Adversary-in-the-Middle".
+    /// Distinct from Enterprise Collection (TA0009) and LateralMovement (TA0008).
+    /// Added in F5 to emit the authoritative ICS-matrix TA-id.
+    IcsCollection,
+    /// ICS Command and Control tactic (TA0101) — T0885 "Commonly Used Port".
+    /// Distinct from Enterprise CommandAndControl (TA0011). Added in F5 to emit
+    /// the authoritative ICS-matrix TA-id.
+    IcsCommandAndControl,
 }
 
 impl fmt::Display for MitreTactic {
@@ -89,6 +101,9 @@ impl fmt::Display for MitreTactic {
             MitreTactic::IcsInhibitResponseFunction => "Inhibit Response Function",
             MitreTactic::IcsImpairProcessControl => "Impair Process Control",
             MitreTactic::IcsImpact => "Impact (ICS)",
+            MitreTactic::IcsDiscovery => "Discovery (ICS)",
+            MitreTactic::IcsCollection => "Collection (ICS)",
+            MitreTactic::IcsCommandAndControl => "Command and Control (ICS)",
         };
         f.write_str(name)
     }
@@ -116,6 +131,9 @@ pub fn all_tactics_in_report_order() -> &'static [MitreTactic] {
         MitreTactic::IcsInhibitResponseFunction,
         MitreTactic::IcsImpairProcessControl,
         MitreTactic::IcsImpact,
+        MitreTactic::IcsDiscovery,
+        MitreTactic::IcsCollection,
+        MitreTactic::IcsCommandAndControl,
     ]
 }
 
@@ -143,10 +161,11 @@ pub fn technique_info(id: &str) -> Option<(&'static str, MitreTactic)> {
         "T1505.003" => ("Web Shell", MitreTactic::Persistence),
         "T1573" => ("Encrypted Channel", MitreTactic::CommandAndControl),
         // ICS. MITRE assigns distinct TA-IDs per matrix (e.g., Enterprise
-        // Discovery TA0007 vs ICS Discovery TA0111); we intentionally
-        // merge by name so a single grouped report has one section per
-        // tactic name regardless of source matrix.
-        "T0846" => ("Remote System Discovery", MitreTactic::Discovery),
+        // Discovery TA0007 vs ICS Discovery TA0102, Enterprise Collection
+        // TA0009 vs ICS Collection TA0100, Enterprise C2 TA0011 vs ICS C2
+        // TA0101). F5 uses dedicated ICS variants so the reporter emits the
+        // authoritative ICS-matrix TA-id for each technique (f5-ics-technique-tactic-authoritative.md).
+        "T0846" => ("Remote System Discovery", MitreTactic::IcsDiscovery),
         "T1692.001" => (
             "Unauthorized Message: Command Message",
             MitreTactic::IcsImpairProcessControl,
@@ -155,19 +174,16 @@ pub fn technique_info(id: &str) -> Option<(&'static str, MitreTactic)> {
             "Unauthorized Message: Reporting Message",
             MitreTactic::IcsImpairProcessControl,
         ),
-        "T0885" => ("Commonly Used Port", MitreTactic::CommandAndControl),
+        "T0885" => ("Commonly Used Port", MitreTactic::IcsCommandAndControl),
         // ICS — NEW F2 (STORY-100 / BC-2.10.005). Seeded for Modbus/DNP3 analyzers.
         "T0836" => ("Modify Parameter", MitreTactic::IcsImpairProcessControl),
         "T0814" => ("Denial of Service", MitreTactic::IcsInhibitResponseFunction),
         "T0806" => ("Brute Force I/O", MitreTactic::IcsImpairProcessControl),
         "T0835" => ("Manipulate I/O Image", MitreTactic::IcsImpairProcessControl),
-        "T0831" => (
-            "Manipulation of Control",
-            MitreTactic::IcsImpairProcessControl,
-        ),
+        "T0831" => ("Manipulation of Control", MitreTactic::IcsImpact),
         "T0888" => (
             "Remote System Information Discovery",
-            MitreTactic::Discovery,
+            MitreTactic::IcsDiscovery,
         ),
         // STORY-109 / VP-007 atomic obligation — seeded together with the
         // T1691.001 and T0827 emission branches (BC-2.15.014 / BC-2.15.015).
@@ -178,7 +194,7 @@ pub fn technique_info(id: &str) -> Option<(&'static str, MitreTactic)> {
         "T0827" => ("Loss of Control", MitreTactic::IcsImpact),
         // STORY-114 / VP-007 atomic obligation — seeded together with the
         // T0830 and T1557.002 emission branches (D1/D12/GARP-conflict ARP spoof).
-        "T0830" => ("Adversary-in-the-Middle", MitreTactic::LateralMovement),
+        "T0830" => ("Adversary-in-the-Middle", MitreTactic::IcsCollection),
         "T1557.002" => (
             "Adversary-in-the-Middle: ARP Cache Poisoning",
             MitreTactic::CredentialAccess,
@@ -234,6 +250,9 @@ pub fn technique_tactic_id(id: &str) -> Option<&'static str> {
         MitreTactic::IcsInhibitResponseFunction => "TA0107",
         MitreTactic::IcsImpairProcessControl => "TA0106",
         MitreTactic::IcsImpact => "TA0105",
+        MitreTactic::IcsDiscovery => "TA0102",
+        MitreTactic::IcsCollection => "TA0100",
+        MitreTactic::IcsCommandAndControl => "TA0101",
     };
     Some(ta_id)
 }
@@ -283,7 +302,7 @@ mod kani_proofs {
         "T1691.001", // Block OT Message: Command Message (BC-2.15.014; IcsInhibitResponseFunction)
         "T0827",     // Loss of Control (BC-2.15.015; IcsImpact)
         // STORY-114 (2) — VP-007 atomic obligation; ARP D1/D12/GARP-conflict spoof detection.
-        "T0830",     // Adversary-in-the-Middle (BC-2.16.004; LateralMovement)
+        "T0830",     // Adversary-in-the-Middle (BC-2.16.004; IcsCollection/TA0100)
         "T1557.002", // ARP Cache Poisoning (BC-2.16.004; CredentialAccess)
     ];
 
@@ -349,7 +368,7 @@ mod kani_proofs {
 ///
 /// Count history: Post-F2 (STORY-100) 11 Enterprise + 10 ICS = 21 total (pre-STORY-109 subtotal).
 /// STORY-109 (VP-007 atomic obligation) +2 ICS (T1691.001, T0827) = 23 total.
-/// STORY-114 (VP-007 ARP obligation) +2 ARP (T0830 ICS LateralMovement, T1557.002 Enterprise CredentialAccess)
+/// STORY-114 (VP-007 ARP obligation) +2 ARP (T0830 ICS IcsCollection/TA0100, T1557.002 Enterprise CredentialAccess)
 ///   = 25 total (12 Enterprise + 13 ICS; normative split per VP-007 §CC-003).
 /// ICS v19 remap (issue #222): T0855→T1692.001, T0856→T1692.002.
 #[cfg(any(kani, test))]

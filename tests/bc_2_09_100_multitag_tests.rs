@@ -393,10 +393,11 @@ fn test_BC_2_10_005_seeded_technique_id_count_is_25() {
 /// BC-2.10.007 postcondition 2, AC-006 (STORY-100):
 /// All 21 STORY-100-era seeded IDs return the correct MitreTactic. This test
 /// covers the original 21-ID subset; the current catalog contains 25 seeded IDs.
-/// All 21 IDs resolve in the current green catalog.
+/// F5 correctness fix applied: ICS techniques use correct ICS-matrix variants.
 #[test]
 fn test_BC_2_10_007_technique_tactic_correct_for_all_21_seeded_ids() {
     // BC-2.10.007 postcondition 2: exhaustive tactic table for the 21 STORY-100-era seeded IDs.
+    // F5 fix: T0846/T0888 → IcsDiscovery, T0885 → IcsCommandAndControl, T0831 → IcsImpact.
     let assignments: &[(&str, MitreTactic)] = &[
         // Enterprise (11) — STORY-100 era
         ("T1027", MitreTactic::DefenseEvasion),
@@ -411,17 +412,22 @@ fn test_BC_2_10_007_technique_tactic_correct_for_all_21_seeded_ids() {
         ("T1505.003", MitreTactic::Persistence),
         ("T1573", MitreTactic::CommandAndControl),
         // ICS pre-F2 (4)
-        ("T0846", MitreTactic::Discovery),
+        // T0846: F5 fix — IcsDiscovery (ICS TA0102), not Enterprise Discovery (TA0007)
+        ("T0846", MitreTactic::IcsDiscovery),
         ("T1692.001", MitreTactic::IcsImpairProcessControl),
         ("T1692.002", MitreTactic::IcsImpairProcessControl),
-        ("T0885", MitreTactic::CommandAndControl),
-        // ICS F2 additions (6): all resolve in the current catalog (GREEN)
+        // T0885: F5 fix — IcsCommandAndControl (ICS TA0101), not Enterprise C2 (TA0011)
+        ("T0885", MitreTactic::IcsCommandAndControl),
+        // ICS F2 additions (6)
         ("T0836", MitreTactic::IcsImpairProcessControl),
         ("T0814", MitreTactic::IcsInhibitResponseFunction),
         ("T0806", MitreTactic::IcsImpairProcessControl),
+        // T0835: no change — still IcsImpairProcessControl (TA0106) — confirmed correct
         ("T0835", MitreTactic::IcsImpairProcessControl),
-        ("T0831", MitreTactic::IcsImpairProcessControl),
-        ("T0888", MitreTactic::Discovery),
+        // T0831: F5 fix — IcsImpact (ICS TA0105), not IcsImpairProcessControl (TA0106)
+        ("T0831", MitreTactic::IcsImpact),
+        // T0888: F5 fix — IcsDiscovery (ICS TA0102), not Enterprise Discovery (TA0007)
+        ("T0888", MitreTactic::IcsDiscovery),
     ];
     assert_eq!(
         assignments.len(),
@@ -437,14 +443,16 @@ fn test_BC_2_10_007_technique_tactic_correct_for_all_21_seeded_ids() {
     }
 }
 
-/// BC-2.10.007 EC-004 (T0888 → Discovery):
-/// `technique_tactic("T0888")` returns `Some(Discovery)`.
+/// BC-2.10.007 EC-004 (T0888 → IcsDiscovery):
+/// `technique_tactic("T0888")` returns `Some(IcsDiscovery)`.
+/// F5 fix: ICS ATT&CK places T0888 under Discovery (ICS TA0102), not Enterprise Discovery.
 #[test]
 fn test_BC_2_10_007_t0888_maps_to_discovery_tactic() {
     assert_eq!(
         technique_tactic("T0888"),
-        Some(MitreTactic::Discovery),
-        "BC-2.10.007 EC-004: T0888 must map to Discovery (Remote System Information Discovery)"
+        Some(MitreTactic::IcsDiscovery),
+        "BC-2.10.007 EC-004: T0888 must map to IcsDiscovery (ICS TA0102), \
+         NOT Enterprise Discovery (TA0007) — F5 correctness fix"
     );
 }
 
