@@ -1,10 +1,10 @@
 ---
 pipeline: FEATURE
-phase: F7
-phase_status: "FE-001 COMPLETE — F1–F7 all converged + human-approved (D-194). pcapng reader shipped to develop @ fcb8dce. Cycle feature-pcapng-reader CLOSED. RELEASED as v0.9.3 (2026-06-22, D-201). maint-2026-06-22 COMPLETE (D-204). D-205 SAFE-TO-CLEAR checkpoint written. Pipeline quiesced."
+phase: F3
+phase_status: "feature-mitre-json-names IN PROGRESS — F1 delta analysis complete (1 BC, 1 story, additive/non-breaking; research-agent override adopted: array design). F2 complete: BC-2.11.035 authored (10 ACs); BC-INDEX v1.70, PRD v1.34, interface-definitions v1.3, BC-2.11.001 v1.7. F3 complete: STORY-129 (Wave 57, 5 pts, input-hash 2a5cee9). F4 TDD implementation next."
 product: wirerust
 mode: brownfield
-timestamp: 2026-06-23T00:00:00Z
+timestamp: 2026-06-23T01:00:00Z
 
 # Release chain
 released_version: v0.9.3
@@ -43,8 +43,8 @@ adversary_gate: SATISFIED
 
 # Story tracking
 stories_delivered: 77
-current_cycle: feature-pcapng-reader
-current_wave: "F7 PASSED + HUMAN-APPROVED (D-194) — FE-001 COMPLETE. Cycle CLOSED. RELEASED as v0.9.3 (D-201). Pipeline quiesced."
+current_cycle: feature-mitre-json-names
+current_wave: "Wave 57 — F3 complete. STORY-129 authored. F4 TDD implementation next."
 
 # DTU
 dtu_required: false
@@ -72,17 +72,16 @@ convergence_trajectory: "Detail: cycles/v0.1.0-greenfield-spec/convergence-traje
 
 # VSDD Pipeline State — wirerust
 
-## SESSION PAUSED — SAFE TO CLEAR (D-205)
+## FEATURE CYCLE IN PROGRESS — feature-mitre-json-names (D-206)
 
-**Prior checkpoints D-203 (pipeline quiesced, 2026-06-22) and D-204 (maint-2026-06-22 COMPLETE, 2026-06-23) are archived. All decisions from those checkpoints remain final.**
+**Prior checkpoints D-203 through D-205 are archived. All decisions from those checkpoints remain final.**
 
 **WARNING — DO NOT REDO:**
 - Do NOT re-run maintenance sweep maint-2026-06-22 — COMPLETE (D-204). PRs #304 (deps hygiene, e458ce2) and #305 (docs drift + ADR-0009, e4abbe2) already merged to develop.
 - Do NOT re-apply the deps fixes: rayon already removed, rand already at 0.8.6 (RUSTSEC-2026-0097 cleared, CI --ignore already removed), zerocopy already bumped (PR #304 e458ce2).
-- Do NOT re-author docs/adr/0009 or re-fix the doc drift — done (PR #305 e4abbe2).
-- Do NOT re-fix F-MAJ-001 — ARCH-INDEX already at v1.6 (a6efb23).
 - Do NOT re-cut the v0.9.3 release (shipped; tag on main 2dbf461, 4 binaries, run 27984557297).
 - Do NOT reopen D-200-era decision threads (a)/(b)/(c) — all three CLOSED.
+- Do NOT re-run F1/F2/F3 for this cycle — all complete (D-206). Proceed to F4 TDD implementation.
 
 ### GROUND-TRUTH HEADs (verified at D-205 — 2026-06-23)
 
@@ -108,10 +107,10 @@ Re-verify on resume before taking any action:
 
 1. **Run `vsdd-factory:factory-worktree-health`** (BLOCKING) — verify `.factory/` worktree is mounted on `factory-artifacts`, no detached HEAD, no drift.
 2. **Read this STATE.md** in full.
-3. **Verify HEADs:** `git log -1 --format='%h' origin/develop` == `e4abbe2`; `git log -1 --format='%h' main` == `2dbf461`. Run `git pull --ff-only origin develop` (should be a no-op; local already synced at checkpoint time — fast-forwarded 2026-06-23).
-4. **Confirm no in-flight work:** `gh pr list` empty; `git worktree list` shows main + `.factory` only.
+3. **Verify HEADs:** `git log -1 --format='%h' origin/develop` == `e4abbe2`; `git log -1 --format='%h' main` == `2dbf461`.
+4. **Confirm open PRs:** `gh pr list` should be empty (no open PRs at F3 close); `git worktree list` shows main + `.factory` only.
 5. **Confirm both trees clean:** `git status` on develop; `git -C .factory status` on factory-artifacts.
-6. **No active cycle** — await human direction.
+6. **Active cycle: feature-mitre-json-names** — F1/F2/F3 complete, proceed to F4 TDD implementation on STORY-129.
 
 ### OPEN ITEMS (backlog — non-blocking, no active work)
 
@@ -132,15 +131,15 @@ Re-verify on resume before taking any action:
 
 **Resolved — do not reopen:** maint-2026-06-22 (D-204), O-07, DEP-001/005, DOC-001..009, F-MAJ-001, CORPUS-OBS-PCAPNG-IFFCSLEN-001 (D-202), decision-threads (a)/(b)/(c) (D-200/201/202), PERF-REASM-DOS-001 (D-197, PR #298), CORPUS-OBS-LINKTYPE-NULL-001 (accepted), all F6 checklist items.
 
-### SPEC VERSIONS (final at FE-001 cycle close — D-193/D-194)
+### SPEC VERSIONS (at feature-mitre-json-names F3 close — D-206)
 
-prd.md v1.33, error-taxonomy v3.8 (next_free E-INP-016), nfr-catalog v2.3, ADR-009 rev 13, VP-INDEX v2.10 (total 31, 31/31 verified), BC-INDEX v1.69, BC-2.01.009 v1.8 / .010 v2.2 / .011 v1.9 / .012 v2.0 / .013 v1.10 / .014 v1.6 / .015 v1.8 / .016 v1.4 / .017 v1.7 / .018 v1.6, BC-2.12.011 v1.5. 302 active BCs. verification-coverage-matrix.md v1.19 (VP-025..031 status verified).
+prd.md v1.34, error-taxonomy v3.8 (next_free E-INP-016), nfr-catalog v2.3, ADR-009 rev 13, VP-INDEX v2.10 (total 31, 31/31 verified), BC-INDEX v1.70 (303 active BCs), BC-2.11.035 v1.0 (new), BC-2.11.001 v1.7, interface-definitions v1.3, STORY-INDEX v2.7 (82 stories / 57 waves / 526 pts). Prior at FE-001 close: prd.md v1.33, BC-INDEX v1.69, 302 active BCs.
 
 ---
 
 ## Status
 
-**FEATURE MODE — pcapng reader cycle CLOSED (feature-pcapng-reader). FE-001 COMPLETE (D-194, human-approved). RELEASED as v0.9.3 (D-201, 2026-06-22). Pipeline quiesced. D-203 SAFE-TO-CLEAR checkpoint written. DO NOT re-run F5/F6/F7 — all CONVERGED+HUMAN-APPROVED.**
+**FEATURE MODE — feature-mitre-json-names ACTIVE (D-206). GitHub issue #64: inline MITRE tactic/name in JSON. F1/F2/F3 complete. F4 TDD implementation next (STORY-129, Wave 57, 5 pts).**
 
 **MAINTENANCE SWEEP COMPLETE — maint-2026-06-22 (2026-06-23). 0 blocking. F-MAJ-001 fixed (ARCH-INDEX v1.6 a6efb23). PR #304 deps hygiene (e458ce2) + PR #305 docs drift/ADR-0009 (e4abbe2) merged. 2 LOWs deferred (ADV-4, DRIFT-READER-ADR-CITATION-001); 1 engine-note (DRIFT-ENGINE-PRMGR-BLOCKING-001). Report: .factory/maintenance/sweep-report-2026-06-22.md. Prior run maint-2026-06-17 COMPLETE/archived.**
 
@@ -169,6 +168,9 @@ Latest release: v0.9.3 (main `2dbf461`, tag `v0.9.3`, 4 binaries, run 2798455729
 | v0.9.1 patch | RELEASED 2026-06-19 | Doc/help; PRs #277/#278; tag v0.9.1 ad4eec8 |
 | v0.9.2 patch | RELEASED 2026-06-19 | DNP3 determinism + E2E fixtures; PRs #279/#280; tag v0.9.2 b73b242 |
 | Feature pcapng-reader (FE-001) + v0.9.3 | **COMPLETE + RELEASED 2026-06-22 (D-201)** | F1-F7 CONVERGED+HUMAN-APPROVED (D-194). 10 new BCs, VP-INDEX v2.10 (31/31). PR #302 → main `2dbf461`. 4 binaries. Cycle CLOSED. |
+| Feature mitre-json-names (issue #64) — F1 | PASSED 2026-06-23 | Delta: 1 BC (BC-2.11.035), 1 story (STORY-129), additive/non-breaking. Research-agent override: array design (`mitre_attack`). |
+| Feature mitre-json-names (issue #64) — F2 | PASSED 2026-06-23 | BC-2.11.035 v1.0 authored (10 ACs); BC-INDEX v1.70; PRD v1.34; interface-definitions v1.3; BC-2.11.001 v1.7. |
+| Feature mitre-json-names (issue #64) — F3 | PASSED 2026-06-23 | STORY-129 authored (Wave 57, 5 pts, input-hash 2a5cee9, depends_on []); STORY-INDEX v2.7. F4 next. |
 
 ## Decisions Log
 
@@ -185,6 +187,7 @@ D-136..D-202: `cycles/feature-pcapng-reader/decisions-archive.md` (archived at c
 | D-203 | SESSION PAUSED — SAFE TO CLEAR checkpoint written. All three D-200-era decision threads closed. Pipeline fully quiesced: no open PRs, no active cycle, no in-flight work. | 2026-06-22 |
 | D-204 | Maintenance sweep maint-2026-06-22 COMPLETE. 7 sweeps run (DTU+a11y N/A), 0 blocking, 0 holdout FAIL-BUG. Fixes merged: PR #304 deps hygiene (rayon removed, rand→0.8.6 clears RUSTSEC-2026-0097, zerocopy bump) e458ce2; PR #305 docs drift + public ADR-0009 e4abbe2. F-MAJ-001 fixed (ARCH-INDEX v1.6 a6efb23). 2 LOWs deferred (ADV-4, DRIFT-READER-ADR-CITATION-001); 1 engine-note (DRIFT-ENGINE-PRMGR-BLOCKING-001). PO backlog recorded (holdout staleness + DNP3/ARP/Modbus/collapse coverage gap). develop dd3b069→e4abbe2. | 2026-06-23 |
 | D-205 | SAFE-TO-CLEAR checkpoint refreshed (supersedes D-203/D-204). Ground truth verified: main=2dbf461 (v0.9.3 tag, unchanged), develop=e4abbe2 (local == origin/develop == e4abbe2, fast-forwarded 2026-06-23, working tree clean), open PRs=0, worktrees=main+.factory only. All D-204 decisions final. Pipeline fully quiesced. | 2026-06-23 |
+| D-206 | Feature Mode opened for GitHub issue #64 (inline MITRE tactic/name in JSON). F1 delta analysis complete (1 BC, 1 story, additive/non-breaking). Research-agent override of the initial flat-field design: adopt an order-preserving ARRAY of per-technique objects under new field `mitre_attack` (id, name?, tactic_id?, tactic_name?, reference), aligning with ECS/OCSF; raw `mitre_techniques` unchanged. Human-approved field name `mitre_attack` and array design. F2 complete: BC-2.11.035 authored (10 ACs); BC-INDEX v1.70, PRD v1.34, interface-definitions v1.3, BC-2.11.001 v1.7. Catalog extension in scope: add `technique_tactic_id()` to src/mitre.rs (tactic_id not currently exposed; reference synthesized from technique ID). F3 complete: STORY-129 (Wave 57, ~5 pts, input-hash 2a5cee9, depends_on []); STORY-INDEX v2.7. No new Verification Property (pure Option-chaining over Kani-verified VP-007 → test-sufficient). F4 TDD implementation next. | 2026-06-23 |
 
 ## Governance Policy
 
@@ -215,6 +218,8 @@ Full policy text: `.factory/policies.yaml`.
 - `.factory/` is a `factory-artifacts` orphan-branch worktree, gitignored from `develop`.
 - Artifact pointers: Phase 0 synthesis `.factory/semport/wirerust/wirerust-pass-8-deep-synthesis.md`; wave history `cycles/phase-3-tdd/convergence-trajectory.md`; phase 4 holdout `cycles/v0.1.0-greenfield-spec/phase-4-holdout-eval-summary.md`.
 - Issues: #104/#102 CLOSED; all actions SHA-pinned; pin gate enforced; dtolnay/rust-toolchain @stable/@nightly exempted.
-- STORY-INDEX.md is authoritative (81 stories / 56 waves / 521 pts — v2.5, post-F3 D-166). STORY-119/120/122/123 status=done confirmed.
-- Drift item detail + per-story adversarial convergence logs: `cycles/feature-pcapng-reader/`.
+- STORY-INDEX.md is authoritative (82 stories / 57 waves / 526 pts — v2.7, post-F3 D-206).
+- Current cycle artifacts: `cycles/feature-mitre-json-names/` (f1-delta-analysis.md, mitre-json-shape-research.md).
 - Decisions D-136..D-199 archived in `cycles/feature-pcapng-reader/decisions-archive.md` at cycle close.
+- F4 open item: implement `technique_tactic_id()` in src/mitre.rs + `FindingJsonDto` / `MitreAttackEntry` in src/reporter/json_dto.rs + extend `vp007_catalog_drift_guard` test (per STORY-129 Tasks 1–4).
+- Input-hash verification at D-206: `bin/compute-input-hash .factory/stories/STORY-129.md` == `2a5cee9` (MATCH — confirmed at commit time).

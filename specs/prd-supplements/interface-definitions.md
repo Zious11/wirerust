@@ -1,7 +1,7 @@
 ---
 document_type: prd-supplement-interface-definitions
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -236,6 +236,39 @@ which calls `serde_json::to_string_pretty`. The output is a single JSON object.
             },
             "description": "MITRE ATT&CK technique IDs; omitted entirely when empty (skip_serializing_if = Vec::is_empty), never null. Singleton vec produces a JSON array [\"TXXXX\"]; co-attribution produces multi-element array."
           },
+          "mitre_attack": {
+            "type": "array",
+            "description": "Enriched MITRE ATT&CK technique objects, one per entry in mitre_techniques in the same order. Omitted entirely when mitre_techniques is empty (skip_serializing_if = Vec::is_empty). Never null. Additive field — mitre_techniques is unchanged. Defined by BC-2.11.035.",
+            "items": {
+              "type": "object",
+              "required": ["id", "reference"],
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "pattern": "^T[0-9]{4}(\\.[0-9]{3})?$",
+                  "description": "Technique ID verbatim from mitre_techniques. Always present, even for unresolved IDs (agent-safety invariant)."
+                },
+                "name": {
+                  "type": "string",
+                  "description": "Human-readable technique name from the mitre catalog. Omitted (skip_serializing_if = Option::is_none) when the ID does not resolve."
+                },
+                "tactic_id": {
+                  "type": "string",
+                  "pattern": "^TA[0-9]{4}$",
+                  "description": "MITRE ATT&CK tactic ID (e.g. TA0007). Provided by the new technique_tactic_id() accessor in src/mitre.rs. Omitted when the technique ID does not resolve."
+                },
+                "tactic_name": {
+                  "type": "string",
+                  "description": "Human-readable tactic name from MitreTactic::Display (e.g. \"Discovery\", \"Impact (ICS)\"). Omitted when the technique ID does not resolve."
+                },
+                "reference": {
+                  "type": "string",
+                  "format": "uri",
+                  "description": "Canonical MITRE ATT&CK URL: https://attack.mitre.org/techniques/<id>/. Always present, synthesized from the ID; not sourced from the catalog."
+                }
+              }
+            }
+          },
           "source_ip": {
             "type": "string",
             "description": "Source IP address of the packet or flow that triggered this finding, if applicable. Omitted when None."
@@ -350,20 +383,26 @@ Note: `packets_analyzed` on the TLS summary object equals `handshakes_seen` (Cli
 
 ### JSON Option Field Serialization Contract
 
-`Finding` has one `Vec<String>` field using `#[serde(skip_serializing_if = "Vec::is_empty")]`
+`Finding` has two `Vec`-derived fields using `#[serde(skip_serializing_if = "Vec::is_empty")]`
 and three `Option<_>` fields each using `#[serde(skip_serializing_if = "Option::is_none")]`:
 - `mitre_techniques: Vec<String>` -- omitted when empty (skip_serializing_if = Vec::is_empty); present as a JSON array of technique-ID strings when non-empty (src/findings.rs:148-149)
+- `mitre_attack: Vec<MitreAttackEntry>` -- omitted when mitre_techniques is empty (skip_serializing_if = Vec::is_empty); present as a JSON array of resolved technique objects when non-empty. One element per technique ID in mitre_techniques, in the same order. Additive field — mitre_techniques is unchanged. See BC-2.11.035.
 - `source_ip: Option<IpAddr>` -- omitted when None; present as string when Some (src/findings.rs:150-151)
 - `timestamp: Option<DateTime<Utc>>` -- omitted when None; present as RFC 3339 string when Some; O-01 CLOSED, wired in STORY-097/098/099 (src/findings.rs:152-153)
 - `direction: Option<Direction>` -- omitted when None; present as enum variant string when Some (src/findings.rs:160-161)
 
-Downstream consumers MUST handle key-absent rather than key-present-but-null for all four
-optional-presence fields -- `mitre_techniques` (omitted when empty via Vec::is_empty) and
+Downstream consumers MUST handle key-absent rather than key-present-but-null for all five
+optional-presence fields -- `mitre_techniques` and `mitre_attack` (omitted when empty via Vec::is_empty) and
 the three Option fields `source_ip`/`timestamp`/`direction` (omitted when None via
 Option::is_none). The scalar `mitre_technique: Option<String>` field is removed (ADR-006
 Decision 13, STORY-100 AC-008). Per NFR-OBS-010 / LESSON-P1.02, the asymmetry present in
-earlier revisions has been corrected. The Vec field uses a distinct skip predicate
+earlier revisions has been corrected. The two Vec fields use a distinct skip predicate
 (Vec::is_empty) while the three Option fields use Option::is_none.
+
+**v1.3 delta (F2 issue #64):** `mitre_attack` field added to per-finding JSON schema. Catalog
+extension `technique_tactic_id()` in src/mitre.rs provides tactic_id for each MitreTactic variant.
+Unknown technique IDs produce partial objects (`id` and `reference` only; `name`/`tactic_id`/`tactic_name`
+omitted). The `id` field in each element is always present (agent-safety). See BC-2.11.035.
 
 
 ## Config File Schema

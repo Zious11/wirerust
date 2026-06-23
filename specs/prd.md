@@ -1,7 +1,7 @@
 ---
 document_type: prd
 level: L3
-version: "1.33"
+version: "1.34"
 status: draft
 producer: product-owner
 timestamp: 2026-06-17T00:00:00Z
@@ -410,6 +410,18 @@ supplements:
 >   post-feature-008-F2).
 >
 > No new BCs; no BC count change (283). See `spec-changelog.md` §[prd-v1.25-ss15-titlesync-2026-06-14].
+
+> **Version 1.34 delta (2026-06-22 — F2 issue #64 mitre_attack JSON enrichment, v0.11.0):**
+> 1 new BC (BC-2.11.035) added for per-finding `mitre_attack` JSON array (ECS/OCSF alignment).
+> Adds resolved technique objects (id, name, tactic_id, tactic_name, reference) per entry in
+> `mitre_techniques`, in order. Unknown IDs emit partial objects (id + reference only; agent-safety).
+> Empty `mitre_techniques` omits `mitre_attack` (skip_serializing_if, additive non-breaking).
+> Catalog extension required: `technique_tactic_id()` in src/mitre.rs maps MitreTactic variants
+> to canonical TA-prefix IDs. No new error codes; no new VP (test sufficient). BC-2.11.001 v1.6→v1.7
+> (advisory pointer to BC-2.11.035). interface-definitions.md v1.2→v1.3 (mitre_attack field in
+> per-finding JSON schema). §2.11 BC index table: BC-2.11.035 row added; footer note updated.
+> §7 RTM: BC-2.11.035 row added. SS-11: 34→35 BCs. Total active BCs: 302→303 (304 on disk).
+> See BC-2.11.035.md.
 
 > **Version 1.33 delta (2026-06-19 — F2 re-audit PRD-BC2-1 remediation):**
 > PRD-BC2-1 (MEDIUM): §2.1 BC-2.12.011 index row description updated from stale pre-v1.5 wording
@@ -874,10 +886,13 @@ Rust source files, 3,868 source LOC, 282 tests, single crate, Rust 2024 edition,
 | BC-2.11.027 | Collapsed Group Retains at Most K=3 Representative Evidence Lines; Remainder Elided from Terminal Display | P1 | issue-#259 greenfield (v0.8.0) |
 | BC-2.11.028 | --no-collapse Opt-Out Flag Disables Terminal Collapse and Restores One-Line-Per-Finding Rendering; JSON/CSV Unaffected | P0 | issue-#259 greenfield (v0.8.0) |
 | BC-2.11.029 | Collapse is Display-Layer Only; JSON/CSV Reporters Receive Unmodified findings Slice; Non-Repeated Findings Individually Visible in All Outputs | P0 | issue-#259 greenfield (v0.8.0) |
+| BC-2.11.035 | Per-Finding `mitre_attack` Array Enriches JSON Output with Resolved Technique Objects; Order-Preserving; Unknown IDs Emit Partial Objects; Empty Vec Omits Field | P1 | issue-#64 greenfield (v0.11.0) |
 
-> Full contracts: `behavioral-contracts/ss-11/BC-2.11.001.md` through `BC-2.11.029.md`
+> Full contracts: `behavioral-contracts/ss-11/BC-2.11.001.md` through `BC-2.11.029.md`, `BC-2.11.030.md` through `BC-2.11.034.md` (STORY-119 grouped-collapse, v0.9.0), `BC-2.11.035.md` (issue #64 mitre_attack enrichment, v0.11.0).
 > (BC-2.11.020–024 added adversarial-review pass-4: CsvReporter coverage gap H-1;
-> BC-2.11.025–029 added Feature Mode F2 issue #259: terminal finding collapse, v0.8.0)
+> BC-2.11.025–029 added Feature Mode F2 issue #259: terminal finding collapse, v0.8.0;
+> BC-2.11.030–034 added Feature Mode F2 STORY-119: grouped-collapse, v0.9.0;
+> BC-2.11.035 added Feature Mode F2 issue #64: mitre_attack JSON enrichment, v0.11.0)
 
 ### 2.12 CLI and Entry Point (CAP-12 / CLI Orchestration)
 
@@ -1627,6 +1642,7 @@ See `prd-supplements/error-taxonomy.md` for the complete E-xxx-NNN catalog.
 | BC-2.11.022 | CAP-11 | SS-11 (reporter/) | P1 | unit |
 | BC-2.11.023 | CAP-11 | SS-11 (reporter/) | P0 | unit |
 | BC-2.11.024 | CAP-11 | SS-11 (reporter/) | P1 | unit |
+| BC-2.11.035 | CAP-11 | SS-11 (reporter/json.rs, src/mitre.rs) | P1 | unit |
 | BC-2.12.001 | CAP-12 | SS-12 (cli.rs) | P0 | unit |
 | BC-2.12.002 | CAP-12 | SS-12 (cli.rs) | P1 | unit |
 | BC-2.12.003 | CAP-12 | SS-12 (cli.rs) | P1 | unit |

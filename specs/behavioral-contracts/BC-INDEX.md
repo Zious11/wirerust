@@ -1,7 +1,7 @@
 ---
 document_type: bc-index
 level: L3
-version: "1.69"
+version: "1.70"
 status: draft
 producer: product-owner
 timestamp: 2026-06-22T00:00:00Z
@@ -14,7 +14,9 @@ traces_to: .factory/specs/prd.md
 > **Navigation:** This file is the master index of all BC-S.SS.NNN contracts. Each entry
 > links to the individual BC file. BCs are sharded into per-subsystem directories (ss-NN/).
 >
-> All BCs are marked [WRITTEN]. Body files have been verified on disk for all 303 entries (293 prior + 10 new BC-2.01.009–018 for F2 pcapng-reader-support; BC-2.01.004 retired).
+> All BCs are marked [WRITTEN]. Body files have been verified on disk for all 304 entries (303 prior + 1 new BC-2.11.035 for F2 issue #64 mitre_attack enrichment; BC-2.01.004 retired).
+>
+> **v1.70 2026-06-22 (F2 issue #64 spec evolution — BC-2.11.035 mitre_attack JSON enrichment):** 1 new SS-11 BC (BC-2.11.035) added for per-finding `mitre_attack` array in JSON output (ECS/OCSF alignment, issue #64). SS-11: 34→35 BCs. Total on disk: 303→304. Active: 302→303. Catalog extension required: `technique_tactic_id(id) -> Option<&'static str>` in src/mitre.rs (maps MitreTactic variant to canonical TA-prefix ID; no new Kani VP needed — test coverage sufficient per Formal Verification Note). BC-2.11.001 receives advisory version bump (pointer to BC-2.11.035 for per-finding shape). No new error taxonomy entries (unknown IDs produce partial objects, not errors). No new Verification Property (pure Option-chaining over VP-007-verified catalog lookup; test sufficient).
 >
 > **v1.69 2026-06-22 (F7 reconciliation — BC-INDEX inline annotations reconciled with F6-SEC on-disk BC versions):** FINDING-F7-002 RESOLVED. Inline version annotations synced to on-disk BC frontmatter for 3 BCs bumped by F6-SEC hardening (PR #296 feddbd1, D-192): BC-2.01.009 v1.7→v1.8 (PC3 E-INP-014 file-size gate added, ADR-009 Decision 27; EC-011 E-INP-014 file-too-large; EC-012 E-INP-015 interface-cap path updated); BC-2.01.011 v1.7→v1.9 (skipped v1.8 → v1.9: PC4 E-INP-015 interface-cap gate added (MAX_INTERFACE_TABLE_ENTRIES=65535), ADR-009 Decision 28; EC-014 E-INP-015 interface-cap path; v1.9 minor changelog-format alignment); BC-2.01.017 v1.6→v1.7 (E-INP-014 file-too-large and E-INP-015 interface-cap added to error-code table; range updated to E-INP-001 + E-INP-008..E-INP-015; next_free E-INP-016). Note: annotations were already updated to final versions (v1.8/v1.9/v1.7) in a prior burst; this entry records the explicit F7 reconciliation audit confirmation and version bump. 302 active BCs unchanged. D-193.
 >
@@ -326,11 +328,12 @@ traces_to: .factory/specs/prd.md
 
 ## ss-11: Reporting and Output (CAP-11)
 
-> 34 BCs total; 34 fully written; 0 planned.
+> 35 BCs total; 35 fully written; 0 planned.
 > BCs 001-019: JsonReporter / TerminalReporter / MITRE grouping (brownfield ingestion).
 > BCs 020-024: CsvReporter (added pass-4, adversarial finding H-1).
 > BCs 025-029: terminal finding collapse (greenfield, issue #259, v0.8.0).
 > BCs 030-034: grouped-collapse (greenfield, STORY-119, v0.9.0).
+> BC-035: per-finding mitre_attack JSON enrichment (greenfield, issue #64, v0.11.0).
 
 | BC ID | Title | Priority | Status | Origin |
 |-------|-------|----------|--------|--------|
@@ -368,6 +371,7 @@ traces_to: .factory/specs/prd.md
 | BC-2.11.032 | Per-Bucket Evidence Sampling in Grouped-Collapse Mode — First min(N,K=3) Members Positionally; No Sliding Window | P1 | [WRITTEN] | STORY-119 greenfield | <!-- v1.1 2026-06-18: STORY-119 F2 adv-round-1 — within-bucket sort corrected to ascending, matching BC-2.11.014; v1.2 2026-06-18: R2-1 all four verdicts in Inv3; R2-2 introduced→v0.9.0; v1.3 2026-06-18: R3 representative-ordering clarification — flat=emission-order; grouped-collapse=post-sort severity order; shares the positional members[0] mechanic with BC-026 PC-7 but uses post-sort (not emission) order; v1.4 2026-06-18: F3 adversarial round-1 remediation (C-1) — Architecture Anchors and PC-2 updated: collapse_findings_pass_refs (F4-new shared helper; accepts &[&'a Finding]; returns Vec<(CollapseKey, Vec<&'a Finding>)> in first-occurrence-within-bucket order); collapse_findings_pass at :340 retained as thin flat-mode adapter; v1.5 2026-06-18: D-120 — traceability: Stories = STORY-119(B) PRIMARY; STORY-122 excluded (A is type reshape only) -->
 | BC-2.11.033 | Tactic-Bucket Ordering Invariant Under Grouped-Collapse — Bucket Sequence Unchanged; Collapse Operates Within Buckets Only | P0 | [WRITTEN] | STORY-119 greenfield | <!-- v1.1 2026-06-18: STORY-119 F2 adv-round-1 — within-bucket sort corrected to ascending, matching BC-2.11.014; test anchors renumbered; v1.2 2026-06-18: R2-1 all four verdicts (Description/PC-5/Inv4); R2-2 introduced→v0.9.0; v1.3 2026-06-18: F3 adversarial round-1 remediation — (C-1) Architecture Anchors/Description/PC-5/PC-6/Inv3/Inv4 updated: collapse_findings_pass_refs named as per-bucket caller; collapse_findings_pass at :340 retained as thin adapter; (H-1/CARRY-119-F3-RESIDUALS-001 item 1) Verification Properties: test_BC_2_11_013_grouped_collapsed_preserves_bucket_order → test_BC_2_11_033_grouped_collapsed_preserves_bucket_order; v1.4 2026-06-18: D-120 — traceability: Stories = STORY-119(B) PRIMARY; STORY-122 excluded (A is type reshape only) -->
 | BC-2.11.034 | MITRE Line Format in Grouped-Collapse — Em-Dash Name Expansion Sourced from Group Representative (`members[0]`); No `(xN)` on MITRE Line | P1 | [WRITTEN] | STORY-119 greenfield | <!-- v1.1 2026-06-18: STORY-119 F2 adv-round-1 — EC-008 multi-tag member sharing [0] added; PRD-delta phantom header format corrected to MITRE-line description; test anchor renumbered; v1.2 2026-06-18: R2-2 introduced→v0.9.0; R2-5 Inv3 rescoped: BC-026 ref→SOURCING only; BC-016 for em-dash FORMAT; Related-BCs updated; v1.3 2026-06-18: R3 representative-ordering clarification — Inv3/Related-BCs explicit that grouped rep is post-sort member[0], not emission-order; v1.4 2026-06-18: D-120 — traceability: Stories = STORY-119(B) PRIMARY; STORY-122 excluded (A is type reshape only) -->
+| BC-2.11.035 | Per-Finding `mitre_attack` Array Enriches JSON Output with Resolved Technique Objects; Order-Preserving; Unknown IDs Emit Partial Objects; Empty Vec Omits Field | P1 | [WRITTEN] | issue-#64 greenfield | <!-- v1.0 2026-06-22: F2 spec evolution issue #64 — new BC; all 5 fields specified (id/name/tactic_id/tactic_name/reference); catalog extension required: technique_tactic_id() in src/mitre.rs; reference URL synthesized (not cataloged); unknown IDs partial (id never lost); empty vec omits mitre_attack; additive non-breaking; no new VP (Option-chaining over VP-007); no new error codes -->
 
 ## ss-12: CLI and Entry Point (Cross-Cutting)
 
@@ -548,6 +552,7 @@ traces_to: .factory/specs/prd.md
 | pass-4 H-1 (CsvReporter) | 5 | BC-2.11.020..024 |
 | feature-259-F2 collapse (greenfield) | 5 | BC-2.11.025..029 |
 | feature-STORY-119 grouped-collapse (greenfield) | 5 | BC-2.11.030..034 |
+| feature-064-F2 mitre_attack JSON enrichment (greenfield) | 1 | BC-2.11.035 |
 | BC-CLI-001..017 | 17 | BC-2.12.001..017 |
 | BC-SUM-001..004 | 4 | BC-2.12.018..021 |
 | BC-ABS-001..010 | 10 | BC-2.13.001..004 (6 ABS retired by remediation cycle) |
@@ -555,7 +560,7 @@ traces_to: .factory/specs/prd.md
 | feature-008-F2 DNP3/ICS (greenfield) | 24 | BC-2.15.001..024 |
 | feature-009-F2 ARP security (greenfield) | 15 | BC-2.16.001..015 |
 
-**Total BCs on disk: 303. Active: 302. Canonical derivation: 218 draft ingestion BCs produced − 6 retired (BC-ABS-004..009) = 212 active from ingestion; + 5 post-ingestion pass-4 additions (BC-2.11.020..024) = 217; + 2 Feature Mode F2 additions (BC-2.04.055, BC-2.09.007) for issue #100 = 219 active BCs; + 25 Feature Mode F2 additions (BC-2.14.001..025) for issue #7 Modbus/ICS analyzer = 244 active BCs; + 22 Feature Mode F2 additions (BC-2.15.001..022) for issue #8 DNP3/ICS analyzer = 266 active BCs; + 2 research must-add additions (BC-2.15.023..024) for issue #8 post-gate F2 scope validation = 268 active BCs; + 15 Feature Mode F2 additions (BC-2.16.001..015) for issue #9 ARP security analyzer = 283 active BCs; + 5 Feature Mode F2 additions (BC-2.11.025..029) for issue #259 terminal finding collapse (v0.8.0) = 288 active BCs; + 5 Feature Mode F2 additions (BC-2.11.030..034) for STORY-119 grouped-collapse (v0.9.0) = 293 active BCs; + 10 Feature Mode F2 additions (BC-2.01.009..018) for pcapng reader support (ADR-009, FE-001, v0.10.0) = 303 on disk; − 1 retired (BC-2.01.004, behavioral inversion) = 302 active BCs. BC-2.02.009 was revised to v1.6 (ADR-008 Decision 1, three-way postcondition) — a revision, not a new BC; count unchanged at each prior step. The mapping table above has 223 physical rows (218 ingestion-batch rows + 5 pass-4 rows) for pre-Modbus BCs; SS-14 adds 25 greenfield rows not in the ingestion batch; SS-15 adds 24 greenfield rows; SS-16 adds 15 greenfield rows; issue-#259 adds 5 greenfield rows to SS-11; STORY-119 adds 5 more greenfield rows to SS-11 (total SS-11: 34 BCs); pcapng-F2 adds 10 rows to SS-01 (total SS-01: 18 on disk / 17 active). 1 BC retired in pcapng-F2 (BC-2.01.004).**
+**Total BCs on disk: 304. Active: 303. Canonical derivation: 218 draft ingestion BCs produced − 6 retired (BC-ABS-004..009) = 212 active from ingestion; + 5 post-ingestion pass-4 additions (BC-2.11.020..024) = 217; + 2 Feature Mode F2 additions (BC-2.04.055, BC-2.09.007) for issue #100 = 219 active BCs; + 25 Feature Mode F2 additions (BC-2.14.001..025) for issue #7 Modbus/ICS analyzer = 244 active BCs; + 22 Feature Mode F2 additions (BC-2.15.001..022) for issue #8 DNP3/ICS analyzer = 266 active BCs; + 2 research must-add additions (BC-2.15.023..024) for issue #8 post-gate F2 scope validation = 268 active BCs; + 15 Feature Mode F2 additions (BC-2.16.001..015) for issue #9 ARP security analyzer = 283 active BCs; + 5 Feature Mode F2 additions (BC-2.11.025..029) for issue #259 terminal finding collapse (v0.8.0) = 288 active BCs; + 5 Feature Mode F2 additions (BC-2.11.030..034) for STORY-119 grouped-collapse (v0.9.0) = 293 active BCs; + 10 Feature Mode F2 additions (BC-2.01.009..018) for pcapng reader support (ADR-009, FE-001, v0.10.0) = 303 on disk; − 1 retired (BC-2.01.004, behavioral inversion) = 302 active BCs; + 1 Feature Mode F2 addition (BC-2.11.035) for issue #64 mitre_attack JSON enrichment (v0.11.0) = 304 on disk / 303 active BCs. BC-2.02.009 was revised to v1.6 (ADR-008 Decision 1, three-way postcondition) — a revision, not a new BC; count unchanged at each prior step. The mapping table above has 223 physical rows (218 ingestion-batch rows + 5 pass-4 rows) for pre-Modbus BCs; SS-14 adds 25 greenfield rows not in the ingestion batch; SS-15 adds 24 greenfield rows; SS-16 adds 15 greenfield rows; issue-#259 adds 5 greenfield rows to SS-11; STORY-119 adds 5 more greenfield rows to SS-11; issue-#64 adds 1 more greenfield row to SS-11 (total SS-11: 35 BCs); pcapng-F2 adds 10 rows to SS-01 (total SS-01: 18 on disk / 17 active). 1 BC retired in pcapng-F2 (BC-2.01.004).**
 
 Note: BC-ABS-004 (--hosts unwired), BC-ABS-005 (--services unwired), BC-ABS-006 (--json
 file unwired), BC-ABS-007 (CSV unwired), BC-ABS-009 (no e2e CLI tests) are RETIRED --

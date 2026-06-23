@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.6"
+version: "1.7"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -19,6 +19,7 @@ modified:
   - "v1.4: ADV-IMPL-P07-LOW-001 correction — Architecture Anchor and Invariant line citations json.rs:59 corrected to json.rs:60 (verified: serde_json::to_string_pretty(&output).unwrap() is at line 60; line 59 is the closing `});` of the json! macro) — 2026-06-01"
   - "v1.5: ADD-ON 1 (research-backed, f2-multitag-schema.md §1.4) — add mitre_domain and mitre_attack_version to JSON report envelope; both fields are top-level envelope fields (not per-finding); CSV reporters carry no envelope fields. mitre_attack_version value flagged for F4 to pin. — 2026-06-09"
   - "v1.6: v19 remap: T0855 → T1692.001 per MITRE ATT&CK for ICS v19.0 revocation. F4 FLAG updated: T0855 replaced by T1692.001 in the list of ICS technique IDs to pin the catalog version against. Issue #222; audit: mitre-ics-v19-catalog-audit.md. — 2026-06-10"
+  - "v1.7: Advisory pointer — BC-2.11.035 (F2 issue #64) defines the per-finding `mitre_attack` array that extends each `findings[*]` object with resolved technique objects. This BC (BC-2.11.001) governs the JSON envelope shape and `mitre_attack_version` field; BC-2.11.035 governs the per-finding enrichment. The two contracts compose: BC-2.11.001 PC-3 (`findings` is an array; one element per Finding) is the entry point; BC-2.11.035 specifies the additive `mitre_attack` field within each element. No normative change to this BC. — 2026-06-22"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -140,6 +141,7 @@ fields; these are JSON-only.
 - BC-2.11.003 -- composes with (RFC 8259 C0 escaping behavior)
 - BC-2.11.004 -- composes with (Unicode preservation behavior)
 - BC-2.09.006 -- depends on (Finding Option fields serialization)
+- BC-2.11.035 -- composes with (per-finding `mitre_attack` array — additive enrichment within each `findings[*]` element; BC-2.11.001 governs the envelope, BC-2.11.035 governs the per-finding MITRE object array)
 
 ## Architecture Anchors
 
