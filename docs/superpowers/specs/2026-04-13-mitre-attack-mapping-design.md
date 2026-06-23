@@ -4,6 +4,26 @@
 **Date:** 2026-04-13
 **Status:** Draft
 
+---
+
+> **WARNING: SUPERSEDED (2026-06-23, F5 ICS tactic-ID correctness fix)**
+>
+> The single-Discovery-variant design described below was NOT adopted. ICS techniques now
+> use dedicated ICS-matrix `MitreTactic` variants with correct TA-IDs. Key corrections:
+>
+> - ICS Discovery = TA0102 (not TA0111 as stated below)
+> - T0830 (Adversary-in-the-Middle, ICS) maps to tactic Collection / TA0100, not Discovery
+> - ICS Lateral Movement: T0830 is classified under Collection in the ICS matrix, not Lateral Movement
+> - T0855/T0856 technique IDs (pre-seeded below) were superseded in the v19 remap to
+>   T1692.001 / T1692.002
+>
+> For current authoritative tactic and technique mappings see:
+> - BC-2.10.002, BC-2.10.003, BC-2.10.007 (Modbus ICS tactic assignments)
+> - BC-2.16.004 (ARP/DNP3 ICS tactic assignments)
+> - `.factory/cycles/feature-mitre-json-names/f5-ics-technique-tactic-authoritative.md`
+
+---
+
 ## Goal
 
 Systematically map every finding to a MITRE ATT&CK technique (Enterprise + ICS matrices) and add a `--mitre` flag that regroups terminal output by tactic. The `Finding` struct already carries an `Option<String>` field named `mitre_technique`; most analyzers emit `None`. This design populates missing analyzers, adds a lookup module, and wires a CLI flag for tactic-grouped output.
@@ -57,7 +77,7 @@ pub fn technique_tactic(id: &str) -> Option<MitreTactic>;
 pub fn all_tactics_in_report_order() -> &'static [MitreTactic];
 ```
 
-**Enterprise/ICS tactic name collision — known limitation.** MITRE's Enterprise and ICS matrices share several tactic *names* (Persistence, Discovery, Command and Control, Lateral Movement, Collection, Impact) that have *different* `TA-####` IDs (e.g., Enterprise Discovery = TA0007; ICS Discovery = TA0111). This design unifies them under a single variant (e.g., `Discovery` covers both). Practical effect: an Enterprise T1046 finding and an ICS T0846 finding both render under a single "Discovery" section header. Acceptable for v1 — no consumer has asked for matrix-level distinction; can split into `EnterpriseDiscovery` / `IcsDiscovery` if demand appears. ICS-unique tactics (Inhibit Response Function, Impair Process Control, Evasion) get their own variants.
+**Enterprise/ICS tactic name collision — known limitation.** MITRE's Enterprise and ICS matrices share several tactic *names* (Persistence, Discovery, Command and Control, Lateral Movement, Collection, Impact) that have *different* `TA-####` IDs (e.g., Enterprise Discovery = TA0007; ICS Discovery = TA0102 [note: the original text said TA0111, which is incorrect — ICS Discovery is TA0102]). This design unifies them under a single variant (e.g., `Discovery` covers both). Practical effect: an Enterprise T1046 finding and an ICS T0846 finding both render under a single "Discovery" section header. Acceptable for v1 — no consumer has asked for matrix-level distinction; can split into `EnterpriseDiscovery` / `IcsDiscovery` if demand appears. ICS-unique tactics (Inhibit Response Function, Impair Process Control, Evasion) get their own variants.
 
 Both `technique_name` and `technique_tactic` are backed by exhaustive `match` statements. Perplexity-validated as idiomatic for ~15–20 static entries in Rust 2024; `phf` and `Lazy<HashMap>` add cost without benefit at this scale, and clippy does not warn on unused match arms.
 
