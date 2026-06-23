@@ -25,7 +25,7 @@ v090_release_commit: 986e148
 
 # Ground-truth HEADs (verified at D-205 — 2026-06-23)
 develop_head: e4abbe2
-develop_local_note: "local may be at dd3b069 if not pulled — run git pull on develop to reach e4abbe2"
+develop_local_note: "develop: e4abbe2 — local == origin/develop == e4abbe2 (fast-forwarded 2026-06-23, working tree clean). Verify on resume: `git log -1 --format='%h' develop` == e4abbe2."
 main_head: 2dbf461
 factory_artifacts_head: "run: git -C .factory log -1 --format='%h %s'"
 
@@ -88,7 +88,7 @@ convergence_trajectory: "Detail: cycles/v0.1.0-greenfield-spec/convergence-traje
 
 Re-verify on resume before taking any action:
 
-- **develop (remote/canonical):** `e4abbe2` — PR #305 merge commit (docs drift + public ADR-0009). Verify: `git log -1 --format='%h' origin/develop` must equal `e4abbe2`. **Note:** local develop may be at `dd3b069` if not pulled after PRs #304/#305 merged remotely. Run `git pull` on develop before working. Both SHAs confirmed real; e4abbe2 is the canonical HEAD.
+- **develop (remote/canonical):** `e4abbe2` — PR #305 merge commit (docs drift + public ADR-0009). Verify: `git log -1 --format='%h' origin/develop` must equal `e4abbe2`. **Note:** develop: e4abbe2 — local == origin/develop == e4abbe2 (fast-forwarded 2026-06-23, working tree clean). Verify on resume: `git log -1 --format='%h' develop` == e4abbe2.
 - **main:** `2dbf461` — PR #302 merge commit (`chore: release v0.9.3`); tag `v0.9.3` on this commit. Unchanged.
 - **factory-artifacts:** local == remote at this D-205 commit. Verify: `git -C .factory status` must be clean.
 - **Open PRs:** None. Verify: `gh pr list` must return empty.
@@ -108,7 +108,7 @@ Re-verify on resume before taking any action:
 
 1. **Run `vsdd-factory:factory-worktree-health`** (BLOCKING) — verify `.factory/` worktree is mounted on `factory-artifacts`, no detached HEAD, no drift.
 2. **Read this STATE.md** in full.
-3. **Verify HEADs:** `git log -1 --format='%h' origin/develop` == `e4abbe2`; `git log -1 --format='%h' main` == `2dbf461`. If local develop is at `dd3b069`, run `git pull` before working.
+3. **Verify HEADs:** `git log -1 --format='%h' origin/develop` == `e4abbe2`; `git log -1 --format='%h' main` == `2dbf461`. Run `git pull --ff-only origin develop` (should be a no-op; local already synced at checkpoint time — fast-forwarded 2026-06-23).
 4. **Confirm no in-flight work:** `gh pr list` empty; `git worktree list` shows main + `.factory` only.
 5. **Confirm both trees clean:** `git status` on develop; `git -C .factory status` on factory-artifacts.
 6. **No active cycle** — await human direction.
@@ -184,7 +184,7 @@ D-136..D-202: `cycles/feature-pcapng-reader/decisions-archive.md` (archived at c
 | D-202 | CORPUS-OBS-PCAPNG-IFFCSLEN-001 RESOLVED. Root cause: non-conformant `if_fcslen` in legacy dumpcap 1.10.0rc file — NOT a wirerust defect. Synthetic SPB coverage accepted. PR #303 (dd3b069). Decision-thread (b) CLOSED. | 2026-06-22 |
 | D-203 | SESSION PAUSED — SAFE TO CLEAR checkpoint written. All three D-200-era decision threads closed. Pipeline fully quiesced: no open PRs, no active cycle, no in-flight work. | 2026-06-22 |
 | D-204 | Maintenance sweep maint-2026-06-22 COMPLETE. 7 sweeps run (DTU+a11y N/A), 0 blocking, 0 holdout FAIL-BUG. Fixes merged: PR #304 deps hygiene (rayon removed, rand→0.8.6 clears RUSTSEC-2026-0097, zerocopy bump) e458ce2; PR #305 docs drift + public ADR-0009 e4abbe2. F-MAJ-001 fixed (ARCH-INDEX v1.6 a6efb23). 2 LOWs deferred (ADV-4, DRIFT-READER-ADR-CITATION-001); 1 engine-note (DRIFT-ENGINE-PRMGR-BLOCKING-001). PO backlog recorded (holdout staleness + DNP3/ARP/Modbus/collapse coverage gap). develop dd3b069→e4abbe2. | 2026-06-23 |
-| D-205 | SAFE-TO-CLEAR checkpoint refreshed (supersedes D-203/D-204). Ground truth verified: main=2dbf461 (v0.9.3 tag, unchanged), remote develop=e4abbe2 (local may be dd3b069 — needs git pull), open PRs=0, worktrees=main+.factory only. All D-204 decisions final. Pipeline fully quiesced. | 2026-06-23 |
+| D-205 | SAFE-TO-CLEAR checkpoint refreshed (supersedes D-203/D-204). Ground truth verified: main=2dbf461 (v0.9.3 tag, unchanged), develop=e4abbe2 (local == origin/develop == e4abbe2, fast-forwarded 2026-06-23, working tree clean), open PRs=0, worktrees=main+.factory only. All D-204 decisions final. Pipeline fully quiesced. | 2026-06-23 |
 
 ## Governance Policy
 
