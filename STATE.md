@@ -1,10 +1,10 @@
 ---
 pipeline: FEATURE
 phase: F5
-phase_status: "feature-mitre-json-names F5 IN PROGRESS — F-1 HIGH (ICS tactic-catalog correctness) REMEDIATED (D-209) + per-fix convergence CONVERGED (D-210, 3 clean passes 74a48ea/cf22de9/cf22de9, 0 HIGH/CRIT). fix/ics-tactic-ids @ cf22de9. 2 LOW deferrals recorded. fix-PR to develop NEXT."
+phase_status: "feature-mitre-json-names F5 MERGEABLE — PR #307 CI 10/10 green @ 96f0afc. security-reviewer PASS. confirmation adversary CLEAN (committed tree). DRIFT-UNCOMMITTED-TEST-EDITS-001 recorded (D-211). Awaiting human merge authorization (squash disabled → merge-commit)."
 product: wirerust
 mode: brownfield
-timestamp: 2026-06-23T06:00:00Z
+timestamp: 2026-06-23T08:00:00Z
 
 # Release chain
 released_version: v0.9.3
@@ -116,6 +116,7 @@ Re-verify on resume before taking any action:
 
 | ID | Summary | Status |
 |----|---------|--------|
+| DRIFT-UNCOMMITTED-TEST-EDITS-001 | [process-gap, MEDIUM]: F5 ICS fix implementer committed only src/mitre.rs (719816e), leaving 3 test files as uncommitted working-tree edits; adversaries reviewed the working tree (CLEAN) while committed SHAs carried old assertions. CI caught on push; pr-manager committed corrections as 96f0afc. Final merged state correct + CI-green. Guards: (a) commit ALL story-relevant changes (tests+src), (b) convergence dispatch requires `git status --short` CLEAN attestation, (c) execution evidence must come from committed tree or CI. Recommend engine policy: convergence-clean-tree-guard. Deferred to engine codification; this cycle's outcome is sound. | DEFERRED MEDIUM — engine codification |
 | PO-BACKLOG-MAINT-2026-06-22 | DNP3/ARP/Modbus/finding-collapse holdout coverage gap (73 declared seeds, 0 files) + HS-064/075/090/098/108 staleness. Human scope decision needed. | OPEN — product-owner / human |
 | PC-013 | ARP production `.expect()` sites — panic-on-malformed risk. | OPEN |
 | PC-014 | dnp3: `total_parse_errors` key missing from output map. | OPEN |
@@ -142,7 +143,7 @@ prd.md v1.34, error-taxonomy v3.8 (next_free E-INP-016), nfr-catalog v2.3, ADR-0
 
 ## Status
 
-**FEATURE MODE — feature-mitre-json-names ACTIVE (D-210). GitHub issue #64 CLOSED. F1/F2/F3/F4 COMPLETE. F5 IN PROGRESS — F-1 HIGH REMEDIATED (D-209) + per-fix adversarial CONVERGED (D-210, 3 clean passes, 0 HIGH/CRIT). fix/ics-tactic-ids @ cf22de9: 3 new MitreTactic variants, 5 techniques remapped, authoritative-pin test (12 id→TA-id pairs). All 20 TA-ids verified vs MITRE ATT&CK ICS v19.1. 2 LOW deferrals recorded. fix-PR to develop NEXT. stories_delivered=78.**
+**FEATURE MODE — feature-mitre-json-names ACTIVE (D-211). GitHub issue #64 CLOSED. F1/F2/F3/F4 COMPLETE. F5 MERGEABLE — PR #307 (fix: correct ICS-matrix tactic IDs) CI 10/10 green at head 96f0afc; security-reviewer PASS; confirmation adversary CLEAN on committed tree. fix/ics-tactic-ids @ 96f0afc: 3 new MitreTactic variants, 5 techniques remapped, authoritative-pin test (12 id→TA-id pairs). All 20 TA-ids verified vs MITRE ATT&CK ICS v19.1. 2 LOW deferrals recorded. DRIFT-UNCOMMITTED-TEST-EDITS-001 [process-gap, MEDIUM] recorded (D-211). Awaiting human merge authorization (squash disabled → merge-commit). stories_delivered=78.**
 
 **MAINTENANCE SWEEP COMPLETE — maint-2026-06-22 (2026-06-23). 0 blocking. F-MAJ-001 fixed (ARCH-INDEX v1.6 a6efb23). PR #304 deps hygiene (e458ce2) + PR #305 docs drift/ADR-0009 (e4abbe2) merged. 2 LOWs deferred (ADV-4, DRIFT-READER-ADR-CITATION-001); 1 engine-note (DRIFT-ENGINE-PRMGR-BLOCKING-001). Report: .factory/maintenance/sweep-report-2026-06-22.md. Prior run maint-2026-06-17 COMPLETE/archived.**
 
@@ -176,7 +177,7 @@ Latest release: v0.9.3 (main `2dbf461`, tag `v0.9.3`, 4 binaries, run 2798455729
 | Feature mitre-json-names (issue #64) — F3 | PASSED 2026-06-23 | STORY-129 authored (Wave 57, 5 pts, input-hash 2a5cee9, depends_on []); STORY-INDEX v2.7. |
 | Feature mitre-json-names (issue #64) — F4 + Step-4.5 convergence | **PASSED 2026-06-23 (D-207)** | STORY-129 implemented; 13 tests (EC-001..010); 3 adversarial passes clean (b8fea97/6d8f172/7e020ce, 0 HIGH/CRIT); full gates green. Trajectory: 3L→1M1L→1L(+process-gap). Demo: modbus-write.pcap T1692.001/T0836→TA0106. |
 | Feature mitre-json-names (issue #64) — F4 PR merge | **COMPLETE 2026-06-23 (D-208)** | PR #306 MERGED → develop 2fa6606 (squash disabled; human merged). Issue #64 CLOSED. CI 10/10. Worktree + branch cleaned up. stories_delivered 77→78. F5 scoped-adversarial NEXT (human-authorized full F5-F7). |
-| Feature mitre-json-names (issue #64) — F5 scoped adversarial | **IN PROGRESS — F-1 CONVERGED (D-210)** | HIGH finding F-1: ICS tactic-catalog correctness — REMEDIATED (D-209) + per-fix adversarial CONVERGED (D-210). 3 clean fresh-context passes (74a48ea/cf22de9/cf22de9), 0 HIGH/CRITICAL. All 20 MitreTactic TA-ids verified vs MITRE ATT&CK ICS v19.1. Authoritative-pin test added (12 exact id→TA-id pairs). 2 LOW deferrals: DRIFT-ARP-DEMO-FIXTURE-001, DRIFT-MITRE-SUBSET-COUNT-TESTS-001. Branch fix/ics-tactic-ids @ cf22de9. fix-PR to develop NEXT. |
+| Feature mitre-json-names (issue #64) — F5 scoped adversarial | **MERGEABLE — AWAITING HUMAN MERGE AUTHORIZATION (D-211)** | HIGH finding F-1: ICS tactic-catalog correctness — REMEDIATED (D-209) + per-fix adversarial CONVERGED (D-210). PR #307 created (fix: correct ICS-matrix tactic IDs), CI 10/10 green at head 96f0afc. security-reviewer PASS. Confirmation adversary CLEAN on committed 96f0afc. Process-gap DRIFT-UNCOMMITTED-TEST-EDITS-001 recorded. Squash disabled → merge-commit. Human merge authorization required. |
 
 ## Decisions Log
 
@@ -198,6 +199,7 @@ D-136..D-202: `cycles/feature-pcapng-reader/decisions-archive.md` (archived at c
 | D-208 | STORY-129 (issue #64 mitre_attack JSON enrichment) PR #306 MERGED to develop via merge commit 2fa6606 (squash disabled on repo; human merged). Issue #64 CLOSED. pr-reviewer APPROVE + security-reviewer PASS (no CRITICAL/HIGH; technique IDs are compile-time literals, serde-escaped, bounded alloc). CI 10/10. Worktree + branch cleaned up; develop ff to 2fa6606. stories_delivered 77→78. Human authorized FULL F5-F7. F5 scoped-adversarial next. | 2026-06-23 |
 | D-209 | F5 scoped adversarial found HIGH finding F-1: ICS techniques emitted Enterprise tactic IDs (Discovery TA0007 not ICS TA0102, etc.) under mitre_domain=ics-attack; research-validated against MITRE ATT&CK ICS v19.1 and found a 2nd bug (T0830 Adversary-in-the-Middle is Collection/TA0100 not Lateral Movement, and T0831 Manipulation of Control is Impact/TA0105 not Impair Process Control). Human authorized comprehensive catalog fix. Fix on branch fix/ics-tactic-ids: 3 new MitreTactic variants (IcsDiscovery TA0102, IcsCollection TA0100, IcsCommandAndControl TA0101); 5 techniques remapped (T0846/T0888→IcsDiscovery, T0885→IcsCommandAndControl, T0830→IcsCollection, T0831→IcsImpact). src/mitre.rs commit 719816e; demo re-recorded 74a48ea. 5 BCs bumped (BC-2.10.002 v1.5→v1.6, BC-2.10.003 v1.4→v1.5, BC-2.10.007 v1.8→v1.9, BC-2.11.035 v1.0→v1.1, BC-2.16.004 v1.7→v1.8), 3 holdouts corrected (wave-31-holdout.md, wave-40-44-holdout.md, HS-INDEX.md), STORY-129 EC-010 test renamed ec010_ics_collection, input-hashes recomputed (STORY-071/100/114/129 all MATCH; STORY-129 2a5cee9→93eba63). BC-INDEX v1.70→v1.71. Full suite green, clippy/fmt clean. Per-story adversarial convergence + fix-PR next. | 2026-06-23 |
 | D-210 | ICS tactic-catalog fix (F5 F-1 remediation) CONVERGED: 3 clean fresh-context adversarial passes (74a48ea/cf22de9/cf22de9), zero HIGH/CRITICAL. All 20 MitreTactic TA-ids verified vs authoritative MITRE ATT&CK ICS v19.1; consolidated authoritative-table test added (`test_ics_techniques_resolve_authoritative_tactic_ids`, 12 exact id→TA-id pairs — closes Pass-1 process gap). Branch fix/ics-tactic-ids @ cf22de9. 2 LOW backlog deferrals recorded: DRIFT-ARP-DEMO-FIXTURE-001 (no ARP pcap fixture for live T0830→TA0100 demo; correctness unit-tested), DRIFT-MITRE-SUBSET-COUNT-TESTS-001 (mitre/multitag dual-count subset tests 21/13 vs 25/17 — pre-existing cruft, no correctness impact). Convergence report: cycles/feature-mitre-json-names/f5-ics-fix-convergence.md. fix-PR to develop next. | 2026-06-23 |
+| D-211 | ICS fix PR #307 created (fix: correct ICS-matrix tactic IDs), CI 10/10 green at head 96f0afc. security-reviewer PASS (pure static lookup remap, no new surface). Confirmation adversary pass on COMMITTED 96f0afc CLEAN (all 5 remaps + 20 TA-ids correct, no stale assertions, no Enterprise regression, BC-aligned). Orchestrator verified worktree clean + CI green directly. Process-gap DRIFT-UNCOMMITTED-TEST-EDITS-001 recorded. Awaiting human merge authorization (squash disabled → merge-commit). | 2026-06-23 |
 
 ## Governance Policy
 
@@ -235,4 +237,5 @@ Full policy text: `.factory/policies.yaml`.
 - Input-hash verification at D-206: `bin/compute-input-hash .factory/stories/STORY-129.md` == `2a5cee9` (MATCH — confirmed at commit time).
 - STORY-129 DELIVERED & CLOSED (D-208): PR #306 → develop 2fa6606. Issue #64 CLOSED. stories_delivered=78. F5 scoped-adversarial NEXT (human-authorized full F5-F7).
 - F5 HIGH finding F-1 REMEDIATED (D-209): ICS tactic-catalog correctness fix. fix/ics-tactic-ids 719816e. BC-INDEX v1.71. 5 BCs bumped. STORY-071/100/114/129 all MATCH.
-- F5 F-1 per-fix adversarial CONVERGED (D-210): 3 clean fresh-context passes (74a48ea/cf22de9/cf22de9), 0 HIGH/CRIT. All 20 TA-ids verified vs MITRE ATT&CK ICS v19.1. Authoritative-pin test added (cf22de9). 2 LOW deferrals: DRIFT-ARP-DEMO-FIXTURE-001, DRIFT-MITRE-SUBSET-COUNT-TESTS-001. Report: cycles/feature-mitre-json-names/f5-ics-fix-convergence.md. fix-PR to develop NEXT.
+- F5 F-1 per-fix adversarial CONVERGED (D-210): 3 clean fresh-context passes (74a48ea/cf22de9/cf22de9), 0 HIGH/CRIT. All 20 TA-ids verified vs MITRE ATT&CK ICS v19.1. Authoritative-pin test added (cf22de9). 2 LOW deferrals: DRIFT-ARP-DEMO-FIXTURE-001, DRIFT-MITRE-SUBSET-COUNT-TESTS-001. Report: cycles/feature-mitre-json-names/f5-ics-fix-convergence.md.
+- F5 fix-PR review complete (D-211): PR #307 created (fix: correct ICS-matrix tactic IDs), CI 10/10 green at head 96f0afc. security-reviewer PASS. Confirmation adversary CLEAN on committed 96f0afc. Process-gap DRIFT-UNCOMMITTED-TEST-EDITS-001 [MEDIUM] recorded (cycles/feature-mitre-json-names/lessons.md). Awaiting human merge authorization.
