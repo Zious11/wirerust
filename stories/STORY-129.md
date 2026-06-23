@@ -221,13 +221,14 @@ wrapper type is consistent); BC-2.11.035 Architecture Anchors.
 1. **Extend `src/mitre.rs`:** Add `pub fn technique_tactic_id(id: &str) -> Option<&'static str>`.
    - Call `technique_info(id)` to get the `MitreTactic` variant; if `None`, return `None`.
    - Match each `MitreTactic` variant to its canonical TA-prefix ID string per the table
-     in BC-2.11.035 Catalog Extension (17 variants: Reconnaissance→TA0043,
+     in BC-2.11.035 Catalog Extension (20 variants: Reconnaissance→TA0043,
      ResourceDevelopment→TA0042, InitialAccess→TA0001, Execution→TA0002,
      Persistence→TA0003, PrivilegeEscalation→TA0004, DefenseEvasion→TA0005,
      CredentialAccess→TA0006, Discovery→TA0007, LateralMovement→TA0008,
      Collection→TA0009, CommandAndControl→TA0011, Exfiltration→TA0010,
      Impact→TA0040, IcsInhibitResponseFunction→TA0107, IcsImpairProcessControl→TA0106,
-     IcsImpact→TA0105).
+     IcsImpact→TA0105, IcsDiscovery→TA0102, IcsCollection→TA0100,
+     IcsCommandAndControl→TA0101).
    - Extend the existing `vp007_catalog_drift_guard` test to cross-check this mapping
      doesn't drift from the `MitreTactic` enum.
 
