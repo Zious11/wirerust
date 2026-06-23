@@ -1060,15 +1060,15 @@ fn test_BC_2_11_035_ec009_enterprise_subtechnique() {
 }
 
 /// BC-2.11.035 EC-010: ICS technique T0830 (Adversary-in-the-Middle) resolves
-/// to tactic Lateral Movement (TA0008).
+/// to tactic Collection (ICS) (TA0100), not Lateral Movement.
 ///
-/// Verifies that an ICS technique maps to its correct ICS-matrix tactic through
-/// FindingJsonDto: tactic_id is TA0008, and tactic_name is the exact Display
-/// string for MitreTactic::LateralMovement.
-/// Catalog confirmed: T0830 → "Adversary-in-the-Middle",
-/// MitreTactic::LateralMovement → TA0008 → "Lateral Movement" (STORY-114).
+/// F5 correctness fix: T0830 maps to MitreTactic::IcsCollection (ICS TA0100),
+/// not MitreTactic::LateralMovement (Enterprise TA0008). The ICS ATT&CK matrix
+/// places "Adversary-in-the-Middle" under the Collection tactic (TA0100).
+/// Verifies that FindingJsonDto emits tactic_id "TA0100" and tactic_name
+/// "Collection (ICS)" for T0830.
 #[test]
-fn test_BC_2_11_035_ec010_ics_lateral_movement() {
+fn test_BC_2_11_035_ec010_ics_collection() {
     let mut finding = make_finding("test finding");
     finding.mitre_techniques = vec!["T0830".to_string()];
     let json_str = render(&[finding]);
@@ -1090,12 +1090,14 @@ fn test_BC_2_11_035_ec010_ics_lateral_movement() {
         "BC-2.11.035 EC-010: name must match catalog entry for T0830"
     );
     assert_eq!(
-        entry["tactic_id"], "TA0008",
-        "BC-2.11.035 EC-010: tactic_id must be TA0008 (Lateral Movement)"
+        entry["tactic_id"], "TA0100",
+        "BC-2.11.035 EC-010: tactic_id must be TA0100 (IcsCollection / Collection ICS), \
+         NOT TA0008 (Enterprise Lateral Movement) — F5 correctness fix"
     );
     assert_eq!(
-        entry["tactic_name"], "Lateral Movement",
-        "BC-2.11.035 EC-010: tactic_name must be Lateral Movement"
+        entry["tactic_name"], "Collection (ICS)",
+        "BC-2.11.035 EC-010: tactic_name must be Collection (ICS), \
+         NOT Lateral Movement — F5 correctness fix"
     );
     assert_eq!(
         entry["reference"], "https://attack.mitre.org/techniques/T0830/",

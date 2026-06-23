@@ -21,17 +21,21 @@ mod story_114_mitre {
     use wirerust::mitre::{MitreTactic, technique_name, technique_tactic};
 
     /// AC-011 (BC-2.16.004 Invariant 4 / VP-007): technique_info("T0830") returns
-    /// ("Adversary-in-the-Middle", MitreTactic::LateralMovement) and
+    /// ("Adversary-in-the-Middle", MitreTactic::IcsCollection) and
     /// technique_info("T1557.002") returns ("Adversary-in-the-Middle: ARP Cache Poisoning",
     /// MitreTactic::CredentialAccess). Both resolve via technique_name and technique_tactic.
     ///
     /// Verifies that T0830 and T1557.002 are seeded in the MITRE catalog following the
     /// VP-007 5-part atomic update (SEEDED=25, EMITTED=17; originally absent at SEEDED=23).
     /// EC-012: T0830 and T1557.002 resolve to Some after the 5-part update.
+    ///
+    /// F5 correctness fix: T0830 maps to MitreTactic::IcsCollection (ICS TA0100),
+    /// not MitreTactic::LateralMovement (Enterprise TA0008). The ICS ATT&CK matrix
+    /// places "Adversary-in-the-Middle" under the Collection tactic (TA0100).
     #[test]
     fn test_t0830_and_t1557_002_resolves_in_catalog() {
-        // T0830: "Adversary-in-the-Middle", MitreTactic::LateralMovement
-        // (ADR-008 Decision 6 tactic anchor; ICS ATT&CK v19.1)
+        // T0830: "Adversary-in-the-Middle", MitreTactic::IcsCollection
+        // F5 fix: ICS ATT&CK v19.1 places T0830 under Collection (TA0100), not Lateral Movement.
         let t0830_name = technique_name("T0830");
         assert!(
             t0830_name.is_some(),
@@ -56,9 +60,10 @@ mod story_114_mitre {
         );
         assert_eq!(
             t0830_tactic,
-            Some(MitreTactic::LateralMovement),
-            "AC-011 / BC-2.16.004 Invariant 4 (tactic anchor — ADR-008 Decision 6): T0830 \
-             must map to MitreTactic::LateralMovement. Got: {:?}",
+            Some(MitreTactic::IcsCollection),
+            "AC-011 / BC-2.16.004 Invariant 4 (tactic anchor — F5 correctness fix): T0830 \
+             must map to MitreTactic::IcsCollection (ICS TA0100), NOT LateralMovement (Enterprise TA0008). \
+             ICS ATT&CK places T0830 under Collection (TA0100). Got: {:?}",
             t0830_tactic
         );
 
@@ -138,7 +143,12 @@ mod story_114_mitre {
             ("T1505.003", "Web Shell", MitreTactic::Persistence),
             ("T1573", "Encrypted Channel", MitreTactic::CommandAndControl),
             // ICS pre-F2 (4)
-            ("T0846", "Remote System Discovery", MitreTactic::Discovery),
+            // T0846: F5 fix — IcsDiscovery (ICS TA0102), not Enterprise Discovery (TA0007)
+            (
+                "T0846",
+                "Remote System Discovery",
+                MitreTactic::IcsDiscovery,
+            ),
             (
                 "T1692.001",
                 "Unauthorized Message: Command Message",
@@ -149,10 +159,11 @@ mod story_114_mitre {
                 "Unauthorized Message: Reporting Message",
                 MitreTactic::IcsImpairProcessControl,
             ),
+            // T0885: F5 fix — IcsCommandAndControl (ICS TA0101), not Enterprise C2 (TA0011)
             (
                 "T0885",
                 "Commonly Used Port",
-                MitreTactic::CommandAndControl,
+                MitreTactic::IcsCommandAndControl,
             ),
             // ICS new F2 — STORY-100 (6)
             (
@@ -175,15 +186,13 @@ mod story_114_mitre {
                 "Manipulate I/O Image",
                 MitreTactic::IcsImpairProcessControl,
             ),
-            (
-                "T0831",
-                "Manipulation of Control",
-                MitreTactic::IcsImpairProcessControl,
-            ),
+            // T0831: F5 fix — IcsImpact (ICS TA0105), not IcsImpairProcessControl (TA0106)
+            ("T0831", "Manipulation of Control", MitreTactic::IcsImpact),
+            // T0888: F5 fix — IcsDiscovery (ICS TA0102), not Enterprise Discovery (TA0007)
             (
                 "T0888",
                 "Remote System Information Discovery",
-                MitreTactic::Discovery,
+                MitreTactic::IcsDiscovery,
             ),
             // STORY-109 (2)
             (
@@ -192,11 +201,12 @@ mod story_114_mitre {
                 MitreTactic::IcsInhibitResponseFunction,
             ),
             ("T0827", "Loss of Control", MitreTactic::IcsImpact),
-            // STORY-114 ARP (2) — the additions that make this test RED until impl
+            // STORY-114 ARP (2)
+            // T0830: F5 fix — IcsCollection (ICS TA0100), not LateralMovement (Enterprise TA0008)
             (
                 "T0830",
                 "Adversary-in-the-Middle",
-                MitreTactic::LateralMovement,
+                MitreTactic::IcsCollection,
             ),
             (
                 "T1557.002",
