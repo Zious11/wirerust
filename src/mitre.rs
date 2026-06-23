@@ -302,7 +302,7 @@ mod kani_proofs {
         "T1691.001", // Block OT Message: Command Message (BC-2.15.014; IcsInhibitResponseFunction)
         "T0827",     // Loss of Control (BC-2.15.015; IcsImpact)
         // STORY-114 (2) — VP-007 atomic obligation; ARP D1/D12/GARP-conflict spoof detection.
-        "T0830",     // Adversary-in-the-Middle (BC-2.16.004; LateralMovement)
+        "T0830",     // Adversary-in-the-Middle (BC-2.16.004; IcsCollection/TA0100)
         "T1557.002", // ARP Cache Poisoning (BC-2.16.004; CredentialAccess)
     ];
 
@@ -368,7 +368,7 @@ mod kani_proofs {
 ///
 /// Count history: Post-F2 (STORY-100) 11 Enterprise + 10 ICS = 21 total (pre-STORY-109 subtotal).
 /// STORY-109 (VP-007 atomic obligation) +2 ICS (T1691.001, T0827) = 23 total.
-/// STORY-114 (VP-007 ARP obligation) +2 ARP (T0830 ICS LateralMovement, T1557.002 Enterprise CredentialAccess)
+/// STORY-114 (VP-007 ARP obligation) +2 ARP (T0830 ICS IcsCollection/TA0100, T1557.002 Enterprise CredentialAccess)
 ///   = 25 total (12 Enterprise + 13 ICS; normative split per VP-007 §CC-003).
 /// ICS v19 remap (issue #222): T0855→T1692.001, T0856→T1692.002.
 #[cfg(any(kani, test))]

@@ -8,7 +8,9 @@
 
 use std::collections::HashSet;
 
-use wirerust::mitre::{MitreTactic, all_tactics_in_report_order, technique_name, technique_tactic};
+use wirerust::mitre::{
+    MitreTactic, all_tactics_in_report_order, technique_name, technique_tactic, technique_tactic_id,
+};
 
 // ---------------------------------------------------------------------------
 // AC-001 | BC-2.10.001 postcondition 1
@@ -97,18 +99,18 @@ fn test_ics_impair_process_control_display() {
 
 // ---------------------------------------------------------------------------
 // AC-005 | BC-2.10.003 postcondition 1
-// all_tactics_in_report_order().len() equals 17 (14 Enterprise + 3 ICS).
-// STORY-109 adds MitreTactic::IcsImpact for T0827 (VP-007 atomic obligation),
-// bringing the ICS-unique count from 2 to 3 and the total from 16 to 17.
+// all_tactics_in_report_order().len() equals 20 (14 Enterprise + 6 ICS).
+// F5 adds MitreTactic::IcsDiscovery, IcsCollection, IcsCommandAndControl,
+// bringing the ICS-unique count from 3 to 6 and the total from 17 to 20.
 // ---------------------------------------------------------------------------
 #[test]
-fn test_all_tactics_length_is_16() {
-    // BC-2.10.003 postcondition 1 / invariant 2 (updated STORY-109):
-    // 14 Enterprise + 3 ICS-unique = 17 variants.
+fn test_all_tactics_length_is_20() {
+    // BC-2.10.003 postcondition 1 / invariant 2 (updated F5):
+    // 14 Enterprise + 6 ICS-unique = 20 variants.
     assert_eq!(
         all_tactics_in_report_order().len(),
-        17,
-        "expected 14 Enterprise + 3 ICS-unique = 17 variants (STORY-109 adds IcsImpact)"
+        20,
+        "expected 14 Enterprise + 6 ICS-unique = 20 variants (F5 adds IcsDiscovery, IcsCollection, IcsCommandAndControl)"
     );
 }
 
@@ -142,13 +144,14 @@ fn test_all_tactics_enterprise_kill_chain_order() {
 }
 
 // ---------------------------------------------------------------------------
-// AC-007 | BC-2.10.003 postcondition 3
-// Elements [14] and [15] are IcsInhibitResponseFunction and IcsImpairProcessControl.
+// AC-007 | BC-2.10.003 postconditions 3 and 4
+// Elements [14]-[16] are the first three ICS variants; [17]-[19] are the
+// three new F5 ICS variants: IcsDiscovery, IcsCollection, IcsCommandAndControl.
 // ---------------------------------------------------------------------------
 #[test]
 fn test_all_tactics_ics_at_end() {
-    // BC-2.10.003 postcondition 3: ICS tactics appear after all 14 Enterprise
-    // tactics at positions [14] and [15].
+    // BC-2.10.003 postcondition 3: ICS tactics at positions [14]-[16].
+    // BC-2.10.003 postcondition 4: F5 ICS tactics at positions [17]-[19].
     let tactics = all_tactics_in_report_order();
     assert_eq!(
         tactics[14],
@@ -160,12 +163,33 @@ fn test_all_tactics_ics_at_end() {
         MitreTactic::IcsImpairProcessControl,
         "position [15] must be IcsImpairProcessControl"
     );
+    assert_eq!(
+        tactics[16],
+        MitreTactic::IcsImpact,
+        "position [16] must be IcsImpact (added F2 DNP3, STORY-109)"
+    );
+    // BC-2.10.003 postcondition 4 / EC-007/EC-008/EC-009 (F5 additions):
+    assert_eq!(
+        tactics[17],
+        MitreTactic::IcsDiscovery,
+        "position [17] must be IcsDiscovery (added F5)"
+    );
+    assert_eq!(
+        tactics[18],
+        MitreTactic::IcsCollection,
+        "position [18] must be IcsCollection (added F5)"
+    );
+    assert_eq!(
+        tactics[19],
+        MitreTactic::IcsCommandAndControl,
+        "position [19] must be IcsCommandAndControl (added F5)"
+    );
 }
 
 // ---------------------------------------------------------------------------
 // AC-008 | BC-2.10.004 postcondition 1 & 2
-// Collecting all_tactics_in_report_order() into a HashSet gives size 17.
-// STORY-109 adds MitreTactic::IcsImpact → total 17.
+// Collecting all_tactics_in_report_order() into a HashSet gives size 20.
+// F5 adds IcsDiscovery, IcsCollection, IcsCommandAndControl → total 20.
 // ---------------------------------------------------------------------------
 #[test]
 fn test_all_tactics_no_duplicates() {
@@ -179,14 +203,14 @@ fn test_all_tactics_no_duplicates() {
         tactics.len(),
         "duplicate variant detected in all_tactics_in_report_order()"
     );
-    // STORY-109: IcsImpact added → 17 total (was 16 post-F2).
-    assert_eq!(unique.len(), 17);
+    // F5: IcsDiscovery + IcsCollection + IcsCommandAndControl added → 20 total (was 17).
+    assert_eq!(unique.len(), 20);
 }
 
 // ---------------------------------------------------------------------------
 // AC-009 | BC-2.10.004 postcondition 3
-// No variant omitted — all 17 variants appear in the slice.
-// STORY-109 adds MitreTactic::IcsImpact → total 17.
+// No variant omitted — all 20 variants appear in the slice.
+// F5 adds IcsDiscovery, IcsCollection, IcsCommandAndControl → total 20.
 // ---------------------------------------------------------------------------
 #[test]
 fn test_all_tactics_all_variants_present() {
@@ -213,6 +237,10 @@ fn test_all_tactics_all_variants_present() {
         MitreTactic::IcsImpairProcessControl,
         // STORY-109 (VP-007 atomic obligation) — IcsImpact for T0827
         MitreTactic::IcsImpact,
+        // F5 — 3 new ICS variants for correct ICS-matrix TA-IDs
+        MitreTactic::IcsDiscovery,
+        MitreTactic::IcsCollection,
+        MitreTactic::IcsCommandAndControl,
     ]
     .into_iter()
     .collect();
@@ -315,8 +343,10 @@ fn test_technique_name_returns_none_for_unknown_ids() {
 
 // ---------------------------------------------------------------------------
 // AC-013 + AC-014 | BC-2.10.007 postcondition 2
-// All 21 seeded technique-to-tactic assignments are correct.
+// All seeded technique-to-tactic assignments are correct per MITRE ICS ATT&CK.
 // AC-013 spot-checks T1027 => DefenseEvasion; AC-014 is exhaustive.
+// F5 correctness fix: T0846/T0888 → IcsDiscovery, T0885 → IcsCommandAndControl,
+// T0830 → IcsCollection, T0831 → IcsImpact.
 // ---------------------------------------------------------------------------
 #[test]
 fn test_technique_tactic_correct_assignments() {
@@ -329,7 +359,7 @@ fn test_technique_tactic_correct_assignments() {
     );
 
     // AC-014: exhaustive table per BC-2.10.007 postcondition 2.
-    // Includes all 21 seeded IDs (11 Enterprise + 10 ICS, post-F2 / STORY-100).
+    // F5 correctness fix applied: ICS techniques now use correct ICS-matrix variants.
     let assignments: &[(&str, MitreTactic)] = &[
         // Enterprise (11)
         ("T1027", MitreTactic::DefenseEvasion),
@@ -343,18 +373,30 @@ fn test_technique_tactic_correct_assignments() {
         ("T1499.002", MitreTactic::Impact),
         ("T1505.003", MitreTactic::Persistence),
         ("T1573", MitreTactic::CommandAndControl),
-        // ICS pre-F2 (4) — T0855/T0856 remapped to T1692.001/T1692.002 per v19 (issue #222)
-        ("T0846", MitreTactic::Discovery),
+        // ICS pre-F2 — T0855/T0856 remapped to T1692.001/T1692.002 per v19 (issue #222)
+        // T0846: F5 fix — was Discovery (Enterprise TA0007), now IcsDiscovery (ICS TA0102)
+        ("T0846", MitreTactic::IcsDiscovery),
         ("T1692.001", MitreTactic::IcsImpairProcessControl),
         ("T1692.002", MitreTactic::IcsImpairProcessControl),
-        ("T0885", MitreTactic::CommandAndControl),
+        // T0885: F5 fix — was CommandAndControl (Enterprise TA0011), now IcsCommandAndControl (ICS TA0101)
+        ("T0885", MitreTactic::IcsCommandAndControl),
         // ICS new F2 — STORY-100 additions (6)
         ("T0836", MitreTactic::IcsImpairProcessControl),
         ("T0806", MitreTactic::IcsImpairProcessControl),
+        // T0835: no change — still IcsImpairProcessControl (TA0106) — confirmed correct
         ("T0835", MitreTactic::IcsImpairProcessControl),
-        ("T0831", MitreTactic::IcsImpairProcessControl),
+        // T0831: F5 fix — was IcsImpairProcessControl (TA0106), now IcsImpact (ICS TA0105)
+        ("T0831", MitreTactic::IcsImpact),
         ("T0814", MitreTactic::IcsInhibitResponseFunction),
-        ("T0888", MitreTactic::Discovery),
+        // T0888: F5 fix — was Discovery (Enterprise TA0007), now IcsDiscovery (ICS TA0102)
+        ("T0888", MitreTactic::IcsDiscovery),
+        // STORY-109 additions
+        ("T1691.001", MitreTactic::IcsInhibitResponseFunction),
+        ("T0827", MitreTactic::IcsImpact),
+        // STORY-114 ARP additions
+        // T0830: F5 fix — was LateralMovement (Enterprise TA0008), now IcsCollection (ICS TA0100)
+        ("T0830", MitreTactic::IcsCollection),
+        ("T1557.002", MitreTactic::CredentialAccess),
     ];
 
     for (id, expected_tactic) in assignments {
@@ -364,6 +406,38 @@ fn test_technique_tactic_correct_assignments() {
             "technique_tactic({id:?}) returned unexpected tactic"
         );
     }
+
+    // Explicit technique_tactic_id assertions for the F5-corrected techniques:
+    // T0888 → IcsDiscovery → TA0102
+    assert_eq!(
+        technique_tactic_id("T0888"),
+        Some("TA0102"),
+        "T0888 must resolve to tactic_id TA0102 (IcsDiscovery, ICS ATT&CK)"
+    );
+    // T0846 → IcsDiscovery → TA0102
+    assert_eq!(
+        technique_tactic_id("T0846"),
+        Some("TA0102"),
+        "T0846 must resolve to tactic_id TA0102 (IcsDiscovery, ICS ATT&CK)"
+    );
+    // T0885 → IcsCommandAndControl → TA0101
+    assert_eq!(
+        technique_tactic_id("T0885"),
+        Some("TA0101"),
+        "T0885 must resolve to tactic_id TA0101 (IcsCommandAndControl, ICS ATT&CK)"
+    );
+    // T0830 → IcsCollection → TA0100
+    assert_eq!(
+        technique_tactic_id("T0830"),
+        Some("TA0100"),
+        "T0830 must resolve to tactic_id TA0100 (IcsCollection, ICS ATT&CK)"
+    );
+    // T0831 → IcsImpact → TA0105
+    assert_eq!(
+        technique_tactic_id("T0831"),
+        Some("TA0105"),
+        "T0831 must resolve to tactic_id TA0105 (IcsImpact, ICS ATT&CK)"
+    );
 }
 
 // ---------------------------------------------------------------------------
@@ -553,4 +627,75 @@ fn test_ec_005_first_tactic_is_reconnaissance() {
         MitreTactic::Reconnaissance,
         "first element of kill-chain order must be Reconnaissance"
     );
+}
+
+// ---------------------------------------------------------------------------
+// F5 Pass-1 process-gap hardening | authoritative ICS TA-id table
+//
+// Consolidated value-correctness pin for every ICS technique →
+// technique_tactic_id() mapping, sourced from the F5 authoritative table:
+//   .factory/cycles/feature-mitre-json-names/f5-ics-technique-tactic-authoritative.md
+// (MITRE ATT&CK for ICS v19 / ics-attack-19.1, released 2026-04-20).
+//
+// Process gap from Pass-1: prior tests asserted MitreTactic variants but not
+// the final TA-id string emitted by technique_tactic_id(). A future edit that
+// swaps two valid ICS variants (e.g. IcsCollection↔IcsDiscovery) would produce
+// the correct tactic name but the WRONG TA-id, silently passing tactic-variant
+// tests while breaking TA-id correctness. This test closes that gap by asserting
+// the exact (technique_id → tactic_id string) pair for every ICS technique.
+// ---------------------------------------------------------------------------
+#[test]
+fn test_ics_techniques_resolve_authoritative_tactic_ids() {
+    // Authoritative ICS technique → tactic-id table (MITRE ATT&CK for ICS v19).
+    // Source: f5-ics-technique-tactic-authoritative.md (verified against
+    // attack.mitre.org technique pages via WebFetch during F5 research pass).
+    //
+    // ICS Discovery (TA0102):
+    //   T0888 Remote System Information Discovery → TA0102
+    //   T0846 Remote System Discovery             → TA0102
+    // ICS Command and Control (TA0101):
+    //   T0885 Commonly Used Port                  → TA0101
+    // ICS Collection (TA0100):
+    //   T0830 Adversary-in-the-Middle             → TA0100
+    // ICS Impact (TA0105):
+    //   T0831 Manipulation of Control             → TA0105  (F5 fix: was TA0106)
+    //   T0827 Loss of Control                     → TA0105
+    // ICS Impair Process Control (TA0106):
+    //   T0836 Modify Parameter                    → TA0106
+    //   T0806 Brute Force I/O                     → TA0106
+    //   T0835 Manipulate I/O Image                → TA0106
+    //   T1692.001 Unauthorized Message: Command   → TA0106
+    // ICS Inhibit Response Function (TA0107):
+    //   T0814 Denial of Service                   → TA0107
+    //   T1691.001 Block OT Message: Command       → TA0107
+    let authoritative: &[(&str, &str)] = &[
+        // ICS Discovery — TA0102
+        ("T0888", "TA0102"),
+        ("T0846", "TA0102"),
+        // ICS Command and Control — TA0101
+        ("T0885", "TA0101"),
+        // ICS Collection — TA0100 (F5 remap: T0830 moved from LateralMovement/TA0008)
+        ("T0830", "TA0100"),
+        // ICS Impact — TA0105
+        ("T0831", "TA0105"), // F5 remap: moved from ImpairProcessControl/TA0106
+        ("T0827", "TA0105"),
+        // ICS Impair Process Control — TA0106
+        ("T0836", "TA0106"),
+        ("T0806", "TA0106"),
+        ("T0835", "TA0106"),
+        ("T1692.001", "TA0106"),
+        // ICS Inhibit Response Function — TA0107
+        ("T0814", "TA0107"),
+        ("T1691.001", "TA0107"),
+    ];
+
+    for (id, expected_ta_id) in authoritative {
+        assert_eq!(
+            technique_tactic_id(id),
+            Some(*expected_ta_id),
+            "technique_tactic_id({id:?}) must return {expected_ta_id:?} \
+             per MITRE ATT&CK for ICS v19 authoritative table \
+             (f5-ics-technique-tactic-authoritative.md)"
+        );
+    }
 }
