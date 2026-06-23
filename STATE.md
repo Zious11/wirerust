@@ -1,10 +1,10 @@
 ---
 pipeline: FEATURE
 phase: F7
-phase_status: "feature-mitre-json-names F6 COMPLETE (D-213) — all 5 hardening tasks PASS. F7 delta-convergence + final human gate NEXT."
+phase_status: "feature-mitre-json-names F7 CONVERGED (D-216) — docs PR #308 MERGED (760b6ca). Cycle CONVERGED across all 5 dimensions. Release v0.9.4 IN PROGRESS."
 product: wirerust
 mode: brownfield
-timestamp: 2026-06-23T12:00:00Z
+timestamp: 2026-06-23T18:00:00Z
 
 # Release chain
 released_version: v0.9.3
@@ -24,8 +24,8 @@ v090_release_tag: v0.9.0
 v090_release_commit: 986e148
 
 # Ground-truth HEADs (verified at D-212 — 2026-06-23)
-develop_head: 029725b
-develop_local_note: "develop: 029725b — PR #307 merge commit (fix: correct ICS-matrix tactic IDs). Verify on resume: `git log -1 --format='%h' origin/develop` == 029725b."
+develop_head: 760b6ca
+develop_local_note: "develop: 760b6ca — PR #308 merge commit (docs: F7 mitre tactic doc fixes). Verify on resume: `git log -1 --format='%h' origin/develop` == 760b6ca."
 main_head: 2dbf461
 factory_artifacts_head: "run: git -C .factory log -1 --format='%h %s'"
 
@@ -44,7 +44,7 @@ adversary_gate: SATISFIED
 # Story tracking
 stories_delivered: 78
 current_cycle: feature-mitre-json-names
-current_wave: "Wave 57 — STORY-129 DELIVERED & CLOSED (PR #306 → develop 2fa6606). F5 COMPLETE (PR #307 → develop 029725b, D-212). F6 COMPLETE (D-213): all 5 hardening tasks PASS. F7 delta-convergence NEXT."
+current_wave: "Wave 57 — STORY-129 DELIVERED & CLOSED (PR #306 → develop 2fa6606). F5 COMPLETE (PR #307 → develop 029725b, D-212). F6 COMPLETE (D-213): all 5 hardening tasks PASS. F7 CONVERGED (D-216): docs PR #308 MERGED → develop 760b6ca. Cycle CONVERGED across all 5 dimensions. Release v0.9.4 IN PROGRESS."
 
 # DTU
 dtu_required: false
@@ -81,18 +81,18 @@ convergence_trajectory: "Detail: cycles/v0.1.0-greenfield-spec/convergence-traje
 - Do NOT re-apply the deps fixes: rayon already removed, rand already at 0.8.6 (RUSTSEC-2026-0097 cleared, CI --ignore already removed), zerocopy already bumped (PR #304 e458ce2).
 - Do NOT re-cut the v0.9.3 release (shipped; tag on main 2dbf461, 4 binaries, run 27984557297).
 - Do NOT reopen D-200-era decision threads (a)/(b)/(c) — all three CLOSED.
-- Do NOT re-run F1/F2/F3/F4/F5/F6 for this cycle — all complete (D-206..D-213). Proceed to F7 delta-convergence.
+- Do NOT re-run F1/F2/F3/F4/F5/F6/F7 for this cycle — all complete (D-206..D-216). Cycle CONVERGED. Proceed to release v0.9.4.
 
-### GROUND-TRUTH HEADs (verified at D-212 — 2026-06-23)
+### GROUND-TRUTH HEADs (verified at D-216 — 2026-06-23)
 
 Re-verify on resume before taking any action:
 
-- **develop (remote/canonical):** `029725b` — PR #307 merge commit (fix: correct ICS-matrix tactic IDs). Verify: `git log -1 --format='%h' origin/develop` must equal `029725b`.
+- **develop (remote/canonical):** `760b6ca` — PR #308 merge commit (docs: F7 mitre tactic doc fixes). Verify: `git log -1 --format='%h' origin/develop` must equal `760b6ca`.
 - **main:** `2dbf461` — PR #302 merge commit (`chore: release v0.9.3`); tag `v0.9.3` on this commit. Unchanged.
-- **factory-artifacts:** local == remote at this D-212 commit. Verify: `git -C .factory status` must be clean.
+- **factory-artifacts:** local == remote at this D-216 commit. Verify: `git -C .factory status` must be clean.
 - **Open PRs:** None. Verify: `gh pr list` must return empty.
 - **Worktrees:** main repo (develop) + `.factory/` only. No story/feature worktrees open.
-- **In-flight:** F5/F6 COMPLETE (D-212/D-213). F7 delta-convergence + final human gate NEXT.
+- **In-flight:** F7 CONVERGED (D-216). feature-mitre-json-names cycle CONVERGED across all 5 dimensions. Release v0.9.4 IN PROGRESS.
 
 ### WHAT WAS ACCOMPLISHED SINCE D-203
 
@@ -107,10 +107,10 @@ Re-verify on resume before taking any action:
 
 1. **Run `vsdd-factory:factory-worktree-health`** (BLOCKING) — verify `.factory/` worktree is mounted on `factory-artifacts`, no detached HEAD, no drift.
 2. **Read this STATE.md** in full.
-3. **Verify HEADs:** `git log -1 --format='%h' origin/develop` == `029725b`; `git log -1 --format='%h' main` == `2dbf461`.
+3. **Verify HEADs:** `git log -1 --format='%h' origin/develop` == `760b6ca`; `git log -1 --format='%h' main` == `2dbf461`.
 4. **Confirm open PRs:** `gh pr list` should be empty; `git worktree list` shows main + `.factory` only.
 5. **Confirm both trees clean:** `git status` on develop; `git -C .factory status` on factory-artifacts.
-6. **Active cycle: feature-mitre-json-names** — F1/F2/F3/F4/F5/F6 complete (D-213). Proceed to F7 delta-convergence + final human gate.
+6. **Active cycle: feature-mitre-json-names** — CONVERGED (D-216). F7 delta-convergence COMPLETE. Cycle CONVERGED across all 5 dimensions. Release v0.9.4 in progress.
 
 ### OPEN ITEMS (backlog — non-blocking, no active work)
 
@@ -143,11 +143,11 @@ prd.md v1.34, error-taxonomy v3.8 (next_free E-INP-016), nfr-catalog v2.3, ADR-0
 
 ## Status
 
-**FEATURE MODE — feature-mitre-json-names ACTIVE. GitHub issue #64 CLOSED. F1/F2/F3/F4/F5/F6 COMPLETE. F6 COMPLETE (D-213): all 5 targeted hardening tasks PASS — formal (VP-007 Kani 4/4 re-verified), mutation (49/53 viable mutants killed; 4 survivors = Kani harness bodies = Kani-verified false positives), fuzz (fuzz_decode_packet 5.84M runs/91s zero crashes), security (cargo audit 0 vulns, cargo deny clean), regression (cargo test --all-targets green). Report: cycles/feature-mitre-json-names/f6-hardening.md. F7 delta-convergence + final human gate NEXT. stories_delivered=78.**
+**FEATURE CYCLE CONVERGED — feature-mitre-json-names. GitHub issue #64 CLOSED. F1-F7 ALL COMPLETE (D-216). F7 delta-convergence CONVERGED across all 5 dimensions. Docs PR #308 MERGED → develop 760b6ca. Human authorized close cycle + release v0.9.4. stories_delivered=78. Release v0.9.4 IN PROGRESS.**
 
 **MAINTENANCE SWEEP COMPLETE — maint-2026-06-22 (2026-06-23). 0 blocking. F-MAJ-001 fixed (ARCH-INDEX v1.6 a6efb23). PR #304 deps hygiene (e458ce2) + PR #305 docs drift/ADR-0009 (e4abbe2) merged. 2 LOWs deferred (ADV-4, DRIFT-READER-ADR-CITATION-001); 1 engine-note (DRIFT-ENGINE-PRMGR-BLOCKING-001). Report: .factory/maintenance/sweep-report-2026-06-22.md. Prior run maint-2026-06-17 COMPLETE/archived.**
 
-Latest release: v0.9.3 (main `2dbf461`, tag `v0.9.3`, 4 binaries, run 27984557297). develop=029725b (PR #307 merged). stories_delivered=78.
+Latest release: v0.9.3 (main `2dbf461`, tag `v0.9.3`, 4 binaries, run 27984557297). develop=760b6ca (PR #308 merged). stories_delivered=78. Release v0.9.4 in progress.
 
 ## Phase Progress
 
@@ -179,7 +179,7 @@ Latest release: v0.9.3 (main `2dbf461`, tag `v0.9.3`, 4 binaries, run 2798455729
 | Feature mitre-json-names (issue #64) — F4 PR merge | **COMPLETE 2026-06-23 (D-208)** | PR #306 MERGED → develop 2fa6606 (squash disabled; human merged). Issue #64 CLOSED. CI 10/10. Worktree + branch cleaned up. stories_delivered 77→78. F5 scoped-adversarial NEXT (human-authorized full F5-F7). |
 | Feature mitre-json-names (issue #64) — F5 scoped adversarial | **COMPLETE 2026-06-23 (D-212)** | HIGH finding F-1: ICS tactic-catalog correctness — REMEDIATED (D-209) + per-fix adversarial CONVERGED (D-210) + PR #307 MERGED → develop 029725b (merge-commit; squash disabled; human-authorized). 3 new MitreTactic variants, 5 techniques remapped, all 20 TA-ids verified. Worktree + branch cleaned up. |
 | Feature mitre-json-names (issue #64) — F6 targeted hardening | **COMPLETE 2026-06-23 (D-213)** | All 5 tasks PASS: formal (VP-007 Kani 4/4), mutation (49/53 viable killed; 4 Kani-harness survivors = FP), fuzz (5.84M runs/91s zero crashes), security (0 vulns), regression (all-targets green). Report: cycles/feature-mitre-json-names/f6-hardening.md. |
-| Feature mitre-json-names (issue #64) — F7 delta-convergence | **IN PROGRESS** | Consistency audit COMPLETE (D-214): 3 doc-accuracy gaps found + fixed (F7-CV-001 README ARP tactic column, F7-CV-002 STORY-129 Task-1 stale variant count, F7-CV-003 historical design doc TA0111 ref). Docs PR docs/f7-mitre-tactic-doc-fixes (commit 05ef2ba) pending. F7 final human gate NEXT. |
+| Feature mitre-json-names (issue #64) — F7 delta-convergence | **COMPLETE/CONVERGED (D-216)** | Docs PR #308 MERGED → develop 760b6ca. Cycle CONVERGED across all 5 dimensions. Human authorized close cycle + release v0.9.4. D-216. |
 
 ## Decisions Log
 
@@ -206,6 +206,7 @@ D-136..D-202: `cycles/feature-pcapng-reader/decisions-archive.md` (archived at c
 | D-213 | F6 targeted hardening COMPLETE (all 5 tasks PASS) for the issue #64 feature + ICS catalog fix on develop @ 029725b. Formal: no new VP warranted (mitre_attack path is pure Option-chaining, no panic/indexing/unwrap; technique_tactic_id is compile-exhaustive); VP-007 Kani 4/4 re-verified SUCCESSFUL. Mutation: cargo-mutants on json_dto.rs + mitre.rs = 100% of test-reachable mutants killed (49/53 viable; 4 survivors are #[cfg(kani)] harness bodies = Kani-verified false positives; 0 real test gaps). Fuzz: no JSON-reporter target exists; mitre_attack path panic-free by construction; fuzz_decode_packet 5.84M runs/91s zero crashes. Security: cargo audit 0 vulns, cargo deny clean. Regression: cargo test --all-targets green. Report: cycles/feature-mitre-json-names/f6-hardening.md. F7 delta-convergence + final human gate NEXT. | 2026-06-23 |
 | D-214 | F7 delta-convergence fresh-context consistency audit COMPLETE. Code/tests/BCs/demo FULLY CONSISTENT (all 5 ICS remaps, 20 TA-ids, EC-010 T0830→TA0100, Display strings, slice order 20, terminal grouping, input-hashes STORY-071/100/114/129 MATCH, no dangling renamed-test refs). 3 doc-accuracy gaps found + fixed: F7-CV-001 (MEDIUM, README ARP table Tactic column showed technique name not tactic for T0830/T1557.002 — fixed to 'Collection (ICS), Credential Access') + F7-CV-003 (LOW, historical design doc wrong TA0111→TA0102 + SUPERSEDED banner) shipped via docs PR docs/f7-mitre-tactic-doc-fixes (commit 05ef2ba, develop PR pending); F7-CV-002 (LOW, STORY-129 Task-1 stale '17 variants'→'20') fixed in this burst. F7 final human gate next. | 2026-06-23 |
 | D-215 | F5 sibling-sweep completion (DF-SIBLING-SWEEP-001): propagated the 17→20 MitreTactic variant-count correction across 10 spec artifacts (vp-016 v2.6, BC-2.10.004 v1.6, cap-10 v2.0, cap-11 v1.3, ent-04 v1.4, ent-05 v1.2, nfr-catalog v2.4, test-vectors v2.3, prd v1.35, module-criticality v1.5) — these L2/VP/NFR specs still asserted '17 variants / 14 Enterprise + 3 ICS', contradicting the implemented 20-variant enum. Caught by orchestrator grep during F7 (the F7 consistency-validator scoped to the feature delta and missed the broad count references). Input-hash recomputed for affected stories: STORY-071 d630ed0 (MATCH after recompute), STORY-129 93eba63→b8da7e1 (recomputed). This was an incomplete-propagation gap from the F5 fix; recorded as Lesson 2 in cycles/feature-mitre-json-names/lessons.md. F7 final gate after re-verify. | 2026-06-23 |
+| D-216 | F7 delta-convergence APPROVED; docs PR #308 MERGED to develop (760b6ca); feature cycle feature-mitre-json-names CONVERGED across all 5 dimensions; human authorized close cycle + release v0.9.4; release prep in progress. | 2026-06-23 |
 
 ## Governance Policy
 
@@ -249,3 +250,4 @@ Full policy text: `.factory/policies.yaml`.
 - F6 COMPLETE (D-213): All 5 targeted hardening tasks PASS. Formal (VP-007 Kani 4/4 re-verified; no new VP needed — pure Option-chaining, compile-exhaustive). Mutation (cargo-mutants json_dto.rs+mitre.rs: 49/53 viable killed; 4 survivors = #[cfg(kani)] harness bodies = Kani-verified FP; 0 real test gaps). Fuzz (fuzz_decode_packet 5.84M/91s zero crashes; mitre_attack panic-free by construction). Security (cargo audit 0 vulns, cargo deny clean). Regression (cargo test --all-targets green). Report: cycles/feature-mitre-json-names/f6-hardening.md. F7 delta-convergence + final human gate NEXT.
 - F7 consistency audit COMPLETE (D-214): 3 doc-accuracy gaps found + fixed. F7-CV-001 (MEDIUM): README ARP table Tactic column fixed ('Collection (ICS), Credential Access'). F7-CV-002 (LOW): STORY-129 Task-1 stale '17 variants'→'20' fixed in this burst (input-hash 93eba63 unchanged — verified). F7-CV-003 (LOW): historical design doc TA0111→TA0102 corrected + SUPERSEDED banner added. CV-001 + CV-003 shipped via docs PR docs/f7-mitre-tactic-doc-fixes (commit 05ef2ba, develop PR pending). All core code/tests/BCs FULLY CONSISTENT. F7 final human gate NEXT.
 - F5 sibling-sweep COMPLETE (D-215): 10 spec artifacts updated (vp-016 v2.6, BC-2.10.004 v1.6, cap-10 v2.0, cap-11 v1.3, ent-04 v1.4, ent-05 v1.2, nfr-catalog v2.4, test-vectors v2.3, prd v1.35, module-criticality v1.5). Input-hashes: STORY-071 MATCH (d630ed0), STORY-129 93eba63→b8da7e1. Lesson 2 appended (cycles/feature-mitre-json-names/lessons.md). F7 final human gate NEXT after re-verify.
+- F7 CONVERGED (D-216): docs PR #308 MERGED → develop 760b6ca. Cycle feature-mitre-json-names CONVERGED across all 5 dimensions (code/tests/BCs/specs/docs). Human authorized close cycle + release v0.9.4. Release prep in progress.
