@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.7"
+version: "1.8"
 status: draft
 producer: product-owner
 timestamp: 2026-06-12T02:00:00Z
@@ -18,6 +18,7 @@ modified:
   - "v1.5: Pass-7 remediation F-B7-H01/F-B7-H02: added tactic-anchor cross-reference to Invariant 4 — T0830 maps to MitreTactic::LateralMovement and T1557.002 to MitreTactic::CredentialAccess per ADR-008 Decision 6 (merge-by-name policy); the F3/STORY-114 implementer wires these in technique_info. — 2026-06-12"
   - "v1.6: F3 story-anchor back-fill. — 2026-06-14"
   - "v1.7: Pass-21 HIGH remediation: requalified VP-024 Sub-C in all three loci (Verification Properties table, VP Anchors section, Purity Classification) as INDIRECT/substrate dependency only — Sub-C's primary anchor is BC-2.16.005; BC-2.16.004 is NOT a VP-024 Sub-C formally-verified BC; D1 spoof-escalation postconditions remain unit-tested per EC coverage. — 2026-06-14"
+  - "v1.8: F5 ICS tactic-ID correctness fix (issue #64 follow-up). Invariant 4 tactic anchor corrected: T0830 maps to MitreTactic::IcsCollection (ICS Collection, TA0100) NOT MitreTactic::LateralMovement (TA0008). ADR-008 Decision 6 merge-by-name policy for T0830 is SUPERSEDED by f5-ics-technique-tactic-authoritative.md (VALIDATED; MITRE ATT&CK for ICS v19.1, page-verified: https://attack.mitre.org/techniques/T0830/ assigns Collection/TA0100). The F5 implementer wires IcsCollection in technique_info; BC-2.10.007 v1.9 carries the updated tactic row. — 2026-06-23"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -125,9 +126,15 @@ There is no "first rebind is always MEDIUM" guarantee when threshold=1.
 4. **MITRE tagging**: T0830 (ICS AiTM, v2.0, ATT&CK v19.1, current) and T1557.002 (Enterprise
    ARP Cache Poisoning, current). Dual-tagging is the wirerust convention for techniques that
    appear in both ICS and Enterprise matrices.
-   **Tactic anchors (ADR-008 Decision 6 — merge-by-name policy):** T0830 maps to
-   `MitreTactic::LateralMovement` and T1557.002 maps to `MitreTactic::CredentialAccess`; the
-   F3/STORY-114 implementer wires these in `technique_info`. Normative source: ADR-008 Decision 6.
+   **Tactic anchors (F5 correction — ADR-008 Decision 6 superseded for T0830):** T0830 maps to
+   `MitreTactic::IcsCollection` (ICS Collection, TA0100) per MITRE ATT&CK for ICS v19.1
+   (page-verified: https://attack.mitre.org/techniques/T0830/ — single tactic: Collection/TA0100).
+   ADR-008 Decision 6 merge-by-name policy previously assigned T0830→LateralMovement; that
+   assignment is WRONG and is superseded by the validated F5 research
+   (f5-ics-technique-tactic-authoritative.md). T1557.002 maps to `MitreTactic::CredentialAccess`
+   (TA0006, Enterprise) — unchanged. The F5 implementer must update the T0830 arm in
+   `technique_info` from `LateralMovement` to `IcsCollection`. Normative source: MITRE ATT&CK
+   for ICS v19.1; f5-ics-technique-tactic-authoritative.md (VALIDATED); BC-2.10.007 v1.9.
 5. **Not a stateless detection**: D1 is stateful — it requires the binding table. Frames before
    the first binding for an IP do not emit a spoof finding (the first observation initializes
    the binding).

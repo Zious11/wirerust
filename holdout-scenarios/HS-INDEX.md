@@ -504,10 +504,11 @@ All other checks passed for the greenfield set:
 > STORY-114 (wave 43): D1 spoof HIGH escalation + MITRE emission + VP-007 5-part atomic update
 > STORY-115 (wave 44): D3 storm detection + --arp-storm-rate CLI flag + wires value of BC-2.16.010 storm_findings key (key 8 of 11; defined from STORY-113)
 >
-> **MITRE techniques:** T0830 (Adversary-in-the-Middle, `MitreTactic::LateralMovement`);
+> **MITRE techniques:** T0830 (Adversary-in-the-Middle, `MitreTactic::IcsCollection`, TA0100);
 > T1557.002 (ARP Cache Poisoning, `MitreTactic::CredentialAccess`).
-> (Corrected from v1.1: IcsImpairProcessControl was incorrect for T0830; merge-by-name per
-> mitre.rs convention maps T0830 → LateralMovement per arp-architecture-delta.md §5.)
+> (Corrected from v1.1: IcsImpairProcessControl was incorrect for T0830; corrected again from v1.2:
+> LateralMovement/TA0008 was also incorrect — canonical ICS ATT&CK v15 tactic for T0830 is
+> Collection (ICS), TA0100, MitreTactic::IcsCollection.)
 
 ### Wave 40 — etherparse Migration, DecodedFrame Enum, BC-2.02.009 Revision (STORY-111)
 
@@ -555,7 +556,7 @@ All other checks passed for the greenfield set:
 
 > Gate: D1 spoof MEDIUM→HIGH escalation (rebind_count >= threshold within window);
 > --arp-spoof-threshold=1 → HIGH on first rebind; GARP-that-conflicts dual-finding;
-> T0830 (LateralMovement) + T1557.002 (CredentialAccess) emitted; VP-007 5-part atomic
+> T0830 (IcsCollection, TA0100) + T1557.002 (CredentialAccess) emitted; VP-007 5-part atomic
 > update passes `cargo test mitre`.
 
 | HS ID | Title | Priority | BCs |
@@ -564,7 +565,7 @@ All other checks passed for the greenfield set:
 | HS-W43-002 | --arp-spoof-threshold 1 — HIGH on first rebind (no MEDIUM first); T0830+T1557.002 | P0 | BC-2.16.004 EC-008, BC-2.16.012 |
 | HS-W43-003 | GARP-That-Conflicts — GARP MEDIUM + D1 finding (MEDIUM or HIGH per escalation state) | P0 | BC-2.16.014, BC-2.16.004 |
 | HS-W43-004 | VP-007 Atomic — T0830 + T1557.002 arms in technique_info; SEEDED=25; EMITTED=17; cargo test mitre green (after STORY-114 merges) | P0 | VP-007 (5-part atomic update) |
-| HS-W43-005 | D12 MITRE Attachment — same outer-MAC-mismatch frame as HS-W42-004 now carries mitre_techniques: [T0830, T1557.002]; technique_info arms resolve (LateralMovement, CredentialAccess per ADR-008 Decision 6); co-committed with src/mitre.rs catalog seeding (Pass-12 D12-MITRE sequencing fix; see BC-2.16.007's cross-story delivery note and wave-40-44-holdout.md HS-W42-ARP-D11D12 Scenario D) | P0 | BC-2.16.007, VP-007 |
+| HS-W43-005 | D12 MITRE Attachment — same outer-MAC-mismatch frame as HS-W42-004 now carries mitre_techniques: [T0830, T1557.002]; technique_info arms resolve (IcsCollection/TA0100, CredentialAccess per ADR-008 Decision 6 — corrected from LateralMovement); co-committed with src/mitre.rs catalog seeding (Pass-12 D12-MITRE sequencing fix; see BC-2.16.007's cross-story delivery note and wave-40-44-holdout.md HS-W42-ARP-D11D12 Scenario D) | P0 | BC-2.16.007, VP-007 |
 
 ### Wave 44 — D3 Storm Detection, CLI Flags, End-to-End (STORY-115)
 

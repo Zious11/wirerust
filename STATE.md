@@ -1,10 +1,10 @@
 ---
 pipeline: FEATURE
-phase: F4
-phase_status: "feature-mitre-json-names F4 COMPLETE — STORY-129 PR #306 MERGED to develop (2fa6606). Issue #64 CLOSED. stories_delivered 77→78. Human authorized FULL F5-F7. F5 scoped-adversarial NEXT."
+phase: F5
+phase_status: "feature-mitre-json-names F5 IN PROGRESS — F-1 HIGH (ICS tactic-catalog correctness) REMEDIATED (D-209). 5 BCs bumped, 3 holdouts corrected, 4 stories recomputed (all MATCH). fix/ics-tactic-ids: 3 new MitreTactic variants, 5 techniques remapped (719816e). Full suite green, clippy/fmt clean. Per-story adversarial convergence + fix-PR NEXT."
 product: wirerust
 mode: brownfield
-timestamp: 2026-06-23T04:00:00Z
+timestamp: 2026-06-23T06:00:00Z
 
 # Release chain
 released_version: v0.9.3
@@ -134,13 +134,13 @@ Re-verify on resume before taking any action:
 
 ### SPEC VERSIONS (at feature-mitre-json-names F3 close — D-206)
 
-prd.md v1.34, error-taxonomy v3.8 (next_free E-INP-016), nfr-catalog v2.3, ADR-009 rev 13, VP-INDEX v2.10 (total 31, 31/31 verified), BC-INDEX v1.70 (303 active BCs), BC-2.11.035 v1.0 (new), BC-2.11.001 v1.7, interface-definitions v1.3, STORY-INDEX v2.7 (82 stories / 57 waves / 526 pts). Prior at FE-001 close: prd.md v1.33, BC-INDEX v1.69, 302 active BCs.
+prd.md v1.34, error-taxonomy v3.8 (next_free E-INP-016), nfr-catalog v2.3, ADR-009 rev 13, VP-INDEX v2.10 (total 31, 31/31 verified), BC-INDEX v1.71 (303 active BCs; 5 BCs version-bumped for F5 ICS catalog fix — D-209), BC-2.11.035 v1.1, BC-2.10.002 v1.6, BC-2.10.003 v1.5, BC-2.10.007 v1.9, BC-2.16.004 v1.8, BC-2.11.001 v1.7, interface-definitions v1.3, STORY-INDEX v2.7 (82 stories / 57 waves / 526 pts). Prior at FE-001 close: prd.md v1.33, BC-INDEX v1.69, 302 active BCs.
 
 ---
 
 ## Status
 
-**FEATURE MODE — feature-mitre-json-names ACTIVE (D-208). GitHub issue #64 CLOSED. F1/F2/F3/F4 COMPLETE. STORY-129 PR #306 MERGED to develop (2fa6606, squash disabled). stories_delivered=78. Human authorized FULL F5-F7. F5 scoped-adversarial NEXT.**
+**FEATURE MODE — feature-mitre-json-names ACTIVE (D-209). GitHub issue #64 CLOSED. F1/F2/F3/F4 COMPLETE. F5 IN PROGRESS — F-1 HIGH (ICS tactic-catalog correctness) REMEDIATED. 5 BCs bumped (BC-2.10.002/003/007, BC-2.11.035, BC-2.16.004), 3 holdouts corrected, STORY-071/100/114/129 citations + input-hashes recomputed (all MATCH). fix/ics-tactic-ids: 3 new MitreTactic variants (IcsDiscovery TA0102, IcsCollection TA0100, IcsCommandAndControl TA0101); 5 techniques remapped; src/mitre.rs 719816e; demo 74a48ea. Full suite green. Per-story adversarial convergence + fix-PR NEXT. stories_delivered=78.**
 
 **MAINTENANCE SWEEP COMPLETE — maint-2026-06-22 (2026-06-23). 0 blocking. F-MAJ-001 fixed (ARCH-INDEX v1.6 a6efb23). PR #304 deps hygiene (e458ce2) + PR #305 docs drift/ADR-0009 (e4abbe2) merged. 2 LOWs deferred (ADV-4, DRIFT-READER-ADR-CITATION-001); 1 engine-note (DRIFT-ENGINE-PRMGR-BLOCKING-001). Report: .factory/maintenance/sweep-report-2026-06-22.md. Prior run maint-2026-06-17 COMPLETE/archived.**
 
@@ -174,6 +174,7 @@ Latest release: v0.9.3 (main `2dbf461`, tag `v0.9.3`, 4 binaries, run 2798455729
 | Feature mitre-json-names (issue #64) — F3 | PASSED 2026-06-23 | STORY-129 authored (Wave 57, 5 pts, input-hash 2a5cee9, depends_on []); STORY-INDEX v2.7. |
 | Feature mitre-json-names (issue #64) — F4 + Step-4.5 convergence | **PASSED 2026-06-23 (D-207)** | STORY-129 implemented; 13 tests (EC-001..010); 3 adversarial passes clean (b8fea97/6d8f172/7e020ce, 0 HIGH/CRIT); full gates green. Trajectory: 3L→1M1L→1L(+process-gap). Demo: modbus-write.pcap T1692.001/T0836→TA0106. |
 | Feature mitre-json-names (issue #64) — F4 PR merge | **COMPLETE 2026-06-23 (D-208)** | PR #306 MERGED → develop 2fa6606 (squash disabled; human merged). Issue #64 CLOSED. CI 10/10. Worktree + branch cleaned up. stories_delivered 77→78. F5 scoped-adversarial NEXT (human-authorized full F5-F7). |
+| Feature mitre-json-names (issue #64) — F5 scoped adversarial | **IN PROGRESS (D-209)** | HIGH finding F-1: ICS techniques emitting Enterprise tactic IDs. Research-validated vs MITRE ATT&CK ICS v19.1 (also found T0830→IcsCollection, T0831→IcsImpact). Human authorized comprehensive catalog fix. fix/ics-tactic-ids: 3 new MitreTactic variants, 5 techniques remapped (719816e). 5 BCs bumped, 3 holdouts corrected, 4 stories MATCH. Demo re-recorded (74a48ea). Per-story adversarial convergence + fix-PR NEXT. |
 
 ## Decisions Log
 
@@ -193,6 +194,7 @@ D-136..D-202: `cycles/feature-pcapng-reader/decisions-archive.md` (archived at c
 | D-206 | Feature Mode opened for GitHub issue #64 (inline MITRE tactic/name in JSON). F1 delta analysis complete (1 BC, 1 story, additive/non-breaking). Research-agent override of the initial flat-field design: adopt an order-preserving ARRAY of per-technique objects under new field `mitre_attack` (id, name?, tactic_id?, tactic_name?, reference), aligning with ECS/OCSF; raw `mitre_techniques` unchanged. Human-approved field name `mitre_attack` and array design. F2 complete: BC-2.11.035 authored (10 ACs); BC-INDEX v1.70, PRD v1.34, interface-definitions v1.3, BC-2.11.001 v1.7. Catalog extension in scope: add `technique_tactic_id()` to src/mitre.rs (tactic_id not currently exposed; reference synthesized from technique ID). F3 complete: STORY-129 (Wave 57, ~5 pts, input-hash 2a5cee9, depends_on []); STORY-INDEX v2.7. No new Verification Property (pure Option-chaining over Kani-verified VP-007 → test-sufficient). F4 TDD implementation next. | 2026-06-23 |
 | D-207 | STORY-129 (issue #64 mitre_attack JSON enrichment) per-story adversarial convergence CONVERGED: 3 clean fresh-context passes (b8fea97/6d8f172/7e020ce), zero HIGH/CRITICAL. 13 BC-2.11.035 tests (EC-001..010 fully covered), full gates green (cargo test --all-targets, clippy -D warnings, fmt). Demo evidence recorded (modbus-write.pcap, T1692.001/T0836→TA0106). Process-gap DRIFT-BC-TEMPLATE-EC-VP-MAP-001 deferred (engine BC-template, LOW). PR next. | 2026-06-23 |
 | D-208 | STORY-129 (issue #64 mitre_attack JSON enrichment) PR #306 MERGED to develop via merge commit 2fa6606 (squash disabled on repo; human merged). Issue #64 CLOSED. pr-reviewer APPROVE + security-reviewer PASS (no CRITICAL/HIGH; technique IDs are compile-time literals, serde-escaped, bounded alloc). CI 10/10. Worktree + branch cleaned up; develop ff to 2fa6606. stories_delivered 77→78. Human authorized FULL F5-F7. F5 scoped-adversarial next. | 2026-06-23 |
+| D-209 | F5 scoped adversarial found HIGH finding F-1: ICS techniques emitted Enterprise tactic IDs (Discovery TA0007 not ICS TA0102, etc.) under mitre_domain=ics-attack; research-validated against MITRE ATT&CK ICS v19.1 and found a 2nd bug (T0830 Adversary-in-the-Middle is Collection/TA0100 not Lateral Movement, and T0831 Manipulation of Control is Impact/TA0105 not Impair Process Control). Human authorized comprehensive catalog fix. Fix on branch fix/ics-tactic-ids: 3 new MitreTactic variants (IcsDiscovery TA0102, IcsCollection TA0100, IcsCommandAndControl TA0101); 5 techniques remapped (T0846/T0888→IcsDiscovery, T0885→IcsCommandAndControl, T0830→IcsCollection, T0831→IcsImpact). src/mitre.rs commit 719816e; demo re-recorded 74a48ea. 5 BCs bumped (BC-2.10.002 v1.5→v1.6, BC-2.10.003 v1.4→v1.5, BC-2.10.007 v1.8→v1.9, BC-2.11.035 v1.0→v1.1, BC-2.16.004 v1.7→v1.8), 3 holdouts corrected (wave-31-holdout.md, wave-40-44-holdout.md, HS-INDEX.md), STORY-129 EC-010 test renamed ec010_ics_collection, input-hashes recomputed (STORY-071/100/114/129 all MATCH; STORY-129 2a5cee9→93eba63). BC-INDEX v1.70→v1.71. Full suite green, clippy/fmt clean. Per-story adversarial convergence + fix-PR next. | 2026-06-23 |
 
 ## Governance Policy
 
@@ -229,3 +231,4 @@ Full policy text: `.factory/policies.yaml`.
 - F4 + Step-4.5 convergence COMPLETE (D-207): `technique_tactic_id()` in src/mitre.rs, `FindingJsonDto`/`MitreAttackEntry` in src/reporter/json_dto.rs, all 13 tests green (EC-001..010), 3 adversarial passes clean. PR merged (D-208).
 - Input-hash verification at D-206: `bin/compute-input-hash .factory/stories/STORY-129.md` == `2a5cee9` (MATCH — confirmed at commit time).
 - STORY-129 DELIVERED & CLOSED (D-208): PR #306 → develop 2fa6606. Issue #64 CLOSED. stories_delivered=78. F5 scoped-adversarial NEXT (human-authorized full F5-F7).
+- F5 HIGH finding F-1 REMEDIATED (D-209): ICS tactic-catalog correctness fix. fix/ics-tactic-ids 719816e. BC-INDEX v1.71. 5 BCs bumped. STORY-071/100/114/129 all MATCH. Per-story adversarial convergence + fix-PR NEXT.

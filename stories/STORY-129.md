@@ -38,7 +38,7 @@ inputs:
 #   by SS-11 per BC-2.11.035 Architecture Anchors — the mitre module is part of
 #   the reporter pipeline supporting data. ARCH-INDEX designates SS-11 as the
 #   Reporting and Output subsystem per CAP-11.
-input-hash: "2a5cee9"
+input-hash: "93eba63"
 ---
 
 # STORY-129: Emit Per-Finding `mitre_attack` Array in JSON Output
@@ -214,7 +214,7 @@ wrapper type is consistent); BC-2.11.035 Architecture Anchors.
 | EC-007 | `mitre_techniques = ["T1046", "T9999", "T1046"]` — known + unknown + duplicate | Three elements; index 0 full, index 1 partial, index 2 full (duplicate); no deduplication |
 | EC-008 | Mixed batch: one finding with mitre_techniques, one without | `mitre_attack` absent only on the empty-vec finding; other findings unaffected |
 | EC-009 | `mitre_techniques = ["T1557.002"]` — Enterprise sub-technique (CredentialAccess) | tactic_id=TA0006, tactic_name=Credential Access; dot preserved |
-| EC-010 | `mitre_techniques = ["T0830"]` — ICS lateral movement | tactic_id=TA0008, tactic_name=Lateral Movement (same TA-id as Enterprise LateralMovement) |
+| EC-010 | `mitre_techniques = ["T0830"]` — ICS Collection | tactic_id=TA0100, tactic_name=Collection (ICS) |
 
 ## Tasks
 
@@ -268,7 +268,7 @@ wrapper type is consistent); BC-2.11.035 Architecture Anchors.
    - `test_BC_2_11_035_terminal_unaffected` (AC-10)
    - `test_BC_2_11_035_mixed_batch_per_finding_independence` (EC-008)
    - `test_BC_2_11_035_ec009_enterprise_subtechnique` (EC-009)
-   - `test_BC_2_11_035_ec010_ics_lateral_movement` (EC-010)
+   - `test_BC_2_11_035_ec010_ics_collection` (EC-010)
    Each test: construct a `Finding` directly, call the appropriate reporter, parse or
    inspect the output, assert the structural contract.
 
@@ -291,7 +291,7 @@ wrapper type is consistent); BC-2.11.035 Architecture Anchors.
 | AC-10 | `test_BC_2_11_035_terminal_unaffected` | Unit |
 | EC-008 | `test_BC_2_11_035_mixed_batch_per_finding_independence` | Unit |
 | EC-009 | `test_BC_2_11_035_ec009_enterprise_subtechnique` | Unit |
-| EC-010 | `test_BC_2_11_035_ec010_ics_lateral_movement` | Unit |
+| EC-010 | `test_BC_2_11_035_ec010_ics_collection` | Unit |
 
 ## Previous Story Intelligence
 

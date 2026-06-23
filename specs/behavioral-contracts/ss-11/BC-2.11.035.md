@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.0"
+version: "1.1"
 status: draft
 producer: product-owner
 timestamp: 2026-06-22T00:00:00Z
@@ -12,7 +12,8 @@ subsystem: SS-11
 capability: CAP-11
 lifecycle_status: active
 introduced: v0.11.0
-modified: []
+modified:
+  - "v1.1: F5 ICS tactic-ID correctness fix (issue #64 follow-up). EC-010 corrected: T0830 (Adversary-in-the-Middle ICS) tactic_id TA0008→TA0100, tactic_name 'Lateral Movement'→'Collection (ICS)' per MITRE ICS v19.1 (f5-ics-technique-tactic-authoritative.md VALIDATED). Catalog Extension table gains 3 new rows: IcsDiscovery→TA0102, IcsCollection→TA0100, IcsCommandAndControl→TA0101. Note: existing test test_BC_2_11_035_ec010_ics_lateral_movement encodes the old wrong values — test-writer must update assertions (tactic_id TA0008→TA0100, tactic_name 'Lateral Movement'→'Collection (ICS)') and may rename the test function. — 2026-06-23"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -65,6 +66,9 @@ maps each `MitreTactic` variant to its canonical MITRE ATT&CK tactic ID string:
 | IcsInhibitResponseFunction     | TA0107              |
 | IcsImpairProcessControl        | TA0106              |
 | IcsImpact                      | TA0105              |
+| IcsDiscovery                   | TA0102              |
+| IcsCollection                  | TA0100              |
+| IcsCommandAndControl           | TA0101              |
 
 The `tactic_id` field on a technique object is `skip_serializing_if = "Option::is_none"` — it
 is omitted only when `technique_tactic_id` returns `None` (which cannot happen for any
@@ -152,7 +156,7 @@ from the ID alone and is always useful to consumers regardless of catalog comple
 | EC-007 | `mitre_techniques = ["T1046", "T9999", "T1046"]` — mix of known, unknown, and duplicate | Three elements in order: index 0 fully resolved, index 1 partial (id+reference only), index 2 fully resolved (duplicate of index 0). No deduplication. |
 | EC-008 | Finding with no `mitre_techniques` key in JSON output (EC-001 situation) in a report with other findings that DO have `mitre_attack` arrays | `"mitre_attack"` absent only on the empty-vec finding; other findings unaffected. Batch serialization is per-finding independent. |
 | EC-009 | `mitre_techniques = ["T1557.002"]` — Enterprise sub-technique (ARP, CredentialAccess) | `"mitre_attack": [{"id": "T1557.002", "name": "Adversary-in-the-Middle: ARP Cache Poisoning", "tactic_id": "TA0006", "tactic_name": "Credential Access", "reference": "https://attack.mitre.org/techniques/T1557.002/"}]` |
-| EC-010 | `mitre_techniques = ["T0830"]` — ICS lateral movement (LateralMovement, same tactic-id as Enterprise LateralMovement) | `"mitre_attack": [{"id": "T0830", "name": "Adversary-in-the-Middle", "tactic_id": "TA0008", "tactic_name": "Lateral Movement", "reference": "https://attack.mitre.org/techniques/T0830/"}]` |
+| EC-010 | `mitre_techniques = ["T0830"]` — ICS Collection technique (IcsCollection, TA0100; F5 correction from prior wrong assignment of LateralMovement TA0008) | `"mitre_attack": [{"id": "T0830", "name": "Adversary-in-the-Middle", "tactic_id": "TA0100", "tactic_name": "Collection (ICS)", "reference": "https://attack.mitre.org/techniques/T0830/"}]` |
 
 ## Canonical Test Vectors
 

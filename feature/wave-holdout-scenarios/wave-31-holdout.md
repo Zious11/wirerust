@@ -168,8 +168,8 @@ Run through all three reporters.
 | T0814 | "Denial of Service" | IcsInhibitResponseFunction |
 | T0806 | "Brute Force I/O" | IcsImpairProcessControl |
 | T0835 | "Manipulate I/O Image" | IcsImpairProcessControl |
-| T0831 | "Manipulation of Control" | IcsImpairProcessControl |
-| T0888 | "Remote System Information Discovery" | Discovery |
+| T0831 | "Manipulation of Control" | IcsImpact |
+| T0888 | "Remote System Information Discovery" | IcsDiscovery |
 
 **Additional assertions:**
 - `SEEDED_TECHNIQUE_ID_COUNT == 21` (was 15).

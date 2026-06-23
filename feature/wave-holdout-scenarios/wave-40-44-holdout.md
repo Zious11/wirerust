@@ -42,8 +42,8 @@ forward_declarations:
 > implementation source code. Pass/fail is determined solely by matching the EXACT EXPECTED
 > OUTPUT specified in each scenario.
 >
-> **MITRE discipline:** ARP findings carry T0830 (ICS Lateral Movement,
-> MitreTactic::LateralMovement) and/or T1557.002 (Enterprise Credential Access,
+> **MITRE discipline:** ARP findings carry T0830 (ICS Collection,
+> MitreTactic::IcsCollection, TA0100) and/or T1557.002 (Enterprise Credential Access,
 > MitreTactic::CredentialAccess) for D1/D2(conflicts)/D12. D3 storm carries no MITRE tag
 > (T0814 deferred per DF-VALIDATION-001). D11 malformed carries no MITRE tag.
 >
@@ -70,7 +70,7 @@ forward_declarations:
 **Scope:** STORY-114 (BC-2.16.004, BC-2.16.012)
 **Priority:** P0 (must-pass)
 **Wave:** 43
-**MITRE:** T0830 (LateralMovement), T1557.002 (CredentialAccess)
+**MITRE:** T0830 (IcsCollection, TA0100), T1557.002 (CredentialAccess)
 **assumption_source:** null
 **risk_source:** null
 
@@ -344,7 +344,7 @@ After STORY-114 merges, re-run the Scenario B input against the STORY-114 implem
 **Assertions (per BC-2.16.007 final-state postconditions, post-STORY-114):**
 1. Exactly one D12 finding emitted with confidence MEDIUM.
 2. Finding techniques: ["T0830", "T1557.002"] (catalog now seeded; attachment applied).
-3. `technique_info` for T0830 resolves to a non-empty entry (LateralMovement tactic arm per ADR-008 Decision 6).
+3. `technique_info` for T0830 resolves to a non-empty entry (IcsCollection / TA0100 tactic arm per ADR-008 Decision 6 — corrected from LateralMovement).
 4. `technique_info` for T1557.002 resolves to a non-empty entry (CredentialAccess tactic arm per ADR-008 Decision 6).
 5. `cargo test mitre` green — EMITTED_IDS includes T0830 and T1557.002 (VP-007 5-part atomic assertion).
 6. Summary contains both MAC addresses (outer and sender) — unchanged from Scenario B.
