@@ -4,11 +4,14 @@ traces_to: ../domain-spec.md
 title: Entities -- Semantic Enums and Value Objects
 status: descriptive (brownfield) -- reconciled against develop HEAD 0082a0c
 reconciled: 2026-05-20
-version: "1.1"
+version: "1.2"
 modified:
   - date: 2026-06-12
     actor: product-owner
     reason: "Pass-10 remediation F-D10-L02: stale 'MitreTactic (E-27) 16 variants (14 Enterprise + 2 ICS)' corrected to '17 variants (14 Enterprise + 3 ICS-unique incl. IcsImpact)' per cap-10 v1.6 and BC-2.10.004 v1.5. IcsImpact was added in Feature #8 (issue #8, ADR-007)."
+  - date: 2026-06-23
+    actor: product-owner
+    reason: "F5 ICS tactic-ID correctness fix (D-209, DF-SIBLING-SWEEP-001): MitreTactic (E-27) variant count 17→20 (14 Enterprise + 6 ICS). Three new ICS-unique variants: IcsDiscovery (TA0102), IcsCollection (TA0100), IcsCommandAndControl (TA0101). Version 1.1→1.2."
 ---
 
 # Entities: Semantic Enums and Value Objects
@@ -25,7 +28,7 @@ domain model. Source: pass-2-domain-model.md sections 2 and 4.
 | Verdict (E-23) | findings.rs | Likely, Unlikely, Inconclusive | YES | P2.10 / #76 |
 | Confidence (E-24) | findings.rs | High, Medium, Low | YES | P2.10 / #76 |
 | ThreatCategory (E-25) | findings.rs | 8 variants | YES | P2.10 / #76; LateralMovement/C2 never emitted |
-| MitreTactic (E-27) | mitre.rs | 17 variants (14 Enterprise + 3 ICS-unique incl. IcsImpact) | YES | non_exhaustive since initial impl |
+| MitreTactic (E-27) | mitre.rs | 20 variants (14 Enterprise + 6 ICS-unique: IcsInhibitResponseFunction, IcsImpairProcessControl, IcsImpact, IcsDiscovery, IcsCollection, IcsCommandAndControl) | YES | non_exhaustive since initial impl; 3 ICS variants added F5 D-209 |
 | FlowState (E-10) | flow.rs | New, SynSent, Established, Closing, Closed | No | Monotonic toward Closed |
 | CloseReason (E-15) | handler.rs | Fin, Rst, Timeout, MemoryPressure | No | Ignored by analyzers |
 | Direction (E-14) | handler.rs | ClientToServer, ServerToClient | No | Binary; no Unknown |

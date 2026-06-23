@@ -5,7 +5,7 @@ cap_id: CAP-11
 title: Reporting and Output
 status: descriptive (brownfield) -- reconciled against develop HEAD 0082a0c
 reconciled: 2026-05-20
-version: "1.2"
+version: "1.3"
 modified:
   - date: 2026-06-12
     actor: product-owner
@@ -13,6 +13,9 @@ modified:
   - date: 2026-06-13
     actor: product-owner
     reason: "ARP-F2 Pass-14 remediation: CSV header column updated mitre_technique→mitre_techniques (verified against csv.rs:69; shipped header uses plural form; semicolon-joined for multi-technique vecs per ADR-006 Decision 13). JSON Option fields: 'all four Option fields' corrected to 'three remaining Option fields (source_ip, timestamp, direction)' — mitre_techniques is Vec<String> not Option. Timestamp note updated: O-01 is closed (wired in STORY-097/098/099). Version 1.1→1.2."
+  - date: 2026-06-23
+    actor: product-owner
+    reason: "F5 ICS tactic-ID correctness fix (D-209, DF-SIBLING-SWEEP-001): MitreTactic variant count 17→20 in MITRE tactic grouping prose. Version 1.2→1.3."
 ---
 
 # CAP-11: Reporting and Output
@@ -73,7 +76,7 @@ Color testing is documented as intentionally untested (ADR 0003 amendment recomm
 BC-RPT-018 keep-MEDIUM).
 
 **MITRE tactic grouping:** rendered when `show_mitre_grouping = true`. Uses
-`all_tactics_in_report_order()` for stable iteration over the 17 MitreTactic variants.
+`all_tactics_in_report_order()` for stable iteration over the 20 MitreTactic variants.
 
 **U+2192 in output (BC-RAS-049):** The finalize segment-limit finding uses `->` in its
 display path, which in context involves U+2192 (RIGHT ARROW). This is NOT ASCII `->`. Any

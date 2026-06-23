@@ -1,7 +1,7 @@
 ---
 document_type: prd-supplement-test-vectors
 level: L3
-version: "2.2"
+version: "2.3"
 status: draft
 producer: product-owner
 timestamp: 2026-06-12T02:00:00Z
@@ -32,6 +32,7 @@ modified:
   - "v1.7: Pass-9 remediation F-C-P9-002: BC-2.10.004 version citation updated v1.4→v1.5 (file is at v1.5 per pass-7 F-C-P7-003 remediation). F-C-P9-004: SS-10 unknown-ID canary updated UNKNOWN999→T9999 and category happy-path→edge-case to match BC-2.10.005/BC-2.10.006 canonical canary and mitre.rs Kani verify_unknown_id_returns_none_no_panic. — 2026-06-12"
   - "v2.0: ARP-F2 Pass-14 remediation C-05 + 12 stale snippets: (C-05) removed src/analyzer/arp.rs from inputs (not in develop HEAD; forward-reference to STORY-111); set input-hash to N/A with deferred-hash rationale comment. (12 stale snippets) converted all mitre_technique:Some('X') / 'mitre_technique':'X' occurrences to mitre_techniques:vec!['X'] / 'mitre_techniques':['X'] form per STALE discrimination rule; updated skip-serialization/empty-semantics prose (lines ~279/280/342) to Vec/empty-vec/key-absent form. Version 1.9→2.0. — 2026-06-13"
   - "v2.1: P19 straggler anchor sweep — BC-2.06.005 Notes http.rs:193→:205 (path-traversal push); BC-2.07.014 Notes tls.rs:426-448→:437-460 (AsciiWithControl block); BC-2.07.017 Notes tls.rs:449-468→:461-493 (NonAsciiUtf8 block); BC-2.07.037 Notes tls.rs:251-258→:252-266 (extract_sni match block). Verified against src/analyzer/http.rs and src/analyzer/tls.rs. — 2026-06-13"
+  - "v2.3: F5 ICS tactic-ID correctness fix (D-209, 2026-06-23, DF-SIBLING-SWEEP-001): BC-2.10.003/004 test vector updated — 17→20 MitreTactic variants; ICS order appended with IcsDiscovery [17], IcsCollection [18], IcsCommandAndControl [19]; Notes text updated."
 ---
 
 # Canonical Test Vectors: wirerust
@@ -310,7 +311,7 @@ modified:
 > Representative subset (8 of 25 total seeded IDs shown; full 25-ID catalog in BC-2.10.005
 > canonical test vectors). Added in F2 ARP feature: T0830 (ICS LateralMovement) and T1557.002
 > (Enterprise CredentialAccess). Full seeded count is 25 (12 Enterprise + 13 ICS) per
-> BC-2.10.005 v1.10 (25 seeded IDs) and BC-2.10.004 v1.5 (17 tactic variants). PLANNED — implemented in STORY-114.
+> BC-2.10.005 v1.10 (25 seeded IDs) and BC-2.10.004 v1.6 (20 tactic variants). PLANNED — implemented in STORY-114.
 
 | Input | Expected Output | Category | Notes |
 |-------|----------------|----------|-------|
@@ -328,7 +329,7 @@ modified:
 
 | Input | Expected Output | Category | Notes |
 |-------|----------------|----------|-------|
-| `all_tactics_in_report_order()` | Vec with exactly 17 MitreTactic variants; Reconnaissance first; ICS tactics last; no duplicates | happy-path | Kill-chain order: Recon, ResourceDev, InitAccess, Exec, Persist, PrivEsc, DefEvasion, CredAccess, Discovery, LateralMov, Collection, C2, Exfil, Impact [14 Enterprise], then IcsInhibitResponseFunction, IcsImpairProcessControl, IcsImpact [3 ICS — IcsImpact added F2 DNP3, index [16]] |
+| `all_tactics_in_report_order()` | Vec with exactly 20 MitreTactic variants; Reconnaissance first; ICS tactics last; no duplicates | happy-path | Kill-chain order: Recon[0], ResourceDev[1], InitAccess[2], Exec[3], Persist[4], PrivEsc[5], DefEvasion[6], CredAccess[7], Discovery[8], LateralMov[9], Collection[10], C2[11], Exfil[12], Impact[13] [14 Enterprise], then IcsInhibitResponseFunction[14], IcsImpairProcessControl[15], IcsImpact[16], IcsDiscovery[17], IcsCollection[18], IcsCommandAndControl[19] [6 ICS — IcsImpact added F2 DNP3; IcsDiscovery/IcsCollection/IcsCommandAndControl added F5 D-209] |
 
 ---
 

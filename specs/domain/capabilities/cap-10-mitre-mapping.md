@@ -33,7 +33,10 @@ modified:
   - date: 2026-06-13
     actor: product-owner
     reason: "Pass-18 remediation C-02: stale self-referential line anchors in Pass-9/10/11 changelog entries corrected — MitreTactic enum header shifted from line 81 to line 87, variant prose from lines 83-85 to lines 89-91, after Pass-14 added ~6 lines. Version bumped 1.8→1.9."
-version: "1.9"
+  - date: 2026-06-23
+    actor: product-owner
+    reason: "F5 ICS tactic-ID correctness fix (D-209, DF-SIBLING-SWEEP-001): MitreTactic enum variant count 17→20. Three new ICS-unique variants added: IcsDiscovery (Display 'Discovery (ICS)', TA0102), IcsCollection (Display 'Collection (ICS)', TA0100), IcsCommandAndControl (Display 'Command and Control (ICS)', TA0101). Updated ## MitreTactic enum section: variant count prose corrected, IcsDiscovery/IcsCollection/IcsCommandAndControl paragraphs added. Version 1.9→2.0."
+version: "2.0"
 ---
 
 # CAP-10: MITRE ATT&CK Mapping
@@ -89,8 +92,9 @@ and are intentionally present in the catalog without corresponding emission site
 
 ## MitreTactic enum (E-27)
 
-17 variants: 14 Enterprise ATT&CK tactics (Reconnaissance through Impact) + 3 ICS-unique
-(`IcsInhibitResponseFunction`, `IcsImpairProcessControl`, `IcsImpact`). The enum is `#[non_exhaustive]`
+20 variants: 14 Enterprise ATT&CK tactics (Reconnaissance through Impact) + 6 ICS-unique
+(`IcsInhibitResponseFunction`, `IcsImpairProcessControl`, `IcsImpact`, `IcsDiscovery`,
+`IcsCollection`, `IcsCommandAndControl`). The enum is `#[non_exhaustive]`
 so adding new tactics in a future ATT&CK version is non-breaking for downstream match consumers.
 
 **IcsInhibitResponseFunction (active, reachable via T0814 and T1691.001):** `MitreTactic::IcsInhibitResponseFunction`
@@ -100,10 +104,29 @@ is actively emitted by the Modbus analyzer (Feature #7). T1691.001 (Block Operat
 Message: Command Message) maps to `IcsInhibitResponseFunction` and is emitted by the DNP3 analyzer
 (Feature #8). This tactic is reachable via both emission paths.
 
-**IcsImpact (active, reachable via T0827):** `MitreTactic::IcsImpact` (ICS Impact, TA0105) was
+**IcsImpact (active, reachable via T0827 and T0831):** `MitreTactic::IcsImpact` (ICS Impact, TA0105) was
 added in Feature #8 (issue #8, ADR-007). T0827 (Loss of Control) is a derived/correlated finding
-emitted by the DNP3 analyzer when unauthorized command activity is detected. `IcsImpact` appears
-in `Display` and `all_tactics_in_report_order`.
+emitted by the DNP3 analyzer when unauthorized command activity is detected. T0831 (Manipulation
+of Control) was remapped from IcsImpairProcessControl to IcsImpact in the F5 ICS tactic-ID
+correctness fix (D-209) per MITRE ATT&CK for ICS v19.1. `IcsImpact` appears in `Display` and
+`all_tactics_in_report_order` at position [16].
+
+**IcsDiscovery (active, reachable via T0846 and T0888):** `MitreTactic::IcsDiscovery` (ICS Discovery, TA0102) was
+added in the F5 ICS tactic-ID correctness fix (D-209, 2026-06-23). T0846 (Remote System Discovery)
+and T0888 (Remote System Information Discovery) were remapped from Enterprise Discovery (TA0007)
+to IcsDiscovery (TA0102) per MITRE ATT&CK for ICS v19.1. `IcsDiscovery` appears at position [17]
+in `all_tactics_in_report_order`.
+
+**IcsCollection (active, reachable via T0830):** `MitreTactic::IcsCollection` (ICS Collection, TA0100) was
+added in the F5 ICS tactic-ID correctness fix (D-209, 2026-06-23). T0830 (Adversary-in-the-Middle)
+was remapped from LateralMovement (TA0008) to IcsCollection (TA0100) per MITRE ATT&CK for ICS v19.1.
+`IcsCollection` appears at position [18] in `all_tactics_in_report_order`.
+
+**IcsCommandAndControl (active, reachable via T0885):** `MitreTactic::IcsCommandAndControl` (ICS Command and Control, TA0101) was
+added in the F5 ICS tactic-ID correctness fix (D-209, 2026-06-23). T0885 (Commonly Used Port)
+was remapped from Enterprise CommandAndControl (TA0011) to IcsCommandAndControl (TA0101) per
+MITRE ATT&CK for ICS v19.1. `IcsCommandAndControl` appears at position [19] in
+`all_tactics_in_report_order`.
 
 ## CLI --mitre flag
 

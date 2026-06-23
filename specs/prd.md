@@ -1,7 +1,7 @@
 ---
 document_type: prd
 level: L3
-version: "1.34"
+version: "1.35"
 status: draft
 producer: product-owner
 timestamp: 2026-06-17T00:00:00Z
@@ -410,6 +410,12 @@ supplements:
 >   post-feature-008-F2).
 >
 > No new BCs; no BC count change (283). See `spec-changelog.md` §[prd-v1.25-ss15-titlesync-2026-06-14].
+
+> **Version 1.35 delta (2026-06-23 — F5 ICS tactic-ID correctness fix, DF-SIBLING-SWEEP-001):**
+> §2.10 BC-2.10.004 index row updated: "(17 total)" → "(20 total)" per MitreTactic enum growing
+> from 17 to 20 variants (14 Enterprise + 6 ICS). Three new ICS variants added in F5 D-209:
+> IcsDiscovery (TA0102), IcsCollection (TA0100), IcsCommandAndControl (TA0101).
+> No new BCs; active BC count unchanged at 303.
 
 > **Version 1.34 delta (2026-06-22 — F2 issue #64 mitre_attack JSON enrichment, v0.11.0):**
 > 1 new BC (BC-2.11.035) added for per-finding `mitre_attack` JSON array (ECS/OCSF alignment).
@@ -834,7 +840,7 @@ Rust source files, 3,868 source LOC, 282 tests, single crate, Rust 2024 edition,
 | BC-2.10.001 | MitreTactic Display renders Enterprise tactics with canonical spacing | P0 | BC-MIT-001 |
 | BC-2.10.002 | ICS tactics render unprefixed (no ICS: prefix) | P1 | BC-MIT-002 |
 | BC-2.10.003 | all_tactics_in_report_order returns kill-chain order first then ICS-unique | P0 | BC-MIT-003 |
-| BC-2.10.004 | all_tactics_in_report_order contains every variant exactly once (17 total) | P0 | BC-MIT-004 |
+| BC-2.10.004 | all_tactics_in_report_order contains every variant exactly once (20 total) | P0 | BC-MIT-004 |
 | BC-2.10.005 | technique_name returns Some for every seeded ID (25 Total) | P0 | BC-MIT-005 |
 | BC-2.10.006 | technique_name returns None for unknown IDs | P0 | BC-MIT-006 |
 | BC-2.10.007 | technique_tactic returns correct tactic for every seeded ID | P0 | BC-MIT-007 |

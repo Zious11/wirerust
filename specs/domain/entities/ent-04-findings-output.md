@@ -4,7 +4,7 @@ traces_to: ../domain-spec.md
 title: Entities -- Findings and Output (L3-L4)
 status: descriptive (brownfield) -- reconciled against develop HEAD 0082a0c
 reconciled: 2026-05-20
-version: "1.3"
+version: "1.4"
 modified:
   - date: 2026-06-12
     actor: product-owner
@@ -15,6 +15,9 @@ modified:
   - date: 2026-06-13
     actor: product-owner
     reason: "P19 straggler anchor sweep: E-23 Verdict :30-40 → :32-46; E-24 Confidence :57-66 → :66-73; E-27 MitreTactic :45-66 → :47-70. Verified against src/findings.rs and src/mitre.rs. Version 1.2→1.3."
+  - date: 2026-06-23
+    actor: product-owner
+    reason: "F5 ICS tactic-ID correctness fix (D-209, DF-SIBLING-SWEEP-001): E-27 MitreTactic variant count 17→20 (14 Enterprise + 6 ICS). Three new ICS-unique variants: IcsDiscovery (TA0102), IcsCollection (TA0100), IcsCommandAndControl (TA0101). Version 1.3→1.4."
 ---
 
 # Entities: Findings and Output (L3-L4)
@@ -76,9 +79,11 @@ it; reassembly-engine findings leave it None.
 
 ## E-27: MitreTactic (src/mitre.rs:47-70)
 
-17-variant enum (14 Enterprise + 3 ICS-unique incl. IcsImpact). `#[non_exhaustive]` (VO-5). Derives `Debug, Clone,
+20-variant enum (14 Enterprise + 6 ICS-unique: IcsInhibitResponseFunction, IcsImpairProcessControl,
+IcsImpact, IcsDiscovery, IcsCollection, IcsCommandAndControl). `#[non_exhaustive]` (VO-5). Derives `Debug, Clone,
 Copy, PartialEq, Eq, Hash`. `Display` renders canonical English names. See CAP-10 for full
-variant list.
+variant list. Three ICS variants added in F5 D-209: IcsDiscovery (TA0102), IcsCollection (TA0100),
+IcsCommandAndControl (TA0101).
 
 ## E-28: AnalysisSummary (src/analyzer/mod.rs:38-50)
 

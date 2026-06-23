@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.5"
+version: "1.6"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -18,6 +18,7 @@ modified:
   - "v1.3: Feature #8 DNP3 analyzer (F2). MitreTactic gains third ICS-unique variant IcsImpact. All postconditions and invariants updated: variant count 16→17 (14 Enterprise + 3 ICS). Edge case EC-001 and test vectors updated. — 2026-06-10"
   - "v1.4: Pass-1 adversarial fix F3: corrected two stale informative lines — Architecture Anchors '16 elements' → '17 elements'; Evidence Types Used '16 verified' → '17 verified'. Normative body already said 17; only these two informative lines were stale. — 2026-06-10"
   - "v1.5: Pass-7 remediation F-C-P7-003: re-anchored Architecture Anchors and Source Evidence from stale 'src/mitre.rs:95-114' to verified 'src/mitre.rs:100-120' (function declaration line 100, slice literal lines 101-119, closing brace line 120). — 2026-06-12"
+  - "v1.6: F5 ICS tactic-ID correctness fix (D-209, 2026-06-23): variant count 17→20. Three new ICS MitreTactic variants added: IcsDiscovery (TA0102), IcsCollection (TA0100), IcsCommandAndControl (TA0101). Description, Postconditions, Invariants, Edge Cases, Canonical Test Vectors, VP text, Architecture Anchors, and Evidence Types updated. DF-SIBLING-SWEEP-001."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -30,13 +31,15 @@ removal_reason: null
 
 ## Description
 
-The static slice returned by `all_tactics_in_report_order()` contains all 17 `MitreTactic`
+The static slice returned by `all_tactics_in_report_order()` contains all 20 `MitreTactic`
 variants with no duplicates and no omissions. This no-duplicate, no-omission guarantee
 ensures that a tactic-grouped report iterates over every possible bucket exactly once,
 producing a complete and non-redundant output. Because `MitreTactic` is `#[non_exhaustive]`,
 the completeness guarantee is by convention (manual inspection) rather than compiler
 enforcement. The count grew from 16 (14 Enterprise + 2 ICS) to 17 (14 Enterprise + 3 ICS)
-with the addition of `IcsImpact` in Feature #8 (DNP3).
+with the addition of `IcsImpact` in Feature #8 (DNP3), then from 17 to 20 (14 Enterprise + 6 ICS)
+with the addition of `IcsDiscovery` (TA0102), `IcsCollection` (TA0100), and
+`IcsCommandAndControl` (TA0101) in the F5 ICS tactic-ID correctness fix (D-209).
 
 ## Preconditions
 
@@ -44,13 +47,13 @@ with the addition of `IcsImpact` in Feature #8 (DNP3).
 
 ## Postconditions
 
-1. Each of the 17 `MitreTactic` variants appears in the slice exactly once.
+1. Each of the 20 `MitreTactic` variants appears in the slice exactly once.
 2. No variant appears twice.
 3. No variant is omitted.
 
 ## Invariants
 
-1. The variant count is 17 (14 Enterprise + 3 ICS).
+1. The variant count is 20 (14 Enterprise + 6 ICS).
 2. `#[non_exhaustive]` means the compiler cannot enforce completeness; human review and
    the duplicate-check test are the enforcement mechanism.
 3. If a new variant is added to `MitreTactic`, the static slice in `all_tactics_in_report_order`
@@ -60,24 +63,30 @@ with the addition of `IcsImpact` in Feature #8 (DNP3).
 
 | ID | Description | Expected Behavior |
 |----|-------------|-------------------|
-| EC-001 | Collect slice into HashSet<MitreTactic> | Set size == 17 (no duplicates) |
+| EC-001 | Collect slice into HashSet<MitreTactic> | Set size == 20 (no duplicates) |
 | EC-002 | Iterate all_tactics and count occurrences of each variant | Every variant count == 1 |
 | EC-003 | IcsImpact present in slice | Confirmed at position [16] |
+| EC-004 | IcsDiscovery present in slice | Confirmed at position [17] (F5 D-209) |
+| EC-005 | IcsCollection present in slice | Confirmed at position [18] (F5 D-209) |
+| EC-006 | IcsCommandAndControl present in slice | Confirmed at position [19] (F5 D-209) |
 
 ## Canonical Test Vectors
 
 | Input | Expected Output | Category |
 |-------|----------------|----------|
-| HashSet from all_tactics_in_report_order() | len == 17 | happy-path |
+| HashSet from all_tactics_in_report_order() | len == 20 | happy-path |
 | Count IcsImpairProcessControl appearances | 1 | edge-case |
 | Count IcsImpact appearances | 1 | edge-case (new F2 DNP3) |
+| Count IcsDiscovery appearances | 1 | edge-case (new F5 D-209) |
+| Count IcsCollection appearances | 1 | edge-case (new F5 D-209) |
+| Count IcsCommandAndControl appearances | 1 | edge-case (new F5 D-209) |
 
 ## Verification Properties
 
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
 | VP-016 | No duplicates in all_tactics_in_report_order | unit: HashSet deduplication + len check |
-| VP-016 | All 17 variants are present | unit: iterate expected set, assert membership |
+| VP-016 | All 20 variants are present | unit: iterate expected set, assert membership |
 
 ## Traceability
 
@@ -96,7 +105,7 @@ with the addition of `IcsImpact` in Feature #8 (DNP3).
 
 ## Architecture Anchors
 
-- `src/mitre.rs:100-120` -- all_tactics_in_report_order function and static slice (17 elements; function declaration line 100, slice literal lines 101-119, closing brace line 120)
+- `src/mitre.rs:100-123` -- all_tactics_in_report_order function and static slice (20 elements; function declaration line 100, slice literal lines 101-122, closing brace line 123; 3 new ICS variants appended at positions [17][18][19] per F5 D-209)
 
 ## Source Evidence
 
@@ -108,7 +117,7 @@ with the addition of `IcsImpact` in Feature #8 (DNP3).
 
 ## Evidence Types Used
 
-- **assertion**: manual count of slice elements (17 verified post-F2 DNP3; was 16 pre-F2)
+- **assertion**: manual count of slice elements (20 verified post-F5 D-209; was 17 post-F2 DNP3; was 16 pre-F2)
 
 ## Purity Classification
 

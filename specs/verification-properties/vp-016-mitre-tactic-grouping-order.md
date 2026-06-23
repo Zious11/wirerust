@@ -1,7 +1,7 @@
 ---
 document_type: verification-property
 level: L4
-version: "2.5"
+version: "2.6"
 status: verified
 producer: architect
 timestamp: 2026-05-20T00:00:00Z
@@ -31,6 +31,7 @@ modified:
   - "v2.3 (2026-06-14, F3-convergence FIX-4): De-pinned stale line anchor '(mitre.rs:95)' → '(src/mitre.rs `all_tactics_in_report_order`)'. Live src verified: all_tactics_in_report_order at mitre.rs:100 (was off by 5). DF-SIBLING-SWEEP-001: no other stale line pins found in this file."
   - "v2.4: mechanical API-vocabulary update — TerminalReporter test-spec snippets re-expressed in FindingsRender enum vocabulary (show_mitre_grouping: true → render: FindingsRender::Grouped) per STORY-120 / issue #62; no normative change to the property or proof obligation; verification_lock preserved."
   - "v2.5: mechanical API-vocabulary update — FindingsRender enum→struct (STORY-119 / D-110); render: FindingsRender::Grouped → FindingsRender { grouping: Grouping::Grouped, collapse: Collapse::Expanded }; no normative change; verification_lock preserved."
+  - "v2.6 (2026-06-23, F5 ICS tactic-ID correctness fix, D-209): 17→20 variants. Three new ICS MitreTactic variants added (IcsDiscovery TA0102, IcsCollection TA0100, IcsCommandAndControl TA0101). Test assertion comment updated: '14 Enterprise + 3 ICS-unique' → '14 Enterprise + 6 ICS'; assert_eq value 17→20; message text updated to match. DF-SIBLING-SWEEP-001."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -91,11 +92,13 @@ fn test_mitre_grouping_order_canonical() {
 
     // all_tactics_in_report_order returns a &'static [MitreTactic] (src/mitre.rs `all_tactics_in_report_order`).
     // MitreTactic has no all_variants() method; count the variants manually:
-    // 14 Enterprise + 3 ICS-unique (IcsInhibitResponseFunction, IcsImpairProcessControl,
-    // IcsImpact) = 17 total (mitre.rs enum; IcsImpact added STORY-109 DNP3/Feature-8 cycle).
+    // 14 Enterprise + 6 ICS (IcsInhibitResponseFunction, IcsImpairProcessControl,
+    // IcsImpact, IcsDiscovery, IcsCollection, IcsCommandAndControl) = 20 total
+    // (mitre.rs enum; IcsImpact added STORY-109 DNP3/Feature-8 cycle; IcsDiscovery/
+    // IcsCollection/IcsCommandAndControl added F5 ICS tactic-ID correctness fix D-209).
     let tactics = all_tactics_in_report_order();
-    assert_eq!(tactics.len(), 17,
-        "all_tactics_in_report_order must list all 17 MitreTactic variants (14 Enterprise + 3 ICS-unique incl. IcsImpact)");
+    assert_eq!(tactics.len(), 20,
+        "all_tactics_in_report_order must list all 20 MitreTactic variants (14 Enterprise + 6 ICS)");
 
     // No duplicates
     let unique: std::collections::HashSet<_> = tactics.iter().collect();

@@ -1,7 +1,7 @@
 ---
 artifact: module-criticality
 traces_to: .factory/specs/architecture/ARCH-INDEX.md
-version: "1.4"
+version: "1.5"
 status: draft
 producer: architect
 timestamp: 2026-05-20T00:00:00Z
@@ -19,6 +19,9 @@ modified:
   - date: 2026-06-13
     actor: architect
     reason: "Pass-29 A-01: C-24 DNP3 HIGH-tier row technique set corrected — T1692.001 was omitted, leaving set as T1691.001/T0827/T0836/T0814. Full emitted set is T1692.001/T1691.001/T0814/T0836/T0827 (ADR-007 Decision 5; dnp3.rs lines 782/1092/1159 verified). Version bump 1.3→1.4."
+  - date: 2026-06-23
+    actor: product-owner
+    reason: "F5 ICS tactic-ID correctness fix (D-209, DF-SIBLING-SWEEP-001): C-23 ARP row tactic annotation corrected — T0830 is IcsCollection (TA0100) NOT ICS LateralMovement (TA0008 is Enterprise LateralMovement). Research-validated per MITRE ATT&CK for ICS v19.1 (BC-2.10.007 v1.9 / BC-2.16.004 v1.8). FREEZE NOTE: this is a factual tactic-correctness update only; no architectural content changed. Version bump 1.4→1.5."
 ---
 
 # Module Criticality Classification
@@ -57,7 +60,7 @@ modified:
 | MITRE catalog | mitre.rs | Incorrect technique ID routing produces findings that land in the wrong tactic bucket or in Uncategorized. Directly affects kill-chain analysis output. |
 | Modbus TCP analyzer | analyzer/modbus.rs (C-22, SS-14) | ICS/OT threat detection. Bugs in MBAP parsing or function-code classification produce incorrect findings or miss attack signals. Pure core functions (parse_mbap_header, classify_fc) verified by VP-022. Finding-emission logic (write-burst, T0814 Diagnostics) is high-criticality. Findings: T1692.001/T0836/T0814/T0806/T0835/T0831/T0888. Target kill rate >= 90%. [NEW — feature cycle issue #7, F2 delta] |
 | DNP3 TCP analyzer | analyzer/dnp3.rs (C-24, SS-15) | ICS/OT threat detection for DNP3 protocol (shipped v0.6.0). Bugs in carry-buffer parse or function-code classification produce incorrect findings or miss attack signals. Pure core functions verified by VP-023 (Kani). Findings: T1692.001/T1691.001/T0814/T0836/T0827. Target kill rate >= 90%. [NEW — feature cycle issue #8] |
-| ARP security analyzer | analyzer/arp.rs (C-23, SS-16) | Link-layer security analysis. Binding table (HashMap, LRU-bounded MAX_ARP_BINDINGS) maintains IP→MAC state; bugs corrupt spoof detection. D1 spoof MEDIUM→HIGH escalation requires correct rebind counting. VP-024 Kani obligation covers binding-table invariant and parse safety. Findings: T0830 (ICS LateralMovement) + T1557.002 (Enterprise CredentialAccess). Target kill rate >= 90%. [NEW — feature cycle issue #9, F2 delta] |
+| ARP security analyzer | analyzer/arp.rs (C-23, SS-16) | Link-layer security analysis. Binding table (HashMap, LRU-bounded MAX_ARP_BINDINGS) maintains IP→MAC state; bugs corrupt spoof detection. D1 spoof MEDIUM→HIGH escalation requires correct rebind counting. VP-024 Kani obligation covers binding-table invariant and parse safety. Findings: T0830 (ICS Collection, IcsCollection TA0100) + T1557.002 (Enterprise CredentialAccess). Target kill rate >= 90%. [NEW — feature cycle issue #9, F2 delta] |
 
 ## MEDIUM Modules (>= 80% kill rate)
 
