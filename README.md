@@ -187,11 +187,11 @@ Detections emitted:
 
 | Detection | Technique | Tactic | Trigger |
 |-----------|-----------|--------|---------|
-| ARP spoofing (D1) | T0830, T1557.002 | Adversary-in-the-Middle | MAC rebind for an existing IP→MAC binding; escalates from MEDIUM to HIGH after `--arp-spoof-threshold` rebinds within 60s |
+| ARP spoofing (D1) | T0830, T1557.002 | Collection (ICS), Credential Access | MAC rebind for an existing IP→MAC binding; escalates from MEDIUM to HIGH after `--arp-spoof-threshold` rebinds within 60s |
 | Gratuitous ARP (D2) | — | Anomaly | Unsolicited GARP frame observed; escalates to MEDIUM and co-emits a D1 finding when the announced MAC conflicts with an established binding |
 | ARP storm (D3) | — [^1] | Anomaly | Source MAC ARP rate exceeds `--arp-storm-rate` frames/second |
 | Malformed ARP frame (D11) | — | Anomaly | Frame fails both strict and lax/snaplen-truncated ARP parse |
-| L2/L3 sender-MAC mismatch (D12) | T0830, T1557.002 | Adversary-in-the-Middle | Ethernet source MAC differs from ARP sender hardware address |
+| L2/L3 sender-MAC mismatch (D12) | T0830, T1557.002 | Collection (ICS), Credential Access | Ethernet source MAC differs from ARP sender hardware address |
 
 CLI flags:
 - `--arp` — enable ARP analysis (also included in `-a`/`--all`; default-off)
