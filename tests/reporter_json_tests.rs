@@ -1,4 +1,5 @@
 //! STORY-076: JsonReporter formalization tests — Wave 20
+//! STORY-129: BC-2.11.035 per-finding mitre_attack enrichment tests — Wave 57
 //!
 //! AC↔test-name sync enforced by PG-W17-001.  Every test fn name matches its
 //! AC's `**Test:**` citation exactly.
@@ -9,6 +10,7 @@
 //!   BC-2.11.003  JsonReporter Escapes C0 Control Bytes per RFC 8259 via serde
 //!   BC-2.11.004  JsonReporter Preserves Non-ASCII Unicode in Readable Form
 //!   BC-2.11.005  JsonReporter Passes C1 Codepoints Through as Raw UTF-8
+//!   BC-2.11.035  JsonReporter Per-Finding mitre_attack Enrichment (STORY-129, Wave 57)
 
 // PG-W17-001 mandates that test fn names EXACTLY match the AC `**Test:**`
 // citations (e.g. `test_BC_2_11_001_top_level_keys`).  These names use
@@ -1099,4 +1101,124 @@ fn test_BC_2_11_035_ec010_ics_lateral_movement() {
         entry["reference"], "https://attack.mitre.org/techniques/T0830/",
         "BC-2.11.035 EC-010: reference must be synthesized URL"
     );
+}
+
+/// BC-2.11.035 EC-008: Mixed-batch per-finding independence.
+///
+/// In a multi-finding report, each finding's `mitre_attack` is computed
+/// independently.  A finding with empty `mitre_techniques` omits `mitre_attack`
+/// entirely, while sibling findings in the same report still emit theirs.
+///
+/// Exercises the BC's canonical "Report with 3 findings" test vector:
+///   findings[0]: mitre_techniques = ["T1046"]  → mitre_attack present (1 entry, id T1046)
+///   findings[1]: mitre_techniques = []          → mitre_attack absent
+///   findings[2]: mitre_techniques = ["T0827"]  → mitre_attack present (1 entry, id T0827)
+///
+/// Also verifies that the raw `mitre_techniques` field is preserved on the
+/// findings that carry it (additive non-breaking, BC-2.11.035 pc5).
+#[test]
+fn test_BC_2_11_035_mixed_batch_per_finding_independence() {
+    // finding A — has one technique (T1046, Network Service Discovery)
+    let mut finding_a = make_finding("finding with T1046");
+    finding_a.mitre_techniques = vec!["T1046".to_string()];
+
+    // finding B — empty mitre_techniques; mitre_attack must be absent
+    let finding_b = make_finding("finding with no techniques");
+    // mitre_techniques defaults to vec![] via make_finding
+
+    // finding C — has one ICS technique (T0827, Loss of Control)
+    let mut finding_c = make_finding("finding with T0827");
+    finding_c.mitre_techniques = vec!["T0827".to_string()];
+
+    // Render all three in a single call.
+    let json_str = render(&[finding_a, finding_b, finding_c]);
+    let value = parse(&json_str);
+
+    let findings = value["findings"]
+        .as_array()
+        .expect("BC-2.11.035 EC-008: findings must be a JSON array");
+
+    assert_eq!(
+        findings.len(),
+        3,
+        "BC-2.11.035 EC-008: three findings must produce a findings array of length 3"
+    );
+
+    // --- findings[0]: T1046 must produce mitre_attack with one fully-resolved entry ---
+    let f0 = &findings[0];
+    let attack_0 = f0["mitre_attack"]
+        .as_array()
+        .expect("BC-2.11.035 EC-008: findings[0] must have mitre_attack (T1046 is non-empty)");
+    assert_eq!(
+        attack_0.len(),
+        1,
+        "BC-2.11.035 EC-008: findings[0].mitre_attack must have exactly 1 entry"
+    );
+    assert_eq!(
+        attack_0[0]["id"], "T1046",
+        "BC-2.11.035 EC-008: findings[0].mitre_attack[0].id must be T1046"
+    );
+    // mitre_techniques raw field must also be present on findings[0].
+    let techniques_0 = f0["mitre_techniques"]
+        .as_array()
+        .expect("BC-2.11.035 EC-008 / pc5: findings[0].mitre_techniques must be present");
+    assert_eq!(
+        techniques_0.len(),
+        1,
+        "BC-2.11.035 EC-008 / pc5: findings[0].mitre_techniques must have 1 element"
+    );
+    assert_eq!(
+        techniques_0[0], "T1046",
+        "BC-2.11.035 EC-008 / pc5: findings[0].mitre_techniques[0] must be T1046"
+    );
+
+    // --- findings[1]: empty mitre_techniques → mitre_attack key must be absent entirely ---
+    let f1 = f1_obj(findings);
+    assert!(
+        f1.get("mitre_attack").is_none(),
+        "BC-2.11.035 EC-008 / pc4: findings[1].mitre_attack must be absent when \
+         mitre_techniques is empty; skip_serializing_if must suppress the key"
+    );
+    assert!(
+        f1.get("mitre_techniques").is_none(),
+        "BC-2.11.035 EC-008: findings[1].mitre_techniques must be absent when vec is empty \
+         (skip_serializing_if)"
+    );
+
+    // --- findings[2]: T0827 must produce mitre_attack with one fully-resolved ICS entry ---
+    let f2 = &findings[2];
+    let attack_2 = f2["mitre_attack"]
+        .as_array()
+        .expect("BC-2.11.035 EC-008: findings[2] must have mitre_attack (T0827 is non-empty)");
+    assert_eq!(
+        attack_2.len(),
+        1,
+        "BC-2.11.035 EC-008: findings[2].mitre_attack must have exactly 1 entry"
+    );
+    assert_eq!(
+        attack_2[0]["id"], "T0827",
+        "BC-2.11.035 EC-008: findings[2].mitre_attack[0].id must be T0827"
+    );
+    // mitre_techniques raw field must also be present on findings[2].
+    let techniques_2 = f2["mitre_techniques"]
+        .as_array()
+        .expect("BC-2.11.035 EC-008 / pc5: findings[2].mitre_techniques must be present");
+    assert_eq!(
+        techniques_2.len(),
+        1,
+        "BC-2.11.035 EC-008 / pc5: findings[2].mitre_techniques must have 1 element"
+    );
+    assert_eq!(
+        techniques_2[0], "T0827",
+        "BC-2.11.035 EC-008 / pc5: findings[2].mitre_techniques[0] must be T0827"
+    );
+}
+
+/// Helper: extract findings[1] as an object for the mixed-batch test.
+/// Using a named function keeps the borrow checker happy without a let-binding
+/// that outlives the `findings` temporary in the caller.
+fn f1_obj(findings: &[serde_json::Value]) -> &serde_json::Map<String, serde_json::Value> {
+    findings[1]
+        .as_object()
+        .expect("BC-2.11.035 EC-008: findings[1] must be a JSON object")
 }
