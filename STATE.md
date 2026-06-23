@@ -1,10 +1,10 @@
 ---
 pipeline: FEATURE
-phase: F3
-phase_status: "feature-mitre-json-names IN PROGRESS — F1/F2/F3 complete. F4 TDD + Step-4.5 per-story adversarial convergence ACHIEVED (STORY-129, 3 clean passes b8fea97/6d8f172/7e020ce, 0 HIGH/CRIT, 13 tests EC-001..010). PR next."
+phase: F4
+phase_status: "feature-mitre-json-names F4 COMPLETE — STORY-129 PR #306 MERGED to develop (2fa6606). Issue #64 CLOSED. stories_delivered 77→78. Human authorized FULL F5-F7. F5 scoped-adversarial NEXT."
 product: wirerust
 mode: brownfield
-timestamp: 2026-06-23T02:00:00Z
+timestamp: 2026-06-23T04:00:00Z
 
 # Release chain
 released_version: v0.9.3
@@ -23,9 +23,9 @@ v091_release_commit: ad4eec8
 v090_release_tag: v0.9.0
 v090_release_commit: 986e148
 
-# Ground-truth HEADs (verified at D-205 — 2026-06-23)
-develop_head: e4abbe2
-develop_local_note: "develop: e4abbe2 — local == origin/develop == e4abbe2 (fast-forwarded 2026-06-23, working tree clean). Verify on resume: `git log -1 --format='%h' develop` == e4abbe2."
+# Ground-truth HEADs (verified at D-208 — 2026-06-23)
+develop_head: 2fa6606
+develop_local_note: "develop: 2fa6606 — PR #306 merge commit (STORY-129 mitre_attack JSON enrichment, issue #64). Verify on resume: `git log -1 --format='%h' origin/develop` == 2fa6606."
 main_head: 2dbf461
 factory_artifacts_head: "run: git -C .factory log -1 --format='%h %s'"
 
@@ -42,9 +42,9 @@ phase_7_to_release_gate: "PASSED (human-approved 2026-06-09 — D-045)"
 adversary_gate: SATISFIED
 
 # Story tracking
-stories_delivered: 77
+stories_delivered: 78
 current_cycle: feature-mitre-json-names
-current_wave: "Wave 57 — F4 TDD + per-story adversarial convergence ACHIEVED. STORY-129 converged (3 passes, 0 HIGH/CRIT). PR next."
+current_wave: "Wave 57 — STORY-129 DELIVERED & CLOSED (PR #306 → develop 2fa6606). F5 scoped-adversarial NEXT."
 
 # DTU
 dtu_required: false
@@ -83,16 +83,16 @@ convergence_trajectory: "Detail: cycles/v0.1.0-greenfield-spec/convergence-traje
 - Do NOT reopen D-200-era decision threads (a)/(b)/(c) — all three CLOSED.
 - Do NOT re-run F1/F2/F3 for this cycle — all complete (D-206). Proceed to F4 TDD implementation.
 
-### GROUND-TRUTH HEADs (verified at D-205 — 2026-06-23)
+### GROUND-TRUTH HEADs (verified at D-208 — 2026-06-23)
 
 Re-verify on resume before taking any action:
 
-- **develop (remote/canonical):** `e4abbe2` — PR #305 merge commit (docs drift + public ADR-0009). Verify: `git log -1 --format='%h' origin/develop` must equal `e4abbe2`. **Note:** develop: e4abbe2 — local == origin/develop == e4abbe2 (fast-forwarded 2026-06-23, working tree clean). Verify on resume: `git log -1 --format='%h' develop` == e4abbe2.
+- **develop (remote/canonical):** `2fa6606` — PR #306 merge commit (STORY-129 mitre_attack JSON enrichment, issue #64). Verify: `git log -1 --format='%h' origin/develop` must equal `2fa6606`.
 - **main:** `2dbf461` — PR #302 merge commit (`chore: release v0.9.3`); tag `v0.9.3` on this commit. Unchanged.
-- **factory-artifacts:** local == remote at this D-205 commit. Verify: `git -C .factory status` must be clean.
-- **Open PRs:** None. Verify: `gh pr list` must return empty.
+- **factory-artifacts:** local == remote at this D-208 commit. Verify: `git -C .factory status` must be clean.
+- **Open PRs:** None. Verify: `gh pr list` must return empty (issue #64 CLOSED).
 - **Worktrees:** main repo (develop) + `.factory/` only. No story/feature worktrees open.
-- **In-flight:** Nothing running. Pipeline quiesced.
+- **In-flight:** Nothing running. F4 complete. F5 scoped-adversarial NEXT (human-authorized full F5-F7).
 
 ### WHAT WAS ACCOMPLISHED SINCE D-203
 
@@ -107,7 +107,7 @@ Re-verify on resume before taking any action:
 
 1. **Run `vsdd-factory:factory-worktree-health`** (BLOCKING) — verify `.factory/` worktree is mounted on `factory-artifacts`, no detached HEAD, no drift.
 2. **Read this STATE.md** in full.
-3. **Verify HEADs:** `git log -1 --format='%h' origin/develop` == `e4abbe2`; `git log -1 --format='%h' main` == `2dbf461`.
+3. **Verify HEADs:** `git log -1 --format='%h' origin/develop` == `2fa6606`; `git log -1 --format='%h' main` == `2dbf461`.
 4. **Confirm open PRs:** `gh pr list` should be empty (no open PRs at F3 close); `git worktree list` shows main + `.factory` only.
 5. **Confirm both trees clean:** `git status` on develop; `git -C .factory status` on factory-artifacts.
 6. **Active cycle: feature-mitre-json-names** — F1/F2/F3 complete, proceed to F4 TDD implementation on STORY-129.
@@ -140,11 +140,11 @@ prd.md v1.34, error-taxonomy v3.8 (next_free E-INP-016), nfr-catalog v2.3, ADR-0
 
 ## Status
 
-**FEATURE MODE — feature-mitre-json-names ACTIVE (D-207). GitHub issue #64: inline MITRE tactic/name in JSON. F1/F2/F3/F4 complete. Per-story adversarial convergence ACHIEVED (STORY-129, 3 passes, 0 HIGH/CRIT, 13 tests). PR next.**
+**FEATURE MODE — feature-mitre-json-names ACTIVE (D-208). GitHub issue #64 CLOSED. F1/F2/F3/F4 COMPLETE. STORY-129 PR #306 MERGED to develop (2fa6606, squash disabled). stories_delivered=78. Human authorized FULL F5-F7. F5 scoped-adversarial NEXT.**
 
 **MAINTENANCE SWEEP COMPLETE — maint-2026-06-22 (2026-06-23). 0 blocking. F-MAJ-001 fixed (ARCH-INDEX v1.6 a6efb23). PR #304 deps hygiene (e458ce2) + PR #305 docs drift/ADR-0009 (e4abbe2) merged. 2 LOWs deferred (ADV-4, DRIFT-READER-ADR-CITATION-001); 1 engine-note (DRIFT-ENGINE-PRMGR-BLOCKING-001). Report: .factory/maintenance/sweep-report-2026-06-22.md. Prior run maint-2026-06-17 COMPLETE/archived.**
 
-Latest release: v0.9.3 (main `2dbf461`, tag `v0.9.3`, 4 binaries, run 27984557297). develop=e4abbe2. stories_delivered=77.
+Latest release: v0.9.3 (main `2dbf461`, tag `v0.9.3`, 4 binaries, run 27984557297). develop=2fa6606. stories_delivered=78.
 
 ## Phase Progress
 
@@ -172,7 +172,8 @@ Latest release: v0.9.3 (main `2dbf461`, tag `v0.9.3`, 4 binaries, run 2798455729
 | Feature mitre-json-names (issue #64) — F1 | PASSED 2026-06-23 | Delta: 1 BC (BC-2.11.035), 1 story (STORY-129), additive/non-breaking. Research-agent override: array design (`mitre_attack`). |
 | Feature mitre-json-names (issue #64) — F2 | PASSED 2026-06-23 | BC-2.11.035 v1.0 authored (10 ACs); BC-INDEX v1.70; PRD v1.34; interface-definitions v1.3; BC-2.11.001 v1.7. |
 | Feature mitre-json-names (issue #64) — F3 | PASSED 2026-06-23 | STORY-129 authored (Wave 57, 5 pts, input-hash 2a5cee9, depends_on []); STORY-INDEX v2.7. |
-| Feature mitre-json-names (issue #64) — F4 + Step-4.5 convergence | **PASSED 2026-06-23 (D-207)** | STORY-129 implemented; 13 tests (EC-001..010); 3 adversarial passes clean (b8fea97/6d8f172/7e020ce, 0 HIGH/CRIT); full gates green. Trajectory: 3L→1M1L→1L(+process-gap). Demo: modbus-write.pcap T1692.001/T0836→TA0106. PR next. |
+| Feature mitre-json-names (issue #64) — F4 + Step-4.5 convergence | **PASSED 2026-06-23 (D-207)** | STORY-129 implemented; 13 tests (EC-001..010); 3 adversarial passes clean (b8fea97/6d8f172/7e020ce, 0 HIGH/CRIT); full gates green. Trajectory: 3L→1M1L→1L(+process-gap). Demo: modbus-write.pcap T1692.001/T0836→TA0106. |
+| Feature mitre-json-names (issue #64) — F4 PR merge | **COMPLETE 2026-06-23 (D-208)** | PR #306 MERGED → develop 2fa6606 (squash disabled; human merged). Issue #64 CLOSED. CI 10/10. Worktree + branch cleaned up. stories_delivered 77→78. F5 scoped-adversarial NEXT (human-authorized full F5-F7). |
 
 ## Decisions Log
 
@@ -191,6 +192,7 @@ D-136..D-202: `cycles/feature-pcapng-reader/decisions-archive.md` (archived at c
 | D-205 | SAFE-TO-CLEAR checkpoint refreshed (supersedes D-203/D-204). Ground truth verified: main=2dbf461 (v0.9.3 tag, unchanged), develop=e4abbe2 (local == origin/develop == e4abbe2, fast-forwarded 2026-06-23, working tree clean), open PRs=0, worktrees=main+.factory only. All D-204 decisions final. Pipeline fully quiesced. | 2026-06-23 |
 | D-206 | Feature Mode opened for GitHub issue #64 (inline MITRE tactic/name in JSON). F1 delta analysis complete (1 BC, 1 story, additive/non-breaking). Research-agent override of the initial flat-field design: adopt an order-preserving ARRAY of per-technique objects under new field `mitre_attack` (id, name?, tactic_id?, tactic_name?, reference), aligning with ECS/OCSF; raw `mitre_techniques` unchanged. Human-approved field name `mitre_attack` and array design. F2 complete: BC-2.11.035 authored (10 ACs); BC-INDEX v1.70, PRD v1.34, interface-definitions v1.3, BC-2.11.001 v1.7. Catalog extension in scope: add `technique_tactic_id()` to src/mitre.rs (tactic_id not currently exposed; reference synthesized from technique ID). F3 complete: STORY-129 (Wave 57, ~5 pts, input-hash 2a5cee9, depends_on []); STORY-INDEX v2.7. No new Verification Property (pure Option-chaining over Kani-verified VP-007 → test-sufficient). F4 TDD implementation next. | 2026-06-23 |
 | D-207 | STORY-129 (issue #64 mitre_attack JSON enrichment) per-story adversarial convergence CONVERGED: 3 clean fresh-context passes (b8fea97/6d8f172/7e020ce), zero HIGH/CRITICAL. 13 BC-2.11.035 tests (EC-001..010 fully covered), full gates green (cargo test --all-targets, clippy -D warnings, fmt). Demo evidence recorded (modbus-write.pcap, T1692.001/T0836→TA0106). Process-gap DRIFT-BC-TEMPLATE-EC-VP-MAP-001 deferred (engine BC-template, LOW). PR next. | 2026-06-23 |
+| D-208 | STORY-129 (issue #64 mitre_attack JSON enrichment) PR #306 MERGED to develop via merge commit 2fa6606 (squash disabled on repo; human merged). Issue #64 CLOSED. pr-reviewer APPROVE + security-reviewer PASS (no CRITICAL/HIGH; technique IDs are compile-time literals, serde-escaped, bounded alloc). CI 10/10. Worktree + branch cleaned up; develop ff to 2fa6606. stories_delivered 77→78. Human authorized FULL F5-F7. F5 scoped-adversarial next. | 2026-06-23 |
 
 ## Governance Policy
 
@@ -224,5 +226,6 @@ Full policy text: `.factory/policies.yaml`.
 - STORY-INDEX.md is authoritative (82 stories / 57 waves / 526 pts — v2.7, post-F3 D-206).
 - Current cycle artifacts: `cycles/feature-mitre-json-names/` (f1-delta-analysis.md, mitre-json-shape-research.md).
 - Decisions D-136..D-199 archived in `cycles/feature-pcapng-reader/decisions-archive.md` at cycle close.
-- F4 + Step-4.5 convergence COMPLETE (D-207): `technique_tactic_id()` in src/mitre.rs, `FindingJsonDto`/`MitreAttackEntry` in src/reporter/json_dto.rs, all 13 tests green (EC-001..010), 3 adversarial passes clean. PR is next action.
+- F4 + Step-4.5 convergence COMPLETE (D-207): `technique_tactic_id()` in src/mitre.rs, `FindingJsonDto`/`MitreAttackEntry` in src/reporter/json_dto.rs, all 13 tests green (EC-001..010), 3 adversarial passes clean. PR merged (D-208).
 - Input-hash verification at D-206: `bin/compute-input-hash .factory/stories/STORY-129.md` == `2a5cee9` (MATCH — confirmed at commit time).
+- STORY-129 DELIVERED & CLOSED (D-208): PR #306 → develop 2fa6606. Issue #64 CLOSED. stories_delivered=78. F5 scoped-adversarial NEXT (human-authorized full F5-F7).
