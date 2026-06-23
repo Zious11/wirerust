@@ -1,10 +1,10 @@
 ---
 pipeline: FEATURE
-phase: F6
-phase_status: "feature-mitre-json-names F5 COMPLETE (D-212) — PR #307 merged to develop 029725b (merge-commit). F6 targeted hardening IN PROGRESS (human-authorized full F5-F7)."
+phase: F7
+phase_status: "feature-mitre-json-names F6 COMPLETE (D-213) — all 5 hardening tasks PASS. F7 delta-convergence + final human gate NEXT."
 product: wirerust
 mode: brownfield
-timestamp: 2026-06-23T09:00:00Z
+timestamp: 2026-06-23T10:00:00Z
 
 # Release chain
 released_version: v0.9.3
@@ -44,7 +44,7 @@ adversary_gate: SATISFIED
 # Story tracking
 stories_delivered: 78
 current_cycle: feature-mitre-json-names
-current_wave: "Wave 57 — STORY-129 DELIVERED & CLOSED (PR #306 → develop 2fa6606). F5 COMPLETE (PR #307 → develop 029725b, D-212). F6 targeted hardening NEXT."
+current_wave: "Wave 57 — STORY-129 DELIVERED & CLOSED (PR #306 → develop 2fa6606). F5 COMPLETE (PR #307 → develop 029725b, D-212). F6 COMPLETE (D-213): all 5 hardening tasks PASS. F7 delta-convergence NEXT."
 
 # DTU
 dtu_required: false
@@ -81,7 +81,7 @@ convergence_trajectory: "Detail: cycles/v0.1.0-greenfield-spec/convergence-traje
 - Do NOT re-apply the deps fixes: rayon already removed, rand already at 0.8.6 (RUSTSEC-2026-0097 cleared, CI --ignore already removed), zerocopy already bumped (PR #304 e458ce2).
 - Do NOT re-cut the v0.9.3 release (shipped; tag on main 2dbf461, 4 binaries, run 27984557297).
 - Do NOT reopen D-200-era decision threads (a)/(b)/(c) — all three CLOSED.
-- Do NOT re-run F1/F2/F3/F4/F5 for this cycle — all complete (D-206..D-212). Proceed to F6 targeted hardening.
+- Do NOT re-run F1/F2/F3/F4/F5/F6 for this cycle — all complete (D-206..D-213). Proceed to F7 delta-convergence.
 
 ### GROUND-TRUTH HEADs (verified at D-212 — 2026-06-23)
 
@@ -92,7 +92,7 @@ Re-verify on resume before taking any action:
 - **factory-artifacts:** local == remote at this D-212 commit. Verify: `git -C .factory status` must be clean.
 - **Open PRs:** None. Verify: `gh pr list` must return empty.
 - **Worktrees:** main repo (develop) + `.factory/` only. No story/feature worktrees open.
-- **In-flight:** F5 COMPLETE. F6 targeted hardening NEXT (human-authorized full F5-F7).
+- **In-flight:** F5/F6 COMPLETE (D-212/D-213). F7 delta-convergence + final human gate NEXT.
 
 ### WHAT WAS ACCOMPLISHED SINCE D-203
 
@@ -110,7 +110,7 @@ Re-verify on resume before taking any action:
 3. **Verify HEADs:** `git log -1 --format='%h' origin/develop` == `029725b`; `git log -1 --format='%h' main` == `2dbf461`.
 4. **Confirm open PRs:** `gh pr list` should be empty; `git worktree list` shows main + `.factory` only.
 5. **Confirm both trees clean:** `git status` on develop; `git -C .factory status` on factory-artifacts.
-6. **Active cycle: feature-mitre-json-names** — F1/F2/F3/F4/F5 complete. Proceed to F6 targeted hardening.
+6. **Active cycle: feature-mitre-json-names** — F1/F2/F3/F4/F5/F6 complete (D-213). Proceed to F7 delta-convergence + final human gate.
 
 ### OPEN ITEMS (backlog — non-blocking, no active work)
 
@@ -143,7 +143,7 @@ prd.md v1.34, error-taxonomy v3.8 (next_free E-INP-016), nfr-catalog v2.3, ADR-0
 
 ## Status
 
-**FEATURE MODE — feature-mitre-json-names ACTIVE. GitHub issue #64 CLOSED. F1/F2/F3/F4/F5 COMPLETE. F5 COMPLETE (D-212): PR #307 (fix: correct ICS-matrix tactic IDs) MERGED to develop 029725b (merge-commit; squash disabled; human-authorized admin merge). Worktree + branch cleaned up. 3 new MitreTactic variants, 5 techniques remapped, all 20 TA-ids verified vs MITRE ATT&CK ICS v19.1. F6 targeted hardening IN PROGRESS (human-authorized full F5-F7). stories_delivered=78.**
+**FEATURE MODE — feature-mitre-json-names ACTIVE. GitHub issue #64 CLOSED. F1/F2/F3/F4/F5/F6 COMPLETE. F6 COMPLETE (D-213): all 5 targeted hardening tasks PASS — formal (VP-007 Kani 4/4 re-verified), mutation (49/53 viable mutants killed; 4 survivors = Kani harness bodies = Kani-verified false positives), fuzz (fuzz_decode_packet 5.84M runs/91s zero crashes), security (cargo audit 0 vulns, cargo deny clean), regression (cargo test --all-targets green). Report: cycles/feature-mitre-json-names/f6-hardening.md. F7 delta-convergence + final human gate NEXT. stories_delivered=78.**
 
 **MAINTENANCE SWEEP COMPLETE — maint-2026-06-22 (2026-06-23). 0 blocking. F-MAJ-001 fixed (ARCH-INDEX v1.6 a6efb23). PR #304 deps hygiene (e458ce2) + PR #305 docs drift/ADR-0009 (e4abbe2) merged. 2 LOWs deferred (ADV-4, DRIFT-READER-ADR-CITATION-001); 1 engine-note (DRIFT-ENGINE-PRMGR-BLOCKING-001). Report: .factory/maintenance/sweep-report-2026-06-22.md. Prior run maint-2026-06-17 COMPLETE/archived.**
 
@@ -178,7 +178,8 @@ Latest release: v0.9.3 (main `2dbf461`, tag `v0.9.3`, 4 binaries, run 2798455729
 | Feature mitre-json-names (issue #64) — F4 + Step-4.5 convergence | **PASSED 2026-06-23 (D-207)** | STORY-129 implemented; 13 tests (EC-001..010); 3 adversarial passes clean (b8fea97/6d8f172/7e020ce, 0 HIGH/CRIT); full gates green. Trajectory: 3L→1M1L→1L(+process-gap). Demo: modbus-write.pcap T1692.001/T0836→TA0106. |
 | Feature mitre-json-names (issue #64) — F4 PR merge | **COMPLETE 2026-06-23 (D-208)** | PR #306 MERGED → develop 2fa6606 (squash disabled; human merged). Issue #64 CLOSED. CI 10/10. Worktree + branch cleaned up. stories_delivered 77→78. F5 scoped-adversarial NEXT (human-authorized full F5-F7). |
 | Feature mitre-json-names (issue #64) — F5 scoped adversarial | **COMPLETE 2026-06-23 (D-212)** | HIGH finding F-1: ICS tactic-catalog correctness — REMEDIATED (D-209) + per-fix adversarial CONVERGED (D-210) + PR #307 MERGED → develop 029725b (merge-commit; squash disabled; human-authorized). 3 new MitreTactic variants, 5 techniques remapped, all 20 TA-ids verified. Worktree + branch cleaned up. |
-| Feature mitre-json-names (issue #64) — F6 targeted hardening | **IN PROGRESS** | Human-authorized full F5-F7. F6 targeted hardening next. |
+| Feature mitre-json-names (issue #64) — F6 targeted hardening | **COMPLETE 2026-06-23 (D-213)** | All 5 tasks PASS: formal (VP-007 Kani 4/4), mutation (49/53 viable killed; 4 Kani-harness survivors = FP), fuzz (5.84M runs/91s zero crashes), security (0 vulns), regression (all-targets green). Report: cycles/feature-mitre-json-names/f6-hardening.md. |
+| Feature mitre-json-names (issue #64) — F7 delta-convergence | **IN PROGRESS** | F7 final convergence + human gate NEXT. |
 
 ## Decisions Log
 
@@ -202,6 +203,7 @@ D-136..D-202: `cycles/feature-pcapng-reader/decisions-archive.md` (archived at c
 | D-210 | ICS tactic-catalog fix (F5 F-1 remediation) CONVERGED: 3 clean fresh-context adversarial passes (74a48ea/cf22de9/cf22de9), zero HIGH/CRITICAL. All 20 MitreTactic TA-ids verified vs authoritative MITRE ATT&CK ICS v19.1; consolidated authoritative-table test added (`test_ics_techniques_resolve_authoritative_tactic_ids`, 12 exact id→TA-id pairs — closes Pass-1 process gap). Branch fix/ics-tactic-ids @ cf22de9. 2 LOW backlog deferrals recorded: DRIFT-ARP-DEMO-FIXTURE-001 (no ARP pcap fixture for live T0830→TA0100 demo; correctness unit-tested), DRIFT-MITRE-SUBSET-COUNT-TESTS-001 (mitre/multitag dual-count subset tests 21/13 vs 25/17 — pre-existing cruft, no correctness impact). Convergence report: cycles/feature-mitre-json-names/f5-ics-fix-convergence.md. fix-PR to develop next. | 2026-06-23 |
 | D-211 | ICS fix PR #307 created (fix: correct ICS-matrix tactic IDs), CI 10/10 green at head 96f0afc. security-reviewer PASS (pure static lookup remap, no new surface). Confirmation adversary pass on COMMITTED 96f0afc CLEAN (all 5 remaps + 20 TA-ids correct, no stale assertions, no Enterprise regression, BC-aligned). Orchestrator verified worktree clean + CI green directly. Process-gap DRIFT-UNCOMMITTED-TEST-EDITS-001 recorded. Awaiting human merge authorization (squash disabled → merge-commit). | 2026-06-23 |
 | D-212 | ICS tactic-catalog fix PR #307 MERGED to develop via merge commit 029725b (merge-commit; squash disabled; human-authorized admin merge). Worktree + branch cleaned up; develop ff to 029725b. F5 scoped-adversarial COMPLETE: finding F-1 (ICS techniques emitting Enterprise tactic IDs) found, research-validated, comprehensively fixed (3 new MitreTactic variants, 5 techniques remapped), 3-pass converged, security PASS, merged. F6 targeted hardening NEXT (human authorized full F5-F7). | 2026-06-23 |
+| D-213 | F6 targeted hardening COMPLETE (all 5 tasks PASS) for the issue #64 feature + ICS catalog fix on develop @ 029725b. Formal: no new VP warranted (mitre_attack path is pure Option-chaining, no panic/indexing/unwrap; technique_tactic_id is compile-exhaustive); VP-007 Kani 4/4 re-verified SUCCESSFUL. Mutation: cargo-mutants on json_dto.rs + mitre.rs = 100% of test-reachable mutants killed (49/53 viable; 4 survivors are #[cfg(kani)] harness bodies = Kani-verified false positives; 0 real test gaps). Fuzz: no JSON-reporter target exists; mitre_attack path panic-free by construction; fuzz_decode_packet 5.84M runs/91s zero crashes. Security: cargo audit 0 vulns, cargo deny clean. Regression: cargo test --all-targets green. Report: cycles/feature-mitre-json-names/f6-hardening.md. F7 delta-convergence + final human gate NEXT. | 2026-06-23 |
 
 ## Governance Policy
 
@@ -242,3 +244,4 @@ Full policy text: `.factory/policies.yaml`.
 - F5 F-1 per-fix adversarial CONVERGED (D-210): 3 clean fresh-context passes (74a48ea/cf22de9/cf22de9), 0 HIGH/CRIT. All 20 TA-ids verified vs MITRE ATT&CK ICS v19.1. Authoritative-pin test added (cf22de9). 2 LOW deferrals: DRIFT-ARP-DEMO-FIXTURE-001, DRIFT-MITRE-SUBSET-COUNT-TESTS-001. Report: cycles/feature-mitre-json-names/f5-ics-fix-convergence.md.
 - F5 fix-PR review complete (D-211): PR #307 created (fix: correct ICS-matrix tactic IDs), CI 10/10 green at head 96f0afc. security-reviewer PASS. Confirmation adversary CLEAN on committed 96f0afc. Process-gap DRIFT-UNCOMMITTED-TEST-EDITS-001 [MEDIUM] recorded (cycles/feature-mitre-json-names/lessons.md). Awaiting human merge authorization.
 - F5 COMPLETE (D-212): PR #307 MERGED to develop 029725b (merge-commit; squash disabled; human-authorized admin merge). Worktree + branch cleaned up. develop=029725b. F6 targeted hardening NEXT.
+- F6 COMPLETE (D-213): All 5 targeted hardening tasks PASS. Formal (VP-007 Kani 4/4 re-verified; no new VP needed — pure Option-chaining, compile-exhaustive). Mutation (cargo-mutants json_dto.rs+mitre.rs: 49/53 viable killed; 4 survivors = #[cfg(kani)] harness bodies = Kani-verified FP; 0 real test gaps). Fuzz (fuzz_decode_packet 5.84M/91s zero crashes; mitre_attack panic-free by construction). Security (cargo audit 0 vulns, cargo deny clean). Regression (cargo test --all-targets green). Report: cycles/feature-mitre-json-names/f6-hardening.md. F7 delta-convergence + final human gate NEXT.
