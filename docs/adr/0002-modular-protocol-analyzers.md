@@ -25,7 +25,14 @@ pub trait ProtocolAnalyzer {
 
 ```rust
 pub trait StreamHandler {
-    fn on_data(&mut self, flow_key: &FlowKey, direction: Direction, data: &[u8], offset: u64);
+    fn on_data(
+        &mut self,
+        flow_key: &FlowKey,
+        direction: Direction,
+        data: &[u8],
+        offset: u64,
+        timestamp: u32,
+    );
     fn on_flow_close(&mut self, flow_key: &FlowKey, reason: CloseReason);
 }
 
@@ -64,15 +71,15 @@ pub struct FooAnalyzer {
 
 **Error tracking** counts parse failures. Surfaced in `summarize()` output so users know if data was lost. Not logged to stderr — the counter is the signal.
 
-### Required Methods and Accessors
+### Required Methods and Conventional Accessors
 
 | Method | Purpose | Required |
 |--------|---------|----------|
 | `new()` | Constructor with zero-initialized state | Yes |
 | `name()` | Returns `&'static str` like `"HTTP"`, `"TLS"`, `"DNS"` | Yes |
-| `summarize()` | Returns `AnalysisSummary` with `detail: HashMap<String, serde_json::Value>` | Yes |
+| `summarize()` | Returns `AnalysisSummary` with `detail: BTreeMap<String, serde_json::Value>` | Yes |
 | `findings()` | Returns `Vec<Finding>` | Yes (stream), via `analyze()` return (packet) |
-| `parse_error_count()` | Returns `u64` | Yes |
+| `parse_error_count()` | Returns `u64` (inherent method on each analyzer struct — NOT a trait obligation; used for test access only) | Convention only |
 | Domain-specific accessors | e.g., `sni_counts()`, `method_counts()` | For testing |
 
 ### Adding a New Analyzer
@@ -94,7 +101,7 @@ All analyzers produce the same output structure:
 pub struct AnalysisSummary {
     pub analyzer_name: String,
     pub packets_analyzed: u64,
-    pub detail: HashMap<String, serde_json::Value>,
+    pub detail: BTreeMap<String, serde_json::Value>,
 }
 ```
 

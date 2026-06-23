@@ -17,6 +17,7 @@
 
 pub mod csv;
 pub mod json;
+pub(crate) mod json_dto;
 pub mod terminal;
 
 use crate::analyzer::AnalysisSummary;

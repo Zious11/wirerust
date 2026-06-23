@@ -1,6 +1,6 @@
 [package]
 name = "wirerust"
-version = "0.9.3"
+version = "0.9.4"
 edition = "2024"
 rust-version = "1.91"
 description = "Fast PCAP forensics and network triage CLI tool"
@@ -34,7 +34,6 @@ anyhow = "1"
 owo-colors = "4"
 indicatif = "0.18"
 chrono = { version = "0.4", features = ["serde"] }
-rayon = "1"
 
 [profile.release]
 overflow-checks = true

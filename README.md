@@ -14,7 +14,8 @@ Inspired by [pcapper](https://github.com/SackOfHacks/pcapper) — reimagined for
 - **DNP3 TCP forensics** — ICS/OT threat detection on port 20000; parses IEEE Std 1815-2012 data-link frames; detects MITRE ATT&CK for ICS techniques T1692.001, T1691.001, T0827, T0814, and T0836; anomaly detection for broadcast control, unsolicited responses, and malformed frames; enabled via `--dnp3`
 - **ARP security forensics** — link-layer and OT network threat detection; detects ARP spoofing / cache poisoning, gratuitous ARP anomalies, ARP storms, malformed ARP frames, and L2/L3 sender-MAC mismatch; MITRE attribution to T0830 and T1557.002; enabled via `--arp`
 - **TCP stream reassembly** — forensic-grade reassembly engine with first-wins overlap policy, configurable depth/memory/window limits
-- **Multi-link-type support** — Ethernet, Raw IP, IPv4, IPv6, and Linux Cooked (SLL) pcap formats
+- **Multi-link-type support** — Ethernet, Raw IP, IPv4, IPv6, and Linux Cooked (SLL) in both
+  classic pcap and pcapng captures
 - **Threat detection** — finding system with verdict/confidence scoring and MITRE ATT&CK mapping
 - **Multiple outputs** — colored terminal, JSON export, CSV export
 - **Fast** — Rust + etherparse zero-copy L2–L4 parsing with single-pass decoding; the full capture is loaded into memory, so available RAM determines the practical file-size limit
@@ -128,7 +129,7 @@ PCAP file → Reader → Decoder → Analyzers → Reporter
 
 | Component | Crate / Module | Purpose |
 |-----------|----------------|---------|
-| Reader | `pcap-file` | Parse pcap files (5 link types) |
+| Reader | `pcap-file` | Parse classic pcap and pcapng files (5 link types; both formats) |
 | Decoder | `etherparse` | Zero-copy packet parsing (IP + ARP frames) |
 | HTTP Parser | `httparse` | HTTP/1.x request/response parsing |
 | TLS Parser | `tls-parser` | TLS handshake parsing, JA3/JA3S |
@@ -186,11 +187,11 @@ Detections emitted:
 
 | Detection | Technique | Tactic | Trigger |
 |-----------|-----------|--------|---------|
-| ARP spoofing (D1) | T0830, T1557.002 | Adversary-in-the-Middle | MAC rebind for an existing IP→MAC binding; escalates from MEDIUM to HIGH after `--arp-spoof-threshold` rebinds within 60s |
+| ARP spoofing (D1) | T0830, T1557.002 | Collection (ICS), Credential Access | MAC rebind for an existing IP→MAC binding; escalates from MEDIUM to HIGH after `--arp-spoof-threshold` rebinds within 60s |
 | Gratuitous ARP (D2) | — | Anomaly | Unsolicited GARP frame observed; escalates to MEDIUM and co-emits a D1 finding when the announced MAC conflicts with an established binding |
 | ARP storm (D3) | — [^1] | Anomaly | Source MAC ARP rate exceeds `--arp-storm-rate` frames/second |
 | Malformed ARP frame (D11) | — | Anomaly | Frame fails both strict and lax/snaplen-truncated ARP parse |
-| L2/L3 sender-MAC mismatch (D12) | T0830, T1557.002 | Adversary-in-the-Middle | Ethernet source MAC differs from ARP sender hardware address |
+| L2/L3 sender-MAC mismatch (D12) | T0830, T1557.002 | Collection (ICS), Credential Access | Ethernet source MAC differs from ARP sender hardware address |
 
 CLI flags:
 - `--arp` — enable ARP analysis (also included in `-a`/`--all`; default-off)

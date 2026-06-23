@@ -7,6 +7,32 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.9.4] - 2026-06-23
+
+### Added
+
+- **Per-finding `mitre_attack` JSON array for SIEM consumers (issue #64).** Each finding in JSON
+  output now carries a `mitre_attack` array. Every element is an object with the fields `id`,
+  `name`, `tactic_id`, `tactic_name`, and `reference`, resolved from the static MITRE catalog at
+  report time. Downstream SIEM ingestion pipelines can consume structured technique metadata
+  directly without maintaining a separate ID-to-name lookup.
+
+### Fixed
+
+- **ICS-matrix tactic IDs corrected for ICS techniques.** ICS techniques previously emitted
+  Enterprise-matrix tactic IDs; they now emit the correct ICS-matrix tactic IDs. Three new ICS
+  tactic variants were added: `IcsDiscovery` (TA0102), `IcsCollection` (TA0100), and
+  `IcsCommandAndControl` (TA0101). Two technique-to-tactic mappings were corrected:
+  - **T0830 Adversary-in-the-Middle** reclassified from its previous tactic to **Collection
+    (TA0100)**.
+  - **T0831 Manipulation of Control** reclassified from its previous tactic to **Impact
+    (TA0105)**.
+
+### Docs
+
+- Corrected the ARP tactic column in README to reflect the updated ICS-matrix tactic assignments.
+- Superseded the stale MITRE mapping design doc; current behavior is authoritative.
+
 ## [0.9.3] - 2026-06-22
 
 ### Added
@@ -580,7 +606,8 @@ Downstream consumers of wirerust JSON or CSV output must update for this release
 - Output sanitization in the terminal reporter guards against C1 control bytes
   in packet-derived strings.
 
-[Unreleased]: https://github.com/Zious11/wirerust/compare/v0.9.3...HEAD
+[Unreleased]: https://github.com/Zious11/wirerust/compare/v0.9.4...HEAD
+[0.9.4]: https://github.com/Zious11/wirerust/compare/v0.9.3...v0.9.4
 [0.9.3]: https://github.com/Zious11/wirerust/compare/v0.9.2...v0.9.3
 [0.9.2]: https://github.com/Zious11/wirerust/compare/v0.9.1...v0.9.2
 [0.9.1]: https://github.com/Zious11/wirerust/compare/v0.9.0...v0.9.1
