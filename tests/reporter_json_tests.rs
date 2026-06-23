@@ -1,4 +1,5 @@
 //! STORY-076: JsonReporter formalization tests — Wave 20
+//! STORY-129: BC-2.11.035 per-finding mitre_attack enrichment tests — Wave 57
 //!
 //! AC↔test-name sync enforced by PG-W17-001.  Every test fn name matches its
 //! AC's `**Test:**` citation exactly.
@@ -9,6 +10,7 @@
 //!   BC-2.11.003  JsonReporter Escapes C0 Control Bytes per RFC 8259 via serde
 //!   BC-2.11.004  JsonReporter Preserves Non-ASCII Unicode in Readable Form
 //!   BC-2.11.005  JsonReporter Passes C1 Codepoints Through as Raw UTF-8
+//!   BC-2.11.035  JsonReporter Per-Finding mitre_attack Enrichment (STORY-129, Wave 57)
 
 // PG-W17-001 mandates that test fn names EXACTLY match the AC `**Test:**`
 // citations (e.g. `test_BC_2_11_001_top_level_keys`).  These names use
@@ -646,4 +648,577 @@ fn test_BC_2_11_005_c1_lower_boundary_u0080_passthrough_raw_utf8() {
         "BC-2.11.005 pc1: C1 U+0080 must NOT appear as \\u0080 (uppercase) in JSON output; \
          any \\u0080 form proves incorrect escaping of U+0080"
     );
+}
+
+// ---------------------------------------------------------------------------
+// BC-2.11.035: per-finding mitre_attack enrichment (STORY-129, Wave 57)
+//
+// AC-1 through AC-8 verify that JsonReporter emits the correct mitre_attack
+// array for each finding by routing through FindingJsonDto, which enriches
+// each technique ID with name, tactic_id, tactic_name, and reference.
+//
+// AC-9 and AC-10 verify CsvReporter and TerminalReporter are unaffected:
+// neither reporter emits JSON objects, so mitre_attack is structurally absent
+// from their output space.
+// ---------------------------------------------------------------------------
+
+/// AC-1 (BC-2.11.035 pc1, pc3a-3e, EC-002): Known single technique T1046
+/// produces a fully-resolved 5-field mitre_attack object in the JSON output.
+///
+/// Verifies that JsonReporter emits mitre_attack[0] with id, name, tactic_id,
+/// tactic_name, and reference all correctly populated for T1046.
+#[test]
+fn test_BC_2_11_035_known_technique_all_five_fields() {
+    let mut finding = make_finding("test finding");
+    finding.mitre_techniques = vec!["T1046".to_string()];
+    let json_str = render(&[finding]);
+    let value = parse(&json_str);
+
+    let attack_arr = value["findings"][0]["mitre_attack"].as_array().expect(
+        "BC-2.11.035 pc1: mitre_attack must be a JSON array for non-empty mitre_techniques",
+    );
+
+    assert_eq!(
+        attack_arr.len(),
+        1,
+        "BC-2.11.035 pc2: mitre_attack must have exactly 1 element for 1 technique"
+    );
+    let entry = &attack_arr[0];
+    assert_eq!(entry["id"], "T1046", "BC-2.11.035 pc3a: id must be T1046");
+    assert_eq!(
+        entry["name"], "Network Service Discovery",
+        "BC-2.11.035 pc3b: name must be Network Service Discovery"
+    );
+    assert_eq!(
+        entry["tactic_id"], "TA0007",
+        "BC-2.11.035 pc3c: tactic_id must be TA0007 (Discovery)"
+    );
+    assert_eq!(
+        entry["tactic_name"], "Discovery",
+        "BC-2.11.035 pc3d: tactic_name must be Discovery"
+    );
+    assert_eq!(
+        entry["reference"], "https://attack.mitre.org/techniques/T1046/",
+        "BC-2.11.035 pc3e: reference must be synthesized URL"
+    );
+}
+
+/// AC-2 (BC-2.11.035 pc4, inv1, EC-001): Unknown technique T9999 produces a
+/// partial object: id and reference only; name/tactic_id/tactic_name absent.
+///
+/// Verifies that FindingJsonDto preserves unrecognized technique IDs rather
+/// than dropping them, and that skip_serializing_if suppresses the optional
+/// fields entirely (not even null) when the catalog lookup returns None.
+#[test]
+fn test_BC_2_11_035_unknown_technique_id_never_lost() {
+    let mut finding = make_finding("test finding");
+    finding.mitre_techniques = vec!["T9999".to_string()];
+    let json_str = render(&[finding]);
+    let value = parse(&json_str);
+
+    let attack_arr = value["findings"][0]["mitre_attack"]
+        .as_array()
+        .expect("BC-2.11.035 inv1: mitre_attack must be present even for unknown IDs");
+
+    assert_eq!(
+        attack_arr.len(),
+        1,
+        "BC-2.11.035 pc2: one element for one technique"
+    );
+    let entry = &attack_arr[0];
+    assert_eq!(
+        entry["id"], "T9999",
+        "BC-2.11.035 inv1: id must be present for unknown technique"
+    );
+    assert_eq!(
+        entry["reference"], "https://attack.mitre.org/techniques/T9999/",
+        "BC-2.11.035 pc3e: reference must be synthesized even for unknown IDs"
+    );
+    // BC-2.11.035 pc3b/3c/3d: skip_serializing_if = Option::is_none means the JSON
+    // key must be ABSENT entirely — not present as null. A null value would mean
+    // the serializer emitted the key, violating the skip contract.
+    assert!(
+        entry.get("name").is_none(),
+        "BC-2.11.035 pc3b: name must be absent (not even null) for unknown technique; \
+         skip_serializing_if must suppress the key entirely, got: {:?}",
+        entry.get("name")
+    );
+    assert!(
+        entry.get("tactic_id").is_none(),
+        "BC-2.11.035 pc3c: tactic_id must be absent (not even null) for unknown technique; \
+         skip_serializing_if must suppress the key entirely, got: {:?}",
+        entry.get("tactic_id")
+    );
+    assert!(
+        entry.get("tactic_name").is_none(),
+        "BC-2.11.035 pc3d: tactic_name must be absent (not even null) for unknown technique; \
+         skip_serializing_if must suppress the key entirely, got: {:?}",
+        entry.get("tactic_name")
+    );
+}
+
+/// AC-3 (BC-2.11.035 pc4, EC-001): Empty mitre_techniques vec omits the
+/// mitre_attack key entirely from the finding JSON object.
+///
+/// Verifies that when a Finding has no mitre_techniques, JsonReporter omits
+/// both mitre_techniques and mitre_attack from the serialized finding object
+/// (skip_serializing_if = is_empty / is_none respectively).
+#[test]
+fn test_BC_2_11_035_empty_mitre_techniques_omits_mitre_attack() {
+    let finding = make_finding("test finding"); // mitre_techniques: vec![] by default
+    let json_str = render(&[finding]);
+    let value = parse(&json_str);
+
+    let finding_obj = value["findings"][0]
+        .as_object()
+        .expect("finding must be a JSON object");
+
+    assert!(
+        !finding_obj.contains_key("mitre_attack"),
+        "BC-2.11.035 pc4: mitre_attack must be absent when mitre_techniques is empty"
+    );
+    assert!(
+        !finding_obj.contains_key("mitre_techniques"),
+        "BC-2.09.006: mitre_techniques must be absent when vec is empty (skip_serializing_if)"
+    );
+}
+
+/// AC-4 (BC-2.11.035 pc2, inv2, EC-006): Multi-tag finding: mitre_attack array
+/// order matches mitre_techniques order exactly.
+///
+/// Verifies that FindingJsonDto maps techniques in declaration order and that
+/// multi-technique ICS findings (T1692.001, T0836) each resolve to TA0106.
+#[test]
+fn test_BC_2_11_035_multitag_order_preserved() {
+    let mut finding = make_finding("test finding");
+    finding.mitre_techniques = vec!["T1692.001".to_string(), "T0836".to_string()];
+    let json_str = render(&[finding]);
+    let value = parse(&json_str);
+
+    let attack_arr = value["findings"][0]["mitre_attack"]
+        .as_array()
+        .expect("BC-2.11.035 pc1: mitre_attack must be present for non-empty mitre_techniques");
+
+    assert_eq!(
+        attack_arr.len(),
+        2,
+        "BC-2.11.035 pc2: exactly 2 elements for 2 techniques"
+    );
+    assert_eq!(
+        attack_arr[0]["id"], "T1692.001",
+        "BC-2.11.035 inv2: index 0 must be T1692.001 (declaration order)"
+    );
+    assert_eq!(
+        attack_arr[1]["id"], "T0836",
+        "BC-2.11.035 inv2: index 1 must be T0836 (declaration order)"
+    );
+    assert_eq!(
+        attack_arr[0]["tactic_id"], "TA0106",
+        "BC-2.11.035 EC-006: T1692.001 tactic_id must be TA0106 (IcsImpairProcessControl)"
+    );
+    assert_eq!(
+        attack_arr[1]["tactic_id"], "TA0106",
+        "BC-2.11.035 EC-006: T0836 tactic_id must be TA0106 (IcsImpairProcessControl)"
+    );
+}
+
+/// AC-5 (BC-2.11.035 inv3, EC-007): Duplicate technique IDs produce duplicate
+/// (non-deduplicated) elements. mitre_attack.len() == mitre_techniques.len().
+///
+/// Verifies that FindingJsonDto maps each element of mitre_techniques
+/// independently — no deduplication occurs — preserving the 1:1 cardinality
+/// invariant between mitre_techniques and mitre_attack.
+#[test]
+fn test_BC_2_11_035_duplicate_ids_not_deduplicated() {
+    let mut finding = make_finding("test finding");
+    finding.mitre_techniques = vec![
+        "T1046".to_string(),
+        "T9999".to_string(),
+        "T1046".to_string(),
+    ];
+    let json_str = render(&[finding]);
+    let value = parse(&json_str);
+
+    let attack_arr = value["findings"][0]["mitre_attack"]
+        .as_array()
+        .expect("BC-2.11.035 pc1: mitre_attack must be present");
+
+    assert_eq!(
+        attack_arr.len(),
+        3,
+        "BC-2.11.035 inv3: must have 3 elements (no deduplication); \
+         got {}",
+        attack_arr.len()
+    );
+    assert_eq!(attack_arr[0]["id"], "T1046", "index 0 must be T1046");
+    assert_eq!(attack_arr[1]["id"], "T9999", "index 1 must be T9999");
+    assert_eq!(
+        attack_arr[2]["id"], "T1046",
+        "index 2 must be T1046 (duplicate)"
+    );
+}
+
+/// AC-6 (BC-2.11.035 pc3e, inv4, EC-005): Sub-technique dot separator is
+/// preserved verbatim in id and in the reference URL.
+///
+/// Verifies that T1071.001 serializes with the literal dot in the id field
+/// and in the synthesized reference URL, and resolves to the correct name
+/// and tactic (TA0011, Command and Control).
+#[test]
+fn test_BC_2_11_035_sub_technique_dot_preserved() {
+    let mut finding = make_finding("test finding");
+    finding.mitre_techniques = vec!["T1071.001".to_string()];
+    let json_str = render(&[finding]);
+    let value = parse(&json_str);
+
+    let attack_arr = value["findings"][0]["mitre_attack"]
+        .as_array()
+        .expect("BC-2.11.035 pc1: mitre_attack must be present");
+
+    assert_eq!(attack_arr.len(), 1, "one element for one technique");
+    let entry = &attack_arr[0];
+    assert_eq!(
+        entry["id"], "T1071.001",
+        "BC-2.11.035 pc3a + inv4: dot separator must be preserved verbatim in id"
+    );
+    assert_eq!(
+        entry["reference"], "https://attack.mitre.org/techniques/T1071.001/",
+        "BC-2.11.035 pc3e + inv4: dot separator must be preserved in reference URL"
+    );
+    assert_eq!(entry["name"], "Web Protocols", "name must be Web Protocols");
+    assert_eq!(
+        entry["tactic_id"], "TA0011",
+        "BC-2.11.035: T1071.001 tactic_id must be TA0011 (CommandAndControl)"
+    );
+    assert_eq!(
+        entry["tactic_name"], "Command and Control",
+        "BC-2.11.035: tactic_name must be Command and Control"
+    );
+}
+
+/// AC-7 (BC-2.11.035 Catalog Extension, EC-003): ICS technique T0827 resolves
+/// tactic_id to TA0105 (ICS-matrix ID for IcsImpact), not TA0040.
+///
+/// Verifies that the ICS-specific tactic ID (TA0105) is emitted rather than
+/// the Enterprise Impact tactic ID (TA0040), and that tactic_name is the
+/// ICS-qualified display string "Impact (ICS)".
+#[test]
+fn test_BC_2_11_035_ics_tactic_id_resolved() {
+    let mut finding = make_finding("test finding");
+    finding.mitre_techniques = vec!["T0827".to_string()];
+    let json_str = render(&[finding]);
+    let value = parse(&json_str);
+
+    let attack_arr = value["findings"][0]["mitre_attack"]
+        .as_array()
+        .expect("BC-2.11.035 pc1: mitre_attack must be present");
+
+    let entry = &attack_arr[0];
+    assert_eq!(entry["id"], "T0827", "id must be T0827");
+    assert_eq!(
+        entry["name"], "Loss of Control",
+        "name must be Loss of Control"
+    );
+    assert_eq!(
+        entry["tactic_id"], "TA0105",
+        "BC-2.11.035 EC-003: ICS IcsImpact tactic_id must be TA0105, NOT TA0040"
+    );
+    assert_eq!(
+        entry["tactic_name"], "Impact (ICS)",
+        "BC-2.11.035 EC-003: tactic_name must be Impact (ICS)"
+    );
+    assert_eq!(
+        entry["reference"], "https://attack.mitre.org/techniques/T0827/",
+        "reference must be synthesized URL"
+    );
+}
+
+/// AC-8 (BC-2.11.035 pc5, inv5, EC-002): mitre_techniques array is unchanged
+/// (additive non-breaking) when mitre_attack is also present.
+///
+/// Verifies that JsonReporter preserves the raw mitre_techniques array
+/// alongside the enriched mitre_attack array — the enrichment is additive
+/// and does not replace or remove the original technique IDs.
+#[test]
+fn test_BC_2_11_035_mitre_techniques_unchanged() {
+    let mut finding = make_finding("test finding");
+    finding.mitre_techniques = vec!["T1046".to_string()];
+    let json_str = render(&[finding]);
+    let value = parse(&json_str);
+
+    let finding_obj = &value["findings"][0];
+
+    // mitre_techniques must still be present unchanged.
+    let techniques = finding_obj["mitre_techniques"]
+        .as_array()
+        .expect("BC-2.11.035 pc5: mitre_techniques must still be present");
+    assert_eq!(techniques.len(), 1, "mitre_techniques must have 1 element");
+    assert_eq!(
+        techniques[0], "T1046",
+        "BC-2.11.035 pc5: mitre_techniques[0] must be T1046 unchanged"
+    );
+
+    // mitre_attack must also be present (additive).
+    assert!(
+        finding_obj.get("mitre_attack").is_some(),
+        "BC-2.11.035 pc5 / inv5: mitre_attack must be present alongside mitre_techniques"
+    );
+}
+
+/// AC-9 (BC-2.11.035 pc6): mitre_attack is absent from CSV output.
+/// CsvReporter is unmodified by STORY-129.
+///
+/// Verifies that CsvReporter, which produces flat delimited text rather than
+/// JSON, does not emit a "mitre_attack" key anywhere in its output even when
+/// the finding carries populated mitre_techniques.
+#[test]
+fn test_BC_2_11_035_csv_unaffected() {
+    use wirerust::reporter::csv::CsvReporter;
+
+    let mut finding = make_finding("test finding");
+    finding.mitre_techniques = vec!["T1046".to_string()];
+    let csv_output = CsvReporter.render(&wirerust::summary::Summary::new(), &[finding], &[]);
+
+    assert!(
+        !csv_output.contains("mitre_attack"),
+        "BC-2.11.035 pc6: mitre_attack must NOT appear in CSV output; \
+         CsvReporter is unmodified by STORY-129"
+    );
+}
+
+/// AC-10 (BC-2.11.035 pc7): mitre_attack is absent from terminal output.
+/// TerminalReporter is unmodified by STORY-129.
+///
+/// Verifies that TerminalReporter, which produces human-readable colored text
+/// rather than JSON, does not emit a "mitre_attack" key anywhere in its output
+/// even when the finding carries populated mitre_techniques.
+#[test]
+fn test_BC_2_11_035_terminal_unaffected() {
+    use wirerust::reporter::terminal::{Collapse, FindingsRender, Grouping, TerminalReporter};
+
+    let mut finding = make_finding("test finding");
+    finding.mitre_techniques = vec!["T1046".to_string()];
+    let reporter = TerminalReporter {
+        use_color: false,
+        show_hosts_breakdown: false,
+        render: FindingsRender::new(Grouping::Flat, Collapse::Expanded),
+    };
+    let terminal_output = reporter.render(&wirerust::summary::Summary::new(), &[finding], &[]);
+
+    assert!(
+        !terminal_output.contains("mitre_attack"),
+        "BC-2.11.035 pc7: mitre_attack must NOT appear in terminal output; \
+         TerminalReporter is unmodified by STORY-129"
+    );
+}
+
+/// BC-2.11.035 EC-009: Enterprise sub-technique T1557.002 (ARP Cache Poisoning)
+/// resolves to tactic Credential Access (TA0006).
+///
+/// Verifies that an Enterprise sub-technique with a dot separator maps correctly
+/// through FindingJsonDto: id and reference preserve the dot, tactic_id is TA0006,
+/// and tactic_name is the exact Display string for MitreTactic::CredentialAccess.
+/// Catalog confirmed: T1557.002 → "Adversary-in-the-Middle: ARP Cache Poisoning",
+/// MitreTactic::CredentialAccess → TA0006 → "Credential Access" (STORY-114).
+#[test]
+fn test_BC_2_11_035_ec009_enterprise_subtechnique() {
+    let mut finding = make_finding("test finding");
+    finding.mitre_techniques = vec!["T1557.002".to_string()];
+    let json_str = render(&[finding]);
+    let value = parse(&json_str);
+
+    let attack_arr = value["findings"][0]["mitre_attack"]
+        .as_array()
+        .expect("BC-2.11.035 EC-009: mitre_attack must be present for T1557.002");
+
+    assert_eq!(
+        attack_arr.len(),
+        1,
+        "BC-2.11.035 EC-009: one element for one technique"
+    );
+    let entry = &attack_arr[0];
+    assert_eq!(
+        entry["id"], "T1557.002",
+        "BC-2.11.035 EC-009: id must be T1557.002 with dot separator preserved"
+    );
+    assert_eq!(
+        entry["name"], "Adversary-in-the-Middle: ARP Cache Poisoning",
+        "BC-2.11.035 EC-009: name must match catalog entry for T1557.002"
+    );
+    assert_eq!(
+        entry["tactic_id"], "TA0006",
+        "BC-2.11.035 EC-009: tactic_id must be TA0006 (Credential Access)"
+    );
+    assert_eq!(
+        entry["tactic_name"], "Credential Access",
+        "BC-2.11.035 EC-009: tactic_name must be Credential Access"
+    );
+    assert_eq!(
+        entry["reference"], "https://attack.mitre.org/techniques/T1557.002/",
+        "BC-2.11.035 EC-009: reference must be synthesized URL with dot separator"
+    );
+}
+
+/// BC-2.11.035 EC-010: ICS technique T0830 (Adversary-in-the-Middle) resolves
+/// to tactic Lateral Movement (TA0008).
+///
+/// Verifies that an ICS technique maps to its correct ICS-matrix tactic through
+/// FindingJsonDto: tactic_id is TA0008, and tactic_name is the exact Display
+/// string for MitreTactic::LateralMovement.
+/// Catalog confirmed: T0830 → "Adversary-in-the-Middle",
+/// MitreTactic::LateralMovement → TA0008 → "Lateral Movement" (STORY-114).
+#[test]
+fn test_BC_2_11_035_ec010_ics_lateral_movement() {
+    let mut finding = make_finding("test finding");
+    finding.mitre_techniques = vec!["T0830".to_string()];
+    let json_str = render(&[finding]);
+    let value = parse(&json_str);
+
+    let attack_arr = value["findings"][0]["mitre_attack"]
+        .as_array()
+        .expect("BC-2.11.035 EC-010: mitre_attack must be present for T0830");
+
+    assert_eq!(
+        attack_arr.len(),
+        1,
+        "BC-2.11.035 EC-010: one element for one technique"
+    );
+    let entry = &attack_arr[0];
+    assert_eq!(entry["id"], "T0830", "BC-2.11.035 EC-010: id must be T0830");
+    assert_eq!(
+        entry["name"], "Adversary-in-the-Middle",
+        "BC-2.11.035 EC-010: name must match catalog entry for T0830"
+    );
+    assert_eq!(
+        entry["tactic_id"], "TA0008",
+        "BC-2.11.035 EC-010: tactic_id must be TA0008 (Lateral Movement)"
+    );
+    assert_eq!(
+        entry["tactic_name"], "Lateral Movement",
+        "BC-2.11.035 EC-010: tactic_name must be Lateral Movement"
+    );
+    assert_eq!(
+        entry["reference"], "https://attack.mitre.org/techniques/T0830/",
+        "BC-2.11.035 EC-010: reference must be synthesized URL"
+    );
+}
+
+/// BC-2.11.035 EC-008: Mixed-batch per-finding independence.
+///
+/// In a multi-finding report, each finding's `mitre_attack` is computed
+/// independently.  A finding with empty `mitre_techniques` omits `mitre_attack`
+/// entirely, while sibling findings in the same report still emit theirs.
+///
+/// Exercises the BC's canonical "Report with 3 findings" test vector:
+///   findings[0]: mitre_techniques = ["T1046"]  → mitre_attack present (1 entry, id T1046)
+///   findings[1]: mitre_techniques = []          → mitre_attack absent
+///   findings[2]: mitre_techniques = ["T0827"]  → mitre_attack present (1 entry, id T0827)
+///
+/// Also verifies that the raw `mitre_techniques` field is preserved on the
+/// findings that carry it (additive non-breaking, BC-2.11.035 pc5).
+#[test]
+fn test_BC_2_11_035_mixed_batch_per_finding_independence() {
+    // finding A — has one technique (T1046, Network Service Discovery)
+    let mut finding_a = make_finding("finding with T1046");
+    finding_a.mitre_techniques = vec!["T1046".to_string()];
+
+    // finding B — empty mitre_techniques; mitre_attack must be absent
+    let finding_b = make_finding("finding with no techniques");
+    // mitre_techniques defaults to vec![] via make_finding
+
+    // finding C — has one ICS technique (T0827, Loss of Control)
+    let mut finding_c = make_finding("finding with T0827");
+    finding_c.mitre_techniques = vec!["T0827".to_string()];
+
+    // Render all three in a single call.
+    let json_str = render(&[finding_a, finding_b, finding_c]);
+    let value = parse(&json_str);
+
+    let findings = value["findings"]
+        .as_array()
+        .expect("BC-2.11.035 EC-008: findings must be a JSON array");
+
+    assert_eq!(
+        findings.len(),
+        3,
+        "BC-2.11.035 EC-008: three findings must produce a findings array of length 3"
+    );
+
+    // --- findings[0]: T1046 must produce mitre_attack with one fully-resolved entry ---
+    let f0 = &findings[0];
+    let attack_0 = f0["mitre_attack"]
+        .as_array()
+        .expect("BC-2.11.035 EC-008: findings[0] must have mitre_attack (T1046 is non-empty)");
+    assert_eq!(
+        attack_0.len(),
+        1,
+        "BC-2.11.035 EC-008: findings[0].mitre_attack must have exactly 1 entry"
+    );
+    assert_eq!(
+        attack_0[0]["id"], "T1046",
+        "BC-2.11.035 EC-008: findings[0].mitre_attack[0].id must be T1046"
+    );
+    // mitre_techniques raw field must also be present on findings[0].
+    let techniques_0 = f0["mitre_techniques"]
+        .as_array()
+        .expect("BC-2.11.035 EC-008 / pc5: findings[0].mitre_techniques must be present");
+    assert_eq!(
+        techniques_0.len(),
+        1,
+        "BC-2.11.035 EC-008 / pc5: findings[0].mitre_techniques must have 1 element"
+    );
+    assert_eq!(
+        techniques_0[0], "T1046",
+        "BC-2.11.035 EC-008 / pc5: findings[0].mitre_techniques[0] must be T1046"
+    );
+
+    // --- findings[1]: empty mitre_techniques → mitre_attack key must be absent entirely ---
+    let f1 = f1_obj(findings);
+    assert!(
+        f1.get("mitre_attack").is_none(),
+        "BC-2.11.035 EC-008 / pc4: findings[1].mitre_attack must be absent when \
+         mitre_techniques is empty; skip_serializing_if must suppress the key"
+    );
+    assert!(
+        f1.get("mitre_techniques").is_none(),
+        "BC-2.11.035 EC-008: findings[1].mitre_techniques must be absent when vec is empty \
+         (skip_serializing_if)"
+    );
+
+    // --- findings[2]: T0827 must produce mitre_attack with one fully-resolved ICS entry ---
+    let f2 = &findings[2];
+    let attack_2 = f2["mitre_attack"]
+        .as_array()
+        .expect("BC-2.11.035 EC-008: findings[2] must have mitre_attack (T0827 is non-empty)");
+    assert_eq!(
+        attack_2.len(),
+        1,
+        "BC-2.11.035 EC-008: findings[2].mitre_attack must have exactly 1 entry"
+    );
+    assert_eq!(
+        attack_2[0]["id"], "T0827",
+        "BC-2.11.035 EC-008: findings[2].mitre_attack[0].id must be T0827"
+    );
+    // mitre_techniques raw field must also be present on findings[2].
+    let techniques_2 = f2["mitre_techniques"]
+        .as_array()
+        .expect("BC-2.11.035 EC-008 / pc5: findings[2].mitre_techniques must be present");
+    assert_eq!(
+        techniques_2.len(),
+        1,
+        "BC-2.11.035 EC-008 / pc5: findings[2].mitre_techniques must have 1 element"
+    );
+    assert_eq!(
+        techniques_2[0], "T0827",
+        "BC-2.11.035 EC-008 / pc5: findings[2].mitre_techniques[0] must be T0827"
+    );
+}
+
+/// Helper: extract findings[1] as an object for the mixed-batch test.
+/// Using a named function keeps the borrow checker happy without a let-binding
+/// that outlives the `findings` temporary in the caller.
+fn f1_obj(findings: &[serde_json::Value]) -> &serde_json::Map<String, serde_json::Value> {
+    findings[1]
+        .as_object()
+        .expect("BC-2.11.035 EC-008: findings[1] must be a JSON object")
 }
