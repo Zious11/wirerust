@@ -180,7 +180,7 @@ The TerminalReporter is unmodified by this story.
 | `MitreAttackEntry` struct (new) | `src/reporter/json_dto.rs` | Pure (serde Serialize; fields: `id: String`, `name: Option<&'static str>`, `tactic_id: Option<&'static str>`, `tactic_name: Option<String>`, `reference: String`) |
 | `technique_tactic_id(id: &str) -> Option<&'static str>` (new accessor) | `src/mitre.rs` | Pure (static match on `MitreTactic`; no I/O; deterministic) |
 | `JsonReporter::render` modification | `src/reporter/json.rs` | Effectful shell (writes JSON to output) — only the call-site changes from raw slice to `Vec<FindingJsonDto>` |
-| Integration tests (10 tests, one per AC) | `tests/reporter_json_tests.rs` | Test harness |
+| Integration tests (13 tests: 10 AC + 3 edge-case: EC-008 mixed-batch, EC-009, EC-010) — all 13 present and GREEN at convergence | `tests/reporter_json_tests.rs` | Test harness |
 
 Architecture section references: `architecture/module-decomposition.md` (SS-11 reporter
 module; `src/reporter/` subtree); ADR-0003 (serde delegation pattern — additive field via
@@ -253,8 +253,9 @@ wrapper type is consistent); BC-2.11.035 Architecture Anchors.
    - No other changes to `json.rs` — the `#[serde(flatten)]` on `inner` preserves all
      existing finding keys; `mitre_attack` is additive.
 
-4. **Add tests in `tests/reporter_json_tests.rs`** (one per AC, using EXACT test names
-   from BC-2.11.035 Verification Properties table for DF-AC-TEST-NAME-SYNC-001 compliance):
+4. **Add tests in `tests/reporter_json_tests.rs`** (13 total: one per AC plus 3 dedicated
+   edge-case tests, using EXACT test names from BC-2.11.035 Verification Properties table
+   for DF-AC-TEST-NAME-SYNC-001 compliance):
    - `test_BC_2_11_035_known_technique_all_five_fields` (AC-1)
    - `test_BC_2_11_035_unknown_technique_id_never_lost` (AC-2)
    - `test_BC_2_11_035_empty_mitre_techniques_omits_mitre_attack` (AC-3)
@@ -265,6 +266,9 @@ wrapper type is consistent); BC-2.11.035 Architecture Anchors.
    - `test_BC_2_11_035_mitre_techniques_unchanged` (AC-8)
    - `test_BC_2_11_035_csv_unaffected` (AC-9)
    - `test_BC_2_11_035_terminal_unaffected` (AC-10)
+   - `test_BC_2_11_035_mixed_batch_per_finding_independence` (EC-008)
+   - `test_BC_2_11_035_ec009_enterprise_subtechnique` (EC-009)
+   - `test_BC_2_11_035_ec010_ics_lateral_movement` (EC-010)
    Each test: construct a `Finding` directly, call the appropriate reporter, parse or
    inspect the output, assert the structural contract.
 
@@ -285,6 +289,9 @@ wrapper type is consistent); BC-2.11.035 Architecture Anchors.
 | AC-8 | `test_BC_2_11_035_mitre_techniques_unchanged` | Unit |
 | AC-9 | `test_BC_2_11_035_csv_unaffected` | Unit |
 | AC-10 | `test_BC_2_11_035_terminal_unaffected` | Unit |
+| EC-008 | `test_BC_2_11_035_mixed_batch_per_finding_independence` | Unit |
+| EC-009 | `test_BC_2_11_035_ec009_enterprise_subtechnique` | Unit |
+| EC-010 | `test_BC_2_11_035_ec010_ics_lateral_movement` | Unit |
 
 ## Previous Story Intelligence
 
@@ -343,7 +350,7 @@ No new dependencies. All libraries already present in `Cargo.toml`.
 | `src/reporter/json.rs` | **MODIFY** | Use `Vec<FindingJsonDto>` in `render`; import `json_dto`; minimal delta |
 | `src/mitre.rs` | **EXTEND** | Add `pub fn technique_tactic_id(id: &str) -> Option<&'static str>`; extend `vp007_catalog_drift_guard` test |
 | `src/reporter/mod.rs` | **MODIFY** | Add `pub mod json_dto;` (or `mod json_dto;` per codebase convention) |
-| `tests/reporter_json_tests.rs` | **MODIFY** | Add 10 unit tests (AC-1 through AC-10) |
+| `tests/reporter_json_tests.rs` | **MODIFY** | Add 13 unit tests (AC-1 through AC-10 + EC-008, EC-009, EC-010) |
 
 ## Token Budget Estimate
 

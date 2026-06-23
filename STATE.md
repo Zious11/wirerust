@@ -1,10 +1,10 @@
 ---
 pipeline: FEATURE
 phase: F3
-phase_status: "feature-mitre-json-names IN PROGRESS — F1 delta analysis complete (1 BC, 1 story, additive/non-breaking; research-agent override adopted: array design). F2 complete: BC-2.11.035 authored (10 ACs); BC-INDEX v1.70, PRD v1.34, interface-definitions v1.3, BC-2.11.001 v1.7. F3 complete: STORY-129 (Wave 57, 5 pts, input-hash 2a5cee9). F4 TDD implementation next."
+phase_status: "feature-mitre-json-names IN PROGRESS — F1/F2/F3 complete. F4 TDD + Step-4.5 per-story adversarial convergence ACHIEVED (STORY-129, 3 clean passes b8fea97/6d8f172/7e020ce, 0 HIGH/CRIT, 13 tests EC-001..010). PR next."
 product: wirerust
 mode: brownfield
-timestamp: 2026-06-23T01:00:00Z
+timestamp: 2026-06-23T02:00:00Z
 
 # Release chain
 released_version: v0.9.3
@@ -44,7 +44,7 @@ adversary_gate: SATISFIED
 # Story tracking
 stories_delivered: 77
 current_cycle: feature-mitre-json-names
-current_wave: "Wave 57 — F3 complete. STORY-129 authored. F4 TDD implementation next."
+current_wave: "Wave 57 — F4 TDD + per-story adversarial convergence ACHIEVED. STORY-129 converged (3 passes, 0 HIGH/CRIT). PR next."
 
 # DTU
 dtu_required: false
@@ -120,6 +120,7 @@ Re-verify on resume before taking any action:
 | PC-013 | ARP production `.expect()` sites — panic-on-malformed risk. | OPEN |
 | PC-014 | dnp3: `total_parse_errors` key missing from output map. | OPEN |
 | PC-015 | ARP findings cap not documented in public CLI help. | OPEN |
+| DRIFT-BC-TEMPLATE-EC-VP-MAP-001 | [process-gap, LOW]: BC-2.11.035 (and the BC template generally) allows an Edge-Cases table with more rows than its Verification-Properties/test-name table, inviting EC under-testing. STORY-129 back-filled EC-008/009/010 tests. Deferred as an ENGINE/template concern (vsdd-factory BC template), not a wirerust product defect. Target: next maintenance/engine codification pass. Reason: LOW severity, no product impact, requires BC-template change in the engine repo. | DEFERRED LOW — engine/template |
 | ADV-4 | ci.yml audit comment rationale lost (LOW). | DEFERRED LOW |
 | DRIFT-READER-ADR-CITATION-001 | reader.rs ADR citation numbers (LOW). | DEFERRED LOW |
 | DRIFT-ENGINE-PRMGR-BLOCKING-001 | Engine PromptManager blocking pattern (out of scope here). | ENGINE-NOTE |
@@ -139,7 +140,7 @@ prd.md v1.34, error-taxonomy v3.8 (next_free E-INP-016), nfr-catalog v2.3, ADR-0
 
 ## Status
 
-**FEATURE MODE — feature-mitre-json-names ACTIVE (D-206). GitHub issue #64: inline MITRE tactic/name in JSON. F1/F2/F3 complete. F4 TDD implementation next (STORY-129, Wave 57, 5 pts).**
+**FEATURE MODE — feature-mitre-json-names ACTIVE (D-207). GitHub issue #64: inline MITRE tactic/name in JSON. F1/F2/F3/F4 complete. Per-story adversarial convergence ACHIEVED (STORY-129, 3 passes, 0 HIGH/CRIT, 13 tests). PR next.**
 
 **MAINTENANCE SWEEP COMPLETE — maint-2026-06-22 (2026-06-23). 0 blocking. F-MAJ-001 fixed (ARCH-INDEX v1.6 a6efb23). PR #304 deps hygiene (e458ce2) + PR #305 docs drift/ADR-0009 (e4abbe2) merged. 2 LOWs deferred (ADV-4, DRIFT-READER-ADR-CITATION-001); 1 engine-note (DRIFT-ENGINE-PRMGR-BLOCKING-001). Report: .factory/maintenance/sweep-report-2026-06-22.md. Prior run maint-2026-06-17 COMPLETE/archived.**
 
@@ -170,7 +171,8 @@ Latest release: v0.9.3 (main `2dbf461`, tag `v0.9.3`, 4 binaries, run 2798455729
 | Feature pcapng-reader (FE-001) + v0.9.3 | **COMPLETE + RELEASED 2026-06-22 (D-201)** | F1-F7 CONVERGED+HUMAN-APPROVED (D-194). 10 new BCs, VP-INDEX v2.10 (31/31). PR #302 → main `2dbf461`. 4 binaries. Cycle CLOSED. |
 | Feature mitre-json-names (issue #64) — F1 | PASSED 2026-06-23 | Delta: 1 BC (BC-2.11.035), 1 story (STORY-129), additive/non-breaking. Research-agent override: array design (`mitre_attack`). |
 | Feature mitre-json-names (issue #64) — F2 | PASSED 2026-06-23 | BC-2.11.035 v1.0 authored (10 ACs); BC-INDEX v1.70; PRD v1.34; interface-definitions v1.3; BC-2.11.001 v1.7. |
-| Feature mitre-json-names (issue #64) — F3 | PASSED 2026-06-23 | STORY-129 authored (Wave 57, 5 pts, input-hash 2a5cee9, depends_on []); STORY-INDEX v2.7. F4 next. |
+| Feature mitre-json-names (issue #64) — F3 | PASSED 2026-06-23 | STORY-129 authored (Wave 57, 5 pts, input-hash 2a5cee9, depends_on []); STORY-INDEX v2.7. |
+| Feature mitre-json-names (issue #64) — F4 + Step-4.5 convergence | **PASSED 2026-06-23 (D-207)** | STORY-129 implemented; 13 tests (EC-001..010); 3 adversarial passes clean (b8fea97/6d8f172/7e020ce, 0 HIGH/CRIT); full gates green. Trajectory: 3L→1M1L→1L(+process-gap). Demo: modbus-write.pcap T1692.001/T0836→TA0106. PR next. |
 
 ## Decisions Log
 
@@ -188,6 +190,7 @@ D-136..D-202: `cycles/feature-pcapng-reader/decisions-archive.md` (archived at c
 | D-204 | Maintenance sweep maint-2026-06-22 COMPLETE. 7 sweeps run (DTU+a11y N/A), 0 blocking, 0 holdout FAIL-BUG. Fixes merged: PR #304 deps hygiene (rayon removed, rand→0.8.6 clears RUSTSEC-2026-0097, zerocopy bump) e458ce2; PR #305 docs drift + public ADR-0009 e4abbe2. F-MAJ-001 fixed (ARCH-INDEX v1.6 a6efb23). 2 LOWs deferred (ADV-4, DRIFT-READER-ADR-CITATION-001); 1 engine-note (DRIFT-ENGINE-PRMGR-BLOCKING-001). PO backlog recorded (holdout staleness + DNP3/ARP/Modbus/collapse coverage gap). develop dd3b069→e4abbe2. | 2026-06-23 |
 | D-205 | SAFE-TO-CLEAR checkpoint refreshed (supersedes D-203/D-204). Ground truth verified: main=2dbf461 (v0.9.3 tag, unchanged), develop=e4abbe2 (local == origin/develop == e4abbe2, fast-forwarded 2026-06-23, working tree clean), open PRs=0, worktrees=main+.factory only. All D-204 decisions final. Pipeline fully quiesced. | 2026-06-23 |
 | D-206 | Feature Mode opened for GitHub issue #64 (inline MITRE tactic/name in JSON). F1 delta analysis complete (1 BC, 1 story, additive/non-breaking). Research-agent override of the initial flat-field design: adopt an order-preserving ARRAY of per-technique objects under new field `mitre_attack` (id, name?, tactic_id?, tactic_name?, reference), aligning with ECS/OCSF; raw `mitre_techniques` unchanged. Human-approved field name `mitre_attack` and array design. F2 complete: BC-2.11.035 authored (10 ACs); BC-INDEX v1.70, PRD v1.34, interface-definitions v1.3, BC-2.11.001 v1.7. Catalog extension in scope: add `technique_tactic_id()` to src/mitre.rs (tactic_id not currently exposed; reference synthesized from technique ID). F3 complete: STORY-129 (Wave 57, ~5 pts, input-hash 2a5cee9, depends_on []); STORY-INDEX v2.7. No new Verification Property (pure Option-chaining over Kani-verified VP-007 → test-sufficient). F4 TDD implementation next. | 2026-06-23 |
+| D-207 | STORY-129 (issue #64 mitre_attack JSON enrichment) per-story adversarial convergence CONVERGED: 3 clean fresh-context passes (b8fea97/6d8f172/7e020ce), zero HIGH/CRITICAL. 13 BC-2.11.035 tests (EC-001..010 fully covered), full gates green (cargo test --all-targets, clippy -D warnings, fmt). Demo evidence recorded (modbus-write.pcap, T1692.001/T0836→TA0106). Process-gap DRIFT-BC-TEMPLATE-EC-VP-MAP-001 deferred (engine BC-template, LOW). PR next. | 2026-06-23 |
 
 ## Governance Policy
 
@@ -221,5 +224,5 @@ Full policy text: `.factory/policies.yaml`.
 - STORY-INDEX.md is authoritative (82 stories / 57 waves / 526 pts — v2.7, post-F3 D-206).
 - Current cycle artifacts: `cycles/feature-mitre-json-names/` (f1-delta-analysis.md, mitre-json-shape-research.md).
 - Decisions D-136..D-199 archived in `cycles/feature-pcapng-reader/decisions-archive.md` at cycle close.
-- F4 open item: implement `technique_tactic_id()` in src/mitre.rs + `FindingJsonDto` / `MitreAttackEntry` in src/reporter/json_dto.rs + extend `vp007_catalog_drift_guard` test (per STORY-129 Tasks 1–4).
+- F4 + Step-4.5 convergence COMPLETE (D-207): `technique_tactic_id()` in src/mitre.rs, `FindingJsonDto`/`MitreAttackEntry` in src/reporter/json_dto.rs, all 13 tests green (EC-001..010), 3 adversarial passes clean. PR is next action.
 - Input-hash verification at D-206: `bin/compute-input-hash .factory/stories/STORY-129.md` == `2a5cee9` (MATCH — confirmed at commit time).
