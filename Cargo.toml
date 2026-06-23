@@ -34,7 +34,6 @@ anyhow = "1"
 owo-colors = "4"
 indicatif = "0.18"
 chrono = { version = "0.4", features = ["serde"] }
-rayon = "1"
 
 [profile.release]
 overflow-checks = true
