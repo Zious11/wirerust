@@ -1372,7 +1372,7 @@ impl Dnp3Analyzer {
     ///
     /// Aggregates across all flows: `function_code_distribution` (from
     /// `self.fn_code_counts`, zero-count FCs suppressed), `control_operation_counts`
-    /// (per-flow `direct_operate_count`), `total_frames`, `total_parse_errors`,
+    /// (per-flow `direct_operate_count`), `total_frames`, `parse_errors`,
     /// `flows_analyzed`. Returns a populated `AnalysisSummary` even when zero flows
     /// were processed (all counts zero, maps empty — BC-2.15.020 postcondition 2).
     ///
@@ -1382,7 +1382,7 @@ impl Dnp3Analyzer {
 
         let flows_analyzed = self.flows.len() as u64;
         let total_frames: u64 = self.flows.values().map(|f| f.frame_count).sum();
-        let total_parse_errors: u64 = self.flows.values().map(|f| f.parse_errors).sum();
+        let parse_errors: u64 = self.flows.values().map(|f| f.parse_errors).sum();
 
         // BC-2.15.020 postcondition 1: function_code_distribution — only FCs with count > 0.
         // Keys are decimal strings of the FC byte (e.g. "5" for 0x05 DIRECT_OPERATE).
@@ -1422,8 +1422,8 @@ impl Dnp3Analyzer {
             serde_json::Value::Number(total_frames.into()),
         );
         detail.insert(
-            "total_parse_errors".to_string(),
-            serde_json::Value::Number(total_parse_errors.into()),
+            "parse_errors".to_string(),
+            serde_json::Value::Number(parse_errors.into()),
         );
         detail.insert(
             "flows_analyzed".to_string(),
