@@ -1572,9 +1572,8 @@ mod story_108 {
     // -----------------------------------------------------------------------
     // Red Gate — BC-2.15.020 v1.4: parse_errors key rename (D-220, human-approved)
     //
-    // This test MUST FAIL on current code (which emits "total_parse_errors") and
-    // MUST PASS after the implementer renames the key to "parse_errors" in
-    // src/analyzer/dnp3.rs:1425.
+    // This test passes on current code: the rename is complete — the analyzer emits
+    // "parse_errors", not "total_parse_errors" (rename landed in develop f5c002a).
     //
     // Traces to: BC-2.15.020 v1.4 postcondition 1 (BREAKING rename D-220);
     //            scope.md PC-014; test-vector row "Red Gate — key name".
