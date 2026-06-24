@@ -2,7 +2,8 @@
 document_type: story
 story_id: STORY-115
 epic_id: E-16
-version: "1.4"
+version: "1.5"
+# v1.5 (2026-06-23): fix-pc-013-014-015 BC propagation — BC-2.16.010 cross-story extension section updated to v1.8 annotation; BC status comment updated. No AC changes — BC-2.16.010 v1.8 (no-dropped_findings invariant) does not affect storm_findings key scope.
 # Pass-32: align analyzer field name storm_findings_count→storm_findings (matches STORY-113 declaration + sibling convention + BC-2.16.010 summarize key)
 # v1.4 (2026-06-16): F7 consistency F4 — EC-011 table row corrected from 'at CLI parse time' to 'at startup (in run_analyze)' (matching AC-011 fix from v1.3 and BC-2.16.008 v1.9 / BC-2.16.013 v1.4).
 # v1.3 (2026-06-16): F7 consistency F3 — AC-011 threshold-0 rejection mechanism corrected from 'at CLI parse time' to 'at startup (in run_analyze), before any packet processing — via a fail-fast anyhow::bail! error (exit code 1), not a clap value_parser range' (BC-2.16.008 v1.9 / BC-2.16.013 v1.4).
@@ -26,7 +27,7 @@ estimated_days: 3
 feature_id: issue-009-arp-security-analyzer
 github_issue: 9
 # BC status: BC-2.16.008 v1.8, BC-2.16.013 v1.3 — authored 2026-06-12 (updated to v1.8/v1.3 per D-074 cosmetic sync 2026-06-15)
-# BC-2.16.010 cross-story extension: wires storm_findings VALUE (key already defined by STORY-113); primary owner is STORY-113
+# BC-2.16.010 cross-story extension: wires storm_findings VALUE (key already defined by STORY-113); primary owner is STORY-113. BC-2.16.010 now at v1.8 (fix-pc-013-014-015 PC-015: Invariant 6 added — no dropped_findings key / no MAX_FINDINGS on ARP path; cross-ref BC-2.16.016). No behavioral change to storm_findings key — unchanged for STORY-115 scope.
 # No Kani/proptest for D3: unit-tested only. T0814 MITRE tag deferred per DF-VALIDATION-001.
 # NOTE: verification_properties: [] because D3 is not a VP-024 formal target; no new VP in this story.
 inputs:
@@ -34,7 +35,7 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-16/BC-2.16.008.md
   - .factory/specs/behavioral-contracts/ss-16/BC-2.16.013.md
   - .factory/specs/behavioral-contracts/ss-16/BC-2.16.010.md
-input-hash: "c37676b"
+input-hash: "5ae943e"
 ---
 
 # STORY-115: D3 ARP Storm Detection + --arp-storm-rate CLI Flag + storm_findings Summary Key
@@ -52,10 +53,15 @@ input-hash: "c37676b"
 | BC-2.16.008 | D3 ARP Storm Rate Detection — Source MAC Exceeds ARP_STORM_RATE_DEFAULT Frames/Sec |
 | BC-2.16.013 | --arp-storm-rate Overrides ARP_STORM_RATE_DEFAULT |
 
-## BC-2.16.010 Cross-Story Extension
+## BC-2.16.010 v1.8 Cross-Story Extension
 
 This story wires the VALUE of the existing `storm_findings` key in `ArpAnalyzer::summarize()`. The primary owner
 of BC-2.16.010 and the 11-key summarize contract is STORY-113. STORY-115 does NOT add a new key — the `storm_findings` key is canonical key 8 of BC-2.16.010's 11-key set, already defined by BC-2.16.010 and declared by STORY-113's `summarize()` with value 0. This story populates its VALUE from `ArpAnalyzer.storm_findings` so it becomes non-zero when D3 detections fire.
+
+**BC-2.16.010 v1.8 update note (fix-pc-013-014-015 PC-015):** BC-2.16.010 v1.8 added Invariant 6
+confirming that `summarize()` NEVER emits a `dropped_findings` key and ARP findings are unbounded
+(cross-reference to BC-2.16.016). This does NOT affect STORY-115's scope — the `storm_findings` key
+is unchanged. No additional ACs are required in STORY-115 for this BC update.
 
 ## D3 MITRE Attribution — DF-VALIDATION-001 Compliance
 

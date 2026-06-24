@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.7"
+version: "1.8"
 status: draft
 producer: product-owner
 timestamp: 2026-06-12T02:00:00Z
@@ -19,6 +19,7 @@ modified:
   - "v1.5: Pass-9 remediation F-B9-M04: EC-003 clarifying clause added — the 5 GARP and 3 spoof findings are detection classifications of frames already counted among the 100 request/reply frames; they are NOT additional frames; the reconciliation invariant counts frames, not findings. — 2026-06-12"
   - "v1.6: corpus-consistency-audit-2026-06-13 PR-1a: H1 updated to include '(11 Keys)' enrichment per Criterion-75 (title enrichment must live in H1, not only downstream indexes). — 2026-06-13"
   - "v1.7: F3 story-anchor back-fill (primary owner STORY-113; cross-story extension STORY-115 for storm_findings VALUE). — 2026-06-14"
+  - "v1.8: fix-pc-013-014-015 PC-015 cross-reference — Related BCs updated to include BC-2.16.016 (ARP findings output is unbounded). Invariant 6 added: findings output from process_arp is NOT bounded by any MAX_FINDINGS constant; BC-2.16.016 is the authoritative contract for this invariant. Clarifies that the eleven summarize() keys do NOT include a dropped_findings key and MUST NOT gain one without a BC-2.16.010 version bump. — 2026-06-23"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -103,6 +104,14 @@ The presence and content of all eleven keys is the contract verified by this BC.
    unconditional) but no D11 finding is emitted, so `malformed_findings` remains lower. No
    invariant or test vector in this BC may assert unconditional equality between the two counts
    (per ADR-008 Decision 7 key 11 and BC-2.16.009 PC4).
+6. **No dropped_findings key — findings output is unbounded (BC-2.16.016)**: The eleven
+   required keys specified in Postcondition 1 are EXHAUSTIVE. `summarize()` NEVER emits a
+   `dropped_findings` key. The ARP findings output (from `process_arp`) is not bounded by
+   any `MAX_FINDINGS` constant — unlike stream-reassembly analyzers (HTTP, TLS, Modbus, DNP3)
+   which apply `MAX_FINDINGS = 10,000` via the reassembly layer. ARP bypasses reassembly
+   entirely (BC-2.16.015 Invariant 2). BC-2.16.016 is the authoritative contract for the
+   unbounded-findings invariant. Adding a `dropped_findings` key to summarize() would require
+   a version bump of BOTH this BC (BC-2.16.010) AND BC-2.16.016.
 
 ## Edge Cases
 
@@ -150,6 +159,7 @@ The presence and content of all eleven keys is the contract verified by this BC.
 - BC-2.16.008 — depends on (storm_findings count)
 - BC-2.16.007 — depends on (mismatch_findings count)
 - BC-2.16.009 — depends on (malformed_findings count)
+- BC-2.16.016 — composes with (ARP findings output is unbounded — no MAX_FINDINGS cap; summarize() MUST NOT add a dropped_findings key without bumping both this BC and BC-2.16.016)
 
 ## Architecture Anchors
 

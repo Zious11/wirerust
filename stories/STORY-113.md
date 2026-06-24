@@ -2,7 +2,7 @@
 document_type: story
 story_id: STORY-113
 epic_id: E-16
-version: "1.2"
+version: "1.3"
 status: draft
 producer: story-writer
 timestamp: 2026-06-13T00:00:00Z
@@ -19,6 +19,7 @@ behavioral_contracts:
   - BC-2.16.009
   - BC-2.16.010
   - BC-2.16.011
+  - BC-2.16.016
 verification_properties: [VP-024]
 tdd_mode: strict
 target_module: analyzer/arp
@@ -26,7 +27,7 @@ subsystems: [SS-16]
 estimated_days: 5
 feature_id: issue-009-arp-security-analyzer
 github_issue: 9
-# BC status: all 7 BCs authored 2026-06-12. Primary owner of BC-2.16.010 (summarize keys introduced here).
+# BC status: 8 BCs (7 original + BC-2.16.016 v1.0 added 2026-06-23). Primary owner of BC-2.16.010 and BC-2.16.016 (summarize keys and unbounded-findings invariant introduced here).
 # VP-024 Sub-B (verify_classify_garp_total Kani), Sub-C (test_BC_2_16_005_binding_table_last_write_wins proptest), Sub-D (verify_binding_table_cap Kani) land here.
 # NOTE: D1 spoof EMISSION (BC-2.16.004) is NOT in this story. Binding table infrastructure is built here, but D1 findings are emitted in STORY-114.
 inputs:
@@ -38,8 +39,9 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-16/BC-2.16.009.md
   - .factory/specs/behavioral-contracts/ss-16/BC-2.16.010.md
   - .factory/specs/behavioral-contracts/ss-16/BC-2.16.011.md
+  - .factory/specs/behavioral-contracts/ss-16/BC-2.16.016.md
   - .factory/specs/verification-properties/vp-024-arp-parse-safety.md
-input-hash: "bbbdf76"
+input-hash: "723626d"
 ---
 
 # STORY-113: ArpAnalyzer Full Implementation — Binding Table, GARP (D2), D11, D12, summarize(), --arp Flag, VP-024 Sub-B/C/D
@@ -59,8 +61,9 @@ input-hash: "bbbdf76"
 | BC-2.16.006 | Binding-Table Cap — Table Never Exceeds MAX_ARP_BINDINGS via LRU Eviction |
 | BC-2.16.007 | D12 L2/L3 Sender Mismatch — Ethernet Src MAC != ARP Sender HW Addr |
 | BC-2.16.009 | D11 Malformed ARP — Non-Ethernet/IPv4 HW/Proto Address Sizes Emit LOW Finding |
-| BC-2.16.010 | ArpAnalyzer::summarize() Returns AnalysisSummary with Required Keys (11 Keys) — PRIMARY OWNER |
+| BC-2.16.010 v1.8 | ArpAnalyzer::summarize() Returns AnalysisSummary with Required Keys (11 Keys) — PRIMARY OWNER |
 | BC-2.16.011 | --arp CLI Flag Gates ARP Security Analysis |
+| BC-2.16.016 v1.0 | ARP Findings Output is Unbounded — No MAX_FINDINGS Cap on process_arp Return Vec |
 
 ## Scope Boundary: D1 Deferred to STORY-114
 
@@ -203,6 +206,16 @@ A single ARP frame where `sender_ip == target_ip` (GARP condition) AND `outer_sr
 When `process_arp` processes a frame where `sender_ip` already has a binding entry AND `frame.sender_mac == bindings[sender_ip].mac` (no MAC change — no rebind), the binding entry's `last_seen_ts` is still updated to the current `timestamp_secs`. `rebind_count` remains unchanged. This ensures LRU eviction correctly identifies the most-recently-seen entry regardless of whether a rebind occurred.
 - **Test:** `test_BC_2_16_005_binding_same_mac_touches_last_seen_ts`
 
+### AC-022 (traces to BC-2.16.016 postcondition 1/invariant 1 — ARP findings Vec has no MAX_FINDINGS cap)
+`ArpAnalyzer::process_arp` returns a `Vec<Finding>` with NO upper bound. Processing more than
+10,000 ARP events that each produce a finding (e.g., D1 spoof rebinds using `spoof_threshold=1`)
+results in `all_findings.len() > 10,000`; no findings are silently dropped. `ArpAnalyzer` does
+NOT define or use a `MAX_FINDINGS` constant — unlike stream-reassembly analyzers (HTTP, TLS,
+Modbus, DNP3) which cap at `MAX_FINDINGS = 10,000` via `src/reassembly/mod.rs:57`. This absence
+of a findings cap is intentional: ARP bypasses TCP reassembly entirely (link-layer protocol).
+`summarize()` NEVER emits a `dropped_findings` key (BC-2.16.010 Invariant 6 / BC-2.16.016 PC3).
+- **Test:** `test_BC_2_16_016_arp_findings_vec_has_no_cap` — create `ArpAnalyzer::new(spoof_threshold=1, storm_rate=u32::MAX)`; process 10,001 alternating-MAC ARP reply frames (unique sender_ip per pair); accumulate all returned findings; assert `all_findings.len() > 10_000`.
+
 ## Architecture Mapping
 
 | Component | Module | Pure/Effectful |
@@ -294,6 +307,7 @@ Architecture section references: `architecture/module-decomposition.md` (SS-16 C
 | AC-019 | `verify_binding_table_cap` | Kani (F6) |
 | AC-020 | `test_BC_2_16_007_d12_and_garp_coemit_on_single_frame` | Unit |
 | AC-021 | `test_BC_2_16_005_binding_same_mac_touches_last_seen_ts` | Unit |
+| AC-022 | `test_BC_2_16_016_arp_findings_vec_has_no_cap` | Unit |
 
 ## Previous Story Intelligence
 
@@ -341,13 +355,13 @@ Derived from arp-architecture-delta.md §1, §3.1–§3.3, ADR-008 Decisions 4�
 | Component | Estimated Tokens |
 |-----------|-----------------|
 | Story spec (this file) | ~5,500 |
-| BC files (7 BCs) | ~14,000 |
+| BC files (8 BCs) | ~16,000 |
 | arp-architecture-delta.md §1, §3.1–§3.3 | ~3,000 |
 | VP-024 file (Sub-B/C/D sections) | ~2,000 |
 | STORY-112 (for ArpAnalyzer stub context) | ~2,000 |
 | Existing `src/main.rs`, `src/cli.rs` | ~2,500 |
 | Tool outputs (cargo test, proptest, kani) | ~2,000 |
-| **Total estimated** | **~31,000** |
+| **Total estimated** | **~33,000** |
 
 This is the largest story in E-16. At ~31k tokens it approaches the 20–30% context window limit. If the implementing agent reports context pressure, split at the Sub-D Kani harness boundary: deliver tasks 1–12 + AC-001..AC-016 in sub-burst A, then tasks 13–17 + AC-017..AC-019 in sub-burst B.
 
@@ -358,5 +372,6 @@ This is the largest story in E-16. At ~31k tokens it approaches the 20–30% con
 
 ## Changelog
 
+- v1.3: fix-pc-013-014-015 BC propagation — ADD BC-2.16.016 v1.0 (ARP Findings Output is Unbounded) to frontmatter `bcs:`, inputs list, body BC table, and AC-022. Sync BC-2.16.010 table annotation to v1.8. Token budget updated: 7 BCs → 8 BCs (~33k total). Input-hash will be recomputed after BC file additions.
 - v1.2: F7 consistency F2 — Sub-D surrogate renamed from `insert_binding_lru_btree` (BTreeMap) to `insert_binding_lru_array` (array; signature `entries: &mut [([u8; 4], [u8; 6], u32); CAP], len: &mut usize, ip, mac, cap`). All six loci updated: Sub-D description (§VP-024 Sub-B/C/D), AC-019, Architecture Mapping table, Task 6, Task 15, Architecture Compliance Rule 2, Library table. Matches F6 implementation; sanctioned by VP-024 v2.2 + arp-architecture-delta v1.17.
 - v1.1: F-3 pre-empt — AC **Test:** + Test Plan citations synced to exact BC-prefixed test fn names (DF-AC-TEST-NAME-SYNC-001). Source: test-writer commit 01a67c0. input-hash unchanged at 7c61bae.

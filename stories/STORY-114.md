@@ -2,8 +2,8 @@
 document_type: story
 story_id: STORY-114
 epic_id: E-16
-version: "1.4"
-version_note: "1.4 (2026-06-16): F7 consistency F4 — EC-014 table row corrected from 'at CLI parse time' to 'at startup (in run_analyze)' (matching AC-006 fix from v1.3 and BC-2.16.012 v1.4). 1.3 (2026-06-16): F7 consistency F3 — AC-006 threshold-0 rejection mechanism corrected from 'at CLI parse time' to 'at startup (in run_analyze), before any packet processing — via a fail-fast anyhow::bail! error (exit code 1), not a clap value_parser range' (BC-2.16.012 v1.4). 1.2 (2026-06-15): D-074 back-propagation — AC-006 extended with threshold-0 rejection requirement and test_cli_arp_spoof_threshold_0_rejected; EC-014 added (BC-2.16.012 EC-004 / BC-2.16.012 v1.3 PC2). 1.1 (2026-06-14): F3-convergence Pass-25 Slice-C — de-pinned 4x HS-008-*.md:75 line citations to concept anchor 'HS-008 Verification Approach step 1'; input-hash will be recomputed by orchestrator (--write)"
+version: "1.5"
+version_note: "1.5 (2026-06-23): fix-pc-013-014-015 BC propagation — BC-2.16.004 synced to v1.9 (fail-safe degradation Invariant 6 / PC-013); BC table annotation updated to 'BC-2.16.004 v1.9'; AC-018 added (fail-safe no-panic test at 4 if-let guard sites); BC status comment updated. 1.4 (2026-06-16): F7 consistency F4 — EC-014 table row corrected from 'at CLI parse time' to 'at startup (in run_analyze)' (matching AC-006 fix from v1.3 and BC-2.16.012 v1.4). 1.3 (2026-06-16): F7 consistency F3 — AC-006 threshold-0 rejection mechanism corrected from 'at CLI parse time' to 'at startup (in run_analyze), before any packet processing — via a fail-fast anyhow::bail! error (exit code 1), not a clap value_parser range' (BC-2.16.012 v1.4). 1.2 (2026-06-15): D-074 back-propagation — AC-006 extended with threshold-0 rejection requirement and test_cli_arp_spoof_threshold_0_rejected; EC-014 added (BC-2.16.012 EC-004 / BC-2.16.012 v1.3 PC2). 1.1 (2026-06-14): F3-convergence Pass-25 Slice-C — de-pinned 4x HS-008-*.md:75 line citations to concept anchor 'HS-008 Verification Approach step 1'; input-hash will be recomputed by orchestrator (--write)"
 status: draft
 producer: story-writer
 timestamp: 2026-06-13T00:00:00Z
@@ -23,7 +23,7 @@ subsystems: [SS-16]
 estimated_days: 5
 feature_id: issue-009-arp-security-analyzer
 github_issue: 9
-# BC status: BC-2.16.004 v1.5, BC-2.16.012 v1.3, BC-2.16.014 v1.5 — authored 2026-06-12 (BC-2.16.012 updated to v1.3 per D-074 cosmetic sync 2026-06-15)
+# BC status: BC-2.16.004 v1.9, BC-2.16.012 v1.3, BC-2.16.014 v1.5 — authored 2026-06-12; BC-2.16.004 updated to v1.9 per fix-pc-013-014-015 PC-013 (fail-safe degradation invariant added 2026-06-23)
 # VP-007 5-part atomic update: SEEDED 23→25 / EMITTED 15→17; vp007_catalog_drift_guard must pass
 # D-069 supersedes D-067: IcsImpact Display = "Impact (ICS)" is canonical; src/mitre.rs:91 stays unchanged; HS-008 stays "Impact (ICS)". See D-069 supersession note below.
 # PLANNED: BC-2.10.005 and BC-2.10.008 carry "PLANNED — implemented in STORY-114; current code 23/15" markers until this story merges
@@ -34,7 +34,7 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-16/BC-2.16.012.md
   - .factory/specs/behavioral-contracts/ss-16/BC-2.16.014.md
   - .factory/specs/verification-properties/vp-007-mitre-technique-id-format.md
-input-hash: "cf383bb"
+input-hash: "81b83fb"
 ---
 
 # STORY-114: D1 ARP Spoof Escalation + GARP-that-Conflicts (D2+D1) + MITRE Attribution + VP-007 5-Part Atomic Update
@@ -49,7 +49,7 @@ input-hash: "cf383bb"
 
 | BC | Title |
 |----|-------|
-| BC-2.16.004 | ARP Spoof Detection — IP→MAC Rebind Emits MEDIUM then HIGH Finding |
+| BC-2.16.004 v1.9 | ARP Spoof Detection — IP→MAC Rebind Emits MEDIUM then HIGH Finding |
 | BC-2.16.012 | --arp-spoof-threshold Overrides SPOOF_REBIND_ESCALATION_DEFAULT |
 | BC-2.16.014 | GARP-That-Conflicts Upgrades to MEDIUM and Triggers D1 Spoof Finding |
 
@@ -202,6 +202,21 @@ STORY-114 is the primary owner of D12 MITRE attribution. BC-2.16.007 is therefor
 After the VP-007 5-part atomic update is applied, a D12 mismatch finding (outer `eth_src_mac` ≠ ARP `sender_mac`) carries `mitre_techniques: ["T0830", "T1557.002"]` AND retains `confidence: MEDIUM`, `finding_type: Anomaly`, and evidence fields `eth_mac`, `arp_sender_mac`, `sender_ip` per BC-2.16.007 postcondition 1.
 - **Test:** `test_d12_mismatch_carries_mitre_after_catalog()`
 
+### AC-018 (traces to BC-2.16.004 v1.9 invariant 6 — fail-safe degradation on unexpected absent binding entry)
+When the binding-table HashMap lookup expected to succeed (entry confirmed present by a prior
+`contains_key`/`get` in the same `process_arp` call frame) unexpectedly returns `None`,
+`process_arp` and `emit_d1_spoof_finding_impl` SKIP the current operation without panicking.
+The four guarded sites in `arp.rs` (lines ~555/576/642/827 per BC-2.16.004 Invariant 6) use
+`if-let` guards in place of `.expect()`. The analyzer continues processing subsequent frames
+normally. This is the PC-013 code fix (Option (a): fail-safe, no panic, one finding silently
+dropped per invariant violation).
+- **Implementation note:** Replace `.expect("...")` at the four guarded sites with `if let
+  Some(entry) = bindings.get_mut(&sender_ip) { ... }` (or `if let Some(ts) = entry.first_rebind_ts`
+  for the line-827 site). No behavioral change for well-formed single-threaded operation.
+- **Test:** `test_BC_2_16_004_expect_site_no_panic_on_missing_entry` — call
+  `emit_d1_spoof_finding_impl` (or equivalent) with a binding table that does NOT contain the
+  target IP; assert no panic and empty findings returned.
+
 ## Architecture Mapping
 
 | Component | Module | Pure/Effectful |
@@ -280,6 +295,7 @@ Architecture section references: `architecture/module-decomposition.md` (SS-16 C
 | AC-015 | No new test — HS-008 already correct; Phase 4 holdout evaluation covers | Verify only |
 | AC-016 | `test_d1_finding_evidence_contains_ips_and_macs` | Unit |
 | AC-017 | `test_d12_mismatch_carries_mitre_after_catalog` | Unit |
+| AC-018 | `test_BC_2_16_004_expect_site_no_panic_on_missing_entry` | Unit |
 
 ## Previous Story Intelligence
 

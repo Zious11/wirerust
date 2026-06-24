@@ -2,7 +2,7 @@
 document_type: story
 story_id: STORY-108
 epic_id: E-15
-version: "1.1"
+version: "1.2"
 status: completed
 producer: story-writer
 timestamp: 2026-06-10T00:00:00Z
@@ -27,7 +27,7 @@ wave: 37
 estimated_days: 5
 feature_id: issue-008-dnp3-analyzer
 github_issue: 8
-# BC status: 6 BCs authored 2026-06-10; latest versions BC-2.15.010 v1.5, BC-2.15.011 v1.2, BC-2.15.013 v1.1
+# BC status: 6 BCs authored 2026-06-10; BC-2.15.020 updated to v1.4 per fix-pc-013-014-015 PC-014 (BREAKING: total_parse_errors → parse_errors, D-220, 2026-06-23); latest versions BC-2.15.010 v1.5, BC-2.15.011 v1.2, BC-2.15.013 v1.1, BC-2.15.020 v1.4
 inputs:
   - .factory/specs/behavioral-contracts/ss-15/BC-2.15.010.md
   - .factory/specs/behavioral-contracts/ss-15/BC-2.15.011.md
@@ -37,7 +37,7 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-15/BC-2.15.022.md
   - .factory/specs/architecture/decisions/ADR-007-binary-ics-protocol-integration-dnp3-tcp.md
   - .factory/specs/verification-properties/vp-023-dnp3-parse-safety.md
-input-hash: "bea54c5"
+input-hash: "5c58479"
 ---
 
 # STORY-108: DNP3 Direct Detection Emissions — T1692.001, T0814 (Restart), T0836, Co-Emission, Summarize
@@ -56,7 +56,7 @@ input-hash: "bea54c5"
 | BC-2.15.011 | COLD_RESTART/WARM_RESTART Observed — Emits T0814 Per-Occurrence Finding |
 | BC-2.15.012 | WRITE FC Observed — Emits T0836 Modify-Parameter Finding Per-Occurrence |
 | BC-2.15.013 | Co-Emission Ordering — Direct Finding (T0814/T1692.001) Precedes Derived T0827 |
-| BC-2.15.020 | summarize() Emits Function-Code Distribution and Control-Operation Counts |
+| BC-2.15.020 v1.4 | summarize() Emits Function-Code Distribution and Control-Operation Counts — BREAKING: `total_parse_errors` → `parse_errors` (D-220) |
 | BC-2.15.022 | MAX_FINDINGS DoS Bound — Finding Cap Prevents Unbounded all_findings Growth |
 
 ## Acceptance Criteria
@@ -100,8 +100,19 @@ When `all_findings.len() >= MAX_FINDINGS`, no new Finding is pushed. Per-flow co
 - **Test:** `test_max_findings_counters_updated_when_capped()`
 
 ### AC-010 (traces to BC-2.15.020 postcondition 1 — summarize output fields)
-`Dnp3Analyzer::finalize()` or `summarize()` produces output including: `function_code_distribution` (map of FC byte to count, only FCs with count>0), `control_operation_counts` (per-flow `direct_operate_count`), `total_frames`, `total_parse_errors`, `flows_analyzed`. Present even when zero flows analyzed (zero counts, not absent).
+`Dnp3Analyzer::finalize()` or `summarize()` produces output including: `function_code_distribution`
+(map of FC byte to count, only FCs with count>0), `control_operation_counts` (per-flow
+`direct_operate_count`), `total_frames`, `parse_errors`, `flows_analyzed`. Present even when
+zero flows analyzed (zero counts, not absent).
+**BREAKING CHANGE (D-220, human-approved, BC-2.15.020 v1.4):** output key is `"parse_errors"`,
+NOT `"total_parse_errors"`. Aligns with sibling analyzers (HTTP `http.rs:617`, TLS `tls.rs:884`,
+Modbus `modbus.rs:947`). Code sites to update: `src/analyzer/dnp3.rs:1425` (key insert),
+`tests/dnp3_detection_tests.rs:995` (`.get("total_parse_errors")` → `.get("parse_errors")`),
+`tests/dnp3_detection_tests.rs:1378` (`.contains_key("total_parse_errors")` →
+`.contains_key("parse_errors")`). Also check `tests/bc_2_15_110_dnp3_dispatcher_tests.rs:959`.
+A CHANGELOG entry and minor-version bump at release are required.
 - **Test:** `test_summarize_function_code_distribution()` — process 5 DIRECT_OPERATE + 3 READ; assert `fn_code_counts = {0x05: 5, 0x01: 3}`.
+- **Red Gate Test:** `test_BC_2_15_020_parse_errors_key_name_is_parse_errors` — assert `detail.contains_key("parse_errors") == true` AND `detail.contains_key("total_parse_errors") == false`.
 
 ### AC-011 (traces to BC-2.15.020 invariant 4 — zero-flow case)
 When no DNP3 flows analyzed, summary is present with zero counts, not absent from output.
@@ -169,7 +180,7 @@ T1692.001, T0814, T0836 were ALREADY added to the `SEEDED_TECHNIQUE_IDS` slice (
 5. **Implement Write detection branch** (BC-2.15.012) — check `classify_dnp3_fc == Write`; push T0836 with `confidence: Medium`.
 6. **Add `MAX_FINDINGS` cap check** before every push (BC-2.15.022). Evaluate `self.all_findings.len() < MAX_FINDINGS` immediately before each `push`.
 7. **Implement co-emission ordering** (BC-2.15.013) — direct detection pushes happen before any derived-impact push within the same `on_data` call. Leave placeholder stub for T0827 (STORY-109 fills it in).
-8. **Implement `finalize()` / `summarize()`** (BC-2.15.020) — aggregate `fn_code_counts`, per-flow `direct_operate_count`, total_frames, total_parse_errors, flows_analyzed into output struct.
+8. **Implement `finalize()` / `summarize()`** (BC-2.15.020) — aggregate `fn_code_counts`, per-flow `direct_operate_count`, `total_frames`, `parse_errors` (NOT `total_parse_errors` — BREAKING D-220), `flows_analyzed` into output struct. Use key string `"parse_errors"` in the summary map.
 9. **Add `DETECTION_WINDOW_SECS: u32 = 60`** and `const MAX_FINDINGS` constants.
 10. **Unit tests** for AC-001 through AC-014.
 

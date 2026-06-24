@@ -1,7 +1,7 @@
 ---
 document_type: bc-index
 level: L3
-version: "1.71"
+version: "1.72"
 status: draft
 producer: product-owner
 timestamp: 2026-06-23T00:00:00Z
@@ -14,7 +14,9 @@ traces_to: .factory/specs/prd.md
 > **Navigation:** This file is the master index of all BC-S.SS.NNN contracts. Each entry
 > links to the individual BC file. BCs are sharded into per-subsystem directories (ss-NN/).
 >
-> All BCs are marked [WRITTEN]. Body files have been verified on disk for all 304 entries (303 prior + 1 new BC-2.11.035 for F2 issue #64 mitre_attack enrichment; BC-2.01.004 retired).
+> All BCs are marked [WRITTEN]. Body files have been verified on disk for all 305 entries (304 prior + 1 new BC-2.16.016 for fix-pc-013-014-015 PC-015 ARP unbounded findings; BC-2.01.004 retired).
+>
+> **v1.72 2026-06-23 (fix-pc-013-014-015 — 1 new BC + 3 BC version bumps):** Post-v0.9.4 defect-fix bundle PC-013/PC-014/PC-015 BC authoring. 1 new BC: BC-2.16.016 (ARP Findings Output is Unbounded — No MAX_FINDINGS Cap on process_arp Return Vec) — PC-015 spec/doc fix; documents intentional no-cap design; Red Gate test `test_BC_2_16_016_arp_findings_vec_has_no_cap`. 3 BC version bumps: BC-2.16.004 v1.8→v1.9 (PC-013 fail-safe degradation invariant — Invariant 6 + EC-011/EC-012 added; anchors .expect()→if-let guard fix at arp.rs lines 555/576/642/827); BC-2.16.010 v1.7→v1.8 (PC-015 cross-reference — Invariant 6 + Related BCs updated to include BC-2.16.016; clarifies dropped_findings MUST NOT be added without a BC-2.16.010 bump); BC-2.15.020 v1.3→v1.4 (PC-014 BREAKING key rename: `total_parse_errors` → `parse_errors` in Postcondition 1; human-approved D-220; aligns with HTTP/TLS/Modbus sibling key convention; Red Gate test `test_BC_2_15_020_parse_errors_key_name_is_parse_errors`; CHANGELOG + minor-version bump required at release). SS-16: 15→16 BCs. Total on disk: 304→305. Active: 303→304. No VPs added. No stories modified (story-writer propagation pending under bc_array_changes_propagate_to_body_and_acs policy). D-220.
 >
 > **v1.71 2026-06-23 (F5 ICS tactic-catalog correctness fix — 5 BCs bumped):** F5 scoped-adversarial HIGH finding F-1: ICS techniques emitting Enterprise tactic IDs (Discovery TA0007 not ICS TA0102, etc.) under mitre_domain=ics-attack; research-validated against MITRE ATT&CK ICS v19.1. 5 BCs version-bumped (no new/retired BCs; 303 active unchanged): BC-2.10.002 v1.5→v1.6 (ICS tactic IDs corrected in AC/EC; T0846/T0888→IcsDiscovery TA0102, T0885→IcsCommandAndControl TA0101, T0830→IcsCollection TA0100, T0831→IcsImpact TA0105); BC-2.10.003 v1.4→v1.5 (all_tactics_in_report_order: 3 new ICS tactic variants added — IcsDiscovery/IcsCollection/IcsCommandAndControl; kill-chain/ICS ordering updated); BC-2.10.007 v1.8→v1.9 (technique_tactic catalog table: 5 techniques remapped to correct ICS domain tactics); BC-2.11.035 v1.0→v1.1 (tactic_id/tactic_name fields: ICS technique objects now carry ICS tactic IDs not Enterprise IDs); BC-2.16.004 v1.7→v1.8 (ARP spoof T0830 tactic annotation corrected from LateralMovement to IcsCollection). Stories STORY-071/100/114/129 citations + input-hashes recomputed (all MATCH). Wave holdout HS corrections: wave-31-holdout.md + wave-40-44-holdout.md expected-output tactic IDs corrected. HS-INDEX updated. src/mitre.rs fix: 3 new MitreTactic variants (IcsDiscovery TA0102, IcsCollection TA0100, IcsCommandAndControl TA0101); 5 techniques remapped; commit 719816e. Demo re-recorded 74a48ea. Full suite green, clippy/fmt clean. D-209.
 >
@@ -89,10 +91,10 @@ traces_to: .factory/specs/prd.md
 > total to 283 active L3 BCs.
 >
 > **Status as of Phase 1a (current):**
-> - Fully written: 303 BCs on disk (293 prior + 10 new BC-2.01.009–018 for F2 pcapng-reader-support)
-> - Active: 302 BCs (303 on disk − 1 retired: BC-2.01.004)
+> - Fully written: 305 BCs on disk (304 prior + 1 new BC-2.16.016 for fix-pc-013-014-015 PC-015)
+> - Active: 304 BCs (305 on disk − 1 retired: BC-2.01.004)
 > - Remaining: 0 BCs
-> - PRD index (prd.md): UPDATED -- all 302 active L3 BC IDs registered; BC-2.01.004 struck through as retired
+> - PRD index (prd.md): UPDATED -- all 302 active L3 BC IDs registered through v1.71; BC-2.16.016 added in v1.72 (PRD §2.16 sync pending); BC-2.01.004 struck through as retired
 
 ## ss-01: PCAP File Ingestion (CAP-01)
 
@@ -491,7 +493,7 @@ traces_to: .factory/specs/prd.md
 | BC-2.15.017 | --dnp3-direct-operate-threshold CLI Flag Controls Control-Command Detection Window | P0 | [WRITTEN] | feature-008-F2 |
 | BC-2.15.018 | Broadcast Destination Anomaly — DEST in 0xFFFD/0xFFFE/0xFFFF Emits Anomaly Finding | P1 | [WRITTEN] | feature-008-F2 |
 | BC-2.15.019 | Unsolicited Response Anomaly — UNS Bit Set or FC 0x82 From Unexpected Pattern | P1 | [WRITTEN] | feature-008-F2 |
-| BC-2.15.020 | summarize() Emits Function-Code Distribution and Control-Operation Counts | P1 | [WRITTEN] | feature-008-F2 |
+| BC-2.15.020 | summarize() Emits Function-Code Distribution and Control-Operation Counts | P1 | [WRITTEN] | feature-008-F2 | <!-- v1.4: fix-pc-013-014-015 PC-014 BREAKING key rename: total_parse_errors→parse_errors (D-220, human-approved); aligns with HTTP/TLS/Modbus sibling convention; CHANGELOG + minor-version bump required at release. -->
 | BC-2.15.021 | Port-20000 Flow Dispatched to Dnp3Analyzer (DispatchTarget::Dnp3, Rule 6) | P0 | [WRITTEN] | feature-008-F2 |
 | BC-2.15.022 | MAX_FINDINGS DoS Bound — Finding Cap Prevents Unbounded all_findings Growth | P0 | [WRITTEN] | feature-008-F2 |
 | BC-2.15.023 | Unsolicited-Response Enable/Disable Abuse — FC 0x15/0x14 Observed Emits T0814 | P1 | [WRITTEN] | feature-008-F2 |
@@ -499,7 +501,7 @@ traces_to: .factory/specs/prd.md
 
 ## ss-16: ARP Security Analysis (CAP-16) [Feature #9 — ADR-008]
 
-> 15 BCs total; 15 fully written; 0 planned.
+> 16 BCs total; 16 fully written; 0 planned.
 > BCs 001-002: ARP frame extraction (Group A — parse).
 > BCs 003-004: GARP detection and spoof detection / binding-table update (Group B — detection).
 > BC-005: Binding-table update (last-seen MAC wins) (Group B — state).
@@ -511,6 +513,7 @@ traces_to: .factory/specs/prd.md
 > BCs 011-013: CLI integration — --arp flag, --arp-spoof-threshold, --arp-storm-rate (Group G).
 > BC-014: GARP-that-conflicts upgrade to D1 spoof finding (Group H — escalation).
 > BC-015: Decode-vs-analysis separation architectural invariant (Group I — invariant).
+> BC-016: ARP findings output unbounded invariant — no MAX_FINDINGS cap on process_arp Vec (Group J — design invariant). fix-pc-013-014-015 PC-015.
 > Feature: issue-009-arp-security-analyzer; ADR-008; introduced v0.7.0-feature-arp.
 > **MITRE techniques:** T0830 (Adversary-in-the-Middle, `MitreTactic::LateralMovement`),
 > T1557.002 (ARP Cache Poisoning, `MitreTactic::CredentialAccess`). No new MitreTactic
@@ -521,18 +524,19 @@ traces_to: .factory/specs/prd.md
 | BC-2.16.001 | ARP Request Frame Correctly Parsed from ArpPacketSlice | P0 | [WRITTEN] | feature-009-F2 |
 | BC-2.16.002 | ARP Reply Frame Correctly Parsed from ArpPacketSlice | P0 | [WRITTEN] | feature-009-F2 |
 | BC-2.16.003 | Gratuitous ARP Detection — sender_ip == target_ip Classified as GARP | P0 | [WRITTEN] | feature-009-F2 | <!-- v1.6: D-068 — benign GARP now emits mitre_techniques=[] (no MITRE attribution); T0830+T1557.002 exclusively on GARP-that-conflicts path (BC-2.16.014). Description, PC5, Invariant 2, Invariant 3, EC-001, EC-002, EC-007, canonical vectors updated. --> <!-- v1.7: Pass-5 Architecture Anchors §3.3 conditional benign-GARP MITRE fix — unconditional form replaced with conditional; Architecture Anchor updated per D-068. --> <!-- v1.8: Pass-13 PC7 cross-story clarity note; no H1/title change -->
-| BC-2.16.004 | ARP Spoof Detection — IP→MAC Rebind Emits MEDIUM then HIGH Finding | P0 | [WRITTEN] | feature-009-F2 | <!-- v1.8: D-209 F5 ICS catalog fix — T0830 MITRE attribution corrected: IcsCollection TA0100 (not LateralMovement). -->
+| BC-2.16.004 | ARP Spoof Detection — IP→MAC Rebind Emits MEDIUM then HIGH Finding | P0 | [WRITTEN] | feature-009-F2 | <!-- v1.8: D-209 F5 ICS catalog fix — T0830 MITRE attribution corrected: IcsCollection TA0100 (not LateralMovement). v1.9: fix-pc-013-014-015 PC-013 — Invariant 6 fail-safe degradation added; EC-011/012 added; anchors .expect()→if-let guard fix at arp.rs lines 555/576/642/827. -->
 | BC-2.16.005 | Binding-Table Update — Last-Seen MAC Wins for a Given IP | P0 | [WRITTEN] | feature-009-F2 | <!-- v1.4: F-B8-M01: PC1 tightened — sender_ip excludes both 0.0.0.0 and 255.255.255.255 per Invariant 5; test-infra note for VP-024 Sub-C (new_for_test, process_arp_for_test, bindings_snapshot) added -->
 | BC-2.16.006 | Binding-Table Cap — Table Never Exceeds MAX_ARP_BINDINGS via LRU Eviction | P0 | [WRITTEN] | feature-009-F2 |
 | BC-2.16.007 | D12 L2/L3 Sender Mismatch — Ethernet Src MAC != ARP Sender HW Addr | P0 | [WRITTEN] | feature-009-F2 |
 | BC-2.16.008 | D3 ARP Storm Rate Detection — Source MAC Exceeds ARP_STORM_RATE_DEFAULT Frames/Sec | P1 | [WRITTEN] | feature-009-F2 |
 | BC-2.16.009 | D11 Malformed ARP — Non-Ethernet/IPv4 HW/Proto Address Sizes Emit LOW Finding | P1 | [WRITTEN] | feature-009-F2 | <!-- v1.3: F-B8-L02: PC4 --arp-absent clause clarified — malformed_frames increments unconditionally outside the analysis gate; note distinguishes PC4's outer precondition scope from counter behavior -->
-| BC-2.16.010 | ArpAnalyzer::summarize() Returns AnalysisSummary with Required Keys (11 Keys) | P1 | [WRITTEN] | feature-009-F2 | <!-- v1.6: corpus-consistency-audit-2026-06-13 PR-1a/PR-1b: H1 enriched with "(11 Keys)" per Criterion-75; version suffix "; v1.5" removed from title (version belongs in frontmatter only) -->
+| BC-2.16.010 | ArpAnalyzer::summarize() Returns AnalysisSummary with Required Keys (11 Keys) | P1 | [WRITTEN] | feature-009-F2 | <!-- v1.6: corpus-consistency-audit-2026-06-13 PR-1a/PR-1b: H1 enriched with "(11 Keys)" per Criterion-75; version suffix "; v1.5" removed from title (version belongs in frontmatter only). v1.8: fix-pc-013-014-015 PC-015 cross-reference — Invariant 6 + Related BCs include BC-2.16.016; dropped_findings MUST NOT be added without a version bump. -->
 | BC-2.16.011 | --arp CLI Flag Gates ARP Security Analysis | P0 | [WRITTEN] | feature-009-F2 |
 | BC-2.16.012 | --arp-spoof-threshold Overrides SPOOF_REBIND_ESCALATION_DEFAULT | P1 | [WRITTEN] | feature-009-F2 |
 | BC-2.16.013 | --arp-storm-rate Overrides ARP_STORM_RATE_DEFAULT | P1 | [WRITTEN] | feature-009-F2 |
 | BC-2.16.014 | GARP-That-Conflicts Upgrades to MEDIUM and Triggers D1 Spoof Finding | P0 | [WRITTEN] | feature-009-F2 |
 | BC-2.16.015 | Decode-vs-Analysis Separation — DecodedFrame::Arp Always Produced; Analysis Gated on --arp | P0 | [WRITTEN] | feature-009-F2 |
+| BC-2.16.016 | ARP Findings Output is Unbounded — No MAX_FINDINGS Cap on process_arp Return Vec | P1 | [WRITTEN] | fix-pc-013-014-015 |
 
 ---
 
@@ -560,9 +564,9 @@ traces_to: .factory/specs/prd.md
 | BC-ABS-001..010 | 10 | BC-2.13.001..004 (6 ABS retired by remediation cycle) |
 | feature-007-F2 Modbus/ICS (greenfield) | 25 | BC-2.14.001..025 |
 | feature-008-F2 DNP3/ICS (greenfield) | 24 | BC-2.15.001..024 |
-| feature-009-F2 ARP security (greenfield) | 15 | BC-2.16.001..015 |
+| feature-009-F2 ARP security (greenfield) | 16 | BC-2.16.001..016 |
 
-**Total BCs on disk: 304. Active: 303. Canonical derivation: 218 draft ingestion BCs produced − 6 retired (BC-ABS-004..009) = 212 active from ingestion; + 5 post-ingestion pass-4 additions (BC-2.11.020..024) = 217; + 2 Feature Mode F2 additions (BC-2.04.055, BC-2.09.007) for issue #100 = 219 active BCs; + 25 Feature Mode F2 additions (BC-2.14.001..025) for issue #7 Modbus/ICS analyzer = 244 active BCs; + 22 Feature Mode F2 additions (BC-2.15.001..022) for issue #8 DNP3/ICS analyzer = 266 active BCs; + 2 research must-add additions (BC-2.15.023..024) for issue #8 post-gate F2 scope validation = 268 active BCs; + 15 Feature Mode F2 additions (BC-2.16.001..015) for issue #9 ARP security analyzer = 283 active BCs; + 5 Feature Mode F2 additions (BC-2.11.025..029) for issue #259 terminal finding collapse (v0.8.0) = 288 active BCs; + 5 Feature Mode F2 additions (BC-2.11.030..034) for STORY-119 grouped-collapse (v0.9.0) = 293 active BCs; + 10 Feature Mode F2 additions (BC-2.01.009..018) for pcapng reader support (ADR-009, FE-001, v0.10.0) = 303 on disk; − 1 retired (BC-2.01.004, behavioral inversion) = 302 active BCs; + 1 Feature Mode F2 addition (BC-2.11.035) for issue #64 mitre_attack JSON enrichment (v0.11.0) = 304 on disk / 303 active BCs. BC-2.02.009 was revised to v1.6 (ADR-008 Decision 1, three-way postcondition) — a revision, not a new BC; count unchanged at each prior step. The mapping table above has 223 physical rows (218 ingestion-batch rows + 5 pass-4 rows) for pre-Modbus BCs; SS-14 adds 25 greenfield rows not in the ingestion batch; SS-15 adds 24 greenfield rows; SS-16 adds 15 greenfield rows; issue-#259 adds 5 greenfield rows to SS-11; STORY-119 adds 5 more greenfield rows to SS-11; issue-#64 adds 1 more greenfield row to SS-11 (total SS-11: 35 BCs); pcapng-F2 adds 10 rows to SS-01 (total SS-01: 18 on disk / 17 active). 1 BC retired in pcapng-F2 (BC-2.01.004).**
+**Total BCs on disk: 305. Active: 304. Canonical derivation: 218 draft ingestion BCs produced − 6 retired (BC-ABS-004..009) = 212 active from ingestion; + 5 post-ingestion pass-4 additions (BC-2.11.020..024) = 217; + 2 Feature Mode F2 additions (BC-2.04.055, BC-2.09.007) for issue #100 = 219 active BCs; + 25 Feature Mode F2 additions (BC-2.14.001..025) for issue #7 Modbus/ICS analyzer = 244 active BCs; + 22 Feature Mode F2 additions (BC-2.15.001..022) for issue #8 DNP3/ICS analyzer = 266 active BCs; + 2 research must-add additions (BC-2.15.023..024) for issue #8 post-gate F2 scope validation = 268 active BCs; + 15 Feature Mode F2 additions (BC-2.16.001..015) for issue #9 ARP security analyzer = 283 active BCs; + 5 Feature Mode F2 additions (BC-2.11.025..029) for issue #259 terminal finding collapse (v0.8.0) = 288 active BCs; + 5 Feature Mode F2 additions (BC-2.11.030..034) for STORY-119 grouped-collapse (v0.9.0) = 293 active BCs; + 10 Feature Mode F2 additions (BC-2.01.009..018) for pcapng reader support (ADR-009, FE-001, v0.10.0) = 303 on disk; − 1 retired (BC-2.01.004, behavioral inversion) = 302 active BCs; + 1 Feature Mode F2 addition (BC-2.11.035) for issue #64 mitre_attack JSON enrichment (v0.11.0) = 304 on disk / 303 active BCs; + 1 fix-pc-013-014-015 addition (BC-2.16.016) for PC-015 ARP unbounded findings (D-221) = 305 on disk / 304 active BCs. BC-2.02.009 was revised to v1.6 (ADR-008 Decision 1, three-way postcondition) — a revision, not a new BC; count unchanged at each prior step. The mapping table above has 223 physical rows (218 ingestion-batch rows + 5 pass-4 rows) for pre-Modbus BCs; SS-14 adds 25 greenfield rows not in the ingestion batch; SS-15 adds 24 greenfield rows; SS-16 adds 16 greenfield rows (15 original + 1 fix-pc-013-014-015); issue-#259 adds 5 greenfield rows to SS-11; STORY-119 adds 5 more greenfield rows to SS-11; issue-#64 adds 1 more greenfield row to SS-11 (total SS-11: 35 BCs); pcapng-F2 adds 10 rows to SS-01 (total SS-01: 18 on disk / 17 active). 1 BC retired in pcapng-F2 (BC-2.01.004).**
 
 Note: BC-ABS-004 (--hosts unwired), BC-ABS-005 (--services unwired), BC-ABS-006 (--json
 file unwired), BC-ABS-007 (CSV unwired), BC-ABS-009 (no e2e CLI tests) are RETIRED --

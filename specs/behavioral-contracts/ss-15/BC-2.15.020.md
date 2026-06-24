@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: product-owner
 timestamp: 2026-06-10T00:00:00Z
@@ -15,6 +15,7 @@ lifecycle_status: active
 introduced: v0.6.0-feature-008
 modified:
   - "v1.3: F3 story-anchor back-fill. — 2026-06-14"
+  - "v1.4: fix-pc-013-014-015 PC-014 BREAKING JSON output change (human-approved D-220) — Postcondition 1 key renamed: `total_parse_errors` → `parse_errors` to align with sibling analyzers (HTTP: http.rs:617, TLS: tls.rs:884, Modbus: modbus.rs:947 all use `parse_errors`). This is a breaking change for callers reading `total_parse_errors` from DNP3 JSON output. A CHANGELOG entry and minor-version bump at release are required. Test vectors and EC table updated to use `parse_errors`. Red Gate test: `test_BC_2_15_020_parse_errors_key_name_is_parse_errors` MUST assert `detail.contains_key(\"parse_errors\") == true` AND `detail.contains_key(\"total_parse_errors\") == false`. — 2026-06-23"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -54,7 +55,16 @@ issue #8 AC: function-code distribution + control-operation counts in summarize(
    - `control_operation_counts`: for each flow, the total number of Control-class FC observations
      (`direct_operate_count` field from `Dnp3FlowState`, or an equivalent aggregate count).
    - `total_frames`: sum of `flow.frame_count` across all flows.
-   - `total_parse_errors`: sum of `flow.parse_errors` across all flows.
+   - `parse_errors`: sum of `flow.parse_errors` across all flows.
+     **BREAKING CHANGE (D-220, human-approved):** renamed from `total_parse_errors` (the
+     old name used in `dnp3.rs:1425` and `dnp3_detection_tests.rs:995/1378`). Aligns with
+     sibling analyzers: HTTP (`http.rs:617`), TLS (`tls.rs:884`), Modbus (`modbus.rs:947`)
+     all use `"parse_errors"`. Code sites to update: `src/analyzer/dnp3.rs:1425` (key
+     insert), `tests/dnp3_detection_tests.rs:995` (`.get("total_parse_errors")`),
+     `tests/dnp3_detection_tests.rs:1378` (`.contains_key("total_parse_errors")`). Check
+     `tests/bc_2_15_110_dnp3_dispatcher_tests.rs:959` — if a local variable assignment only,
+     no update required; if a key string lookup, update to `"parse_errors"`. Requires
+     CHANGELOG entry and minor-version bump at release.
    - `flows_analyzed`: count of distinct TCP flows processed by `Dnp3Analyzer`.
 2. If no DNP3 flows were analyzed, the summary is still present with zero counts (not absent).
 3. The summary is produced even if no findings were emitted.
@@ -87,6 +97,7 @@ issue #8 AC: function-code distribution + control-operation counts in summarize(
 | 5 DIRECT_OPERATE frames on one flow | `{fn_code_counts:{0x05:5}, control_op_counts:{flow1:5}, total_frames:5}` |
 | 3 READ + 2 COLD_RESTART on one flow | `{fn_code_counts:{0x01:3, 0x0D:2}, total_frames:5}` |
 | No DNP3 traffic | `{fn_code_counts:{}, total_frames:0, flows_analyzed:0}` |
+| 1 flow with 10 frames and 2 parse errors (Red Gate — key name) | `detail` map MUST contain `"parse_errors": 2` and MUST NOT contain `"total_parse_errors"`; test: `assert!(detail.contains_key("parse_errors")); assert!(!detail.contains_key("total_parse_errors"))` |
 
 ## Verification Properties
 

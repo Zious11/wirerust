@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.8"
+version: "1.9"
 status: draft
 producer: product-owner
 timestamp: 2026-06-12T02:00:00Z
@@ -19,6 +19,7 @@ modified:
   - "v1.6: F3 story-anchor back-fill. — 2026-06-14"
   - "v1.7: Pass-21 HIGH remediation: requalified VP-024 Sub-C in all three loci (Verification Properties table, VP Anchors section, Purity Classification) as INDIRECT/substrate dependency only — Sub-C's primary anchor is BC-2.16.005; BC-2.16.004 is NOT a VP-024 Sub-C formally-verified BC; D1 spoof-escalation postconditions remain unit-tested per EC coverage. — 2026-06-14"
   - "v1.8: F5 ICS tactic-ID correctness fix (issue #64 follow-up). Invariant 4 tactic anchor corrected: T0830 maps to MitreTactic::IcsCollection (ICS Collection, TA0100) NOT MitreTactic::LateralMovement (TA0008). ADR-008 Decision 6 merge-by-name policy for T0830 is SUPERSEDED by f5-ics-technique-tactic-authoritative.md (VALIDATED; MITRE ATT&CK for ICS v19.1, page-verified: https://attack.mitre.org/techniques/T0830/ assigns Collection/TA0100). The F5 implementer wires IcsCollection in technique_info; BC-2.10.007 v1.9 carries the updated tactic row. — 2026-06-23"
+  - "v1.9: fix-pc-013-014-015 PC-013 spec anchor — fail-safe degradation invariant added (Invariant 6). When any binding-table HashMap lookup that is expected by construction to succeed (entry present because it was just confirmed via contains_key or get in the same call frame) is unexpectedly absent, process_arp and emit_d1_spoof_finding_impl SKIP the current operation without panicking. Anchors the PC-013 code fix: replace .expect() at arp.rs lines 555/576/642/827 with if-let guards (Option (a) from scope.md §PC-013 Fix Classification). No behavioral change for well-formed analyzer state; fail-safe applies only to invariant violations that are logically unreachable in current single-threaded code but could become reachable after future refactoring. — 2026-06-23"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -138,6 +139,26 @@ There is no "first rebind is always MEDIUM" guarantee when threshold=1.
 5. **Not a stateless detection**: D1 is stateful — it requires the binding table. Frames before
    the first binding for an IP do not emit a spoof finding (the first observation initializes
    the binding).
+6. **Fail-safe degradation on unexpected absent entry (PC-013 anchor)**: If a binding-table
+   HashMap lookup that is logically expected to succeed (because entry presence was confirmed
+   by a prior `contains_key` or `get` call within the same `process_arp` invocation) returns
+   `None`, `process_arp` and `emit_d1_spoof_finding_impl` SKIP the current operation without
+   panicking. This covers the four `if-let`-guarded sites in `arp.rs`:
+   - Line 555: `bindings.get_mut(&sender_ip)` on GARP-conflict path (Step 3 mac-update).
+   - Line 576: `bindings.get_mut(&sender_ip)` on GARP-conflict path (Step 4 mac-update after
+     `apply_garp_conflict_escalation_impl`).
+   - Line 642: `bindings.get_mut(&sender_ip)` on non-GARP rebind path (Step 4 mac-update
+     after emitting D1 finding via `emit_d1_spoof_finding_impl`).
+   - Line 827: `entry.first_rebind_ts` Option unwrap in `emit_d1_spoof_finding_impl` Step 3
+     (first_rebind_ts set unconditionally in Step 2; if absent, skip finding emission).
+   In all cases: the finding that would have been emitted is silently dropped (one finding
+   lost per invariant violation), and the analyzer continues processing subsequent frames
+   normally. This is the fail-safe Option (a) from fix-pc-013-014-015 scope.md §PC-013 Fix
+   Classification: "ARP finding emission is best-effort; silently dropping a finding on a
+   broken invariant is safer than propagating an error that aborts the capture."
+   The invariants themselves remain logically correct for single-threaded operation; this
+   guard protects against future refactoring that could break the invariant without the
+   `.expect()` panic message to alert the developer.
 
 ## Edge Cases
 
@@ -153,6 +174,8 @@ There is no "first rebind is always MEDIUM" guarantee when threshold=1.
 | EC-008 | `--arp-spoof-threshold 1` set: first rebind — Step 1: rebind_count→1; Step 2: first_rebind_ts=timestamp_secs (elapsed=0); Step 3: rebind_count=1 >= threshold=1 AND elapsed=0 <= 60 AND spoof_high_emitted=false → HIGH | HIGH Finding emitted on the very first rebind; elapsed=0 satisfies the window condition because first_rebind_ts is set in Step 2 before the condition is evaluated in Step 3 |
 | EC-009 | `--arp-spoof-threshold 100` set: escalate only after 100 rebinds within 60s | MEDIUM on all rebinds until count reaches 100; HIGH only if 100 rebinds in 60s |
 | EC-010 | sender_ip is all-zero (0.0.0.0) or broadcast (255.255.255.255) | Admissibility determined by BC-2.16.005 binding-table update rule (see BC-2.16.005 EC-006 and Invariant notes for zero/broadcast sender IP policy). If BC-2.16.005 filters these IPs at insertion, no binding is created and no spoof detection is triggered. If inserted, spoof detection applies normally. |
+| EC-011 | Invariant violation: `has_conflict == true` but `bindings.get_mut(&sender_ip)` returns None (broken internal state — logically unreachable in single-threaded code but guarded by Invariant 6) | `process_arp` silently skips the mac-update and finding-emission for this frame; no panic; no finding emitted; analyzer continues processing subsequent frames. This is the Red Gate scenario for `test_BC_2_16_004_expect_site_no_panic_on_missing_entry`. |
+| EC-012 | Invariant violation: `emit_d1_spoof_finding_impl` called but `entry.first_rebind_ts` is None (Step 2 should have set it; logically unreachable absent code modification) | Function returns early / skips finding emission without panicking; no D1 finding emitted for this event; no panic. Covered by Invariant 6. |
 
 ## Canonical Test Vectors
 

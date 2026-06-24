@@ -1,10 +1,10 @@
 ---
 pipeline: ACTIVE
-phase: FIX-CYCLE-OPEN
-phase_status: "fix-pc-013-014-015 cycle OPENED (D-219). PC-013/014/015 IN-PROGRESS."
+phase: FIX-CYCLE-SPEC-DONE
+phase_status: "fix-pc-013-014-015 SPEC BURST committed (D-221). BC-2.16.016 NEW + 3 BC bumps + 4 story propagations. Awaiting implementation phase."
 product: wirerust
 mode: brownfield (fix bundle), feature-mode-lite
-timestamp: 2026-06-23T22:00:00Z
+timestamp: 2026-06-23T23:30:00Z
 
 # Release chain
 released_version: v0.9.4
@@ -44,7 +44,7 @@ adversary_gate: SATISFIED
 # Story tracking
 stories_delivered: 78
 current_cycle: fix-pc-013-014-015 (OPENED D-219 — 2026-06-23)
-current_wave: "FIX-CYCLE-OPEN. Cycle fix-pc-013-014-015 active. PC-013/014/015 IN-PROGRESS. Scope: .factory/code-delivery/fix-pc-013-014-015/scope.md"
+current_wave: "FIX-CYCLE-SPEC-DONE (D-221). Spec burst committed. BC-2.16.016 NEW + BC-2.16.004 v1.9 + BC-2.16.010 v1.8 + BC-2.15.020 v1.4 + 4 story propagations. Awaiting implementation."
 
 # DTU
 dtu_required: false
@@ -112,9 +112,9 @@ convergence_trajectory: "Detail: cycles/v0.1.0-greenfield-spec/convergence-traje
 | DRIFT-MITRE-SUBSET-COUNT-TESTS-001 | [LOW]: mitre/multitag dual-count subset tests (21/13 vs 25/17) — pre-existing cruft, no correctness impact. | DEFERRED LOW — future maintenance |
 | DRIFT-ARP-DEMO-FIXTURE-001 | [LOW]: No ARP pcap fixture; T0830→TA0100 unit-tested but not demoed live. | DEFERRED LOW — future cycle |
 | PO-BACKLOG-MAINT-2026-06-22 | DNP3/ARP/Modbus/finding-collapse holdout coverage gap (73 declared seeds, 0 files) + HS-064/075/090/098/108 staleness. Human scope decision needed. | OPEN — product-owner / human |
-| PC-013 | ARP internal HashMap invariant `.expect()` sites in arp.rs — fail-safe degradation (not packet panics). BC-2.16.004 → v1.9 planned. | IN-PROGRESS (cycle fix-pc-013-014-015) |
-| PC-014 | dnp3: key MISNAMED — `total_parse_errors` should be `parse_errors` to match HTTP/TLS/Modbus siblings. BREAKING rename. BC-2.15.020 → v1.4 planned. | IN-PROGRESS (cycle fix-pc-013-014-015) |
-| PC-015 | ARP findings unbounded (no cap) — undocumented design, not hidden cap. NEW BC-2.16.016 + BC-2.16.010 → v1.8 planned. | IN-PROGRESS (cycle fix-pc-013-014-015) |
+| PC-013 | ARP internal HashMap invariant `.expect()` sites in arp.rs — fail-safe degradation (not packet panics). BC-2.16.004 v1.9 AUTHORED (D-221). | SPEC-DONE — awaiting implementation |
+| PC-014 | dnp3: key MISNAMED — `total_parse_errors` → `parse_errors` BREAKING rename. BC-2.15.020 v1.4 AUTHORED (D-220/D-221); STORY-108 AC-010 updated. | SPEC-DONE — awaiting implementation |
+| PC-015 | ARP findings unbounded (no cap) — undocumented design, not hidden cap. BC-2.16.016 NEW + BC-2.16.010 v1.8 AUTHORED (D-221). | SPEC-DONE — awaiting implementation |
 | ADV-4 | ci.yml audit comment rationale lost (LOW). | DEFERRED LOW |
 | DRIFT-READER-ADR-CITATION-001 | reader.rs ADR citation numbers (LOW). | DEFERRED LOW |
 | SEC-008 | Residual unbounded EPB accumulation on `from_pcap_reader` STREAM path (not CLI-reachable). DF-VALIDATION-001 required before GitHub issue. | DEFERRED — latent |
@@ -126,17 +126,17 @@ convergence_trajectory: "Detail: cycles/v0.1.0-greenfield-spec/convergence-traje
 | ENGINE-IMPROVEMENT-BACKLOG | ~18 engine proposals pending human review, incl. pr-manager shortstop PAT-001; lessons.md Lessons 1 & 2 / policy candidates convergence-clean-tree-guard + magic-number-sweep-on-count-change. Pointer: `cycles/feature-mitre-json-names/session-review.md`. | BACKLOG — human review |
 | ISSUE-TRIAGE-OPEN-9 | 9 open GitHub issues triaged: keep-open #255/#252/#103/#101/#67/#63/#3; reframe-needed #6 (rayon obsolete) and #4 (narrow to SQLite — CSV shipped). | OPEN — product-owner |
 
-**Resolved — do not reopen:** maint-2026-06-22, O-07, DEP-001/005, DOC-001..009, F-MAJ-001, CORPUS-OBS-PCAPNG-IFFCSLEN-001, decision-threads (a)/(b)/(c), PERF-REASM-DOS-001, all F6 items, feature-mitre-json-names F1-F7 (D-206..D-217). **SPEC VERSIONS (at close):** prd.md v1.35, nfr-catalog v2.4, VP-INDEX v2.10 (31/31), BC-INDEX v1.71 (303 BCs), STORY-INDEX v2.7 (82/57/526 pts). MitreTactic: 20 variants.
+**Resolved — do not reopen:** maint-2026-06-22, O-07, DEP-001/005, DOC-001..009, F-MAJ-001, CORPUS-OBS-PCAPNG-IFFCSLEN-001, decision-threads (a)/(b)/(c), PERF-REASM-DOS-001, all F6 items, feature-mitre-json-names F1-F7 (D-206..D-217). **SPEC VERSIONS (at D-221):** prd.md v1.35, nfr-catalog v2.4, VP-INDEX v2.10 (31/31), BC-INDEX v1.72 (305 BCs / 304 active), STORY-INDEX v2.7 (82/57/526 pts). MitreTactic: 20 variants.
 
 ---
 
 ## Status
 
-**PIPELINE ACTIVE. Fix cycle fix-pc-013-014-015 OPENED (D-219, 2026-06-23). PC-013/014/015 IN-PROGRESS.**
+**PIPELINE ACTIVE. Fix cycle fix-pc-013-014-015 SPEC-DONE (D-221, 2026-06-23). PC-013/014/015 specs committed. Awaiting implementation.**
 
 Latest release: v0.9.4 (main `96b49e8`, tag `v0.9.4`, 4 binaries, run 28053327452). develop=0115d0e. stories_delivered=78. No open PRs. Active cycle: fix-pc-013-014-015.
 
-Scope: post-release defect fixes PC-013 (ARP `.expect()` invariant sites), PC-014 (dnp3 key rename `total_parse_errors` → `parse_errors`, BREAKING), PC-015 (ARP unbounded findings, undocumented). Planned BCs: NEW BC-2.16.016; BC-2.16.004 → v1.9; BC-2.16.010 → v1.8; BC-2.15.020 → v1.4. Product-owner to author BCs; story-writer to follow. D-220: PC-014 rename human-approved.
+Scope: post-release defect fixes PC-013 (ARP `.expect()` invariant sites), PC-014 (dnp3 key rename `total_parse_errors` → `parse_errors`, BREAKING), PC-015 (ARP unbounded findings, undocumented). BCs AUTHORED (D-221): BC-2.16.016 NEW v1.0; BC-2.16.004 v1.9; BC-2.16.010 v1.8; BC-2.15.020 v1.4. Story propagation complete: STORY-113 v1.3, STORY-114 v1.5, STORY-108 v1.2, STORY-115 v1.5. BC-INDEX v1.72 (305 BCs / 304 active). D-220: PC-014 rename human-approved.
 
 ## Phase Progress
 
@@ -162,7 +162,7 @@ Scope: post-release defect fixes PC-013 (ARP `.expect()` invariant sites), PC-01
 | Feature pcapng-reader (FE-001) + v0.9.3 | RELEASED + CLOSED 2026-06-22 (D-201) | F1-F7 CONVERGED+HUMAN-APPROVED (D-194). 10 new BCs, VP-INDEX v2.10. PR #302 → main 2dbf461. 4 binaries. |
 | Maintenance maint-2026-06-22 | COMPLETE 2026-06-23 | 38 observations; 0 blocking; F-MAJ-001 fixed (a6efb23); PR #304 (e458ce2) + PR #305 (e4abbe2). |
 | Feature mitre-json-names (issue #64) + v0.9.4 | **RELEASED + CLOSED 2026-06-23 (D-217)** | F1-F7 CONVERGED. mitre_attack enrichment (STORY-129) + ICS tactic fix (F5 F-1). 20 MitreTactic variants. 5 BCs bumped. BC-INDEX v1.71 (303 BCs). PR #306/307/308/309. tag v0.9.4 96b49e8. 4 binaries. stories_delivered=78. |
-| Fix cycle fix-pc-013-014-015 | **IN-PROGRESS (D-219, 2026-06-23)** | PC-013/014/015. Planned: NEW BC-2.16.016; BC-2.16.004 → v1.9; BC-2.16.010 → v1.8; BC-2.15.020 → v1.4 (BREAKING rename). Product-owner authoring BCs next. |
+| Fix cycle fix-pc-013-014-015 | **SPEC-DONE (D-221, 2026-06-23)** | PC-013/014/015 spec burst committed. BC-2.16.016 NEW (v1.0); BC-2.16.004 v1.9; BC-2.16.010 v1.8; BC-2.15.020 v1.4 (BREAKING rename, D-220). STORY-113 v1.3 (+AC-022), STORY-114 v1.5 (+AC-018), STORY-108 v1.2 (AC-010 updated), STORY-115 v1.5. BC-INDEX v1.72 (305 BCs / 304 active). Awaiting implementation. |
 
 ## Decisions Log
 
@@ -181,6 +181,7 @@ D-206..D-217: `cycles/feature-mitre-json-names/decisions-archive.md` (archived a
 | D-218 | SAFE-TO-CLEAR checkpoint written. Session that delivered v0.9.4 (feature-mitre-json-names cycle: issue #64 mitre_attack + ICS tactic-ID correctness fix) is complete and CLOSED. Ground truth: develop=0115d0e, main=96b49e8, v0.9.4 released, 0 open PRs, worktrees=main+.factory only, pipeline quiesced. Safe to clear the session. | 2026-06-23 |
 | D-219 | Human selected backlog item "fix bundle PC-013/14/15" as next work. Pipeline leaving QUIESCED into fix cycle `fix-pc-013-014-015`. F1 delta analysis (product-owner) corrected all three STATE.md labels: PC-013 = internal HashMap invariant .expect() sites in arp.rs (not packet panics), PC-014 = key MISNAMED (total_parse_errors) not missing, PC-015 = no findings cap exists (undocumented design, not hidden cap). Ground truth at open: develop=0115d0e, main=96b49e8, factory-artifacts=a69d757. | 2026-06-23 |
 | D-220 | PC-014 resolution decision = RENAME dnp3 output key `total_parse_errors` → `parse_errors` to match sibling analyzers (HTTP/TLS/Modbus). This is a BREAKING JSON output change — requires CHANGELOG entry and a minor version bump at release. Human-approved. | 2026-06-23 |
+| D-221 | fix-pc-013-014-015 SPEC BURST committed. All three PC specs anchored: BC-2.16.004 v1.9 (PC-013 fail-safe degradation invariant 6, EC-011/EC-012, arp.rs lines 555/576/642/827); BC-2.15.020 v1.4 (PC-014 BREAKING key rename `total_parse_errors`→`parse_errors`, D-220 confirmed); BC-2.16.016 NEW v1.0 + BC-2.16.010 v1.8 (PC-015 ARP unbounded findings, intentional no-cap documented). Story propagation: STORY-113 v1.3 (+AC-022), STORY-114 v1.5 (+AC-018), STORY-108 v1.2 (AC-010 updated — PC-014 key rename now anchored), STORY-115 v1.5. BC-INDEX v1.72 (305 BCs / 304 active / SS-16=16). Phase: FIX-CYCLE-OPEN → FIX-CYCLE-SPEC-DONE. | 2026-06-23 |
 
 ## Governance Policy
 
