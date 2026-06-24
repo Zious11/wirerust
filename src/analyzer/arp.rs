@@ -4558,3 +4558,577 @@ mod kani_proofs {
         }
     }
 }
+
+// ---------------------------------------------------------------------------
+// BC-2.16.004 v1.10 Invariant 6 — by-construction `.expect()` regression guards
+// ---------------------------------------------------------------------------
+//
+// These tests cover EC-011 and EC-012 from BC-2.16.004 v1.10 and serve as
+// regression guards for the four `.expect()` sites in `process_arp` and
+// `emit_d1_spoof_finding_impl`.  No production code change is involved —
+// the `.expect()` calls remain as-is per the v1.10 spec decision.
+//
+// ## By-Construction Invariant (BC-2.16.004 v1.10 Invariant 6)
+//
+// All four `.expect()` sites are provably unreachable under invariant-preserving
+// execution in single-threaded safe Rust.  Each site is a loud, self-documenting
+// tripwire — the correct idiom for this class of guarantee:
+//
+//   - Lines 555/576: `has_conflict` is derived by `bindings.get(…)`, and
+//     `bindings.get_mut(…)` executes in the same `process_arp` invocation with
+//     no interleaving opportunity to remove the entry.  Entry is present by
+//     construction; `.expect()` cannot fire.
+//
+//   - Line 642: `emit_d1_spoof_finding_impl` returns, then `bindings.get_mut(…)`
+//     is called for the Step 4 MAC update.  No removal can occur between those
+//     two statements in single-threaded code.  Entry is present by construction;
+//     `.expect()` cannot fire.
+//
+//   - Line 827: Step 2 sets `first_rebind_ts = Some(timestamp_secs)` before
+//     Step 3's `.expect()` runs.  Even after a flap-window reset (which clears
+//     the field to `None`), Step 2 immediately re-sets it.  `first_rebind_ts`
+//     is always `Some` at the Step 3 `.expect()` site; `.expect()` cannot fire.
+//
+// ## Role of These Tests
+//
+// The tests in this module exercise the real production paths (entry always
+// present, `first_rebind_ts` always `Some` at the relevant point) and assert
+// correct finding counts and severities.  They are regression guards: if a
+// future refactor breaks a by-construction invariant and causes a finding to
+// be dropped, duplicated, or emitted at the wrong severity, these tests catch
+// it before the `.expect()` tripwire would ever need to fire in production.
+//
+// DF-TEST-NAMESPACE-001: wrapped in `mod bc_2_16_004_inv6`.
+
+#[cfg(test)]
+mod bc_2_16_004_inv6 {
+    //! BC-2.16.004 v1.10 Invariant 6 — by-construction `.expect()` regression guards.
+    //!
+    //! EC-011: GARP-conflict path (`has_conflict == true`) — entry is present by
+    //!         construction; exercises `.expect()` sites at lines 555 and 576.
+    //! EC-012: `emit_d1_spoof_finding_impl` — `first_rebind_ts` is always `Some` at
+    //!         Step 3 by construction (Step 2 sets it unconditionally); exercises the
+    //!         `.expect()` site at line 827.
+    //! Line 642 (non-GARP rebind Step 4 MAC-update re-borrow) — entry is present by
+    //!         construction; exercised via the normal non-GARP rebind path.
+    //!
+    //! All five tests exercise real production paths (the by-construction invariant
+    //! always holds) and assert correct finding counts and severities.  They serve as
+    //! regression guards: a future refactor that drops a finding, duplicates one, or
+    //! changes severity will be caught here before the `.expect()` tripwire fires.
+
+    use super::*;
+    use crate::decoder::ArpFrame;
+    use crate::findings::Confidence;
+
+    // -----------------------------------------------------------------------
+    // Shared constants (match story_114 canonical vectors — BC-2.16.004 table)
+    // -----------------------------------------------------------------------
+
+    const IP_A: [u8; 4] = [10, 0, 0, 1];
+    const MAC_A: [u8; 6] = [0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA];
+    const MAC_B: [u8; 6] = [0xBB, 0xBB, 0xBB, 0xBB, 0xBB, 0xBB];
+    const MAC_C: [u8; 6] = [0xCC, 0xCC, 0xCC, 0xCC, 0xCC, 0xCC];
+
+    /// Normal (non-GARP) ARP Reply — outer_src_mac matches sender_mac to avoid D12.
+    fn make_reply(sender_ip: [u8; 4], sender_mac: [u8; 6]) -> ArpFrame {
+        ArpFrame {
+            operation: 2,
+            sender_mac,
+            sender_ip,
+            target_mac: [0u8; 6],
+            target_ip: [10, 0, 0, 100],
+            outer_src_mac: Some(sender_mac),
+            packet_len: 42,
+        }
+    }
+
+    /// GARP Reply (op=2, sender_ip == target_ip) — outer_src_mac matches sender_mac.
+    fn make_garp(ip: [u8; 4], mac: [u8; 6]) -> ArpFrame {
+        ArpFrame {
+            operation: 2,
+            sender_mac: mac,
+            sender_ip: ip,
+            target_mac: [0u8; 6],
+            target_ip: ip,
+            outer_src_mac: Some(mac),
+            packet_len: 42,
+        }
+    }
+
+    // -----------------------------------------------------------------------
+    // EC-011: GARP-conflict path — `.expect()` sites at lines 555 and 576
+    // -----------------------------------------------------------------------
+
+    /// BC-2.16.004 v1.10 / EC-011 — GARP-conflict path regression guard.
+    ///
+    /// Exercises the `.expect("has_conflict implies entry exists")` site at line
+    /// 555 and `.expect("entry must still exist")` site at line 576.
+    ///
+    /// ## By-construction invariant (STOP — read before modifying this test)
+    ///
+    /// Sites 555 and 576 are provably unreachable: `has_conflict` is derived from
+    /// `bindings.get(&sender_ip)` and `get_mut()` executes in the same
+    /// `process_arp` invocation with no interleaving opportunity to remove the
+    /// entry.  The entry is always present when these sites execute; the `.expect()`
+    /// calls are loud tripwires, not fail-safes.
+    ///
+    /// This test verifies that the GARP-conflict path produces the expected 2
+    /// findings (D2 MEDIUM + D1 MEDIUM at first rebind) and correct MAC update,
+    /// guarding against future regressions in finding count or severity that would
+    /// indicate the invariant has been broken.
+    ///
+    /// Note on test name: the name implies a "missing entry" scenario from the
+    /// superseded v1.9 framing.  Under v1.10, the test exercises the production
+    /// path where the entry IS present (by construction).  The name is kept for
+    /// EC-011 anchor continuity per the spec.
+    #[test]
+    #[allow(non_snake_case)]
+    fn test_BC_2_16_004_expect_site_no_panic_on_missing_entry() {
+        // Establish initial binding: IP_A → MAC_A (no conflict yet).
+        let mut analyzer =
+            ArpAnalyzer::new(SPOOF_REBIND_ESCALATION_DEFAULT, ARP_STORM_RATE_DEFAULT);
+        let seed = make_reply(IP_A, MAC_A);
+        let seed_findings = analyzer.process_arp(&seed, 1_000);
+        // Seed must not emit a D1 spoof finding (first observation → no rebind).
+        let seed_spoof_count = seed_findings
+            .iter()
+            .filter(|f| {
+                f.mitre_techniques.contains(&"T0830".to_string())
+                    || f.summary.to_lowercase().contains("spoof")
+                    || f.summary.to_lowercase().contains("rebind")
+            })
+            .count();
+        assert_eq!(
+            seed_spoof_count, 0,
+            "EC-011 setup: first observation of IP_A must not emit a D1 spoof finding. \
+             Got {seed_spoof_count} spoof finding(s).",
+        );
+
+        // Verify the binding was created (entry exists before the GARP-conflict frame).
+        assert!(
+            analyzer.bindings.contains_key(&IP_A),
+            "EC-011 setup: binding for IP_A must exist after seeding. \
+             bindings.len() = {}",
+            analyzer.bindings.len()
+        );
+
+        // Send a GARP frame with a DIFFERENT MAC — this triggers the conflict path
+        // (`has_conflict == true`) in `process_arp`, exercising `.expect()` at lines
+        // 555 (first `get_mut`) and 576 (second `get_mut` for Step 4 MAC update).
+        //
+        // Both `.expect()` calls succeed because the entry is present by construction
+        // (the by-construction invariant holds; these sites are provably unreachable).
+        let garp_conflict = make_garp(IP_A, MAC_B);
+        let findings = analyzer.process_arp(&garp_conflict, 2_000);
+
+        // BC-2.16.014 / BC-2.16.004: GARP-that-conflicts must emit exactly 2 findings:
+        //   (1) D2 GARP upgraded to MEDIUM with T0830/T1557.002
+        //   (2) D1 spoof finding (MEDIUM at first rebind, threshold=3)
+        let d2_findings: Vec<_> = findings
+            .iter()
+            .filter(|f| f.summary.to_lowercase().contains("garp"))
+            .collect();
+        let d1_findings: Vec<_> = findings
+            .iter()
+            .filter(|f| {
+                f.mitre_techniques.contains(&"T0830".to_string())
+                    && (f.summary.to_lowercase().contains("spoof")
+                        || f.summary.to_lowercase().contains("rebind"))
+            })
+            .collect();
+
+        assert_eq!(
+            d2_findings.len(),
+            1,
+            "EC-011 / BC-2.16.014: GARP-conflict must emit exactly 1 D2 (GARP) finding. \
+             Got {} D2 finding(s) in {:?}",
+            d2_findings.len(),
+            findings.iter().map(|f| &f.summary).collect::<Vec<_>>()
+        );
+        assert_eq!(
+            d1_findings.len(),
+            1,
+            "EC-011 / BC-2.16.004: GARP-conflict must co-emit exactly 1 D1 (spoof) finding. \
+             Got {} D1 finding(s) in {:?}",
+            d1_findings.len(),
+            findings.iter().map(|f| &f.summary).collect::<Vec<_>>()
+        );
+
+        // D2 must be MEDIUM (upgraded from LOW per BC-2.16.014 PC1).
+        assert_eq!(
+            d2_findings[0].confidence,
+            Confidence::Medium,
+            "EC-011 / BC-2.16.014: D2 GARP-conflict finding must be MEDIUM. \
+             Got {:?}",
+            d2_findings[0].confidence
+        );
+
+        // D1 must be MEDIUM (first rebind, rebind_count=1 < threshold=3).
+        assert_eq!(
+            d1_findings[0].confidence,
+            Confidence::Medium,
+            "EC-011 / BC-2.16.004 PC1.d: D1 co-emitted with GARP-conflict must be \
+             MEDIUM (rebind_count=1 < spoof_threshold=3). Got {:?}",
+            d1_findings[0].confidence
+        );
+
+        // Both D2 and D1 must carry T0830 and T1557.002 (BC-2.16.014 PC1 / BC-2.16.004 PC1.e).
+        assert!(
+            d2_findings[0]
+                .mitre_techniques
+                .contains(&"T0830".to_string()),
+            "EC-011 / BC-2.16.014: D2 GARP-conflict must carry T0830. \
+             Got techniques: {:?}",
+            d2_findings[0].mitre_techniques
+        );
+        assert!(
+            d1_findings[0]
+                .mitre_techniques
+                .contains(&"T1557.002".to_string()),
+            "EC-011 / BC-2.16.004 PC1.e: D1 spoof finding must carry T1557.002. \
+             Got techniques: {:?}",
+            d1_findings[0].mitre_techniques
+        );
+
+        // MAC must have been updated (Step 4 ran via line 576 — the second `.expect()` site).
+        let entry = analyzer
+            .bindings
+            .get(&IP_A)
+            .expect("EC-011: binding for IP_A must still exist after GARP-conflict processing.");
+        assert_eq!(
+            entry.mac, MAC_B,
+            "EC-011 / BC-2.16.004 PC1.f / line 576: MAC must be updated to MAC_B after \
+             GARP-conflict Step 4. Got {:?}",
+            entry.mac
+        );
+    }
+
+    // -----------------------------------------------------------------------
+    // EC-011 sibling: GARP-conflict HIGH escalation — both lines 555 and 576
+    // -----------------------------------------------------------------------
+
+    /// BC-2.16.004 v1.10 / EC-011 sibling — GARP-conflict HIGH-escalation regression guard.
+    ///
+    /// With `spoof_threshold=1`, the first rebind immediately escalates to HIGH.
+    /// Exercises the Step 4 MAC-update path at line 576 after
+    /// `apply_garp_conflict_escalation_impl` sets `spoof_high_emitted = true`.
+    /// Both `.expect()` sites (555 and 576) are exercised with the entry present
+    /// by construction (invariant holds).  Guards against regressions in D1 HIGH
+    /// finding count, severity, and MAC-update correctness on the GARP-conflict path.
+    #[test]
+    #[allow(non_snake_case)]
+    fn test_BC_2_16_004_expect_site_no_panic_garp_conflict_high_escalation() {
+        // spoof_threshold=1: first rebind immediately escalates to HIGH.
+        let mut analyzer = ArpAnalyzer::new(1, ARP_STORM_RATE_DEFAULT);
+
+        // Seed: IP_A → MAC_A (no rebind).
+        let seed = make_reply(IP_A, MAC_A);
+        let _ = analyzer.process_arp(&seed, 1_000);
+
+        // GARP conflict with MAC_B: rebind_count→1, threshold=1 → HIGH D1 co-emitted.
+        // Exercises lines 555 and 576 on the GARP-conflict path.
+        let garp_conflict = make_garp(IP_A, MAC_B);
+        let findings = analyzer.process_arp(&garp_conflict, 2_000);
+
+        let d1_findings: Vec<_> = findings
+            .iter()
+            .filter(|f| {
+                f.mitre_techniques.contains(&"T0830".to_string())
+                    && (f.summary.to_lowercase().contains("spoof")
+                        || f.summary.to_lowercase().contains("rebind"))
+            })
+            .collect();
+
+        assert_eq!(
+            d1_findings.len(),
+            1,
+            "EC-011 HIGH path: GARP-conflict with threshold=1 must co-emit exactly 1 D1 \
+             spoof finding. Got {} in {:?}",
+            d1_findings.len(),
+            findings.iter().map(|f| &f.summary).collect::<Vec<_>>()
+        );
+
+        // With threshold=1: rebind_count=1 >= threshold=1, elapsed=0 <= 60s → HIGH.
+        assert_eq!(
+            d1_findings[0].confidence,
+            Confidence::High,
+            "EC-011 HIGH path / BC-2.16.004 PC1.c: D1 co-emitted with threshold=1 GARP \
+             must be HIGH. Got {:?}",
+            d1_findings[0].confidence
+        );
+
+        // MAC must be updated (Step 4 at line 576 ran).
+        let entry = analyzer
+            .bindings
+            .get(&IP_A)
+            .expect("EC-011 HIGH path: binding must exist after GARP-conflict HIGH processing.");
+        assert_eq!(
+            entry.mac, MAC_B,
+            "EC-011 HIGH path / line 576: MAC must be updated to MAC_B after Step 4. \
+             Got {:?}",
+            entry.mac
+        );
+    }
+
+    // -----------------------------------------------------------------------
+    // EC-012: `emit_d1_spoof_finding_impl` direct call — `.expect()` site at line 827
+    // -----------------------------------------------------------------------
+
+    /// BC-2.16.004 v1.10 / EC-012 — `emit_d1_spoof_finding_impl` regression guard
+    /// (entry with `first_rebind_ts = None` on entry, set to `Some` by Step 2).
+    ///
+    /// ## By-construction invariant (STOP — read before modifying this test)
+    ///
+    /// Site 827 (`entry.first_rebind_ts.expect("set in Step 2")`) is provably
+    /// unreachable: Step 2 sets `first_rebind_ts = Some(timestamp_secs)` before
+    /// Step 3's `.expect()` runs, regardless of the entry's initial state.  If a
+    /// flap-window reset clears the field to `None` earlier in the same call, Step 2
+    /// immediately re-sets it.  `first_rebind_ts` is always `Some` at the Step 3
+    /// `.expect()` site; the `.expect()` is a loud tripwire, not a fail-safe.
+    ///
+    /// This test calls `emit_d1_spoof_finding_impl` directly with an entry that has
+    /// `first_rebind_ts = None` on entry.  It verifies that Step 2 correctly sets
+    /// the field, Step 3 proceeds without panic, and the function returns a valid
+    /// MEDIUM D1 finding.  Guards against a future reordering of Steps 2 and 3.
+    ///
+    /// Note on test name: the name reflects the v1.9 "missing entry" framing.
+    /// Under v1.10, `first_rebind_ts` is always `Some` at Step 3 by construction;
+    /// the test title is kept for EC-012 anchor continuity per the spec.
+    #[test]
+    #[allow(non_snake_case)]
+    fn test_BC_2_16_004_expect_site_no_panic_emit_d1_first_rebind_ts_none() {
+        // Construct a BindingEntry where first_rebind_ts = None.
+        // This simulates the state at the start of a fresh rebind window.
+        let mut entry = BindingEntry {
+            mac: MAC_A,
+            rebind_count: 0,
+            first_rebind_ts: None, // <-- the "missing" field site 827 would expect
+            spoof_high_emitted: false,
+            last_seen_ts: 1_000,
+        };
+
+        // Call emit_d1_spoof_finding_impl directly (private fn, accessible in same file).
+        //
+        // By construction: Step 2 sets `first_rebind_ts = Some(2_000)` before
+        // Step 3's `.expect()` runs → no panic.  The test asserts: (a) no panic;
+        // (b) a Finding is returned; (c) the finding is MEDIUM (rebind_count starts
+        // at 0, Step 1 → 1, threshold=3 → MEDIUM).
+        let finding = ArpAnalyzer::emit_d1_spoof_finding_impl(
+            &mut entry,
+            IP_A,
+            MAC_A, // old_mac
+            MAC_B, // new_mac
+            2_000, // timestamp_secs
+            SPOOF_REBIND_ESCALATION_DEFAULT,
+        );
+
+        // A valid Finding must be returned (no panic, no None/Option).
+        assert!(
+            finding.summary.to_lowercase().contains("spoof")
+                || finding.summary.to_lowercase().contains("rebind"),
+            "EC-012 / BC-2.16.004 PC1.e: emit_d1_spoof_finding_impl must return a D1 \
+             finding summarizing the rebind event. Got summary: {:?}",
+            finding.summary
+        );
+
+        // Step 1 incremented rebind_count to 1; threshold=3 → MEDIUM (not HIGH).
+        assert_eq!(
+            finding.confidence,
+            Confidence::Medium,
+            "EC-012 / BC-2.16.004 PC1.d: first rebind (rebind_count=1 < threshold=3) must \
+             produce MEDIUM confidence. Got {:?}",
+            finding.confidence
+        );
+
+        // first_rebind_ts must have been set by Step 2 (BC-2.16.004 PC1.b).
+        assert_eq!(
+            entry.first_rebind_ts,
+            Some(2_000),
+            "EC-012 / BC-2.16.004 PC1.b: Step 2 must set first_rebind_ts = Some(2000). \
+             Got {:?}",
+            entry.first_rebind_ts
+        );
+
+        // MITRE techniques must include T0830 and T1557.002 (BC-2.16.004 PC1.e).
+        assert!(
+            finding.mitre_techniques.contains(&"T0830".to_string()),
+            "EC-012 / BC-2.16.004 PC1.e: D1 finding must carry T0830. \
+             Got: {:?}",
+            finding.mitre_techniques
+        );
+        assert!(
+            finding.mitre_techniques.contains(&"T1557.002".to_string()),
+            "EC-012 / BC-2.16.004 PC1.e: D1 finding must carry T1557.002. \
+             Got: {:?}",
+            finding.mitre_techniques
+        );
+    }
+
+    /// BC-2.16.004 v1.10 / EC-012 sibling — flap-window-reset regression guard.
+    ///
+    /// Calls `emit_d1_spoof_finding_impl` with `first_rebind_ts = Some(very_old_ts)`
+    /// that triggers the flap-window RESET (BC-2.16.004 PC5), clearing
+    /// `first_rebind_ts` to `None` inside the function before Step 2 re-sets it.
+    ///
+    /// This is the closest white-box scenario to `first_rebind_ts` being `None`
+    /// immediately before Step 2 executes — the reset clears it, Step 2 immediately
+    /// sets it again.  Site 827's `.expect()` is provably safe because Step 2 always
+    /// runs between the reset and Step 3, maintaining the by-construction invariant.
+    ///
+    /// Verifies:
+    ///   (a) No panic (invariant holds; `.expect()` site is provably unreachable).
+    ///   (b) After the reset, `rebind_count` is reset to 0, then incremented to 1 by
+    ///       Step 1.
+    ///   (c) `first_rebind_ts` is set to the new timestamp by Step 2.
+    ///   (d) Finding is MEDIUM (fresh window, rebind_count=1 < threshold=3).
+    ///
+    /// Guards against regressions in flap-window-reset + Step 2 ordering that would
+    /// expose the Step 3 `.expect()` to a `None` value.
+    #[test]
+    #[allow(non_snake_case)]
+    fn test_BC_2_16_004_expect_site_no_panic_emit_d1_after_flap_window_reset() {
+        // Entry state: prior rebind window started at ts=0, current ts=100 > 60s window.
+        let very_old_ts: u32 = 0;
+        let current_ts: u32 = 100; // elapsed = 100 > ARP_FLAP_WINDOW_SECS=60 → reset fires
+
+        let mut entry = BindingEntry {
+            mac: MAC_A,
+            rebind_count: 5,                    // would be > 0 before reset
+            first_rebind_ts: Some(very_old_ts), // will be cleared by reset
+            spoof_high_emitted: true,           // will be reset to false
+            last_seen_ts: 50,
+        };
+
+        // Call emit_d1_spoof_finding_impl.  Expected sequence inside:
+        //   - Flap-window reset fires (elapsed=100 > 60): rebind_count→0,
+        //     first_rebind_ts→None, spoof_high_emitted→false.
+        //   - Step 1: rebind_count → 1.
+        //   - Step 2: first_rebind_ts is None → set to Some(100).
+        //   - Step 3: first_rebind_ts.expect("set in Step 2") → Some(100) → no panic.
+        //   - rebind_count=1 < threshold=3 → MEDIUM.
+        let finding = ArpAnalyzer::emit_d1_spoof_finding_impl(
+            &mut entry,
+            IP_A,
+            MAC_A, // old_mac
+            MAC_C, // new_mac
+            current_ts,
+            SPOOF_REBIND_ESCALATION_DEFAULT,
+        );
+
+        // No panic: function returned successfully.
+        assert!(
+            finding.summary.to_lowercase().contains("spoof")
+                || finding.summary.to_lowercase().contains("rebind"),
+            "EC-012 flap-reset path: emit_d1_spoof_finding_impl must return a valid D1 finding \
+             after a flap-window reset. Got summary: {:?}",
+            finding.summary
+        );
+
+        // After reset + Step 1: rebind_count must be 1.
+        assert_eq!(
+            entry.rebind_count, 1,
+            "EC-012 flap-reset path / BC-2.16.004 PC5+PC1.a: after reset, rebind_count \
+             must be 1 (reset→0, Step 1→1). Got {}",
+            entry.rebind_count
+        );
+
+        // Step 2 must have set first_rebind_ts to current_ts.
+        assert_eq!(
+            entry.first_rebind_ts,
+            Some(current_ts),
+            "EC-012 flap-reset path / BC-2.16.004 PC1.b: Step 2 must set \
+             first_rebind_ts = Some({current_ts}) after reset. Got {:?}",
+            entry.first_rebind_ts
+        );
+
+        // MEDIUM (fresh window, count=1 < threshold=3).
+        assert_eq!(
+            finding.confidence,
+            Confidence::Medium,
+            "EC-012 flap-reset path / BC-2.16.004 PC1.d: post-reset first rebind must \
+             be MEDIUM (count=1 < threshold=3). Got {:?}",
+            finding.confidence
+        );
+    }
+
+    // -----------------------------------------------------------------------
+    // Site line 642 — non-GARP rebind path Step 4 re-borrow
+    // -----------------------------------------------------------------------
+
+    /// BC-2.16.004 v1.10 / line 642 — non-GARP rebind Step 4 MAC-update regression guard.
+    ///
+    /// Exercises `.expect("entry must still exist")` at line 642 (the second
+    /// `bindings.get_mut(&sender_ip)` call for the Step 4 MAC update after
+    /// `emit_d1_spoof_finding_impl` returns on the non-GARP rebind path).
+    ///
+    /// ## By-construction invariant
+    ///
+    /// Line 642's `.expect()` is provably unreachable: between the first `get_mut`
+    /// (line 617, guarded by `if let`) and the second `get_mut` (lines 641-642),
+    /// there is no opportunity to remove the entry in single-threaded safe Rust.
+    /// The entry is present by construction; the `.expect()` is a loud tripwire.
+    ///
+    /// This test verifies the full non-GARP rebind path completes successfully:
+    ///   (1) Exactly one D1 finding emitted (surrounding code at site 642 ran).
+    ///   (2) MAC updated to the new value (Step 4 via line 642 completed).
+    ///   (3) `rebind_count` incremented correctly.
+    ///
+    /// Guards against future regressions in finding count, MAC-update correctness,
+    /// or rebind_count state on the non-GARP rebind path.
+    #[test]
+    #[allow(non_snake_case)]
+    fn test_BC_2_16_004_expect_site_no_panic_non_garp_rebind_step4_reborrow() {
+        let mut analyzer =
+            ArpAnalyzer::new(SPOOF_REBIND_ESCALATION_DEFAULT, ARP_STORM_RATE_DEFAULT);
+
+        // Seed: IP_A → MAC_A (no rebind).
+        let seed = make_reply(IP_A, MAC_A);
+        let _ = analyzer.process_arp(&seed, 1_000);
+
+        // Rebind: MAC_A → MAC_B.  Exercises:
+        //   - `emit_d1_spoof_finding_impl` at line 626 (site via EC-012).
+        //   - `bindings.get_mut(&sender_ip).expect(…)` at line 641-642 for MAC update.
+        let rebind = make_reply(IP_A, MAC_B);
+        let findings = analyzer.process_arp(&rebind, 2_000);
+
+        // Exactly one D1 spoof finding must be emitted.
+        let d1_count = findings
+            .iter()
+            .filter(|f| {
+                f.mitre_techniques.contains(&"T0830".to_string())
+                    || f.summary.to_lowercase().contains("spoof")
+                    || f.summary.to_lowercase().contains("rebind")
+            })
+            .count();
+        assert_eq!(
+            d1_count,
+            1,
+            "line 642 path / BC-2.16.004 PC1: non-GARP rebind must emit exactly 1 D1 \
+             spoof finding (including Step 4 re-borrow at line 642). Got {} finding(s) \
+             in {:?}",
+            d1_count,
+            findings.iter().map(|f| &f.summary).collect::<Vec<_>>()
+        );
+
+        // MAC must have been updated by Step 4 (line 642 path ran).
+        let entry = analyzer
+            .bindings
+            .get(&IP_A)
+            .expect("line 642 path: binding must exist after non-GARP rebind.");
+        assert_eq!(
+            entry.mac, MAC_B,
+            "line 642 path / BC-2.16.004 PC1.f: MAC must be updated to MAC_B after \
+             Step 4 MAC-update at line 642. Got {:?}",
+            entry.mac
+        );
+
+        // rebind_count must be 1 after the first rebind.
+        assert_eq!(
+            entry.rebind_count, 1,
+            "line 642 path / BC-2.16.004 PC1.a: rebind_count must be 1 after first rebind. \
+             Got {}",
+            entry.rebind_count
+        );
+    }
+} // mod bc_2_16_004_inv6
