@@ -194,7 +194,22 @@ pub enum Commands {
         /// Analyze ARP traffic for spoofing, GARP anomalies, malformed frames, and
         /// L2/L3 sender-MAC mismatch. Default-off; included by --all.
         // BC-2.16.011
-        #[arg(long)]
+        #[arg(
+            long,
+            long_help = "Analyze ARP traffic for spoofing, GARP anomalies, malformed frames, \
+                         and L2/L3 sender-MAC mismatch. Default-off; included by --all.\n\n\
+                         Findings output is UNBOUNDED: unlike HTTP/TLS/Modbus/DNP3 analyzers \
+                         (which cap findings at 10,000 via the TCP reassembly layer), ARP \
+                         operates at the Ethernet link layer and bypasses that cap entirely. \
+                         A capture with N spoof or storm events produces up to N findings with \
+                         no platform-imposed limit. Operators analyzing adversarial or large \
+                         captures should be aware that findings can grow proportionally to the \
+                         number of triggering frames.\n\n\
+                         Note: the ARP binding table (MAX_ARP_BINDINGS = 65,536 entries) and \
+                         storm-counter table (MAX_STORM_COUNTERS = 4,096 entries) are memory \
+                         bounds on internal analyzer state only — they do not cap the findings \
+                         output."
+        )]
         arp: bool,
 
         /// D1 spoof escalation threshold: number of MAC rebinds within
