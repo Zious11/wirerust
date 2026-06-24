@@ -23,7 +23,7 @@ DNP3 Direct Detection Emissions — T1692.001, T0814, T0836, Co-Emission, Summar
 | AC-008 | BC-2.15.013 PC4/5 | `test_max_findings_cap_preserves_first_finding` | Pre-fill MAX_FINDINGS-1; COLD_RESTART fills last slot (T0814 preserved); second restart: cap hit, no push; restart_event_count=2 | [GIF](AC-008-max-findings-cap.gif) / [WEBM](AC-008-max-findings-cap.webm) | PASS |
 | AC-009 | BC-2.15.022 PC1/3 | `test_max_findings_counters_updated_when_capped` | At MAX_FINDINGS cap: no new finding pushed; restart_event_count=1, frame_count=1, fc_counts[0x0D]=1, fn_code_counts[0x0D]=1 | [GIF](AC-009-counters-when-capped.gif) / [WEBM](AC-009-counters-when-capped.webm) | PASS |
 | AC-010 | BC-2.15.020 PC1 | `test_summarize_function_code_distribution`, `test_BC_2_15_020_summarize_control_operation_counts_per_flow`, `test_BC_2_15_020_summarize_does_not_push_findings`, `test_BC_2_15_020_summarize_includes_parse_errors` | 5 DIRECT_OPERATE+3 READ → fn_code_counts={5:5, 1:3}; flows_analyzed>=1; total_frames=8; summarize() does not push findings | [GIF](AC-010-summarize.gif) / [WEBM](AC-010-summarize.webm) | PASS |
-| AC-011 | BC-2.15.020 INV4 | `test_summarize_zero_flows` | Zero-flow case: flows_analyzed=0, total_frames=0, total_parse_errors=0, function_code_distribution present (not absent) | [GIF](AC-011-summarize-zero-flows.gif) / [WEBM](AC-011-summarize-zero-flows.webm) | PASS |
+| AC-011 | BC-2.15.020 INV4 | `test_summarize_zero_flows` | Zero-flow case: flows_analyzed=0, total_frames=0, parse_errors=0, function_code_distribution present (not absent) | [GIF](AC-011-summarize-zero-flows.gif) / [WEBM](AC-011-summarize-zero-flows.webm) | PASS |
 | AC-012 | BC-2.15.010 INV | `test_BC_2_15_010_threshold_is_strictly_greater_not_gte` | At count=10 (==threshold): 0 findings; direct_operate_emitted=false; counter=10 | [GIF](AC-012-threshold-semantics.gif) / [WEBM](AC-012-threshold-semantics.webm) | PASS |
 
 ## Edge Case Coverage (EC-001..EC-008)
@@ -135,7 +135,7 @@ The cap check `self.all_findings.len() < MAX_FINDINGS` is evaluated immediately 
 
 ### summarize() — FC Distribution (BC-2.15.020)
 
-`Dnp3Analyzer::summarize()` aggregates `fn_code_counts` (global FC distribution), per-flow `direct_operate_count`, `total_frames`, `total_parse_errors`, and `flows_analyzed` into the output `AnalyzerSummary`. The zero-flow case returns an empty-but-present `function_code_distribution` object (not absent). `summarize()` never pushes new findings (invariant 3).
+`Dnp3Analyzer::summarize()` aggregates `fn_code_counts` (global FC distribution), per-flow `direct_operate_count`, `total_frames`, `parse_errors`, and `flows_analyzed` into the output `AnalyzerSummary`. The zero-flow case returns an empty-but-present `function_code_distribution` object (not absent). `summarize()` never pushes new findings (invariant 3).
 
 ## Tape Sources
 
