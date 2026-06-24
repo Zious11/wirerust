@@ -65,7 +65,7 @@ in the next BC version-bump pass.
 | T0846 | Remote System Discovery | IcsDiscovery (TA0102) | already seeded | No catalog change |
 | T0888 | Remote System Information Discovery | IcsDiscovery (TA0102) | already seeded | No catalog change |
 | T0814 | Denial of Service | IcsInhibitResponseFunction (TA0107) | already seeded | No catalog change |
-| T1693.001 | (GetAndClear firmware service) | (future) | staged not emitted | Seed but do not emit in v0.11.0 |
+| T1693.001 | Modify Firmware: System Firmware | (future) | staged not emitted | Seed but do not emit in v0.11.0; trigger: CIP firmware download service (0x4B or vendor-specific); staged per ADR-010 Decision 7 |
 
 ## Open Items
 

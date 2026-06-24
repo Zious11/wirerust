@@ -438,10 +438,10 @@ precedent set by `IcsImpact` (added in ADR-007 for T0827) and `IcsDiscovery` (ad
 for T0846/T0888). The new variant must carry the Display string `"Execution (ICS)"` to
 distinguish it from Enterprise Execution (TA0002) per the D-069 pattern.
 
-**VP-007 atomic obligation (5-part, mirrors ADR-007 Decision 5 playbook):**
+**VP-007 atomic obligation (6-part, mirrors ADR-007 Decision 5 playbook):**
 
-The addition of T0858, T0816, and T1693.001 to `technique_info()` requires these five
-changes in the **same commit burst** as the new technique arms:
+The addition of T0858, T0816, and T1693.001 to `technique_info()` requires these six
+changes/steps in the **same commit burst** as the new technique arms:
 
 1. **`technique_info` match arms:** Add `"T0858"` arm (T0858 name + `IcsExecution`),
    `"T0816"` arm (T0816 name + `IcsInhibitResponseFunction`), and `"T1693.001"` arm
@@ -460,8 +460,10 @@ changes in the **same commit burst** as the new technique arms:
 
 5. **`MitreTactic::IcsExecution` variant:** Add to the enum with `Display = "Execution (ICS)"`.
    Update `all_tactics_in_report_order()` (append after `IcsCommandAndControl`). Update
-   `technique_tactic_id()` with `MitreTactic::IcsExecution => "TA0104"`. Run
-   `cargo test mitre` to confirm `vp007_catalog_drift_guard` passes.
+   `technique_tactic_id()` with `MitreTactic::IcsExecution => "TA0104"`.
+
+6. **Verification gate:** Run `cargo test mitre` to confirm `vp007_catalog_drift_guard`
+   passes. This is a correctness gate, not part of the atomic code change.
 
 **Carried `all_tactics_in_report_order()` tail after this ADR:**
 
@@ -567,7 +569,7 @@ representation of the ATT&CK matrix.
   detection targets.
 - The ForwardOpen technique-gap is explicitly documented — downstream consumers of ENIP
   findings can rely on accurate technique tags.
-- VP-007 formal correctness is preserved after the 5-part atomic update (SEEDED 25 → 28,
+- VP-007 formal correctness is preserved after the 6-part atomic update (SEEDED 25 → 28,
   EMITTED 17 → 19).
 - The `IcsExecution` MitreTactic variant makes the ICS Execution tactic (TA0104) first-class
   and testable, following the ADR-005/ADR-007 Matrix discriminator principle.

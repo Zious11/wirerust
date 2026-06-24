@@ -153,7 +153,7 @@ T0846 (`IcsDiscovery`), T0888 (`IcsDiscovery`), T0836 (`IcsImpairProcessControl`
 T0814 (`IcsInhibitResponseFunction`), T1692.001 (`IcsImpairProcessControl`),
 T1692.002 (`IcsImpairProcessControl`), T0806 (`IcsImpairProcessControl`).
 
-### VP-007 atomic obligation (5-part burst, STORY-EIP-09)
+### VP-007 atomic obligation (6-part burst, STORY-EIP-09)
 
 When T0858 + T0816 + T1693.001 are added to `technique_info()`:
 1. Add three `technique_info` match arms (T0858/T0816/T1693.001)

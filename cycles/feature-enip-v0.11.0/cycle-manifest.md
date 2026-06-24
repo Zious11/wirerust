@@ -33,7 +33,7 @@ Research inputs: `.factory/research/next-ics-protocol-prevalence.md`,
 | Phase | Status | Notes |
 |-------|--------|-------|
 | F1 — Delta Analysis | PASSED 2026-06-24 | Human-approved (D-228). TCP/44818 + UDP/2222 + ForwardOpen in scope. TLS/2221 deferred. |
-| F2 — Spec Evolution | SPEC-CONTENT COMPLETE 2026-06-24 | D-229: UDP/2222 deferred to v0.12.0. Scope now TCP/44818 + CIP ForwardOpen (TCP only). 24 BCs (BC-2.17.001..024), ADR-010, VP-032 written. Pending: consistency audit + adversarial spec convergence + F2 human gate. |
+| F2 — Spec Evolution | CONSISTENT WITH DEFECTS — AUDIT COMPLETE 2026-06-24 | D-229: UDP/2222 deferred to v0.12.0. Scope now TCP/44818 + CIP ForwardOpen (TCP only). 24 BCs (BC-2.17.001..024), ADR-010, VP-032 written. F2 consistency audit complete: 7 findings, 5 annotation defects fixed (F7-001..F7-004, F6-001); F7-005 (VP-007 enum gap) deferred to implementation. Pending: adversarial spec convergence + F2 human gate. |
 | F3 — Incremental Stories | PENDING | ~7-9 stories planned |
 | F4 — TDD Implementation | PENDING | |
 | F5 — Scoped Adversarial | PENDING | |
