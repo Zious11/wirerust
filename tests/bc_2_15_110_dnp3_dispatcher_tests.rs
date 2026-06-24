@@ -956,9 +956,9 @@ mod story_110 {
         let dnp3 = dispatcher.take_dnp3_analyzer().unwrap();
         // The carry mechanism must have assembled the full frame and processed it.
         // parse_errors == 0 (no structural failure from the split).
-        let total_parse_errors: u64 = dnp3.flows.values().map(|f| f.parse_errors).sum();
+        let parse_errors: u64 = dnp3.flows.values().map(|f| f.parse_errors).sum();
         assert_eq!(
-            total_parse_errors, 0,
+            parse_errors, 0,
             "EC-003: split frame across two on_data calls must produce ZERO parse errors \
              (carry buffer reassembles the frame cleanly)"
         );

@@ -7,6 +7,18 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Breaking Changes
+
+- **DNP3 analyzer output: renamed summary key `total_parse_errors` → `parse_errors`.**
+  The `detail` map produced by the DNP3 analyzer now uses the key `"parse_errors"` instead of
+  `"total_parse_errors"`, aligning DNP3 with sibling analyzers (HTTP, TLS, Modbus) that already
+  use `"parse_errors"`. JSON consumers reading DNP3 summary output must migrate the key name.
+  [PC-014, BC-2.15.020 v1.4, STORY-108 AC-010]
+
+  **Migration:** Replace any lookup of `detail["total_parse_errors"]` with
+  `detail["parse_errors"]` in your consumer. For `jq` users:
+  `jq '.[] | .detail.total_parse_errors'` → `jq '.[] | .detail.parse_errors'`.
+
 ## [0.9.4] - 2026-06-23
 
 ### Added
