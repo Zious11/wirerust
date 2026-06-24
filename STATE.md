@@ -4,7 +4,7 @@ phase: QUIESCED
 phase_status: "feature-mitre-json-names CONVERGED + RELEASED (v0.9.4, D-217) + CLOSED. Pipeline quiesced."
 product: wirerust
 mode: brownfield
-timestamp: 2026-06-23T20:00:00Z
+timestamp: 2026-06-23T21:00:00Z
 
 # Release chain
 released_version: v0.9.4
@@ -24,7 +24,7 @@ v091_release_commit: ad4eec8
 v090_release_tag: v0.9.0
 v090_release_commit: 986e148
 
-# Ground-truth HEADs (verified at D-217 — 2026-06-23)
+# Ground-truth HEADs (verified at D-218 — 2026-06-23)
 develop_head: 0115d0e
 main_head: 96b49e8
 factory_artifacts_head: "run: git -C .factory log -1 --format='%h %s'"
@@ -72,33 +72,42 @@ convergence_trajectory: "Detail: cycles/v0.1.0-greenfield-spec/convergence-traje
 
 # VSDD Pipeline State — wirerust
 
-## PIPELINE QUIESCED — feature-mitre-json-names CLOSED (D-217)
+## SESSION PAUSED — SAFE TO CLEAR (D-218)
 
-**Prior checkpoints D-203 through D-216 are archived. All decisions from those checkpoints remain final.**
+**Prior checkpoints D-203 through D-217 are archived. All decisions from those checkpoints remain final.**
 
-**WARNING — DO NOT REDO:**
+### WARNING — DO NOT REDO (on resume)
+
+- Do NOT re-run the feature-mitre-json-names cycle — CLOSED (D-217). PRs #306 (mitre_attack, merged to develop), #307 (ICS tactic fix), #308 (docs) all merged.
+- Do NOT re-cut v0.9.4 — RELEASED (main 96b49e8, tag v0.9.4, 4 binaries, run 28053327452).
+- Do NOT re-apply the ICS tactic fix — MitreTactic already has 20 variants (IcsDiscovery/IcsCollection/IcsCommandAndControl added); T0830→IcsCollection/TA0100, T0831→IcsImpact/TA0105 already corrected in src/mitre.rs on develop.
+- Do NOT re-post issue-triage validation comments — already posted on #255/#252/#103/#101/#67/#64/#3/#63 last session.
 - Do NOT re-run maintenance sweep maint-2026-06-22 — COMPLETE (D-204). PRs #304 + #305 already merged to develop.
-- Do NOT re-cut the v0.9.3 release (shipped; tag on main 2dbf461) or v0.9.4 release (shipped; tag on main 96b49e8, PR #309).
 - Do NOT reopen D-200-era decision threads (a)/(b)/(c) — all three CLOSED.
-- Do NOT re-run F1/F2/F3/F4/F5/F6/F7 for feature-mitre-json-names — all complete (D-206..D-216). Cycle CLOSED (D-217).
 
-### GROUND-TRUTH HEADs (verified at D-217 — 2026-06-23)
+### GROUND-TRUTH HEADs (verified at D-218 — 2026-06-23)
 
-- **develop:** `0115d0e` — back-merge after v0.9.4 release. Verify: `git log -1 --format='%h' origin/develop` == `0115d0e`.
+- **develop:** `0115d0e` (local == origin/develop; working tree clean). Re-verify: `git rev-parse --short develop` == `0115d0e`.
 - **main:** `96b49e8` — PR #309 merge commit (`chore: release v0.9.4`); tag `v0.9.4` on this commit.
-- **factory-artifacts:** local == remote at this D-217 commit. Verify: `git -C .factory status` must be clean.
-- **Open PRs:** None. Verify: `gh pr list` must return empty.
-- **Worktrees:** main repo (develop) + `.factory/` only. No story/feature worktrees open.
+- **factory-artifacts:** the D-218 commit (this checkpoint). Re-verify: `git -C .factory status` must be clean.
+- **Open PRs:** None. Re-verify: `gh pr list` must return empty.
+- **Worktrees:** main repo (develop) + `.factory/` only. No story/fix/feature worktrees open.
 
-### CYCLE SUMMARY (feature-mitre-json-names — archived)
+### RESUME PROCEDURE (execute in order)
 
-F1-F3 (D-206): BC-2.11.035, STORY-129, `mitre_attack` array design. F4 (D-207/D-208): PR #306 → 2fa6606, issue #64 CLOSED, stories_delivered 77→78. F5 (D-209..D-212): HIGH F-1 ICS fix, 3 new MitreTactic variants, 5 remaps, PR #307 → 029725b, BC-INDEX v1.71. F6 (D-213): all 5 tasks PASS. F7 (D-214..D-216): sibling-sweep (10 specs), docs PR #308 → 760b6ca, CONVERGED. v0.9.4 RELEASED (D-217): PR #309 → main 96b49e8, 4 binaries, develop 0115d0e. Full narrative: cycles/feature-mitre-json-names/decisions-archive.md.
+1. Run `vsdd-factory:factory-worktree-health` — BLOCKING. Do not proceed until PASS.
+2. Read `.factory/STATE.md` in full.
+3. Verify: `git rev-parse --short develop` == `0115d0e` AND `git rev-parse --short main` == `96b49e8`.
+4. Verify: `gh pr list` returns empty.
+5. Verify: `git worktree list` shows only main repo + `.factory/` (no story/fix/feature worktrees).
+6. Confirm both trees clean: `git status` (main repo) and `git -C .factory status`.
+7. No active cycle — await human direction before starting any new work.
 
 ### OPEN ITEMS (backlog — non-blocking, no active work)
 
 | ID | Summary | Status |
 |----|---------|--------|
-| DRIFT-UNCOMMITTED-TEST-EDITS-001 | [MEDIUM, process-gap]: F5 committed only src/mitre.rs; 3 test files were working-tree edits; CI caught on push. Recommend engine policy: convergence-clean-tree-guard. | DEFERRED MEDIUM — engine codification |
+| DRIFT-UNCOMMITTED-TEST-EDITS-001 | [MEDIUM, process-gap]: F5 committed only src/mitre.rs; 3 test files were working-tree edits; CI caught on push. Engine policy candidate: convergence-clean-tree-guard. | DEFERRED MEDIUM — engine codification |
 | DRIFT-BC-TEMPLATE-EC-VP-MAP-001 | [LOW, process-gap]: BC template EC table can have more rows than VP/test-name table. Engine/template concern, not product defect. | DEFERRED LOW — engine/template |
 | DRIFT-MITRE-SUBSET-COUNT-TESTS-001 | [LOW]: mitre/multitag dual-count subset tests (21/13 vs 25/17) — pre-existing cruft, no correctness impact. | DEFERRED LOW — future maintenance |
 | DRIFT-ARP-DEMO-FIXTURE-001 | [LOW]: No ARP pcap fixture; T0830→TA0100 unit-tested but not demoed live. | DEFERRED LOW — future cycle |
@@ -113,14 +122,17 @@ F1-F3 (D-206): BC-2.11.035, STORY-129, `mitre_attack` array design. F4 (D-207/D-
 | DNS-TUNNELING-COVERAGE-001 | DNS analyzer statistics-only; tunneling detection is a human feature scope decision. | OPEN — human decision |
 | STORY-121 | E-11 process-gap follow-ups. Open draft — human decision on scope. | OPEN DRAFT |
 | INPUT-HASH-ERROR-PRESTORY | STORY-001/091/121 persistent ERROR from `bin/compute-input-hash --scan` (pre-existing). | BACKLOG |
+| INPUT-HASH-STALE | STORY-002..005/076..080/101/120 STALE (pre-existing). | BACKLOG |
+| ENGINE-IMPROVEMENT-BACKLOG | ~18 engine proposals pending human review, incl. pr-manager shortstop PAT-001; lessons.md Lessons 1 & 2 / policy candidates convergence-clean-tree-guard + magic-number-sweep-on-count-change. Pointer: `cycles/feature-mitre-json-names/session-review.md`. | BACKLOG — human review |
+| ISSUE-TRIAGE-OPEN-9 | 9 open GitHub issues triaged: keep-open #255/#252/#103/#101/#67/#63/#3; reframe-needed #6 (rayon obsolete) and #4 (narrow to SQLite — CSV shipped). | OPEN — product-owner |
 
-**Resolved — do not reopen:** maint-2026-06-22, O-07, DEP-001/005, DOC-001..009, F-MAJ-001, CORPUS-OBS-PCAPNG-IFFCSLEN-001, decision-threads (a)/(b)/(c), PERF-REASM-DOS-001, all F6 items, feature-mitre-json-names F1-F7 (D-206..D-216). **SPEC VERSIONS (at close):** prd.md v1.35, nfr-catalog v2.4, VP-INDEX v2.10 (31/31), BC-INDEX v1.71 (303 BCs), STORY-INDEX v2.7 (82/57/526 pts). MitreTactic: 20 variants.
+**Resolved — do not reopen:** maint-2026-06-22, O-07, DEP-001/005, DOC-001..009, F-MAJ-001, CORPUS-OBS-PCAPNG-IFFCSLEN-001, decision-threads (a)/(b)/(c), PERF-REASM-DOS-001, all F6 items, feature-mitre-json-names F1-F7 (D-206..D-217). **SPEC VERSIONS (at close):** prd.md v1.35, nfr-catalog v2.4, VP-INDEX v2.10 (31/31), BC-INDEX v1.71 (303 BCs), STORY-INDEX v2.7 (82/57/526 pts). MitreTactic: 20 variants.
 
 ---
 
 ## Status
 
-**PIPELINE QUIESCED. Feature cycle feature-mitre-json-names CONVERGED + RELEASED + CLOSED (D-217, 2026-06-23).**
+**PIPELINE QUIESCED. Feature cycle feature-mitre-json-names CONVERGED + RELEASED + CLOSED (D-217, 2026-06-23). SAFE-TO-CLEAR checkpoint written (D-218).**
 
 Latest release: v0.9.4 (main `96b49e8`, tag `v0.9.4`, 4 binaries, run 28053327452). develop=0115d0e. stories_delivered=78. No open PRs. No active cycle. No in-flight work.
 
@@ -165,6 +177,7 @@ D-206..D-217: `cycles/feature-mitre-json-names/decisions-archive.md` (archived a
 | D-204 | Maintenance sweep maint-2026-06-22 COMPLETE. 0 blocking. PR #304 (e458ce2) + PR #305 (e4abbe2) merged. F-MAJ-001 fixed (a6efb23). 2 LOWs deferred; 1 engine-note. | 2026-06-23 |
 | D-205 | SAFE-TO-CLEAR checkpoint refreshed. Ground truth: main=2dbf461, develop=e4abbe2, PRs=0, worktrees=main+.factory. Pipeline quiesced. | 2026-06-23 |
 | D-217 | v0.9.4 RELEASED. PR #309 (release/0.9.4) merged to main 96b49e8; annotated tag v0.9.4; release.yml run 28053327452 SUCCESS, 4 binaries published; develop back-merged 0115d0e. Feature cycle feature-mitre-json-names CONVERGED + RELEASED + CLOSED: delivered mitre_attack JSON enrichment (issue #64, STORY-129) + ICS-matrix tactic-ID correctness fix (F5 F-1, incl. T0830/T0831 corrections). stories_delivered=78. Pipeline quiesced. | 2026-06-23 |
+| D-218 | SAFE-TO-CLEAR checkpoint written. Session that delivered v0.9.4 (feature-mitre-json-names cycle: issue #64 mitre_attack + ICS tactic-ID correctness fix) is complete and CLOSED. Ground truth: develop=0115d0e, main=96b49e8, v0.9.4 released, 0 open PRs, worktrees=main+.factory only, pipeline quiesced. Safe to clear the session. | 2026-06-23 |
 
 ## Governance Policy
 
@@ -196,4 +209,4 @@ Full policy text: `.factory/policies.yaml`.
 - Artifact pointers: Phase 0 `.factory/semport/wirerust/wirerust-pass-8-deep-synthesis.md`; wave history `cycles/phase-3-tdd/convergence-trajectory.md`.
 - Issues: #104/#102/#64 CLOSED; all actions SHA-pinned; dtolnay/rust-toolchain @stable/@nightly exempted.
 - STORY-INDEX.md authoritative (82 stories / 57 waves / 526 pts — v2.7).
-- Cycle artifacts: `cycles/feature-mitre-json-names/` (decisions-archive.md D-206..D-217, cycle-manifest.md, f6-hardening.md, lessons.md).
+- Cycle artifacts: `cycles/feature-mitre-json-names/` (decisions-archive.md D-206..D-217, cycle-manifest.md, f6-hardening.md, lessons.md, session-review.md).
