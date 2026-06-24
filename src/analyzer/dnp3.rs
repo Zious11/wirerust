@@ -1382,7 +1382,7 @@ impl Dnp3Analyzer {
 
         let flows_analyzed = self.flows.len() as u64;
         let total_frames: u64 = self.flows.values().map(|f| f.frame_count).sum();
-        let parse_errors: u64 = self.flows.values().map(|f| f.parse_errors).sum();
+        let aggregate_parse_errors: u64 = self.flows.values().map(|f| f.parse_errors).sum();
 
         // BC-2.15.020 postcondition 1: function_code_distribution — only FCs with count > 0.
         // Keys are decimal strings of the FC byte (e.g. "5" for 0x05 DIRECT_OPERATE).
@@ -1423,7 +1423,7 @@ impl Dnp3Analyzer {
         );
         detail.insert(
             "parse_errors".to_string(),
-            serde_json::Value::Number(parse_errors.into()),
+            serde_json::Value::Number(aggregate_parse_errors.into()),
         );
         detail.insert(
             "flows_analyzed".to_string(),
