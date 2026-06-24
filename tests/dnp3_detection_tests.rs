@@ -990,14 +990,14 @@ mod story_108 {
             "AC-011: total_frames must be 0 when no flows processed"
         );
 
-        let total_parse_errors = summary
+        let parse_errors = summary
             .detail
-            .get("total_parse_errors")
+            .get("parse_errors")
             .and_then(|v| v.as_u64())
             .unwrap_or(u64::MAX);
         assert_eq!(
-            total_parse_errors, 0,
-            "AC-011: total_parse_errors must be 0 when no flows processed"
+            parse_errors, 0,
+            "AC-011: parse_errors must be 0 when no flows processed"
         );
 
         // function_code_distribution must be present (as empty object, not absent)
@@ -1352,10 +1352,10 @@ mod story_108 {
     }
 
     // -----------------------------------------------------------------------
-    // total_parse_errors in summary
+    // parse_errors in summary
     // -----------------------------------------------------------------------
 
-    /// Verifies summarize() includes total_parse_errors (BC-2.15.020 postcondition 1).
+    /// Verifies summarize() includes parse_errors (BC-2.15.020 postcondition 1).
     ///
     /// Traces to: BC-2.15.020 postcondition 1; STORY-108 AC-011.
     #[test]
@@ -1373,10 +1373,10 @@ mod story_108 {
 
         let summary = analyzer.summarize();
 
-        // total_parse_errors must be present
+        // parse_errors must be present
         assert!(
-            summary.detail.contains_key("total_parse_errors"),
-            "BC-2.15.020: total_parse_errors key must be present in summary detail"
+            summary.detail.contains_key("parse_errors"),
+            "BC-2.15.020: parse_errors key must be present in summary detail"
         );
     }
 
@@ -1567,6 +1567,50 @@ mod story_108 {
             "Test B (IF branch): source_ip must be Some(10.0.0.9) = master (upper_ip); \
              lower_port=20000 takes IF → upper_ip; got {:?}",
             f.source_ip
+        );
+    }
+    // -----------------------------------------------------------------------
+    // Red Gate — BC-2.15.020 v1.4: parse_errors key rename (D-220, human-approved)
+    //
+    // This test passes on current code: the rename is complete — the analyzer emits
+    // "parse_errors", not "total_parse_errors" (rename landed in develop f5c002a).
+    //
+    // Traces to: BC-2.15.020 v1.4 postcondition 1 (BREAKING rename D-220);
+    //            scope.md PC-014; test-vector row "Red Gate — key name".
+    // -----------------------------------------------------------------------
+
+    /// BC-2.15.020 v1.4 Red Gate: summarize() detail map MUST use key "parse_errors",
+    /// NOT "total_parse_errors" (D-220 breaking rename — aligns DNP3 with HTTP/TLS/Modbus).
+    ///
+    /// Traces to: BC-2.15.020 v1.4 postcondition 1; PC-014 scope.md §4.
+    #[test]
+    fn test_BC_2_15_020_parse_errors_key_name_is_parse_errors() {
+        let mut analyzer = Dnp3Analyzer::new(10);
+        let key = test_flow_key();
+
+        // Deliver a frame with invalid LENGTH (4 < 5) to produce a parse error,
+        // mirroring the approach used by test_BC_2_15_020_summarize_includes_parse_errors.
+        let mut bad_frame = vec![0u8; 10];
+        bad_frame[0] = 0x05;
+        bad_frame[1] = 0x64;
+        bad_frame[2] = 4; // invalid LENGTH — triggers parse error counter
+        bad_frame[3] = 0xC4;
+        analyzer.on_data(key.clone(), &bad_frame, 0);
+
+        let summary = analyzer.summarize();
+
+        // MUST be present under the new canonical key name (post-D-220).
+        assert!(
+            summary.detail.contains_key("parse_errors"),
+            "BC-2.15.020 v1.4 D-220: detail map must contain \"parse_errors\" \
+             (aligns with HTTP/TLS/Modbus sibling analyzers)"
+        );
+
+        // MUST NOT be present under the old divergent key name.
+        assert!(
+            !summary.detail.contains_key("total_parse_errors"),
+            "BC-2.15.020 v1.4 D-220: detail map must NOT contain \"total_parse_errors\" \
+             (old key removed by rename; callers must migrate to \"parse_errors\")"
         );
     }
 } // mod story_108

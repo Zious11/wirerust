@@ -7,6 +7,20 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-06-24
+
+### Breaking Changes
+
+- **DNP3 analyzer output: renamed summary key `total_parse_errors` → `parse_errors`.**
+  The `detail` map produced by the DNP3 analyzer now uses the key `"parse_errors"` instead of
+  `"total_parse_errors"`, aligning DNP3 with sibling analyzers (HTTP, TLS, Modbus) that already
+  use `"parse_errors"`. JSON consumers reading DNP3 summary output must migrate the key name.
+  [PC-014, BC-2.15.020 v1.4, STORY-108 AC-010]
+
+  **Migration:** Replace any lookup of `detail["total_parse_errors"]` with
+  `detail["parse_errors"]` in your consumer. For `jq` users:
+  `jq '.[] | .detail.total_parse_errors'` → `jq '.[] | .detail.parse_errors'`.
+
 ## [0.9.4] - 2026-06-23
 
 ### Added
@@ -606,7 +620,8 @@ Downstream consumers of wirerust JSON or CSV output must update for this release
 - Output sanitization in the terminal reporter guards against C1 control bytes
   in packet-derived strings.
 
-[Unreleased]: https://github.com/Zious11/wirerust/compare/v0.9.4...HEAD
+[Unreleased]: https://github.com/Zious11/wirerust/compare/v0.10.0...HEAD
+[0.10.0]: https://github.com/Zious11/wirerust/compare/v0.9.4...v0.10.0
 [0.9.4]: https://github.com/Zious11/wirerust/compare/v0.9.3...v0.9.4
 [0.9.3]: https://github.com/Zious11/wirerust/compare/v0.9.2...v0.9.3
 [0.9.2]: https://github.com/Zious11/wirerust/compare/v0.9.1...v0.9.2

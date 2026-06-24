@@ -11,12 +11,12 @@ Set FontSize 14
 Set Padding 20
 
 # AC-011: When no DNP3 flows analyzed, summarize() present with zero counts (not absent).
-# flows_analyzed=0, total_frames=0, total_parse_errors=0,
+# flows_analyzed=0, total_frames=0, parse_errors=0,
 # function_code_distribution={} (empty object present).
 # Traces to: BC-2.15.020 postcondition 2 and invariant 4; STORY-108 AC-011.
 
 Hide
-Type "cd /Users/zious/Documents/GITHUB/wirerust/.worktrees/STORY-108 && cargo build 2>/dev/null"
+Type "cd /Users/zious/Documents/GITHUB/wirerust/.worktrees/fix-pc-014-evidence && cargo build 2>/dev/null"
 Enter
 Sleep 10s
 Show
