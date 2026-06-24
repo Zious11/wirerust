@@ -2,7 +2,7 @@
 artifact: architecture-section
 section: verification-architecture
 traces_to: ARCH-INDEX.md
-version: "2.4"
+version: "2.5"
 status: verified
 producer: architect
 timestamp: 2026-05-20T00:00:00Z
@@ -64,6 +64,9 @@ modified:
   - date: 2026-06-20
     actor: architect
     reason: "Pass-6 adversarial remediation (ADR-009 rev 9): VP property updates only — no VP count changes (total 31 / Kani 14 / proptest 10 / fuzz 2 / integration-unit 5 unchanged). VP-027 row: interface_id discriminant split — empty table → Err(E-INP-009); OOB non-empty table → Err(E-INP-010); slash notation removed; Kani harness must model table-size as symbolic (Decision 22 / F-H4). VP-031 row: formula CORRECTED from min(original_len, body.len() as u32) to min(original_len, body.len() as u32 - 4) = min(original_len, spb_data_available); canonical symbol spb_data_available defined as body.len()-4; rev 8 formula overstated available data by 4 bytes (Decision 22 / F-H2 / F-H3). Version bump 2.3→2.4."
+  - date: 2026-06-24
+    actor: architect
+    reason: "Feature Mode F2 (feature-enip-v0.11.0, issue #316): VP-032 added to Should Prove table (P1; Kani; draft; src/analyzer/enip.rs; 4 harnesses Sub-A/B/C/D; BC-2.17.001/002/003/004/007). P1 count 17→18. Total 31→32. Tooling Selection Kani row updated to include VP-032 (Kani count 14→15). P1 enumeration list extended. Version bump 2.4→2.5."
 ---
 
 # Verification Architecture
@@ -104,6 +107,7 @@ modified:
 | VP-029 | pcapng block-walk skip correctness and forward progress: for any sequence of raw blocks (valid, malformed, unknown-type), the block-walk loop always terminates; each Ok(_) iteration advances the cursor by at least 12 bytes (block header minimum); loop breaks on Err(_) without spinning | (termination + forward-progress) | reader.rs | proptest |
 | VP-030 | pcapng multi-IDB linktype agreement totality (RESTATED rev 7 / H-3): for sequences of WHITELISTED DataLink values only (the domain where the E-INP-011 conflict check is reachable), the reader either (a) accepts all (all-equal) producing PcapSource.datalink = that DataLink, or (b) returns Err(E-INP-011) immediately on the first differing whitelisted DataLink; no third outcome. Non-whitelisted values short-circuit to E-INP-001 at first IDB (before conflict check) — NOT in VP-030 domain. Comparison unit: DataLink, not raw u16. | (totality + determinism; whitelisted domain) | reader.rs | proptest |
 | VP-031 | pcapng SPB captured-len computation correctness (spb_data_available formula): for all (original_len: u32, body: &[u8]) with body.len() >= 4, captured_len == min(original_len, body.len() as u32 - 4) = min(original_len, spb_data_available); the returned slice has exactly captured_len bytes; no out-of-bounds access. Formula CORRECTED from rev 8 (body.len() → body.len()-4); spb_data_available = body.len()-4 = block_total_length-16 is the canonical symbol; the 4-byte original_len header in the body is NOT packet data and must be subtracted. Snaplen DROPPED (Decision 9 rev 8). (resolves M-2 + H-3 + F-H2 + F-H3 / DF-CANONICAL-FRAME-HOLDOUT-001; formula corrected Decision 22 rev 9) | (arithmetic correctness + bounds safety; two-arg min, snaplen-free, body.len()-4 formula) | reader.rs (pcapng_pure_core fns) [b] | proptest |
+| VP-032 | EtherNet/IP + CIP frame parse safety and command/service classification: (Sub-A) `parse_enip_header` never panics, None for <24-byte inputs, Some with correct big-endian field layout for all bounded inputs (no attacker-controlled index beyond fixed offsets); (Sub-B) `classify_enip_command` total over all 65,536 u16 values, Unknown arm reachable and non-vacuous; (Sub-C) `is_valid_enip_frame` biconditional: returns true iff h.command in {0x0004, 0x0063, 0x0064, 0x0065, 0x0066, 0x006F, 0x0070, 0x0072, 0x0075} for all u16 cmd values; (Sub-D) `classify_cip_service` total over all 256 u8 values, response-bit mask (0x80 set → Response variant) proven correct, Unknown arm reachable | (no-panic + boundary + totality + biconditional) | src/analyzer/enip.rs | Kani |
 
 [a] VP-024 umbrella is anchored to `analyzer/arp.rs` (Sub-B/C/D targets). Sub-A Kani harnesses
 (`verify_extract_arp_frame_safety`, `verify_extract_arp_frame_eth_ipv4_correctness`,
@@ -164,6 +168,7 @@ to be non-vacuous over symbolic `e`; see ADR-009 rev 5 VP-025 Kani Provability N
 - VP-029: pcapng block-walk skip correctness and forward progress [NEW — SS-01 pcapng, ADR-009 rev 4]
 - VP-030: pcapng multi-IDB linktype agreement totality — RESTATED (ADR-009 rev 7 / H-3): domain = WHITELISTED DataLink values only; comparison unit = DataLink; non-whitelisted values → E-INP-001 (out of VP-030 scope) [NEW — SS-01 pcapng, ADR-009 rev 4; restated rev 7]
 - VP-031: pcapng SPB captured-len computation correctness (spb_data_available formula; min(original_len, body.len() as u32 - 4); formula corrected from rev 8 per Decision 22; snaplen-free; fills SPB framing VP gap per DF-CANONICAL-FRAME-HOLDOUT-001) [NEW — SS-01 pcapng, ADR-009 rev 6; amended rev 8 / Decision 9; formula corrected rev 9 / Decision 22 / F-H2 / F-H3]
+- VP-032: EtherNet/IP + CIP frame parse safety and command/service classification (Kani, 4 harnesses, draft): parse_enip_header no-panic/None-for-short; classify_enip_command totality over all u16; is_valid_enip_frame biconditional; classify_cip_service totality over all u8 with response-bit proof [NEW — SS-17, ADR-010, feature-enip-v0.11.0 issue #316]
 
 
 ## Tooling Selection
@@ -172,7 +177,7 @@ See `tooling-selection.md` for full rationale. Summary:
 
 | Tool | Target Properties | Scope |
 |------|-----------------|-------|
-| Kani (model checker) | State machine reachability, arithmetic overflow, pointer safety | VP-001, VP-002, VP-003, VP-004, VP-005, VP-007, VP-009, VP-015, VP-022, VP-023, VP-024, VP-025, VP-026, VP-027 |
+| Kani (model checker) | State machine reachability, arithmetic overflow, pointer safety | VP-001, VP-002, VP-003, VP-004, VP-005, VP-007, VP-009, VP-015, VP-022, VP-023, VP-024, VP-025, VP-026, VP-027, VP-032 |
 | proptest | Property-based: generate random inputs, check invariants | VP-006, VP-010..014, VP-021, VP-029, VP-030, VP-031 |
 | cargo-fuzz (libFuzzer) | No-panic for parser entry points | VP-008, VP-028 |
 | cargo-mutants | Mutation coverage for domain logic | SS-06, SS-07, SS-08, SS-10 |

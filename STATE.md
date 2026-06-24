@@ -1,7 +1,7 @@
 ---
 pipeline: FEATURE-MODE
 phase: F2
-phase_status: "D-228. feature-enip-v0.11.0 OPEN. F1 PASSED (human-approved). F2 Spec Evolution IN-PROGRESS."
+phase_status: "D-229. feature-enip-v0.11.0 OPEN. F1 PASSED. F2 spec content COMPLETE (24 BCs, ADR-010, VP-032). Scope refined: UDP/2222 deferred v0.12.0. Pending: consistency audit + adversarial spec convergence + F2 gate."
 product: wirerust
 mode: feature-mode
 timestamp: 2026-06-24T12:00:00Z
@@ -44,7 +44,7 @@ adversary_gate: SATISFIED
 # Story tracking
 stories_delivered: 78
 current_cycle: feature-enip-v0.11.0 (D-228, 2026-06-24)
-current_wave: F2 — Spec Evolution (SS-17 EtherNet/IP + CIP, ~24+ BCs, ADR-010, VP-032)
+current_wave: F2 — Spec Evolution SPEC-CONTENT COMPLETE (SS-17 TCP/44818+CIP, 24 BCs BC-2.17.001..024, ADR-010, VP-032; UDP/2222 deferred D-229)
 
 # DTU
 dtu_required: false
@@ -70,11 +70,9 @@ convergence_trajectory: "Detail: cycles/v0.1.0-greenfield-spec/convergence-traje
 
 ## Status
 
-**PIPELINE FEATURE-MODE. Cycle `feature-enip-v0.11.0` OPEN (D-228, 2026-06-24). F1 PASSED (human-approved). F2 Spec Evolution IN-PROGRESS.**
+**PIPELINE FEATURE-MODE. Cycle `feature-enip-v0.11.0` OPEN (D-229, 2026-06-24). F1 PASSED. F2 spec content COMPLETE — 24 BCs (BC-2.17.001..024), ADR-010, VP-032, BC-INDEX v1.74 (329/328 active). Scope refined: UDP/2222 deferred to v0.12.0 (D-229). Next: consistency audit + adversarial spec convergence + F2 human gate.**
 
-Latest release: v0.10.0 (main `0cbe922`, tag `v0.10.0`, 4 binaries, run 28109367603). develop=`ff4b82b`. stories_delivered=78. Target: v0.11.0 (SS-17 EtherNet/IP + CIP). GitHub issue #316.
-
-Spec versions at close: BC-INDEX v1.73 (305 BCs / 304 active), BC-2.16.016 v1.0, BC-2.16.004 v1.10, BC-2.16.010 v1.8, BC-2.15.020 v1.4. STORY-108 v1.2, STORY-113 v1.3, STORY-114 v1.6. stories_delivered unchanged at 78 (fixes, not new stories).
+Latest release: v0.10.0 (main `0cbe922`, tag `v0.10.0`, 4 binaries, run 28109367603). develop=`ff4b82b`. stories_delivered=78. Target: v0.11.0 (SS-17 EtherNet/IP + CIP TCP/44818). GitHub issue #316.
 
 ### WARNING — DO NOT REDO (on resume)
 
@@ -157,7 +155,7 @@ All GitHub-issue creation remains DF-VALIDATION-001-gated.
 | Maintenance maint-2026-06-22 | COMPLETE 2026-06-23 | 38 observations; 0 blocking; F-MAJ-001 fixed (a6efb23); PR #304 (e458ce2) + PR #305 (e4abbe2). |
 | Feature mitre-json-names (issue #64) + v0.9.4 | RELEASED + CLOSED 2026-06-23 (D-217) | F1-F7 CONVERGED. 5 BCs bumped. BC-INDEX v1.71 (303 BCs). PRs #306/307/308/309. tag v0.9.4 96b49e8. 4 binaries. stories_delivered=78. |
 | Fix cycle fix-pc-013-014-015 + v0.10.0 | **CONVERGED + RELEASED + CLOSED 2026-06-24 (D-226)** | All 3 fixes: PC-015 (#310), PC-013 (#312 + spec D-223), PC-014 (#313 breaking rename + CHANGELOG). Evidence resync #314. v0.10.0: PR #315 → main 0cbe922, tag v0.10.0, 4 binaries, run 28109367603. develop back-merged ff4b82b. BC-INDEX v1.73 (305 BCs / 304 active). |
-| Feature EtherNet/IP + CIP (issue #316) — v0.11.0 | **F1 PASSED → F2 IN-PROGRESS (D-228)** | SS-17 (CAP-17), `src/analyzer/enip.rs`, ADR-010, VP-032, ~24+ BCs (BC-2.17.xxx), 7-9 stories. TCP/44818 + UDP/2222 + ForwardOpen in scope. TLS/2221 deferred. Detail: cycles/feature-enip-v0.11.0/ |
+| Feature EtherNet/IP + CIP (issue #316) — v0.11.0 | **F2 SPEC-CONTENT COMPLETE (D-229)** | Scope: TCP/44818 + CIP ForwardOpen (TCP). UDP/2222 deferred v0.12.0 (D-229, ADR-010 D5). 24 BCs BC-2.17.001..024; BC-INDEX v1.74 (329/328 active); ADR-010; VP-032; ARCH-INDEX v1.7; VP-INDEX v2.11 (32 VPs); PRD v1.36; CAP-17. OA-001 open. Pending: consistency+adversarial+F2 gate. Detail: cycles/feature-enip-v0.11.0/ |
 
 ## Decisions Log
 
@@ -180,6 +178,7 @@ D-228+: `cycles/feature-enip-v0.11.0/decisions-archive.md`
 | D-226 | v0.10.0 RELEASED. PR #315 merged main `0cbe922`; annotated tag `v0.10.0` (tag obj 92216e5); release.yml run `28109367603` SUCCESS, 4 binaries; develop back-merged `ff4b82b`. Cycle `fix-pc-013-014-015` CONVERGED + RELEASED + CLOSED. All 3 fixes: PC-015 (#310), PC-013 (#312 + spec D-223), PC-014 (#313). Lessons: cycles/fix-pc-013-014-015/lessons.md (S-7.02 satisfied). | 2026-06-24 |
 | D-227 | SAFE-TO-CLEAR checkpoint written. Session that delivered fix-pc-013-014-015 bundle (PC-013/014/015) + released v0.10.0 is COMPLETE and CLOSED. Safe to clear the session. Factory-artifacts durability commit: cycle artifacts (code-delivery/STORY-108/pr-review.md, code-delivery/fix-pc-013-014-015/pr-description.md + review-findings.md, code-delivery/release-0.10.0/pr-description.md) committed to factory-artifacts. | 2026-06-24 |
 | D-228 | Feature Mode OPENED. Cycle `feature-enip-v0.11.0` started (issue #316). F1 Delta Analysis PASSED, human-approved. Scope: TCP/44818 explicit messaging + UDP/2222 cyclic I/O + CIP ForwardOpen. Deferred: TLS/2221. Carry-buffer cap: 600 bytes/flow. Planned: SS-17, `src/analyzer/enip.rs`, ADR-010, VP-032, ~24+ BCs (BC-2.17.xxx), 7-9 stories. DTU NOT required. MITRE carry-forward in decisions-archive. F2 Spec Evolution next. | 2026-06-24 |
+| D-229 | F2 scope refinement: UDP/2222 deferred to v0.12.0. Architect found UDP/2222 cyclic I/O requires UDP-reassembly + cross-transport ForwardOpen session-correlation not present (TCP-stream-oriented dispatch). Human-approved. v0.11.0 scope now: TCP/44818 explicit messaging + CIP ForwardOpen (TCP only). No T1692.001/.002 BCs this cycle. ADR-010 Decision 5. 24 BCs written (BC-2.17.001..024); BC-INDEX v1.74 (329/328 active). OA-001: --enip-write-burst-threshold default=20 pending human confirm at F2 gate. | 2026-06-24 |
 
 ## Governance Policy
 

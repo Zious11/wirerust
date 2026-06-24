@@ -1,7 +1,7 @@
 ---
 artifact: architecture-index
 level: L4
-version: "1.6"
+version: "1.7"
 status: verified
 producer: architect
 timestamp: 2026-05-20T00:00:00Z
@@ -54,6 +54,9 @@ modified:
   - date: 2026-06-22
     actor: spec-steward
     reason: "Maintenance sweep maint-2026-06-22 (F-MAJ-001): reconcile stale BC-count annotations in Subsystem Registry. SS-01 (PCAP Ingestion) 8→17 (17 active = 8 pre-FE-001 + 10 new BC-2.01.009..018 − 1 retired BC-2.01.004). SS-11 (Reporting) 29→34 (34 active = 29 + 5 grouped-collapse BC-2.11.030..034). BC-INDEX v1.69 is the authoritative source and was already correct; only the ARCH-INDEX annotation was stale. Version bump 1.5→1.6."
+  - date: 2026-06-24
+    actor: architect
+    reason: "Feature Mode F2 (feature-enip-v0.11.0, issue #316): SS-17 added to Subsystem Registry (EtherNet/IP + CIP Analysis, CAP-17, analyzer/enip.rs, 24 BCs); ADR-010 added to Architecture Decisions table; Document Map component count updated 24→25 (C-25 EtherNet/IP + CIP); Bounded-Resource Design note extended with SS-17 carry-buffer/MAX_FINDINGS/MALFORMED_ANOMALY_THRESHOLD entries. Version bump 1.6→1.7."
 phase: 1c
 origin: brownfield
 deployment_topology: single-service
@@ -88,7 +91,7 @@ network interfaces. The binary IS the complete deployment unit.
 | File | Contents | Tokens (est.) |
 |------|----------|---------------|
 | `system-overview.md` | 5-layer pipeline narrative, data flow, key constraints | ~900 |
-| `module-decomposition.md` | 24 components C-1..C-24 mapped to source files and SS-NN | ~1100 |
+| `module-decomposition.md` | 25 components C-1..C-25 mapped to source files and SS-NN | ~1100 |
 | `dependency-graph.md` | Import DAG, the one accepted cycle (L2<->L3), external crates | ~800 |
 | `api-surface.md` | Public API: traits, structs, CLI surface, no network interfaces | ~900 |
 | `verification-architecture.md` | Provable properties catalog, P0/P1 list, tooling selection | ~1100 |
@@ -121,6 +124,7 @@ The SS-NN numbering matches the PRD section scheme (bc-2.NN.NNN).
 | SS-14 | Modbus/ICS Analysis | CAP-14 | analyzer/modbus.rs | 25 | <!-- Feature cycle issue #7; ADR-005; BC-2.14.001..025 all written; F2 adversarial review complete -->
 | SS-15 | DNP3/ICS Analysis | CAP-15 | analyzer/dnp3.rs | 24 | <!-- Feature cycle issue #8; ADR-007; BC-2.15.001..024 written (F2 complete + issue #8 research-validated scope additions: BC-2.15.023 ENABLE/DISABLE_UNSOLICITED→T0814, BC-2.15.024 malformed-frame anomaly→T0814) -->
 | SS-16 | ARP Security Analysis | CAP-16 | analyzer/arp.rs | 15 |
+| SS-17 | EtherNet/IP + CIP Analysis | CAP-17 | analyzer/enip.rs | 24 | <!-- Feature cycle feature-enip-v0.11.0 issue #316; ADR-010; BC-2.17.001..024 (product-owner writes in F2); TCP/44818 explicit messaging MVP; UDP/2222 deferred --> |
 
 > SS-03 is intentionally absent. See "CAP-03 / ss-02 Ruling" below.
 
@@ -174,6 +178,7 @@ Three independent caps operate at different layers:
 - L3/SS-06+07: `MAX_MAP_ENTRIES` on aggregate counter maps; `MAX_URIS = 10,000`
 - L3/SS-14: `MAX_PENDING_TRANSACTIONS = 256` per Modbus flow (transaction correlation table); `MAX_FINDINGS = 10,000` shared constant
 - L3/SS-15: carry buffer bounded to 292 bytes per DNP3 flow (max DNP3 link frame); `MAX_MASTER_ADDRS` (bounded master-address tracking per flow)
+- L3/SS-17: carry buffer bounded to 600 bytes per ENIP flow (`MAX_ENIP_CARRY_BYTES = 600`); `MAX_FINDINGS = 10,000` shared constant; `MALFORMED_ANOMALY_THRESHOLD = 3` for T0814 windowed gate (ADR-010 Decision 3)
 - L1/SS-04: `max_flows` and `memcap` configurable via `ReassemblyConfig`
 
 ### Single-Threaded Synchronous Execution
@@ -202,6 +207,7 @@ or any network-related call. This is the basis for the "offline" forensic-tool g
 | ADR 0007 | 2026-06-10 | DNP3 TCP integration (Issue #8): port-20000 Rule 6 port-fallback classification, `DispatchTarget::Dnp3`, carry-buffer + CRC-block-skip parse, FIR=1-only app-layer extract, corrected MITRE technique set (T1691.001+T0827 new; T0803/T0855 revoked in ics-attack-19.1), new `MitreTactic::IcsImpact` variant, VP-004 oracle extension, VP-007 SEEDED 21→23 | SS-05, SS-10, SS-15 |
 | ADR 0008 | 2026-06-12 | ARP link-layer integration: `DecodedFrame` enum from `decode_packet` (Ip/Arp variants), `ArpFrame` struct, etherparse 0.20 `NetSlice::Arp`/`LaxNetSlice::Arp` match fix, `ArpAnalyzer` binding table (MAX_ARP_BINDINGS=65536 LRU), 5 detections (D1 spoof/D2 GARP/D3 storm/D11 malformed/D12 L2/L3 mismatch), MITRE T0830+T1557.002, VP-007 SEEDED 23→25, BC-2.02.009 revised | SS-02, SS-10, SS-16 |
 | ADR 0009 | 2026-06-19 | pcapng capture-format reader support: magic-byte auto-detection (peek without consuming), Option A parser (pcap-file 2.0.0 PcapNgReader, +0 new crates), SHB/IDB/EPB/SPB block coverage, multi-IDB link-type-agreement policy, pure-core timestamp-conversion helper (if_tsresol/if_tsoffset), BC-2.01.004 retired/inverted. **Rev 12 (2026-06-21, D-188):** Decision 25 — `decode_epb_body` extracted as `pub #[doc(hidden)]` pure-core function (VP-027 Kani anchor; F-F5P1-001 fix, PR #287). Decision 26 — `PcapSource.is_pcapng: bool` discriminant field added; `format_zero_packet_notice` reads it instead of calling `read_magic` a second time (F-F5P1-003 fix; eliminates TOCTOU mislabel and redundant open). **Rev 13 (2026-06-22, D-192):** Decision 27 — 4 GiB file-size guard (MAX_PCAPNG_FILE_BYTES = 4_294_967_296) added to `from_file` before `read_to_end`; rejection surfaces as E-INP-014 (F6-SEC-A fix; PR #296 feddbd1). Decision 28 — `MAX_INTERFACE_TABLE_ENTRIES = 65535` cap added to IDB-parse loop; excess IDB rejected as E-INP-015 (F6-SEC-B fix; PR #296 feddbd1). Both guards apply only to the `from_file` / `from_pcap_reader` path; residual unbounded accumulation on `from_pcap_reader` STREAM path is latent debt (SEC-008, ADR-009 Decision 13 all-in-memory model scope). | SS-01 |
+| ADR 0010 | 2026-06-24 | EtherNet/IP + CIP TCP integration (Issue #316): port-44818 Rule 7 port-fallback classification, `DispatchTarget::Enip`, two-level ENIP→CPF→CIP manual binary parser, 600-byte carry buffer cap (MAX_ENIP_CARRY_BYTES = 600, justified in Decision 3), ForwardOpen connection-lifecycle tracking in-scope for v0.11.0, UDP/2222 implicit I/O deferred, corrected MITRE technique set (T0858+T0816+T1693.001 new; T0857/T0855/T0856 revoked in ics-attack-19.1), new `MitreTactic::IcsExecution` variant, ForwardOpen technique gap documented (no dedicated ICS technique — T1692.001 only when connection demonstrably carries unauthorized command), VP-004 oracle extension, VP-007 SEEDED 25→28 EMITTED 17→19 | SS-05, SS-10, SS-17 |
 
 ADRs 0001–0004 are canonical and reside in `docs/adr/`. ADR 0005 onwards reside in
 `.factory/specs/architecture/decisions/`. Architecture section files reference them by ID
@@ -218,7 +224,7 @@ summary:
 |------|--------|----------|
 | O-01: Finding.timestamp universally None | CLOSED (21/22 sites wired; BC-2.04.054 summary finding timestamp:None by design — STORY-097/098/099 + STORY-102..110) | Medium (forensic gap) |
 | O-03: Thresholds not empirically calibrated | Open | Low (P2) |
-| O-04: 8 MITRE techniques staged but never emitted (SEEDED 25 − EMITTED 17 = 8 catalogue-only) | Open | Low (documentation) |
+| O-04: MITRE techniques staged but never emitted — post-v0.11.0: SEEDED 28 − EMITTED 19 = 9 catalogue-only (T1693.001 staged in v0.11.0 but no BC emits it yet; T1692.002/T0885/T0831/T0835/T0830 etc. pre-existing staged) | Open | Low (documentation) |
 | O-05: reassembly/mod.rs still ~691 LOC | Open | Low (partially closed) |
 | O-06: Weak-cipher evidence vec unbounded | Open | Medium (NFR-RES-023) |
 | Smell #4: L2<->L3 trait cycle (ADR 0002 accepted) | Advisory | Low |

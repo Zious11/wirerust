@@ -1,10 +1,10 @@
 ---
 document_type: prd
 level: L3
-version: "1.35"
+version: "1.36"
 status: draft
 producer: product-owner
-timestamp: 2026-06-17T00:00:00Z
+timestamp: 2026-06-24T00:00:00Z
 phase: 1a
 origin: brownfield
 inputs:
@@ -410,6 +410,19 @@ supplements:
 >   post-feature-008-F2).
 >
 > No new BCs; no BC count change (283). See `spec-changelog.md` §[prd-v1.25-ss15-titlesync-2026-06-14].
+
+> **Version 1.36 delta (2026-06-24 — F2 EtherNet/IP + CIP analyzer, feature-enip-v0.11.0, issue #316):**
+> Added Section 2.17 (SS-17 EtherNet/IP + CIP Analysis, 24 BCs, ADR-010, VP-032). New MITRE
+> techniques entering catalog: T0858 "Change Operating Mode" (IcsExecution TA0104 — CIP Stop,
+> new `MitreTactic::IcsExecution` variant required) and T0816 "Device Restart/Shutdown"
+> (IcsInhibitResponseFunction TA0107 — CIP Reset). Both require `technique_info()` arms in
+> src/mitre.rs. Already-seeded techniques used: T0836/T0846/T0888/T0814. T1693.001 staged but
+> not emitted in v0.11.0 (GetAndClear firmware detection deferred). SEEDED grows 25→28;
+> EMITTED grows 17→19; CATALOGUE-ONLY changes 8→7 (T0858+T0816 move from catalogue-only to
+> emitted; T1693.001 enters catalogue-only). Open item OA-001: --enip-write-burst-threshold
+> default (20/1s) requires human confirmation. See `.factory/phase-f2-spec-evolution/enip-prd-delta.md`
+> for full delta record. Added SS-17 rows to Section 7 RTM. Total BCs: 304 on disk → 329;
+> active: 304 → 328. BC-INDEX v1.73→v1.74.
 
 > **Version 1.35 delta (2026-06-23 — F5 ICS tactic-ID correctness fix, DF-SIBLING-SWEEP-001):**
 > §2.10 BC-2.10.004 index row updated: "(17 total)" → "(20 total)" per MitreTactic enum growing
@@ -1298,6 +1311,148 @@ Rust source files, 3,868 source LOC, 282 tests, single crate, Rust 2024 edition,
 > Full contracts: `behavioral-contracts/ss-16/BC-2.16.001.md` through `BC-2.16.015.md`
 
 
+### 2.17 EtherNet/IP + CIP Analysis (CAP-17) [Feature — ADR-010, issue #316]
+
+> **Release target: v0.11.0 (additive — port-44818 TCP explicit messaging MVP).**
+> All SS-17 BCs (BC-2.17.001..024) ship in v0.11.0. EtherNet/IP analysis is purely additive;
+> no existing analyzer, struct, or serialization key changes except: (1) new
+> `DispatchTarget::Enip` variant in the stream dispatcher, (2) new `MitreTactic::IcsExecution`
+> variant in src/mitre.rs, (3) two new `technique_info()` arms (T0858, T0816). UDP/2222
+> implicit I/O is deferred to a future release.
+
+> **Feature Mode F2 addition (v1.36).** 24 BCs covering the EtherNet/IP + CIP TCP analyzer
+> (SS-17, C-25 EnipAnalyzer). Analyzer has 6 detection paths and emits 6 MITRE techniques:
+> T0858 (CIP Stop — Change Operating Mode), T0816 (CIP Reset — Device Restart/Shutdown),
+> T0836 (CIP write-class burst — Modify Parameter), T0846 (ListIdentity — Remote System
+> Discovery), T0888 (Identity Object read / error burst — Remote System Information Discovery),
+> T0814 (malformed ENIP threshold — Denial of Service). T1693.001 is staged (GetAndClear
+> firmware service) but not emitted in v0.11.0.
+
+> **Protocol stack:** ENIP encapsulation (24-byte fixed header, big-endian) → CPF item layer
+> (little-endian item_count + variable-length items) → CIP service header (service_code u8 +
+> request_path). The carry-buffer frame-walk loop stashes partial frames into
+> `EnipFlowState.carry` (bounded to `MAX_ENIP_CARRY_BYTES = 600`).
+
+> **Detection surface (6 detections + 1 lifecycle anomaly):**
+> - ListIdentity (0x0063): T0846 Remote System Discovery per-occurrence (BC-2.17.010).
+> - CIP Stop (0x07): T0858 Change Operating Mode per-occurrence, Likely/High (BC-2.17.011).
+> - CIP write-class burst (SetAttribute*/etc.): T0836 Modify Parameter one-shot/window (BC-2.17.012). [OA-001: threshold default 20/1s]
+> - CIP Reset (0x05): T0816 Device Restart/Shutdown per-occurrence, Likely/High (BC-2.17.013).
+> - CIP Identity Object read / error burst: T0888 Remote System Information Discovery (BC-2.17.014).
+> - ForwardOpen (0x54/0x5B): connection-lifecycle anomaly, no MITRE technique, Possible/Low (BC-2.17.015).
+> - Malformed ENIP threshold (3/300s window): T0814 Denial of Service one-shot/window (BC-2.17.018).
+
+> **CLI flags added:** `--enip` (enable analyzer, default off), `--enip-write-burst-threshold N`
+> (default 20 writes/1s; overrides T0836 detection threshold via BC-2.17.023). `--all` does
+> NOT include `--enip` by default (EtherNet/IP is opt-in; port-44818 TCP only).
+
+> **Formal verification:** VP-032 covers four Kani sub-properties:
+> - Sub-A: `parse_enip_header` never panics; returns None for len<24; Some with correct field layout.
+>   Anchors BC-2.17.001, BC-2.17.002.
+> - Sub-B: `classify_enip_command` total over all 65,536 u16 values; Unknown arm reachable.
+>   Anchors BC-2.17.004.
+> - Sub-C: `is_valid_enip_frame` biconditional iff command in known-command set.
+>   Anchors BC-2.17.003.
+> - Sub-D: `classify_cip_service` total over all 256 u8 values; response-bit mask (0x80) correct.
+>   Anchors BC-2.17.007.
+
+> **Open item OA-001:** The --enip-write-burst-threshold default of 20 writes/1s was derived
+> from research (BC-2.17.012 confidence: medium). Operators in high-write CIP environments
+> (servo drives, motion control) may need a higher threshold. Human confirmation required
+> before shipping.
+
+#### 2.17.A ENIP Header Parse Safety (Group A)
+
+| BC ID | Title | Priority | Origin |
+|-------|-------|----------|--------|
+| BC-2.17.001 | parse_enip_header Returns None for Input Shorter Than 24 Bytes | P0 | feature-enip-v0.11.0 |
+| BC-2.17.002 | EnipHeader Field Contracts — Fixed Big-Endian Offsets for 24-Byte Input | P0 | feature-enip-v0.11.0 |
+
+#### 2.17.B ENIP Validity Gate and Command Classification (Group B)
+
+| BC ID | Title | Priority | Origin |
+|-------|-------|----------|--------|
+| BC-2.17.003 | is_valid_enip_frame Validity Gate Biconditional — Known-Command Set | P0 | feature-enip-v0.11.0 |
+| BC-2.17.004 | classify_enip_command Total Classification with Unknown Arm Over All u16 Values | P0 | feature-enip-v0.11.0 |
+
+#### 2.17.C CPF Item Walk and CIP Header Extraction (Group C)
+
+| BC ID | Title | Priority | Origin |
+|-------|-------|----------|--------|
+| BC-2.17.005 | CPF Item-Layer Walk — Bounded Little-Endian Item Iteration | P0 | feature-enip-v0.11.0 |
+| BC-2.17.006 | parse_cip_header Extracts Service Code and Request Path from Item Data | P0 | feature-enip-v0.11.0 |
+
+#### 2.17.D CIP Service Classification (Group D)
+
+| BC ID | Title | Priority | Origin |
+|-------|-------|----------|--------|
+| BC-2.17.007 | classify_cip_service Total Classification with Response-Bit Mask Over All u8 Values | P0 | feature-enip-v0.11.0 |
+
+#### 2.17.E CIP State Extraction (Group E)
+
+| BC ID | Title | Priority | Origin |
+|-------|-------|----------|--------|
+| BC-2.17.008 | CIP Error Response Detection — general_status Extraction from Response Frames | P1 | feature-enip-v0.11.0 |
+| BC-2.17.009 | parse_cip_request_path Class and Instance Segment Extraction | P1 | feature-enip-v0.11.0 |
+
+#### 2.17.F Detection — Finding Emission (Group F)
+
+| BC ID | Title | Priority | Origin |
+|-------|-------|----------|--------|
+| BC-2.17.010 | ListIdentity Command Observed Emits T0846 Network Enumeration Finding | P0 | feature-enip-v0.11.0 |
+| BC-2.17.011 | CIP Stop Service Observed Emits T0858 Change Operating Mode Finding | P0 | feature-enip-v0.11.0 |
+| BC-2.17.012 | CIP Write-Class Service Burst Exceeding Threshold Emits T0836 Modify Parameter Finding | P1 | feature-enip-v0.11.0 |
+| BC-2.17.013 | CIP Reset Service Observed Emits T0816 Device Restart/Shutdown Finding | P0 | feature-enip-v0.11.0 |
+| BC-2.17.014 | CIP Identity-Read to Identity Object or Error Burst Emits T0888 Remote System Information Discovery | P0 | feature-enip-v0.11.0 |
+| BC-2.17.015 | ForwardOpen Connection-Lifecycle Anomaly Detected with Empty MITRE Technique Set | P1 | feature-enip-v0.11.0 |
+
+#### 2.17.G Bounded Resource — Carry Buffer (Group G)
+
+| BC ID | Title | Priority | Origin |
+|-------|-------|----------|--------|
+| BC-2.17.016 | Carry-Buffer Frame-Walk Loop — Partial Frame Stash and MAX_ENIP_CARRY_BYTES Cap | P0 | feature-enip-v0.11.0 |
+
+#### 2.17.H Flow Lifecycle (Group H)
+
+| BC ID | Title | Priority | Origin |
+|-------|-------|----------|--------|
+| BC-2.17.017 | on_flow_close Removes Flow State and Updates Aggregate Counters | P1 | feature-enip-v0.11.0 |
+
+#### 2.17.I Malformed Detection (Group I)
+
+| BC ID | Title | Priority | Origin |
+|-------|-------|----------|--------|
+| BC-2.17.018 | Malformed ENIP Frame Threshold Emits T0814 Structural Anomaly Finding | P1 | feature-enip-v0.11.0 |
+
+#### 2.17.J Dispatcher Integration (Group J)
+
+| BC ID | Title | Priority | Origin |
+|-------|-------|----------|--------|
+| BC-2.17.019 | StreamDispatcher Rule 7 — Port 44818 TCP Classified as DispatchTarget::Enip | P0 | feature-enip-v0.11.0 |
+
+#### 2.17.K CLI Integration and Summary (Group K)
+
+| BC ID | Title | Priority | Origin |
+|-------|-------|----------|--------|
+| BC-2.17.020 | CLI --enip Flag Enables Analyzer; --enip-write-burst-threshold Configures Write Detection | P0 | feature-enip-v0.11.0 |
+| BC-2.17.021 | summarize() Emits ENIP Command Distribution and Aggregate Statistics | P1 | feature-enip-v0.11.0 |
+
+#### 2.17.L DoS Bound (Group L)
+
+| BC ID | Title | Priority | Origin |
+|-------|-------|----------|--------|
+| BC-2.17.022 | MAX_FINDINGS DoS Bound — Finding Cap Prevents Unbounded all_findings Growth | P0 | feature-enip-v0.11.0 |
+
+#### 2.17.M CLI Threshold Tuning and Accounting (Group M)
+
+| BC ID | Title | Priority | Origin |
+|-------|-------|----------|--------|
+| BC-2.17.023 | --enip-write-burst-threshold CLI Flag Configures T0836 Write Detection Sensitivity | P1 | feature-enip-v0.11.0 |
+| BC-2.17.024 | pdu_count Incremented Per Processed Frame and Reflected in summarize() | P1 | feature-enip-v0.11.0 |
+
+> Full contracts: `behavioral-contracts/ss-17/BC-2.17.001.md` through `BC-2.17.024.md`
+
+
 ## 3. Interface Definition
 
 > **Supplement:** Full interface definitions are in `prd-supplements/interface-definitions.md`.
@@ -1738,6 +1893,31 @@ See `prd-supplements/error-taxonomy.md` for the complete E-xxx-NNN catalog.
 | BC-2.16.013 | CAP-16 | SS-12 (cli.rs, main.rs) + SS-16 | P1 | unit+integration |
 | BC-2.16.014 | CAP-16 | SS-16 (analyzer/arp.rs) | P0 | unit |
 | BC-2.16.015 | CAP-16 | SS-02 (decoder.rs) + SS-16 | P0 | unit+integration |
+| BC-2.16.016 | CAP-16 | SS-16 (analyzer/arp.rs) | P1 | unit |
+| BC-2.17.001 | CAP-17 | SS-17 (analyzer/enip.rs) | P0 | unit+kani |
+| BC-2.17.002 | CAP-17 | SS-17 (analyzer/enip.rs) | P0 | unit+kani |
+| BC-2.17.003 | CAP-17 | SS-17 (analyzer/enip.rs) | P0 | unit+kani |
+| BC-2.17.004 | CAP-17 | SS-17 (analyzer/enip.rs) | P0 | unit+kani |
+| BC-2.17.005 | CAP-17 | SS-17 (analyzer/enip.rs) | P0 | unit |
+| BC-2.17.006 | CAP-17 | SS-17 (analyzer/enip.rs) | P0 | unit |
+| BC-2.17.007 | CAP-17 | SS-17 (analyzer/enip.rs) | P0 | unit+kani |
+| BC-2.17.008 | CAP-17 | SS-17 (analyzer/enip.rs) | P1 | unit |
+| BC-2.17.009 | CAP-17 | SS-17 (analyzer/enip.rs) | P1 | unit |
+| BC-2.17.010 | CAP-17 | SS-17 (analyzer/enip.rs) | P0 | unit |
+| BC-2.17.011 | CAP-17 | SS-17 (analyzer/enip.rs) | P0 | unit |
+| BC-2.17.012 | CAP-17 | SS-17 (analyzer/enip.rs) | P1 | unit |
+| BC-2.17.013 | CAP-17 | SS-17 (analyzer/enip.rs) | P0 | unit |
+| BC-2.17.014 | CAP-17 | SS-17 (analyzer/enip.rs) | P0 | unit |
+| BC-2.17.015 | CAP-17 | SS-17 (analyzer/enip.rs) | P1 | unit |
+| BC-2.17.016 | CAP-17 | SS-17 (analyzer/enip.rs) | P0 | unit |
+| BC-2.17.017 | CAP-17 | SS-17 (analyzer/enip.rs) | P1 | unit |
+| BC-2.17.018 | CAP-17 | SS-17 (analyzer/enip.rs) | P1 | unit |
+| BC-2.17.019 | CAP-17 | SS-05 (dispatcher.rs) + SS-17 | P0 | unit+integration |
+| BC-2.17.020 | CAP-17 | SS-12 (cli.rs, main.rs) + SS-17 | P0 | unit+integration |
+| BC-2.17.021 | CAP-17 | SS-17 (analyzer/enip.rs) | P1 | unit |
+| BC-2.17.022 | CAP-17 | SS-17 (analyzer/enip.rs) | P0 | unit |
+| BC-2.17.023 | CAP-17 | SS-12 (cli.rs, main.rs) + SS-17 | P1 | unit+integration |
+| BC-2.17.024 | CAP-17 | SS-17 (analyzer/enip.rs) | P1 | unit |
 
 
 ## 8. Domain Debt Index
@@ -1750,7 +1930,7 @@ See `prd-supplements/error-taxonomy.md` for the complete E-xxx-NNN catalog.
 | ~~O-01~~ | ~~Finding.timestamp always None; RawPacket timestamps never threaded to Finding constructors~~ **[CLOSED — STORY-097/098/099; BC-2.04.054 retains timestamp:None by design]** | ~~BC-2.09.001, BC-2.09.006~~ |
 | O-02 | Absent User-Agent (None) intentionally not detected; only Some("") fires | BC-2.06.011 |
 | O-03 | Anomaly thresholds not empirically calibrated against labelled traffic | BC-2.04.019, BC-2.04.020, BC-2.04.021 |
-| O-04 | 8 MITRE techniques catalogued but never emitted (T1040, T1071, T1071.001, T1071.004, T1573, T1692.002, T0885, T0846; T1692.002 replaces revoked T0856 per ATT&CK-ICS v19 remap; T0846 seeded-not-emitted per Decision 12); T1692.001/T0836/T0814/T0806/T0835/T0831/T0888 now emitted by Modbus analyzer (Feature #7); T1691.001/T0827 now emitted by DNP3 analyzer (Feature #8); T0830/T1557.002 now emitted by ARP analyzer (Feature #9); SEEDED=25, EMITTED=17, CATALOGUE-ONLY=8 | BC-2.10.005, BC-2.10.008 |
+| O-04 | MITRE techniques seeded but never emitted: T1040, T1071, T1071.001, T1071.004, T1573, T1692.002, T0885, T0846 (seeded-not-emitted per Modbus Decision 12; T0846 NOW emitted by EtherNet/IP BC-2.17.010 — O-04 update pending BC-2.10.005/BC-2.10.008 version-bump), T1693.001 (staged-not-emitted per ADR-010 Decision 7; GetAndClear firmware detection deferred); T1692.002 replaces revoked T0856 per ATT&CK-ICS v19 remap. T1692.001/T0836/T0814/T0806/T0835/T0831/T0888 now emitted by Modbus (Feature #7); T1691.001/T0827 now emitted by DNP3 (Feature #8); T0830/T1557.002 now emitted by ARP (Feature #9); T0858/T0816 now emitted by EtherNet/IP (Feature #316, v0.11.0) — T0858 (IcsExecution TA0104, new catalog entry) and T0816 (IcsInhibitResponseFunction TA0107, new catalog entry) require `technique_info()` arms in src/mitre.rs + `MitreTactic::IcsExecution` new variant. Per ARCH-INDEX v1.7: SEEDED=28, EMITTED=19, CATALOGUE-ONLY=9. BC-2.10.005/BC-2.10.008 must be updated in the next BC version-bump pass to reflect T0858+T0816 new entries. | BC-2.10.005, BC-2.10.008 |
 | O-05 | reassembly/mod.rs still 691 LOC after partial split (#85) | BC-2.04.* (reassembly module group) |
 | O-06 | Weak-cipher Finding evidence Vec has unbounded cardinality (up to ~9216 cipher names) | BC-2.07.009 |
 | O-07 | rayon declared in Cargo.toml but never imported; unused transitive dependency | (none -- build/dep debt only) |

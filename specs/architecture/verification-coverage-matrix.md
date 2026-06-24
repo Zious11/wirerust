@@ -2,7 +2,7 @@
 artifact: architecture-section
 section: verification-coverage-matrix
 traces_to: ARCH-INDEX.md
-version: "1.19"
+version: "1.20"
 status: verified
 producer: spec-steward
 timestamp: 2026-05-20T00:00:00Z
@@ -79,6 +79,9 @@ modified:
   - date: 2026-06-22
     actor: spec-steward
     reason: "F7 consistency fix FINDING-F7-001 — VP-025..VP-031 Status reconciled draft→verified to match VP-INDEX v2.10. All 7 pcapng BCs were locked/verified at the F6 lock gate (develop 1ca30a3, PRs #293+#294, 2026-06-21): VP-025 (Kani 4 harnesses, 59 checks each), VP-026 (Kani 272 checks), VP-027 (Kani 687 checks, status active→verified at lock), VP-028 (cargo-fuzz 2,340,242 execs/0 crashes), VP-029 (proptest counter exactness + DSB-no-log + termination), VP-030 (proptest 3 cases WHITELISTED domain), VP-031 (proptest body.len()-4 formula). Coverage note updated to replace stale draft-pending prose with verified-lock evidence block mirroring VP-021..VP-024 style. Aggregate counts remain unchanged: total 31, verified 31, draft 0. Version bump 1.18→1.19."
+  - date: 2026-06-24
+    actor: architect
+    reason: "Feature Mode F2 (feature-enip-v0.11.0, issue #316): VP-032 added to VP-to-Module table (Kani; P1; draft; src/analyzer/enip.rs; BC-2.17.001/002/003/004/007). New module row analyzer/enip.rs added to Per-Module Coverage Totals. Kani column Totals 14→15. Overall Totals 31→32. Coverage note added for VP-032. Version bump 1.19→1.20."
 ---
 
 # Verification Coverage Matrix
@@ -118,6 +121,7 @@ modified:
 | VP-029 | pcapng block-walk skip: always terminates, Err-breaks loop, cursor advances >= 12 bytes per Ok | reader.rs | proptest | P1 | verified |
 | VP-030 | pcapng multi-IDB linktype agreement totality (RESTATED rev 7 / H-3): WHITELISTED DataLink domain only; all-equal → Ok, first-differing whitelisted DataLink → Err(E-INP-011); non-whitelisted → E-INP-001 (out of scope); comparison unit DataLink not raw u16 | reader.rs | proptest | P1 | verified |
 | VP-031 | pcapng SPB captured-len arithmetic correctness (spb_data_available formula): captured_len == min(original_len, body.len() as u32 - 4) = min(original_len, spb_data_available); slice length == captured_len; no OOB for all (u32, &[u8] with len>=4) inputs; formula CORRECTED from rev 8 (body.len() → body.len()-4 per Decision 22 / F-H2 / F-H3); snaplen DROPPED (rev 8 / Decision 9) | reader.rs (pcapng_pure_core fns) [b] | proptest | P1 | verified |
+| VP-032 | EtherNet/IP + CIP frame parse safety and command/service classification: (Sub-A) parse_enip_header no-panic, None<24b, Some with correct BE fields; (Sub-B) classify_enip_command total over all 65,536 u16 inputs, Unknown reachable; (Sub-C) is_valid_enip_frame biconditional iff command in known-set; (Sub-D) classify_cip_service total over all 256 u8 inputs, response-bit mask (0x80→Response) proven | src/analyzer/enip.rs | Kani | P1 | draft |
 
 
 ## Per-Module Coverage Totals
@@ -140,8 +144,9 @@ modified:
 | analyzer/modbus.rs | 1 (VP-022) | 0 | 0 | 0 | 1 |
 | analyzer/dnp3.rs | 1 (VP-023) | 0 | 0 | 0 | 1 |
 | analyzer/arp.rs | 1 (VP-024) [a] | 0 | 0 | 0 | 1 |
+| analyzer/enip.rs | 1 (VP-032) | 0 | 0 | 0 | 1 |
 | reader.rs | 3 (VP-025, VP-026, VP-027) [b] | 3 (VP-029, VP-030, VP-031) [b] | 1 (VP-028) | 0 | 7 |
-| **Totals** | **14** | **10** | **2** | **5** | **31** |
+| **Totals** | **15** | **10** | **2** | **5** | **32** |
 
 
 ## Coverage Notes
