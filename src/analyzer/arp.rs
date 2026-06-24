@@ -4340,6 +4340,128 @@ mod story_115 {
 } // mod story_115
 
 // ---------------------------------------------------------------------------
+// BC-2.16.016 test — ARP Findings Output is Unbounded (characterization)
+// ---------------------------------------------------------------------------
+
+#[cfg(test)]
+mod bc_2_16_016 {
+    //! BC-2.16.016 characterization test: `process_arp` returns a `Vec<Finding>`
+    //! with NO upper bound. Processing >10,000 rebind-triggering frames must
+    //! produce >10,000 findings with no MAX_FINDINGS cap applied.
+    //!
+    //! This test PASSES on the current codebase (the no-cap invariant is already
+    //! in place) and acts as a regression guard: if a MAX_FINDINGS cap is ever
+    //! accidentally added to the ARP path, this test will fail.
+    //!
+    //! DF-TEST-NAMESPACE-001: tests wrapped in `mod bc_2_16_016`.
+    //! DF-AC-TEST-NAME-SYNC-001: function name follows BC-S.SS.NNN convention.
+
+    use super::*;
+    use crate::decoder::ArpFrame;
+
+    /// Build a minimal ARP Reply (op=2) with the given sender_ip, sender_mac,
+    /// and matching outer_src_mac. Used for characterization-test frame synthesis.
+    ///
+    /// target_ip is fixed to `192.168.0.1` — outside the `10.x.x.x` range used
+    /// for sender_ip in the no-cap test, so sender_ip never equals target_ip and
+    /// no GARP detection fires (D2 GARP requires sender_ip == target_ip per RFC 826).
+    fn make_reply_frame(sender_ip: [u8; 4], sender_mac: [u8; 6]) -> ArpFrame {
+        ArpFrame {
+            operation: 2,
+            sender_mac,
+            sender_ip,
+            target_mac: [0u8; 6],
+            target_ip: [192, 168, 0, 1],
+            outer_src_mac: Some(sender_mac),
+            packet_len: 42,
+        }
+    }
+
+    /// BC-2.16.016 characterization test: ARP findings Vec is NOT capped.
+    ///
+    /// Processes N = 10,001 distinct sender IPs × 2 frames each (alternating
+    /// MACs), for a total of 20,002 frames. With `spoof_threshold=1`, each
+    /// second frame triggers a D1 rebind finding immediately. Expected:
+    /// `all_findings.len() == 10_001` (exactly one D1 per IP) and
+    /// `all_findings.len() > 10_000` (the no-cap invariant is satisfied).
+    ///
+    /// Postcondition 1 of BC-2.16.016: the Vec<Finding> returned across all
+    /// `process_arp` calls is NOT truncated by any MAX_FINDINGS constant.
+    ///
+    /// Regression guard (BC-2.16.016 Invariant 5): if a MAX_FINDINGS cap is
+    /// ever added to the ARP path, `all_findings.len()` will plateau at that
+    /// cap and the `== 10_001` assertion will fail.
+    ///
+    /// This test is expected to PASS on the current codebase.
+    #[test]
+    #[allow(non_snake_case)]
+    fn test_BC_2_16_016_arp_findings_vec_has_no_cap() {
+        // storm_rate=u32::MAX suppresses all D3 findings so the count is purely D1.
+        let mut analyzer = ArpAnalyzer::new(1, u32::MAX);
+
+        const MAC_A: [u8; 6] = [0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA];
+        const MAC_B: [u8; 6] = [0xBB, 0xBB, 0xBB, 0xBB, 0xBB, 0xBB];
+        const N: usize = 10_001; // number of distinct sender IPs
+
+        let mut all_findings: Vec<Finding> = Vec::new();
+
+        for i in 0..N {
+            // Synthesize a unique sender_ip in the range 10.0.X.Y (N <= 65535 so
+            // the address space fits without wrapping into broadcast addresses).
+            let hi = (i / 256) as u8;
+            let lo = (i % 256) as u8;
+            let sender_ip: [u8; 4] = [10, 0, hi, lo];
+            let ts = i as u32;
+
+            // Frame 1 for this IP: first observation — inserts binding, no D1 finding.
+            let frame1 = make_reply_frame(sender_ip, MAC_A);
+            let f1 = analyzer.process_arp(&frame1, ts);
+            all_findings.extend(f1);
+
+            // Frame 2 for this IP: rebind (MAC_A → MAC_B).
+            // spoof_threshold=1 → rebind_count(1) >= threshold(1) → HIGH D1 emitted.
+            let frame2 = make_reply_frame(sender_ip, MAC_B);
+            let f2 = analyzer.process_arp(&frame2, ts);
+            all_findings.extend(f2);
+        }
+
+        // BC-2.16.016 Postcondition 1: findings Vec must NOT be truncated.
+        // With N=10,001 IPs each producing exactly one D1 finding on rebind,
+        // the total must equal N — not be capped at 10,000 (the reassembly
+        // MAX_FINDINGS constant that applies only to HTTP/TLS/Modbus/DNP3).
+        assert_eq!(
+            all_findings.len(),
+            N,
+            "BC-2.16.016 PC1: all_findings.len() must equal N={N} (one D1 finding per IP \
+             rebind, no MAX_FINDINGS cap). Got {}. If this is 10,000, a MAX_FINDINGS cap \
+             has been accidentally introduced on the ARP path.",
+            all_findings.len()
+        );
+
+        // Belt-and-suspenders: explicitly assert > 10,000 to document the no-cap intent.
+        assert!(
+            all_findings.len() > 10_000,
+            "BC-2.16.016 PC1 (no-cap invariant): all_findings.len() must exceed 10,000 \
+             (the reassembly MAX_FINDINGS constant) to prove the ARP path is unbounded. \
+             Got {}.",
+            all_findings.len()
+        );
+
+        // BC-2.16.016 PC2: no dropped_findings counter — ArpAnalyzer has no such field.
+        // Confirmed implicitly: `all_findings.len() == N` with no dropped_findings signal.
+
+        // BC-2.16.016 PC3: summarize() must NOT contain a dropped_findings key.
+        let summary = analyzer.summarize();
+        assert!(
+            !summary.detail.contains_key("dropped_findings"),
+            "BC-2.16.016 PC3 / BC-2.16.010 Invariant 1: summarize() must NOT emit a \
+             'dropped_findings' key. Found unexpected key. Keys present: {:?}",
+            summary.detail.keys().collect::<Vec<_>>()
+        );
+    }
+}
+
+// ---------------------------------------------------------------------------
 // Kani formal-verification harnesses (VP-024 Sub-B and Sub-D)
 // ---------------------------------------------------------------------------
 
