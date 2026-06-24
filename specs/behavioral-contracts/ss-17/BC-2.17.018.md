@@ -32,9 +32,10 @@ input-hash: TBD
 
 ## Description
 
-When a structural-reject path fires (invalid ENIP command in validity gate, carry overflow
-triggering `is_non_enip`), the windowed counter `malformed_in_window` is incremented in
-parallel with the lifetime `parse_errors` counter. When `malformed_in_window` reaches
+When a structural-reject path fires (invalid ENIP command in validity gate; oversized declared
+frame skip where `total_frame_len > MAX_ENIP_CARRY_BYTES`; or carry overflow triggering
+`is_non_enip`), the windowed counter `malformed_in_window` is incremented in parallel with the
+lifetime `parse_errors` counter. When `malformed_in_window` reaches
 `MALFORMED_ANOMALY_THRESHOLD` (= 3) within the correlation window, a T0814 finding is emitted
 once per window. This mirrors the DNP3 pattern from BC-2.15.024 (STORY-109). A burst of
 malformed ENIP frames on port 44818 may indicate a scanning or crash-injection attempt
@@ -44,6 +45,8 @@ targeting poorly-implemented EtherNet/IP stacks.
 
 1. One of the structural-reject paths has fired:
    - `is_valid_enip_frame` returned `false` (unknown command), **or**
+   - oversized declared frame: ENIP header parsed OK but `total_frame_len > MAX_ENIP_CARRY_BYTES`
+     (frame-skip path: `parse_errors++; malformed_in_window++; cursor advances past declared frame`), **or**
    - carry-buffer overflow (`carry.len() > MAX_ENIP_CARRY_BYTES`) set `is_non_enip=true`.
 2. `flow.malformed_in_window >= MALFORMED_ANOMALY_THRESHOLD` (= 3) after the increment.
 3. Within the correlation window (proposed: 300s).

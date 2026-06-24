@@ -51,12 +51,12 @@ Used by detection BCs to identify the target CIP object class (e.g., Identity Ob
 1. If `path.len() == 0`, returns `vec![]`.
 2. For each pair of bytes at `cursor` and `cursor+1`:
    - `segment_type = path[cursor]`.
-   - Apply mask `segment_type & 0xFC` (ignores the 2 low-order format bits) and compare:
-     - If `segment_type == 0x20` (exact) → Class segment: `value = path[cursor+1]`;
+   - Compare `segment_type` exactly (no mask applied):
+     - If `segment_type == 0x20` → Class segment: `value = path[cursor+1]`;
        push `CipPathSegment::Class(value)`.
-     - If `segment_type == 0x24` (exact) → Instance segment: `value = path[cursor+1]`;
+     - If `segment_type == 0x24` → Instance segment: `value = path[cursor+1]`;
        push `CipPathSegment::Instance(value)`.
-     - If `segment_type == 0x30` (exact) → Attribute segment: `value = path[cursor+1]`;
+     - If `segment_type == 0x30` → Attribute segment: `value = path[cursor+1]`;
        push `CipPathSegment::Attribute(value)`.
      - Other segment types: skipped; advance by 2.
    - `cursor += 2` after each segment.
@@ -64,8 +64,9 @@ Used by detection BCs to identify the target CIP object class (e.g., Identity Ob
 
    **Rationale**: exact-match (`== 0x20 / 0x24 / 0x30`) is used for v0.11.0 8-bit logical
    segments. The `& 0xE0` mask would incorrectly match 0x24 as 0x20 (Class) since
-   `0x24 & 0xE0 == 0x20`. The `& 0xFC` mask is available for future 16-bit extended segment
-   variants; for v0.11.0 scope, exact-match is equivalent and unambiguous.
+   `0x24 & 0xE0 == 0x20`. The `& 0xFC` mask (clears the 2-bit format field) is reserved for
+   future use when 16-bit extended segment variants (0x21 Class, 0x25 Instance, 0x31 Attribute)
+   are in scope; for v0.11.0, exact-match is correct and unambiguous.
 3. Returns the segments extracted.
 4. No panic for any `path` content or length.
 

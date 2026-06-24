@@ -412,7 +412,7 @@ supplements:
 > No new BCs; no BC count change (283). See `spec-changelog.md` §[prd-v1.25-ss15-titlesync-2026-06-14].
 
 > **Version 1.36 delta (2026-06-24 — F2 EtherNet/IP + CIP analyzer, feature-enip-v0.11.0, issue #316):**
-> Added Section 2.17 (SS-17 EtherNet/IP + CIP Analysis, 24 BCs, ADR-010, VP-032). New MITRE
+> Added Section 2.17 (SS-17 EtherNet/IP + CIP Analysis, 25 BCs, ADR-010, VP-032). New MITRE
 > techniques entering catalog: T0858 "Change Operating Mode" (IcsExecution TA0104 — CIP Stop,
 > new `MitreTactic::IcsExecution` variant required) and T0816 "Device Restart/Shutdown"
 > (IcsInhibitResponseFunction TA0107 — CIP Reset). Both require `technique_info()` arms in
@@ -855,7 +855,7 @@ Rust source files, 3,868 source LOC, 282 tests, single crate, Rust 2024 edition,
 | BC-2.10.002 | ICS tactics render unprefixed (no ICS: prefix) | P1 | BC-MIT-002 |
 | BC-2.10.003 | all_tactics_in_report_order returns kill-chain order first then ICS-unique | P0 | BC-MIT-003 |
 | BC-2.10.004 | all_tactics_in_report_order contains every variant exactly once (20 total) | P0 | BC-MIT-004 |
-| BC-2.10.005 | technique_name returns Some for every seeded ID (25 Total) | P0 | BC-MIT-005 |
+| BC-2.10.005 | technique_name returns Some for every seeded ID (28 Total) | P0 | BC-MIT-005 |
 | BC-2.10.006 | technique_name returns None for unknown IDs | P0 | BC-MIT-006 |
 | BC-2.10.007 | technique_tactic returns correct tactic for every seeded ID | P0 | BC-MIT-007 |
 | BC-2.10.008 | All technique IDs currently emitted by analyzers resolve in lookup | P0 | BC-MIT-008 |
@@ -1316,13 +1316,13 @@ Rust source files, 3,868 source LOC, 282 tests, single crate, Rust 2024 edition,
 ### 2.17 EtherNet/IP + CIP Analysis (CAP-17) [Feature — ADR-010, issue #316]
 
 > **Release target: v0.11.0 (additive — port-44818 TCP explicit messaging MVP).**
-> All SS-17 BCs (BC-2.17.001..024) ship in v0.11.0. EtherNet/IP analysis is purely additive;
+> All SS-17 BCs (BC-2.17.001..025) ship in v0.11.0. EtherNet/IP analysis is purely additive;
 > no existing analyzer, struct, or serialization key changes except: (1) new
 > `DispatchTarget::Enip` variant in the stream dispatcher, (2) new `MitreTactic::IcsExecution`
 > variant in src/mitre.rs, (3) two new `technique_info()` arms (T0858, T0816). UDP/2222
 > implicit I/O is deferred to a future release.
 
-> **Feature Mode F2 addition (v1.36).** 24 BCs covering the EtherNet/IP + CIP TCP analyzer
+> **Feature Mode F2 addition (v1.36).** 25 BCs covering the EtherNet/IP + CIP TCP analyzer
 > (SS-17, C-25 EnipAnalyzer). Analyzer has 6 detection paths and emits 6 MITRE techniques:
 > T0858 (CIP Stop — Change Operating Mode), T0816 (CIP Reset — Device Restart/Shutdown),
 > T0836 (CIP write-class burst — Modify Parameter), T0846 (ListIdentity — Remote System
@@ -1339,14 +1339,14 @@ Rust source files, 3,868 source LOC, 282 tests, single crate, Rust 2024 edition,
 > **Detection surface (6 detections + 1 lifecycle anomaly):**
 > - ListIdentity (0x0063): T0846 Remote System Discovery per-occurrence (BC-2.17.010).
 > - CIP Stop (0x07): T0858 Change Operating Mode per-occurrence, Likely/High (BC-2.17.011).
-> - CIP write-class burst (SetAttribute*/etc.): T0836 Modify Parameter one-shot/window (BC-2.17.012). [OA-001: threshold default 20/1s]
+> - CIP write-class burst (SetAttribute*/etc.): T0836 Modify Parameter one-shot/window (BC-2.17.012). [OA-001: threshold default 50/1s — RESOLVED = 50 (MEDIUM-confidence, pending human confirm at F2 gate)]
 > - CIP Reset (0x05): T0816 Device Restart/Shutdown per-occurrence, Likely/High (BC-2.17.013).
 > - CIP Identity Object read / error burst: T0888 Remote System Information Discovery (BC-2.17.014).
 > - ForwardOpen (0x54/0x5B): connection-lifecycle anomaly, no MITRE technique, Possible/Low (BC-2.17.015).
 > - Malformed ENIP threshold (3/300s window): T0814 Denial of Service one-shot/window (BC-2.17.018).
 
 > **CLI flags added:** `--enip` (enable analyzer, default off), `--enip-write-burst-threshold N`
-> (default 20 writes/1s; overrides T0836 detection threshold via BC-2.17.023). `--all` does
+> (default 50 writes/1s; overrides T0836 detection threshold via BC-2.17.023). `--all` does
 > NOT include `--enip` by default (EtherNet/IP is opt-in; port-44818 TCP only).
 
 > **Formal verification:** VP-032 covers four Kani sub-properties:
@@ -1359,10 +1359,10 @@ Rust source files, 3,868 source LOC, 282 tests, single crate, Rust 2024 edition,
 > - Sub-D: `classify_cip_service` total over all 256 u8 values; response-bit mask (0x80) correct.
 >   Anchors BC-2.17.007.
 
-> **Open item OA-001:** The --enip-write-burst-threshold default of 20 writes/1s was derived
-> from research (BC-2.17.012 confidence: medium). Operators in high-write CIP environments
-> (servo drives, motion control) may need a higher threshold. Human confirmation required
-> before shipping.
+> **Open item OA-001 [RESOLVED = 50, MEDIUM-confidence]:** The --enip-write-burst-threshold
+> default has been updated to 50 writes/1s (was 20) based on research calibration for high-write
+> CIP environments (servo drives, motion control). This value carries MEDIUM confidence; human
+> confirmation required at F2 gate before shipping.
 
 #### 2.17.A ENIP Header Parse Safety (Group A)
 
@@ -1389,7 +1389,7 @@ Rust source files, 3,868 source LOC, 282 tests, single crate, Rust 2024 edition,
 
 | BC ID | Title | Priority | Origin |
 |-------|-------|----------|--------|
-| BC-2.17.007 | classify_cip_service Total Classification with Response-Bit Mask Over All u8 Values | P0 | feature-enip-v0.11.0 |
+| BC-2.17.007 | classify_cip_service Total Classification with Response-Bit Mask — 13 Named Request Services + Response + Unknown = 15 Variants | P0 | feature-enip-v0.11.0 |
 
 #### 2.17.E CIP State Extraction (Group E)
 
@@ -1452,8 +1452,9 @@ Rust source files, 3,868 source LOC, 282 tests, single crate, Rust 2024 edition,
 |-------|-------|----------|--------|
 | BC-2.17.023 | --enip-write-burst-threshold CLI Flag Configures T0836 Write Detection Sensitivity | P1 | feature-enip-v0.11.0 |
 | BC-2.17.024 | pdu_count Incremented Per Processed Frame and Reflected in summarize() | P1 | feature-enip-v0.11.0 |
+| BC-2.17.025 | RegisterSession (0x0065) and UnRegisterSession (0x0066) Classified and PDU-Counted; No Finding Emitted | P1 | feature-enip-v0.11.0 |
 
-> Full contracts: `behavioral-contracts/ss-17/BC-2.17.001.md` through `BC-2.17.024.md`
+> Full contracts: `behavioral-contracts/ss-17/BC-2.17.001.md` through `BC-2.17.025.md`
 
 
 ## 3. Interface Definition
@@ -1921,6 +1922,7 @@ See `prd-supplements/error-taxonomy.md` for the complete E-xxx-NNN catalog.
 | BC-2.17.022 | CAP-17 | SS-17 (analyzer/enip.rs) | P0 | unit |
 | BC-2.17.023 | CAP-17 | SS-12 (cli.rs, main.rs) + SS-17 | P1 | unit+integration |
 | BC-2.17.024 | CAP-17 | SS-17 (analyzer/enip.rs) | P1 | unit |
+| BC-2.17.025 | CAP-17 | SS-17 (analyzer/enip.rs) | P1 | unit |
 
 
 ## 8. Domain Debt Index

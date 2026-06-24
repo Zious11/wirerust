@@ -28,7 +28,7 @@ inputs:
 input-hash: TBD
 ---
 
-# BC-2.17.007: classify_cip_service Total Classification with Response-Bit Mask — 13 Named Request Services + Response + Unknown = 16 Variants
+# BC-2.17.007: classify_cip_service Total Classification with Response-Bit Mask — 13 Named Request Services + Response + Unknown = 15 Variants
 
 ## Description
 
@@ -38,7 +38,8 @@ The function is total and never panics. The response-bit invariant: when `servic
 (high bit set), the function returns `CipServiceClass::Response` regardless of the lower 7 bits.
 For request service codes (high bit clear), 13 named service codes map to named variants; all
 other request values map to `CipServiceClass::Unknown`. The `Unknown` arm is reachable and
-proven non-vacuous. Formally verified by VP-032 Sub-D.
+proven non-vacuous. The 13 named variants + Response + Unknown yield 15 total enum variants.
+Formally verified by VP-032 Sub-D.
 
 ## Preconditions
 
@@ -57,8 +58,7 @@ proven non-vacuous. Formally verified by VP-032 Sub-D.
    - `0x04` → `CipServiceClass::SetAttributeList`
    - `0x05` → `CipServiceClass::Reset`
    - `0x07` → `CipServiceClass::Stop`
-   - `0x09` → `CipServiceClass::MultipleServicePacket`
-   - `0x0A` → `CipServiceClass::ApplyAttributes`
+   - `0x0A` → `CipServiceClass::MultipleServicePacket`
    - `0x0E` → `CipServiceClass::GetAttributeSingle`
    - `0x10` → `CipServiceClass::SetAttributeSingle`
    - `0x4B` → `CipServiceClass::GetAndClear` (firmware download marker)
@@ -74,8 +74,9 @@ proven non-vacuous. Formally verified by VP-032 Sub-D.
 1. **Response-bit mask takes priority**: the `service & 0x80 != 0` check is applied first,
    before any named-service lookup. This is the correct CIP interpretation: a response is
    always identifiable by the high bit, regardless of service code.
-2. **Named service count**: 13 named request services + Response + Unknown = 16 total variants
-   in the enum. VP-032 Sub-D proves totality.
+2. **Named service count**: 13 named request services + Response + Unknown = 15 total variants
+   in the enum. VP-032 Sub-D proves totality. Note: `ApplyAttributes` is NOT a CIP service
+   code; `0x0A` maps to `MultipleServicePacket` per ODVA CIP Specification Vol 1 §3-5.5.
 3. **Stop (0x07) and Reset (0x05)**: critical MITRE trigger services. 0x07 (Stop) → T0858;
    0x05 (Reset) → T0816. These must map to their named variants without ambiguity.
 4. **SetAttribute variants (0x02, 0x04, 0x10)**: SetAttributesAll, SetAttributeList,
@@ -101,6 +102,7 @@ proven non-vacuous. Formally verified by VP-032 Sub-D.
 | EC-010 | `service = 0x5B` (LargeForwardOpen) | Returns `CipServiceClass::LargeForwardOpen` |
 | EC-011 | `service = 0x4E` (ForwardClose) | Returns `CipServiceClass::ForwardClose` |
 | EC-012 | `service = 0x4B` (GetAndClear / firmware) | Returns `CipServiceClass::GetAndClear` — staged, not emitted in v0.11.0 |
+| EC-013 | `service = 0x0A` (MultipleServicePacket) | Returns `CipServiceClass::MultipleServicePacket` — per ODVA CIP Vol 1 §3-5.5; no finding in v0.11.0 |
 
 ## Canonical Test Vectors
 
@@ -111,6 +113,7 @@ proven non-vacuous. Formally verified by VP-032 Sub-D.
 | `0x04` | SetAttributeList | `SetAttributeList` | write T0836 |
 | `0x05` | Reset | `Reset` | T0816 |
 | `0x07` | Stop | `Stop` | T0858 |
+| `0x0A` | MultipleServicePacket | `MultipleServicePacket` | (no finding in v0.11.0; staged) |
 | `0x0E` | GetAttributeSingle | `GetAttributeSingle` | identity read T0888 |
 | `0x10` | SetAttributeSingle | `SetAttributeSingle` | write T0836 |
 | `0x4B` | GetAndClear | `GetAndClear` | staged T1693.001 (not emitted v0.11.0) |
@@ -151,7 +154,7 @@ proven non-vacuous. Formally verified by VP-032 Sub-D.
 ## Architecture Anchors
 
 - `src/analyzer/enip.rs` — `fn classify_cip_service(service: u8) -> CipServiceClass` — pure-core free function
-- `src/analyzer/enip.rs` — `enum CipServiceClass { GetAttributesAll, SetAttributesAll, GetAttributeList, SetAttributeList, Reset, Stop, MultipleServicePacket, ApplyAttributes, GetAttributeSingle, SetAttributeSingle, GetAndClear, ForwardClose, ForwardOpen, LargeForwardOpen, Response, Unknown }`
+- `src/analyzer/enip.rs` — `enum CipServiceClass { GetAttributesAll, SetAttributesAll, GetAttributeList, SetAttributeList, Reset, Stop, MultipleServicePacket, GetAttributeSingle, SetAttributeSingle, GetAndClear, ForwardClose, ForwardOpen, LargeForwardOpen, Response, Unknown }`
 - `.factory/specs/architecture/decisions/ADR-010-ethernet-ip-cip-stream-dispatch.md §Decision 2` — CIP service extraction; §Decision 8 — MVP CIP object-model scope
 - `.factory/specs/verification-properties/vp-032-enip-parse-safety.md §Sub-D` — Kani proof skeleton
 

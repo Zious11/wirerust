@@ -44,11 +44,20 @@ This BC specifies the general_status extraction contract.
 ## Preconditions
 
 1. `classify_cip_service(cip_header.service)` returns `CipServiceClass::Response`.
-2. `cip_item_data.len() >= 4` — CIP response frame has at least 4 bytes: service (1) +
+2. The carrying CPF item `type_id == 0x00B2` (Unconnected Data Item). Items with
+   `type_id == 0x00B1` (Connected Data Item) include a 2-byte sequence number prefix
+   that shifts the `general_status` offset; extraction for `0x00B1` items is deferred
+   to v0.12.0. This is a HARD scope gate: if `type_id != 0x00B2`, skip `general_status`
+   extraction entirely.
+3. `cip_item_data.len() >= 4` — CIP response frame has at least 4 bytes: service (1) +
    reserved (1) + general_status (1) + additional_status_size (1).
-3. `flow.is_non_enip == false`.
+4. `flow.is_non_enip == false`.
 
 ## Postconditions
+
+**Scope gate (Precondition 2):** If `cpf_item.type_id != 0x00B2`, the function returns
+immediately without any counter update. All postconditions below apply only when
+`cpf_item.type_id == 0x00B2`.
 
 1. `general_status = cip_item_data[2]` — third byte of CIP response frame (per ODVA CIP
    response format: byte 0 = service|0x80, byte 1 = reserved 0x00, byte 2 = general_status,

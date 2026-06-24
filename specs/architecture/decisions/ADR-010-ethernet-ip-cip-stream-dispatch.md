@@ -411,12 +411,11 @@ confidence, consistent with the structural-anomaly / crash-probe mapping guidanc
 **EMITTED accounting for T0814:** T0814 is already seeded in `src/mitre.rs` and shared
 with other analyzers (DNP3/Modbus malformed-frame detection). Its addition to the ENIP
 active-technique set does **not** increase the `SEEDED_TECHNIQUE_ID_COUNT` and does **not**
-add a new entry to `SEEDED_TECHNIQUE_IDS` (already present). The new ENIP-specific EMITTED
-delta remains **+2** for T0858 and T0816 (T0814 is already counted as emitted). The VP-007
+add a new entry to `SEEDED_TECHNIQUE_IDS` (already present). The VP-007
 atomic-burst step 4 (`EMITTED_IDS` extension) does NOT need a T0814 arm.
 
 **Already seeded in `src/mitre.rs` (no new catalog entry required):**
-T0814, T0846, T0888, T0836, T1692.001, T1692.002.
+T0814, T0888, T0836, T1692.001, T1692.002.
 
 **New catalog entries required by v0.11.0 implementation:**
 T0858, T0816, T1693.001.
@@ -495,12 +494,14 @@ changes/steps in the **same commit burst** as the new technique arms:
 
 3. **`SEEDED_TECHNIQUE_ID_COUNT` constant:** Bump 25 → 28 (adding 3 new entries).
 
-4. **`EMITTED_IDS` in `kani_proofs` module:** Add `"T0858"` and `"T0816"` to the emitted
-   set (the ENIP analyzer emits both). T1693.001 is seeded-only in v0.11.0 (firmware
-   detection is staged; no BC in scope emits it yet). Do NOT add T1693.001 to EMITTED_IDS
-   until the firmware-detection BC is implemented. Current emitted count is 17; ENIP v0.11.0
-   adds T0858 + T0816 → **19 emitted IDs**. T0836/T0888/T0846 are already in EMITTED_IDS
-   (Modbus / DNP3 / existing analyzers); reuse them without adding duplicates.
+4. **`EMITTED_IDS` in `kani_proofs` module:** Add `"T0858"`, `"T0816"`, and `"T0846"` to
+   the emitted set. T0858 and T0816 are emitted by the ENIP analyzer; T0846 is emitted
+   for the first time by BC-2.17.010 (ListIdentity) — it was seeded-not-emitted before
+   this feature cycle (no prior BC emitted it). T1693.001 is seeded-only in v0.11.0
+   (firmware detection is staged; no BC in scope emits it yet). Do NOT add T1693.001 to
+   EMITTED_IDS until the firmware-detection BC is implemented. Current emitted count is 17;
+   ENIP v0.11.0 adds T0858 + T0816 + T0846 → **20 emitted IDs**. T0836/T0888 are already
+   in EMITTED_IDS (Modbus / DNP3 / existing analyzers); reuse them without adding duplicates.
 
 5. **`MitreTactic::IcsExecution` variant:** Add to the enum with `Display = "Execution (ICS)"`.
    Update `all_tactics_in_report_order()` (append after `IcsCommandAndControl`). Update
@@ -635,8 +636,9 @@ representation of the ATT&CK matrix.
 - The ForwardOpen technique-gap is explicitly documented — downstream consumers of ENIP
   findings can rely on accurate technique tags.
 - VP-007 formal correctness is preserved after the 6-part atomic update (SEEDED 25 → 28,
-  EMITTED 17 → 19). T0814 is already seeded and emitted (shared with DNP3/Modbus); it is
-  in the ENIP active-technique set but does not change either count.
+  EMITTED 17 → 20). T0814 is already seeded and emitted (shared with DNP3/Modbus); it is
+  in the ENIP active-technique set but does not change either count. T0846 moves from
+  seeded-not-emitted to emitted for the first time via BC-2.17.010 (ListIdentity).
 - The `IcsExecution` MitreTactic variant makes the ICS Execution tactic (TA0104) first-class
   and testable, following the ADR-005/ADR-007 Matrix discriminator principle.
 

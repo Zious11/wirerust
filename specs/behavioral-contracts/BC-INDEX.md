@@ -100,7 +100,7 @@ traces_to: .factory/specs/prd.md
 > - Fully written: 330 BCs on disk (329 prior + 1 new BC-2.17.025 for F2 adversary Pass-1 session-handshake)
 > - Active: 329 BCs (330 on disk − 1 retired: BC-2.01.004)
 > - Remaining: 0 BCs
-> - PRD index (prd.md): UPDATED -- §2.17 and §7 RTM rows added for all 24 SS-17 BCs (v1.74 integrate burst); BC-2.01.004 struck through as retired
+> - PRD index (prd.md): UPDATED -- §2.17 and §7 RTM rows added for all 25 SS-17 BCs (v1.74 integrate burst + F2 Pass-2 fixes); BC-2.01.004 struck through as retired
 
 ## ss-01: PCAP File Ingestion (CAP-01)
 
@@ -546,7 +546,7 @@ traces_to: .factory/specs/prd.md
 
 ## ss-17: EtherNet/IP + CIP Analysis (CAP-17)
 
-> 24 BCs total; 24 fully written; 0 planned.
+> 25 BCs total; 25 fully written; 0 planned.
 > BCs 001-002: ENIP encapsulation header parse safety (Group A — pure-core parse).
 > BCs 003-004: ENIP validity gate and command classification totality (Group B — gate/classify).
 > BCs 005-006: CPF item-layer walk and CIP header extraction (Group C — CPF/CIP parse).
@@ -575,12 +575,12 @@ traces_to: .factory/specs/prd.md
 | BC-2.17.004 | classify_enip_command Total Classification with Unknown Arm Over All u16 Values | P0 | [WRITTEN] | (none — classification only) | feature-enip-v0.11.0 | <!-- VP-032 Sub-B Kani target; totality over all 65,536 u16 values -->
 | BC-2.17.005 | CPF Item-Layer Walk — Bounded Little-Endian Item Iteration | P0 | [WRITTEN] | (none — enables T0858/T0816/T0836/T0888) | feature-enip-v0.11.0 | <!-- CPF item_count bounded walk; DoS-safe iteration -->
 | BC-2.17.006 | parse_cip_header Extracts Service Code and Request Path from Item Data | P0 | [WRITTEN] | (none — enables T0858/T0816/T0836/T0888/T0846) | feature-enip-v0.11.0 | <!-- bounds-checked CIP header parse; foundational for all CIP detections -->
-| BC-2.17.007 | classify_cip_service Total Classification with Response-Bit Mask — 13 Named Request Services + Response + Unknown = 16 Variants | P0 | [WRITTEN] | (none — classification only) | feature-enip-v0.11.0 | <!-- VP-032 Sub-D Kani target; totality over all 256 u8 values; 0x80 response-bit mask; wording fix F2 adversary -->
+| BC-2.17.007 | classify_cip_service Total Classification with Response-Bit Mask — 13 Named Request Services + Response + Unknown = 15 Variants | P0 | [WRITTEN] | (none — classification only) | feature-enip-v0.11.0 | <!-- VP-032 Sub-D Kani target; totality over all 256 u8 values; 0x80 response-bit mask; 0x0A=MultipleServicePacket (not ApplyAttributes); F2 Pass-2 service table fix -->
 | BC-2.17.008 | CIP Error Response Detection — general_status Extraction from Response Frames | P1 | [WRITTEN] | (none direct — T0888 via BC-2.17.014) | feature-enip-v0.11.0 | <!-- accumulation BC; general_status extracted from response frames for error-burst detection -->
 | BC-2.17.009 | parse_cip_request_path Class and Instance Segment Extraction | P1 | [WRITTEN] | (none direct — T0888 via BC-2.17.014) | feature-enip-v0.11.0 | <!-- class/instance segment extraction; Identity Object class=0x01 trigger for T0888 -->
 | BC-2.17.010 | ListIdentity Command Observed Emits T0846 Network Enumeration Finding | P0 | [WRITTEN] | T0846 (IcsDiscovery TA0102) | feature-enip-v0.11.0 | <!-- per-occurrence finding; T0846 Remote System Discovery; TRITON/TRISIS recon pattern -->
 | BC-2.17.011 | CIP Stop Service Observed Emits T0858 Change Operating Mode Finding | P0 | [WRITTEN] | T0858 (IcsExecution TA0104) | feature-enip-v0.11.0 | <!-- per-occurrence Likely/High; new MitreTactic::IcsExecution required; T0858 new catalog entry -->
-| BC-2.17.012 | CIP Write-Class Service Burst Exceeding Threshold Emits T0836 Modify Parameter Finding | P1 | [WRITTEN] | T0836 (IcsImpairProcessControl TA0105) | feature-enip-v0.11.0 | <!-- one-shot per window; 20/1s default [OA-001]; T0836 already seeded -->
+| BC-2.17.012 | CIP Write-Class Service Burst Exceeding Threshold Emits T0836 Modify Parameter Finding | P1 | [WRITTEN] | T0836 (IcsImpairProcessControl TA0105) | feature-enip-v0.11.0 | <!-- one-shot per window; 50/1s default [OA-001 RESOLVED=50 MEDIUM-conf]; T0836 already seeded -->
 | BC-2.17.013 | CIP Reset Service Observed Emits T0816 Device Restart/Shutdown Finding | P0 | [WRITTEN] | T0816 (IcsInhibitResponseFunction TA0107) | feature-enip-v0.11.0 | <!-- per-occurrence Likely/High; T0816 new catalog entry; distinct from T0858 Stop -->
 | BC-2.17.014 | CIP Identity-Read to Identity Object or Error Burst Emits T0888 Remote System Information Discovery | P0 | [WRITTEN] | T0888 (IcsDiscovery TA0102) | feature-enip-v0.11.0 | <!-- dual-pattern: Pattern A identity-object read Likely/High; Pattern B error-burst Possible/Medium -->
 | BC-2.17.015 | ForwardOpen and ForwardClose Connection-Lifecycle Anomaly Detected with Empty MITRE Technique Set | P1 | [WRITTEN] | (none — mitre_techniques: vec![]) | feature-enip-v0.11.0 | <!-- intentionally empty technique set per ADR-010 Decision 7; ForwardClose postcondition block added F2 adversary -->

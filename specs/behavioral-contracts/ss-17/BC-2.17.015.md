@@ -39,11 +39,10 @@ analyzer detects a CIP connection lifecycle event. ForwardOpen establishes a CIP
 (in-scope for v0.11.0) and Decision 7 (MITRE technique gap), findings are emitted with **no
 MITRE technique tag** (`mitre_techniques: vec![]`). T1692.001 is emitted on the CIP command
 carrying an unauthorized action in the same session — not on the ForwardOpen or ForwardClose
-itself. For ForwardOpen, the connection serial number (bytes 14–15 of the CIP request data per
-ODVA Connection Manager Object) is extracted best-effort and stored for ForwardClose
-correlation; if extraction fails (payload shorter than 16 bytes), correlation is skipped and
-the serial number is recorded as 0 (explicitly best-effort / deferred to v0.12.0 for full
-validation).
+itself. Connection serial number extraction is deferred to v0.12.0; in v0.11.0 the connection
+serial is recorded as 0. The ForwardOpen request data byte offset for the serial number is
+variable (it follows a variable-length request_path) and therefore cannot be safely hard-coded;
+full ForwardOpen payload parsing is deferred per ADR-010 Decision 8.
 
 ## Preconditions
 
@@ -64,10 +63,10 @@ validation).
    - `evidence`: one entry — `"CIP service=0x{service:02X} ({name}) from src={src_ip} session={session}. No dedicated MITRE ICS technique for CIP connection establishment anomaly; T1692.001 applies only when connection demonstrably carries unauthorized command (ADR-010 Decision 7)"`
    - `mitre_techniques: vec![]` — empty; no technique tag (per ADR-010 Decision 7 policy)
    - `source_ip: Some(...)`, `timestamp: Some(...)`
-2. Connection serial number (bytes 14–15 of CIP ForwardOpen request data, per ODVA Connection
-   Manager Object specification) extracted best-effort:
-   - If `cip_item_data.len() >= 16`: `serial = u16::from_le_bytes([cip_item_data[14], cip_item_data[15]])`; stored for ForwardClose correlation.
-   - If `cip_item_data.len() < 16`: serial = 0 (extraction failed); correlation skipped. Best-effort only; full validation deferred to v0.12.0.
+2. Connection serial number: recorded as `0` in v0.11.0. The serial number is present in the
+   ForwardOpen payload at a variable offset that follows a variable-length request_path; parsing
+   requires full ForwardOpen payload decode, which is deferred to v0.12.0 (ADR-010 Decision 8).
+   No byte-level serial extraction is attempted in v0.11.0.
 3. No one-shot guard: each ForwardOpen/LargeForwardOpen generates a finding.
 
 **ForwardClose (0x4E):**
@@ -108,7 +107,7 @@ validation).
 | EC-003 | ForwardOpen *response* (0xD4 = 0x54 | 0x80) | `CipServiceClass::Response` — no ForwardOpen finding |
 | EC-004 | ForwardOpen immediately followed by CIP Stop (0x07) in same session | Two findings: ForwardOpen (vec![]) + T0858 Stop. T1692.001 not added to ForwardOpen finding in v0.11.0 (cross-BC state tracking deferred) |
 | EC-005 | ForwardClose (0x4E) request | Classified as `CipServiceClass::ForwardClose`; one Finding emitted: Anomaly/Possible/Low, `mitre_techniques: vec![]`, summary "CIP ForwardClose connection teardown observed..." (see Postconditions §ForwardClose) |
-| EC-006 | `all_findings.len() == MAX_FINDINGS` when ForwardOpen arrives | No finding pushed; connection serial not stored (or stored separately) |
+| EC-006 | `all_findings.len() == MAX_FINDINGS` when ForwardOpen arrives | No finding pushed; serial stays 0 (deferred) |
 
 ## Canonical Test Vectors
 
@@ -163,7 +162,7 @@ mitre_techniques: [], summary: "CIP ForwardClose connection teardown observed ..
 ## Architecture Anchors
 
 - `src/analyzer/enip.rs` — `process_pdu`: `if matches!(service_class, CipServiceClass::ForwardOpen | CipServiceClass::LargeForwardOpen | CipServiceClass::ForwardClose) { /* emit anomaly */ }`
-- `src/analyzer/enip.rs` — connection serial number extraction from CIP ForwardOpen payload bytes
+- `src/analyzer/enip.rs` — connection serial number: recorded as 0 in v0.11.0 (full extraction deferred to v0.12.0; no byte-level offset indexed)
 - `.factory/specs/architecture/decisions/ADR-010-ethernet-ip-cip-stream-dispatch.md §Decision 5` (ForwardOpen in-scope), §Decision 7 (empty technique policy)
 - `.factory/research/enip-mitre-ics-tagging.md §7` (ForwardOpen ambiguous — no dedicated technique)
 
@@ -188,7 +187,7 @@ mitre_techniques: [], summary: "CIP ForwardClose connection teardown observed ..
 | Property | Assessment |
 |----------|-----------|
 | **I/O operations** | none |
-| **Global state access** | mutates all_findings; reads/writes connection serial number tracking state |
+| **Global state access** | mutates all_findings; connection serial recorded as 0 (no serial tracking state mutated in v0.11.0) |
 | **Deterministic** | yes |
 | **Thread safety** | single-threaded |
 | **Overall classification** | effectful shell |

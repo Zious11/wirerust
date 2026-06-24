@@ -61,7 +61,7 @@ Specifically, for all bounded symbolic byte slices and all u16/u8 command/servic
 | BC-ID | Description | Sub-property |
 |-------|-------------|-------------|
 | BC-2.17.001 | `parse_enip_header` returns `None` for `data.len() < 24` | Sub-A |
-| BC-2.17.002 | `EnipHeader` field contracts — fixed big-endian offsets | Sub-A |
+| BC-2.17.002 | `EnipHeader` field contracts — fixed little-endian offsets | Sub-A |
 | BC-2.17.003 | `is_valid_enip_frame` validity gate biconditional | Sub-C |
 | BC-2.17.004 | `classify_enip_command` total classification with Unknown arm | Sub-B |
 | BC-2.17.007 | `classify_cip_service` total classification with response-bit mask | Sub-D |
