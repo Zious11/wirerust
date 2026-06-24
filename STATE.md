@@ -1,10 +1,10 @@
 ---
-pipeline: STEADY-STATE
-phase: QUIESCED
-phase_status: "D-227 SAFE-TO-CLEAR checkpoint. fix-pc-013-014-015 CONVERGED + RELEASED + CLOSED (D-226, 2026-06-24). v0.10.0 RELEASED. No active cycle."
+pipeline: FEATURE-MODE
+phase: F2
+phase_status: "D-228. feature-enip-v0.11.0 OPEN. F1 PASSED (human-approved). F2 Spec Evolution IN-PROGRESS."
 product: wirerust
-mode: brownfield (fix bundle), feature-mode-lite
-timestamp: 2026-06-24T06:00:00Z
+mode: feature-mode
+timestamp: 2026-06-24T12:00:00Z
 
 # Release chain (latest)
 released_version: v0.10.0
@@ -43,8 +43,8 @@ adversary_gate: SATISFIED
 
 # Story tracking
 stories_delivered: 78
-current_cycle: NONE (fix-pc-013-014-015 CLOSED D-226)
-current_wave: QUIESCED — no active cycle. Next work requires human direction.
+current_cycle: feature-enip-v0.11.0 (D-228, 2026-06-24)
+current_wave: F2 — Spec Evolution (SS-17 EtherNet/IP + CIP, ~24+ BCs, ADR-010, VP-032)
 
 # DTU
 dtu_required: false
@@ -70,9 +70,9 @@ convergence_trajectory: "Detail: cycles/v0.1.0-greenfield-spec/convergence-traje
 
 ## Status
 
-**PIPELINE STEADY-STATE. QUIESCED. D-227 SAFE-TO-CLEAR checkpoint written 2026-06-24.**
+**PIPELINE FEATURE-MODE. Cycle `feature-enip-v0.11.0` OPEN (D-228, 2026-06-24). F1 PASSED (human-approved). F2 Spec Evolution IN-PROGRESS.**
 
-Latest release: v0.10.0 (main `0cbe922`, tag `v0.10.0`, 4 binaries, run 28109367603). develop=`ff4b82b`. stories_delivered=78. Open PRs: Dependabot #311 only. No active cycle.
+Latest release: v0.10.0 (main `0cbe922`, tag `v0.10.0`, 4 binaries, run 28109367603). develop=`ff4b82b`. stories_delivered=78. Target: v0.11.0 (SS-17 EtherNet/IP + CIP). GitHub issue #316.
 
 Spec versions at close: BC-INDEX v1.73 (305 BCs / 304 active), BC-2.16.016 v1.0, BC-2.16.004 v1.10, BC-2.16.010 v1.8, BC-2.15.020 v1.4. STORY-108 v1.2, STORY-113 v1.3, STORY-114 v1.6. stories_delivered unchanged at 78 (fixes, not new stories).
 
@@ -157,6 +157,7 @@ All GitHub-issue creation remains DF-VALIDATION-001-gated.
 | Maintenance maint-2026-06-22 | COMPLETE 2026-06-23 | 38 observations; 0 blocking; F-MAJ-001 fixed (a6efb23); PR #304 (e458ce2) + PR #305 (e4abbe2). |
 | Feature mitre-json-names (issue #64) + v0.9.4 | RELEASED + CLOSED 2026-06-23 (D-217) | F1-F7 CONVERGED. 5 BCs bumped. BC-INDEX v1.71 (303 BCs). PRs #306/307/308/309. tag v0.9.4 96b49e8. 4 binaries. stories_delivered=78. |
 | Fix cycle fix-pc-013-014-015 + v0.10.0 | **CONVERGED + RELEASED + CLOSED 2026-06-24 (D-226)** | All 3 fixes: PC-015 (#310), PC-013 (#312 + spec D-223), PC-014 (#313 breaking rename + CHANGELOG). Evidence resync #314. v0.10.0: PR #315 → main 0cbe922, tag v0.10.0, 4 binaries, run 28109367603. develop back-merged ff4b82b. BC-INDEX v1.73 (305 BCs / 304 active). |
+| Feature EtherNet/IP + CIP (issue #316) — v0.11.0 | **F1 PASSED → F2 IN-PROGRESS (D-228)** | SS-17 (CAP-17), `src/analyzer/enip.rs`, ADR-010, VP-032, ~24+ BCs (BC-2.17.xxx), 7-9 stories. TCP/44818 + UDP/2222 + ForwardOpen in scope. TLS/2221 deferred. Detail: cycles/feature-enip-v0.11.0/ |
 
 ## Decisions Log
 
@@ -166,6 +167,7 @@ D-131..D-135: `cycles/feature-story-119-grouped-collapse/decisions-archive.md`
 D-136..D-202: `cycles/feature-pcapng-reader/decisions-archive.md`
 D-206..D-217: `cycles/feature-mitre-json-names/decisions-archive.md`
 D-219..D-226: `cycles/fix-pc-013-014-015/decisions-archive.md`
+D-228+: `cycles/feature-enip-v0.11.0/decisions-archive.md`
 
 | ID | Decision | Date |
 |----|----------|------|
@@ -177,6 +179,7 @@ D-219..D-226: `cycles/fix-pc-013-014-015/decisions-archive.md`
 | D-225 | PC-014 DELIVERED & MERGED. PR #313 `fix(dnp3)!: rename total_parse_errors -> parse_errors` merged develop `f5c002a` (BREAKING JSON change, human-approved D-220). Anchored BC-2.15.020 v1.4 → STORY-108 AC-010. CHANGELOG breaking entry + jq migration snippet. Post-merge consistency audit: CONSISTENT (7/7 core checks MATCH). DRIFT fix PR #314 `chore(dnp3): resync STORY-108 demo evidence + test comment` merged develop `2b348a1`. Both AC-010/AC-011 demos re-recorded (VHS). DRIFT-1 + DRIFT-2 CLOSED. | 2026-06-24 |
 | D-226 | v0.10.0 RELEASED. PR #315 merged main `0cbe922`; annotated tag `v0.10.0` (tag obj 92216e5); release.yml run `28109367603` SUCCESS, 4 binaries; develop back-merged `ff4b82b`. Cycle `fix-pc-013-014-015` CONVERGED + RELEASED + CLOSED. All 3 fixes: PC-015 (#310), PC-013 (#312 + spec D-223), PC-014 (#313). Lessons: cycles/fix-pc-013-014-015/lessons.md (S-7.02 satisfied). | 2026-06-24 |
 | D-227 | SAFE-TO-CLEAR checkpoint written. Session that delivered fix-pc-013-014-015 bundle (PC-013/014/015) + released v0.10.0 is COMPLETE and CLOSED. Safe to clear the session. Factory-artifacts durability commit: cycle artifacts (code-delivery/STORY-108/pr-review.md, code-delivery/fix-pc-013-014-015/pr-description.md + review-findings.md, code-delivery/release-0.10.0/pr-description.md) committed to factory-artifacts. | 2026-06-24 |
+| D-228 | Feature Mode OPENED. Cycle `feature-enip-v0.11.0` started (issue #316). F1 Delta Analysis PASSED, human-approved. Scope: TCP/44818 explicit messaging + UDP/2222 cyclic I/O + CIP ForwardOpen. Deferred: TLS/2221. Carry-buffer cap: 600 bytes/flow. Planned: SS-17, `src/analyzer/enip.rs`, ADR-010, VP-032, ~24+ BCs (BC-2.17.xxx), 7-9 stories. DTU NOT required. MITRE carry-forward in decisions-archive. F2 Spec Evolution next. | 2026-06-24 |
 
 ## Governance Policy
 
@@ -188,5 +191,6 @@ Full policy text: `.factory/policies.yaml`. Active policies (17): DF-VALIDATION-
 - Artifact pointers: Phase 0 `.factory/semport/wirerust/wirerust-pass-8-deep-synthesis.md`; wave history `cycles/phase-3-tdd/convergence-trajectory.md`.
 - Issues: #104/#102/#64 CLOSED; all actions SHA-pinned; dtolnay/rust-toolchain @stable/@nightly exempted.
 - STORY-INDEX.md authoritative (82 stories / 57 waves / 526 pts — v2.7).
-- Cycle artifacts: `cycles/fix-pc-013-014-015/` (decisions-archive.md D-219..D-226, lessons.md S-7.02).
+- Active cycle: `cycles/feature-enip-v0.11.0/` (cycle-manifest.md, decisions-archive.md D-228+). Issue #316.
+- Closed cycle: `cycles/fix-pc-013-014-015/` (decisions-archive.md D-219..D-226, lessons.md S-7.02).
 - Prior cycle artifacts: `cycles/feature-mitre-json-names/` (decisions-archive.md D-206..D-217, cycle-manifest.md, lessons.md, session-review.md).
