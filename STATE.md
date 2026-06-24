@@ -1,10 +1,10 @@
 ---
 pipeline: ACTIVE
 phase: FIX-CYCLE
-phase_status: "fix-pc-013-014-015 IN-PROGRESS. PC-015 DELIVERED (D-222, PR #310 merged develop 2645139). PC-013/014 SPEC-DONE — awaiting implementation."
+phase_status: "fix-pc-013-014-015 IN-PROGRESS. PC-015 DELIVERED (D-222, PR #310 merged develop 2645139). PC-013 SPEC CORRECTED (D-223, no code change; test-only PR pending). PC-014 SPEC-DONE — awaiting implementation."
 product: wirerust
 mode: brownfield (fix bundle), feature-mode-lite
-timestamp: 2026-06-24T00:00:00Z
+timestamp: 2026-06-24T08:00:00Z
 
 # Release chain
 released_version: v0.9.4
@@ -44,7 +44,7 @@ adversary_gate: SATISFIED
 # Story tracking
 stories_delivered: 78
 current_cycle: fix-pc-013-014-015 (OPENED D-219 — 2026-06-23)
-current_wave: "FIX-CYCLE IN-PROGRESS (D-222). 1 of 3 fixes delivered: PC-015 DONE (PR #310, develop 2645139). PC-013/014 SPEC-DONE — awaiting implementation."
+current_wave: "FIX-CYCLE IN-PROGRESS (D-223). 1 of 3 fixes delivered: PC-015 DONE (PR #310, develop 2645139). PC-013 SPEC CORRECTED (D-223, no code change; test regression PR pending). PC-014 SPEC-DONE — awaiting implementation."
 
 # DTU
 dtu_required: false
@@ -112,7 +112,7 @@ convergence_trajectory: "Detail: cycles/v0.1.0-greenfield-spec/convergence-traje
 | DRIFT-MITRE-SUBSET-COUNT-TESTS-001 | [LOW]: mitre/multitag dual-count subset tests (21/13 vs 25/17) — pre-existing cruft, no correctness impact. | DEFERRED LOW — future maintenance |
 | DRIFT-ARP-DEMO-FIXTURE-001 | [LOW]: No ARP pcap fixture; T0830→TA0100 unit-tested but not demoed live. | DEFERRED LOW — future cycle |
 | PO-BACKLOG-MAINT-2026-06-22 | DNP3/ARP/Modbus/finding-collapse holdout coverage gap (73 declared seeds, 0 files) + HS-064/075/090/098/108 staleness. Human scope decision needed. | OPEN — product-owner / human |
-| PC-013 | ARP internal HashMap invariant `.expect()` sites in arp.rs — fail-safe degradation (not packet panics). BC-2.16.004 v1.9 AUTHORED (D-221). | SPEC-DONE — awaiting implementation |
+| PC-013 | ARP internal HashMap invariant `.expect()` sites in arp.rs — by-construction panic-freedom (not fail-safe degradation). BC-2.16.004 v1.10 SPEC CORRECTED (D-223): no production code change. Spec burst committed. | IN-PROGRESS — spec corrected (D-223); test-only regression PR pending |
 | PC-014 | dnp3: key MISNAMED — `total_parse_errors` → `parse_errors` BREAKING rename. BC-2.15.020 v1.4 AUTHORED (D-220/D-221); STORY-108 AC-010 updated. | SPEC-DONE — awaiting implementation |
 | PC-015 | ARP findings unbounded (no cap) — undocumented design, not hidden cap. BC-2.16.016 NEW + BC-2.16.010 v1.8 AUTHORED (D-221). PR #310 merged develop 2645139 (D-222, 2026-06-24). | DONE |
 | ADV-4 | ci.yml audit comment rationale lost (LOW). | DEFERRED LOW |
@@ -126,17 +126,17 @@ convergence_trajectory: "Detail: cycles/v0.1.0-greenfield-spec/convergence-traje
 | ENGINE-IMPROVEMENT-BACKLOG | ~18 engine proposals pending human review, incl. pr-manager shortstop PAT-001; lessons.md Lessons 1 & 2 / policy candidates convergence-clean-tree-guard + magic-number-sweep-on-count-change. Pointer: `cycles/feature-mitre-json-names/session-review.md`. | BACKLOG — human review |
 | ISSUE-TRIAGE-OPEN-9 | 9 open GitHub issues triaged: keep-open #255/#252/#103/#101/#67/#63/#3; reframe-needed #6 (rayon obsolete) and #4 (narrow to SQLite — CSV shipped). | OPEN — product-owner |
 
-**Resolved — do not reopen:** PC-015 (D-222), maint-2026-06-22, O-07, DEP-001/005, DOC-001..009, F-MAJ-001, CORPUS-OBS-PCAPNG-IFFCSLEN-001, decision-threads (a)/(b)/(c), PERF-REASM-DOS-001, all F6 items, feature-mitre-json-names F1-F7 (D-206..D-217). **SPEC VERSIONS (at D-221):** prd.md v1.35, nfr-catalog v2.4, VP-INDEX v2.10 (31/31), BC-INDEX v1.72 (305 BCs / 304 active), STORY-INDEX v2.7 (82/57/526 pts). MitreTactic: 20 variants.
+**Resolved — do not reopen:** PC-015 (D-222), maint-2026-06-22, O-07, DEP-001/005, DOC-001..009, F-MAJ-001, CORPUS-OBS-PCAPNG-IFFCSLEN-001, decision-threads (a)/(b)/(c), PERF-REASM-DOS-001, all F6 items, feature-mitre-json-names F1-F7 (D-206..D-217). **SPEC VERSIONS (at D-223):** prd.md v1.35, nfr-catalog v2.4, VP-INDEX v2.10 (31/31), BC-INDEX v1.73 (305 BCs / 304 active), STORY-INDEX v2.7 (82/57/526 pts), STORY-114 v1.6, BC-2.16.004 v1.10. MitreTactic: 20 variants.
 
 ---
 
 ## Status
 
-**PIPELINE ACTIVE. Fix cycle fix-pc-013-014-015 IN-PROGRESS. PC-015 DELIVERED (D-222, 2026-06-24). PC-013/014 SPEC-DONE — next delivery is PC-013.**
+**PIPELINE ACTIVE. Fix cycle fix-pc-013-014-015 IN-PROGRESS. PC-015 DELIVERED (D-222). PC-013 SPEC CORRECTED (D-223) — no code change; test-only regression PR next. PC-014 SPEC-DONE — awaiting implementation.**
 
 Latest release: v0.9.4 (main `96b49e8`, tag `v0.9.4`, 4 binaries, run 28053327452). develop=2645139. stories_delivered=78. No open PRs. Active cycle: fix-pc-013-014-015.
 
-Scope: post-release defect fixes PC-013 (ARP `.expect()` invariant sites), PC-014 (dnp3 key rename `total_parse_errors` → `parse_errors`, BREAKING), PC-015 (ARP unbounded findings, undocumented). BCs AUTHORED (D-221): BC-2.16.016 NEW v1.0; BC-2.16.004 v1.9; BC-2.16.010 v1.8; BC-2.15.020 v1.4. Story propagation complete: STORY-113 v1.3, STORY-114 v1.5, STORY-108 v1.2, STORY-115 v1.5. BC-INDEX v1.72 (305 BCs / 304 active). D-220: PC-014 rename human-approved. PC-015: PR #310 merged develop 2645139 (D-222). Anchored BC-2.16.016 v1.0 / BC-2.16.010 v1.8 → STORY-113 AC-022. Tests: `test_BC_2_16_016_cli_help_documents_arp_findings_unbounded` (Red Gate) + `test_BC_2_16_016_arp_findings_vec_has_no_cap` (characterization), both passing.
+Scope: post-release defect fixes PC-013 (ARP `.expect()` invariant sites — SPEC CORRECTION, D-223), PC-014 (dnp3 key rename `total_parse_errors` → `parse_errors`, BREAKING), PC-015 (ARP unbounded findings, undocumented). D-221 spec burst: BC-2.16.016 NEW v1.0; BC-2.16.004 v1.9→v1.10; BC-2.16.010 v1.8; BC-2.15.020 v1.4. STORY-114 v1.6; BC-INDEX v1.73 (305 BCs / 304 active). D-220: PC-014 rename human-approved. PC-015: PR #310 merged develop 2645139 (D-222). PC-013 D-223: by-construction panic-freedom confirmed; silent-skip anti-pattern removed from spec; test-only regression PR pending.
 
 ## Phase Progress
 
@@ -162,7 +162,7 @@ Scope: post-release defect fixes PC-013 (ARP `.expect()` invariant sites), PC-01
 | Feature pcapng-reader (FE-001) + v0.9.3 | RELEASED + CLOSED 2026-06-22 (D-201) | F1-F7 CONVERGED+HUMAN-APPROVED (D-194). 10 new BCs, VP-INDEX v2.10. PR #302 → main 2dbf461. 4 binaries. |
 | Maintenance maint-2026-06-22 | COMPLETE 2026-06-23 | 38 observations; 0 blocking; F-MAJ-001 fixed (a6efb23); PR #304 (e458ce2) + PR #305 (e4abbe2). |
 | Feature mitre-json-names (issue #64) + v0.9.4 | **RELEASED + CLOSED 2026-06-23 (D-217)** | F1-F7 CONVERGED. mitre_attack enrichment (STORY-129) + ICS tactic fix (F5 F-1). 20 MitreTactic variants. 5 BCs bumped. BC-INDEX v1.71 (303 BCs). PR #306/307/308/309. tag v0.9.4 96b49e8. 4 binaries. stories_delivered=78. |
-| Fix cycle fix-pc-013-014-015 | **IN-PROGRESS (1/3 delivered — D-222, 2026-06-24)** | PC-015 DONE: PR #310 merged develop 2645139. Tests passing (Red Gate + characterization). PC-013/014 SPEC-DONE — awaiting implementation. Spec burst (D-221): BC-2.16.016 NEW v1.0; BC-2.16.004 v1.9; BC-2.16.010 v1.8; BC-2.15.020 v1.4 (BREAKING rename). BC-INDEX v1.72 (305 BCs / 304 active). |
+| Fix cycle fix-pc-013-014-015 | **IN-PROGRESS (1/3 delivered — D-222/D-223, 2026-06-24)** | PC-015 DONE: PR #310 merged develop 2645139. PC-013 SPEC CORRECTED (D-223): BC-2.16.004 v1.10 — no production code change; test-only regression PR pending. PC-014 SPEC-DONE — awaiting implementation. BC-INDEX v1.73 (305 BCs / 304 active). |
 
 ## Decisions Log
 
@@ -183,6 +183,7 @@ D-206..D-217: `cycles/feature-mitre-json-names/decisions-archive.md` (archived a
 | D-220 | PC-014 resolution decision = RENAME dnp3 output key `total_parse_errors` → `parse_errors` to match sibling analyzers (HTTP/TLS/Modbus). This is a BREAKING JSON output change — requires CHANGELOG entry and a minor version bump at release. Human-approved. | 2026-06-23 |
 | D-221 | fix-pc-013-014-015 SPEC BURST committed. All three PC specs anchored: BC-2.16.004 v1.9 (PC-013 fail-safe degradation invariant 6, EC-011/EC-012, arp.rs lines 555/576/642/827); BC-2.15.020 v1.4 (PC-014 BREAKING key rename `total_parse_errors`→`parse_errors`, D-220 confirmed); BC-2.16.016 NEW v1.0 + BC-2.16.010 v1.8 (PC-015 ARP unbounded findings, intentional no-cap documented). Story propagation: STORY-113 v1.3 (+AC-022), STORY-114 v1.5 (+AC-018), STORY-108 v1.2 (AC-010 updated — PC-014 key rename now anchored), STORY-115 v1.5. BC-INDEX v1.72 (305 BCs / 304 active / SS-16=16). Phase: FIX-CYCLE-OPEN → FIX-CYCLE-SPEC-DONE. | 2026-06-23 |
 | D-222 | PC-015 DELIVERED & MERGED. PR #310 "docs(cli): document ARP findings output is unbounded in --arp help [PC-015]" merged to develop at commit `2645139` (2026-06-24). All 10 CI checks green; clean code + security review. Anchored BC-2.16.016 v1.0 / BC-2.16.010 v1.8 → STORY-113 AC-022. Tests: `test_BC_2_16_016_cli_help_documents_arp_findings_unbounded` (Red Gate) + `test_BC_2_16_016_arp_findings_vec_has_no_cap` (characterization), both passing. develop_head updated to 2645139. Cycle fix-pc-013-014-015: 1 of 3 fixes delivered; PC-013 delivery next. | 2026-06-24 |
+| D-223 | PC-013 resolved as SPEC CORRECTION — NO production code change required. Research (codebase survey of arp.rs + external best-practice survey) converged: the 4 `.expect()` sites at arp.rs lines 555/576/642/827 guard provably-unreachable internal invariants (HashMap state machine, post-construction guarantees). Keeping loud `.expect()` is correct; silent-skip/`unwrap_or` would be a fail-open anti-pattern that silently drops findings. BC-2.16.004 v1.9→v1.10: removed Invariant 6 (silent-skip obligation); added by-construction panic-freedom contract (the 4 sites are unreachable by construction from valid arp.rs state machine); EC-011/EC-012 reframed from "degradation mode" to regression-guard characterization tests. STORY-114 v1.5→v1.6 (AC-018 rewritten to by-construction framing; input-hash 81b83fb→51feff3). BC-INDEX v1.72→v1.73 (no count change). Human-approved. Next: test-only PR delivering 5 white-box regression-guard tests (mod `bc_2_16_004_inv6`). | 2026-06-24 |
 
 ## Governance Policy
 

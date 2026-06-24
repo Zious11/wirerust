@@ -1,10 +1,10 @@
 ---
 document_type: bc-index
 level: L3
-version: "1.72"
+version: "1.73"
 status: draft
 producer: product-owner
-timestamp: 2026-06-23T00:00:00Z
+timestamp: 2026-06-24T00:00:00Z
 phase: 1a
 traces_to: .factory/specs/prd.md
 ---
@@ -15,6 +15,8 @@ traces_to: .factory/specs/prd.md
 > links to the individual BC file. BCs are sharded into per-subsystem directories (ss-NN/).
 >
 > All BCs are marked [WRITTEN]. Body files have been verified on disk for all 305 entries (304 prior + 1 new BC-2.16.016 for fix-pc-013-014-015 PC-015 ARP unbounded findings; BC-2.01.004 retired).
+>
+> **v1.73 2026-06-24 (PC-013 spec correction — BC-2.16.004 v1.9→v1.10):** Human-approved decision: the four `.expect()` sites in `arp.rs` (lines 555/576/642/827) are provably unreachable internal invariants; keeping `.expect()` is the correct idiom and the project convention. The v1.9 "fail-safe degradation / silently skip" invariant mandated a fail-open ANTI-PATTERN. BC-2.16.004 v1.9→v1.10: Invariant 6 rewritten from "fail-safe degradation" to "by-construction panic-freedom" (entry always present by guard; `first_rebind_ts` always `Some` in Step 3); EC-011/EC-012 reframed from "missing entry → skip" to by-construction characterization entries with test anchors (`test_BC_2_16_004_expect_site_no_panic_on_missing_entry`, `..._garp_conflict_high_escalation`, `..._emit_d1_first_rebind_ts_none`, `..._emit_d1_after_flap_window_reset`, `..._non_garp_rebind_step4_reborrow`); Purity Classification extended to EC-012. Research: `.factory/cycles/fix-pc-013-014-015/research/pc-013-invariant-idiom.md`. No production code change. No count change (305 on disk; 304 active). STORY-114 AC-018 propagation deferred to story-writer under `bc_array_changes_propagate_to_body_and_acs` policy.
 >
 > **v1.72 2026-06-23 (fix-pc-013-014-015 — 1 new BC + 3 BC version bumps):** Post-v0.9.4 defect-fix bundle PC-013/PC-014/PC-015 BC authoring. 1 new BC: BC-2.16.016 (ARP Findings Output is Unbounded — No MAX_FINDINGS Cap on process_arp Return Vec) — PC-015 spec/doc fix; documents intentional no-cap design; Red Gate test `test_BC_2_16_016_arp_findings_vec_has_no_cap`. 3 BC version bumps: BC-2.16.004 v1.8→v1.9 (PC-013 fail-safe degradation invariant — Invariant 6 + EC-011/EC-012 added; anchors .expect()→if-let guard fix at arp.rs lines 555/576/642/827); BC-2.16.010 v1.7→v1.8 (PC-015 cross-reference — Invariant 6 + Related BCs updated to include BC-2.16.016; clarifies dropped_findings MUST NOT be added without a BC-2.16.010 bump); BC-2.15.020 v1.3→v1.4 (PC-014 BREAKING key rename: `total_parse_errors` → `parse_errors` in Postcondition 1; human-approved D-220; aligns with HTTP/TLS/Modbus sibling key convention; Red Gate test `test_BC_2_15_020_parse_errors_key_name_is_parse_errors`; CHANGELOG + minor-version bump required at release). SS-16: 15→16 BCs. Total on disk: 304→305. Active: 303→304. No VPs added. No stories modified (story-writer propagation pending under bc_array_changes_propagate_to_body_and_acs policy). D-220.
 >
@@ -524,7 +526,7 @@ traces_to: .factory/specs/prd.md
 | BC-2.16.001 | ARP Request Frame Correctly Parsed from ArpPacketSlice | P0 | [WRITTEN] | feature-009-F2 |
 | BC-2.16.002 | ARP Reply Frame Correctly Parsed from ArpPacketSlice | P0 | [WRITTEN] | feature-009-F2 |
 | BC-2.16.003 | Gratuitous ARP Detection — sender_ip == target_ip Classified as GARP | P0 | [WRITTEN] | feature-009-F2 | <!-- v1.6: D-068 — benign GARP now emits mitre_techniques=[] (no MITRE attribution); T0830+T1557.002 exclusively on GARP-that-conflicts path (BC-2.16.014). Description, PC5, Invariant 2, Invariant 3, EC-001, EC-002, EC-007, canonical vectors updated. --> <!-- v1.7: Pass-5 Architecture Anchors §3.3 conditional benign-GARP MITRE fix — unconditional form replaced with conditional; Architecture Anchor updated per D-068. --> <!-- v1.8: Pass-13 PC7 cross-story clarity note; no H1/title change -->
-| BC-2.16.004 | ARP Spoof Detection — IP→MAC Rebind Emits MEDIUM then HIGH Finding | P0 | [WRITTEN] | feature-009-F2 | <!-- v1.8: D-209 F5 ICS catalog fix — T0830 MITRE attribution corrected: IcsCollection TA0100 (not LateralMovement). v1.9: fix-pc-013-014-015 PC-013 — Invariant 6 fail-safe degradation added; EC-011/012 added; anchors .expect()→if-let guard fix at arp.rs lines 555/576/642/827. -->
+| BC-2.16.004 | ARP Spoof Detection — IP→MAC Rebind Emits MEDIUM then HIGH Finding | P0 | [WRITTEN] | feature-009-F2 | <!-- v1.8: D-209 F5 ICS catalog fix — T0830 MITRE attribution corrected: IcsCollection TA0100 (not LateralMovement). v1.9: fix-pc-013-014-015 PC-013 — Invariant 6 fail-safe degradation added; EC-011/012 added; anchors .expect()→if-let guard fix at arp.rs lines 555/576/642/827. v1.10: PC-013 spec correction (human-approved) — Invariant 6 rewritten to by-construction panic-freedom; silent-skip mandate removed; EC-011/012 reframed as by-construction characterization entries with regression test anchors; no production code change. -->
 | BC-2.16.005 | Binding-Table Update — Last-Seen MAC Wins for a Given IP | P0 | [WRITTEN] | feature-009-F2 | <!-- v1.4: F-B8-M01: PC1 tightened — sender_ip excludes both 0.0.0.0 and 255.255.255.255 per Invariant 5; test-infra note for VP-024 Sub-C (new_for_test, process_arp_for_test, bindings_snapshot) added -->
 | BC-2.16.006 | Binding-Table Cap — Table Never Exceeds MAX_ARP_BINDINGS via LRU Eviction | P0 | [WRITTEN] | feature-009-F2 |
 | BC-2.16.007 | D12 L2/L3 Sender Mismatch — Ethernet Src MAC != ARP Sender HW Addr | P0 | [WRITTEN] | feature-009-F2 |
