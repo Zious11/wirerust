@@ -1,10 +1,10 @@
 ---
 pipeline: STEADY-STATE
 phase: QUIESCED
-phase_status: "fix-pc-013-014-015 CONVERGED + RELEASED + CLOSED (D-226, 2026-06-24). All 3 fixes delivered: PC-015 (#310), PC-013 (#312 + spec correction D-223), PC-014 (#313). Evidence resync (#314). v0.10.0 RELEASED. No active cycle."
+phase_status: "D-227 SAFE-TO-CLEAR checkpoint. fix-pc-013-014-015 CONVERGED + RELEASED + CLOSED (D-226, 2026-06-24). v0.10.0 RELEASED. No active cycle."
 product: wirerust
 mode: brownfield (fix bundle), feature-mode-lite
-timestamp: 2026-06-24T00:00:00Z
+timestamp: 2026-06-24T06:00:00Z
 
 # Release chain (latest)
 released_version: v0.10.0
@@ -24,7 +24,7 @@ v091_release_commit: ad4eec8
 v090_release_tag: v0.9.0
 v090_release_commit: 986e148
 
-# Ground-truth HEADs (verified at D-226 — 2026-06-24)
+# Ground-truth HEADs (verified D-227 — 2026-06-24)
 develop_head: ff4b82b
 main_head: 0cbe922
 factory_artifacts_head: (run `git -C .factory log -1 --format='%h'`)
@@ -70,61 +70,65 @@ convergence_trajectory: "Detail: cycles/v0.1.0-greenfield-spec/convergence-traje
 
 ## Status
 
-**PIPELINE STEADY-STATE. QUIESCED. fix-pc-013-014-015 CONVERGED + RELEASED + CLOSED (D-226).**
+**PIPELINE STEADY-STATE. QUIESCED. D-227 SAFE-TO-CLEAR checkpoint written 2026-06-24.**
 
-Latest release: v0.10.0 (main `0cbe922`, tag `v0.10.0`, 4 binaries, run 28109367603). develop=ff4b82b. stories_delivered=78. No open PRs (only Dependabot #311). No active cycle.
+Latest release: v0.10.0 (main `0cbe922`, tag `v0.10.0`, 4 binaries, run 28109367603). develop=`ff4b82b`. stories_delivered=78. Open PRs: Dependabot #311 only. No active cycle.
 
-Spec versions at close: BC-INDEX v1.73, BC-2.16.016 v1.0 (new), BC-2.16.004 v1.10, BC-2.16.010 v1.8, BC-2.15.020 v1.4. STORY-108 v1.2, STORY-113 v1.3, STORY-114 v1.6.
+Spec versions at close: BC-INDEX v1.73 (305 BCs / 304 active), BC-2.16.016 v1.0, BC-2.16.004 v1.10, BC-2.16.010 v1.8, BC-2.15.020 v1.4. STORY-108 v1.2, STORY-113 v1.3, STORY-114 v1.6. stories_delivered unchanged at 78 (fixes, not new stories).
 
 ### WARNING — DO NOT REDO (on resume)
 
 - Do NOT re-run fix cycle fix-pc-013-014-015 — CLOSED (D-226). PRs #310/#312/#313/#314 all merged to develop; #315 merged to main; v0.10.0 released.
-- Do NOT re-cut v0.10.0 — RELEASED (main 0cbe922, tag v0.10.0, 4 binaries, run 28109367603).
+- Do NOT re-cut v0.10.0 — RELEASED (main `0cbe922`, tag `v0.10.0`, run 28109367603, 4 binaries).
+- Do NOT re-apply the dnp3 `parse_errors` rename (`total_parse_errors` → `parse_errors`) — already on develop and main via PR #313.
+- Do NOT re-open PC-013, PC-014, or PC-015 — all resolved (D-222/D-223/D-224/D-225).
+- Do NOT convert the 4 `arp.rs` `.expect()` sites to `if-let` — deliberately retained (D-223).
 - Do NOT re-run feature-mitre-json-names cycle — CLOSED (D-217). v0.9.4 released.
-- Do NOT re-apply the ICS tactic fix — MitreTactic already has 20 variants.
 
-### GROUND-TRUTH HEADs (verified at D-226 — 2026-06-24)
+### GROUND-TRUTH HEADs (verified D-227 — 2026-06-24)
 
-- **develop:** `ff4b82b` (develop back-merge after v0.10.0 release PR #315). Re-verify: `git rev-parse --short develop` == `ff4b82b`.
-- **main:** `0cbe922` — PR #315 merge commit (release v0.10.0); tag `v0.10.0` present.
-- **factory-artifacts:** run `git -C .factory log -1 --format='%h %s'` to verify current HEAD.
-- **Open PRs:** Dependabot #311 only (actions/checkout bump — unreviewed, non-blocking). Re-verify: `gh pr list`.
-- **Worktrees:** main repo (develop) + `.factory/` only. No story/fix/feature worktrees open.
+- **develop:** `ff4b82b` — back-merge after v0.10.0 release PR #315. Re-verify: `git rev-parse --short develop` == `ff4b82b`.
+- **main:** `0cbe922` — PR #315 merge commit (release v0.10.0); annotated tag `v0.10.0` present on this commit.
+- **factory-artifacts:** this D-227 checkpoint commit. Re-verify: `git -C .factory log -1 --format='%h %s'`.
+- **Open PRs:** Dependabot #311 only (actions/checkout 6.0.3→7.0.0 — unreviewed, non-blocking). Re-verify: `gh pr list`.
+- **Worktrees:** main repo (develop) + `.factory/` only. No story/fix/release worktrees open. Re-verify: `git worktree list`.
 
 ### RESUME PROCEDURE (execute in order)
 
 1. Run `vsdd-factory:factory-worktree-health` — BLOCKING. Do not proceed until PASS.
 2. Read `.factory/STATE.md` in full.
-3. Verify: `git rev-parse --short develop` == `ff4b82b` AND `git rev-parse --short main` == `0cbe922`.
+3. Verify: `git rev-parse --short develop` == `ff4b82b` AND `git rev-parse --short main` == `0cbe922` AND `git tag -l v0.10.0` shows the tag.
 4. Verify: `gh pr list` shows only Dependabot #311 (unreviewed).
-5. Verify: `git worktree list` shows only main repo + `.factory/` (no story/fix/feature worktrees).
+5. Verify: `git worktree list` shows only main repo + `.factory/` (no story/fix/release worktrees).
 6. Confirm both trees clean: `git status` (main repo) and `git -C .factory status`.
-7. Pipeline QUIESCED. No active cycle. Await human direction for next work item.
+7. Pipeline QUIESCED. No active cycle. Await human direction before starting new work.
 
 ### OPEN ITEMS (backlog — non-blocking, no active work)
 
 | ID | Summary | Status |
 |----|---------|--------|
-| DRIFT-UNCOMMITTED-TEST-EDITS-001 | [MEDIUM, process-gap]: F5 committed only src/mitre.rs; 3 test files were working-tree edits; CI caught on push. Engine policy candidate: convergence-clean-tree-guard. | DEFERRED MEDIUM |
-| DRIFT-BC-TEMPLATE-EC-VP-MAP-001 | [LOW, process-gap]: BC template EC table can have more rows than VP/test-name table. | DEFERRED LOW |
-| DRIFT-MITRE-SUBSET-COUNT-TESTS-001 | [LOW]: mitre/multitag dual-count subset tests (21/13 vs 25/17) — pre-existing cruft, no correctness impact. | DEFERRED LOW |
-| DRIFT-ARP-DEMO-FIXTURE-001 | [LOW]: No ARP pcap fixture; T0830→TA0100 unit-tested but not demoed live. | DEFERRED LOW |
+| DEPENDABOT-311 | Dependabot PR #311 (actions/checkout 6.0.3→7.0.0) open and unreviewed. | OPEN — human triage |
+| DEMO-TAPE-PATH-001 | Demo .tape scripts hardcode ephemeral worktree cd path — should reference stable path. DF-VALIDATION-001 required before GitHub issue. | BACKLOG — low |
+| DEMO-MEDIA-CHECKSUM-001 | Demo-evidence binary media lacks a SHA-256 checksum manifest. DF-VALIDATION-001 required before GitHub issue. | BACKLOG — low |
 | PO-BACKLOG-MAINT-2026-06-22 | DNP3/ARP/Modbus/finding-collapse holdout coverage gap + HS-064/075/090/098/108 staleness. Human scope decision needed. | OPEN — product-owner |
-| ADV-4 | ci.yml audit comment rationale lost (LOW). | DEFERRED LOW |
-| DRIFT-READER-ADR-CITATION-001 | reader.rs ADR citation numbers (LOW). | DEFERRED LOW |
+| DNS-TUNNELING-COVERAGE-001 | DNS analyzer statistics-only; tunneling detection is a human feature scope decision. | OPEN — human decision |
+| ISSUE-TRIAGE-OPEN-9 | 9 open GitHub issues triaged: keep-open #255/#252/#103/#101/#67/#63/#3; reframe-needed #6 (rayon obsolete) and #4 (narrow to SQLite — CSV shipped). | OPEN — product-owner |
+| STORY-121 | E-11 process-gap follow-ups. Open draft — human decision on scope. | OPEN DRAFT |
 | SEC-008 | Residual unbounded EPB accumulation on `from_pcap_reader` STREAM path (not CLI-reachable). DF-VALIDATION-001 required before GitHub issue. | DEFERRED — latent |
 | PERF-REASM-NFR-001 | Formal NFR/VP for reassembly per-packet CPU O(1) amortised. | BACKLOG |
-| DNS-TUNNELING-COVERAGE-001 | DNS analyzer statistics-only; tunneling detection is a human feature scope decision. | OPEN — human decision |
-| STORY-121 | E-11 process-gap follow-ups. Open draft — human decision on scope. | OPEN DRAFT |
 | INPUT-HASH-ERROR-PRESTORY | STORY-001/091/121 persistent ERROR from `bin/compute-input-hash --scan` (pre-existing). | BACKLOG |
 | INPUT-HASH-STALE | STORY-002..005/076..080/101/120 STALE (pre-existing). | BACKLOG |
 | ENGINE-IMPROVEMENT-BACKLOG | ~18 engine proposals pending human review, incl. pr-manager shortstop PAT-001; lessons.md Lessons 1 & 2 / policy candidates convergence-clean-tree-guard + magic-number-sweep-on-count-change. Pointer: `cycles/feature-mitre-json-names/session-review.md`. | BACKLOG — human review |
-| ISSUE-TRIAGE-OPEN-9 | 9 open GitHub issues triaged: keep-open #255/#252/#103/#101/#67/#63/#3; reframe-needed #6 (rayon obsolete) and #4 (narrow to SQLite — CSV shipped). | OPEN — product-owner |
-| DEMO-TAPE-PATH-001 | Demo .tape scripts hardcode ephemeral worktree cd path — should reference stable path. DF-VALIDATION-001 required before GitHub issue. | BACKLOG — low |
-| DEMO-MEDIA-CHECKSUM-001 | Demo-evidence binary media lacks a SHA-256 checksum manifest. DF-VALIDATION-001 required before GitHub issue. | BACKLOG — low |
-| DEPENDABOT-311 | Dependabot PR #311 (actions/checkout bump) open and unreviewed. | OPEN — human triage |
+| ADV-4 | ci.yml audit comment rationale lost (LOW). | DEFERRED LOW |
+| DRIFT-UNCOMMITTED-TEST-EDITS-001 | [MEDIUM, process-gap]: F5 committed only src/mitre.rs; 3 test files were working-tree edits; CI caught on push. | DEFERRED MEDIUM |
+| DRIFT-BC-TEMPLATE-EC-VP-MAP-001 | [LOW, process-gap]: BC template EC table can have more rows than VP/test-name table. | DEFERRED LOW |
+| DRIFT-MITRE-SUBSET-COUNT-TESTS-001 | [LOW]: mitre/multitag dual-count subset tests (21/13 vs 25/17) — pre-existing cruft, no correctness impact. | DEFERRED LOW |
+| DRIFT-ARP-DEMO-FIXTURE-001 | [LOW]: No ARP pcap fixture; T0830→TA0100 unit-tested but not demoed live. | DEFERRED LOW |
+| DRIFT-READER-ADR-CITATION-001 | reader.rs ADR citation numbers (LOW). | DEFERRED LOW |
 
-**Resolved — do not reopen:** PC-013 (D-224, spec correction D-223 + test-only PR #312), PC-014 (D-225, PR #313 merged develop f5c002a + PR #314 drift fix merged develop 2b348a1), PC-015 (D-222, PR #310), maint-2026-06-22, O-07, DEP-001/005, DOC-001..009, F-MAJ-001, CORPUS-OBS-PCAPNG-IFFCSLEN-001, decision-threads (a)/(b)/(c), PERF-REASM-DOS-001, all F6 items, feature-mitre-json-names F1-F7 (D-206..D-217). **SPEC VERSIONS (at D-226):** prd.md v1.35, nfr-catalog v2.4, VP-INDEX v2.10 (31/31), BC-INDEX v1.73 (305 BCs / 304 active), STORY-INDEX v2.7 (82/57/526 pts), BC-2.15.020 v1.4, BC-2.16.004 v1.10, BC-2.16.010 v1.8, BC-2.16.016 v1.0. MitreTactic: 20 variants.
+All GitHub-issue creation remains DF-VALIDATION-001-gated.
+
+**Resolved — do not reopen:** PC-013 (D-224, spec correction D-223 + test-only PR #312), PC-014 (D-225, PR #313 merged develop `f5c002a` + PR #314 drift fix merged develop `2b348a1`), PC-015 (D-222, PR #310), maint-2026-06-22, O-07, DEP-001/005, DOC-001..009, F-MAJ-001, CORPUS-OBS-PCAPNG-IFFCSLEN-001, decision-threads (a)/(b)/(c), PERF-REASM-DOS-001, all F6 items, feature-mitre-json-names F1-F7 (D-206..D-217).
 
 ---
 
@@ -161,7 +165,7 @@ D-055..D-130: `cycles/feature-collapse-v0.8.0/decisions-archive.md`
 D-131..D-135: `cycles/feature-story-119-grouped-collapse/decisions-archive.md`
 D-136..D-202: `cycles/feature-pcapng-reader/decisions-archive.md`
 D-206..D-217: `cycles/feature-mitre-json-names/decisions-archive.md`
-D-219..D-224: `cycles/fix-pc-013-014-015/decisions-archive.md`
+D-219..D-226: `cycles/fix-pc-013-014-015/decisions-archive.md`
 
 | ID | Decision | Date |
 |----|----------|------|
@@ -170,8 +174,9 @@ D-219..D-224: `cycles/fix-pc-013-014-015/decisions-archive.md`
 | D-205 | SAFE-TO-CLEAR checkpoint refreshed. main=2dbf461, develop=e4abbe2, PRs=0. Pipeline quiesced. | 2026-06-23 |
 | D-217 | v0.9.4 RELEASED. PR #309 → main 96b49e8; tag v0.9.4; run 28053327452 SUCCESS, 4 binaries. feature-mitre-json-names CLOSED. stories_delivered=78. | 2026-06-23 |
 | D-218 | SAFE-TO-CLEAR. feature-mitre-json-names CLOSED. develop=0115d0e, main=96b49e8, v0.9.4 released, 0 open PRs. | 2026-06-23 |
-| D-225 | PC-014 DELIVERED & MERGED. PR #313 `fix(dnp3)!: rename total_parse_errors -> parse_errors` merged develop `f5c002a` (BREAKING JSON change, human-approved D-220). Anchored BC-2.15.020 v1.4 → STORY-108 AC-010. CHANGELOG breaking entry + jq migration snippet. Post-merge consistency audit: CONSISTENT (7/7 core checks MATCH); 2 minor perimeter drifts found (DRIFT-1 demo evidence, DRIFT-2 stale comment). DRIFT fix PR #314 `chore(dnp3): resync STORY-108 demo evidence + test comment` merged develop `2b348a1`. Both AC-010/AC-011 demos re-recorded (VHS). DRIFT-1 + DRIFT-2 CLOSED. | 2026-06-24 |
-| D-226 | v0.10.0 RELEASED. PR #315 merged main `0cbe922`; annotated tag `v0.10.0` (tag obj 92216e5); release.yml run `28109367603` SUCCESS, 4 binaries published; develop back-merged `ff4b82b`. Minor bump (breaking PC-014 in 0.x => minor). Cycle `fix-pc-013-014-015` CONVERGED + RELEASED + CLOSED. All 3 fixes delivered: PC-015 (#310 D-222), PC-013 (#312 + spec D-223, D-224), PC-014 (#313 D-225). Evidence resync #314. Pipeline returns to STEADY-STATE / QUIESCED. Lessons recorded: cycles/fix-pc-013-014-015/lessons.md (2 lessons, no follow-up story required, S-7.02 satisfied). | 2026-06-24 |
+| D-225 | PC-014 DELIVERED & MERGED. PR #313 `fix(dnp3)!: rename total_parse_errors -> parse_errors` merged develop `f5c002a` (BREAKING JSON change, human-approved D-220). Anchored BC-2.15.020 v1.4 → STORY-108 AC-010. CHANGELOG breaking entry + jq migration snippet. Post-merge consistency audit: CONSISTENT (7/7 core checks MATCH). DRIFT fix PR #314 `chore(dnp3): resync STORY-108 demo evidence + test comment` merged develop `2b348a1`. Both AC-010/AC-011 demos re-recorded (VHS). DRIFT-1 + DRIFT-2 CLOSED. | 2026-06-24 |
+| D-226 | v0.10.0 RELEASED. PR #315 merged main `0cbe922`; annotated tag `v0.10.0` (tag obj 92216e5); release.yml run `28109367603` SUCCESS, 4 binaries; develop back-merged `ff4b82b`. Cycle `fix-pc-013-014-015` CONVERGED + RELEASED + CLOSED. All 3 fixes: PC-015 (#310), PC-013 (#312 + spec D-223), PC-014 (#313). Lessons: cycles/fix-pc-013-014-015/lessons.md (S-7.02 satisfied). | 2026-06-24 |
+| D-227 | SAFE-TO-CLEAR checkpoint written. Session that delivered fix-pc-013-014-015 bundle (PC-013/014/015) + released v0.10.0 is COMPLETE and CLOSED. Safe to clear the session. Factory-artifacts durability commit: cycle artifacts (code-delivery/STORY-108/pr-review.md, code-delivery/fix-pc-013-014-015/pr-description.md + review-findings.md, code-delivery/release-0.10.0/pr-description.md) committed to factory-artifacts. | 2026-06-24 |
 
 ## Governance Policy
 
@@ -183,5 +188,5 @@ Full policy text: `.factory/policies.yaml`. Active policies (17): DF-VALIDATION-
 - Artifact pointers: Phase 0 `.factory/semport/wirerust/wirerust-pass-8-deep-synthesis.md`; wave history `cycles/phase-3-tdd/convergence-trajectory.md`.
 - Issues: #104/#102/#64 CLOSED; all actions SHA-pinned; dtolnay/rust-toolchain @stable/@nightly exempted.
 - STORY-INDEX.md authoritative (82 stories / 57 waves / 526 pts — v2.7).
-- Cycle artifacts: `cycles/fix-pc-013-014-015/` (decisions-archive.md D-219..D-224, lessons.md S-7.02).
+- Cycle artifacts: `cycles/fix-pc-013-014-015/` (decisions-archive.md D-219..D-226, lessons.md S-7.02).
 - Prior cycle artifacts: `cycles/feature-mitre-json-names/` (decisions-archive.md D-206..D-217, cycle-manifest.md, lessons.md, session-review.md).
