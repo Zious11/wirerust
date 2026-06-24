@@ -52,8 +52,12 @@ If the stash would exceed 600 bytes, `flow.is_non_enip` is set to `true` and
 **Frame walk loop:**
 1. While `buf.len() - cursor >= 24`:
    - Parse header at `buf[cursor..cursor+24]` (BC-2.17.001/002).
-   - If `!is_valid_enip_frame(&header)`: `flow.parse_errors += 1`; `flow.malformed_in_window += 1`; `cursor += 1`; continue.
-   - If `buf.len() - cursor < 24 + header.length`: stash `buf[cursor..]` into carry; apply cap check; break.
+   - If `!is_valid_enip_frame(&header)`: `flow.parse_errors += 1`; `flow.malformed_in_window += 1`; `cursor += 1`; continue (byte-walk resync).
+   - **Frame-skip path (oversized declared frame)**: if `24 + header.length as usize > MAX_ENIP_CARRY_BYTES` (600):
+     - `flow.parse_errors += 1`; `flow.malformed_in_window += 1`.
+     - Advance cursor: `cursor += min(24 + header.length as usize, buf.len() - cursor)` (bounded by remaining buffer).
+     - Continue the walk. Do NOT set `is_non_enip`. Do NOT stash into carry.
+   - If `buf.len() - cursor < 24 + header.length as usize` (partial frame in buffer): stash `buf[cursor..]` into carry; apply cap check; break.
    - Otherwise: call `process_pdu(&buf[cursor..cursor+24+header.length], ...)`.
    - `cursor += 24 + header.length`.
 2. If `buf.len() - cursor < 24` (partial header): stash `buf[cursor..]` into carry.
@@ -77,8 +81,13 @@ If the stash would exceed 600 bytes, `flow.is_non_enip` is set to `true` and
    the lifetime counter reported by `summarize()`.
 3. **malformed_in_window is windowed**: `flow.malformed_in_window` is incremented in parallel
    with `parse_errors` on every structural reject. It is reset at window expiry (BC-2.17.018).
-4. **is_non_enip is permanent**: once set to `true`, `is_non_enip` is never cleared. The flow
-   is permanently treated as non-ENIP. This mirrors the DNP3 `is_non_dnp3` pattern.
+4. **is_non_enip latches ONLY on carry-buffer overflow**: `is_non_enip` is set to `true`
+   exclusively when `flow.carry.len() > MAX_ENIP_CARRY_BYTES` after a stash. It is NOT set
+   when a single frame's declared `header.length` implies `total_frame_len > MAX_ENIP_CARRY_BYTES`
+   (600). An oversized declared frame is handled by the frame-skip path (Postcondition 1 body:
+   `parse_errors += 1; malformed_in_window += 1; cursor advances past the declared frame,
+   bounded by buf.len(); continue`). Once set to `true`, `is_non_enip` is never cleared.
+   This mirrors the DNP3 `is_non_dnp3` pattern.
 5. **Cursor arithmetic is valid**: all slice indices in the frame-walk loop are bounds-checked
    before access. The cursor is never advanced past `buf.len()`.
 
@@ -93,6 +102,8 @@ If the stash would exceed 600 bytes, `flow.is_non_enip` is set to `true` and
 | EC-005 | is_non_enip already true when on_data called | Immediate no-op; no parse, no counter update |
 | EC-006 | Large ENIP payload (`header.length = 600 - 24 = 576 bytes`) fills carry exactly | Carry = 600 bytes; cap not exceeded; complete frame arrives on next on_data and is processed |
 | EC-007 | Invalid ENIP header (command not in known set): byte-advance by 1 | `parse_errors++`; `malformed_in_window++`; cursor advances by 1 (byte-walk resync) |
+| EC-008 | Valid ENIP header with `header.length = 600` (total_frame = 624 > MAX_ENIP_CARRY_BYTES=600) | Frame-skip: `parse_errors++`; `malformed_in_window++`; cursor advances by `min(624, buf.len()-cursor)`; continue walk; `is_non_enip` NOT set |
+| EC-009 | Two complete ENIP frames in one `on_data` call (buf = frame1 + frame2, each 28 bytes) | Both frames processed in the same frame-walk iteration: `process_pdu` called twice; `pdu_count += 2`; carry = empty after loop |
 
 ## Canonical Test Vectors
 
@@ -102,6 +113,8 @@ If the stash would exceed 600 bytes, `flow.is_non_enip` is set to `true` and
 | Complete frame (600 bytes total, header.length=576) | 0 bytes | 600 bytes | 0 bytes | false |
 | Partial frame stash grows from 580 to 601 bytes | 580 bytes | 21 bytes | cap triggered | true |
 | `is_non_enip=true` on entry | any | any | unchanged | true (no-op) |
+| Oversized declared frame (header.length=600; total=624) in buffer of 624 bytes | 0 bytes | 624 bytes | 0 bytes (cursor advanced 624) | false (frame-skip, not overflow) |
+| Two complete frames (28 bytes each) in one on_data call | 0 bytes | 56 bytes | 0 bytes (both processed) | false |
 
 ## Verification Properties
 

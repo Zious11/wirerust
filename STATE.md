@@ -1,7 +1,7 @@
 ---
 pipeline: FEATURE-MODE
 phase: F2
-phase_status: "D-229. feature-enip-v0.11.0 OPEN. F1 PASSED. F2 spec content COMPLETE (24 BCs, ADR-010, VP-032). Scope refined: UDP/2222 deferred v0.12.0. Pending: consistency audit + adversarial spec convergence + F2 gate."
+phase_status: "F2 adversary convergence in progress (Pass 1 FAIL remediated; Pass 2 running). BC count 329→330 (BC-2.17.025 session-handshake added). BC-INDEX v1.75. Two pending-human-confirm values: write-burst default=50, ERROR_BURST=5. Awaiting Pass 2 verdict + F2 human gate."
 product: wirerust
 mode: feature-mode
 timestamp: 2026-06-24T12:00:00Z
@@ -70,7 +70,7 @@ convergence_trajectory: "Detail: cycles/v0.1.0-greenfield-spec/convergence-traje
 
 ## Status
 
-**PIPELINE FEATURE-MODE. Cycle `feature-enip-v0.11.0` OPEN (D-229, 2026-06-24). F1 PASSED. F2 spec content COMPLETE — 24 BCs (BC-2.17.001..024), ADR-010, VP-032, BC-INDEX v1.74 (329/328 active). Scope refined: UDP/2222 deferred to v0.12.0 (D-229). Next: consistency audit + adversarial spec convergence + F2 human gate.**
+**PIPELINE FEATURE-MODE. Cycle `feature-enip-v0.11.0` OPEN. F1 PASSED. F2 adversarial Pass 1 FAIL REMEDIATED (2026-06-24): LE endianness fixed, CIP segment-mask corrected, T0846 emitted per PRD reconcile, frame-skip soundness improved, session-handshake BC-2.17.025 added. BC-INDEX v1.75 (330 total / 329 active). Two pending-human-confirm: write-burst default=50, ERROR_BURST=5. Pass 2 running. Awaiting Pass 2 verdict + F2 human gate.**
 
 Latest release: v0.10.0 (main `0cbe922`, tag `v0.10.0`, 4 binaries, run 28109367603). develop=`ff4b82b`. stories_delivered=78. Target: v0.11.0 (SS-17 EtherNet/IP + CIP TCP/44818). GitHub issue #316.
 
@@ -155,7 +155,7 @@ All GitHub-issue creation remains DF-VALIDATION-001-gated.
 | Maintenance maint-2026-06-22 | COMPLETE 2026-06-23 | 38 observations; 0 blocking; F-MAJ-001 fixed (a6efb23); PR #304 (e458ce2) + PR #305 (e4abbe2). |
 | Feature mitre-json-names (issue #64) + v0.9.4 | RELEASED + CLOSED 2026-06-23 (D-217) | F1-F7 CONVERGED. 5 BCs bumped. BC-INDEX v1.71 (303 BCs). PRs #306/307/308/309. tag v0.9.4 96b49e8. 4 binaries. stories_delivered=78. |
 | Fix cycle fix-pc-013-014-015 + v0.10.0 | **CONVERGED + RELEASED + CLOSED 2026-06-24 (D-226)** | All 3 fixes: PC-015 (#310), PC-013 (#312 + spec D-223), PC-014 (#313 breaking rename + CHANGELOG). Evidence resync #314. v0.10.0: PR #315 → main 0cbe922, tag v0.10.0, 4 binaries, run 28109367603. develop back-merged ff4b82b. BC-INDEX v1.73 (305 BCs / 304 active). |
-| Feature EtherNet/IP + CIP (issue #316) — v0.11.0 | **F2 SPEC-CONTENT COMPLETE (D-229)** | Scope: TCP/44818 + CIP ForwardOpen (TCP). UDP/2222 deferred v0.12.0 (D-229, ADR-010 D5). 24 BCs BC-2.17.001..024; BC-INDEX v1.74 (329/328 active); ADR-010; VP-032; ARCH-INDEX v1.7; VP-INDEX v2.11 (32 VPs); PRD v1.36; CAP-17. OA-001 open. Pending: consistency+adversarial+F2 gate. Detail: cycles/feature-enip-v0.11.0/ |
+| Feature EtherNet/IP + CIP (issue #316) — v0.11.0 | **F2 ADVERSARIAL CONVERGENCE IN PROGRESS** | Pass 1 FAIL remediated (2026-06-24): LE endianness, CIP segment-mask, T0846 PRD reconcile, frame-skip soundness, session-handshake BC-2.17.025. BC-INDEX v1.75 (330/329 active). Two pending-human-confirm: write-burst default=50, ERROR_BURST=5. Pass 2 running. Detail: cycles/feature-enip-v0.11.0/ |
 
 ## Decisions Log
 

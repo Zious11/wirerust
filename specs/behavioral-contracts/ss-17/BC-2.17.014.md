@@ -53,7 +53,7 @@ error burst threshold is exceeded (one-shot guard via `error_rate_emitted`).
 
 **Pattern B (error-rate burst):**
 1. `flow.error_counts_in_window` total count across all status codes exceeds
-   `ENIP_ERROR_BURST_THRESHOLD` (proposed: 5 distinct error responses within 10s).
+   `ENIP_ERROR_BURST_THRESHOLD` (= 5; 5 error responses within 10s).
 2. `flow.error_rate_emitted == false`.
 3. `flow.is_non_enip == false`.
 4. `self.all_findings.len() < MAX_FINDINGS`.
@@ -88,9 +88,10 @@ error burst threshold is exceeded (one-shot guard via `error_rate_emitted`).
 2. **Pattern A is per-occurrence; Pattern B is windowed one-shot**: Identity reads are
    always individually significant (direct device profiling). Error bursts require
    accumulation before the finding fires.
-3. **Error burst threshold**: `ENIP_ERROR_BURST_THRESHOLD` is the total count of error
-   responses (any non-zero general_status) within 10 seconds. Proposed: 5. Operators with
-   noisy SCADA systems may raise this to reduce false positives. [OA-005: human to confirm]
+3. **Error burst threshold**: named constant `ENIP_ERROR_BURST_THRESHOLD = 5` — the total
+   count of CIP error responses (any non-zero general_status) within 10 seconds that triggers
+   Pattern B. Operators with noisy SCADA systems may raise this to reduce false positives.
+   [MEDIUM-confidence, un-calibrated; ref O-03; defined in ADR-010 Open Items]
 4. **Distinct from T0846**: T0888 is single-device profiling; T0846 is network enumeration
    (ListIdentity). These are complementary and independent.
 
@@ -160,6 +161,7 @@ Expected Pattern B: T0888 Possible/Medium
 ## Architecture Anchors
 
 - `src/analyzer/enip.rs` — Pattern A: `if matches!(service_class, CipServiceClass::GetAttributeSingle | ...) && path_contains_identity_class { /* emit T0888 */ }`
+- `src/analyzer/enip.rs` — `const ENIP_ERROR_BURST_THRESHOLD: u64 = 5;`
 - `src/analyzer/enip.rs` — Pattern B: `if total_error_count > ENIP_ERROR_BURST_THRESHOLD && !flow.error_rate_emitted { /* emit T0888 */ flow.error_rate_emitted = true; }`
 - `src/analyzer/enip.rs` — `EnipFlowState.error_rate_emitted: bool`
 - `src/mitre.rs` — `technique_info("T0888")` arm (existing)

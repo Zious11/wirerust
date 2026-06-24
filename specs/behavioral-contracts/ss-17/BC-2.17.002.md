@@ -28,47 +28,47 @@ inputs:
 input-hash: TBD
 ---
 
-# BC-2.17.002: EnipHeader Field Contracts — Fixed Big-Endian Offsets for 24-Byte Input
+# BC-2.17.002: EnipHeader Field Contracts — Fixed Little-Endian Offsets for 24-Byte Input
 
 ## Description
 
 `parse_enip_header(data: &[u8]) -> Option<EnipHeader>` returns `Some(EnipHeader{...})` when
 `data.len() >= 24`. All 10 struct fields are decoded from fixed, non-overlapping byte offsets
-using big-endian byte order (per ODVA specification) except for `sender_context`, which is an
-opaque 8-byte copy. The field layout is: command (2 BE, bytes 0–1), length (2 BE, bytes 2–3),
-session_handle (4 BE, bytes 4–7), status (4 BE, bytes 8–11), sender_context (8 opaque, bytes
-12–19), options (4 BE, bytes 20–23). This is the accept-path contract; the reject path for
-short inputs is BC-2.17.001.
+using little-endian byte order (per ODVA EtherNet/IP specification) except for
+`sender_context`, which is an opaque 8-byte copy. The field layout is: command (2 LE, bytes
+0–1), length (2 LE, bytes 2–3), session_handle (4 LE, bytes 4–7), status (4 LE, bytes 8–11),
+sender_context (8 opaque, bytes 12–19), options (4 LE, bytes 20–23). This is the accept-path
+contract; the reject path for short inputs is BC-2.17.001.
 
 ## Preconditions
 
 1. `data` is a `&[u8]` slice of reassembled TCP bytes from `StreamHandler::on_data`.
 2. `data.len() >= 24` — at least one complete ENIP encapsulation header is present.
-3. No alignment assumptions are required: all fields use explicit `u16::from_be_bytes` /
-   `u32::from_be_bytes` / array copy — host endianness is irrelevant.
+3. No alignment assumptions are required: all fields use explicit `u16::from_le_bytes` /
+   `u32::from_le_bytes` / array copy — host endianness is irrelevant.
 
 ## Postconditions
 
 1. `parse_enip_header(data)` returns `Some(EnipHeader{...})`.
-2. `EnipHeader.command        = u16::from_be_bytes([data[0], data[1]])` — ENIP command code.
-3. `EnipHeader.length         = u16::from_be_bytes([data[2], data[3]])` — payload byte count
+2. `EnipHeader.command        = u16::from_le_bytes([data[0], data[1]])` — ENIP command code.
+3. `EnipHeader.length         = u16::from_le_bytes([data[2], data[3]])` — payload byte count
    after the 24-byte header (max 65,511 due to TCP framing; the u16 field allows 65,535).
-4. `EnipHeader.session_handle = u32::from_be_bytes([data[4], data[5], data[6], data[7]])` —
+4. `EnipHeader.session_handle = u32::from_le_bytes([data[4], data[5], data[6], data[7]])` —
    session handle (0 for commands that do not require a registered session).
-5. `EnipHeader.status         = u32::from_be_bytes([data[8], data[9], data[10], data[11]])` —
+5. `EnipHeader.status         = u32::from_le_bytes([data[8], data[9], data[10], data[11]])` —
    encapsulation status (0x00000000 = success; non-zero = error response).
 6. `EnipHeader.sender_context = [data[12], data[13], data[14], data[15], data[16], data[17],
    data[18], data[19]]` — 8-byte opaque context (copied verbatim; not decoded).
-7. `EnipHeader.options        = u32::from_be_bytes([data[20], data[21], data[22], data[23]])` —
+7. `EnipHeader.options        = u32::from_le_bytes([data[20], data[21], data[22], data[23]])` —
    options field (must be 0x00000000 in standard implementations).
 8. Bytes beyond index 23 are not read by this function (the frame-walk loop handles them).
 9. The function is pure: no I/O, no state mutation, no panics for any input.
 
 ## Invariants
 
-1. **Big-endian ENIP header**: all multi-byte fields in the ENIP encapsulation header are
-   big-endian per ODVA. CPF items (parsed separately) use little-endian — this function
-   never touches CPF. [SPEC: ADR-010 Decision 2]
+1. **Little-endian ENIP header**: all multi-byte fields in the ENIP encapsulation header are
+   little-endian per ODVA EtherNet/IP specification. CPF items (parsed separately) also use
+   little-endian — both layers are LE. [SPEC: ADR-010 Decision 2]
 2. **Fixed offsets**: byte offsets 0–23 are normative ODVA. They do not vary with command
    type, session state, or payload content. The parse is unconditional over all 24 bytes.
 3. **sender_context is opaque**: the 8-byte sender_context field is copied verbatim as
@@ -96,29 +96,30 @@ short inputs is BC-2.17.001.
 | Input bytes [0..23] (hex) | Expected `EnipHeader` fields | Category |
 |---------------------------|------------------------------|---------|
 | `65 00 04 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00` | command=0x0065, length=4, session=0, status=0, context=[0×8], options=0 | ListIdentity response header |
-| `6F 00 20 00 01 02 03 04 00 00 00 00 AA BB CC DD EE FF 00 11 00 00 00 00` | command=0x006F, length=32, session=0x01020304, status=0, context=[AA BB CC DD EE FF 00 11], options=0 | SendRRData with session |
+| `6F 00 20 00 04 03 02 01 00 00 00 00 AA BB CC DD EE FF 00 11 00 00 00 00` | command=0x006F, length=32, session=0x01020304, status=0, context=[AA BB CC DD EE FF 00 11], options=0 | SendRRData with session (LE: bytes 4–7 = 04 03 02 01 → 0x01020304) |
 | `64 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00` | command=0x0064, length=0, session=0, status=0, context=[0×8], options=0 | ListInterfaces command (zero payload) |
 | `FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF` | command=0xFFFF, length=0xFFFF, session=0xFFFFFFFF, status=0xFFFFFFFF, context=[FF×8], options=0xFFFFFFFF | all-0xFF: Some returned; validity gate rejects (unknown command) |
 
-**Annotated SendRRData vector breakdown:**
+**Annotated SendRRData vector breakdown (little-endian):**
 ```
-Bytes:  6F 00  20 00  01 02 03 04  00 00 00 00  AA BB CC DD EE FF 00 11  00 00 00 00
-Field:  CMD(BE) LEN(BE) SESSION_HANDLE(BE)  STATUS(BE)  SENDER_CONTEXT(8 bytes)  OPTIONS(BE)
+Bytes:  6F 00  20 00  04 03 02 01  00 00 00 00  AA BB CC DD EE FF 00 11  00 00 00 00
+Field:  CMD(LE) LEN(LE) SESSION_HANDLE(LE)  STATUS(LE)  SENDER_CONTEXT(8 bytes)  OPTIONS(LE)
 Value:  0x006F  32      0x01020304           0            [AA..11]                 0
+Note:   bytes[4..8] = [04,03,02,01] → u32::from_le_bytes = 0x01020304
 ```
 
 ## Verification Properties
 
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| VP-032 | Sub-A: `parse_enip_header` returns `Some` for `len >= 24`; `h.command == u16::from_be_bytes([data[0], data[1]])`; `h.length == u16::from_be_bytes([data[2], data[3]])`; `h.status == u32::from_be_bytes([data[8..12]])`; no out-of-bounds for any symbolic 48-byte input | Kani: symbolic `[u8; 48]`, `len ∈ [24, 48]`; asserts all field equalities |
+| VP-032 | Sub-A: `parse_enip_header` returns `Some` for `len >= 24`; `h.command == u16::from_le_bytes([data[0], data[1]])`; `h.length == u16::from_le_bytes([data[2], data[3]])`; `h.status == u32::from_le_bytes([data[8..12]])`; no out-of-bounds for any symbolic 48-byte input | Kani: symbolic `[u8; 48]`, `len ∈ [24, 48]`; asserts all field equalities |
 
 ## Traceability
 
 | Field | Value |
 |-------|-------|
 | L2 Capability | CAP-17 ("EtherNet/IP + CIP Analysis") per ARCH-INDEX.md §SS-17 |
-| Capability Anchor Justification | CAP-17 ("EtherNet/IP + CIP Analysis") per ARCH-INDEX.md §SS-17 — this BC specifies the accept-path field contract for the ENIP encapsulation header decoder; correct big-endian field extraction is required for all subsequent CIP command classification, CPF parsing, and MITRE detection |
+| Capability Anchor Justification | CAP-17 ("EtherNet/IP + CIP Analysis") per ARCH-INDEX.md §SS-17 — this BC specifies the accept-path field contract for the ENIP encapsulation header decoder; correct little-endian field extraction is required for all subsequent CIP command classification, CPF parsing, and MITRE detection |
 | L2 Domain Invariants | INV-2 (Content-First Dispatch Precedence — ENIP flows are only routed after TLS/HTTP content rules fail) |
 | Architecture Module | SS-17 (analyzer/enip.rs); ADR-010 Decision 2 |
 | Stories | (TBD — story-writer assigns in F3) |
@@ -152,7 +153,7 @@ Value:  0x006F  32      0x01020304           0            [AA..11]              
 | Property | Value |
 |----------|-------|
 | **Path** | ADR-010 Decision 2 (parse_enip_header pseudocode and field offsets); ODVA EtherNet/IP Specification Table 2-4 (encapsulation header layout); VP-032 Sub-A skeleton |
-| **Confidence** | high — field offsets and big-endian byte order are normative ODVA EtherNet/IP specification; confirmed by Wireshark packet-enip.c dissector |
+| **Confidence** | high — field offsets and little-endian byte order are normative ODVA EtherNet/IP specification; confirmed by Wireshark packet-enip.c dissector |
 | **Extraction Date** | 2026-06-24 |
 
 ## Purity Classification

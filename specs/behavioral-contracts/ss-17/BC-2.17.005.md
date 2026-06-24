@@ -34,7 +34,7 @@ input-hash: TBD
 
 `parse_cpf_items(payload: &[u8]) -> Vec<CpfItem>` parses the Common Packet Format item list
 from the payload of `SendRRData` (0x006F) or `SendUnitData` (0x0070) frames. CPF uses
-little-endian byte order (unlike the ENIP encapsulation header which uses big-endian). The
+little-endian byte order (both CPF and the ENIP encapsulation header are little-endian). The
 function reads a 2-byte LE item_count, then iterates over item_count items, each preceded by
 a 4-byte LE item header (type_id 2 LE + item_length 2 LE). Iteration terminates early on any
 bounds violation — the item count declared in the CPF header cannot exceed what the actual
@@ -69,7 +69,8 @@ payload bytes support. The function never panics and never reads out of bounds.
 ## Invariants
 
 1. **CPF is little-endian**: item_count, type_id, and item_length are all read with
-   `u16::from_le_bytes`. Big-endian reads would produce incorrect item structures.
+   `u16::from_le_bytes`. Both CPF and the ENIP encapsulation header use little-endian byte
+   order per ODVA EtherNet/IP Specification.
    [SPEC: ODVA EtherNet/IP Specification §2-6.1; ADR-010 Decision 2]
 2. **Early-break on bounds violation**: the iteration terminates without panic whenever a
    bounds check fails. Partial results (items parsed before the violation) are returned.
@@ -79,10 +80,11 @@ payload bytes support. The function never panics and never reads out of bounds.
    `MAX_ENIP_CARRY_BYTES = 600` payload is bounded by `(600 - 2) / 4 = 149` (all items
    zero-length). In practice, connected-data items have non-zero length, further limiting
    the count.
-4. **Recognized type_ids**: `0x00B1` (Connected Data Item) and `0x00B2` (Unconnected Data
-   Item) are the CIP payload carriers. Other type_ids (NullAddressItem 0x0000,
-   ConnectedAddressItem 0x00A1, etc.) are parsed but their data is not further inspected at
-   this layer. The caller (`process_pdu`) dispatches on type_id.
+4. **Recognized type_ids**: `{0x0000 NullAddressItem, 0x00A1 ConnectedAddressItem,
+   0x00B1 ConnectedData, 0x00B2 UnconnectedData}` — all four are parsed and included in
+   the result. `0x00B1` and `0x00B2` are the CIP payload carriers. All other type_id values
+   are unrecognized: parsed into a CpfItem with their data bytes, but the caller
+   (`process_pdu`) dispatches only on the four recognized type_ids.
 5. **Cursor arithmetic**: cursor advances by exactly `4 + item.length` per item. No
    attacker-controlled value is used as a slice index beyond the bounds check.
 
@@ -93,8 +95,8 @@ payload bytes support. The function never panics and never reads out of bounds.
 | EC-001 | `payload.len() == 0` | Returns `vec![]` (cannot read item_count) |
 | EC-002 | `payload.len() == 1` | Returns `vec![]` (cannot read 2-byte item_count) |
 | EC-003 | `payload.len() == 2`, `item_count == 0` | Returns `vec![]` (no items declared) |
-| EC-004 | `item_count == 0xFFFF` with 8-byte payload | Declares 65535 items but only 1 complete item fits (6 bytes for item header + zero data + 2 for count); iteration breaks after first-or-zero items; no panic |
-| EC-005 | Valid `SendRRData` with 2 CPF items (NullAddressItem + UnconnectedData) | Returns `vec![CpfItem{0x0000, []}, CpfItem{0x00B2, <cip-data>}]` |
+| EC-004 | `item_count == 0xFFFF` with 8-byte payload | Payload: `[FF FF  <4-byte item header for one zero-length item>]` — 2 bytes count + 4 bytes item = 6 bytes total (+ 2 spare = 8). Exactly 1 item parsed: `CpfItem{type_id: from those 4 bytes, data: []}`. Iteration breaks at item 2 (cursor would need 8 more bytes; only 2 remain). Returns `vec![CpfItem{...}]`; no panic. |
+| EC-005 | Valid `SendRRData` with 2 CPF items (NullAddressItem + UnconnectedData, 16-byte CIP payload) | Returns `vec![CpfItem{type_id:0x0000, data:[]}, CpfItem{type_id:0x00B2, data:[16 bytes]}]` — item_count=2, NullAddr length=0, UnconnectedData length=16 |
 | EC-006 | `item.length` value would exceed remaining payload | Iteration breaks at that item; earlier items still returned |
 | EC-007 | `type_id == 0x00B1` (Connected Data Item) | Item included in result with its data slice; caller dispatches for CIP parse |
 | EC-008 | `type_id == 0x00B2` (Unconnected Data Item) | Item included in result with its data slice; caller dispatches for CIP parse |
@@ -116,11 +118,11 @@ Payload (hex): 05                      // only 1 byte — cannot read LE u16
 ```
 Expected: `vec![]`
 
-**Giant declared item_count with tiny payload:**
+**Giant declared item_count with tiny payload (matches EC-004):**
 ```
-Payload (hex): FF FF  00 00  00 00     // item_count=65535, one 4-byte item header (zero-length item)
+Payload (hex): FF FF  00 00  00 00  00 00  // item_count=65535 (LE), item[0]: type=0x0000 (NullAddr), length=0, 2 spare bytes
 ```
-Expected: `vec![CpfItem{type_id:0x0000, data:[]}]` (one item parsed; break at item 2 due to payload exhaustion)
+Expected: `vec![CpfItem{type_id:0x0000, data:[]}]` — exactly 1 item parsed (cursor advances by 4 to byte 6; only 2 bytes remain, < 4 needed for next item header → break)
 
 | Payload content | item_count LE | Expected result | Notes |
 |----------------|---------------|----------------|-------|

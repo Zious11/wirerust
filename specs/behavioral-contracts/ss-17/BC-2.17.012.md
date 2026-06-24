@@ -45,7 +45,10 @@ thresholds, or configuration parameters.
 
 1. `classify_cip_service(cip_header.service)` returns `CipServiceClass::SetAttributesAll`,
    `CipServiceClass::SetAttributeList`, or `CipServiceClass::SetAttributeSingle`.
-2. `cip_header.service & 0x80 == 0` (request, not response).
+2. `cip_header.service & 0x80 == 0` (REQUEST only — high bit clear). CIP responses
+   (`service & 0x80 != 0`) are filtered out BEFORE this counter is incremented. Only
+   requests increment `write_count_in_window`; this correctly handles interleaved
+   request/response frames in the stream.
 3. `flow.is_non_enip == false`.
 4. `self.all_findings.len() < MAX_FINDINGS`.
 
@@ -83,8 +86,10 @@ thresholds, or configuration parameters.
    service codes contribute to this counter.
 2. **1-second window**: distinct from the 10-second error-rate window (BC-2.17.008). Write
    bursts are high-frequency in attacks; a 1-second window tightly bounds the detection.
-3. **Default threshold**: `enip_write_burst_threshold` default = 20 (set by CLI flag
-   `--enip-write-burst-threshold`, BC-2.17.023). [OA-001: human to confirm; 20 matches Modbus]
+3. **Default threshold**: `enip_write_burst_threshold` default = 50 (set by CLI flag
+   `--enip-write-burst-threshold`, BC-2.17.023). [MEDIUM-confidence, un-calibrated; ref O-03;
+   human to confirm at F2 gate — 50 is the proposed value based on typical CIP write traffic
+   in manufacturing environments being higher-frequency than Modbus]
 4. **T0836 is the correct v19.1 technique** [MITRE: enip-mitre-ics-tagging.md §5]:
    T0836 "Modify Parameter" (ICS Impair Process Control, TA0105). Already seeded in
    `src/mitre.rs`; no new catalog entry required.
@@ -107,17 +112,18 @@ thresholds, or configuration parameters.
 
 | Scenario | Threshold | write_count_in_window | Finding emitted? |
 |----------|-----------|----------------------|-----------------|
-| 20 SetAttributeSingle (1s window, threshold=20) | 20 | 20 | No (count=20, 20 > 20 = false) |
-| 21 SetAttributeSingle | 20 | 21 | Yes — T0836, Likely/Medium |
-| 21 writes then 5 more (same window) | 20 | 26 | One finding at count=21; none for 22–26 (guard) |
-| 21 writes in window 1, 21 in window 2 | 20 | 21 (each) | Two findings — one per window |
+| 50 SetAttributeSingle (1s window, threshold=50) | 50 | 50 | No (count=50, 50 > 50 = false) |
+| 51 SetAttributeSingle | 50 | 51 | Yes — T0836, Likely/Medium |
+| 51 writes then 5 more (same window) | 50 | 56 | One finding at count=51; none for 52–56 (guard) |
+| 51 writes in window 1, 51 in window 2 | 50 | 51 (each) | Two findings — one per window |
+| 30 requests + 20 responses interleaved (1s window, threshold=50) | 50 | 30 | No (responses filtered; only 30 requests counted) |
 
 **CIP SetAttributeSingle byte-level vector:**
 ```
 ENIP cmd: 0x006F (SendRRData)
 CIP item: type_id=0x00B2, service=0x10 (SetAttributeSingle), path=[Class 0x04, Instance 1, Attr 3]
 ```
-Expected at count=21 (threshold=20): T0836 finding emitted.
+Expected at count=51 (threshold=50): T0836 finding emitted.
 
 ## Verification Properties
 
@@ -167,7 +173,7 @@ Expected at count=21 (threshold=20): T0836 finding emitted.
 | Property | Value |
 |----------|-------|
 | **Path** | ADR-010 Decision 4 (write window fields), Decision 9 (threshold flag); enip-mitre-ics-tagging.md §5 (T0836 SetAttribute primary mapping); src/mitre.rs (T0836 existing seeded) |
-| **Confidence** | high for T0836 mapping; medium for 20/1s default threshold [OA-001: human to confirm] |
+| **Confidence** | high for T0836 mapping; MEDIUM for 50/1s default threshold [un-calibrated, ref O-03; human to confirm at F2 gate] |
 | **Extraction Date** | 2026-06-24 |
 
 ## Purity Classification

@@ -148,6 +148,31 @@ the single authoritative ICS tactic per the project's existing convention (cf. t
 `MitreTactic` variant (e.g. an ICS Execution / ICS Persistence / ICS Evasion variant) — this is a
 VP-007 atomic-obligation consideration, flagged here for the spec-evolution (F2) work.
 
+## ADR-010 F2 Adversarial Pass-1 Addition (F-ENIP-006, 2026-06-24)
+
+**T0814 (Denial of Service) — ENIP malformed-frame → T0814 mapping validated:**
+
+T0814 is a live, non-revoked ATT&CK for ICS v19.1 technique under tactic Inhibit Response
+Function (TA0107). Its description covers adversary-caused loss of availability through
+denial-of-service conditions on ICS targets, including resource exhaustion and crash probes.
+
+ENIP-to-T0814 mapping rationale: a sustained burst of structurally invalid ENIP frames
+(frames that pass port-44818 routing but fail `is_valid_enip_frame` — i.e., the command
+field does not belong to the recognized command set) is consistent with a crash-probe or
+resource-exhaustion pattern targeting a CIP-speaking PLC or HMI. Wireshark's ENIP
+dissector and ODVA conformance test tooling both flag such frames as malformed; CERT/ICS-CERT
+advisories for ENIP-capable devices (e.g., Rockwell Automation advisories CVE-2012-6435,
+CVE-2014-5410) document DoS via malformed EtherNet/IP frames as a known attack vector.
+
+**Confidence: Medium.** A malformed-frame burst is consistent with DoS intent but is not
+exclusively an attack indicator — misconfigured or buggy devices can also generate malformed
+frames. The ENIP analyzer's `malformed_in_window` windowed counter and `malformed_anomaly_emitted`
+guard gate reduces false-positive rate by requiring a burst (threshold: same window as
+`parse_errors`) rather than a single frame.
+
+**Catalog status:** T0814 is already seeded in `src/mitre.rs` (shared with DNP3/Modbus
+malformed-frame detection). No new catalog entry required; no change to SEEDED_TECHNIQUE_ID_COUNT.
+
 ## Source verification summary
 
 All seven behaviors mapped to current (v19.1) IDs. Independently re-fetched and verified live

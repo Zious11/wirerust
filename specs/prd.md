@@ -416,11 +416,12 @@ supplements:
 > techniques entering catalog: T0858 "Change Operating Mode" (IcsExecution TA0104 — CIP Stop,
 > new `MitreTactic::IcsExecution` variant required) and T0816 "Device Restart/Shutdown"
 > (IcsInhibitResponseFunction TA0107 — CIP Reset). Both require `technique_info()` arms in
-> src/mitre.rs. Already-seeded techniques used: T0836/T0846/T0888/T0814. T1693.001 staged but
-> not emitted in v0.11.0 (GetAndClear firmware detection deferred). SEEDED grows 25→28;
-> EMITTED grows 17→19; CATALOGUE-ONLY changes 8→7 (T0858+T0816 move from catalogue-only to
-> emitted; T1693.001 enters catalogue-only). Open item OA-001: --enip-write-burst-threshold
-> default (20/1s) requires human confirmation. See `.factory/phase-f2-spec-evolution/enip-prd-delta.md`
+> src/mitre.rs. Already-seeded techniques used: T0836/T0846/T0888/T0814; T0846 is NOW emitted
+> (BC-2.17.010 ListIdentity). T1693.001 staged but not emitted in v0.11.0 (GetAndClear firmware
+> detection deferred). SEEDED grows 25→28; EMITTED grows 17→20 (T0858+T0816+T0846 move from
+> catalogue-only/not-emitted to emitted); CATALOGUE-ONLY changes 8→8 (T0858+T0816 and T0846 leave
+> not-emitted; T1693.001 enters catalogue-only; net change =0). Open item OA-001: --enip-write-burst-threshold
+> default (50/1s) — changed from 20, MEDIUM-confidence, human confirmation at F2 gate. See `.factory/phase-f2-spec-evolution/enip-prd-delta.md`
 > for full delta record. Added SS-17 rows to Section 7 RTM. Total BCs: 304 on disk → 329;
 > active: 304 → 328. BC-INDEX v1.73→v1.74.
 
@@ -552,7 +553,7 @@ Rust source files, 3,868 source LOC, 282 tests, single crate, Rust 2024 edition,
 - Streaming / lazy-read pcap processing (entire file loaded into RAM before processing)
 - Per-packet timestamp in findings: RESOLVED — BC-2.09.007 (F2) wired timestamp from the pcap record header at all applicable emission sites (STORY-097/098/099); domain-debt O-01 CLOSED. Exception: segment-limit summary finding (BC-2.04.054) retains timestamp:None by design.
 - Empirically-calibrated anomaly thresholds (defaults are research-documented but not validated against labelled traffic; O-03)
-- MITRE techniques T1040, T1071, T1071.001, T1071.004, T1573, T0846, T1692.002, T0885 (catalogued but never emitted; O-04; note: T1692.001, T0836, T0814, T0806, T0835, T0831, T0888 are now emitted by the Modbus/ICS analyzer — see Section 2.14; T0846 is seeded in the catalog but NOT emitted — see ADR-006 Decision 12; T1692.002 replaces revoked T0856 per ATT&CK-ICS v19 remap)
+- MITRE techniques T1040, T1071, T1071.001, T1071.004, T1573, T1692.002, T0885 (catalogued but never emitted; O-04; note: T1692.001, T0836, T0814, T0806, T0835, T0831, T0888 are now emitted by the Modbus/ICS analyzer — see Section 2.14; T0846 is NOW emitted by the EtherNet/IP analyzer (BC-2.17.010 ListIdentity) — removed from not-emitted list; T1692.002 replaces revoked T0856 per ATT&CK-ICS v19 remap)
 
 
 ## 2. Behavioral Contracts Index
@@ -862,15 +863,16 @@ Rust source files, 3,868 source LOC, 282 tests, single crate, Rust 2024 edition,
 
 > Full contracts: `behavioral-contracts/ss-10/BC-2.10.001.md` through `BC-2.10.009.md`
 >
-> Domain debt O-04 (revised v1.9): 25 techniques seeded (12 Enterprise + 13 ICS); 17 emitted
-> (7 Enterprise + 10 ICS). Catalogued-but-never-emitted (8): T1040, T1071, T1071.001, T1071.004,
+> Domain debt O-04 (revised v1.36 / F2 EtherNet/IP): 28 techniques seeded (12 Enterprise + 16 ICS); 20 emitted
+> (7 Enterprise + 13 ICS). Catalogued-but-never-emitted (8): T1040, T1071, T1071.001, T1071.004,
 > T1573 (Enterprise); T1692.002 (ICS — IcsImpairProcessControl; replaces revoked T0856 per ATT&CK-ICS v19 remap),
-> T0885 (ICS — CommandAndControl), T0846 (ICS — seeded but not emitted per Decision 12).
+> T0885 (ICS — CommandAndControl). T0846 NOW emitted by EtherNet/IP analyzer (BC-2.17.010).
 > T1692.001, T0836, T0814, T0806, T0835, T0831, T0888 are emitted by the Modbus analyzer.
 > T1691.001, T0827 are emitted by the DNP3 analyzer (Feature #8).
 > T0830, T1557.002 are emitted by the ARP analyzer (Feature #9) — added in v1.9.
-> Arithmetic: SEEDED=25, EMITTED=17, CATALOGUE-ONLY=25−17=8.
-> BC-2.10.005 documents all 25 seeded IDs; BC-2.10.008 documents 17 emitted IDs.
+> T0858, T0816, T0836, T0846, T0888, T0814 are emitted by the EtherNet/IP analyzer (Feature #316, v0.11.0).
+> Arithmetic: SEEDED=28, EMITTED=20, CATALOGUE-ONLY=28−20=8.
+> BC-2.10.005 documents all 28 seeded IDs; BC-2.10.008 documents 20 emitted IDs. (BC-2.10.005/BC-2.10.008 version-bump pending.)
 
 ### 2.11 Reporting and Output (CAP-11)
 
@@ -1328,9 +1330,10 @@ Rust source files, 3,868 source LOC, 282 tests, single crate, Rust 2024 edition,
 > T0814 (malformed ENIP threshold — Denial of Service). T1693.001 is staged (GetAndClear
 > firmware service) but not emitted in v0.11.0.
 
-> **Protocol stack:** ENIP encapsulation (24-byte fixed header, big-endian) → CPF item layer
+> **Protocol stack:** ENIP encapsulation (24-byte fixed header, little-endian) → CPF item layer
 > (little-endian item_count + variable-length items) → CIP service header (service_code u8 +
-> request_path). The carry-buffer frame-walk loop stashes partial frames into
+> request_path). Both ENIP encapsulation and CPF layers use little-endian byte order per ODVA.
+> The carry-buffer frame-walk loop stashes partial frames into
 > `EnipFlowState.carry` (bounded to `MAX_ENIP_CARRY_BYTES = 600`).
 
 > **Detection surface (6 detections + 1 lifecycle anomaly):**
@@ -1930,7 +1933,7 @@ See `prd-supplements/error-taxonomy.md` for the complete E-xxx-NNN catalog.
 | ~~O-01~~ | ~~Finding.timestamp always None; RawPacket timestamps never threaded to Finding constructors~~ **[CLOSED — STORY-097/098/099; BC-2.04.054 retains timestamp:None by design]** | ~~BC-2.09.001, BC-2.09.006~~ |
 | O-02 | Absent User-Agent (None) intentionally not detected; only Some("") fires | BC-2.06.011 |
 | O-03 | Anomaly thresholds not empirically calibrated against labelled traffic | BC-2.04.019, BC-2.04.020, BC-2.04.021 |
-| O-04 | MITRE techniques seeded but never emitted: T1040, T1071, T1071.001, T1071.004, T1573, T1692.002, T0885, T0846 (seeded-not-emitted per Modbus Decision 12; T0846 NOW emitted by EtherNet/IP BC-2.17.010 — O-04 update pending BC-2.10.005/BC-2.10.008 version-bump), T1693.001 (staged-not-emitted per ADR-010 Decision 7; GetAndClear firmware detection deferred); T1692.002 replaces revoked T0856 per ATT&CK-ICS v19 remap. T1692.001/T0836/T0814/T0806/T0835/T0831/T0888 now emitted by Modbus (Feature #7); T1691.001/T0827 now emitted by DNP3 (Feature #8); T0830/T1557.002 now emitted by ARP (Feature #9); T0858/T0816 now emitted by EtherNet/IP (Feature #316, v0.11.0) — T0858 (IcsExecution TA0104, new catalog entry) and T0816 (IcsInhibitResponseFunction TA0107, new catalog entry) require `technique_info()` arms in src/mitre.rs + `MitreTactic::IcsExecution` new variant. Per ARCH-INDEX v1.7: SEEDED=28, EMITTED=19, CATALOGUE-ONLY=9. BC-2.10.005/BC-2.10.008 must be updated in the next BC version-bump pass to reflect T0858+T0816 new entries. | BC-2.10.005, BC-2.10.008 |
+| O-04 | MITRE techniques seeded but never emitted: T1040, T1071, T1071.001, T1071.004, T1573, T1692.002, T0885, T1693.001 (staged-not-emitted per ADR-010 Decision 7; GetAndClear firmware detection deferred); T1692.002 replaces revoked T0856 per ATT&CK-ICS v19 remap. T0846 NOW emitted by EtherNet/IP (BC-2.17.010 ListIdentity — removed from not-emitted list). T1692.001/T0836/T0814/T0806/T0835/T0831/T0888 now emitted by Modbus (Feature #7); T1691.001/T0827 now emitted by DNP3 (Feature #8); T0830/T1557.002 now emitted by ARP (Feature #9); T0858/T0816/T0836/T0846/T0888/T0814 now emitted by EtherNet/IP (Feature #316, v0.11.0) — T0858 (IcsExecution TA0104, new catalog entry) and T0816 (IcsInhibitResponseFunction TA0107, new catalog entry) require `technique_info()` arms in src/mitre.rs + `MitreTactic::IcsExecution` new variant. Per ARCH-INDEX v1.7 + F2 EtherNet/IP update: SEEDED=28, EMITTED=20, CATALOGUE-ONLY=8. BC-2.10.005/BC-2.10.008 must be updated in the next BC version-bump pass to reflect T0858+T0816+T0846 emitted entries. | BC-2.10.005, BC-2.10.008 |
 | O-05 | reassembly/mod.rs still 691 LOC after partial split (#85) | BC-2.04.* (reassembly module group) |
 | O-06 | Weak-cipher Finding evidence Vec has unbounded cardinality (up to ~9216 cipher names) | BC-2.07.009 |
 | O-07 | rayon declared in Cargo.toml but never imported; unused transitive dependency | (none -- build/dep debt only) |

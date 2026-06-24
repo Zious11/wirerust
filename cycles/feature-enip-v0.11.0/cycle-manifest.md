@@ -33,7 +33,7 @@ Research inputs: `.factory/research/next-ics-protocol-prevalence.md`,
 | Phase | Status | Notes |
 |-------|--------|-------|
 | F1 — Delta Analysis | PASSED 2026-06-24 | Human-approved (D-228). TCP/44818 + UDP/2222 + ForwardOpen in scope. TLS/2221 deferred. |
-| F2 — Spec Evolution | CONSISTENT WITH DEFECTS — AUDIT COMPLETE 2026-06-24 | D-229: UDP/2222 deferred to v0.12.0. Scope now TCP/44818 + CIP ForwardOpen (TCP only). 24 BCs (BC-2.17.001..024), ADR-010, VP-032 written. F2 consistency audit complete: 7 findings, 5 annotation defects fixed (F7-001..F7-004, F6-001); F7-005 (VP-007 enum gap) deferred to implementation. Pending: adversarial spec convergence + F2 human gate. |
+| F2 — Spec Evolution | ADVERSARIAL PASS 2 IN PROGRESS | D-229: UDP/2222 deferred to v0.12.0. Scope now TCP/44818 + CIP ForwardOpen (TCP only). 24 BCs (BC-2.17.001..024) + BC-2.17.025 (session handshake) = 25 BCs total. ADR-010, VP-032 written. F2 consistency audit complete: 7 findings, 5 annotation defects fixed (F7-001..F7-004, F6-001); F7-005 (VP-007 enum gap) deferred to implementation. Adversarial Pass 1 (2026-06-24): FAIL — 4 CRITICAL, 7 HIGH, 3 MEDIUM, 3 LOW; novelty HIGH. Pass 1 fixes APPLIED + committed (2026-06-24): LE endianness (ADR-010 + 8 BCs), CIP segment-mask (BC-2.17.009), T0846 now-emitted (PRD v1.36 reconcile), frame-skip soundness (VP-032 Sub-B/D non-vacuous), session-handshake BC-2.17.025 added. BC count 329→330; BC-INDEX v1.75. Two pending-human-confirm values: write-burst default=50, ERROR_BURST=5 (OA-001 updated). Pass 2 adversarial convergence in progress. Pending: Pass 2 verdict + F2 human gate. |
 | F3 — Incremental Stories | PENDING | ~7-9 stories planned |
 | F4 — TDD Implementation | PENDING | |
 | F5 — Scoped Adversarial | PENDING | |
@@ -63,12 +63,12 @@ Research inputs: `.factory/research/next-ics-protocol-prevalence.md`,
 |----------|------|-------|
 | ADR-010 | `.factory/specs/architecture/decisions/ADR-010-ethernet-ip-cip-stream-dispatch.md` | Decision 5: UDP/2222 deferred to v0.12.0 |
 | VP-032 | `.factory/specs/verification-properties/vp-032-enip-parse-safety.md` | 4 Kani harnesses; Sub-A/B/C/D |
-| BCs | `.factory/specs/behavioral-contracts/ss-17/BC-2.17.001..024.md` | 24 BCs; BC-INDEX v1.74 (329 total / 328 active) |
+| BCs | `.factory/specs/behavioral-contracts/ss-17/BC-2.17.001..025.md` | 25 BCs (BC-2.17.001..024 original + BC-2.17.025 session-handshake added Pass 1 remediation); BC-INDEX v1.75 (330 total / 329 active) |
 | Architecture delta | `.factory/phase-f2-spec-evolution/enip-architecture-delta.md` | SS-17 subsystem design |
 | PRD delta | `.factory/phase-f2-spec-evolution/enip-prd-delta.md` | §2.17 + §7 RTM |
 | ARCH-INDEX | `.factory/specs/architecture/ARCH-INDEX.md` | v1.7 |
 | VP-INDEX | `.factory/specs/verification-properties/VP-INDEX.md` | v2.11 (total 32 VPs) |
-| BC-INDEX | `.factory/specs/behavioral-contracts/BC-INDEX.md` | v1.74 (329 BCs / 328 active) |
+| BC-INDEX | `.factory/specs/behavioral-contracts/BC-INDEX.md` | v1.75 (330 BCs / 329 active) |
 | PRD | `.factory/specs/prd.md` | v1.36 |
 | CAP-17 | `.factory/specs/domain/capabilities/cap-17-enip-cip-analysis.md` | New domain capability |
 | verification-architecture | `.factory/specs/architecture/verification-architecture.md` | v2.5 |
@@ -78,7 +78,7 @@ Research inputs: `.factory/research/next-ics-protocol-prevalence.md`,
 
 | ID | Summary | Status |
 |----|---------|--------|
-| OA-001 | `--enip-write-burst-threshold` default value (20 writes/1s) requires human confirmation at F2 gate. High-write CIP environments may need a different default. BC-2.17.012 and BC-2.17.023 flag this. | OPEN — awaiting human confirm at F2 gate |
+| OA-001 | Two pending-human-confirm values at F2 gate: (1) `--enip-write-burst-threshold` default=50 writes/1s (updated from 20 after Pass 1 adversary recommendation for high-write CIP environments); (2) `ENIP_ERROR_BURST_THRESHOLD`=5 consecutive errors before circuit-break. BC-2.17.012, BC-2.17.023, BC-2.17.025 flag these. | OPEN — awaiting human confirm at F2 gate |
 
 ## MITRE ATT&CK for ICS Tagging (F2 carry-forward)
 

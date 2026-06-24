@@ -39,19 +39,22 @@ Specifically, for all bounded symbolic byte slices and all u16/u8 command/servic
    accesses bytes beyond fixed offsets [0..24], and never uses attacker-controlled byte
    values as slice indices.
 
-2. **Sub-B — Command classification totality:** `classify_enip_command(cmd: u16)` returns
-   a valid `EnipCommandClass` variant for every possible `u16` input value (all 65,536
-   possible inputs). The `Unknown` arm is reachable and proven non-vacuous.
+2. **Sub-B — Command classification biconditional (non-vacuous):** For all 65,536 possible
+   `u16` values, `classify_enip_command(cmd) == Unknown` if and only if `cmd` is not a
+   member of `KNOWN_COMMANDS`. This biconditional simultaneously proves totality, Unknown
+   reachability, and named-variant reachability without separate flip proofs (DF-KANI-NONVACUITY-001).
 
 3. **Sub-C — Validity gate biconditional:** `is_valid_enip_frame(h: &EnipHeader)` returns
    `true` if and only if `h.command` is a member of the known-command set
    {0x0004, 0x0063, 0x0064, 0x0065, 0x0066, 0x006F, 0x0070, 0x0072, 0x0075}. The
    biconditional holds for all possible `u16` command values.
 
-4. **Sub-D — CIP service classification totality:** `classify_cip_service(service: u8)`
-   returns a valid `CipServiceClass` variant for every possible `u8` input value (all 256
-   possible inputs). The response-bit mask logic (`service & 0x80 != 0 → Response`) is
-   proven correct. The `Unknown` arm is reachable.
+4. **Sub-D — CIP service classification totality (strengthened):** Two harnesses:
+   (a) Primary biconditional — for all 256 `u8` inputs, `classify_cip_service(service)
+   == Response` iff `service & 0x80 != 0`. (b) Request-range partition — over the request
+   range 0x00..=0x7F, every service byte is either a named CIP service or `Unknown`;
+   the named-vs-Unknown partition is exhaustive and correct, proving the `Unknown` arm is
+   non-vacuous (DF-KANI-NONVACUITY-001).
 
 ## Verified BCs
 
@@ -106,45 +109,50 @@ mod kani_proofs {
             assert!(result.is_none());
         } else {
             let h = result.expect("must be Some for len >= 24");
-            // Field offset verification: command is at bytes [0..2] big-endian.
-            let expected_cmd = u16::from_be_bytes([slice[0], slice[1]]);
+            // Field offset verification: command is at bytes [0..2] LITTLE-endian (ODVA).
+            // F-ENIP-001: ENIP encapsulation header is little-endian throughout.
+            let expected_cmd = u16::from_le_bytes([slice[0], slice[1]]);
             assert_eq!(h.command, expected_cmd);
-            // length field at bytes [2..4] big-endian.
-            let expected_len = u16::from_be_bytes([slice[2], slice[3]]);
+            // length field at bytes [2..4] little-endian.
+            let expected_len = u16::from_le_bytes([slice[2], slice[3]]);
             assert_eq!(h.length, expected_len);
-            // status at bytes [8..12].
-            let expected_status = u32::from_be_bytes([slice[8], slice[9], slice[10], slice[11]]);
+            // status at bytes [8..12] little-endian.
+            let expected_status = u32::from_le_bytes([slice[8], slice[9], slice[10], slice[11]]);
             assert_eq!(h.status, expected_status);
         }
     }
 }
 ```
 
-### Sub-B: Command Classification Totality
+### Sub-B: Command Classification Biconditional (non-vacuous)
 
 ```rust
-    /// VP-032 Sub-B: classify_enip_command is total over all 65,536 u16 values.
+    /// VP-032 Sub-B: classify_enip_command(cmd) == Unknown iff cmd is not in KNOWN_COMMANDS.
     ///
-    /// BOUND/SOUNDNESS: Symbolic u16 covers the full domain (no assume needed).
-    /// Non-vacuity: the Unknown arm reachable via cmd=0x0000 (not in known set).
+    /// BOUND/SOUNDNESS: Symbolic u16 covers the full domain. Non-vacuity:
+    /// the biconditional simultaneously proves both arms — Unknown reachable (any cmd
+    /// not in KNOWN_COMMANDS) and non-Unknown reachable (any known cmd). No kani::assume
+    /// on cmd; both branches are reachable by Kani without any constraint.
+    ///
+    /// Mirrors VP-032 Sub-C biconditional structure (DF-KANI-NONVACUITY-001).
     #[kani::proof]
-    fn vp032_enip_command_classification_totality() {
+    fn vp032_enip_command_classification_biconditional() {
+        const KNOWN_COMMANDS: &[u16] = &[
+            0x0004, // ListServices
+            0x0063, // ListIdentity
+            0x0064, // ListInterfaces
+            0x0065, // RegisterSession
+            0x0066, // UnRegisterSession
+            0x006F, // SendRRData
+            0x0070, // SendUnitData
+            0x0072, // IndicateStatus
+            0x0075, // Cancel
+        ];
         let cmd: u16 = kani::any();
-        let class = classify_enip_command(cmd);
-        // The match must not panic and must return a valid variant.
-        // Non-exhaustive proof: at least one variant is not Unknown (reachability
-        // of both Unknown and non-Unknown confirmed by symbolic coverage).
-        let _ = class; // presence of a value is sufficient for no-panic proof
-    }
-
-    /// Non-vacuity flip: Unknown is reachable.
-    #[kani::proof]
-    fn vp032_enip_command_unknown_is_reachable() {
-        // 0x0000 is not a recognized ENIP command.
-        assert!(matches!(
-            classify_enip_command(0x0000),
-            EnipCommandClass::Unknown
-        ));
+        let is_unknown = matches!(classify_enip_command(cmd), EnipCommandClass::Unknown);
+        let not_in_known = !KNOWN_COMMANDS.contains(&cmd);
+        // Biconditional: Unknown iff not in known set. Mirrors Sub-C structure.
+        assert_eq!(is_unknown, not_in_known);
     }
 ```
 
@@ -185,35 +193,60 @@ mod kani_proofs {
     }
 ```
 
-### Sub-D: CIP Service Classification Totality
+### Sub-D: CIP Service Classification Totality (strengthened)
 
 ```rust
-    /// VP-032 Sub-D: classify_cip_service is total over all 256 u8 values;
-    /// high bit (0x80) correctly maps to Response.
+    /// VP-032 Sub-D (primary): classify_cip_service is total over all 256 u8 values;
+    /// high bit (0x80) correctly maps to Response for all inputs in 0x80..=0xFF.
     ///
     /// BOUND/SOUNDNESS: Symbolic u8 covers the full domain (256 inputs).
-    /// Non-vacuity: Unknown arm reachable via service=0x7F (not a named service
-    /// and not 0x80). Response arm reachable via service=0xFF (high bit set).
+    /// Non-vacuity: Both Response (0xFF) and non-Response (0x01) arms reachable
+    /// without any kani::assume constraints.
     #[kani::proof]
     fn vp032_cip_service_classification_totality() {
         let service: u8 = kani::any();
         let class = classify_cip_service(service);
-        // Response-bit invariant: high bit set => Response variant.
-        if service & 0x80 != 0 {
-            assert!(matches!(class, CipServiceClass::Response));
-        }
-        let _ = class;
+        // Response-bit invariant: high bit set => Response variant (and vice-versa).
+        // Biconditional over the full 256-value domain.
+        let is_response = matches!(class, CipServiceClass::Response);
+        assert_eq!(is_response, service & 0x80 != 0);
     }
 
-    /// Non-vacuity flip: Unknown arm reachable (service with high bit clear,
-    /// not in named set).
+    /// VP-032 Sub-D (partition): over the request range 0x00..=0x7F, every service byte
+    /// is either a named CIP service OR Unknown — the named-vs-Unknown partition is
+    /// exhaustive and correct. This proves that the Unknown arm is non-vacuous (reachable)
+    /// and that no named variant is accidentally unreachable within the request range.
+    ///
+    /// BOUND/SOUNDNESS: Constrained to 0x00..=0x7F (request range). Response arm is
+    /// excluded from this proof (already covered by the primary harness above).
     #[kani::proof]
-    fn vp032_cip_service_unknown_is_reachable() {
-        // 0x7F: high bit clear, not a named CIP service code.
-        assert!(matches!(
-            classify_cip_service(0x7F),
-            CipServiceClass::Unknown
-        ));
+    fn vp032_cip_service_request_partition() {
+        const NAMED_SERVICES: &[u8] = &[
+            0x01, // GetAttributeAll
+            0x02, // SetAttributeAll
+            0x03, // GetAttributeList
+            0x04, // SetAttributeList
+            0x05, // Reset
+            0x07, // Stop (Change Operating Mode)
+            0x0A, // MultipleServicePacket
+            0x0E, // GetAttributeSingle
+            0x10, // SetAttributeSingle
+            0x4B, // Download (firmware)
+            0x4E, // ForwardClose
+            0x54, // ForwardOpen
+            0x5B, // LargeForwardOpen
+        ];
+        let service: u8 = kani::any();
+        // Restrict to request range (high bit clear).
+        kani::assume(service & 0x80 == 0);
+        let class = classify_cip_service(service);
+        // Must NOT be Response (high bit clear means request).
+        assert!(!matches!(class, CipServiceClass::Response));
+        // Must be either a named service or Unknown.
+        let is_named = NAMED_SERVICES.contains(&service);
+        let is_unknown = matches!(class, CipServiceClass::Unknown);
+        // Named iff not Unknown — exhaustive partition over 0x00..=0x7F.
+        assert_eq!(is_named, !is_unknown);
     }
 ```
 
@@ -239,16 +272,21 @@ All four target functions satisfy the prerequisites for Kani model checking:
 
 5. **Comparable precedent:** VP-022 (Modbus, 4 harnesses, all SUCCESSFUL) and VP-023
    (DNP3, 4 harnesses, all SUCCESSFUL) use identical proof patterns. VP-032's Sub-A
-   closely mirrors VP-022's `verify_parse_mbap_header_safety`; Sub-B and Sub-D mirror
-   `verify_classify_fc_total`; Sub-C mirrors VP-023's `verify_is_valid_dnp3_frame_gate`.
+   closely mirrors VP-022's `verify_parse_mbap_header_safety`; Sub-B mirrors the
+   Sub-C biconditional structure; Sub-C mirrors VP-023's `verify_is_valid_dnp3_frame_gate`;
+   Sub-D (primary + partition) extends the DNP3 pattern with a range-constrained proof.
 
 **Unwind bounds:**
 - Sub-A: `#[kani::unwind(49)]` (slice length up to 48 bytes)
-- Sub-B, Sub-C, Sub-D: No explicit unwind needed — no loops
+- Sub-B, Sub-C, Sub-D (both harnesses): No explicit unwind needed — no loops
 
-**Non-vacuity strategy:** Each proof has a companion "deliberate-flip" assertion (as
-shown in the Sub-B and Sub-D skeleton harnesses above) that verifies the Unknown arm is
-actually reachable. This matches the VP-022 and VP-023 non-vacuity approach.
+**Non-vacuity strategy (DF-KANI-NONVACUITY-001):** Sub-B and Sub-C use biconditional
+proofs (`assert_eq!(is_X, expected_bool)`) that simultaneously cover both arms without
+separate flip proofs — the biconditional fails if either arm is vacuous (all inputs
+taking one path). Sub-D uses a primary biconditional (Response vs. non-Response) plus a
+range-constrained partition proof (0x00..=0x7F) to prove the named-vs-Unknown boundary.
+Sub-A's non-vacuity is implicit: the unwind(49) bound covers both len<24 (returns None)
+and len>=24 (returns Some) branches in the same proof.
 
 ## Lifecycle
 
@@ -256,7 +294,7 @@ actually reachable. This matches the VP-022 and VP-023 non-vacuity approach.
 |-------|--------|--------|
 | F2 (spec evolution) | VP-032 produced, added to VP-INDEX | draft |
 | F4 (TDD implementation) | Proof harnesses authored in `src/analyzer/enip.rs #[cfg(kani)]` | draft → active |
-| F6 (formal hardening) | `cargo kani` run: all 4+ harnesses VERIFICATION SUCCESSFUL | active → verified |
+| F6 (formal hardening) | `cargo kani` run: all 5 harnesses VERIFICATION SUCCESSFUL | active → verified |
 
 Lock gate: `status: verified` and `verification_lock: true` set by state-manager after
 F6 confirmation. Mirrors the VP-022/VP-023 lock pattern.

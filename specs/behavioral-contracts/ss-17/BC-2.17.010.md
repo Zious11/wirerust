@@ -45,26 +45,35 @@ Detection is per-occurrence (per ListIdentity frame seen on the flow).
 
 1. `classify_enip_command(header.command)` returns `EnipCommandClass::ListIdentity`.
 2. `flow.is_non_enip == false`.
-3. `self.all_findings.len() < MAX_FINDINGS`.
+3. `self.all_findings.len() < MAX_FINDINGS` (checked before pushing finding only).
 
 ## Postconditions
 
-1. Exactly ONE `Finding` is pushed to `self.all_findings`:
-   - `category: ThreatCategory::Reconnaissance`
-   - `verdict: Verdict::Likely`
-   - `confidence: Confidence::High`
-   - `summary: "EtherNet/IP ListIdentity broadcast observed: network-wide device enumeration (T0846)"`
-   - `evidence`: one entry — `"ENIP command=0x0063 (ListIdentity) src={src_ip} session={session_handle}"`
-   - `mitre_techniques: vec!["T0846"]`
-   - `source_ip: Some(<source endpoint>)` — resolved from flow_key
-   - `timestamp: Some(...)` — pcap-relative capture timestamp
-2. `flow.command_counts.entry(0x0063).or_insert(0) += 1`.
-3. No one-shot guard: detection is per-occurrence. Each ListIdentity frame generates one finding (up to MAX_FINDINGS cap).
+1. `flow.command_counts.entry(0x0063).or_insert(0) += 1` (always, on every ListIdentity frame).
+2. If `flow.list_identity_emitted == false` AND `self.all_findings.len() < MAX_FINDINGS`:
+   - Push exactly ONE `Finding`:
+     - `category: ThreatCategory::Reconnaissance`
+     - `verdict: Verdict::Likely`
+     - `confidence: Confidence::High`
+     - `summary: "EtherNet/IP ListIdentity broadcast observed: network-wide device enumeration (T0846)"`
+     - `evidence`: one entry — `"ENIP command=0x0063 (ListIdentity) src={src_ip} session={session_handle}"`
+     - `mitre_techniques: vec!["T0846"]`
+     - `source_ip: Some(<source endpoint>)` — resolved from flow_key
+     - `timestamp: Some(...)` — pcap-relative capture timestamp
+   - `flow.list_identity_emitted = true` (one-shot guard).
+3. If `flow.list_identity_emitted == true`: `command_counts` updated; NO additional finding.
 
 ## Invariants
 
-1. **Per-occurrence**: ListIdentity is low-frequency in legitimate operations; each occurrence
-   is independently significant as a scan/recon primitive. No threshold is required.
+1. **Per-flow one-shot guard**: to prevent a single ListIdentity scan campaign from emitting
+   up to MAX_FINDINGS near-identical T0846 findings on one flow, a per-flow one-shot guard
+   (`flow.list_identity_emitted: bool`) is applied. The first ListIdentity frame per flow
+   emits a T0846 finding and sets the guard; subsequent frames on the same flow increment
+   `command_counts[0x0063]` but do not emit additional findings. The finding's evidence field
+   includes the final `command_counts[0x0063]` value in `summarize()` for audit.
+   Choice of one-shot-per-flow (over windowed) reflects that a scan is typically a single
+   campaign per source; a new flow from the same source would reset the guard. [MEDIUM-confidence
+   — un-calibrated; may be revisited in F3 if human feedback indicates windowed is preferable]
 2. **T0846 is the correct v19.1 technique** [MITRE: enip-mitre-ics-tagging.md §4b]:
    T0846 "Remote System Discovery" (IcsDiscovery, TA0102) — ListIdentity is explicitly the
    network-wide device enumeration mechanism. Already seeded in `src/mitre.rs`; no new
@@ -82,9 +91,9 @@ Detection is per-occurrence (per ListIdentity frame seen on the flow).
 
 | ID | Description | Expected Behavior |
 |----|-------------|-------------------|
-| EC-001 | Single ListIdentity frame on a new flow | One T0846 finding emitted; `command_counts[0x0063] = 1` |
-| EC-002 | Multiple ListIdentity frames in sequence | One T0846 finding per frame (up to MAX_FINDINGS cap) |
-| EC-003 | `all_findings.len() == MAX_FINDINGS` when ListIdentity arrives | No finding pushed; command_counts still updated |
+| EC-001 | Single ListIdentity frame on a new flow | One T0846 finding emitted; `command_counts[0x0063] = 1`; `list_identity_emitted = true` |
+| EC-002 | Multiple ListIdentity frames in sequence (same flow) | First frame: T0846 finding + guard set. Subsequent frames: `command_counts[0x0063]` incremented; NO additional findings (one-shot guard) |
+| EC-003 | `all_findings.len() == MAX_FINDINGS` when ListIdentity arrives (guard false) | No finding pushed; command_counts still updated; guard remains false |
 | EC-004 | ListIdentity with `session_handle = 0` (normal — no session needed) | Finding emitted; session_handle noted in evidence |
 | EC-005 | ListIdentity followed by GetAttributeSingle to Identity Object | Two separate findings: T0846 (BC-2.17.010) + T0888 (BC-2.17.014); combined recon pattern |
 
@@ -98,11 +107,11 @@ command: 0x0063 (ListIdentity), length: 4, session: 0, status: 0
 Expected: `Finding { mitre_techniques: ["T0846"], verdict: Likely, confidence: High,
 summary: "EtherNet/IP ListIdentity broadcast observed: network-wide device enumeration (T0846)" }`
 
-| Event | command_counts[0x0063] | Findings emitted |
-|-------|----------------------|-----------------|
-| 1st ListIdentity | 1 | 1 (T0846) |
-| 2nd ListIdentity | 2 | 2 (2× T0846) |
-| at MAX_FINDINGS | — | capped |
+| Event | command_counts[0x0063] | Findings emitted | list_identity_emitted |
+|-------|----------------------|-----------------|----------------------|
+| 1st ListIdentity | 1 | 1 (T0846) | true (guard set) |
+| 2nd ListIdentity | 2 | 0 (guard blocks) | true (unchanged) |
+| 3rd ListIdentity | 3 | 0 (guard blocks) | true |
 
 ## Verification Properties
 
@@ -131,8 +140,9 @@ summary: "EtherNet/IP ListIdentity broadcast observed: network-wide device enume
 
 ## Architecture Anchors
 
-- `src/analyzer/enip.rs` — `process_pdu`: `if matches!(cmd_class, EnipCommandClass::ListIdentity) { /* emit T0846 */ }`
+- `src/analyzer/enip.rs` — `process_pdu`: `if matches!(cmd_class, EnipCommandClass::ListIdentity) { flow.command_counts[0x0063] += 1; if !flow.list_identity_emitted { /* emit T0846 */ flow.list_identity_emitted = true; } }`
 - `src/analyzer/enip.rs` — `EnipFlowState.command_counts: HashMap<u16, u64>`
+- `src/analyzer/enip.rs` — `EnipFlowState.list_identity_emitted: bool` (per-flow one-shot guard for T0846)
 - `src/mitre.rs` — `technique_info("T0846")` arm (existing; shared)
 - `.factory/specs/architecture/decisions/ADR-010-ethernet-ip-cip-stream-dispatch.md §Decision 7` (T0846 active technique)
 - `.factory/research/enip-mitre-ics-tagging.md §4b` (T0846 ListIdentity mapping)

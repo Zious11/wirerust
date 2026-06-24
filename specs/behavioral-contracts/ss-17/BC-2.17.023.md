@@ -32,14 +32,14 @@ input-hash: TBD
 
 ## Description
 
-The `--enip-write-burst-threshold` flag (u32, default 20) sets the value of
+The `--enip-write-burst-threshold` flag (u32, default 50) sets the value of
 `EnipAnalyzer.enip_write_burst_threshold`, which is the per-1s-window count of CIP
 write-class services (SetAttributesAll, SetAttributeList, SetAttributeSingle) above which
 a T0836 finding is emitted (BC-2.17.012). Operators in high-write CIP environments may
 increase this threshold to reduce false positives; operators in quiet OT environments may
 decrease it. The flag mirrors the DNP3 `--dnp3-direct-operate-threshold` pattern (BC-2.15.017).
-The default value of 20 is a conservative MVP choice matching Modbus; it is an open item
-(OA-001) for human confirmation.
+The default value of 50 is proposed for typical CIP manufacturing environments; it is
+MEDIUM-confidence (un-calibrated, ref O-03) pending human confirmation at F2 gate.
 
 ## Preconditions
 
@@ -49,21 +49,21 @@ The default value of 20 is a conservative MVP choice matching Modbus; it is an o
 ## Postconditions
 
 1. `EnipAnalyzer.enip_write_burst_threshold = N` (the parsed u32 value).
-2. When `N` is not specified: `enip_write_burst_threshold = 20` (default).
+2. When `N` is not specified: `enip_write_burst_threshold = 50` (default).
 3. The threshold is passed to `process_pdu` / the write-burst detection path (BC-2.17.012).
 4. Changing this flag does not affect any other detection BC.
 
 ## Invariants
 
-1. **Default = 20**: proposed MVP default. [OA-001: human to confirm whether 20 or a higher
-   value (e.g., 50) better matches typical ENIP write traffic in manufacturing environments.
-   ADR-010 §Open Items for F3 / Human Decision, first item.]
+1. **Default = 50**: proposed default for typical CIP manufacturing environments
+   (higher-frequency write traffic than Modbus). [MEDIUM-confidence, un-calibrated, ref O-03;
+   human to confirm at F2 gate. ADR-010 §Open Items (OA-001 renamed → F2 gate decision).]
 2. **u32 type**: the threshold is a u32. Values near `u32::MAX` are accepted by the parser
    but would effectively disable write-burst detection. This is operator responsibility.
 3. **Flag independence**: changing `--enip-write-burst-threshold` does not affect T0858,
    T0816, T0888, T0846, or T0814 detection thresholds.
 4. **`--all` uses default**: when `--all` expands to include `--enip`, the threshold defaults
-   to 20. Users who want a different threshold must specify `--enip-write-burst-threshold`
+   to 50. Users who want a different threshold must specify `--enip-write-burst-threshold`
    explicitly alongside `--all`.
 
 ## Edge Cases
@@ -72,7 +72,7 @@ The default value of 20 is a conservative MVP choice matching Modbus; it is an o
 |----|-------------|-------------------|
 | EC-001 | `--enip-write-burst-threshold 50` | threshold=50 in EnipAnalyzer |
 | EC-002 | `--enip-write-burst-threshold 1` | Any single write triggers T0836 |
-| EC-003 | No `--enip-write-burst-threshold` flag | Default 20 used |
+| EC-003 | No `--enip-write-burst-threshold` flag | Default 50 used |
 | EC-004 | `--enip-write-burst-threshold 0` | 0 means every write triggers T0836 instantly — semantically valid but high-noise; [OA-001] |
 | EC-005 | `--all --enip-write-burst-threshold 30` | ENIP enabled; threshold=30 |
 
@@ -80,10 +80,10 @@ The default value of 20 is a conservative MVP choice matching Modbus; it is an o
 
 | CLI flags | threshold used | T0836 fires at write count |
 |-----------|---------------|---------------------------|
-| `--enip` | 20 | 21st write in 1s window |
+| `--enip` | 50 | 51st write in 1s window |
 | `--enip --enip-write-burst-threshold 5` | 5 | 6th write |
 | `--enip --enip-write-burst-threshold 100` | 100 | 101st write |
-| `--all` | 20 | 21st write |
+| `--all` | 50 | 51st write |
 
 ## Verification Properties
 
@@ -110,7 +110,7 @@ The default value of 20 is a conservative MVP choice matching Modbus; it is an o
 
 ## Architecture Anchors
 
-- `src/cli.rs` — `Commands::Analyze { enip_write_burst_threshold: u32 }` — new field with default 20
+- `src/cli.rs` — `Commands::Analyze { enip_write_burst_threshold: u32 }` — new field with default 50
 - `src/analyzer/enip.rs` — `EnipAnalyzer.enip_write_burst_threshold: u32`
 - `.factory/specs/architecture/decisions/ADR-010-ethernet-ip-cip-stream-dispatch.md §Decision 9` (flag specification)
 
@@ -126,7 +126,7 @@ The default value of 20 is a conservative MVP choice matching Modbus; it is an o
 
 | Property | Value |
 |----------|-------|
-| **Path** | ADR-010 Decision 9 (--enip-write-burst-threshold flag spec, default 20); ADR-010 §Open Items (OA-001: default value human confirmation) |
+| **Path** | ADR-010 Decision 9 (--enip-write-burst-threshold flag spec, default 50); ADR-010 §Open Items (OA-001 / F2 gate decision: default value human confirmation) |
 | **Confidence** | high for flag structure; medium for default value (OA-001 open item) |
 | **Extraction Date** | 2026-06-24 |
 

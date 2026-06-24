@@ -28,7 +28,7 @@ inputs:
 input-hash: TBD
 ---
 
-# BC-2.17.007: classify_cip_service Total Classification with Response-Bit Mask Over All u8 Values
+# BC-2.17.007: classify_cip_service Total Classification with Response-Bit Mask — 13 Named Request Services + Response + Unknown = 16 Variants
 
 ## Description
 
@@ -74,8 +74,8 @@ proven non-vacuous. Formally verified by VP-032 Sub-D.
 1. **Response-bit mask takes priority**: the `service & 0x80 != 0` check is applied first,
    before any named-service lookup. This is the correct CIP interpretation: a response is
    always identifiable by the high bit, regardless of service code.
-2. **Named service count**: 14 named variants (13 request services + Response + Unknown = 16
-   total variants in the enum). VP-032 Sub-D proves totality.
+2. **Named service count**: 13 named request services + Response + Unknown = 16 total variants
+   in the enum. VP-032 Sub-D proves totality.
 3. **Stop (0x07) and Reset (0x05)**: critical MITRE trigger services. 0x07 (Stop) → T0858;
    0x05 (Reset) → T0816. These must map to their named variants without ambiguity.
 4. **SetAttribute variants (0x02, 0x04, 0x10)**: SetAttributesAll, SetAttributeList,

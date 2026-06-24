@@ -90,6 +90,7 @@ This BC specifies the general_status extraction contract.
 | EC-004 | CIP response item data length < 4 | general_status extraction skipped (cannot safely index byte 2) |
 | EC-005 | 10-second window expires; new error response arrives | Window reset; `error_counts_in_window` cleared; `error_rate_emitted = false`; new error seeds window |
 | EC-006 | `error_rate_emitted = true` (finding already emitted in current window) | error_counts_in_window still updated; no new finding (one-shot guard owned by BC-2.17.014) |
+| EC-007 | Response from Connected Data Item (0x00B1, 2-byte sequence prefix present) | general_status extraction scoped to Unconnected Data Items (0x00B2) for v0.11.0; Connected (0x00B1) response extraction deferred to v0.12.0 (byte offset shifts by 2 due to sequence prefix) |
 
 ## Canonical Test Vectors
 

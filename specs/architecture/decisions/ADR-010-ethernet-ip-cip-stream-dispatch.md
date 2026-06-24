@@ -39,7 +39,7 @@ EtherNet/IP (ENIP) is an ODVA-standardized protocol that wraps the Common Indust
 Protocol (CIP) in an Ethernet/TCP transport. Unlike Modbus (single MBAP header) or DNP3
 (interleaved CRC blocks), EtherNet/IP introduces a **two-level frame structure**:
 
-1. **ENIP encapsulation header** (24 bytes, fixed, big-endian): command (2), length (2),
+1. **ENIP encapsulation header** (24 bytes, fixed, little-endian): command (2), length (2),
    session_handle (4), status (4), sender_context (8), options (4). The `length` field
    is a u16 counting the payload bytes after the header — up to 65,511 bytes total.
 
@@ -147,17 +147,25 @@ only stdlib + crate::analyzer.
 ```
 parse_enip_header(data: &[u8]) -> Option<EnipHeader>
   if data.len() < 24: return None
-  command         = u16::from_be_bytes([data[0], data[1]])
-  length          = u16::from_be_bytes([data[2], data[3]])
-  session_handle  = u32::from_be_bytes([data[4]..data[8]])
-  status          = u32::from_be_bytes([data[8]..data[12]])
+  command         = u16::from_le_bytes([data[0], data[1]])
+  length          = u16::from_le_bytes([data[2], data[3]])
+  session_handle  = u32::from_le_bytes([data[4]..data[8]])
+  status          = u32::from_le_bytes([data[8]..data[12]])
   sender_context  = data[12..20]  (8-byte opaque, copy as [u8;8])
-  options         = u32::from_be_bytes([data[20]..data[24]])
+  options         = u32::from_le_bytes([data[20]..data[24]])
   return Some(EnipHeader { command, length, session_handle, status, sender_context, options })
 ```
 
-All fields decoded big-endian per ODVA EtherNet/IP specification. `sender_context` is
-treated as opaque bytes (not decoded further at the encapsulation layer).
+All fields decoded **little-endian** per ODVA EtherNet/IP Specification (Volume 2,
+Section 2-3): the ENIP encapsulation header is entirely little-endian. `sender_context`
+is treated as opaque bytes (not decoded further at the encapsulation layer).
+
+> **CANONICAL-FRAME HOLDOUT OBLIGATION (DF-CANONICAL-FRAME-HOLDOUT-001):** The F4
+> implementation story MUST include a holdout assertion that parses a real captured
+> `SendRRData` header (e.g., a frame captured from a Wireshark ENIP dissect or the ODVA
+> conformance-test suite) and verifies that `parse_enip_header` reads each field as the
+> correct little-endian value. This pins the endianness decision against a concrete
+> captured frame and prevents silent regression to big-endian decoding.
 
 **CPF item iteration (pure-core free function, called on SendRRData/SendUnitData payloads):**
 
@@ -229,12 +237,16 @@ byte cap is a deliberate MVP tradeoff:
    DNP3's 292-byte cap matches the maximum DNP3 link frame. For ENIP, 600 bytes matches the
    practical explicit-messaging exchange size for the services in scope.
 
-4. **Mitigation for large payloads:** When the cumulative carry exceeds 600 bytes, the
-   flow's `is_non_enip` latch is set to `true`, `parse_errors` is incremented, and all
-   subsequent `on_data` calls for that flow are no-ops. This is not a false positive
-   suppression — if an ENIP flow carries large CIP payloads that exceed the carry buffer,
-   the flow is still analyzed up to the cap, and the parse_error counter in `summarize()`
-   reflects the partial coverage.
+4. **Frame-skip behavior for oversize declared frames (F-ENIP-009 fix):** When a fully
+   received ENIP header indicates a `total_frame_len` (= 24 + `header.length`) that
+   exceeds `MAX_ENIP_CARRY_BYTES`, the analyzer **skips that single frame as malformed**:
+   it increments `parse_errors` and `malformed_in_window`, advances the cursor past the
+   declared frame boundary (bounded by the actual buffer length to prevent overrun), and
+   continues processing subsequent frames in the same buffer. It does **NOT** set
+   `is_non_enip = true` for this case alone, so later small valid frames on the same flow
+   are still analyzed. `is_non_enip` is latched only when the carry buffer itself
+   overflows (partial header/frame > 600 bytes stashed between `on_data` calls), which
+   indicates stream-level desync rather than a single oversize frame.
 
 ```rust
 const MAX_ENIP_CARRY_BYTES: usize = 600;
@@ -286,6 +298,17 @@ pub struct EnipFlowState {
     /// Total PDU count for this flow.
     pdu_count: u64,
 }
+
+/// Named threshold constant for the CIP error-burst rate detection window (BC-2.17.008/014).
+/// 5 CIP error responses (any general_status) within a 10-second window triggers T0888.
+///
+/// LOCKED value: 5 errors / 10s window.
+/// Calibration confidence: MEDIUM (O-03 open-calibration). The 10-second window matches
+/// the error_window_start_ts reset cadence already specified in EnipFlowState. The count
+/// of 5 was selected to sit above transient CIP path-error noise (~1-2 per burst) while
+/// remaining below sustained error-flood rates seen in CIP recon sweeps.
+/// See Open Item OA-005 below for recalibration path.
+const ENIP_ERROR_BURST_THRESHOLD: u64 = 5;
 ```
 
 **Frame-walk loop in `on_data()`:**
@@ -305,11 +328,16 @@ while cursor < buf.len():
     flow.parse_errors++; flow.malformed_in_window++; cursor += 1; continue
 
   total_frame_len = 24 + header.length as usize
+
+  // Oversize single frame: skip as malformed, do NOT latch is_non_enip
+  if total_frame_len > MAX_ENIP_CARRY_BYTES:
+    flow.parse_errors++; flow.malformed_in_window++
+    cursor += min(total_frame_len, buf.len() - cursor)  // skip past declared end; bounded
+    continue
+
   if buf.len() - cursor < total_frame_len:
-    carry = buf[cursor..]   // stash partial frame
-    if carry.len() > MAX_ENIP_CARRY_BYTES:
-      flow.is_non_enip = true; flow.parse_errors++
-    break
+    carry = buf[cursor..]   // stash partial frame (fits within carry cap)
+    break                   // wait for more data
 
   process_pdu(&buf[cursor .. cursor + total_frame_len], &header, flow, findings)
   cursor += total_frame_len
@@ -370,9 +398,25 @@ released 2026-04-28). Source: `.factory/research/enip-mitre-ics-tagging.md` (202
 | CIP ListIdentity (network-wide enum) | **T0846** | Remote System Discovery | ICS Discovery | High | ENIP cmd 0x0063 |
 | CIP identity attribute read (single) | **T0888** | Remote System Information Discovery | ICS Discovery | High | GetAttributeSingle/All to Identity Object |
 | CIP SetAttribute write | **T0836** | Modify Parameter | ICS Impair Process Control | High | FC 0x10 / 0x02 / 0x04 |
+| ENIP malformed/structural anomaly frame | **T0814** | Denial of Service | ICS Inhibit Response Function | Medium | Malformed ENIP encapsulation header or invalid frame structure |
+
+**T0814 (Denial of Service) justification:** A burst of structurally anomalous ENIP
+frames (frames that pass the port-44818 routing rule but fail `is_valid_enip_frame`) is
+a recognized crash-probe / resource-exhaustion pattern against CIP-speaking devices.
+The `malformed_in_window` counter and `malformed_anomaly_emitted` guard (Decision 4
+`EnipFlowState`) exist precisely to detect this pattern. Emitting T0814 on a
+malformed-frame burst is therefore an availability-impact inference with Medium
+confidence, consistent with the structural-anomaly / crash-probe mapping guidance.
+
+**EMITTED accounting for T0814:** T0814 is already seeded in `src/mitre.rs` and shared
+with other analyzers (DNP3/Modbus malformed-frame detection). Its addition to the ENIP
+active-technique set does **not** increase the `SEEDED_TECHNIQUE_ID_COUNT` and does **not**
+add a new entry to `SEEDED_TECHNIQUE_IDS` (already present). The new ENIP-specific EMITTED
+delta remains **+2** for T0858 and T0816 (T0814 is already counted as emitted). The VP-007
+atomic-burst step 4 (`EMITTED_IDS` extension) does NOT need a T0814 arm.
 
 **Already seeded in `src/mitre.rs` (no new catalog entry required):**
-T0846, T0888, T0836, T1692.001, T1692.002.
+T0814, T0846, T0888, T0836, T1692.001, T1692.002.
 
 **New catalog entries required by v0.11.0 implementation:**
 T0858, T0816, T1693.001.
@@ -488,13 +532,26 @@ attributes. v0.11.0 deliberately scopes to a minimal object-model depth:
 **IN SCOPE (v0.11.0):**
 - ENIP encapsulation header — all 10 fields parsed (BC-2.17.001/002)
 - ENIP command classification — 9 recognized command values + Unknown (BC-2.17.004)
-- CPF item iteration — item_count bounded walk, type_id recognition for 0x00B1/0x00B2
-  (BC-2.17.005)
+- CPF item iteration — item_count bounded walk, type_id recognition for the following
+  four recognized CPF type IDs (BC-2.17.005):
+  - 0x0000 — Null Address Item (no address information)
+  - 0x00A1 — Connected Address Item (O→T connection ID)
+  - 0x00B1 — Connected Data Item (sequence-count prefix + CIP message)
+  - 0x00B2 — Unconnected Data Item (CIP message, no sequence prefix)
+  All other type_id values are treated as unrecognized/unknown.
 - CIP service code extraction and classification — 13 named services + Response mask +
   Unknown (BC-2.17.006/007)
-- CIP error response detection — general_status extraction (BC-2.17.008)
+- CIP error response detection — `general_status` byte extraction from **Unconnected Data
+  Items (0x00B2) only** (BC-2.17.008). Connected response status extraction (0x00B1, which
+  carries a 2-byte sequence-count prefix before the CIP PDU) is **DEFERRED to v0.12.0**
+  to avoid off-by-two parse errors from the sequence prefix. The scope note MUST be
+  present in BC-2.17.008's postcondition EC. (F-ENIP-017)
 - CIP request-path segment parse — Class and Instance segment type extraction only
   (BC-2.17.009)
+- RegisterSession (0x0065) and UnRegisterSession (0x0066) commands — **classified and
+  PDU-counted; NO finding emitted** on session handshake itself. Session-handle anomaly
+  validation (tracking whether a command's session_handle was established by a prior
+  RegisterSession on the same flow) is **DEFERRED to v0.12.0**. (F-ENIP-004)
 - ForwardOpen connection establishment detection (BC-2.17.015, see Decision 5)
 
 **DEFERRED (post-v0.11.0):**
@@ -510,8 +567,15 @@ attributes. v0.11.0 deliberately scopes to a minimal object-model depth:
 
 - `--enip` boolean flag added to `Commands::Analyze` in `cli.rs` (default-off, included by
   `--all`)
-- `--enip-write-burst-threshold` (u32, default: 20) — CIP write-class services per 1-second
-  window threshold before T0836 write-burst finding is emitted
+- `--enip-write-burst-threshold` (u32, default: **50**) — CIP write-class services per
+  1-second window threshold before T0836 write-burst finding is emitted. Default raised
+  from 20 (Modbus baseline) to 50 because CIP explicit messaging in normal manufacturing
+  operations is significantly chattier than Modbus writes: a single EtherNet/IP scanner
+  performing periodic SetAttribute updates to multiple device attributes can easily
+  generate 20–40 write PDUs per second under normal conditions. A threshold of 50 sits
+  above typical legitimate write rates while remaining well below pathological write-burst
+  patterns. **Calibration confidence: MEDIUM-uncalibrated (ref O-03).** The human will
+  confirm or adjust this default at the F2 gate before F3 story decomposition. (OA-001 RESOLVED)
 - When `--enip` is set without TCP reassembly, emit a WARNING and disable ENIP (same pattern
   as `--modbus` and `--dnp3`)
 - `EnipAnalyzer` included in `needs_reassembly` alongside ModbusAnalyzer and Dnp3Analyzer
@@ -527,10 +591,11 @@ port-fallback is the only viable classification strategy. The post-classificatio
 gate (is_valid_enip_frame) provides the compensating control.
 
 **Two-level parser design (Decision 2)** is a direct consequence of ENIP's two-level
-framing. The CPF item walk is architecturally separate from the ENIP header parse because
-CPF uses little-endian byte order while the ENIP encapsulation header uses big-endian —
-mixing these in a single function would be error-prone. Keeping them as separate pure-core
-free functions is both easier to reason about and easier to verify with Kani.
+framing. Both the ENIP encapsulation header and the CPF item list use little-endian byte
+order (ODVA). The CPF item walk is architecturally separate from the ENIP header parse
+because the two layers have distinct structural roles (framing vs. data routing) and
+keeping them as separate pure-core free functions is both easier to reason about and
+easier to verify with Kani.
 
 **600-byte carry buffer (Decision 3)** is a conservative MVP tradeoff balancing memory
 safety and detection coverage. It is not a protocol specification constraint; it is a
@@ -570,7 +635,8 @@ representation of the ATT&CK matrix.
 - The ForwardOpen technique-gap is explicitly documented — downstream consumers of ENIP
   findings can rely on accurate technique tags.
 - VP-007 formal correctness is preserved after the 6-part atomic update (SEEDED 25 → 28,
-  EMITTED 17 → 19).
+  EMITTED 17 → 19). T0814 is already seeded and emitted (shared with DNP3/Modbus); it is
+  in the ENIP active-technique set but does not change either count.
 - The `IcsExecution` MitreTactic variant makes the ICS Execution tactic (TA0104) first-class
   and testable, following the ADR-005/ADR-007 Matrix discriminator principle.
 
@@ -579,9 +645,12 @@ representation of the ATT&CK matrix.
 - Port-only classification means any non-ENIP binary protocol on port 44818 is mis-routed
   until the validity gate rejects its frames. This is the same accepted false-routing cost
   as Modbus and DNP3.
-- The 600-byte carry buffer cap means ENIP flows with large CIP data payloads (e.g., large
-  firmware download transfers) will be partially analyzed and flagged with parse_errors. For
-  passive detection purposes this is acceptable; for completeness it is a known limitation.
+- The 600-byte carry buffer cap means ENIP frames with declared lengths exceeding 600 bytes
+  are skipped as malformed (single-frame skip; flow continues). Large CIP data transfers
+  (e.g., firmware downloads) will accumulate parse_errors. For passive detection purposes
+  this is acceptable; for completeness it is a known limitation. Subsequent small valid
+  frames on the same flow are still analyzed (is_non_enip is NOT latched on single-frame
+  oversize — only on carry-buffer overflow between on_data calls).
 - The two-level (ENIP→CPF) parse path is more complex than single-layer protocols. VP-032
   bounds this complexity with Kani proofs for the pure-core parse functions.
 - `SEEDED_TECHNIQUE_ID_COUNT` (now 28 after this ADR) and `SEEDED_TECHNIQUE_IDS` must be
@@ -596,11 +665,17 @@ representation of the ATT&CK matrix.
 
 ### Open Items for F3 / Human Decision
 
-- **`--enip-write-burst-threshold` default:** The proposed default is 20 (matching
-  Modbus). CIP write commands in normal manufacturing operations may be more frequent
-  than Modbus writes. F3 story decomposition should evaluate whether a higher default
-  (e.g., 50) better matches the expected false-positive rate in typical ENIP traffic.
-  Deferred from F2 per OQ-005 (F1 delta analysis open question).
+- **OA-001 RESOLVED — `--enip-write-burst-threshold` default:** Set to **50** (raised
+  from 20). Calibration confidence: MEDIUM-uncalibrated (ref O-03). Human confirmation
+  requested at F2 gate before F3 story decomposition locks BC-2.17.012/023. See
+  Decision 9.
+- **OA-005 — `ENIP_ERROR_BURST_THRESHOLD` calibration:** The 5-errors/10s threshold
+  (Decision 4, `ENIP_ERROR_BURST_THRESHOLD = 5`) is an initial engineering estimate.
+  Recalibration against real ENIP pcap captures is recommended before v0.12.0.
+  Until recalibrated, BC-2.17.008/014 must cite the threshold as MEDIUM-confidence
+  pending O-03 open-calibration. Lock path: collect error-rate baseline from production
+  ENIP traces; adjust constant in F6 or a follow-on maintenance pass; bump minor version
+  in BC-2.17.008/014's EC. Human decision: accept 5 as the v0.11.0 default or override.
 - **T0858 `IcsExecution` enum addition:** Confirmed by this ADR as the correct design.
   The actual `enum` edit, `Display` update, `all_tactics_in_report_order()` update, and
   `technique_tactic_id()` update must be part of the VP-007 atomic burst in F4 STORY-EIP-09.
@@ -608,6 +683,13 @@ representation of the ATT&CK matrix.
   a BC that emits firmware-detection findings is implemented. The BC for CIP firmware
   download detection is deferred from v0.11.0 scope (not in BC-2.17.001..024). Confirm
   this in F3 story decomposition.
+- **BC-2.17.025 (session-handshake) — PO ACTION REQUIRED:** The product-owner MUST
+  create BC-2.17.025 with the following contract: "RegisterSession (0x0065) and
+  UnRegisterSession (0x0066) frames are classified and PDU-counted; no finding is emitted
+  on session handshake. Session-handle anomaly validation (verifying that commands carry
+  a session_handle established by a prior RegisterSession on the same flow) is deferred
+  to v0.12.0." BC-2.17.025 captures this explicit in-scope/deferred boundary so that
+  the v0.12.0 session-validation feature has a clear BC to supersede. (F-ENIP-004)
 
 ## Alternatives Considered
 

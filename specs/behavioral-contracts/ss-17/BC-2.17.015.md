@@ -28,29 +28,34 @@ inputs:
 input-hash: TBD
 ---
 
-# BC-2.17.015: ForwardOpen Connection-Lifecycle Anomaly Detected with Empty MITRE Technique Set
+# BC-2.17.015: ForwardOpen and ForwardClose Connection-Lifecycle Anomaly Detected with Empty MITRE Technique Set
 
 ## Description
 
-When `classify_cip_service(cip_header.service)` returns `CipServiceClass::ForwardOpen` (0x54)
-or `CipServiceClass::LargeForwardOpen` (0x5B), the analyzer detects a CIP connection
-establishment event. ForwardOpen establishes a CIP connection (allocating connection IDs and
-RPIs). Per ADR-010 Decision 5 (in-scope for v0.11.0) and Decision 7 (MITRE technique gap),
-the finding is emitted with **no MITRE technique tag** (`mitre_techniques: vec![]`) when the
-ForwardOpen is detected in isolation. T1692.001 is emitted on the CIP command carrying an
-unauthorized action in the same session — not on the ForwardOpen itself. The connection serial
-number is tracked for ForwardClose correlation.
+When `classify_cip_service(cip_header.service)` returns `CipServiceClass::ForwardOpen` (0x54),
+`CipServiceClass::LargeForwardOpen` (0x5B), or `CipServiceClass::ForwardClose` (0x4E), the
+analyzer detects a CIP connection lifecycle event. ForwardOpen establishes a CIP connection
+(allocating connection IDs and RPIs); ForwardClose tears it down. Per ADR-010 Decision 5
+(in-scope for v0.11.0) and Decision 7 (MITRE technique gap), findings are emitted with **no
+MITRE technique tag** (`mitre_techniques: vec![]`). T1692.001 is emitted on the CIP command
+carrying an unauthorized action in the same session — not on the ForwardOpen or ForwardClose
+itself. For ForwardOpen, the connection serial number (bytes 14–15 of the CIP request data per
+ODVA Connection Manager Object) is extracted best-effort and stored for ForwardClose
+correlation; if extraction fails (payload shorter than 16 bytes), correlation is skipped and
+the serial number is recorded as 0 (explicitly best-effort / deferred to v0.12.0 for full
+validation).
 
 ## Preconditions
 
-1. `classify_cip_service(cip_header.service)` returns `CipServiceClass::ForwardOpen` or
-   `CipServiceClass::LargeForwardOpen`.
+1. `classify_cip_service(cip_header.service)` returns `CipServiceClass::ForwardOpen`,
+   `CipServiceClass::LargeForwardOpen`, or `CipServiceClass::ForwardClose`.
 2. `cip_header.service & 0x80 == 0` (request, not response).
 3. `flow.is_non_enip == false`.
 4. `self.all_findings.len() < MAX_FINDINGS`.
 
 ## Postconditions
 
+**ForwardOpen / LargeForwardOpen:**
 1. Exactly ONE `Finding` is pushed per ForwardOpen/LargeForwardOpen request:
    - `category: ThreatCategory::Anomaly`
    - `verdict: Verdict::Possible`
@@ -59,10 +64,22 @@ number is tracked for ForwardClose correlation.
    - `evidence`: one entry — `"CIP service=0x{service:02X} ({name}) from src={src_ip} session={session}. No dedicated MITRE ICS technique for CIP connection establishment anomaly; T1692.001 applies only when connection demonstrably carries unauthorized command (ADR-010 Decision 7)"`
    - `mitre_techniques: vec![]` — empty; no technique tag (per ADR-010 Decision 7 policy)
    - `source_ip: Some(...)`, `timestamp: Some(...)`
-2. The connection serial number is extracted from the ForwardOpen payload (bytes 14–15 of
-   the CIP request data per ODVA Connection Manager Object specification) and stored for
-   ForwardClose correlation. If extraction fails (short payload), correlation is skipped.
+2. Connection serial number (bytes 14–15 of CIP ForwardOpen request data, per ODVA Connection
+   Manager Object specification) extracted best-effort:
+   - If `cip_item_data.len() >= 16`: `serial = u16::from_le_bytes([cip_item_data[14], cip_item_data[15]])`; stored for ForwardClose correlation.
+   - If `cip_item_data.len() < 16`: serial = 0 (extraction failed); correlation skipped. Best-effort only; full validation deferred to v0.12.0.
 3. No one-shot guard: each ForwardOpen/LargeForwardOpen generates a finding.
+
+**ForwardClose (0x4E):**
+4. Exactly ONE `Finding` is pushed per ForwardClose request:
+   - `category: ThreatCategory::Anomaly`
+   - `verdict: Verdict::Possible`
+   - `confidence: Confidence::Low`
+   - `summary: "CIP ForwardClose connection teardown observed from src={src_ip}: connection lifecycle closed"`
+   - `evidence`: one entry — `"CIP service=0x4E (ForwardClose) from src={src_ip} session={session}. Connection lifecycle closed; no dedicated MITRE ICS technique (ADR-010 Decision 7)"`
+   - `mitre_techniques: vec![]` — empty; no technique tag (per ADR-010 Decision 7 policy)
+   - `source_ip: Some(...)`, `timestamp: Some(...)`
+5. No one-shot guard: each ForwardClose generates a finding (connection closure is individually observable).
 
 ## Invariants
 
@@ -90,7 +107,7 @@ number is tracked for ForwardClose correlation.
 | EC-002 | LargeForwardOpen (0x5B) | Finding emitted; same policy; `mitre_techniques: vec![]` |
 | EC-003 | ForwardOpen *response* (0xD4 = 0x54 | 0x80) | `CipServiceClass::Response` — no ForwardOpen finding |
 | EC-004 | ForwardOpen immediately followed by CIP Stop (0x07) in same session | Two findings: ForwardOpen (vec![]) + T0858 Stop. T1692.001 not added to ForwardOpen finding in v0.11.0 (cross-BC state tracking deferred) |
-| EC-005 | ForwardClose (0x4E) | Classified as `ForwardClose`; finding emitted per BC-2.17.015 extension (same policy as ForwardOpen); connection lifecycle closed |
+| EC-005 | ForwardClose (0x4E) request | Classified as `CipServiceClass::ForwardClose`; one Finding emitted: Anomaly/Possible/Low, `mitre_techniques: vec![]`, summary "CIP ForwardClose connection teardown observed..." (see Postconditions §ForwardClose) |
 | EC-006 | `all_findings.len() == MAX_FINDINGS` when ForwardOpen arrives | No finding pushed; connection serial not stored (or stored separately) |
 
 ## Canonical Test Vectors
@@ -103,12 +120,20 @@ CIP item: type_id=0x00B2 (Unconnected), service=0x54 (ForwardOpen)
 Expected: `Finding { mitre_techniques: [], verdict: Possible, confidence: Low,
 summary: "CIP ForwardOpen connection establishment observed ..." }`
 
-| CIP service | classify result | mitre_techniques | verdict | confidence |
-|------------|----------------|-----------------|---------|-----------|
-| `0x54` ForwardOpen | `ForwardOpen` | `[]` (empty) | Possible | Low |
-| `0x5B` LargeForwardOpen | `LargeForwardOpen` | `[]` (empty) | Possible | Low |
-| `0xD4` (FwdOpen response) | `Response` | (no finding) | — | — |
-| `0x4E` ForwardClose | `ForwardClose` | `[]` (empty) | Possible | Low |
+| CIP service | classify result | mitre_techniques | verdict | confidence | summary prefix |
+|------------|----------------|-----------------|---------|-----------|----------------|
+| `0x54` ForwardOpen | `ForwardOpen` | `[]` (empty) | Possible | Low | "CIP ForwardOpen connection establishment..." |
+| `0x5B` LargeForwardOpen | `LargeForwardOpen` | `[]` (empty) | Possible | Low | "CIP ForwardOpen connection establishment..." |
+| `0xD4` (FwdOpen response) | `Response` | (no finding) | — | — | — |
+| `0x4E` ForwardClose | `ForwardClose` | `[]` (empty) | Possible | Low | "CIP ForwardClose connection teardown..." |
+
+**ForwardClose canonical frame:**
+```
+ENIP: SendRRData, session=0x12345678
+CIP item: type_id=0x00B2 (Unconnected), service=0x4E (ForwardClose)
+```
+Expected: `Finding { category: Anomaly, verdict: Possible, confidence: Low,
+mitre_techniques: [], summary: "CIP ForwardClose connection teardown observed ..." }`
 
 ## Verification Properties
 

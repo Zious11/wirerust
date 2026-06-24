@@ -35,8 +35,8 @@ input-hash: TBD
 `parse_enip_header(data: &[u8]) -> Option<EnipHeader>` is the pure-core entry function for
 EtherNet/IP encapsulation-header parsing. When `data.len() < 24`, the function returns `None`
 immediately without accessing any bytes. The ENIP encapsulation header is exactly 24 bytes
-(fixed by the ODVA EtherNet/IP specification): command (2 BE) + length (2 BE) +
-session_handle (4 BE) + status (4 BE) + sender_context (8 opaque) + options (4 BE). No
+(fixed by the ODVA EtherNet/IP specification): command (2 LE) + length (2 LE) +
+session_handle (4 LE) + status (4 LE) + sender_context (8 opaque) + options (4 LE). No
 partial header is ever decoded. This is the reject/short path contract; the accept path is
 BC-2.17.002.
 
