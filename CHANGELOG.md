@@ -7,6 +7,8 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-06-24
+
 ### Breaking Changes
 
 - **DNP3 analyzer output: renamed summary key `total_parse_errors` → `parse_errors`.**
@@ -618,7 +620,8 @@ Downstream consumers of wirerust JSON or CSV output must update for this release
 - Output sanitization in the terminal reporter guards against C1 control bytes
   in packet-derived strings.
 
-[Unreleased]: https://github.com/Zious11/wirerust/compare/v0.9.4...HEAD
+[Unreleased]: https://github.com/Zious11/wirerust/compare/v0.10.0...HEAD
+[0.10.0]: https://github.com/Zious11/wirerust/compare/v0.9.4...v0.10.0
 [0.9.4]: https://github.com/Zious11/wirerust/compare/v0.9.3...v0.9.4
 [0.9.3]: https://github.com/Zious11/wirerust/compare/v0.9.2...v0.9.3
 [0.9.2]: https://github.com/Zious11/wirerust/compare/v0.9.1...v0.9.2
