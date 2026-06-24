@@ -1,10 +1,10 @@
 ---
-pipeline: STEADY-STATE
-phase: QUIESCED
-phase_status: "feature-mitre-json-names CONVERGED + RELEASED (v0.9.4, D-217) + CLOSED. Pipeline quiesced."
+pipeline: ACTIVE
+phase: FIX-CYCLE-OPEN
+phase_status: "fix-pc-013-014-015 cycle OPENED (D-219). PC-013/014/015 IN-PROGRESS."
 product: wirerust
-mode: brownfield
-timestamp: 2026-06-23T21:00:00Z
+mode: brownfield (fix bundle), feature-mode-lite
+timestamp: 2026-06-23T22:00:00Z
 
 # Release chain
 released_version: v0.9.4
@@ -24,10 +24,10 @@ v091_release_commit: ad4eec8
 v090_release_tag: v0.9.0
 v090_release_commit: 986e148
 
-# Ground-truth HEADs (verified at D-218 — 2026-06-23)
+# Ground-truth HEADs (verified at D-219 — 2026-06-23)
 develop_head: 0115d0e
 main_head: 96b49e8
-factory_artifacts_head: "run: git -C .factory log -1 --format='%h %s'"
+factory_artifacts_head: a69d757
 
 # Pipeline completion
 bootstrapped: 2026-05-19T16:56:48Z
@@ -43,8 +43,8 @@ adversary_gate: SATISFIED
 
 # Story tracking
 stories_delivered: 78
-current_cycle: NONE (feature-mitre-json-names CLOSED — D-217)
-current_wave: "QUIESCED. Last: Wave 57 — STORY-129 DELIVERED & CLOSED. F1-F7 COMPLETE. Cycle CLOSED. Release v0.9.4 PUBLISHED 2026-06-23."
+current_cycle: fix-pc-013-014-015 (OPENED D-219 — 2026-06-23)
+current_wave: "FIX-CYCLE-OPEN. Cycle fix-pc-013-014-015 active. PC-013/014/015 IN-PROGRESS. Scope: .factory/code-delivery/fix-pc-013-014-015/scope.md"
 
 # DTU
 dtu_required: false
@@ -72,9 +72,9 @@ convergence_trajectory: "Detail: cycles/v0.1.0-greenfield-spec/convergence-traje
 
 # VSDD Pipeline State — wirerust
 
-## SESSION PAUSED — SAFE TO CLEAR (D-218)
+## ACTIVE CYCLE — fix-pc-013-014-015 (D-219)
 
-**Prior checkpoints D-203 through D-217 are archived. All decisions from those checkpoints remain final.**
+**Prior checkpoints D-203 through D-218 are archived. All decisions from those checkpoints remain final.**
 
 ### WARNING — DO NOT REDO (on resume)
 
@@ -85,12 +85,12 @@ convergence_trajectory: "Detail: cycles/v0.1.0-greenfield-spec/convergence-traje
 - Do NOT re-run maintenance sweep maint-2026-06-22 — COMPLETE (D-204). PRs #304 + #305 already merged to develop.
 - Do NOT reopen D-200-era decision threads (a)/(b)/(c) — all three CLOSED.
 
-### GROUND-TRUTH HEADs (verified at D-218 — 2026-06-23)
+### GROUND-TRUTH HEADs (verified at D-219 — 2026-06-23)
 
 - **develop:** `0115d0e` (local == origin/develop; working tree clean). Re-verify: `git rev-parse --short develop` == `0115d0e`.
 - **main:** `96b49e8` — PR #309 merge commit (`chore: release v0.9.4`); tag `v0.9.4` on this commit.
-- **factory-artifacts:** the D-218 commit (this checkpoint). Re-verify: `git -C .factory status` must be clean.
-- **Open PRs:** None. Re-verify: `gh pr list` must return empty.
+- **factory-artifacts:** `a69d757` (pre-cycle-open head). Re-verify: `git -C .factory log -1 --format='%h'`.
+- **Open PRs:** None at cycle open. Re-verify: `gh pr list` must return empty.
 - **Worktrees:** main repo (develop) + `.factory/` only. No story/fix/feature worktrees open.
 
 ### RESUME PROCEDURE (execute in order)
@@ -101,7 +101,7 @@ convergence_trajectory: "Detail: cycles/v0.1.0-greenfield-spec/convergence-traje
 4. Verify: `gh pr list` returns empty.
 5. Verify: `git worktree list` shows only main repo + `.factory/` (no story/fix/feature worktrees).
 6. Confirm both trees clean: `git status` (main repo) and `git -C .factory status`.
-7. No active cycle — await human direction before starting any new work.
+7. Active cycle: `fix-pc-013-014-015`. Scope: `.factory/code-delivery/fix-pc-013-014-015/scope.md`. PC-013/014/015 IN-PROGRESS.
 
 ### OPEN ITEMS (backlog — non-blocking, no active work)
 
@@ -112,9 +112,9 @@ convergence_trajectory: "Detail: cycles/v0.1.0-greenfield-spec/convergence-traje
 | DRIFT-MITRE-SUBSET-COUNT-TESTS-001 | [LOW]: mitre/multitag dual-count subset tests (21/13 vs 25/17) — pre-existing cruft, no correctness impact. | DEFERRED LOW — future maintenance |
 | DRIFT-ARP-DEMO-FIXTURE-001 | [LOW]: No ARP pcap fixture; T0830→TA0100 unit-tested but not demoed live. | DEFERRED LOW — future cycle |
 | PO-BACKLOG-MAINT-2026-06-22 | DNP3/ARP/Modbus/finding-collapse holdout coverage gap (73 declared seeds, 0 files) + HS-064/075/090/098/108 staleness. Human scope decision needed. | OPEN — product-owner / human |
-| PC-013 | ARP production `.expect()` sites — panic-on-malformed risk. | OPEN |
-| PC-014 | dnp3: `total_parse_errors` key missing from output map. | OPEN |
-| PC-015 | ARP findings cap not documented in public CLI help. | OPEN |
+| PC-013 | ARP internal HashMap invariant `.expect()` sites in arp.rs — fail-safe degradation (not packet panics). BC-2.16.004 → v1.9 planned. | IN-PROGRESS (cycle fix-pc-013-014-015) |
+| PC-014 | dnp3: key MISNAMED — `total_parse_errors` should be `parse_errors` to match HTTP/TLS/Modbus siblings. BREAKING rename. BC-2.15.020 → v1.4 planned. | IN-PROGRESS (cycle fix-pc-013-014-015) |
+| PC-015 | ARP findings unbounded (no cap) — undocumented design, not hidden cap. NEW BC-2.16.016 + BC-2.16.010 → v1.8 planned. | IN-PROGRESS (cycle fix-pc-013-014-015) |
 | ADV-4 | ci.yml audit comment rationale lost (LOW). | DEFERRED LOW |
 | DRIFT-READER-ADR-CITATION-001 | reader.rs ADR citation numbers (LOW). | DEFERRED LOW |
 | SEC-008 | Residual unbounded EPB accumulation on `from_pcap_reader` STREAM path (not CLI-reachable). DF-VALIDATION-001 required before GitHub issue. | DEFERRED — latent |
@@ -132,11 +132,11 @@ convergence_trajectory: "Detail: cycles/v0.1.0-greenfield-spec/convergence-traje
 
 ## Status
 
-**PIPELINE QUIESCED. Feature cycle feature-mitre-json-names CONVERGED + RELEASED + CLOSED (D-217, 2026-06-23). SAFE-TO-CLEAR checkpoint written (D-218).**
+**PIPELINE ACTIVE. Fix cycle fix-pc-013-014-015 OPENED (D-219, 2026-06-23). PC-013/014/015 IN-PROGRESS.**
 
-Latest release: v0.9.4 (main `96b49e8`, tag `v0.9.4`, 4 binaries, run 28053327452). develop=0115d0e. stories_delivered=78. No open PRs. No active cycle. No in-flight work.
+Latest release: v0.9.4 (main `96b49e8`, tag `v0.9.4`, 4 binaries, run 28053327452). develop=0115d0e. stories_delivered=78. No open PRs. Active cycle: fix-pc-013-014-015.
 
-Delivered: mitre_attack JSON enrichment (issue #64, STORY-129) + ICS-matrix tactic-ID correctness fix (F5 F-1, T0830/T0831 + 3 others).
+Scope: post-release defect fixes PC-013 (ARP `.expect()` invariant sites), PC-014 (dnp3 key rename `total_parse_errors` → `parse_errors`, BREAKING), PC-015 (ARP unbounded findings, undocumented). Planned BCs: NEW BC-2.16.016; BC-2.16.004 → v1.9; BC-2.16.010 → v1.8; BC-2.15.020 → v1.4. Product-owner to author BCs; story-writer to follow. D-220: PC-014 rename human-approved.
 
 ## Phase Progress
 
@@ -162,6 +162,7 @@ Delivered: mitre_attack JSON enrichment (issue #64, STORY-129) + ICS-matrix tact
 | Feature pcapng-reader (FE-001) + v0.9.3 | RELEASED + CLOSED 2026-06-22 (D-201) | F1-F7 CONVERGED+HUMAN-APPROVED (D-194). 10 new BCs, VP-INDEX v2.10. PR #302 → main 2dbf461. 4 binaries. |
 | Maintenance maint-2026-06-22 | COMPLETE 2026-06-23 | 38 observations; 0 blocking; F-MAJ-001 fixed (a6efb23); PR #304 (e458ce2) + PR #305 (e4abbe2). |
 | Feature mitre-json-names (issue #64) + v0.9.4 | **RELEASED + CLOSED 2026-06-23 (D-217)** | F1-F7 CONVERGED. mitre_attack enrichment (STORY-129) + ICS tactic fix (F5 F-1). 20 MitreTactic variants. 5 BCs bumped. BC-INDEX v1.71 (303 BCs). PR #306/307/308/309. tag v0.9.4 96b49e8. 4 binaries. stories_delivered=78. |
+| Fix cycle fix-pc-013-014-015 | **IN-PROGRESS (D-219, 2026-06-23)** | PC-013/014/015. Planned: NEW BC-2.16.016; BC-2.16.004 → v1.9; BC-2.16.010 → v1.8; BC-2.15.020 → v1.4 (BREAKING rename). Product-owner authoring BCs next. |
 
 ## Decisions Log
 
@@ -178,6 +179,8 @@ D-206..D-217: `cycles/feature-mitre-json-names/decisions-archive.md` (archived a
 | D-205 | SAFE-TO-CLEAR checkpoint refreshed. Ground truth: main=2dbf461, develop=e4abbe2, PRs=0, worktrees=main+.factory. Pipeline quiesced. | 2026-06-23 |
 | D-217 | v0.9.4 RELEASED. PR #309 (release/0.9.4) merged to main 96b49e8; annotated tag v0.9.4; release.yml run 28053327452 SUCCESS, 4 binaries published; develop back-merged 0115d0e. Feature cycle feature-mitre-json-names CONVERGED + RELEASED + CLOSED: delivered mitre_attack JSON enrichment (issue #64, STORY-129) + ICS-matrix tactic-ID correctness fix (F5 F-1, incl. T0830/T0831 corrections). stories_delivered=78. Pipeline quiesced. | 2026-06-23 |
 | D-218 | SAFE-TO-CLEAR checkpoint written. Session that delivered v0.9.4 (feature-mitre-json-names cycle: issue #64 mitre_attack + ICS tactic-ID correctness fix) is complete and CLOSED. Ground truth: develop=0115d0e, main=96b49e8, v0.9.4 released, 0 open PRs, worktrees=main+.factory only, pipeline quiesced. Safe to clear the session. | 2026-06-23 |
+| D-219 | Human selected backlog item "fix bundle PC-013/14/15" as next work. Pipeline leaving QUIESCED into fix cycle `fix-pc-013-014-015`. F1 delta analysis (product-owner) corrected all three STATE.md labels: PC-013 = internal HashMap invariant .expect() sites in arp.rs (not packet panics), PC-014 = key MISNAMED (total_parse_errors) not missing, PC-015 = no findings cap exists (undocumented design, not hidden cap). Ground truth at open: develop=0115d0e, main=96b49e8, factory-artifacts=a69d757. | 2026-06-23 |
+| D-220 | PC-014 resolution decision = RENAME dnp3 output key `total_parse_errors` → `parse_errors` to match sibling analyzers (HTTP/TLS/Modbus). This is a BREAKING JSON output change — requires CHANGELOG entry and a minor version bump at release. Human-approved. | 2026-06-23 |
 
 ## Governance Policy
 
