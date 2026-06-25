@@ -245,9 +245,12 @@ mitre_seeding::test_seeded_count_is_28
 mitre_seeding::test_emitted_count_is_20
 mitre_seeding::test_t1693_001_not_emitted
 mitre_seeding::test_t0846_in_emitted
+mitre_seeding::test_t0858_t0816_and_t0846_tactic_id_resolution
 ```
 
 Plus all existing `cargo test mitre` tests (must remain green).
+
+**`test_t0858_t0816_and_t0846_tactic_id_resolution`** — composite tactic_id resolution test: verifies `technique_info("T0858").tactic.tactic_id() == "TA0104"` (IcsExecution), `technique_info("T0816").tactic.tactic_id() == "TA0107"` (IcsInhibitResponseFunction), and `technique_info("T0846").tactic.tactic_id() == "TA0102"` (IcsDiscovery) in a single test function covering the three primary ENIP technique tactic_id mappings end-to-end.
 
 ## Previous Story Intelligence
 
