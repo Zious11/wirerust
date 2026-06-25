@@ -49,7 +49,7 @@ replayed session handles) is explicitly deferred to v0.12.0.
 
 ## Postconditions
 
-1. `EnipAnalyzer.pdu_count += 1` — the frame is counted as a processed PDU.
+1. `flow.pdu_count += 1` — the frame is counted as a processed PDU (per BC-2.17.024: incremented in `process_pdu` at start of call).
 2. `flow.command_counts.entry(header.command).or_insert(0) += 1` — command occurrence logged.
 3. NO `Finding` is pushed to `self.all_findings`. The session handshake is a normal protocol
    operation and does not indicate a threat in isolation.
@@ -132,7 +132,7 @@ Expected: `pdu_count += 1`; `command_counts[0x0066] += 1`; `all_findings` unchan
 
 - `src/analyzer/enip.rs` — `process_pdu`: `if matches!(cmd_class, EnipCommandClass::RegisterSession | EnipCommandClass::UnRegisterSession) { flow.command_counts.entry(header.command).or_insert(0) += 1; /* no finding */ }`
 - `src/analyzer/enip.rs` — `EnipFlowState.command_counts: HashMap<u16, u64>`
-- `src/analyzer/enip.rs` — `EnipAnalyzer.pdu_count: u64` (incremented in on_data frame-walk loop, not process_pdu)
+- `src/analyzer/enip.rs` — `EnipFlowState.pdu_count: u64` (incremented in `process_pdu` at start of call, per BC-2.17.024)
 - `.factory/specs/architecture/decisions/ADR-010-ethernet-ip-cip-stream-dispatch.md §Decision 4` (pdu_count and command_counts)
 
 ## Story Anchor
@@ -156,7 +156,7 @@ Expected: `pdu_count += 1`; `command_counts[0x0066] += 1`; `all_findings` unchan
 | Property | Assessment |
 |----------|-----------|
 | **I/O operations** | none |
-| **Global state access** | mutates flow.command_counts; reads/writes pdu_count (via on_data loop) |
+| **Global state access** | mutates flow.command_counts; increments flow.pdu_count (via process_pdu) |
 | **Deterministic** | yes — same command sequence produces same counter state |
 | **Thread safety** | single-threaded |
-| **Overall classification** | effectful shell (session-handshake dispatch within process_pdu / on_data) |
+| **Overall classification** | effectful shell (session-handshake dispatch within process_pdu) |

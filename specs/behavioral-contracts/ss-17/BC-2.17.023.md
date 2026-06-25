@@ -57,7 +57,7 @@ MEDIUM-confidence (un-calibrated, ref O-03) pending human confirmation at F2 gat
 
 1. **Default = 50**: proposed default for typical CIP manufacturing environments
    (higher-frequency write traffic than Modbus). [MEDIUM-confidence, un-calibrated, ref O-03;
-   human to confirm at F2 gate. ADR-010 §Open Items (OA-001 renamed → F2 gate decision).]
+   human to confirm at F2 gate. ADR-010 §Open Items [OA-001 RESOLVED=50; F2 gate confirmation pending].]
 2. **u32 type**: the threshold is a u32. Values near `u32::MAX` are accepted by the parser
    but would effectively disable write-burst detection. This is operator responsibility.
 3. **Flag independence**: changing `--enip-write-burst-threshold` does not affect T0858,
@@ -73,7 +73,7 @@ MEDIUM-confidence (un-calibrated, ref O-03) pending human confirmation at F2 gat
 | EC-001 | `--enip-write-burst-threshold 50` | threshold=50 in EnipAnalyzer |
 | EC-002 | `--enip-write-burst-threshold 1` | Any single write triggers T0836 |
 | EC-003 | No `--enip-write-burst-threshold` flag | Default 50 used |
-| EC-004 | `--enip-write-burst-threshold 0` | 0 means every write triggers T0836 instantly — semantically valid but high-noise; [OA-001] |
+| EC-004 | `--enip-write-burst-threshold 0` | 0 means every write triggers T0836 instantly — semantically valid but high-noise; [OA-001 RESOLVED=50; F2 gate confirmation pending] |
 | EC-005 | `--all --enip-write-burst-threshold 30` | ENIP enabled; threshold=30 |
 
 ## Canonical Test Vectors

@@ -53,7 +53,7 @@ error burst threshold is exceeded (one-shot guard via `error_rate_emitted`).
 
 **Pattern B (error-rate burst):**
 1. `flow.error_counts_in_window` total count across all status codes exceeds
-   `ENIP_ERROR_BURST_THRESHOLD` (= 5; 5 error responses within 10s).
+   `ENIP_ERROR_BURST_THRESHOLD` (= 5; strict `>`; fires on the 6th error response within 10s — 5 errors do NOT fire).
 2. `flow.error_rate_emitted == false`.
 3. `flow.is_non_enip == false`.
 4. `self.all_findings.len() < MAX_FINDINGS`.
@@ -88,9 +88,11 @@ error burst threshold is exceeded (one-shot guard via `error_rate_emitted`).
 2. **Pattern A is per-occurrence; Pattern B is windowed one-shot**: Identity reads are
    always individually significant (direct device profiling). Error bursts require
    accumulation before the finding fires.
-3. **Error burst threshold**: named constant `ENIP_ERROR_BURST_THRESHOLD = 5` — the total
-   count of CIP error responses (any non-zero general_status) within 10 seconds that triggers
-   Pattern B. Operators with noisy SCADA systems may raise this to reduce false positives.
+3. **Error burst threshold**: named constant `ENIP_ERROR_BURST_THRESHOLD = 5` — Pattern B
+   fires when the total count of CIP error responses (any non-zero general_status) within 10
+   seconds strictly exceeds (`>`) this threshold: 6 errors fire, 5 do not. Matches BC-2.17.012
+   strict `>` convention so the analyzer uses one comparison semantics throughout. Operators
+   with noisy SCADA systems may raise this to reduce false positives.
    [MEDIUM-confidence, un-calibrated; ref O-03; defined in ADR-010 Open Items]
 4. **Distinct from T0846**: T0888 is single-device profiling; T0846 is network enumeration
    (ListIdentity). These are complementary and independent.
@@ -102,8 +104,8 @@ error burst threshold is exceeded (one-shot guard via `error_rate_emitted`).
 | EC-001 | GetAttributeSingle to Identity Object (Class=0x01) | Pattern A: T0888 finding Likely/High |
 | EC-002 | GetAttributesAll to Class=0x01 | Pattern A: T0888 finding Likely/High |
 | EC-003 | GetAttributeSingle to Class=0x04 (Assembly — not Identity) | No T0888 finding (not Identity Object) |
-| EC-004 | 5 CIP error responses in 10s (threshold=5) | Pattern B: T0888 finding Possible/Medium; `error_rate_emitted=true` |
-| EC-005 | 4 error responses (below threshold=5) | No Pattern B finding |
+| EC-004 | 6 CIP error responses in 10s (threshold=5, strict `>`) | Pattern B: T0888 finding Possible/Medium; `error_rate_emitted=true` |
+| EC-005 | 5 error responses (threshold=5, strict `>`: 5 > 5 is false) | No Pattern B finding |
 | EC-006 | Pattern B guard set; 5 more errors arrive in same window | Guard prevents additional Pattern B finding |
 | EC-007 | 10s window expires; 5 more errors | New window; `error_rate_emitted=false`; Pattern B can fire again |
 | EC-008 | ListIdentity (T0846) followed by GetAttributeSingle to Identity | T0846 finding + T0888 finding — both independent detections |
@@ -118,17 +120,18 @@ CIP: service=0x0E, path=[0x20, 0x01, 0x24, 0x01, 0x30, 0x07]
 ```
 Expected Pattern A: T0888 Likely/High
 
-**Error burst (5 responses with non-zero status):**
+**Error burst (6 responses with non-zero status; strict `>` threshold=5):**
 ```
-5 CIP responses each with general_status != 0x00 within 10 seconds
+6 CIP responses each with general_status != 0x00 within 10 seconds
 ```
-Expected Pattern B: T0888 Possible/Medium
+Expected Pattern B: T0888 Possible/Medium (5 errors → no finding; 6th crosses strict > threshold)
 
 | Scenario | Pattern | Finding verdict | Confidence |
 |----------|---------|-----------------|-----------|
 | GetAttributeSingle to Class=0x01 | A | Likely | High |
 | GetAttributesAll to Class=0x01 | A | Likely | High |
-| 5 CIP errors in 10s | B | Possible | Medium |
+| 6 CIP errors in 10s (threshold=5, strict >) | B | Possible | Medium |
+| 5 CIP errors in 10s (threshold=5, strict >) | — | None | — |
 | GetAttributeSingle to Class=0x04 | — | None | — |
 
 ## Verification Properties
