@@ -510,18 +510,29 @@ mod parse_header {
 // Traces to: BC-2.17.019 (Rule 7 routing), BC-2.17.020 (CLI --enip flag),
 //            BC-2.17.023 (write-burst threshold), BC-2.17.026 (error-burst threshold).
 //
-// RED GATE: All behavior tests in this module MUST FAIL until STORY-131
-// implementation is complete. Tests are structured to assert the observable
-// post-implementation behavior (findings accumulated, routing confirmed, thresholds
-// applied in detection), which requires real `on_data` processing. Any test that
-// calls `on_data` with a port-44818 flow will panic via `todo!()` until
-// STORY-132 implements the frame-walk and CIP dispatch.
+// RED GATE STATUS (Decision 2 re-scope, boundary doc BOUNDARY-131-132):
+// Observable for routing tests is `bytes_received > 0` (Decision 2), NOT
+// `all_findings` (which requires STORY-132 frame-walk). The `todo!()` in the
+// `DispatchTarget::Enip` arm fires whenever port-44818 data is dispatched.
 //
-// Tests justified as WIRING-EXEMPT (pass against the current stub):
-//   - test_take_enip_analyzer_transfers_ownership: `Option::take()` is fully
-//     implemented and is the correct behavior; this tests real complete plumbing.
-//   - test_take_enip_analyzer_returns_none_when_not_set: same — Option semantics.
-// All other dispatch tests MUST FAIL.
+// RED (FAIL until STORY-131 impl — panics at todo!() in Enip arm):
+//   test_dispatcher_routes_port_44818            — drives port-44818, asserts bytes_received > 0
+//   test_cli_enip_flag_constructs_analyzer       — drives port-44818, asserts bytes_received > 0
+//   test_cli_all_flag_includes_enip              — drives port-44818, asserts bytes_received > 0
+//   test_write_burst_threshold_custom            — drives port-44818, asserts bytes_received > 0
+//   test_write_burst_threshold_default           — drives port-44818, asserts bytes_received > 0
+//   test_error_burst_threshold_custom            — drives port-44818, asserts bytes_received > 0
+//   test_error_burst_threshold_default           — drives port-44818, asserts bytes_received > 0
+//   test_error_burst_threshold_zero_semantics    — drives port-44818, asserts bytes_received > 0
+//
+// GREEN-BY-DESIGN (justification inline per test):
+//   test_dispatcher_does_not_route_other_ports   — port 9999 only; Enip arm never reached
+//   test_dispatcher_rule_order_dnp3_before_enip  — port 20000 only; DNP3 arm taken, not Enip
+//   test_dispatcher_no_enip_analyzer_port_44818_is_noop — enip=None early-exit guard fires
+//   test_take_enip_analyzer_transfers_ownership  — Option::take() plumbing, no on_data
+//   test_take_enip_analyzer_returns_none_when_not_set  — Option semantics, no on_data
+//   test_cli_no_enip_flag_no_analyzer            — enip=None early-exit guard fires
+//   test_enip_without_reassembly_warns_and_disables    — enip=None early-exit guard fires
 // ─────────────────────────────────────────────────────────────────────────────
 mod dispatch {
     use std::net::{IpAddr, Ipv4Addr};
@@ -557,9 +568,8 @@ mod dispatch {
 
     /// Minimal valid ENIP RegisterSession payload (command=0x0065, LE, rest zeros).
     ///
-    /// 24 bytes — satisfies the `parse_enip_header` >= 24 requirement so the
-    /// frame-walk (STORY-132) can decode it. Using a known-valid command byte
-    /// ensures `is_valid_enip_frame` returns `true` when the detection path runs.
+    /// 24 bytes — satisfies `parse_enip_header` >= 24. Known-valid command byte so
+    /// `is_valid_enip_frame` returns `true` when the detection path (STORY-132) runs.
     fn enip_register_session_payload() -> [u8; 24] {
         let mut p = [0u8; 24];
         p[0] = 0x65; // command = 0x0065 (RegisterSession), LE low byte
@@ -572,17 +582,14 @@ mod dispatch {
     // Traces: BC-2.17.019 postconditions 1–3
     // -------------------------------------------------------------------------
 
-    /// AC-131-001 — a flow with dst_port=44818 routes to EnipAnalyzer and is processed.
+    /// AC-131-001 — a flow with dst_port=44818 routes to EnipAnalyzer (PC-1 + PC-2).
     ///
-    /// RED GATE: `on_data` dispatches to the `DispatchTarget::Enip` arm which calls
-    /// `todo!()` until STORY-132 implements frame-walk. The test panics at the `todo!()`.
-    /// After full implementation the routing must NOT be a no-op; the returned analyzer
-    /// must accumulate zero-finding state (no findings for a single RegisterSession frame).
+    /// Observable (Decision 2): `enip.bytes_received > 0` after `dispatcher.on_data()`
+    /// proves PC-2 (data reached the analyzer). Combined with no-panic it proves PC-1
+    /// (Rule 7 fired and the `DispatchTarget::Enip` arm was taken).
     ///
-    /// BC-2.17.019 postcondition 2: "EnipAnalyzer::on_data() receives all subsequent
-    /// TCP bytes for this flow." Asserting `all_findings.is_empty()` after one clean
-    /// frame proves data was processed (not silently dropped) and no spurious finding
-    /// was emitted.
+    /// RED GATE: the `DispatchTarget::Enip` arm contains `todo!()` until STORY-131
+    /// implements `EnipAnalyzer::on_data`. The test panics at the `todo!()`.
     ///
     /// Traces: BC-2.17.019 postconditions 1, 2; AC-131-001.
     #[test]
@@ -590,78 +597,59 @@ mod dispatch {
         let mut d = dispatcher_with_enip(50, 5);
         let key = FlowKey::new(make_ip(1), 12345, make_ip(2), 44818);
         let payload = enip_register_session_payload();
-        // This call routes to the ENIP analyzer — todo!() fires until STORY-132.
+        // Routes to DispatchTarget::Enip — todo!() fires until STORY-131 impl.
         d.on_data(&key, Direction::ClientToServer, &payload, 0, 0);
-        // After implementation: one clean ENIP frame must produce zero findings.
-        let analyzer = d
+        let enip = d
             .take_enip_analyzer()
             .expect("ENIP analyzer must be present after routing");
+        // bytes_received > 0 confirms the dispatcher wiring arm fired (PC-2).
         assert!(
-            analyzer.all_findings.is_empty(),
-            "a single clean RegisterSession frame must produce no T0836/T0888 findings"
+            enip.bytes_received > 0,
+            "bytes_received must be > 0 after routing port-44818 data to EnipAnalyzer"
         );
     }
 
-    /// AC-131-001 — a flow with a non-44818, non-Modbus port does NOT route to EnipAnalyzer.
+    /// AC-131-001 — a flow on port 9999 (not 44818) does NOT route to EnipAnalyzer.
     ///
-    /// This test uses port 9999 (no analyzer assigned) so `on_data` takes the early-exit
-    /// path and never reaches any analyzer arm. After the call the ENIP analyzer must
-    /// still be armed AND must have accumulated zero findings (data was not silently
-    /// credited to the ENIP session). Asserting zero findings distinguishes correct
-    /// non-routing from a broken implementation that calls EnipAnalyzer::on_data()
-    /// for all ports.
+    /// Port 9999 matches no rule (Rule 8 / DispatchTarget::None); the Enip arm is
+    /// never reached. `bytes_received` stays 0, proving Rule 7 is not over-broad.
     ///
-    /// RED GATE: The finding-count assertion (== 0) requires `on_data` for port 44818
-    /// to eventually return normally (not panic). Until that's implemented the first
-    /// `on_data` call to port 44818 in any test causes a panic. But THIS test
-    /// (port 9999) takes the early-exit guard and never enters any todo!() body,
-    /// so the structural test passes — BUT the "no spurious findings" post-condition
-    /// is vacuously 0 because `on_data` was never called into the ENIP arm. To make
-    /// this test non-vacuous after implementation: a subsequent call on port 44818
-    /// must NOT show findings from the port-9999 call.
-    ///
-    /// We enforce non-vacuity by adding a second flow on port 44818 AFTER the port-9999
-    /// call and asserting its findings are isolated from the first flow. Until STORY-132
-    /// this second call panics via `todo!()`.
+    /// GREEN-BY-DESIGN: the port-9999 call takes the Rule 8 / early-exit path and
+    /// never enters the `DispatchTarget::Enip` arm, so `todo!()` is not triggered.
+    /// `bytes_received == 0` is a non-vacuous assertion because it distinguishes a
+    /// correct implementation from one that credits all ports to the ENIP analyzer.
     ///
     /// Traces: BC-2.17.019 postcondition 3 (non-44818 flows unaffected); AC-131-001.
     #[test]
     fn test_dispatcher_does_not_route_other_ports() {
         let mut d = dispatcher_with_enip(50, 5);
-        // First: a non-44818 flow — must NOT enter the ENIP analyzer.
         let key_other = FlowKey::new(make_ip(1), 12345, make_ip(2), 9999);
         let payload = enip_register_session_payload();
+        // Port 9999 → Rule 8 (None). Enip arm never entered.
         d.on_data(&key_other, Direction::ClientToServer, &payload, 0, 0);
-        // Now route a real ENIP flow. This trips the todo!() until STORY-132.
-        let key_enip = FlowKey::new(make_ip(3), 54321, make_ip(4), 44818);
-        d.on_data(&key_enip, Direction::ClientToServer, &payload, 0, 0);
-        // After implementation: findings from the port-9999 flow must be 0 because
-        // that flow was never routed to the ENIP analyzer.
-        let analyzer = d
+        let enip = d
             .take_enip_analyzer()
-            .expect("ENIP analyzer must be present");
-        assert!(
-            analyzer.all_findings.is_empty(),
-            "non-44818 flow must not produce ENIP findings"
+            .expect("ENIP analyzer must be present (was armed, not consumed)");
+        assert_eq!(
+            enip.bytes_received, 0,
+            "bytes_received must remain 0 when only a non-44818 flow is dispatched"
         );
     }
 
     /// AC-131-001 — Rule 6 (port 20000 → DNP3) fires before Rule 7 (port 44818 → ENIP).
     ///
-    /// Two assertions enforce the rule-ordering contract from ADR-010 Decision 3:
+    /// A flow on port 20000 routes to DNP3 (Rule 6), leaving the ENIP analyzer
+    /// untouched: `enip.bytes_received == 0`. The DNP3 on_data is implemented and
+    /// does not panic, so this test is GREEN-BY-DESIGN.
     ///
-    /// 1. A flow on port 20000 routes to DNP3 (Rule 6), leaving the ENIP analyzer
-    ///    undisturbed and accumulating zero ENIP findings.
-    /// 2. A flow on port 44818 routes to ENIP (Rule 7), NOT DNP3. Confirmed by
-    ///    the `todo!()` panic — if port 44818 accidentally fired Rule 6 instead,
-    ///    the DNP3 arm (no todo!()) would execute silently and the test would PASS
-    ///    even though Rule 7 is absent, breaking the Red Gate. The `todo!()` panic
-    ///    from the ENIP arm is the correct RED signal for assertion 2.
+    /// Optionally asserts `dnp3.flows.is_empty() == false` (mirrors
+    /// `test_ec006_ports_502_and_20000_modbus_wins` from STORY-110).
     ///
-    /// RED GATE: assertion 2 panics at `todo!()` until STORY-132 implements the
-    /// ENIP frame-walk. Until then, the test fails on the second `on_data` call.
+    /// GREEN-BY-DESIGN: only port 20000 is dispatched. Rule 6 fires; the
+    /// `DispatchTarget::Enip` arm is never reached. `bytes_received == 0` confirms
+    /// Rule 7 did not fire for the port-20000 flow.
     ///
-    /// Traces: AC-131-001 "Rule 7 after Rule 6"; BC-2.17.019 postcondition 1 + 3;
+    /// Traces: AC-131-001 "Rule 7 after Rule 6"; BC-2.17.019 postconditions 1, 3;
     /// STORY-131 Architecture Compliance Rule 1.
     #[test]
     fn test_dispatcher_rule_order_dnp3_before_enip() {
@@ -674,46 +662,61 @@ mod dispatch {
             Some(EnipAnalyzer::new(50, 5)),
         );
         let payload = enip_register_session_payload();
-
-        // Assertion 1: port 20000 → DNP3 (Rule 6). DNP3 on_data is implemented
-        // (no todo!()); this call must succeed without panic.
+        // Port 20000 → Rule 6 (DNP3). DNP3 on_data is implemented; no panic.
         let key_dnp3 = FlowKey::new(make_ip(1), 12345, make_ip(2), 20000);
         d.on_data(&key_dnp3, Direction::ClientToServer, &payload, 0, 0);
-
-        // Assertion 2: port 44818 → ENIP (Rule 7), NOT DNP3. This call panics via
-        // todo!() until STORY-132. If it accidentally routed to DNP3, the test
-        // would pass — that would be a broken Red Gate.
-        let key_enip = FlowKey::new(make_ip(3), 54321, make_ip(4), 44818);
-        d.on_data(&key_enip, Direction::ClientToServer, &payload, 0, 0);
-
-        // After implementation: ENIP analyzer must have seen the port-44818 data
-        // and DNP3 must not have received it (zero ENIP findings from clean frame).
+        // ENIP arm was never entered → bytes_received must be 0.
         let enip = d
             .take_enip_analyzer()
             .expect("ENIP analyzer must remain after DNP3-routed flow");
-        assert!(
-            enip.all_findings.is_empty(),
-            "a clean ENIP RegisterSession must not produce findings; and the flow must \
-             not have been silently routed to DNP3 (which would leave findings absent \
-             for the wrong reason)"
+        assert_eq!(
+            enip.bytes_received, 0,
+            "bytes_received must be 0: port-20000 flow routed to DNP3 (Rule 6), not ENIP (Rule 7)"
         );
     }
 
     // -------------------------------------------------------------------------
-    // AC-131-002: take_enip_analyzer() transfers EnipAnalyzer findings to caller
+    // EC-007: dispatcher.enip=None early-exit guard fires cleanly on port-44818
+    // Traces: BC-2.17.019 Invariant 4; EC-007
+    // -------------------------------------------------------------------------
+
+    /// EC-007 — port-44818 flow with no ENIP analyzer configured → no panic, no routing.
+    ///
+    /// When `enip` is `None` the `DispatchTarget::Enip` arm executes the early-exit
+    /// `if let Some(ref mut enip) = self.enip` guard and silently returns without
+    /// forwarding data. No `on_data` call on any analyzer occurs; no panic.
+    ///
+    /// GREEN-BY-DESIGN: the early-exit guard is already implemented in the current
+    /// dispatcher stub. `enip=None` means the arm body is a no-op (`if let` is false).
+    /// The `todo!()` is only reached if `enip` is `Some`.
+    ///
+    /// Traces: BC-2.17.019 Invariant 4; EC-007; AC-131-001.
+    #[test]
+    fn test_dispatcher_no_enip_analyzer_port_44818_is_noop() {
+        let mut d = dispatcher_no_enip();
+        let key = FlowKey::new(make_ip(1), 12345, make_ip(2), 44818);
+        let payload = enip_register_session_payload();
+        // Must NOT panic: early-exit guard fires (enip is None).
+        d.on_data(&key, Direction::ClientToServer, &payload, 0, 0);
+        // No analyzer was ever constructed.
+        assert!(
+            d.take_enip_analyzer().is_none(),
+            "take_enip_analyzer must return None when no ENIP analyzer was configured"
+        );
+    }
+
+    // -------------------------------------------------------------------------
+    // AC-131-002: take_enip_analyzer() transfers EnipAnalyzer to caller
     // Traces: BC-2.17.019 postcondition 4
     //
-    // WIRING-EXEMPT JUSTIFICATION: take_enip_analyzer() is implemented as a
-    // one-line `Option::take()` body with no branching or I/O — identical to
-    // take_dnp3_analyzer() and take_modbus_analyzer(). The plumbing is complete
-    // in the stub. BC-5.38.001 WIRING-EXEMPT criteria: zero branching, no
-    // non-trivial helpers, ≤ 3 meaningful lines of struct-operation. These two
-    // tests verify that complete plumbing — they are legitimately GREEN.
+    // WIRING-EXEMPT: take_enip_analyzer() is a one-line `Option::take()` with
+    // no branching or I/O — identical to take_dnp3_analyzer(). BC-5.38.001
+    // WIRING-EXEMPT criteria satisfied. Both tests are legitimately GREEN.
     // -------------------------------------------------------------------------
 
     /// AC-131-002 — take_enip_analyzer() returns Some and clears the slot.
     ///
-    /// WIRING-EXEMPT: tests Option::take() plumbing that is fully implemented.
+    /// WIRING-EXEMPT: tests completed Option::take() plumbing; no on_data call.
     /// Traces: BC-2.17.019 postcondition 4; AC-131-002.
     #[test]
     fn test_take_enip_analyzer_transfers_ownership() {
@@ -731,8 +734,8 @@ mod dispatch {
 
     /// AC-131-002 — take_enip_analyzer() returns None when no analyzer was set.
     ///
-    /// WIRING-EXEMPT: tests Option::take() plumbing (None path) that is fully implemented.
-    /// Traces: AC-131-002 edge case (EC-008 second call); BC-2.17.019 postcondition 4.
+    /// WIRING-EXEMPT: tests Option::take() None path; no on_data call.
+    /// Traces: AC-131-002 edge case; BC-2.17.019 postcondition 4.
     #[test]
     fn test_take_enip_analyzer_returns_none_when_not_set() {
         let mut d = dispatcher_no_enip();
@@ -747,24 +750,22 @@ mod dispatch {
     // Traces: BC-2.17.020 postconditions 1, 3, 4
     // -------------------------------------------------------------------------
 
-    /// AC-131-003 — with --enip set, EnipAnalyzer is wired to dispatcher and processes data.
+    /// AC-131-003 — with --enip set, EnipAnalyzer is wired and receives port-44818 data.
     ///
-    /// BC-2.17.020 postcondition 1 states: "EnipAnalyzer is constructed and wired to the
-    /// StreamDispatcher." "Wired" means port-44818 flows reach it. We verify wiring by
-    /// dispatching a port-44818 flow and asserting the analyzer receives and processes it
-    /// (post-implementation: zero findings for a clean frame). The `todo!()` panic confirms
-    /// the route is wired but the processing body is not yet complete (Red Gate).
+    /// Observable (Decision 2): field assertions for thresholds are GREEN-BY-DESIGN
+    /// (constructor is implemented). The wiring assertion drives port-44818 data and
+    /// checks `bytes_received > 0`, which requires `on_data` to be implemented.
     ///
-    /// RED GATE: `on_data` panics at `todo!()` until STORY-132.
+    /// RED GATE: `on_data` panics at `todo!()` until STORY-131 implements
+    /// `EnipAnalyzer::on_data` with the `bytes_received` counter increment.
+    ///
     /// Traces: BC-2.17.020 postcondition 1; AC-131-003.
     #[test]
     fn test_cli_enip_flag_constructs_analyzer() {
-        // Simulate --enip: construct with default thresholds and wire into dispatcher.
         let analyzer = EnipAnalyzer::new(50, 5);
         let mut d = dispatcher_no_enip();
         d.set_enip_analyzer(analyzer);
-        // Verify construction with correct defaults (field assertions — these pass
-        // against the stub and confirm the constructor is correct).
+        // Field assertions — GREEN-BY-DESIGN (constructor is implemented).
         {
             let a = d.enip_analyzer().expect("set_enip_analyzer must make Some");
             assert_eq!(
@@ -776,33 +777,25 @@ mod dispatch {
                 "default error-burst threshold must be 5 after --enip"
             );
         }
-        // Verify wiring: a port-44818 flow must reach the analyzer (not be silently
-        // dropped). Until STORY-132 this panics at todo!().
+        // Wiring assertion: port-44818 data must reach the analyzer (PC-2).
+        // Panics at todo!() until STORY-131 impl.
         let key = FlowKey::new(make_ip(1), 12345, make_ip(2), 44818);
         let payload = enip_register_session_payload();
         d.on_data(&key, Direction::ClientToServer, &payload, 0, 0);
-        // After implementation: data was processed (not dropped); zero findings for clean frame.
         let taken = d
             .take_enip_analyzer()
             .expect("analyzer must survive on_data");
         assert!(
-            taken.all_findings.is_empty(),
-            "a single clean RegisterSession via --enip wiring must produce no findings"
+            taken.bytes_received > 0,
+            "bytes_received must be > 0 after --enip wiring routes port-44818 data to analyzer"
         );
     }
 
-    /// AC-131-003 — without --enip, port-44818 flows fall through to Rule 8 (no-op).
+    /// AC-131-003 — without --enip, port-44818 flows fall through (early-exit, no analyzer).
     ///
-    /// BC-2.17.019 EC-007: "Flow on port 44818 with ENIP analyzer not configured
-    /// (enip is None) → early-exit guard fires; DispatchTarget::None."
-    /// The test dispatches a port-44818 flow to a dispatcher with no ENIP analyzer
-    /// and asserts the call returns without panic (early-exit guard fires) AND that
-    /// `take_enip_analyzer()` returns None (nothing was constructed).
-    ///
-    /// This test is legitimately GREEN against the stub: the early-exit guard IS
-    /// implemented in the current dispatcher (`self.enip.is_none()` contributes to
-    /// the guard). Non-vacuous because it asserts two observable postconditions:
-    /// (1) no panic (early-exit fires), (2) no analyzer present (not constructed).
+    /// GREEN-BY-DESIGN: `enip=None` so the early-exit `if let` guard in the `Enip` arm
+    /// fires without entering `todo!()`. The `take` returns None confirming no analyzer
+    /// was constructed. Two non-vacuous postconditions: (1) no panic, (2) take == None.
     ///
     /// Traces: BC-2.17.020 postcondition 3; BC-2.17.019 EC-007; AC-131-003.
     #[test]
@@ -810,31 +803,28 @@ mod dispatch {
         let mut d = dispatcher_no_enip();
         let key = FlowKey::new(make_ip(1), 12345, make_ip(2), 44818);
         let payload = enip_register_session_payload();
-        // Must NOT panic (early-exit guard protects all-None dispatcher).
+        // Must NOT panic (early-exit guard fires; enip is None).
         d.on_data(&key, Direction::ClientToServer, &payload, 0, 0);
         assert!(
             d.take_enip_analyzer().is_none(),
             "dispatcher.enip_analyzer must be None when --enip is not set; \
-             port-44818 flows fall through to Rule 8"
+             port-44818 flows fall through (early-exit guard)"
         );
     }
 
-    /// AC-131-003 — --all flag enables ENIP; wiring is functional (port-44818 reaches analyzer).
+    /// AC-131-003 — --all flag includes ENIP; wiring routes port-44818 to analyzer.
     ///
-    /// BC-2.17.020 Invariant 4: "--all includes --enip". Simulates the --all expansion
-    /// by constructing with default thresholds and verifying both thresholds AND routing.
-    /// The routing assertion (calling on_data with port-44818) panics via todo!() until
-    /// STORY-132 implements the frame-walk — this is the Red Gate for the wiring half.
+    /// Field assertions are GREEN-BY-DESIGN. Wiring assertion drives port-44818
+    /// and checks `bytes_received > 0`.
     ///
-    /// RED GATE: `on_data` panics at `todo!()` until STORY-132.
+    /// RED GATE: panics at `todo!()` until STORY-131 impl.
     /// Traces: BC-2.17.020 Invariant 4; AC-131-003.
     #[test]
     fn test_cli_all_flag_includes_enip() {
-        // --all expansion: enable_enip = enip || all → construct with defaults.
         let analyzer = EnipAnalyzer::new(50, 5);
         let mut d = dispatcher_no_enip();
         d.set_enip_analyzer(analyzer);
-        // Verify default thresholds (struct-only check; passes against stub).
+        // Field assertions — GREEN-BY-DESIGN.
         {
             let a = d.enip_analyzer().expect("--all must wire ENIP analyzer");
             assert_eq!(
@@ -846,45 +836,34 @@ mod dispatch {
                 "--all must produce error-burst threshold=5 (BC-2.17.026 Inv 1)"
             );
         }
-        // Verify routing: --all must make port-44818 flows reach the analyzer.
-        // Panics via todo!() until STORY-132.
+        // Wiring assertion — RED until STORY-131 impl.
         let key = FlowKey::new(make_ip(5), 11111, make_ip(6), 44818);
         let payload = enip_register_session_payload();
         d.on_data(&key, Direction::ClientToServer, &payload, 0, 0);
         let taken = d.take_enip_analyzer().expect("analyzer must be present");
         assert!(
-            taken.all_findings.is_empty(),
-            "--all ENIP session: clean RegisterSession must produce no findings"
+            taken.bytes_received > 0,
+            "bytes_received must be > 0: --all flag must route port-44818 data to ENIP analyzer"
         );
     }
 
     // -------------------------------------------------------------------------
-    // AC-131-004: Missing TCP reassembly with --enip emits WARNING and disables ENIP
+    // AC-131-004: Missing TCP reassembly with --enip disables ENIP
     // Traces: BC-2.17.020 postcondition 2
     // -------------------------------------------------------------------------
 
-    /// AC-131-004 — when --enip is set without TCP reassembly, no EnipAnalyzer is constructed
-    /// and port-44818 flows are not routed to ENIP.
+    /// AC-131-004 — --enip without TCP reassembly: no analyzer constructed; port-44818 no-op.
     ///
-    /// BC-2.17.020 postcondition 2: "EnipAnalyzer is NOT constructed; no ENIP findings."
-    /// The test simulates the main.rs guard (`enable_enip && skip_reassembly → no analyzer`)
-    /// and then dispatches a port-44818 flow to the no-analyzer dispatcher. The early-exit
-    /// guard must fire (no panic) and `take_enip_analyzer()` must return None.
+    /// Simulates main.rs guard (enable_enip=true, skip_reassembly=true → enip=None).
+    /// Early-exit guard fires; take returns None.
     ///
-    /// The WARNING emission (`eprintln!("--enip requires TCP reassembly; ...")`) is in main.rs
-    /// and is an effectful I/O side-effect that requires a subprocess test to capture — that
-    /// is an integration-level concern beyond the scope of this unit test. What we verify here
-    /// is the observable behavioral contract: NO analyzer is constructed.
-    ///
-    /// This test is legitimately GREEN against the stub: the guard logic (`enable_enip &&
-    /// !skip_reassembly`) is pure Rust in the test, and dispatcher_no_enip() correctly
-    /// leaves enip=None. Non-vacuous because it asserts the full flow: port-44818 payload
-    /// dispatched, no analyzer present, no panic.
+    /// GREEN-BY-DESIGN: enip=None so the Enip arm early-exit fires without touching
+    /// `todo!()`. Two non-vacuous postconditions: (1) no panic, (2) take == None.
     ///
     /// Traces: BC-2.17.020 postcondition 2; AC-131-004.
     #[test]
     fn test_enip_without_reassembly_warns_and_disables() {
-        // Simulate main.rs: enable_enip=true, skip_reassembly=true → no analyzer constructed.
+        // Simulate main.rs: enable_enip=true, skip_reassembly=true → no analyzer.
         let enable_enip = true;
         let skip_reassembly = true;
         let enip_opt: Option<EnipAnalyzer> = if enable_enip && !skip_reassembly {
@@ -893,11 +872,10 @@ mod dispatch {
             None // WARNING emitted by main.rs eprintln!; not verifiable in unit test
         };
         let mut d = StreamDispatcher::new(None, None, None, None, enip_opt);
-        // Dispatch a port-44818 flow — must NOT reach an analyzer (none was constructed).
         let key = FlowKey::new(make_ip(7), 22222, make_ip(8), 44818);
         let payload = enip_register_session_payload();
+        // Must NOT panic: early-exit guard fires (enip is None).
         d.on_data(&key, Direction::ClientToServer, &payload, 0, 0);
-        // No analyzer constructed → take returns None → no findings possible.
         assert!(
             d.take_enip_analyzer().is_none(),
             "EnipAnalyzer must NOT be constructed when --enip is set without TCP reassembly"
@@ -905,26 +883,21 @@ mod dispatch {
     }
 
     // -------------------------------------------------------------------------
-    // AC-131-005: --enip-write-burst-threshold sets T0836 burst threshold on EnipAnalyzer
-    // Traces: BC-2.17.023 postconditions 1–4
+    // AC-131-005: --enip-write-burst-threshold stored and wiring confirmed
+    // Traces: BC-2.17.023 postconditions 1–3
     // -------------------------------------------------------------------------
 
-    /// AC-131-005 — custom write-burst threshold propagates to detection path.
+    /// AC-131-005 — custom write-burst threshold=100 stored; port-44818 data reaches analyzer.
     ///
-    /// BC-2.17.023 postcondition 3: "The threshold is passed to process_pdu / the
-    /// write-burst detection path." This test routes a port-44818 flow to an analyzer
-    /// with threshold=100 and asserts that no T0836 finding is emitted for a single
-    /// write-class frame (1 write, threshold=100; 1 > 100 is false, no finding).
+    /// Field assertion is GREEN-BY-DESIGN. Wiring assertion (`bytes_received > 0`)
+    /// requires `on_data` to be implemented.
     ///
-    /// RED GATE: `on_data` panics at `todo!()` until STORY-132 implements the
-    /// write-burst detection path. Once implemented: with threshold=100, a single
-    /// SetAttributesSingle CIP frame must NOT produce a T0836 finding.
-    ///
-    /// Traces: BC-2.17.023 postcondition 1, 3; AC-131-005.
+    /// RED GATE: panics at `todo!()` until STORY-131 impl.
+    /// Traces: BC-2.17.023 postconditions 1, 3; AC-131-005.
     #[test]
     fn test_write_burst_threshold_custom() {
         let mut d = dispatcher_with_enip(100, 5);
-        // Verify threshold stored correctly (this part is GREEN — constructor is implemented).
+        // Field assertion — GREEN-BY-DESIGN.
         {
             let a = d.enip_analyzer().expect("analyzer must be set");
             assert_eq!(
@@ -932,32 +905,31 @@ mod dispatch {
                 "custom write-burst threshold 100 must be stored in enip_write_burst_threshold"
             );
         }
-        // Verify threshold used in detection: route a write-class CIP frame (SendRRData,
-        // command=0x006F). With threshold=100, no T0836 finding expected. Panics via
-        // todo!() until STORY-132 implements the detection path.
+        // Wiring assertion — RED until STORY-131 impl.
         let key = FlowKey::new(make_ip(1), 12345, make_ip(2), 44818);
         let mut payload = [0u8; 24];
         payload[0] = 0x6F; // command = SendRRData (0x006F), LE
         payload[1] = 0x00;
         d.on_data(&key, Direction::ClientToServer, &payload, 0, 0);
-        let analyzer = d.take_enip_analyzer().expect("analyzer must survive");
+        let analyzer = d
+            .take_enip_analyzer()
+            .expect("analyzer must survive on_data");
         assert!(
-            analyzer.all_findings.is_empty(),
-            "a single write-class frame with threshold=100 must not trigger T0836 (1 > 100 is false)"
+            analyzer.bytes_received > 0,
+            "bytes_received must be > 0: port-44818 data must reach analyzer (wiring confirmation)"
         );
     }
 
-    /// AC-131-005 — default write-burst threshold is 50 (OA-001 RESOLVED=50); used in detection.
+    /// AC-131-005 — default write-burst threshold=50 stored; port-44818 data reaches analyzer.
     ///
-    /// BC-2.17.023 postcondition 2: default is 50. Same detection-path assertion as above
-    /// but using the default threshold. A single write-class frame must not fire T0836
-    /// (1 > 50 is false).
+    /// Field assertion is GREEN-BY-DESIGN. Wiring assertion requires `on_data` impl.
     ///
-    /// RED GATE: `on_data` panics at `todo!()` until STORY-132.
-    /// Traces: BC-2.17.023 postcondition 2, 3; AC-131-005.
+    /// RED GATE: panics at `todo!()` until STORY-131 impl.
+    /// Traces: BC-2.17.023 postconditions 2, 3; AC-131-005.
     #[test]
     fn test_write_burst_threshold_default() {
         let mut d = dispatcher_with_enip(50, 5);
+        // Field assertion — GREEN-BY-DESIGN.
         {
             let a = d.enip_analyzer().expect("analyzer must be set");
             assert_eq!(
@@ -965,38 +937,36 @@ mod dispatch {
                 "default write-burst threshold must be 50 (OA-001 RESOLVED=50)"
             );
         }
-        // Route a write-class CIP frame. With threshold=50, no T0836 yet.
-        // Panics via todo!() until STORY-132.
+        // Wiring assertion — RED until STORY-131 impl.
         let key = FlowKey::new(make_ip(1), 12345, make_ip(2), 44818);
         let mut payload = [0u8; 24];
         payload[0] = 0x6F; // SendRRData
         payload[1] = 0x00;
         d.on_data(&key, Direction::ClientToServer, &payload, 0, 0);
-        let analyzer = d.take_enip_analyzer().expect("analyzer must survive");
+        let analyzer = d
+            .take_enip_analyzer()
+            .expect("analyzer must survive on_data");
         assert!(
-            analyzer.all_findings.is_empty(),
-            "a single write-class frame with default threshold=50 must not trigger T0836 (1 > 50 is false)"
+            analyzer.bytes_received > 0,
+            "bytes_received must be > 0: port-44818 data must reach analyzer (wiring confirmation)"
         );
     }
 
     // -------------------------------------------------------------------------
-    // AC-131-006: --enip-error-burst-threshold sets T0888 error-burst threshold on EnipAnalyzer
-    // Traces: BC-2.17.026 postconditions 1–4
+    // AC-131-006: --enip-error-burst-threshold stored and wiring confirmed
+    // Traces: BC-2.17.026 postconditions 1–3
     // -------------------------------------------------------------------------
 
-    /// AC-131-006 — custom error-burst threshold propagates to detection path.
+    /// AC-131-006 — custom error-burst threshold=10 stored; port-44818 data reaches analyzer.
     ///
-    /// BC-2.17.026 postcondition 3: "The threshold is passed to process_pdu / the
-    /// error-burst detection path." Routes a port-44818 flow to an analyzer with
-    /// threshold=10 and asserts a single CIP error response does not fire T0888 Pattern B
-    /// (1 > 10 is false).
+    /// Field assertion is GREEN-BY-DESIGN. Wiring assertion requires `on_data` impl.
     ///
-    /// RED GATE: `on_data` panics at `todo!()` until STORY-132/136 implements the
-    /// error-burst detection path.
-    /// Traces: BC-2.17.026 postcondition 1, 3; AC-131-006.
+    /// RED GATE: panics at `todo!()` until STORY-131 impl.
+    /// Traces: BC-2.17.026 postconditions 1, 3; AC-131-006.
     #[test]
     fn test_error_burst_threshold_custom() {
         let mut d = dispatcher_with_enip(50, 10);
+        // Field assertion — GREEN-BY-DESIGN.
         {
             let a = d.enip_analyzer().expect("analyzer must be set");
             assert_eq!(
@@ -1004,36 +974,32 @@ mod dispatch {
                 "custom error-burst threshold 10 must be stored in enip_error_burst_threshold"
             );
         }
-        // Route a CIP error response (SendRRData with non-zero status in payload).
-        // With threshold=10, no T0888 yet. Panics via todo!() until STORY-132/136.
+        // Wiring assertion — RED until STORY-131 impl.
         let key = FlowKey::new(make_ip(1), 12345, make_ip(2), 44818);
         let mut payload = [0u8; 24];
         payload[0] = 0x6F; // SendRRData
         payload[1] = 0x00;
-        // Non-zero status (CIP error) at bytes [8..12].
-        payload[8] = 0x08; // status = 0x00000008 (CIP error code)
+        payload[8] = 0x08; // non-zero status (CIP error code)
         d.on_data(&key, Direction::ClientToServer, &payload, 0, 0);
-        let analyzer = d.take_enip_analyzer().expect("analyzer must survive");
+        let analyzer = d
+            .take_enip_analyzer()
+            .expect("analyzer must survive on_data");
         assert!(
-            analyzer.all_findings.is_empty(),
-            "one CIP error with threshold=10 must not trigger T0888 Pattern B (1 > 10 is false)"
+            analyzer.bytes_received > 0,
+            "bytes_received must be > 0: port-44818 data must reach analyzer (wiring confirmation)"
         );
     }
 
-    /// AC-131-006 — default error-burst threshold is 5; strict > semantics: 6th error fires.
+    /// AC-131-006 — default error-burst threshold=5 stored; port-44818 data reaches analyzer.
     ///
-    /// BC-2.17.026 postcondition 2: default is 5. BC-2.17.026 Invariant 3: strict `>`;
-    /// with default 5, the 6th error fires T0888 Pattern B; 5 errors do NOT fire.
+    /// Field assertion is GREEN-BY-DESIGN. Wiring assertion requires `on_data` impl.
     ///
-    /// This test verifies the threshold is stored as 5 (the struct assertion passes against
-    /// the stub) AND that a single clean frame does not fire the finding (detection assertion
-    /// panics via todo!() until STORY-132/136).
-    ///
-    /// RED GATE: the detection-path assertion panics at `todo!()` until STORY-132/136.
+    /// RED GATE: panics at `todo!()` until STORY-131 impl.
     /// Traces: BC-2.17.026 postconditions 2, 3; Invariant 3; AC-131-006.
     #[test]
     fn test_error_burst_threshold_default() {
         let mut d = dispatcher_with_enip(50, 5);
+        // Field assertion — GREEN-BY-DESIGN.
         {
             let a = d.enip_analyzer().expect("analyzer must be set");
             assert_eq!(
@@ -1041,56 +1007,55 @@ mod dispatch {
                 "default error-burst threshold must be 5"
             );
         }
-        // Route a CIP error response. With threshold=5, no T0888 yet (1 > 5 is false).
-        // Panics via todo!() until STORY-132/136.
+        // Wiring assertion — RED until STORY-131 impl.
         let key = FlowKey::new(make_ip(1), 12345, make_ip(2), 44818);
         let mut payload = [0u8; 24];
         payload[0] = 0x6F;
         payload[1] = 0x00;
         payload[8] = 0x08; // non-zero status = CIP error
         d.on_data(&key, Direction::ClientToServer, &payload, 0, 0);
-        let analyzer = d.take_enip_analyzer().expect("analyzer must survive");
+        let analyzer = d
+            .take_enip_analyzer()
+            .expect("analyzer must survive on_data");
         assert!(
-            analyzer.all_findings.is_empty(),
-            "one CIP error with default threshold=5 must not trigger T0888 Pattern B (1 > 5 is false)"
+            analyzer.bytes_received > 0,
+            "bytes_received must be > 0: port-44818 data must reach analyzer (wiring confirmation)"
         );
     }
 
-    /// AC-131-006 — threshold=0: the very first CIP error (1 > 0) triggers T0888 Pattern B.
+    /// AC-131-006 — threshold=0 stored; port-44818 data reaches analyzer (wiring only).
     ///
-    /// BC-2.17.026 Invariant 4 ("Zero-value semantics"): with threshold=0, the first error
-    /// response in the 10s window fires T0888 Pattern B (1 > 0 is true). This test sends
-    /// one CIP error frame with threshold=0 and asserts exactly ONE T0888 finding is emitted.
+    /// BC-2.17.026 Invariant 4 (zero-threshold semantics: first error fires T0888 Pattern B)
+    /// is a STORY-132+ detection assertion. For STORY-131, this test verifies only:
+    /// (1) threshold=0 is stored correctly (GREEN-BY-DESIGN), and (2) port-44818 data
+    /// reaches the analyzer (`bytes_received > 0`, RED until STORY-131 impl).
     ///
-    /// RED GATE: `on_data` panics at `todo!()` until STORY-132/136 implements the detection
-    /// path. Once implemented, the assertion `finding_count == 1` enforces the strict `>`
-    /// zero-threshold semantics.
-    ///
-    /// Traces: BC-2.17.026 Invariant 4; postcondition 4; AC-131-006.
+    /// RED GATE: panics at `todo!()` until STORY-131 impl.
+    /// Traces: BC-2.17.026 Invariant 4 (wiring half); postcondition 4; AC-131-006.
     #[test]
     fn test_error_burst_threshold_zero_semantics() {
         let mut d = dispatcher_with_enip(50, 0);
+        // Field assertion — GREEN-BY-DESIGN.
         {
             let a = d.enip_analyzer().expect("analyzer must be set");
             assert_eq!(
                 a.enip_error_burst_threshold, 0,
-                "threshold=0 must be stored as 0 (first error triggers detection: 1 > 0)"
+                "threshold=0 must be stored as 0"
             );
         }
-        // With threshold=0, the FIRST CIP error must fire T0888 Pattern B.
-        // Panics via todo!() until STORY-132/136.
+        // Wiring assertion — RED until STORY-131 impl.
         let key = FlowKey::new(make_ip(1), 12345, make_ip(2), 44818);
         let mut payload = [0u8; 24];
         payload[0] = 0x6F; // SendRRData
         payload[1] = 0x00;
         payload[8] = 0x08; // non-zero status = CIP error
         d.on_data(&key, Direction::ClientToServer, &payload, 0, 0);
-        let analyzer = d.take_enip_analyzer().expect("analyzer must survive");
-        // The very first error with threshold=0 must fire T0888 Pattern B (1 > 0).
-        assert_eq!(
-            analyzer.all_findings.len(),
-            1,
-            "threshold=0: the first CIP error (count=1 > 0) must produce exactly one T0888 Pattern B finding"
+        let analyzer = d
+            .take_enip_analyzer()
+            .expect("analyzer must survive on_data");
+        assert!(
+            analyzer.bytes_received > 0,
+            "bytes_received must be > 0: port-44818 data must reach analyzer (wiring confirmation)"
         );
     }
 }
