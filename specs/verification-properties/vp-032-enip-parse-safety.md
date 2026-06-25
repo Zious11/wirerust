@@ -222,8 +222,8 @@ mod kani_proofs {
     #[kani::proof]
     fn vp032_cip_service_request_partition() {
         const NAMED_SERVICES: &[u8] = &[
-            0x01, // GetAttributeAll
-            0x02, // SetAttributeAll
+            0x01, // GetAttributesAll
+            0x02, // SetAttributesAll
             0x03, // GetAttributeList
             0x04, // SetAttributeList
             0x05, // Reset
@@ -231,7 +231,7 @@ mod kani_proofs {
             0x0A, // MultipleServicePacket
             0x0E, // GetAttributeSingle
             0x10, // SetAttributeSingle
-            0x4B, // Download (firmware)
+            0x4B, // GetAndClear
             0x4E, // ForwardClose
             0x54, // ForwardOpen
             0x5B, // LargeForwardOpen

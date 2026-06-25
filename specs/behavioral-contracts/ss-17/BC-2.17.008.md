@@ -28,7 +28,7 @@ inputs:
 input-hash: TBD
 ---
 
-# BC-2.17.008: CIP Error Response Detection — general_status Extraction from Response Frames
+# BC-2.17.008: CIP Error Response Detection — general_status Extraction from Unconnected (0x00B2) Response Frames
 
 ## Description
 

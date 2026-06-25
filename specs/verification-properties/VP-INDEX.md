@@ -44,9 +44,10 @@ integration_unit_count: 5
 > proptest; counted under proptest. VP-022 uses Kani only. VP-023 uses Kani only.
 > VP-024 uses Kani (primary, counted) + proptest (Sub-C); counted under Kani per
 > convention. VP-025, VP-026, VP-027 use Kani only. VP-028 uses cargo-fuzz only.
-> VP-029, VP-030, and VP-031 use proptest only. VP-032 uses Kani only (4 harnesses:
-> Sub-A header parse safety, Sub-B command totality, Sub-C validity gate biconditional,
-> Sub-D CIP service totality). Each VP is counted exactly once.
+> VP-029, VP-030, and VP-031 use proptest only. VP-032 uses Kani only (4 sub-properties
+> Sub-A..Sub-D; 5 Kani harnesses — Sub-D = totality + request-partition): Sub-A header
+> parse safety, Sub-B command totality, Sub-C validity gate biconditional, Sub-D CIP
+> service totality (primary) + Sub-D request-partition. Each VP is counted exactly once.
 > Totals: 15+10+2+5 = 32.
 
 ## Complete VP Catalog
@@ -116,7 +117,7 @@ integration_unit_count: 5
 - VP-029: pcapng block-walk skip correctness and forward progress [NEW — SS-01 pcapng, ADR-009 rev 4]. **LOCKED @ develop 1ca30a3 (PRs #293 + #294):** proptest suite including `proptest_VP_029_skip_arm_counter_exactness_and_dsb_no_log` (counter exactness + DSB-no-log + termination). verification_lock: true.
 - VP-030: pcapng multi-IDB linktype agreement totality — RESTATED (ADR-009 rev 7 / H-3): domain = WHITELISTED DataLink values only; non-whitelisted → E-INP-001 (out of VP-030 scope); comparison unit = DataLink not raw u16 [NEW — SS-01 pcapng, ADR-009 rev 4; restated rev 7]. **LOCKED @ develop 1ca30a3 (PRs #293 + #294):** proptest `proptest_VP_030_all_equal_whitelisted_idbs_ok` + `proptest_VP_030_first_differing_whitelisted_idb_errs_e_inp_011` + `proptest_VP_030_comparison_unit_is_datalink`. verification_lock: true.
 - VP-031: pcapng SPB captured-len computation correctness — proptest arithmetic invariant for min(original_len, body.len() as u32 - 4) = min(original_len, spb_data_available); formula CORRECTED from rev 8 (body.len() → body.len()-4 per Decision 22; rev 8 formula failed to subtract the 4-byte original_len header); snaplen DROPPED (Decision 9 rev 8); fills SPB framing VP gap per DF-CANONICAL-FRAME-HOLDOUT-001 [NEW — SS-01 pcapng, ADR-009 rev 6; amended rev 8 / Decision 9; formula corrected rev 9 / Decision 22 / F-H2 / F-H3]. **LOCKED @ develop 1ca30a3 (PRs #293 + #294):** existing proptest confirmed correct against the body.len()-4 formula. verification_lock: true.
-- VP-032: EtherNet/IP + CIP frame parse safety and command/service classification — Kani, 4 harnesses: (Sub-A) `parse_enip_header` never panics, None for <24 bytes, Some with correct big-endian field layout for all bounded inputs; (Sub-B) `classify_enip_command` total over all 65,536 u16 values, Unknown arm reachable and non-vacuous; (Sub-C) `is_valid_enip_frame` biconditional iff h.command in known-command set {0x0004, 0x0063, 0x0064, 0x0065, 0x0066, 0x006F, 0x0070, 0x0072, 0x0075} for all u16 values; (Sub-D) `classify_cip_service` total over all 256 u8 values, response-bit mask (0x80 set → Response) proven correct, Unknown arm reachable [NEW — SS-17, ADR-010 Decision 2+7, feature-enip-v0.11.0 issue #316; draft; lock gate at F6]
+- VP-032: EtherNet/IP + CIP frame parse safety and command/service classification — Kani, 4 sub-properties (Sub-A..Sub-D); 5 Kani harnesses (Sub-D = totality + request-partition): (Sub-A) `parse_enip_header` never panics, None for <24 bytes, Some with correct little-endian field layout for all bounded inputs; (Sub-B) `classify_enip_command` total over all 65,536 u16 values, Unknown arm reachable and non-vacuous; (Sub-C) `is_valid_enip_frame` biconditional iff h.command in known-command set {0x0004, 0x0063, 0x0064, 0x0065, 0x0066, 0x006F, 0x0070, 0x0072, 0x0075} for all u16 values; (Sub-D) `classify_cip_service` total over all 256 u8 values, response-bit mask (0x80 set → Response) proven correct, Unknown arm reachable [NEW — SS-17, ADR-010 Decision 2+7, feature-enip-v0.11.0 issue #316; draft; lock gate at F6]
 
 ## Test-Sufficient Properties (VP-016..VP-021)
 

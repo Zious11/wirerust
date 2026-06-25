@@ -34,7 +34,7 @@ input-hash: TBD
 
 The CLI `Commands::Analyze` gains two new flags for EtherNet/IP analysis: `--enip` (boolean,
 default-off, included by `--all`) enables the `EnipAnalyzer`; `--enip-write-burst-threshold`
-(u32, default 20) sets the write-burst detection threshold for T0836 (BC-2.17.012). When
+(u32, default 50) sets the write-burst detection threshold for T0836 (BC-2.17.012). When
 `--enip` is set without TCP reassembly (`--tcp-reassembly` / `--all`), the analyzer emits a
 WARNING and disables ENIP silently — mirroring the `--modbus` and `--dnp3` pattern. The
 `EnipAnalyzer` is included in the `needs_reassembly` check.
@@ -48,7 +48,7 @@ WARNING and disables ENIP silently — mirroring the `--modbus` and `--dnp3` pat
 
 1. When `--enip` is set:
    - `EnipAnalyzer` is constructed and wired to the `StreamDispatcher`.
-   - `EnipAnalyzer.enip_write_burst_threshold = args.enip_write_burst_threshold` (default 20).
+   - `EnipAnalyzer.enip_write_burst_threshold = args.enip_write_burst_threshold` (default 50).
    - `needs_reassembly.push(EnipAnalyzer)` (TCP reassembly required).
 2. When `--enip` is set AND TCP reassembly is not enabled:
    - A WARNING is emitted: `"--enip requires TCP reassembly; ENIP analysis disabled"`.
@@ -83,9 +83,9 @@ WARNING and disables ENIP silently — mirroring the `--modbus` and `--dnp3` pat
 
 | CLI invocation | ENIP enabled? | Threshold |
 |----------------|--------------|---------|
-| `analyze pcap.pcap --enip` (with reassembly) | Yes | 20 (default) |
+| `analyze pcap.pcap --enip` (with reassembly) | Yes | 50 (default) |
 | `analyze pcap.pcap --enip --enip-write-burst-threshold 50` | Yes | 50 |
-| `analyze pcap.pcap --all` (with reassembly) | Yes | 20 |
+| `analyze pcap.pcap --all` (with reassembly) | Yes | 50 |
 | `analyze pcap.pcap --enip` (without reassembly) | No (WARNING) | — |
 | `analyze pcap.pcap` | No | — |
 

@@ -17,7 +17,7 @@ timestamp: 2026-06-24T00:00:00Z
 
 wirerust detects adversarial abuse of the EtherNet/IP (ENIP) and Common Industrial Protocol
 (CIP) stack over TCP/44818. The analyzer performs two-level binary parsing: ENIP
-encapsulation header (24-byte fixed, big-endian) and CPF item layer leading to CIP service
+encapsulation header (24-byte fixed, little-endian) and CPF item layer leading to CIP service
 extraction. Detection covers six MITRE ATT&CK for ICS techniques: T0858 (CIP Stop — Change
 Operating Mode), T0816 (CIP Reset — Device Restart/Shutdown), T0836 (CIP write-class burst
 — Modify Parameter), T0846 (ListIdentity — Remote System Discovery), T0888 (CIP Identity

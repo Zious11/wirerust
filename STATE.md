@@ -1,7 +1,7 @@
 ---
 pipeline: FEATURE-MODE
 phase: F2
-phase_status: "F2 adversary convergence in progress (Pass 1 FAIL remediated; Pass 2 FAIL remediated; Pass 3 running). BC count 329→330 (BC-2.17.025 session-handshake added). BC-INDEX v1.75 (25 SS-17 BCs). Two pending-human-confirm values: write-burst default=50, ERROR_BURST=5. Convergence counter: 0/3. Awaiting Pass 3 verdict + F2 human gate."
+phase_status: "F2 adversary convergence in progress (Pass 1 FAIL remediated; Pass 2 FAIL remediated; Pass 3 FAIL remediated — 3C/4H/4M + 3 bonus BE residues, all REMEDIATED via exhaustive sweep). BC count 329→330 (BC-2.17.025). BC-INDEX v1.75 (25 SS-17 BCs). Two pending-human-confirm values: write-burst default=50, ERROR_BURST=5. Convergence counter: 0/3. Pass 4 running. Awaiting Pass 4 verdict + F2 human gate."
 product: wirerust
 mode: feature-mode
 timestamp: 2026-06-24T12:00:00Z
@@ -70,7 +70,7 @@ convergence_trajectory: "Detail: cycles/v0.1.0-greenfield-spec/convergence-traje
 
 ## Status
 
-**PIPELINE FEATURE-MODE. Cycle `feature-enip-v0.11.0` OPEN. F1 PASSED. F2 adversarial Pass 1 FAIL REMEDIATED + Pass 2 FAIL REMEDIATED (2026-06-24): ADR-010 EMITTED 17→20 (+T0846/T0816/T0888), VP-032 LE fix, BC-2.17.007 CIP service table 0x0A=MSP, BC-2.17.008/009/015/018 tightened, PRD BC-2.10.005 25→28 + 24→25 BCs propagated. BC-INDEX v1.75 (330 total / 329 active, 25 SS-17 BCs). Two pending-human-confirm: write-burst default=50, ERROR_BURST=5. Convergence counter: 0/3. Pass 3 running. Awaiting Pass 3 verdict + F2 human gate.**
+**PIPELINE FEATURE-MODE. Cycle `feature-enip-v0.11.0` OPEN. F1 PASSED. F2 adversarial Pass 3 FAIL REMEDIATED (2026-06-24): 3C/4H/4M + 3 bonus BE residues (VP-INDEX:119, verification-architecture:110, cap-17:20) all fixed via exhaustive propagation sweep (BC-2.17.020 write-burst 50, PRD BE→LE, coverage-matrix BE→LE, --all/--enip, ForwardClose title, BC-INDEX variant count, harness count). BC-INDEX v1.75 (330 total / 329 active, 25 SS-17 BCs). Two pending-human-confirm: write-burst default=50, ERROR_BURST=5. Convergence counter: 0/3. Pass 4 running. Awaiting Pass 4 verdict + F2 human gate. Process-gap PROPAGATION-LAG-001 recorded (lessons.md); ENGINE-PROPAGATION-GREP-GATE-001 in OPEN ITEMS.**
 
 Latest release: v0.10.0 (main `0cbe922`, tag `v0.10.0`, 4 binaries, run 28109367603). develop=`ff4b82b`. stories_delivered=78. Target: v0.11.0 (SS-17 EtherNet/IP + CIP TCP/44818). GitHub issue #316.
 
@@ -105,6 +105,7 @@ Latest release: v0.10.0 (main `0cbe922`, tag `v0.10.0`, 4 binaries, run 28109367
 
 | ID | Summary | Status |
 |----|---------|--------|
+| ENGINE-PROPAGATION-GREP-GATE-001 | Mechanical changed-value sibling-grep gate (engine improvement); from feature-enip-v0.11.0 F2 Passes 1-3 propagation-lag pattern; see cycles/feature-enip-v0.11.0/lessons.md PROPAGATION-LAG-001. Human decision: story / policy / defer. Must resolve before cycle CLOSE. | OPEN — human review |
 | DEPENDABOT-311 | Dependabot PR #311 (actions/checkout 6.0.3→7.0.0) open and unreviewed. | OPEN — human triage |
 | DEMO-TAPE-PATH-001 | Demo .tape scripts hardcode ephemeral worktree cd path — should reference stable path. DF-VALIDATION-001 required before GitHub issue. | BACKLOG — low |
 | DEMO-MEDIA-CHECKSUM-001 | Demo-evidence binary media lacks a SHA-256 checksum manifest. DF-VALIDATION-001 required before GitHub issue. | BACKLOG — low |
@@ -155,7 +156,7 @@ All GitHub-issue creation remains DF-VALIDATION-001-gated.
 | Maintenance maint-2026-06-22 | COMPLETE 2026-06-23 | 38 observations; 0 blocking; F-MAJ-001 fixed (a6efb23); PR #304 (e458ce2) + PR #305 (e4abbe2). |
 | Feature mitre-json-names (issue #64) + v0.9.4 | RELEASED + CLOSED 2026-06-23 (D-217) | F1-F7 CONVERGED. 5 BCs bumped. BC-INDEX v1.71 (303 BCs). PRs #306/307/308/309. tag v0.9.4 96b49e8. 4 binaries. stories_delivered=78. |
 | Fix cycle fix-pc-013-014-015 + v0.10.0 | **CONVERGED + RELEASED + CLOSED 2026-06-24 (D-226)** | All 3 fixes: PC-015 (#310), PC-013 (#312 + spec D-223), PC-014 (#313 breaking rename + CHANGELOG). Evidence resync #314. v0.10.0: PR #315 → main 0cbe922, tag v0.10.0, 4 binaries, run 28109367603. develop back-merged ff4b82b. BC-INDEX v1.73 (305 BCs / 304 active). |
-| Feature EtherNet/IP + CIP (issue #316) — v0.11.0 | **F2 ADVERSARIAL CONVERGENCE IN PROGRESS** | Pass 1 + Pass 2 FAIL remediated (2026-06-24): ADR EMITTED 17→20 (+T0846), CIP svc 0x0A=MSP, VP-032 LE, BC-007/008/009/015/018 tightened, PRD 24→25 BCs+28 MITRE seeded. BC-INDEX v1.75 (330/329 active, 25 SS-17 BCs). Convergence: 0/3. Pass 3 running. F-P2-010: SS-10 BC version-bump pending (resolve before F3). Detail: cycles/feature-enip-v0.11.0/ |
+| Feature EtherNet/IP + CIP (issue #316) — v0.11.0 | **F2 ADVERSARIAL CONVERGENCE IN PROGRESS** | Pass 1+2+3 FAIL remediated (2026-06-24): Pass-3 3C/4H/4M + 3 bonus BE residues all swept. BC-INDEX v1.75 (330/329 active, 25 SS-17 BCs). Convergence: 0/3. Pass 4 running. Process-gap PROPAGATION-LAG-001 recorded. F-P2-010: SS-10 BC version-bump pending (resolve before F3). Detail: cycles/feature-enip-v0.11.0/ |
 
 ## Decisions Log
 

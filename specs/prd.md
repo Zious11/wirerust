@@ -1346,8 +1346,9 @@ Rust source files, 3,868 source LOC, 282 tests, single crate, Rust 2024 edition,
 > - Malformed ENIP threshold (3/300s window): T0814 Denial of Service one-shot/window (BC-2.17.018).
 
 > **CLI flags added:** `--enip` (enable analyzer, default off), `--enip-write-burst-threshold N`
-> (default 50 writes/1s; overrides T0836 detection threshold via BC-2.17.023). `--all` does
-> NOT include `--enip` by default (EtherNet/IP is opt-in; port-44818 TCP only).
+> (default 50 writes/1s; overrides T0836 detection threshold via BC-2.17.023). `--all` INCLUDES
+> `--enip` (same expansion as `--modbus`, `--dnp3`; EtherNet/IP is default-off standalone but
+> enabled by `--all`; port-44818 TCP only).
 
 > **Formal verification:** VP-032 covers four Kani sub-properties:
 > - Sub-A: `parse_enip_header` never panics; returns None for len<24; Some with correct field layout.
@@ -1369,7 +1370,7 @@ Rust source files, 3,868 source LOC, 282 tests, single crate, Rust 2024 edition,
 | BC ID | Title | Priority | Origin |
 |-------|-------|----------|--------|
 | BC-2.17.001 | parse_enip_header Returns None for Input Shorter Than 24 Bytes | P0 | feature-enip-v0.11.0 |
-| BC-2.17.002 | EnipHeader Field Contracts — Fixed Big-Endian Offsets for 24-Byte Input | P0 | feature-enip-v0.11.0 |
+| BC-2.17.002 | EnipHeader Field Contracts — Fixed Little-Endian Offsets for 24-Byte Input | P0 | feature-enip-v0.11.0 |
 
 #### 2.17.B ENIP Validity Gate and Command Classification (Group B)
 
@@ -1395,7 +1396,7 @@ Rust source files, 3,868 source LOC, 282 tests, single crate, Rust 2024 edition,
 
 | BC ID | Title | Priority | Origin |
 |-------|-------|----------|--------|
-| BC-2.17.008 | CIP Error Response Detection — general_status Extraction from Response Frames | P1 | feature-enip-v0.11.0 |
+| BC-2.17.008 | CIP Error Response Detection — general_status Extraction from Unconnected (0x00B2) Response Frames | P1 | feature-enip-v0.11.0 |
 | BC-2.17.009 | parse_cip_request_path Class and Instance Segment Extraction | P1 | feature-enip-v0.11.0 |
 
 #### 2.17.F Detection — Finding Emission (Group F)
@@ -1407,7 +1408,7 @@ Rust source files, 3,868 source LOC, 282 tests, single crate, Rust 2024 edition,
 | BC-2.17.012 | CIP Write-Class Service Burst Exceeding Threshold Emits T0836 Modify Parameter Finding | P1 | feature-enip-v0.11.0 |
 | BC-2.17.013 | CIP Reset Service Observed Emits T0816 Device Restart/Shutdown Finding | P0 | feature-enip-v0.11.0 |
 | BC-2.17.014 | CIP Identity-Read to Identity Object or Error Burst Emits T0888 Remote System Information Discovery | P0 | feature-enip-v0.11.0 |
-| BC-2.17.015 | ForwardOpen Connection-Lifecycle Anomaly Detected with Empty MITRE Technique Set | P1 | feature-enip-v0.11.0 |
+| BC-2.17.015 | ForwardOpen and ForwardClose Connection-Lifecycle Anomaly Detected with Empty MITRE Technique Set | P1 | feature-enip-v0.11.0 |
 
 #### 2.17.G Bounded Resource — Carry Buffer (Group G)
 
