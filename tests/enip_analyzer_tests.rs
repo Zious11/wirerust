@@ -2246,13 +2246,14 @@ mod mitre_seeding {
 
     /// AC-133-006 + AC-133-001/002 cross-check — technique_tactic_id end-to-end for new IDs.
     ///
-    /// Verifies the full ID → tactic → TA-ID chain for all 3 STORY-133 IDs plus T0846 regression:
-    ///   T0858 → IcsExecution → "TA0104"
-    ///   T0816 → IcsInhibitResponseFunction → "TA0107"
-    ///   T0846 → IcsDiscovery → "TA0102" (pre-existing regression)
+    /// Verifies the full ID -> tactic -> TA-ID chain for all 3 STORY-133 IDs plus T0846
+    /// regression:
+    ///   T0858 -> IcsExecution -> "TA0104"
+    ///   T0816 -> IcsInhibitResponseFunction -> "TA0107"
+    ///   T0846 -> IcsDiscovery -> "TA0102" (pre-existing regression)
     ///
     /// AC-133-004 tested the enum method directly; this exercises the full path from
-    /// technique ID → tactic → TA-ID string through the Option chain.
+    /// technique ID -> tactic -> TA-ID string through the Option chain.
     ///
     /// Traces: AC-133-001/002 (T0858/T0816 arms); VP-007 Step 5 (IcsExecution TA-ID); ADR-010.
     #[test]
@@ -2278,5 +2279,288 @@ mod mitre_seeding {
             "technique_tactic_id(\"T0846\") must return Some(\"TA0102\") — \
              T0846 maps to IcsDiscovery (TA0102); pre-existing entry"
         );
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// STORY-134 recon-detection tests (RED — stubs only; test-writer fills bodies).
+//
+// Traces to: BC-2.17.010 (T0846 ListIdentity), BC-2.17.008 (CIP error accumulation),
+//            BC-2.17.014 (T0888 Pattern A identity read + Pattern B error burst).
+//
+// SCOPE NOTE (resolved at stub time):
+//   STORY-134 owns `process_pdu` + `EnipFlowState`. The frame-walk wiring in `on_data`
+//   (BC-2.17.016 PC-0 command_counts increment) is owned by STORY-137.
+//   Tests drive `process_pdu` directly, constructing `EnipFlowState` inline.
+//   `#![allow(dead_code)]` on parse fns remains; STORY-137 removes it.
+//
+// STATUS: all tests in this module are RED (process_pdu is todo!()).
+// ─────────────────────────────────────────────────────────────────────────────
+mod recon {
+    use wirerust::analyzer::enip::{EnipAnalyzer, EnipFlowState};
+
+    // -------------------------------------------------------------------------
+    // AC-134-001: ListIdentity ENIP command emits T0846 (per-flow one-shot)
+    // Traces: BC-2.17.010 postconditions 1-3; BC-2.17.010 invariant 1
+    // -------------------------------------------------------------------------
+
+    /// AC-134-001 — single ListIdentity frame emits exactly one T0846 finding.
+    ///
+    /// Traces: BC-2.17.010 postcondition 2; EC-001.
+    #[test]
+    fn test_list_identity_emits_t0846() {
+        todo!("STORY-134: test-writer implements — single ListIdentity frame -> T0846 finding")
+    }
+
+    /// AC-134-001 — five ListIdentity frames on same flow emit exactly one T0846 finding.
+    ///
+    /// Per-flow one-shot guard: first frame emits finding + sets guard; frames 2-5
+    /// increment command_counts but emit no additional findings.
+    /// Asserts: finding count == 1; list_identity_emitted == true.
+    ///
+    /// Traces: BC-2.17.010 invariant 1; EC-002; holdout HS-114 Case B.
+    #[test]
+    fn test_list_identity_one_shot_guard_multi_frame() {
+        todo!(
+            "STORY-134: test-writer implements — 5 ListIdentity frames -> \
+             exactly 1 T0846 + list_identity_emitted == true"
+        )
+    }
+
+    /// AC-134-001 — ListIdentity with all_findings at MAX_FINDINGS: no finding pushed,
+    /// guard remains false.
+    ///
+    /// Traces: BC-2.17.010 postcondition 2 last condition; EC-002b; BC-2.17.022.
+    #[test]
+    fn test_list_identity_respects_max_findings() {
+        todo!(
+            "STORY-134: test-writer implements — MAX_FINDINGS cap blocks T0846 emission; \
+             list_identity_emitted remains false"
+        )
+    }
+
+    // -------------------------------------------------------------------------
+    // AC-134-002: CIP error responses accumulate per-status in error_counts_in_window
+    // Traces: BC-2.17.008 postconditions 1-5; BC-2.17.008 invariants 1-4
+    // -------------------------------------------------------------------------
+
+    /// AC-134-002 — CIP error response increments error_counts_in_window for its status.
+    ///
+    /// Traces: BC-2.17.008 postcondition 2; EC-002.
+    #[test]
+    fn test_error_accumulation_increments_per_status() {
+        todo!(
+            "STORY-134: test-writer implements — error response general_status=0x08 -> \
+             error_counts_in_window[0x08] == 1"
+        )
+    }
+
+    /// AC-134-002 — CIP success response (general_status=0x00) does not update counters.
+    ///
+    /// Traces: BC-2.17.008 postcondition 3; invariant 3; EC-001.
+    #[test]
+    fn test_error_accumulation_ignores_success() {
+        todo!(
+            "STORY-134: test-writer implements — general_status==0x00 -> \
+             error_counts_in_window remains empty"
+        )
+    }
+
+    /// AC-134-002 — 10-second window expiry resets error_counts_in_window and
+    /// error_rate_emitted.
+    ///
+    /// Traces: BC-2.17.008 postcondition 4; invariant 4; EC-005.
+    #[test]
+    fn test_error_window_resets_after_10s() {
+        todo!(
+            "STORY-134: test-writer implements — errors in window; advance timestamp > 10s; \
+             verify reset of error_counts_in_window and error_rate_emitted"
+        )
+    }
+
+    /// AC-134-002 — CIP item with type_id != 0x00B2 skips general_status extraction.
+    ///
+    /// Hard scope gate (BC-2.17.008 precondition 2): type_id=0x00B1 -> no counter update.
+    ///
+    /// Traces: BC-2.17.008 precondition 2; EC-007.
+    #[test]
+    fn test_error_accumulation_skips_connected_item() {
+        todo!(
+            "STORY-134: test-writer implements — type_id=0x00B1 -> \
+             error_counts_in_window unchanged"
+        )
+    }
+
+    /// AC-134-002 — CIP item data shorter than 4 bytes skips general_status extraction.
+    ///
+    /// Traces: BC-2.17.008 precondition 3; EC-004.
+    #[test]
+    fn test_error_accumulation_requires_4_bytes() {
+        todo!(
+            "STORY-134: test-writer implements — cip_item_data.len() < 4 -> \
+             no counter update, no panic"
+        )
+    }
+
+    // -------------------------------------------------------------------------
+    // AC-134-006: EnipAnalyzer aggregate error_count increments on every CIP error
+    // Traces: BC-2.17.008 Postcondition 2b; BC-2.17.008 Invariant 2
+    // -------------------------------------------------------------------------
+
+    /// AC-134-006 — error_count increments across multiple flows for every error response.
+    ///
+    /// Processes N error responses across multiple flows; asserts analyzer.error_count == N.
+    ///
+    /// Traces: BC-2.17.008 Postcondition 2b; Invariant 2; AC-134-006.
+    #[test]
+    fn test_aggregate_error_count_increments() {
+        todo!(
+            "STORY-134: test-writer implements — N error responses across flows -> \
+             analyzer.error_count == N"
+        )
+    }
+
+    // -------------------------------------------------------------------------
+    // AC-134-003: T0888 Pattern A — GetAttribute to Identity Object (Class 0x01)
+    // Traces: BC-2.17.014 postconditions Pattern A
+    // -------------------------------------------------------------------------
+
+    /// AC-134-003 — GetAttributeSingle to Identity Object (Class 0x01) via 0x00B2 item
+    /// emits T0888 Pattern A finding (Likely/High).
+    ///
+    /// Traces: BC-2.17.014 Pattern A postcondition 1; EC-001.
+    #[test]
+    fn test_t0888_pattern_a_identity_read() {
+        todo!(
+            "STORY-134: test-writer implements — GetAttributeSingle + Class(0x01) + 0x00B2 -> \
+             T0888 Likely/High finding"
+        )
+    }
+
+    /// AC-134-003 — GetAttributeSingle to non-Identity class (e.g., Class 0x04) does NOT
+    /// emit T0888 Pattern A.
+    ///
+    /// Traces: BC-2.17.014 Pattern A; EC-003.
+    #[test]
+    fn test_t0888_pattern_a_non_identity_no_finding() {
+        todo!(
+            "STORY-134: test-writer implements — GetAttributeSingle + Class(0x04) -> \
+             no T0888 finding"
+        )
+    }
+
+    /// AC-134-003 — GetAttributeSingle to Identity Object via 0x00B1 (Connected Data Item)
+    /// does NOT emit T0888 Pattern A (F-P9-001 gate).
+    ///
+    /// Traces: BC-2.17.014 precondition 4; EC-009; F-P9-001.
+    #[test]
+    fn test_t0888_pattern_a_connected_item_no_finding() {
+        todo!(
+            "STORY-134: test-writer implements — type_id=0x00B1 -> no T0888 Pattern A finding \
+             (F-P9-001 gate)"
+        )
+    }
+
+    /// AC-134-003 — Pattern A fires per-occurrence (not one-shot): two GetAttributeSingle
+    /// requests to Class 0x01 produce two findings.
+    ///
+    /// Traces: BC-2.17.014 invariant 2 (Pattern A is per-occurrence); AC-134-003.
+    #[test]
+    fn test_t0888_pattern_a_fires_per_occurrence() {
+        todo!(
+            "STORY-134: test-writer implements — 2 GetAttributeSingle to Class 0x01 -> \
+             2 T0888 Pattern A findings"
+        )
+    }
+
+    // -------------------------------------------------------------------------
+    // AC-134-004: T0888 Pattern B — error burst crossing threshold fires one-shot
+    // Traces: BC-2.17.014 postconditions Pattern B; BC-2.17.014 invariant 3
+    // -------------------------------------------------------------------------
+
+    /// AC-134-004 — default threshold=5; 6th error fires Pattern B (strict >).
+    ///
+    /// Traces: BC-2.17.014 Pattern B postcondition 2; invariant 3; EC-004.
+    #[test]
+    fn test_t0888_pattern_b_fires_at_threshold_plus_one() {
+        todo!(
+            "STORY-134: test-writer implements — 6 errors with threshold=5 -> \
+             T0888 Pattern B Possible/Medium finding"
+        )
+    }
+
+    /// AC-134-004 — Pattern B one-shot guard: 7th error in same window emits no additional
+    /// finding.
+    ///
+    /// Traces: BC-2.17.014 Pattern B postcondition 2; EC-006.
+    #[test]
+    fn test_t0888_pattern_b_one_shot_guard() {
+        todo!(
+            "STORY-134: test-writer implements — error_rate_emitted=true after first burst; \
+             7th error -> no additional finding"
+        )
+    }
+
+    /// AC-134-004 — exactly 5 errors with threshold=5 does NOT fire Pattern B (strict >).
+    ///
+    /// Traces: BC-2.17.014 invariant 3 (strict >); EC-005.
+    #[test]
+    fn test_t0888_pattern_b_no_fire_at_threshold() {
+        todo!(
+            "STORY-134: test-writer implements — 5 errors with threshold=5 -> \
+             no T0888 Pattern B finding (5 > 5 is false)"
+        )
+    }
+
+    /// AC-134-004 — threshold=0: first error (count=1 > 0) fires Pattern B immediately.
+    ///
+    /// Traces: BC-2.17.014 invariant 3 (strict >); BC-2.17.026 invariant 4.
+    #[test]
+    fn test_t0888_pattern_b_threshold_zero() {
+        todo!(
+            "STORY-134: test-writer implements — threshold=0, first error -> \
+             T0888 Pattern B fires immediately (1 > 0)"
+        )
+    }
+
+    // -------------------------------------------------------------------------
+    // AC-134-005: is_non_enip flag suppresses all ENIP detections
+    // Traces: BC-2.17.010 Precondition 2, BC-2.17.014 preconditions
+    // -------------------------------------------------------------------------
+
+    /// AC-134-005 — flow with is_non_enip=true suppresses all T0846 and T0888 findings.
+    ///
+    /// Construct flow directly with is_non_enip=true; process a ListIdentity frame;
+    /// assert no findings emitted.
+    ///
+    /// Traces: BC-2.17.010 precondition 2; BC-2.17.014 precondition 5; AC-134-005.
+    #[test]
+    fn test_non_enip_flow_suppresses_recon() {
+        todo!(
+            "STORY-134: test-writer implements — is_non_enip=true -> no T0846 or T0888 findings \
+             regardless of frame content"
+        )
+    }
+
+    // -------------------------------------------------------------------------
+    // Helpers — GREEN-BY-DESIGN (constructor delegation, no branching, no I/O)
+    // -------------------------------------------------------------------------
+
+    /// Construct a minimal `EnipAnalyzer` with default thresholds for recon tests.
+    ///
+    /// GREEN-BY-DESIGN: delegates to `EnipAnalyzer::new`; zero branching, no I/O,
+    /// no non-trivial helpers, 1 line.
+    #[allow(dead_code)]
+    fn make_analyzer() -> EnipAnalyzer {
+        EnipAnalyzer::new(50, 5)
+    }
+
+    /// Construct a default `EnipFlowState` for recon tests.
+    ///
+    /// GREEN-BY-DESIGN: delegates to `EnipFlowState::new`; zero branching, no I/O,
+    /// no non-trivial helpers, 1 line.
+    #[allow(dead_code)]
+    fn make_flow() -> EnipFlowState {
+        EnipFlowState::new()
     }
 }

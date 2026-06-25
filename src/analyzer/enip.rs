@@ -170,8 +170,132 @@ pub fn is_valid_enip_frame(h: &EnipHeader) -> bool {
 // Aggregate analyzer struct (STORY-131 — BC-2.17.019/020/023/026)
 // ---------------------------------------------------------------------------
 
+use std::collections::HashMap;
+use std::net::IpAddr;
+
 use crate::analyzer::AnalysisSummary;
 use crate::findings::Finding;
+
+// ---------------------------------------------------------------------------
+// Per-flow state (STORY-134 — BC-2.17.008/010/014/016)
+// ---------------------------------------------------------------------------
+
+/// Per-flow mutable state for the EtherNet/IP analyzer.
+///
+/// Carries the carry buffer, error window fields, per-command counts, and
+/// detection guards used across all EtherNet/IP detection stories.
+///
+/// **Field names are normative** — BCs reference these exact identifiers:
+/// - `error_counts_in_window` — BC-2.17.008 invariant; must NOT be aliased.
+/// - `error_window_start_ts`  — BC-2.17.008 postcondition 2 canonical field name.
+/// - `error_rate_emitted`     — BC-2.17.008 invariant; T0888 Pattern B one-shot guard.
+/// - `list_identity_emitted`  — BC-2.17.010 invariant 1; T0846 per-flow one-shot guard.
+/// - `is_non_enip`            — BC-2.17.016 carry-buffer overflow latch; set by STORY-137.
+///
+/// # Architecture
+/// Allocated in `EnipAnalyzer::flows: HashMap<FlowKey, EnipFlowState>` (STORY-137).
+/// For STORY-134 tests, construct directly to verify detection helpers without
+/// depending on the frame-walk wiring (STORY-137 scope).
+///
+/// Traces: BC-2.17.008, BC-2.17.010, BC-2.17.014, BC-2.17.016; ADR-010 Decision 4.
+pub struct EnipFlowState {
+    /// Per-status CIP error counts within the current 10-second window.
+    ///
+    /// Keyed by `general_status` byte (byte 2 of 0x00B2 CIP response).
+    /// Cleared on window expiry (BC-2.17.008 postcondition 4).
+    /// Field name is normative per BC-2.17.008 invariant.
+    pub error_counts_in_window: HashMap<u8, u64>,
+
+    /// Timestamp (pcap-relative seconds, u32) of the first error in the current window.
+    ///
+    /// Seeded on the first error response in a new window (BC-2.17.008 postcondition 2).
+    /// Value 0 indicates no error has been seen in the current window yet.
+    /// Field name is normative per BC-2.17.008 postcondition 2.
+    pub error_window_start_ts: u32,
+
+    /// One-shot guard for T0888 Pattern B (error-burst finding per window).
+    ///
+    /// Set to `true` when the Pattern B finding is emitted for the current window;
+    /// reset to `false` on window expiry (BC-2.17.008 postcondition 4).
+    /// Field name is normative per BC-2.17.008 invariant.
+    pub error_rate_emitted: bool,
+
+    /// One-shot guard for T0846 ListIdentity finding (per-flow).
+    ///
+    /// Set to `true` on the first ListIdentity frame per flow; subsequent frames
+    /// on the same flow increment `command_counts[0x0063]` but do NOT emit additional
+    /// T0846 findings (BC-2.17.010 invariant 1).
+    pub list_identity_emitted: bool,
+
+    /// Non-ENIP latch: when `true`, all `on_data` calls for this flow are immediate no-ops.
+    ///
+    /// Set by the carry-buffer overflow logic in STORY-137 (BC-2.17.016 postcondition 4).
+    /// In STORY-134 tests, construct flows with `is_non_enip: true` directly to verify
+    /// detection suppression without running the frame-walk.
+    pub is_non_enip: bool,
+
+    /// Per-command ENIP packet counts for this flow.
+    ///
+    /// Incremented in the frame-walk loop (`on_data`, STORY-137) at PC-0 (BC-2.17.016)
+    /// immediately after `parse_enip_header` returns `Some`, before `is_valid_enip_frame`.
+    /// STORY-134's `process_pdu` MUST NOT increment this counter (single-increment rule
+    /// BC-2.17.024/025 / BC-2.17.016 invariant 6).
+    pub command_counts: HashMap<u16, u64>,
+
+    /// Number of successfully dispatched PDUs for this flow.
+    ///
+    /// Incremented inside `process_pdu` only (BC-2.17.024). Distinct from `command_counts`
+    /// which is incremented in the frame-walk regardless of frame validity.
+    pub pdu_count: u64,
+
+    /// Per-flow structural parse error count (lifetime — never reset at window expiry).
+    ///
+    /// Incremented on invalid/oversized frames and carry-buffer overflow (BC-2.17.016).
+    pub parse_errors: u64,
+
+    /// Windowed malformed frame counter (reset at window expiry per BC-2.17.018).
+    pub malformed_in_window: u64,
+
+    /// Carry buffer for partial ENIP frames (BC-2.17.016).
+    ///
+    /// Bounded to `MAX_ENIP_CARRY_BYTES = 600`. Overflow triggers `is_non_enip = true`.
+    /// Managed exclusively by `on_data` (STORY-137).
+    pub carry: Vec<u8>,
+}
+
+impl EnipFlowState {
+    /// Construct a new default `EnipFlowState` with all counters zeroed and maps empty.
+    ///
+    /// WIRING-EXEMPT: zero-initialiser constructor — no branching, no I/O, no helpers,
+    /// ≤ 3 lines of struct init. All fields initialise to their zero/empty values.
+    pub fn new() -> Self {
+        Self {
+            error_counts_in_window: HashMap::new(),
+            error_window_start_ts: 0,
+            error_rate_emitted: false,
+            list_identity_emitted: false,
+            is_non_enip: false,
+            command_counts: HashMap::new(),
+            pdu_count: 0,
+            parse_errors: 0,
+            malformed_in_window: 0,
+            carry: Vec::new(),
+        }
+    }
+}
+
+impl Default for EnipFlowState {
+    /// Delegates to `EnipFlowState::new()`.
+    ///
+    /// WIRING-EXEMPT: single delegation call, no branching, no I/O.
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Aggregate analyzer struct (STORY-131 — BC-2.17.019/020/023/026)
+// ---------------------------------------------------------------------------
 
 /// EtherNet/IP stream analyzer aggregate.
 ///
@@ -182,9 +306,8 @@ use crate::findings::Finding;
 /// - `enip_write_burst_threshold` — T0836 write-burst threshold (default 50).
 /// - `enip_error_burst_threshold` — T0888 error-burst threshold (default 5).
 ///
-/// Detection logic (frame-walk, CIP parse, MITRE detections) is added by
-/// STORY-132–137. This struct carries the dispatcher wiring and byte-count
-/// observable for STORY-131; CIP frame parsing is deferred to STORY-132+.
+/// Detection logic (CIP parse, MITRE detections) is added by STORY-134+.
+/// Frame-walk wiring in `on_data` is added by STORY-137 (BC-2.17.016).
 ///
 /// BC-2.17.019 §P2–P3 / BC-2.17.020 §P1 / BC-2.17.023 §P1 / BC-2.17.026 §P1.
 pub struct EnipAnalyzer {
@@ -192,15 +315,20 @@ pub struct EnipAnalyzer {
     pub enip_write_burst_threshold: u32,
     /// Error-burst threshold for T0888 Pattern B detection (BC-2.17.026 default=5).
     pub enip_error_burst_threshold: u32,
-    /// Accumulated findings — populated by detection logic (STORY-132+).
+    /// Accumulated findings — populated by detection logic (STORY-134+).
     pub all_findings: Vec<Finding>,
     /// Total reassembled TCP bytes received across all port-44818 flows.
     ///
     /// Observable for BC-2.17.019 PC-2 integration tests (STORY-131 boundary decision):
     /// `bytes_received > 0` after `dispatcher.on_data()` confirms the wiring arm fired.
-    /// Incremented by `on_data` via saturating_add. Stable across STORY-131 → STORY-132:
-    /// STORY-132 adds frame-walk alongside this counter.
+    /// Incremented by `on_data` via saturating_add.
     pub bytes_received: u64,
+    /// Aggregate lifetime count of CIP error responses (general_status != 0x00).
+    ///
+    /// Incremented by `process_pdu` on every qualifying error response (BC-2.17.008
+    /// Postcondition 2b / Invariant 2). Never reset across flows or windows.
+    /// Read by `summarize()` (BC-2.17.021 postcondition 1 `error_count` field).
+    pub error_count: u64,
 }
 
 impl EnipAnalyzer {
@@ -211,7 +339,7 @@ impl EnipAnalyzer {
     /// `error_burst_threshold` — T0888 error-burst cap (CLI `--enip-error-burst-threshold`,
     /// default 5, BC-2.17.026 Invariant 1).
     ///
-    /// WIRING-EXEMPT: constructor assigns two scalar fields and initialises one Vec to empty.
+    /// WIRING-EXEMPT: constructor assigns scalar fields and initialises collections to empty.
     /// Zero branching; no I/O; no non-trivial helpers; ≤ 3 meaningful lines of struct-init.
     pub fn new(write_burst_threshold: u32, error_burst_threshold: u32) -> Self {
         Self {
@@ -219,6 +347,7 @@ impl EnipAnalyzer {
             enip_error_burst_threshold: error_burst_threshold,
             all_findings: Vec::new(),
             bytes_received: 0,
+            error_count: 0,
         }
     }
 
@@ -244,6 +373,46 @@ impl EnipAnalyzer {
         _timestamp: u32,
     ) {
         self.bytes_received = self.bytes_received.saturating_add(data.len() as u64);
+    }
+
+    /// Main per-PDU detection dispatch for a single validated ENIP frame.
+    ///
+    /// Called by the frame-walk loop in `on_data` (STORY-137 / BC-2.17.016) for every
+    /// frame that passes `is_valid_enip_frame`. This function owns all MITRE detection
+    /// logic for STORY-134:
+    ///
+    /// 1. `is_non_enip` gate — exit immediately if `flow.is_non_enip == true`.
+    /// 2. `classify_enip_command` → ListIdentity → T0846 (BC-2.17.010).
+    /// 3. For SendRRData/SendUnitData: walk CPF items; for `type_id == 0x00B2`:
+    ///    a. `parse_cip_header` + `classify_cip_service`.
+    ///    b. If request + GetAttribute + Class(0x01) in path → T0888 Pattern A (BC-2.17.014).
+    ///    c. If response + `general_status != 0x00` → accumulate error; check Pattern B
+    ///    (BC-2.17.008 + BC-2.17.014 Pattern B).
+    ///
+    /// **SINGLE-INCREMENT NOTE (BC-2.17.024/025):** `process_pdu` MUST NOT touch
+    /// `flow.command_counts`. The sole canonical `command_counts` increment site is
+    /// the frame-walk loop in `on_data` (BC-2.17.016 PC-0, STORY-137).
+    ///
+    /// # Parameters
+    /// - `flow_key` — identifies the TCP flow; used to look up `EnipFlowState`.
+    /// - `pdu`      — complete ENIP frame bytes (header + payload, 24 + header.length bytes).
+    /// - `timestamp` — pcap-relative capture timestamp (seconds, u32).
+    /// - `src_ip`   — source IP address of the sending endpoint.
+    ///
+    /// # Traces
+    /// BC-2.17.008, BC-2.17.010, BC-2.17.014; ADR-010 Decision 6 (detection order).
+    pub fn process_pdu(
+        &mut self,
+        _flow: &mut EnipFlowState,
+        _pdu: &[u8],
+        _timestamp: u32,
+        _src_ip: IpAddr,
+    ) {
+        todo!(
+            "STORY-134: implement T0846/T0888 detection dispatch \
+             (BC-2.17.010 ListIdentity, BC-2.17.008 error accumulation, \
+             BC-2.17.014 Pattern A Identity read + Pattern B error burst)"
+        )
     }
 
     /// Produce an end-of-capture summary for the ENIP analyzer.
