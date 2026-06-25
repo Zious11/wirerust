@@ -45,94 +45,93 @@ foundation proven correct by Kani formal verification (VP-032).
 
 | BC ID | Title | Story Role |
 |-------|-------|-----------|
-| BC-2.17.001 | `parse_enip_header` parses 24-byte ENIP encapsulation header | Core implementation target |
-| BC-2.17.002 | `classify_enip_command` maps command u16 to `EnipCommand` enum | Core implementation target |
-| BC-2.17.003 | `is_valid_enip_frame` validates header-declared length against buffer length | Core implementation target |
-| BC-2.17.004 | `classify_cip_service` maps CIP service byte to `CipServiceClass` enum | Core implementation target |
+| BC-2.17.001 | `parse_enip_header` Returns None for Input Shorter Than 24 Bytes | Core implementation target (reject path) |
+| BC-2.17.002 | EnipHeader Field Contracts — Fixed Little-Endian Offsets for 24-Byte Input | Core implementation target (accept path) |
+| BC-2.17.003 | `is_valid_enip_frame` Validity Gate Biconditional — Known-Command Set | Core implementation target |
+| BC-2.17.004 | `classify_enip_command` Total Classification with Unknown Arm Over All u16 Values | Core implementation target |
 
 ## Acceptance Criteria
 
-### AC-130-001: `parse_enip_header` parses 24-byte header with little-endian fields
-**Traces to:** BC-2.17.001 postconditions 1–3
-- Given a byte slice of exactly 24 bytes with known field values
+### AC-130-001: `parse_enip_header` parses 24-byte header with little-endian fields (accept path)
+**Traces to:** BC-2.17.002 postconditions 1–9
+- Given a byte slice with `len >= 24`
 - When `parse_enip_header(&bytes)` is called
 - Then `Some(EnipHeader { command, length, session_handle, status, sender_context, options })` is returned
-- With `command = LE u16 bytes[0..2]`, `length = LE u16 bytes[2..4]`, `session_handle = LE u32 bytes[4..8]`, `status = LE u32 bytes[8..12]`, `sender_context = bytes[12..20]` as `[u8;8]`, `options = LE u32 bytes[20..24]`
-- For any slice shorter than 24 bytes, returns `None`
+- With `command = u16::from_le_bytes([bytes[0], bytes[1]])` (BC-2.17.002 postcondition 2)
+- With `length = u16::from_le_bytes([bytes[2], bytes[3]])` (BC-2.17.002 postcondition 3)
+- With `session_handle = u32::from_le_bytes([bytes[4], bytes[5], bytes[6], bytes[7]])` (BC-2.17.002 postcondition 4)
+- With `status = u32::from_le_bytes([bytes[8], bytes[9], bytes[10], bytes[11]])` (BC-2.17.002 postcondition 5)
+- With `sender_context = [bytes[12], bytes[13], bytes[14], bytes[15], bytes[16], bytes[17], bytes[18], bytes[19]]` as `[u8;8]` verbatim copy (BC-2.17.002 postcondition 6)
+- With `options = u32::from_le_bytes([bytes[20], bytes[21], bytes[22], bytes[23]])` (BC-2.17.002 postcondition 7)
+- Bytes beyond index 23 are not read by this function (BC-2.17.002 postcondition 8)
+- For any slice shorter than 24 bytes, returns `None` (BC-2.17.001 postcondition 1)
 - **Test:** `tests/enip_analyzer_tests.rs::parse_header::test_parse_enip_header_valid`
 - **Test:** `tests/enip_analyzer_tests.rs::parse_header::test_parse_enip_header_too_short`
 - **Test:** `tests/enip_analyzer_tests.rs::parse_header::test_parse_enip_header_exactly_24`
 
-### AC-130-002: `parse_enip_header` never panics for any byte slice input
-**Traces to:** BC-2.17.001 postcondition 4 (no panic guarantee)
-- Given any `&[u8]` of any length (0 to large)
+### AC-130-002: `parse_enip_header` returns None for any input shorter than 24 bytes (reject path)
+**Traces to:** BC-2.17.001 postconditions 1–3; BC-2.17.002 postcondition 9 (purity/no panic)
+- Given any `&[u8]` with `len < 24` (including empty slice, 1-byte, 23-byte)
 - When `parse_enip_header(&bytes)` is called
-- Then returns `Some(...)` if `bytes.len() >= 24`, `None` otherwise — no panic, no UB
+- Then returns `None` without accessing any bytes — no panics, no UB (BC-2.17.001 postcondition 1–2)
+- The 24-byte minimum is fixed by the ODVA EtherNet/IP specification and is not configurable (BC-2.17.001 invariant 1)
+- For `len == 0`: returns `None` — zero bytes, no access (BC-2.17.001 EC-001)
+- For `len == 23`: returns `None` — 23 bytes, none accessed (BC-2.17.001 EC-003)
 - **Test:** `tests/enip_analyzer_tests.rs::parse_header::test_parse_enip_header_no_panic_empty`
 - **Test:** `tests/enip_analyzer_tests.rs::parse_header::test_parse_enip_header_no_panic_23_bytes`
 
-### AC-130-003: `classify_enip_command` correctly maps all in-scope command codes
-**Traces to:** BC-2.17.002 postconditions 1–2
-- `0x0065` → `EnipCommand::RegisterSession`
-- `0x0066` → `EnipCommand::UnRegisterSession`
-- `0x0063` → `EnipCommand::ListIdentity`
-- `0x0004` → `EnipCommand::ListServices`
-- `0x0064` → `EnipCommand::ListInterfaces`
-- `0x0072` → `EnipCommand::SendRRData`
-- `0x006F` → `EnipCommand::SendUnitData`
-- `0x0070` → `EnipCommand::IndicateStatus`
-- `0x0075` → `EnipCommand::Cancel`
-- Any other value → `EnipCommand::Unknown(value)`
+### AC-130-003: `classify_enip_command` correctly maps all in-scope command codes and Unknown arm
+**Traces to:** BC-2.17.004 postconditions 1–5
+- `0x0004` → `EnipCommandClass::ListServices`
+- `0x0063` → `EnipCommandClass::ListIdentity`
+- `0x0064` → `EnipCommandClass::ListInterfaces`
+- `0x0065` → `EnipCommandClass::RegisterSession`
+- `0x0066` → `EnipCommandClass::UnRegisterSession`
+- `0x006F` → `EnipCommandClass::SendRRData`
+- `0x0070` → `EnipCommandClass::SendUnitData`
+- `0x0072` → `EnipCommandClass::IndicateStatus`
+- `0x0075` → `EnipCommandClass::Cancel`
+- Any other value (e.g., `0x0000`, `0xFFFF`) → `EnipCommandClass::Unknown`
+- The `Unknown` arm is reachable and non-vacuous (BC-2.17.004 postcondition 4)
+- `EnipCommandClass` has exactly 10 variants (9 named + Unknown); the match is exhaustive (BC-2.17.004 invariant 1)
 - **Test:** `tests/enip_analyzer_tests.rs::parse_header::test_classify_enip_command_known`
 - **Test:** `tests/enip_analyzer_tests.rs::parse_header::test_classify_enip_command_unknown`
 
-### AC-130-004: `is_valid_enip_frame` validates length field against actual buffer
-**Traces to:** BC-2.17.003 postconditions 1–3
-- Given a header with `length` field value `L` and a total buffer of `B` bytes
-- When `is_valid_enip_frame(&header, buffer_len)` is called
-- Then returns `true` iff `(24 + L as usize) <= buffer_len` (i.e., the payload declared by the header fits within the buffer)
-- Returns `false` if `header.length == 0 && buffer_len < 24` (undersized)
-- Returns `true` if `header.length == 0 && buffer_len >= 24` (zero-payload frame is valid)
-- **Test:** `tests/enip_analyzer_tests.rs::parse_header::test_is_valid_enip_frame_exact_fit`
-- **Test:** `tests/enip_analyzer_tests.rs::parse_header::test_is_valid_enip_frame_buffer_too_small`
-- **Test:** `tests/enip_analyzer_tests.rs::parse_header::test_is_valid_enip_frame_zero_payload`
-- **Test:** `tests/enip_analyzer_tests.rs::parse_header::test_is_valid_enip_frame_overflow_guard`
+### AC-130-004: `is_valid_enip_frame` returns true iff command is in the known-command set (biconditional)
+**Traces to:** BC-2.17.003 postconditions 1–4
+- Given an `EnipHeader` with `h.command` as any `u16` value
+- When `is_valid_enip_frame(h)` is called
+- Then returns `true` if and only if `h.command ∈ {0x0004, 0x0063, 0x0064, 0x0065, 0x0066, 0x006F, 0x0070, 0x0072, 0x0075}` — the 9-value ODVA known-command set (BC-2.17.003 postcondition 1)
+- Returns `false` for any command value not in the known set (e.g., `0x0000`, `0x0062`, `0x0067`, `0xFFFF`) (BC-2.17.003 postcondition 2)
+- The function does not inspect `h.length`, `h.status`, or `h.options` — command-only gate (BC-2.17.003 postcondition 3)
+- The biconditional holds for all 65,536 possible `u16` values (BC-2.17.003 invariant 1)
+- **Test:** `tests/enip_analyzer_tests.rs::parse_header::test_is_valid_enip_frame_known_commands_true`
+- **Test:** `tests/enip_analyzer_tests.rs::parse_header::test_is_valid_enip_frame_unknown_command_false`
+- **Test:** `tests/enip_analyzer_tests.rs::parse_header::test_is_valid_enip_frame_boundary_commands`
+- **Test:** `tests/enip_analyzer_tests.rs::parse_header::test_is_valid_enip_frame_all_fields_zeroed`
 
-### AC-130-005: `classify_cip_service` maps service byte to `CipServiceClass` — 15 variants
-**Traces to:** BC-2.17.007 postconditions 1–6 (via BC-2.17.004); BC-2.17.007 Invariants 1–2
-- **Response-bit invariant (checked first):** if `service & 0x80 != 0` → returns `CipServiceClass::Response` (applies to all 128 values 0x80–0xFF)
-- For request values (`service & 0x80 == 0`), the 13 named codes map as follows (per BC-2.17.007 postcondition 3):
-  - `0x01` → `CipServiceClass::GetAttributesAll`
-  - `0x02` → `CipServiceClass::SetAttributesAll`
-  - `0x03` → `CipServiceClass::GetAttributeList`
-  - `0x04` → `CipServiceClass::SetAttributeList`
-  - `0x05` → `CipServiceClass::Reset`
-  - `0x07` → `CipServiceClass::Stop`
-  - `0x0A` → `CipServiceClass::MultipleServicePacket`
-  - `0x0E` → `CipServiceClass::GetAttributeSingle`
-  - `0x10` → `CipServiceClass::SetAttributeSingle`
-  - `0x4B` → `CipServiceClass::GetAndClear`
-  - `0x4E` → `CipServiceClass::ForwardClose`
-  - `0x54` → `CipServiceClass::ForwardOpen`
-  - `0x5B` → `CipServiceClass::LargeForwardOpen`
-- All other request values (high bit clear, not in the named set) → `CipServiceClass::Unknown`
-- `Unknown` is reachable (e.g., `service = 0x7F`); `Unknown` does NOT carry the service byte as a payload
-- **Enum total variant count:** 13 named request services + Response + Unknown = **15 variants** (VP-032 Sub-D)
-- **Test:** `tests/enip_analyzer_tests.rs::parse_header::test_classify_cip_service_named_requests`
-- **Test:** `tests/enip_analyzer_tests.rs::parse_header::test_classify_cip_service_response_bit`
-- **Test:** `tests/enip_analyzer_tests.rs::parse_header::test_classify_cip_service_unknown`
+### AC-130-005: `classify_enip_command` is total — Unknown arm is reachable and non-vacuous; counter accumulation
+**Traces to:** BC-2.17.004 postconditions 3–5, invariants 1–3
+- The function never panics for any `u16` input (BC-2.17.004 postcondition 3); this property is formally verified by Kani VP-032 Sub-B
+- `EnipCommandClass::Unknown` is reachable: `classify_enip_command(0x0000)` → `EnipCommandClass::Unknown` (BC-2.17.004 postcondition 4)
+- `EnipCommandClass::Unknown` is also reachable at `0xFFFF` (BC-2.17.004 edge case EC-004)
+- Gap values (e.g., `0x0067` — between UnRegisterSession and SendRRData) map to `Unknown` (BC-2.17.004 edge case EC-005)
+- The `EnipCommandClass` enum has exactly 10 variants; the match is compiler-enforced exhaustive (BC-2.17.004 invariant 1)
+- The caller MUST increment `flow.command_counts.entry(cmd).or_insert(0) += 1` after each classification — both named and Unknown commands are counted (BC-2.17.004 invariant 3)
+- **Test:** `tests/enip_analyzer_tests.rs::parse_header::test_classify_enip_command_unknown_zero`
+- **Test:** `tests/enip_analyzer_tests.rs::parse_header::test_classify_enip_command_unknown_ffff`
+- **Test:** `tests/enip_analyzer_tests.rs::parse_header::test_classify_enip_command_unknown_gap`
 
-### AC-130-006: VP-032 Kani proof harnesses pass for all 4 sub-properties
-**Traces to:** VP-032 Sub-A through Sub-D
-- Sub-A (`kani_parse_enip_header_no_panic`): `parse_enip_header` never panics for any symbolic `&[u8]` up to 49 bytes; `unwind(49)` annotation required
-- Sub-B (`kani_classify_enip_command_total`): `classify_enip_command` is total — returns for every `u16` input with no unreachable branch
-- Sub-C (`kani_is_valid_enip_frame_no_overflow`): `is_valid_enip_frame` `(24 + L as usize)` never overflows for any `L: u16`
-- Sub-D (`kani_classify_cip_service_total`): `classify_cip_service` is total — returns for every `u8` input
+### AC-130-006: VP-032 Kani proof harnesses pass for Sub-A, Sub-B, and Sub-C
+**Traces to:** VP-032 Sub-A, Sub-B, Sub-C
+- Sub-A (`kani_parse_enip_header_no_panic`): `parse_enip_header` never panics for any symbolic `&[u8]` up to 49 bytes; `unwind(49)` annotation required (BC-2.17.001/002 purity invariants)
+- Sub-B (`kani_classify_enip_command_total`): `classify_enip_command` is total — returns for every `u16` input with no unreachable branch; `Unknown` arm non-vacuous (BC-2.17.004 invariant 1)
+- Sub-C (`kani_is_valid_enip_frame_no_overflow`): `is_valid_enip_frame` biconditional for all 65,536 `u16` command values; no unreachable branch (BC-2.17.003 invariant 1)
+- Sub-D (`kani_classify_cip_service_total`): OUT OF SCOPE for this story — `classify_cip_service` is defined in STORY-132 (BC-2.17.007)
 - All harnesses live in `src/analyzer/enip.rs` under `#[cfg(kani)] mod kani_proofs { ... }`
 - **Test:** `kani::kani_parse_enip_header_no_panic` (Sub-A)
 - **Test:** `kani::kani_classify_enip_command_total` (Sub-B)
 - **Test:** `kani::kani_is_valid_enip_frame_no_overflow` (Sub-C)
-- **Test:** `kani::kani_classify_cip_service_total` (Sub-D)
 
 ## Architecture Mapping
 
@@ -141,18 +140,16 @@ foundation proven correct by Kani formal verification (VP-032).
 | `parse_enip_header` | `src/analyzer/enip.rs` | Pure-core free fn, VP-032 Sub-A target |
 | `classify_enip_command` | `src/analyzer/enip.rs` | Pure-core free fn, VP-032 Sub-B target |
 | `is_valid_enip_frame` | `src/analyzer/enip.rs` | Pure-core free fn, VP-032 Sub-C target |
-| `classify_cip_service` | `src/analyzer/enip.rs` | Pure-core free fn, VP-032 Sub-D target |
 | `EnipHeader` struct | `src/analyzer/enip.rs` | 24-byte header model: command, length, session_handle, status, sender_context, options |
-| `EnipCommand` enum | `src/analyzer/enip.rs` | 9 named variants + Unknown(u16) |
-| `CipServiceClass` enum | `src/analyzer/enip.rs` | 13 named request services + Response + Unknown = 15 variants total (VP-032 Sub-D) |
-| `kani_proofs` mod | `src/analyzer/enip.rs` | `#[cfg(kani)]` Kani harnesses |
+| `EnipCommandClass` enum | `src/analyzer/enip.rs` | 9 named variants + Unknown = 10 variants total (VP-032 Sub-B) |
+| `kani_proofs` mod | `src/analyzer/enip.rs` | `#[cfg(kani)]` Kani harnesses (Sub-A through Sub-C in this story; Sub-D in STORY-132) |
 | Test mod | `tests/enip_analyzer_tests.rs` | `mod parse_header { ... }` namespace |
 
 **Pure/effectful boundary (ADR-010 Decision 2):** All four functions are pure-core free `fn`s — no `&self`, no `&mut self`, no global state, no I/O. They are the Kani verification targets and must remain pure to maintain VP-032 proof validity.
 
 ## VP Kani Obligation (VP-032)
 
-VP-032 specifies 4 Kani proof harnesses for the pure-core parse functions. All harnesses live in `#[cfg(kani)] mod kani_proofs` inside `src/analyzer/enip.rs`.
+VP-032 specifies 4 Kani proof harnesses for the pure-core parse functions. All harnesses live in `#[cfg(kani)] mod kani_proofs` inside `src/analyzer/enip.rs`. Sub-A through Sub-C are in scope for STORY-130 (which defines `parse_enip_header`, `classify_enip_command`, and `is_valid_enip_frame`). Sub-D (`kani_classify_cip_service_total`) is in scope for STORY-132 (which defines `classify_cip_service`).
 
 **Sub-A — `kani_parse_enip_header_no_panic`:**
 ```rust
@@ -193,14 +190,12 @@ mod kani_proofs {
     }
 ```
 
-**Sub-D — `kani_classify_cip_service_total`:**
+**Sub-D — `kani_classify_cip_service_total` (OUT OF SCOPE for STORY-130 — belongs to STORY-132):**
+
+The Sub-D harness covers `classify_cip_service` (BC-2.17.007) which is defined in STORY-132 alongside `CipServiceClass`. It will live in the same `#[cfg(kani)] mod kani_proofs` block, added by STORY-132.
+
 ```rust
-    #[kani::proof]
-    fn kani_classify_cip_service_total() {
-        let svc: u8 = kani::any();
-        let _ = classify_cip_service(svc);
-    }
-} // end kani_proofs
+} // end kani_proofs (Sub-A, Sub-B, Sub-C only in STORY-130)
 ```
 
 ## Edge Cases
@@ -215,8 +210,8 @@ mod kani_proofs {
 | EC-006 | `is_valid_enip_frame` with `length=0xFFFF, buf_len=usize::MAX` | `24 + 65535 = 65559 <= usize::MAX` → `true`; no overflow |
 | EC-007 | `is_valid_enip_frame` with `length=0, buf_len=24` | `24 + 0 = 24 <= 24` → `true` |
 | EC-008 | `is_valid_enip_frame` with `length=1, buf_len=24` | `24 + 1 = 25 > 24` → `false` |
-| EC-009 | `classify_cip_service(0x8E)` (high bit set — response) | Returns `CipServiceClass::Response` (response-bit invariant; not GetAttributeSingle) |
-| EC-010 | `classify_cip_service(0xFF)` (all bits set — response) | Returns `CipServiceClass::Response` (high bit set; same as BC-2.17.007 EC-006) |
+| EC-009 | `classify_enip_command(0x0067)` (gap between 0x0066 and 0x006F) | Returns `EnipCommandClass::Unknown` — not in ODVA table (BC-2.17.004 EC-005) |
+| EC-010 | `is_valid_enip_frame` with `command = 0x0063` (ListIdentity) | Returns `true` — ListIdentity is in the known-command set (BC-2.17.003 EC-002) |
 
 ## Tasks
 
@@ -226,9 +221,7 @@ mod kani_proofs {
 - [ ] Define `EnipCommand` enum with 9 named variants + `Unknown(u16)`; derive `Debug, Clone, Copy, PartialEq, Eq`
 - [ ] Implement `fn classify_enip_command(cmd: u16) -> EnipCommand` — exhaustive match with `_ => Unknown(cmd)` fallback
 - [ ] Implement `fn is_valid_enip_frame(header: &EnipHeader, buffer_len: usize) -> bool` — `(24usize + header.length as usize) <= buffer_len`; note `u16 as usize` cast is widening, no overflow possible
-- [ ] Define `CipServiceClass` enum with 15 variants: 13 named request services (`GetAttributesAll`, `SetAttributesAll`, `GetAttributeList`, `SetAttributeList`, `Reset`, `Stop`, `MultipleServicePacket`, `GetAttributeSingle`, `SetAttributeSingle`, `GetAndClear`, `ForwardClose`, `ForwardOpen`, `LargeForwardOpen`) + `Response` + `Unknown`; derive `Debug, Clone, Copy, PartialEq, Eq`
-- [ ] Implement `fn classify_cip_service(service: u8) -> CipServiceClass` — check `service & 0x80 != 0` FIRST (returns `Response` for all 128 values 0x80–0xFF), then match on raw `service` for the 13 named codes (0x01/0x02/0x03/0x04/0x05/0x07/0x0A/0x0E/0x10/0x4B/0x4E/0x54/0x5B), fallback `_ => Unknown`
-- [ ] Add `#[cfg(kani)] mod kani_proofs` block with all 4 Kani harnesses (Sub-A with `#[kani::unwind(49)]`, Sub-B, Sub-C, Sub-D)
+- [ ] Add `#[cfg(kani)] mod kani_proofs` block with Kani harnesses Sub-A (with `#[kani::unwind(49)]`), Sub-B, and Sub-C; Sub-D (`kani_classify_cip_service_total`) belongs to STORY-132
 - [ ] Create `tests/enip_analyzer_tests.rs` with top-level `mod parse_header { ... }` wrapper containing all AC-130-001 through AC-130-005 unit tests
 - [ ] Run `cargo check` — zero errors
 - [ ] Run `cargo test enip` — all new tests pass
@@ -247,22 +240,22 @@ parse_header::test_parse_enip_header_no_panic_empty
 parse_header::test_parse_enip_header_no_panic_23_bytes
 parse_header::test_classify_enip_command_known
 parse_header::test_classify_enip_command_unknown
-parse_header::test_is_valid_enip_frame_exact_fit
-parse_header::test_is_valid_enip_frame_buffer_too_small
-parse_header::test_is_valid_enip_frame_zero_payload
-parse_header::test_is_valid_enip_frame_overflow_guard
-parse_header::test_classify_cip_service_request
-parse_header::test_classify_cip_service_response
-parse_header::test_classify_cip_service_unknown
+parse_header::test_classify_enip_command_unknown_zero
+parse_header::test_classify_enip_command_unknown_ffff
+parse_header::test_classify_enip_command_unknown_gap
+parse_header::test_is_valid_enip_frame_known_commands_true
+parse_header::test_is_valid_enip_frame_unknown_command_false
+parse_header::test_is_valid_enip_frame_boundary_commands
+parse_header::test_is_valid_enip_frame_all_fields_zeroed
 ```
 
 Kani harnesses (not run in `cargo test`; run via `cargo kani`):
 ```
-kani_proofs::kani_parse_enip_header_no_panic     [VP-032 Sub-A]
-kani_proofs::kani_classify_enip_command_total    [VP-032 Sub-B]
+kani_proofs::kani_parse_enip_header_no_panic      [VP-032 Sub-A]
+kani_proofs::kani_classify_enip_command_total     [VP-032 Sub-B]
 kani_proofs::kani_is_valid_enip_frame_no_overflow [VP-032 Sub-C]
-kani_proofs::kani_classify_cip_service_total     [VP-032 Sub-D]
 ```
+Note: `kani_classify_cip_service_total` (VP-032 Sub-D) is added by STORY-132.
 
 ## Previous Story Intelligence
 
@@ -277,11 +270,11 @@ Key structural lesson from STORY-106: the `#[kani::unwind(N)]` annotation must s
 
 From ADR-010 and the enip-architecture-delta:
 
-1. **Pure-core / effectful-shell boundary (ADR-010 Decision 2):** `parse_enip_header`, `classify_enip_command`, `is_valid_enip_frame`, and `classify_cip_service` MUST be free `fn`s — no `self` parameter, no global state, no I/O. They are Kani proof targets; any effectful dependency breaks VP-032 validity.
+1. **Pure-core / effectful-shell boundary (ADR-010 Decision 2):** `parse_enip_header`, `classify_enip_command`, and `is_valid_enip_frame` MUST be free `fn`s — no `self` parameter, no global state, no I/O. They are Kani proof targets (Sub-A/B/C); any effectful dependency breaks VP-032 validity. `classify_cip_service` (Sub-D, BC-2.17.007) is defined in STORY-132 under the same constraint.
 2. **Little-endian byte order (ADR-010 Decision 1):** All multi-byte integer fields in the ENIP header are little-endian. Use `u16::from_le_bytes` and `u32::from_le_bytes` — NOT `from_be_bytes`.
 3. **No panic on any input (VP-032 contract):** Every function must be panic-free for arbitrary input. No `unwrap()` on slice indexing — use length checks before accessing fields. The only allowed `unwrap()` is `buf[12..20].try_into().unwrap()` which is safe only after the `buf.len() >= 24` guard.
-4. **`Unknown` fallback required (BC-2.17.002, BC-2.17.004):** Both `classify_enip_command` and `classify_cip_service` must have a catch-all `_ => Unknown(value)` arm to remain total functions (VP-032 Sub-B and Sub-D).
-5. **CIP response-bit priority (BC-2.17.007 Invariant 1 / BC-2.17.004):** `classify_cip_service` MUST check `service & 0x80 != 0` FIRST and return `CipServiceClass::Response` for any value with the high bit set. Named request codes are then matched on the raw `service` byte (high bit is already clear in the 0x00–0x7F range). Do NOT match on `service & 0x7F` — that would incorrectly re-classify response bytes (e.g., 0x87) as named request services.
+4. **`Unknown` fallback required (BC-2.17.004 invariant 1):** `classify_enip_command` must have a catch-all `_ => EnipCommandClass::Unknown` arm to remain a total function (VP-032 Sub-B). The `Unknown` arm must be reachable and non-vacuous (BC-2.17.004 postcondition 4).
+5. **`EnipCommandClass` / `CipServiceClass` scope boundary:** This story (STORY-130) defines `EnipCommandClass` (10 variants, BC-2.17.004) and the Kani Sub-B/Sub-C harnesses. `CipServiceClass` (15 variants, BC-2.17.007) and the Kani Sub-D harness are in scope of STORY-132. Do NOT define `classify_cip_service` or `CipServiceClass` in this story.
 6. **Kani harness placement:** All harnesses MUST be inside `#[cfg(kani)] mod kani_proofs { use super::*; ... }`. Never use `#[cfg(test)]` for Kani harnesses — they are proof artifacts, not unit tests, and must not appear in `cargo test` output.
 7. **`sender_context` is `[u8; 8]` NOT `Vec<u8>` (ADR-010 Decision 1):** The 8-byte opaque context field is a fixed-size array for zero-allocation parsing.
 
@@ -322,4 +315,4 @@ For Kani: `cargo kani` with Kani ≥ 0.55 (current project version from existing
 
 ## Dependency Rationale
 
-This story has no SS-17 dependencies — it creates the foundational pure-core types (`EnipHeader`, `EnipCommand`, `CipServiceClass`) and parse functions that all subsequent ENIP stories depend on. It must be completed in Wave 58 before any Wave 59+ story can be implemented.
+This story has no SS-17 dependencies — it creates the foundational pure-core types (`EnipHeader`, `EnipCommandClass`) and parse functions (`parse_enip_header`, `classify_enip_command`, `is_valid_enip_frame`) that all subsequent ENIP stories depend on. It must be completed in Wave 58 before any Wave 59+ story can be implemented. `CipServiceClass` and `classify_cip_service` are defined in STORY-132.

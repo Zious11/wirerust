@@ -48,31 +48,44 @@ Discovery Pattern A), and CIP error-response bursts (T0888 Pattern B),
 
 ## Acceptance Criteria
 
-### AC-134-001: ListIdentity ENIP command emits T0846 finding
-**Traces to:** BC-2.17.010 postconditions 1–2
-- Given an ENIP frame with `classify_enip_command(header.command) == EnipCommand::ListIdentity` (0x0063)
+### AC-134-001: ListIdentity ENIP command emits T0846 finding (per-flow one-shot)
+**Traces to:** BC-2.17.010 postconditions 1–3; BC-2.17.010 invariant 1
+- Given an ENIP frame with `classify_enip_command(header.command)` returning `EnipCommandClass::ListIdentity` (0x0063)
 - When `EnipAnalyzer::process_pdu(flow_key, payload, timestamp, src_ip)` processes the frame
-- Then exactly ONE `Finding` is pushed to `all_findings`:
-  - `category: ThreatCategory::Reconnaissance`
-  - `verdict: Verdict::Likely`
-  - `confidence: Confidence::High`
-  - `summary: "ENIP ListIdentity broadcast: network-wide device enumeration (T0846)"`
-  - `mitre_techniques: vec!["T0846"]`
-  - `source_ip: Some(src_ip)`, `timestamp: Some(timestamp)`
-- `all_findings.len() < MAX_FINDINGS` must hold before emit; no emit if cap reached
+- Then `flow.command_counts.entry(0x0063).or_insert(0) += 1` on EVERY ListIdentity frame (BC-2.17.010 postcondition 1)
+- AND if `flow.list_identity_emitted == false` AND `all_findings.len() < MAX_FINDINGS`:
+  - Push exactly ONE `Finding` to `all_findings`:
+    - `category: ThreatCategory::Reconnaissance`
+    - `verdict: Verdict::Likely`
+    - `confidence: Confidence::High`
+    - `summary: "EtherNet/IP ListIdentity broadcast observed: network-wide device enumeration (T0846)"` (BC-2.17.010 postcondition 2 — EXACT string)
+    - `evidence`: one entry — `"ENIP command=0x0063 (ListIdentity) src={src_ip} session={session_handle}"` (BC-2.17.010 postcondition 2)
+    - `mitre_techniques: vec!["T0846"]`
+    - `source_ip: Some(src_ip)`, `timestamp: Some(timestamp)`
+  - Set `flow.list_identity_emitted = true` (per-flow one-shot guard — BC-2.17.010 postcondition 2 last line)
+- AND if `flow.list_identity_emitted == true`: `command_counts` updated; NO additional finding (BC-2.17.010 postcondition 3)
+- **Per-flow one-shot guard (BC-2.17.010 invariant 1):** A scan campaign sending 5 ListIdentity frames on the SAME flow emits exactly 1 T0846 finding (first frame) and 0 additional findings for frames 2–5; `command_counts[0x0063]` = 5. This must pass holdout HS-114 Case B.
+- Multi-frame one-shot test: Send 5 ListIdentity frames on same flow → assert exactly 1 finding total, `command_counts[0x0063] == 5`, `list_identity_emitted == true`
 - **Test:** `tests/enip_analyzer_tests.rs::recon::test_list_identity_emits_t0846`
+- **Test:** `tests/enip_analyzer_tests.rs::recon::test_list_identity_one_shot_guard_multi_frame`
 - **Test:** `tests/enip_analyzer_tests.rs::recon::test_list_identity_respects_max_findings`
 
 ### AC-134-002: CIP error responses accumulate per-status in error_counts_in_window
-**Traces to:** BC-2.17.008 postconditions 1–3
-- Given a CIP response (service byte `& 0x80 != 0`) with `general_status != 0x00`
-- When the analyzer processes the CPF+CIP response
-- Then `flow.error_counts_in_window[general_status] += 1` (HashMap keyed by status code u8)
-- The accumulation window is 10 seconds; on window expiry `error_counts_in_window` is cleared and `error_rate_emitted` reset to false
-- CIP success responses (`general_status == 0x00`) do NOT increment error_counts_in_window
+**Traces to:** BC-2.17.008 postconditions 1–5; BC-2.17.008 invariants 1–4
+- **Scope gate precondition (BC-2.17.008 precondition 2):** HARD scope gate — only applies when `cpf_item.type_id == 0x00B2` (Unconnected Data Item). If `type_id != 0x00B2`, skip extraction entirely; no counter update
+- **Precondition (BC-2.17.008 precondition 3):** `cip_item_data.len() >= 4` required before indexing byte 2
+- Given the above preconditions hold and `classify_cip_service(service)` returns `CipServiceClass::Response` (BC-2.17.008 precondition 1)
+- When the analyzer processes the CIP response
+- Then `general_status = cip_item_data[2]` (BC-2.17.008 postcondition 1 — third byte of CIP response: byte 0 = service|0x80, byte 1 = reserved 0x00, byte 2 = general_status, byte 3 = additional_status_size)
+- If `general_status != 0x00` (error response): `flow.error_counts_in_window.entry(general_status).or_insert(0) += 1`; if `flow.error_window_start_ts == 0` (first error) seed `flow.error_window_start_ts = now_ts` (BC-2.17.008 postcondition 2)
+- If `general_status == 0x00` (success): no error counter update (BC-2.17.008 postcondition 3)
+- Window management: if `now_ts.wrapping_sub(flow.error_window_start_ts) > 10` (window expired): `flow.error_counts_in_window.clear()`, `flow.error_window_start_ts = now_ts`, `flow.error_rate_emitted = false` (BC-2.17.008 postcondition 4)
+- **Field names (BC-2.17.008 invariants):** `error_counts_in_window: HashMap<u8, u64>`, `error_window_start_ts: u32`, `error_rate_emitted: bool`; NOT `error_window_start` or any other alias
 - **Test:** `tests/enip_analyzer_tests.rs::recon::test_error_accumulation_increments_per_status`
 - **Test:** `tests/enip_analyzer_tests.rs::recon::test_error_accumulation_ignores_success`
 - **Test:** `tests/enip_analyzer_tests.rs::recon::test_error_window_resets_after_10s`
+- **Test:** `tests/enip_analyzer_tests.rs::recon::test_error_accumulation_skips_connected_item`
+- **Test:** `tests/enip_analyzer_tests.rs::recon::test_error_accumulation_requires_4_bytes`
 
 ### AC-134-003: T0888 Pattern A — GetAttribute to Identity Object (Class 0x01) emits finding
 **Traces to:** BC-2.17.014 postconditions Pattern A
@@ -124,10 +137,11 @@ Discovery Pattern A), and CIP error-response bursts (T0888 Pattern B),
 
 | Component | Location | Role |
 |-----------|----------|------|
-| `EnipFlowState.error_counts_in_window` | `src/analyzer/enip.rs` | `HashMap<u8, u32>` — per-status CIP error counts |
+| `EnipFlowState.error_counts_in_window` | `src/analyzer/enip.rs` | `HashMap<u8, u64>` — per-status CIP error counts (BC-2.17.008) |
 | `EnipFlowState.error_rate_emitted` | `src/analyzer/enip.rs` | `bool` — one-shot guard for T0888 Pattern B |
 | `EnipFlowState.is_non_enip` | `src/analyzer/enip.rs` | `bool` — suppress all ENIP detections for non-ENIP flows |
-| `EnipFlowState.error_window_start` | `src/analyzer/enip.rs` | `Option<Timestamp>` — 10s window start |
+| `EnipFlowState.error_window_start_ts` | `src/analyzer/enip.rs` | `u32` — 10s error window start timestamp (BC-2.17.008 postcondition 2; canonical field name per BC) |
+| `EnipFlowState.list_identity_emitted` | `src/analyzer/enip.rs` | `bool` — per-flow one-shot guard for T0846 (BC-2.17.010 invariant 1) |
 | `EnipAnalyzer::process_pdu` | `src/analyzer/enip.rs` | Main effectful dispatch; calls all detection logic |
 | T0846 detection | `src/analyzer/enip.rs` | `if command == ListIdentity { ... }` |
 | T0888 Pattern A | `src/analyzer/enip.rs` | `if GetAttribute && Class(0x01) in path { ... }` |
@@ -147,8 +161,9 @@ Discovery Pattern A), and CIP error-response bursts (T0888 Pattern B),
 
 | ID | Description | Expected Behavior |
 |----|-------------|-------------------|
-| EC-001 | ListIdentity frame | T0846 finding emitted |
-| EC-002 | ListIdentity with `all_findings.len() == MAX_FINDINGS` | No finding (cap guard) |
+| EC-001 | Single ListIdentity frame on a new flow | T0846 finding emitted; `command_counts[0x0063]=1`; `list_identity_emitted=true` (BC-2.17.010 EC-001) |
+| EC-002 | Multiple ListIdentity frames in sequence (same flow) | First frame: T0846 finding + guard set. Subsequent frames: `command_counts[0x0063]` incremented; NO additional findings (one-shot guard, BC-2.17.010 EC-002) |
+| EC-002b | ListIdentity with `all_findings.len() == MAX_FINDINGS` (guard false) | No finding pushed; command_counts still updated; guard remains false (BC-2.17.010 EC-003) |
 | EC-003 | GetAttributeSingle to Identity Object (0x01) via 0x00B2 item | T0888 Pattern A finding |
 | EC-004 | GetAttributeSingle to Assembly Object (0x04) via 0x00B2 item | No T0888 finding |
 | EC-005 | GetAttributeSingle to Identity Object via 0x00B1 item | No T0888 Pattern A (F-P9-001 gate) |
@@ -162,9 +177,9 @@ Discovery Pattern A), and CIP error-response bursts (T0888 Pattern B),
 
 ## Tasks
 
-- [ ] Add to `EnipFlowState` in `src/analyzer/enip.rs`: `error_counts_in_window: HashMap<u8, u32>`, `error_rate_emitted: bool`, `is_non_enip: bool`, `error_window_start: Option<u64>` (timestamp as millis or similar)
-- [ ] In `EnipAnalyzer::process_pdu`: after `classify_enip_command`, if `command == EnipCommand::ListIdentity && !flow.is_non_enip && all_findings.len() < MAX_FINDINGS` → push T0846 finding
-- [ ] In `process_pdu`, for CIP response frames with `general_status != 0x00`: check/reset 10s window; `flow.error_counts_in_window.entry(status).and_modify(|c| *c += 1).or_insert(1)`; compute `total = values().sum()`; if `total > threshold && !flow.error_rate_emitted` → push T0888 Pattern B; set guard
+- [ ] Add to `EnipFlowState` in `src/analyzer/enip.rs`: `error_counts_in_window: HashMap<u8, u64>`, `error_rate_emitted: bool`, `is_non_enip: bool`, `error_window_start_ts: u32`, `list_identity_emitted: bool` (use exact field names per BC-2.17.008/010)
+- [ ] In `EnipAnalyzer::process_pdu`: after `classify_enip_command`, always `flow.command_counts.entry(0x0063).or_insert(0) += 1`; THEN if `!flow.list_identity_emitted && !flow.is_non_enip && all_findings.len() < MAX_FINDINGS` → push T0846 finding with exact summary "EtherNet/IP ListIdentity broadcast observed: network-wide device enumeration (T0846)" and evidence "ENIP command=0x0063 (ListIdentity) src={src_ip} session={session_handle}"; set `flow.list_identity_emitted = true`
+- [ ] In `process_pdu`, for CIP response frames (only `type_id == 0x00B2` and `cip_item_data.len() >= 4`): extract `general_status = cip_item_data[2]`; if `general_status != 0x00`: check/reset 10s window via `flow.error_window_start_ts`; `flow.error_counts_in_window.entry(general_status).or_insert(0) += 1`; compute `total: u64 = flow.error_counts_in_window.values().sum()`; if `total > threshold && !flow.error_rate_emitted` → push T0888 Pattern B; set guard `flow.error_rate_emitted = true`
 - [ ] In `process_pdu`, for CIP request frames: if GetAttribute service class && `CipPathSegment::Class(0x01)` in path segments && `type_id == 0x00B2` && `!flow.is_non_enip` → push T0888 Pattern A
 - [ ] Add `mod recon { ... }` test wrapper to `tests/enip_analyzer_tests.rs` with all AC-134 tests
 - [ ] Construct test ENIP+CPF+CIP byte sequences for each test vector
@@ -178,10 +193,13 @@ Discovery Pattern A), and CIP error-response bursts (T0888 Pattern B),
 
 ```
 recon::test_list_identity_emits_t0846
+recon::test_list_identity_one_shot_guard_multi_frame
 recon::test_list_identity_respects_max_findings
 recon::test_error_accumulation_increments_per_status
 recon::test_error_accumulation_ignores_success
 recon::test_error_window_resets_after_10s
+recon::test_error_accumulation_skips_connected_item
+recon::test_error_accumulation_requires_4_bytes
 recon::test_t0888_pattern_a_identity_read
 recon::test_t0888_pattern_a_non_identity_no_finding
 recon::test_t0888_pattern_a_connected_item_no_finding
@@ -209,7 +227,7 @@ From ADR-010 Decision 6 (detection ordering) and BC-2.17.010/008/014:
 3. **T0888 Pattern B strict `>` semantics (BC-2.17.014 Invariant 3):** `total_error_count > threshold` — NOT `>=`. With default threshold=5, exactly 5 errors do NOT fire; 6 fires. Use `>` everywhere, not `>=`.
 4. **F-P9-001 gate (BC-2.17.014 precondition 4):** T0888 Pattern A is only triggered for `type_id == 0x00B2` items. The check is `if item.type_id == 0x00B2 { parse_cip_header(...); /* detection */ }`. Connected items (0x00B1) are skipped without firing any detection.
 5. **Error window is per-flow (BC-2.17.008):** Each `EnipFlowState` has its own `error_counts_in_window` and `error_window_start`. Window expiry is checked per-PDU against the 10s threshold relative to `error_window_start`.
-6. **T0846 is per-occurrence, not windowed (BC-2.17.010):** Every ListIdentity command frame emits a finding (subject to MAX_FINDINGS). There is no one-shot guard for T0846.
+6. **T0846 is per-flow one-shot, not per-occurrence (BC-2.17.010 invariant 1):** The first ListIdentity frame per flow emits a T0846 finding and sets `flow.list_identity_emitted = true`. Subsequent ListIdentity frames on the SAME flow increment `command_counts[0x0063]` but emit NO additional findings. A new flow from the same source resets the guard. This prevents a single scan campaign from emitting up to MAX_FINDINGS near-identical T0846 findings. Implementation MUST check `!flow.list_identity_emitted` before emitting; MUST set `flow.list_identity_emitted = true` after emitting. This is required to pass holdout HS-114 Case B.
 
 ## Library & Framework Requirements
 

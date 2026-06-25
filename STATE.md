@@ -1,7 +1,7 @@
 ---
 pipeline: FEATURE-MODE
 phase: F3
-phase_status: "F3 COMPLETE + CONSISTENCY FIXES APPLIED: stories STORY-130..138 (9, E-20, waves 58-61, 66 pts) + holdout HS-110..122 (13, all must-pass; HS-110 canonical-frame LE). Consistency audit: 2C/1M/1L REMEDIATED (STORY-130 CipServiceClass 15 variants, STORY-135 T0858=Stop(0x07), STORY-133 subsystems, STORY-132 path). MEDIUM-1 (input-hash tbd) DEFERRED to pre-F4 gate. Adversarial story convergence starting."
+phase_status: "F3 COMPLETE. Adv-story Pass 1: FAIL (4C/6H/5M/3obs) — REMEDIATED across 6 stories (STORY-130/134/135/136/137/138): AC→BC fidelity, T0846 one-shot, T0814 windowed, STORY-138 re-anchored + out-of-scope deleted, finding-fields transcribed. Pass 2 RUNNING. Convergence counter: 0/3."
 product: wirerust
 mode: feature-mode
 timestamp: 2026-06-24T18:30:00Z
@@ -70,7 +70,7 @@ convergence_trajectory: "Detail: cycles/v0.1.0-greenfield-spec/convergence-traje
 
 ## Status
 
-**PIPELINE FEATURE-MODE. Cycle `feature-enip-v0.11.0` OPEN. F1 PASSED. F2 COMPLETE (human gate D-230). F3 COMPLETE + CONSISTENCY FIXES APPLIED: 9 stories STORY-130..138 (E-20, waves 58-61, 66 pts; all 26 BC-2.17.001..026 covered) + 13 holdout scenarios HS-110..122 (all must-pass; HS-110 = canonical-frame LE per DF-CANONICAL-FRAME-HOLDOUT-001; 12 pcap-fixture obligations for F4). STORY-INDEX v2.8: 91 stories / 61 waves / 592 pts. Story consistency audit: 2 CRITICAL + MEDIUM-2 + LOW-1 REMEDIATED (STORY-130 CipServiceClass 15 variants per BC-2.17.007; STORY-135 T0858=CIP Stop 0x07 per BC-2.17.011; STORY-133 subsystems [SS-10,SS-17]; STORY-132 path double-slash). MEDIUM-1 (input-hash: tbd) DEFERRED to pre-F4 eval gate. Adversarial story convergence starting. ENGINE-PROPAGATION-GREP-GATE-001 in OPEN ITEMS.**
+**PIPELINE FEATURE-MODE. Cycle `feature-enip-v0.11.0` OPEN. F1 PASSED. F2 COMPLETE (human gate D-230). F3 COMPLETE + CONSISTENCY FIXES APPLIED: 9 stories STORY-130..138 (E-20, waves 58-61, 66 pts; all 26 BC-2.17.001..026 covered) + 13 holdout scenarios HS-110..122 (all must-pass). F3 ADV-STORY PASS 1: FAIL (4C/6H/5M/3obs) — REMEDIATED. Root cause: ACs from assumption, not BC postconditions. AC→BC fidelity restored across 6 stories (T0846 one-shot, T0814 windowed, STORY-138 re-anchored + out-of-scope deleted, finding-fields transcribed). Pass 2 RUNNING. Convergence counter: 0/3. ENGINE-PROPAGATION-GREP-GATE-001 in OPEN ITEMS.**
 
 Latest release: v0.10.0 (main `0cbe922`, tag `v0.10.0`, 4 binaries, run 28109367603). develop=`ff4b82b`. stories_delivered=78. Target: v0.11.0 (SS-17 EtherNet/IP + CIP TCP/44818). GitHub issue #316.
 
@@ -156,7 +156,7 @@ All GitHub-issue creation remains DF-VALIDATION-001-gated.
 | Maintenance maint-2026-06-22 | COMPLETE 2026-06-23 | 38 observations; 0 blocking; F-MAJ-001 fixed (a6efb23); PR #304 (e458ce2) + PR #305 (e4abbe2). |
 | Feature mitre-json-names (issue #64) + v0.9.4 | RELEASED + CLOSED 2026-06-23 (D-217) | F1-F7 CONVERGED. 5 BCs bumped. BC-INDEX v1.71 (303 BCs). PRs #306/307/308/309. tag v0.9.4 96b49e8. 4 binaries. stories_delivered=78. |
 | Fix cycle fix-pc-013-014-015 + v0.10.0 | **CONVERGED + RELEASED + CLOSED 2026-06-24 (D-226)** | All 3 fixes: PC-015 (#310), PC-013 (#312 + spec D-223), PC-014 (#313 breaking rename + CHANGELOG). Evidence resync #314. v0.10.0: PR #315 → main 0cbe922, tag v0.10.0, 4 binaries, run 28109367603. develop back-merged ff4b82b. BC-INDEX v1.73 (305 BCs / 304 active). |
-| Feature EtherNet/IP + CIP (issue #316) — v0.11.0 | **F3 COMPLETE + FIXES** | F3: stories STORY-130..138 (9, E-20, 66 pts) + holdout HS-110..122 (13). Consistency audit: 2C/1M/1L REMEDIATED; MEDIUM-1 (input-hash) deferred to pre-F4 gate. Adversarial story convergence starting. Detail: cycles/feature-enip-v0.11.0/ |
+| Feature EtherNet/IP + CIP (issue #316) — v0.11.0 | **F3 COMPLETE — ADV-STORY PASS 1 REMEDIATED — PASS 2 RUNNING** | F3: stories STORY-130..138 (9, E-20, 66 pts) + holdout HS-110..122 (13). Consistency audit: 2C/1M/1L REMEDIATED. Adv-story Pass 1: FAIL (4C/6H/5M/3obs) → REMEDIATED (AC→BC fidelity, T0846/T0814, STORY-138 re-anchor). Pass 2 RUNNING. Convergence counter: 0/3. Detail: cycles/feature-enip-v0.11.0/ |
 
 ## Decisions Log
 

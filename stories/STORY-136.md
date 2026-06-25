@@ -41,36 +41,44 @@ down — even though these operations are not currently mapped to MITRE ICS tech
 
 ## Acceptance Criteria
 
-### AC-136-001: ForwardOpen request emits an informational finding (no MITRE technique)
-**Traces to:** BC-2.17.015 postconditions 1–2
-- Given a CIP request with `classify_cip_service(service)` returning `CipServiceClass::ForwardOpen` (service byte `0x54`)
+### AC-136-001: ForwardOpen and LargeForwardOpen requests each emit one anomaly finding (no MITRE technique)
+**Traces to:** BC-2.17.015 postconditions 1–3, invariant 5
+- Given a CIP request with `classify_cip_service(service)` returning `CipServiceClass::ForwardOpen` (service byte `0x54`) **or** `CipServiceClass::LargeForwardOpen` (service byte `0x5B`)
 - AND `type_id == 0x00B2`
+- AND `cip_header.service & 0x80 == 0` (request, not response)
 - AND `flow.is_non_enip == false`
 - AND `all_findings.len() < MAX_FINDINGS`
 - When the analyzer processes the frame
 - Then ONE `Finding`:
-  - `category: ThreatCategory::Operational` (or `ThreatCategory::Informational` — whichever is correct for the project's existing ThreatCategory enum)
-  - `verdict: Verdict::Benign` (connection establishment is normal behavior; flagged for visibility)
-  - `confidence: Confidence::High`
-  - `summary: "CIP ForwardOpen: implicit I/O connection established src={src_ip}"`
-  - `mitre_techniques: vec![]` (no MITRE technique — explicit design decision per ADR-010 Decision 7)
+  - `category: ThreatCategory::Anomaly`
+  - `verdict: Verdict::Possible`
+  - `confidence: Confidence::Low`
+  - `summary: "CIP ForwardOpen connection establishment observed from src={src_ip}: connection lifecycle anomaly"`
+  - `mitre_techniques: vec![]` (empty — no MITRE ICS technique for CIP connection establishment anomaly per ADR-010 Decision 7)
   - `source_ip: Some(src_ip)`, `timestamp: Some(timestamp)`
-- ForwardOpen fires per-occurrence
+- ForwardOpen and LargeForwardOpen each fire per-occurrence (no one-shot guard per BC-2.17.015 Postcondition 3)
+- Connection serial number is recorded as `0` in v0.11.0 (deferred per BC-2.17.015 Postcondition 2 / ADR-010 Decision 8)
 - **Test:** `tests/enip_analyzer_tests.rs::connection_lifecycle::test_forward_open_emits_finding`
 - **Test:** `tests/enip_analyzer_tests.rs::connection_lifecycle::test_forward_open_no_mitre_technique`
 - **Test:** `tests/enip_analyzer_tests.rs::connection_lifecycle::test_forward_open_connected_item_no_finding`
+- **Test:** `tests/enip_analyzer_tests.rs::connection_lifecycle::test_large_forward_open_emits_finding`
 
-### AC-136-002: ForwardClose request emits an informational finding (no MITRE technique)
-**Traces to:** BC-2.17.015 postconditions 3–4
+### AC-136-002: ForwardClose request emits one anomaly finding (no MITRE technique)
+**Traces to:** BC-2.17.015 postconditions 4–5
 - Given a CIP request with `classify_cip_service(service)` returning `CipServiceClass::ForwardClose` (service byte `0x4E`)
 - AND `type_id == 0x00B2`
+- AND `cip_header.service & 0x80 == 0` (request, not response)
 - AND `flow.is_non_enip == false`
 - AND `all_findings.len() < MAX_FINDINGS`
 - When the analyzer processes the frame
 - Then ONE `Finding`:
-  - Same structure as ForwardOpen finding but with summary: `"CIP ForwardClose: implicit I/O connection torn down src={src_ip}"`
-  - `mitre_techniques: vec![]`
-- ForwardClose fires per-occurrence
+  - `category: ThreatCategory::Anomaly`
+  - `verdict: Verdict::Possible`
+  - `confidence: Confidence::Low`
+  - `summary: "CIP ForwardClose connection teardown observed from src={src_ip}: connection lifecycle closed"`
+  - `mitre_techniques: vec![]` (empty — no MITRE ICS technique per ADR-010 Decision 7)
+  - `source_ip: Some(src_ip)`, `timestamp: Some(timestamp)`
+- ForwardClose fires per-occurrence (no one-shot guard per BC-2.17.015 Postcondition 5)
 - **Test:** `tests/enip_analyzer_tests.rs::connection_lifecycle::test_forward_close_emits_finding`
 - **Test:** `tests/enip_analyzer_tests.rs::connection_lifecycle::test_forward_close_no_mitre_technique`
 
@@ -97,35 +105,44 @@ down — even though these operations are not currently mapped to MITRE ICS tech
 
 | Component | Location | Role |
 |-----------|----------|------|
-| `CipServiceClass::ForwardOpen` | `src/analyzer/enip.rs` | From STORY-130; service 0x54 & 0x7F |
-| `CipServiceClass::ForwardClose` | `src/analyzer/enip.rs` | From STORY-130; service 0x4E & 0x7F |
-| `EnipFlowState.open_connection_count` | `src/analyzer/enip.rs` | `u32` — ForwardOpen request count |
+| `CipServiceClass::ForwardOpen` | `src/analyzer/enip.rs` | From STORY-130; service 0x54 |
+| `CipServiceClass::LargeForwardOpen` | `src/analyzer/enip.rs` | From STORY-130; service 0x5B — treated identically to ForwardOpen per BC-2.17.015 Invariant 5 |
+| `CipServiceClass::ForwardClose` | `src/analyzer/enip.rs` | From STORY-130; service 0x4E |
+| `EnipFlowState.open_connection_count` | `src/analyzer/enip.rs` | `u32` — ForwardOpen + LargeForwardOpen request count |
 | `EnipFlowState.close_connection_count` | `src/analyzer/enip.rs` | `u32` — ForwardClose request count |
-| ForwardOpen/Close detection | `src/analyzer/enip.rs` | `if ForwardOpen/Close && 0x00B2 && !is_non_enip → emit + increment count` |
+| ForwardOpen/LargeForwardOpen/Close detection | `src/analyzer/enip.rs` | `if matches!(service_class, ForwardOpen \| LargeForwardOpen \| ForwardClose) && 0x00B2 && !is_non_enip → emit Anomaly/Possible/Low + increment count` |
 | Test mod | `tests/enip_analyzer_tests.rs` | `mod connection_lifecycle { ... }` |
 
-**`mitre_techniques: vec![]` is intentional:** ADR-010 Decision 7 explicitly places ForwardOpen/ForwardClose in a "no MITRE technique gap" category for v0.11.0. These events are detected and logged as operational/informational findings, but no MITRE ICS technique is currently mapped to CIP connection management in the MITRE ICS ATT&CK framework at the level of specificity needed. The `vec![]` is a deliberate design choice, not an omission.
+**`mitre_techniques: vec![]` is intentional (BC-2.17.015 Invariant 1):** ATT&CK for ICS v19.1 has no technique specifically for CIP connection establishment anomaly. The gap is documented in ADR-010 Decision 7. The `vec![]` is a deliberate design choice, not an omission. Findings carry `category: ThreatCategory::Anomaly`, `verdict: Verdict::Possible`, `confidence: Confidence::Low` per BC-2.17.015 Postconditions 1 and 4.
+
+**LargeForwardOpen (0x5B) treated identically to ForwardOpen (0x54):** Per BC-2.17.015 Invariant 5, LargeForwardOpen is detected with the same finding fields and the same Anomaly/Possible/Low classification. Full payload parse is deferred (ADR-010 Decision 8). The `open_connection_count` increment covers both ForwardOpen and LargeForwardOpen requests.
 
 ## Edge Cases
 
 | ID | Description | Expected Behavior |
 |----|-------------|-------------------|
-| EC-001 | ForwardOpen request (0x54) via 0x00B2 | Finding emitted; `open_connection_count += 1` |
-| EC-002 | ForwardClose request (0x4E) via 0x00B2 | Finding emitted; `close_connection_count += 1` |
-| EC-003 | ForwardOpen response (0xD4) | No finding |
-| EC-004 | ForwardClose response (0xCE) | No finding |
-| EC-005 | ForwardOpen via 0x00B1 item | No finding (F-P9-001) |
-| EC-006 | `is_non_enip=true`; ForwardOpen | No finding |
-| EC-007 | `all_findings` at MAX_FINDINGS; ForwardOpen | No finding (cap guard); count still increments |
-| EC-008 | 5 consecutive ForwardOpen requests | 5 findings (per-occurrence); `open_connection_count = 5` |
+| EC-001 | ForwardOpen request (0x54) via 0x00B2 | Anomaly/Possible/Low finding emitted; `open_connection_count += 1` |
+| EC-002 | LargeForwardOpen request (0x5B) via 0x00B2 | Anomaly/Possible/Low finding emitted; `open_connection_count += 1` (same as ForwardOpen per BC-2.17.015 Inv 5) |
+| EC-003 | ForwardClose request (0x4E) via 0x00B2 | Anomaly/Possible/Low finding emitted; `close_connection_count += 1` |
+| EC-004 | ForwardOpen response (0xD4) | No finding (response bit set; `0xD4 & 0x80 != 0`) |
+| EC-005 | ForwardClose response (0xCE) | No finding |
+| EC-006 | ForwardOpen via 0x00B1 item | No finding (F-P9-001 — 0x00B1 deferral; but note 0x00B2 is CIP protocol requirement for ForwardOpen, so this is double-guarded) |
+| EC-007 | `is_non_enip=true`; ForwardOpen | No finding |
+| EC-008 | `all_findings` at MAX_FINDINGS; ForwardOpen | No finding (cap guard); `open_connection_count` still increments |
+| EC-009 | 5 consecutive ForwardOpen requests | 5 findings (per-occurrence per BC-2.17.015 Post 3); `open_connection_count = 5` |
+| EC-010 | Connection serial number in ForwardOpen payload | Recorded as 0 in v0.11.0 — full payload parse deferred per ADR-010 Decision 8 |
 
 ## Tasks
 
 - [ ] Add to `EnipFlowState`: `open_connection_count: u32`, `close_connection_count: u32`
-- [ ] In `process_pdu`, for `CipServiceClass::ForwardOpen` and `::ForwardClose` requests via 0x00B2 and `!is_non_enip`:
-  - Emit finding with `mitre_techniques: vec![]`
-  - Increment `open_connection_count` or `close_connection_count` (regardless of MAX_FINDINGS cap on finding)
+- [ ] In `process_pdu`, for `matches!(service_class, CipServiceClass::ForwardOpen | CipServiceClass::LargeForwardOpen)` requests via 0x00B2 and `!is_non_enip`:
+  - Emit Anomaly/Possible/Low finding with `summary: "CIP ForwardOpen connection establishment observed from src={src_ip}: connection lifecycle anomaly"` and `mitre_techniques: vec![]`
+  - Increment `open_connection_count` (regardless of MAX_FINDINGS cap on finding)
+- [ ] In `process_pdu`, for `CipServiceClass::ForwardClose` (0x4E) requests via 0x00B2 and `!is_non_enip`:
+  - Emit Anomaly/Possible/Low finding with `summary: "CIP ForwardClose connection teardown observed from src={src_ip}: connection lifecycle closed"` and `mitre_techniques: vec![]`
+  - Increment `close_connection_count` (regardless of MAX_FINDINGS cap on finding)
 - [ ] Add `mod connection_lifecycle { ... }` test wrapper to `tests/enip_analyzer_tests.rs`
+- [ ] Add test `test_large_forward_open_emits_finding` in `mod connection_lifecycle`
 - [ ] Run `cargo test enip` — all connection_lifecycle tests pass
 - [ ] Run `cargo clippy --all-targets -- -D warnings` — zero warnings
 
@@ -138,6 +155,7 @@ down — even though these operations are not currently mapped to MITRE ICS tech
 connection_lifecycle::test_forward_open_emits_finding
 connection_lifecycle::test_forward_open_no_mitre_technique
 connection_lifecycle::test_forward_open_connected_item_no_finding
+connection_lifecycle::test_large_forward_open_emits_finding
 connection_lifecycle::test_forward_close_emits_finding
 connection_lifecycle::test_forward_close_no_mitre_technique
 connection_lifecycle::test_forward_open_response_no_finding
@@ -155,10 +173,13 @@ connection_lifecycle::test_connection_counts_tracked
 
 ## Architecture Compliance Rules
 
-1. **`mitre_techniques: vec![]` is explicitly correct (ADR-010 Decision 7):** Do not add T0858 or any other technique to ForwardOpen/Close findings. The empty vec is the spec, not a placeholder.
-2. **Count increments regardless of MAX_FINDINGS cap:** The `open_connection_count` and `close_connection_count` must increment even if `all_findings.len() >= MAX_FINDINGS` prevents finding emission. The session summary (STORY-138) needs accurate counts.
-3. **F-P9-001 gate (0x00B2 only):** Same as all other CIP-layer detections — only 0x00B2 items trigger ForwardOpen/Close detection.
-4. **Request-only detection:** Only frames with `service & 0x80 == 0` are detected. Responses (0xD4, 0xCE) are silently passed through.
+1. **Finding fields are Anomaly/Possible/Low (BC-2.17.015 Postconditions 1, 4):** `category: ThreatCategory::Anomaly`, `verdict: Verdict::Possible`, `confidence: Confidence::Low`. NOT Operational/Informational/Benign/High. Do not alter these fields.
+2. **`mitre_techniques: vec![]` is explicitly correct (ADR-010 Decision 7 / BC-2.17.015 Invariant 1):** Do not add T0858, T1692.001, or any other technique to ForwardOpen/LargeForwardOpen/Close findings. The empty vec is the spec, not a placeholder.
+3. **LargeForwardOpen (0x5B) is NOT omitted (BC-2.17.015 Invariant 5):** `CipServiceClass::LargeForwardOpen` (0x5B) is detected identically to ForwardOpen (0x54). Both increment `open_connection_count`. The match arm MUST include all three: `ForwardOpen | LargeForwardOpen | ForwardClose`.
+4. **Count increments regardless of MAX_FINDINGS cap:** The `open_connection_count` and `close_connection_count` must increment even if `all_findings.len() >= MAX_FINDINGS` prevents finding emission. The session summary (STORY-138) needs accurate counts.
+5. **F-P9-001 gate (0x00B2 only):** Only 0x00B2 items trigger ForwardOpen/LargeForwardOpen/Close detection. This is a CIP protocol requirement — these are unconnected CIP messages and must ride in 0x00B2 items.
+6. **Request-only detection:** Only frames with `service & 0x80 == 0` are detected. Responses (0xD4, 0xCE) are silently passed through.
+7. **Connection serial number = 0 in v0.11.0 (BC-2.17.015 Postcondition 2 / ADR-010 Decision 8):** Do not attempt to extract the serial from the payload. Record as 0 in all findings.
 
 ## Library & Framework Requirements
 

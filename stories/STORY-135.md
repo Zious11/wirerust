@@ -72,19 +72,21 @@ via EtherNet/IP are detected and reported with appropriate MITRE ICS technique t
 - **Test:** `tests/enip_analyzer_tests.rs::command_detections::test_t0858_set_attribute_no_t0858`
 
 ### AC-135-002: CIP Reset service (0x05) emits T0816 (Device Restart/Shutdown)
-**Traces to:** BC-2.17.013 postconditions 1–2
-- Given a CIP request with `service & 0x7F == 0x05` (Reset service)
+**Traces to:** BC-2.17.013 postconditions 1–2; BC-2.17.007 invariant 1
+- Given a CIP request where `classify_cip_service(cip_header.service)` returns `CipServiceClass::Reset` (BC-2.17.013 precondition 1)
+  - NOTE: the response-bit check (`service & 0x80 != 0`) is handled INSIDE `classify_cip_service` per BC-2.17.007 invariant 1 — do NOT use the raw predicate `service & 0x7F == 0x05` in detection logic; always route through `classify_cip_service`
 - AND `type_id == 0x00B2`
 - AND `flow.is_non_enip == false`
 - AND `all_findings.len() < MAX_FINDINGS`
 - When the analyzer processes the frame
-- Then ONE `Finding`:
-  - `category: ThreatCategory::InhibitResponseFunction` (or equivalent ICS impair category)
-  - `verdict: Verdict::Confirmed`
+- Then ONE `Finding` (BC-2.17.013 postcondition 1):
+  - `category: ThreatCategory::Execution` (BC-2.17.013 postcondition 1 — EXACT value; NOT InhibitResponseFunction)
+  - `verdict: Verdict::Likely` (BC-2.17.013 postcondition 1)
   - `confidence: Confidence::High`
-  - `summary: "CIP Reset service (0x05): device restart/shutdown command (T0816)"`
+  - `summary: "CIP Reset service observed: adversary-triggered device restart (T0816)"` (BC-2.17.013 postcondition 1 — EXACT string)
+  - `evidence`: one entry — `"CIP service=0x05 (Reset) from src={src_ip} ENIP cmd={enip_cmd:#06X} session={session_handle}"` (BC-2.17.013 postcondition 1)
   - `mitre_techniques: vec!["T0816"]`
-- T0816 fires per-occurrence
+- T0816 fires per-occurrence (no one-shot guard — BC-2.17.013 postcondition 2)
 - **Test:** `tests/enip_analyzer_tests.rs::command_detections::test_t0816_reset_service`
 - **Test:** `tests/enip_analyzer_tests.rs::command_detections::test_t0816_response_no_finding`
 - **Test:** `tests/enip_analyzer_tests.rs::command_detections::test_t0816_connected_item_no_finding`
@@ -95,10 +97,11 @@ via EtherNet/IP are detected and reported with appropriate MITRE ICS technique t
 - When `flow.write_count_in_window` strictly exceeds `self.enip_write_burst_threshold` (default 50) within 1 second
 - AND `flow.write_burst_emitted == false`
 - Then ONE `Finding`:
-  - `category: ThreatCategory::ImpairProcessControl`
+  - `category: ThreatCategory::Execution` (BC-2.17.012 postcondition 5 — EXACT value; NOT ImpairProcessControl)
   - `verdict: Verdict::Likely`
   - `confidence: Confidence::Medium`
-  - `summary: "CIP write-attribute burst: {N} SetAttribute requests in 1s — possible mass parameter modification (T0836)"`
+  - `summary: "CIP write-class service burst: {count} SetAttribute operations in 1s window (threshold {threshold}) — possible parameter modification attack (T0836)"` (BC-2.17.012 postcondition 5 — EXACT format)
+  - `evidence`: one entry — `"CIP service=0x{service:02X} ({service_name}) src={src_ip} ENIP session={session}"` (BC-2.17.012 postcondition 5)
   - `mitre_techniques: vec!["T0836"]`
   - `flow.write_burst_emitted = true` (one-shot guard per window)
 - Window is 1 second (NOT 10 seconds like error burst); window tracks `write_window_start`
@@ -129,7 +132,7 @@ via EtherNet/IP are detected and reported with appropriate MITRE ICS technique t
 | `EnipFlowState.write_burst_emitted` | `src/analyzer/enip.rs` | `bool` — one-shot guard for T0836 |
 | `EnipFlowState.write_window_start` | `src/analyzer/enip.rs` | `Option<u64>` — 1s window start (millis) |
 | T0858 detection | `src/analyzer/enip.rs` | `if CipServiceClass::Stop (0x07) && 0x00B2 && !is_non_enip → emit T0858` |
-| T0816 detection | `src/analyzer/enip.rs` | `if service & 0x7F == 0x05 && 0x00B2 && !is_non_enip → emit T0816` |
+| T0816 detection | `src/analyzer/enip.rs` | `if classify_cip_service(service) == CipServiceClass::Reset && type_id == 0x00B2 && !is_non_enip → emit T0816` |
 | T0836 detection | `src/analyzer/enip.rs` | Check/reset 1s window; increment count; if count > threshold && !guard → emit T0836` |
 | Test mod | `tests/enip_analyzer_tests.rs` | `mod command_detections { ... }` |
 
@@ -161,7 +164,7 @@ via EtherNet/IP are detected and reported with appropriate MITRE ICS technique t
   - Emit T0858 finding (per-occurrence, guarded by MAX_FINDINGS); category=Execution, verdict=Likely, confidence=High
 - [ ] In `process_pdu`, for SetAttribute (SetAttributeSingle 0x10, SetAttributesAll 0x02, SetAttributeList 0x04) CIP requests via 0x00B2:
   - Check/reset 1s write window; increment `write_count_in_window`; if `count > threshold && !write_burst_emitted` → emit T0836; set guard
-- [ ] In `process_pdu`, for CIP Reset (`CipServiceClass::Reset`, service 0x05) requests via 0x00B2: emit T0816 finding (per-occurrence)
+- [ ] In `process_pdu`, for CIP Reset (where `classify_cip_service(service) == CipServiceClass::Reset`) requests via 0x00B2 and `!is_non_enip`: emit T0816 finding (per-occurrence; category=Execution, verdict=Likely, confidence=High, summary="CIP Reset service observed: adversary-triggered device restart (T0816)")
 - [ ] Add `mod command_detections { ... }` test wrapper to `tests/enip_analyzer_tests.rs` with all AC-135 tests
 - [ ] Construct minimal ENIP+CPF+CIP byte sequences for each test (reuse helpers from STORY-134 tests)
 - [ ] Run `cargo test enip` — all command_detections tests pass
@@ -173,10 +176,10 @@ via EtherNet/IP are detected and reported with appropriate MITRE ICS technique t
 **Test module:** `mod command_detections { ... }`
 
 ```
-command_detections::test_t0858_set_attribute_single
-command_detections::test_t0858_set_attribute_list
+command_detections::test_t0858_stop_service_0x07
+command_detections::test_t0858_stop_response_no_finding
 command_detections::test_t0858_connected_item_no_finding
-command_detections::test_t0858_response_no_finding
+command_detections::test_t0858_set_attribute_no_t0858
 command_detections::test_t0816_reset_service
 command_detections::test_t0816_response_no_finding
 command_detections::test_t0816_connected_item_no_finding
@@ -199,7 +202,7 @@ command_detections::test_write_count_accumulates
 ## Architecture Compliance Rules
 
 1. **T0858 and T0836 are triggered by DIFFERENT services (BC-2.17.011/012):** T0858 fires when `CipServiceClass::Stop` (0x07) is observed — per-occurrence, no guard (BC-2.17.011). T0836 fires when the SetAttribute write count exceeds the burst threshold within 1s (BC-2.17.012). A CIP Stop frame triggers T0858 only. A SetAttribute frame increments the write counter and may trigger T0836. These two detection paths are mutually exclusive per frame.
-2. **T0816 is CIP service byte only, not ENIP command (BC-2.17.013):** T0816 is triggered by CIP service code `0x05` inside a CPF 0x00B2 item — NOT by an ENIP header command. The ENIP command for the enclosing frame is typically SendRRData (0x0072). The detection is at the CIP layer.
+2. **T0816 uses `classify_cip_service`, not raw byte predicate (BC-2.17.013 + BC-2.17.007 invariant 1):** T0816 is triggered when `classify_cip_service(cip_header.service)` returns `CipServiceClass::Reset` — the response-bit masking is handled inside `classify_cip_service`. Do NOT use `service & 0x7F == 0x05` directly in detection logic; this bypasses the classifier and violates BC-2.17.007 invariant 1. The ENIP command for the enclosing frame is typically SendRRData (0x006F). The detection is at the CIP layer inside a CPF 0x00B2 item.
 3. **Strict `>` for T0836 (BC-2.17.012 Invariant 2):** `write_count_in_window > enip_write_burst_threshold`. Default threshold=50; the 51st write fires. Same convention as T0888 Pattern B.
 4. **1s write-burst window (BC-2.17.012 Invariant 3):** `write_window_start` tracks the start of the current 1-second window. On PDU arrival: if `now - write_window_start > 1s`, reset count to 0, reset `write_burst_emitted = false`, set `write_window_start = now`.
 5. **F-P9-001 gate applies to T0858 and T0816 (BC-2.17.011/013):** Only 0x00B2 items trigger CIP service detection. 0x00B1 items are skipped.
