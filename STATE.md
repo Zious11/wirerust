@@ -1,7 +1,7 @@
 ---
 pipeline: FEATURE-MODE
 phase: F3
-phase_status: "F3 story convergence: Pass 11 PASS (2/3); F-P11-001 (MEDIUM) REMEDIATED (STORY-135 write_count_in_window u64 millis→u32 seconds); Pass 12 pending for 3-consecutive-clean. Trajectory: 4C/6H→1C/3H→0C/2H→2C/2H→0C/1H→0C/1H→0C/0H→0C/1H→0C/2H→0C/0H→0C/0H(PASS). Adversary: decomposition CONVERGED."
+phase_status: "F3 story convergence ACHIEVED (3/3 clean passes 10/11/12, 0 HIGH/CRITICAL; 12 passes total). F-P12-001 REMEDIATED (STORY-135 write_count_in_window u32→u64 induced-regression fix). Trajectory: 4C/6H→1C/3H→0C/2H→2C/2H→0C/1H→0C/1H→0C/0H→0C/1H→0C/2H→0C/0H→0C/0H→0C/0H. Consistency audit + F3 human gate pending."
 product: wirerust
 mode: feature-mode
 timestamp: 2026-06-24T22:00:00Z
@@ -70,7 +70,7 @@ convergence_trajectory: "Detail: cycles/v0.1.0-greenfield-spec/convergence-traje
 
 ## Status
 
-**PIPELINE FEATURE-MODE. Cycle `feature-enip-v0.11.0` OPEN. F1 PASSED. F2 COMPLETE (human gate D-230). F3 COMPLETE: 9 stories STORY-130..138 (E-20, waves 58-61, 66 pts; all 26 BC-2.17.001..026 covered) + 13 holdout scenarios HS-110..122 (all must-pass). F3 ADV-STORY PASS 11: PASS (2/3) — 1 MEDIUM remediated (F-P11-001: STORY-135 write_count_in_window u64 millis→u32 seconds), content frozen, decomposition CONVERGED. Trajectory: 4C/6H→1C/3H→0C/2H→2C/2H→0C/1H→0C/1H→0C/0H→0C/1H→0C/2H→0C/0H→0C/0H(PASS). Pass 12 pending for 3/3 confirmation. ENGINE-PROPAGATION-GREP-GATE-001 in OPEN ITEMS.**
+**PIPELINE FEATURE-MODE. Cycle `feature-enip-v0.11.0` OPEN. F1 PASSED. F2 COMPLETE (human gate D-230). F3 COMPLETE: 9 stories STORY-130..138 (E-20, waves 58-61, 66 pts; all 26 BC-2.17.001..026 covered) + 13 holdout scenarios HS-110..122 (all must-pass). F3 ADV-STORY CONVERGENCE ACHIEVED (Pass 12): 3 consecutive clean passes (P10/P11/P12), 0 HIGH/CRITICAL, 12 passes total. F-P12-001 REMEDIATED (STORY-135 write_count_in_window u32→u64). Trajectory: 4C/6H→1C/3H→0C/2H→2C/2H→0C/1H→0C/1H→0C/0H→0C/1H→0C/2H→0C/0H→0C/0H→0C/0H. Next: consistency audit + F3 human gate. ENGINE-PROPAGATION-GREP-GATE-001 in OPEN ITEMS.**
 
 Latest release: v0.10.0 (main `0cbe922`, tag `v0.10.0`, 4 binaries, run 28109367603). develop=`ff4b82b`. stories_delivered=78. Target: v0.11.0 (SS-17 EtherNet/IP + CIP TCP/44818). GitHub issue #316.
 
@@ -156,7 +156,7 @@ All GitHub-issue creation remains DF-VALIDATION-001-gated.
 | Maintenance maint-2026-06-22 | COMPLETE 2026-06-23 | 38 observations; 0 blocking; F-MAJ-001 fixed (a6efb23); PR #304 (e458ce2) + PR #305 (e4abbe2). |
 | Feature mitre-json-names (issue #64) + v0.9.4 | RELEASED + CLOSED 2026-06-23 (D-217) | F1-F7 CONVERGED. 5 BCs bumped. BC-INDEX v1.71 (303 BCs). PRs #306/307/308/309. tag v0.9.4 96b49e8. 4 binaries. stories_delivered=78. |
 | Fix cycle fix-pc-013-014-015 + v0.10.0 | **CONVERGED + RELEASED + CLOSED 2026-06-24 (D-226)** | All 3 fixes: PC-015 (#310), PC-013 (#312 + spec D-223), PC-014 (#313 breaking rename + CHANGELOG). Evidence resync #314. v0.10.0: PR #315 → main 0cbe922, tag v0.10.0, 4 binaries, run 28109367603. develop back-merged ff4b82b. BC-INDEX v1.73 (305 BCs / 304 active). |
-| Feature EtherNet/IP + CIP (issue #316) — v0.11.0 | **F3 COMPLETE — ADV-STORY PASS 11 PASS (2/3) — CONTENT FROZEN** | F3: stories STORY-130..138 (9, E-20, 66 pts) + holdout HS-110..122 (13). Passes 1-9 all REMEDIATED. Pass 10: PASS (1/3). Pass 11: PASS (2/3) — F-P11-001 MEDIUM REMEDIATED (STORY-135 write_count_in_window u64→u32). Pass 12 pending. Trajectory: 4C/6H→1C/3H→0C/2H→2C/2H→0C/1H→0C/1H→0C/0H→0C/1H→0C/2H→0C/0H→0C/0H(PASS). Detail: cycles/feature-enip-v0.11.0/ |
+| Feature EtherNet/IP + CIP (issue #316) — v0.11.0 | **F3 COMPLETE — ADV-STORY CONVERGENCE ACHIEVED (3/3 clean, 12 passes)** | F3: stories STORY-130..138 (9, E-20, 66 pts) + holdout HS-110..122 (13). P10/P11/P12 all 0C/0H. F-P12-001 REMEDIATED (STORY-135 write_count_in_window u32→u64). Trajectory: 4C/6H→1C/3H→0C/2H→2C/2H→0C/1H→0C/1H→0C/0H→0C/1H→0C/2H→0C/0H→0C/0H→0C/0H. Next: consistency audit + F3 human gate. Detail: cycles/feature-enip-v0.11.0/ |
 
 ## Decisions Log
 

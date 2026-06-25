@@ -131,7 +131,7 @@ via EtherNet/IP are detected and reported with appropriate MITRE ICS technique t
 
 | Component | Location | Role |
 |-----------|----------|------|
-| `EnipFlowState.write_count_in_window` | `src/analyzer/enip.rs` | `u32` — SetAttribute count in 1s window (BC-2.17.012 Architecture Anchors; u32 seconds, NOT milliseconds) |
+| `EnipFlowState.write_count_in_window` | `src/analyzer/enip.rs` | `u64` — SetAttribute count in 1s window (BC-2.17.012 Architecture Anchors) |
 | `EnipFlowState.write_burst_emitted` | `src/analyzer/enip.rs` | `bool` — one-shot guard for T0836 |
 | `EnipFlowState.write_window_start_ts` | `src/analyzer/enip.rs` | `u32` — 1s window start timestamp (BC-2.17.012 postcondition 3/4; matches error_window_start_ts: u32 pattern) |
 | `EnipAnalyzer.write_count` | `src/analyzer/enip.rs` | `u64` — aggregate lifetime write counter (BC-2.17.012 Postcondition 2; consumed by BC-2.17.021 summarize()) |
@@ -163,7 +163,7 @@ via EtherNet/IP are detected and reported with appropriate MITRE ICS technique t
 
 ## Tasks
 
-- [ ] Add to `EnipFlowState`: `write_count_in_window: u32`, `write_burst_emitted: bool`, `write_window_start_ts: u32` (BC-2.17.012 Architecture Anchors; use exact field names; u32 seconds NOT milliseconds)
+- [ ] Add to `EnipFlowState`: `write_count_in_window: u64`, `write_burst_emitted: bool`, `write_window_start_ts: u32` (BC-2.17.012 Architecture Anchors; use exact field names; write_window_start_ts is u32 seconds NOT milliseconds)
 - [ ] Add `write_count: u64` field to `EnipAnalyzer` struct (aggregate lifetime counter; BC-2.17.012 Postcondition 2; BC-2.17.021 Architecture Anchors `EnipAnalyzer.write_count: u64`; feeds summarize())
 - [ ] In `process_pdu`, for CIP Stop (`CipServiceClass::Stop`, service 0x07) requests via 0x00B2 and !is_non_enip:
   - Emit T0858 finding (per-occurrence, guarded by MAX_FINDINGS); category=Execution, verdict=Likely, confidence=High
@@ -217,7 +217,7 @@ command_detections::test_aggregate_write_count_increments
 
 ## Library & Framework Requirements
 
-No new external crate dependencies. `std::time` or a timestamp integer (`u32` seconds, `now_ts`) for window tracking. Window timestamps use `u32` seconds (same as `write_window_start_ts` / `error_window_start_ts`) with wrapping_sub arithmetic — NOT milliseconds. The window-tracking arithmetic is `>1` (write burst, 1s) and `>10` (error burst, 10s) using `u32` second-resolution values; no `u64` millisecond counters are used.
+No new external crate dependencies. `std::time` or a timestamp integer (`u32` seconds, `now_ts`) for window tracking. Window START timestamps (`write_window_start_ts`, `error_window_start_ts`) use `u32` seconds with wrapping_sub arithmetic — NOT milliseconds. The window-tracking arithmetic is `>1` (write burst, 1s) and `>10` (error burst, 10s) using `u32` second-resolution values. Note: `write_count_in_window` is `u64` (a count of write-class requests, unbounded in principle); only the window START timestamp field (`write_window_start_ts`) is `u32`. Do not conflate the timestamp type with the counter type.
 
 ## File Structure Requirements
 
