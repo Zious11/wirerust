@@ -110,6 +110,7 @@ fn bench_reassembly(c: &mut Criterion) {
                     Some(TlsAnalyzer::new()),
                     None,
                     None,
+                    None,
                 );
                 for (p, ts) in &parsed {
                     reassembler.process_packet(p, *ts, &mut dispatcher);

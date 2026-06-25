@@ -25,7 +25,7 @@
 #![allow(dead_code)]
 
 // ---------------------------------------------------------------------------
-// Data types
+// Data types — pure-core (STORY-130)
 // ---------------------------------------------------------------------------
 
 /// Parsed EtherNet/IP encapsulation header (fixed 24-byte layout, all LE fields).
@@ -164,6 +164,75 @@ pub fn is_valid_enip_frame(h: &EnipHeader) -> bool {
         h.command,
         0x0004 | 0x0063 | 0x0064 | 0x0065 | 0x0066 | 0x006F | 0x0070 | 0x0072 | 0x0075
     )
+}
+
+// ---------------------------------------------------------------------------
+// Aggregate analyzer struct (STORY-131 — BC-2.17.019/020/023/026)
+// ---------------------------------------------------------------------------
+
+use crate::analyzer::AnalysisSummary;
+use crate::findings::Finding;
+
+/// EtherNet/IP stream analyzer aggregate.
+///
+/// Receives reassembled TCP bytes for port-44818 flows (via `StreamDispatcher`
+/// Rule 7 after STORY-131) and accumulates detection findings.
+///
+/// Threshold fields are populated from CLI flags (BC-2.17.023 / BC-2.17.026):
+/// - `enip_write_burst_threshold` — T0836 write-burst threshold (default 50).
+/// - `enip_error_burst_threshold` — T0888 error-burst threshold (default 5).
+///
+/// Detection logic (frame-walk, CIP parse, MITRE detections) is added by
+/// STORY-132–137. This stub carries the structural skeleton only.
+///
+/// BC-2.17.019 §P2–P3 / BC-2.17.020 §P1 / BC-2.17.023 §P1 / BC-2.17.026 §P1.
+pub struct EnipAnalyzer {
+    /// Write-burst threshold for T0836 detection (BC-2.17.023 / OA-001 RESOLVED=50).
+    pub enip_write_burst_threshold: u32,
+    /// Error-burst threshold for T0888 Pattern B detection (BC-2.17.026 default=5).
+    pub enip_error_burst_threshold: u32,
+    /// Accumulated findings — populated by detection logic (STORY-132+).
+    pub all_findings: Vec<Finding>,
+}
+
+impl EnipAnalyzer {
+    /// Construct a new `EnipAnalyzer` with the given threshold values.
+    ///
+    /// `write_burst_threshold` — T0836 write-burst cap (CLI `--enip-write-burst-threshold`,
+    /// default 50, BC-2.17.023 Invariant 1).
+    /// `error_burst_threshold` — T0888 error-burst cap (CLI `--enip-error-burst-threshold`,
+    /// default 5, BC-2.17.026 Invariant 1).
+    ///
+    /// WIRING-EXEMPT: constructor assigns two scalar fields and initialises one Vec to empty.
+    /// Zero branching; no I/O; no non-trivial helpers; 6 lines. All four GREEN-BY-DESIGN
+    /// criteria hold — body is ≤ 3 meaningful lines of struct-init.
+    pub fn new(write_burst_threshold: u32, error_burst_threshold: u32) -> Self {
+        Self {
+            enip_write_burst_threshold: write_burst_threshold,
+            enip_error_burst_threshold: error_burst_threshold,
+            all_findings: Vec::new(),
+        }
+    }
+
+    /// Produce an end-of-capture summary for the ENIP analyzer.
+    ///
+    /// Real metrics (frames parsed, detection counts, per-flow stats) are
+    /// populated by STORY-132+. This stub returns a minimal shell that
+    /// prevents the reporter pipeline from panicking when --enip/--all is used
+    /// before the detection logic lands.
+    ///
+    /// WIRING-EXEMPT: required by the reporter pipeline contract. Without a
+    /// non-panicking summarize(), the existing `--all` CLI test regresses.
+    /// Body constructs one AnalysisSummary with zero fields — no branching,
+    /// no I/O, no non-trivial helpers, ≤ 3 lines.
+    pub fn summarize(&self) -> AnalysisSummary {
+        use std::collections::BTreeMap;
+        AnalysisSummary {
+            analyzer_name: "EtherNet/IP".to_string(),
+            packets_analyzed: 0,
+            detail: BTreeMap::new(),
+        }
+    }
 }
 
 // ---------------------------------------------------------------------------
