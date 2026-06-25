@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.0"
+version: "1.1"
 status: draft
 producer: product-owner
 timestamp: 2026-06-24T00:00:00Z
@@ -13,7 +13,8 @@ subsystem: SS-17
 capability: CAP-17
 lifecycle_status: active
 introduced: v0.11.0-feature-enip
-modified: []
+modified:
+  - "v1.1 F3 story-convergence: flows_analyzed increment site documented (F-P6-001 dead-counter fix); Invariant 2 and Architecture Anchors updated to cite BC-2.17.017 as sole increment site"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -68,8 +69,13 @@ accumulated during `on_data` processing.
    This is a breaking-change guard — the first implementation must use the canonical name
    to avoid a rename fix later (per BC-2.15.020 v1.4 D-220 lesson).
 2. **Aggregate only**: `summarize()` reads `self.command_distribution`, `self.total_pdu_count`,
-   etc. It does NOT re-scan flow state. Aggregate counters must be up-to-date from
-   `on_flow_close` calls before `summarize()` is invoked.
+   `self.flows_analyzed`, etc. It does NOT re-scan flow state. Aggregate counters must be
+   up-to-date from `on_flow_close` calls before `summarize()` is invoked.
+   **`flows_analyzed` increment site**: `self.flows_analyzed` is incremented exclusively in
+   `on_flow_close` (BC-2.17.017 Postcondition 6) when a known flow is removed from
+   `self.flows`. It is NOT incremented in `summarize()`, `on_data`, or on first-PDU. For a
+   1-flow capture, `on_flow_close` is called once → `flows_analyzed = 1`. The canonical test
+   vector `{flows_analyzed: 1}` for a 1-flow capture is satisfiable by this design.
 3. **Zero-flow case**: if no ENIP flows, all fields are 0. The `enip_summary` object is
    still present in JSON (not absent, not null).
 4. **dropped_findings**: `self.dropped_findings` is incremented inside `on_data` whenever a
@@ -121,6 +127,7 @@ accumulated during `on_data` processing.
 - `src/analyzer/enip.rs` — `EnipAnalyzer::summarize()` or `finalize()`
 - `src/analyzer/enip.rs` — `EnipAnalyzer.command_distribution: HashMap<u16, u64>`
 - `src/analyzer/enip.rs` — `EnipAnalyzer.total_pdu_count: u64`, `.write_count: u64`, `.error_count: u64`, `.parse_errors: u64`, `.dropped_findings: u64`
+- `src/analyzer/enip.rs` — `EnipAnalyzer.flows_analyzed: u64` — **incremented in `on_flow_close` (BC-2.17.017 Postcondition 6); read here for JSON output**
 
 ## Story Anchor
 

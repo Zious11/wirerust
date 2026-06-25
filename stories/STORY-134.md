@@ -25,7 +25,7 @@ inputs:
   - .factory/specs/architecture/decisions/ADR-010-ethernet-ip-cip-stream-dispatch.md
   - .factory/phase-f2-spec-evolution/enip-architecture-delta.md
   - .factory/research/enip-mitre-ics-tagging.md
-input-hash: "33352dc"
+input-hash: "c82d3ff"
 ---
 
 # STORY-134: ENIP Recon Detections: T0846 ListIdentity, T0888 Identity Read / Error Burst, and CIP Error Accumulation
@@ -77,7 +77,7 @@ Discovery Pattern A), and CIP error-response bursts (T0888 Pattern B),
 - Given the above preconditions hold and `classify_cip_service(service)` returns `CipServiceClass::Response` (BC-2.17.008 precondition 1)
 - When the analyzer processes the CIP response
 - Then `general_status = cip_item_data[2]` (BC-2.17.008 postcondition 1 — third byte of CIP response: byte 0 = service|0x80, byte 1 = reserved 0x00, byte 2 = general_status, byte 3 = additional_status_size)
-- If `general_status != 0x00` (error response): `flow.error_counts_in_window.entry(general_status).or_insert(0) += 1`; if `flow.error_window_start_ts == 0` (first error) seed `flow.error_window_start_ts = now_ts` (BC-2.17.008 postcondition 2); ALSO `self.error_count += 1` on `EnipAnalyzer` (aggregate lifetime counter — BC-2.17.008 Invariant 2; consumed by `summarize()` per BC-2.17.021 postcondition 1 `error_count` field)
+- If `general_status != 0x00` (error response): `flow.error_counts_in_window.entry(general_status).or_insert(0) += 1`; if `flow.error_window_start_ts == 0` (first error) seed `flow.error_window_start_ts = now_ts` (BC-2.17.008 postcondition 2); ALSO `self.error_count += 1` on `EnipAnalyzer` (aggregate lifetime counter — BC-2.17.008 Postcondition 2b / Invariant 2; consumed by `summarize()` per BC-2.17.021 postcondition 1 `error_count` field)
 - If `general_status == 0x00` (success): no error counter update, no aggregate increment (BC-2.17.008 postcondition 3)
 - Window management: if `now_ts.wrapping_sub(flow.error_window_start_ts) > 10` (window expired): `flow.error_counts_in_window.clear()`, `flow.error_window_start_ts = now_ts`, `flow.error_rate_emitted = false` (BC-2.17.008 postcondition 4)
 - **Field names (BC-2.17.008 invariants):** `error_counts_in_window: HashMap<u8, u64>`, `error_window_start_ts: u32`, `error_rate_emitted: bool`; NOT `error_window_start` or any other alias
@@ -134,9 +134,9 @@ Discovery Pattern A), and CIP error-response bursts (T0888 Pattern B),
 - **Test:** `tests/enip_analyzer_tests.rs::recon::test_non_enip_flow_suppresses_recon`
 
 ### AC-134-006: EnipAnalyzer aggregate error_count increments on every CIP error response
-**Traces to:** BC-2.17.008 Invariant 2; BC-2.17.021 postcondition 1 (`error_count` field in summarize() output)
+**Traces to:** BC-2.17.008 Postcondition 2b; BC-2.17.008 Invariant 2; BC-2.17.021 postcondition 1 (`error_count` field in summarize() output)
 - `EnipAnalyzer.error_count: u64` is a lifetime aggregate counter on the `EnipAnalyzer` struct (separate from per-flow `error_counts_in_window`)
-- On every CIP response with `general_status != 0x00` (and type_id==0x00B2, len>=4 preconditions met): `self.error_count += 1`
+- On every CIP response with `general_status != 0x00` (and type_id==0x00B2, len>=4 preconditions met): `self.error_count += 1` (formal postcondition — BC-2.17.008 Postcondition 2b)
 - `self.error_count` is NOT reset between flows or windows — it accumulates across the entire analysis session
 - Success responses (general_status==0x00) do NOT increment `error_count`
 - `summarize()` (STORY-138, BC-2.17.021) reads `self.error_count` to populate the `"error_count"` field in `enip_summary` JSON
@@ -146,7 +146,7 @@ Discovery Pattern A), and CIP error-response bursts (T0888 Pattern B),
 
 | Component | Location | Role |
 |-----------|----------|------|
-| `EnipAnalyzer.error_count` | `src/analyzer/enip.rs` | `u64` — aggregate lifetime CIP error count (BC-2.17.008 Invariant 2; BC-2.17.021 Architecture Anchors; feeds summarize()) |
+| `EnipAnalyzer.error_count` | `src/analyzer/enip.rs` | `u64` — aggregate lifetime CIP error count (BC-2.17.008 Postcondition 2b / Invariant 2; BC-2.17.021 Architecture Anchors; feeds summarize()) |
 | `EnipFlowState.error_counts_in_window` | `src/analyzer/enip.rs` | `HashMap<u8, u64>` — per-status CIP error counts within 10s window (BC-2.17.008) |
 | `EnipFlowState.error_rate_emitted` | `src/analyzer/enip.rs` | `bool` — one-shot guard for T0888 Pattern B |
 | `EnipFlowState.is_non_enip` | `src/analyzer/enip.rs` | `bool` — suppress all ENIP detections for non-ENIP flows |
@@ -187,10 +187,10 @@ Discovery Pattern A), and CIP error-response bursts (T0888 Pattern B),
 
 ## Tasks
 
-- [ ] Add `error_count: u64` field to `EnipAnalyzer` struct (aggregate lifetime counter; BC-2.17.008 Invariant 2; BC-2.17.021 Architecture Anchors `EnipAnalyzer.error_count: u64`; feeds summarize())
+- [ ] Add `error_count: u64` field to `EnipAnalyzer` struct (aggregate lifetime counter; BC-2.17.008 Postcondition 2b / Invariant 2; BC-2.17.021 Architecture Anchors `EnipAnalyzer.error_count: u64`; feeds summarize())
 - [ ] Add to `EnipFlowState` in `src/analyzer/enip.rs`: `error_counts_in_window: HashMap<u8, u64>`, `error_rate_emitted: bool`, `is_non_enip: bool`, `error_window_start_ts: u32`, `list_identity_emitted: bool` (use exact field names per BC-2.17.008/010)
 - [ ] In `EnipAnalyzer::process_pdu`: after `classify_enip_command`, always `flow.command_counts.entry(0x0063).or_insert(0) += 1`; THEN if `!flow.list_identity_emitted && !flow.is_non_enip && all_findings.len() < MAX_FINDINGS` → push T0846 finding with exact summary "EtherNet/IP ListIdentity broadcast observed: network-wide device enumeration (T0846)" and evidence "ENIP command=0x0063 (ListIdentity) src={src_ip} session={session_handle}"; set `flow.list_identity_emitted = true`
-- [ ] In `process_pdu`, for CIP response frames (only `type_id == 0x00B2` and `cip_item_data.len() >= 4`): extract `general_status = cip_item_data[2]`; if `general_status != 0x00`: `self.error_count += 1` (aggregate — BC-2.17.008 Invariant 2); check/reset 10s window via `flow.error_window_start_ts`; `flow.error_counts_in_window.entry(general_status).or_insert(0) += 1`; compute `total: u64 = flow.error_counts_in_window.values().sum()`; if `total > threshold && !flow.error_rate_emitted` → push T0888 Pattern B; set guard `flow.error_rate_emitted = true`
+- [ ] In `process_pdu`, for CIP response frames (only `type_id == 0x00B2` and `cip_item_data.len() >= 4`): extract `general_status = cip_item_data[2]`; if `general_status != 0x00`: `self.error_count += 1` (aggregate — BC-2.17.008 Postcondition 2b / Invariant 2); check/reset 10s window via `flow.error_window_start_ts`; `flow.error_counts_in_window.entry(general_status).or_insert(0) += 1`; compute `total: u64 = flow.error_counts_in_window.values().sum()`; if `total > threshold && !flow.error_rate_emitted` → push T0888 Pattern B; set guard `flow.error_rate_emitted = true`
 - [ ] In `process_pdu`, for CIP request frames: if GetAttribute service class && `CipPathSegment::Class(0x01)` in path segments && `type_id == 0x00B2` && `!flow.is_non_enip` → push T0888 Pattern A
 - [ ] Add `mod recon { ... }` test wrapper to `tests/enip_analyzer_tests.rs` with all AC-134 tests
 - [ ] Construct test ENIP+CPF+CIP byte sequences for each test vector

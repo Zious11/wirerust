@@ -1,7 +1,7 @@
 ---
 document_type: bc-index
 level: L3
-version: "1.77"
+version: "1.78"
 status: draft
 producer: product-owner
 timestamp: 2026-06-24T00:00:00Z
@@ -15,6 +15,9 @@ traces_to: .factory/specs/prd.md
 > links to the individual BC file. BCs are sharded into per-subsystem directories (ss-NN/).
 >
 > All BCs are marked [WRITTEN]. Body files have been verified on disk for all 331 entries (330 prior + 1 new BC-2.17.026 for F2 addendum error-burst CLI flag; BC-2.01.004 retired).
+>
+> **v1.78 2026-06-24 (F3 story-convergence: flows_analyzed dead-counter fix, F-P6-001):**
+> BC-2.17.017 v1.0→v1.1: Added Postcondition 6 (`self.flows_analyzed += 1` on successful flow removal); Invariant 3 added ("flows_analyzed is the ONLY increment site"); canonical test vectors updated to include flows_analyzed delta; Architecture Anchors updated to cite sole increment site; Purity Classification corrected to include flows_analyzed mutation. BC-2.17.021 v1.0→v1.1: Invariant 2 expanded to document flows_analyzed increment site (BC-2.17.017 Postcondition 6 is the sole site); Architecture Anchors updated; satisfiability of `flows_analyzed: 1` test vector now proven. BC-2.17.008 v1.0→v1.1 (secondary dead-counter gap): `EnipAnalyzer.error_count += 1` promoted from canonical test vector note to formal Postcondition 2b (sole increment site for the lifetime error_count aggregate); Purity Classification corrected from "reads" to "mutates" EnipAnalyzer.error_count. No new BCs; no BC count change (331 on disk; 330 active). Recurrence of F-DELTA-002 Modbus dead-counter anti-pattern prevented. Stories affected by BC changes: STORY-138 (and any story inputting BC-2.17.017, BC-2.17.021, BC-2.17.008) — story-writer must recompute input-hashes under bc_array_changes_propagate_to_body_and_acs policy.
 >
 > **v1.77 2026-06-24 (Pre-F3 prerequisite — SS-10 MITRE catalog BC version-bump, finding F-P2-010):**
 > BC-2.10.005 v1.11→v1.12: SEEDED count 25→28 (adds T0858 "Change Operating Mode" IcsExecution TA0104,
@@ -592,7 +595,7 @@ traces_to: .factory/specs/prd.md
 | BC-2.17.005 | CPF Item-Layer Walk — Bounded Little-Endian Item Iteration | P0 | [WRITTEN] | (none — enables T0858/T0816/T0836/T0888) | feature-enip-v0.11.0 | <!-- CPF item_count bounded walk; DoS-safe iteration -->
 | BC-2.17.006 | parse_cip_header Extracts Service Code and Request Path from Item Data | P0 | [WRITTEN] | (none — enables T0858/T0816/T0836/T0888/T0846) | feature-enip-v0.11.0 | <!-- bounds-checked CIP header parse; foundational for all CIP detections -->
 | BC-2.17.007 | classify_cip_service Total Classification with Response-Bit Mask — 13 Named Request Services + Response + Unknown = 15 Variants | P0 | [WRITTEN] | (none — classification only) | feature-enip-v0.11.0 | <!-- VP-032 Sub-D Kani target; totality over all 256 u8 values; 0x80 response-bit mask; 0x0A=MultipleServicePacket (not ApplyAttributes); F2 Pass-2 service table fix -->
-| BC-2.17.008 | CIP Error Response Detection — general_status Extraction from Unconnected (0x00B2) Response Frames | P1 | [WRITTEN] | (none direct — T0888 via BC-2.17.014) | feature-enip-v0.11.0 | <!-- accumulation BC; general_status extracted from Unconnected (0x00B2) response frames only; Connected (0x00B1) deferred v0.12.0 -->
+| BC-2.17.008 | CIP Error Response Detection — general_status Extraction from Unconnected (0x00B2) Response Frames | P1 | [WRITTEN] | (none direct — T0888 via BC-2.17.014) | feature-enip-v0.11.0 | <!-- v1.1: error_count aggregate increment formalized as Postcondition 2b (sole increment site for lifetime error_count); Purity Classification corrected; F-P6-001 dead-counter sweep -->
 | BC-2.17.009 | parse_cip_request_path Class and Instance Segment Extraction | P1 | [WRITTEN] | (none direct — T0888 via BC-2.17.014) | feature-enip-v0.11.0 | <!-- class/instance segment extraction; Identity Object class=0x01 trigger for T0888 -->
 | BC-2.17.010 | ListIdentity Command Observed Emits T0846 Network Enumeration Finding | P0 | [WRITTEN] | T0846 (IcsDiscovery TA0102) | feature-enip-v0.11.0 | <!-- per-occurrence finding; T0846 Remote System Discovery; TRITON/TRISIS recon pattern -->
 | BC-2.17.011 | CIP Stop Service Observed Emits T0858 Change Operating Mode Finding | P0 | [WRITTEN] | T0858 (IcsExecution TA0104) | feature-enip-v0.11.0 | <!-- per-occurrence Likely/High; new MitreTactic::IcsExecution required; T0858 new catalog entry -->
@@ -601,11 +604,11 @@ traces_to: .factory/specs/prd.md
 | BC-2.17.014 | CIP Identity-Read to Identity Object or Error Burst Emits T0888 Remote System Information Discovery | P0 | [WRITTEN] | T0888 (IcsDiscovery TA0102) | feature-enip-v0.11.0 | <!-- dual-pattern: Pattern A identity-object read Likely/High; Pattern B error-burst Possible/Medium -->
 | BC-2.17.015 | ForwardOpen and ForwardClose Connection-Lifecycle Anomaly Detected with Empty MITRE Technique Set | P1 | [WRITTEN] | (none — mitre_techniques: vec![]) | feature-enip-v0.11.0 | <!-- intentionally empty technique set per ADR-010 Decision 7; ForwardClose postcondition block added F2 adversary -->
 | BC-2.17.016 | Carry-Buffer Frame-Walk Loop — Partial Frame Stash and MAX_ENIP_CARRY_BYTES Cap | P0 | [WRITTEN] | (none) | feature-enip-v0.11.0 | <!-- MAX_ENIP_CARRY_BYTES=600; is_non_enip latch; DoS-safe carry buffer -->
-| BC-2.17.017 | on_flow_close Removes Flow State and Updates Aggregate Counters | P1 | [WRITTEN] | (none) | feature-enip-v0.11.0 | <!-- per-flow state cleanup; aggregate counter drain -->
+| BC-2.17.017 | on_flow_close Removes Flow State and Updates Aggregate Counters | P1 | [WRITTEN] | (none) | feature-enip-v0.11.0 | <!-- v1.1: flows_analyzed += 1 added as Postcondition 6 (sole increment site); Invariant 3 added; vectors updated; F-P6-001 dead-counter fix -->
 | BC-2.17.018 | Malformed ENIP Frame Threshold Emits T0814 Structural Anomaly Finding | P1 | [WRITTEN] | T0814 (IcsInhibitResponseFunction TA0107) | feature-enip-v0.11.0 | <!-- MALFORMED_ANOMALY_THRESHOLD=3/300s; one-shot per window; T0814 already seeded -->
 | BC-2.17.019 | StreamDispatcher Rule 7 — Port 44818 TCP Classified as DispatchTarget::Enip | P0 | [WRITTEN] | (none — routing) | feature-enip-v0.11.0 | <!-- port-44818 TCP Rule 7 after TLS/HTTP/Modbus/DNP3 content/port rules -->
 | BC-2.17.020 | CLI --enip Flag Enables Analyzer; --enip-write-burst-threshold Configures Write Detection | P0 | [WRITTEN] | (none) | feature-enip-v0.11.0 | <!-- --enip enables EnipAnalyzer; --enip-write-burst-threshold u32 for T0836 -->
-| BC-2.17.021 | summarize() Emits ENIP Command Distribution and Aggregate Statistics | P1 | [WRITTEN] | (none) | feature-enip-v0.11.0 | <!-- command_counts map, session totals, pdu_count, parse_errors, dropped_findings -->
+| BC-2.17.021 | summarize() Emits ENIP Command Distribution and Aggregate Statistics | P1 | [WRITTEN] | (none) | feature-enip-v0.11.0 | <!-- v1.1: flows_analyzed increment site documented (BC-2.17.017 PC-6 is sole site); Invariant 2 expanded; test vector flows_analyzed:1 satisfiability proven; F-P6-001 dead-counter fix -->
 | BC-2.17.022 | MAX_FINDINGS DoS Bound — Finding Cap Prevents Unbounded all_findings Growth | P0 | [WRITTEN] | (none) | feature-enip-v0.11.0 | <!-- MAX_FINDINGS cap shared constant; same pattern as Modbus/DNP3/ARP -->
 | BC-2.17.023 | --enip-write-burst-threshold CLI Flag Configures T0836 Write Detection Sensitivity | P1 | [WRITTEN] | (none — CLI) | feature-enip-v0.11.0 | <!-- operator tuning for high-write CIP environments [OA-001]; threshold used by BC-2.17.012 -->
 | BC-2.17.024 | pdu_count Incremented Per Processed Frame and Reflected in summarize() | P1 | [WRITTEN] | (none) | feature-enip-v0.11.0 | <!-- monotonic PDU counter; per-frame increment for valid/processed frames only; malformed frames are parse_errors, not PDUs -->

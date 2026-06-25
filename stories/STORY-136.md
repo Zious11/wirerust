@@ -106,9 +106,9 @@ down — even though these operations are not currently mapped to MITRE ICS tech
 
 | Component | Location | Role |
 |-----------|----------|------|
-| `CipServiceClass::ForwardOpen` | `src/analyzer/enip.rs` | From STORY-130; service 0x54 |
-| `CipServiceClass::LargeForwardOpen` | `src/analyzer/enip.rs` | From STORY-130; service 0x5B — treated identically to ForwardOpen per BC-2.17.015 Invariant 5 |
-| `CipServiceClass::ForwardClose` | `src/analyzer/enip.rs` | From STORY-130; service 0x4E |
+| `CipServiceClass::ForwardOpen` | `src/analyzer/enip.rs` | From STORY-132 (BC-2.17.007); service 0x54 |
+| `CipServiceClass::LargeForwardOpen` | `src/analyzer/enip.rs` | From STORY-132 (BC-2.17.007); service 0x5B — treated identically to ForwardOpen per BC-2.17.015 Invariant 5 |
+| `CipServiceClass::ForwardClose` | `src/analyzer/enip.rs` | From STORY-132 (BC-2.17.007); service 0x4E |
 | `EnipFlowState.open_connection_count` | `src/analyzer/enip.rs` | `u32` — ForwardOpen + LargeForwardOpen request count |
 | `EnipFlowState.close_connection_count` | `src/analyzer/enip.rs` | `u32` — ForwardClose request count |
 | ForwardOpen/LargeForwardOpen/Close detection | `src/analyzer/enip.rs` | `if matches!(service_class, ForwardOpen \| LargeForwardOpen \| ForwardClose) && 0x00B2 && !is_non_enip → emit Anomaly/Possible/Low + increment count` |
@@ -167,7 +167,7 @@ connection_lifecycle::test_connection_counts_tracked
 
 ## Previous Story Intelligence
 
-- STORY-130 defines `CipServiceClass::ForwardOpen` (0x54 & 0x7F) and `::ForwardClose` (0x4E & 0x7F) — available without further modification
+- STORY-132 defines `CipServiceClass::ForwardOpen` (0x54 & 0x7F), `::LargeForwardOpen` (0x5B & 0x7F), and `::ForwardClose` (0x4E & 0x7F) per BC-2.17.007 (15-variant CipServiceClass enum) — available without further modification
 - STORY-132 provides `parse_cpf_items` and `parse_cip_header` used by the `process_pdu` path
 - STORY-133's MITRE seeding is needed as a wave prereq even though ForwardOpen/Close use `vec![]` — the overall MITRE consistency tests check all emitted technique IDs; having an empty `vec![]` passes these checks
 - STORY-138 (Wave 61) reads `open_connection_count` and `close_connection_count` from `EnipFlowState` for the session summary — these counts must be tracked even when the MAX_FINDINGS cap is hit

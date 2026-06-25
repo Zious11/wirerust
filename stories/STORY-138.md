@@ -28,7 +28,7 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-17/BC-2.17.024.md
   - .factory/specs/architecture/decisions/ADR-010-ethernet-ip-cip-stream-dispatch.md
   - .factory/phase-f2-spec-evolution/enip-architecture-delta.md
-input-hash: "fe79905"
+input-hash: "e8f91f1"
 ---
 
 # STORY-138: ENIP Session Lifecycle, Statistics, DoS Guard, and Analyzer Summary
@@ -75,14 +75,16 @@ protected against resource exhaustion.
   - `self.total_pdu_count += flow.pdu_count` — PDU count folded into aggregate (BC-2.17.017 Post 2)
   - `self.parse_errors += flow.parse_errors` — lifetime parse error count folded into aggregate (BC-2.17.017 Post 3)
   - For each `(cmd, count)` in `flow.command_counts`: `self.command_distribution.entry(cmd).or_insert(0) += count` (BC-2.17.017 Post 4)
-  - If `flow_key` is not found: no-op, no panic (BC-2.17.017 Post 5)
+  - If `flow_key` is not found: no-op, no panic; `flows_analyzed` is NOT incremented (BC-2.17.017 Post 5)
   - Findings in `self.all_findings` are unaffected by flow close (BC-2.17.017 Post 6)
+  - `self.flows_analyzed += 1` — incremented when `HashMap::remove` returns `Some` (i.e., the flow existed); unknown-key no-op does NOT increment (BC-2.17.017 Post 6 / Postcondition 6)
 - `EnipFlowState` memory (including `carry: Vec<u8>`) is reclaimed by Rust ownership on remove (BC-2.17.017 Invariant 4)
-- Aggregate counters `total_pdu_count`, `parse_errors`, `command_distribution` grow monotonically (BC-2.17.017 Invariant 2)
+- Aggregate counters `total_pdu_count`, `parse_errors`, `command_distribution`, `flows_analyzed` grow monotonically (BC-2.17.017 Invariant 2)
 - **Test:** `tests/enip_analyzer_tests.rs::session_lifecycle::test_flow_close_removes_state`
 - **Test:** `tests/enip_analyzer_tests.rs::session_lifecycle::test_flow_close_folds_pdu_count`
 - **Test:** `tests/enip_analyzer_tests.rs::session_lifecycle::test_flow_close_folds_parse_errors`
 - **Test:** `tests/enip_analyzer_tests.rs::session_lifecycle::test_flow_close_unknown_key_no_panic`
+- **Test:** `tests/enip_analyzer_tests.rs::session_lifecycle::test_flows_analyzed_incremented_on_flow_close` — assert `analyzer.flows_analyzed == 1` after one flow is opened and closed; assert unknown-key call does NOT increment
 
 ### AC-138-003: Per-flow pdu_count and command_counts accumulated per BC-2.17.024 and BC-2.17.025
 **Traces to:** BC-2.17.024 postconditions 1–5, BC-2.17.025 postcondition 2
@@ -138,10 +140,12 @@ protected against resource exhaustion.
 - `summarize()` does NOT emit new findings (BC-2.17.021 Postcondition 3)
 - `dropped_findings` is reported here for operator awareness (BC-2.17.021 Postcondition 1 / BC-2.17.022 Invariant 4)
 - **REMOVED fields vs. story draft:** `total_frames` and `total_findings` are NOT in BC-2.17.021 schema. The correct fields are `total_pdu_count` (per BC-2.17.024) and `dropped_findings` (per BC-2.17.022). Do not add unspecified keys.
+- `flows_analyzed` reflects the count of analyzed flows (number of `on_flow_close` calls where `HashMap::remove` returned `Some`); for ≥1-flow captures this value MUST be ≥1 (BC-2.17.021 canonical vector: `flows_analyzed: 1`) (traces to BC-2.17.021 postcondition 1 / BC-2.17.017 Postcondition 6)
 - **Test:** `tests/enip_analyzer_tests.rs::session_lifecycle::test_summarize_produces_enip_summary`
 - **Test:** `tests/enip_analyzer_tests.rs::session_lifecycle::test_summary_parse_errors_key_canonical`
 - **Test:** `tests/enip_analyzer_tests.rs::session_lifecycle::test_summary_zero_flow_case`
 - **Test:** `tests/enip_analyzer_tests.rs::session_lifecycle::test_summary_dropped_findings`
+- **Test:** `tests/enip_analyzer_tests.rs::session_lifecycle::test_summary_flows_analyzed_nonzero` — open and close one flow; call `summarize()`; assert `enip_summary.flows_analyzed >= 1` (validates BC-2.17.021 canonical vector)
 
 ## Architecture Mapping
 
@@ -202,7 +206,7 @@ The key `parse_errors` is CANONICAL — not `total_parse_errors` (BC-2.17.021 In
 - [ ] In `process_pdu`, after command classification: `flow.command_counts.entry(header.command).or_insert(0) += 1` (BC-2.17.025 Post 2)
 - [ ] For RegisterSession and UnRegisterSession: no finding emitted; pdu_count and command_counts already updated above (BC-2.17.025 Post 3)
 - [ ] Gate every finding push: `if self.all_findings.len() < MAX_FINDINGS { push } else { self.dropped_findings += 1 }` (BC-2.17.022) — do NOT set one-shot guards on cap-suppressed findings (BC-2.17.022 Post 5)
-- [ ] Implement `EnipAnalyzer::on_flow_close(flow_key)`: remove flow from `self.flows`; fold `pdu_count`, `parse_errors`, `command_counts` into aggregates; no-op on missing key (BC-2.17.017)
+- [ ] Implement `EnipAnalyzer::on_flow_close(flow_key)`: remove flow from `self.flows`; if `HashMap::remove` returns `Some(flow)`: fold `pdu_count`, `parse_errors`, `command_counts` into aggregates AND `self.flows_analyzed += 1` (BC-2.17.017 Post 6); if `HashMap::remove` returns `None` (unknown key): no-op, do NOT increment `flows_analyzed` (BC-2.17.017 Post 5)
 - [ ] Implement `EnipAnalyzer::summarize()`: read aggregate fields; produce `enip_summary` JSON with canonical key `parse_errors` (NOT `total_parse_errors`); include all BC-2.17.021 fields; zero-flow case produces valid JSON object (BC-2.17.021)
 - [ ] Add `mod session_lifecycle { ... }` test wrapper to `tests/enip_analyzer_tests.rs` with all AC-138 tests
 - [ ] Run `cargo test enip` — all session_lifecycle tests pass
@@ -228,10 +232,12 @@ session_lifecycle::test_command_count_accumulates
 session_lifecycle::test_max_findings_cap
 session_lifecycle::test_dropped_findings_incremented_at_cap
 session_lifecycle::test_stats_accumulate_past_max_findings
+session_lifecycle::test_flows_analyzed_incremented_on_flow_close
 session_lifecycle::test_summarize_produces_enip_summary
 session_lifecycle::test_summary_parse_errors_key_canonical
 session_lifecycle::test_summary_zero_flow_case
 session_lifecycle::test_summary_dropped_findings
+session_lifecycle::test_summary_flows_analyzed_nonzero
 ```
 
 ## Previous Story Intelligence

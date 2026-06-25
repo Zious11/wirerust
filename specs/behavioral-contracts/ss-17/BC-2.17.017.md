@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.0"
+version: "1.1"
 status: draft
 producer: product-owner
 timestamp: 2026-06-24T00:00:00Z
@@ -13,7 +13,8 @@ subsystem: SS-17
 capability: CAP-17
 lifecycle_status: active
 introduced: v0.11.0-feature-enip
-modified: []
+modified:
+  - "v1.1 F3 story-convergence: flows_analyzed increment site added (F-P6-001 dead-counter fix)"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -52,17 +53,28 @@ flow_key.
 4. For each `(cmd, count)` in `flow.command_counts`:
    `self.command_distribution.entry(cmd).or_insert(0) += count`.
 5. If `flow_key` is not found in `self.flows` (already closed or never opened): no-op (no panic).
-6. Findings already in `self.all_findings` are not affected by flow close.
+6. **`self.flows_analyzed += 1`** — the count of distinct TCP flows that have been fully analyzed
+   (closed and drained) is incremented. This is the only increment site for `flows_analyzed`;
+   it fires for every successful `flows.remove` (Postcondition 5 no-op exception: unknown
+   flow_key does NOT increment `flows_analyzed`). Reported by `summarize()` as
+   `enip_summary.flows_analyzed` (BC-2.17.021). Mirrors the DNP3/Modbus closed-flow counting
+   pattern — a flow is "analyzed" when its lifetime state has been folded into aggregates.
+7. Findings already in `self.all_findings` are not affected by flow close.
 
 ## Invariants
 
 1. **No double-free**: `HashMap::remove` returns `Option`; missing key is handled gracefully
    (no panic). An absent flow_key on `on_flow_close` is silently ignored.
-2. **Aggregate counters are additive**: `total_pdu_count`, `parse_errors`, and
-   `command_distribution` grow monotonically; they are never decremented by flow close.
-3. **Findings persist**: all findings emitted during the flow's lifetime remain in
+2. **Aggregate counters are additive**: `total_pdu_count`, `parse_errors`, `command_distribution`,
+   and `flows_analyzed` grow monotonically; they are never decremented by flow close.
+3. **flows_analyzed is the ONLY increment site**: `EnipAnalyzer.flows_analyzed` is incremented
+   exclusively here, on successful flow removal (`HashMap::remove` returns `Some`). It is
+   NOT incremented on first-PDU, not in `on_data`, and not in `summarize()`. This mirrors the
+   DNP3/Modbus "closed-flow count" pattern and ensures `flows_analyzed` equals the number of
+   TCP sessions that have been fully processed and torn down.
+4. **Findings persist**: all findings emitted during the flow's lifetime remain in
    `self.all_findings` after the flow is closed.
-4. **Memory reclamation**: `EnipFlowState` (including its carry Vec<u8>) is dropped by Rust's
+5. **Memory reclamation**: `EnipFlowState` (including its carry Vec<u8>) is dropped by Rust's
    ownership rules when removed from the HashMap — no explicit memory management required.
 
 ## Edge Cases
@@ -78,9 +90,10 @@ flow_key.
 
 | Flow state before close | Expected aggregate delta |
 |------------------------|------------------------|
-| `pdu_count=10, parse_errors=2, command_counts={0x006F: 8, 0x0063: 2}` | `total_pdu_count += 10; parse_errors += 2; command_distribution[0x006F] += 8; command_distribution[0x0063] += 2` |
-| `pdu_count=0, parse_errors=0` | no aggregate change |
-| `is_non_enip=true, parse_errors=1` | `parse_errors += 1` |
+| `pdu_count=10, parse_errors=2, command_counts={0x006F: 8, 0x0063: 2}` | `total_pdu_count += 10; parse_errors += 2; command_distribution[0x006F] += 8; command_distribution[0x0063] += 2; flows_analyzed += 1` |
+| `pdu_count=0, parse_errors=0` | `flows_analyzed += 1` (even zero-PDU flows that opened are counted) |
+| `is_non_enip=true, parse_errors=1` | `parse_errors += 1; flows_analyzed += 1` |
+| Unknown flow_key (not in self.flows) | no-op; `flows_analyzed` NOT incremented |
 
 ## Verification Properties
 
@@ -102,7 +115,7 @@ flow_key.
 
 ## Related BCs
 
-- BC-2.17.021 — composes with (aggregate counters updated here are consumed by summarize())
+- BC-2.17.021 — composes with (aggregate counters updated here, including flows_analyzed, are consumed by summarize())
 - BC-2.17.016 — depends on (carry memory released on flow close)
 
 ## Architecture Anchors
@@ -110,6 +123,7 @@ flow_key.
 - `src/analyzer/enip.rs` — `EnipAnalyzer::on_flow_close(flow_key)` — StreamHandler trait method
 - `src/analyzer/enip.rs` — `EnipAnalyzer.flows: HashMap<FlowKey, EnipFlowState>`
 - `src/analyzer/enip.rs` — `EnipAnalyzer.total_pdu_count: u64`, `.parse_errors: u64`, `.command_distribution: HashMap<u16, u64>`
+- `src/analyzer/enip.rs` — `EnipAnalyzer.flows_analyzed: u64` — **sole increment site: `if let Some(flow) = self.flows.remove(&flow_key) { self.flows_analyzed += 1; ... }`**
 
 ## Story Anchor
 
@@ -132,7 +146,7 @@ flow_key.
 | Property | Assessment |
 |----------|-----------|
 | **I/O operations** | none |
-| **Global state access** | removes from flows HashMap; mutates total_pdu_count, parse_errors, command_distribution |
+| **Global state access** | removes from flows HashMap; mutates total_pdu_count, parse_errors, command_distribution, flows_analyzed |
 | **Deterministic** | yes |
 | **Thread safety** | single-threaded |
 | **Overall classification** | effectful shell |

@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.0"
+version: "1.1"
 status: draft
 producer: product-owner
 timestamp: 2026-06-24T00:00:00Z
@@ -13,7 +13,8 @@ subsystem: SS-17
 capability: CAP-17
 lifecycle_status: active
 introduced: v0.11.0-feature-enip
-modified: []
+modified:
+  - "v1.1 F3 story-convergence: error_count aggregate increment added as formal Postcondition 2b; Purity Classification corrected (mutates, not reads); dead-counter sweep (F-P6-001)"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -64,6 +65,10 @@ immediately without any counter update. All postconditions below apply only when
    byte 3 = additional_status_size).
 2. If `general_status != 0x00` (error response):
    - `flow.error_counts_in_window.entry(general_status).or_insert(0) += 1`.
+   - `EnipAnalyzer.error_count += 1` — **lifetime aggregate counter** incremented on every
+     non-zero general_status response. This is the sole increment site for `error_count`
+     (the aggregate lifetime counter reported by `summarize()` via BC-2.17.021). The windowed
+     `error_counts_in_window` (above) and this lifetime counter are updated together.
    - If `flow.error_window_start_ts == 0` (first error in window): seed
      `flow.error_window_start_ts = now_ts`.
 3. If `general_status == 0x00` (success response): no error counter update.
@@ -180,7 +185,7 @@ Expected: no error counter update
 | Property | Assessment |
 |----------|-----------|
 | **I/O operations** | none |
-| **Global state access** | mutates flow.error_counts_in_window, flow.error_window_start_ts; reads EnipAnalyzer.error_count |
+| **Global state access** | mutates flow.error_counts_in_window, flow.error_window_start_ts, EnipAnalyzer.error_count |
 | **Deterministic** | yes — same response sequence produces same counter state |
 | **Thread safety** | single-threaded |
 | **Overall classification** | effectful shell (response detection within process_pdu) |
