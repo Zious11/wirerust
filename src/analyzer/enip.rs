@@ -216,9 +216,17 @@ pub struct EnipFlowState {
     /// Timestamp (pcap-relative seconds, u32) of the first error in the current window.
     ///
     /// Seeded on the first error response in a new window (BC-2.17.008 postcondition 2).
-    /// Value 0 indicates no error has been seen in the current window yet.
+    /// Valid only when `error_window_active` is `true`.
     /// Field name is normative per BC-2.17.008 postcondition 2.
     pub error_window_start_ts: u32,
+
+    /// Active flag for the 10-second error window (BC-2.17.008).
+    ///
+    /// `false` until the first qualifying CIP error response arrives; thereafter `true`.
+    /// Guards the window-expiry branch so that timestamp==0 is a valid window-start
+    /// value, not a sentinel for "no error seen yet" (fixes F-134-001).
+    /// Reset to `false` is NOT performed on expiry — the window is reseeded, not closed.
+    pub error_window_active: bool,
 
     /// One-shot guard for T0888 Pattern B (error-burst finding per window).
     ///
@@ -279,6 +287,7 @@ impl EnipFlowState {
         Self {
             error_counts_in_window: HashMap::new(),
             error_window_start_ts: 0,
+            error_window_active: false,
             error_rate_emitted: false,
             list_identity_emitted: false,
             is_non_enip: false,
@@ -504,8 +513,10 @@ impl EnipAnalyzer {
 
                 if general_status != 0x00 {
                     // BC-2.17.008 postcondition 4: check for window expiry BEFORE updating
-                    // counters. Only applicable when an active window exists (start_ts != 0).
-                    if flow.error_window_start_ts != 0
+                    // counters. Only applicable when an active window exists. Uses
+                    // error_window_active (not error_window_start_ts == 0) so that a
+                    // legitimate timestamp of 0 is not mistaken for "unseeded" (F-134-001).
+                    if flow.error_window_active
                         && timestamp.wrapping_sub(flow.error_window_start_ts) > 10
                     {
                         flow.error_counts_in_window.clear();
@@ -519,8 +530,9 @@ impl EnipAnalyzer {
                         .entry(general_status)
                         .or_insert(0) += 1;
                     // BC-2.17.008 postcondition 2: seed window timestamp on first error.
-                    if flow.error_window_start_ts == 0 {
+                    if !flow.error_window_active {
                         flow.error_window_start_ts = timestamp;
+                        flow.error_window_active = true;
                     }
                     // BC-2.17.008 postcondition 2b: aggregate lifetime counter.
                     self.error_count += 1;

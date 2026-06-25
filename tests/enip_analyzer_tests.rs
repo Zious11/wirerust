@@ -3304,4 +3304,178 @@ mod recon {
              findings emitted (BC-2.17.014 precondition 3 / precondition 5; EC-010)"
         );
     }
+
+    // =========================================================================
+    // F-134-001 REGRESSION: error window must reset when first error is at ts=0
+    // Traces: BC-2.17.008 PC-2 / PC-4; BC-2.17.014 EC-007
+    // =========================================================================
+
+    /// F-134-001 regression — error window resets correctly when the first qualifying
+    /// CIP error arrives at timestamp==0.
+    ///
+    /// The prior implementation overloaded `error_window_start_ts == 0` as both the
+    /// "no error seen yet" sentinel AND the window-seeded-at-zero case.  When a valid
+    /// error arrived at pcap-relative second 0, the sentinel branch was permanently
+    /// skipped, so `error_counts_in_window` accumulated unbounded and
+    /// `error_rate_emitted` never re-armed.
+    ///
+    /// Correct behaviour (BC-2.17.008 postconditions 2 + 4):
+    ///   1. First qualifying error at ts=0 seeds the window: `error_window_active = true`,
+    ///      `error_window_start_ts = 0`, `error_counts_in_window[status] = 1`.
+    ///   2. A second qualifying error at ts=12: `12u32.wrapping_sub(0) = 12 > 10` →
+    ///      window resets before accumulating → `error_counts_in_window[status] = 1`
+    ///      (not 2), and `error_rate_emitted` is `false` (re-armed).
+    ///
+    /// This test FAILS against the buggy sentinel-0 code and PASSES after the fix.
+    ///
+    /// Traces: BC-2.17.008 postconditions 2 and 4; F-134-001; EC-007.
+    #[test]
+    fn test_error_window_resets_after_10s_from_ts_zero() {
+        let mut analyzer = EnipAnalyzer::new(50, 5);
+        let mut flow = EnipFlowState::new();
+
+        let cip_data = cip_error_response(0x08);
+        let pdu = sendrr_pdu_with_cip(&cip_data);
+
+        // First qualifying CIP error at timestamp == 0 (pcap-relative second 0).
+        // BC-2.17.008 PC-2: window is seeded; error_window_active becomes true,
+        // error_window_start_ts = 0, error_counts_in_window[0x08] = 1.
+        analyzer.process_pdu(&mut flow, &pdu, 0, src_ip());
+
+        assert_eq!(
+            flow.error_counts_in_window.get(&0x08).copied().unwrap_or(0),
+            1,
+            "pre-condition: first error at ts=0 must seed the window with count=1 \
+             (BC-2.17.008 postcondition 2; F-134-001)"
+        );
+
+        // Second qualifying error at ts=12.  12u32.wrapping_sub(0) = 12 > 10:
+        // BC-2.17.008 PC-4 must fire, clearing error_counts_in_window and reseeding.
+        // After the reset the new error is counted → error_counts_in_window[0x08] == 1.
+        // (With the old sentinel-0 bug this returns 2 because the expiry branch was
+        // never entered.)
+        analyzer.process_pdu(&mut flow, &pdu, 12, src_ip());
+
+        let count_after_reset = flow.error_counts_in_window.get(&0x08).copied().unwrap_or(0);
+        assert_eq!(
+            count_after_reset, 1,
+            "after >10s gap from ts=0, window must reset; error_counts_in_window[0x08] \
+             must be 1 (only the post-reset error), not 2 — sentinel-0 collision (F-134-001; \
+             BC-2.17.008 postcondition 4)"
+        );
+        assert!(
+            !flow.error_rate_emitted,
+            "error_rate_emitted must be re-armed (false) after window reset at ts=0 boundary \
+             (BC-2.17.008 postcondition 4; F-134-001)"
+        );
+    }
+
+    // =========================================================================
+    // O-134-001 CANONICAL CPF-OFFSET HOLDOUT (DF-CANONICAL-FRAME-HOLDOUT-001)
+    // Traces: BC-2.17.014 Pattern A; BC-2.17.005; ADR-010 Decision 6
+    // =========================================================================
+
+    /// O-134-001 — canonical SendRRData frame with authoritative ODVA byte layout
+    /// triggers T0888 Pattern A (Identity Object GetAttributesAll reconnaissance).
+    ///
+    /// This holdout pins the CPF list offset at pdu[30] against a shared-misunderstanding
+    /// +/-2 error.  The frame is built byte-by-byte from the ODVA EtherNet/IP spec;
+    /// every field offset is documented in-line.
+    ///
+    /// Canonical ODVA byte layout:
+    ///   pdu[0..2]   ENIP command = 0x006F (SendRRData), LE
+    ///   pdu[2..4]   ENIP length  = 22 (payload after header), LE
+    ///   pdu[4..8]   Session Handle = 0x00000000
+    ///   pdu[8..12]  Status = 0x00000000
+    ///   pdu[12..20] Sender Context = 0x0000000000000000
+    ///   pdu[20..24] Options = 0x00000000
+    ///   ---- ENIP header ends at byte 24 ----
+    ///   pdu[24..28] Interface Handle = 0x00000000
+    ///   pdu[28..30] Timeout = 0x0000
+    ///   ---- CPF list begins at pdu[30] ----
+    ///   pdu[30..32] CPF item_count = 2, LE
+    ///   pdu[32..34] NullAddress item type  = 0x0000, LE
+    ///   pdu[34..36] NullAddress item length = 0x0000, LE
+    ///   pdu[36..38] UnconnectedData item type   = 0x00B2, LE
+    ///   pdu[38..40] UnconnectedData item length = 6 (CIP request size), LE
+    ///   ---- CIP request begins at pdu[40] ----
+    ///   pdu[40]     CIP service = 0x01 (GetAttributesAll, request; bit 7 clear)
+    ///   pdu[41]     request_path_size = 2 words (4 bytes)
+    ///   pdu[42]     0x20 (Class segment type, 1-byte)
+    ///   pdu[43]     0x01 (Class ID = Identity Object)
+    ///   pdu[44]     0x24 (Instance segment type, 1-byte)
+    ///   pdu[45]     0x01 (Instance = 1)
+    ///
+    /// Asserts: exactly one T0888 finding with mitre_technique == "T0888".
+    ///
+    /// Traces: BC-2.17.014 Pattern A postcondition 1; BC-2.17.005; O-134-001;
+    /// DF-CANONICAL-FRAME-HOLDOUT-001; ADR-010 Decision 6.
+    #[test]
+    fn test_process_pdu_canonical_sendrr_cpf_offset() {
+        let mut analyzer = EnipAnalyzer::new(50, 5);
+        let mut flow = EnipFlowState::new();
+
+        // Build canonical ODVA SendRRData frame by field offset (see doc-comment above).
+        let mut pdu = vec![0u8; 46];
+
+        // pdu[0..2]: ENIP command = 0x006F (SendRRData), LE
+        pdu[0] = 0x6F;
+        pdu[1] = 0x00;
+        // pdu[2..4]: ENIP length = 22 (bytes 24..46 = 22 bytes of payload), LE
+        pdu[2] = 22u8;
+        pdu[3] = 0x00;
+        // pdu[4..8]: Session Handle = 0 (4 bytes, all zero)
+        // pdu[8..12]: Status = 0 (4 bytes, all zero)
+        // pdu[12..20]: Sender Context = 0 (8 bytes, all zero)
+        // pdu[20..24]: Options = 0 (4 bytes, all zero)
+        // — bytes 4..24 already zero from vec initialisation —
+
+        // pdu[24..28]: Interface Handle = 0x00000000 (already zero)
+        // pdu[28..30]: Timeout = 0x0000 (already zero)
+
+        // pdu[30..32]: CPF item_count = 2, LE
+        pdu[30] = 0x02;
+        pdu[31] = 0x00;
+
+        // pdu[32..34]: NullAddress item type = 0x0000, LE (already zero)
+        // pdu[34..36]: NullAddress item length = 0x0000, LE (already zero)
+
+        // pdu[36..38]: UnconnectedData item type = 0x00B2, LE
+        pdu[36] = 0xB2;
+        pdu[37] = 0x00;
+
+        // pdu[38..40]: UnconnectedData item length = 6 (CIP request is 6 bytes), LE
+        pdu[38] = 0x06;
+        pdu[39] = 0x00;
+
+        // pdu[40]: CIP service = 0x01 (GetAttributesAll request; bit 7 clear = request)
+        pdu[40] = 0x01;
+        // pdu[41]: request_path_size = 2 words (4 bytes of path follow)
+        pdu[41] = 0x02;
+        // pdu[42]: Class segment type = 0x20 (1-byte class)
+        pdu[42] = 0x20;
+        // pdu[43]: Class ID = 0x01 (Identity Object)
+        pdu[43] = 0x01;
+        // pdu[44]: Instance segment type = 0x24 (1-byte instance)
+        pdu[44] = 0x24;
+        // pdu[45]: Instance = 0x01
+        pdu[45] = 0x01;
+
+        analyzer.process_pdu(&mut flow, &pdu, 100, src_ip());
+
+        assert_eq!(
+            analyzer.all_findings.len(),
+            1,
+            "canonical SendRRData with CIP GetAttributesAll(Class 0x01) must produce \
+             exactly 1 T0888 finding (BC-2.17.014 Pattern A; O-134-001; \
+             DF-CANONICAL-FRAME-HOLDOUT-001)"
+        );
+        assert!(
+            analyzer.all_findings[0]
+                .mitre_techniques
+                .contains(&"T0888".to_string()),
+            "finding must carry MITRE technique T0888 (BC-2.17.014 Pattern A postcondition 1; \
+             O-134-001)"
+        );
+    }
 }
