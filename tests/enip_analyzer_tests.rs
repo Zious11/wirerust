@@ -1,9 +1,11 @@
-//! Integration tests for the EtherNet/IP module (SS-17, STORY-130 + STORY-131).
+//! Integration tests for the EtherNet/IP module (SS-17, STORY-130 + STORY-131 + STORY-132).
 //!
 //! `mod parse_header` — STORY-130 pure-core parse tests (GREEN).
 //! `mod dispatch`     — STORY-131 dispatcher/CLI integration tests (GREEN).
+//! `mod cpf_cip`      — STORY-132 CPF item walk, CIP header parse, path extract (GREEN).
 //!
-//! Traces to: BC-2.17.001–004 (parse_header), BC-2.17.019/020/023/026 (dispatch).
+//! Traces to: BC-2.17.001–004 (parse_header), BC-2.17.019/020/023/026 (dispatch),
+//!            BC-2.17.005/006/007/009 (cpf_cip).
 
 use wirerust::analyzer::enip::{
     EnipCommandClass, EnipHeader, classify_enip_command, is_valid_enip_frame, parse_enip_header,
@@ -1057,6 +1059,739 @@ mod dispatch {
         assert!(
             analyzer.bytes_received > 0,
             "bytes_received must be > 0: port-44818 data must reach analyzer (wiring confirmation)"
+        );
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// STORY-132 CPF item walk, CIP header parse, CIP path extraction tests (GREEN — STORY-132 implemented).
+//
+// Traces to: BC-2.17.005 (cpf_items), BC-2.17.006 (cip_header),
+//            BC-2.17.007 (classify_cip_service), BC-2.17.009 (cip_request_path).
+//
+// IMPLEMENTATION STATUS (STORY-132 complete):
+// All 4 functions under test (`parse_cpf_items`, `parse_cip_header`,
+// `classify_cip_service`, `parse_cip_request_path`) are fully implemented;
+// all 19 tests pass. These tests originated as Red-Gate stubs (none could
+// pass until the implementations landed in STORY-132).
+//
+// GREEN:
+//   test_parse_cpf_items_single_item             — BC-2.17.005 PC 1–3 (single UnconnectedData item)
+//   test_parse_cpf_items_two_items               — BC-2.17.005 PC 4 (two-item list)
+//   test_parse_cpf_items_empty                   — BC-2.17.005 PC 1/3 (len < 2 → empty vec)
+//   test_parse_cpf_items_truncated               — BC-2.17.005 PC 1/3 (short buf → safe empty)
+//   test_cpf_item_type_ids                       — BC-2.17.005 (NullAddress / ConnectedData / UnconnectedData type IDs)
+//   test_parse_cip_header_request                — BC-2.17.006 PC 1–4 (valid request frame)
+//   test_parse_cip_header_response               — BC-2.17.006 PC 2 (response bit set)
+//   test_parse_cip_header_too_short              — BC-2.17.006 PC 5 (< 2 bytes → None)
+//   test_parse_cip_header_truncated_path         — BC-2.17.006 (path words exceed buffer)
+//   test_cip_parse_skips_0x00b1_items            — BC-2.17.006 (0x00B1 ConnectedData items skipped)
+//   test_cip_parse_processes_0x00b2_items        — BC-2.17.006 (0x00B2 UnconnectedData items parsed)
+//   test_parse_cip_path_empty                    — BC-2.17.009 PC 4 (zero-word path → empty vec)
+//   test_parse_cip_path_class_only               — BC-2.17.009 PC 1 (class segment only)
+//   test_parse_cip_path_class_instance_attr      — BC-2.17.009 PC 1–3 (class + instance + attr)
+//   test_parse_cip_path_unrecognized_skip        — BC-2.17.009 Unknown arm (unrecognized segment skipped)
+//   test_parse_cip_path_odd_length_safe          — BC-2.17.009 (odd path_size_words safe)
+//   test_classify_cip_service_named_codes        — BC-2.17.007 totality (all named service codes)
+//   test_classify_cip_service_response_bit       — BC-2.17.007 (response bit → Response variant)
+//   test_classify_cip_service_unknown            — BC-2.17.007 Unknown arm
+// ─────────────────────────────────────────────────────────────────────────────
+mod cpf_cip {
+    use wirerust::analyzer::enip::{
+        CipPathSegment, CipServiceClass, CpfItem, classify_cip_service, parse_cip_header,
+        parse_cip_request_path, parse_cpf_items,
+    };
+
+    // -------------------------------------------------------------------------
+    // AC-132-001: parse_cpf_items returns a typed item list
+    // Traces: BC-2.17.005 postconditions 1–4
+    // -------------------------------------------------------------------------
+
+    /// AC-132-001 — single CPF item: item_count=1, type_id=0x00B2, length=4, data=[AA BB CC DD].
+    ///
+    /// Wire layout (cpf_data):
+    ///   [0..2]  01 00  item_count = 1 (LE)
+    ///   [2..4]  B2 00  type_id   = 0x00B2 (LE) — UnconnectedData
+    ///   [4..6]  04 00  length    = 4 (LE, transient parse local)
+    ///   [6..10] AA BB CC DD  item data (4 bytes)
+    ///
+    /// Asserts: exactly one CpfItem returned, type_id == 0x00B2, data == [0xAA,0xBB,0xCC,0xDD].
+    ///
+    /// Traces: BC-2.17.005 postconditions 1, 2, 3.
+    #[test]
+    fn test_parse_cpf_items_single_item() {
+        let cpf_data: &[u8] = &[
+            0x01, 0x00, // item_count = 1
+            0xB2, 0x00, // type_id = 0x00B2 (UnconnectedData)
+            0x04, 0x00, // length = 4
+            0xAA, 0xBB, 0xCC, 0xDD, // data
+        ];
+        let items = parse_cpf_items(cpf_data);
+        assert_eq!(
+            items.len(),
+            1,
+            "must return exactly 1 CpfItem for item_count=1"
+        );
+        assert_eq!(
+            items[0].type_id, 0x00B2,
+            "type_id must be 0x00B2 (UnconnectedData)"
+        );
+        assert_eq!(
+            items[0].data,
+            vec![0xAA, 0xBB, 0xCC, 0xDD],
+            "data must be the 4 item payload bytes"
+        );
+    }
+
+    /// AC-132-001 — two CPF items: item_count=2; first 0x0000 null (length 0),
+    /// second 0x00B2 (length 2, data=[0x4E, 0x01]).
+    ///
+    /// Wire layout:
+    ///   [0..2]  02 00  item_count = 2
+    ///   [2..4]  00 00  type_id = 0x0000 (NullAddress)
+    ///   [4..6]  00 00  length = 0
+    ///   [6..8]  B2 00  type_id = 0x00B2 (UnconnectedData)
+    ///   [8..10] 02 00  length = 2
+    ///   [10..12] 4E 01 data
+    ///
+    /// Asserts: 2 items; items[0].type_id=0x0000 with empty data; items[1].type_id=0x00B2
+    /// with data=[0x4E,0x01].
+    ///
+    /// Traces: BC-2.17.005 postconditions 1–3; EC-001 (null addr item with length=0).
+    #[test]
+    fn test_parse_cpf_items_two_items() {
+        let cpf_data: &[u8] = &[
+            0x02, 0x00, // item_count = 2
+            0x00, 0x00, // type_id = 0x0000 (NullAddress)
+            0x00, 0x00, // length = 0
+            0xB2, 0x00, // type_id = 0x00B2 (UnconnectedData)
+            0x02, 0x00, // length = 2
+            0x4E, 0x01, // data
+        ];
+        let items = parse_cpf_items(cpf_data);
+        assert_eq!(
+            items.len(),
+            2,
+            "must return exactly 2 CpfItems for item_count=2"
+        );
+        assert_eq!(
+            items[0].type_id, 0x0000,
+            "first item type_id must be 0x0000 (NullAddress)"
+        );
+        assert!(
+            items[0].data.is_empty(),
+            "NullAddress item must have empty data"
+        );
+        assert_eq!(
+            items[1].type_id, 0x00B2,
+            "second item type_id must be 0x00B2 (UnconnectedData)"
+        );
+        assert_eq!(
+            items[1].data,
+            vec![0x4E, 0x01],
+            "second item data must be [0x4E, 0x01]"
+        );
+    }
+
+    /// AC-132-001 — too short for item_count (1 byte): returns vec![].
+    ///
+    /// BC-2.17.005 postcondition 1: returns vec![] if cpf_data.len() < 2 (cannot read
+    /// item_count). EC-002: 0 bytes and 1 byte are both too short.
+    ///
+    /// Traces: BC-2.17.005 postcondition 1; EC-002.
+    #[test]
+    fn test_parse_cpf_items_empty() {
+        // 0-byte input: cannot read item_count
+        let empty: &[u8] = &[];
+        assert_eq!(
+            parse_cpf_items(empty),
+            vec![],
+            "0-byte input must return vec![] (cannot read item_count)"
+        );
+        // 1-byte input: also cannot read 2-byte item_count
+        let one_byte: &[u8] = &[0x01];
+        assert_eq!(
+            parse_cpf_items(one_byte),
+            vec![],
+            "1-byte input must return vec![] (cannot read item_count)"
+        );
+    }
+
+    /// AC-132-001 — truncated item: item_count=1, type_id=0x00B2, declared length=5
+    /// but only 3 data bytes present. Stops iteration; returns partial list (0 items).
+    ///
+    /// Wire layout:
+    ///   [0..2]  01 00  item_count = 1
+    ///   [2..4]  B2 00  type_id = 0x00B2
+    ///   [4..6]  05 00  length = 5 (declares 5 bytes of data)
+    ///   [6..9]  AA BB CC  only 3 bytes available (bounds violation)
+    ///
+    /// BC-2.17.005 postcondition 3 (stops on bounds violation). EC-003: declares length=5
+    /// but only 3 bytes remain — `cursor + 4 + 5 = 11 > 9`; item is not appended.
+    ///
+    /// Traces: BC-2.17.005 postcondition 3; EC-003.
+    #[test]
+    fn test_parse_cpf_items_truncated() {
+        let cpf_data: &[u8] = &[
+            0x01, 0x00, // item_count = 1
+            0xB2, 0x00, // type_id = 0x00B2
+            0x05, 0x00, // length = 5 (truncated — only 3 bytes follow)
+            0xAA, 0xBB, 0xCC, // only 3 bytes of the declared 5
+        ];
+        let items = parse_cpf_items(cpf_data);
+        assert_eq!(
+            items.len(),
+            0,
+            "truncated item must be discarded; partial list = 0 items (bounds violation)"
+        );
+    }
+
+    // -------------------------------------------------------------------------
+    // AC-132-002: CpfItem carries type_id and data — three recognized type_ids
+    // Traces: BC-2.17.005 postcondition 2
+    // -------------------------------------------------------------------------
+
+    /// AC-132-002 — CpfItem type_ids: 0x00B2, 0x00B1, and 0x0000 are all valid to construct.
+    ///
+    /// Verifies: struct has exactly `type_id: u16` and `data: Vec<u8>` (no `length` field).
+    /// Tests round-trip via parse: construct a 3-item CPF payload and verify type_ids.
+    ///
+    /// Traces: BC-2.17.005 postcondition 2 (type_id and data fields; `length` is transient).
+    #[test]
+    fn test_cpf_item_type_ids() {
+        // Direct construction — verifies struct field names and types.
+        let null_item = CpfItem {
+            type_id: 0x0000,
+            data: vec![],
+        };
+        let connected_item = CpfItem {
+            type_id: 0x00B1,
+            data: vec![0x00, 0x01],
+        };
+        let unconnected_item = CpfItem {
+            type_id: 0x00B2,
+            data: vec![0x4E, 0x02],
+        };
+
+        assert_eq!(
+            null_item.type_id, 0x0000,
+            "NullAddress type_id must be 0x0000"
+        );
+        assert!(null_item.data.is_empty(), "NullAddress data must be empty");
+        assert_eq!(
+            connected_item.type_id, 0x00B1,
+            "ConnectedData type_id must be 0x00B1"
+        );
+        assert_eq!(
+            connected_item.data.len(),
+            2,
+            "ConnectedData data len must be 2"
+        );
+        assert_eq!(
+            unconnected_item.type_id, 0x00B2,
+            "UnconnectedData type_id must be 0x00B2"
+        );
+        assert_eq!(
+            unconnected_item.data.len(),
+            2,
+            "UnconnectedData data len must be 2"
+        );
+
+        // Verify via parse: a 3-item CPF payload with all three type_ids.
+        //   item_count=3
+        //   NullAddress (0x0000, length=0)
+        //   ConnectedData (0x00B1, length=2, data=[0x00, 0x01])
+        //   UnconnectedData (0x00B2, length=2, data=[0x4E, 0x02])
+        let cpf_data: &[u8] = &[
+            0x03, 0x00, // item_count = 3
+            0x00, 0x00, 0x00, 0x00, // 0x0000, length=0
+            0xB1, 0x00, 0x02, 0x00, 0x00, 0x01, // 0x00B1, length=2, data=[0x00,0x01]
+            0xB2, 0x00, 0x02, 0x00, 0x4E, 0x02, // 0x00B2, length=2, data=[0x4E,0x02]
+        ];
+        let items = parse_cpf_items(cpf_data);
+        assert_eq!(items.len(), 3, "3-item CPF payload must produce 3 CpfItems");
+        assert_eq!(items[0].type_id, 0x0000);
+        assert_eq!(items[1].type_id, 0x00B1);
+        assert_eq!(items[2].type_id, 0x00B2);
+    }
+
+    // -------------------------------------------------------------------------
+    // AC-132-003: parse_cip_header parses CIP header from 0x00B2 item data
+    // Traces: BC-2.17.006 postconditions 1–7
+    // -------------------------------------------------------------------------
+
+    /// AC-132-003 — request CIP header: service=0x4E (ForwardClose request, high bit clear),
+    /// request_path_size=1 word (2 bytes), path=[0x20, 0x06].
+    ///
+    /// item_data layout:
+    ///   [0]    0x4E   service byte (ForwardClose, request; bit7=0)
+    ///   [1]    0x01   request_path_size = 1 word (transient parse local; NOT a struct field)
+    ///   [2..4] 20 06  request_path (1 word = 2 bytes)
+    ///
+    /// Asserts: returns Some; service=0x4E; request_path=[0x20,0x06].
+    ///
+    /// Traces: BC-2.17.006 postconditions 1, 2, 3, 4; EC-005 via request_path_size=1.
+    #[test]
+    fn test_parse_cip_header_request() {
+        let item_data: &[u8] = &[
+            0x4E, // service = 0x4E (ForwardClose request; high bit clear)
+            0x01, // request_path_size = 1 word (transient local; path_byte_count = 2)
+            0x20, 0x06, // request_path = [0x20, 0x06] (Class segment for CIP Router)
+        ];
+        let result = parse_cip_header(item_data);
+        let hdr = result.expect("must return Some for well-formed 0x00B2 item data");
+        assert_eq!(
+            hdr.service, 0x4E,
+            "service must be 0x4E (ForwardClose request)"
+        );
+        assert_eq!(
+            hdr.request_path,
+            vec![0x20, 0x06],
+            "request_path must be [0x20, 0x06] (1 word = 2 bytes)"
+        );
+    }
+
+    /// AC-132-003 — response CIP header: service=0xCE (ForwardClose response, high bit set).
+    ///
+    /// Response items have service | 0x80; `request_path_size` byte is still present but
+    /// per BC-2.17.006 the struct only carries `service` and `request_path`. CipHeader does
+    /// NOT carry `general_status` (BC-2.17.006 postcondition 7; Architecture Rule 5).
+    ///
+    /// item_data layout:
+    ///   [0]    0xCE   service byte (ForwardClose response; bit7=1 = response flag)
+    ///   [1]    0x00   request_path_size = 0 (no path for response; transient local)
+    ///   (no path bytes follow since path_byte_count = 0)
+    ///
+    /// Asserts: returns Some; service=0xCE; request_path is empty.
+    ///
+    /// Traces: BC-2.17.006 postconditions 1, 2, 4; postcondition 7 (general_status absent).
+    #[test]
+    fn test_parse_cip_header_response() {
+        let item_data: &[u8] = &[
+            0xCE, // service = 0xCE (0x4E | 0x80 = ForwardClose response)
+            0x00, // request_path_size = 0 words (transient local; no path bytes)
+        ];
+        let result = parse_cip_header(item_data);
+        let hdr = result.expect("must return Some for 2-byte response item data");
+        assert_eq!(
+            hdr.service, 0xCE,
+            "service must be 0xCE (ForwardClose response, bit7 set)"
+        );
+        assert!(
+            hdr.request_path.is_empty(),
+            "request_path must be empty for response with request_path_size=0"
+        );
+    }
+
+    /// AC-132-003 — too short: 1-byte input returns None.
+    ///
+    /// BC-2.17.006 postcondition 5: returns None if item_data.len() < 2 (cannot read service
+    /// AND request_path_size). EC-004: 1-byte input.
+    ///
+    /// Traces: BC-2.17.006 postcondition 5; EC-004.
+    #[test]
+    fn test_parse_cip_header_too_short() {
+        // 0 bytes
+        assert!(
+            parse_cip_header(&[]).is_none(),
+            "0-byte input must return None (cannot read service byte)"
+        );
+        // 1 byte (has service but no request_path_size)
+        assert!(
+            parse_cip_header(&[0x4E]).is_none(),
+            "1-byte input must return None (cannot read request_path_size)"
+        );
+    }
+
+    /// AC-132-003 — truncated path: request_path_size=3 words but only 4 bytes of data total
+    /// (need 2 + 6 = 8 bytes). Returns None.
+    ///
+    /// item_data layout:
+    ///   [0]    0x0E   service = 0x0E (GetAttributeSingle)
+    ///   [1]    0x03   request_path_size = 3 words → path_byte_count = 6
+    ///   [2..6] 20 01 24 01  only 4 bytes of path (need 6; slice ends at 6 total)
+    ///
+    /// BC-2.17.006 postcondition 5: returns None if item_data.len() < 2 + path_byte_count.
+    /// EC-006: 3 words requested, 2 bytes present past the size byte → truncated.
+    ///
+    /// Traces: BC-2.17.006 postcondition 5; EC-006.
+    #[test]
+    fn test_parse_cip_header_truncated_path() {
+        let item_data: &[u8] = &[
+            0x0E, // service = 0x0E (GetAttributeSingle)
+            0x03, // request_path_size = 3 words (6 bytes needed)
+            0x20, 0x01, 0x24, 0x01, // only 4 bytes; need 6 (cursor+2+6=8 > 6 available)
+        ];
+        assert!(
+            parse_cip_header(item_data).is_none(),
+            "must return None when declared path (3 words = 6 bytes) exceeds available data (4 bytes)"
+        );
+    }
+
+    // -------------------------------------------------------------------------
+    // AC-132-004: 0x00B1 items skipped at call site; 0x00B2 items parsed
+    // Traces: BC-2.17.006 Invariant 3 (F-P9-001 locked decision)
+    // -------------------------------------------------------------------------
+
+    /// AC-132-004 — call-site gate: 0x00B1 items appear in CpfItem list but parse_cip_header
+    /// is NOT called for them (F-P9-001). Only 0x00B2 items are CIP-parsed.
+    ///
+    /// CPF payload has two items: 0x00B1 (ConnectedData) and 0x00B2 (UnconnectedData).
+    /// The test exercises the documented caller gate: iterate items, call parse_cip_header
+    /// ONLY for type_id == 0x00B2.
+    ///
+    /// Wire layout (10 bytes total + 2 for item_count):
+    ///   item_count = 2
+    ///   [0x00B1, length=3, data=[0x00,0x01,0x4E]]  (sequence-count prefix + partial service)
+    ///   [0x00B2, length=2, data=[0x4E,0x00]]        (ForwardClose request, path_size=0)
+    ///
+    /// Asserts: parse_cpf_items returns 2 items; when caller gates on type_id == 0x00B2, the
+    /// 0x00B1 item is NOT passed to parse_cip_header and therefore yields NO CipHeader;
+    /// the 0x00B2 item IS parsed and returns Some(CipHeader { service: 0x4E, .. }).
+    ///
+    /// Traces: BC-2.17.006 Invariant 3; F-P9-001; AC-132-004; EC-010.
+    #[test]
+    fn test_cip_parse_skips_0x00b1_items() {
+        let cpf_data: &[u8] = &[
+            0x02, 0x00, // item_count = 2
+            // 0x00B1 item: length=3, data=[0x00, 0x01, 0x4E]
+            0xB1, 0x00, 0x03, 0x00, 0x00, 0x01, 0x4E,
+            // 0x00B2 item: length=2, data=[0x4E, 0x00]
+            0xB2, 0x00, 0x02, 0x00, 0x4E, 0x00,
+        ];
+        let items = parse_cpf_items(cpf_data);
+        assert_eq!(items.len(), 2, "must parse 2 CPF items");
+
+        // Simulate caller gate: only call parse_cip_header for 0x00B2 items.
+        // F-P9-001: 0x00B1 items are NOT passed to parse_cip_header.
+        let b1_items: Vec<&CpfItem> = items.iter().filter(|i| i.type_id == 0x00B1).collect();
+        let b2_items: Vec<&CpfItem> = items.iter().filter(|i| i.type_id == 0x00B2).collect();
+
+        assert_eq!(
+            b1_items.len(),
+            1,
+            "must have one 0x00B1 item in CpfItem list"
+        );
+        assert_eq!(
+            b2_items.len(),
+            1,
+            "must have one 0x00B2 item in CpfItem list"
+        );
+
+        // 0x00B1 item is present in the list but CIP parse is SKIPPED (F-P9-001).
+        // (No call to parse_cip_header for b1_items — the caller gate prevents it.)
+
+        // 0x00B2 item: call parse_cip_header and verify it returns Some.
+        let cip_hdr_result = parse_cip_header(&b2_items[0].data);
+        assert!(
+            cip_hdr_result.is_some(),
+            "parse_cip_header must return Some for 0x00B2 item with well-formed data"
+        );
+        // The 0x00B1 item must NOT have been CIP-parsed; no CipHeader exists for it.
+        // (This is enforced by the caller gate — it is the architectural invariant under test.)
+        assert_eq!(
+            b1_items[0].type_id, 0x00B1,
+            "0x00B1 item stored in CpfItem list with correct type_id"
+        );
+    }
+
+    /// AC-132-004 — 0x00B2 items ARE processed: parse_cip_header returns Some for valid data.
+    ///
+    /// This test exercises the positive path of the F-P9-001 call-site gate: a single 0x00B2
+    /// item is walked from a CPF payload, then passed to parse_cip_header, and yields a
+    /// correctly-decoded CipHeader.
+    ///
+    /// CPF payload: item_count=1, type_id=0x00B2, length=4, data=[0x0E, 0x02, 0x20, 0x01].
+    ///   service=0x0E (GetAttributeSingle), path_size=2 words → path=[0x20, 0x01, ?, ?]
+    ///   Wait — path_size=2 words = 4 bytes but we only have 2 bytes after [0x0E, 0x02].
+    ///   Use path_size=1 → data=[0x0E, 0x01, 0x20, 0x01]:
+    ///   service=0x0E, path_size=1 word → path_byte_count=2 → path=[0x20,0x01].
+    ///
+    /// Asserts: parse_cip_header returns Some; service=0x0E; request_path=[0x20,0x01].
+    ///
+    /// Traces: BC-2.17.006 postconditions 1–4; AC-132-004; EC-010.
+    #[test]
+    fn test_cip_parse_processes_0x00b2_items() {
+        let cpf_data: &[u8] = &[
+            0x01, 0x00, // item_count = 1
+            0xB2, 0x00, // type_id = 0x00B2 (UnconnectedData)
+            0x04, 0x00, // length = 4
+            // CIP data: service=0x0E, path_size=1 word (2 bytes), path=[0x20, 0x01]
+            0x0E, 0x01, 0x20, 0x01,
+        ];
+        let items = parse_cpf_items(cpf_data);
+        assert_eq!(items.len(), 1, "must parse 1 CPF item");
+        assert_eq!(
+            items[0].type_id, 0x00B2,
+            "item must be 0x00B2 (UnconnectedData)"
+        );
+
+        // Call-site gate: type_id == 0x00B2 → call parse_cip_header.
+        let cip_hdr = parse_cip_header(&items[0].data)
+            .expect("parse_cip_header must return Some for well-formed 0x00B2 data");
+        assert_eq!(
+            cip_hdr.service, 0x0E,
+            "service must be 0x0E (GetAttributeSingle)"
+        );
+        assert_eq!(
+            cip_hdr.request_path,
+            vec![0x20, 0x01],
+            "request_path must be [0x20, 0x01] (1 word = 2 bytes)"
+        );
+    }
+
+    // -------------------------------------------------------------------------
+    // AC-132-005: parse_cip_request_path extracts Class, Instance, Attribute segments
+    // Traces: BC-2.17.009 postconditions 1–4
+    // -------------------------------------------------------------------------
+
+    /// AC-132-005 — empty path returns vec![].
+    ///
+    /// Traces: BC-2.17.009 postcondition 4 (vec![] for empty path); EC-007.
+    #[test]
+    fn test_parse_cip_path_empty() {
+        assert_eq!(
+            parse_cip_request_path(&[]),
+            vec![],
+            "empty path must return vec![]"
+        );
+    }
+
+    /// AC-132-005 — Class-only path: [0x20, 0x01] → [Class(0x01)].
+    ///
+    /// Exact-match on 0x20 (Architecture Rule 2). Two bytes consumed in one iteration.
+    ///
+    /// Traces: BC-2.17.009 postcondition 1 (0x20 → Class).
+    #[test]
+    fn test_parse_cip_path_class_only() {
+        let path: &[u8] = &[0x20, 0x01];
+        let segs = parse_cip_request_path(path);
+        assert_eq!(
+            segs.len(),
+            1,
+            "must produce exactly 1 segment for [0x20, 0x01]"
+        );
+        assert_eq!(segs[0], CipPathSegment::Class(0x01), "must be Class(0x01)");
+    }
+
+    /// AC-132-005 — Class + Instance + Attribute path: 3 segments decoded correctly.
+    ///
+    /// Path: [0x20, 0x01, 0x24, 0x01, 0x30, 0x03]
+    ///   0x20 0x01 → Class(0x01)       Identity Object
+    ///   0x24 0x01 → Instance(0x01)    Instance 1
+    ///   0x30 0x03 → Attribute(0x03)   Attribute 3 (Vendor ID)
+    ///
+    /// Traces: BC-2.17.009 postconditions 1, 2, 3 (all three segment types).
+    #[test]
+    fn test_parse_cip_path_class_instance_attr() {
+        let path: &[u8] = &[
+            0x20, 0x01, // Class(0x01)
+            0x24, 0x01, // Instance(0x01)
+            0x30, 0x03, // Attribute(0x03)
+        ];
+        let segs = parse_cip_request_path(path);
+        assert_eq!(segs.len(), 3, "must produce exactly 3 segments");
+        assert_eq!(
+            segs[0],
+            CipPathSegment::Class(0x01),
+            "first segment must be Class(0x01)"
+        );
+        assert_eq!(
+            segs[1],
+            CipPathSegment::Instance(0x01),
+            "second segment must be Instance(0x01)"
+        );
+        assert_eq!(
+            segs[2],
+            CipPathSegment::Attribute(0x03),
+            "third segment must be Attribute(0x03)"
+        );
+    }
+
+    /// AC-132-005 — unrecognized segment type 0x40 is skipped; Class(0x01) follows and is kept.
+    ///
+    /// Path: [0x40, 0x00, 0x20, 0x01] → [Class(0x01)]
+    /// 0x40 is not 0x20/0x24/0x30 → advance cursor by 2 (skip). Then 0x20 → Class(0x01).
+    ///
+    /// Architecture Rule 2: exact-match (NOT &0xE0 mask). EC-008.
+    ///
+    /// Traces: BC-2.17.009 postcondition 3 (skip unrecognized); EC-008.
+    #[test]
+    fn test_parse_cip_path_unrecognized_skip() {
+        let path: &[u8] = &[0x40, 0x00, 0x20, 0x01];
+        let segs = parse_cip_request_path(path);
+        assert_eq!(
+            segs.len(),
+            1,
+            "unrecognized segment 0x40 skipped; only Class(0x01) should remain"
+        );
+        assert_eq!(segs[0], CipPathSegment::Class(0x01), "must be Class(0x01)");
+    }
+
+    /// AC-132-005 — 1-byte path: cursor+2 > 1 at first iteration; returns vec![], no panic.
+    ///
+    /// EC-007: odd-length input (1 byte) → bounds violation immediately → vec![].
+    /// Architecture Rule 3 (no panic for any input).
+    ///
+    /// Traces: BC-2.17.009 postcondition 4; EC-007.
+    #[test]
+    fn test_parse_cip_path_odd_length_safe() {
+        let path: &[u8] = &[0x20]; // 1 byte — cannot form a complete 2-byte segment
+        let segs = parse_cip_request_path(path);
+        assert_eq!(
+            segs,
+            vec![],
+            "1-byte path must return vec![] without panic (cursor+2 > 1 at first iteration)"
+        );
+    }
+
+    // -------------------------------------------------------------------------
+    // AC-132-007: classify_cip_service maps all 15 variants correctly
+    // Traces: BC-2.17.007 postconditions 1–6, invariants 1–3
+    // -------------------------------------------------------------------------
+
+    /// AC-132-007 — 13 named request service codes map to their correct variants.
+    ///
+    /// Response-bit check FIRST: none of these have high bit set, so they fall
+    /// through to the named match. Each is asserted individually (non-vacuous).
+    ///
+    /// Named codes from BC-2.17.007 postcondition 3:
+    ///   0x01 GetAttributesAll, 0x02 SetAttributesAll, 0x03 GetAttributeList,
+    ///   0x04 SetAttributeList, 0x05 Reset, 0x07 Stop, 0x0A MultipleServicePacket,
+    ///   0x0E GetAttributeSingle, 0x10 SetAttributeSingle, 0x4B GetAndClear,
+    ///   0x4E ForwardClose, 0x54 ForwardOpen, 0x5B LargeForwardOpen.
+    ///
+    /// Traces: BC-2.17.007 postcondition 3; VP-032 Sub-D partition (named variants).
+    #[test]
+    fn test_classify_cip_service_named_codes() {
+        assert_eq!(
+            classify_cip_service(0x01),
+            CipServiceClass::GetAttributesAll,
+            "0x01 must map to GetAttributesAll"
+        );
+        assert_eq!(
+            classify_cip_service(0x02),
+            CipServiceClass::SetAttributesAll,
+            "0x02 must map to SetAttributesAll"
+        );
+        assert_eq!(
+            classify_cip_service(0x03),
+            CipServiceClass::GetAttributeList,
+            "0x03 must map to GetAttributeList"
+        );
+        assert_eq!(
+            classify_cip_service(0x04),
+            CipServiceClass::SetAttributeList,
+            "0x04 must map to SetAttributeList"
+        );
+        assert_eq!(
+            classify_cip_service(0x05),
+            CipServiceClass::Reset,
+            "0x05 must map to Reset"
+        );
+        assert_eq!(
+            classify_cip_service(0x07),
+            CipServiceClass::Stop,
+            "0x07 must map to Stop"
+        );
+        assert_eq!(
+            classify_cip_service(0x0A),
+            CipServiceClass::MultipleServicePacket,
+            "0x0A must map to MultipleServicePacket"
+        );
+        assert_eq!(
+            classify_cip_service(0x0E),
+            CipServiceClass::GetAttributeSingle,
+            "0x0E must map to GetAttributeSingle"
+        );
+        assert_eq!(
+            classify_cip_service(0x10),
+            CipServiceClass::SetAttributeSingle,
+            "0x10 must map to SetAttributeSingle"
+        );
+        assert_eq!(
+            classify_cip_service(0x4B),
+            CipServiceClass::GetAndClear,
+            "0x4B must map to GetAndClear"
+        );
+        assert_eq!(
+            classify_cip_service(0x4E),
+            CipServiceClass::ForwardClose,
+            "0x4E must map to ForwardClose"
+        );
+        assert_eq!(
+            classify_cip_service(0x54),
+            CipServiceClass::ForwardOpen,
+            "0x54 must map to ForwardOpen"
+        );
+        assert_eq!(
+            classify_cip_service(0x5B),
+            CipServiceClass::LargeForwardOpen,
+            "0x5B must map to LargeForwardOpen"
+        );
+    }
+
+    /// AC-132-007 — response-bit invariant: service & 0x80 != 0 → Response, applied FIRST.
+    ///
+    /// BC-2.17.007 postcondition 2, invariant 1: if bit 7 set, result MUST be Response
+    /// regardless of the lower 7 bits. Tested with multiple representative values:
+    ///   0x80 (bit7 only), 0x81 (GetAttributesAll | response), 0xCE (ForwardClose response),
+    ///   0xFF (all bits set).
+    ///
+    /// Traces: BC-2.17.007 postcondition 2; invariant 1 (response-bit FIRST); VP-032 Sub-D.
+    #[test]
+    fn test_classify_cip_service_response_bit() {
+        // 0x80: only bit 7 set — must be Response
+        assert_eq!(
+            classify_cip_service(0x80),
+            CipServiceClass::Response,
+            "0x80 (high bit set) must map to Response"
+        );
+        // 0x81: 0x01 (GetAttributesAll) | 0x80 → Response (applied FIRST before named lookup)
+        assert_eq!(
+            classify_cip_service(0x81),
+            CipServiceClass::Response,
+            "0x81 (GetAttributesAll | response-bit) must map to Response, not GetAttributesAll"
+        );
+        // 0xCE: ForwardClose response (0x4E | 0x80)
+        assert_eq!(
+            classify_cip_service(0xCE),
+            CipServiceClass::Response,
+            "0xCE (ForwardClose response = 0x4E | 0x80) must map to Response"
+        );
+        // 0xFF: all bits set
+        assert_eq!(
+            classify_cip_service(0xFF),
+            CipServiceClass::Response,
+            "0xFF (all bits set) must map to Response"
+        );
+    }
+
+    /// AC-132-007 — Unknown arm reachable: 0x7F (high bit clear, not a named service) → Unknown.
+    ///
+    /// BC-2.17.007 postcondition 4 (non-named request-range values → Unknown).
+    /// BC-2.17.007 postcondition 5 (Unknown is reachable — non-vacuity; VP-032 Sub-D partition).
+    ///
+    /// 0x7F: bit 7 clear (not Response), not in the 13-variant named set → Unknown.
+    ///
+    /// Traces: BC-2.17.007 postconditions 4, 5; VP-032 Sub-D partition non-vacuity.
+    #[test]
+    fn test_classify_cip_service_unknown() {
+        assert_eq!(
+            classify_cip_service(0x7F),
+            CipServiceClass::Unknown,
+            "0x7F (high bit clear, not a named service) must map to Unknown"
+        );
+        // Additional Unknown values to strengthen non-vacuity.
+        assert_eq!(
+            classify_cip_service(0x00),
+            CipServiceClass::Unknown,
+            "0x00 (not a named service) must map to Unknown"
+        );
+        assert_eq!(
+            classify_cip_service(0x06),
+            CipServiceClass::Unknown,
+            "0x06 (gap between Reset 0x05 and Stop 0x07) must map to Unknown"
         );
     }
 }

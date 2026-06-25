@@ -612,7 +612,7 @@ Identity, Discrete I/O, Analog I/O, Motor Drive, etc.) with thousands of instanc
 attributes. v0.11.0 deliberately scopes to a minimal object-model depth:
 
 **IN SCOPE (v0.11.0):**
-- ENIP encapsulation header — all 10 fields parsed (BC-2.17.001/002)
+- ENIP encapsulation header — all 6 fields parsed (BC-2.17.001/002)
 - ENIP command classification — 9 recognized command values + Unknown (BC-2.17.004)
 - CPF item iteration — item_count bounded walk, type_id recognition for the following
   four recognized CPF type IDs (BC-2.17.005):
@@ -711,8 +711,9 @@ attributes. v0.11.0 deliberately scopes to a minimal object-model depth:
     to a configurable default. The `ENIP_ERROR_BURST_THRESHOLD` named constant is RETIRED;
     the field `enip_error_burst_threshold: u32` on `EnipAnalyzer` is the authoritative
     source of the threshold value at runtime.
-- When `--enip` is set without TCP reassembly, emit a WARNING and disable ENIP (same pattern
-  as `--modbus` and `--dnp3`)
+- When `--enip` is set without TCP reassembly, emit via `eprintln!` to stderr and disable
+  ENIP (same pattern as `--modbus` and `--dnp3`; the project uses `eprintln!` for all
+  analyzer reassembly-guard warnings — no `log` crate dependency)
 - `EnipAnalyzer` included in `needs_reassembly` alongside ModbusAnalyzer and Dnp3Analyzer
 - `take_enip_analyzer()` on `StreamDispatcher` to collect findings and summary at the end of
   `run_analyze()`
