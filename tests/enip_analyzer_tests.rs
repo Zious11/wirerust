@@ -1,7 +1,7 @@
 //! Integration tests for the EtherNet/IP module (SS-17, STORY-130 + STORY-131).
 //!
 //! `mod parse_header` — STORY-130 pure-core parse tests (GREEN).
-//! `mod dispatch`     — STORY-131 dispatcher/CLI integration tests (RED until STORY-131 impl).
+//! `mod dispatch`     — STORY-131 dispatcher/CLI integration tests (GREEN).
 //!
 //! Traces to: BC-2.17.001–004 (parse_header), BC-2.17.019/020/023/026 (dispatch).
 
@@ -505,17 +505,18 @@ mod parse_header {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// STORY-131 dispatcher / CLI integration tests (Red Gate — STORY-131).
+// STORY-131 dispatcher / CLI integration tests (GREEN — STORY-131 implemented).
 //
 // Traces to: BC-2.17.019 (Rule 7 routing), BC-2.17.020 (CLI --enip flag),
 //            BC-2.17.023 (write-burst threshold), BC-2.17.026 (error-burst threshold).
 //
-// RED GATE STATUS (Decision 2 re-scope, boundary doc BOUNDARY-131-132):
+// IMPLEMENTATION STATUS (Decision 2 re-scope, boundary doc BOUNDARY-131-132):
 // Observable for routing tests is `bytes_received > 0` (Decision 2), NOT
-// `all_findings` (which requires STORY-132 frame-walk). The `todo!()` in the
-// `DispatchTarget::Enip` arm fires whenever port-44818 data is dispatched.
+// `all_findings` (which requires STORY-132 CIP frame-walk — deferred).
+// The `DispatchTarget::Enip` arm calls `enip.on_data(...)` which increments
+// `bytes_received`; no todo!() remain in src.
 //
-// RED (FAIL until STORY-131 impl — panics at todo!() in Enip arm):
+// GREEN (routing verified via bytes_received > 0):
 //   test_dispatcher_routes_port_44818            — drives port-44818, asserts bytes_received > 0
 //   test_cli_enip_flag_constructs_analyzer       — drives port-44818, asserts bytes_received > 0
 //   test_cli_all_flag_includes_enip              — drives port-44818, asserts bytes_received > 0
@@ -588,8 +589,8 @@ mod dispatch {
     /// proves PC-2 (data reached the analyzer). Combined with no-panic it proves PC-1
     /// (Rule 7 fired and the `DispatchTarget::Enip` arm was taken).
     ///
-    /// RED GATE: the `DispatchTarget::Enip` arm contains `todo!()` until STORY-131
-    /// implements `EnipAnalyzer::on_data`. The test panics at the `todo!()`.
+    /// Asserts `bytes_received > 0`, confirming the dispatcher Enip arm forwarded
+    /// port-44818 data to `EnipAnalyzer::on_data` (STORY-131 implementation complete).
     ///
     /// Traces: BC-2.17.019 postconditions 1, 2; AC-131-001.
     #[test]
@@ -597,7 +598,7 @@ mod dispatch {
         let mut d = dispatcher_with_enip(50, 5);
         let key = FlowKey::new(make_ip(1), 12345, make_ip(2), 44818);
         let payload = enip_register_session_payload();
-        // Routes to DispatchTarget::Enip — todo!() fires until STORY-131 impl.
+        // Routes to DispatchTarget::Enip — calls enip.on_data() (STORY-131 implemented).
         d.on_data(&key, Direction::ClientToServer, &payload, 0, 0);
         let enip = d
             .take_enip_analyzer()
@@ -754,10 +755,8 @@ mod dispatch {
     ///
     /// Observable (Decision 2): field assertions for thresholds are GREEN-BY-DESIGN
     /// (constructor is implemented). The wiring assertion drives port-44818 data and
-    /// checks `bytes_received > 0`, which requires `on_data` to be implemented.
-    ///
-    /// RED GATE: `on_data` panics at `todo!()` until STORY-131 implements
-    /// `EnipAnalyzer::on_data` with the `bytes_received` counter increment.
+    /// asserts `bytes_received > 0`, confirming the dispatcher Enip arm forwarded
+    /// port-44818 data to `EnipAnalyzer::on_data` (STORY-131 implementation complete).
     ///
     /// Traces: BC-2.17.020 postcondition 1; AC-131-003.
     #[test]
@@ -778,7 +777,6 @@ mod dispatch {
             );
         }
         // Wiring assertion: port-44818 data must reach the analyzer (PC-2).
-        // Panics at todo!() until STORY-131 impl.
         let key = FlowKey::new(make_ip(1), 12345, make_ip(2), 44818);
         let payload = enip_register_session_payload();
         d.on_data(&key, Direction::ClientToServer, &payload, 0, 0);
@@ -814,10 +812,10 @@ mod dispatch {
 
     /// AC-131-003 — --all flag includes ENIP; wiring routes port-44818 to analyzer.
     ///
-    /// Field assertions are GREEN-BY-DESIGN. Wiring assertion drives port-44818
-    /// and checks `bytes_received > 0`.
+    /// Field assertions are GREEN-BY-DESIGN (constructor implemented). Wiring assertion
+    /// asserts `bytes_received > 0`, confirming the dispatcher Enip arm forwarded
+    /// port-44818 data to `EnipAnalyzer::on_data` (STORY-131 implementation complete).
     ///
-    /// RED GATE: panics at `todo!()` until STORY-131 impl.
     /// Traces: BC-2.17.020 Invariant 4; AC-131-003.
     #[test]
     fn test_cli_all_flag_includes_enip() {
@@ -836,7 +834,7 @@ mod dispatch {
                 "--all must produce error-burst threshold=5 (BC-2.17.026 Inv 1)"
             );
         }
-        // Wiring assertion — RED until STORY-131 impl.
+        // Wiring assertion: port-44818 data must reach the analyzer (PC-2).
         let key = FlowKey::new(make_ip(5), 11111, make_ip(6), 44818);
         let payload = enip_register_session_payload();
         d.on_data(&key, Direction::ClientToServer, &payload, 0, 0);
@@ -889,10 +887,10 @@ mod dispatch {
 
     /// AC-131-005 — custom write-burst threshold=100 stored; port-44818 data reaches analyzer.
     ///
-    /// Field assertion is GREEN-BY-DESIGN. Wiring assertion (`bytes_received > 0`)
-    /// requires `on_data` to be implemented.
+    /// Field assertion is GREEN-BY-DESIGN (constructor implemented). Wiring assertion
+    /// asserts `bytes_received > 0`, confirming the dispatcher Enip arm forwarded
+    /// port-44818 data to `EnipAnalyzer::on_data` (STORY-131 implementation complete).
     ///
-    /// RED GATE: panics at `todo!()` until STORY-131 impl.
     /// Traces: BC-2.17.023 postconditions 1, 3; AC-131-005.
     #[test]
     fn test_write_burst_threshold_custom() {
@@ -905,7 +903,7 @@ mod dispatch {
                 "custom write-burst threshold 100 must be stored in enip_write_burst_threshold"
             );
         }
-        // Wiring assertion — RED until STORY-131 impl.
+        // Wiring assertion: port-44818 data must reach the analyzer (PC-2).
         let key = FlowKey::new(make_ip(1), 12345, make_ip(2), 44818);
         let mut payload = [0u8; 24];
         payload[0] = 0x6F; // command = SendRRData (0x006F), LE
@@ -922,9 +920,10 @@ mod dispatch {
 
     /// AC-131-005 — default write-burst threshold=50 stored; port-44818 data reaches analyzer.
     ///
-    /// Field assertion is GREEN-BY-DESIGN. Wiring assertion requires `on_data` impl.
+    /// Field assertion is GREEN-BY-DESIGN (constructor implemented). Wiring assertion
+    /// asserts `bytes_received > 0`, confirming the dispatcher Enip arm forwarded
+    /// port-44818 data to `EnipAnalyzer::on_data` (STORY-131 implementation complete).
     ///
-    /// RED GATE: panics at `todo!()` until STORY-131 impl.
     /// Traces: BC-2.17.023 postconditions 2, 3; AC-131-005.
     #[test]
     fn test_write_burst_threshold_default() {
@@ -937,7 +936,7 @@ mod dispatch {
                 "default write-burst threshold must be 50 (OA-001 RESOLVED=50)"
             );
         }
-        // Wiring assertion — RED until STORY-131 impl.
+        // Wiring assertion: port-44818 data must reach the analyzer (PC-2).
         let key = FlowKey::new(make_ip(1), 12345, make_ip(2), 44818);
         let mut payload = [0u8; 24];
         payload[0] = 0x6F; // SendRRData
@@ -959,9 +958,10 @@ mod dispatch {
 
     /// AC-131-006 — custom error-burst threshold=10 stored; port-44818 data reaches analyzer.
     ///
-    /// Field assertion is GREEN-BY-DESIGN. Wiring assertion requires `on_data` impl.
+    /// Field assertion is GREEN-BY-DESIGN (constructor implemented). Wiring assertion
+    /// asserts `bytes_received > 0`, confirming the dispatcher Enip arm forwarded
+    /// port-44818 data to `EnipAnalyzer::on_data` (STORY-131 implementation complete).
     ///
-    /// RED GATE: panics at `todo!()` until STORY-131 impl.
     /// Traces: BC-2.17.026 postconditions 1, 3; AC-131-006.
     #[test]
     fn test_error_burst_threshold_custom() {
@@ -974,7 +974,7 @@ mod dispatch {
                 "custom error-burst threshold 10 must be stored in enip_error_burst_threshold"
             );
         }
-        // Wiring assertion — RED until STORY-131 impl.
+        // Wiring assertion: port-44818 data must reach the analyzer (PC-2).
         let key = FlowKey::new(make_ip(1), 12345, make_ip(2), 44818);
         let mut payload = [0u8; 24];
         payload[0] = 0x6F; // SendRRData
@@ -992,9 +992,10 @@ mod dispatch {
 
     /// AC-131-006 — default error-burst threshold=5 stored; port-44818 data reaches analyzer.
     ///
-    /// Field assertion is GREEN-BY-DESIGN. Wiring assertion requires `on_data` impl.
+    /// Field assertion is GREEN-BY-DESIGN (constructor implemented). Wiring assertion
+    /// asserts `bytes_received > 0`, confirming the dispatcher Enip arm forwarded
+    /// port-44818 data to `EnipAnalyzer::on_data` (STORY-131 implementation complete).
     ///
-    /// RED GATE: panics at `todo!()` until STORY-131 impl.
     /// Traces: BC-2.17.026 postconditions 2, 3; Invariant 3; AC-131-006.
     #[test]
     fn test_error_burst_threshold_default() {
@@ -1007,7 +1008,7 @@ mod dispatch {
                 "default error-burst threshold must be 5"
             );
         }
-        // Wiring assertion — RED until STORY-131 impl.
+        // Wiring assertion: port-44818 data must reach the analyzer (PC-2).
         let key = FlowKey::new(make_ip(1), 12345, make_ip(2), 44818);
         let mut payload = [0u8; 24];
         payload[0] = 0x6F;
@@ -1026,11 +1027,11 @@ mod dispatch {
     /// AC-131-006 — threshold=0 stored; port-44818 data reaches analyzer (wiring only).
     ///
     /// BC-2.17.026 Invariant 4 (zero-threshold semantics: first error fires T0888 Pattern B)
-    /// is a STORY-132+ detection assertion. For STORY-131, this test verifies only:
-    /// (1) threshold=0 is stored correctly (GREEN-BY-DESIGN), and (2) port-44818 data
-    /// reaches the analyzer (`bytes_received > 0`, RED until STORY-131 impl).
+    /// is a STORY-132+ detection assertion (CIP frame-walk deferred to STORY-132). For
+    /// STORY-131, this test verifies only: (1) threshold=0 is stored correctly
+    /// (GREEN-BY-DESIGN), and (2) port-44818 data reaches the analyzer, asserted via
+    /// `bytes_received > 0` (dispatcher Enip arm calls on_data; STORY-131 complete).
     ///
-    /// RED GATE: panics at `todo!()` until STORY-131 impl.
     /// Traces: BC-2.17.026 Invariant 4 (wiring half); postcondition 4; AC-131-006.
     #[test]
     fn test_error_burst_threshold_zero_semantics() {
@@ -1043,7 +1044,7 @@ mod dispatch {
                 "threshold=0 must be stored as 0"
             );
         }
-        // Wiring assertion — RED until STORY-131 impl.
+        // Wiring assertion: port-44818 data must reach the analyzer (PC-2).
         let key = FlowKey::new(make_ip(1), 12345, make_ip(2), 44818);
         let mut payload = [0u8; 24];
         payload[0] = 0x6F; // SendRRData
