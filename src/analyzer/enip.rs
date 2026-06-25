@@ -193,6 +193,15 @@ pub struct EnipAnalyzer {
     pub enip_error_burst_threshold: u32,
     /// Accumulated findings — populated by detection logic (STORY-132+).
     pub all_findings: Vec<Finding>,
+    /// Total reassembled TCP bytes received across all port-44818 flows.
+    ///
+    /// Observable for BC-2.17.019 PC-2 integration tests (STORY-131 boundary decision):
+    /// `bytes_received > 0` after `dispatcher.on_data()` confirms the wiring arm fired.
+    /// Incremented by `on_data` (STORY-131 implementer wires this). Stable across
+    /// STORY-131 → STORY-132: STORY-132 adds frame-walk alongside this counter.
+    // STORY-131 implementer wires this
+    #[allow(dead_code)]
+    pub bytes_received: u64,
 }
 
 impl EnipAnalyzer {
@@ -204,13 +213,13 @@ impl EnipAnalyzer {
     /// default 5, BC-2.17.026 Invariant 1).
     ///
     /// WIRING-EXEMPT: constructor assigns two scalar fields and initialises one Vec to empty.
-    /// Zero branching; no I/O; no non-trivial helpers; 6 lines. All four GREEN-BY-DESIGN
-    /// criteria hold — body is ≤ 3 meaningful lines of struct-init.
+    /// Zero branching; no I/O; no non-trivial helpers; ≤ 3 meaningful lines of struct-init.
     pub fn new(write_burst_threshold: u32, error_burst_threshold: u32) -> Self {
         Self {
             enip_write_burst_threshold: write_burst_threshold,
             enip_error_burst_threshold: error_burst_threshold,
             all_findings: Vec::new(),
+            bytes_received: 0,
         }
     }
 
