@@ -126,7 +126,7 @@ foundation proven correct by Kani formal verification (VP-032).
 **Traces to:** VP-032 Sub-A, Sub-B, Sub-C
 - Sub-A (`kani_parse_enip_header_no_panic`): `parse_enip_header` never panics for any symbolic `&[u8]` up to 49 bytes; `unwind(49)` annotation required (BC-2.17.001/002 purity invariants)
 - Sub-B (`kani_classify_enip_command_total`): `classify_enip_command` is total — returns for every `u16` input with no unreachable branch; `Unknown` arm non-vacuous (BC-2.17.004 invariant 1)
-- Sub-C (`kani_is_valid_enip_frame_no_overflow`): `is_valid_enip_frame` biconditional for all 65,536 `u16` command values; no unreachable branch (BC-2.17.003 invariant 1)
+- Sub-C (`kani_is_valid_enip_frame_no_overflow`): `is_valid_enip_frame(h: &EnipHeader) -> bool` biconditional for all 65,536 `u16` command values; asserts `gate_result == known_set.contains(&h.command)` for a symbolic u16 command (BC-2.17.003 postcondition 3, invariant 1)
 - Sub-D (`kani_classify_cip_service_total`): OUT OF SCOPE for this story — `classify_cip_service` is defined in STORY-132 (BC-2.17.007)
 - All harnesses live in `src/analyzer/enip.rs` under `#[cfg(kani)] mod kani_proofs { ... }`
 - **Test:** `kani::kani_parse_enip_header_no_panic` (Sub-A)
@@ -177,16 +177,19 @@ mod kani_proofs {
 ```
 
 **Sub-C — `kani_is_valid_enip_frame_no_overflow`:**
+
+BC-2.17.003 Postcondition 3 + Invariant 1: `is_valid_enip_frame(h: &EnipHeader) -> bool`
+inspects ONLY `h.command`. The proof asserts the biconditional for all 65,536 u16 values.
 ```rust
     #[kani::proof]
     fn kani_is_valid_enip_frame_no_overflow() {
-        let length: u16 = kani::any();
-        let buf_len: usize = kani::any();
-        // Must not overflow: 24usize + (length as usize)
-        // Proof: u16::MAX = 65535; 24 + 65535 = 65559 < usize::MAX on all targets
-        let header = EnipHeader { command: 0, length, session_handle: 0,
+        let command: u16 = kani::any();
+        let header = EnipHeader { command, length: 0, session_handle: 0,
                                    status: 0, sender_context: [0u8;8], options: 0 };
-        let _ = is_valid_enip_frame(&header, buf_len);
+        let known_set = [0x0004u16, 0x0063, 0x0064, 0x0065, 0x0066, 0x006F, 0x0070, 0x0072, 0x0075];
+        let is_known = known_set.contains(&command);
+        let gate_result = is_valid_enip_frame(&header);
+        assert!(gate_result == is_known);
     }
 ```
 
@@ -205,22 +208,22 @@ The Sub-D harness covers `classify_cip_service` (BC-2.17.007) which is defined i
 | EC-001 | `parse_enip_header` with 0 bytes | Returns `None` |
 | EC-002 | `parse_enip_header` with 23 bytes | Returns `None` |
 | EC-003 | `parse_enip_header` with 24 bytes all-zero | Returns `Some(EnipHeader { all zeros })` |
-| EC-004 | `classify_enip_command(0x0000)` | Returns `EnipCommand::Unknown(0x0000)` |
-| EC-005 | `classify_enip_command(0xFFFF)` | Returns `EnipCommand::Unknown(0xFFFF)` |
-| EC-006 | `is_valid_enip_frame` with `length=0xFFFF, buf_len=usize::MAX` | `24 + 65535 = 65559 <= usize::MAX` → `true`; no overflow |
-| EC-007 | `is_valid_enip_frame` with `length=0, buf_len=24` | `24 + 0 = 24 <= 24` → `true` |
-| EC-008 | `is_valid_enip_frame` with `length=1, buf_len=24` | `24 + 1 = 25 > 24` → `false` |
+| EC-004 | `classify_enip_command(0x0000)` | Returns `EnipCommandClass::Unknown` (BC-2.17.004 EC-003) |
+| EC-005 | `classify_enip_command(0xFFFF)` | Returns `EnipCommandClass::Unknown` (BC-2.17.004 EC-004) |
+| EC-006 | `is_valid_enip_frame` with `command=0x0063` (ListIdentity), all other fields zeroed | Returns `true` — command-only gate; other fields ignored (BC-2.17.003 EC-008) |
+| EC-007 | `is_valid_enip_frame` with `command=0x0000` | Returns `false` — not in known-command set (BC-2.17.003 EC-003) |
+| EC-008 | `is_valid_enip_frame` with `command=0x0076` (one above Cancel, not assigned) | Returns `false` — above highest known command (BC-2.17.003 EC-007) |
 | EC-009 | `classify_enip_command(0x0067)` (gap between 0x0066 and 0x006F) | Returns `EnipCommandClass::Unknown` — not in ODVA table (BC-2.17.004 EC-005) |
-| EC-010 | `is_valid_enip_frame` with `command = 0x0063` (ListIdentity) | Returns `true` — ListIdentity is in the known-command set (BC-2.17.003 EC-002) |
+| EC-010 | `is_valid_enip_frame` with `command = 0x0075` (Cancel) | Returns `true` — Cancel is the highest boundary of the known-command set (BC-2.17.003 EC-006) |
 
 ## Tasks
 
 - [ ] Create `src/analyzer/enip.rs` with module-level doc comment citing ADR-010
 - [ ] Define `EnipHeader` struct with fields: `command: u16`, `length: u16`, `session_handle: u32`, `status: u32`, `sender_context: [u8; 8]`, `options: u32`
 - [ ] Implement `fn parse_enip_header(buf: &[u8]) -> Option<EnipHeader>` — slice bounds check `buf.len() >= 24`, then LE reads via `u16::from_le_bytes` / `u32::from_le_bytes`; `sender_context` via `buf[12..20].try_into().unwrap()` (safe after length check)
-- [ ] Define `EnipCommand` enum with 9 named variants + `Unknown(u16)`; derive `Debug, Clone, Copy, PartialEq, Eq`
-- [ ] Implement `fn classify_enip_command(cmd: u16) -> EnipCommand` — exhaustive match with `_ => Unknown(cmd)` fallback
-- [ ] Implement `fn is_valid_enip_frame(header: &EnipHeader, buffer_len: usize) -> bool` — `(24usize + header.length as usize) <= buffer_len`; note `u16 as usize` cast is widening, no overflow possible
+- [ ] Define `EnipCommandClass` enum with 9 named variants + payloadless `Unknown`; derive `Debug, Clone, Copy, PartialEq, Eq` (BC-2.17.004 Architecture Anchor: exactly 10 variants)
+- [ ] Implement `fn classify_enip_command(cmd: u16) -> EnipCommandClass` — exhaustive match with `_ => EnipCommandClass::Unknown` fallback (BC-2.17.004 postcondition 4; invariant 1)
+- [ ] Implement `fn is_valid_enip_frame(h: &EnipHeader) -> bool` — returns `true` iff `h.command` is in the 9-value ODVA known-command set; inspects ONLY `h.command` (BC-2.17.003 postcondition 3); no buffer-length parameter
 - [ ] Add `#[cfg(kani)] mod kani_proofs` block with Kani harnesses Sub-A (with `#[kani::unwind(49)]`), Sub-B, and Sub-C; Sub-D (`kani_classify_cip_service_total`) belongs to STORY-132
 - [ ] Create `tests/enip_analyzer_tests.rs` with top-level `mod parse_header { ... }` wrapper containing all AC-130-001 through AC-130-005 unit tests
 - [ ] Run `cargo check` — zero errors

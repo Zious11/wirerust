@@ -45,9 +45,9 @@ down — even though these operations are not currently mapped to MITRE ICS tech
 **Traces to:** BC-2.17.015 postconditions 1–3, invariant 5
 - Given a CIP request with `classify_cip_service(service)` returning `CipServiceClass::ForwardOpen` (service byte `0x54`) **or** `CipServiceClass::LargeForwardOpen` (service byte `0x5B`)
 - AND `type_id == 0x00B2`
-- AND `cip_header.service & 0x80 == 0` (request, not response)
 - AND `flow.is_non_enip == false`
 - AND `all_findings.len() < MAX_FINDINGS`
+- NOTE: the response-bit check (`service & 0x80 != 0`) is ALREADY handled INSIDE `classify_cip_service` per BC-2.17.007 Invariant 1 — a response byte returns `CipServiceClass::Response`, never `ForwardOpen`. Detection MUST key solely on `classify_cip_service` returning `ForwardOpen` or `LargeForwardOpen`; do NOT hand-roll a raw `& 0x80 == 0` predicate at the call site (consistent with STORY-135 AC-135-002)
 - When the analyzer processes the frame
 - Then ONE `Finding`:
   - `category: ThreatCategory::Anomaly`
@@ -67,9 +67,9 @@ down — even though these operations are not currently mapped to MITRE ICS tech
 **Traces to:** BC-2.17.015 postconditions 4–5
 - Given a CIP request with `classify_cip_service(service)` returning `CipServiceClass::ForwardClose` (service byte `0x4E`)
 - AND `type_id == 0x00B2`
-- AND `cip_header.service & 0x80 == 0` (request, not response)
 - AND `flow.is_non_enip == false`
 - AND `all_findings.len() < MAX_FINDINGS`
+- NOTE: the response-bit check (`service & 0x80 != 0`) is ALREADY handled INSIDE `classify_cip_service` per BC-2.17.007 Invariant 1 — a response byte returns `CipServiceClass::Response`, never `ForwardClose`. Detection keys solely on `classify_cip_service` returning `ForwardClose`; do NOT hand-roll `& 0x80 == 0` at the call site
 - When the analyzer processes the frame
 - Then ONE `Finding`:
   - `category: ThreatCategory::Anomaly`
@@ -83,9 +83,10 @@ down — even though these operations are not currently mapped to MITRE ICS tech
 - **Test:** `tests/enip_analyzer_tests.rs::connection_lifecycle::test_forward_close_no_mitre_technique`
 
 ### AC-136-003: ForwardOpen/ForwardClose responses are not detected (requests only)
-**Traces to:** BC-2.17.015 Invariant 2 (request-only detection)
-- CIP response service bytes `0xD4` (ForwardOpen response) and `0xCE` (ForwardClose response) do NOT emit findings
-- Only request frames (`service & 0x80 == 0`) trigger connection lifecycle detection
+**Traces to:** BC-2.17.015 Invariant 2 (request-only detection); BC-2.17.007 Invariant 1 (response-bit handled inside classify_cip_service)
+- CIP response service bytes `0xD4` (ForwardOpen response, high bit set) and `0xCE` (ForwardClose response, high bit set) do NOT emit findings
+- `classify_cip_service(0xD4)` returns `CipServiceClass::Response` (not `ForwardOpen`); `classify_cip_service(0xCE)` returns `CipServiceClass::Response` (not `ForwardClose`) — per BC-2.17.007 Invariant 1 (response-bit mask takes priority and is applied first inside `classify_cip_service`)
+- Request-only detection is guaranteed by keying on `classify_cip_service` returning `ForwardOpen | LargeForwardOpen | ForwardClose` — the raw `& 0x80 == 0` predicate MUST NOT be hand-rolled at the call site; it is already guaranteed by BC-2.17.007 Inv 1 (already guaranteed by classify_cip_service per BC-2.17.007 Inv 1; do NOT hand-roll)
 - **Test:** `tests/enip_analyzer_tests.rs::connection_lifecycle::test_forward_open_response_no_finding`
 - **Test:** `tests/enip_analyzer_tests.rs::connection_lifecycle::test_forward_close_response_no_finding`
 
@@ -178,7 +179,7 @@ connection_lifecycle::test_connection_counts_tracked
 3. **LargeForwardOpen (0x5B) is NOT omitted (BC-2.17.015 Invariant 5):** `CipServiceClass::LargeForwardOpen` (0x5B) is detected identically to ForwardOpen (0x54). Both increment `open_connection_count`. The match arm MUST include all three: `ForwardOpen | LargeForwardOpen | ForwardClose`.
 4. **Count increments regardless of MAX_FINDINGS cap:** The `open_connection_count` and `close_connection_count` must increment even if `all_findings.len() >= MAX_FINDINGS` prevents finding emission. The session summary (STORY-138) needs accurate counts.
 5. **F-P9-001 gate (0x00B2 only):** Only 0x00B2 items trigger ForwardOpen/LargeForwardOpen/Close detection. This is a CIP protocol requirement — these are unconnected CIP messages and must ride in 0x00B2 items.
-6. **Request-only detection:** Only frames with `service & 0x80 == 0` are detected. Responses (0xD4, 0xCE) are silently passed through.
+6. **Request-only detection via classify_cip_service (BC-2.17.007 Inv 1):** Detection keys SOLELY on `classify_cip_service(service)` returning `ForwardOpen`, `LargeForwardOpen`, or `ForwardClose`. The response-bit check (`service & 0x80 != 0`) is handled INSIDE `classify_cip_service` (Invariant 1: response-bit mask takes priority and is applied first); response bytes 0xD4 and 0xCE return `CipServiceClass::Response`, never `ForwardOpen`/`ForwardClose`. Do NOT add a raw `& 0x80 == 0` predicate at the call site — it is already guaranteed by `classify_cip_service` per BC-2.17.007 Inv 1; hand-rolling it contradicts STORY-135 AC-135-002 which explicitly forbids this pattern.
 7. **Connection serial number = 0 in v0.11.0 (BC-2.17.015 Postcondition 2 / ADR-010 Decision 8):** Do not attempt to extract the serial from the payload. Record as 0 in all findings.
 
 ## Library & Framework Requirements

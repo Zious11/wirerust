@@ -71,14 +71,14 @@ input-hash: "3343540"
 - **Test:** `tests/enip_analyzer_tests.rs::cpf_cip::test_cpf_item_type_ids`
 
 ### AC-132-003: `parse_cip_header` parses CIP header from 0x00B2 item data
-**Traces to:** BC-2.17.006 postconditions 1–3
+**Traces to:** BC-2.17.006 postconditions 1–3; BC-2.17.008 postcondition 1 + invariant 1 (general_status offset)
 - Given `item.data` from a `CpfItem` with `type_id == 0x00B2`
 - When `parse_cip_header(item_data: &[u8]) -> Option<CipHeader>` is called
 - Then returns `Some(CipHeader { service, request_path_size, request_path, general_status })` if `item_data.len() >= 2`
   - `service: u8 = item_data[0]`
   - `request_path_size: u8 = item_data[1]` (in 16-bit words)
   - `request_path: &[u8]` = `item_data[2..2 + request_path_size as usize * 2]` (if bounds allow)
-  - `general_status: u8` = from response path (if `service & 0x80 != 0`): at byte `2 + request_path_size*2 + 1` if accessible; `0x00` if not accessible or if request
+  - `general_status: u8` = populated ONLY at the response call site: `cip_item_data[2]` (byte 2 of the CIP response frame — ODVA CIP Specification Vol 1 §2-4.2: byte 0 = service|0x80, byte 1 = reserved, byte 2 = general_status), gated on `cip_item_data.len() >= 4` and `type_id == 0x00B2`; set to `0x00` for requests or when not accessible (BC-2.17.008 postcondition 1, invariant 1)
 - Returns `None` if `item_data.len() < 2`
 - Never panics; truncated path returns whatever bytes are available (not `None`)
 - **Test:** `tests/enip_analyzer_tests.rs::cpf_cip::test_parse_cip_header_request`
@@ -188,8 +188,9 @@ cpf_cip::test_parse_cip_path_odd_length_safe
 ## Previous Story Intelligence
 
 STORY-132 depends on STORY-130 for the foundational types:
-- `EnipHeader`, `EnipCommand`, `CipServiceClass` (from STORY-130) are in scope but not directly called in STORY-132's parse functions
-- `classify_cip_service` (STORY-130) is used by the Wave 60 detection stories when they call `parse_cip_header` and classify the service — STORY-132 only defines the *data types* consumed by service classification
+- `EnipHeader` and `EnipCommandClass` (from STORY-130, BC-2.17.004) are in scope but not directly called in STORY-132's parse functions
+- `CipServiceClass` (15 variants, BC-2.17.007) is defined by THIS story (STORY-132) — it is NOT from STORY-130
+- `classify_cip_service` (BC-2.17.007) is defined in STORY-132 and used by the Wave 60 detection stories when they call `parse_cip_header` and classify the service; STORY-132 defines both the enum and the classifier
 
 Key lesson from STORY-130: the `#[cfg(kani)]` guard is not needed for STORY-132 functions (BC-2.17.009 explicitly notes `parse_cip_request_path` is not a VP-032 Kani target in v0.11.0). Add doc comments noting the F-P9-002 fuzz obligation instead.
 

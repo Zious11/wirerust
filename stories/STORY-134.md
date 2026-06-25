@@ -116,7 +116,7 @@ Discovery Pattern A), and CIP error-response bursts (T0888 Pattern B),
   - `category: ThreatCategory::Reconnaissance`
   - `verdict: Verdict::Possible`
   - `confidence: Confidence::Medium`
-  - `summary: "CIP error-response burst: {N} error responses in 10s window — possible service enumeration (T0888)"`
+  - `summary: "CIP error-response burst: {total_errors} error responses in 10s window — possible service enumeration (T0888)"`
   - `mitre_techniques: vec!["T0888"]`
   - `flow.error_rate_emitted = true` (one-shot guard)
 - With default threshold=5: exactly 5 errors → no finding; 6th error → finding
@@ -127,7 +127,7 @@ Discovery Pattern A), and CIP error-response bursts (T0888 Pattern B),
 - **Test:** `tests/enip_analyzer_tests.rs::recon::test_t0888_pattern_b_threshold_zero`
 
 ### AC-134-005: is_non_enip flow flag suppresses all ENIP detections
-**Traces to:** BC-2.17.010 Invariant 3, BC-2.17.014 preconditions
+**Traces to:** BC-2.17.010 Precondition 2, BC-2.17.014 preconditions
 - When `flow.is_non_enip == true`, no T0846 or T0888 findings are emitted regardless of frame content
 - `is_non_enip` is set by the frame-walk robustness logic in STORY-137 (BC-2.17.016)
 - In this story, test it by constructing a flow state with `is_non_enip=true` and verifying no findings are emitted
@@ -226,12 +226,12 @@ From ADR-010 Decision 6 (detection ordering) and BC-2.17.010/008/014:
 2. **`MAX_FINDINGS` cap (BC-2.17.022, via ADR-010):** Every `push` to `all_findings` must be preceded by `self.all_findings.len() < MAX_FINDINGS` check. Never push unconditionally.
 3. **T0888 Pattern B strict `>` semantics (BC-2.17.014 Invariant 3):** `total_error_count > threshold` — NOT `>=`. With default threshold=5, exactly 5 errors do NOT fire; 6 fires. Use `>` everywhere, not `>=`.
 4. **F-P9-001 gate (BC-2.17.014 precondition 4):** T0888 Pattern A is only triggered for `type_id == 0x00B2` items. The check is `if item.type_id == 0x00B2 { parse_cip_header(...); /* detection */ }`. Connected items (0x00B1) are skipped without firing any detection.
-5. **Error window is per-flow (BC-2.17.008):** Each `EnipFlowState` has its own `error_counts_in_window` and `error_window_start`. Window expiry is checked per-PDU against the 10s threshold relative to `error_window_start`.
+5. **Error window is per-flow (BC-2.17.008):** Each `EnipFlowState` has its own `error_counts_in_window` and `error_window_start_ts`. Window expiry is checked per-PDU against the 10s threshold relative to `error_window_start_ts`.
 6. **T0846 is per-flow one-shot, not per-occurrence (BC-2.17.010 invariant 1):** The first ListIdentity frame per flow emits a T0846 finding and sets `flow.list_identity_emitted = true`. Subsequent ListIdentity frames on the SAME flow increment `command_counts[0x0063]` but emit NO additional findings. A new flow from the same source resets the guard. This prevents a single scan campaign from emitting up to MAX_FINDINGS near-identical T0846 findings. Implementation MUST check `!flow.list_identity_emitted` before emitting; MUST set `flow.list_identity_emitted = true` after emitting. This is required to pass holdout HS-114 Case B.
 
 ## Library & Framework Requirements
 
-- `std::collections::HashMap` for `error_counts_in_window: HashMap<u8, u32>` — already in Rust stdlib
+- `std::collections::HashMap` for `error_counts_in_window: HashMap<u8, u64>` — already in Rust stdlib
 - No new external dependencies
 
 ## File Structure Requirements
