@@ -1078,8 +1078,8 @@ mod dispatch {
 // GREEN:
 //   test_parse_cpf_items_single_item             — BC-2.17.005 PC 1–3 (single UnconnectedData item)
 //   test_parse_cpf_items_two_items               — BC-2.17.005 PC 4 (two-item list)
-//   test_parse_cpf_items_empty                   — BC-2.17.005 PC 5 (item_count=0 → empty vec)
-//   test_parse_cpf_items_truncated               — BC-2.17.005 PC 5 (short buf → safe empty)
+//   test_parse_cpf_items_empty                   — BC-2.17.005 PC 1/3 (len < 2 → empty vec)
+//   test_parse_cpf_items_truncated               — BC-2.17.005 PC 1/3 (short buf → safe empty)
 //   test_cpf_item_type_ids                       — BC-2.17.005 (NullAddress / ConnectedData / UnconnectedData type IDs)
 //   test_parse_cip_header_request                — BC-2.17.006 PC 1–4 (valid request frame)
 //   test_parse_cip_header_response               — BC-2.17.006 PC 2 (response bit set)
@@ -1195,10 +1195,10 @@ mod cpf_cip {
 
     /// AC-132-001 — too short for item_count (1 byte): returns vec![].
     ///
-    /// BC-2.17.005 postcondition 4: returns vec![] if cpf_data.len() < 2 (cannot read
+    /// BC-2.17.005 postcondition 1: returns vec![] if cpf_data.len() < 2 (cannot read
     /// item_count). EC-002: 0 bytes and 1 byte are both too short.
     ///
-    /// Traces: BC-2.17.005 postcondition 4; EC-002.
+    /// Traces: BC-2.17.005 postcondition 1; EC-002.
     #[test]
     fn test_parse_cpf_items_empty() {
         // 0-byte input: cannot read item_count

@@ -319,7 +319,7 @@ pub fn parse_cpf_items(cpf_data: &[u8]) -> Vec<CpfItem> {
     }
     // BC-2.17.005 postcondition 2: item_count is LE u16 at [0..2].
     let item_count = u16::from_le_bytes([cpf_data[0], cpf_data[1]]) as usize;
-    let mut items = Vec::with_capacity(item_count);
+    let mut items = Vec::with_capacity(item_count.min((cpf_data.len().saturating_sub(2)) / 4));
     let mut cursor = 2usize;
 
     for _ in 0..item_count {
