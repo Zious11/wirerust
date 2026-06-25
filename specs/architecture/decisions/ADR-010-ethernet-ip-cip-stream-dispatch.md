@@ -683,7 +683,7 @@ representation of the ATT&CK matrix.
   `technique_tactic_id()` update must be part of the VP-007 atomic burst in F4 STORY-EIP-09.
 - **T1693.001 EMITTED_IDS timing:** Seeded in v0.11.0 but not added to EMITTED_IDS until
   a BC that emits firmware-detection findings is implemented. The BC for CIP firmware
-  download detection is deferred from v0.11.0 scope (not in BC-2.17.001..024). Confirm
+  download detection is deferred from v0.11.0 scope (not in BC-2.17.001..025). Confirm
   this in F3 story decomposition.
 - **BC-2.17.025 (session-handshake) — PO ACTION REQUIRED:** The product-owner MUST
   create BC-2.17.025 with the following contract: "RegisterSession (0x0065) and

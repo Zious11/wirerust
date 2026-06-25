@@ -1552,7 +1552,7 @@ See `prd-supplements/error-taxonomy.md` for the complete E-xxx-NNN catalog.
 | BC ID | Contribution |
 |-------|-------------|
 | BC-2.10.003 | all_tactics_in_report_order returns kill-chain order for deterministic grouping |
-| BC-2.10.005 | technique_name lookup for all 28 seeded IDs (12 Enterprise + 16 ICS: T0846 seeded-not-emitted; T1692.001/T1692.002/T0885 existing; T0836/T0814/T0806/T0835/T0831/T0888 new Modbus; T1691.001/T0827 new DNP3 F2; T0830 [ICS] + T1557.002 [Enterprise] new ARP F2; T0858, T0816 [ICS] + T1693.001 [ICS staged] new EtherNet/IP F2) |
+| BC-2.10.005 | technique_name lookup for all 28 seeded IDs (12 Enterprise + 16 ICS: **T0846 now emitted (BC-2.17.010 ListIdentity)**; T1692.001/T1692.002/T0885 existing; T0836/T0814/T0806/T0835/T0831/T0888 new Modbus; T1691.001/T0827 new DNP3 F2; T0830 [ICS] + T1557.002 [Enterprise] new ARP F2; T0858, T0816 [ICS] + T1693.001 [ICS staged] new EtherNet/IP F2) |
 | BC-2.11.013 | TerminalReporter MITRE grouping with tactic headers in canonical order; groups by `mitre_techniques[0]`; multi-tag findings display all IDs |
 | BC-2.11.015 | Uncategorized bucket for empty `mitre_techniques` vec or all-unknown IDs |
 | BC-2.11.016 | Per-finding MITRE expansion with em-dash and name |
