@@ -196,3 +196,77 @@ pass after each fix.
 assumption rather than a verified fact). Here the "assumption" is that the stub template
 output is already GREEN-compliant. The mechanical fix is either a template change or a grep
 gate, not an adversarial pass.
+
+---
+
+## [codified] [process-gap] MITRE-CATALOG-ADR-AUTHORITATIVE-001 — ADR is authoritative for MITRE catalog (id, name, tactic) tuples; story prose is not
+
+**Status:** CODIFIED — justified deferral; evaluate at cycle close whether to add a name-correctness pin to `mitre_tests.rs` (analogous follow-up to the tactic-id pin already in place). No separate follow-up story opened at this time.
+**Found at:** STORY-133 adversarial Pass 1 — 2 CRITICAL + 2 HIGH.
+**Decision:** D-240.
+
+**Observation:**
+
+STORY-133 Pass 1 found 4 findings rooted in a single factual error: the story prose
+carried the wrong MITRE catalog mapping for T1693.001.
+
+- **Story prose (wrong):** `name: "Exploit Public-Facing Application: EtherNet/IP"`, `tactic: MitreTactic::IcsInitialAccess`
+- **ADR-010 Decision 7 (authoritative):** `name: "Modify Firmware: System Firmware"`, `tactic: MitreTactic::IcsInhibitResponseFunction` (TA0107)
+
+The implementation followed the story prose, producing:
+1. `technique_info("T1693.001")` returning wrong name — CRITICAL (factually wrong catalog entry).
+2. `technique_info("T1693.001")` returning wrong tactic — CRITICAL (wrong TA-id: IcsInitialAccess vs IcsInhibitResponseFunction/TA0107).
+3. Test `test_technique_info_t1693_001` pinned the wrong name "Exploit Public-Facing Application: EtherNet/IP" — HIGH (test validating incorrect behavior).
+4. No executable gate existed on the tactic assignment — HIGH (IcsInitialAccess variant added but correct variant IcsInhibitResponseFunction mandated by ADR not asserted).
+
+**Impact:** Had the implementation shipped without adversarial pass, the MITRE catalog would
+have contained a factually incorrect technique name and a wrong tactic assignment for T1693.001,
+visible in all user-facing JSON output. A subsequent sibling sweep of STORY-INDEX.md,
+dependency-graph.md, and BC-2.17.007 confirmed no other stories or BCs carried the defect
+(they reference T1693.001 by ID only, not by name or tactic). The defect was isolated to
+STORY-133.md. All 4 issues fixed at code commit `ffca717` (impl + test pin +
+`mitre_tests.rs` authoritative-TA-id pin-table extension + stale-count function renames +
+RED-tense scrub) and story prose fixed in this burst.
+
+**Root cause:**
+
+Story authors transcribed MITRE technique metadata (id, name, tactic) from memory or
+secondary sources rather than cross-checking each new catalog entry against the project's
+authoritative source: ADR-010 Decision 7 and the enip-architecture-delta research. The
+correct mapping exists unambiguously in ADR-010 Decision 7; the story author did not read it
+before writing the technique_info AC.
+
+**Fix applied (D-240):**
+- STORY-133.md lines ~68, 123, 147–148, 224: four T1693.001 prose references corrected to
+  authoritative name "Modify Firmware: System Firmware" and tactic IcsInhibitResponseFunction (TA0107).
+- Code @ffca717: `technique_info("T1693.001")` implementation, test pin, and
+  `mitre_tests.rs` pin-table extended with T1693.001 → TA0107 authoritative assertion.
+- VP-007 invariants intact post-fix: SEEDED 28, EMITTED 20, T1693.001 excluded from EMITTED,
+  revoked T0855/T0856/T0857 absent.
+
+**Process improvement (mandatory for all future MITRE-seeding stories):**
+
+When a story introduces or updates a MITRE catalog entry (any `technique_info` arm,
+any entry in `SEEDED`, any entry in `EMITTED_IDS`), the implementer MUST:
+
+1. Cross-check the **(id, name, tactic)** tuple against **ADR-010 Decision 7** and the
+   relevant research file — not against story prose alone.
+2. Verify tactic assignment against the authoritative tactic-id map in the same ADR.
+3. Extend the `mitre_tests.rs` authoritative-TA-id pin-table with a `(technique_id → TA-id)`
+   assertion for every new technique introduced in lockstep (sibling-sweep obligation).
+
+The `mitre_tests::test_ics_techniques_resolve_authoritative_tactic_ids` pin-table is now the
+mechanical gate for tactic correctness. It must be extended for EVERY future MITRE-seeding
+story — this is the executable equivalent of the "cross-check ADR" obligation.
+
+**Recommended follow-up (justified deferral):**
+
+Evaluate at cycle close (S-7.02) whether to add a **name-correctness pin** to `mitre_tests.rs`
+alongside the existing tactic-id pin — i.e., `(technique_id → expected_name)` assertions.
+This would catch the wrong-name CRITICAL at test time rather than requiring an adversarial
+pass. Deferral is justified because: (a) the tactic-id pin (now extended) already catches the
+most operationally significant error (wrong TA-id drives wrong tactic taxonomy); (b) name
+correctness can be visually verified from the catalog at story-write time with the new
+cross-check obligation; (c) the name-pin adds test maintenance cost for all future technique
+renames in the upstream MITRE catalog. Resolve this evaluation at cycle close alongside
+ENGINE-PROPAGATION-GREP-GATE-001 and GREEN-DOC-TENSE-TEST-HEADER-STORY.

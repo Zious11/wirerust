@@ -162,6 +162,29 @@ Wave-level adversarial convergence ACHIEVED. BC-5.39.001 MET. Wave 58 FULLY CLOS
 
 ---
 
+### Per-Story — STORY-133 (Wave 59 — IN-PROGRESS)
+
+| Pass | Date | Total | CRIT | HIGH | MED | LOW | Novelty | Score | Counter | Verdict |
+|------|------|-------|------|------|-----|-----|---------|-------|---------|---------|
+| 1 | 2026-06-25 | 4 | 2 | 2 | 0 | 0 | HIGH | — | 0/3 | FINDINGS_REMAIN — REMEDIATED |
+
+Trajectory: `4→…` (adversarial convergence continuing; Pass 2+ pending)
+
+### STORY-133 Pass 1 (2026-06-25)
+
+**Findings:** 4 (2 CRIT, 2 HIGH, 0 MED, 0 LOW)
+**Novelty:** HIGH
+**Convergence counter:** 0 of 3
+
+CRIT-1: `technique_info("T1693.001")` returned wrong name "Exploit Public-Facing Application: EtherNet/IP" — corrected to "Modify Firmware: System Firmware" per ADR-010 Decision 7.
+CRIT-2: `technique_info("T1693.001")` returned wrong tactic IcsInitialAccess — corrected to IcsInhibitResponseFunction (TA0107) per ADR-010 Decision 7.
+HIGH-1: Test `test_technique_info_t1693_001` pinned the wrong name — test pin corrected at `ffca717`.
+HIGH-2: No executable gate existed on tactic assignment — `mitre_tests.rs` pin-table extended with T1693.001 → TA0107 authoritative assertion at `ffca717`.
+
+All 4 findings fixed at code commit `ffca717` (impl + test pin + mitre_tests authoritative-TA-id pin-table extension + stale-count fn renames + RED-tense scrub). Story prose corrected in factory-artifacts burst [D-240]. VP-007 invariants intact: SEEDED 28, EMITTED 20, T1693.001 excluded, revoked T0855/T0856/T0857 absent. Codified as MITRE-CATALOG-ADR-AUTHORITATIVE-001 in lessons.md.
+
+---
+
 ## Wave-59 Follow-Up Obligations (logged at wave-level convergence — non-blocking)
 
 These were surfaced during wave-level passes and logged per D-238:

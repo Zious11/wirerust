@@ -65,7 +65,7 @@ is derived from ADR-010 Decision 7 and the enip-architecture-delta §VP-007 sect
 
 ### AC-133-003: `technique_info("T1693.001")` returns staged technique metadata
 **Traces to:** VP-007 Step 1 (T1693.001 arm)
-- `technique_info("T1693.001")` returns `Some(TechniqueInfo { id: "T1693.001", name: "Exploit Public-Facing Application: EtherNet/IP", tactic: MitreTactic::IcsInitialAccess, description: "..." })` (or similar)
+- `technique_info("T1693.001")` returns `Some(TechniqueInfo { id: "T1693.001", name: "Modify Firmware: System Firmware", tactic: MitreTactic::IcsInhibitResponseFunction, description: "..." })`
 - T1693.001 is SEEDED (appears in `SEEDED` array) but NOT emitted — it will not appear in `EMITTED_IDS`
 - **Test:** `tests/enip_analyzer_tests.rs::mitre_seeding::test_technique_info_t1693_001`
 
@@ -120,7 +120,7 @@ is derived from ADR-010 Decision 7 and the enip-architecture-delta §VP-007 sect
 
 **Why T0846 moves to EMITTED here:** T0846 (Remote System Discovery, ListIdentity) was seeded in a prior story but its first emission is in STORY-134 (BC-2.17.010). The VP-007 atomic requirement is that EMITTED_IDS is consistent with what the codebase actually emits. STORY-133 adds T0846 to EMITTED because STORY-134 (Wave 60) will emit it — the catalog update must precede the first emission. Since STORY-133 is Wave 59 and STORY-134 is Wave 60, this ordering is correct.
 
-**T1693.001 staged-only rationale:** T1693.001 (Exploit Public-Facing Application: EtherNet/IP) is seeded for catalog completeness and future roadmap but no v0.11.0 detection BC emits it. It must NOT be added to `EMITTED_IDS` in this story or any v0.11.0 story — adding it to EMITTED without a corresponding emitter would cause the EMITTED/SEEDED consistency test to fail.
+**T1693.001 staged-only rationale:** T1693.001 (Modify Firmware: System Firmware) is seeded for catalog completeness and future roadmap but no v0.11.0 detection BC emits it. It must NOT be added to `EMITTED_IDS` in this story or any v0.11.0 story — adding it to EMITTED without a corresponding emitter would cause the EMITTED/SEEDED consistency test to fail.
 
 ## VP-007 Atomic Update Details
 
@@ -144,8 +144,8 @@ ADR-010 Decision 7 specifies the VP-007 atomic obligation as a 6-part burst that
 }),
 "T1693.001" => Some(TechniqueInfo {
     id: "T1693.001",
-    name: "Exploit Public-Facing Application: EtherNet/IP",
-    tactic: MitreTactic::IcsInitialAccess,
+    name: "Modify Firmware: System Firmware",
+    tactic: MitreTactic::IcsInhibitResponseFunction,
     description: "Staged/seeded for v0.12.0; no v0.11.0 emitter.",
 }),
 ```
@@ -221,7 +221,7 @@ cargo test mitre
 - [ ] Add `IcsExecution => "TA0104"` arm to `MitreTactic::tactic_id()` method
 - [ ] Add `"T0858"` arm to `technique_info()` match (tactic: IcsExecution)
 - [ ] Add `"T0816"` arm to `technique_info()` match (tactic: IcsInhibitResponseFunction)
-- [ ] Add `"T1693.001"` arm to `technique_info()` match (tactic: IcsInitialAccess or similar)
+- [ ] Add `"T1693.001"` arm to `technique_info()` match (name: "Modify Firmware: System Firmware", tactic: IcsInhibitResponseFunction)
 - [ ] Append `"T0858"`, `"T0816"`, `"T1693.001"` to `SEEDED` array
 - [ ] Update `SEEDED_TECHNIQUE_ID_COUNT` to 28
 - [ ] Append `"T0858"`, `"T0816"`, `"T0846"` to `EMITTED_IDS` (NOT T1693.001)
