@@ -114,7 +114,9 @@ pub fn parse_enip_header(data: &[u8]) -> Option<EnipHeader> {
         length: u16::from_le_bytes([data[2], data[3]]),
         session_handle: u32::from_le_bytes([data[4], data[5], data[6], data[7]]),
         status: u32::from_le_bytes([data[8], data[9], data[10], data[11]]),
-        sender_context: data[12..20].try_into().expect("slice is 8 bytes after len >= 24 guard"),
+        sender_context: data[12..20]
+            .try_into()
+            .expect("slice is 8 bytes after len >= 24 guard"),
         options: u32::from_le_bytes([data[20], data[21], data[22], data[23]]),
     })
 }

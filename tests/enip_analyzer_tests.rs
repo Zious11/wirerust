@@ -10,7 +10,7 @@
 //! Tests MUST compile. Tests MUST NOT pass before implementation.
 
 use wirerust::analyzer::enip::{
-    classify_enip_command, is_valid_enip_frame, EnipCommandClass, EnipHeader, parse_enip_header,
+    EnipCommandClass, EnipHeader, classify_enip_command, is_valid_enip_frame, parse_enip_header,
 };
 
 mod parse_header {
