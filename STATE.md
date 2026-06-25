@@ -1,10 +1,10 @@
 ---
 pipeline: FEATURE-MODE
 phase: F3
-phase_status: "F3 COMPLETE. Adv-story Pass 1: FAIL (4C/6H/5M/3obs) REMEDIATED. Pass 2: FAIL (1C/3H/5M/3L) REMEDIATED. Pass 3: FAIL (0C/2H/3M/2L) REMEDIATED. Pass 4: FAIL (2C/2H/2M) ALL REMEDIATED. Pass 5: FAIL (0C/1H/2M) ALL REMEDIATED. Pass 6: FAIL (0C/1H/1M) ALL REMEDIATED — BC-level flows_analyzed dead-counter fix (BC-2.17.017 v1.1 PC6 + BC-2.17.021 v1.1 + BC-2.17.008 v1.1 PC2b) + STORY-136 attribution (→ STORY-132); BC-INDEX v1.78; STORY-134→c82d3ff, STORY-138→e8f91f1. Trajectory: 4C/6H→1C/3H→0C/2H→2C/2H→0C/1H→0C/1H. Convergence counter: 0/3 (reset). Pass 7 RUNNING."
+phase_status: "F3 COMPLETE. Adv-story Pass 1: FAIL (4C/6H/5M/3obs) REMEDIATED. Pass 2: FAIL (1C/3H/5M/3L) REMEDIATED. Pass 3: FAIL (0C/2H/3M/2L) REMEDIATED. Pass 4: FAIL (2C/2H/2M) ALL REMEDIATED. Pass 5: FAIL (0C/1H/2M) ALL REMEDIATED. Pass 6: FAIL (0C/1H/1M) ALL REMEDIATED. Pass 7: PASS (0C/0H/2M/1L) COMMITTED — 2M remediated (dep-graph STORY-136 vec![] + STORY-134 single-increment note); F-P7-003 false-alarm. Trajectory: 4C/6H→1C/3H→0C/2H→2C/2H→0C/1H→0C/1H→0C/0H. Convergence counter: 1/3. Pass 8 RUNNING."
 product: wirerust
 mode: feature-mode
-timestamp: 2026-06-24T20:00:00Z
+timestamp: 2026-06-24T20:30:00Z
 
 # Release chain (latest)
 released_version: v0.10.0
@@ -70,7 +70,7 @@ convergence_trajectory: "Detail: cycles/v0.1.0-greenfield-spec/convergence-traje
 
 ## Status
 
-**PIPELINE FEATURE-MODE. Cycle `feature-enip-v0.11.0` OPEN. F1 PASSED. F2 COMPLETE (human gate D-230). F3 COMPLETE + CONSISTENCY FIXES APPLIED: 9 stories STORY-130..138 (E-20, waves 58-61, 66 pts; all 26 BC-2.17.001..026 covered) + 13 holdout scenarios HS-110..122 (all must-pass). F3 ADV-STORY PASS 1-6: ALL REMEDIATED. PASS 6 REMEDIATED: F-P6-001 BC-level flows_analyzed dead-counter fixed (BC-2.17.017 v1.1 PC6 sole increment site + BC-2.17.021 v1.1 + BC-2.17.008 v1.1 PC2b; all 7 enip_summary fields confirmed with increment sites); F-P6-002 STORY-136 attribution fixed (→ STORY-132); BC-INDEX v1.78; STORY-134→c82d3ff, STORY-138→e8f91f1. Severity trajectory: 4C/6H→1C/3H→0C/2H→2C/2H→0C/1H→0C/1H. Convergence counter: 0/3 (reset). PASS 7 RUNNING. ENGINE-PROPAGATION-GREP-GATE-001 in OPEN ITEMS.**
+**PIPELINE FEATURE-MODE. Cycle `feature-enip-v0.11.0` OPEN. F1 PASSED. F2 COMPLETE (human gate D-230). F3 COMPLETE + CONSISTENCY FIXES APPLIED: 9 stories STORY-130..138 (E-20, waves 58-61, 66 pts; all 26 BC-2.17.001..026 covered) + 13 holdout scenarios HS-110..122 (all must-pass). F3 ADV-STORY PASS 1-6: ALL REMEDIATED. PASS 7: PASS (0C/0H/2M/1L) — FIRST CLEAN PASS. 2M remediated (dep-graph STORY-133→STORY-136 tactic error + command_counts double-increment ambiguity); F-P7-003 false-alarm (all 13 holdouts HS-110..122 confirmed present + git-tracked). Severity trajectory: 4C/6H→1C/3H→0C/2H→2C/2H→0C/1H→0C/1H→0C/0H. Convergence counter: 1/3. Pass 7 remediation COMMITTED. Pass 8 RUNNING. ENGINE-PROPAGATION-GREP-GATE-001 in OPEN ITEMS.**
 
 Latest release: v0.10.0 (main `0cbe922`, tag `v0.10.0`, 4 binaries, run 28109367603). develop=`ff4b82b`. stories_delivered=78. Target: v0.11.0 (SS-17 EtherNet/IP + CIP TCP/44818). GitHub issue #316.
 
@@ -156,7 +156,7 @@ All GitHub-issue creation remains DF-VALIDATION-001-gated.
 | Maintenance maint-2026-06-22 | COMPLETE 2026-06-23 | 38 observations; 0 blocking; F-MAJ-001 fixed (a6efb23); PR #304 (e458ce2) + PR #305 (e4abbe2). |
 | Feature mitre-json-names (issue #64) + v0.9.4 | RELEASED + CLOSED 2026-06-23 (D-217) | F1-F7 CONVERGED. 5 BCs bumped. BC-INDEX v1.71 (303 BCs). PRs #306/307/308/309. tag v0.9.4 96b49e8. 4 binaries. stories_delivered=78. |
 | Fix cycle fix-pc-013-014-015 + v0.10.0 | **CONVERGED + RELEASED + CLOSED 2026-06-24 (D-226)** | All 3 fixes: PC-015 (#310), PC-013 (#312 + spec D-223), PC-014 (#313 breaking rename + CHANGELOG). Evidence resync #314. v0.10.0: PR #315 → main 0cbe922, tag v0.10.0, 4 binaries, run 28109367603. develop back-merged ff4b82b. BC-INDEX v1.73 (305 BCs / 304 active). |
-| Feature EtherNet/IP + CIP (issue #316) — v0.11.0 | **F3 COMPLETE — ADV-STORY PASS 6 REMEDIATED — PASS 7 RUNNING** | F3: stories STORY-130..138 (9, E-20, 66 pts) + holdout HS-110..122 (13). Passes 1-6: ALL REMEDIATED. Pass 6: BC-2.17.017 v1.1 (PC6 flows_analyzed sole increment) + BC-2.17.021 v1.1 + BC-2.17.008 v1.1 (PC2b); BC-INDEX v1.78; STORY-134→c82d3ff, STORY-138→e8f91f1. Trajectory: 4C/6H→1C/3H→0C/2H→2C/2H→0C/1H→0C/1H. Counter: 0/3. Pass 7 running. Detail: cycles/feature-enip-v0.11.0/ |
+| Feature EtherNet/IP + CIP (issue #316) — v0.11.0 | **F3 COMPLETE — ADV-STORY PASS 7 COMMITTED (1/3) — PASS 8 RUNNING** | F3: stories STORY-130..138 (9, E-20, 66 pts) + holdout HS-110..122 (13). Passes 1-6: ALL REMEDIATED. Pass 7: PASS (0C/0H/2M/1L) committed; 2M remediated (dep-graph STORY-136 vec![] + STORY-134 single-increment note); F-P7-003 false-alarm. Trajectory: 4C/6H→1C/3H→0C/2H→2C/2H→0C/1H→0C/1H→0C/0H. Counter: 1/3. Pass 8 RUNNING. Detail: cycles/feature-enip-v0.11.0/ |
 
 ## Decisions Log
 
