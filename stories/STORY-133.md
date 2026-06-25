@@ -19,7 +19,7 @@ verification_properties:
 inputs:
   - .factory/specs/architecture/decisions/ADR-010-ethernet-ip-cip-stream-dispatch.md
   - .factory/phase-f2-spec-evolution/enip-architecture-delta.md
-input-hash: "7104101"
+input-hash: "350dcf3"
 ---
 
 # STORY-133: MITRE ICS Technique Seeding: T0858/T0816/T1693.001/IcsExecution + VP-007 Atomic Update

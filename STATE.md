@@ -1,10 +1,10 @@
 ---
 pipeline: FEATURE-MODE
 phase: F4
-phase_status: "F4 Wave 59 — STORY-132 DELIVERED+MERGED (PR #319, develop 16d3ce7); NEXT = STORY-133 (MITRE seeding + VP-007 6-part atomic burst)."
+phase_status: "F4 Wave 59 — STORY-133 IN-PROGRESS (MITRE seeding + VP-007 6-part atomic burst); input-hash refreshed 7104101→350dcf3."
 product: wirerust
 mode: feature-mode
-timestamp: 2026-06-25T17:00:00Z
+timestamp: 2026-06-25T17:30:00Z
 
 # Release chain (latest)
 released_version: v0.10.0
@@ -29,7 +29,7 @@ adversary_gate: SATISFIED
 # Story tracking
 stories_delivered: 81
 current_cycle: feature-enip-v0.11.0 (D-228, 2026-06-24)
-current_wave: "Wave 59 STORY-132 DELIVERED+MERGED (PR #319, develop 16d3ce7, D-239). NEXT = STORY-133 (MITRE seeding + VP-007 6-part atomic burst, wave 59). WAVE59-E2E-001 + WAVE59-DEADCODE-001 re-targeted to STORY-137 (frame-walk wiring, wave 60)."
+current_wave: "Wave 59 STORY-133 IN-PROGRESS (MITRE seeding + VP-007 6-part atomic burst). Input-hash refreshed 7104101→350dcf3 at delivery start. STORY-132 DELIVERED+MERGED (PR #319, develop 16d3ce7, D-239). WAVE59-E2E-001 + WAVE59-DEADCODE-001 re-targeted to STORY-137 (frame-walk wiring, wave 60)."
 
 # DTU
 dtu_required: false
@@ -83,7 +83,7 @@ WAVE59-E2E-001 + WAVE59-DEADCODE-001 RE-TARGETED to STORY-137 (wave 60, BC-2.17.
 
 ENIP header LITTLE-endian (`from_le_bytes`). `is_valid_enip_frame` single-arg (command-only). `EnipCommandClass` 10 payloadless variants. `CipServiceClass` 15 (0x0A=MultipleServicePacket). `CipHeader={service,request_path}`. `CpfItem={type_id,data}`. `general_status`=byte-2 on 0x00B2 responses. 0x00B2-only CIP detection (0x00B1 deferred v0.12.0). Write-burst default 50 / error-burst 5 strict `>` (51st/6th); both CLI-overridable. T0814 windowed >=3/300s; carry-overflow runs `check_t0814` BEFORE latching `is_non_enip`. `command_counts` SINGLE site=frame-walk (BC-2.17.016 PC-0, counts all incl Unknown). `process_pdu` owns `pdu_count`. `flows_analyzed`→`on_flow_close`. Summary canonical key `parse_errors`. MAX_ENIP_CARRY_BYTES=600, MAX_FINDINGS=10000. MITRE pin ics-attack-19.1. EMITTED 17→20, SEEDED 25→28, catalogue-only 8. Counters u64, window timestamps u32 seconds.
 
-Story input-hashes (verified): STORY-130 272738c→e3c0a6a (D-237 H-001 rehash), 131 a119157 (refreshed D-236), 132 738d0b0 (refreshed Wave-59 delivery start; MATCH at merge), 133..138 STALE — pending F4 per-story refresh (do NOT refresh until each story's delivery wave).
+Story input-hashes (verified): STORY-130 272738c→e3c0a6a (D-237 H-001 rehash), 131 a119157 (refreshed D-236), 132 738d0b0 (refreshed Wave-59 delivery start; MATCH at merge), 133 7104101→350dcf3 (refreshed Wave-59 delivery start — ADR-010 D-233/D-236 cosmetic inputs; STORY-133 body unchanged). STORY-134..138 STALE — pending F4 per-story refresh (do NOT refresh until each story's delivery wave).
 
 ### RESUME PROCEDURE (execute in order — BLOCKING)
 
@@ -102,7 +102,7 @@ Wave 60: STORY-134/135/136/137 (WAVE59-E2E-001 + WAVE59-DEADCODE-001 re-targeted
 
 F4 obligations (remaining waves): 12 pcap fixtures (HS-110..122 minus HS-121 which is synthetic); BC frontmatter input-hash writes; STORY-133 EMITTED/SEEDED baseline reverify vs live src/mitre.rs; M-001 RESOLVED (docs/adr/0010 synced in PR #319).
 
-STORY-133..138 remain STALE — to be refreshed as F4 obligation per story delivery.
+STORY-134..138 remain STALE — to be refreshed as F4 obligation per story delivery.
 
 ### OPEN ITEMS (backlog — non-blocking)
 
