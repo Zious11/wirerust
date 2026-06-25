@@ -34,7 +34,7 @@ Research inputs: `.factory/research/next-ics-protocol-prevalence.md`,
 |-------|--------|-------|
 | F1 — Delta Analysis | PASSED 2026-06-24 | Human-approved (D-228). TCP/44818 + UDP/2222 + ForwardOpen in scope. TLS/2221 deferred. |
 | F2 — Spec Evolution | **COMPLETE — human gate PASSED (D-230, 2026-06-24)** | D-229: UDP/2222 deferred to v0.12.0. Scope: TCP/44818 + CIP ForwardOpen (TCP only; 0x00B2 unconnected carriers only; 0x00B1 deferred v0.12.0). 26 BCs total (BC-2.17.001..026). ADR-010 (Decisions 1-9), VP-032 written. F2 adversarial convergence: 4 consecutive 0-H/C passes (P10/P11/P12/P13). Severity trajectory: 4C/7H→4C/3H→3C/4H→0C/1H→0C/1H→0C/0H→0C/1H→0C/0H→0C/1H→0C/0H→0C/0H→0C/0H(P12)→0C/0H(P13). F2 addendum (D-230): BC-2.17.026 created (--enip-error-burst-threshold CLI flag, u32 default 5, symmetric with --enip-write-burst-threshold); ADR-010 Decision 9 added; ENIP_ERROR_BURST_THRESHOLD constant retired; BC-2.17.014 configurable field; BC-2.17.020 CLI surface updated. BC-INDEX v1.76 (331/330 active). Human gate decisions: (1) proceed to F3; (2) 0x00B2-only scope accepted; (3) thresholds 50/5 as tunable defaults; (4) recalibrate F6. |
-| F3 — Incremental Stories | **COMPLETE — 2026-06-24** | 9 stories authored: STORY-130..138 (E-20, waves 58-61, 66 pts). All 26 BC-2.17.001..026 assigned. STORY-INDEX v2.8: 91 stories / 61 waves / 592 pts. Epics.md v1.8 (E-20 registered). Dependency-graph.md v3.1 (ENIP chain verified acyclic). Story-location bug fixed: nested stories/stories/ → flat stories/STORY-NNN.md; document_type:story added to all 9; input-hash --scan MATCH. Next: holdout scenarios + adversarial story convergence + F3 gate. |
+| F3 — Incremental Stories | **COMPLETE — 2026-06-24** | 9 stories authored: STORY-130..138 (E-20, waves 58-61, 66 pts). All 26 BC-2.17.001..026 assigned. STORY-INDEX v2.8: 91 stories / 61 waves / 592 pts. Epics.md v1.8 (E-20 registered). Dependency-graph.md v3.1 (ENIP chain verified acyclic). Story-location bug fixed: nested stories/stories/ → flat stories/STORY-NNN.md; document_type:story added to all 9; input-hash --scan MATCH. Holdout scenarios: 13 authored (HS-110..122, all must-pass; HS-110 = canonical-frame LE holdout per DF-CANONICAL-FRAME-HOLDOUT-001; 12 pcap-fixture obligations flagged for F4). Next: adversarial story convergence + F3 gate. |
 | F4 — TDD Implementation | PENDING | |
 | F5 — Scoped Adversarial | PENDING | |
 | F6 — Targeted Hardening | PENDING | |
@@ -74,6 +74,30 @@ Research inputs: `.factory/research/next-ics-protocol-prevalence.md`,
 | CAP-17 | `.factory/specs/domain/capabilities/cap-17-enip-cip-analysis.md` | New domain capability |
 | verification-architecture | `.factory/specs/architecture/verification-architecture.md` | v2.5 |
 | verification-coverage-matrix | `.factory/specs/architecture/verification-coverage-matrix.md` | v1.20 |
+
+## F3 Holdout Scenarios (authored 2026-06-24)
+
+13 holdout scenarios HS-110..122 written for the EtherNet/IP + CIP feature cycle.
+All are **must-pass**. 12 require pcap fixture files (flagged for F4 fixture creation).
+HS-110 satisfies policy DF-CANONICAL-FRAME-HOLDOUT-001 (canonical-frame LE holdout).
+
+| HS | Title | Must-Pass | Pcap Fixture Required |
+|----|-------|-----------|----------------------|
+| HS-110 | enip-canonical-frame-le-header-decode | yes | yes (canonical frame) |
+| HS-111 | enip-cip-stop-t0858 | yes | yes |
+| HS-112 | enip-cip-reset-t0816 | yes | yes |
+| HS-113 | enip-cip-write-burst-t0836-threshold | yes | yes |
+| HS-114 | enip-listidentity-t0846-one-shot | yes | yes |
+| HS-115 | enip-error-burst-t0888-threshold | yes | yes |
+| HS-116 | enip-forwardopen-close-empty-mitre | yes | yes |
+| HS-117 | enip-malformed-t0814-structural-anomaly | yes | yes |
+| HS-118 | enip-oversize-frame-carry-skip | yes | yes |
+| HS-119 | enip-0x00b1-deferral-negative | yes | yes |
+| HS-120 | enip-dispatch-port-44818 | yes | yes |
+| HS-121 | enip-max-findings-dos-bound | yes | no (synthetic) |
+| HS-122 | enip-real-world-corpus | yes | yes |
+
+Files: `.factory/holdout-scenarios/HS-110..122-*.md`
 
 ## Open Items
 
