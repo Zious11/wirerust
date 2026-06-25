@@ -157,8 +157,11 @@ pub fn classify_enip_command(command: u16) -> EnipCommandClass {
 ///
 /// # Traces
 /// BC-2.17.003; VP-032 Sub-C Kani target.
-pub fn is_valid_enip_frame(_h: &EnipHeader) -> bool {
-    todo!()
+pub fn is_valid_enip_frame(h: &EnipHeader) -> bool {
+    matches!(
+        h.command,
+        0x0004 | 0x0063 | 0x0064 | 0x0065 | 0x0066 | 0x006F | 0x0070 | 0x0072 | 0x0075
+    )
 }
 
 // ---------------------------------------------------------------------------
