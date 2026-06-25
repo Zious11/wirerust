@@ -27,7 +27,7 @@ detected with an empty MITRE technique set per ADR-010 Decision 7 policy.
 
 ## Behavioral Contracts
 
-BC-2.17.001 through BC-2.17.024 (24 BCs; see behavioral-contracts/ss-17/).
+BC-2.17.001 through BC-2.17.025 (25 BCs; see behavioral-contracts/ss-17/).
 
 ## Subsystem
 
@@ -56,5 +56,5 @@ parse_cip_request_path, CPF item-walk).
 
 ## Open Items
 
-- **OA-001:** --enip-write-burst-threshold default (20 writes/1s) requires human confirmation
-  for high-write CIP environments. See BC-2.17.012 and BC-2.17.023.
+- **OA-001:** --enip-write-burst-threshold default (50 writes/1s); OA-001 RESOLVED=50, F2 gate confirmation pending.
+  See BC-2.17.012 and BC-2.17.023.

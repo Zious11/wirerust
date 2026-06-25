@@ -1,7 +1,7 @@
 ---
 pipeline: FEATURE-MODE
 phase: F2
-phase_status: "F2 adversary convergence in progress (Pass 1 FAIL remediated; Pass 2 FAIL remediated; Pass 3 FAIL remediated — 3C/4H/4M + 3 bonus BE residues, all REMEDIATED via exhaustive sweep). BC count 329→330 (BC-2.17.025). BC-INDEX v1.75 (25 SS-17 BCs). Two pending-human-confirm values: write-burst default=50, ERROR_BURST=5. Convergence counter: 0/3. Pass 4 running. Awaiting Pass 4 verdict + F2 human gate."
+phase_status: "F2 adversary convergence in progress (Pass 1-3 FAIL remediated; Pass 4 FAIL 0C/1H/4M/2L REMEDIATED — anchor/RTM/capability layer: cli.rs SS-12 anchor, VP-INDEX:8 harness names, PRD O-04 T1693.001, CAP-17 BC range/OA-001, RTM BC-2.10.005 seed counts). BC-INDEX v1.75 (330 total / 329 active, 25 SS-17 BCs). Severity trajectory: 4C/7H→4C/3H→3C/4H→0C/1H (decaying; core confirmed CLEAN). Two pending-human-confirm: write-burst default=50, ERROR_BURST=5. Convergence counter: 0/3. Pass 5 running. Awaiting Pass 5 verdict + F2 human gate."
 product: wirerust
 mode: feature-mode
 timestamp: 2026-06-24T12:00:00Z
@@ -70,7 +70,7 @@ convergence_trajectory: "Detail: cycles/v0.1.0-greenfield-spec/convergence-traje
 
 ## Status
 
-**PIPELINE FEATURE-MODE. Cycle `feature-enip-v0.11.0` OPEN. F1 PASSED. F2 adversarial Pass 3 FAIL REMEDIATED (2026-06-24): 3C/4H/4M + 3 bonus BE residues (VP-INDEX:119, verification-architecture:110, cap-17:20) all fixed via exhaustive propagation sweep (BC-2.17.020 write-burst 50, PRD BE→LE, coverage-matrix BE→LE, --all/--enip, ForwardClose title, BC-INDEX variant count, harness count). BC-INDEX v1.75 (330 total / 329 active, 25 SS-17 BCs). Two pending-human-confirm: write-burst default=50, ERROR_BURST=5. Convergence counter: 0/3. Pass 4 running. Awaiting Pass 4 verdict + F2 human gate. Process-gap PROPAGATION-LAG-001 recorded (lessons.md); ENGINE-PROPAGATION-GREP-GATE-001 in OPEN ITEMS.**
+**PIPELINE FEATURE-MODE. Cycle `feature-enip-v0.11.0` OPEN. F1 PASSED. F2 adversarial Pass 4 FAIL REMEDIATED (2026-06-24): 0C/1H/4M/2L — anchor/RTM/capability residues (cli.rs SS-12 anchor BC-2.17.020/023, VP-INDEX:8 harness names + 5th harness, PRD O-04 T1693.001 enumeration, CAP-17 BC range/OA-001 default, RTM BC-2.10.005 seed counts) all fixed. Severity trajectory: 4C/7H→4C/3H→3C/4H→0C/1H (monotone decay; core normative content confirmed CLEAN across all 4 passes). BC-INDEX v1.75 (330 total / 329 active, 25 SS-17 BCs). Two pending-human-confirm: write-burst default=50, ERROR_BURST=5. Convergence counter: 0/3. Pass 5 running. Awaiting Pass 5 verdict + F2 human gate. Process-gap PROPAGATION-LAG-001 recorded (lessons.md); ENGINE-PROPAGATION-GREP-GATE-001 in OPEN ITEMS.**
 
 Latest release: v0.10.0 (main `0cbe922`, tag `v0.10.0`, 4 binaries, run 28109367603). develop=`ff4b82b`. stories_delivered=78. Target: v0.11.0 (SS-17 EtherNet/IP + CIP TCP/44818). GitHub issue #316.
 
@@ -156,7 +156,7 @@ All GitHub-issue creation remains DF-VALIDATION-001-gated.
 | Maintenance maint-2026-06-22 | COMPLETE 2026-06-23 | 38 observations; 0 blocking; F-MAJ-001 fixed (a6efb23); PR #304 (e458ce2) + PR #305 (e4abbe2). |
 | Feature mitre-json-names (issue #64) + v0.9.4 | RELEASED + CLOSED 2026-06-23 (D-217) | F1-F7 CONVERGED. 5 BCs bumped. BC-INDEX v1.71 (303 BCs). PRs #306/307/308/309. tag v0.9.4 96b49e8. 4 binaries. stories_delivered=78. |
 | Fix cycle fix-pc-013-014-015 + v0.10.0 | **CONVERGED + RELEASED + CLOSED 2026-06-24 (D-226)** | All 3 fixes: PC-015 (#310), PC-013 (#312 + spec D-223), PC-014 (#313 breaking rename + CHANGELOG). Evidence resync #314. v0.10.0: PR #315 → main 0cbe922, tag v0.10.0, 4 binaries, run 28109367603. develop back-merged ff4b82b. BC-INDEX v1.73 (305 BCs / 304 active). |
-| Feature EtherNet/IP + CIP (issue #316) — v0.11.0 | **F2 ADVERSARIAL CONVERGENCE IN PROGRESS** | Pass 1+2+3 FAIL remediated (2026-06-24): Pass-3 3C/4H/4M + 3 bonus BE residues all swept. BC-INDEX v1.75 (330/329 active, 25 SS-17 BCs). Convergence: 0/3. Pass 4 running. Process-gap PROPAGATION-LAG-001 recorded. F-P2-010: SS-10 BC version-bump pending (resolve before F3). Detail: cycles/feature-enip-v0.11.0/ |
+| Feature EtherNet/IP + CIP (issue #316) — v0.11.0 | **F2 ADVERSARIAL CONVERGENCE IN PROGRESS** | Pass 1-4 FAIL remediated (2026-06-24): Pass-4 0C/1H/4M/2L anchor-layer residues swept. Severity: 4C/7H→4C/3H→3C/4H→0C/1H. Core confirmed CLEAN. BC-INDEX v1.75 (330/329 active, 25 SS-17 BCs). Convergence: 0/3. Pass 5 running. Process-gap PROPAGATION-LAG-001 recorded. F-P2-010: SS-10 BC version-bump pending (resolve before F3). Detail: cycles/feature-enip-v0.11.0/ |
 
 ## Decisions Log
 

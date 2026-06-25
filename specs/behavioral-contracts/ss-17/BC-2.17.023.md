@@ -98,7 +98,7 @@ MEDIUM-confidence (un-calibrated, ref O-03) pending human confirmation at F2 gat
 | L2 Capability | CAP-17 ("EtherNet/IP + CIP Analysis") per ARCH-INDEX.md §SS-17 |
 | Capability Anchor Justification | CAP-17 ("EtherNet/IP + CIP Analysis") per ARCH-INDEX.md §SS-17 — the write-burst threshold flag provides operator control over T0836 detection sensitivity, enabling tuning for specific OT environments (high-write manufacturing vs. quiet substation automation) |
 | L2 Domain Invariants | INV-2 (Content-First Dispatch Precedence) |
-| Architecture Module | SS-10 (cli.rs); SS-17 (analyzer/enip.rs); ADR-010 Decision 9 |
+| Architecture Module | SS-12 (cli.rs, main.rs); SS-17 (analyzer/enip.rs); ADR-010 Decision 9 |
 | Stories | (TBD — story-writer assigns in F3) |
 | Feature | feature-enip-v0.11.0 (issue #316) |
 | MITRE Techniques | (none — CLI flag; no finding emission) |

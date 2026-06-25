@@ -419,8 +419,8 @@ supplements:
 > src/mitre.rs. Already-seeded techniques used: T0836/T0846/T0888/T0814; T0846 is NOW emitted
 > (BC-2.17.010 ListIdentity). T1693.001 staged but not emitted in v0.11.0 (GetAndClear firmware
 > detection deferred). SEEDED grows 25→28; EMITTED grows 17→20 (T0858+T0816+T0846 move from
-> catalogue-only/not-emitted to emitted); CATALOGUE-ONLY changes 8→8 (T0858+T0816 and T0846 leave
-> not-emitted; T1693.001 enters catalogue-only; net change =0). Open item OA-001: --enip-write-burst-threshold
+> catalogue-only/not-emitted to emitted); CATALOGUE-ONLY changes 8→8 (T0846 leaves catalogue-only (now emitted); T1693.001 enters catalogue-only;
+> T0858/T0816 are new seeds, immediately emitted; net change = 0). Open item OA-001: --enip-write-burst-threshold
 > default (50/1s) — changed from 20, MEDIUM-confidence, human confirmation at F2 gate. See `.factory/phase-f2-spec-evolution/enip-prd-delta.md`
 > for full delta record. Added SS-17 rows to Section 7 RTM. Total BCs: 304 on disk → 329;
 > active: 304 → 328. BC-INDEX v1.73→v1.74.
@@ -866,7 +866,8 @@ Rust source files, 3,868 source LOC, 282 tests, single crate, Rust 2024 edition,
 > Domain debt O-04 (revised v1.36 / F2 EtherNet/IP): 28 techniques seeded (12 Enterprise + 16 ICS); 20 emitted
 > (7 Enterprise + 13 ICS). Catalogued-but-never-emitted (8): T1040, T1071, T1071.001, T1071.004,
 > T1573 (Enterprise); T1692.002 (ICS — IcsImpairProcessControl; replaces revoked T0856 per ATT&CK-ICS v19 remap),
-> T0885 (ICS — CommandAndControl). T0846 NOW emitted by EtherNet/IP analyzer (BC-2.17.010).
+> T0885 (ICS — CommandAndControl), T1693.001 (ICS — IcsInhibitResponseFunction; staged firmware detection, seeded-not-emitted v0.11.0).
+> T0846 NOW emitted by EtherNet/IP analyzer (BC-2.17.010).
 > T1692.001, T0836, T0814, T0806, T0835, T0831, T0888 are emitted by the Modbus analyzer.
 > T1691.001, T0827 are emitted by the DNP3 analyzer (Feature #8).
 > T0830, T1557.002 are emitted by the ARP analyzer (Feature #9) — added in v1.9.
@@ -1551,7 +1552,7 @@ See `prd-supplements/error-taxonomy.md` for the complete E-xxx-NNN catalog.
 | BC ID | Contribution |
 |-------|-------------|
 | BC-2.10.003 | all_tactics_in_report_order returns kill-chain order for deterministic grouping |
-| BC-2.10.005 | technique_name lookup for all 25 seeded IDs (12 Enterprise + 13 ICS: T0846 seeded-not-emitted; T1692.001/T1692.002/T0885 existing; T0836/T0814/T0806/T0835/T0831/T0888 new Modbus; T1691.001/T0827 new DNP3 F2; T0830 [ICS] + T1557.002 [Enterprise] new ARP F2) |
+| BC-2.10.005 | technique_name lookup for all 28 seeded IDs (12 Enterprise + 16 ICS: T0846 seeded-not-emitted; T1692.001/T1692.002/T0885 existing; T0836/T0814/T0806/T0835/T0831/T0888 new Modbus; T1691.001/T0827 new DNP3 F2; T0830 [ICS] + T1557.002 [Enterprise] new ARP F2; T0858, T0816 [ICS] + T1693.001 [ICS staged] new EtherNet/IP F2) |
 | BC-2.11.013 | TerminalReporter MITRE grouping with tactic headers in canonical order; groups by `mitre_techniques[0]`; multi-tag findings display all IDs |
 | BC-2.11.015 | Uncategorized bucket for empty `mitre_techniques` vec or all-unknown IDs |
 | BC-2.11.016 | Per-finding MITRE expansion with em-dash and name |

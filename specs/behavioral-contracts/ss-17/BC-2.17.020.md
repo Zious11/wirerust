@@ -63,7 +63,7 @@ WARNING and disables ENIP silently — mirroring the `--modbus` and `--dnp3` pat
 2. **Reassembly dependency**: ENIP analysis requires TCP reassembly (same as Modbus and DNP3).
    The WARNING-and-disable pattern prevents silent empty results when reassembly is missing.
 3. **Threshold validation**: `--enip-write-burst-threshold` must be ≥ 1. A value of 0 would
-   trigger on the first write command. This is an [OA-001] open item for human confirmation.
+   trigger on the first write command. (OA-001 RESOLVED=50; F2 gate confirmation pending)
 4. **`--all` includes `--enip`**: the `--all` flag expansion must include `--enip` in the
    same set as `--modbus`, `--dnp3`, etc.
 5. **`take_enip_analyzer()`**: mirrors `take_dnp3_analyzer()` on StreamDispatcher; transfers
@@ -77,7 +77,7 @@ WARNING and disables ENIP silently — mirroring the `--modbus` and `--dnp3` pat
 | EC-002 | `--enip --enip-write-burst-threshold 50` | threshold=50 used for T0836 detection |
 | EC-003 | `--all` (includes --enip) with reassembly | Full ENIP analysis enabled |
 | EC-004 | No `--enip` flag | No ENIP analyzer constructed; no port-44818 routing |
-| EC-005 | `--enip-write-burst-threshold 0` | 0 would trigger on first write; human validation needed [OA-001] |
+| EC-005 | `--enip-write-burst-threshold 0` | 0 would trigger on first write; (OA-001 RESOLVED=50; F2 gate confirmation pending) |
 
 ## Canonical Test Vectors
 
@@ -102,7 +102,7 @@ WARNING and disables ENIP silently — mirroring the `--modbus` and `--dnp3` pat
 | L2 Capability | CAP-17 ("EtherNet/IP + CIP Analysis") per ARCH-INDEX.md §SS-17 |
 | Capability Anchor Justification | CAP-17 ("EtherNet/IP + CIP Analysis") per ARCH-INDEX.md §SS-17 — the CLI flags are the user-facing control surface for enabling EtherNet/IP analysis; without `--enip`, no ENIP traffic is analyzed regardless of pcap content |
 | L2 Domain Invariants | INV-2 (Content-First Dispatch Precedence) |
-| Architecture Module | SS-10 (cli.rs), SS-17 (analyzer/enip.rs); ADR-010 Decision 9 |
+| Architecture Module | SS-12 (cli.rs, main.rs), SS-17 (analyzer/enip.rs); ADR-010 Decision 9 |
 | Stories | (TBD — story-writer assigns in F3) |
 | Feature | feature-enip-v0.11.0 (issue #316) |
 | MITRE Techniques | (none — CLI wiring; no finding emission) |

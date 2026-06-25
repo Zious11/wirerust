@@ -33,7 +33,7 @@ Research inputs: `.factory/research/next-ics-protocol-prevalence.md`,
 | Phase | Status | Notes |
 |-------|--------|-------|
 | F1 — Delta Analysis | PASSED 2026-06-24 | Human-approved (D-228). TCP/44818 + UDP/2222 + ForwardOpen in scope. TLS/2221 deferred. |
-| F2 — Spec Evolution | ADVERSARIAL PASS 4 IN PROGRESS | D-229: UDP/2222 deferred to v0.12.0. Scope now TCP/44818 + CIP ForwardOpen (TCP only). 25 BCs total (BC-2.17.001..025). ADR-010, VP-032 written. F2 consistency audit: 7 findings fixed. Pass 1 (2026-06-24): FAIL 4C/7H/3M/3L — LE endianness, T0846, frame-skip soundness, BC-2.17.025 added, BC-INDEX v1.75. Pass 2 (2026-06-24): FAIL 4C/3H/3M/2L — ADR EMITTED 17→20, VP-032 LE, BC-007/008/009/015/018, PRD 24→25 BCs. Pass 3 (2026-06-24): FAIL 3C/4H/4M — dominant pattern propagation-lag; 11 adversary + 3 bonus BE residues REMEDIATED via exhaustive sweep (BC-2.17.020 write-burst 50, PRD/coverage-matrix BE→LE, --all/--enip, variant count, harness count, service labels, BC-INDEX comments). Process-gap PROPAGATION-LAG-001 recorded in lessons.md; ENGINE-PROPAGATION-GREP-GATE-001 in STATE.md OPEN ITEMS. Two pending-human-confirm: write-burst default=50, ERROR_BURST=5 (OA-001). Convergence counter: 0/3. Pass 4 running. Pending: Pass 4 verdict + F2 human gate. |
+| F2 — Spec Evolution | ADVERSARIAL PASS 5 IN PROGRESS | D-229: UDP/2222 deferred to v0.12.0. Scope now TCP/44818 + CIP ForwardOpen (TCP only). 25 BCs total (BC-2.17.001..025). ADR-010, VP-032 written. F2 consistency audit: 7 findings fixed. Pass 1 (2026-06-24): FAIL 4C/7H/3M/3L — LE endianness, T0846, frame-skip soundness, BC-2.17.025 added, BC-INDEX v1.75. Pass 2 (2026-06-24): FAIL 4C/3H/3M/2L — ADR EMITTED 17→20, VP-032 LE, BC-007/008/009/015/018, PRD 24→25 BCs. Pass 3 (2026-06-24): FAIL 3C/4H/4M — dominant pattern propagation-lag; 11 adversary + 3 bonus BE residues REMEDIATED via exhaustive sweep. Pass 4 (2026-06-24): FAIL 0C/1H/4M/2L — anchor/RTM/capability layer residues (cli.rs SS-12 anchor, VP-INDEX:8 harness names, PRD O-04 T1693.001, CAP-17 BC range/OA-001, RTM BC-2.10.005 seed counts) all REMEDIATED. Severity trajectory: 4C/7H→4C/3H→3C/4H→0C/1H (decaying, core confirmed CLEAN). Two pending-human-confirm: write-burst default=50, ERROR_BURST=5 (OA-001). Convergence counter: 0/3. Pass 5 running. Pending: Pass 5 verdict + F2 human gate. |
 | F3 — Incremental Stories | PENDING | ~7-9 stories planned |
 | F4 — TDD Implementation | PENDING | |
 | F5 — Scoped Adversarial | PENDING | |
@@ -62,7 +62,7 @@ Research inputs: `.factory/research/next-ics-protocol-prevalence.md`,
 | Artifact | Path | Notes |
 |----------|------|-------|
 | ADR-010 | `.factory/specs/architecture/decisions/ADR-010-ethernet-ip-cip-stream-dispatch.md` | Decision 5: UDP/2222 deferred to v0.12.0 |
-| VP-032 | `.factory/specs/verification-properties/vp-032-enip-parse-safety.md` | 4 Kani harnesses; Sub-A/B/C/D |
+| VP-032 | `.factory/specs/verification-properties/vp-032-enip-parse-safety.md` | 4 sub-properties; 5 Kani harnesses; Sub-A/B/C/D + vp032_cip_service_request_partition |
 | BCs | `.factory/specs/behavioral-contracts/ss-17/BC-2.17.001..025.md` | 25 BCs (BC-2.17.001..024 original + BC-2.17.025 session-handshake added Pass 1 remediation); BC-INDEX v1.75 (330 total / 329 active) |
 | Architecture delta | `.factory/phase-f2-spec-evolution/enip-architecture-delta.md` | SS-17 subsystem design |
 | PRD delta | `.factory/phase-f2-spec-evolution/enip-prd-delta.md` | §2.17 + §7 RTM |
