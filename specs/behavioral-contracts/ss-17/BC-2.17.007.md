@@ -84,7 +84,9 @@ Formally verified by VP-032 Sub-D.
 5. **ForwardOpen (0x54) and LargeForwardOpen (0x5B)**: connection-lifecycle services detected
    by BC-2.17.015.
 6. **Firmware service (0x4B GetAndClear)**: seeded for staged T1693.001 detection (not emitted
-   in v0.11.0; see ADR-010 Decision 8 Deferred list).
+   in v0.11.0; see ADR-010 Decision 8 Deferred list). Note: `0x4B`/"GetAndClear" is a wirerust
+   convention for staged firmware-marker detection — it is NOT a normative ODVA common service
+   code; ODVA CIP Vol 1 does not assign a standard meaning to 0x4B.
 
 ## Edge Cases
 

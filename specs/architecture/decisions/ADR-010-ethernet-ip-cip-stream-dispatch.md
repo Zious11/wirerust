@@ -1,8 +1,8 @@
 ---
 document_type: adr
 adr_id: ADR-010
-status: proposed
-accepted_date: null
+status: accepted
+accepted_date: "2026-06-24"
 date: 2026-06-24
 modified: []
 subsystems_affected:
@@ -320,6 +320,61 @@ pub struct EnipFlowState {
 const ENIP_ERROR_BURST_THRESHOLD: u64 = 5;
 ```
 
+**EnipAnalyzer aggregate struct:**
+
+```rust
+pub struct EnipAnalyzer {
+    /// Per-flow state keyed by FlowKey. Created on first data arrival; removed on flow close.
+    flows: HashMap<FlowKey, EnipFlowState>,
+
+    /// CIP write-burst detection threshold (configurable via --enip-write-burst-threshold;
+    /// default 50). Stored here so all flow-level write_count_in_window comparisons use
+    /// the same value as the CLI-supplied argument (BC-2.17.012/020).
+    enip_write_burst_threshold: u32,
+
+    /// Aggregate lifetime PDU count across all flows.
+    /// Incremented once per successfully processed ENIP frame.
+    /// Reported by summarize() as EnipSummary.total_pdu_count (BC-2.17.021/024).
+    total_pdu_count: u64,
+
+    /// Aggregate lifetime count of CIP write-class service requests across all flows.
+    /// Incremented for every SetAttributeSingle (0x10), SetAttributeAll (0x02),
+    /// or SetAttributeList (0x04) service seen in any flow (BC-2.17.012/021).
+    write_count: u64,
+
+    /// Aggregate lifetime count of CIP error responses across all flows.
+    /// Incremented for every CIP response PDU whose general_status byte is non-zero
+    /// (BC-2.17.008/014/021).
+    error_count: u64,
+
+    /// Aggregate lifetime parse error count across all flows.
+    /// Incremented for every frame rejected by the post-classification validity gate
+    /// or by carry buffer overflow (mirrors EnipFlowState.parse_errors semantics).
+    /// Reported by summarize() as EnipSummary.parse_errors (BC-2.17.021).
+    parse_errors: u64,
+
+    /// All findings accumulated across all flows.
+    /// Bounded by MAX_FINDINGS = 10,000 (BC-2.17.022 poison-skip guard).
+    all_findings: Vec<Finding>,
+
+    /// Count of findings dropped because all_findings.len() >= MAX_FINDINGS.
+    /// Reported by summarize() as EnipSummary.dropped_findings (BC-2.17.021/022).
+    dropped_findings: u64,
+
+    /// Per-command distribution across all flows (command u16 → frame count).
+    /// Reported by summarize() as EnipSummary.command_distribution (BC-2.17.021).
+    command_distribution: HashMap<u16, u64>,
+}
+```
+
+**Field-name cross-reference:** Field names are locked to BC references as follows:
+- `enip_write_burst_threshold` — BC-2.17.012 (`> enip_write_burst_threshold`) / BC-2.17.020 (`EnipAnalyzer.enip_write_burst_threshold = args.enip_write_burst_threshold`)
+- `total_pdu_count` — BC-2.17.021 (`total_pdu_count`) / BC-2.17.024 (`EnipAnalyzer.total_pdu_count`)
+- `write_count` — BC-2.17.012 (`EnipAnalyzer.write_count += 1`) / BC-2.17.021 (`write_count`)
+- `error_count` — BC-2.17.021 (`error_count`)
+- `all_findings` — BC-2.17.011/014/015/022/025 (`self.all_findings`)
+- `dropped_findings` — BC-2.17.021/022 (`self.dropped_findings`)
+
 **Frame-walk loop in `on_data()`:**
 
 ```
@@ -404,6 +459,14 @@ released 2026-04-28). Source: `.factory/research/enip-mitre-ics-tagging.md` (202
 | CIP Stop service (halt PLC program) | **T0858** | Change Operating Mode | ICS Execution / ICS Evasion | High | FC 0x07 (Stop) |
 | CIP Reset service | **T0816** | Device Restart/Shutdown | ICS Inhibit Response Function | High | FC 0x05 (Reset) |
 | CIP firmware update / flash download | **T1693.001** | Modify Firmware: System Firmware | ICS Inhibit Response Function | High | FC 0x4B (Download) or vendor-specific |
+
+> **0x4B convention note:** Service code 0x4B ("Download") is a **wirerust-internal
+> convention** for staged firmware-marker detection (T1693.001 staged, per
+> BC-2.17.007 `NAMED_SERVICES` comment). It is NOT a normative ODVA Common Services
+> code — the ODVA common-services table does not define 0x4B. wirerust treats 0x4B
+> as a vendor-specific download trigger whose presence in a CIP PDU warrants a
+> firmware-modification finding. Implementors MUST NOT expect any ODVA-conformant
+> device to advertise 0x4B in a formal service capability list.
 | CIP ListIdentity (network-wide enum) | **T0846** | Remote System Discovery | ICS Discovery | High | ENIP cmd 0x0063 |
 | CIP identity attribute read (single) | **T0888** | Remote System Information Discovery | ICS Discovery | High | GetAttributeSingle/All to Identity Object |
 | CIP SetAttribute write | **T0836** | Modify Parameter | ICS Impair Process Control | High | FC 0x10 / 0x02 / 0x04 |

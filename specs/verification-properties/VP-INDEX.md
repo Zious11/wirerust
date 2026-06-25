@@ -85,7 +85,7 @@ integration_unit_count: 5
 | VP-029 | pcapng Block-Walk Skip Correctness and Forward Progress | reader.rs | proptest | P1 | verified | BC-2.01.015 |
 | VP-030 | pcapng Multi-IDB Linktype Agreement Totality (WHITELISTED domain) | reader.rs | proptest | P1 | verified | BC-2.01.018 |
 | VP-031 | pcapng SPB Captured-Len Computation Correctness (body.len()-4 formula) | reader.rs (pcapng_pure_core fns) [b] | proptest | P1 | verified | BC-2.01.013 |
-| VP-032 | EtherNet/IP + CIP Frame Parse Safety and Command/Service Classification | src/analyzer/enip.rs | Kani | P1 | draft | BC-2.17.001, BC-2.17.002, BC-2.17.003, BC-2.17.004, BC-2.17.007 |
+| VP-032 | EtherNet/IP + CIP Frame Parse Safety and Command/Service Classification | analyzer/enip.rs | Kani | P1 | draft | BC-2.17.001, BC-2.17.002, BC-2.17.003, BC-2.17.004, BC-2.17.007 |
 
 ## P0 Properties (required before Phase 5 gate)
 

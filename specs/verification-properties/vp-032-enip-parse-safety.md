@@ -6,7 +6,7 @@ status: draft
 phase: P1
 tool: Kani
 subsystem: SS-17
-module: "src/analyzer/enip.rs"
+module: "analyzer/enip.rs"
 producer: architect
 timestamp: 2026-06-24T00:00:00Z
 traces_to:

@@ -52,7 +52,7 @@ error burst threshold is exceeded (one-shot guard via `error_rate_emitted`).
    for type_id 0x00B1 (Connected Data Item) in v0.11.0 — Connected items carry a 2-byte
    sequence-count prefix that would corrupt the CIP service/path parse. Identity-Object read
    detection on 0x00B1 items is deferred to v0.12.0 (F-P9-001 / locked decision Option A).
-   (Mirror of BC-2.17.008 existing 0x00B2-only gate on response parsing.)
+   (Consistent with the 0x00B2-only request-side gate applied across BC-2.17.011/012/013, and the symmetric response-side gate in BC-2.17.008.)
 5. `flow.is_non_enip == false`.
 6. `self.all_findings.len() < MAX_FINDINGS`.
 
@@ -98,6 +98,9 @@ error burst threshold is exceeded (one-shot guard via `error_rate_emitted`).
    seconds strictly exceeds (`>`) this threshold: 6 errors fire, 5 do not. Matches BC-2.17.012
    strict `>` convention so the analyzer uses one comparison semantics throughout. Operators
    with noisy SCADA systems may raise this to reduce false positives.
+   Note: `total_error_count = flow.error_counts_in_window.values().sum()` — this is the sum
+   across ALL status codes in the per-status HashMap accumulated by BC-2.17.008, NOT any single
+   status code's individual count.
    [MEDIUM-confidence, un-calibrated; ref O-03; defined in ADR-010 Open Items]
 4. **Distinct from T0846**: T0888 is single-device profiling; T0846 is network enumeration
    (ListIdentity). These are complementary and independent.
