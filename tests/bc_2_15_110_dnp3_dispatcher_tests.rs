@@ -635,20 +635,23 @@ mod story_110 {
     }
 
     // ---------------------------------------------------------------------------
-    // AC-010: VP-007 catalog state (seeded=23, emitted=15) — guard/state assertion
+    // AC-010: VP-007 — STORY-109/110-era subset resolution (seeded=23, emitted=15
+    // at that time; current catalogue is 28-seeded / 20-emitted per BC-2.10.008 v1.14)
     // ---------------------------------------------------------------------------
 
-    /// AC-010: VP-007 catalog state — all 23 seeded technique IDs resolve via public API
+    /// AC-010: VP-007 catalog — STORY-109/110-era subset of 23 seeded technique IDs
+    /// resolve via public API.
     ///
     /// This asserts the catalog state established by STORY-109. The test verifies
-    /// the constants are correct in the current codebase. It is expected to PASS
-    /// immediately (catalog state from prior story).
+    /// that the STORY-109/110-era seeded subset (a subset of the current 28-seeded /
+    /// 20-emitted catalogue per BC-2.10.008 v1.14) still resolves.
     ///
-    /// SEEDED: 23 (11 Enterprise + 12 ICS including T1691.001 + T0827 from STORY-109)
-    /// EMITTED: 15 (6 Enterprise + 9 ICS including T1692.001, T1691.001, T0827)
-    /// Difference: 23 - 15 = 8 seeded but not yet emitted.
-    /// T1691.001 present in SEEDED_TECHNIQUE_IDS (index 21).
-    /// T0827 present in SEEDED_TECHNIQUE_IDS (index 22).
+    /// STORY-109/110-era counts (historical reference only):
+    ///   SEEDED: 23 (11 Enterprise + 12 ICS including T1691.001 + T0827 from STORY-109)
+    ///   EMITTED: 15 (6 Enterprise + 9 ICS including T1692.001, T1691.001, T0827)
+    /// Current authoritative counts: SEEDED=28, EMITTED=20 (BC-2.10.008 v1.14).
+    /// T1691.001 present in SEEDED_TECHNIQUE_IDS (index 21 in the STORY-109 era).
+    /// T0827 present in SEEDED_TECHNIQUE_IDS (index 22 in the STORY-109 era).
     ///
     /// REACHABILITY NOTE (O-1 adversarial pass-1):
     ///   - `SEEDED_TECHNIQUE_IDS` is `#[cfg(any(kani, test))]` AND `const` (not `pub const`).
@@ -656,26 +659,23 @@ mod story_110 {
     ///   - `SEEDED_TECHNIQUE_ID_COUNT` has identical gating — also not reachable here.
     ///   - `EMITTED_IDS` is `#[cfg(kani)]`-only inside `kani_proofs` — not reachable from
     ///     any normal test binary.
-    ///     Therefore the literal count assertions `assert_eq!(SEEDED_TECHNIQUE_ID_COUNT, 23)`
-    ///     and `assert_eq!(EMITTED_IDS.len(), 15)` are NOT expressible in this integration
+    ///     Therefore the literal count assertions `assert_eq!(SEEDED_TECHNIQUE_ID_COUNT, 28)`
+    ///     and `assert_eq!(EMITTED_IDS.len(), 20)` are NOT expressible in this integration
     ///     test without modifying production code visibility.
     ///
-    ///   COUNT DELEGATION: The count invariants are enforced by the in-crate drift-guard
-    ///   tests in src/mitre.rs:
-    ///     - `vp007_catalog_drift_guard` asserts
-    ///       SEEDED_TECHNIQUE_IDS.len() == SEEDED_TECHNIQUE_ID_COUNT == 23.
-    ///     - The Kani proof `kani_proofs::verify_all_emitted_ids_resolve` asserts
-    ///       EMITTED_IDS.len() == 15 (reachable only under the kani harness).
+    ///   COUNT DELEGATION: The current count invariants are enforced by the in-crate
+    ///   drift-guard tests in src/mitre.rs (vp007_catalog_drift_guard) and
+    ///   enip_analyzer_tests.rs (test_seeded_count_is_28 / test_emitted_count_is_20).
     ///
     ///   STRENGTHENING (O-1 fix): Instead of checking a 5-ID representative sample,
-    ///   this test now exhaustively verifies ALL 23 seeded IDs resolve via the public
-    ///   API (`technique_name`, `technique_tactic`), and asserts the resolved count == 23.
-    ///   This is the maximum strength achievable from an integration-test crate given
-    ///   current visibility.
+    ///   this test exhaustively verifies all 23 STORY-109/110-era seeded IDs resolve
+    ///   via the public API (`technique_name`, `technique_tactic`), and asserts the
+    ///   resolved count == 23. This is the maximum strength achievable from an
+    ///   integration-test crate given current visibility.
     #[test]
-    fn test_vp007_seeded_23_emitted_15() {
-        // The full seeded list from src/mitre.rs (mirrored literally here so that any
-        // production-code deletion of an entry causes this test to fail immediately).
+    fn test_vp007_story110_seeded_and_emitted_subset_resolves() {
+        // STORY-109/110-era seeded subset mirrored here (23 IDs) — any production-code
+        // deletion of an entry causes this test to fail immediately.
         // Format: 11 Enterprise + 4 ICS pre-F2 + 6 ICS F2 (STORY-100) + 2 ICS STORY-109.
         let all_seeded_ids: &[&str] = &[
             // Enterprise (11)
@@ -707,12 +707,13 @@ mod story_110 {
             "T0827",
         ];
 
-        // Assert the mirror list itself has the expected count (catches copy-paste errors
-        // in this test's literal above, independent of any production constant).
+        // Assert the STORY-109/110-era subset mirror list has 23 entries (self-check on this
+        // test's literal, independent of any production constant).
         assert_eq!(
             all_seeded_ids.len(),
             23,
-            "AC-010 test internal: seeded-ID mirror list must have exactly 23 entries"
+            "AC-010 test internal: STORY-109/110-era seeded-subset mirror list must have \
+             23 entries (subset of the current 28-seeded catalogue per BC-2.10.008 v1.14)"
         );
 
         // Exhaustively verify every seeded ID resolves via the public API.
@@ -723,8 +724,8 @@ mod story_110 {
             assert!(
                 wirerust::mitre::technique_name(id).is_some(),
                 "AC-010: VP-007 seeded ID '{id}' must resolve via technique_name (got None); \
-                 SEEDED_TECHNIQUE_IDS count == 23 enforced by vp007_catalog_drift_guard in \
-                 src/mitre.rs"
+                 STORY-109/110-era subset of the 28-seeded catalogue per BC-2.10.008 v1.14; \
+                 current total enforced by vp007_catalog_drift_guard in src/mitre.rs"
             );
             assert!(
                 wirerust::mitre::technique_tactic(id).is_some(),
@@ -733,11 +734,13 @@ mod story_110 {
             resolved += 1;
         }
 
-        // Count assertion: all 23 seeded IDs must resolve (no silent loop-exit early).
+        // Count assertion: all 23 STORY-109/110-era subset IDs must resolve (no silent
+        // loop-exit early). This is a subset count, not the current catalogue total.
         assert_eq!(
             resolved, 23,
-            "AC-010: exactly 23 seeded IDs must resolve via technique_name/technique_tactic; \
-             got {resolved}"
+            "AC-010: all 23 STORY-109/110-era seeded-subset IDs must resolve via \
+             technique_name/technique_tactic (subset of the 28-seeded catalogue per \
+             BC-2.10.008 v1.14); got {resolved}"
         );
 
         // Spot-check: T1691.001 and T0827 are the STORY-109 VP-007 atomic obligation IDs.

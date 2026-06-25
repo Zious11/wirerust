@@ -455,8 +455,9 @@ fn test_technique_tactic_correct_assignments() {
 
 // ---------------------------------------------------------------------------
 // AC-015 | BC-2.10.008 postcondition 1
-// All 13 currently-emitted technique IDs resolve from both technique_name
-// and technique_tactic (6 Enterprise + 7 ICS, post-F2 / STORY-100).
+// The 13 STORY-100-era emitted technique IDs (a subset of the current 20-ID
+// emitted set per BC-2.10.008 v1.14) resolve from both technique_name and
+// technique_tactic (6 Enterprise + 7 ICS, post-F2 / STORY-100).
 // ---------------------------------------------------------------------------
 #[test]
 fn test_all_emitted_ids_resolve() {
@@ -493,7 +494,7 @@ fn test_all_emitted_ids_resolve() {
     assert_eq!(
         emitted_ids.len(),
         13,
-        "there are exactly 13 currently-emitted IDs per BC-2.10.008 (post-F2 / STORY-100)"
+        "13 STORY-100-era emitted IDs (subset of the 20-ID emitted set per BC-2.10.008 v1.14)"
     );
 
     for id in &emitted_ids {

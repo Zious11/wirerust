@@ -481,17 +481,20 @@ fn test_BC_2_10_007_t0814_maps_to_ics_inhibit_response_function() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// BC-2.10.008: all 13 emitted IDs resolve in lookup (VP-007)
+// BC-2.10.008: STORY-100-era 13-ID subset resolves in lookup (VP-007)
+// (Historical subset test — current catalogue is 28-seeded / 20-emitted per
+// BC-2.10.008 v1.14; the 13 IDs here are the STORY-100-era emitted subset.)
 // ─────────────────────────────────────────────────────────────────────────────
 
 /// BC-2.10.008 postcondition 1, AC-007 (STORY-100):
-/// All 13 currently-emitted distinct IDs resolve to Some from both lookup functions.
-/// Fails today for the 7 new ICS emitted IDs.
+/// The 13 STORY-100-era emitted IDs (a subset of the current 20-ID emitted set
+/// per BC-2.10.008 v1.14) resolve to Some from both lookup functions.
 ///
 /// Exercises VP-007 (catalog completeness for emitted IDs).
 #[test]
 fn test_BC_2_10_008_all_emitted_ids_resolve_in_lookup() {
-    // BC-2.10.008 postcondition 1: 6 Enterprise + 7 ICS = 13 emitted IDs.
+    // BC-2.10.008 postcondition 1: 6 Enterprise + 7 ICS = 13 STORY-100-era emitted IDs
+    // (subset of the current 20-ID emitted set per BC-2.10.008 v1.14).
     // Sources: grep -rn 'mitre_techniques: vec!' src/ (post-migration)
     //   src/analyzer/tls.rs          — T1027
     //   src/analyzer/http.rs         — T1083, T1505.003, T1046, T1499.002
@@ -518,7 +521,8 @@ fn test_BC_2_10_008_all_emitted_ids_resolve_in_lookup() {
     assert_eq!(
         emitted_ids.len(),
         13,
-        "BC-2.10.008 inv1: there must be exactly 13 currently-emitted distinct IDs post-F2"
+        "BC-2.10.008 inv1: this STORY-100-era subset vector must have exactly 13 entries \
+         (a subset of the current 20-ID emitted set per BC-2.10.008 v1.14)"
     );
     for id in emitted_ids {
         assert!(
