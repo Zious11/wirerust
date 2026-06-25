@@ -535,7 +535,7 @@ impl EnipAnalyzer {
                         flow.error_window_active = true;
                     }
                     // BC-2.17.008 postcondition 2b: aggregate lifetime counter.
-                    self.error_count += 1;
+                    self.error_count = self.error_count.saturating_add(1);
 
                     // BC-2.17.014 Pattern B: burst threshold check (strict >).
                     let total: u64 = flow.error_counts_in_window.values().sum();
