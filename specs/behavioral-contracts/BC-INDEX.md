@@ -1,10 +1,10 @@
 ---
 document_type: bc-index
 level: L3
-version: "1.81"
+version: "1.82"
 status: draft
 producer: product-owner
-timestamp: 2026-06-25T08:00:00Z
+timestamp: 2026-06-25T12:00:00Z
 phase: 1a
 traces_to: .factory/specs/prd.md
 ---
@@ -15,6 +15,9 @@ traces_to: .factory/specs/prd.md
 > links to the individual BC file. BCs are sharded into per-subsystem directories (ss-NN/).
 >
 > All BCs are marked [WRITTEN]. Body files have been verified on disk for all 331 entries (330 prior + 1 new BC-2.17.026 for F2 addendum error-burst CLI flag; BC-2.01.004 retired).
+>
+> **v1.82 2026-06-25 (L-1/D-236: BC-2.17.023 v1.0→v1.1 + BC-2.17.026 v1.0→v1.1 — Precondition 1 "N ≥ 1" corrected to "0..=u32::MAX (0 accepted)"):**
+> STORY-131 adversarial Pass-3 LOW findings L-1 fixed. BC-2.17.023 Precondition 1: was "N ≥ 1", now "N in 0..=u32::MAX (0 is accepted; see EC-004 / Invariant 2)". BC-2.17.026 Precondition 1: was "N ≥ 1", now "N in 0..=u32::MAX (0 is accepted; see EC-004 / Invariant 4)". Both BCs already had EC-004 documenting zero-value semantics; the Precondition 1 "N ≥ 1" constraint was internally inconsistent. H1 titles unchanged. No BC count change (331 on disk; 330 active). STORY-131 input-hash stale — recomputed as part of D-236 Pass-3 fix burst.
 >
 > **v1.81 2026-06-25 (M2/D-235: BC-2.17.020 index table title synced to body H1 — adds --enip-error-burst-threshold):**
 > BC-2.17.020 table cell title corrected: was "CLI --enip Flag Enables Analyzer; --enip-write-burst-threshold Configures Write Detection" (stale, pre-F2-addendum); now "CLI --enip Flag Enables Analyzer; --enip-write-burst-threshold and --enip-error-burst-threshold Configure Detection" (matches body H1). Inline comment extended to cite T0888 Pattern B. No BC body file changed; no BC count change (331 on disk; 330 active). STORY-131 adversarial Pass-1 M2 fix, D-235.

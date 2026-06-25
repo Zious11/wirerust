@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.0"
+version: "1.1"
 status: draft
 producer: product-owner
 timestamp: 2026-06-24T00:00:00Z
@@ -44,7 +44,7 @@ human confirmation at F2 gate.
 
 ## Preconditions
 
-1. `wirerust analyze [pcap] --enip --enip-error-burst-threshold N` is invoked with N ≥ 1.
+1. `wirerust analyze [pcap] --enip --enip-error-burst-threshold N` is invoked with N in 0..=u32::MAX (0 is accepted; see EC-004 / Invariant 4).
 2. `EnipAnalyzer` is constructed (i.e., `--enip` or `--all` is set).
 
 ## Postconditions

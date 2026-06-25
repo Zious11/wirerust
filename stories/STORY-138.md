@@ -276,7 +276,7 @@ From ADR-010 Decision 5 (DoS bounds), BC-2.17.022, BC-2.17.021, BC-2.17.025:
 ## Library & Framework Requirements
 
 - `std::collections::HashMap` for `command_counts` — already in stdlib
-- `log::warn!` for MAX_FINDINGS warning — already in project
+- No `log` crate (project has no `log` dependency): emit MAX_FINDINGS warning via `eprintln!` to stderr, matching the project-wide convention for analyzer guard messages
 - No new external crate dependencies
 
 ## File Structure Requirements

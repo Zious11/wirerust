@@ -26,7 +26,7 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-17/BC-2.17.026.md
   - .factory/specs/architecture/decisions/ADR-010-ethernet-ip-cip-stream-dispatch.md
   - .factory/phase-f2-spec-evolution/enip-architecture-delta.md
-input-hash: "6d892c4"
+input-hash: "a119157"
 ---
 
 # STORY-131: EtherNet/IP StreamDispatcher Integration, CLI Flags, and TCP Reassembly Wiring
@@ -175,7 +175,7 @@ This ensures the Kani oracle for dispatcher correctness covers the new ENIP rout
 - [ ] Add to `src/cli.rs` `Commands::Analyze`: `enip: bool` (default false), `enip_write_burst_threshold: u32` (default 50), `enip_error_burst_threshold: u32` (default 5); include `--enip` in `--all` expansion
 - [ ] Add `EnipAnalyzer::new(write_burst_threshold: u32, error_burst_threshold: u32) -> EnipAnalyzer` constructor to `src/analyzer/enip.rs` (stub: empty struct fields; later stories populate detection logic)
 - [ ] Add fields `enip_write_burst_threshold: u32` and `enip_error_burst_threshold: u32` to `EnipAnalyzer` struct in `src/analyzer/enip.rs`
-- [ ] Update `src/main.rs` analyze flow: if `args.enip && !has_reassembly { warn!(...); } else if args.enip { let analyzer = EnipAnalyzer::new(args.enip_write_burst_threshold, args.enip_error_burst_threshold); dispatcher.set_enip_analyzer(analyzer); needs_reassembly.push(...); }`
+- [ ] Update `src/main.rs` analyze flow: if `args.enip && !has_reassembly { eprintln!("--enip requires TCP reassembly; ENIP analysis disabled"); } else if args.enip { let analyzer = EnipAnalyzer::new(args.enip_write_burst_threshold, args.enip_error_burst_threshold); dispatcher.set_enip_analyzer(analyzer); needs_reassembly.push(...); }`
 - [ ] Add `mod dispatch { ... }` test wrapper to `tests/enip_analyzer_tests.rs` with all AC-131 tests (15 tests including `test_dispatcher_no_enip_analyzer_port_44818_is_noop`)
 - [ ] Run `cargo check` — zero errors
 - [ ] Run `cargo test enip` — all 15 new tests pass
@@ -227,7 +227,7 @@ From ADR-010 Decision 3 (stream dispatch) and Decision 9 (CLI pattern):
 ## Library & Framework Requirements
 
 - **clap ≥ 4.x** (already present in project): Use `#[arg(long, default_value_t = 50)]` for threshold flags. Match the exact pattern used by existing `--dnp3-*` or `--modbus-*` threshold flags in `src/cli.rs`.
-- **log ≥ 0.4** (already present): `warn!("--enip requires TCP reassembly; ENIP analysis disabled")` — use the `warn!` macro, not `eprintln!`. The warning must go through the structured logging path used by all other analyzer guards.
+- **No `log` crate** (project has no `log` dependency): emit the reassembly guard warning via `eprintln!("--enip requires TCP reassembly; ENIP analysis disabled")` to stderr — matching the identical pattern used by the `--modbus` and `--dnp3` guards in `src/main.rs`. Do NOT introduce a `log` crate dependency or use `warn!`.
 - No new crate dependencies.
 
 ## File Structure Requirements

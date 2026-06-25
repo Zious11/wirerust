@@ -711,8 +711,9 @@ attributes. v0.11.0 deliberately scopes to a minimal object-model depth:
     to a configurable default. The `ENIP_ERROR_BURST_THRESHOLD` named constant is RETIRED;
     the field `enip_error_burst_threshold: u32` on `EnipAnalyzer` is the authoritative
     source of the threshold value at runtime.
-- When `--enip` is set without TCP reassembly, emit a WARNING and disable ENIP (same pattern
-  as `--modbus` and `--dnp3`)
+- When `--enip` is set without TCP reassembly, emit via `eprintln!` to stderr and disable
+  ENIP (same pattern as `--modbus` and `--dnp3`; the project uses `eprintln!` for all
+  analyzer reassembly-guard warnings — no `log` crate dependency)
 - `EnipAnalyzer` included in `needs_reassembly` alongside ModbusAnalyzer and Dnp3Analyzer
 - `take_enip_analyzer()` on `StreamDispatcher` to collect findings and summary at the end of
   `run_analyze()`
