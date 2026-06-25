@@ -1,7 +1,7 @@
 ---
 pipeline: FEATURE-MODE
 phase: F3
-phase_status: "F2 COMPLETE; pre-F3 prereqs cleared (SS-10 catalog bump — BC-2.10.005 v1.12/28 seeded + BC-2.10.008 v1.14/20 emitted, F-P2-010 RESOLVED); BC-INDEX v1.77 (331/330 active). F3 story decomposition starting."
+phase_status: "F3 story decomposition complete (9 stories STORY-130..138, E-20, waves 58-61, 66 pts); holdout scenarios + adversarial story convergence pending. Story-location bug FIXED: nested stories/stories/ → flat stories/STORY-NNN.md; document_type:story added."
 product: wirerust
 mode: feature-mode
 timestamp: 2026-06-24T18:30:00Z
@@ -70,7 +70,7 @@ convergence_trajectory: "Detail: cycles/v0.1.0-greenfield-spec/convergence-traje
 
 ## Status
 
-**PIPELINE FEATURE-MODE. Cycle `feature-enip-v0.11.0` OPEN. F1 PASSED. F2 COMPLETE (human gate D-230). Pre-F3 prereqs CLEARED: SS-10 MITRE catalog bump committed — BC-2.10.005 v1.12 (28 seeded IDs, ICS split 13→16, added T0858/T0816/T1693.001), BC-2.10.008 v1.14 (20 emitted IDs, added T0858/T0816/T0846). F-P2-010 RESOLVED. BC-INDEX v1.77 (331/330 active). F3 story decomposition starting. EtherNet/IP scope: TCP/44818 + CIP ForwardOpen (0x00B2 only); 26 SS-17 BCs; thresholds write-burst=50/error-burst=5 (tunable). ENGINE-PROPAGATION-GREP-GATE-001 in OPEN ITEMS.**
+**PIPELINE FEATURE-MODE. Cycle `feature-enip-v0.11.0` OPEN. F1 PASSED. F2 COMPLETE (human gate D-230). F3 COMPLETE: 9 stories STORY-130..138 authored (E-20, waves 58-61, 66 pts; all 26 SS-17 BCs BC-2.17.001..026 covered). STORY-INDEX v2.8: 91 stories / 61 waves / 592 pts. Bug FIXED: story files relocated from nested stories/stories/ to flat stories/STORY-NNN.md; document_type:story added to all 9; input-hash --scan MATCH for STORY-130..138. Next: holdout scenarios + adversarial story convergence + F3 gate. ENGINE-PROPAGATION-GREP-GATE-001 in OPEN ITEMS.**
 
 Latest release: v0.10.0 (main `0cbe922`, tag `v0.10.0`, 4 binaries, run 28109367603). develop=`ff4b82b`. stories_delivered=78. Target: v0.11.0 (SS-17 EtherNet/IP + CIP TCP/44818). GitHub issue #316.
 
@@ -156,7 +156,7 @@ All GitHub-issue creation remains DF-VALIDATION-001-gated.
 | Maintenance maint-2026-06-22 | COMPLETE 2026-06-23 | 38 observations; 0 blocking; F-MAJ-001 fixed (a6efb23); PR #304 (e458ce2) + PR #305 (e4abbe2). |
 | Feature mitre-json-names (issue #64) + v0.9.4 | RELEASED + CLOSED 2026-06-23 (D-217) | F1-F7 CONVERGED. 5 BCs bumped. BC-INDEX v1.71 (303 BCs). PRs #306/307/308/309. tag v0.9.4 96b49e8. 4 binaries. stories_delivered=78. |
 | Fix cycle fix-pc-013-014-015 + v0.10.0 | **CONVERGED + RELEASED + CLOSED 2026-06-24 (D-226)** | All 3 fixes: PC-015 (#310), PC-013 (#312 + spec D-223), PC-014 (#313 breaking rename + CHANGELOG). Evidence resync #314. v0.10.0: PR #315 → main 0cbe922, tag v0.10.0, 4 binaries, run 28109367603. develop back-merged ff4b82b. BC-INDEX v1.73 (305 BCs / 304 active). |
-| Feature EtherNet/IP + CIP (issue #316) — v0.11.0 | **F3 STARTING** | F2 COMPLETE (D-230). Pre-F3 prereqs cleared: SS-10 catalog bump (BC-2.10.005 v1.12/28 seeded + BC-2.10.008 v1.14/20 emitted), F-P2-010 RESOLVED. BC-INDEX v1.77 (331/330 active). 26 SS-17 BCs, thresholds 50/5 tunable. F3 incremental story decomposition starting. Detail: cycles/feature-enip-v0.11.0/ |
+| Feature EtherNet/IP + CIP (issue #316) — v0.11.0 | **F3 COMPLETE** | F3: 9 stories STORY-130..138 (E-20, waves 58-61, 66 pts); all 26 BC-2.17.001..026 covered. STORY-INDEX v2.8 (91 stories/61 waves/592 pts). Bug fixed: flat story location. Next: holdout + adversarial story convergence. Detail: cycles/feature-enip-v0.11.0/ |
 
 ## Decisions Log
 
@@ -191,7 +191,7 @@ Full policy text: `.factory/policies.yaml`. Active policies (17): DF-VALIDATION-
 - `.factory/` is a `factory-artifacts` orphan-branch worktree, gitignored from `develop`.
 - Artifact pointers: Phase 0 `.factory/semport/wirerust/wirerust-pass-8-deep-synthesis.md`; wave history `cycles/phase-3-tdd/convergence-trajectory.md`.
 - Issues: #104/#102/#64 CLOSED; all actions SHA-pinned; dtolnay/rust-toolchain @stable/@nightly exempted.
-- STORY-INDEX.md authoritative (82 stories / 57 waves / 526 pts — v2.7).
+- STORY-INDEX.md authoritative (91 stories / 61 waves / 592 pts — v2.8). STORY-130..138 flat in stories/, document_type:story, input-hash MATCH.
 - Active cycle: `cycles/feature-enip-v0.11.0/` (cycle-manifest.md, decisions-archive.md D-228+). Issue #316.
 - Closed cycle: `cycles/fix-pc-013-014-015/` (decisions-archive.md D-219..D-226, lessons.md S-7.02).
 - Prior cycle artifacts: `cycles/feature-mitre-json-names/` (decisions-archive.md D-206..D-217, cycle-manifest.md, lessons.md, session-review.md).

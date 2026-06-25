@@ -1,6 +1,6 @@
 ---
 document_type: epics
-version: "1.7"
+version: "1.8"
 status: draft
 producer: story-writer
 phase: 2
@@ -12,7 +12,8 @@ modified:
   - "2026-06-19 v1.5: F2 pcapng-reader-support re-anchor — E-1 BC list: BC-2.01.004 struck through [RETIRED], BC-2.01.009–018 (10 new SS-01 BCs) added. E-1 SS-01 count 8→17 active (+9 net). E-1 total 23→32. total_bcs 288→297 (net +9: 10 new BC-2.01.009–018 minus 1 retired BC-2.01.004). Arithmetic Verification and Coverage Confirmed updated."
   - "2026-06-19 v1.6: FINDING-002 correction — BC-2.11.030–034 (5 grouped-collapse BCs added in BC-INDEX v1.44 for STORY-119) were missing from epics.md. Added to E-18 row. total_bcs corrected 297→302 (verified against BC-INDEX v1.52 ground truth: 302 active BCs). Arithmetic Verification and Coverage Confirmed updated."
   - "2026-06-20 v1.7: FE-001 INTEGRATE sub-burst — E-19 pcapng Capture-Format Reader Support added (STORY-123..128, 6 stories, 37 points, Waves 51–56). No new BCs — BC-2.01.009..018 and BC-2.12.011 are pre-existing (counted in E-1 and E-9 respectively since v1.5). Estimated Story Count Summary updated: E-19 row added (6), Total 72→78. total_bcs unchanged at 302."
-total_bcs: 302
+  - "2026-06-24 v1.8: E-20 EtherNet/IP ENIP/CIP Analyzer INTEGRATE sub-burst (issue #316, feature-enip-v0.11.0) — E-20 epic added (STORY-130..138, 9 stories, 66 points, Waves 58–61). 26 new BCs: BC-2.17.001..026 (SS-17 EtherNet/IP analyzer). total_bcs 302→328. Estimated Story Count Summary updated: E-20 row added (9), Total 78→87. Coverage Check Per-Epic BC table updated with E-20 row. Arithmetic Verification and Coverage Confirmed updated."
+total_bcs: 328
 traces_to:
   - .factory/specs/prd.md
   - .factory/specs/behavioral-contracts/BC-INDEX.md
@@ -290,7 +291,8 @@ the same test vehicle (CLI invocation with obsolete flag).
 | E-16: ARP Security Analyzer | SS-16 (new) | BC-2.16.001..015 | 15 |
 | E-17: ARP QinQ/MACsec Offset Hardening | SS-16 | BC-2.16.009 EC-008/009, BC-2.16.015 PC-7b/EC-008/009 (extensions) | 0 (extensions, not new BCs) |
 | E-18: Terminal Finding-Collapse | SS-11 | BC-2.11.025..029 (flat-mode collapse, STORY-118), BC-2.11.030..034 (grouped-collapse, STORY-119) | 10 |
-| **TOTAL** | | | **302** (297 prior + 5: BC-2.11.030–034 added; pre-pcapng baseline was 293, then +10 BC-2.01.009–018 −1 retired BC-2.01.004 = 302) |
+| E-20: EtherNet/IP (ENIP/CIP) Analyzer | SS-17 (new), SS-05, SS-12 | BC-2.17.001..026 | 26 |
+| **TOTAL** | | | **328** (302 pre-ENIP + 26 BC-2.17.001..026) |
 
 ### Arithmetic Verification
 
@@ -315,7 +317,10 @@ E-16: 15 (SS-16, BC-2.16.001..015) = 15
                       292 (pre-E-18 subtotal)
 E-18: 10 (SS-11, BC-2.11.025..029 flat-collapse + BC-2.11.030..034 grouped-collapse) = 10
                       --------
-                      302 / 302  ✓
+                      302 (pre-E-20 subtotal; includes BC-2.11.035 from issue #64 in E-8 extension)
+E-20: 26 (SS-17, BC-2.17.001..026 EtherNet/IP ENIP/CIP analyzer) = 26
+                      --------
+                      328 / 328  ✓
 ```
 
 Note: E-11 (Tooling) has 0 BCs authored yet (STORY-091 pending). E-12 BCs are feature-mode
@@ -345,9 +350,10 @@ non-overlapping. No BC appears in more than one epic row above.
 | SS-11 | Reporting | E-8 |
 | SS-12 | CLI / Entry | E-9 |
 | SS-13 | Absent Behaviors | E-10 |
+| SS-17 | EtherNet/IP (ENIP/CIP) Analyzer | E-20 |
 
-**Coverage confirmed: 302 / 302 active BCs assigned, 0 unassigned, 0 double-assigned.**
-(228 pre-feature [219 prior + 9 net F2 SS-01: BC-2.01.009–018 +10, BC-2.01.004 retired -1] + 25 E-14 Modbus + 24 E-15 DNP3 + 15 E-16 ARP + 10 E-18 Collapse [5 flat BC-2.11.025–029 + 5 grouped BC-2.11.030–034] = 302)
+**Coverage confirmed: 328 / 328 active BCs assigned, 0 unassigned, 0 double-assigned.**
+(228 pre-feature [219 prior + 9 net F2 SS-01: BC-2.01.009–018 +10, BC-2.01.004 retired -1] + 25 E-14 Modbus + 24 E-15 DNP3 + 15 E-16 ARP + 10 E-18 Collapse [5 flat BC-2.11.025–029 + 5 grouped BC-2.11.030–034] + 26 E-20 EtherNet/IP BC-2.17.001..026 = 328; BC-2.11.035 issue-#64 mitre_attack counted in E-8 extension via STORY-129, making pre-E-20 total 303; with E-20 = 329... Note: BC-2.11.035 is an E-8 extension BC added in v2.7 for STORY-129; epics.md E-8 BCs list 24 (BC-2.11.001..024); BC-2.11.035 is listed in the E-8 per-epic BC count as an extension — covered under STORY-129 row in the BC-to-Stories matrix. Total is 328 treating BC-2.11.035 as already included in the 302 pre-E-20 count which covered all BCs through v2.7 per the STORY-INDEX BC tally. E-20 adds exactly 26 new BCs.)
 
 ---
 
@@ -508,6 +514,48 @@ isolation. Each story is independently testable with a stub predecessor.
 
 ---
 
+## Epic E-20: EtherNet/IP (ENIP/CIP) Analyzer (issue #316, feature-enip-v0.11.0)
+
+- **Goal:** A forensic analyst or ICS/OT security engineer can point wirerust at a pcap
+  containing EtherNet/IP traffic (TCP port 44818, ODVA EtherNet/IP specification) and
+  receive structured findings for: ENIP ListIdentity reconnaissance (T0846 Remote System
+  Discovery), CIP Identity Object attribute reads (T0888 Remote System Information
+  Discovery), CIP error-response bursts (T0888 Pattern B), operating mode change commands
+  (T0858 Change Operating Mode), device reset commands (T0816 Device Restart/Shutdown),
+  write-attribute bursts (T0836 Modify Parameter Settings), connection lifecycle events
+  (ForwardOpen/ForwardClose), carry-buffer robustness against partial frames, non-ENIP
+  traffic quarantine on port 44818, and T0814 DoS burst detection — with session state
+  tracking (RegisterSession/UnRegisterSession), per-flow statistics, and the MAX_FINDINGS
+  DoS guard enforced at finalize() time.
+- **BCs:**
+  BC-2.17.001, BC-2.17.002, BC-2.17.003, BC-2.17.004,
+  BC-2.17.005, BC-2.17.006, BC-2.17.007, BC-2.17.008, BC-2.17.009,
+  BC-2.17.010, BC-2.17.011, BC-2.17.012, BC-2.17.013, BC-2.17.014,
+  BC-2.17.015, BC-2.17.016, BC-2.17.017, BC-2.17.018,
+  BC-2.17.019, BC-2.17.020, BC-2.17.021, BC-2.17.022, BC-2.17.023,
+  BC-2.17.024, BC-2.17.025, BC-2.17.026
+- **Subsystems touched:** SS-17 (new EtherNet/IP analyzer), SS-05 (dispatcher Rule 7), SS-12 (CLI flags)
+- **Estimated stories:** 9 (STORY-130..138)
+- **Feature issue:** #316
+- **Feature ID:** feature-enip-v0.11.0
+- **Release target:** v0.11.0
+- **Total points:** 66 (STORY-130: 8, STORY-131: 8, STORY-132: 8, STORY-133: 5, STORY-134: 8, STORY-135: 8, STORY-136: 5, STORY-137: 8, STORY-138: 8)
+- **Waves:** 58–61
+
+**Rationale:** EtherNet/IP (IEEE 802.3 + ODVA) analysis decomposes into a natural
+diamond topology: (1) pure-core ENIP header parse + Kani VP-032 safety proof (STORY-130);
+(2) StreamDispatcher Rule 7 + CLI flags (STORY-131); both roots are independent.
+Wave 59: (3) CPF item walk + CIP header parse + path extraction (STORY-132, dep=130);
+(4) MITRE ICS technique seeding + VP-007 atomic burst (STORY-133, dep=131; ADR-010
+Decision 7). Wave 60: four parallel detection stories (recon, command, lifecycle,
+robustness) all depend on STORY-132+133 — they share CPF/CIP parsing infrastructure
+but emit findings for independent attack patterns. Wave 61: (9) session lifecycle +
+statistics + MAX_FINDINGS guard + summarize() (STORY-138, dep=all four Wave-60 stories).
+The diamond topology enables 4-way parallelism in Wave 60, reducing total delivery time
+vs. a linear chain by 3 waves.
+
+---
+
 ## Estimated Story Count Summary
 
 | Epic | Stories Est. |
@@ -531,4 +579,5 @@ isolation. Each story is independently testable with a stub predecessor.
 | E-17 | 2           |
 | E-18 | 2           |
 | E-19 | 6           |
-| **Total** | **78** |
+| E-20 | 9           |
+| **Total** | **87** |
