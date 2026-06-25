@@ -160,7 +160,7 @@ Discovery Pattern A), and CIP error-response bursts (T0888 Pattern B),
 | `Finding` construction | `src/analyzer/enip.rs` | Uses `Finding { category, verdict, confidence, summary, evidence, mitre_techniques, source_ip, timestamp }` |
 | Test mod | `tests/enip_analyzer_tests.rs` | `mod recon { ... }` |
 
-**Detection order in `process_pdu` (ADR-010 Decision 6):**
+**Detection order in `process_pdu` (ADR-010 Decision 4):**
 1. Parse ENIP header; call `is_valid_enip_frame`
 2. `classify_enip_command`; check ListIdentity → emit T0846
 3. For SendRRData/SendUnitData: walk CPF items (0x00B2 only for CIP parse)
@@ -233,9 +233,9 @@ recon::test_non_enip_flow_suppresses_recon
 
 ## Architecture Compliance Rules
 
-From ADR-010 Decision 6 (detection ordering) and BC-2.17.010/008/014:
+From ADR-010 Decision 4 (detection ordering / frame-walk) and BC-2.17.010/008/014:
 
-1. **`is_non_enip` gate is first (ADR-010 Decision 6):** All detection code checks `flow.is_non_enip` as its first guard. No detection runs on flagged flows. This prevents false positives on TCP port 44818 traffic that is not actually ENIP.
+1. **`is_non_enip` gate is first (ADR-010 Decision 4):** All detection code checks `flow.is_non_enip` as its first guard. No detection runs on flagged flows. This prevents false positives on TCP port 44818 traffic that is not actually ENIP.
 2. **`MAX_FINDINGS` cap (BC-2.17.022, via ADR-010):** Every `push` to `all_findings` must be preceded by `self.all_findings.len() < MAX_FINDINGS` check. Never push unconditionally.
 3. **T0888 Pattern B strict `>` semantics (BC-2.17.014 Invariant 3):** `total_error_count > threshold` — NOT `>=`. With default threshold=5, exactly 5 errors do NOT fire; 6 fires. Use `>` everywhere, not `>=`.
 4. **F-P9-001 gate (BC-2.17.014 precondition 4):** T0888 Pattern A is only triggered for `type_id == 0x00B2` items. The check is `if item.type_id == 0x00B2 { parse_cip_header(...); /* detection */ }`. Connected items (0x00B1) are skipped without firing any detection.

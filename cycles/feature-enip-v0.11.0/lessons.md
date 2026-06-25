@@ -307,3 +307,55 @@ procedure:
 
 Evaluate at cycle close whether to codify this as a named policy (complement to
 DF-SIBLING-SWEEP-001) or as a step in the BC amendment procedure documentation.
+
+---
+
+## [codified] ADR-DECISION-NUMBER-MIS-ANCHOR-001 — ADR decision-number citations in code/story doc-comments are a fresh-context mis-anchor axis (D-245, 2026-06-25)
+
+**Status:** CODIFIED — deferred-to-cycle-close evaluation per S-7.02.
+**Found at:** STORY-134 per-story convergence Pass-G — 2 MEDIUM findings (F-134-PG-001/002).
+**Decision:** D-245.
+
+**Observation:**
+
+Pass-G adversary (fresh context, no prior pass memory) cited ADR-010 Decision 6 for
+detection-order and Decision 5 for MAX_FINDINGS in both `enip.rs` doc-comments and
+STORY-134.md Architecture Compliance Rules and Architecture Mapping table.
+
+The correct anchor is **Decision 4** ("EnipFlowState design and frame-walk algorithm"),
+which owns both the detection order and the MAX_FINDINGS cap. Decision 5 = ForwardOpen
+CIP session handling; Decision 6 = UDP/port-2222 deferred scope.
+
+The implementation was correct; only the cited decision numbers in prose/doc-comments
+were wrong. Passes H/I (prior rounds, same worktree state) were clean on all other axes
+but did not catch this because they had accumulated context about the ADR structure.
+The fresh-context adversary caught it immediately.
+
+**Root cause:**
+
+When story authors write Architecture Compliance Rules and doc-comments citing ADR
+decision numbers, they sometimes cite by approximate semantic proximity ("detection order
+lives near Decision 5–6") rather than verifying the exact heading text in the ADR.
+Decision-number drift is invisible to the compiler and to tests; it is only visible to
+a reviewer who cross-checks cited numbers against ADR section headings.
+
+**Fix applied (D-245):**
+- `enip.rs` in worktree @0115bf5: 8 sites corrected from "Decision 5" / "Decision 6"
+  to "Decision 4".
+- `STORY-134.md` lines ~163/236/238: 3 sites corrected from
+  "ADR-010 Decision 6 (detection order)" / "ADR-010 Decision 5 (MAX_FINDINGS)"
+  to "ADR-010 Decision 4".
+
+**Process improvement (deferred-to-cycle-close per S-7.02):**
+
+When writing doc-comments or story prose that cite an ADR decision by number, the author
+MUST verify the cited number against the actual ADR section heading before committing.
+The canonical check: read the decision heading (`## Decision N — <title>`) and confirm
+the semantics match. Decision numbers are sequential and not always memorable; citing
+from memory without verification is the failure mode this lesson closes.
+
+Recommended mechanical gate (evaluate at cycle close): add a grep step to the
+DF-GREEN-DOC-TENSE sweep or the story-review checklist that extracts all "ADR-NNN
+Decision N" citations from changed files and prints the corresponding ADR heading for
+human spot-check. This is a low-cost verification step that would have caught all 11
+mis-anchor sites in one pass.
