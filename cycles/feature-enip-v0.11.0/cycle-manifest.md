@@ -34,7 +34,7 @@ Research inputs: `.factory/research/next-ics-protocol-prevalence.md`,
 |-------|--------|-------|
 | F1 — Delta Analysis | PASSED 2026-06-24 | Human-approved (D-228). TCP/44818 + UDP/2222 + ForwardOpen in scope. TLS/2221 deferred. |
 | F2 — Spec Evolution | **COMPLETE — human gate PASSED (D-230, 2026-06-24)** | D-229: UDP/2222 deferred to v0.12.0. Scope: TCP/44818 + CIP ForwardOpen (TCP only; 0x00B2 unconnected carriers only; 0x00B1 deferred v0.12.0). 26 BCs total (BC-2.17.001..026). ADR-010 (Decisions 1-9), VP-032 written. F2 adversarial convergence: 4 consecutive 0-H/C passes (P10/P11/P12/P13). Severity trajectory: 4C/7H→4C/3H→3C/4H→0C/1H→0C/1H→0C/0H→0C/1H→0C/0H→0C/1H→0C/0H→0C/0H→0C/0H(P12)→0C/0H(P13). F2 addendum (D-230): BC-2.17.026 created (--enip-error-burst-threshold CLI flag, u32 default 5, symmetric with --enip-write-burst-threshold); ADR-010 Decision 9 added; ENIP_ERROR_BURST_THRESHOLD constant retired; BC-2.17.014 configurable field; BC-2.17.020 CLI surface updated. BC-INDEX v1.76 (331/330 active). Human gate decisions: (1) proceed to F3; (2) 0x00B2-only scope accepted; (3) thresholds 50/5 as tunable defaults; (4) recalibrate F6. |
-| F3 — Incremental Stories | PENDING | ~7-9 stories planned |
+| F3 — Incremental Stories | **STARTING** | Pre-F3 prereqs cleared (F-P2-010 RESOLVED — SS-10 catalog bump committed 2026-06-24). ~7-9 stories planned. |
 | F4 — TDD Implementation | PENDING | |
 | F5 — Scoped Adversarial | PENDING | |
 | F6 — Targeted Hardening | PENDING | |
@@ -80,7 +80,7 @@ Research inputs: `.factory/research/next-ics-protocol-prevalence.md`,
 | ID | Summary | Status |
 |----|---------|--------|
 | OA-001 | Two threshold values confirmed at F2 human gate (D-230): (1) `--enip-write-burst-threshold` default=50 writes/1s (BC-2.17.023) — CONFIRMED tunable default; (2) `--enip-error-burst-threshold` default=5 (BC-2.17.026 NEW) — CONFIRMED tunable default. Both flags require `--enip`/`--all` to activate. | RESOLVED — D-230 human gate |
-| F-P2-010 | SS-10 BC version-bump pending (BC-2.10.005/BC-2.10.008): PRD BC-2.10.005 count was reconciled to 28 seeded technique IDs in Pass-2 remediation, but the SS-10 BC bodies and version fields do not yet list all 28 IDs. Must be resolved before F3 entry. | OPEN — resolve before F3 |
+| F-P2-010 | SS-10 BC version-bump: BC-2.10.005 v1.12 (28 seeded IDs, ICS 13→16, +T0858/T0816/T1693.001) + BC-2.10.008 v1.14 (20 emitted IDs, +T0858/T0816/T0846). BC-INDEX v1.77. | **RESOLVED** — pre-F3 SS-10 catalog bump committed 2026-06-24 |
 | F8-01 | 0x4B/GetAndClear labeled "firmware download marker" + T1693.001 — ODVA grounding is a wirerust convention, not normative common service. Add citation/vendor-specific note. | RESOLVED — Pass-10 final-polish burst: note added to BC-2.17.007 Invariant 6 and ADR-010 Decision 7. |
 | F8-02 | [process-gap] ADR-010 Decision 4 specifies EnipFlowState but never sketches the EnipAnalyzer aggregate struct. | RESOLVED — Pass-10 final-polish burst: full EnipAnalyzer struct sketch added to ADR-010 Decision 4 with BC cross-reference annotations. |
 | F8-03 | BC-2.17.014 should state total_error_count = flow.error_counts_in_window.values().sum(). | RESOLVED — Pass-10 final-polish burst: one-sentence clarification added to BC-2.17.014 Invariant 3. |

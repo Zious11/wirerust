@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.11"
+version: "1.12"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -24,6 +24,7 @@ modified:
   - "v1.9: Pass-3 remediation F-C4/F-C5/F-C6/F-C1(b): T1557.002 reclassified Enterprise (not ICS); Enterprise/ICS split corrected 11E+14I→12E+13I in Description, Postcondition 3, Invariants, and changelog; EC-011/012 added for T0830/T1557.002; canonical vectors for T0830/T1557.002 added; VP table 'All 23 seeded IDs'→'All 25 seeded IDs'; Architecture Anchors re-anchored to current mitre.rs line numbers (T0885:158, _ => return None:179); PLANNED forward-declaration marker added. — 2026-06-12"
   - "v1.10: Pass-4 remediation F-C-P4-HIGH-003: PLANNED marker augmented with current→target values (23/15→25/17 after STORY-114 5-part atomic update). — 2026-06-12"
   - "v1.11: Post-STORY-114-merge governance update: PLANNED marker resolved to landed status (PR #240, develop HEAD 7c0f453). SEEDED=25/EMITTED=17 confirmed in src/mitre.rs (SEEDED_TECHNIQUE_ID_COUNT=25; EMITTED_IDS array=17 entries; T0830+T1557.002 arms present). Architecture Anchors updated: T0830/T1557.002 arms no longer PLANNED. — 2026-06-15"
+  - "v1.12: F2 EtherNet/IP (feature-enip-v0.11.0, ADR-010 Decision 7) — SEEDED count updated 25→28 (added 3 ICS: T0858 'Change Operating Mode' IcsExecution TA0104 new catalog entry; T0816 'Device Restart/Shutdown' IcsInhibitResponseFunction TA0107 new catalog entry; T1693.001 'Modify Firmware: System Firmware' staged-not-emitted). ICS split 13→16. H1 title updated 25→28. T0846 reclassified seeded+emitted (was catalogue-only). CATALOGUE-ONLY count remains 8 (T0846 leaves; T1693.001 enters; T0858/T0816 new seeds immediately emitted; net=0). Postconditions, Invariants, Edge Cases updated. PRD §2.10 O-04 SEEDED=28 authoritative reference. — 2026-06-24"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -32,7 +33,7 @@ removed: null
 removal_reason: null
 ---
 
-# BC-2.10.005: technique_name Returns Some for Every Seeded ID (25 Total)
+# BC-2.10.005: technique_name Returns Some for Every Seeded ID (28 Total)
 
 <!--
   PREVIOUS VERSION SUMMARY (v1.3 -> v1.4):
@@ -58,20 +59,37 @@ removal_reason: null
   Invariant 1: emitted count 15 -> 17 (7 Enterprise + 10 ICS)
   Invariant 2: catalogued-but-not-emitted remains 8 (25 - 17 = 8)
   Invariant 3: count claim updated 23 -> 25
+
+  PREVIOUS VERSION SUMMARY (v1.11 -> v1.12):
+  Title: "25 Total" -> "28 Total"
+  Seeded count: 25 -> 28 (12 Enterprise + 16 ICS)
+  Added ICS IDs: T0858 (Change Operating Mode, IcsExecution TA0104 — CIP Stop, new catalog entry),
+                 T0816 (Device Restart/Shutdown, IcsInhibitResponseFunction TA0107 — CIP Reset, new catalog entry),
+                 T1693.001 (Modify Firmware: System Firmware, staged-not-emitted v0.11.0)
+  Note: T0846 was already seeded; it is NOW also emitted (by ENIP BC-2.17.010 ListIdentity)
+  Invariant 1: emitted count 17 -> 20 (7 Enterprise + 13 ICS): adds T0858, T0816, T0846
+  Invariant 2: catalogued-but-not-emitted remains 8 (28 - 20 = 8); T0846 exits; T1693.001 enters;
+               T0858/T0816 new seeds immediately emitted
+  Invariant 3: count claim updated 25 -> 28
+  EC-013/014/015 added for T0858, T0816, T1693.001
 -->
 
 ## Description
 
-`technique_name(id: &str)` returns `Some(&'static str)` for all 25 technique IDs present in
-the `technique_info` static match table. IDs not in the table return `None`. The 25-entry
-catalog (post-F2 ARP) includes 17 IDs emitted by analyzers and 8 staged IDs for future
-analyzers. The catalog grows from 23 (post-Feature #8 DNP3, 11 Enterprise + 12 ICS) to 25
-(12 Enterprise + 13 ICS) as part of Feature #9 (ARP security analyzer, ADR-008):
-T1557.002 is an Enterprise sub-technique (CredentialAccess); T0830 is an ICS technique (LateralMovement).
+`technique_name(id: &str)` returns `Some(&'static str)` for all 28 technique IDs present in
+the `technique_info` static match table. IDs not in the table return `None`. The 28-entry
+catalog (post-F2 EtherNet/IP v0.11.0) includes 20 IDs emitted by analyzers and 8 staged IDs for
+future analyzers. The catalog grows from 25 (post-Feature #9 ARP, 12 Enterprise + 13 ICS) to 28
+(12 Enterprise + 16 ICS) as part of Feature #316 (EtherNet/IP + CIP analyzer, ADR-010):
+T0858 "Change Operating Mode" (IcsExecution TA0104 — CIP Stop) and T0816 "Device Restart/Shutdown"
+(IcsInhibitResponseFunction TA0107 — CIP Reset) are new catalog entries immediately emitted.
+T1693.001 "Modify Firmware: System Firmware" is seeded-but-not-emitted (GetAndClear firmware
+detection deferred to v0.12.0). T0846 "Remote System Discovery" was already seeded; it is NOW also
+emitted by the EtherNet/IP analyzer (BC-2.17.010 ListIdentity).
 
-LANDED — STORY-114 merged (PR #240, develop HEAD 7c0f453). src/mitre.rs is now at SEEDED=25/EMITTED=17.
-T0830 (ICS LateralMovement) and T1557.002 (Enterprise CredentialAccess) arms are present in technique_info;
-vp007_catalog_drift_guard enforces consistency at runtime.
+PENDING — STORY-EIP-09 (VP-007 atomic burst for T0858+T0816 new technique_info arms + IcsExecution
+MitreTactic variant). SEEDED=28/EMITTED=20 per ADR-010 Decision 7 + PRD §2.10 O-04 (v1.36).
+vp007_catalog_drift_guard will enforce consistency at runtime once implemented.
 
 ## Preconditions
 
@@ -79,27 +97,34 @@ vp007_catalog_drift_guard enforces consistency at runtime.
 
 ## Postconditions
 
-1. For each of the 25 seeded IDs, returns `Some(technique_name_string)`.
+1. For each of the 28 seeded IDs, returns `Some(technique_name_string)`.
 2. For any other string, returns `None`.
-3. The 25 seeded IDs are:
+3. The 28 seeded IDs are:
    - Enterprise (12): T1027, T1036, T1040, T1046, T1071, T1071.001, T1071.004,
      T1083, T1499.002, T1505.003, T1573, T1557.002
-   - ICS (13): T0846, T1692.001, T1692.002, T0885, T0836, T0814, T0806, T0835, T0831, T0888,
-     T1691.001, T0827, T0830
+   - ICS (16): T0846, T1692.001, T1692.002, T0885, T0836, T0814, T0806, T0835, T0831, T0888,
+     T1691.001, T0827, T0830, T0858, T0816, T1693.001
 
 ## Invariants
 
-1. IDs currently emitted (17): 7 Enterprise (T1027, T1036, T1046, T1083, T1499.002,
-   T1505.003, T1557.002) + 10 ICS (T1692.001, T0836, T0814, T0806, T0835, T0831, T0888,
-   T1691.001, T0827, T0830).
-2. IDs catalogued but not emitted (8): T1040, T1071, T1071.001, T1071.004, T1573, T0846,
-   T1692.002, T0885. T0846 was previously the Modbus recon technique but was corrected to T0888
-   per Decision 12; T0846 remains seeded for future use (e.g., address-sweep detection).
-   T1692.002 replaces revoked T0856 ("Spoof Reporting Message") per ATT&CK-ICS v19 remap.
-3. The catalog count is 25 after Feature #9 ARP (F2). Post-Feature #8 DNP3 count was 23.
-   Any claim of 23 post-ARP is an error; any claim of 24 is an error
-   (25 = 12 Enterprise + 13 ICS; T1557.002 is Enterprise, T0830 is ICS).
-4. Arithmetic check: SEEDED=25 (12E+13I), EMITTED=17 (7E+10I), CATALOGUE-ONLY=25−17=8.
+1. IDs currently emitted (20): 7 Enterprise (T1027, T1036, T1046, T1083, T1499.002,
+   T1505.003, T1557.002) + 13 ICS (T1692.001, T0836, T0814, T0806, T0835, T0831, T0888,
+   T1691.001, T0827, T0830, T0858, T0816, T0846).
+   T0858 (CIP Stop — IcsExecution TA0104) and T0816 (CIP Reset — IcsInhibitResponseFunction TA0107)
+   are new catalog entries added for the EtherNet/IP analyzer (Feature #316, v0.11.0, ADR-010).
+   T0846 (ListIdentity — IcsDiscovery TA0102) was already seeded; it is NOW also emitted by the
+   EtherNet/IP analyzer (BC-2.17.010).
+2. IDs catalogued but not emitted (8): T1040, T1071, T1071.001, T1071.004, T1573 (Enterprise);
+   T1692.002 (ICS — IcsImpairProcessControl; replaces revoked T0856 per ATT&CK-ICS v19 remap),
+   T0885 (ICS — CommandAndControl), T1693.001 (ICS — IcsInhibitResponseFunction; staged firmware
+   detection, seeded-not-emitted v0.11.0; replaces revoked T0857 per ATT&CK-ICS v19 remap).
+   T0846 was previously catalogue-only; it has been reclassified to emitted (EtherNet/IP
+   ListIdentity, BC-2.17.010). T1693.001 enters catalogue-only as the staged firmware entry.
+   The net catalogue-only count remains 8.
+3. The catalog count is 28 after Feature #316 EtherNet/IP (F2, v0.11.0). Post-ARP (Feature #9)
+   count was 25. Any claim of 25 post-ENIP is an error; any claim of 26 or 27 is an error
+   (28 = 12 Enterprise + 16 ICS; T0858, T0816, T1693.001 are new ICS entries).
+4. Arithmetic check: SEEDED=28 (12E+16I), EMITTED=20 (7E+13I), CATALOGUE-ONLY=28−20=8.
    These counts are mutually consistent.
 5. The match is exact string equality; no prefix/suffix matching.
 
@@ -119,6 +144,9 @@ vp007_catalog_drift_guard enforces consistency at runtime.
 | EC-010 | "T0827" (new ICS seeded F2 DNP3 — Loss of Control) | Some("Loss of Control") |
 | EC-011 | "T0830" (new ICS seeded F2 ARP — Adversary-in-the-Middle, ICS LateralMovement) | Some("Adversary-in-the-Middle") |
 | EC-012 | "T1557.002" (new Enterprise seeded F2 ARP — Adversary-in-the-Middle: ARP Cache Poisoning, CredentialAccess) | Some("Adversary-in-the-Middle: ARP Cache Poisoning") |
+| EC-013 | "T0858" (new ICS seeded F2 ENIP — Change Operating Mode, IcsExecution TA0104 — CIP Stop) | Some("Change Operating Mode") |
+| EC-014 | "T0816" (new ICS seeded F2 ENIP — Device Restart/Shutdown, IcsInhibitResponseFunction TA0107 — CIP Reset) | Some("Device Restart/Shutdown") |
+| EC-015 | "T1693.001" (new ICS seeded F2 ENIP — Modify Firmware: System Firmware, staged-not-emitted v0.11.0) | Some("Modify Firmware: System Firmware") |
 
 ## Canonical Test Vectors
 
@@ -135,6 +163,9 @@ vp007_catalog_drift_guard enforces consistency at runtime.
 | "T0827" | Some("Loss of Control") | happy-path (new F2 DNP3) |
 | "T0830" | Some("Adversary-in-the-Middle") | happy-path (new F2 ARP, ICS) |
 | "T1557.002" | Some("Adversary-in-the-Middle: ARP Cache Poisoning") | happy-path (new F2 ARP, Enterprise) |
+| "T0858" | Some("Change Operating Mode") | happy-path (new F2 ENIP — CIP Stop, IcsExecution TA0104) |
+| "T0816" | Some("Device Restart/Shutdown") | happy-path (new F2 ENIP — CIP Reset, IcsInhibitResponseFunction TA0107) |
+| "T1693.001" | Some("Modify Firmware: System Firmware") | happy-path (new F2 ENIP — staged-not-emitted v0.11.0) |
 | "T9999" | None | edge-case |
 | "" | None | edge-case |
 
@@ -142,7 +173,7 @@ vp007_catalog_drift_guard enforces consistency at runtime.
 
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| VP-007 | All 25 seeded IDs return Some | unit: technique_name_resolves_every_seeded_id |
+| VP-007 | All 28 seeded IDs return Some | unit: technique_name_resolves_every_seeded_id |
 | VP-007 | Non-seeded IDs return None | unit: technique_name_returns_none_for_unknown_ids |
 
 ## Traceability
@@ -166,6 +197,9 @@ vp007_catalog_drift_guard enforces consistency at runtime.
 
 - `src/mitre.rs:128` -- `pub fn technique_info(id: &str)` function declaration
 - `src/mitre.rs:129-181` -- static match table (T1027 at :131, T0885 at :158, `_ => return None` at :179; T0830 and T1557.002 arms landed in STORY-114, PR #240)
+- `src/mitre.rs` -- T0858 ("Change Operating Mode") arm: PENDING STORY-EIP-09 (new catalog entry; requires `MitreTactic::IcsExecution` variant addition)
+- `src/mitre.rs` -- T0816 ("Device Restart/Shutdown") arm: PENDING STORY-EIP-09 (new catalog entry; IcsInhibitResponseFunction TA0107)
+- `src/mitre.rs` -- T1693.001 ("Modify Firmware: System Firmware") arm: PENDING future story (staged-not-emitted; replaces revoked T0857)
 
 ## Source Evidence
 

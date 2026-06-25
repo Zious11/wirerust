@@ -1,10 +1,10 @@
 ---
 pipeline: FEATURE-MODE
-phase: F2
-phase_status: "F2 COMPLETE (human-approved D-230); scoped re-validation of addendum, then F3. Human gate PASSED: (1) proceed to F3; (2) 0x00B2-only CIP detection scope accepted (0x00B1 deferred v0.12.0); (3) thresholds tunable defaults — write-burst=50 (--enip-write-burst-threshold), error-burst=5 (--enip-error-burst-threshold BC-2.17.026). SS-17 now 26 BCs (BC-INDEX v1.76, 331/330 active)."
+phase: F3
+phase_status: "F2 COMPLETE; pre-F3 prereqs cleared (SS-10 catalog bump — BC-2.10.005 v1.12/28 seeded + BC-2.10.008 v1.14/20 emitted, F-P2-010 RESOLVED); BC-INDEX v1.77 (331/330 active). F3 story decomposition starting."
 product: wirerust
 mode: feature-mode
-timestamp: 2026-06-24T17:00:00Z
+timestamp: 2026-06-24T18:30:00Z
 
 # Release chain (latest)
 released_version: v0.10.0
@@ -70,7 +70,7 @@ convergence_trajectory: "Detail: cycles/v0.1.0-greenfield-spec/convergence-traje
 
 ## Status
 
-**PIPELINE FEATURE-MODE. Cycle `feature-enip-v0.11.0` OPEN. F1 PASSED. F2 COMPLETE — human gate PASSED (D-230, 2026-06-24): (1) proceed to F3; (2) 0x00B2-only CIP detection scope accepted (0x00B1 deferred v0.12.0); (3) thresholds: write-burst=50 (--enip-write-burst-threshold BC-2.17.023), error-burst=5 (--enip-error-burst-threshold BC-2.17.026 NEW F2 addendum). BC-INDEX v1.76 (331/330 active, 26 SS-17 BCs). F2 addendum committed (ADR-010 Decision 9 flag + EnipAnalyzer field; ENIP_ERROR_BURST_THRESHOLD constant retired). F6 recalibration noted at D-230. PROPAGATION-LAG-001 in lessons.md; ENGINE-PROPAGATION-GREP-GATE-001 in OPEN ITEMS. Next: scoped re-validation of addendum (BC-2.17.026 consistency), then F3 incremental stories.**
+**PIPELINE FEATURE-MODE. Cycle `feature-enip-v0.11.0` OPEN. F1 PASSED. F2 COMPLETE (human gate D-230). Pre-F3 prereqs CLEARED: SS-10 MITRE catalog bump committed — BC-2.10.005 v1.12 (28 seeded IDs, ICS split 13→16, added T0858/T0816/T1693.001), BC-2.10.008 v1.14 (20 emitted IDs, added T0858/T0816/T0846). F-P2-010 RESOLVED. BC-INDEX v1.77 (331/330 active). F3 story decomposition starting. EtherNet/IP scope: TCP/44818 + CIP ForwardOpen (0x00B2 only); 26 SS-17 BCs; thresholds write-burst=50/error-burst=5 (tunable). ENGINE-PROPAGATION-GREP-GATE-001 in OPEN ITEMS.**
 
 Latest release: v0.10.0 (main `0cbe922`, tag `v0.10.0`, 4 binaries, run 28109367603). develop=`ff4b82b`. stories_delivered=78. Target: v0.11.0 (SS-17 EtherNet/IP + CIP TCP/44818). GitHub issue #316.
 
@@ -156,7 +156,7 @@ All GitHub-issue creation remains DF-VALIDATION-001-gated.
 | Maintenance maint-2026-06-22 | COMPLETE 2026-06-23 | 38 observations; 0 blocking; F-MAJ-001 fixed (a6efb23); PR #304 (e458ce2) + PR #305 (e4abbe2). |
 | Feature mitre-json-names (issue #64) + v0.9.4 | RELEASED + CLOSED 2026-06-23 (D-217) | F1-F7 CONVERGED. 5 BCs bumped. BC-INDEX v1.71 (303 BCs). PRs #306/307/308/309. tag v0.9.4 96b49e8. 4 binaries. stories_delivered=78. |
 | Fix cycle fix-pc-013-014-015 + v0.10.0 | **CONVERGED + RELEASED + CLOSED 2026-06-24 (D-226)** | All 3 fixes: PC-015 (#310), PC-013 (#312 + spec D-223), PC-014 (#313 breaking rename + CHANGELOG). Evidence resync #314. v0.10.0: PR #315 → main 0cbe922, tag v0.10.0, 4 binaries, run 28109367603. develop back-merged ff4b82b. BC-INDEX v1.73 (305 BCs / 304 active). |
-| Feature EtherNet/IP + CIP (issue #316) — v0.11.0 | **F2 COMPLETE — human gate PASSED (D-230, 2026-06-24)** | F2 addendum: BC-2.17.026 (--enip-error-burst-threshold; symmetric with write-burst). 4 consecutive 0-H/C passes (P10-P13). BC-INDEX v1.76 (331/330 active, 26 SS-17 BCs). Human decisions: proceed to F3; 0x00B2-only scope accepted; thresholds 50/5 tunable defaults; F6 recalibrate. F-P2-010: SS-10 BC version-bump pending (resolve before F3 entry). Next: scoped re-validation of BC-2.17.026, then F3. Detail: cycles/feature-enip-v0.11.0/ |
+| Feature EtherNet/IP + CIP (issue #316) — v0.11.0 | **F3 STARTING** | F2 COMPLETE (D-230). Pre-F3 prereqs cleared: SS-10 catalog bump (BC-2.10.005 v1.12/28 seeded + BC-2.10.008 v1.14/20 emitted), F-P2-010 RESOLVED. BC-INDEX v1.77 (331/330 active). 26 SS-17 BCs, thresholds 50/5 tunable. F3 incremental story decomposition starting. Detail: cycles/feature-enip-v0.11.0/ |
 
 ## Decisions Log
 

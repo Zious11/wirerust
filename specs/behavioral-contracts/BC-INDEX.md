@@ -1,7 +1,7 @@
 ---
 document_type: bc-index
 level: L3
-version: "1.76"
+version: "1.77"
 status: draft
 producer: product-owner
 timestamp: 2026-06-24T00:00:00Z
@@ -15,6 +15,18 @@ traces_to: .factory/specs/prd.md
 > links to the individual BC file. BCs are sharded into per-subsystem directories (ss-NN/).
 >
 > All BCs are marked [WRITTEN]. Body files have been verified on disk for all 331 entries (330 prior + 1 new BC-2.17.026 for F2 addendum error-burst CLI flag; BC-2.01.004 retired).
+>
+> **v1.77 2026-06-24 (Pre-F3 prerequisite — SS-10 MITRE catalog BC version-bump, finding F-P2-010):**
+> BC-2.10.005 v1.11→v1.12: SEEDED count 25→28 (adds T0858 "Change Operating Mode" IcsExecution TA0104,
+> T0816 "Device Restart/Shutdown" IcsInhibitResponseFunction TA0107, T1693.001 "Modify Firmware: System Firmware"
+> staged-not-emitted v0.11.0); H1 title updated "25 Total"→"28 Total"; ICS split 13→16; EC-013/014/015 added;
+> canonical vectors extended; VP-007 table updated to "All 28 seeded IDs"; Architecture Anchors updated.
+> BC-2.10.008 v1.13→v1.14: EMITTED count 17→20 (adds T0858, T0816, T0846 reclassified seeded→emitted via
+> ENIP BC-2.17.010 ListIdentity); ICS emitted split 10→13; Postcondition 1 updated; Invariants 4/5 updated;
+> EC-018/019/020 added; emission sites extended with ENIP analyzer entries; canonical vectors extended;
+> VP-007 table updated to "All 20 emitted IDs"; Architecture Anchors updated.
+> No new BCs; no BC count change (331 on disk; 330 active). "BC-2.10.005/BC-2.10.008 version-bump pending"
+> flag in PRD §2.10 O-04 RESOLVED. Pre-F3 entry gate finding F-P2-010 CLEARED.
 >
 > **v1.76 2026-06-24 (F2 addendum: BC-2.17.026 error-burst CLI flag):** Created BC-2.17.026 (`--enip-error-burst-threshold` CLI flag configures T0888 error-burst detection sensitivity; u32, default 5, strict `>` semantics, symmetric with BC-2.17.023 write-burst flag). Updated BC-2.17.014: replaced hardcoded `ENIP_ERROR_BURST_THRESHOLD` constant with configurable `self.enip_error_burst_threshold` field (default 5); added BC-2.17.026 cross-reference. Updated BC-2.17.020: added `--enip-error-burst-threshold` to CLI surface (three flags now: --enip, --enip-write-burst-threshold, --enip-error-burst-threshold); added BC-2.17.026 to Related BCs. SS-17: 25→26 BCs. Total on disk: 330→331. Active: 329→330. No stories modified (no ENIP stories exist yet; F3 story decomposition pending).
 >
@@ -332,10 +344,10 @@ traces_to: .factory/specs/prd.md
 | BC-2.10.002 | ICS Tactics Render Without "ICS:" Prefix; IcsImpact Disambiguated as "Impact (ICS)" | P1 | [WRITTEN] | BC-MIT-002 | <!-- v1.5: D-069 — IcsImpact Display corrected to "Impact (ICS)" (H1 title updated per bc_h1_is_title_source_of_truth); code at src/mitre.rs:91 was already correct; spec-side corrected. Supersedes D-067. --> <!-- v1.6: D-209 F5 ICS catalog fix — AC/EC tactic IDs corrected for ICS domain: IcsDiscovery TA0102, IcsCollection TA0100, IcsCommandAndControl TA0101, IcsImpact TA0105 (all distinct from Enterprise TA0007/TA0008/TA0011/TA0040). -->
 | BC-2.10.003 | all_tactics_in_report_order Returns Kill-Chain Order First Then ICS | P0 | [WRITTEN] | BC-MIT-003 | <!-- v1.5: D-209 F5 ICS catalog fix — 3 new MitreTactic variants (IcsDiscovery/IcsCollection/IcsCommandAndControl) added to kill-chain-then-ICS ordering; AC/EC ordering table updated. -->
 | BC-2.10.004 | all_tactics_in_report_order Contains Every Variant Exactly Once | P0 | [WRITTEN] | BC-MIT-004 |
-| BC-2.10.005 | technique_name Returns Some for Every Seeded ID (25 Total) | P0 | [WRITTEN] | BC-MIT-005 | <!-- v1.10: count 23->25; T0830 (ICS)+T1557.002 (Enterprise) added (ARP F2); 12E+13I split; PLANNED forward-declaration added -->
+| BC-2.10.005 | technique_name Returns Some for Every Seeded ID (28 Total) | P0 | [WRITTEN] | BC-MIT-005 | <!-- v1.12: count 25->28; T0858 (ICS IcsExecution)+T0816 (ICS IcsInhibitResponseFunction)+T1693.001 (ICS staged) added (ENIP F2); 12E+16I split; T0846 reclassified seeded+emitted -->
 | BC-2.10.006 | technique_name Returns None for Unknown IDs | P0 | [WRITTEN] | BC-MIT-006 |
 | BC-2.10.007 | technique_tactic Returns Correct Tactic for Every Seeded ID | P0 | [WRITTEN] | BC-MIT-007 | <!-- v1.9: D-209 F5 ICS catalog fix — catalog table: T0846/T0888→IcsDiscovery TA0102, T0885→IcsCommandAndControl TA0101, T0830→IcsCollection TA0100, T0831→IcsImpact TA0105. STORY-129 ec010_ics_collection test anchored. -->
-| BC-2.10.008 | All Emitted Technique IDs Resolve in Lookup | P0 | [WRITTEN] | BC-MIT-008 | <!-- v1.12: 17 emitted IDs; T0830 (ICS)+T1557.002 (Enterprise) added (ARP F2); 7E+10I split; PLANNED forward-declaration in STORY-114 -->
+| BC-2.10.008 | All Emitted Technique IDs Resolve in Lookup | P0 | [WRITTEN] | BC-MIT-008 | <!-- v1.14: 20 emitted IDs; T0858 (ICS)+T0816 (ICS)+T0846 (ICS reclassified) added (ENIP F2); 7E+13I split -->
 | BC-2.10.009 | MitreTactic is #[non_exhaustive] | P2 | [WRITTEN] | BC-MIT-009 |
 
 ## ss-11: Reporting and Output (CAP-11)

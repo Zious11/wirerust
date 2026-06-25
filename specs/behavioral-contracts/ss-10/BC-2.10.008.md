@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.13"
+version: "1.14"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -26,6 +26,7 @@ modified:
   - "v1.11: Pass-4 remediation F-C-P4-HIGH-002/F-D4-I2: Description reconciliation parenthetical added (pre-F2: 6E; Modbus: 7I; DNP3: +2I; ARP: +1E+1I → 7E+10I=17); PLANNED marker augmented with current→target values (23/15→25/17); Source Evidence path corrected 123-154→128-181. — 2026-06-12"
   - "v1.12: Pass-10 remediation F-C-P10-003: src/analyzer/arp.rs emission bullet lead-in changed from 'verified via grep' (implied current) to explicit PLANNED qualifier — 'Emission sites after F2 ARP (Modbus/DNP3 verified via grep; arp.rs PLANNED STORY-114)'; arp.rs bullet appended '(F2 Feature #9 PLANNED — STORY-114)'. arp.rs does not exist in develop HEAD until STORY-114 lands. — 2026-06-12"
   - "v1.13: Post-STORY-114-merge governance update: PLANNED markers resolved to landed status (PR #240, develop HEAD 7c0f453). SEEDED=25/EMITTED=17 confirmed in src/mitre.rs. T0830 (ICS LateralMovement) and T1557.002 (Enterprise CredentialAccess) emitted from src/analyzer/arp.rs (landed). Emission sites lead-in and arp.rs bullet de-PLANNED. Architecture Anchors updated. — 2026-06-15"
+  - "v1.14: F2 EtherNet/IP (feature-enip-v0.11.0, ADR-010 Decision 7) — EMITTED count updated 17→20 (added 3 ICS: T0858 'Change Operating Mode' IcsExecution TA0104 new catalog entry; T0816 'Device Restart/Shutdown' IcsInhibitResponseFunction TA0107 new catalog entry; T0846 'Remote System Discovery' IcsDiscovery TA0102 — was catalogue-only, NOW emitted by EtherNet/IP ListIdentity BC-2.17.010). ICS emitted split 10→13. Description reconciliation updated. Postcondition 1, Invariants, EC-018/019/020 added, emission sites updated, canonical vectors extended. PRD §2.10 O-04 EMITTED=20 authoritative reference. — 2026-06-24"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -52,15 +53,17 @@ removal_reason: null
 
 Every technique ID that any analyzer or reassembly engine emits in `Finding.mitre_techniques`
 must resolve to `Some(...)` when passed to `technique_name` or `technique_tactic`. After F2
-(Feature #7 Modbus + Feature #8 DNP3 + Feature #9 ARP), the emitted-ID set grows to 17
-distinct IDs: 7 Enterprise + 10 ICS. Reconciliation:
-(pre-F2: 6 Enterprise; Modbus F2: 7 ICS; DNP3 F2: +2 ICS [T1691.001, T0827]; ARP F2: +2 = 1 Enterprise [T1557.002] + 1 ICS [T0830]) → 7 Enterprise + 10 ICS = 17.
+(Feature #7 Modbus + Feature #8 DNP3 + Feature #9 ARP + Feature #316 EtherNet/IP), the
+emitted-ID set grows to 20 distinct IDs: 7 Enterprise + 13 ICS. Reconciliation:
+(pre-F2: 6 Enterprise; Modbus F2: 7 ICS; DNP3 F2: +2 ICS [T1691.001, T0827]; ARP F2: +1E+1I [T1557.002, T0830];
+ENIP F2: +3 ICS [T0858 new, T0816 new, T0846 reclassified seeded→emitted]) → 7 Enterprise + 13 ICS = 20.
 No emitted ID may return None from the lookup — that would cause the terminal reporter to display
 `<id> (unknown)` for a Finding produced by current analyzers.
 
-LANDED — STORY-114 merged (PR #240, develop HEAD 7c0f453). src/mitre.rs is now at SEEDED=25/EMITTED=17.
-T0830 (ICS LateralMovement) and T1557.002 (Enterprise CredentialAccess) are emitted from src/analyzer/arp.rs;
-vp007_catalog_drift_guard enforces consistency at runtime.
+PENDING — STORY-EIP-09 will add T0858 and T0816 new technique_info arms + IcsExecution MitreTactic variant.
+T0846 (ListIdentity) is already in technique_info (seeded since v0.1.0); its emission site
+(src/analyzer/enip.rs BC-2.17.010) is also PENDING STORY-EIP-09. SEEDED=28/EMITTED=20 per ADR-010
+Decision 7 + PRD §2.10 O-04 (v1.36). vp007_catalog_drift_guard will enforce consistency at runtime once landed.
 
 Emission sites after F2 ARP (all verified in develop HEAD post-PR #240):
 - `src/analyzer/tls.rs` — `vec!["T1027"]` x3
@@ -75,32 +78,44 @@ Emission sites after F2 ARP (all verified in develop HEAD post-PR #240):
 - `src/analyzer/arp.rs` (F2 Feature #9, landed STORY-114 PR #240) — `vec!["T0830","T1557.002"]` (D1 spoof,
   D2 GARP-that-conflicts escalation path per BC-2.16.014, D12 mismatch paths;
   D2 benign GARP emits mitre_techniques=[] per D-068; see BC-2.16.003, BC-2.16.004, BC-2.16.007, BC-2.16.014)
+- `src/analyzer/enip.rs` (F2 Feature #316, v0.11.0, PENDING STORY-EIP-09):
+  - `vec!["T0846"]` — ListIdentity (BC-2.17.010, per-flow one-shot guard)
+  - `vec!["T0858"]` — CIP Stop service 0x07 (BC-2.17.011, per-occurrence; requires new technique_info arm)
+  - `vec!["T0816"]` — CIP Reset service 0x05 (BC-2.17.013, per-occurrence; requires new technique_info arm)
+  - `vec!["T0836","T1692.001"]` — CIP write-class burst (BC-2.17.012, T0836 already seeded)
+  - `vec!["T0888"]` — CIP Identity Object attribute read (BC-2.17.014, T0888 already seeded)
+  - `vec!["T0814"]` — malformed ENIP threshold (BC-2.17.008, T0814 already seeded)
 
-The emitted-ID set is 17 distinct IDs. Multi-element vecs contribute multiple IDs per emission;
+The emitted-ID set is 20 distinct IDs. Multi-element vecs contribute multiple IDs per emission;
 all IDs in all vecs must resolve.
 
 ## Preconditions
 
-1. `technique_name` or `technique_tactic` is called with one of the 17 emitted IDs.
+1. `technique_name` or `technique_tactic` is called with one of the 20 emitted IDs.
 
 ## Postconditions
 
-1. All 17 currently-emitted distinct IDs return `Some(...)`:
+1. All 20 currently-emitted distinct IDs return `Some(...)`:
    - Enterprise (7): T1027, T1036, T1046, T1083, T1499.002, T1505.003, T1557.002
-   - ICS (10): T1692.001, T0836, T0814, T0806, T0835, T0831, T0888, T1691.001, T0827, T0830
-2. None of the 17 emitted IDs returns None.
+   - ICS (13): T1692.001, T0836, T0814, T0806, T0835, T0831, T0888, T1691.001, T0827, T0830,
+     T0858, T0816, T0846
+2. None of the 20 emitted IDs returns None.
 
 ## Invariants
 
-1. The emitted set (17 IDs: 7 Enterprise + 10 ICS) is a strict subset of the catalogued set (25 IDs).
+1. The emitted set (20 IDs: 7 Enterprise + 13 ICS) is a strict subset of the catalogued set (28 IDs).
 2. The invariant is enforced by convention: when an analyzer adds a new emission site, the
    developer must add the ID to `technique_info` first (or simultaneously). For multi-element
    `mitre_techniques` vecs, EVERY element must resolve.
 3. The authoritative list of emitted IDs is `grep -rn 'mitre_techniques: vec!' src/` per
    mitre.rs comment (updated from pre-F2 `grep -rn 'mitre_technique: Some' src/`).
-4. T0846 is SEEDED but NOT EMITTED. It was the intended Modbus recon emitter in pre-F2 plans
-   but was corrected to T0888 (Remote System Information Discovery) per Decision 12. T0846
-   remains catalogued for future use.
+4. T0846 was previously SEEDED but NOT EMITTED (corrected from Modbus recon emitter to T0888 per
+   Decision 12). T0846 is NOW EMITTED by the EtherNet/IP analyzer (BC-2.17.010 ListIdentity,
+   Feature #316 v0.11.0). Its technique_info arm already exists (seeded since v0.1.0); only the
+   ENIP emission site is new (PENDING STORY-EIP-09).
+5. T0858 (Change Operating Mode) and T0816 (Device Restart/Shutdown) are new emitted IDs added
+   for the EtherNet/IP analyzer. Their technique_info arms in src/mitre.rs are PENDING STORY-EIP-09.
+   T0858 also requires a new `MitreTactic::IcsExecution` variant (TA0104) in the enum.
 
 ## Edge Cases
 
@@ -123,6 +138,9 @@ all IDs in all vecs must resolve.
 | EC-015 | T0827 (DNP3: derived loss-of-control correlated finding — N restart/block events in window) | Some("Loss of Control") |
 | EC-016 | T0830 (ARP: D1 spoof and D12 mismatch paths; ICS Adversary-in-the-Middle, LateralMovement) | Some("Adversary-in-the-Middle") |
 | EC-017 | T1557.002 (ARP: D1 spoof and D2 GARP-that-conflicts paths; Enterprise Adversary-in-the-Middle: ARP Cache Poisoning, CredentialAccess) | Some("Adversary-in-the-Middle: ARP Cache Poisoning") |
+| EC-018 | T0858 (ENIP: CIP Stop service 0x07 — Change Operating Mode, IcsExecution TA0104; new catalog entry, PENDING STORY-EIP-09) | Some("Change Operating Mode") |
+| EC-019 | T0816 (ENIP: CIP Reset service 0x05 — Device Restart/Shutdown, IcsInhibitResponseFunction TA0107; new catalog entry, PENDING STORY-EIP-09) | Some("Device Restart/Shutdown") |
+| EC-020 | T0846 (ENIP: ListIdentity 0x0063 per-flow one-shot — Remote System Discovery, IcsDiscovery TA0102; already in technique_info; emission site PENDING STORY-EIP-09) | Some("Remote System Discovery") |
 
 ## Canonical Test Vectors
 
@@ -138,12 +156,15 @@ all IDs in all vecs must resolve.
 | technique_name("T0827") | Some("Loss of Control") | happy-path (ICS, F2 DNP3) |
 | technique_name("T0830") | Some("Adversary-in-the-Middle") | happy-path (ICS, F2 ARP) |
 | technique_name("T1557.002") | Some("Adversary-in-the-Middle: ARP Cache Poisoning") | happy-path (Enterprise, F2 ARP) |
+| technique_name("T0858") | Some("Change Operating Mode") | happy-path (ICS, F2 ENIP — CIP Stop, new catalog entry) |
+| technique_name("T0816") | Some("Device Restart/Shutdown") | happy-path (ICS, F2 ENIP — CIP Reset, new catalog entry) |
+| technique_name("T0846") | Some("Remote System Discovery") | happy-path (ICS, F2 ENIP — ListIdentity; already seeded, now emitted) |
 
 ## Verification Properties
 
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| VP-007 | All 17 emitted IDs resolve in technique_name | unit: test each emitted ID |
+| VP-007 | All 20 emitted IDs resolve in technique_name | unit: test each emitted ID |
 | VP-007 | No new emission site uses an ID not in technique_info | manual: code review of analyzer PRs; every element in mitre_techniques vec must resolve |
 
 ## Traceability
@@ -165,7 +186,7 @@ all IDs in all vecs must resolve.
 ## Architecture Anchors
 
 - `src/mitre.rs:128` -- `pub fn technique_info(id: &str)` function declaration
-- `src/mitre.rs:129-181` -- technique_info match table covering all 17 emitted IDs (T0885 at :158; `_ => return None` at :179; T0830 and T1557.002 arms landed in STORY-114, PR #240)
+- `src/mitre.rs:129-181` -- technique_info match table covering all 20 emitted IDs (T0885 at :158; `_ => return None` at :179; T0830 and T1557.002 arms landed in STORY-114, PR #240; T0858 and T0816 arms PENDING STORY-EIP-09)
 - Emitted sites (pre-F2 baseline; F2 sites to be added at implementation):
   - `src/analyzer/tls.rs:443` (T1027), `src/analyzer/tls.rs:463` (T1027), `src/analyzer/tls.rs:483` (T1027)
   - `src/analyzer/http.rs:198` (T1083), `src/analyzer/http.rs:228` (T1505.003), `src/analyzer/http.rs:244` (T1046), `src/analyzer/http.rs:423` (T1499.002), `src/analyzer/http.rs:482` (T1499.002)
@@ -173,6 +194,7 @@ all IDs in all vecs must resolve.
   - `src/reassembly/lifecycle.rs:111` (T1036)
   - `src/analyzer/modbus.rs` — multiple sites (T1692.001, T0836, T0814, T0806, T0835, T0831, T0888; exact lines TBD at F3 implementation)
   - `src/analyzer/arp.rs` (F2 Feature #9, landed STORY-114 PR #240) — `vec!["T0830","T1557.002"]` (D1 spoof, D2 GARP-that-conflicts per BC-2.16.014, D12 mismatch paths; D2 benign GARP emits mitre_techniques=[] per D-068)
+  - `src/analyzer/enip.rs` (F2 Feature #316, v0.11.0, PENDING STORY-EIP-09) — `vec!["T0846"]` (ListIdentity BC-2.17.010), `vec!["T0858"]` (CIP Stop BC-2.17.011), `vec!["T0816"]` (CIP Reset BC-2.17.013), `vec!["T0836","T1692.001"]` (write-class burst BC-2.17.012), `vec!["T0888"]` (Identity Object read BC-2.17.014), `vec!["T0814"]` (malformed ENIP threshold BC-2.17.008)
 
 ## Source Evidence
 
