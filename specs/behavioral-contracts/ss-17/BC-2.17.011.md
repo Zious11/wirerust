@@ -44,7 +44,11 @@ generates one finding (up to the MAX_FINDINGS cap).
 
 1. `classify_cip_service(cip_header.service)` returns `CipServiceClass::Stop`.
 2. `cip_header.service & 0x80 == 0` (request, not response — a Stop response is response class).
-3. The CIP item type_id is 0x00B1 or 0x00B2 (Connected or Unconnected Data Item).
+3. The CIP item type_id is **0x00B2 (Unconnected Data Item) only**. CIP service detection does
+   NOT apply to type_id 0x00B1 (Connected Data Item) in v0.11.0 — Connected items prepend a
+   2-byte CIP connected sequence-count before the CIP PDU, making byte 0 of `item_data` the
+   sequence-count low byte, not the CIP service byte. CIP Stop detection on 0x00B1 items is
+   deferred to v0.12.0 (F-P9-001 / locked decision Option A).
 4. `flow.is_non_enip == false`.
 5. `self.all_findings.len() < MAX_FINDINGS`.
 
@@ -88,7 +92,7 @@ generates one finding (up to the MAX_FINDINGS cap).
 | EC-001 | Single CIP Stop (0x07) request | One T0858 finding emitted; Likely/High |
 | EC-002 | CIP Stop *response* (0x87) | `CipServiceClass::Response` — no T0858 finding; covered by BC-2.17.008 error-response tracking if status non-zero |
 | EC-003 | Multiple CIP Stop commands in sequence | One T0858 finding per Stop (per-occurrence); all up to MAX_FINDINGS cap |
-| EC-004 | CIP Stop on `type_id == 0x00B1` (Connected Data Item) | Finding emitted — Connected item CIP services are also detected |
+| EC-004 | CIP Stop on `type_id == 0x00B1` (Connected Data Item) | NO finding in v0.11.0. The analyzer skips CIP-service detection entirely for 0x00B1 items (the 2-byte sequence-count prefix would cause parse_cip_header to misread byte 0 as CIP service). Connected-item CIP Stop detection is deferred to v0.12.0 (F-P9-001 / locked decision Option A). |
 | EC-005 | `all_findings.len() == MAX_FINDINGS` when Stop arrives | No finding pushed; per BC-2.17.022 cap |
 | EC-006 | CIP Stop in same session as ForwardOpen | T0858 finding emitted; ForwardOpen anomaly finding (BC-2.17.015) also present — co-emission allowed; two separate findings |
 

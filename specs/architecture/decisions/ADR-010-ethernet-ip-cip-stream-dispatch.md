@@ -191,10 +191,17 @@ handled by early-break with no panic and no out-of-bounds access. The parsed ite
 is bounded by the payload size (at minimum 4 bytes per item), preventing DoS via giant
 declared item_count.
 
-**CIP service extraction (from CPF item data for type_id 0x00B1/0x00B2):**
+**CIP service extraction (from CPF item data for type_id 0x00B2 only — v0.11.0 scope):**
 
 ```
 parse_cip_header(item_data: &[u8]) -> Option<CipHeader>
+  // CALLER PRECONDITION (v0.11.0): only call for type_id == 0x00B2 (Unconnected Data Item).
+  // type_id 0x00B1 (Connected Data Item) prepends a 2-byte connected sequence count before
+  // the CIP PDU — reading item_data[0] as the CIP service byte on 0x00B1 data produces an
+  // off-by-two mismatch. CIP request detection on 0x00B1 is DEFERRED to v0.12.0 (see
+  // Decision 8 scope statement). ForwardOpen (0x54) and ForwardClose (0x4E) are Connection
+  // Manager services sent in UNCONNECTED messages (0x00B2 carriers); they are unaffected by
+  // this deferral and remain fully in-scope for v0.11.0.
   if item_data.len() < 2: return None
   service            = item_data[0]          // raw service byte (request bit: high bit clear; response bit: high bit set)
   request_path_size  = item_data[1] as usize // in words (multiply by 2 for bytes)
@@ -544,6 +551,26 @@ attributes. v0.11.0 deliberately scopes to a minimal object-model depth:
   All other type_id values are treated as unrecognized/unknown.
 - CIP service code extraction and classification — 13 named services + Response mask +
   Unknown (BC-2.17.006/007)
+
+  **v0.11.0 CIP service detection scope (F-P9-001 resolution):** CIP service detection
+  via `parse_cip_header` applies **only to CIP messages carried in Unconnected Data Items
+  (CPF type_id 0x00B2)**. CIP services carried in Connected Data Items (0x00B1) prepend a
+  2-byte connected sequence count before the CIP PDU; calling `parse_cip_header` on 0x00B1
+  item_data reads the wrong byte as the service byte, producing an off-by-two mismatch.
+  CIP request detection on Connected Data Items (0x00B1) is **deferred to v0.12.0** (the
+  same cycle as ForwardOpen session correlation and UDP/2222 cyclic I/O), when the 2-byte
+  sequence-prefix skip will be implemented. This deferral is symmetric with BC-2.17.008's
+  response-side 0x00B2-only gate (see below). Implementors MUST guard the `parse_cip_header`
+  call site with `if item.type_id == 0x00B2` — calling it for 0x00B1 is a correctness error
+  in v0.11.0.
+
+  **ForwardOpen/ForwardClose unaffected (BC-2.17.015 remains in v0.11.0 scope):**
+  ForwardOpen (CIP service 0x54) and ForwardClose (0x4E) are Connection Manager services
+  that are sent as **unconnected** messages — they travel in Unconnected Data Items
+  (0x00B2 carriers), not in Connected Data Items (0x00B1). The 0x00B1 deferral therefore
+  does NOT affect ForwardOpen/ForwardClose detection. BC-2.17.015 (ForwardOpen detection)
+  rides on the 0x00B2 parse path and remains fully in-scope for v0.11.0.
+
 - CIP error response detection — `general_status` byte extraction from **Unconnected Data
   Items (0x00B2) only** (BC-2.17.008). Connected response status extraction (0x00B1, which
   carries a 2-byte sequence-count prefix before the CIP PDU) is **DEFERRED to v0.12.0**
@@ -556,6 +583,7 @@ attributes. v0.11.0 deliberately scopes to a minimal object-model depth:
   validation (tracking whether a command's session_handle was established by a prior
   RegisterSession on the same flow) is **DEFERRED to v0.12.0**. (F-ENIP-004)
 - ForwardOpen connection establishment detection (BC-2.17.015, see Decision 5)
+  [0x00B2 carrier — unaffected by Connected-item deferral]
 
 **DEFERRED (post-v0.11.0):**
 - Full CIP Connection Manager state machine (ForwardOpen parameter tracking across
@@ -565,6 +593,17 @@ attributes. v0.11.0 deliberately scopes to a minimal object-model depth:
 - CIP Multiple Service Packet (0x0A) recursion (nested CIP request decode)
 - Any Vendor-Specific Object class traversal
 - Firmware download full parameter extraction (file name, firmware version number)
+- **CIP request detection on Connected Data Items (0x00B1)** — 2-byte sequence-prefix skip
+  (deferred to v0.12.0 per F-P9-001 resolution above; same cycle as session correlation
+  and UDP/2222)
+- **`parse_cip_header` / `parse_cpf_items` cargo-fuzz coverage (F6 obligation, F-P9-002):**
+  Both functions are attacker-facing length-driven parsers that are NOT targets of VP-032's
+  Kani proofs (VP-032 Sub-A/B/C/D covers `parse_enip_header`, `classify_enip_command`,
+  `is_valid_enip_frame`, `classify_cip_service` only). A cargo-fuzz no-panic / bounds-safety
+  fuzz harness for `parse_cip_header` and `parse_cpf_items` is an F6 hardening obligation,
+  analogous to VP-028 (pcapng reader fuzz). This does NOT require a new VP number; the
+  obligation is recorded here and in the architecture delta. The fuzz harnesses must be
+  implemented in the F6 phase alongside the Kani proofs.
 
 ### Decision 9: CLI wiring pattern (mirrors ADR-007 Decision 6)
 
@@ -695,6 +734,17 @@ representation of the ATT&CK matrix.
   a session_handle established by a prior RegisterSession on the same flow) is deferred
   to v0.12.0." BC-2.17.025 captures this explicit in-scope/deferred boundary so that
   the v0.12.0 session-validation feature has a clear BC to supersede. (F-ENIP-004)
+- **F-P9-001 (HIGH) RESOLVED — 0x00B2-only CIP service detection:** Spec contradiction
+  resolved by Option A (mirror response-side deferral). CIP service detection via
+  `parse_cip_header` is restricted to Unconnected Data Items (0x00B2) in v0.11.0.
+  Connected-item (0x00B1) CIP request detection is deferred to v0.12.0. The 6 BCs
+  in BC-2.17.NNN namespace that govern CIP service extraction MUST each gate on
+  `type_id == 0x00B2` in their preconditions; BC-2.17.006 parse_cip_header precondition
+  MUST state: "item.type_id == 0x00B2 (Unconnected Data Item)". Deferred scope:
+  v0.12.0 alongside ForwardOpen session correlation and UDP/2222 cyclic I/O.
+- **F-P9-002 (MEDIUM) — F6 fuzz obligation for `parse_cip_header` and `parse_cpf_items`:**
+  Recorded in Decision 8 DEFERRED list and enip-architecture-delta.md. No new VP number.
+  Fuzz harnesses to be implemented in F6 alongside VP-032 Kani proofs.
 
 ## Alternatives Considered
 

@@ -157,7 +157,7 @@ The bounds safety is established by invariants and unit test coverage.
 
 - BC-2.17.002 — depends on (header.length bounds the payload slice passed to this function)
 - BC-2.17.003 — depends on (only called for valid ENIP frames: SendRRData/SendUnitData)
-- BC-2.17.006 — composes with (CipHeader is parsed from CpfItem.data for type_id 0x00B1/0x00B2)
+- BC-2.17.006 — composes with (CipHeader is parsed from CpfItem.data for type_id 0x00B2 only in v0.11.0; 0x00B1 items are structurally parsed here but skipped for CIP-service detection — F-P9-001)
 - BC-2.17.007 — depends on (CIP service classification applies to CipHeader extracted from items)
 
 ## Architecture Anchors

@@ -33,8 +33,12 @@ input-hash: TBD
 ## Description
 
 `parse_cip_header(item_data: &[u8]) -> Option<CipHeader>` extracts the CIP service byte and
-request path from a CPF item's data field (for `type_id` 0x00B1 or 0x00B2). The CIP message
-begins at byte 0 of `item_data`: byte 0 is the service code (raw `u8`), byte 1 is the
+request path from a CPF item's data field. **In v0.11.0, this function is invoked ONLY for
+CPF items with `type_id == 0x00B2` (Unconnected Data Item).** CPF items with `type_id ==
+0x00B1` (Connected Data Item) carry a 2-byte CIP connected sequence-count BEFORE the CIP PDU
+and are NOT passed to `parse_cip_header` in v0.11.0 — CIP service detection for Connected
+items is deferred to v0.12.0 (F-P9-001 / locked decision Option A). The CIP message begins at
+byte 0 of `item_data`: byte 0 is the service code (raw `u8`), byte 1 is the
 request_path_size (in 16-bit words), and bytes 2 through `2 + (request_path_size * 2)` are
 the request path. Returns `None` if `item_data.len() < 2` or if the path exceeds the
 available data. The CIP service byte's high bit (0x80) indicates a response; the low 7 bits
@@ -43,13 +47,21 @@ identify the service. This function does not classify the service — classifica
 
 ## Preconditions
 
-1. `item_data` is the `data` field of a `CpfItem` with `type_id == 0x00B1` or `0x00B2`.
+1. `item_data` is the `data` field of a `CpfItem` with `type_id == 0x00B2` (Unconnected Data
+   Item) **only**. The caller (`process_pdu`) MUST NOT invoke `parse_cip_header` for
+   `type_id == 0x00B1` (Connected Data Item) in v0.11.0. Connected items prepend a 2-byte
+   CIP connected sequence-count before the CIP PDU; parsing them with this function would
+   misread the sequence count as the CIP service byte (F-P9-001). CIP service detection for
+   0x00B1 items is deferred to v0.12.0.
 2. `item_data.len() >= 0` — zero-length data is a valid CpfItem; results in `None`.
 
 ## Postconditions
 
 1. If `item_data.len() < 2`, returns `None` (cannot read service byte + path size).
-2. `service = item_data[0]` — raw service byte; high bit 0x80 = response.
+2. `service = item_data[0]` — raw service byte; high bit 0x80 = response. **This is only
+   correct because Precondition 1 guarantees the carrier is 0x00B2 (no sequence-count prefix).
+   For 0x00B1 items, byte 0 would be the low byte of the 2-byte sequence count, not the CIP
+   service byte — which is why 0x00B1 is excluded from v0.11.0 scope.**
 3. `request_path_size = item_data[1] as usize` — path size in 16-bit words.
 4. `path_byte_count = request_path_size * 2`.
 5. If `item_data.len() < 2 + path_byte_count`, returns `None` (path truncated).
@@ -69,9 +81,14 @@ identify the service. This function does not classify the service — classifica
    request_path_size byte.
 4. **Purity**: `parse_cip_header` is a pure-core function (not a VP-032 Kani target in v0.11.0
    but satisfies the same purity invariants). ADR-010 Decision 2 lists it as an additional
-   pure-core function.
-5. **caller responsibility**: the caller (`process_pdu`) is responsible for checking
-   `type_id == 0x00B1 || type_id == 0x00B2` before calling this function.
+   pure-core function. This function carries an **F6 fuzz obligation** (alongside
+   `parse_cpf_items`): both are network-facing parsers that must be covered by the fuzz harness
+   in the F6 formal-hardening phase. Kani is NOT the proof method here (VP-032 Sub-A/B/C/D
+   are the four Kani targets); the fuzz obligation is distinct.
+5. **Caller responsibility (v0.11.0)**: the caller (`process_pdu`) is responsible for checking
+   `type_id == 0x00B2` ONLY before calling this function. Calling `parse_cip_header` on a
+   0x00B1 item is a logic error in v0.11.0 (will misparse the 2-byte sequence-count prefix as
+   CIP service/path-size bytes — F-P9-001).
 
 ## Edge Cases
 
@@ -84,6 +101,8 @@ identify the service. This function does not classify the service — classifica
 | EC-005 | `item_data[0] = 0x90` (high bit set — response to SetAttributeSingle) | Returns `Some(CipHeader{service:0x90, request_path:[...]})` — response; caller's `classify_cip_service` maps to Response |
 | EC-006 | `item_data = [0x0E, 0x03, 0x20, 0x01, 0x24, 0x01, 0x30, 0x03]` (GetAttributeSingle, path: class 1, instance 1, attr 3) | Returns `Some(CipHeader{service:0x0E, request_path:[0x20,0x01,0x24,0x01,0x30,0x03]})` |
 | EC-007 | `request_path_size = 0xFF` (255 words = 510 bytes of path) with insufficient data | Returns `None` — bounds check fails |
+| EC-008 | `request_path_size = 0xFF` (255 words = 510 bytes) with sufficient data (512+ bytes) | `path_byte_count = 255 * 2 = 510`: `usize` arithmetic on any supported platform (32-bit: usize max 4GB; 510 << max); no overflow, no OOB. Returns `Some(CipHeader{service, request_path:[510 bytes]})`. (F-P9-002 boundary: confirms no usize overflow at maximum path_size byte value.) |
+| EC-009 | `type_id == 0x00B1` (Connected Data Item) presented to caller | Caller MUST skip CIP-service detection entirely for this item in v0.11.0; `parse_cip_header` is NOT called; no finding emitted. (F-P9-001 deferral: Connected-item CIP detection deferred to v0.12.0.) |
 
 ## Canonical Test Vectors
 

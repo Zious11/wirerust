@@ -35,22 +35,33 @@ input-hash: TBD
 When `classify_cip_service(cip_header.service)` returns `CipServiceClass::ForwardOpen` (0x54),
 `CipServiceClass::LargeForwardOpen` (0x5B), or `CipServiceClass::ForwardClose` (0x4E), the
 analyzer detects a CIP connection lifecycle event. ForwardOpen establishes a CIP connection
-(allocating connection IDs and RPIs); ForwardClose tears it down. Per ADR-010 Decision 5
-(in-scope for v0.11.0) and Decision 7 (MITRE technique gap), findings are emitted with **no
-MITRE technique tag** (`mitre_techniques: vec![]`). T1692.001 is emitted on the CIP command
-carrying an unauthorized action in the same session — not on the ForwardOpen or ForwardClose
-itself. Connection serial number extraction is deferred to v0.12.0; in v0.11.0 the connection
-serial is recorded as 0. The ForwardOpen request data byte offset for the serial number is
-variable (it follows a variable-length request_path) and therefore cannot be safely hard-coded;
-full ForwardOpen payload parsing is deferred per ADR-010 Decision 8.
+(allocating connection IDs and RPIs); ForwardClose tears it down. **These services are
+Connection Manager unconnected messages and MUST be carried in CPF type_id 0x00B2
+(Unconnected Data Item) items — this is a CIP protocol requirement, not a v0.11.0 scope
+restriction. These detections are unaffected by the 0x00B1 deferral (F-P9-001 / locked
+decision Option A).** Per ADR-010 Decision 5 (in-scope for v0.11.0) and Decision 7 (MITRE
+technique gap), findings are emitted with **no MITRE technique tag** (`mitre_techniques:
+vec![]`). T1692.001 is emitted on the CIP command carrying an unauthorized action in the same
+session — not on the ForwardOpen or ForwardClose itself. Connection serial number extraction
+is deferred to v0.12.0; in v0.11.0 the connection serial is recorded as 0. The ForwardOpen
+request data byte offset for the serial number is variable (it follows a variable-length
+request_path) and therefore cannot be safely hard-coded; full ForwardOpen payload parsing is
+deferred per ADR-010 Decision 8.
 
 ## Preconditions
 
 1. `classify_cip_service(cip_header.service)` returns `CipServiceClass::ForwardOpen`,
    `CipServiceClass::LargeForwardOpen`, or `CipServiceClass::ForwardClose`.
 2. `cip_header.service & 0x80 == 0` (request, not response).
-3. `flow.is_non_enip == false`.
-4. `self.all_findings.len() < MAX_FINDINGS`.
+3. The CIP item type_id is **0x00B2 (Unconnected Data Item)**. ForwardOpen (0x54),
+   LargeForwardOpen (0x5B), and ForwardClose (0x4E) are Connection Manager services
+   transmitted as **unconnected** CIP messages — they MUST ride in 0x00B2 items by CIP
+   protocol design. This is not a v0.11.0 scope restriction; it is the correct CIP protocol
+   behavior. These detections operate on 0x00B2 carriers and are **unaffected** by the
+   0x00B1 deferral introduced in F-P9-001 (locked decision Option A). There is no valid
+   ForwardOpen/ForwardClose to miss on 0x00B1 items.
+4. `flow.is_non_enip == false`.
+5. `self.all_findings.len() < MAX_FINDINGS`.
 
 ## Postconditions
 

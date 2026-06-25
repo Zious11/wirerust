@@ -77,6 +77,13 @@ All four target functions are **pure-core** (ADR-010 Decision 2):
 This purity classification makes Kani the correct tool: the functions are deterministic,
 side-effect-free, and have bounded input domains that Kani can enumerate symbolically.
 
+**Out-of-scope note (F-P9-002):** `parse_cip_header` and `parse_cpf_items` are NOT Kani
+targets in VP-032 — VP-032 Sub-A/B/C/D cover only the four functions enumerated above.
+Both `parse_cip_header` and `parse_cpf_items` are attacker-facing length-driven parsers
+with an F6 cargo-fuzz no-panic / bounds-safety obligation analogous to VP-028 (pcapng
+reader fuzz). No new VP number is required. See ADR-010 Decision 8 DEFERRED list and
+enip-architecture-delta.md §4.3 for the authoritative fuzz obligation record.
+
 ## Proof Harness Skeletons
 
 These skeletons are produced in F2 (spec evolution). The actual working harnesses are

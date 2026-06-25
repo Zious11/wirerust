@@ -43,7 +43,11 @@ per-occurrence: each CIP Reset request generates one finding (up to MAX_FINDINGS
 
 1. `classify_cip_service(cip_header.service)` returns `CipServiceClass::Reset`.
 2. `cip_header.service & 0x80 == 0` (request, not response).
-3. The CIP item type_id is 0x00B1 or 0x00B2.
+3. The CIP item type_id is **0x00B2 (Unconnected Data Item) only**. CIP service detection does
+   NOT apply to type_id 0x00B1 (Connected Data Item) in v0.11.0 — Connected items prepend a
+   2-byte CIP connected sequence-count before the CIP PDU, making byte 0 of `item_data` the
+   sequence-count low byte, not the CIP service byte. CIP Reset detection on 0x00B1 items is
+   deferred to v0.12.0 (F-P9-001 / locked decision Option A).
 4. `flow.is_non_enip == false`.
 5. `self.all_findings.len() < MAX_FINDINGS`.
 
@@ -82,6 +86,7 @@ per-occurrence: each CIP Reset request generates one finding (up to MAX_FINDINGS
 | EC-003 | CIP Reset followed by CIP Stop | Two independent findings: T0816 + T0858 (per-occurrence, separate detections) |
 | EC-004 | Multiple CIP Reset commands (attack loop) | One T0816 per Reset up to MAX_FINDINGS |
 | EC-005 | `all_findings.len() == MAX_FINDINGS` when Reset arrives | No finding pushed (cap) |
+| EC-006 | CIP Reset in a type_id=0x00B1 (Connected Data Item) | NO finding in v0.11.0. The analyzer skips CIP-service detection entirely for 0x00B1 items. Connected-item CIP Reset detection is deferred to v0.12.0 (F-P9-001 / locked decision Option A). |
 
 ## Canonical Test Vectors
 

@@ -49,8 +49,13 @@ thresholds, or configuration parameters.
    (`service & 0x80 != 0`) are filtered out BEFORE this counter is incremented. Only
    requests increment `write_count_in_window`; this correctly handles interleaved
    request/response frames in the stream.
-3. `flow.is_non_enip == false`.
-4. `self.all_findings.len() < MAX_FINDINGS`.
+3. The CIP item type_id is **0x00B2 (Unconnected Data Item) only**. CIP write-class service
+   detection does NOT apply to type_id 0x00B1 (Connected Data Item) in v0.11.0 — the 2-byte
+   CIP connected sequence-count prefix on 0x00B1 items would cause the service byte parse to
+   be wrong. Write-burst detection for Connected items is deferred to v0.12.0 (F-P9-001 /
+   locked decision Option A).
+4. `flow.is_non_enip == false`.
+5. `self.all_findings.len() < MAX_FINDINGS`.
 
 ## Postconditions
 
@@ -107,6 +112,7 @@ thresholds, or configuration parameters.
 | EC-005 | Mix of SetAttributeSingle and SetAttributesAll in same window | Both counted; threshold checked against combined count |
 | EC-006 | `all_findings.len() == MAX_FINDINGS` when threshold crossed | No finding; guard NOT set |
 | EC-007 | `enip_write_burst_threshold = 0` | First write immediately triggers finding (count=1 > 0) |
+| EC-008 | SetAttributeSingle in a type_id=0x00B1 (Connected Data Item) | NO counter increment, NO finding in v0.11.0. The analyzer skips CIP-service detection for 0x00B1 items. Write-burst detection for Connected items is deferred to v0.12.0 (F-P9-001 / locked decision Option A). |
 
 ## Canonical Test Vectors
 

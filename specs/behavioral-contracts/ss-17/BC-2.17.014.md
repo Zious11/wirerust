@@ -48,8 +48,13 @@ error burst threshold is exceeded (one-shot guard via `error_rate_emitted`).
 2. `parse_cip_request_path(cip_header.request_path)` contains `CipPathSegment::Class(0x01)` —
    the Identity Object class.
 3. `cip_header.service & 0x80 == 0` (request).
-4. `flow.is_non_enip == false`.
-5. `self.all_findings.len() < MAX_FINDINGS`.
+4. The CIP item type_id is **0x00B2 (Unconnected Data Item) only**. Pattern A does NOT fire
+   for type_id 0x00B1 (Connected Data Item) in v0.11.0 — Connected items carry a 2-byte
+   sequence-count prefix that would corrupt the CIP service/path parse. Identity-Object read
+   detection on 0x00B1 items is deferred to v0.12.0 (F-P9-001 / locked decision Option A).
+   (Mirror of BC-2.17.008 existing 0x00B2-only gate on response parsing.)
+5. `flow.is_non_enip == false`.
+6. `self.all_findings.len() < MAX_FINDINGS`.
 
 **Pattern B (error-rate burst):**
 1. `flow.error_counts_in_window` total count across all status codes exceeds
@@ -109,6 +114,7 @@ error burst threshold is exceeded (one-shot guard via `error_rate_emitted`).
 | EC-006 | Pattern B guard set; 5 more errors arrive in same window | Guard prevents additional Pattern B finding |
 | EC-007 | 10s window expires; 5 more errors | New window; `error_rate_emitted=false`; Pattern B can fire again |
 | EC-008 | ListIdentity (T0846) followed by GetAttributeSingle to Identity | T0846 finding + T0888 finding — both independent detections |
+| EC-009 | GetAttributeSingle to Identity Object in a type_id=0x00B1 (Connected Data Item) | NO Pattern A finding in v0.11.0. The analyzer skips CIP-service detection for 0x00B1 items. Connected-item identity-read detection is deferred to v0.12.0 (F-P9-001 / locked decision Option A). |
 
 ## Canonical Test Vectors
 

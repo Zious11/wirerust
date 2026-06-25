@@ -120,6 +120,15 @@ Additional pure-core functions (not Kani-targeted in v0.11.0 scope):
 - `parse_cip_header(item_data: &[u8]) -> Option<CipHeader>`
 - `parse_cip_request_path(path: &[u8]) -> Vec<CipPathSegment>`
 
+**F6 fuzz obligation (F-P9-002, MEDIUM):** `parse_cip_header` and `parse_cpf_items` are
+attacker-facing length-driven parsers that are NOT covered by VP-032 (Kani Sub-A/B/C/D
+only cover `parse_enip_header`, `classify_enip_command`, `is_valid_enip_frame`,
+`classify_cip_service`). Both functions must receive cargo-fuzz no-panic / bounds-safety
+fuzz harnesses in F6, analogous to VP-028 (pcapng reader fuzz). No new VP number is
+required — these are lightweight fuzz harnesses, not formal Kani proofs. The F6
+implementation story MUST include fuzz targets for both functions. See ADR-010 Decision 8
+DEFERRED list for authoritative record.
+
 ## 5. MITRE ICS Technique Set (v0.11.0 TCP/44818 scope)
 
 ATT&CK for ICS v19.1 (pin: `ics-attack-19.1`). Full table in ADR-010 Decision 7.
@@ -251,3 +260,5 @@ unit and integration tests.
 | OA-002 | VP-007 `EMITTED_IDS` T1693.001 timing | Confirm T1693.001 staged-only in v0.11.0 (no BC emits firmware-detection findings); do NOT add to EMITTED_IDS until firmware-detection BC is implemented |
 | OA-003 | `IcsExecution` MitreTactic variant | Confirmed required by ADR-010 Decision 7; implement in STORY-EIP-09 VP-007 atomic burst |
 | OA-004 | UDP/2222 deferred | Confirm UDP/2222 scope exclusion in F3 story decomposition per F1 gate D-228 |
+| F-P9-001 RESOLVED | 0x00B2-only CIP service detection (HIGH) | `parse_cip_header` call sites MUST be guarded with `if item.type_id == 0x00B2`; 0x00B1 Connected-item CIP request detection deferred to v0.12.0; BC-2.17.006 precondition MUST state `item.type_id == 0x00B2`. ForwardOpen/Close unaffected (0x00B2 carriers). See ADR-010 Decision 8. |
+| F-P9-002 | `parse_cip_header` / `parse_cpf_items` fuzz obligation (MEDIUM) | F6 cargo-fuzz no-panic harnesses required for both functions; no new VP number. See §4.3 above. |
