@@ -268,6 +268,229 @@ impl EnipAnalyzer {
 }
 
 // ---------------------------------------------------------------------------
+// CPF item walk types and parser (STORY-132 — BC-2.17.005)
+// ---------------------------------------------------------------------------
+
+/// CPF item parsed from the Common Packet Format item list.
+///
+/// `type_id: u16` — little-endian type_id from the CPF item header (bytes 0–1 of each item).
+/// `data: Vec<u8>` — item payload bytes (CPF item header bytes excluded).
+///
+/// **Architecture anchor (BC-2.17.005):** exactly 2 fields. The `length` field from the wire
+/// is a **transient parse local** inside `parse_cpf_items` — it is NOT a struct field.
+/// `data.len()` recovers the length at any point after construction.
+///
+/// Recognized type_ids: 0x0000 (NullAddress), 0x00A1 (ConnectedAddress), 0x00B1
+/// (ConnectedData), 0x00B2 (UnconnectedData). All others are parsed into `CpfItem` with
+/// their data bytes; call-site dispatch is the caller's responsibility.
+#[derive(Debug, Clone, PartialEq)]
+pub struct CpfItem {
+    /// CPF item type identifier (little-endian wire field, 2 bytes).
+    pub type_id: u16,
+    /// Item payload bytes (excludes the 4-byte CPF item header).
+    pub data: Vec<u8>,
+}
+
+/// Walk the CPF item list from a CPF payload byte slice.
+///
+/// Reads a 2-byte LE `item_count`, then iterates over each declared item. Each item
+/// has a 4-byte header: `type_id` (LE u16) + `length` (LE u16, transient parse local).
+/// Iteration stops early on any bounds violation — a declared `item_count` larger than
+/// available bytes will not cause a panic or out-of-bounds read.
+///
+/// Returns `vec![]` if `cpf_data.len() < 2`.
+///
+/// # Fuzz Obligation (F-P9-002)
+///
+/// This function carries an F6 cargo-fuzz no-panic / bounds-safety obligation
+/// (see VP-032 "Out-of-scope note" and ADR-010 Decision 8 DEFERRED list).
+/// A fuzz harness targeting this function MUST be added in the F6 formal-hardening phase.
+/// TODO: F-P9-002 — add `fuzz_target!(|data: &[u8]| { parse_cpf_items(data); })` in fuzz/.
+///
+/// # Panics
+/// Never panics for any input (pure-core obligation, BC-2.17.005 postcondition 5).
+///
+/// # Traces
+/// BC-2.17.005; pure-core free fn (ADR-010 Decision 2).
+pub fn parse_cpf_items(_cpf_data: &[u8]) -> Vec<CpfItem> {
+    todo!()
+}
+
+// ---------------------------------------------------------------------------
+// CIP header types and parser (STORY-132 — BC-2.17.006)
+// ---------------------------------------------------------------------------
+
+/// Parsed CIP message header extracted from a `CpfItem` with `type_id == 0x00B2`.
+///
+/// **Architecture anchor (BC-2.17.006):** exactly 2 fields:
+/// - `service: u8` — raw CIP service byte (high bit 0x80 = response; low 7 bits = service ID).
+/// - `request_path: Vec<u8>` — raw path bytes (length = `request_path_size * 2`).
+///
+/// `request_path_size` (the wire field at `item_data[1]`) is a **transient parse local** —
+/// NOT a struct field. `general_status` is also NOT a struct field: it is extracted at the
+/// response call site (byte 2 of the 0x00B2 item_data, gated `len >= 4`) per BC-2.17.008.
+///
+/// **v0.11.0 caller contract (F-P9-001):** this function MUST be called ONLY for items with
+/// `type_id == 0x00B2`. Passing a 0x00B1 Connected Data Item (which has a 2-byte
+/// CIP sequence-count prefix) will misparse the sequence count as the service byte.
+/// The call-site gate (`item.type_id == 0x00B2`) lives in `EnipAnalyzer::process_pdu`.
+#[derive(Debug, Clone, PartialEq)]
+pub struct CipHeader {
+    /// Raw CIP service byte: bit 7 set = response; bits 0–6 = service code.
+    pub service: u8,
+    /// Raw request path bytes (length = `request_path_size * 2` words).
+    pub request_path: Vec<u8>,
+}
+
+/// Parse a CIP header from the data bytes of an Unconnected Data Item (0x00B2).
+///
+/// Returns `Some(CipHeader)` when `item_data.len() >= 2` and the path bytes fit within
+/// the slice. Returns `None` if the data is too short for the declared path.
+///
+/// **Call-site contract (F-P9-001):** call ONLY for `type_id == 0x00B2` items in v0.11.0.
+///
+/// # Fuzz Obligation (F-P9-002)
+///
+/// This function carries an F6 cargo-fuzz no-panic / bounds-safety obligation
+/// (see VP-032 "Out-of-scope note" and ADR-010 Decision 8 DEFERRED list).
+/// A fuzz harness targeting this function MUST be added in the F6 formal-hardening phase.
+/// TODO: F-P9-002 — add `fuzz_target!(|data: &[u8]| { parse_cip_header(data); })` in fuzz/.
+///
+/// # Panics
+/// Never panics for any input (pure-core obligation, BC-2.17.006 postcondition 8).
+///
+/// # Traces
+/// BC-2.17.006; pure-core free fn (ADR-010 Decision 2); F-P9-001 call-site gate.
+pub fn parse_cip_header(_item_data: &[u8]) -> Option<CipHeader> {
+    todo!()
+}
+
+// ---------------------------------------------------------------------------
+// CIP service classification (STORY-132 — BC-2.17.007; VP-032 Sub-D Kani target)
+// ---------------------------------------------------------------------------
+
+/// CIP service classification over all 256 possible `u8` service byte values.
+///
+/// Exactly 15 variants: 13 named request services + `Response` + `Unknown`.
+/// The `Response` variant covers all 128 values in range 0x80–0xFF (high bit set).
+/// The `Unknown` variant covers request-range values (0x00–0x7F) not in the named set.
+///
+/// VP-032 Sub-D Kani target: both response-bit totality and request-range partition are
+/// formally verified by `vp032_cip_service_classification_totality` and
+/// `vp032_cip_service_request_partition` in `#[cfg(kani)] mod kani_proofs`.
+///
+/// # Traces
+/// BC-2.17.007; VP-032 Sub-D.
+#[derive(Debug, Clone, PartialEq)]
+pub enum CipServiceClass {
+    /// 0x01 — Get all attributes of a CIP object instance.
+    GetAttributesAll,
+    /// 0x02 — Set all attributes of a CIP object instance (T0836 write trigger).
+    SetAttributesAll,
+    /// 0x03 — Get a list of attribute values by attribute ID list.
+    GetAttributeList,
+    /// 0x04 — Set a list of attribute values by attribute ID list (T0836 write trigger).
+    SetAttributeList,
+    /// 0x05 — Reset a CIP object (T0816 detection trigger).
+    Reset,
+    /// 0x07 — Change Operating Mode / Stop (T0858 detection trigger).
+    Stop,
+    /// 0x0A — Send multiple CIP services in one request (per ODVA CIP Vol 1 §3-5.5).
+    MultipleServicePacket,
+    /// 0x0E — Get a single attribute value by attribute ID (T0888 identity-read trigger).
+    GetAttributeSingle,
+    /// 0x10 — Set a single attribute value by attribute ID (T0836 write trigger).
+    SetAttributeSingle,
+    /// 0x4B — Get-and-clear (wirerust convention for staged T1693.001 firmware marker;
+    /// not emitted in v0.11.0 per ADR-010 Decision 8 deferred list).
+    GetAndClear,
+    /// 0x4E — Forward Close (connection lifecycle, BC-2.17.015).
+    ForwardClose,
+    /// 0x54 — Forward Open (connection lifecycle, BC-2.17.015).
+    ForwardOpen,
+    /// 0x5B — Large Forward Open (connection lifecycle, BC-2.17.015).
+    LargeForwardOpen,
+    /// Any service byte with high bit set (0x80–0xFF): CIP response message.
+    /// The response-bit invariant (BC-2.17.007 postcondition 2) is checked first.
+    Response,
+    /// Any request-range service byte (0x00–0x7F) not in the 13-variant named set.
+    Unknown,
+}
+
+/// Classify a CIP service byte into a `CipServiceClass` variant.
+///
+/// This function is **total** — every possible `u8` input maps to exactly one variant
+/// without panicking (BC-2.17.007 postcondition 1; VP-032 Sub-D).
+///
+/// **Response-bit invariant (BC-2.17.007 invariant 1):** `service & 0x80 != 0` is checked
+/// FIRST; matching values return `CipServiceClass::Response` regardless of the lower 7 bits.
+///
+/// For request-range values (high bit clear), 13 named service codes map to named variants;
+/// all other values map to `CipServiceClass::Unknown`.
+///
+/// # Panics
+/// Never panics for any input (pure-core obligation; VP-032 Sub-D safety contract).
+///
+/// # Traces
+/// BC-2.17.007; VP-032 Sub-D primary + partition Kani targets.
+pub fn classify_cip_service(_service: u8) -> CipServiceClass {
+    todo!()
+}
+
+// ---------------------------------------------------------------------------
+// CIP request path types and parser (STORY-132 — BC-2.17.009)
+// ---------------------------------------------------------------------------
+
+/// A single CIP logical path segment (8-bit format, v0.11.0 scope).
+///
+/// Three variants in scope for v0.11.0 per ADR-010 Decision 8:
+/// - `Class(u8)` — segment type 0x20; value = CIP class ID.
+/// - `Instance(u8)` — segment type 0x24; value = instance number.
+/// - `Attribute(u8)` — segment type 0x30; value = attribute ID.
+///
+/// 16-bit extended variants (0x21, 0x25, 0x31) and Electronic Key segments are deferred
+/// to v0.12.0. Unrecognized segment types are silently skipped in `parse_cip_request_path`.
+///
+/// # Traces
+/// BC-2.17.009; ADR-010 Decision 8 (8-bit logical segments only, v0.11.0).
+#[derive(Debug, Clone, PartialEq)]
+pub enum CipPathSegment {
+    /// CIP Class segment (type byte 0x20): identifies the target CIP object class.
+    /// `Class(0x01)` = Identity Object (T0888 recon trigger, BC-2.17.014).
+    Class(u8),
+    /// CIP Instance segment (type byte 0x24): identifies the target object instance.
+    Instance(u8),
+    /// CIP Attribute segment (type byte 0x30): identifies the target attribute.
+    Attribute(u8),
+}
+
+/// Extract Class, Instance, and Attribute segments from a CIP request path byte slice.
+///
+/// Walks the path 2 bytes at a time. For each pair: exact-match on segment type byte
+/// (0x20 = Class, 0x24 = Instance, 0x30 = Attribute). Unrecognized segment types advance
+/// the cursor by 2 and are silently skipped. Stops at any bounds violation.
+///
+/// Returns `vec![]` for an empty or 1-byte path.
+///
+/// **Architecture constraint (ADR-010 Decision 8 / Architecture Rule 2):** use exact-match
+/// (== 0x20 / == 0x24 / == 0x30) — do NOT use `& 0xE0` mask (would misclassify 0x24 as
+/// Class). 16-bit extended segments are deferred to v0.12.0.
+///
+/// # Fuzz Obligation (F-P9-002)
+///
+/// TODO: F-P9-002 — add `fuzz_target!(|data: &[u8]| { parse_cip_request_path(data); })`
+/// in fuzz/ during F6 formal-hardening phase.
+///
+/// # Panics
+/// Never panics for any input (pure-core obligation, BC-2.17.009 postcondition 4).
+///
+/// # Traces
+/// BC-2.17.009; ADR-010 Decision 8; pure-core free fn.
+pub fn parse_cip_request_path(_path: &[u8]) -> Vec<CipPathSegment> {
+    todo!()
+}
+
+// ---------------------------------------------------------------------------
 // VP-032 Kani formal verification harnesses (Sub-A, Sub-B, Sub-C)
 // Sub-D (vp032_cip_service_classification_totality) is added by STORY-132.
 // ---------------------------------------------------------------------------
@@ -339,5 +562,71 @@ mod kani_proofs {
         let is_known = known_cmds.contains(&cmd);
         let gate_result = is_valid_enip_frame(&h);
         assert_eq!(gate_result, is_known);
+    }
+
+    // -----------------------------------------------------------------------
+    // VP-032 Sub-D harnesses (STORY-132 — BC-2.17.007)
+    // Appended to the existing kani_proofs block opened by STORY-130.
+    // DF-KANI-NONVACUITY-001: both harnesses call the production
+    // classify_cip_service by name — no re-implementation.
+    // -----------------------------------------------------------------------
+
+    /// VP-032 Sub-D (primary): classify_cip_service is total over all 256 u8 values;
+    /// `service & 0x80 != 0` iff result is `CipServiceClass::Response`.
+    ///
+    /// Biconditional simultaneously proves response-arm totality, Response-variant
+    /// reachability, and non-Response reachability (DF-KANI-NONVACUITY-001).
+    /// No kani::assume — both arms are reachable in the full symbolic u8 domain.
+    ///
+    /// BOUND/SOUNDNESS: symbolic u8 covers all 256 possible CIP service byte values.
+    /// No loops → no unwind annotation needed.
+    ///
+    /// Traces: BC-2.17.007 postconditions 1–2, invariant 1; VP-032 Sub-D primary.
+    #[kani::proof]
+    fn vp032_cip_service_classification_totality() {
+        let service: u8 = kani::any();
+        let class = classify_cip_service(service);
+        // Response-bit biconditional: Response iff high bit set.
+        // Proven for all 256 symbolic u8 values.
+        let is_response = matches!(class, CipServiceClass::Response);
+        assert_eq!(is_response, service & 0x80 != 0);
+    }
+
+    /// VP-032 Sub-D (partition): over the request range 0x00..=0x7F, every service byte
+    /// maps to either a named CIP service variant or `Unknown` — the partition is exhaustive.
+    /// Proves `Unknown` is reachable (non-vacuous) and that no named variant leaks into
+    /// the Unknown arm (DF-KANI-NONVACUITY-001).
+    ///
+    /// BOUND/SOUNDNESS: constrained to 0x00..=0x7F (request range only; response arm
+    /// covered by the primary harness above). No loops → no unwind annotation needed.
+    ///
+    /// Traces: BC-2.17.007 postconditions 3–5, invariant 2; VP-032 Sub-D partition.
+    #[kani::proof]
+    fn vp032_cip_service_request_partition() {
+        const NAMED_SERVICES: &[u8] = &[
+            0x01, // GetAttributesAll
+            0x02, // SetAttributesAll
+            0x03, // GetAttributeList
+            0x04, // SetAttributeList
+            0x05, // Reset
+            0x07, // Stop
+            0x0A, // MultipleServicePacket
+            0x0E, // GetAttributeSingle
+            0x10, // SetAttributeSingle
+            0x4B, // GetAndClear
+            0x4E, // ForwardClose
+            0x54, // ForwardOpen
+            0x5B, // LargeForwardOpen
+        ];
+        let service: u8 = kani::any();
+        // Restrict to request range (high bit clear).
+        kani::assume(service & 0x80 == 0);
+        let class = classify_cip_service(service);
+        // Must NOT be Response (high bit clear means request; BC-2.17.007 invariant 1).
+        assert!(!matches!(class, CipServiceClass::Response));
+        // Exhaustive named-vs-Unknown partition: named iff not Unknown.
+        let is_named = NAMED_SERVICES.contains(&service);
+        let is_unknown = matches!(class, CipServiceClass::Unknown);
+        assert_eq!(is_named, !is_unknown);
     }
 }
