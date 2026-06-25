@@ -564,8 +564,11 @@ fn test_BC_2_10_008_t0846_promoted_to_emitted_t1693_001_seeded_only() {
     // Slice from `const EMITTED_IDS` to the matching `];` that closes the array.
     // Using `];` (not bare `;`) avoids stopping inside inline comments such as
     // "// STORY-109 (2) — VP-007 atomic obligation; implemented in STORY-109."
-    let src = std::fs::read_to_string("src/mitre.rs")
-        .expect("src/mitre.rs must be readable from the worktree root");
+    //
+    // Path anchored to CARGO_MANIFEST_DIR (SEC-004) so the test is cwd-independent.
+    let manifest_dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    let src = std::fs::read_to_string(manifest_dir.join("src/mitre.rs"))
+        .expect("src/mitre.rs must be readable (anchored to CARGO_MANIFEST_DIR)");
     let emitted_block_start = src
         .find("const EMITTED_IDS")
         .expect("src/mitre.rs must contain `const EMITTED_IDS` (kani_proofs module)");

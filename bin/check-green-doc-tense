@@ -150,10 +150,16 @@ def _collect_rust_files(repo_root: Path) -> list[Path]:
         check=True,
     )
     paths = []
+    resolved_root = repo_root.resolve()
     for line in result.stdout.splitlines():
         line = line.strip()
         if line.endswith(".rs"):
-            p = repo_root / line
+            p = (repo_root / line).resolve()
+            # SEC-001: reject any path that escapes the repo root (e.g. absolute
+            # paths or ../traversal components that git ls-files should never emit,
+            # but we defend in depth).
+            if not str(p).startswith(str(resolved_root)):
+                continue
             if p.exists():
                 paths.append(p)
     return paths
