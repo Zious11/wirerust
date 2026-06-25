@@ -1,10 +1,10 @@
 ---
 pipeline: FEATURE-MODE
 phase: F4
-phase_status: "STORY-130 mid-TDD: code green @42de2d0 (21/21 tests). Adversarial convergence in progress: Pass 1 = 1 HIGH (DF-GREEN-DOC-TENSE, fixed @42de2d0); Pass 2 = PASS (0 H/C, 1 MEDIUM F-130-P2-001 fixed in factory-artifacts: BC-2.17.002→v1.1 + ADR-010 field-count 10→6; STORY-130 input-hash dc8a2c9→272738c). Convergence counter: 1 clean pass (Pass 2); need 2 more consecutive clean (BC-5.39.001). NEXT = adversarial Pass 3. Resume per RESUME PROCEDURE."
+phase_status: "F4 Wave 58 — STORY-130 DELIVERED+MERGED (PR #317, develop 235ae60); NEXT = STORY-131 (dispatch Rule 7 + CLI flags, BC-2.17.019/020/023/026). Per-story adversarial convergence ACHIEVED 3/3 consecutive clean passes (BC-5.39.001). Demo evidence at docs/demo-evidence/STORY-130/. ADR-0010 shipped. SEC-002 SEC-hardening applied. Deferred LOW: AC-130-001 postcondition citation precision (non-blocking). Resume per RESUME PROCEDURE."
 product: wirerust
 mode: feature-mode
-timestamp: 2026-06-25T05:00:00Z
+timestamp: 2026-06-25T06:00:00Z
 
 # Release chain (latest)
 released_version: v0.10.0
@@ -16,8 +16,8 @@ release_yml_run: "28109367603 SUCCESS — 4 binaries"
 prior_released_version: v0.9.4
 prior_released_at: "2026-06-23"
 
-# Ground-truth HEADs (verified D-232 — 2026-06-25)
-develop_head: ff4b82b
+# Ground-truth HEADs (verified D-234 — 2026-06-25)
+develop_head: 235ae60
 main_head: 0cbe922
 factory_artifacts_head: (run `git -C .factory log -1 --format='%h'`)
 
@@ -27,9 +27,9 @@ phase_7_to_release_gate: "PASSED (human-approved 2026-06-09 — D-045)"
 adversary_gate: SATISFIED
 
 # Story tracking
-stories_delivered: 78
+stories_delivered: 79
 current_cycle: feature-enip-v0.11.0 (D-228, 2026-06-24)
-current_wave: Wave 58 — STORY-130 mid-TDD (code green @42de2d0; adversarial convergence in progress: Pass 2 clean, need Pass 3/4). STORY-131 PENDING.
+current_wave: Wave 58 — STORY-130 DELIVERED+MERGED (PR #317, develop 235ae60). STORY-131 NEXT.
 
 # DTU
 dtu_required: false
@@ -52,9 +52,9 @@ convergence_trajectory: "Detail: cycles/v0.1.0-greenfield-spec/convergence-traje
 
 ## Status
 
-**PIPELINE FEATURE-MODE. Cycle `feature-enip-v0.11.0` OPEN. F1/F2/F3 DONE + HUMAN-APPROVED. F4 TDD Implementation IN-PROGRESS: Wave 58 PAUSED mid-STORY-130 adversarial convergence (code green @42de2d0; Pass 1/2 done, Pass 2 clean; need Pass 3/4 per BC-5.39.001). D-233.**
+**PIPELINE FEATURE-MODE. Cycle `feature-enip-v0.11.0` OPEN. F1/F2/F3 DONE + HUMAN-APPROVED. F4 TDD Implementation IN-PROGRESS: Wave 58 — STORY-130 DELIVERED+MERGED (PR #317, develop 235ae60, D-234). NEXT = STORY-131 (dispatch Rule 7 + CLI flags, BC-2.17.019/020/023/026).**
 
-Latest release: v0.10.0 (main `0cbe922`, tag `v0.10.0`). develop=`ff4b82b`. stories_delivered=78. Target: v0.11.0 (SS-17 EtherNet/IP + CIP TCP/44818). GitHub issue #316.
+Latest release: v0.10.0 (main `0cbe922`, tag `v0.10.0`). develop=`235ae60`. stories_delivered=79. Target: v0.11.0 (SS-17 EtherNet/IP + CIP TCP/44818). GitHub issue #316.
 
 Spec versions: BC-INDEX v1.80 (331 on disk / 330 active; SS-17=26 BCs). ARCH-INDEX v1.8. VP-INDEX v2.11 (VP-032). PRD v1.36. STORY-INDEX v2.8 (91 stories / 61 waves). epics.md v1.8 (E-20).
 
@@ -65,20 +65,15 @@ Spec versions: BC-INDEX v1.80 (331 on disk / 330 active; SS-17=26 BCs). ARCH-IND
 - Do NOT convert the 4 `arp.rs` `.expect()` sites to `if-let` — deliberately retained (D-223).
 - Do NOT re-run feature-mitre-json-names cycle — CLOSED (D-217). v0.9.4 released.
 - Do NOT re-run F1/F2/F3 for feature-enip-v0.11.0 — all CONVERGED + HUMAN-APPROVED (D-228/D-229/D-230/D-231).
-- Do NOT re-author STORY-130 Red Gate stubs — already committed at `1f9c656` on branch `worktree-issue-316-story-130-enip-pure-core-parse`.
-- Do NOT re-run STORY-130 test-writer — failing tests committed at `09d5be9` (21 tests, all failing via todo!() panics, clippy clean).
-- Do NOT re-run STORY-130 implementer — code is green at `42de2d0` (21/21 tests pass, clippy/fmt clean, VP-032 Sub-A/B/C Kani harnesses preserved).
-- Do NOT re-run STORY-130 adversarial Pass 1 or Pass 2 — Pass 1 closed (DF-GREEN-DOC-TENSE, fixed @42de2d0); Pass 2 closed (F-130-P2-001 fixed in factory-artifacts: BC-2.17.002→v1.1 + ADR-010 6-field). NEXT = Pass 3.
+- Do NOT re-deliver STORY-130 — MERGED at develop `235ae60` via PR #317 (D-234). 21/21 tests green, clippy/fmt clean, VP-032 Sub-A/B/C Kani harnesses preserved. Demo evidence at docs/demo-evidence/STORY-130/. ADR-0010 shipped.
 
-### EXACT RESUME POINT — F4 Wave 58, STORY-130 adversarial convergence (Pass 3)
+### EXACT RESUME POINT — F4 Wave 58, STORY-131
 
-STORY-130 worktree: `.worktrees/STORY-130-enip-pure-core-parse`, branch `worktree-issue-316-story-130-enip-pure-core-parse`, base develop `ff4b82b`. Code HEAD: `42de2d0` (21/21 tests pass, clippy/fmt clean, VP-032 Sub-A/B/C Kani harnesses preserved).
+STORY-130 MERGED. develop HEAD: `235ae60` (merge commit, PR #317). Worktree cleaned up.
 
-**On resume — NEXT STEP IS ADVERSARIAL PASS 3.** Code is green. Factory-artifacts has the Pass 2 fixes committed. Convergence counter: 1 clean pass (Pass 2). BC-5.39.001 requires 3 consecutive clean passes (0 HIGH/CRITICAL) before merge.
+**On resume — NEXT STEP IS STORY-131.** Create worktree from develop `235ae60`. STORY-131: dispatch Rule 7 + CLI flags (BC-2.17.019/020/023/026). Branch: `worktree-issue-316-story-131-enip-dispatch`.
 
-After Pass 3/4 clean: demo-recorder → push → pr-manager (9-step PR) → worktree cleanup.
-
-After STORY-130: STORY-131 (dispatch Rule 7 + CLI flags, BC-2.17.019/020/023/026) → Wave-58 integration gate → **REPORT TO HUMAN** (wave-by-wave cadence D-231).
+After STORY-131: Wave-58 integration gate → **REPORT TO HUMAN** (wave-by-wave cadence D-231).
 
 ### Locked design facts (do not re-derive on resume)
 
@@ -90,10 +85,10 @@ Story input-hashes (verified): STORY-130 272738c (updated Pass2 fix dc8a2c9→27
 
 1. Run `vsdd-factory:factory-worktree-health` — BLOCKING. Do not proceed until PASS.
 2. Read `.factory/STATE.md` + `cycles/feature-enip-v0.11.0/cycle-manifest.md` in full.
-3. Verify: `git rev-parse --short develop` == `ff4b82b` AND `git rev-parse --short main` == `0cbe922`.
-4. Verify: `gh pr list` (expect only Dependabot #311 open, non-blocking).
-5. Confirm STORY-130 worktree HEAD is `42de2d0` (`git -C .worktrees/STORY-130-enip-pure-core-parse log --oneline -1`).
-6. Dispatch **adversarial Pass 3** for STORY-130 (convergence — code at 42de2d0; Pass 2 was clean; need Pass 3 clean + Pass 4 clean for BC-5.39.001 satisfaction).
+3. Verify: `git rev-parse --short develop` == `235ae60` AND `git rev-parse --short main` == `0cbe922`.
+4. Verify: `gh pr list` (expect Dependabot #311 open, non-blocking; PR #317 MERGED).
+5. Create STORY-131 worktree from develop `235ae60`, branch `worktree-issue-316-story-131-enip-dispatch`.
+6. Dispatch **devops-engineer** to create the STORY-131 worktree, then begin Red Gate (test-writer → implementer → adversarial convergence → PR).
 
 ### Remaining F4 work (waves 58-61)
 
@@ -101,7 +96,7 @@ Wave 58: STORY-130 (finish) + STORY-131 → wave gate → human checkpoint.
 Wave 59: STORY-132 (CPF/CIP parse + VP-032 Sub-D), STORY-133 (MITRE seeding + VP-007 6-part atomic burst).
 Wave 60: STORY-134/135/136/137. Wave 61: STORY-138.
 
-F4 obligations (all waves): 12 pcap fixtures (HS-110..122 minus HS-121 which is synthetic); BC frontmatter input-hash writes; STORY-133 EMITTED/SEEDED baseline reverify vs live src/mitre.rs; docs/adr/0010-*.md uncommitted on develop working tree → commit with first ENIP code PR.
+F4 obligations (all waves): 12 pcap fixtures (HS-110..122 minus HS-121 which is synthetic); BC frontmatter input-hash writes; STORY-133 EMITTED/SEEDED baseline reverify vs live src/mitre.rs; docs/adr/0010-*.md → **DONE: ADR-0010 shipped in PR #317**.
 
 ### OPEN ITEMS (backlog — non-blocking)
 
@@ -144,7 +139,7 @@ All GitHub-issue creation DF-VALIDATION-001-gated.
 | Feature mitre-json-names (issue #64) + v0.9.4 | RELEASED + CLOSED 2026-06-23 (D-217) | 5 BCs bumped. BC-INDEX v1.71 (303). PRs #306-309. tag v0.9.4. |
 | Fix cycle fix-pc-013-014-015 + v0.10.0 | **CONVERGED + RELEASED + CLOSED 2026-06-24 (D-226)** | BC-INDEX v1.73 (305). PRs #310-315. tag v0.10.0 0cbe922. |
 | Feature EtherNet/IP + CIP (issue #316) — F1/F2/F3 | **CONVERGED + HUMAN-APPROVED (D-228/D-230/D-231)** | 26 BCs (BC-2.17.001..026). 9 stories STORY-130..138 (E-20, 66 pts, waves 58-61). 13 holdouts HS-110..122. ADR-010, VP-032, SS-17. Detail: cycles/feature-enip-v0.11.0/ |
-| Feature EtherNet/IP + CIP — F4 | **IN-PROGRESS — Wave 58 PAUSED mid-STORY-130 adversarial convergence (D-233)** | Code green @42de2d0 (21/21 tests). Pass 1/2 done; Pass 2 clean; need Pass 3+4 clean (BC-5.39.001). Wave-by-wave cadence (D-231): gates at waves 58/59/60/61. |
+| Feature EtherNet/IP + CIP — F4 | **IN-PROGRESS — Wave 58 STORY-130 DELIVERED+MERGED PR #317 develop@235ae60 (D-234)** | STORY-130: 21/21 tests, adversarial 3/3 clean (BC-5.39.001 MET), ADR-0010 shipped, SEC-002 hardened, demo evidence committed. NEXT = STORY-131. Wave-by-wave cadence (D-231): gates at waves 58/59/60/61. stories_delivered=79. |
 
 ## Decisions Log
 
@@ -160,6 +155,7 @@ D-228..D-231: `cycles/feature-enip-v0.11.0/decisions-archive.md`
 |----|----------|------|
 | D-232 | SAFE-TO-CLEAR. F4 Wave 58 STORY-130 mid-TDD: Red Gate @1f9c656 + failing tests @09d5be9 (tests/enip_analyzer_tests.rs, mod parse_header, 21 tests, 0 passed / 21 failed via todo!() panics, clippy clean, all AC Test: citations matched per DF-AC-TEST-NAME-SYNC) DONE. NEXT = implementer. All F1/F2/F3 artifacts durable on factory-artifacts. Resume per RESUME PROCEDURE in this STATE.md. Detail: cycles/feature-enip-v0.11.0/decisions-archive.md. | 2026-06-25 |
 | D-233 | STORY-130 mid-TDD adversarial convergence in progress. Code green at `42de2d0` (21/21 tests, clippy/fmt clean, VP-032 Sub-A/B/C Kani harnesses preserved). Pass 1 = 1 HIGH (DF-GREEN-DOC-TENSE, fixed @42de2d0 in develop worktree, no factory-artifacts impact). Pass 2 = PASS: 0 HIGH/CRITICAL, 1 MEDIUM F-130-P2-001 (BC-2.17.002→v1.1 field-count 10→6 + ADR-010 §Decision 8 "6 fields" fix; STORY-130 input-hash dc8a2c9→272738c; BC-INDEX v1.79→v1.80). Convergence counter: 1 clean pass (Pass 2); need 2 more consecutive clean passes per BC-5.39.001. NEXT = adversarial Pass 3. | 2026-06-25 |
+| D-234 | STORY-130 per-story delivery COMPLETE. Adversarial convergence ACHIEVED: 3 consecutive clean passes (Pass 2/3/4, 0 HIGH/CRITICAL, BC-5.39.001 MET). Pass 1: 1 HIGH (DF-GREEN-DOC-TENSE, fixed). Pass 2: 1 MEDIUM (BC-2.17.002/ADR-010 field-count 10→6, fixed). Pass 4: 1 LOW (AC-130-001 postcondition citation precision "1-9" vs "1-8") — non-blocking, logged as deferred LOW backlog item. Code: 21/21 tests green, clippy/fmt clean, VP-032 Sub-A/B/C Kani harnesses preserved. SEC-002 latent-panic hardening applied (try_into().expect() → byte-literal array). Demo evidence: docs/demo-evidence/STORY-130/. ADR-0010 (F4 obligation) shipped. Merged via PR #317, develop HEAD now 235ae60 (merge-commit strategy). Worktree cleaned up. NEXT = STORY-131. | 2026-06-25 |
 
 ## Governance Policy
 
