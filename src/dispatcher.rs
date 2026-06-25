@@ -2,11 +2,13 @@
 //!
 //! Sits between [`crate::reassembly::TcpReassembler`] (which produces
 //! contiguous TCP-stream byte ranges) and the per-protocol analyzers
-//! ([`HttpAnalyzer`], [`TlsAnalyzer`], [`ModbusAnalyzer`], [`Dnp3Analyzer`]).
+//! ([`HttpAnalyzer`], [`TlsAnalyzer`], [`ModbusAnalyzer`], [`Dnp3Analyzer`],
+//! [`EnipAnalyzer`]).
 //! On the first chunk of each flow, peeks at the leading bytes to decide
 //! whether the stream is TLS (`0x16 0x03` record-type-and-version prefix),
 //! HTTP (one of the known method tokens), Modbus (port-502 fallback per
-//! ADR-005), or DNP3 (port-20000 fallback per ADR-007) and routes all
+//! ADR-005), DNP3 (port-20000 fallback per ADR-007), or EtherNet/IP traffic
+//! on TCP port 44818 → EnipAnalyzer (Rule 7, ADR-010) and routes all
 //! subsequent data on that flow to the matching analyzer. Streams whose
 //! content doesn't match any prefix and whose ports don't match any known
 //! port are tracked under "unclassified" for the JSON summary.
