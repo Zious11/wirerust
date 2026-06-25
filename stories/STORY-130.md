@@ -98,20 +98,28 @@ foundation proven correct by Kani formal verification (VP-032).
 - **Test:** `tests/enip_analyzer_tests.rs::parse_header::test_is_valid_enip_frame_zero_payload`
 - **Test:** `tests/enip_analyzer_tests.rs::parse_header::test_is_valid_enip_frame_overflow_guard`
 
-### AC-130-005: `classify_cip_service` maps service byte to `CipServiceClass`
-**Traces to:** BC-2.17.004 postconditions 1–2
-- `service & 0x7F` (low 7 bits) determines the class; `service & 0x80` indicates response (but classification uses the low bits only)
-- `0x0E` or `0x8E` → `CipServiceClass::GetAttributeSingle`
-- `0x01` or `0x81` → `CipServiceClass::GetAttributesAll`
-- `0x55` or `0xD5` → `CipServiceClass::GetAttributeList`
-- `0x10` or `0x90` → `CipServiceClass::SetAttributeSingle`
-- `0x02` or `0x82` → `CipServiceClass::SetAttributeList`
-- `0x54` or `0xD4` → `CipServiceClass::ForwardOpen`
-- `0x4E` or `0xCE` → `CipServiceClass::ForwardClose`
-- `0x4B` or `0xCB` → `CipServiceClass::UnconnectedSend`
-- Any other low-7-bit value → `CipServiceClass::Unknown(service)`
-- **Test:** `tests/enip_analyzer_tests.rs::parse_header::test_classify_cip_service_request`
-- **Test:** `tests/enip_analyzer_tests.rs::parse_header::test_classify_cip_service_response`
+### AC-130-005: `classify_cip_service` maps service byte to `CipServiceClass` — 15 variants
+**Traces to:** BC-2.17.007 postconditions 1–6 (via BC-2.17.004); BC-2.17.007 Invariants 1–2
+- **Response-bit invariant (checked first):** if `service & 0x80 != 0` → returns `CipServiceClass::Response` (applies to all 128 values 0x80–0xFF)
+- For request values (`service & 0x80 == 0`), the 13 named codes map as follows (per BC-2.17.007 postcondition 3):
+  - `0x01` → `CipServiceClass::GetAttributesAll`
+  - `0x02` → `CipServiceClass::SetAttributesAll`
+  - `0x03` → `CipServiceClass::GetAttributeList`
+  - `0x04` → `CipServiceClass::SetAttributeList`
+  - `0x05` → `CipServiceClass::Reset`
+  - `0x07` → `CipServiceClass::Stop`
+  - `0x0A` → `CipServiceClass::MultipleServicePacket`
+  - `0x0E` → `CipServiceClass::GetAttributeSingle`
+  - `0x10` → `CipServiceClass::SetAttributeSingle`
+  - `0x4B` → `CipServiceClass::GetAndClear`
+  - `0x4E` → `CipServiceClass::ForwardClose`
+  - `0x54` → `CipServiceClass::ForwardOpen`
+  - `0x5B` → `CipServiceClass::LargeForwardOpen`
+- All other request values (high bit clear, not in the named set) → `CipServiceClass::Unknown`
+- `Unknown` is reachable (e.g., `service = 0x7F`); `Unknown` does NOT carry the service byte as a payload
+- **Enum total variant count:** 13 named request services + Response + Unknown = **15 variants** (VP-032 Sub-D)
+- **Test:** `tests/enip_analyzer_tests.rs::parse_header::test_classify_cip_service_named_requests`
+- **Test:** `tests/enip_analyzer_tests.rs::parse_header::test_classify_cip_service_response_bit`
 - **Test:** `tests/enip_analyzer_tests.rs::parse_header::test_classify_cip_service_unknown`
 
 ### AC-130-006: VP-032 Kani proof harnesses pass for all 4 sub-properties
@@ -136,7 +144,7 @@ foundation proven correct by Kani formal verification (VP-032).
 | `classify_cip_service` | `src/analyzer/enip.rs` | Pure-core free fn, VP-032 Sub-D target |
 | `EnipHeader` struct | `src/analyzer/enip.rs` | 24-byte header model: command, length, session_handle, status, sender_context, options |
 | `EnipCommand` enum | `src/analyzer/enip.rs` | 9 named variants + Unknown(u16) |
-| `CipServiceClass` enum | `src/analyzer/enip.rs` | 8 named variants + Unknown(u8) |
+| `CipServiceClass` enum | `src/analyzer/enip.rs` | 13 named request services + Response + Unknown = 15 variants total (VP-032 Sub-D) |
 | `kani_proofs` mod | `src/analyzer/enip.rs` | `#[cfg(kani)]` Kani harnesses |
 | Test mod | `tests/enip_analyzer_tests.rs` | `mod parse_header { ... }` namespace |
 
@@ -207,8 +215,8 @@ mod kani_proofs {
 | EC-006 | `is_valid_enip_frame` with `length=0xFFFF, buf_len=usize::MAX` | `24 + 65535 = 65559 <= usize::MAX` → `true`; no overflow |
 | EC-007 | `is_valid_enip_frame` with `length=0, buf_len=24` | `24 + 0 = 24 <= 24` → `true` |
 | EC-008 | `is_valid_enip_frame` with `length=1, buf_len=24` | `24 + 1 = 25 > 24` → `false` |
-| EC-009 | `classify_cip_service(0x8E)` (GetAttributeSingle response) | Returns `CipServiceClass::GetAttributeSingle` |
-| EC-010 | `classify_cip_service(0xFF)` (unknown response bit set) | Returns `CipServiceClass::Unknown(0xFF)` |
+| EC-009 | `classify_cip_service(0x8E)` (high bit set — response) | Returns `CipServiceClass::Response` (response-bit invariant; not GetAttributeSingle) |
+| EC-010 | `classify_cip_service(0xFF)` (all bits set — response) | Returns `CipServiceClass::Response` (high bit set; same as BC-2.17.007 EC-006) |
 
 ## Tasks
 
@@ -218,8 +226,8 @@ mod kani_proofs {
 - [ ] Define `EnipCommand` enum with 9 named variants + `Unknown(u16)`; derive `Debug, Clone, Copy, PartialEq, Eq`
 - [ ] Implement `fn classify_enip_command(cmd: u16) -> EnipCommand` — exhaustive match with `_ => Unknown(cmd)` fallback
 - [ ] Implement `fn is_valid_enip_frame(header: &EnipHeader, buffer_len: usize) -> bool` — `(24usize + header.length as usize) <= buffer_len`; note `u16 as usize` cast is widening, no overflow possible
-- [ ] Define `CipServiceClass` enum with 8 named variants + `Unknown(u8)`; derive `Debug, Clone, Copy, PartialEq, Eq`
-- [ ] Implement `fn classify_cip_service(service: u8) -> CipServiceClass` — match on `service & 0x7F` (strip response bit), `_ => Unknown(service)` fallback
+- [ ] Define `CipServiceClass` enum with 15 variants: 13 named request services (`GetAttributesAll`, `SetAttributesAll`, `GetAttributeList`, `SetAttributeList`, `Reset`, `Stop`, `MultipleServicePacket`, `GetAttributeSingle`, `SetAttributeSingle`, `GetAndClear`, `ForwardClose`, `ForwardOpen`, `LargeForwardOpen`) + `Response` + `Unknown`; derive `Debug, Clone, Copy, PartialEq, Eq`
+- [ ] Implement `fn classify_cip_service(service: u8) -> CipServiceClass` — check `service & 0x80 != 0` FIRST (returns `Response` for all 128 values 0x80–0xFF), then match on raw `service` for the 13 named codes (0x01/0x02/0x03/0x04/0x05/0x07/0x0A/0x0E/0x10/0x4B/0x4E/0x54/0x5B), fallback `_ => Unknown`
 - [ ] Add `#[cfg(kani)] mod kani_proofs` block with all 4 Kani harnesses (Sub-A with `#[kani::unwind(49)]`, Sub-B, Sub-C, Sub-D)
 - [ ] Create `tests/enip_analyzer_tests.rs` with top-level `mod parse_header { ... }` wrapper containing all AC-130-001 through AC-130-005 unit tests
 - [ ] Run `cargo check` — zero errors
@@ -273,7 +281,7 @@ From ADR-010 and the enip-architecture-delta:
 2. **Little-endian byte order (ADR-010 Decision 1):** All multi-byte integer fields in the ENIP header are little-endian. Use `u16::from_le_bytes` and `u32::from_le_bytes` — NOT `from_be_bytes`.
 3. **No panic on any input (VP-032 contract):** Every function must be panic-free for arbitrary input. No `unwrap()` on slice indexing — use length checks before accessing fields. The only allowed `unwrap()` is `buf[12..20].try_into().unwrap()` which is safe only after the `buf.len() >= 24` guard.
 4. **`Unknown` fallback required (BC-2.17.002, BC-2.17.004):** Both `classify_enip_command` and `classify_cip_service` must have a catch-all `_ => Unknown(value)` arm to remain total functions (VP-032 Sub-B and Sub-D).
-5. **CIP response bit stripping (BC-2.17.004):** `classify_cip_service` MUST match on `service & 0x7F`, NOT on `service` directly. Matching on the raw byte would miss response variants (e.g., `0x8E` for GetAttributeSingle response).
+5. **CIP response-bit priority (BC-2.17.007 Invariant 1 / BC-2.17.004):** `classify_cip_service` MUST check `service & 0x80 != 0` FIRST and return `CipServiceClass::Response` for any value with the high bit set. Named request codes are then matched on the raw `service` byte (high bit is already clear in the 0x00–0x7F range). Do NOT match on `service & 0x7F` — that would incorrectly re-classify response bytes (e.g., 0x87) as named request services.
 6. **Kani harness placement:** All harnesses MUST be inside `#[cfg(kani)] mod kani_proofs { use super::*; ... }`. Never use `#[cfg(test)]` for Kani harnesses — they are proof artifacts, not unit tests, and must not appear in `cargo test` output.
 7. **`sender_context` is `[u8; 8]` NOT `Vec<u8>` (ADR-010 Decision 1):** The 8-byte opaque context field is a fixed-size array for zero-allocation parsing.
 

@@ -23,7 +23,7 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-17/BC-2.17.005.md
   - .factory/specs/behavioral-contracts/ss-17/BC-2.17.006.md
   - .factory/specs/behavioral-contracts/ss-17/BC-2.17.007.md
-  - .factory/specs/behavioral-contracts/ss-17//BC-2.17.009.md
+  - .factory/specs/behavioral-contracts/ss-17/BC-2.17.009.md
   - .factory/specs/architecture/decisions/ADR-010-ethernet-ip-cip-stream-dispatch.md
   - .factory/phase-f2-spec-evolution/enip-architecture-delta.md
 input-hash: "3343540"

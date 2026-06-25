@@ -10,7 +10,7 @@ tdd_mode: strict
 status: ready
 feature_id: issue-316-enip-analyzer
 github_issue: 316
-subsystems: [SS-17]
+subsystems: [SS-10, SS-17]
 target_module: mitre
 depends_on: [STORY-131]
 behavioral_contracts: []
@@ -113,6 +113,8 @@ is derived from ADR-010 Decision 7 and the enip-architecture-delta §VP-007 sect
 | `SEEDED_TECHNIQUE_ID_COUNT` | `src/mitre.rs` | Change: 25 → 28 |
 | `EMITTED_IDS` | `src/mitre.rs` | Add: "T0858", "T0816", "T0846" (17→20) |
 | Test mod | `tests/enip_analyzer_tests.rs` | `mod mitre_seeding { ... }` |
+
+**Subsystem anchor justification:** SS-10 owns this story's scope because the primary deliverable is `src/mitre.rs` (MITRE Mapping subsystem = SS-10 per ARCH-INDEX.md Subsystem Registry). SS-17 is also listed because the new techniques (T0858, T0816) are EtherNet/IP-specific (SS-17) and the seeding is a prerequisite for SS-17 detection BCs in Wave 60.
 
 **Why T0846 moves to EMITTED here:** T0846 (Remote System Discovery, ListIdentity) was seeded in a prior story but its first emission is in STORY-134 (BC-2.17.010). The VP-007 atomic requirement is that EMITTED_IDS is consistent with what the codebase actually emits. STORY-133 adds T0846 to EMITTED because STORY-134 (Wave 60) will emit it — the catalog update must precede the first emission. Since STORY-133 is Wave 59 and STORY-134 is Wave 60, this ordering is correct.
 

@@ -42,32 +42,34 @@ via EtherNet/IP are detected and reported with appropriate MITRE ICS technique t
 
 | BC ID | Title | Story Role |
 |-------|-------|-----------|
-| BC-2.17.011 | CIP SetAttribute request emits T0858 (Change Operating Mode) | Core detection |
+| BC-2.17.011 | CIP Stop Service Observed Emits T0858 Change Operating Mode Finding | Core detection |
 | BC-2.17.013 | CIP Reset service (0x05) emits T0816 (Device Restart/Shutdown) | Core detection |
 | BC-2.17.012 | CIP write-attribute burst within 1s window emits T0836 (Modify Parameter) | Core detection with windowed threshold |
 
 ## Acceptance Criteria
 
-### AC-135-001: CIP SetAttribute request emits T0858 (Change Operating Mode)
+### AC-135-001: CIP Stop service (0x07) emits T0858 (Change Operating Mode)
 **Traces to:** BC-2.17.011 postconditions 1–2
-- Given a CIP request (`service & 0x80 == 0`) with `classify_cip_service(service)` returning `SetAttributeSingle` (0x10) or `SetAttributeList` (0x02)
+- Given a CIP request (`service & 0x80 == 0`) with `classify_cip_service(service)` returning `CipServiceClass::Stop` (CIP service code 0x07)
 - AND item `type_id == 0x00B2` (Unconnected Data Item; F-P9-001)
 - AND `flow.is_non_enip == false`
 - AND `all_findings.len() < MAX_FINDINGS`
 - When the analyzer processes the frame
 - Then ONE `Finding`:
-  - `category: ThreatCategory::ImpairProcessControl`
+  - `category: ThreatCategory::Execution`
   - `verdict: Verdict::Likely`
   - `confidence: Confidence::High`
-  - `summary: "CIP SetAttribute request: potential operating mode change (T0858)"`
-  - `evidence: "CIP service=0x{service:02X} ({name}) src={src_ip}"`
+  - `summary: "CIP Stop service observed: controller run→stop transition command (T0858)"`
+  - `evidence: "CIP service=0x07 (Stop) from src={src_ip} ENIP cmd={enip_cmd:#06X} session={session_handle}"`
   - `mitre_techniques: vec!["T0858"]`
-- T0858 fires per-occurrence (not windowed, not one-shot)
-- Does NOT fire for `type_id == 0x00B1` items
-- **Test:** `tests/enip_analyzer_tests.rs::command_detections::test_t0858_set_attribute_single`
-- **Test:** `tests/enip_analyzer_tests.rs::command_detections::test_t0858_set_attribute_list`
+- T0858 fires per-occurrence (each CIP Stop frame generates one finding, up to MAX_FINDINGS cap)
+- Does NOT fire for CIP Stop responses (0x87 — high bit set → classified as `CipServiceClass::Response`)
+- Does NOT fire for `type_id == 0x00B1` items (F-P9-001 gate)
+- SetAttribute services (0x02 SetAttributesAll, 0x04 SetAttributeList, 0x10 SetAttributeSingle) do NOT trigger T0858 — they feed the T0836 write-burst detection path (BC-2.17.012) instead
+- **Test:** `tests/enip_analyzer_tests.rs::command_detections::test_t0858_stop_service_0x07`
+- **Test:** `tests/enip_analyzer_tests.rs::command_detections::test_t0858_stop_response_no_finding`
 - **Test:** `tests/enip_analyzer_tests.rs::command_detections::test_t0858_connected_item_no_finding`
-- **Test:** `tests/enip_analyzer_tests.rs::command_detections::test_t0858_response_no_finding`
+- **Test:** `tests/enip_analyzer_tests.rs::command_detections::test_t0858_set_attribute_no_t0858`
 
 ### AC-135-002: CIP Reset service (0x05) emits T0816 (Device Restart/Shutdown)
 **Traces to:** BC-2.17.013 postconditions 1–2
@@ -112,11 +114,11 @@ via EtherNet/IP are detected and reported with appropriate MITRE ICS technique t
 - When `flow.is_non_enip == true`, none of the command detections emit findings
 - **Test:** `tests/enip_analyzer_tests.rs::command_detections::test_non_enip_suppresses_command_detections`
 
-### AC-135-005: T0836 write count also increments for each SetAttribute (feeds burst detection)
+### AC-135-005: T0836 write count increments for each SetAttribute (feeds burst detection)
 **Traces to:** BC-2.17.012 preconditions (write_count accumulation)
-- Every SetAttribute request in a 0x00B2 item increments `flow.write_count_in_window`
+- Every SetAttribute request (SetAttributeSingle 0x10, SetAttributesAll 0x02, SetAttributeList 0x04) in a 0x00B2 item increments `flow.write_count_in_window`
 - This happens regardless of whether the burst threshold is crossed (accumulation is separate from emission)
-- Accumulation also triggers the T0858 per-occurrence detection (both T0858 and T0836 logic share the SetAttribute trigger path)
+- SetAttribute accumulation is independent of T0858 — T0858 is triggered by CIP Stop (0x07), not by SetAttribute
 - **Test:** `tests/enip_analyzer_tests.rs::command_detections::test_write_count_accumulates`
 
 ## Architecture Mapping
@@ -126,12 +128,12 @@ via EtherNet/IP are detected and reported with appropriate MITRE ICS technique t
 | `EnipFlowState.write_count_in_window` | `src/analyzer/enip.rs` | `u32` — SetAttribute count in 1s window |
 | `EnipFlowState.write_burst_emitted` | `src/analyzer/enip.rs` | `bool` — one-shot guard for T0836 |
 | `EnipFlowState.write_window_start` | `src/analyzer/enip.rs` | `Option<u64>` — 1s window start (millis) |
-| T0858 detection | `src/analyzer/enip.rs` | `if SetAttribute && 0x00B2 && !is_non_enip → emit T0858` |
+| T0858 detection | `src/analyzer/enip.rs` | `if CipServiceClass::Stop (0x07) && 0x00B2 && !is_non_enip → emit T0858` |
 | T0816 detection | `src/analyzer/enip.rs` | `if service & 0x7F == 0x05 && 0x00B2 && !is_non_enip → emit T0816` |
 | T0836 detection | `src/analyzer/enip.rs` | Check/reset 1s window; increment count; if count > threshold && !guard → emit T0836` |
 | Test mod | `tests/enip_analyzer_tests.rs` | `mod command_detections { ... }` |
 
-**Detection precedence note:** When a SetAttribute request arrives, the analyzer runs BOTH T0858 (per-occurrence) and the T0836 accumulation in sequence. A single frame can contribute to T0836's count AND emit a T0858 finding. These are independent detections — both run.
+**Detection independence note:** T0858 (Stop, 0x07) and T0836 (SetAttribute burst) are triggered by DIFFERENT CIP service codes and are fully independent detections. A CIP Stop frame emits T0858 but does NOT increment the write-burst counter. A SetAttribute frame increments the write-burst counter (and may emit T0836) but does NOT emit T0858. A single frame cannot trigger both.
 
 **T0836 window is 1s (NOT 10s):** The write-burst window is 1 second (much shorter than the 10s error-burst window for T0888 Pattern B). The implementer must not conflate these two window durations.
 
@@ -139,26 +141,27 @@ via EtherNet/IP are detected and reported with appropriate MITRE ICS technique t
 
 | ID | Description | Expected Behavior |
 |----|-------------|-------------------|
-| EC-001 | SetAttributeSingle (0x10) via 0x00B2 | T0858 finding emitted |
-| EC-002 | SetAttributeList (0x02) via 0x00B2 | T0858 finding emitted |
-| EC-003 | SetAttribute via 0x00B1 | No T0858 (F-P9-001 gate) |
-| EC-004 | SetAttribute response (0x90 or 0x82) | No T0858 (only requests trigger) |
+| EC-001 | CIP Stop (0x07) via 0x00B2 | T0858 finding emitted (Execution, Likely, High) |
+| EC-002 | CIP Stop response (0x87, high bit set) | No T0858 — `classify_cip_service(0x87)` → `Response`; response-bit invariant |
+| EC-003 | SetAttributeSingle (0x10) via 0x00B2 | No T0858 — increments write_count only; T0836 path, not T0858 |
+| EC-004 | CIP Stop via 0x00B1 | No T0858 in v0.11.0 (F-P9-001 gate; 0x00B1 skipped) |
 | EC-005 | Reset service (0x05) via 0x00B2 | T0816 finding emitted |
 | EC-006 | Reset response (0x85) | No T0816 (only requests trigger) |
 | EC-007 | 50 SetAttribute in 1s (threshold=50, strict >) | No T0836 finding |
 | EC-008 | 51 SetAttribute in 1s (threshold=50, strict >) | T0836 finding; guard=true |
 | EC-009 | 52nd SetAttribute in same window | No additional T0836 (one-shot guard) |
 | EC-010 | 1s window expires; 51 new writes | New window; T0836 can fire again |
-| EC-011 | `is_non_enip=true`; SetAttribute | No T0858, no T0836 |
+| EC-011 | `is_non_enip=true`; CIP Stop | No T0858; `is_non_enip` guard applied first |
 | EC-012 | `all_findings` at MAX_FINDINGS; T0816 arrives | No finding (cap guard) |
 
 ## Tasks
 
 - [ ] Add to `EnipFlowState`: `write_count_in_window: u32`, `write_burst_emitted: bool`, `write_window_start: Option<u64>`
-- [ ] In `process_pdu`, for SetAttribute (SetAttributeSingle OR SetAttributeList) CIP requests via 0x00B2:
-  - Emit T0858 finding (per-occurrence, guarded by MAX_FINDINGS and is_non_enip)
+- [ ] In `process_pdu`, for CIP Stop (`CipServiceClass::Stop`, service 0x07) requests via 0x00B2 and !is_non_enip:
+  - Emit T0858 finding (per-occurrence, guarded by MAX_FINDINGS); category=Execution, verdict=Likely, confidence=High
+- [ ] In `process_pdu`, for SetAttribute (SetAttributeSingle 0x10, SetAttributesAll 0x02, SetAttributeList 0x04) CIP requests via 0x00B2:
   - Check/reset 1s write window; increment `write_count_in_window`; if `count > threshold && !write_burst_emitted` → emit T0836; set guard
-- [ ] In `process_pdu`, for CIP service `service & 0x7F == 0x05` (Reset) requests via 0x00B2: emit T0816 finding (per-occurrence)
+- [ ] In `process_pdu`, for CIP Reset (`CipServiceClass::Reset`, service 0x05) requests via 0x00B2: emit T0816 finding (per-occurrence)
 - [ ] Add `mod command_detections { ... }` test wrapper to `tests/enip_analyzer_tests.rs` with all AC-135 tests
 - [ ] Construct minimal ENIP+CPF+CIP byte sequences for each test (reuse helpers from STORY-134 tests)
 - [ ] Run `cargo test enip` — all command_detections tests pass
@@ -188,14 +191,14 @@ command_detections::test_write_count_accumulates
 
 ## Previous Story Intelligence
 
-- STORY-132 provides `classify_cip_service`, `CipServiceClass::SetAttributeSingle`, `CipServiceClass::SetAttributeList` — used for T0858 and T0836 detection trigger
+- STORY-132 provides `classify_cip_service`, `CipServiceClass::Stop` (T0858 trigger), `CipServiceClass::Reset` (T0816 trigger), `CipServiceClass::SetAttributeSingle`/`SetAttributesAll`/`SetAttributeList` (T0836 write-count trigger)
 - STORY-133 provides T0858 and T0816 in `technique_info()` — required for MITRE metadata validation
 - STORY-134 demonstrates the per-occurrence vs. one-shot pattern and the `is_non_enip` guard — use the same guard structure here
 - T0836 uses a 1s window; T0888 Pattern B uses a 10s window. The implementer must use separate window duration constants; never share `error_window_start` with `write_window_start`.
 
 ## Architecture Compliance Rules
 
-1. **T0858 and T0836 share the SetAttribute trigger (BC-2.17.011/012):** Both fire when a SetAttribute request arrives. T0858 fires per-occurrence (no guard). T0836 accumulates and fires once-per-window when the burst threshold is crossed. A single SetAttribute frame increments the write count AND may emit a T0858 finding.
+1. **T0858 and T0836 are triggered by DIFFERENT services (BC-2.17.011/012):** T0858 fires when `CipServiceClass::Stop` (0x07) is observed — per-occurrence, no guard (BC-2.17.011). T0836 fires when the SetAttribute write count exceeds the burst threshold within 1s (BC-2.17.012). A CIP Stop frame triggers T0858 only. A SetAttribute frame increments the write counter and may trigger T0836. These two detection paths are mutually exclusive per frame.
 2. **T0816 is CIP service byte only, not ENIP command (BC-2.17.013):** T0816 is triggered by CIP service code `0x05` inside a CPF 0x00B2 item — NOT by an ENIP header command. The ENIP command for the enclosing frame is typically SendRRData (0x0072). The detection is at the CIP layer.
 3. **Strict `>` for T0836 (BC-2.17.012 Invariant 2):** `write_count_in_window > enip_write_burst_threshold`. Default threshold=50; the 51st write fires. Same convention as T0888 Pattern B.
 4. **1s write-burst window (BC-2.17.012 Invariant 3):** `write_window_start` tracks the start of the current 1-second window. On PDU arrival: if `now - write_window_start > 1s`, reset count to 0, reset `write_burst_emitted = false`, set `write_window_start = now`.
