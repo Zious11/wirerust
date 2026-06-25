@@ -1808,8 +1808,8 @@ mod cpf_cip {
 //     test_seeded_count_is_28           — AC-133-005, VP-007 Steps 2+3
 //     test_emitted_count_is_20          — AC-133-006, VP-007 Step 4
 //     test_t1693_001_not_emitted        — AC-133-006, VP-007 Step 4
-//     test_t0846_in_emitted_tactic_id   — AC-133-006 tactic_id cross-check
-//                                         (technique_tactic_id("T0858") resolves TA0104)
+//     test_t0858_t0816_and_t0846_tactic_id_resolution — AC-133-006 tactic_id cross-check
+//                                         (T0858→TA0104, T0816→TA0107, T0846→TA0102)
 //
 //   GREEN-BY-DESIGN (VP-007 Step 5 — pure enum→str, zero branching, 1 line per arm):
 //     test_ics_execution_tactic_display — AC-133-004; Display arm "Execution (ICS)" correct
@@ -1851,8 +1851,8 @@ mod mitre_seeding {
         let info = technique_info("T0858");
         assert!(
             info.is_some(),
-            "technique_info(\"T0858\") must return Some — T0858 arm not yet added to \
-             technique_info (VP-007 Step 1)"
+            "technique_info(\"T0858\") must return Some — T0858 arm added in STORY-133 \
+             (VP-007 Step 1)"
         );
         let (name, tactic) = info.unwrap();
         assert_eq!(
@@ -1884,7 +1884,7 @@ mod mitre_seeding {
         let info = technique_info("T0816");
         assert!(
             info.is_some(),
-            "technique_info(\"T0816\") must return Some — T0816 arm not yet added (VP-007 Step 1)"
+            "technique_info(\"T0816\") must return Some — T0816 arm added in STORY-133 (VP-007 Step 1)"
         );
         let (name, tactic) = info.unwrap();
         assert_eq!(
@@ -1925,8 +1925,7 @@ mod mitre_seeding {
         );
         let (name, tactic) = info.unwrap();
         assert_eq!(
-            name,
-            "Modify Firmware: System Firmware",
+            name, "Modify Firmware: System Firmware",
             "T1693.001 name must be \"Modify Firmware: System Firmware\" per ADR-010 Decision 7 \
              (v19.1 replacement for revoked T0857; NOT an EtherNet/IP-branded or Initial Access name)"
         );
@@ -2183,10 +2182,10 @@ mod mitre_seeding {
     /// Traces: AC-133-006 "T1693.001 NOT emitted"; VP-007 Step 4; ADR-010 Decision 7.
     #[test]
     fn test_t1693_001_not_emitted() {
-        // Part 1 — T1693.001 must be SEEDED (in technique_info). Currently RED.
+        // Part 1 — T1693.001 must be SEEDED (in technique_info). Added in STORY-133.
         assert!(
             technique_info("T1693.001").is_some(),
-            "T1693.001 must be seeded in technique_info (VP-007 Step 1); not yet added"
+            "T1693.001 must be seeded in technique_info (VP-007 Step 1); arm added in STORY-133"
         );
 
         // Part 2 — T1693.001 must NOT be in the expected emitted set.
@@ -2246,20 +2245,19 @@ mod mitre_seeding {
         );
     }
 
-    /// AC-133-006 + AC-133-001 cross-check — technique_tactic_id integrates with new IDs.
+    /// AC-133-006 + AC-133-001/002 cross-check — technique_tactic_id end-to-end for new IDs.
     ///
-    /// `technique_tactic_id("T0858")` returns Some("TA0104") now that the T0858 arm was
-    /// added to technique_info in STORY-133 (VP-007 Step 1). The Option-chain T0858 →
-    /// IcsExecution → "TA0104" resolves end-to-end.
+    /// Verifies the full ID → tactic → TA-ID chain for all 3 STORY-133 IDs plus T0846 regression:
+    ///   T0858 → IcsExecution → "TA0104"
+    ///   T0816 → IcsInhibitResponseFunction → "TA0107"
+    ///   T0846 → IcsDiscovery → "TA0102" (pre-existing regression)
     ///
-    /// This cross-check verifies that the exhaustive `technique_tactic_id` match (with
-    /// the `IcsExecution => "TA0104"` arm) wires end-to-end once technique_info returns
-    /// a tactic for T0858. AC-133-004 tested the enum method directly; this exercises
-    /// the full path from technique ID → tactic → TA-ID string.
+    /// AC-133-004 tested the enum method directly; this exercises the full path from
+    /// technique ID → tactic → TA-ID string through the Option chain.
     ///
-    /// Traces: AC-133-001 (T0858 arm); VP-007 Step 5 (IcsExecution TA-ID path); ADR-010.
+    /// Traces: AC-133-001/002 (T0858/T0816 arms); VP-007 Step 5 (IcsExecution TA-ID); ADR-010.
     #[test]
-    fn test_t0846_in_emitted_tactic_id() {
+    fn test_t0858_t0816_and_t0846_tactic_id_resolution() {
         // T0858: new — arm added in STORY-133 (VP-007 Step 1)
         assert_eq!(
             technique_tactic_id("T0858"),

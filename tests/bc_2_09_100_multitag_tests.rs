@@ -352,7 +352,7 @@ fn test_BC_2_10_005_technique_name_resolves_t0836_modify_parameter() {
 /// Strict guard: asserts EXACTLY 28 — fails for 25, 26, 27, 29, or any other value.
 /// (Previously _is_25; updated in STORY-133 VP-007 ENIP atomic burst.)
 #[test]
-fn test_BC_2_10_005_seeded_technique_id_count_is_25() {
+fn test_BC_2_10_005_seeded_technique_id_count_is_28() {
     let src = std::fs::read_to_string("src/mitre.rs")
         .expect("src/mitre.rs must be readable from the worktree root");
     // Locate the exact const declaration line. The canonical form is:

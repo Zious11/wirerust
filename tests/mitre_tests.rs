@@ -105,7 +105,7 @@ fn test_ics_impair_process_control_display() {
 // STORY-133 adds MitreTactic::IcsExecution, bringing ICS-unique to 7 and total to 21.
 // ---------------------------------------------------------------------------
 #[test]
-fn test_all_tactics_length_is_20() {
+fn test_all_tactics_length_is_21() {
     // BC-2.10.003 postcondition 1 / invariant 2 (updated STORY-133):
     // 14 Enterprise + 7 ICS-unique = 21 variants.
     assert_eq!(
@@ -706,10 +706,10 @@ fn test_ics_techniques_resolve_authoritative_tactic_ids() {
         ("T0814", "TA0107"),
         ("T1691.001", "TA0107"),
         // STORY-133 (F-133-004) — 3 new ENIP ICS IDs per ADR-010 Decision 7 (ics-attack-19.1)
-        ("T0816", "TA0107"),     // Device Restart/Shutdown → IcsInhibitResponseFunction
+        ("T0816", "TA0107"), // Device Restart/Shutdown → IcsInhibitResponseFunction
         ("T1693.001", "TA0107"), // Modify Firmware: System Firmware → IcsInhibitResponseFunction (staged)
         // ICS Execution — TA0104 (new variant added STORY-133)
-        ("T0858", "TA0104"),     // Change Operating Mode → IcsExecution
+        ("T0858", "TA0104"), // Change Operating Mode → IcsExecution
     ];
 
     for (id, expected_ta_id) in authoritative {
