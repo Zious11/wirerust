@@ -28,7 +28,7 @@ inputs:
   - .factory/specs/architecture/decisions/ADR-010-ethernet-ip-cip-stream-dispatch.md
   - .factory/specs/verification-properties/vp-032-enip-parse-safety.md
   - .factory/phase-f2-spec-evolution/enip-architecture-delta.md
-input-hash: "9df8cea"
+input-hash: "738d0b0"
 ---
 
 # STORY-132: CPF Item Walk, CIP Header Parse, and CIP Request Path Extraction

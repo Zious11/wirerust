@@ -29,7 +29,7 @@ adversary_gate: SATISFIED
 # Story tracking
 stories_delivered: 80
 current_cycle: feature-enip-v0.11.0 (D-228, 2026-06-24)
-current_wave: "Wave 58 FULLY CONVERGED & CLOSED (D-238): per-story 3/3 x2 + wave-level 3/3 + regression PASS @edce3bd. NEXT = Wave 59 STORY-132 — pending human wave-checkpoint approval. Obligations: M-001, WAVE59-E2E-001, WAVE59-DEADCODE-001."
+current_wave: "Wave 59 STORY-132 IN-PROGRESS (delivery started 2026-06-25): input-hash refreshed 9df8cea→738d0b0. Obligations: M-001, WAVE59-E2E-001, WAVE59-DEADCODE-001."
 
 # DTU
 dtu_required: false
@@ -85,7 +85,7 @@ STORY-132 delivery obligations (all must be addressed in Wave-59 PR):
 
 ENIP header LITTLE-endian (`from_le_bytes`). `is_valid_enip_frame` single-arg (command-only). `EnipCommandClass` 10 payloadless variants. `CipServiceClass` 15 (0x0A=MultipleServicePacket). `CipHeader={service,request_path}`. `CpfItem={type_id,data}`. `general_status`=byte-2 on 0x00B2 responses. 0x00B2-only CIP detection (0x00B1 deferred v0.12.0). Write-burst default 50 / error-burst 5 strict `>` (51st/6th); both CLI-overridable. T0814 windowed >=3/300s; carry-overflow runs `check_t0814` BEFORE latching `is_non_enip`. `command_counts` SINGLE site=frame-walk (BC-2.17.016 PC-0, counts all incl Unknown). `process_pdu` owns `pdu_count`. `flows_analyzed`→`on_flow_close`. Summary canonical key `parse_errors`. MAX_ENIP_CARRY_BYTES=600, MAX_FINDINGS=10000. MITRE pin ics-attack-19.1. EMITTED 17→20, SEEDED 25→28, catalogue-only 8. Counters u64, window timestamps u32 seconds.
 
-Story input-hashes (verified): STORY-130 272738c→e3c0a6a (D-237 H-001 rehash; D-236 ADR-010 Decision-9 eprintln! fix not propagated in D-236 burst), 131 a119157 (refreshed D-236), 132..138 STALE — pending F4 per-story refresh (ADR-010 M-1 fix is an input to all; do NOT refresh until each story's delivery wave).
+Story input-hashes (verified): STORY-130 272738c→e3c0a6a (D-237 H-001 rehash; D-236 ADR-010 Decision-9 eprintln! fix not propagated in D-236 burst), 131 a119157 (refreshed D-236), 132 9df8cea→738d0b0 (refreshed Wave-59 delivery start 2026-06-25; ADR-010 D-233/D-236 changes propagated), 133..138 STALE — pending F4 per-story refresh (ADR-010 M-1 fix is an input to all; do NOT refresh until each story's delivery wave).
 
 ### RESUME PROCEDURE (execute in order — BLOCKING)
 
@@ -177,7 +177,7 @@ Full policy text: `.factory/policies.yaml`. Active policies (17): DF-VALIDATION-
 
 - `.factory/` is a `factory-artifacts` orphan-branch worktree, gitignored from `develop`.
 - Active cycle: `cycles/feature-enip-v0.11.0/` (cycle-manifest.md, decisions-archive.md D-228+). Issue #316.
-- STORY-INDEX.md authoritative (91 stories / 61 waves / 592 pts — v2.8). STORY-130+131 completed (Wave 58, D-237). STORY-132..138 draft (waves 59-61). Input-hashes: STORY-130 e3c0a6a, STORY-131 a119157 (MATCH); STORY-132..138 STALE (pending F4 delivery).
+- STORY-INDEX.md authoritative (91 stories / 61 waves / 592 pts — v2.8). STORY-130+131 completed (Wave 58, D-237). STORY-132..138 draft (waves 59-61). Input-hashes: STORY-130 e3c0a6a, STORY-131 a119157, STORY-132 738d0b0 (all MATCH); STORY-133..138 STALE (pending F4 delivery).
 - F6 fuzz obligation: `parse_cip_header` + `parse_cpf_items` cargo-fuzz (F-P9-002, from F2 adversarial pass 9).
 - Deferred LOW (non-blocking): BC-2.17.010 Description "per-occurrence" → fix to one-shot (PO); dep-graph STORY-133→137 T0814 rationale prose imprecision.
 - Issues: #104/#102/#64 CLOSED; all actions SHA-pinned; dtolnay/rust-toolchain @stable/@nightly exempted.
