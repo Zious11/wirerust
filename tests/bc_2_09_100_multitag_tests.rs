@@ -267,14 +267,14 @@ fn test_BC_2_09_006_no_scalar_mitre_technique_key_in_json() {
 /// BC-2.10.005 postcondition 3, AC-005 (STORY-100):
 /// All 21 STORY-100-era seeded IDs return Some from technique_name. This test
 /// verifies the original 21-ID subset established at STORY-100 (11 Enterprise +
-/// 10 ICS); the current catalog contains 25 seeded IDs (STORY-109 added 2 ICS,
-/// STORY-114 added T0830 ICS + T1557.002 Enterprise). All 21 IDs in this test
-/// resolve in the current green catalog — the former 15-entry catalog limitation
-/// no longer applies.
+/// 10 ICS); the current catalog contains 28 seeded IDs (STORY-109 added 2 ICS,
+/// STORY-114 added T0830 ICS + T1557.002 Enterprise, STORY-133 added T0858/T0816/T1693.001).
+/// All 21 IDs in this test resolve in the current green catalog — the former
+/// 15-entry catalog limitation no longer applies.
 #[test]
 fn test_BC_2_10_005_technique_name_resolves_all_21_seeded_ids() {
     // BC-2.10.005 postcondition 3: the 21 STORY-100-era seeded IDs (11 Enterprise + 10 ICS),
-    // a stable subset of the current 25-entry catalog. All resolve to Some.
+    // a stable subset of the current 28-entry catalog. All resolve to Some.
     let all_21_seeded: &[&str] = &[
         // Enterprise (11) — STORY-100 era
         "T1027",
@@ -342,23 +342,25 @@ fn test_BC_2_10_005_technique_name_resolves_t0836_modify_parameter() {
 /// STORY-109 adds T1691.001 and T0827 (VP-007 atomic obligation), bringing the
 /// total from 21 (post-F2 / STORY-100) to 23.
 /// STORY-114 adds T0830 and T1557.002 (VP-007 ARP atomic obligation), bringing the
-/// total to 25.  The SEEDED_TECHNIQUE_ID_COUNT constant in src/mitre.rs must reflect
+/// total to 25.
+/// STORY-133 adds T0858, T0816, T1693.001 (VP-007 ENIP atomic obligation), bringing the
+/// total to 28. The SEEDED_TECHNIQUE_ID_COUNT constant in src/mitre.rs must reflect
 /// the current count.
 /// Verified via the vp007_catalog_drift_guard sweeping test, but this
 /// test directly reads the source constant so drift is caught immediately.
 ///
-/// Strict guard: asserts EXACTLY 25 — fails for 21, 23, 24, 26, or any other value.
-/// (Renamed from _is_21 which was a non-guard accepting 21/23/25 permissively.)
+/// Strict guard: asserts EXACTLY 28 — fails for 25, 26, 27, 29, or any other value.
+/// (Previously _is_25; updated in STORY-133 VP-007 ENIP atomic burst.)
 #[test]
-fn test_BC_2_10_005_seeded_technique_id_count_is_25() {
+fn test_BC_2_10_005_seeded_technique_id_count_is_28() {
     let src = std::fs::read_to_string("src/mitre.rs")
         .expect("src/mitre.rs must be readable from the worktree root");
     // Locate the exact const declaration line. The canonical form is:
-    //   const SEEDED_TECHNIQUE_ID_COUNT: usize = 25;
+    //   const SEEDED_TECHNIQUE_ID_COUNT: usize = 28;
     // We match only lines that start (after optional whitespace) with `const` and also
     // contain `SEEDED_TECHNIQUE_ID_COUNT`, so doc-comment lines are excluded.
-    // We assert the line contains `: usize = 25` (not a bare "25" substring)
-    // so the test fails if the value is anything other than 25.
+    // We assert the line contains `: usize = 28` (not a bare "28" substring)
+    // so the test fails if the value is anything other than 28.
     let decl_line = src.lines().find(|line| {
         let trimmed = line.trim_start();
         trimmed.starts_with("const ") && trimmed.contains("SEEDED_TECHNIQUE_ID_COUNT")
@@ -370,17 +372,17 @@ fn test_BC_2_10_005_seeded_technique_id_count_is_25() {
         )
     });
     assert!(
-        decl_line.contains(": usize = 25"),
-        "BC-2.10.005 invariant 3: SEEDED_TECHNIQUE_ID_COUNT must be exactly 25 in \
-         src/mitre.rs (21 post-F2/STORY-100 + 2 STORY-109 + 2 STORY-114 ARP additions: \
-         T0830, T1557.002). Found declaration: {decl_line:?}"
+        decl_line.contains(": usize = 28"),
+        "BC-2.10.005 invariant 3: SEEDED_TECHNIQUE_ID_COUNT must be exactly 28 in \
+         src/mitre.rs (21 post-F2/STORY-100 + 2 STORY-109 + 2 STORY-114 ARP + 3 STORY-133 ENIP \
+         additions: T0858, T0816, T1693.001). Found declaration: {decl_line:?}"
     );
-    // Negative guard: ensure no stale value (21, 23, 24, 26) appears on the same line.
-    for stale in ["= 21", "= 22", "= 23", "= 24", "= 26"] {
+    // Negative guard: ensure no stale value (21, 23, 24, 25, 26) appears on the same line.
+    for stale in ["= 21", "= 22", "= 23", "= 24", "= 25", "= 26", "= 27"] {
         assert!(
             !decl_line.contains(stale),
             "BC-2.10.005 invariant 3: SEEDED_TECHNIQUE_ID_COUNT declaration contains \
-             stale/wrong value ({stale}) — expected exactly 25. \
+             stale/wrong value ({stale}) — expected exactly 28. \
              Declaration: {decl_line:?}"
         );
     }
@@ -392,7 +394,7 @@ fn test_BC_2_10_005_seeded_technique_id_count_is_25() {
 
 /// BC-2.10.007 postcondition 2, AC-006 (STORY-100):
 /// All 21 STORY-100-era seeded IDs return the correct MitreTactic. This test
-/// covers the original 21-ID subset; the current catalog contains 25 seeded IDs.
+/// covers the original 21-ID subset; the current catalog contains 28 seeded IDs.
 /// F5 correctness fix applied: ICS techniques use correct ICS-matrix variants.
 #[test]
 fn test_BC_2_10_007_technique_tactic_correct_for_all_21_seeded_ids() {

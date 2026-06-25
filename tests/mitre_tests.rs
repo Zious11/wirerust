@@ -99,18 +99,19 @@ fn test_ics_impair_process_control_display() {
 
 // ---------------------------------------------------------------------------
 // AC-005 | BC-2.10.003 postcondition 1
-// all_tactics_in_report_order().len() equals 20 (14 Enterprise + 6 ICS).
+// all_tactics_in_report_order().len() equals 21 (14 Enterprise + 7 ICS).
 // F5 adds MitreTactic::IcsDiscovery, IcsCollection, IcsCommandAndControl,
 // bringing the ICS-unique count from 3 to 6 and the total from 17 to 20.
+// STORY-133 adds MitreTactic::IcsExecution, bringing ICS-unique to 7 and total to 21.
 // ---------------------------------------------------------------------------
 #[test]
-fn test_all_tactics_length_is_20() {
-    // BC-2.10.003 postcondition 1 / invariant 2 (updated F5):
-    // 14 Enterprise + 6 ICS-unique = 20 variants.
+fn test_all_tactics_length_is_21() {
+    // BC-2.10.003 postcondition 1 / invariant 2 (updated STORY-133):
+    // 14 Enterprise + 7 ICS-unique = 21 variants.
     assert_eq!(
         all_tactics_in_report_order().len(),
-        20,
-        "expected 14 Enterprise + 6 ICS-unique = 20 variants (F5 adds IcsDiscovery, IcsCollection, IcsCommandAndControl)"
+        21,
+        "expected 14 Enterprise + 7 ICS-unique = 21 variants (STORY-133 adds IcsExecution)"
     );
 }
 
@@ -147,11 +148,13 @@ fn test_all_tactics_enterprise_kill_chain_order() {
 // AC-007 | BC-2.10.003 postconditions 3 and 4
 // Elements [14]-[16] are the first three ICS variants; [17]-[19] are the
 // three new F5 ICS variants: IcsDiscovery, IcsCollection, IcsCommandAndControl.
+// [20] is IcsExecution added in STORY-133 (VP-007 ENIP atomic burst).
 // ---------------------------------------------------------------------------
 #[test]
 fn test_all_tactics_ics_at_end() {
     // BC-2.10.003 postcondition 3: ICS tactics at positions [14]-[16].
     // BC-2.10.003 postcondition 4: F5 ICS tactics at positions [17]-[19].
+    // STORY-133: IcsExecution at position [20].
     let tactics = all_tactics_in_report_order();
     assert_eq!(
         tactics[14],
@@ -184,12 +187,19 @@ fn test_all_tactics_ics_at_end() {
         MitreTactic::IcsCommandAndControl,
         "position [19] must be IcsCommandAndControl (added F5)"
     );
+    // STORY-133 (VP-007 ENIP atomic obligation):
+    assert_eq!(
+        tactics[20],
+        MitreTactic::IcsExecution,
+        "position [20] must be IcsExecution (added STORY-133)"
+    );
 }
 
 // ---------------------------------------------------------------------------
 // AC-008 | BC-2.10.004 postcondition 1 & 2
-// Collecting all_tactics_in_report_order() into a HashSet gives size 20.
+// Collecting all_tactics_in_report_order() into a HashSet gives size 21.
 // F5 adds IcsDiscovery, IcsCollection, IcsCommandAndControl → total 20.
+// STORY-133 adds IcsExecution → total 21.
 // ---------------------------------------------------------------------------
 #[test]
 fn test_all_tactics_no_duplicates() {
@@ -203,14 +213,15 @@ fn test_all_tactics_no_duplicates() {
         tactics.len(),
         "duplicate variant detected in all_tactics_in_report_order()"
     );
-    // F5: IcsDiscovery + IcsCollection + IcsCommandAndControl added → 20 total (was 17).
-    assert_eq!(unique.len(), 20);
+    // STORY-133: IcsExecution added → 21 total (was 20 after F5).
+    assert_eq!(unique.len(), 21);
 }
 
 // ---------------------------------------------------------------------------
 // AC-009 | BC-2.10.004 postcondition 3
-// No variant omitted — all 20 variants appear in the slice.
+// No variant omitted — all 21 variants appear in the slice.
 // F5 adds IcsDiscovery, IcsCollection, IcsCommandAndControl → total 20.
+// STORY-133 adds IcsExecution → total 21.
 // ---------------------------------------------------------------------------
 #[test]
 fn test_all_tactics_all_variants_present() {
@@ -241,6 +252,8 @@ fn test_all_tactics_all_variants_present() {
         MitreTactic::IcsDiscovery,
         MitreTactic::IcsCollection,
         MitreTactic::IcsCommandAndControl,
+        // STORY-133 (VP-007 ENIP atomic obligation) — IcsExecution for T0858
+        MitreTactic::IcsExecution,
     ]
     .into_iter()
     .collect();
@@ -253,13 +266,13 @@ fn test_all_tactics_all_variants_present() {
 
 // ---------------------------------------------------------------------------
 // AC-010 + AC-011 | BC-2.10.005 postcondition 1
-// All 21 seeded technique IDs resolve to Some(name). Includes T1027 check
+// All 21 STORY-100-era seeded technique IDs resolve to Some(name). Includes T1027 check
 // (AC-010) and exhaustive check of all 21 (AC-011) in the same function.
 // ---------------------------------------------------------------------------
 #[test]
 fn test_technique_name_resolves_all_21_seeded_ids() {
     // BC-2.10.005 postcondition 1: technique_name returns Some for each of the
-    // 21 seeded IDs. Catalog count is exactly 21 (post-F2 / STORY-100).
+    // 21 STORY-100-era seeded IDs (a stable subset of the 28-entry catalog).
     // Seeded IDs (11 Enterprise + 10 ICS):
     //   T1027, T1036, T1040, T1046, T1071, T1071.001, T1071.004,
     //   T1083, T1499.002, T1505.003, T1573,
@@ -329,7 +342,7 @@ fn test_technique_name_resolves_all_21_seeded_ids() {
 // ---------------------------------------------------------------------------
 #[test]
 fn test_technique_name_returns_none_for_unknown_ids() {
-    // BC-2.10.006 postcondition 1: returns None for any ID not in the 21-entry
+    // BC-2.10.006 postcondition 1: returns None for any ID not in the 28-entry
     // static match table. No panic, no error, no default string.
     // BC-2.10.006 invariant 1: match is exact string equality (case-sensitive, no trim).
     assert_eq!(technique_name("T9999"), None);
@@ -448,7 +461,7 @@ fn test_technique_tactic_correct_assignments() {
 #[test]
 fn test_all_emitted_ids_resolve() {
     // BC-2.10.008 postcondition 1: emitted set is a strict subset of the
-    // catalogued 21 IDs. No emitted ID may return None from either lookup.
+    // catalogued 28 IDs. No emitted ID may return None from either lookup.
     // Sources (ground truth: `grep -rn 'mitre_techniques: vec!' src/`):
     //   src/analyzer/tls.rs          — T1027 (×3 sites)
     //   src/analyzer/http.rs         — T1083, T1505.003, T1046, T1499.002 (×2 sites)
@@ -526,7 +539,7 @@ fn test_mitre_tactic_is_non_exhaustive() {
 #[test]
 fn test_ec_001_real_unseed_technique_returns_none() {
     // BC-2.10.006 invariant 3: "T1059" is a real ATT&CK technique but is
-    // not present in the 21-entry seeded catalog. Must return None.
+    // not present in the 28-entry seeded catalog. Must return None.
     assert_eq!(technique_name("T1059"), None);
 }
 
@@ -643,6 +656,11 @@ fn test_ec_005_first_tactic_is_reconnaissance() {
 // the correct tactic name but the WRONG TA-id, silently passing tactic-variant
 // tests while breaking TA-id correctness. This test closes that gap by asserting
 // the exact (technique_id → tactic_id string) pair for every ICS technique.
+//
+// F-133-004 (STORY-133 adversarial High): extended to cover the 3 new ENIP ICS IDs
+// per ADR-010 Decision 7: T0858→TA0104, T0816→TA0107, T1693.001→TA0107.
+// This is the executable correctness gate that was missing from the initial
+// STORY-133 test suite.
 // ---------------------------------------------------------------------------
 #[test]
 fn test_ics_techniques_resolve_authoritative_tactic_ids() {
@@ -687,6 +705,11 @@ fn test_ics_techniques_resolve_authoritative_tactic_ids() {
         // ICS Inhibit Response Function — TA0107
         ("T0814", "TA0107"),
         ("T1691.001", "TA0107"),
+        // STORY-133 (F-133-004) — 3 new ENIP ICS IDs per ADR-010 Decision 7 (ics-attack-19.1)
+        ("T0816", "TA0107"), // Device Restart/Shutdown → IcsInhibitResponseFunction
+        ("T1693.001", "TA0107"), // Modify Firmware: System Firmware → IcsInhibitResponseFunction (staged)
+        // ICS Execution — TA0104 (new variant added STORY-133)
+        ("T0858", "TA0104"), // Change Operating Mode → IcsExecution
     ];
 
     for (id, expected_ta_id) in authoritative {
@@ -695,7 +718,7 @@ fn test_ics_techniques_resolve_authoritative_tactic_ids() {
             Some(*expected_ta_id),
             "technique_tactic_id({id:?}) must return {expected_ta_id:?} \
              per MITRE ATT&CK for ICS v19 authoritative table \
-             (f5-ics-technique-tactic-authoritative.md)"
+             (f5-ics-technique-tactic-authoritative.md / ADR-010 Decision 7)"
         );
     }
 }
