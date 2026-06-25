@@ -534,35 +534,69 @@ fn test_BC_2_10_008_all_emitted_ids_resolve_in_lookup() {
     }
 }
 
-/// BC-2.10.008 invariant 4 (T0846 seeded but NOT emitted):
-/// T0846 resolves from lookup (it is seeded) but does NOT appear in EMITTED_IDS.
-/// This test verifies the seeded-but-not-emitted distinction is maintained.
+/// BC-2.10.008 invariant 4 (T0846 promoted to EMITTED; T1693.001 seeded-only):
+/// STORY-133 (ADR-010 Decision 7 Step 4) promoted T0846 from seeded-only into
+/// EMITTED_IDS (20 IDs total). T1693.001 IS seeded (resolves) but is NOT in
+/// EMITTED_IDS — it is staged-only for v0.12.0.
+///
+/// The EMITTED_IDS array is read from src/mitre.rs by locating `const EMITTED_IDS`
+/// and slicing to the matching `];` that closes the array (not the first `;`,
+/// which can fall inside an inline comment and produce a vacuous slice).
+/// All ID checks use the quoted literal form (`"T0846"`, not bare `T0846`) so a
+/// mention of an ID in a comment (e.g. "T1693.001 NOT here") cannot produce a
+/// false positive.
 #[test]
-fn test_BC_2_10_008_t0846_seeded_but_not_in_emitted_set() {
-    // T0846 must still resolve (seeded).
+fn test_BC_2_10_008_t0846_promoted_to_emitted_t1693_001_seeded_only() {
+    // Part 1 — T0846 must still resolve (it was seeded before and remains seeded).
     assert_eq!(
         technique_name("T0846"),
         Some("Remote System Discovery"),
-        "T0846 must remain seeded in technique_info (catalogued for future use)"
+        "BC-2.10.008 inv4: T0846 must remain seeded in technique_info (STORY-133 promotion)"
     );
-    // T0846 must NOT be in the Kani EMITTED_IDS constant.
-    // Verified by reading the source (the Kani module lists them as a const).
+
+    // Part 2 — T1693.001 must resolve (seeded in STORY-133 VP-007 Step 1).
+    assert!(
+        technique_name("T1693.001").is_some(),
+        "BC-2.10.008 inv4: T1693.001 must be seeded in technique_info (VP-007 Step 1, staged catalog entry)"
+    );
+
+    // Part 3 — Source-level guard on EMITTED_IDS content.
+    // Slice from `const EMITTED_IDS` to the matching `];` that closes the array.
+    // Using `];` (not bare `;`) avoids stopping inside inline comments such as
+    // "// STORY-109 (2) — VP-007 atomic obligation; implemented in STORY-109."
     let src = std::fs::read_to_string("src/mitre.rs")
         .expect("src/mitre.rs must be readable from the worktree root");
-    // Find the EMITTED_IDS block. It should contain T0888 but NOT T0846.
-    // Locate the EMITTED_IDS const in the kani_proofs module.
-    let emitted_block_start = src.find("EMITTED_IDS").unwrap_or(0);
+    let emitted_block_start = src
+        .find("const EMITTED_IDS")
+        .expect("src/mitre.rs must contain `const EMITTED_IDS` (kani_proofs module)");
     let emitted_block = &src[emitted_block_start..];
-    // Find the closing semicolon of the array.
-    let end = emitted_block.find(';').unwrap_or(emitted_block.len());
-    let emitted_block = &emitted_block[..end];
+    let end = emitted_block
+        .find("];")
+        .expect("EMITTED_IDS array must be closed by `];`");
+    let emitted_block = &emitted_block[..end + 2]; // include the `];`
+
+    // All positive/negative checks use the quoted form ("T0888", "T0846") to match
+    // string literals in the array, not bare substrings that could appear in comments.
+    // T0888: Modbus recon emitter — must be present (pre-STORY-133 baseline).
     assert!(
-        emitted_block.contains("T0888"),
-        "BC-2.10.008 EC-013 / Decision 12: T0888 must appear in EMITTED_IDS (Modbus recon emitter)"
+        emitted_block.contains("\"T0888\""),
+        "BC-2.10.008 EC-013 / Decision 12: T0888 must appear in EMITTED_IDS as a literal \
+         entry (Modbus recon emitter)"
     );
+    // T0846: promoted from seeded-only to emitted in STORY-133 (ADR-010 Decision 7 Step 4).
     assert!(
-        !emitted_block.contains("T0846"),
-        "BC-2.10.008 invariant 4: T0846 must NOT appear in EMITTED_IDS (seeded only, not emitted)"
+        emitted_block.contains("\"T0846\""),
+        "BC-2.10.008 inv4: T0846 must appear in EMITTED_IDS as a literal entry — promoted \
+         from seeded-only in STORY-133 (ADR-010 Decision 7 Step 4; BC-2.17.010)"
+    );
+    // T1693.001: staged-only for v0.11.0 — must NOT be in EMITTED_IDS as a literal.
+    // The array block does contain T1693.001 in a comment ("T1693.001 NOT here"),
+    // so we check for the quoted string literal `"T1693.001"` (i.e., as an array entry),
+    // not a bare substring, to avoid a false positive from the comment text.
+    assert!(
+        !emitted_block.contains("\"T1693.001\""),
+        "BC-2.10.008 inv4: T1693.001 must NOT appear in EMITTED_IDS as a literal entry — \
+         staged-only for v0.12.0 (ADR-010 Decision 7; VP-007 Step 4)"
     );
 }
 
