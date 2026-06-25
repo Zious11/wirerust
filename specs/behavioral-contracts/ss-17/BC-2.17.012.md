@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.0"
+version: "1.1"
 status: draft
 producer: product-owner
 timestamp: 2026-06-24T00:00:00Z
@@ -96,7 +96,7 @@ thresholds, or configuration parameters.
    human to confirm at F2 gate — 50 is the proposed value based on typical CIP write traffic
    in manufacturing environments being higher-frequency than Modbus]
 4. **T0836 is the correct v19.1 technique** [MITRE: enip-mitre-ics-tagging.md §5]:
-   T0836 "Modify Parameter" (ICS Impair Process Control, TA0105). Already seeded in
+   T0836 "Modify Parameter" (ICS Impair Process Control, TA0106). Already seeded in
    `src/mitre.rs`; no new catalog entry required.
 5. **One finding per window per flow**: the `write_burst_emitted` guard prevents flooding
    `all_findings` with T0836 findings on a sustained write burst.
@@ -148,7 +148,7 @@ Expected at count=51 (threshold=50): T0836 finding emitted.
 | Architecture Module | SS-17 (analyzer/enip.rs); ADR-010 Decision 4 (write window fields), Decision 9 (CLI threshold flag) |
 | Stories | (TBD — story-writer assigns in F3) |
 | Feature | feature-enip-v0.11.0 (issue #316) |
-| MITRE Techniques | T0836 — Modify Parameter (ICS Impair Process Control TA0105; active ics-attack-19.1; already seeded in src/mitre.rs) |
+| MITRE Techniques | T0836 — Modify Parameter (ICS Impair Process Control TA0106; active ics-attack-19.1; already seeded in src/mitre.rs) |
 
 ## Related BCs
 

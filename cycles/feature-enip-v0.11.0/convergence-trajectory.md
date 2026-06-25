@@ -1,10 +1,10 @@
 ---
 document_type: convergence-trajectory
 level: ops
-version: "1.0"
+version: "1.1"
 status: complete
 producer: state-manager
-timestamp: 2026-06-25T13:00:00Z
+timestamp: 2026-06-25T21:00:00Z
 cycle: "feature-enip-v0.11.0"
 inputs: [adversarial-reviews/]
 input-hash: "n/a"
@@ -162,13 +162,49 @@ Wave-level adversarial convergence ACHIEVED. BC-5.39.001 MET. Wave 58 FULLY CLOS
 
 ---
 
-### Per-Story — STORY-133 (Wave 59 — IN-PROGRESS)
+### Per-Story — STORY-132 (Wave 59)
+
+| Pass | Date | Total | CRIT | HIGH | MED | LOW | Novelty | Score | Counter | Verdict |
+|------|------|-------|------|------|-----|-----|---------|-------|---------|---------|
+| 1 | 2026-06-25 | 1 | 0 | 1 | 0 | 0 | HIGH | — | 0/3 | FINDINGS_REMAIN |
+| 2 | 2026-06-25 | 0 | 0 | 0 | 0 | 0 | — | — | 1/3 | CLEAN |
+| 3 | 2026-06-25 | 1 | 0 | 0 | 0 | 1 | LOW | — | 2/3 | FINDINGS_REMAIN (non-blocking) |
+| 4 | 2026-06-25 | 1 | 0 | 0 | 0 | 1 | LOW | — | 3/3 | CONVERGED |
+
+Trajectory: `1→0→1→1` (LOWs non-blocking; convergence ACHIEVED 3/3 clean passes 2/3/4)
+
+### Per-Story — STORY-133 (Wave 59)
 
 | Pass | Date | Total | CRIT | HIGH | MED | LOW | Novelty | Score | Counter | Verdict |
 |------|------|-------|------|------|-----|-----|---------|-------|---------|---------|
 | 1 | 2026-06-25 | 4 | 2 | 2 | 0 | 0 | HIGH | — | 0/3 | FINDINGS_REMAIN — REMEDIATED |
+| 2 | 2026-06-25 | 0 | 0 | 0 | 0 | 0 | — | — | 1/3 | CLEAN |
+| 3 | 2026-06-25 | 0 | 0 | 0 | 0 | 0 | — | — | 2/3 | CLEAN |
+| 4 | 2026-06-25 | 0 | 0 | 0 | 0 | 0 | — | — | 3/3 | CONVERGED |
 
-Trajectory: `4→…` (adversarial convergence continuing; Pass 2+ pending)
+Trajectory: `4→0→0→0` (Pass 1 2CRIT+2HIGH remediated; convergence ACHIEVED 3/3 passes 2/3/4)
+
+### Wave-Level — Wave 59 (STORY-132 + STORY-133 integrated, develop@d562ccc)
+
+| Pass | Date | Total | CRIT | HIGH | MED | LOW | Novelty | Score | Counter | Verdict |
+|------|------|-------|------|------|-----|-----|---------|-------|---------|---------|
+| W59-A | 2026-06-25 | 1 | 1 | 0 | 0 | 0 | HIGH | — | 0/3 | FINDINGS_REMAIN — REMEDIATED |
+| W59-B | 2026-06-25 | 2 | 0 | 2 | 0 | 0 | HIGH | — | 0/3 | FINDINGS_REMAIN — REMEDIATED |
+| W59-C | 2026-06-25 | 2 | 0 | 2 | 0 | 0 | HIGH | — | 0/3 | FINDINGS_REMAIN — REMEDIATED |
+| W59-D | 2026-06-25 | 0 | 0 | 0 | 0 | 0 | — | — | 1/3 | CLEAN |
+| W59-E | 2026-06-25 | 0 | 0 | 0 | 0 | 0 | — | — | 2/3 | CLEAN |
+| W59-F | 2026-06-25 | 0 | 0 | 0 | 0 | 0 | — | — | 3/3 | CONVERGED |
+
+Trajectory: `1→2→2→0→0→0`
+
+**Wave-level convergence ACHIEVED** (3 consecutive confirmation passes D/E/F, all 0 HIGH/CRITICAL, BC-5.39.001 MET, develop@d562ccc). Wave 59 FULLY CLOSED.
+
+Remediation history:
+- W59-A: C-1 = T0846 stale `write_burst_emitted` guard cross-story regression — fixed via PR #321 + green-doc-tense CI gate wired on develop.
+- W59-B/C: F-WAVE59-C-001 HIGH = stale cross-story count-snapshot prose + RED-tense in test comments — fixed via PR #322.
+- W59-D/E/F: 0 HIGH/CRITICAL confirmed on develop@d562ccc. Convergence ACHIEVED. D-242.
+
+Pre-wave-60 hardening finding: F-W59-M01 = BC-2.17.012 TA-id wrong (TA0105 should be TA0106 for IcsImpairProcessControl); fixed in this factory-artifacts burst (BC-2.17.012 v1.0→v1.1, BC-INDEX v1.82→v1.83). Not a runtime defect (implementation used catalog entry directly; catalog TA-id correct); spec alignment only. Pre-empts STORY-133-class wrong-spec defect in Wave-60 stories.
 
 ### STORY-133 Pass 1 (2026-06-25)
 
@@ -182,6 +218,90 @@ HIGH-1: Test `test_technique_info_t1693_001` pinned the wrong name — test pin 
 HIGH-2: No executable gate existed on tactic assignment — `mitre_tests.rs` pin-table extended with T1693.001 → TA0107 authoritative assertion at `ffca717`.
 
 All 4 findings fixed at code commit `ffca717` (impl + test pin + mitre_tests authoritative-TA-id pin-table extension + stale-count fn renames + RED-tense scrub). Story prose corrected in factory-artifacts burst [D-240]. VP-007 invariants intact: SEEDED 28, EMITTED 20, T1693.001 excluded, revoked T0855/T0856/T0857 absent. Codified as MITRE-CATALOG-ADR-AUTHORITATIVE-001 in lessons.md.
+
+---
+
+### STORY-133 Pass 2 (2026-06-25)
+
+**Findings:** 0 (0 CRIT, 0 HIGH, 0 MED, 0 LOW)
+**Novelty:** —
+**Convergence counter:** 1 of 3 (CLEAN)
+
+---
+
+### STORY-133 Pass 3 (2026-06-25)
+
+**Findings:** 0 (0 CRIT, 0 HIGH, 0 MED, 0 LOW)
+**Novelty:** —
+**Convergence counter:** 2 of 3 (CLEAN)
+
+---
+
+### STORY-133 Pass 4 (2026-06-25)
+
+**Findings:** 0 (0 CRIT, 0 HIGH, 0 MED, 0 LOW)
+**Novelty:** —
+**Convergence counter:** 3 of 3 (CONVERGED)
+
+Per-story adversarial convergence ACHIEVED (BC-5.39.001 MET). STORY-133 merged via PR #320, develop@7f040de.
+
+---
+
+### Wave 59 Wave-Level Pass A (2026-06-25) — REMEDIATED
+
+**Findings:** 1 (1 CRIT, 0 HIGH, 0 MED, 0 LOW)
+**Novelty:** HIGH
+**Convergence counter:** 0 of 3 (reset — FINDINGS_REMAIN)
+
+C-1: T0846 `write_burst_emitted` guard regression — stale guard from STORY-132 was carrying over into STORY-133 context causing T0846 findings to be suppressed incorrectly. Fixed via PR #321. green-doc-tense CI gate wired on develop as part of remediation.
+
+---
+
+### Wave 59 Wave-Level Pass B (2026-06-25) — REMEDIATED
+
+**Findings:** 2 (0 CRIT, 2 HIGH, 0 MED, 0 LOW)
+**Novelty:** HIGH
+**Convergence counter:** 0 of 3 (reset — FINDINGS_REMAIN)
+
+F-WAVE59-C-001 HIGH: stale cross-story count-snapshot prose (test doc comments cited counts from prior story state, not Wave-59 final state). M-2: RED-tense in test comment prose (tests used aspirational "will" / "should" voice). Both fixed via PR #322.
+
+---
+
+### Wave 59 Wave-Level Pass C (2026-06-25) — REMEDIATED
+
+**Findings:** 2 (0 CRIT, 2 HIGH, 0 MED, 0 LOW)
+**Novelty:** HIGH
+**Convergence counter:** 0 of 3 (reset — FINDINGS_REMAIN; confirmation of F-WAVE59-C-001/M-2 scope)
+
+F-WAVE59-C-001 + M-2 confirmed still present in residual locations; additional files swept and fixed in same PR #322 burst.
+
+---
+
+### Wave 59 Wave-Level Pass D (2026-06-25)
+
+**Findings:** 0 (0 CRIT, 0 HIGH, 0 MED, 0 LOW)
+**Novelty:** —
+**Convergence counter:** 1 of 3 (CLEAN)
+
+develop@d562ccc reviewed. Post-PR #321 + PR #322 remediation. All prior HIGH/CRITICAL findings resolved.
+
+---
+
+### Wave 59 Wave-Level Pass E (2026-06-25)
+
+**Findings:** 0 (0 CRIT, 0 HIGH, 0 MED, 0 LOW)
+**Novelty:** —
+**Convergence counter:** 2 of 3 (CLEAN)
+
+---
+
+### Wave 59 Wave-Level Pass F (2026-06-25)
+
+**Findings:** 0 (0 CRIT, 0 HIGH, 0 MED, 0 LOW)
+**Novelty:** —
+**Convergence counter:** 3 of 3 (CONVERGED)
+
+Wave-level adversarial convergence ACHIEVED. BC-5.39.001 MET. Wave 59 FULLY CLOSED (D-242). develop@d562ccc.
 
 ---
 

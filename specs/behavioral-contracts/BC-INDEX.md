@@ -1,10 +1,10 @@
 ---
 document_type: bc-index
 level: L3
-version: "1.82"
+version: "1.83"
 status: draft
 producer: product-owner
-timestamp: 2026-06-25T12:00:00Z
+timestamp: 2026-06-25T21:00:00Z
 phase: 1a
 traces_to: .factory/specs/prd.md
 ---
@@ -15,6 +15,9 @@ traces_to: .factory/specs/prd.md
 > links to the individual BC file. BCs are sharded into per-subsystem directories (ss-NN/).
 >
 > All BCs are marked [WRITTEN]. Body files have been verified on disk for all 331 entries (330 prior + 1 new BC-2.17.026 for F2 addendum error-burst CLI flag; BC-2.01.004 retired).
+>
+> **v1.83 2026-06-25 (F-W59-M01/D-242: BC-2.17.012 v1.0→v1.1 — MITRE tactic TA0105→TA0106 corrected):**
+> Pre-Wave-60 hardening: BC-2.17.012 MITRE tactic corrected — T0836 "Modify Parameter" belongs to ICS Impair Process Control / TA0106 (IcsImpairProcessControl), not TA0105 (IcsImpact). The prior index annotation and prior v1.0 body both cited TA0105. Full SS-17 detection-BC MITRE-tuple audit (BC-2.17.010/011/013/014/018): all correct; only BC-2.17.012 carried the wrong TA-id. No BC count change (331 on disk; 330 active). No story input-hash change (BC-2.17.012 is an input to STORY-135 (wave 60); STORY-135 is STALE pending delivery — TA-id fix pre-empts a STORY-133-class wrong-spec defect in Wave-60 stories). Codified as F-W59-M01 in convergence-trajectory.md. D-242.
 >
 > **v1.82 2026-06-25 (L-1/D-236: BC-2.17.023 v1.0→v1.1 + BC-2.17.026 v1.0→v1.1 — Precondition 1 "N ≥ 1" corrected to "0..=u32::MAX (0 accepted)"):**
 > STORY-131 adversarial Pass-3 LOW findings L-1 fixed. BC-2.17.023 Precondition 1: was "N ≥ 1", now "N in 0..=u32::MAX (0 is accepted; see EC-004 / Invariant 2)". BC-2.17.026 Precondition 1: was "N ≥ 1", now "N in 0..=u32::MAX (0 is accepted; see EC-004 / Invariant 4)". Both BCs already had EC-004 documenting zero-value semantics; the Precondition 1 "N ≥ 1" constraint was internally inconsistent. H1 titles unchanged. No BC count change (331 on disk; 330 active). STORY-131 input-hash stale — recomputed as part of D-236 Pass-3 fix burst.
@@ -597,7 +600,7 @@ traces_to: .factory/specs/prd.md
 > BCs 023-026: CLI threshold tuning and pdu_count accounting (Group M — CLI + accounting). BC-026 (F2 addendum): --enip-error-burst-threshold for T0888 Pattern B, symmetric with BC-023.
 > Feature: feature-enip-v0.11.0 (issue #316); ADR-010; VP-032; introduced v0.11.0.
 > **MITRE techniques (new to catalog):** T0858 (IcsExecution TA0104 — CIP Stop), T0816 (IcsInhibitResponseFunction TA0107 — CIP Reset). Requires `technique_info("T0858")` and `technique_info("T0816")` arms in src/mitre.rs + `MitreTactic::IcsExecution` new variant.
-> **MITRE techniques (already seeded):** T0836 (IcsImpairProcessControl TA0105), T0846 (IcsDiscovery TA0102), T0888 (IcsDiscovery TA0102), T0814 (IcsInhibitResponseFunction TA0107).
+> **MITRE techniques (already seeded):** T0836 (IcsImpairProcessControl TA0106), T0846 (IcsDiscovery TA0102), T0888 (IcsDiscovery TA0102), T0814 (IcsInhibitResponseFunction TA0107).
 > **OA-001 (F2 gate decision):** --enip-write-burst-threshold default changed 20→50 (MEDIUM-confidence, un-calibrated, ref O-03); human confirmation at F2 gate required. BC-2.17.012 (confidence: medium) and BC-2.17.023 reflect the 50 default.
 > **OA-005 (F2 gate decision):** --enip-error-burst-threshold default=5 (MEDIUM-confidence, un-calibrated, ref O-03); human confirmation at F2 gate required. BC-2.17.014 and BC-2.17.026 reflect this default.
 > **BC-2.17.025 (new, F2 adversary Pass-1):** RegisterSession/UnRegisterSession session-handshake BC added. No finding emitted; session-handle anomaly validation deferred to v0.12.0.
@@ -616,7 +619,7 @@ traces_to: .factory/specs/prd.md
 | BC-2.17.009 | parse_cip_request_path Class and Instance Segment Extraction | P1 | [WRITTEN] | (none direct — T0888 via BC-2.17.014) | feature-enip-v0.11.0 | <!-- class/instance segment extraction; Identity Object class=0x01 trigger for T0888 -->
 | BC-2.17.010 | ListIdentity Command Observed Emits T0846 Network Enumeration Finding | P0 | [WRITTEN] | T0846 (IcsDiscovery TA0102) | feature-enip-v0.11.0 | <!-- per-occurrence finding; T0846 Remote System Discovery; TRITON/TRISIS recon pattern -->
 | BC-2.17.011 | CIP Stop Service Observed Emits T0858 Change Operating Mode Finding | P0 | [WRITTEN] | T0858 (IcsExecution TA0104) | feature-enip-v0.11.0 | <!-- per-occurrence Likely/High; new MitreTactic::IcsExecution required; T0858 new catalog entry -->
-| BC-2.17.012 | CIP Write-Class Service Burst Exceeding Threshold Emits T0836 Modify Parameter Finding | P1 | [WRITTEN] | T0836 (IcsImpairProcessControl TA0105) | feature-enip-v0.11.0 | <!-- one-shot per window; 50/1s default [OA-001 RESOLVED=50 MEDIUM-conf]; T0836 already seeded -->
+| BC-2.17.012 | CIP Write-Class Service Burst Exceeding Threshold Emits T0836 Modify Parameter Finding | P1 | [WRITTEN] | T0836 (IcsImpairProcessControl TA0106) | feature-enip-v0.11.0 | <!-- v1.1: F-W59-M01/D-242 — TA0105→TA0106 corrected; one-shot per window; 50/1s default [OA-001 RESOLVED=50 MEDIUM-conf]; T0836 already seeded -->
 | BC-2.17.013 | CIP Reset Service Observed Emits T0816 Device Restart/Shutdown Finding | P0 | [WRITTEN] | T0816 (IcsInhibitResponseFunction TA0107) | feature-enip-v0.11.0 | <!-- per-occurrence Likely/High; T0816 new catalog entry; distinct from T0858 Stop -->
 | BC-2.17.014 | CIP Identity-Read to Identity Object or Error Burst Emits T0888 Remote System Information Discovery | P0 | [WRITTEN] | T0888 (IcsDiscovery TA0102) | feature-enip-v0.11.0 | <!-- dual-pattern: Pattern A identity-object read Likely/High; Pattern B error-burst Possible/Medium -->
 | BC-2.17.015 | ForwardOpen and ForwardClose Connection-Lifecycle Anomaly Detected with Empty MITRE Technique Set | P1 | [WRITTEN] | (none — mitre_techniques: vec![]) | feature-enip-v0.11.0 | <!-- intentionally empty technique set per ADR-010 Decision 7; ForwardClose postcondition block added F2 adversary -->
