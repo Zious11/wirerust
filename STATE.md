@@ -1,10 +1,10 @@
 ---
 pipeline: FEATURE-MODE
 phase: F4
-phase_status: "SAFE-TO-CLEAR (D-232). F4 Wave 58 STORY-130 mid-TDD (Red Gate done @1f9c656; test-writer in-flight at pause). Resume per RESUME PROCEDURE."
+phase_status: "SAFE-TO-CLEAR (D-232). F4 Wave 58 STORY-130 mid-TDD: Red Gate @1f9c656 + failing tests @09d5be9 DONE; NEXT = implementer. Resume per RESUME PROCEDURE."
 product: wirerust
 mode: feature-mode
-timestamp: 2026-06-25T00:00:00Z
+timestamp: 2026-06-25T04:30:00Z
 
 # Release chain (latest)
 released_version: v0.10.0
@@ -29,7 +29,7 @@ adversary_gate: SATISFIED
 # Story tracking
 stories_delivered: 78
 current_cycle: feature-enip-v0.11.0 (D-228, 2026-06-24)
-current_wave: Wave 58 — STORY-130 mid-TDD (Red Gate @1f9c656; test-writer in-flight at pause). STORY-131 PENDING.
+current_wave: Wave 58 — STORY-130 mid-TDD (Red Gate @1f9c656; failing tests @09d5be9 DONE; NEXT = implementer). STORY-131 PENDING.
 
 # DTU
 dtu_required: false
@@ -52,7 +52,7 @@ convergence_trajectory: "Detail: cycles/v0.1.0-greenfield-spec/convergence-traje
 
 ## Status
 
-**PIPELINE FEATURE-MODE. Cycle `feature-enip-v0.11.0` OPEN. F1/F2/F3 DONE + HUMAN-APPROVED. F4 TDD Implementation IN-PROGRESS: Wave 58 PAUSED mid-STORY-130 (Red Gate done; test-writer in-flight). SAFE-TO-CLEAR (D-232).**
+**PIPELINE FEATURE-MODE. Cycle `feature-enip-v0.11.0` OPEN. F1/F2/F3 DONE + HUMAN-APPROVED. F4 TDD Implementation IN-PROGRESS: Wave 58 PAUSED mid-STORY-130 (Red Gate @1f9c656 + failing tests @09d5be9 DONE; NEXT = implementer). SAFE-TO-CLEAR (D-232).**
 
 Latest release: v0.10.0 (main `0cbe922`, tag `v0.10.0`). develop=`ff4b82b`. stories_delivered=78. Target: v0.11.0 (SS-17 EtherNet/IP + CIP TCP/44818). GitHub issue #316.
 
@@ -66,14 +66,15 @@ Spec versions: BC-INDEX v1.79 (331 on disk / 330 active; SS-17=26 BCs). ARCH-IND
 - Do NOT re-run feature-mitre-json-names cycle — CLOSED (D-217). v0.9.4 released.
 - Do NOT re-run F1/F2/F3 for feature-enip-v0.11.0 — all CONVERGED + HUMAN-APPROVED (D-228/D-229/D-230/D-231).
 - Do NOT re-author STORY-130 Red Gate stubs — already committed at `1f9c656` on branch `worktree-issue-316-story-130-enip-pure-core-parse`.
+- Do NOT re-run STORY-130 test-writer — failing tests committed at `09d5be9` (21 tests, all failing via todo!() panics, clippy clean).
 
 ### EXACT RESUME POINT — F4 Wave 58, STORY-130 mid-TDD
 
-STORY-130 worktree: `.worktrees/STORY-130-enip-pure-core-parse`, branch `worktree-issue-316-story-130-enip-pure-core-parse`, base develop `ff4b82b`. Red Gate stub commit `1f9c656` (enip.rs stubs + tests; cargo check/clippy GREEN; 14 tests FAIL).
+STORY-130 worktree: `.worktrees/STORY-130-enip-pure-core-parse`, branch `worktree-issue-316-story-130-enip-pure-core-parse`, base develop `ff4b82b`. Red Gate stub commit `1f9c656` (enip.rs stubs + tests; cargo check/clippy GREEN; 14 tests FAIL). Failing tests commit `09d5be9` (tests/enip_analyzer_tests.rs, mod parse_header, 21 tests, all AC **Test:** citations matched per DF-AC-TEST-NAME-SYNC, Red Gate HOLDS: 0 passed / 21 failed via todo!() panics, clippy clean). Worktree HEAD on resume: `09d5be9`.
 
-**On resume:** `git -C .worktrees/STORY-130-enip-pure-core-parse log --oneline -5`
-- If a `test(enip): STORY-130 ... failing tests` commit IS present → next step is the **implementer** (TDD to green).
-- If NO / partial → re-run the **test-writer** first (tests/enip_analyzer_tests.rs, mod parse_header, BC-2.17.001-004).
+**On resume — NEXT STEP IS THE IMPLEMENTER.** Do NOT re-run test-writer. Tests are DONE at `09d5be9`.
+
+TDD implementer: pick the next failing test, write minimum code in `src/analyzer/enip.rs` to pass it, micro-commit each step; all 21 tests in tests/enip_analyzer_tests.rs must go green; preserve the VP-032 Sub-A/B/C Kani harnesses.
 
 Then continue STORY-130: implementer → per-story adversarial convergence (Step 4.5, BC-5.39.001, 3 clean passes) → demo-recorder → push → pr-manager (9-step PR) → worktree cleanup.
 
@@ -91,8 +92,8 @@ Story input-hashes (verified): STORY-130 dc8a2c9, 131 c9970ba, 132 9df8cea, 133 
 2. Read `.factory/STATE.md` + `cycles/feature-enip-v0.11.0/cycle-manifest.md` in full.
 3. Verify: `git rev-parse --short develop` == `ff4b82b` AND `git rev-parse --short main` == `0cbe922`.
 4. Verify: `gh pr list` (expect only Dependabot #311 open, non-blocking).
-5. Check STORY-130 worktree git log (decide test-writer vs implementer per EXACT RESUME POINT above).
-6. Resume F4 Wave 58 / STORY-130.
+5. Confirm STORY-130 worktree HEAD is `09d5be9` (`git -C .worktrees/STORY-130-enip-pure-core-parse log --oneline -1`).
+6. Dispatch **implementer** for STORY-130 (TDD green phase — 21 failing tests in tests/enip_analyzer_tests.rs).
 
 ### Remaining F4 work (waves 58-61)
 
@@ -143,7 +144,7 @@ All GitHub-issue creation DF-VALIDATION-001-gated.
 | Feature mitre-json-names (issue #64) + v0.9.4 | RELEASED + CLOSED 2026-06-23 (D-217) | 5 BCs bumped. BC-INDEX v1.71 (303). PRs #306-309. tag v0.9.4. |
 | Fix cycle fix-pc-013-014-015 + v0.10.0 | **CONVERGED + RELEASED + CLOSED 2026-06-24 (D-226)** | BC-INDEX v1.73 (305). PRs #310-315. tag v0.10.0 0cbe922. |
 | Feature EtherNet/IP + CIP (issue #316) — F1/F2/F3 | **CONVERGED + HUMAN-APPROVED (D-228/D-230/D-231)** | 26 BCs (BC-2.17.001..026). 9 stories STORY-130..138 (E-20, 66 pts, waves 58-61). 13 holdouts HS-110..122. ADR-010, VP-032, SS-17. Detail: cycles/feature-enip-v0.11.0/ |
-| Feature EtherNet/IP + CIP — F4 | **IN-PROGRESS — Wave 58 PAUSED mid-STORY-130 (D-232 SAFE-TO-CLEAR)** | Red Gate @1f9c656. test-writer in-flight at pause. Wave-by-wave cadence (D-231): gates at waves 58/59/60/61. |
+| Feature EtherNet/IP + CIP — F4 | **IN-PROGRESS — Wave 58 PAUSED mid-STORY-130 (D-232 SAFE-TO-CLEAR)** | Red Gate @1f9c656 + failing tests @09d5be9 DONE. NEXT = implementer. Wave-by-wave cadence (D-231): gates at waves 58/59/60/61. |
 
 ## Decisions Log
 
@@ -157,7 +158,7 @@ D-228..D-231: `cycles/feature-enip-v0.11.0/decisions-archive.md`
 
 | ID | Decision | Date |
 |----|----------|------|
-| D-232 | SAFE-TO-CLEAR. F4 Wave 58 STORY-130 mid-TDD: Red Gate stub @1f9c656 done; test-writer was in-flight (tests/enip_analyzer_tests.rs, mod parse_header, BC-2.17.001-004) at pause. All F1/F2/F3 artifacts durable on factory-artifacts. Resume per RESUME PROCEDURE in this STATE.md. Detail: cycles/feature-enip-v0.11.0/decisions-archive.md. | 2026-06-25 |
+| D-232 | SAFE-TO-CLEAR. F4 Wave 58 STORY-130 mid-TDD: Red Gate @1f9c656 + failing tests @09d5be9 (tests/enip_analyzer_tests.rs, mod parse_header, 21 tests, 0 passed / 21 failed via todo!() panics, clippy clean, all AC Test: citations matched per DF-AC-TEST-NAME-SYNC) DONE. NEXT = implementer. All F1/F2/F3 artifacts durable on factory-artifacts. Resume per RESUME PROCEDURE in this STATE.md. Detail: cycles/feature-enip-v0.11.0/decisions-archive.md. | 2026-06-25 |
 
 ## Governance Policy
 
