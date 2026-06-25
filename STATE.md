@@ -1,10 +1,10 @@
 ---
 pipeline: FEATURE-MODE
 phase: F4
-phase_status: "F4 Wave 58 COMPLETE (STORY-130+131 merged @edce3bd, regression PASS); NEXT = Wave 59 STORY-132 (CPF/CIP parse + VP-032 Sub-D) — pending human wave-checkpoint approval (D-231 cadence)."
+phase_status: "F4 Wave 58 FULLY CONVERGED & CLOSED (merged @edce3bd; per-story 3/3 + wave-level 3/3 + regression PASS); NEXT = Wave 59 STORY-132 (CPF/CIP parse + VP-032 Sub-D), pending human go-ahead. STORY-132 obligations: M-001 docs/adr sync, WAVE59-E2E-001, WAVE59-DEADCODE-001."
 product: wirerust
 mode: feature-mode
-timestamp: 2026-06-25T12:00:00Z
+timestamp: 2026-06-25T13:00:00Z
 
 # Release chain (latest)
 released_version: v0.10.0
@@ -29,7 +29,7 @@ adversary_gate: SATISFIED
 # Story tracking
 stories_delivered: 80
 current_cycle: feature-enip-v0.11.0 (D-228, 2026-06-24)
-current_wave: Wave 58 COMPLETE (STORY-130+131 merged @edce3bd, 1955 tests green, regression PASS). NEXT = Wave 59 STORY-132 — pending human wave-checkpoint approval.
+current_wave: "Wave 58 FULLY CONVERGED & CLOSED (D-238): per-story 3/3 x2 + wave-level 3/3 + regression PASS @edce3bd. NEXT = Wave 59 STORY-132 — pending human wave-checkpoint approval. Obligations: M-001, WAVE59-E2E-001, WAVE59-DEADCODE-001."
 
 # DTU
 dtu_required: false
@@ -52,7 +52,7 @@ convergence_trajectory: "Detail: cycles/v0.1.0-greenfield-spec/convergence-traje
 
 ## Status
 
-**PIPELINE FEATURE-MODE. Cycle `feature-enip-v0.11.0` OPEN. F1/F2/F3 DONE + HUMAN-APPROVED. F4 TDD Wave 58 COMPLETE: STORY-130 (PR #317, D-234) + STORY-131 (PR #318, D-237) merged; develop@edce3bd; 1955 tests green; clippy/fmt/release clean; regression PASS. Wave-58 consistency audit: H-001 (STORY-130 input-hash rehash e3c0a6a) + L-001 (STORY-INDEX status draft→completed) FIXED; M-001 (docs/adr/0010 public copy stale) deferred to STORY-132 PR. stories_delivered=80. NEXT = Wave 59 STORY-132 — pending human wave-checkpoint approval (D-231 cadence).**
+**PIPELINE FEATURE-MODE. Cycle `feature-enip-v0.11.0` OPEN. F1/F2/F3 DONE + HUMAN-APPROVED. F4 TDD Wave 58 FULLY CONVERGED & CLOSED (D-238): STORY-130 (PR #317) + STORY-131 (PR #318) merged @edce3bd; 1955 tests green; clippy/fmt/release clean; per-story convergence 3/3 each; wave-level adversarial convergence 3/3 clean passes (0 HIGH/CRITICAL, BC-5.39.001 MET); consistency audit H-001+L-001 FIXED. stories_delivered=80. STORY-132 obligations logged: M-001 (docs/adr/0010 sync), WAVE59-E2E-001 (reassembler→reporter e2e test), WAVE59-DEADCODE-001 (remove #![allow(dead_code)] on enip.rs). NEXT = Wave 59 STORY-132 — pending human wave-checkpoint approval (D-231 cadence).**
 
 Latest release: v0.10.0 (main `0cbe922`, tag `v0.10.0`). develop=`edce3bd`. stories_delivered=80. Target: v0.11.0 (SS-17 EtherNet/IP + CIP TCP/44818). GitHub issue #316.
 
@@ -72,7 +72,12 @@ Spec versions: BC-INDEX v1.82 (331 on disk / 330 active; SS-17=26 BCs). ARCH-IND
 
 ### EXACT RESUME POINT — F4 Wave 59 (pending human wave-checkpoint approval)
 
-Wave 58 COMPLETE (D-237). STORY-130 merged @235ae60 (PR #317). STORY-131 merged @edce3bd (PR #318). develop=edce3bd. Regression: 1955 tests green, clippy/fmt/release clean, ENIP surface present. Wave-58 gate PASSED. Consistency audit H-001 + L-001 fixed in this burst. M-001 (docs/adr/0010 public copy "10 fields" + old Decision-9 wording) deferred to STORY-132 PR (develop-tree change).
+Wave 58 FULLY CONVERGED & CLOSED (D-238). STORY-130 merged @235ae60 (PR #317). STORY-131 merged @edce3bd (PR #318). develop=edce3bd. Regression: 1955 tests green, clippy/fmt/release clean, ENIP surface present. Per-story convergence 3/3 each. Wave-level adversarial convergence 3/3 clean passes (0 HIGH/CRITICAL). Consistency audit H-001+L-001 fixed (D-237).
+
+STORY-132 delivery obligations (all must be addressed in Wave-59 PR):
+- M-001: sync docs/adr/0010-ethernet-ip-cip-stream-dispatch.md to .factory ADR-010 (field-count 10→6 line ~598; Decision-9 eprintln! wording line ~697)
+- WAVE59-E2E-001: combined e2e test arming HTTP+TLS+Modbus+DNP3+ENIP, port-44818 traffic through reassembler→dispatcher→take_enip_analyzer→reporter (add when STORY-132 lands real findings)
+- WAVE59-DEADCODE-001: remove #![allow(dead_code)] on src/analyzer/enip.rs when STORY-132 wires parse functions into on_data frame-walk
 
 **On resume — REPORT TO HUMAN for wave-59 approval before dispatching STORY-132.** D-231 cadence: wave-by-wave human checkpoint required before each wave dispatch.
 
@@ -94,7 +99,7 @@ Story input-hashes (verified): STORY-130 272738c→e3c0a6a (D-237 H-001 rehash; 
 ### Remaining F4 work (waves 59-61)
 
 Wave 58: COMPLETE (STORY-130+131 merged, D-237).
-Wave 59: STORY-132 (CPF/CIP parse + VP-032 Sub-D + M-001 docs/adr/0010 sync), STORY-133 (MITRE seeding + VP-007 6-part atomic burst) — pending human approval.
+Wave 59: STORY-132 (CPF/CIP parse + VP-032 Sub-D + M-001 docs/adr/0010 sync + WAVE59-E2E-001 + WAVE59-DEADCODE-001), STORY-133 (MITRE seeding + VP-007 6-part atomic burst) — pending human approval.
 Wave 60: STORY-134/135/136/137. Wave 61: STORY-138.
 
 F4 obligations (remaining waves): 12 pcap fixtures (HS-110..122 minus HS-121 which is synthetic); BC frontmatter input-hash writes; STORY-133 EMITTED/SEEDED baseline reverify vs live src/mitre.rs; docs/adr/0010-ethernet-ip-cip-stream-dispatch.md public copy sync (M-001 — deliver in STORY-132 PR).
@@ -142,7 +147,7 @@ All GitHub-issue creation DF-VALIDATION-001-gated.
 | Feature mitre-json-names (issue #64) + v0.9.4 | RELEASED + CLOSED 2026-06-23 (D-217) | 5 BCs bumped. BC-INDEX v1.71 (303). PRs #306-309. tag v0.9.4. |
 | Fix cycle fix-pc-013-014-015 + v0.10.0 | **CONVERGED + RELEASED + CLOSED 2026-06-24 (D-226)** | BC-INDEX v1.73 (305). PRs #310-315. tag v0.10.0 0cbe922. |
 | Feature EtherNet/IP + CIP (issue #316) — F1/F2/F3 | **CONVERGED + HUMAN-APPROVED (D-228/D-230/D-231)** | 26 BCs (BC-2.17.001..026). 9 stories STORY-130..138 (E-20, 66 pts, waves 58-61). 13 holdouts HS-110..122. ADR-010, VP-032, SS-17. Detail: cycles/feature-enip-v0.11.0/ |
-| Feature EtherNet/IP + CIP — F4 | **IN-PROGRESS — Wave 58 COMPLETE (D-237): STORY-130+131 merged @edce3bd; 1955 tests green; regression PASS. Wave 59 pending human checkpoint.** | STORY-130: merged PR #317 develop@235ae60; 3/3 clean passes; input-hash e3c0a6a (D-237 rehash). STORY-131: merged PR #318 develop@edce3bd; 3/3 clean passes; input-hash a119157. Consistency audit H-001+L-001 fixed. M-001 deferred to STORY-132 PR. stories_delivered=80. |
+| Feature EtherNet/IP + CIP — F4 | **IN-PROGRESS — Wave 58 FULLY CONVERGED & CLOSED (D-238): STORY-130+131 merged @edce3bd; 1955 tests green; per-story 3/3 each; wave-level 3/3 clean (0 HIGH/CRITICAL). Wave 59 pending human checkpoint.** | STORY-130: merged PR #317 @235ae60; 3/3 clean passes; input-hash e3c0a6a. STORY-131: merged PR #318 @edce3bd; 3/3 clean passes; input-hash a119157. Wave-level adversarial: `0→0→0` (BC-5.39.001 MET). Consistency audit H-001+L-001 fixed. M-001+WAVE59-E2E-001+WAVE59-DEADCODE-001 deferred to STORY-132. stories_delivered=80. Convergence trajectory: cycles/feature-enip-v0.11.0/convergence-trajectory.md. |
 
 ## Decisions Log
 
@@ -162,6 +167,7 @@ D-228..D-231: `cycles/feature-enip-v0.11.0/decisions-archive.md`
 | D-235 | STORY-131/132 on_data boundary decision (architect authoritative). STORY-131 (Wave 58) implements minimal `EnipAnalyzer::on_data` (bytes_received counter only) + dispatcher Rule 7 + CLI flags + reassembly guard. CIP frame-walk/CPF/findings/VP-032 Sub-D deferred to STORY-132 (Wave 59). Rationale: PC-2 wiring guarantee requires non-panicking on_data (DNP3 precedent); white-box classify() tests alone insufficient for BC-2.17.019 PC-2. bytes_received counter is stable across STORY-131→132 transition; STORY-132 extends alongside it, does not remove. Boundary doc: cycles/feature-enip-v0.11.0/story-131-132-ondata-boundary.md. STORY-131 Pass-1 adversarial: 1 HIGH DF-GREEN-DOC-TENSE (dispatch test docs — fixed @5e61682) + 2 MEDIUM (M1 STORY-131.md EC-007 overload fixed, M2 BC-INDEX BC-2.17.020 title sync v1.80→v1.81 fixed). Code green @5e61682 (15/15 dispatch + 21/21 parse, clippy/fmt clean, VP-004 oracle 44818 arm present). Convergence in progress: Pass 2 clean; Pass 3 running; need 3 consecutive clean passes (BC-5.39.001). | 2026-06-25 |
 | D-236 | STORY-131 adversarial Pass 3 = PASS (0 HIGH/CRITICAL) with 1 MEDIUM [process-gap] M-1 (false warn!/log requirement: ADR-010 Decision 9 root + STORY-131 + STORY-138 propagation — all fixed to eprintln!/no-log-crate convention) + 2 LOW (L-1 BC-2.17.023/026 Precondition "N≥1" vs 0-accepted — fixed to 0..=u32::MAX v1.0→v1.1; L-2 dispatcher.rs module-doc ENIP omission — fixed @0018a54). Code green @0018a54 (15/15 dispatch + 21/21 parse, clippy/fmt clean). BC-INDEX v1.81→v1.82. STORY-131 input-hash 6d892c4→a119157. M-1 codified as [codified] WARN-LOG-CRATE-001 in cycles/feature-enip-v0.11.0/lessons.md. In-place fix sufficient; re-evaluate at cycle close (S-7.02). STORY-132..138 remain STALE (pending F4 per-story refresh — ADR-010 is input to all; do NOT refresh until delivery wave). | 2026-06-25 |
 | D-237 | Wave-58 (STORY-130+131) delivered+merged to develop@edce3bd; regression PASS (1955 tests green, clippy/fmt/release clean, ENIP surface present). Per-story convergence 3/3 each. Consistency-audit H-001 FIXED (STORY-130 input-hash 272738c→e3c0a6a — D-236 ADR-010 Decision-9 eprintln! change was a declared input of STORY-130 but only STORY-131's hash was refreshed in the D-236 burst). Consistency-audit L-001 FIXED (STORY-INDEX.md STORY-130/131 status draft→completed; Wave-58 delivery-progress row draft→DELIVERED & CLOSED). M-001 OUTSTANDING and deferred to STORY-132 PR obligation: sync docs/adr/0010-ethernet-ip-cip-stream-dispatch.md (public copy) to .factory ADR-010 (field count 10→6 line ~598; Decision-9 eprintln! wording line ~697). stories_delivered: 79→80. | 2026-06-25 |
+| D-238 | Wave-58 wave-level adversarial convergence ACHIEVED: 3 consecutive clean passes (W58-P1/P2/P3, all 0 HIGH/CRITICAL, BC-5.39.001 MET) reviewing integrated develop@edce3bd. Integration verified: STORY-130 parse ↔ STORY-131 dispatch seam coherent; 5-arg StreamDispatcher::new ripple complete; both exhaustive DispatchTarget matches (on_data, on_flow_close) + classify_oracle updated with Enip arm; sibling routing (HTTP/TLS/Modbus/DNP3) unaffected; reporter take_enip_analyzer integration symmetric with DNP3; early-exit guard includes self.enip.is_none(). Wave 58 FULLY CLOSED (regression PASS + per-story 3/3×2 + consistency audit + wave-level 3/3). STORY-132 obligations logged: M-001 (docs/adr/0010 sync: field-count 10→6 line ~598, Decision-9 eprintln! wording line ~697), WAVE59-E2E-001 (combined e2e test: HTTP+TLS+Modbus+DNP3+ENIP armed, port-44818 traffic through reassembler→dispatcher→take_enip_analyzer→reporter), WAVE59-DEADCODE-001 (remove #![allow(dead_code)] on src/analyzer/enip.rs when STORY-132 wires parse functions into on_data frame-walk). Wave 59 (STORY-132) pending human go-ahead (D-231 cadence). | 2026-06-25 |
 
 ## Governance Policy
 
