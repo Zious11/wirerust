@@ -14,6 +14,7 @@
 pub mod arp;
 pub mod dnp3;
 pub mod dns;
+pub mod enip;
 pub mod http;
 pub mod modbus;
 pub mod tls;
