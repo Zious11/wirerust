@@ -366,11 +366,10 @@ impl StreamHandler for StreamDispatcher {
             DispatchTarget::Enip => {
                 // BC-2.17.019 §P2: route a port-44818-classified flow's data to
                 // EnipAnalyzer; no-op if disabled. Detection logic (frame-walk, CIP
-                // parse) is added by STORY-132+. Stub: todo!() body deferred.
-                if let Some(ref mut _enip) = self.enip {
-                    todo!(
-                        "EnipAnalyzer::on_data — STORY-132 implements frame-walk and CIP dispatch"
-                    );
+                // parse) is added by STORY-132+. This arm increments bytes_received
+                // to evidence PC-2 routing correctness (STORY-131 boundary decision).
+                if let Some(ref mut enip) = self.enip {
+                    enip.on_data(flow_key.clone(), data, timestamp);
                 }
             }
             DispatchTarget::None => {}

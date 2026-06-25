@@ -176,14 +176,15 @@ use crate::findings::Finding;
 /// EtherNet/IP stream analyzer aggregate.
 ///
 /// Receives reassembled TCP bytes for port-44818 flows (via `StreamDispatcher`
-/// Rule 7 after STORY-131) and accumulates detection findings.
+/// Rule 7, wired in STORY-131) and accumulates detection findings.
 ///
 /// Threshold fields are populated from CLI flags (BC-2.17.023 / BC-2.17.026):
 /// - `enip_write_burst_threshold` — T0836 write-burst threshold (default 50).
 /// - `enip_error_burst_threshold` — T0888 error-burst threshold (default 5).
 ///
 /// Detection logic (frame-walk, CIP parse, MITRE detections) is added by
-/// STORY-132–137. This stub carries the structural skeleton only.
+/// STORY-132–137. This struct carries the dispatcher wiring and byte-count
+/// observable for STORY-131; CIP frame parsing is deferred to STORY-132+.
 ///
 /// BC-2.17.019 §P2–P3 / BC-2.17.020 §P1 / BC-2.17.023 §P1 / BC-2.17.026 §P1.
 pub struct EnipAnalyzer {
@@ -197,10 +198,8 @@ pub struct EnipAnalyzer {
     ///
     /// Observable for BC-2.17.019 PC-2 integration tests (STORY-131 boundary decision):
     /// `bytes_received > 0` after `dispatcher.on_data()` confirms the wiring arm fired.
-    /// Incremented by `on_data` (STORY-131 implementer wires this). Stable across
-    /// STORY-131 → STORY-132: STORY-132 adds frame-walk alongside this counter.
-    // STORY-131 implementer wires this
-    #[allow(dead_code)]
+    /// Incremented by `on_data` via saturating_add. Stable across STORY-131 → STORY-132:
+    /// STORY-132 adds frame-walk alongside this counter.
     pub bytes_received: u64,
 }
 
@@ -221,6 +220,30 @@ impl EnipAnalyzer {
             all_findings: Vec::new(),
             bytes_received: 0,
         }
+    }
+
+    /// Receive reassembled TCP bytes for a port-44818 flow.
+    ///
+    /// Increments `bytes_received` by `data.len()` (saturating add) to evidence
+    /// BC-2.17.019 PC-2 routing correctness. Full CIP frame-walk and detection
+    /// logic are added by STORY-132+; this stub satisfies the dispatcher wiring
+    /// contract for STORY-131.
+    ///
+    /// `flow_key` and `timestamp` are accepted to match the DNP3 `on_data`
+    /// signature (ADR-010 Decision 9; STORY-131 boundary decision), but are
+    /// not consumed until STORY-132 adds the frame-walk loop.
+    ///
+    /// WIRING-EXEMPT: single saturating_add with no I/O; ≤ 3 lines.
+    ///
+    /// # Traces
+    /// BC-2.17.019 §P2 (routing confirmation); AC-131-001 observable.
+    pub fn on_data(
+        &mut self,
+        _flow_key: crate::reassembly::flow::FlowKey,
+        data: &[u8],
+        _timestamp: u32,
+    ) {
+        self.bytes_received = self.bytes_received.saturating_add(data.len() as u64);
     }
 
     /// Produce an end-of-capture summary for the ENIP analyzer.
