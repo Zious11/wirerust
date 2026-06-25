@@ -167,8 +167,15 @@ pub fn is_valid_enip_frame(h: &EnipHeader) -> bool {
 }
 
 // ---------------------------------------------------------------------------
-// Aggregate analyzer struct (STORY-131 — BC-2.17.019/020/023/026)
+// Module-level constant
 // ---------------------------------------------------------------------------
+
+/// Maximum number of findings accumulated per `EnipAnalyzer` instance.
+///
+/// Mirrors `dnp3::MAX_FINDINGS` (10_000) — consistent DoS cap across analyzers
+/// (BC-2.17.022; ADR-010 Decision 5). Every `all_findings.push` is gated on
+/// `all_findings.len() < MAX_FINDINGS`.
+pub const MAX_FINDINGS: usize = 10_000;
 
 use std::collections::HashMap;
 use std::net::IpAddr;
@@ -403,16 +410,187 @@ impl EnipAnalyzer {
     /// BC-2.17.008, BC-2.17.010, BC-2.17.014; ADR-010 Decision 6 (detection order).
     pub fn process_pdu(
         &mut self,
-        _flow: &mut EnipFlowState,
-        _pdu: &[u8],
-        _timestamp: u32,
-        _src_ip: IpAddr,
+        flow: &mut EnipFlowState,
+        pdu: &[u8],
+        timestamp: u32,
+        src_ip: IpAddr,
     ) {
-        todo!(
-            "STORY-134: implement T0846/T0888 detection dispatch \
-             (BC-2.17.010 ListIdentity, BC-2.17.008 error accumulation, \
-             BC-2.17.014 Pattern A Identity read + Pattern B error burst)"
-        )
+        // ADR-010 Decision 6, step 1: is_non_enip gate — suppress all detection on
+        // flows flagged as non-ENIP (BC-2.17.010 precondition 2; BC-2.17.014 precondition 5).
+        if flow.is_non_enip {
+            return;
+        }
+
+        // ADR-010 Decision 6, step 1: parse ENIP header; silently drop frames < 24 bytes.
+        let header = match parse_enip_header(pdu) {
+            Some(h) => h,
+            None => return,
+        };
+
+        // ADR-010 Decision 6, step 2: classify command; T0846 ListIdentity detection
+        // (BC-2.17.010). SINGLE-INCREMENT NOTE: command_counts is NOT touched here;
+        // that increment belongs to the frame-walk in on_data (STORY-137, BC-2.17.016 PC-0).
+        let cmd_class = classify_enip_command(header.command);
+        if matches!(cmd_class, EnipCommandClass::ListIdentity) {
+            // BC-2.17.010 postcondition 2: one-shot guard + MAX_FINDINGS gate.
+            if !flow.list_identity_emitted && self.all_findings.len() < MAX_FINDINGS {
+                self.all_findings.push(Finding {
+                    category: crate::findings::ThreatCategory::Reconnaissance,
+                    verdict: crate::findings::Verdict::Likely,
+                    confidence: crate::findings::Confidence::High,
+                    summary: "EtherNet/IP ListIdentity broadcast observed: \
+                              network-wide device enumeration (T0846)"
+                        .to_string(),
+                    evidence: vec![format!(
+                        "ENIP command=0x0063 (ListIdentity) src={src_ip} \
+                         session={session}",
+                        session = header.session_handle
+                    )],
+                    mitre_techniques: vec!["T0846".to_string()],
+                    source_ip: Some(src_ip),
+                    timestamp: chrono::DateTime::from_timestamp(timestamp as i64, 0),
+                    direction: None,
+                });
+                // BC-2.17.010 postcondition 2 last line: set one-shot guard only after
+                // successful push.
+                flow.list_identity_emitted = true;
+            }
+            // BC-2.17.010 postcondition 3: ListIdentity frames after guard set produce no
+            // additional finding. Return after ENIP-layer detection; no CPF parse needed.
+            return;
+        }
+
+        // ADR-010 Decision 6, steps 3–6: for SendRRData/SendUnitData, walk CPF items.
+        // CPF data starts at pdu[30..]: ENIP header (24) + Interface Handle (4) + Timeout (2).
+        if !matches!(
+            cmd_class,
+            EnipCommandClass::SendRRData | EnipCommandClass::SendUnitData
+        ) {
+            return;
+        }
+
+        // BC-2.17.005: CPF payload begins after the 6-byte SendRRData-specific header
+        // (Interface Handle u32 + Timeout u16) that follows the 24-byte ENIP header.
+        const CPF_OFFSET: usize = 24 + 4 + 2; // 30
+        if pdu.len() <= CPF_OFFSET {
+            return;
+        }
+        let cpf_data = &pdu[CPF_OFFSET..];
+        let items = parse_cpf_items(cpf_data);
+
+        for item in &items {
+            // F-P9-001 gate: only 0x00B2 (Unconnected Data Item) in v0.11.0.
+            if item.type_id != 0x00B2 {
+                continue;
+            }
+
+            let item_data = &item.data;
+
+            // ADR-010 Decision 6, step 4: parse CIP header.
+            let cip_hdr = match parse_cip_header(item_data) {
+                Some(h) => h,
+                None => continue,
+            };
+
+            let service_class = classify_cip_service(cip_hdr.service);
+
+            if matches!(service_class, CipServiceClass::Response) {
+                // BC-2.17.008: error accumulation for CIP responses.
+                // Precondition 3: need at least 4 bytes to read general_status at byte 2.
+                if item_data.len() < 4 {
+                    continue;
+                }
+                let general_status = item_data[2];
+
+                if general_status != 0x00 {
+                    // BC-2.17.008 postcondition 4: check for window expiry BEFORE updating
+                    // counters. Only applicable when an active window exists (start_ts != 0).
+                    if flow.error_window_start_ts != 0
+                        && timestamp.wrapping_sub(flow.error_window_start_ts) > 10
+                    {
+                        flow.error_counts_in_window.clear();
+                        flow.error_window_start_ts = timestamp;
+                        flow.error_rate_emitted = false;
+                    }
+
+                    // BC-2.17.008 postcondition 2: accumulate error.
+                    *flow
+                        .error_counts_in_window
+                        .entry(general_status)
+                        .or_insert(0) += 1;
+                    // BC-2.17.008 postcondition 2: seed window timestamp on first error.
+                    if flow.error_window_start_ts == 0 {
+                        flow.error_window_start_ts = timestamp;
+                    }
+                    // BC-2.17.008 postcondition 2b: aggregate lifetime counter.
+                    self.error_count += 1;
+
+                    // BC-2.17.014 Pattern B: burst threshold check (strict >).
+                    let total: u64 = flow.error_counts_in_window.values().sum();
+                    if total > self.enip_error_burst_threshold as u64
+                        && !flow.error_rate_emitted
+                        && self.all_findings.len() < MAX_FINDINGS
+                    {
+                        self.all_findings.push(Finding {
+                            category: crate::findings::ThreatCategory::Reconnaissance,
+                            verdict: crate::findings::Verdict::Possible,
+                            confidence: crate::findings::Confidence::Medium,
+                            summary: format!(
+                                "CIP error-response burst: {total} error responses in 10s window \
+                                 — possible service enumeration (T0888)"
+                            ),
+                            evidence: vec![format!(
+                                "error_counts_in_window={:?} within 10s; possible service probe",
+                                flow.error_counts_in_window
+                            )],
+                            mitre_techniques: vec!["T0888".to_string()],
+                            source_ip: Some(src_ip),
+                            timestamp: chrono::DateTime::from_timestamp(timestamp as i64, 0),
+                            direction: None,
+                        });
+                        // BC-2.17.014 Pattern B postcondition 2: one-shot guard.
+                        flow.error_rate_emitted = true;
+                    }
+                }
+            } else {
+                // ADR-010 Decision 6, step 5: T0888 Pattern A — GetAttribute to Identity Object.
+                // BC-2.17.014 Pattern A preconditions 1–3: GetAttribute service, request (high
+                // bit clear), and Class(0x01) in path.
+                if matches!(
+                    service_class,
+                    CipServiceClass::GetAttributesAll
+                        | CipServiceClass::GetAttributeList
+                        | CipServiceClass::GetAttributeSingle
+                ) && cip_hdr.service & 0x80 == 0
+                {
+                    let path_segments = parse_cip_request_path(&cip_hdr.request_path);
+                    let targets_identity = path_segments
+                        .iter()
+                        .any(|seg| matches!(seg, CipPathSegment::Class(0x01)));
+
+                    if targets_identity && self.all_findings.len() < MAX_FINDINGS {
+                        self.all_findings.push(Finding {
+                            category: crate::findings::ThreatCategory::Reconnaissance,
+                            verdict: crate::findings::Verdict::Likely,
+                            confidence: crate::findings::Confidence::High,
+                            summary: "CIP Identity Object attribute read: \
+                                      single-device reconnaissance (T0888)"
+                                .to_string(),
+                            evidence: vec![format!(
+                                "CIP service=0x{service:02X} ({name}) path targets Identity \
+                                 Object (class 0x01) src={src_ip}",
+                                service = cip_hdr.service,
+                                name = service_class_name(service_class),
+                            )],
+                            mitre_techniques: vec!["T0888".to_string()],
+                            source_ip: Some(src_ip),
+                            timestamp: chrono::DateTime::from_timestamp(timestamp as i64, 0),
+                            direction: None,
+                        });
+                    }
+                }
+            }
+        }
     }
 
     /// Produce an end-of-capture summary for the ENIP analyzer.
@@ -433,6 +611,36 @@ impl EnipAnalyzer {
             packets_analyzed: 0,
             detail: BTreeMap::new(),
         }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Private helper — CIP service class display name (STORY-134)
+// ---------------------------------------------------------------------------
+
+/// Map a `CipServiceClass` to a short human-readable name string for evidence fields.
+///
+/// Used by `process_pdu` to format T0888 Pattern A evidence.
+/// Returns a static string — no allocation on the common path.
+///
+/// Traces: BC-2.17.014 Pattern A postcondition 1 (evidence field).
+fn service_class_name(class: CipServiceClass) -> &'static str {
+    match class {
+        CipServiceClass::GetAttributesAll => "GetAttributesAll",
+        CipServiceClass::GetAttributeList => "GetAttributeList",
+        CipServiceClass::GetAttributeSingle => "GetAttributeSingle",
+        CipServiceClass::SetAttributesAll => "SetAttributesAll",
+        CipServiceClass::SetAttributeList => "SetAttributeList",
+        CipServiceClass::SetAttributeSingle => "SetAttributeSingle",
+        CipServiceClass::Reset => "Reset",
+        CipServiceClass::Stop => "Stop",
+        CipServiceClass::MultipleServicePacket => "MultipleServicePacket",
+        CipServiceClass::GetAndClear => "GetAndClear",
+        CipServiceClass::ForwardClose => "ForwardClose",
+        CipServiceClass::ForwardOpen => "ForwardOpen",
+        CipServiceClass::LargeForwardOpen => "LargeForwardOpen",
+        CipServiceClass::Response => "Response",
+        CipServiceClass::Unknown => "Unknown",
     }
 }
 
