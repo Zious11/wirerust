@@ -6,8 +6,8 @@
 //! Test naming: `test_BC_S_SS_NNN_xxx` or AC-cited name from STORY-130 **Test:** fields
 //! (DF-AC-TEST-NAME-SYNC-001).
 //!
-//! All functions under test use `todo!()` bodies — every test MUST fail (Red Gate).
-//! Tests MUST compile. Tests MUST NOT pass before implementation.
+//! GREEN phase: production functions in `src/analyzer/enip.rs` are implemented; all 21 tests pass.
+//! These tests originated as Red-Gate stubs against `todo!()` bodies (STORY-130 Red Gate commit 09d5be9).
 
 use wirerust::analyzer::enip::{
     EnipCommandClass, EnipHeader, classify_enip_command, is_valid_enip_frame, parse_enip_header,
