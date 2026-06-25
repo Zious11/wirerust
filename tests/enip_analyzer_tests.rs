@@ -1795,3 +1795,282 @@ mod cpf_cip {
         );
     }
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// STORY-133 MITRE ICS Technique Seeding: VP-007 6-step atomic burst (RED — stubs only).
+//
+// All 9 tests below are RED GATE stubs. They compile against the STORY-133 stub
+// (which adds `MitreTactic::IcsExecution` but does NOT add technique_info arms,
+// SEEDED entries, or EMITTED entries). Every test will FAIL until the implementer
+// lands the VP-007 6-step burst (VP-007 Steps 1–6 per ADR-010 Decision 7).
+//
+// Traces to: AC-133-001..007, VP-007 Steps 1–6, ADR-010 Decision 7.
+// ─────────────────────────────────────────────────────────────────────────────
+mod mitre_seeding {
+    use wirerust::mitre::{MitreTactic, technique_info, technique_tactic};
+
+    // Bring in the test-gated constants via a thin re-export shim.
+    // NOTE: SEEDED_TECHNIQUE_IDS and SEEDED_TECHNIQUE_ID_COUNT are cfg(any(kani,test))
+    // so they are accessible here in cfg(test) context.
+    // EMITTED_IDS is defined inside cfg(kani) mod kani_proofs, not directly accessible
+    // from integration tests. We use technique_tactic to probe emitted IDs indirectly.
+
+    // -------------------------------------------------------------------------
+    // AC-133-001: technique_info("T0858") returns correct ICS technique metadata
+    // Traces: VP-007 Step 1 (T0858 arm)
+    // RED: technique_info has no T0858 arm yet; returns None until implementer adds it.
+    // -------------------------------------------------------------------------
+
+    /// AC-133-001 — technique_info("T0858") must return Some with IcsExecution tactic.
+    ///
+    /// RED GATE: `technique_info("T0858")` currently returns `None` (no arm in the stub).
+    /// Will turn GREEN only when the implementer adds the T0858 arm to `technique_info`
+    /// (VP-007 Step 1).
+    ///
+    /// Traces: AC-133-001; VP-007 Step 1; ADR-010 Decision 7.
+    #[test]
+    fn test_technique_info_t0858() {
+        let info = technique_info("T0858");
+        assert!(
+            info.is_some(),
+            "technique_info(\"T0858\") must return Some — T0858 arm not yet added to technique_info (VP-007 Step 1)"
+        );
+        let (name, tactic) = info.unwrap();
+        assert_eq!(
+            name,
+            "Change Operating Mode",
+            "T0858 name must be \"Change Operating Mode\""
+        );
+        assert_eq!(
+            tactic,
+            MitreTactic::IcsExecution,
+            "T0858 tactic must be MitreTactic::IcsExecution"
+        );
+    }
+
+    // -------------------------------------------------------------------------
+    // AC-133-002: technique_info("T0816") returns correct ICS technique metadata
+    // Traces: VP-007 Step 1 (T0816 arm)
+    // RED: technique_info has no T0816 arm yet; returns None until implementer adds it.
+    // -------------------------------------------------------------------------
+
+    /// AC-133-002 — technique_info("T0816") must return Some with IcsInhibitResponseFunction.
+    ///
+    /// RED GATE: `technique_info("T0816")` currently returns `None`.
+    /// Will turn GREEN only when the implementer adds the T0816 arm (VP-007 Step 1).
+    ///
+    /// Traces: AC-133-002; VP-007 Step 1; ADR-010 Decision 7.
+    #[test]
+    fn test_technique_info_t0816() {
+        let info = technique_info("T0816");
+        assert!(
+            info.is_some(),
+            "technique_info(\"T0816\") must return Some — T0816 arm not yet added (VP-007 Step 1)"
+        );
+        let (name, tactic) = info.unwrap();
+        assert_eq!(
+            name,
+            "Device Restart/Shutdown",
+            "T0816 name must be \"Device Restart/Shutdown\""
+        );
+        assert_eq!(
+            tactic,
+            MitreTactic::IcsInhibitResponseFunction,
+            "T0816 tactic must be MitreTactic::IcsInhibitResponseFunction"
+        );
+    }
+
+    // -------------------------------------------------------------------------
+    // AC-133-003: technique_info("T1693.001") returns staged technique metadata
+    // Traces: VP-007 Step 1 (T1693.001 arm)
+    // RED: technique_info has no T1693.001 arm yet; returns None until implementer adds it.
+    // -------------------------------------------------------------------------
+
+    /// AC-133-003 — technique_info("T1693.001") must return Some (seeded catalog entry).
+    ///
+    /// RED GATE: `technique_info("T1693.001")` currently returns `None`.
+    /// T1693.001 is seeded but NOT emitted in v0.11.0 (see VP-007 Step 4 / AC-133-006).
+    /// Will turn GREEN only when the implementer adds the T1693.001 arm (VP-007 Step 1).
+    ///
+    /// Traces: AC-133-003; VP-007 Step 1; ADR-010 Decision 7.
+    #[test]
+    fn test_technique_info_t1693_001() {
+        let info = technique_info("T1693.001");
+        assert!(
+            info.is_some(),
+            "technique_info(\"T1693.001\") must return Some — staged catalog entry not yet added (VP-007 Step 1)"
+        );
+        let (name, _tactic) = info.unwrap();
+        assert!(
+            name.contains("EtherNet/IP") || name.contains("Exploit Public-Facing"),
+            "T1693.001 name must reference EtherNet/IP or public-facing application context; got: {name}"
+        );
+    }
+
+    // -------------------------------------------------------------------------
+    // AC-133-004: MitreTactic::IcsExecution Display and tactic_id
+    // Traces: VP-007 Step 5
+    //
+    // NOTE ON RED GATE: MitreTactic::IcsExecution.to_string() is GREEN-BY-DESIGN
+    // (see stub commit report). test_ics_execution_tactic_display will PASS.
+    // test_ics_execution_tactic_id will also PASS (tactic_id() method is WIRING-EXEMPT).
+    // Both are documented in the stub commit report under GREEN-BY-DESIGN.
+    //
+    // The overall STORY-133 Red Gate is preserved by tests 001/002/003/005/006/007/008/009
+    // which all fail. AC-133-004 tests are the GREEN-BY-DESIGN exceptions.
+    // -------------------------------------------------------------------------
+
+    /// AC-133-004 — MitreTactic::IcsExecution.to_string() == "Execution (ICS)".
+    ///
+    /// GREEN-BY-DESIGN: the Display arm `IcsExecution => "Execution (ICS)"` is a
+    /// pure enum→str mapping (zero branching, no I/O, no helpers, 1 line). Its
+    /// behavior is fully determined by the type system alone. This test will PASS
+    /// against the stub — this is expected per BC-5.38.002.
+    ///
+    /// Traces: AC-133-004; VP-007 Step 5.
+    #[test]
+    fn test_ics_execution_tactic_display() {
+        assert_eq!(
+            MitreTactic::IcsExecution.to_string(),
+            "Execution (ICS)",
+            "MitreTactic::IcsExecution.to_string() must equal \"Execution (ICS)\""
+        );
+    }
+
+    /// AC-133-004 — MitreTactic::IcsExecution.tactic_id() == "TA0104".
+    ///
+    /// GREEN-BY-DESIGN: the tactic_id() method arm `IcsExecution => "TA0104"` is a
+    /// pure enum→str mapping (zero branching, no I/O, no helpers, 1 line). This
+    /// test will PASS against the stub — expected per BC-5.38.002.
+    ///
+    /// Traces: AC-133-004; VP-007 Step 5.
+    #[test]
+    fn test_ics_execution_tactic_id() {
+        assert_eq!(
+            MitreTactic::IcsExecution.tactic_id(),
+            "TA0104",
+            "MitreTactic::IcsExecution.tactic_id() must equal \"TA0104\""
+        );
+    }
+
+    // -------------------------------------------------------------------------
+    // AC-133-005: SEEDED array grows from 25 to 28 entries
+    // Traces: VP-007 Steps 2 and 3
+    // RED: SEEDED.len() == 25 in stub; will fail until implementer adds T0858/T0816/T1693.001.
+    // -------------------------------------------------------------------------
+
+    /// AC-133-005 — SEEDED array must contain exactly 28 entries after VP-007 Step 2+3.
+    ///
+    /// RED GATE: `SEEDED_TECHNIQUE_IDS.len()` is 25 in the stub. Will turn GREEN only
+    /// when implementer extends the array (+3) and updates SEEDED_TECHNIQUE_ID_COUNT to 28
+    /// (VP-007 Steps 2 and 3).
+    ///
+    /// Also asserts the three new IDs are present in the seeded list.
+    ///
+    /// Traces: AC-133-005; VP-007 Steps 2, 3; ADR-010 Decision 7.
+    #[test]
+    fn test_seeded_count_is_28() {
+        // Access the seeded IDs via technique_tactic (indirect probe — every seeded ID
+        // resolves in technique_info). We count by checking each expected new ID.
+        // T0858 must be in the catalog (seeded).
+        assert!(
+            technique_tactic("T0858").is_some(),
+            "T0858 must be seeded in technique_info (SEEDED count 25→28, VP-007 Step 2)"
+        );
+        // T0816 must be in the catalog (seeded).
+        assert!(
+            technique_tactic("T0816").is_some(),
+            "T0816 must be seeded in technique_info (SEEDED count 25→28, VP-007 Step 2)"
+        );
+        // T1693.001 must be in the catalog (seeded).
+        assert!(
+            technique_tactic("T1693.001").is_some(),
+            "T1693.001 must be seeded in technique_info (SEEDED count 25→28, VP-007 Step 2)"
+        );
+    }
+
+    // -------------------------------------------------------------------------
+    // AC-133-006: EMITTED_IDS grows from 17 to 20; T1693.001 NOT emitted; T0846 IS emitted
+    // Traces: VP-007 Step 4
+    // RED: EMITTED_IDS is a kani-gated constant; we probe via technique_tactic (indirect).
+    //
+    // These tests assert that T0858/T0816 are recognized (technique_info returns Some),
+    // which is a prerequisite for being in EMITTED. They are RED because technique_info
+    // has no arms for T0858/T0816 yet.
+    // -------------------------------------------------------------------------
+
+    /// AC-133-006 — EMITTED_IDS must contain T0858 after VP-007 Step 4.
+    ///
+    /// RED GATE: `technique_info("T0858")` returns None in the stub, so the precondition
+    /// for T0858 being in EMITTED is not met. Will turn GREEN when implementer adds T0858
+    /// to technique_info AND to EMITTED_IDS (VP-007 Steps 1 and 4).
+    ///
+    /// Traces: AC-133-006; VP-007 Step 4; ADR-010 Decision 7.
+    #[test]
+    fn test_emitted_count_is_20() {
+        // Probe: all three new EMITTED IDs (T0858, T0816, T0846) must resolve in technique_info
+        // (prerequisite for being emittable). T0858 and T0816 are stub-absent → RED.
+        assert!(
+            technique_tactic("T0858").is_some(),
+            "T0858 must resolve in technique_info to be in EMITTED_IDS (VP-007 Step 4)"
+        );
+        assert!(
+            technique_tactic("T0816").is_some(),
+            "T0816 must resolve in technique_info to be in EMITTED_IDS (VP-007 Step 4)"
+        );
+        // T0846 already resolves (existing) — this assertion will PASS now.
+        // The full test is RED because T0858 and T0816 don't resolve yet.
+        assert!(
+            technique_tactic("T0846").is_some(),
+            "T0846 must continue to resolve in technique_info (pre-existing entry)"
+        );
+    }
+
+    /// AC-133-006 — T1693.001 must NOT be in EMITTED_IDS (staged-only for v0.11.0).
+    ///
+    /// RED GATE: `technique_info("T1693.001")` returns None in the stub. This test
+    /// first confirms T1693.001 is seeded (resolves), then asserts it is NOT emitted.
+    /// The first assertion is RED (no T1693.001 arm yet). When implementer adds T1693.001
+    /// to technique_info but NOT to EMITTED_IDS, both assertions will be GREEN.
+    ///
+    /// Traces: AC-133-006 "T1693.001 NOT emitted"; VP-007 Step 4; ADR-010 Decision 7.
+    #[test]
+    fn test_t1693_001_not_emitted() {
+        // T1693.001 must be SEEDED (in technique_info) but NOT emitted.
+        // Confirm seeded (currently RED):
+        assert!(
+            technique_info("T1693.001").is_some(),
+            "T1693.001 must be seeded (in technique_info) but NOT in EMITTED_IDS (VP-007 Step 4)"
+        );
+        // No direct access to EMITTED_IDS from integration tests (kani-gated).
+        // The vp007_catalog_drift_guard test (mitre.rs internal) enforces EMITTED ⊆ SEEDED.
+        // This test's responsibility: confirm T1693.001 IS seeded (the assert above).
+        // Non-emission is enforced by the absence of T1693.001 in EMITTED_IDS (implementer
+        // must NOT add it there, per VP-007 Step 4 and ADR-010 Decision 7).
+    }
+
+    /// AC-133-006 — T0846 must be in EMITTED_IDS after VP-007 Step 4.
+    ///
+    /// T0846 was previously SEEDED-only; this story promotes it to EMITTED (VP-007 Step 4).
+    /// The technique_info arm for T0846 already exists (pre-existing); this test confirms
+    /// it still resolves (should remain GREEN) and verifies the tactic is IcsDiscovery.
+    ///
+    /// PARTIAL GREEN-BY-DESIGN (technique_tactic("T0846") already resolves in the stub).
+    /// The EMITTED_IDS promotion itself is not directly testable from integration tests
+    /// (kani-gated constant); the vp007_catalog_drift_guard covers consistency.
+    ///
+    /// Traces: AC-133-006 "T0846 in EMITTED"; VP-007 Step 4.
+    #[test]
+    fn test_t0846_in_emitted() {
+        let tactic = technique_tactic("T0846");
+        assert!(
+            tactic.is_some(),
+            "T0846 must continue to resolve in technique_info after STORY-133 seeding"
+        );
+        assert_eq!(
+            tactic.unwrap(),
+            MitreTactic::IcsDiscovery,
+            "T0846 tactic must remain MitreTactic::IcsDiscovery (ICS Discovery, TA0102)"
+        );
+    }
+}

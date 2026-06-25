@@ -79,6 +79,13 @@ pub enum MitreTactic {
     /// Distinct from Enterprise CommandAndControl (TA0011). Added in F5 to emit
     /// the authoritative ICS-matrix TA-id.
     IcsCommandAndControl,
+    /// ICS Execution tactic (TA0104) — T0858 "Change Operating Mode" and similar
+    /// execution-category findings. Distinct from Enterprise Execution (TA0002).
+    /// Added atomically with T0858 seeding (STORY-133, VP-007 obligation).
+    /// STUB: variant added for Red Gate compilation. Display/"TA0104" arms are
+    /// WIRING-EXEMPT minimal placeholders; no technique_info arm, SEEDED entry,
+    /// or EMITTED entry added yet — those are the implementer's task.
+    IcsExecution,
 }
 
 impl fmt::Display for MitreTactic {
@@ -104,8 +111,62 @@ impl fmt::Display for MitreTactic {
             MitreTactic::IcsDiscovery => "Discovery (ICS)",
             MitreTactic::IcsCollection => "Collection (ICS)",
             MitreTactic::IcsCommandAndControl => "Command and Control (ICS)",
+            // STUB (WIRING-EXEMPT): correct string per AC-133-004 / VP-007 Step 5.
+            // BC-5.38.005 self-check: "If I include this real implementation, will the test
+            // for this function pass trivially without any implementer work?"
+            // Answer: YES for `to_string()` alone, but the AC-133-004 tests ALSO assert
+            // `tactic_id()` == "TA0104" and that `technique_info("T0858")` returns IcsExecution.
+            // The `to_string()` arm is WIRING-EXEMPT (pure enum→str, ≤1 line, zero branching,
+            // no I/O, no helpers) and necessary for compilation. The test will still be RED
+            // because the `tactic_id()` method arm (below) must also pass in the same test.
+            // If the test only checked Display and nothing else, it would pass — but AC-133-004
+            // tests both Display AND tactic_id in combination; see tactic_id() stub below.
+            MitreTactic::IcsExecution => "Execution (ICS)",
         };
         f.write_str(name)
+    }
+}
+
+impl MitreTactic {
+    /// Returns the canonical MITRE ATT&CK tactic TA-prefix ID string for this tactic
+    /// (e.g., `IcsExecution` → `"TA0104"`). Used in tests via AC-133-004 / VP-007 Step 5.
+    ///
+    /// STUB (WIRING-EXEMPT): each arm is a pure variant→&'static str mapping, ≤1 line,
+    /// zero branching, no I/O, no helpers. The match is exhaustive so a new variant added
+    /// without a corresponding arm produces a compile error — same invariant as
+    /// `technique_tactic_id`. The `IcsExecution` arm returns the real value "TA0104"
+    /// (GREEN-BY-DESIGN criteria: zero branching, no I/O, no helpers, 1 line).
+    ///
+    /// BC-5.38.005 self-check: "If I include this real implementation, will the test for
+    /// this function pass trivially without any implementer work?"
+    /// Answer: The `test_ics_execution_tactic_id` test ONLY asserts `tactic_id()` == "TA0104"
+    /// on the enum variant itself — this IS fully determined by the type system alone. This
+    /// function qualifies as GREEN-BY-DESIGN per BC-5.38.002 (zero branching, no I/O, no
+    /// non-trivial helpers, ≤1 line per arm). Listed under GREEN-BY-DESIGN in commit report.
+    pub fn tactic_id(&self) -> &'static str {
+        match self {
+            MitreTactic::Reconnaissance => "TA0043",
+            MitreTactic::ResourceDevelopment => "TA0042",
+            MitreTactic::InitialAccess => "TA0001",
+            MitreTactic::Execution => "TA0002",
+            MitreTactic::Persistence => "TA0003",
+            MitreTactic::PrivilegeEscalation => "TA0004",
+            MitreTactic::DefenseEvasion => "TA0005",
+            MitreTactic::CredentialAccess => "TA0006",
+            MitreTactic::Discovery => "TA0007",
+            MitreTactic::LateralMovement => "TA0008",
+            MitreTactic::Collection => "TA0009",
+            MitreTactic::CommandAndControl => "TA0011",
+            MitreTactic::Exfiltration => "TA0010",
+            MitreTactic::Impact => "TA0040",
+            MitreTactic::IcsInhibitResponseFunction => "TA0107",
+            MitreTactic::IcsImpairProcessControl => "TA0106",
+            MitreTactic::IcsImpact => "TA0105",
+            MitreTactic::IcsDiscovery => "TA0102",
+            MitreTactic::IcsCollection => "TA0100",
+            MitreTactic::IcsCommandAndControl => "TA0101",
+            MitreTactic::IcsExecution => "TA0104",
+        }
     }
 }
 
@@ -134,6 +195,9 @@ pub fn all_tactics_in_report_order() -> &'static [MitreTactic] {
         MitreTactic::IcsDiscovery,
         MitreTactic::IcsCollection,
         MitreTactic::IcsCommandAndControl,
+        // STUB: IcsExecution added for catalog completeness. No technique_info arm, SEEDED
+        // entry, or EMITTED entry yet — those land with the implementer's VP-007 burst.
+        MitreTactic::IcsExecution,
     ]
 }
 
@@ -253,6 +317,11 @@ pub fn technique_tactic_id(id: &str) -> Option<&'static str> {
         MitreTactic::IcsDiscovery => "TA0102",
         MitreTactic::IcsCollection => "TA0100",
         MitreTactic::IcsCommandAndControl => "TA0101",
+        // WIRING-EXEMPT: exhaustive-match arm required for compilation (BC-5.38.001).
+        // technique_tactic_id is only reachable when technique_info returns IcsExecution —
+        // which does NOT happen until the implementer adds T0858/T0816 arms to technique_info.
+        // No existing seeded ID maps to IcsExecution yet, so this arm is dead code until then.
+        MitreTactic::IcsExecution => "TA0104",
     };
     Some(ta_id)
 }
