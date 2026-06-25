@@ -127,7 +127,7 @@ The SS-NN numbering matches the PRD section scheme (bc-2.NN.NNN).
 | SS-14 | Modbus/ICS Analysis | CAP-14 | analyzer/modbus.rs | 25 | <!-- Feature cycle issue #7; ADR-005; BC-2.14.001..025 all written; F2 adversarial review complete -->
 | SS-15 | DNP3/ICS Analysis | CAP-15 | analyzer/dnp3.rs | 24 | <!-- Feature cycle issue #8; ADR-007; BC-2.15.001..024 written (F2 complete + issue #8 research-validated scope additions: BC-2.15.023 ENABLE/DISABLE_UNSOLICITED→T0814, BC-2.15.024 malformed-frame anomaly→T0814) -->
 | SS-16 | ARP Security Analysis | CAP-16 | analyzer/arp.rs | 15 |
-| SS-17 | EtherNet/IP + CIP Analysis | CAP-17 | analyzer/enip.rs | 25 | <!-- Feature cycle feature-enip-v0.11.0 issue #316; ADR-010; BC-2.17.001..025; TCP/44818 explicit messaging MVP; UDP/2222 deferred --> |
+| SS-17 | EtherNet/IP + CIP Analysis | CAP-17 | analyzer/enip.rs | 26 | <!-- Feature cycle feature-enip-v0.11.0 issue #316; ADR-010; BC-2.17.001..026; TCP/44818 explicit messaging MVP; UDP/2222 deferred; F2 addendum: BC-2.17.026 --enip-error-burst-threshold --> |
 
 > SS-03 is intentionally absent. See "CAP-03 / ss-02 Ruling" below.
 

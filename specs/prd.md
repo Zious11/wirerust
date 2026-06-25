@@ -412,7 +412,7 @@ supplements:
 > No new BCs; no BC count change (283). See `spec-changelog.md` §[prd-v1.25-ss15-titlesync-2026-06-14].
 
 > **Version 1.36 delta (2026-06-24 — F2 EtherNet/IP + CIP analyzer, feature-enip-v0.11.0, issue #316):**
-> Added Section 2.17 (SS-17 EtherNet/IP + CIP Analysis, 25 BCs, ADR-010, VP-032). New MITRE
+> Added Section 2.17 (SS-17 EtherNet/IP + CIP Analysis, 25 BCs at v1.36 → 26 BCs after F2 addendum, ADR-010, VP-032). New MITRE
 > techniques entering catalog: T0858 "Change Operating Mode" (IcsExecution TA0104 — CIP Stop,
 > new `MitreTactic::IcsExecution` variant required) and T0816 "Device Restart/Shutdown"
 > (IcsInhibitResponseFunction TA0107 — CIP Reset). Both require `technique_info()` arms in
@@ -424,6 +424,13 @@ supplements:
 > default (50/1s) — changed from 20, MEDIUM-confidence, human confirmation at F2 gate. See `.factory/phase-f2-spec-evolution/enip-prd-delta.md`
 > for full delta record. Added SS-17 rows to Section 7 RTM. Total BCs: 304 on disk → 329;
 > active: 304 → 328. BC-INDEX v1.73→v1.74.
+>
+> **Version 1.36 F2 addendum (2026-06-24 — --enip-error-burst-threshold CLI flag, D-230):**
+> BC-2.17.026 created (`--enip-error-burst-threshold` CLI flag, u32 default 5, strict `>`,
+> symmetric with BC-2.17.023 write-burst flag; human-approved at F2 gate D-230). §2.17 section
+> header updated to 26 BCs. §7 RTM BC-2.17.026 row added. BC-2.17.014 updated (configurable
+> field replaces constant). BC-2.17.020 updated (CLI surface: three ENIP flags). ADR-010 Decision 9
+> added. SS-17: 25→26 BCs. Total on disk: 330→331; active: 329→330. BC-INDEX v1.75→v1.76.
 
 > **Version 1.35 delta (2026-06-23 — F5 ICS tactic-ID correctness fix, DF-SIBLING-SWEEP-001):**
 > §2.10 BC-2.10.004 index row updated: "(17 total)" → "(20 total)" per MitreTactic enum growing
@@ -1317,13 +1324,13 @@ Rust source files, 3,868 source LOC, 282 tests, single crate, Rust 2024 edition,
 ### 2.17 EtherNet/IP + CIP Analysis (CAP-17) [Feature — ADR-010, issue #316]
 
 > **Release target: v0.11.0 (additive — port-44818 TCP explicit messaging MVP).**
-> All SS-17 BCs (BC-2.17.001..025) ship in v0.11.0. EtherNet/IP analysis is purely additive;
+> All SS-17 BCs (BC-2.17.001..026) ship in v0.11.0. EtherNet/IP analysis is purely additive;
 > no existing analyzer, struct, or serialization key changes except: (1) new
 > `DispatchTarget::Enip` variant in the stream dispatcher, (2) new `MitreTactic::IcsExecution`
 > variant in src/mitre.rs, (3) two new `technique_info()` arms (T0858, T0816). UDP/2222
 > implicit I/O is deferred to a future release.
 
-> **Feature Mode F2 addition (v1.36).** 25 BCs covering the EtherNet/IP + CIP TCP analyzer
+> **Feature Mode F2 addition (v1.36) + F2 addendum (BC-2.17.026).** 26 BCs covering the EtherNet/IP + CIP TCP analyzer
 > (SS-17, C-25 EnipAnalyzer). Analyzer has 6 detection paths and emits 6 MITRE techniques:
 > T0858 (CIP Stop — Change Operating Mode), T0816 (CIP Reset — Device Restart/Shutdown),
 > T0836 (CIP write-class burst — Modify Parameter), T0846 (ListIdentity — Remote System
@@ -1347,9 +1354,11 @@ Rust source files, 3,868 source LOC, 282 tests, single crate, Rust 2024 edition,
 > - Malformed ENIP threshold (3/300s window): T0814 Denial of Service one-shot/window (BC-2.17.018).
 
 > **CLI flags added:** `--enip` (enable analyzer, default off), `--enip-write-burst-threshold N`
-> (default 50 writes/1s; overrides T0836 detection threshold via BC-2.17.023). `--all` INCLUDES
-> `--enip` (same expansion as `--modbus`, `--dnp3`; EtherNet/IP is default-off standalone but
-> enabled by `--all`; port-44818 TCP only).
+> (u32, default 50 writes/1s; overrides T0836 detection threshold via BC-2.17.023),
+> `--enip-error-burst-threshold M` (u32, default 5 errors/10s; overrides T0888 Pattern B
+> detection threshold via BC-2.17.026). Both u32 configurable defaults gated by `--enip`/`--all`.
+> `--all` INCLUDES `--enip` (same expansion as `--modbus`, `--dnp3`; EtherNet/IP is default-off
+> standalone but enabled by `--all`; port-44818 TCP only).
 
 > **Formal verification:** VP-032 covers four Kani sub-properties:
 > - Sub-A: `parse_enip_header` never panics; returns None for len<24; Some with correct field layout.
@@ -1455,8 +1464,9 @@ Rust source files, 3,868 source LOC, 282 tests, single crate, Rust 2024 edition,
 | BC-2.17.023 | --enip-write-burst-threshold CLI Flag Configures T0836 Write Detection Sensitivity | P1 | feature-enip-v0.11.0 |
 | BC-2.17.024 | pdu_count Incremented Per Processed Frame and Reflected in summarize() | P1 | feature-enip-v0.11.0 |
 | BC-2.17.025 | RegisterSession (0x0065) and UnRegisterSession (0x0066) Classified and PDU-Counted; No Finding Emitted | P1 | feature-enip-v0.11.0 |
+| BC-2.17.026 | --enip-error-burst-threshold CLI Flag Configures T0888 Error-Burst Detection Sensitivity | P1 | feature-enip-v0.11.0 |
 
-> Full contracts: `behavioral-contracts/ss-17/BC-2.17.001.md` through `BC-2.17.025.md`
+> Full contracts: `behavioral-contracts/ss-17/BC-2.17.001.md` through `BC-2.17.026.md`
 
 
 ## 3. Interface Definition
@@ -1925,6 +1935,7 @@ See `prd-supplements/error-taxonomy.md` for the complete E-xxx-NNN catalog.
 | BC-2.17.023 | CAP-17 | SS-12 (cli.rs, main.rs) + SS-17 | P1 | unit+integration |
 | BC-2.17.024 | CAP-17 | SS-17 (analyzer/enip.rs) | P1 | unit |
 | BC-2.17.025 | CAP-17 | SS-17 (analyzer/enip.rs) | P1 | unit |
+| BC-2.17.026 | CAP-17 | SS-12 (cli.rs, main.rs) + SS-17 | P1 | unit+integration |
 
 
 ## 8. Domain Debt Index

@@ -28,20 +28,22 @@ inputs:
 input-hash: TBD
 ---
 
-# BC-2.17.020: CLI --enip Flag Enables Analyzer; --enip-write-burst-threshold Configures Write Detection
+# BC-2.17.020: CLI --enip Flag Enables Analyzer; --enip-write-burst-threshold and --enip-error-burst-threshold Configure Detection
 
 ## Description
 
-The CLI `Commands::Analyze` gains two new flags for EtherNet/IP analysis: `--enip` (boolean,
+The CLI `Commands::Analyze` gains three new flags for EtherNet/IP analysis: `--enip` (boolean,
 default-off, included by `--all`) enables the `EnipAnalyzer`; `--enip-write-burst-threshold`
-(u32, default 50) sets the write-burst detection threshold for T0836 (BC-2.17.012). When
-`--enip` is set without TCP reassembly (`--tcp-reassembly` / `--all`), the analyzer emits a
-WARNING and disables ENIP silently — mirroring the `--modbus` and `--dnp3` pattern. The
-`EnipAnalyzer` is included in the `needs_reassembly` check.
+(u32, default 50) sets the write-burst detection threshold for T0836 (BC-2.17.012);
+`--enip-error-burst-threshold` (u32, default 5) sets the error-burst detection threshold for
+T0888 Pattern B (BC-2.17.014, configured via BC-2.17.026). When `--enip` is set without TCP
+reassembly (`--tcp-reassembly` / `--all`), the analyzer emits a WARNING and disables ENIP
+silently — mirroring the `--modbus` and `--dnp3` pattern. The `EnipAnalyzer` is included in
+the `needs_reassembly` check.
 
 ## Preconditions
 
-1. `wirerust analyze [pcap-file] --enip [--enip-write-burst-threshold N]` is invoked.
+1. `wirerust analyze [pcap-file] --enip [--enip-write-burst-threshold N] [--enip-error-burst-threshold M]` is invoked.
 2. OR `wirerust analyze [pcap-file] --all` (includes --enip by default).
 
 ## Postconditions
@@ -49,6 +51,7 @@ WARNING and disables ENIP silently — mirroring the `--modbus` and `--dnp3` pat
 1. When `--enip` is set:
    - `EnipAnalyzer` is constructed and wired to the `StreamDispatcher`.
    - `EnipAnalyzer.enip_write_burst_threshold = args.enip_write_burst_threshold` (default 50).
+   - `EnipAnalyzer.enip_error_burst_threshold = args.enip_error_burst_threshold` (default 5).
    - `needs_reassembly.push(EnipAnalyzer)` (TCP reassembly required).
 2. When `--enip` is set AND TCP reassembly is not enabled:
    - A WARNING is emitted: `"--enip requires TCP reassembly; ENIP analysis disabled"`.
@@ -62,8 +65,10 @@ WARNING and disables ENIP silently — mirroring the `--modbus` and `--dnp3` pat
    `--all`.
 2. **Reassembly dependency**: ENIP analysis requires TCP reassembly (same as Modbus and DNP3).
    The WARNING-and-disable pattern prevents silent empty results when reassembly is missing.
-3. **Threshold validation**: `--enip-write-burst-threshold` must be ≥ 1. A value of 0 would
-   trigger on the first write command. (OA-001 RESOLVED=50; F2 gate confirmation pending)
+3. **Threshold validation**: `--enip-write-burst-threshold` (u32, default 50) and
+   `--enip-error-burst-threshold` (u32, default 5) each accept 0..u32::MAX. A value of 0
+   triggers detection on the first event (write or error, respectively) in the window.
+   (OA-001 RESOLVED=50; OA-005 default=5; F2 gate confirmation pending for both)
 4. **`--all` includes `--enip`**: the `--all` flag expansion must include `--enip` in the
    same set as `--modbus`, `--dnp3`, etc.
 5. **`take_enip_analyzer()`**: mirrors `take_dnp3_analyzer()` on StreamDispatcher; transfers
@@ -74,20 +79,23 @@ WARNING and disables ENIP silently — mirroring the `--modbus` and `--dnp3` pat
 | ID | Description | Expected Behavior |
 |----|-------------|-------------------|
 | EC-001 | `--enip` without `--reassembly` | WARNING emitted; no ENIP analysis; run completes |
-| EC-002 | `--enip --enip-write-burst-threshold 50` | threshold=50 used for T0836 detection |
-| EC-003 | `--all` (includes --enip) with reassembly | Full ENIP analysis enabled |
+| EC-002 | `--enip --enip-write-burst-threshold 50` | write-burst threshold=50 used for T0836 detection |
+| EC-003 | `--all` (includes --enip) with reassembly | Full ENIP analysis enabled; write-burst threshold=50, error-burst threshold=5 |
 | EC-004 | No `--enip` flag | No ENIP analyzer constructed; no port-44818 routing |
 | EC-005 | `--enip-write-burst-threshold 0` | 0 would trigger on first write; (OA-001 RESOLVED=50; F2 gate confirmation pending) |
+| EC-006 | `--enip --enip-error-burst-threshold 10` | error-burst threshold=10 used for T0888 Pattern B detection |
+| EC-007 | `--enip-error-burst-threshold 0` | 0 would trigger on first error; (OA-005 default=5; F2 gate confirmation pending) |
 
 ## Canonical Test Vectors
 
-| CLI invocation | ENIP enabled? | Threshold |
-|----------------|--------------|---------|
-| `analyze pcap.pcap --enip` (with reassembly) | Yes | 50 (default) |
-| `analyze pcap.pcap --enip --enip-write-burst-threshold 50` | Yes | 50 |
-| `analyze pcap.pcap --all` (with reassembly) | Yes | 50 |
-| `analyze pcap.pcap --enip` (without reassembly) | No (WARNING) | — |
-| `analyze pcap.pcap` | No | — |
+| CLI invocation | ENIP enabled? | Write-burst threshold | Error-burst threshold |
+|----------------|--------------|----------------------|----------------------|
+| `analyze pcap.pcap --enip` (with reassembly) | Yes | 50 (default) | 5 (default) |
+| `analyze pcap.pcap --enip --enip-write-burst-threshold 50` | Yes | 50 | 5 (default) |
+| `analyze pcap.pcap --enip --enip-error-burst-threshold 10` | Yes | 50 (default) | 10 |
+| `analyze pcap.pcap --all` (with reassembly) | Yes | 50 | 5 |
+| `analyze pcap.pcap --enip` (without reassembly) | No (WARNING) | — | — |
+| `analyze pcap.pcap` | No | — | — |
 
 ## Verification Properties
 
@@ -110,11 +118,13 @@ WARNING and disables ENIP silently — mirroring the `--modbus` and `--dnp3` pat
 ## Related BCs
 
 - BC-2.17.012 — depends on (enip_write_burst_threshold value used for T0836 threshold)
+- BC-2.17.014 — depends on (enip_error_burst_threshold value used for T0888 Pattern B threshold)
 - BC-2.17.019 — depends on (StreamDispatcher receives EnipAnalyzer only when --enip is set)
+- BC-2.17.026 — composes with (--enip-error-burst-threshold is one of the ENIP CLI flags documented here)
 
 ## Architecture Anchors
 
-- `src/cli.rs` — `Commands::Analyze { enip: bool, enip_write_burst_threshold: u32 }` — new fields
+- `src/cli.rs` — `Commands::Analyze { enip: bool, enip_write_burst_threshold: u32, enip_error_burst_threshold: u32 }` — new fields
 - `src/main.rs` — ENIP analyzer construction, needs_reassembly push, take_enip_analyzer() call
 - `src/dispatcher.rs` — `enip_analyzer()` and `take_enip_analyzer()` accessors
 - `.factory/specs/architecture/decisions/ADR-010-ethernet-ip-cip-stream-dispatch.md §Decision 9`

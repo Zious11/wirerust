@@ -58,7 +58,8 @@ error burst threshold is exceeded (one-shot guard via `error_rate_emitted`).
 
 **Pattern B (error-rate burst):**
 1. `flow.error_counts_in_window` total count across all status codes exceeds
-   `ENIP_ERROR_BURST_THRESHOLD` (= 5; strict `>`; fires on the 6th error response within 10s — 5 errors do NOT fire).
+   `self.enip_error_burst_threshold` (default 5; strict `>`; fires on the (N+1)th error response
+   within 10s — N errors do NOT fire). Configurable via `--enip-error-burst-threshold` (BC-2.17.026).
 2. `flow.error_rate_emitted == false`.
 3. `flow.is_non_enip == false`.
 4. `self.all_findings.len() < MAX_FINDINGS`.
@@ -93,15 +94,16 @@ error burst threshold is exceeded (one-shot guard via `error_rate_emitted`).
 2. **Pattern A is per-occurrence; Pattern B is windowed one-shot**: Identity reads are
    always individually significant (direct device profiling). Error bursts require
    accumulation before the finding fires.
-3. **Error burst threshold**: named constant `ENIP_ERROR_BURST_THRESHOLD = 5` — Pattern B
-   fires when the total count of CIP error responses (any non-zero general_status) within 10
-   seconds strictly exceeds (`>`) this threshold: 6 errors fire, 5 do not. Matches BC-2.17.012
-   strict `>` convention so the analyzer uses one comparison semantics throughout. Operators
-   with noisy SCADA systems may raise this to reduce false positives.
+3. **Error burst threshold (configurable)**: `self.enip_error_burst_threshold` (default 5,
+   configurable via `--enip-error-burst-threshold` CLI flag per BC-2.17.026) — Pattern B fires
+   when the total count of CIP error responses (any non-zero general_status) within 10 seconds
+   strictly exceeds (`>`) this threshold: with default 5, the 6th error fires, 5 do not. Matches
+   BC-2.17.012 strict `>` convention so the analyzer uses one comparison semantics throughout.
+   Operators with noisy SCADA systems may raise this threshold to reduce false positives.
    Note: `total_error_count = flow.error_counts_in_window.values().sum()` — this is the sum
    across ALL status codes in the per-status HashMap accumulated by BC-2.17.008, NOT any single
    status code's individual count.
-   [MEDIUM-confidence, un-calibrated; ref O-03; defined in ADR-010 Open Items]
+   [MEDIUM-confidence, un-calibrated; ref O-03/OA-005; defined in ADR-010 Open Items]
 4. **Distinct from T0846**: T0888 is single-device profiling; T0846 is network enumeration
    (ListIdentity). These are complementary and independent.
 
@@ -112,8 +114,8 @@ error burst threshold is exceeded (one-shot guard via `error_rate_emitted`).
 | EC-001 | GetAttributeSingle to Identity Object (Class=0x01) | Pattern A: T0888 finding Likely/High |
 | EC-002 | GetAttributesAll to Class=0x01 | Pattern A: T0888 finding Likely/High |
 | EC-003 | GetAttributeSingle to Class=0x04 (Assembly — not Identity) | No T0888 finding (not Identity Object) |
-| EC-004 | 6 CIP error responses in 10s (threshold=5, strict `>`) | Pattern B: T0888 finding Possible/Medium; `error_rate_emitted=true` |
-| EC-005 | 5 error responses (threshold=5, strict `>`: 5 > 5 is false) | No Pattern B finding |
+| EC-004 | 6 CIP error responses in 10s (threshold=5 default, strict `>`) | Pattern B: T0888 finding Possible/Medium; `error_rate_emitted=true` |
+| EC-005 | 5 error responses (threshold=5 default, strict `>`: 5 > 5 is false) | No Pattern B finding |
 | EC-006 | Pattern B guard set; 5 more errors arrive in same window | Guard prevents additional Pattern B finding |
 | EC-007 | 10s window expires; 5 more errors | New window; `error_rate_emitted=false`; Pattern B can fire again |
 | EC-008 | ListIdentity (T0846) followed by GetAttributeSingle to Identity | T0846 finding + T0888 finding — both independent detections |
@@ -129,18 +131,18 @@ CIP: service=0x0E, path=[0x20, 0x01, 0x24, 0x01, 0x30, 0x07]
 ```
 Expected Pattern A: T0888 Likely/High
 
-**Error burst (6 responses with non-zero status; strict `>` threshold=5):**
+**Error burst (6 responses with non-zero status; strict `>` threshold=5 default):**
 ```
 6 CIP responses each with general_status != 0x00 within 10 seconds
 ```
-Expected Pattern B: T0888 Possible/Medium (5 errors → no finding; 6th crosses strict > threshold)
+Expected Pattern B: T0888 Possible/Medium (5 errors → no finding; 6th crosses strict > threshold=5 default)
 
 | Scenario | Pattern | Finding verdict | Confidence |
 |----------|---------|-----------------|-----------|
 | GetAttributeSingle to Class=0x01 | A | Likely | High |
 | GetAttributesAll to Class=0x01 | A | Likely | High |
-| 6 CIP errors in 10s (threshold=5, strict >) | B | Possible | Medium |
-| 5 CIP errors in 10s (threshold=5, strict >) | — | None | — |
+| 6 CIP errors in 10s (threshold=5 default, strict >) | B | Possible | Medium |
+| 5 CIP errors in 10s (threshold=5 default, strict >) | — | None | — |
 | GetAttributeSingle to Class=0x04 | — | None | — |
 
 ## Verification Properties
@@ -169,12 +171,13 @@ Expected Pattern B: T0888 Possible/Medium (5 errors → no finding; 6th crosses 
 - BC-2.17.008 — depends on (error_counts_in_window accumulation feeds Pattern B)
 - BC-2.17.010 — composes with (T0846 ListIdentity is the network-scope sibling)
 - BC-2.17.022 — depends on (MAX_FINDINGS cap)
+- BC-2.17.026 — configured by (--enip-error-burst-threshold CLI flag sets enip_error_burst_threshold used in Pattern B)
 
 ## Architecture Anchors
 
 - `src/analyzer/enip.rs` — Pattern A: `if matches!(service_class, CipServiceClass::GetAttributeSingle | ...) && path_contains_identity_class { /* emit T0888 */ }`
-- `src/analyzer/enip.rs` — `const ENIP_ERROR_BURST_THRESHOLD: u64 = 5;`
-- `src/analyzer/enip.rs` — Pattern B: `if total_error_count > ENIP_ERROR_BURST_THRESHOLD && !flow.error_rate_emitted { /* emit T0888 */ flow.error_rate_emitted = true; }`
+- `src/analyzer/enip.rs` — `EnipAnalyzer.enip_error_burst_threshold: u32` (default 5; configurable via BC-2.17.026)
+- `src/analyzer/enip.rs` — Pattern B: `if total_error_count > self.enip_error_burst_threshold && !flow.error_rate_emitted { /* emit T0888 */ flow.error_rate_emitted = true; }`
 - `src/analyzer/enip.rs` — `EnipFlowState.error_rate_emitted: bool`
 - `src/mitre.rs` — `technique_info("T0888")` arm (existing)
 - `.factory/specs/architecture/decisions/ADR-010-ethernet-ip-cip-stream-dispatch.md §Decision 7` (T0888 active)

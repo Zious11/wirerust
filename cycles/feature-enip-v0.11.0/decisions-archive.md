@@ -41,3 +41,27 @@ At the F2 architecture review, the architect found that UDP/2222 cyclic I/O requ
 **v0.12.0 backlog:** UDP/2222 cyclic I/O + cross-transport ForwardOpen session-correlation + T1692.001/.002 detection.
 
 ADR-010 Decision 5 documents the deferral rationale. 24 BCs authored (BC-2.17.001..024) covering TCP/44818 path; no SS-17 UDP BCs exist. BC-INDEX v1.74 (329 total / 328 active). OA-001 open: `--enip-write-burst-threshold` default (20/1s) awaiting human confirm at F2 gate.
+
+---
+
+## D-230 — F2 Human Gate APPROVED; F2 Addendum BC-2.17.026 (--enip-error-burst-threshold) (2026-06-24)
+
+F2 human gate PASSED. Human decisions recorded:
+
+1. **Proceed to F3** — F2 adversarial convergence (4 consecutive 0-H/C passes P10-P13) accepted; consistency audit complete; addendum scoped re-validation pending before F3 entry.
+2. **0x00B2-only CIP detection scope accepted** — 0x00B1 connected-item detection remains DEFERRED to v0.12.0 (ADR-010 Decision 8). v0.11.0 detects CIP request operations on 0x00B2 unconnected carriers only.
+3. **Both detection thresholds accepted as tunable defaults** — write-burst default=50 (`--enip-write-burst-threshold`, BC-2.17.023) and error-burst default=5 (`--enip-error-burst-threshold`, BC-2.17.026 NEW). Both require `--enip`/`--all` to activate. Neither is an absolute hard-stop; operators may recalibrate via CLI flag.
+4. **Recalibrate F6** — the addition of two tunable CLI flags means F6 targeted hardening should include boundary / off-by-one testing for both threshold paths. F6 scope note recorded here for orchestrator.
+
+**F2 addendum committed (feature-enip-v0.11.0, factory-artifacts):**
+
+- `BC-2.17.026` CREATED — `--enip-error-burst-threshold` CLI flag configures T0888 error-burst detection sensitivity; u32, default 5, strict `>` semantics, symmetric with BC-2.17.023 write-burst flag.
+- `ADR-010` Decision 9 added — flag spec: `--enip-error-burst-threshold <N>` (u32, default 5); `EnipAnalyzer` gains `enip_error_burst_threshold: u32` field initialised from CLI arg; `ENIP_ERROR_BURST_THRESHOLD` compile-time constant RETIRED in favour of the instance field.
+- `BC-2.17.014` updated — replaced hardcoded `ENIP_ERROR_BURST_THRESHOLD` constant reference with configurable `self.enip_error_burst_threshold` field; added BC-2.17.026 cross-reference.
+- `BC-2.17.020` updated — added `--enip-error-burst-threshold` to CLI surface (three ENIP flags: `--enip`, `--enip-write-burst-threshold`, `--enip-error-burst-threshold`); added BC-2.17.026 to Related BCs.
+- `BC-INDEX` v1.75→v1.76 — SS-17: 25→26 BCs; total on disk: 330→331; active: 329→330.
+- `ARCH-INDEX` — SS-17 row updated to BC count 26.
+- `prd.md` — §2.17 section header updated; §7 RTM BC-2.17.026 row added.
+- `cap-17-enip-cip-analysis.md` — BC-2.17.026 registered.
+
+**Ground truth at D-230:** develop=ff4b82b, main=0cbe922 (v0.10.0), factory-artifacts=this commit.

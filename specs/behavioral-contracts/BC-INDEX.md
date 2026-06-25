@@ -1,7 +1,7 @@
 ---
 document_type: bc-index
 level: L3
-version: "1.75"
+version: "1.76"
 status: draft
 producer: product-owner
 timestamp: 2026-06-24T00:00:00Z
@@ -14,7 +14,9 @@ traces_to: .factory/specs/prd.md
 > **Navigation:** This file is the master index of all BC-S.SS.NNN contracts. Each entry
 > links to the individual BC file. BCs are sharded into per-subsystem directories (ss-NN/).
 >
-> All BCs are marked [WRITTEN]. Body files have been verified on disk for all 330 entries (329 prior + 1 new BC-2.17.025 for F2 adversary Pass-1 propagation; BC-2.01.004 retired).
+> All BCs are marked [WRITTEN]. Body files have been verified on disk for all 331 entries (330 prior + 1 new BC-2.17.026 for F2 addendum error-burst CLI flag; BC-2.01.004 retired).
+>
+> **v1.76 2026-06-24 (F2 addendum: BC-2.17.026 error-burst CLI flag):** Created BC-2.17.026 (`--enip-error-burst-threshold` CLI flag configures T0888 error-burst detection sensitivity; u32, default 5, strict `>` semantics, symmetric with BC-2.17.023 write-burst flag). Updated BC-2.17.014: replaced hardcoded `ENIP_ERROR_BURST_THRESHOLD` constant with configurable `self.enip_error_burst_threshold` field (default 5); added BC-2.17.026 cross-reference. Updated BC-2.17.020: added `--enip-error-burst-threshold` to CLI surface (three flags now: --enip, --enip-write-burst-threshold, --enip-error-burst-threshold); added BC-2.17.026 to Related BCs. SS-17: 25→26 BCs. Total on disk: 330→331. Active: 329→330. No stories modified (no ENIP stories exist yet; F3 story decomposition pending).
 >
 > **v1.75 2026-06-24 (F2 adversary Pass-1 propagation + BC-2.17.025 session-handshake):** Propagated 14 LOCKED architect decisions from F2 adversary Pass-1 into SS-17 BC bodies, PRD, and BC-INDEX. Key changes: (1) Endianness CRITICAL fix — BC-2.17.001/002 all fields changed from BE to LE (from_be_bytes → from_le_bytes throughout); BC-2.17.005 contrast sentence deleted (both layers LE). (2) CIP segment mask CRITICAL fix — BC-2.17.009 impossible `& 0xE0 == 0x24/0x30` replaced with exact-match (`== 0x20 / == 0x24 / == 0x30`); canonical vectors re-derived. (3) PRD T0846 contradiction CRITICAL fix — T0846 removed from §1.5 not-emitted list and §2.10 O-04 not-emitted enumeration; O-04 EMITTED count updated 19→20. (4) Frame-skip HIGH fix — BC-2.17.016 Inv 4 corrected: is_non_enip latches ONLY on carry-buffer overflow; oversized declared frames use frame-skip path (parse_errors++, cursor advance, continue). (5) Multi-frame/interleave HIGH fix — BC-2.17.016 EC-009 + vector added; BC-2.17.012 requests-only filter documented. (6) BC-2.17.025 CREATED — RegisterSession/UnRegisterSession classified+PDU-counted; no finding emitted; session-handle anomaly deferred v0.12.0. (7) Write-burst default changed 20→50, MEDIUM-confidence (BC-2.17.012/023). (8) Error-burst constant named ENIP_ERROR_BURST_THRESHOLD=5; [OA-005] placeholder removed (BC-2.17.008/014). (9) BC-2.17.005 EC-004 "first-or-zero" replaced with exact vec; CPF type_id set {0x0000,0x00A1,0x00B1,0x00B2}. (10) BC-2.17.015 title broadened to ForwardOpen AND ForwardClose; ForwardClose postcondition block added; serial extraction best-effort/deferred noted. (11) T0846 per-flow one-shot guard added (BC-2.17.010). (12) BC-2.17.007 reworded "13 named request services + Response + Unknown = 15 total variants". (13) BC-2.17.008 EC-007 added (Unconnected-only scope for v0.11.0). SS-17: 24→25 BCs. Total on disk: 329→330. Active: 328→329. No stories modified (no ENIP stories exist yet; F3 story decomposition pending).
 >
@@ -97,10 +99,10 @@ traces_to: .factory/specs/prd.md
 > total to 283 active L3 BCs.
 >
 > **Status as of Phase 1a (current):**
-> - Fully written: 330 BCs on disk (329 prior + 1 new BC-2.17.025 for F2 adversary Pass-1 session-handshake)
-> - Active: 329 BCs (330 on disk − 1 retired: BC-2.01.004)
+> - Fully written: 331 BCs on disk (330 prior + 1 new BC-2.17.026 for F2 addendum error-burst CLI flag)
+> - Active: 330 BCs (331 on disk − 1 retired: BC-2.01.004)
 > - Remaining: 0 BCs
-> - PRD index (prd.md): UPDATED -- §2.17 and §7 RTM rows added for all 25 SS-17 BCs (v1.74 integrate burst + F2 Pass-2 fixes); BC-2.01.004 struck through as retired
+> - PRD index (prd.md): UPDATED -- §2.17 and §7 RTM rows added for all 26 SS-17 BCs (v1.74 integrate burst + F2 Pass-2 fixes + F2 addendum BC-2.17.026); BC-2.01.004 struck through as retired
 
 ## ss-01: PCAP File Ingestion (CAP-01)
 
@@ -546,7 +548,7 @@ traces_to: .factory/specs/prd.md
 
 ## ss-17: EtherNet/IP + CIP Analysis (CAP-17)
 
-> 25 BCs total; 25 fully written; 0 planned.
+> 26 BCs total; 26 fully written; 0 planned.
 > BCs 001-002: ENIP encapsulation header parse safety (Group A — pure-core parse).
 > BCs 003-004: ENIP validity gate and command classification totality (Group B — gate/classify).
 > BCs 005-006: CPF item-layer walk and CIP header extraction (Group C — CPF/CIP parse).
@@ -560,12 +562,14 @@ traces_to: .factory/specs/prd.md
 > BC-019: StreamDispatcher Rule 7 port-44818 classification (Group J — dispatcher).
 > BCs 020-021: CLI flags and summarize() aggregate statistics (Group K — CLI + summary).
 > BC-022: MAX_FINDINGS DoS bound (Group L — resource).
-> BCs 023-024: CLI threshold tuning and pdu_count accounting (Group M — CLI + accounting).
+> BCs 023-026: CLI threshold tuning and pdu_count accounting (Group M — CLI + accounting). BC-026 (F2 addendum): --enip-error-burst-threshold for T0888 Pattern B, symmetric with BC-023.
 > Feature: feature-enip-v0.11.0 (issue #316); ADR-010; VP-032; introduced v0.11.0.
 > **MITRE techniques (new to catalog):** T0858 (IcsExecution TA0104 — CIP Stop), T0816 (IcsInhibitResponseFunction TA0107 — CIP Reset). Requires `technique_info("T0858")` and `technique_info("T0816")` arms in src/mitre.rs + `MitreTactic::IcsExecution` new variant.
 > **MITRE techniques (already seeded):** T0836 (IcsImpairProcessControl TA0105), T0846 (IcsDiscovery TA0102), T0888 (IcsDiscovery TA0102), T0814 (IcsInhibitResponseFunction TA0107).
 > **OA-001 (F2 gate decision):** --enip-write-burst-threshold default changed 20→50 (MEDIUM-confidence, un-calibrated, ref O-03); human confirmation at F2 gate required. BC-2.17.012 (confidence: medium) and BC-2.17.023 reflect the 50 default.
+> **OA-005 (F2 gate decision):** --enip-error-burst-threshold default=5 (MEDIUM-confidence, un-calibrated, ref O-03); human confirmation at F2 gate required. BC-2.17.014 and BC-2.17.026 reflect this default.
 > **BC-2.17.025 (new, F2 adversary Pass-1):** RegisterSession/UnRegisterSession session-handshake BC added. No finding emitted; session-handle anomaly validation deferred to v0.12.0.
+> **BC-2.17.026 (new, F2 addendum):** --enip-error-burst-threshold CLI flag; u32 default 5; configures T0888 Pattern B error-burst detection sensitivity; symmetric with BC-2.17.023.
 
 | BC ID | Title | Priority | Status | MITRE Tag | Origin |
 |-------|-------|----------|--------|-----------|--------|
@@ -594,6 +598,7 @@ traces_to: .factory/specs/prd.md
 | BC-2.17.023 | --enip-write-burst-threshold CLI Flag Configures T0836 Write Detection Sensitivity | P1 | [WRITTEN] | (none — CLI) | feature-enip-v0.11.0 | <!-- operator tuning for high-write CIP environments [OA-001]; threshold used by BC-2.17.012 -->
 | BC-2.17.024 | pdu_count Incremented Per Processed Frame and Reflected in summarize() | P1 | [WRITTEN] | (none) | feature-enip-v0.11.0 | <!-- monotonic PDU counter; per-frame increment for valid/processed frames only; malformed frames are parse_errors, not PDUs -->
 | BC-2.17.025 | RegisterSession (0x0065) and UnRegisterSession (0x0066) Classified and PDU-Counted; No Finding Emitted | P1 | [WRITTEN] | (none — session handshake; mitre_techniques: vec![]) | feature-enip-v0.11.0 | <!-- session handshake PDU-counted; no finding; session-handle anomaly validation deferred v0.12.0; F2 adversary F-ENIP-004 -->
+| BC-2.17.026 | --enip-error-burst-threshold CLI Flag Configures T0888 Error-Burst Detection Sensitivity | P1 | [WRITTEN] | (none — CLI) | feature-enip-v0.11.0 | <!-- operator tuning for noisy CIP environments [OA-005]; threshold used by BC-2.17.014 Pattern B; symmetric with BC-2.17.023; F2 addendum -->
 
 ---
 
@@ -622,9 +627,9 @@ traces_to: .factory/specs/prd.md
 | feature-007-F2 Modbus/ICS (greenfield) | 25 | BC-2.14.001..025 |
 | feature-008-F2 DNP3/ICS (greenfield) | 24 | BC-2.15.001..024 |
 | feature-009-F2 ARP security (greenfield) | 16 | BC-2.16.001..016 |
-| feature-enip-v0.11.0 EtherNet/IP + CIP (greenfield) | 25 | BC-2.17.001..025 |
+| feature-enip-v0.11.0 EtherNet/IP + CIP (greenfield) | 26 | BC-2.17.001..026 |
 
-**Total BCs on disk: 330. Active: 329. Canonical derivation: 218 draft ingestion BCs produced − 6 retired (BC-ABS-004..009) = 212 active from ingestion; + 5 post-ingestion pass-4 additions (BC-2.11.020..024) = 217; + 2 Feature Mode F2 additions (BC-2.04.055, BC-2.09.007) for issue #100 = 219 active BCs; + 25 Feature Mode F2 additions (BC-2.14.001..025) for issue #7 Modbus/ICS analyzer = 244 active BCs; + 22 Feature Mode F2 additions (BC-2.15.001..022) for issue #8 DNP3/ICS analyzer = 266 active BCs; + 2 research must-add additions (BC-2.15.023..024) for issue #8 post-gate F2 scope validation = 268 active BCs; + 15 Feature Mode F2 additions (BC-2.16.001..015) for issue #9 ARP security analyzer = 283 active BCs; + 5 Feature Mode F2 additions (BC-2.11.025..029) for issue #259 terminal finding collapse (v0.8.0) = 288 active BCs; + 5 Feature Mode F2 additions (BC-2.11.030..034) for STORY-119 grouped-collapse (v0.9.0) = 293 active BCs; + 10 Feature Mode F2 additions (BC-2.01.009..018) for pcapng reader support (ADR-009, FE-001, v0.10.0) = 303 on disk; − 1 retired (BC-2.01.004, behavioral inversion) = 302 active BCs; + 1 Feature Mode F2 addition (BC-2.11.035) for issue #64 mitre_attack JSON enrichment (v0.11.0) = 304 on disk / 303 active BCs; + 1 fix-pc-013-014-015 addition (BC-2.16.016) for PC-015 ARP unbounded findings (D-221) = 305 on disk / 304 active BCs; + 24 Feature Mode F2 additions (BC-2.17.001..024) for feature-enip-v0.11.0 EtherNet/IP + CIP analyzer (ADR-010, issue #316) = 329 on disk / 328 active BCs; + 1 F2 adversary Pass-1 addition (BC-2.17.025, session-handshake) = 330 on disk / 329 active BCs. BC-2.02.009 was revised to v1.6 (ADR-008 Decision 1, three-way postcondition) — a revision, not a new BC; count unchanged at each prior step. The mapping table above has 223 physical rows (218 ingestion-batch rows + 5 pass-4 rows) for pre-Modbus BCs; SS-14 adds 25 greenfield rows not in the ingestion batch; SS-15 adds 24 greenfield rows; SS-16 adds 16 greenfield rows (15 original + 1 fix-pc-013-014-015); issue-#259 adds 5 greenfield rows to SS-11; STORY-119 adds 5 more greenfield rows to SS-11; issue-#64 adds 1 more greenfield row to SS-11 (total SS-11: 35 BCs); pcapng-F2 adds 10 rows to SS-01 (total SS-01: 18 on disk / 17 active); feature-enip adds 25 rows as SS-17 (total SS-17: 25 BCs — 24 original + 1 F2 adversary Pass-1 addition). 1 BC retired in pcapng-F2 (BC-2.01.004).**
+**Total BCs on disk: 331. Active: 330. Canonical derivation: 218 draft ingestion BCs produced − 6 retired (BC-ABS-004..009) = 212 active from ingestion; + 5 post-ingestion pass-4 additions (BC-2.11.020..024) = 217; + 2 Feature Mode F2 additions (BC-2.04.055, BC-2.09.007) for issue #100 = 219 active BCs; + 25 Feature Mode F2 additions (BC-2.14.001..025) for issue #7 Modbus/ICS analyzer = 244 active BCs; + 22 Feature Mode F2 additions (BC-2.15.001..022) for issue #8 DNP3/ICS analyzer = 266 active BCs; + 2 research must-add additions (BC-2.15.023..024) for issue #8 post-gate F2 scope validation = 268 active BCs; + 15 Feature Mode F2 additions (BC-2.16.001..015) for issue #9 ARP security analyzer = 283 active BCs; + 5 Feature Mode F2 additions (BC-2.11.025..029) for issue #259 terminal finding collapse (v0.8.0) = 288 active BCs; + 5 Feature Mode F2 additions (BC-2.11.030..034) for STORY-119 grouped-collapse (v0.9.0) = 293 active BCs; + 10 Feature Mode F2 additions (BC-2.01.009..018) for pcapng reader support (ADR-009, FE-001, v0.10.0) = 303 on disk; − 1 retired (BC-2.01.004, behavioral inversion) = 302 active BCs; + 1 Feature Mode F2 addition (BC-2.11.035) for issue #64 mitre_attack JSON enrichment (v0.11.0) = 304 on disk / 303 active BCs; + 1 fix-pc-013-014-015 addition (BC-2.16.016) for PC-015 ARP unbounded findings (D-221) = 305 on disk / 304 active BCs; + 24 Feature Mode F2 additions (BC-2.17.001..024) for feature-enip-v0.11.0 EtherNet/IP + CIP analyzer (ADR-010, issue #316) = 329 on disk / 328 active BCs; + 1 F2 adversary Pass-1 addition (BC-2.17.025, session-handshake) = 330 on disk / 329 active BCs; + 1 F2 addendum addition (BC-2.17.026, --enip-error-burst-threshold CLI flag) = 331 on disk / 330 active BCs. BC-2.02.009 was revised to v1.6 (ADR-008 Decision 1, three-way postcondition) — a revision, not a new BC; count unchanged at each prior step. The mapping table above has 223 physical rows (218 ingestion-batch rows + 5 pass-4 rows) for pre-Modbus BCs; SS-14 adds 25 greenfield rows not in the ingestion batch; SS-15 adds 24 greenfield rows; SS-16 adds 16 greenfield rows (15 original + 1 fix-pc-013-014-015); issue-#259 adds 5 greenfield rows to SS-11; STORY-119 adds 5 more greenfield rows to SS-11; issue-#64 adds 1 more greenfield row to SS-11 (total SS-11: 35 BCs); pcapng-F2 adds 10 rows to SS-01 (total SS-01: 18 on disk / 17 active); feature-enip adds 26 rows as SS-17 (total SS-17: 26 BCs — 24 original + 1 F2 adversary Pass-1 addition + 1 F2 addendum). 1 BC retired in pcapng-F2 (BC-2.01.004).**
 
 Note: BC-ABS-004 (--hosts unwired), BC-ABS-005 (--services unwired), BC-ABS-006 (--json
 file unwired), BC-ABS-007 (CSV unwired), BC-ABS-009 (no e2e CLI tests) are RETIRED --

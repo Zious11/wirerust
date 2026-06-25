@@ -309,18 +309,15 @@ pub struct EnipFlowState {
     pdu_count: u64,
 }
 
-/// Named threshold constant for the CIP error-burst rate detection window (BC-2.17.008/014).
-/// **More than** 5 CIP error responses (any general_status) within a 10-second window
-/// (strict `>`; the 6th error) triggers T0888. Exactly 5 errors do NOT fire.
+/// RETIRED CONSTANT (F2 addendum — feature-enip-v0.11.0):
+/// `ENIP_ERROR_BURST_THRESHOLD` was the hardcoded default for the CIP error-burst rate
+/// detection window. It has been REPLACED by the configurable field
+/// `EnipAnalyzer.enip_error_burst_threshold: u32` (BC-2.17.014/026, Decision 9
+/// `--enip-error-burst-threshold`). The default value of 5 is preserved as the CLI
+/// default. Do NOT reference this constant in new code; use the analyzer field instead.
 ///
-/// LOCKED value: `ENIP_ERROR_BURST_THRESHOLD = 5`, 10s window, strict `>` comparison
-/// (fires on the 6th error; consistent with BC-2.17.012 write-burst convention).
-/// Calibration confidence: MEDIUM (O-03 open-calibration). The 10-second window matches
-/// the error_window_start_ts reset cadence already specified in EnipFlowState. The count
-/// of 5 was selected to sit above transient CIP path-error noise (~1-2 per burst) while
-/// remaining below sustained error-flood rates seen in CIP recon sweeps.
-/// See Open Item OA-005 below for recalibration path.
-const ENIP_ERROR_BURST_THRESHOLD: u64 = 5;
+/// Retained here as a tombstone comment only. Remove in v0.12.0 cleanup.
+// const ENIP_ERROR_BURST_THRESHOLD: u64 = 5;  // RETIRED — see EnipAnalyzer field
 ```
 
 **EnipAnalyzer aggregate struct:**
@@ -334,6 +331,13 @@ pub struct EnipAnalyzer {
     /// default 50). Stored here so all flow-level write_count_in_window comparisons use
     /// the same value as the CLI-supplied argument (BC-2.17.012/020).
     enip_write_burst_threshold: u32,
+
+    /// CIP error-burst detection threshold (configurable via --enip-error-burst-threshold;
+    /// default 5). Replaces the retired ENIP_ERROR_BURST_THRESHOLD constant. Stored here
+    /// so all flow-level error_counts_in_window comparisons use the CLI-supplied value
+    /// (BC-2.17.014/026). Strict `>` semantics: fires on the (N+1)th error in the 10s
+    /// window. Zero-value convention matches write-burst (first error fires immediately).
+    enip_error_burst_threshold: u32,
 
     /// Aggregate lifetime PDU count across all flows.
     /// Incremented once per successfully processed ENIP frame.
@@ -372,6 +376,7 @@ pub struct EnipAnalyzer {
 
 **Field-name cross-reference:** Field names are locked to BC references as follows:
 - `enip_write_burst_threshold` — BC-2.17.012 (`> enip_write_burst_threshold`) / BC-2.17.020 (`EnipAnalyzer.enip_write_burst_threshold = args.enip_write_burst_threshold`)
+- `enip_error_burst_threshold` — BC-2.17.014 (`> enip_error_burst_threshold`) / BC-2.17.026 (`EnipAnalyzer.enip_error_burst_threshold = args.enip_error_burst_threshold`) [NEW — F2 addendum]
 - `total_pdu_count` — BC-2.17.021 (`total_pdu_count`) / BC-2.17.024 (`EnipAnalyzer.total_pdu_count`)
 - `write_count` — BC-2.17.012 (`EnipAnalyzer.write_count += 1`) / BC-2.17.021 (`write_count`)
 - `error_count` — BC-2.17.021 (`error_count`)
@@ -685,6 +690,27 @@ attributes. v0.11.0 deliberately scopes to a minimal object-model depth:
   above typical legitimate write rates while remaining well below pathological write-burst
   patterns. **Calibration confidence: MEDIUM-uncalibrated (ref O-03).** The human will
   confirm or adjust this default at the F2 gate before F3 story decomposition. (OA-001 RESOLVED)
+- `--enip-error-burst-threshold` (u32, default: **5**) — CIP error responses (non-zero
+  `general_status`) per 10-second window threshold before T0888 error-burst finding is
+  emitted. Mirrors `--enip-write-burst-threshold` exactly in parsing, semantics, and
+  zero-value convention:
+  - **Strict `>` semantics:** fires on the (N+1)th error in the window; the threshold value
+    itself does NOT trigger. With default 5, the 6th error in a 10-second window fires
+    T0888. Exactly 5 errors do NOT fire. This is identical to the write-burst convention
+    (BC-2.17.012 `write_count_in_window > enip_write_burst_threshold`).
+  - **Zero-value convention:** a value of 0 means the threshold is set to 0, so the very
+    first CIP error in any 10-second window fires T0888 immediately. This matches the
+    write-burst zero-value behavior. A value of 0 is operationally aggressive and intended
+    only for high-sensitivity environments where any CIP error is anomalous.
+  - **Gating:** only active when `--enip` or `--all` is set, identical to the write-burst
+    flag and all other ENIP-specific flags.
+  - `EnipAnalyzer.enip_error_burst_threshold` stores the CLI-supplied value so all
+    flow-level `error_counts_in_window` comparisons use the same threshold (BC-2.17.014/026).
+  - **Calibration confidence: MEDIUM (ref O-03, OA-005 RESOLVED by F2 addendum).** Default
+    of 5 is the former hardcoded `ENIP_ERROR_BURST_THRESHOLD` constant value, now promoted
+    to a configurable default. The `ENIP_ERROR_BURST_THRESHOLD` named constant is RETIRED;
+    the field `enip_error_burst_threshold: u32` on `EnipAnalyzer` is the authoritative
+    source of the threshold value at runtime.
 - When `--enip` is set without TCP reassembly, emit a WARNING and disable ENIP (same pattern
   as `--modbus` and `--dnp3`)
 - `EnipAnalyzer` included in `needs_reassembly` alongside ModbusAnalyzer and Dnp3Analyzer
@@ -779,14 +805,16 @@ representation of the ATT&CK matrix.
   from 20). Calibration confidence: MEDIUM-uncalibrated (ref O-03). Human confirmation
   requested at F2 gate before F3 story decomposition locks BC-2.17.012/023. See
   Decision 9.
-- **OA-005 — `ENIP_ERROR_BURST_THRESHOLD` calibration:** The strict-`>` 5-threshold / 10s
-  window (Decision 4, `ENIP_ERROR_BURST_THRESHOLD = 5`; fires on the 6th error) is an
-  initial engineering estimate.
-  Recalibration against real ENIP pcap captures is recommended before v0.12.0.
-  Until recalibrated, BC-2.17.008/014 must cite the threshold as MEDIUM-confidence
-  pending O-03 open-calibration. Lock path: collect error-rate baseline from production
-  ENIP traces; adjust constant in F6 or a follow-on maintenance pass; bump minor version
-  in BC-2.17.008/014's EC. Human decision: accept 5 as the v0.11.0 default or override.
+- **OA-005 RESOLVED (F2 addendum) — `--enip-error-burst-threshold` CLI flag:** The
+  hardcoded `ENIP_ERROR_BURST_THRESHOLD = 5` constant (Decision 4) is RETIRED. The threshold
+  is now a CLI-configurable default via `--enip-error-burst-threshold <u32>` (default: **5**),
+  mirroring `--enip-write-burst-threshold` exactly. Human confirmed default of 5 at F2 gate.
+  The constant is replaced by `EnipAnalyzer.enip_error_burst_threshold: u32` (BC-2.17.026).
+  BC-2.17.014 (error-burst detection) must be updated to reference the configurable field
+  instead of the retired constant. BC-2.17.020 (CLI surface) must list both burst-threshold
+  flags. BC-2.17.026 (new dedicated CLI-flag BC) must be created by PO. Recalibration
+  against real ENIP pcap captures is still recommended before v0.12.0; the MEDIUM-confidence
+  calibration note on BC-2.17.008/014 remains until pcap-validated.
 - **T0858 `IcsExecution` enum addition:** Confirmed by this ADR as the correct design.
   The actual `enum` edit, `Display` update, `all_tactics_in_report_order()` update, and
   `technique_tactic_id()` update must be part of the VP-007 atomic burst in F4 STORY-EIP-09.
