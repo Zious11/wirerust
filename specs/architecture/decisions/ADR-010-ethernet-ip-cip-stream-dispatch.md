@@ -300,9 +300,11 @@ pub struct EnipFlowState {
 }
 
 /// Named threshold constant for the CIP error-burst rate detection window (BC-2.17.008/014).
-/// 5 CIP error responses (any general_status) within a 10-second window triggers T0888.
+/// **More than** 5 CIP error responses (any general_status) within a 10-second window
+/// (strict `>`; the 6th error) triggers T0888. Exactly 5 errors do NOT fire.
 ///
-/// LOCKED value: 5 errors / 10s window.
+/// LOCKED value: `ENIP_ERROR_BURST_THRESHOLD = 5`, 10s window, strict `>` comparison
+/// (fires on the 6th error; consistent with BC-2.17.012 write-burst convention).
 /// Calibration confidence: MEDIUM (O-03 open-calibration). The 10-second window matches
 /// the error_window_start_ts reset cadence already specified in EnipFlowState. The count
 /// of 5 was selected to sit above transient CIP path-error noise (~1-2 per burst) while
@@ -671,8 +673,9 @@ representation of the ATT&CK matrix.
   from 20). Calibration confidence: MEDIUM-uncalibrated (ref O-03). Human confirmation
   requested at F2 gate before F3 story decomposition locks BC-2.17.012/023. See
   Decision 9.
-- **OA-005 — `ENIP_ERROR_BURST_THRESHOLD` calibration:** The 5-errors/10s threshold
-  (Decision 4, `ENIP_ERROR_BURST_THRESHOLD = 5`) is an initial engineering estimate.
+- **OA-005 — `ENIP_ERROR_BURST_THRESHOLD` calibration:** The strict-`>` 5-threshold / 10s
+  window (Decision 4, `ENIP_ERROR_BURST_THRESHOLD = 5`; fires on the 6th error) is an
+  initial engineering estimate.
   Recalibration against real ENIP pcap captures is recommended before v0.12.0.
   Until recalibrated, BC-2.17.008/014 must cite the threshold as MEDIUM-confidence
   pending O-03 open-calibration. Lock path: collect error-rate baseline from production
