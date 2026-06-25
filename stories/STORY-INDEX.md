@@ -159,7 +159,7 @@ traces_to:
 | STORY-129 | Emit Per-Finding `mitre_attack` Array in JSON Output | E-8 | 57 | 5 | completed | — |
 | STORY-130 | EtherNet/IP Pure-Core Parse: ENIP Header, Command Classification, Frame Validity, and Kani VP-032 | E-20 | 58 | 8 | completed | — |
 | STORY-131 | EtherNet/IP StreamDispatcher Integration, CLI Flags, and TCP Reassembly Wiring | E-20 | 58 | 8 | completed | — |
-| STORY-132 | CPF Item Walk, CIP Header Parse, and CIP Request Path Extraction | E-20 | 59 | 8 | draft | STORY-130 |
+| STORY-132 | CPF Item Walk, CIP Header Parse, and CIP Request Path Extraction | E-20 | 59 | 8 | completed | STORY-130 |
 | STORY-133 | MITRE ICS Technique Seeding: T0858/T0816/T1693.001/IcsExecution + VP-007 Atomic Update | E-20 | 59 | 5 | draft | STORY-131 |
 | STORY-134 | ENIP Recon Detections: T0846 ListIdentity, T0888 Identity Read / Error Burst, and CIP Error Accumulation | E-20 | 60 | 8 | draft | STORY-132, STORY-133 |
 | STORY-135 | ENIP Command Detections: T0858 Mode Change, T0816 Device Reset, and T0836 Write-Attribute Burst | E-20 | 60 | 8 | draft | STORY-132, STORY-133 |
@@ -328,7 +328,7 @@ traces_to:
 | 56 | STORY-128 | **DELIVERED & CLOSED** | #286 | e75a797 | 2026-06-21 |
 | 57 | STORY-129 | **DELIVERED & CLOSED** | #306 | 2fa6606 | 2026-06-23 |
 | 58 | STORY-130, STORY-131 | **DELIVERED & CLOSED** | #317, #318 | edce3bd | 2026-06-25 |
-| 59 | STORY-132, STORY-133 | draft | — | — | — |
+| 59 | STORY-132, STORY-133 | STORY-132 **DELIVERED & CLOSED** / STORY-133 draft | #319 | 16d3ce7 | 2026-06-25 |
 | 60 | STORY-134, STORY-135, STORY-136, STORY-137 | draft | — | — | — |
 | 61 | STORY-138 | draft | — | — | — |
 
