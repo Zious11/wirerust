@@ -1190,10 +1190,10 @@ E-18/E-8 Terminal Finding-Collapse + Enum Migration specific gap notes (D-120 sp
 | GAP-001 | L1 | BC-2.11.013 Invariant 4 / BC-2.11.025 Invariant 5 | ~~RESOLVED (2026-06-18).~~ Grouped-mode collapse delivered in STORY-119/B (wave 50, D-120 split). BC-2.11.030..034 authored for the feature. STORY-122/A (wave 49) establishes the struct type prerequisite. GAP-001 closed. | STORY-122 wave 49 + STORY-119/B wave 50 (CLOSED) |
 
 E-20 ENIP/CIP Analyzer specific notes:
-- BC-2.17.023 (session-layer RegisterSession/UnRegisterSession command routing) is assigned to STORY-131 (dispatcher wiring) even though the session state tracking is finalized in STORY-138; BC-2.17.023 covers the dispatch obligation (accept CIP_REGISTERED_SESSION commands to the session handler), not the session lifecycle state machine.
-- BC-2.17.024 (MAX_FINDINGS DoS guard on findings Vec) and BC-2.17.025 (session-level DoS T0814 emission when MAX_FINDINGS threshold reached) are co-located in STORY-138; they are inseparable — the guard and the emission occur in the same finalize() call path.
+- BC-2.17.023 (`--enip-write-burst-threshold` CLI Flag Configures T0836 Write Detection Sensitivity) is assigned to STORY-131 (dispatcher wiring / CLI flag plumbing); the flag is wired at dispatcher level and passed into the analyzer — BC-2.17.023 covers the CLI-to-analyzer configuration obligation.
+- BC-2.17.024 (pdu_count Incremented Per Processed Frame and Reflected in summarize()) and BC-2.17.025 (RegisterSession/UnRegisterSession Classified and PDU-Counted; No Finding Emitted) are co-located in STORY-138; they share the `process_pdu` call path where PDU counting and session-command classification both occur.
 - STORY-133 carries no BC numbers in `behavioral_contracts:` frontmatter (VP-007 obligation — ADR-010 Decision 7 mandates atomic burst; no individual BC scopes the seeding obligation). This is not a gap: the VP-007 atomic update is the governing artifact, and STORY-133's ACs trace to ADR-010 Decision 7 and mitre.rs invariants.
-- BC-2.17.013 (T0836 write-attribute burst detection) and BC-2.17.012 (write-attribute single detection) are both assigned to STORY-135; both are CIP Write-Attribute service detections with different thresholds — they share implementation scope in the same detection function.
+- BC-2.17.012 (CIP Write-Class Service Burst Exceeding Threshold Emits T0836) and BC-2.17.013 (CIP Reset Service Observed Emits T0816 Device Restart/Shutdown Finding) are both assigned to STORY-135; both are CIP service detections sharing implementation scope in the same detection function.
 
 ---
 
