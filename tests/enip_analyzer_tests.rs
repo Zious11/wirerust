@@ -2348,7 +2348,7 @@ mod recon {
     ///
     /// `parse_enip_header` requires >=24 bytes. `process_pdu` reads the ENIP header
     /// from the first 24 bytes; no CPF/CIP parse is needed for ListIdentity (ENIP
-    /// command-layer detection, ADR-010 Decision 6 step 2).
+    /// command-layer detection, ADR-010 Decision 4 step 2).
     fn list_identity_pdu() -> Vec<u8> {
         enip_header(0x0063).to_vec() // command = ListIdentity
     }
@@ -3372,7 +3372,7 @@ mod recon {
 
     // =========================================================================
     // O-134-001 CANONICAL CPF-OFFSET HOLDOUT (DF-CANONICAL-FRAME-HOLDOUT-001)
-    // Traces: BC-2.17.014 Pattern A; BC-2.17.005; ADR-010 Decision 6
+    // Traces: BC-2.17.014 Pattern A; BC-2.17.005; ADR-010 Decision 4
     // =========================================================================
 
     /// O-134-001 — canonical SendRRData frame with authoritative ODVA byte layout
@@ -3409,7 +3409,7 @@ mod recon {
     /// Asserts: exactly one T0888 finding with mitre_technique == "T0888".
     ///
     /// Traces: BC-2.17.014 Pattern A postcondition 1; BC-2.17.005; O-134-001;
-    /// DF-CANONICAL-FRAME-HOLDOUT-001; ADR-010 Decision 6.
+    /// DF-CANONICAL-FRAME-HOLDOUT-001; ADR-010 Decision 4.
     #[test]
     fn test_process_pdu_canonical_sendrr_cpf_offset() {
         let mut analyzer = EnipAnalyzer::new(50, 5);
