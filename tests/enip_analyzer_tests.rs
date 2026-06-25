@@ -1949,9 +1949,9 @@ mod mitre_seeding {
     // Traces: VP-007 Step 5
     //
     // GREEN-BY-DESIGN: Both tests exercise pure enum→str mappings (zero branching,
-    // no I/O, no helpers, 1 line per arm). The stub implements VP-007 Step 5 (the
-    // variant itself + Display + tactic_id) as WIRING-EXEMPT. These tests PASS
-    // against the stub. The overall Red Gate is preserved by the 7 RED tests above.
+    // no I/O, no helpers, 1 line per arm). VP-007 Step 5 (the IcsExecution variant
+    // + Display + tactic_id) is implemented in src/mitre.rs (STORY-133); these
+    // tests pin the Display string and TA-ID.
     // -------------------------------------------------------------------------
 
     /// AC-133-004 — MitreTactic::IcsExecution.to_string() == "Execution (ICS)".
@@ -2100,7 +2100,6 @@ mod mitre_seeding {
     /// AC-133-006 — ALL 20 expected post-STORY-133 emitted IDs resolve in technique_info.
     ///
     /// T0858 and T0816 arms added in STORY-133 (VP-007 Steps 1+4). All 20 emitted IDs resolve.
-    /// implementer adds T0858 and T0816 arms to technique_info (VP-007 Steps 1+4).
     ///
     /// Assertion strategy: enumerate all 20 expected EMITTED IDs and assert each resolves
     /// in technique_info. This is the strongest assertion available from integration tests
