@@ -52,6 +52,10 @@ the DNP3/Modbus pattern of counting only successfully processed protocol data un
 3. Frames rejected by `is_valid_enip_frame` do NOT increment `pdu_count`.
 4. Frames that do not result in findings (e.g., RegisterSession, IndicateStatus) still
    increment `pdu_count` (pdu_count tracks all processed frames, not just finding-generating frames).
+5. **No-finding commands (v0.11.0)**: ListServices (0x0004), ListInterfaces (0x0064),
+   IndicateStatus (0x0072), and Cancel (0x0075) are validity-gated (BC-2.17.003),
+   classified (BC-2.17.004), and PDU-counted (this BC), but emit NO finding in v0.11.0.
+   These commands have no MITRE ICS detection target in the current scope.
 
 ## Invariants
 

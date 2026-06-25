@@ -76,10 +76,13 @@ payload bytes support. The function never panics and never reads out of bounds.
    bounds check fails. Partial results (items parsed before the violation) are returned.
    An attacker declaring a large item_count with insufficient payload bytes cannot cause
    more iterations than the payload length supports (minimum 4 bytes per item header).
-3. **DoS bound via payload-length cap**: the maximum number of items parseable from a
-   `MAX_ENIP_CARRY_BYTES = 600` payload is bounded by `(600 - 2) / 4 = 149` (all items
-   zero-length). In practice, connected-data items have non-zero length, further limiting
-   the count.
+3. **DoS bound via payload-length cap**: the CPF payload is `data[24 .. 24 + header.length]`
+   and frames where `24 + header.length > 600` are rejected by the frame-walk, so
+   `header.length ≤ 576` and `payload.len() ≤ 576`. The maximum number of items parseable
+   from a 576-byte payload (all items zero-length) is bounded by `(576 - 2) / 4 = 143`.
+   In practice, connected-data items have non-zero length, further limiting the count.
+   The 600-byte `MAX_ENIP_CARRY_BYTES` cap bounds the full carry buffer, not the CPF
+   payload slice; bounds-safety is independently guaranteed by the early-break invariant.
 4. **Recognized type_ids**: `{0x0000 NullAddressItem, 0x00A1 ConnectedAddressItem,
    0x00B1 ConnectedData, 0x00B2 UnconnectedData}` — all four are parsed and included in
    the result. `0x00B1` and `0x00B2` are the CIP payload carriers. All other type_id values

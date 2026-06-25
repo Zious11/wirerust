@@ -91,7 +91,7 @@ Used by detection BCs to identify the target CIP object class (e.g., Identity Ob
 | EC-003 | `path = [0x20, 0x01, 0x24, 0x01, 0x30, 0x07]` (Identity Class 1, Instance 1, Attr 7) | Returns `vec![Class(0x01), Instance(0x01), Attribute(0x07)]` |
 | EC-004 | Path has 1 byte only | `cursor+2 > 1`: breaks immediately; returns `vec![]` |
 | EC-005 | Unrecognized segment type 0x40 | Skip 2 bytes; do not push segment; continue |
-| EC-006 | Path has exactly 4 bytes but declares 3 segments | First 2 bytes parse OK; break at cursor=2+2>4 if third needed | Returns 1 or 2 segments depending on bytes |
+| EC-006 | Path has exactly 4 bytes but declares 3 segments | First segment (bytes 0–1) parsed OK; second segment (bytes 2–3) parsed OK; at cursor=4, `cursor+2 > 4` — break. Returns 2 segments (or fewer if a byte is an unrecognized type that was still advanced past). |
 
 ## Canonical Test Vectors
 
