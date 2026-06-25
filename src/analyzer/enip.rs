@@ -312,8 +312,34 @@ pub struct CpfItem {
 ///
 /// # Traces
 /// BC-2.17.005; pure-core free fn (ADR-010 Decision 2).
-pub fn parse_cpf_items(_cpf_data: &[u8]) -> Vec<CpfItem> {
-    todo!()
+pub fn parse_cpf_items(cpf_data: &[u8]) -> Vec<CpfItem> {
+    // BC-2.17.005 postcondition 1: < 2 bytes → cannot read item_count.
+    if cpf_data.len() < 2 {
+        return vec![];
+    }
+    // BC-2.17.005 postcondition 2: item_count is LE u16 at [0..2].
+    let item_count = u16::from_le_bytes([cpf_data[0], cpf_data[1]]) as usize;
+    let mut items = Vec::with_capacity(item_count);
+    let mut cursor = 2usize;
+
+    for _ in 0..item_count {
+        // BC-2.17.005 postcondition 3 (first bound): need 4 bytes for item header.
+        if cursor + 4 > cpf_data.len() {
+            break;
+        }
+        // BC-2.17.005 postcondition 3: type_id and transient length are LE u16.
+        let type_id = u16::from_le_bytes([cpf_data[cursor], cpf_data[cursor + 1]]);
+        let length = u16::from_le_bytes([cpf_data[cursor + 2], cpf_data[cursor + 3]]) as usize;
+        cursor += 4;
+        // BC-2.17.005 postcondition 3 (second bound): data must fit.
+        if cursor + length > cpf_data.len() {
+            break;
+        }
+        let data = cpf_data[cursor..cursor + length].to_vec();
+        cursor += length;
+        items.push(CpfItem { type_id, data });
+    }
+    items
 }
 
 // ---------------------------------------------------------------------------
@@ -361,8 +387,25 @@ pub struct CipHeader {
 ///
 /// # Traces
 /// BC-2.17.006; pure-core free fn (ADR-010 Decision 2); F-P9-001 call-site gate.
-pub fn parse_cip_header(_item_data: &[u8]) -> Option<CipHeader> {
-    todo!()
+pub fn parse_cip_header(item_data: &[u8]) -> Option<CipHeader> {
+    // BC-2.17.006 postcondition 1: < 2 bytes → None.
+    if item_data.len() < 2 {
+        return None;
+    }
+    // BC-2.17.006 postconditions 2–3: service byte and transient path_size.
+    let service = item_data[0];
+    let request_path_size = item_data[1] as usize;
+    let path_byte_count = request_path_size * 2;
+    // BC-2.17.006 postcondition 5: truncated path → None.
+    if item_data.len() < 2 + path_byte_count {
+        return None;
+    }
+    // BC-2.17.006 postcondition 6: extract path bytes.
+    let request_path = item_data[2..2 + path_byte_count].to_vec();
+    Some(CipHeader {
+        service,
+        request_path,
+    })
 }
 
 // ---------------------------------------------------------------------------
@@ -433,8 +476,29 @@ pub enum CipServiceClass {
 ///
 /// # Traces
 /// BC-2.17.007; VP-032 Sub-D primary + partition Kani targets.
-pub fn classify_cip_service(_service: u8) -> CipServiceClass {
-    todo!()
+pub fn classify_cip_service(service: u8) -> CipServiceClass {
+    // BC-2.17.007 invariant 1: response-bit check FIRST (applies to 0x80–0xFF range).
+    if service & 0x80 != 0 {
+        return CipServiceClass::Response;
+    }
+    // BC-2.17.007 postcondition 3: 13 named request service codes.
+    match service {
+        0x01 => CipServiceClass::GetAttributesAll,
+        0x02 => CipServiceClass::SetAttributesAll,
+        0x03 => CipServiceClass::GetAttributeList,
+        0x04 => CipServiceClass::SetAttributeList,
+        0x05 => CipServiceClass::Reset,
+        0x07 => CipServiceClass::Stop,
+        0x0A => CipServiceClass::MultipleServicePacket,
+        0x0E => CipServiceClass::GetAttributeSingle,
+        0x10 => CipServiceClass::SetAttributeSingle,
+        0x4B => CipServiceClass::GetAndClear,
+        0x4E => CipServiceClass::ForwardClose,
+        0x54 => CipServiceClass::ForwardOpen,
+        0x5B => CipServiceClass::LargeForwardOpen,
+        // BC-2.17.007 postcondition 4: all other request-range values → Unknown.
+        _ => CipServiceClass::Unknown,
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -486,8 +550,24 @@ pub enum CipPathSegment {
 ///
 /// # Traces
 /// BC-2.17.009; ADR-010 Decision 8; pure-core free fn.
-pub fn parse_cip_request_path(_path: &[u8]) -> Vec<CipPathSegment> {
-    todo!()
+pub fn parse_cip_request_path(path: &[u8]) -> Vec<CipPathSegment> {
+    let mut segments = Vec::new();
+    let mut cursor = 0usize;
+    // BC-2.17.009 postcondition 2: walk 2 bytes at a time; break on bounds violation.
+    while cursor + 2 <= path.len() {
+        let segment_type = path[cursor];
+        let value = path[cursor + 1];
+        // BC-2.17.009 postcondition 2: exact-match only (Architecture Rule 2 — no &0xE0 mask).
+        match segment_type {
+            0x20 => segments.push(CipPathSegment::Class(value)),
+            0x24 => segments.push(CipPathSegment::Instance(value)),
+            0x30 => segments.push(CipPathSegment::Attribute(value)),
+            // Other segment types: skip; advance by 2.
+            _ => {}
+        }
+        cursor += 2;
+    }
+    segments
 }
 
 // ---------------------------------------------------------------------------
