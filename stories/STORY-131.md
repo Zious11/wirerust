@@ -59,9 +59,12 @@ when the user opts in via `--enip` or `--all`.
 - The dispatcher has an `enip_analyzer: Option<EnipAnalyzer>` field set when `--enip` is active
 - Port 44818 routing appears AFTER port 20000 (DNP3) in priority order — flows matching both ports use DNP3 (port 20000 takes precedence as Rule 6)
 - Non-44818 flows are NOT routed to the ENIP analyzer
+- **PC-2 wiring guarantee:** routing correctness is observable via `EnipAnalyzer.bytes_received` — after feeding a port-44818 flow through `StreamDispatcher::on_data`, `bytes_received > 0`; after feeding a non-44818 flow, `bytes_received == 0`. The dispatcher routes data into a minimal `on_data` that increments `bytes_received`; full CIP frame-walk is deferred to STORY-132.
+- **BC-2.17.019 EC-007 guard:** if `dispatcher.enip_analyzer` is `None` and a port-44818 flow arrives, the early-exit guard fires and the call is a no-op (no panic, no routing attempt). See `test_dispatcher_no_enip_analyzer_port_44818_is_noop` below.
 - **Test:** `tests/enip_analyzer_tests.rs::dispatch::test_dispatcher_routes_port_44818`
 - **Test:** `tests/enip_analyzer_tests.rs::dispatch::test_dispatcher_does_not_route_other_ports`
 - **Test:** `tests/enip_analyzer_tests.rs::dispatch::test_dispatcher_rule_order_dnp3_before_enip`
+- **Test (EC-007):** `tests/enip_analyzer_tests.rs::dispatch::test_dispatcher_no_enip_analyzer_port_44818_is_noop`
 
 ### AC-131-002: `take_enip_analyzer()` transfers EnipAnalyzer findings to caller
 **Traces to:** BC-2.17.019 postcondition 4
@@ -124,6 +127,7 @@ when the user opts in via `--enip` or `--all`.
 | ENIP construction logic | `src/main.rs` | Constructs and wires `EnipAnalyzer`; reassembly guard |
 | `EnipAnalyzer.enip_write_burst_threshold` | `src/analyzer/enip.rs` | `u32` field, populated from CLI |
 | `EnipAnalyzer.enip_error_burst_threshold` | `src/analyzer/enip.rs` | `u32` field, populated from CLI |
+| `EnipAnalyzer.bytes_received` | `src/analyzer/enip.rs` | `u64` field, incremented by `on_data`; evidences PC-2 routing (full frame-walk in STORY-132) |
 
 **Dispatch Rule Order (ADR-010 Decision 3):**
 ```
@@ -172,9 +176,9 @@ This ensures the Kani oracle for dispatcher correctness covers the new ENIP rout
 - [ ] Add `EnipAnalyzer::new(write_burst_threshold: u32, error_burst_threshold: u32) -> EnipAnalyzer` constructor to `src/analyzer/enip.rs` (stub: empty struct fields; later stories populate detection logic)
 - [ ] Add fields `enip_write_burst_threshold: u32` and `enip_error_burst_threshold: u32` to `EnipAnalyzer` struct in `src/analyzer/enip.rs`
 - [ ] Update `src/main.rs` analyze flow: if `args.enip && !has_reassembly { warn!(...); } else if args.enip { let analyzer = EnipAnalyzer::new(args.enip_write_burst_threshold, args.enip_error_burst_threshold); dispatcher.set_enip_analyzer(analyzer); needs_reassembly.push(...); }`
-- [ ] Add `mod dispatch { ... }` test wrapper to `tests/enip_analyzer_tests.rs` with all AC-131 tests
+- [ ] Add `mod dispatch { ... }` test wrapper to `tests/enip_analyzer_tests.rs` with all AC-131 tests (15 tests including `test_dispatcher_no_enip_analyzer_port_44818_is_noop`)
 - [ ] Run `cargo check` — zero errors
-- [ ] Run `cargo test enip` — all new tests pass
+- [ ] Run `cargo test enip` — all 15 new tests pass
 - [ ] Run `cargo clippy --all-targets -- -D warnings` — zero warnings
 
 ## Test Plan
@@ -197,7 +201,10 @@ dispatch::test_write_burst_threshold_default
 dispatch::test_error_burst_threshold_custom
 dispatch::test_error_burst_threshold_default
 dispatch::test_error_burst_threshold_zero_semantics
+dispatch::test_dispatcher_no_enip_analyzer_port_44818_is_noop
 ```
+
+**Total: 15 tests**
 
 ## Previous Story Intelligence
 
@@ -247,8 +254,8 @@ From ADR-010 Decision 3 (stream dispatch) and Decision 9 (CLI pattern):
 | `src/cli.rs` changes | ~150 |
 | `src/main.rs` changes | ~150 |
 | `src/analyzer/enip.rs` additions (struct + constructor) | ~100 |
-| `tests/enip_analyzer_tests.rs` dispatch mod (14 tests) | ~550 |
-| **Total** | **~1,150** |
+| `tests/enip_analyzer_tests.rs` dispatch mod (15 tests) | ~580 |
+| **Total** | **~1,180** |
 
 ## Dependency Rationale
 

@@ -1,10 +1,10 @@
 ---
 document_type: bc-index
 level: L3
-version: "1.80"
+version: "1.81"
 status: draft
 producer: product-owner
-timestamp: 2026-06-25T00:00:00Z
+timestamp: 2026-06-25T08:00:00Z
 phase: 1a
 traces_to: .factory/specs/prd.md
 ---
@@ -15,6 +15,9 @@ traces_to: .factory/specs/prd.md
 > links to the individual BC file. BCs are sharded into per-subsystem directories (ss-NN/).
 >
 > All BCs are marked [WRITTEN]. Body files have been verified on disk for all 331 entries (330 prior + 1 new BC-2.17.026 for F2 addendum error-burst CLI flag; BC-2.01.004 retired).
+>
+> **v1.81 2026-06-25 (M2/D-235: BC-2.17.020 index table title synced to body H1 — adds --enip-error-burst-threshold):**
+> BC-2.17.020 table cell title corrected: was "CLI --enip Flag Enables Analyzer; --enip-write-burst-threshold Configures Write Detection" (stale, pre-F2-addendum); now "CLI --enip Flag Enables Analyzer; --enip-write-burst-threshold and --enip-error-burst-threshold Configure Detection" (matches body H1). Inline comment extended to cite T0888 Pattern B. No BC body file changed; no BC count change (331 on disk; 330 active). STORY-131 adversarial Pass-1 M2 fix, D-235.
 >
 > **v1.80 2026-06-25 (STORY-130 adversarial Pass2 fix — BC-2.17.002 v1.0→v1.1, field-count 10→6, F-130-P2-001):**
 > BC-2.17.002 v1.0→v1.1: Title corrected — EnipHeader has 6 fields (command, length, session_handle, status, sender_context, options), not 10. Postconditions 1–9 enumerate these exactly. ADR-010 §Decision 8 line-615 cross-reference updated to "all 6 fields". Finding F-130-P2-001 MEDIUM (STORY-130 adversarial Pass 2). No new BCs; no BC count change (331 on disk; 330 active). STORY-130 input-hash recomputed dc8a2c9→272738c (DF-INPUT-HASH-CANONICAL-001). D-233.
@@ -618,7 +621,7 @@ traces_to: .factory/specs/prd.md
 | BC-2.17.017 | on_flow_close Removes Flow State and Updates Aggregate Counters | P1 | [WRITTEN] | (none) | feature-enip-v0.11.0 | <!-- v1.1: flows_analyzed += 1 added as Postcondition 6 (sole increment site); Invariant 3 added; vectors updated; F-P6-001 dead-counter fix -->
 | BC-2.17.018 | Malformed ENIP Frame Threshold Emits T0814 Structural Anomaly Finding | P1 | [WRITTEN] | T0814 (IcsInhibitResponseFunction TA0107) | feature-enip-v0.11.0 | <!-- MALFORMED_ANOMALY_THRESHOLD=3/300s; one-shot per window; T0814 already seeded -->
 | BC-2.17.019 | StreamDispatcher Rule 7 — Port 44818 TCP Classified as DispatchTarget::Enip | P0 | [WRITTEN] | (none — routing) | feature-enip-v0.11.0 | <!-- port-44818 TCP Rule 7 after TLS/HTTP/Modbus/DNP3 content/port rules -->
-| BC-2.17.020 | CLI --enip Flag Enables Analyzer; --enip-write-burst-threshold Configures Write Detection | P0 | [WRITTEN] | (none) | feature-enip-v0.11.0 | <!-- --enip enables EnipAnalyzer; --enip-write-burst-threshold u32 for T0836 -->
+| BC-2.17.020 | CLI --enip Flag Enables Analyzer; --enip-write-burst-threshold and --enip-error-burst-threshold Configure Detection | P0 | [WRITTEN] | (none) | feature-enip-v0.11.0 | <!-- --enip enables EnipAnalyzer; --enip-write-burst-threshold u32 for T0836; --enip-error-burst-threshold u32 for T0888 Pattern B -->
 | BC-2.17.021 | summarize() Emits ENIP Command Distribution and Aggregate Statistics | P1 | [WRITTEN] | (none) | feature-enip-v0.11.0 | <!-- v1.1: flows_analyzed increment site documented (BC-2.17.017 PC-6 is sole site); Invariant 2 expanded; test vector flows_analyzed:1 satisfiability proven; F-P6-001 dead-counter fix -->
 | BC-2.17.022 | MAX_FINDINGS DoS Bound — Finding Cap Prevents Unbounded all_findings Growth | P0 | [WRITTEN] | (none) | feature-enip-v0.11.0 | <!-- MAX_FINDINGS cap shared constant; same pattern as Modbus/DNP3/ARP -->
 | BC-2.17.023 | --enip-write-burst-threshold CLI Flag Configures T0836 Write Detection Sensitivity | P1 | [WRITTEN] | (none — CLI) | feature-enip-v0.11.0 | <!-- operator tuning for high-write CIP environments [OA-001]; threshold used by BC-2.17.012 -->
