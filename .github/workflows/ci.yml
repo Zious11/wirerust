@@ -387,3 +387,31 @@ jobs:
             exit 1
           fi
           echo "PASS: All remote actions in .github/workflows/ are SHA-pinned (${FAILURES} violations)."
+
+  # DF-GREEN-DOC-TENSE-SWEEP gate: detect stale RED-phase comment headers in test files.
+  #
+  # Problem: during strict TDD, test files receive module-level or section-level comments
+  # asserting that tests "MUST FAIL" or "are designed to FAIL (Red Gate)". After the
+  # implementation ships, these comments become stale — the test bodies contain real GREEN
+  # assertions but the headers still claim RED stub behaviour. This pattern recurred on all
+  # 4 stories of feature-enip-v0.11.0, prompting a mechanical gate (DF-GREEN-DOC-TENSE-SWEEP).
+  #
+  # Implementation: bin/check-green-doc-tense scans tracked tests/*.rs and src/**/*.rs
+  # comment lines for a curated set of current-state RED assertions. It exits 1 with a
+  # file:line + token message per violation, and exits 0 when clean. A self-test
+  # (bin/test_check_green_doc_tense.py) verifies 10 known-bad patterns are flagged and
+  # 14 known-good patterns (past-tense provenance, inline test assertions, statistical
+  # descriptions) are not, so the gate itself is tested. Pure Python 3, no dependencies.
+  #
+  # The self-test is run first so a broken gate script surfaces immediately, not after a
+  # false-negative on the scan.
+  green-doc-tense-gate:
+    name: Green-doc-tense gate (DF-GREEN-DOC-TENSE-SWEEP)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Self-test the gate script
+        run: python3 bin/test_check_green_doc_tense.py
+      - name: Scan for stale RED-phase comment headers in test files
+        run: python3 bin/check-green-doc-tense

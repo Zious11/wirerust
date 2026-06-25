@@ -1,0 +1,237 @@
+#!/usr/bin/env python3
+"""check-green-doc-tense — DF-GREEN-DOC-TENSE-SWEEP enforcement gate.
+
+Scans tracked test files (tests/*.rs and src/**/*.rs cfg(test) modules) for
+comment lines that assert current-state RED/stub behaviour on code that is
+now GREEN. These are "stale RED-phase headers" — section or file-level
+comments written during the TDD Red Gate phase that were never removed when
+the implementation was shipped.
+
+PROBLEM PATTERN
+---------------
+During strict TDD, test files are written before implementation with module-
+level or section-level comments like:
+
+    //! All tests MUST FAIL (todo!() panic) before implementation — Red Gate
+    // PART A: stub-only bodies — panic!("STORY-019 stub — Red Gate").
+    // All test bodies panic — Red Gate (Part A stubs).
+
+These comments become stale after the GREEN phase: the implementation ships,
+the todo!() stubs are replaced with real assertions, but the headers are left
+behind. The prose now actively misleads readers into thinking the tests are
+expected to fail (Red) when they are actually passing (Green).
+
+This gate catches those stale headers so they are scrubbed before merge.
+
+TOKEN LIST (lines to flag — current-state assertions)
+------------------------------------------------------
+The following patterns are matched against COMMENT LINES ONLY
+(lines whose non-whitespace content starts with // or //!):
+
+  1. All tests MUST FAIL
+  2. ALL tests must fail
+  3. All tests in this file are designed to FAIL
+  4. RED GATE:.*tests must fail         (case-insensitive on "must fail" tail)
+  5. RED GATE: ALL tests must fail
+  6. All stubs panic to satisfy the Red Gate
+  7. All test bodies panic.*Red Gate
+  8. PART A: stub-only bodies.*panic
+  9. stub-only bodies.*panic.*Red Gate
+ 10. Every test body panics.*must FAIL before
+ 11. All stubs MUST fail before
+
+All patterns are anchored to comment lines (leading // or //!) to avoid
+false-positives inside doc-test code blocks or inside string literals.
+
+ALLOWLIST (lines NOT flagged — legitimate past-tense or contextual prose)
+--------------------------------------------------------------------------
+The allowlist is implemented by the token specificity above: every pattern
+requires an unambiguous current-state assertion ("MUST FAIL", "are designed
+to FAIL", "stub-only bodies", etc.) that cannot appear in past-tense
+provenance narration.
+
+The following commonly-seen "Red Gate" phrases are intentionally NOT in the
+token list because they describe historical provenance, not current state:
+
+  - "passed their Red Gate phase"          — past tense, narrative
+  - "originally written as a Red Gate"     — past tense, narrative
+  - "Red Gate for AC-NNN"                  — historical reference
+  - "Red Gate assertion" (in doc comments) — describes nature of a test
+  - "Red Gate commit"                      — git history reference
+  - "RED-phase:" (in doc-comment headers)  — provenance section, past tense
+  - "making this a reliable Red Gate"      — describes statistical property
+  - "deterministic Red Gate in all senses" — describes test reliability
+  - "must fail" as an inline test assertion — e.g. "strict must fail with
+    SliceError::Len" inside test body prose; these appear mid-sentence in
+    doc comments and are test-contract narration, not stub-phase headers.
+  - "implementer adds / must add" — too broad; "implementer" appears in
+    many legitimate past-tense and future-guidance comments.
+
+SELF-TEST
+---------
+Run: python3 bin/test_check_green_doc_tense.py
+"""
+
+import re
+import subprocess
+import sys
+from pathlib import Path
+
+
+# ---------------------------------------------------------------------------
+# Token patterns — each is a regex matched against a comment line.
+# A "comment line" is one where the stripped content starts with // or //!
+# ---------------------------------------------------------------------------
+
+_VIOLATION_PATTERNS: list[tuple[str, re.Pattern[str]]] = [
+    (
+        "All tests MUST FAIL (module-level RED-stub header)",
+        re.compile(r"All tests MUST FAIL", re.IGNORECASE),
+    ),
+    (
+        "ALL tests must fail (module-level RED-stub header)",
+        re.compile(r"ALL tests must fail"),
+    ),
+    (
+        "All tests in this file are designed to FAIL (RED-stub header)",
+        re.compile(r"All tests in this file are designed to FAIL", re.IGNORECASE),
+    ),
+    (
+        "RED GATE: … tests must fail (section RED-stub header)",
+        re.compile(r"RED GATE:.*tests must fail", re.IGNORECASE),
+    ),
+    (
+        "All stubs panic to satisfy the Red Gate (section RED-stub header)",
+        re.compile(r"All stubs panic to satisfy the Red Gate", re.IGNORECASE),
+    ),
+    (
+        "All test bodies panic — Red Gate (section RED-stub header)",
+        re.compile(r"All test bodies panic.*Red Gate", re.IGNORECASE),
+    ),
+    (
+        "PART A: stub-only bodies — panic (section RED-stub header)",
+        re.compile(r"PART A: stub-only bodies.*panic", re.IGNORECASE),
+    ),
+    (
+        "stub-only bodies — panic — Red Gate (section RED-stub header)",
+        re.compile(r"stub-only bodies.*panic.*Red Gate", re.IGNORECASE),
+    ),
+    (
+        "Every test body panics; all must FAIL before (section RED-stub header)",
+        re.compile(r"Every test body panics.*must FAIL before", re.IGNORECASE),
+    ),
+    (
+        "All stubs MUST fail before (section RED-stub header)",
+        re.compile(r"All stubs MUST fail before", re.IGNORECASE),
+    ),
+]
+
+
+def _is_comment_line(stripped: str) -> bool:
+    """Return True if the stripped line starts with a Rust comment marker."""
+    return stripped.startswith("//")
+
+
+def _collect_rust_files(repo_root: Path) -> list[Path]:
+    """
+    Collect test-scope Rust files:
+      - tests/*.rs    (integration test files)
+      - src/**/*.rs   (may contain #[cfg(test)] modules)
+
+    Only tracked files are considered (git ls-files). Untracked files are
+    excluded so newly-added test files do not cause false failures before
+    their first commit.
+    """
+    result = subprocess.run(
+        ["git", "ls-files", "--", "tests/*.rs", "src/**/*.rs"],
+        cwd=repo_root,
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    paths = []
+    for line in result.stdout.splitlines():
+        line = line.strip()
+        if line.endswith(".rs"):
+            p = repo_root / line
+            if p.exists():
+                paths.append(p)
+    return paths
+
+
+def scan_file(path: Path) -> list[tuple[int, str, str]]:
+    """
+    Scan one file. Returns a list of (lineno, line_content, violation_label)
+    for each offending line.
+    """
+    violations: list[tuple[int, str, str]] = []
+    try:
+        text = path.read_text(encoding="utf-8")
+    except OSError as exc:
+        # Unreadable file: report as a scan error, not a gate failure.
+        print(f"WARNING: cannot read {path}: {exc}", file=sys.stderr)
+        return violations
+
+    for lineno, raw_line in enumerate(text.splitlines(), start=1):
+        stripped = raw_line.strip()
+        if not _is_comment_line(stripped):
+            continue
+        for label, pattern in _VIOLATION_PATTERNS:
+            if pattern.search(stripped):
+                violations.append((lineno, raw_line.rstrip(), label))
+                break  # one label per line is enough
+
+    return violations
+
+
+def main() -> int:
+    # Resolve repo root: walk up from this script's location until we find
+    # a directory containing a .git entry (file or directory).
+    script_path = Path(__file__).resolve()
+    candidate = script_path.parent
+    repo_root: Path | None = None
+    for _ in range(6):  # at most 6 levels up
+        if (candidate / ".git").exists() or (candidate / "Cargo.toml").exists():
+            repo_root = candidate
+            break
+        candidate = candidate.parent
+    if repo_root is None:
+        print("ERROR: could not locate repo root (no .git or Cargo.toml found)", file=sys.stderr)
+        return 2
+
+    rust_files = _collect_rust_files(repo_root)
+    if not rust_files:
+        print("WARNING: no tracked Rust files found; scan target may be wrong.", file=sys.stderr)
+
+    total_violations = 0
+    for path in sorted(rust_files):
+        rel = path.relative_to(repo_root)
+        file_violations = scan_file(path)
+        for lineno, content, label in file_violations:
+            print(f"FAIL [{rel}:{lineno}]: {label}")
+            print(f"     {content}")
+            total_violations += 1
+
+    if total_violations > 0:
+        print()
+        print(
+            f"Found {total_violations} stale RED-phase comment(s) in test files "
+            f"(DF-GREEN-DOC-TENSE-SWEEP)."
+        )
+        print(
+            "These comment lines assert that tests currently fail (Red Gate / stub-phase),"
+        )
+        print(
+            "but the test bodies beneath them contain real assertions (the code is GREEN)."
+        )
+        print(
+            "Scrub or replace each comment to reflect current GREEN status before merging."
+        )
+        return 1
+
+    print(f"PASS: no stale RED-phase comment headers found ({len(rust_files)} files scanned).")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

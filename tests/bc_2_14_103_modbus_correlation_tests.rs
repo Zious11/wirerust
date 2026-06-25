@@ -3,7 +3,7 @@
 //! Covers BC-2.14.009 (request insert), BC-2.14.010 (response match),
 //! BC-2.14.011 (exception attribution), BC-2.14.012 (pending-table bound).
 //!
-//! RED GATE: all tests must fail (todo!() panics) before implementation begins.
+//! Tests originated as Red Gate stubs (todo!() panics) before implementation; all now GREEN.
 //! Test naming follows `test_BC_S_SS_NNN_xxx` pattern for full traceability.
 //!
 //! Canonical test vectors used verbatim from BC documents.

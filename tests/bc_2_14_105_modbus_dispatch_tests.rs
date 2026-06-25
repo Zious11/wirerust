@@ -2,27 +2,25 @@
 //!
 //! Covers BC-2.14.023, BC-2.14.024, BC-2.14.025, and VP-004 oracle extension.
 //!
-//! All tests in this file are designed to FAIL (Red Gate) until the
-//! implementation in dispatcher.rs, cli.rs, and main.rs is complete.
+//! Tests originated as Red Gate stubs until the implementation in
+//! dispatcher.rs, cli.rs, and main.rs was complete. All tests now GREEN.
 //!
 //! Test naming follows BC-prefixed convention per TDD methodology:
 //!   `test_BC_2_14_NNN_…` for behavioral contract coverage.
 //!
-//! ## Red Gate Guarantee
+//! ## Red Gate provenance (historical)
 //!
-//! Tests that exercise `StreamDispatcher::on_data` with port-502 flows
-//! will panic (via `todo!()` in the dispatcher stub) because
-//! `ModbusAnalyzer::on_data` is not yet implemented.
+//! Tests that exercised `StreamDispatcher::on_data` with port-502 flows
+//! originally panicked via `todo!()` in the dispatcher stub because
+//! `ModbusAnalyzer::on_data` was not yet implemented.
 //!
-//! Tests that exercise `take_modbus_analyzer()` / `findings()` will
-//! either panic or return wrong results because ModbusAnalyzer does not
-//! yet implement StreamHandler.
+//! Tests that exercised `take_modbus_analyzer()` / `findings()` either
+//! panicked or returned wrong results because ModbusAnalyzer did not yet
+//! implement StreamHandler.
 //!
-//! CLI tests for threshold-zero rejection will fail because the
-//! `wirerust` binary invoked via assert_cmd will exit non-zero and print
-//! the error — but those tests actually pass at build time since the
-//! validation code IS in main.rs. So the CLI-level stub IS wired.
-//! The DISPATCHER-level tests (on_data routing) are the Red Gate.
+//! CLI tests for threshold-zero rejection passed at build time since the
+//! validation code was already in main.rs.
+//! The DISPATCHER-level tests (on_data routing) were the Red Gate.
 
 // BC-prefixed test names use non-snake-case identifiers (project-wide convention).
 #![allow(non_snake_case)]
