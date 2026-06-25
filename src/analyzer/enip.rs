@@ -173,7 +173,7 @@ pub fn is_valid_enip_frame(h: &EnipHeader) -> bool {
 /// Maximum number of findings accumulated per `EnipAnalyzer` instance.
 ///
 /// Mirrors `dnp3::MAX_FINDINGS` (10_000) — consistent DoS cap across analyzers
-/// (BC-2.17.022; ADR-010 Decision 5). Every `all_findings.push` is gated on
+/// (BC-2.17.022; ADR-010 Decision 4). Every `all_findings.push` is gated on
 /// `all_findings.len() < MAX_FINDINGS`.
 pub const MAX_FINDINGS: usize = 10_000;
 
@@ -416,7 +416,7 @@ impl EnipAnalyzer {
     /// - `src_ip`   — source IP address of the sending endpoint.
     ///
     /// # Traces
-    /// BC-2.17.008, BC-2.17.010, BC-2.17.014; ADR-010 Decision 6 (detection order).
+    /// BC-2.17.008, BC-2.17.010, BC-2.17.014; ADR-010 Decision 4 (frame-walk / detection order).
     pub fn process_pdu(
         &mut self,
         flow: &mut EnipFlowState,
@@ -424,19 +424,19 @@ impl EnipAnalyzer {
         timestamp: u32,
         src_ip: IpAddr,
     ) {
-        // ADR-010 Decision 6, step 1: is_non_enip gate — suppress all detection on
+        // ADR-010 Decision 4, step 1: is_non_enip gate — suppress all detection on
         // flows flagged as non-ENIP (BC-2.17.010 precondition 2; BC-2.17.014 precondition 5).
         if flow.is_non_enip {
             return;
         }
 
-        // ADR-010 Decision 6, step 1: parse ENIP header; silently drop frames < 24 bytes.
+        // ADR-010 Decision 4, step 1: parse ENIP header; silently drop frames < 24 bytes.
         let header = match parse_enip_header(pdu) {
             Some(h) => h,
             None => return,
         };
 
-        // ADR-010 Decision 6, step 2: classify command; T0846 ListIdentity detection
+        // ADR-010 Decision 4, step 2: classify command; T0846 ListIdentity detection
         // (BC-2.17.010). SINGLE-INCREMENT NOTE: command_counts is NOT touched here;
         // that increment belongs to the frame-walk in on_data (STORY-137, BC-2.17.016 PC-0).
         let cmd_class = classify_enip_command(header.command);
@@ -469,7 +469,7 @@ impl EnipAnalyzer {
             return;
         }
 
-        // ADR-010 Decision 6, steps 3–6: for SendRRData/SendUnitData, walk CPF items.
+        // ADR-010 Decision 4, steps 3–6: for SendRRData/SendUnitData, walk CPF items.
         // CPF data starts at pdu[30..]: ENIP header (24) + Interface Handle (4) + Timeout (2).
         if !matches!(
             cmd_class,
@@ -495,7 +495,7 @@ impl EnipAnalyzer {
 
             let item_data = &item.data;
 
-            // ADR-010 Decision 6, step 4: parse CIP header.
+            // ADR-010 Decision 4, step 4: parse CIP header.
             let cip_hdr = match parse_cip_header(item_data) {
                 Some(h) => h,
                 None => continue,
@@ -565,7 +565,7 @@ impl EnipAnalyzer {
                     }
                 }
             } else {
-                // ADR-010 Decision 6, step 5: T0888 Pattern A — GetAttribute to Identity Object.
+                // ADR-010 Decision 4, step 5: T0888 Pattern A — GetAttribute to Identity Object.
                 // BC-2.17.014 Pattern A preconditions 1–3: GetAttribute service, request (high
                 // bit clear), and Class(0x01) in path.
                 if matches!(
