@@ -126,6 +126,13 @@ Discovery Pattern A), and CIP error-response bursts (T0888 Pattern B),
 - **Test:** `tests/enip_analyzer_tests.rs::recon::test_t0888_pattern_b_no_fire_at_threshold`
 - **Test:** `tests/enip_analyzer_tests.rs::recon::test_t0888_pattern_b_threshold_zero`
 
+### AC-134-005: is_non_enip flow flag suppresses all ENIP detections
+**Traces to:** BC-2.17.010 Precondition 2, BC-2.17.014 preconditions
+- When `flow.is_non_enip == true`, no T0846 or T0888 findings are emitted regardless of frame content
+- `is_non_enip` is set by the frame-walk robustness logic in STORY-137 (BC-2.17.016)
+- In this story, test it by constructing a flow state with `is_non_enip=true` and verifying no findings are emitted
+- **Test:** `tests/enip_analyzer_tests.rs::recon::test_non_enip_flow_suppresses_recon`
+
 ### AC-134-006: EnipAnalyzer aggregate error_count increments on every CIP error response
 **Traces to:** BC-2.17.008 Invariant 2; BC-2.17.021 postcondition 1 (`error_count` field in summarize() output)
 - `EnipAnalyzer.error_count: u64` is a lifetime aggregate counter on the `EnipAnalyzer` struct (separate from per-flow `error_counts_in_window`)
@@ -134,13 +141,6 @@ Discovery Pattern A), and CIP error-response bursts (T0888 Pattern B),
 - Success responses (general_status==0x00) do NOT increment `error_count`
 - `summarize()` (STORY-138, BC-2.17.021) reads `self.error_count` to populate the `"error_count"` field in `enip_summary` JSON
 - **Test:** `tests/enip_analyzer_tests.rs::recon::test_aggregate_error_count_increments` (process N error responses across multiple flows; assert `analyzer.error_count == N`)
-
-### AC-134-005: is_non_enip flow flag suppresses all ENIP detections
-**Traces to:** BC-2.17.010 Precondition 2, BC-2.17.014 preconditions
-- When `flow.is_non_enip == true`, no T0846 or T0888 findings are emitted regardless of frame content
-- `is_non_enip` is set by the frame-walk robustness logic in STORY-137 (BC-2.17.016)
-- In this story, test it by constructing a flow state with `is_non_enip=true` and verifying no findings are emitted
-- **Test:** `tests/enip_analyzer_tests.rs::recon::test_non_enip_flow_suppresses_recon`
 
 ## Architecture Mapping
 

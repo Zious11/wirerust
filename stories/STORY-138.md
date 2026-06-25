@@ -237,7 +237,7 @@ session_lifecycle::test_summary_dropped_findings
 ## Previous Story Intelligence
 
 - STORY-134 adds `error_counts_in_window`, `error_rate_emitted`, `is_non_enip`, `error_window_start_ts` to `EnipFlowState`
-- STORY-135 adds `write_count_in_window`, `write_burst_emitted`, `write_window_start` to `EnipFlowState`
+- STORY-135 adds `write_count_in_window`, `write_burst_emitted`, `write_window_start_ts` to `EnipFlowState`
 - STORY-136 adds `open_connection_count`, `close_connection_count` to `EnipFlowState`
 - STORY-137 adds `carry: Vec<u8>`, `parse_errors: u64`, `malformed_in_window: u64`, `malformed_anomaly_emitted: bool`, `malformed_window_start` to `EnipFlowState`
 - STORY-138 adds `pdu_count: u64`, `command_counts: HashMap<u16, u64>` to `EnipFlowState`; and `total_pdu_count`, `parse_errors` (aggregate), `command_distribution`, `write_count`, `error_count`, `flows_analyzed`, `dropped_findings` to `EnipAnalyzer`
@@ -263,7 +263,7 @@ From ADR-010 Decision 5 (DoS bounds), BC-2.17.022, BC-2.17.021, BC-2.17.025:
 
 ## Library & Framework Requirements
 
-- `std::collections::HashMap` for `command_counts` and `cip_service_counts` — already in stdlib
+- `std::collections::HashMap` for `command_counts` — already in stdlib
 - `log::warn!` for MAX_FINDINGS warning — already in project
 - No new external crate dependencies
 

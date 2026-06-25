@@ -168,13 +168,23 @@ fn on_data(flow, data, now_ts, ...) {
     let mut cursor = 0;
     while buf.len() - cursor >= 24 {
         let Some(header) = parse_enip_header(&buf[cursor..cursor+24]) else {
-            // Unknown/invalid header: byte-walk resync (BC-2.17.016 Post 1)
+            // None: header bytes not parseable (< 24 bytes — cannot occur here; defensive)
+            // In practice this arm is unreachable because the while condition guarantees >= 24 bytes.
             flow.parse_errors += 1;
             flow.malformed_in_window += 1;
-            check_t0814(flow, ...);
+            check_t0814(flow, now_ts);
             cursor += 1;          // advance by 1 byte — NOT break
             continue;
         };
+        // Command-validity gate: unknown command → byte-walk resync (BC-2.17.016 Postcondition 1)
+        // HS-117 Case A: cmd=0xFF00, full 24-byte header → T0814, NOT process_pdu
+        if !is_valid_enip_frame(&header) {
+            flow.parse_errors += 1;
+            flow.malformed_in_window += 1;
+            check_t0814(flow, now_ts);   // windowed T0814 per BC-2.17.018
+            cursor += 1;                  // byte-walk resync — NOT break, NOT frame-skip
+            continue;
+        }
         let total_frame_len = 24 + header.length as usize;
         if total_frame_len > MAX_ENIP_CARRY_BYTES {
             // Oversized declared frame: frame-skip path (BC-2.17.016 Post 1)

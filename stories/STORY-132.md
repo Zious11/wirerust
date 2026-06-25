@@ -18,15 +18,17 @@ behavioral_contracts:
   - BC-2.17.006
   - BC-2.17.007
   - BC-2.17.009
-verification_properties: []
+verification_properties:
+  - VP-032
 inputs:
   - .factory/specs/behavioral-contracts/ss-17/BC-2.17.005.md
   - .factory/specs/behavioral-contracts/ss-17/BC-2.17.006.md
   - .factory/specs/behavioral-contracts/ss-17/BC-2.17.007.md
   - .factory/specs/behavioral-contracts/ss-17/BC-2.17.009.md
   - .factory/specs/architecture/decisions/ADR-010-ethernet-ip-cip-stream-dispatch.md
+  - .factory/specs/verification-properties/vp-032-enip-parse-safety.md
   - .factory/phase-f2-spec-evolution/enip-architecture-delta.md
-input-hash: "3343540"
+input-hash: "9df8cea"
 ---
 
 # STORY-132: CPF Item Walk, CIP Header Parse, and CIP Request Path Extraction
@@ -44,7 +46,7 @@ input-hash: "3343540"
 |-------|-------|-----------|
 | BC-2.17.005 | `parse_cpf_items` walks CPF item list | Core implementation target |
 | BC-2.17.006 | `parse_cip_header` parses CIP header from 0x00B2 item data | Core implementation target |
-| BC-2.17.007 | `classify_cip_service` (effectful use) and service classification in analyzer context | In-scope via re-use |
+| BC-2.17.007 | `classify_cip_service` total classification — 15 variants; response-bit mask; VP-032 Sub-D Kani target | Core implementation target (AC-132-007) |
 | BC-2.17.009 | `parse_cip_request_path` extracts Class/Instance/Attribute path segments | Core implementation target |
 
 ## Acceptance Criteria
@@ -120,6 +122,36 @@ input-hash: "3343540"
 - The fuzz stubs do not need to be functional in v0.11.0; their presence tracks the F-P9-002 obligation
 - **Test:** (structural — verify via code review, not automated test)
 
+### AC-132-007: `classify_cip_service` maps all 15 variants correctly and VP-032 Sub-D Kani harnesses pass
+**Traces to:** BC-2.17.007 postconditions 1–6, invariants 1–3; VP-032 Sub-D
+- `CipServiceClass` enum has exactly 15 variants: 13 named request services + `Response` + `Unknown`
+- Named request service codes (BC-2.17.007 postcondition 3):
+  - `0x01` → `CipServiceClass::GetAttributesAll`
+  - `0x02` → `CipServiceClass::SetAttributesAll`
+  - `0x03` → `CipServiceClass::GetAttributeList`
+  - `0x04` → `CipServiceClass::SetAttributeList`
+  - `0x05` → `CipServiceClass::Reset`
+  - `0x07` → `CipServiceClass::Stop`
+  - `0x0A` → `CipServiceClass::MultipleServicePacket`
+  - `0x0E` → `CipServiceClass::GetAttributeSingle`
+  - `0x10` → `CipServiceClass::SetAttributeSingle`
+  - `0x4B` → `CipServiceClass::GetAndClear`
+  - `0x4E` → `CipServiceClass::ForwardClose`
+  - `0x54` → `CipServiceClass::ForwardOpen`
+  - `0x5B` → `CipServiceClass::LargeForwardOpen`
+- **Response-bit invariant (BC-2.17.007 postcondition 2, invariant 1):** if `service & 0x80 != 0` → `CipServiceClass::Response`. Applied FIRST before any named-service lookup.
+- All other request-range values (high bit clear, not in named set) → `CipServiceClass::Unknown` (BC-2.17.007 postcondition 4)
+- `Unknown` is reachable (e.g., `service = 0x7F`) — non-vacuity proven by VP-032 Sub-D partition harness (BC-2.17.007 postcondition 5)
+- Function is pure: no I/O, no state mutation, terminates for all 256 u8 inputs (BC-2.17.007 postcondition 6)
+- VP-032 Sub-D Kani harnesses both reside in the SAME `#[cfg(kani)] mod kani_proofs` block already opened by STORY-130 — they are appended to that module, not a new block:
+  - `vp032_cip_service_classification_totality` — primary biconditional: `matches!(classify_cip_service(service), CipServiceClass::Response) == (service & 0x80 != 0)` for all 256 symbolic `u8` values (VP-032 Sub-D primary)
+  - `vp032_cip_service_request_partition` — range-constrained partition: for `service & 0x80 == 0`, result is NOT `Response`, and is either a named variant or `Unknown` (exhaustive partition, non-vacuity for `Unknown`; VP-032 Sub-D partition)
+- **Test:** `tests/enip_analyzer_tests.rs::cpf_cip::test_classify_cip_service_named_codes`
+- **Test:** `tests/enip_analyzer_tests.rs::cpf_cip::test_classify_cip_service_response_bit`
+- **Test:** `tests/enip_analyzer_tests.rs::cpf_cip::test_classify_cip_service_unknown`
+- **Test:** `kani::vp032_cip_service_classification_totality` (VP-032 Sub-D primary)
+- **Test:** `kani::vp032_cip_service_request_partition` (VP-032 Sub-D partition)
+
 ## Architecture Mapping
 
 | Component | Location | Role |
@@ -128,8 +160,11 @@ input-hash: "3343540"
 | `parse_cpf_items` | `src/analyzer/enip.rs` | Pure-core free fn; CPF item walk |
 | `CipHeader` struct | `src/analyzer/enip.rs` | `service: u8, request_path: Vec<u8>` (2 fields; BC-2.17.006 arch anchor; `request_path_size` and `general_status` are NOT fields) |
 | `parse_cip_header` | `src/analyzer/enip.rs` | Pure-core free fn; 0x00B2 item data → CipHeader |
+| `CipServiceClass` enum | `src/analyzer/enip.rs` | 13 named + `Response` + `Unknown` = 15 variants; VP-032 Sub-D Kani target |
+| `classify_cip_service` | `src/analyzer/enip.rs` | Pure-core free fn; response-bit mask applied first; 15-variant match (BC-2.17.007) |
 | `CipPathSegment` enum | `src/analyzer/enip.rs` | `Class(u8), Instance(u8), Attribute(u8)` |
 | `parse_cip_request_path` | `src/analyzer/enip.rs` | Pure-core free fn; path bytes → segments |
+| `kani_proofs` mod (Sub-D additions) | `src/analyzer/enip.rs` | `#[cfg(kani)]` — append `vp032_cip_service_classification_totality` and `vp032_cip_service_request_partition` to existing mod opened by STORY-130 |
 | Test mod | `tests/enip_analyzer_tests.rs` | `mod cpf_cip { ... }` |
 
 **F-P9-001 scope note:** `parse_cip_header` is called ONLY for `type_id == 0x00B2` items in v0.11.0. The `0x00B1` Connected Data Item gate is enforced in the analyzer's item-walk loop, not inside `parse_cip_header` itself. `parse_cip_header` is agnostic to the item type — the call-site gate provides the F-P9-001 restriction.
@@ -155,10 +190,15 @@ input-hash: "3343540"
 - [ ] Implement `pub fn parse_cpf_items(cpf_data: &[u8]) -> Vec<CpfItem>` — read `item_count = LE u16 at [0..2]`; walk items at `cursor = 2`; for each: read `type_id`, read transient `length` (LE u16 at cursor+2), extract `data = cpf_data[cursor+4..cursor+4+length as usize]`; advance `cursor += 4 + length as usize`; break on any bounds error; push `CpfItem { type_id, data }`
 - [ ] Define `CipHeader` struct: `pub struct CipHeader { pub service: u8, pub request_path: Vec<u8> }` (2 fields only; `request_path_size` is a transient parse local; `general_status` is NOT a struct field — extracted at the response call site per BC-2.17.008)
 - [ ] Implement `pub fn parse_cip_header(item_data: &[u8]) -> Option<CipHeader>` — check `item_data.len() >= 2`; read `service = item_data[0]`; transient `request_path_size = item_data[1] as usize`; `path_byte_count = request_path_size * 2`; return `None` if `item_data.len() < 2 + path_byte_count`; `request_path = item_data[2..2 + path_byte_count].to_vec()`; return `Some(CipHeader { service, request_path })`
+- [ ] Define `CipServiceClass` enum in `src/analyzer/enip.rs`: `pub enum CipServiceClass { GetAttributesAll, SetAttributesAll, GetAttributeList, SetAttributeList, Reset, Stop, MultipleServicePacket, GetAttributeSingle, SetAttributeSingle, GetAndClear, ForwardClose, ForwardOpen, LargeForwardOpen, Response, Unknown }` with `Debug, Clone, PartialEq` (15 variants; BC-2.17.007)
+- [ ] Implement `pub fn classify_cip_service(service: u8) -> CipServiceClass` — response-bit check `service & 0x80 != 0` → `Response` FIRST; then exhaustive match on the 13 named codes; fallthrough → `Unknown` (BC-2.17.007 invariant 1)
+- [ ] Append VP-032 Sub-D harnesses to the existing `#[cfg(kani)] mod kani_proofs` block (opened by STORY-130 in the same file):
+  - `vp032_cip_service_classification_totality`: symbolic `service: u8 = kani::any()`; assert `matches!(classify_cip_service(service), CipServiceClass::Response) == (service & 0x80 != 0)` (no unwind annotation needed — no loops)
+  - `vp032_cip_service_request_partition`: symbolic `service: u8 = kani::any()`; `kani::assume(service & 0x80 == 0)`; assert `!matches!(class, CipServiceClass::Response)`; assert `NAMED_SERVICES.contains(&service) == !matches!(class, CipServiceClass::Unknown)` where `NAMED_SERVICES = &[0x01, 0x02, 0x03, 0x04, 0x05, 0x07, 0x0A, 0x0E, 0x10, 0x4B, 0x4E, 0x54, 0x5B]`
 - [ ] Define `CipPathSegment` enum: `pub enum CipPathSegment { Class(u8), Instance(u8), Attribute(u8) }` with `Debug, Clone, PartialEq`
 - [ ] Implement `pub fn parse_cip_request_path(path: &[u8]) -> Vec<CipPathSegment>` — cursor walk with exact-match on `0x20/0x24/0x30`; `cursor += 2` per segment; break at bounds
 - [ ] Add F-P9-002 doc comment `/// # Fuzz Obligation (F-P9-002)` to `parse_cip_header` and `parse_cpf_items`
-- [ ] Add `mod cpf_cip { ... }` test wrapper to `tests/enip_analyzer_tests.rs` with all AC-132 unit tests
+- [ ] Add `mod cpf_cip { ... }` test wrapper to `tests/enip_analyzer_tests.rs` with all AC-132 unit tests (including AC-132-007 classify tests)
 - [ ] Run `cargo check` — zero errors
 - [ ] Run `cargo test enip` — all new tests pass
 - [ ] Run `cargo clippy --all-targets -- -D warnings` — zero warnings
@@ -185,6 +225,11 @@ cpf_cip::test_parse_cip_path_class_only
 cpf_cip::test_parse_cip_path_class_instance_attr
 cpf_cip::test_parse_cip_path_unrecognized_skip
 cpf_cip::test_parse_cip_path_odd_length_safe
+cpf_cip::test_classify_cip_service_named_codes
+cpf_cip::test_classify_cip_service_response_bit
+cpf_cip::test_classify_cip_service_unknown
+kani::vp032_cip_service_classification_totality  (VP-032 Sub-D primary; run with `cargo kani`)
+kani::vp032_cip_service_request_partition        (VP-032 Sub-D partition; run with `cargo kani`)
 ```
 
 ## Previous Story Intelligence
@@ -194,7 +239,7 @@ STORY-132 depends on STORY-130 for the foundational types:
 - `CipServiceClass` (15 variants, BC-2.17.007) is defined by THIS story (STORY-132) — it is NOT from STORY-130
 - `classify_cip_service` (BC-2.17.007) is defined in STORY-132 and used by the Wave 60 detection stories when they call `parse_cip_header` and classify the service; STORY-132 defines both the enum and the classifier
 
-Key lesson from STORY-130: the `#[cfg(kani)]` guard is not needed for STORY-132 functions (BC-2.17.009 explicitly notes `parse_cip_request_path` is not a VP-032 Kani target in v0.11.0). Add doc comments noting the F-P9-002 fuzz obligation instead.
+Key lesson from STORY-130: `classify_cip_service` IS a VP-032 Sub-D Kani target (BC-2.17.007); STORY-132 must append the two Sub-D harnesses (`vp032_cip_service_classification_totality` and `vp032_cip_service_request_partition`) to the existing `#[cfg(kani)] mod kani_proofs` block opened by STORY-130 in `src/analyzer/enip.rs`. The OTHER STORY-132 functions (`parse_cpf_items`, `parse_cip_header`, `parse_cip_request_path`) are NOT VP-032 Kani targets — they carry the F-P9-002 fuzz obligation instead (see VP-032 "Out-of-scope note"). Add `/// # Fuzz Obligation (F-P9-002)` doc comments to those three functions only.
 
 ## Architecture Compliance Rules
 
@@ -227,9 +272,11 @@ No new external crate dependencies. All parsing uses stdlib slice ops. The `Vec<
 
 | Section | Estimated tokens |
 |---------|-----------------|
-| `src/analyzer/enip.rs` additions (3 structs + 3 fns) | ~500 |
-| `tests/enip_analyzer_tests.rs` cpf_cip mod (16 tests) | ~600 |
-| **Total** | **~1,100** |
+| `src/analyzer/enip.rs` additions (4 structs/enums + 4 fns + 2 Kani harnesses) | ~650 |
+| `tests/enip_analyzer_tests.rs` cpf_cip mod (19 tests) | ~700 |
+| BC files (4 BCs: BC-2.17.005/006/007/009) | ~250 |
+| VP-032 (Sub-D harness skeletons) | ~150 |
+| **Total** | **~1,750** |
 
 ## Dependency Rationale
 
