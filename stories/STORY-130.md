@@ -124,14 +124,24 @@ foundation proven correct by Kani formal verification (VP-032).
 
 ### AC-130-006: VP-032 Kani proof harnesses pass for Sub-A, Sub-B, and Sub-C
 **Traces to:** VP-032 Sub-A, Sub-B, Sub-C
-- Sub-A (`kani_parse_enip_header_no_panic`): `parse_enip_header` never panics for any symbolic `&[u8]` up to 49 bytes; `unwind(49)` annotation required (BC-2.17.001/002 purity invariants)
-- Sub-B (`kani_classify_enip_command_total`): `classify_enip_command` is total — returns for every `u16` input with no unreachable branch; `Unknown` arm non-vacuous (BC-2.17.004 invariant 1)
-- Sub-C (`kani_is_valid_enip_frame_no_overflow`): `is_valid_enip_frame(h: &EnipHeader) -> bool` biconditional for all 65,536 `u16` command values; asserts `gate_result == known_set.contains(&h.command)` for a symbolic u16 command (BC-2.17.003 postcondition 3, invariant 1)
-- Sub-D (`kani_classify_cip_service_total`): OUT OF SCOPE for this story — `classify_cip_service` is defined in STORY-132 (BC-2.17.007)
+- Sub-A (`vp032_enip_header_parse_safety`): `parse_enip_header` never panics for any symbolic
+  `&[u8]` up to 48 bytes; `unwind(49)` annotation required; asserts `result.is_none()` when
+  `len < 24`, and asserts field-offset equality (`h.command`, `h.length`, `h.status` decoded
+  little-endian from fixed offsets) when `len >= 24` — proving BC-2.17.002 field layout, not
+  merely no-panic (VP-032 Sub-A skeleton; BC-2.17.001/002 purity invariants)
+- Sub-B (`vp032_enip_command_classification_biconditional`): `classify_enip_command` biconditional
+  — `Unknown` iff `cmd` not in `KNOWN_COMMANDS`, for all 65,536 `u16` values; simultaneously
+  proves totality, Unknown reachability, and named-variant reachability (BC-2.17.004 invariant 1;
+  DF-KANI-NONVACUITY-001)
+- Sub-C (`vp032_enip_validity_gate_biconditional`): `is_valid_enip_frame(h: &EnipHeader) -> bool`
+  biconditional for all 65,536 `u16` command values; asserts `gate_result == known_cmds.contains(&cmd)`
+  (BC-2.17.003 postcondition 3, invariant 1)
+- Sub-D (`vp032_cip_service_classification_totality`): OUT OF SCOPE for this story —
+  `classify_cip_service` is defined in STORY-132 (BC-2.17.007)
 - All harnesses live in `src/analyzer/enip.rs` under `#[cfg(kani)] mod kani_proofs { ... }`
-- **Test:** `kani::kani_parse_enip_header_no_panic` (Sub-A)
-- **Test:** `kani::kani_classify_enip_command_total` (Sub-B)
-- **Test:** `kani::kani_is_valid_enip_frame_no_overflow` (Sub-C)
+- **Test:** `kani_proofs::vp032_enip_header_parse_safety` (Sub-A)
+- **Test:** `kani_proofs::vp032_enip_command_classification_biconditional` (Sub-B)
+- **Test:** `kani_proofs::vp032_enip_validity_gate_biconditional` (Sub-C)
 
 ## Architecture Mapping
 
@@ -149,51 +159,89 @@ foundation proven correct by Kani formal verification (VP-032).
 
 ## VP Kani Obligation (VP-032)
 
-VP-032 specifies 4 Kani proof harnesses for the pure-core parse functions. All harnesses live in `#[cfg(kani)] mod kani_proofs` inside `src/analyzer/enip.rs`. Sub-A through Sub-C are in scope for STORY-130 (which defines `parse_enip_header`, `classify_enip_command`, and `is_valid_enip_frame`). Sub-D (`kani_classify_cip_service_total`) is in scope for STORY-132 (which defines `classify_cip_service`).
+VP-032 specifies 4 Kani proof harnesses for the pure-core parse functions. All harnesses live in `#[cfg(kani)] mod kani_proofs` inside `src/analyzer/enip.rs`. Sub-A through Sub-C are in scope for STORY-130 (which defines `parse_enip_header`, `classify_enip_command`, and `is_valid_enip_frame`). Sub-D (`vp032_cip_service_classification_totality`) is in scope for STORY-132 (which defines `classify_cip_service`).
 
-**Sub-A — `kani_parse_enip_header_no_panic`:**
+**Sub-A — `vp032_enip_header_parse_safety` (VP-032 canonical name):**
+
+Proves BC-2.17.001 (None for < 24 bytes) AND BC-2.17.002 (field layout) — not merely no-panic.
 ```rust
 #[cfg(kani)]
 mod kani_proofs {
     use super::*;
+
+    /// VP-032 Sub-A: parse_enip_header never panics; returns None for <24 bytes;
+    /// returns Some with correct field layout for >=24 bytes.
+    ///
+    /// BOUND/SOUNDNESS: 48-byte bound (2x minimum header) covers all length
+    /// conditions; behavior is identical for any longer slice (fixed 24-byte read).
+    /// Non-vacuity: both Some and None branches are reachable in the symbolic range.
     #[kani::proof]
     #[kani::unwind(49)]
-    fn kani_parse_enip_header_no_panic() {
+    fn vp032_enip_header_parse_safety() {
+        const BOUND: usize = 48;
+        let data: [u8; BOUND] = kani::any();
         let len: usize = kani::any();
-        kani::assume(len <= 48);
-        let bytes: Vec<u8> = (0..len).map(|_| kani::any()).collect();
-        let _ = parse_enip_header(&bytes);
+        kani::assume(len <= BOUND);
+        let slice = &data[..len];
+        let result = parse_enip_header(slice);
+        if len < 24 {
+            // BC-2.17.001 postcondition 1: must return None for any len < 24
+            assert!(result.is_none());
+        } else {
+            // BC-2.17.002 postconditions 2/3/5: field offsets at fixed LE positions
+            let h = result.expect("must be Some for len >= 24");
+            let expected_cmd = u16::from_le_bytes([slice[0], slice[1]]);
+            assert_eq!(h.command, expected_cmd);
+            let expected_len = u16::from_le_bytes([slice[2], slice[3]]);
+            assert_eq!(h.length, expected_len);
+            let expected_status = u32::from_le_bytes([slice[8], slice[9], slice[10], slice[11]]);
+            assert_eq!(h.status, expected_status);
+        }
     }
 ```
 - `unwind(49)` covers all symbolic lengths 0..=48 (covering both `< 24` and `>= 24` cases).
 
-**Sub-B — `kani_classify_enip_command_total`:**
+**Sub-B — `vp032_enip_command_classification_biconditional` (VP-032 canonical name):**
+
+Proves the biconditional: `Unknown` iff `cmd` not in `KNOWN_COMMANDS`, for all 65,536 u16 values.
 ```rust
+    /// VP-032 Sub-B: classify_enip_command(cmd) == Unknown iff cmd is not in KNOWN_COMMANDS.
+    /// Biconditional simultaneously proves totality, Unknown reachability, and named-variant
+    /// reachability (DF-KANI-NONVACUITY-001). No kani::assume on cmd.
     #[kani::proof]
-    fn kani_classify_enip_command_total() {
+    fn vp032_enip_command_classification_biconditional() {
+        const KNOWN_COMMANDS: &[u16] = &[
+            0x0004, 0x0063, 0x0064, 0x0065, 0x0066, 0x006F, 0x0070, 0x0072, 0x0075,
+        ];
         let cmd: u16 = kani::any();
-        let _ = classify_enip_command(cmd);
+        let is_unknown = matches!(classify_enip_command(cmd), EnipCommandClass::Unknown);
+        let not_in_known = !KNOWN_COMMANDS.contains(&cmd);
+        assert_eq!(is_unknown, not_in_known);
     }
 ```
 
-**Sub-C — `kani_is_valid_enip_frame_no_overflow`:**
+**Sub-C — `vp032_enip_validity_gate_biconditional` (VP-032 canonical name):**
 
-BC-2.17.003 Postcondition 3 + Invariant 1: `is_valid_enip_frame(h: &EnipHeader) -> bool`
-inspects ONLY `h.command`. The proof asserts the biconditional for all 65,536 u16 values.
+Proves the biconditional: `is_valid_enip_frame` returns `true` iff `h.command` is in the
+known-command set. BC-2.17.003 Postcondition 3 + Invariant 1.
 ```rust
+    /// VP-032 Sub-C: is_valid_enip_frame iff h.command is in the known-command set.
+    /// Biconditional proven for all 65,536 u16 command values.
     #[kani::proof]
-    fn kani_is_valid_enip_frame_no_overflow() {
-        let command: u16 = kani::any();
-        let header = EnipHeader { command, length: 0, session_handle: 0,
-                                   status: 0, sender_context: [0u8;8], options: 0 };
-        let known_set = [0x0004u16, 0x0063, 0x0064, 0x0065, 0x0066, 0x006F, 0x0070, 0x0072, 0x0075];
-        let is_known = known_set.contains(&command);
-        let gate_result = is_valid_enip_frame(&header);
-        assert!(gate_result == is_known);
+    fn vp032_enip_validity_gate_biconditional() {
+        let cmd: u16 = kani::any();
+        let h = EnipHeader { command: cmd, length: 0, session_handle: 0,
+                              status: 0, sender_context: [0u8; 8], options: 0 };
+        let known_cmds: &[u16] = &[
+            0x0004, 0x0063, 0x0064, 0x0065, 0x0066, 0x006F, 0x0070, 0x0072, 0x0075,
+        ];
+        let is_known = known_cmds.contains(&cmd);
+        let gate_result = is_valid_enip_frame(&h);
+        assert_eq!(gate_result, is_known);
     }
 ```
 
-**Sub-D — `kani_classify_cip_service_total` (OUT OF SCOPE for STORY-130 — belongs to STORY-132):**
+**Sub-D — `vp032_cip_service_classification_totality` (OUT OF SCOPE for STORY-130 — belongs to STORY-132):**
 
 The Sub-D harness covers `classify_cip_service` (BC-2.17.007) which is defined in STORY-132 alongside `CipServiceClass`. It will live in the same `#[cfg(kani)] mod kani_proofs` block, added by STORY-132.
 
@@ -224,7 +272,7 @@ The Sub-D harness covers `classify_cip_service` (BC-2.17.007) which is defined i
 - [ ] Define `EnipCommandClass` enum with 9 named variants + payloadless `Unknown`; derive `Debug, Clone, Copy, PartialEq, Eq` (BC-2.17.004 Architecture Anchor: exactly 10 variants)
 - [ ] Implement `fn classify_enip_command(cmd: u16) -> EnipCommandClass` — exhaustive match with `_ => EnipCommandClass::Unknown` fallback (BC-2.17.004 postcondition 4; invariant 1)
 - [ ] Implement `fn is_valid_enip_frame(h: &EnipHeader) -> bool` — returns `true` iff `h.command` is in the 9-value ODVA known-command set; inspects ONLY `h.command` (BC-2.17.003 postcondition 3); no buffer-length parameter
-- [ ] Add `#[cfg(kani)] mod kani_proofs` block with Kani harnesses Sub-A (with `#[kani::unwind(49)]`), Sub-B, and Sub-C; Sub-D (`kani_classify_cip_service_total`) belongs to STORY-132
+- [ ] Add `#[cfg(kani)] mod kani_proofs` block with Kani harnesses Sub-A `vp032_enip_header_parse_safety` (with `#[kani::unwind(49)]`), Sub-B `vp032_enip_command_classification_biconditional`, and Sub-C `vp032_enip_validity_gate_biconditional`; Sub-D (`vp032_cip_service_classification_totality`) belongs to STORY-132
 - [ ] Create `tests/enip_analyzer_tests.rs` with top-level `mod parse_header { ... }` wrapper containing all AC-130-001 through AC-130-005 unit tests
 - [ ] Run `cargo check` — zero errors
 - [ ] Run `cargo test enip` — all new tests pass
@@ -254,11 +302,11 @@ parse_header::test_is_valid_enip_frame_all_fields_zeroed
 
 Kani harnesses (not run in `cargo test`; run via `cargo kani`):
 ```
-kani_proofs::kani_parse_enip_header_no_panic      [VP-032 Sub-A]
-kani_proofs::kani_classify_enip_command_total     [VP-032 Sub-B]
-kani_proofs::kani_is_valid_enip_frame_no_overflow [VP-032 Sub-C]
+kani_proofs::vp032_enip_header_parse_safety                  [VP-032 Sub-A]
+kani_proofs::vp032_enip_command_classification_biconditional [VP-032 Sub-B]
+kani_proofs::vp032_enip_validity_gate_biconditional          [VP-032 Sub-C]
 ```
-Note: `kani_classify_cip_service_total` (VP-032 Sub-D) is added by STORY-132.
+Note: `vp032_cip_service_classification_totality` (VP-032 Sub-D) is added by STORY-132.
 
 ## Previous Story Intelligence
 

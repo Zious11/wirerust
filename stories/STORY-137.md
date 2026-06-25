@@ -61,16 +61,29 @@ false positives on non-ENIP flows.
 - **Test:** `tests/enip_analyzer_tests.rs::frame_walk::test_carry_buffer_two_frames_one_segment`
 - **Test:** `tests/enip_analyzer_tests.rs::frame_walk::test_carry_buffer_three_segments_one_frame`
 
-### AC-137-002: Carry buffer is capped at MAX_ENIP_CARRY_BYTES (600) — overflow sets is_non_enip ONLY
-**Traces to:** BC-2.17.016 Invariant 4, Postcondition 4
-- When `flow.carry.len() > MAX_ENIP_CARRY_BYTES (600)` after any carry stash:
-  - `flow.is_non_enip = true` (permanently quarantine this flow)
-  - `flow.parse_errors += 1`
-  - `flow.malformed_in_window += 1`
-  - `flow.carry` is cleared (prevents unbounded memory growth)
-- **CRITICAL constraint (BC-2.17.016 Invariant 4):** `is_non_enip` is set to `true` EXCLUSIVELY by carry-buffer overflow. It is NOT set when an oversized declared frame is detected (the frame-skip path). An oversized declared frame (`total_frame_len > MAX_ENIP_CARRY_BYTES`) is handled by the frame-skip path (see AC-137-003), NOT by setting `is_non_enip`.
+### AC-137-002: Carry buffer is capped at MAX_ENIP_CARRY_BYTES (600) — overflow increments counters, runs check_t0814, THEN latches is_non_enip
+**Traces to:** BC-2.17.016 Invariant 4, Postcondition 4; BC-2.17.018 Precondition 6, EC-007
+- When `flow.carry.len() > MAX_ENIP_CARRY_BYTES (600)` after any carry stash, the following
+  sequence MUST execute in order:
+  1. `flow.parse_errors += 1`
+  2. `flow.malformed_in_window += 1`
+  3. `check_t0814(flow, now_ts)` — evaluated while `flow.is_non_enip` is still `false`,
+     so the T0814 threshold check can fire if this overflow is the 3rd malformed event
+     in the window (BC-2.17.018 Precondition 6 / EC-007)
+  4. `flow.is_non_enip = true` — latched AFTER `check_t0814` (BC-2.17.016 Post 4 / Inv 4)
+  5. `flow.carry.clear()` — prevents unbounded memory growth
+- **CRITICAL ordering constraint:** `check_t0814` MUST execute before `is_non_enip` is
+  set to `true`. The `check_t0814` guard includes `&& !flow.is_non_enip`; latching first
+  would permanently suppress T0814 on the carry-overflow event (which is itself a
+  structural reject that counts toward the window threshold).
+- **CRITICAL constraint (BC-2.17.016 Invariant 4):** `is_non_enip` is set to `true`
+  EXCLUSIVELY by carry-buffer overflow. It is NOT set when an oversized declared frame is
+  detected (the frame-skip path). An oversized declared frame (`total_frame_len >
+  MAX_ENIP_CARRY_BYTES`) is handled by the frame-skip path (see AC-137-003), NOT by
+  setting `is_non_enip`.
 - **Test:** `tests/enip_analyzer_tests.rs::frame_walk::test_carry_buffer_cap_at_600`
 - **Test:** `tests/enip_analyzer_tests.rs::frame_walk::test_carry_cap_sets_non_enip`
+- **Test:** `tests/enip_analyzer_tests.rs::frame_walk::test_t0814_fires_on_carry_overflow_third_malformed`
 
 ### AC-137-003: Frame-walk resync and frame-skip — correct cursor behavior per BC-2.17.016
 **Traces to:** BC-2.17.016 Postcondition 1 (frame-walk loop body)
@@ -206,11 +219,16 @@ fn on_data(flow, data, now_ts, ...) {
     // Stash remaining bytes into carry (BC-2.17.016 Post 3)
     flow.carry = buf[cursor..].to_vec();
     // Carry-cap check — is_non_enip set ONLY here (BC-2.17.016 Post 4 / Inv 4)
+    // ORDERING: check_t0814 MUST run before is_non_enip is latched, because
+    // check_t0814's guard is `&& !flow.is_non_enip`. The carry-overflow event
+    // itself is a structural reject that can be the 3rd malformed event in the
+    // window and must reach the T0814 threshold check (BC-2.17.018 EC-007 /
+    // Precondition 6). Latching is_non_enip first would permanently suppress T0814.
     if flow.carry.len() > MAX_ENIP_CARRY_BYTES {
-        flow.is_non_enip = true;
         flow.parse_errors += 1;
         flow.malformed_in_window += 1;
-        check_t0814(flow, ...);
+        check_t0814(flow, now_ts);   // runs with is_non_enip still false (BC-2.17.018 Precond 6/EC-007)
+        flow.is_non_enip = true;     // latch AFTER T0814 evaluation (BC-2.17.016 Post 4 / Inv 4)
         flow.carry.clear();
     }
 }
@@ -250,9 +268,10 @@ fn on_data(flow, data, now_ts, ...) {
   - On unknown command (is_valid_enip_frame false): `parse_errors += 1`; `malformed_in_window += 1`; `check_t0814()`; `cursor += 1`; `continue` — byte-walk resync
   - On oversized declared frame (total_frame_len > MAX_ENIP_CARRY_BYTES): `parse_errors += 1`; `malformed_in_window += 1`; `check_t0814()`; `cursor += min(total_frame_len, buf.len() - cursor)`; `continue` — frame-skip; do NOT set is_non_enip
   - On partial frame: stash into carry; break
-  - Carry-cap check after loop: if carry.len() > MAX_ENIP_CARRY_BYTES: `is_non_enip = true`; `parse_errors += 1`; `malformed_in_window += 1`; `check_t0814()`; `carry.clear()`
+  - Carry-cap check after loop: if carry.len() > MAX_ENIP_CARRY_BYTES: `parse_errors += 1`; `malformed_in_window += 1`; `check_t0814()` (while is_non_enip still false — BC-2.17.018 Precond 6); THEN `is_non_enip = true`; `carry.clear()`
 - [ ] Implement `check_t0814` helper: `if malformed_in_window >= MALFORMED_ANOMALY_THRESHOLD && !malformed_anomaly_emitted && !is_non_enip && all_findings.len() < MAX_FINDINGS` → emit T0814 Anomaly/Possible/Low finding; `malformed_anomaly_emitted = true` (do NOT set `is_non_enip` here)
 - [ ] Add `mod frame_walk { ... }` test wrapper to `tests/enip_analyzer_tests.rs` with all AC-137 tests including windowed reset and byte-walk/frame-skip cases
+- [ ] Add `frame_walk::test_t0814_fires_on_carry_overflow_third_malformed`: send 2 malformed frames (via byte-walk), then trigger carry-cap overflow as the 3rd structural reject; assert T0814 fires AND `is_non_enip` is then `true` (BC-2.17.018 EC-007 / AC-137-002 ordering)
 - [ ] Construct test data: single-frame segment, two-frame segment, split-frame pair, oversized carry (601 bytes), oversized declared frame (total > 600), repeated malformed headers, window expiry re-fire
 - [ ] Run `cargo test enip` — all frame_walk tests pass
 - [ ] Run `cargo clippy --all-targets -- -D warnings` — zero warnings
@@ -268,6 +287,7 @@ frame_walk::test_carry_buffer_two_frames_one_segment
 frame_walk::test_carry_buffer_three_segments_one_frame
 frame_walk::test_carry_buffer_cap_at_600
 frame_walk::test_carry_cap_sets_non_enip
+frame_walk::test_t0814_fires_on_carry_overflow_third_malformed
 frame_walk::test_byte_walk_resync_invalid_command
 frame_walk::test_oversize_frame_skip_continue
 frame_walk::test_oversize_frame_does_not_set_non_enip
