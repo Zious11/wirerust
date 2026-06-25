@@ -267,14 +267,14 @@ fn test_BC_2_09_006_no_scalar_mitre_technique_key_in_json() {
 /// BC-2.10.005 postcondition 3, AC-005 (STORY-100):
 /// All 21 STORY-100-era seeded IDs return Some from technique_name. This test
 /// verifies the original 21-ID subset established at STORY-100 (11 Enterprise +
-/// 10 ICS); the current catalog contains 25 seeded IDs (STORY-109 added 2 ICS,
-/// STORY-114 added T0830 ICS + T1557.002 Enterprise). All 21 IDs in this test
-/// resolve in the current green catalog — the former 15-entry catalog limitation
-/// no longer applies.
+/// 10 ICS); the current catalog contains 28 seeded IDs (STORY-109 added 2 ICS,
+/// STORY-114 added T0830 ICS + T1557.002 Enterprise, STORY-133 added T0858/T0816/T1693.001).
+/// All 21 IDs in this test resolve in the current green catalog — the former
+/// 15-entry catalog limitation no longer applies.
 #[test]
 fn test_BC_2_10_005_technique_name_resolves_all_21_seeded_ids() {
     // BC-2.10.005 postcondition 3: the 21 STORY-100-era seeded IDs (11 Enterprise + 10 ICS),
-    // a stable subset of the current 25-entry catalog. All resolve to Some.
+    // a stable subset of the current 28-entry catalog. All resolve to Some.
     let all_21_seeded: &[&str] = &[
         // Enterprise (11) — STORY-100 era
         "T1027",
@@ -394,7 +394,7 @@ fn test_BC_2_10_005_seeded_technique_id_count_is_28() {
 
 /// BC-2.10.007 postcondition 2, AC-006 (STORY-100):
 /// All 21 STORY-100-era seeded IDs return the correct MitreTactic. This test
-/// covers the original 21-ID subset; the current catalog contains 25 seeded IDs.
+/// covers the original 21-ID subset; the current catalog contains 28 seeded IDs.
 /// F5 correctness fix applied: ICS techniques use correct ICS-matrix variants.
 #[test]
 fn test_BC_2_10_007_technique_tactic_correct_for_all_21_seeded_ids() {

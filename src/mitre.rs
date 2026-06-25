@@ -396,7 +396,7 @@ mod kani_proofs {
     /// projections and never panics.
     ///
     /// BOUND/SOUNDNESS: `technique_info` is a closed match whose only catch-all
-    /// arm is `_ => None`; any string outside the 25 seeded literals takes it.
+    /// arm is `_ => None`; any string outside the 28 seeded literals takes it.
     /// A single representative unknown ID ("T9999") exercises that arm. "T9999"
     /// is deliberately a VALIDLY-FORMATTED (`T[0-9]{4}`) but UNREGISTERED ID, so
     /// this proves the "unknown" branch — not merely a malformed-string reject.
@@ -532,7 +532,7 @@ mod vp007_format_tests {
     /// `SEEDED_TECHNIQUE_IDS` now makes the derived resolved-count exceed
     /// `SEEDED_TECHNIQUE_IDS.len()`, failing this test. Removing/renaming an arm
     /// makes it fall short. The test thus enforces FORWARD completeness, not just
-    /// that the 15 known IDs still resolve.
+    /// that the known seeded IDs still resolve.
     ///
     /// Retains the shrinkage / duplicate / malformed / resolve checks on the
     /// seeded list, plus the documented-count cross-check and the `T9999` canary.

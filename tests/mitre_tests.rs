@@ -266,13 +266,13 @@ fn test_all_tactics_all_variants_present() {
 
 // ---------------------------------------------------------------------------
 // AC-010 + AC-011 | BC-2.10.005 postcondition 1
-// All 21 seeded technique IDs resolve to Some(name). Includes T1027 check
+// All 21 STORY-100-era seeded technique IDs resolve to Some(name). Includes T1027 check
 // (AC-010) and exhaustive check of all 21 (AC-011) in the same function.
 // ---------------------------------------------------------------------------
 #[test]
 fn test_technique_name_resolves_all_21_seeded_ids() {
     // BC-2.10.005 postcondition 1: technique_name returns Some for each of the
-    // 21 seeded IDs. Catalog count is exactly 21 (post-F2 / STORY-100).
+    // 21 STORY-100-era seeded IDs (a stable subset of the 28-entry catalog).
     // Seeded IDs (11 Enterprise + 10 ICS):
     //   T1027, T1036, T1040, T1046, T1071, T1071.001, T1071.004,
     //   T1083, T1499.002, T1505.003, T1573,
@@ -342,7 +342,7 @@ fn test_technique_name_resolves_all_21_seeded_ids() {
 // ---------------------------------------------------------------------------
 #[test]
 fn test_technique_name_returns_none_for_unknown_ids() {
-    // BC-2.10.006 postcondition 1: returns None for any ID not in the 21-entry
+    // BC-2.10.006 postcondition 1: returns None for any ID not in the 28-entry
     // static match table. No panic, no error, no default string.
     // BC-2.10.006 invariant 1: match is exact string equality (case-sensitive, no trim).
     assert_eq!(technique_name("T9999"), None);
@@ -461,7 +461,7 @@ fn test_technique_tactic_correct_assignments() {
 #[test]
 fn test_all_emitted_ids_resolve() {
     // BC-2.10.008 postcondition 1: emitted set is a strict subset of the
-    // catalogued 21 IDs. No emitted ID may return None from either lookup.
+    // catalogued 28 IDs. No emitted ID may return None from either lookup.
     // Sources (ground truth: `grep -rn 'mitre_techniques: vec!' src/`):
     //   src/analyzer/tls.rs          — T1027 (×3 sites)
     //   src/analyzer/http.rs         — T1083, T1505.003, T1046, T1499.002 (×2 sites)
@@ -539,7 +539,7 @@ fn test_mitre_tactic_is_non_exhaustive() {
 #[test]
 fn test_ec_001_real_unseed_technique_returns_none() {
     // BC-2.10.006 invariant 3: "T1059" is a real ATT&CK technique but is
-    // not present in the 21-entry seeded catalog. Must return None.
+    // not present in the 28-entry seeded catalog. Must return None.
     assert_eq!(technique_name("T1059"), None);
 }
 
