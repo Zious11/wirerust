@@ -298,6 +298,9 @@ pub struct EnipFlowState {
     /// Guard: T0814 malformed anomaly finding already emitted for this window.
     malformed_anomaly_emitted: bool,
 
+    /// Guard: T0846 ListIdentity finding already emitted for this flow (one-shot).
+    list_identity_emitted: bool,
+
     /// LIFETIME parse error counter. Never reset. Incremented for every frame
     /// that fails the post-classification validity gate or carry buffer overflow.
     parse_errors: u64,
@@ -374,6 +377,7 @@ pub struct EnipAnalyzer {
 - `error_count` — BC-2.17.021 (`error_count`)
 - `all_findings` — BC-2.17.011/014/015/022/025 (`self.all_findings`)
 - `dropped_findings` — BC-2.17.021/022 (`self.dropped_findings`)
+- `list_identity_emitted` — BC-2.17.010 (T0846 ListIdentity one-shot guard)
 
 **Frame-walk loop in `on_data()`:**
 

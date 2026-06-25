@@ -1,10 +1,10 @@
 ---
 pipeline: FEATURE-MODE
 phase: F2
-phase_status: "F2 adversary convergence: Pass 10/11/12 all PASS (3/3 on 0-H/C criterion MET); final-tidy applied; Pass 13 confirmation pending. Severity: 4C/7H→...→0C/0H→0C/0H→0C/0H(P12). Scope reduction: 0x00B1 CIP request detection DEFERRED to v0.12.0 (ADR-010 Decision 8). F2 human gate must confirm scope reduction. Two pending-human-confirm: write-burst default=50, ERROR_BURST=5."
+phase_status: "F2 adversarial convergence ACHIEVED; consistency audit + human gate pending. Pass 13 PASS 0C/0H (F-P13-001 MEDIUM list_identity_emitted gap REMEDIATED); 4 consecutive 0-H/C passes (P10/P11/P12/P13). Scope reduction: 0x00B1 DEFERRED to v0.12.0. Human gate: confirm 0x00B1 deferral + OA-001 (write-burst=50, ERROR_BURST=5)."
 product: wirerust
 mode: feature-mode
-timestamp: 2026-06-24T15:00:00Z
+timestamp: 2026-06-24T16:00:00Z
 
 # Release chain (latest)
 released_version: v0.10.0
@@ -70,7 +70,7 @@ convergence_trajectory: "Detail: cycles/v0.1.0-greenfield-spec/convergence-traje
 
 ## Status
 
-**PIPELINE FEATURE-MODE. Cycle `feature-enip-v0.11.0` OPEN. F1 PASSED. F2 Pass 12 PASS (2026-06-24): 0C/0H (1M+2L all REMEDIATED in final-tidy). Convergence criterion MET: Pass 10/11/12 all 0 HIGH/CRITICAL (3/3). Final-tidy applied: vp-032 frontmatter src/ prefix restored (F-P12-001 MEDIUM regression); verification-architecture.md VP-032 table cell bare form (F-P11-001); BC-2.17.005 DoS figure 143 (F-P11-002); BC-2.17.024 PC5 no-finding commands (F-P12-002); BC-2.17.009 EC-006 table fix (F-P12-003). Pass 13 = post-tidy confirmation pending. SCOPE NOTE FOR F2 HUMAN GATE: 0x00B1 CIP request detection DEFERRED to v0.12.0; human confirm required. Two pending-human-confirm: write-burst default=50, ERROR_BURST=5. BC-INDEX v1.75 (330/329 active, 25 SS-17 BCs). PROPAGATION-LAG-001 in lessons.md; ENGINE-PROPAGATION-GREP-GATE-001 in OPEN ITEMS.**
+**PIPELINE FEATURE-MODE. Cycle `feature-enip-v0.11.0` OPEN. F1 PASSED. F2 ADVERSARIAL CONVERGENCE ACHIEVED (2026-06-24): Pass 13 PASS 0C/0H — F-P13-001 MEDIUM (list_identity_emitted missing from EnipFlowState struct in ADR-010 Decision 4) REMEDIATED; comprehensive struct-field audit confirmed sole gap. 4 consecutive 0-H/C passes (P10/P11/P12/P13). Severity trajectory: 4C/7H→...→0C/0H(P10)→0C/0H(P11)→0C/0H(P12)→0C/0H(P13). BC-INDEX v1.75 (330/329 active, 25 SS-17 BCs). Next: consistency-validator full-corpus audit + F2 human gate (confirm 0x00B1 scope deferral + OA-001: write-burst=50, ERROR_BURST=5). PROPAGATION-LAG-001 in lessons.md; ENGINE-PROPAGATION-GREP-GATE-001 in OPEN ITEMS.**
 
 Latest release: v0.10.0 (main `0cbe922`, tag `v0.10.0`, 4 binaries, run 28109367603). develop=`ff4b82b`. stories_delivered=78. Target: v0.11.0 (SS-17 EtherNet/IP + CIP TCP/44818). GitHub issue #316.
 
@@ -156,7 +156,7 @@ All GitHub-issue creation remains DF-VALIDATION-001-gated.
 | Maintenance maint-2026-06-22 | COMPLETE 2026-06-23 | 38 observations; 0 blocking; F-MAJ-001 fixed (a6efb23); PR #304 (e458ce2) + PR #305 (e4abbe2). |
 | Feature mitre-json-names (issue #64) + v0.9.4 | RELEASED + CLOSED 2026-06-23 (D-217) | F1-F7 CONVERGED. 5 BCs bumped. BC-INDEX v1.71 (303 BCs). PRs #306/307/308/309. tag v0.9.4 96b49e8. 4 binaries. stories_delivered=78. |
 | Fix cycle fix-pc-013-014-015 + v0.10.0 | **CONVERGED + RELEASED + CLOSED 2026-06-24 (D-226)** | All 3 fixes: PC-015 (#310), PC-013 (#312 + spec D-223), PC-014 (#313 breaking rename + CHANGELOG). Evidence resync #314. v0.10.0: PR #315 → main 0cbe922, tag v0.10.0, 4 binaries, run 28109367603. develop back-merged ff4b82b. BC-INDEX v1.73 (305 BCs / 304 active). |
-| Feature EtherNet/IP + CIP (issue #316) — v0.11.0 | **F2 ADVERSARIAL CONVERGENCE 3/3 — final-tidy applied** | Pass 12 PASS (2026-06-24): 0C/0H — 1M+2L all REMEDIATED in final-tidy. Criterion MET: P10/P11/P12 all 0-H/C. Severity: 4C/7H→...→0C/0H→0C/0H→0C/0H(P12). BC-INDEX v1.75 (330/329 active, 25 SS-17 BCs). F-P2-010: SS-10 BC version-bump pending (resolve before F3). HUMAN GATE: must confirm 0x00B1 scope deferral + OA-001. Pass 13 = post-tidy confirmation pending. Detail: cycles/feature-enip-v0.11.0/ |
+| Feature EtherNet/IP + CIP (issue #316) — v0.11.0 | **F2 ADVERSARIAL CONVERGENCE ACHIEVED — 4 consecutive 0-H/C passes (P10-P13)** | Pass 13 PASS (2026-06-24): 0C/0H — F-P13-001 MEDIUM (list_identity_emitted gap in ADR-010 Decision 4 EnipFlowState) REMEDIATED. All 9 axes clean. Severity: 4C/7H→...→0C/0H(P10)→0C/0H(P11)→0C/0H(P12)→0C/0H(P13). BC-INDEX v1.75 (330/329 active, 25 SS-17 BCs). F-P2-010: SS-10 BC version-bump pending (resolve before F3). Next: consistency audit + F2 human gate (0x00B1 deferral + OA-001). Detail: cycles/feature-enip-v0.11.0/ |
 
 ## Decisions Log
 
