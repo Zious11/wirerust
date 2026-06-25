@@ -129,8 +129,19 @@ pub fn parse_enip_header(data: &[u8]) -> Option<EnipHeader> {
 ///
 /// # Traces
 /// BC-2.17.004; VP-032 Sub-B Kani target.
-pub fn classify_enip_command(_command: u16) -> EnipCommandClass {
-    todo!()
+pub fn classify_enip_command(command: u16) -> EnipCommandClass {
+    match command {
+        0x0004 => EnipCommandClass::ListServices,
+        0x0063 => EnipCommandClass::ListIdentity,
+        0x0064 => EnipCommandClass::ListInterfaces,
+        0x0065 => EnipCommandClass::RegisterSession,
+        0x0066 => EnipCommandClass::UnRegisterSession,
+        0x006F => EnipCommandClass::SendRRData,
+        0x0070 => EnipCommandClass::SendUnitData,
+        0x0072 => EnipCommandClass::IndicateStatus,
+        0x0075 => EnipCommandClass::Cancel,
+        _ => EnipCommandClass::Unknown,
+    }
 }
 
 /// Validity gate: returns `true` iff `h.command` is in the 9-value ODVA known-command set.
