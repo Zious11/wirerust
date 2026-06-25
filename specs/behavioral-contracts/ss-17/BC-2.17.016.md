@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.0"
+version: "1.1"
 status: draft
 producer: product-owner
 timestamp: 2026-06-24T00:00:00Z
@@ -13,7 +13,8 @@ subsystem: SS-17
 capability: CAP-17
 lifecycle_status: active
 introduced: v0.11.0-feature-enip
-modified: []
+modified:
+  - "v1.1: F8-001 — command_counts increment relocated to frame-walk (fires on every successful parse_enip_header, before is_valid_enip_frame); Postcondition 0 added as canonical single command_counts increment site; Invariant 6 added (command_counts vs pdu_count separation of concerns)"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -52,6 +53,7 @@ If the stash would exceed 600 bytes, `flow.is_non_enip` is set to `true` and
 **Frame walk loop:**
 1. While `buf.len() - cursor >= 24`:
    - Parse header at `buf[cursor..cursor+24]` (BC-2.17.001/002).
+   - **PC-0 — command_counts canonical increment site (F8-001):** If `parse_enip_header` returns `Some(header)`, immediately invoke `classify_enip_command(header.command)` and execute `flow.command_counts.entry(header.command).or_insert(0) += 1`. This fires for **every successfully parsed 24-byte header** — including headers that subsequently fail `is_valid_enip_frame`. This is the **single canonical command_counts increment site** (BC-2.17.004 Inv3). `process_pdu` does NOT increment `command_counts`.
    - If `!is_valid_enip_frame(&header)`: `flow.parse_errors += 1`; `flow.malformed_in_window += 1`; `cursor += 1`; continue (byte-walk resync).
    - **Frame-skip path (oversized declared frame)**: if `24 + header.length as usize > MAX_ENIP_CARRY_BYTES` (600):
      - `flow.parse_errors += 1`; `flow.malformed_in_window += 1`.
@@ -90,6 +92,13 @@ If the stash would exceed 600 bytes, `flow.is_non_enip` is set to `true` and
    This mirrors the DNP3 `is_non_dnp3` pattern.
 5. **Cursor arithmetic is valid**: all slice indices in the frame-walk loop are bounds-checked
    before access. The cursor is never advanced past `buf.len()`.
+6. **command_counts vs pdu_count separation of concerns (F8-001)**: `flow.command_counts` is
+   incremented in the frame-walk (PC-0 above) for every successfully parsed header, before the
+   `is_valid_enip_frame` validity gate. `flow.pdu_count` is incremented inside `process_pdu`
+   only for frames that pass the validity gate (BC-2.17.024). These two increment sites are
+   independent. Unknown/invalid-command frames contribute to `command_counts[cmd]` but NOT to
+   `pdu_count`. This is the SINGLE canonical `command_counts` increment site — `process_pdu`
+   must NOT contain a `command_counts` increment.
 
 ## Edge Cases
 
@@ -139,6 +148,7 @@ If the stash would exceed 600 bytes, `flow.is_non_enip` is set to `true` and
 
 - BC-2.17.001 — composes with (parse_enip_header None on short input triggers carry stash)
 - BC-2.17.003 — composes with (is_valid_enip_frame false triggers parse_errors++)
+- BC-2.17.004 — depends on (classify_enip_command called at PC-0; this BC is the single canonical command_counts increment site; F8-001)
 - BC-2.17.018 — composes with (malformed_in_window counter accumulation and T0814 detection)
 - BC-2.17.022 — composes with (MAX_FINDINGS cap on downstream findings)
 
@@ -149,6 +159,7 @@ If the stash would exceed 600 bytes, `flow.is_non_enip` is set to `true` and
 - `src/analyzer/enip.rs` — `EnipFlowState.carry: Vec<u8>`
 - `src/analyzer/enip.rs` — `EnipFlowState.is_non_enip: bool`
 - `src/analyzer/enip.rs` — `EnipFlowState.parse_errors: u64` (lifetime)
+- `src/analyzer/enip.rs` — `EnipFlowState.command_counts: HashMap<u16, u64>` — incremented in `on_data()` frame-walk loop (PC-0) immediately after `parse_enip_header` returns `Some`, before `is_valid_enip_frame` check (F8-001 canonical site)
 - `.factory/specs/architecture/decisions/ADR-010-ethernet-ip-cip-stream-dispatch.md §Decision 3` (carry-buffer cap rationale)
 - `.factory/specs/architecture/decisions/ADR-010-ethernet-ip-cip-stream-dispatch.md §Decision 4` (frame-walk algorithm)
 
@@ -173,7 +184,7 @@ If the stash would exceed 600 bytes, `flow.is_non_enip` is set to `true` and
 | Property | Assessment |
 |----------|-----------|
 | **I/O operations** | none |
-| **Global state access** | mutates flow.carry, flow.is_non_enip, flow.parse_errors, flow.malformed_in_window |
+| **Global state access** | mutates flow.carry, flow.is_non_enip, flow.parse_errors, flow.malformed_in_window, flow.command_counts (PC-0 — canonical single increment site) |
 | **Deterministic** | yes — same byte sequence produces same state |
 | **Thread safety** | single-threaded |
 | **Overall classification** | effectful shell (on_data core loop) |

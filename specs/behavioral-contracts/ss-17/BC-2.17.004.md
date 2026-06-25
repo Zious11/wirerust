@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.0"
+version: "1.1"
 status: draft
 producer: product-owner
 timestamp: 2026-06-24T00:00:00Z
@@ -13,7 +13,8 @@ subsystem: SS-17
 capability: CAP-17
 lifecycle_status: active
 introduced: v0.11.0-feature-enip
-modified: []
+modified:
+  - "v1.1: F8-001 — Invariant 3 strengthened to name BC-2.17.016 frame-walk as the single canonical command_counts increment site (fires before is_valid_enip_frame; counts all parsed headers including Unknown/invalid-command frames); process_pdu excluded from command_counts; Precondition 2 cross-reference added"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -44,7 +45,9 @@ are stored in `EnipFlowState.command_counts` and used by the `summarize()` outpu
 
 1. `cmd` is a `u16` — all 65,536 values are valid inputs with defined behavior.
 2. No preconditions on calling context: this function is called for every successfully parsed
-   ENIP header, including those that fail `is_valid_enip_frame`.
+   ENIP header, including those that fail `is_valid_enip_frame`. The canonical call site is
+   the BC-2.17.016 frame-walk loop (PC-0), which invokes `classify_enip_command` and increments
+   `command_counts` before the `is_valid_enip_frame` validity gate (F8-001).
 
 ## Postconditions
 
@@ -72,9 +75,15 @@ are stored in `EnipFlowState.command_counts` and used by the `summarize()` outpu
 2. **Correspondence with validity gate**: the set of commands that maps to non-Unknown variants
    is exactly the known-command set used by `is_valid_enip_frame` (BC-2.17.003). These two
    functions must remain in sync — adding a new command to one requires adding it to both.
-3. **Counter accumulation**: the caller increments
-   `flow.command_counts.entry(cmd).or_insert(0) += 1` after each classification. Both named
-   and Unknown commands are counted.
+3. **Counter accumulation — single canonical site (F8-001)**: the BC-2.17.016 frame-walk loop
+   (PC-0 in on_data) is the **single canonical increment site** for `flow.command_counts`.
+   It executes `flow.command_counts.entry(header.command).or_insert(0) += 1` immediately after
+   `parse_enip_header` returns `Some(header)`, before the `is_valid_enip_frame` check. Both
+   named and `Unknown` commands are counted — including frames that subsequently fail the
+   validity gate. `process_pdu` does NOT increment `command_counts`. This ensures the
+   `Unknown` bucket of `command_distribution` (BC-2.17.021) is countable for all
+   structurally-parsed 24-byte headers, making Unknown-command frames visible as a real
+   probe/garbage signal.
 4. **Purity**: `classify_enip_command` is a pure-core Kani target (VP-032 Sub-B). No heap
    allocation, no I/O, no global state access.
 
@@ -137,7 +146,7 @@ are stored in `EnipFlowState.command_counts` and used by the `summarize()` outpu
 
 - `src/analyzer/enip.rs` — `fn classify_enip_command(cmd: u16) -> EnipCommandClass` — pure-core free function
 - `src/analyzer/enip.rs` — `enum EnipCommandClass { ListServices, ListIdentity, ListInterfaces, RegisterSession, UnRegisterSession, SendRRData, SendUnitData, IndicateStatus, Cancel, Unknown }`
-- `src/analyzer/enip.rs` — `EnipFlowState.command_counts: HashMap<u16, u64>` — caller accumulates after classification
+- `src/analyzer/enip.rs` — `EnipFlowState.command_counts: HashMap<u16, u64>` — incremented in `on_data()` frame-walk loop (BC-2.17.016 PC-0) immediately after `parse_enip_header`, before `is_valid_enip_frame` (F8-001 canonical site; NOT in `process_pdu`)
 - `.factory/specs/architecture/decisions/ADR-010-ethernet-ip-cip-stream-dispatch.md §Decision 2` — command enumeration
 - `.factory/specs/verification-properties/vp-032-enip-parse-safety.md §Sub-B` — Kani proof skeleton
 

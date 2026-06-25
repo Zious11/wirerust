@@ -28,7 +28,7 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-17/BC-2.17.024.md
   - .factory/specs/architecture/decisions/ADR-010-ethernet-ip-cip-stream-dispatch.md
   - .factory/phase-f2-spec-evolution/enip-architecture-delta.md
-input-hash: "e8f91f1"
+input-hash: "0053018"
 ---
 
 # STORY-138: ENIP Session Lifecycle, Statistics, DoS Guard, and Analyzer Summary
@@ -59,7 +59,9 @@ protected against resource exhaustion.
 **Traces to:** BC-2.17.025 postconditions 1–5, BC-2.17.024 postconditions 1–2
 - When `classify_enip_command(header.command)` returns `EnipCommandClass::RegisterSession` (0x0065) or `EnipCommandClass::UnRegisterSession` (0x0066):
   - `flow.pdu_count += 1` (per BC-2.17.024 Postcondition 1; at start of process_pdu)
-  - `flow.command_counts.entry(header.command).or_insert(0) += 1` (per BC-2.17.025 Postcondition 2)
+  - `flow.command_counts` was already incremented upstream in the frame-walk (BC-2.17.016 PC-0 /
+    BC-2.17.004 Inv-3) — `process_pdu` does NOT increment it again (BC-2.17.025 Postcondition 2
+    satisfied by the frame-walk site in STORY-137)
   - NO `Finding` is pushed to `self.all_findings` (BC-2.17.025 Postcondition 3)
   - No one-shot guard is set; no window counter is affected (BC-2.17.025 Postcondition 4)
   - `flow.is_non_enip` is not modified (BC-2.17.025 Postcondition 5)
@@ -86,16 +88,19 @@ protected against resource exhaustion.
 - **Test:** `tests/enip_analyzer_tests.rs::session_lifecycle::test_flow_close_unknown_key_no_panic`
 - **Test:** `tests/enip_analyzer_tests.rs::session_lifecycle::test_flows_analyzed_incremented_on_flow_close` — assert `analyzer.flows_analyzed == 1` after one flow is opened and closed; assert unknown-key call does NOT increment
 
-### AC-138-003: Per-flow pdu_count and command_counts accumulated per BC-2.17.024 and BC-2.17.025
+### AC-138-003: Per-flow pdu_count accumulated in process_pdu; command_counts owned upstream in frame-walk (BC-2.17.016 PC-0)
 **Traces to:** BC-2.17.024 postconditions 1–5, BC-2.17.025 postcondition 2
-- `flow.pdu_count: u64` increments at the start of each `process_pdu` call (valid frames only — frames rejected by `is_valid_enip_frame` do NOT increment pdu_count per BC-2.17.024 Postcondition 3)
-- `flow.command_counts: HashMap<u16, u64>` increments per ENIP command code seen (including RegisterSession/UnRegisterSession per BC-2.17.025 Postcondition 2)
-- Frames that emit no finding (RegisterSession, IndicateStatus, ListServices, etc.) still increment `pdu_count` (BC-2.17.024 Postcondition 4)
+- `flow.pdu_count: u64` increments at the start of each `process_pdu` call (valid frames only — frames rejected by `is_valid_enip_frame` do NOT reach `process_pdu` and therefore do NOT increment pdu_count per BC-2.17.024 Postcondition 3)
+- `flow.command_counts: HashMap<u16, u64>` is incremented in the frame-walk (STORY-137 / BC-2.17.016 PC-0) BEFORE `is_valid_enip_frame`, NOT in `process_pdu`. The generic per-command `command_counts` increment does NOT appear in `process_pdu`. `process_pdu` owns `pdu_count` only.
+- Frames that emit no finding (RegisterSession, IndicateStatus, ListServices, etc.) still increment `pdu_count` via `process_pdu` (BC-2.17.024 Postcondition 4)
 - pdu_count is monotonically increasing within a flow lifetime (BC-2.17.024 Invariant 2)
-- At flow close, `flow.pdu_count` is folded into `self.total_pdu_count` per BC-2.17.017
+- At flow close, `flow.pdu_count` is folded into `self.total_pdu_count` AND `flow.command_counts` is folded into `self.command_distribution` per BC-2.17.017
 - **Test:** `tests/enip_analyzer_tests.rs::session_lifecycle::test_pdu_count_increments_on_valid_frame`
 - **Test:** `tests/enip_analyzer_tests.rs::session_lifecycle::test_pdu_count_not_incremented_on_invalid_frame`
 - **Test:** `tests/enip_analyzer_tests.rs::session_lifecycle::test_command_count_accumulates`
+  — Drives frames through the full pipeline (frame-walk → process_pdu); asserts `command_counts`
+  reflects counts from the frame-walk site (including any Unknown-command frames from before the
+  validity gate), and that `pdu_count` reflects only valid-frame counts from `process_pdu`.
 
 ### AC-138-004: `MAX_FINDINGS = 10,000` hard cap with `dropped_findings` counter
 **Traces to:** BC-2.17.022 postconditions 1–5, invariants 1–5
@@ -202,9 +207,8 @@ The key `parse_errors` is CANONICAL — not `total_parse_errors` (BC-2.17.021 In
   - NOTE: `session_registered`, `session_handle`, `session_anomaly_emitted`, `total_frames`, `cip_service_counts` are NOT added — session-handle tracking is deferred to v0.12.0 per BC-2.17.025 Invariant 3
 - [ ] Add to `EnipAnalyzer`: `total_pdu_count: u64`, `parse_errors: u64`, `command_distribution: HashMap<u16, u64>`, `write_count: u64`, `error_count: u64`, `flows_analyzed: u64`, `dropped_findings: u64`
 - [ ] Define `const MAX_FINDINGS: usize = 10_000` in `src/analyzer/enip.rs`
-- [ ] In `process_pdu`, at start of call: `flow.pdu_count += 1` (BC-2.17.024 Post 1)
-- [ ] In `process_pdu`, after command classification: `flow.command_counts.entry(header.command).or_insert(0) += 1` (BC-2.17.025 Post 2)
-- [ ] For RegisterSession and UnRegisterSession: no finding emitted; pdu_count and command_counts already updated above (BC-2.17.025 Post 3)
+- [ ] In `process_pdu`, at start of call: `flow.pdu_count += 1` (BC-2.17.024 Post 1) — this is the ONLY statistics increment in `process_pdu`; do NOT add a generic `command_counts` increment here (command_counts is owned by the frame-walk in STORY-137 / BC-2.17.016 PC-0)
+- [ ] For RegisterSession and UnRegisterSession: no finding emitted; `pdu_count` already updated above; `command_counts` was already incremented upstream in the frame-walk before `process_pdu` was called (BC-2.17.025 Post 2/3)
 - [ ] Gate every finding push: `if self.all_findings.len() < MAX_FINDINGS { push } else { self.dropped_findings += 1 }` (BC-2.17.022) — do NOT set one-shot guards on cap-suppressed findings (BC-2.17.022 Post 5)
 - [ ] Implement `EnipAnalyzer::on_flow_close(flow_key)`: remove flow from `self.flows`; if `HashMap::remove` returns `Some(flow)`: fold `pdu_count`, `parse_errors`, `command_counts` into aggregates AND `self.flows_analyzed += 1` (BC-2.17.017 Post 6); if `HashMap::remove` returns `None` (unknown key): no-op, do NOT increment `flows_analyzed` (BC-2.17.017 Post 5)
 - [ ] Implement `EnipAnalyzer::summarize()`: read aggregate fields; produce `enip_summary` JSON with canonical key `parse_errors` (NOT `total_parse_errors`); include all BC-2.17.021 fields; zero-flow case produces valid JSON object (BC-2.17.021)
@@ -247,6 +251,7 @@ session_lifecycle::test_summary_flows_analyzed_nonzero
 - STORY-136 adds `open_connection_count`, `close_connection_count` to `EnipFlowState`
 - STORY-137 adds `carry: Vec<u8>`, `parse_errors: u64`, `malformed_in_window: u64`, `malformed_anomaly_emitted: bool`, `malformed_window_start` to `EnipFlowState`
 - STORY-138 adds `pdu_count: u64`, `command_counts: HashMap<u16, u64>` to `EnipFlowState`; and `total_pdu_count`, `parse_errors` (aggregate), `command_distribution`, `write_count`, `error_count`, `flows_analyzed`, `dropped_findings` to `EnipAnalyzer`
+  - **NOTE (F8-001 relocation):** `command_counts` is incremented in STORY-137's frame-walk (BC-2.17.016 PC-0), NOT in `process_pdu`. STORY-138 declares the field but does NOT add a generic `command_counts` increment to `process_pdu`. `process_pdu` increments `pdu_count` only.
 
 **NOT added by STORY-138 (deferred per BC-2.17.025 Invariant 3):** `session_registered`, `session_handle`, `session_anomaly_emitted` — session-handle anomaly validation is explicitly out-of-scope for v0.11.0.
 
@@ -266,6 +271,7 @@ From ADR-010 Decision 5 (DoS bounds), BC-2.17.022, BC-2.17.021, BC-2.17.025:
 6. **`summarize()` reads aggregates, NOT per-flow state (BC-2.17.021 Invariant 2):** `summarize()` reads `self.command_distribution`, `self.total_pdu_count`, etc., which are populated by `on_flow_close` calls. It does NOT re-scan `self.flows`.
 7. **No session tracking in v0.11.0 (BC-2.17.025 Invariant 3):** `session_registered`, `session_handle`, `session_anomaly_emitted` are NOT added. The session-anomaly T0814 detector is NOT implemented. Any code implementing these fields or that T0814 detector is out-of-scope and must be rejected.
 8. **RegisterSession/UnRegisterSession emit NO finding (BC-2.17.025 Post 3):** These are normal EtherNet/IP protocol steps. Emitting findings for session handshakes would produce extreme false-positive rates.
+9. **`command_counts` is NOT incremented in `process_pdu` (BC-2.17.016 PC-0 / BC-2.17.024):** The canonical `command_counts` increment site is in the frame-walk (STORY-137), immediately after `parse_enip_header` returns `Some` and before `is_valid_enip_frame`. `process_pdu` owns only `pdu_count`. Any `command_counts` increment code placed inside `process_pdu` is a double-counting bug.
 
 ## Library & Framework Requirements
 

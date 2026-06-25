@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.0"
+version: "1.1"
 status: draft
 producer: product-owner
 timestamp: 2026-06-24T00:00:00Z
@@ -13,7 +13,8 @@ subsystem: SS-17
 capability: CAP-17
 lifecycle_status: active
 introduced: v0.11.0-feature-enip
-modified: []
+modified:
+  - "v1.1: F8-001 — Invariant 5 added: process_pdu owns pdu_count but NOT command_counts (command_counts is incremented in BC-2.17.016 frame-walk PC-0, before is_valid_enip_frame); Postcondition 5 annotation added clarifying separation of pdu_count vs command_counts increment sites"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -56,6 +57,11 @@ the DNP3/Modbus pattern of counting only successfully processed protocol data un
    IndicateStatus (0x0072), and Cancel (0x0075) are validity-gated (BC-2.17.003),
    classified (BC-2.17.004), and PDU-counted (this BC), but emit NO finding in v0.11.0.
    These commands have no MITRE ICS detection target in the current scope.
+6. **process_pdu owns pdu_count; NOT command_counts (F8-001)**: `process_pdu` is responsible
+   for incrementing `flow.pdu_count` (this BC). It does NOT increment `flow.command_counts`.
+   The canonical `command_counts` increment site is the BC-2.17.016 frame-walk loop (PC-0 in
+   `on_data`), which fires before `is_valid_enip_frame` and therefore counts ALL structurally-
+   parsed headers including Unknown/invalid-command frames.
 
 ## Invariants
 
@@ -67,6 +73,13 @@ the DNP3/Modbus pattern of counting only successfully processed protocol data un
    time may optionally be included.
 4. **No cap on pdu_count**: unlike `all_findings`, `pdu_count` and `total_pdu_count` are
    `u64` counters with no practical overflow. They count ALL processed frames.
+5. **process_pdu owns pdu_count; NOT command_counts (F8-001)**: `process_pdu` is the sole
+   increment site for `flow.pdu_count`. It does NOT increment `flow.command_counts`. The
+   canonical `command_counts` increment site is the BC-2.17.016 frame-walk loop (PC-0 in
+   `on_data`), which fires before `is_valid_enip_frame` and counts ALL structurally-parsed
+   24-byte headers (valid + Unknown/invalid-command). pdu_count and command_counts have
+   different coverage: `pdu_count` counts only validity-gated frames; `command_counts` counts
+   all structurally-parsed headers.
 
 ## Edge Cases
 
@@ -107,6 +120,7 @@ the DNP3/Modbus pattern of counting only successfully processed protocol data un
 ## Related BCs
 
 - BC-2.17.003 — depends on (is_valid_enip_frame true is the precondition for pdu_count increment)
+- BC-2.17.016 — composes with (frame-walk PC-0 is canonical command_counts site; distinct from pdu_count which is owned by process_pdu; F8-001)
 - BC-2.17.017 — depends on (pdu_count folded into total_pdu_count on flow close)
 - BC-2.17.021 — composes with (total_pdu_count reported in enip_summary)
 

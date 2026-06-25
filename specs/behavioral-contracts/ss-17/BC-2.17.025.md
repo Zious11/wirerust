@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.0"
+version: "1.1"
 status: draft
 producer: product-owner
 timestamp: 2026-06-24T00:00:00Z
@@ -13,7 +13,8 @@ subsystem: SS-17
 capability: CAP-17
 lifecycle_status: active
 introduced: v0.11.0-feature-enip
-modified: []
+modified:
+  - "v1.1: F8-001 — PC2 corrected: command_counts is incremented in the BC-2.17.016 frame-walk (PC-0) before is_valid_enip_frame, NOT in process_pdu; Architecture Anchor corrected to remove process_pdu as command_counts site; Invariant 2 updated to reference frame-walk canonical site; Description updated to clarify increment site"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -36,7 +37,9 @@ EtherNet/IP session establishment (RegisterSession, command 0x0065) and session 
 (UnRegisterSession, command 0x0066) are normal protocol handshake operations required before
 any explicit messaging (SendRRData 0x006F) can occur. When `classify_enip_command(header.command)`
 returns `EnipCommandClass::RegisterSession` or `EnipCommandClass::UnRegisterSession`, the frame
-is treated as a classified PDU: `pdu_count` is incremented and `command_counts[cmd]` is updated,
+is treated as a classified PDU: `pdu_count` is incremented (in `process_pdu`) and
+`command_counts[cmd]` is updated (in the BC-2.17.016 frame-walk loop PC-0, before the
+`is_valid_enip_frame` gate — the single canonical command_counts increment site per F8-001),
 but NO finding is emitted. Session-handle anomaly validation (e.g., mismatched session handles,
 replayed session handles) is explicitly deferred to v0.12.0.
 
@@ -51,6 +54,10 @@ replayed session handles) is explicitly deferred to v0.12.0.
 
 1. `flow.pdu_count += 1` — the frame is counted as a processed PDU (per BC-2.17.024: incremented in `process_pdu` at start of call).
 2. `flow.command_counts.entry(header.command).or_insert(0) += 1` — command occurrence logged.
+   **Increment site (F8-001):** This increment occurs in the BC-2.17.016 frame-walk loop
+   (PC-0 in `on_data`), immediately after `parse_enip_header` returns `Some(header)` and before
+   `is_valid_enip_frame` is checked. It does NOT occur inside `process_pdu`. This is the
+   single canonical command_counts increment site for all structurally-parsed headers.
 3. NO `Finding` is pushed to `self.all_findings`. The session handshake is a normal protocol
    operation and does not indicate a threat in isolation.
 4. No one-shot guard is set; no window counter is affected.
@@ -61,8 +68,10 @@ replayed session handles) is explicitly deferred to v0.12.0.
 1. **Session handshake is not a finding**: RegisterSession and UnRegisterSession are required
    EtherNet/IP protocol steps. Emitting a finding for every session establishment would produce
    extremely high false-positive rates in normal SCADA/DCS environments.
-2. **PDU-counted**: the frame is a valid ENIP PDU and contributes to `pdu_count` and
-   `command_counts` for `summarize()` output, providing visibility into session activity.
+2. **PDU-counted and command-counted**: the frame is a valid ENIP PDU and contributes to
+   `pdu_count` (incremented in `process_pdu`) and `command_counts` (incremented in the
+   BC-2.17.016 frame-walk PC-0, before the validity gate — F8-001 canonical site) for
+   `summarize()` output, providing visibility into session activity.
 3. **Session-handle anomaly deferred**: validation of session handles (e.g., detecting replayed
    or mismatched handles that may indicate session hijacking) is explicitly out-of-scope for
    v0.11.0 and deferred to v0.12.0. No state tracking for session handles is added in this BC.
@@ -125,13 +134,15 @@ Expected: `pdu_count += 1`; `command_counts[0x0066] += 1`; `all_findings` unchan
 ## Related BCs
 
 - BC-2.17.004 — depends on (classify_enip_command maps 0x0065/0x0066 to RegisterSession/UnRegisterSession)
+- BC-2.17.016 — depends on (frame-walk PC-0 is the canonical command_counts increment site; F8-001)
 - BC-2.17.024 — composes with (pdu_count incremented per BC-2.17.024 contract)
 - BC-2.17.021 — composes with (command_counts[0x0065/0x0066] reflected in summarize() output)
 
 ## Architecture Anchors
 
-- `src/analyzer/enip.rs` — `process_pdu`: `if matches!(cmd_class, EnipCommandClass::RegisterSession | EnipCommandClass::UnRegisterSession) { flow.command_counts.entry(header.command).or_insert(0) += 1; /* no finding */ }`
-- `src/analyzer/enip.rs` — `EnipFlowState.command_counts: HashMap<u16, u64>`
+- `src/analyzer/enip.rs` — `on_data()` frame-walk loop (BC-2.17.016 PC-0): `flow.command_counts.entry(header.command).or_insert(0) += 1` — fires for all structurally-parsed headers (incl. RegisterSession/UnRegisterSession) before `is_valid_enip_frame`; this is the CANONICAL command_counts increment site (F8-001). `process_pdu` does NOT increment `command_counts`.
+- `src/analyzer/enip.rs` — `process_pdu`: session dispatch arm for RegisterSession/UnRegisterSession — no finding emitted; `flow.pdu_count += 1` (at start of call per BC-2.17.024); no `command_counts` increment here.
+- `src/analyzer/enip.rs` — `EnipFlowState.command_counts: HashMap<u16, u64>` — single increment site is `on_data()` frame-walk (F8-001)
 - `src/analyzer/enip.rs` — `EnipFlowState.pdu_count: u64` (incremented in `process_pdu` at start of call, per BC-2.17.024)
 - `.factory/specs/architecture/decisions/ADR-010-ethernet-ip-cip-stream-dispatch.md §Decision 4` (pdu_count and command_counts)
 
@@ -156,7 +167,7 @@ Expected: `pdu_count += 1`; `command_counts[0x0066] += 1`; `all_findings` unchan
 | Property | Assessment |
 |----------|-----------|
 | **I/O operations** | none |
-| **Global state access** | mutates flow.command_counts; increments flow.pdu_count (via process_pdu) |
+| **Global state access** | increments flow.pdu_count (in process_pdu); flow.command_counts incremented for these frames in on_data frame-walk PC-0 (BC-2.17.016) — NOT in process_pdu (F8-001) |
 | **Deterministic** | yes — same command sequence produces same counter state |
 | **Thread safety** | single-threaded |
 | **Overall classification** | effectful shell (session-handshake dispatch within process_pdu) |

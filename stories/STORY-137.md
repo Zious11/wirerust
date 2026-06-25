@@ -15,14 +15,16 @@ target_module: analyzer/enip
 depends_on: [STORY-132, STORY-133]
 behavioral_contracts:
   - BC-2.17.016
+  - BC-2.17.004
   - BC-2.17.018
 verification_properties: []
 inputs:
   - .factory/specs/behavioral-contracts/ss-17/BC-2.17.016.md
+  - .factory/specs/behavioral-contracts/ss-17/BC-2.17.004.md
   - .factory/specs/behavioral-contracts/ss-17/BC-2.17.018.md
   - .factory/specs/architecture/decisions/ADR-010-ethernet-ip-cip-stream-dispatch.md
   - .factory/phase-f2-spec-evolution/enip-architecture-delta.md
-input-hash: "24ecccd"
+input-hash: "92f15e6"
 ---
 
 # STORY-137: ENIP Frame Walk Robustness: Carry Buffer, Non-ENIP Detection, and T0814 DoS Burst
@@ -40,7 +42,8 @@ false positives on non-ENIP flows.
 
 | BC ID | Title | Story Role |
 |-------|-------|-----------|
-| BC-2.17.016 | Frame-walk algorithm with carry buffer handles partial frames and multi-frame PDUs | Core robustness implementation |
+| BC-2.17.016 | Frame-walk algorithm with carry buffer handles partial frames and multi-frame PDUs | Core robustness implementation; owns the canonical `command_counts` increment site (PC-0) |
+| BC-2.17.004 | `classify_enip_command` Total Classification with Unknown Arm Over All u16 Values | `command_counts` must accumulate ALL parsed headers incl. Unknown (Inv-3) |
 | BC-2.17.018 | Malformed ENIP frame burst (T0814 DoS) detection | Core detection with windowed threshold |
 
 ## Acceptance Criteria
@@ -52,9 +55,11 @@ false positives on non-ENIP flows.
   1. `data = carry + new_segment_data` (prepend carry)
   2. While `buf.len() - cursor >= 24`:
      a. Call `parse_enip_header(&buf[cursor..cursor+24])`
-     b. If header parse fails or `!is_valid_enip_frame`: increment `flow.parse_errors` + `flow.malformed_in_window`; byte-walk or frame-skip; continue (see AC-137-003 for exact cursor behavior)
-     c. If partial frame: stash into carry; break
-     d. Else: call `process_pdu`; cursor advances by `24 + header.length`
+     b. If header parse fails: increment `flow.parse_errors` + `flow.malformed_in_window`; byte-walk; continue (see AC-137-003)
+     b2. (When header parse succeeds) Immediately increment `flow.command_counts.entry(header.command).or_insert(0) += 1` (BC-2.17.016 PC-0 — fires BEFORE `is_valid_enip_frame`; counts ALL parsed headers incl. Unknown)
+     c. If `!is_valid_enip_frame`: increment `flow.parse_errors` + `flow.malformed_in_window`; byte-walk; continue (see AC-137-003)
+     d. If partial frame: stash into carry; break
+     e. Else: call `process_pdu`; cursor advances by `24 + header.length`
   3. `carry = buf[cursor..]` (save leftover bytes)
 - `carry.len()` is bounded by `MAX_ENIP_CARRY_BYTES = 600` after each `on_data` call (BC-2.17.016 Invariant 1)
 - **Test:** `tests/enip_analyzer_tests.rs::frame_walk::test_carry_buffer_partial_header`
@@ -143,6 +148,31 @@ false positives on non-ENIP flows.
 - **Test:** `tests/enip_analyzer_tests.rs::frame_walk::test_parse_errors_not_reset_on_window_expiry`
 - **Test:** `tests/enip_analyzer_tests.rs::frame_walk::test_t0814_non_enip_not_set_at_threshold` (satisfies HS-117 Case D)
 
+### AC-137-006: `command_counts` is incremented in the frame-walk immediately after `parse_enip_header` returns `Some` — BEFORE `is_valid_enip_frame` (canonical single site per BC-2.17.016 PC-0)
+**Traces to:** BC-2.17.016 Postcondition 0 (command_counts increment site); BC-2.17.004 Invariant 3
+- Immediately after `let Some(header) = parse_enip_header(&buf[cursor..cursor+24])` succeeds,
+  the frame-walk MUST execute:
+  ```
+  flow.command_counts.entry(header.command).or_insert(0) += 1;
+  ```
+  This is the **single canonical site** for `command_counts` — it fires for EVERY structurally
+  parsed 24-byte header, regardless of whether the command is known or unknown (BC-2.17.016 PC-0).
+- The increment fires BEFORE `is_valid_enip_frame(&header)` is evaluated — unknown/invalid-command
+  frames therefore still have their command code counted in `command_counts` (e.g., the `Unknown`
+  bucket `0xFF00` is countable after a malformed injection) (BC-2.17.004 Invariant 3).
+- `command_counts` is NOT incremented a second time in `process_pdu` — the generic per-command
+  increment is owned exclusively here; `process_pdu` owns `pdu_count` only (BC-2.17.024).
+- `on_flow_close` still folds `flow.command_counts` into `self.command_distribution` (BC-2.17.017 Post 4) —
+  that fold path is unchanged; only the increment site moved upstream.
+- **Test:** `tests/enip_analyzer_tests.rs::frame_walk::test_command_counts_increments_for_unknown_command`
+  — Send a frame with a malformed/unknown command code (e.g., `0xFF00`, full 24-byte header).
+  Assert that `flow.command_counts.get(&0xFF00) == Some(&1)` and that `process_pdu` was NOT called
+  (i.e., `pdu_count` remains 0). This confirms the Unknown bucket is countable via the frame-walk
+  site, independent of `is_valid_enip_frame`.
+- **Test:** `tests/enip_analyzer_tests.rs::frame_walk::test_command_counts_single_site_not_doubled`
+  — Send a valid known-command frame. Assert `command_counts[cmd] == 1` (not 2), confirming the
+  increment is a single site in the frame-walk, not duplicated in `process_pdu`.
+
 ### AC-137-005: Valid frames are processed normally; invalid frames increment parse_errors and malformed_in_window
 **Traces to:** BC-2.17.016 Postcondition 1, BC-2.17.018 Postconditions 1–2
 - A structural reject fires when: `is_valid_enip_frame` returns `false` (unknown command), OR declared frame is oversized (`total_frame_len > MAX_ENIP_CARRY_BYTES`), OR carry-buffer overflows
@@ -189,6 +219,12 @@ fn on_data(flow, data, now_ts, ...) {
             cursor += 1;          // advance by 1 byte — NOT break
             continue;
         };
+        // CANONICAL command_counts increment site (BC-2.17.016 PC-0 / BC-2.17.004 Inv-3):
+        // fires for EVERY structurally-parsed 24-byte header — valid AND Unknown/invalid —
+        // so the Unknown bucket is countable. This is the SINGLE site; process_pdu does NOT
+        // increment command_counts.
+        flow.command_counts.entry(header.command).or_insert(0) += 1;
+
         // Command-validity gate: unknown command → byte-walk resync (BC-2.17.016 Postcondition 1)
         // HS-117 Case A: cmd=0xFF00, full 24-byte header → T0814, NOT process_pdu
         if !is_valid_enip_frame(&header) {
@@ -265,10 +301,13 @@ fn on_data(flow, data, now_ts, ...) {
 - [ ] Implement frame-walk loop in `EnipAnalyzer::on_data` (NOT process_pdu — on_data IS the outer loop per BC-2.17.016):
   - Window expiry check at top of on_data (reset malformed_in_window + guard at 300s)
   - carry+data concatenation
+  - When `parse_enip_header` returns `Some(header)`: immediately increment `flow.command_counts.entry(header.command).or_insert(0) += 1` — BEFORE calling `is_valid_enip_frame` (BC-2.17.016 PC-0 / BC-2.17.004 Inv-3). This is the SINGLE canonical site; `process_pdu` does NOT increment `command_counts`.
   - On unknown command (is_valid_enip_frame false): `parse_errors += 1`; `malformed_in_window += 1`; `check_t0814()`; `cursor += 1`; `continue` — byte-walk resync
   - On oversized declared frame (total_frame_len > MAX_ENIP_CARRY_BYTES): `parse_errors += 1`; `malformed_in_window += 1`; `check_t0814()`; `cursor += min(total_frame_len, buf.len() - cursor)`; `continue` — frame-skip; do NOT set is_non_enip
   - On partial frame: stash into carry; break
   - Carry-cap check after loop: if carry.len() > MAX_ENIP_CARRY_BYTES: `parse_errors += 1`; `malformed_in_window += 1`; `check_t0814()` (while is_non_enip still false — BC-2.17.018 Precond 6); THEN `is_non_enip = true`; `carry.clear()`
+- [ ] Add `frame_walk::test_command_counts_increments_for_unknown_command`: send a 24-byte frame with unknown command `0xFF00`; assert `flow.command_counts[0xFF00] == 1` and `pdu_count == 0` (confirming Unknown bucket is counted upstream of the validity gate, and `process_pdu` was not called)
+- [ ] Add `frame_walk::test_command_counts_single_site_not_doubled`: send one valid known-command frame; assert `command_counts[cmd] == 1` (not 2), confirming the increment is not duplicated in `process_pdu`
 - [ ] Implement `check_t0814` helper: `if malformed_in_window >= MALFORMED_ANOMALY_THRESHOLD && !malformed_anomaly_emitted && !is_non_enip && all_findings.len() < MAX_FINDINGS` → emit T0814 Anomaly/Possible/Low finding; `malformed_anomaly_emitted = true` (do NOT set `is_non_enip` here)
 - [ ] Add `mod frame_walk { ... }` test wrapper to `tests/enip_analyzer_tests.rs` with all AC-137 tests including windowed reset and byte-walk/frame-skip cases
 - [ ] Add `frame_walk::test_t0814_fires_on_carry_overflow_third_malformed`: send 2 malformed frames (via byte-walk), then trigger carry-cap overflow as the 3rd structural reject; assert T0814 fires AND `is_non_enip` is then `true` (BC-2.17.018 EC-007 / AC-137-002 ordering)
@@ -301,6 +340,8 @@ frame_walk::test_parse_errors_not_reset_on_window_expiry
 frame_walk::test_t0814_non_enip_not_set_at_threshold
 frame_walk::test_valid_frame_no_malformed_count
 frame_walk::test_invalid_frame_increments_malformed_count
+frame_walk::test_command_counts_increments_for_unknown_command
+frame_walk::test_command_counts_single_site_not_doubled
 ```
 
 ## Previous Story Intelligence
@@ -322,6 +363,7 @@ frame_walk::test_invalid_frame_increments_malformed_count
 7. **Oversized declared frame → advance past + `continue` (frame-skip) (BC-2.17.016 Postcondition 1):** Do NOT break. Do NOT set is_non_enip. Advance cursor by `min(total_frame_len, buf.len()-cursor)` and continue.
 8. **T0814 finding fields are Anomaly/Possible/Low (BC-2.17.018 Postcondition 3):** NOT DenialOfService/Medium. Category `ThreatCategory::Anomaly`, verdict `Verdict::Possible`, confidence `Confidence::Low`.
 9. **T0814 re-fires after 300s window reset (BC-2.17.018 Postcondition 5 / EC-005):** The `malformed_anomaly_emitted` guard is per-window, not per-flow-lifetime. After reset, a fresh burst of 3 malformed frames fires a new T0814.
+10. **`command_counts` has a SINGLE canonical increment site in the frame-walk (BC-2.17.016 PC-0 / BC-2.17.004 Inv-3):** The increment `flow.command_counts.entry(header.command).or_insert(0) += 1` is placed immediately after `parse_enip_header` returns `Some`, BEFORE `is_valid_enip_frame`. This ensures every structurally-parseable 24-byte header (including Unknown-command frames) is counted. `process_pdu` must NOT contain a generic per-command `command_counts` increment — its sole statistics responsibility is `pdu_count += 1` (BC-2.17.024).
 
 ## Library & Framework Requirements
 

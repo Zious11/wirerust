@@ -28,7 +28,7 @@ inputs:
   - .factory/specs/architecture/decisions/ADR-010-ethernet-ip-cip-stream-dispatch.md
   - .factory/specs/verification-properties/vp-032-enip-parse-safety.md
   - .factory/phase-f2-spec-evolution/enip-architecture-delta.md
-input-hash: "d709bd4"
+input-hash: "dc8a2c9"
 ---
 
 # STORY-130: EtherNet/IP Pure-Core Parse: ENIP Header, Command Classification, Frame Validity, and Kani VP-032
@@ -117,7 +117,12 @@ foundation proven correct by Kani formal verification (VP-032).
 - `EnipCommandClass::Unknown` is also reachable at `0xFFFF` (BC-2.17.004 edge case EC-004)
 - Gap values (e.g., `0x0067` — between UnRegisterSession and SendRRData) map to `Unknown` (BC-2.17.004 edge case EC-005)
 - The `EnipCommandClass` enum has exactly 10 variants; the match is compiler-enforced exhaustive (BC-2.17.004 invariant 1)
-- The caller MUST increment `flow.command_counts.entry(cmd).or_insert(0) += 1` after each classification — both named and Unknown commands are counted (BC-2.17.004 invariant 3)
+- The caller MUST increment `flow.command_counts.entry(header.command).or_insert(0) += 1` after each
+  classification — both named and Unknown commands are counted (BC-2.17.004 invariant 3). Per BC-2.17.016
+  PC-0 (v1.1), this increment is placed in the frame-walk (STORY-137 / `on_data`) immediately after
+  `parse_enip_header` returns `Some` and BEFORE `is_valid_enip_frame` is evaluated. This is the
+  **single canonical increment site** — not in `process_pdu`. The placement guarantees the `Unknown`
+  bucket is countable even for frames that are subsequently rejected by the validity gate.
 - **Test:** `tests/enip_analyzer_tests.rs::parse_header::test_classify_enip_command_unknown_zero`
 - **Test:** `tests/enip_analyzer_tests.rs::parse_header::test_classify_enip_command_unknown_ffff`
 - **Test:** `tests/enip_analyzer_tests.rs::parse_header::test_classify_enip_command_unknown_gap`
