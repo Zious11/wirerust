@@ -135,7 +135,7 @@ mod story_110 {
     #[test]
     fn test_port_20000_dispatches_to_dnp3() {
         let dnp3 = Dnp3Analyzer::new(DNPXX_DIRECT_OPERATE_THRESHOLD_DEFAULT);
-        let mut dispatcher = StreamDispatcher::new(None, None, None, Some(dnp3));
+        let mut dispatcher = StreamDispatcher::new(None, None, None, Some(dnp3), None);
         let key = flow_key(12345, 20000);
         let frame = minimal_dnp3_frame();
         // Rule 6 routes port-20000 data to Dnp3Analyzer.
@@ -165,7 +165,7 @@ mod story_110 {
     fn test_tls_on_port_20000_routes_to_tls() {
         let dnp3 = Dnp3Analyzer::new(DNPXX_DIRECT_OPERATE_THRESHOLD_DEFAULT);
         let mut dispatcher =
-            StreamDispatcher::new(None, Some(TlsAnalyzer::new()), None, Some(dnp3));
+            StreamDispatcher::new(None, Some(TlsAnalyzer::new()), None, Some(dnp3), None);
         let key = flow_key(12345, 20000);
         // TLS ClientHello signature: Rule 1 must fire, not Rule 6.
         let tls_data = [0x16u8, 0x03, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00];
@@ -190,7 +190,7 @@ mod story_110 {
         use wirerust::analyzer::http::HttpAnalyzer;
         let dnp3 = Dnp3Analyzer::new(DNPXX_DIRECT_OPERATE_THRESHOLD_DEFAULT);
         let mut dispatcher =
-            StreamDispatcher::new(Some(HttpAnalyzer::new()), None, None, Some(dnp3));
+            StreamDispatcher::new(Some(HttpAnalyzer::new()), None, None, Some(dnp3), None);
         let key = flow_key(12345, 20000);
         let http_data = b"GET / HTTP/1.1\r\nHost: example.com\r\n\r\n";
         // Rule 2 fires (HTTP content) before Rule 6 (port 20000).
@@ -221,7 +221,7 @@ mod story_110 {
     #[test]
     fn test_early_exit_guard_includes_dnp3() {
         // All analyzers absent → early exit, no crash.
-        let mut dispatcher = StreamDispatcher::new(None, None, None, None);
+        let mut dispatcher = StreamDispatcher::new(None, None, None, None, None);
         let key = flow_key(12345, 20000);
         let data = minimal_dnp3_frame();
         // With all analyzers absent, on_data is a no-op. Must NOT panic.
@@ -242,7 +242,7 @@ mod story_110 {
     #[test]
     fn test_AC_003_early_exit_guard_does_not_fire_when_dnp3_is_some() {
         let dnp3 = Dnp3Analyzer::new(DNPXX_DIRECT_OPERATE_THRESHOLD_DEFAULT);
-        let mut dispatcher = StreamDispatcher::new(None, None, None, Some(dnp3));
+        let mut dispatcher = StreamDispatcher::new(None, None, None, Some(dnp3), None);
         // Port 9999 — no match, not port 20000 — but dnp3.is_some() so guard does NOT fire.
         let key = flow_key(12345, 9999);
         let data = [0xDE, 0xAD, 0xBE, 0xEF, 0x00, 0x00, 0x00, 0x00];
@@ -269,7 +269,7 @@ mod story_110 {
     #[test]
     fn test_take_dnp3_analyzer_moves_out() {
         let dnp3 = Dnp3Analyzer::new(DNPXX_DIRECT_OPERATE_THRESHOLD_DEFAULT);
-        let mut dispatcher = StreamDispatcher::new(None, None, None, Some(dnp3));
+        let mut dispatcher = StreamDispatcher::new(None, None, None, Some(dnp3), None);
 
         // Before take: accessor returns Some.
         assert!(
@@ -389,7 +389,7 @@ mod story_110 {
     #[test]
     fn test_threshold_0_fires_immediately() {
         let dnp3 = Dnp3Analyzer::new(0); // threshold=0 → any Control FC fires immediately
-        let mut dispatcher = StreamDispatcher::new(None, None, None, Some(dnp3));
+        let mut dispatcher = StreamDispatcher::new(None, None, None, Some(dnp3), None);
         let key = flow_key(54321, 20000);
 
         let (frame, ts) = dnp3_direct_operate_frame(1_700_000_000);
@@ -422,7 +422,7 @@ mod story_110 {
     #[test]
     fn test_threshold_max_never_fires() {
         let dnp3 = Dnp3Analyzer::new(u32::MAX); // threshold=u32::MAX → never fires
-        let mut dispatcher = StreamDispatcher::new(None, None, None, Some(dnp3));
+        let mut dispatcher = StreamDispatcher::new(None, None, None, Some(dnp3), None);
         let key = flow_key(54321, 20000);
 
         // Deliver 5 Control FC frames — even 5 < u32::MAX so no finding expected.
@@ -464,7 +464,7 @@ mod story_110 {
     fn test_threshold_echoed_in_t1692_summary() {
         let threshold = 3u32;
         let dnp3 = Dnp3Analyzer::new(threshold);
-        let mut dispatcher = StreamDispatcher::new(None, None, None, Some(dnp3));
+        let mut dispatcher = StreamDispatcher::new(None, None, None, Some(dnp3), None);
         let key = flow_key(54321, 20000);
 
         // Deliver threshold+1 = 4 Control FC frames to trigger the burst finding.
@@ -517,7 +517,7 @@ mod story_110 {
     fn test_threshold_default_10_echoed_in_t1692_summary() {
         let threshold = DNPXX_DIRECT_OPERATE_THRESHOLD_DEFAULT; // = 10
         let dnp3 = Dnp3Analyzer::new(threshold);
-        let mut dispatcher = StreamDispatcher::new(None, None, None, Some(dnp3));
+        let mut dispatcher = StreamDispatcher::new(None, None, None, Some(dnp3), None);
         let key = flow_key(54321, 20000);
 
         // Deliver threshold+1 = 11 Control FC frames within the detection window.
@@ -573,7 +573,7 @@ mod story_110 {
         // A port-502 flow must go to Modbus, not DNP3.
         let modbus = ModbusAnalyzer::new(20, 10);
         let dnp3 = Dnp3Analyzer::new(DNPXX_DIRECT_OPERATE_THRESHOLD_DEFAULT);
-        let mut dispatcher = StreamDispatcher::new(None, None, Some(modbus), Some(dnp3));
+        let mut dispatcher = StreamDispatcher::new(None, None, Some(modbus), Some(dnp3), None);
         let key = flow_key(12345, 502);
 
         // Valid Modbus ADU on port 502.
@@ -620,8 +620,8 @@ mod story_110 {
     #[test]
     fn test_none_is_rule_7_no_match() {
         let dnp3 = Dnp3Analyzer::new(DNPXX_DIRECT_OPERATE_THRESHOLD_DEFAULT);
-        let mut dispatcher =
-            StreamDispatcher::new(None, None, None, Some(dnp3)).with_max_classification_attempts(1);
+        let mut dispatcher = StreamDispatcher::new(None, None, None, Some(dnp3), None)
+            .with_max_classification_attempts(1);
         let key = flow_key(12345, 9999); // unknown port — no content match
         let data = [0xDE, 0xAD, 0xBE, 0xEF, 0x00, 0x00, 0x00, 0x00];
         dispatcher.on_data(&key, Direction::ClientToServer, &data, 0, 1_700_000_000);
@@ -765,8 +765,8 @@ mod story_110 {
     #[test]
     fn test_ec005_unknown_port_routes_to_none() {
         let dnp3 = Dnp3Analyzer::new(DNPXX_DIRECT_OPERATE_THRESHOLD_DEFAULT);
-        let mut dispatcher =
-            StreamDispatcher::new(None, None, None, Some(dnp3)).with_max_classification_attempts(1);
+        let mut dispatcher = StreamDispatcher::new(None, None, None, Some(dnp3), None)
+            .with_max_classification_attempts(1);
         let key = flow_key(12345, 12345); // unknown port, no content match
         let data = [0xAB, 0xCD, 0xEF, 0x01, 0x23, 0x45, 0x67, 0x89];
         dispatcher.on_data(&key, Direction::ClientToServer, &data, 0, 1_700_000_000);
@@ -792,7 +792,7 @@ mod story_110 {
         use wirerust::analyzer::modbus::ModbusAnalyzer;
         let modbus = ModbusAnalyzer::new(20, 10);
         let dnp3 = Dnp3Analyzer::new(DNPXX_DIRECT_OPERATE_THRESHOLD_DEFAULT);
-        let mut dispatcher = StreamDispatcher::new(None, None, Some(modbus), Some(dnp3));
+        let mut dispatcher = StreamDispatcher::new(None, None, Some(modbus), Some(dnp3), None);
         // src=502, dst=20000 — both ports present in the flow key
         let key = flow_key(502, 20000);
 
@@ -821,7 +821,7 @@ mod story_110 {
     #[test]
     fn test_ec007_dnp3_disabled_port_20000_flow_is_noop() {
         // No DNP3 analyzer — dnp3=None
-        let mut dispatcher = StreamDispatcher::new(None, None, None, None);
+        let mut dispatcher = StreamDispatcher::new(None, None, None, None, None);
         let key = flow_key(12345, 20000);
         let frame = minimal_dnp3_frame();
         // classify() reaches Rule 6 → returns Dnp3; on_data arm is no-op (None check).
@@ -863,7 +863,7 @@ mod story_110 {
     #[test]
     fn test_ec001_non_dnp3_content_on_port_20000_desync_bail() {
         let dnp3 = Dnp3Analyzer::new(DNPXX_DIRECT_OPERATE_THRESHOLD_DEFAULT);
-        let mut dispatcher = StreamDispatcher::new(None, None, None, Some(dnp3));
+        let mut dispatcher = StreamDispatcher::new(None, None, None, Some(dnp3), None);
         let key = flow_key(12345, 20000);
         // Data that starts with 0xAB 0xCD — NOT the DNP3 sync word [0x05, 0x64].
         let non_dnp3_data = [0xABu8, 0xCD, 0xEF, 0x01, 0x23, 0x45, 0x67, 0x89];
@@ -901,7 +901,7 @@ mod story_110 {
     #[test]
     fn test_ec002_multiple_frames_in_one_on_data_call() {
         let dnp3 = Dnp3Analyzer::new(DNPXX_DIRECT_OPERATE_THRESHOLD_DEFAULT);
-        let mut dispatcher = StreamDispatcher::new(None, None, None, Some(dnp3));
+        let mut dispatcher = StreamDispatcher::new(None, None, None, Some(dnp3), None);
         let key = flow_key(54321, 20000);
 
         // Two DIRECT_OPERATE frames concatenated in one on_data call.
@@ -930,7 +930,7 @@ mod story_110 {
     #[test]
     fn test_ec003_partial_frame_split_across_two_on_data_calls() {
         let dnp3 = Dnp3Analyzer::new(DNPXX_DIRECT_OPERATE_THRESHOLD_DEFAULT);
-        let mut dispatcher = StreamDispatcher::new(None, None, None, Some(dnp3));
+        let mut dispatcher = StreamDispatcher::new(None, None, None, Some(dnp3), None);
         let key = flow_key(54321, 20000);
 
         let (full_frame, _) = dnp3_direct_operate_frame(1_700_000_000);

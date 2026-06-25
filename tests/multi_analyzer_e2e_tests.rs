@@ -228,6 +228,7 @@ fn test_cr011_multi_analyzer_http_tls_dns_reassembly_reporter_e2e() {
         Some(TlsAnalyzer::new()),
         None,
         None,
+        None,
     );
 
     // Compact monotonic clock: all packets within a single 300-second window so
