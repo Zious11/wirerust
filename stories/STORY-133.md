@@ -83,6 +83,7 @@ is derived from ADR-010 Decision 7 and the enip-architecture-delta §VP-007 sect
 - The `SEEDED` constant (or `static`) in `src/mitre.rs` contains exactly 28 technique IDs after this story
 - The added IDs are `"T0858"`, `"T0816"`, `"T1693.001"` (in addition to the existing 25)
 - `SEEDED_TECHNIQUE_ID_COUNT` constant equals 28
+- **Baseline verification note (F3-307):** The pre-ENIP baseline of 25 seeded entries MUST be re-verified against `src/mitre.rs` HEAD at implementation time. STORY-129 (Wave 57) also modified the MITRE catalog — the F4 implementer MUST confirm the live pre-ENIP `SEEDED.len()` count before asserting post-ENIP == 28. If the pre-ENIP count differs from 25, adjust the post-ENIP target accordingly (pre + 3). Test `test_seeded_count_is_28` should be derived from the confirmed live count.
 - **Test:** `tests/enip_analyzer_tests.rs::mitre_seeding::test_seeded_count_is_28`
 
 ### AC-133-006: `EMITTED_IDS` set grows from 17 to 20 entries; T1693.001 NOT in EMITTED
@@ -90,6 +91,7 @@ is derived from ADR-010 Decision 7 and the enip-architecture-delta §VP-007 sect
 - `EMITTED_IDS` contains T0858, T0816, T0846 as new additions (17 → 20 total)
 - T1693.001 is NOT in `EMITTED_IDS` — it is staged-only for v0.11.0
 - T0846 was previously in `SEEDED` but not `EMITTED`; this story promotes T0846 to emitted (first emission will be in STORY-134 BC-2.17.010)
+- **Baseline verification note (F3-307):** The pre-ENIP baseline of 17 emitted entries MUST be re-verified against `src/mitre.rs` HEAD at implementation time. STORY-129 (Wave 57) also modified the MITRE catalog — the F4 implementer MUST confirm the live pre-ENIP `EMITTED_IDS.len()` count before asserting post-ENIP == 20. If the pre-ENIP count differs from 17, adjust the post-ENIP target accordingly (pre + 3). Tests `test_emitted_count_is_20` / `seeded==28` should be derived from confirmed live counts, not assumed from spec alone.
 - **Test:** `tests/enip_analyzer_tests.rs::mitre_seeding::test_emitted_count_is_20`
 - **Test:** `tests/enip_analyzer_tests.rs::mitre_seeding::test_t1693_001_not_emitted`
 - **Test:** `tests/enip_analyzer_tests.rs::mitre_seeding::test_t0846_in_emitted`

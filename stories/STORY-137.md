@@ -300,7 +300,7 @@ No new external crate dependencies. `Vec<u8>` for carry buffer (owned, cleared o
 ## File Structure Requirements
 
 **Files to modify:**
-- `src/analyzer/enip.rs` — add `EnipFlowState` carry/malformed fields; implement frame-walk loop in `process_pdu`; add constants `MAX_ENIP_CARRY_BYTES` and `MALFORMED_ANOMALY_THRESHOLD`
+- `src/analyzer/enip.rs` — add `EnipFlowState` carry/malformed fields; implement frame-walk loop in `EnipAnalyzer::on_data` (NOT `process_pdu` — `on_data` IS the outer frame-walk per BC-2.17.016); add constants `MAX_ENIP_CARRY_BYTES` and `MALFORMED_ANOMALY_THRESHOLD`
 - `tests/enip_analyzer_tests.rs` — add `mod frame_walk { ... }` block
 
 ## Token Budget Estimate

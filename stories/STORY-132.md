@@ -62,25 +62,27 @@ input-hash: "3343540"
 - **Test:** `tests/enip_analyzer_tests.rs::cpf_cip::test_parse_cpf_items_empty`
 - **Test:** `tests/enip_analyzer_tests.rs::cpf_cip::test_parse_cpf_items_truncated`
 
-### AC-132-002: `CpfItem` carries type_id, length, and data slice reference
+### AC-132-002: `CpfItem` carries type_id and data slice reference
 **Traces to:** BC-2.17.005 postcondition 2
-- `CpfItem` struct: `type_id: u16`, `length: u16`, `data: &[u8]` (or owned `Vec<u8>` if lifetime is complex)
-- `CpfItem { type_id: 0x00B2, length: N, data: &cpf_data[...] }` for Unconnected Data Items
-- `CpfItem { type_id: 0x00B1, length: N, data: &cpf_data[...] }` for Connected Data Items
-- `CpfItem { type_id: 0x0000, length: 0, data: &[] }` for null address items (length 0 is valid)
+- `CpfItem` struct: `type_id: u16`, `data: Vec<u8>` (2 fields; `length` is a TRANSIENT parse local equal to `data.len()`, NOT a struct field — BC-2.17.005 Architecture Anchors)
+- `CpfItem { type_id: 0x00B2, data: <N bytes> }` for Unconnected Data Items
+- `CpfItem { type_id: 0x00B1, data: <N bytes> }` for Connected Data Items
+- `CpfItem { type_id: 0x0000, data: vec![] }` for null address items (length 0 is valid)
 - **Test:** `tests/enip_analyzer_tests.rs::cpf_cip::test_cpf_item_type_ids`
 
 ### AC-132-003: `parse_cip_header` parses CIP header from 0x00B2 item data
-**Traces to:** BC-2.17.006 postconditions 1–3; BC-2.17.008 postcondition 1 + invariant 1 (general_status offset)
+**Traces to:** BC-2.17.006 postconditions 1–7
 - Given `item.data` from a `CpfItem` with `type_id == 0x00B2`
 - When `parse_cip_header(item_data: &[u8]) -> Option<CipHeader>` is called
-- Then returns `Some(CipHeader { service, request_path_size, request_path, general_status })` if `item_data.len() >= 2`
+- Then returns `Some(CipHeader { service, request_path })` if `item_data.len() >= 2` (2-field struct; BC-2.17.006 Architecture Anchors)
   - `service: u8 = item_data[0]`
-  - `request_path_size: u8 = item_data[1]` (in 16-bit words)
-  - `request_path: &[u8]` = `item_data[2..2 + request_path_size as usize * 2]` (if bounds allow)
-  - `general_status: u8` = populated ONLY at the response call site: `cip_item_data[2]` (byte 2 of the CIP response frame — ODVA CIP Specification Vol 1 §2-4.2: byte 0 = service|0x80, byte 1 = reserved, byte 2 = general_status), gated on `cip_item_data.len() >= 4` and `type_id == 0x00B2`; set to `0x00` for requests or when not accessible (BC-2.17.008 postcondition 1, invariant 1)
+  - `request_path_size` (in 16-bit words) is a TRANSIENT parse local: `item_data[1] as usize`; NOT a struct field
+  - `path_byte_count = request_path_size * 2`
+  - Returns `None` if `item_data.len() < 2 + path_byte_count` (truncated path — BC-2.17.006 postcondition 5)
+  - `request_path: Vec<u8>` = `item_data[2..2 + path_byte_count]`
+  - `general_status` is NOT a CipHeader struct field. Per BC-2.17.008 Postcondition 1, it is extracted at the response CALL SITE (byte 2 of the 0x00B2 item_data, gated `len >= 4`), not stored in CipHeader
 - Returns `None` if `item_data.len() < 2`
-- Never panics; truncated path returns whatever bytes are available (not `None`)
+- Never panics
 - **Test:** `tests/enip_analyzer_tests.rs::cpf_cip::test_parse_cip_header_request`
 - **Test:** `tests/enip_analyzer_tests.rs::cpf_cip::test_parse_cip_header_response`
 - **Test:** `tests/enip_analyzer_tests.rs::cpf_cip::test_parse_cip_header_too_short`
@@ -122,9 +124,9 @@ input-hash: "3343540"
 
 | Component | Location | Role |
 |-----------|----------|------|
-| `CpfItem` struct | `src/analyzer/enip.rs` | `type_id: u16, length: u16, data: Vec<u8>` (or lifetime-bearing slice) |
+| `CpfItem` struct | `src/analyzer/enip.rs` | `type_id: u16, data: Vec<u8>` (2 fields; BC-2.17.005 arch anchor; `length` is a transient parse local, NOT a field) |
 | `parse_cpf_items` | `src/analyzer/enip.rs` | Pure-core free fn; CPF item walk |
-| `CipHeader` struct | `src/analyzer/enip.rs` | `service: u8, request_path_size: u8, request_path: Vec<u8>, general_status: u8` |
+| `CipHeader` struct | `src/analyzer/enip.rs` | `service: u8, request_path: Vec<u8>` (2 fields; BC-2.17.006 arch anchor; `request_path_size` and `general_status` are NOT fields) |
 | `parse_cip_header` | `src/analyzer/enip.rs` | Pure-core free fn; 0x00B2 item data → CipHeader |
 | `CipPathSegment` enum | `src/analyzer/enip.rs` | `Class(u8), Instance(u8), Attribute(u8)` |
 | `parse_cip_request_path` | `src/analyzer/enip.rs` | Pure-core free fn; path bytes → segments |
@@ -149,10 +151,10 @@ input-hash: "3343540"
 
 ## Tasks
 
-- [ ] Define `CpfItem` struct in `src/analyzer/enip.rs`: `pub struct CpfItem { pub type_id: u16, pub length: u16, pub data: Vec<u8> }`
-- [ ] Implement `pub fn parse_cpf_items(cpf_data: &[u8]) -> Vec<CpfItem>` — read `item_count = LE u16 at [0..2]`; walk items at `cursor = 2`; for each: read `type_id`, `length`, extract `data = &cpf_data[cursor+4..cursor+4+len]`; advance `cursor += 4 + len as usize`; break on any bounds error
-- [ ] Define `CipHeader` struct: `pub struct CipHeader { pub service: u8, pub request_path_size: u8, pub request_path: Vec<u8>, pub general_status: u8 }`
-- [ ] Implement `pub fn parse_cip_header(item_data: &[u8]) -> Option<CipHeader>` — check `item_data.len() >= 2`; read `service = item_data[0]`, `request_path_size = item_data[1]`; extract path bytes from `item_data[2..min(2 + path_size_bytes, item_data.len())]`; read `general_status` from response offset if `service & 0x80 != 0` and bytes available
+- [ ] Define `CpfItem` struct in `src/analyzer/enip.rs`: `pub struct CpfItem { pub type_id: u16, pub data: Vec<u8> }` (2 fields only; `length` is a transient parse local inside `parse_cpf_items`, NOT a struct field)
+- [ ] Implement `pub fn parse_cpf_items(cpf_data: &[u8]) -> Vec<CpfItem>` — read `item_count = LE u16 at [0..2]`; walk items at `cursor = 2`; for each: read `type_id`, read transient `length` (LE u16 at cursor+2), extract `data = cpf_data[cursor+4..cursor+4+length as usize]`; advance `cursor += 4 + length as usize`; break on any bounds error; push `CpfItem { type_id, data }`
+- [ ] Define `CipHeader` struct: `pub struct CipHeader { pub service: u8, pub request_path: Vec<u8> }` (2 fields only; `request_path_size` is a transient parse local; `general_status` is NOT a struct field — extracted at the response call site per BC-2.17.008)
+- [ ] Implement `pub fn parse_cip_header(item_data: &[u8]) -> Option<CipHeader>` — check `item_data.len() >= 2`; read `service = item_data[0]`; transient `request_path_size = item_data[1] as usize`; `path_byte_count = request_path_size * 2`; return `None` if `item_data.len() < 2 + path_byte_count`; `request_path = item_data[2..2 + path_byte_count].to_vec()`; return `Some(CipHeader { service, request_path })`
 - [ ] Define `CipPathSegment` enum: `pub enum CipPathSegment { Class(u8), Instance(u8), Attribute(u8) }` with `Debug, Clone, PartialEq`
 - [ ] Implement `pub fn parse_cip_request_path(path: &[u8]) -> Vec<CipPathSegment>` — cursor walk with exact-match on `0x20/0x24/0x30`; `cursor += 2` per segment; break at bounds
 - [ ] Add F-P9-002 doc comment `/// # Fuzz Obligation (F-P9-002)` to `parse_cip_header` and `parse_cpf_items`
@@ -202,8 +204,8 @@ From ADR-010 Decision 8 (CIP object model scope) and F-P9-001/002:
 2. **8-bit logical segments only in `parse_cip_request_path` (ADR-010 Decision 8):** Exact-match on `0x20`, `0x24`, `0x30`. Do NOT use `& 0xE0` mask — it would incorrectly match Instance `0x24` as Class `0x20`. 16-bit extended segments (`0x21`, `0x25`, `0x31`) are deferred to v0.12.0.
 3. **No panic on any input (pure-core obligation):** `parse_cpf_items`, `parse_cip_header`, and `parse_cip_request_path` must never panic. Use slice indexing with bounds checks or `get()` rather than direct index. The only allowed `unwrap()` is on `try_into()` after explicit length guards.
 4. **CPF `length` field is the data length only (not including type_id + length fields):** The 4-byte item header (type_id 2 bytes + length 2 bytes) is NOT counted in `item.length`. The data occupies `cpf_data[cursor+4..cursor+4+item.length as usize]`.
-5. **`CipHeader.general_status` for requests:** When `service & 0x80 == 0` (request), `general_status` should be `0x00` (no status in requests). The field is present in the struct for uniformity with response parsing.
-6. **`request_path_size` is in 16-bit words (ODVA CIP Vol 1):** `path_byte_length = request_path_size as usize * 2`. The path bytes in `item_data` start at byte 2 and span `2 * request_path_size` bytes. Always multiply by 2 when computing the slice end.
+5. **`general_status` is NOT a CipHeader field (BC-2.17.006 Postcondition 7):** `CipHeader` has exactly 2 fields: `service: u8` and `request_path: Vec<u8>`. `general_status` is extracted at the RESPONSE CALL SITE (byte 2 of the 0x00B2 `item_data`, gated `item_data.len() >= 4`) per BC-2.17.008 Postcondition 1. Do NOT add `general_status` to the `CipHeader` struct.
+6. **`request_path_size` is a transient parse local in 16-bit words (ODVA CIP Vol 1):** `path_byte_count = request_path_size * 2`. The path bytes start at `item_data[2]` and span `path_byte_count` bytes. `request_path_size` is NOT a struct field — it is consumed during parsing and discarded.
 
 ## Library & Framework Requirements
 

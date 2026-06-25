@@ -104,7 +104,7 @@ via EtherNet/IP are detected and reported with appropriate MITRE ICS technique t
   - `evidence`: one entry — `"CIP service=0x{service:02X} ({service_name}) src={src_ip} ENIP session={session}"` (BC-2.17.012 postcondition 5)
   - `mitre_techniques: vec!["T0836"]`
   - `flow.write_burst_emitted = true` (one-shot guard per window)
-- Window is 1 second (NOT 10 seconds like error burst); window tracks `write_window_start`
+- Window is 1 second (NOT 10 seconds like error burst); window tracks `write_window_start_ts: u32` (BC-2.17.012 postcondition 3 — `flow.write_window_start_ts = now_ts`; u32 arithmetic matches error_window_start_ts pattern)
 - Strict `>` semantics: with default 50, the 51st write fires
 - **Test:** `tests/enip_analyzer_tests.rs::command_detections::test_t0836_burst_fires_at_threshold_plus_one`
 - **Test:** `tests/enip_analyzer_tests.rs::command_detections::test_t0836_burst_one_shot_guard`
@@ -117,20 +117,24 @@ via EtherNet/IP are detected and reported with appropriate MITRE ICS technique t
 - When `flow.is_non_enip == true`, none of the command detections emit findings
 - **Test:** `tests/enip_analyzer_tests.rs::command_detections::test_non_enip_suppresses_command_detections`
 
-### AC-135-005: T0836 write count increments for each SetAttribute (feeds burst detection)
-**Traces to:** BC-2.17.012 preconditions (write_count accumulation)
-- Every SetAttribute request (SetAttributeSingle 0x10, SetAttributesAll 0x02, SetAttributeList 0x04) in a 0x00B2 item increments `flow.write_count_in_window`
-- This happens regardless of whether the burst threshold is crossed (accumulation is separate from emission)
+### AC-135-005: T0836 write count increments for each SetAttribute (feeds burst detection) and aggregate write_count increments
+**Traces to:** BC-2.17.012 postconditions 1–2 (write_count accumulation; aggregate lifetime counter)
+- Every SetAttribute request (SetAttributeSingle 0x10, SetAttributesAll 0x02, SetAttributeList 0x04) in a 0x00B2 item increments BOTH:
+  - `flow.write_count_in_window += 1` — per-flow burst window counter (BC-2.17.012 postcondition 1)
+  - `self.write_count += 1` — `EnipAnalyzer` aggregate lifetime counter (BC-2.17.012 Postcondition 2; consumed by `summarize()` per BC-2.17.021 postcondition 1 `write_count` field)
+- Both increments happen on EVERY qualifying write-class request, regardless of whether the burst threshold is crossed (accumulation is separate from emission)
 - SetAttribute accumulation is independent of T0858 — T0858 is triggered by CIP Stop (0x07), not by SetAttribute
 - **Test:** `tests/enip_analyzer_tests.rs::command_detections::test_write_count_accumulates`
+- **Test:** `tests/enip_analyzer_tests.rs::command_detections::test_aggregate_write_count_increments` (verify `analyzer.write_count` after N SetAttribute frames == N)
 
 ## Architecture Mapping
 
 | Component | Location | Role |
 |-----------|----------|------|
-| `EnipFlowState.write_count_in_window` | `src/analyzer/enip.rs` | `u32` — SetAttribute count in 1s window |
+| `EnipFlowState.write_count_in_window` | `src/analyzer/enip.rs` | `u64` — SetAttribute count in 1s window (BC-2.17.012 Architecture Anchors) |
 | `EnipFlowState.write_burst_emitted` | `src/analyzer/enip.rs` | `bool` — one-shot guard for T0836 |
-| `EnipFlowState.write_window_start` | `src/analyzer/enip.rs` | `Option<u64>` — 1s window start (millis) |
+| `EnipFlowState.write_window_start_ts` | `src/analyzer/enip.rs` | `u32` — 1s window start timestamp (BC-2.17.012 postcondition 3/4; matches error_window_start_ts: u32 pattern) |
+| `EnipAnalyzer.write_count` | `src/analyzer/enip.rs` | `u64` — aggregate lifetime write counter (BC-2.17.012 Postcondition 2; consumed by BC-2.17.021 summarize()) |
 | T0858 detection | `src/analyzer/enip.rs` | `if CipServiceClass::Stop (0x07) && 0x00B2 && !is_non_enip → emit T0858` |
 | T0816 detection | `src/analyzer/enip.rs` | `if classify_cip_service(service) == CipServiceClass::Reset && type_id == 0x00B2 && !is_non_enip → emit T0816` |
 | T0836 detection | `src/analyzer/enip.rs` | Check/reset 1s window; increment count; if count > threshold && !guard → emit T0836` |
@@ -159,11 +163,13 @@ via EtherNet/IP are detected and reported with appropriate MITRE ICS technique t
 
 ## Tasks
 
-- [ ] Add to `EnipFlowState`: `write_count_in_window: u32`, `write_burst_emitted: bool`, `write_window_start: Option<u64>`
+- [ ] Add to `EnipFlowState`: `write_count_in_window: u64`, `write_burst_emitted: bool`, `write_window_start_ts: u32` (BC-2.17.012 Architecture Anchors; use exact field names)
+- [ ] Add `write_count: u64` field to `EnipAnalyzer` struct (aggregate lifetime counter; BC-2.17.012 Postcondition 2; BC-2.17.021 Architecture Anchors `EnipAnalyzer.write_count: u64`; feeds summarize())
 - [ ] In `process_pdu`, for CIP Stop (`CipServiceClass::Stop`, service 0x07) requests via 0x00B2 and !is_non_enip:
   - Emit T0858 finding (per-occurrence, guarded by MAX_FINDINGS); category=Execution, verdict=Likely, confidence=High
 - [ ] In `process_pdu`, for SetAttribute (SetAttributeSingle 0x10, SetAttributesAll 0x02, SetAttributeList 0x04) CIP requests via 0x00B2:
-  - Check/reset 1s write window; increment `write_count_in_window`; if `count > threshold && !write_burst_emitted` → emit T0836; set guard
+  - `self.write_count += 1` (BC-2.17.012 Postcondition 2; aggregate — separate from per-flow burst counter)
+  - Check/reset 1s write window via `write_window_start_ts: u32`; increment `write_count_in_window`; if `count > threshold && !write_burst_emitted` → emit T0836; set guard
 - [ ] In `process_pdu`, for CIP Reset (where `classify_cip_service(service) == CipServiceClass::Reset`) requests via 0x00B2 and `!is_non_enip`: emit T0816 finding (per-occurrence; category=Execution, verdict=Likely, confidence=High, summary="CIP Reset service observed: adversary-triggered device restart (T0816)")
 - [ ] Add `mod command_detections { ... }` test wrapper to `tests/enip_analyzer_tests.rs` with all AC-135 tests
 - [ ] Construct minimal ENIP+CPF+CIP byte sequences for each test (reuse helpers from STORY-134 tests)
@@ -190,6 +196,7 @@ command_detections::test_t0836_window_resets_after_1s
 command_detections::test_t0836_custom_threshold
 command_detections::test_non_enip_suppresses_command_detections
 command_detections::test_write_count_accumulates
+command_detections::test_aggregate_write_count_increments
 ```
 
 ## Previous Story Intelligence
@@ -197,14 +204,14 @@ command_detections::test_write_count_accumulates
 - STORY-132 provides `classify_cip_service`, `CipServiceClass::Stop` (T0858 trigger), `CipServiceClass::Reset` (T0816 trigger), `CipServiceClass::SetAttributeSingle`/`SetAttributesAll`/`SetAttributeList` (T0836 write-count trigger)
 - STORY-133 provides T0858 and T0816 in `technique_info()` — required for MITRE metadata validation
 - STORY-134 demonstrates the per-occurrence vs. one-shot pattern and the `is_non_enip` guard — use the same guard structure here
-- T0836 uses a 1s window; T0888 Pattern B uses a 10s window. The implementer must use separate window duration constants; never share `error_window_start` with `write_window_start`.
+- T0836 uses a 1s window; T0888 Pattern B uses a 10s window. The implementer must use separate window duration constants; never share `error_window_start_ts` with `write_window_start_ts`. Both are `u32` and use `wrapping_sub` arithmetic.
 
 ## Architecture Compliance Rules
 
 1. **T0858 and T0836 are triggered by DIFFERENT services (BC-2.17.011/012):** T0858 fires when `CipServiceClass::Stop` (0x07) is observed — per-occurrence, no guard (BC-2.17.011). T0836 fires when the SetAttribute write count exceeds the burst threshold within 1s (BC-2.17.012). A CIP Stop frame triggers T0858 only. A SetAttribute frame increments the write counter and may trigger T0836. These two detection paths are mutually exclusive per frame.
 2. **T0816 uses `classify_cip_service`, not raw byte predicate (BC-2.17.013 + BC-2.17.007 invariant 1):** T0816 is triggered when `classify_cip_service(cip_header.service)` returns `CipServiceClass::Reset` — the response-bit masking is handled inside `classify_cip_service`. Do NOT use `service & 0x7F == 0x05` directly in detection logic; this bypasses the classifier and violates BC-2.17.007 invariant 1. The ENIP command for the enclosing frame is typically SendRRData (0x006F). The detection is at the CIP layer inside a CPF 0x00B2 item.
 3. **Strict `>` for T0836 (BC-2.17.012 Invariant 2):** `write_count_in_window > enip_write_burst_threshold`. Default threshold=50; the 51st write fires. Same convention as T0888 Pattern B.
-4. **1s write-burst window (BC-2.17.012 Invariant 3):** `write_window_start` tracks the start of the current 1-second window. On PDU arrival: if `now - write_window_start > 1s`, reset count to 0, reset `write_burst_emitted = false`, set `write_window_start = now`.
+4. **1s write-burst window (BC-2.17.012 postcondition 4):** `write_window_start_ts: u32` tracks the start of the current 1-second window using u32 timestamps (same type as `error_window_start_ts`; use wrapping_sub arithmetic). On PDU arrival: if `now_ts.wrapping_sub(flow.write_window_start_ts) > 1` (window expired), reset `write_count_in_window = 1` (current write seeds new window), `write_window_start_ts = now_ts`, `write_burst_emitted = false`. On first write (count becomes 1): seed `flow.write_window_start_ts = now_ts` (BC-2.17.012 postcondition 3). Field name is `write_window_start_ts` — NOT `write_window_start` or `Option<u64>`.
 5. **F-P9-001 gate applies to T0858 and T0816 (BC-2.17.011/013):** Only 0x00B2 items trigger CIP service detection. 0x00B1 items are skipped.
 6. **`is_non_enip` is checked first (same as STORY-134 pattern).**
 

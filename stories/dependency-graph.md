@@ -247,7 +247,7 @@ Dependencies in this graph respect the layer rules from
 
 | From | To | Justification |
 |------|----|---------------|
-| STORY-130 | STORY-132 | STORY-132 (CPF item walk + CIP header parse) requires the `parse_enip_header`, `EnipCommand`, and `EnipFrame` types from STORY-130; CPF parsing is only meaningful once the outer ENIP header has been parsed and validated. Compile-order dependency. |
+| STORY-130 | STORY-132 | STORY-132 (CPF item walk + CIP header parse) requires the `parse_enip_header`, `EnipHeader`, and `EnipCommandClass` types from STORY-130; CPF parsing is only meaningful once the outer ENIP header has been parsed and validated. Compile-order dependency. |
 | STORY-131 | STORY-133 | STORY-133 (MITRE ICS seeding + VP-007 atomic update) must follow STORY-131 (StreamDispatcher integration + CLI flags) because the VP-007 catalog-drift guard exercises the full analyzer surface including the dispatcher arm. The SEEDED/EMITTED counts in `src/mitre.rs` are updated in STORY-133; STORY-131 establishes the dispatcher Rule 7 that adds the ENIP arm — the rule must exist before STORY-133 validates the catalog. |
 | STORY-132 | STORY-134 | STORY-134 (recon detections T0846/T0888/error-burst) requires the CPF item walk and CIP service/class/instance extraction from STORY-132; the T0888 Identity Object detection checks `class_id == 0x01` from the CIP request path, which requires STORY-132's path parser. |
 | STORY-132 | STORY-135 | STORY-135 (command detections T0858/T0816/T0836) requires the CIP service dispatch and request path extraction from STORY-132; mode-change (T0858) and reset (T0816) detections key off `service_code` values decoded by STORY-132's CIP header parser. |
