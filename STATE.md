@@ -1,10 +1,10 @@
 ---
 pipeline: FEATURE-MODE
 phase: F4
-phase_status: "F4 Wave 59 FULLY CONVERGED & CLOSED (develop d562ccc). NEXT = Wave 60 (STORY-134/135/136/137 detection stories)."
+phase_status: "F4 Wave 60 — STORY-134 mid-TDD: GREEN GATE @f54b9dc (18/18 recon green). NEXT = STORY-134 per-story adversarial convergence (Step 4.5, BC-5.39.001, 3 clean passes) → demo → PR → merge. Then STORY-135/136/137 → Wave-60 gate."
 product: wirerust
 mode: feature-mode
-timestamp: 2026-06-25T21:30:00Z
+timestamp: 2026-06-25T22:15:00Z
 
 # Release chain (latest)
 released_version: v0.10.0
@@ -29,7 +29,7 @@ adversary_gate: SATISFIED
 # Story tracking
 stories_delivered: 82
 current_cycle: feature-enip-v0.11.0 (D-228, 2026-06-24)
-current_wave: "Wave 60 STORY-134 IN-PROGRESS (delivery started). STORY-134 input-hash refreshed at Wave-60 delivery: c82d3ff→604b9de (ADR-010 changes). STORY-135..138 remain STALE (pending per-story refresh at delivery). Wave 59 FULLY CONVERGED & CLOSED (D-242): STORY-132+133 MERGED (PR #319/#320, develop d562ccc). NEXT = STORY-134 TDD delivery (Wave 60, recon detections T0846/T0888)."
+current_wave: "Wave 60 STORY-134 mid-TDD — GREEN GATE DONE @f54b9dc (18/18 recon tests pass; full repo green; clippy/fmt/green-doc-tense clean). Implements T0846 (ListIdentity one-shot), T0888 Pattern A (Identity-read per-occurrence) + Pattern B (error-burst >threshold one-shot), CIP error-window accumulation (10s), is_non_enip suppression gate. SCOPE: process_pdu + EnipFlowState (D-243). command_counts NOT touched; on_data NOT wired (STORY-137 owns frame-walk per BC-2.17.016). Red Gate @5845ff6 (18 recon tests); Green Gate @f54b9dc. NEXT = STORY-134 per-story adversarial convergence Pass 1. STORY-135..138 remain STALE (pending per-story refresh at delivery). Wave 59 FULLY CONVERGED & CLOSED (D-242): STORY-132+133 MERGED (PR #319/#320, develop d562ccc). STORY-134 input-hash: 604b9de (refreshed Wave-60 delivery start, ADR-010 changes)."
 
 # DTU
 dtu_required: false
@@ -52,7 +52,7 @@ convergence_trajectory: "Detail: cycles/v0.1.0-greenfield-spec/convergence-traje
 
 ## Status
 
-**PIPELINE FEATURE-MODE. Cycle `feature-enip-v0.11.0` OPEN. F1/F2/F3 DONE + HUMAN-APPROVED. F4 Wave 59 FULLY CONVERGED & CLOSED (D-242): STORY-132 MERGED (PR #319, develop 16d3ce7, D-239) + STORY-133 MERGED (PR #320, develop 7f040de, D-241). Regression PASS on develop d562ccc (green-doc-tense CI gate + PR #321/322 remediation complete). Per-story 3/3 each; wave-level 3/3 (passes D/E/F). BC-2.17.012 v1.1 (TA-id fix F-W59-M01). stories_delivered=82. NEXT = Wave 60 (STORY-134/135/136/137) pending human checkpoint (D-231 cadence).**
+**PIPELINE FEATURE-MODE. Cycle `feature-enip-v0.11.0` OPEN. F1/F2/F3 DONE + HUMAN-APPROVED. F4 Wave 59 FULLY CONVERGED & CLOSED (D-242): STORY-132+133 MERGED; develop d562ccc; stories_delivered=82. Wave 60 IN-PROGRESS: STORY-134 GREEN GATE REACHED @f54b9dc (18/18 recon tests; BC-2.17.008/010/014; D-243). NEXT = STORY-134 per-story adversarial convergence Pass 1 (DO NOT re-author stubs/tests/impl — Red @5845ff6, Green @f54b9dc DONE).**
 
 Latest release: v0.10.0 (main `0cbe922`, tag `v0.10.0`). develop=`d562ccc`. stories_delivered=82. Target: v0.11.0 (SS-17 EtherNet/IP + CIP TCP/44818). GitHub issue #316.
 
@@ -65,6 +65,7 @@ Spec versions: BC-INDEX v1.83 (331 on disk / 330 active; SS-17=26 BCs). ARCH-IND
 - Do NOT convert the 4 `arp.rs` `.expect()` sites to `if-let` — deliberately retained (D-223).
 - Do NOT re-run feature-mitre-json-names cycle — CLOSED (D-217). v0.9.4 released.
 - Do NOT re-run F1/F2/F3 for feature-enip-v0.11.0 — all CONVERGED + HUMAN-APPROVED (D-228/D-229/D-230/D-231).
+- Do NOT re-author STORY-134 stubs/tests/impl — Red Gate @5845ff6 (stubs @25e751e; 18 failing recon tests), Green Gate @f54b9dc (18/18 recon tests pass; full repo green) DONE. NEXT = adversarial convergence Pass 1 only.
 - Do NOT re-deliver STORY-130 — MERGED at develop `235ae60` via PR #317 (D-234). 21/21 tests green, clippy/fmt clean, VP-032 Sub-A/B/C Kani harnesses preserved. Demo evidence at docs/demo-evidence/STORY-130/. ADR-0010 shipped.
 - Do NOT re-run STORY-131 Pass-1 adversarial remediation — COMPLETE (D-235). M1 EC-007 overload fixed in STORY-131.md. M2 BC-INDEX title fixed (v1.80→v1.81). Boundary doc at cycles/feature-enip-v0.11.0/story-131-132-ondata-boundary.md. Code green @5e61682.
 - Do NOT re-run STORY-131 Pass-3 adversarial remediation — COMPLETE (D-236). M-1 warn!/log→eprintln! root fix at ADR-010 Decision 9 + STORY-131/138 sweep. L-1 BC-2.17.023/026 Precondition "N≥1"→"0..=u32::MAX" (v1.0→v1.1). BC-INDEX v1.81→v1.82. STORY-131 input-hash 6d892c4→a119157. Code green @0018a54.
@@ -73,13 +74,17 @@ Spec versions: BC-INDEX v1.83 (331 on disk / 330 active; SS-17=26 BCs). ARCH-IND
 - Do NOT re-run STORY-133 Pass-1 remediation — COMPLETE (D-240). T1693.001 prose corrected in STORY-133.md (name→"Modify Firmware: System Firmware", tactic→IcsInhibitResponseFunction/TA0107). Code fixed @ffca717 (impl + test pin + mitre_tests pin-table + stale-count fn renames + RED-tense scrub). Codified as MITRE-CATALOG-ADR-AUTHORITATIVE-001 in lessons.md.
 - Do NOT re-deliver STORY-133 — MERGED at develop `7f040de` via PR #320 (D-241). Per-story adversarial convergence 3/3 (Pass 2/3/4 clean; Pass 1: 2 CRIT + 2 HIGH fixed). 10 mitre_seeding tests green. VP-007 6-step atomic burst complete (T0858/T0816/T1693.001/IcsExecution seeding; EMITTED 17→20, SEEDED 25→28).
 
-### EXACT RESUME POINT — F4 Wave 60 (next)
+### EXACT RESUME POINT — F4 Wave 60 STORY-134 per-story adversarial convergence
 
-Wave 59 FULLY CONVERGED & CLOSED (D-242): STORY-132 MERGED (D-239, PR #319, 16d3ce7) + STORY-133 MERGED (D-241, PR #320, 7f040de). Wave-level adversarial convergence 3/3 (passes D/E/F on develop d562ccc). Regression PASS. stories_delivered=82. BC-2.17.012 v1.1 (TA-id F-W59-M01 fixed pre-Wave-60).
+STORY-134 worktree HEAD: `f54b9dc` (branch `worktree-issue-316-story-134-enip-recon`, base develop `d562ccc`). Green Gate DONE (18/18 recon tests; BC-2.17.008/010/014; full repo green; clippy/fmt/green-doc-tense clean). Red Gate @5845ff6 (stubs @25e751e; 18 failing recon tests).
+
+**NEXT STEP = dispatch `vsdd-factory:adversary` for STORY-134 per-story convergence Pass 1.** DO NOT re-run stub-architect/test-writer/implementer — Red Gate @5845ff6 and Green Gate @f54b9dc are DONE.
+
+Continue per per-story-delivery.md (convergence → demo-recorder → push → pr-manager 9-step → cleanup). **Halt before merge for human authorization (D-231 cadence).**
+
+Scope confirmed (D-243): STORY-134 owns `process_pdu` + `EnipFlowState`; STORY-137 owns `on_data` frame-walk wiring + `#![allow(dead_code)]` removal (WAVE59-DEADCODE-001/E2E-001 correctly re-targeted to STORY-137).
 
 WAVE59-E2E-001 + WAVE59-DEADCODE-001 RE-TARGETED to STORY-137 (wave 60, BC-2.17.016 frame-walk wiring — STORY-132 adds pure parse fns only, not yet called from on_data; both obligations cannot be fulfilled before that wiring lands).
-
-**On resume — REPORT TO HUMAN for Wave-60 dispatch approval.** D-231 cadence: wave-by-wave human checkpoint required before each wave dispatch.
 
 ### Locked design facts (do not re-derive on resume)
 
@@ -151,7 +156,7 @@ All GitHub-issue creation DF-VALIDATION-001-gated.
 | Feature mitre-json-names (issue #64) + v0.9.4 | RELEASED + CLOSED 2026-06-23 (D-217) | 5 BCs bumped. BC-INDEX v1.71 (303). PRs #306-309. tag v0.9.4. |
 | Fix cycle fix-pc-013-014-015 + v0.10.0 | **CONVERGED + RELEASED + CLOSED 2026-06-24 (D-226)** | BC-INDEX v1.73 (305). PRs #310-315. tag v0.10.0 0cbe922. |
 | Feature EtherNet/IP + CIP (issue #316) — F1/F2/F3 | **CONVERGED + HUMAN-APPROVED (D-228/D-230/D-231)** | 26 BCs (BC-2.17.001..026). 9 stories STORY-130..138 (E-20, 66 pts, waves 58-61). 13 holdouts HS-110..122. ADR-010, VP-032, SS-17. Detail: cycles/feature-enip-v0.11.0/ |
-| Feature EtherNet/IP + CIP — F4 | **IN-PROGRESS — Wave 59 FULLY CONVERGED & CLOSED (D-242): STORY-132+133 MERGED; develop d562ccc; wave-level 3/3 (passes D/E/F); stories_delivered=82. BC-2.17.012 v1.1 (TA-id fix F-W59-M01). NEXT = Wave-60 pending human checkpoint (D-231 cadence).** | STORY-130: PR #317 @235ae60; 3/3 passes. STORY-131: PR #318 @edce3bd; 3/3 passes. STORY-132: PR #319 @16d3ce7; 3/3 passes; 19 cpf_cip tests; VP-032 Sub-D Kani; M-001 RESOLVED. STORY-133: PR #320 @7f040de; 3/3 passes (Pass-1 2CRIT+2HIGH fixed); 10 mitre_seeding tests; VP-007 6-step complete (EMITTED 17→20, SEEDED 25→28). Wave-level: passes D/E/F clean @d562ccc (remediation: PR #321 T0846 guard fix + PR #322 count-snapshot+tense fix). WAVE59-E2E-001+WAVE59-DEADCODE-001 re-targeted to STORY-137. Trajectory: `1→2→2→0→0→0`. Convergence detail: cycles/feature-enip-v0.11.0/convergence-trajectory.md. |
+| Feature EtherNet/IP + CIP — F4 | **IN-PROGRESS — Wave 59 CLOSED (D-242); Wave 60 IN-PROGRESS: STORY-134 GREEN GATE @f54b9dc (18/18 recon tests; D-243). NEXT = STORY-134 per-story adversarial convergence Pass 1.** | STORY-130: PR #317 @235ae60; 3/3 passes. STORY-131: PR #318 @edce3bd; 3/3 passes. STORY-132: PR #319 @16d3ce7; 3/3 passes; 19 cpf_cip tests; VP-032 Sub-D Kani. STORY-133: PR #320 @7f040de; 3/3 passes (Pass-1 2CRIT+2HIGH fixed); 10 mitre_seeding tests; VP-007 complete (EMITTED 20, SEEDED 28). STORY-134: worktree f54b9dc; Red @5845ff6; Green @f54b9dc; 18/18 recon tests (T0846/T0888 Pattern A+B; BC-2.17.008/010/014); pre-convergence. Wave-59 trajectory: `1→2→2→0→0→0`. Convergence detail: cycles/feature-enip-v0.11.0/convergence-trajectory.md. |
 
 ## Decisions Log
 
@@ -176,6 +181,7 @@ D-228..D-231: `cycles/feature-enip-v0.11.0/decisions-archive.md`
 | D-240 | STORY-133 adversarial Pass-1 REMEDIATED — Pass 2+ pending. Pass-1: 2 CRITICAL + 2 HIGH. Root cause: STORY-133 prose carried wrong MITRE catalog mapping for T1693.001 — name was "Exploit Public-Facing Application: EtherNet/IP" (Enterprise technique, wrong) vs ADR-010 Decision 7 authoritative "Modify Firmware: System Firmware"; tactic was IcsInitialAccess (wrong) vs IcsInhibitResponseFunction/TA0107 (correct). Implementation followed the wrong prose; test pinned the wrong name; no tactic-gate existed. ALL FIXED at code commit `ffca717` (impl + test pin + mitre_tests.rs authoritative-TA-id pin-table extended with T1693.001→TA0107 + stale-count fn renames + RED-tense scrub). Story prose corrected in this factory-artifacts burst: 4 T1693.001 references at lines ~68, ~123, ~147–148, ~224. Sibling sweep confirmed no other stories/BCs carry the defect (STORY-INDEX/dependency-graph/BC-2.17.007 cite T1693.001 by ID only). STORY-133 input-hash UNAFFECTED (story body is not its own input). VP-007 invariants intact: SEEDED 28, EMITTED 20, T1693.001 excluded from EMITTED, revoked T0855/T0856/T0857 absent. Codified as [codified][process-gap] MITRE-CATALOG-ADR-AUTHORITATIVE-001 in cycles/feature-enip-v0.11.0/lessons.md. Justified deferral: name-correctness pin evaluation deferred to cycle close (tactic-id pin now in place; name-pin cost/benefit evaluated at cycle close per S-7.02). | 2026-06-25 |
 | D-241 | STORY-133 per-story delivery COMPLETE. Adversarial convergence ACHIEVED: 3/3 (Pass 2/3/4 clean, 0 HIGH/CRITICAL, BC-5.39.001 MET). Pass 1: 2 CRITICAL + 2 HIGH (T1693.001 wrong name/tactic — all fixed, D-240). VP-007 6-step atomic burst SATISFIED: T0858/T0816/T1693.001 seeded in technique_info(); SEEDED 25→28; SEEDED_TECHNIQUE_ID_COUNT 25→28; EMITTED_IDS 17→20 (T0858/T0816/T0846); IcsExecution variant added (Display "Execution (ICS)", tactic_id "TA0104"); `cargo test mitre` all 10 mitre_seeding tests green. Wave-59 regression PASS (1984 tests, clippy/fmt/release clean on develop 7f040de). Wave-59 consistency audit: 0 HIGH/CRITICAL (FINDING-3 RESOLVED/false-positive: docs/adr/0010 confirmed tracked on develop, blob 09134be; FINDING-4 deferred: SS-17-BC-INPUT-HASH-BACKFILL, input-hash TBD on BC files authored pre-convention, not a regression). Merged via PR #320, develop HEAD now 7f040de (merge-commit strategy). stories_delivered: 81→82. NEXT = Wave 60 (STORY-134/135/136/137) pending wave-level adversarial convergence + human checkpoint (D-231 cadence). | 2026-06-25 |
 | D-242 | Wave 59 FULLY CONVERGED & CLOSED. STORY-132+133 merged (PR #319/#320), regression PASS on develop d562ccc (full suite green, green-doc-tense CI gate now live on develop). Per-story adversarial convergence 3/3 each (STORY-132: passes 2/3/4 clean; STORY-133: passes 2/3/4 clean). Wave-level adversarial convergence 3/3 (confirmation passes D/E/F all 0 HIGH/CRITICAL on develop d562ccc). Remediation history: C-1 (T0846 stale `write_burst_emitted` guard cross-story regression — fixed PR #321 + green-doc-tense CI gate); F-WAVE59-C-001/M-2 (stale cross-story count-snapshot prose + RED-tense test comments — fixed PR #322); F-W59-M01 (BC-2.17.012 TA-id wrong TA0105→TA0106 — fixed in this factory-artifacts burst: BC-2.17.012 v1.0→v1.1, BC-INDEX v1.82→v1.83). Full SS-17 detection-BC MITRE-tuple audit: BC-2.17.010/011/013/014/018 all correct; only 012 was wrong. Pre-empts STORY-133-class wrong-spec defect in Wave-60. Follow-ups logged: WAVE-60-TEST-DOC-SWEEP (M-1 stale test-name ref + S1 RED-tense + O-W59-1 vestigial comment) and GREEN-DOC-TENSE-GATE-COVERAGE-001 (extend bin/check-green-doc-tense to scan assert-message literals + test-name backtick refs). | 2026-06-25 |
+| D-243 | STORY-134 Green Gate reached. process_pdu + EnipFlowState implemented at worktree `worktree-issue-316-story-134-enip-recon`; HEAD f54b9dc. 18/18 recon tests pass; full repo green; clippy/fmt/green-doc-tense clean. Implements: T0846 ListIdentity one-shot, T0888 Pattern A (Identity-read per-occurrence) + Pattern B (error-burst >threshold one-shot), CIP error-window accumulation (10s), is_non_enip suppression gate. Scope confirmed: STORY-134 owns process_pdu + EnipFlowState; command_counts NOT touched; on_data NOT wired (STORY-137 owns frame-walk per BC-2.17.016 — stub-architect confirmed). BCs covered: BC-2.17.008/010/014. Red Gate @5845ff6 (stubs @25e751e; 18 failing recon tests). NEXT = per-story adversarial convergence Pass 1 (3 consecutive clean passes per BC-5.39.001). Halt before merge per D-231 cadence. | 2026-06-25 |
 
 ## Governance Policy
 
