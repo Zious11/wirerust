@@ -289,6 +289,11 @@ pub struct EnipFlowState {
     /// Timestamp of start of the 10-second error-rate window.
     error_window_start_ts: u32,
 
+    /// Marks whether the CIP error-rate 10s window is active; replaces the
+    /// error_window_start_ts==0 sentinel (which collides with a legitimate
+    /// first-error at timestamp 0) per STORY-134/F-134-001.
+    error_window_active: bool,
+
     /// Guard: CIP error-rate T0888 finding already emitted for this window.
     error_rate_emitted: bool,
 

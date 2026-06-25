@@ -1,10 +1,10 @@
 ---
 document_type: bc-index
 level: L3
-version: "1.83"
+version: "1.84"
 status: draft
 producer: product-owner
-timestamp: 2026-06-25T21:00:00Z
+timestamp: 2026-06-25T22:45:00Z
 phase: 1a
 traces_to: .factory/specs/prd.md
 ---
@@ -15,6 +15,14 @@ traces_to: .factory/specs/prd.md
 > links to the individual BC file. BCs are sharded into per-subsystem directories (ss-NN/).
 >
 > All BCs are marked [WRITTEN]. Body files have been verified on disk for all 331 entries (330 prior + 1 new BC-2.17.026 for F2 addendum error-burst CLI flag; BC-2.01.004 retired).
+>
+> **v1.84 2026-06-25 (STORY-134 Pass-3/4 spec fixes — BC-2.17.010 v1.1 F8-001 + BC-2.17.008 v1.2 sentinel + ADR-010 Decision 4 roster [D-244]):**
+> STORY-134 per-story adversarial convergence Pass-3 (2 HIGH spec contradictions F-134-P3-001/002) and Pass-4 (1 MEDIUM M-1) resolved via SPEC corrections — code at worktree ac04edd was already correct.
+> BC-2.17.010 v1.0→v1.1 (F8-001 amendment): PC-1 command_counts increment removed from process_pdu — it must NOT increment command_counts for ListIdentity or any other command; reattributed exclusively to BC-2.17.016 frame-walk (on_data PC-0) as the single canonical increment site. Architecture Anchor for process_pdu updated to remove pseudo-code command_counts increment. PC-3 corrected. `modified:` entry added. Resolves F-134-P3-001/002 (F8-001 was the last unamended SS-17 BC carrying the stale process_pdu increment pattern; F8-001 now fully propagated across all SS-17 BCs).
+> BC-2.17.008 v1.1→v1.2 (M-1 sentinel fix): PC-2 window-seeding predicate corrected — removed overloaded `error_window_start_ts==0` sentinel (which falsely re-seeds the window when timestamp 0 is a valid pcap-relative first-frame value); replaced with explicit `flow.error_window_active: bool` flag. PC-4 guard updated. EC-008 added (first-error at ts=0 is a valid seed; the former sentinel would incorrectly re-seed on the next error). Architecture Anchors updated to document `error_window_active: bool` on EnipFlowState.
+> ADR-010 Decision 4 EnipFlowState roster: `error_window_active: bool` field added with explanatory doc-comment (replaces the former ==0 sentinel per STORY-134/F-134-001).
+> STORY-134.md: AC-134-001 + AC-134-002 + Architecture Mapping + Tasks aligned to corrected BCs (command_counts F8-001; error_window_active field). STORY-134 input-hash refreshed 604b9de→16d03a6 (BC-2.17.008/010 and ADR-010 are all declared inputs of STORY-134).
+> No BC count change (331 on disk; 330 active). STORY-136/137 also input BC-2.17.010/016 (already STALE, pending F4 delivery — note only, not refreshed here).
 >
 > **v1.83 2026-06-25 (F-W59-M01/D-242: BC-2.17.012 v1.0→v1.1 — MITRE tactic TA0105→TA0106 corrected):**
 > Pre-Wave-60 hardening: BC-2.17.012 MITRE tactic corrected — T0836 "Modify Parameter" belongs to ICS Impair Process Control / TA0106 (IcsImpairProcessControl), not TA0105 (IcsImpact). The prior index annotation and prior v1.0 body both cited TA0105. Full SS-17 detection-BC MITRE-tuple audit (BC-2.17.010/011/013/014/018): all correct; only BC-2.17.012 carried the wrong TA-id. No BC count change (331 on disk; 330 active). No story input-hash change (BC-2.17.012 is an input to STORY-135 (wave 60); STORY-135 is STALE pending delivery — TA-id fix pre-empts a STORY-133-class wrong-spec defect in Wave-60 stories). Codified as F-W59-M01 in convergence-trajectory.md. D-242.
@@ -615,9 +623,9 @@ traces_to: .factory/specs/prd.md
 | BC-2.17.005 | CPF Item-Layer Walk — Bounded Little-Endian Item Iteration | P0 | [WRITTEN] | (none — enables T0858/T0816/T0836/T0888) | feature-enip-v0.11.0 | <!-- CPF item_count bounded walk; DoS-safe iteration -->
 | BC-2.17.006 | parse_cip_header Extracts Service Code and Request Path from Item Data | P0 | [WRITTEN] | (none — enables T0858/T0816/T0836/T0888/T0846) | feature-enip-v0.11.0 | <!-- bounds-checked CIP header parse; foundational for all CIP detections -->
 | BC-2.17.007 | classify_cip_service Total Classification with Response-Bit Mask — 13 Named Request Services + Response + Unknown = 15 Variants | P0 | [WRITTEN] | (none — classification only) | feature-enip-v0.11.0 | <!-- VP-032 Sub-D Kani target; totality over all 256 u8 values; 0x80 response-bit mask; 0x0A=MultipleServicePacket (not ApplyAttributes); F2 Pass-2 service table fix -->
-| BC-2.17.008 | CIP Error Response Detection — general_status Extraction from Unconnected (0x00B2) Response Frames | P1 | [WRITTEN] | (none direct — T0888 via BC-2.17.014) | feature-enip-v0.11.0 | <!-- v1.1: error_count aggregate increment formalized as Postcondition 2b (sole increment site for lifetime error_count); Purity Classification corrected; F-P6-001 dead-counter sweep -->
+| BC-2.17.008 | CIP Error Response Detection — general_status Extraction from Unconnected (0x00B2) Response Frames | P1 | [WRITTEN] | (none direct — T0888 via BC-2.17.014) | feature-enip-v0.11.0 | <!-- v1.2: STORY-134 M-1 sentinel fix — PC-2 error_window_start_ts==0 sentinel replaced with error_window_active: bool flag; EC-008 added (ts=0 valid seed); Architecture Anchors updated; v1.1: error_count aggregate increment formalized as Postcondition 2b; Purity Classification corrected; F-P6-001 dead-counter sweep -->
 | BC-2.17.009 | parse_cip_request_path Class and Instance Segment Extraction | P1 | [WRITTEN] | (none direct — T0888 via BC-2.17.014) | feature-enip-v0.11.0 | <!-- class/instance segment extraction; Identity Object class=0x01 trigger for T0888 -->
-| BC-2.17.010 | ListIdentity Command Observed Emits T0846 Network Enumeration Finding | P0 | [WRITTEN] | T0846 (IcsDiscovery TA0102) | feature-enip-v0.11.0 | <!-- per-occurrence finding; T0846 Remote System Discovery; TRITON/TRISIS recon pattern -->
+| BC-2.17.010 | ListIdentity Command Observed Emits T0846 Network Enumeration Finding | P0 | [WRITTEN] | T0846 (IcsDiscovery TA0102) | feature-enip-v0.11.0 | <!-- v1.1: F8-001 amendment — PC-1 command_counts increment removed from process_pdu; reattributed to BC-2.17.016 frame-walk (on_data PC-0) as single canonical increment site; PC-3 corrected; Architecture Anchor updated; modified: entry added. F8-001 fully propagated across all SS-17 BCs. T0846 Remote System Discovery; TRITON/TRISIS recon pattern -->
 | BC-2.17.011 | CIP Stop Service Observed Emits T0858 Change Operating Mode Finding | P0 | [WRITTEN] | T0858 (IcsExecution TA0104) | feature-enip-v0.11.0 | <!-- per-occurrence Likely/High; new MitreTactic::IcsExecution required; T0858 new catalog entry -->
 | BC-2.17.012 | CIP Write-Class Service Burst Exceeding Threshold Emits T0836 Modify Parameter Finding | P1 | [WRITTEN] | T0836 (IcsImpairProcessControl TA0106) | feature-enip-v0.11.0 | <!-- v1.1: F-W59-M01/D-242 — TA0105→TA0106 corrected; one-shot per window; 50/1s default [OA-001 RESOLVED=50 MEDIUM-conf]; T0836 already seeded -->
 | BC-2.17.013 | CIP Reset Service Observed Emits T0816 Device Restart/Shutdown Finding | P0 | [WRITTEN] | T0816 (IcsInhibitResponseFunction TA0107) | feature-enip-v0.11.0 | <!-- per-occurrence Likely/High; T0816 new catalog entry; distinct from T0858 Stop -->

@@ -25,7 +25,7 @@ inputs:
   - .factory/specs/architecture/decisions/ADR-010-ethernet-ip-cip-stream-dispatch.md
   - .factory/phase-f2-spec-evolution/enip-architecture-delta.md
   - .factory/research/enip-mitre-ics-tagging.md
-input-hash: "604b9de"
+input-hash: "16d03a6"
 ---
 
 # STORY-134: ENIP Recon Detections: T0846 ListIdentity, T0888 Identity Read / Error Burst, and CIP Error Accumulation
@@ -52,7 +52,7 @@ Discovery Pattern A), and CIP error-response bursts (T0888 Pattern B),
 **Traces to:** BC-2.17.010 postconditions 1–3; BC-2.17.010 invariant 1
 - Given an ENIP frame with `classify_enip_command(header.command)` returning `EnipCommandClass::ListIdentity` (0x0063)
 - When `EnipAnalyzer::process_pdu(flow_key, payload, timestamp, src_ip)` processes the frame
-- Then `flow.command_counts.entry(0x0063).or_insert(0) += 1` on EVERY ListIdentity frame (BC-2.17.010 postcondition 1)
+- Then **`command_counts[0x0063]` is incremented exclusively by the BC-2.17.016 frame-walk (`on_data`, STORY-137) — `process_pdu` does NOT increment `command_counts` for ListIdentity or any other command (F8-001, BC-2.17.010 postcondition 1)**
 - AND if `flow.list_identity_emitted == false` AND `all_findings.len() < MAX_FINDINGS`:
   - Push exactly ONE `Finding` to `all_findings`:
     - `category: ThreatCategory::Reconnaissance`
@@ -77,10 +77,10 @@ Discovery Pattern A), and CIP error-response bursts (T0888 Pattern B),
 - Given the above preconditions hold and `classify_cip_service(service)` returns `CipServiceClass::Response` (BC-2.17.008 precondition 1)
 - When the analyzer processes the CIP response
 - Then `general_status = cip_item_data[2]` (BC-2.17.008 postcondition 1 — third byte of CIP response: byte 0 = service|0x80, byte 1 = reserved 0x00, byte 2 = general_status, byte 3 = additional_status_size)
-- If `general_status != 0x00` (error response): `flow.error_counts_in_window.entry(general_status).or_insert(0) += 1`; if `flow.error_window_start_ts == 0` (first error) seed `flow.error_window_start_ts = now_ts` (BC-2.17.008 postcondition 2); ALSO `self.error_count += 1` on `EnipAnalyzer` (aggregate lifetime counter — BC-2.17.008 Postcondition 2b / Invariant 2; consumed by `summarize()` per BC-2.17.021 postcondition 1 `error_count` field)
+- If `general_status != 0x00` (error response): `flow.error_counts_in_window.entry(general_status).or_insert(0) += 1`; if `flow.error_window_active == false` (window not yet seeded — first qualifying error on this flow) seed `flow.error_window_start_ts = now_ts` and set `flow.error_window_active = true` (BC-2.17.008 postcondition 2 — do NOT use `error_window_start_ts == 0` as the unseeded sentinel; timestamp 0 is a valid pcap-relative value and must not be overloaded); ALSO `self.error_count += 1` on `EnipAnalyzer` (aggregate lifetime counter — BC-2.17.008 Postcondition 2b / Invariant 2; consumed by `summarize()` per BC-2.17.021 postcondition 1 `error_count` field)
 - If `general_status == 0x00` (success): no error counter update, no aggregate increment (BC-2.17.008 postcondition 3)
-- Window management: if `now_ts.wrapping_sub(flow.error_window_start_ts) > 10` (window expired): `flow.error_counts_in_window.clear()`, `flow.error_window_start_ts = now_ts`, `flow.error_rate_emitted = false` (BC-2.17.008 postcondition 4)
-- **Field names (BC-2.17.008 invariants):** `error_counts_in_window: HashMap<u8, u64>`, `error_window_start_ts: u32`, `error_rate_emitted: bool`; NOT `error_window_start` or any other alias
+- Window management: if `flow.error_window_active == true` AND `now_ts.wrapping_sub(flow.error_window_start_ts) > 10` (window expired): reset `flow.error_counts_in_window.clear()`, `flow.error_window_start_ts = now_ts`, `flow.error_rate_emitted = false` (`error_window_active` remains `true` — the window rolls forward; it is only `false` before the very first qualifying error on a new flow) (BC-2.17.008 postcondition 4)
+- **Field names (BC-2.17.008 invariants):** `error_counts_in_window: HashMap<u8, u64>`, `error_window_start_ts: u32`, `error_window_active: bool`, `error_rate_emitted: bool`; NOT `error_window_start` or any other alias; `error_window_active` is the dedicated unseeded-window flag (BC-2.17.008 v1.2 Architecture Anchors)
 - **Test:** `tests/enip_analyzer_tests.rs::recon::test_error_accumulation_increments_per_status`
 - **Test:** `tests/enip_analyzer_tests.rs::recon::test_error_accumulation_ignores_success`
 - **Test:** `tests/enip_analyzer_tests.rs::recon::test_error_window_resets_after_10s`
@@ -151,6 +151,7 @@ Discovery Pattern A), and CIP error-response bursts (T0888 Pattern B),
 | `EnipFlowState.error_rate_emitted` | `src/analyzer/enip.rs` | `bool` — one-shot guard for T0888 Pattern B |
 | `EnipFlowState.is_non_enip` | `src/analyzer/enip.rs` | `bool` — suppress all ENIP detections for non-ENIP flows |
 | `EnipFlowState.error_window_start_ts` | `src/analyzer/enip.rs` | `u32` — 10s error window start timestamp (BC-2.17.008 postcondition 2; canonical field name per BC) |
+| `EnipFlowState.error_window_active` | `src/analyzer/enip.rs` | `bool` — dedicated flag: `false` on new flow, set `true` on first qualifying error; replaces the former `== 0` sentinel (BC-2.17.008 v1.2 M-1, ADR-010 Decision 4) |
 | `EnipFlowState.list_identity_emitted` | `src/analyzer/enip.rs` | `bool` — per-flow one-shot guard for T0846 (BC-2.17.010 invariant 1) |
 | `EnipAnalyzer::process_pdu` | `src/analyzer/enip.rs` | Main effectful dispatch; calls all detection logic |
 | T0846 detection | `src/analyzer/enip.rs` | `if command == ListIdentity { ... }` |
@@ -188,9 +189,9 @@ Discovery Pattern A), and CIP error-response bursts (T0888 Pattern B),
 ## Tasks
 
 - [ ] Add `error_count: u64` field to `EnipAnalyzer` struct (aggregate lifetime counter; BC-2.17.008 Postcondition 2b / Invariant 2; BC-2.17.021 Architecture Anchors `EnipAnalyzer.error_count: u64`; feeds summarize())
-- [ ] Add to `EnipFlowState` in `src/analyzer/enip.rs`: `error_counts_in_window: HashMap<u8, u64>`, `error_rate_emitted: bool`, `is_non_enip: bool`, `error_window_start_ts: u32`, `list_identity_emitted: bool` (use exact field names per BC-2.17.008/010)
+- [ ] Add to `EnipFlowState` in `src/analyzer/enip.rs`: `error_counts_in_window: HashMap<u8, u64>`, `error_window_start_ts: u32`, `error_window_active: bool`, `error_rate_emitted: bool`, `list_identity_emitted: bool`, `is_non_enip: bool`, `command_counts: HashMap<u16, u64>`, `pdu_count: u64`, `parse_errors: u64`, `malformed_in_window: u64`, `carry: Vec<u8>` (use exact field names per BC-2.17.008/010/016; `error_window_active` is the explicit unseeded-window flag — BC-2.17.008 v1.2 M-1)
 - [ ] In `EnipAnalyzer::process_pdu`: if `!flow.list_identity_emitted && !flow.is_non_enip && all_findings.len() < MAX_FINDINGS` → push T0846 finding with exact summary "EtherNet/IP ListIdentity broadcast observed: network-wide device enumeration (T0846)" and evidence "ENIP command=0x0063 (ListIdentity) src={src_ip} session={session_handle}"; set `flow.list_identity_emitted = true`. **SINGLE-INCREMENT NOTE (BC-2.17.024/025):** Do NOT add a `command_counts` increment here. The per-command `flow.command_counts.entry(header.command) += 1` increment is owned exclusively by the frame-walk (`on_data`) in STORY-137 per BC-2.17.016 PC-0, fired immediately after `parse_enip_header` returns `Some` and BEFORE `is_valid_enip_frame`; `process_pdu` owns `pdu_count` only (BC-2.17.024 Inv-5). STORY-134's ListIdentity logic relies on the count already incremented upstream in the frame-walk. Adding a second increment in this ListIdentity detection block would double-count command 0x0063; it must not touch `command_counts` itself.
-- [ ] In `process_pdu`, for CIP response frames (only `type_id == 0x00B2` and `cip_item_data.len() >= 4`): extract `general_status = cip_item_data[2]`; if `general_status != 0x00`: `self.error_count += 1` (aggregate — BC-2.17.008 Postcondition 2b / Invariant 2); check/reset 10s window via `flow.error_window_start_ts`; `flow.error_counts_in_window.entry(general_status).or_insert(0) += 1`; compute `total: u64 = flow.error_counts_in_window.values().sum()`; if `total > threshold && !flow.error_rate_emitted` → push T0888 Pattern B; set guard `flow.error_rate_emitted = true`
+- [ ] In `process_pdu`, for CIP response frames (only `type_id == 0x00B2` and `cip_item_data.len() >= 4`): extract `general_status = cip_item_data[2]`; if `general_status != 0x00`: `self.error_count += 1` (aggregate — BC-2.17.008 Postcondition 2b / Invariant 2); if `!flow.error_window_active` seed `flow.error_window_start_ts = now_ts` and set `flow.error_window_active = true`; else if window expired (`wrapping_sub > 10`) reset window and clear `error_rate_emitted`; `flow.error_counts_in_window.entry(general_status).or_insert(0) += 1`; compute `total: u64 = flow.error_counts_in_window.values().sum()`; if `total > threshold && !flow.error_rate_emitted` → push T0888 Pattern B; set guard `flow.error_rate_emitted = true`
 - [ ] In `process_pdu`, for CIP request frames: if GetAttribute service class && `CipPathSegment::Class(0x01)` in path segments && `type_id == 0x00B2` && `!flow.is_non_enip` → push T0888 Pattern A
 - [ ] Add `mod recon { ... }` test wrapper to `tests/enip_analyzer_tests.rs` with all AC-134 tests
 - [ ] Construct test ENIP+CPF+CIP byte sequences for each test vector

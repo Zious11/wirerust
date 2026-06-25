@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: product-owner
 timestamp: 2026-06-24T00:00:00Z
@@ -15,6 +15,7 @@ lifecycle_status: active
 introduced: v0.11.0-feature-enip
 modified:
   - "v1.1 F3 story-convergence: error_count aggregate increment added as formal Postcondition 2b; Purity Classification corrected (mutates, not reads); dead-counter sweep (F-P6-001)"
+  - "v1.2 STORY-134 fix M-1: PC-2 window-seeding predicate corrected — removed overloaded error_window_start_ts==0 sentinel (which falsely treats timestamp 0 as 'unseeded'); replaced with explicit error_window_active boolean flag; Architecture Anchors updated to reflect EnipFlowState.error_window_active field"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -69,12 +70,18 @@ immediately without any counter update. All postconditions below apply only when
      non-zero general_status response. This is the sole increment site for `error_count`
      (the aggregate lifetime counter reported by `summarize()` via BC-2.17.021). The windowed
      `error_counts_in_window` (above) and this lifetime counter are updated together.
-   - If `flow.error_window_start_ts == 0` (first error in window): seed
-     `flow.error_window_start_ts = now_ts`.
+   - If `flow.error_window_active == false` (first qualifying error; window not yet seeded):
+     seed `flow.error_window_start_ts = now_ts` and set `flow.error_window_active = true`.
+     Do NOT use `error_window_start_ts == 0` as the unseeded sentinel — timestamp 0 is a
+     valid pcap-relative second (a frame captured at the very start of a trace) and must
+     not be overloaded as a "never seeded" flag. The implementation uses a dedicated
+     `error_window_active: bool` field on `EnipFlowState` for this purpose.
 3. If `general_status == 0x00` (success response): no error counter update.
-4. Window management: if `now_ts.wrapping_sub(flow.error_window_start_ts) > 10` (10-second
-   window expired): reset `flow.error_counts_in_window.clear()`,
-   `flow.error_window_start_ts = now_ts`, `flow.error_rate_emitted = false`.
+4. Window management: if `flow.error_window_active == true` AND
+   `now_ts.wrapping_sub(flow.error_window_start_ts) > 10` (10-second window expired):
+   reset `flow.error_counts_in_window.clear()`, `flow.error_window_start_ts = now_ts`,
+   `flow.error_rate_emitted = false`. (`error_window_active` remains `true` — the window
+   rolls forward; it is only `false` before the very first qualifying error on a flow.)
 5. The function does not emit a Finding directly — error-rate-based T0888 findings are
    emitted by BC-2.17.014 when the error burst threshold is crossed.
 
@@ -105,6 +112,7 @@ immediately without any counter update. All postconditions below apply only when
 | EC-005 | 10-second window expires; new error response arrives | Window reset; `error_counts_in_window` cleared; `error_rate_emitted = false`; new error seeds window |
 | EC-006 | `error_rate_emitted = true` (finding already emitted in current window) | error_counts_in_window still updated; no new finding (one-shot guard owned by BC-2.17.014) |
 | EC-007 | Response from Connected Data Item (0x00B1, 2-byte sequence prefix present) | general_status extraction scoped to Unconnected Data Items (0x00B2) for v0.11.0; Connected (0x00B1) response extraction deferred to v0.12.0 (byte offset shifts by 2 due to sequence prefix) |
+| EC-008 | First error response arrives with pcap-relative timestamp `now_ts = 0` (frame at trace start) | `error_window_start_ts = 0` is a VALID seed value; `error_window_active` set to `true`. The window is now active with start=0. The former `== 0` sentinel would incorrectly re-seed this window on the next error; this is the latent bug fixed by STORY-134 (M-1). |
 
 ## Canonical Test Vectors
 
@@ -160,6 +168,9 @@ Expected: no error counter update
 
 - `src/analyzer/enip.rs` — `EnipFlowState.error_counts_in_window: HashMap<u8, u64>`
 - `src/analyzer/enip.rs` — `EnipFlowState.error_window_start_ts: u32`
+- `src/analyzer/enip.rs` — `EnipFlowState.error_window_active: bool` — dedicated flag
+  indicating whether the error window has been seeded; `false` on new flows, set to `true`
+  on the first qualifying error (STORY-134 fix M-1: replaces the former `== 0` sentinel)
 - `src/analyzer/enip.rs` — `EnipFlowState.error_rate_emitted: bool`
 - `src/analyzer/enip.rs` — `EnipAnalyzer.error_count: u64` (aggregate lifetime counter)
 - `.factory/specs/architecture/decisions/ADR-010-ethernet-ip-cip-stream-dispatch.md §Decision 4` — EnipFlowState error window fields

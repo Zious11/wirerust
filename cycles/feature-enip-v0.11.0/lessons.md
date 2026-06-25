@@ -270,3 +270,40 @@ correctness can be visually verified from the catalog at story-write time with t
 cross-check obligation; (c) the name-pin adds test maintenance cost for all future technique
 renames in the upstream MITRE catalog. Resolve this evaluation at cycle close alongside
 ENGINE-PROPAGATION-GREP-GATE-001 and GREEN-DOC-TENSE-TEST-HEADER-STORY.
+
+---
+
+## [codified] [process-gap] F8-001-PROPAGATION-COMPLETENESS (D-244, 2026-06-25)
+
+**Trigger:** STORY-134 per-story adversarial Pass-3 found 2 HIGH spec contradictions
+(F-134-P3-001/002) in BC-2.17.010 where the v1.0 spec body and Architecture Anchor still
+described `command_counts[0x0063]` being incremented inside `process_pdu`. F8-001 had already
+relocated this increment to the BC-2.17.016 frame-walk (on_data PC-0) as the single canonical
+site, but BC-2.17.010 was missed during the original F8-001 amendment burst. The defect
+surfaced 3 stories later (STORY-134, Wave 60). The implementation @ac04edd was correct all
+along — only the spec was stale.
+
+**Root cause:** The F8-001 amendment burst updated BC-2.17.016, BC-2.17.004, BC-2.17.025,
+BC-2.17.024 — but did not sweep ALL BCs that described command_counts increment behavior.
+BC-2.17.010 contained a per-command increment in its process_pdu postcondition and
+Architecture Anchor pseudo-code that was not caught by the initial amendment pass.
+
+**Resolution:** BC-2.17.010 v1.0→v1.1 (F8-001 amendment — command_counts removed from
+process_pdu, reattributed to BC-2.17.016 frame-walk). F8-001 is now fully propagated
+across all SS-17 BCs.
+
+**Mitigation (deferred-to-cycle-close evaluation per S-7.02):**
+
+When amending a cross-cutting invariant across a family of BCs — especially an invariant
+that relocates a counter increment from one site to another — the amendment MUST sweep
+EVERY BC in the family that references the old behavior in the same burst. Recommended
+procedure:
+
+1. Before declaring an amendment complete, grep ALL BCs for the old pattern (e.g.,
+   `command_counts` alongside `process_pdu`) to confirm each is updated.
+2. Include version-bump + changelog in the same amendment burst for every matched file.
+3. Treat the grep sweep as a mandatory gate step (analogous to count-propagation sweep
+   in S-7.02) — log its result in the commit message.
+
+Evaluate at cycle close whether to codify this as a named policy (complement to
+DF-SIBLING-SWEEP-001) or as a step in the BC amendment procedure documentation.

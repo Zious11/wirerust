@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.0"
+version: "1.1"
 status: draft
 producer: product-owner
 timestamp: 2026-06-24T00:00:00Z
@@ -13,7 +13,8 @@ subsystem: SS-17
 capability: CAP-17
 lifecycle_status: active
 introduced: v0.11.0-feature-enip
-modified: []
+modified:
+  - "v1.1 F8-001 amendment: PC-1 command_counts increment removed from process_pdu; reattributed to BC-2.17.016 frame-walk (on_data) as the single canonical increment site; Architecture Anchor updated to remove process_pdu pseudo-code; PC-3 reference to command_counts update corrected"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -49,7 +50,9 @@ Detection is per-occurrence (per ListIdentity frame seen on the flow).
 
 ## Postconditions
 
-1. `flow.command_counts.entry(0x0063).or_insert(0) += 1` (always, on every ListIdentity frame).
+1. `command_counts[0x0063]` is incremented exclusively in the BC-2.17.016 frame-walk
+   (`on_data`) PC-0 canonical site — NOT in `process_pdu` (F8-001). `process_pdu` must
+   NOT increment `command_counts` for ListIdentity or any other command.
 2. If `flow.list_identity_emitted == false` AND `self.all_findings.len() < MAX_FINDINGS`:
    - Push exactly ONE `Finding`:
      - `category: ThreatCategory::Reconnaissance`
@@ -61,7 +64,9 @@ Detection is per-occurrence (per ListIdentity frame seen on the flow).
      - `source_ip: Some(<source endpoint>)` — resolved from flow_key
      - `timestamp: Some(...)` — pcap-relative capture timestamp
    - `flow.list_identity_emitted = true` (one-shot guard).
-3. If `flow.list_identity_emitted == true`: `command_counts` updated; NO additional finding.
+3. If `flow.list_identity_emitted == true`: NO additional finding emitted. (`command_counts[0x0063]`
+   is still updated by the BC-2.17.016 frame-walk on each frame; that increment is outside
+   this BC's scope.)
 
 ## Invariants
 
@@ -140,7 +145,7 @@ summary: "EtherNet/IP ListIdentity broadcast observed: network-wide device enume
 
 ## Architecture Anchors
 
-- `src/analyzer/enip.rs` — `process_pdu`: `if matches!(cmd_class, EnipCommandClass::ListIdentity) { flow.command_counts[0x0063] += 1; if !flow.list_identity_emitted { /* emit T0846 */ flow.list_identity_emitted = true; } }`
+- `src/analyzer/enip.rs` — `process_pdu`: `if matches!(cmd_class, EnipCommandClass::ListIdentity) { if !flow.list_identity_emitted { /* emit T0846 */ flow.list_identity_emitted = true; } }` — NOTE: `command_counts[0x0063]` is NOT incremented here (F8-001); it is incremented in the `on_data()` frame-walk loop (BC-2.17.016 PC-0), which is the single canonical increment site for all commands.
 - `src/analyzer/enip.rs` — `EnipFlowState.command_counts: HashMap<u16, u64>`
 - `src/analyzer/enip.rs` — `EnipFlowState.list_identity_emitted: bool` (per-flow one-shot guard for T0846)
 - `src/mitre.rs` — `technique_info("T0846")` arm (existing; shared)
