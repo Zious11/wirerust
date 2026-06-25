@@ -1902,6 +1902,7 @@ mod mitre_seeding {
     // AC-133-003: technique_info("T1693.001") returns staged technique metadata
     // Traces: VP-007 Step 1 (T1693.001 arm)
     // Implemented: T1693.001 arm added to technique_info in STORY-133 (VP-007 Step 1).
+    // F-133-003 [adversarial fix]: strengthened to pin exact name+tactic per ADR-010 Decision 7.
     // -------------------------------------------------------------------------
 
     /// AC-133-003 — technique_info("T1693.001") returns Some (seeded catalog entry).
@@ -1909,28 +1910,38 @@ mod mitre_seeding {
     /// `technique_info("T1693.001")` returns Some (arm added in STORY-133, VP-007 Step 1).
     /// T1693.001 is seeded but NOT emitted in v0.11.0 (see VP-007 Step 4 / AC-133-006).
     ///
-    /// Asserts: returns Some; name contains "EtherNet/IP" or "Exploit Public-Facing";
-    /// technique_tactic_id("T1693.001") is Some (cross-check: tactic-ID table coverage).
+    /// Asserts: name == "Modify Firmware: System Firmware" (ADR-010 Decision 7, v19.1);
+    ///          tactic == MitreTactic::IcsInhibitResponseFunction (TA0107);
+    ///          technique_tactic_id("T1693.001") == Some("TA0107").
     ///
-    /// Traces: AC-133-003; VP-007 Step 1; ADR-010 Decision 7.
+    /// Traces: AC-133-003; VP-007 Step 1; ADR-010 Decision 7; F-133-003 [adversarial fix].
     #[test]
     fn test_technique_info_t1693_001() {
         let info = technique_info("T1693.001");
         assert!(
             info.is_some(),
-            "technique_info(\"T1693.001\") must return Some — staged catalog entry not yet \
-             added (VP-007 Step 1)"
+            "technique_info(\"T1693.001\") must return Some — staged catalog entry missing \
+             (VP-007 Step 1)"
         );
-        let (name, _tactic) = info.unwrap();
-        assert!(
-            name.contains("EtherNet/IP") || name.contains("Exploit Public-Facing"),
-            "T1693.001 name must reference EtherNet/IP or public-facing application context; \
-             got: {name}"
+        let (name, tactic) = info.unwrap();
+        assert_eq!(
+            name,
+            "Modify Firmware: System Firmware",
+            "T1693.001 name must be \"Modify Firmware: System Firmware\" per ADR-010 Decision 7 \
+             (v19.1 replacement for revoked T0857; NOT an EtherNet/IP-branded or Initial Access name)"
         );
-        // Cross-check: technique_tactic_id must also resolve once technique_info arm lands.
-        assert!(
-            technique_tactic_id("T1693.001").is_some(),
-            "technique_tactic_id(\"T1693.001\") must return Some once T1693.001 is seeded"
+        assert_eq!(
+            tactic,
+            MitreTactic::IcsInhibitResponseFunction,
+            "T1693.001 tactic must be MitreTactic::IcsInhibitResponseFunction (TA0107) per \
+             ADR-010 Decision 7; NOT InitialAccess or any other variant"
+        );
+        // Cross-check: technique_tactic_id must resolve to TA0107.
+        assert_eq!(
+            technique_tactic_id("T1693.001"),
+            Some("TA0107"),
+            "technique_tactic_id(\"T1693.001\") must return Some(\"TA0107\") \
+             (IcsInhibitResponseFunction → TA0107)"
         );
     }
 

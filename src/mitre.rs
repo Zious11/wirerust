@@ -243,8 +243,8 @@ pub fn technique_info(id: &str) -> Option<(&'static str, MitreTactic)> {
             MitreTactic::IcsInhibitResponseFunction,
         ),
         "T1693.001" => (
-            "Exploit Public-Facing Application: EtherNet/IP",
-            MitreTactic::InitialAccess,
+            "Modify Firmware: System Firmware",
+            MitreTactic::IcsInhibitResponseFunction,
         ),
         _ => return None,
     };
@@ -424,7 +424,7 @@ mod kani_proofs {
 /// STORY-114 (VP-007 ARP obligation) +2 ARP (T0830 ICS IcsCollection/TA0100, T1557.002 Enterprise CredentialAccess)
 ///   = 25 total (12 Enterprise + 13 ICS; normative split per VP-007 §CC-003).
 /// STORY-133 (VP-007 ENIP obligation) +3 ENIP (T0858 IcsExecution/TA0104, T0816 IcsInhibitResponseFunction/TA0107,
-///   T1693.001 staged InitialAccess/TA0001) = 28 total.
+///   T1693.001 staged IcsInhibitResponseFunction/TA0107) = 28 total.
 /// ICS v19 remap (issue #222): T0855→T1692.001, T0856→T1692.002.
 #[cfg(any(kani, test))]
 const SEEDED_TECHNIQUE_IDS: &[&str] = &[
