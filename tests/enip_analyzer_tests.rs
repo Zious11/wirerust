@@ -1799,24 +1799,22 @@ mod cpf_cip {
 // ─────────────────────────────────────────────────────────────────────────────
 // STORY-133 MITRE ICS Technique Seeding: VP-007 6-step atomic burst.
 //
-// Red Gate split (7 RED / 2 GREEN-BY-DESIGN):
+// All 10 tests pass (STORY-133 implementation complete, VP-007 Steps 1–6 landed):
 //
-//   RED (will fail until implementer lands VP-007 Steps 1–4):
+//   Implemented (VP-007 Steps 1–4):
 //     test_technique_info_t0858         — AC-133-001, VP-007 Step 1
 //     test_technique_info_t0816         — AC-133-002, VP-007 Step 1
 //     test_technique_info_t1693_001     — AC-133-003, VP-007 Step 1
 //     test_seeded_count_is_28           — AC-133-005, VP-007 Steps 2+3
 //     test_emitted_count_is_20          — AC-133-006, VP-007 Step 4
 //     test_t1693_001_not_emitted        — AC-133-006, VP-007 Step 4
-//     test_t0846_in_emitted_tactic_id   — AC-133-006 tactic_id cross-check, RED
-//                                         (technique_tactic_id("T0858") returns None
-//                                         until T0858 arm lands)
+//     test_t0846_in_emitted_tactic_id   — AC-133-006 tactic_id cross-check
+//                                         (technique_tactic_id("T0858") resolves TA0104)
 //
 //   GREEN-BY-DESIGN (VP-007 Step 5 — pure enum→str, zero branching, 1 line per arm):
-//     test_ics_execution_tactic_display — AC-133-004; stub implements Display correctly
-//     test_ics_execution_tactic_id      — AC-133-004; stub implements tactic_id correctly
-//     test_t0846_in_emitted             — AC-133-006 partially; T0846 pre-exists in
-//                                         technique_info; resolves now (GREEN-BY-DESIGN)
+//     test_ics_execution_tactic_display — AC-133-004; Display arm "Execution (ICS)" correct
+//     test_ics_execution_tactic_id      — AC-133-004; tactic_id "TA0104" correct
+//     test_t0846_in_emitted             — AC-133-006 partially; T0846 resolves IcsDiscovery
 //
 // EMITTED_IDS access note: `EMITTED_IDS` lives inside `#[cfg(kani)] mod kani_proofs`
 // and is NOT pub — integration tests cannot access it directly. The strongest available
@@ -1838,14 +1836,12 @@ mod mitre_seeding {
     // -------------------------------------------------------------------------
     // AC-133-001: technique_info("T0858") returns correct ICS technique metadata
     // Traces: VP-007 Step 1 (T0858 arm)
-    // RED: technique_info has no T0858 arm yet; returns None until implementer adds it.
+    // Implemented: T0858 arm added to technique_info in STORY-133 (VP-007 Step 1).
     // -------------------------------------------------------------------------
 
-    /// AC-133-001 — technique_info("T0858") must return Some with IcsExecution tactic.
+    /// AC-133-001 — technique_info("T0858") returns Some with IcsExecution tactic.
     ///
-    /// RED GATE: `technique_info("T0858")` currently returns `None` (no arm in the stub).
-    /// Will turn GREEN only when the implementer adds the T0858 arm to `technique_info`
-    /// (VP-007 Step 1).
+    /// `technique_info("T0858")` returns Some (T0858 arm added in STORY-133, VP-007 Step 1).
     ///
     /// Asserts: name == "Change Operating Mode"; tactic == IcsExecution.
     ///
@@ -1873,13 +1869,12 @@ mod mitre_seeding {
     // -------------------------------------------------------------------------
     // AC-133-002: technique_info("T0816") returns correct ICS technique metadata
     // Traces: VP-007 Step 1 (T0816 arm)
-    // RED: technique_info has no T0816 arm yet; returns None until implementer adds it.
+    // Implemented: T0816 arm added to technique_info in STORY-133 (VP-007 Step 1).
     // -------------------------------------------------------------------------
 
-    /// AC-133-002 — technique_info("T0816") must return Some with IcsInhibitResponseFunction.
+    /// AC-133-002 — technique_info("T0816") returns Some with IcsInhibitResponseFunction.
     ///
-    /// RED GATE: `technique_info("T0816")` currently returns `None`.
-    /// Will turn GREEN only when the implementer adds the T0816 arm (VP-007 Step 1).
+    /// `technique_info("T0816")` returns Some (T0816 arm added in STORY-133, VP-007 Step 1).
     ///
     /// Asserts: name == "Device Restart/Shutdown"; tactic == IcsInhibitResponseFunction.
     ///
@@ -1906,14 +1901,13 @@ mod mitre_seeding {
     // -------------------------------------------------------------------------
     // AC-133-003: technique_info("T1693.001") returns staged technique metadata
     // Traces: VP-007 Step 1 (T1693.001 arm)
-    // RED: technique_info has no T1693.001 arm yet; returns None until implementer adds it.
+    // Implemented: T1693.001 arm added to technique_info in STORY-133 (VP-007 Step 1).
     // -------------------------------------------------------------------------
 
-    /// AC-133-003 — technique_info("T1693.001") must return Some (seeded catalog entry).
+    /// AC-133-003 — technique_info("T1693.001") returns Some (seeded catalog entry).
     ///
-    /// RED GATE: `technique_info("T1693.001")` currently returns `None`.
+    /// `technique_info("T1693.001")` returns Some (arm added in STORY-133, VP-007 Step 1).
     /// T1693.001 is seeded but NOT emitted in v0.11.0 (see VP-007 Step 4 / AC-133-006).
-    /// Will turn GREEN only when the implementer adds the T1693.001 arm (VP-007 Step 1).
     ///
     /// Asserts: returns Some; name contains "EtherNet/IP" or "Exploit Public-Facing";
     /// technique_tactic_id("T1693.001") is Some (cross-check: tactic-ID table coverage).
@@ -1953,7 +1947,7 @@ mod mitre_seeding {
     /// AC-133-004 — MitreTactic::IcsExecution.to_string() == "Execution (ICS)".
     ///
     /// GREEN-BY-DESIGN: pure enum→str mapping, zero branching, 1 line, fully determined
-    /// by the type system. Passes against the stub (VP-007 Step 5 — WIRING-EXEMPT).
+    /// by the type system. Implemented in STORY-133 (VP-007 Step 5).
     ///
     /// Traces: AC-133-004; VP-007 Step 5.
     #[test]
@@ -1968,7 +1962,7 @@ mod mitre_seeding {
     /// AC-133-004 — MitreTactic::IcsExecution.tactic_id() == "TA0104".
     ///
     /// GREEN-BY-DESIGN: pure enum→str mapping, zero branching, 1 line, fully determined
-    /// by the type system. Passes against the stub (VP-007 Step 5 — WIRING-EXEMPT).
+    /// by the type system. Implemented in STORY-133 (VP-007 Step 5).
     ///
     /// Traces: AC-133-004; VP-007 Step 5.
     #[test]
@@ -1999,13 +1993,13 @@ mod mitre_seeding {
     //   wrong 28 IDs (wrong set, correct count). The exhaustive membership assertion closes
     //   that gap.
     //
-    // RED: the 3 new IDs (T0858, T0816, T1693.001) return None until VP-007 Step 2.
+    // Implemented: T0858, T0816, T1693.001 arms added to technique_info in STORY-133 (VP-007 Step 2).
     // -------------------------------------------------------------------------
 
-    /// AC-133-005 — ALL 28 expected post-STORY-133 seeded IDs must resolve in technique_info.
+    /// AC-133-005 — ALL 28 expected post-STORY-133 seeded IDs resolve in technique_info.
     ///
-    /// RED GATE: T0858, T0816, and T1693.001 return None in the stub (no arms yet).
-    /// Will turn GREEN only when all three arms are added (VP-007 Steps 1+2+3).
+    /// T0858, T0816, and T1693.001 arms added in STORY-133 (VP-007 Steps 1+2+3).
+    /// All 28 seeded IDs now resolve.
     ///
     /// Assertion strategy: exhaustive membership over all 28 expected IDs — stronger than
     /// a count proxy (correct set, not just correct count). SEEDED_TECHNIQUE_IDS / COUNT
@@ -2047,7 +2041,7 @@ mod mitre_seeding {
             "T0827",
             "T0830",
         ];
-        // New 3 (VP-007 Step 2 — RED until implementer adds arms):
+        // New 3 (VP-007 Step 2 — added in STORY-133):
         let new_ids: &[&str] = &["T0858", "T0816", "T1693.001"];
 
         // Regression guard: all pre-existing IDs must continue to resolve.
@@ -2059,12 +2053,12 @@ mod mitre_seeding {
             );
         }
 
-        // AC-133-005 core: the 3 new IDs must also resolve after VP-007 Steps 1–3.
+        // AC-133-005 core: the 3 new IDs resolve after VP-007 Steps 1–3 (STORY-133).
         for id in new_ids {
             assert!(
                 technique_info(id).is_some(),
                 "new seeded ID {id} must resolve in technique_info after VP-007 Step 2 \
-                 (SEEDED 25→28); not yet added by implementer"
+                 (SEEDED 25→28); added in STORY-133"
             );
         }
 
@@ -2090,20 +2084,19 @@ mod mitre_seeding {
     // The actual EMITTED ⊆ SEEDED invariant (and the count == 20) is enforced by the kani
     // proof in src/mitre.rs once T0858, T0816, T0846 are added to EMITTED_IDS.
     //
-    // RED: T0858 and T0816 return None until VP-007 Steps 1+4 land.
-    // T0846 already resolves (pre-existing) — that individual assertion passes NOW.
+    // Implemented: T0858 and T0816 arms added in STORY-133 (VP-007 Steps 1+4). T0846 pre-existing.
     // -------------------------------------------------------------------------
 
-    /// AC-133-006 — ALL 20 expected post-STORY-133 emitted IDs must resolve in technique_info.
+    /// AC-133-006 — ALL 20 expected post-STORY-133 emitted IDs resolve in technique_info.
     ///
-    /// RED GATE: T0858 and T0816 resolve None in the stub. Will turn GREEN only when the
+    /// T0858 and T0816 arms added in STORY-133 (VP-007 Steps 1+4). All 20 emitted IDs resolve.
     /// implementer adds T0858 and T0816 arms to technique_info (VP-007 Steps 1+4).
     ///
     /// Assertion strategy: enumerate all 20 expected EMITTED IDs and assert each resolves
     /// in technique_info. This is the strongest assertion available from integration tests
     /// (EMITTED_IDS is kani-gated, not pub). The vp007_catalog_drift_guard unit test and
     /// the kani `verify_all_emitted_ids_resolve` proof enforce the EMITTED ⊆ SEEDED invariant
-    /// and EMITTED count once the implementer adds the EMITTED_IDS entries.
+    /// and EMITTED count now that the EMITTED_IDS entries have been added (STORY-133).
     ///
     /// Traces: AC-133-006; VP-007 Step 4; ADR-010 Decision 7.
     #[test]
@@ -2133,10 +2126,10 @@ mod mitre_seeding {
             "T0830",
             "T1557.002",
         ];
-        // New 3 EMITTED additions (VP-007 Step 4); T0858/T0816 are RED:
+        // New 3 EMITTED additions (VP-007 Step 4 — added in STORY-133):
         let new_emitted: &[&str] = &[
-            "T0858", // RED: no technique_info arm yet
-            "T0816", // RED: no technique_info arm yet
+            "T0858", // technique_info arm added in STORY-133
+            "T0816", // technique_info arm added in STORY-133
             "T0846", // T0846 pre-exists in technique_info (seeded-only → now also emitted)
         ];
 
@@ -2148,13 +2141,12 @@ mod mitre_seeding {
             );
         }
 
-        // AC-133-006 core: new emitted IDs must also resolve after VP-007 Steps 1+4.
-        // T0858 and T0816 will fail here until the implementer adds their arms.
+        // AC-133-006 core: new emitted IDs resolve after VP-007 Steps 1+4 (STORY-133).
         for id in new_emitted {
             assert!(
                 technique_info(id).is_some(),
                 "new emitted ID {id} must resolve in technique_info before appearing in \
-                 EMITTED_IDS (VP-007 Step 4); T0858/T0816 not yet added by implementer"
+                 EMITTED_IDS (VP-007 Step 4); T0858/T0816 added in STORY-133"
             );
         }
 
@@ -2166,14 +2158,13 @@ mod mitre_seeding {
         );
     }
 
-    /// AC-133-006 — T1693.001 must NOT be in EMITTED_IDS (staged-only for v0.11.0).
+    /// AC-133-006 — T1693.001 is NOT in EMITTED_IDS (staged-only for v0.11.0).
     ///
-    /// RED GATE: `technique_info("T1693.001")` returns None in the stub; the first
-    /// assertion (seeded check) fails. When the implementer adds T1693.001 to
-    /// technique_info (VP-007 Step 1) the seeded assertion turns GREEN.
+    /// `technique_info("T1693.001")` returns Some (T1693.001 arm added in STORY-133,
+    /// VP-007 Step 1). The seeded assertion passes.
     ///
-    /// Non-emission assertion: we assert T1693.001 is NOT in the expected emitted set.
-    /// The expected 20 emitted IDs are enumerated inline — T1693.001 must be absent.
+    /// Non-emission assertion: T1693.001 must NOT be in the expected emitted set.
+    /// The expected 20 emitted IDs are enumerated inline — T1693.001 is absent.
     /// This is the strongest non-emission check available from integration tests (EMITTED_IDS
     /// is kani-gated; direct access is unavailable). The kani `vp007_catalog_drift_guard`
     /// and `verify_all_emitted_ids_resolve` proofs enforce the invariant at the kani layer.
@@ -2224,12 +2215,10 @@ mod mitre_seeding {
         );
     }
 
-    /// AC-133-006 — T0846 must resolve in technique_info with tactic IcsDiscovery.
+    /// AC-133-006 — T0846 resolves in technique_info with tactic IcsDiscovery.
     ///
-    /// GREEN-BY-DESIGN (partial): T0846 already exists in technique_info (pre-existing).
-    /// The technique_info assertion PASSES NOW. The EMITTED_IDS promotion (SEEDED-only →
-    /// also emitted) is not directly verifiable from integration tests (kani-gated); the
-    /// vp007_catalog_drift_guard enforces it once the implementer adds "T0846" to EMITTED_IDS.
+    /// T0846 pre-exists in technique_info and was promoted to EMITTED_IDS in STORY-133
+    /// (VP-007 Step 4). The vp007_catalog_drift_guard enforces the EMITTED ⊆ SEEDED invariant.
     ///
     /// Traces: AC-133-006 "T0846 in EMITTED"; VP-007 Step 4.
     #[test]
@@ -2248,31 +2237,31 @@ mod mitre_seeding {
 
     /// AC-133-006 + AC-133-001 cross-check — technique_tactic_id integrates with new IDs.
     ///
-    /// RED GATE: `technique_tactic_id("T0858")` returns None in the stub (no T0858 arm in
-    /// technique_info, so the Option-chain fails at `technique_tactic(id)?`). Will turn GREEN
-    /// only when T0858 and T0816 arms are added to technique_info (VP-007 Step 1).
+    /// `technique_tactic_id("T0858")` returns Some("TA0104") now that the T0858 arm was
+    /// added to technique_info in STORY-133 (VP-007 Step 1). The Option-chain T0858 →
+    /// IcsExecution → "TA0104" resolves end-to-end.
     ///
-    /// This cross-check verifies that the exhaustive `technique_tactic_id` match (which
-    /// already has the `IcsExecution => "TA0104"` arm) wires end-to-end once technique_info
-    /// returns a tactic for T0858. AC-133-004 only tested the enum method directly; this
-    /// exercises the full path from technique ID → tactic → TA-ID string.
+    /// This cross-check verifies that the exhaustive `technique_tactic_id` match (with
+    /// the `IcsExecution => "TA0104"` arm) wires end-to-end once technique_info returns
+    /// a tactic for T0858. AC-133-004 tested the enum method directly; this exercises
+    /// the full path from technique ID → tactic → TA-ID string.
     ///
     /// Traces: AC-133-001 (T0858 arm); VP-007 Step 5 (IcsExecution TA-ID path); ADR-010.
     #[test]
     fn test_t0846_in_emitted_tactic_id() {
-        // T0858: new — RED until technique_info arm lands
+        // T0858: new — arm added in STORY-133 (VP-007 Step 1)
         assert_eq!(
             technique_tactic_id("T0858"),
             Some("TA0104"),
             "technique_tactic_id(\"T0858\") must return Some(\"TA0104\") — \
-             T0858 maps to IcsExecution (TA0104); not yet seeded (VP-007 Step 1)"
+             T0858 maps to IcsExecution (TA0104); seeded in STORY-133 (VP-007 Step 1)"
         );
-        // T0816: new — RED until technique_info arm lands
+        // T0816: new — arm added in STORY-133 (VP-007 Step 1)
         assert_eq!(
             technique_tactic_id("T0816"),
             Some("TA0107"),
             "technique_tactic_id(\"T0816\") must return Some(\"TA0107\") — \
-             T0816 maps to IcsInhibitResponseFunction (TA0107); not yet seeded (VP-007 Step 1)"
+             T0816 maps to IcsInhibitResponseFunction (TA0107); seeded in STORY-133 (VP-007 Step 1)"
         );
         // T0846: pre-existing — should pass NOW as regression check
         assert_eq!(

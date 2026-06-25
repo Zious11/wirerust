@@ -99,18 +99,19 @@ fn test_ics_impair_process_control_display() {
 
 // ---------------------------------------------------------------------------
 // AC-005 | BC-2.10.003 postcondition 1
-// all_tactics_in_report_order().len() equals 20 (14 Enterprise + 6 ICS).
+// all_tactics_in_report_order().len() equals 21 (14 Enterprise + 7 ICS).
 // F5 adds MitreTactic::IcsDiscovery, IcsCollection, IcsCommandAndControl,
 // bringing the ICS-unique count from 3 to 6 and the total from 17 to 20.
+// STORY-133 adds MitreTactic::IcsExecution, bringing ICS-unique to 7 and total to 21.
 // ---------------------------------------------------------------------------
 #[test]
 fn test_all_tactics_length_is_20() {
-    // BC-2.10.003 postcondition 1 / invariant 2 (updated F5):
-    // 14 Enterprise + 6 ICS-unique = 20 variants.
+    // BC-2.10.003 postcondition 1 / invariant 2 (updated STORY-133):
+    // 14 Enterprise + 7 ICS-unique = 21 variants.
     assert_eq!(
         all_tactics_in_report_order().len(),
-        20,
-        "expected 14 Enterprise + 6 ICS-unique = 20 variants (F5 adds IcsDiscovery, IcsCollection, IcsCommandAndControl)"
+        21,
+        "expected 14 Enterprise + 7 ICS-unique = 21 variants (STORY-133 adds IcsExecution)"
     );
 }
 
@@ -147,11 +148,13 @@ fn test_all_tactics_enterprise_kill_chain_order() {
 // AC-007 | BC-2.10.003 postconditions 3 and 4
 // Elements [14]-[16] are the first three ICS variants; [17]-[19] are the
 // three new F5 ICS variants: IcsDiscovery, IcsCollection, IcsCommandAndControl.
+// [20] is IcsExecution added in STORY-133 (VP-007 ENIP atomic burst).
 // ---------------------------------------------------------------------------
 #[test]
 fn test_all_tactics_ics_at_end() {
     // BC-2.10.003 postcondition 3: ICS tactics at positions [14]-[16].
     // BC-2.10.003 postcondition 4: F5 ICS tactics at positions [17]-[19].
+    // STORY-133: IcsExecution at position [20].
     let tactics = all_tactics_in_report_order();
     assert_eq!(
         tactics[14],
@@ -184,12 +187,19 @@ fn test_all_tactics_ics_at_end() {
         MitreTactic::IcsCommandAndControl,
         "position [19] must be IcsCommandAndControl (added F5)"
     );
+    // STORY-133 (VP-007 ENIP atomic obligation):
+    assert_eq!(
+        tactics[20],
+        MitreTactic::IcsExecution,
+        "position [20] must be IcsExecution (added STORY-133)"
+    );
 }
 
 // ---------------------------------------------------------------------------
 // AC-008 | BC-2.10.004 postcondition 1 & 2
-// Collecting all_tactics_in_report_order() into a HashSet gives size 20.
+// Collecting all_tactics_in_report_order() into a HashSet gives size 21.
 // F5 adds IcsDiscovery, IcsCollection, IcsCommandAndControl → total 20.
+// STORY-133 adds IcsExecution → total 21.
 // ---------------------------------------------------------------------------
 #[test]
 fn test_all_tactics_no_duplicates() {
@@ -203,14 +213,15 @@ fn test_all_tactics_no_duplicates() {
         tactics.len(),
         "duplicate variant detected in all_tactics_in_report_order()"
     );
-    // F5: IcsDiscovery + IcsCollection + IcsCommandAndControl added → 20 total (was 17).
-    assert_eq!(unique.len(), 20);
+    // STORY-133: IcsExecution added → 21 total (was 20 after F5).
+    assert_eq!(unique.len(), 21);
 }
 
 // ---------------------------------------------------------------------------
 // AC-009 | BC-2.10.004 postcondition 3
-// No variant omitted — all 20 variants appear in the slice.
+// No variant omitted — all 21 variants appear in the slice.
 // F5 adds IcsDiscovery, IcsCollection, IcsCommandAndControl → total 20.
+// STORY-133 adds IcsExecution → total 21.
 // ---------------------------------------------------------------------------
 #[test]
 fn test_all_tactics_all_variants_present() {
@@ -241,6 +252,8 @@ fn test_all_tactics_all_variants_present() {
         MitreTactic::IcsDiscovery,
         MitreTactic::IcsCollection,
         MitreTactic::IcsCommandAndControl,
+        // STORY-133 (VP-007 ENIP atomic obligation) — IcsExecution for T0858
+        MitreTactic::IcsExecution,
     ]
     .into_iter()
     .collect();
