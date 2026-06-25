@@ -1,10 +1,10 @@
 ---
 pipeline: FEATURE-MODE
-phase: F3
-phase_status: "F3 story convergence ACHIEVED (3/3 clean passes 10/11/12, 0 HIGH/CRITICAL; 12 passes total). F-P12-001 REMEDIATED (STORY-135 write_count_in_window u32→u64 induced-regression fix). Trajectory: 4C/6H→1C/3H→0C/2H→2C/2H→0C/1H→0C/1H→0C/0H→0C/1H→0C/2H→0C/0H→0C/0H→0C/0H. Consistency audit + F3 human gate pending."
+phase: F4
+phase_status: "F4 TDD Implementation IN-PROGRESS. Wave-by-wave cadence with human checkpoints at each wave integration gate. Current: Wave 58 (STORY-130 + STORY-131) STARTING. F3 human gate APPROVED (D-231 2026-06-24): 9 stories STORY-130..138, 66 pts, waves 58-61, E-20, 26 BCs, 13 holdouts HS-110..122."
 product: wirerust
 mode: feature-mode
-timestamp: 2026-06-24T22:00:00Z
+timestamp: 2026-06-25T00:00:00Z
 
 # Release chain (latest)
 released_version: v0.10.0
@@ -44,7 +44,7 @@ adversary_gate: SATISFIED
 # Story tracking
 stories_delivered: 78
 current_cycle: feature-enip-v0.11.0 (D-228, 2026-06-24)
-current_wave: F2 COMPLETE — human-approved D-230 (SS-17 TCP/44818+CIP, 26 BCs BC-2.17.001..026, ADR-010 Decision 9, VP-032; UDP/2222+0x00B1 deferred D-229). Next: F3 Incremental Stories.
+current_wave: Wave 58 (STORY-130 + STORY-131) STARTING — F4 TDD Implementation. F3 human gate APPROVED D-231. Wave-by-wave cadence; report at waves 58/59/60/61 integration gates.
 
 # DTU
 dtu_required: false
@@ -70,7 +70,7 @@ convergence_trajectory: "Detail: cycles/v0.1.0-greenfield-spec/convergence-traje
 
 ## Status
 
-**PIPELINE FEATURE-MODE. Cycle `feature-enip-v0.11.0` OPEN. F1 PASSED. F2 COMPLETE (human gate D-230). F3 COMPLETE: 9 stories STORY-130..138 (E-20, waves 58-61, 66 pts; all 26 BC-2.17.001..026 covered) + 13 holdout scenarios HS-110..122 (all must-pass). F3 ADV-STORY CONVERGENCE ACHIEVED (Pass 12): 3 consecutive clean passes (P10/P11/P12), 0 HIGH/CRITICAL, 12 passes total. F-P12-001 REMEDIATED (STORY-135 write_count_in_window u32→u64). Trajectory: 4C/6H→1C/3H→0C/2H→2C/2H→0C/1H→0C/1H→0C/0H→0C/1H→0C/2H→0C/0H→0C/0H→0C/0H. Next: consistency audit + F3 human gate. ENGINE-PROPAGATION-GREP-GATE-001 in OPEN ITEMS.**
+**PIPELINE FEATURE-MODE. Cycle `feature-enip-v0.11.0` OPEN. F1 PASSED. F2 COMPLETE (human gate D-230). F3 CONVERGED + HUMAN-APPROVED (D-231): 9 stories STORY-130..138 (E-20, waves 58-61, 66 pts; all 26 BC-2.17.001..026 covered) + 13 holdouts HS-110..122 (all must-pass). F4 TDD Implementation IN-PROGRESS: Wave 58 (STORY-130 + STORY-131) STARTING. Cadence: wave-by-wave with human checkpoints at each of waves 58/59/60/61. F4 obligations: 12 pcap fixtures (HS-110..122 minus HS-121), BC frontmatter input-hash:TBD, STORY-133 EMITTED/SEEDED baseline reverify vs src/mitre.rs. Deferred LOW (non-blocking): dep-graph T0814 rationale prose, BC-2.17.010 "per-occurrence" fix, STORY-133 baseline reverify. ENGINE-PROPAGATION-GREP-GATE-001 in OPEN ITEMS.**
 
 Latest release: v0.10.0 (main `0cbe922`, tag `v0.10.0`, 4 binaries, run 28109367603). develop=`ff4b82b`. stories_delivered=78. Target: v0.11.0 (SS-17 EtherNet/IP + CIP TCP/44818). GitHub issue #316.
 
@@ -156,7 +156,8 @@ All GitHub-issue creation remains DF-VALIDATION-001-gated.
 | Maintenance maint-2026-06-22 | COMPLETE 2026-06-23 | 38 observations; 0 blocking; F-MAJ-001 fixed (a6efb23); PR #304 (e458ce2) + PR #305 (e4abbe2). |
 | Feature mitre-json-names (issue #64) + v0.9.4 | RELEASED + CLOSED 2026-06-23 (D-217) | F1-F7 CONVERGED. 5 BCs bumped. BC-INDEX v1.71 (303 BCs). PRs #306/307/308/309. tag v0.9.4 96b49e8. 4 binaries. stories_delivered=78. |
 | Fix cycle fix-pc-013-014-015 + v0.10.0 | **CONVERGED + RELEASED + CLOSED 2026-06-24 (D-226)** | All 3 fixes: PC-015 (#310), PC-013 (#312 + spec D-223), PC-014 (#313 breaking rename + CHANGELOG). Evidence resync #314. v0.10.0: PR #315 → main 0cbe922, tag v0.10.0, 4 binaries, run 28109367603. develop back-merged ff4b82b. BC-INDEX v1.73 (305 BCs / 304 active). |
-| Feature EtherNet/IP + CIP (issue #316) — v0.11.0 | **F3 COMPLETE — ADV-STORY CONVERGENCE ACHIEVED (3/3 clean, 12 passes)** | F3: stories STORY-130..138 (9, E-20, 66 pts) + holdout HS-110..122 (13). P10/P11/P12 all 0C/0H. F-P12-001 REMEDIATED (STORY-135 write_count_in_window u32→u64). Trajectory: 4C/6H→1C/3H→0C/2H→2C/2H→0C/1H→0C/1H→0C/0H→0C/1H→0C/2H→0C/0H→0C/0H→0C/0H. Next: consistency audit + F3 human gate. Detail: cycles/feature-enip-v0.11.0/ |
+| Feature EtherNet/IP + CIP (issue #316) — v0.11.0: F3 | **CONVERGED + HUMAN-APPROVED (D-231, 2026-06-24)** | 9 stories STORY-130..138 (E-20, 66 pts, waves 58-61). 13 holdouts HS-110..122. 26 BCs covered. 3 consecutive clean passes (P10/P11/P12). Trajectory: 4C/6H→…→0C/0H (12 passes). Deferred LOW (non-blocking): T0814 prose, BC-2.17.010 PO fix, input-hash:TBD (F4 obligation). Detail: cycles/feature-enip-v0.11.0/ |
+| Feature EtherNet/IP + CIP (issue #316) — v0.11.0: F4 | **IN-PROGRESS — Wave 58 STARTING** | Wave-by-wave cadence (D-231). Human checkpoint after each wave gate: 58/59/60/61. F4 obligations: 12 pcap fixtures, BC input-hash writes, STORY-133 mitre.rs baseline reverify. |
 
 ## Decisions Log
 
@@ -181,6 +182,7 @@ D-228+: `cycles/feature-enip-v0.11.0/decisions-archive.md`
 | D-228 | Feature Mode OPENED. Cycle `feature-enip-v0.11.0` started (issue #316). F1 Delta Analysis PASSED, human-approved. Scope: TCP/44818 explicit messaging + UDP/2222 cyclic I/O + CIP ForwardOpen. Deferred: TLS/2221. Carry-buffer cap: 600 bytes/flow. Planned: SS-17, `src/analyzer/enip.rs`, ADR-010, VP-032, ~24+ BCs (BC-2.17.xxx), 7-9 stories. DTU NOT required. MITRE carry-forward in decisions-archive. F2 Spec Evolution next. | 2026-06-24 |
 | D-229 | F2 scope refinement: UDP/2222 deferred to v0.12.0. Architect found UDP/2222 cyclic I/O requires UDP-reassembly + cross-transport ForwardOpen session-correlation not present (TCP-stream-oriented dispatch). Human-approved. v0.11.0 scope now: TCP/44818 explicit messaging + CIP ForwardOpen (TCP only). No T1692.001/.002 BCs this cycle. ADR-010 Decision 5. 24 BCs written (BC-2.17.001..024); BC-INDEX v1.74 (329/328 active). OA-001: --enip-write-burst-threshold default=20 pending human confirm at F2 gate. | 2026-06-24 |
 | D-230 | F2 human gate APPROVED. Human decisions: (1) proceed to F3; (2) accept 0x00B2-only CIP detection scope (0x00B1 deferred v0.12.0); (3) both detection thresholds tunable defaults — write-burst 50 (--enip-write-burst-threshold BC-2.17.023), error-burst 5 (--enip-error-burst-threshold NEW BC-2.17.026); recalibrate F6. F2 addendum committed: BC-2.17.026 created (--enip-error-burst-threshold CLI flag, u32, default 5, strict `>`, symmetric with BC-2.17.023); ADR-010 Decision 9 added (flag + EnipAnalyzer field; ENIP_ERROR_BURST_THRESHOLD constant retired); BC-2.17.014 updated (configurable field); BC-2.17.020 updated (CLI surface). SS-17 now 26 BCs. BC-INDEX v1.76 (331/330 active). | 2026-06-24 |
+| D-231 | F3 CONVERGED + HUMAN-APPROVED. Proceed to F4 TDD Implementation. F4 cadence: wave-by-wave with human checkpoints at each wave integration gate (report at waves 58/59/60/61). Story set: 9 stories STORY-130..138, 66 pts, waves 58-61, epic E-20, all 26 SS-17 BCs covered, 13 holdouts HS-110..122. Deferred LOW (non-blocking): dep-graph STORY-133→137 T0814 rationale prose imprecision; BC-2.17.010 Description "per-occurrence" PO BC fix; BC frontmatter input-hash:TBD (F4 obligation); STORY-133 EMITTED/SEEDED baseline reverify vs src/mitre.rs at F4. 12 pcap fixtures needed for holdouts (F4 obligation). Wave 58 (STORY-130 + STORY-131) STARTING. | 2026-06-24 |
 
 ## Governance Policy
 
