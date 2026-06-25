@@ -4787,8 +4787,7 @@ fn test_BC_2_04_048_isn_missing_warned_fires_once_then_suppressed() {
 //
 // AC-001..AC-015 (engine-level lifecycle tests) + 10 Edge Cases.
 //
-// PART A: stub-only bodies — panic!("STORY-019 stub — Red Gate").
-// All stubs MUST fail before Part B fills real assertions.
+// Originally written as Red Gate stubs (STORY-019); all assertions now GREEN.
 //
 // CLOSE_FLOW_MISSING_WARNED serialization: AC-013/014 are combined into one
 // test (CLOSE_FLOW_MISSING_WARNED_LOCK held for duration) mirroring the
@@ -8034,8 +8033,7 @@ fn test_BC_2_04_039_ec008_isn_near_max_btreemap_keys_monotonic() {
 // ACs: AC-001..AC-013 (13 tests)
 // ECs: EC-001..EC-011 (11 tests); + 1 proptest (AC-004)
 //
-// All stubs panic to satisfy the Red Gate: every test must FAIL before
-// implementation. Do NOT add #[ignore].
+// Tests originated as Red Gate stubs; all assertions now GREEN. Do NOT add #[ignore].
 //
 // Part B note: AC-004 requires asserting `total_memory == sum(flow.memory_used())`
 // over the private `flows` map. The existing `total_memory()` public accessor
@@ -13247,7 +13245,7 @@ fn test_story_017_ec009_duplicate_overlap_increments_count_no_finding() {
 //      2.04.040 (small_segment_run update rules)
 // ACs: 004, 005, 006, 007, 008, 009, 013, 014, 015
 // ECs: 008 (truncated at MAX_FINDINGS cap)
-// All test bodies panic — Red Gate (Part A stubs).
+// Originated as Red Gate stubs (Part A); all assertions now GREEN.
 // ====================================================================================
 
 // --- AC-004 (BC-2.04.023 postcondition 1) ---

@@ -1,8 +1,8 @@
-//! Failing tests for STORY-106: DNP3 DL/Transport Parse + FC Classify — Pure Core.
+//! Tests for STORY-106: DNP3 DL/Transport Parse + FC Classify — Pure Core.
 //!
 //! Covers BC-2.15.001 through BC-2.15.009 and edge cases EC-001..EC-010.
-//! All tests MUST FAIL (todo!() panic) before implementation — Red Gate per the
-//! strict-TDD contract (STORY-106, tdd_mode: strict).
+//! Originated as Red Gate stubs (todo!() panics) per the strict-TDD contract
+//! (STORY-106, tdd_mode: strict). All tests now GREEN.
 //!
 //! ## Test naming convention
 //! Tests follow `test_BC_S_SS_NNN_xxx()` for BC-traceable tests and

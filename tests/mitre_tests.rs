@@ -469,7 +469,8 @@ fn test_all_emitted_ids_resolve() {
     //   src/reassembly/lifecycle.rs  — T1036
     //   ICS analyzers (Modbus/DNP3)  — T1692.001, T0836, T0814, T0806, T0835, T0831, T0888
     // Total: 6 Enterprise + 7 ICS = 13 unique emitted technique IDs.
-    // Note: T0846 is seeded but NOT emitted; T0888 IS emitted (Modbus recon).
+    // Note: T0888 IS emitted (Modbus recon). T0846 was seeded-only pre-STORY-133;
+    // STORY-133 promoted T0846 into EMITTED_IDS (ADR-010 Decision 7 Step 4).
     // ICS v19 remap (issue #222): T0855→T1692.001 (emitted), T0856→T1692.002 (seeded-only).
     let emitted_ids = [
         // Enterprise (6)

@@ -3,7 +3,7 @@
 //! Covers BC-2.14.013 through BC-2.14.022 — all seven detection rules, the
 //! MAX_FINDINGS cap, and the `summarize()` six-key contract.
 //!
-//! RED GATE: ALL tests must fail (todo!() panics) before implementation begins.
+//! Tests originated as Red Gate stubs (todo!() panics) before implementation; all now GREEN.
 //! Test naming follows `test_BC_S_SS_NNN_xxx` pattern for full traceability.
 //!
 //! Canonical test vectors used verbatim from BC documents where available.
