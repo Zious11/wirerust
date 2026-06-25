@@ -157,8 +157,8 @@ traces_to:
 | STORY-127 | Magic-Byte Glob (resolve_targets Content Detection) and E2E Corpus Wiring | E-19 | 55 | 5 | completed | STORY-123, STORY-124, STORY-125, STORY-126 |
 | STORY-128 | main.rs Per-File Error Isolation Loop (Catch-and-Continue) | E-19 | 56 | 3 | completed | STORY-127 |
 | STORY-129 | Emit Per-Finding `mitre_attack` Array in JSON Output | E-8 | 57 | 5 | completed | — |
-| STORY-130 | EtherNet/IP Pure-Core Parse: ENIP Header, Command Classification, Frame Validity, and Kani VP-032 | E-20 | 58 | 8 | draft | — |
-| STORY-131 | EtherNet/IP StreamDispatcher Integration, CLI Flags, and TCP Reassembly Wiring | E-20 | 58 | 8 | draft | — |
+| STORY-130 | EtherNet/IP Pure-Core Parse: ENIP Header, Command Classification, Frame Validity, and Kani VP-032 | E-20 | 58 | 8 | completed | — |
+| STORY-131 | EtherNet/IP StreamDispatcher Integration, CLI Flags, and TCP Reassembly Wiring | E-20 | 58 | 8 | completed | — |
 | STORY-132 | CPF Item Walk, CIP Header Parse, and CIP Request Path Extraction | E-20 | 59 | 8 | draft | STORY-130 |
 | STORY-133 | MITRE ICS Technique Seeding: T0858/T0816/T1693.001/IcsExecution + VP-007 Atomic Update | E-20 | 59 | 5 | draft | STORY-131 |
 | STORY-134 | ENIP Recon Detections: T0846 ListIdentity, T0888 Identity Read / Error Burst, and CIP Error Accumulation | E-20 | 60 | 8 | draft | STORY-132, STORY-133 |
@@ -327,7 +327,7 @@ traces_to:
 | 55 | STORY-127 | **DELIVERED & CLOSED** | #285 | e802b2e | 2026-06-20 |
 | 56 | STORY-128 | **DELIVERED & CLOSED** | #286 | e75a797 | 2026-06-21 |
 | 57 | STORY-129 | **DELIVERED & CLOSED** | #306 | 2fa6606 | 2026-06-23 |
-| 58 | STORY-130, STORY-131 | draft | — | — | — |
+| 58 | STORY-130, STORY-131 | **DELIVERED & CLOSED** | #317, #318 | edce3bd | 2026-06-25 |
 | 59 | STORY-132, STORY-133 | draft | — | — | — |
 | 60 | STORY-134, STORY-135, STORY-136, STORY-137 | draft | — | — | — |
 | 61 | STORY-138 | draft | — | — | — |
