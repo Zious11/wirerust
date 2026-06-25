@@ -65,3 +65,66 @@ F2 human gate PASSED. Human decisions recorded:
 - `cap-17-enip-cip-analysis.md` — BC-2.17.026 registered.
 
 **Ground truth at D-230:** develop=ff4b82b, main=0cbe922 (v0.10.0), factory-artifacts=this commit.
+
+---
+
+## D-231 — F3 CONVERGED + HUMAN-APPROVED; Wave-by-Wave F4 Cadence (2026-06-24)
+
+F3 adversarial story decomposition converged after 12 passes (3 consecutive 0-H/0-C clean passes: P10/P11/P12). Trajectory: 4C/6H→1C/3H→0C/2H→2C/2H→0C/1H→0C/1H→0C/0H→0C/1H→0C/2H→0C/0H→0C/0H→0C/0H. Consistency audit CONSISTENT (`.factory/phase-f3-stories/enip-f3-consistency-audit-final.md`). Human gate APPROVED.
+
+**F3 deliverables:**
+- 9 stories: STORY-130..138 (epic E-20, waves 58-61, 66 pts). All 26 BC-2.17.001..026 assigned.
+- 13 holdout scenarios: HS-110..122 (all must-pass; 12 require pcap fixtures; HS-121 synthetic).
+- Adversarial pass files: `.factory/phase-f3-stories/enip-f3-adversary-pass-1..12.md`.
+- Final consistency audit: `.factory/phase-f3-stories/enip-f3-consistency-audit-final.md`.
+- STORY-INDEX.md v2.8 (91 stories / 61 waves). epics.md v1.8 (E-20). BC-INDEX v1.79 (331/330 active; SS-17=26).
+
+**Human gate decisions (D-231):**
+1. Proceed to F4 TDD Implementation — APPROVED.
+2. F4 cadence: wave-by-wave with human checkpoints at each wave gate (report at waves 58/59/60/61).
+3. Deferred LOW (non-blocking, carry to F4): dep-graph STORY-133→137 T0814 rationale prose imprecision; BC-2.17.010 "per-occurrence" PO BC fix; BC frontmatter input-hash:TBD (F4 obligation); STORY-133 EMITTED/SEEDED baseline reverify vs src/mitre.rs at F4.
+4. 12 pcap fixtures needed for holdouts HS-110..122 minus HS-121 — F4 obligation.
+
+Wave 58 (STORY-130 + STORY-131) STARTING at D-231.
+
+---
+
+## D-232 — SAFE-TO-CLEAR Checkpoint; F4 Wave 58 STORY-130 mid-TDD (2026-06-25)
+
+Session paused mid-F4 Wave 58 with STORY-130 at Red Gate. All F1/F2/F3 pipeline artifacts are durable on factory-artifacts branch. This checkpoint makes the session SAFE TO CLEAR.
+
+**Exact pause state:**
+- Cycle: `feature-enip-v0.11.0` — EtherNet/IP + CIP ICS analyzer (SS-17, issue #316). Target v0.11.0.
+- Phase: F4 (TDD Implementation), wave-by-wave cadence (D-231), Wave 58 in progress.
+- STORY-130 worktree: `.worktrees/STORY-130-enip-pure-core-parse`, branch `worktree-issue-316-story-130-enip-pure-core-parse`, base develop `ff4b82b`.
+- Red Gate commit: `1f9c656` (`enip.rs` stubs + tests; `cargo check`/`clippy` GREEN; 14 tests FAIL as expected).
+- **A test-writer was IN-FLIGHT** authoring `tests/enip_analyzer_tests.rs` (mod `parse_header`, BC-2.17.001-004) when the session was paused. A `test(enip): STORY-130 ... failing tests` commit may or may not have landed.
+
+**Ground-truth HEADs at D-232:**
+- develop: `ff4b82b` (unchanged this cycle — all spec/story work is on factory-artifacts).
+- main: `0cbe922` (v0.10.0).
+- factory-artifacts: this D-232 checkpoint commit (verify: `git -C .factory log -1`).
+
+**Resume instruction (abbreviated — full RESUME PROCEDURE in STATE.md):**
+1. `vsdd-factory:factory-worktree-health` (BLOCKING).
+2. Read STATE.md + cycle-manifest fully.
+3. Check STORY-130 worktree log: `git -C .worktrees/STORY-130-enip-pure-core-parse log --oneline -5`.
+   - If test commit present → dispatch implementer.
+   - If not → dispatch test-writer first.
+4. Continue STORY-130: implementer → adversarial convergence (3 clean passes) → demo → push → pr-manager (9-step) → worktree cleanup.
+5. Then STORY-131 → Wave-58 gate → REPORT TO HUMAN.
+
+**Remaining F4 work:**
+- Wave 58: STORY-130 (resume) + STORY-131 (dispatch Rule 7 + CLI flags, BC-2.17.019/020/023/026).
+- Wave 59: STORY-132 (CPF/CIP parse + VP-032 Sub-D), STORY-133 (MITRE seeding + VP-007 6-part atomic burst — mitre.rs/SS-10: add IcsExecution MitreTactic variant; seed T0858/T0816/T1693.001; EMITTED_IDS += T0858/T0816/T0846; vp007 drift-guard).
+- Wave 60: STORY-134/135/136/137. Wave 61: STORY-138.
+
+**F4 carry-forward obligations:**
+- 12 pcap fixtures for holdouts HS-110..122 (minus HS-121 synthetic).
+- STORY-133: re-verify EMITTED 17→20 / SEEDED 25→28 baselines vs live `src/mitre.rs` HEAD (post-STORY-129) before asserting counts.
+- VP-007 atomic burst (STORY-133): add IcsExecution MitreTactic variant; seed T0858/T0816/T1693.001; EMITTED_IDS += T0858/T0816/T0846; vp007 drift-guard.
+- F6 fuzz obligation: `parse_cip_header` + `parse_cpf_items` cargo-fuzz (F-P9-002).
+- Deferred LOW: BC-2.17.010 Description "per-occurrence" → fix to one-shot (PO); dep-graph STORY-133→137 T0814 rationale prose imprecision.
+- `docs/adr/0010-*.md` uncommitted on develop working tree → commit with F4 code (STORY-131 or first ENIP code PR).
+
+**Pre-existing backlog (non-blocking):** Dependabot #311; PO-BACKLOG-MAINT holdout coverage; engine-improvement backlog incl. PROPAGATION-LAG-001 + ledger-claim-grep process-gap.
