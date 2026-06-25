@@ -612,7 +612,7 @@ Identity, Discrete I/O, Analog I/O, Motor Drive, etc.) with thousands of instanc
 attributes. v0.11.0 deliberately scopes to a minimal object-model depth:
 
 **IN SCOPE (v0.11.0):**
-- ENIP encapsulation header — all 10 fields parsed (BC-2.17.001/002)
+- ENIP encapsulation header — all 6 fields parsed (BC-2.17.001/002)
 - ENIP command classification — 9 recognized command values + Unknown (BC-2.17.004)
 - CPF item iteration — item_count bounded walk, type_id recognition for the following
   four recognized CPF type IDs (BC-2.17.005):

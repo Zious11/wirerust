@@ -28,7 +28,7 @@ inputs:
   - .factory/specs/architecture/decisions/ADR-010-ethernet-ip-cip-stream-dispatch.md
   - .factory/specs/verification-properties/vp-032-enip-parse-safety.md
   - .factory/phase-f2-spec-evolution/enip-architecture-delta.md
-input-hash: "dc8a2c9"
+input-hash: "272738c"
 ---
 
 # STORY-130: EtherNet/IP Pure-Core Parse: ENIP Header, Command Classification, Frame Validity, and Kani VP-032

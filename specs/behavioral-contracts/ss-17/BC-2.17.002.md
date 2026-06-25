@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.0"
+version: "1.1"
 status: draft
 producer: product-owner
 timestamp: 2026-06-24T00:00:00Z
@@ -33,7 +33,7 @@ input-hash: TBD
 ## Description
 
 `parse_enip_header(data: &[u8]) -> Option<EnipHeader>` returns `Some(EnipHeader{...})` when
-`data.len() >= 24`. All 10 struct fields are decoded from fixed, non-overlapping byte offsets
+`data.len() >= 24`. All 6 struct fields are decoded from fixed, non-overlapping byte offsets
 using little-endian byte order (per ODVA EtherNet/IP specification) except for
 `sender_context`, which is an opaque 8-byte copy. The field layout is: command (2 LE, bytes
 0–1), length (2 LE, bytes 2–3), session_handle (4 LE, bytes 4–7), status (4 LE, bytes 8–11),
@@ -82,7 +82,7 @@ contract; the reject path for short inputs is BC-2.17.001.
 
 | ID | Description | Expected Behavior |
 |----|-------------|-------------------|
-| EC-001 | `data.len() == 24` (exact minimum) | Returns `Some(EnipHeader)` — all 10 fields decoded from bytes 0–23; no out-of-bounds |
+| EC-001 | `data.len() == 24` (exact minimum) | Returns `Some(EnipHeader)` — all 6 fields decoded from bytes 0–23; no out-of-bounds |
 | EC-002 | `data.len() == 600` (max carry buffer) | Returns `Some(EnipHeader)` from bytes 0–23; remaining 576 bytes untouched |
 | EC-003 | `command = 0x006F` (SendRRData), `length = 0x0020` | `header.command=0x006F`, `header.length=32` — valid explicit messaging frame |
 | EC-004 | `status = 0x00000065` (non-zero — error response) | `header.status=0x00000065` decoded; validity gate in BC-2.17.003 may still accept (status is not gated here) |

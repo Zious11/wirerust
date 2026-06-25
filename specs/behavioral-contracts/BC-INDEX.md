@@ -1,10 +1,10 @@
 ---
 document_type: bc-index
 level: L3
-version: "1.79"
+version: "1.80"
 status: draft
 producer: product-owner
-timestamp: 2026-06-24T00:00:00Z
+timestamp: 2026-06-25T00:00:00Z
 phase: 1a
 traces_to: .factory/specs/prd.md
 ---
@@ -15,6 +15,9 @@ traces_to: .factory/specs/prd.md
 > links to the individual BC file. BCs are sharded into per-subsystem directories (ss-NN/).
 >
 > All BCs are marked [WRITTEN]. Body files have been verified on disk for all 331 entries (330 prior + 1 new BC-2.17.026 for F2 addendum error-burst CLI flag; BC-2.01.004 retired).
+>
+> **v1.80 2026-06-25 (STORY-130 adversarial Pass2 fix — BC-2.17.002 v1.0→v1.1, field-count 10→6, F-130-P2-001):**
+> BC-2.17.002 v1.0→v1.1: Title corrected — EnipHeader has 6 fields (command, length, session_handle, status, sender_context, options), not 10. Postconditions 1–9 enumerate these exactly. ADR-010 §Decision 8 line-615 cross-reference updated to "all 6 fields". Finding F-130-P2-001 MEDIUM (STORY-130 adversarial Pass 2). No new BCs; no BC count change (331 on disk; 330 active). STORY-130 input-hash recomputed dc8a2c9→272738c (DF-INPUT-HASH-CANONICAL-001). D-233.
 >
 > **v1.79 2026-06-24 (F8-001: command_counts increment relocated to frame-walk — SS-17 increment-site contradiction fix):**
 > BC-2.17.016 v1.0→v1.1: Added PC-0 as canonical single command_counts increment site (fires in `on_data()` frame-walk immediately after `parse_enip_header` returns Some, before `is_valid_enip_frame` check); Invariant 6 added (command_counts vs pdu_count separation of concerns); Architecture Anchors updated to cite frame-walk as command_counts site; Purity Classification updated; Related BCs updated (+BC-2.17.004).
