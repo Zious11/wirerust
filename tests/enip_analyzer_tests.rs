@@ -2,7 +2,7 @@
 //!
 //! `mod parse_header` — STORY-130 pure-core parse tests (GREEN).
 //! `mod dispatch`     — STORY-131 dispatcher/CLI integration tests (GREEN).
-//! `mod cpf_cip`      — STORY-132 CPF item walk, CIP header parse, path extract (RED GATE).
+//! `mod cpf_cip`      — STORY-132 CPF item walk, CIP header parse, path extract (GREEN).
 //!
 //! Traces to: BC-2.17.001–004 (parse_header), BC-2.17.019/020/023/026 (dispatch),
 //!            BC-2.17.005/006/007/009 (cpf_cip).
@@ -1064,15 +1064,37 @@ mod dispatch {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// STORY-132 CPF item walk, CIP header parse, CIP path extraction tests (RED GATE).
-//
-// All 19 tests in this module MUST FAIL before implementation begins.
-// Every function under test (`parse_cpf_items`, `parse_cip_header`,
-// `classify_cip_service`, `parse_cip_request_path`) has a `todo!()` body;
-// calling any of them triggers a panic, which cargo-test reports as FAILED.
+// STORY-132 CPF item walk, CIP header parse, CIP path extraction tests (GREEN — STORY-132 implemented).
 //
 // Traces to: BC-2.17.005 (cpf_items), BC-2.17.006 (cip_header),
 //            BC-2.17.007 (classify_cip_service), BC-2.17.009 (cip_request_path).
+//
+// IMPLEMENTATION STATUS (STORY-132 complete):
+// All 4 functions under test (`parse_cpf_items`, `parse_cip_header`,
+// `classify_cip_service`, `parse_cip_request_path`) are fully implemented;
+// all 19 tests pass. These tests originated as Red-Gate stubs (none could
+// pass until the implementations landed in STORY-132).
+//
+// GREEN:
+//   test_parse_cpf_items_single_item             — BC-2.17.005 PC 1–3 (single UnconnectedData item)
+//   test_parse_cpf_items_two_items               — BC-2.17.005 PC 4 (two-item list)
+//   test_parse_cpf_items_empty                   — BC-2.17.005 PC 5 (item_count=0 → empty vec)
+//   test_parse_cpf_items_truncated               — BC-2.17.005 PC 5 (short buf → safe empty)
+//   test_cpf_item_type_ids                       — BC-2.17.005 (NullAddress / ConnectedData / UnconnectedData type IDs)
+//   test_parse_cip_header_request                — BC-2.17.006 PC 1–4 (valid request frame)
+//   test_parse_cip_header_response               — BC-2.17.006 PC 2 (response bit set)
+//   test_parse_cip_header_too_short              — BC-2.17.006 PC 5 (< 2 bytes → None)
+//   test_parse_cip_header_truncated_path         — BC-2.17.006 (path words exceed buffer)
+//   test_cip_parse_skips_0x00b1_items            — BC-2.17.006 (0x00B1 ConnectedData items skipped)
+//   test_cip_parse_processes_0x00b2_items        — BC-2.17.006 (0x00B2 UnconnectedData items parsed)
+//   test_parse_cip_path_empty                    — BC-2.17.009 PC 4 (zero-word path → empty vec)
+//   test_parse_cip_path_class_only               — BC-2.17.009 PC 1 (class segment only)
+//   test_parse_cip_path_class_instance_attr      — BC-2.17.009 PC 1–3 (class + instance + attr)
+//   test_parse_cip_path_unrecognized_skip        — BC-2.17.009 Unknown arm (unrecognized segment skipped)
+//   test_parse_cip_path_odd_length_safe          — BC-2.17.009 (odd path_size_words safe)
+//   test_classify_cip_service_named_codes        — BC-2.17.007 totality (all named service codes)
+//   test_classify_cip_service_response_bit       — BC-2.17.007 (response bit → Response variant)
+//   test_classify_cip_service_unknown            — BC-2.17.007 Unknown arm
 // ─────────────────────────────────────────────────────────────────────────────
 mod cpf_cip {
     use wirerust::analyzer::enip::{
