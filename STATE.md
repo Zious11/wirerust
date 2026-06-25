@@ -4,7 +4,7 @@ phase: F4
 phase_status: "F4 Wave 58 — STORY-130 DELIVERED+MERGED (PR #317, develop 235ae60); NEXT = STORY-131 (dispatch Rule 7 + CLI flags, BC-2.17.019/020/023/026). Per-story adversarial convergence ACHIEVED 3/3 consecutive clean passes (BC-5.39.001). Demo evidence at docs/demo-evidence/STORY-130/. ADR-0010 shipped. SEC-002 SEC-hardening applied. Deferred LOW: AC-130-001 postcondition citation precision (non-blocking). Resume per RESUME PROCEDURE."
 product: wirerust
 mode: feature-mode
-timestamp: 2026-06-25T06:00:00Z
+timestamp: 2026-06-25T07:00:00Z
 
 # Release chain (latest)
 released_version: v0.10.0
@@ -79,7 +79,7 @@ After STORY-131: Wave-58 integration gate → **REPORT TO HUMAN** (wave-by-wave 
 
 ENIP header LITTLE-endian (`from_le_bytes`). `is_valid_enip_frame` single-arg (command-only). `EnipCommandClass` 10 payloadless variants. `CipServiceClass` 15 (0x0A=MultipleServicePacket). `CipHeader={service,request_path}`. `CpfItem={type_id,data}`. `general_status`=byte-2 on 0x00B2 responses. 0x00B2-only CIP detection (0x00B1 deferred v0.12.0). Write-burst default 50 / error-burst 5 strict `>` (51st/6th); both CLI-overridable. T0814 windowed >=3/300s; carry-overflow runs `check_t0814` BEFORE latching `is_non_enip`. `command_counts` SINGLE site=frame-walk (BC-2.17.016 PC-0, counts all incl Unknown). `process_pdu` owns `pdu_count`. `flows_analyzed`→`on_flow_close`. Summary canonical key `parse_errors`. MAX_ENIP_CARRY_BYTES=600, MAX_FINDINGS=10000. MITRE pin ics-attack-19.1. EMITTED 17→20, SEEDED 25→28, catalogue-only 8. Counters u64, window timestamps u32 seconds.
 
-Story input-hashes (verified): STORY-130 272738c (updated Pass2 fix dc8a2c9→272738c), 131 c9970ba, 132 9df8cea, 133 7104101, 134 c82d3ff, 135 4ba6bb1, 136 2af89b5, 137 92f15e6, 138 0053018.
+Story input-hashes (verified): STORY-130 272738c (updated Pass2 fix dc8a2c9→272738c), 131 6d892c4 (refreshed c9970ba→6d892c4 D-233 ADR-010 cosmetic fix), 132 9df8cea, 133 7104101, 134 c82d3ff, 135 4ba6bb1, 136 2af89b5, 137 92f15e6, 138 0053018.
 
 ### RESUME PROCEDURE (execute in order — BLOCKING)
 
@@ -97,6 +97,8 @@ Wave 59: STORY-132 (CPF/CIP parse + VP-032 Sub-D), STORY-133 (MITRE seeding + VP
 Wave 60: STORY-134/135/136/137. Wave 61: STORY-138.
 
 F4 obligations (all waves): 12 pcap fixtures (HS-110..122 minus HS-121 which is synthetic); BC frontmatter input-hash writes; STORY-133 EMITTED/SEEDED baseline reverify vs live src/mitre.rs; docs/adr/0010-*.md → **DONE: ADR-0010 shipped in PR #317**.
+
+STORY-131 input-hash refreshed c9970ba→6d892c4 (ADR-010 D-233 cosmetic fix, prose-only 10→6 fields). STORY-132..138 remain STALE — to be refreshed as F4 obligation per story delivery.
 
 ### OPEN ITEMS (backlog — non-blocking)
 
