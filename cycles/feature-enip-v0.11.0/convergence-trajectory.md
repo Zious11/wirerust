@@ -305,6 +305,95 @@ Wave-level adversarial convergence ACHIEVED. BC-5.39.001 MET. Wave 59 FULLY CLOS
 
 ---
 
+### Per-Story — STORY-134 (Wave 60)
+
+| Pass | Date | Total | CRIT | HIGH | MED | LOW | Novelty | Score | Counter | Verdict |
+|------|------|-------|------|------|-----|-----|---------|-------|---------|---------|
+| 1 | 2026-06-25 | 1 | 0 | 1 | 0 | 0 | HIGH | — | 0/3 | FINDINGS_REMAIN — REMEDIATED |
+| 2 | 2026-06-25 | 0 | 0 | 0 | 0 | 0 | — | — | 1/3 | CLEAN |
+| 3 | 2026-06-25 | 2 | 0 | 2 | 0 | 0 | HIGH | — | 0/3 → reset | FINDINGS_REMAIN — REMEDIATED |
+| 4 | 2026-06-25 | 1 | 0 | 0 | 1 | 0 | MEDIUM | — | 0/3 → reset | FINDINGS_REMAIN — REMEDIATED |
+| G | 2026-06-25 | 2 | 0 | 0 | 2 | 0 | MEDIUM | — | 0/3 → reset | FINDINGS_REMAIN — REMEDIATED |
+| H | 2026-06-25 | 0 | 0 | 0 | 0 | 0 | — | — | 1/3 | CLEAN |
+| I | 2026-06-25 | 0 | 0 | 0 | 0 | 0 | — | — | 2/3 | CLEAN |
+| J/K/L clean window not immediately reached — intermediate passes J/K/L = | — | — | — |
+| M | 2026-06-25 | 0 | 0 | 0 | 0 | 0 | — | — | 1/3 | CLEAN |
+| N | 2026-06-25 | 0 | 0 | 0 | 0 | 0 | — | — | 2/3 | CLEAN |
+| O | 2026-06-25 | 0 | 0 | 0 | 0 | 0 | — | — | 3/3 | CONVERGED |
+
+Trajectory: `1→0→2→1→2→0→0→…→0→0→0` (multi-round remediation; convergence ACHIEVED M/N/O 3/3 clean passes per BC-5.39.001)
+
+Remediation history:
+- Pass-1 HIGH: ts=0 error-window sentinel — `error_window_active == false` sentinel replaces `error_window_start_ts == 0`; fixed in code via `error_window_active: bool` field.
+- Pass-3 2×HIGH (F-134-P3-001/002): BC-2.17.010 v1.0 process_pdu pseudo-code still commanded `command_counts` increment — contradicted F8-001; BC-2.17.010 v1.0→v1.1 (command_counts removed from process_pdu, reattributed to BC-2.17.016 frame-walk PC-0). Architecture Anchor and PC-3 corrected. F8-001 fully propagated. SPEC FIX; code @ac04edd was already correct.
+- Pass-4 MEDIUM (M-1): BC-2.17.008 PC-2 used `error_window_start_ts==0` sentinel — fails when first error at pcap-relative ts=0. BC-2.17.008 v1.1→v1.2 (`error_window_active: bool` replaces ts=0 sentinel). ADR-010 Decision 4 roster updated. EC-008 added. SPEC FIX; code correct.
+- Pass-G 2×MEDIUM (F-134-PG-001/002): enip.rs + STORY-134.md cited ADR-010 Decision 5/6 for detection-order/MAX_FINDINGS; correct anchor is Decision 4. Full worktree sweep: 8 sites in src/analyzer/enip.rs + 3 sites in STORY-134.md corrected @0115bf5. Lesson: ADR-DECISION-NUMBER-MIS-ANCHOR-001 (D-245).
+- Passes M/N/O on worktree HEAD 68e3394: 0 findings all 3 passes. CONVERGED (D-246).
+
+**Per-story adversarial convergence ACHIEVED** (BC-5.39.001 MET). STORY-134 worktree HEAD 68e3394. 20 recon tests green; full repo green; clippy/fmt/green-doc-tense clean.
+
+---
+
+### STORY-134 Pass 1 (2026-06-25)
+
+**Findings:** 1 (0 CRIT, 1 HIGH, 0 MED, 0 LOW)
+**Novelty:** HIGH
+**Convergence counter:** 0 of 3
+
+HIGH: ts=0 error-window sentinel — `error_window_start_ts == 0` used as unseeded sentinel but fails when first error arrives at pcap-relative ts=0. Fixed via `error_window_active: bool` field.
+
+---
+
+### STORY-134 Pass 2 (2026-06-25)
+
+**Findings:** 0 (0 CRIT, 0 HIGH, 0 MED, 0 LOW)
+**Novelty:** —
+**Convergence counter:** 1 of 3 (CLEAN)
+
+---
+
+### STORY-134 Pass 3 (2026-06-25)
+
+**Findings:** 2 (0 CRIT, 2 HIGH, 0 MED, 0 LOW)
+**Novelty:** HIGH
+**Convergence counter:** reset (FINDINGS_REMAIN — REMEDIATED)
+
+F-134-P3-001: BC-2.17.010 process_pdu pseudo-code commanded `command_counts[0x0063]` increment — contradicts F8-001 relocation. BC-2.17.010 v1.0→v1.1. SPEC FIX.
+F-134-P3-002: BC-2.17.010 Architecture Anchor pseudo-code repeated same contradiction. Fixed in same BC-2.17.010 v1.1 amendment.
+
+---
+
+### STORY-134 Pass 4 (2026-06-25)
+
+**Findings:** 1 (0 CRIT, 0 HIGH, 1 MED, 0 LOW)
+**Novelty:** MEDIUM
+**Convergence counter:** reset (FINDINGS_REMAIN — REMEDIATED)
+
+M-1: BC-2.17.008 PC-2 `error_window_start_ts==0` sentinel invalid at ts=0. BC-2.17.008 v1.1→v1.2 (`error_window_active` bool). ADR-010 Decision 4 roster + EC-008. SPEC FIX; code correct.
+
+---
+
+### STORY-134 Pass G (2026-06-25)
+
+**Findings:** 2 (0 CRIT, 0 HIGH, 2 MED, 0 LOW)
+**Novelty:** MEDIUM
+**Convergence counter:** reset (FINDINGS_REMAIN — REMEDIATED)
+
+F-134-PG-001: enip.rs cited ADR-010 Decision 5/6 for detection-order and MAX_FINDINGS — correct anchor is Decision 4. 8 sites in src/analyzer/enip.rs corrected @0115bf5.
+F-134-PG-002: STORY-134.md Architecture Compliance Rules and Mapping table cited Decision 5/6. 3 sites corrected (this factory-artifacts burst, D-245).
+
+---
+
+### STORY-134 Passes M, N, O (2026-06-25) — 3 consecutive clean passes
+
+**Pass M:** 0 findings. Convergence counter 1 of 3 (CLEAN).
+**Pass N:** 0 findings. Convergence counter 2 of 3 (CLEAN).
+**Pass O:** 0 findings. Convergence counter 3 of 3 (CONVERGED).
+
+Worktree HEAD 68e3394 reviewed. All prior findings resolved. Per-story adversarial convergence ACHIEVED (D-246). BC-5.39.001 MET.
+
+---
+
 ## Wave-59 Follow-Up Obligations (logged at wave-level convergence — non-blocking)
 
 These were surfaced during wave-level passes and logged per D-238:

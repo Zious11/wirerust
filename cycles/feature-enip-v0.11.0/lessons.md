@@ -359,3 +359,61 @@ DF-GREEN-DOC-TENSE sweep or the story-review checklist that extracts all "ADR-NN
 Decision N" citations from changed files and prints the corresponding ADR heading for
 human spot-check. This is a low-cost verification step that would have caught all 11
 mis-anchor sites in one pass.
+
+---
+
+## [codified] [process-gap] DF-SIBLING-SWEEP-REMEDIATION-SCOPE (D-246, 2026-06-25) — Remediation dispatches must grep the FULL worktree, not just the primary file
+
+**Status:** CODIFIED — deferred-to-cycle-close evaluation per S-7.02. Compounds F8-001-PROPAGATION-COMPLETENESS and ADR-DECISION-NUMBER-MIS-ANCHOR-001.
+**Found at:** STORY-134 per-story convergence multi-round remediation (Passes G/J/K/L ADR-citation mis-anchor, each pass requiring additional sweeps).
+**Decision:** D-246.
+
+**Observation:**
+
+STORY-134 convergence required many rounds because each fix-dispatch was scoped too narrowly.
+For example, the ADR-decision-number mis-anchor fix applied to `src/analyzer/enip.rs` during
+one burst but missed the sibling `tests/enip_analyzer_tests.rs` (which carries parallel doc-comment
+citations) and `STORY-134.md` (which carries Architecture Mapping citations). The next adversarial
+pass caught the siblings, requiring another remediation round. This pattern repeated: primary
+file fixed, sibling files missed, adversary catches siblings, fix again.
+
+**Root cause:**
+
+Remediation dispatch instructions specified a target file (e.g., "fix Decision 5/6→4 in enip.rs")
+rather than "grep the full worktree for the pattern and fix all occurrences." The implementer
+correctly fixed the named file; the adversary correctly found the surviving siblings.
+
+**Quantified impact:** ADR-decision mis-anchor remediation took at minimum 3 additional passes
+(Pass-G fix → J/K/L re-confirmation → M/N/O final convergence) because sibling files were not
+swept in the initial G-fix dispatch. With a full-worktree grep in the G-fix dispatch, passes
+H/I would have been the 3-clean window rather than requiring a further round.
+
+**Process improvement (mandatory — reinforces DF-SIBLING-SWEEP-001):**
+
+Every remediation dispatch MUST include an explicit instruction to grep the FULL worktree
+(src + tests + story file) for the pattern being corrected — not just the primary file.
+
+Canonical sweep template for a remediation dispatch:
+
+```bash
+# Before declaring a remediation complete, sweep ALL files:
+grep -rn "<pattern_being_corrected>" \
+  src/ tests/ .factory/stories/STORY-NNN.md \
+  .factory/specs/ docs/adr/
+```
+
+Any surviving instance in a non-historical context is a gap — fix it in the SAME burst
+before committing. Do NOT leave surviving instances for the next adversarial pass to catch.
+
+**Relationship to existing policies:**
+
+- DF-SIBLING-SWEEP-001 (CRITICAL): already mandates sibling sweeps for spec changes. This
+  lesson extends the obligation to CODE and STORY doc-comment citations as well — not just
+  spec BC/ADR files.
+- F8-001-PROPAGATION-COMPLETENESS (above): same class — a spec amendment swept BC-2.17.016/004
+  but missed BC-2.17.010. The fix here: grep ALL files, not a manually-curated list.
+
+**Evaluation at cycle close:** Consider whether DF-SIBLING-SWEEP-001 should be updated to
+explicitly name `tests/*.rs` doc-comments and story Architecture Mapping tables as mandatory
+sweep targets alongside BC/ADR/INDEX files. This would codify the lesson mechanically rather
+than relying on dispatch-instruction discipline.
