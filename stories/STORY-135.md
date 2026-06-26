@@ -109,6 +109,7 @@ via EtherNet/IP are detected and reported with appropriate MITRE ICS technique t
 - **Test:** `tests/enip_analyzer_tests.rs::command_detections::test_t0836_burst_fires_at_threshold_plus_one`
 - **Test:** `tests/enip_analyzer_tests.rs::command_detections::test_t0836_burst_one_shot_guard`
 - **Test:** `tests/enip_analyzer_tests.rs::command_detections::test_t0836_no_fire_at_threshold`
+- **Test:** `tests/enip_analyzer_tests.rs::command_detections::test_t0836_threshold_zero_fires_on_first_write`
 - **Test:** `tests/enip_analyzer_tests.rs::command_detections::test_t0836_window_resets_after_1s`
 - **Test:** `tests/enip_analyzer_tests.rs::command_detections::test_t0836_custom_threshold`
 
@@ -154,7 +155,7 @@ via EtherNet/IP are detected and reported with appropriate MITRE ICS technique t
 | EC-004 | CIP Stop via 0x00B1 | No T0858 in v0.11.0 (F-P9-001 gate; 0x00B1 skipped) |
 | EC-005 | Reset service (0x05) via 0x00B2 | T0816 finding emitted |
 | EC-006 | Reset response (0x85) | No T0816 (only requests trigger) |
-| EC-007 | 50 SetAttribute in 1s (threshold=50, strict >) | No T0836 finding |
+| EC-007 | `enip_write_burst_threshold=0`; first write | T0836 fires immediately (count=1 > 0) |
 | EC-008 | 51 SetAttribute in 1s (threshold=50, strict >) | T0836 finding; guard=true |
 | EC-009 | 52nd SetAttribute in same window | No additional T0836 (one-shot guard) |
 | EC-010 | 1s window expires; 51 new writes | New window; T0836 can fire again |
@@ -192,6 +193,7 @@ command_detections::test_t0816_connected_item_no_finding
 command_detections::test_t0836_burst_fires_at_threshold_plus_one
 command_detections::test_t0836_burst_one_shot_guard
 command_detections::test_t0836_no_fire_at_threshold
+command_detections::test_t0836_threshold_zero_fires_on_first_write
 command_detections::test_t0836_window_resets_after_1s
 command_detections::test_t0836_custom_threshold
 command_detections::test_non_enip_suppresses_command_detections
@@ -230,7 +232,7 @@ No new external crate dependencies. `std::time` or a timestamp integer (`u32` se
 | Section | Estimated tokens |
 |---------|-----------------|
 | `src/analyzer/enip.rs` additions | ~350 |
-| `tests/enip_analyzer_tests.rs` command_detections mod (14 tests) | ~600 |
+| `tests/enip_analyzer_tests.rs` command_detections mod (16 tests) | ~650 |
 | **Total** | **~950** |
 
 ## Dependency Rationale
