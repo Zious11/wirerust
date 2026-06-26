@@ -640,12 +640,16 @@ impl EnipAnalyzer {
                 let header = match parse_enip_header(&buf[cursor..cursor + 24]) {
                     Some(h) => h,
                     None => {
-                        // Defensive arm: parse_enip_header returns None only for < 24 bytes;
-                        // the while condition guarantees >= 24, so this is unreachable in
-                        // practice. Counted as a structural reject for safety (BC-2.17.016).
-                        flow.parse_errors += 1;
-                        flow.malformed_in_window += 1;
-                        check_t0814(flow, &mut self.all_findings, timestamp, src_ip, dest_ip);
+                        // Defensive arm: parse_enip_header returns None only for < 24 bytes.
+                        // The while condition `buf.len() - cursor >= 24` makes this unreachable
+                        // in correct code (STORY-137 pseudocode lines 213-221; RULING-137-001 §1).
+                        // Counter mutations are removed to prevent silent inflation if the guard
+                        // is weakened (F-137-P1-004). A debug_assert catches regressions.
+                        debug_assert!(
+                            false,
+                            "parse_enip_header returned None despite buf.len()-cursor >= 24; \
+                             this is a logic error in the while-loop guard"
+                        );
                         cursor += 1;
                         continue;
                     }
@@ -658,17 +662,16 @@ impl EnipAnalyzer {
                 *flow.command_counts.entry(header.command).or_insert(0) += 1;
 
                 // BC-2.17.016 Postcondition 1 / BC-2.17.018 PC-1/2: command-validity gate.
-                // Unknown command → byte-walk resync: cursor += 1; break.
-                // DESIGN NOTE: we advance by 1 byte (matching the resync description in
-                // EC-012 / BC-2.17.016 Post-1) but then break so the remaining bytes stash
-                // into carry rather than generating one malformed event per byte. This is
-                // required for the per-call malformed counter semantics tested by EC-006/008.
+                // Unknown command → byte-walk resync: cursor += 1; continue (NOT break).
+                // RULING-137-001 §1: continue is mandated by all four ratified artifacts.
+                // Each byte-walk position that fails is_valid_enip_frame is one structural
+                // reject — counted independently (RULING-137-001 §2, Option a).
                 if !is_valid_enip_frame(&header) {
                     flow.parse_errors += 1;
                     flow.malformed_in_window += 1;
                     check_t0814(flow, &mut self.all_findings, timestamp, src_ip, dest_ip);
-                    cursor += 1; // byte-walk resync — advance 1 byte, then break
-                    break; // remaining bytes stash to carry (not re-walked per EC-006)
+                    cursor += 1; // byte-walk resync — advance 1 byte, NOT break
+                    continue; // NOT break — loop must re-attempt at next byte (BC-2.17.016 Post-1)
                 }
 
                 let total_frame_len = 24 + header.length as usize;
@@ -676,17 +679,16 @@ impl EnipAnalyzer {
                 // BC-2.17.016 Postcondition 1 / Invariant 4 (frame-skip path):
                 // Oversized declared frame (total > MAX_ENIP_CARRY_BYTES) → frame-skip.
                 // DO NOT set is_non_enip here (carry overflow is the ONLY trigger, Inv 4).
-                // Advance past the declared frame, bounded by remaining buffer, then break.
-                // Remaining bytes (if any) go to carry, where the carry-cap check applies.
-                // This matches test_carry_buffer_cap_at_600 which expects bytes AFTER the
-                // oversized frame to land in carry (not be re-walked as invalid commands).
+                // Advance past the declared frame, bounded by remaining buffer, then continue.
+                // RULING-137-001 §1: continue is required — subsequent valid frames in the
+                // same segment must still be processed (detection-evasion vector if break used).
                 if total_frame_len > MAX_ENIP_CARRY_BYTES {
                     flow.parse_errors += 1;
                     flow.malformed_in_window += 1;
                     check_t0814(flow, &mut self.all_findings, timestamp, src_ip, dest_ip);
                     // Advance past the declared frame, bounded by remaining buffer.
                     cursor += total_frame_len.min(buf.len() - cursor);
-                    break; // remaining bytes stash to carry (carry-cap check follows)
+                    continue; // NOT break — re-attempt at next position (RULING-137-001 §1)
                 }
 
                 // BC-2.17.016 Postcondition 1 (partial-frame stash): not enough bytes yet.
@@ -786,10 +788,22 @@ impl EnipAnalyzer {
         // Incremented here (after is_non_enip guard) so non-ENIP flows do not count.
         flow.pdu_count += 1;
 
-        // ADR-010 Decision 4, step 1: parse ENIP header; silently drop frames < 24 bytes.
+        // ADR-010 Decision 4, step 1: parse ENIP header.
+        // Only complete, valid (>= 24-byte, is_valid_enip_frame-checked) frames are ever
+        // queued/dispatched to process_pdu by on_data. A None here is a logic error.
+        // The debug_assert makes future regressions (e.g. a path that dispatches partial
+        // frames) visible immediately rather than silently dropping a PDU (F-137-P1-003).
         let header = match parse_enip_header(pdu) {
             Some(h) => h,
-            None => return,
+            None => {
+                debug_assert!(
+                    false,
+                    "process_pdu received a pdu < 24 bytes ({} bytes); \
+                     only frames validated in on_data should be dispatched here",
+                    pdu.len()
+                );
+                return;
+            }
         };
 
         // ADR-010 Decision 4, step 2: classify command; T0846 ListIdentity detection

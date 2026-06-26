@@ -5622,22 +5622,29 @@ mod frame_walk {
         );
     }
 
-    /// AC-137-004 — T0814 one-shot guard: 4th malformed frame in same window → no second finding.
+    /// AC-137-004 — T0814 one-shot guard: 4th malformed event in same window → no second finding.
     ///
-    /// After T0814 fires at the 3rd malformed frame, a 4th malformed frame increments
-    /// `malformed_in_window` to 4 but does NOT emit another T0814 (guard set).
+    /// Uses the oversized-declared-frame-skip path (RULING-137-001 §1): each call delivers a
+    /// self-contained 624-byte buffer (header.length=600, total=624 > MAX_ENIP_CARRY_BYTES).
+    /// The loop advances `cursor += min(624, 624) = 624` then `continue`; the loop exits with
+    /// `buf.len()-cursor == 0`, so carry is empty after each call. Exactly 1 malformed event
+    /// per call, no carry residue to re-walk on subsequent calls (RULING-137-001 §2).
     ///
-    /// All calls use the same flow key so counters accumulate.
+    /// After 3 calls: `malformed_in_window=3, parse_errors=3` → T0814 fires, guard set
+    ///   (BC-2.17.018 Canonical Test Vectors row 3).
+    /// After 4th call: `malformed_in_window=4, parse_errors=4`, guard holds → no 2nd T0814
+    ///   (BC-2.17.018 Canonical Test Vectors row 4; EC-004 — same window, guard set).
     ///
-    /// Traces: BC-2.17.018 Postcondition 4; AC-137-004; EC-008.
+    /// Traces: BC-2.17.018 Postcondition 4; BC-2.17.018 EC-004; AC-137-004; RULING-137-001 §1–2.
     #[test]
     fn test_t0814_one_shot_guard_per_window() {
         let mut analyzer = EnipAnalyzer::new(50, 5);
         let key = make_flow_key();
-        let frame = enip_unknown_command_frame();
+        // Each oversized-declared-frame call: exactly 1 malformed event, zero carry residue.
+        // command=0x0065 (valid), header.length=600, total=624 > 600 → frame-skip path.
         for i in 0..4u32 {
+            let frame = enip_oversized_declared_frame();
             analyzer.on_data(key.clone(), &frame, i);
-            // RED GATE: todo!() panics on i==0 before here.
         }
         let t0814_count = analyzer
             .all_findings
@@ -5646,8 +5653,8 @@ mod frame_walk {
             .count();
         assert_eq!(
             t0814_count, 1,
-            "T0814 must fire exactly once per window (4th malformed frame must not re-fire) \
-             (BC-2.17.018 Postcondition 4; AC-137-004; EC-008)"
+            "T0814 must fire exactly once per window (one-shot guard prevents 2nd emission on \
+             4th event) (BC-2.17.018 Postcondition 4; EC-004; AC-137-004; RULING-137-001 §1–2)"
         );
         let flow = analyzer
             .flows
@@ -5655,41 +5662,75 @@ mod frame_walk {
             .expect("flow must exist after on_data");
         assert_eq!(
             flow.malformed_in_window, 4,
-            "malformed_in_window must be 4 after 4 structural rejects in the same window"
+            "malformed_in_window must be 4: one increment per oversized-frame-skip call, \
+             no carry-residue re-walk (BC-2.17.018 Canonical Test Vectors row 4; RULING-137-001 §2)"
+        );
+        assert_eq!(
+            flow.parse_errors, 4,
+            "parse_errors (lifetime) must be 4: one per structural reject, no carry inflation \
+             (BC-2.17.018 PC-1; RULING-137-001 §2)"
+        );
+        assert!(
+            flow.malformed_anomaly_emitted,
+            "malformed_anomaly_emitted must be true after T0814 fires \
+             (BC-2.17.018 Postcondition 4; one-shot guard)"
         );
     }
 
-    /// AC-137-004 — T0814 does NOT fire below threshold (2 malformed frames).
+    /// AC-137-004 — T0814 does NOT fire below threshold (2 malformed events).
     ///
-    /// 2 structural rejects: `malformed_in_window == 2` but `<` threshold (3). No T0814.
+    /// Uses the oversized-declared-frame-skip path (RULING-137-001 §1): each call delivers a
+    /// self-contained 624-byte buffer (header.length=600, total=624 > MAX_ENIP_CARRY_BYTES).
+    /// The loop advances `cursor += min(624, 624) = 624` then `continue`; carry is empty after
+    /// each call. Exactly 1 malformed event per call, no carry residue to re-walk.
     ///
-    /// Traces: BC-2.17.018 Precondition (threshold not yet reached); AC-137-004; EC-006.
+    /// 2 calls → `malformed_in_window=2, parse_errors=2`: below MALFORMED_ANOMALY_THRESHOLD (3).
+    /// T0814 must NOT fire. `malformed_anomaly_emitted` must remain false.
+    ///
+    /// Corresponds to BC-2.17.018 Canonical Test Vectors rows 1–2 (1 event: no finding;
+    /// 2 events: no finding) and Precondition 2 (threshold not yet reached).
+    ///
+    /// Traces: BC-2.17.018 Preconditions 1–2; BC-2.17.018 EC-001–002; AC-137-004;
+    ///         RULING-137-001 §1–2.
     #[test]
     fn test_t0814_does_not_fire_below_threshold() {
         let mut analyzer = EnipAnalyzer::new(50, 5);
         let key = make_flow_key();
-        let frame = enip_unknown_command_frame();
-        analyzer.on_data(key.clone(), &frame, 0);
-        // RED GATE: todo!() panics before here.
-        analyzer.on_data(key.clone(), &frame, 0);
+        // Each oversized-declared-frame call: exactly 1 malformed event, zero carry residue.
+        // command=0x0065 (valid), header.length=600, total=624 > 600 → frame-skip path.
+        analyzer.on_data(key.clone(), &enip_oversized_declared_frame(), 0);
+        analyzer.on_data(key.clone(), &enip_oversized_declared_frame(), 1);
         let flow = analyzer
             .flows
             .get(&key)
             .expect("flow must exist after on_data");
         assert_eq!(
             flow.malformed_in_window, 2,
-            "malformed_in_window must be 2 after 2 rejects (EC-006)"
+            "malformed_in_window must be 2: one increment per oversized-frame-skip call, \
+             no carry-residue inflation (BC-2.17.018 EC-002; RULING-137-001 §2)"
+        );
+        assert_eq!(
+            flow.parse_errors, 2,
+            "parse_errors (lifetime) must be 2: one per structural reject \
+             (BC-2.17.018 PC-1; RULING-137-001 §2)"
         );
         assert!(
             !analyzer
                 .all_findings
                 .iter()
                 .any(|f| f.mitre_techniques.contains(&"T0814".to_string())),
-            "T0814 must NOT fire below threshold (2 < 3) (BC-2.17.018; EC-006)"
+            "T0814 must NOT fire below threshold (2 < 3 = MALFORMED_ANOMALY_THRESHOLD) \
+             (BC-2.17.018 Precondition 2; EC-001–002; AC-137-004)"
         );
         assert!(
             !flow.malformed_anomaly_emitted,
-            "malformed_anomaly_emitted must remain false below threshold"
+            "malformed_anomaly_emitted must remain false below threshold \
+             (BC-2.17.018 Postcondition 4)"
+        );
+        assert!(
+            !flow.is_non_enip,
+            "is_non_enip must remain false: frame-skip path does NOT set it \
+             (BC-2.17.016 Invariant 4)"
         );
     }
 
@@ -5733,43 +5774,60 @@ mod frame_walk {
 
     /// AC-137-004 — parse_errors is NOT reset on window expiry (lifetime counter).
     ///
-    /// `parse_errors` is a lifetime counter that is NEVER reset. `malformed_in_window` is
-    /// reset to 0 at window expiry, but `parse_errors` continues accumulating.
+    /// Uses the oversized-declared-frame-skip path (RULING-137-001 §1): each call delivers a
+    /// self-contained 624-byte buffer (header.length=600, total=624 > MAX_ENIP_CARRY_BYTES).
+    /// Exactly 1 malformed event per call, no carry residue to re-walk (RULING-137-001 §2).
     ///
-    /// After 3 malformed frames (window 1) + 1 at ts=300 (window 2):
-    ///   parse_errors == 4 (lifetime)
-    ///   malformed_in_window == 1 (new window, only the ts=300 frame)
+    /// Two-counter model (BC-2.17.018 Invariant 1):
+    ///   - `parse_errors`: LIFETIME, monotonic, NEVER reset.
+    ///   - `malformed_in_window`: WINDOWED, reset to 0 at 300s expiry.
     ///
-    /// All calls use the same flow key.
+    /// Scenario (K=3 events in window 1, M=1 event in window 2):
+    ///   Window 1 (ts=0): 3 oversized-frame-skip calls → parse_errors=3, malformed_in_window=3.
+    ///     T0814 fires on the 3rd call (threshold reached); malformed_anomaly_emitted=true.
+    ///     (BC-2.17.018 Canonical Test Vectors row 3.)
+    ///   Window 2 (ts=300): expiry triggers reset: malformed_in_window=0, anomaly_emitted=false.
+    ///     Then the ts=300 call adds 1 event → parse_errors=4 (accumulated), malformed_in_window=1.
+    ///     (BC-2.17.018 Postcondition 5; Canonical Test Vectors row 5.)
     ///
-    /// Traces: BC-2.17.018 Invariant 1 (two counters, different lifetimes); AC-137-004; EC-009.
+    /// Final expected state: parse_errors=4, malformed_in_window=1, malformed_anomaly_emitted=false.
+    ///
+    /// Traces: BC-2.17.018 Invariant 1; BC-2.17.018 Postcondition 5; BC-2.17.018 EC-005;
+    ///         RULING-137-001 §2 (§3.3 two-counter model); AC-137-004.
     #[test]
     fn test_parse_errors_not_reset_on_window_expiry() {
         let mut analyzer = EnipAnalyzer::new(50, 5);
         let key = make_flow_key();
-        let frame = enip_unknown_command_frame();
 
-        // 3 malformed frames in window 1 (timestamp 0).
-        analyzer.on_data(key.clone(), &frame, 0);
-        // RED GATE: todo!() panics before here.
-        analyzer.on_data(key.clone(), &frame, 0);
-        analyzer.on_data(key.clone(), &frame, 0);
+        // Window 1 (ts=0): 3 oversized-frame-skip events → threshold crossed, T0814 fires.
+        // Each call: exactly 1 malformed event (parse_errors++, malformed_in_window++), no carry.
+        analyzer.on_data(key.clone(), &enip_oversized_declared_frame(), 0);
+        analyzer.on_data(key.clone(), &enip_oversized_declared_frame(), 0);
+        analyzer.on_data(key.clone(), &enip_oversized_declared_frame(), 0);
 
-        // Window 2 starts at ts=300. 1 more malformed frame.
-        analyzer.on_data(key.clone(), &frame, 300);
+        // Window 2 (ts=300): 300s elapsed → expiry resets malformed_in_window=0 and
+        // malformed_anomaly_emitted=false. Then this call adds 1 more event → malformed_in_window=1.
+        analyzer.on_data(key.clone(), &enip_oversized_declared_frame(), 300);
+
         let flow = analyzer
             .flows
             .get(&key)
             .expect("flow must exist after on_data");
         assert_eq!(
             flow.parse_errors, 4,
-            "parse_errors must accumulate across window resets (lifetime counter, never reset) \
-             (BC-2.17.018 Invariant 1; EC-009)"
+            "parse_errors must accumulate across window resets (lifetime counter, NEVER reset): \
+             3 events in window 1 + 1 in window 2 = 4 (BC-2.17.018 Invariant 1; EC-005)"
         );
         assert_eq!(
             flow.malformed_in_window, 1,
-            "malformed_in_window must be 1 in the new window after the 300s expiry reset \
-             (BC-2.17.018 Postcondition 5; EC-009)"
+            "malformed_in_window must be 1 in window 2: reset to 0 at expiry, then +1 for the \
+             single ts=300 event (BC-2.17.018 Postcondition 5; EC-005; RULING-137-001 §3.3)"
+        );
+        assert!(
+            !flow.malformed_anomaly_emitted,
+            "malformed_anomaly_emitted must be false in window 2: the guard is cleared at window \
+             expiry, allowing a fresh T0814 when threshold is reached again \
+             (BC-2.17.018 Postcondition 5; EC-005)"
         );
     }
 
