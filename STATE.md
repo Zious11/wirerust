@@ -1,10 +1,10 @@
 ---
 pipeline: FEATURE-MODE
 phase: F4
-phase_status: "F4 Wave 60 INTEGRATION GATE IN-PROGRESS — NOT YET CONVERGED. F-W60-001 HIGH (source_ip attribution) BLOCKS convergence; RULING-W60-001 issued; fix-PR fix/enip-source-ip-attribution in progress. After fix-PR merge + 3-pass re-convergence + human gate → Wave 61 STORY-138."
+phase_status: "F4 Wave 60 INTEGRATION GATE IN-PROGRESS — NOT YET CONVERGED. F-W60-001 HIGH RESOLVED via fix-PR #328 @0f345c6. 3-pass Wave-60 adversarial re-convergence required on updated develop HEAD. After convergence + human gate → Wave 61 STORY-138."
 product: wirerust
 mode: feature-mode
-timestamp: 2026-06-26T10:00:00Z
+timestamp: 2026-06-26T12:00:00Z
 
 # Release chain (latest)
 released_version: v0.10.0
@@ -16,8 +16,8 @@ release_yml_run: "28109367603 SUCCESS — 4 binaries"
 prior_released_version: v0.9.4
 prior_released_at: "2026-06-23"
 
-# Ground-truth HEADs (verified D-253 — 2026-06-26)
-develop_head: 72a9106
+# Ground-truth HEADs (verified D-256 — 2026-06-26)
+develop_head: 0f345c6
 main_head: 0cbe922
 factory_artifacts_head: (run `git -C .factory log -1 --format='%h'`)
 
@@ -52,9 +52,9 @@ convergence_trajectory: "Detail: cycles/v0.1.0-greenfield-spec/convergence-traje
 
 ## Status
 
-**PIPELINE FEATURE-MODE. Cycle `feature-enip-v0.11.0` OPEN. F4 Wave 60 INTEGRATION GATE IN-PROGRESS — NOT YET CONVERGED. F-W60-001 HIGH BLOCKS convergence (RULING-W60-001; fix-PR fix/enip-source-ip-attribution in progress). After fix-PR merge: re-run 3-pass adversarial convergence → human gate → Wave 61 STORY-138.**
+**PIPELINE FEATURE-MODE. Cycle `feature-enip-v0.11.0` OPEN. F4 Wave 60 INTEGRATION GATE IN-PROGRESS — NOT YET CONVERGED. F-W60-001 HIGH RESOLVED via fix-PR #328 @0f345c6 (D-256). NEXT: re-run 3-pass Wave-60 adversarial convergence on develop @0f345c6 → human gate → Wave 61 STORY-138.**
 
-Latest release: v0.10.0 (main `0cbe922`, tag `v0.10.0`). develop=`72a9106`. stories_delivered=86. Target: v0.11.0 (SS-17 EtherNet/IP + CIP TCP/44818). GitHub issue #316.
+Latest release: v0.10.0 (main `0cbe922`, tag `v0.10.0`). develop=`0f345c6`. stories_delivered=86. Target: v0.11.0 (SS-17 EtherNet/IP + CIP TCP/44818). GitHub issue #316.
 
 Spec versions: BC-INDEX v1.84 (331 on disk / 330 active; SS-17=26 BCs). ARCH-INDEX v1.8. VP-INDEX v2.11 (VP-032). PRD v1.36. STORY-INDEX v2.8 (91 stories / 61 waves). epics.md v1.8 (E-20).
 
@@ -76,29 +76,28 @@ Spec versions: BC-INDEX v1.84 (331 on disk / 330 active; SS-17=26 BCs). ARCH-IND
 - Do NOT re-deliver STORY-136 — MERGED PR #326 @a2cb795 (D-252). CI 11/11 green; pr-reviewer APPROVE (NITs PRF-001/002/003 deferred); security PASS (SEC-006 LOW deferred W7.1). input-hash 0846e0e MATCH. Demo evidence at docs/demo-evidence/STORY-136/.
 - Do NOT re-run STORY-137 TDD or per-story adversarial convergence — CONVERGED @c4644f9 (D-253). Trajectory: 2CRIT→fix (RULING-137-001)→2HIGH→fix→CLEAN(1MED)→fix→CLEAN→CLEAN→CLEAN (passes B/C/D 3/3). BC-5.39.001 MET. input-hash f4c8390 MATCH. RULING-137-001 (continue semantics; per-offset counting intended) + RULING-137-002 (carry-overflow is_non_enip latch provably unreachable; deferred spec defect) binding.
 - Do NOT re-deliver STORY-137 — MERGED PR #327 @72a9106 (D-254). CI 11/11 green; pr-reviewer APPROVE (0 blocking); security PASS (SEC-137-001 MEDIUM unsafe split-borrow pre-authorized-deferred; SEC-137-002/003 LOW). input-hash f4c8390 MATCH. Demo evidence at docs/demo-evidence/STORY-137/.
+- Do NOT re-apply fix-PR #328 — MERGED @0f345c6 (D-256). `resolve_enip_client_ip` port-44818 heuristic ships. 2 value-asserting on_data E2E tests + control + 4 unit tests T1-T4. CI 11/11 green; pr-reviewer APPROVE; security PASS (SEC-001 LOW magic-number 44818, SEC-002 INFO fallback — both non-blocking). DRIFT-ENIP-DIRECTION-001 residual in doc-comment (non-blocking).
 
-### EXACT RESUME POINT — Wave-60 integration gate IN-PROGRESS (NOT CONVERGED)
+### EXACT RESUME POINT — Wave-60 integration gate IN-PROGRESS (fix-PR merged, re-convergence required)
 
-**F4 Wave 60 — ALL MERGED.** STORY-134/135/136/137 all merged into develop. develop HEAD = `72a9106`. stories_delivered=86.
+**F4 Wave 60 — ALL MERGED + FIX-PR MERGED.** STORY-134/135/136/137 + fix-PR #328 all merged into develop. develop HEAD = `0f345c6`. stories_delivered=86 (fix-PR does NOT increment story count).
 
-**Wave-60 integration gate status:** Full regression GREEN. Fresh-context consistency audit CLEAN (NEW-001 FIXED — STORY-INDEX statuses updated). 3-pass adversarial: Pass 1 CLEAN, Pass 2 found F-W60-001 HIGH (BLOCKS), Pass 3 CLEAN. RULING-W60-001 issued; 3-clean counter RESET.
+**Wave-60 integration gate status:** Full regression GREEN. Fresh-context consistency audit CLEAN. 3-pass adversarial (pre-fix): Pass 1 CLEAN, Pass 2 F-W60-001 HIGH (RESOLVED), Pass 3 CLEAN. RULING-W60-001 issued; 3-clean counter RESET by the fix. Fix-PR #328 merged (D-256) — `resolve_enip_client_ip` port-44818 heuristic ships; WAVE-60-E2E-TEST-COVERAGE RESOLVED.
 
-**BLOCKING:** F-W60-001 HIGH — `on_data` assigns `src_ip = flow_key.lower_ip()` (NOT traffic source). All CIP detections (T0846/T0888/T0858/T0816/T0836/ForwardOpen/Close/T0814) mis-attribute source_ip to lower-sorting IP (~50% wrong). Fix: `resolve_enip_client_ip` port-44818 heuristic on branch `fix/enip-source-ip-attribution`. RULING-W60-001 binding.
-
-**NEXT STEP = After fix-PR merge:** re-run full 3-pass Wave-60 adversarial convergence on updated develop HEAD → human gate → Wave 61 STORY-138 → Wave-61 gate → F5 scoped-adversarial → F6 formal hardening (VP-032/VP-004/VP-007 Kani; cargo-fuzz F-P9-002 `parse_cip_header`/`parse_cpf_items`) → F7 delta-convergence + human gate → release v0.11.0.
+**NEXT STEP = RE-RUN Wave-60 3-pass wave-level adversarial convergence on develop @0f345c6** (counter reset by the fix). After convergence: human gate → Wave 61 STORY-138 (carrying prerequisite: command_counts split-header double-count fix per F-W60-P1-001) → Wave-61 gate → F5 scoped-adversarial → F6 formal hardening (VP-032/VP-004/VP-007 Kani; cargo-fuzz F-P9-002 `parse_cip_header`/`parse_cpf_items`) → F7 delta-convergence + human gate → release v0.11.0.
 
 ### Remaining-work map (after resume)
 
-fix/enip-source-ip-attribution fix-PR (F-W60-001 RULING-W60-001) → Wave-60 3-pass re-convergence + human gate → Wave 61 STORY-138 → Wave-61 gate → F5 scoped-adversarial → F6 formal hardening (VP-032/VP-004/VP-007 Kani; cargo-fuzz F-P9-002 `parse_cip_header`/`parse_cpf_items`) → F7 delta-convergence + human gate → release v0.11.0.
+Wave-60 3-pass re-convergence on develop @0f345c6 (F-W60-001 fix merged D-256) + human gate → Wave 61 STORY-138 (prerequisite: command_counts split-header double-count fix per F-W60-P1-001) → Wave-61 gate → F5 scoped-adversarial → F6 formal hardening (VP-032/VP-004/VP-007 Kani; cargo-fuzz F-P9-002 `parse_cip_header`/`parse_cpf_items`) → F7 delta-convergence + human gate → release v0.11.0.
 
 ### RESUME PROCEDURE (execute in order — BLOCKING)
 
 1. Run `vsdd-factory:factory-worktree-health` — PASS required before proceeding.
 2. Read `.factory/STATE.md` + `cycles/feature-enip-v0.11.0/cycle-manifest.md` in full.
-3. Verify: `git rev-parse --short develop` == `72a9106` (before fix-PR merge) or new HEAD (after).
-4. Run `gh pr list` — expect Dependabot #311 open (non-blocking); PRs #317/#318/#319/#320/#323/#324/#326/#327 MERGED; `fix/enip-source-ip-attribution` PR open or pending (F-W60-001 fix).
+3. Verify: `git rev-parse --short develop` == `0f345c6`.
+4. Run `gh pr list` — expect Dependabot #311 open (non-blocking); PRs #317/#318/#319/#320/#323/#324/#326/#327/#328 MERGED.
 5. Read RULING-W60-001 at `cycles/feature-enip-v0.11.0/RULING-W60-001-source-attribution.md`.
-6. Proceed per EXACT RESUME POINT above — complete fix-PR then re-run Wave-60 adversarial convergence.
+6. Proceed per EXACT RESUME POINT above — re-run Wave-60 3-pass adversarial convergence on develop @0f345c6.
 
 ### Locked design facts (do not re-derive on resume)
 
@@ -112,13 +111,14 @@ STORY-137 key facts: on_data is the carry-buffer frame-walk loop; `pub flows: Ha
 
 | ID | Summary | Status |
 |----|---------|--------|
-| F-W60-001 | **HIGH — BLOCKING Wave-60 convergence.** `on_data` uses `flow_key.lower_ip()` as src_ip — mis-attributes source to lower-sorting endpoint (~50% wrong). Adjudicated RULING-W60-001: FIX via `resolve_enip_client_ip` port-44818 heuristic (approach a, mirrors DNP3 sibling). Branch: `fix/enip-source-ip-attribution`. Residual: DRIFT-ENIP-DIRECTION-001 in doc-comment. | IN-PROGRESS — fix-PR |
+| F-W60-001 | **HIGH — RESOLVED.** `resolve_enip_client_ip` port-44818 heuristic shipped via fix-PR #328 @0f345c6 (D-256), per RULING-W60-001. DNP3 parity. 2 value-asserting on_data E2E tests + control + 4 unit tests T1-T4 (incl. fallback). CI 11/11 green. Residual: DRIFT-ENIP-DIRECTION-001 doc-comment (non-blocking, tracked). | **RESOLVED — fix-PR #328 @0f345c6** |
 | F-W60-002 | **MEDIUM — NON-BLOCKING.** `bytes_received` updated before `is_non_enip` guard vs BC-2.17.016 PC-5. RULING-W60-001 Part 2: bytes_received EXEMPT (analyzer-level routing observable, not per-flow counter). Code correct; BC-2.17.016 v1.1→v1.2 clarification (PC-5 exemption + Invariant 7) deferred to cycle-close SS-17 BC backfill (avoids mid-wave input-hash churn on merged stories). | DEFERRED — cycle close |
-| WAVE-60-E2E-TEST-COVERAGE | No end-to-end test asserts on_data→CIP-detection value (source_ip/dest_ip) for a finding produced by the full frame-walk path. Integration-level assertion being added in fix/enip-source-ip-attribution fix-PR per RULING-W60-001 Part 3 test obligations. | IN-PROGRESS — fix-PR |
+| WAVE-60-E2E-TEST-COVERAGE | No end-to-end test asserting on_data→CIP-detection source_ip/dest_ip values. | **RESOLVED — value-asserting on_data tests landed in fix-PR #328 @0f345c6** |
 | ENGINE-PROPAGATION-GREP-GATE-001 | Mechanical changed-value sibling-grep gate; from feature-enip-v0.11.0 F2. Human decision needed before cycle CLOSE. | OPEN — human review |
 | WAVE-60-TEST-DOC-SWEEP | (a) stale renamed-test ref in dnp3_dispatcher_tests.rs:25; (b) RED-tense in arp_tests.rs:~44/59/76/93; (c) vestigial comment in enip_analyzer_tests.rs:1923; (d) STORY-134.md AC flow_key prose vs actual signature (LOW); (e) redundant `service & 0x80 == 0` re-check in enip.rs (LOW). Batch into Wave-60 doc sweep. | OPEN — Wave-60 |
 | SS-17-BC-INPUT-HASH-BACKFILL | BC-2.17.007 (and likely other SS-17 BC files) carry `input-hash: TBD`. Pre-existing; evaluate at cycle close. | DEFERRED — cycle close |
 | GREEN-DOC-TENSE-GATE-COVERAGE-001 | RESOLVED (gate 22 patterns on develop). Residual: assert-message/test-name-backtick scan deferred to cycle close per S-7.02. | RESOLVED — residual DEFERRED cycle close |
+| GREEN-DOC-TENSE-GATE-PATTERN-GAP-001 | [process-gap] `bin/check-green-doc-tense` misses "These tests MUST FAIL" / "This test MUST FAIL" / "fails RED against" / "will pass once" prose forms (patterns anchor only to "All tests MUST FAIL"). 5th RED-prose recurrence in SS-17. Add missing patterns + self-test fixtures. Engine-improvement backlog / self-improvement epic. NON-BLOCKING. | OPEN — engine-improvement backlog |
 | mitre.rs:358 stale BC-2.17.012 label | T0816 label cites old BC-2.17.012 annotation (cross-story cleanup, non-blocking). | OPEN — Wave-60 doc sweep |
 | DEPENDABOT-311 | PR #311 (actions/checkout 6.0.3→7.0.0) unreviewed. | OPEN — human triage |
 | PO-BACKLOG-MAINT-2026-06-22 | DNP3/ARP/Modbus/finding-collapse holdout coverage gap + stale HS. Human scope decision needed. | OPEN — product-owner |
@@ -133,7 +133,7 @@ STORY-137 key facts: on_data is the carry-buffer frame-walk loop; `pub flows: Ha
 
 All GitHub-issue creation DF-VALIDATION-001-gated.
 
-**Resolved — do not reopen:** PC-013/014/015, maint-2026-06-22, all F6 items, feature-mitre-json-names F1-F7, fix-pc-013-014-015, GREEN-DOC-TENSE-GATE-COVERAGE-001 (gate live on develop).
+**Resolved — do not reopen:** PC-013/014/015, maint-2026-06-22, all F6 items, feature-mitre-json-names F1-F7, fix-pc-013-014-015, GREEN-DOC-TENSE-GATE-COVERAGE-001 (gate live on develop), F-W60-001 (fix-PR #328 @0f345c6 D-256), WAVE-60-E2E-TEST-COVERAGE (value-asserting tests landed fix-PR #328).
 
 ---
 
@@ -160,7 +160,7 @@ All GitHub-issue creation DF-VALIDATION-001-gated.
 | Feature mitre-json-names (issue #64) + v0.9.4 | RELEASED + CLOSED 2026-06-23 (D-217) | 5 BCs bumped. BC-INDEX v1.71 (303). PRs #306-309. tag v0.9.4. |
 | Fix cycle fix-pc-013-014-015 + v0.10.0 | **CONVERGED + RELEASED + CLOSED 2026-06-24 (D-226)** | BC-INDEX v1.73 (305). PRs #310-315. tag v0.10.0 0cbe922. |
 | Feature EtherNet/IP + CIP (issue #316) — F1/F2/F3 | **CONVERGED + HUMAN-APPROVED (D-228/D-230/D-231)** | 26 BCs (BC-2.17.001..026). 9 stories STORY-130..138 (E-20, 66 pts, waves 58-61). 13 holdouts HS-110..122. ADR-010, VP-032, SS-17. Detail: cycles/feature-enip-v0.11.0/ |
-| Feature EtherNet/IP + CIP — F4 | **IN-PROGRESS — Wave-60 integration gate BLOCKED on F-W60-001 HIGH (D-255). STORY-130-137 ALL MERGED; stories_delivered=86. Wave-60 adversarial: Pass 1 CLEAN, Pass 2 F-W60-001 HIGH (BLOCKS), Pass 3 CLEAN. RULING-W60-001 issued. Fix-PR fix/enip-source-ip-attribution in progress.** | STORY-134 PR #323 @e330ccc (D-247); STORY-135 PR #324 @84be2fb (D-249); STORY-136 PR #326 @a2cb795 (D-252); STORY-137 PR #327 @72a9106 (D-254). Wave-59 trajectory: `1→2→2→0→0→0`. Wave-60 trajectory: `0→1→0` (NOT CONVERGED). RULING-W60-001 at cycles/feature-enip-v0.11.0/RULING-W60-001-source-attribution.md. Convergence detail: cycles/feature-enip-v0.11.0/convergence-trajectory.md. |
+| Feature EtherNet/IP + CIP — F4 | **IN-PROGRESS — Wave-60 integration gate re-convergence required. STORY-130-137 ALL MERGED; fix-PR #328 MERGED @0f345c6 (D-256); stories_delivered=86. F-W60-001 HIGH RESOLVED. 3-pass re-convergence on @0f345c6 required (counter reset by fix). RULING-W60-001 binding.** | STORY-134 PR #323 @e330ccc (D-247); STORY-135 PR #324 @84be2fb (D-249); STORY-136 PR #326 @a2cb795 (D-252); STORY-137 PR #327 @72a9106 (D-254); fix-PR #328 @0f345c6 (D-256). Wave-59 trajectory: `1→2→2→0→0→0`. Wave-60 trajectory (pre-fix): `0→1→0` (reset). RULING-W60-001 at cycles/feature-enip-v0.11.0/RULING-W60-001-source-attribution.md. Convergence detail: cycles/feature-enip-v0.11.0/convergence-trajectory.md. |
 
 ## Decisions Log
 
@@ -179,6 +179,7 @@ D-228..D-250: `cycles/feature-enip-v0.11.0/decisions-archive.md`
 | D-253 | SESSION PAUSE — STORY-137 per-story adversarial convergence ACHIEVED @c4644f9 (BC-5.39.001 MET). Trajectory: 2CRIT+2HIGH (P1) → architect RULING-137-001 (continue semantics; per-offset counting intended) → fix → 2HIGH (untested carry-overflow latch + stale RED-gate doc-tense) → fix → CLEAN(1MED F-137-ADV-001 test-name honesty) → fix → CLEAN × 3 (passes B/C/D). 2058 tests green; clippy/fmt/green-doc-tense PASS; input-hash f4c8390 MATCH. Key impl: on_data = frame-walk loop; `pub flows` added; command_counts relocated to single frame-walk site; `#![allow(dead_code)]` removed; byte-walk + frame-skip use `continue`. RULING-137-002: carry-overflow is_non_enip latch provably unreachable (max carry 599 < cap 600); deferred spec defect v0.12.0. S-7.02 items 1-5 recorded in OPEN ITEMS; RULING-137-001/-002 in cycles/feature-enip-v0.11.0/STORY-137/. NEXT = demo-recorder → push → pr-manager halt-for-human-merge (D-231) → Wave-60 integration gate. | 2026-06-26 |
 | D-254 | STORY-137 MERGED — PR #327 squash-merged into develop; new develop HEAD = 72a9106 (was a2cb795). stories_delivered 85→86. CI 11/11 green; pr-reviewer APPROVE (0 blocking); security PASS (SEC-137-001 MEDIUM unsafe split-borrow pre-authorized-deferred; SEC-137-002/003 LOW). input-hash f4c8390 MATCH at merge. Demo evidence at docs/demo-evidence/STORY-137/. Feature: frame-walk loop + carry-buffer + T0814 + command_counts single-site + dead-code removal (BC-2.17.016/004/018). Worktree worktree-issue-316-story-137-enip-frame-walk cleaned up. NEXT = Wave-60 integration gate. | 2026-06-26 |
 | D-255 | Wave-60 integration gate IN-PROGRESS — NOT YET CONVERGED. Regression GREEN @72a9106. Consistency audit CLEAN (NEW-001: STORY-INDEX STORY-134/135/136/137 statuses updated to delivered/merged). Adversarial: Pass 1 CLEAN, Pass 2 found F-W60-001 HIGH (source_ip mis-attribution; BLOCKS convergence; 3-clean counter RESET) + F-W60-002 MEDIUM (NON-BLOCKING bytes_received guard ordering), Pass 3 CLEAN. RULING-W60-001 issued (adjudicates both findings; F-W60-001 FIX via resolve_enip_client_ip port-44818 approach a on branch fix/enip-source-ip-attribution; F-W60-002 DEFER to cycle-close BC backfill; DRIFT-ENIP-DIRECTION-001 residual documented). Fix-PR in progress (devops). After merge: re-run full 3-pass Wave-60 adversarial convergence. D-255 also notes: SS-17 BC files carry status:draft + input-hash:TBD (tracked SS-17-BC-INPUT-HASH-BACKFILL). | 2026-06-26 |
+| D-256 | F-W60-001 RESOLVED — fix-PR #328 (`fix(enip): resolve source_ip to client via port-44818 heuristic`) squash-merged into develop; new develop HEAD = 0f345c6 (was 72a9106). stories_delivered stays 86 (fix-PR, not a story). `resolve_enip_client_ip` port-44818 heuristic (approach a, mirrors DNP3 sibling) ships per RULING-W60-001. 2 value-asserting on_data E2E tests + control + 4 unit tests T1-T4 (incl. fallback); WAVE-60-E2E-TEST-COVERAGE RESOLVED. Residual: DRIFT-ENIP-DIRECTION-001 doc-comment non-blocking. CI 11/11 green; pr-reviewer APPROVE; security PASS (SEC-001 LOW magic-number 44818, SEC-002 INFO fallback — both non-blocking). Fix worktree cleaned up by devops. NEXT = RE-RUN Wave-60 3-pass adversarial convergence on develop @0f345c6. | 2026-06-26 |
 
 ## Governance Policy
 
