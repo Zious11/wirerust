@@ -5041,7 +5041,7 @@ mod frame_walk {
     ///
     /// Traces: BC-2.17.018 EC-007; BC-2.17.016 Invariant 4; RULING-137-001 §1; AC-137-002; AC-137-004.
     #[test]
-    fn test_t0814_fires_on_carry_overflow_third_malformed() {
+    fn test_t0814_fires_on_third_byte_walk_reject() {
         let mut analyzer = EnipAnalyzer::new(50, 5);
         let key = make_flow_key();
         // Three structural rejects via byte-walk (unknown command), same flow.
@@ -6002,12 +6002,19 @@ mod frame_walk {
     // Traces: BC-2.17.016 Post-4/Inv-4; BC-2.17.018 EC-007; AC-137-002; F-137-P1-001.
     // ─────────────────────────────────────────────────────────────────────────
 
-    /// F-137-P1-001 — carry-overflow latch: sub-24-byte segments keep carry bounded.
+    /// F-137-P1-001 — carry stays bounded and is_non_enip latch does NOT fire under
+    /// sub-24-byte accumulation (RULING-137-002; deferred v0.12.0 spec-defect-is_non_enip-dead-latch).
     ///
     /// With correct `continue` semantics, multiple sub-24-byte on_data calls do NOT
     /// accumulate carry past MAX_ENIP_CARRY_BYTES (600). The while-loop fires as soon as
     /// carry + new_data >= 24, byte-walks through the garbage, and leaves carry ≤ 23 bytes
-    /// as residue. The carry-cap check (lines ~713-720) is never triggered by this path.
+    /// as residue. The carry-cap check (lines ~713-720) is never triggered by this path,
+    /// so is_non_enip remains false throughout all 31 calls.
+    ///
+    /// RULING-137-002: the carry-overflow is_non_enip latch is dead code — it is unreachable
+    /// via any on_data call sequence with correct continue semantics. This test demonstrates
+    /// the invariant across a realistic accumulation sequence to close the verification gap
+    /// (F-137-P1-001).
     ///
     /// Specifically:
     ///   - Call 1 (20 bytes): buf.len()=20 < 24. While-loop never fires. carry=20 bytes.
@@ -6016,15 +6023,16 @@ mod frame_walk {
     ///     Byte-walk exhausts the 24-byte window positions. carry ≈ 23 bytes after each call.
     ///     parse_errors increments (one per invalid-command byte-walk position), but carry
     ///     NEVER exceeds MAX_ENIP_CARRY_BYTES across all 31 calls.
-    ///   - is_non_enip remains false throughout (carry-cap check never fires).
+    ///   - is_non_enip remains false throughout (carry-overflow latch never fires).
     ///
     /// This test verifies BC-2.17.016 Invariant 1 (carry bounded) and Invariant 4
-    /// (is_non_enip set ONLY on carry overflow) across a realistic accumulation sequence.
+    /// (is_non_enip set ONLY on carry overflow, which is unreachable) across a realistic
+    /// accumulation sequence.
     ///
     /// Traces: BC-2.17.016 Invariant 1; BC-2.17.016 Post-4/Inv-4; BC-2.17.018 EC-007;
-    ///         AC-137-002; RULING-137-001 §3.4; F-137-P1-001.
+    ///         AC-137-002; RULING-137-001 §3.4; RULING-137-002; F-137-P1-001.
     #[test]
-    fn test_carry_overflow_latches_non_enip_via_subframe_accumulation() {
+    fn test_subframe_accumulation_keeps_carry_bounded_no_latch() {
         let mut analyzer = EnipAnalyzer::new(50, 5);
         let key = make_flow_key();
         // 20-byte chunks of 0x00 bytes (command=0x0000 at bytes [0..2] — not in ODVA set).
