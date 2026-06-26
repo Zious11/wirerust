@@ -4926,102 +4926,140 @@ mod frame_walk {
     // Traces: BC-2.17.016 Invariant 4 / Postcondition 4; BC-2.17.018 EC-007
     // ─────────────────────────────────────────────────────────────────────────
 
-    /// AC-137-002 — carry.len() > 600 triggers carry-cap overflow path.
+    /// AC-137-002 — carry-buffer cap invariant: carry stays ≤ MAX_ENIP_CARRY_BYTES after
+    /// `on_data` regardless of pre-existing large carry state.
     ///
-    /// Data construction: oversized declared frame (command=0x0065, length=600, total=624 bytes)
-    /// followed by 601 bytes of padding (total input = 1225 bytes). The frame-walk sees an
-    /// oversized declared frame and skips it (cursor += 624). Remaining = buf[624..] = 601 bytes,
-    /// stashed into carry. Carry-cap check fires: parse_errors+1, malformed_in_window+1,
-    /// check_t0814(), is_non_enip = true, carry.clear().
+    /// Setup: Pre-populate flow.carry to 601 bytes of 0xFF garbage (simulating accumulated
+    /// partial-frame data), then call on_data with a 28-byte valid ENIP frame.
     ///
-    /// Expected parse_errors == 2: one for the oversized-frame-skip and one for carry overflow.
+    /// With correct `continue` semantics (RULING-137-001):
+    ///   - The byte-walk loop runs through the 601 garbage bytes (601 iterations, each
+    ///     advancing cursor by 1 and incrementing parse_errors).
+    ///   - At cursor=601, the valid frame is at buf[601..629]. is_valid_enip_frame=true.
+    ///     total_frame_len=28. buf.len()-cursor=28>=28. process_pdu fires.
+    ///   - After loop: carry = buf[629..] = empty. carry.len()=0 ≤ 600. No overflow.
+    ///   - is_non_enip remains false (no carry overflow triggered).
     ///
-    /// Traces: BC-2.17.016 Postcondition 4 / Invariant 4; AC-137-002; EC-004.
+    /// With WRONG `break` semantics:
+    ///   - First iteration: pos=0, garbage, invalid, cursor=1, BREAK.
+    ///   - carry = buf[1..] = 628 bytes > 600. Overflow fires: is_non_enip=true.
+    ///   - valid frame is NEVER processed (pdu_count=0).
+    ///
+    /// This test is RED under the current `break` implementation (is_non_enip=true, pdu_count=0)
+    /// and GREEN under the correct `continue` implementation (is_non_enip=false, pdu_count>=1).
+    ///
+    /// Traces: BC-2.17.016 Postcondition 4 / Invariant 1/4; RULING-137-001 §3.4; AC-137-002; EC-004.
     #[test]
     fn test_carry_buffer_cap_at_600() {
         let mut analyzer = EnipAnalyzer::new(50, 5);
         let key = make_flow_key();
-        // Build: oversized declared frame (624 bytes, command=RegisterSession, length=600)
-        // followed by 601 bytes of padding → total buf = 624+601 = 1225 bytes.
-        // Frame-skip advances cursor by min(624, 1225) = 624.
-        // Remaining: buf[624..] = 601 bytes → stash into carry → carry overflow.
-        let mut data = enip_oversized_declared_frame(); // 624 bytes
-        data.extend_from_slice(&vec![0x00u8; 601]); // 601 bytes trailing
-        analyzer.on_data(key.clone(), &data, 0);
-        // RED GATE: todo!() panics before here.
+        // Step 1: create the flow entry by sending empty data.
+        analyzer.on_data(key.clone(), &[], 0);
+        // Step 2: pre-populate carry with 601 bytes of 0xFF garbage (simulates accumulated
+        // partial data; RULING-137-001 §3.4 — direct pre-population is the authoritative
+        // test setup since carry > 600 is unreachable via normal continue semantics).
+        {
+            let flow = analyzer
+                .flows
+                .get_mut(&key)
+                .expect("flow must exist after first on_data");
+            flow.carry = vec![0xFF_u8; 601];
+        }
+        // Step 3: call on_data with a 28-byte valid ENIP frame (RegisterSession, length=4).
+        // buf = carry(601) ++ valid_frame(28) = 629 bytes.
+        let valid_frame = enip_register_session_frame(); // 28 bytes
+        analyzer.on_data(key.clone(), &valid_frame, 0);
         let flow = analyzer
             .flows
             .get(&key)
-            .expect("flow must exist after on_data");
+            .expect("flow must exist after second on_data");
+        // With correct continue semantics: byte-walk through 601 garbage positions, then
+        // process the valid frame at position 601. is_non_enip stays false (no overflow).
+        assert!(
+            !flow.is_non_enip,
+            "is_non_enip must remain false — carry overflow cannot be triggered by the \
+             byte-walk path with continue semantics (RULING-137-001 §3.4; BC-2.17.016 Inv 4)"
+        );
         assert_eq!(
-            flow.parse_errors, 2,
-            "must have 2 parse_errors: one for oversized frame skip, one for carry overflow \
-             (BC-2.17.016 Postcondition 4; AC-137-002)"
+            flow.pdu_count, 1,
+            "valid frame at position 601 must be processed when continue allows the loop \
+             to reach it (RULING-137-001 §3.4; AC-137-002)"
         );
         assert!(
-            flow.is_non_enip,
-            "is_non_enip must be true after carry overflow (BC-2.17.016 Invariant 4; AC-137-002)"
-        );
-        assert!(
-            flow.carry.is_empty(),
-            "carry must be cleared after overflow (BC-2.17.016 Postcondition 4)"
+            flow.carry.len() <= MAX_ENIP_CARRY_BYTES,
+            "carry must be bounded after on_data (BC-2.17.016 Invariant 1; AC-137-002)"
         );
     }
 
-    /// AC-137-002 — carry overflow sets is_non_enip (one-way latch).
+    /// AC-137-002 — `is_non_enip` is set ONLY by genuine carry-buffer overflow (Invariant 4).
     ///
-    /// After carry overflows (`carry.len() > 600`), `is_non_enip` is latched `true`.
+    /// This test verifies the NEGATIVE: that pre-set large carry (601 bytes) combined with a
+    /// valid trailing frame does NOT set is_non_enip when the byte-walk loop uses `continue`
+    /// (because the loop byte-walks through all garbage and processes the valid frame, leaving
+    /// carry empty — never > 600).
     ///
-    /// Traces: BC-2.17.016 Invariant 4; AC-137-002; EC-004.
+    /// Contrast: with `break`, the first bad parse breaks out immediately, leaving carry=628 > 600,
+    /// triggering is_non_enip=true. With `continue`, is_non_enip stays false.
+    ///
+    /// Traces: BC-2.17.016 Invariant 4; RULING-137-001 §3.4; AC-137-002; EC-004.
     #[test]
     fn test_carry_cap_sets_non_enip() {
         let mut analyzer = EnipAnalyzer::new(50, 5);
         let key = make_flow_key();
-        let mut data = enip_oversized_declared_frame(); // 624 bytes
-        data.extend_from_slice(&vec![0x00u8; 601]);
-        analyzer.on_data(key.clone(), &data, 0);
-        // RED GATE: todo!() panics before here.
-        let flow = analyzer
-            .flows
-            .get(&key)
-            .expect("flow must exist after on_data");
+        analyzer.on_data(key.clone(), &[], 0); // create flow
+        {
+            let flow = analyzer.flows.get_mut(&key).expect("flow must exist");
+            flow.carry = vec![0xFF_u8; 601]; // simulate large accumulated carry
+        }
+        let valid_frame = enip_register_session_frame();
+        analyzer.on_data(key.clone(), &valid_frame, 0);
+        let flow = analyzer.flows.get(&key).expect("flow must exist");
+        // With continue: byte-walk through garbage, process valid frame, carry=empty.
+        // is_non_enip stays false — no carry overflow was triggered.
         assert!(
-            flow.is_non_enip,
-            "carry overflow must latch is_non_enip = true (BC-2.17.016 Invariant 4; AC-137-002)"
+            !flow.is_non_enip,
+            "is_non_enip must NOT be set: byte-walk with continue processes valid trailing frame \
+             without triggering carry overflow (BC-2.17.016 Invariant 4; RULING-137-001 §3.4)"
+        );
+        assert_eq!(
+            flow.pdu_count, 1,
+            "valid frame must be processed when continue allows loop to traverse garbage prefix"
         );
     }
 
-    /// AC-137-002 + AC-137-004 — T0814 fires on carry-overflow as the 3rd malformed event.
+    /// AC-137-002 + AC-137-004 — T0814 fires at the 3rd malformed event; is_non_enip NOT set
+    /// by T0814 emission (ordering constraint AC-137-002).
     ///
-    /// Two malformed frames (byte-walk path, unknown command 0xFF00 on the same flow key)
-    /// followed by a carry-buffer overflow (the 3rd structural reject). The carry-overflow
-    /// increments `malformed_in_window` to 3, then `check_t0814` fires (while `is_non_enip`
-    /// is still false), emitting the T0814 finding. THEN `is_non_enip` is latched true.
+    /// THREE structural rejects via unknown-command frames (byte-walk resync path). On the 3rd,
+    /// malformed_in_window=3 >= THRESHOLD. check_t0814 fires (while is_non_enip is still false).
+    /// is_non_enip must NOT be set by T0814 — it is set only by carry overflow.
+    ///
+    /// Note: the previous test (with break semantics) used carry-overflow as the 3rd event.
+    /// With correct continue semantics, carry overflow cannot be triggered via oversized-frame-
+    /// skip residue (RULING-137-001 §3.4). Instead, three byte-walk rejects are used to reach
+    /// the threshold. The ordering constraint is still exercised: check_t0814 fires while
+    /// is_non_enip is false.
     ///
     /// **ORDERING CONSTRAINT (BC-2.17.018 EC-007 / AC-137-002):**
     ///   check_t0814 MUST fire before is_non_enip is set.
     ///
-    /// Traces: BC-2.17.018 EC-007; BC-2.17.016 Invariant 4; AC-137-002; AC-137-004.
+    /// Traces: BC-2.17.018 EC-007; BC-2.17.016 Invariant 4; RULING-137-001 §1; AC-137-002; AC-137-004.
     #[test]
     fn test_t0814_fires_on_carry_overflow_third_malformed() {
         let mut analyzer = EnipAnalyzer::new(50, 5);
         let key = make_flow_key();
-
-        // Structural reject #1: unknown command (byte-walk) — same flow.
-        analyzer.on_data(key.clone(), &enip_unknown_command_frame(), 0);
-        // RED GATE: todo!() panics before here.
-        // Structural reject #2: another unknown command — same flow, counter accumulates.
-        analyzer.on_data(key.clone(), &enip_unknown_command_frame(), 0);
-        // Structural reject #3: carry overflow — same flow — this is the 3rd event.
-        let mut overflow_data = enip_oversized_declared_frame();
-        overflow_data.extend_from_slice(&vec![0x00u8; 601]);
-        analyzer.on_data(key.clone(), &overflow_data, 0);
+        // Three structural rejects via byte-walk (unknown command), same flow.
+        // The T0814 threshold is 3; check_t0814 fires while is_non_enip is false.
+        let frame = enip_unknown_command_frame(); // 24 bytes, command=0xFF00 (invalid)
+        analyzer.on_data(key.clone(), &frame, 0); // reject #1
+        analyzer.on_data(key.clone(), &frame, 0); // reject #2
+        analyzer.on_data(key.clone(), &frame, 0); // reject #3 → T0814 fires
         assert!(
             analyzer
                 .all_findings
                 .iter()
                 .any(|f| f.mitre_techniques.contains(&"T0814".to_string())),
-            "T0814 finding must be emitted when carry-overflow is the 3rd malformed event \
+            "T0814 finding must be emitted when malformed_in_window reaches 3 \
              (BC-2.17.018 EC-007; check_t0814 must fire BEFORE is_non_enip is latched)"
         );
         let flow = analyzer
@@ -5029,9 +5067,9 @@ mod frame_walk {
             .get(&key)
             .expect("flow must exist after on_data");
         assert!(
-            flow.is_non_enip,
-            "is_non_enip must be true after carry overflow, AFTER T0814 fired \
-             (BC-2.17.016 Invariant 4 / AC-137-002)"
+            !flow.is_non_enip,
+            "is_non_enip must NOT be set by T0814 emission — it is set only by carry overflow \
+             (BC-2.17.016 Invariant 4; RULING-137-001 §3.4; AC-137-002)"
         );
         assert!(
             flow.malformed_anomaly_emitted,
@@ -5051,7 +5089,7 @@ mod frame_walk {
     /// 23 bytes < 24, so loop exits. carry = buf[1..] = 23 bytes.
     /// `parse_errors == 1`, `malformed_in_window == 1`.
     ///
-    /// Traces: BC-2.17.016 Postcondition 1 (byte-walk resync); AC-137-003; EC-012.
+    /// Traces: BC-2.17.016 Postcondition 1 (byte-walk resync path); AC-137-003; BC-2.17.018 PC-1/2.
     #[test]
     fn test_byte_walk_resync_invalid_command() {
         let mut analyzer = EnipAnalyzer::new(50, 5);
@@ -5134,29 +5172,312 @@ mod frame_walk {
         );
     }
 
+    /// AC-137-003 + RULING-137-001 §3.1 — EC-010 discriminating test.
+    ///
+    /// Oversized declared frame (total=624 > 600) immediately followed by a valid 28-byte
+    /// ENIP frame in the SAME on_data call (652 bytes total buffer).
+    ///
+    /// **With CORRECT `continue` semantics (RULING-137-001 Table 3.1):**
+    ///   - Loop iter 1: valid header at pos 0, length=600, total=624 > 600 → frame-skip.
+    ///     parse_errors=1, malformed_in_window=1. cursor += 624. continue.
+    ///   - Loop iter 2: buf.len()-cursor = 652-624 = 28 >= 24. Parse header at [624..648].
+    ///     Valid command. total_frame_len=28. 28>=28. process_pdu. cursor=652.
+    ///   - After loop: carry = buf[652..] = empty.
+    ///   - pdu_count=1, parse_errors=1, malformed_in_window=1, is_non_enip=false.
+    ///
+    /// **With WRONG `break` semantics:**
+    ///   - Frame-skip: cursor=624, BREAK. carry=buf[624..]=28 bytes (valid frame stashed).
+    ///   - Valid frame is NEVER processed: pdu_count=0.
+    ///
+    /// This test is RED under current `break` (pdu_count=0, carry.len()==28)
+    /// and GREEN under correct `continue` (pdu_count=1, carry.is_empty()).
+    ///
+    /// Traces: BC-2.17.016 Postcondition 1 (frame-skip path); RULING-137-001 §3.1;
+    ///         AC-137-003; EC-010.
+    #[test]
+    fn test_oversize_frame_skip_then_valid_frame_processed() {
+        let mut analyzer = EnipAnalyzer::new(50, 5);
+        let key = make_flow_key();
+        // Build: 624-byte oversized declared frame + 28-byte valid frame = 652 bytes total.
+        // RULING-137-001 §3.1: oversized frame (header.length=600, total=624) + trailing
+        // valid frame (header.length=4, total=28) in ONE segment.
+        let mut data = enip_oversized_declared_frame(); // 624 bytes, length=600, command=0x0065
+        data.extend_from_slice(&enip_register_session_frame()); // 28 bytes, length=4
+        assert_eq!(data.len(), 652);
+        analyzer.on_data(key.clone(), &data, 0);
+        let flow = analyzer
+            .flows
+            .get(&key)
+            .expect("flow must exist after on_data");
+        assert_eq!(
+            flow.pdu_count, 1,
+            "trailing valid frame must be processed after oversized frame skip with continue \
+             (RULING-137-001 §3.1; BC-2.17.016 Post-1 frame-skip path; AC-137-003; EC-010)"
+        );
+        assert_eq!(
+            flow.parse_errors, 1,
+            "parse_errors must be 1: only the oversized frame skip increments it \
+             (RULING-137-001 §3.1; BC-2.17.018 PC-1; AC-137-003)"
+        );
+        assert_eq!(
+            flow.malformed_in_window, 1,
+            "malformed_in_window must be 1: only the oversized frame skip \
+             (RULING-137-001 §3.1)"
+        );
+        assert!(
+            !flow.is_non_enip,
+            "is_non_enip must remain false: frame-skip path does NOT set it \
+             (BC-2.17.016 Invariant 4; RULING-137-001 §3.1)"
+        );
+        assert!(
+            flow.carry.is_empty(),
+            "carry must be empty: continue advances cursor past oversized frame and processes \
+             trailing valid frame (RULING-137-001 §3.1; BC-2.17.016 Post-1)"
+        );
+    }
+
+    /// AC-137-003 + RULING-137-001 §3.2 — EC-012 minimal discriminating test.
+    ///
+    /// 1-byte garbage prefix immediately followed by a valid 28-byte ENIP frame in ONE
+    /// on_data call (29 bytes total buffer). Verifies byte-walk resync CONTINUES to find
+    /// the valid frame at the next cursor position.
+    ///
+    /// Buffer layout:
+    ///   buf[0]     = 0xFF (garbage, makes command at [0..2] = LE(0xFF, 0x65) = 0x65FF — invalid)
+    ///   buf[1..29] = enip_register_session_frame() (command=0x0065, length=4, total=28)
+    ///
+    /// **With CORRECT `continue` semantics (RULING-137-001 §3.2):**
+    ///   - Loop iter 1: parse at [0..24]. command=LE(0xFF, 0x65)=0x65FF — invalid.
+    ///     parse_errors=1. cursor=1. continue.
+    ///   - Loop iter 2: parse at [1..25]=frame[0..24]. command=0x0065 — valid!
+    ///     total_frame_len=28. buf.len()-cursor=29-1=28>=28. process_pdu. cursor=29.
+    ///   - carry=empty. pdu_count=1. parse_errors=1. is_non_enip=false.
+    ///
+    /// **With WRONG `break` semantics:**
+    ///   - Loop iter 1: invalid, cursor=1, BREAK. carry=buf[1..]=28 bytes (valid frame stashed).
+    ///   - pdu_count=0.
+    ///
+    /// This test is RED under current `break` (pdu_count=0) and GREEN under correct `continue`
+    /// (pdu_count=1).
+    ///
+    /// Traces: BC-2.17.016 Postcondition 1 (byte-walk resync); RULING-137-001 §3.2;
+    ///         AC-137-003; EC-012.
+    #[test]
+    fn test_byte_walk_resync_to_valid_frame_same_segment() {
+        let mut analyzer = EnipAnalyzer::new(50, 5);
+        let key = make_flow_key();
+        // 1-byte garbage prefix: buf[0]=0xFF. At cursor=0, parse [0..24]:
+        //   buf[0..2] = [0xFF, frame[0]] = [0xFF, 0x65] → command = LE(0xFF,0x65) = 0x65FF (unknown).
+        // buf[1..29] = valid RegisterSession frame (command=0x0065, length=4).
+        let mut data = vec![0xFF_u8]; // 1-byte garbage prefix
+        data.extend_from_slice(&enip_register_session_frame()); // append 28-byte valid frame
+        assert_eq!(data.len(), 29);
+        analyzer.on_data(key.clone(), &data, 0);
+        let flow = analyzer
+            .flows
+            .get(&key)
+            .expect("flow must exist after on_data");
+        assert_eq!(
+            flow.pdu_count, 1,
+            "valid frame at position 1 must be processed after 1-byte garbage prefix when \
+             byte-walk uses continue (RULING-137-001 §3.2; BC-2.17.016 Post-1; AC-137-003; EC-012)"
+        );
+        assert_eq!(
+            flow.parse_errors, 1,
+            "parse_errors must be 1: one byte-walk resync before the valid frame \
+             (RULING-137-001 §3.2; BC-2.17.018 PC-1)"
+        );
+        assert_eq!(
+            flow.malformed_in_window, 1,
+            "malformed_in_window must be 1 (RULING-137-001 §3.2; BC-2.17.018 PC-2)"
+        );
+        assert!(
+            !flow.is_non_enip,
+            "is_non_enip must remain false (BC-2.17.016 Invariant 4; RULING-137-001 §3.2)"
+        );
+        assert!(
+            flow.carry.is_empty(),
+            "carry must be empty after valid frame completes (RULING-137-001 §3.2)"
+        );
+    }
+
+    /// AC-137-003 + AC-137-004 + RULING-137-001 §3.2 — EC-012 24-byte-block discriminating test.
+    ///
+    /// 24 bytes of garbage (all 0xFF) immediately followed by a valid 28-byte ENIP frame
+    /// (52 bytes total). byte-walk runs 24 times before finding the valid frame.
+    ///
+    /// Per RULING-137-001 §3.2: parse_errors=24 (one per byte-walk position 0..23),
+    /// pdu_count=1, T0814 fires (malformed_in_window=24 >= 3).
+    ///
+    /// Buffer layout:
+    ///   buf[0..24]  = [0xFF; 24] (command at each cursor 0..23 = 0xFFFF or shifted, all invalid)
+    ///   buf[24..52] = enip_register_session_frame() (command=0x0065, length=4, total=28)
+    ///
+    /// Under WRONG `break`: cursor=1, break. carry=51 bytes. pdu_count=0. parse_errors=1.
+    /// Under CORRECT `continue`: 24 byte-walk iterations, then process valid frame at pos 24.
+    ///   parse_errors=24. pdu_count=1. T0814 fires. carry=empty.
+    ///
+    /// This test is RED under current `break` (pdu_count=0, parse_errors=1).
+    ///
+    /// Traces: BC-2.17.016 Postcondition 1; BC-2.17.018 Postconditions 1–4; RULING-137-001 §3.2;
+    ///         AC-137-003; AC-137-004; EC-012.
+    #[test]
+    fn test_byte_walk_resync_24_garbage_bytes_then_valid_frame() {
+        let mut analyzer = EnipAnalyzer::new(50, 5);
+        let key = make_flow_key();
+        // 24 bytes of 0xFF garbage + 28-byte valid frame = 52 bytes total.
+        let mut data = vec![0xFF_u8; 24]; // all-garbage 24-byte block (command=0xFFFF, invalid)
+        data.extend_from_slice(&enip_register_session_frame()); // valid frame at [24..52]
+        assert_eq!(data.len(), 52);
+        analyzer.on_data(key.clone(), &data, 0);
+        let flow = analyzer
+            .flows
+            .get(&key)
+            .expect("flow must exist after on_data");
+        assert_eq!(
+            flow.pdu_count, 1,
+            "valid frame at position 24 must be processed after 24-garbage-byte prefix \
+             (RULING-137-001 §3.2; BC-2.17.016 Post-1; AC-137-003; EC-012)"
+        );
+        assert_eq!(
+            flow.parse_errors, 24,
+            "parse_errors must be 24: one per byte-walk position 0..23 before valid frame \
+             (RULING-137-001 §3.2; BC-2.17.018 PC-1)"
+        );
+        assert_eq!(
+            flow.malformed_in_window, 24,
+            "malformed_in_window must be 24 (RULING-137-001 §3.2; BC-2.17.018 PC-2)"
+        );
+        assert!(
+            analyzer
+                .all_findings
+                .iter()
+                .any(|f| f.mitre_techniques.contains(&"T0814".to_string())),
+            "T0814 must fire: malformed_in_window=24 >= threshold=3 \
+             (RULING-137-001 §3.2; BC-2.17.018 EC-007; AC-137-004)"
+        );
+        assert!(
+            !flow.is_non_enip,
+            "is_non_enip must remain false: T0814 does NOT set it \
+             (BC-2.17.016 Invariant 4; RULING-137-001 §3.2)"
+        );
+        assert!(
+            flow.carry.is_empty(),
+            "carry must be empty: valid frame completes and exhausts the buffer \
+             (RULING-137-001 §3.2)"
+        );
+    }
+
+    /// AC-137-001 + AC-137-004 + RULING-137-001 §3.3 — multi-call carry residue counting.
+    ///
+    /// Verifies that per-offset counting accumulates correctly across multiple on_data calls
+    /// when carry residue from call 1 is re-walked in call 2.
+    ///
+    /// **Call 1:** 23 bytes of 0xFF garbage.
+    ///   buf.len()-cursor = 23 < 24: while loop never fires. carry = 23 bytes. parse_errors=0.
+    ///
+    /// **Call 2:** 5 bytes of 0xFF garbage. buf = carry(23) ++ new(5) = 28 bytes.
+    ///   - Iter 1: buf.len()-cursor=28>=24. Parse at [0..24]: 0xFF bytes, command=0xFFFF, invalid.
+    ///     parse_errors=1, malformed_in_window=1. cursor=1. continue.
+    ///   - Iter 2: buf.len()-cursor=27>=24. Parse at [1..25]: same garbage. Fails.
+    ///     parse_errors=2, malformed_in_window=2. cursor=2. continue.
+    ///   - Iter 3: parse at [2..26]: fails. parse_errors=3, malformed_in_window=3. cursor=3.
+    ///     continue. T0814 fires here (threshold=3).
+    ///   - Iter 4: parse at [3..27]: fails. parse_errors=4, malformed_in_window=4. cursor=4.
+    ///   - Iter 5: parse at [4..28]: fails. parse_errors=5, malformed_in_window=5. cursor=5.
+    ///   - Iter 6: buf.len()-cursor=28-5=23 < 24. Exit loop.
+    ///   - carry = buf[5..] = 23 bytes. 23 ≤ 600. No overflow. T0814 emitted=true.
+    ///
+    /// Per RULING-137-001 §3.3: parse_errors=5, malformed_in_window=5, T0814 emitted, carry=23.
+    ///
+    /// Traces: BC-2.17.016 Postconditions 1–3; BC-2.17.018 Postconditions 1–4;
+    ///         RULING-137-001 §3.3; AC-137-001; AC-137-004.
+    #[test]
+    fn test_multi_call_carry_residue_counting() {
+        let mut analyzer = EnipAnalyzer::new(50, 5);
+        let key = make_flow_key();
+        // Call 1: 23 bytes — buf < 24, loop never fires, carry=23, parse_errors=0.
+        let garbage_23 = vec![0xFF_u8; 23];
+        analyzer.on_data(key.clone(), &garbage_23, 0);
+        {
+            let flow = analyzer
+                .flows
+                .get(&key)
+                .expect("flow must exist after call 1");
+            assert_eq!(
+                flow.carry.len(),
+                23,
+                "call 1 (23 bytes < 24): loop never fires, all bytes stash to carry \
+                 (RULING-137-001 §3.3; BC-2.17.016 Post-2)"
+            );
+            assert_eq!(
+                flow.parse_errors, 0,
+                "call 1: no loop iterations, no parse errors (RULING-137-001 §3.3)"
+            );
+        }
+        // Call 2: 5 bytes of garbage. buf = carry(23) + new(5) = 28 bytes.
+        // 5 byte-walk iterations, T0814 fires on iter 3.
+        let garbage_5 = vec![0xFF_u8; 5];
+        analyzer.on_data(key.clone(), &garbage_5, 0);
+        let flow = analyzer
+            .flows
+            .get(&key)
+            .expect("flow must exist after call 2");
+        assert_eq!(
+            flow.parse_errors, 5,
+            "call 2: 5 byte-walk iterations → parse_errors=5 \
+             (RULING-137-001 §3.3; BC-2.17.018 PC-1)"
+        );
+        assert_eq!(
+            flow.malformed_in_window, 5,
+            "call 2: malformed_in_window=5 (RULING-137-001 §3.3; BC-2.17.018 PC-2)"
+        );
+        assert!(
+            analyzer
+                .all_findings
+                .iter()
+                .any(|f| f.mitre_techniques.contains(&"T0814".to_string())),
+            "T0814 must fire on call 2 iter 3 (malformed_in_window=3 >= threshold) \
+             (RULING-137-001 §3.3; BC-2.17.018 PC-3)"
+        );
+        assert_eq!(
+            flow.carry.len(),
+            23,
+            "carry must be 23 bytes after call 2 (buf[5..28] = last 23 bytes) \
+             (RULING-137-001 §3.3; BC-2.17.016 Post-3)"
+        );
+        assert!(
+            !flow.is_non_enip,
+            "is_non_enip must remain false: T0814 does NOT set it (BC-2.17.016 Invariant 4)"
+        );
+    }
+
     /// AC-137-003 — is_non_enip flag is permanent: once set, subsequent on_data are no-ops.
     ///
-    /// After carry overflow sets `is_non_enip = true`, any further `on_data` calls for the
-    /// same flow must return immediately without modifying any counters or carry.
+    /// Pre-set is_non_enip=true via direct field mutation (simulating state after carry overflow
+    /// has triggered), then verify that subsequent on_data calls do not modify any counters,
+    /// carry, or findings.
+    ///
+    /// With CORRECT `continue` semantics:
+    ///   pre-set is_non_enip directly (since natural overflow is impossible with continue);
+    ///   then verify the is_non_enip early-exit guard fires correctly.
     ///
     /// Traces: BC-2.17.016 Invariant 4; AC-137-003; EC-011.
     #[test]
     fn test_non_enip_flag_permanent() {
         let mut analyzer = EnipAnalyzer::new(50, 5);
         let key = make_flow_key();
-
-        // Trigger carry overflow to set is_non_enip.
-        let mut overflow_data = enip_oversized_declared_frame();
-        overflow_data.extend_from_slice(&vec![0x00u8; 601]);
-        analyzer.on_data(key.clone(), &overflow_data, 0);
-        // RED GATE: todo!() panics before here.
-
-        let parse_errors_after_overflow = analyzer
-            .flows
-            .get(&key)
-            .expect("flow must exist after first on_data")
-            .parse_errors;
-        let findings_after_overflow = analyzer.all_findings.len();
+        // Step 1: create the flow entry.
+        analyzer.on_data(key.clone(), &[], 0);
+        // Step 2: set is_non_enip = true directly (simulate carry-overflow already having fired).
+        {
+            let flow = analyzer.flows.get_mut(&key).expect("flow must exist");
+            flow.is_non_enip = true;
+            flow.parse_errors = 1; // simulate the one increment from the overflow event
+            flow.malformed_in_window = 1;
+        }
+        let parse_errors_after_set = 1u64;
+        let findings_after_set = analyzer.all_findings.len();
 
         // Subsequent call with valid data — must be a no-op (is_non_enip guards it).
         let valid_frame = enip_frame(0x0065);
@@ -5166,42 +5487,56 @@ mod frame_walk {
             .get(&key)
             .expect("flow must exist after second on_data");
         assert_eq!(
-            flow.parse_errors, parse_errors_after_overflow,
+            flow.parse_errors, parse_errors_after_set,
             "parse_errors must not change after is_non_enip is set (EC-011; BC-2.17.016 Inv 4)"
         );
         assert_eq!(
             analyzer.all_findings.len(),
-            findings_after_overflow,
+            findings_after_set,
             "no new findings after is_non_enip is set (EC-011; BC-2.17.016 Invariant 4)"
+        );
+        assert!(
+            flow.is_non_enip,
+            "is_non_enip must remain true — it is a one-way permanent flag (BC-2.17.016 Inv 4)"
         );
     }
 
-    /// AC-137-003 — is_non_enip set at carry cap (direct scenario).
+    /// AC-137-003 — carry overflow path: is_non_enip NOT latched by byte-walk; carry bounded.
     ///
-    /// Carry overflow path sets is_non_enip = true AND carry.clear() is called.
+    /// Verifies BC-2.17.016 Postcondition 4 invariant from the NEGATIVE direction:
+    /// Pre-set carry=601 bytes (garbage) then call on_data with a valid 28-byte frame.
+    /// With correct `continue` semantics, the byte-walk loop reduces carry to 0 (processes
+    /// the valid frame at position 601), so the carry-cap overflow check does NOT fire.
+    /// is_non_enip stays false; carry stays bounded (≤ MAX_ENIP_CARRY_BYTES).
     ///
-    /// Traces: BC-2.17.016 Postcondition 4; AC-137-003; EC-004.
+    /// Since carry > 600 cannot be triggered naturally with continue semantics
+    /// (RULING-137-001 §3.4 analysis), this test directly sets carry=601 and verifies
+    /// the carry stays bounded after on_data (invariant holds; is_non_enip stays false
+    /// because the byte-walk loop reduces carry before the cap check).
+    ///
+    /// Traces: BC-2.17.016 Postcondition 4; RULING-137-001 §3.4; AC-137-003; EC-004.
     #[test]
     fn test_non_enip_flag_set_at_carry_cap() {
         let mut analyzer = EnipAnalyzer::new(50, 5);
         let key = make_flow_key();
-        // oversized declared frame (624) + 601 trailing bytes → carry = 601 > 600.
-        let mut data = enip_oversized_declared_frame();
-        data.extend_from_slice(&vec![0x00u8; 601]);
-        analyzer.on_data(key.clone(), &data, 0);
-        // RED GATE: todo!() panics before here.
-        let flow = analyzer
-            .flows
-            .get(&key)
-            .expect("flow must exist after on_data");
+        analyzer.on_data(key.clone(), &[], 0); // create flow
+        {
+            let flow = analyzer.flows.get_mut(&key).expect("flow must exist");
+            flow.carry = vec![0xFF_u8; 601];
+        }
+        let valid_frame = enip_register_session_frame();
+        analyzer.on_data(key.clone(), &valid_frame, 0);
+        let flow = analyzer.flows.get(&key).expect("flow must exist");
+        // carry-cap overflow does NOT fire (byte-walk reduces carry to 0 with continue).
         assert!(
-            flow.is_non_enip,
-            "carry.len() > MAX_ENIP_CARRY_BYTES must set is_non_enip = true \
-             (BC-2.17.016 Postcondition 4 / Invariant 4; EC-004)"
+            flow.carry.len() <= MAX_ENIP_CARRY_BYTES,
+            "carry must be bounded (≤ MAX_ENIP_CARRY_BYTES=600) after on_data \
+             (BC-2.17.016 Invariant 1 / Postcondition 4; AC-137-003)"
         );
         assert!(
-            flow.carry.is_empty(),
-            "carry.clear() must be called after overflow (BC-2.17.016 Postcondition 4)"
+            !flow.is_non_enip,
+            "is_non_enip must NOT be set by byte-walk path — only carry overflow sets it \
+             (BC-2.17.016 Invariant 4; AC-137-003)"
         );
     }
 
