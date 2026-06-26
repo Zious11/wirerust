@@ -535,21 +535,25 @@ S-7.02 follow-up items codified at convergence:
 
 ---
 
-### Wave-Level — Wave 60 (STORY-134/135/136/137 integrated, develop@72a9106) — IN-PROGRESS, NOT CONVERGED
+### Wave-Level — Wave 60 (STORY-134/135/136/137 + fix-PR #328 integrated, develop@0f345c6) — CONVERGED
 
 | Pass | Date | Total | CRIT | HIGH | MED | LOW | Novelty | Score | Counter | Verdict |
 |------|------|-------|------|------|-----|-----|---------|-------|---------|---------|
 | W60-P1 | 2026-06-26 | 0 | 0 | 0 | 0 | 0 | — | — | 1/3 | CLEAN |
 | W60-P2 | 2026-06-26 | 2 | 0 | 1 | 1 | 0 | HIGH | — | 0/3 → RESET | FINDINGS_REMAIN — RULING-W60-001 ISSUED |
 | W60-P3 | 2026-06-26 | 0 | 0 | 0 | 0 | 0 | — | — | 1/3 | CLEAN (post-reset; fix-PR in progress) |
+| W60-A | 2026-06-26 | 0 | 0 | 0 | 0 | 0 | — | — | 1/3 | CLEAN (re-convergence on @0f345c6) |
+| W60-B | 2026-06-26 | 0 | 0 | 0 | 0 | 0 | — | — | 2/3 | CLEAN |
+| W60-C | 2026-06-26 | 1 | 0 | 0 | 1 | 0 | MEDIUM | — | 3/3 | CONVERGED (F-W60-P-M1 NON-BLOCKING) |
 
-Trajectory: `0→1H+1M→0` (NOT CONVERGED — 3-clean counter reset by P2; fix-PR required)
+Trajectory: `0→1H+1M→0` (pre-fix, counter reset); re-convergence `0→0→1M` passes A/B/C CONVERGED
 
-**Status: BLOCKED on F-W60-001 HIGH. RULING-W60-001 issued. Fix-PR `fix/enip-source-ip-attribution` in progress.**
-After fix-PR merge: restart 3-pass adversarial convergence from Pass 1 on updated develop HEAD.
+**Wave-level convergence ACHIEVED** (3 consecutive confirmation passes A/B/C on develop @0f345c6, BC-5.39.001 MET). Wave 60 integration gate CONVERGED — PENDING HUMAN GATE (D-257).
 
 Remediation history:
 - W60-P2: F-W60-001 HIGH = `on_data` uses `flow_key.lower_ip()` as src_ip → all CIP detections mis-attribute source (~50% of captures). RULING-W60-001 Part 1: FIX via `resolve_enip_client_ip` port-44818 heuristic. F-W60-002 MEDIUM = `bytes_received` updated before `is_non_enip` guard (BC-2.17.016 PC-5 apparent conflict). RULING-W60-001 Part 2: DEFER — bytes_received EXEMPT (analyzer-level routing observable, not per-flow counter); BC-2.17.016 v1.2 clarification to cycle-close SS-17 backfill.
+- W60-P3: CLEAN on @72a9106 — confirmed no additional findings beyond P2; fix-PR in progress.
+- W60-A/B/C on develop @0f345c6 (fix-PR #328 merged, D-256): Pass A CLEAN, Pass B CLEAN, Pass C found F-W60-P-M1 MEDIUM (NON-BLOCKING). F-W60-P-M1: two source_attribution test docstrings in enip_analyzer_tests.rs (~6284, ~6296-6297) say "Current code (lower_ip()) returns the wrong address" — stale present-tense (code now uses resolve_enip_client_ip). Batched into WAVE-60-TEST-DOC-SWEEP (fold into STORY-138 or cycle-close doc sweep). Corroborates GREEN-DOC-TENSE-GATE-PATTERN-GAP-001. Do NOT spawn dedicated fix-PR. All other Pass A/B/C findings LOW/deferred-confirmations — already tracked in OPEN ITEMS. Convergence counter completed at 3/3 per BC-5.39.001 (MEDIUM non-blocking does not reset counter).
 
 ### Wave-60 Wave-Level Pass 1 (2026-06-26)
 
@@ -580,6 +584,38 @@ F-W60-002 MEDIUM: `self.bytes_received` incremented at enip.rs:593, before `is_n
 **Convergence counter:** 1 of 3 (CLEAN — counting from reset; fix-PR in progress)
 
 develop@72a9106 reviewed post-RULING-W60-001. F-W60-001 not yet fixed (fix-PR in progress). Pass 3 is a confirmation that no additional findings exist beyond P2. Convergence CANNOT be declared until F-W60-001 fix is merged and 3 consecutive clean passes achieved on updated develop HEAD.
+
+---
+
+### Wave-60 Wave-Level Pass A (2026-06-26) — re-convergence on develop@0f345c6
+
+**Findings:** 0 (0 CRIT, 0 HIGH, 0 MED, 0 LOW)
+**Novelty:** —
+**Convergence counter:** 1 of 3 (CLEAN)
+
+develop@0f345c6 reviewed (fix-PR #328 merged, D-256). `resolve_enip_client_ip` port-44818 heuristic live. Regression GREEN (0 failures, 80 suites). Fresh-context consistency audit CLEAN. All prior F-W60-001 HIGH findings absent.
+
+---
+
+### Wave-60 Wave-Level Pass B (2026-06-26)
+
+**Findings:** 0 (0 CRIT, 0 HIGH, 0 MED, 0 LOW)
+**Novelty:** —
+**Convergence counter:** 2 of 3 (CLEAN)
+
+develop@0f345c6 reviewed. No new findings.
+
+---
+
+### Wave-60 Wave-Level Pass C (2026-06-26)
+
+**Findings:** 1 (0 CRIT, 0 HIGH, 1 MED, 0 LOW)
+**Novelty:** MEDIUM
+**Convergence counter:** 3 of 3 (CONVERGED — finding NON-BLOCKING, does not reset)
+
+F-W60-P-M1 MEDIUM: two source_attribution test docstrings in `tests/enip_analyzer_tests.rs` (~6284, ~6296-6297) contain the stale present-tense phrase "Current code (lower_ip()) returns the wrong address". Code now uses `resolve_enip_client_ip`; phrase is stale and misleading. Non-blocking: no runtime impact, no spec gap, no false assertion. Batch into WAVE-60-TEST-DOC-SWEEP (fold into STORY-138 or cycle-close doc sweep). Do NOT spawn dedicated fix-PR. Corroborates GREEN-DOC-TENSE-GATE-PATTERN-GAP-001.
+
+Wave-level adversarial convergence ACHIEVED. BC-5.39.001 MET. Wave 60 integration gate CONVERGED — PENDING HUMAN GATE (D-257). develop@0f345c6.
 
 ---
 
