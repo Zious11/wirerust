@@ -475,7 +475,7 @@ pub fn check_t0814(
         } else {
             // BC-2.17.022 Post 3: increment dropped_findings on cap-suppressed finding.
             // BC-2.17.022 Post 5: do NOT set malformed_anomaly_emitted (guard not set on drop).
-            *dropped_findings += 1;
+            *dropped_findings = dropped_findings.saturating_add(1);
         }
     }
 }
@@ -708,16 +708,17 @@ impl EnipAnalyzer {
         // BC-2.17.017 Postcondition 5: unknown flow_key → no-op; no panic.
         if let Some(flow) = self.flows.remove(&flow_key) {
             // BC-2.17.017 Postcondition 2: fold pdu_count into aggregate.
-            self.total_pdu_count += flow.pdu_count;
+            self.total_pdu_count = self.total_pdu_count.saturating_add(flow.pdu_count);
             // BC-2.17.017 Postcondition 3: fold lifetime parse error count into aggregate.
-            self.parse_errors += flow.parse_errors;
+            self.parse_errors = self.parse_errors.saturating_add(flow.parse_errors);
             // BC-2.17.017 Postcondition 4: fold command distribution into aggregate.
             for (cmd, count) in flow.command_counts {
-                *self.command_distribution.entry(cmd).or_insert(0) += count;
+                let e = self.command_distribution.entry(cmd).or_insert(0);
+                *e = e.saturating_add(count);
             }
             // BC-2.17.017 Postcondition 6: increment flows_analyzed on successful removal.
             // Unknown flow_key (None arm) does NOT increment flows_analyzed (Post 5).
-            self.flows_analyzed += 1;
+            self.flows_analyzed = self.flows_analyzed.saturating_add(1);
         }
         // BC-2.17.017 Postcondition 6 / Invariant 4: findings in self.all_findings are
         // unaffected by flow close — they are not modified here.
@@ -848,7 +849,7 @@ impl EnipAnalyzer {
                     // at this cursor position is definitively invalid. Counts Unknown-bucket
                     // frames as required by BC-2.17.004 Invariant 3.
                     *flow.command_counts.entry(header.command).or_insert(0) += 1;
-                    flow.parse_errors += 1;
+                    flow.parse_errors = flow.parse_errors.saturating_add(1);
                     flow.malformed_in_window += 1;
                     check_t0814(
                         flow,
@@ -874,7 +875,7 @@ impl EnipAnalyzer {
                     // F-W60-P1-001: increment command_counts on DEFINITIVE frame-skip reject.
                     // The frame is definitively skipped (oversized); this is a committed outcome.
                     *flow.command_counts.entry(header.command).or_insert(0) += 1;
-                    flow.parse_errors += 1;
+                    flow.parse_errors = flow.parse_errors.saturating_add(1);
                     flow.malformed_in_window += 1;
                     check_t0814(
                         flow,
@@ -921,7 +922,7 @@ impl EnipAnalyzer {
             //   event is itself a structural reject that can be the 3rd malformed event in
             //   the window. Latching is_non_enip FIRST would permanently suppress T0814.
             if flow.carry.len() > MAX_ENIP_CARRY_BYTES {
-                flow.parse_errors += 1;
+                flow.parse_errors = flow.parse_errors.saturating_add(1);
                 flow.malformed_in_window += 1;
                 // T0814 evaluation runs while is_non_enip == false (BC-2.17.018 Precond 6).
                 check_t0814(
@@ -1003,7 +1004,7 @@ impl EnipAnalyzer {
 
         // BC-2.17.024: count every validated PDU that reaches this dispatch function.
         // Incremented here (after is_non_enip guard) so non-ENIP flows do not count.
-        flow.pdu_count += 1;
+        flow.pdu_count = flow.pdu_count.saturating_add(1);
 
         // ADR-010 Decision 4, step 1: parse ENIP header.
         // Only complete, valid (>= 24-byte, is_valid_enip_frame-checked) frames are ever
@@ -1055,7 +1056,7 @@ impl EnipAnalyzer {
                     // BC-2.17.022 Post 3: increment dropped_findings on cap-suppressed finding.
                     // BC-2.17.022 Post 5: do NOT set list_identity_emitted (guard not set on drop
                     // — allows future windows to retry if cap is not full).
-                    self.dropped_findings += 1;
+                    self.dropped_findings = self.dropped_findings.saturating_add(1);
                 }
             }
             // BC-2.17.010 postcondition 3: ListIdentity frames after guard set produce no
@@ -1158,7 +1159,7 @@ impl EnipAnalyzer {
                         } else {
                             // BC-2.17.022 Post 3: increment dropped_findings on cap-suppressed
                             // finding. BC-2.17.022 Post 5: do NOT set error_rate_emitted.
-                            self.dropped_findings += 1;
+                            self.dropped_findings = self.dropped_findings.saturating_add(1);
                         }
                     }
                 }
@@ -1201,7 +1202,7 @@ impl EnipAnalyzer {
                         } else {
                             // BC-2.17.022 Post 3: increment dropped_findings on cap-suppressed
                             // finding. T0888 Pattern A has no one-shot guard to respect (Post 5).
-                            self.dropped_findings += 1;
+                            self.dropped_findings = self.dropped_findings.saturating_add(1);
                         }
                     }
                 }
@@ -1236,7 +1237,7 @@ impl EnipAnalyzer {
                     } else {
                         // BC-2.17.022 Post 3: increment dropped_findings on cap-suppressed
                         // finding. T0858 has no one-shot guard (Post 5 n/a here).
-                        self.dropped_findings += 1;
+                        self.dropped_findings = self.dropped_findings.saturating_add(1);
                     }
                 }
 
@@ -1271,7 +1272,7 @@ impl EnipAnalyzer {
                     } else {
                         // BC-2.17.022 Post 3: increment dropped_findings on cap-suppressed
                         // finding. T0816 has no one-shot guard (Post 5 n/a here).
-                        self.dropped_findings += 1;
+                        self.dropped_findings = self.dropped_findings.saturating_add(1);
                     }
                 }
 
@@ -1345,7 +1346,7 @@ impl EnipAnalyzer {
                         } else {
                             // BC-2.17.022 Post 3: increment dropped_findings on cap-suppressed
                             // finding. BC-2.17.022 Post 5: do NOT set write_burst_emitted.
-                            self.dropped_findings += 1;
+                            self.dropped_findings = self.dropped_findings.saturating_add(1);
                         }
                     }
                 }
@@ -1420,7 +1421,7 @@ impl EnipAnalyzer {
                     } else {
                         // BC-2.17.022 Post 3: increment dropped_findings on cap-suppressed
                         // finding. ForwardOpen/Close has no one-shot guard (Post 5 n/a here).
-                        self.dropped_findings += 1;
+                        self.dropped_findings = self.dropped_findings.saturating_add(1);
                     }
                 }
             }
