@@ -3479,3 +3479,577 @@ mod recon {
         );
     }
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// STORY-135 command detection tests (RED — stubs only; todo!() enforces Red Gate).
+//
+// Traces to: BC-2.17.011 (T0858 CIP Stop), BC-2.17.013 (T0816 CIP Reset),
+//            BC-2.17.012 (T0836 SetAttribute write-burst).
+//
+// All tests in this module call process_pdu paths that reach todo!() stubs.
+// All tests are RED until STORY-135 detection logic is implemented.
+//
+// Helpers reuse sendrr_pdu_with_cip / sendrr_pdu_with_b1_cip from recon_detections
+// via inline duplication (separate module scope requires local helpers).
+// ─────────────────────────────────────────────────────────────────────────────
+mod command_detections {
+    use std::net::{IpAddr, Ipv4Addr};
+
+    use wirerust::analyzer::enip::{EnipAnalyzer, EnipFlowState};
+
+    // =========================================================================
+    // Helpers
+    // =========================================================================
+
+    /// Canonical source IP (192.168.1.20) for command-detection tests.
+    fn src_ip() -> IpAddr {
+        IpAddr::V4(Ipv4Addr::new(192, 168, 1, 20))
+    }
+
+    /// Build a 24-byte ENIP header with `command` set (LE); all other fields zeroed.
+    fn enip_header(command: u16) -> [u8; 24] {
+        let mut h = [0u8; 24];
+        h[0..2].copy_from_slice(&command.to_le_bytes());
+        h
+    }
+
+    /// Build a SendRRData PDU containing one 0x00B2 (UnconnectedData) CIP item.
+    ///
+    /// Layout (matches recon_detections::sendrr_pdu_with_cip):
+    ///   ENIP header (24 bytes, command=0x006F)
+    ///   Interface Handle (4 bytes, 0) + Timeout (2 bytes, 0)
+    ///   CPF item_count=2 (NullAddress + UnconnectedData)
+    ///   NullAddress item (type=0x0000, length=0)
+    ///   UnconnectedData item (type=0x00B2, length=cip_data.len())
+    ///   cip_data bytes
+    fn sendrr_pdu_with_cip(cip_data: &[u8]) -> Vec<u8> {
+        let payload_len: usize = 4 + 2 + 2 + 4 + 4 + cip_data.len();
+        let mut pdu = Vec::with_capacity(24 + payload_len);
+        let mut hdr = enip_header(0x006F);
+        hdr[2..4].copy_from_slice(&(payload_len as u16).to_le_bytes());
+        pdu.extend_from_slice(&hdr);
+        pdu.extend_from_slice(&[0u8; 4]); // Interface Handle
+        pdu.extend_from_slice(&[0u8; 2]); // Timeout
+        pdu.extend_from_slice(&2u16.to_le_bytes()); // item_count = 2
+        pdu.extend_from_slice(&[0x00, 0x00, 0x00, 0x00]); // NullAddress
+        pdu.extend_from_slice(&[0xB2, 0x00]); // type_id = 0x00B2
+        pdu.extend_from_slice(&(cip_data.len() as u16).to_le_bytes());
+        pdu.extend_from_slice(cip_data);
+        pdu
+    }
+
+    /// Build a SendRRData PDU containing one 0x00B1 (ConnectedData) CIP item.
+    ///
+    /// Used to verify the F-P9-001 gate: 0x00B1 items are skipped.
+    fn sendrr_pdu_with_b1_cip(cip_data: &[u8]) -> Vec<u8> {
+        let payload_len: usize = 4 + 2 + 2 + 4 + 4 + cip_data.len();
+        let mut pdu = Vec::with_capacity(24 + payload_len);
+        let mut hdr = enip_header(0x006F);
+        hdr[2..4].copy_from_slice(&(payload_len as u16).to_le_bytes());
+        pdu.extend_from_slice(&hdr);
+        pdu.extend_from_slice(&[0u8; 4]);
+        pdu.extend_from_slice(&[0u8; 2]);
+        pdu.extend_from_slice(&2u16.to_le_bytes());
+        pdu.extend_from_slice(&[0x00, 0x00, 0x00, 0x00]);
+        pdu.extend_from_slice(&[0xB1, 0x00]); // type_id = 0x00B1
+        pdu.extend_from_slice(&(cip_data.len() as u16).to_le_bytes());
+        pdu.extend_from_slice(cip_data);
+        pdu
+    }
+
+    /// Build a minimal CIP request with the given service byte and no path.
+    ///
+    /// item_data layout:
+    ///   [0]  service byte (bit 7 = 0 for request)
+    ///   [1]  0x00 (request_path_size = 0 words, no path)
+    fn cip_request_no_path(service: u8) -> Vec<u8> {
+        vec![service, 0x00]
+    }
+
+    /// Build a minimal CIP response for the given service (response bit set = service | 0x80).
+    ///
+    /// item_data layout:
+    ///   [0]  service | 0x80
+    ///   [1]  0x00 (reserved)
+    ///   [2]  0x00 (general_status = success)
+    ///   [3]  0x00 (additional_status_size = 0)
+    fn cip_response(service: u8) -> Vec<u8> {
+        vec![service | 0x80, 0x00, 0x00, 0x00]
+    }
+
+    /// Build a minimal SetAttributeSingle (0x10) request targeting Class/Instance/Attr.
+    ///
+    /// item_data layout:
+    ///   [0]  0x10 (SetAttributeSingle, request)
+    ///   [1]  0x03 (path_size = 3 words = 6 bytes)
+    ///   [2]  0x20, 0x04 (Class segment, class=4 — Assembly Object)
+    ///   [4]  0x24, 0x01 (Instance segment, instance=1)
+    ///   [6]  0x30, 0x03 (Attribute segment, attr=3)
+    fn cip_set_attr_single_request() -> Vec<u8> {
+        vec![0x10, 0x03, 0x20, 0x04, 0x24, 0x01, 0x30, 0x03]
+    }
+
+    /// Build a minimal SetAttributesAll (0x02) request.
+    fn cip_set_attrs_all_request() -> Vec<u8> {
+        vec![0x02, 0x01, 0x20, 0x04]
+    }
+
+    // =========================================================================
+    // AC-135-001: CIP Stop service (0x07) emits T0858 (Change Operating Mode)
+    // Traces: BC-2.17.011 postconditions 1–2
+    // =========================================================================
+
+    /// AC-135-001 — CIP Stop (0x07) via 0x00B2 item emits exactly one T0858 finding.
+    ///
+    /// Preconditions (BC-2.17.011): classify_cip_service(0x07) == Stop, type_id==0x00B2,
+    /// !is_non_enip, len < MAX_FINDINGS.
+    /// Expected: one Finding with mitre_techniques=["T0858"], category=Execution,
+    /// verdict=Likely, confidence=High.
+    ///
+    /// RED (STORY-135 stub): process_pdu reaches todo!() for Stop detection.
+    ///
+    /// Traces: BC-2.17.011 postcondition 1; AC-135-001; EC-001.
+    #[test]
+    fn test_t0858_stop_service_0x07() {
+        let mut analyzer = EnipAnalyzer::new(50, 5);
+        let mut flow = EnipFlowState::new();
+        // CIP Stop request: service=0x07, no path
+        let cip = cip_request_no_path(0x07);
+        let pdu = sendrr_pdu_with_cip(&cip);
+        analyzer.process_pdu(&mut flow, &pdu, 100, src_ip());
+        assert_eq!(
+            analyzer.all_findings.len(),
+            1,
+            "CIP Stop (0x07) via 0x00B2 must emit exactly 1 T0858 finding (BC-2.17.011 PC-1)"
+        );
+        let f = &analyzer.all_findings[0];
+        assert!(
+            f.mitre_techniques.contains(&"T0858".to_string()),
+            "finding must carry MITRE technique T0858 (BC-2.17.011 PC-1)"
+        );
+        assert_eq!(
+            f.category,
+            wirerust::findings::ThreatCategory::Execution,
+            "T0858 finding must have category=Execution (BC-2.17.011 PC-1 — EXACT)"
+        );
+    }
+
+    /// AC-135-001 — CIP Stop response (0x87, high bit set) does NOT emit T0858.
+    ///
+    /// classify_cip_service(0x87) returns Response — response-bit invariant
+    /// (BC-2.17.007 invariant 1). Detection fires on requests only.
+    ///
+    /// RED (STORY-135 stub): process_pdu would hit todo!() if the guard were absent.
+    ///
+    /// Traces: BC-2.17.011 invariant 4 (request-only); AC-135-001; EC-002.
+    #[test]
+    fn test_t0858_stop_response_no_finding() {
+        let mut analyzer = EnipAnalyzer::new(50, 5);
+        let mut flow = EnipFlowState::new();
+        // CIP Stop response: service=0x87 (0x07 | 0x80)
+        let cip = cip_response(0x07);
+        let pdu = sendrr_pdu_with_cip(&cip);
+        analyzer.process_pdu(&mut flow, &pdu, 100, src_ip());
+        assert_eq!(
+            analyzer.all_findings.len(),
+            0,
+            "CIP Stop response (0x87) must NOT emit T0858 (response-bit gate; BC-2.17.011 inv 4)"
+        );
+    }
+
+    /// AC-135-001 — CIP Stop (0x07) via 0x00B1 (Connected Data Item) does NOT emit T0858.
+    ///
+    /// F-P9-001 gate: only 0x00B2 items trigger CIP service detection in v0.11.0.
+    ///
+    /// GREEN-BY-DESIGN: the type_id != 0x00B2 gate fires in the CPF item loop before
+    /// reaching the todo!() Stop-detection block. The test exercises the 0x00B1-skip path
+    /// only — no todo!() is reached.
+    ///
+    /// Traces: BC-2.17.011 precondition 3 (F-P9-001 gate); AC-135-001; EC-004.
+    #[test]
+    fn test_t0858_connected_item_no_finding() {
+        let mut analyzer = EnipAnalyzer::new(50, 5);
+        let mut flow = EnipFlowState::new();
+        let cip = cip_request_no_path(0x07);
+        // Use 0x00B1 item — F-P9-001 gate skips this item entirely.
+        let pdu = sendrr_pdu_with_b1_cip(&cip);
+        analyzer.process_pdu(&mut flow, &pdu, 100, src_ip());
+        assert_eq!(
+            analyzer.all_findings.len(),
+            0,
+            "CIP Stop via 0x00B1 (Connected Data Item) must NOT emit T0858 in v0.11.0 \
+             (F-P9-001 gate; BC-2.17.011 precondition 3)"
+        );
+    }
+
+    /// AC-135-001 — SetAttributeSingle (0x10) via 0x00B2 does NOT emit T0858.
+    ///
+    /// SetAttribute feeds the T0836 write-burst path, not T0858 (AC-135-001 last bullet).
+    ///
+    /// RED (STORY-135 stub): process_pdu reaches the SetAttribute todo!() block for T0836,
+    /// not the Stop block. The test will panic at the SetAttribute todo!() until implemented.
+    ///
+    /// Traces: BC-2.17.011/012 independence; AC-135-001; EC-003.
+    #[test]
+    fn test_t0858_set_attribute_no_t0858() {
+        let mut analyzer = EnipAnalyzer::new(50, 5);
+        let mut flow = EnipFlowState::new();
+        let cip = cip_set_attr_single_request();
+        let pdu = sendrr_pdu_with_cip(&cip);
+        analyzer.process_pdu(&mut flow, &pdu, 100, src_ip());
+        // No T0858: SetAttribute (0x10) must not reach the Stop detection block.
+        assert!(
+            !analyzer
+                .all_findings
+                .iter()
+                .any(|f| f.mitre_techniques.contains(&"T0858".to_string())),
+            "SetAttributeSingle (0x10) must NOT emit T0858 \
+             (T0858 is triggered by Stop 0x07, not SetAttribute; BC-2.17.011/012)"
+        );
+    }
+
+    // =========================================================================
+    // AC-135-002: CIP Reset service (0x05) emits T0816 (Device Restart/Shutdown)
+    // Traces: BC-2.17.013 postconditions 1–2
+    // =========================================================================
+
+    /// AC-135-002 — CIP Reset (0x05) via 0x00B2 item emits exactly one T0816 finding.
+    ///
+    /// Preconditions (BC-2.17.013): classify_cip_service(0x05) == Reset, type_id==0x00B2,
+    /// !is_non_enip, len < MAX_FINDINGS.
+    /// Expected: one Finding with mitre_techniques=["T0816"], category=Execution (EXACT —
+    /// NOT InhibitResponseFunction), verdict=Likely, confidence=High.
+    ///
+    /// RED (STORY-135 stub): process_pdu reaches todo!() for Reset detection.
+    ///
+    /// Traces: BC-2.17.013 postcondition 1; AC-135-002; EC-005.
+    #[test]
+    fn test_t0816_reset_service() {
+        let mut analyzer = EnipAnalyzer::new(50, 5);
+        let mut flow = EnipFlowState::new();
+        // CIP Reset request: service=0x05, no path (device-level reset)
+        let cip = cip_request_no_path(0x05);
+        let pdu = sendrr_pdu_with_cip(&cip);
+        analyzer.process_pdu(&mut flow, &pdu, 100, src_ip());
+        assert_eq!(
+            analyzer.all_findings.len(),
+            1,
+            "CIP Reset (0x05) via 0x00B2 must emit exactly 1 T0816 finding (BC-2.17.013 PC-1)"
+        );
+        let f = &analyzer.all_findings[0];
+        assert!(
+            f.mitre_techniques.contains(&"T0816".to_string()),
+            "finding must carry MITRE technique T0816 (BC-2.17.013 PC-1)"
+        );
+        assert_eq!(
+            f.category,
+            wirerust::findings::ThreatCategory::Execution,
+            "T0816 finding must have category=Execution (BC-2.17.013 PC-1 — EXACT; NOT InhibitResponseFunction)"
+        );
+    }
+
+    /// AC-135-002 — CIP Reset response (0x85, high bit set) does NOT emit T0816.
+    ///
+    /// classify_cip_service(0x85) returns Response — response-bit invariant.
+    ///
+    /// Traces: BC-2.17.013 invariant 4; AC-135-002; EC-006.
+    #[test]
+    fn test_t0816_response_no_finding() {
+        let mut analyzer = EnipAnalyzer::new(50, 5);
+        let mut flow = EnipFlowState::new();
+        let cip = cip_response(0x05); // 0x05 | 0x80 = 0x85
+        let pdu = sendrr_pdu_with_cip(&cip);
+        analyzer.process_pdu(&mut flow, &pdu, 100, src_ip());
+        assert_eq!(
+            analyzer.all_findings.len(),
+            0,
+            "CIP Reset response (0x85) must NOT emit T0816 (response-bit gate; BC-2.17.013 inv 4)"
+        );
+    }
+
+    /// AC-135-002 — CIP Reset (0x05) via 0x00B1 (Connected Data Item) does NOT emit T0816.
+    ///
+    /// F-P9-001 gate: only 0x00B2 triggers service detection.
+    ///
+    /// GREEN-BY-DESIGN: type_id != 0x00B2 gate fires before reaching todo!() Reset block.
+    ///
+    /// Traces: BC-2.17.013 precondition 3; AC-135-002; EC-006.
+    #[test]
+    fn test_t0816_connected_item_no_finding() {
+        let mut analyzer = EnipAnalyzer::new(50, 5);
+        let mut flow = EnipFlowState::new();
+        let cip = cip_request_no_path(0x05);
+        let pdu = sendrr_pdu_with_b1_cip(&cip);
+        analyzer.process_pdu(&mut flow, &pdu, 100, src_ip());
+        assert_eq!(
+            analyzer.all_findings.len(),
+            0,
+            "CIP Reset via 0x00B1 must NOT emit T0816 in v0.11.0 \
+             (F-P9-001 gate; BC-2.17.013 precondition 3)"
+        );
+    }
+
+    // =========================================================================
+    // AC-135-003/005: T0836 write-burst detection and write-count accumulation
+    // Traces: BC-2.17.012 postconditions 1–5; invariants 1–3
+    // =========================================================================
+
+    /// AC-135-003 — 51 SetAttributeSingle in 1s window (threshold=50) fires T0836.
+    ///
+    /// Strict `>` semantics (BC-2.17.012 invariant 2): 51 > 50 = true → finding emitted.
+    /// One-shot guard set: further writes in same window produce no additional finding.
+    ///
+    /// RED (STORY-135 stub): first SetAttribute call reaches write-burst todo!().
+    ///
+    /// Traces: BC-2.17.012 postcondition 5; invariant 2; AC-135-003; EC-008.
+    #[test]
+    fn test_t0836_burst_fires_at_threshold_plus_one() {
+        let mut analyzer = EnipAnalyzer::new(50, 5);
+        let mut flow = EnipFlowState::new();
+        let cip = cip_set_attr_single_request();
+        let pdu = sendrr_pdu_with_cip(&cip);
+        // 51 SetAttributeSingle requests in the same 1s window (timestamp constant = 100)
+        for _ in 0..51 {
+            analyzer.process_pdu(&mut flow, &pdu, 100, src_ip());
+        }
+        assert_eq!(
+            analyzer.all_findings.len(),
+            1,
+            "51 SetAttributeSingle in 1s window (threshold=50) must emit exactly 1 T0836 finding \
+             (strict > semantics; BC-2.17.012 invariant 2; EC-008)"
+        );
+        let f = &analyzer.all_findings[0];
+        assert!(
+            f.mitre_techniques.contains(&"T0836".to_string()),
+            "finding must carry MITRE technique T0836 (BC-2.17.012 PC-5)"
+        );
+        assert_eq!(
+            f.category,
+            wirerust::findings::ThreatCategory::Execution,
+            "T0836 finding must have category=Execution (BC-2.17.012 PC-5 — EXACT; NOT ImpairProcessControl)"
+        );
+    }
+
+    /// AC-135-003 — T0836 one-shot guard: 52nd write in same window produces no additional finding.
+    ///
+    /// After the guard is set (write_burst_emitted=true), further writes in the same window
+    /// increment write_count_in_window but do NOT emit additional T0836 findings (BC-2.17.012 PC-5).
+    ///
+    /// RED (STORY-135 stub): todo!() hit on first write.
+    ///
+    /// Traces: BC-2.17.012 postcondition 5 (write_burst_emitted guard); AC-135-003; EC-009.
+    #[test]
+    fn test_t0836_burst_one_shot_guard() {
+        let mut analyzer = EnipAnalyzer::new(50, 5);
+        let mut flow = EnipFlowState::new();
+        let cip = cip_set_attr_single_request();
+        let pdu = sendrr_pdu_with_cip(&cip);
+        // 56 writes in same window — guard fires at 51; writes 52–56 produce no additional finding.
+        for _ in 0..56 {
+            analyzer.process_pdu(&mut flow, &pdu, 100, src_ip());
+        }
+        assert_eq!(
+            analyzer.all_findings.len(),
+            1,
+            "56 writes in 1s window must produce exactly 1 T0836 finding \
+             (one-shot guard; BC-2.17.012 PC-5; EC-009)"
+        );
+    }
+
+    /// AC-135-003 — exactly 50 SetAttributeSingle in 1s window (threshold=50) does NOT fire T0836.
+    ///
+    /// Strict `>` semantics: 50 > 50 = false → no finding (BC-2.17.012 invariant 2).
+    ///
+    /// RED (STORY-135 stub): todo!() hit on first write.
+    ///
+    /// Traces: BC-2.17.012 invariant 2; AC-135-003; EC-007.
+    #[test]
+    fn test_t0836_no_fire_at_threshold() {
+        let mut analyzer = EnipAnalyzer::new(50, 5);
+        let mut flow = EnipFlowState::new();
+        let cip = cip_set_attr_single_request();
+        let pdu = sendrr_pdu_with_cip(&cip);
+        for _ in 0..50 {
+            analyzer.process_pdu(&mut flow, &pdu, 100, src_ip());
+        }
+        assert_eq!(
+            analyzer.all_findings.len(),
+            0,
+            "exactly 50 SetAttributeSingle (count == threshold) must NOT emit T0836 \
+             (strict > semantics; BC-2.17.012 invariant 2; EC-007)"
+        );
+    }
+
+    /// AC-135-003 — 1s window expiry resets guard; 51 new writes in window 2 fires T0836 again.
+    ///
+    /// Window 1: ts=100, 51 writes → T0836 emitted; guard=true.
+    /// Window 2: ts=102 (102 - 100 = 2 > 1 → window expired); 51 writes → T0836 emitted again.
+    ///
+    /// RED (STORY-135 stub): todo!() hit on first write.
+    ///
+    /// Traces: BC-2.17.012 postcondition 4 (window expiry + guard reset); AC-135-003; EC-010.
+    #[test]
+    fn test_t0836_window_resets_after_1s() {
+        let mut analyzer = EnipAnalyzer::new(50, 5);
+        let mut flow = EnipFlowState::new();
+        let cip = cip_set_attr_single_request();
+        let pdu = sendrr_pdu_with_cip(&cip);
+        // Window 1: 51 writes at ts=100
+        for _ in 0..51 {
+            analyzer.process_pdu(&mut flow, &pdu, 100, src_ip());
+        }
+        assert_eq!(
+            analyzer.all_findings.len(),
+            1,
+            "window 1: 51 writes at ts=100 must emit 1 T0836 finding (BC-2.17.012 PC-5)"
+        );
+        // Window 2: 51 writes at ts=102 (2 seconds later; 102 - 100 = 2 > 1 → window expired)
+        for _ in 0..51 {
+            analyzer.process_pdu(&mut flow, &pdu, 102, src_ip());
+        }
+        assert_eq!(
+            analyzer.all_findings.len(),
+            2,
+            "window 2: 51 writes at ts=102 must emit a second T0836 finding \
+             (window expired; guard reset; BC-2.17.012 postcondition 4; EC-010)"
+        );
+    }
+
+    /// AC-135-003 — custom threshold=10: 11 writes fires T0836 at threshold+1.
+    ///
+    /// RED (STORY-135 stub): todo!() hit on first write.
+    ///
+    /// Traces: BC-2.17.012 invariant 3 (default 50; custom via CLI flag); AC-135-003.
+    #[test]
+    fn test_t0836_custom_threshold() {
+        let mut analyzer = EnipAnalyzer::new(10, 5); // threshold=10
+        let mut flow = EnipFlowState::new();
+        let cip = cip_set_attr_single_request();
+        let pdu = sendrr_pdu_with_cip(&cip);
+        // 11 writes at ts=100 (11 > 10 → T0836 fires)
+        for _ in 0..11 {
+            analyzer.process_pdu(&mut flow, &pdu, 100, src_ip());
+        }
+        assert_eq!(
+            analyzer.all_findings.len(),
+            1,
+            "11 writes with threshold=10 must emit exactly 1 T0836 finding \
+             (11 > 10; BC-2.17.012 invariant 2)"
+        );
+        assert!(
+            analyzer.all_findings[0]
+                .mitre_techniques
+                .contains(&"T0836".to_string()),
+            "finding must carry MITRE technique T0836"
+        );
+    }
+
+    // =========================================================================
+    // AC-135-004: is_non_enip suppresses T0858, T0816, and T0836 detections
+    // Traces: BC-2.17.011/012/013 preconditions (is_non_enip guard)
+    // =========================================================================
+
+    /// AC-135-004 — is_non_enip=true suppresses all command detections (T0858, T0816, T0836).
+    ///
+    /// When flow.is_non_enip == true, process_pdu returns immediately without any
+    /// CIP parse or detection (first gate in process_pdu body).
+    ///
+    /// GREEN-BY-DESIGN: the is_non_enip early-return fires before any todo!() block.
+    /// No todo!() is reached because the function returns at line 1 of its body.
+    ///
+    /// Traces: BC-2.17.011/012/013 preconditions (is_non_enip guard); AC-135-004; EC-011.
+    #[test]
+    fn test_non_enip_suppresses_command_detections() {
+        let mut analyzer = EnipAnalyzer::new(50, 5);
+        let mut flow = EnipFlowState::new();
+        flow.is_non_enip = true; // latch set
+
+        // Try CIP Stop — must produce no finding
+        let stop_pdu = sendrr_pdu_with_cip(&cip_request_no_path(0x07));
+        analyzer.process_pdu(&mut flow, &stop_pdu, 100, src_ip());
+
+        // Try CIP Reset — must produce no finding
+        let reset_pdu = sendrr_pdu_with_cip(&cip_request_no_path(0x05));
+        analyzer.process_pdu(&mut flow, &reset_pdu, 100, src_ip());
+
+        // Try SetAttributeSingle — must produce no finding
+        let write_pdu = sendrr_pdu_with_cip(&cip_set_attr_single_request());
+        for _ in 0..60 {
+            analyzer.process_pdu(&mut flow, &write_pdu, 100, src_ip());
+        }
+
+        assert_eq!(
+            analyzer.all_findings.len(),
+            0,
+            "is_non_enip=true must suppress ALL command detections \
+             (T0858, T0816, T0836); BC-2.17.011/012/013 preconditions"
+        );
+    }
+
+    // =========================================================================
+    // AC-135-005: write_count accumulation (flow and aggregate)
+    // Traces: BC-2.17.012 postconditions 1–2
+    // =========================================================================
+
+    /// AC-135-005 — write_count_in_window and write_count increment on each SetAttribute.
+    ///
+    /// Both flow.write_count_in_window and analyzer.write_count must increment on every
+    /// qualifying write-class request, regardless of threshold (BC-2.17.012 PC-1/PC-2).
+    ///
+    /// RED (STORY-135 stub): todo!() hit on first SetAttribute.
+    ///
+    /// Traces: BC-2.17.012 postconditions 1, 2; AC-135-005.
+    #[test]
+    fn test_write_count_accumulates() {
+        let mut analyzer = EnipAnalyzer::new(50, 5);
+        let mut flow = EnipFlowState::new();
+        let cip = cip_set_attr_single_request();
+        let pdu = sendrr_pdu_with_cip(&cip);
+        // 3 SetAttributeSingle writes at ts=100 (all within 1s window, threshold not exceeded)
+        for _ in 0..3 {
+            analyzer.process_pdu(&mut flow, &pdu, 100, src_ip());
+        }
+        assert_eq!(
+            flow.write_count_in_window,
+            3,
+            "write_count_in_window must be 3 after 3 SetAttributeSingle requests \
+             (BC-2.17.012 postcondition 1)"
+        );
+        assert_eq!(
+            analyzer.write_count,
+            3,
+            "analyzer.write_count must be 3 after 3 SetAttributeSingle requests \
+             (BC-2.17.012 postcondition 2)"
+        );
+    }
+
+    /// AC-135-005 — analyzer.write_count == N after N SetAttribute frames (aggregate).
+    ///
+    /// The aggregate lifetime counter is independent of the per-flow burst window.
+    ///
+    /// RED (STORY-135 stub): todo!() hit on first SetAttribute.
+    ///
+    /// Traces: BC-2.17.012 postcondition 2; AC-135-005.
+    #[test]
+    fn test_aggregate_write_count_increments() {
+        let mut analyzer = EnipAnalyzer::new(50, 5);
+        let mut flow = EnipFlowState::new();
+        let cip_single = cip_set_attr_single_request();
+        let cip_all = cip_set_attrs_all_request();
+        let pdu_single = sendrr_pdu_with_cip(&cip_single);
+        let pdu_all = sendrr_pdu_with_cip(&cip_all);
+        // 5 SetAttributeSingle + 3 SetAttributesAll = 8 total write-class requests
+        for _ in 0..5 {
+            analyzer.process_pdu(&mut flow, &pdu_single, 100, src_ip());
+        }
+        for _ in 0..3 {
+            analyzer.process_pdu(&mut flow, &pdu_all, 100, src_ip());
+        }
+        assert_eq!(
+            analyzer.write_count,
+            8,
+            "analyzer.write_count must equal 8 after 5 SetAttributeSingle + 3 SetAttributesAll \
+             (BC-2.17.012 postcondition 2; aggregate lifetime counter)"
+        );
+    }
+}

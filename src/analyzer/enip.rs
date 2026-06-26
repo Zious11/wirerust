@@ -235,6 +235,28 @@ pub struct EnipFlowState {
     /// Field name is normative per BC-2.17.008 invariant.
     pub error_rate_emitted: bool,
 
+    /// SetAttribute request count in the current 1-second write-burst window.
+    ///
+    /// Incremented on every SetAttributesAll (0x02), SetAttributeList (0x04), or
+    /// SetAttributeSingle (0x10) request via a 0x00B2 item (BC-2.17.012 postcondition 1).
+    /// Reset to 1 (seeding the new window with the current write) on 1s window expiry
+    /// (BC-2.17.012 postcondition 4). Field name is normative per BC-2.17.012 Architecture Anchors.
+    pub write_count_in_window: u64,
+
+    /// One-shot guard for T0836 write-burst finding (per window).
+    ///
+    /// Set to `true` when the T0836 finding is emitted for the current 1s window;
+    /// reset to `false` on window expiry (BC-2.17.012 postcondition 4).
+    /// Field name is normative per BC-2.17.012 Architecture Anchors.
+    pub write_burst_emitted: bool,
+
+    /// Timestamp (pcap-relative seconds, u32) of the start of the current 1s write-burst window.
+    ///
+    /// Seeded on the first write-class request in a new window (BC-2.17.012 postcondition 3).
+    /// Uses u32 wrapping_sub arithmetic — same pattern as `error_window_start_ts`.
+    /// Field name is normative per BC-2.17.012 Architecture Anchors / postcondition 3.
+    pub write_window_start_ts: u32,
+
     /// One-shot guard for T0846 ListIdentity finding (per-flow).
     ///
     /// Set to `true` on the first ListIdentity frame per flow; subsequent frames
@@ -296,6 +318,9 @@ impl EnipFlowState {
             parse_errors: 0,
             malformed_in_window: 0,
             carry: Vec::new(),
+            write_count_in_window: 0,
+            write_burst_emitted: false,
+            write_window_start_ts: 0,
         }
     }
 }
@@ -345,6 +370,14 @@ pub struct EnipAnalyzer {
     /// Postcondition 2b / Invariant 2). Never reset across flows or windows.
     /// Read by `summarize()` (BC-2.17.021 postcondition 1 `error_count` field).
     pub error_count: u64,
+
+    /// Aggregate lifetime count of CIP write-class service requests (SetAttribute*).
+    ///
+    /// Incremented on every qualifying SetAttributesAll (0x02), SetAttributeList (0x04),
+    /// or SetAttributeSingle (0x10) request via a 0x00B2 item (BC-2.17.012 postcondition 2).
+    /// Never reset. Read by `summarize()` per BC-2.17.021 postcondition 1 `write_count` field.
+    /// Field name is normative per BC-2.17.012 Architecture Anchors.
+    pub write_count: u64,
 }
 
 impl EnipAnalyzer {
@@ -364,6 +397,7 @@ impl EnipAnalyzer {
             all_findings: Vec::new(),
             bytes_received: 0,
             error_count: 0,
+            write_count: 0,
         }
     }
 
@@ -592,7 +626,7 @@ impl EnipAnalyzer {
                                 "CIP service=0x{service:02X} ({name}) path targets Identity \
                                  Object (class 0x01) src={src_ip}",
                                 service = cip_hdr.service,
-                                name = service_class_name(service_class),
+                                name = service_class_name(service_class.clone()),
                             )],
                             mitre_techniques: vec!["T0888".to_string()],
                             source_ip: Some(src_ip),
@@ -600,6 +634,70 @@ impl EnipAnalyzer {
                             direction: None,
                         });
                     }
+                }
+
+                // STORY-135: T0858 detection — CIP Stop service (0x07) request.
+                // BC-2.17.011 preconditions 1–5: classify_cip_service returns Stop,
+                // service & 0x80 == 0 (request), type_id == 0x00B2 (F-P9-001 gate above),
+                // !is_non_enip (gate at function entry), len < MAX_FINDINGS.
+                // Per-occurrence, no one-shot guard (BC-2.17.011 postcondition 2).
+                if matches!(service_class, CipServiceClass::Stop)
+                    && cip_hdr.service & 0x80 == 0
+                    && self.all_findings.len() < MAX_FINDINGS
+                {
+                    // BC-5.38.005 invariant 1: "If I include this real implementation, will the
+                    // test for this function pass trivially without any implementer work?" — YES.
+                    // Body deferred to todo!() per BC-5.38.001.
+                    todo!(
+                        "STORY-135: emit T0858 Finding for CIP Stop (0x07) \
+                         — category::Execution, Likely/High, mitre T0858 (BC-2.17.011)"
+                    );
+                }
+
+                // STORY-135: T0816 detection — CIP Reset service (0x05) request.
+                // BC-2.17.013 preconditions 1–5: classify_cip_service returns Reset,
+                // type_id == 0x00B2, !is_non_enip, len < MAX_FINDINGS.
+                // Per-occurrence, no one-shot guard (BC-2.17.013 postcondition 2).
+                // Must use classify_cip_service result — NOT raw `service & 0x7F == 0x05`
+                // (BC-2.17.007 invariant 1, Architecture Rule 2).
+                if matches!(service_class, CipServiceClass::Reset)
+                    && cip_hdr.service & 0x80 == 0
+                    && self.all_findings.len() < MAX_FINDINGS
+                {
+                    // BC-5.38.005 invariant 1: "If I include this real implementation, will the
+                    // test for this function pass trivially without any implementer work?" — YES.
+                    // Body deferred to todo!() per BC-5.38.001.
+                    todo!(
+                        "STORY-135: emit T0816 Finding for CIP Reset (0x05) \
+                         — category::Execution, Likely/High, mitre T0816 (BC-2.17.013)"
+                    );
+                }
+
+                // STORY-135: T0836 detection — SetAttribute write-burst within 1s window.
+                // BC-2.17.012 preconditions 1–5: classify_cip_service returns a write-class
+                // variant (SetAttributesAll/SetAttributeList/SetAttributeSingle), request
+                // (high bit clear), type_id == 0x00B2, !is_non_enip.
+                // Window: write_window_start_ts (u32 seconds), write_count_in_window (u64),
+                // write_burst_emitted (bool one-shot guard per window).
+                // Both flow.write_count_in_window AND self.write_count incremented on every
+                // qualifying write (BC-2.17.012 postconditions 1–2).
+                if matches!(
+                    service_class,
+                    CipServiceClass::SetAttributesAll
+                        | CipServiceClass::SetAttributeList
+                        | CipServiceClass::SetAttributeSingle
+                ) && cip_hdr.service & 0x80 == 0
+                {
+                    // BC-5.38.005 invariant 1: "If I include this real implementation, will the
+                    // test for this function pass trivially without any implementer work?" — YES.
+                    // Body deferred to todo!() per BC-5.38.001 (window management, counter
+                    // increments, and conditional T0836 emission are all non-trivial).
+                    todo!(
+                        "STORY-135: increment write_count_in_window + write_count; \
+                         manage 1s window (write_window_start_ts, wrapping_sub > 1); \
+                         emit T0836 Finding when count > threshold && !write_burst_emitted \
+                         — category::Execution, Likely/Medium, mitre T0836 (BC-2.17.012)"
+                    );
                 }
             }
         }
