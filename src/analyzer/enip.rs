@@ -619,7 +619,6 @@ pub struct EnipAnalyzer {
     pub flows: HashMap<crate::reassembly::flow::FlowKey, EnipFlowState>,
 
     // ---- STORY-138 aggregate fields (BC-2.17.017 / BC-2.17.021 / BC-2.17.024) ----
-
     /// Aggregate PDU count across all closed flows (BC-2.17.024 / BC-2.17.017 Post 2).
     ///
     /// Folded from `flow.pdu_count` by `on_flow_close`. Read by `summarize()`.
