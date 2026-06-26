@@ -481,6 +481,15 @@ pub struct EnipAnalyzer {
     /// Never reset. Read by `summarize()` per BC-2.17.021 postcondition 1 `write_count` field.
     /// Field name is normative per BC-2.17.012 Architecture Anchors.
     pub write_count: u64,
+
+    /// Per-flow mutable state indexed by TCP flow key.
+    ///
+    /// The frame-walk loop in `on_data` (STORY-137 / BC-2.17.016) uses `entry().or_default()`
+    /// to lazily create `EnipFlowState` on first contact for each flow. Mirrors the
+    /// `Dnp3Analyzer::flows` pattern.
+    ///
+    /// Field name is normative — the test suite and `summarize()` reference it directly.
+    pub flows: HashMap<crate::reassembly::flow::FlowKey, EnipFlowState>,
 }
 
 impl EnipAnalyzer {
@@ -501,6 +510,7 @@ impl EnipAnalyzer {
             bytes_received: 0,
             error_count: 0,
             write_count: 0,
+            flows: HashMap::new(),
         }
     }
 

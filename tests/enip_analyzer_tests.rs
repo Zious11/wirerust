@@ -4734,23 +4734,21 @@ mod connection_lifecycle {
 // Traces to: BC-2.17.016 (frame-walk + carry buffer), BC-2.17.004 (command_counts),
 //            BC-2.17.018 (T0814 windowed DoS detection).
 //
-// IMPLEMENTATION STATUS: RED GATE — all 21 tests are stubs that panic via todo!()
+// IMPLEMENTATION STATUS: RED GATE — all 20 behavioral tests fail via todo!()
 // in on_data / check_t0814. The implementer (STORY-137 TDD phase) replaces the
 // todo!() bodies and makes these tests GREEN.
 //
+// ARCHITECTURE NOTE: EnipAnalyzer stores per-flow state in `self.flows: HashMap<FlowKey,
+// EnipFlowState>` (mirrors Dnp3Analyzer pattern). After each on_data call, tests read
+// flow state via `analyzer.flows.get(&key).expect("flow must exist after on_data")`.
+//
 // Each test carries a BC / AC citation in its doc comment.
 // ─────────────────────────────────────────────────────────────────────────────
-// Stubs: `flow` is declared `mut` so the implementer can write `flow.carry` etc. without
-// modifying the test bodies; the `todo!()` in `on_data` panics before any mutation occurs,
-// so Rust's unused_mut lint fires. Direction is imported for completeness of the wiring
-// contract but unused while on_data is a stub.
-#[allow(unused_mut, unused_imports)]
 mod frame_walk {
     use std::net::{IpAddr, Ipv4Addr};
 
-    use wirerust::analyzer::enip::{EnipAnalyzer, EnipFlowState, MAX_ENIP_CARRY_BYTES};
+    use wirerust::analyzer::enip::{EnipAnalyzer, MAX_ENIP_CARRY_BYTES};
     use wirerust::reassembly::flow::FlowKey;
-    use wirerust::reassembly::handler::Direction;
 
     // -------------------------------------------------------------------------
     // Helpers
@@ -4833,12 +4831,15 @@ mod frame_walk {
     #[test]
     fn test_carry_buffer_partial_header() {
         let mut analyzer = EnipAnalyzer::new(50, 5);
-        let mut flow = EnipFlowState::new();
         let key = make_flow_key();
         let partial = vec![0x65u8; 12]; // 12 bytes — partial header
-        analyzer.on_data(key, &partial, 0);
+        analyzer.on_data(key.clone(), &partial, 0);
         // RED GATE: todo!() in on_data panics before reaching here.
-        // Implementer: assert carry.len() == 12 and parse_errors == 0.
+        // When implemented, flow state is read via analyzer.flows:
+        let flow = analyzer
+            .flows
+            .get(&key)
+            .expect("flow must exist after on_data (BC-2.17.016 Postcondition 3)");
         assert_eq!(
             flow.carry.len(),
             12,
@@ -4849,7 +4850,6 @@ mod frame_walk {
             flow.parse_errors, 0,
             "partial header must not increment parse_errors (BC-2.17.016 Postcondition 1)"
         );
-        let _ = flow;
     }
 
     /// AC-137-001 — two complete frames in one segment: both processed; carry empty.
@@ -4862,22 +4862,23 @@ mod frame_walk {
     #[test]
     fn test_carry_buffer_two_frames_one_segment() {
         let mut analyzer = EnipAnalyzer::new(50, 5);
-        let mut flow = EnipFlowState::new();
         let key = make_flow_key();
-
         let mut two_frames = enip_frame(0x0065); // frame 1: RegisterSession, length=0
         two_frames.extend_from_slice(&enip_frame(0x0065)); // frame 2
-        analyzer.on_data(key, &two_frames, 0);
+        analyzer.on_data(key.clone(), &two_frames, 0);
         // RED GATE: todo!() panics before here.
+        let flow = analyzer
+            .flows
+            .get(&key)
+            .expect("flow must exist after on_data");
         assert!(
             flow.carry.is_empty(),
             "two complete frames must leave carry empty (BC-2.17.016 Postcondition 3; EC-002)"
         );
         assert_eq!(
             flow.pdu_count, 2,
-            "pdu_count must be 2 after processing two complete frames"
+            "pdu_count must be 2 after processing two complete frames (BC-2.17.024)"
         );
-        let _ = flow;
     }
 
     /// AC-137-001 — frame split across 3 segments: reassembled via carry.
@@ -4890,20 +4891,25 @@ mod frame_walk {
     /// After seg1: carry.len() == 10. After seg2: carry.len() == 20. After seg3: frame
     /// is complete and processed via process_pdu; carry is empty.
     ///
+    /// All 3 calls use the SAME flow key so the carry buffer accumulates across calls
+    /// (BC-2.17.016 Postcondition 2 — carry is per-flow state in analyzer.flows).
+    ///
     /// Traces: BC-2.17.016 Postconditions 2–3; AC-137-001; EC-003.
     #[test]
     fn test_carry_buffer_three_segments_one_frame() {
         let mut analyzer = EnipAnalyzer::new(50, 5);
-        let mut flow = EnipFlowState::new();
+        let key = make_flow_key();
         let frame = enip_register_session_frame(); // 28 bytes
-        let key1 = make_flow_key();
-        let key2 = make_flow_key();
-        let key3 = make_flow_key();
 
-        analyzer.on_data(key1, &frame[0..10], 0); // seg1
-        analyzer.on_data(key2, &frame[10..20], 0); // seg2
-        analyzer.on_data(key3, &frame[20..28], 0); // seg3
+        analyzer.on_data(key.clone(), &frame[0..10], 0); // seg1
         // RED GATE: todo!() panics before here.
+        // (subsequent calls would verify carry accumulation if seg1 did not panic)
+        analyzer.on_data(key.clone(), &frame[10..20], 0); // seg2
+        analyzer.on_data(key.clone(), &frame[20..28], 0); // seg3
+        let flow = analyzer
+            .flows
+            .get(&key)
+            .expect("flow must exist after on_data");
         assert!(
             flow.carry.is_empty(),
             "carry must be empty after the split frame is completed on seg3 \
@@ -4911,9 +4917,8 @@ mod frame_walk {
         );
         assert_eq!(
             flow.pdu_count, 1,
-            "pdu_count must be 1 after the split frame is reassembled"
+            "pdu_count must be 1 after the split frame is reassembled (BC-2.17.024)"
         );
-        let _ = flow;
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -4929,26 +4934,25 @@ mod frame_walk {
     /// stashed into carry. Carry-cap check fires: parse_errors+1, malformed_in_window+1,
     /// check_t0814(), is_non_enip = true, carry.clear().
     ///
+    /// Expected parse_errors == 2: one for the oversized-frame-skip and one for carry overflow.
+    ///
     /// Traces: BC-2.17.016 Postcondition 4 / Invariant 4; AC-137-002; EC-004.
     #[test]
     fn test_carry_buffer_cap_at_600() {
         let mut analyzer = EnipAnalyzer::new(50, 5);
-        let mut flow = EnipFlowState::new();
         let key = make_flow_key();
-
         // Build: oversized declared frame (624 bytes, command=RegisterSession, length=600)
         // followed by 601 bytes of padding → total buf = 624+601 = 1225 bytes.
         // Frame-skip advances cursor by min(624, 1225) = 624.
-        // Remaining: buf[624..] = 601 bytes → stash into carry.
-        // Carry overflow: carry.len() = 601 > MAX_ENIP_CARRY_BYTES (600).
+        // Remaining: buf[624..] = 601 bytes → stash into carry → carry overflow.
         let mut data = enip_oversized_declared_frame(); // 624 bytes
         data.extend_from_slice(&vec![0x00u8; 601]); // 601 bytes trailing
-        analyzer.on_data(key, &data, 0);
+        analyzer.on_data(key.clone(), &data, 0);
         // RED GATE: todo!() panics before here.
-        // When implemented:
-        //   parse_errors == 2 (oversized-frame skip + carry overflow)
-        //   is_non_enip == true (carry overflow latched it)
-        //   carry is empty (carry.clear() called after overflow)
+        let flow = analyzer
+            .flows
+            .get(&key)
+            .expect("flow must exist after on_data");
         assert_eq!(
             flow.parse_errors, 2,
             "must have 2 parse_errors: one for oversized frame skip, one for carry overflow \
@@ -4962,64 +4966,56 @@ mod frame_walk {
             flow.carry.is_empty(),
             "carry must be cleared after overflow (BC-2.17.016 Postcondition 4)"
         );
-        let _ = flow;
     }
 
     /// AC-137-002 — carry overflow sets is_non_enip (one-way latch).
     ///
     /// After carry overflows (`carry.len() > 600`), `is_non_enip` is latched `true`.
-    /// Subsequent `on_data` calls for the same flow must be immediate no-ops.
     ///
     /// Traces: BC-2.17.016 Invariant 4; AC-137-002; EC-004.
     #[test]
     fn test_carry_cap_sets_non_enip() {
         let mut analyzer = EnipAnalyzer::new(50, 5);
-        let mut flow = EnipFlowState::new();
         let key = make_flow_key();
-
-        // Trigger carry overflow (see test_carry_buffer_cap_at_600 for data construction).
         let mut data = enip_oversized_declared_frame(); // 624 bytes
         data.extend_from_slice(&vec![0x00u8; 601]);
-        analyzer.on_data(key, &data, 0);
+        analyzer.on_data(key.clone(), &data, 0);
         // RED GATE: todo!() panics before here.
+        let flow = analyzer
+            .flows
+            .get(&key)
+            .expect("flow must exist after on_data");
         assert!(
             flow.is_non_enip,
             "carry overflow must latch is_non_enip = true (BC-2.17.016 Invariant 4; AC-137-002)"
         );
-        let _ = flow;
     }
 
     /// AC-137-002 + AC-137-004 — T0814 fires on carry-overflow as the 3rd malformed event.
     ///
-    /// Two malformed frames (byte-walk path, unknown command) followed by a carry-buffer
-    /// overflow (the 3rd structural reject). The carry-overflow increments `malformed_in_window`
-    /// to 3, then `check_t0814` fires (while `is_non_enip` is still false), emitting the
-    /// T0814 finding. THEN `is_non_enip` is latched true.
+    /// Two malformed frames (byte-walk path, unknown command 0xFF00 on the same flow key)
+    /// followed by a carry-buffer overflow (the 3rd structural reject). The carry-overflow
+    /// increments `malformed_in_window` to 3, then `check_t0814` fires (while `is_non_enip`
+    /// is still false), emitting the T0814 finding. THEN `is_non_enip` is latched true.
     ///
     /// **ORDERING CONSTRAINT (BC-2.17.018 EC-007 / AC-137-002):**
-    ///   check_t0814 MUST fire before is_non_enip is set. Verifies:
-    ///   - T0814 finding present in analyzer.all_findings
-    ///   - flow.is_non_enip == true (latched AFTER T0814)
-    ///   - flow.malformed_anomaly_emitted == true
+    ///   check_t0814 MUST fire before is_non_enip is set.
     ///
     /// Traces: BC-2.17.018 EC-007; BC-2.17.016 Invariant 4; AC-137-002; AC-137-004.
     #[test]
     fn test_t0814_fires_on_carry_overflow_third_malformed() {
         let mut analyzer = EnipAnalyzer::new(50, 5);
-        let mut flow = EnipFlowState::new();
-        let key1 = make_flow_key();
-        let key2 = make_flow_key();
-        let key3 = make_flow_key();
+        let key = make_flow_key();
 
-        // Structural reject #1: unknown command (byte-walk).
-        analyzer.on_data(key1, &enip_unknown_command_frame(), 0);
-        // Structural reject #2: another unknown command.
-        analyzer.on_data(key2, &enip_unknown_command_frame(), 0);
-        // Structural reject #3: carry overflow (the 3rd malformed event triggers T0814).
+        // Structural reject #1: unknown command (byte-walk) — same flow.
+        analyzer.on_data(key.clone(), &enip_unknown_command_frame(), 0);
+        // RED GATE: todo!() panics before here.
+        // Structural reject #2: another unknown command — same flow, counter accumulates.
+        analyzer.on_data(key.clone(), &enip_unknown_command_frame(), 0);
+        // Structural reject #3: carry overflow — same flow — this is the 3rd event.
         let mut overflow_data = enip_oversized_declared_frame();
         overflow_data.extend_from_slice(&vec![0x00u8; 601]);
-        analyzer.on_data(key3, &overflow_data, 0);
-        // RED GATE: todo!() panics before here.
+        analyzer.on_data(key.clone(), &overflow_data, 0);
         assert!(
             analyzer
                 .all_findings
@@ -5028,6 +5024,10 @@ mod frame_walk {
             "T0814 finding must be emitted when carry-overflow is the 3rd malformed event \
              (BC-2.17.018 EC-007; check_t0814 must fire BEFORE is_non_enip is latched)"
         );
+        let flow = analyzer
+            .flows
+            .get(&key)
+            .expect("flow must exist after on_data");
         assert!(
             flow.is_non_enip,
             "is_non_enip must be true after carry overflow, AFTER T0814 fired \
@@ -5037,7 +5037,6 @@ mod frame_walk {
             flow.malformed_anomaly_emitted,
             "malformed_anomaly_emitted must be true after T0814 emission (BC-2.17.018 PC-4)"
         );
-        let _ = flow;
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -5056,11 +5055,14 @@ mod frame_walk {
     #[test]
     fn test_byte_walk_resync_invalid_command() {
         let mut analyzer = EnipAnalyzer::new(50, 5);
-        let mut flow = EnipFlowState::new();
         let key = make_flow_key();
         let data = enip_unknown_command_frame(); // 24 bytes, command=0xFF00
-        analyzer.on_data(key, &data, 0);
+        analyzer.on_data(key.clone(), &data, 0);
         // RED GATE: todo!() panics before here.
+        let flow = analyzer
+            .flows
+            .get(&key)
+            .expect("flow must exist after on_data");
         assert_eq!(
             flow.parse_errors, 1,
             "unknown command must increment parse_errors to 1 \
@@ -5076,7 +5078,6 @@ mod frame_walk {
             "byte-walk resync (cursor += 1) leaves 23 bytes in carry \
              (BC-2.17.016 Postcondition 1 / AC-137-003)"
         );
-        let _ = flow;
     }
 
     /// AC-137-003 — oversized declared frame → frame-skip (cursor += total), NOT is_non_enip.
@@ -5089,11 +5090,14 @@ mod frame_walk {
     #[test]
     fn test_oversize_frame_skip_continue() {
         let mut analyzer = EnipAnalyzer::new(50, 5);
-        let mut flow = EnipFlowState::new();
         let key = make_flow_key();
         let data = enip_oversized_declared_frame(); // 624 bytes, command=0x0065, length=600
-        analyzer.on_data(key, &data, 0);
+        analyzer.on_data(key.clone(), &data, 0);
         // RED GATE: todo!() panics before here.
+        let flow = analyzer
+            .flows
+            .get(&key)
+            .expect("flow must exist after on_data");
         assert_eq!(
             flow.parse_errors, 1,
             "oversized declared frame must increment parse_errors to 1 \
@@ -5104,7 +5108,6 @@ mod frame_walk {
             "frame-skip path must leave carry empty (cursor += total_frame_len) \
              (BC-2.17.016 Postcondition 1; EC-010)"
         );
-        let _ = flow;
     }
 
     /// AC-137-003 — oversized declared frame does NOT set is_non_enip (BC-2.17.016 Invariant 4).
@@ -5116,47 +5119,54 @@ mod frame_walk {
     #[test]
     fn test_oversize_frame_does_not_set_non_enip() {
         let mut analyzer = EnipAnalyzer::new(50, 5);
-        let mut flow = EnipFlowState::new();
         let key = make_flow_key();
         let data = enip_oversized_declared_frame();
-        analyzer.on_data(key, &data, 0);
+        analyzer.on_data(key.clone(), &data, 0);
         // RED GATE: todo!() panics before here.
+        let flow = analyzer
+            .flows
+            .get(&key)
+            .expect("flow must exist after on_data");
         assert!(
             !flow.is_non_enip,
             "oversized declared frame (frame-skip path) must NOT set is_non_enip \
              (BC-2.17.016 Invariant 4; AC-137-003)"
         );
-        let _ = flow;
     }
 
     /// AC-137-003 — is_non_enip flag is permanent: once set, subsequent on_data are no-ops.
     ///
-    /// After carry overflow sets `is_non_enip = true`, any further `on_data` calls must
-    /// return immediately without modifying any counters or carry.
+    /// After carry overflow sets `is_non_enip = true`, any further `on_data` calls for the
+    /// same flow must return immediately without modifying any counters or carry.
     ///
     /// Traces: BC-2.17.016 Invariant 4; AC-137-003; EC-011.
     #[test]
     fn test_non_enip_flag_permanent() {
         let mut analyzer = EnipAnalyzer::new(50, 5);
-        let mut flow = EnipFlowState::new();
-        let key1 = make_flow_key();
-        let key2 = make_flow_key();
+        let key = make_flow_key();
 
         // Trigger carry overflow to set is_non_enip.
         let mut overflow_data = enip_oversized_declared_frame();
         overflow_data.extend_from_slice(&vec![0x00u8; 601]);
-        analyzer.on_data(key1, &overflow_data, 0);
+        analyzer.on_data(key.clone(), &overflow_data, 0);
         // RED GATE: todo!() panics before here.
 
-        let parse_errors_after_overflow = flow.parse_errors;
+        let parse_errors_after_overflow = analyzer
+            .flows
+            .get(&key)
+            .expect("flow must exist after first on_data")
+            .parse_errors;
         let findings_after_overflow = analyzer.all_findings.len();
 
         // Subsequent call with valid data — must be a no-op (is_non_enip guards it).
         let valid_frame = enip_frame(0x0065);
-        analyzer.on_data(key2, &valid_frame, 1);
+        analyzer.on_data(key.clone(), &valid_frame, 1);
+        let flow = analyzer
+            .flows
+            .get(&key)
+            .expect("flow must exist after second on_data");
         assert_eq!(
-            flow.parse_errors,
-            parse_errors_after_overflow,
+            flow.parse_errors, parse_errors_after_overflow,
             "parse_errors must not change after is_non_enip is set (EC-011; BC-2.17.016 Inv 4)"
         );
         assert_eq!(
@@ -5164,27 +5174,26 @@ mod frame_walk {
             findings_after_overflow,
             "no new findings after is_non_enip is set (EC-011; BC-2.17.016 Invariant 4)"
         );
-        let _ = flow;
     }
 
     /// AC-137-003 — is_non_enip set at carry cap (direct scenario).
     ///
-    /// Carry overflow path sets is_non_enip = true. Verifies the exact carry.len() > 600
-    /// branch is taken and is_non_enip is latched.
+    /// Carry overflow path sets is_non_enip = true AND carry.clear() is called.
     ///
     /// Traces: BC-2.17.016 Postcondition 4; AC-137-003; EC-004.
     #[test]
     fn test_non_enip_flag_set_at_carry_cap() {
         let mut analyzer = EnipAnalyzer::new(50, 5);
-        let mut flow = EnipFlowState::new();
         let key = make_flow_key();
-
-        // Same construction as test_carry_buffer_cap_at_600:
         // oversized declared frame (624) + 601 trailing bytes → carry = 601 > 600.
         let mut data = enip_oversized_declared_frame();
         data.extend_from_slice(&vec![0x00u8; 601]);
-        analyzer.on_data(key, &data, 0);
+        analyzer.on_data(key.clone(), &data, 0);
         // RED GATE: todo!() panics before here.
+        let flow = analyzer
+            .flows
+            .get(&key)
+            .expect("flow must exist after on_data");
         assert!(
             flow.is_non_enip,
             "carry.len() > MAX_ENIP_CARRY_BYTES must set is_non_enip = true \
@@ -5194,7 +5203,6 @@ mod frame_walk {
             flow.carry.is_empty(),
             "carry.clear() must be called after overflow (BC-2.17.016 Postcondition 4)"
         );
-        let _ = flow;
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -5208,20 +5216,22 @@ mod frame_walk {
     /// `check_t0814` fires: T0814 Anomaly/Possible/Low finding emitted, `malformed_anomaly_emitted`
     /// set to true.
     ///
+    /// All 3 calls use the SAME flow key so malformed_in_window accumulates.
+    ///
+    /// Asserts T0814 summary contains required BC-2.17.018 Postcondition 3 substrings:
+    /// "malformed frames", "possible crash-probe", "T0814" in mitre_techniques.
+    ///
     /// Traces: BC-2.17.018 Postconditions 1–4; AC-137-004; EC-007.
     #[test]
     fn test_t0814_fires_at_threshold() {
         let mut analyzer = EnipAnalyzer::new(50, 5);
-        let mut flow = EnipFlowState::new();
+        let key = make_flow_key();
         let frame = enip_unknown_command_frame();
-        let key1 = make_flow_key();
-        let key2 = make_flow_key();
-        let key3 = make_flow_key();
 
-        analyzer.on_data(key1, &frame, 0);
-        analyzer.on_data(key2, &frame, 0);
-        analyzer.on_data(key3, &frame, 0);
+        analyzer.on_data(key.clone(), &frame, 0);
         // RED GATE: todo!() panics before here.
+        analyzer.on_data(key.clone(), &frame, 0);
+        analyzer.on_data(key.clone(), &frame, 0);
         let t0814_findings: Vec<_> = analyzer
             .all_findings
             .iter()
@@ -5248,11 +5258,33 @@ mod frame_walk {
             wirerust::findings::ThreatCategory::Anomaly,
             "T0814 category must be Anomaly (BC-2.17.018 Postcondition 3)"
         );
+        // BC-2.17.018 Postcondition 3 — summary substring assertions.
+        assert!(
+            t0814_findings[0].summary.contains("malformed frames"),
+            "T0814 summary must contain \"malformed frames\" \
+             (BC-2.17.018 Postcondition 3 summary template)"
+        );
+        assert!(
+            t0814_findings[0].summary.contains("possible crash-probe"),
+            "T0814 summary must contain \"possible crash-probe\" \
+             (BC-2.17.018 Postcondition 3 summary template)"
+        );
+        assert!(
+            t0814_findings[0].source_ip.is_some(),
+            "T0814 finding must carry source_ip (BC-2.17.018 Postcondition 3)"
+        );
+        assert!(
+            t0814_findings[0].timestamp.is_some(),
+            "T0814 finding must carry timestamp (BC-2.17.018 Postcondition 3)"
+        );
+        let flow = analyzer
+            .flows
+            .get(&key)
+            .expect("flow must exist after on_data");
         assert!(
             flow.malformed_anomaly_emitted,
             "malformed_anomaly_emitted must be true after T0814 fires (BC-2.17.018 PC-4)"
         );
-        let _ = flow;
     }
 
     /// AC-137-004 — T0814 one-shot guard: 4th malformed frame in same window → no second finding.
@@ -5260,17 +5292,18 @@ mod frame_walk {
     /// After T0814 fires at the 3rd malformed frame, a 4th malformed frame increments
     /// `malformed_in_window` to 4 but does NOT emit another T0814 (guard set).
     ///
+    /// All calls use the same flow key so counters accumulate.
+    ///
     /// Traces: BC-2.17.018 Postcondition 4; AC-137-004; EC-008.
     #[test]
     fn test_t0814_one_shot_guard_per_window() {
         let mut analyzer = EnipAnalyzer::new(50, 5);
-        let mut flow = EnipFlowState::new();
+        let key = make_flow_key();
         let frame = enip_unknown_command_frame();
         for i in 0..4u32 {
-            let key = make_flow_key();
-            analyzer.on_data(key, &frame, i);
+            analyzer.on_data(key.clone(), &frame, i);
+            // RED GATE: todo!() panics on i==0 before here.
         }
-        // RED GATE: todo!() panics before here.
         let t0814_count = analyzer
             .all_findings
             .iter()
@@ -5281,11 +5314,14 @@ mod frame_walk {
             "T0814 must fire exactly once per window (4th malformed frame must not re-fire) \
              (BC-2.17.018 Postcondition 4; AC-137-004; EC-008)"
         );
+        let flow = analyzer
+            .flows
+            .get(&key)
+            .expect("flow must exist after on_data");
         assert_eq!(
             flow.malformed_in_window, 4,
             "malformed_in_window must be 4 after 4 structural rejects in the same window"
         );
-        let _ = flow;
     }
 
     /// AC-137-004 — T0814 does NOT fire below threshold (2 malformed frames).
@@ -5296,13 +5332,15 @@ mod frame_walk {
     #[test]
     fn test_t0814_does_not_fire_below_threshold() {
         let mut analyzer = EnipAnalyzer::new(50, 5);
-        let mut flow = EnipFlowState::new();
+        let key = make_flow_key();
         let frame = enip_unknown_command_frame();
-        let key1 = make_flow_key();
-        let key2 = make_flow_key();
-        analyzer.on_data(key1, &frame, 0);
-        analyzer.on_data(key2, &frame, 0);
+        analyzer.on_data(key.clone(), &frame, 0);
         // RED GATE: todo!() panics before here.
+        analyzer.on_data(key.clone(), &frame, 0);
+        let flow = analyzer
+            .flows
+            .get(&key)
+            .expect("flow must exist after on_data");
         assert_eq!(
             flow.malformed_in_window, 2,
             "malformed_in_window must be 2 after 2 rejects (EC-006)"
@@ -5318,7 +5356,6 @@ mod frame_walk {
             !flow.malformed_anomaly_emitted,
             "malformed_anomaly_emitted must remain false below threshold"
         );
-        let _ = flow;
     }
 
     /// AC-137-004 — T0814 re-fires after 300-second window reset.
@@ -5328,25 +5365,25 @@ mod frame_walk {
     /// `malformed_anomaly_emitted = false`. A fresh burst of 3 malformed frames fires a
     /// new T0814 (total: 2 T0814 findings in `all_findings`).
     ///
+    /// All calls use the same flow key.
+    ///
     /// Traces: BC-2.17.018 Postcondition 5; AC-137-004; EC-009.
     #[test]
     fn test_t0814_refire_after_window_reset() {
         let mut analyzer = EnipAnalyzer::new(50, 5);
-        let mut flow = EnipFlowState::new();
+        let key = make_flow_key();
         let frame = enip_unknown_command_frame();
 
-        // First window: 3 malformed frames → T0814 fires.
-        for i in 0..3u32 {
-            let key = make_flow_key();
-            analyzer.on_data(key, &frame, i);
-        }
+        // First window: 3 malformed frames → T0814 fires (ts=0,0,0).
+        analyzer.on_data(key.clone(), &frame, 0);
         // RED GATE: todo!() panics before here.
+        analyzer.on_data(key.clone(), &frame, 0);
+        analyzer.on_data(key.clone(), &frame, 0);
 
-        // Second window (ts=300 causes expiry): 3 more malformed frames.
-        for i in 0..3u32 {
-            let key = make_flow_key();
-            analyzer.on_data(key, &frame, 300 + i);
-        }
+        // Second window: send ts=300 to trigger expiry, then 2 more at 300, 300.
+        analyzer.on_data(key.clone(), &frame, 300);
+        analyzer.on_data(key.clone(), &frame, 300);
+        analyzer.on_data(key.clone(), &frame, 300);
         let t0814_count = analyzer
             .all_findings
             .iter()
@@ -5357,7 +5394,6 @@ mod frame_walk {
             "T0814 must re-fire after 300-second window reset; expected 2 findings total \
              (BC-2.17.018 Postcondition 5; AC-137-004; EC-009)"
         );
-        let _ = flow;
     }
 
     /// AC-137-004 — parse_errors is NOT reset on window expiry (lifetime counter).
@@ -5365,23 +5401,31 @@ mod frame_walk {
     /// `parse_errors` is a lifetime counter that is NEVER reset. `malformed_in_window` is
     /// reset to 0 at window expiry, but `parse_errors` continues accumulating.
     ///
+    /// After 3 malformed frames (window 1) + 1 at ts=300 (window 2):
+    ///   parse_errors == 4 (lifetime)
+    ///   malformed_in_window == 1 (new window, only the ts=300 frame)
+    ///
+    /// All calls use the same flow key.
+    ///
     /// Traces: BC-2.17.018 Invariant 1 (two counters, different lifetimes); AC-137-004; EC-009.
     #[test]
     fn test_parse_errors_not_reset_on_window_expiry() {
         let mut analyzer = EnipAnalyzer::new(50, 5);
-        let mut flow = EnipFlowState::new();
+        let key = make_flow_key();
         let frame = enip_unknown_command_frame();
 
         // 3 malformed frames in window 1 (timestamp 0).
-        for i in 0..3u32 {
-            let key = make_flow_key();
-            analyzer.on_data(key, &frame, i);
-        }
+        analyzer.on_data(key.clone(), &frame, 0);
         // RED GATE: todo!() panics before here.
+        analyzer.on_data(key.clone(), &frame, 0);
+        analyzer.on_data(key.clone(), &frame, 0);
 
         // Window 2 starts at ts=300. 1 more malformed frame.
-        let key = make_flow_key();
-        analyzer.on_data(key, &frame, 300);
+        analyzer.on_data(key.clone(), &frame, 300);
+        let flow = analyzer
+            .flows
+            .get(&key)
+            .expect("flow must exist after on_data");
         assert_eq!(
             flow.parse_errors, 4,
             "parse_errors must accumulate across window resets (lifetime counter, never reset) \
@@ -5392,7 +5436,6 @@ mod frame_walk {
             "malformed_in_window must be 1 in the new window after the 300s expiry reset \
              (BC-2.17.018 Postcondition 5; EC-009)"
         );
-        let _ = flow;
     }
 
     /// AC-137-004 — T0814 fires but is_non_enip is NOT set at threshold crossing.
@@ -5406,13 +5449,12 @@ mod frame_walk {
     #[test]
     fn test_t0814_non_enip_not_set_at_threshold() {
         let mut analyzer = EnipAnalyzer::new(50, 5);
-        let mut flow = EnipFlowState::new();
+        let key = make_flow_key();
         let frame = enip_unknown_command_frame();
         for i in 0..3u32 {
-            let key = make_flow_key();
-            analyzer.on_data(key, &frame, i);
+            analyzer.on_data(key.clone(), &frame, i);
+            // RED GATE: todo!() panics on i==0 before here.
         }
-        // RED GATE: todo!() panics before here.
         assert!(
             analyzer
                 .all_findings
@@ -5420,12 +5462,15 @@ mod frame_walk {
                 .any(|f| f.mitre_techniques.contains(&"T0814".to_string())),
             "T0814 must fire at threshold 3 (AC-137-004)"
         );
+        let flow = analyzer
+            .flows
+            .get(&key)
+            .expect("flow must exist after on_data");
         assert!(
             !flow.is_non_enip,
             "is_non_enip must NOT be set when T0814 fires — it is set ONLY on carry overflow \
              (BC-2.17.016 Invariant 4; HS-117 Case D)"
         );
-        let _ = flow;
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -5443,11 +5488,14 @@ mod frame_walk {
     #[test]
     fn test_valid_frame_no_malformed_count() {
         let mut analyzer = EnipAnalyzer::new(50, 5);
-        let mut flow = EnipFlowState::new();
         let key = make_flow_key();
         let frame = enip_frame(0x0065); // valid command, length=0, total=24
-        analyzer.on_data(key, &frame, 0);
+        analyzer.on_data(key.clone(), &frame, 0);
         // RED GATE: todo!() panics before here.
+        let flow = analyzer
+            .flows
+            .get(&key)
+            .expect("flow must exist after on_data");
         assert_eq!(
             flow.parse_errors, 0,
             "valid frame must not increment parse_errors (BC-2.17.016 PC-1; AC-137-005)"
@@ -5456,7 +5504,6 @@ mod frame_walk {
             flow.malformed_in_window, 0,
             "valid frame must not increment malformed_in_window (BC-2.17.018 PC-1/2; AC-137-005)"
         );
-        let _ = flow;
     }
 
     /// AC-137-005 — invalid frame increments both parse_errors and malformed_in_window.
@@ -5468,11 +5515,14 @@ mod frame_walk {
     #[test]
     fn test_invalid_frame_increments_malformed_count() {
         let mut analyzer = EnipAnalyzer::new(50, 5);
-        let mut flow = EnipFlowState::new();
         let key = make_flow_key();
         let frame = enip_unknown_command_frame();
-        analyzer.on_data(key, &frame, 0);
+        analyzer.on_data(key.clone(), &frame, 0);
         // RED GATE: todo!() panics before here.
+        let flow = analyzer
+            .flows
+            .get(&key)
+            .expect("flow must exist after on_data");
         assert_eq!(
             flow.parse_errors, 1,
             "invalid frame must increment parse_errors to 1 \
@@ -5483,7 +5533,6 @@ mod frame_walk {
             "invalid frame must increment malformed_in_window to 1 \
              (BC-2.17.018 Postcondition 2; AC-137-005)"
         );
-        let _ = flow;
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -5502,11 +5551,14 @@ mod frame_walk {
     #[test]
     fn test_command_counts_increments_for_unknown_command() {
         let mut analyzer = EnipAnalyzer::new(50, 5);
-        let mut flow = EnipFlowState::new();
         let key = make_flow_key();
         let frame = enip_unknown_command_frame(); // command = 0xFF00
-        analyzer.on_data(key, &frame, 0);
+        analyzer.on_data(key.clone(), &frame, 0);
         // RED GATE: todo!() panics before here.
+        let flow = analyzer
+            .flows
+            .get(&key)
+            .expect("flow must exist after on_data");
         assert_eq!(
             flow.command_counts.get(&0xFF00u16).copied().unwrap_or(0),
             1,
@@ -5518,7 +5570,6 @@ mod frame_walk {
             "pdu_count must remain 0 — process_pdu must NOT be called for unknown command \
              (BC-2.17.016 PC-0; AC-137-006)"
         );
-        let _ = flow;
     }
 
     /// AC-137-006 — command_counts has a SINGLE increment site (not doubled in process_pdu).
@@ -5531,11 +5582,14 @@ mod frame_walk {
     #[test]
     fn test_command_counts_single_site_not_doubled() {
         let mut analyzer = EnipAnalyzer::new(50, 5);
-        let mut flow = EnipFlowState::new();
         let key = make_flow_key();
         let frame = enip_frame(0x0065); // RegisterSession, length=0, total=24
-        analyzer.on_data(key, &frame, 0);
+        analyzer.on_data(key.clone(), &frame, 0);
         // RED GATE: todo!() panics before here.
+        let flow = analyzer
+            .flows
+            .get(&key)
+            .expect("flow must exist after on_data");
         assert_eq!(
             flow.command_counts.get(&0x0065u16).copied().unwrap_or(0),
             1,
@@ -5546,7 +5600,6 @@ mod frame_walk {
             flow.pdu_count, 1,
             "pdu_count must be 1 after one valid frame dispatched to process_pdu (BC-2.17.024)"
         );
-        let _ = flow;
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -5561,8 +5614,7 @@ mod frame_walk {
     #[test]
     fn test_max_enip_carry_bytes_is_600() {
         assert_eq!(
-            MAX_ENIP_CARRY_BYTES,
-            600,
+            MAX_ENIP_CARRY_BYTES, 600,
             "MAX_ENIP_CARRY_BYTES must equal 600 (ADR-010 Decision 3; BC-2.17.016 Invariant 1)"
         );
     }
