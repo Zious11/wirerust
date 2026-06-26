@@ -54,6 +54,7 @@ down — even though these operations are not currently mapped to MITRE ICS tech
   - `verdict: Verdict::Possible`
   - `confidence: Confidence::Low`
   - `summary: "CIP ForwardOpen connection establishment observed from src={src_ip}: connection lifecycle anomaly"`
+  - `evidence`: one entry — `"CIP service=0x{service:02X} ({name}) from src={src_ip} session={session}. No dedicated MITRE ICS technique for CIP connection establishment anomaly; T1692.001 applies only when connection demonstrably carries unauthorized command (ADR-010 Decision 7)"`
   - `mitre_techniques: vec![]` (empty — no MITRE ICS technique for CIP connection establishment anomaly per ADR-010 Decision 7)
   - `source_ip: Some(src_ip)`, `timestamp: Some(timestamp)`
 - ForwardOpen and LargeForwardOpen each fire per-occurrence (no one-shot guard per BC-2.17.015 Postcondition 3)
@@ -76,6 +77,7 @@ down — even though these operations are not currently mapped to MITRE ICS tech
   - `verdict: Verdict::Possible`
   - `confidence: Confidence::Low`
   - `summary: "CIP ForwardClose connection teardown observed from src={src_ip}: connection lifecycle closed"`
+  - `evidence`: one entry — `"CIP service=0x4E (ForwardClose) from src={src_ip} session={session}. Connection lifecycle closed; no dedicated MITRE ICS technique (ADR-010 Decision 7)"`
   - `mitre_techniques: vec![]` (empty — no MITRE ICS technique per ADR-010 Decision 7)
   - `source_ip: Some(src_ip)`, `timestamp: Some(timestamp)`
 - ForwardClose fires per-occurrence (no one-shot guard per BC-2.17.015 Postcondition 5)
