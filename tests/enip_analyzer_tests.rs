@@ -3490,7 +3490,7 @@ mod recon {
 //            BC-2.17.012 (T0836 SetAttribute write-burst).
 //
 // IMPLEMENTATION STATUS (STORY-135 complete):
-// All 15 tests pass. CIP Stop (T0858), CIP Reset (T0816), and SetAttribute
+// All 16 tests pass. CIP Stop (T0858), CIP Reset (T0816), and SetAttribute
 // write-burst (T0836) detections are fully implemented in `process_pdu`.
 // Tests originated as Red-Gate stubs (none could pass until STORY-135 shipped).
 //
@@ -3505,6 +3505,7 @@ mod recon {
 //   test_t0836_burst_fires_at_threshold_plus_one — BC-2.17.012 inv 2 (strict > semantics)
 //   test_t0836_burst_one_shot_guard            — BC-2.17.012 PC-5 (one-shot guard)
 //   test_t0836_no_fire_at_threshold            — BC-2.17.012 inv 2 (== threshold → no fire)
+//   test_t0836_threshold_zero_fires_on_first_write — BC-2.17.012 EC-007 (threshold=0 → first write fires)
 //   test_t0836_window_resets_after_1s          — BC-2.17.012 PC-4 (window expiry + guard reset)
 //   test_t0836_custom_threshold                — BC-2.17.012 inv 3 (custom threshold)
 //   test_non_enip_suppresses_command_detections — BC-2.17.011/012/013 is_non_enip guard
@@ -3916,8 +3917,10 @@ mod command_detections {
     /// AC-135-003 — exactly 50 SetAttributeSingle in 1s window (threshold=50) does NOT fire T0836.
     ///
     /// Strict `>` semantics: 50 > 50 = false → no finding (BC-2.17.012 invariant 2).
+    /// This exercises the BC-2.17.012 canonical test-vector row "50 → No" (count == threshold
+    /// uses strict `>`, so no finding is emitted).
     ///
-    /// Traces: BC-2.17.012 invariant 2; AC-135-003; EC-007.
+    /// Traces: BC-2.17.012 invariant 2 (strict `>` operator); AC-135-003.
     #[test]
     fn test_t0836_no_fire_at_threshold() {
         let mut analyzer = EnipAnalyzer::new(50, 5);
