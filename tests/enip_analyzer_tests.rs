@@ -7215,3 +7215,261 @@ mod session_lifecycle {
         );
     }
 }
+
+// ---------------------------------------------------------------------------
+// mod summarize_drainage — BC-2.17.021 Precondition 4 / F-138-P1-004 / RULING-W61-001
+//
+// Discriminating tests for the open-flow drainage fix.
+// summarize() MUST fold still-open self.flows.values() into the combined view
+// at call time, without requiring on_flow_close to have been called first.
+//
+// These tests are RED against the unfixed code (summarize() reads only
+// self.total_pdu_count / self.flows_analyzed / self.command_distribution,
+// which are all zero when on_flow_close has never been called → zeros).
+// They go GREEN once the implementer adds the open-flow fold per RULING-W61-001.
+// ---------------------------------------------------------------------------
+mod summarize_drainage {
+    use std::net::{IpAddr, Ipv4Addr};
+
+    use wirerust::analyzer::enip::EnipAnalyzer;
+    use wirerust::reassembly::flow::FlowKey;
+
+    // -----------------------------------------------------------------------
+    // Shared helpers
+    // -----------------------------------------------------------------------
+
+    fn ip(a: u8) -> IpAddr {
+        IpAddr::V4(Ipv4Addr::new(10, 0, 0, a))
+    }
+
+    /// Standard flow key used across all drainage tests.
+    fn flow_key() -> FlowKey {
+        FlowKey::new(ip(1), 50000, ip(2), 44818)
+    }
+
+    /// Build a minimal 24-byte ENIP frame with the given command and zero payload.
+    /// Layout: [command_lo, command_hi, length_lo, length_hi, 20 × 0x00].
+    /// A 24-byte zero-payload frame is a valid ENIP request header (BC-2.17.003).
+    fn enip_frame(command: u16) -> Vec<u8> {
+        let mut buf = vec![0u8; 24];
+        buf[0] = (command & 0xFF) as u8;
+        buf[1] = ((command >> 8) & 0xFF) as u8;
+        // length = 0 (no payload beyond the 24-byte encapsulation header)
+        buf
+    }
+
+    /// 0x0063 — ListIdentity; the canonical BC-2.17.021 test-vector command.
+    const CMD_LIST_IDENTITY: u16 = 0x0063;
+
+    // -----------------------------------------------------------------------
+    // Helper: extract a u64 from enip_summary or panic with a diagnostic.
+    // -----------------------------------------------------------------------
+
+    fn get_u64(enip_summary: &serde_json::Value, field: &str) -> u64 {
+        enip_summary
+            .get(field)
+            .unwrap_or_else(|| panic!("enip_summary must contain '{field}'"))
+            .as_u64()
+            .unwrap_or_else(|| panic!("enip_summary.{field} must be a u64"))
+    }
+
+    // -----------------------------------------------------------------------
+    // F-138-P1-004 / BC-2.17.021 Precondition 4 / RULING-W61-001
+    // Discriminating test: summarize() must reflect open flows even when
+    // on_flow_close has NEVER been called.
+    // -----------------------------------------------------------------------
+
+    /// F-138-P1-004 / BC-2.17.021 Precondition 4 / RULING-W61-001
+    ///
+    /// Drive 3 ListIdentity (0x0063) frames through `on_data` for a single flow,
+    /// then call `summarize()` WITHOUT calling `on_flow_close`.
+    ///
+    /// PART A — open-flow drainage:
+    /// `enip_summary` must reflect the actual traffic:
+    ///   - total_pdu_count  == 3   (folded from the still-open flow)
+    ///   - flows_analyzed   == 1   (the 1 still-open flow counted at summarize time)
+    ///   - command_distribution == { "0x0063": 3 }
+    ///   - parse_errors     == 0
+    ///   - write_count      == 0
+    ///   - error_count      == 0
+    ///   - dropped_findings == 0
+    ///
+    /// PART B — regression guard (no double-count):
+    /// After Part A, call `on_flow_close(flow_key)` and `summarize()` again.
+    /// The values must be IDENTICAL to Part A — proving that the close-then-summarize
+    /// path also produces the correct output and that no double-count occurs
+    /// (RULING-W61-001: on_flow_close removes the flow from self.flows, so a closed
+    /// flow cannot appear in both the aggregate and the open-flow fold).
+    ///
+    /// This test is RED against unfixed code: the pre-fix summarize() reads only
+    /// self.total_pdu_count (== 0), self.flows_analyzed (== 0), and
+    /// self.command_distribution (== {}) because on_flow_close was never called.
+    ///
+    /// Traces: BC-2.17.021 Precondition 4; F-138-P1-004; RULING-W61-001.
+    #[test]
+    #[allow(non_snake_case)]
+    fn test_BC_2_17_021_summarize_reflects_open_flows_without_close() {
+        let mut analyzer = EnipAnalyzer::new(50, 5);
+        let key = flow_key();
+
+        // Drive 3 ListIdentity frames — one flow, never closed.
+        for _ in 0..3 {
+            analyzer.on_data(key.clone(), &enip_frame(CMD_LIST_IDENTITY), 0);
+        }
+        // Pre-condition sanity: the flow must exist with pdu_count == 3.
+        assert_eq!(
+            analyzer.flows[&key].pdu_count, 3,
+            "pre-condition: pdu_count must be 3 in the still-open flow before summarize"
+        );
+        // Pre-condition sanity: aggregate fields are zero (on_flow_close never called).
+        assert_eq!(
+            analyzer.total_pdu_count, 0,
+            "pre-condition: self.total_pdu_count must be 0 before on_flow_close \
+             (confirms on_flow_close was never called)"
+        );
+        assert_eq!(
+            analyzer.flows_analyzed, 0,
+            "pre-condition: self.flows_analyzed must be 0 before on_flow_close"
+        );
+
+        // PART A: call summarize() WITHOUT on_flow_close.
+        // The fix (RULING-W61-001) folds self.flows.values() into a transient combined view.
+        let summary_a = analyzer.summarize();
+        let es_a = summary_a
+            .detail
+            .get("enip_summary")
+            .expect("enip_summary must be present (BC-2.17.021 Post 1)");
+
+        // total_pdu_count: must be 3 (folded from the open flow).
+        // RED: pre-fix code returns 0 (reads self.total_pdu_count == 0).
+        assert_eq!(
+            get_u64(es_a, "total_pdu_count"),
+            3,
+            "enip_summary.total_pdu_count must be 3 (folded from 3 on_data calls on the \
+             open flow); pre-fix code returns 0 — BC-2.17.021 Precond 4 / F-138-P1-004 / \
+             RULING-W61-001"
+        );
+
+        // flows_analyzed: must be 1 (the 1 still-open flow counted at summarize time).
+        // RED: pre-fix code returns 0 (reads self.flows_analyzed == 0).
+        assert_eq!(
+            get_u64(es_a, "flows_analyzed"),
+            1,
+            "enip_summary.flows_analyzed must be 1 (the 1 open flow counted at summarize \
+             time); pre-fix code returns 0 — BC-2.17.021 Precond 4 / F-138-P1-004 / \
+             RULING-W61-001"
+        );
+
+        // command_distribution: must be { "0x0063": 3 }.
+        // RED: pre-fix code returns {} (reads self.command_distribution == {}).
+        // Key format: format!("0x{cmd:04X}") — uppercase 4-digit hex; 0x0063 → "0x0063".
+        let dist_a = es_a
+            .get("command_distribution")
+            .expect("command_distribution must be present");
+        let dist_map_a = dist_a
+            .as_object()
+            .expect("command_distribution must be a JSON object");
+        assert_eq!(
+            dist_map_a.len(),
+            1,
+            "command_distribution must have exactly 1 entry (only 0x0063 was driven); \
+             pre-fix code returns empty map — F-138-P1-004 / RULING-W61-001"
+        );
+        assert_eq!(
+            dist_map_a
+                .get("0x0063")
+                .and_then(serde_json::Value::as_u64)
+                .unwrap_or(0),
+            3,
+            "command_distribution[\"0x0063\"] must be 3; pre-fix code returns absent/0 — \
+             BC-2.17.021 canonical vector / F-138-P1-004 / RULING-W61-001"
+        );
+
+        // parse_errors, write_count, error_count, dropped_findings: all must be 0.
+        for field in &[
+            "parse_errors",
+            "write_count",
+            "error_count",
+            "dropped_findings",
+        ] {
+            assert_eq!(
+                get_u64(es_a, field),
+                0,
+                "enip_summary.{field} must be 0 (no errors, writes, or dropped findings \
+                 in this scenario) — BC-2.17.021 Post 1"
+            );
+        }
+
+        // -----------------------------------------------------------------------
+        // PART B: regression guard — close the flow, then summarize again.
+        // Values must be IDENTICAL to Part A (no double-count).
+        // RULING-W61-001: on_flow_close removes the flow from self.flows.
+        // A flow cannot be in both self.flows (open-fold) and the aggregate
+        // (closed-fold) simultaneously — removal is the gate.
+        // -----------------------------------------------------------------------
+
+        analyzer.on_flow_close(key.clone());
+        // Post-close sanity: flow must be removed from self.flows.
+        assert!(
+            !analyzer.flows.contains_key(&key),
+            "post-close: on_flow_close must remove the flow from self.flows \
+             (BC-2.17.017 Post 1 / RULING-W61-001 no-double-count invariant)"
+        );
+
+        let summary_b = analyzer.summarize();
+        let es_b = summary_b
+            .detail
+            .get("enip_summary")
+            .expect("enip_summary must be present after close");
+
+        // All values must be identical to Part A — no double-count.
+        assert_eq!(
+            get_u64(es_b, "total_pdu_count"),
+            3,
+            "enip_summary.total_pdu_count must still be 3 after on_flow_close + summarize \
+             (no double-count) — RULING-W61-001 no-double-count invariant"
+        );
+        assert_eq!(
+            get_u64(es_b, "flows_analyzed"),
+            1,
+            "enip_summary.flows_analyzed must still be 1 after on_flow_close + summarize \
+             (no double-count) — RULING-W61-001 no-double-count invariant"
+        );
+
+        let dist_b = es_b
+            .get("command_distribution")
+            .expect("command_distribution must be present after close");
+        let dist_map_b = dist_b
+            .as_object()
+            .expect("command_distribution must be a JSON object after close");
+        assert_eq!(
+            dist_map_b.len(),
+            1,
+            "command_distribution must still have 1 entry after on_flow_close + summarize \
+             (no double-count) — RULING-W61-001"
+        );
+        assert_eq!(
+            dist_map_b
+                .get("0x0063")
+                .and_then(serde_json::Value::as_u64)
+                .unwrap_or(0),
+            3,
+            "command_distribution[\"0x0063\"] must still be 3 after on_flow_close + \
+             summarize (no double-count) — RULING-W61-001"
+        );
+
+        for field in &[
+            "parse_errors",
+            "write_count",
+            "error_count",
+            "dropped_findings",
+        ] {
+            assert_eq!(
+                get_u64(es_b, field),
+                0,
+                "enip_summary.{field} must still be 0 after on_flow_close + summarize \
+                 (no double-count) — BC-2.17.021 Post 1"
+            );
+        }
+    }
+}
