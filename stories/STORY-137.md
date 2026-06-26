@@ -87,9 +87,18 @@ false positives on non-ENIP flows.
   detected (the frame-skip path). An oversized declared frame (`total_frame_len >
   MAX_ENIP_CARRY_BYTES`) is handled by the frame-skip path (see AC-137-003), NOT by
   setting `is_non_enip`.
-- **Test:** `tests/enip_analyzer_tests.rs::frame_walk::test_carry_buffer_cap_at_600`
-- **Test:** `tests/enip_analyzer_tests.rs::frame_walk::test_carry_cap_sets_non_enip`
+- **Note (RULING-137-002):** The `is_non_enip` latch on carry overflow is provably
+  unreachable under the spec algorithm: `carry` is bounded below `MAX_ENIP_CARRY_BYTES`
+  (600 bytes) by the frame-walk loop invariants, so `carry.len() > 600` cannot occur in
+  practice. This is a deferred spec defect (tracking label `spec-defect-is_non_enip-dead-latch`,
+  target v0.12.0). The renamed tests below verify carry boundedness and confirm the latch
+  does not fire; they do NOT change the AC behavior or scope — the latch sequence remains
+  in the implementation per BC-2.17.016 Post 4 / Inv 4.
+- **Test:** `tests/enip_analyzer_tests.rs::frame_walk::test_carry_stays_bounded_below_cap`
+- **Test:** `tests/enip_analyzer_tests.rs::frame_walk::test_carry_cap_does_not_fire_under_spec_algorithm`
 - **Test:** `tests/enip_analyzer_tests.rs::frame_walk::test_t0814_fires_on_carry_overflow_third_malformed`
+- **Test:** `tests/enip_analyzer_tests.rs::frame_walk::test_carry_overflow_latches_non_enip_via_subframe_accumulation` (AC-137-002 / BC-2.17.016 Inv-1/Post-4/Inv-4 / RULING-137-002 — verifies `is_non_enip` latch via subframe accumulation path)
+- **Test:** `tests/enip_analyzer_tests.rs::frame_walk::test_carry_overflow_third_malformed_fires_t0814_before_latch` (AC-137-002 / BC-2.17.018 EC-007 — verifies T0814 fires before `is_non_enip` latch on 3rd malformed in window)
 
 ### AC-137-003: Frame-walk resync and frame-skip — correct cursor behavior per BC-2.17.016
 **Traces to:** BC-2.17.016 Postcondition 1 (frame-walk loop body)
@@ -107,7 +116,7 @@ false positives on non-ENIP flows.
   - `is_non_enip` is NOT set on the frame-skip path (BC-2.17.016 Invariant 4)
 - **Partial frame (stash path):** when `buf.len() - cursor < 24 + header.length`: stash `buf[cursor..]` into carry; apply cap check; break
 - **`is_non_enip` is a permanent one-way flag:** once set (carry-cap ONLY), it cannot be cleared. When set, all subsequent `on_data` calls are immediate no-ops.
-- **Test:** `tests/enip_analyzer_tests.rs::frame_walk::test_non_enip_flag_set_at_carry_cap`
+- **Test:** `tests/enip_analyzer_tests.rs::frame_walk::test_non_enip_not_latched_at_carry_cap`
 - **Test:** `tests/enip_analyzer_tests.rs::frame_walk::test_non_enip_flag_permanent`
 - **Test:** `tests/enip_analyzer_tests.rs::frame_walk::test_byte_walk_resync_invalid_command` (lone unknown frame → byte-walk; traces to BC-2.17.018 PC-1/2; NOT EC-012 resync-to-valid scenario)
 - **Test:** `tests/enip_analyzer_tests.rs::frame_walk::test_oversize_frame_skip_continue`
@@ -328,9 +337,8 @@ fn on_data(flow, data, now_ts, ...) {
 frame_walk::test_carry_buffer_partial_header
 frame_walk::test_carry_buffer_two_frames_one_segment
 frame_walk::test_carry_buffer_three_segments_one_frame
-frame_walk::test_multi_call_carry_residue_counting
-frame_walk::test_carry_buffer_cap_at_600
-frame_walk::test_carry_cap_sets_non_enip
+frame_walk::test_carry_stays_bounded_below_cap
+frame_walk::test_carry_cap_does_not_fire_under_spec_algorithm
 frame_walk::test_t0814_fires_on_carry_overflow_third_malformed
 frame_walk::test_byte_walk_resync_invalid_command
 frame_walk::test_oversize_frame_skip_continue
@@ -338,8 +346,9 @@ frame_walk::test_oversize_frame_does_not_set_non_enip
 frame_walk::test_oversize_frame_skip_then_valid_frame_processed
 frame_walk::test_byte_walk_resync_to_valid_frame_same_segment
 frame_walk::test_byte_walk_resync_24_garbage_bytes_then_valid_frame
+frame_walk::test_multi_call_carry_residue_counting
 frame_walk::test_non_enip_flag_permanent
-frame_walk::test_non_enip_flag_set_at_carry_cap
+frame_walk::test_non_enip_not_latched_at_carry_cap
 frame_walk::test_t0814_fires_at_threshold
 frame_walk::test_t0814_one_shot_guard_per_window
 frame_walk::test_t0814_does_not_fire_below_threshold
@@ -350,6 +359,9 @@ frame_walk::test_valid_frame_no_malformed_count
 frame_walk::test_invalid_frame_increments_malformed_count
 frame_walk::test_command_counts_increments_for_unknown_command
 frame_walk::test_command_counts_single_site_not_doubled
+frame_walk::test_carry_overflow_latches_non_enip_via_subframe_accumulation
+frame_walk::test_carry_overflow_third_malformed_fires_t0814_before_latch
+frame_walk::test_max_enip_carry_bytes_is_600
 ```
 
 ## Previous Story Intelligence
