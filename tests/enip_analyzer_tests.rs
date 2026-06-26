@@ -4128,3 +4128,494 @@ mod command_detections {
         );
     }
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// STORY-136: CIP connection-lifecycle detection tests (RED — awaiting implementation).
+//
+// Traces to: BC-2.17.015 (ForwardOpen/LargeForwardOpen/ForwardClose lifecycle detection).
+//
+// All tests in this module call process_pdu, which dispatches into the
+// todo!("STORY-136: CIP connection-lifecycle detection") stub. Each test
+// exercises one AC or edge-case scenario; all are expected to FAIL (Red Gate)
+// until the implementer replaces the todo!() stub with real logic.
+//
+// RED (todo!() stub panics):
+//   test_forward_open_emits_finding
+//   test_forward_open_no_mitre_technique
+//   test_forward_open_connected_item_no_finding
+//   test_large_forward_open_emits_finding
+//   test_forward_close_emits_finding
+//   test_forward_close_no_mitre_technique
+//   test_forward_open_response_no_finding
+//   test_forward_close_response_no_finding
+//   test_non_enip_suppresses_connection_lifecycle
+//   test_connection_counts_tracked
+// ─────────────────────────────────────────────────────────────────────────────
+mod connection_lifecycle {
+    use std::net::{IpAddr, Ipv4Addr};
+
+    use wirerust::analyzer::enip::{EnipAnalyzer, EnipFlowState};
+    use wirerust::findings::{Confidence, ThreatCategory, Verdict};
+
+    // =========================================================================
+    // Helpers
+    // =========================================================================
+
+    /// Canonical source IP (192.168.1.30) for connection-lifecycle tests.
+    fn src_ip() -> IpAddr {
+        IpAddr::V4(Ipv4Addr::new(192, 168, 1, 30))
+    }
+
+    /// Build a 24-byte ENIP header with `command` set (LE); all other fields zeroed.
+    fn enip_header(command: u16) -> [u8; 24] {
+        let mut h = [0u8; 24];
+        h[0..2].copy_from_slice(&command.to_le_bytes());
+        h
+    }
+
+    /// Build a SendRRData PDU containing one 0x00B2 (UnconnectedData) CIP item.
+    ///
+    /// Layout (matches command_detections::sendrr_pdu_with_cip):
+    ///   ENIP header (24 bytes, command=0x006F)
+    ///   Interface Handle (4 bytes, 0) + Timeout (2 bytes, 0)
+    ///   CPF item_count=2 (NullAddress + UnconnectedData)
+    ///   NullAddress item (type=0x0000, length=0)
+    ///   UnconnectedData item (type=0x00B2, length=cip_data.len())
+    ///   cip_data bytes
+    fn sendrr_pdu_with_cip(cip_data: &[u8]) -> Vec<u8> {
+        let payload_len: usize = 4 + 2 + 2 + 4 + 4 + cip_data.len();
+        let mut pdu = Vec::with_capacity(24 + payload_len);
+        let mut hdr = enip_header(0x006F);
+        hdr[2..4].copy_from_slice(&(payload_len as u16).to_le_bytes());
+        pdu.extend_from_slice(&hdr);
+        pdu.extend_from_slice(&[0u8; 4]); // Interface Handle
+        pdu.extend_from_slice(&[0u8; 2]); // Timeout
+        pdu.extend_from_slice(&2u16.to_le_bytes()); // item_count = 2
+        pdu.extend_from_slice(&[0x00, 0x00, 0x00, 0x00]); // NullAddress
+        pdu.extend_from_slice(&[0xB2, 0x00]); // type_id = 0x00B2
+        pdu.extend_from_slice(&(cip_data.len() as u16).to_le_bytes());
+        pdu.extend_from_slice(cip_data);
+        pdu
+    }
+
+    /// Build a SendRRData PDU containing one 0x00B1 (ConnectedData) CIP item.
+    ///
+    /// Used to verify the F-P9-001 gate: 0x00B1 items are skipped; no
+    /// lifecycle detection fires (AC-136-001 EC-006 / F-P9-001).
+    fn sendrr_pdu_with_b1_cip(cip_data: &[u8]) -> Vec<u8> {
+        let payload_len: usize = 4 + 2 + 2 + 4 + 4 + cip_data.len();
+        let mut pdu = Vec::with_capacity(24 + payload_len);
+        let mut hdr = enip_header(0x006F);
+        hdr[2..4].copy_from_slice(&(payload_len as u16).to_le_bytes());
+        pdu.extend_from_slice(&hdr);
+        pdu.extend_from_slice(&[0u8; 4]);
+        pdu.extend_from_slice(&[0u8; 2]);
+        pdu.extend_from_slice(&2u16.to_le_bytes());
+        pdu.extend_from_slice(&[0x00, 0x00, 0x00, 0x00]);
+        pdu.extend_from_slice(&[0xB1, 0x00]); // type_id = 0x00B1
+        pdu.extend_from_slice(&(cip_data.len() as u16).to_le_bytes());
+        pdu.extend_from_slice(cip_data);
+        pdu
+    }
+
+    /// Build a minimal CIP request with the given service byte and no path.
+    ///
+    /// item_data layout:
+    ///   [0]  service byte (bit 7 = 0 for request)
+    ///   [1]  0x00 (request_path_size = 0 words, no path)
+    fn cip_request_no_path(service: u8) -> Vec<u8> {
+        vec![service, 0x00]
+    }
+
+    /// Build a minimal CIP response for the given service (response bit set = service | 0x80).
+    ///
+    /// item_data layout:
+    ///   [0]  service | 0x80
+    ///   [1]  0x00 (reserved)
+    ///   [2]  0x00 (general_status = success)
+    ///   [3]  0x00 (additional_status_size = 0)
+    fn cip_response(service: u8) -> Vec<u8> {
+        vec![service | 0x80, 0x00, 0x00, 0x00]
+    }
+
+    // =========================================================================
+    // AC-136-001: ForwardOpen request emits Anomaly/Possible/Low finding (0x54)
+    // Traces: BC-2.17.015 postconditions 1–3; AC-136-001
+    // =========================================================================
+
+    /// AC-136-001 — ForwardOpen (0x54) via 0x00B2 emits exactly one Anomaly/Possible/Low finding.
+    ///
+    /// BC-2.17.015 postcondition 1: category=Anomaly, verdict=Possible, confidence=Low.
+    /// summary starts with "CIP ForwardOpen connection establishment observed from src=".
+    /// mitre_techniques: vec![] (no ATT&CK technique — ADR-010 Decision 7).
+    ///
+    /// Traces: BC-2.17.015 postcondition 1; AC-136-001 EC-001.
+    #[test]
+    fn test_forward_open_emits_finding() {
+        let mut analyzer = EnipAnalyzer::new(50, 5);
+        let mut flow = EnipFlowState::new();
+        let pdu = sendrr_pdu_with_cip(&cip_request_no_path(0x54));
+        analyzer.process_pdu(&mut flow, &pdu, 100, src_ip());
+        assert_eq!(
+            analyzer.all_findings.len(),
+            1,
+            "ForwardOpen (0x54) via 0x00B2 must emit exactly 1 finding (BC-2.17.015 PC-1)"
+        );
+        let f = &analyzer.all_findings[0];
+        assert_eq!(
+            f.category,
+            ThreatCategory::Anomaly,
+            "ForwardOpen finding category must be ThreatCategory::Anomaly (BC-2.17.015 PC-1)"
+        );
+        assert_eq!(
+            f.verdict,
+            Verdict::Possible,
+            "ForwardOpen finding verdict must be Verdict::Possible (BC-2.17.015 PC-1)"
+        );
+        assert_eq!(
+            f.confidence,
+            Confidence::Low,
+            "ForwardOpen finding confidence must be Confidence::Low (BC-2.17.015 PC-1)"
+        );
+        assert!(
+            f.summary.contains("CIP ForwardOpen connection establishment observed from src="),
+            "ForwardOpen finding summary must contain expected prefix (BC-2.17.015 PC-1 summary)"
+        );
+        assert!(
+            f.source_ip.is_some(),
+            "ForwardOpen finding must carry source_ip (BC-2.17.015 PC-1)"
+        );
+        assert!(
+            f.timestamp.is_some(),
+            "ForwardOpen finding must carry timestamp (BC-2.17.015 PC-1)"
+        );
+    }
+
+    /// AC-136-001 — ForwardOpen (0x54) finding carries empty mitre_techniques vec.
+    ///
+    /// BC-2.17.015 postcondition 1 / Architecture Rule 2 / ADR-010 Decision 7:
+    /// mitre_techniques MUST be vec![] (empty). No T0858, T1692.001, or any other technique.
+    ///
+    /// Traces: BC-2.17.015 postcondition 1 (mitre_techniques); AC-136-001.
+    #[test]
+    fn test_forward_open_no_mitre_technique() {
+        let mut analyzer = EnipAnalyzer::new(50, 5);
+        let mut flow = EnipFlowState::new();
+        let pdu = sendrr_pdu_with_cip(&cip_request_no_path(0x54));
+        analyzer.process_pdu(&mut flow, &pdu, 100, src_ip());
+        assert_eq!(
+            analyzer.all_findings.len(),
+            1,
+            "ForwardOpen must emit exactly 1 finding before checking mitre_techniques"
+        );
+        assert!(
+            analyzer.all_findings[0].mitre_techniques.is_empty(),
+            "ForwardOpen finding mitre_techniques must be vec![] \
+             (no ATT&CK technique for CIP connection anomaly — ADR-010 Decision 7 / BC-2.17.015 PC-1)"
+        );
+    }
+
+    /// AC-136-001 — ForwardOpen via 0x00B1 item (Connected Data Item) produces no finding.
+    ///
+    /// F-P9-001 gate: only 0x00B2 (Unconnected Data Item) items trigger lifecycle detection.
+    /// ForwardOpen/ForwardClose are Connection Manager unconnected messages; they MUST ride
+    /// in 0x00B2 items by CIP protocol design (BC-2.17.015 precondition 3; EC-006).
+    ///
+    /// Traces: BC-2.17.015 precondition 3; AC-136-001 EC-006; F-P9-001.
+    #[test]
+    fn test_forward_open_connected_item_no_finding() {
+        let mut analyzer = EnipAnalyzer::new(50, 5);
+        let mut flow = EnipFlowState::new();
+        let pdu = sendrr_pdu_with_b1_cip(&cip_request_no_path(0x54));
+        analyzer.process_pdu(&mut flow, &pdu, 100, src_ip());
+        assert_eq!(
+            analyzer.all_findings.len(),
+            0,
+            "ForwardOpen via 0x00B1 item must produce no finding (F-P9-001 gate; BC-2.17.015 PC-3)"
+        );
+    }
+
+    /// AC-136-001 — LargeForwardOpen (0x5B) via 0x00B2 emits exactly one Anomaly/Possible/Low finding.
+    ///
+    /// BC-2.17.015 invariant 5: LargeForwardOpen is treated identically to ForwardOpen
+    /// for detection purposes (same finding fields, same category/verdict/confidence,
+    /// same empty mitre_techniques, same summary prefix).
+    ///
+    /// Traces: BC-2.17.015 postcondition 1; invariant 5; AC-136-001 EC-002.
+    #[test]
+    fn test_large_forward_open_emits_finding() {
+        let mut analyzer = EnipAnalyzer::new(50, 5);
+        let mut flow = EnipFlowState::new();
+        let pdu = sendrr_pdu_with_cip(&cip_request_no_path(0x5B));
+        analyzer.process_pdu(&mut flow, &pdu, 100, src_ip());
+        assert_eq!(
+            analyzer.all_findings.len(),
+            1,
+            "LargeForwardOpen (0x5B) via 0x00B2 must emit exactly 1 finding \
+             (BC-2.17.015 PC-1; invariant 5 — treated identically to ForwardOpen)"
+        );
+        let f = &analyzer.all_findings[0];
+        assert_eq!(
+            f.category,
+            ThreatCategory::Anomaly,
+            "LargeForwardOpen finding category must be ThreatCategory::Anomaly (BC-2.17.015 PC-1)"
+        );
+        assert_eq!(
+            f.verdict,
+            Verdict::Possible,
+            "LargeForwardOpen finding verdict must be Verdict::Possible (BC-2.17.015 PC-1)"
+        );
+        assert_eq!(
+            f.confidence,
+            Confidence::Low,
+            "LargeForwardOpen finding confidence must be Confidence::Low (BC-2.17.015 PC-1)"
+        );
+        assert!(
+            f.mitre_techniques.is_empty(),
+            "LargeForwardOpen mitre_techniques must be vec![] (ADR-010 Decision 7)"
+        );
+    }
+
+    // =========================================================================
+    // AC-136-002: ForwardClose request emits Anomaly/Possible/Low finding (0x4E)
+    // Traces: BC-2.17.015 postconditions 4–5; AC-136-002
+    // =========================================================================
+
+    /// AC-136-002 — ForwardClose (0x4E) via 0x00B2 emits exactly one Anomaly/Possible/Low finding.
+    ///
+    /// BC-2.17.015 postcondition 4: category=Anomaly, verdict=Possible, confidence=Low.
+    /// summary starts with "CIP ForwardClose connection teardown observed from src=".
+    ///
+    /// Traces: BC-2.17.015 postcondition 4; AC-136-002 EC-003.
+    #[test]
+    fn test_forward_close_emits_finding() {
+        let mut analyzer = EnipAnalyzer::new(50, 5);
+        let mut flow = EnipFlowState::new();
+        let pdu = sendrr_pdu_with_cip(&cip_request_no_path(0x4E));
+        analyzer.process_pdu(&mut flow, &pdu, 100, src_ip());
+        assert_eq!(
+            analyzer.all_findings.len(),
+            1,
+            "ForwardClose (0x4E) via 0x00B2 must emit exactly 1 finding (BC-2.17.015 PC-4)"
+        );
+        let f = &analyzer.all_findings[0];
+        assert_eq!(
+            f.category,
+            ThreatCategory::Anomaly,
+            "ForwardClose finding category must be ThreatCategory::Anomaly (BC-2.17.015 PC-4)"
+        );
+        assert_eq!(
+            f.verdict,
+            Verdict::Possible,
+            "ForwardClose finding verdict must be Verdict::Possible (BC-2.17.015 PC-4)"
+        );
+        assert_eq!(
+            f.confidence,
+            Confidence::Low,
+            "ForwardClose finding confidence must be Confidence::Low (BC-2.17.015 PC-4)"
+        );
+        assert!(
+            f.summary.contains("CIP ForwardClose connection teardown observed from src="),
+            "ForwardClose finding summary must contain expected prefix (BC-2.17.015 PC-4 summary)"
+        );
+        assert!(
+            f.source_ip.is_some(),
+            "ForwardClose finding must carry source_ip (BC-2.17.015 PC-4)"
+        );
+        assert!(
+            f.timestamp.is_some(),
+            "ForwardClose finding must carry timestamp (BC-2.17.015 PC-4)"
+        );
+    }
+
+    /// AC-136-002 — ForwardClose (0x4E) finding carries empty mitre_techniques vec.
+    ///
+    /// BC-2.17.015 postcondition 4 / Architecture Rule 2 / ADR-010 Decision 7:
+    /// mitre_techniques MUST be vec![] (empty).
+    ///
+    /// Traces: BC-2.17.015 postcondition 4 (mitre_techniques); AC-136-002.
+    #[test]
+    fn test_forward_close_no_mitre_technique() {
+        let mut analyzer = EnipAnalyzer::new(50, 5);
+        let mut flow = EnipFlowState::new();
+        let pdu = sendrr_pdu_with_cip(&cip_request_no_path(0x4E));
+        analyzer.process_pdu(&mut flow, &pdu, 100, src_ip());
+        assert_eq!(
+            analyzer.all_findings.len(),
+            1,
+            "ForwardClose must emit exactly 1 finding before checking mitre_techniques"
+        );
+        assert!(
+            analyzer.all_findings[0].mitre_techniques.is_empty(),
+            "ForwardClose finding mitre_techniques must be vec![] \
+             (no ATT&CK technique — ADR-010 Decision 7 / BC-2.17.015 PC-4)"
+        );
+    }
+
+    // =========================================================================
+    // AC-136-003: CIP response bytes do NOT trigger lifecycle detection
+    // Traces: BC-2.17.015 invariant 2; BC-2.17.007 invariant 1; AC-136-003
+    // =========================================================================
+
+    /// AC-136-003 — ForwardOpen response (0xD4 = 0x54 | 0x80) produces no finding.
+    ///
+    /// classify_cip_service(0xD4) returns CipServiceClass::Response (response-bit set
+    /// takes priority per BC-2.17.007 invariant 1). Detection keys on classify_cip_service
+    /// returning ForwardOpen — which 0xD4 never does. No raw & 0x80 == 0 predicate is
+    /// hand-rolled at the call site (AC-136-003 Architecture Rule 6).
+    ///
+    /// Traces: BC-2.17.015 invariant 2; BC-2.17.007 invariant 1; AC-136-003 EC-004.
+    #[test]
+    fn test_forward_open_response_no_finding() {
+        let mut analyzer = EnipAnalyzer::new(50, 5);
+        let mut flow = EnipFlowState::new();
+        // 0xD4 = 0x54 | 0x80 — ForwardOpen response; classify_cip_service returns Response.
+        let pdu = sendrr_pdu_with_cip(&cip_response(0x54));
+        analyzer.process_pdu(&mut flow, &pdu, 100, src_ip());
+        assert_eq!(
+            analyzer.all_findings.len(),
+            0,
+            "ForwardOpen response (0xD4) must produce no finding; \
+             classify_cip_service returns Response (BC-2.17.007 invariant 1 / BC-2.17.015 invariant 2)"
+        );
+    }
+
+    /// AC-136-003 — ForwardClose response (0xCE = 0x4E | 0x80) produces no finding.
+    ///
+    /// classify_cip_service(0xCE) returns CipServiceClass::Response. Detection must NOT
+    /// fire for response bytes (BC-2.17.015 invariant 2; BC-2.17.007 invariant 1).
+    ///
+    /// Traces: BC-2.17.015 invariant 2; BC-2.17.007 invariant 1; AC-136-003 EC-005.
+    #[test]
+    fn test_forward_close_response_no_finding() {
+        let mut analyzer = EnipAnalyzer::new(50, 5);
+        let mut flow = EnipFlowState::new();
+        // 0xCE = 0x4E | 0x80 — ForwardClose response; classify_cip_service returns Response.
+        let pdu = sendrr_pdu_with_cip(&cip_response(0x4E));
+        analyzer.process_pdu(&mut flow, &pdu, 100, src_ip());
+        assert_eq!(
+            analyzer.all_findings.len(),
+            0,
+            "ForwardClose response (0xCE) must produce no finding; \
+             classify_cip_service returns Response (BC-2.17.007 invariant 1 / BC-2.17.015 invariant 2)"
+        );
+    }
+
+    // =========================================================================
+    // AC-136-004: is_non_enip suppresses ForwardOpen/ForwardClose detection
+    // Traces: BC-2.17.015 precondition 4; AC-136-004
+    // =========================================================================
+
+    /// AC-136-004 — is_non_enip=true suppresses all connection-lifecycle findings.
+    ///
+    /// When flow.is_non_enip == true, process_pdu returns at the is_non_enip gate
+    /// (BC-2.17.015 precondition 4); no ForwardOpen or ForwardClose detection runs.
+    ///
+    /// Traces: BC-2.17.015 precondition 4; AC-136-004 EC-007.
+    #[test]
+    fn test_non_enip_suppresses_connection_lifecycle() {
+        let mut analyzer = EnipAnalyzer::new(50, 5);
+        let mut flow = EnipFlowState::new();
+        flow.is_non_enip = true;
+        let pdu_open = sendrr_pdu_with_cip(&cip_request_no_path(0x54));
+        let pdu_close = sendrr_pdu_with_cip(&cip_request_no_path(0x4E));
+        let pdu_large = sendrr_pdu_with_cip(&cip_request_no_path(0x5B));
+        analyzer.process_pdu(&mut flow, &pdu_open, 100, src_ip());
+        analyzer.process_pdu(&mut flow, &pdu_close, 100, src_ip());
+        analyzer.process_pdu(&mut flow, &pdu_large, 100, src_ip());
+        assert_eq!(
+            analyzer.all_findings.len(),
+            0,
+            "is_non_enip=true must suppress ForwardOpen/LargeForwardOpen/ForwardClose detection \
+             (BC-2.17.015 precondition 4 / AC-136-004)"
+        );
+    }
+
+    // =========================================================================
+    // AC-136-005: open_connection_count and close_connection_count tracked in flow state
+    // Traces: BC-2.17.015 invariant 3; AC-136-005
+    // =========================================================================
+
+    /// AC-136-005 — connection counts increment on each occurrence; increment is outside
+    /// MAX_FINDINGS gate (EC-008).
+    ///
+    /// BC-2.17.015 invariant 3 / Architecture Rule 4 (EC-008):
+    /// - open_connection_count increments on ForwardOpen AND LargeForwardOpen requests.
+    /// - close_connection_count increments on ForwardClose requests.
+    /// - Counts increment EVEN WHEN all_findings is at MAX_FINDINGS (count BEFORE finding push).
+    ///
+    /// This test verifies counts via normal (non-capped) flow first, then verifies
+    /// EC-008 via a pre-filled all_findings scenario.
+    ///
+    /// Traces: BC-2.17.015 invariant 3; Architecture Rule 4; AC-136-005; EC-008.
+    #[test]
+    fn test_connection_counts_tracked() {
+        use wirerust::findings::{Confidence, Finding, ThreatCategory, Verdict};
+
+        const MAX_FINDINGS: usize = 10_000;
+
+        // --- Part A: normal counting (no MAX_FINDINGS cap) ---
+        let mut analyzer = EnipAnalyzer::new(50, 5);
+        let mut flow = EnipFlowState::new();
+
+        // 2 ForwardOpen + 1 LargeForwardOpen → open_connection_count must be 3.
+        let pdu_open = sendrr_pdu_with_cip(&cip_request_no_path(0x54));
+        let pdu_large = sendrr_pdu_with_cip(&cip_request_no_path(0x5B));
+        let pdu_close = sendrr_pdu_with_cip(&cip_request_no_path(0x4E));
+
+        analyzer.process_pdu(&mut flow, &pdu_open, 100, src_ip());
+        analyzer.process_pdu(&mut flow, &pdu_open, 100, src_ip());
+        analyzer.process_pdu(&mut flow, &pdu_large, 100, src_ip());
+        analyzer.process_pdu(&mut flow, &pdu_close, 100, src_ip());
+
+        assert_eq!(
+            flow.open_connection_count, 3,
+            "open_connection_count must be 3 after 2 ForwardOpen + 1 LargeForwardOpen \
+             (BC-2.17.015 invariant 3 / AC-136-005)"
+        );
+        assert_eq!(
+            flow.close_connection_count, 1,
+            "close_connection_count must be 1 after 1 ForwardClose \
+             (BC-2.17.015 invariant 3 / AC-136-005)"
+        );
+
+        // --- Part B: EC-008 — counts increment even when all_findings is at MAX_FINDINGS ---
+        let mut analyzer2 = EnipAnalyzer::new(50, 5);
+        let mut flow2 = EnipFlowState::new();
+
+        // Pre-fill all_findings to the cap.
+        for _ in 0..MAX_FINDINGS {
+            analyzer2.all_findings.push(Finding {
+                category: ThreatCategory::Reconnaissance,
+                verdict: Verdict::Likely,
+                confidence: Confidence::High,
+                summary: "placeholder".to_string(),
+                evidence: vec![],
+                mitre_techniques: vec![],
+                source_ip: None,
+                timestamp: None,
+                direction: None,
+            });
+        }
+        assert_eq!(
+            analyzer2.all_findings.len(),
+            MAX_FINDINGS,
+            "pre-condition: all_findings must be exactly at cap before EC-008 check"
+        );
+
+        // ForwardOpen at cap: finding NOT pushed; open_connection_count MUST still increment.
+        let pdu_open2 = sendrr_pdu_with_cip(&cip_request_no_path(0x54));
+        analyzer2.process_pdu(&mut flow2, &pdu_open2, 100, src_ip());
+
+        assert_eq!(
+            analyzer2.all_findings.len(),
+            MAX_FINDINGS,
+            "EC-008: no finding pushed when all_findings is at MAX_FINDINGS (BC-2.17.022)"
+        );
+        assert_eq!(
+            flow2.open_connection_count, 1,
+            "EC-008: open_connection_count must increment even when all_findings is at MAX_FINDINGS \
+             (BC-2.17.015 Architecture Rule 4 / AC-136-005)"
+        );
+    }
+}

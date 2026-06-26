@@ -298,6 +298,22 @@ pub struct EnipFlowState {
     /// Bounded to `MAX_ENIP_CARRY_BYTES = 600`. Overflow triggers `is_non_enip = true`.
     /// Managed exclusively by `on_data` (STORY-137).
     pub carry: Vec<u8>,
+
+    /// ForwardOpen + LargeForwardOpen request count (per-flow, lifetime).
+    ///
+    /// Incremented on every `CipServiceClass::ForwardOpen` or `CipServiceClass::LargeForwardOpen`
+    /// request via a 0x00B2 item and `!is_non_enip`, regardless of the MAX_FINDINGS cap
+    /// (EC-008 / BC-2.17.015 Architecture Rule 4). Read by STORY-138 session summary.
+    /// Field name is normative per BC-2.17.015 Architecture Mapping.
+    pub open_connection_count: u32,
+
+    /// ForwardClose request count (per-flow, lifetime).
+    ///
+    /// Incremented on every `CipServiceClass::ForwardClose` request via a 0x00B2 item
+    /// and `!is_non_enip`, regardless of the MAX_FINDINGS cap (EC-008 / BC-2.17.015
+    /// Architecture Rule 4). Read by STORY-138 session summary.
+    /// Field name is normative per BC-2.17.015 Architecture Mapping.
+    pub close_connection_count: u32,
 }
 
 impl EnipFlowState {
@@ -321,6 +337,8 @@ impl EnipFlowState {
             write_count_in_window: 0,
             write_burst_emitted: false,
             write_window_start_ts: 0,
+            open_connection_count: 0,
+            close_connection_count: 0,
         }
     }
 }
@@ -765,6 +783,25 @@ impl EnipAnalyzer {
                         // BC-2.17.012 postcondition 5: set one-shot guard after emission.
                         flow.write_burst_emitted = true;
                     }
+                }
+
+                // STORY-136 — BC-2.17.015: CIP connection-lifecycle detection.
+                // ForwardOpen (0x54), LargeForwardOpen (0x5B), ForwardClose (0x4E) requests
+                // via 0x00B2 items emit Anomaly/Possible/Low findings with mitre_techniques:
+                // vec![] (no ATT&CK technique for CIP connection establishment anomaly per
+                // ADR-010 Decision 7). Counts increment BEFORE the MAX_FINDINGS gate so that
+                // open_connection_count and close_connection_count are accurate even when the
+                // findings cap is reached (EC-008 / BC-2.17.015 Architecture Rule 4).
+                // Detection keys SOLELY on classify_cip_service result — NOT raw & 0x80 == 0
+                // (BC-2.17.007 Invariant 1 already guarantees response bytes return Response).
+                // Architecture Rule 6 / AC-136-003: do NOT hand-roll & 0x80 == 0 predicate.
+                if matches!(
+                    service_class,
+                    CipServiceClass::ForwardOpen
+                        | CipServiceClass::LargeForwardOpen
+                        | CipServiceClass::ForwardClose
+                ) {
+                    todo!("STORY-136: CIP connection-lifecycle detection [BC-2.17.015]")
                 }
             }
         }
