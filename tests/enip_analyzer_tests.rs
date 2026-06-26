@@ -2246,13 +2246,14 @@ mod mitre_seeding {
 
     /// AC-133-006 + AC-133-001/002 cross-check — technique_tactic_id end-to-end for new IDs.
     ///
-    /// Verifies the full ID → tactic → TA-ID chain for all 3 STORY-133 IDs plus T0846 regression:
-    ///   T0858 → IcsExecution → "TA0104"
-    ///   T0816 → IcsInhibitResponseFunction → "TA0107"
-    ///   T0846 → IcsDiscovery → "TA0102" (pre-existing regression)
+    /// Verifies the full ID -> tactic -> TA-ID chain for all 3 STORY-133 IDs plus T0846
+    /// regression:
+    ///   T0858 -> IcsExecution -> "TA0104"
+    ///   T0816 -> IcsInhibitResponseFunction -> "TA0107"
+    ///   T0846 -> IcsDiscovery -> "TA0102" (pre-existing regression)
     ///
     /// AC-133-004 tested the enum method directly; this exercises the full path from
-    /// technique ID → tactic → TA-ID string through the Option chain.
+    /// technique ID -> tactic -> TA-ID string through the Option chain.
     ///
     /// Traces: AC-133-001/002 (T0858/T0816 arms); VP-007 Step 5 (IcsExecution TA-ID); ADR-010.
     #[test]
@@ -2277,6 +2278,1204 @@ mod mitre_seeding {
             Some("TA0102"),
             "technique_tactic_id(\"T0846\") must return Some(\"TA0102\") — \
              T0846 maps to IcsDiscovery (TA0102); pre-existing entry"
+        );
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// STORY-134 recon-detection tests.
+//
+// Traces to: BC-2.17.010 (T0846 ListIdentity), BC-2.17.008 (CIP error accumulation),
+//            BC-2.17.014 (T0888 Pattern A identity read + Pattern B error burst).
+//
+// SCOPE NOTE:
+//   STORY-134 owns `process_pdu` + `EnipFlowState`. The frame-walk wiring in `on_data`
+//   (BC-2.17.016 PC-0 command_counts increment) is owned by STORY-137.
+//   Tests drive `process_pdu` directly, constructing `EnipFlowState` inline.
+//
+// Red Gate: all tests exercise `process_pdu`, which is `todo!()` until STORY-134
+// implements T0846/T0888 detection. Each test will panic at `process_pdu` until the
+// implementation lands; the post-call assertions document the required behavior.
+// ─────────────────────────────────────────────────────────────────────────────
+mod recon {
+    use std::net::{IpAddr, Ipv4Addr};
+
+    use wirerust::analyzer::enip::{EnipAnalyzer, EnipFlowState};
+    use wirerust::findings::{Confidence, ThreatCategory, Verdict};
+
+    // =========================================================================
+    // PDU construction helpers
+    //
+    // All helpers return minimal-but-valid ENIP frame byte vectors for use with
+    // `process_pdu`. Only the fields relevant to each detection path are set;
+    // others are zeroed.
+    //
+    // ENIP encapsulation header layout (24 bytes, all LE):
+    //   [0..2]   command u16 LE
+    //   [2..4]   length  u16 LE  (payload bytes after header)
+    //   [4..8]   session_handle u32 LE
+    //   [8..12]  status u32 LE
+    //   [12..20] sender_context [u8; 8]
+    //   [20..24] options u32 LE
+    //
+    // SendRRData payload layout:
+    //   [0..4]   Interface Handle u32 LE (=0)
+    //   [4..6]   Timeout u16 LE (=0)
+    //   [6..]    CPF data (item_count u16 LE + items)
+    //
+    // CPF item layout: type_id u16 LE + length u16 LE + data bytes.
+    //
+    // CIP Unconnected Data Item (0x00B2) request:
+    //   [0]      service byte (0x80 clear = request)
+    //   [1]      request_path_size in words (u8)
+    //   [2..]    request path bytes (path_size * 2 bytes)
+    //
+    // CIP Unconnected Data Item (0x00B2) response:
+    //   [0]      service | 0x80
+    //   [1]      reserved = 0x00
+    //   [2]      general_status byte
+    //   [3]      additional_status_size = 0x00
+    // =========================================================================
+
+    /// Build a 24-byte ENIP header with `command` set; other fields zeroed.
+    fn enip_header(command: u16) -> [u8; 24] {
+        let mut h = [0u8; 24];
+        h[0..2].copy_from_slice(&command.to_le_bytes());
+        h
+    }
+
+    /// Build a minimal ListIdentity PDU (command=0x0063, no payload).
+    ///
+    /// `parse_enip_header` requires >=24 bytes. `process_pdu` reads the ENIP header
+    /// from the first 24 bytes; no CPF/CIP parse is needed for ListIdentity (ENIP
+    /// command-layer detection, ADR-010 Decision 4 step 2).
+    fn list_identity_pdu() -> Vec<u8> {
+        enip_header(0x0063).to_vec() // command = ListIdentity
+    }
+
+    /// Build a SendRRData PDU containing one 0x00B2 CIP item.
+    ///
+    /// Layout:
+    ///   ENIP header (24 bytes, command=0x006F)
+    ///   Interface Handle (4 bytes, 0)
+    ///   Timeout (2 bytes, 0)
+    ///   CPF item_count = 2 (NullAddress + UnconnectedData)
+    ///   NullAddress item (0x0000, length=0)
+    ///   UnconnectedData item (0x00B2, length = cip_data.len())
+    ///   cip_data bytes
+    fn sendrr_pdu_with_cip(cip_data: &[u8]) -> Vec<u8> {
+        // CPF payload: [NullAddr(4 bytes)] + [0x00B2 item(4 + cip_data.len())]
+        let cpf_item_count_bytes = 2u16.to_le_bytes();
+        let null_item: &[u8] = &[0x00, 0x00, 0x00, 0x00]; // type=0x0000, length=0
+        let b2_type: &[u8] = &[0xB2, 0x00]; // type_id = 0x00B2 LE
+        let b2_len = (cip_data.len() as u16).to_le_bytes();
+
+        // Full payload after ENIP header:
+        //   Interface Handle (4) + Timeout (2) + item_count (2) + NullAddr (4)
+        //   + 0x00B2 header (4) + cip_data
+        let payload_len: usize = 4 + 2 + 2 + 4 + 4 + cip_data.len();
+
+        let mut pdu = Vec::with_capacity(24 + payload_len);
+        // ENIP header
+        let mut hdr = enip_header(0x006F); // SendRRData
+        hdr[2..4].copy_from_slice(&(payload_len as u16).to_le_bytes()); // length field
+        pdu.extend_from_slice(&hdr);
+        // Interface Handle + Timeout
+        pdu.extend_from_slice(&[0u8; 4]); // Interface Handle = 0
+        pdu.extend_from_slice(&[0u8; 2]); // Timeout = 0
+        // CPF items
+        pdu.extend_from_slice(&cpf_item_count_bytes);
+        pdu.extend_from_slice(null_item);
+        pdu.extend_from_slice(b2_type);
+        pdu.extend_from_slice(&b2_len);
+        pdu.extend_from_slice(cip_data);
+        pdu
+    }
+
+    /// Build a SendRRData PDU containing one 0x00B1 (Connected Data Item) CIP item.
+    ///
+    /// Used to verify the F-P9-001 type_id gate: 0x00B1 items are skipped; no
+    /// CIP parse and no detection fires.
+    fn sendrr_pdu_with_b1_cip(cip_data: &[u8]) -> Vec<u8> {
+        let cpf_item_count_bytes = 2u16.to_le_bytes();
+        let null_item: &[u8] = &[0x00, 0x00, 0x00, 0x00];
+        let b1_type: &[u8] = &[0xB1, 0x00]; // type_id = 0x00B1 LE
+        let b1_len = (cip_data.len() as u16).to_le_bytes();
+
+        let payload_len: usize = 4 + 2 + 2 + 4 + 4 + cip_data.len();
+        let mut pdu = Vec::with_capacity(24 + payload_len);
+        let mut hdr = enip_header(0x006F);
+        hdr[2..4].copy_from_slice(&(payload_len as u16).to_le_bytes());
+        pdu.extend_from_slice(&hdr);
+        pdu.extend_from_slice(&[0u8; 4]);
+        pdu.extend_from_slice(&[0u8; 2]);
+        pdu.extend_from_slice(&cpf_item_count_bytes);
+        pdu.extend_from_slice(null_item);
+        pdu.extend_from_slice(b1_type);
+        pdu.extend_from_slice(&b1_len);
+        pdu.extend_from_slice(cip_data);
+        pdu
+    }
+
+    /// Build a CIP GetAttributeSingle request targeting a given CIP class.
+    ///
+    /// CIP service = 0x0E (GetAttributeSingle, request; bit 7 clear).
+    /// Path = Class(class_id) + Instance(1) + Attribute(7): 3 words = 6 bytes.
+    ///
+    /// item_data layout:
+    ///   [0]    0x0E    service = GetAttributeSingle
+    ///   [1]    0x03    request_path_size = 3 words (6 bytes)
+    ///   [2]    0x20    Class segment type
+    ///   [3]    class_id
+    ///   [4]    0x24    Instance segment type
+    ///   [5]    0x01    instance = 1
+    ///   [6]    0x30    Attribute segment type
+    ///   [7]    0x07    attribute = 7 (ProductName)
+    fn cip_get_attr_single_request(class_id: u8) -> Vec<u8> {
+        vec![
+            0x0E, // service = GetAttributeSingle (request)
+            0x03, // request_path_size = 3 words
+            0x20, class_id, // Class segment
+            0x24, 0x01, // Instance segment
+            0x30, 0x07, // Attribute segment (ProductName)
+        ]
+    }
+
+    /// Build a CIP GetAttributesAll request targeting a given CIP class.
+    ///
+    /// CIP service = 0x01 (GetAttributesAll, request; bit 7 clear).
+    /// Path = Class(class_id) + Instance(1): 2 words = 4 bytes.
+    /// Used in EC-011 (GetAttributesAll to Identity Object also triggers Pattern A).
+    #[allow(dead_code)]
+    fn cip_get_attrs_all_request(class_id: u8) -> Vec<u8> {
+        vec![
+            0x01, // service = GetAttributesAll (request)
+            0x02, // request_path_size = 2 words
+            0x20, class_id, // Class segment
+            0x24, 0x01, // Instance segment
+        ]
+    }
+
+    /// Build a CIP error response with the given general_status byte.
+    ///
+    /// item_data layout (BC-2.17.008 canonical vector):
+    ///   [0]    0x8E    service = 0x0E | 0x80 (GetAttributeSingle response, bit 7 set)
+    ///   [1]    0x00    reserved
+    ///   [2]    general_status
+    ///   [3]    0x00    additional_status_size = 0
+    fn cip_error_response(general_status: u8) -> Vec<u8> {
+        vec![0x8E, 0x00, general_status, 0x00]
+    }
+
+    /// Build a CIP success response (general_status=0x00).
+    fn cip_success_response() -> Vec<u8> {
+        cip_error_response(0x00)
+    }
+
+    /// Canonical source IP for all recon tests (192.168.1.10).
+    fn src_ip() -> IpAddr {
+        IpAddr::V4(Ipv4Addr::new(192, 168, 1, 10))
+    }
+
+    // =========================================================================
+    // AC-134-001: ListIdentity ENIP command emits T0846 (per-flow one-shot)
+    // Traces: BC-2.17.010 postconditions 1-3; BC-2.17.010 invariant 1
+    // =========================================================================
+
+    /// AC-134-001 — single ListIdentity frame emits exactly one T0846 finding.
+    ///
+    /// BC-2.17.010 postcondition 2: if `flow.list_identity_emitted == false` and
+    /// `all_findings.len() < MAX_FINDINGS`, push ONE Finding with:
+    ///   - `mitre_techniques: vec!["T0846"]`
+    ///   - `verdict: Verdict::Likely`, `confidence: Confidence::High`
+    ///   - `summary: "EtherNet/IP ListIdentity broadcast observed: network-wide device
+    ///      enumeration (T0846)"`
+    ///   - `category: ThreatCategory::Reconnaissance`
+    ///   - `list_identity_emitted` set to true.
+    ///
+    /// Non-vacuous: asserts finding count, MITRE ID, verdict, confidence, summary text,
+    /// and `list_identity_emitted` state. All require `process_pdu` to have run.
+    ///
+    /// Traces: BC-2.17.010 postcondition 2; EC-001.
+    #[test]
+    fn test_list_identity_emits_t0846() {
+        let mut analyzer = EnipAnalyzer::new(50, 5);
+        let mut flow = EnipFlowState::new();
+        let pdu = list_identity_pdu();
+
+        analyzer.process_pdu(&mut flow, &pdu, 100, src_ip());
+
+        assert_eq!(
+            analyzer.all_findings.len(),
+            1,
+            "single ListIdentity frame must emit exactly 1 T0846 finding (BC-2.17.010 PC-2)"
+        );
+        let f = &analyzer.all_findings[0];
+        assert_eq!(
+            f.mitre_techniques,
+            vec!["T0846".to_string()],
+            "finding must carry MITRE technique T0846 (Remote System Discovery, ICS Discovery TA0102)"
+        );
+        assert_eq!(
+            f.verdict,
+            Verdict::Likely,
+            "T0846 finding verdict must be Likely (BC-2.17.010 postcondition 2)"
+        );
+        assert_eq!(
+            f.confidence,
+            Confidence::High,
+            "T0846 finding confidence must be High (BC-2.17.010 postcondition 2)"
+        );
+        assert_eq!(
+            f.category,
+            ThreatCategory::Reconnaissance,
+            "T0846 finding category must be Reconnaissance (BC-2.17.010 postcondition 2)"
+        );
+        assert_eq!(
+            f.summary,
+            "EtherNet/IP ListIdentity broadcast observed: network-wide device enumeration (T0846)",
+            "T0846 summary must match BC-2.17.010 postcondition 2 exact string"
+        );
+        assert!(
+            flow.list_identity_emitted,
+            "list_identity_emitted must be set to true after first ListIdentity (BC-2.17.010 PC-2)"
+        );
+    }
+
+    /// AC-134-001 — five ListIdentity frames on same flow emit exactly one T0846 finding.
+    ///
+    /// Per-flow one-shot guard (BC-2.17.010 invariant 1): first frame emits finding and
+    /// sets `flow.list_identity_emitted = true`; frames 2-5 are processed (no panic) but
+    /// emit no additional findings.
+    ///
+    /// Non-vacuous: asserts `all_findings.len() == 1` after 5 calls (not 5); asserts
+    /// `list_identity_emitted == true`. Distinguishes a correct one-shot implementation
+    /// from a broken per-occurrence one. Required for holdout HS-114 Case B.
+    ///
+    /// Traces: BC-2.17.010 invariant 1; EC-002; holdout HS-114 Case B.
+    #[test]
+    fn test_list_identity_one_shot_guard_multi_frame() {
+        let mut analyzer = EnipAnalyzer::new(50, 5);
+        let mut flow = EnipFlowState::new();
+        let pdu = list_identity_pdu();
+
+        for _ in 0..5 {
+            analyzer.process_pdu(&mut flow, &pdu, 100, src_ip());
+        }
+
+        assert_eq!(
+            analyzer.all_findings.len(),
+            1,
+            "5 ListIdentity frames on the same flow must emit exactly 1 T0846 finding \
+             (per-flow one-shot guard — BC-2.17.010 invariant 1; holdout HS-114 Case B)"
+        );
+        assert!(
+            flow.list_identity_emitted,
+            "list_identity_emitted must remain true after guard fires (BC-2.17.010 invariant 1)"
+        );
+        assert_eq!(
+            analyzer.all_findings[0].mitre_techniques,
+            vec!["T0846".to_string()],
+            "the single finding must still be T0846"
+        );
+    }
+
+    /// AC-134-001 — ListIdentity when `all_findings` is at MAX_FINDINGS: no finding pushed,
+    /// `list_identity_emitted` remains false.
+    ///
+    /// BC-2.17.010 postcondition 2 last condition: push is gated on
+    /// `self.all_findings.len() < MAX_FINDINGS`. When the cap is already hit, the
+    /// guard `list_identity_emitted` must NOT be set (the finding was not emitted).
+    ///
+    /// MAX_FINDINGS is 10_000 (shared analyzer constant; per-analyzer value used in
+    /// EnipAnalyzer::process_pdu, consistent with DNP3 and Modbus analyzers).
+    ///
+    /// Non-vacuous: pre-fills `all_findings` to exactly 10_000 entries (the cap), then
+    /// asserts no new finding was appended and the guard is still false. Requires
+    /// `process_pdu` to both inspect `all_findings.len()` and leave `list_identity_emitted`
+    /// false when it cannot push.
+    ///
+    /// Traces: BC-2.17.010 postcondition 2 last condition; EC-002b (EC-003 in BC); BC-2.17.022.
+    #[test]
+    fn test_list_identity_respects_max_findings() {
+        use wirerust::findings::{Confidence, Finding, ThreatCategory, Verdict};
+
+        const MAX_FINDINGS: usize = 10_000;
+
+        let mut analyzer = EnipAnalyzer::new(50, 5);
+        let mut flow = EnipFlowState::new();
+
+        // Pre-fill all_findings to the cap.
+        for _ in 0..MAX_FINDINGS {
+            analyzer.all_findings.push(Finding {
+                category: ThreatCategory::Reconnaissance,
+                verdict: Verdict::Likely,
+                confidence: Confidence::High,
+                summary: "placeholder".to_string(),
+                evidence: vec![],
+                mitre_techniques: vec![],
+                source_ip: None,
+                timestamp: None,
+                direction: None,
+            });
+        }
+        assert_eq!(
+            analyzer.all_findings.len(),
+            MAX_FINDINGS,
+            "pre-condition: all_findings must be exactly at the cap before the test call"
+        );
+
+        let pdu = list_identity_pdu();
+        analyzer.process_pdu(&mut flow, &pdu, 100, src_ip());
+
+        assert_eq!(
+            analyzer.all_findings.len(),
+            MAX_FINDINGS,
+            "when all_findings is at MAX_FINDINGS, ListIdentity must NOT push an additional \
+             finding (BC-2.17.010 postcondition 2 last condition; BC-2.17.022)"
+        );
+        assert!(
+            !flow.list_identity_emitted,
+            "list_identity_emitted must remain false when the finding could not be pushed \
+             (guard set only after successful push per BC-2.17.010 postcondition 2)"
+        );
+    }
+
+    // =========================================================================
+    // AC-134-002: CIP error responses accumulate per-status in error_counts_in_window
+    // Traces: BC-2.17.008 postconditions 1-5; BC-2.17.008 invariants 1-4
+    // =========================================================================
+
+    /// AC-134-002 — CIP error response (general_status=0x08) increments
+    /// `flow.error_counts_in_window[0x08]` and seeds `error_window_start_ts`.
+    ///
+    /// BC-2.17.008 postcondition 2: if `general_status != 0x00`:
+    ///   - `flow.error_counts_in_window.entry(0x08).or_insert(0) += 1`
+    ///   - If first error in window: `flow.error_window_start_ts = now_ts`
+    ///
+    /// Non-vacuous: asserts `error_counts_in_window[0x08] == 1` (requires extraction
+    /// of byte 2 from CIP item data); asserts `error_window_start_ts` was seeded.
+    ///
+    /// Traces: BC-2.17.008 postcondition 2; canonical test vector (CIP 8E 00 08 00);
+    /// EC-002.
+    #[test]
+    fn test_error_accumulation_increments_per_status() {
+        let mut analyzer = EnipAnalyzer::new(50, 5);
+        let mut flow = EnipFlowState::new();
+
+        // CIP error response: general_status = 0x08 (Service Not Supported)
+        // BC-2.17.008 canonical vector: 8E 00 08 00
+        let cip_data = cip_error_response(0x08);
+        let pdu = sendrr_pdu_with_cip(&cip_data);
+
+        analyzer.process_pdu(&mut flow, &pdu, 200, src_ip());
+
+        assert_eq!(
+            flow.error_counts_in_window.get(&0x08).copied().unwrap_or(0),
+            1,
+            "general_status=0x08 must increment error_counts_in_window[0x08] to 1 \
+             (BC-2.17.008 postcondition 2; canonical vector 8E 00 08 00)"
+        );
+        // error_window_start_ts is seeded on first error (BC-2.17.008 postcondition 2);
+        // exact value is the implementation's now_ts, which equals the timestamp argument (200).
+        assert_eq!(
+            flow.error_window_start_ts, 200,
+            "error_window_start_ts must be seeded to now_ts=200 on first error \
+             (BC-2.17.008 postcondition 2)"
+        );
+        // Two additional errors with status 0x08 → count becomes 3.
+        analyzer.process_pdu(&mut flow, &pdu, 201, src_ip());
+        analyzer.process_pdu(&mut flow, &pdu, 202, src_ip());
+        assert_eq!(
+            flow.error_counts_in_window.get(&0x08).copied().unwrap_or(0),
+            3,
+            "three error responses with status 0x08 must yield error_counts_in_window[0x08] == 3 \
+             (BC-2.17.008 postcondition 2 accumulation)"
+        );
+    }
+
+    /// AC-134-002 — CIP success response (general_status=0x00) does not update any counter.
+    ///
+    /// BC-2.17.008 postcondition 3: `general_status == 0x00` → no counter update, no
+    /// aggregate increment.
+    ///
+    /// Non-vacuous: asserts `error_counts_in_window` stays empty and `error_count` stays 0.
+    /// Requires `process_pdu` to read `general_status` correctly (byte 2 of CIP item data).
+    ///
+    /// Traces: BC-2.17.008 postcondition 3; invariant 3; EC-001.
+    #[test]
+    fn test_error_accumulation_ignores_success() {
+        let mut analyzer = EnipAnalyzer::new(50, 5);
+        let mut flow = EnipFlowState::new();
+
+        // CIP success response: general_status = 0x00
+        // BC-2.17.008 canonical vector: 8E 00 00 00 <data>
+        let cip_data = cip_success_response();
+        let pdu = sendrr_pdu_with_cip(&cip_data);
+
+        analyzer.process_pdu(&mut flow, &pdu, 300, src_ip());
+
+        assert!(
+            flow.error_counts_in_window.is_empty(),
+            "general_status=0x00 (success) must NOT update error_counts_in_window \
+             (BC-2.17.008 postcondition 3; invariant 3)"
+        );
+        assert_eq!(
+            analyzer.error_count, 0,
+            "general_status=0x00 (success) must NOT increment EnipAnalyzer.error_count \
+             (BC-2.17.008 postcondition 3)"
+        );
+    }
+
+    /// AC-134-002 — 10-second window expiry resets `error_counts_in_window`,
+    /// `error_window_start_ts`, and `error_rate_emitted`.
+    ///
+    /// BC-2.17.008 postcondition 4: if `now_ts.wrapping_sub(flow.error_window_start_ts) > 10`:
+    ///   - `flow.error_counts_in_window.clear()`
+    ///   - `flow.error_window_start_ts = now_ts`
+    ///   - `flow.error_rate_emitted = false`
+    ///
+    /// Sequence: send one error at ts=400 (seeds window); send another error at ts=412
+    /// (>10s later, window should reset first, then the new error is recorded in the
+    /// fresh window with count=1, not 2).
+    ///
+    /// Non-vacuous: asserts that after a >10s gap, `error_counts_in_window` has count=1
+    /// (only the post-reset error), not 2 (which would indicate no reset).
+    ///
+    /// Traces: BC-2.17.008 postcondition 4; invariant 4; EC-005.
+    #[test]
+    fn test_error_window_resets_after_10s() {
+        let mut analyzer = EnipAnalyzer::new(50, 5);
+        let mut flow = EnipFlowState::new();
+
+        let cip_data = cip_error_response(0x08);
+        let pdu = sendrr_pdu_with_cip(&cip_data);
+
+        // First error at ts=400: seeds the window, error_window_start_ts = 400.
+        analyzer.process_pdu(&mut flow, &pdu, 400, src_ip());
+        assert_eq!(
+            flow.error_counts_in_window.get(&0x08).copied().unwrap_or(0),
+            1,
+            "pre-condition: first error must be counted before window expiry"
+        );
+
+        // Second error at ts=412: 412 - 400 = 12 > 10 → window must reset first.
+        // After reset and re-seed, error_counts_in_window[0x08] = 1 (NOT 2).
+        analyzer.process_pdu(&mut flow, &pdu, 412, src_ip());
+
+        let count_after_reset = flow.error_counts_in_window.get(&0x08).copied().unwrap_or(0);
+        assert_eq!(
+            count_after_reset, 1,
+            "after >10s gap, window must reset; error_counts_in_window[0x08] must be 1 \
+             (only the post-reset error, not the pre-reset error) \
+             (BC-2.17.008 postcondition 4; EC-005)"
+        );
+        assert!(
+            !flow.error_rate_emitted,
+            "error_rate_emitted must be reset to false on window expiry \
+             (BC-2.17.008 postcondition 4)"
+        );
+    }
+
+    /// AC-134-002 — CIP item with `type_id == 0x00B1` (Connected Data Item) skips
+    /// `general_status` extraction; no counter update.
+    ///
+    /// BC-2.17.008 precondition 2 (HARD scope gate): `type_id != 0x00B2` → skip extraction
+    /// entirely. The test uses a 0x00B1 item carrying bytes that look like an error response
+    /// at the same offsets; the gate must prevent any extraction.
+    ///
+    /// Non-vacuous: uses a 0x00B1 PDU with `general_status=0x08` bytes present; asserts
+    /// `error_counts_in_window` remains empty. Distinguishes a correct implementation
+    /// (checks type_id before extracting) from a broken one that parses all items blindly.
+    ///
+    /// Traces: BC-2.17.008 precondition 2; EC-007; F-P9-001.
+    #[test]
+    fn test_error_accumulation_skips_connected_item() {
+        let mut analyzer = EnipAnalyzer::new(50, 5);
+        let mut flow = EnipFlowState::new();
+
+        // Build a 0x00B1 item with what would be an error response byte pattern.
+        // Even though bytes 2-3 spell out general_status=0x08, the 0x00B1 gate must block it.
+        let cip_data = cip_error_response(0x08);
+        let pdu = sendrr_pdu_with_b1_cip(&cip_data);
+
+        analyzer.process_pdu(&mut flow, &pdu, 500, src_ip());
+
+        assert!(
+            flow.error_counts_in_window.is_empty(),
+            "type_id=0x00B1 (Connected Data Item) must be skipped by the 0x00B2 gate; \
+             error_counts_in_window must remain empty (BC-2.17.008 precondition 2; F-P9-001)"
+        );
+        assert_eq!(
+            analyzer.error_count, 0,
+            "EnipAnalyzer.error_count must not be incremented for 0x00B1 items \
+             (BC-2.17.008 precondition 2)"
+        );
+    }
+
+    /// AC-134-002 — CIP item data shorter than 4 bytes skips `general_status` extraction;
+    /// no counter update, no panic.
+    ///
+    /// BC-2.17.008 precondition 3: `cip_item_data.len() >= 4` required before indexing byte 2.
+    ///
+    /// Non-vacuous: uses a 3-byte CIP item (cannot safely index byte 2); asserts
+    /// `error_counts_in_window` is empty and `error_count` is 0.
+    ///
+    /// Traces: BC-2.17.008 precondition 3; EC-004.
+    #[test]
+    fn test_error_accumulation_requires_4_bytes() {
+        let mut analyzer = EnipAnalyzer::new(50, 5);
+        let mut flow = EnipFlowState::new();
+
+        // 3-byte CIP item data: cannot safely read byte[2] as general_status.
+        let cip_data: Vec<u8> = vec![0x8E, 0x00, 0x08]; // 3 bytes only
+        let pdu = sendrr_pdu_with_cip(&cip_data);
+
+        // Must NOT panic (bounds-safe extraction required by BC-2.17.008 precondition 3).
+        analyzer.process_pdu(&mut flow, &pdu, 600, src_ip());
+
+        assert!(
+            flow.error_counts_in_window.is_empty(),
+            "CIP item data < 4 bytes must skip general_status extraction; \
+             error_counts_in_window must remain empty (BC-2.17.008 precondition 3; EC-004)"
+        );
+        assert_eq!(
+            analyzer.error_count, 0,
+            "EnipAnalyzer.error_count must not be incremented when cip_item_data.len() < 4 \
+             (BC-2.17.008 precondition 3)"
+        );
+    }
+
+    // =========================================================================
+    // AC-134-006: EnipAnalyzer aggregate error_count increments on every CIP error
+    // Traces: BC-2.17.008 Postcondition 2b; BC-2.17.008 Invariant 2; AC-134-006
+    // =========================================================================
+
+    /// AC-134-006 — `EnipAnalyzer.error_count` increments across multiple flows for every
+    /// qualifying CIP error response (general_status != 0x00, type_id=0x00B2, len>=4).
+    ///
+    /// BC-2.17.008 Postcondition 2b / Invariant 2: `self.error_count` is a LIFETIME aggregate
+    /// counter incremented on every non-zero general_status response. It is never reset between
+    /// flows or windows.
+    ///
+    /// Sequence: 3 error responses on flow A + 2 error responses on flow B → `error_count == 5`.
+    ///
+    /// Non-vacuous: asserts the aggregate count equals the exact number of qualifying error
+    /// responses across both flows. Requires `process_pdu` to call `self.error_count += 1`
+    /// on the `EnipAnalyzer` struct (not the per-flow counter).
+    ///
+    /// Traces: BC-2.17.008 Postcondition 2b; Invariant 2; AC-134-006.
+    #[test]
+    fn test_aggregate_error_count_increments() {
+        let mut analyzer = EnipAnalyzer::new(50, 5);
+        let mut flow_a = EnipFlowState::new();
+        let mut flow_b = EnipFlowState::new();
+
+        let err_pdu = sendrr_pdu_with_cip(&cip_error_response(0x08));
+
+        // 3 error responses on flow A
+        for ts in [700u32, 701, 702] {
+            analyzer.process_pdu(&mut flow_a, &err_pdu, ts, src_ip());
+        }
+        assert_eq!(
+            analyzer.error_count, 3,
+            "after 3 error responses on flow A, EnipAnalyzer.error_count must be 3 \
+             (BC-2.17.008 Postcondition 2b / Invariant 2)"
+        );
+
+        // 2 more error responses on flow B (different flow — verifies cross-flow accumulation)
+        let src_ip_b = IpAddr::V4(Ipv4Addr::new(192, 168, 1, 20));
+        for ts in [800u32, 801] {
+            analyzer.process_pdu(&mut flow_b, &err_pdu, ts, src_ip_b);
+        }
+        assert_eq!(
+            analyzer.error_count, 5,
+            "after 3 errors on flow A + 2 on flow B, EnipAnalyzer.error_count must be 5 \
+             (lifetime aggregate, never reset — BC-2.17.008 Postcondition 2b / Invariant 2)"
+        );
+
+        // Success responses must NOT increment error_count.
+        let success_pdu = sendrr_pdu_with_cip(&cip_success_response());
+        analyzer.process_pdu(&mut flow_a, &success_pdu, 900, src_ip());
+        assert_eq!(
+            analyzer.error_count, 5,
+            "success response (general_status=0x00) must NOT increment error_count \
+             (BC-2.17.008 postcondition 3)"
+        );
+    }
+
+    // =========================================================================
+    // AC-134-003: T0888 Pattern A — GetAttribute to Identity Object (Class 0x01)
+    // Traces: BC-2.17.014 postconditions Pattern A
+    // =========================================================================
+
+    /// AC-134-003 — GetAttributeSingle to Identity Object (Class 0x01) via 0x00B2 item
+    /// emits exactly one T0888 Pattern A finding (Likely/High).
+    ///
+    /// BC-2.17.014 Pattern A postcondition 1: ONE Finding with:
+    ///   - `mitre_techniques: vec!["T0888"]`
+    ///   - `verdict: Verdict::Likely`, `confidence: Confidence::High`
+    ///   - `summary: "CIP Identity Object attribute read: single-device reconnaissance (T0888)"`
+    ///   - `category: ThreatCategory::Reconnaissance`
+    ///
+    /// Non-vacuous: asserts finding count, MITRE ID, verdict, confidence, summary.
+    ///
+    /// Traces: BC-2.17.014 Pattern A postcondition 1; EC-001.
+    #[test]
+    fn test_t0888_pattern_a_identity_read() {
+        let mut analyzer = EnipAnalyzer::new(50, 5);
+        let mut flow = EnipFlowState::new();
+
+        // GetAttributeSingle to Class=0x01 (Identity Object), Instance=1, Attr=7
+        let cip_data = cip_get_attr_single_request(0x01);
+        let pdu = sendrr_pdu_with_cip(&cip_data);
+
+        analyzer.process_pdu(&mut flow, &pdu, 1000, src_ip());
+
+        assert_eq!(
+            analyzer.all_findings.len(),
+            1,
+            "GetAttributeSingle to Identity Object (Class 0x01) via 0x00B2 must emit \
+             exactly 1 T0888 Pattern A finding (BC-2.17.014 Pattern A PC-1)"
+        );
+        let f = &analyzer.all_findings[0];
+        assert_eq!(
+            f.mitre_techniques,
+            vec!["T0888".to_string()],
+            "T0888 Pattern A finding must carry MITRE technique T0888 \
+             (Remote System Information Discovery, ICS Discovery TA0102)"
+        );
+        assert_eq!(
+            f.verdict,
+            Verdict::Likely,
+            "T0888 Pattern A finding verdict must be Likely (BC-2.17.014 Pattern A PC-1)"
+        );
+        assert_eq!(
+            f.confidence,
+            Confidence::High,
+            "T0888 Pattern A finding confidence must be High (BC-2.17.014 Pattern A PC-1)"
+        );
+        assert_eq!(
+            f.category,
+            ThreatCategory::Reconnaissance,
+            "T0888 Pattern A finding category must be Reconnaissance"
+        );
+        assert_eq!(
+            f.summary, "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+            "T0888 Pattern A summary must match BC-2.17.014 Pattern A postcondition 1 exact string"
+        );
+    }
+
+    /// AC-134-003 — GetAttributeSingle to non-Identity class (Class 0x04, Assembly) does NOT
+    /// emit a T0888 Pattern A finding.
+    ///
+    /// BC-2.17.014 Pattern A precondition 2: path must contain `CipPathSegment::Class(0x01)`.
+    /// Class 0x04 (Assembly Object) does not match; no finding emitted.
+    ///
+    /// Non-vacuous: uses Class=0x04 with the same GetAttributeSingle service; asserts
+    /// `all_findings` is empty. Distinguishes an implementation that checks the class ID
+    /// from one that fires on any GetAttribute regardless of target.
+    ///
+    /// Traces: BC-2.17.014 Pattern A precondition 2; EC-003.
+    #[test]
+    fn test_t0888_pattern_a_non_identity_no_finding() {
+        let mut analyzer = EnipAnalyzer::new(50, 5);
+        let mut flow = EnipFlowState::new();
+
+        // GetAttributeSingle to Class=0x04 (Assembly Object) — NOT Identity Object
+        let cip_data = cip_get_attr_single_request(0x04);
+        let pdu = sendrr_pdu_with_cip(&cip_data);
+
+        analyzer.process_pdu(&mut flow, &pdu, 1100, src_ip());
+
+        assert!(
+            analyzer.all_findings.is_empty(),
+            "GetAttributeSingle to Class=0x04 (Assembly Object, not Identity) must NOT emit \
+             T0888 Pattern A finding (BC-2.17.014 Pattern A precondition 2; EC-003)"
+        );
+    }
+
+    /// AC-134-003 — GetAttributeSingle to Identity Object carried in a 0x00B1 (Connected Data
+    /// Item) does NOT emit T0888 Pattern A.
+    ///
+    /// BC-2.17.014 Pattern A precondition 4 (F-P9-001): the 0x00B2-only gate applies.
+    /// Connected items (0x00B1) are skipped in v0.11.0; no CIP parse and no detection.
+    ///
+    /// Non-vacuous: uses a 0x00B1 PDU carrying Class(0x01) CIP bytes; asserts no finding.
+    /// Distinguishes an implementation that checks type_id from one that parses all items.
+    ///
+    /// Traces: BC-2.17.014 Pattern A precondition 4; EC-009; F-P9-001.
+    #[test]
+    fn test_t0888_pattern_a_connected_item_no_finding() {
+        let mut analyzer = EnipAnalyzer::new(50, 5);
+        let mut flow = EnipFlowState::new();
+
+        // GetAttributeSingle to Class=0x01, but carried in 0x00B1 (Connected Data Item)
+        let cip_data = cip_get_attr_single_request(0x01);
+        let pdu = sendrr_pdu_with_b1_cip(&cip_data);
+
+        analyzer.process_pdu(&mut flow, &pdu, 1200, src_ip());
+
+        assert!(
+            analyzer.all_findings.is_empty(),
+            "GetAttributeSingle to Identity Object via 0x00B1 (Connected Data Item) must NOT \
+             emit T0888 Pattern A — 0x00B2-only gate (F-P9-001; BC-2.17.014 PC-4; EC-009)"
+        );
+    }
+
+    /// AC-134-003 — T0888 Pattern A fires per-occurrence (not one-shot): two
+    /// GetAttributeSingle requests to Class 0x01 produce two T0888 findings.
+    ///
+    /// BC-2.17.014 invariant 2: Pattern A is per-occurrence. Unlike T0846 (one-shot per flow),
+    /// each individual Identity Object read warrants its own finding.
+    ///
+    /// Non-vacuous: calls `process_pdu` twice with Class(0x01) GetAttributeSingle and asserts
+    /// `all_findings.len() == 2`. Distinguishes per-occurrence from one-shot behavior.
+    ///
+    /// Traces: BC-2.17.014 invariant 2 (Pattern A is per-occurrence); EC-011; AC-134-003.
+    #[test]
+    fn test_t0888_pattern_a_fires_per_occurrence() {
+        let mut analyzer = EnipAnalyzer::new(50, 5);
+        let mut flow = EnipFlowState::new();
+
+        let cip_data = cip_get_attr_single_request(0x01);
+        let pdu = sendrr_pdu_with_cip(&cip_data);
+
+        analyzer.process_pdu(&mut flow, &pdu, 1300, src_ip());
+        analyzer.process_pdu(&mut flow, &pdu, 1301, src_ip());
+
+        assert_eq!(
+            analyzer.all_findings.len(),
+            2,
+            "two GetAttributeSingle requests to Class 0x01 must produce 2 T0888 Pattern A \
+             findings — per-occurrence, not one-shot (BC-2.17.014 invariant 2; EC-011)"
+        );
+        // Both findings must be T0888.
+        for f in &analyzer.all_findings {
+            assert_eq!(
+                f.mitre_techniques,
+                vec!["T0888".to_string()],
+                "each per-occurrence finding must carry T0888"
+            );
+        }
+    }
+
+    // =========================================================================
+    // AC-134-004: T0888 Pattern B — error burst crossing threshold fires one-shot
+    // Traces: BC-2.17.014 postconditions Pattern B; BC-2.17.014 invariant 3
+    // =========================================================================
+
+    /// AC-134-004 — default threshold=5; 6th error in 10s window fires T0888 Pattern B
+    /// (strict `>`; Possible/Medium).
+    ///
+    /// BC-2.17.014 Pattern B: `total_error_count > threshold` (strict >) with default=5.
+    /// Exactly 5 errors → `5 > 5` is false, no finding. 6th error → `6 > 5` is true, finding.
+    ///
+    /// Assertion: after 6 calls, `all_findings` contains exactly 1 T0888 finding with
+    /// `verdict=Possible`, `confidence=Medium`; `flow.error_rate_emitted == true`.
+    ///
+    /// Traces: BC-2.17.014 Pattern B postcondition 2; invariant 3 (strict >); EC-004.
+    #[test]
+    fn test_t0888_pattern_b_fires_at_threshold_plus_one() {
+        let mut analyzer = EnipAnalyzer::new(50, 5); // error_burst_threshold = 5
+        let mut flow = EnipFlowState::new();
+
+        let err_pdu = sendrr_pdu_with_cip(&cip_error_response(0x08));
+
+        // 5 errors: total=5, 5 > 5 is false → no Pattern B finding yet.
+        for ts in [1400u32, 1401, 1402, 1403, 1404] {
+            analyzer.process_pdu(&mut flow, &err_pdu, ts, src_ip());
+        }
+        assert!(
+            analyzer.all_findings.is_empty(),
+            "exactly 5 errors with threshold=5 must NOT fire Pattern B \
+             (strict > semantics: 5 > 5 is false — BC-2.17.014 invariant 3; EC-005)"
+        );
+
+        // 6th error: total=6, 6 > 5 is true → Pattern B fires.
+        analyzer.process_pdu(&mut flow, &err_pdu, 1405, src_ip());
+
+        assert_eq!(
+            analyzer.all_findings.len(),
+            1,
+            "6th error with threshold=5 must fire exactly 1 T0888 Pattern B finding \
+             (strict >: 6 > 5 — BC-2.17.014 Pattern B postcondition 2; EC-004)"
+        );
+        let f = &analyzer.all_findings[0];
+        assert_eq!(
+            f.mitre_techniques,
+            vec!["T0888".to_string()],
+            "Pattern B finding must carry MITRE technique T0888"
+        );
+        assert_eq!(
+            f.verdict,
+            Verdict::Possible,
+            "T0888 Pattern B finding verdict must be Possible \
+             (BC-2.17.014 Pattern B postcondition 2)"
+        );
+        assert_eq!(
+            f.confidence,
+            Confidence::Medium,
+            "T0888 Pattern B finding confidence must be Medium \
+             (BC-2.17.014 Pattern B postcondition 2)"
+        );
+        assert!(
+            flow.error_rate_emitted,
+            "error_rate_emitted must be set to true after Pattern B fires \
+             (one-shot guard — BC-2.17.014 Pattern B postcondition 2)"
+        );
+    }
+
+    /// AC-134-004 — T0888 Pattern B one-shot guard: 7th error in same window emits no
+    /// additional finding after guard is set.
+    ///
+    /// BC-2.17.014 Pattern B postcondition 2 last line: `flow.error_rate_emitted = true`.
+    /// Subsequent errors in the same window (guard still true) must not produce additional
+    /// Pattern B findings.
+    ///
+    /// Non-vacuous: after the 6th error fires Pattern B (finding count=1, guard=true),
+    /// a 7th error must leave finding count at 1. Distinguishes one-shot from per-occurrence.
+    ///
+    /// Traces: BC-2.17.014 Pattern B postcondition 2 (one-shot guard); EC-006; EC-008.
+    #[test]
+    fn test_t0888_pattern_b_one_shot_guard() {
+        let mut analyzer = EnipAnalyzer::new(50, 5);
+        let mut flow = EnipFlowState::new();
+
+        let err_pdu = sendrr_pdu_with_cip(&cip_error_response(0x08));
+
+        // 6 errors → Pattern B fires (finding count becomes 1, guard set).
+        for ts in [1500u32, 1501, 1502, 1503, 1504, 1505] {
+            analyzer.process_pdu(&mut flow, &err_pdu, ts, src_ip());
+        }
+        assert_eq!(
+            analyzer.all_findings.len(),
+            1,
+            "pre-condition: 6th error must have fired Pattern B (finding count == 1)"
+        );
+        assert!(
+            flow.error_rate_emitted,
+            "pre-condition: error_rate_emitted must be true after Pattern B fires"
+        );
+
+        // 7th error: guard is still set (same window, < 10s elapsed) → no new finding.
+        analyzer.process_pdu(&mut flow, &err_pdu, 1506, src_ip());
+
+        assert_eq!(
+            analyzer.all_findings.len(),
+            1,
+            "7th error in same window must NOT emit a second Pattern B finding \
+             (error_rate_emitted one-shot guard — BC-2.17.014 Pattern B postcondition 2; EC-006)"
+        );
+    }
+
+    /// AC-134-004 — exactly 5 errors with threshold=5 does NOT fire T0888 Pattern B.
+    ///
+    /// BC-2.17.014 invariant 3: strict `>` comparison. `5 > 5` is false; Pattern B
+    /// requires strictly more than the threshold.
+    ///
+    /// Non-vacuous: sends exactly 5 error responses; asserts no finding and
+    /// `error_rate_emitted == false`. Verifies the strict > boundary exactly.
+    ///
+    /// Traces: BC-2.17.014 invariant 3 (strict >); EC-005.
+    #[test]
+    fn test_t0888_pattern_b_no_fire_at_threshold() {
+        let mut analyzer = EnipAnalyzer::new(50, 5); // threshold = 5
+        let mut flow = EnipFlowState::new();
+
+        let err_pdu = sendrr_pdu_with_cip(&cip_error_response(0x09));
+
+        for ts in [1600u32, 1601, 1602, 1603, 1604] {
+            analyzer.process_pdu(&mut flow, &err_pdu, ts, src_ip());
+        }
+
+        assert!(
+            analyzer.all_findings.is_empty(),
+            "exactly 5 errors with threshold=5 must NOT fire Pattern B \
+             (5 > 5 is false — strict > semantics per BC-2.17.014 invariant 3; EC-005)"
+        );
+        assert!(
+            !flow.error_rate_emitted,
+            "error_rate_emitted must remain false when threshold is not exceeded \
+             (BC-2.17.014 Pattern B precondition 2)"
+        );
+    }
+
+    /// AC-134-004 — threshold=0: first error (count=1 > 0) fires Pattern B immediately.
+    ///
+    /// BC-2.17.014 invariant 3 + BC-2.17.026 invariant 4: with threshold=0, the very first
+    /// CIP error response triggers `1 > 0` → Pattern B fires.
+    ///
+    /// Non-vacuous: creates analyzer with `error_burst_threshold=0`; sends 1 error;
+    /// asserts Pattern B finding emitted. Verifies the threshold-zero edge case is handled.
+    ///
+    /// Traces: BC-2.17.014 invariant 3 (strict >); BC-2.17.026 invariant 4.
+    #[test]
+    fn test_t0888_pattern_b_threshold_zero() {
+        let mut analyzer = EnipAnalyzer::new(50, 0); // error_burst_threshold = 0
+        let mut flow = EnipFlowState::new();
+
+        let err_pdu = sendrr_pdu_with_cip(&cip_error_response(0x08));
+
+        analyzer.process_pdu(&mut flow, &err_pdu, 1700, src_ip());
+
+        assert_eq!(
+            analyzer.all_findings.len(),
+            1,
+            "with threshold=0, first error (total=1, 1 > 0 is true) must fire Pattern B \
+             immediately (BC-2.17.014 invariant 3; BC-2.17.026 invariant 4)"
+        );
+        assert_eq!(
+            analyzer.all_findings[0].mitre_techniques,
+            vec!["T0888".to_string()],
+            "Pattern B finding at threshold=0 must carry MITRE technique T0888"
+        );
+        assert_eq!(
+            analyzer.all_findings[0].verdict,
+            Verdict::Possible,
+            "Pattern B finding at threshold=0 must have verdict=Possible"
+        );
+        assert!(
+            flow.error_rate_emitted,
+            "error_rate_emitted must be true after Pattern B fires at threshold=0"
+        );
+    }
+
+    // =========================================================================
+    // AC-134-005: is_non_enip flag suppresses all ENIP detections
+    // Traces: BC-2.17.010 Precondition 2, BC-2.17.014 preconditions
+    // =========================================================================
+
+    /// AC-134-005 — flow with `is_non_enip=true` suppresses all T0846 and T0888 findings
+    /// regardless of frame content.
+    ///
+    /// BC-2.17.010 precondition 2 and BC-2.17.014 precondition 5: `flow.is_non_enip == false`
+    /// is required before any detection runs. When `is_non_enip=true`, `process_pdu` must
+    /// return immediately without emitting any finding.
+    ///
+    /// The test constructs a flow with `is_non_enip=true` directly (per STORY-134 scope:
+    /// the flag is set by STORY-137 frame-walk; in STORY-134 tests it is injected inline).
+    ///
+    /// Non-vacuous: sends a ListIdentity frame (would normally produce T0846) with
+    /// `is_non_enip=true`; asserts `all_findings` stays empty. Distinguishes a correct
+    /// early-exit implementation from one that ignores the flag.
+    ///
+    /// Traces: BC-2.17.010 precondition 2; BC-2.17.014 precondition 5; AC-134-005; EC-010.
+    #[test]
+    fn test_non_enip_flow_suppresses_recon() {
+        let mut analyzer = EnipAnalyzer::new(50, 5);
+        let mut flow = EnipFlowState::new();
+
+        // Inject is_non_enip=true directly (set by STORY-137 in production;
+        // injected inline for STORY-134 scope isolation per AC-134-005).
+        flow.is_non_enip = true;
+
+        // ListIdentity frame — would emit T0846 if is_non_enip were false.
+        let pdu = list_identity_pdu();
+        analyzer.process_pdu(&mut flow, &pdu, 2000, src_ip());
+
+        assert!(
+            analyzer.all_findings.is_empty(),
+            "is_non_enip=true must suppress T0846 ListIdentity detection — no findings emitted \
+             (BC-2.17.010 precondition 2; EC-010)"
+        );
+
+        // GetAttributeSingle to Identity Object — would emit T0888 Pattern A if normal.
+        let cip_request = cip_get_attr_single_request(0x01);
+        let pdu2 = sendrr_pdu_with_cip(&cip_request);
+        analyzer.process_pdu(&mut flow, &pdu2, 2001, src_ip());
+
+        assert!(
+            analyzer.all_findings.is_empty(),
+            "is_non_enip=true must suppress T0888 Pattern A Identity-read detection — no \
+             findings emitted (BC-2.17.014 precondition 5; EC-010)"
+        );
+
+        // Error response — would emit T0888 Pattern B (with threshold=0) if normal.
+        let mut flow2 = EnipFlowState::new();
+        flow2.is_non_enip = true;
+        let mut analyzer2 = EnipAnalyzer::new(50, 0); // threshold=0 to ensure Pattern B would fire
+        let err_pdu = sendrr_pdu_with_cip(&cip_error_response(0x08));
+        analyzer2.process_pdu(&mut flow2, &err_pdu, 2002, src_ip());
+
+        assert!(
+            analyzer2.all_findings.is_empty(),
+            "is_non_enip=true must suppress T0888 Pattern B error-burst detection — no \
+             findings emitted (BC-2.17.014 precondition 3 / precondition 5; EC-010)"
+        );
+    }
+
+    // =========================================================================
+    // F-134-001 REGRESSION: error window must reset when first error is at ts=0
+    // Traces: BC-2.17.008 PC-2 / PC-4; BC-2.17.014 EC-007
+    // =========================================================================
+
+    /// F-134-001 regression — error window resets correctly when the first qualifying
+    /// CIP error arrives at timestamp==0.
+    ///
+    /// The prior implementation overloaded `error_window_start_ts == 0` as both the
+    /// "no error seen yet" sentinel AND the window-seeded-at-zero case.  When a valid
+    /// error arrived at pcap-relative second 0, the sentinel branch was permanently
+    /// skipped, so `error_counts_in_window` accumulated unbounded and
+    /// `error_rate_emitted` never re-armed.
+    ///
+    /// Correct behaviour (BC-2.17.008 postconditions 2 + 4):
+    ///   1. First qualifying error at ts=0 seeds the window: `error_window_active = true`,
+    ///      `error_window_start_ts = 0`, `error_counts_in_window[status] = 1`.
+    ///   2. A second qualifying error at ts=12: `12u32.wrapping_sub(0) = 12 > 10` →
+    ///      window resets before accumulating → `error_counts_in_window[status] = 1`
+    ///      (not 2), and `error_rate_emitted` is `false` (re-armed).
+    ///
+    /// This test FAILS against the buggy sentinel-0 code and PASSES after the fix.
+    ///
+    /// Traces: BC-2.17.008 postconditions 2 and 4; F-134-001; EC-007.
+    #[test]
+    fn test_error_window_resets_after_10s_from_ts_zero() {
+        let mut analyzer = EnipAnalyzer::new(50, 5);
+        let mut flow = EnipFlowState::new();
+
+        let cip_data = cip_error_response(0x08);
+        let pdu = sendrr_pdu_with_cip(&cip_data);
+
+        // First qualifying CIP error at timestamp == 0 (pcap-relative second 0).
+        // BC-2.17.008 PC-2: window is seeded; error_window_active becomes true,
+        // error_window_start_ts = 0, error_counts_in_window[0x08] = 1.
+        analyzer.process_pdu(&mut flow, &pdu, 0, src_ip());
+
+        assert_eq!(
+            flow.error_counts_in_window.get(&0x08).copied().unwrap_or(0),
+            1,
+            "pre-condition: first error at ts=0 must seed the window with count=1 \
+             (BC-2.17.008 postcondition 2; F-134-001)"
+        );
+
+        // Second qualifying error at ts=12.  12u32.wrapping_sub(0) = 12 > 10:
+        // BC-2.17.008 PC-4 must fire, clearing error_counts_in_window and reseeding.
+        // After the reset the new error is counted → error_counts_in_window[0x08] == 1.
+        // (With the old sentinel-0 bug this returns 2 because the expiry branch was
+        // never entered.)
+        analyzer.process_pdu(&mut flow, &pdu, 12, src_ip());
+
+        let count_after_reset = flow.error_counts_in_window.get(&0x08).copied().unwrap_or(0);
+        assert_eq!(
+            count_after_reset, 1,
+            "after >10s gap from ts=0, window must reset; error_counts_in_window[0x08] \
+             must be 1 (only the post-reset error), not 2 — sentinel-0 collision (F-134-001; \
+             BC-2.17.008 postcondition 4)"
+        );
+        assert!(
+            !flow.error_rate_emitted,
+            "error_rate_emitted must be re-armed (false) after window reset at ts=0 boundary \
+             (BC-2.17.008 postcondition 4; F-134-001)"
+        );
+    }
+
+    // =========================================================================
+    // O-134-001 CANONICAL CPF-OFFSET HOLDOUT (DF-CANONICAL-FRAME-HOLDOUT-001)
+    // Traces: BC-2.17.014 Pattern A; BC-2.17.005; ADR-010 Decision 4
+    // =========================================================================
+
+    /// O-134-001 — canonical SendRRData frame with authoritative ODVA byte layout
+    /// triggers T0888 Pattern A (Identity Object GetAttributesAll reconnaissance).
+    ///
+    /// This holdout pins the CPF list offset at pdu[30] against a shared-misunderstanding
+    /// +/-2 error.  The frame is built byte-by-byte from the ODVA EtherNet/IP spec;
+    /// every field offset is documented in-line.
+    ///
+    /// Canonical ODVA byte layout:
+    ///   pdu[0..2]   ENIP command = 0x006F (SendRRData), LE
+    ///   pdu[2..4]   ENIP length  = 22 (payload after header), LE
+    ///   pdu[4..8]   Session Handle = 0x00000000
+    ///   pdu[8..12]  Status = 0x00000000
+    ///   pdu[12..20] Sender Context = 0x0000000000000000
+    ///   pdu[20..24] Options = 0x00000000
+    ///   ---- ENIP header ends at byte 24 ----
+    ///   pdu[24..28] Interface Handle = 0x00000000
+    ///   pdu[28..30] Timeout = 0x0000
+    ///   ---- CPF list begins at pdu[30] ----
+    ///   pdu[30..32] CPF item_count = 2, LE
+    ///   pdu[32..34] NullAddress item type  = 0x0000, LE
+    ///   pdu[34..36] NullAddress item length = 0x0000, LE
+    ///   pdu[36..38] UnconnectedData item type   = 0x00B2, LE
+    ///   pdu[38..40] UnconnectedData item length = 6 (CIP request size), LE
+    ///   ---- CIP request begins at pdu[40] ----
+    ///   pdu[40]     CIP service = 0x01 (GetAttributesAll, request; bit 7 clear)
+    ///   pdu[41]     request_path_size = 2 words (4 bytes)
+    ///   pdu[42]     0x20 (Class segment type, 1-byte)
+    ///   pdu[43]     0x01 (Class ID = Identity Object)
+    ///   pdu[44]     0x24 (Instance segment type, 1-byte)
+    ///   pdu[45]     0x01 (Instance = 1)
+    ///
+    /// Asserts: exactly one T0888 finding with mitre_technique == "T0888".
+    ///
+    /// Traces: BC-2.17.014 Pattern A postcondition 1; BC-2.17.005; O-134-001;
+    /// DF-CANONICAL-FRAME-HOLDOUT-001; ADR-010 Decision 4.
+    #[test]
+    fn test_process_pdu_canonical_sendrr_cpf_offset() {
+        let mut analyzer = EnipAnalyzer::new(50, 5);
+        let mut flow = EnipFlowState::new();
+
+        // Build canonical ODVA SendRRData frame by field offset (see doc-comment above).
+        let mut pdu = vec![0u8; 46];
+
+        // pdu[0..2]: ENIP command = 0x006F (SendRRData), LE
+        pdu[0] = 0x6F;
+        pdu[1] = 0x00;
+        // pdu[2..4]: ENIP length = 22 (bytes 24..46 = 22 bytes of payload), LE
+        pdu[2] = 22u8;
+        pdu[3] = 0x00;
+        // pdu[4..8]: Session Handle = 0 (4 bytes, all zero)
+        // pdu[8..12]: Status = 0 (4 bytes, all zero)
+        // pdu[12..20]: Sender Context = 0 (8 bytes, all zero)
+        // pdu[20..24]: Options = 0 (4 bytes, all zero)
+        // — bytes 4..24 already zero from vec initialisation —
+
+        // pdu[24..28]: Interface Handle = 0x00000000 (already zero)
+        // pdu[28..30]: Timeout = 0x0000 (already zero)
+
+        // pdu[30..32]: CPF item_count = 2, LE
+        pdu[30] = 0x02;
+        pdu[31] = 0x00;
+
+        // pdu[32..34]: NullAddress item type = 0x0000, LE (already zero)
+        // pdu[34..36]: NullAddress item length = 0x0000, LE (already zero)
+
+        // pdu[36..38]: UnconnectedData item type = 0x00B2, LE
+        pdu[36] = 0xB2;
+        pdu[37] = 0x00;
+
+        // pdu[38..40]: UnconnectedData item length = 6 (CIP request is 6 bytes), LE
+        pdu[38] = 0x06;
+        pdu[39] = 0x00;
+
+        // pdu[40]: CIP service = 0x01 (GetAttributesAll request; bit 7 clear = request)
+        pdu[40] = 0x01;
+        // pdu[41]: request_path_size = 2 words (4 bytes of path follow)
+        pdu[41] = 0x02;
+        // pdu[42]: Class segment type = 0x20 (1-byte class)
+        pdu[42] = 0x20;
+        // pdu[43]: Class ID = 0x01 (Identity Object)
+        pdu[43] = 0x01;
+        // pdu[44]: Instance segment type = 0x24 (1-byte instance)
+        pdu[44] = 0x24;
+        // pdu[45]: Instance = 0x01
+        pdu[45] = 0x01;
+
+        analyzer.process_pdu(&mut flow, &pdu, 100, src_ip());
+
+        assert_eq!(
+            analyzer.all_findings.len(),
+            1,
+            "canonical SendRRData with CIP GetAttributesAll(Class 0x01) must produce \
+             exactly 1 T0888 finding (BC-2.17.014 Pattern A; O-134-001; \
+             DF-CANONICAL-FRAME-HOLDOUT-001)"
+        );
+        assert!(
+            analyzer.all_findings[0]
+                .mitre_techniques
+                .contains(&"T0888".to_string()),
+            "finding must carry MITRE technique T0888 (BC-2.17.014 Pattern A postcondition 1; \
+             O-134-001)"
         );
     }
 }
