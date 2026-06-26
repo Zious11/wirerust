@@ -22,8 +22,6 @@
 //! Sub-A through Sub-C harnesses live in `#[cfg(kani)] mod kani_proofs` below.
 //! Sub-D (`vp032_cip_service_classification_totality`) is in scope for STORY-132.
 
-#![allow(dead_code)]
-
 // ---------------------------------------------------------------------------
 // Data types — pure-core (STORY-130)
 // ---------------------------------------------------------------------------
