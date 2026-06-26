@@ -472,6 +472,47 @@ pub fn check_t0814(
 }
 
 // ---------------------------------------------------------------------------
+// Pure-core helpers
+// ---------------------------------------------------------------------------
+
+/// Resolve the EtherNet/IP client (command-originator) endpoint from the flow key.
+///
+/// **Port-heuristic-only resolution.** EtherNet/IP explicit-messaging servers listen on
+/// port 44818 (IANA-registered); the opposite endpoint is therefore the client (the
+/// command originator):
+///
+/// - `lower_port == 44818`  → lower endpoint is the server; upper is the client.
+/// - `upper_port == 44818`  → upper endpoint is the server; lower is the client.
+/// - neither port is 44818  → both endpoints are ephemeral (non-standard ENIP setup or
+///   future UDP/2222 scope); function silently returns `lower_ip`
+///   as a conservative fallback.
+///
+/// **Known limitation:** this heuristic is correct for standard EtherNet/IP flows where
+/// exactly one endpoint is on port 44818. It cannot unambiguously resolve direction when
+/// NEITHER endpoint is on 44818 (non-standard server port or proxied capture). In that
+/// case the function silently returns `lower_ip`, which may or may not be the actual
+/// command originator.
+///
+/// **Direction deferral (DRIFT-ENIP-DIRECTION-001):** this function uses only the
+/// port-44818 heuristic above; it does NOT use the TCP `Direction` signal that sibling
+/// analyzer Modbus (`src/analyzer/modbus.rs` ~355-382) receives. Direction-aware
+/// resolution — threading `Direction` into `EnipAnalyzer::on_data` analogously to the
+/// Modbus pattern — is deferred to a post-v0.11.0 "ENIP direction-aware source
+/// resolution" follow-up chore. Threading `Direction` into `EnipAnalyzer::on_data` would
+/// ripple across all Wave-60 STORY-13x call sites and was explicitly deferred following
+/// the same DRIFT-DNP3-DIRECTION-001 precedent established for the DNP3 sibling analyzer.
+fn resolve_enip_client_ip(flow_key: &crate::reassembly::flow::FlowKey) -> std::net::IpAddr {
+    if flow_key.lower_port() == 44818 {
+        flow_key.upper_ip()
+    } else {
+        // Either upper_port == 44818 (standard case) or neither port is 44818
+        // (non-standard / fallback). Return lower_ip as conservative fallback in
+        // the neither-case, matching DNP3 resolve_master_ip fallback semantics.
+        flow_key.lower_ip()
+    }
+}
+
+// ---------------------------------------------------------------------------
 // Aggregate analyzer struct (STORY-131 — BC-2.17.019/020/023/026)
 // ---------------------------------------------------------------------------
 
@@ -592,10 +633,16 @@ impl EnipAnalyzer {
         // dispatcher tests (BC-2.17.019 PC-2). Single saturating_add; no branching; no I/O.
         self.bytes_received = self.bytes_received.saturating_add(data.len() as u64);
 
-        // Extract src/dest IPs from flow key for T0814 finding fields.
-        // FlowKey is canonicalised as (lower, upper) by (ip, port) tuple comparison.
-        let src_ip = flow_key.lower_ip();
-        let dest_ip = flow_key.upper_ip();
+        // Resolve the client (command-originator) IP using the port-44818 heuristic.
+        // FlowKey is canonicalised by (ip, port) tuple comparison, so lower_ip is NOT
+        // necessarily the traffic originator. resolve_enip_client_ip() identifies the
+        // client as the endpoint whose port is NOT 44818 (DRIFT-ENIP-DIRECTION-001).
+        let src_ip = resolve_enip_client_ip(&flow_key);
+        let dest_ip = if flow_key.lower_ip() == src_ip {
+            flow_key.upper_ip()
+        } else {
+            flow_key.lower_ip()
+        };
 
         // Lazily create per-flow state (mirrors Dnp3Analyzer::flows entry pattern).
         let _ = self.flows.entry(flow_key.clone()).or_default();
