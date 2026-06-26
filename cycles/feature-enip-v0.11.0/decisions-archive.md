@@ -342,3 +342,48 @@ Wave-60 integration gate initiated with develop HEAD `72a9106`. STORY-134/135/13
 **F-W60-002 [MEDIUM — NON-BLOCKING]:** `self.bytes_received` updated before `is_non_enip` guard vs BC-2.17.016 PC-5. RULING-W60-001 Part 2: bytes_received is EXEMPT (analyzer-level routing observable per BC-2.17.019 PC-2; not a per-flow analysis counter). Code correct. BC-2.17.016 v1.1→v1.2 clarification (PC-5 exemption sentence + Invariant 7) deferred to cycle-close SS-17 BC backfill to avoid mid-wave input-hash churn on merged stories.
 
 **After fix-PR merge:** re-run full 3-pass Wave-60 adversarial convergence on updated develop HEAD. Then human gate.
+
+---
+
+## D-252 — STORY-136 MERGED; develop HEAD = a2cb795 (2026-06-26)
+
+STORY-136 PR #326 squash-merged into develop; new develop HEAD = a2cb795 (was 84be2fb). stories_delivered 84→85. CI 11/11 green; pr-reviewer APPROVE (NITs: PRF-001 close-count cap-bypass assertion deferred STORY-138; PRF-002/003 accepted spec-correct); security PASS (SEC-006 LOW pub-field convention deferred W7.1). input-hash 0846e0e MATCH at merge. Worktree worktree-issue-316-story-136-enip-lifecycle cleaned up. NEXT = STORY-137.
+
+---
+
+## D-254 — STORY-137 MERGED; develop HEAD = 72a9106 (2026-06-26)
+
+STORY-137 PR #327 squash-merged into develop; new develop HEAD = 72a9106 (was a2cb795). stories_delivered 85→86. CI 11/11 green; pr-reviewer APPROVE (0 blocking); security PASS (SEC-137-001 MEDIUM unsafe split-borrow pre-authorized-deferred; SEC-137-002/003 LOW). input-hash f4c8390 MATCH at merge. Demo evidence at docs/demo-evidence/STORY-137/. Feature: frame-walk loop + carry-buffer + T0814 + command_counts single-site + dead-code removal (BC-2.17.016/004/018). Worktree worktree-issue-316-story-137-enip-frame-walk cleaned up. NEXT = Wave-60 integration gate.
+
+---
+
+## D-256 — F-W60-001 RESOLVED; fix-PR #328 MERGED; develop HEAD = 0f345c6 (2026-06-26)
+
+fix-PR #328 (`fix(enip): resolve source_ip to client via port-44818 heuristic`) squash-merged into develop; new develop HEAD = 0f345c6 (was 72a9106). stories_delivered stays 86 (fix-PR, not a story). `resolve_enip_client_ip` port-44818 heuristic (approach a, mirrors DNP3 sibling) ships per RULING-W60-001. 2 value-asserting on_data E2E tests + control + 4 unit tests T1-T4 (incl. fallback); WAVE-60-E2E-TEST-COVERAGE RESOLVED. Residual: DRIFT-ENIP-DIRECTION-001 doc-comment non-blocking. CI 11/11 green; pr-reviewer APPROVE; security PASS (SEC-001 LOW magic-number 44818, SEC-002 INFO fallback — both non-blocking). Fix worktree cleaned up by devops. NEXT = re-run Wave-60 3-pass adversarial convergence on develop @0f345c6.
+
+---
+
+## D-257 — Wave-60 Integration Gate CONVERGED (Re-convergence Passes A/B/C CLEAN) (2026-06-26)
+
+Wave-60 wave-level convergence ACHIEVED — re-convergence passes A/B/C on develop @0f345c6 all CLEAN (0 HIGH/0 CRIT per pass). BC-5.39.001 MET at wave level. Wave-60 integration gate: regression GREEN (0 failures, 80 suites, clippy/fmt clean), fresh-context consistency audit CLEAN (NEW-001 resolved), 3 consecutive clean adversarial passes.
+
+Pass C found F-W60-P-M1 MEDIUM (source_attribution docstrings stale "Current code (lower_ip())" prose — NON-BLOCKING; batched into WAVE-60-TEST-DOC-SWEEP for STORY-138/cycle-close doc sweep; corroborates GREEN-DOC-TENSE-GATE-PATTERN-GAP-001). All other Pass A/B/C findings LOW/deferred-confirmations (dest_ip cosmetic O-1, magic-44818, summarize stub-tense [STORY-138], BC input-hash TBD) — already tracked.
+
+Wave-60 integration gate: CONVERGED — PENDING HUMAN GATE.
+
+---
+
+## D-258 — Wave-60 Integration Gate PASSED — HUMAN APPROVED; Wave 61 STORY-138 IN-PROGRESS (2026-06-26)
+
+**Human approved the Wave-60 integration gate on 2026-06-26.** Decision: "Approve → proceed to STORY-138." develop @0f345c6 accepted.
+
+**Deferrals accepted:**
+1. **SPEC-DEFECT-IS-NON-ENIP-DEAD-LATCH** — is_non_enip quarantine dead-latch quarantine semantics unresolved → v0.12.0. PO decision required before BC-2.17.016 PC-4/Inv-4/EC-004 can be revised. Non-blocking for v0.11.0.
+2. **F-W60-P1-001** — command_counts split-header double-count fix (count once per logical header) → STORY-138 prerequisite (bundled into Wave-61 delivery).
+3. **F-W60-002** — bytes_received BC-2.17.016 v1.1→v1.2 clarification (PC-5 exemption + Invariant 7) → cycle-close SS-17 BC backfill.
+4. **WAVE-60-TEST-DOC-SWEEP** (incl. F-W60-P-M1 source_attribution "Current code" docstrings, mitre.rs:358 stale BC-2.17.012 label, dnp3_dispatcher_tests.rs:25, arp_tests RED-tense) → bundled into STORY-138 delivery.
+5. **SS-17 BC input-hash backfill** — BC-2.17.007+ carry `input-hash:TBD` → cycle-close.
+6. **green-doc-tense gate-pattern enhancement** (GREEN-DOC-TENSE-GATE-PATTERN-GAP-001 patterns for "These tests MUST FAIL" etc.) → cycle-close.
+
+**Wave 60 (STORY-134/135/136/137 + fix-PR #328) = COMPLETE + integration-gate PASSED.**
+**Wave 61 STORY-138 IN-PROGRESS.**

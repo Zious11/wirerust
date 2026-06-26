@@ -1,10 +1,10 @@
 ---
 pipeline: FEATURE-MODE
 phase: F4
-phase_status: "F4 Wave 60 INTEGRATION GATE CONVERGED — PENDING HUMAN GATE. F-W60-001 RESOLVED via fix-PR #328 @0f345c6; re-convergence passes A/B/C all CLEAN (0 HIGH/0 CRIT). BC-5.39.001 MET at wave level (D-257). After human approval → Wave 61 STORY-138."
+phase_status: "F4 Wave 60 INTEGRATION GATE PASSED (human-approved 2026-06-26 — D-258). Wave 60 CLOSED. Wave 61 STORY-138 IN-PROGRESS: delivering command_counts split-header double-count fix (F-W60-P1-001) + on_flow_close/command_distribution/summarize wiring (BC-2.17.017/021) + WAVE-60-TEST-DOC-SWEEP as prerequisites."
 product: wirerust
 mode: feature-mode
-timestamp: 2026-06-26T18:00:00Z
+timestamp: 2026-06-26T18:30:00Z
 
 # Release chain (latest)
 released_version: v0.10.0
@@ -29,7 +29,7 @@ adversary_gate: SATISFIED
 # Story tracking
 stories_delivered: 86
 current_cycle: feature-enip-v0.11.0 (D-228, 2026-06-24)
-current_wave: "Wave 60 INTEGRATION GATE CONVERGED — PENDING HUMAN GATE. STORY-134/135/136/137 all MERGED + fix-PR #328 MERGED @0f345c6. stories_delivered=86. Re-convergence passes A/B/C all CLEAN (0 HIGH/0 CRIT); BC-5.39.001 MET (D-257). Awaiting human gate approval → Wave 61 STORY-138."
+current_wave: "Wave 61 IN-PROGRESS — STORY-138. Wave 60 CLOSED (human-approved 2026-06-26, D-258). STORY-134/135/136/137 all MERGED + fix-PR #328 @0f345c6. stories_delivered=86. Prerequisites for STORY-138: (1) command_counts split-header double-count fix (F-W60-P1-001); (2) on_flow_close/command_distribution/summarize wiring (BC-2.17.017/021); (3) WAVE-60-TEST-DOC-SWEEP incl. F-W60-P-M1 + mitre.rs:358 + dnp3_dispatcher_tests.rs:25 + arp_tests RED-tense."
 
 # DTU
 dtu_required: false
@@ -52,7 +52,7 @@ convergence_trajectory: "Detail: cycles/v0.1.0-greenfield-spec/convergence-traje
 
 ## Status
 
-**PIPELINE FEATURE-MODE. Cycle `feature-enip-v0.11.0` OPEN. F4 Wave 60 INTEGRATION GATE CONVERGED — PENDING HUMAN GATE. Re-convergence passes A/B/C all CLEAN (0 HIGH/0 CRIT) on develop @0f345c6 (D-257). BC-5.39.001 MET at wave level. NEXT: human gate approval → Wave 61 STORY-138.**
+**PIPELINE FEATURE-MODE. Cycle `feature-enip-v0.11.0` OPEN. F4 Wave 60 INTEGRATION GATE PASSED (human-approved 2026-06-26 — D-258). Wave 60 CLOSED. Wave 61 STORY-138 IN-PROGRESS — delivering command_counts split-header double-count fix (F-W60-P1-001) + on_flow_close/command_distribution/summarize wiring (BC-2.17.017/021) + WAVE-60-TEST-DOC-SWEEP as prerequisites.**
 
 Latest release: v0.10.0 (main `0cbe922`, tag `v0.10.0`). develop=`0f345c6`. stories_delivered=86. Target: v0.11.0 (SS-17 EtherNet/IP + CIP TCP/44818). GitHub issue #316.
 
@@ -78,17 +78,22 @@ Spec versions: BC-INDEX v1.84 (331 on disk / 330 active; SS-17=26 BCs). ARCH-IND
 - Do NOT re-deliver STORY-137 — MERGED PR #327 @72a9106 (D-254). CI 11/11 green; pr-reviewer APPROVE (0 blocking); security PASS (SEC-137-001 MEDIUM unsafe split-borrow pre-authorized-deferred; SEC-137-002/003 LOW). input-hash f4c8390 MATCH. Demo evidence at docs/demo-evidence/STORY-137/.
 - Do NOT re-apply fix-PR #328 — MERGED @0f345c6 (D-256). `resolve_enip_client_ip` port-44818 heuristic ships. 2 value-asserting on_data E2E tests + control + 4 unit tests T1-T4. CI 11/11 green; pr-reviewer APPROVE; security PASS (SEC-001 LOW magic-number 44818, SEC-002 INFO fallback — both non-blocking). DRIFT-ENIP-DIRECTION-001 residual in doc-comment (non-blocking).
 
-### EXACT RESUME POINT — Wave-60 integration gate CONVERGED, awaiting human gate
+### EXACT RESUME POINT — Wave 61 STORY-138 IN-PROGRESS
 
-**F4 Wave 60 — ALL MERGED + FIX-PR MERGED + RE-CONVERGENCE ACHIEVED.** STORY-134/135/136/137 + fix-PR #328 all merged into develop. develop HEAD = `0f345c6`. stories_delivered=86.
+**Wave-60 integration gate PASSED (human-approved 2026-06-26 — D-258).** Deferrals accepted: is_non_enip quarantine dead-latch → v0.12.0 (SPEC-DEFECT-IS-NON-ENIP-DEAD-LATCH); F-W60-P1-001 command_counts split-header double-count → STORY-138 prerequisite; F-W60-002 bytes_received BC clarification + WAVE-60-TEST-DOC-SWEEP + SS-17 BC input-hash backfill + green-doc-tense gate-pattern enhancement → cycle-close.
 
-**Wave-60 integration gate status:** Full regression GREEN @0f345c6 (0 failures, 80 suites, clippy/fmt clean). Fresh-context consistency audit CLEAN (NEW-001 STORY-INDEX statuses fixed). Re-convergence passes A/B/C all CLEAN (0 HIGH/0 CRIT); BC-5.39.001 MET at wave level. F-W60-P-M1 MEDIUM (source_attribution docstrings stale "Current code" prose) — batched into WAVE-60-TEST-DOC-SWEEP; NON-BLOCKING. D-257 recorded.
+**Wave 60 CLOSED.** develop HEAD = `0f345c6`. stories_delivered=86.
 
-**NEXT STEP = HUMAN GATE APPROVAL.** After human approval → Wave 61 STORY-138 (carrying prerequisites: command_counts split-header double-count fix per F-W60-P1-001 + on_flow_close/command_distribution/summarize wiring + WAVE-60-TEST-DOC-SWEEP) → Wave-61 gate → F5 scoped-adversarial → F6 formal hardening (VP-032/VP-004/VP-007 Kani; cargo-fuzz F-P9-002 `parse_cip_header`/`parse_cpf_items`) → F7 delta-convergence + human gate → release v0.11.0.
+**NEXT STEP = Deliver STORY-138** (Wave 61) with these prerequisites bundled:
+1. command_counts split-header double-count fix (F-W60-P1-001 — count once per logical header)
+2. on_flow_close/command_distribution/summarize wiring (BC-2.17.017/021)
+3. WAVE-60-TEST-DOC-SWEEP: F-W60-P-M1 source_attribution "Current code" docstrings → past-tense; mitre.rs:358 stale BC-2.17.012 label; dnp3_dispatcher_tests.rs:25; arp_tests RED-tense
+
+After STORY-138 delivery + Wave-61 gate → F5 scoped-adversarial → F6 formal hardening (VP-032/VP-004/VP-007 Kani; cargo-fuzz F-P9-002 `parse_cip_header`/`parse_cpf_items`) → F7 delta-convergence + human gate → release v0.11.0.
 
 ### Remaining-work map (after resume)
 
-Human gate approval (Wave-60 CONVERGED @0f345c6) → Wave 61 STORY-138 (prerequisites: command_counts split-header double-count fix F-W60-P1-001 + on_flow_close/command_distribution/summarize wiring + WAVE-60-TEST-DOC-SWEEP incl. F-W60-P-M1 source_attribution docstrings) → Wave-61 gate → F5 scoped-adversarial → F6 formal hardening (VP-032/VP-004/VP-007 Kani; cargo-fuzz F-P9-002 `parse_cip_header`/`parse_cpf_items`) → F7 delta-convergence + human gate → release v0.11.0.
+Wave 61 STORY-138 (prerequisites: F-W60-P1-001 command_counts split-header fix + on_flow_close/command_distribution/summarize wiring + WAVE-60-TEST-DOC-SWEEP) → Wave-61 gate → F5 scoped-adversarial → F6 formal hardening (VP-032/VP-004/VP-007 Kani; cargo-fuzz F-P9-002 `parse_cip_header`/`parse_cpf_items`) → F7 delta-convergence + human gate → release v0.11.0.
 
 ### RESUME PROCEDURE (execute in order — BLOCKING)
 
@@ -97,7 +102,7 @@ Human gate approval (Wave-60 CONVERGED @0f345c6) → Wave 61 STORY-138 (prerequi
 3. Verify: `git rev-parse --short develop` == `0f345c6`.
 4. Run `gh pr list` — expect Dependabot #311 open (non-blocking); PRs #317/#318/#319/#320/#323/#324/#326/#327/#328 MERGED.
 5. Read RULING-W60-001 at `cycles/feature-enip-v0.11.0/RULING-W60-001-source-attribution.md`.
-6. Proceed per EXACT RESUME POINT above — await human gate approval, then begin Wave 61 STORY-138.
+6. Proceed per EXACT RESUME POINT above — begin Wave 61 STORY-138 (Wave-60 gate approved D-258).
 
 ### Locked design facts (do not re-derive on resume)
 
@@ -160,7 +165,7 @@ All GitHub-issue creation DF-VALIDATION-001-gated.
 | Feature mitre-json-names (issue #64) + v0.9.4 | RELEASED + CLOSED 2026-06-23 (D-217) | 5 BCs bumped. BC-INDEX v1.71 (303). PRs #306-309. tag v0.9.4. |
 | Fix cycle fix-pc-013-014-015 + v0.10.0 | **CONVERGED + RELEASED + CLOSED 2026-06-24 (D-226)** | BC-INDEX v1.73 (305). PRs #310-315. tag v0.10.0 0cbe922. |
 | Feature EtherNet/IP + CIP (issue #316) — F1/F2/F3 | **CONVERGED + HUMAN-APPROVED (D-228/D-230/D-231)** | 26 BCs (BC-2.17.001..026). 9 stories STORY-130..138 (E-20, 66 pts, waves 58-61). 13 holdouts HS-110..122. ADR-010, VP-032, SS-17. Detail: cycles/feature-enip-v0.11.0/ |
-| Feature EtherNet/IP + CIP — F4 | **IN-PROGRESS — Wave-60 integration gate CONVERGED, PENDING HUMAN GATE. STORY-130-137 ALL MERGED; fix-PR #328 MERGED @0f345c6 (D-256); stories_delivered=86. Re-convergence passes A/B/C CLEAN. BC-5.39.001 MET (D-257).** | STORY-134 PR #323 @e330ccc (D-247); STORY-135 PR #324 @84be2fb (D-249); STORY-136 PR #326 @a2cb795 (D-252); STORY-137 PR #327 @72a9106 (D-254); fix-PR #328 @0f345c6 (D-256). Wave-59 trajectory: `1→2→2→0→0→0`. Wave-60 trajectory: `0→1H+1M→0` (pre-fix, counter reset); re-convergence: `0→0→0` (passes A/B/C CLEAN, D-257). RULING-W60-001 at cycles/feature-enip-v0.11.0/RULING-W60-001-source-attribution.md. Convergence detail: cycles/feature-enip-v0.11.0/convergence-trajectory.md. |
+| Feature EtherNet/IP + CIP — F4 | **IN-PROGRESS — Wave 60 CLOSED (human-approved 2026-06-26, D-258). Wave 61 STORY-138 IN-PROGRESS.** | STORY-130-137 ALL MERGED; fix-PR #328 @0f345c6 (D-256); stories_delivered=86. Wave-60 gate PASSED: passes A/B/C CLEAN (D-257); human-approved D-258. Deferrals accepted: is_non_enip dead-latch v0.12.0; F-W60-P1-001 + WAVE-60-TEST-DOC-SWEEP → STORY-138; F-W60-002 + SS-17 BC backfill → cycle-close. Wave-59 trajectory: `1→2→2→0→0→0`. Wave-60: `0→1H+1M→0→0→0→0` (pre-fix + re-convergence A/B/C). RULING-W60-001 at cycles/feature-enip-v0.11.0/RULING-W60-001-source-attribution.md. Convergence detail: cycles/feature-enip-v0.11.0/convergence-trajectory.md. |
 
 ## Decisions Log
 
@@ -170,7 +175,7 @@ D-131..D-135: `cycles/feature-story-119-grouped-collapse/decisions-archive.md`
 D-136..D-202: `cycles/feature-pcapng-reader/decisions-archive.md`
 D-206..D-217: `cycles/feature-mitre-json-names/decisions-archive.md`
 D-219..D-226: `cycles/fix-pc-013-014-015/decisions-archive.md`
-D-228..D-250: `cycles/feature-enip-v0.11.0/decisions-archive.md`
+D-228..D-257: `cycles/feature-enip-v0.11.0/decisions-archive.md`
 
 | ID | Decision | Date |
 |----|----------|------|
@@ -181,6 +186,7 @@ D-228..D-250: `cycles/feature-enip-v0.11.0/decisions-archive.md`
 | D-255 | Wave-60 integration gate IN-PROGRESS — NOT YET CONVERGED. Regression GREEN @72a9106. Consistency audit CLEAN (NEW-001: STORY-INDEX STORY-134/135/136/137 statuses updated to delivered/merged). Adversarial: Pass 1 CLEAN, Pass 2 found F-W60-001 HIGH (source_ip mis-attribution; BLOCKS convergence; 3-clean counter RESET) + F-W60-002 MEDIUM (NON-BLOCKING bytes_received guard ordering), Pass 3 CLEAN. RULING-W60-001 issued (adjudicates both findings; F-W60-001 FIX via resolve_enip_client_ip port-44818 approach a on branch fix/enip-source-ip-attribution; F-W60-002 DEFER to cycle-close BC backfill; DRIFT-ENIP-DIRECTION-001 residual documented). Fix-PR in progress (devops). After merge: re-run full 3-pass Wave-60 adversarial convergence. D-255 also notes: SS-17 BC files carry status:draft + input-hash:TBD (tracked SS-17-BC-INPUT-HASH-BACKFILL). | 2026-06-26 |
 | D-256 | F-W60-001 RESOLVED — fix-PR #328 (`fix(enip): resolve source_ip to client via port-44818 heuristic`) squash-merged into develop; new develop HEAD = 0f345c6 (was 72a9106). stories_delivered stays 86 (fix-PR, not a story). `resolve_enip_client_ip` port-44818 heuristic (approach a, mirrors DNP3 sibling) ships per RULING-W60-001. 2 value-asserting on_data E2E tests + control + 4 unit tests T1-T4 (incl. fallback); WAVE-60-E2E-TEST-COVERAGE RESOLVED. Residual: DRIFT-ENIP-DIRECTION-001 doc-comment non-blocking. CI 11/11 green; pr-reviewer APPROVE; security PASS (SEC-001 LOW magic-number 44818, SEC-002 INFO fallback — both non-blocking). Fix worktree cleaned up by devops. NEXT = RE-RUN Wave-60 3-pass adversarial convergence on develop @0f345c6. | 2026-06-26 |
 | D-257 | Wave-60 wave-level convergence ACHIEVED — re-convergence passes A/B/C on develop @0f345c6 all CLEAN (0 HIGH/0 CRIT per pass). BC-5.39.001 MET at wave level. Wave-60 integration gate: regression GREEN (0 failures, 80 suites, clippy/fmt clean), fresh-context consistency audit CLEAN (NEW-001 resolved), 3 consecutive clean adversarial passes. Pass C found F-W60-P-M1 MEDIUM (source_attribution docstrings stale "Current code (lower_ip())" prose — NON-BLOCKING; batched into WAVE-60-TEST-DOC-SWEEP for STORY-138/cycle-close doc sweep; corroborates GREEN-DOC-TENSE-GATE-PATTERN-GAP-001). All other Pass A/B/C findings LOW/deferred-confirmations (dest_ip cosmetic O-1, magic-44818, summarize stub-tense [STORY-138], BC input-hash TBD) — already tracked. Wave-60 integration gate: CONVERGED — PENDING HUMAN GATE. | 2026-06-26 |
+| D-258 | Wave-60 integration gate PASSED — HUMAN APPROVED (2026-06-26). Decision: "Approve → proceed to STORY-138." develop @0f345c6 accepted. Deferrals accepted: (1) SPEC-DEFECT-IS-NON-ENIP-DEAD-LATCH (is_non_enip quarantine dead-latch) → v0.12.0; (2) F-W60-P1-001 command_counts split-header double-count fix → STORY-138 prerequisite; (3) F-W60-002 bytes_received BC clarification + WAVE-60-TEST-DOC-SWEEP (incl. F-W60-P-M1, mitre.rs:358) + SS-17 BC input-hash backfill + green-doc-tense gate-pattern enhancement → cycle-close. Wave 60 (STORY-134/135/136/137 + fix-PR #328) = COMPLETE + integration-gate PASSED. Wave 61 STORY-138 IN-PROGRESS. | 2026-06-26 |
 
 ## Governance Policy
 
