@@ -20,7 +20,7 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-17/BC-2.17.015.md
   - .factory/specs/architecture/decisions/ADR-010-ethernet-ip-cip-stream-dispatch.md
   - .factory/phase-f2-spec-evolution/enip-architecture-delta.md
-input-hash: "2af89b5"
+input-hash: "0846e0e"
 ---
 
 # STORY-136: ENIP Connection Lifecycle: ForwardOpen/ForwardClose Detection
