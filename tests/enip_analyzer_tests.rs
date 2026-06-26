@@ -4010,14 +4010,12 @@ mod command_detections {
             analyzer.process_pdu(&mut flow, &pdu, 100, src_ip());
         }
         assert_eq!(
-            flow.write_count_in_window,
-            3,
+            flow.write_count_in_window, 3,
             "write_count_in_window must be 3 after 3 SetAttributeSingle requests \
              (BC-2.17.012 postcondition 1)"
         );
         assert_eq!(
-            analyzer.write_count,
-            3,
+            analyzer.write_count, 3,
             "analyzer.write_count must be 3 after 3 SetAttributeSingle requests \
              (BC-2.17.012 postcondition 2)"
         );
@@ -4046,8 +4044,7 @@ mod command_detections {
             analyzer.process_pdu(&mut flow, &pdu_all, 100, src_ip());
         }
         assert_eq!(
-            analyzer.write_count,
-            8,
+            analyzer.write_count, 8,
             "analyzer.write_count must equal 8 after 5 SetAttributeSingle + 3 SetAttributesAll \
              (BC-2.17.012 postcondition 2; aggregate lifetime counter)"
         );
