@@ -419,55 +419,64 @@ impl Default for EnipFlowState {
 /// - `flow` — mutable per-flow state; reads `malformed_in_window`,
 ///   `malformed_anomaly_emitted`, `is_non_enip`; writes `malformed_anomaly_emitted`.
 /// - `all_findings` — analyzer-level findings accumulator; length compared against `MAX_FINDINGS`.
+/// - `dropped_findings` — analyzer-level suppressed-finding counter; incremented when the
+///   MAX_FINDINGS cap blocks emission (BC-2.17.022 Post 3).
 /// - `now_ts` — pcap-relative capture timestamp (seconds, u32); included in the finding.
 /// - `src_ip` — source IP of the offending flow; included in the finding summary and field.
 /// - `dest_ip` — destination IP; included in the finding summary for flow identification.
 ///
 /// # Traces
-/// BC-2.17.018 Postconditions 3–4; Invariant 1; Precondition 6; EC-007.
+/// BC-2.17.018 Postconditions 3–4; Invariant 1; Precondition 6; EC-007;
+/// BC-2.17.022 Postconditions 3–5.
 pub fn check_t0814(
     flow: &mut EnipFlowState,
     all_findings: &mut Vec<crate::findings::Finding>,
+    dropped_findings: &mut u64,
     now_ts: u32,
     src_ip: std::net::IpAddr,
     dest_ip: std::net::IpAddr,
 ) {
     // BC-2.17.018 Postconditions 3–4: conditional T0814 emission.
-    // All four guards must hold simultaneously:
+    // Guards 1–3 must hold simultaneously (guard 4 is the MAX_FINDINGS cap):
     //   1. malformed_in_window >= MALFORMED_ANOMALY_THRESHOLD (= 3)
     //   2. malformed_anomaly_emitted == false (one-shot per window)
     //   3. is_non_enip == false — CALLER MUST ensure this runs before is_non_enip is latched
     //      (BC-2.17.018 Precondition 6 / EC-007 carry-overflow ordering constraint).
-    //   4. all_findings.len() < MAX_FINDINGS
     if flow.malformed_in_window >= MALFORMED_ANOMALY_THRESHOLD
         && !flow.malformed_anomaly_emitted
         && !flow.is_non_enip
-        && all_findings.len() < MAX_FINDINGS
     {
-        // Compute elapsed seconds in this window (wrapping_sub for u32 rollover safety).
-        let elapsed = now_ts.wrapping_sub(flow.malformed_window_start);
-        // BC-2.17.018 Postcondition 3: exact summary template.
-        let summary = format!(
-            "EtherNet/IP structural anomaly: {} malformed frames in {}s window \
-             (flow {}→{}) — possible crash-probe",
-            flow.malformed_in_window, elapsed, src_ip, dest_ip,
-        );
-        all_findings.push(crate::findings::Finding {
-            category: crate::findings::ThreatCategory::Anomaly,
-            verdict: crate::findings::Verdict::Possible,
-            confidence: crate::findings::Confidence::Low,
-            summary,
-            evidence: vec![format!(
-                "malformed_in_window={}; threshold={}",
-                flow.malformed_in_window, MALFORMED_ANOMALY_THRESHOLD,
-            )],
-            mitre_techniques: vec!["T0814".to_string()],
-            source_ip: Some(src_ip),
-            timestamp: chrono::DateTime::from_timestamp(now_ts as i64, 0),
-            direction: None,
-        });
-        // BC-2.17.018 Postcondition 4: one-shot guard for this window.
-        flow.malformed_anomaly_emitted = true;
+        if all_findings.len() < MAX_FINDINGS {
+            // Compute elapsed seconds in this window (wrapping_sub for u32 rollover safety).
+            let elapsed = now_ts.wrapping_sub(flow.malformed_window_start);
+            // BC-2.17.018 Postcondition 3: exact summary template.
+            let summary = format!(
+                "EtherNet/IP structural anomaly: {} malformed frames in {}s window \
+                 (flow {}→{}) — possible crash-probe",
+                flow.malformed_in_window, elapsed, src_ip, dest_ip,
+            );
+            all_findings.push(crate::findings::Finding {
+                category: crate::findings::ThreatCategory::Anomaly,
+                verdict: crate::findings::Verdict::Possible,
+                confidence: crate::findings::Confidence::Low,
+                summary,
+                evidence: vec![format!(
+                    "malformed_in_window={}; threshold={}",
+                    flow.malformed_in_window, MALFORMED_ANOMALY_THRESHOLD,
+                )],
+                mitre_techniques: vec!["T0814".to_string()],
+                source_ip: Some(src_ip),
+                timestamp: chrono::DateTime::from_timestamp(now_ts as i64, 0),
+                direction: None,
+            });
+            // BC-2.17.018 Postcondition 4: one-shot guard for this window.
+            // BC-2.17.022 Post 5: guard NOT set on cap-suppressed finding.
+            flow.malformed_anomaly_emitted = true;
+        } else {
+            // BC-2.17.022 Post 3: increment dropped_findings on cap-suppressed finding.
+            // BC-2.17.022 Post 5: do NOT set malformed_anomaly_emitted (guard not set on drop).
+            *dropped_findings = dropped_findings.saturating_add(1);
+        }
     }
 }
 
@@ -516,6 +525,56 @@ fn resolve_enip_client_ip(flow_key: &crate::reassembly::flow::FlowKey) -> std::n
 // Aggregate analyzer struct (STORY-131 — BC-2.17.019/020/023/026)
 // ---------------------------------------------------------------------------
 
+/// Aggregate end-of-capture summary for the EtherNet/IP analyzer.
+///
+/// Produced by `EnipAnalyzer::summarize()` (BC-2.17.021 Postcondition 1).
+/// All field names are canonical — do NOT rename without a BC amendment.
+///
+/// Key name constraint (BC-2.17.021 Invariant 1): `parse_errors` is CANONICAL —
+/// NOT `total_parse_errors`. The v0.10.0 rename lesson (BC-2.15.020 D-220) mandates
+/// this name from day one.
+///
+/// Traces: BC-2.17.021 Postcondition 1; BC-2.17.022 Invariant 4; BC-2.17.024.
+pub struct EnipSummary {
+    /// Aggregate command distribution across all closed flows.
+    ///
+    /// Keys are the raw ENIP command u16 value; values are the total count.
+    /// Only non-zero entries are included. Populated by `on_flow_close`.
+    /// JSON key: `"command_distribution"` (BC-2.17.021 Postcondition 1).
+    pub command_distribution: HashMap<u16, u64>,
+
+    /// Total PDUs processed across all closed flows (BC-2.17.024 / BC-2.17.021).
+    ///
+    /// Folded from `flow.pdu_count` by `on_flow_close`. JSON key: `"total_pdu_count"`.
+    pub total_pdu_count: u64,
+
+    /// Aggregate lifetime parse error count across all closed flows (BC-2.17.017 Post 3).
+    ///
+    /// CANONICAL key: `"parse_errors"` — NOT `"total_parse_errors"` (BC-2.17.021 Invariant 1).
+    pub parse_errors: u64,
+
+    /// Total CIP write-class service requests (SetAttribute*) — BC-2.17.012.
+    ///
+    /// JSON key: `"write_count"`.
+    pub write_count: u64,
+
+    /// Total CIP error responses (general_status != 0) — BC-2.17.008.
+    ///
+    /// JSON key: `"error_count"`.
+    pub error_count: u64,
+
+    /// Count of distinct TCP flows processed (BC-2.17.017 Post 6 / BC-2.17.021).
+    ///
+    /// Incremented by `on_flow_close` when `HashMap::remove` returns `Some`.
+    /// JSON key: `"flows_analyzed"`.
+    pub flows_analyzed: u64,
+
+    /// Findings suppressed by the MAX_FINDINGS cap (BC-2.17.022 Post 3 / BC-2.17.021 Post 1).
+    ///
+    /// JSON key: `"dropped_findings"`.
+    pub dropped_findings: u64,
+}
+
 /// EtherNet/IP stream analyzer aggregate.
 ///
 /// Receives reassembled TCP bytes for port-44818 flows (via `StreamDispatcher`
@@ -547,6 +606,7 @@ pub struct EnipAnalyzer {
     /// Incremented by `process_pdu` on every qualifying error response (BC-2.17.008
     /// Postcondition 2b / Invariant 2). Never reset across flows or windows.
     /// Read by `summarize()` (BC-2.17.021 postcondition 1 `error_count` field).
+    /// REUSED from STORY-134/135 — NOT redeclared.
     pub error_count: u64,
 
     /// Aggregate lifetime count of CIP write-class service requests (SetAttribute*).
@@ -555,6 +615,7 @@ pub struct EnipAnalyzer {
     /// or SetAttributeSingle (0x10) request via a 0x00B2 item (BC-2.17.012 postcondition 2).
     /// Never reset. Read by `summarize()` per BC-2.17.021 postcondition 1 `write_count` field.
     /// Field name is normative per BC-2.17.012 Architecture Anchors.
+    /// REUSED from STORY-134/135 — NOT redeclared.
     pub write_count: u64,
 
     /// Per-flow mutable state indexed by TCP flow key.
@@ -565,6 +626,37 @@ pub struct EnipAnalyzer {
     ///
     /// Field name is normative — the test suite and `summarize()` reference it directly.
     pub flows: HashMap<crate::reassembly::flow::FlowKey, EnipFlowState>,
+
+    // ---- STORY-138 aggregate fields (BC-2.17.017 / BC-2.17.021 / BC-2.17.024) ----
+    /// Aggregate PDU count across all closed flows (BC-2.17.024 / BC-2.17.017 Post 2).
+    ///
+    /// Folded from `flow.pdu_count` by `on_flow_close`. Read by `summarize()`.
+    /// JSON key: `"total_pdu_count"` (BC-2.17.021 Postcondition 1).
+    pub total_pdu_count: u64,
+
+    /// Aggregate lifetime parse error count across closed flows (BC-2.17.017 Post 3).
+    ///
+    /// CANONICAL field name: `parse_errors` — NOT `total_parse_errors`
+    /// (BC-2.17.021 Invariant 1). Folded from `flow.parse_errors` by `on_flow_close`.
+    pub parse_errors: u64,
+
+    /// Aggregate command distribution across closed flows (BC-2.17.017 Post 4).
+    ///
+    /// Keyed by raw ENIP command u16. Folded by `on_flow_close`. Read by `summarize()`.
+    /// JSON key: `"command_distribution"` (BC-2.17.021 Postcondition 1).
+    pub command_distribution: HashMap<u16, u64>,
+
+    /// Count of distinct TCP flows processed (BC-2.17.017 Post 6 / BC-2.17.021).
+    ///
+    /// Incremented by `on_flow_close` when `HashMap::remove` returns `Some`.
+    /// JSON key: `"flows_analyzed"`.
+    pub flows_analyzed: u64,
+
+    /// Findings suppressed at MAX_FINDINGS cap (BC-2.17.022 Post 3 / BC-2.17.021 Post 1).
+    ///
+    /// Incremented in every finding emit path when `all_findings.len() >= MAX_FINDINGS`.
+    /// JSON key: `"dropped_findings"`.
+    pub dropped_findings: u64,
 }
 
 impl EnipAnalyzer {
@@ -586,7 +678,50 @@ impl EnipAnalyzer {
             error_count: 0,
             write_count: 0,
             flows: HashMap::new(),
+            // STORY-138 aggregate fields (BC-2.17.017 / BC-2.17.021 / BC-2.17.024)
+            total_pdu_count: 0,
+            parse_errors: 0,
+            command_distribution: HashMap::new(),
+            flows_analyzed: 0,
+            dropped_findings: 0,
         }
+    }
+
+    /// Remove per-flow state for `flow_key`, folding its counters into aggregates.
+    ///
+    /// Called by the dispatcher after a TCP flow closes (BC-2.17.017).
+    ///
+    /// Postconditions (BC-2.17.017):
+    /// 1. `self.flows.remove(&flow_key)` removes the `EnipFlowState` entry.
+    /// 2. `self.total_pdu_count += flow.pdu_count`
+    /// 3. `self.parse_errors += flow.parse_errors`
+    /// 4. Each `(cmd, count)` in `flow.command_counts` folded into `self.command_distribution`.
+    /// 5. Unknown `flow_key` → no-op; no panic; `flows_analyzed` NOT incremented.
+    /// 6. `self.flows_analyzed += 1` when `HashMap::remove` returns `Some`.
+    ///
+    /// Findings in `self.all_findings` are unaffected (BC-2.17.017 Post 6).
+    ///
+    /// # Traces
+    /// BC-2.17.017 Postconditions 1–6; BC-2.17.024; ADR-010 Decision 4.
+    pub fn on_flow_close(&mut self, flow_key: crate::reassembly::flow::FlowKey) {
+        // BC-2.17.017 Postcondition 1: remove flow state from the per-flow map.
+        // BC-2.17.017 Postcondition 5: unknown flow_key → no-op; no panic.
+        if let Some(flow) = self.flows.remove(&flow_key) {
+            // BC-2.17.017 Postcondition 2: fold pdu_count into aggregate.
+            self.total_pdu_count = self.total_pdu_count.saturating_add(flow.pdu_count);
+            // BC-2.17.017 Postcondition 3: fold lifetime parse error count into aggregate.
+            self.parse_errors = self.parse_errors.saturating_add(flow.parse_errors);
+            // BC-2.17.017 Postcondition 4: fold command distribution into aggregate.
+            for (cmd, count) in flow.command_counts {
+                let e = self.command_distribution.entry(cmd).or_insert(0);
+                *e = e.saturating_add(count);
+            }
+            // BC-2.17.017 Postcondition 6: increment flows_analyzed on successful removal.
+            // Unknown flow_key (None arm) does NOT increment flows_analyzed (Post 5).
+            self.flows_analyzed = self.flows_analyzed.saturating_add(1);
+        }
+        // BC-2.17.017 Postcondition 6 / Invariant 4: findings in self.all_findings are
+        // unaffected by flow close — they are not modified here.
     }
 
     /// Receive reassembled TCP bytes for a port-44818 flow and run the ENIP frame-walk loop.
@@ -703,21 +838,27 @@ impl EnipAnalyzer {
                     }
                 };
 
-                // BC-2.17.016 PC-0 (F8-001 canonical single increment site): increment
-                // command_counts IMMEDIATELY after parse_enip_header returns Some, BEFORE
-                // is_valid_enip_frame. Fires for every structurally-parsed 24-byte header
-                // including Unknown/invalid-command frames (BC-2.17.004 Invariant 3).
-                *flow.command_counts.entry(header.command).or_insert(0) += 1;
-
                 // BC-2.17.016 Postcondition 1 / BC-2.17.018 PC-1/2: command-validity gate.
                 // Unknown command → byte-walk resync: cursor += 1; continue (NOT break).
                 // RULING-137-001 §1: continue is mandated by all four ratified artifacts.
                 // Each byte-walk position that fails is_valid_enip_frame is one structural
                 // reject — counted independently (RULING-137-001 §2, Option a).
                 if !is_valid_enip_frame(&header) {
-                    flow.parse_errors += 1;
+                    // F-W60-P1-001 (canonical command_counts increment site): increment here
+                    // on DEFINITIVE byte-walk reject. This is a committed outcome — the header
+                    // at this cursor position is definitively invalid. Counts Unknown-bucket
+                    // frames as required by BC-2.17.004 Invariant 3.
+                    *flow.command_counts.entry(header.command).or_insert(0) += 1;
+                    flow.parse_errors = flow.parse_errors.saturating_add(1);
                     flow.malformed_in_window += 1;
-                    check_t0814(flow, &mut self.all_findings, timestamp, src_ip, dest_ip);
+                    check_t0814(
+                        flow,
+                        &mut self.all_findings,
+                        &mut self.dropped_findings,
+                        timestamp,
+                        src_ip,
+                        dest_ip,
+                    );
                     cursor += 1; // byte-walk resync — advance 1 byte, NOT break
                     continue; // NOT break — loop must re-attempt at next byte (BC-2.17.016 Post-1)
                 }
@@ -731,18 +872,40 @@ impl EnipAnalyzer {
                 // RULING-137-001 §1: continue is required — subsequent valid frames in the
                 // same segment must still be processed (detection-evasion vector if break used).
                 if total_frame_len > MAX_ENIP_CARRY_BYTES {
-                    flow.parse_errors += 1;
+                    // F-W60-P1-001: increment command_counts on DEFINITIVE frame-skip reject.
+                    // The frame is definitively skipped (oversized); this is a committed outcome.
+                    *flow.command_counts.entry(header.command).or_insert(0) += 1;
+                    flow.parse_errors = flow.parse_errors.saturating_add(1);
                     flow.malformed_in_window += 1;
-                    check_t0814(flow, &mut self.all_findings, timestamp, src_ip, dest_ip);
+                    check_t0814(
+                        flow,
+                        &mut self.all_findings,
+                        &mut self.dropped_findings,
+                        timestamp,
+                        src_ip,
+                        dest_ip,
+                    );
                     // Advance past the declared frame, bounded by remaining buffer.
                     cursor += total_frame_len.min(buf.len() - cursor);
                     continue; // NOT break — re-attempt at next position (RULING-137-001 §1)
                 }
 
                 // BC-2.17.016 Postcondition 1 (partial-frame stash): not enough bytes yet.
+                // F-W60-P1-001: do NOT increment command_counts here — this is the stash path.
+                // The frame is NOT committed; the same header will be re-parsed on the next
+                // on_data call after carry reassembly. Incrementing here would double-count.
                 if buf.len() - cursor < total_frame_len {
                     break;
                 }
+
+                // Valid, complete frame: COMMITTED — increment command_counts here.
+                // F-W60-P1-001 (canonical command_counts increment site for valid frames):
+                // this is the ONLY path for valid frames. Counting here (not at the top of
+                // the loop) ensures a header split across two on_data calls is counted exactly
+                // once — on the call that commits the frame, not the call that stashes it.
+                // BC-2.17.016 PC-0 single-site invariant is satisfied: one logical site
+                // (just moved past the partial-stash check per F-W60-P1-001).
+                *flow.command_counts.entry(header.command).or_insert(0) += 1;
 
                 // Valid, complete frame: collect for dispatch after this block.
                 // Cloning is bounded: total_frame_len <= MAX_ENIP_CARRY_BYTES (600 bytes).
@@ -759,10 +922,17 @@ impl EnipAnalyzer {
             //   event is itself a structural reject that can be the 3rd malformed event in
             //   the window. Latching is_non_enip FIRST would permanently suppress T0814.
             if flow.carry.len() > MAX_ENIP_CARRY_BYTES {
-                flow.parse_errors += 1;
+                flow.parse_errors = flow.parse_errors.saturating_add(1);
                 flow.malformed_in_window += 1;
                 // T0814 evaluation runs while is_non_enip == false (BC-2.17.018 Precond 6).
-                check_t0814(flow, &mut self.all_findings, timestamp, src_ip, dest_ip);
+                check_t0814(
+                    flow,
+                    &mut self.all_findings,
+                    &mut self.dropped_findings,
+                    timestamp,
+                    src_ip,
+                    dest_ip,
+                );
                 // Latch AFTER T0814 evaluation (BC-2.17.016 Post 4 / Invariant 4).
                 flow.is_non_enip = true;
                 flow.carry.clear();
@@ -834,7 +1004,7 @@ impl EnipAnalyzer {
 
         // BC-2.17.024: count every validated PDU that reaches this dispatch function.
         // Incremented here (after is_non_enip guard) so non-ENIP flows do not count.
-        flow.pdu_count += 1;
+        flow.pdu_count = flow.pdu_count.saturating_add(1);
 
         // ADR-010 Decision 4, step 1: parse ENIP header.
         // Only complete, valid (>= 24-byte, is_valid_enip_frame-checked) frames are ever
@@ -860,27 +1030,34 @@ impl EnipAnalyzer {
         let cmd_class = classify_enip_command(header.command);
         if matches!(cmd_class, EnipCommandClass::ListIdentity) {
             // BC-2.17.010 postcondition 2: one-shot guard + MAX_FINDINGS gate.
-            if !flow.list_identity_emitted && self.all_findings.len() < MAX_FINDINGS {
-                self.all_findings.push(Finding {
-                    category: crate::findings::ThreatCategory::Reconnaissance,
-                    verdict: crate::findings::Verdict::Likely,
-                    confidence: crate::findings::Confidence::High,
-                    summary: "EtherNet/IP ListIdentity broadcast observed: \
-                              network-wide device enumeration (T0846)"
-                        .to_string(),
-                    evidence: vec![format!(
-                        "ENIP command=0x0063 (ListIdentity) src={src_ip} \
-                         session={session}",
-                        session = header.session_handle
-                    )],
-                    mitre_techniques: vec!["T0846".to_string()],
-                    source_ip: Some(src_ip),
-                    timestamp: chrono::DateTime::from_timestamp(timestamp as i64, 0),
-                    direction: None,
-                });
-                // BC-2.17.010 postcondition 2 last line: set one-shot guard only after
-                // successful push.
-                flow.list_identity_emitted = true;
+            if !flow.list_identity_emitted {
+                if self.all_findings.len() < MAX_FINDINGS {
+                    self.all_findings.push(Finding {
+                        category: crate::findings::ThreatCategory::Reconnaissance,
+                        verdict: crate::findings::Verdict::Likely,
+                        confidence: crate::findings::Confidence::High,
+                        summary: "EtherNet/IP ListIdentity broadcast observed: \
+                                  network-wide device enumeration (T0846)"
+                            .to_string(),
+                        evidence: vec![format!(
+                            "ENIP command=0x0063 (ListIdentity) src={src_ip} \
+                             session={session}",
+                            session = header.session_handle
+                        )],
+                        mitre_techniques: vec!["T0846".to_string()],
+                        source_ip: Some(src_ip),
+                        timestamp: chrono::DateTime::from_timestamp(timestamp as i64, 0),
+                        direction: None,
+                    });
+                    // BC-2.17.010 postcondition 2 last line: set one-shot guard only after
+                    // successful push.
+                    flow.list_identity_emitted = true;
+                } else {
+                    // BC-2.17.022 Post 3: increment dropped_findings on cap-suppressed finding.
+                    // BC-2.17.022 Post 5: do NOT set list_identity_emitted (guard not set on drop
+                    // — allows future windows to retry if cap is not full).
+                    self.dropped_findings = self.dropped_findings.saturating_add(1);
+                }
             }
             // BC-2.17.010 postcondition 3: ListIdentity frames after guard set produce no
             // additional finding. Return after ENIP-layer detection; no CPF parse needed.
@@ -957,29 +1134,33 @@ impl EnipAnalyzer {
 
                     // BC-2.17.014 Pattern B: burst threshold check (strict >).
                     let total: u64 = flow.error_counts_in_window.values().sum();
-                    if total > self.enip_error_burst_threshold as u64
-                        && !flow.error_rate_emitted
-                        && self.all_findings.len() < MAX_FINDINGS
-                    {
-                        self.all_findings.push(Finding {
-                            category: crate::findings::ThreatCategory::Reconnaissance,
-                            verdict: crate::findings::Verdict::Possible,
-                            confidence: crate::findings::Confidence::Medium,
-                            summary: format!(
-                                "CIP error-response burst: {total} error responses in 10s window \
-                                 — possible service enumeration (T0888)"
-                            ),
-                            evidence: vec![format!(
-                                "error_counts_in_window={:?} within 10s; possible service probe",
-                                flow.error_counts_in_window
-                            )],
-                            mitre_techniques: vec!["T0888".to_string()],
-                            source_ip: Some(src_ip),
-                            timestamp: chrono::DateTime::from_timestamp(timestamp as i64, 0),
-                            direction: None,
-                        });
-                        // BC-2.17.014 Pattern B postcondition 2: one-shot guard.
-                        flow.error_rate_emitted = true;
+                    if total > self.enip_error_burst_threshold as u64 && !flow.error_rate_emitted {
+                        if self.all_findings.len() < MAX_FINDINGS {
+                            self.all_findings.push(Finding {
+                                category: crate::findings::ThreatCategory::Reconnaissance,
+                                verdict: crate::findings::Verdict::Possible,
+                                confidence: crate::findings::Confidence::Medium,
+                                summary: format!(
+                                    "CIP error-response burst: {total} error responses in 10s \
+                                     window — possible service enumeration (T0888)"
+                                ),
+                                evidence: vec![format!(
+                                    "error_counts_in_window={:?} within 10s; possible service probe",
+                                    flow.error_counts_in_window
+                                )],
+                                mitre_techniques: vec!["T0888".to_string()],
+                                source_ip: Some(src_ip),
+                                timestamp: chrono::DateTime::from_timestamp(timestamp as i64, 0),
+                                direction: None,
+                            });
+                            // BC-2.17.014 Pattern B postcondition 2: one-shot guard.
+                            // BC-2.17.022 Post 5: guard NOT set on cap-suppressed finding.
+                            flow.error_rate_emitted = true;
+                        } else {
+                            // BC-2.17.022 Post 3: increment dropped_findings on cap-suppressed
+                            // finding. BC-2.17.022 Post 5: do NOT set error_rate_emitted.
+                            self.dropped_findings = self.dropped_findings.saturating_add(1);
+                        }
                     }
                 }
             } else {
@@ -998,25 +1179,31 @@ impl EnipAnalyzer {
                         .iter()
                         .any(|seg| matches!(seg, CipPathSegment::Class(0x01)));
 
-                    if targets_identity && self.all_findings.len() < MAX_FINDINGS {
-                        self.all_findings.push(Finding {
-                            category: crate::findings::ThreatCategory::Reconnaissance,
-                            verdict: crate::findings::Verdict::Likely,
-                            confidence: crate::findings::Confidence::High,
-                            summary: "CIP Identity Object attribute read: \
-                                      single-device reconnaissance (T0888)"
-                                .to_string(),
-                            evidence: vec![format!(
-                                "CIP service=0x{service:02X} ({name}) path targets Identity \
-                                 Object (class 0x01) src={src_ip}",
-                                service = cip_hdr.service,
-                                name = service_class_name(service_class.clone()),
-                            )],
-                            mitre_techniques: vec!["T0888".to_string()],
-                            source_ip: Some(src_ip),
-                            timestamp: chrono::DateTime::from_timestamp(timestamp as i64, 0),
-                            direction: None,
-                        });
+                    if targets_identity {
+                        if self.all_findings.len() < MAX_FINDINGS {
+                            self.all_findings.push(Finding {
+                                category: crate::findings::ThreatCategory::Reconnaissance,
+                                verdict: crate::findings::Verdict::Likely,
+                                confidence: crate::findings::Confidence::High,
+                                summary: "CIP Identity Object attribute read: \
+                                          single-device reconnaissance (T0888)"
+                                    .to_string(),
+                                evidence: vec![format!(
+                                    "CIP service=0x{service:02X} ({name}) path targets Identity \
+                                     Object (class 0x01) src={src_ip}",
+                                    service = cip_hdr.service,
+                                    name = service_class_name(service_class.clone()),
+                                )],
+                                mitre_techniques: vec!["T0888".to_string()],
+                                source_ip: Some(src_ip),
+                                timestamp: chrono::DateTime::from_timestamp(timestamp as i64, 0),
+                                direction: None,
+                            });
+                        } else {
+                            // BC-2.17.022 Post 3: increment dropped_findings on cap-suppressed
+                            // finding. T0888 Pattern A has no one-shot guard to respect (Post 5).
+                            self.dropped_findings = self.dropped_findings.saturating_add(1);
+                        }
                     }
                 }
 
@@ -1025,30 +1212,33 @@ impl EnipAnalyzer {
                 // service & 0x80 == 0 (request), type_id == 0x00B2 (F-P9-001 gate above),
                 // !is_non_enip (gate at function entry), len < MAX_FINDINGS.
                 // Per-occurrence, no one-shot guard (BC-2.17.011 postcondition 2).
-                if matches!(service_class, CipServiceClass::Stop)
-                    && cip_hdr.service & 0x80 == 0
-                    && self.all_findings.len() < MAX_FINDINGS
-                {
-                    // BC-2.17.011 postcondition 1: emit T0858 finding per occurrence.
-                    self.all_findings.push(crate::findings::Finding {
-                        category: crate::findings::ThreatCategory::Execution,
-                        verdict: crate::findings::Verdict::Likely,
-                        confidence: crate::findings::Confidence::High,
-                        summary:
-                            "CIP Stop service observed: controller run\u{2192}stop transition \
-                             command (T0858)"
-                                .to_string(),
-                        evidence: vec![format!(
-                            "CIP service=0x07 (Stop) from src={src_ip} \
-                             ENIP cmd={cmd:#06X} session={session}",
-                            cmd = header.command,
-                            session = header.session_handle,
-                        )],
-                        mitre_techniques: vec!["T0858".to_string()],
-                        source_ip: Some(src_ip),
-                        timestamp: chrono::DateTime::from_timestamp(timestamp as i64, 0),
-                        direction: None,
-                    });
+                if matches!(service_class, CipServiceClass::Stop) && cip_hdr.service & 0x80 == 0 {
+                    if self.all_findings.len() < MAX_FINDINGS {
+                        // BC-2.17.011 postcondition 1: emit T0858 finding per occurrence.
+                        self.all_findings.push(crate::findings::Finding {
+                            category: crate::findings::ThreatCategory::Execution,
+                            verdict: crate::findings::Verdict::Likely,
+                            confidence: crate::findings::Confidence::High,
+                            summary:
+                                "CIP Stop service observed: controller run\u{2192}stop transition \
+                                 command (T0858)"
+                                    .to_string(),
+                            evidence: vec![format!(
+                                "CIP service=0x07 (Stop) from src={src_ip} \
+                                 ENIP cmd={cmd:#06X} session={session}",
+                                cmd = header.command,
+                                session = header.session_handle,
+                            )],
+                            mitre_techniques: vec!["T0858".to_string()],
+                            source_ip: Some(src_ip),
+                            timestamp: chrono::DateTime::from_timestamp(timestamp as i64, 0),
+                            direction: None,
+                        });
+                    } else {
+                        // BC-2.17.022 Post 3: increment dropped_findings on cap-suppressed
+                        // finding. T0858 has no one-shot guard (Post 5 n/a here).
+                        self.dropped_findings = self.dropped_findings.saturating_add(1);
+                    }
                 }
 
                 // T0816 detection — CIP Reset service (0x05) request.
@@ -1057,29 +1247,33 @@ impl EnipAnalyzer {
                 // Per-occurrence, no one-shot guard (BC-2.17.013 postcondition 2).
                 // Uses classify_cip_service result — NOT raw `service & 0x7F == 0x05`
                 // (BC-2.17.007 invariant 1, Architecture Rule 2).
-                if matches!(service_class, CipServiceClass::Reset)
-                    && cip_hdr.service & 0x80 == 0
-                    && self.all_findings.len() < MAX_FINDINGS
-                {
-                    // BC-2.17.013 postcondition 1: emit T0816 finding per occurrence.
-                    self.all_findings.push(crate::findings::Finding {
-                        category: crate::findings::ThreatCategory::Execution,
-                        verdict: crate::findings::Verdict::Likely,
-                        confidence: crate::findings::Confidence::High,
-                        summary: "CIP Reset service observed: adversary-triggered device restart \
-                             (T0816)"
-                            .to_string(),
-                        evidence: vec![format!(
-                            "CIP service=0x05 (Reset) from src={src_ip} \
-                             ENIP cmd={cmd:#06X} session={session}",
-                            cmd = header.command,
-                            session = header.session_handle,
-                        )],
-                        mitre_techniques: vec!["T0816".to_string()],
-                        source_ip: Some(src_ip),
-                        timestamp: chrono::DateTime::from_timestamp(timestamp as i64, 0),
-                        direction: None,
-                    });
+                if matches!(service_class, CipServiceClass::Reset) && cip_hdr.service & 0x80 == 0 {
+                    if self.all_findings.len() < MAX_FINDINGS {
+                        // BC-2.17.013 postcondition 1: emit T0816 finding per occurrence.
+                        self.all_findings.push(crate::findings::Finding {
+                            category: crate::findings::ThreatCategory::Execution,
+                            verdict: crate::findings::Verdict::Likely,
+                            confidence: crate::findings::Confidence::High,
+                            summary:
+                                "CIP Reset service observed: adversary-triggered device restart \
+                                 (T0816)"
+                                    .to_string(),
+                            evidence: vec![format!(
+                                "CIP service=0x05 (Reset) from src={src_ip} \
+                                 ENIP cmd={cmd:#06X} session={session}",
+                                cmd = header.command,
+                                session = header.session_handle,
+                            )],
+                            mitre_techniques: vec!["T0816".to_string()],
+                            source_ip: Some(src_ip),
+                            timestamp: chrono::DateTime::from_timestamp(timestamp as i64, 0),
+                            direction: None,
+                        });
+                    } else {
+                        // BC-2.17.022 Post 3: increment dropped_findings on cap-suppressed
+                        // finding. T0816 has no one-shot guard (Post 5 n/a here).
+                        self.dropped_findings = self.dropped_findings.saturating_add(1);
+                    }
                 }
 
                 // T0836 detection — SetAttribute write-burst within 1s window.
@@ -1119,35 +1313,41 @@ impl EnipAnalyzer {
                     self.write_count = self.write_count.saturating_add(1);
 
                     // BC-2.17.012 postcondition 5: emit T0836 when count strictly exceeds
-                    // threshold AND one-shot guard not set AND MAX_FINDINGS not reached.
+                    // threshold AND one-shot guard not set.
                     if flow.write_count_in_window > self.enip_write_burst_threshold as u64
                         && !flow.write_burst_emitted
-                        && self.all_findings.len() < MAX_FINDINGS
                     {
-                        let svc_name = service_class_name(service_class.clone());
-                        self.all_findings.push(crate::findings::Finding {
-                            category: crate::findings::ThreatCategory::Execution,
-                            verdict: crate::findings::Verdict::Likely,
-                            confidence: crate::findings::Confidence::Medium,
-                            summary: format!(
-                                "CIP write-class service burst: {} SetAttribute operations in \
-                                 1s window (threshold {}) \u{2014} possible parameter \
-                                 modification attack (T0836)",
-                                flow.write_count_in_window, self.enip_write_burst_threshold,
-                            ),
-                            evidence: vec![format!(
-                                "CIP service=0x{svc:02X} ({svc_name}) src={src_ip} \
-                                 ENIP session={session}",
-                                svc = cip_hdr.service,
-                                session = header.session_handle,
-                            )],
-                            mitre_techniques: vec!["T0836".to_string()],
-                            source_ip: Some(src_ip),
-                            timestamp: chrono::DateTime::from_timestamp(timestamp as i64, 0),
-                            direction: None,
-                        });
-                        // BC-2.17.012 postcondition 5: set one-shot guard after emission.
-                        flow.write_burst_emitted = true;
+                        if self.all_findings.len() < MAX_FINDINGS {
+                            let svc_name = service_class_name(service_class.clone());
+                            self.all_findings.push(crate::findings::Finding {
+                                category: crate::findings::ThreatCategory::Execution,
+                                verdict: crate::findings::Verdict::Likely,
+                                confidence: crate::findings::Confidence::Medium,
+                                summary: format!(
+                                    "CIP write-class service burst: {} SetAttribute operations in \
+                                     1s window (threshold {}) \u{2014} possible parameter \
+                                     modification attack (T0836)",
+                                    flow.write_count_in_window, self.enip_write_burst_threshold,
+                                ),
+                                evidence: vec![format!(
+                                    "CIP service=0x{svc:02X} ({svc_name}) src={src_ip} \
+                                     ENIP session={session}",
+                                    svc = cip_hdr.service,
+                                    session = header.session_handle,
+                                )],
+                                mitre_techniques: vec!["T0836".to_string()],
+                                source_ip: Some(src_ip),
+                                timestamp: chrono::DateTime::from_timestamp(timestamp as i64, 0),
+                                direction: None,
+                            });
+                            // BC-2.17.012 postcondition 5: set one-shot guard after emission.
+                            // BC-2.17.022 Post 5: guard NOT set on cap-suppressed finding.
+                            flow.write_burst_emitted = true;
+                        } else {
+                            // BC-2.17.022 Post 3: increment dropped_findings on cap-suppressed
+                            // finding. BC-2.17.022 Post 5: do NOT set write_burst_emitted.
+                            self.dropped_findings = self.dropped_findings.saturating_add(1);
+                        }
                     }
                 }
 
@@ -1218,6 +1418,10 @@ impl EnipAnalyzer {
                             timestamp: chrono::DateTime::from_timestamp(timestamp as i64, 0),
                             direction: None,
                         });
+                    } else {
+                        // BC-2.17.022 Post 3: increment dropped_findings on cap-suppressed
+                        // finding. ForwardOpen/Close has no one-shot guard (Post 5 n/a here).
+                        self.dropped_findings = self.dropped_findings.saturating_add(1);
                     }
                 }
             }
@@ -1226,21 +1430,79 @@ impl EnipAnalyzer {
 
     /// Produce an end-of-capture summary for the ENIP analyzer.
     ///
-    /// Real metrics (frames parsed, detection counts, per-flow stats) are
-    /// populated by STORY-132+. This stub returns a minimal shell that
-    /// prevents the reporter pipeline from panicking when --enip/--all is used
-    /// before the detection logic lands.
+    /// Builds the `enip_summary` aggregate from the 7 canonical BC-2.17.021 fields:
+    /// `command_distribution`, `total_pdu_count`, `parse_errors` (CANONICAL — NOT
+    /// `total_parse_errors`, BC-2.17.021 Invariant 1), `write_count`, `error_count`,
+    /// `flows_analyzed`, `dropped_findings`.
     ///
-    /// WIRING-EXEMPT: required by the reporter pipeline contract. Without a
-    /// non-panicking summarize(), the existing `--all` CLI test regresses.
-    /// Body constructs one AnalysisSummary with zero fields — no branching,
-    /// no I/O, no non-trivial helpers, ≤ 3 lines.
+    /// All fields are read from pre-accumulated aggregate counters — this method does
+    /// NOT re-scan `self.flows` (BC-2.17.021 Invariant 2) and does NOT emit new findings
+    /// (BC-2.17.021 Postcondition 3). `command_distribution` is serialised as a JSON
+    /// object whose keys are zero-padded 4-digit hex command codes and whose values are
+    /// the non-zero per-command counts accumulated by `on_data`.
+    ///
+    /// # Traces
+    /// BC-2.17.021 Postconditions 1–4; BC-2.17.022 Invariant 4; BC-5.38.001.
     pub fn summarize(&self) -> AnalysisSummary {
         use std::collections::BTreeMap;
+
+        // BC-2.17.021 Invariant 2: reads aggregate fields only — does NOT re-scan self.flows.
+        // BC-2.17.021 Postcondition 3: no new findings emitted here.
+
+        // Build the command_distribution JSON map: "{hex_cmd}": count.
+        // Only non-zero entries (all entries in the HashMap are non-zero by construction).
+        let mut cmd_dist: serde_json::Map<String, serde_json::Value> = serde_json::Map::new();
+        for (&cmd, &count) in &self.command_distribution {
+            if count > 0 {
+                cmd_dist.insert(format!("0x{cmd:04X}"), serde_json::json!(count));
+            }
+        }
+
+        // BC-2.17.021 Postcondition 1: canonical 7-key enip_summary object.
+        // BC-2.17.021 Invariant 1: key is "parse_errors" — NOT "total_parse_errors".
+        let mut enip_summary: serde_json::Map<String, serde_json::Value> = serde_json::Map::new();
+        enip_summary.insert(
+            "command_distribution".to_string(),
+            serde_json::Value::Object(cmd_dist),
+        );
+        enip_summary.insert(
+            "total_pdu_count".to_string(),
+            serde_json::json!(self.total_pdu_count),
+        );
+        // CANONICAL key: "parse_errors" — NOT "total_parse_errors" (BC-2.17.021 Invariant 1).
+        enip_summary.insert(
+            "parse_errors".to_string(),
+            serde_json::json!(self.parse_errors),
+        );
+        enip_summary.insert(
+            "write_count".to_string(),
+            serde_json::json!(self.write_count),
+        );
+        enip_summary.insert(
+            "error_count".to_string(),
+            serde_json::json!(self.error_count),
+        );
+        enip_summary.insert(
+            "flows_analyzed".to_string(),
+            serde_json::json!(self.flows_analyzed),
+        );
+        enip_summary.insert(
+            "dropped_findings".to_string(),
+            serde_json::json!(self.dropped_findings),
+        );
+
+        let mut detail: BTreeMap<String, serde_json::Value> = BTreeMap::new();
+        // BC-2.17.021 Postcondition 1: "enip_summary" key in detail map.
+        detail.insert(
+            "enip_summary".to_string(),
+            serde_json::Value::Object(enip_summary),
+        );
+
+        // BC-2.17.021 Post 2 / Invariant 3: zero-flow case still produces a valid object.
         AnalysisSummary {
             analyzer_name: "EtherNet/IP".to_string(),
-            packets_analyzed: 0,
-            detail: BTreeMap::new(),
+            packets_analyzed: self.total_pdu_count,
+            detail,
         }
     }
 }

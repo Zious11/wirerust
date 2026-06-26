@@ -41,7 +41,7 @@ mod story_114_mitre {
             t0830_name.is_some(),
             "AC-011 / BC-2.16.004 Invariant 4: technique_name(\"T0830\") must return Some \
              after the VP-007 5-part atomic update (STORY-114 co-commit). \
-             Currently returns None — RED until src/mitre.rs seeding. Got: {:?}",
+             Was None before src/mitre.rs seeding; now resolves. Got: {:?}",
             t0830_name
         );
         assert_eq!(
@@ -56,7 +56,7 @@ mod story_114_mitre {
         assert!(
             t0830_tactic.is_some(),
             "AC-011 / BC-2.16.004 Invariant 4: technique_tactic(\"T0830\") must return Some. \
-             Currently returns None. RED.",
+             Was None before STORY-114 seeding; now resolves.",
         );
         assert_eq!(
             t0830_tactic,
@@ -73,7 +73,7 @@ mod story_114_mitre {
         assert!(
             t1557_name.is_some(),
             "AC-011 / BC-2.16.004 Invariant 4: technique_name(\"T1557.002\") must return Some \
-             after the VP-007 5-part atomic update. Currently returns None — RED. Got: {:?}",
+             after the VP-007 5-part atomic update. Was None before seeding; now resolves. Got: {:?}",
             t1557_name
         );
         assert_eq!(
@@ -89,7 +89,7 @@ mod story_114_mitre {
         assert!(
             t1557_tactic.is_some(),
             "AC-011 / BC-2.16.004 Invariant 4: technique_tactic(\"T1557.002\") must return Some. \
-             Currently returns None. RED.",
+             Was None before STORY-114 seeding; now resolves.",
         );
         assert_eq!(
             t1557_tactic,

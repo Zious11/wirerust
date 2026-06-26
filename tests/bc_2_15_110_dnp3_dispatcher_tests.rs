@@ -22,7 +22,7 @@
 //! - `test_take_dnp3_analyzer_moves_out` (AC-004) — Option::take already wired
 //! - `test_port_502_and_20000_routes_to_modbus` (AC-009) — Rule 5 (Modbus) already works
 //! - `test_none_is_rule_7_no_match` (AC-009) — DispatchTarget::None already works
-//! - `test_vp007_seeded_23_emitted_15` (AC-010) — catalog state from STORY-109 holds
+//! - `test_vp007_story110_seeded_and_emitted_subset_resolves` (AC-010) — catalog state from STORY-109 holds
 //! - `test_ec005_unknown_port_routes_to_none` (EC-005) — port fallback None
 //! - `test_ec006_ports_502_and_20000_modbus_wins` (EC-006) — Rule 5 before Rule 6
 //! - `test_ec008_threshold_omitted_defaults_to_10` (EC-008) — default constant

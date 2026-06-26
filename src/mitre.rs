@@ -355,7 +355,7 @@ mod kani_proofs {
         "T1557.002", // ARP Cache Poisoning (BC-2.16.004; CredentialAccess)
         // STORY-133 (3) — VP-007 ENIP atomic obligation; T1693.001 NOT here (staged-only).
         "T0858", // Change Operating Mode (BC-2.17.011; IcsExecution/TA0104)
-        "T0816", // Device Restart/Shutdown (BC-2.17.012; IcsInhibitResponseFunction/TA0107)
+        "T0816", // Device Restart/Shutdown (BC-2.17.013; IcsInhibitResponseFunction/TA0107)
         "T0846", // Remote System Discovery (BC-2.17.010; IcsDiscovery/TA0102; promoted from seeded-only)
     ];
 
