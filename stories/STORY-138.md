@@ -7,7 +7,7 @@ wave: 61
 points: 8
 phase: f3
 tdd_mode: strict
-status: ready
+status: completed
 feature_id: issue-316-enip-analyzer
 github_issue: 316
 subsystems: [SS-17]
