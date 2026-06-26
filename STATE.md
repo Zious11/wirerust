@@ -1,7 +1,7 @@
 ---
 pipeline: FEATURE-MODE
 phase: F4
-phase_status: "F4 Wave 60 IN-PROGRESS. STORY-136 MERGED PR #326 @a2cb795 (D-252). NEXT = create STORY-137 worktree (base develop a2cb795), refresh STORY-137 input-hash, TDD → 3-pass convergence → demo → PR (halt for human auth per D-231). Resume per RESUME PROCEDURE."
+phase_status: "F4 Wave 60 IN-PROGRESS. STORY-137 per-story convergence ACHIEVED @c4644f9 (D-253). NEXT = demo-recorder → push → pr-manager 9-step PR (halt for human auth per D-231) → merge+cleanup → Wave-60 integration gate. Resume per RESUME PROCEDURE."
 product: wirerust
 mode: feature-mode
 timestamp: 2026-06-26T03:00:00Z
@@ -16,7 +16,7 @@ release_yml_run: "28109367603 SUCCESS — 4 binaries"
 prior_released_version: v0.9.4
 prior_released_at: "2026-06-23"
 
-# Ground-truth HEADs (verified D-252 — 2026-06-26)
+# Ground-truth HEADs (verified D-253 — 2026-06-26)
 develop_head: a2cb795
 main_head: 0cbe922
 factory_artifacts_head: (run `git -C .factory log -1 --format='%h'`)
@@ -29,7 +29,7 @@ adversary_gate: SATISFIED
 # Story tracking
 stories_delivered: 85
 current_cycle: feature-enip-v0.11.0 (D-228, 2026-06-24)
-current_wave: "Wave 60 IN-PROGRESS. STORY-134 MERGED PR #323 @e330ccc (D-247); STORY-135 MERGED PR #324 @84be2fb (D-249); STORY-136 MERGED PR #326 @a2cb795 (D-252); stories_delivered=85. NEXT = STORY-137 worktree."
+current_wave: "Wave 60 IN-PROGRESS. STORY-134 MERGED PR #323 @e330ccc (D-247); STORY-135 MERGED PR #324 @84be2fb (D-249); STORY-136 MERGED PR #326 @a2cb795 (D-252); STORY-137 per-story convergence ACHIEVED @c4644f9 (D-253). stories_delivered=85. NEXT = STORY-137 demo → push → PR → merge → Wave-60 integration gate."
 
 # DTU
 dtu_required: false
@@ -52,7 +52,7 @@ convergence_trajectory: "Detail: cycles/v0.1.0-greenfield-spec/convergence-traje
 
 ## Status
 
-**PIPELINE FEATURE-MODE. Cycle `feature-enip-v0.11.0` OPEN. F4 Wave 60 IN-PROGRESS. SESSION PAUSED (D-252). STORY-130-136 DELIVERED+MERGED. STORY-137 NEXT (on_data frame-walk wiring BC-2.17.016). SAFE-TO-CLEAR.**
+**PIPELINE FEATURE-MODE. Cycle `feature-enip-v0.11.0` OPEN. F4 Wave 60 IN-PROGRESS. SESSION PAUSED (D-253). STORY-130-136 DELIVERED+MERGED. STORY-137 CONVERGED @c4644f9 (BC-5.39.001 MET). NEXT = demo → push → PR → merge+cleanup → Wave-60 integration gate. SAFE-TO-CLEAR.**
 
 Latest release: v0.10.0 (main `0cbe922`, tag `v0.10.0`). develop=`a2cb795`. stories_delivered=85. Target: v0.11.0 (SS-17 EtherNet/IP + CIP TCP/44818). GitHub issue #316.
 
@@ -74,30 +74,33 @@ Spec versions: BC-INDEX v1.84 (331 on disk / 330 active; SS-17=26 BCs). ARCH-IND
 - Do NOT re-author STORY-136 input-hash — 0846e0e DONE (committed 5bb327c, D-250).
 - Do NOT re-run STORY-136 TDD or per-story adversarial convergence — CONVERGED @b003547 (D-251). Trajectory: 2H→0H(1MED)→CLEAN→CLEAN→CLEAN; BC-5.39.001 MET. 10/10 connection_lifecycle tests pass; clippy/fmt/input-hash MATCH.
 - Do NOT re-deliver STORY-136 — MERGED PR #326 @a2cb795 (D-252). CI 11/11 green; pr-reviewer APPROVE (NITs PRF-001/002/003 deferred); security PASS (SEC-006 LOW deferred W7.1). input-hash 0846e0e MATCH. Demo evidence at docs/demo-evidence/STORY-136/.
+- Do NOT re-run STORY-137 TDD or per-story adversarial convergence — CONVERGED @c4644f9 (D-253). Trajectory: 2CRIT→fix (RULING-137-001)→2HIGH→fix→CLEAN(1MED)→fix→CLEAN→CLEAN→CLEAN (passes B/C/D 3/3). BC-5.39.001 MET. input-hash f4c8390 MATCH. RULING-137-001 (continue semantics; per-offset counting intended) + RULING-137-002 (carry-overflow is_non_enip latch provably unreachable; deferred spec defect) binding.
 
-### EXACT RESUME POINT — F4 Wave 60 STORY-137
+### EXACT RESUME POINT — F4 Wave 60 STORY-137 demo → PR → merge
 
-**F4 Wave 60 — STORY-137 (on_data frame-walk wiring, BC-2.17.016)** — carries open items WAVE59-E2E-001 / WAVE59-DEADCODE-001; removes `#![allow(dead_code)]`; wires parse fns; `command_counts` single-increment site. Base develop=`a2cb795`. STORY-136 MERGED PR #326 (D-252). Worktree `worktree-issue-316-story-136-enip-lifecycle` being cleaned up by devops-engineer.
+**F4 Wave 60 — STORY-137 CONVERGED @c4644f9** — BC-2.17.016/004/018; on_data frame-walk loop; `pub flows` added to EnipAnalyzer; `command_counts` relocated to single frame-walk site; `#![allow(dead_code)]` removed; byte-walk/frame-skip use `continue` (RULING-137-001). Branch: `worktree-issue-316-story-137-enip-frame-walk`, base develop `a2cb795`, 0 behind. 2058 tests green; clippy -D warnings clean; fmt clean; green-doc-tense PASS; input-hash f4c8390 MATCH.
 
-**NEXT STEP = create STORY-137 worktree (base develop `a2cb795`), refresh STORY-137 input-hash (was STALE pending delivery), then stub-architect Red Gate → test-writer → implementer → 3-pass convergence → demo → PR (halt for human auth per D-231) → merge+cleanup. After STORY-137: Wave-60 integration gate (regression + consistency audit + 3-pass wave-level convergence) → Wave 61 STORY-138.**
+**NEXT STEP = demo-recorder → push branch → pr-manager 9-step PR (halt before merge for human auth per D-231) → human approves → merge+cleanup → Wave-60 integration gate (regression + consistency audit + 3-pass wave-level convergence) → Wave 61 STORY-138.**
 
 ### Remaining-work map (after resume)
 
-STORY-137 (on_data frame-walk wiring BC-2.17.016; carries WAVE59-E2E-001/WAVE59-DEADCODE-001; removes `#![allow(dead_code)]`; wires parse fns; `command_counts` single-increment site) → Wave-60 integration gate (regression + consistency audit + 3-pass wave-level convergence) → Wave 61 STORY-138 (session summary) → Wave-61 gate → F5 scoped-adversarial → F6 formal hardening (VP-032/VP-004/VP-007 Kani; cargo-fuzz F-P9-002 `parse_cip_header`/`parse_cpf_items`) → F7 delta-convergence + human gate → release v0.11.0.
+STORY-137 demo → push → PR → merge (human auth D-231) → Wave-60 integration gate (regression + consistency audit + 3-pass wave-level convergence; STORY-134-137 integrated) → Wave 61 STORY-138 (session summary) → Wave-61 gate → F5 scoped-adversarial → F6 formal hardening (VP-032/VP-004/VP-007 Kani; cargo-fuzz F-P9-002 `parse_cip_header`/`parse_cpf_items`) → F7 delta-convergence + human gate → release v0.11.0.
 
 ### RESUME PROCEDURE (execute in order — BLOCKING)
 
 1. Run `vsdd-factory:factory-worktree-health` — PASS required before proceeding.
 2. Read `.factory/STATE.md` + `cycles/feature-enip-v0.11.0/cycle-manifest.md` in full.
-3. Verify: `git rev-parse --short develop` == `a2cb795`.
+3. Verify: `git rev-parse --short develop` == `a2cb795`; worktree `worktree-issue-316-story-137-enip-frame-walk` exists at `c4644f9`.
 4. Run `gh pr list` — expect Dependabot #311 open (non-blocking); PRs #317/#318/#319/#320/#323/#324/#326 MERGED; no open ENIP PRs.
-5. Create STORY-137 worktree (base develop `a2cb795`), refresh STORY-137 input-hash, then proceed per EXACT RESUME POINT above.
+5. Proceed per EXACT RESUME POINT above (demo → push → pr-manager 9-step PR halt-for-human D-231).
 
 ### Locked design facts (do not re-derive on resume)
 
 ENIP header LITTLE-endian (`from_le_bytes`). `is_valid_enip_frame` single-arg (command-only). `EnipCommandClass` 10 payloadless variants. `CipServiceClass` 15 (0x0A=MultipleServicePacket). `CipHeader={service,request_path}`. `CpfItem={type_id,data}`. `general_status`=byte-2 on 0x00B2 responses. 0x00B2-only CIP detection (0x00B1 deferred v0.12.0). Write-burst default 50 / error-burst 5 strict `>` (51st/6th); both CLI-overridable. T0814 windowed >=3/300s; carry-overflow runs `check_t0814` BEFORE latching `is_non_enip`. `command_counts` SINGLE site=frame-walk (BC-2.17.016 PC-0, counts all incl Unknown). `process_pdu` owns `pdu_count`. `flows_analyzed`→`on_flow_close`. Summary canonical key `parse_errors`. MAX_ENIP_CARRY_BYTES=600, MAX_FINDINGS=10000. MITRE pin ics-attack-19.1. EMITTED 17→20, SEEDED 25→28, catalogue-only 8. Counters u64, window timestamps u32 seconds.
 
-Story input-hashes: STORY-130 e3c0a6a, STORY-131 a119157, STORY-132 738d0b0, STORY-133 350dcf3, STORY-134 16d03a6, STORY-135 ae2d871, STORY-136 0846e0e (all MATCH at merge); STORY-137..138 STALE (pending F4 delivery — do NOT refresh until each story's delivery wave).
+Story input-hashes: STORY-130 e3c0a6a, STORY-131 a119157, STORY-132 738d0b0, STORY-133 350dcf3, STORY-134 16d03a6, STORY-135 ae2d871, STORY-136 0846e0e (all MATCH at merge); STORY-137 f4c8390 MATCH @c4644f9; STORY-138 STALE (pending F4 delivery — do NOT refresh until delivery wave).
+
+STORY-137 key facts: on_data is the carry-buffer frame-walk loop; `pub flows: HashMap<FlowKey, EnipFlowState>` added to EnipAnalyzer; command_counts relocated to SINGLE frame-walk site (BC-2.17.016 PC-0), removed from process_pdu (which now owns pdu_count only); `#![allow(dead_code)]` removed; byte-walk resync + oversized-frame-skip use `continue` (RULING-137-001 binding). is_non_enip latch dead code (carry-overflow structurally unreachable: max carry 599 < cap 600 — RULING-137-002 deferred spec defect).
 
 ### OPEN ITEMS (backlog — non-blocking)
 
@@ -113,6 +116,11 @@ Story input-hashes: STORY-130 e3c0a6a, STORY-131 a119157, STORY-132 738d0b0, STO
 | DNS-TUNNELING-COVERAGE-001 | DNS analyzer statistics-only; tunneling detection is a human feature scope decision. | OPEN — human decision |
 | SEC-008 / PERF-REASM-NFR-001 | Residual latent items — DF-VALIDATION-001-gated. | DEFERRED |
 | ENGINE-IMPROVEMENT-BACKLOG | ~18 engine proposals; lessons.md Lessons 1 & 2. | BACKLOG — human review |
+| SPEC-DEFECT-IS-NON-ENIP-DEAD-LATCH | is_non_enip carry-overflow quarantine latch unreachable under spec algorithm (RULING-137-002). PO decision required on quarantine semantics before BC-2.17.016 PC-4/Inv-4/EC-004 can be revised. Affects is_non_enip guards in STORY-134/135/136 (inert). Target: v0.12.0. NON-BLOCKING for v0.11.0. | DEFERRED — v0.12.0 |
+| ADVERSARY-REACHABILITY-PROOF-OBLIGATION | [process-gap] F2/F3 adversary reviewed each frame-walk guard in isolation; missed that frame-skip + partial-stash + cap-overflow together make the cap unreachable. Add "reachability proof obligation" checkpoint to adversarial checklist for any BC with behavior gated on a bounded-state trigger. | BACKLOG — engine improvement |
+| HS-117-CASE-D-UNIT-COVERAGE | [process-gap] HS-117 Case D max-length (header.length=0xFFFF) oversized-frame panic-safety has no unit test (behavior sound per adversary; covered by F4 HS-117 pcap holdout obligation). Add frame_walk unit test. Target: F4 holdout / Wave-60 doc-test sweep. | OPEN — Wave-60 / F4 |
+| STORY-137-UNSAFE-SPLIT-BORROW | [LOW] process_pdu PDU-dispatch uses `unsafe { &mut *flow_ptr }` split-borrow; DNP3 sibling achieves same with safe associated-fn calls. Sound but only unsafe block in analyzer. Consider safe refactor. Target: Wave-60 or v0.12.0. | OPEN — Wave-60 / v0.12.0 |
+| T0814-EVIDENCE-TEST | [LOW] No test asserts T0814 finding evidence field content (field correct by inspection). Optional defense-in-depth assertion. Target: Wave-60 doc/test sweep. | OPEN — Wave-60 |
 
 All GitHub-issue creation DF-VALIDATION-001-gated.
 
@@ -143,7 +151,7 @@ All GitHub-issue creation DF-VALIDATION-001-gated.
 | Feature mitre-json-names (issue #64) + v0.9.4 | RELEASED + CLOSED 2026-06-23 (D-217) | 5 BCs bumped. BC-INDEX v1.71 (303). PRs #306-309. tag v0.9.4. |
 | Fix cycle fix-pc-013-014-015 + v0.10.0 | **CONVERGED + RELEASED + CLOSED 2026-06-24 (D-226)** | BC-INDEX v1.73 (305). PRs #310-315. tag v0.10.0 0cbe922. |
 | Feature EtherNet/IP + CIP (issue #316) — F1/F2/F3 | **CONVERGED + HUMAN-APPROVED (D-228/D-230/D-231)** | 26 BCs (BC-2.17.001..026). 9 stories STORY-130..138 (E-20, 66 pts, waves 58-61). 13 holdouts HS-110..122. ADR-010, VP-032, SS-17. Detail: cycles/feature-enip-v0.11.0/ |
-| Feature EtherNet/IP + CIP — F4 | **IN-PROGRESS — Wave 60 SESSION PAUSED (D-252): STORY-130-136 MERGED; stories_delivered=85; STORY-137 NEXT.** | STORY-134 PR #323 @e330ccc MERGED (D-247); STORY-135 PR #324 @84be2fb MERGED (D-249); STORY-136 PR #326 @a2cb795 MERGED (D-252); trajectory `2H→0H(1MED)→CLEAN×3`. Wave-59 trajectory: `1→2→2→0→0→0`. Convergence detail: cycles/feature-enip-v0.11.0/convergence-trajectory.md. |
+| Feature EtherNet/IP + CIP — F4 | **IN-PROGRESS — Wave 60 SESSION PAUSED (D-253): STORY-130-136 MERGED; STORY-137 CONVERGED @c4644f9; stories_delivered=85; NEXT = STORY-137 PR → merge → Wave-60 gate.** | STORY-134 PR #323 @e330ccc MERGED (D-247); STORY-135 PR #324 @84be2fb MERGED (D-249); STORY-136 PR #326 @a2cb795 MERGED (D-252); STORY-137 per-story convergence ACHIEVED @c4644f9 (D-253) trajectory `2CRIT→…→CLEAN×3`. Wave-59 trajectory: `1→2→2→0→0→0`. Convergence detail: cycles/feature-enip-v0.11.0/convergence-trajectory.md. |
 
 ## Decisions Log
 
@@ -159,6 +167,7 @@ D-228..D-250: `cycles/feature-enip-v0.11.0/decisions-archive.md`
 |----|----------|------|
 | D-251 | SESSION PAUSE — STORY-136 per-story adversarial convergence ACHIEVED @b003547 (BC-5.39.001 MET). Trajectory: 2H→0H(1MED)→CLEAN→CLEAN→CLEAN (3 consecutive clean passes). 10/10 connection_lifecycle tests pass; clippy/fmt clean; input-hash 0846e0e MATCH. Demo-recorder in-progress. NEXT = demo → push → pr-manager 9-step PR (halt before merge per D-231). Do NOT re-run TDD or convergence for STORY-136. | 2026-06-26 |
 | D-252 | STORY-136 MERGED — PR #326 squash-merged into develop; new develop HEAD = a2cb795 (was 84be2fb). stories_delivered 84→85. CI 11/11 green; pr-reviewer APPROVE (NITs: PRF-001 close-count cap-bypass assertion deferred STORY-138; PRF-002/003 accepted spec-correct); security PASS (SEC-006 LOW pub-field convention deferred W7.1). input-hash 0846e0e MATCH at merge. Worktree worktree-issue-316-story-136-enip-lifecycle cleaned up. NEXT = STORY-137. | 2026-06-26 |
+| D-253 | SESSION PAUSE — STORY-137 per-story adversarial convergence ACHIEVED @c4644f9 (BC-5.39.001 MET). Trajectory: 2CRIT+2HIGH (P1) → architect RULING-137-001 (continue semantics; per-offset counting intended) → fix → 2HIGH (untested carry-overflow latch + stale RED-gate doc-tense) → fix → CLEAN(1MED F-137-ADV-001 test-name honesty) → fix → CLEAN × 3 (passes B/C/D). 2058 tests green; clippy/fmt/green-doc-tense PASS; input-hash f4c8390 MATCH. Key impl: on_data = frame-walk loop; `pub flows` added; command_counts relocated to single frame-walk site; `#![allow(dead_code)]` removed; byte-walk + frame-skip use `continue`. RULING-137-002: carry-overflow is_non_enip latch provably unreachable (max carry 599 < cap 600); deferred spec defect v0.12.0. S-7.02 items 1-5 recorded in OPEN ITEMS; RULING-137-001/-002 in cycles/feature-enip-v0.11.0/STORY-137/. NEXT = demo-recorder → push → pr-manager halt-for-human-merge (D-231) → Wave-60 integration gate. | 2026-06-26 |
 
 ## Governance Policy
 
@@ -168,7 +177,7 @@ Full policy text: `.factory/policies.yaml`. Active policies (17): DF-VALIDATION-
 
 - `.factory/` is a `factory-artifacts` orphan-branch worktree, gitignored from `develop`.
 - Active cycle: `cycles/feature-enip-v0.11.0/` (cycle-manifest.md, decisions-archive.md D-228+). Issue #316.
-- STORY-INDEX.md authoritative (91 stories / 61 waves / 592 pts — v2.8). STORY-130+131+132+133+134+135+136 completed (Waves 58-60 partial, D-237/D-239/D-241/D-247/D-249/D-252). STORY-137..138 draft (waves 60-61).
+- STORY-INDEX.md authoritative (91 stories / 61 waves / 592 pts — v2.8). STORY-130+131+132+133+134+135+136 completed (Waves 58-60 partial, D-237/D-239/D-241/D-247/D-249/D-252). STORY-137 converged @c4644f9 (D-253, pending PR+merge). STORY-138 draft (wave 61).
 - F6 fuzz obligation: `parse_cip_header` + `parse_cpf_items` cargo-fuzz (F-P9-002, from F2 adversarial pass 9).
 - Deferred LOW (non-blocking): BC-2.17.010 Description "per-occurrence" → fix to one-shot (PO); dep-graph STORY-133→137 T0814 rationale prose imprecision.
 - Issues: #104/#102/#64 CLOSED; all actions SHA-pinned; dtolnay/rust-toolchain @stable/@nightly exempted.

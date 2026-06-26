@@ -502,3 +502,81 @@ These were surfaced during wave-level passes and logged per D-238:
 2. **WAVE59-DEADCODE-001**: Remove the module-wide `#![allow(dead_code)]` on src/analyzer/enip.rs when STORY-132 wires the parse functions into on_data frame-walk, so newly-dead helpers are caught.
 
 3. **M-001** (reaffirmed): Sync public docs/adr/0010-ethernet-ip-cip-stream-dispatch.md to .factory ADR-010 (field-count 10→6 line ~598; Decision-9 eprintln! wording line ~697). Deliver in STORY-132 PR.
+
+---
+
+### Per-Story — STORY-137 (Wave 60)
+
+| Pass | Date | Total | CRIT | HIGH | MED | LOW | Novelty | Score | Counter | Verdict |
+|------|------|-------|------|------|-----|-----|---------|-------|---------|---------|
+| 1 | 2026-06-26 | 4 | 2 | 2 | 0 | 0 | HIGH | — | 0/3 | FINDINGS_REMAIN — REMEDIATED |
+| 2 | 2026-06-26 | 2 | 0 | 2 | 0 | 0 | HIGH | — | 0/3 → reset | FINDINGS_REMAIN — REMEDIATED |
+| A | 2026-06-26 | 1 | 0 | 0 | 1 | 0 | MEDIUM | — | 0/3 → reset | FINDINGS_REMAIN — REMEDIATED |
+| B | 2026-06-26 | 0 | 0 | 0 | 0 | 0 | — | — | 1/3 | CLEAN |
+| C | 2026-06-26 | 0 | 0 | 0 | 0 | 0 | — | — | 2/3 | CLEAN |
+| D | 2026-06-26 | 0 | 0 | 0 | 0 | 0 | — | — | 3/3 | CONVERGED |
+
+Trajectory: `2CRIT+2HIGH → 2HIGH → 1MED → CLEAN × 3` (passes B/C/D; BC-5.39.001 MET)
+
+Remediation history:
+- Pass-1 2×CRIT + 2×HIGH: F-137-P1-001 CRIT = byte-walk and frame-skip paths used `break` instead of `continue` — detection-evasion vector (valid trailing frame silently dropped on EC-012). F-137-P1-002 CRIT = tests locked in the `break` behavior as correct. RULING-137-001 issued by architect (binding): (a) `continue` mandatory on both paths, (b) per-offset counting IS intended (crash-probe generates many parse_errors per segment, correct for T0814 threat model). Implementer fixed `break→continue`; test-writer corrected test expectations per RULING-137-001 §3 authoritative tables.
+- Pass-2 2×HIGH: F-137-P1-001 residual = carry-overflow test (`test_carry_buffer_cap_at_600`) encoded a scenario that cannot trigger the cap in the correct implementation. F-137-P1-002 residual = is_non_enip latch unreachability — the cap check (`flow.carry.len() > MAX_ENIP_CARRY_BYTES`) is structurally dead code (max carry 599 < cap 600 under the spec's own algorithm). RULING-137-002 issued: genuine design gap (option b); deferred to v0.12.0; does NOT block STORY-137 convergence. Test-writer updated carry-overflow test to mark as dead-code path test per RULING-137-002 §7.
+- Pass-A 1×MEDIUM: F-137-ADV-001 = test-name prose lacked honesty about what the test exercises (test names described scenario without flagging that the carry-cap path is dead code per RULING-137-002). Fixed by test-writer: test names and comments updated to accurately describe the test as exercising dead-code guard per RULING-137-002.
+- Passes B/C/D: 0 findings all three passes on frozen worktree HEAD c4644f9. CONVERGED (D-253).
+
+S-7.02 follow-up items codified at convergence:
+1. SPEC-DEFECT-IS-NON-ENIP-DEAD-LATCH — PO decision required on quarantine semantics; deferred v0.12.0.
+2. ADVERSARY-REACHABILITY-PROOF-OBLIGATION — [process-gap] add reachability proof obligation to adversarial checklist for bounded-state triggers.
+3. HS-117-CASE-D-UNIT-COVERAGE — [process-gap] max-length oversized-frame panic-safety unit test; F4 holdout / Wave-60 sweep.
+4. STORY-137-UNSAFE-SPLIT-BORROW — [LOW] unsafe split-borrow in process_pdu; Wave-60 or v0.12.0.
+5. T0814-EVIDENCE-TEST — [LOW] no test asserts T0814 evidence field; Wave-60 doc/test sweep.
+
+**Per-story adversarial convergence ACHIEVED** (BC-5.39.001 MET). STORY-137 worktree HEAD c4644f9. 2058 tests green; clippy -D warnings clean; fmt clean; green-doc-tense PASS; input-hash f4c8390 MATCH. RULING-137-001 + RULING-137-002 binding at cycles/feature-enip-v0.11.0/STORY-137/.
+
+---
+
+### STORY-137 Pass 1 (2026-06-26)
+
+**Findings:** 4 (2 CRIT, 2 HIGH, 0 MED, 0 LOW)
+**Novelty:** HIGH
+**Convergence counter:** 0 of 3
+
+F-137-P1-001 CRIT: byte-walk resync path used `break` instead of `continue` — on EC-012 (garbage byte + valid trailing frame in same TCP segment), the valid trailing frame is silently dropped because the loop exits. Detection-evasion vector.
+F-137-P1-002 CRIT: test suite locked in `break` behavior as correct — tests asserted that trailing frames were NOT processed (wrong expectation per spec).
+F-137-P1-003 HIGH (implicit within P1-001 remediation): frame-skip path also used `break` — same issue.
+F-137-P1-004 HIGH: test counting expectations incorrect (e.g., `parse_errors == 1` for a 24-byte garbage block before a valid frame — should be 24 per RULING-137-001 §3.2).
+
+RULING-137-001 issued. Implementer fixed both paths to `continue`. Test-writer reauthored counting expectations from RULING-137-001 §3 authoritative behavior tables.
+
+---
+
+### STORY-137 Pass 2 (2026-06-26)
+
+**Findings:** 2 (0 CRIT, 2 HIGH, 0 MED, 0 LOW)
+**Novelty:** HIGH
+**Convergence counter:** reset (FINDINGS_REMAIN — REMEDIATED)
+
+F-137-P2-001 HIGH: `test_carry_buffer_cap_at_600` encoded an impossible scenario (attempted to drive carry overflow via frame-skip path, which never stashes into carry). Test would permanently fail to exercise the cap check even in a correct implementation.
+F-137-P2-002 HIGH: carry-overflow latch (`is_non_enip` via `flow.carry.len() > MAX_ENIP_CARRY_BYTES`) is structurally unreachable — maximum possible carry is 599 bytes; cap threshold is 600. Cap check is dead code.
+
+RULING-137-002 issued: genuine design gap, deferred to v0.12.0. Test-writer updated carry tests to document dead-code status per RULING-137-002 §7.
+
+---
+
+### STORY-137 Pass A (2026-06-26)
+
+**Findings:** 1 (0 CRIT, 0 HIGH, 1 MED, 0 LOW)
+**Novelty:** MEDIUM
+**Convergence counter:** reset (FINDINGS_REMAIN — REMEDIATED)
+
+F-137-ADV-001 MEDIUM: test-name prose in carry-cap tests did not reflect that the test exercises a dead-code guard per RULING-137-002. Test names updated by test-writer to accurately label them: `// tests dead-code cap guard: unreachable in practice per RULING-137-002`.
+
+---
+
+### STORY-137 Passes B, C, D (2026-06-26) — 3 consecutive clean passes
+
+**Pass B:** 0 findings. Convergence counter 1 of 3 (CLEAN).
+**Pass C:** 0 findings. Convergence counter 2 of 3 (CLEAN).
+**Pass D:** 0 findings. Convergence counter 3 of 3 (CONVERGED).
+
+Worktree HEAD c4644f9 reviewed (frozen). All prior findings resolved. Per-story adversarial convergence ACHIEVED (D-253). BC-5.39.001 MET. NEXT = demo-recorder → push → pr-manager halt-for-human D-231.

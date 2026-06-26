@@ -274,3 +274,48 @@ Session paused mid-F4 Wave 60 with STORY-136 at Red Gate. SAFE-TO-CLEAR. All F1/
 - develop: `84be2fb` (STORY-135 merged, PR #324).
 - main: `0cbe922` (v0.10.0).
 - factory-artifacts: this D-250 checkpoint commit (verify: `git -C .factory log -1`).
+
+---
+
+## D-253 — SESSION PAUSE: STORY-137 per-story adversarial convergence ACHIEVED @c4644f9 (2026-06-26)
+
+Per-story adversarial convergence ACHIEVED (BC-5.39.001 MET). 3 consecutive clean passes (B/C/D on frozen worktree HEAD c4644f9). 0 HIGH/CRITICAL across all three. Branch: `worktree-issue-316-story-137-enip-frame-walk`, base develop `a2cb795`, 0 behind.
+
+**Full trajectory:** 2CRIT+2HIGH (Pass-1) → architect RULING-137-001 → fix → 2HIGH (Pass-2) → RULING-137-002 → fix → CLEAN(1MED Pass-A) → fix → CLEAN × 3 (B/C/D).
+
+**Pass-1 remediation (2CRIT+2HIGH):**
+- F-137-P1-001 CRIT: byte-walk resync used `break` instead of `continue` — valid trailing frames silently dropped (detection-evasion). Fixed.
+- F-137-P1-002 CRIT: tests locked `break` as correct expected behavior. Reauthored.
+- F-137-P1-003/004 HIGH: frame-skip path also used `break`; counting expectations wrong (parse_errors=1 for 24-garbage-byte block should be 24).
+- RULING-137-001 issued (architect): `continue` mandatory on both paths; per-offset counting IS intended (crash-probe T0814 threat model). Binding. No BC/ADR/story amendment required.
+
+**Pass-2 remediation (2HIGH):**
+- F-137-P2-001 HIGH: carry-overflow test used impossible scenario (frame-skip never stashes into carry).
+- F-137-P2-002 HIGH: carry-overflow latch `is_non_enip` structurally unreachable (max carry 599 < cap 600 by algorithm invariant).
+- RULING-137-002 issued (architect): genuine design gap (option b); `is_non_enip` never latched by `on_data`; quarantine feature inert; deferred to v0.12.0. Does NOT block STORY-137 convergence.
+
+**Pass-A remediation (1MED):**
+- F-137-ADV-001 MED: test-name prose did not reflect dead-code status per RULING-137-002. Test names updated with explicit dead-code annotation.
+
+**Toolchain pairing verified at c4644f9 (orchestrator):** 2058 tests green (`cargo test --all-targets`); `cargo clippy --all-targets -- -D warnings` clean; `cargo fmt --check` clean; green-doc-tense PASS; input-hash STORY-137 = f4c8390 MATCH; 0 behind develop a2cb795.
+
+**Key implementation facts (do not re-derive):**
+- `on_data` is the carry-buffer frame-walk loop.
+- `pub flows: HashMap<FlowKey, EnipFlowState>` added to `EnipAnalyzer`.
+- `command_counts` relocated to SINGLE canonical frame-walk site (BC-2.17.016 PC-0), counts all commands including Unknown. Removed from `process_pdu` (which now owns `pdu_count` only).
+- `#![allow(dead_code)]` removed from `src/analyzer/enip.rs` (WAVE59-DEADCODE-001 resolved).
+- Byte-walk resync path and oversized-frame-skip path both use `continue` (RULING-137-001 binding).
+- `is_non_enip` carry-overflow latch is dead code (RULING-137-002); never set to `true` by any reachable `on_data` path.
+
+**S-7.02 follow-up items codified:**
+1. SPEC-DEFECT-IS-NON-ENIP-DEAD-LATCH — v0.12.0; PO decision on quarantine semantics.
+2. ADVERSARY-REACHABILITY-PROOF-OBLIGATION — [process-gap] engine adversarial checklist improvement.
+3. HS-117-CASE-D-UNIT-COVERAGE — [process-gap] max-length panic-safety unit test; F4 / Wave-60 sweep.
+4. STORY-137-UNSAFE-SPLIT-BORROW — [LOW] unsafe split-borrow in process_pdu; Wave-60 or v0.12.0.
+5. T0814-EVIDENCE-TEST — [LOW] no test asserts T0814 evidence field; Wave-60 doc/test sweep.
+
+**Binding ruling documents:**
+- `cycles/feature-enip-v0.11.0/STORY-137/frame-walk-counting-ruling.md` — RULING-137-001.
+- `cycles/feature-enip-v0.11.0/STORY-137/RULING-137-002-carry-overflow-unreachability.md` — RULING-137-002.
+
+**NEXT:** demo-recorder → push branch `worktree-issue-316-story-137-enip-frame-walk` → pr-manager 9-step PR (halt before merge per D-231) → human approves → merge+cleanup → Wave-60 integration gate (STORY-134-137 integrated, 3-pass wave-level convergence).
