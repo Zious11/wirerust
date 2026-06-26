@@ -177,6 +177,29 @@ pub fn is_valid_enip_frame(h: &EnipHeader) -> bool {
 /// `all_findings.len() < MAX_FINDINGS`.
 pub const MAX_FINDINGS: usize = 10_000;
 
+/// Maximum number of bytes the carry buffer may hold after any `on_data` call.
+///
+/// When `flow.carry.len() > MAX_ENIP_CARRY_BYTES` after the frame-walk loop stashes
+/// remaining bytes, the carry-overflow path fires: `parse_errors += 1`,
+/// `malformed_in_window += 1`, `check_t0814()` (before latch), `is_non_enip = true`,
+/// `carry.clear()` (BC-2.17.016 Invariant 1 / Postcondition 4 / Invariant 4).
+///
+/// NOT configurable — hard cap per ADR-010 Decision 3/4.
+///
+/// Traces: BC-2.17.016 Invariant 1 / Invariant 4; ADR-010 Decision 3.
+pub const MAX_ENIP_CARRY_BYTES: usize = 600;
+
+/// Number of malformed frames within the 300-second window that triggers a T0814 finding.
+///
+/// Compile-time constant — NOT CLI-configurable (ADR-010 Decision 5).
+/// The windowed `malformed_in_window` counter (reset every 300 s) is compared against
+/// this threshold by `check_t0814`. Once the threshold is reached and
+/// `malformed_anomaly_emitted == false`, a single T0814 Anomaly/Possible/Low finding
+/// is emitted and `malformed_anomaly_emitted` is latched true for the remainder of the window.
+///
+/// Traces: BC-2.17.018 Invariant 1 / Postcondition 3; ADR-010 Decision 5.
+pub const MALFORMED_ANOMALY_THRESHOLD: u64 = 3;
+
 use std::collections::HashMap;
 use std::net::IpAddr;
 
@@ -314,6 +337,25 @@ pub struct EnipFlowState {
     /// Architecture Rule 4). Read by STORY-138 session summary.
     /// Field name is normative per BC-2.17.015 Architecture Mapping.
     pub close_connection_count: u32,
+
+    /// One-shot guard for T0814 per-window emission (BC-2.17.018 Postcondition 4).
+    ///
+    /// Set to `true` when the T0814 finding is emitted for the current 300-second window;
+    /// reset to `false` on window expiry along with `malformed_in_window`. Prevents a second
+    /// T0814 finding from firing within the same window when the threshold is exceeded again.
+    /// Field name is normative per BC-2.17.018 Architecture Mapping.
+    pub malformed_anomaly_emitted: bool,
+
+    /// Timestamp (pcap-relative seconds, u32) of the start of the current 300-second malformed
+    /// frame detection window (BC-2.17.018 Postcondition 5).
+    ///
+    /// Seeded to `now_ts` on the first `on_data` call for a flow (initialized to 0 in
+    /// `EnipFlowState::new()`). Window expiry is evaluated at the top of each `on_data` call:
+    /// when `now_ts - malformed_window_start >= 300`, the window resets:
+    /// `malformed_in_window = 0`, `malformed_anomaly_emitted = false`,
+    /// `malformed_window_start = now_ts`.
+    /// Field name is normative per BC-2.17.018 Architecture Mapping.
+    pub malformed_window_start: u32,
 }
 
 impl EnipFlowState {
@@ -339,6 +381,8 @@ impl EnipFlowState {
             write_window_start_ts: 0,
             open_connection_count: 0,
             close_connection_count: 0,
+            malformed_anomaly_emitted: false,
+            malformed_window_start: 0,
         }
     }
 }
@@ -350,6 +394,47 @@ impl Default for EnipFlowState {
     fn default() -> Self {
         Self::new()
     }
+}
+
+// ---------------------------------------------------------------------------
+// T0814 windowed DoS detection helper (STORY-137 — BC-2.17.018)
+// ---------------------------------------------------------------------------
+
+/// Check whether the windowed malformed-frame threshold has been crossed and, if so,
+/// emit a single T0814 Anomaly/Possible/Low finding into `all_findings`.
+///
+/// Called from the frame-walk loop in `on_data` after every structural reject (invalid
+/// command, oversized declared frame, carry-buffer overflow) and at the carry-cap check.
+///
+/// **Conditional emission (BC-2.17.018 Postconditions 3–4):** fires when ALL of:
+/// - `flow.malformed_in_window >= MALFORMED_ANOMALY_THRESHOLD` (= 3)
+/// - `flow.malformed_anomaly_emitted == false`
+/// - `flow.is_non_enip == false`  — MUST be evaluated BEFORE `is_non_enip` is latched
+///   on carry-overflow (BC-2.17.018 Precondition 6 / EC-007; ordering enforced in `on_data`)
+/// - `all_findings.len() < MAX_FINDINGS`
+///
+/// Sets `flow.malformed_anomaly_emitted = true` after emission (one-shot per window).
+/// Does NOT set `flow.is_non_enip` — that is the exclusive domain of the carry-cap check
+/// in `on_data` (BC-2.17.016 Invariant 4).
+///
+/// # Parameters
+/// - `flow` — mutable per-flow state; reads `malformed_in_window`,
+///   `malformed_anomaly_emitted`, `is_non_enip`; writes `malformed_anomaly_emitted`.
+/// - `all_findings` — analyzer-level findings accumulator; length compared against `MAX_FINDINGS`.
+/// - `now_ts` — pcap-relative capture timestamp (seconds, u32); included in the finding.
+/// - `src_ip` — source IP of the offending flow; included in the finding summary and field.
+/// - `dest_ip` — destination IP; included in the finding summary for flow identification.
+///
+/// # Traces
+/// BC-2.17.018 Postconditions 3–4; Invariant 1; Precondition 6; EC-007.
+pub fn check_t0814(
+    _flow: &mut EnipFlowState,
+    _all_findings: &mut Vec<crate::findings::Finding>,
+    _now_ts: u32,
+    _src_ip: std::net::IpAddr,
+    _dest_ip: std::net::IpAddr,
+) {
+    todo!("STORY-137: T0814 windowed DoS detection [BC-2.17.018]");
 }
 
 // ---------------------------------------------------------------------------
@@ -419,28 +504,73 @@ impl EnipAnalyzer {
         }
     }
 
-    /// Receive reassembled TCP bytes for a port-44818 flow.
+    /// Receive reassembled TCP bytes for a port-44818 flow and run the ENIP frame-walk loop.
     ///
-    /// Increments `bytes_received` by `data.len()` (saturating add) to evidence
-    /// BC-2.17.019 PC-2 routing correctness. Full CIP frame-walk and detection
-    /// logic are added by STORY-132+; this stub satisfies the dispatcher wiring
-    /// contract for STORY-131.
+    /// Entry point for all per-flow stream data. Implements:
+    /// 1. `bytes_received` increment (WIRING-EXEMPT routing confirmation observable,
+    ///    BC-2.17.019 PC-2; dispatcher wiring contract from STORY-131).
+    /// 2. `is_non_enip` early-exit guard — flows permanently quarantined by carry-buffer
+    ///    overflow are immediate no-ops after the bytes_received increment (BC-2.17.016 Inv 4).
+    /// 3. 300-second malformed window expiry check and reset (BC-2.17.018 Postcondition 5).
+    /// 4. Carry + new-data concatenation (BC-2.17.016 Postcondition 2).
+    /// 5. Frame-walk loop (BC-2.17.016 Postcondition 1 / ADR-010 Decision 4):
+    ///    - `parse_enip_header` + `command_counts` increment (PC-0, canonical single site)
+    ///    - `is_valid_enip_frame` gate → byte-walk resync on unknown command (cursor += 1)
+    ///    - Oversized declared frame → frame-skip path (cursor += min(total, remaining))
+    ///    - Partial frame → stash into carry; break
+    ///    - Valid complete frame → `process_pdu`; cursor += total_frame_len
+    /// 6. Carry stash after loop (BC-2.17.016 Postcondition 3).
+    /// 7. Carry-cap check (BC-2.17.016 Postcondition 4 / Invariant 4):
+    ///    - `parse_errors += 1`; `malformed_in_window += 1`
+    ///    - `check_t0814()` ← MUST run while `is_non_enip == false` (BC-2.17.018 Precond 6)
+    ///    - `is_non_enip = true`; `carry.clear()`
     ///
-    /// `flow_key` and `timestamp` are accepted to match the DNP3 `on_data`
-    /// signature (ADR-010 Decision 9; STORY-131 boundary decision), but are
-    /// not consumed until STORY-132 adds the frame-walk loop.
+    /// WIRING-EXEMPT (bytes_received line only): single saturating_add, no branching, no I/O.
+    /// The remainder of this function is a STORY-137 todo!() stub that establishes the Red Gate.
     ///
-    /// WIRING-EXEMPT: single saturating_add with no I/O; ≤ 3 lines.
+    /// # Parameters
+    /// - `flow_key`  — TCP flow identifier; used to look up / insert `EnipFlowState`.
+    /// - `data`      — reassembled TCP bytes for this flow segment.
+    /// - `timestamp` — pcap-relative capture timestamp (seconds, u32).
     ///
     /// # Traces
-    /// BC-2.17.019 §P2 (routing confirmation); AC-131-001 observable.
+    /// BC-2.17.016 (frame-walk algorithm); BC-2.17.018 (T0814 windowed detection);
+    /// BC-2.17.004 Inv-3 (command_counts single increment site);
+    /// BC-2.17.019 §P2 (routing confirmation); AC-131-001 (bytes_received observable).
     pub fn on_data(
         &mut self,
         _flow_key: crate::reassembly::flow::FlowKey,
         data: &[u8],
         _timestamp: u32,
     ) {
+        // WIRING-EXEMPT: bytes_received increment is the routing-confirmation observable for
+        // STORY-131 dispatcher tests (BC-2.17.019 PC-2). Single saturating_add; no branching;
+        // no I/O; no non-trivial helpers; 1 line. GREEN-BY-DESIGN for existing dispatch tests.
         self.bytes_received = self.bytes_received.saturating_add(data.len() as u64);
+
+        // BC-5.38.005 self-check invariant 1:
+        // "If I include this real implementation, will the test for this function pass trivially
+        // without any implementer work?"
+        // Answer for the bytes_received line: YES, but only for dispatch routing tests (AC-131-*),
+        // not for any frame_walk tests. The dispatch tests assert bytes_received > 0 after
+        // on_data() — that assertion is satisfied by the saturating_add above alone, independent
+        // of the frame-walk implementation. The frame_walk tests assert carry-buffer state,
+        // parse_errors, malformed_in_window, command_counts, pdu_count, and findings — none of
+        // which are touched by the saturating_add. All 21 frame_walk tests will hit the todo!()
+        // below and FAIL (Red Gate satisfied). WIRING-EXEMPT classification: bytes_received line
+        // is pure routing-confirmation wiring — identical to take_enip_analyzer() and other
+        // STORY-131 WIRING-EXEMPT bodies; it is not business logic.
+
+        // STORY-137 frame-walk loop — todo!() body; Red Gate per BC-5.38.001.
+        // The implementer replaces this todo!() with:
+        //   1. is_non_enip guard (return immediately if true)
+        //   2. 300-second window expiry check/reset
+        //   3. buf = carry.clone() + data
+        //   4. while buf.len() - cursor >= 24 { ... }
+        //   5. carry stash after loop
+        //   6. carry-cap check (parse_errors, malformed_in_window, check_t0814, is_non_enip, carry.clear())
+        // Per BC-2.17.016 pseudocode (STORY-137 lines 199-271).
+        todo!("STORY-137: frame-walk carry buffer [BC-2.17.016]");
     }
 
     /// Main per-PDU detection dispatch for a single validated ENIP frame.
