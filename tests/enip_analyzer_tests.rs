@@ -4292,6 +4292,31 @@ mod connection_lifecycle {
             f.timestamp.is_some(),
             "ForwardOpen finding must carry timestamp (BC-2.17.015 PC-1)"
         );
+        // BC-2.17.015 PC-1 evidence postcondition (F-136-P1-002):
+        // exactly one evidence entry documenting the MITRE-gap rationale (ADR-010 Decision 7).
+        assert_eq!(
+            f.evidence.len(),
+            1,
+            "ForwardOpen finding must carry exactly 1 evidence entry \
+             (BC-2.17.015 PC-1 / Invariant 1 / ADR-010 Decision 7 — F-136-P1-002)"
+        );
+        assert!(
+            f.evidence[0].contains("CIP service=0x54"),
+            "ForwardOpen evidence[0] must contain \"CIP service=0x54\" \
+             (BC-2.17.015 PC-1 evidence template — F-136-P1-002)"
+        );
+        assert!(
+            f.evidence[0].contains(
+                "No dedicated MITRE ICS technique for CIP connection establishment anomaly"
+            ),
+            "ForwardOpen evidence[0] must document the MITRE-gap rationale \
+             (BC-2.17.015 PC-1 evidence template — F-136-P1-002)"
+        );
+        assert!(
+            f.evidence[0].contains("ADR-010 Decision 7"),
+            "ForwardOpen evidence[0] must cite ADR-010 Decision 7 \
+             (BC-2.17.015 PC-1 evidence template / Invariant 1 — F-136-P1-002)"
+        );
     }
 
     /// AC-136-001 — ForwardOpen (0x54) finding carries empty mitre_techniques vec.
@@ -4383,6 +4408,31 @@ mod connection_lifecycle {
             f.mitre_techniques.is_empty(),
             "LargeForwardOpen mitre_techniques must be vec![] (ADR-010 Decision 7)"
         );
+        // BC-2.17.015 PC-1 / Invariant 5: LargeForwardOpen uses the same evidence form as
+        // ForwardOpen with its own service byte (0x5B). One evidence entry mandated (F-136-P1-002).
+        assert_eq!(
+            f.evidence.len(),
+            1,
+            "LargeForwardOpen finding must carry exactly 1 evidence entry \
+             (BC-2.17.015 PC-1 / Invariant 5 / ADR-010 Decision 7 — F-136-P1-002)"
+        );
+        assert!(
+            f.evidence[0].contains("CIP service=0x5B"),
+            "LargeForwardOpen evidence[0] must contain \"CIP service=0x5B\" \
+             (BC-2.17.015 PC-1 / Invariant 5 evidence template — F-136-P1-002)"
+        );
+        assert!(
+            f.evidence[0].contains(
+                "No dedicated MITRE ICS technique for CIP connection establishment anomaly"
+            ),
+            "LargeForwardOpen evidence[0] must document the MITRE-gap rationale \
+             (BC-2.17.015 PC-1 / Invariant 5 evidence template — F-136-P1-002)"
+        );
+        assert!(
+            f.evidence[0].contains("ADR-010 Decision 7"),
+            "LargeForwardOpen evidence[0] must cite ADR-010 Decision 7 \
+             (BC-2.17.015 PC-1 / Invariant 5 — F-136-P1-002)"
+        );
     }
 
     // =========================================================================
@@ -4435,6 +4485,29 @@ mod connection_lifecycle {
         assert!(
             f.timestamp.is_some(),
             "ForwardClose finding must carry timestamp (BC-2.17.015 PC-4)"
+        );
+        // BC-2.17.015 PC-4 evidence postcondition (F-136-P1-002):
+        // exactly one evidence entry documenting the lifecycle-close rationale (ADR-010 Decision 7).
+        assert_eq!(
+            f.evidence.len(),
+            1,
+            "ForwardClose finding must carry exactly 1 evidence entry \
+             (BC-2.17.015 PC-4 / Invariant 1 / ADR-010 Decision 7 — F-136-P1-002)"
+        );
+        assert!(
+            f.evidence[0].contains("CIP service=0x4E (ForwardClose)"),
+            "ForwardClose evidence[0] must contain \"CIP service=0x4E (ForwardClose)\" \
+             (BC-2.17.015 PC-4 evidence template — F-136-P1-002)"
+        );
+        assert!(
+            f.evidence[0].contains("Connection lifecycle closed"),
+            "ForwardClose evidence[0] must document \"Connection lifecycle closed\" \
+             (BC-2.17.015 PC-4 evidence template — F-136-P1-002)"
+        );
+        assert!(
+            f.evidence[0].contains("ADR-010 Decision 7"),
+            "ForwardClose evidence[0] must cite ADR-010 Decision 7 \
+             (BC-2.17.015 PC-4 evidence template / Invariant 1 — F-136-P1-002)"
         );
     }
 
