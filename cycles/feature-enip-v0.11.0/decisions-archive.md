@@ -319,3 +319,26 @@ Per-story adversarial convergence ACHIEVED (BC-5.39.001 MET). 3 consecutive clea
 - `cycles/feature-enip-v0.11.0/STORY-137/RULING-137-002-carry-overflow-unreachability.md` — RULING-137-002.
 
 **NEXT:** demo-recorder → push branch `worktree-issue-316-story-137-enip-frame-walk` → pr-manager 9-step PR (halt before merge per D-231) → human approves → merge+cleanup → Wave-60 integration gate (STORY-134-137 integrated, 3-pass wave-level convergence).
+
+---
+
+## D-255 — Wave-60 Integration Gate IN-PROGRESS: F-W60-001 BLOCKS Convergence (2026-06-26)
+
+Wave-60 integration gate initiated with develop HEAD `72a9106`. STORY-134/135/136/137 all merged (stories_delivered=86).
+
+**Phase results:**
+
+1. **Full regression @72a9106:** GREEN. All test suites pass; clippy/fmt clean.
+2. **Fresh-context consistency audit:** CLEAN. One LOW finding (NEW-001): STORY-INDEX showed STORY-134/135/136/137 as `draft` — corrected to `completed` / `DELIVERED & CLOSED` in Index Table, Wave Delivery Progress row 60, and E-20 epic note. SS-17 BC files carry `status:draft` + `input-hash:TBD` (tracked SS-17-BC-INPUT-HASH-BACKFILL, cycle-close item).
+3. **3-pass Wave-60 adversarial convergence:** NOT CONVERGED.
+   - Pass 1: CLEAN (0 findings).
+   - Pass 2: F-W60-001 HIGH (BLOCKS) + F-W60-002 MEDIUM (NON-BLOCKING). 3-clean counter RESET.
+   - Pass 3: CLEAN (0 findings). Counter = 1/3 (not yet at 3 — blocked).
+
+**RULING-W60-001 issued** (architect, ADR-010 owner). See `cycles/feature-enip-v0.11.0/RULING-W60-001-source-attribution.md` for full adjudication.
+
+**F-W60-001 [HIGH — BLOCKS]:** `EnipAnalyzer::on_data` assigns `src_ip = flow_key.lower_ip()` (the numerically smaller IP, not the traffic originator). All CIP detections (T0846/T0888/T0858/T0816/T0836/ForwardOpen/ForwardClose/T0814) mis-attribute source_ip to the lower-sorting endpoint (~50% of captures will attribute attack to victim controller). RULING-W60-001: FIX via approach (a) — add `resolve_enip_client_ip(flow_key: &FlowKey) -> IpAddr` using port-44818 heuristic (mirrors DNP3 `resolve_master_ip`). Fix-PR branch: `fix/enip-source-ip-attribution`. Residual: `DRIFT-ENIP-DIRECTION-001` documented in function doc-comment.
+
+**F-W60-002 [MEDIUM — NON-BLOCKING]:** `self.bytes_received` updated before `is_non_enip` guard vs BC-2.17.016 PC-5. RULING-W60-001 Part 2: bytes_received is EXEMPT (analyzer-level routing observable per BC-2.17.019 PC-2; not a per-flow analysis counter). Code correct. BC-2.17.016 v1.1→v1.2 clarification (PC-5 exemption sentence + Invariant 7) deferred to cycle-close SS-17 BC backfill to avoid mid-wave input-hash churn on merged stories.
+
+**After fix-PR merge:** re-run full 3-pass Wave-60 adversarial convergence on updated develop HEAD. Then human gate.

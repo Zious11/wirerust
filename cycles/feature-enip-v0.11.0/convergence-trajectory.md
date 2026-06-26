@@ -535,6 +535,54 @@ S-7.02 follow-up items codified at convergence:
 
 ---
 
+### Wave-Level — Wave 60 (STORY-134/135/136/137 integrated, develop@72a9106) — IN-PROGRESS, NOT CONVERGED
+
+| Pass | Date | Total | CRIT | HIGH | MED | LOW | Novelty | Score | Counter | Verdict |
+|------|------|-------|------|------|-----|-----|---------|-------|---------|---------|
+| W60-P1 | 2026-06-26 | 0 | 0 | 0 | 0 | 0 | — | — | 1/3 | CLEAN |
+| W60-P2 | 2026-06-26 | 2 | 0 | 1 | 1 | 0 | HIGH | — | 0/3 → RESET | FINDINGS_REMAIN — RULING-W60-001 ISSUED |
+| W60-P3 | 2026-06-26 | 0 | 0 | 0 | 0 | 0 | — | — | 1/3 | CLEAN (post-reset; fix-PR in progress) |
+
+Trajectory: `0→1H+1M→0` (NOT CONVERGED — 3-clean counter reset by P2; fix-PR required)
+
+**Status: BLOCKED on F-W60-001 HIGH. RULING-W60-001 issued. Fix-PR `fix/enip-source-ip-attribution` in progress.**
+After fix-PR merge: restart 3-pass adversarial convergence from Pass 1 on updated develop HEAD.
+
+Remediation history:
+- W60-P2: F-W60-001 HIGH = `on_data` uses `flow_key.lower_ip()` as src_ip → all CIP detections mis-attribute source (~50% of captures). RULING-W60-001 Part 1: FIX via `resolve_enip_client_ip` port-44818 heuristic. F-W60-002 MEDIUM = `bytes_received` updated before `is_non_enip` guard (BC-2.17.016 PC-5 apparent conflict). RULING-W60-001 Part 2: DEFER — bytes_received EXEMPT (analyzer-level routing observable, not per-flow counter); BC-2.17.016 v1.2 clarification to cycle-close SS-17 backfill.
+
+### Wave-60 Wave-Level Pass 1 (2026-06-26)
+
+**Findings:** 0 (0 CRIT, 0 HIGH, 0 MED, 0 LOW)
+**Novelty:** —
+**Convergence counter:** 1 of 3 (CLEAN)
+
+Integrated develop@72a9106 reviewed. STORY-134/135/136/137 all merged. Regression GREEN.
+
+---
+
+### Wave-60 Wave-Level Pass 2 (2026-06-26) — RULING-W60-001 ISSUED
+
+**Findings:** 2 (0 CRIT, 1 HIGH, 1 MED, 0 LOW)
+**Novelty:** HIGH
+**Convergence counter:** 0 of 3 (RESET — FINDINGS_REMAIN)
+
+F-W60-001 HIGH: `EnipAnalyzer::on_data` assigns `src_ip = flow_key.lower_ip()` (NOT the traffic source). `FlowKey` canonicalizes by numerically smaller `(ip, port)` tuple; `lower_ip()` returns the smaller IP, not the originator. All CIP detections (T0846/T0888/T0858/T0816/T0836/ForwardOpen/ForwardClose/T0814) emit `source_ip` equal to the lower-sorting endpoint — the victim controller in ~50% of real captures. RULING-W60-001: FIX via `resolve_enip_client_ip` port-44818 heuristic; residual DRIFT-ENIP-DIRECTION-001.
+
+F-W60-002 MEDIUM: `self.bytes_received` incremented at enip.rs:593, before `is_non_enip` early-return at enip.rs:619. BC-2.17.016 PC-5 "no counter updates" appears to apply. RULING-W60-001: DEFER — bytes_received is EXEMPT (analyzer-level routing observable BC-2.17.019 PC-2); code correct; BC clarification to cycle-close.
+
+---
+
+### Wave-60 Wave-Level Pass 3 (2026-06-26)
+
+**Findings:** 0 (0 CRIT, 0 HIGH, 0 MED, 0 LOW)
+**Novelty:** —
+**Convergence counter:** 1 of 3 (CLEAN — counting from reset; fix-PR in progress)
+
+develop@72a9106 reviewed post-RULING-W60-001. F-W60-001 not yet fixed (fix-PR in progress). Pass 3 is a confirmation that no additional findings exist beyond P2. Convergence CANNOT be declared until F-W60-001 fix is merged and 3 consecutive clean passes achieved on updated develop HEAD.
+
+---
+
 ### STORY-137 Pass 1 (2026-06-26)
 
 **Findings:** 4 (2 CRIT, 2 HIGH, 0 MED, 0 LOW)

@@ -161,10 +161,10 @@ traces_to:
 | STORY-131 | EtherNet/IP StreamDispatcher Integration, CLI Flags, and TCP Reassembly Wiring | E-20 | 58 | 8 | completed | — |
 | STORY-132 | CPF Item Walk, CIP Header Parse, and CIP Request Path Extraction | E-20 | 59 | 8 | completed | STORY-130 |
 | STORY-133 | MITRE ICS Technique Seeding: T0858/T0816/T1693.001/IcsExecution + VP-007 Atomic Update | E-20 | 59 | 5 | completed | STORY-131 |
-| STORY-134 | ENIP Recon Detections: T0846 ListIdentity, T0888 Identity Read / Error Burst, and CIP Error Accumulation | E-20 | 60 | 8 | draft | STORY-132, STORY-133 |
-| STORY-135 | ENIP Command Detections: T0858 Mode Change, T0816 Device Reset, and T0836 Write-Attribute Burst | E-20 | 60 | 8 | draft | STORY-132, STORY-133 |
-| STORY-136 | ENIP Connection Lifecycle: ForwardOpen/ForwardClose Detection | E-20 | 60 | 5 | draft | STORY-132, STORY-133 |
-| STORY-137 | ENIP Frame Walk Robustness: Carry Buffer, Non-ENIP Detection, and T0814 DoS Burst | E-20 | 60 | 8 | draft | STORY-132, STORY-133 |
+| STORY-134 | ENIP Recon Detections: T0846 ListIdentity, T0888 Identity Read / Error Burst, and CIP Error Accumulation | E-20 | 60 | 8 | completed | STORY-132, STORY-133 |
+| STORY-135 | ENIP Command Detections: T0858 Mode Change, T0816 Device Reset, and T0836 Write-Attribute Burst | E-20 | 60 | 8 | completed | STORY-132, STORY-133 |
+| STORY-136 | ENIP Connection Lifecycle: ForwardOpen/ForwardClose Detection | E-20 | 60 | 5 | completed | STORY-132, STORY-133 |
+| STORY-137 | ENIP Frame Walk Robustness: Carry Buffer, Non-ENIP Detection, and T0814 DoS Burst | E-20 | 60 | 8 | completed | STORY-132, STORY-133 |
 | STORY-138 | ENIP Session Lifecycle, Statistics, DoS Guard, and Analyzer Summary | E-20 | 61 | 8 | draft | STORY-134, STORY-135, STORY-136, STORY-137 |
 
 ---
@@ -261,7 +261,7 @@ traces_to:
 | E-17: ARP QinQ/MACsec Offset Hardening (issue #253) | STORY-116, STORY-117 | 2 | 8 |
 | E-18: Terminal Finding-Collapse (issue #259, v0.8.0) | STORY-118, STORY-122, STORY-119 | 3 | 16 |
 | E-19: pcapng Capture-Format Reader Support (FE-001) — **COMPLETE (6/6 MERGED, D-184)** | STORY-123, STORY-124, STORY-125, STORY-126, STORY-127, STORY-128 | 6 | 37 |
-| E-20: EtherNet/IP (ENIP/CIP) Analyzer (issue #316, feature-enip-v0.11.0) | STORY-130, STORY-131, STORY-132, STORY-133, STORY-134, STORY-135, STORY-136, STORY-137, STORY-138 | 9 | 66 |
+| E-20: EtherNet/IP (ENIP/CIP) Analyzer (issue #316, feature-enip-v0.11.0) — **Wave-60 ALL MERGED (D-254)** | STORY-130, STORY-131, STORY-132, STORY-133, STORY-134, STORY-135, STORY-136, STORY-137, STORY-138 | 9 | 66 |
 | **TOTAL** | | **91** | **595** |
 
 ---
@@ -329,7 +329,7 @@ traces_to:
 | 57 | STORY-129 | **DELIVERED & CLOSED** | #306 | 2fa6606 | 2026-06-23 |
 | 58 | STORY-130, STORY-131 | **DELIVERED & CLOSED** | #317, #318 | edce3bd | 2026-06-25 |
 | 59 | STORY-132, STORY-133 | **DELIVERED & CLOSED** | #319, #320 | 16d3ce7, 7f040de | 2026-06-25 |
-| 60 | STORY-134, STORY-135, STORY-136, STORY-137 | draft | — | — | — |
+| 60 | STORY-134, STORY-135, STORY-136, STORY-137 | **DELIVERED & CLOSED** | #323, #324, #326, #327 | e330ccc, 84be2fb, a2cb795, 72a9106 | 2026-06-26 |
 | 61 | STORY-138 | draft | — | — | — |
 
 ## Coverage Verification
