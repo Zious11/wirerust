@@ -1429,26 +1429,16 @@ impl EnipAnalyzer {
 
     /// Produce an end-of-capture summary for the ENIP analyzer.
     ///
-    /// STORY-138 stub: the `enip_summary` aggregate production is `todo!()`.
-    /// The implementer fills in the canonical BC-2.17.021 key set:
+    /// Builds the `enip_summary` aggregate from the 7 canonical BC-2.17.021 fields:
     /// `command_distribution`, `total_pdu_count`, `parse_errors` (CANONICAL — NOT
     /// `total_parse_errors`, BC-2.17.021 Invariant 1), `write_count`, `error_count`,
     /// `flows_analyzed`, `dropped_findings`.
     ///
-    /// **EXISTING-TEST CONFLICT FLAG (summarize() shell → todo!()):**
-    /// The prior WIRING-EXEMPT shell returned `AnalysisSummary { packets_analyzed: 0,
-    /// detail: BTreeMap::new() }`. STORY-138 promotes this to a `todo!()` stub because
-    /// the session_lifecycle tests assert on the real aggregate values. Any existing test
-    /// that calls `summarize()` and only checks that it does not panic will now FAIL at
-    /// this `todo!()` — that is the intended Red Gate behaviour. No existing test in
-    /// the currently-green suite calls `summarize()` and asserts on its return value
-    /// (confirmed by grep: only the dispatch mod's `test_enip_summarize_returns_analyzer_name`
-    /// asserts `analyzer_name == "EtherNet/IP"`). That test will turn RED at this todo!()
-    /// and must remain red until the implementer fills in the real body.
-    ///
-    /// **BC-5.38.005 self-check:** "If I include this real implementation, will the test
-    /// for this function pass trivially without any implementer work?" — YES for
-    /// `test_summarize_produces_enip_summary` et al. Therefore `todo!()` is mandatory here.
+    /// All fields are read from pre-accumulated aggregate counters — this method does
+    /// NOT re-scan `self.flows` (BC-2.17.021 Invariant 2) and does NOT emit new findings
+    /// (BC-2.17.021 Postcondition 3). `command_distribution` is serialised as a JSON
+    /// object whose keys are zero-padded 4-digit hex command codes and whose values are
+    /// the non-zero per-command counts accumulated by `on_data`.
     ///
     /// # Traces
     /// BC-2.17.021 Postconditions 1–4; BC-2.17.022 Invariant 4; BC-5.38.001.

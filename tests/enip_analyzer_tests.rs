@@ -6512,8 +6512,8 @@ mod source_attribution {
 // STORY-138 — session lifecycle, statistics, DoS guard, analyzer summary
 // ---------------------------------------------------------------------------
 //
-// All tests in this module are RED stubs that FAIL via todo!() until the
-// implementer fills in the real logic (Red Gate discipline, BC-5.38.001).
+// All tests in this module originated as Red-Gate stubs; none could pass until
+// STORY-138 shipped the real logic (Red Gate discipline, BC-5.38.001).
 //
 // Test plan: STORY-138.md Test Plan lines 241–261 (19 tests) + F-W60-P1-001
 // regression test (AC-138-003).
@@ -6695,7 +6695,7 @@ mod session_lifecycle {
             analyzer.flows.contains_key(&key),
             "flow must exist before on_flow_close"
         );
-        // Production on_flow_close contains todo!() → test is RED until implemented.
+        // Verifies on_flow_close removes the flow entry (BC-2.17.017 Post 1).
         analyzer.on_flow_close(key.clone());
         // BC-2.17.017 Post 1: flow entry removed from the map.
         assert!(
@@ -6722,7 +6722,7 @@ mod session_lifecycle {
             analyzer.flows[&key].pdu_count, 3,
             "pre-condition: pdu_count must be 3"
         );
-        // Production on_flow_close contains todo!() → test is RED until implemented.
+        // Verifies on_flow_close folds pdu_count into total_pdu_count (BC-2.17.017 Post 2).
         analyzer.on_flow_close(key.clone());
         // BC-2.17.017 Post 2: total_pdu_count aggregates the closed flow's pdu_count.
         assert_eq!(
@@ -6752,7 +6752,7 @@ mod session_lifecycle {
             flow_parse_errors >= 1,
             "pre-condition: parse_errors >= 1 in flow state"
         );
-        // Production on_flow_close contains todo!() → test is RED until implemented.
+        // Verifies on_flow_close folds parse_errors into the aggregate (BC-2.17.017 Post 3).
         analyzer.on_flow_close(key.clone());
         // BC-2.17.017 Post 3: aggregate parse_errors must equal the folded flow count.
         assert_eq!(
@@ -6770,7 +6770,7 @@ mod session_lifecycle {
     fn test_flow_close_unknown_key_no_panic() {
         let mut analyzer = EnipAnalyzer::new(50, 5);
         // Call on_flow_close for a key that was never inserted — must not panic.
-        // Production on_flow_close contains todo!() → test is RED until implemented.
+        // Verifies unknown-key call is a no-op (BC-2.17.017 Post 5).
         analyzer.on_flow_close(flow_key());
         // BC-2.17.017 Post 5: unknown key is a no-op; flows_analyzed stays at 0.
         assert_eq!(
@@ -6791,7 +6791,7 @@ mod session_lifecycle {
         let mut analyzer = EnipAnalyzer::new(50, 5);
         let key = flow_key();
         analyzer.on_data(key.clone(), &enip_frame(CMD_REGISTER_SESSION), 0);
-        // Production on_flow_close contains todo!() → test is RED until implemented.
+        // Verifies on_flow_close increments flows_analyzed exactly once (BC-2.17.017 Post 6).
         analyzer.on_flow_close(key.clone());
         // BC-2.17.017 Post 6: flows_analyzed incremented exactly once on Some-remove.
         assert_eq!(
@@ -7051,7 +7051,7 @@ mod session_lifecycle {
     #[test]
     fn test_summarize_produces_enip_summary() {
         let analyzer = EnipAnalyzer::new(50, 5);
-        // Production summarize() contains todo!() → RED until implemented.
+        // Verifies summarize() produces enip_summary with all 7 canonical keys (BC-2.17.021 Post 1).
         let summary = analyzer.summarize();
         let enip_summary = summary
             .detail
@@ -7084,7 +7084,7 @@ mod session_lifecycle {
     #[test]
     fn test_summary_parse_errors_key_canonical() {
         let analyzer = EnipAnalyzer::new(50, 5);
-        // Production summarize() contains todo!() → RED until implemented.
+        // Verifies enip_summary uses the canonical key "parse_errors" (BC-2.17.021 Invariant 1).
         let summary = analyzer.summarize();
         let enip_summary = summary
             .detail
@@ -7110,7 +7110,8 @@ mod session_lifecycle {
     #[test]
     fn test_summary_zero_flow_case() {
         let analyzer = EnipAnalyzer::new(50, 5);
-        // Production summarize() contains todo!() → RED until implemented.
+        // Verifies summarize() returns a valid enip_summary with all counts at 0 in the
+        // zero-flow case (BC-2.17.021 Postcondition 2 / Invariant 3).
         let summary = analyzer.summarize();
         let enip_summary = summary
             .detail
@@ -7164,7 +7165,8 @@ mod session_lifecycle {
         // Drive ListIdentity: T0846 suppressed → dropped_findings = 1.
         analyzer.on_data(key.clone(), &enip_frame(CMD_LIST_IDENTITY), 0);
         analyzer.on_flow_close(key.clone());
-        // Production summarize() contains todo!() → RED until implemented.
+        // Verifies summarize() reports dropped_findings == 1 after the cap suppressed one
+        // finding (BC-2.17.022 Invariant 4 / BC-2.17.021 Post 1).
         let summary = analyzer.summarize();
         let enip_summary = summary
             .detail
@@ -7192,9 +7194,9 @@ mod session_lifecycle {
         let mut analyzer = EnipAnalyzer::new(50, 5);
         let key = flow_key();
         analyzer.on_data(key.clone(), &enip_frame(CMD_REGISTER_SESSION), 0);
-        // Production on_flow_close contains todo!() → RED until implemented.
+        // Verifies on_flow_close + summarize() report flows_analyzed >= 1
+        // (BC-2.17.021 canonical vector / BC-2.17.017 Post 6).
         analyzer.on_flow_close(key.clone());
-        // Production summarize() contains todo!() → RED until implemented.
         let summary = analyzer.summarize();
         let enip_summary = summary
             .detail
