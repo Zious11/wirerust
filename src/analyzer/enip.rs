@@ -22,8 +22,6 @@
 //! Sub-A through Sub-C harnesses live in `#[cfg(kani)] mod kani_proofs` below.
 //! Sub-D (`vp032_cip_service_classification_totality`) is in scope for STORY-132.
 
-#![allow(dead_code)]
-
 // ---------------------------------------------------------------------------
 // Data types — pure-core (STORY-130)
 // ---------------------------------------------------------------------------
@@ -177,6 +175,29 @@ pub fn is_valid_enip_frame(h: &EnipHeader) -> bool {
 /// `all_findings.len() < MAX_FINDINGS`.
 pub const MAX_FINDINGS: usize = 10_000;
 
+/// Maximum number of bytes the carry buffer may hold after any `on_data` call.
+///
+/// When `flow.carry.len() > MAX_ENIP_CARRY_BYTES` after the frame-walk loop stashes
+/// remaining bytes, the carry-overflow path fires: `parse_errors += 1`,
+/// `malformed_in_window += 1`, `check_t0814()` (before latch), `is_non_enip = true`,
+/// `carry.clear()` (BC-2.17.016 Invariant 1 / Postcondition 4 / Invariant 4).
+///
+/// NOT configurable — hard cap per ADR-010 Decision 3/4.
+///
+/// Traces: BC-2.17.016 Invariant 1 / Invariant 4; ADR-010 Decision 3.
+pub const MAX_ENIP_CARRY_BYTES: usize = 600;
+
+/// Number of malformed frames within the 300-second window that triggers a T0814 finding.
+///
+/// Compile-time constant — NOT CLI-configurable (ADR-010 Decision 5).
+/// The windowed `malformed_in_window` counter (reset every 300 s) is compared against
+/// this threshold by `check_t0814`. Once the threshold is reached and
+/// `malformed_anomaly_emitted == false`, a single T0814 Anomaly/Possible/Low finding
+/// is emitted and `malformed_anomaly_emitted` is latched true for the remainder of the window.
+///
+/// Traces: BC-2.17.018 Invariant 1 / Postcondition 3; ADR-010 Decision 5.
+pub const MALFORMED_ANOMALY_THRESHOLD: u64 = 3;
+
 use std::collections::HashMap;
 use std::net::IpAddr;
 
@@ -314,6 +335,25 @@ pub struct EnipFlowState {
     /// Architecture Rule 4). Read by STORY-138 session summary.
     /// Field name is normative per BC-2.17.015 Architecture Mapping.
     pub close_connection_count: u32,
+
+    /// One-shot guard for T0814 per-window emission (BC-2.17.018 Postcondition 4).
+    ///
+    /// Set to `true` when the T0814 finding is emitted for the current 300-second window;
+    /// reset to `false` on window expiry along with `malformed_in_window`. Prevents a second
+    /// T0814 finding from firing within the same window when the threshold is exceeded again.
+    /// Field name is normative per BC-2.17.018 Architecture Mapping.
+    pub malformed_anomaly_emitted: bool,
+
+    /// Timestamp (pcap-relative seconds, u32) of the start of the current 300-second malformed
+    /// frame detection window (BC-2.17.018 Postcondition 5).
+    ///
+    /// Seeded to `now_ts` on the first `on_data` call for a flow (initialized to 0 in
+    /// `EnipFlowState::new()`). Window expiry is evaluated at the top of each `on_data` call:
+    /// when `now_ts - malformed_window_start >= 300`, the window resets:
+    /// `malformed_in_window = 0`, `malformed_anomaly_emitted = false`,
+    /// `malformed_window_start = now_ts`.
+    /// Field name is normative per BC-2.17.018 Architecture Mapping.
+    pub malformed_window_start: u32,
 }
 
 impl EnipFlowState {
@@ -339,6 +379,8 @@ impl EnipFlowState {
             write_window_start_ts: 0,
             open_connection_count: 0,
             close_connection_count: 0,
+            malformed_anomaly_emitted: false,
+            malformed_window_start: 0,
         }
     }
 }
@@ -349,6 +391,83 @@ impl Default for EnipFlowState {
     /// WIRING-EXEMPT: single delegation call, no branching, no I/O.
     fn default() -> Self {
         Self::new()
+    }
+}
+
+// ---------------------------------------------------------------------------
+// T0814 windowed DoS detection helper (STORY-137 — BC-2.17.018)
+// ---------------------------------------------------------------------------
+
+/// Check whether the windowed malformed-frame threshold has been crossed and, if so,
+/// emit a single T0814 Anomaly/Possible/Low finding into `all_findings`.
+///
+/// Called from the frame-walk loop in `on_data` after every structural reject (invalid
+/// command, oversized declared frame, carry-buffer overflow) and at the carry-cap check.
+///
+/// **Conditional emission (BC-2.17.018 Postconditions 3–4):** fires when ALL of:
+/// - `flow.malformed_in_window >= MALFORMED_ANOMALY_THRESHOLD` (= 3)
+/// - `flow.malformed_anomaly_emitted == false`
+/// - `flow.is_non_enip == false`  — MUST be evaluated BEFORE `is_non_enip` is latched
+///   on carry-overflow (BC-2.17.018 Precondition 6 / EC-007; ordering enforced in `on_data`)
+/// - `all_findings.len() < MAX_FINDINGS`
+///
+/// Sets `flow.malformed_anomaly_emitted = true` after emission (one-shot per window).
+/// Does NOT set `flow.is_non_enip` — that is the exclusive domain of the carry-cap check
+/// in `on_data` (BC-2.17.016 Invariant 4).
+///
+/// # Parameters
+/// - `flow` — mutable per-flow state; reads `malformed_in_window`,
+///   `malformed_anomaly_emitted`, `is_non_enip`; writes `malformed_anomaly_emitted`.
+/// - `all_findings` — analyzer-level findings accumulator; length compared against `MAX_FINDINGS`.
+/// - `now_ts` — pcap-relative capture timestamp (seconds, u32); included in the finding.
+/// - `src_ip` — source IP of the offending flow; included in the finding summary and field.
+/// - `dest_ip` — destination IP; included in the finding summary for flow identification.
+///
+/// # Traces
+/// BC-2.17.018 Postconditions 3–4; Invariant 1; Precondition 6; EC-007.
+pub fn check_t0814(
+    flow: &mut EnipFlowState,
+    all_findings: &mut Vec<crate::findings::Finding>,
+    now_ts: u32,
+    src_ip: std::net::IpAddr,
+    dest_ip: std::net::IpAddr,
+) {
+    // BC-2.17.018 Postconditions 3–4: conditional T0814 emission.
+    // All four guards must hold simultaneously:
+    //   1. malformed_in_window >= MALFORMED_ANOMALY_THRESHOLD (= 3)
+    //   2. malformed_anomaly_emitted == false (one-shot per window)
+    //   3. is_non_enip == false — CALLER MUST ensure this runs before is_non_enip is latched
+    //      (BC-2.17.018 Precondition 6 / EC-007 carry-overflow ordering constraint).
+    //   4. all_findings.len() < MAX_FINDINGS
+    if flow.malformed_in_window >= MALFORMED_ANOMALY_THRESHOLD
+        && !flow.malformed_anomaly_emitted
+        && !flow.is_non_enip
+        && all_findings.len() < MAX_FINDINGS
+    {
+        // Compute elapsed seconds in this window (wrapping_sub for u32 rollover safety).
+        let elapsed = now_ts.wrapping_sub(flow.malformed_window_start);
+        // BC-2.17.018 Postcondition 3: exact summary template.
+        let summary = format!(
+            "EtherNet/IP structural anomaly: {} malformed frames in {}s window \
+             (flow {}→{}) — possible crash-probe",
+            flow.malformed_in_window, elapsed, src_ip, dest_ip,
+        );
+        all_findings.push(crate::findings::Finding {
+            category: crate::findings::ThreatCategory::Anomaly,
+            verdict: crate::findings::Verdict::Possible,
+            confidence: crate::findings::Confidence::Low,
+            summary,
+            evidence: vec![format!(
+                "malformed_in_window={}; threshold={}",
+                flow.malformed_in_window, MALFORMED_ANOMALY_THRESHOLD,
+            )],
+            mitre_techniques: vec!["T0814".to_string()],
+            source_ip: Some(src_ip),
+            timestamp: chrono::DateTime::from_timestamp(now_ts as i64, 0),
+            direction: None,
+        });
+        // BC-2.17.018 Postcondition 4: one-shot guard for this window.
+        flow.malformed_anomaly_emitted = true;
     }
 }
 
@@ -396,6 +515,15 @@ pub struct EnipAnalyzer {
     /// Never reset. Read by `summarize()` per BC-2.17.021 postcondition 1 `write_count` field.
     /// Field name is normative per BC-2.17.012 Architecture Anchors.
     pub write_count: u64,
+
+    /// Per-flow mutable state indexed by TCP flow key.
+    ///
+    /// The frame-walk loop in `on_data` (STORY-137 / BC-2.17.016) uses `entry().or_default()`
+    /// to lazily create `EnipFlowState` on first contact for each flow. Mirrors the
+    /// `Dnp3Analyzer::flows` pattern.
+    ///
+    /// Field name is normative — the test suite and `summarize()` reference it directly.
+    pub flows: HashMap<crate::reassembly::flow::FlowKey, EnipFlowState>,
 }
 
 impl EnipAnalyzer {
@@ -416,31 +544,206 @@ impl EnipAnalyzer {
             bytes_received: 0,
             error_count: 0,
             write_count: 0,
+            flows: HashMap::new(),
         }
     }
 
-    /// Receive reassembled TCP bytes for a port-44818 flow.
+    /// Receive reassembled TCP bytes for a port-44818 flow and run the ENIP frame-walk loop.
     ///
-    /// Increments `bytes_received` by `data.len()` (saturating add) to evidence
-    /// BC-2.17.019 PC-2 routing correctness. Full CIP frame-walk and detection
-    /// logic are added by STORY-132+; this stub satisfies the dispatcher wiring
-    /// contract for STORY-131.
+    /// Entry point for all per-flow stream data. Implements:
+    /// 1. `bytes_received` increment (WIRING-EXEMPT routing confirmation observable,
+    ///    BC-2.17.019 PC-2; dispatcher wiring contract from STORY-131).
+    /// 2. `is_non_enip` early-exit guard — flows permanently quarantined by carry-buffer
+    ///    overflow are immediate no-ops after the bytes_received increment (BC-2.17.016 Inv 4).
+    /// 3. 300-second malformed window expiry check and reset (BC-2.17.018 Postcondition 5).
+    /// 4. Carry + new-data concatenation (BC-2.17.016 Postcondition 2).
+    /// 5. Frame-walk loop (BC-2.17.016 Postcondition 1 / ADR-010 Decision 4):
+    ///    - `parse_enip_header` + `command_counts` increment (PC-0, canonical single site)
+    ///    - `is_valid_enip_frame` gate → byte-walk resync on unknown command (cursor += 1)
+    ///    - Oversized declared frame → frame-skip path (cursor += min(total, remaining))
+    ///    - Partial frame → stash into carry; break
+    ///    - Valid complete frame → `process_pdu`; cursor += total_frame_len
+    /// 6. Carry stash after loop (BC-2.17.016 Postcondition 3).
+    /// 7. Carry-cap check (BC-2.17.016 Postcondition 4 / Invariant 4):
+    ///    - `parse_errors += 1`; `malformed_in_window += 1`
+    ///    - `check_t0814()` ← MUST run while `is_non_enip == false` (BC-2.17.018 Precond 6)
+    ///    - `is_non_enip = true`; `carry.clear()`
     ///
-    /// `flow_key` and `timestamp` are accepted to match the DNP3 `on_data`
-    /// signature (ADR-010 Decision 9; STORY-131 boundary decision), but are
-    /// not consumed until STORY-132 adds the frame-walk loop.
+    /// WIRING-EXEMPT (bytes_received line only): single saturating_add, no branching, no I/O.
+    /// All steps above are fully implemented by STORY-137 (frame-walk loop, carry-cap check,
+    /// T0814 detection). No stubs or todo!() remain in this function.
     ///
-    /// WIRING-EXEMPT: single saturating_add with no I/O; ≤ 3 lines.
+    /// # Parameters
+    /// - `flow_key`  — TCP flow identifier; used to look up / insert `EnipFlowState`.
+    /// - `data`      — reassembled TCP bytes for this flow segment.
+    /// - `timestamp` — pcap-relative capture timestamp (seconds, u32).
     ///
     /// # Traces
-    /// BC-2.17.019 §P2 (routing confirmation); AC-131-001 observable.
+    /// BC-2.17.016 (frame-walk algorithm); BC-2.17.018 (T0814 windowed detection);
+    /// BC-2.17.004 Inv-3 (command_counts single increment site);
+    /// BC-2.17.019 §P2 (routing confirmation); AC-131-001 (bytes_received observable).
     pub fn on_data(
         &mut self,
-        _flow_key: crate::reassembly::flow::FlowKey,
+        flow_key: crate::reassembly::flow::FlowKey,
         data: &[u8],
-        _timestamp: u32,
+        timestamp: u32,
     ) {
+        // WIRING-EXEMPT (this line only): routing-confirmation observable for STORY-131
+        // dispatcher tests (BC-2.17.019 PC-2). Single saturating_add; no branching; no I/O.
         self.bytes_received = self.bytes_received.saturating_add(data.len() as u64);
+
+        // Extract src/dest IPs from flow key for T0814 finding fields.
+        // FlowKey is canonicalised as (lower, upper) by (ip, port) tuple comparison.
+        let src_ip = flow_key.lower_ip();
+        let dest_ip = flow_key.upper_ip();
+
+        // Lazily create per-flow state (mirrors Dnp3Analyzer::flows entry pattern).
+        let _ = self.flows.entry(flow_key.clone()).or_default();
+
+        // ── Frame-walk phase ──────────────────────────────────────────────────────────
+        // Collect validated PDU byte-slices in this Vec; dispatch after releasing the
+        // flow borrow (Rust borrow-checker split: `flow` from `self.flows`, while
+        // `self.all_findings` / threshold fields are accessed separately as in DNP3).
+        // PDUs are bounded to MAX_ENIP_CARRY_BYTES (600 bytes) so this allocation is small.
+        let mut pdu_queue: Vec<Vec<u8>> = Vec::new();
+
+        {
+            // Borrow-checker note (mirrors Dnp3Analyzer::on_data §"Borrow-checker note"):
+            // `flow` borrows `self.flows`. Within this block we access `self.all_findings`
+            // as a separate field (disjoint struct field borrow — allowed by NLL).
+            // We do NOT call `self.process_pdu` here (that requires &mut self); instead we
+            // collect PDU bytes and dispatch below after this block ends.
+            let flow = self.flows.get_mut(&flow_key).expect("just inserted");
+
+            // BC-2.17.016 Postcondition 5: is_non_enip early-exit.
+            if flow.is_non_enip {
+                return;
+            }
+
+            // BC-2.17.018 Postcondition 5: 300-second malformed window expiry check.
+            // Must run BEFORE any emission check so stale state from the previous window
+            // cannot affect new-window detections. Uses wrapping_sub for u32 rollover safety.
+            // parse_errors is NOT reset (lifetime counter, BC-2.17.018 Invariant 1).
+            if timestamp.wrapping_sub(flow.malformed_window_start) >= 300 {
+                flow.malformed_in_window = 0;
+                flow.malformed_anomaly_emitted = false;
+                flow.malformed_window_start = timestamp;
+            }
+
+            // BC-2.17.016 Postcondition 2: carry PREPENDED to new data (ADR-010 Decision 4).
+            let mut buf = flow.carry.clone();
+            buf.extend_from_slice(data);
+            let mut cursor = 0usize;
+
+            // BC-2.17.016 Postcondition 1: frame-walk loop.
+            while buf.len() - cursor >= 24 {
+                // Parse 24-byte ENIP header at current cursor position.
+                let header = match parse_enip_header(&buf[cursor..cursor + 24]) {
+                    Some(h) => h,
+                    None => {
+                        // Defensive arm: parse_enip_header returns None only for < 24 bytes.
+                        // The while condition `buf.len() - cursor >= 24` makes this unreachable
+                        // in correct code (STORY-137 pseudocode lines 213-221; RULING-137-001 §1).
+                        // Counter mutations are removed to prevent silent inflation if the guard
+                        // is weakened (F-137-P1-004). A debug_assert catches regressions.
+                        debug_assert!(
+                            false,
+                            "parse_enip_header returned None despite buf.len()-cursor >= 24; \
+                             this is a logic error in the while-loop guard"
+                        );
+                        cursor += 1;
+                        continue;
+                    }
+                };
+
+                // BC-2.17.016 PC-0 (F8-001 canonical single increment site): increment
+                // command_counts IMMEDIATELY after parse_enip_header returns Some, BEFORE
+                // is_valid_enip_frame. Fires for every structurally-parsed 24-byte header
+                // including Unknown/invalid-command frames (BC-2.17.004 Invariant 3).
+                *flow.command_counts.entry(header.command).or_insert(0) += 1;
+
+                // BC-2.17.016 Postcondition 1 / BC-2.17.018 PC-1/2: command-validity gate.
+                // Unknown command → byte-walk resync: cursor += 1; continue (NOT break).
+                // RULING-137-001 §1: continue is mandated by all four ratified artifacts.
+                // Each byte-walk position that fails is_valid_enip_frame is one structural
+                // reject — counted independently (RULING-137-001 §2, Option a).
+                if !is_valid_enip_frame(&header) {
+                    flow.parse_errors += 1;
+                    flow.malformed_in_window += 1;
+                    check_t0814(flow, &mut self.all_findings, timestamp, src_ip, dest_ip);
+                    cursor += 1; // byte-walk resync — advance 1 byte, NOT break
+                    continue; // NOT break — loop must re-attempt at next byte (BC-2.17.016 Post-1)
+                }
+
+                let total_frame_len = 24 + header.length as usize;
+
+                // BC-2.17.016 Postcondition 1 / Invariant 4 (frame-skip path):
+                // Oversized declared frame (total > MAX_ENIP_CARRY_BYTES) → frame-skip.
+                // DO NOT set is_non_enip here (carry overflow is the ONLY trigger, Inv 4).
+                // Advance past the declared frame, bounded by remaining buffer, then continue.
+                // RULING-137-001 §1: continue is required — subsequent valid frames in the
+                // same segment must still be processed (detection-evasion vector if break used).
+                if total_frame_len > MAX_ENIP_CARRY_BYTES {
+                    flow.parse_errors += 1;
+                    flow.malformed_in_window += 1;
+                    check_t0814(flow, &mut self.all_findings, timestamp, src_ip, dest_ip);
+                    // Advance past the declared frame, bounded by remaining buffer.
+                    cursor += total_frame_len.min(buf.len() - cursor);
+                    continue; // NOT break — re-attempt at next position (RULING-137-001 §1)
+                }
+
+                // BC-2.17.016 Postcondition 1 (partial-frame stash): not enough bytes yet.
+                if buf.len() - cursor < total_frame_len {
+                    break;
+                }
+
+                // Valid, complete frame: collect for dispatch after this block.
+                // Cloning is bounded: total_frame_len <= MAX_ENIP_CARRY_BYTES (600 bytes).
+                pdu_queue.push(buf[cursor..cursor + total_frame_len].to_vec());
+                cursor += total_frame_len;
+            }
+
+            // BC-2.17.016 Postcondition 3: stash remaining bytes into carry.
+            flow.carry = buf[cursor..].to_vec();
+
+            // BC-2.17.016 Postcondition 4 / Invariant 4: carry-cap check.
+            // ORDERING CONSTRAINT (BC-2.17.018 Precondition 6 / EC-007):
+            //   check_t0814 MUST run while is_non_enip is still false — the carry-overflow
+            //   event is itself a structural reject that can be the 3rd malformed event in
+            //   the window. Latching is_non_enip FIRST would permanently suppress T0814.
+            if flow.carry.len() > MAX_ENIP_CARRY_BYTES {
+                flow.parse_errors += 1;
+                flow.malformed_in_window += 1;
+                // T0814 evaluation runs while is_non_enip == false (BC-2.17.018 Precond 6).
+                check_t0814(flow, &mut self.all_findings, timestamp, src_ip, dest_ip);
+                // Latch AFTER T0814 evaluation (BC-2.17.016 Post 4 / Invariant 4).
+                flow.is_non_enip = true;
+                flow.carry.clear();
+            }
+        } // flow borrow released here
+
+        // ── PDU dispatch phase ────────────────────────────────────────────────────────
+        // Dispatch each collected valid PDU. Re-acquire flow per call.
+        // Safety: process_pdu does NOT access self.flows (verified by inspection); the
+        // flow we pass is from self.flows[flow_key], and process_pdu only mutates
+        // self.all_findings, self.error_count, self.write_count, and threshold fields.
+        // We re-borrow self.flows[flow_key] each iteration; pdu_queue is empty if
+        // is_non_enip was set above (carry overflow clears it before block exit).
+        for pdu in pdu_queue {
+            // SAFETY (split-borrow): flow_ptr aliases self.flows[flow_key]. process_pdu
+            // only touches self.all_findings, self.error_count, self.write_count,
+            // self.enip_write_burst_threshold, self.enip_error_burst_threshold — none of
+            // which overlap with self.flows. The aliased field is therefore not accessed
+            // by process_pdu, making the exclusive-reference invariant sound.
+            let flow_ptr: *mut EnipFlowState = self
+                .flows
+                .get_mut(&flow_key)
+                .expect("flow exists: inserted above and not removed");
+            // SAFETY: flow_ptr is a valid &mut obtained from self.flows. process_pdu does
+            // not call self.flows or alias flow_ptr through any other path.
+            #[allow(clippy::ptr_as_ptr)]
+            self.process_pdu(unsafe { &mut *flow_ptr }, &pdu, timestamp, src_ip);
+        }
     }
 
     /// Main per-PDU detection dispatch for a single validated ENIP frame.
@@ -482,10 +785,26 @@ impl EnipAnalyzer {
             return;
         }
 
-        // ADR-010 Decision 4, step 1: parse ENIP header; silently drop frames < 24 bytes.
+        // BC-2.17.024: count every validated PDU that reaches this dispatch function.
+        // Incremented here (after is_non_enip guard) so non-ENIP flows do not count.
+        flow.pdu_count += 1;
+
+        // ADR-010 Decision 4, step 1: parse ENIP header.
+        // Only complete, valid (>= 24-byte, is_valid_enip_frame-checked) frames are ever
+        // queued/dispatched to process_pdu by on_data. A None here is a logic error.
+        // The debug_assert makes future regressions (e.g. a path that dispatches partial
+        // frames) visible immediately rather than silently dropping a PDU (F-137-P1-003).
         let header = match parse_enip_header(pdu) {
             Some(h) => h,
-            None => return,
+            None => {
+                debug_assert!(
+                    false,
+                    "process_pdu received a pdu < 24 bytes ({} bytes); \
+                     only frames validated in on_data should be dispatched here",
+                    pdu.len()
+                );
+                return;
+            }
         };
 
         // ADR-010 Decision 4, step 2: classify command; T0846 ListIdentity detection
