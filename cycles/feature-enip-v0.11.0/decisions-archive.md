@@ -3,7 +3,7 @@ document_type: decisions-archive
 cycle_id: feature-enip-v0.11.0
 archived_from: STATE.md Decisions Log
 archived_at: ~
-archived_decisions: D-228..D-259
+archived_decisions: D-228..D-260
 ---
 
 # Decisions Archive — feature-enip-v0.11.0 (D-228+)
@@ -407,3 +407,23 @@ Wave-60 integration gate: CONVERGED — PENDING HUMAN GATE.
 - F-138-P1-002 (LOW): BC-2.17.016 PC-0 wording ambiguity — deferred to cycle close.
 
 **NEXT = Wave-61 integration gate** (fix F-138-P1-004 first).
+
+---
+
+## D-260 — F-138-P1-004 RESOLVED via fix-PR #330 (2026-06-26)
+
+**fix-PR #330** (`fix(enip): summarize folds open flows so enip_summary reflects live traffic`) squash-merged into develop. New develop HEAD = `7ceb670` (was `b4624ef`).
+
+**Root cause fixed:** `summarize()` now folds still-open `self.flows.values()` on top of closed-flow aggregates per RULING-W61-001 (DNP3 parity). `enip_summary` now reflects live traffic for `total_pdu_count`, `command_distribution`, `parse_errors`, and `flows_analyzed` — not just `write_count`/`error_count`.
+
+**Verification:** Discriminating test added (enip_summary non-zero on open flows before on_flow_close) + mixed closed+open fold test added. CI 11/11 green; AI APPROVE; security CLEAN.
+
+**Security note:** SEC-006 MEDIUM = pre-existing unsafe split-borrow in `process_pdu` — already tracked as STORY-137-UNSAFE-SPLIT-BORROW, not introduced by this fix.
+
+**Fix worktree** cleaned up by devops concurrently during this merge.
+
+**BC-2.17.021 prose clarification deferred to cycle close** (ruling-sanctioned per RULING-W61-001 — `summarize()` folds open flows per Precond 4; stale "does NOT re-scan / aggregates must be up-to-date from on_flow_close" Invariant 2 wording to be removed).
+
+**HUMAN DIRECTIVE:** STOP before cutting the v0.11.0 release — proceed through Wave-61 gate + F5 + F6 + F7 convergence, then HALT for human go-ahead before the release pipeline.
+
+**NEXT = Wave-61 integration gate** — full regression on develop @7ceb670 + fresh consistency audit + 3-pass wave-level adversarial convergence → Wave-61 human gate.

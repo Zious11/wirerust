@@ -1,10 +1,10 @@
 ---
 pipeline: FEATURE-MODE
 phase: F4
-phase_status: "F4 Wave 61 code-complete. STORY-138 MERGED PR #329 @b4624ef (D-259). All STORY-130..138 merged. Wave-61 integration gate NEXT."
+phase_status: "F4 Wave 61 code-complete. Fix-PR #330 MERGED @7ceb670 (D-260). F-138-P1-004 RESOLVED. Wave-61 integration gate NEXT (regression + consistency audit + 3-pass adversarial convergence)."
 product: wirerust
 mode: feature-mode
-timestamp: 2026-06-26T19:00:00Z
+timestamp: 2026-06-26T20:00:00Z
 
 # Release chain (latest)
 released_version: v0.10.0
@@ -16,8 +16,8 @@ release_yml_run: "28109367603 SUCCESS — 4 binaries"
 prior_released_version: v0.9.4
 prior_released_at: "2026-06-23"
 
-# Ground-truth HEADs (verified D-259 — 2026-06-26)
-develop_head: b4624ef
+# Ground-truth HEADs (verified D-260 — 2026-06-26)
+develop_head: 7ceb670
 main_head: 0cbe922
 factory_artifacts_head: (run `git -C .factory log -1 --format='%h'`)
 
@@ -29,7 +29,7 @@ adversary_gate: SATISFIED
 # Story tracking
 stories_delivered: 87
 current_cycle: feature-enip-v0.11.0 (D-228, 2026-06-24)
-current_wave: "Wave 61 CODE-COMPLETE — STORY-138 MERGED PR #329 @b4624ef (D-259). stories_delivered=87. Wave-61 integration gate NEXT."
+current_wave: "Wave 61 CODE-COMPLETE — fix-PR #330 MERGED @7ceb670 (D-260). F-138-P1-004 RESOLVED. stories_delivered=87. Wave-61 integration gate NEXT."
 
 # DTU
 dtu_required: false
@@ -52,9 +52,11 @@ convergence_trajectory: "Detail: cycles/v0.1.0-greenfield-spec/convergence-traje
 
 ## Status
 
-**PIPELINE FEATURE-MODE. Cycle `feature-enip-v0.11.0` OPEN. Wave 61 CODE-COMPLETE — STORY-138 MERGED PR #329 @b4624ef. All STORY-130..138 merged. Wave-61 integration gate NEXT.**
+**PIPELINE FEATURE-MODE. Cycle `feature-enip-v0.11.0` OPEN. Wave 61 CODE-COMPLETE — fix-PR #330 MERGED @7ceb670 (D-260). F-138-P1-004 RESOLVED. Wave-61 integration gate NEXT.**
 
-Latest release: v0.10.0 (main `0cbe922`, tag `v0.10.0`). develop=`b4624ef`. stories_delivered=87. Target: v0.11.0 (SS-17 EtherNet/IP + CIP TCP/44818). GitHub issue #316.
+**HUMAN DIRECTIVE (D-260): STOP before cutting the v0.11.0 release — proceed through Wave-61 gate + F5 + F6 + F7 convergence, then HALT for human go-ahead before the release pipeline.**
+
+Latest release: v0.10.0 (main `0cbe922`, tag `v0.10.0`). develop=`7ceb670`. stories_delivered=87. Target: v0.11.0 (SS-17 EtherNet/IP + CIP TCP/44818). GitHub issue #316.
 
 Spec versions: BC-INDEX v1.84 (331 on disk / 330 active; SS-17=26 BCs). ARCH-INDEX v1.8. VP-INDEX v2.11 (VP-032). PRD v1.36. STORY-INDEX v2.8 (91 stories / 61 waves). epics.md v1.8 (E-20).
 
@@ -74,26 +76,27 @@ Spec versions: BC-INDEX v1.84 (331 on disk / 330 active; SS-17=26 BCs). ARCH-IND
 - Do NOT re-deliver STORY-137 — MERGED PR #327 @72a9106 (D-254). input-hash f4c8390 MATCH.
 - Do NOT re-apply fix-PR #328 — MERGED @0f345c6 (D-256). `resolve_enip_client_ip` port-44818 heuristic ships.
 - Do NOT re-deliver STORY-138 — MERGED PR #329 @b4624ef (D-259). input-hash 0f60353 MATCH.
+- Do NOT re-apply fix-PR #330 — MERGED @7ceb670 (D-260). summarize() now folds open flows per RULING-W61-001.
 
 ### EXACT RESUME POINT — Wave-61 Integration Gate
 
-**STORY-138 MERGED (D-259).** All STORY-130..138 merged. develop=`b4624ef`. stories_delivered=87.
+**Fix-PR #330 MERGED (D-260).** F-138-P1-004 RESOLVED: summarize() now folds open self.flows.values() on top of closed-flow aggregates per RULING-W61-001 (DNP3 parity); enip_summary now reflects live traffic. develop=`7ceb670`. stories_delivered=87.
 
-**NEXT = Wave-61 integration gate.** FIRST sub-step: fix F-138-P1-004 (EnipAnalyzer::on_flow_close is never invoked by the dispatcher → enip_summary reports 0 for total_pdu_count/command_distribution/parse_errors/flows_analyzed in real captures; write_count/error_count work). Needs architect ruling (summarize-time fold of open flows vs dispatcher drain) → fix-PR → then full regression + fresh consistency audit + 3-pass wave-level adversarial convergence → Wave-61 human gate.
+**NEXT = Wave-61 integration gate** — full regression on develop @7ceb670 + fresh consistency audit + 3-pass wave-level adversarial convergence → Wave-61 human gate.
 
-After Wave-61 gate → F5 scoped-adversarial → F6 formal hardening (Kani VP-032/VP-004/VP-007; cargo-fuzz F-P9-002 `parse_cip_header`/`parse_cpf_items`) → F7 delta-convergence + human gate → release v0.11.0.
+After Wave-61 gate → F5 scoped-adversarial → F6 formal hardening (Kani VP-032/VP-004/VP-007; cargo-fuzz F-P9-002 `parse_cip_header`/`parse_cpf_items`) → F7 delta-convergence + human gate → release v0.11.0. **STOP before release — human go-ahead required (D-260).**
 
 ### Remaining-work map (after resume)
 
-Wave-61 gate (fix F-138-P1-004 → fix-PR → regression + consistency audit + 3-pass convergence → human gate) → F5 scoped-adversarial → F6 formal hardening (VP-032/VP-004/VP-007 Kani; cargo-fuzz F-P9-002 `parse_cip_header`/`parse_cpf_items`) → F7 delta-convergence + human gate → release v0.11.0.
+Wave-61 gate (regression @7ceb670 + consistency audit + 3-pass adversarial convergence → human gate) → F5 scoped-adversarial → F6 formal hardening (VP-032/VP-004/VP-007 Kani; cargo-fuzz F-P9-002 `parse_cip_header`/`parse_cpf_items`) → F7 delta-convergence + human gate → **HALT for human go-ahead (D-260)** → release v0.11.0.
 
 ### RESUME PROCEDURE (execute in order — BLOCKING)
 
 1. Run `vsdd-factory:factory-worktree-health` — PASS required before proceeding.
 2. Read `.factory/STATE.md` + `cycles/feature-enip-v0.11.0/cycle-manifest.md` in full.
-3. Verify: `git rev-parse --short develop` == `b4624ef`.
-4. Run `gh pr list` — expect Dependabot #311/#325 open (non-blocking); PRs #317..#320/#323/#324/#326..#329 MERGED.
-5. Proceed per EXACT RESUME POINT above — begin Wave-61 integration gate (fix F-138-P1-004 first).
+3. Verify: `git rev-parse --short develop` == `7ceb670`.
+4. Run `gh pr list` — expect Dependabot #311/#325 open (non-blocking); PRs #317..#320/#323/#324/#326..#330 MERGED.
+5. Proceed per EXACT RESUME POINT above — begin Wave-61 integration gate (F-138-P1-004 already fixed; start full regression).
 
 ### Locked design facts (do not re-derive on resume)
 
@@ -105,7 +108,8 @@ Story input-hashes: STORY-130 e3c0a6a, STORY-131 a119157, STORY-132 738d0b0, STO
 
 | ID | Summary | Status |
 |----|---------|--------|
-| F-138-P1-004 | **HIGH — FUNCTIONAL.** EnipAnalyzer::on_flow_close never invoked by dispatcher → enip_summary reports 0 for total_pdu_count/command_distribution/parse_errors/flows_analyzed in real captures (write_count/error_count work). Needs architect ruling (summarize-time fold of open flows vs dispatcher drain) → fix-PR → Wave-61 regression. BLOCKS Wave-61 gate. | OPEN — Wave-61 gate |
+| F-138-P1-004 | **RESOLVED (D-260) — fix-PR #330 MERGED @7ceb670.** summarize() folds open self.flows.values() per RULING-W61-001 (DNP3 parity). CI 11/11 green; AI APPROVE; security CLEAN. Discriminating test + mixed closed+open fold test added. | RESOLVED — fix-PR #330 @7ceb670 |
+| BC-2.17.021-PROSE-CLARIFICATION | BC-2.17.021 Invariant 2 prose clarification — ruling-sanctioned deferral per RULING-W61-001 (summarize folds open flows per Precond 4; remove stale "does NOT re-scan / aggregates must be up-to-date from on_flow_close" wording). | OPEN — cycle close |
 | F-138-P1-002 | BC-2.17.016 PC-0 wording ambiguity (non-blocking). | OPEN — cycle close |
 | F-W60-002 | `bytes_received` BC-2.17.016 v1.1→v1.2 clarification (PC-5 exemption + Invariant 7). | DEFERRED — cycle close |
 | ENGINE-PROPAGATION-GREP-GATE-001 | Mechanical changed-value sibling-grep gate; from F2. Human decision needed before cycle CLOSE. | OPEN — human review |
@@ -120,7 +124,7 @@ Story input-hashes: STORY-130 e3c0a6a, STORY-131 a119157, STORY-132 738d0b0, STO
 
 All GitHub-issue creation DF-VALIDATION-001-gated.
 
-**Resolved — do not reopen:** PC-013/014/015, maint-2026-06-22, all F6 items, feature-mitre-json-names F1-F7, fix-pc-013-014-015, GREEN-DOC-TENSE-GATE-COVERAGE-001, F-W60-001 (fix-PR #328 D-256), WAVE-60-E2E-TEST-COVERAGE, WAVE-60-TEST-DOC-SWEEP (resolved STORY-138 PR #329).
+**Resolved — do not reopen:** PC-013/014/015, maint-2026-06-22, all F6 items, feature-mitre-json-names F1-F7, fix-pc-013-014-015, GREEN-DOC-TENSE-GATE-COVERAGE-001, F-W60-001 (fix-PR #328 D-256), WAVE-60-E2E-TEST-COVERAGE, WAVE-60-TEST-DOC-SWEEP (resolved STORY-138 PR #329), F-138-P1-004 (fix-PR #330 D-260 @7ceb670).
 
 ---
 
@@ -147,7 +151,7 @@ All GitHub-issue creation DF-VALIDATION-001-gated.
 | Feature mitre-json-names (issue #64) + v0.9.4 | RELEASED + CLOSED 2026-06-23 (D-217) | 5 BCs bumped. BC-INDEX v1.71 (303). PRs #306-309. tag v0.9.4. |
 | Fix cycle fix-pc-013-014-015 + v0.10.0 | **CONVERGED + RELEASED + CLOSED 2026-06-24 (D-226)** | BC-INDEX v1.73 (305). PRs #310-315. tag v0.10.0 0cbe922. |
 | Feature EtherNet/IP + CIP (issue #316) — F1/F2/F3 | **CONVERGED + HUMAN-APPROVED (D-228/D-230/D-231)** | 26 BCs (BC-2.17.001..026). 9 stories STORY-130..138 (E-20, 66 pts, waves 58-61). 13 holdouts HS-110..122. ADR-010, VP-032, SS-17. Detail: cycles/feature-enip-v0.11.0/ |
-| Feature EtherNet/IP + CIP — F4 | **IN-PROGRESS — Wave 61 CODE-COMPLETE (D-259). Wave-61 integration gate NEXT.** | All STORY-130..138 MERGED + fix-PR #328 @0f345c6. stories_delivered=87. Wave-60 gate PASSED (D-257/D-258). Wave-61: STORY-138 PR #329 @b4624ef MERGED; 3/3 convergence (BC-5.39.001 MET); CI 11/11 green. F-138-P1-004 OPEN (on_flow_close not invoked — BLOCKS wave gate). Convergence detail: cycles/feature-enip-v0.11.0/convergence-trajectory.md. |
+| Feature EtherNet/IP + CIP — F4 | **IN-PROGRESS — Wave 61 CODE-COMPLETE (D-260). Wave-61 integration gate NEXT.** | All STORY-130..138 MERGED + fix-PR #328 @0f345c6 + fix-PR #330 @7ceb670. stories_delivered=87. Wave-60 gate PASSED (D-257/D-258). Wave-61: STORY-138 PR #329 @b4624ef MERGED; fix-PR #330 @7ceb670 MERGED (F-138-P1-004 RESOLVED — summarize folds open flows per RULING-W61-001); CI 11/11 green. Convergence detail: cycles/feature-enip-v0.11.0/convergence-trajectory.md. |
 
 ## Decisions Log
 
@@ -157,7 +161,7 @@ D-131..D-135: `cycles/feature-story-119-grouped-collapse/decisions-archive.md`
 D-136..D-202: `cycles/feature-pcapng-reader/decisions-archive.md`
 D-206..D-217: `cycles/feature-mitre-json-names/decisions-archive.md`
 D-219..D-226: `cycles/fix-pc-013-014-015/decisions-archive.md`
-D-228..D-258: `cycles/feature-enip-v0.11.0/decisions-archive.md`
+D-228..D-260: `cycles/feature-enip-v0.11.0/decisions-archive.md`
 
 | ID | Decision | Date |
 |----|----------|------|
@@ -165,6 +169,7 @@ D-228..D-258: `cycles/feature-enip-v0.11.0/decisions-archive.md`
 | D-257 | Wave-60 convergence ACHIEVED — re-convergence passes A/B/C on @0f345c6 all CLEAN. BC-5.39.001 MET. Wave-60 integration gate CONVERGED — PENDING HUMAN GATE. | 2026-06-26 |
 | D-258 | Wave-60 integration gate PASSED — HUMAN APPROVED. Deferrals: SPEC-DEFECT-IS-NON-ENIP-DEAD-LATCH → v0.12.0; F-W60-P1-001 + WAVE-60-TEST-DOC-SWEEP → STORY-138; F-W60-002 + SS-17 BC backfill → cycle-close. Wave 61 STORY-138 IN-PROGRESS. | 2026-06-26 |
 | D-259 | STORY-138 MERGED — PR #329 (`feat(enip): STORY-138 session lifecycle, stats, DoS guard, analyzer summary`) squash-merged into develop; new develop HEAD = b4624ef (was 0f345c6). stories_delivered 86→87. BCs delivered: BC-2.17.025 (RegisterSession/UnRegisterSession), BC-2.17.017 (on_flow_close fold), BC-2.17.022 (MAX_FINDINGS DoS guard), BC-2.17.021 (summarize canonical keys), BC-2.17.024 (pdu_count). F-W60-P1-001 command_counts count-once fix shipped. WAVE-60-TEST-DOC-SWEEP resolved. Per-story adversarial convergence 3/3 (BC-5.39.001 MET); CI 11/11 green; pr-reviewer APPROVE (2 cycles); security PASS (SEC-001 MEDIUM saturating_add fixed @3f55f11; SEC-002/003/004 LOW). input-hash 0f60353 MATCH. Wave 61 code-complete. OPEN: F-138-P1-004 (on_flow_close not invoked by dispatcher — BLOCKS Wave-61 gate), F-138-P1-002 (cycle-close). NEXT = Wave-61 integration gate. | 2026-06-26 |
+| D-260 | F-138-P1-004 RESOLVED — fix-PR #330 (`fix(enip): summarize folds open flows so enip_summary reflects live traffic`) squash-merged into develop; new develop HEAD = 7ceb670 (was b4624ef). summarize() now folds still-open self.flows.values() on top of closed-flow aggregates per RULING-W61-001 (DNP3 parity); enip_summary now reflects live traffic. Discriminating test + mixed closed+open fold test added. CI 11/11 green; AI APPROVE; security CLEAN (SEC-006 MEDIUM = pre-existing unsafe split-borrow tracked as STORY-137-UNSAFE-SPLIT-BORROW, not introduced). Fix worktree cleaned up by devops concurrently. BC-2.17.021 Invariant 2 prose clarification deferred to cycle close (ruling-sanctioned per RULING-W61-001 — summarize folds open flows per Precond 4; stale "does NOT re-scan" wording to be removed). **HUMAN DIRECTIVE: STOP before cutting the v0.11.0 release — proceed through Wave-61 gate + F5 + F6 + F7 convergence, then HALT for human go-ahead before the release pipeline.** NEXT = Wave-61 integration gate (full regression @7ceb670 + consistency audit + 3-pass adversarial convergence). | 2026-06-26 |
 
 ## Governance Policy
 
