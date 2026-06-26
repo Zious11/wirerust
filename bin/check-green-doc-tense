@@ -46,6 +46,14 @@ The following patterns are matched against COMMENT LINES ONLY
  16. will panic at .* until the implementation lands  — "will panic … until implementation"
  17. tests? will panic .* until .* implement  — "test(s) will panic … until … implement"
  18. Each test will panic at .* until        — "Each test will panic at … until"
+ 19. before reaching .*todo!()          — GREEN-BY-DESIGN docstring referencing a now-gone todo!()
+                                          block (e.g. "gate fires before reaching the todo!() Stop-detection block")
+ 20. no todo!() is reached             — GREEN-BY-DESIGN docstring asserting todo!() is bypassed
+                                          (e.g. "no todo!() is reached", "No todo!() is reached because")
+ 21. before any todo!() block          — GREEN-BY-DESIGN docstring stating execution returns before
+                                          any todo!() block (e.g. "fires before any todo!() block")
+ 22. todo!() (Stop|Reset|.*-detection) block — docstring naming a specific detection block as todo!()
+                                          (e.g. "todo!() Stop-detection block", "todo!() Reset block")
 
 All patterns are anchored to comment lines (leading // or //!) to avoid
 false-positives inside doc-test code blocks or inside string literals.
@@ -57,7 +65,7 @@ requires an unambiguous current-state assertion ("MUST FAIL", "are designed
 to FAIL", "stub-only bodies", "stubs only", "are RED until", etc.) that
 cannot appear in past-tense provenance narration.
 
-Pattern-specific allowlist notes (patterns 12-17):
+Pattern-specific allowlist notes (patterns 12-22):
   12. "RED — stubs only": The dash+phrase combination is specific to stub-phase
       headers. Past-tense equivalents use "originated as stubs" or "were stubs".
       Allowlisted: "originated as Red-Gate stubs", "(was RED)", patterns without
@@ -74,6 +82,26 @@ Pattern-specific allowlist notes (patterns 12-17):
       "used to panic", "panicked before implementation".
   17. "test(s) will panic … until … implement": Same rationale as 16.
       Allowlisted: "tests panicked", "tests would panic".
+  19. "before reaching .*todo!()": Present-tense framing implies todo!() still
+      exists in the code as an active stub. The test describing itself as "firing
+      before reaching todo!()" only makes sense if todo!() is still live.
+      Allowlisted: "the todo!() was replaced", "originated as todo!() stubs" —
+      past-tense forms that document historical context without asserting current state.
+  20. "no todo!() is reached": Same rationale — describes todo!() as a currently-live
+      code path that the test short-circuits. After implementation is green, there is no
+      todo!() to reach.
+      Allowlisted: "the todo!() was replaced in STORY-NNN" — past-tense provenance.
+  21. "before any todo!() block": Present-tense form asserting the function still
+      contains active todo!() blocks the test bypasses. Post-implementation, no
+      todo!() blocks remain; this framing is always stale on green code.
+      Allowlisted: "before any todo!() block was replaced" — grammatically past-tense.
+  22. "todo!() (Stop|Reset|.*-detection) block": Names a specific feature block by
+      its todo!() stub label (e.g. "todo!() Stop-detection block"). Once implemented,
+      the block is no longer a todo!() — it is the detection logic itself. Referring
+      to it as a "todo!() block" in a docstring is stale once the code is green.
+      Allowlisted: "the todo!() Stop-detection block was replaced", "originated as
+      todo!() stubs" — past-tense or provenance framing. NOT flagged: prose using
+      past tense like "the todo!() was replaced" or "originated as todo!() stubs".
 
 The following commonly-seen "Red Gate" phrases are intentionally NOT in the
 token list because they describe historical provenance, not current state:
@@ -202,6 +230,56 @@ _VIOLATION_PATTERNS: list[tuple[str, re.Pattern[str]]] = [
         # Allowlist: "Each test would have panicked", "Each test panicked before".
         "Each test will panic at … until (current-state per-test panic assertion in header)",
         re.compile(r"Each test will panic at\b.*\buntil\b", re.IGNORECASE),
+    ),
+    # -----------------------------------------------------------------------
+    # Patterns 19-22: added to catch stale GREEN-BY-DESIGN todo!() references
+    # in STORY-135 command_detections and sibling mods (F-135-P3-001).
+    # These patterns fire on comment lines that assert the code still contains
+    # active todo!() blocks — stale after the implementation ships GREEN.
+    # -----------------------------------------------------------------------
+    (
+        # Pattern 19: "before reaching .*todo!()" — present-tense claim that a live
+        # todo!() block exists downstream of a short-circuiting gate.
+        # Examples: "gate fires in the CPF loop before reaching the todo!() Stop-detection block"
+        #           "gate fires before reaching todo!() Reset block"
+        # Allowlist: "the todo!() was replaced", "originated as todo!() stubs" — past-tense.
+        "before reaching … todo!() (stale GREEN-BY-DESIGN docstring referencing a now-gone stub)",
+        re.compile(r"before reaching\b.*\btodo!\(\)", re.IGNORECASE),
+    ),
+    (
+        # Pattern 20: "no todo!() is reached" — present-tense assertion that todo!()
+        # is bypassed, implying it still exists in the code.
+        # Examples: "no todo!() is reached", "No todo!() is reached because the function returns"
+        # Allowlist: "the todo!() was replaced in STORY-NNN" — past-tense provenance.
+        "no todo!() is reached (stale GREEN-BY-DESIGN docstring asserting todo!() is bypassed)",
+        re.compile(r"no\s+todo!\(\)\s+is\s+reached", re.IGNORECASE),
+    ),
+    (
+        # Pattern 21: "before any todo!() block" — present-tense assertion that todo!()
+        # blocks still exist in the function body.
+        # Examples: "the is_non_enip early-return fires before any todo!() block"
+        # Allowlist: past-tense forms — "before any todo!() block was replaced".
+        "before any todo!() block (stale GREEN-BY-DESIGN docstring asserting live todo!() blocks)",
+        re.compile(r"before any\s+todo!\(\)\s+block", re.IGNORECASE),
+    ),
+    (
+        # Pattern 22: "todo!() <detection-name> block" — names a specific detection
+        # feature block using its stub-phase todo!() label (e.g. "todo!() Stop-detection block",
+        # "todo!() Reset block"). Once GREEN, the block is the detection logic, not a stub.
+        # Examples: "reaching the todo!() Stop-detection block"
+        #           "before reaching todo!() Reset block"
+        # Allowlist: past-tense — "the todo!() Stop-detection block was replaced",
+        #            "originated as todo!() stubs".
+        # Note: Pattern 19 already catches the "before reaching" form; Pattern 22 catches
+        # any remaining standalone "todo!() <detection> block" references.
+        # Negative lookahead on " was" distinguishes "block was replaced" (past, allowlisted)
+        # from "block." or "block runs" (present-state, flagged).
+        "todo!() <detection> block (stale stub-phase label on a now-implemented block)",
+        re.compile(
+            r"todo!\(\)\s+(?:Stop|Reset|Stop-detection|Reset-detection|"
+            r"\w+-detection)\s+block(?!\s+was\b)",
+            re.IGNORECASE,
+        ),
     ),
 ]
 

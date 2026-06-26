@@ -617,10 +617,10 @@ mod dispatch {
     /// Port 9999 matches no rule (Rule 8 / DispatchTarget::None); the Enip arm is
     /// never reached. `bytes_received` stays 0, proving Rule 7 is not over-broad.
     ///
-    /// GREEN-BY-DESIGN: the port-9999 call takes the Rule 8 / early-exit path and
-    /// never enters the `DispatchTarget::Enip` arm, so `todo!()` is not triggered.
-    /// `bytes_received == 0` is a non-vacuous assertion because it distinguishes a
-    /// correct implementation from one that credits all ports to the ENIP analyzer.
+    /// The port-9999 call takes the Rule 8 / early-exit path and never enters the
+    /// `DispatchTarget::Enip` arm, leaving `bytes_received` at 0. This is a
+    /// non-vacuous assertion that distinguishes a correct implementation from one
+    /// that credits all ports to the ENIP analyzer.
     ///
     /// Traces: BC-2.17.019 postcondition 3 (non-44818 flows unaffected); AC-131-001.
     #[test]
@@ -689,9 +689,9 @@ mod dispatch {
     /// `if let Some(ref mut enip) = self.enip` guard and silently returns without
     /// forwarding data. No `on_data` call on any analyzer occurs; no panic.
     ///
-    /// GREEN-BY-DESIGN: the early-exit guard is already implemented in the current
-    /// dispatcher stub. `enip=None` means the arm body is a no-op (`if let` is false).
-    /// The `todo!()` is only reached if `enip` is `Some`.
+    /// When `enip=None` the `DispatchTarget::Enip` arm body is a no-op: the
+    /// `if let Some(ref mut enip) = self.enip` guard is false, so no data is
+    /// forwarded and no `on_data` call occurs.
     ///
     /// Traces: BC-2.17.019 Invariant 4; EC-007; AC-131-001.
     #[test]
@@ -793,9 +793,10 @@ mod dispatch {
 
     /// AC-131-003 — without --enip, port-44818 flows fall through (early-exit, no analyzer).
     ///
-    /// GREEN-BY-DESIGN: `enip=None` so the early-exit `if let` guard in the `Enip` arm
-    /// fires without entering `todo!()`. The `take` returns None confirming no analyzer
-    /// was constructed. Two non-vacuous postconditions: (1) no panic, (2) take == None.
+    /// `enip=None` so the early-exit `if let` guard in the `Enip` arm is false —
+    /// port-44818 data is silently dropped without forwarding. Two non-vacuous
+    /// postconditions: (1) no panic, (2) take returns None confirming no analyzer
+    /// was constructed.
     ///
     /// Traces: BC-2.17.020 postcondition 3; BC-2.17.019 EC-007; AC-131-003.
     #[test]
@@ -857,8 +858,9 @@ mod dispatch {
     /// Simulates main.rs guard (enable_enip=true, skip_reassembly=true → enip=None).
     /// Early-exit guard fires; take returns None.
     ///
-    /// GREEN-BY-DESIGN: enip=None so the Enip arm early-exit fires without touching
-    /// `todo!()`. Two non-vacuous postconditions: (1) no panic, (2) take == None.
+    /// `enip=None` so the Enip arm early-exit fires — port-44818 data is dropped
+    /// without forwarding. Two non-vacuous postconditions: (1) no panic,
+    /// (2) take returns None.
     ///
     /// Traces: BC-2.17.020 postcondition 2; AC-131-004.
     #[test]
@@ -3516,6 +3518,7 @@ mod command_detections {
     use std::net::{IpAddr, Ipv4Addr};
 
     use wirerust::analyzer::enip::{EnipAnalyzer, EnipFlowState};
+    use wirerust::findings::{Confidence, Verdict};
 
     // =========================================================================
     // Helpers
@@ -3650,6 +3653,21 @@ mod command_detections {
             wirerust::findings::ThreatCategory::Execution,
             "T0858 finding must have category=Execution (BC-2.17.011 PC-1 — EXACT)"
         );
+        assert_eq!(
+            f.verdict,
+            Verdict::Likely,
+            "T0858 finding must have verdict=Likely (BC-2.17.011 PC-1)"
+        );
+        assert_eq!(
+            f.confidence,
+            Confidence::High,
+            "T0858 finding must have confidence=High (BC-2.17.011 PC-1)"
+        );
+        assert_eq!(
+            f.summary,
+            "CIP Stop service observed: controller run\u{2192}stop transition command (T0858)",
+            "T0858 summary must be verbatim BC-2.17.011 PC-1 postcondition string"
+        );
     }
 
     /// AC-135-001 — CIP Stop response (0x87, high bit set) does NOT emit T0858.
@@ -3677,9 +3695,9 @@ mod command_detections {
     ///
     /// F-P9-001 gate: only 0x00B2 items trigger CIP service detection in v0.11.0.
     ///
-    /// GREEN-BY-DESIGN: the type_id != 0x00B2 gate fires in the CPF item loop before
-    /// reaching the todo!() Stop-detection block. The test exercises the 0x00B1-skip path
-    /// only — no todo!() is reached.
+    /// The `item.type_id != 0x00B2` continue in the CPF loop skips the item before
+    /// the Stop-detection block runs (F-P9-001). The test exercises the 0x00B1-skip
+    /// path only — no detection logic is reached for this item type.
     ///
     /// Traces: BC-2.17.011 precondition 3 (F-P9-001 gate); AC-135-001; EC-004.
     #[test]
@@ -3757,6 +3775,20 @@ mod command_detections {
             wirerust::findings::ThreatCategory::Execution,
             "T0816 finding must have category=Execution (BC-2.17.013 PC-1 — EXACT; NOT InhibitResponseFunction)"
         );
+        assert_eq!(
+            f.verdict,
+            Verdict::Likely,
+            "T0816 finding must have verdict=Likely (BC-2.17.013 PC-1)"
+        );
+        assert_eq!(
+            f.confidence,
+            Confidence::High,
+            "T0816 finding must have confidence=High (BC-2.17.013 PC-1)"
+        );
+        assert_eq!(
+            f.summary, "CIP Reset service observed: adversary-triggered device restart (T0816)",
+            "T0816 summary must be verbatim BC-2.17.013 PC-1 postcondition string"
+        );
     }
 
     /// AC-135-002 — CIP Reset response (0x85, high bit set) does NOT emit T0816.
@@ -3782,7 +3814,8 @@ mod command_detections {
     ///
     /// F-P9-001 gate: only 0x00B2 triggers service detection.
     ///
-    /// GREEN-BY-DESIGN: type_id != 0x00B2 gate fires before reaching todo!() Reset block.
+    /// The `item.type_id != 0x00B2` continue in the CPF loop skips 0x00B1 items,
+    /// so the Reset-detection block is never entered for 0x00B1 items.
     ///
     /// Traces: BC-2.17.013 precondition 3; AC-135-002; EC-006.
     #[test]
@@ -3837,6 +3870,23 @@ mod command_detections {
             wirerust::findings::ThreatCategory::Execution,
             "T0836 finding must have category=Execution (BC-2.17.012 PC-5 — EXACT; NOT ImpairProcessControl)"
         );
+        assert_eq!(
+            f.verdict,
+            Verdict::Likely,
+            "T0836 finding must have verdict=Likely (BC-2.17.012 PC-5)"
+        );
+        assert_eq!(
+            f.confidence,
+            Confidence::Medium,
+            "T0836 finding must have confidence=Medium (BC-2.17.012 PC-5)"
+        );
+        assert_eq!(
+            f.summary,
+            "CIP write-class service burst: 51 SetAttribute operations in \
+             1s window (threshold 50) \u{2014} possible parameter modification attack (T0836)",
+            "T0836 summary must be verbatim BC-2.17.012 PC-5 postcondition string \
+             (count=51, threshold=50)"
+        );
     }
 
     /// AC-135-003 — T0836 one-shot guard: 52nd write in same window produces no additional finding.
@@ -3881,7 +3931,34 @@ mod command_detections {
             analyzer.all_findings.len(),
             0,
             "exactly 50 SetAttributeSingle (count == threshold) must NOT emit T0836 \
-             (strict > semantics; BC-2.17.012 invariant 2; EC-007)"
+             (strict > semantics; BC-2.17.012 invariant 2)"
+        );
+    }
+
+    /// BC-2.17.012 EC-007 — threshold=0: first write immediately fires T0836 (count=1 > 0).
+    ///
+    /// With `enip_write_burst_threshold=0`, the strict `>` check `1 > 0` is immediately true
+    /// on the first SetAttribute write, emitting one T0836 finding (BC-2.17.012 PC-5, EC-007).
+    ///
+    /// Traces: BC-2.17.012 postcondition 5; EC-007; AC-135-003.
+    #[test]
+    fn test_t0836_threshold_zero_fires_on_first_write() {
+        let mut analyzer = EnipAnalyzer::new(0, 5);
+        let mut flow = EnipFlowState::new();
+        let cip = cip_set_attr_single_request();
+        let pdu = sendrr_pdu_with_cip(&cip);
+        // Single SetAttributeSingle write: count=1, threshold=0 → 1 > 0 = true → finding emitted.
+        analyzer.process_pdu(&mut flow, &pdu, 100, src_ip());
+        assert_eq!(
+            analyzer.all_findings.len(),
+            1,
+            "threshold=0: first SetAttributeSingle write must immediately emit T0836 \
+             (count=1 > threshold=0; BC-2.17.012 EC-007)"
+        );
+        let f = &analyzer.all_findings[0];
+        assert!(
+            f.mitre_techniques.contains(&"T0836".to_string()),
+            "EC-007 finding must carry MITRE technique T0836 (BC-2.17.012 PC-5)"
         );
     }
 
@@ -3955,8 +4032,9 @@ mod command_detections {
     /// When flow.is_non_enip == true, process_pdu returns immediately without any
     /// CIP parse or detection (first gate in process_pdu body).
     ///
-    /// GREEN-BY-DESIGN: the is_non_enip early-return fires before any todo!() block.
-    /// No todo!() is reached because the function returns at line 1 of its body.
+    /// The `is_non_enip` early-return at the top of process_pdu fires before any
+    /// detection block — T0858, T0816, and T0836 paths are all unreachable when this
+    /// flag is set.
     ///
     /// Traces: BC-2.17.011/012/013 preconditions (is_non_enip guard); AC-135-004; EC-011.
     #[test]

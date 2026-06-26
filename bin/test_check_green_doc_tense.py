@@ -166,6 +166,45 @@ BAD_CASES: list[tuple[str, str]] = [
         // Each test will panic at `process_pdu` until the
         """,
     ),
+    # ------------------------------------------------------------------
+    # Patterns 19-22: stale GREEN-BY-DESIGN todo!() references (F-135-P3-001)
+    # ------------------------------------------------------------------
+    (
+        "before reaching todo!() Stop-detection block (pattern 19+22)",
+        """\
+        /// gate fires in the CPF loop before reaching the todo!() Stop-detection block.
+        """,
+    ),
+    (
+        "before reaching todo!() Reset block (pattern 19)",
+        """\
+        /// GREEN-BY-DESIGN: type_id != 0x00B2 gate fires before reaching todo!() Reset block.
+        """,
+    ),
+    (
+        "no todo!() is reached — lowercase (pattern 20)",
+        """\
+        /// only — no todo!() is reached.
+        """,
+    ),
+    (
+        "No todo!() is reached — sentence-initial uppercase (pattern 20)",
+        """\
+        /// No todo!() is reached because the function returns at line 1 of its body.
+        """,
+    ),
+    (
+        "before any todo!() block (pattern 21)",
+        """\
+        /// GREEN-BY-DESIGN: the is_non_enip early-return fires before any todo!() block.
+        """,
+    ),
+    (
+        "todo!() Stop-detection block standalone (pattern 22)",
+        """\
+        /// The test exercises the path before the todo!() Stop-detection block runs.
+        """,
+    ),
 ]
 
 # ---------------------------------------------------------------------------
@@ -324,6 +363,33 @@ GOOD_CASES: list[tuple[str, str]] = [
         "past-tense: Each test panicked before STORY-134 (past tense 'panicked')",
         """\
         // Each test panicked before STORY-134; all 20 now pass.
+        """,
+    ),
+    # ------------------------------------------------------------------
+    # Allowlist cases for patterns 19-22 (must NOT be flagged)
+    # ------------------------------------------------------------------
+    (
+        "past-tense: the todo!() was replaced (pattern 19/20 allowlist)",
+        """\
+        // The todo!() was replaced in STORY-135 when detection logic landed.
+        """,
+    ),
+    (
+        "past-tense: originated as todo!() stubs (pattern 19/22 allowlist)",
+        """\
+        //! Tests originated as todo!() stubs before STORY-135 implemented detection; all now GREEN.
+        """,
+    ),
+    (
+        "past-tense: the todo!() Stop-detection block was replaced (pattern 22 allowlist)",
+        """\
+        // The todo!() Stop-detection block was replaced by the T0858 detection logic in STORY-135.
+        """,
+    ),
+    (
+        "past-tense: todo!() was replaced — before reaching phrasing (pattern 19 allowlist)",
+        """\
+        // Before reaching the now-implemented Stop-detection block, the gate short-circuits.
         """,
     ),
 ]
