@@ -109,6 +109,102 @@ BAD_CASES: list[tuple[str, str]] = [
         // All stubs MUST fail before Part B fills real assertions.
         """,
     ),
+    # ------------------------------------------------------------------
+    # Patterns 12-17: feature-enip stale RED phrasings (F-135-002)
+    # ------------------------------------------------------------------
+    (
+        "RED — stubs only (em-dash variant)",
+        """\
+        // STORY-135 command detection tests (RED — stubs only; todo!() enforces Red Gate).
+        """,
+    ),
+    (
+        "RED -- stubs only (double-hyphen variant)",
+        """\
+        // STORY-135 command detection tests (RED -- stubs only; todo!() enforces Red Gate).
+        """,
+    ),
+    (
+        "All tests are RED until",
+        """\
+        // All tests are RED until STORY-135 detection logic is implemented.
+        """,
+    ),
+    (
+        "RED (STORY-135 stub) per-test docstring",
+        """\
+        /// RED (STORY-135 stub): process_pdu reaches todo!() for Stop detection.
+        """,
+    ),
+    (
+        "RED (STORY-134 stub) per-test docstring",
+        """\
+        /// RED (STORY-134 stub): todo!() hit on first write.
+        """,
+    ),
+    (
+        "todo!() until STORY-NNN implements",
+        """\
+        // Red Gate: all tests exercise `process_pdu`, which is `todo!()` until STORY-134 implements detection.
+        """,
+    ),
+    (
+        "will panic at … until the implementation lands",
+        """\
+        // Each test will panic at `process_pdu` until the implementation lands.
+        """,
+    ),
+    (
+        "test will panic … until … implements",
+        """\
+        // Each test will panic at the stub until STORY-134 implements detection.
+        """,
+    ),
+    (
+        "Each test will panic at … until (recon-style wrapped header)",
+        """\
+        // Each test will panic at `process_pdu` until the
+        """,
+    ),
+    # ------------------------------------------------------------------
+    # Patterns 19-22: stale GREEN-BY-DESIGN todo!() references (F-135-P3-001)
+    # ------------------------------------------------------------------
+    (
+        "before reaching todo!() Stop-detection block (pattern 19+22)",
+        """\
+        /// gate fires in the CPF loop before reaching the todo!() Stop-detection block.
+        """,
+    ),
+    (
+        "before reaching todo!() Reset block (pattern 19)",
+        """\
+        /// GREEN-BY-DESIGN: type_id != 0x00B2 gate fires before reaching todo!() Reset block.
+        """,
+    ),
+    (
+        "no todo!() is reached — lowercase (pattern 20)",
+        """\
+        /// only — no todo!() is reached.
+        """,
+    ),
+    (
+        "No todo!() is reached — sentence-initial uppercase (pattern 20)",
+        """\
+        /// No todo!() is reached because the function returns at line 1 of its body.
+        """,
+    ),
+    (
+        "before any todo!() block (pattern 21)",
+        """\
+        /// GREEN-BY-DESIGN: the is_non_enip early-return fires before any todo!() block.
+        """,
+    ),
+    (
+        "todo!() Stop-detection block standalone (pattern 22)",
+        """\
+        /// The test exercises the path before the todo!() Stop-detection block runs.
+        """,
+    ),
 ]
 
 # ---------------------------------------------------------------------------
@@ -198,6 +294,102 @@ GOOD_CASES: list[tuple[str, str]] = [
         "past-tense: Red Gate commit reference",
         """\
         // On the stub (4e22ef9), this PANICS (Red Gate — test must fail).
+        """,
+    ),
+    # ------------------------------------------------------------------
+    # Allowlist cases for patterns 12-17 (must NOT be flagged)
+    # ------------------------------------------------------------------
+    (
+        "past-tense: originated as Red-Gate stubs (not 'stubs only')",
+        """\
+        // These tests originated as Red-Gate stubs (STORY-135); all assertions now GREEN.
+        """,
+    ),
+    (
+        "past-tense: (was RED) parenthetical reference",
+        """\
+        // Implementation (was RED) is now complete; all tests pass.
+        """,
+    ),
+    (
+        "past-tense: tests were RED until (past tense 'were')",
+        """\
+        // Tests were RED until STORY-135 shipped; all 15 now pass.
+        """,
+    ),
+    (
+        "past-tense: tests passed their RED phase",
+        """\
+        //! Tests passed their RED phase (STORY-135 stub); all assertions now GREEN.
+        """,
+    ),
+    (
+        "past-tense: GREEN provenance referencing STORY-NNN stub origin",
+        """\
+        //! Originated as STORY-135 stub; implementation shipped in STORY-135.
+        """,
+    ),
+    (
+        "past-tense: STORY-NNN stub (GREEN) label",
+        """\
+        /// STORY-135 stub (GREEN): all detections implemented and passing.
+        """,
+    ),
+    (
+        "past-tense: todo!() was replaced",
+        """\
+        // The todo!() was replaced in STORY-135 when detection logic landed.
+        """,
+    ),
+    (
+        "past-tense: would panic (conditional, not current-state)",
+        """\
+        // Each test would panic if the implementation were missing, but STORY-135 is complete.
+        """,
+    ),
+    (
+        "past-tense: tests panicked before implementation",
+        """\
+        // Tests panicked before implementation; all now pass with real assertions.
+        """,
+    ),
+    (
+        "past-tense: Each test would have panicked (conditional past, not current-state)",
+        """\
+        // Each test would have panicked at process_pdu if STORY-134 had not shipped.
+        """,
+    ),
+    (
+        "past-tense: Each test panicked before STORY-134 (past tense 'panicked')",
+        """\
+        // Each test panicked before STORY-134; all 20 now pass.
+        """,
+    ),
+    # ------------------------------------------------------------------
+    # Allowlist cases for patterns 19-22 (must NOT be flagged)
+    # ------------------------------------------------------------------
+    (
+        "past-tense: the todo!() was replaced (pattern 19/20 allowlist)",
+        """\
+        // The todo!() was replaced in STORY-135 when detection logic landed.
+        """,
+    ),
+    (
+        "past-tense: originated as todo!() stubs (pattern 19/22 allowlist)",
+        """\
+        //! Tests originated as todo!() stubs before STORY-135 implemented detection; all now GREEN.
+        """,
+    ),
+    (
+        "past-tense: the todo!() Stop-detection block was replaced (pattern 22 allowlist)",
+        """\
+        // The todo!() Stop-detection block was replaced by the T0858 detection logic in STORY-135.
+        """,
+    ),
+    (
+        "past-tense: todo!() was replaced — before reaching phrasing (pattern 19 allowlist)",
+        """\
+        // Before reaching the now-implemented Stop-detection block, the gate short-circuits.
         """,
     ),
 ]
