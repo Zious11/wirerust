@@ -4917,35 +4917,34 @@ mod frame_walk {
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    // AC-137-002: Carry buffer cap at MAX_ENIP_CARRY_BYTES (600)
+    // AC-137-002: Carry buffer bounded below MAX_ENIP_CARRY_BYTES (600)
     // Traces: BC-2.17.016 Invariant 4 / Postcondition 4; BC-2.17.018 EC-007
+    //
+    // RULING-137-002: The carry-overflow is_non_enip latch is structurally unreachable
+    // under the spec algorithm (max carry = 599; the >600 cap never fires). Tests in
+    // this section verify carry boundedness and confirm is_non_enip does NOT fire.
+    // Genuine quarantine-latch behavior is deferred to v0.12.0.
     // ─────────────────────────────────────────────────────────────────────────
 
-    /// AC-137-002 — carry-buffer cap invariant: carry stays ≤ MAX_ENIP_CARRY_BYTES after
-    /// `on_data` regardless of pre-existing large carry state.
+    /// AC-137-002 — carry stays bounded (≤ MAX_ENIP_CARRY_BYTES=600) after `on_data`
+    /// regardless of pre-existing large carry state injected directly by the test.
     ///
-    /// Setup: Pre-populate flow.carry to 601 bytes of 0xFF garbage (simulating accumulated
-    /// partial-frame data), then call on_data with a 28-byte valid ENIP frame.
+    /// RULING-137-002 NOTE: The carry-overflow `is_non_enip` latch (`flow.carry.len() > 600`)
+    /// is structurally unreachable under the spec frame-walk algorithm. Proof: the partial-frame
+    /// stash path requires `total_frame_len <= 600` (otherwise frame-skip fires) AND
+    /// `buf.len()-cursor < total_frame_len`; therefore the stash is always < 600 bytes, so
+    /// `flow.carry.len()` never exceeds 599. The `>600` cap check is provably dead code.
+    /// Genuine quarantine-latch behavior is deferred to v0.12.0
+    /// (spec-defect-is_non_enip-dead-latch). See RULING-137-002 §1 for the full proof.
     ///
-    /// With correct `continue` semantics (RULING-137-001):
-    ///   - The byte-walk loop runs through the 601 garbage bytes (601 iterations, each
-    ///     advancing cursor by 1 and incrementing parse_errors).
-    ///   - At cursor=601, the valid frame is at buf[601..629]. is_valid_enip_frame=true.
-    ///     total_frame_len=28. buf.len()-cursor=28>=28. process_pdu fires.
-    ///   - After loop: carry = buf[629..] = empty. carry.len()=0 ≤ 600. No overflow.
-    ///   - is_non_enip remains false (no carry overflow triggered).
+    /// What this test verifies: pre-populating carry to 601 bytes via direct state injection,
+    /// then calling on_data with a valid 28-byte frame, results in carry ≤ MAX_ENIP_CARRY_BYTES
+    /// and is_non_enip remaining false. The byte-walk loop reduces the pre-injected carry by
+    /// processing the valid trailing frame; the cap check does not fire.
     ///
-    /// With WRONG `break` semantics:
-    ///   - First iteration: pos=0, garbage, invalid, cursor=1, BREAK.
-    ///   - carry = buf[1..] = 628 bytes > 600. Overflow fires: is_non_enip=true.
-    ///   - valid frame is NEVER processed (pdu_count=0).
-    ///
-    /// This test is RED under the current `break` implementation (is_non_enip=true, pdu_count=0)
-    /// and GREEN under the correct `continue` implementation (is_non_enip=false, pdu_count>=1).
-    ///
-    /// Traces: BC-2.17.016 Postcondition 4 / Invariant 1/4; RULING-137-001 §3.4; AC-137-002; EC-004.
+    /// Traces: BC-2.17.016 Postcondition 4 / Invariant 1/4; RULING-137-002 §1; AC-137-002; EC-004.
     #[test]
-    fn test_carry_buffer_cap_at_600() {
+    fn test_carry_stays_bounded_below_cap() {
         let mut analyzer = EnipAnalyzer::new(50, 5);
         let key = make_flow_key();
         // Step 1: create the flow entry by sending empty data.
@@ -4986,19 +4985,21 @@ mod frame_walk {
         );
     }
 
-    /// AC-137-002 — `is_non_enip` is set ONLY by genuine carry-buffer overflow (Invariant 4).
+    /// AC-137-002 — `is_non_enip` does NOT fire under the spec frame-walk algorithm
+    /// even when carry is pre-injected above the nominal cap threshold.
     ///
-    /// This test verifies the NEGATIVE: that pre-set large carry (601 bytes) combined with a
-    /// valid trailing frame does NOT set is_non_enip when the byte-walk loop uses `continue`
-    /// (because the loop byte-walks through all garbage and processes the valid frame, leaving
-    /// carry empty — never > 600).
+    /// RULING-137-002 NOTE: The carry-overflow `is_non_enip` latch is structurally unreachable
+    /// under the spec frame-walk algorithm (max carry = 599 bytes; the `>600` cap can never
+    /// fire via any delivery sequence). Genuine quarantine-latch behavior is deferred to v0.12.0
+    /// (spec-defect-is_non_enip-dead-latch). See RULING-137-002 §1.
     ///
-    /// Contrast: with `break`, the first bad parse breaks out immediately, leaving carry=628 > 600,
-    /// triggering is_non_enip=true. With `continue`, is_non_enip stays false.
+    /// What this test verifies: pre-setting carry=601 bytes then calling on_data with a valid
+    /// trailing frame results in is_non_enip remaining false and the valid frame being processed.
+    /// The byte-walk loop reduces carry to zero; the cap check does not fire.
     ///
-    /// Traces: BC-2.17.016 Invariant 4; RULING-137-001 §3.4; AC-137-002; EC-004.
+    /// Traces: BC-2.17.016 Invariant 4; RULING-137-002 §1; AC-137-002; EC-004.
     #[test]
-    fn test_carry_cap_sets_non_enip() {
+    fn test_carry_cap_does_not_fire_under_spec_algorithm() {
         let mut analyzer = EnipAnalyzer::new(50, 5);
         let key = make_flow_key();
         analyzer.on_data(key.clone(), &[], 0); // create flow
@@ -5493,22 +5494,20 @@ mod frame_walk {
         );
     }
 
-    /// AC-137-003 — carry overflow path: is_non_enip NOT latched by byte-walk; carry bounded.
+    /// AC-137-003 — `is_non_enip` is NOT latched when carry is pre-injected to 601 bytes;
+    /// carry returns to bounded state after on_data.
     ///
-    /// Verifies BC-2.17.016 Postcondition 4 invariant from the NEGATIVE direction:
-    /// Pre-set carry=601 bytes (garbage) then call on_data with a valid 28-byte frame.
-    /// With correct `continue` semantics, the byte-walk loop reduces carry to 0 (processes
-    /// the valid frame at position 601), so the carry-cap overflow check does NOT fire.
-    /// is_non_enip stays false; carry stays bounded (≤ MAX_ENIP_CARRY_BYTES).
+    /// RULING-137-002 NOTE: The carry-overflow `is_non_enip` latch is structurally unreachable
+    /// under the spec frame-walk algorithm (max carry = 599 bytes; the `>600` cap can never
+    /// fire via any delivery sequence). This test verifies carry stays bounded (≤ 599) and
+    /// the `is_non_enip` latch does NOT fire — the byte-walk loop processes the valid trailing
+    /// frame and reduces carry to zero before the cap check is evaluated. Genuine
+    /// quarantine-latch behavior is deferred to v0.12.0 (spec-defect-is_non_enip-dead-latch).
+    /// See RULING-137-002 §1 for the full unreachability proof.
     ///
-    /// Since carry > 600 cannot be triggered naturally with continue semantics
-    /// (RULING-137-001 §3.4 analysis), this test directly sets carry=601 and verifies
-    /// the carry stays bounded after on_data (invariant holds; is_non_enip stays false
-    /// because the byte-walk loop reduces carry before the cap check).
-    ///
-    /// Traces: BC-2.17.016 Postcondition 4; RULING-137-001 §3.4; AC-137-003; EC-004.
+    /// Traces: BC-2.17.016 Postcondition 4; RULING-137-002 §1; AC-137-003; EC-004.
     #[test]
-    fn test_non_enip_flag_set_at_carry_cap() {
+    fn test_non_enip_not_latched_at_carry_cap() {
         let mut analyzer = EnipAnalyzer::new(50, 5);
         let key = make_flow_key();
         analyzer.on_data(key.clone(), &[], 0); // create flow
