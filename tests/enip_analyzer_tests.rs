@@ -6235,3 +6235,275 @@ mod frame_walk {
         );
     }
 }
+
+// =============================================================================
+// mod source_attribution
+// =============================================================================
+//
+// End-to-end regression tests for F-W60-001 / RULING-W60-001.
+//
+// Background: `EnipAnalyzer::on_data` previously derived
+// `src_ip = flow_key.lower_ip()`, which is the numerically-smaller (ip, port)
+// tuple endpoint — NOT the request originator.  When the EtherNet/IP SERVER IP
+// sorted below the CLIENT IP, every finding carried the victim controller's IP
+// as source_ip instead of the attacker's IP.
+//
+// Fix (RULING-W60-001): `resolve_enip_client_ip(flow_key)` uses the port-44818
+// heuristic — the endpoint whose port == 44818 is the server; the other
+// endpoint is the client.
+//
+// Originated as Red-Gate tests for F-W60-001; now GREEN under
+// resolve_enip_client_ip (RULING-W60-001).
+//
+// Discriminating scenario (RULING-W60-001 §3 test anchor):
+//   client = 10.0.0.9:50000, server = 10.0.0.2:44818
+//   FlowKey canonicalisation: lower=(10.0.0.2,44818), upper=(10.0.0.9,50000)
+//   pre-fix:  src_ip = lower_ip() = 10.0.0.2  ← server / victim (wrong)
+//   post-fix: src_ip              = 10.0.0.9  ← client / attacker (correct)
+//
+// Tests cover two distinct detection types (T0858 and T0816) so the shared
+// derivation site is locked across BC-2.17.011 and BC-2.17.013.
+// A control test with the opposite ordering (client IP sorts lower) confirms
+// both orderings behave correctly.
+//
+// Citations: F-W60-001 / RULING-W60-001 / BC-2.17.010 PC-2 / BC-2.17.011 /
+//            BC-2.17.013.
+// =============================================================================
+mod source_attribution {
+    use std::net::{IpAddr, Ipv4Addr};
+
+    use wirerust::analyzer::enip::EnipAnalyzer;
+    use wirerust::reassembly::flow::FlowKey;
+
+    // -------------------------------------------------------------------------
+    // Helpers
+    // -------------------------------------------------------------------------
+
+    /// The CLIENT IP in the discriminating scenario: 10.0.0.9 > 10.0.0.2 numerically,
+    /// so FlowKey places the SERVER (10.0.0.2) as lower and CLIENT (10.0.0.9) as upper.
+    /// Current code (`lower_ip()`) therefore returns the wrong address.
+    fn client_ip_high() -> IpAddr {
+        IpAddr::V4(Ipv4Addr::new(10, 0, 0, 9))
+    }
+
+    /// The SERVER IP in the discriminating scenario: 10.0.0.2 < 10.0.0.9 numerically.
+    fn server_ip_low() -> IpAddr {
+        IpAddr::V4(Ipv4Addr::new(10, 0, 0, 2))
+    }
+
+    /// The CLIENT IP in the control scenario: 10.0.0.1 < 10.0.0.9 numerically.
+    /// FlowKey places the CLIENT as lower and SERVER as upper.
+    /// Current code (`lower_ip()`) therefore returns the right address coincidentally —
+    /// but only because the fix is also correct for this ordering.
+    fn client_ip_low() -> IpAddr {
+        IpAddr::V4(Ipv4Addr::new(10, 0, 0, 1))
+    }
+
+    /// SERVER IP for the control scenario: 10.0.0.9 (upper endpoint).
+    fn server_ip_high() -> IpAddr {
+        IpAddr::V4(Ipv4Addr::new(10, 0, 0, 9))
+    }
+
+    /// Build the discriminating FlowKey: client=10.0.0.9:50000, server=10.0.0.2:44818.
+    ///
+    /// After FlowKey canonicalisation (lower = smaller (ip,port) tuple):
+    ///   lower = (10.0.0.2, 44818)  ← server
+    ///   upper = (10.0.0.9, 50000)  ← client
+    ///
+    /// Pre-fix lower_ip() returned 10.0.0.2 (server — wrong).
+    /// resolve_enip_client_ip() returns 10.0.0.9 (client — correct).
+    fn flow_key_server_lower() -> FlowKey {
+        FlowKey::new(client_ip_high(), 50000, server_ip_low(), 44818)
+    }
+
+    /// Build the control FlowKey: client=10.0.0.1:50000, server=10.0.0.9:44818.
+    ///
+    /// After FlowKey canonicalisation:
+    ///   lower = (10.0.0.1, 50000)  ← client
+    ///   upper = (10.0.0.9, 44818)  ← server
+    ///
+    /// Both lower_ip() and resolve_enip_client_ip() return 10.0.0.1 for this
+    /// ordering — the pre-fix code was accidentally correct here.
+    fn flow_key_client_lower() -> FlowKey {
+        FlowKey::new(client_ip_low(), 50000, server_ip_high(), 44818)
+    }
+
+    /// Build a complete SendRRData ENIP frame carrying a minimal CIP request.
+    ///
+    /// Frame layout (little-endian ENIP header):
+    ///   [0..2]   0x6F 0x00         — command = 0x006F (SendRRData)
+    ///   [2..4]   payload_len LE    — ENIP payload length
+    ///   [4..24]  zeroed            — session/status/context/options
+    ///   [24..28] 0x00×4            — Interface Handle = 0
+    ///   [28..30] 0x00×2            — Timeout = 0
+    ///   [30..32] 0x02 0x00         — CPF item_count = 2
+    ///   [32..36] 0x00×4            — NullAddress item (type=0x0000, length=0)
+    ///   [36..38] 0xB2 0x00         — UnconnectedData item type = 0x00B2
+    ///   [38..40] cip_len LE        — UnconnectedData item length
+    ///   [40..]   cip_data          — CIP service + path bytes
+    ///
+    /// The ENIP `length` field (bytes 2–3) covers everything after the 24-byte header.
+    fn sendrr_frame_with_cip(cip_data: &[u8]) -> Vec<u8> {
+        // payload = InterfaceHandle(4) + Timeout(2) + item_count(2)
+        //         + NullAddress(4) + UnconnectedData-hdr(4) + cip_data
+        let payload_len: usize = 4 + 2 + 2 + 4 + 4 + cip_data.len();
+        let mut frame = Vec::with_capacity(24 + payload_len);
+        // ENIP header (24 bytes, LE)
+        frame.push(0x6F); // command low byte
+        frame.push(0x00); // command high byte
+        frame.extend_from_slice(&(payload_len as u16).to_le_bytes()); // length
+        frame.extend_from_slice(&[0u8; 20]); // session/status/context/options zeroed
+        // ENIP payload
+        frame.extend_from_slice(&[0u8; 4]); // Interface Handle
+        frame.extend_from_slice(&[0u8; 2]); // Timeout
+        frame.extend_from_slice(&2u16.to_le_bytes()); // item_count = 2
+        frame.extend_from_slice(&[0x00, 0x00, 0x00, 0x00]); // NullAddress item
+        frame.extend_from_slice(&[0xB2, 0x00]); // type_id = 0x00B2
+        frame.extend_from_slice(&(cip_data.len() as u16).to_le_bytes());
+        frame.extend_from_slice(cip_data);
+        frame
+    }
+
+    /// Minimal CIP Stop request: service=0x07, request_path_size=0.
+    fn cip_stop_request() -> Vec<u8> {
+        vec![0x07, 0x00]
+    }
+
+    /// Minimal CIP Reset request: service=0x05, request_path_size=0.
+    fn cip_reset_request() -> Vec<u8> {
+        vec![0x05, 0x00]
+    }
+
+    // -------------------------------------------------------------------------
+    // Discriminating scenario tests (server IP sorts lower)
+    // -------------------------------------------------------------------------
+
+    /// T0858 (CIP Stop) via on_data: verifies source_ip resolves to the client
+    /// (10.0.0.9), not the lower-sorting server (10.0.0.2).
+    ///
+    /// Flow key: client=10.0.0.9:50000, server=10.0.0.2:44818.
+    /// FlowKey lower=(10.0.0.2,44818)=server, upper=(10.0.0.9,50000)=client.
+    /// resolve_enip_client_ip() identifies the server by port 44818 and returns
+    /// upper_ip() = 10.0.0.9 (client / attacker).
+    ///
+    /// Originated as Red-Gate test for F-W60-001; GREEN under resolve_enip_client_ip
+    /// (RULING-W60-001).
+    ///
+    /// Traces: BC-2.17.010 PC-2; BC-2.17.011 PC-1; F-W60-001; RULING-W60-001 §3 T1.
+    #[test]
+    fn test_bc_2_17_011_on_data_t0858_source_ip_is_client_not_server() {
+        let mut analyzer = EnipAnalyzer::new(50, 5);
+        let key = flow_key_server_lower();
+        // CIP Stop request frame: SendRRData + 0x00B2 + service=0x07
+        let frame = sendrr_frame_with_cip(&cip_stop_request());
+        analyzer.on_data(key, &frame, 0);
+
+        // Must emit at least one T0858 finding.
+        assert!(
+            !analyzer.all_findings.is_empty(),
+            "CIP Stop (0x07) via on_data must emit at least one finding (BC-2.17.011 PC-1)"
+        );
+        let f = analyzer
+            .all_findings
+            .iter()
+            .find(|f| f.mitre_techniques.contains(&"T0858".to_string()))
+            .expect("must find a T0858 finding (BC-2.17.011 PC-1)");
+
+        // PRIMARY REGRESSION ANCHOR (RULING-W60-001 §3):
+        // source_ip MUST be the CLIENT (10.0.0.9), not the server (10.0.0.2).
+        // This is the discriminating assertion: source_ip is the client, not the
+        // lower-sorting server. The pre-fix lower_ip() path failed here because
+        // 10.0.0.2 < 10.0.0.9 numerically.
+        assert_eq!(
+            f.source_ip,
+            Some(client_ip_high()),
+            "T0858 finding source_ip MUST be the client IP 10.0.0.9 (BC-2.17.010 PC-2; \
+             F-W60-001; RULING-W60-001): resolve_enip_client_ip returns upper_ip \
+             (10.0.0.9) because lower_port==44818 identifies the server"
+        );
+    }
+
+    /// T0816 (CIP Reset) via on_data: verifies source_ip resolves to the client
+    /// (10.0.0.9), not the lower-sorting server (10.0.0.2).
+    ///
+    /// Flow key: client=10.0.0.9:50000, server=10.0.0.2:44818.
+    /// Same discriminating scenario as the T0858 test above but for T0816, locking
+    /// the shared src_ip derivation site across both detection types.
+    /// resolve_enip_client_ip() returns upper_ip() = 10.0.0.9 (client).
+    ///
+    /// Originated as Red-Gate test for F-W60-001; GREEN under resolve_enip_client_ip
+    /// (RULING-W60-001).
+    ///
+    /// Traces: BC-2.17.010 PC-2; BC-2.17.013 PC-1; F-W60-001; RULING-W60-001 §3.
+    #[test]
+    fn test_bc_2_17_013_on_data_t0816_source_ip_is_client_not_server() {
+        let mut analyzer = EnipAnalyzer::new(50, 5);
+        let key = flow_key_server_lower();
+        // CIP Reset request frame: SendRRData + 0x00B2 + service=0x05
+        let frame = sendrr_frame_with_cip(&cip_reset_request());
+        analyzer.on_data(key, &frame, 0);
+
+        assert!(
+            !analyzer.all_findings.is_empty(),
+            "CIP Reset (0x05) via on_data must emit at least one finding (BC-2.17.013 PC-1)"
+        );
+        let f = analyzer
+            .all_findings
+            .iter()
+            .find(|f| f.mitre_techniques.contains(&"T0816".to_string()))
+            .expect("must find a T0816 finding (BC-2.17.013 PC-1)");
+
+        // PRIMARY REGRESSION ANCHOR — same derivation site as T0858.
+        assert_eq!(
+            f.source_ip,
+            Some(client_ip_high()),
+            "T0816 finding source_ip MUST be the client IP 10.0.0.9 (BC-2.17.010 PC-2; \
+             F-W60-001; RULING-W60-001): resolve_enip_client_ip returns upper_ip \
+             (10.0.0.9) because lower_port==44818 identifies the server"
+        );
+    }
+
+    // -------------------------------------------------------------------------
+    // Control test — opposite ordering (client IP sorts lower)
+    // -------------------------------------------------------------------------
+
+    /// Control — T0858 via on_data with client IP sorting lower: source_ip must still
+    /// be the CLIENT (10.0.0.1), confirming correct attribution in both orderings.
+    ///
+    /// Flow key: client=10.0.0.1:50000, server=10.0.0.9:44818.
+    /// FlowKey lower=(10.0.0.1,50000)=client, upper=(10.0.0.9,44818)=server.
+    /// resolve_enip_client_ip() identifies the server by upper_port==44818 and
+    /// returns lower_ip() = 10.0.0.1 (client). The pre-fix lower_ip() path also
+    /// returned 10.0.0.1 for this ordering, so the pre-fix code was accidentally
+    /// correct here.
+    ///
+    /// Documents RULING-W60-001 §3 T2 and guards against regressions in the fix.
+    ///
+    /// Traces: BC-2.17.010 PC-2; BC-2.17.011 PC-1; F-W60-001; RULING-W60-001 §3 T2.
+    #[test]
+    fn test_bc_2_17_011_on_data_t0858_source_ip_client_lower_ordering() {
+        let mut analyzer = EnipAnalyzer::new(50, 5);
+        let key = flow_key_client_lower();
+        let frame = sendrr_frame_with_cip(&cip_stop_request());
+        analyzer.on_data(key, &frame, 0);
+
+        assert!(
+            !analyzer.all_findings.is_empty(),
+            "CIP Stop (0x07) via on_data must emit at least one finding (BC-2.17.011 PC-1)"
+        );
+        let f = analyzer
+            .all_findings
+            .iter()
+            .find(|f| f.mitre_techniques.contains(&"T0858".to_string()))
+            .expect("must find a T0858 finding (BC-2.17.011 PC-1)");
+
+        // CLIENT is 10.0.0.1 (lower IP); resolve_enip_client_ip returns lower_ip
+        // because upper_port==44818 identifies the server (upper endpoint).
+        assert_eq!(
+            f.source_ip,
+            Some(client_ip_low()),
+            "T0858 finding source_ip MUST be the client IP 10.0.0.1 for the control \
+             ordering (BC-2.17.010 PC-2; F-W60-001; RULING-W60-001 §3 T2)"
+        );
+    }
+}

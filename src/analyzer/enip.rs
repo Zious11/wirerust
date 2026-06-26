@@ -472,6 +472,47 @@ pub fn check_t0814(
 }
 
 // ---------------------------------------------------------------------------
+// Pure-core helpers
+// ---------------------------------------------------------------------------
+
+/// Resolve the EtherNet/IP client (command-originator) endpoint from the flow key.
+///
+/// **Port-heuristic-only resolution.** EtherNet/IP explicit-messaging servers listen on
+/// port 44818 (IANA-registered); the opposite endpoint is therefore the client (the
+/// command originator):
+///
+/// - `lower_port == 44818`  → lower endpoint is the server; upper is the client.
+/// - `upper_port == 44818`  → upper endpoint is the server; lower is the client.
+/// - neither port is 44818  → both endpoints are ephemeral (non-standard ENIP setup or
+///   future UDP/2222 scope); function silently returns `lower_ip`
+///   as a conservative fallback.
+///
+/// **Known limitation:** this heuristic is correct for standard EtherNet/IP flows where
+/// exactly one endpoint is on port 44818. It cannot unambiguously resolve direction when
+/// NEITHER endpoint is on 44818 (non-standard server port or proxied capture). In that
+/// case the function silently returns `lower_ip`, which may or may not be the actual
+/// command originator.
+///
+/// **Direction deferral (DRIFT-ENIP-DIRECTION-001):** this function uses only the
+/// port-44818 heuristic above; it does NOT use the TCP `Direction` signal that sibling
+/// analyzer Modbus (`src/analyzer/modbus.rs` ~355-382) receives. Direction-aware
+/// resolution — threading `Direction` into `EnipAnalyzer::on_data` analogously to the
+/// Modbus pattern — is deferred to a post-v0.11.0 "ENIP direction-aware source
+/// resolution" follow-up chore. Threading `Direction` into `EnipAnalyzer::on_data` would
+/// ripple across all Wave-60 STORY-13x call sites and was explicitly deferred following
+/// the same DRIFT-DNP3-DIRECTION-001 precedent established for the DNP3 sibling analyzer.
+fn resolve_enip_client_ip(flow_key: &crate::reassembly::flow::FlowKey) -> std::net::IpAddr {
+    if flow_key.lower_port() == 44818 {
+        flow_key.upper_ip()
+    } else {
+        // Either upper_port == 44818 (standard case) or neither port is 44818
+        // (non-standard / fallback). Return lower_ip as conservative fallback in
+        // the neither-case, matching DNP3 resolve_master_ip fallback semantics.
+        flow_key.lower_ip()
+    }
+}
+
+// ---------------------------------------------------------------------------
 // Aggregate analyzer struct (STORY-131 — BC-2.17.019/020/023/026)
 // ---------------------------------------------------------------------------
 
@@ -592,10 +633,16 @@ impl EnipAnalyzer {
         // dispatcher tests (BC-2.17.019 PC-2). Single saturating_add; no branching; no I/O.
         self.bytes_received = self.bytes_received.saturating_add(data.len() as u64);
 
-        // Extract src/dest IPs from flow key for T0814 finding fields.
-        // FlowKey is canonicalised as (lower, upper) by (ip, port) tuple comparison.
-        let src_ip = flow_key.lower_ip();
-        let dest_ip = flow_key.upper_ip();
+        // Resolve the client (command-originator) IP using the port-44818 heuristic.
+        // FlowKey is canonicalised by (ip, port) tuple comparison, so lower_ip is NOT
+        // necessarily the traffic originator. resolve_enip_client_ip() identifies the
+        // client as the endpoint whose port is NOT 44818 (DRIFT-ENIP-DIRECTION-001).
+        let src_ip = resolve_enip_client_ip(&flow_key);
+        let dest_ip = if flow_key.lower_ip() == src_ip {
+            flow_key.upper_ip()
+        } else {
+            flow_key.lower_ip()
+        };
 
         // Lazily create per-flow state (mirrors Dnp3Analyzer::flows entry pattern).
         let _ = self.flows.entry(flow_key.clone()).or_default();
@@ -1669,5 +1716,137 @@ mod kani_proofs {
         let is_named = NAMED_SERVICES.contains(&service);
         let is_unknown = matches!(class, CipServiceClass::Unknown);
         assert_eq!(is_named, !is_unknown);
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Unit tests for resolve_enip_client_ip (RULING-W60-001 §3 / F-W60-001)
+// ---------------------------------------------------------------------------
+//
+// These tests exercise the private helper directly, covering all four branches
+// mandated by RULING-W60-001 §3:
+//
+//   T1 (server-lower): lower_port==44818 → returns upper_ip (client)
+//   T2 (client-lower): upper_port==44818 → returns lower_ip (client)
+//   T3 (degenerate):   both ports==44818 → returns upper_ip (arbitrary-but-harmless)
+//   T4 (fallback):     neither port==44818 → returns lower_ip
+//                      (DRIFT-ENIP-DIRECTION-001 path; must be covered)
+//
+// End-to-end coverage for T1 and T2 is provided by the on_data integration
+// tests in tests/enip_analyzer_tests.rs (mod source_attribution).
+// ---------------------------------------------------------------------------
+#[cfg(test)]
+mod source_resolution_tests {
+    use std::net::{IpAddr, Ipv4Addr};
+
+    use super::resolve_enip_client_ip;
+    use crate::reassembly::flow::FlowKey;
+
+    fn ip(a: u8) -> IpAddr {
+        IpAddr::V4(Ipv4Addr::new(10, 0, 0, a))
+    }
+
+    /// T1 (unit): lower_port==44818 → server is lower endpoint → client is upper_ip.
+    ///
+    /// FlowKey::new(client=10.0.0.9:50000, server=10.0.0.2:44818):
+    ///   (10.0.0.2,44818) < (10.0.0.9,50000) → lower=(10.0.0.2,44818), upper=(10.0.0.9,50000)
+    ///   lower_port==44818 → resolve_enip_client_ip returns upper_ip = 10.0.0.9
+    ///
+    /// Traces: F-W60-001; RULING-W60-001 §3 T1.
+    #[test]
+    fn test_bc_2_17_010_resolve_enip_client_ip_t1_server_lower_returns_upper() {
+        let key = FlowKey::new(ip(9), 50000, ip(2), 44818);
+        // Canonicalized: lower=(10.0.0.2,44818)=server, upper=(10.0.0.9,50000)=client
+        assert_eq!(
+            key.lower_port(),
+            44818,
+            "FlowKey must canonicalize server (10.0.0.2:44818) as lower endpoint"
+        );
+        assert_eq!(
+            resolve_enip_client_ip(&key),
+            ip(9),
+            "T1: lower_port==44818 → server is lower → client is upper_ip (10.0.0.9)"
+        );
+    }
+
+    /// T2 (unit): upper_port==44818 → server is upper endpoint → client is lower_ip.
+    ///
+    /// FlowKey::new(client=10.0.0.1:50000, server=10.0.0.9:44818):
+    ///   (10.0.0.1,50000) < (10.0.0.9,44818) → lower=(10.0.0.1,50000), upper=(10.0.0.9,44818)
+    ///   lower_port==50000 (≠44818), else branch → returns lower_ip = 10.0.0.1
+    ///
+    /// Traces: F-W60-001; RULING-W60-001 §3 T2.
+    #[test]
+    fn test_bc_2_17_010_resolve_enip_client_ip_t2_client_lower_returns_lower() {
+        let key = FlowKey::new(ip(1), 50000, ip(9), 44818);
+        // Canonicalized: lower=(10.0.0.1,50000)=client, upper=(10.0.0.9,44818)=server
+        assert_eq!(
+            key.upper_port(),
+            44818,
+            "FlowKey must canonicalize server (10.0.0.9:44818) as upper endpoint"
+        );
+        assert_eq!(
+            resolve_enip_client_ip(&key),
+            ip(1),
+            "T2: upper_port==44818 → server is upper → client is lower_ip (10.0.0.1)"
+        );
+    }
+
+    /// T3 (degenerate): both ports==44818 → lower_port==44818 branch fires → returns
+    /// upper_ip. Documented arbitrary-but-harmless behaviour (RULING-W60-001 §3 T3).
+    ///
+    /// FlowKey::new(10.0.0.1:44818, 10.0.0.2:44818):
+    ///   (10.0.0.1,44818) < (10.0.0.2,44818) → lower=(10.0.0.1,44818), upper=(10.0.0.2,44818)
+    ///   lower_port==44818 → returns upper_ip = 10.0.0.2
+    ///
+    /// This scenario (two ENIP servers talking to each other) is degenerate in
+    /// practice but the code path must be deterministic and non-panicking.
+    ///
+    /// Traces: F-W60-001; RULING-W60-001 §3 T3; DRIFT-ENIP-DIRECTION-001.
+    #[test]
+    fn test_bc_2_17_010_resolve_enip_client_ip_t3_both_ports_44818_returns_upper() {
+        let key = FlowKey::new(ip(1), 44818, ip(2), 44818);
+        // Canonicalized: lower=(10.0.0.1,44818), upper=(10.0.0.2,44818)
+        assert_eq!(key.lower_port(), 44818);
+        assert_eq!(key.upper_port(), 44818);
+        assert_eq!(
+            resolve_enip_client_ip(&key),
+            ip(2),
+            "T3: both ports==44818 → lower_port==44818 branch fires → upper_ip (10.0.0.2)"
+        );
+    }
+
+    /// T4 (fallback / DRIFT-ENIP-DIRECTION-001 path): neither port==44818 →
+    /// returns lower_ip as conservative fallback.
+    ///
+    /// FlowKey::new(10.0.0.5:50000, 10.0.0.6:50001):
+    ///   (10.0.0.5,50000) < (10.0.0.6,50001) → lower=(10.0.0.5,50000), upper=(10.0.0.6,50001)
+    ///   neither port==44818 → else branch → returns lower_ip = 10.0.0.5
+    ///
+    /// This is the non-standard-server-port / proxied-capture fallback described
+    /// in the DRIFT-ENIP-DIRECTION-001 documentation. Direction-aware resolution
+    /// is deferred post-v0.11.0.
+    ///
+    /// Traces: F-W60-001; RULING-W60-001 §3 T4; DRIFT-ENIP-DIRECTION-001.
+    #[test]
+    fn test_bc_2_17_010_resolve_enip_client_ip_t4_neither_port_44818_returns_lower() {
+        let key = FlowKey::new(ip(5), 50000, ip(6), 50001);
+        // Canonicalized: lower=(10.0.0.5,50000), upper=(10.0.0.6,50001)
+        assert_ne!(
+            key.lower_port(),
+            44818,
+            "lower_port must not be 44818 for T4"
+        );
+        assert_ne!(
+            key.upper_port(),
+            44818,
+            "upper_port must not be 44818 for T4"
+        );
+        assert_eq!(
+            resolve_enip_client_ip(&key),
+            ip(5),
+            "T4: neither port==44818 → fallback returns lower_ip (10.0.0.5) \
+             per DRIFT-ENIP-DIRECTION-001"
+        );
     }
 }
