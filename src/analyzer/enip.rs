@@ -324,7 +324,9 @@ pub struct EnipFlowState {
     ///
     /// Incremented on every `CipServiceClass::ForwardOpen` or `CipServiceClass::LargeForwardOpen`
     /// request via a 0x00B2 item and `!is_non_enip`, regardless of the MAX_FINDINGS cap
-    /// (EC-008 / BC-2.17.015 Architecture Rule 4). Read by STORY-138 session summary.
+    /// (EC-008 / BC-2.17.015 Architecture Rule 4).
+    /// Per-flow lifetime counter for BC-2.17.015 EC-008 (count-before-cap);
+    /// not surfaced in `enip_summary` (excluded from the 7-key schema).
     /// Field name is normative per BC-2.17.015 Architecture Mapping.
     pub open_connection_count: u32,
 
@@ -332,7 +334,9 @@ pub struct EnipFlowState {
     ///
     /// Incremented on every `CipServiceClass::ForwardClose` request via a 0x00B2 item
     /// and `!is_non_enip`, regardless of the MAX_FINDINGS cap (EC-008 / BC-2.17.015
-    /// Architecture Rule 4). Read by STORY-138 session summary.
+    /// Architecture Rule 4).
+    /// Per-flow lifetime counter for BC-2.17.015 EC-008 (count-before-cap);
+    /// not surfaced in `enip_summary` (excluded from the 7-key schema).
     /// Field name is normative per BC-2.17.015 Architecture Mapping.
     pub close_connection_count: u32,
 
@@ -527,50 +531,58 @@ fn resolve_enip_client_ip(flow_key: &crate::reassembly::flow::FlowKey) -> std::n
 
 /// Aggregate end-of-capture summary for the EtherNet/IP analyzer.
 ///
-/// Produced by `EnipAnalyzer::summarize()` (BC-2.17.021 Postcondition 1).
-/// All field names are canonical — do NOT rename without a BC amendment.
+/// Constructed by `EnipAnalyzer::summarize()` (BC-2.17.021 Postcondition 1) from
+/// the pre-accumulated aggregate counters plus a fold of any still-open flows
+/// (RULING-W61-001 / F-138-P1-004). `summarize()` serializes this struct into the
+/// `enip_summary` JSON object. All field names are canonical — do NOT rename without
+/// a BC amendment.
 ///
 /// Key name constraint (BC-2.17.021 Invariant 1): `parse_errors` is CANONICAL —
 /// NOT `total_parse_errors`. The v0.10.0 rename lesson (BC-2.15.020 D-220) mandates
 /// this name from day one.
 ///
 /// Traces: BC-2.17.021 Postcondition 1; BC-2.17.022 Invariant 4; BC-2.17.024.
+#[derive(Debug)]
 pub struct EnipSummary {
-    /// Aggregate command distribution across all closed flows.
+    /// Combined command distribution: closed-flow aggregate plus still-open flow fold.
     ///
     /// Keys are the raw ENIP command u16 value; values are the total count.
-    /// Only non-zero entries are included. Populated by `on_flow_close`.
+    /// Only non-zero entries are included. Populated by `summarize()` at call time
+    /// (RULING-W61-001): starts from the closed-flow aggregate and folds in open flows.
     /// JSON key: `"command_distribution"` (BC-2.17.021 Postcondition 1).
     pub command_distribution: HashMap<u16, u64>,
 
-    /// Total PDUs processed across all closed flows (BC-2.17.024 / BC-2.17.021).
+    /// Total PDUs processed across all flows (closed + open at summarize time).
     ///
-    /// Folded from `flow.pdu_count` by `on_flow_close`. JSON key: `"total_pdu_count"`.
+    /// Computed by `summarize()`: pre-accumulated closed-flow total plus fold of
+    /// still-open `flow.pdu_count` values (RULING-W61-001). JSON key: `"total_pdu_count"`.
     pub total_pdu_count: u64,
 
-    /// Aggregate lifetime parse error count across all closed flows (BC-2.17.017 Post 3).
+    /// Aggregate lifetime parse error count across all flows (closed + open).
     ///
     /// CANONICAL key: `"parse_errors"` — NOT `"total_parse_errors"` (BC-2.17.021 Invariant 1).
+    /// Computed by `summarize()` via fold (RULING-W61-001).
     pub parse_errors: u64,
 
     /// Total CIP write-class service requests (SetAttribute*) — BC-2.17.012.
     ///
-    /// JSON key: `"write_count"`.
+    /// Copied from `EnipAnalyzer::write_count` by `summarize()`. JSON key: `"write_count"`.
     pub write_count: u64,
 
     /// Total CIP error responses (general_status != 0) — BC-2.17.008.
     ///
-    /// JSON key: `"error_count"`.
+    /// Copied from `EnipAnalyzer::error_count` by `summarize()`. JSON key: `"error_count"`.
     pub error_count: u64,
 
     /// Count of distinct TCP flows processed (BC-2.17.017 Post 6 / BC-2.17.021).
     ///
-    /// Incremented by `on_flow_close` when `HashMap::remove` returns `Some`.
-    /// JSON key: `"flows_analyzed"`.
+    /// Computed by `summarize()`: closed flows (from `EnipAnalyzer::flows_analyzed`) plus
+    /// still-open flow count (RULING-W61-001). JSON key: `"flows_analyzed"`.
     pub flows_analyzed: u64,
 
     /// Findings suppressed by the MAX_FINDINGS cap (BC-2.17.022 Post 3 / BC-2.17.021 Post 1).
     ///
+    /// Copied from `EnipAnalyzer::dropped_findings` by `summarize()`.
     /// JSON key: `"dropped_findings"`.
     pub dropped_findings: u64,
 }
@@ -943,15 +955,17 @@ impl EnipAnalyzer {
         // Dispatch each collected valid PDU. Re-acquire flow per call.
         // Safety: process_pdu does NOT access self.flows (verified by inspection); the
         // flow we pass is from self.flows[flow_key], and process_pdu only mutates
-        // self.all_findings, self.error_count, self.write_count, and threshold fields.
+        // self.all_findings, self.error_count, self.write_count, self.dropped_findings,
+        // and threshold fields.
         // We re-borrow self.flows[flow_key] each iteration; pdu_queue is empty if
         // is_non_enip was set above (carry overflow clears it before block exit).
         for pdu in pdu_queue {
             // SAFETY (split-borrow): flow_ptr aliases self.flows[flow_key]. process_pdu
             // only touches self.all_findings, self.error_count, self.write_count,
-            // self.enip_write_burst_threshold, self.enip_error_burst_threshold — none of
-            // which overlap with self.flows. The aliased field is therefore not accessed
-            // by process_pdu, making the exclusive-reference invariant sound.
+            // self.dropped_findings, self.enip_write_burst_threshold,
+            // self.enip_error_burst_threshold — none of which overlap with self.flows.
+            // The aliased field is therefore not accessed by process_pdu, making the
+            // exclusive-reference invariant sound.
             let flow_ptr: *mut EnipFlowState = self
                 .flows
                 .get_mut(&flow_key)
@@ -1479,10 +1493,24 @@ impl EnipAnalyzer {
         // flows_analyzed = closed flows (on_flow_close increments) + still-open flows.
         let flows_analyzed = self.flows_analyzed.saturating_add(open_flow_count);
 
-        // Build the command_distribution JSON map from the combined view.
+        // Construct the EnipSummary instance — this is the load-bearing step that makes
+        // the struct non-dead (F-W61-001). All fields are populated from the computed
+        // aggregates before being serialized into the JSON map below.
+        let enip_summary_struct = EnipSummary {
+            command_distribution: cmd_dist_combined,
+            total_pdu_count,
+            parse_errors,
+            write_count: self.write_count,
+            error_count: self.error_count,
+            flows_analyzed,
+            dropped_findings: self.dropped_findings,
+        };
+
+        // Serialize enip_summary_struct into the canonical 7-key JSON object.
+        // command_distribution keys: "0x{cmd:04X}" hex strings (BC-2.17.021 Post 1).
         // Only non-zero entries (all entries in the map are non-zero by construction).
         let mut cmd_dist: serde_json::Map<String, serde_json::Value> = serde_json::Map::new();
-        for (&cmd, &count) in &cmd_dist_combined {
+        for (&cmd, &count) in &enip_summary_struct.command_distribution {
             if count > 0 {
                 cmd_dist.insert(format!("0x{cmd:04X}"), serde_json::json!(count));
             }
@@ -1497,25 +1525,28 @@ impl EnipAnalyzer {
         );
         enip_summary.insert(
             "total_pdu_count".to_string(),
-            serde_json::json!(total_pdu_count),
+            serde_json::json!(enip_summary_struct.total_pdu_count),
         );
         // CANONICAL key: "parse_errors" — NOT "total_parse_errors" (BC-2.17.021 Invariant 1).
-        enip_summary.insert("parse_errors".to_string(), serde_json::json!(parse_errors));
+        enip_summary.insert(
+            "parse_errors".to_string(),
+            serde_json::json!(enip_summary_struct.parse_errors),
+        );
         enip_summary.insert(
             "write_count".to_string(),
-            serde_json::json!(self.write_count),
+            serde_json::json!(enip_summary_struct.write_count),
         );
         enip_summary.insert(
             "error_count".to_string(),
-            serde_json::json!(self.error_count),
+            serde_json::json!(enip_summary_struct.error_count),
         );
         enip_summary.insert(
             "flows_analyzed".to_string(),
-            serde_json::json!(flows_analyzed),
+            serde_json::json!(enip_summary_struct.flows_analyzed),
         );
         enip_summary.insert(
             "dropped_findings".to_string(),
-            serde_json::json!(self.dropped_findings),
+            serde_json::json!(enip_summary_struct.dropped_findings),
         );
 
         let mut detail: BTreeMap<String, serde_json::Value> = BTreeMap::new();
