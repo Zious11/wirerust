@@ -28,7 +28,7 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-17/BC-2.17.024.md
   - .factory/specs/architecture/decisions/ADR-010-ethernet-ip-cip-stream-dispatch.md
   - .factory/phase-f2-spec-evolution/enip-architecture-delta.md
-input-hash: "0053018"
+input-hash: "0f60353"
 ---
 
 # STORY-138: ENIP Session Lifecycle, Statistics, DoS Guard, and Analyzer Summary
@@ -95,6 +95,21 @@ protected against resource exhaustion.
 - Frames that emit no finding (RegisterSession, IndicateStatus, ListServices, etc.) still increment `pdu_count` via `process_pdu` (BC-2.17.024 Postcondition 4)
 - pdu_count is monotonically increasing within a flow lifetime (BC-2.17.024 Invariant 2)
 - At flow close, `flow.pdu_count` is folded into `self.total_pdu_count` AND `flow.command_counts` is folded into `self.command_distribution` per BC-2.17.017
+- **F-W60-P1-001 (command_counts split-header double-count fix — STORY-138 carries this fix):**
+  When a TCP segment boundary falls after a complete 24-byte ENIP header but before the full
+  frame payload, the carry buffer stashes `buf[cursor..]` (the complete header + partial
+  payload). On the next `on_data` call, `carry ++ new_data` is formed and the header is
+  re-parsed from byte 0 — causing `command_counts` to be incremented a second time for the
+  same logical header. Fix: in the frame-walk, increment `command_counts` ONLY when a frame
+  is committed (dispatched to `process_pdu`) or definitively rejected (byte-walk/frame-skip
+  past a malformed frame), NOT on the partial-stash break path (i.e., the
+  `carry = buf[cursor..]; break` arm). A header split across two `on_data` calls MUST
+  produce exactly one `command_counts` increment — on the `on_data` call that commits or
+  rejects the frame, not the call that stashes the partial carry.
+  **Regression test required:** `tests/enip_analyzer_tests.rs::session_lifecycle::test_command_counts_no_double_count_on_split_header`
+  — Split a frame such that the first `on_data` call delivers exactly 24 bytes (complete
+  header, no payload); the second `on_data` call delivers the remaining payload. Assert
+  `command_counts[cmd] == 1` (not 2) after both calls.
 - **Test:** `tests/enip_analyzer_tests.rs::session_lifecycle::test_pdu_count_increments_on_valid_frame`
 - **Test:** `tests/enip_analyzer_tests.rs::session_lifecycle::test_pdu_count_not_incremented_on_invalid_frame`
 - **Test:** `tests/enip_analyzer_tests.rs::session_lifecycle::test_command_count_accumulates`
@@ -208,6 +223,7 @@ The key `parse_errors` is CANONICAL — not `total_parse_errors` (BC-2.17.021 In
 - [ ] Add to `EnipAnalyzer`: `total_pdu_count: u64`, `parse_errors: u64`, `command_distribution: HashMap<u16, u64>`, `write_count: u64`, `error_count: u64`, `flows_analyzed: u64`, `dropped_findings: u64`
 - [ ] Define `const MAX_FINDINGS: usize = 10_000` in `src/analyzer/enip.rs`
 - [ ] In `process_pdu`, at start of call: `flow.pdu_count += 1` (BC-2.17.024 Post 1) — this is the ONLY statistics increment in `process_pdu`; do NOT add a generic `command_counts` increment here (command_counts is owned by the frame-walk in STORY-137 / BC-2.17.016 PC-0)
+- [ ] **[F-W60-P1-001 prerequisite fix]** In the frame-walk (`on_data`), relocate the `command_counts` increment so it fires only when a frame is committed to `process_pdu` OR definitively byte-walked/skipped past as malformed — NOT on the `carry = buf[cursor..]; break` stash path. This prevents a split-after-complete-header from double-counting the command. Add regression test `test_command_counts_no_double_count_on_split_header` (see AC-138-003).
 - [ ] For RegisterSession and UnRegisterSession: no finding emitted; `pdu_count` already updated above; `command_counts` was already incremented upstream in the frame-walk before `process_pdu` was called (BC-2.17.025 Post 2/3)
 - [ ] Gate every finding push: `if self.all_findings.len() < MAX_FINDINGS { push } else { self.dropped_findings += 1 }` (BC-2.17.022) — do NOT set one-shot guards on cap-suppressed findings (BC-2.17.022 Post 5)
 - [ ] Implement `EnipAnalyzer::on_flow_close(flow_key)`: remove flow from `self.flows`; if `HashMap::remove` returns `Some(flow)`: fold `pdu_count`, `parse_errors`, `command_counts` into aggregates AND `self.flows_analyzed += 1` (BC-2.17.017 Post 6); if `HashMap::remove` returns `None` (unknown key): no-op, do NOT increment `flows_analyzed` (BC-2.17.017 Post 5)
