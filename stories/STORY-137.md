@@ -65,6 +65,7 @@ false positives on non-ENIP flows.
 - **Test:** `tests/enip_analyzer_tests.rs::frame_walk::test_carry_buffer_partial_header`
 - **Test:** `tests/enip_analyzer_tests.rs::frame_walk::test_carry_buffer_two_frames_one_segment`
 - **Test:** `tests/enip_analyzer_tests.rs::frame_walk::test_carry_buffer_three_segments_one_frame`
+- **Test:** `tests/enip_analyzer_tests.rs::frame_walk::test_multi_call_carry_residue_counting` (AC-137-001/004 / BC-2.17.016 Post-1/2/3 — multi-call byte-walk residue counting; verifies carry accumulates and parse_errors count correctly across calls)
 
 ### AC-137-002: Carry buffer is capped at MAX_ENIP_CARRY_BYTES (600) — overflow increments counters, runs check_t0814, THEN latches is_non_enip
 **Traces to:** BC-2.17.016 Invariant 4, Postcondition 4; BC-2.17.018 Precondition 6, EC-007
@@ -108,9 +109,12 @@ false positives on non-ENIP flows.
 - **`is_non_enip` is a permanent one-way flag:** once set (carry-cap ONLY), it cannot be cleared. When set, all subsequent `on_data` calls are immediate no-ops.
 - **Test:** `tests/enip_analyzer_tests.rs::frame_walk::test_non_enip_flag_set_at_carry_cap`
 - **Test:** `tests/enip_analyzer_tests.rs::frame_walk::test_non_enip_flag_permanent`
-- **Test:** `tests/enip_analyzer_tests.rs::frame_walk::test_byte_walk_resync_invalid_command`
+- **Test:** `tests/enip_analyzer_tests.rs::frame_walk::test_byte_walk_resync_invalid_command` (lone unknown frame → byte-walk; traces to BC-2.17.018 PC-1/2; NOT EC-012 resync-to-valid scenario)
 - **Test:** `tests/enip_analyzer_tests.rs::frame_walk::test_oversize_frame_skip_continue`
 - **Test:** `tests/enip_analyzer_tests.rs::frame_walk::test_oversize_frame_does_not_set_non_enip`
+- **Test:** `tests/enip_analyzer_tests.rs::frame_walk::test_oversize_frame_skip_then_valid_frame_processed` (AC-137-003 / BC-2.17.016 Post-1 frame-skip / EC-010 — oversized frame + trailing valid frame in one segment → trailing frame processed; is_non_enip=false)
+- **Test:** `tests/enip_analyzer_tests.rs::frame_walk::test_byte_walk_resync_to_valid_frame_same_segment` (AC-137-003 / BC-2.17.016 Post-1 byte-walk / EC-012 — garbage byte + valid frame in one segment → valid frame processed same call)
+- **Test:** `tests/enip_analyzer_tests.rs::frame_walk::test_byte_walk_resync_24_garbage_bytes_then_valid_frame` (AC-137-003/004 / EC-012 24-byte-block variant — parse_errors=24, pdu once, T0814 fires)
 
 ### AC-137-004: T0814 malformed-frame DoS burst detection — windowed, per BC-2.17.018
 **Traces to:** BC-2.17.018 postconditions 1–4, invariants 1/3/4
@@ -324,12 +328,16 @@ fn on_data(flow, data, now_ts, ...) {
 frame_walk::test_carry_buffer_partial_header
 frame_walk::test_carry_buffer_two_frames_one_segment
 frame_walk::test_carry_buffer_three_segments_one_frame
+frame_walk::test_multi_call_carry_residue_counting
 frame_walk::test_carry_buffer_cap_at_600
 frame_walk::test_carry_cap_sets_non_enip
 frame_walk::test_t0814_fires_on_carry_overflow_third_malformed
 frame_walk::test_byte_walk_resync_invalid_command
 frame_walk::test_oversize_frame_skip_continue
 frame_walk::test_oversize_frame_does_not_set_non_enip
+frame_walk::test_oversize_frame_skip_then_valid_frame_processed
+frame_walk::test_byte_walk_resync_to_valid_frame_same_segment
+frame_walk::test_byte_walk_resync_24_garbage_bytes_then_valid_frame
 frame_walk::test_non_enip_flag_permanent
 frame_walk::test_non_enip_flag_set_at_carry_cap
 frame_walk::test_t0814_fires_at_threshold
