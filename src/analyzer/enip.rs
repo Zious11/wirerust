@@ -1446,13 +1446,43 @@ impl EnipAnalyzer {
     pub fn summarize(&self) -> AnalysisSummary {
         use std::collections::BTreeMap;
 
-        // BC-2.17.021 Invariant 2: reads aggregate fields only — does NOT re-scan self.flows.
+        // BC-2.17.021 Precondition 4 / RULING-W61-001 / F-138-P1-004:
+        // Fold still-open flows on top of the pre-accumulated aggregate counters.
+        // self.flows contains ONLY flows not yet passed to on_flow_close; on_flow_close
+        // removes a flow from self.flows before folding it into the aggregates, so there
+        // is no overlap — folding self.flows.values() here cannot double-count a closed flow.
+        //
+        // write_count and error_count are NOT re-folded from flow state: they are
+        // incremented directly into self.write_count / self.error_count inside process_pdu
+        // (not held as per-flow lifetime totals). Re-folding them would double-count.
         // BC-2.17.021 Postcondition 3: no new findings emitted here.
 
-        // Build the command_distribution JSON map: "{hex_cmd}": count.
-        // Only non-zero entries (all entries in the HashMap are non-zero by construction).
+        // Start from the pre-accumulated aggregates (covers flows closed via on_flow_close).
+        let mut total_pdu_count = self.total_pdu_count;
+        let mut parse_errors = self.parse_errors;
+        let mut open_flow_count: u64 = 0;
+
+        // Build a combined command distribution: start with the closed-flow aggregate,
+        // then fold in still-open flows. Use a local map to avoid mutating self.
+        let mut cmd_dist_combined: HashMap<u16, u64> = self.command_distribution.clone();
+
+        for flow in self.flows.values() {
+            total_pdu_count = total_pdu_count.saturating_add(flow.pdu_count);
+            parse_errors = parse_errors.saturating_add(flow.parse_errors);
+            for (&cmd, &count) in &flow.command_counts {
+                let e = cmd_dist_combined.entry(cmd).or_insert(0);
+                *e = e.saturating_add(count);
+            }
+            open_flow_count = open_flow_count.saturating_add(1);
+        }
+
+        // flows_analyzed = closed flows (on_flow_close increments) + still-open flows.
+        let flows_analyzed = self.flows_analyzed.saturating_add(open_flow_count);
+
+        // Build the command_distribution JSON map from the combined view.
+        // Only non-zero entries (all entries in the map are non-zero by construction).
         let mut cmd_dist: serde_json::Map<String, serde_json::Value> = serde_json::Map::new();
-        for (&cmd, &count) in &self.command_distribution {
+        for (&cmd, &count) in &cmd_dist_combined {
             if count > 0 {
                 cmd_dist.insert(format!("0x{cmd:04X}"), serde_json::json!(count));
             }
@@ -1467,13 +1497,10 @@ impl EnipAnalyzer {
         );
         enip_summary.insert(
             "total_pdu_count".to_string(),
-            serde_json::json!(self.total_pdu_count),
+            serde_json::json!(total_pdu_count),
         );
         // CANONICAL key: "parse_errors" — NOT "total_parse_errors" (BC-2.17.021 Invariant 1).
-        enip_summary.insert(
-            "parse_errors".to_string(),
-            serde_json::json!(self.parse_errors),
-        );
+        enip_summary.insert("parse_errors".to_string(), serde_json::json!(parse_errors));
         enip_summary.insert(
             "write_count".to_string(),
             serde_json::json!(self.write_count),
@@ -1484,7 +1511,7 @@ impl EnipAnalyzer {
         );
         enip_summary.insert(
             "flows_analyzed".to_string(),
-            serde_json::json!(self.flows_analyzed),
+            serde_json::json!(flows_analyzed),
         );
         enip_summary.insert(
             "dropped_findings".to_string(),
@@ -1501,7 +1528,7 @@ impl EnipAnalyzer {
         // BC-2.17.021 Post 2 / Invariant 3: zero-flow case still produces a valid object.
         AnalysisSummary {
             analyzer_name: "EtherNet/IP".to_string(),
-            packets_analyzed: self.total_pdu_count,
+            packets_analyzed: total_pdu_count,
             detail,
         }
     }
