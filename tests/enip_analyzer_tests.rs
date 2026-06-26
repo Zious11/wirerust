@@ -4130,13 +4130,16 @@ mod command_detections {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// STORY-136: CIP connection-lifecycle detection tests (Red Gate — awaiting implementation).
+// STORY-136: CIP connection-lifecycle detection tests.
 //
 // Traces to: BC-2.17.015 (ForwardOpen/LargeForwardOpen/ForwardClose lifecycle detection).
 //
-// RED — fail via todo!("STORY-136: CIP connection-lifecycle detection") panic:
-//   These tests send ForwardOpen/LargeForwardOpen/ForwardClose requests via 0x00B2
-//   items, which reach the STORY-136 stub branch in process_pdu and panic.
+// IMPLEMENTATION STATUS (STORY-136 complete):
+// All 10 connection_lifecycle tests pass. ForwardOpen/LargeForwardOpen/ForwardClose
+// lifecycle detection is fully implemented in process_pdu (BC-2.17.015).
+// Tests originated as Red-Gate stubs (none could pass until STORY-136 shipped).
+//
+// 6 tests originated as Red-Gate behavioral stubs (required STORY-136 implementation):
 //   test_forward_open_emits_finding         (BC-2.17.015 PC-1; AC-136-001)
 //   test_forward_open_no_mitre_technique    (BC-2.17.015 PC-1 mitre; AC-136-001)
 //   test_large_forward_open_emits_finding   (BC-2.17.015 PC-1 invariant 5; AC-136-001)
@@ -4144,7 +4147,7 @@ mod command_detections {
 //   test_forward_close_no_mitre_technique   (BC-2.17.015 PC-4 mitre; AC-136-002)
 //   test_connection_counts_tracked          (BC-2.17.015 invariant 3; AC-136-005; EC-008)
 //
-// GREEN-by-design — pass against the current stub (todo!() never reached):
+// 4 tests were green-by-design suppression tests (never required the stub branch):
 //   These tests never enter the ForwardOpen/LargeForwardOpen/ForwardClose branch;
 //   either the is_non_enip gate returns early, the item type is 0x00B1 (skipped),
 //   or classify_cip_service returns Response (not ForwardOpen/ForwardClose).
@@ -4285,6 +4288,11 @@ mod connection_lifecycle {
             "ForwardOpen finding summary must contain expected prefix (BC-2.17.015 PC-1 summary)"
         );
         assert!(
+            f.summary.contains(": connection lifecycle anomaly"),
+            "ForwardOpen finding summary must contain normative suffix \
+             \": connection lifecycle anomaly\" (BC-2.17.015 PC-1 summary)"
+        );
+        assert!(
             f.source_ip.is_some(),
             "ForwardOpen finding must carry source_ip (BC-2.17.015 PC-1)"
         );
@@ -4405,6 +4413,11 @@ mod connection_lifecycle {
              LargeForwardOpen treated identically to ForwardOpen)"
         );
         assert!(
+            f.summary.contains(": connection lifecycle anomaly"),
+            "LargeForwardOpen finding summary must contain normative suffix \
+             \": connection lifecycle anomaly\" (BC-2.17.015 PC-1 / invariant 5 summary)"
+        );
+        assert!(
             f.mitre_techniques.is_empty(),
             "LargeForwardOpen mitre_techniques must be vec![] (ADR-010 Decision 7)"
         );
@@ -4477,6 +4490,11 @@ mod connection_lifecycle {
             f.summary
                 .contains("CIP ForwardClose connection teardown observed from src="),
             "ForwardClose finding summary must contain expected prefix (BC-2.17.015 PC-4 summary)"
+        );
+        assert!(
+            f.summary.contains(": connection lifecycle closed"),
+            "ForwardClose finding summary must contain normative suffix \
+             \": connection lifecycle closed\" (BC-2.17.015 PC-4 summary)"
         );
         assert!(
             f.source_ip.is_some(),
@@ -4660,6 +4678,13 @@ mod connection_lifecycle {
             flow.close_connection_count, 1,
             "close_connection_count must be 1 after 1 ForwardClose \
              (BC-2.17.015 invariant 3 / AC-136-005)"
+        );
+        assert_eq!(
+            analyzer.all_findings.len(),
+            4,
+            "Part A: exactly 4 lifecycle findings must be emitted for 2 ForwardOpen + \
+             1 LargeForwardOpen + 1 ForwardClose — confirms per-occurrence firing with no \
+             one-shot guard (BC-2.17.015 PC-3/PC-5; EC-009)"
         );
 
         // --- Part B: EC-008 — counts increment even when all_findings is at MAX_FINDINGS ---
