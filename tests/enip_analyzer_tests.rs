@@ -4130,26 +4130,28 @@ mod command_detections {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// STORY-136: CIP connection-lifecycle detection tests (RED — awaiting implementation).
+// STORY-136: CIP connection-lifecycle detection tests (Red Gate — awaiting implementation).
 //
 // Traces to: BC-2.17.015 (ForwardOpen/LargeForwardOpen/ForwardClose lifecycle detection).
 //
-// All tests in this module call process_pdu, which dispatches into the
-// todo!("STORY-136: CIP connection-lifecycle detection") stub. Each test
-// exercises one AC or edge-case scenario; all are expected to FAIL (Red Gate)
-// until the implementer replaces the todo!() stub with real logic.
+// RED — fail via todo!("STORY-136: CIP connection-lifecycle detection") panic:
+//   These tests send ForwardOpen/LargeForwardOpen/ForwardClose requests via 0x00B2
+//   items, which reach the STORY-136 stub branch in process_pdu and panic.
+//   test_forward_open_emits_finding         (BC-2.17.015 PC-1; AC-136-001)
+//   test_forward_open_no_mitre_technique    (BC-2.17.015 PC-1 mitre; AC-136-001)
+//   test_large_forward_open_emits_finding   (BC-2.17.015 PC-1 invariant 5; AC-136-001)
+//   test_forward_close_emits_finding        (BC-2.17.015 PC-4; AC-136-002)
+//   test_forward_close_no_mitre_technique   (BC-2.17.015 PC-4 mitre; AC-136-002)
+//   test_connection_counts_tracked          (BC-2.17.015 invariant 3; AC-136-005; EC-008)
 //
-// RED (todo!() stub panics):
-//   test_forward_open_emits_finding
-//   test_forward_open_no_mitre_technique
-//   test_forward_open_connected_item_no_finding
-//   test_large_forward_open_emits_finding
-//   test_forward_close_emits_finding
-//   test_forward_close_no_mitre_technique
-//   test_forward_open_response_no_finding
-//   test_forward_close_response_no_finding
-//   test_non_enip_suppresses_connection_lifecycle
-//   test_connection_counts_tracked
+// GREEN-by-design — pass against the current stub (todo!() never reached):
+//   These tests never enter the ForwardOpen/LargeForwardOpen/ForwardClose branch;
+//   either the is_non_enip gate returns early, the item type is 0x00B1 (skipped),
+//   or classify_cip_service returns Response (not ForwardOpen/ForwardClose).
+//   test_forward_open_connected_item_no_finding   (F-P9-001 0x00B1 gate; BC-2.17.015 PC-3)
+//   test_forward_open_response_no_finding         (BC-2.17.007 Inv 1; BC-2.17.015 Inv 2)
+//   test_forward_close_response_no_finding        (BC-2.17.007 Inv 1; BC-2.17.015 Inv 2)
+//   test_non_enip_suppresses_connection_lifecycle (BC-2.17.015 PC-4; AC-136-004)
 // ─────────────────────────────────────────────────────────────────────────────
 mod connection_lifecycle {
     use std::net::{IpAddr, Ipv4Addr};
@@ -4278,7 +4280,8 @@ mod connection_lifecycle {
             "ForwardOpen finding confidence must be Confidence::Low (BC-2.17.015 PC-1)"
         );
         assert!(
-            f.summary.contains("CIP ForwardOpen connection establishment observed from src="),
+            f.summary
+                .contains("CIP ForwardOpen connection establishment observed from src="),
             "ForwardOpen finding summary must contain expected prefix (BC-2.17.015 PC-1 summary)"
         );
         assert!(
@@ -4371,6 +4374,12 @@ mod connection_lifecycle {
             "LargeForwardOpen finding confidence must be Confidence::Low (BC-2.17.015 PC-1)"
         );
         assert!(
+            f.summary
+                .contains("CIP ForwardOpen connection establishment observed from src="),
+            "LargeForwardOpen summary must use ForwardOpen prefix (BC-2.17.015 PC-1 / invariant 5 — \
+             LargeForwardOpen treated identically to ForwardOpen)"
+        );
+        assert!(
             f.mitre_techniques.is_empty(),
             "LargeForwardOpen mitre_techniques must be vec![] (ADR-010 Decision 7)"
         );
@@ -4415,7 +4424,8 @@ mod connection_lifecycle {
             "ForwardClose finding confidence must be Confidence::Low (BC-2.17.015 PC-4)"
         );
         assert!(
-            f.summary.contains("CIP ForwardClose connection teardown observed from src="),
+            f.summary
+                .contains("CIP ForwardClose connection teardown observed from src="),
             "ForwardClose finding summary must contain expected prefix (BC-2.17.015 PC-4 summary)"
         );
         assert!(
