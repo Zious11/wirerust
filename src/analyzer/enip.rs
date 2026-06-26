@@ -801,7 +801,45 @@ impl EnipAnalyzer {
                         | CipServiceClass::LargeForwardOpen
                         | CipServiceClass::ForwardClose
                 ) {
-                    todo!("STORY-136: CIP connection-lifecycle detection [BC-2.17.015]")
+                    // BC-2.17.015: increment counts BEFORE the MAX_FINDINGS gate (EC-008 /
+                    // Architecture Rule 4) so session summary (STORY-138) is accurate even when
+                    // the cap is reached.
+                    let (summary, is_open) = if matches!(
+                        service_class,
+                        CipServiceClass::ForwardOpen | CipServiceClass::LargeForwardOpen
+                    ) {
+                        flow.open_connection_count = flow.open_connection_count.saturating_add(1);
+                        (
+                            format!(
+                                "CIP ForwardOpen connection establishment observed from \
+                                 src={src_ip}: connection lifecycle anomaly"
+                            ),
+                            true,
+                        )
+                    } else {
+                        flow.close_connection_count = flow.close_connection_count.saturating_add(1);
+                        (
+                            format!(
+                                "CIP ForwardClose connection teardown observed from \
+                                 src={src_ip}: connection lifecycle closed"
+                            ),
+                            false,
+                        )
+                    };
+                    let _ = is_open; // field unused beyond count; kept for clarity
+                    if self.all_findings.len() < MAX_FINDINGS {
+                        self.all_findings.push(crate::findings::Finding {
+                            category: crate::findings::ThreatCategory::Anomaly,
+                            verdict: crate::findings::Verdict::Possible,
+                            confidence: crate::findings::Confidence::Low,
+                            summary,
+                            evidence: vec![],
+                            mitre_techniques: vec![],
+                            source_ip: Some(src_ip),
+                            timestamp: chrono::DateTime::from_timestamp(timestamp as i64, 0),
+                            direction: None,
+                        });
+                    }
                 }
             }
         }
