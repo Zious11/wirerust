@@ -6906,10 +6906,11 @@ mod session_lifecycle {
     /// Expected: `command_counts[0x0063] == 1` (not 2). The stash path must NOT
     /// increment `command_counts`; only the commit path does.
     ///
-    /// This test is currently RED because the existing code increments `command_counts`
-    /// in the first on_data call (at the header-parse site) and then again after carry
-    /// reassembly in the second call. The fix (F-W60-P1-001) moves the increment to
-    /// fire only when a frame is committed or definitively skipped.
+    /// Regression guard for F-W60-P1-001: a frame split after a complete 24-byte header
+    /// must count `command_counts` exactly once. Before the fix the frame-walk incremented
+    /// `command_counts` on the stash call AND again on the commit call (double-count); the
+    /// fix increments only at commit/reject sites, never on the partial-stash break.
+    /// This test FAILS if that regression is reintroduced.
     ///
     /// Traces: BC-2.17.016 PC-0; BC-2.17.024; F-W60-P1-001.
     #[test]
