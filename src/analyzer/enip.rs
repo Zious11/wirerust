@@ -804,17 +804,26 @@ impl EnipAnalyzer {
                     // BC-2.17.015: increment counts BEFORE the MAX_FINDINGS gate (EC-008 /
                     // Architecture Rule 4) so session summary (STORY-138) is accurate even when
                     // the cap is reached.
-                    let (summary, is_open) = if matches!(
+                    let (summary, evidence) = if matches!(
                         service_class,
                         CipServiceClass::ForwardOpen | CipServiceClass::LargeForwardOpen
                     ) {
                         flow.open_connection_count = flow.open_connection_count.saturating_add(1);
+                        let name = service_class_name(service_class);
+                        let service_byte = cip_hdr.service;
                         (
                             format!(
                                 "CIP ForwardOpen connection establishment observed from \
                                  src={src_ip}: connection lifecycle anomaly"
                             ),
-                            true,
+                            vec![format!(
+                                "CIP service=0x{service_byte:02X} ({name}) from src={src_ip} \
+                                 session={session}. No dedicated MITRE ICS technique for CIP \
+                                 connection establishment anomaly; T1692.001 applies only when \
+                                 connection demonstrably carries unauthorized command \
+                                 (ADR-010 Decision 7)",
+                                session = header.session_handle,
+                            )],
                         )
                     } else {
                         flow.close_connection_count = flow.close_connection_count.saturating_add(1);
@@ -823,17 +832,21 @@ impl EnipAnalyzer {
                                 "CIP ForwardClose connection teardown observed from \
                                  src={src_ip}: connection lifecycle closed"
                             ),
-                            false,
+                            vec![format!(
+                                "CIP service=0x4E (ForwardClose) from src={src_ip} \
+                                 session={session}. Connection lifecycle closed; no dedicated \
+                                 MITRE ICS technique (ADR-010 Decision 7)",
+                                session = header.session_handle,
+                            )],
                         )
                     };
-                    let _ = is_open; // field unused beyond count; kept for clarity
                     if self.all_findings.len() < MAX_FINDINGS {
                         self.all_findings.push(crate::findings::Finding {
                             category: crate::findings::ThreatCategory::Anomaly,
                             verdict: crate::findings::Verdict::Possible,
                             confidence: crate::findings::Confidence::Low,
                             summary,
-                            evidence: vec![],
+                            evidence,
                             mitre_techniques: vec![],
                             source_ip: Some(src_ip),
                             timestamp: chrono::DateTime::from_timestamp(timestamp as i64, 0),
