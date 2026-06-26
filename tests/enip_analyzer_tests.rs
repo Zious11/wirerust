@@ -2293,9 +2293,10 @@ mod mitre_seeding {
 //   (BC-2.17.016 PC-0 command_counts increment) is owned by STORY-137.
 //   Tests drive `process_pdu` directly, constructing `EnipFlowState` inline.
 //
-// Red Gate: all tests exercise `process_pdu`, which is `todo!()` until STORY-134
-// implements T0846/T0888 detection. Each test will panic at `process_pdu` until the
-// implementation lands; the post-call assertions document the required behavior.
+// IMPLEMENTATION STATUS (STORY-134 complete):
+// All 20 tests pass. `process_pdu` implements T0846/T0888 detection; the
+// post-call assertions confirm the required behavior. Tests originated as
+// Red-Gate stubs (none could pass until STORY-134 shipped).
 // ─────────────────────────────────────────────────────────────────────────────
 mod recon {
     use std::net::{IpAddr, Ipv4Addr};
@@ -3481,13 +3482,32 @@ mod recon {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// STORY-135 command detection tests (RED — stubs only; todo!() enforces Red Gate).
+// STORY-135 command detection tests (GREEN — STORY-135 implemented).
 //
 // Traces to: BC-2.17.011 (T0858 CIP Stop), BC-2.17.013 (T0816 CIP Reset),
 //            BC-2.17.012 (T0836 SetAttribute write-burst).
 //
-// All tests in this module call process_pdu paths that reach todo!() stubs.
-// All tests are RED until STORY-135 detection logic is implemented.
+// IMPLEMENTATION STATUS (STORY-135 complete):
+// All 15 tests pass. CIP Stop (T0858), CIP Reset (T0816), and SetAttribute
+// write-burst (T0836) detections are fully implemented in `process_pdu`.
+// Tests originated as Red-Gate stubs (none could pass until STORY-135 shipped).
+//
+// GREEN:
+//   test_t0858_stop_service_0x07               — BC-2.17.011 PC-1 (Stop request emits T0858)
+//   test_t0858_stop_response_no_finding        — BC-2.17.011 inv 4 (response-bit gate)
+//   test_t0858_connected_item_no_finding       — BC-2.17.011 precond 3 (0x00B1 skip)
+//   test_t0858_set_attribute_no_t0858          — BC-2.17.011/012 independence
+//   test_t0816_reset_service                   — BC-2.17.013 PC-1 (Reset request emits T0816)
+//   test_t0816_response_no_finding             — BC-2.17.013 inv 4 (response-bit gate)
+//   test_t0816_connected_item_no_finding       — BC-2.17.013 precond 3 (0x00B1 skip)
+//   test_t0836_burst_fires_at_threshold_plus_one — BC-2.17.012 inv 2 (strict > semantics)
+//   test_t0836_burst_one_shot_guard            — BC-2.17.012 PC-5 (one-shot guard)
+//   test_t0836_no_fire_at_threshold            — BC-2.17.012 inv 2 (== threshold → no fire)
+//   test_t0836_window_resets_after_1s          — BC-2.17.012 PC-4 (window expiry + guard reset)
+//   test_t0836_custom_threshold                — BC-2.17.012 inv 3 (custom threshold)
+//   test_non_enip_suppresses_command_detections — BC-2.17.011/012/013 is_non_enip guard
+//   test_write_count_accumulates               — BC-2.17.012 PC-1/2 (per-flow + aggregate)
+//   test_aggregate_write_count_increments      — BC-2.17.012 PC-2 (aggregate lifetime counter)
 //
 // Helpers reuse sendrr_pdu_with_cip / sendrr_pdu_with_b1_cip from recon_detections
 // via inline duplication (separate module scope requires local helpers).
@@ -3606,8 +3626,6 @@ mod command_detections {
     /// Expected: one Finding with mitre_techniques=["T0858"], category=Execution,
     /// verdict=Likely, confidence=High.
     ///
-    /// RED (STORY-135 stub): process_pdu reaches todo!() for Stop detection.
-    ///
     /// Traces: BC-2.17.011 postcondition 1; AC-135-001; EC-001.
     #[test]
     fn test_t0858_stop_service_0x07() {
@@ -3638,8 +3656,6 @@ mod command_detections {
     ///
     /// classify_cip_service(0x87) returns Response — response-bit invariant
     /// (BC-2.17.007 invariant 1). Detection fires on requests only.
-    ///
-    /// RED (STORY-135 stub): process_pdu would hit todo!() if the guard were absent.
     ///
     /// Traces: BC-2.17.011 invariant 4 (request-only); AC-135-001; EC-002.
     #[test]
@@ -3686,9 +3702,6 @@ mod command_detections {
     ///
     /// SetAttribute feeds the T0836 write-burst path, not T0858 (AC-135-001 last bullet).
     ///
-    /// RED (STORY-135 stub): process_pdu reaches the SetAttribute todo!() block for T0836,
-    /// not the Stop block. The test will panic at the SetAttribute todo!() until implemented.
-    ///
     /// Traces: BC-2.17.011/012 independence; AC-135-001; EC-003.
     #[test]
     fn test_t0858_set_attribute_no_t0858() {
@@ -3719,8 +3732,6 @@ mod command_detections {
     /// !is_non_enip, len < MAX_FINDINGS.
     /// Expected: one Finding with mitre_techniques=["T0816"], category=Execution (EXACT —
     /// NOT InhibitResponseFunction), verdict=Likely, confidence=High.
-    ///
-    /// RED (STORY-135 stub): process_pdu reaches todo!() for Reset detection.
     ///
     /// Traces: BC-2.17.013 postcondition 1; AC-135-002; EC-005.
     #[test]
@@ -3799,8 +3810,6 @@ mod command_detections {
     /// Strict `>` semantics (BC-2.17.012 invariant 2): 51 > 50 = true → finding emitted.
     /// One-shot guard set: further writes in same window produce no additional finding.
     ///
-    /// RED (STORY-135 stub): first SetAttribute call reaches write-burst todo!().
-    ///
     /// Traces: BC-2.17.012 postcondition 5; invariant 2; AC-135-003; EC-008.
     #[test]
     fn test_t0836_burst_fires_at_threshold_plus_one() {
@@ -3835,8 +3844,6 @@ mod command_detections {
     /// After the guard is set (write_burst_emitted=true), further writes in the same window
     /// increment write_count_in_window but do NOT emit additional T0836 findings (BC-2.17.012 PC-5).
     ///
-    /// RED (STORY-135 stub): todo!() hit on first write.
-    ///
     /// Traces: BC-2.17.012 postcondition 5 (write_burst_emitted guard); AC-135-003; EC-009.
     #[test]
     fn test_t0836_burst_one_shot_guard() {
@@ -3860,8 +3867,6 @@ mod command_detections {
     ///
     /// Strict `>` semantics: 50 > 50 = false → no finding (BC-2.17.012 invariant 2).
     ///
-    /// RED (STORY-135 stub): todo!() hit on first write.
-    ///
     /// Traces: BC-2.17.012 invariant 2; AC-135-003; EC-007.
     #[test]
     fn test_t0836_no_fire_at_threshold() {
@@ -3884,8 +3889,6 @@ mod command_detections {
     ///
     /// Window 1: ts=100, 51 writes → T0836 emitted; guard=true.
     /// Window 2: ts=102 (102 - 100 = 2 > 1 → window expired); 51 writes → T0836 emitted again.
-    ///
-    /// RED (STORY-135 stub): todo!() hit on first write.
     ///
     /// Traces: BC-2.17.012 postcondition 4 (window expiry + guard reset); AC-135-003; EC-010.
     #[test]
@@ -3916,8 +3919,6 @@ mod command_detections {
     }
 
     /// AC-135-003 — custom threshold=10: 11 writes fires T0836 at threshold+1.
-    ///
-    /// RED (STORY-135 stub): todo!() hit on first write.
     ///
     /// Traces: BC-2.17.012 invariant 3 (default 50; custom via CLI flag); AC-135-003.
     #[test]
@@ -3996,8 +3997,6 @@ mod command_detections {
     /// Both flow.write_count_in_window and analyzer.write_count must increment on every
     /// qualifying write-class request, regardless of threshold (BC-2.17.012 PC-1/PC-2).
     ///
-    /// RED (STORY-135 stub): todo!() hit on first SetAttribute.
-    ///
     /// Traces: BC-2.17.012 postconditions 1, 2; AC-135-005.
     #[test]
     fn test_write_count_accumulates() {
@@ -4024,8 +4023,6 @@ mod command_detections {
     /// AC-135-005 — analyzer.write_count == N after N SetAttribute frames (aggregate).
     ///
     /// The aggregate lifetime counter is independent of the per-flow burst window.
-    ///
-    /// RED (STORY-135 stub): todo!() hit on first SetAttribute.
     ///
     /// Traces: BC-2.17.012 postcondition 2; AC-135-005.
     #[test]

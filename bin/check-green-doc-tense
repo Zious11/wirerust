@@ -39,6 +39,13 @@ The following patterns are matched against COMMENT LINES ONLY
   9. stub-only bodies.*panic.*Red Gate
  10. Every test body panics.*must FAIL before
  11. All stubs MUST fail before
+ 12. RED[  ]*[-—]+[  ]*stubs only      — module-level "RED — stubs only" or "RED -- stubs only"
+ 13. All tests are RED until            — current-state "tests are RED" assertion
+ 14. RED (STORY-NNN stub)               — per-test docstring stub-phase marker
+ 15. todo!() until STORY-NNN implements  — "todo!() until STORY-NNN implements"
+ 16. will panic at .* until the implementation lands  — "will panic … until implementation"
+ 17. tests? will panic .* until .* implement  — "test(s) will panic … until … implement"
+ 18. Each test will panic at .* until        — "Each test will panic at … until"
 
 All patterns are anchored to comment lines (leading // or //!) to avoid
 false-positives inside doc-test code blocks or inside string literals.
@@ -47,8 +54,26 @@ ALLOWLIST (lines NOT flagged — legitimate past-tense or contextual prose)
 --------------------------------------------------------------------------
 The allowlist is implemented by the token specificity above: every pattern
 requires an unambiguous current-state assertion ("MUST FAIL", "are designed
-to FAIL", "stub-only bodies", etc.) that cannot appear in past-tense
-provenance narration.
+to FAIL", "stub-only bodies", "stubs only", "are RED until", etc.) that
+cannot appear in past-tense provenance narration.
+
+Pattern-specific allowlist notes (patterns 12-17):
+  12. "RED — stubs only": The dash+phrase combination is specific to stub-phase
+      headers. Past-tense equivalents use "originated as stubs" or "were stubs".
+      Allowlisted: "originated as Red-Gate stubs", "(was RED)", patterns without
+      the dash+stubs-only suffix.
+  13. "All tests are RED until": The present-tense "are RED" is unambiguous.
+      Allowlisted: "were RED until", "tests passed their RED phase".
+  14. "RED (STORY-NNN stub)": The parenthesised (STORY-NNN stub) suffix is used
+      exclusively in stub-phase doc-comment headers. Not used in past-tense prose.
+      Allowlisted: "originated as STORY-NNN stub", "STORY-NNN stub (GREEN)".
+  15. "todo!() until STORY-NNN implements": Unambiguous current-state assertion.
+      Allowlisted: "todo!() was replaced", "todo!() stub is now GREEN".
+  16. "will panic at … until the implementation lands": Unambiguous future-state
+      assertion meaning the code currently panics. Allowlisted: "would panic",
+      "used to panic", "panicked before implementation".
+  17. "test(s) will panic … until … implement": Same rationale as 16.
+      Allowlisted: "tests panicked", "tests would panic".
 
 The following commonly-seen "Red Gate" phrases are intentionally NOT in the
 token list because they describe historical provenance, not current state:
@@ -123,6 +148,60 @@ _VIOLATION_PATTERNS: list[tuple[str, re.Pattern[str]]] = [
     (
         "All stubs MUST fail before (section RED-stub header)",
         re.compile(r"All stubs MUST fail before", re.IGNORECASE),
+    ),
+    # -----------------------------------------------------------------------
+    # Patterns 12-17: added to catch feature-enip stale RED phrasings that
+    # slipped through the original gate (F-135-002 / adversarial Pass 1).
+    # -----------------------------------------------------------------------
+    (
+        # Pattern 12: "RED — stubs only" / "RED -- stubs only" (em-dash or double-hyphen).
+        # These are module-level headers written during stub phase and never scrubbed.
+        # Allowlist: "originated as Red-Gate stubs", "(was RED)" — neither contains
+        # the dash+stubs-only suffix.
+        "RED — stubs only (module-level stub-phase header; em-dash or double-hyphen variant)",
+        re.compile(r"RED\s*[-—]{1,2}\s*stubs only", re.IGNORECASE),
+    ),
+    (
+        # Pattern 13: "All tests are RED until" — present-tense current-state assertion.
+        # Allowlist: "were RED until", "tests passed their RED phase" — different tense.
+        "All tests are RED until (current-state RED assertion in module header)",
+        re.compile(r"All tests are RED until", re.IGNORECASE),
+    ),
+    (
+        # Pattern 14: "RED (STORY-NNN stub)" — per-test docstring stub-phase marker.
+        # The parenthesised (STORY-NNN stub) is used exclusively during stub phase.
+        # Allowlist: "originated as STORY-NNN stub", "STORY-NNN stub (GREEN)" — different structure.
+        "RED (STORY-NNN stub) (per-test stub-phase docstring marker)",
+        re.compile(r"RED\s*\(STORY-\d+\s+stub\)", re.IGNORECASE),
+    ),
+    (
+        # Pattern 15: "todo!() until STORY-NNN implements" — asserts todo!() is still live.
+        # The todo!() may be backtick-wrapped (`` `todo!()` ``), so we allow non-word chars
+        # between the closing paren and "until": `todo!\(\)\W+until`.
+        # Allowlist: "todo!() was replaced", "todo!() stub is now GREEN".
+        "todo!() until STORY-NNN implements (current-state todo!() stub assertion)",
+        re.compile(r"todo!\(\)\W+until\s+STORY-\d+\s+implement", re.IGNORECASE),
+    ),
+    (
+        # Pattern 16: "will panic at … until the implementation lands" — states the code
+        # currently panics (present/future tense pointing at a live stub).
+        # Allowlist: "would panic", "used to panic", "panicked before implementation".
+        "will panic … until the implementation lands (current-state panic assertion)",
+        re.compile(r"will panic\b.*\buntil the implementation lands", re.IGNORECASE),
+    ),
+    (
+        # Pattern 17: "test(s) will panic … until … implement" — variant of pattern 16.
+        # Allowlist: "tests panicked", "tests would panic".
+        "test(s) will panic … until … implement (current-state panic assertion)",
+        re.compile(r"tests?\s+will panic\b.*\buntil\b.*\bimplement", re.IGNORECASE),
+    ),
+    (
+        # Pattern 18: "Each test will panic at … until" — catches the recon module header
+        # pattern where the "implementation lands" tail wraps to the next line. The phrase
+        # "Each test will panic at … until" is unambiguously a current-state stub assertion.
+        # Allowlist: "Each test would have panicked", "Each test panicked before".
+        "Each test will panic at … until (current-state per-test panic assertion in header)",
+        re.compile(r"Each test will panic at\b.*\buntil\b", re.IGNORECASE),
     ),
 ]
 
