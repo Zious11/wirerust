@@ -1,10 +1,10 @@
 ---
 pipeline: FEATURE-MODE
 phase: F6
-phase_status: "F6 formal hardening IN-PROGRESS — v0.11.0 ENIP delta @bd9e507"
+phase_status: "F6 formal hardening DISCHARGED — Kani 11/11, fuzz 8.3M/0, audit/deny/clippy/fmt clean, mutants 100%-sample/full-run-PENDING-CONFIRMATION"
 product: wirerust
 mode: feature-mode
-timestamp: 2026-06-26T23:00:00Z
+timestamp: 2026-06-26T23:30:00Z
 
 # Release chain (latest)
 released_version: v0.10.0
@@ -29,7 +29,7 @@ adversary_gate: SATISFIED
 # Story tracking
 stories_delivered: 87
 current_cycle: feature-enip-v0.11.0 (D-228, 2026-06-24)
-current_wave: "Wave 61 CLOSED — HUMAN-APPROVED. Fix-PR #331 @bd9e507 merged (pre-F5 cleanup). F4 COMPLETE. F5 IN-PROGRESS."
+current_wave: "Wave 61 CLOSED — HUMAN-APPROVED. Fix-PR #331 @bd9e507 merged (pre-F5 cleanup). F4 COMPLETE. F5 CONVERGED (D-263). F6 DISCHARGED (D-264)."
 
 # DTU
 dtu_required: false
@@ -52,9 +52,9 @@ convergence_trajectory: "Detail: cycles/v0.1.0-greenfield-spec/convergence-traje
 
 ## Status
 
-**PIPELINE FEATURE-MODE. Cycle `feature-enip-v0.11.0` OPEN. F5 scoped-adversarial CONVERGED (3-pass, 0 novelty, D-263). F6 formal hardening IN-PROGRESS.**
+**PIPELINE FEATURE-MODE. Cycle `feature-enip-v0.11.0` OPEN. F5 scoped-adversarial CONVERGED (3-pass, 0 novelty, D-263). F6 formal hardening DISCHARGED (D-264). Awaiting: F6 fuzz-harness PR human-merge + cargo-mutants full-run confirmation (F6-MUTANTS-FULL-RUN).**
 
-**HUMAN DIRECTIVE (D-260): STOP before cutting the v0.11.0 release — proceed through F5 + F6 + F7 convergence, then HALT for human go-ahead before the release pipeline.**
+**HUMAN DIRECTIVE (D-260): STOP before cutting v0.11.0 — F5 + F6 DONE. Proceed through F7 convergence + human gate, then HALT before release pipeline.**
 
 Latest release: v0.10.0 (main `0cbe922`, tag `v0.10.0`). develop=`bd9e507`. stories_delivered=87. Target: v0.11.0 (SS-17 EtherNet/IP + CIP TCP/44818). GitHub issue #316.
 
@@ -79,22 +79,22 @@ Spec versions: BC-INDEX v1.84 (331 on disk / 330 active; SS-17=26 BCs). ARCH-IND
 - Do NOT re-apply fix-PR #330 — MERGED @7ceb670 (D-260). summarize() now folds open flows per RULING-W61-001.
 - Do NOT re-apply fix-PR #331 — MERGED @bd9e507 (D-262). EnipSummary wired through summarize(); byte-identical output; SAFETY comment lists dropped_findings; O-1 connection-count doc-comments corrected.
 
-### EXACT RESUME POINT — F6 Formal Hardening IN-PROGRESS
+### EXACT RESUME POINT — F6 DISCHARGED, Awaiting PR merge + mutants confirmation
 
-**F5 CONVERGED (D-263). F4 COMPLETE. develop=`bd9e507`. stories_delivered=87.**
+**F6 DISCHARGED (D-264). develop=`bd9e507`. stories_delivered=87.**
 
-F5 result: 3 consecutive clean passes (Pass 1 whole-feature/CLI/release-readiness; Pass 2 security/DoS/panic-freedom; Pass 3 spec-fidelity/detection/RTM/holdout-alignment). ALL 0 HIGH/0 CRITICAL, zero novelty. BC-completeness sweep 26/26 (BC-2.17.001..026 all implemented + tested). Detection-attribute matrix verified; panic-freedom + DoS bounds confirmed; no dead code/debug artifacts; PRD §2.17 RTM complete; holdouts HS-110..122 present + boundary semantics satisfied. All F5 findings pre-adjudicated/deferred.
+F6 result: Kani 11/11 PASS (VP-032 5 harnesses, VP-004 dispatch oracle incl. 44818 arm, VP-007 4 MITRE atomic harnesses; Kani 0.67.0). cargo-fuzz F-P9-002: 8,331,310 runs/91s/0 crashes/0 hangs (fuzz/fuzz_targets/fuzz_enip_cip_parse.rs committed; cargo-fuzz 0.13.1). cargo audit clean (193 deps, 0 vulns); cargo deny ok; clippy -D warnings clean; fmt clean. cargo-mutants src/analyzer/enip.rs: 100%-kill on viable sample (20/20, 0 missed, 2 unviable); full 241-mutant run CONTINUING (informational; trending 0 missed). No product logic changed.
 
-**NEXT = F6 formal hardening** on the v0.11.0 ENIP delta (develop @bd9e507). Three obligations:
-1. Kani VP-032 (5 enip parse-safety harnesses), VP-004 (oracle incl. 44818 arm), VP-007 (MITRE atomic obligation) — all must PASS.
-2. F-P9-002 cargo-fuzz harnesses for `parse_cip_header` + `parse_cpf_items` (+ `parse_cip_request_path`) — the 3 attacker-facing CIP parsers NOT covered by Kani (VP-032 scopes them out).
-3. Mutation + security scan scoped to delta.
+**TRACKED CHECKPOINT: F6-MUTANTS-FULL-RUN** — confirm cargo-mutants enip.rs full 241-mutant run completes with 0 missed before F7 sign-off (poll mutants.out/missed.txt).
 
-After F6 → F7 delta-convergence + human gate → **HALT (D-260)** → release v0.11.0.
-
+NEXT (in order):
+1. Merge F6 fuzz-harness PR (test/enip-f6-fuzz-harnesses → develop) — HUMAN auth required (D-231).
+2. Confirm cargo-mutants full run = 0 missed (F6-MUTANTS-FULL-RUN checkpoint).
+3. F7 delta-convergence (5-dimensional + full regression) + human gate.
+4. **HALT (D-260)** — stop before cutting v0.11.0 release.
 ### Remaining-work map
 
-**F5 scoped-adversarial CONVERGED (D-263).** F6 formal hardening (IN-PROGRESS): (1) Kani VP-032/VP-004/VP-007 PASS; (2) cargo-fuzz F-P9-002 `parse_cip_header`/`parse_cpf_items`/`parse_cip_request_path`; (3) mutation + security scan. → F7 delta-convergence + human gate → **HALT for human go-ahead (D-260)** → release v0.11.0.
+**F6 formal hardening DISCHARGED (D-264).** Pending: merge F6 fuzz-harness PR (human auth) → confirm mutants full run 0 missed (F6-MUTANTS-FULL-RUN) → F7 delta-convergence (5-dimensional + full regression) + human gate → **HALT for human go-ahead (D-260)** → release v0.11.0.
 
 ### RESUME PROCEDURE (execute in order — BLOCKING)
 
@@ -102,7 +102,7 @@ After F6 → F7 delta-convergence + human gate → **HALT (D-260)** → release 
 2. Read `.factory/STATE.md` + `cycles/feature-enip-v0.11.0/cycle-manifest.md` in full.
 3. Verify: `git rev-parse --short develop` == `bd9e507`.
 4. Run `gh pr list` — expect Dependabot #311/#325 open (non-blocking); PRs #317..#320/#323/#324/#326..#331 MERGED.
-5. Proceed per EXACT RESUME POINT above — F6 formal hardening on v0.11.0 ENIP delta.
+5. Proceed per EXACT RESUME POINT above — F6 DISCHARGED; next = merge fuzz-harness PR + mutants confirmation + F7.
 
 ### Locked design facts (do not re-derive on resume)
 
@@ -164,7 +164,7 @@ All GitHub-issue creation DF-VALIDATION-001-gated.
 | Feature EtherNet/IP + CIP (issue #316) — F1/F2/F3 | **CONVERGED + HUMAN-APPROVED (D-228/D-230/D-231)** | 26 BCs (BC-2.17.001..026). 9 stories STORY-130..138 (E-20, 66 pts, waves 58-61). 13 holdouts HS-110..122. ADR-010, VP-032, SS-17. Detail: cycles/feature-enip-v0.11.0/ |
 | Feature EtherNet/IP + CIP — F4 | **COMPLETE — Wave-61 HUMAN-APPROVED + CLOSED (D-262).** | All STORY-130..138 MERGED + fix-PR #328 @0f345c6 + fix-PR #330 @7ceb670 + fix-PR #331 @bd9e507. stories_delivered=87. Wave-61: regression GREEN (0 failures, 80 suites), consistency audit CLEAN, 3-pass adversarial convergence (0 HIGH/0 CRITICAL), BC-5.39.001 MET, 26/26 BC completeness sweep. Pre-F5 cleanup merged. Convergence detail: cycles/feature-enip-v0.11.0/convergence-trajectory.md. |
 | Feature EtherNet/IP + CIP — F5 | **PASSED/CONVERGED (D-263)** | 3-pass, 0 HIGH/0 CRITICAL, zero novelty. 26/26 BC sweep. RTM complete. HS-110..122 satisfied. |
-| Feature EtherNet/IP + CIP — F6 | **IN-PROGRESS** | Formal hardening: Kani VP-032/VP-004/VP-007; cargo-fuzz F-P9-002 (`parse_cip_header`/`parse_cpf_items`/`parse_cip_request_path`); mutation/security scan. develop=`bd9e507`. |
+| Feature EtherNet/IP + CIP — F6 | **DISCHARGED (D-264)** | Kani 11/11 PASS (VP-032/VP-004/VP-007; Kani 0.67.0). cargo-fuzz F-P9-002: 8.3M/0 crashes. audit/deny/clippy/fmt clean. Mutants: 100%-sample/full-run PENDING-CONFIRMATION (F6-MUTANTS-FULL-RUN). F6 fuzz-harness PR open (test/enip-f6-fuzz-harnesses → develop), PENDING human merge. |
 
 ## Decisions Log
 
@@ -186,6 +186,7 @@ D-228..D-260: `cycles/feature-enip-v0.11.0/decisions-archive.md`
 | D-261 | Wave-61 wave-level convergence ACHIEVED. Regression GREEN @7ceb670 (0 failures, 80 suites, clippy/fmt clean). Consistency audit CLEAN. 3-pass adversarial convergence: Pass 1/2/3 all 0 HIGH/0 CRITICAL. BC-5.39.001 MET at wave level. 26/26 SS-17 BC completeness sweep PASSED (all have implementation paths + non-vacuous tests). Admin status cells fixed: STORY-138.md status ready→completed; STORY-INDEX.md story-table draft→completed; STORY-INDEX.md Wave-Delivery-Progress row updated to DELIVERED & CLOSED. New open items recorded: F-W61-001 MEDIUM (dead pub EnipSummary struct, human decision required), F-W61-002 LOW (SAFETY comment omits self.dropped_findings), O-W61-2 LOW (no-finding command process_pdu test optional), WAVE-60-TEST-DOC-SWEEP stale batch (open_connection_count/close_connection_count doc-comment). Wave 61 = CONVERGED, PENDING HUMAN GATE. | 2026-06-26 |
 | D-262 | Wave-61 integration gate PASSED (human-approved). Wave 61 CLOSED. Pre-F5 cleanup fix-PR #331 (`refactor(enip): wire summarize through EnipSummary + doc fixes`) squash-merged into develop; new develop HEAD = bd9e507 (was 7ceb670). EnipSummary resolution = wire-through (human-chosen). Resolved: F-W61-001 (EnipSummary now load-bearing, byte-identical output, AI+security APPROVE), F-W61-002 (SAFETY comment now lists dropped_findings), O-1 (connection-count doc-comments corrected), WAVE-60-TEST-DOC-SWEEP stale batch. CI 11/11 green. stories_delivered=87 (refactor, no new story). F4 (TDD implementation) COMPLETE. Entering F5 scoped-adversarial refinement on v0.11.0 ENIP delta @bd9e507. | 2026-06-26 |
 | D-263 | F5 scoped-adversarial CONVERGED. 3 consecutive clean passes on develop @bd9e507: Pass 1 (whole-feature/CLI/release-readiness), Pass 2 (security/DoS/panic-freedom), Pass 3 (spec-fidelity/detection/RTM/holdout-alignment). ALL 0 HIGH/0 CRITICAL, zero novelty. BC-completeness sweep 26/26 (BC-2.17.001..026 all implemented + tested). Detection-attribute matrix verified; panic-freedom + DoS bounds confirmed; no dead code/debug artifacts; PRD §2.17 RTM complete; holdouts HS-110..122 present + boundary semantics satisfied. All F5 findings pre-adjudicated/deferred (no new blocking items). Entering F6 formal hardening. | 2026-06-26 |
+| D-264 | F6 formal hardening DISCHARGED on develop @bd9e507. Kani: 11/11 PASS — VP-032 (5 harnesses: parse-safety Sub-A + biconditional/totality Sub-B/C/D + partition), VP-004 (dispatch oracle incl. 44818→Enip arm, non-vacuous), VP-007 (4 MITRE atomic: seeded-format, seeded-resolve, emitted-resolve, unknown-id-no-panic); Kani 0.67.0. cargo-fuzz F-P9-002: new fuzz_enip_cip_parse harness (parse_cpf_items + parse_cip_header + parse_cip_request_path) — 8,331,310 runs/91s/0 crashes/0 hangs; harness committed to test/enip-f6-fuzz-harnesses @447da079; cargo-fuzz 0.13.1. cargo audit clean (193 deps, 0 vulns); cargo deny ok; clippy -D warnings clean; fmt clean. cargo-mutants src/analyzer/enip.rs: 100%-kill viable sample (20/20, 0 missed, 2 unviable Default-substitutions); full 241-mutant run CONTINUING in background (informational, trending 0 missed) — F6-MUTANTS-FULL-RUN checkpoint tracked. No product logic changed. F6 fuzz-harness PR open (test/enip-f6-fuzz-harnesses → develop), halted for human merge per D-231. NEXT: merge PR → confirm mutants full run → F7. | 2026-06-26 |
 
 ## Governance Policy
 
@@ -196,5 +197,4 @@ Full policy text: `.factory/policies.yaml`. Active policies (17): DF-VALIDATION-
 - `.factory/` is a `factory-artifacts` orphan-branch worktree, gitignored from `develop`.
 - Active cycle: `cycles/feature-enip-v0.11.0/` (cycle-manifest.md, decisions-archive.md D-228+). Issue #316.
 - STORY-INDEX.md authoritative (91 stories / 61 waves / 592 pts — v2.8). STORY-130..138 all completed (Waves 58-61). stories_delivered=87.
-- F6 fuzz obligation (F-P9-002): `parse_cip_header` + `parse_cpf_items` + `parse_cip_request_path` cargo-fuzz. Deferred LOW: BC-2.17.010 "per-occurrence" wording; dep-graph STORY-133→137 T0814 rationale prose imprecision.
-- Issues: #104/#102/#64 CLOSED; all actions SHA-pinned; dtolnay/rust-toolchain @stable/@nightly exempted.
+- F6 fuzz harness (F-P9-002) DISCHARGED — branch test/enip-f6-fuzz-harnesses @447da079, PR open for human merge. Deferred LOW: BC-2.17.010 "per-occurrence" wording; dep-graph STORY-133→137 T0814 rationale prose imprecision. Issues: #104/#102/#64 CLOSED; all actions SHA-pinned; dtolnay/rust-toolchain @stable/@nightly exempted.
