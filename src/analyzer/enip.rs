@@ -636,7 +636,7 @@ impl EnipAnalyzer {
                     }
                 }
 
-                // STORY-135: T0858 detection — CIP Stop service (0x07) request.
+                // T0858 detection — CIP Stop service (0x07) request.
                 // BC-2.17.011 preconditions 1–5: classify_cip_service returns Stop,
                 // service & 0x80 == 0 (request), type_id == 0x00B2 (F-P9-001 gate above),
                 // !is_non_enip (gate at function entry), len < MAX_FINDINGS.
@@ -645,35 +645,60 @@ impl EnipAnalyzer {
                     && cip_hdr.service & 0x80 == 0
                     && self.all_findings.len() < MAX_FINDINGS
                 {
-                    // BC-5.38.005 invariant 1: "If I include this real implementation, will the
-                    // test for this function pass trivially without any implementer work?" — YES.
-                    // Body deferred to todo!() per BC-5.38.001.
-                    todo!(
-                        "STORY-135: emit T0858 Finding for CIP Stop (0x07) \
-                         — category::Execution, Likely/High, mitre T0858 (BC-2.17.011)"
-                    );
+                    // BC-2.17.011 postcondition 1: emit T0858 finding per occurrence.
+                    self.all_findings.push(crate::findings::Finding {
+                        category: crate::findings::ThreatCategory::Execution,
+                        verdict: crate::findings::Verdict::Likely,
+                        confidence: crate::findings::Confidence::High,
+                        summary:
+                            "CIP Stop service observed: controller run\u{2192}stop transition \
+                             command (T0858)"
+                                .to_string(),
+                        evidence: vec![format!(
+                            "CIP service=0x07 (Stop) from src={src_ip} \
+                             ENIP cmd={cmd:#06X} session={session}",
+                            cmd = header.command,
+                            session = header.session_handle,
+                        )],
+                        mitre_techniques: vec!["T0858".to_string()],
+                        source_ip: Some(src_ip),
+                        timestamp: chrono::DateTime::from_timestamp(timestamp as i64, 0),
+                        direction: None,
+                    });
                 }
 
-                // STORY-135: T0816 detection — CIP Reset service (0x05) request.
+                // T0816 detection — CIP Reset service (0x05) request.
                 // BC-2.17.013 preconditions 1–5: classify_cip_service returns Reset,
                 // type_id == 0x00B2, !is_non_enip, len < MAX_FINDINGS.
                 // Per-occurrence, no one-shot guard (BC-2.17.013 postcondition 2).
-                // Must use classify_cip_service result — NOT raw `service & 0x7F == 0x05`
+                // Uses classify_cip_service result — NOT raw `service & 0x7F == 0x05`
                 // (BC-2.17.007 invariant 1, Architecture Rule 2).
                 if matches!(service_class, CipServiceClass::Reset)
                     && cip_hdr.service & 0x80 == 0
                     && self.all_findings.len() < MAX_FINDINGS
                 {
-                    // BC-5.38.005 invariant 1: "If I include this real implementation, will the
-                    // test for this function pass trivially without any implementer work?" — YES.
-                    // Body deferred to todo!() per BC-5.38.001.
-                    todo!(
-                        "STORY-135: emit T0816 Finding for CIP Reset (0x05) \
-                         — category::Execution, Likely/High, mitre T0816 (BC-2.17.013)"
-                    );
+                    // BC-2.17.013 postcondition 1: emit T0816 finding per occurrence.
+                    self.all_findings.push(crate::findings::Finding {
+                        category: crate::findings::ThreatCategory::Execution,
+                        verdict: crate::findings::Verdict::Likely,
+                        confidence: crate::findings::Confidence::High,
+                        summary: "CIP Reset service observed: adversary-triggered device restart \
+                             (T0816)"
+                            .to_string(),
+                        evidence: vec![format!(
+                            "CIP service=0x05 (Reset) from src={src_ip} \
+                             ENIP cmd={cmd:#06X} session={session}",
+                            cmd = header.command,
+                            session = header.session_handle,
+                        )],
+                        mitre_techniques: vec!["T0816".to_string()],
+                        source_ip: Some(src_ip),
+                        timestamp: chrono::DateTime::from_timestamp(timestamp as i64, 0),
+                        direction: None,
+                    });
                 }
 
-                // STORY-135: T0836 detection — SetAttribute write-burst within 1s window.
+                // T0836 detection — SetAttribute write-burst within 1s window.
                 // BC-2.17.012 preconditions 1–5: classify_cip_service returns a write-class
                 // variant (SetAttributesAll/SetAttributeList/SetAttributeSingle), request
                 // (high bit clear), type_id == 0x00B2, !is_non_enip.
@@ -688,16 +713,58 @@ impl EnipAnalyzer {
                         | CipServiceClass::SetAttributeSingle
                 ) && cip_hdr.service & 0x80 == 0
                 {
-                    // BC-5.38.005 invariant 1: "If I include this real implementation, will the
-                    // test for this function pass trivially without any implementer work?" — YES.
-                    // Body deferred to todo!() per BC-5.38.001 (window management, counter
-                    // increments, and conditional T0836 emission are all non-trivial).
-                    todo!(
-                        "STORY-135: increment write_count_in_window + write_count; \
-                         manage 1s window (write_window_start_ts, wrapping_sub > 1); \
-                         emit T0836 Finding when count > threshold && !write_burst_emitted \
-                         — category::Execution, Likely/Medium, mitre T0836 (BC-2.17.012)"
-                    );
+                    // BC-2.17.012 postcondition 4: check 1s window expiry BEFORE incrementing.
+                    // Uses wrapping_sub arithmetic (same pattern as error window).
+                    // Only applicable when the window is seeded (write_count_in_window > 0).
+                    if flow.write_count_in_window > 0
+                        && timestamp.wrapping_sub(flow.write_window_start_ts) > 1
+                    {
+                        // Window expired: reseed with the current write as the first of new window.
+                        flow.write_count_in_window = 1;
+                        flow.write_window_start_ts = timestamp;
+                        flow.write_burst_emitted = false;
+                    } else {
+                        // BC-2.17.012 postcondition 1: increment per-flow window counter.
+                        flow.write_count_in_window += 1;
+                        // BC-2.17.012 postcondition 3: seed window timestamp on first write.
+                        if flow.write_count_in_window == 1 {
+                            flow.write_window_start_ts = timestamp;
+                        }
+                    }
+                    // BC-2.17.012 postcondition 2: increment aggregate lifetime counter.
+                    self.write_count = self.write_count.saturating_add(1);
+
+                    // BC-2.17.012 postcondition 5: emit T0836 when count strictly exceeds
+                    // threshold AND one-shot guard not set AND MAX_FINDINGS not reached.
+                    if flow.write_count_in_window > self.enip_write_burst_threshold as u64
+                        && !flow.write_burst_emitted
+                        && self.all_findings.len() < MAX_FINDINGS
+                    {
+                        let svc_name = service_class_name(service_class.clone());
+                        self.all_findings.push(crate::findings::Finding {
+                            category: crate::findings::ThreatCategory::Execution,
+                            verdict: crate::findings::Verdict::Likely,
+                            confidence: crate::findings::Confidence::Medium,
+                            summary: format!(
+                                "CIP write-class service burst: {} SetAttribute operations in \
+                                 1s window (threshold {}) \u{2014} possible parameter \
+                                 modification attack (T0836)",
+                                flow.write_count_in_window, self.enip_write_burst_threshold,
+                            ),
+                            evidence: vec![format!(
+                                "CIP service=0x{svc:02X} ({svc_name}) src={src_ip} \
+                                 ENIP session={session}",
+                                svc = cip_hdr.service,
+                                session = header.session_handle,
+                            )],
+                            mitre_techniques: vec!["T0836".to_string()],
+                            source_ip: Some(src_ip),
+                            timestamp: chrono::DateTime::from_timestamp(timestamp as i64, 0),
+                            direction: None,
+                        });
+                        // BC-2.17.012 postcondition 5: set one-shot guard after emission.
+                        flow.write_burst_emitted = true;
+                    }
                 }
             }
         }
