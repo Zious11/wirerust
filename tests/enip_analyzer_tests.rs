@@ -6610,11 +6610,6 @@ mod session_lifecycle {
             !analyzer.flows[&key].is_non_enip,
             "RegisterSession must NOT set is_non_enip (BC-2.17.025 Post 5)"
         );
-        // BC-5.38.001 Red Gate: remove this todo!() when implementing STORY-138.
-        todo!(
-            "STORY-138: test_register_session_pdu_counted_no_finding \
-             [BC-2.17.025 / AC-138-001]"
-        );
     }
 
     /// AC-138-001 / BC-2.17.025 / BC-2.17.024 — UnRegisterSession (0x0066) frame
@@ -6641,11 +6636,6 @@ mod session_lifecycle {
         assert!(
             !analyzer.flows[&key].is_non_enip,
             "UnRegisterSession must NOT set is_non_enip (BC-2.17.025 Post 5)"
-        );
-        // BC-5.38.001 Red Gate: remove this todo!() when implementing STORY-138.
-        todo!(
-            "STORY-138: test_unregister_session_pdu_counted_no_finding \
-             [BC-2.17.025 / AC-138-001]"
         );
     }
 
@@ -6682,11 +6672,6 @@ mod session_lifecycle {
         assert!(
             analyzer.all_findings.is_empty(),
             "RegisterSession × 3 must NOT emit any findings (BC-2.17.025 Post 3)"
-        );
-        // BC-5.38.001 Red Gate: remove this todo!() when implementing STORY-138.
-        todo!(
-            "STORY-138: test_session_command_counts_accumulated \
-             [BC-2.17.025 / AC-138-001]"
         );
     }
 
@@ -6842,11 +6827,6 @@ mod session_lifecycle {
             "one valid ListIdentity frame must increment pdu_count to 1 \
              (BC-2.17.024 Post 1)"
         );
-        // BC-5.38.001 Red Gate: remove this todo!() when implementing STORY-138.
-        todo!(
-            "STORY-138: test_pdu_count_increments_on_valid_frame \
-             [BC-2.17.024 Post 1 / AC-138-003]"
-        );
     }
 
     /// AC-138-003 / BC-2.17.024 Post 3 — frames rejected by `is_valid_enip_frame`
@@ -6868,11 +6848,6 @@ mod session_lifecycle {
             0,
             "an invalid-command frame (0xDEAD) must NOT increment pdu_count \
              (BC-2.17.024 Post 3)"
-        );
-        // BC-5.38.001 Red Gate: remove this todo!() when implementing STORY-138.
-        todo!(
-            "STORY-138: test_pdu_count_not_incremented_on_invalid_frame \
-             [BC-2.17.024 Post 3 / AC-138-003]"
         );
     }
 
@@ -6913,11 +6888,6 @@ mod session_lifecycle {
             flow.pdu_count, 1,
             "pdu_count must be 1: only the valid ListIdentity frame reaches process_pdu; \
              the 0xDEAD frame is rejected by is_valid_enip_frame (BC-2.17.024 Post 3)"
-        );
-        // BC-5.38.001 Red Gate: remove this todo!() when implementing STORY-138.
-        todo!(
-            "STORY-138: test_command_count_accumulates \
-             [BC-2.17.016 PC-0 / AC-138-003]"
         );
     }
 
@@ -7007,11 +6977,6 @@ mod session_lifecycle {
             "all_findings.len() must remain at MAX_FINDINGS after cap is hit \
              (BC-2.17.022 Post 1–2)"
         );
-        // BC-5.38.001 Red Gate: remove this todo!() when implementing STORY-138.
-        todo!(
-            "STORY-138: test_max_findings_cap \
-             [BC-2.17.022 Post 1-2 / AC-138-004]"
-        );
     }
 
     /// AC-138-004 / BC-2.17.022 Post 3 — `dropped_findings` is incremented once for each
@@ -7036,11 +7001,6 @@ mod session_lifecycle {
             analyzer.dropped_findings, 1,
             "dropped_findings must be 1 after one suppressed T0846 finding \
              (BC-2.17.022 Post 3)"
-        );
-        // BC-5.38.001 Red Gate: remove this todo!() when implementing STORY-138.
-        todo!(
-            "STORY-138: test_dropped_findings_incremented_at_cap \
-             [BC-2.17.022 Post 3 / AC-138-004]"
         );
     }
 
@@ -7075,11 +7035,6 @@ mod session_lifecycle {
             1,
             "command_counts must increment even when all_findings is at MAX_FINDINGS \
              (BC-2.17.022 Invariant 3 / Post 4)"
-        );
-        // BC-5.38.001 Red Gate: remove this todo!() when implementing STORY-138.
-        todo!(
-            "STORY-138: test_stats_accumulate_past_max_findings \
-             [BC-2.17.022 Invariant 3 / AC-138-004]"
         );
     }
 
