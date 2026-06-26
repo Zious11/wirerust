@@ -96,8 +96,8 @@ false positives on non-ENIP flows.
   in the implementation per BC-2.17.016 Post 4 / Inv 4.
 - **Test:** `tests/enip_analyzer_tests.rs::frame_walk::test_carry_stays_bounded_below_cap`
 - **Test:** `tests/enip_analyzer_tests.rs::frame_walk::test_carry_cap_does_not_fire_under_spec_algorithm`
-- **Test:** `tests/enip_analyzer_tests.rs::frame_walk::test_t0814_fires_on_carry_overflow_third_malformed`
-- **Test:** `tests/enip_analyzer_tests.rs::frame_walk::test_carry_overflow_latches_non_enip_via_subframe_accumulation` (AC-137-002 / BC-2.17.016 Inv-1/Post-4/Inv-4 / RULING-137-002 — verifies `is_non_enip` latch via subframe accumulation path)
+- **Test:** `tests/enip_analyzer_tests.rs::frame_walk::test_t0814_fires_on_third_byte_walk_reject`
+- **Test:** `tests/enip_analyzer_tests.rs::frame_walk::test_subframe_accumulation_keeps_carry_bounded_no_latch` (AC-137-002 / BC-2.17.016 Inv-1/Post-4/Inv-4 / RULING-137-002 — verifies carry stays bounded (≤23 bytes) and the `is_non_enip` latch does NOT fire under the spec frame-walk algorithm; genuine quarantine-latch deferred to v0.12.0 `spec-defect-is_non_enip-dead-latch`)
 - **Test:** `tests/enip_analyzer_tests.rs::frame_walk::test_carry_overflow_third_malformed_fires_t0814_before_latch` (AC-137-002 / BC-2.17.018 EC-007 — verifies T0814 fires before `is_non_enip` latch on 3rd malformed in window)
 
 ### AC-137-003: Frame-walk resync and frame-skip — correct cursor behavior per BC-2.17.016
@@ -323,7 +323,7 @@ fn on_data(flow, data, now_ts, ...) {
 - [ ] Add `frame_walk::test_command_counts_single_site_not_doubled`: send one valid known-command frame; assert `command_counts[cmd] == 1` (not 2), confirming the increment is not duplicated in `process_pdu`
 - [ ] Implement `check_t0814` helper: `if malformed_in_window >= MALFORMED_ANOMALY_THRESHOLD && !malformed_anomaly_emitted && !is_non_enip && all_findings.len() < MAX_FINDINGS` → emit T0814 Anomaly/Possible/Low finding; `malformed_anomaly_emitted = true` (do NOT set `is_non_enip` here)
 - [ ] Add `mod frame_walk { ... }` test wrapper to `tests/enip_analyzer_tests.rs` with all AC-137 tests including windowed reset and byte-walk/frame-skip cases
-- [ ] Add `frame_walk::test_t0814_fires_on_carry_overflow_third_malformed`: send 2 malformed frames (via byte-walk), then trigger carry-cap overflow as the 3rd structural reject; assert T0814 fires AND `is_non_enip` is then `true` (BC-2.17.018 EC-007 / AC-137-002 ordering)
+- [ ] Add `frame_walk::test_t0814_fires_on_third_byte_walk_reject`: send 2 malformed frames (via byte-walk), then trigger carry-cap overflow as the 3rd structural reject; assert T0814 fires AND `is_non_enip` is then `true` (BC-2.17.018 EC-007 / AC-137-002 ordering)
 - [ ] Construct test data: single-frame segment, two-frame segment, split-frame pair, oversized carry (601 bytes), oversized declared frame (total > 600), repeated malformed headers, window expiry re-fire
 - [ ] Run `cargo test enip` — all frame_walk tests pass
 - [ ] Run `cargo clippy --all-targets -- -D warnings` — zero warnings
@@ -339,7 +339,7 @@ frame_walk::test_carry_buffer_two_frames_one_segment
 frame_walk::test_carry_buffer_three_segments_one_frame
 frame_walk::test_carry_stays_bounded_below_cap
 frame_walk::test_carry_cap_does_not_fire_under_spec_algorithm
-frame_walk::test_t0814_fires_on_carry_overflow_third_malformed
+frame_walk::test_t0814_fires_on_third_byte_walk_reject
 frame_walk::test_byte_walk_resync_invalid_command
 frame_walk::test_oversize_frame_skip_continue
 frame_walk::test_oversize_frame_does_not_set_non_enip
@@ -359,7 +359,7 @@ frame_walk::test_valid_frame_no_malformed_count
 frame_walk::test_invalid_frame_increments_malformed_count
 frame_walk::test_command_counts_increments_for_unknown_command
 frame_walk::test_command_counts_single_site_not_doubled
-frame_walk::test_carry_overflow_latches_non_enip_via_subframe_accumulation
+frame_walk::test_subframe_accumulation_keeps_carry_bounded_no_latch
 frame_walk::test_carry_overflow_third_malformed_fires_t0814_before_latch
 frame_walk::test_max_enip_carry_bytes_is_600
 ```
