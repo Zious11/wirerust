@@ -6281,7 +6281,7 @@ mod source_attribution {
 
     /// The CLIENT IP in the discriminating scenario: 10.0.0.9 > 10.0.0.2 numerically,
     /// so FlowKey places the SERVER (10.0.0.2) as lower and CLIENT (10.0.0.9) as upper.
-    /// Current code (`lower_ip()`) therefore returns the wrong address.
+    /// Pre-fix `lower_ip()` returned the server (wrong); `resolve_enip_client_ip` now returns the client.
     fn client_ip_high() -> IpAddr {
         IpAddr::V4(Ipv4Addr::new(10, 0, 0, 9))
     }
@@ -6293,8 +6293,8 @@ mod source_attribution {
 
     /// The CLIENT IP in the control scenario: 10.0.0.1 < 10.0.0.9 numerically.
     /// FlowKey places the CLIENT as lower and SERVER as upper.
-    /// Current code (`lower_ip()`) therefore returns the right address coincidentally —
-    /// but only because the fix is also correct for this ordering.
+    /// Pre-fix `lower_ip()` returned the right address coincidentally here —
+    /// `resolve_enip_client_ip` now returns the client correctly for both orderings.
     fn client_ip_low() -> IpAddr {
         IpAddr::V4(Ipv4Addr::new(10, 0, 0, 1))
     }
