@@ -439,6 +439,60 @@ Worktree HEAD 5963ca4 reviewed. All prior findings resolved. Per-story adversari
 
 ---
 
+### Per-Story — STORY-136 (Wave 60)
+
+| Pass | Date | Total | CRIT | HIGH | MED | LOW | Novelty | Score | Counter | Verdict |
+|------|------|-------|------|------|-----|-----|---------|-------|---------|---------|
+| 1 | 2026-06-26 | 2 | 0 | 2 | 0 | 0 | HIGH | — | 0/3 | FINDINGS_REMAIN — REMEDIATED |
+| 2 | 2026-06-26 | 1 | 0 | 0 | 1 | 0 | MEDIUM | — | 0/3 → reset | FINDINGS_REMAIN — REMEDIATED |
+| 3 | 2026-06-26 | 0 | 0 | 0 | 0 | 0 | — | — | 1/3 | CLEAN |
+| 4 | 2026-06-26 | 0 | 0 | 0 | 0 | 0 | — | — | 2/3 | CLEAN |
+| 5 | 2026-06-26 | 0 | 0 | 0 | 0 | 0 | — | — | 3/3 | CONVERGED |
+
+Trajectory: `2H→0H(1MED)→CLEAN→CLEAN→CLEAN` (convergence ACHIEVED passes 3/4/5 per BC-5.39.001)
+
+Remediation history:
+- Pass-1 2×HIGH: F-136-P1-001 = `evidence: vec![]` violated BC-2.17.015 PC-1/PC-4 (evidence must be populated). F-136-P1-002 = no test covered evidence assertions. Routed: story-writer added evidence postcondition to AC-136-001/002 (factory commit 44c1c7c, input-hash UNCHANGED 0846e0e MATCH — body-only edit); test-writer added RED evidence assertions @bdd0248; implementer populated evidence + removed dead `is_open` binding @9c9e1bf.
+- Pass-2 1×MEDIUM: F-136-ADV-001 = stale RED-gate banner in test module (DF-GREEN-DOC-TENSE-SWEEP). Fixed by test-writer @b003547 (banner rewritten past-tense + per-occurrence + summary-suffix coverage hardening).
+- Passes 3/4/5 on frozen artifact @b003547: 0 findings all 3 passes. CONVERGED (D-251). 10/10 connection_lifecycle tests pass; clippy/fmt/green-doc-tense clean; input-hash 0846e0e MATCH.
+
+No [process-gap] findings across any pass (S-7.02 checklist: nothing to codify).
+
+**Per-story adversarial convergence ACHIEVED** (BC-5.39.001 MET). STORY-136 worktree HEAD b003547.
+
+---
+
+### STORY-136 Pass 1 (2026-06-26)
+
+**Findings:** 2 (0 CRIT, 2 HIGH, 0 MED, 0 LOW)
+**Novelty:** HIGH
+**Convergence counter:** 0 of 3
+
+F-136-P1-001 HIGH: `evidence: vec![]` empty on all lifecycle findings — violated BC-2.17.015 PC-1 ("evidence MUST include…") and PC-4. story-writer added evidence postcondition to AC-136-001/002 (factory commit 44c1c7c, body-only edit; input-hash 0846e0e UNCHANGED — MATCH).
+F-136-P1-002 HIGH: No test covered evidence field assertions. test-writer added RED evidence assertions @bdd0248; implementer populated evidence + removed dead `is_open` binding @9c9e1bf.
+
+---
+
+### STORY-136 Pass 2 (2026-06-26)
+
+**Findings:** 1 (0 CRIT, 0 HIGH, 1 MED, 0 LOW)
+**Novelty:** MEDIUM
+**Convergence counter:** reset (FINDINGS_REMAIN — REMEDIATED)
+
+F-136-ADV-001 MEDIUM: stale RED-gate banner in `connection_lifecycle` test module header (aspirational-voice / RED-tense prose). DF-GREEN-DOC-TENSE-SWEEP. test-writer @b003547: banner rewritten past-tense, per-occurrence audit, summary-suffix coverage hardening.
+
+---
+
+### STORY-136 Passes 3, 4, 5 (2026-06-26) — 3 consecutive clean passes
+
+**Pass 3:** 0 findings. Convergence counter 1 of 3 (CLEAN).
+**Pass 4:** 0 findings. Convergence counter 2 of 3 (CLEAN).
+**Pass 5:** 0 findings. Convergence counter 3 of 3 (CONVERGED).
+
+Artifact @b003547 reviewed (frozen). All prior findings resolved. Per-story adversarial convergence ACHIEVED (D-251). BC-5.39.001 MET. NEXT = demo-recorder → push → pr-manager.
+
+---
+
 ## Wave-59 Follow-Up Obligations (logged at wave-level convergence — non-blocking)
 
 These were surfaced during wave-level passes and logged per D-238:

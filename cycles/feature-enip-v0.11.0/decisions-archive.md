@@ -233,6 +233,23 @@ Demo recorded. PR #324 MERGED to develop `84be2fb` (merge-commit strategy). stor
 
 ---
 
+## D-251 — SESSION PAUSE: STORY-136 per-story adversarial convergence ACHIEVED @b003547 (2026-06-26)
+
+Per-story adversarial convergence ACHIEVED (BC-5.39.001 MET). Trajectory: 2H→0H(1MED)→CLEAN→CLEAN→CLEAN. 3 consecutive clean passes (passes 3/4/5 on frozen artifact @b003547).
+
+**Remediation summary:**
+- Pass-1 2×HIGH: evidence: vec![] empty — BC-2.17.015 PC-1/PC-4 violated. story-writer added evidence postcondition to AC-136-001/002 (factory commit 44c1c7c, body-only edit; input-hash 0846e0e UNCHANGED MATCH). test-writer added RED evidence assertions @bdd0248; implementer populated evidence + removed dead is_open binding @9c9e1bf.
+- Pass-2 1×MEDIUM: F-136-ADV-001 stale RED-gate banner (DF-GREEN-DOC-TENSE-SWEEP). test-writer @b003547: banner past-tense, per-occurrence sweep, summary-suffix coverage.
+- Passes 3/4/5: 0 findings all passes. CONVERGED.
+
+**Toolchain pairing verified at b003547 (orchestrator):** 10/10 connection_lifecycle tests pass; `cargo clippy --all-targets -- -D warnings` clean; `cargo fmt --check` clean; input-hash STORY-136 = 0846e0e MATCH; 0 behind develop.
+
+No [process-gap] findings across any pass (S-7.02 checklist: nothing to codify).
+
+**NEXT:** demo-recorder → push → pr-manager 9-step PR (halt before merge for human auth per D-231) → merge+cleanup.
+
+---
+
 ## D-250 — SESSION PAUSE: STORY-136 mid-TDD Red Gate @1b5d300 (2026-06-26)
 
 Session paused mid-F4 Wave 60 with STORY-136 at Red Gate. SAFE-TO-CLEAR. All F1/F2/F3 + STORY-130-135 artifacts durable on factory-artifacts branch.

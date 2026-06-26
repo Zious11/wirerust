@@ -1,7 +1,7 @@
 ---
 pipeline: FEATURE-MODE
 phase: F4
-phase_status: "SAFE-TO-CLEAR (D-250). F4 Wave 60 STORY-136 mid-TDD: Red Gate @1b5d300 + input-hash 0846e0e DONE; NEXT = test-writer finalize connection_lifecycle tests. Resume per RESUME PROCEDURE."
+phase_status: "SAFE-TO-CLEAR (D-251). F4 Wave 60 STORY-136 per-story convergence ACHIEVED @b003547 (BC-5.39.001 MET; 0H/0C x3). NEXT = demo-recorder (in-progress) → push → pr-manager 9-step PR (halt before merge per D-231). Resume per RESUME PROCEDURE."
 product: wirerust
 mode: feature-mode
 timestamp: 2026-06-26T02:00:00Z
@@ -29,7 +29,7 @@ adversary_gate: SATISFIED
 # Story tracking
 stories_delivered: 84
 current_cycle: feature-enip-v0.11.0 (D-228, 2026-06-24)
-current_wave: "Wave 60 STORY-136 mid-TDD Red Gate @1b5d300 (D-250 SESSION PAUSE). STORY-134 MERGED PR #323 @e330ccc (D-247); STORY-135 MERGED PR #324 @84be2fb (D-249); stories_delivered=84."
+current_wave: "Wave 60 STORY-136 per-story convergence ACHIEVED @b003547 (D-251). STORY-134 MERGED PR #323 @e330ccc (D-247); STORY-135 MERGED PR #324 @84be2fb (D-249); stories_delivered=84. STORY-136 demo-recorder in-progress → push → pr-manager."
 
 # DTU
 dtu_required: false
@@ -52,7 +52,7 @@ convergence_trajectory: "Detail: cycles/v0.1.0-greenfield-spec/convergence-traje
 
 ## Status
 
-**PIPELINE FEATURE-MODE. Cycle `feature-enip-v0.11.0` OPEN. F4 Wave 60 IN-PROGRESS. SESSION PAUSED (D-250). STORY-130-135 DELIVERED+MERGED. STORY-136 mid-TDD Red Gate @1b5d300; SAFE-TO-CLEAR.**
+**PIPELINE FEATURE-MODE. Cycle `feature-enip-v0.11.0` OPEN. F4 Wave 60 IN-PROGRESS. SESSION PAUSED (D-251). STORY-130-135 DELIVERED+MERGED. STORY-136 per-story convergence ACHIEVED @b003547 (BC-5.39.001 MET); demo-recorder in-progress. SAFE-TO-CLEAR.**
 
 Latest release: v0.10.0 (main `0cbe922`, tag `v0.10.0`). develop=`84be2fb`. stories_delivered=84. Target: v0.11.0 (SS-17 EtherNet/IP + CIP TCP/44818). GitHub issue #316.
 
@@ -72,32 +72,26 @@ Spec versions: BC-INDEX v1.84 (331 on disk / 330 active; SS-17=26 BCs). ARCH-IND
 - Do NOT re-deliver STORY-135 — MERGED PR #324 @84be2fb (D-249). 16 command_detections tests (T0858/T0816/T0836; BC-2.17.011/012/013). Per-story 5/6/7 3/3 achieved (D-248). input-hash ae2d871. Green-doc-tense gate 22 patterns / self-test 54. GREEN-DOC-TENSE-GATE-COVERAGE-001 RESOLVED.
 - Do NOT re-run STORY-136 stub-architect — Red Gate @1b5d300 DONE (D-250).
 - Do NOT re-author STORY-136 input-hash — 0846e0e DONE (committed 5bb327c, D-250).
+- Do NOT re-run STORY-136 TDD or per-story adversarial convergence — CONVERGED @b003547 (D-251). Trajectory: 2H→0H(1MED)→CLEAN→CLEAN→CLEAN; BC-5.39.001 MET. 10/10 connection_lifecycle tests pass; clippy/fmt/input-hash MATCH.
 
 ### EXACT RESUME POINT — F4 Wave 60 STORY-136
 
-**F4 Wave 60 — STORY-136 mid-TDD at Red Gate @1b5d300** (worktree `worktree-issue-316-story-136-enip-lifecycle`, base develop `84be2fb`; input-hash `0846e0e`).
+**F4 Wave 60 — STORY-136 per-story convergence ACHIEVED @b003547** (worktree `worktree-issue-316-story-136-enip-lifecycle`, base develop `84be2fb`; input-hash `0846e0e` MATCH).
 
-**NEXT STEP = test-writer FINALIZE the `mod connection_lifecycle` tests.** The stub-architect drafted 10; the test-writer must: (1) ensure true Red Gate — all 6 RED tests fail via `todo!()` panics (not accidental green), (2) verify DF-AC-TEST-NAME-SYNC vs STORY-136.md Test Plan, (3) verify non-vacuity (tests assert exact BC-2.17.015 finding fields per the BC-2.17.015 EXACT FINDING FIELDS below), (4) confirm 4 green-by-design suppression tests correctly green. THEN: implementer → per-story adversarial convergence (3 clean passes, BC-5.39.001) → demo-recorder → push → pr-manager (9-step PR, halt before merge for human auth per D-231) → merge+cleanup. Do NOT re-run stub-architect; do NOT re-author input-hash.
-
-**BC-2.17.015 EXACT FINDING FIELDS** (do not re-derive — implementer/test-writer use these verbatim):
-- ForwardOpen(0x54) / LargeForwardOpen(0x5B) REQUEST on 0x00B2: emit ONE finding per occurrence — `category=ThreatCategory::Anomaly`, `verdict=Possible`, `confidence=Low`, `mitre_techniques=vec![]` (EMPTY per BC-2.17.015 PC-1 + ADR-010 Decision 7), `summary="CIP ForwardOpen connection establishment observed from src={src_ip}: connection lifecycle anomaly"`, `source_ip=Some`, `timestamp=Some`; increment `open_connection_count` (both 0x54 and 0x5B → `open_connection_count` per Invariant 5).
-- ForwardClose(0x4E) REQUEST on 0x00B2: emit ONE finding — `Anomaly/Possible/Low`, `mitre_techniques=vec![]`, `summary="CIP ForwardClose connection teardown observed from src={src_ip}: connection lifecycle closed"`; increment `close_connection_count`.
-- EC-008: counts increment BEFORE the MAX_FINDINGS push gate (counts accurate even when `all_findings` is capped).
-- Response services (0xD4/0xCE) → no count, no finding. 0x00B2 gate (F-P9-001) + `is_non_enip` gate apply. Does NOT touch `command_counts` (F8-001).
-- SCOPE NOTE: STORY-136 adds to `process_pdu` (NOT `on_data` frame-walk = STORY-137). No window/timestamp state (plain counters) → no F-134-001 ts=0 risk. No ThreatCategory-vs-MITRE override (mitre is empty).
+**NEXT STEP = demo-recorder (in-progress) per STORY-136 ACs.** Convergence ACHIEVED (D-251). After demo: push worktree branch → pr-manager 9-step PR (halt before merge for human auth per D-231) → merge+cleanup. Do NOT re-run TDD, stub-architect, input-hash, or per-story adversarial convergence.
 
 ### Remaining-work map (after resume)
 
-STORY-136 (finish: test-writer → implementer → 3-pass convergence → demo → PR → merge+cleanup) → STORY-137 (on_data frame-walk wiring BC-2.17.016; carries WAVE59-E2E-001/WAVE59-DEADCODE-001; removes `#![allow(dead_code)]`; wires parse fns; `command_counts` single-increment site) → Wave-60 integration gate (regression + consistency audit + 3-pass wave-level convergence) → Wave 61 STORY-138 (session summary) → Wave-61 gate → F5 scoped-adversarial → F6 formal hardening (VP-032/VP-004/VP-007 Kani; cargo-fuzz F-P9-002 `parse_cip_header`/`parse_cpf_items`) → F7 delta-convergence + human gate → release v0.11.0.
+STORY-136 (finish: demo-recorder in-progress → push → pr-manager 9-step PR → merge+cleanup) → STORY-137 (on_data frame-walk wiring BC-2.17.016; carries WAVE59-E2E-001/WAVE59-DEADCODE-001; removes `#![allow(dead_code)]`; wires parse fns; `command_counts` single-increment site) → Wave-60 integration gate (regression + consistency audit + 3-pass wave-level convergence) → Wave 61 STORY-138 (session summary) → Wave-61 gate → F5 scoped-adversarial → F6 formal hardening (VP-032/VP-004/VP-007 Kani; cargo-fuzz F-P9-002 `parse_cip_header`/`parse_cpf_items`) → F7 delta-convergence + human gate → release v0.11.0.
 
 ### RESUME PROCEDURE (execute in order — BLOCKING)
 
 1. Run `vsdd-factory:factory-worktree-health` — PASS required before proceeding.
 2. Read `.factory/STATE.md` + `cycles/feature-enip-v0.11.0/cycle-manifest.md` in full.
 3. Verify: `git rev-parse --short develop` == `84be2fb`.
-4. Verify: `git -C .worktrees/STORY-136-enip-lifecycle log --oneline -1` == `1b5d300 stub(enip): STORY-136 CIP lifecycle-detection skeleton (Red Gate) [BC-2.17.015]`.
+4. Verify: `git -C .worktrees/STORY-136-enip-lifecycle log --oneline -1` == `b003547 ...` (per-story convergence achieved @b003547).
 5. Run `gh pr list` — expect Dependabot #311 open (non-blocking); PRs #317/#318/#319/#320/#323/#324 MERGED; no open ENIP PRs.
-6. Dispatch test-writer to finalize STORY-136 `mod connection_lifecycle` tests per EXACT RESUME POINT above.
+6. Continue demo-recorder for STORY-136 per EXACT RESUME POINT above, then push → pr-manager (9-step, halt before merge per D-231).
 
 ### Locked design facts (do not re-derive on resume)
 
@@ -149,7 +143,7 @@ All GitHub-issue creation DF-VALIDATION-001-gated.
 | Feature mitre-json-names (issue #64) + v0.9.4 | RELEASED + CLOSED 2026-06-23 (D-217) | 5 BCs bumped. BC-INDEX v1.71 (303). PRs #306-309. tag v0.9.4. |
 | Fix cycle fix-pc-013-014-015 + v0.10.0 | **CONVERGED + RELEASED + CLOSED 2026-06-24 (D-226)** | BC-INDEX v1.73 (305). PRs #310-315. tag v0.10.0 0cbe922. |
 | Feature EtherNet/IP + CIP (issue #316) — F1/F2/F3 | **CONVERGED + HUMAN-APPROVED (D-228/D-230/D-231)** | 26 BCs (BC-2.17.001..026). 9 stories STORY-130..138 (E-20, 66 pts, waves 58-61). 13 holdouts HS-110..122. ADR-010, VP-032, SS-17. Detail: cycles/feature-enip-v0.11.0/ |
-| Feature EtherNet/IP + CIP — F4 | **IN-PROGRESS — Wave 60 SESSION PAUSED (D-250): STORY-130-135 MERGED; STORY-136 mid-TDD Red Gate @1b5d300; stories_delivered=84.** | STORY-134 PR #323 @e330ccc MERGED (D-247); STORY-135 PR #324 @84be2fb MERGED (D-249). STORY-136 Red Gate @1b5d300 + input-hash 0846e0e (D-250 SESSION PAUSE). Wave-59 trajectory: `1→2→2→0→0→0`. Convergence detail: cycles/feature-enip-v0.11.0/convergence-trajectory.md. |
+| Feature EtherNet/IP + CIP — F4 | **IN-PROGRESS — Wave 60 SESSION PAUSED (D-251): STORY-130-135 MERGED; STORY-136 convergence ACHIEVED @b003547; demo-recorder in-progress; stories_delivered=84.** | STORY-134 PR #323 @e330ccc MERGED (D-247); STORY-135 PR #324 @84be2fb MERGED (D-249). STORY-136 per-story convergence ACHIEVED @b003547 (D-251); trajectory `2H→0H(1MED)→CLEAN→CLEAN→CLEAN`. Wave-59 trajectory: `1→2→2→0→0→0`. Convergence detail: cycles/feature-enip-v0.11.0/convergence-trajectory.md. |
 
 ## Decisions Log
 
@@ -159,11 +153,11 @@ D-131..D-135: `cycles/feature-story-119-grouped-collapse/decisions-archive.md`
 D-136..D-202: `cycles/feature-pcapng-reader/decisions-archive.md`
 D-206..D-217: `cycles/feature-mitre-json-names/decisions-archive.md`
 D-219..D-226: `cycles/fix-pc-013-014-015/decisions-archive.md`
-D-228..D-249: `cycles/feature-enip-v0.11.0/decisions-archive.md`
+D-228..D-250: `cycles/feature-enip-v0.11.0/decisions-archive.md`
 
 | ID | Decision | Date |
 |----|----------|------|
-| D-250 | SESSION PAUSE — STORY-136 mid-TDD Red Gate @1b5d300; SAFE-TO-CLEAR; resume per RESUME PROCEDURE. All F1/F2/F3 + STORY-130-135 durable; factory-artifacts in sync with origin. STORY-136 worktree `worktree-issue-316-story-136-enip-lifecycle` HEAD `1b5d300` clean; input-hash `0846e0e` DONE. | 2026-06-26 |
+| D-251 | SESSION PAUSE — STORY-136 per-story adversarial convergence ACHIEVED @b003547 (BC-5.39.001 MET). Trajectory: 2H→0H(1MED)→CLEAN→CLEAN→CLEAN (3 consecutive clean passes). 10/10 connection_lifecycle tests pass; clippy/fmt clean; input-hash 0846e0e MATCH. Demo-recorder in-progress. NEXT = demo → push → pr-manager 9-step PR (halt before merge per D-231). Do NOT re-run TDD or convergence for STORY-136. | 2026-06-26 |
 
 ## Governance Policy
 
