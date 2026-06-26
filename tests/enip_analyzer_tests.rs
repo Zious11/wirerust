@@ -6240,31 +6240,31 @@ mod frame_walk {
 // mod source_attribution
 // =============================================================================
 //
-// RED end-to-end tests for F-W60-001 / RULING-W60-001.
+// End-to-end regression tests for F-W60-001 / RULING-W60-001.
 //
-// The bug: `EnipAnalyzer::on_data` derives `src_ip = flow_key.lower_ip()` at
-// enip.rs:597, which is the numerically-smaller (ip, port) tuple endpoint — NOT
-// the request originator.  When the EtherNet/IP SERVER IP sorts below the CLIENT
-// IP, every finding carries the victim controller's IP as source_ip instead of
-// the attacker's IP.
+// Background: `EnipAnalyzer::on_data` previously derived
+// `src_ip = flow_key.lower_ip()`, which is the numerically-smaller (ip, port)
+// tuple endpoint — NOT the request originator.  When the EtherNet/IP SERVER IP
+// sorted below the CLIENT IP, every finding carried the victim controller's IP
+// as source_ip instead of the attacker's IP.
 //
-// The fix (RULING-W60-001) adds `resolve_enip_client_ip(flow_key)` using the
-// port-44818 heuristic: the endpoint whose port == 44818 is the server; the
-// other endpoint is the client.
+// Fix (RULING-W60-001): `resolve_enip_client_ip(flow_key)` uses the port-44818
+// heuristic — the endpoint whose port == 44818 is the server; the other
+// endpoint is the client.
 //
-// These tests MUST FAIL (RED) against the current `lower_ip()` code.
-// They will pass once the implementer adds `resolve_enip_client_ip`.
+// Originated as Red-Gate tests for F-W60-001; now GREEN under
+// resolve_enip_client_ip (RULING-W60-001).
 //
 // Discriminating scenario (RULING-W60-001 §3 test anchor):
 //   client = 10.0.0.9:50000, server = 10.0.0.2:44818
 //   FlowKey canonicalisation: lower=(10.0.0.2,44818), upper=(10.0.0.9,50000)
-//   current code: src_ip = lower_ip() = 10.0.0.2  ← WRONG (server / victim)
-//   expected:     src_ip              = 10.0.0.9  ← correct (client / attacker)
+//   pre-fix:  src_ip = lower_ip() = 10.0.0.2  ← server / victim (wrong)
+//   post-fix: src_ip              = 10.0.0.9  ← client / attacker (correct)
 //
 // Tests cover two distinct detection types (T0858 and T0816) so the shared
 // derivation site is locked across BC-2.17.011 and BC-2.17.013.
 // A control test with the opposite ordering (client IP sorts lower) confirms
-// both orderings behave correctly after the fix.
+// both orderings behave correctly.
 //
 // Citations: F-W60-001 / RULING-W60-001 / BC-2.17.010 PC-2 / BC-2.17.011 /
 //            BC-2.17.013.
@@ -6310,8 +6310,8 @@ mod source_attribution {
     ///   lower = (10.0.0.2, 44818)  ← server
     ///   upper = (10.0.0.9, 50000)  ← client
     ///
-    /// Current code returns lower_ip() = 10.0.0.2 (server — WRONG).
-    /// Fixed code returns resolve_enip_client_ip() = 10.0.0.9 (client — CORRECT).
+    /// Pre-fix lower_ip() returned 10.0.0.2 (server — wrong).
+    /// resolve_enip_client_ip() returns 10.0.0.9 (client — correct).
     fn flow_key_server_lower() -> FlowKey {
         FlowKey::new(client_ip_high(), 50000, server_ip_low(), 44818)
     }
@@ -6322,8 +6322,8 @@ mod source_attribution {
     ///   lower = (10.0.0.1, 50000)  ← client
     ///   upper = (10.0.0.9, 44818)  ← server
     ///
-    /// Current code returns lower_ip() = 10.0.0.1 — accidentally correct for this
-    /// ordering.  After the fix, resolve_enip_client_ip() also returns 10.0.0.1.
+    /// Both lower_ip() and resolve_enip_client_ip() return 10.0.0.1 for this
+    /// ordering — the pre-fix code was accidentally correct here.
     fn flow_key_client_lower() -> FlowKey {
         FlowKey::new(client_ip_low(), 50000, server_ip_high(), 44818)
     }
@@ -6375,17 +6375,19 @@ mod source_attribution {
     }
 
     // -------------------------------------------------------------------------
-    // RED tests — discriminating scenario (server IP sorts lower)
+    // Discriminating scenario tests (server IP sorts lower)
     // -------------------------------------------------------------------------
 
-    /// RED — T0858 (CIP Stop) via on_data: source_ip must be the CLIENT, not the server.
+    /// T0858 (CIP Stop) via on_data: verifies source_ip resolves to the client
+    /// (10.0.0.9), not the lower-sorting server (10.0.0.2).
     ///
     /// Flow key: client=10.0.0.9:50000, server=10.0.0.2:44818.
     /// FlowKey lower=(10.0.0.2,44818)=server, upper=(10.0.0.9,50000)=client.
-    /// Current code: src_ip = lower_ip() = 10.0.0.2 (server) — WRONG.
-    /// Expected:     src_ip             = 10.0.0.9 (client) — CORRECT.
+    /// resolve_enip_client_ip() identifies the server by port 44818 and returns
+    /// upper_ip() = 10.0.0.9 (client / attacker).
     ///
-    /// This test MUST FAIL (RED) against current code (yields 10.0.0.2 not 10.0.0.9).
+    /// Originated as Red-Gate test for F-W60-001; GREEN under resolve_enip_client_ip
+    /// (RULING-W60-001).
     ///
     /// Traces: BC-2.17.010 PC-2; BC-2.17.011 PC-1; F-W60-001; RULING-W60-001 §3 T1.
     #[test]
@@ -6409,27 +6411,28 @@ mod source_attribution {
 
         // PRIMARY REGRESSION ANCHOR (RULING-W60-001 §3):
         // source_ip MUST be the CLIENT (10.0.0.9), not the server (10.0.0.2).
-        // This assertion is the discriminating assertion — it fails RED against
-        // the current lower_ip() implementation because 10.0.0.2 < 10.0.0.9.
+        // This is the discriminating assertion: source_ip is the client, not the
+        // lower-sorting server. The pre-fix lower_ip() path failed here because
+        // 10.0.0.2 < 10.0.0.9 numerically.
         assert_eq!(
             f.source_ip,
             Some(client_ip_high()),
             "T0858 finding source_ip MUST be the client IP 10.0.0.9 (BC-2.17.010 PC-2; \
-             F-W60-001; RULING-W60-001): current code wrongly yields 10.0.0.2 (the \
-             server / victim controller) because flow_key.lower_ip() returns the \
-             numerically-smaller endpoint, not the request originator"
+             F-W60-001; RULING-W60-001): resolve_enip_client_ip returns upper_ip \
+             (10.0.0.9) because lower_port==44818 identifies the server"
         );
     }
 
-    /// RED — T0816 (CIP Reset) via on_data: source_ip must be the CLIENT, not the server.
+    /// T0816 (CIP Reset) via on_data: verifies source_ip resolves to the client
+    /// (10.0.0.9), not the lower-sorting server (10.0.0.2).
     ///
     /// Flow key: client=10.0.0.9:50000, server=10.0.0.2:44818.
-    /// Same discriminating scenario as above but for T0816, locking the shared
-    /// src_ip derivation site at enip.rs:597 across both detection types.
-    /// Current code: src_ip = lower_ip() = 10.0.0.2 (server) — WRONG.
-    /// Expected:     src_ip             = 10.0.0.9 (client) — CORRECT.
+    /// Same discriminating scenario as the T0858 test above but for T0816, locking
+    /// the shared src_ip derivation site across both detection types.
+    /// resolve_enip_client_ip() returns upper_ip() = 10.0.0.9 (client).
     ///
-    /// This test MUST FAIL (RED) against current code (yields 10.0.0.2 not 10.0.0.9).
+    /// Originated as Red-Gate test for F-W60-001; GREEN under resolve_enip_client_ip
+    /// (RULING-W60-001).
     ///
     /// Traces: BC-2.17.010 PC-2; BC-2.17.013 PC-1; F-W60-001; RULING-W60-001 §3.
     #[test]
@@ -6455,8 +6458,8 @@ mod source_attribution {
             f.source_ip,
             Some(client_ip_high()),
             "T0816 finding source_ip MUST be the client IP 10.0.0.9 (BC-2.17.010 PC-2; \
-             F-W60-001; RULING-W60-001): current code wrongly yields 10.0.0.2 (the \
-             server / victim controller)"
+             F-W60-001; RULING-W60-001): resolve_enip_client_ip returns upper_ip \
+             (10.0.0.9) because lower_port==44818 identifies the server"
         );
     }
 
@@ -6469,13 +6472,12 @@ mod source_attribution {
     ///
     /// Flow key: client=10.0.0.1:50000, server=10.0.0.9:44818.
     /// FlowKey lower=(10.0.0.1,50000)=client, upper=(10.0.0.9,44818)=server.
-    /// For this ordering current code accidentally yields the right answer
-    /// (lower_ip() == client), but after the fix resolve_enip_client_ip()
-    /// must also return 10.0.0.1 (server port=44818 is upper, so client=lower_ip).
+    /// resolve_enip_client_ip() identifies the server by upper_port==44818 and
+    /// returns lower_ip() = 10.0.0.1 (client). The pre-fix lower_ip() path also
+    /// returned 10.0.0.1 for this ordering, so the pre-fix code was accidentally
+    /// correct here.
     ///
-    /// This test passes both before and after the fix — it documents the
-    /// second ordering from RULING-W60-001 §3 T2 and guards against regressions
-    /// in the fix itself.
+    /// Documents RULING-W60-001 §3 T2 and guards against regressions in the fix.
     ///
     /// Traces: BC-2.17.010 PC-2; BC-2.17.011 PC-1; F-W60-001; RULING-W60-001 §3 T2.
     #[test]
@@ -6495,7 +6497,8 @@ mod source_attribution {
             .find(|f| f.mitre_techniques.contains(&"T0858".to_string()))
             .expect("must find a T0858 finding (BC-2.17.011 PC-1)");
 
-        // CLIENT is 10.0.0.1 (lower IP), so both current code and the fix agree.
+        // CLIENT is 10.0.0.1 (lower IP); resolve_enip_client_ip returns lower_ip
+        // because upper_port==44818 identifies the server (upper endpoint).
         assert_eq!(
             f.source_ip,
             Some(client_ip_low()),
