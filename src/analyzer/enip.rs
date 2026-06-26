@@ -428,13 +428,49 @@ impl Default for EnipFlowState {
 /// # Traces
 /// BC-2.17.018 Postconditions 3–4; Invariant 1; Precondition 6; EC-007.
 pub fn check_t0814(
-    _flow: &mut EnipFlowState,
-    _all_findings: &mut Vec<crate::findings::Finding>,
-    _now_ts: u32,
-    _src_ip: std::net::IpAddr,
-    _dest_ip: std::net::IpAddr,
+    flow: &mut EnipFlowState,
+    all_findings: &mut Vec<crate::findings::Finding>,
+    now_ts: u32,
+    src_ip: std::net::IpAddr,
+    dest_ip: std::net::IpAddr,
 ) {
-    todo!("STORY-137: T0814 windowed DoS detection [BC-2.17.018]");
+    // BC-2.17.018 Postconditions 3–4: conditional T0814 emission.
+    // All four guards must hold simultaneously:
+    //   1. malformed_in_window >= MALFORMED_ANOMALY_THRESHOLD (= 3)
+    //   2. malformed_anomaly_emitted == false (one-shot per window)
+    //   3. is_non_enip == false — CALLER MUST ensure this runs before is_non_enip is latched
+    //      (BC-2.17.018 Precondition 6 / EC-007 carry-overflow ordering constraint).
+    //   4. all_findings.len() < MAX_FINDINGS
+    if flow.malformed_in_window >= MALFORMED_ANOMALY_THRESHOLD
+        && !flow.malformed_anomaly_emitted
+        && !flow.is_non_enip
+        && all_findings.len() < MAX_FINDINGS
+    {
+        // Compute elapsed seconds in this window (wrapping_sub for u32 rollover safety).
+        let elapsed = now_ts.wrapping_sub(flow.malformed_window_start);
+        // BC-2.17.018 Postcondition 3: exact summary template.
+        let summary = format!(
+            "EtherNet/IP structural anomaly: {} malformed frames in {}s window \
+             (flow {}→{}) — possible crash-probe",
+            flow.malformed_in_window, elapsed, src_ip, dest_ip,
+        );
+        all_findings.push(crate::findings::Finding {
+            category: crate::findings::ThreatCategory::Anomaly,
+            verdict: crate::findings::Verdict::Possible,
+            confidence: crate::findings::Confidence::Low,
+            summary,
+            evidence: vec![format!(
+                "malformed_in_window={}; threshold={}",
+                flow.malformed_in_window, MALFORMED_ANOMALY_THRESHOLD,
+            )],
+            mitre_techniques: vec!["T0814".to_string()],
+            source_ip: Some(src_ip),
+            timestamp: chrono::DateTime::from_timestamp(now_ts as i64, 0),
+            direction: None,
+        });
+        // BC-2.17.018 Postcondition 4: one-shot guard for this window.
+        flow.malformed_anomaly_emitted = true;
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -549,38 +585,164 @@ impl EnipAnalyzer {
     /// BC-2.17.019 §P2 (routing confirmation); AC-131-001 (bytes_received observable).
     pub fn on_data(
         &mut self,
-        _flow_key: crate::reassembly::flow::FlowKey,
+        flow_key: crate::reassembly::flow::FlowKey,
         data: &[u8],
-        _timestamp: u32,
+        timestamp: u32,
     ) {
-        // WIRING-EXEMPT: bytes_received increment is the routing-confirmation observable for
-        // STORY-131 dispatcher tests (BC-2.17.019 PC-2). Single saturating_add; no branching;
-        // no I/O; no non-trivial helpers; 1 line. GREEN-BY-DESIGN for existing dispatch tests.
+        // WIRING-EXEMPT (this line only): routing-confirmation observable for STORY-131
+        // dispatcher tests (BC-2.17.019 PC-2). Single saturating_add; no branching; no I/O.
         self.bytes_received = self.bytes_received.saturating_add(data.len() as u64);
 
-        // BC-5.38.005 self-check invariant 1:
-        // "If I include this real implementation, will the test for this function pass trivially
-        // without any implementer work?"
-        // Answer for the bytes_received line: YES, but only for dispatch routing tests (AC-131-*),
-        // not for any frame_walk tests. The dispatch tests assert bytes_received > 0 after
-        // on_data() — that assertion is satisfied by the saturating_add above alone, independent
-        // of the frame-walk implementation. The frame_walk tests assert carry-buffer state,
-        // parse_errors, malformed_in_window, command_counts, pdu_count, and findings — none of
-        // which are touched by the saturating_add. All 21 frame_walk tests will hit the todo!()
-        // below and FAIL (Red Gate satisfied). WIRING-EXEMPT classification: bytes_received line
-        // is pure routing-confirmation wiring — identical to take_enip_analyzer() and other
-        // STORY-131 WIRING-EXEMPT bodies; it is not business logic.
+        // Extract src/dest IPs from flow key for T0814 finding fields.
+        // FlowKey is canonicalised as (lower, upper) by (ip, port) tuple comparison.
+        let src_ip = flow_key.lower_ip();
+        let dest_ip = flow_key.upper_ip();
 
-        // STORY-137 frame-walk loop — todo!() body; Red Gate per BC-5.38.001.
-        // The implementer replaces this todo!() with:
-        //   1. is_non_enip guard (return immediately if true)
-        //   2. 300-second window expiry check/reset
-        //   3. buf = carry.clone() + data
-        //   4. while buf.len() - cursor >= 24 { ... }
-        //   5. carry stash after loop
-        //   6. carry-cap check (parse_errors, malformed_in_window, check_t0814, is_non_enip, carry.clear())
-        // Per BC-2.17.016 pseudocode (STORY-137 lines 199-271).
-        todo!("STORY-137: frame-walk carry buffer [BC-2.17.016]");
+        // Lazily create per-flow state (mirrors Dnp3Analyzer::flows entry pattern).
+        let _ = self.flows.entry(flow_key.clone()).or_default();
+
+        // ── Frame-walk phase ──────────────────────────────────────────────────────────
+        // Collect validated PDU byte-slices in this Vec; dispatch after releasing the
+        // flow borrow (Rust borrow-checker split: `flow` from `self.flows`, while
+        // `self.all_findings` / threshold fields are accessed separately as in DNP3).
+        // PDUs are bounded to MAX_ENIP_CARRY_BYTES (600 bytes) so this allocation is small.
+        let mut pdu_queue: Vec<Vec<u8>> = Vec::new();
+
+        {
+            // Borrow-checker note (mirrors Dnp3Analyzer::on_data §"Borrow-checker note"):
+            // `flow` borrows `self.flows`. Within this block we access `self.all_findings`
+            // as a separate field (disjoint struct field borrow — allowed by NLL).
+            // We do NOT call `self.process_pdu` here (that requires &mut self); instead we
+            // collect PDU bytes and dispatch below after this block ends.
+            let flow = self.flows.get_mut(&flow_key).expect("just inserted");
+
+            // BC-2.17.016 Postcondition 5: is_non_enip early-exit.
+            if flow.is_non_enip {
+                return;
+            }
+
+            // BC-2.17.018 Postcondition 5: 300-second malformed window expiry check.
+            // Must run BEFORE any emission check so stale state from the previous window
+            // cannot affect new-window detections. Uses wrapping_sub for u32 rollover safety.
+            // parse_errors is NOT reset (lifetime counter, BC-2.17.018 Invariant 1).
+            if timestamp.wrapping_sub(flow.malformed_window_start) >= 300 {
+                flow.malformed_in_window = 0;
+                flow.malformed_anomaly_emitted = false;
+                flow.malformed_window_start = timestamp;
+            }
+
+            // BC-2.17.016 Postcondition 2: carry PREPENDED to new data (ADR-010 Decision 4).
+            let mut buf = flow.carry.clone();
+            buf.extend_from_slice(data);
+            let mut cursor = 0usize;
+
+            // BC-2.17.016 Postcondition 1: frame-walk loop.
+            while buf.len() - cursor >= 24 {
+                // Parse 24-byte ENIP header at current cursor position.
+                let header = match parse_enip_header(&buf[cursor..cursor + 24]) {
+                    Some(h) => h,
+                    None => {
+                        // Defensive arm: parse_enip_header returns None only for < 24 bytes;
+                        // the while condition guarantees >= 24, so this is unreachable in
+                        // practice. Counted as a structural reject for safety (BC-2.17.016).
+                        flow.parse_errors += 1;
+                        flow.malformed_in_window += 1;
+                        check_t0814(flow, &mut self.all_findings, timestamp, src_ip, dest_ip);
+                        cursor += 1;
+                        continue;
+                    }
+                };
+
+                // BC-2.17.016 PC-0 (F8-001 canonical single increment site): increment
+                // command_counts IMMEDIATELY after parse_enip_header returns Some, BEFORE
+                // is_valid_enip_frame. Fires for every structurally-parsed 24-byte header
+                // including Unknown/invalid-command frames (BC-2.17.004 Invariant 3).
+                *flow.command_counts.entry(header.command).or_insert(0) += 1;
+
+                // BC-2.17.016 Postcondition 1 / BC-2.17.018 PC-1/2: command-validity gate.
+                // Unknown command → byte-walk resync: cursor += 1; break.
+                // DESIGN NOTE: we advance by 1 byte (matching the resync description in
+                // EC-012 / BC-2.17.016 Post-1) but then break so the remaining bytes stash
+                // into carry rather than generating one malformed event per byte. This is
+                // required for the per-call malformed counter semantics tested by EC-006/008.
+                if !is_valid_enip_frame(&header) {
+                    flow.parse_errors += 1;
+                    flow.malformed_in_window += 1;
+                    check_t0814(flow, &mut self.all_findings, timestamp, src_ip, dest_ip);
+                    cursor += 1; // byte-walk resync — advance 1 byte, then break
+                    break; // remaining bytes stash to carry (not re-walked per EC-006)
+                }
+
+                let total_frame_len = 24 + header.length as usize;
+
+                // BC-2.17.016 Postcondition 1 / Invariant 4 (frame-skip path):
+                // Oversized declared frame (total > MAX_ENIP_CARRY_BYTES) → frame-skip.
+                // DO NOT set is_non_enip here (carry overflow is the ONLY trigger, Inv 4).
+                // Advance past the declared frame, bounded by remaining buffer, then break.
+                // Remaining bytes (if any) go to carry, where the carry-cap check applies.
+                // This matches test_carry_buffer_cap_at_600 which expects bytes AFTER the
+                // oversized frame to land in carry (not be re-walked as invalid commands).
+                if total_frame_len > MAX_ENIP_CARRY_BYTES {
+                    flow.parse_errors += 1;
+                    flow.malformed_in_window += 1;
+                    check_t0814(flow, &mut self.all_findings, timestamp, src_ip, dest_ip);
+                    // Advance past the declared frame, bounded by remaining buffer.
+                    cursor += total_frame_len.min(buf.len() - cursor);
+                    break; // remaining bytes stash to carry (carry-cap check follows)
+                }
+
+                // BC-2.17.016 Postcondition 1 (partial-frame stash): not enough bytes yet.
+                if buf.len() - cursor < total_frame_len {
+                    break;
+                }
+
+                // Valid, complete frame: collect for dispatch after this block.
+                // Cloning is bounded: total_frame_len <= MAX_ENIP_CARRY_BYTES (600 bytes).
+                pdu_queue.push(buf[cursor..cursor + total_frame_len].to_vec());
+                cursor += total_frame_len;
+            }
+
+            // BC-2.17.016 Postcondition 3: stash remaining bytes into carry.
+            flow.carry = buf[cursor..].to_vec();
+
+            // BC-2.17.016 Postcondition 4 / Invariant 4: carry-cap check.
+            // ORDERING CONSTRAINT (BC-2.17.018 Precondition 6 / EC-007):
+            //   check_t0814 MUST run while is_non_enip is still false — the carry-overflow
+            //   event is itself a structural reject that can be the 3rd malformed event in
+            //   the window. Latching is_non_enip FIRST would permanently suppress T0814.
+            if flow.carry.len() > MAX_ENIP_CARRY_BYTES {
+                flow.parse_errors += 1;
+                flow.malformed_in_window += 1;
+                // T0814 evaluation runs while is_non_enip == false (BC-2.17.018 Precond 6).
+                check_t0814(flow, &mut self.all_findings, timestamp, src_ip, dest_ip);
+                // Latch AFTER T0814 evaluation (BC-2.17.016 Post 4 / Invariant 4).
+                flow.is_non_enip = true;
+                flow.carry.clear();
+            }
+        } // flow borrow released here
+
+        // ── PDU dispatch phase ────────────────────────────────────────────────────────
+        // Dispatch each collected valid PDU. Re-acquire flow per call.
+        // Safety: process_pdu does NOT access self.flows (verified by inspection); the
+        // flow we pass is from self.flows[flow_key], and process_pdu only mutates
+        // self.all_findings, self.error_count, self.write_count, and threshold fields.
+        // We re-borrow self.flows[flow_key] each iteration; pdu_queue is empty if
+        // is_non_enip was set above (carry overflow clears it before block exit).
+        for pdu in pdu_queue {
+            // SAFETY (split-borrow): flow_ptr aliases self.flows[flow_key]. process_pdu
+            // only touches self.all_findings, self.error_count, self.write_count,
+            // self.enip_write_burst_threshold, self.enip_error_burst_threshold — none of
+            // which overlap with self.flows. The aliased field is therefore not accessed
+            // by process_pdu, making the exclusive-reference invariant sound.
+            let flow_ptr: *mut EnipFlowState = self
+                .flows
+                .get_mut(&flow_key)
+                .expect("flow exists: inserted above and not removed");
+            // SAFETY: flow_ptr is a valid &mut obtained from self.flows. process_pdu does
+            // not call self.flows or alias flow_ptr through any other path.
+            #[allow(clippy::ptr_as_ptr)]
+            self.process_pdu(unsafe { &mut *flow_ptr }, &pdu, timestamp, src_ip);
+        }
     }
 
     /// Main per-PDU detection dispatch for a single validated ENIP frame.
@@ -621,6 +783,10 @@ impl EnipAnalyzer {
         if flow.is_non_enip {
             return;
         }
+
+        // BC-2.17.024: count every validated PDU that reaches this dispatch function.
+        // Incremented here (after is_non_enip guard) so non-ENIP flows do not count.
+        flow.pdu_count += 1;
 
         // ADR-010 Decision 4, step 1: parse ENIP header; silently drop frames < 24 bytes.
         let header = match parse_enip_header(pdu) {
