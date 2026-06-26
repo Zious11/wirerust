@@ -3,7 +3,7 @@ document_type: decisions-archive
 cycle_id: feature-enip-v0.11.0
 archived_from: STATE.md Decisions Log
 archived_at: ~
-archived_decisions: D-228..
+archived_decisions: D-228..D-259
 ---
 
 # Decisions Archive — feature-enip-v0.11.0 (D-228+)
@@ -387,3 +387,23 @@ Wave-60 integration gate: CONVERGED — PENDING HUMAN GATE.
 
 **Wave 60 (STORY-134/135/136/137 + fix-PR #328) = COMPLETE + integration-gate PASSED.**
 **Wave 61 STORY-138 IN-PROGRESS.**
+
+---
+
+## D-259 — STORY-138 MERGED; develop HEAD = b4624ef; Wave 61 code-complete (2026-06-26)
+
+**STORY-138 MERGED** — PR #329 (`feat(enip): STORY-138 session lifecycle, stats, DoS guard, analyzer summary`) squash-merged into develop; new develop HEAD = b4624ef (was 0f345c6). stories_delivered 86→87.
+
+**BCs delivered:** BC-2.17.025 (RegisterSession/UnRegisterSession classify+no-finding); BC-2.17.017 (on_flow_close fold); BC-2.17.022 (MAX_FINDINGS/dropped_findings DoS guard); BC-2.17.021 (summarize()→enip_summary canonical keys); BC-2.17.024 (pdu_count).
+
+**Prerequisites shipped in STORY-138:** F-W60-P1-001 command_counts count-once fix; WAVE-60-TEST-DOC-SWEEP resolved.
+
+**Convergence:** Per-story adversarial convergence 3/3 consecutive clean passes (BC-5.39.001 MET). CI 11/11 green; pr-reviewer APPROVE (2 review cycles); security PASS (SEC-001 MEDIUM saturating_add fixed @3f55f11; SEC-002/003/004 LOW). input-hash 0f60353 MATCH at merge.
+
+**Wave 61 code-complete.** All STORY-130..138 merged.
+
+**OPEN items carried forward:**
+- F-138-P1-004 (HIGH — functional): EnipAnalyzer::on_flow_close never invoked by dispatcher → enip_summary reports 0 for total_pdu_count/command_distribution/parse_errors/flows_analyzed in real captures (write_count/error_count work). Needs architect ruling → fix-PR → BLOCKS Wave-61 integration gate.
+- F-138-P1-002 (LOW): BC-2.17.016 PC-0 wording ambiguity — deferred to cycle close.
+
+**NEXT = Wave-61 integration gate** (fix F-138-P1-004 first).
