@@ -7472,4 +7472,166 @@ mod summarize_drainage {
             );
         }
     }
+
+    // -----------------------------------------------------------------------
+    // O-3 (adversary hardening) — mixed closed + open flow fold
+    // -----------------------------------------------------------------------
+
+    /// O-3 / BC-2.17.021 Precondition 4 / F-138-P1-004 / RULING-W61-001
+    ///
+    /// Exercises the disjointness/fold arithmetic of `summarize()` across TWO
+    /// flows: one that has been closed (counters in the closed-flow aggregates,
+    /// entry removed from `self.flows`) and one that is still open (entry still
+    /// present in `self.flows`).
+    ///
+    /// Setup:
+    ///   - Flow A (`flow_key_a`): 2 × ListIdentity (0x0063) via `on_data`,
+    ///     then `on_flow_close`.  A's counters are now in the closed aggregates;
+    ///     A is absent from `self.flows`.
+    ///   - Flow B (`flow_key_b`): 1 × SendRRData (0x006F) via `on_data`,
+    ///     NOT closed.  B's counters remain exclusively in `self.flows[flow_key_b]`.
+    ///
+    /// Expected `enip_summary` after a single `summarize()` call:
+    ///   - `flows_analyzed`       == 2  (1 closed + 1 open)
+    ///   - `total_pdu_count`      == 3  (2 from A in aggregates + 1 from B in open fold)
+    ///   - `command_distribution` == { "0x0063": 2, "0x006F": 1 }  (length 2)
+    ///   - `parse_errors`         == 0
+    ///   - `write_count`          == 0
+    ///   - `error_count`          == 0
+    ///   - `dropped_findings`     == 0
+    ///
+    /// This proves simultaneously:
+    ///   (a) No double-count: A was removed from `self.flows` by `on_flow_close`,
+    ///       so the open-flow fold cannot re-count it.
+    ///   (b) Open-flow fold: B (never closed) is folded at `summarize()` time.
+    ///   (c) Two-key merge: the command_distribution map merges disjoint commands
+    ///       from closed and open paths without clobbering either entry.
+    #[test]
+    #[allow(non_snake_case)]
+    fn test_BC_2_17_021_summarize_folds_mixed_closed_and_open_flows() {
+        let mut analyzer = EnipAnalyzer::new(50, 5);
+
+        // Flow A: ip(1):50000 → ip(2):44818 (uses the shared flow_key() shape).
+        let flow_key_a = FlowKey::new(ip(1), 50000, ip(2), 44818);
+        // Flow B: ip(3):50001 → ip(2):44818 — distinct from A.
+        let flow_key_b = FlowKey::new(ip(3), 50001, ip(2), 44818);
+
+        // -------------------------------------------------------------------
+        // Drive 2 ListIdentity frames through Flow A, then close it.
+        // After on_flow_close: A is in closed aggregates, absent from self.flows.
+        // -------------------------------------------------------------------
+        for _ in 0..2 {
+            analyzer.on_data(flow_key_a.clone(), &enip_frame(CMD_LIST_IDENTITY), 0);
+        }
+        // Pre-condition: A must have pdu_count == 2 before close.
+        assert_eq!(
+            analyzer.flows[&flow_key_a].pdu_count, 2,
+            "pre-condition: flow A pdu_count must be 2 before on_flow_close"
+        );
+        analyzer.on_flow_close(flow_key_a.clone());
+        // Post-close: A must be absent from self.flows; aggregates must hold A's counts.
+        assert!(
+            !analyzer.flows.contains_key(&flow_key_a),
+            "post-close: on_flow_close must remove flow A from self.flows (RULING-W61-001)"
+        );
+        assert_eq!(
+            analyzer.total_pdu_count, 2,
+            "post-close: self.total_pdu_count must be 2 (folded from A's pdu_count)"
+        );
+        assert_eq!(
+            analyzer.flows_analyzed, 1,
+            "post-close: self.flows_analyzed must be 1 (one flow closed)"
+        );
+
+        // -------------------------------------------------------------------
+        // Drive 1 SendRRData frame through Flow B — do NOT close it.
+        // B's counters remain exclusively in self.flows[flow_key_b].
+        // -------------------------------------------------------------------
+        const CMD_SEND_RR_DATA: u16 = 0x006F;
+        analyzer.on_data(flow_key_b.clone(), &enip_frame(CMD_SEND_RR_DATA), 0);
+        // Pre-condition: B must have pdu_count == 1 and remain open.
+        assert_eq!(
+            analyzer.flows[&flow_key_b].pdu_count, 1,
+            "pre-condition: flow B pdu_count must be 1 (still open, never closed)"
+        );
+        // Aggregate must still only count A's contribution (B not yet folded).
+        assert_eq!(
+            analyzer.total_pdu_count, 2,
+            "pre-condition: self.total_pdu_count must still be 2 before summarize \
+             (B not folded until summarize() is called)"
+        );
+
+        // -------------------------------------------------------------------
+        // Call summarize() once — the mixed fold.
+        // -------------------------------------------------------------------
+        let summary = analyzer.summarize();
+        let es = summary
+            .detail
+            .get("enip_summary")
+            .expect("enip_summary must be present (BC-2.17.021 Post 1)");
+
+        // flows_analyzed: 1 closed (A) + 1 open (B) = 2.
+        assert_eq!(
+            get_u64(es, "flows_analyzed"),
+            2,
+            "enip_summary.flows_analyzed must be 2 (1 closed A + 1 open B) — \
+             BC-2.17.021 Precond 4 / F-138-P1-004 / RULING-W61-001 / O-3"
+        );
+
+        // total_pdu_count: 2 from A (closed aggregates) + 1 from B (open fold) = 3.
+        assert_eq!(
+            get_u64(es, "total_pdu_count"),
+            3,
+            "enip_summary.total_pdu_count must be 3 (2 from closed A + 1 from open B) — \
+             BC-2.17.021 Precond 4 / F-138-P1-004 / RULING-W61-001 / O-3"
+        );
+
+        // command_distribution: { "0x0063": 2, "0x006F": 1 } — exactly 2 entries.
+        // Key format: format!("0x{cmd:04X}") — uppercase 4-digit hex.
+        let dist = es
+            .get("command_distribution")
+            .expect("command_distribution must be present");
+        let dist_map = dist
+            .as_object()
+            .expect("command_distribution must be a JSON object");
+        assert_eq!(
+            dist_map.len(),
+            2,
+            "command_distribution must have exactly 2 entries (0x0063 from A, 0x006F from B) — \
+             O-3 two-key merge / RULING-W61-001"
+        );
+        assert_eq!(
+            dist_map
+                .get("0x0063")
+                .and_then(serde_json::Value::as_u64)
+                .unwrap_or(0),
+            2,
+            "command_distribution[\"0x0063\"] must be 2 (from closed flow A) — \
+             BC-2.17.021 Precond 4 / F-138-P1-004 / O-3"
+        );
+        assert_eq!(
+            dist_map
+                .get("0x006F")
+                .and_then(serde_json::Value::as_u64)
+                .unwrap_or(0),
+            1,
+            "command_distribution[\"0x006F\"] must be 1 (from open flow B) — \
+             BC-2.17.021 Precond 4 / F-138-P1-004 / RULING-W61-001 / O-3"
+        );
+
+        // Zero fields: no errors, writes, or dropped findings in this scenario.
+        for field in &[
+            "parse_errors",
+            "write_count",
+            "error_count",
+            "dropped_findings",
+        ] {
+            assert_eq!(
+                get_u64(es, field),
+                0,
+                "enip_summary.{field} must be 0 (no errors in mixed closed+open scenario) — \
+                 BC-2.17.021 Post 1 / O-3"
+            );
+        }
+    }
 }
