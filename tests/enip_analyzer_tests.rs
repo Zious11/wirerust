@@ -6507,3 +6507,425 @@ mod source_attribution {
         );
     }
 }
+
+// ---------------------------------------------------------------------------
+// STORY-138 — session lifecycle, statistics, DoS guard, analyzer summary
+// ---------------------------------------------------------------------------
+//
+// All tests in this module are RED stubs that FAIL via todo!() until the
+// implementer fills in the real logic (Red Gate discipline, BC-5.38.001).
+//
+// Test plan: STORY-138.md Test Plan lines 241–261 (19 tests) + F-W60-P1-001
+// regression test (AC-138-003).
+//
+// Traces: BC-2.17.025 (RegisterSession/UnRegisterSession classify + pdu_count),
+//         BC-2.17.017 (on_flow_close aggregate folding),
+//         BC-2.17.021 (summarize() enip_summary schema),
+//         BC-2.17.022 (MAX_FINDINGS DoS cap + dropped_findings),
+//         BC-2.17.024 (pdu_count per valid frame).
+// ---------------------------------------------------------------------------
+mod session_lifecycle {
+    use std::net::{IpAddr, Ipv4Addr};
+
+    use wirerust::analyzer::enip::EnipAnalyzer;
+    // MAX_FINDINGS imported for use in AC-138-004 cap tests (implementer will reference it).
+    #[allow(unused_imports)]
+    use wirerust::analyzer::enip::MAX_FINDINGS;
+    use wirerust::reassembly::flow::FlowKey;
+
+    // -----------------------------------------------------------------------
+    // Shared helpers
+    // -----------------------------------------------------------------------
+
+    fn ip(a: u8) -> IpAddr {
+        IpAddr::V4(Ipv4Addr::new(10, 0, 0, a))
+    }
+
+    /// Standard flow key: client (10.0.0.1:50000) ↔ server (10.0.0.2:44818).
+    fn flow_key() -> FlowKey {
+        FlowKey::new(ip(1), 50000, ip(2), 44818)
+    }
+
+    /// A second distinct flow key for multi-flow tests.
+    fn flow_key_b() -> FlowKey {
+        FlowKey::new(ip(3), 51000, ip(4), 44818)
+    }
+
+    /// Build a minimal 24-byte ENIP frame with the given command and zero payload.
+    fn enip_frame(command: u16) -> Vec<u8> {
+        let mut buf = vec![0u8; 24];
+        buf[0] = (command & 0xFF) as u8;
+        buf[1] = ((command >> 8) & 0xFF) as u8;
+        // length = 0 (no payload beyond the header)
+        buf
+    }
+
+    /// RegisterSession command code (BC-2.17.025).
+    const CMD_REGISTER_SESSION: u16 = 0x0065;
+    /// UnRegisterSession command code (BC-2.17.025).
+    const CMD_UNREGISTER_SESSION: u16 = 0x0066;
+    /// ListIdentity command code (BC-2.17.010).
+    const CMD_LIST_IDENTITY: u16 = 0x0063;
+
+    // -----------------------------------------------------------------------
+    // AC-138-001: RegisterSession / UnRegisterSession — pdu_count, no finding
+    // -----------------------------------------------------------------------
+
+    /// AC-138-001 / BC-2.17.025 / BC-2.17.024 — RegisterSession (0x0065) frame
+    /// increments `flow.pdu_count` and does NOT push any finding to `all_findings`.
+    ///
+    /// Traces: BC-2.17.025 Postconditions 1–5; BC-2.17.024 Postcondition 1.
+    #[test]
+    fn test_register_session_pdu_counted_no_finding() {
+        let mut analyzer = EnipAnalyzer::new(50, 5);
+        let key = flow_key();
+        analyzer.on_data(key.clone(), &enip_frame(CMD_REGISTER_SESSION), 0);
+        // BC-5.38.005 self-check: the real logic has not been written yet → todo!() makes
+        // this test RED until the implementer satisfies BC-2.17.025 Post 3.
+        todo!(
+            "STORY-138: test_register_session_pdu_counted_no_finding \
+             [BC-2.17.025 / AC-138-001]"
+        );
+    }
+
+    /// AC-138-001 / BC-2.17.025 / BC-2.17.024 — UnRegisterSession (0x0066) frame
+    /// increments `flow.pdu_count` and does NOT push any finding to `all_findings`.
+    ///
+    /// Traces: BC-2.17.025 Postconditions 1–5; BC-2.17.024 Postcondition 1.
+    #[test]
+    fn test_unregister_session_pdu_counted_no_finding() {
+        let mut analyzer = EnipAnalyzer::new(50, 5);
+        let key = flow_key();
+        analyzer.on_data(key.clone(), &enip_frame(CMD_UNREGISTER_SESSION), 0);
+        todo!(
+            "STORY-138: test_unregister_session_pdu_counted_no_finding \
+             [BC-2.17.025 / AC-138-001]"
+        );
+    }
+
+    /// AC-138-001 / BC-2.17.025 — Multiple RegisterSession frames accumulate
+    /// `command_counts[0x0065]` and `pdu_count` without emitting findings.
+    ///
+    /// Traces: BC-2.17.025 EC-003; BC-2.17.024 Invariant 2.
+    #[test]
+    fn test_session_command_counts_accumulated() {
+        let mut analyzer = EnipAnalyzer::new(50, 5);
+        let key = flow_key();
+        for _ in 0..3 {
+            analyzer.on_data(key.clone(), &enip_frame(CMD_REGISTER_SESSION), 0);
+        }
+        todo!(
+            "STORY-138: test_session_command_counts_accumulated \
+             [BC-2.17.025 / AC-138-001]"
+        );
+    }
+
+    // -----------------------------------------------------------------------
+    // AC-138-002: on_flow_close — removes state, folds counters
+    // -----------------------------------------------------------------------
+
+    /// AC-138-002 / BC-2.17.017 Post 1 — `on_flow_close` removes the flow from `self.flows`.
+    ///
+    /// After `on_flow_close`, `analyzer.flows.contains_key(&key)` must be false.
+    ///
+    /// Traces: BC-2.17.017 Postcondition 1.
+    #[test]
+    fn test_flow_close_removes_state() {
+        let mut analyzer = EnipAnalyzer::new(50, 5);
+        let key = flow_key();
+        analyzer.on_data(key.clone(), &enip_frame(CMD_REGISTER_SESSION), 0);
+        analyzer.on_flow_close(key.clone());
+        todo!(
+            "STORY-138: test_flow_close_removes_state \
+             [BC-2.17.017 Post 1 / AC-138-002]"
+        );
+    }
+
+    /// AC-138-002 / BC-2.17.017 Post 2 — `on_flow_close` folds `flow.pdu_count`
+    /// into `self.total_pdu_count`.
+    ///
+    /// Traces: BC-2.17.017 Postcondition 2; BC-2.17.024.
+    #[test]
+    fn test_flow_close_folds_pdu_count() {
+        let mut analyzer = EnipAnalyzer::new(50, 5);
+        let key = flow_key();
+        // Drive three valid frames to make pdu_count = 3.
+        for _ in 0..3 {
+            analyzer.on_data(key.clone(), &enip_frame(CMD_REGISTER_SESSION), 0);
+        }
+        analyzer.on_flow_close(key.clone());
+        todo!(
+            "STORY-138: test_flow_close_folds_pdu_count \
+             [BC-2.17.017 Post 2 / AC-138-002]"
+        );
+    }
+
+    /// AC-138-002 / BC-2.17.017 Post 3 — `on_flow_close` folds `flow.parse_errors`
+    /// into `self.parse_errors` (aggregate).
+    ///
+    /// Traces: BC-2.17.017 Postcondition 3; EC-007.
+    #[test]
+    fn test_flow_close_folds_parse_errors() {
+        let mut analyzer = EnipAnalyzer::new(50, 5);
+        let key = flow_key();
+        // An invalid-command byte causes parse_errors to increment in the frame-walk.
+        analyzer.on_data(key.clone(), &[0xFF; 24], 0);
+        analyzer.on_flow_close(key.clone());
+        todo!(
+            "STORY-138: test_flow_close_folds_parse_errors \
+             [BC-2.17.017 Post 3 / AC-138-002]"
+        );
+    }
+
+    /// AC-138-002 / BC-2.17.017 Post 5 — `on_flow_close` called for unknown `flow_key`
+    /// is a no-op; does NOT panic and does NOT increment `flows_analyzed`.
+    ///
+    /// Traces: BC-2.17.017 Postcondition 5; EC-008.
+    #[test]
+    fn test_flow_close_unknown_key_no_panic() {
+        let mut analyzer = EnipAnalyzer::new(50, 5);
+        // Call on_flow_close for a key that was never inserted — must not panic.
+        analyzer.on_flow_close(flow_key());
+        todo!(
+            "STORY-138: test_flow_close_unknown_key_no_panic \
+             [BC-2.17.017 Post 5 / AC-138-002]"
+        );
+    }
+
+    /// AC-138-002 / BC-2.17.017 Post 6 — `flows_analyzed` is incremented exactly once
+    /// when a known flow is closed; an unknown-key call does NOT increment it.
+    ///
+    /// Traces: BC-2.17.017 Postcondition 6; BC-2.17.021 canonical vector (flows_analyzed ≥ 1).
+    #[test]
+    fn test_flows_analyzed_incremented_on_flow_close() {
+        let mut analyzer = EnipAnalyzer::new(50, 5);
+        let key = flow_key();
+        analyzer.on_data(key.clone(), &enip_frame(CMD_REGISTER_SESSION), 0);
+        analyzer.on_flow_close(key.clone());
+        // Unknown key — should NOT increment flows_analyzed again.
+        analyzer.on_flow_close(flow_key_b());
+        todo!(
+            "STORY-138: test_flows_analyzed_incremented_on_flow_close \
+             [BC-2.17.017 Post 6 / AC-138-002]"
+        );
+    }
+
+    // -----------------------------------------------------------------------
+    // AC-138-003: pdu_count per valid frame; command_counts in frame-walk
+    // -----------------------------------------------------------------------
+
+    /// AC-138-003 / BC-2.17.024 Post 1 — a valid frame dispatched to `process_pdu`
+    /// increments `flow.pdu_count` by exactly 1.
+    ///
+    /// Traces: BC-2.17.024 Postconditions 1–2; BC-2.17.024 Invariant 2.
+    #[test]
+    fn test_pdu_count_increments_on_valid_frame() {
+        let mut analyzer = EnipAnalyzer::new(50, 5);
+        let key = flow_key();
+        analyzer.on_data(key.clone(), &enip_frame(CMD_LIST_IDENTITY), 0);
+        todo!(
+            "STORY-138: test_pdu_count_increments_on_valid_frame \
+             [BC-2.17.024 Post 1 / AC-138-003]"
+        );
+    }
+
+    /// AC-138-003 / BC-2.17.024 Post 3 — frames rejected by `is_valid_enip_frame`
+    /// do NOT reach `process_pdu` and therefore do NOT increment `pdu_count`.
+    ///
+    /// Traces: BC-2.17.024 Postcondition 3.
+    #[test]
+    fn test_pdu_count_not_incremented_on_invalid_frame() {
+        let mut analyzer = EnipAnalyzer::new(50, 5);
+        let key = flow_key();
+        // Unknown command 0xDEAD → fails is_valid_enip_frame → should not reach process_pdu.
+        analyzer.on_data(key.clone(), &enip_frame(0xDEAD), 0);
+        todo!(
+            "STORY-138: test_pdu_count_not_incremented_on_invalid_frame \
+             [BC-2.17.024 Post 3 / AC-138-003]"
+        );
+    }
+
+    /// AC-138-003 / BC-2.17.016 PC-0 — `command_counts` is incremented in the frame-walk
+    /// (including Unknown-command frames); `pdu_count` reflects only valid-frame counts
+    /// from `process_pdu`.
+    ///
+    /// Drives: one valid ListIdentity (0x0063) + one invalid (0xDEAD) frame.
+    /// Expected: `command_counts[0x0063] == 1`, `command_counts[0xDEAD] == 1`,
+    /// `pdu_count == 1` (invalid frame does not reach process_pdu).
+    ///
+    /// Traces: BC-2.17.016 PC-0; BC-2.17.024 Postcondition 3.
+    #[test]
+    fn test_command_count_accumulates() {
+        let mut analyzer = EnipAnalyzer::new(50, 5);
+        let key = flow_key();
+        analyzer.on_data(key.clone(), &enip_frame(CMD_LIST_IDENTITY), 0);
+        analyzer.on_data(key.clone(), &enip_frame(0xDEAD), 0);
+        todo!(
+            "STORY-138: test_command_count_accumulates \
+             [BC-2.17.016 PC-0 / AC-138-003]"
+        );
+    }
+
+    // -----------------------------------------------------------------------
+    // AC-138-003 / F-W60-P1-001 regression: command_counts split-header double-count
+    // -----------------------------------------------------------------------
+
+    /// AC-138-003 / F-W60-P1-001 regression — split-header must NOT double-count
+    /// `command_counts`.
+    ///
+    /// Setup: deliver exactly 24 bytes (complete header, zero payload) in the first
+    /// `on_data` call; deliver the "remaining payload" (empty, since length == 0) in the
+    /// second call. After both calls, `command_counts[0x0063] == 1` (not 2).
+    ///
+    /// This regression guards the fix described in AC-138-003 §F-W60-P1-001:
+    /// the frame-walk must NOT increment `command_counts` on the partial-stash break path.
+    ///
+    /// Traces: BC-2.17.016 PC-0; BC-2.17.024; F-W60-P1-001.
+    #[test]
+    fn test_command_counts_no_double_count_on_split_header() {
+        let mut analyzer = EnipAnalyzer::new(50, 5);
+        let key = flow_key();
+        // First call: exactly the 24-byte header (length field = 0, so the full frame IS
+        // 24 bytes — no payload needed). This is both a complete header AND a complete frame.
+        // A split that produces a stash must use a frame with a non-zero length field.
+        // Build a frame with length = 4 (payload bytes beyond header):
+        let mut frame = enip_frame(CMD_LIST_IDENTITY);
+        frame[2] = 4; // length = 4 (LE, 4 payload bytes)
+        frame[3] = 0;
+        // Extend to 28 bytes (24 header + 4 payload)
+        frame.extend_from_slice(&[0xAA, 0xBB, 0xCC, 0xDD]);
+        // Split: first call delivers the header only (24 bytes, no payload yet → stash).
+        analyzer.on_data(key.clone(), &frame[..24], 0);
+        // Second call delivers the remaining 4 payload bytes → completes the frame.
+        analyzer.on_data(key.clone(), &frame[24..], 0);
+        todo!(
+            "STORY-138: test_command_counts_no_double_count_on_split_header \
+             [F-W60-P1-001 / AC-138-003]"
+        );
+    }
+
+    // -----------------------------------------------------------------------
+    // AC-138-004: MAX_FINDINGS DoS cap + dropped_findings counter
+    // -----------------------------------------------------------------------
+
+    /// AC-138-004 / BC-2.17.022 Post 1–2 — once `all_findings.len() == MAX_FINDINGS`,
+    /// no further findings are pushed and `all_findings.len()` stays at `MAX_FINDINGS`.
+    ///
+    /// Traces: BC-2.17.022 Postconditions 1–2; Invariant 1; EC-006.
+    #[test]
+    fn test_max_findings_cap() {
+        // This test exercises the gating logic that the implementer must add to each
+        // finding push site. It is a todo!() stub — the cap-gating logic is the
+        // implementer's job per STORY-138 Task list item 7.
+        todo!(
+            "STORY-138: test_max_findings_cap \
+             [BC-2.17.022 Post 1-2 / AC-138-004]"
+        );
+    }
+
+    /// AC-138-004 / BC-2.17.022 Post 3 — `dropped_findings` is incremented each time
+    /// a finding would be pushed but `all_findings.len() >= MAX_FINDINGS`.
+    ///
+    /// Traces: BC-2.17.022 Postcondition 3; BC-2.17.021 Invariant 4; EC-006.
+    #[test]
+    fn test_dropped_findings_incremented_at_cap() {
+        todo!(
+            "STORY-138: test_dropped_findings_incremented_at_cap \
+             [BC-2.17.022 Post 3 / AC-138-004]"
+        );
+    }
+
+    /// AC-138-004 / BC-2.17.022 Invariant 3 — per-flow counters (`pdu_count`,
+    /// `command_counts`, `parse_errors`) continue to accumulate even when
+    /// `all_findings.len() >= MAX_FINDINGS`.
+    ///
+    /// Traces: BC-2.17.022 Invariant 3; Postcondition 4.
+    #[test]
+    fn test_stats_accumulate_past_max_findings() {
+        todo!(
+            "STORY-138: test_stats_accumulate_past_max_findings \
+             [BC-2.17.022 Invariant 3 / AC-138-004]"
+        );
+    }
+
+    // -----------------------------------------------------------------------
+    // AC-138-005: summarize() produces enip_summary with BC-2.17.021 schema
+    // -----------------------------------------------------------------------
+
+    /// AC-138-005 / BC-2.17.021 Post 1 — `summarize()` produces an `AnalysisSummary`
+    /// whose `detail` map contains an `"enip_summary"` key with the canonical fields.
+    ///
+    /// Traces: BC-2.17.021 Postcondition 1; BC-2.17.022 Invariant 4.
+    #[test]
+    fn test_summarize_produces_enip_summary() {
+        let analyzer = EnipAnalyzer::new(50, 5);
+        // todo!() in summarize() will cause this test to fail at runtime (Red Gate).
+        let _summary = analyzer.summarize();
+        todo!(
+            "STORY-138: test_summarize_produces_enip_summary \
+             [BC-2.17.021 Post 1 / AC-138-005]"
+        );
+    }
+
+    /// AC-138-005 / BC-2.17.021 Invariant 1 — the parse error key in `enip_summary`
+    /// MUST be `"parse_errors"` — NOT `"total_parse_errors"`.
+    ///
+    /// This guards the v0.10.0 rename lesson (BC-2.15.020 D-220): canonical key from day one.
+    ///
+    /// Traces: BC-2.17.021 Invariant 1; EC-011.
+    #[test]
+    fn test_summary_parse_errors_key_canonical() {
+        let analyzer = EnipAnalyzer::new(50, 5);
+        let _summary = analyzer.summarize();
+        todo!(
+            "STORY-138: test_summary_parse_errors_key_canonical \
+             [BC-2.17.021 Invariant 1 / AC-138-005]"
+        );
+    }
+
+    /// AC-138-005 / BC-2.17.021 Post 2 / Invariant 3 — zero-flow case: `summarize()`
+    /// produces a valid `enip_summary` object with all counts at 0.
+    ///
+    /// Traces: BC-2.17.021 Postcondition 2; Invariant 3; EC-009.
+    #[test]
+    fn test_summary_zero_flow_case() {
+        let analyzer = EnipAnalyzer::new(50, 5);
+        let _summary = analyzer.summarize();
+        todo!(
+            "STORY-138: test_summary_zero_flow_case \
+             [BC-2.17.021 Post 2 / AC-138-005]"
+        );
+    }
+
+    /// AC-138-005 / BC-2.17.021 Post 1 / BC-2.17.022 Invariant 4 — after the cap is
+    /// reached and findings are dropped, `enip_summary.dropped_findings` reports the
+    /// suppressed count.
+    ///
+    /// Traces: BC-2.17.022 Invariant 4; BC-2.17.021 Postcondition 1; EC-012.
+    #[test]
+    fn test_summary_dropped_findings() {
+        let analyzer = EnipAnalyzer::new(50, 5);
+        let _summary = analyzer.summarize();
+        todo!(
+            "STORY-138: test_summary_dropped_findings \
+             [BC-2.17.022 Invariant 4 / AC-138-005]"
+        );
+    }
+
+    /// AC-138-005 / BC-2.17.021 Post 1 — after opening and closing one flow,
+    /// `enip_summary.flows_analyzed >= 1` (validates BC-2.17.021 canonical vector).
+    ///
+    /// Traces: BC-2.17.021 canonical vector; BC-2.17.017 Postcondition 6.
+    #[test]
+    fn test_summary_flows_analyzed_nonzero() {
+        let mut analyzer = EnipAnalyzer::new(50, 5);
+        let key = flow_key();
+        analyzer.on_data(key.clone(), &enip_frame(CMD_REGISTER_SESSION), 0);
+        analyzer.on_flow_close(key.clone());
+        let _summary = analyzer.summarize();
+        todo!(
+            "STORY-138: test_summary_flows_analyzed_nonzero \
+             [BC-2.17.021 canonical vector / AC-138-005]"
+        );
+    }
+}

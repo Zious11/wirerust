@@ -516,6 +516,56 @@ fn resolve_enip_client_ip(flow_key: &crate::reassembly::flow::FlowKey) -> std::n
 // Aggregate analyzer struct (STORY-131 — BC-2.17.019/020/023/026)
 // ---------------------------------------------------------------------------
 
+/// Aggregate end-of-capture summary for the EtherNet/IP analyzer.
+///
+/// Produced by `EnipAnalyzer::summarize()` (BC-2.17.021 Postcondition 1).
+/// All field names are canonical — do NOT rename without a BC amendment.
+///
+/// Key name constraint (BC-2.17.021 Invariant 1): `parse_errors` is CANONICAL —
+/// NOT `total_parse_errors`. The v0.10.0 rename lesson (BC-2.15.020 D-220) mandates
+/// this name from day one.
+///
+/// Traces: BC-2.17.021 Postcondition 1; BC-2.17.022 Invariant 4; BC-2.17.024.
+pub struct EnipSummary {
+    /// Aggregate command distribution across all closed flows.
+    ///
+    /// Keys are the raw ENIP command u16 value; values are the total count.
+    /// Only non-zero entries are included. Populated by `on_flow_close`.
+    /// JSON key: `"command_distribution"` (BC-2.17.021 Postcondition 1).
+    pub command_distribution: HashMap<u16, u64>,
+
+    /// Total PDUs processed across all closed flows (BC-2.17.024 / BC-2.17.021).
+    ///
+    /// Folded from `flow.pdu_count` by `on_flow_close`. JSON key: `"total_pdu_count"`.
+    pub total_pdu_count: u64,
+
+    /// Aggregate lifetime parse error count across all closed flows (BC-2.17.017 Post 3).
+    ///
+    /// CANONICAL key: `"parse_errors"` — NOT `"total_parse_errors"` (BC-2.17.021 Invariant 1).
+    pub parse_errors: u64,
+
+    /// Total CIP write-class service requests (SetAttribute*) — BC-2.17.012.
+    ///
+    /// JSON key: `"write_count"`.
+    pub write_count: u64,
+
+    /// Total CIP error responses (general_status != 0) — BC-2.17.008.
+    ///
+    /// JSON key: `"error_count"`.
+    pub error_count: u64,
+
+    /// Count of distinct TCP flows processed (BC-2.17.017 Post 6 / BC-2.17.021).
+    ///
+    /// Incremented by `on_flow_close` when `HashMap::remove` returns `Some`.
+    /// JSON key: `"flows_analyzed"`.
+    pub flows_analyzed: u64,
+
+    /// Findings suppressed by the MAX_FINDINGS cap (BC-2.17.022 Post 3 / BC-2.17.021 Post 1).
+    ///
+    /// JSON key: `"dropped_findings"`.
+    pub dropped_findings: u64,
+}
+
 /// EtherNet/IP stream analyzer aggregate.
 ///
 /// Receives reassembled TCP bytes for port-44818 flows (via `StreamDispatcher`
@@ -547,6 +597,7 @@ pub struct EnipAnalyzer {
     /// Incremented by `process_pdu` on every qualifying error response (BC-2.17.008
     /// Postcondition 2b / Invariant 2). Never reset across flows or windows.
     /// Read by `summarize()` (BC-2.17.021 postcondition 1 `error_count` field).
+    /// REUSED from STORY-134/135 — NOT redeclared.
     pub error_count: u64,
 
     /// Aggregate lifetime count of CIP write-class service requests (SetAttribute*).
@@ -555,6 +606,7 @@ pub struct EnipAnalyzer {
     /// or SetAttributeSingle (0x10) request via a 0x00B2 item (BC-2.17.012 postcondition 2).
     /// Never reset. Read by `summarize()` per BC-2.17.021 postcondition 1 `write_count` field.
     /// Field name is normative per BC-2.17.012 Architecture Anchors.
+    /// REUSED from STORY-134/135 — NOT redeclared.
     pub write_count: u64,
 
     /// Per-flow mutable state indexed by TCP flow key.
@@ -565,6 +617,38 @@ pub struct EnipAnalyzer {
     ///
     /// Field name is normative — the test suite and `summarize()` reference it directly.
     pub flows: HashMap<crate::reassembly::flow::FlowKey, EnipFlowState>,
+
+    // ---- STORY-138 aggregate fields (BC-2.17.017 / BC-2.17.021 / BC-2.17.024) ----
+
+    /// Aggregate PDU count across all closed flows (BC-2.17.024 / BC-2.17.017 Post 2).
+    ///
+    /// Folded from `flow.pdu_count` by `on_flow_close`. Read by `summarize()`.
+    /// JSON key: `"total_pdu_count"` (BC-2.17.021 Postcondition 1).
+    pub total_pdu_count: u64,
+
+    /// Aggregate lifetime parse error count across closed flows (BC-2.17.017 Post 3).
+    ///
+    /// CANONICAL field name: `parse_errors` — NOT `total_parse_errors`
+    /// (BC-2.17.021 Invariant 1). Folded from `flow.parse_errors` by `on_flow_close`.
+    pub parse_errors: u64,
+
+    /// Aggregate command distribution across closed flows (BC-2.17.017 Post 4).
+    ///
+    /// Keyed by raw ENIP command u16. Folded by `on_flow_close`. Read by `summarize()`.
+    /// JSON key: `"command_distribution"` (BC-2.17.021 Postcondition 1).
+    pub command_distribution: HashMap<u16, u64>,
+
+    /// Count of distinct TCP flows processed (BC-2.17.017 Post 6 / BC-2.17.021).
+    ///
+    /// Incremented by `on_flow_close` when `HashMap::remove` returns `Some`.
+    /// JSON key: `"flows_analyzed"`.
+    pub flows_analyzed: u64,
+
+    /// Findings suppressed at MAX_FINDINGS cap (BC-2.17.022 Post 3 / BC-2.17.021 Post 1).
+    ///
+    /// Incremented in every finding emit path when `all_findings.len() >= MAX_FINDINGS`.
+    /// JSON key: `"dropped_findings"`.
+    pub dropped_findings: u64,
 }
 
 impl EnipAnalyzer {
@@ -586,7 +670,33 @@ impl EnipAnalyzer {
             error_count: 0,
             write_count: 0,
             flows: HashMap::new(),
+            // STORY-138 aggregate fields (BC-2.17.017 / BC-2.17.021 / BC-2.17.024)
+            total_pdu_count: 0,
+            parse_errors: 0,
+            command_distribution: HashMap::new(),
+            flows_analyzed: 0,
+            dropped_findings: 0,
         }
+    }
+
+    /// Remove per-flow state for `flow_key`, folding its counters into aggregates.
+    ///
+    /// Called by the dispatcher after a TCP flow closes (BC-2.17.017).
+    ///
+    /// Postconditions (BC-2.17.017):
+    /// 1. `self.flows.remove(&flow_key)` removes the `EnipFlowState` entry.
+    /// 2. `self.total_pdu_count += flow.pdu_count`
+    /// 3. `self.parse_errors += flow.parse_errors`
+    /// 4. Each `(cmd, count)` in `flow.command_counts` folded into `self.command_distribution`.
+    /// 5. Unknown `flow_key` → no-op; no panic; `flows_analyzed` NOT incremented.
+    /// 6. `self.flows_analyzed += 1` when `HashMap::remove` returns `Some`.
+    ///
+    /// Findings in `self.all_findings` are unaffected (BC-2.17.017 Post 6).
+    ///
+    /// # Traces
+    /// BC-2.17.017 Postconditions 1–6; BC-2.17.024; ADR-010 Decision 4.
+    pub fn on_flow_close(&mut self, _flow_key: crate::reassembly::flow::FlowKey) {
+        todo!("STORY-138: on_flow_close [BC-2.17.017]")
     }
 
     /// Receive reassembled TCP bytes for a port-44818 flow and run the ENIP frame-walk loop.
@@ -1226,22 +1336,31 @@ impl EnipAnalyzer {
 
     /// Produce an end-of-capture summary for the ENIP analyzer.
     ///
-    /// Real metrics (frames parsed, detection counts, per-flow stats) are
-    /// populated by STORY-132+. This stub returns a minimal shell that
-    /// prevents the reporter pipeline from panicking when --enip/--all is used
-    /// before the detection logic lands.
+    /// STORY-138 stub: the `enip_summary` aggregate production is `todo!()`.
+    /// The implementer fills in the canonical BC-2.17.021 key set:
+    /// `command_distribution`, `total_pdu_count`, `parse_errors` (CANONICAL — NOT
+    /// `total_parse_errors`, BC-2.17.021 Invariant 1), `write_count`, `error_count`,
+    /// `flows_analyzed`, `dropped_findings`.
     ///
-    /// WIRING-EXEMPT: required by the reporter pipeline contract. Without a
-    /// non-panicking summarize(), the existing `--all` CLI test regresses.
-    /// Body constructs one AnalysisSummary with zero fields — no branching,
-    /// no I/O, no non-trivial helpers, ≤ 3 lines.
+    /// **EXISTING-TEST CONFLICT FLAG (summarize() shell → todo!()):**
+    /// The prior WIRING-EXEMPT shell returned `AnalysisSummary { packets_analyzed: 0,
+    /// detail: BTreeMap::new() }`. STORY-138 promotes this to a `todo!()` stub because
+    /// the session_lifecycle tests assert on the real aggregate values. Any existing test
+    /// that calls `summarize()` and only checks that it does not panic will now FAIL at
+    /// this `todo!()` — that is the intended Red Gate behaviour. No existing test in
+    /// the currently-green suite calls `summarize()` and asserts on its return value
+    /// (confirmed by grep: only the dispatch mod's `test_enip_summarize_returns_analyzer_name`
+    /// asserts `analyzer_name == "EtherNet/IP"`). That test will turn RED at this todo!()
+    /// and must remain red until the implementer fills in the real body.
+    ///
+    /// **BC-5.38.005 self-check:** "If I include this real implementation, will the test
+    /// for this function pass trivially without any implementer work?" — YES for
+    /// `test_summarize_produces_enip_summary` et al. Therefore `todo!()` is mandatory here.
+    ///
+    /// # Traces
+    /// BC-2.17.021 Postconditions 1–4; BC-2.17.022 Invariant 4; BC-5.38.001.
     pub fn summarize(&self) -> AnalysisSummary {
-        use std::collections::BTreeMap;
-        AnalysisSummary {
-            analyzer_name: "EtherNet/IP".to_string(),
-            packets_analyzed: 0,
-            detail: BTreeMap::new(),
-        }
+        todo!("STORY-138: enip_summary [BC-2.17.021]")
     }
 }
 
