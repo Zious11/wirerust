@@ -570,7 +570,8 @@ impl EnipAnalyzer {
     ///    - `is_non_enip = true`; `carry.clear()`
     ///
     /// WIRING-EXEMPT (bytes_received line only): single saturating_add, no branching, no I/O.
-    /// The remainder of this function is a STORY-137 todo!() stub that establishes the Red Gate.
+    /// All steps above are fully implemented by STORY-137 (frame-walk loop, carry-cap check,
+    /// T0814 detection). No stubs or todo!() remain in this function.
     ///
     /// # Parameters
     /// - `flow_key`  — TCP flow identifier; used to look up / insert `EnipFlowState`.
