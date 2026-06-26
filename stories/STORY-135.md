@@ -43,8 +43,8 @@ via EtherNet/IP are detected and reported with appropriate MITRE ICS technique t
 | BC ID | Title | Story Role |
 |-------|-------|-----------|
 | BC-2.17.011 | CIP Stop Service Observed Emits T0858 Change Operating Mode Finding | Core detection |
-| BC-2.17.013 | CIP Reset service (0x05) emits T0816 (Device Restart/Shutdown) | Core detection |
-| BC-2.17.012 | CIP write-attribute burst within 1s window emits T0836 (Modify Parameter) | Core detection with windowed threshold |
+| BC-2.17.013 | CIP Reset Service Observed Emits T0816 Device Restart/Shutdown Finding | Core detection |
+| BC-2.17.012 | CIP Write-Class Service Burst Exceeding Threshold Emits T0836 Modify Parameter Finding | Core detection with windowed threshold |
 
 ## Acceptance Criteria
 
@@ -72,7 +72,7 @@ via EtherNet/IP are detected and reported with appropriate MITRE ICS technique t
 - **Test:** `tests/enip_analyzer_tests.rs::command_detections::test_t0858_set_attribute_no_t0858`
 
 ### AC-135-002: CIP Reset service (0x05) emits T0816 (Device Restart/Shutdown)
-**Traces to:** BC-2.17.013 postconditions 1–2; BC-2.17.007 invariant 1
+**Traces to:** BC-2.17.013 postconditions 1–2
 - Given a CIP request where `classify_cip_service(cip_header.service)` returns `CipServiceClass::Reset` (BC-2.17.013 precondition 1)
   - NOTE: the response-bit check (`service & 0x80 != 0`) is handled INSIDE `classify_cip_service` per BC-2.17.007 invariant 1 — do NOT use the raw predicate `service & 0x7F == 0x05` in detection logic; always route through `classify_cip_service`
 - AND `type_id == 0x00B2`

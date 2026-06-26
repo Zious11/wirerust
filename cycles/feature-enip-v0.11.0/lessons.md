@@ -362,6 +362,32 @@ mis-anchor sites in one pass.
 
 ---
 
+## [deferred-to-cycle-close] MECHANICAL-GATE-PATTERN-SEEDING-001 — Gate patterns must be seeded from real prior-cycle phrasings; periodic audit recommended (D-248, 2026-06-25)
+
+**Status:** DEFERRED — to cycle close per S-7.02.
+**Trigger:** STORY-135 convergence required multiple rounds exclusively on doc/test completeness (detection logic was correct from the start). Convergence blockers were gate coverage gaps, not spec or logic errors.
+**Decision:** D-248.
+
+**Observation:**
+
+STORY-135 took 7 adversarial passes to achieve convergence (3 clean passes 5/6/7). The implementation was correct from the beginning. All remediation rounds were driven by:
+
+1. **Gate coverage holes** in `bin/check-green-doc-tense`: the gate's pattern set (originally ~11 patterns) did not cover "feature-enip"-namespaced RED phrasings that emerged from feature-mode story stubs. Passes 1–4 each surfaced a new class of gate-escapee phrasing, requiring pattern extensions (patterns 12-18 in Pass-1 burst, patterns 19-22 in Pass-2/3/4 burst). This is a positive feedback loop: each pass found a real gap, the gate was hardened, and the next pass verified the hardening — but it extends convergence.
+
+2. **Test assertion specificity gap** (F-135-P2-001): tests did not initially pin the normative BC verdict/confidence/summary strings verbatim. Tests verified behavior at a functional level but not at the exact-string level required by the BC postconditions. The adversary correctly identified this as a test-completeness gap (not a code bug). Once tests were updated to pin exact BC strings, the passes were clean.
+
+**Key insight:**
+
+Mechanical gates (bin/check-green-doc-tense) accumulate patterns reactively — a phrasing escapes, is found by the adversary, then the gate is extended. For a project with a consistent idiom set (e.g., all feature-enip stories use the same stub templates), the gate's pattern set should be PROACTIVELY seeded from the prior-cycle story stubs and from all RED-phase story templates at cycle start — not grown reactively one finding at a time.
+
+**Recommended follow-up (evaluate at cycle close):**
+
+1. At the start of each feature cycle, run the gate against ALL stub templates and the prior cycle's story files to pre-identify any phrasing patterns not yet in the gate. Extend the pattern set before the first adversarial pass.
+2. Add a "test assertion verbosity" checklist item to the GREEN step: for each BC postcondition that specifies a string (verdict, confidence, summary format, evidence format), the test MUST assert that exact string, not a functional proxy. This is already implicit in DF-AC-TEST-NAME-SYNC; consider making it an explicit named step.
+3. Consider a periodic gate-pattern audit at cycle midpoint (not just cycle close): compare the gate's current pattern set against all un-gated RED-phrasings in the current story set to close coverage gaps before they reach the adversary.
+
+---
+
 ## [codified] [process-gap] DF-SIBLING-SWEEP-REMEDIATION-SCOPE (D-246, 2026-06-25) — Remediation dispatches must grep the FULL worktree, not just the primary file
 
 **Status:** CODIFIED — deferred-to-cycle-close evaluation per S-7.02. Compounds F8-001-PROPAGATION-COMPLETENESS and ADR-DECISION-NUMBER-MIS-ANCHOR-001.

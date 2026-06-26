@@ -394,6 +394,51 @@ Worktree HEAD 68e3394 reviewed. All prior findings resolved. Per-story adversari
 
 ---
 
+### Per-Story — STORY-135 (Wave 60)
+
+| Pass | Date | Total | CRIT | HIGH | MED | LOW | Novelty | Score | Counter | Verdict |
+|------|------|-------|------|------|-----|-----|---------|-------|---------|---------|
+| 1 | 2026-06-25 | — | 0 | — | — | — | HIGH | — | 0/3 | FINDINGS_REMAIN — REMEDIATED |
+| 2 | 2026-06-25 | — | 0 | — | — | — | MEDIUM | — | 0/3 → reset | FINDINGS_REMAIN — REMEDIATED |
+| 3 | 2026-06-25 | — | 0 | — | — | — | MEDIUM | — | 0/3 → reset | FINDINGS_REMAIN — REMEDIATED |
+| 4 | 2026-06-25 | — | 0 | — | — | — | MEDIUM | — | 0/3 → reset | FINDINGS_REMAIN — REMEDIATED |
+| 5 | 2026-06-25 | 0 | 0 | 0 | 0 | 0 | — | — | 1/3 | CLEAN |
+| 6 | 2026-06-25 | 0 | 0 | 0 | 0 | 0 | — | — | 2/3 | CLEAN |
+| 7 | 2026-06-25 | 0 | 0 | 0 | 0 | 0 | — | — | 3/3 | CONVERGED |
+
+Trajectory: `?→?→?→?→0→0→0` (multi-round remediation on doc/test completeness; logic correct throughout; convergence ACHIEVED passes 5/6/7 per BC-5.39.001)
+
+Remediation history:
+- Pass-1: doc-prose GREEN-tense violations + green-doc-tense gate coverage hole — gate patterns 12-18 added (captures feature-enip RED phrasings). Story prose cleaned.
+- Pass-2/3/4: F-135-P2-001 — test verdict/confidence/verbatim-summary assertions did not pin normative BC strings; tests updated to assert exact BC-specified strings. Stale "before reaching todo!()" prose flagged — gate patterns 19-22 added. EC-007 threshold-zero test added (test count 15→16).
+- Pass-5/6/7: LOW doc cleanups — test-count comment updated (15→16), BC-table titles updated to verbatim BC-INDEX titles for BC-2.17.012/013, AC-135-002 "Traces to:" alignment (BC-2.17.007 citation moved from Traces-to header to inline NOTE per frontmatter-body coherence). All 0 HIGH/CRITICAL across 3 passes.
+
+**Per-story adversarial convergence ACHIEVED** (BC-5.39.001 MET). STORY-135 worktree HEAD 5963ca4. 16 command_detections tests green (T0858/T0816/T0836; BC-2.17.011/012/013). green-doc-tense gate now 22 patterns / self-test 54 cases. GREEN-DOC-TENSE-GATE-COVERAGE-001 RESOLVED.
+
+---
+
+### STORY-135 Passes 1–4 (remediation rounds, 2026-06-25)
+
+**Pass 1:** doc-prose GREEN-tense violations in test-module header and story prose sections; green-doc-tense gate missed "feature-enip" RED phrasings. Gate patterns 12-18 strengthened. Counter: 0 of 3.
+
+**Pass 2:** F-135-P2-001 — test assertions used approximate checks rather than pinning normative BC verdict/confidence/summary strings. Tests corrected to pin exact BC-specified strings. Stale "before reaching todo!()" prose in story body. Gate patterns 19-22 added. Counter reset.
+
+**Pass 3:** Continuation of F-135-P2-001 scope sweep — additional test assertion gaps in edge-case tests found; fixed. EC-007 threshold-zero edge case had no test coverage; `test_t0836_threshold_zero_fires_on_first_write` added (total tests 15→16). Counter reset.
+
+**Pass 4:** Residual LOW doc alignment — test-count prose in Token Budget ("14 tests" stale); additional story body prose aligned. Counter reset.
+
+---
+
+### STORY-135 Passes 5, 6, 7 (2026-06-25) — 3 consecutive clean passes
+
+**Pass 5:** 0 findings. Convergence counter 1 of 3 (CLEAN).
+**Pass 6:** 0 findings. Convergence counter 2 of 3 (CLEAN).
+**Pass 7:** 0 findings. Convergence counter 3 of 3 (CONVERGED).
+
+Worktree HEAD 5963ca4 reviewed. All prior findings resolved. Per-story adversarial convergence ACHIEVED (D-248). BC-5.39.001 MET. NEXT = demo-recorder → push → pr-manager.
+
+---
+
 ## Wave-59 Follow-Up Obligations (logged at wave-level convergence — non-blocking)
 
 These were surfaced during wave-level passes and logged per D-238:
