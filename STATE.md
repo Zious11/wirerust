@@ -1,10 +1,10 @@
 ---
 pipeline: FEATURE-MODE
 phase: F7
-phase_status: "F7 CONVERGED — PENDING HUMAN GATE (D-266)"
+phase_status: "F7 HUMAN-APPROVED — HOLD AT RELEASE (D-267)"
 product: wirerust
 mode: feature-mode
-timestamp: 2026-06-27T00:00:00Z
+timestamp: 2026-06-27T12:00:00Z
 
 # Release chain (latest)
 released_version: v0.10.0
@@ -29,7 +29,7 @@ adversary_gate: SATISFIED
 # Story tracking
 stories_delivered: 87
 current_cycle: feature-enip-v0.11.0 (D-228, 2026-06-24)
-current_wave: "Wave 61 CLOSED — HUMAN-APPROVED. F4 COMPLETE. F5 CONVERGED (D-263). F6 PASSED (D-265). F7 CONVERGED (D-266) — PENDING HUMAN GATE."
+current_wave: "Wave 61 CLOSED — HUMAN-APPROVED. F4 COMPLETE. F5 CONVERGED (D-263). F6 PASSED (D-265). F7 HUMAN-APPROVED (D-267) — HOLD AT RELEASE. Holdout eval (real pcaps) is pre-release-go-ahead blocker."
 
 # DTU
 dtu_required: false
@@ -52,7 +52,7 @@ convergence_trajectory: "Detail: cycles/v0.1.0-greenfield-spec/convergence-traje
 
 ## Status
 
-**PIPELINE FEATURE-MODE. Cycle `feature-enip-v0.11.0` OPEN. F7 delta-convergence CONVERGED (D-266). PENDING HUMAN GATE.**
+**PIPELINE FEATURE-MODE. Cycle `feature-enip-v0.11.0` OPEN. F7 HUMAN-APPROVED (D-267) — HOLD AT RELEASE. Pre-release-go-ahead blocker: holdout eval via real pcaps.**
 
 **HUMAN DIRECTIVE (D-260): HALT — do NOT run the release pipeline / tag / publish without explicit human go-ahead.**
 
@@ -71,19 +71,16 @@ Spec versions: BC-INDEX v1.84 (331 on disk / 330 active; SS-17=26 BCs). ARCH-IND
 - Do NOT re-run F5/F6/F7 — F5 CONVERGED (D-263), F6 PASSED (D-265), F7 CONVERGED (D-266).
 - Do NOT refresh input-hashes for STORY-130..133 — refreshed at c65602a (D-266): 130=63fac3a, 131=ce92886, 132=c33dff8, 133=661f504. STORY-134..138 hashes unchanged.
 
-### EXACT RESUME POINT — F7 CONVERGED; PENDING HUMAN GATE
+### EXACT RESUME POINT — v0.11.0 CONVERGED + F7 HUMAN-APPROVED; HELD AT RELEASE
 
-**F7 CONVERGED (D-266). develop=`f17d270`. stories_delivered=87. Input-hash drift RESOLVED (c65602a).**
+**v0.11.0 CONVERGED. F7 human-approved 2026-06-27 (D-267). develop=`f17d270`. stories_delivered=87. HELD AT RELEASE (D-260).**
 
-F7 summary: 5-dimensional assessment (spec/tests/implementation/verification/regression) all CONVERGED. Full regression GREEN (0 failures, 80 suites). Report: `cycles/feature-enip-v0.11.0/F7-convergence-report.md`. Input-hash drift resolved: STORY-130..133 were STALE (metadata-only); all confirmed consistent-as-is; hashes refreshed. Holdouts HS-110..122 NON-BLOCKING (10/13 unit-covered; HS-122 corpus gap; architect accept-for-v0.11.0). F6-MUTANTS-FULL-RUN 21 caught/0 missed (completion confirmation is human gate item).
-
-**NEXT: HUMAN GATE. Items for human decision:**
-1. F6-MUTANTS-FULL-RUN 0-missed confirmation (confirm cargo-mutants 241-mutant full run completes 0 missed).
-2. Holdout formal-eval defer-decision (HS-110..122 formal eval → post-release story).
-3. is_non_enip dead-latch release-notes narrative (v0.11.0 known-limitation entry).
-4. Cycle-close BC prose edits (BC-2.17.021 Inv-2, BC-2.17.016 PC-5/PC-0, F-W60-002) — post-release.
-5. Dependabot #311/#325 triage.
-6. **After human approval: HALT (D-260) until explicit go-ahead to cut v0.11.0 release.**
+Active pre-release-go-ahead work: HOLDOUT EVALUATION via real pcaps (D-267). Steps:
+1. research-agent finds public ENIP/CIP pcaps (HS-110..122) → `.factory/research/enip-holdout-pcap-sources.md` (IN PROGRESS).
+2. Download usable + licensed captures.
+3. Run through `wirerust analyze`.
+4. holdout-evaluator assesses satisfaction (must-pass HS-110..122).
+After holdout eval + F6-MUTANTS-FULL-RUN 0-missed confirmation → present release go-ahead decision to human. Do NOT cut the release without explicit go-ahead.
 
 ### RESUME PROCEDURE (execute in order — BLOCKING)
 
@@ -91,7 +88,7 @@ F7 summary: 5-dimensional assessment (spec/tests/implementation/verification/reg
 2. Read `.factory/STATE.md` + `cycles/feature-enip-v0.11.0/cycle-manifest.md` in full.
 3. Verify: `git rev-parse --short develop` == `f17d270`.
 4. Run `gh pr list` — expect Dependabot #311/#325 open (non-blocking); PRs #317..#332 MERGED.
-5. Proceed per EXACT RESUME POINT above — F7 CONVERGED; awaiting human gate.
+5. Proceed per EXACT RESUME POINT above — F7 human-approved; holdout eval (real pcaps) in progress.
 
 ### Locked design facts (do not re-derive on resume)
 
@@ -147,7 +144,7 @@ All GitHub-issue creation DF-VALIDATION-001-gated.
 | Feature EtherNet/IP + CIP — F4 | **COMPLETE — Wave-61 HUMAN-APPROVED + CLOSED (D-262).** | All STORY-130..138 MERGED + fix-PRs #328/330/331. stories_delivered=87. |
 | Feature EtherNet/IP + CIP — F5 | **CONVERGED (D-263)** | 3-pass, 0 HIGH/0 CRITICAL, zero novelty. 26/26 BC sweep. RTM complete. |
 | Feature EtherNet/IP + CIP — F6 | **PASSED (D-265)** | Kani 11/11 PASS. cargo-fuzz 8.3M/0 crashes. audit/deny/clippy/fmt clean. Mutants 0-missed-so-far (F6-MUTANTS-FULL-RUN confirm at human gate). |
-| Feature EtherNet/IP + CIP — F7 | **CONVERGED — PENDING HUMAN GATE (D-266)** | 5-dimensional delta convergence CONVERGED. Full regression GREEN (0 failures, 80 suites). Input-hash drift resolved (c65602a). HALT before release (D-260). |
+| Feature EtherNet/IP + CIP — F7 | **PASSED — HUMAN-APPROVED 2026-06-27 (D-267); HOLD AT RELEASE** | 5-dimensional CONVERGED; regression GREEN (80 suites). Input-hash drift resolved (c65602a). Holdout eval (real pcaps) + F6-MUTANTS-FULL-RUN confirm = pre-release-go-ahead gate. |
 
 ## Decisions Log
 
@@ -162,6 +159,7 @@ D-228..D-265: `cycles/feature-enip-v0.11.0/decisions-archive.md`
 | ID | Decision | Date |
 |----|----------|------|
 | D-266 | F7 delta-convergence CONVERGED @f17d270. 5-dimensional assessment all CONVERGED; regression GREEN (0 failures, 80 suites). Input-hash drift resolved: STORY-130..133 STALE→MATCH (c65602a; hashes 63fac3a/ce92886/c33dff8/661f504). Holdouts HS-110..122 NON-BLOCKING (architect accept-for-v0.11.0). F6-MUTANTS-FULL-RUN 0-missed-so-far (confirm at human gate). phase_status: F7 CONVERGED — PENDING HUMAN GATE. HALT (D-260): do NOT release without explicit go-ahead. | 2026-06-27 |
+| D-267 | F7 human-approved 2026-06-27 ("Approve F7 — hold at release"). v0.11.0 EtherNet/IP feature declared CONVERGED + release-ready. develop stays at f17d270. HALT before release cut (D-260) — release pipeline NOT run without explicit future go-ahead. Holdout decision: RUN holdout pcaps via FOUND real-world captures (NOT synthetic fixtures). research-agent locating public ENIP/CIP pcaps mapped to HS-110..122 → output at .factory/research/enip-holdout-pcap-sources.md. Holdout eval is now a PRE-RELEASE-GO-AHEAD validation activity. | 2026-06-27 |
 
 ## Governance Policy
 
