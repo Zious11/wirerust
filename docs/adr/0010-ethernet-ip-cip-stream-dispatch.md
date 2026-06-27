@@ -4,7 +4,8 @@ adr_id: ADR-010
 status: accepted
 accepted_date: "2026-06-24"
 date: 2026-06-24
-modified: []
+modified:
+  - "RULING-EDGECASE-001 (2026-06-27): Decision 4 carry split (carry → carry_c2s/carry_s2c), Direction threaded into on_data, saturating_sub + strict >300 window expiry, carry-cap noted unreachable per RULING-137-002."
 subsystems_affected:
   - SS-05
   - SS-10
@@ -263,9 +264,17 @@ const MAX_ENIP_CARRY_BYTES: usize = 600;
 
 ```rust
 pub struct EnipFlowState {
-    /// Partial ENIP frame accumulation buffer.
+    /// Partial ENIP frame accumulation buffer — CLIENT-TO-SERVER direction only.
+    /// Receives bytes from the TCP initiator (the side sending to port 44818).
     /// Max 600 bytes (MAX_ENIP_CARRY_BYTES). Bounded DoS guard.
-    carry: Vec<u8>,
+    /// RULING-EDGECASE-001 §4.1: carry split per-direction prevents cross-direction splice (EC-X1).
+    carry_c2s: Vec<u8>,
+
+    /// Partial ENIP frame accumulation buffer — SERVER-TO-CLIENT direction only.
+    /// Receives bytes from the TCP responder (EtherNet/IP device, port 44818 side).
+    /// Max 600 bytes (MAX_ENIP_CARRY_BYTES). Bounded DoS guard.
+    /// RULING-EDGECASE-001 §4.1: carry split per-direction prevents cross-direction splice (EC-X1).
+    carry_s2c: Vec<u8>,
 
     /// Set to true on desync (first 24 bytes do not form a plausible ENIP header,
     /// or carry buffer overflow). All subsequent on_data calls are no-ops.
@@ -384,16 +393,51 @@ pub struct EnipAnalyzer {
 - `dropped_findings` — BC-2.17.021/022 (`self.dropped_findings`)
 - `list_identity_emitted` — BC-2.17.010 (T0846 ListIdentity one-shot guard)
 
-**Frame-walk loop in `on_data()`:**
+**`on_data()` signature (RULING-EDGECASE-001 §4.1 amendment):**
+
+```rust
+// BEFORE (original Decision 4)
+pub fn on_data(&mut self, flow_key: FlowKey, data: &[u8], timestamp: u32)
+
+// AFTER (RULING-EDGECASE-001 §4.1 — Direction threaded; mirrors Modbus pattern)
+pub fn on_data(&mut self, flow_key: FlowKey, data: &[u8], timestamp: u32, direction: Direction)
+```
+
+`Direction` lives at `crate::reassembly::handler::Direction`. All call sites in the
+stream dispatcher must pass `direction` from the `StreamHandler` context, matching the
+Modbus pattern (ADR-005).
+
+**Frame-walk loop in `on_data()` (RULING-EDGECASE-001 §4.1 amendment):**
 
 ```
-let buf = carry ++ new_data   (prepend carry buffer)
+// Select carry buffer by direction (RULING-EDGECASE-001 §4.1 Option b)
+let buf = (match direction {
+    ClientToServer => flow.carry_c2s.clone(),
+    ServerToClient => flow.carry_s2c.clone(),
+}) ++ new_data   (prepend directional carry buffer)
+
 cursor = 0
 while cursor < buf.len():
   if buf.len() - cursor < 24:
-    carry = buf[cursor..]   // stash partial header
-    if carry.len() > MAX_ENIP_CARRY_BYTES:
+    // Stash back into the SAME directional carry buffer
+    match direction {
+        ClientToServer => flow.carry_c2s = buf[cursor..].to_vec(),
+        ServerToClient => flow.carry_s2c = buf[cursor..].to_vec(),
+    }
+    let active_carry_len = match direction {
+        ClientToServer => flow.carry_c2s.len(),
+        ServerToClient => flow.carry_s2c.len(),
+    };
+    // NOTE: active_carry_len > MAX_ENIP_CARRY_BYTES is structurally unreachable per
+    // RULING-137-002: max carry is 599 bytes (buf.len() - cursor <= 23 when header is
+    // incomplete, and any partial frame stashed is bounded by the prior oversize-skip
+    // guard above). Retained as defensive dead code per BC-2.17.016 PC-4 errata NOTE.
+    if active_carry_len > MAX_ENIP_CARRY_BYTES:
       flow.is_non_enip = true; flow.parse_errors++
+      match direction {
+          ClientToServer => flow.carry_c2s.clear(),
+          ServerToClient => flow.carry_s2c.clear(),
+      }
     break
 
   header = parse_enip_header(&buf[cursor..cursor+24])
@@ -409,13 +453,51 @@ while cursor < buf.len():
     continue
 
   if buf.len() - cursor < total_frame_len:
-    carry = buf[cursor..]   // stash partial frame (fits within carry cap)
+    // Stash partial frame into directional carry (fits within carry cap)
+    match direction {
+        ClientToServer => flow.carry_c2s = buf[cursor..].to_vec(),
+        ServerToClient => flow.carry_s2c = buf[cursor..].to_vec(),
+    }
     break                   // wait for more data
 
   process_pdu(&buf[cursor .. cursor + total_frame_len], &header, flow, findings)
   cursor += total_frame_len
 
-carry = vec![]  // consumed all complete frames
+// Clear directional carry — all complete frames consumed
+match direction {
+    ClientToServer => flow.carry_c2s.clear(),
+    ServerToClient => flow.carry_s2c.clear(),
+}
+```
+
+**Direction-isolation invariant (RULING-EDGECASE-001 §4.1):** `carry_c2s` is NEVER read
+during a `ServerToClient` call, and `carry_s2c` is NEVER read during a `ClientToServer`
+call. The match arm enforces this structurally. No frame-walk loop ever prepends bytes from
+one direction into the other. This invariant prevents the cross-direction splice bug
+documented in EC-X1 (RULING-EDGECASE-001).
+
+**Window expiry comparisons (RULING-EDGECASE-001 §4.1 amendments):**
+
+All three window expiry comparisons use `saturating_sub` (replacing `wrapping_sub`).
+Backwards/out-of-order timestamps produce elapsed=0 → no spurious window reset.
+Genuine u32 rollover also produces elapsed=0 → no spurious reset. The T0814
+malformed window operator is pinned to strict `>` (not `>=`).
+
+```
+// T0836 write-burst window (BC-2.17.012 Postcondition 4)
+// BEFORE: now_ts.wrapping_sub(flow.write_window_start_ts) > 1
+// AFTER:
+now_ts.saturating_sub(flow.write_window_start_ts) > 1
+
+// T0888 error-rate window (BC-2.17.008 Postcondition 4)
+// BEFORE: now_ts.wrapping_sub(flow.error_window_start_ts) > 10
+// AFTER:
+now_ts.saturating_sub(flow.error_window_start_ts) > 10
+
+// T0814 malformed window (BC-2.17.018 Postcondition 5)
+// BEFORE: timestamp.wrapping_sub(flow.malformed_window_start) >= 300
+// AFTER (both wrapping→saturating AND >= → > per RULING-EDGECASE-001 §4.1):
+timestamp.saturating_sub(flow.malformed_window_start_ts) > 300
 ```
 
 ### Decision 5: ForwardOpen connection-lifecycle tracking — IN-SCOPE for v0.11.0
