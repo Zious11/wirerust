@@ -15,7 +15,7 @@ lifecycle_status: active
 introduced: v0.11.0-feature-enip
 modified:
   - "v1.1: F8-001 — command_counts increment relocated to frame-walk (fires on every successful parse_enip_header, before is_valid_enip_frame); Postcondition 0 added as canonical single command_counts increment site; Invariant 6 added (command_counts vs pdu_count separation of concerns)"
-  - "v2.0: RULING-EDGECASE-001 §1 (EC-X1) — per-direction carry split: replace carry: Vec<u8> with carry_c2s: Vec<u8> + carry_s2c: Vec<u8>; on_data gains direction: Direction parameter; Precondition 2 updated (direction-selected carry prepend); Postcondition 3 updated (direction-selected stash); Postcondition 4 updated (cap check on active directional carry); Invariant 1 updated (per-direction ≤600 bound); Invariant 7 added (direction isolation — c2s and s2c carry buffers never mixed); EC-010 added (direction non-contamination — partial c2s + s2c frame → independent parsing, no splice)"
+  - "v2.0: RULING-EDGECASE-001 §1 (EC-X1) — per-direction carry split: replace carry: Vec<u8> with carry_c2s: Vec<u8> + carry_s2c: Vec<u8>; on_data gains direction: Direction parameter; Precondition 2 updated (direction-selected carry prepend); Postcondition 3 updated (direction-selected stash); Postcondition 4 updated (cap check on active directional carry); Invariant 1 updated (per-direction ≤600 bound); Invariant 7 added (direction isolation — c2s and s2c carry buffers never mixed); EC-010 added (direction non-contamination — partial c2s + s2c frame → independent parsing, no splice) [F2-correction F-003: propagated per-direction carry field names to Description, PC-1 inner body, and Invariant 4 — doc-fidelity only, no behavior change]"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -37,7 +37,8 @@ input-hash: TBD
 `EnipAnalyzer::on_data()` implements a frame-walk loop that processes complete ENIP frames
 from a per-flow byte buffer. When the buffer contains fewer bytes than a complete header (< 24)
 or fewer bytes than a complete frame (< 24 + header.length), the remaining bytes are stashed
-into `EnipFlowState.carry`. The carry buffer is bounded to `MAX_ENIP_CARRY_BYTES = 600`.
+into the direction-selected carry buffer (`carry_c2s` for client→server, `carry_s2c` for
+server→client). The carry buffer is bounded to `MAX_ENIP_CARRY_BYTES = 600`.
 If the stash would exceed 600 bytes, `flow.is_non_enip` is set to `true` and
 `flow.parse_errors` is incremented. All subsequent `on_data` calls for a flow with
 `is_non_enip = true` are immediate no-ops.
@@ -64,10 +65,10 @@ If the stash would exceed 600 bytes, `flow.is_non_enip` is set to `true` and
      - `flow.parse_errors += 1`; `flow.malformed_in_window += 1`.
      - Advance cursor: `cursor += min(24 + header.length as usize, buf.len() - cursor)` (bounded by remaining buffer).
      - Continue the walk. Do NOT set `is_non_enip`. Do NOT stash into carry.
-   - If `buf.len() - cursor < 24 + header.length as usize` (partial frame in buffer): stash `buf[cursor..]` into carry; apply cap check; break.
+   - If `buf.len() - cursor < 24 + header.length as usize` (partial frame in buffer): stash `buf[cursor..]` into the directional carry (`carry_c2s`/`carry_s2c` per `direction`); apply cap check; break.
    - Otherwise: call `process_pdu(&buf[cursor..cursor+24+header.length], ...)`.
    - `cursor += 24 + header.length`.
-2. If `buf.len() - cursor < 24` (partial header): stash `buf[cursor..]` into carry.
+2. If `buf.len() - cursor < 24` (partial header): stash `buf[cursor..]` into the directional carry (`carry_c2s`/`carry_s2c` per `direction`).
 3. After loop: `match direction { ClientToServer => flow.carry_c2s = buf[cursor..], ServerToClient => flow.carry_s2c = buf[cursor..] }` — remaining partial frame bytes stashed back into the SAME directional carry buffer that was prepended at call entry. The other direction's carry is never modified. (RULING-EDGECASE-001 §1.2)
 
 **Carry-buffer cap:**
@@ -93,7 +94,8 @@ If the stash would exceed 600 bytes, `flow.is_non_enip` is set to `true` and
 3. **malformed_in_window is windowed**: `flow.malformed_in_window` is incremented in parallel
    with `parse_errors` on every structural reject. It is reset at window expiry (BC-2.17.018).
 4. **is_non_enip latches ONLY on carry-buffer overflow**: `is_non_enip` is set to `true`
-   exclusively when `flow.carry.len() > MAX_ENIP_CARRY_BYTES` after a stash. It is NOT set
+   exclusively when `flow.carry_c2s.len() > MAX_ENIP_CARRY_BYTES` OR
+   `flow.carry_s2c.len() > MAX_ENIP_CARRY_BYTES` after a stash. It is NOT set
    when a single frame's declared `header.length` implies `total_frame_len > MAX_ENIP_CARRY_BYTES`
    (600). An oversized declared frame is handled by the frame-skip path (Postcondition 1 body:
    `parse_errors += 1; malformed_in_window += 1; cursor advances past the declared frame,
