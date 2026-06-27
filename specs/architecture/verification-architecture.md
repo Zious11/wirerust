@@ -2,7 +2,7 @@
 artifact: architecture-section
 section: verification-architecture
 traces_to: ARCH-INDEX.md
-version: "2.5"
+version: "2.6"
 status: verified
 producer: architect
 timestamp: 2026-05-20T00:00:00Z
@@ -67,6 +67,9 @@ modified:
   - date: 2026-06-24
     actor: architect
     reason: "Feature Mode F2 (feature-enip-v0.11.0, issue #316): VP-032 added to Should Prove table (P1; Kani; draft; src/analyzer/enip.rs; 4 harnesses Sub-A/B/C/D; BC-2.17.001/002/003/004/007). P1 count 17→18. Total 31→32. Tooling Selection Kani row updated to include VP-032 (Kani count 14→15). P1 enumeration list extended. Version bump 2.4→2.5."
+  - date: 2026-06-27
+    actor: spec-steward
+    reason: "RULING-EDGECASE-001 (EC-X1/EC-X2 index propagation): VP-033 and VP-034 added to Should Prove table (P1; proptest; draft; analyzer/enip.rs). VP-033 carries 2 harnesses (EC-X1 carry-buffer direction isolation; BC-2.17.016 v2.0 Inv-7). VP-034 carries 4 sub-harnesses Sub-A/B/C/D (EC-X2 window monotonic / no-spurious-reset; BC-2.17.008 v1.3 / BC-2.17.012 v1.2 / BC-2.17.018 v1.1; Sub-C EC-X4 operator pin; Sub-D rollover). P1 count 18→20. Total 32→34. Tooling Selection proptest row updated (proptest count 10→12). P1 enumeration list extended. Version bump 2.5→2.6."
 ---
 
 # Verification Architecture
@@ -108,6 +111,8 @@ modified:
 | VP-030 | pcapng multi-IDB linktype agreement totality (RESTATED rev 7 / H-3): for sequences of WHITELISTED DataLink values only (the domain where the E-INP-011 conflict check is reachable), the reader either (a) accepts all (all-equal) producing PcapSource.datalink = that DataLink, or (b) returns Err(E-INP-011) immediately on the first differing whitelisted DataLink; no third outcome. Non-whitelisted values short-circuit to E-INP-001 at first IDB (before conflict check) — NOT in VP-030 domain. Comparison unit: DataLink, not raw u16. | (totality + determinism; whitelisted domain) | reader.rs | proptest |
 | VP-031 | pcapng SPB captured-len computation correctness (spb_data_available formula): for all (original_len: u32, body: &[u8]) with body.len() >= 4, captured_len == min(original_len, body.len() as u32 - 4) = min(original_len, spb_data_available); the returned slice has exactly captured_len bytes; no out-of-bounds access. Formula CORRECTED from rev 8 (body.len() → body.len()-4); spb_data_available = body.len()-4 = block_total_length-16 is the canonical symbol; the 4-byte original_len header in the body is NOT packet data and must be subtracted. Snaplen DROPPED (Decision 9 rev 8). (resolves M-2 + H-3 + F-H2 + F-H3 / DF-CANONICAL-FRAME-HOLDOUT-001; formula corrected Decision 22 rev 9) | (arithmetic correctness + bounds safety; two-arg min, snaplen-free, body.len()-4 formula) | reader.rs (pcapng_pure_core fns) [b] | proptest |
 | VP-032 | EtherNet/IP + CIP frame parse safety and command/service classification: (Sub-A) `parse_enip_header` never panics, None for <24-byte inputs, Some with correct little-endian field layout for all bounded inputs (no attacker-controlled index beyond fixed offsets); (Sub-B) `classify_enip_command` total over all 65,536 u16 values, Unknown arm reachable and non-vacuous; (Sub-C) `is_valid_enip_frame` biconditional: returns true iff h.command in {0x0004, 0x0063, 0x0064, 0x0065, 0x0066, 0x006F, 0x0070, 0x0072, 0x0075} for all u16 cmd values; (Sub-D) `classify_cip_service` total over all 256 u8 values, response-bit mask (0x80 set → Response variant) proven correct, Unknown arm reachable | (no-panic + boundary + totality + biconditional) | analyzer/enip.rs | Kani |
+| VP-033 | EtherNet/IP carry-buffer direction isolation (EC-X1 regression guard): 2 proptest harnesses confirm bytes written to the client→server carry buffer are NEVER readable from the server→client carry buffer and vice versa; regression fixture validates pre-EC-X1 single-buffer path fails; traces BC-2.17.016 v2.0 Inv-7 | (direction isolation invariant) | analyzer/enip.rs | proptest |
+| VP-034 | EtherNet/IP window monotonic advance and no-spurious-reset (EC-X2): (Sub-A) error_window_start_ts monotonic over arbitrary error sequences; (Sub-B) duplicate error at same ts does not reset window — no-spurious-reset; (Sub-C) write_window_start_ts monotonic with operator-configurable threshold pin (EC-X4); (Sub-D) malformed_window rollover + ts=0 seed correctness; traces BC-2.17.008 v1.3 / BC-2.17.012 v1.2 / BC-2.17.018 v1.1 | (monotonic-advance + no-spurious-reset + rollover-correctness) | analyzer/enip.rs | proptest |
 
 [a] VP-024 umbrella is anchored to `analyzer/arp.rs` (Sub-B/C/D targets). Sub-A Kani harnesses
 (`verify_extract_arp_frame_safety`, `verify_extract_arp_frame_eth_ipv4_correctness`,
@@ -169,6 +174,8 @@ to be non-vacuous over symbolic `e`; see ADR-009 rev 5 VP-025 Kani Provability N
 - VP-030: pcapng multi-IDB linktype agreement totality — RESTATED (ADR-009 rev 7 / H-3): domain = WHITELISTED DataLink values only; comparison unit = DataLink; non-whitelisted values → E-INP-001 (out of VP-030 scope) [NEW — SS-01 pcapng, ADR-009 rev 4; restated rev 7]
 - VP-031: pcapng SPB captured-len computation correctness (spb_data_available formula; min(original_len, body.len() as u32 - 4); formula corrected from rev 8 per Decision 22; snaplen-free; fills SPB framing VP gap per DF-CANONICAL-FRAME-HOLDOUT-001) [NEW — SS-01 pcapng, ADR-009 rev 6; amended rev 8 / Decision 9; formula corrected rev 9 / Decision 22 / F-H2 / F-H3]
 - VP-032: EtherNet/IP + CIP frame parse safety and command/service classification (Kani, 4 sub-properties Sub-A..Sub-D; 5 Kani harnesses — Sub-D = totality + request-partition; draft): parse_enip_header no-panic/None-for-short/little-endian fields; classify_enip_command totality over all u16; is_valid_enip_frame biconditional; classify_cip_service totality over all u8 with response-bit proof [NEW — SS-17, ADR-010, feature-enip-v0.11.0 issue #316]
+- VP-033: EtherNet/IP carry-buffer direction isolation (proptest; 2 harnesses; EC-X1 regression guard; draft): direction isolation invariant from BC-2.17.016 v2.0 Inv-7 [NEW — RULING-EDGECASE-001 EC-X1]
+- VP-034: EtherNet/IP window monotonic advance and no-spurious-reset (proptest; Sub-A/B/C/D; draft): Sub-A error_window monotonic; Sub-B no-spurious-reset; Sub-C write_window + EC-X4 operator pin; Sub-D rollover; traces BC-2.17.008 v1.3 / BC-2.17.012 v1.2 / BC-2.17.018 v1.1 [NEW — RULING-EDGECASE-001 EC-X2]
 
 
 ## Tooling Selection
@@ -178,7 +185,7 @@ See `tooling-selection.md` for full rationale. Summary:
 | Tool | Target Properties | Scope |
 |------|-----------------|-------|
 | Kani (model checker) | State machine reachability, arithmetic overflow, pointer safety | VP-001, VP-002, VP-003, VP-004, VP-005, VP-007, VP-009, VP-015, VP-022, VP-023, VP-024, VP-025, VP-026, VP-027, VP-032 |
-| proptest | Property-based: generate random inputs, check invariants | VP-006, VP-010..014, VP-021, VP-029, VP-030, VP-031 |
+| proptest | Property-based: generate random inputs, check invariants | VP-006, VP-010..014, VP-021, VP-029, VP-030, VP-031, VP-033, VP-034 |
 | cargo-fuzz (libFuzzer) | No-panic for parser entry points | VP-008, VP-028 |
 | cargo-mutants | Mutation coverage for domain logic | SS-06, SS-07, SS-08, SS-10 |
 
