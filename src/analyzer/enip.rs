@@ -740,8 +740,9 @@ impl EnipAnalyzer {
     /// - `flow_key`  — TCP flow identifier; used to look up / insert `EnipFlowState`.
     /// - `data`      — reassembled TCP bytes for this flow segment.
     /// - `timestamp` — pcap-relative capture timestamp (seconds, u32).
-    /// - `direction` — TCP direction (ClientToServer / ServerToClient); STORY-139 addition.
-    ///   Currently unused in the stub (direction isolation is the STORY-139 implementer task).
+    /// - `direction` — TCP direction (ClientToServer / ServerToClient); selects the active
+    ///   directional carry (`carry_c2s`/`carry_s2c`) for prepend/stash and the source-IP
+    ///   attribution (BC-2.17.016 v2.0 PC-1/Inv-7; AC-139-002).
     ///
     /// # Traces
     /// BC-2.17.016 (frame-walk algorithm); BC-2.17.018 (T0814 windowed detection);

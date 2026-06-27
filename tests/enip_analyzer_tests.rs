@@ -7763,9 +7763,12 @@ mod summarize_drainage {
 }
 
 // ---------------------------------------------------------------------------
-// STORY-139 — direction_and_clock: AC-139-001..004 regression tests (RED)
+// STORY-139 — direction_and_clock: AC-139-001..004 regression tests (GREEN)
 // ---------------------------------------------------------------------------
-// Tests are compilable stubs that FAIL until the implementer completes STORY-139.
+// STORY-139 is complete. All tests in this module pass. Originated as Red-Gate
+// stubs (none could pass until STORY-139 shipped direction isolation and
+// saturating-sub clock fixes). Per-test "With stub: ..." comments are retained
+// as regression-guard framing (FAILS if a future refactor reintroduces the bug).
 // Traces: BC-2.17.016 v2.0, BC-2.17.008 v1.3, BC-2.17.012 v1.2, BC-2.17.018 v1.1.
 // ---------------------------------------------------------------------------
 
@@ -8161,9 +8164,11 @@ mod direction_and_clock {
 }
 
 // ---------------------------------------------------------------------------
-// STORY-139 — VP-033: proptest carry direction isolation harness (RED stubs)
+// STORY-139 — VP-033: proptest carry direction isolation harness (GREEN)
 // ---------------------------------------------------------------------------
-// Tests compile and fail until STORY-139 direction isolation is implemented.
+// STORY-139 is complete. All VP-033 tests pass. Originated as Red-Gate stubs
+// (none could pass until STORY-139 direction isolation was implemented).
+// Per-test "With stub: ..." comments are regression-guard framing.
 // Traces: VP-033 (BC-2.17.016 v2.0 Invariant 7).
 // ---------------------------------------------------------------------------
 
@@ -8344,9 +8349,11 @@ mod vp033_carry_direction_isolation {
 }
 
 // ---------------------------------------------------------------------------
-// STORY-139 — VP-034: window monotonicity (saturating_sub) harness (RED stubs)
+// STORY-139 — VP-034: window monotonicity (saturating_sub) harness (GREEN)
 // ---------------------------------------------------------------------------
-// Tests compile and fail until saturating_sub is implemented in STORY-139.
+// STORY-139 is complete. All VP-034 tests pass. Originated as Red-Gate stubs
+// (none could pass until saturating_sub was implemented in STORY-139).
+// Per-test "With wrapping_sub (stub): ..." comments are regression-guard framing.
 // Traces: VP-034 (BC-2.17.008 v1.3 PC-4, BC-2.17.012 v1.2 PC-4, BC-2.17.018 v1.1 PC-5).
 // ---------------------------------------------------------------------------
 
