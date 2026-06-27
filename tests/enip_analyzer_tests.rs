@@ -7349,10 +7349,11 @@ mod session_lifecycle {
 // summarize() MUST fold still-open self.flows.values() into the combined view
 // at call time, without requiring on_flow_close to have been called first.
 //
-// These tests are RED against the unfixed code (summarize() reads only
-// self.total_pdu_count / self.flows_analyzed / self.command_distribution,
-// which are all zero when on_flow_close has never been called → zeros).
-// They go GREEN once the implementer adds the open-flow fold per RULING-W61-001.
+// Originated as Red-Gate stubs (RULING-W61-001); now GREEN. Guards against
+// regression of the open-flow fold: if a future refactor removes it,
+// summarize() would read only self.total_pdu_count / self.flows_analyzed /
+// self.command_distribution (all zero when on_flow_close was never called)
+// and these tests would FAIL.
 // ---------------------------------------------------------------------------
 mod summarize_drainage {
     use std::net::{IpAddr, Ipv4Addr};
@@ -7428,8 +7429,9 @@ mod summarize_drainage {
     /// (RULING-W61-001: on_flow_close removes the flow from self.flows, so a closed
     /// flow cannot appear in both the aggregate and the open-flow fold).
     ///
-    /// This test is RED against unfixed code: the pre-fix summarize() reads only
-    /// self.total_pdu_count (== 0), self.flows_analyzed (== 0), and
+    /// Originated as Red-Gate test (RULING-W61-001); now GREEN. FAILS if a
+    /// future refactor removes the open-flow fold: the pre-fix summarize() read
+    /// only self.total_pdu_count (== 0), self.flows_analyzed (== 0), and
     /// self.command_distribution (== {}) because on_flow_close was never called.
     ///
     /// Traces: BC-2.17.021 Precondition 4; F-138-P1-004; RULING-W61-001.
