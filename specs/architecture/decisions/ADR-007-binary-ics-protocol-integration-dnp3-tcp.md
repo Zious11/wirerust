@@ -12,6 +12,7 @@ modified:
   - "2026-06-13 (Pass-12 corpus debt cleanup, F-5/OBS-1): status proposed→accepted. src/analyzer/dnp3.rs, DispatchTarget::Dnp3 (src/dispatcher.rs:238/309/345), and VP-023 Kani proofs are all shipped (v0.6.0). Verify: grep DispatchTarget::Dnp3 src/dispatcher.rs returns lines 238, 309, 345."
   - "2026-06-13 (Pass-13 corpus remediation, F-A13-001): Decision 5 IcsImpact Display value note — the spec in this ADR states MitreTactic::IcsImpact => \"Impact\" (BC-2.10.002 PC3 canonical). The shipped code at src/mitre.rs:91 currently emits \"Impact (ICS)\" — a brownfield drift that breaks the merge-by-name grouping invariant (separate \"Impact (ICS)\" bucket instead of merging into the canonical \"Impact\" tactic). This is tracked pre-existing brownfield debt documented in arp-architecture-delta.md §5.0 brownfield-debt table and deferred to STORY-114 adjudication. Do NOT change src/mitre.rs before STORY-114. This ADR's Decision 5 spec value (\"Impact\") is authoritative; the code is the deviant party."
   - "2026-06-14 (D-069 adjudication — SUPERSEDES F-A13-001 note above): Decision 5 IcsImpact Display REVERSED. Research (mitre-impact-tactic-disambiguation.md; WCAG 2.4.6) confirms src/mitre.rs:91 = \"Impact (ICS)\" is CORRECT. The spec value \"Impact\" (bare) was wrong. Decision 5 code snippet updated from \"Impact\" to \"Impact (ICS)\". BC-2.10.002 v1.5 and PRD §85/882 corrected in the same burst. arp-architecture-delta.md §5.0 brownfield-debt table RESOLVED. The merge-by-name grouping concern from F-A13-001 is superseded: Enterprise Impact (TA0040) and ICS Impact (TA0105) MUST be separate buckets in a co-rendered report; \"Impact (ICS)\" is the correct Display for the ICS variant."
+  - "2026-06-27 (RULING-DNP3-SIBLING-001): Decision 3 carry split per-direction (carry_c2s / carry_s2c), Direction threading into on_data, saturating_sub window expiry (all wrapping_sub sites), strict-'>' operator pin for 300s correlation-window expiry (>= → >), direction-based source-IP resolution replacing port-20000 heuristic. Decision 4 Dnp3FlowState struct updated to replace carry: Vec<u8> with carry_c2s: Vec<u8> + carry_s2c: Vec<u8>."
 subsystems_affected:
   - SS-05
   - SS-10
@@ -162,10 +163,13 @@ frame_len = 3                           // START1 + START2 + LENGTH
 **Minimum frame size:** LENGTH=5 → num_user_octets=0 → num_data_blocks=0
 → frame_len = 3 + 5 + 2 + 0 = 10 bytes.
 
-The per-frame carry buffer (`flow.carry: Vec<u8>`) accumulates partial TCP segments
-until a complete frame boundary is available — the same pattern as Modbus
-(`ModbusFlowState.carry`). The carry buffer is bounded by the maximum frame size
-(292 bytes) per flow, preventing unbounded growth.
+The per-frame carry buffers (`flow.carry_c2s: Vec<u8>` for master-to-outstation and
+`flow.carry_s2c: Vec<u8>` for outstation-to-master) accumulate partial TCP segments per
+direction until a complete frame boundary is available — the same pattern as Modbus
+(`ModbusFlowState.carry`). Each directional carry buffer is independently bounded by the
+maximum frame size (292 bytes), preventing unbounded growth. RULING-DNP3-SIBLING-001 §1.3:
+the single `carry: Vec<u8>` is replaced with two directional buffers to prevent
+cross-direction carry-buffer splice (DRIFT-DNP3-DIRECTION-001).
 
 **Three-point post-classification validity gate** (`is_valid_dnp3_frame`):
 1. `data[0] == 0x05 && data[1] == 0x64` — sync word present [SPEC]
@@ -187,6 +191,36 @@ DNP3 intersposes 2-octet CRCs after the 8-octet header and after every 16 user o
 v1 does NOT validate these CRCs; it strips them structurally. CRC validation is deferred
 to a later cycle.
 
+**`on_data` signature (RULING-DNP3-SIBLING-001 §1.5):**
+
+```rust
+// Before:
+pub fn on_data(&mut self, flow_key: FlowKey, data: &[u8], ts: u32)
+
+// After:
+pub fn on_data(&mut self, flow_key: FlowKey, data: &[u8], ts: u32, direction: Direction)
+```
+
+`Direction` is `crate::reassembly::handler::Direction`. All `Dnp3Analyzer::on_data`
+call sites in `src/dispatcher.rs` must pass `direction` from the `StreamHandler` context,
+matching the STORY-139 pattern for ENIP.
+
+**Directional carry select (RULING-DNP3-SIBLING-001 §1.2):**
+
+On every `on_data` call the active carry buffer is selected by direction before the
+frame-walk loop runs:
+
+```
+let active_carry = match direction {
+    ClientToServer => &mut flow.carry_c2s,
+    ServerToClient => &mut flow.carry_s2c,
+};
+```
+
+`active_carry` is used for ALL carry operations: accumulate incoming bytes, cap-check
+(292-byte bound), inline-resync, frame-walk prepend, drain-after-consume, and
+residual-stash-back. The two directional carry buffers are NEVER mixed on a single call.
+
 **Block-walk to extract transport+application payload:**
 
 Starting immediately after the 10-byte header (8 header bytes + 2 header CRC):
@@ -203,6 +237,54 @@ The first byte of `payload_buf` is the **transport octet** (FIR bit = 0x40, FIN 
 
 This block-walk is the arithmetic target of VP-023 Sub-property D (frame_len formula
 correctness — must not over-read or under-read the frame boundary).
+
+**Window-expiry pseudocode (RULING-DNP3-SIBLING-001 §2.2 — all wrapping_sub → saturating_sub):**
+
+All windowed timestamp comparisons in `on_data` and helper methods use `saturating_sub`:
+
+| Call site (approx. line) | Window | Change |
+|--------------------------|--------|--------|
+| ~745 | 60s detect window (T1692.001 expiry reset) | `wrapping_sub` → `saturating_sub` |
+| ~765 | 60s detect window (in-window emit guard) | `wrapping_sub` → `saturating_sub` |
+| ~769 | 60s detect window (elapsed display) | `wrapping_sub` → `saturating_sub` |
+| ~895 | 10s block timeout (T1691.001 pending-request timeout) | `wrapping_sub` → `saturating_sub` |
+| ~984 | 300s correlation window (all-six-field reset — BC-2.15.015) | `wrapping_sub` → `saturating_sub`; operator `>=` → `>` |
+| ~1025 | 300s correlation window (elapsed display) | `wrapping_sub` → `saturating_sub` |
+| ~1335 | 300s correlation window (T0814 in-window guard) | `wrapping_sub` → `saturating_sub` |
+| ~1341 | 300s correlation window (elapsed display) | `wrapping_sub` → `saturating_sub` |
+
+Under `saturating_sub`: a backwards-clock packet (`now_ts < window_start`) yields
+elapsed=0, which does NOT exceed any threshold, so the window is NOT reset and burst
+accumulation is preserved. Adversarially injected stale-timestamp packets cannot abort
+detection (eliminates DRIFT-DNP3-CLOCK-001 evasion path).
+
+The 300s correlation-window expiry (line ~984) additionally changes from `>=` to strict
+`>` (DRIFT-DNP3-OP-001, RULING-DNP3-SIBLING-001 §2.3), consistent with all other window
+expiry checks in `dnp3.rs` and with the ENIP fix in STORY-139.
+
+**Source-IP resolution (RULING-DNP3-SIBLING-001 §1.4):**
+
+`resolve_master_ip` is updated from the port-20000 heuristic to direction-based resolution,
+mirroring the Modbus pattern (`src/analyzer/modbus.rs` ~355-382):
+
+```rust
+// Direction::ClientToServer = master (initiates connections to port 20000)
+// Direction::ServerToClient = outstation (listens on port 20000)
+let master_ip = match direction {
+    Direction::ClientToServer => flow_key.src_ip_of(direction),
+    Direction::ServerToClient => flow_key.dst_ip_of(direction),
+};
+```
+
+**DNP3 292-byte carry-cap reachability (RULING-DNP3-SIBLING-001 §4):**
+
+Unlike the ENIP 600-byte cap (assessed unreachable via RULING-137-002), the DNP3 292-byte
+cap IS reachable. The overflow arm (`carry.len() + data.len() > MAX_DNP3_FRAME_LEN`) can be
+triggered by repeated sub-292-byte partial-frame deliveries until carry is full, then one
+additional delivery. After the carry split, each directional carry is independently capped:
+`carry_c2s.len() <= 292` AND `carry_s2c.len() <= 292`. The overflow arm must check each
+carry independently. BC-2.15.016 EC-004 correctly characterizes this as reachable; this
+cap is LIVE SPEC — do NOT mark as unreachable (contrast with RULING-137-002 for ENIP).
 
 ### Decision 4: FIR=1 first-fragment application-layer parse only (no multi-frame reassembly)
 
@@ -237,8 +319,17 @@ pub struct Dnp3Analyzer {
 }
 
 pub struct Dnp3FlowState {
-    /// Partial frame accumulation buffer. Max 292 bytes.
-    carry: Vec<u8>,
+    /// Partial-frame accumulation buffer — MASTER-TO-OUTSTATION direction only.
+    /// Max 292 bytes (MAX_DNP3_FRAME_LEN). Bounded DoS guard.
+    /// RULING-DNP3-SIBLING-001 §1.3: carry is split per-direction to prevent
+    /// cross-direction splice (DRIFT-DNP3-DIRECTION-001).
+    carry_c2s: Vec<u8>,
+
+    /// Partial-frame accumulation buffer — OUTSTATION-TO-MASTER direction only.
+    /// Max 292 bytes (MAX_DNP3_FRAME_LEN). Bounded DoS guard.
+    /// RULING-DNP3-SIBLING-001 §1.3: carry is split per-direction to prevent
+    /// cross-direction splice (DRIFT-DNP3-DIRECTION-001).
+    carry_s2c: Vec<u8>,
 
     /// Set to true on desync; all subsequent on_data calls are no-ops.
     is_non_dnp3: bool,
