@@ -1,10 +1,10 @@
 ---
 pipeline: FEATURE-MODE
 phase: F4
-phase_status: "F4 RED-GATE DONE — EC-X1/EC-X2 fix-delta (STORY-139) in progress on worktree enip-direction-clock @63c119a — 9 RED / 170 GREEN"
+phase_status: "F4 IMPLEMENTATION DONE — STORY-139 EC-X1/EC-X2 fix-delta GREEN on worktree enip-direction-clock @3c688ff — 179 GREEN / 0 RED. Ready for F5 scoped adversarial."
 product: wirerust
 mode: feature-mode
-timestamp: 2026-06-27T22:00:00Z
+timestamp: 2026-06-27T22:30:00Z
 
 # Release chain (latest)
 released_version: v0.10.0
@@ -21,7 +21,7 @@ main_head: 0cbe922
 factory_artifacts_head: (run `git -C .factory log -1 --format='%h'`)
 
 # Active worktrees (verified D-270)
-worktree_fix: ".worktrees/enip-direction-clock @ 63c119a [fix/enip-direction-and-clock] — ACTIVE"
+worktree_fix: ".worktrees/enip-direction-clock @ 3c688ff [fix/enip-direction-and-clock] — ACTIVE — F4 GREEN (179/0)"
 worktree_scratch: ".worktrees/enip-edgecase-verify @ fd0c7f3 [scratch/enip-edgecase-verify] — keep for reference"
 worktree_orphan: ".worktrees/enip-f6-hardening @ 447da07 [test/enip-f6-fuzz-harnesses] — orphan, safe to remove"
 
@@ -33,7 +33,7 @@ adversary_gate: SATISFIED
 # Story tracking
 stories_delivered: 87
 current_cycle: feature-enip-v0.11.0 (D-228, 2026-06-24)
-current_wave: "Wave 62 OPEN — STORY-139 EC-X1/EC-X2 fix-delta (per-direction carry + saturating window). F4 RED GATE DONE @63c119a (9 RED / 170 GREEN)."
+current_wave: "Wave 62 OPEN — STORY-139 F4 IMPLEMENTATION DONE @3c688ff (179 GREEN / 0 RED). Next: F5 scoped adversarial."
 
 # DTU
 dtu_required: false
@@ -75,24 +75,20 @@ Spec versions: BC-INDEX v1.85 (332 on disk / 331 active; SS-17=26 BCs + EC-010 a
 - Do NOT re-run F2 spec evolution for STORY-139 — DONE + RE-VALIDATED CLEAN (factory-artifacts commits 936361e/654db0e/b15ab17/38fa910/1e48035/6e876c8/a2db4f3).
 - Do NOT re-run F3 for STORY-139 — authored + registered (input-hash 759464a MATCH; STORY-INDEX v2.9 wave 62).
 - Do NOT redo F4 red-gate setup — DONE on `.worktrees/enip-direction-clock` @63c119a: crate compiles, clippy clean, 9 STORY-139 tests RED, 170 existing GREEN.
+- Do NOT redo F4 implementation — DONE @3c688ff: all 3 stub points filled, 179 GREEN / 0 RED, clippy clean, fmt clean (D-271).
 
-### EXACT RESUME POINT — F4 IMPLEMENTER on enip-direction-clock @63c119a
+### EXACT RESUME POINT — F5 SCOPED ADVERSARIAL on enip-direction-clock @3c688ff
 
-**SESSION PAUSED at F4 implementation of STORY-139 EC-X1/EC-X2 fix-delta (D-270, 2026-06-27).**
+**F4 COMPLETE (D-271, 2026-06-27). Next: F5 scoped adversarial on `.worktrees/enip-direction-clock` @3c688ff.**
 
-Worktree: `.worktrees/enip-direction-clock` branch `fix/enip-direction-and-clock` base `fd0c7f3`.
-Red-gate commit: `63c119a`. State: 9 STORY-139 tests RED / 170 existing tests GREEN / crate compiles / clippy clean.
+Worktree: `.worktrees/enip-direction-clock` branch `fix/enip-direction-and-clock` impl commit `3c688ff` (base red-gate `63c119a`).
+Green gate: `cargo test --all-targets` 179 GREEN / 0 RED; clippy -D warnings clean; fmt clean.
+Compliance: zero `wrapping_sub`, zero singular `carry:`, `resolve_enip_client_ip` removed (comments only).
 
-**3 stub points to fill (in priority order):**
-
-1. **Per-direction carry select/stash [EC-X1 / BC-2.17.016 v2.0 Inv-7/EC-010]:** Use `carry_c2s` when `direction == Direction::ClientToServer`, `carry_s2c` when `direction == Direction::ServerToClient`. A partial frame in one direction MUST NEVER be spliced with the other direction's bytes. (Stub currently uses `carry_c2s` for both → RED on AC-139-001/003/005.)
-2. **Direction-based src_ip/dest_ip [AC-139-002]:** Replace `resolve_enip_client_ip()` with direction-based assignment: `ClientToServer → src_ip=client, dest_ip=server`; `ServerToClient → src_ip=server, dest_ip=client`. Findings emit `direction: Some(...)`. Mirror Modbus pattern.
-3. **Saturating window monotonicity [EC-X2 / BC-2.17.008/012/018]:** Replace all `wrapping_sub` window-expiry checks with `saturating_sub`. Pin malformed `window_start_ts` guard to strict `> 300` (not `>= 300`). Field renamed `malformed_window_start_ts`. (Stub retains wrapping_sub + `>=300` → RED on AC-139-006..009.)
-
-**After green:** micro-commit with STORY-139 AC citations; `cargo test --all-targets` full GREEN; `cargo clippy --all-targets -- -D warnings` clean; `cargo fmt --check` clean.
+**F5 adversarial scope (3 clean passes on fix branch):**
+Focus areas: per-direction carry isolation (EC-X1/BC-2.17.016 v2.0 Inv-7), direction-based src_ip/dest_ip (AC-139-002), saturating window monotonicity (EC-X2/BC-2.17.008/012/018).
 
 **Then (sequential):**
-- F5: Scoped adversarial, 3 clean passes on fix branch.
 - F6: Implement VP-033 (carry-direction isolation proptest) + VP-034 (window monotonic proptest); re-run Kani 11/11 (verify VP-033/034 + existing); cargo-fuzz on fix branch; mutation delta on changed functions.
 - F7: Delta-convergence. At human gate: confirm DNP3 sibling scope decision (DRIFT-DNP3-DIRECTION-001 + clock; ruling: ENIP-now/DNP3-v0.12.0 — needs human confirm before close).
 - Merge fix PR into develop → re-assess v0.11.0 release posture. EC-X1/EC-X2 are release-blockers; v0.11.0 stays held until they merge.
@@ -101,8 +97,8 @@ Red-gate commit: `63c119a`. State: 9 STORY-139 tests RED / 170 existing tests GR
 
 1. Run `vsdd-factory:factory-worktree-health` — PASS required before proceeding.
 2. Read `.factory/STATE.md` (this file) + `.factory/cycles/feature-enip-v0.11.0/RULING-EDGECASE-001-direction-and-clock.md` + `.factory/stories/STORY-139.md`.
-3. Verify: `git rev-parse --short develop` == `fd0c7f3`; worktree `.worktrees/enip-direction-clock` on `fix/enip-direction-and-clock` @`63c119a`; `cargo test --all-targets` = 9 RED / 170 GREEN (confirm before touching code).
-4. Dispatch F4 IMPLEMENTER to `.worktrees/enip-direction-clock` to fill the 3 stub points per EXACT RESUME POINT above.
+3. Verify: `git rev-parse --short develop` == `fd0c7f3`; worktree `.worktrees/enip-direction-clock` on `fix/enip-direction-and-clock` @`3c688ff`; `cargo test --all-targets` = 179 GREEN / 0 RED.
+4. Dispatch F5 ADVERSARY to `.worktrees/enip-direction-clock` for 3 scoped adversarial passes per F5 scope above.
 
 ### Locked design facts (do not re-derive on resume)
 
@@ -116,7 +112,7 @@ Story input-hashes: STORY-130 63fac3a, STORY-131 ce92886, STORY-132 c33dff8, STO
 
 | ID | Summary | Status |
 |----|---------|--------|
-| STORY-139 | EC-X1/EC-X2 fix-delta: per-direction carry + saturating window. **RELEASE-BLOCKER.** | F4 IN PROGRESS @63c119a |
+| STORY-139 | EC-X1/EC-X2 fix-delta: per-direction carry + saturating window. **RELEASE-BLOCKER.** | F4 DONE @3c688ff (179/0) — F5 next |
 | DRIFT-DNP3-DIRECTION-001 | DNP3 shares EC-X1 + EC-X2 patterns; fix in v0.12.0 sibling follow-up. Human-confirm at F7. | DEFERRED — v0.12.0 |
 | F-W60-002 | `bytes_received` BC-2.17.016 v1.1→v1.2 clarification (PC-5 exemption + Invariant 7). | DEFERRED — cycle close |
 | BC-PROSE-LOW-RESIDUALS | BC-2.17.001 Inv-4 + prd.md singular `carry`; BC-2.17.018 PC-1 singular `carry`; VP-034 title-label drift. | OPEN — cycle close |
@@ -161,7 +157,7 @@ All GitHub-issue creation DF-VALIDATION-001-gated.
 | Feature EtherNet/IP — F4..F7 (Wave 61) | F7 HUMAN-APPROVED + HOLDOUT EVAL PASS + ENIP E2E MERGED (D-267..D-269). HOLD AT RELEASE. | 2093/0/81 GREEN @fd0c7f3. |
 | Feature EtherNet/IP — EC-X1/EC-X2 fix-delta (Wave 62) — F2 | DONE + RE-VALIDATED CLEAN | BC-2.17.016 v2.0/008 v1.3/012 v1.2/018 v1.1; VP-033/034; BC-INDEX v1.85; VP-INDEX v2.12 (34). |
 | Feature EtherNet/IP — EC-X1/EC-X2 fix-delta (Wave 62) — F3 | DONE | STORY-139 authored @a2db4f3; input-hash 759464a MATCH. |
-| Feature EtherNet/IP — EC-X1/EC-X2 fix-delta (Wave 62) — F4 | **RED-GATE DONE — IN PROGRESS** | `.worktrees/enip-direction-clock` @63c119a. 9 RED / 170 GREEN. |
+| Feature EtherNet/IP — EC-X1/EC-X2 fix-delta (Wave 62) — F4 | **GREEN — IMPLEMENTATION DONE @3c688ff (179 GREEN / 0 RED)** | `.worktrees/enip-direction-clock` @3c688ff. Not yet pushed/PR'd/merged. Ready for F5. |
 
 ## Decisions Log
 
@@ -176,6 +172,7 @@ D-228..D-269: `cycles/feature-enip-v0.11.0/decisions-archive.md`
 | ID | Decision | Date |
 |----|----------|------|
 | D-270 | SESSION PAUSE at F4 implementation of EC-X1/EC-X2 fix-delta (STORY-139, Wave 62). Worktree `.worktrees/enip-direction-clock` @63c119a (`fix/enip-direction-and-clock`, base `fd0c7f3`): red-gate complete — crate compiles, clippy clean, 9 STORY-139 tests RED, 170 existing GREEN. 3 stub points pending: (1) per-direction carry select (EC-X1/BC-2.17.016 v2.0); (2) direction-based src_ip/dest_ip (AC-139-002); (3) saturating_sub + strict `> 300` window (EC-X2/BC-2.17.008/012/018). Durable resume checkpoint written. factory-artifacts HEAD at time of pause: see `git -C .factory log -1 --format='%h'`. | 2026-06-27 |
+| D-271 | F4 implementation of STORY-139 (EC-X1/EC-X2 fix-delta) COMPLETE on `.worktrees/enip-direction-clock` branch `fix/enip-direction-and-clock`, impl commit `3c688ff` (base red-gate `63c119a`). All 3 stub points filled: (1) per-direction carry select/stash carry_c2s/carry_s2c [EC-X1/BC-2.17.016 v2.0 Inv-7]; (2) direction-based src_ip inline, resolve_enip_client_ip removed [AC-139-002/DRIFT-ENIP-DIRECTION-001]; (3) saturating_sub + strict >300 window [EC-X2/EC-X4/BC-2.17.008/012/018]. Green gate: cargo test --all-targets 179 GREEN / 0 RED; clippy -D warnings clean; fmt clean. Compliance verified: zero wrapping_sub, zero singular carry:, resolve_enip_client_ip removed (comments only). STEP 0 red-gate baseline confirmed 9 RED / 170 GREEN. Not yet pushed/PR'd/merged. Next: F5 scoped adversarial. | 2026-06-27 |
 
 ## Governance Policy
 
