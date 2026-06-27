@@ -1,0 +1,242 @@
+{
+  "analyzers": [
+    {
+      "analyzer_name": "TCP Reassembly",
+      "detail": {
+        "bytes_reassembled": 606661,
+        "dropped_findings": 0,
+        "evictions": 0,
+        "flows_completed": 0,
+        "flows_expired": 0,
+        "flows_fin": 0,
+        "flows_partial": 1,
+        "flows_rst": 0,
+        "flows_total": 1,
+        "packets_processed": 24892,
+        "packets_skipped_non_tcp": 13664,
+        "segments_depth_exceeded": 0,
+        "segments_duplicates": 26,
+        "segments_inserted": 7349,
+        "segments_out_of_window": 147,
+        "segments_overlaps": 3,
+        "segments_segment_limit": 0,
+        "unclassified_flows": 0
+      },
+      "packets_analyzed": 11228
+    },
+    {
+      "analyzer_name": "EtherNet/IP",
+      "detail": {
+        "enip_summary": {
+          "command_distribution": {
+            "0x006F": 66,
+            "0x0070": 3538
+          },
+          "dropped_findings": 0,
+          "error_count": 0,
+          "flows_analyzed": 1,
+          "parse_errors": 0,
+          "total_pdu_count": 3604,
+          "write_count": 0
+        }
+      },
+      "packets_analyzed": 3604
+    }
+  ],
+  "findings": [
+    {
+      "category": "Anomaly",
+      "confidence": "High",
+      "evidence": [
+        "Retransmitted segment contains different data"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T1036",
+          "name": "Masquerading",
+          "reference": "https://attack.mitre.org/techniques/T1036/",
+          "tactic_id": "TA0005",
+          "tactic_name": "Defense Evasion"
+        }
+      ],
+      "mitre_techniques": [
+        "T1036"
+      ],
+      "source_ip": "192.168.1.10",
+      "summary": "Conflicting TCP segment overlap on flow 192.168.1.10:44818 → 192.168.1.201:51111",
+      "timestamp": "2015-05-20T03:55:51Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Anomaly",
+      "confidence": "High",
+      "evidence": [
+        "Retransmitted segment contains different data"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T1036",
+          "name": "Masquerading",
+          "reference": "https://attack.mitre.org/techniques/T1036/",
+          "tactic_id": "TA0005",
+          "tactic_name": "Defense Evasion"
+        }
+      ],
+      "mitre_techniques": [
+        "T1036"
+      ],
+      "source_ip": "192.168.1.10",
+      "summary": "Conflicting TCP segment overlap on flow 192.168.1.10:44818 → 192.168.1.201:51111",
+      "timestamp": "2015-05-20T03:55:51Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Anomaly",
+      "confidence": "Low",
+      "direction": "ClientToServer",
+      "evidence": [
+        "max_receive_window=1048576 bytes; possible misconfiguration, evasion, or capture corruption"
+      ],
+      "source_ip": "192.168.1.201",
+      "summary": "Excessive out-of-window segments (101) on flow 192.168.1.10:44818 → 192.168.1.201:51111",
+      "timestamp": "2015-05-20T03:55:57Z",
+      "verdict": "Inconclusive"
+    },
+    {
+      "category": "Anomaly",
+      "confidence": "Low",
+      "evidence": [
+        "CIP service=0x4E (ForwardClose) from src=192.168.1.201 session=4587521. Connection lifecycle closed; no dedicated MITRE ICS technique (ADR-010 Decision 7)"
+      ],
+      "source_ip": "192.168.1.201",
+      "summary": "CIP ForwardClose connection teardown observed from src=192.168.1.201: connection lifecycle closed",
+      "timestamp": "2015-05-20T03:54:22Z",
+      "verdict": "Possible"
+    },
+    {
+      "category": "Anomaly",
+      "confidence": "Low",
+      "evidence": [
+        "CIP service=0x54 (ForwardOpen) from src=192.168.1.201 session=4587521. No dedicated MITRE ICS technique for CIP connection establishment anomaly; T1692.001 applies only when connection demonstrably carries unauthorized command (ADR-010 Decision 7)"
+      ],
+      "source_ip": "192.168.1.201",
+      "summary": "CIP ForwardOpen connection establishment observed from src=192.168.1.201: connection lifecycle anomaly",
+      "timestamp": "2015-05-20T03:54:25Z",
+      "verdict": "Possible"
+    },
+    {
+      "category": "Anomaly",
+      "confidence": "Low",
+      "evidence": [
+        "CIP service=0x4E (ForwardClose) from src=192.168.1.201 session=4587521. Connection lifecycle closed; no dedicated MITRE ICS technique (ADR-010 Decision 7)"
+      ],
+      "source_ip": "192.168.1.201",
+      "summary": "CIP ForwardClose connection teardown observed from src=192.168.1.201: connection lifecycle closed",
+      "timestamp": "2015-05-20T03:54:25Z",
+      "verdict": "Possible"
+    },
+    {
+      "category": "Anomaly",
+      "confidence": "Low",
+      "evidence": [
+        "CIP service=0x54 (ForwardOpen) from src=192.168.1.201 session=4587521. No dedicated MITRE ICS technique for CIP connection establishment anomaly; T1692.001 applies only when connection demonstrably carries unauthorized command (ADR-010 Decision 7)"
+      ],
+      "source_ip": "192.168.1.201",
+      "summary": "CIP ForwardOpen connection establishment observed from src=192.168.1.201: connection lifecycle anomaly",
+      "timestamp": "2015-05-20T03:54:25Z",
+      "verdict": "Possible"
+    },
+    {
+      "category": "Anomaly",
+      "confidence": "Low",
+      "evidence": [
+        "CIP service=0x4E (ForwardClose) from src=192.168.1.201 session=4587521. Connection lifecycle closed; no dedicated MITRE ICS technique (ADR-010 Decision 7)"
+      ],
+      "source_ip": "192.168.1.201",
+      "summary": "CIP ForwardClose connection teardown observed from src=192.168.1.201: connection lifecycle closed",
+      "timestamp": "2015-05-20T03:54:25Z",
+      "verdict": "Possible"
+    },
+    {
+      "category": "Anomaly",
+      "confidence": "Low",
+      "evidence": [
+        "CIP service=0x54 (ForwardOpen) from src=192.168.1.201 session=4587521. No dedicated MITRE ICS technique for CIP connection establishment anomaly; T1692.001 applies only when connection demonstrably carries unauthorized command (ADR-010 Decision 7)"
+      ],
+      "source_ip": "192.168.1.201",
+      "summary": "CIP ForwardOpen connection establishment observed from src=192.168.1.201: connection lifecycle anomaly",
+      "timestamp": "2015-05-20T03:54:26Z",
+      "verdict": "Possible"
+    },
+    {
+      "category": "Anomaly",
+      "confidence": "Low",
+      "evidence": [
+        "CIP service=0x4E (ForwardClose) from src=192.168.1.201 session=4587521. Connection lifecycle closed; no dedicated MITRE ICS technique (ADR-010 Decision 7)"
+      ],
+      "source_ip": "192.168.1.201",
+      "summary": "CIP ForwardClose connection teardown observed from src=192.168.1.201: connection lifecycle closed",
+      "timestamp": "2015-05-20T03:54:26Z",
+      "verdict": "Possible"
+    },
+    {
+      "category": "Anomaly",
+      "confidence": "Low",
+      "evidence": [
+        "CIP service=0x54 (ForwardOpen) from src=192.168.1.201 session=4587521. No dedicated MITRE ICS technique for CIP connection establishment anomaly; T1692.001 applies only when connection demonstrably carries unauthorized command (ADR-010 Decision 7)"
+      ],
+      "source_ip": "192.168.1.201",
+      "summary": "CIP ForwardOpen connection establishment observed from src=192.168.1.201: connection lifecycle anomaly",
+      "timestamp": "2015-05-20T03:54:26Z",
+      "verdict": "Possible"
+    },
+    {
+      "category": "Anomaly",
+      "confidence": "Low",
+      "evidence": [
+        "CIP service=0x4E (ForwardClose) from src=192.168.1.201 session=4587521. Connection lifecycle closed; no dedicated MITRE ICS technique (ADR-010 Decision 7)"
+      ],
+      "source_ip": "192.168.1.201",
+      "summary": "CIP ForwardClose connection teardown observed from src=192.168.1.201: connection lifecycle closed",
+      "timestamp": "2015-05-20T03:54:26Z",
+      "verdict": "Possible"
+    },
+    {
+      "category": "Anomaly",
+      "confidence": "Low",
+      "evidence": [
+        "CIP service=0x54 (ForwardOpen) from src=192.168.1.201 session=4587521. No dedicated MITRE ICS technique for CIP connection establishment anomaly; T1692.001 applies only when connection demonstrably carries unauthorized command (ADR-010 Decision 7)"
+      ],
+      "source_ip": "192.168.1.201",
+      "summary": "CIP ForwardOpen connection establishment observed from src=192.168.1.201: connection lifecycle anomaly",
+      "timestamp": "2015-05-20T03:54:26Z",
+      "verdict": "Possible"
+    }
+  ],
+  "mitre_attack_version": "ics-attack-19.1",
+  "mitre_domain": "ics-attack",
+  "summary": {
+    "protocols": {
+      "Other(2)": 1,
+      "Tcp": 11228,
+      "Udp": 13663
+    },
+    "services": {},
+    "skipped_packets": 0,
+    "total_bytes": 3173713,
+    "total_packets": 24892,
+    "unique_hosts": [
+      "192.168.1.10",
+      "192.168.1.11",
+      "192.168.1.30",
+      "192.168.1.200",
+      "192.168.1.201",
+      "192.168.1.250",
+      "192.168.1.255",
+      "224.0.0.251",
+      "239.192.2.63",
+      "239.192.4.191",
+      "255.255.255.255"
+    ]
+  }
+}

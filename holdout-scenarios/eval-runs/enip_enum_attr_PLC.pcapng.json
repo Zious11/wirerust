@@ -1,0 +1,4713 @@
+{
+  "analyzers": [
+    {
+      "analyzer_name": "TCP Reassembly",
+      "detail": {
+        "bytes_reassembled": 19107,
+        "dropped_findings": 0,
+        "evictions": 0,
+        "flows_completed": 1,
+        "flows_expired": 0,
+        "flows_fin": 0,
+        "flows_partial": 0,
+        "flows_rst": 1,
+        "flows_total": 1,
+        "packets_processed": 622,
+        "packets_skipped_non_tcp": 6,
+        "segments_depth_exceeded": 0,
+        "segments_duplicates": 0,
+        "segments_inserted": 406,
+        "segments_out_of_window": 0,
+        "segments_overlaps": 0,
+        "segments_segment_limit": 0,
+        "unclassified_flows": 0
+      },
+      "packets_analyzed": 616
+    },
+    {
+      "analyzer_name": "EtherNet/IP",
+      "detail": {
+        "enip_summary": {
+          "command_distribution": {
+            "0x0065": 2,
+            "0x006F": 404
+          },
+          "dropped_findings": 0,
+          "error_count": 190,
+          "flows_analyzed": 1,
+          "parse_errors": 0,
+          "total_pdu_count": 406,
+          "write_count": 0
+        }
+      },
+      "packets_analyzed": 406
+    }
+  ],
+  "findings": [
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x01 (GetAttributesAll) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:04Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:04Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:04Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:04Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:04Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:04Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:04Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:04Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:04Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:04Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:04Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:04Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:04Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:04Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:04Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "Medium",
+      "evidence": [
+        "error_counts_in_window={20: 5, 5: 1} within 10s; possible service probe"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP error-response burst: 6 error responses in 10s window — possible service enumeration (T0888)",
+      "timestamp": "2015-04-01T07:58:04Z",
+      "verdict": "Possible"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:04Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:04Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:04Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:04Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:04Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:04Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:04Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:04Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:04Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:04Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:04Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:04Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:04Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:04Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:04Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:04Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:04Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:04Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:04Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:04Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:04Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:04Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:04Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:04Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:04Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:04Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:04Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:04Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:04Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:04Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:04Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:04Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:04Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:04Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:04Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:04Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:04Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:04Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:04Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:04Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:04Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:04Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:04Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:04Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:04Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:04Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:04Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:04Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:04Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:04Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:04Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:04Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:04Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:04Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:04Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:04Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:04Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:04Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:04Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:04Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:04Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:04Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:04Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:04Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:04Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:04Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:04Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:04Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:04Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:04Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:04Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:04Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:04Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:04Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:04Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:04Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:04Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:04Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:04Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:04Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:04Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:04Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:04Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:04Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:04Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:04Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:04Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:04Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:04Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:04Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:05Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:05Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:05Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:05Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:05Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:05Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:05Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:05Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:05Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:05Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:05Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:05Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:05Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:05Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:05Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:05Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:05Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:05Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:05Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:05Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:05Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:05Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:05Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:05Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:05Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:05Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:05Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:05Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:05Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:05Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:05Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:05Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:05Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:05Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:05Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:05Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:05Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:05Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:05Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:05Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:05Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:05Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:05Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:05Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:05Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:05Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:05Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:05Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:05Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:05Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:05Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:05Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:05Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:05Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:05Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:05Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:05Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:05Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:05Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:05Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:05Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:05Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:05Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:05Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:05Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:05Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:05Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:05Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:05Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:05Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:05Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:05Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:05Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:05Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:05Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:05Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:05Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:05Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:05Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:05Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:05Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:05Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:05Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:05Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:05Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:05Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:05Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:05Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:05Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:05Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:05Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:05Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:05Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:05Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:05Z",
+      "verdict": "Likely"
+    },
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "CIP service=0x0E (GetAttributeSingle) path targets Identity Object (class 0x01) src=192.168.1.250"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0888",
+          "name": "Remote System Information Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0888/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0888"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP Identity Object attribute read: single-device reconnaissance (T0888)",
+      "timestamp": "2015-04-01T07:58:05Z",
+      "verdict": "Likely"
+    }
+  ],
+  "mitre_attack_version": "ics-attack-19.1",
+  "mitre_domain": "ics-attack",
+  "summary": {
+    "protocols": {
+      "Tcp": 616,
+      "Udp": 6
+    },
+    "services": {},
+    "skipped_packets": 0,
+    "total_bytes": 54259,
+    "total_packets": 622,
+    "unique_hosts": [
+      "192.168.1.10",
+      "192.168.1.201",
+      "192.168.1.250",
+      "192.168.1.255",
+      "224.0.0.251"
+    ]
+  }
+}

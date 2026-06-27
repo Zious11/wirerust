@@ -1,0 +1,62 @@
+{
+  "analyzers": [
+    {
+      "analyzer_name": "TCP Reassembly",
+      "detail": {
+        "bytes_reassembled": 2414,
+        "dropped_findings": 0,
+        "evictions": 0,
+        "flows_completed": 6,
+        "flows_expired": 0,
+        "flows_fin": 0,
+        "flows_partial": 0,
+        "flows_rst": 6,
+        "flows_total": 6,
+        "packets_processed": 115,
+        "packets_skipped_non_tcp": 0,
+        "segments_depth_exceeded": 0,
+        "segments_duplicates": 0,
+        "segments_inserted": 48,
+        "segments_out_of_window": 0,
+        "segments_overlaps": 0,
+        "segments_segment_limit": 0,
+        "unclassified_flows": 0
+      },
+      "packets_analyzed": 115
+    },
+    {
+      "analyzer_name": "EtherNet/IP",
+      "detail": {
+        "enip_summary": {
+          "command_distribution": {
+            "0x0065": 12,
+            "0x006F": 36
+          },
+          "dropped_findings": 0,
+          "error_count": 1,
+          "flows_analyzed": 6,
+          "parse_errors": 0,
+          "total_pdu_count": 48,
+          "write_count": 0
+        }
+      },
+      "packets_analyzed": 48
+    }
+  ],
+  "findings": [],
+  "mitre_attack_version": "ics-attack-19.1",
+  "mitre_domain": "ics-attack",
+  "summary": {
+    "protocols": {
+      "Tcp": 115
+    },
+    "services": {},
+    "skipped_packets": 0,
+    "total_bytes": 9028,
+    "total_packets": 115,
+    "unique_hosts": [
+      "192.168.1.10",
+      "192.168.1.250"
+    ]
+  }
+}

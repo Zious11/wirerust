@@ -1,0 +1,85 @@
+{
+  "analyzers": [
+    {
+      "analyzer_name": "TCP Reassembly",
+      "detail": {
+        "bytes_reassembled": 99,
+        "dropped_findings": 0,
+        "evictions": 0,
+        "flows_completed": 1,
+        "flows_expired": 0,
+        "flows_fin": 0,
+        "flows_partial": 0,
+        "flows_rst": 1,
+        "flows_total": 2,
+        "packets_processed": 11,
+        "packets_skipped_non_tcp": 0,
+        "segments_depth_exceeded": 0,
+        "segments_duplicates": 0,
+        "segments_inserted": 2,
+        "segments_out_of_window": 0,
+        "segments_overlaps": 0,
+        "segments_segment_limit": 0,
+        "unclassified_flows": 1
+      },
+      "packets_analyzed": 11
+    },
+    {
+      "analyzer_name": "EtherNet/IP",
+      "detail": {
+        "enip_summary": {
+          "command_distribution": {
+            "0x0063": 2
+          },
+          "dropped_findings": 0,
+          "error_count": 0,
+          "flows_analyzed": 1,
+          "parse_errors": 0,
+          "total_pdu_count": 2,
+          "write_count": 0
+        }
+      },
+      "packets_analyzed": 2
+    }
+  ],
+  "findings": [
+    {
+      "category": "Reconnaissance",
+      "confidence": "High",
+      "evidence": [
+        "ENIP command=0x0063 (ListIdentity) src=10.1.1.167 session=0"
+      ],
+      "mitre_attack": [
+        {
+          "id": "T0846",
+          "name": "Remote System Discovery",
+          "reference": "https://attack.mitre.org/techniques/T0846/",
+          "tactic_id": "TA0102",
+          "tactic_name": "Discovery (ICS)"
+        }
+      ],
+      "mitre_techniques": [
+        "T0846"
+      ],
+      "source_ip": "10.1.1.167",
+      "summary": "EtherNet/IP ListIdentity broadcast observed: network-wide device enumeration (T0846)",
+      "timestamp": "2015-03-31T17:41:35Z",
+      "verdict": "Likely"
+    }
+  ],
+  "mitre_attack_version": "ics-attack-19.1",
+  "mitre_domain": "ics-attack",
+  "summary": {
+    "protocols": {
+      "Tcp": 11
+    },
+    "services": {},
+    "skipped_packets": 0,
+    "total_bytes": 725,
+    "total_packets": 11,
+    "unique_hosts": [
+      "10.1.1.164",
+      "10.1.1.167"
+    ]
+  }
+}

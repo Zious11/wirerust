@@ -1,0 +1,75 @@
+{
+  "analyzers": [
+    {
+      "analyzer_name": "TCP Reassembly",
+      "detail": {
+        "bytes_reassembled": 553,
+        "dropped_findings": 0,
+        "evictions": 0,
+        "flows_completed": 1,
+        "flows_expired": 0,
+        "flows_fin": 0,
+        "flows_partial": 0,
+        "flows_rst": 1,
+        "flows_total": 1,
+        "packets_processed": 22,
+        "packets_skipped_non_tcp": 0,
+        "segments_depth_exceeded": 0,
+        "segments_duplicates": 0,
+        "segments_inserted": 10,
+        "segments_out_of_window": 0,
+        "segments_overlaps": 0,
+        "segments_segment_limit": 0,
+        "unclassified_flows": 0
+      },
+      "packets_analyzed": 22
+    },
+    {
+      "analyzer_name": "EtherNet/IP",
+      "detail": {
+        "enip_summary": {
+          "command_distribution": {
+            "0x0065": 2,
+            "0x006F": 2,
+            "0x0070": 6
+          },
+          "dropped_findings": 0,
+          "error_count": 0,
+          "flows_analyzed": 1,
+          "parse_errors": 0,
+          "total_pdu_count": 10,
+          "write_count": 0
+        }
+      },
+      "packets_analyzed": 10
+    }
+  ],
+  "findings": [
+    {
+      "category": "Anomaly",
+      "confidence": "Low",
+      "evidence": [
+        "CIP service=0x54 (ForwardOpen) from src=192.168.1.250 session=7536641. No dedicated MITRE ICS technique for CIP connection establishment anomaly; T1692.001 applies only when connection demonstrably carries unauthorized command (ADR-010 Decision 7)"
+      ],
+      "source_ip": "192.168.1.250",
+      "summary": "CIP ForwardOpen connection establishment observed from src=192.168.1.250: connection lifecycle anomaly",
+      "timestamp": "2015-05-20T07:13:09Z",
+      "verdict": "Possible"
+    }
+  ],
+  "mitre_attack_version": "ics-attack-19.1",
+  "mitre_domain": "ics-attack",
+  "summary": {
+    "protocols": {
+      "Tcp": 22
+    },
+    "services": {},
+    "skipped_packets": 0,
+    "total_bytes": 1811,
+    "total_packets": 22,
+    "unique_hosts": [
+      "192.168.1.10",
+      "192.168.1.250"
+    ]
+  }
+}

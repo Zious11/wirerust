@@ -1,0 +1,109 @@
+{
+  "analyzers": [
+    {
+      "analyzer_name": "TCP Reassembly",
+      "detail": {
+        "bytes_reassembled": 950,
+        "dropped_findings": 0,
+        "evictions": 0,
+        "flows_completed": 3,
+        "flows_expired": 0,
+        "flows_fin": 0,
+        "flows_partial": 0,
+        "flows_rst": 3,
+        "flows_total": 3,
+        "packets_processed": 42,
+        "packets_skipped_non_tcp": 0,
+        "segments_depth_exceeded": 0,
+        "segments_duplicates": 0,
+        "segments_inserted": 18,
+        "segments_out_of_window": 0,
+        "segments_overlaps": 0,
+        "segments_segment_limit": 0,
+        "unclassified_flows": 1
+      },
+      "packets_analyzed": 42
+    },
+    {
+      "analyzer_name": "EtherNet/IP",
+      "detail": {
+        "enip_summary": {
+          "command_distribution": {
+            "0x0065": 4,
+            "0x0066": 2,
+            "0x006F": 8,
+            "0x0070": 4
+          },
+          "dropped_findings": 0,
+          "error_count": 0,
+          "flows_analyzed": 2,
+          "parse_errors": 0,
+          "total_pdu_count": 18,
+          "write_count": 0
+        }
+      },
+      "packets_analyzed": 18
+    }
+  ],
+  "findings": [
+    {
+      "category": "Anomaly",
+      "confidence": "Low",
+      "evidence": [
+        "CIP service=0x54 (ForwardOpen) from src=192.168.1.233 session=2949125. No dedicated MITRE ICS technique for CIP connection establishment anomaly; T1692.001 applies only when connection demonstrably carries unauthorized command (ADR-010 Decision 7)"
+      ],
+      "source_ip": "192.168.1.233",
+      "summary": "CIP ForwardOpen connection establishment observed from src=192.168.1.233: connection lifecycle anomaly",
+      "timestamp": "2015-04-14T08:21:38Z",
+      "verdict": "Possible"
+    },
+    {
+      "category": "Anomaly",
+      "confidence": "Low",
+      "evidence": [
+        "CIP service=0x4E (ForwardClose) from src=192.168.1.233 session=2949125. Connection lifecycle closed; no dedicated MITRE ICS technique (ADR-010 Decision 7)"
+      ],
+      "source_ip": "192.168.1.233",
+      "summary": "CIP ForwardClose connection teardown observed from src=192.168.1.233: connection lifecycle closed",
+      "timestamp": "2015-04-14T08:21:38Z",
+      "verdict": "Possible"
+    },
+    {
+      "category": "Anomaly",
+      "confidence": "Low",
+      "evidence": [
+        "CIP service=0x54 (ForwardOpen) from src=192.168.1.233 session=2818053. No dedicated MITRE ICS technique for CIP connection establishment anomaly; T1692.001 applies only when connection demonstrably carries unauthorized command (ADR-010 Decision 7)"
+      ],
+      "source_ip": "192.168.1.233",
+      "summary": "CIP ForwardOpen connection establishment observed from src=192.168.1.233: connection lifecycle anomaly",
+      "timestamp": "2015-04-14T08:21:38Z",
+      "verdict": "Possible"
+    },
+    {
+      "category": "Anomaly",
+      "confidence": "Low",
+      "evidence": [
+        "CIP service=0x4E (ForwardClose) from src=192.168.1.233 session=2818053. Connection lifecycle closed; no dedicated MITRE ICS technique (ADR-010 Decision 7)"
+      ],
+      "source_ip": "192.168.1.233",
+      "summary": "CIP ForwardClose connection teardown observed from src=192.168.1.233: connection lifecycle closed",
+      "timestamp": "2015-04-14T08:21:38Z",
+      "verdict": "Possible"
+    }
+  ],
+  "mitre_attack_version": "ics-attack-19.1",
+  "mitre_domain": "ics-attack",
+  "summary": {
+    "protocols": {
+      "Tcp": 42
+    },
+    "services": {},
+    "skipped_packets": 0,
+    "total_bytes": 3358,
+    "total_packets": 42,
+    "unique_hosts": [
+      "192.168.1.20",
+      "192.168.1.233"
+    ]
+  }
+}

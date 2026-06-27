@@ -1,0 +1,121 @@
+{
+  "analyzers": [
+    {
+      "analyzer_name": "TCP Reassembly",
+      "detail": {
+        "bytes_reassembled": 2094290,
+        "dropped_findings": 0,
+        "evictions": 0,
+        "flows_completed": 3,
+        "flows_expired": 0,
+        "flows_fin": 1,
+        "flows_partial": 1,
+        "flows_rst": 2,
+        "flows_total": 5,
+        "packets_processed": 6834,
+        "packets_skipped_non_tcp": 0,
+        "segments_depth_exceeded": 0,
+        "segments_duplicates": 12,
+        "segments_inserted": 4324,
+        "segments_out_of_window": 5,
+        "segments_overlaps": 3,
+        "segments_segment_limit": 0,
+        "unclassified_flows": 3
+      },
+      "packets_analyzed": 6834
+    },
+    {
+      "analyzer_name": "EtherNet/IP",
+      "detail": {
+        "enip_summary": {
+          "command_distribution": {
+            "0x0065": 2,
+            "0x006F": 8,
+            "0x0070": 892
+          },
+          "dropped_findings": 0,
+          "error_count": 0,
+          "flows_analyzed": 2,
+          "parse_errors": 0,
+          "total_pdu_count": 902,
+          "write_count": 0
+        }
+      },
+      "packets_analyzed": 902
+    }
+  ],
+  "findings": [
+    {
+      "category": "Anomaly",
+      "confidence": "Medium",
+      "direction": "ClientToServer",
+      "evidence": [
+        "Long unbroken run of undersized TCP segments; possible segmentation-based IDS evasion"
+      ],
+      "source_ip": "192.168.1.120",
+      "summary": "Excessive consecutive small segments (101) on flow 192.168.1.100:5900 → 192.168.1.120:50427",
+      "timestamp": "2015-07-02T08:47:46Z",
+      "verdict": "Inconclusive"
+    },
+    {
+      "category": "Anomaly",
+      "confidence": "Low",
+      "evidence": [
+        "CIP service=0x54 (ForwardOpen) from src=192.168.1.100 session=2359298. No dedicated MITRE ICS technique for CIP connection establishment anomaly; T1692.001 applies only when connection demonstrably carries unauthorized command (ADR-010 Decision 7)"
+      ],
+      "source_ip": "192.168.1.100",
+      "summary": "CIP ForwardOpen connection establishment observed from src=192.168.1.100: connection lifecycle anomaly",
+      "timestamp": "2015-07-02T08:48:50Z",
+      "verdict": "Possible"
+    },
+    {
+      "category": "Anomaly",
+      "confidence": "Low",
+      "evidence": [
+        "CIP service=0x4E (ForwardClose) from src=192.168.1.100 session=2359298. Connection lifecycle closed; no dedicated MITRE ICS technique (ADR-010 Decision 7)"
+      ],
+      "source_ip": "192.168.1.100",
+      "summary": "CIP ForwardClose connection teardown observed from src=192.168.1.100: connection lifecycle closed",
+      "timestamp": "2015-07-02T08:48:51Z",
+      "verdict": "Possible"
+    },
+    {
+      "category": "Anomaly",
+      "confidence": "Low",
+      "evidence": [
+        "CIP service=0x54 (ForwardOpen) from src=192.168.1.100 session=2359298. No dedicated MITRE ICS technique for CIP connection establishment anomaly; T1692.001 applies only when connection demonstrably carries unauthorized command (ADR-010 Decision 7)"
+      ],
+      "source_ip": "192.168.1.100",
+      "summary": "CIP ForwardOpen connection establishment observed from src=192.168.1.100: connection lifecycle anomaly",
+      "timestamp": "2015-07-02T08:48:51Z",
+      "verdict": "Possible"
+    },
+    {
+      "category": "Anomaly",
+      "confidence": "Low",
+      "evidence": [
+        "CIP service=0x54 (ForwardOpen) from src=192.168.1.100 session=2359298. No dedicated MITRE ICS technique for CIP connection establishment anomaly; T1692.001 applies only when connection demonstrably carries unauthorized command (ADR-010 Decision 7)"
+      ],
+      "source_ip": "192.168.1.100",
+      "summary": "CIP ForwardOpen connection establishment observed from src=192.168.1.100: connection lifecycle anomaly",
+      "timestamp": "2015-07-02T08:49:05Z",
+      "verdict": "Possible"
+    }
+  ],
+  "mitre_attack_version": "ics-attack-19.1",
+  "mitre_domain": "ics-attack",
+  "summary": {
+    "protocols": {
+      "Tcp": 6834
+    },
+    "services": {},
+    "skipped_packets": 0,
+    "total_bytes": 2633610,
+    "total_packets": 6834,
+    "unique_hosts": [
+      "192.168.1.10",
+      "192.168.1.100",
+      "192.168.1.120"
+    ]
+  }
+}
