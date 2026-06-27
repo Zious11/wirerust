@@ -805,21 +805,15 @@ impl EnipAnalyzer {
             // BC-2.17.018 Postcondition 5: 300-second malformed window expiry check.
             // Must run BEFORE any emission check so stale state from the previous window
             // cannot affect new-window detections.
-            // BC-2.17.018 Postcondition 5: saturating_sub prevents backwards-clock spurious reset
-            // (STORY-139 EC-X2 fix, RULING-EDGECASE-001 §2.2). Strict > per EC-X4 operator pin
+            // BC-2.17.018 PC-5: saturating_sub prevents backwards-clock spurious reset
+            // (RULING-EDGECASE-001 §2.2). Strict > per EC-X4 operator pin
             // (RULING-EDGECASE-001 §2.4). parse_errors NOT reset (lifetime counter, BC-2.17.018 Invariant 1).
-            // STORY-139 AC-139-004: on window reset, also clear the directional carry for this
-            // direction so that stale bytes from prior network segments do not immediately
-            // re-accumulate malformed_in_window in the fresh window (EC-X4 operator-pin semantics).
+            // BC-2.17.018 PC-5 specifies exactly these three resets on window expiry; no carry-clear
+            // is specified here (RULING-EDGECASE-001 §2.2/§2.4).
             if timestamp.saturating_sub(flow.malformed_window_start_ts) > 300 {
                 flow.malformed_in_window = 0;
                 flow.malformed_anomaly_emitted = false;
                 flow.malformed_window_start_ts = timestamp;
-                if direction == Direction::ClientToServer {
-                    flow.carry_c2s.clear();
-                } else {
-                    flow.carry_s2c.clear();
-                }
             }
 
             // BC-2.17.016 v2.0 Precondition 2 / Invariant 7 (STORY-139 AC-139-001):
