@@ -1,10 +1,10 @@
 ---
 pipeline: FEATURE-MODE
-phase: F5
-phase_status: "F5 SCOPED-ADVERSARIAL CONVERGED — STORY-139 EC-X1/EC-X2 fix-delta @0607b82 on worktree enip-direction-clock. 2107 GREEN / 0 RED. Next: F6 formal hardening."
+phase: F6
+phase_status: "F6 FORMAL HARDENING PASS — STORY-139 @cee85c0 (worktree). Kani 36/37 (1 orthogonal non-delta harness solving), fuzz 14.99M/0 crashes, mutation 23/23 in-scope killable caught (3 proven-equivalent excluded per RULING-137-002). 2112 GREEN. Next: F7 delta-convergence + human gate."
 product: wirerust
 mode: feature-mode
-timestamp: 2026-06-27T23:00:00Z
+timestamp: 2026-06-28T00:00:00Z
 
 # Release chain (latest)
 released_version: v0.10.0
@@ -21,7 +21,7 @@ main_head: 0cbe922
 factory_artifacts_head: (run `git -C .factory log -1 --format='%h'`)
 
 # Active worktrees (verified D-270)
-worktree_fix: ".worktrees/enip-direction-clock @ 0607b82 [fix/enip-direction-and-clock] — ACTIVE — F5 CONVERGED (2107/0)"
+worktree_fix: ".worktrees/enip-direction-clock @ cee85c0 [fix/enip-direction-and-clock] — ACTIVE — F6 PASS (2112/0)"
 worktree_scratch: ".worktrees/enip-edgecase-verify @ fd0c7f3 [scratch/enip-edgecase-verify] — keep for reference"
 worktree_orphan: ".worktrees/enip-f6-hardening @ 447da07 [test/enip-f6-fuzz-harnesses] — orphan, safe to remove"
 
@@ -33,7 +33,7 @@ adversary_gate: SATISFIED
 # Story tracking
 stories_delivered: 87
 current_cycle: feature-enip-v0.11.0 (D-228, 2026-06-24)
-current_wave: "Wave 62 OPEN — STORY-139 F5 CONVERGED @0607b82. Next: F6 formal hardening (Kani re-run, cargo-fuzz, mutation delta)."
+current_wave: "Wave 62 OPEN — STORY-139 F6 PASS @cee85c0. Next: F7 delta-convergence + human gate (confirm DNP3 deferral)."
 
 # DTU
 dtu_required: false
@@ -56,7 +56,7 @@ convergence_trajectory: "Detail: cycles/v0.1.0-greenfield-spec/convergence-traje
 
 ## Status
 
-**PIPELINE FEATURE-MODE. Cycle `feature-enip-v0.11.0` OPEN. v0.11.0 EtherNet/IP converged + human-approved (D-267). HELD AT RELEASE (D-260). EC-X1/EC-X2 confirmed release-blockers — fix-delta STORY-139 F5 CONVERGED @0607b82 (Wave 62). Next: F6 formal hardening.**
+**PIPELINE FEATURE-MODE. Cycle `feature-enip-v0.11.0` OPEN. v0.11.0 EtherNet/IP converged + human-approved (D-267). HELD AT RELEASE (D-260). EC-X1/EC-X2 fix-delta STORY-139 F6 PASS @cee85c0 (Wave 62). Next: F7 delta-convergence + human gate.**
 
 **HUMAN DIRECTIVE (D-260): HALT — do NOT run the release pipeline / tag / publish without explicit human go-ahead.**
 
@@ -77,32 +77,27 @@ Spec versions: BC-INDEX v1.85 (332 on disk / 331 active; SS-17=26 BCs + EC-010 a
 - Do NOT redo F4 red-gate setup — DONE on `.worktrees/enip-direction-clock` @63c119a: crate compiles, clippy clean, 9 STORY-139 tests RED, 170 existing GREEN.
 - Do NOT redo F4 implementation — DONE @3c688ff: all 3 stub points filled, 179 GREEN / 0 RED, clippy clean, fmt clean (D-271).
 - Do NOT re-run F5 for STORY-139 — CONVERGED @0607b82 (D-273). Do NOT re-litigate the proptest_-named deterministic VP-034 guards (OBS-1 adjudicated accepted). Do NOT re-add the malformed-window carry-clear (F-139-02 adjudicated REMOVE).
+- Do NOT re-run F6 for STORY-139 — PASS @cee85c0 (D-274). Do NOT attempt to kill enip.rs:953/967 mutants — PROVEN EQUIVALENT (D-275, RULING-137-002). Do NOT re-baseline input-hashes — done @4f4dc76 (D-276, MATCH=89/STALE=0).
 
-### EXACT RESUME POINT — F6 FORMAL HARDENING on enip-direction-clock @0607b82
+### EXACT RESUME POINT — F7 DELTA-CONVERGENCE on enip-direction-clock @cee85c0
 
-**F5 CONVERGED (D-273, 2026-06-27). Next: F6 formal hardening on `.worktrees/enip-direction-clock` @0607b82.**
+**F6 PASS (D-274, 2026-06-27). Next: F7 delta-convergence on `.worktrees/enip-direction-clock` @cee85c0.**
 
-Worktree: `.worktrees/enip-direction-clock` branch `fix/enip-direction-and-clock` tip commit `0607b82`.
-Green gate: `cargo test --all-targets` 2107 GREEN / 0 RED.
-F5 adversarial: 6 fresh-context passes; findings decayed 4→3→2→0; passes 4/5/6 + final confirming pass CLEAN.
-Consistency audit (post-fixburst, 6 dimensions): CONSISTENT. Input-hash 759464a MATCH.
+Worktree: `.worktrees/enip-direction-clock` branch `fix/enip-direction-and-clock` tip commit `cee85c0`.
+Green gate: `cargo test --all-targets` 2112 GREEN / 0 RED.
+F6 results: Kani 36/37 PROVED (all 5 ENIP harnesses PROVED + non-vacuous; 1 outstanding harness vp025_timestamp_totality_base10 is reader.rs non-delta still-solving, NOT a regression). cargo-fuzz fuzz_enip_cip_parse: 14.99M execs / 0 crashes. cargo-mutants delta: 23/23 in-scope killable (3 proven-equivalent permanent survivors per RULING-137-002; 2 pre-existing out-of-scope). Input-hash re-baseline: 4f4dc76 factory-artifacts (MATCH=89/STALE=0).
 
-**F6 tasks (sequential):**
-1. Re-run 11 existing Kani harnesses on the fix branch — confirm STORY-139 changes did not break any existing VP proofs.
-2. VP-033/VP-034 are proptests already implemented + verified non-vacuous (proptest_ naming adjudicated OBS-1 ACCEPTED).
-3. cargo-fuzz ENIP CIP parsers on the fix branch.
-4. cargo-mutants delta on changed enip.rs functions.
-
-**Then (sequential):**
-- F7: Delta-convergence. At human gate: confirm DNP3 sibling deferral (DRIFT-DNP3-DIRECTION-001 → v0.12.0).
-- Merge fix PR into develop → re-assess v0.11.0 release posture. v0.11.0 stays held until STORY-139 merges (D-260).
+**F7 tasks (sequential):**
+1. 5-dimension convergence: delta specs + full regression + fresh consistency audit.
+2. HUMAN GATE: confirm DNP3 sibling deferral DRIFT-DNP3-DIRECTION-001 → v0.12.0 before v0.11.0 release notes finalized.
+3. Merge fix PR into develop → re-assess v0.11.0 release posture. v0.11.0 stays held until STORY-139 merges (D-260).
 
 ### RESUME PROCEDURE (execute in order — BLOCKING)
 
 1. Run `vsdd-factory:factory-worktree-health` — PASS required before proceeding.
 2. Read `.factory/STATE.md` (this file) + `.factory/cycles/feature-enip-v0.11.0/RULING-EDGECASE-001-direction-and-clock.md` + `.factory/stories/STORY-139.md`.
-3. Verify: `git rev-parse --short develop` == `fd0c7f3`; worktree `.worktrees/enip-direction-clock` on `fix/enip-direction-and-clock` @`0607b82`; `cargo test --all-targets` = 2107 GREEN / 0 RED.
-4. Dispatch F6 FORMAL-VERIFIER to `.worktrees/enip-direction-clock` per F6 tasks above.
+3. Verify: `git rev-parse --short develop` == `fd0c7f3`; worktree `.worktrees/enip-direction-clock` on `fix/enip-direction-and-clock` @`cee85c0`; `cargo test --all-targets` = 2112 GREEN / 0 RED.
+4. Dispatch F7 CONVERGENCE-CHECKER to `.worktrees/enip-direction-clock` per F7 tasks above.
 
 ### Locked design facts (do not re-derive on resume)
 
@@ -110,13 +105,13 @@ ENIP header LITTLE-endian (`from_le_bytes`). `EnipCommandClass` 10 variants. `Ci
 
 EC-X1: cross-direction carry splice — confirmed HIGH release-blocker. EC-X2: clock-backwards `wrapping_sub` → window reset — confirmed HIGH release-blocker. Both adjudicated RULING-EDGECASE-001. Repro tests: `.worktrees/enip-edgecase-verify/tests/scratch_ecx1_ecx2_repro.rs`. DNP3 shares both patterns → DRIFT-DNP3-DIRECTION-001 (v0.12.0 sibling; human-confirm at F7).
 
-Story input-hashes: STORY-130 63fac3a, STORY-131 ce92886, STORY-132 c33dff8, STORY-133 661f504, STORY-134 16d03a6, STORY-135 ae2d871, STORY-136 0846e0e, STORY-137 f4c8390, STORY-138 0f60353 (all MATCH). STORY-139 input-hash: 759464a (MATCH at F3 registration).
+Story input-hashes: STORY-130 63fac3a, STORY-131 ce92886, STORY-132 c33dff8, STORY-133 661f504, STORY-134 16d03a6, STORY-135 ae2d871, STORY-136 0846e0e, STORY-137 f4c8390, STORY-138 0f60353 (all MATCH). STORY-139 input-hash: 581b0fd (re-baselined 4f4dc76 after BC-2.17.016 additive NOTE; D-276).
 
 ### OPEN ITEMS (backlog — non-blocking unless marked)
 
 | ID | Summary | Status |
 |----|---------|--------|
-| STORY-139 | EC-X1/EC-X2 fix-delta: per-direction carry + saturating window. **RELEASE-BLOCKER.** | F5 CONVERGED @0607b82 (2107/0) — F6 next |
+| STORY-139 | EC-X1/EC-X2 fix-delta: per-direction carry + saturating window. **RELEASE-BLOCKER.** | F6 PASS @cee85c0 (2112/0) — F7 next |
 | DRIFT-DNP3-DIRECTION-001 | DNP3 shares EC-X1 + EC-X2 patterns; fix in v0.12.0 sibling follow-up. Human-confirm at F7. | DEFERRED — v0.12.0 |
 | F-W60-002 | `bytes_received` BC-2.17.016 v1.1→v1.2 clarification (PC-5 exemption + Invariant 7). | DEFERRED — cycle close |
 | BC-PROSE-LOW-RESIDUALS | BC-2.17.001 Inv-4 + prd.md singular `carry`; BC-2.17.018 PC-1 singular `carry`; VP-034 title-label drift. | OPEN — cycle close |
@@ -128,6 +123,9 @@ Story input-hashes: STORY-130 63fac3a, STORY-131 ce92886, STORY-132 c33dff8, STO
 | ENIP-UNCONNECTED-SEND-UNWRAP-001 | Metasploit Unconnected_Send/0x52 unwrap for real-world attack detection. DF-VALIDATION-001-gated. | DEFERRED — v0.12.0 |
 | F-138-P1-002 | BC-2.17.016 PC-0 wording ambiguity (non-blocking). | OPEN — cycle close |
 | F6-MUTANTS-FULL-RUN | Confirm 0-missed on full 241-mutant run (21 caught/0 missed at F6 gate). | OPEN — human confirm at F7 |
+| INPUT-HASH-PREEXIST-DRIFT-14 | 14 non-ENIP released stories (STORY-002/003/004/005/071/076-080/100/101/120/129) were pre-existing input-hash-stale before the BC-2.17.016 edit; swept clean in re-baseline 4f4dc76. Likely benign (prior-cycle BC doc-edits); confirm no real un-regenerated drift. | BACKLOG — audit (DF-VALIDATION-001-gated) |
+| INPUT-HASH-3-STRUCTURAL-ERRORS | STORY-001 (retired-BC ref), STORY-091, STORY-121 (missing inputs: blocks) report compute-input-hash ERROR; pre-existing, unrelated to this edit. | BACKLOG |
+| ENIP-CARRY-CAP-V0.12.0-REDESIGN | BC-2.17.016 PC-4 carry-overflow cap is unreachable dead code (RULING-137-002); v0.12.0 quarantine-mechanism redesign should make it reachable or remove it. | DEFERRED — v0.12.0 |
 | EDGE-CASE-HUNT-COVERAGE-IDEAS | SendUnitData path, multi-0x00B2, ForwardOpen response suppression tests (from EC hunt). | BACKLOG — optional |
 | STORY-137-UNSAFE-SPLIT-BORROW | [LOW] unsafe split-borrow in process_pdu. Sound; consider safe refactor. | OPEN — v0.12.0 |
 | D4-001 | BC-2.17.018 Architecture Anchors missing explicit malformed_window_start_ts row (doc-completeness). | BACKLOG — next BC sweep |
@@ -166,6 +164,7 @@ All GitHub-issue creation DF-VALIDATION-001-gated.
 | Feature EtherNet/IP — EC-X1/EC-X2 fix-delta (Wave 62) — F3 | DONE | STORY-139 authored @a2db4f3; input-hash 759464a MATCH. |
 | Feature EtherNet/IP — EC-X1/EC-X2 fix-delta (Wave 62) — F4 | GREEN — IMPLEMENTATION DONE @3c688ff (179 GREEN / 0 RED) | `.worktrees/enip-direction-clock` @3c688ff. |
 | Feature EtherNet/IP — EC-X1/EC-X2 fix-delta (Wave 62) — F5 | **CONVERGED @0607b82 (2107/0)** | F4 GREEN + F5 CONVERGED @0607b82; 6 adversary passes; findings 4→3→2→0; consistency audit CONSISTENT. Not yet pushed/PR'd/merged. |
+| Feature EtherNet/IP — EC-X1/EC-X2 fix-delta (Wave 62) — F6 | **F6 PASS @cee85c0 (Kani 36/37, fuzz 0-crash, mutation 23/23 in-scope, 3 equivalent; 2112/0)** | Kani: 36/37 PROVED (all 5 ENIP harnesses + non-vacuous; 1 non-delta reader.rs harness still-solving, not a regression). fuzz_enip_cip_parse: 14.99M/0 crashes. cargo-mutants: 23/23 in-scope killable (3 proven-equivalent per RULING-137-002 excluded). Input-hash re-baseline 4f4dc76 (MATCH=89/STALE=0). |
 
 ## Decisions Log
 
@@ -183,6 +182,9 @@ D-228..D-269: `cycles/feature-enip-v0.11.0/decisions-archive.md`
 | D-271 | F4 implementation of STORY-139 (EC-X1/EC-X2 fix-delta) COMPLETE on `.worktrees/enip-direction-clock` branch `fix/enip-direction-and-clock`, impl commit `3c688ff` (base red-gate `63c119a`). All 3 stub points filled: (1) per-direction carry select/stash carry_c2s/carry_s2c [EC-X1/BC-2.17.016 v2.0 Inv-7]; (2) direction-based src_ip inline, resolve_enip_client_ip removed [AC-139-002/DRIFT-ENIP-DIRECTION-001]; (3) saturating_sub + strict >300 window [EC-X2/EC-X4/BC-2.17.008/012/018]. Green gate: cargo test --all-targets 179 GREEN / 0 RED; clippy -D warnings clean; fmt clean. Compliance verified: zero wrapping_sub, zero singular carry:, resolve_enip_client_ip removed (comments only). STEP 0 red-gate baseline confirmed 9 RED / 170 GREEN. Not yet pushed/PR'd/merged. Next: F5 scoped adversarial. | 2026-06-27 |
 | D-272 | STORY-139 F4→F5 fix-burst chain on worktree enip-direction-clock: impl 3c688ff → F-139-01 doc + green-doc-tense 69cbf18 → carry-clear removal 046cc41 → operator-pin test rewrite 573a977 → VP-033/034 real proptests + resolve_enip_client_ip prose sweep d0b7b78 → EC-X1 false-positive guard assertion + STORY-137 break/continue doc-tense fc29f2f → summarize_drainage doc-tense 0607b82. F-139-02 (malformed-window carry-clear) ADJUDICATED by architect (RULING-EDGECASE-001 addendum): REMOVE carry-clear (restore BC-2.17.018 PC-5 3-reset minimal-fix) + rewrite test_malformed_window_operator_pin_boundary to oversized-declared-frame path (no carry residue); no BC/AC amendment. O-3 (AC-139-002 direction:Some) ADJUDICATED: out-of-scope per RULING §1.4 (per-flow aggregates); AC-139-002 amended to state direction field NOT populated (deferred v0.12.0). F-139-03 dispatcher path (stream_dispatcher.rs→src/dispatcher.rs) fixed in STORY-139 + ruling. | 2026-06-27 |
 | D-273 | STORY-139 F5 scoped-adversarial CONVERGED. 6 fresh-context adversary passes (findings decayed 4→3→2→0): passes 4/5/6 + final confirming pass all CLEAN (zero HIGH/CRITICAL, zero mis-anchors). Post-fixburst consistency audit (consistency-validator, 6 dimensions) verdict CONSISTENT — malformed-window code matches BC-2.17.018 PC-5 exactly (3 resets, no carry-clear), 2 remaining carry-clears are cap-overflow only (BC-2.17.016 PC-4), input-hash 759464a MATCH. OBS-1 (proptest_ prefix on 2 deterministic VP-034 guards) ADJUDICATED ACCEPTED: names spec-cited by AC-139-005 + VP-034 spec, annotated GREEN-BY-DESIGN, renaming would churn 3 artifacts/2 branches. v0.11.0 stays HELD (D-260) until STORY-139 merges. | 2026-06-27 |
+| D-274 | STORY-139 F6 targeted hardening PASS. Worktree commits since F5: 25f8b4a (5 boundary-hardening tests killing carry-direction-select 948 + error/write-window boundary mutants 1152/1336), cee85c0 (cap-check doc-comment corrected). Kani: 36/37 proved (all 5 ENIP harnesses PROVED + non-vacuous; struct/signature change broke nothing; the 1 outstanding harness vp025_timestamp_totality_base10 is in reader.rs — non-delta, still-solving CBMC SAT, NOT a regression). cargo-fuzz fuzz_enip_cip_parse: 14.99M execs / 0 crashes. cargo-mutants delta: 23/28 caught; of 5 survivors, 3 (enip.rs:953 ×2 + 967, the carry-overflow cap+clear) are PROVEN-EQUIVALENT permanent survivors and 2 (465 STORY-138, 1335 STORY-135) are pre-existing out-of-scope. In-scope killable kill-rate = 23/23 = 100%. Regression 2112/0; VP-033 2/2, VP-034 6/6. | 2026-06-27 |
+| D-275 | ARCHITECT RULING (RULING-EDGECASE-001 addendum, 3rd adjudication): the ENIP carry-overflow cap (enip.rs:953/967, BC-2.17.016 PC-4, MAX_ENIP_CARRY_BYTES=600) is STRUCTURALLY UNREACHABLE — RULING-137-002 §1 proves max carry after any on_data call is 599 bytes (all 3 frame-walk paths exhausted). The 3 cargo-mutants survivors are CONFIRMED EQUIVALENT (excluded from kill denominator). RULING-EDGECASE-001 §3's Path-A reachability claim is RETRACTED (was a self-correction that was itself wrong; RULING-137-002 §1 governs). Resolution (b1): keep cap-check as belt-and-suspenders dead code with corrected comment (impl commit cee85c0); BC-2.17.016 PC-4 additive errata NOTE + EC-004/canonical-test-vector annotated superseded (PO commit a748971, no version bump); orchestrator escalated rather than accept test-writer's unverified equivalent-mutant claim — proof confirmed it AND surfaced the ruling contradiction. | 2026-06-27 |
+| D-276 | Input-hash mechanical re-baseline after BC-2.17.016 additive NOTE (story-writer commit 4f4dc76, factory-artifacts). STORY-139: 759464a→581b0fd. `bin/compute-input-hash --write --scan` rewrote 24 stale stories total → MATCH=89 STALE=0. NOTE: only STORY-130..139 relate to the BC-2.17.016 edit; the other 14 (STORY-002/003/004/005/071/076-080/100/101/120/129) were PRE-EXISTING stale from prior released-cycle BC doc-edits, swept clean in the same re-baseline (benign — all released/closed v0.1-v0.10). 3 pre-existing structural ERRORs (STORY-001 retired-BC-ref, STORY-091, STORY-121 missing inputs blocks) unrelated → backlog. No story versions bumped; only input-hash fields touched. | 2026-06-27 |
 
 ## Governance Policy
 
