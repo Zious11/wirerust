@@ -535,12 +535,13 @@ isolation. Each story is independently testable with a stub predecessor.
   BC-2.17.019, BC-2.17.020, BC-2.17.021, BC-2.17.022, BC-2.17.023,
   BC-2.17.024, BC-2.17.025, BC-2.17.026
 - **Subsystems touched:** SS-17 (new EtherNet/IP analyzer), SS-05 (dispatcher Rule 7), SS-12 (CLI flags)
-- **Estimated stories:** 9 (STORY-130..138)
+- **Estimated stories:** 10 (STORY-130..139)
 - **Feature issue:** #316
 - **Feature ID:** feature-enip-v0.11.0
 - **Release target:** v0.11.0
-- **Total points:** 66 (STORY-130: 8, STORY-131: 8, STORY-132: 8, STORY-133: 5, STORY-134: 8, STORY-135: 8, STORY-136: 5, STORY-137: 8, STORY-138: 8)
-- **Waves:** 58–61
+- **Total points:** 74 (STORY-130: 8, STORY-131: 8, STORY-132: 8, STORY-133: 5, STORY-134: 8, STORY-135: 8, STORY-136: 5, STORY-137: 8, STORY-138: 8, STORY-139: 8)
+- **Waves:** 58–62
+- **STORY-139 (wave 62):** EC-X1/EC-X2 detection-correctness fixes — per-direction carry split (`carry_c2s`/`carry_s2c`), `on_data` direction threading, `saturating_sub` window expiry (3 windows), T0814 operator pin (`>= 300` → `> 300`), DRIFT-ENIP-DIRECTION-001 fix-along. BCs: BC-2.17.016 v2.0 + BC-2.17.008 v1.3 + BC-2.17.012 v1.2 + BC-2.17.018 v1.1. VPs: VP-033 + VP-034. Release blocker per RULING-EDGECASE-001 (2026-06-27).
 
 **Rationale:** EtherNet/IP (IEEE 802.3 + ODVA) analysis decomposes into a natural
 diamond topology: (1) pure-core ENIP header parse + Kani VP-032 safety proof (STORY-130);
@@ -579,5 +580,5 @@ vs. a linear chain by 3 waves.
 | E-17 | 2           |
 | E-18 | 2           |
 | E-19 | 6           |
-| E-20 | 9           |
-| **Total** | **87** |
+| E-20 | 10          |
+| **Total** | **88** |
