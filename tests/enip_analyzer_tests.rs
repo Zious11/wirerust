@@ -5689,8 +5689,18 @@ mod frame_walk {
         let key = make_flow_key();
         // Each oversized-declared-frame call: exactly 1 malformed event, zero carry residue.
         // command=0x0065 (valid), header.length=600, total=624 > 600 → frame-skip path.
-        analyzer.on_data(key.clone(), &enip_oversized_declared_frame(), 0, Direction::ClientToServer);
-        analyzer.on_data(key.clone(), &enip_oversized_declared_frame(), 1, Direction::ClientToServer);
+        analyzer.on_data(
+            key.clone(),
+            &enip_oversized_declared_frame(),
+            0,
+            Direction::ClientToServer,
+        );
+        analyzer.on_data(
+            key.clone(),
+            &enip_oversized_declared_frame(),
+            1,
+            Direction::ClientToServer,
+        );
         let flow = analyzer
             .flows
             .get(&key)
@@ -5746,10 +5756,11 @@ mod frame_walk {
         analyzer.on_data(key.clone(), &frame, 0, Direction::ClientToServer);
         analyzer.on_data(key.clone(), &frame, 0, Direction::ClientToServer);
 
-        // Second window: send ts=300 to trigger expiry, then 2 more at 300, 300.
-        analyzer.on_data(key.clone(), &frame, 300, Direction::ClientToServer);
-        analyzer.on_data(key.clone(), &frame, 300, Direction::ClientToServer);
-        analyzer.on_data(key.clone(), &frame, 300, Direction::ClientToServer);
+        // Second window: send ts=301 to trigger expiry (> 300 strict; BC-2.17.018 v1.1 EC-X4 pin),
+        // then 2 more at 301, 301 to accumulate 3 malformed events and re-fire T0814.
+        analyzer.on_data(key.clone(), &frame, 301, Direction::ClientToServer);
+        analyzer.on_data(key.clone(), &frame, 301, Direction::ClientToServer);
+        analyzer.on_data(key.clone(), &frame, 301, Direction::ClientToServer);
         let t0814_count = analyzer
             .all_findings
             .iter()
@@ -5791,13 +5802,34 @@ mod frame_walk {
 
         // Window 1 (ts=0): 3 oversized-frame-skip events → threshold crossed, T0814 fires.
         // Each call: exactly 1 malformed event (parse_errors++, malformed_in_window++), no carry.
-        analyzer.on_data(key.clone(), &enip_oversized_declared_frame(), 0, Direction::ClientToServer);
-        analyzer.on_data(key.clone(), &enip_oversized_declared_frame(), 0, Direction::ClientToServer);
-        analyzer.on_data(key.clone(), &enip_oversized_declared_frame(), 0, Direction::ClientToServer);
+        analyzer.on_data(
+            key.clone(),
+            &enip_oversized_declared_frame(),
+            0,
+            Direction::ClientToServer,
+        );
+        analyzer.on_data(
+            key.clone(),
+            &enip_oversized_declared_frame(),
+            0,
+            Direction::ClientToServer,
+        );
+        analyzer.on_data(
+            key.clone(),
+            &enip_oversized_declared_frame(),
+            0,
+            Direction::ClientToServer,
+        );
 
-        // Window 2 (ts=300): 300s elapsed → expiry resets malformed_in_window=0 and
-        // malformed_anomaly_emitted=false. Then this call adds 1 more event → malformed_in_window=1.
-        analyzer.on_data(key.clone(), &enip_oversized_declared_frame(), 300, Direction::ClientToServer);
+        // Window 2 (ts=301): elapsed=301 > 300 → expiry resets malformed_in_window=0 and
+        // malformed_anomaly_emitted=false (strict > 300 per BC-2.17.018 v1.1 EC-X4 operator pin).
+        // Then this call adds 1 more event → malformed_in_window=1.
+        analyzer.on_data(
+            key.clone(),
+            &enip_oversized_declared_frame(),
+            301,
+            Direction::ClientToServer,
+        );
 
         let flow = analyzer
             .flows
@@ -6597,7 +6629,12 @@ mod session_lifecycle {
     fn test_register_session_pdu_counted_no_finding() {
         let mut analyzer = EnipAnalyzer::new(50, 5);
         let key = flow_key();
-        analyzer.on_data(key.clone(), &enip_frame(CMD_REGISTER_SESSION), 0, Direction::ClientToServer);
+        analyzer.on_data(
+            key.clone(),
+            &enip_frame(CMD_REGISTER_SESSION),
+            0,
+            Direction::ClientToServer,
+        );
         // BC-2.17.025 Post 3: no finding emitted for session handshake.
         assert!(
             analyzer.all_findings.is_empty(),
@@ -6624,7 +6661,12 @@ mod session_lifecycle {
     fn test_unregister_session_pdu_counted_no_finding() {
         let mut analyzer = EnipAnalyzer::new(50, 5);
         let key = flow_key();
-        analyzer.on_data(key.clone(), &enip_frame(CMD_UNREGISTER_SESSION), 0, Direction::ClientToServer);
+        analyzer.on_data(
+            key.clone(),
+            &enip_frame(CMD_UNREGISTER_SESSION),
+            0,
+            Direction::ClientToServer,
+        );
         // BC-2.17.025 Post 3: no finding emitted for session teardown.
         assert!(
             analyzer.all_findings.is_empty(),
@@ -6653,7 +6695,12 @@ mod session_lifecycle {
         let mut analyzer = EnipAnalyzer::new(50, 5);
         let key = flow_key();
         for _ in 0..3 {
-            analyzer.on_data(key.clone(), &enip_frame(CMD_REGISTER_SESSION), 0, Direction::ClientToServer);
+            analyzer.on_data(
+                key.clone(),
+                &enip_frame(CMD_REGISTER_SESSION),
+                0,
+                Direction::ClientToServer,
+            );
         }
         // command_counts[0x0065] must equal 3 (incremented in frame-walk PC-0).
         assert_eq!(
@@ -6692,7 +6739,12 @@ mod session_lifecycle {
     fn test_flow_close_removes_state() {
         let mut analyzer = EnipAnalyzer::new(50, 5);
         let key = flow_key();
-        analyzer.on_data(key.clone(), &enip_frame(CMD_REGISTER_SESSION), 0, Direction::ClientToServer);
+        analyzer.on_data(
+            key.clone(),
+            &enip_frame(CMD_REGISTER_SESSION),
+            0,
+            Direction::ClientToServer,
+        );
         // Pre-condition: flow state was created by on_data.
         assert!(
             analyzer.flows.contains_key(&key),
@@ -6719,7 +6771,12 @@ mod session_lifecycle {
         let key = flow_key();
         // Drive three valid frames: pdu_count = 3 in the per-flow state.
         for _ in 0..3 {
-            analyzer.on_data(key.clone(), &enip_frame(CMD_REGISTER_SESSION), 0, Direction::ClientToServer);
+            analyzer.on_data(
+                key.clone(),
+                &enip_frame(CMD_REGISTER_SESSION),
+                0,
+                Direction::ClientToServer,
+            );
         }
         assert_eq!(
             analyzer.flows[&key].pdu_count, 3,
@@ -6793,7 +6850,12 @@ mod session_lifecycle {
     fn test_flows_analyzed_incremented_on_flow_close() {
         let mut analyzer = EnipAnalyzer::new(50, 5);
         let key = flow_key();
-        analyzer.on_data(key.clone(), &enip_frame(CMD_REGISTER_SESSION), 0, Direction::ClientToServer);
+        analyzer.on_data(
+            key.clone(),
+            &enip_frame(CMD_REGISTER_SESSION),
+            0,
+            Direction::ClientToServer,
+        );
         // Verifies on_flow_close increments flows_analyzed exactly once (BC-2.17.017 Post 6).
         analyzer.on_flow_close(key.clone());
         // BC-2.17.017 Post 6: flows_analyzed incremented exactly once on Some-remove.
@@ -6823,7 +6885,12 @@ mod session_lifecycle {
     fn test_pdu_count_increments_on_valid_frame() {
         let mut analyzer = EnipAnalyzer::new(50, 5);
         let key = flow_key();
-        analyzer.on_data(key.clone(), &enip_frame(CMD_LIST_IDENTITY), 0, Direction::ClientToServer);
+        analyzer.on_data(
+            key.clone(),
+            &enip_frame(CMD_LIST_IDENTITY),
+            0,
+            Direction::ClientToServer,
+        );
         // BC-2.17.024 Post 1: pdu_count == 1 after one valid frame.
         assert_eq!(
             analyzer.flows[&key].pdu_count, 1,
@@ -6842,7 +6909,12 @@ mod session_lifecycle {
         let mut analyzer = EnipAnalyzer::new(50, 5);
         let key = flow_key();
         // Command 0xDEAD is unknown → fails is_valid_enip_frame → skipped by byte-walk.
-        analyzer.on_data(key.clone(), &enip_frame(0xDEAD), 0, Direction::ClientToServer);
+        analyzer.on_data(
+            key.clone(),
+            &enip_frame(0xDEAD),
+            0,
+            Direction::ClientToServer,
+        );
         // BC-2.17.024 Post 3: invalid frame must NOT reach process_pdu → pdu_count == 0.
         // Note: the 0xDEAD frame triggers the byte-walk resync path; the flow state IS
         // created but pdu_count must not be incremented.
@@ -6867,8 +6939,18 @@ mod session_lifecycle {
     fn test_command_count_accumulates() {
         let mut analyzer = EnipAnalyzer::new(50, 5);
         let key = flow_key();
-        analyzer.on_data(key.clone(), &enip_frame(CMD_LIST_IDENTITY), 0, Direction::ClientToServer);
-        analyzer.on_data(key.clone(), &enip_frame(0xDEAD), 0, Direction::ClientToServer);
+        analyzer.on_data(
+            key.clone(),
+            &enip_frame(CMD_LIST_IDENTITY),
+            0,
+            Direction::ClientToServer,
+        );
+        analyzer.on_data(
+            key.clone(),
+            &enip_frame(0xDEAD),
+            0,
+            Direction::ClientToServer,
+        );
         let flow = &analyzer.flows[&key];
         // BC-2.17.016 PC-0: both headers structurally parsed → both counted.
         assert_eq!(
@@ -6973,7 +7055,12 @@ mod session_lifecycle {
         );
         let key = flow_key();
         // ListIdentity would emit T0846, but the cap is already at MAX_FINDINGS.
-        analyzer.on_data(key.clone(), &enip_frame(CMD_LIST_IDENTITY), 0, Direction::ClientToServer);
+        analyzer.on_data(
+            key.clone(),
+            &enip_frame(CMD_LIST_IDENTITY),
+            0,
+            Direction::ClientToServer,
+        );
         // BC-2.17.022 Post 1–2: no new finding pushed; len remains at cap.
         assert_eq!(
             analyzer.all_findings.len(),
@@ -6999,7 +7086,12 @@ mod session_lifecycle {
         }
         let key = flow_key();
         // ListIdentity (T0846) suppressed because cap is full.
-        analyzer.on_data(key.clone(), &enip_frame(CMD_LIST_IDENTITY), 0, Direction::ClientToServer);
+        analyzer.on_data(
+            key.clone(),
+            &enip_frame(CMD_LIST_IDENTITY),
+            0,
+            Direction::ClientToServer,
+        );
         // BC-2.17.022 Post 3: dropped_findings must be 1.
         assert_eq!(
             analyzer.dropped_findings, 1,
@@ -7022,7 +7114,12 @@ mod session_lifecycle {
         }
         let key = flow_key();
         // Drive a ListIdentity frame: finding suppressed, but stats must still update.
-        analyzer.on_data(key.clone(), &enip_frame(CMD_LIST_IDENTITY), 0, Direction::ClientToServer);
+        analyzer.on_data(
+            key.clone(),
+            &enip_frame(CMD_LIST_IDENTITY),
+            0,
+            Direction::ClientToServer,
+        );
         // BC-2.17.022 Invariant 3 / Post 4: pdu_count still incremented past cap.
         assert_eq!(
             analyzer.flows[&key].pdu_count, 1,
@@ -7167,7 +7264,12 @@ mod session_lifecycle {
         }
         let key = flow_key();
         // Drive ListIdentity: T0846 suppressed → dropped_findings = 1.
-        analyzer.on_data(key.clone(), &enip_frame(CMD_LIST_IDENTITY), 0, Direction::ClientToServer);
+        analyzer.on_data(
+            key.clone(),
+            &enip_frame(CMD_LIST_IDENTITY),
+            0,
+            Direction::ClientToServer,
+        );
         analyzer.on_flow_close(key.clone());
         // Verifies summarize() reports dropped_findings == 1 after the cap suppressed one
         // finding (BC-2.17.022 Invariant 4 / BC-2.17.021 Post 1).
@@ -7197,7 +7299,12 @@ mod session_lifecycle {
     fn test_summary_flows_analyzed_nonzero() {
         let mut analyzer = EnipAnalyzer::new(50, 5);
         let key = flow_key();
-        analyzer.on_data(key.clone(), &enip_frame(CMD_REGISTER_SESSION), 0, Direction::ClientToServer);
+        analyzer.on_data(
+            key.clone(),
+            &enip_frame(CMD_REGISTER_SESSION),
+            0,
+            Direction::ClientToServer,
+        );
         // Verifies on_flow_close + summarize() report flows_analyzed >= 1
         // (BC-2.17.021 canonical vector / BC-2.17.017 Post 6).
         analyzer.on_flow_close(key.clone());
@@ -7318,7 +7425,12 @@ mod summarize_drainage {
 
         // Drive 3 ListIdentity frames — one flow, never closed.
         for _ in 0..3 {
-            analyzer.on_data(key.clone(), &enip_frame(CMD_LIST_IDENTITY), 0, Direction::ClientToServer);
+            analyzer.on_data(
+                key.clone(),
+                &enip_frame(CMD_LIST_IDENTITY),
+                0,
+                Direction::ClientToServer,
+            );
         }
         // Pre-condition sanity: the flow must exist with pdu_count == 3.
         assert_eq!(
@@ -7525,7 +7637,12 @@ mod summarize_drainage {
         // After on_flow_close: A is in closed aggregates, absent from self.flows.
         // -------------------------------------------------------------------
         for _ in 0..2 {
-            analyzer.on_data(flow_key_a.clone(), &enip_frame(CMD_LIST_IDENTITY), 0, Direction::ClientToServer);
+            analyzer.on_data(
+                flow_key_a.clone(),
+                &enip_frame(CMD_LIST_IDENTITY),
+                0,
+                Direction::ClientToServer,
+            );
         }
         // Pre-condition: A must have pdu_count == 2 before close.
         assert_eq!(
@@ -7552,7 +7669,12 @@ mod summarize_drainage {
         // B's counters remain exclusively in self.flows[flow_key_b].
         // -------------------------------------------------------------------
         const CMD_SEND_RR_DATA: u16 = 0x006F;
-        analyzer.on_data(flow_key_b.clone(), &enip_frame(CMD_SEND_RR_DATA), 0, Direction::ClientToServer);
+        analyzer.on_data(
+            flow_key_b.clone(),
+            &enip_frame(CMD_SEND_RR_DATA),
+            0,
+            Direction::ClientToServer,
+        );
         // Pre-condition: B must have pdu_count == 1 and remain open.
         assert_eq!(
             analyzer.flows[&flow_key_b].pdu_count, 1,
@@ -7648,10 +7770,10 @@ mod summarize_drainage {
 // ---------------------------------------------------------------------------
 
 mod direction_and_clock {
+    use std::net::{IpAddr, Ipv4Addr};
     use wirerust::analyzer::enip::EnipAnalyzer;
     use wirerust::reassembly::flow::FlowKey;
     use wirerust::reassembly::handler::Direction;
-    use std::net::{IpAddr, Ipv4Addr};
 
     fn ip(a: u8) -> IpAddr {
         IpAddr::V4(Ipv4Addr::new(10, 0, 0, a))
@@ -7682,17 +7804,22 @@ mod direction_and_clock {
     fn complete_s2c_error_frame() -> Vec<u8> {
         // Total = 24 header + 6 (iface+timeout) + 2 (item_count) + 4 (item hdr) + 4 (item data) = 40
         let mut buf = vec![0u8; 40];
-        buf[0] = 0x6F; buf[1] = 0x00;   // command = SendRRData
-        buf[2] = 0x10; buf[3] = 0x00;   // length = 16 (40-24)
+        buf[0] = 0x6F;
+        buf[1] = 0x00; // command = SendRRData
+        buf[2] = 0x10;
+        buf[3] = 0x00; // length = 16 (40-24)
         // 4..24: zeros (session, status, ctx, options)
         // 24..30: Interface Handle (4) + Timeout (2) = all zeros
-        buf[30] = 0x01; buf[31] = 0x00; // item_count = 1
-        buf[32] = 0xB2; buf[33] = 0x00; // type_id = 0x00B2
-        buf[34] = 0x04; buf[35] = 0x00; // item length = 4
-        buf[36] = 0x8E;                 // service = 0x8E (response, GetAttributeSingle)
-        buf[37] = 0x00;                 // request_path_size = 0
-        buf[38] = 0x08;                 // general_status = 0x08 (non-zero = CIP error)
-        buf[39] = 0x00;                 // reserved
+        buf[30] = 0x01;
+        buf[31] = 0x00; // item_count = 1
+        buf[32] = 0xB2;
+        buf[33] = 0x00; // type_id = 0x00B2
+        buf[34] = 0x04;
+        buf[35] = 0x00; // item length = 4
+        buf[36] = 0x8E; // service = 0x8E (response, GetAttributeSingle)
+        buf[37] = 0x00; // request_path_size = 0
+        buf[38] = 0x08; // general_status = 0x08 (non-zero = CIP error)
+        buf[39] = 0x00; // reserved
         buf
     }
 
@@ -7725,15 +7852,25 @@ mod direction_and_clock {
 
         // AC-139-001: direction isolation — s2c frame must process cleanly.
         // The partial c2s carry must NOT contaminate the s2c parse.
-        assert_eq!(flow.parse_errors, 0, "parse_errors must be 0: no cross-direction splice");
-        assert_eq!(flow.pdu_count, 1, "pdu_count must be 1: only the s2c PDU processed");
-        assert_eq!(analyzer.error_count, 1, "error_count must be 1: s2c CIP error response counted");
+        assert_eq!(
+            flow.parse_errors, 0,
+            "parse_errors must be 0: no cross-direction splice"
+        );
+        assert_eq!(
+            flow.pdu_count, 1,
+            "pdu_count must be 1: only the s2c PDU processed"
+        );
+        assert_eq!(
+            analyzer.error_count, 1,
+            "error_count must be 1: s2c CIP error response counted"
+        );
         assert!(
             !flow.carry_c2s.is_empty(),
             "carry_c2s must retain the partial c2s bytes (24 bytes still pending)"
         );
         assert_eq!(
-            flow.carry_s2c.len(), 0,
+            flow.carry_s2c.len(),
+            0,
             "carry_s2c must be empty after the complete s2c frame was processed"
         );
     }
@@ -7761,8 +7898,14 @@ mod direction_and_clock {
 
         let flow = analyzer.flows.get(&key).expect("flow must exist");
 
-        assert!(!flow.carry_c2s.is_empty(), "carry_c2s must have stashed partial c2s bytes");
-        assert!(!flow.carry_s2c.is_empty(), "carry_s2c must have stashed partial s2c bytes");
+        assert!(
+            !flow.carry_c2s.is_empty(),
+            "carry_c2s must have stashed partial c2s bytes"
+        );
+        assert!(
+            !flow.carry_s2c.is_empty(),
+            "carry_s2c must have stashed partial s2c bytes"
+        );
         // Neither carry should contain bytes from the other direction.
         // With the stub, carry_s2c will be empty → this assertion fails (RED).
     }
@@ -7778,11 +7921,16 @@ mod direction_and_clock {
         // Build a CIP Stop (T0858) request frame.
         // Total = 24 header + 6 (iface+timeout) + 2 (item_count) + 4 (item hdr) + 2 (item data) = 38
         let mut frame = vec![0u8; 38];
-        frame[0] = 0x6F; frame[1] = 0x00;
-        frame[2] = 0x0E; frame[3] = 0x00;  // length = 14
-        frame[30] = 0x01; frame[31] = 0x00;
-        frame[32] = 0xB2; frame[33] = 0x00;
-        frame[34] = 0x02; frame[35] = 0x00;
+        frame[0] = 0x6F;
+        frame[1] = 0x00;
+        frame[2] = 0x0E;
+        frame[3] = 0x00; // length = 14
+        frame[30] = 0x01;
+        frame[31] = 0x00;
+        frame[32] = 0xB2;
+        frame[33] = 0x00;
+        frame[34] = 0x02;
+        frame[35] = 0x00;
         frame[36] = 0x07; // CIP Stop request
         frame[37] = 0x00; // path_size = 0
 
@@ -7791,9 +7939,14 @@ mod direction_and_clock {
         analyzer.on_data(key.clone(), &frame, 0, Direction::ClientToServer);
 
         // Assert T0858 finding has source_ip == Some(10.0.0.1)
-        let t0858 = analyzer.all_findings.iter()
+        let t0858 = analyzer
+            .all_findings
+            .iter()
             .find(|f| f.mitre_techniques.iter().any(|t| t == "T0858"));
-        assert!(t0858.is_some(), "T0858 finding must be emitted for CIP Stop");
+        assert!(
+            t0858.is_some(),
+            "T0858 finding must be emitted for CIP Stop"
+        );
         let finding = t0858.unwrap();
         assert_eq!(
             finding.source_ip,
@@ -7816,13 +7969,18 @@ mod direction_and_clock {
     fn test_ec_x2_backwards_ts_t0836_no_reset() {
         fn write_frame() -> Vec<u8> {
             let mut frame = vec![0u8; 38];
-            frame[0] = 0x6F; frame[1] = 0x00;   // SendRRData
-            frame[2] = 0x0E; frame[3] = 0x00;   // length = 14
-            frame[30] = 0x01; frame[31] = 0x00;  // item_count = 1
-            frame[32] = 0xB2; frame[33] = 0x00;  // type_id = 0x00B2
-            frame[34] = 0x02; frame[35] = 0x00;  // item length = 2
-            frame[36] = 0x10;                    // CIP SetAttributeSingle (request)
-            frame[37] = 0x00;                    // path_size = 0
+            frame[0] = 0x6F;
+            frame[1] = 0x00; // SendRRData
+            frame[2] = 0x0E;
+            frame[3] = 0x00; // length = 14
+            frame[30] = 0x01;
+            frame[31] = 0x00; // item_count = 1
+            frame[32] = 0xB2;
+            frame[33] = 0x00; // type_id = 0x00B2
+            frame[34] = 0x02;
+            frame[35] = 0x00; // item length = 2
+            frame[36] = 0x10; // CIP SetAttributeSingle (request)
+            frame[37] = 0x00; // path_size = 0
             frame
         }
 
@@ -7842,7 +8000,9 @@ mod direction_and_clock {
         analyzer.on_data(key.clone(), &wf, 100, Direction::ClientToServer);
 
         // T0836 must fire: write_count_in_window should be 52 (> threshold 50).
-        let t0836 = analyzer.all_findings.iter()
+        let t0836 = analyzer
+            .all_findings
+            .iter()
             .find(|f| f.mitre_techniques.iter().any(|t| t == "T0836"));
         assert!(
             t0836.is_some(),
@@ -7863,14 +8023,19 @@ mod direction_and_clock {
         fn error_frame() -> Vec<u8> {
             // SendRRData + CPF + 0x00B2 item + CIP error response (general_status != 0)
             let mut frame = vec![0u8; 40];
-            frame[0] = 0x6F; frame[1] = 0x00;
-            frame[2] = 0x10; frame[3] = 0x00;  // length = 16
-            frame[30] = 0x01; frame[31] = 0x00;
-            frame[32] = 0xB2; frame[33] = 0x00;
-            frame[34] = 0x04; frame[35] = 0x00; // item length = 4
-            frame[36] = 0x8E;                   // CIP response (high bit set)
-            frame[37] = 0x00;                   // path_size = 0
-            frame[38] = 0x08;                   // general_status = 0x08 (error)
+            frame[0] = 0x6F;
+            frame[1] = 0x00;
+            frame[2] = 0x10;
+            frame[3] = 0x00; // length = 16
+            frame[30] = 0x01;
+            frame[31] = 0x00;
+            frame[32] = 0xB2;
+            frame[33] = 0x00;
+            frame[34] = 0x04;
+            frame[35] = 0x00; // item length = 4
+            frame[36] = 0x8E; // CIP response (high bit set)
+            frame[37] = 0x00; // path_size = 0
+            frame[38] = 0x08; // general_status = 0x08 (error)
             frame[39] = 0x00;
             frame
         }
@@ -7890,9 +8055,10 @@ mod direction_and_clock {
         // 1 more error at ts=100.
         analyzer.on_data(key.clone(), &ef, 100, Direction::ClientToServer);
 
-        let t0888 = analyzer.all_findings.iter()
-            .find(|f| f.mitre_techniques.iter().any(|t| t == "T0888" )
-                && f.summary.contains("error-response burst"));
+        let t0888 = analyzer.all_findings.iter().find(|f| {
+            f.mitre_techniques.iter().any(|t| t == "T0888")
+                && f.summary.contains("error-response burst")
+        });
         assert!(
             t0888.is_some(),
             "T0888 must fire: backwards ts must not reset the error-rate window (EC-X2)"
@@ -7924,7 +8090,9 @@ mod direction_and_clock {
         // → malformed_in_window = 3 → T0814 fires.
         analyzer.on_data(key.clone(), &malformed, 50, Direction::ClientToServer);
 
-        let t0814 = analyzer.all_findings.iter()
+        let t0814 = analyzer
+            .all_findings
+            .iter()
             .find(|f| f.mitre_techniques.iter().any(|t| t == "T0814"));
         assert!(
             t0814.is_some(),
@@ -7959,7 +8127,10 @@ mod direction_and_clock {
 
         {
             let flow = analyzer.flows.get(&key).expect("flow must exist");
-            assert!(flow.malformed_anomaly_emitted, "T0814 guard must be set after 3 malformed frames");
+            assert!(
+                flow.malformed_anomaly_emitted,
+                "T0814 guard must be set after 3 malformed frames"
+            );
         }
 
         // Deliver 1 more malformed frame at ts=300 (elapsed == 300 from window_start=0).
@@ -7997,10 +8168,10 @@ mod direction_and_clock {
 // ---------------------------------------------------------------------------
 
 mod vp033_carry_direction_isolation {
+    use std::net::{IpAddr, Ipv4Addr};
     use wirerust::analyzer::enip::EnipAnalyzer;
     use wirerust::reassembly::flow::FlowKey;
     use wirerust::reassembly::handler::Direction;
-    use std::net::{IpAddr, Ipv4Addr};
 
     fn ip(a: u8) -> IpAddr {
         IpAddr::V4(Ipv4Addr::new(10, 0, 0, a))
@@ -8019,7 +8190,8 @@ mod vp033_carry_direction_isolation {
         let mut buf = vec![0u8; 24];
         buf[0] = (cmd & 0xFF) as u8;
         buf[1] = ((cmd >> 8) & 0xFF) as u8;
-        buf[2] = 0x04; buf[3] = 0x00; // length = 4
+        buf[2] = 0x04;
+        buf[3] = 0x00; // length = 4
         buf
     }
 
@@ -8028,7 +8200,8 @@ mod vp033_carry_direction_isolation {
         let mut buf = vec![0u8; 28];
         buf[0] = (cmd & 0xFF) as u8;
         buf[1] = ((cmd >> 8) & 0xFF) as u8;
-        buf[2] = 0x04; buf[3] = 0x00; // length = 4
+        buf[2] = 0x04;
+        buf[3] = 0x00; // length = 4
         buf
     }
 
@@ -8064,8 +8237,14 @@ mod vp033_carry_direction_isolation {
             let flow = analyzer.flows.get(&key).expect("flow exists");
             // With direction isolation: s2c frame processes cleanly → pdu_count = 1.
             // With stub: carry_c2s prepended to s2c → garbled → pdu_count stays 0 or parse_errors > 0.
-            assert_eq!(flow.pdu_count, 1, "s2c PDU must be counted; carry_c2s must not contaminate s2c");
-            assert_eq!(flow.parse_errors, 0, "parse_errors must be 0 with direction isolation");
+            assert_eq!(
+                flow.pdu_count, 1,
+                "s2c PDU must be counted; carry_c2s must not contaminate s2c"
+            );
+            assert_eq!(
+                flow.parse_errors, 0,
+                "parse_errors must be 0 with direction isolation"
+            );
         }
 
         // Complete the c2s frame: deliver the remaining 4 bytes.
@@ -8074,9 +8253,20 @@ mod vp033_carry_direction_isolation {
 
         {
             let flow = analyzer.flows.get(&key).expect("flow exists");
-            assert_eq!(flow.pdu_count, 2, "both PDUs processed: c2s frame completed + s2c frame");
-            assert_eq!(flow.carry_c2s.len(), 0, "carry_c2s drained after c2s frame completed");
-            assert_eq!(flow.carry_s2c.len(), 0, "carry_s2c drained after s2c frame completed");
+            assert_eq!(
+                flow.pdu_count, 2,
+                "both PDUs processed: c2s frame completed + s2c frame"
+            );
+            assert_eq!(
+                flow.carry_c2s.len(),
+                0,
+                "carry_c2s drained after c2s frame completed"
+            );
+            assert_eq!(
+                flow.carry_s2c.len(),
+                0,
+                "carry_s2c drained after s2c frame completed"
+            );
         }
     }
 
@@ -8096,25 +8286,54 @@ mod vp033_carry_direction_isolation {
 
         // Interleaved run.
         let mut a_interleaved = make_analyzer();
-        a_interleaved.on_data(key.clone(), &partial_enip_24(0x0065), 0, Direction::ClientToServer);
-        a_interleaved.on_data(key.clone(), &complete_enip_28(0x0065), 0, Direction::ServerToClient);
+        a_interleaved.on_data(
+            key.clone(),
+            &partial_enip_24(0x0065),
+            0,
+            Direction::ClientToServer,
+        );
+        a_interleaved.on_data(
+            key.clone(),
+            &complete_enip_28(0x0065),
+            0,
+            Direction::ServerToClient,
+        );
         a_interleaved.on_data(key.clone(), &[0u8; 4], 0, Direction::ClientToServer);
-        let interleaved_pdu = a_interleaved.flows.get(&key).map(|f| f.pdu_count).unwrap_or(0);
-        let interleaved_errors = a_interleaved.flows.get(&key).map(|f| f.parse_errors).unwrap_or(u64::MAX);
+        let interleaved_pdu = a_interleaved
+            .flows
+            .get(&key)
+            .map(|f| f.pdu_count)
+            .unwrap_or(0);
+        let interleaved_errors = a_interleaved
+            .flows
+            .get(&key)
+            .map(|f| f.parse_errors)
+            .unwrap_or(u64::MAX);
 
         // C2S-only run.
         let mut a_c2s = make_analyzer();
-        a_c2s.on_data(key.clone(), &partial_enip_24(0x0065), 0, Direction::ClientToServer);
+        a_c2s.on_data(
+            key.clone(),
+            &partial_enip_24(0x0065),
+            0,
+            Direction::ClientToServer,
+        );
         a_c2s.on_data(key.clone(), &[0u8; 4], 0, Direction::ClientToServer);
         let c2s_pdu = a_c2s.flows.get(&key).map(|f| f.pdu_count).unwrap_or(0);
 
         // S2C-only run.
         let mut a_s2c = make_analyzer();
-        a_s2c.on_data(key.clone(), &complete_enip_28(0x0065), 0, Direction::ServerToClient);
+        a_s2c.on_data(
+            key.clone(),
+            &complete_enip_28(0x0065),
+            0,
+            Direction::ServerToClient,
+        );
         let s2c_pdu = a_s2c.flows.get(&key).map(|f| f.pdu_count).unwrap_or(0);
 
         assert_eq!(
-            interleaved_pdu, c2s_pdu + s2c_pdu,
+            interleaved_pdu,
+            c2s_pdu + s2c_pdu,
             "interleaved pdu_count ({interleaved_pdu}) must equal c2s ({c2s_pdu}) + s2c ({s2c_pdu})"
         );
         assert_eq!(
@@ -8132,10 +8351,10 @@ mod vp033_carry_direction_isolation {
 // ---------------------------------------------------------------------------
 
 mod vp034_window_monotonic_no_spurious_reset {
+    use std::net::{IpAddr, Ipv4Addr};
     use wirerust::analyzer::enip::EnipAnalyzer;
     use wirerust::reassembly::flow::FlowKey;
     use wirerust::reassembly::handler::Direction;
-    use std::net::{IpAddr, Ipv4Addr};
 
     fn ip(a: u8) -> IpAddr {
         IpAddr::V4(Ipv4Addr::new(10, 0, 0, a))
@@ -8151,11 +8370,16 @@ mod vp034_window_monotonic_no_spurious_reset {
 
     fn write_frame() -> Vec<u8> {
         let mut frame = vec![0u8; 38];
-        frame[0] = 0x6F; frame[1] = 0x00;
-        frame[2] = 0x0E; frame[3] = 0x00;
-        frame[30] = 0x01; frame[31] = 0x00;
-        frame[32] = 0xB2; frame[33] = 0x00;
-        frame[34] = 0x02; frame[35] = 0x00;
+        frame[0] = 0x6F;
+        frame[1] = 0x00;
+        frame[2] = 0x0E;
+        frame[3] = 0x00;
+        frame[30] = 0x01;
+        frame[31] = 0x00;
+        frame[32] = 0xB2;
+        frame[33] = 0x00;
+        frame[34] = 0x02;
+        frame[35] = 0x00;
         frame[36] = 0x10; // SetAttributeSingle request
         frame[37] = 0x00;
         frame
@@ -8163,11 +8387,16 @@ mod vp034_window_monotonic_no_spurious_reset {
 
     fn error_frame() -> Vec<u8> {
         let mut frame = vec![0u8; 40];
-        frame[0] = 0x6F; frame[1] = 0x00;
-        frame[2] = 0x10; frame[3] = 0x00;
-        frame[30] = 0x01; frame[31] = 0x00;
-        frame[32] = 0xB2; frame[33] = 0x00;
-        frame[34] = 0x04; frame[35] = 0x00;
+        frame[0] = 0x6F;
+        frame[1] = 0x00;
+        frame[2] = 0x10;
+        frame[3] = 0x00;
+        frame[30] = 0x01;
+        frame[31] = 0x00;
+        frame[32] = 0xB2;
+        frame[33] = 0x00;
+        frame[34] = 0x04;
+        frame[35] = 0x00;
         frame[36] = 0x8E; // CIP response
         frame[37] = 0x00;
         frame[38] = 0x08; // general_status != 0
@@ -8200,9 +8429,14 @@ mod vp034_window_monotonic_no_spurious_reset {
         // One more at ts=100.
         analyzer.on_data(key.clone(), &wf, 100, Direction::ClientToServer);
 
-        let t0836 = analyzer.all_findings.iter()
+        let t0836 = analyzer
+            .all_findings
+            .iter()
             .find(|f| f.mitre_techniques.iter().any(|t| t == "T0836"));
-        assert!(t0836.is_some(), "T0836 must fire: VP-034 Sub-A backwards-ts write-burst no-reset");
+        assert!(
+            t0836.is_some(),
+            "T0836 must fire: VP-034 Sub-A backwards-ts write-burst no-reset"
+        );
     }
 
     /// VP-034 Sub-A EC-X2 direct repro: 50u32.saturating_sub(100) == 0.
@@ -8214,7 +8448,11 @@ mod vp034_window_monotonic_no_spurious_reset {
     #[test]
     fn proptest_vp034_sub_a_ec_x2_repro_t0836() {
         // GREEN-BY-DESIGN: pure arithmetic assertion. Zero branching, no I/O, 1 line.
-        assert_eq!(50u32.saturating_sub(100), 0, "saturating_sub(50,100) must be 0 (not wrapping ~4.29e9)");
+        assert_eq!(
+            50u32.saturating_sub(100),
+            0,
+            "saturating_sub(50,100) must be 0 (not wrapping ~4.29e9)"
+        );
     }
 
     /// VP-034 Sub-B: error-rate window — backwards ts does not reset window.
@@ -8232,10 +8470,14 @@ mod vp034_window_monotonic_no_spurious_reset {
         analyzer.on_data(key.clone(), &ef, 50, Direction::ClientToServer);
         analyzer.on_data(key.clone(), &ef, 100, Direction::ClientToServer);
 
-        let t0888 = analyzer.all_findings.iter()
-            .find(|f| f.mitre_techniques.iter().any(|t| t == "T0888")
-                && f.summary.contains("error-response burst"));
-        assert!(t0888.is_some(), "T0888 must fire: VP-034 Sub-B backwards-ts error-rate no-reset");
+        let t0888 = analyzer.all_findings.iter().find(|f| {
+            f.mitre_techniques.iter().any(|t| t == "T0888")
+                && f.summary.contains("error-response burst")
+        });
+        assert!(
+            t0888.is_some(),
+            "T0888 must fire: VP-034 Sub-B backwards-ts error-rate no-reset"
+        );
     }
 
     /// VP-034 Sub-C: malformed window — backwards ts does not reset window.
@@ -8252,9 +8494,14 @@ mod vp034_window_monotonic_no_spurious_reset {
         // Backwards ts=50 — must NOT reset window (saturating_sub gives 0, not > 300).
         analyzer.on_data(key.clone(), &mf, 50, Direction::ClientToServer);
 
-        let t0814 = analyzer.all_findings.iter()
+        let t0814 = analyzer
+            .all_findings
+            .iter()
             .find(|f| f.mitre_techniques.iter().any(|t| t == "T0814"));
-        assert!(t0814.is_some(), "T0814 must fire: VP-034 Sub-C backwards-ts malformed no-reset");
+        assert!(
+            t0814.is_some(),
+            "T0814 must fire: VP-034 Sub-C backwards-ts malformed no-reset"
+        );
     }
 
     /// VP-034 Sub-C operator pin: elapsed==300 does NOT expire under strict `> 300`.
@@ -8266,8 +8513,14 @@ mod vp034_window_monotonic_no_spurious_reset {
     #[test]
     fn proptest_vp034_sub_c_malformed_window_operator_pin() {
         // GREEN-BY-DESIGN: pure arithmetic, no I/O, no branching, 2 lines.
-        assert!(300u32.saturating_sub(0) <= 300, "elapsed==300 must NOT expire under strict > 300");
-        assert!(301u32.saturating_sub(0) > 300, "elapsed==301 MUST expire under strict > 300");
+        assert!(
+            300u32.saturating_sub(0) <= 300,
+            "elapsed==300 must NOT expire under strict > 300"
+        );
+        assert!(
+            301u32.saturating_sub(0) > 300,
+            "elapsed==301 MUST expire under strict > 300"
+        );
     }
 
     /// VP-034 Sub-D: genuine u32 rollover — saturating_sub gives 0 (no spurious reset).
@@ -8284,11 +8537,20 @@ mod vp034_window_monotonic_no_spurious_reset {
 
         // Document old (broken) behavior:
         let wrapping_result = now_ts.wrapping_sub(window_start);
-        assert_eq!(wrapping_result, 10, "wrapping_sub(4, u32::MAX-5) = 10 (the old spurious reset value)");
+        assert_eq!(
+            wrapping_result, 10,
+            "wrapping_sub(4, u32::MAX-5) = 10 (the old spurious reset value)"
+        );
 
         // Assert new (correct) behavior:
         let saturating_result = now_ts.saturating_sub(window_start);
-        assert_eq!(saturating_result, 0, "saturating_sub(4, u32::MAX-5) = 0 (no spurious reset)");
-        assert!(saturating_result <= 1, "saturating result 0 must NOT exceed threshold 1");
+        assert_eq!(
+            saturating_result, 0,
+            "saturating_sub(4, u32::MAX-5) = 0 (no spurious reset)"
+        );
+        assert!(
+            saturating_result <= 1,
+            "saturating result 0 must NOT exceed threshold 1"
+        );
     }
 }

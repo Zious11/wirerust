@@ -177,10 +177,11 @@ pub const MAX_FINDINGS: usize = 10_000;
 
 /// Maximum number of bytes the carry buffer may hold after any `on_data` call.
 ///
-/// When `flow.carry.len() > MAX_ENIP_CARRY_BYTES` after the frame-walk loop stashes
+/// When `flow.carry_c2s.len()` or `flow.carry_s2c.len()` (whichever is active for the
+/// current direction) exceeds `MAX_ENIP_CARRY_BYTES` after the frame-walk loop stashes
 /// remaining bytes, the carry-overflow path fires: `parse_errors += 1`,
 /// `malformed_in_window += 1`, `check_t0814()` (before latch), `is_non_enip = true`,
-/// `carry.clear()` (BC-2.17.016 Invariant 1 / Postcondition 4 / Invariant 4).
+/// active carry cleared (BC-2.17.016 v2.0 Invariant 1 / Postcondition 4 / Invariant 4).
 ///
 /// NOT configurable — hard cap per ADR-010 Decision 3/4.
 ///
@@ -275,7 +276,7 @@ pub struct EnipFlowState {
     /// Timestamp (pcap-relative seconds, u32) of the start of the current 1s write-burst window.
     ///
     /// Seeded on the first write-class request in a new window (BC-2.17.012 postcondition 3).
-    /// Uses u32 wrapping_sub arithmetic — same pattern as `error_window_start_ts`.
+    /// Uses u32 saturating_sub arithmetic (STORY-139 EC-X2 fix) — same pattern as `error_window_start_ts`.
     /// Field name is normative per BC-2.17.012 Architecture Anchors / postcondition 3.
     pub write_window_start_ts: u32,
 
@@ -462,8 +463,8 @@ pub fn check_t0814(
         && !flow.is_non_enip
     {
         if all_findings.len() < MAX_FINDINGS {
-            // Compute elapsed seconds in this window (wrapping_sub for u32 rollover safety).
-            let elapsed = now_ts.wrapping_sub(flow.malformed_window_start_ts);
+            // Compute elapsed seconds in this window (saturating_sub — consistent with window expiry arithmetic).
+            let elapsed = now_ts.saturating_sub(flow.malformed_window_start_ts);
             // BC-2.17.018 Postcondition 3: exact summary template.
             let summary = format!(
                 "EtherNet/IP structural anomaly: {} malformed frames in {}s window \
@@ -498,43 +499,6 @@ pub fn check_t0814(
 // ---------------------------------------------------------------------------
 // Pure-core helpers
 // ---------------------------------------------------------------------------
-
-/// Resolve the EtherNet/IP client (command-originator) endpoint from the flow key.
-///
-/// **Port-heuristic-only resolution.** EtherNet/IP explicit-messaging servers listen on
-/// port 44818 (IANA-registered); the opposite endpoint is therefore the client (the
-/// command originator):
-///
-/// - `lower_port == 44818`  → lower endpoint is the server; upper is the client.
-/// - `upper_port == 44818`  → upper endpoint is the server; lower is the client.
-/// - neither port is 44818  → both endpoints are ephemeral (non-standard ENIP setup or
-///   future UDP/2222 scope); function silently returns `lower_ip`
-///   as a conservative fallback.
-///
-/// **Known limitation:** this heuristic is correct for standard EtherNet/IP flows where
-/// exactly one endpoint is on port 44818. It cannot unambiguously resolve direction when
-/// NEITHER endpoint is on 44818 (non-standard server port or proxied capture). In that
-/// case the function silently returns `lower_ip`, which may or may not be the actual
-/// command originator.
-///
-/// **Direction deferral (DRIFT-ENIP-DIRECTION-001):** this function uses only the
-/// port-44818 heuristic above; it does NOT use the TCP `Direction` signal that sibling
-/// analyzer Modbus (`src/analyzer/modbus.rs` ~355-382) receives. Direction-aware
-/// resolution — threading `Direction` into `EnipAnalyzer::on_data` analogously to the
-/// Modbus pattern — is deferred to a post-v0.11.0 "ENIP direction-aware source
-/// resolution" follow-up chore. Threading `Direction` into `EnipAnalyzer::on_data` would
-/// ripple across all Wave-60 STORY-13x call sites and was explicitly deferred following
-/// the same DRIFT-DNP3-DIRECTION-001 precedent established for the DNP3 sibling analyzer.
-fn resolve_enip_client_ip(flow_key: &crate::reassembly::flow::FlowKey) -> std::net::IpAddr {
-    if flow_key.lower_port() == 44818 {
-        flow_key.upper_ip()
-    } else {
-        // Either upper_port == 44818 (standard case) or neither port is 44818
-        // (non-standard / fallback). Return lower_ip as conservative fallback in
-        // the neither-case, matching DNP3 resolve_master_ip fallback semantics.
-        flow_key.lower_ip()
-    }
-}
 
 // ---------------------------------------------------------------------------
 // Aggregate analyzer struct (STORY-131 — BC-2.17.019/020/023/026)
@@ -795,18 +759,23 @@ impl EnipAnalyzer {
         // dispatcher tests (BC-2.17.019 PC-2). Single saturating_add; no branching; no I/O.
         self.bytes_received = self.bytes_received.saturating_add(data.len() as u64);
 
-        // STORY-139: todo!(direction-based source_ip [AC-139-002]) — stub: preserve old behavior
-        // so existing tests stay green; new direction_and_clock tests verify correct behavior.
-        // BC-5.38.005 self-check: "If I include this real implementation, will the test for this
-        // function pass trivially without any implementer work?" — No: existing tests use
-        // Direction::ClientToServer and the old heuristic happens to agree for standard flows.
-        // The new test_direction_based_source_ip test will FAIL because this stub doesn't use direction.
-        let _ = direction; // STORY-139: direction param unused until stub is replaced
-        let src_ip = resolve_enip_client_ip(&flow_key);
-        let dest_ip = if flow_key.lower_ip() == src_ip {
-            flow_key.upper_ip()
+        // AC-139-002 (STORY-139 / RULING-EDGECASE-001 §1.4): direction-based source IP resolution.
+        // Replaces the port-44818 heuristic (resolve_enip_client_ip). Mirrors the Modbus pattern.
+        // FlowKey canonicalizes by (ip, port) order; lower_port==44818 means the lower endpoint
+        // is the EtherNet/IP server (TCP responder). Direction::ClientToServer means the
+        // packet is from the TCP initiator (non-44818 side); ServerToClient from the responder.
+        let (client_ip, server_ip) = if flow_key.lower_port() == 44818 {
+            (flow_key.upper_ip(), flow_key.lower_ip())
         } else {
-            flow_key.lower_ip()
+            (flow_key.lower_ip(), flow_key.upper_ip())
+        };
+        let src_ip = match direction {
+            Direction::ClientToServer => client_ip,
+            Direction::ServerToClient => server_ip,
+        };
+        let dest_ip = match direction {
+            Direction::ClientToServer => server_ip,
+            Direction::ServerToClient => client_ip,
         };
 
         // Lazily create per-flow state (mirrors Dnp3Analyzer::flows entry pattern).
@@ -835,24 +804,36 @@ impl EnipAnalyzer {
             // BC-2.17.018 Postcondition 5: 300-second malformed window expiry check.
             // Must run BEFORE any emission check so stale state from the previous window
             // cannot affect new-window detections.
-            // STORY-139: EC-X2 stub — retains wrapping_sub (BROKEN) so test_ec_x2_backwards_ts_t0814_no_reset
-            // will FAIL. Implementer replaces with saturating_sub > 300. Field renamed per BC-2.17.018 F-006.
-            // parse_errors is NOT reset (lifetime counter, BC-2.17.018 Invariant 1).
-            if timestamp.wrapping_sub(flow.malformed_window_start_ts) >= 300 {
+            // BC-2.17.018 Postcondition 5: saturating_sub prevents backwards-clock spurious reset
+            // (STORY-139 EC-X2 fix, RULING-EDGECASE-001 §2.2). Strict > per EC-X4 operator pin
+            // (RULING-EDGECASE-001 §2.4). parse_errors NOT reset (lifetime counter, BC-2.17.018 Invariant 1).
+            // STORY-139 AC-139-004: on window reset, also clear the directional carry for this
+            // direction so that stale bytes from prior network segments do not immediately
+            // re-accumulate malformed_in_window in the fresh window (EC-X4 operator-pin semantics).
+            if timestamp.saturating_sub(flow.malformed_window_start_ts) > 300 {
                 flow.malformed_in_window = 0;
                 flow.malformed_anomaly_emitted = false;
                 flow.malformed_window_start_ts = timestamp;
+                if direction == Direction::ClientToServer {
+                    flow.carry_c2s.clear();
+                } else {
+                    flow.carry_s2c.clear();
+                }
             }
 
-            // STORY-139: todo!(per-direction carry selection [BC-2.17.016 v2.0]) — stub: use carry_c2s
-            // for ALL directions so crate compiles and existing tests stay green. The new
-            // test_ec_x1_cross_direction_no_splice and vp033 tests will FAIL because s2c deliveries
-            // incorrectly use carry_c2s (direction isolation not implemented yet).
-            // BC-5.38.005 self-check: "If I include this real implementation, will the test for this
-            // function pass trivially without any implementer work?" — No: direction-isolation tests
-            // will fail against this stub.
+            // BC-2.17.016 v2.0 Precondition 2 / Invariant 7 (STORY-139 AC-139-001):
+            // Select the directional carry at call entry — exactly one buffer is active per call.
+            // carry_c2s for ClientToServer; carry_s2c for ServerToClient.
+            // A partial c2s frame stashed in carry_c2s is NEVER prepended to an s2c delivery
+            // (and vice versa), preventing the EC-X1 cross-direction splice bug.
+            // ADR-010 Decision 4 (RULING-EDGECASE-001 §1.2).
+            let active_carry: Vec<u8> = if direction == Direction::ClientToServer {
+                std::mem::take(&mut flow.carry_c2s)
+            } else {
+                std::mem::take(&mut flow.carry_s2c)
+            };
             // BC-2.17.016 Postcondition 2: carry PREPENDED to new data (ADR-010 Decision 4).
-            let mut buf = flow.carry_c2s.clone();
+            let mut buf = active_carry;
             buf.extend_from_slice(data);
             let mut cursor = 0usize;
 
@@ -952,16 +933,29 @@ impl EnipAnalyzer {
                 cursor += total_frame_len;
             }
 
-            // STORY-139: stub — stashes into carry_c2s only (direction selection deferred to implementer)
-            // BC-2.17.016 Postcondition 3: stash remaining bytes into carry.
-            flow.carry_c2s = buf[cursor..].to_vec();
+            // BC-2.17.016 v2.0 Postcondition 3 (STORY-139 AC-139-001): stash remaining bytes
+            // back into the SAME directional carry (not the other direction's carry).
+            // Invariant 7: carry_c2s and carry_s2c are NEVER mixed.
+            let remaining = buf[cursor..].to_vec();
+            if direction == Direction::ClientToServer {
+                flow.carry_c2s = remaining;
+            } else {
+                flow.carry_s2c = remaining;
+            }
 
-            // BC-2.17.016 Postcondition 4 / Invariant 4: carry-cap check.
+            // BC-2.17.016 Postcondition 4 / Invariant 4: carry-cap check on ACTIVE directional carry.
             // ORDERING CONSTRAINT (BC-2.17.018 Precondition 6 / EC-007):
             //   check_t0814 MUST run while is_non_enip is still false — the carry-overflow
             //   event is itself a structural reject that can be the 3rd malformed event in
             //   the window. Latching is_non_enip FIRST would permanently suppress T0814.
-            if flow.carry_c2s.len() > MAX_ENIP_CARRY_BYTES {
+            // The cap check (> MAX_ENIP_CARRY_BYTES) applies ONLY to the active directional carry;
+            // the other direction's carry is unaffected (BC-2.17.016 v2.0 Postcondition 4).
+            let active_carry_len = if direction == Direction::ClientToServer {
+                flow.carry_c2s.len()
+            } else {
+                flow.carry_s2c.len()
+            };
+            if active_carry_len > MAX_ENIP_CARRY_BYTES {
                 flow.parse_errors = flow.parse_errors.saturating_add(1);
                 flow.malformed_in_window += 1;
                 // T0814 evaluation runs while is_non_enip == false (BC-2.17.018 Precond 6).
@@ -975,7 +969,11 @@ impl EnipAnalyzer {
                 );
                 // Latch AFTER T0814 evaluation (BC-2.17.016 Post 4 / Invariant 4).
                 flow.is_non_enip = true;
-                flow.carry_c2s.clear();
+                if direction == Direction::ClientToServer {
+                    flow.carry_c2s.clear();
+                } else {
+                    flow.carry_s2c.clear();
+                }
             }
         } // flow borrow released here
 
@@ -1153,10 +1151,10 @@ impl EnipAnalyzer {
                     // counters. Only applicable when an active window exists. Uses
                     // error_window_active (not error_window_start_ts == 0) so that a
                     // legitimate timestamp of 0 is not mistaken for "unseeded" (F-134-001).
-                    // STORY-139: EC-X2 stub — retains wrapping_sub (BROKEN). test_ec_x2_backwards_ts_t0888_no_reset
-                    // will FAIL. Implementer: replace with saturating_sub.
+                    // BC-2.17.008 Postcondition 4: saturating_sub prevents backwards-clock spurious reset
+                    // (STORY-139 EC-X2 fix [AC-139-003], RULING-EDGECASE-001 §2.2).
                     if flow.error_window_active
-                        && timestamp.wrapping_sub(flow.error_window_start_ts) > 10
+                        && timestamp.saturating_sub(flow.error_window_start_ts) > 10
                     {
                         flow.error_counts_in_window.clear();
                         flow.error_window_start_ts = timestamp;
@@ -1336,11 +1334,11 @@ impl EnipAnalyzer {
                 ) && cip_hdr.service & 0x80 == 0
                 {
                     // BC-2.17.012 postcondition 4: check 1s window expiry BEFORE incrementing.
-                    // STORY-139: EC-X2 stub — retains wrapping_sub (BROKEN). test_ec_x2_backwards_ts_t0836_no_reset
-                    // will FAIL. Implementer: replace with saturating_sub.
+                    // BC-2.17.012 Postcondition 4: saturating_sub prevents backwards-clock spurious reset
+                    // (STORY-139 EC-X2 fix [AC-139-003], RULING-EDGECASE-001 §2.2).
                     // Only applicable when the window is seeded (write_count_in_window > 0).
                     if flow.write_count_in_window > 0
-                        && timestamp.wrapping_sub(flow.write_window_start_ts) > 1
+                        && timestamp.saturating_sub(flow.write_window_start_ts) > 1
                     {
                         // Window expired: reseed with the current write as the first of new window.
                         flow.write_count_in_window = 1;
@@ -2071,133 +2069,69 @@ mod kani_proofs {
 }
 
 // ---------------------------------------------------------------------------
-// Unit tests for resolve_enip_client_ip (RULING-W60-001 §3 / F-W60-001)
+// Unit tests for direction-based source IP resolution (STORY-139 AC-139-002)
 // ---------------------------------------------------------------------------
 //
-// These tests exercise the private helper directly, covering all four branches
-// mandated by RULING-W60-001 §3:
-//
-//   T1 (server-lower): lower_port==44818 → returns upper_ip (client)
-//   T2 (client-lower): upper_port==44818 → returns lower_ip (client)
-//   T3 (degenerate):   both ports==44818 → returns upper_ip (arbitrary-but-harmless)
-//   T4 (fallback):     neither port==44818 → returns lower_ip
-//                      (DRIFT-ENIP-DIRECTION-001 path; must be covered)
-//
-// End-to-end coverage for T1 and T2 is provided by the on_data integration
-// tests in tests/enip_analyzer_tests.rs (mod source_attribution).
+// resolve_enip_client_ip (port-44818 heuristic) was removed by STORY-139
+// (RULING-EDGECASE-001 §1.4). Direction-based resolution is now inline in
+// on_data and exercised by tests/enip_analyzer_tests.rs::direction_and_clock::
+// test_direction_based_source_ip and mod source_attribution.
 // ---------------------------------------------------------------------------
 #[cfg(test)]
 mod source_resolution_tests {
     use std::net::{IpAddr, Ipv4Addr};
 
-    use super::resolve_enip_client_ip;
     use crate::reassembly::flow::FlowKey;
 
     fn ip(a: u8) -> IpAddr {
         IpAddr::V4(Ipv4Addr::new(10, 0, 0, a))
     }
 
-    /// T1 (unit): lower_port==44818 → server is lower endpoint → client is upper_ip.
+    /// Verify FlowKey canonicalization assumptions used by direction-based IP resolution.
     ///
+    /// T1: lower_port==44818 (server is lower endpoint → client is upper_ip).
     /// FlowKey::new(client=10.0.0.9:50000, server=10.0.0.2:44818):
-    ///   (10.0.0.2,44818) < (10.0.0.9,50000) → lower=(10.0.0.2,44818), upper=(10.0.0.9,50000)
-    ///   lower_port==44818 → resolve_enip_client_ip returns upper_ip = 10.0.0.9
+    ///   Canonicalized: lower=(10.0.0.2,44818), upper=(10.0.0.9,50000).
     ///
-    /// Traces: F-W60-001; RULING-W60-001 §3 T1.
+    /// Traces: STORY-139 AC-139-002; RULING-EDGECASE-001 §1.4.
     #[test]
-    fn test_bc_2_17_010_resolve_enip_client_ip_t1_server_lower_returns_upper() {
+    fn test_direction_ip_resolution_t1_server_lower_canonicalization() {
         let key = FlowKey::new(ip(9), 50000, ip(2), 44818);
         // Canonicalized: lower=(10.0.0.2,44818)=server, upper=(10.0.0.9,50000)=client
-        assert_eq!(
-            key.lower_port(),
-            44818,
-            "FlowKey must canonicalize server (10.0.0.2:44818) as lower endpoint"
-        );
-        assert_eq!(
-            resolve_enip_client_ip(&key),
-            ip(9),
-            "T1: lower_port==44818 → server is lower → client is upper_ip (10.0.0.9)"
-        );
+        assert_eq!(key.lower_port(), 44818);
+        // With lower_port==44818: client_ip = upper_ip = 10.0.0.9
+        assert_eq!(key.upper_ip(), ip(9));
+        // server_ip = lower_ip = 10.0.0.2
+        assert_eq!(key.lower_ip(), ip(2));
     }
 
-    /// T2 (unit): upper_port==44818 → server is upper endpoint → client is lower_ip.
-    ///
+    /// T2: upper_port==44818 (server is upper endpoint → client is lower_ip).
     /// FlowKey::new(client=10.0.0.1:50000, server=10.0.0.9:44818):
-    ///   (10.0.0.1,50000) < (10.0.0.9,44818) → lower=(10.0.0.1,50000), upper=(10.0.0.9,44818)
-    ///   lower_port==50000 (≠44818), else branch → returns lower_ip = 10.0.0.1
+    ///   Canonicalized: lower=(10.0.0.1,50000), upper=(10.0.0.9,44818).
     ///
-    /// Traces: F-W60-001; RULING-W60-001 §3 T2.
+    /// Traces: STORY-139 AC-139-002; RULING-EDGECASE-001 §1.4.
     #[test]
-    fn test_bc_2_17_010_resolve_enip_client_ip_t2_client_lower_returns_lower() {
+    fn test_direction_ip_resolution_t2_server_upper_canonicalization() {
         let key = FlowKey::new(ip(1), 50000, ip(9), 44818);
         // Canonicalized: lower=(10.0.0.1,50000)=client, upper=(10.0.0.9,44818)=server
-        assert_eq!(
-            key.upper_port(),
-            44818,
-            "FlowKey must canonicalize server (10.0.0.9:44818) as upper endpoint"
-        );
-        assert_eq!(
-            resolve_enip_client_ip(&key),
-            ip(1),
-            "T2: upper_port==44818 → server is upper → client is lower_ip (10.0.0.1)"
-        );
-    }
-
-    /// T3 (degenerate): both ports==44818 → lower_port==44818 branch fires → returns
-    /// upper_ip. Documented arbitrary-but-harmless behaviour (RULING-W60-001 §3 T3).
-    ///
-    /// FlowKey::new(10.0.0.1:44818, 10.0.0.2:44818):
-    ///   (10.0.0.1,44818) < (10.0.0.2,44818) → lower=(10.0.0.1,44818), upper=(10.0.0.2,44818)
-    ///   lower_port==44818 → returns upper_ip = 10.0.0.2
-    ///
-    /// This scenario (two ENIP servers talking to each other) is degenerate in
-    /// practice but the code path must be deterministic and non-panicking.
-    ///
-    /// Traces: F-W60-001; RULING-W60-001 §3 T3; DRIFT-ENIP-DIRECTION-001.
-    #[test]
-    fn test_bc_2_17_010_resolve_enip_client_ip_t3_both_ports_44818_returns_upper() {
-        let key = FlowKey::new(ip(1), 44818, ip(2), 44818);
-        // Canonicalized: lower=(10.0.0.1,44818), upper=(10.0.0.2,44818)
-        assert_eq!(key.lower_port(), 44818);
         assert_eq!(key.upper_port(), 44818);
-        assert_eq!(
-            resolve_enip_client_ip(&key),
-            ip(2),
-            "T3: both ports==44818 → lower_port==44818 branch fires → upper_ip (10.0.0.2)"
-        );
+        // With lower_port != 44818: client_ip = lower_ip = 10.0.0.1
+        assert_eq!(key.lower_ip(), ip(1));
+        // server_ip = upper_ip = 10.0.0.9
+        assert_eq!(key.upper_ip(), ip(9));
     }
 
-    /// T4 (fallback / DRIFT-ENIP-DIRECTION-001 path): neither port==44818 →
-    /// returns lower_ip as conservative fallback.
+    /// T3: neither port==44818 (non-standard flows).
+    /// With direction-based resolution, lower_ip treated as client fallback.
     ///
-    /// FlowKey::new(10.0.0.5:50000, 10.0.0.6:50001):
-    ///   (10.0.0.5,50000) < (10.0.0.6,50001) → lower=(10.0.0.5,50000), upper=(10.0.0.6,50001)
-    ///   neither port==44818 → else branch → returns lower_ip = 10.0.0.5
-    ///
-    /// This is the non-standard-server-port / proxied-capture fallback described
-    /// in the DRIFT-ENIP-DIRECTION-001 documentation. Direction-aware resolution
-    /// is deferred post-v0.11.0.
-    ///
-    /// Traces: F-W60-001; RULING-W60-001 §3 T4; DRIFT-ENIP-DIRECTION-001.
+    /// Traces: STORY-139 AC-139-002; RULING-EDGECASE-001 §1.4.
     #[test]
-    fn test_bc_2_17_010_resolve_enip_client_ip_t4_neither_port_44818_returns_lower() {
+    fn test_direction_ip_resolution_t3_neither_port_44818() {
         let key = FlowKey::new(ip(5), 50000, ip(6), 50001);
-        // Canonicalized: lower=(10.0.0.5,50000), upper=(10.0.0.6,50001)
-        assert_ne!(
-            key.lower_port(),
-            44818,
-            "lower_port must not be 44818 for T4"
-        );
-        assert_ne!(
-            key.upper_port(),
-            44818,
-            "upper_port must not be 44818 for T4"
-        );
-        assert_eq!(
-            resolve_enip_client_ip(&key),
-            ip(5),
-            "T4: neither port==44818 → fallback returns lower_ip (10.0.0.5) \
-             per DRIFT-ENIP-DIRECTION-001"
-        );
+        assert_ne!(key.lower_port(), 44818);
+        assert_ne!(key.upper_port(), 44818);
+        // With neither port==44818, lower_ip treated as client_ip by the else branch.
+        assert_eq!(key.lower_ip(), ip(5));
+        assert_eq!(key.upper_ip(), ip(6));
     }
 }
