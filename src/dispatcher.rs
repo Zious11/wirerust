@@ -371,7 +371,8 @@ impl StreamHandler for StreamDispatcher {
                 // parse) is added by STORY-132+. This arm increments bytes_received
                 // to evidence PC-2 routing correctness (STORY-131 boundary decision).
                 if let Some(ref mut enip) = self.enip {
-                    enip.on_data(flow_key.clone(), data, timestamp);
+                    // STORY-139: pass direction to on_data (Modbus pattern; BC-2.17.016 v2.0 Precondition 1)
+                    enip.on_data(flow_key.clone(), data, timestamp, direction);
                 }
             }
             DispatchTarget::None => {}

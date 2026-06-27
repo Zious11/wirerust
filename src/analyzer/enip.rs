@@ -203,6 +203,7 @@ use std::net::IpAddr;
 
 use crate::analyzer::AnalysisSummary;
 use crate::findings::Finding;
+use crate::reassembly::handler::Direction;
 
 // ---------------------------------------------------------------------------
 // Per-flow state (STORY-134 — BC-2.17.008/010/014/016)
@@ -314,11 +315,19 @@ pub struct EnipFlowState {
     /// Windowed malformed frame counter (reset at window expiry per BC-2.17.018).
     pub malformed_in_window: u64,
 
-    /// Carry buffer for partial ENIP frames (BC-2.17.016).
+    /// Carry buffer for partial ENIP frames arriving client-to-server (BC-2.17.016 v2.0).
     ///
+    /// STORY-139: replaces the single `carry` field with per-direction buffers.
     /// Bounded to `MAX_ENIP_CARRY_BYTES = 600`. Overflow triggers `is_non_enip = true`.
-    /// Managed exclusively by `on_data` (STORY-137).
-    pub carry: Vec<u8>,
+    /// Managed exclusively by `on_data` (STORY-137/139).
+    pub carry_c2s: Vec<u8>,
+
+    /// Carry buffer for partial ENIP frames arriving server-to-client (BC-2.17.016 v2.0).
+    ///
+    /// STORY-139: mirrors `carry_c2s` for the opposite direction.
+    /// Bounded to `MAX_ENIP_CARRY_BYTES = 600`. Overflow triggers `is_non_enip = true`.
+    /// Managed exclusively by `on_data` (STORY-137/139).
+    pub carry_s2c: Vec<u8>,
 
     /// ForwardOpen + LargeForwardOpen request count (per-flow, lifetime).
     ///
@@ -351,13 +360,14 @@ pub struct EnipFlowState {
     /// Timestamp (pcap-relative seconds, u32) of the start of the current 300-second malformed
     /// frame detection window (BC-2.17.018 Postcondition 5).
     ///
-    /// Seeded to `now_ts` on the first `on_data` call for a flow (initialized to 0 in
-    /// `EnipFlowState::new()`). Window expiry is evaluated at the top of each `on_data` call:
-    /// when `now_ts - malformed_window_start >= 300`, the window resets:
-    /// `malformed_in_window = 0`, `malformed_anomaly_emitted = false`,
-    /// `malformed_window_start = now_ts`.
-    /// Field name is normative per BC-2.17.018 Architecture Mapping.
-    pub malformed_window_start: u32,
+    /// STORY-139: renamed from `malformed_window_start` → `malformed_window_start_ts` per
+    /// BC-2.17.018 F-006. Seeded to `now_ts` on the first `on_data` call for a flow
+    /// (initialized to 0 in `EnipFlowState::new()`). Window expiry is evaluated at the top
+    /// of each `on_data` call: when `now_ts - malformed_window_start_ts > 300` (STORY-139:
+    /// strict >, not >=), the window resets: `malformed_in_window = 0`,
+    /// `malformed_anomaly_emitted = false`, `malformed_window_start_ts = now_ts`.
+    /// Field name is normative per BC-2.17.018 Architecture Mapping / F-006.
+    pub malformed_window_start_ts: u32,
 }
 
 impl EnipFlowState {
@@ -377,14 +387,15 @@ impl EnipFlowState {
             pdu_count: 0,
             parse_errors: 0,
             malformed_in_window: 0,
-            carry: Vec::new(),
+            carry_c2s: Vec::new(),
+            carry_s2c: Vec::new(),
             write_count_in_window: 0,
             write_burst_emitted: false,
             write_window_start_ts: 0,
             open_connection_count: 0,
             close_connection_count: 0,
             malformed_anomaly_emitted: false,
-            malformed_window_start: 0,
+            malformed_window_start_ts: 0,
         }
     }
 }
@@ -452,7 +463,7 @@ pub fn check_t0814(
     {
         if all_findings.len() < MAX_FINDINGS {
             // Compute elapsed seconds in this window (wrapping_sub for u32 rollover safety).
-            let elapsed = now_ts.wrapping_sub(flow.malformed_window_start);
+            let elapsed = now_ts.wrapping_sub(flow.malformed_window_start_ts);
             // BC-2.17.018 Postcondition 3: exact summary template.
             let summary = format!(
                 "EtherNet/IP structural anomaly: {} malformed frames in {}s window \
@@ -765,25 +776,32 @@ impl EnipAnalyzer {
     /// - `flow_key`  — TCP flow identifier; used to look up / insert `EnipFlowState`.
     /// - `data`      — reassembled TCP bytes for this flow segment.
     /// - `timestamp` — pcap-relative capture timestamp (seconds, u32).
+    /// - `direction` — TCP direction (ClientToServer / ServerToClient); STORY-139 addition.
+    ///   Currently unused in the stub (direction isolation is the STORY-139 implementer task).
     ///
     /// # Traces
     /// BC-2.17.016 (frame-walk algorithm); BC-2.17.018 (T0814 windowed detection);
     /// BC-2.17.004 Inv-3 (command_counts single increment site);
-    /// BC-2.17.019 §P2 (routing confirmation); AC-131-001 (bytes_received observable).
+    /// BC-2.17.019 §P2 (routing confirmation); AC-131-001 (bytes_received observable);
+    /// AC-139-001 (per-direction carry); AC-139-002 (direction-based src_ip).
     pub fn on_data(
         &mut self,
         flow_key: crate::reassembly::flow::FlowKey,
         data: &[u8],
         timestamp: u32,
+        direction: Direction,
     ) {
         // WIRING-EXEMPT (this line only): routing-confirmation observable for STORY-131
         // dispatcher tests (BC-2.17.019 PC-2). Single saturating_add; no branching; no I/O.
         self.bytes_received = self.bytes_received.saturating_add(data.len() as u64);
 
-        // Resolve the client (command-originator) IP using the port-44818 heuristic.
-        // FlowKey is canonicalised by (ip, port) tuple comparison, so lower_ip is NOT
-        // necessarily the traffic originator. resolve_enip_client_ip() identifies the
-        // client as the endpoint whose port is NOT 44818 (DRIFT-ENIP-DIRECTION-001).
+        // STORY-139: todo!(direction-based source_ip [AC-139-002]) — stub: preserve old behavior
+        // so existing tests stay green; new direction_and_clock tests verify correct behavior.
+        // BC-5.38.005 self-check: "If I include this real implementation, will the test for this
+        // function pass trivially without any implementer work?" — No: existing tests use
+        // Direction::ClientToServer and the old heuristic happens to agree for standard flows.
+        // The new test_direction_based_source_ip test will FAIL because this stub doesn't use direction.
+        let _ = direction; // STORY-139: direction param unused until stub is replaced
         let src_ip = resolve_enip_client_ip(&flow_key);
         let dest_ip = if flow_key.lower_ip() == src_ip {
             flow_key.upper_ip()
@@ -816,16 +834,25 @@ impl EnipAnalyzer {
 
             // BC-2.17.018 Postcondition 5: 300-second malformed window expiry check.
             // Must run BEFORE any emission check so stale state from the previous window
-            // cannot affect new-window detections. Uses wrapping_sub for u32 rollover safety.
+            // cannot affect new-window detections.
+            // STORY-139: EC-X2 stub — retains wrapping_sub (BROKEN) so test_ec_x2_backwards_ts_t0814_no_reset
+            // will FAIL. Implementer replaces with saturating_sub > 300. Field renamed per BC-2.17.018 F-006.
             // parse_errors is NOT reset (lifetime counter, BC-2.17.018 Invariant 1).
-            if timestamp.wrapping_sub(flow.malformed_window_start) >= 300 {
+            if timestamp.wrapping_sub(flow.malformed_window_start_ts) >= 300 {
                 flow.malformed_in_window = 0;
                 flow.malformed_anomaly_emitted = false;
-                flow.malformed_window_start = timestamp;
+                flow.malformed_window_start_ts = timestamp;
             }
 
+            // STORY-139: todo!(per-direction carry selection [BC-2.17.016 v2.0]) — stub: use carry_c2s
+            // for ALL directions so crate compiles and existing tests stay green. The new
+            // test_ec_x1_cross_direction_no_splice and vp033 tests will FAIL because s2c deliveries
+            // incorrectly use carry_c2s (direction isolation not implemented yet).
+            // BC-5.38.005 self-check: "If I include this real implementation, will the test for this
+            // function pass trivially without any implementer work?" — No: direction-isolation tests
+            // will fail against this stub.
             // BC-2.17.016 Postcondition 2: carry PREPENDED to new data (ADR-010 Decision 4).
-            let mut buf = flow.carry.clone();
+            let mut buf = flow.carry_c2s.clone();
             buf.extend_from_slice(data);
             let mut cursor = 0usize;
 
@@ -925,15 +952,16 @@ impl EnipAnalyzer {
                 cursor += total_frame_len;
             }
 
+            // STORY-139: stub — stashes into carry_c2s only (direction selection deferred to implementer)
             // BC-2.17.016 Postcondition 3: stash remaining bytes into carry.
-            flow.carry = buf[cursor..].to_vec();
+            flow.carry_c2s = buf[cursor..].to_vec();
 
             // BC-2.17.016 Postcondition 4 / Invariant 4: carry-cap check.
             // ORDERING CONSTRAINT (BC-2.17.018 Precondition 6 / EC-007):
             //   check_t0814 MUST run while is_non_enip is still false — the carry-overflow
             //   event is itself a structural reject that can be the 3rd malformed event in
             //   the window. Latching is_non_enip FIRST would permanently suppress T0814.
-            if flow.carry.len() > MAX_ENIP_CARRY_BYTES {
+            if flow.carry_c2s.len() > MAX_ENIP_CARRY_BYTES {
                 flow.parse_errors = flow.parse_errors.saturating_add(1);
                 flow.malformed_in_window += 1;
                 // T0814 evaluation runs while is_non_enip == false (BC-2.17.018 Precond 6).
@@ -947,7 +975,7 @@ impl EnipAnalyzer {
                 );
                 // Latch AFTER T0814 evaluation (BC-2.17.016 Post 4 / Invariant 4).
                 flow.is_non_enip = true;
-                flow.carry.clear();
+                flow.carry_c2s.clear();
             }
         } // flow borrow released here
 
@@ -1125,6 +1153,8 @@ impl EnipAnalyzer {
                     // counters. Only applicable when an active window exists. Uses
                     // error_window_active (not error_window_start_ts == 0) so that a
                     // legitimate timestamp of 0 is not mistaken for "unseeded" (F-134-001).
+                    // STORY-139: EC-X2 stub — retains wrapping_sub (BROKEN). test_ec_x2_backwards_ts_t0888_no_reset
+                    // will FAIL. Implementer: replace with saturating_sub.
                     if flow.error_window_active
                         && timestamp.wrapping_sub(flow.error_window_start_ts) > 10
                     {
@@ -1306,7 +1336,8 @@ impl EnipAnalyzer {
                 ) && cip_hdr.service & 0x80 == 0
                 {
                     // BC-2.17.012 postcondition 4: check 1s window expiry BEFORE incrementing.
-                    // Uses wrapping_sub arithmetic (same pattern as error window).
+                    // STORY-139: EC-X2 stub — retains wrapping_sub (BROKEN). test_ec_x2_backwards_ts_t0836_no_reset
+                    // will FAIL. Implementer: replace with saturating_sub.
                     // Only applicable when the window is seeded (write_count_in_window > 0).
                     if flow.write_count_in_window > 0
                         && timestamp.wrapping_sub(flow.write_window_start_ts) > 1
