@@ -24,7 +24,7 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-17/BC-2.17.018.md
   - .factory/specs/architecture/decisions/ADR-010-ethernet-ip-cip-stream-dispatch.md
   - .factory/phase-f2-spec-evolution/enip-architecture-delta.md
-input-hash: "192a7b2"
+input-hash: "8ea89ed"
 ---
 
 # STORY-137: ENIP Frame Walk Robustness: Carry Buffer, Non-ENIP Detection, and T0814 DoS Burst

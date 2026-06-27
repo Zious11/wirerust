@@ -25,7 +25,7 @@ inputs:
   - .factory/specs/architecture/decisions/ADR-010-ethernet-ip-cip-stream-dispatch.md
   - .factory/phase-f2-spec-evolution/enip-architecture-delta.md
   - .factory/research/enip-mitre-ics-tagging.md
-input-hash: "0ef7470"
+input-hash: "0c1f933"
 ---
 
 # STORY-135: ENIP Command Detections: T0858 Mode Change, T0816 Device Reset, and T0836 Write-Attribute Burst
