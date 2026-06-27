@@ -939,12 +939,14 @@ impl EnipAnalyzer {
             }
 
             // BC-2.17.016 Postcondition 4 / Invariant 4: carry-cap check on ACTIVE directional carry.
-            // ORDERING CONSTRAINT (BC-2.17.018 Precondition 6 / EC-007):
-            //   check_t0814 MUST run while is_non_enip is still false — the carry-overflow
-            //   event is itself a structural reject that can be the 3rd malformed event in
-            //   the window. Latching is_non_enip FIRST would permanently suppress T0814.
-            // The cap check (> MAX_ENIP_CARRY_BYTES) applies ONLY to the active directional carry;
-            // the other direction's carry is unaffected (BC-2.17.016 v2.0 Postcondition 4).
+            // RULING-137-002 (2026-06-26): This check is STRUCTURALLY UNREACHABLE under the current
+            // frame-walk algorithm. Proof: the partial-stash path fires only when total_frame_len <= 600
+            // AND buf.len()-cursor < total_frame_len, so stash_size <= 599 < 600 = MAX_ENIP_CARRY_BYTES.
+            // The condition `active_carry_len > 600` is therefore permanently false in any on_data call.
+            // Retained as belt-and-suspenders dead code pending a v0.12.0 carry-cap redesign.
+            // cargo-mutants survivors at this block are EQUIVALENT (see RULING-EDGECASE-001 addendum).
+            // BC-2.17.018 ordering constraint still applies in the event the cap is redesigned:
+            // check_t0814 must run while is_non_enip == false (BC-2.17.018 Precondition 6).
             let active_carry_len = if direction == Direction::ClientToServer {
                 flow.carry_c2s.len()
             } else {
