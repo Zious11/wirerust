@@ -6281,12 +6281,14 @@ mod frame_walk {
 // sorted below the CLIENT IP, every finding carried the victim controller's IP
 // as source_ip instead of the attacker's IP.
 //
-// Fix (RULING-W60-001): `resolve_enip_client_ip(flow_key)` uses the port-44818
-// heuristic — the endpoint whose port == 44818 is the server; the other
-// endpoint is the client.
+// Fix (RULING-EDGECASE-001 §1.4): `resolve_enip_client_ip` was removed and
+// replaced with inline direction-based src_ip selection in `on_data`.
+// The `Direction` argument now identifies the command originator directly:
+// `Direction::ClientToServer` → src_ip = client; `Direction::ServerToClient`
+// → src_ip = server. The port-44818 heuristic is superseded.
 //
-// Originated as Red-Gate tests for F-W60-001; now GREEN under
-// resolve_enip_client_ip (RULING-W60-001).
+// Originated as Red-Gate tests for F-W60-001; now GREEN under inline
+// direction-based src_ip selection (RULING-EDGECASE-001 §1.4).
 //
 // Discriminating scenario (RULING-W60-001 §3 test anchor):
 //   client = 10.0.0.9:50000, server = 10.0.0.2:44818
@@ -6315,7 +6317,8 @@ mod source_attribution {
 
     /// The CLIENT IP in the discriminating scenario: 10.0.0.9 > 10.0.0.2 numerically,
     /// so FlowKey places the SERVER (10.0.0.2) as lower and CLIENT (10.0.0.9) as upper.
-    /// Pre-fix `lower_ip()` returned the server (wrong); `resolve_enip_client_ip` now returns the client.
+    /// Pre-fix `lower_ip()` returned the server (wrong); inline direction-based src_ip
+    /// selection (RULING-EDGECASE-001 §1.4) now returns the client correctly.
     fn client_ip_high() -> IpAddr {
         IpAddr::V4(Ipv4Addr::new(10, 0, 0, 9))
     }
@@ -6328,7 +6331,8 @@ mod source_attribution {
     /// The CLIENT IP in the control scenario: 10.0.0.1 < 10.0.0.9 numerically.
     /// FlowKey places the CLIENT as lower and SERVER as upper.
     /// Pre-fix `lower_ip()` returned the right address coincidentally here —
-    /// `resolve_enip_client_ip` now returns the client correctly for both orderings.
+    /// inline direction-based src_ip selection now returns the client correctly
+    /// for both orderings (RULING-EDGECASE-001 §1.4).
     fn client_ip_low() -> IpAddr {
         IpAddr::V4(Ipv4Addr::new(10, 0, 0, 1))
     }
@@ -6345,7 +6349,8 @@ mod source_attribution {
     ///   upper = (10.0.0.9, 50000)  ← client
     ///
     /// Pre-fix lower_ip() returned 10.0.0.2 (server — wrong).
-    /// resolve_enip_client_ip() returns 10.0.0.9 (client — correct).
+    /// Inline direction-based src_ip (RULING-EDGECASE-001 §1.4) now selects
+    /// 10.0.0.9 (client — correct) from the Direction::ClientToServer argument.
     fn flow_key_server_lower() -> FlowKey {
         FlowKey::new(client_ip_high(), 50000, server_ip_low(), 44818)
     }
@@ -6356,8 +6361,8 @@ mod source_attribution {
     ///   lower = (10.0.0.1, 50000)  ← client
     ///   upper = (10.0.0.9, 44818)  ← server
     ///
-    /// Both lower_ip() and resolve_enip_client_ip() return 10.0.0.1 for this
-    /// ordering — the pre-fix code was accidentally correct here.
+    /// Both lower_ip() and the inline direction-based src_ip selection return
+    /// 10.0.0.1 for this ordering — the pre-fix code was accidentally correct here.
     fn flow_key_client_lower() -> FlowKey {
         FlowKey::new(client_ip_low(), 50000, server_ip_high(), 44818)
     }
@@ -6417,11 +6422,13 @@ mod source_attribution {
     ///
     /// Flow key: client=10.0.0.9:50000, server=10.0.0.2:44818.
     /// FlowKey lower=(10.0.0.2,44818)=server, upper=(10.0.0.9,50000)=client.
-    /// resolve_enip_client_ip() identifies the server by port 44818 and returns
-    /// upper_ip() = 10.0.0.9 (client / attacker).
+    /// Inline direction-based src_ip selection (RULING-EDGECASE-001 §1.4) uses
+    /// Direction::ClientToServer to identify the sender as the client; src_ip =
+    /// upper_ip() = 10.0.0.9 (client / attacker). `resolve_enip_client_ip` was
+    /// removed and superseded by this mechanism.
     ///
-    /// Originated as Red-Gate test for F-W60-001; GREEN under resolve_enip_client_ip
-    /// (RULING-W60-001).
+    /// Originated as Red-Gate test for F-W60-001; GREEN under inline direction-based
+    /// src_ip selection (RULING-EDGECASE-001 §1.4).
     ///
     /// Traces: BC-2.17.010 PC-2; BC-2.17.011 PC-1; F-W60-001; RULING-W60-001 §3 T1.
     #[test]
@@ -6452,8 +6459,9 @@ mod source_attribution {
             f.source_ip,
             Some(client_ip_high()),
             "T0858 finding source_ip MUST be the client IP 10.0.0.9 (BC-2.17.010 PC-2; \
-             F-W60-001; RULING-W60-001): resolve_enip_client_ip returns upper_ip \
-             (10.0.0.9) because lower_port==44818 identifies the server"
+             F-W60-001; RULING-W60-001): inline direction-based src_ip selection \
+             (RULING-EDGECASE-001 §1.4) uses Direction::ClientToServer → upper_ip() = \
+             10.0.0.9; resolve_enip_client_ip was removed per RULING-EDGECASE-001 §1.4"
         );
     }
 
@@ -6463,10 +6471,12 @@ mod source_attribution {
     /// Flow key: client=10.0.0.9:50000, server=10.0.0.2:44818.
     /// Same discriminating scenario as the T0858 test above but for T0816, locking
     /// the shared src_ip derivation site across both detection types.
-    /// resolve_enip_client_ip() returns upper_ip() = 10.0.0.9 (client).
+    /// Inline direction-based src_ip selection (RULING-EDGECASE-001 §1.4) uses
+    /// Direction::ClientToServer → src_ip = upper_ip() = 10.0.0.9 (client).
+    /// `resolve_enip_client_ip` was removed and superseded.
     ///
-    /// Originated as Red-Gate test for F-W60-001; GREEN under resolve_enip_client_ip
-    /// (RULING-W60-001).
+    /// Originated as Red-Gate test for F-W60-001; GREEN under inline direction-based
+    /// src_ip selection (RULING-EDGECASE-001 §1.4).
     ///
     /// Traces: BC-2.17.010 PC-2; BC-2.17.013 PC-1; F-W60-001; RULING-W60-001 §3.
     #[test]
@@ -6492,8 +6502,9 @@ mod source_attribution {
             f.source_ip,
             Some(client_ip_high()),
             "T0816 finding source_ip MUST be the client IP 10.0.0.9 (BC-2.17.010 PC-2; \
-             F-W60-001; RULING-W60-001): resolve_enip_client_ip returns upper_ip \
-             (10.0.0.9) because lower_port==44818 identifies the server"
+             F-W60-001; RULING-W60-001): inline direction-based src_ip selection \
+             (RULING-EDGECASE-001 §1.4) uses Direction::ClientToServer → upper_ip() = \
+             10.0.0.9; resolve_enip_client_ip was removed per RULING-EDGECASE-001 §1.4"
         );
     }
 
@@ -6506,10 +6517,10 @@ mod source_attribution {
     ///
     /// Flow key: client=10.0.0.1:50000, server=10.0.0.9:44818.
     /// FlowKey lower=(10.0.0.1,50000)=client, upper=(10.0.0.9,44818)=server.
-    /// resolve_enip_client_ip() identifies the server by upper_port==44818 and
-    /// returns lower_ip() = 10.0.0.1 (client). The pre-fix lower_ip() path also
-    /// returned 10.0.0.1 for this ordering, so the pre-fix code was accidentally
-    /// correct here.
+    /// Inline direction-based src_ip selection (RULING-EDGECASE-001 §1.4) uses
+    /// Direction::ClientToServer → src_ip = lower_ip() = 10.0.0.1 (client).
+    /// The pre-fix lower_ip() path also returned 10.0.0.1 for this ordering
+    /// (accidentally correct); `resolve_enip_client_ip` was subsequently removed.
     ///
     /// Documents RULING-W60-001 §3 T2 and guards against regressions in the fix.
     ///
@@ -6531,8 +6542,8 @@ mod source_attribution {
             .find(|f| f.mitre_techniques.contains(&"T0858".to_string()))
             .expect("must find a T0858 finding (BC-2.17.011 PC-1)");
 
-        // CLIENT is 10.0.0.1 (lower IP); resolve_enip_client_ip returns lower_ip
-        // because upper_port==44818 identifies the server (upper endpoint).
+        // CLIENT is 10.0.0.1 (lower IP); inline direction-based src_ip selection
+        // (RULING-EDGECASE-001 §1.4) uses Direction::ClientToServer → lower_ip() = 10.0.0.1.
         assert_eq!(
             f.source_ip,
             Some(client_ip_low()),
@@ -7962,7 +7973,7 @@ mod direction_and_clock {
     ///
     /// 50 writes at ts=100 (window_start=100, count=50), then 1 write at ts=50 (backwards),
     /// then 1 write at ts=100. With saturating_sub: 50u32.saturating_sub(100) = 0, NOT > 1 →
-    /// window NOT reset → write_count_in_window = 51 > threshold(50) → T0836 fires.
+    /// window NOT reset → write_count_in_window = 52 > threshold(50) → T0836 fires.
     ///
     /// With stub (wrapping_sub): 50u32.wrapping_sub(100) = u32::MAX - 49 ≈ 4.29e9 > 1 →
     /// window IS reset (spuriously) → count = 1 → T0836 does NOT fire → FAIL (RED).
@@ -8215,6 +8226,7 @@ mod direction_and_clock {
 // ---------------------------------------------------------------------------
 
 mod vp033_carry_direction_isolation {
+    use proptest::prelude::*;
     use std::net::{IpAddr, Ipv4Addr};
     use wirerust::analyzer::enip::EnipAnalyzer;
     use wirerust::reassembly::flow::FlowKey;
@@ -8232,161 +8244,129 @@ mod vp033_carry_direction_isolation {
         EnipAnalyzer::new(50, 5)
     }
 
-    /// Partial SendRRData header: command=0x006F, length=4 (declares 4 more bytes).
-    fn partial_enip_24(cmd: u16) -> Vec<u8> {
-        let mut buf = vec![0u8; 24];
-        buf[0] = (cmd & 0xFF) as u8;
-        buf[1] = ((cmd >> 8) & 0xFF) as u8;
-        buf[2] = 0x04;
-        buf[3] = 0x00; // length = 4
-        buf
+    /// Build a minimal valid ENIP frame with given command (0-byte payload).
+    /// Returns a Vec<u8> of length 24 (header-only, length field = 0).
+    fn build_minimal_enip_frame(command: u16) -> Vec<u8> {
+        let mut frame = vec![0u8; 24];
+        frame[0] = (command & 0xFF) as u8;
+        frame[1] = ((command >> 8) & 0xFF) as u8;
+        // length = 0 (no payload); all other header fields zero
+        frame
     }
 
-    /// Complete ENIP frame: header + 4 zero payload bytes = 28 bytes.
-    fn complete_enip_28(cmd: u16) -> Vec<u8> {
-        let mut buf = vec![0u8; 28];
-        buf[0] = (cmd & 0xFF) as u8;
-        buf[1] = ((cmd >> 8) & 0xFF) as u8;
-        buf[2] = 0x04;
-        buf[3] = 0x00; // length = 4
-        buf
+    /// Strategy selecting a valid ENIP command code for s2c frames.
+    fn s2c_cmd_strategy() -> impl Strategy<Value = u16> {
+        prop::sample::select(vec![0x0065u16, 0x0066u16, 0x0063u16])
     }
 
-    /// VP-033 Sub-A: interleaved partial-c2s + full-s2c deliveries produce correct pdu_count.
-    ///
-    /// With direction isolation: partial c2s stashed in carry_c2s (unaffected by s2c delivery);
-    /// complete s2c frame processes cleanly → pdu_count == 1. Then complete c2s delivery
-    /// (partial + remaining) → pdu_count == 2.
-    ///
-    /// With stub: carry_c2s used for all directions → s2c delivery prepends c2s carry →
-    /// malformed parse → pdu_count != 2 OR parse_errors > 0 → FAIL (RED).
-    ///
-    /// Traces: VP-033 proptest_vp033_direction_isolation_pdu_count; BC-2.17.016 v2.0 Inv 7.
-    #[test]
-    fn proptest_vp033_direction_isolation_pdu_count() {
-        let key = make_key();
-        let mut analyzer = make_analyzer();
-
-        // Partial c2s: first 24 bytes of a RegisterSession (0x0065) frame that declares 4 more.
-        let partial_c2s = partial_enip_24(0x0065);
-        analyzer.on_data(key.clone(), &partial_c2s, 0, Direction::ClientToServer);
-
-        {
-            let flow = analyzer.flows.get(&key).expect("flow exists");
-            assert_eq!(flow.pdu_count, 0, "no PDU yet — partial c2s stashed");
-        }
-
-        // Complete s2c frame: RegisterSession (0x0065), 28 bytes.
-        let s2c_frame = complete_enip_28(0x0065);
-        analyzer.on_data(key.clone(), &s2c_frame, 0, Direction::ServerToClient);
-
-        {
-            let flow = analyzer.flows.get(&key).expect("flow exists");
-            // With direction isolation: s2c frame processes cleanly → pdu_count = 1.
-            // With stub: carry_c2s prepended to s2c → garbled → pdu_count stays 0 or parse_errors > 0.
-            assert_eq!(
-                flow.pdu_count, 1,
-                "s2c PDU must be counted; carry_c2s must not contaminate s2c"
-            );
-            assert_eq!(
-                flow.parse_errors, 0,
-                "parse_errors must be 0 with direction isolation"
-            );
-        }
-
-        // Complete the c2s frame: deliver the remaining 4 bytes.
-        let c2s_remaining = vec![0u8; 4];
-        analyzer.on_data(key.clone(), &c2s_remaining, 0, Direction::ClientToServer);
-
-        {
-            let flow = analyzer.flows.get(&key).expect("flow exists");
-            assert_eq!(
-                flow.pdu_count, 2,
-                "both PDUs processed: c2s frame completed + s2c frame"
-            );
-            assert_eq!(
-                flow.carry_c2s.len(),
-                0,
-                "carry_c2s drained after c2s frame completed"
-            );
-            assert_eq!(
-                flow.carry_s2c.len(),
-                0,
-                "carry_s2c drained after s2c frame completed"
-            );
-        }
+    /// Strategy selecting a valid ENIP command code for c2s frames.
+    fn c2s_cmd_strategy() -> impl Strategy<Value = u16> {
+        prop::sample::select(vec![0x0063u16, 0x0065u16, 0x006Fu16])
     }
 
-    /// VP-033 Sub-B: independent-run equivalence — interleaved pdu_count equals sum of independent runs.
-    ///
-    /// Run 1 (interleaved): partial c2s + full s2c + remaining c2s → pdu_count=2.
-    /// Run 2 (c2s only):    partial c2s + remaining c2s → pdu_count=1.
-    /// Run 3 (s2c only):    full s2c → pdu_count=1.
-    /// Assert: interleaved pdu_count == c2s_only + s2c_only.
-    ///
-    /// With stub: interleaved fails because carry contamination reduces pdu_count → FAIL (RED).
-    ///
-    /// Traces: VP-033 proptest_vp033_independent_run_equivalence; BC-2.17.016 v2.0 Inv 7.
-    #[test]
-    fn proptest_vp033_independent_run_equivalence() {
-        let key = make_key();
+    // VP-033 proptest: carry_c2s and carry_s2c are never mixed across directions.
+    //
+    // Strategy: generate `split_offset in 1..23` (partial header cut point) and
+    // `s2c_cmd` drawn from valid ENIP commands. For each case drive:
+    //   1. Partial c2s delivery (bytes 0..split_offset) → stashed in carry_c2s
+    //   2. Complete s2c frame → carry_s2c used; pdu_count == 1, parse_errors == 0
+    //   3. Completing c2s bytes (split_offset..end) → carry_c2s prepended; pdu_count == 2
+    // Assert both carries drained after completion.
+    //
+    // With stub (single carry): the s2c delivery would prepend c2s carry → garbled frame →
+    // pdu_count != 2 OR parse_errors > 0 → FAIL (RED).
+    //
+    // Traces: VP-033 (BC-2.17.016 v2.0 Invariant 7; EC-010); AC-139-005.
+    proptest! {
+        #[test]
+        fn proptest_vp033_direction_isolation_pdu_count(
+            split_offset in 1usize..23,
+            s2c_cmd in s2c_cmd_strategy(),
+        ) {
+            // c2s frame: minimal ENIP (24 bytes, length=0 → complete frame).
+            // Split at split_offset: first delivery is partial header (< 24 bytes).
+            let c2s_frame = build_minimal_enip_frame(0x0065u16);
+            let s2c_frame = build_minimal_enip_frame(s2c_cmd);
 
-        // Interleaved run.
-        let mut a_interleaved = make_analyzer();
-        a_interleaved.on_data(
-            key.clone(),
-            &partial_enip_24(0x0065),
-            0,
-            Direction::ClientToServer,
-        );
-        a_interleaved.on_data(
-            key.clone(),
-            &complete_enip_28(0x0065),
-            0,
-            Direction::ServerToClient,
-        );
-        a_interleaved.on_data(key.clone(), &[0u8; 4], 0, Direction::ClientToServer);
-        let interleaved_pdu = a_interleaved
-            .flows
-            .get(&key)
-            .map(|f| f.pdu_count)
-            .unwrap_or(0);
-        let interleaved_errors = a_interleaved
-            .flows
-            .get(&key)
-            .map(|f| f.parse_errors)
-            .unwrap_or(u64::MAX);
+            let key = make_key();
+            let mut analyzer = make_analyzer();
 
-        // C2S-only run.
-        let mut a_c2s = make_analyzer();
-        a_c2s.on_data(
-            key.clone(),
-            &partial_enip_24(0x0065),
-            0,
-            Direction::ClientToServer,
-        );
-        a_c2s.on_data(key.clone(), &[0u8; 4], 0, Direction::ClientToServer);
-        let c2s_pdu = a_c2s.flows.get(&key).map(|f| f.pdu_count).unwrap_or(0);
+            // Delivery 1: partial c2s header (bytes 0..split_offset) → stashed in carry_c2s.
+            analyzer.on_data(key.clone(), &c2s_frame[..split_offset], 0, Direction::ClientToServer);
+            {
+                let flow = analyzer.flows.get(&key).expect("flow exists");
+                prop_assert_eq!(flow.pdu_count, 0, "partial delivery must not complete a PDU");
+                prop_assert_eq!(flow.parse_errors, 0, "partial delivery must not produce parse errors");
+            }
 
-        // S2C-only run.
-        let mut a_s2c = make_analyzer();
-        a_s2c.on_data(
-            key.clone(),
-            &complete_enip_28(0x0065),
-            0,
-            Direction::ServerToClient,
-        );
-        let s2c_pdu = a_s2c.flows.get(&key).map(|f| f.pdu_count).unwrap_or(0);
+            // Delivery 2: complete s2c frame → carry_s2c used (carry_c2s NOT involved).
+            analyzer.on_data(key.clone(), &s2c_frame, 0, Direction::ServerToClient);
+            {
+                let flow = analyzer.flows.get(&key).expect("flow exists");
+                prop_assert_eq!(flow.pdu_count, 1, "s2c frame must complete exactly one PDU");
+                prop_assert_eq!(flow.parse_errors, 0, "s2c delivery must not produce parse errors");
+            }
 
-        assert_eq!(
-            interleaved_pdu,
-            c2s_pdu + s2c_pdu,
-            "interleaved pdu_count ({interleaved_pdu}) must equal c2s ({c2s_pdu}) + s2c ({s2c_pdu})"
-        );
-        assert_eq!(
-            interleaved_errors, 0,
-            "interleaved run must have zero parse_errors (direction isolation prevents carry contamination)"
-        );
+            // Delivery 3: completing c2s bytes (split_offset..end) → carry_c2s prepended.
+            analyzer.on_data(key.clone(), &c2s_frame[split_offset..], 0, Direction::ClientToServer);
+            {
+                let flow = analyzer.flows.get(&key).expect("flow exists");
+                prop_assert_eq!(flow.pdu_count, 2, "c2s frame must complete the second PDU; total == 2");
+                prop_assert_eq!(flow.parse_errors, 0, "completing c2s delivery must not produce parse errors");
+                prop_assert!(flow.carry_c2s.is_empty(), "carry_c2s must be drained after complete frame");
+                prop_assert!(flow.carry_s2c.is_empty(), "carry_s2c must be drained after complete frame");
+            }
+        }
+
+        /// VP-033 proptest: interleaved pdu_count equals sum of independent same-direction runs.
+        ///
+        /// Strategy: generate `split_offset in 1..23`, `c2s_cmd`, and `s2c_cmd` from valid
+        /// command sets. Assert: interleaved run pdu_count == c2s_only + s2c_only, and
+        /// interleaved parse_errors == c2s_only_errors + s2c_only_errors.
+        ///
+        /// Traces: VP-033 (BC-2.17.016 v2.0 Invariant 7); AC-139-005.
+        #[test]
+        fn proptest_vp033_independent_run_equivalence(
+            split_offset in 1usize..23,
+            c2s_cmd in c2s_cmd_strategy(),
+            s2c_cmd in s2c_cmd_strategy(),
+        ) {
+            let c2s_frame = build_minimal_enip_frame(c2s_cmd);
+            let s2c_frame = build_minimal_enip_frame(s2c_cmd);
+            let key = make_key();
+
+            // Interleaved run.
+            let mut interleaved = make_analyzer();
+            interleaved.on_data(key.clone(), &c2s_frame[..split_offset], 100, Direction::ClientToServer);
+            interleaved.on_data(key.clone(), &s2c_frame, 100, Direction::ServerToClient);
+            interleaved.on_data(key.clone(), &c2s_frame[split_offset..], 100, Direction::ClientToServer);
+            let interleaved_pdu = interleaved.flows.get(&key).map(|f| f.pdu_count).unwrap_or(0);
+            let interleaved_errors = interleaved.flows.get(&key).map(|f| f.parse_errors).unwrap_or(u64::MAX);
+
+            // Independent c2s-only run.
+            let mut c2s_only = make_analyzer();
+            c2s_only.on_data(key.clone(), &c2s_frame[..split_offset], 100, Direction::ClientToServer);
+            c2s_only.on_data(key.clone(), &c2s_frame[split_offset..], 100, Direction::ClientToServer);
+            let c2s_pdu = c2s_only.flows.get(&key).map(|f| f.pdu_count).unwrap_or(0);
+            let c2s_errors = c2s_only.flows.get(&key).map(|f| f.parse_errors).unwrap_or(u64::MAX);
+
+            // Independent s2c-only run.
+            let mut s2c_only = make_analyzer();
+            s2c_only.on_data(key.clone(), &s2c_frame, 100, Direction::ServerToClient);
+            let s2c_pdu = s2c_only.flows.get(&key).map(|f| f.pdu_count).unwrap_or(0);
+            let s2c_errors = s2c_only.flows.get(&key).map(|f| f.parse_errors).unwrap_or(u64::MAX);
+
+            prop_assert_eq!(
+                interleaved_pdu,
+                c2s_pdu + s2c_pdu,
+                "interleaved pdu_count must equal sum of independent runs"
+            );
+            prop_assert_eq!(
+                interleaved_errors,
+                c2s_errors + s2c_errors,
+                "interleaved parse_errors must equal sum of independent runs"
+            );
+        }
     }
 }
 
@@ -8400,6 +8380,7 @@ mod vp033_carry_direction_isolation {
 // ---------------------------------------------------------------------------
 
 mod vp034_window_monotonic_no_spurious_reset {
+    use proptest::prelude::*;
     use std::net::{IpAddr, Ipv4Addr};
     use wirerust::analyzer::enip::EnipAnalyzer;
     use wirerust::reassembly::flow::FlowKey;
@@ -8457,43 +8438,64 @@ mod vp034_window_monotonic_no_spurious_reset {
         vec![0xFF; 24] // invalid command → parse_errors++
     }
 
-    /// VP-034 Sub-A: write-burst window — backwards ts does not reset window.
-    ///
-    /// saturating_sub(backwards_ts, window_start) == 0 → NOT > 1 → no reset.
-    /// With wrapping_sub (stub): large value > 1 → window reset → T0836 doesn't fire → FAIL.
-    ///
-    /// Traces: VP-034 Sub-A proptest_vp034_sub_a_write_burst_backwards_ts_no_reset.
-    #[test]
-    fn proptest_vp034_sub_a_write_burst_backwards_ts_no_reset() {
-        let key = make_key();
-        let mut analyzer = make_analyzer();
-        let wf = write_frame();
+    // VP-034 Sub-A proptest: T0836 write-burst window — backwards ts does NOT reset window.
+    //
+    // Strategy: generate `(window_start, backwards_ts)` with
+    // `prop_assume!(backwards_ts <= window_start)`. Pre-arm the window with 50 writes,
+    // deliver one write at `backwards_ts`, then one more. Assert T0836 fires.
+    //
+    // saturating_sub(backwards_ts, window_start) == 0 → NOT > 1 → no reset.
+    // With wrapping_sub (stub): large value > 1 → window reset → T0836 doesn't fire → FAIL.
+    //
+    // Traces: VP-034 Sub-A (BC-2.17.012 v1.2 Postcondition 4, EC-009); AC-139-005.
+    proptest! {
+        #[test]
+        fn proptest_vp034_sub_a_write_burst_backwards_ts_no_reset(
+            window_start in 1u32..u32::MAX,
+            backwards_ts in 0u32..=u32::MAX,
+        ) {
+            prop_assume!(backwards_ts <= window_start);
 
-        // Arm the window with 50 writes at ts=100.
-        for _ in 0..50 {
-            analyzer.on_data(key.clone(), &wf, 100, Direction::ClientToServer);
+            // Verify the arithmetic invariant: saturating_sub returns 0 for backwards ts.
+            let elapsed = backwards_ts.saturating_sub(window_start);
+            prop_assert_eq!(elapsed, 0,
+                "saturating_sub must return 0 for backwards ts (T0836 1s window)");
+            prop_assert!(elapsed <= 1,
+                "elapsed=0 must NOT trigger the > 1 window reset");
+
+            // Drive on_data to confirm the full behavioral invariant.
+            // make_analyzer uses write_burst_threshold=50; we deliver 52 writes so T0836 fires.
+            let key = make_key();
+            let mut analyzer = make_analyzer(); // write_burst_threshold = 50
+            let wf = write_frame();
+
+            // Arm the window with 50 writes at window_start.
+            for _ in 0..50 {
+                analyzer.on_data(key.clone(), &wf, window_start, Direction::ClientToServer);
+            }
+            // Backwards-ts write: must NOT reset (saturating_sub gives 0, not > 1).
+            analyzer.on_data(key.clone(), &wf, backwards_ts, Direction::ClientToServer);
+            // One more write at window_start → count should be 52 → T0836 fires.
+            analyzer.on_data(key.clone(), &wf, window_start, Direction::ClientToServer);
+
+            let t0836 = analyzer
+                .all_findings
+                .iter()
+                .find(|f| f.mitre_techniques.iter().any(|t| t == "T0836"));
+            prop_assert!(
+                t0836.is_some(),
+                "T0836 must fire: backwards-ts must not reset the write-burst window (VP-034 Sub-A)"
+            );
         }
-        // Backwards ts=50.
-        analyzer.on_data(key.clone(), &wf, 50, Direction::ClientToServer);
-        // One more at ts=100.
-        analyzer.on_data(key.clone(), &wf, 100, Direction::ClientToServer);
-
-        let t0836 = analyzer
-            .all_findings
-            .iter()
-            .find(|f| f.mitre_techniques.iter().any(|t| t == "T0836"));
-        assert!(
-            t0836.is_some(),
-            "T0836 must fire: VP-034 Sub-A backwards-ts write-burst no-reset"
-        );
     }
 
     /// VP-034 Sub-A EC-X2 direct repro: 50u32.saturating_sub(100) == 0.
     ///
-    /// This test is GREEN-BY-DESIGN (pure arithmetic, no I/O, no branching, 1 assertion).
-    /// It documents the correct value vs. the bug value for code-review clarity.
+    /// Deterministic representative-case regression guard (not a generated proptest);
+    /// name retained per AC-139-005 citation. Documents correct vs. bug arithmetic.
     ///
-    /// Traces: VP-034 Sub-A proptest_vp034_sub_a_ec_x2_repro_t0836.
+    /// GREEN-BY-DESIGN: pure arithmetic, no I/O, no branching, 1 assertion.
+    /// Traces: VP-034 Sub-A proptest_vp034_sub_a_ec_x2_repro_t0836; AC-139-005.
     #[test]
     fn proptest_vp034_sub_a_ec_x2_repro_t0836() {
         // GREEN-BY-DESIGN: pure arithmetic assertion. Zero branching, no I/O, 1 line.
@@ -8504,61 +8506,102 @@ mod vp034_window_monotonic_no_spurious_reset {
         );
     }
 
-    /// VP-034 Sub-B: error-rate window — backwards ts does not reset window.
-    ///
-    /// Traces: VP-034 Sub-B proptest_vp034_sub_b_error_rate_backwards_ts_no_reset.
-    #[test]
-    fn proptest_vp034_sub_b_error_rate_backwards_ts_no_reset() {
-        let key = make_key();
-        let mut analyzer = make_analyzer();
-        let ef = error_frame();
+    // VP-034 Sub-B proptest: T0888 error-rate window — backwards ts does NOT reset window.
+    //
+    // Strategy: generate `(window_start, backwards_ts)` with
+    // `prop_assume!(backwards_ts <= window_start)`.
+    // saturating_sub(backwards_ts, window_start) == 0 → NOT > 10 → no reset.
+    //
+    // Traces: VP-034 Sub-B (BC-2.17.008 v1.3 Postcondition 4, EC-009); AC-139-005.
+    proptest! {
+        #[test]
+        fn proptest_vp034_sub_b_error_rate_backwards_ts_no_reset(
+            window_start in 1u32..u32::MAX,
+            backwards_ts in 0u32..=u32::MAX,
+        ) {
+            prop_assume!(backwards_ts <= window_start);
 
-        for _ in 0..5 {
-            analyzer.on_data(key.clone(), &ef, 100, Direction::ClientToServer);
+            let elapsed = backwards_ts.saturating_sub(window_start);
+            prop_assert_eq!(elapsed, 0,
+                "saturating_sub must return 0 for backwards ts (T0888 10s window)");
+            prop_assert!(elapsed <= 10,
+                "elapsed=0 must NOT trigger the > 10 second window reset");
+
+            // Drive on_data to confirm behavioral invariant.
+            let key = make_key();
+            let mut analyzer = make_analyzer(); // error_rate_threshold = 5
+            let ef = error_frame();
+
+            for _ in 0..5 {
+                analyzer.on_data(key.clone(), &ef, window_start, Direction::ClientToServer);
+            }
+            analyzer.on_data(key.clone(), &ef, backwards_ts, Direction::ClientToServer);
+            analyzer.on_data(key.clone(), &ef, window_start, Direction::ClientToServer);
+
+            let t0888 = analyzer.all_findings.iter().find(|f| {
+                f.mitre_techniques.iter().any(|t| t == "T0888")
+                    && f.summary.contains("error-response burst")
+            });
+            prop_assert!(
+                t0888.is_some(),
+                "T0888 must fire: backwards-ts must not reset the error-rate window (VP-034 Sub-B)"
+            );
         }
-        analyzer.on_data(key.clone(), &ef, 50, Direction::ClientToServer);
-        analyzer.on_data(key.clone(), &ef, 100, Direction::ClientToServer);
-
-        let t0888 = analyzer.all_findings.iter().find(|f| {
-            f.mitre_techniques.iter().any(|t| t == "T0888")
-                && f.summary.contains("error-response burst")
-        });
-        assert!(
-            t0888.is_some(),
-            "T0888 must fire: VP-034 Sub-B backwards-ts error-rate no-reset"
-        );
     }
 
-    /// VP-034 Sub-C: malformed window — backwards ts does not reset window.
-    ///
-    /// Traces: VP-034 Sub-C proptest_vp034_sub_c_malformed_window_backwards_ts_no_reset.
-    #[test]
-    fn proptest_vp034_sub_c_malformed_window_backwards_ts_no_reset() {
-        let key = make_key();
-        let mut analyzer = make_analyzer();
-        let mf = malformed_frame();
+    // VP-034 Sub-C proptest: T0814 malformed window — backwards ts does NOT reset window;
+    // operator is strict `>` (NOT `>=`).
+    //
+    // Strategy: generate `(window_start, backwards_ts)` with
+    // `prop_assume!(backwards_ts <= window_start)`.
+    // saturating_sub(backwards_ts, window_start) == 0 → NOT > 300 → no reset.
+    //
+    // Traces: VP-034 Sub-C (BC-2.17.018 v1.1 Postcondition 5, EC-008); AC-139-005.
+    proptest! {
+        #[test]
+        fn proptest_vp034_sub_c_malformed_window_backwards_ts_no_reset(
+            window_start in 1u32..u32::MAX,
+            backwards_ts in 0u32..=u32::MAX,
+        ) {
+            prop_assume!(backwards_ts <= window_start);
 
-        analyzer.on_data(key.clone(), &mf, 100, Direction::ClientToServer);
-        analyzer.on_data(key.clone(), &mf, 100, Direction::ClientToServer);
-        // Backwards ts=50 — must NOT reset window (saturating_sub gives 0, not > 300).
-        analyzer.on_data(key.clone(), &mf, 50, Direction::ClientToServer);
+            let elapsed = backwards_ts.saturating_sub(window_start);
+            prop_assert_eq!(elapsed, 0,
+                "saturating_sub must return 0 for backwards ts (T0814 300s window)");
+            prop_assert!(elapsed <= 300,
+                "elapsed=0 must NOT trigger the malformed window reset (> 300)");
 
-        let t0814 = analyzer
-            .all_findings
-            .iter()
-            .find(|f| f.mitre_techniques.iter().any(|t| t == "T0814"));
-        assert!(
-            t0814.is_some(),
-            "T0814 must fire: VP-034 Sub-C backwards-ts malformed no-reset"
-        );
+            // Drive on_data to confirm behavioral invariant.
+            // make_analyzer uses error_rate_threshold=5; T0814 fires after 3 malformed frames
+            // (threshold=5 → malformed_threshold applies separately in the implementation).
+            let key = make_key();
+            let mut analyzer = make_analyzer();
+            let mf = malformed_frame();
+
+            // Two malformed frames at window_start to arm the window.
+            analyzer.on_data(key.clone(), &mf, window_start, Direction::ClientToServer);
+            analyzer.on_data(key.clone(), &mf, window_start, Direction::ClientToServer);
+            // Backwards ts: must NOT reset (saturating_sub gives 0, not > 300).
+            analyzer.on_data(key.clone(), &mf, backwards_ts, Direction::ClientToServer);
+
+            let t0814 = analyzer
+                .all_findings
+                .iter()
+                .find(|f| f.mitre_techniques.iter().any(|t| t == "T0814"));
+            prop_assert!(
+                t0814.is_some(),
+                "T0814 must fire: backwards-ts must not reset the malformed window (VP-034 Sub-C)"
+            );
+        }
     }
 
     /// VP-034 Sub-C operator pin: elapsed==300 does NOT expire under strict `> 300`.
     ///
-    /// GREEN-BY-DESIGN: pure arithmetic. 300u32.saturating_sub(0) = 300, which is NOT > 300.
-    /// 301u32.saturating_sub(0) = 301, which IS > 300.
+    /// Deterministic representative-case regression guard (not a generated proptest);
+    /// name retained per AC-139-005 citation. Confirms strict `>` semantics (EC-X4 pin).
     ///
-    /// Traces: VP-034 Sub-C proptest_vp034_sub_c_malformed_window_operator_pin; EC-X4.
+    /// GREEN-BY-DESIGN: pure arithmetic, no I/O, no branching, 2 assertions.
+    /// Traces: VP-034 Sub-C proptest_vp034_sub_c_malformed_window_operator_pin; EC-X4; AC-139-005.
     #[test]
     fn proptest_vp034_sub_c_malformed_window_operator_pin() {
         // GREEN-BY-DESIGN: pure arithmetic, no I/O, no branching, 2 lines.
