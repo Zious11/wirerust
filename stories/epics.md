@@ -1,6 +1,6 @@
 ---
 document_type: epics
-version: "1.8"
+version: "1.9"
 status: draft
 producer: story-writer
 phase: 2
@@ -13,6 +13,7 @@ modified:
   - "2026-06-19 v1.6: FINDING-002 correction — BC-2.11.030–034 (5 grouped-collapse BCs added in BC-INDEX v1.44 for STORY-119) were missing from epics.md. Added to E-18 row. total_bcs corrected 297→302 (verified against BC-INDEX v1.52 ground truth: 302 active BCs). Arithmetic Verification and Coverage Confirmed updated."
   - "2026-06-20 v1.7: FE-001 INTEGRATE sub-burst — E-19 pcapng Capture-Format Reader Support added (STORY-123..128, 6 stories, 37 points, Waves 51–56). No new BCs — BC-2.01.009..018 and BC-2.12.011 are pre-existing (counted in E-1 and E-9 respectively since v1.5). Estimated Story Count Summary updated: E-19 row added (6), Total 72→78. total_bcs unchanged at 302."
   - "2026-06-24 v1.8: E-20 EtherNet/IP ENIP/CIP Analyzer INTEGRATE sub-burst (issue #316, feature-enip-v0.11.0) — E-20 epic added (STORY-130..138, 9 stories, 66 points, Waves 58–61). 26 new BCs: BC-2.17.001..026 (SS-17 EtherNet/IP analyzer). total_bcs 302→328. Estimated Story Count Summary updated: E-20 row added (9), Total 78→87. Coverage Check Per-Epic BC table updated with E-20 row. Arithmetic Verification and Coverage Confirmed updated."
+  - "2026-06-27 v1.9: RULING-DNP3-SIBLING-001 fix story — STORY-140 added to E-15 (wave 63, 8 pts, dep=STORY-139). No new BCs (BC-2.15.016/010/014/015 are pre-existing, amended by ruling). E-15 story count 5→6. E-15 points 47→55. Estimated Story Count Summary E-15 row 5→6, Total 88→89. total_bcs unchanged at 328."
 total_bcs: 328
 traces_to:
   - .factory/specs/prd.md
@@ -403,16 +404,19 @@ group here.
   for unauthorized control commands (T1692.001), restart/stop commands (T0814), write-
   register commands (T0836), block-control inference (T1691.001), process impact (T0827),
   and anomaly conditions (broadcast, unsolicited, malformed frames) — with per-flow state
-  tracking, a 292-byte carry buffer for segment-spanning frame reassembly, and a tunable
-  `--dnp3-direct-operate-threshold` CLI flag.
+  tracking, a 292-byte carry buffer per direction for segment-spanning frame reassembly
+  (carry split per RULING-DNP3-SIBLING-001: `carry_c2s`/`carry_s2c`), backwards-clock-safe
+  window expiry arithmetic (`saturating_sub`), and a tunable `--dnp3-direct-operate-threshold`
+  CLI flag.
 - **BCs:**
   BC-2.15.001, BC-2.15.002, BC-2.15.003, BC-2.15.004, BC-2.15.005, BC-2.15.006,
   BC-2.15.007, BC-2.15.008, BC-2.15.009, BC-2.15.010, BC-2.15.011, BC-2.15.012,
   BC-2.15.013, BC-2.15.014, BC-2.15.015, BC-2.15.016, BC-2.15.017, BC-2.15.018,
   BC-2.15.019, BC-2.15.020, BC-2.15.021, BC-2.15.022, BC-2.15.023, BC-2.15.024
 - **Subsystems touched:** SS-15 (new DNP3 analyzer), SS-05 (dispatcher Rule 6), SS-12 (CLI threshold flag)
-- **Estimated stories:** 5 (STORY-106..110)
+- **Estimated stories:** 6 (STORY-106..110, STORY-140)
 - **Feature issue:** #8
+- **STORY-140 (wave 63):** RULING-DNP3-SIBLING-001 detection-correctness fixes — per-direction carry split (`carry_c2s`/`carry_s2c`), `on_data` direction threading, `saturating_sub` window expiry (8 sites: 60s/10s/300s), 300s operator pin (`>= CORRELATION_WINDOW_SECS` → `> CORRELATION_WINDOW_SECS`), `resolve_master_ip` direction fix-along. BCs: BC-2.15.016 v2.0 + BC-2.15.010 v1.8 + BC-2.15.014 v2.1 + BC-2.15.015 v2.0. VPs: VP-035 + VP-036. Release blocker per RULING-DNP3-SIBLING-001 (2026-06-27).
 
 **Rationale:** DNP3 analysis (24 BCs, IEEE 1815-2012 binary protocol) decomposes into
 five natural layers matching the ADR-007 design decisions: (1) pure-core parse + FC
@@ -575,10 +579,10 @@ vs. a linear chain by 3 waves.
 | E-12 | 3           |
 | E-13 | 2           |
 | E-14 | 4           |
-| E-15 | 5           |
+| E-15 | 6           |
 | E-16 | 5           |
 | E-17 | 2           |
 | E-18 | 2           |
 | E-19 | 6           |
 | E-20 | 10          |
-| **Total** | **88** |
+| **Total** | **89** |
