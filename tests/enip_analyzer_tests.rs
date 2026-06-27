@@ -5183,8 +5183,10 @@ mod frame_walk {
     ///   - Frame-skip: cursor=624, BREAK. carry=buf[624..]=28 bytes (valid frame stashed).
     ///   - Valid frame is NEVER processed: pdu_count=0.
     ///
-    /// This test is RED under current `break` (pdu_count=0, carry.len()==28)
-    /// and GREEN under correct `continue` (pdu_count=1, carry.is_empty()).
+    /// This test was RED under the historical `break` frame-walk semantics
+    /// (pdu_count=0, carry.len()==28); it is GREEN under the ratified `continue`
+    /// semantics (pdu_count=1, carry.is_empty()) (RULING-137-001).
+    /// It guards against regression to `break`.
     ///
     /// Traces: BC-2.17.016 Postcondition 1 (frame-skip path); RULING-137-001 §3.1;
     ///         AC-137-003; EC-010.
@@ -5251,8 +5253,9 @@ mod frame_walk {
     ///   - Loop iter 1: invalid, cursor=1, BREAK. carry=buf[1..]=28 bytes (valid frame stashed).
     ///   - pdu_count=0.
     ///
-    /// This test is RED under current `break` (pdu_count=0) and GREEN under correct `continue`
-    /// (pdu_count=1).
+    /// This test was RED under the historical `break` frame-walk semantics (pdu_count=0);
+    /// it is GREEN under the ratified `continue` semantics (pdu_count=1) (RULING-137-001).
+    /// It guards against regression to `break`.
     ///
     /// Traces: BC-2.17.016 Postcondition 1 (byte-walk resync); RULING-137-001 §3.2;
     ///         AC-137-003; EC-012.
@@ -5311,7 +5314,9 @@ mod frame_walk {
     /// Under CORRECT `continue`: 24 byte-walk iterations, then process valid frame at pos 24.
     ///   parse_errors=24. pdu_count=1. T0814 fires. carry=empty.
     ///
-    /// This test is RED under current `break` (pdu_count=0, parse_errors=1).
+    /// This test was RED under the historical `break` frame-walk semantics
+    /// (pdu_count=0, parse_errors=1); it is GREEN under the ratified `continue` semantics
+    /// (pdu_count=1, parse_errors=24) (RULING-137-001). It guards against regression to `break`.
     ///
     /// Traces: BC-2.17.016 Postcondition 1; BC-2.17.018 Postconditions 1–4; RULING-137-001 §3.2;
     ///         AC-137-003; AC-137-004; EC-012.
@@ -7886,6 +7891,15 @@ mod direction_and_clock {
             flow.carry_s2c.len(),
             0,
             "carry_s2c must be empty after the complete s2c frame was processed"
+        );
+        // EC-X1 false-positive guard (RULING-EDGECASE-001 §6): the single CIP error response
+        // is below the error_burst_threshold of 5, so T0888 must NOT fire. If a regression
+        // re-introduces cross-direction splicing that emits a spurious finding, this assertion
+        // catches it.
+        assert!(
+            analyzer.all_findings.is_empty(),
+            "EC-X1 false-positive guard: no spurious finding on the direction-isolated path \
+             (RULING-EDGECASE-001 §6)"
         );
     }
 
