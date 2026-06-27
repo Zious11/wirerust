@@ -273,6 +273,67 @@ They live gitignored under `tests/fixtures/local-samples/` — never committed.
 - **Full research write-up:** The evaluation methodology, candidate evaluation, and rationale
   for all selections above is documented at `.factory/research/e2e-pcap-candidates.md`.
 
+## EtherNet/IP + CIP captures (WAVE59-E2E-001)
+
+Real-world ENIP/CIP captures used by `tests/enip_e2e_real_pcaps_tests.rs` for full-pipeline
+E2E validation of the ENIP analyzer (SS-17). All are auto-fetchable via `bin/fetch-e2e-pcaps`.
+
+### Sources
+
+Two sources used (per task license constraints — MIT + CC-BY-4.0 only; no-license captures excluded):
+
+- **scy-phy/bro-cip-enip** (MIT): SWaT testbed captures from SUTD SCy-Phy lab.
+  `testing/btest/Traces/enip/` at `github.com/scy-phy/bro-cip-enip`.
+- **ITI/ICS-Security-Tools** (CC-BY-4.0): `pcaps/EthernetIP/` at `github.com/ITI/ICS-Security-Tools`.
+  Attribution: ICS Security Tools, Illinois Institute of Technology (ITI). License: CC-BY-4.0.
+
+### Captures
+
+| File | Size | sha256 | Source | License | Holdout | Test |
+|------|------|--------|--------|---------|---------|------|
+| `enip_test.pcap` | 925 B | `0ba6c01fde28912e9f890d839b991cff71cca8e8259e1d93e9c3a312c43bc255` | ITI/ICS-Security-Tools | CC-BY-4.0 | HS-114 | `test_e2e_BC_2_17_enip_test_pcap_T0846_listidentity` |
+| `enip_enum_attr_PLC.pcapng` | 73 KB | `26b282d14a6399b752bccde3201a84c16df9c86792d55be600675d368dbca047` | scy-phy/bro-cip-enip | MIT | HS-115 | `test_e2e_BC_2_17_enip_enum_attr_T0888_identity_reads` |
+| `enip_connect_to_plc1_and_upload.pcapng` | 3.2 MB | `4d05d9433a477d95c4eb8a4f9ce6aed13bed84e9c429400ef87c2919f5b2d7fc` | scy-phy/bro-cip-enip | MIT | HS-116 | `test_e2e_BC_2_17_enip_connect_upload_forwardopen_anomaly_empty_mitre` |
+| `enip_read_tags.pcapng` | 3.0 KB | `154870500484c72f64dddf16b94810ddb218d721bf049ca4ba314a9377c09f9d` | scy-phy/bro-cip-enip | MIT | HS-122 Case A | `test_e2e_BC_2_17_enip_read_tags_zero_findings_no_false_positives` |
+| `enip_metasploit.pcapng` | 374 KB | `da409883fbbf9c32a316071029c9984f73dece19f02cf0b6c792771fae8ef5ba` | scy-phy/bro-cip-enip | MIT | HS-119 + HS-111/112 | `test_e2e_BC_2_17_enip_metasploit_zero_T0858_T0816_correct_scope` |
+| `EthernetIP-CIP.pcap` | 2.0 MB | `c50b510b3242f94c8aed9a4b6723962f182d04feca8a8dac09a96a135649461d` | ITI/ICS-Security-Tools | CC-BY-4.0 | HS-110 + HS-120 + HS-122 | `test_e2e_BC_2_17_ethernet_ip_cip_large_clean_no_panic` |
+
+### Ground-truth outcomes asserted
+
+| File | Findings | Key assertions |
+|------|----------|---------------|
+| `enip_test.pcap` | 1 × T0846 (Likely/High/Reconnaissance) | total_pdu_count=2, flows_analyzed=1, parse_errors=0, command_distribution={0x0063:2} |
+| `enip_enum_attr_PLC.pcapng` | 202 × T0888 (201 Likely/High + 1 Possible/Medium, all Reconnaissance) | total_pdu_count=406, error_count=190, parse_errors=0, command_distribution={0x0065:2,0x006F:404} |
+| `enip_connect_to_plc1_and_upload.pcapng` | 17 × Anomaly/Possible/Low, empty mitre_techniques | total_pdu_count=4094, parse_errors=0, error_count=0 |
+| `enip_read_tags.pcapng` | 0 (no false positives) | total_pdu_count=8, flows_analyzed=2, parse_errors=0 |
+| `enip_metasploit.pcapng` | 0 T0858/T0816 (correct per HS-119) | total_pdu_count=13, flows_analyzed=4, parse_errors=0 |
+| `EthernetIP-CIP.pcap` | 0 | total_pdu_count=8799, flows_analyzed=4, parse_errors=0, command_distribution={0x006F:438,0x0070:8361} |
+
+### Manifest discrepancy (enip_enum_attr_PLC.pcapng)
+
+`run-manifest.md` stated "T0888 (x202, verdict=Likely, confidence=High)" — this is imprecise.
+The actual JSON output has **201 Likely/High (Pattern A: Identity-read requests) + 1 Possible/Medium
+(Pattern B: error-burst)** at finding[15]. The test accurately reflects the real JSON output.
+
+### Attribution
+
+- **scy-phy/bro-cip-enip**: SUTD SCy-Phy lab. License: MIT. Repo:
+  `https://github.com/scy-phy/bro-cip-enip`. All 4 files from `testing/btest/Traces/enip/`.
+- **ITI/ICS-Security-Tools**: ICS Security Tools, Illinois Institute of Technology (ITI).
+  License: CC-BY-4.0. Repo: `https://github.com/ITI/ICS-Security-Tools`.
+  Files from `pcaps/EthernetIP/`. `EthernetIP-CIP.pcap` sourced from CloudShark per ITI README.
+
+### Direct download URLs (ENIP captures)
+
+| File | URL |
+|------|-----|
+| `enip_test.pcap` | `https://raw.githubusercontent.com/ITI/ICS-Security-Tools/master/pcaps/EthernetIP/enip_test.pcap` |
+| `enip_enum_attr_PLC.pcapng` | `https://raw.githubusercontent.com/scy-phy/bro-cip-enip/master/testing/btest/Traces/enip/enip_enum_attr_PLC.pcapng` |
+| `enip_connect_to_plc1_and_upload.pcapng` | `https://raw.githubusercontent.com/scy-phy/bro-cip-enip/master/testing/btest/Traces/enip/enip_connect_to_plc1_and_upload.pcapng` |
+| `enip_read_tags.pcapng` | `https://raw.githubusercontent.com/scy-phy/bro-cip-enip/master/testing/btest/Traces/enip/enip_read_tags.pcapng` |
+| `enip_metasploit.pcapng` | `https://raw.githubusercontent.com/scy-phy/bro-cip-enip/master/testing/btest/Traces/enip/enip_metasploit.pcapng` |
+| `EthernetIP-CIP.pcap` | `https://raw.githubusercontent.com/ITI/ICS-Security-Tools/master/pcaps/EthernetIP/EthernetIP-CIP.pcap` |
+
 ## Adding a capture
 
 1. Drop the `.pcap` in `tests/fixtures/local-samples/` (gitignored).
