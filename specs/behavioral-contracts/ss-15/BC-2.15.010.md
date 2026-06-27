@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.7"
+version: "1.8"
 status: draft
 producer: product-owner
 timestamp: 2026-06-10T00:00:00Z
@@ -41,6 +41,7 @@ modified:
     Source (count=1) or Control-Class FC Exceeding Threshold Emits T1692.001'.
     No postcondition/invariant/EC content changed. — 2026-06-12"
   - "v1.7: F3 story-anchor back-fill. — 2026-06-14"
+  - "v1.8: RULING-DNP3-SIBLING-001 (2026-06-27): DRIFT-DNP3-CLOCK-001 fix — PC3 and PC4 window operator changed from wrapping_sub to saturating_sub; new EC-012 (backwards-clock no-spurious-reset) added. Under saturating_sub a backwards-timestamp packet yields elapsed=0, window NOT reset, burst accumulation preserved. — 2026-06-27"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -83,7 +84,7 @@ per detection window per flow. ADR-007 Decision 5.
 **Finding emission (when threshold is exceeded AND guard is not set):**
 3. When `flow.direct_operate_count > self.direct_operate_threshold`
    AND `flow.direct_operate_emitted == false`
-   AND the window has NOT expired (`now_ts.wrapping_sub(flow.window_start_ts) <= DETECTION_WINDOW_SECS`):
+   AND the window has NOT expired (`now_ts.saturating_sub(flow.window_start_ts) <= DETECTION_WINDOW_SECS`):
    - One `Finding` is pushed to `self.all_findings`:
      - `category: ThreatCategory::Execution`
      - `verdict: Verdict::Likely`
@@ -96,9 +97,12 @@ per detection window per flow. ADR-007 Decision 5.
    - `flow.direct_operate_emitted = true` (one-shot guard set).
 
 **Window expiry / reset:**
-4. When `now_ts.wrapping_sub(flow.window_start_ts) > DETECTION_WINDOW_SECS`:
+4. When `now_ts.saturating_sub(flow.window_start_ts) > DETECTION_WINDOW_SECS`:
    `flow.direct_operate_count = 1`, `flow.window_start_ts = now_ts`,
    `flow.direct_operate_emitted = false` — window resets; the incoming FC seeds the new window.
+   Under `saturating_sub`, a backwards-clock packet (`now_ts < window_start_ts`) yields
+   elapsed=0, which is NOT > DETECTION_WINDOW_SECS, so the window is NOT reset. Burst
+   accumulation is preserved against adversarially injected stale-timestamp packets.
 
 ## Invariants
 
@@ -164,6 +168,7 @@ The human should confirm whether 10/60s is appropriate for their OT environment 
 | EC-010 | Control-class FC from src=0x0099 with DIR=1 (master-direction; `is_master_frame(control)` = true, mask 0x80) on a flow where master_addrs_seen = [0x0001] (expected set established; 0x0099 not present) | Exactly ONE T1692.001 finding emitted at count=1, regardless of `direct_operate_count` vs `direct_operate_threshold`. Source-learning and unexpected-source check apply only to master-direction (DIR=1) frames per BC-2.15.016 PC5 corrected mask 0x80 (F-C-007). The snapshot `src_was_known = flow.master_addrs_seen.contains(&0x0099)` is false and `expected_set_established` is true — unexpected-source condition fires. Finding fields: `verdict=Verdict::Likely`, `confidence=Confidence::High`, summary contains "unexpected source" and "not in expected master set". `flow.unexpected_source_emitted = true` (one-shot flow-lifetime guard set). Subsequent Control FCs from 0x0099 on the same flow do NOT emit additional unexpected-source findings (guard is set). The burst-threshold check still runs and will fire independently if `direct_operate_count` later exceeds `direct_operate_threshold`. (F-F5-001 adjudication; see F-F5-001-unexpected-source-adjudication.md §1–2; F-C-007 DIR=1 qualifier) |
 
 | EC-011 | Redundant-SCADA-master topology: two legitimate master addresses (e.g., 0x0001 primary + 0x0002 backup) both issue Control FCs on the same flow (both with DIR=1, master-direction). After 0x0001 establishes the expected set (first Control FC — no finding), a Control FC from 0x0002 triggers the unexpected-source finding (T1692.001, Confidence=High) at count=1. | This is a conscious false-positive: the product has no configured-allowlist mechanism in v1 to suppress this. The one-shot flow-lifetime guard (`unexpected_source_emitted=true`) limits FP volume to one finding per flow. Operators at redundant-master sites should acknowledge this finding class; the future `--dnp3-expected-master` allowlist flag (DRIFT) will be the escape hatch. This edge case is an accepted limitation documented in the v1 design. (F-F5-001 REVISION 2 R2-2 redundant-master decision; F-A-002 resolution) |
+| EC-012 | 9 Control-class FCs at ts=100 (`window_start_ts=100`, `direct_operate_count=9`), then 1 Control-class FC at ts=50 (backwards clock) | `saturating_sub(50, 100) = 0`; elapsed=0, NOT > 60 → window NOT reset; `direct_operate_count` incremented to 10. Threshold is strict `>` not `>=`: count=10 is NOT > 10, so no finding yet. One more Control-class FC at ts=100: `direct_operate_count=11 > 10` → T1692.001 fires. No spurious window reset from the backwards-ts packet. (RULING-DNP3-SIBLING-001 §2.2; analogous to ENIP BC-2.17.008 EC-009) |
 
 ## Canonical Test Vectors
 

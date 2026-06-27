@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.9"
+version: "2.0"
 status: draft
 producer: product-owner
 timestamp: 2026-06-10T00:00:00Z
@@ -22,6 +22,7 @@ modified:
   - "v1.7: F3 story-anchor back-fill. — 2026-06-14"
   - "v1.8: Pass-28 F3-convergence Slice-B FIX 2: removed stale '(NEW...)' qualifiers from Architecture Anchors and Invariant 2 — all symbols shipped in STORY-109: MitreTactic::IcsImpact (src/mitre.rs:69), technique_info(\"T0827\") (src/mitre.rs:178), malformed_in_window (src/analyzer/dnp3.rs:235), malformed_anomaly_emitted (src/analyzer/dnp3.rs:237). — 2026-06-14"
   - "v1.9: F3-convergence consistency-sweep FIX B: Related BCs: added BC-2.15.024 reciprocal citation (BC-2.15.024 already cites BC-2.15.015 at Related BCs line 343 — composes with, malformed_in_window and malformed_anomaly_emitted owned by BC-2.15.024 and reset here at 300s expiry). — 2026-06-14"
+  - "v2.0: RULING-DNP3-SIBLING-001 (2026-06-27): DRIFT-DNP3-CLOCK-001 + DRIFT-DNP3-OP-001 fixes — (1) all wrapping_sub references in Description, PC2 window-expiry check, PC3 window-reset postcondition, and Invariant 6 changed to saturating_sub; (2) window-expiry operator changed from >= to > (DRIFT-DNP3-OP-001 operator pin — strict greater-than, consistent with all other DNP3 window checks); (3) new EC-010 (backwards-clock on 300s window, no spurious reset) added. Under saturating_sub + strict > operator: backwards-clock packet yields elapsed=0, NOT > 300 → window NOT reset, burst accumulation preserved. Packet at exactly elapsed=300s is the last in the current window (not the first of the new one), which is more intuitive for sustained-pattern correlation. — 2026-06-27"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -48,8 +49,8 @@ The `IcsImpact` tactic (new `MitreTactic::IcsImpact` variant, ADR-007 Decision 5
 the tactic for this finding.
 
 **This BC is the single reset owner** for the shared per-flow correlation window. When
-`now_ts.wrapping_sub(flow.correlation_window_start_ts) >= CORRELATION_WINDOW_SECS = 300s` **[F2-GATE:
-human to confirm]**, this handler resets ALL windowed correlated state together (six fields):
+`now_ts.saturating_sub(flow.correlation_window_start_ts) > CORRELATION_WINDOW_SECS = 300s` **[F2-GATE:
+human to confirm]** (RULING-DNP3-SIBLING-001 §2.2 + §2.3: `wrapping_sub` → `saturating_sub`, `>=` → `>`), this handler resets ALL windowed correlated state together (six fields):
 - `flow.restart_event_count = 0`
 - `flow.block_event_count = 0`
 - `flow.block_finding_emitted_this_window = false`
@@ -89,18 +90,22 @@ threshold (e.g., 5) misses shorter but still impactful attack sequences.
    single incident is not possible under the current architecture. This clarification makes
    the semantic intent explicit: three correlated events, not one event counted multiple times.
 2. The accumulated events occurred within `CORRELATION_WINDOW_SECS` (proposed: 300s) of
-   `flow.correlation_window_start_ts` — i.e., `now_ts.wrapping_sub(flow.correlation_window_start_ts) < CORRELATION_WINDOW_SECS`.
-   // wrapping_sub used for u32 second timestamps; wrap at ~136 years — effectively never, policy kept.
+   `flow.correlation_window_start_ts` — i.e., `now_ts.saturating_sub(flow.correlation_window_start_ts) < CORRELATION_WINDOW_SECS`.
+   // saturating_sub used for u32 second timestamps (RULING-DNP3-SIBLING-001 §2.2): backwards clock
+   // yields 0 (NOT >= 300), preserving burst accumulation. Genuine u32 rollover also saturates to 0.
 3. `flow.loss_of_control_emitted == false` (one-shot guard).
 4. `self.all_findings.len() < MAX_FINDINGS`.
 5. The triggering event (the Nth restart or block-command event that crossed the threshold) was
    just observed — this BC fires within the same `on_data` call that crosses the threshold.
 
 **Window expiry check** (evaluated at every on_data call for this flow, BEFORE the emission check):
-- If `now_ts.wrapping_sub(flow.correlation_window_start_ts) >= CORRELATION_WINDOW_SECS`: execute the window
+- If `now_ts.saturating_sub(flow.correlation_window_start_ts) > CORRELATION_WINDOW_SECS`: execute the window
   reset (see Description) and re-evaluate preconditions 1–5 with the freshly-reset state.
   (After reset, precondition 1 will be false unless the triggering event alone crosses the
-  threshold, which is impossible at threshold=3.)
+  threshold, which is impossible at threshold=3.) Under `saturating_sub`, a backwards-clock
+  packet (`now_ts < correlation_window_start_ts`) yields elapsed=0, NOT > 300 → window NOT
+  reset. The strict `>` operator means a packet at exactly elapsed=300s is the last of the
+  current window, not the first of the new one.
 
 ## Postconditions
 
@@ -115,8 +120,9 @@ threshold (e.g., 5) misses shorter but still impactful attack sequences.
 2. `flow.loss_of_control_emitted = true` (one-shot guard set).
 
 **Window reset postcondition** (when window expiry fires — separate from T0827 emission):
-3. When `now_ts.wrapping_sub(flow.correlation_window_start_ts) >= CORRELATION_WINDOW_SECS`:
-   // wrapping_sub used for u32 second timestamps; wrap at ~136 years — effectively never, policy kept.
+3. When `now_ts.saturating_sub(flow.correlation_window_start_ts) > CORRELATION_WINDOW_SECS`:
+   // saturating_sub + strict > (RULING-DNP3-SIBLING-001 §2.2 + §2.3): backwards clock yields 0,
+   // NOT > 300 → window NOT reset; burst accumulation preserved against stale-timestamp evasion.
    - `flow.restart_event_count = 0`
    - `flow.block_event_count = 0`
    - `flow.block_finding_emitted_this_window = false`
@@ -145,8 +151,9 @@ threshold (e.g., 5) misses shorter but still impactful attack sequences.
    events (below the T1691.001 threshold of 3) still contribute to this T0827 accumulator.
    A scenario of 2 block events + 1 restart correctly yields T0827 (combined count=3) even
    though no T1691.001 finding was emitted for the first 2 block events.
-6. **Single reset owner**: This BC (BC-2.15.015) owns the window-expiry reset logic. After
-   `CORRELATION_WINDOW_SECS = 300s` **[F2-GATE]** elapsed since `correlation_window_start_ts`,
+6. **Single reset owner**: This BC (BC-2.15.015) owns the window-expiry reset logic. When
+   `now_ts.saturating_sub(correlation_window_start_ts) > CORRELATION_WINDOW_SECS = 300s` **[F2-GATE]**
+   (RULING-DNP3-SIBLING-001 §2.2 + §2.3: `wrapping_sub` → `saturating_sub`, `>=` → `>`),
    ALL six windowed correlated-state fields reset together: `restart_event_count`,
    `block_event_count`, `block_finding_emitted_this_window`, `loss_of_control_emitted`,
    `malformed_in_window` (BC-2.15.024 windowed counter; shipped STORY-109), and
@@ -156,7 +163,8 @@ threshold (e.g., 5) misses shorter but still impactful attack sequences.
    `summarize()`. BC-2.15.011, BC-2.15.014, and BC-2.15.024 do NOT own separate window
    timers; they reference this single reset. This eliminates the contradiction where a 120s
    BLOCK_CMD_WINDOW_SECS reset (old v1.1 BC-2.15.014 design) would discard block events
-   before T0827 could see them.
+   before T0827 could see them. Under `saturating_sub` + strict `>`, a backwards-clock packet
+   yields elapsed=0 → window NOT reset; adversarial stale-timestamp evasion is closed.
 7. **Distinct impact events** (v1.4 clarification, sourced from
    dnp3-f2-scope-threshold-validation.md §Q3): the ≥3 combined guard is satisfied by DISTINCT
    impact events. A restart event (increment of `restart_event_count`) and a block-command
@@ -183,6 +191,7 @@ threshold (e.g., 5) misses shorter but still impactful attack sequences.
 | EC-007 | Single COLD_RESTART (count=1, threshold=3) | No T0827 (Invariant 1: must NOT fire from single event) |
 | EC-008 | 2 block events at t=0 and t=150s (no reset at t=120s), restart at t=200s | Both block events still in window (300s > 200s); `block_event_count=2`, `restart_event_count=1`; combined=3 → T0827 fires. This is the primary trace verifying the single-window fix: old 120s sub-window would have reset `block_event_count` at t=120s, making combined count=0+1=1 < threshold. |
 | EC-009 | 3 restarts > 300s apart (t=0, t=200, t=400) | Window expiry at 300s resets state; 3rd restart at t=400 is in new window with `restart_event_count=1`; no T0827 |
+| EC-010 | 2 restarts at ts=100 (`restart_event_count=2`, `correlation_window_start_ts=100`), then one event at ts=50 (backwards clock) | `saturating_sub(50, 100) = 0`; NOT > 300 → window NOT reset; `restart_event_count` still 2 on the backwards-ts call. Next event at ts=101 with another restart: `restart_event_count=3`; T0827 fires (3 ≥ threshold). No spurious window reset from the backwards-ts packet; burst accumulation preserved. (RULING-DNP3-SIBLING-001 §2.2 + §5.4; analogous to ENIP BC-2.17.018 EC-008) |
 
 ## Canonical Test Vectors
 

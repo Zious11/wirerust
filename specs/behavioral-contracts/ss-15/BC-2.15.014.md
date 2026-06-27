@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "2.0"
+version: "2.1"
 status: draft
 producer: product-owner
 timestamp: 2026-06-10T00:00:00Z
@@ -23,6 +23,7 @@ modified:
   - "v1.8: F3 story-anchor back-fill. — 2026-06-14"
   - "v1.9: Pass-28 F3-convergence Slice-B FIX 2: removed stale '(NEW; to be added in F4)' from Architecture Anchors T1691.001 arm — shipped in STORY-109 (src/mitre.rs:174 confirmed). — 2026-06-14"
   - "v2.0: F3-convergence consistency-sweep FIX A + FIX B: (A) EC-006 and Invariant 7 updated to the canonical SIX-field reset set (restart_event_count, block_event_count, block_finding_emitted_this_window, loss_of_control_emitted, malformed_in_window, malformed_anomaly_emitted) per BC-2.15.015 v1.5 Invariant 6 and src/analyzer/dnp3.rs maybe_expire_correlation_window lines 984-991. The old four-field enumeration predated BC-2.15.015 v1.5 which added malformed_in_window and malformed_anomaly_emitted. parse_errors is a LIFETIME counter and is NOT added to the reset set. (B) Related BCs: added BC-2.15.016 reciprocal citation (BC-2.15.016 already cites BC-2.15.014 at line 139). — 2026-06-14"
+  - "v2.1: RULING-DNP3-SIBLING-001 (2026-06-27): DRIFT-DNP3-CLOCK-001 fix — PC3 timeout check changed from wrapping_sub to saturating_sub; Invariant 2 rationale updated from wrapping_sub to saturating_sub with backwards-clock safety justification; new EC-009 (backwards-clock on pending-request timeout) added. Under saturating_sub a backwards-timestamp packet yields elapsed=0, NOT > BLOCK_CMD_TIMEOUT_SECS, timeout NOT fired, request remains pending. — 2026-06-27"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -74,9 +75,11 @@ The human should confirm whether 10s timeout and 3-of-300s threshold are appropr
 1. A Control-class request (FC in {0x03, 0x04, 0x05}) has been observed on a FIR=1 frame
    (BC-2.15.008 / BC-2.15.010). FC 0x06 (DIRECT_OPERATE_NR) is EXCLUDED — it expects no response by design. [SPEC: dnp3-research.md §8 "DIRECT_OPERATE_NR: do not map missing response to T1691.001"]
 2. The correlation key (flow_key + dest_addr + app_seq) has been recorded in `flow.pending_requests`.
-3. The timeout window has elapsed (`now_ts.wrapping_sub(request_ts) > BLOCK_CMD_TIMEOUT_SECS = 10`).
-   // wrapping_sub used for u32 second timestamps; wrap at ~136 years — effectively never, policy kept.
-   // Plain subtraction would panic under overflow-checks=true on out-of-order pcap replay (see BC-2.15.014 Inv 2).
+3. The timeout window has elapsed (`now_ts.saturating_sub(request_ts) > BLOCK_CMD_TIMEOUT_SECS = 10`).
+   // saturating_sub used for u32 second timestamps (RULING-DNP3-SIBLING-001 §2.2): under backwards clock
+   // (now_ts < request_ts), saturating_sub returns 0 — NOT > 10, so timeout is NOT spuriously fired.
+   // Burst accumulation is preserved against adversarially injected stale-timestamp packets.
+   // Plain subtraction would panic under overflow-checks=true on out-of-order pcap replay.
 4. No RESPONSE (FC 0x81) matching (dest_addr, app_seq) has been observed within the timeout.
 
 **Finding-emission preconditions** (applied AFTER the unconditional counter increment in Postcondition 1):
@@ -108,12 +111,12 @@ The human should confirm whether 10s timeout and 3-of-300s threshold are appropr
 ## Invariants
 
 1. **DIRECT_OPERATE_NR excluded**: FC 0x06 expects no response by spec design. Its "missing response" is NOT evidence of blocking. [SPEC: dnp3-research.md §8 FP caveat 3; dnp3-research.md §3.2]
-2. **Verdict::Possible / Confidence::Low**: this is an inferred finding, not a direct observation. Packet loss and capture gaps are valid confounds. The lower confidence communicates this uncertainty.
+2. **Verdict::Possible / Confidence::Low / saturating_sub safety**: this is an inferred finding, not a direct observation. Packet loss and capture gaps are valid confounds. The lower confidence communicates this uncertainty. `saturating_sub` is used for the timeout comparison (RULING-DNP3-SIBLING-001 §2.2): when `now_ts < request_ts` (backwards clock or out-of-order pcap replay), the result is 0 rather than wrapping to ~4.29e9, preventing a spurious timeout fire that would increment `block_event_count` under adversarially injected stale timestamps. Genuine u32 rollover (~136 years) also saturates to 0 — the window is NOT expired at rollover, which is the acceptable trade-off (negligible security cost; rollover is effectively unreachable in pcap timestamps).
 3. **T1691.001 is the correct v19.1 technique** [MITRE: dnp3-research.md §6]: T1691.001 "Block Operational Technology Message: Command Message" is the active replacement for revoked T0803. Tactic: IcsInhibitResponseFunction.
 4. **Sustained pattern guard**: `BLOCK_CMD_THRESHOLD = 3` events in `CORRELATION_WINDOW_SECS = 300s` **[F2-GATE: human to confirm]** prevents single-packet-loss false positives. (Changed from 120s in v1.1 to 300s in v1.2 to eliminate window-reset contradiction — see Description for rationale.)
 5. **block_event_count feeds T0827 unconditionally**: `block_event_count` is incremented on EVERY block-timeout (Postcondition 1), not only when a T1691.001 finding is emitted. This ensures the T0827 accumulator in BC-2.15.015 sees all block events, including the first two that are below the T1691.001 emission threshold. After the threshold is crossed, subsequent timeouts still increment `block_event_count` (feeding the T0827 accumulator) but do not emit additional T1691.001 findings (`block_finding_emitted_this_window` guard).
 6. **Separate counter from finding guard**: `block_event_count` (the accumulator) and `block_finding_emitted_this_window` (the one-shot guard) are distinct state fields. The counter is always updated; the guard prevents finding flooding. BC-2.15.015 reads `block_event_count`, not the one-shot guard.
-7. **Single shared 300s correlation window**: `block_event_count` and `block_finding_emitted_this_window` are part of the shared per-flow correlation state (`correlation_window_start_ts: u32`). They reset to 0 / false ONLY when `now_ts.wrapping_sub(correlation_window_start_ts) >= CORRELATION_WINDOW_SECS = 300s` — together with `restart_event_count`, `loss_of_control_emitted`, `malformed_in_window`, and `malformed_anomaly_emitted` (BC-2.15.015 Invariant 6 six-field reset set; see BC-2.15.024). There is NO separate BLOCK_CMD_WINDOW_SECS timer. The single reset owner is the window-expiry handler in BC-2.15.015. This eliminates the contradiction where block events spaced 120–300s apart would be silently dropped by a 120s sub-window expiry before T0827 could see them.
+7. **Single shared 300s correlation window**: `block_event_count` and `block_finding_emitted_this_window` are part of the shared per-flow correlation state (`correlation_window_start_ts: u32`). They reset to 0 / false ONLY when `now_ts.saturating_sub(correlation_window_start_ts) > CORRELATION_WINDOW_SECS = 300s` (RULING-DNP3-SIBLING-001 §2.2: operator changed from `>=` to `>` and arithmetic from `wrapping_sub` to `saturating_sub`) — together with `restart_event_count`, `loss_of_control_emitted`, `malformed_in_window`, and `malformed_anomaly_emitted` (BC-2.15.015 Invariant 6 six-field reset set; see BC-2.15.024). There is NO separate BLOCK_CMD_WINDOW_SECS timer. The single reset owner is the window-expiry handler in BC-2.15.015. This eliminates the contradiction where block events spaced 120–300s apart would be silently dropped by a 120s sub-window expiry before T0827 could see them.
 8. **DoS-bounded**: `pending_requests` is a `HashMap<(u16, u8), u32>` bounded to `MAX_PENDING_REQUESTS = 256` entries — when full, the oldest entry (minimum `request_ts`) is evicted before a new insert (see BC-2.15.016 Postconditions 8–10 and Invariant 5 for the full eviction spec). `block_event_count` is `u64` (no practical overflow). `block_finding_emitted_this_window` is a bool one-shot guard.
 
 ## Edge Cases
@@ -128,6 +131,7 @@ The human should confirm whether 10s timeout and 3-of-300s threshold are appropr
 | EC-005 | Capture gap (packet loss) causes response to appear lost | T1691.001 may fire at threshold; this is an accepted false positive per the passive-analyzer caveat |
 | EC-006 | Window reset (300s elapsed since `correlation_window_start_ts`) | All six windowed correlation fields reset together by the single reset owner (BC-2.15.015): `restart_event_count=0`, `block_event_count=0`, `block_finding_emitted_this_window=false`, `loss_of_control_emitted=false`, `malformed_in_window=0`, `malformed_anomaly_emitted=false` (BC-2.15.015 Invariant 6; verified src/analyzer/dnp3.rs maybe_expire_correlation_window lines 984-991). `parse_errors` is a LIFETIME counter and is NOT reset. Threshold re-accumulates from 0 in new window. |
 | EC-008 | 2 block timeouts at t=0 and t=150s, then 1 restart at t=200s | Both block timeouts within 300s window; `block_event_count=2` at t=150s. Restart at t=200s: `restart_event_count=1`. Combined=3 ≥ T0827_THRESHOLD → T0827 fires. (Key test: under old 120s model, block_event_count would reset at t=120s and T0827 would NOT fire.) |
+| EC-009 | Control request at ts=100 inserted in `pending_requests`; subsequent `on_data` at ts=50 (backwards clock) | `saturating_sub(50, 100) = 0`; elapsed=0, NOT > 10 → timeout NOT fired; request remains pending; `block_event_count` NOT incremented. Subsequent `on_data` at ts=111: `saturating_sub(111, 100) = 11 > 10` → timeout fires, `block_event_count` incremented. No spurious block event from backwards-ts packet. (RULING-DNP3-SIBLING-001 §2.2 + §5.3; analogous to ENIP pattern) |
 
 ## Canonical Test Vectors
 
