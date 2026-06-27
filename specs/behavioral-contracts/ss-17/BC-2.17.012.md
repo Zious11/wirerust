@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: product-owner
 timestamp: 2026-06-24T00:00:00Z
@@ -13,7 +13,8 @@ subsystem: SS-17
 capability: CAP-17
 lifecycle_status: active
 introduced: v0.11.0-feature-enip
-modified: []
+modified:
+  - "v1.2: RULING-EDGECASE-001 §2 (EC-X2) — Postcondition 4 window-expiry changed from wrapping_sub to saturating_sub; EC-009 added (backwards/out-of-order timestamp now_ts < window_start → saturating_sub yields 0 → window does NOT reset, write burst accumulation preserved)"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -65,10 +66,14 @@ thresholds, or configuration parameters.
 3. If `flow.write_count_in_window == 1` (first in window): `flow.write_window_start_ts = now_ts`.
 
 **Window expiry:**
-4. If `now_ts.wrapping_sub(flow.write_window_start_ts) > 1` (1-second window expired):
+4. If `now_ts.saturating_sub(flow.write_window_start_ts) > 1` (1-second window expired):
    - `flow.write_count_in_window = 1` (new window, current write seeds it).
    - `flow.write_window_start_ts = now_ts`.
    - `flow.write_burst_emitted = false`.
+   NOTE: `saturating_sub` is used (not `wrapping_sub`) so that a backwards or out-of-order
+   timestamp (`now_ts < write_window_start_ts`) yields 0, NOT > 1, and therefore does NOT
+   reset the window. This preserves burst accumulation under packet reordering or adversarial
+   timestamp injection. (RULING-EDGECASE-001 §2.2)
 
 **Finding emission (when threshold exceeded AND guard not set):**
 5. When `flow.write_count_in_window > enip_write_burst_threshold`
@@ -113,6 +118,7 @@ thresholds, or configuration parameters.
 | EC-006 | `all_findings.len() == MAX_FINDINGS` when threshold crossed | No finding; guard NOT set |
 | EC-007 | `enip_write_burst_threshold = 0` | First write immediately triggers finding (count=1 > 0) |
 | EC-008 | SetAttributeSingle in a type_id=0x00B1 (Connected Data Item) | NO counter increment, NO finding in v0.11.0. The analyzer skips CIP-service detection for 0x00B1 items. Write-burst detection for Connected items is deferred to v0.12.0 (F-P9-001 / locked decision Option A). |
+| EC-009 | 50 writes at ts=100 (window_start=100, write_count_in_window=50); then 1 write arrives at ts=50 (backwards/out-of-order timestamp) | `saturating_sub(50, 100) = 0`; elapsed = 0, NOT > 1 → window is NOT reset; `write_count_in_window = 51`; T0836 fires (51 > threshold=50). (RULING-EDGECASE-001 §2.2 EC-X2 — the EC-X2 repro scenario formalized) |
 
 ## Canonical Test Vectors
 

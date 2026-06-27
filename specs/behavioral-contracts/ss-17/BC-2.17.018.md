@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.0"
+version: "1.1"
 status: draft
 producer: product-owner
 timestamp: 2026-06-24T00:00:00Z
@@ -13,7 +13,8 @@ subsystem: SS-17
 capability: CAP-17
 lifecycle_status: active
 introduced: v0.11.0-feature-enip
-modified: []
+modified:
+  - "v1.1: RULING-EDGECASE-001 §2 (EC-X2 + EC-X4) — Postcondition 5 window-expiry changed from wrapping_sub to saturating_sub AND operator changed from >= 300 to > 300 (strict greater-than, consistent with T0836/T0888 window semantics per EC-X4 operator pinning); Invariant 2 updated to reflect strict > 300 expiry semantics; EC-008 added (backwards/out-of-order timestamp now_ts < window_start → saturating_sub yields 0 → window does NOT reset, malformed burst preserved)"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -73,8 +74,16 @@ targeting poorly-implemented EtherNet/IP stacks.
 4. `flow.malformed_anomaly_emitted = true` (one-shot guard per window).
 
 **Window-expiry reset (300s):**
-5. At window expiry: `flow.malformed_in_window = 0`, `flow.malformed_anomaly_emitted = false`.
+5. At window expiry: when `timestamp.saturating_sub(flow.malformed_window_start) > 300`
+   (strict greater-than; 300-second window expired):
+   `flow.malformed_in_window = 0`, `flow.malformed_anomaly_emitted = false`,
+   `flow.malformed_window_start = timestamp` (window re-seeds at current timestamp).
    `flow.parse_errors` is NOT reset (lifetime counter).
+   NOTE: `saturating_sub` is used (not `wrapping_sub`) so that a backwards or out-of-order
+   timestamp (`timestamp < malformed_window_start`) yields 0, NOT > 300, and therefore does
+   NOT reset the window. The operator is strict `>` (not `>=`) consistent with T0836 and T0888
+   window semantics: the packet arriving at exactly elapsed=300 is the last packet of the
+   current window, not the first of a new one. (RULING-EDGECASE-001 §2.2 + §2.4)
 
 ## Invariants
 
@@ -84,6 +93,10 @@ targeting poorly-implemented EtherNet/IP stacks.
 2. **T0814 is the correct v19.1 technique**: T0814 "Denial of Service" (ICS Inhibit Response
    Function TA0107) — malformed frames on port 44818 are a DoS vector targeting EtherNet/IP
    device stacks. T0814 is already seeded; no new catalog entry required.
+   **Window expiry:** Expiry fires when elapsed seconds **> 300** (strict greater-than,
+   consistent with T0836/T0888 window semantics per RULING-EDGECASE-001 §2.4). The packet
+   arriving at exactly elapsed=300 is the last packet of the current window, not the first
+   of a new one. The former `>= 300` operator was a spec defect (EC-X4) now corrected.
 3. **MALFORMED_ANOMALY_THRESHOLD = 3**: threshold constant. Single malformed frames can be
    packet loss; three within 300s on a flow is anomalous.
 4. **Low confidence**: malformed frames may be packet corruption, capture-interface artifacts,
@@ -104,6 +117,7 @@ targeting poorly-implemented EtherNet/IP stacks.
 | EC-005 | 300s window expires; 3 more malformed frames | Window reset; malformed_in_window=0; fresh accumulation to 3; new T0814 |
 | EC-006 | `all_findings.len() == MAX_FINDINGS` when threshold crossed | No finding; guard NOT set |
 | EC-007 | is_non_enip triggered by carry overflow (counts as one malformed event) | parse_errors++; malformed_in_window++; if threshold reached, T0814 emitted; then all subsequent on_data are no-ops (is_non_enip=true) |
+| EC-008 | 2 malformed frames at ts=100 (malformed_window_start=100, malformed_in_window=2); then 1 malformed frame at ts=50 (backwards/out-of-order timestamp) | `saturating_sub(50, 100) = 0`; elapsed = 0, NOT > 300 → window is NOT reset; `malformed_in_window = 3`; T0814 Possible/Low emitted; guard set. (RULING-EDGECASE-001 §2.2 + §4.5 EC-X2) |
 
 ## Canonical Test Vectors
 
