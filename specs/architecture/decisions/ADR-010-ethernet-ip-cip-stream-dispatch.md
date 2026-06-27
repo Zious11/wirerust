@@ -6,6 +6,7 @@ accepted_date: "2026-06-24"
 date: 2026-06-24
 modified:
   - "RULING-EDGECASE-001 (2026-06-27): Decision 4 carry split (carry → carry_c2s / carry_s2c), Direction thread in on_data signature, saturating_sub window expiry, EC-X4 operator pin (>= 300 → > 300)"
+  - "F2-VALIDATION-F005/F006 (2026-06-27): Declare malformed_window_start_ts: u32 in EnipFlowState struct; pin window-expiry line to malformed_window_start_ts (_ts suffix, symmetry with write_window_start_ts / error_window_start_ts)"
 subsystems_affected:
   - SS-05
   - SS-10
@@ -309,6 +310,11 @@ pub struct EnipFlowState {
     /// Count of malformed ENIP frames in current window (mirrors Dnp3FlowState).
     malformed_in_window: u64,
 
+    /// Timestamp (seconds) of the first malformed frame in the current 300-second window.
+    /// Mirrors write_window_start_ts / error_window_start_ts naming convention (_ts suffix).
+    /// Read/written by BC-2.17.018 PC-5 (T0814 malformed-burst window expiry check).
+    malformed_window_start_ts: u32,
+
     /// Guard: T0814 malformed anomaly finding already emitted for this window.
     malformed_anomaly_emitted: bool,
 
@@ -513,7 +519,7 @@ now_ts.saturating_sub(flow.error_window_start_ts) > 10
 // T0814 malformed window (BC-2.17.018 Postcondition 5)
 // BEFORE: timestamp.wrapping_sub(flow.malformed_window_start) >= 300
 // AFTER (both wrapping→saturating AND >= → > per EC-X4 operator pin):
-timestamp.saturating_sub(flow.malformed_window_start) > 300
+timestamp.saturating_sub(flow.malformed_window_start_ts) > 300
 ```
 
 **DNP3 sibling scope (RULING-EDGECASE-001 §1.6 + §2.5):** DNP3 carries the same
