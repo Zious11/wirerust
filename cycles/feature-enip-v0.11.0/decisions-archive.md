@@ -2,8 +2,8 @@
 document_type: decisions-archive
 cycle_id: feature-enip-v0.11.0
 archived_from: STATE.md Decisions Log
-archived_at: ~
-archived_decisions: D-228..D-260
+archived_at: 2026-06-27
+archived_decisions: D-228..D-266
 ---
 
 # Decisions Archive — feature-enip-v0.11.0 (D-228+)
@@ -427,3 +427,47 @@ Wave-60 integration gate: CONVERGED — PENDING HUMAN GATE.
 **HUMAN DIRECTIVE:** STOP before cutting the v0.11.0 release — proceed through Wave-61 gate + F5 + F6 + F7 convergence, then HALT for human go-ahead before the release pipeline.
 
 **NEXT = Wave-61 integration gate** — full regression on develop @7ceb670 + fresh consistency audit + 3-pass wave-level adversarial convergence → Wave-61 human gate.
+
+---
+
+## D-261 — Wave-61 Integration Gate CONVERGED; Pending Human Gate (2026-06-26)
+
+Wave-61 wave-level convergence ACHIEVED. Regression GREEN @7ceb670 (0 failures, 80 suites, clippy/fmt clean). Consistency audit CLEAN. 3-pass adversarial convergence: Pass 1/2/3 all 0 HIGH/0 CRITICAL. BC-5.39.001 MET at wave level. 26/26 SS-17 BC completeness sweep PASSED (all have implementation paths + non-vacuous tests). Admin status cells fixed: STORY-138.md status ready→completed; STORY-INDEX.md story-table draft→completed; STORY-INDEX.md Wave-Delivery-Progress row updated to DELIVERED & CLOSED. New open items recorded: F-W61-001 MEDIUM (dead pub EnipSummary struct, human decision required), F-W61-002 LOW (SAFETY comment omits self.dropped_findings), O-W61-2 LOW (no-finding command process_pdu test optional), WAVE-60-TEST-DOC-SWEEP stale batch (open_connection_count/close_connection_count doc-comment). Wave 61 = CONVERGED, PENDING HUMAN GATE.
+
+---
+
+## D-262 — Wave-61 Integration Gate PASSED (Human-Approved); fix-PR #331 MERGED; F4 COMPLETE (2026-06-26)
+
+Wave-61 integration gate PASSED (human-approved). Wave 61 CLOSED. Pre-F5 cleanup fix-PR #331 (`refactor(enip): wire summarize through EnipSummary + doc fixes`) squash-merged into develop; new develop HEAD = bd9e507 (was 7ceb670). EnipSummary resolution = wire-through (human-chosen). Resolved: F-W61-001 (EnipSummary now load-bearing, byte-identical output, AI+security APPROVE), F-W61-002 (SAFETY comment now lists dropped_findings), O-1 (connection-count doc-comments corrected), WAVE-60-TEST-DOC-SWEEP stale batch. CI 11/11 green. stories_delivered=87 (refactor, no new story). F4 (TDD implementation) COMPLETE. Entering F5 scoped-adversarial refinement on v0.11.0 ENIP delta @bd9e507.
+
+---
+
+## D-263 — F5 Scoped-Adversarial CONVERGED (2026-06-26)
+
+F5 scoped-adversarial CONVERGED. 3 consecutive clean passes on develop @bd9e507: Pass 1 (whole-feature/CLI/release-readiness), Pass 2 (security/DoS/panic-freedom), Pass 3 (spec-fidelity/detection/RTM/holdout-alignment). ALL 0 HIGH/0 CRITICAL, zero novelty. BC-completeness sweep 26/26 (BC-2.17.001..026 all implemented + tested). Detection-attribute matrix verified; panic-freedom + DoS bounds confirmed; no dead code/debug artifacts; PRD §2.17 RTM complete; holdouts HS-110..122 present + boundary semantics satisfied. All F5 findings pre-adjudicated/deferred (no new blocking items). Entering F6 formal hardening.
+
+---
+
+## D-264 — F6 Formal Hardening DISCHARGED; Fuzz-Harness PR Open (2026-06-26)
+
+F6 formal hardening DISCHARGED @bd9e507. Kani 11/11 PASS (VP-032/VP-004/VP-007; Kani 0.67.0). cargo-fuzz F-P9-002: 8,331,310 runs/91s/0 crashes; harness @447da079. audit/deny/clippy/fmt clean. Mutants: 20/20 viable killed; full 241-mutant run CONTINUING. No product logic changed. Fuzz-harness PR open halted for human merge.
+
+---
+
+## D-265 — F6 Gate PASSED; Fuzz-Harness PR #332 MERGED; develop HEAD = f17d270 (2026-06-26)
+
+F6 gate PASSED. Fuzz-harness PR #332 (`test(fuzz): F-P9-002 cargo-fuzz harness for ENIP CIP parsers`) squash-merged into develop; new develop HEAD = f17d270 (was bd9e507). Test-infra PR — stories_delivered stays 87. All F6 hard obligations discharged (Kani 11/11, fuzz 8.3M/0-crash on develop, audit/deny/clippy/fmt clean). cargo-mutants full run still executing in F6 worktree at time of gate (21 caught/0 missed so far — F6-MUTANTS-FULL-RUN checkpoint; confirm 0-missed at completion before F7 sign-off). Entering F7 delta-convergence. HALT after F7 human gate (D-260) — do NOT run release pipeline without explicit go-ahead.
+
+---
+
+## D-266 — F7 Delta-Convergence CONVERGED; Input-Hash Drift Resolved; Pending Human Gate (2026-06-27)
+
+**F7 delta-convergence CONVERGED.** develop @f17d270. 5-dimensional assessment (spec/tests/implementation/verification/regression) all CONVERGED. Full regression GREEN (0 failures, 80 suites). Report: `cycles/feature-enip-v0.11.0/F7-convergence-report.md`.
+
+**Input-hash drift RESOLVED.** STORY-130/131/132/133 were STALE at F7 gate (BC version-metadata bumps + ADR/arch-delta updates, no semantic story impact). verify-then-refresh confirmed all 4 consistent-as-is (no body changes required). Input-hashes refreshed: STORY-130=63fac3a, STORY-131=ce92886, STORY-132=c33dff8, STORY-133=661f504. All SS-17 stories STORY-130..138 now MATCH. Refresh commit: c65602a.
+
+**Holdouts HS-110..122:** NOT formally evaluated (12 needed pcap fixtures never created). 10/13 behaviors covered by exact-byte unit tests. HS-122 real-world-corpus is the only true gap (confidence-add, not correctness-gate). Architect recommends accept-for-v0.11.0 + schedule formal holdout eval as a post-release validation story. NON-BLOCKING per architect.
+
+**F6-MUTANTS-FULL-RUN:** cargo-mutants enip.rs full 241-mutant run was still executing in F6 worktree at F7 gate entry; 21 caught/0 missed at last poll. Full run completion and 0-missed confirmation is a human gate item.
+
+**Phase status:** F7 CONVERGED — PENDING HUMAN GATE. Items the human is weighing: (1) F6-MUTANTS-FULL-RUN 0-missed confirmation; (2) holdout formal-eval defer-decision; (3) is_non_enip dead-latch release-notes narrative; (4) cycle-close BC prose edits (BC-2.17.021 Inv-2, BC-2.17.016 PC-5/PC-0, F-W60-002) post-release; (5) Dependabot #311/#325 triage. HALT (D-260) — do NOT run the release pipeline without explicit human go-ahead.
