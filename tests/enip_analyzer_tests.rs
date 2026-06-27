@@ -8105,59 +8105,101 @@ mod direction_and_clock {
 
     /// AC-139-004: malformed window operator pin — elapsed==300 does NOT expire window.
     ///
-    /// With `> 300` (correct): at elapsed==300 the window is NOT reset.
-    /// With `>= 300` (stub, broken): the window IS reset at elapsed==300 → different behavior.
+    /// Guards the strict `> 300` boundary in the malformed-window reset; would FAIL if the
+    /// operator regressed to `>= 300` (which would spuriously expire the window at exactly
+    /// elapsed==300) or if `saturating_sub` regressed to plain subtraction (which would
+    /// spuriously reset on backwards-clock inputs).
     ///
-    /// This test checks the boundary: 3 malformed frames at ts=0, then guard is set
-    /// (malformed_anomaly_emitted=true). Then 1 frame at ts=300 (elapsed==300 exactly).
-    /// With `> 300` (correct): window not reset, malformed_anomaly_emitted still true.
-    /// With `>= 300` (stub): window IS reset at elapsed=300, malformed_anomaly_emitted=false.
+    /// Uses the **oversized-declared-frame** malformed path (BC-2.17.018 PC-1 bullet 2):
+    /// each frame carries a valid ENIP command code (0x0065 RegisterSession) and a declared
+    /// `length` field of 600, making `total_frame_len = 24 + 600 = 624 > MAX_ENIP_CARRY_BYTES
+    /// (600)`. The frame-walk parses the header, finds the frame oversized, increments
+    /// `parse_errors` and `malformed_in_window`, and advances the cursor past the declared
+    /// frame — leaving carry empty. Carry stays empty throughout all phases.
     ///
-    /// The stub uses `>= 300` so this test FAILS (RED) on the boundary check.
+    /// Frame layout (24 bytes, all LE per ODVA spec):
+    ///   bytes 0-1: command = 0x0065 (RegisterSession, valid ODVA command)
+    ///   bytes 2-3: length  = 600 (0x0258 LE) → total_frame_len = 624 > 600
+    ///   bytes 4-23: zeros
     ///
-    /// Traces: BC-2.17.018 v1.1 Invariant 2, Postcondition 5; AC-139-004; RULING-EDGECASE-001 §2.4.
+    /// Traces: BC-2.17.018 v1.1 Invariant 2, Postcondition 5; AC-139-004;
+    ///         RULING-EDGECASE-001 §2.4; BC-2.17.016 PC-1 bullet 2.
     #[test]
     fn test_malformed_window_operator_pin_boundary() {
-        let malformed = vec![0xFF; 24]; // invalid command frame
+        // Oversized-declared-frame: command=0x0065 (RegisterSession, valid ODVA),
+        // length=600 (LE: 0x58, 0x02) → total_frame_len=624 > MAX_ENIP_CARRY_BYTES(600).
+        // The frame-walk skips this frame entirely (cursor advances by min(624, 24)=24),
+        // leaving no bytes in carry after each call.
+        let mut oversized = vec![0u8; 24];
+        oversized[0] = 0x65; // command low byte  (0x0065 RegisterSession)
+        oversized[1] = 0x00; // command high byte
+        oversized[2] = 0x58; // length low byte   (600 = 0x0258)
+        oversized[3] = 0x02; // length high byte
 
         let key = make_key_c2s();
         let mut analyzer = make_analyzer();
 
-        // Deliver 3 malformed frames to arm the T0814 guard (malformed_anomaly_emitted=true).
-        analyzer.on_data(key.clone(), &malformed, 0, Direction::ClientToServer);
-        analyzer.on_data(key.clone(), &malformed, 0, Direction::ClientToServer);
-        analyzer.on_data(key.clone(), &malformed, 0, Direction::ClientToServer);
+        // Phase 1 — arm the guard: 3 oversized-declared-frame calls at window_start=0.
+        // Each call: oversized path fires → malformed_in_window++; T0814 emitted on 3rd.
+        // Carry remains empty after every call (no bytes beyond the 24-byte header).
+        analyzer.on_data(key.clone(), &oversized, 0, Direction::ClientToServer);
+        analyzer.on_data(key.clone(), &oversized, 0, Direction::ClientToServer);
+        analyzer.on_data(key.clone(), &oversized, 0, Direction::ClientToServer);
+
+        {
+            let flow = analyzer.flows.get(&key).expect("flow must exist");
+            assert_eq!(
+                flow.malformed_in_window, 3,
+                "malformed_in_window must be 3 after Phase 1"
+            );
+            assert!(
+                flow.malformed_anomaly_emitted,
+                "T0814 guard must be set after 3 malformed frames (Phase 1)"
+            );
+            assert!(
+                flow.carry_c2s.is_empty(),
+                "carry_c2s must be empty after Phase 1"
+            );
+        }
+
+        // Phase 2 — boundary at elapsed=300 (must NOT reset).
+        // saturating_sub(300, 0) = 300; 300 > 300 is false → no reset.
+        // malformed_anomaly_emitted must remain true (window still active from Phase 1).
+        analyzer.on_data(key.clone(), &oversized, 300, Direction::ClientToServer);
 
         {
             let flow = analyzer.flows.get(&key).expect("flow must exist");
             assert!(
                 flow.malformed_anomaly_emitted,
-                "T0814 guard must be set after 3 malformed frames"
+                "malformed_anomaly_emitted must remain true at elapsed==300 (strict > 300 \
+                 boundary); if operator were >= 300 the window would be spuriously reset here"
             );
-        }
-
-        // Deliver 1 more malformed frame at ts=300 (elapsed == 300 from window_start=0).
-        // Under `> 300`: NOT > 300 → window not reset → malformed_anomaly_emitted still true.
-        // Under `>= 300` (stub): IS >= 300 → window reset → malformed_anomaly_emitted = false.
-        analyzer.on_data(key.clone(), &malformed, 300, Direction::ClientToServer);
-
-        {
-            let flow = analyzer.flows.get(&key).expect("flow must exist");
             assert!(
-                flow.malformed_anomaly_emitted,
-                "malformed_anomaly_emitted must remain true at elapsed==300 (strict > 300 boundary); \
-                 with >= 300 the window is spuriously reset and the guard is cleared"
+                flow.carry_c2s.is_empty(),
+                "carry_c2s must be empty after Phase 2"
             );
         }
 
-        // At elapsed==301: window SHOULD be reset.
-        analyzer.on_data(key.clone(), &malformed, 301, Direction::ClientToServer);
+        // Phase 3 — expiry at elapsed=301 (MUST reset).
+        // saturating_sub(301, 0) = 301; 301 > 300 is true → reset fires before frame processing:
+        //   malformed_in_window = 0, malformed_anomaly_emitted = false, window_start_ts = 301.
+        // Then the Phase 3 frame is processed: malformed_in_window = 1 (< threshold 3).
+        analyzer.on_data(key.clone(), &oversized, 301, Direction::ClientToServer);
+
         {
             let flow = analyzer.flows.get(&key).expect("flow must exist");
-            // After reset, malformed_anomaly_emitted should be false (new window, only 1 malformed so far).
             assert!(
                 !flow.malformed_anomaly_emitted,
-                "malformed_anomaly_emitted must be false after window reset at elapsed==301"
+                "malformed_anomaly_emitted must be false after window reset at elapsed==301 \
+                 (new window, only 1 event so far — below threshold 3)"
+            );
+            assert_eq!(
+                flow.malformed_in_window, 1,
+                "malformed_in_window must be 1 in the new window after Phase 3 reset"
+            );
+            assert!(
+                flow.carry_c2s.is_empty(),
+                "carry_c2s must be empty after Phase 3"
             );
         }
     }
