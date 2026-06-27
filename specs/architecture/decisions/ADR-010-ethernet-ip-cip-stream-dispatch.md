@@ -5,7 +5,7 @@ status: accepted
 accepted_date: "2026-06-24"
 date: 2026-06-24
 modified:
-  - "RULING-EDGECASE-001 (2026-06-27): Decision 4 carry split (carry → carry_c2s / carry_s2c), Direction thread in on_data signature, saturating_sub window expiry, EC-X4 operator pin (>= 300 → > 300)"
+  - "RULING-EDGECASE-001 (2026-06-27): Decision 4 carry split (carry → carry_c2s/carry_s2c), Direction threaded into on_data, saturating_sub + strict >300 window expiry, carry-cap noted unreachable per RULING-137-002."
   - "F2-VALIDATION-F005/F006 (2026-06-27): Declare malformed_window_start_ts: u32 in EnipFlowState struct; pin window-expiry line to malformed_window_start_ts (_ts suffix, symmetry with write_window_start_ts / error_window_start_ts)"
 subsystems_affected:
   - SS-05
@@ -440,6 +440,10 @@ while cursor < buf.len():
         ClientToServer => flow.carry_c2s.len(),
         ServerToClient => flow.carry_s2c.len(),
     };
+    // NOTE: active_carry_len > MAX_ENIP_CARRY_BYTES is structurally unreachable per
+    // RULING-137-002: max carry is 599 bytes (buf.len() - cursor <= 23 when header is
+    // incomplete, and any partial frame stashed is bounded by the prior oversize-skip
+    // guard above). Retained as defensive dead code per BC-2.17.016 PC-4 errata NOTE.
     if active_carry_len > MAX_ENIP_CARRY_BYTES:
       flow.is_non_enip = true; flow.parse_errors++
       // clear the overflowed carry
