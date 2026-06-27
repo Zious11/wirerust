@@ -79,6 +79,16 @@ If the stash would exceed 600 bytes, `flow.is_non_enip` is set to `true` and
    - The overflowed directional carry is cleared (or bounded to `MAX_ENIP_CARRY_BYTES` —
      implementation choice consistent with preventing unbounded growth). The other direction's
      carry is unaffected. (RULING-EDGECASE-001 §1.2)
+
+   > **NOTE (RULING-137-002 / RULING-EDGECASE-001 ADDENDUM):** The trigger condition
+   > `active_carry_len > MAX_ENIP_CARRY_BYTES` is structurally unreachable under this spec's
+   > own algorithm. The maximum possible carry after any on_data call is 599 bytes
+   > (RULING-137-002 §1.2). The canonical test vector "580+21=601 → cap triggered" in the
+   > Canonical Test Vectors table is mathematically impossible (RULING-137-002 §1.4).
+   > Postcondition 4 and EC-004 are retained as belt-and-suspenders defensive code
+   > specifications pending a v0.12.0 redesign of the quarantine mechanism. No BC version bump
+   > is triggered by this additive note.
+
 5. All subsequent `on_data` calls with `flow.is_non_enip == true` are immediate no-ops:
    no parsing, no counter updates, no findings emitted.
 
@@ -124,7 +134,7 @@ If the stash would exceed 600 bytes, `flow.is_non_enip` is set to `true` and
 | EC-001 | New data is exactly one complete ENIP frame (no carry) | Frame processed; carry = empty |
 | EC-002 | New data is a complete frame + partial second frame | First frame processed; partial stashed in carry |
 | EC-003 | Carry grows to exactly 600 bytes | Cap not yet exceeded; next on_data may complete the frame |
-| EC-004 | Carry would grow to 601 bytes | `is_non_enip=true`; `parse_errors++`; all future calls no-ops |
+| EC-004 | Carry would grow to 601 bytes _(NOTE: this trigger is structurally unreachable per RULING-137-002 §1.2; max reachable carry is 599 bytes — retained as belt-and-suspenders; see PC-4 addendum note)_ | `is_non_enip=true`; `parse_errors++`; all future calls no-ops |
 | EC-005 | is_non_enip already true when on_data called | Immediate no-op; no parse, no counter update |
 | EC-006 | Large ENIP payload (`header.length = 600 - 24 = 576 bytes`) fills carry exactly | Carry = 600 bytes; cap not exceeded; complete frame arrives on next on_data and is processed |
 | EC-007 | Invalid ENIP header (command not in known set): byte-advance by 1 | `parse_errors++`; `malformed_in_window++`; cursor advances by 1 (byte-walk resync) |
@@ -138,7 +148,7 @@ If the stash would exceed 600 bytes, `flow.is_non_enip` is set to `true` and
 |----------|-------------|---------|---------------------|-------------|
 | First 12 bytes of ENIP header | `[]` | 12 bytes | 12 bytes | false |
 | Complete frame (600 bytes total, header.length=576) | 0 bytes | 600 bytes | 0 bytes | false |
-| Partial frame stash grows from 580 to 601 bytes | 580 bytes | 21 bytes | cap triggered | true |
+| Partial frame stash grows from 580 to 601 bytes _(NOTE: mathematically impossible per RULING-137-002 §1.4 — max carry is 599 bytes; row retained as historical record, superseded by PC-4 addendum note)_ | 580 bytes | 21 bytes | cap triggered | true |
 | `is_non_enip=true` on entry | any | any | unchanged | true (no-op) |
 | Oversized declared frame (header.length=600; total=624) in buffer of 624 bytes | 0 bytes | 624 bytes | 0 bytes (cursor advanced 624) | false (frame-skip, not overflow) |
 | Two complete frames (28 bytes each) in one on_data call | 0 bytes | 56 bytes | 0 bytes (both processed) | false |
