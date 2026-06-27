@@ -1894,62 +1894,68 @@ mod direction_and_clock {
     }
 
     // -----------------------------------------------------------------------
-    // AC-140-002: direction-based source IP replaces port-20000 heuristic
+    // AC-140-002: direction-based source IP — standard DNP3 topology
     //
-    // Guards RULING-DNP3-SIBLING-001 §1.4: with ClientToServer direction,
-    // master_ip = flow_key src endpoint = 10.0.0.1 (the initiator).
+    // Guards RULING-DNP3-SIBLING-001 §1.4: direction-aware src_ip resolution
+    // correctly identifies the master as the source when Direction::ClientToServer.
     //
-    // With stub (resolve_master_ip port-heuristic): flow_key.lower_port()=54321 ≠ 20000
-    // → ELSE branch → master_ip = lower_ip = 10.0.0.1.  This happens to match — but
-    // STORY-140 AC-140-002 spec says it must use direction-aware resolution.
+    // Standard topology: outstation listens on port 20000 (well-known),
+    // master initiates from an ephemeral port (54321).
     //
-    // The RED condition: we build a flow where port-heuristic gives the WRONG answer
-    // (outstation on ephemeral port, master on port 20000 — forcing the heuristic
-    // to return the outstation IP as master). The direction-based fix gives the
-    // correct master IP = the ClientToServer initiator.
+    // FlowKey::new canonicalization: (10.0.0.1, 20000) <= (10.0.0.2, 54321)
+    //   → lower=(10.0.0.1, 20000) = outstation, upper=(10.0.0.2, 54321) = master.
+    //   Port-heuristic IF branch: lower_port==20000 → master_ip = upper_ip = 10.0.0.2.
+    //   Direction C2S: master = upper_ip = 10.0.0.2.  Both agree.
+    //
+    // Assert: source_ip == Some(10.0.0.2) — the master (upper/C2S-initiator).
     // -----------------------------------------------------------------------
 
     /// Guards RULING-DNP3-SIBLING-001 §1.4: direction-aware src_ip resolution.
     ///
-    /// Flow: master=10.0.0.1:20000 (listening on port 20000 — heuristic IF branch),
-    ///       outstation=10.0.0.2:54321 (ephemeral port).
+    /// Standard DNP3 topology: outstation=10.0.0.1:20000 (server, well-known port),
+    /// master=10.0.0.2:54321 (client, ephemeral port).
     ///
     /// FlowKey canonicalization:
-    ///   (10.0.0.1, 20000) < (10.0.0.2, 54321) → lower=(10.0.0.1, 20000), upper=(10.0.0.2, 54321).
-    ///   Port-heuristic: lower_port==20000 → IF branch → master_ip = upper_ip = 10.0.0.2.
-    ///   BUT: master is actually 10.0.0.1 (initiator, Direction::ClientToServer src).
-    ///   Direction-fix: ClientToServer → master_ip = 10.0.0.1 (the c2s flow initiator).
+    ///   (10.0.0.1, 20000) <= (10.0.0.2, 54321) → lower=(10.0.0.1, 20000), upper=(10.0.0.2, 54321).
+    ///   lower = outstation (port 20000), upper = master (port 54321).
     ///
-    /// With stub (port-heuristic): source_ip = Some(10.0.0.2) → assert fails (expected 10.0.0.1).
+    /// Port-heuristic (IF branch): lower_port==20000 → master_ip = upper_ip = 10.0.0.2.
+    /// Direction (ClientToServer): master initiates C2S → master_ip = upper_ip = 10.0.0.2.
+    /// Both agree: source_ip must be Some(10.0.0.2).
+    ///
+    /// Traces to: STORY-140 AC-140-002; RULING-DNP3-SIBLING-001 §1.4; BC-2.15.016 v2.0 PC3.
+    /// Consistent with test_BC_2_15_010_asymmetric_port_master_upper_ip_if_branch (IF branch).
     #[test]
     fn test_ac140_002_direction_based_source_ip() {
-        let master_ip = ip(1);
-        let outstation_ip = ip(2);
-        // Build flow where master is on port 20000 (the "well-known" outstation port).
-        // This forces the port-heuristic to the IF branch → returns upper_ip = outstation.
-        let key = FlowKey::new(master_ip, 20000, outstation_ip, 54321);
+        let outstation_ip = ip(1); // 10.0.0.1 — outstation, listens on port 20000
+        let master_ip = ip(2); // 10.0.0.2 — master, initiates from ephemeral port 54321
 
-        // Verify the test setup: lower_port must be 20000 (master's port, the IF branch).
+        // Standard topology: outstation on port 20000, master on ephemeral 54321.
+        // Canonicalization: (10.0.0.1, 20000) <= (10.0.0.2, 54321) → lower=outstation, upper=master.
+        let key = FlowKey::new(outstation_ip, 20000, master_ip, 54321);
+
+        // Self-documenting canonicalization assertions.
         assert_eq!(
             key.lower_port(),
             20000,
-            "test setup: lower_port must be 20000 to exercise the heuristic IF branch"
+            "test setup: lower_port must be 20000 (outstation well-known port); IF branch fires"
         );
         assert_eq!(
             key.lower_ip(),
-            master_ip,
-            "test setup: lower_ip must be 10.0.0.1 (the master)"
+            outstation_ip,
+            "test setup: lower_ip must be 10.0.0.1 (the outstation)"
         );
         assert_eq!(
             key.upper_ip(),
-            outstation_ip,
-            "test setup: upper_ip must be 10.0.0.2 (the outstation)"
+            master_ip,
+            "test setup: upper_ip must be 10.0.0.2 (the master)"
         );
 
         let mut analyzer = Dnp3Analyzer::new(10);
 
         // Deliver 11 Control-class FCs (DIRECT_OPERATE = 0x05) as ClientToServer.
-        // Direction::ClientToServer = master initiating → src endpoint = lower_ip = 10.0.0.1.
+        // Direction::ClientToServer = master initiating toward outstation.
+        // master = upper_ip = 10.0.0.2 (initiated the C2S flow).
         for i in 0..11u32 {
             let frame = detection_frame(0x05);
             analyzer.on_data(key.clone(), &frame, i, Direction::ClientToServer);
@@ -1967,14 +1973,15 @@ mod direction_and_clock {
             "AC-140-002: finding must carry T1692.001"
         );
 
-        // The critical assertion: source_ip must be 10.0.0.1 (the actual master — c2s initiator).
-        // With stub (port-heuristic IF branch): source_ip = upper_ip = 10.0.0.2 → FAILS.
-        // With direction-fix (ClientToServer → lower_ip = 10.0.0.1): source_ip = 10.0.0.1 → PASSES.
+        // The critical assertion: source_ip must be 10.0.0.2 (the master — C2S initiator = upper_ip).
+        // IF branch port-heuristic: lower_port==20000 → master_ip = upper_ip = 10.0.0.2.
+        // Direction C2S: master = upper_ip = 10.0.0.2.
+        // Both the port-heuristic and direction-based resolution agree on the correct answer.
         assert_eq!(
             f.source_ip,
             Some(master_ip),
-            "AC-140-002: source_ip must be Some(10.0.0.1) = master (ClientToServer initiator); \
-             port-heuristic would return 10.0.0.2 (wrong); direction-fix returns 10.0.0.1 (correct); \
+            "AC-140-002: source_ip must be Some(10.0.0.2) = master (upper_ip, C2S initiator); \
+             lower_port==20000 (IF branch) → master=upper_ip; C2S → source=master=upper_ip; \
              got {:?}",
             f.source_ip
         );

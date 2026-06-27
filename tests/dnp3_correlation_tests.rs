@@ -1773,43 +1773,81 @@ mod story_109 {
     }
 
     // -------------------------------------------------------------------------
-    // AC-014 (BC-2.15.014 invariant 8 / BC-2.15.016 invariant 8)
-    // test_pending_request_timeout_wrapping_sub
+    // AC-014 superseded — BC-2.15.014 v2.1 EC-009 / RULING-DNP3-SIBLING-001 §2.2
+    // test_pending_request_timeout_no_spurious_fire_on_rollover_or_backwards_ts
+    //
+    // Regression-guard: the old wrapping_sub(5, u32::MAX-5) = 11 > 10 semantics
+    // (STORY-109 AC-014) have been superseded by saturating_sub per BC-2.15.014 v2.1
+    // EC-009 and RULING-DNP3-SIBLING-001 §2.2.  Under saturating_sub, the rollover
+    // scenario (request_ts=u32::MAX-5, now_ts=5) yields saturating_sub(5, u32::MAX-5) = 0,
+    // which is NOT > BLOCK_CMD_TIMEOUT_SECS=10, so no spurious block timeout fires.
+    // Forward-clock STILL fires: saturating_sub(11, 0) = 11 > 10.
     // -------------------------------------------------------------------------
 
-    /// AC-014: Block-timeout check uses wrapping_sub — no panic on backward timestamps.
+    /// Regression-guard: rollover/backwards-ts does NOT spuriously fire a block timeout.
     ///
-    /// Scenario: insert a pending request at ts=u32::MAX - 5, then deliver a frame
-    /// at ts=5. wrapping_sub(5, u32::MAX - 5) = 11 > BLOCK_CMD_TIMEOUT_SECS=10.
-    /// This should fire the timeout without panicking (overflow-checks=true in release).
+    /// Past semantics (STORY-109 AC-014): wrapping_sub(5, u32::MAX-5) = 11 → fired.
+    /// Current semantics (BC-2.15.014 v2.1 EC-009; RULING-DNP3-SIBLING-001 §2.2):
+    ///   saturating_sub(5, u32::MAX-5) = 0 → NOT > 10 → no spurious fire.
     ///
-    /// Traces to: BC-2.15.014 invariant 8; BC-2.15.016 invariant 8; STORY-109 AC-014.
+    /// Also guards forward-clock path: saturating_sub(11, 0) = 11 > 10 → fires normally.
+    ///
+    /// Supersedes: STORY-109 AC-014 (wrapping_sub semantics).
+    /// Traces to: BC-2.15.014 v2.1 EC-009; RULING-DNP3-SIBLING-001 §2.2.
     #[test]
-    fn test_pending_request_timeout_wrapping_sub() {
-        let mut analyzer = Dnp3Analyzer::new(10);
-        let key = test_flow_key();
+    fn test_pending_request_timeout_no_spurious_fire_on_rollover_or_backwards_ts() {
+        // ---- Part A: rollover/backwards-ts must NOT fire a block timeout ----
+        {
+            let mut analyzer = Dnp3Analyzer::new(10);
+            let key = test_flow_key();
 
-        // Insert a pending request at ts = u32::MAX - 5 (near wrap boundary)
-        let near_max_ts = u32::MAX - 5;
-        let frame = build_detection_frame_with_seq(0x05, 0x0003, 0x0001, 0);
-        analyzer.on_data(key.clone(), &frame, near_max_ts, Direction::ClientToServer);
+            // Insert a pending request at ts = u32::MAX - 5 (near wrap boundary).
+            let near_max_ts = u32::MAX - 5;
+            let frame = build_detection_frame_with_seq(0x05, 0x0003, 0x0001, 0);
+            analyzer.on_data(key.clone(), &frame, near_max_ts, Direction::ClientToServer);
 
-        // Advance to ts=5: wrapping_sub(5, u32::MAX - 5) = 5 + 6 = 11 > 10
-        // This must trigger the block timeout without panicking.
-        // (Plain subtraction 5 - (u32::MAX - 5) would overflow and panic under overflow-checks=true)
-        let trigger = build_detection_frame(0x01, 0x0003, 0x0001);
-        analyzer.on_data(key.clone(), &trigger, 5, Direction::ClientToServer);
+            // Advance to ts=5: saturating_sub(5, u32::MAX-5) = 0, NOT > 10.
+            // Under old wrapping_sub this was 11 > 10 → spuriously fired.
+            // Under saturating_sub (BC-2.15.014 v2.1 EC-009) this is 0 → no fire.
+            let trigger = build_detection_frame(0x01, 0x0003, 0x0001);
+            analyzer.on_data(key.clone(), &trigger, 5, Direction::ClientToServer);
 
-        // Must not have panicked; block_event_count should be 1 (timeout fired)
-        let flow = analyzer
-            .flows
-            .get(&key)
-            .expect("flow must exist after wrapping_sub scenario");
-        assert_eq!(
-            flow.block_event_count, 1,
-            "AC-014: wrapping_sub timeout must fire and increment block_event_count \
-             (backward ts: request at u32::MAX-5, trigger at ts=5; no panic)"
-        );
+            let flow = analyzer
+                .flows
+                .get(&key)
+                .expect("flow must exist after rollover scenario");
+            assert_eq!(
+                flow.block_event_count, 0,
+                "BC-2.15.014 v2.1 EC-009: rollover/backwards-ts (request at u32::MAX-5, \
+                 trigger at ts=5) must NOT spuriously fire a block timeout; \
+                 saturating_sub(5, u32::MAX-5)=0, not > 10; \
+                 supersedes STORY-109 AC-014 wrapping_sub semantics"
+            );
+        }
+
+        // ---- Part B: forward-clock STILL fires a block timeout ----
+        {
+            let mut analyzer = Dnp3Analyzer::new(10);
+            let key = test_flow_key();
+
+            // Insert a pending request at ts=0.
+            let frame = build_detection_frame_with_seq(0x05, 0x0003, 0x0001, 0);
+            analyzer.on_data(key.clone(), &frame, 0, Direction::ClientToServer);
+
+            // Advance to ts=11: saturating_sub(11, 0) = 11 > 10 → block timeout fires.
+            let trigger = build_detection_frame(0x01, 0x0003, 0x0001);
+            analyzer.on_data(key.clone(), &trigger, 11, Direction::ClientToServer);
+
+            let flow = analyzer
+                .flows
+                .get(&key)
+                .expect("flow must exist after forward-clock scenario");
+            assert_eq!(
+                flow.block_event_count, 1,
+                "BC-2.15.014 v2.1: forward-clock (request at ts=0, trigger at ts=11) \
+                 MUST fire a block timeout; saturating_sub(11, 0)=11 > 10"
+            );
+        }
     }
 
     // =========================================================================
