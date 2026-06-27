@@ -977,14 +977,15 @@ impl Dnp3Analyzer {
     /// Block-timeout scan (Task 4, BC-2.15.014).
     ///
     /// Iterates `flow.pending_requests`; for every entry where
-    /// `now_ts.wrapping_sub(request_ts) > BLOCK_CMD_TIMEOUT_SECS`:
+    /// `now_ts.saturating_sub(request_ts) > BLOCK_CMD_TIMEOUT_SECS`:
     /// increments `block_event_count` unconditionally, removes the entry, and
     /// checks for T1691.001 emission (`block_event_count >= BLOCK_CMD_THRESHOLD
     /// && !block_finding_emitted_this_window`).
     ///
     /// DIRECT_OPERATE_NR (0x06) is EXCLUDED at the insert point — it is never
     /// added to `pending_requests` (BC-2.15.014 Precondition 1 / Invariant 1).
-    /// All timestamp arithmetic uses `wrapping_sub` (BC-2.15.014 Inv 8 / AC-014).
+    /// All timestamp arithmetic uses `saturating_sub` (BC-2.15.014 Inv 8 / AC-014;
+    /// RULING-DNP3-SIBLING-001 §2.2 — backwards-clock evasion prevention).
     fn scan_block_timeouts(
         flow: &mut Dnp3FlowState,
         findings: &mut Vec<Finding>,
@@ -996,7 +997,7 @@ impl Dnp3Analyzer {
         let timed_out: Vec<(u16, u8)> = flow
             .pending_requests
             .iter()
-            .filter(|&(_, &request_ts)| now_ts.wrapping_sub(request_ts) > BLOCK_CMD_TIMEOUT_SECS)
+            .filter(|&(_, &request_ts)| now_ts.saturating_sub(request_ts) > BLOCK_CMD_TIMEOUT_SECS)
             .map(|(&key, _)| key)
             .collect();
 
