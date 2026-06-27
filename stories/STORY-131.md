@@ -26,7 +26,7 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-17/BC-2.17.026.md
   - .factory/specs/architecture/decisions/ADR-010-ethernet-ip-cip-stream-dispatch.md
   - .factory/phase-f2-spec-evolution/enip-architecture-delta.md
-input-hash: "a119157"
+input-hash: "ce92886"
 ---
 
 # STORY-131: EtherNet/IP StreamDispatcher Integration, CLI Flags, and TCP Reassembly Wiring
