@@ -112,7 +112,11 @@ let src_ip = match direction {
 };
 ```
 This resolves DRIFT-ENIP-DIRECTION-001 as a no-cost fix-along since `Direction` is now
-threaded. Findings emit `direction: Some(direction)` rather than `None` where applicable.
+threaded. The `direction` field on emitted Findings is NOT populated by this story. ENIP
+detections are per-flow aggregates (RULING-EDGECASE-001 §1.3); populating the `direction`
+field on a flow-aggregate finding with the incidental direction of the threshold-crossing
+packet is semantically incorrect. Finding-direction tagging is deferred to the v0.12.0
+per-direction sub-state rearchitecture (option (a) from RULING-EDGECASE-001 §1.2).
 
 **Test:** `tests/enip_analyzer_tests.rs::direction_and_clock::test_direction_based_source_ip`
 — Feed a c2s CIP Stop request on a flow where `src=10.0.0.1:54321`, `dst=10.0.0.2:44818`.
@@ -213,12 +217,12 @@ refactors from breaking direction isolation or window monotonicity.
 | `EnipFlowState.malformed_window_start_ts: u32` | `src/analyzer/enip.rs` | Malformed-window start timestamp (renamed from `malformed_window_start` — BC-2.17.018 v1.1 F-006) | Effectful |
 | `EnipAnalyzer::on_data(flow_key, data, timestamp, direction)` | `src/analyzer/enip.rs` | Frame-walk entry point; `direction: Direction` added | Effectful shell |
 | `crate::reassembly::handler::Direction` | `src/reassembly/handler.rs` | Direction enum (already used by Modbus); imported by ENIP | Pure enum |
-| Stream dispatcher ENIP arm | `src/reassembly/stream_dispatcher.rs` | Call site update: pass `Direction` to `on_data` (Modbus pattern) | Effectful |
+| Stream dispatcher ENIP arm | `src/dispatcher.rs` | Call site update: pass `Direction` to `on_data` (Modbus pattern) | Effectful |
 | `tests/enip_analyzer_tests.rs` | `tests/enip_analyzer_tests.rs` | Test mod `mod direction_and_clock { ... }` + `mod vp033_carry_direction_isolation { ... }` + `mod vp034_window_monotonic_no_spurious_reset { ... }` | Test |
 
 **Subsystem anchor:** SS-17 owns this story's scope because the carry-buffer split, direction
 threading, and window expiry fixes are all localized to `src/analyzer/enip.rs` and its dispatch
-call site in SS-05 (stream_dispatcher.rs). Per ARCH-INDEX.md §SS-17.
+call site in SS-05 (src/dispatcher.rs). Per ARCH-INDEX.md §SS-17.
 
 **Forbidden dependencies:** `src/analyzer/enip.rs` MUST NOT depend on any other analyzer module
 (`modbus`, `dnp3`, `arp`, etc.). If this module gains a cross-analyzer dependency (other than
@@ -264,7 +268,7 @@ infrastructure from `src/reassembly/handler.rs`, NOT an analyzer dependency.
   - [ ] T0836 write-burst: `now_ts.saturating_sub(flow.write_window_start_ts) > 1`
   - [ ] T0888 error-rate: `now_ts.saturating_sub(flow.error_window_start_ts) > 10`
   - [ ] T0814 malformed: `timestamp.saturating_sub(flow.malformed_window_start_ts) > 300` (strict `>`, was `>=`)
-- [ ] Update stream dispatcher ENIP arm call site to pass `Direction` (mirror Modbus arm)
+- [ ] Update `src/dispatcher.rs` ENIP arm call site to pass `Direction` (mirror Modbus arm)
 - [ ] Update all existing tests in `tests/enip_analyzer_tests.rs` that call `on_data` to pass
   a `Direction` argument — use `Direction::ClientToServer` for c2s traffic, `Direction::ServerToClient`
   for s2c traffic (existing tests that don't test direction semantics can pick either)
@@ -337,7 +341,7 @@ to turn them GREEN one-by-one.
   that is fixed here.
 - STORY-138 completed the full ENIP analyzer (summarize, on_flow_close). All Wave 60+61 stories
   are now merged. STORY-139 is the post-convergence bug-fix story applying RULING-EDGECASE-001.
-- The `on_data` call sites in `stream_dispatcher.rs` currently pass 3 arguments; this story
+- The `on_data` call sites in `src/dispatcher.rs` currently pass 3 arguments; this story
   adds a 4th (`Direction`). Update the dispatcher ENIP arm to match the Modbus pattern.
 - The field `malformed_window_start` appears in STORY-137; BC-2.17.018 v1.1 (F-006 correction)
   renames it to `malformed_window_start_ts`. Implementer must locate every reference to
@@ -391,7 +395,7 @@ BC-2.17.012 v1.2, BC-2.17.018 v1.1:
   - Replace `resolve_enip_client_ip` with inline direction-based IP selection
   - Replace all `wrapping_sub` with `saturating_sub` in window-expiry paths
   - Pin T0814 malformed window operator: `>= 300` → `> 300`
-- `src/reassembly/stream_dispatcher.rs`
+- `src/dispatcher.rs`
   - Update ENIP arm call site: `enip_analyzer.on_data(flow_key, data, ts)` →
     `enip_analyzer.on_data(flow_key, data, ts, direction)` (Modbus pattern)
 - `tests/enip_analyzer_tests.rs`
@@ -410,7 +414,7 @@ BC-2.17.012 v1.2, BC-2.17.018 v1.1:
 | Section | Estimated tokens |
 |---------|-----------------|
 | `src/analyzer/enip.rs` changes (carry split, field rename, `on_data` sig, direction IP, saturating_sub, operator pin) | ~800 |
-| `src/reassembly/stream_dispatcher.rs` ENIP arm call-site update | ~50 |
+| `src/dispatcher.rs` ENIP arm call-site update | ~50 |
 | Existing test updates (add `Direction` arg to ~30 call sites across test modules) | ~200 |
 | New `mod direction_and_clock` tests (7 tests) | ~500 |
 | `mod vp033_carry_direction_isolation` proptest harnesses (2 proptests + helper) | ~350 |
