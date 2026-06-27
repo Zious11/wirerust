@@ -32,7 +32,7 @@ inputs:
   - .factory/specs/architecture/decisions/ADR-010-ethernet-ip-cip-stream-dispatch.md
   - .factory/phase-f2-spec-evolution/enip-architecture-delta.md
 ruling: RULING-EDGECASE-001
-input-hash: "759464a"
+input-hash: "581b0fd"
 ---
 
 # STORY-139: ENIP Per-Direction Carry Buffer + Saturating Window Monotonicity (EC-X1/EC-X2 Detection-Correctness Fixes)

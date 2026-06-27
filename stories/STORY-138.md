@@ -28,7 +28,7 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-17/BC-2.17.024.md
   - .factory/specs/architecture/decisions/ADR-010-ethernet-ip-cip-stream-dispatch.md
   - .factory/phase-f2-spec-evolution/enip-architecture-delta.md
-input-hash: "0f60353"
+input-hash: "d7b99b0"
 ---
 
 # STORY-138: ENIP Session Lifecycle, Statistics, DoS Guard, and Analyzer Summary

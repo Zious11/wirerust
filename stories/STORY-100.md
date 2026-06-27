@@ -41,7 +41,7 @@ tdd_mode: strict
 feature_id: issue-007-modbus-analyzer
 github_issue: 7
 # BC status: all BCs authored and confirmed at v1.4/v1.5 as of 2026-06-09
-input-hash: "2713edb"
+input-hash: "5a33a48"
 ---
 
 # STORY-100: Multi-Tag Finding Schema Migration (Atomic Type Rename + Catalog Seed)

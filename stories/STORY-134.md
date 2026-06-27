@@ -25,7 +25,7 @@ inputs:
   - .factory/specs/architecture/decisions/ADR-010-ethernet-ip-cip-stream-dispatch.md
   - .factory/phase-f2-spec-evolution/enip-architecture-delta.md
   - .factory/research/enip-mitre-ics-tagging.md
-input-hash: "16d03a6"
+input-hash: "e7063de"
 ---
 
 # STORY-134: ENIP Recon Detections: T0846 ListIdentity, T0888 Identity Read / Error Burst, and CIP Error Accumulation
