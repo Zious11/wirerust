@@ -1,10 +1,10 @@
 ---
 pipeline: FEATURE-MODE
 phase: F7
-phase_status: "F7 HUMAN-APPROVED — HOLDOUT EVAL PASS (D-268) — HOLD AT RELEASE (D-260)"
+phase_status: "F7 HUMAN-APPROVED — HOLDOUT EVAL PASS (D-268) — ENIP E2E MERGED (D-269) — HOLD AT RELEASE (D-260)"
 product: wirerust
 mode: feature-mode
-timestamp: 2026-06-27T20:00:00Z
+timestamp: 2026-06-27T21:00:00Z
 
 # Release chain (latest)
 released_version: v0.10.0
@@ -16,8 +16,8 @@ release_yml_run: "28109367603 SUCCESS — 4 binaries"
 prior_released_version: v0.9.4
 prior_released_at: "2026-06-23"
 
-# Ground-truth HEADs (verified D-266 — 2026-06-27)
-develop_head: f17d270
+# Ground-truth HEADs (verified D-269 — 2026-06-27)
+develop_head: fd0c7f3
 main_head: 0cbe922
 factory_artifacts_head: (run `git -C .factory log -1 --format='%h'`)
 
@@ -29,7 +29,7 @@ adversary_gate: SATISFIED
 # Story tracking
 stories_delivered: 87
 current_cycle: feature-enip-v0.11.0 (D-228, 2026-06-24)
-current_wave: "Wave 61 CLOSED — HUMAN-APPROVED. F4 COMPLETE. F5 CONVERGED (D-263). F6 PASSED (D-265). F7 HUMAN-APPROVED (D-267). HOLDOUT EVAL PASS (D-268) — 22/22 real ENIP/CIP pcaps, 0 panics, 0 false positives. HOLD AT RELEASE (D-260)."
+current_wave: "Wave 61 CLOSED — HUMAN-APPROVED. F4 COMPLETE. F5 CONVERGED (D-263). F6 PASSED (D-265). F7 HUMAN-APPROVED (D-267). HOLDOUT EVAL PASS (D-268) — 22/22 real ENIP/CIP pcaps, 0 panics, 0 false positives. ENIP E2E MERGED PR #333 2093/0/81 GREEN (D-269). WAVE59-E2E-001 RESOLVED. HOLD AT RELEASE (D-260)."
 
 # DTU
 dtu_required: false
@@ -52,11 +52,11 @@ convergence_trajectory: "Detail: cycles/v0.1.0-greenfield-spec/convergence-traje
 
 ## Status
 
-**PIPELINE FEATURE-MODE. Cycle `feature-enip-v0.11.0` OPEN. F7 HUMAN-APPROVED (D-267). HOLDOUT EVAL PASS — 22/22 real ENIP/CIP pcaps (D-268). HOLD AT RELEASE (D-260).**
+**PIPELINE FEATURE-MODE. Cycle `feature-enip-v0.11.0` OPEN. F7 HUMAN-APPROVED (D-267). HOLDOUT EVAL PASS — 22/22 real ENIP/CIP pcaps (D-268). ENIP E2E real-pcap tests MERGED PR #333 (D-269) — full suite 2093/0/81 GREEN. HOLD AT RELEASE (D-260).**
 
 **HUMAN DIRECTIVE (D-260): HALT — do NOT run the release pipeline / tag / publish without explicit human go-ahead.**
 
-Latest release: v0.10.0 (main `0cbe922`, tag `v0.10.0`). develop=`f17d270`. stories_delivered=87. Target: v0.11.0 (SS-17 EtherNet/IP + CIP TCP/44818). GitHub issue #316.
+Latest release: v0.10.0 (main `0cbe922`, tag `v0.10.0`). develop=`fd0c7f3`. stories_delivered=87. Target: v0.11.0 (SS-17 EtherNet/IP + CIP TCP/44818). GitHub issue #316.
 
 Spec versions: BC-INDEX v1.84 (331 on disk / 330 active; SS-17=26 BCs). ARCH-INDEX v1.8. VP-INDEX v2.11 (VP-032). PRD v1.36. STORY-INDEX v2.8 (91 stories / 61 waves). epics.md v1.8 (E-20).
 
@@ -67,13 +67,14 @@ Spec versions: BC-INDEX v1.84 (331 on disk / 330 active; SS-17=26 BCs). ARCH-IND
 - Do NOT convert the 4 `arp.rs` `.expect()` sites to `if-let` — deliberately retained (D-223).
 - Do NOT re-run F1/F2/F3 for feature-enip-v0.11.0 — all CONVERGED + HUMAN-APPROVED (D-228/D-229/D-230/D-231).
 - Do NOT re-deliver STORY-130..138 — all MERGED (D-234/D-237/D-239/D-241/D-247/D-249/D-252/D-254/D-259).
-- Do NOT re-apply fix-PRs #328/330/331/332 — all MERGED (D-256/D-260/D-262/D-265). develop=`f17d270`.
+- Do NOT re-apply fix-PRs #328/330/331/332 — all MERGED (D-256/D-260/D-262/D-265).
+- Do NOT re-merge ENIP E2E real-pcap PR #333 — MERGED (D-269) fd0c7f3. develop=`fd0c7f3`.
 - Do NOT re-run F5/F6/F7 — F5 CONVERGED (D-263), F6 PASSED (D-265), F7 CONVERGED (D-266).
 - Do NOT refresh input-hashes for STORY-130..133 — refreshed at c65602a (D-266): 130=63fac3a, 131=ce92886, 132=c33dff8, 133=661f504. STORY-134..138 hashes unchanged.
 
-### EXACT RESUME POINT — v0.11.0 CONVERGED + F7 HUMAN-APPROVED + HOLDOUT EVAL PASS; HELD AT RELEASE
+### EXACT RESUME POINT — v0.11.0 CONVERGED + F7 HUMAN-APPROVED + HOLDOUT EVAL PASS + ENIP E2E MERGED; HELD AT RELEASE
 
-**v0.11.0 CONVERGED. F7 human-approved 2026-06-27 (D-267). HOLDOUT EVAL PASS 2026-06-27 (D-268) — 22/22 real ENIP/CIP pcaps, 0 panics, 0 parse_errors, 0 false positives; HS-110..122 all satisfied/corroborated/verified. develop=`f17d270`. stories_delivered=87. HELD AT RELEASE (D-260).**
+**v0.11.0 CONVERGED. F7 human-approved 2026-06-27 (D-267). HOLDOUT EVAL PASS 2026-06-27 (D-268) — 22/22 real ENIP/CIP pcaps, 0 panics, 0 parse_errors, 0 false positives; HS-110..122 all satisfied/corroborated/verified. ENIP E2E real-pcap tests MERGED PR #333 @fd0c7f3 (D-269) — 6 E2E tests (tests/enip_e2e_real_pcaps_tests.rs) + E2E-PCAPS.md; full suite 2093 passed / 0 failed / 81 suites GREEN; WAVE59-E2E-001 RESOLVED. develop=`fd0c7f3`. stories_delivered=87. HELD AT RELEASE (D-260).**
 
 Pre-release-go-ahead remaining (optional/non-blocking): (1) confirm F6-MUTANTS-FULL-RUN 0-missed; (2) cycle-close BC prose edits + SS-17 BC input-hash backfill (can be post-release); (3) Dependabot #311/#325 triage. The release pipeline (release/0.11.0 → version bump + CHANGELOG → PR to main → tag v0.11.0) awaits EXPLICIT human go-ahead — do NOT run it.
 
@@ -81,9 +82,9 @@ Pre-release-go-ahead remaining (optional/non-blocking): (1) confirm F6-MUTANTS-F
 
 1. Run `vsdd-factory:factory-worktree-health` — PASS required before proceeding.
 2. Read `.factory/STATE.md` + `cycles/feature-enip-v0.11.0/cycle-manifest.md` in full.
-3. Verify: `git rev-parse --short develop` == `f17d270`.
-4. Run `gh pr list` — expect Dependabot #311/#325 open (non-blocking); PRs #317..#332 MERGED.
-5. Proceed per EXACT RESUME POINT above — F7 human-approved; holdout eval (real pcaps) in progress.
+3. Verify: `git rev-parse --short develop` == `fd0c7f3`.
+4. Run `gh pr list` — expect Dependabot #311/#325 open (non-blocking); PRs #317..#333 MERGED.
+5. Proceed per EXACT RESUME POINT above — F7 human-approved; ENIP E2E merged; awaiting release go-ahead.
 
 ### Locked design facts (do not re-derive on resume)
 
@@ -95,6 +96,7 @@ Story input-hashes: STORY-130 63fac3a, STORY-131 ce92886, STORY-132 c33dff8, STO
 
 | ID | Summary | Status |
 |----|---------|--------|
+| WAVE59-E2E-001 | Full-pipeline reassembler→dispatcher→ENIP→summarize E2E against real captures. PR #333 @fd0c7f3 (6 tests, MIT scy-phy + CC-BY ITI pcaps). 2093/0/81 GREEN. | RESOLVED (D-269) |
 | O-W61-2 | [LOW] No-finding commands (ListServices/ListInterfaces/IndicateStatus/Cancel) lack a dedicated process_pdu test (structurally guaranteed). Optional. | OPEN — optional |
 | BC-2.17.021-PROSE-CLARIFICATION | BC-2.17.021 Invariant 2 prose clarification (ruling-sanctioned deferral per RULING-W61-001). | OPEN — cycle close |
 | F-138-P1-002 | BC-2.17.016 PC-0 wording ambiguity (non-blocking). | OPEN — cycle close |
@@ -140,7 +142,7 @@ All GitHub-issue creation DF-VALIDATION-001-gated.
 | Feature EtherNet/IP + CIP — F4 | **COMPLETE — Wave-61 HUMAN-APPROVED + CLOSED (D-262).** | All STORY-130..138 MERGED + fix-PRs #328/330/331. stories_delivered=87. |
 | Feature EtherNet/IP + CIP — F5 | **CONVERGED (D-263)** | 3-pass, 0 HIGH/0 CRITICAL, zero novelty. 26/26 BC sweep. RTM complete. |
 | Feature EtherNet/IP + CIP — F6 | **PASSED (D-265)** | Kani 11/11 PASS. cargo-fuzz 8.3M/0 crashes. audit/deny/clippy/fmt clean. Mutants 0-missed-so-far (F6-MUTANTS-FULL-RUN confirm at human gate). |
-| Feature EtherNet/IP + CIP — F7 | **PASSED — HUMAN-APPROVED (D-267); HOLDOUT EVAL PASS (D-268); HOLD AT RELEASE** | 5-dimensional CONVERGED; regression GREEN (80 suites). Input-hash drift resolved (c65602a). Holdout eval PASS: 22/22 real pcaps, 0 panics, HS-110..122 all satisfied/verified. |
+| Feature EtherNet/IP + CIP — F7 | **PASSED — HUMAN-APPROVED (D-267); HOLDOUT EVAL PASS (D-268); ENIP E2E MERGED PR #333 (D-269); HOLD AT RELEASE** | 5-dimensional CONVERGED; full suite 2093/0/81 GREEN. Input-hash drift resolved (c65602a). Holdout eval PASS: 22/22 real pcaps, 0 panics, HS-110..122 all satisfied/verified. WAVE59-E2E-001 RESOLVED. |
 
 ## Decisions Log
 
@@ -157,6 +159,7 @@ D-228..D-265: `cycles/feature-enip-v0.11.0/decisions-archive.md`
 | D-266 | F7 delta-convergence CONVERGED @f17d270. 5-dimensional assessment all CONVERGED; regression GREEN (0 failures, 80 suites). Input-hash drift resolved: STORY-130..133 STALE→MATCH (c65602a; hashes 63fac3a/ce92886/c33dff8/661f504). Holdouts HS-110..122 NON-BLOCKING (architect accept-for-v0.11.0). F6-MUTANTS-FULL-RUN 0-missed-so-far (confirm at human gate). phase_status: F7 CONVERGED — PENDING HUMAN GATE. HALT (D-260): do NOT release without explicit go-ahead. | 2026-06-27 |
 | D-267 | F7 human-approved 2026-06-27 ("Approve F7 — hold at release"). v0.11.0 EtherNet/IP feature declared CONVERGED + release-ready. develop stays at f17d270. HALT before release cut (D-260) — release pipeline NOT run without explicit future go-ahead. Holdout decision: RUN holdout pcaps via FOUND real-world captures (NOT synthetic fixtures). research-agent locating public ENIP/CIP pcaps mapped to HS-110..122 → output at .factory/research/enip-holdout-pcap-sources.md. Holdout eval is now a PRE-RELEASE-GO-AHEAD validation activity. | 2026-06-27 |
 | D-268 | Holdout eval via real pcaps COMPLETE — GATE PASS. 22 real ENIP/CIP pcaps (MIT scy-phy/bro-cip-enip SWaT/ControlLogix + CC-BY ITI) run through wirerust @f17d270: 22/22 exit-0, 0 parse_errors, 0 panics, 0 false positives on known-good traffic. Real detections fired: T0846 (ListIdentity), T0888 ×202 (identity-enum error responses), ForwardOpen anomalies (HS-116). HS-110..122: 5 SATISFIED by real captures (HS-110/114/115/116/120), 2 corroborated-negatives (HS-119/111-112), 4 synthetic-by-design (HS-113/117/118/121), HS-122 corpus SATISFIED. enip_metasploit.pcapng investigation: Stop/Reset NOT on spec-compliant 0x00B2 path (raw CIP or Unconnected_Send 0x52 wrapping); v0.11.0 detector PROVEN CORRECT. v0.12.0 finding logged: ENIP-UNCONNECTED-SEND-UNWRAP-001 (Unconnected_Send/Multiple-Service-Packet unwrap for Metasploit-style attacks). Report: .factory/holdout-scenarios/eval-runs/holdout-evaluation-report.md. | 2026-06-27 |
+| D-269 | ENIP E2E real-pcap tests MERGED (PR #333, squash fd0c7f3) into develop. 6 tests in tests/enip_e2e_real_pcaps_tests.rs + E2E-PCAPS.md + bin/fetch-e2e-pcaps entries (MIT scy-phy + CC-BY ITI captures). Tests skip-if-absent so CI stays green without gitignored fixtures. Full suite run @fd0c7f3: cargo test --all-targets = 2093 passed / 0 failed / 81 suites; ENIP E2E 6/6 PASS; doctests 0 failed; clippy/fmt clean. Outcomes match real pcaps: T0846 (ListIdentity), T0888 ×202 (201 Pattern-A Recon/Likely/High + 1 Pattern-B error-burst Recon/Possible/Medium per BC-2.17.014), ForwardOpen anomalies, 0 false-positives on known-good ControlLogix traffic, metasploit correct non-detection. WAVE59-E2E-001 RESOLVED. develop_head updated f17d270→fd0c7f3. | 2026-06-27 |
 
 ## Governance Policy
 
