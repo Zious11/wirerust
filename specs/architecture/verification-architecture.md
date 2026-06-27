@@ -2,7 +2,7 @@
 artifact: architecture-section
 section: verification-architecture
 traces_to: ARCH-INDEX.md
-version: "2.6"
+version: "2.7"
 status: verified
 producer: architect
 timestamp: 2026-05-20T00:00:00Z
@@ -70,6 +70,9 @@ modified:
   - date: 2026-06-27
     actor: spec-steward
     reason: "RULING-EDGECASE-001 (EC-X1/EC-X2 index propagation): VP-033 and VP-034 added to Should Prove table (P1; proptest; draft; analyzer/enip.rs). VP-033 carries 2 harnesses (EC-X1 carry-buffer direction isolation; BC-2.17.016 v2.0 Inv-7). VP-034 carries 4 sub-harnesses Sub-A/B/C/D (EC-X2 window monotonic / no-spurious-reset; BC-2.17.008 v1.3 / BC-2.17.012 v1.2 / BC-2.17.018 v1.1; Sub-C EC-X4 operator pin; Sub-D rollover). P1 count 18→20. Total 32→34. Tooling Selection proptest row updated (proptest count 10→12). P1 enumeration list extended. Version bump 2.5→2.6."
+  - date: 2026-06-27
+    actor: spec-steward
+    reason: "RULING-DNP3-SIBLING-001 (DNP3 carry-split + saturating_sub governance): VP-035 and VP-036 added to Should Prove table (P1; proptest; draft; analyzer/dnp3.rs). VP-035 carries 2 harnesses (DRIFT-DNP3-DIRECTION-001 carry-buffer direction isolation; BC-2.15.016 v2.0 Inv-6). VP-036 carries 4 sub-harnesses Sub-A/B/C/D (DRIFT-DNP3-CLOCK-001 window monotonic / no-spurious-reset; BC-2.15.010 v1.8 / BC-2.15.014 v2.1 / BC-2.15.015 v2.0; Sub-C DRIFT-DNP3-OP-001 operator pin; Sub-D rollover). P1 count 20→22. Total 34→36. Tooling Selection proptest row updated (proptest count 12→14). P1 enumeration list extended. Version bump 2.6→2.7."
 ---
 
 # Verification Architecture
@@ -113,6 +116,8 @@ modified:
 | VP-032 | EtherNet/IP + CIP frame parse safety and command/service classification: (Sub-A) `parse_enip_header` never panics, None for <24-byte inputs, Some with correct little-endian field layout for all bounded inputs (no attacker-controlled index beyond fixed offsets); (Sub-B) `classify_enip_command` total over all 65,536 u16 values, Unknown arm reachable and non-vacuous; (Sub-C) `is_valid_enip_frame` biconditional: returns true iff h.command in {0x0004, 0x0063, 0x0064, 0x0065, 0x0066, 0x006F, 0x0070, 0x0072, 0x0075} for all u16 cmd values; (Sub-D) `classify_cip_service` total over all 256 u8 values, response-bit mask (0x80 set → Response variant) proven correct, Unknown arm reachable | (no-panic + boundary + totality + biconditional) | analyzer/enip.rs | Kani |
 | VP-033 | EtherNet/IP carry-buffer direction isolation (EC-X1 regression guard): (Harness-A) proptest_vp033_direction_isolation_pdu_count — interleaved c2s/s2c deliveries produce pdu_count==2 with carry_c2s and carry_s2c never mixed; (Harness-B) proptest_vp033_independent_run_equivalence — interleaved run pdu_count equals sum of independent same-direction runs; traces BC-2.17.016 v2.0 Inv-7 | (direction isolation invariant; pdu_count equivalence) | analyzer/enip.rs | proptest |
 | VP-034 | EtherNet/IP window backwards-timestamp no-spurious-reset (EC-X2): (Sub-A) T0836 write-burst window — backwards/out-of-order timestamp does NOT reset 1-second window; saturating_sub yields 0 (not > 1); write_count_in_window preserved; T0836 fires when threshold crossed (BC-2.17.012 v1.2 EC-009); (Sub-B) T0888 error-rate window — backwards/out-of-order timestamp does NOT reset 10-second window; saturating_sub yields 0 (not > 10); error burst preserved (BC-2.17.008 v1.3 EC-009); (Sub-C) T0814 malformed-frame window — backwards/out-of-order timestamp does NOT reset 300-second window AND EC-X4 operator pin: elapsed==300 NOT > 300 → no reset; elapsed==301 → reset (BC-2.17.018 v1.1 EC-008); (Sub-D) genuine u32 rollover — deterministic unit test: window_start near u32::MAX, post-rollover now_ts near 0; saturating_sub returns 0 (no spurious reset); traces BC-2.17.008 v1.3 / BC-2.17.012 v1.2 / BC-2.17.018 v1.1 | (backwards-ts no-spurious-reset + rollover correctness + EC-X4 operator pin) | analyzer/enip.rs | proptest |
+| VP-035 | DNP3 carry-buffer direction isolation (DRIFT-DNP3-DIRECTION-001 regression guard): (proptest_vp035_direction_isolation_frame_count) — interleaved c2s/s2c deliveries produce correct frame_count with carry_c2s and carry_s2c never mixed; parse_errors==0; (proptest_vp035_independent_run_equivalence) — interleaved run frame_count equals sum of independent same-direction runs; traces BC-2.15.016 v2.0 Inv-6 | (direction isolation invariant; frame_count equivalence) | analyzer/dnp3.rs | proptest |
+| VP-036 | DNP3 window backwards-timestamp no-spurious-reset (DRIFT-DNP3-CLOCK-001): (Sub-A) T1692.001 direct-operate 60s window — backwards/out-of-order timestamp does NOT reset 60s window; saturating_sub yields 0 (not > 60); direct_operate_count preserved; T1692.001 fires when threshold crossed (BC-2.15.010 v1.8 EC-012); (Sub-B) T1691.001 block-command 10s timeout — backwards/out-of-order timestamp does NOT fire spurious timeout; saturating_sub yields 0 (not > 10); pending request preserved (BC-2.15.014 v2.1 EC-009); (Sub-C) T0827/T0814 300s correlation-window — backwards/out-of-order timestamp does NOT reset 300s window AND DRIFT-DNP3-OP-001 operator pin: elapsed==300 NOT > 300 → no reset; elapsed==301 → reset (BC-2.15.015 v2.0 EC-010); (Sub-D) genuine u32 rollover — deterministic unit test covering all three DNP3 windows; traces BC-2.15.010 v1.8 / BC-2.15.014 v2.1 / BC-2.15.015 v2.0 | (backwards-ts no-spurious-reset + rollover correctness + DRIFT-DNP3-OP-001 operator pin) | analyzer/dnp3.rs | proptest |
 
 [a] VP-024 umbrella is anchored to `analyzer/arp.rs` (Sub-B/C/D targets). Sub-A Kani harnesses
 (`verify_extract_arp_frame_safety`, `verify_extract_arp_frame_eth_ipv4_correctness`,
@@ -176,6 +181,8 @@ to be non-vacuous over symbolic `e`; see ADR-009 rev 5 VP-025 Kani Provability N
 - VP-032: EtherNet/IP + CIP frame parse safety and command/service classification (Kani, 4 sub-properties Sub-A..Sub-D; 5 Kani harnesses — Sub-D = totality + request-partition; draft): parse_enip_header no-panic/None-for-short/little-endian fields; classify_enip_command totality over all u16; is_valid_enip_frame biconditional; classify_cip_service totality over all u8 with response-bit proof [NEW — SS-17, ADR-010, feature-enip-v0.11.0 issue #316]
 - VP-033: EtherNet/IP carry-buffer direction isolation (proptest; 2 harnesses; EC-X1 regression guard; draft): Harness-A direction-isolation pdu_count; Harness-B independent-run equivalence (interleaved run == sum of independent same-direction runs); traces BC-2.17.016 v2.0 Inv-7 [NEW — RULING-EDGECASE-001 EC-X1]
 - VP-034: EtherNet/IP window backwards-timestamp no-spurious-reset (proptest; Sub-A/B/C/D; draft): Sub-A T0836 write-burst backwards-ts no-reset (BC-2.17.012 v1.2); Sub-B T0888 error-rate backwards-ts no-reset (BC-2.17.008 v1.3); Sub-C T0814 malformed backwards-ts no-reset + EC-X4 operator pin (elapsed==300 NOT > 300; BC-2.17.018 v1.1); Sub-D genuine u32 rollover deterministic unit test; traces BC-2.17.008 v1.3 / BC-2.17.012 v1.2 / BC-2.17.018 v1.1 [NEW — RULING-EDGECASE-001 EC-X2]
+- VP-035: DNP3 carry-buffer direction isolation (proptest; 2 harnesses; DRIFT-DNP3-DIRECTION-001 regression guard; draft): proptest_vp035_direction_isolation_frame_count — interleaved c2s/s2c deliveries produce correct frame_count with carry_c2s/carry_s2c never mixed; proptest_vp035_independent_run_equivalence — interleaved frame_count equals sum of independent same-direction runs; traces BC-2.15.016 v2.0 Inv-6 [NEW — RULING-DNP3-SIBLING-001 §1]
+- VP-036: DNP3 window backwards-timestamp no-spurious-reset (proptest; Sub-A/B/C/D; draft): Sub-A T1692.001 direct-operate 60s backwards-ts no-reset (BC-2.15.010 v1.8); Sub-B T1691.001 block-command 10s backwards-ts no-spurious-timeout (BC-2.15.014 v2.1); Sub-C T0827/T0814 300s correlation-window backwards-ts no-reset + DRIFT-DNP3-OP-001 operator pin (elapsed==300 NOT > 300; BC-2.15.015 v2.0); Sub-D genuine u32 rollover deterministic unit test (all three DNP3 windows); traces BC-2.15.010 v1.8 / BC-2.15.014 v2.1 / BC-2.15.015 v2.0 [NEW — RULING-DNP3-SIBLING-001 §2]
 
 
 ## Tooling Selection
@@ -185,7 +192,7 @@ See `tooling-selection.md` for full rationale. Summary:
 | Tool | Target Properties | Scope |
 |------|-----------------|-------|
 | Kani (model checker) | State machine reachability, arithmetic overflow, pointer safety | VP-001, VP-002, VP-003, VP-004, VP-005, VP-007, VP-009, VP-015, VP-022, VP-023, VP-024, VP-025, VP-026, VP-027, VP-032 |
-| proptest | Property-based: generate random inputs, check invariants | VP-006, VP-010..014, VP-021, VP-029, VP-030, VP-031, VP-033, VP-034 |
+| proptest | Property-based: generate random inputs, check invariants | VP-006, VP-010..014, VP-021, VP-029, VP-030, VP-031, VP-033, VP-034, VP-035, VP-036 |
 | cargo-fuzz (libFuzzer) | No-panic for parser entry points | VP-008, VP-028 |
 | cargo-mutants | Mutation coverage for domain logic | SS-06, SS-07, SS-08, SS-10 |
 

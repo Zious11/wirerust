@@ -1,7 +1,7 @@
 ---
 document_type: bc-index
 level: L3
-version: "1.85"
+version: "1.86"
 status: draft
 producer: product-owner
 timestamp: 2026-06-27T00:00:00Z
@@ -15,6 +15,9 @@ traces_to: .factory/specs/prd.md
 > links to the individual BC file. BCs are sharded into per-subsystem directories (ss-NN/).
 >
 > All BCs are marked [WRITTEN]. Body files have been verified on disk for all 331 entries (330 prior + 1 new BC-2.17.026 for F2 addendum error-burst CLI flag; BC-2.01.004 retired).
+>
+> **v1.86 2026-06-27 (RULING-DNP3-SIBLING-001 F2 governance — BC-2.15.016 v2.0, BC-2.15.010 v1.8, BC-2.15.014 v2.1, BC-2.15.015 v2.0; VP-035/VP-036 added to VP-INDEX 34→36):**
+> DNP3 sibling fix spec governance. BC-2.15.016 v1.6→v2.0 (MAJOR — RULING-DNP3-SIBLING-001 §1.3: Dnp3FlowState.carry: Vec<u8> replaced with carry_c2s: Vec<u8> + carry_s2c: Vec<u8> per-direction; on_data direction parameter; Invariant 6 (direction isolation) added; EC-010 (direction non-contamination) added; title updated to Per-Flow State Bounds — Carry Buffers ≤292 B per Direction). BC-2.15.010 v1.7→v1.8 (MINOR — saturating_sub window expiry; EC-012 added). BC-2.15.014 v2.0→v2.1 (MINOR — saturating_sub timeout; EC-009 added). BC-2.15.015 v1.9→v2.0 (MINOR — saturating_sub + >=→> operator pin; EC-010 added). VP-035 added (DNP3 carry-direction isolation proptest; traces BC-2.15.016 v2.0 Inv-6). VP-036 added (DNP3 window monotonic/no-spurious-reset proptest; Sub-A T1692.001 60s; Sub-B T1691.001 10s; Sub-C T0827/T0814 300s + DRIFT-DNP3-OP-001 operator pin; Sub-D rollover; traces BC-2.15.010 v1.8 PC4, BC-2.15.014 v2.1 PC3, BC-2.15.015 v2.0 PC3). VP-INDEX 34→36 (proptest_count 12→14, p1_count 20→22). No BC count change (331 on disk; 330 active). STORY-140 (F3) will reference VP-035/VP-036.
 >
 > **v1.85 2026-06-27 (RULING-EDGECASE-001 index propagation — BC-2.17.016 v2.0, BC-2.17.008 v1.3, BC-2.17.012 v1.2, BC-2.17.018 v1.1; VP-033/VP-034 added to VP-INDEX 32→34):**
 > EC-X1 (per-direction carry-buffer isolation) and EC-X2 (saturating error window / no spurious reset) amendments committed in 936361e + 654db0e. BC bodies and ADR-010 + VP-033/VP-034 docs already on disk; this entry propagates the index/governance version cells.
@@ -542,13 +545,13 @@ traces_to: .factory/specs/prd.md
 | BC-2.15.007 | compute_dnp3_frame_len Arithmetic Correct; Result in [10,292]; No Overflow | P0 | [WRITTEN] | feature-008-F2 |
 | BC-2.15.008 | Transport FIR=1 First-Fragment Gates Application-Layer FC Extraction | P0 | [WRITTEN] | feature-008-F2 |
 | BC-2.15.009 | is_non_dnp3 Desync-Safe Bail — Flow Silenced on Initial-Delivery No-Sync (One-Shot, First Delivery Only) | P0 | [WRITTEN] | feature-008-F2 |
-| BC-2.15.010 | Unauthorized Control Command — Unexpected Source (count=1) or Control-Class FC Exceeding Threshold Emits T1692.001 | P0 | [WRITTEN] | feature-008-F2 |
+| BC-2.15.010 | Unauthorized Control Command — Unexpected Source (count=1) or Control-Class FC Exceeding Threshold Emits T1692.001 | P0 | [WRITTEN] | feature-008-F2 | <!-- v1.8: RULING-DNP3-SIBLING-001 — Postcondition 4 window-expiry changed from wrapping_sub to saturating_sub; EC-012 added (backwards/out-of-order timestamp now_ts < window_start → saturating_sub yields 0 → window does NOT reset, burst preserved); VP-036 Sub-A covers T1692.001 60s backwards-ts no-reset -->
 | BC-2.15.011 | COLD_RESTART/WARM_RESTART Observed — Emits T0814 Per-Occurrence Finding | P0 | [WRITTEN] | feature-008-F2 |
 | BC-2.15.012 | WRITE FC Observed — Emits T0836 Modify-Parameter Finding Per-Occurrence | P0 | [WRITTEN] | feature-008-F2 |
 | BC-2.15.013 | Co-Emission Ordering — Direct Finding (T0814/T1692.001) Precedes Derived T0827 | P0 | [WRITTEN] | feature-008-F2 |
-| BC-2.15.014 | Inferred Block-Command — Control Request Without Response Within Window Emits T1691.001 | P0 | [WRITTEN] | feature-008-F2 |
-| BC-2.15.015 | Derived Loss-of-Control — N Restart/Block Events in Window Emits T0827 as Correlated Finding | P0 | [WRITTEN] | feature-008-F2 |
-| BC-2.15.016 | Per-Flow State Bounds — Carry Buffer ≤292 B, master_addrs ≤64, pending_requests ≤256 | P0 | [WRITTEN] | feature-008-F2 |
+| BC-2.15.014 | Inferred Block-Command — Control Request Without Response Within Window Emits T1691.001 | P0 | [WRITTEN] | feature-008-F2 | <!-- v2.1: RULING-DNP3-SIBLING-001 — Precondition 3 timeout check changed from wrapping_sub to saturating_sub; EC-009 added (backwards/out-of-order timestamp: saturating_sub yields 0 → timeout NOT fired; pending request preserved); VP-036 Sub-B covers T1691.001 10s backwards-ts no-spurious-timeout -->
+| BC-2.15.015 | Derived Loss-of-Control — N Restart/Block Events in Window Emits T0827 as Correlated Finding | P0 | [WRITTEN] | feature-008-F2 | <!-- v2.0: RULING-DNP3-SIBLING-001 — Postcondition 3 / Invariant 6 window-expiry changed from wrapping_sub >= 300 to saturating_sub > 300 (operator pin >=→>); EC-010 added (backwards-ts: saturating_sub yields 0 → NOT > 300 → window NOT reset); VP-036 Sub-C covers T0827/T0814 300s backwards-ts no-reset + DRIFT-DNP3-OP-001 operator pin -->
+| BC-2.15.016 | Per-Flow State Bounds — Carry Buffers ≤292 B per Direction, master_addrs ≤64, pending_requests ≤256 | P0 | [WRITTEN] | feature-008-F2 | <!-- v2.0: RULING-DNP3-SIBLING-001 (MAJOR) — Dnp3FlowState.carry: Vec<u8> replaced with carry_c2s: Vec<u8> + carry_s2c: Vec<u8> per-direction; on_data receives direction: Direction parameter; Invariant 1 updated per-direction; new Invariant 6 (carry isolation — carry_c2s and carry_s2c NEVER mixed); new EC-010 (direction non-contamination); Architecture Anchors updated; title updated; VP-035 guards Invariant 6 (proptest regression) -->
 | BC-2.15.017 | --dnp3-direct-operate-threshold CLI Flag Controls Control-Command Detection Window | P0 | [WRITTEN] | feature-008-F2 |
 | BC-2.15.018 | Broadcast Destination Anomaly — DEST in 0xFFFD/0xFFFE/0xFFFF Emits Anomaly Finding | P1 | [WRITTEN] | feature-008-F2 |
 | BC-2.15.019 | Unsolicited Response Anomaly — UNS Bit Set or FC 0x82 From Unexpected Pattern | P1 | [WRITTEN] | feature-008-F2 |

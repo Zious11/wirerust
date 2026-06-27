@@ -2,7 +2,7 @@
 artifact: architecture-section
 section: verification-coverage-matrix
 traces_to: ARCH-INDEX.md
-version: "1.21"
+version: "1.22"
 status: verified
 producer: spec-steward
 timestamp: 2026-05-20T00:00:00Z
@@ -85,6 +85,9 @@ modified:
   - date: 2026-06-27
     actor: spec-steward
     reason: "RULING-EDGECASE-001 (EC-X1/EC-X2 index propagation): VP-033 and VP-034 added to VP-to-Module table (proptest; P1; draft; analyzer/enip.rs). analyzer/enip.rs Per-Module row proptest count 0→2; Total VPs 1→3. Totals row proptest 10→12, overall 32→34. Coverage note added for VP-033/VP-034. Version bump 1.20→1.21."
+  - date: 2026-06-27
+    actor: spec-steward
+    reason: "RULING-DNP3-SIBLING-001 (DNP3 carry-split + saturating_sub governance): VP-035 and VP-036 added to VP-to-Module table (proptest; P1; draft; analyzer/dnp3.rs). analyzer/dnp3.rs Per-Module row proptest count 0→2; Total VPs 1→3. Totals row proptest 12→14, overall 34→36. Coverage note added for VP-035/VP-036. Version bump 1.21→1.22."
 ---
 
 # Verification Coverage Matrix
@@ -127,6 +130,8 @@ modified:
 | VP-032 | EtherNet/IP + CIP frame parse safety and command/service classification: (Sub-A) parse_enip_header no-panic, None<24b, Some with correct LE fields; (Sub-B) classify_enip_command total over all 65,536 u16 inputs, Unknown reachable; (Sub-C) is_valid_enip_frame biconditional iff command in known-set; (Sub-D) classify_cip_service total over all 256 u8 inputs, response-bit mask (0x80→Response) proven; 4 sub-properties (Sub-A..Sub-D); 5 Kani harnesses (Sub-D = totality + request-partition) | analyzer/enip.rs | Kani | P1 | draft |
 | VP-033 | EtherNet/IP carry-buffer direction isolation (EC-X1): Harness-A direction-isolation pdu_count — interleaved c2s/s2c deliveries produce pdu_count==2 with carry buffers never mixed; Harness-B independent-run equivalence — interleaved pdu_count equals sum of independent same-direction runs; traces BC-2.17.016 v2.0 Inv-7 | analyzer/enip.rs | proptest | P1 | draft |
 | VP-034 | EtherNet/IP window backwards-timestamp no-spurious-reset (EC-X2): Sub-A T0836 write-burst backwards-ts no-reset (BC-2.17.012 v1.2 EC-009); Sub-B T0888 error-rate backwards-ts no-reset (BC-2.17.008 v1.3 EC-009); Sub-C T0814 malformed backwards-ts no-reset + EC-X4 operator pin (elapsed==300 NOT > 300; BC-2.17.018 v1.1 EC-008); Sub-D genuine u32 rollover deterministic unit test; traces BC-2.17.008 v1.3 / BC-2.17.012 v1.2 / BC-2.17.018 v1.1 | analyzer/enip.rs | proptest | P1 | draft |
+| VP-035 | DNP3 carry-buffer direction isolation (DRIFT-DNP3-DIRECTION-001): proptest_vp035_direction_isolation_frame_count — interleaved c2s/s2c deliveries produce correct frame_count with carry_c2s/carry_s2c never mixed; proptest_vp035_independent_run_equivalence — interleaved frame_count equals sum of independent runs; traces BC-2.15.016 v2.0 Inv-6 | analyzer/dnp3.rs | proptest | P1 | draft |
+| VP-036 | DNP3 window backwards-timestamp no-spurious-reset (DRIFT-DNP3-CLOCK-001): Sub-A T1692.001 60s backwards-ts no-reset (BC-2.15.010 v1.8 EC-012); Sub-B T1691.001 10s block-timeout backwards-ts no-spurious-fire (BC-2.15.014 v2.1 EC-009); Sub-C T0827/T0814 300s correlation-window backwards-ts no-reset + DRIFT-DNP3-OP-001 operator pin (elapsed==300 NOT > 300; BC-2.15.015 v2.0 EC-010); Sub-D genuine u32 rollover deterministic unit test (all three windows); traces BC-2.15.010 v1.8 / BC-2.15.014 v2.1 / BC-2.15.015 v2.0 | analyzer/dnp3.rs | proptest | P1 | draft |
 
 
 ## Per-Module Coverage Totals
@@ -147,11 +152,11 @@ modified:
 | analyzer/dns.rs | 0 | 0 | 0 | 1 (VP-019) | 1 |
 | reporter/csv.rs | 0 | 0 | 0 | 1 (VP-020) | 1 |
 | analyzer/modbus.rs | 1 (VP-022) | 0 | 0 | 0 | 1 |
-| analyzer/dnp3.rs | 1 (VP-023) | 0 | 0 | 0 | 1 |
+| analyzer/dnp3.rs | 1 (VP-023) | 2 (VP-035, VP-036) | 0 | 0 | 3 |
 | analyzer/arp.rs | 1 (VP-024) [a] | 0 | 0 | 0 | 1 |
 | analyzer/enip.rs | 1 (VP-032) | 2 (VP-033, VP-034) | 0 | 0 | 3 |
 | reader.rs | 3 (VP-025, VP-026, VP-027) [b] | 3 (VP-029, VP-030, VP-031) [b] | 1 (VP-028) | 0 | 7 |
-| **Totals** | **15** | **12** | **2** | **5** | **34** |
+| **Totals** | **15** | **14** | **2** | **5** | **36** |
 
 
 ## Coverage Notes
@@ -282,4 +287,26 @@ modified:
   These are proptest (not Kani) because the window state machines operate over the stateful
   EnipFlowState — suitable for property-based testing but not for bounded Kani model-checking
   at the whole-flow-state level. The analyzer/enip.rs row now carries 1 Kani + 2 proptest = 3
-  total VPs. Grand Totals: Kani(15) + proptest(12) + fuzz(2) + integration/unit(5) = 34.
+  total VPs. Grand Totals at time of authoring: Kani(15) + proptest(12) + fuzz(2) + integration/unit(5) = 34.
+
+- VP-035 and VP-036 (analyzer/dnp3.rs / proptest): draft; lock gate at F6. These two VPs
+  were authored as part of RULING-DNP3-SIBLING-001 (DRIFT-DNP3-DIRECTION-001 and
+  DRIFT-DNP3-CLOCK-001) spec adjudication. VP-035 guards BC-2.15.016 v2.0 Invariant 6
+  (carry-buffer direction isolation, DNP3 sibling of VP-033/ENIP): harness
+  `proptest_vp035_direction_isolation_frame_count` confirms interleaved c2s/s2c frame
+  deliveries produce correct frame_count with carry_c2s and carry_s2c never mixed; harness
+  `proptest_vp035_independent_run_equivalence` confirms interleaved frame_count equals the sum
+  of independent same-direction runs. DNP3 frames use the 10-byte minimum DL header
+  (sync [0x05, 0x64], LENGTH, CTRL with direction bit-7, DEST/SRC/CRC); split_offset 1..9
+  (not 1..23 as in ENIP). VP-036 guards the backwards-timestamp no-spurious-reset property
+  across all three DNP3 windowed detections introduced by DRIFT-DNP3-CLOCK-001 and
+  DRIFT-DNP3-OP-001: Sub-A (T1692.001 direct-operate 60s window backwards-ts no-reset;
+  BC-2.15.010 v1.8 EC-012), Sub-B (T1691.001 block-command-timeout 10s window backwards-ts
+  no-spurious-fire; BC-2.15.014 v2.1 EC-009), Sub-C (T0827/T0814 correlation-window 300s
+  backwards-ts no-reset + DRIFT-DNP3-OP-001 operator pin: elapsed==300 NOT > 300;
+  BC-2.15.015 v2.0 EC-010), Sub-D (genuine u32 rollover deterministic unit test — all three
+  DNP3 windows; saturating_sub returns 0, no spurious reset). These are proptest (not Kani)
+  for the same reason as VP-034: DNP3 window state machines operate over stateful
+  Dnp3FlowState. The analyzer/dnp3.rs row now carries 1 Kani (VP-023) + 2 proptest
+  (VP-035, VP-036) = 3 total VPs. Grand Totals: Kani(15) + proptest(14) + fuzz(2) +
+  integration/unit(5) = 36.
