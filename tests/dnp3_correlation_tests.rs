@@ -23,6 +23,7 @@ mod story_109 {
     };
     use wirerust::findings::{Confidence, ThreatCategory, Verdict};
     use wirerust::reassembly::flow::FlowKey;
+    use wirerust::reassembly::handler::Direction;
 
     // -------------------------------------------------------------------------
     // Helpers
@@ -128,12 +129,12 @@ mod story_109 {
 
         // Send a DIRECT_OPERATE (FC=0x05) with app_seq=1 at ts=0
         let frame = build_detection_frame_with_seq(0x05, 0x0003, 0x0001, 1);
-        analyzer.on_data(key.clone(), &frame, 0);
+        analyzer.on_data(key.clone(), &frame, 0, Direction::ClientToServer);
 
         // No response — advance past BLOCK_CMD_TIMEOUT_SECS (10s) with a new frame at ts=11
         // The block-timeout scan fires during this on_data call.
         let trigger = build_detection_frame(0x01, 0x0003, 0x0001); // READ — just to advance ts
-        analyzer.on_data(key.clone(), &trigger, 11);
+        analyzer.on_data(key.clone(), &trigger, 11, Direction::ClientToServer);
 
         let flow = analyzer.flows.get(&key).expect("flow must exist");
         assert_eq!(
@@ -145,11 +146,11 @@ mod story_109 {
         // Now send FC=0x06 (DIRECT_OPERATE_NR) — should NOT be tracked in pending_requests,
         // so no block event when timeout fires.
         let frame_nr = build_detection_frame_with_seq(0x06, 0x0003, 0x0001, 2);
-        analyzer.on_data(key.clone(), &frame_nr, 12);
+        analyzer.on_data(key.clone(), &frame_nr, 12, Direction::ClientToServer);
 
         // Advance past 10s from ts=12 (so ts=23+): block_event_count must stay at 1
         let trigger2 = build_detection_frame(0x01, 0x0003, 0x0001);
-        analyzer.on_data(key.clone(), &trigger2, 23);
+        analyzer.on_data(key.clone(), &trigger2, 23, Direction::ClientToServer);
 
         let flow = analyzer.flows.get(&key).expect("flow must still exist");
         assert_eq!(
@@ -192,11 +193,16 @@ mod story_109 {
         for i in 0u32..3 {
             let base_ts = i * 11; // ts = 0, 11, 22
             let frame = build_detection_frame_with_seq(0x05, 0x0003, 0x0001, i as u8);
-            analyzer.on_data(key.clone(), &frame, base_ts);
+            analyzer.on_data(key.clone(), &frame, base_ts, Direction::ClientToServer);
             // Advance 11 seconds: triggers block-timeout scan for all pending_requests
             // with wrapping_sub(base_ts + 11, base_ts) = 11 > BLOCK_CMD_TIMEOUT_SECS (10)
             let trigger = build_detection_frame(0x01, 0x0003, 0x0001);
-            analyzer.on_data(key.clone(), &trigger, base_ts + 11);
+            analyzer.on_data(
+                key.clone(),
+                &trigger,
+                base_ts + 11,
+                Direction::ClientToServer,
+            );
         }
 
         // Exactly one T1691.001 finding must have been emitted
@@ -303,9 +309,9 @@ mod story_109 {
 
         // Block event #1: DIRECT_OPERATE at ts=0, timeout at ts=11
         let frame1 = build_detection_frame_with_seq(0x05, 0x0003, 0x0001, 0);
-        analyzer.on_data(key.clone(), &frame1, 0);
+        analyzer.on_data(key.clone(), &frame1, 0, Direction::ClientToServer);
         let trigger1 = build_detection_frame(0x01, 0x0003, 0x0001);
-        analyzer.on_data(key.clone(), &trigger1, 11);
+        analyzer.on_data(key.clone(), &trigger1, 11, Direction::ClientToServer);
 
         {
             let flow = analyzer.flows.get(&key).expect("flow must exist");
@@ -318,9 +324,9 @@ mod story_109 {
         // Block event #2: DIRECT_OPERATE at ts=150, timeout at ts=161
         // 150s < 300s window — must NOT reset block_event_count.
         let frame2 = build_detection_frame_with_seq(0x05, 0x0003, 0x0001, 1);
-        analyzer.on_data(key.clone(), &frame2, 150);
+        analyzer.on_data(key.clone(), &frame2, 150, Direction::ClientToServer);
         let trigger2 = build_detection_frame(0x01, 0x0003, 0x0001);
-        analyzer.on_data(key.clone(), &trigger2, 161);
+        analyzer.on_data(key.clone(), &trigger2, 161, Direction::ClientToServer);
 
         let flow = analyzer.flows.get(&key).expect("flow must exist");
         assert_eq!(
@@ -367,15 +373,15 @@ mod story_109 {
 
         // Block event #1: ts=0 → timeout at ts=11
         let frame1 = build_detection_frame_with_seq(0x05, 0x0003, 0x0001, 0);
-        analyzer.on_data(key.clone(), &frame1, 0);
+        analyzer.on_data(key.clone(), &frame1, 0, Direction::ClientToServer);
         let t1 = build_detection_frame(0x01, 0x0003, 0x0001);
-        analyzer.on_data(key.clone(), &t1, 11);
+        analyzer.on_data(key.clone(), &t1, 11, Direction::ClientToServer);
 
         // Block event #2: ts=150 → timeout at ts=161 (still within 300s window)
         let frame2 = build_detection_frame_with_seq(0x05, 0x0003, 0x0001, 1);
-        analyzer.on_data(key.clone(), &frame2, 150);
+        analyzer.on_data(key.clone(), &frame2, 150, Direction::ClientToServer);
         let t2 = build_detection_frame(0x01, 0x0003, 0x0001);
-        analyzer.on_data(key.clone(), &t2, 161);
+        analyzer.on_data(key.clone(), &t2, 161, Direction::ClientToServer);
 
         {
             let flow = analyzer.flows.get(&key).expect("flow must exist");
@@ -400,7 +406,7 @@ mod story_109 {
 
         // COLD_RESTART at ts=200: pushes T0814 then T0827 (combined=3 >= threshold=3)
         let restart = build_detection_frame(0x0D, 0x0003, 0x0001);
-        analyzer.on_data(key.clone(), &restart, 200);
+        analyzer.on_data(key.clone(), &restart, 200, Direction::ClientToServer);
 
         // Must have T0827
         let t0827_findings: Vec<_> = analyzer
@@ -503,11 +509,11 @@ mod story_109 {
         // --- Step 1: 2 COLD_RESTARTs → restart_event_count=2, combined=2 ---
         // ts=0: COLD_RESTART #1 → T0814; restart_event_count=1
         let r1 = build_detection_frame(0x0D, 0x0003, 0x0001);
-        analyzer.on_data(key.clone(), &r1, 0);
+        analyzer.on_data(key.clone(), &r1, 0, Direction::ClientToServer);
 
         // ts=10: COLD_RESTART #2 → T0814; restart_event_count=2, combined=2 < 3
         let r2 = build_detection_frame(0x0D, 0x0003, 0x0001);
-        analyzer.on_data(key.clone(), &r2, 10);
+        analyzer.on_data(key.clone(), &r2, 10, Direction::ClientToServer);
 
         {
             let flow = analyzer
@@ -538,7 +544,7 @@ mod story_109 {
         // Uses app_seq=7 so it does not collide with any prior request.
         // dest=0x0003, src=0x0001.
         let select = build_detection_frame_with_seq(0x03, 0x0003, 0x0001, 7);
-        analyzer.on_data(key.clone(), &select, 20);
+        analyzer.on_data(key.clone(), &select, 20, Direction::ClientToServer);
 
         {
             let flow = analyzer
@@ -558,7 +564,7 @@ mod story_109 {
         // T1691.001 must NOT fire (block_event_count=1 < BLOCK_CMD_THRESHOLD=3).
         // T0827 MUST fire (combined=3 >= T0827_THRESHOLD=3).
         let trigger = build_detection_frame(0x01, 0x0003, 0x0001);
-        analyzer.on_data(key.clone(), &trigger, 31);
+        analyzer.on_data(key.clone(), &trigger, 31, Direction::ClientToServer);
 
         // Verify block_event_count reached 1
         {
@@ -686,7 +692,7 @@ mod story_109 {
 
         // --- Step 1: 1 COLD_RESTART → restart_event_count=1, combined=1 ---
         let r1 = build_detection_frame(0x0D, 0x0003, 0x0001);
-        analyzer.on_data(key.clone(), &r1, 0);
+        analyzer.on_data(key.clone(), &r1, 0, Direction::ClientToServer);
 
         {
             let flow = analyzer
@@ -705,13 +711,13 @@ mod story_109 {
 
         // --- Step 2: SELECT #1 at ts=10 → pending_requests entry (seq=1) ---
         let select1 = build_detection_frame_with_seq(0x03, 0x0003, 0x0001, 1);
-        analyzer.on_data(key.clone(), &select1, 10);
+        analyzer.on_data(key.clone(), &select1, 10, Direction::ClientToServer);
 
         // --- Step 3: advance to ts=21 with no RESPONSE for seq=1 ---
         // wrapping_sub(21, 10) = 11 > 10 → block timeout fires; block_event_count=1.
         // combined = 1+1 = 2 < 3 → no T0827 yet.
         let trigger1 = build_detection_frame(0x01, 0x0003, 0x0001);
-        analyzer.on_data(key.clone(), &trigger1, 21);
+        analyzer.on_data(key.clone(), &trigger1, 21, Direction::ClientToServer);
 
         {
             let flow = analyzer
@@ -735,7 +741,7 @@ mod story_109 {
 
         // --- Step 4: SELECT #2 at ts=30 → pending_requests entry (seq=2) ---
         let select2 = build_detection_frame_with_seq(0x03, 0x0003, 0x0001, 2);
-        analyzer.on_data(key.clone(), &select2, 30);
+        analyzer.on_data(key.clone(), &select2, 30, Direction::ClientToServer);
 
         // --- Step 5: advance to ts=41 with no RESPONSE for seq=2 ---
         // wrapping_sub(41, 30) = 11 > 10 → block timeout fires; block_event_count=2.
@@ -743,7 +749,7 @@ mod story_109 {
         // T1691.001 must NOT fire (block_event_count=2 < BLOCK_CMD_THRESHOLD=3).
         // T0827 MUST fire (combined=3 >= 3, !loss_of_control_emitted).
         let trigger2 = build_detection_frame(0x01, 0x0003, 0x0001);
-        analyzer.on_data(key.clone(), &trigger2, 41);
+        analyzer.on_data(key.clone(), &trigger2, 41, Direction::ClientToServer);
 
         // Verify block_event_count reached 2
         {
@@ -869,14 +875,14 @@ mod story_109 {
         // Deliver them as raw bytes (the carry-buffer processes them, drain+parse_error).
         for _ in 0..2u32 {
             let malformed = build_invalid_frame_length_too_short();
-            analyzer.on_data(key.clone(), &malformed, 0);
+            analyzer.on_data(key.clone(), &malformed, 0, Direction::ClientToServer);
         }
 
         // Seed restart_event_count (and loss_of_control_emitted via T0827)
         // by doing 3 COLD_RESTARTs at ts=0..2.
         for i in 0u32..3 {
             let restart = build_detection_frame(0x0D, 0x0003, 0x0001);
-            analyzer.on_data(key.clone(), &restart, i);
+            analyzer.on_data(key.clone(), &restart, i, Direction::ClientToServer);
         }
 
         // Verify pre-conditions: some windowed state is set.
@@ -902,7 +908,7 @@ mod story_109 {
         // correlation_window_start_ts was seeded at ts=0; now send a frame at ts=301
         // (wrapping_sub(301, 0) = 301 >= CORRELATION_WINDOW_SECS=300 → window expires).
         let trigger = build_detection_frame(0x01, 0x0003, 0x0001);
-        analyzer.on_data(key.clone(), &trigger, 301);
+        analyzer.on_data(key.clone(), &trigger, 301, Direction::ClientToServer);
 
         let flow = analyzer.flows.get(&key).expect("flow must exist");
 
@@ -974,7 +980,7 @@ mod story_109 {
         // CORRELATION_WINDOW_SECS (300), so without the seed guard it would
         // trigger a spurious window expiry (wrapping_sub(1000, 0) >= 300).
         let first_frame = build_detection_frame(0x01, 0x0003, 0x0001);
-        analyzer.on_data(key.clone(), &first_frame, 1000);
+        analyzer.on_data(key.clone(), &first_frame, 1000, Direction::ClientToServer);
 
         {
             let flow = analyzer
@@ -1018,7 +1024,7 @@ mod story_109 {
         // code for this step).  The decisive observable difference was already in assertions
         // 1 & 2 above.  This step confirms the counter accumulates in the seeded window.
         let restart_frame = build_detection_frame(0x0D, 0x0003, 0x0001);
-        analyzer.on_data(key.clone(), &restart_frame, 1000);
+        analyzer.on_data(key.clone(), &restart_frame, 1000, Direction::ClientToServer);
 
         {
             let flow = analyzer
@@ -1063,9 +1069,9 @@ mod story_109 {
 
         // 2 COLD_RESTARTs — restart_event_count=2 but block_event_count=0
         let r1 = build_detection_frame(0x0D, 0x0003, 0x0001);
-        analyzer.on_data(key.clone(), &r1, 0);
+        analyzer.on_data(key.clone(), &r1, 0, Direction::ClientToServer);
         let r2 = build_detection_frame(0x0D, 0x0003, 0x0001);
-        analyzer.on_data(key.clone(), &r2, 10);
+        analyzer.on_data(key.clone(), &r2, 10, Direction::ClientToServer);
 
         let flow = analyzer.flows.get(&key).expect("flow must exist");
         assert_eq!(
@@ -1112,7 +1118,7 @@ mod story_109 {
 
         // DIRECT_OPERATE (FC=0x05) to broadcast dest=0xFFFF
         let frame = build_detection_frame(0x05, 0xFFFF, 0x0001);
-        analyzer.on_data(key.clone(), &frame, 1000);
+        analyzer.on_data(key.clone(), &frame, 1000, Direction::ClientToServer);
 
         // Must have exactly one T1692.001 finding with Suspicious/Possible/Medium
         let broadcast_findings: Vec<_> = analyzer
@@ -1187,7 +1193,7 @@ mod story_109 {
 
         // READ (FC=0x01) to broadcast dest=0xFFFF — no anomaly expected
         let frame = build_detection_frame(0x01, 0xFFFF, 0x0001);
-        analyzer.on_data(key.clone(), &frame, 1000);
+        analyzer.on_data(key.clone(), &frame, 1000, Direction::ClientToServer);
 
         // No T1692.001 findings from a READ to broadcast
         let t1692_count = analyzer
@@ -1225,7 +1231,7 @@ mod story_109 {
         // 11 broadcast DIRECT_OPERATE frames to dest=0xFFFF
         for i in 0..11u32 {
             let frame = build_detection_frame(0x05, 0xFFFF, 0x0001);
-            analyzer.on_data(key.clone(), &frame, i);
+            analyzer.on_data(key.clone(), &frame, i, Direction::ClientToServer);
         }
 
         // Total T1692.001 findings: must be > 1 (both broadcast anomaly + burst retained)
@@ -1281,7 +1287,7 @@ mod story_109 {
 
         // FC=0x82 (UNSOLICITED_RESPONSE) — no prior ENABLE_UNSOLICITED on this flow
         let frame = build_detection_frame(0x82, 0x0001, 0x0003);
-        analyzer.on_data(key.clone(), &frame, 1000);
+        analyzer.on_data(key.clone(), &frame, 1000, Direction::ClientToServer);
 
         // Must emit exactly ONE T0814 finding (unsolicited anomaly)
         let t0814_findings: Vec<_> = analyzer
@@ -1318,7 +1324,7 @@ mod story_109 {
 
         // One-shot guard: second UNSOLICITED_RESPONSE must NOT emit another finding
         let frame2 = build_detection_frame(0x82, 0x0001, 0x0003);
-        analyzer.on_data(key.clone(), &frame2, 1001);
+        analyzer.on_data(key.clone(), &frame2, 1001, Direction::ClientToServer);
 
         let t0814_count_after = analyzer
             .all_findings
@@ -1348,7 +1354,7 @@ mod story_109 {
 
         // First: ENABLE_UNSOLICITED (FC=0x14) — sets enable_unsolicited_seen=true
         let enable_frame = build_detection_frame(0x14, 0x0003, 0x0001);
-        analyzer.on_data(key.clone(), &enable_frame, 100);
+        analyzer.on_data(key.clone(), &enable_frame, 100, Direction::ClientToServer);
 
         {
             let flow = analyzer.flows.get(&key).expect("flow must exist");
@@ -1360,7 +1366,7 @@ mod story_109 {
 
         // Then: UNSOLICITED_RESPONSE (FC=0x82) — must NOT emit anomaly
         let unsol_frame = build_detection_frame(0x82, 0x0001, 0x0003);
-        analyzer.on_data(key.clone(), &unsol_frame, 200);
+        analyzer.on_data(key.clone(), &unsol_frame, 200, Direction::ClientToServer);
 
         // No T0814 anomaly from the unsolicited response (ENABLE_UNSOLICITED was seen)
         // (Note: the ENABLE_UNSOLICITED itself may emit a T0814 per BC-2.15.023 AC-011 —
@@ -1409,7 +1415,7 @@ mod story_109 {
 
         // FC=0x15 (DISABLE_UNSOLICITED) from src=0x0001 to dest=0x0003
         let frame = build_detection_frame(0x15, 0x0003, 0x0001);
-        analyzer.on_data(key.clone(), &frame, 1000);
+        analyzer.on_data(key.clone(), &frame, 1000, Direction::ClientToServer);
 
         // Must have exactly one T0814 from DISABLE_UNSOLICITED
         let disable_findings: Vec<_> = analyzer
@@ -1491,7 +1497,7 @@ mod story_109 {
 
         // Per-occurrence: second DISABLE_UNSOLICITED emits another finding
         let frame2 = build_detection_frame(0x15, 0x0003, 0x0001);
-        analyzer.on_data(key.clone(), &frame2, 1001);
+        analyzer.on_data(key.clone(), &frame2, 1001, Direction::ClientToServer);
 
         let count_after = analyzer
             .all_findings
@@ -1523,7 +1529,7 @@ mod story_109 {
 
         // FC=0x14 (ENABLE_UNSOLICITED) from src=0x0001 to dest=0x0003
         let frame = build_detection_frame(0x14, 0x0003, 0x0001);
-        analyzer.on_data(key.clone(), &frame, 500);
+        analyzer.on_data(key.clone(), &frame, 500, Direction::ClientToServer);
 
         let enable_findings: Vec<_> = analyzer
             .all_findings
@@ -1581,7 +1587,7 @@ mod story_109 {
 
         // Per-occurrence: second ENABLE_UNSOLICITED emits another finding
         let frame2 = build_detection_frame(0x14, 0x0003, 0x0001);
-        analyzer.on_data(key.clone(), &frame2, 501);
+        analyzer.on_data(key.clone(), &frame2, 501, Direction::ClientToServer);
 
         let count_after = analyzer
             .all_findings
@@ -1619,7 +1625,7 @@ mod story_109 {
         // Each invalid LENGTH triggers parse_errors += 1 AND (new) malformed_in_window += 1.
         for _ in 0..3u32 {
             let malformed = build_invalid_frame_length_too_short();
-            analyzer.on_data(key.clone(), &malformed, 0);
+            analyzer.on_data(key.clone(), &malformed, 0, Direction::ClientToServer);
         }
 
         // Exactly one T0814 malformed-anomaly finding must be emitted
@@ -1728,7 +1734,7 @@ mod story_109 {
         // Deliver 3 malformed frames at ts=0 to accumulate parse_errors=3, malformed_in_window=3
         for _ in 0..3u32 {
             let malformed = build_invalid_frame_length_too_short();
-            analyzer.on_data(key.clone(), &malformed, 0);
+            analyzer.on_data(key.clone(), &malformed, 0, Direction::ClientToServer);
         }
 
         {
@@ -1742,7 +1748,7 @@ mod story_109 {
 
         // Advance past 300s window expiry (ts=301 from correlation_window_start_ts=0)
         let trigger = build_detection_frame(0x01, 0x0003, 0x0001);
-        analyzer.on_data(key.clone(), &trigger, 301);
+        analyzer.on_data(key.clone(), &trigger, 301, Direction::ClientToServer);
 
         let flow = analyzer.flows.get(&key).expect("flow must exist");
 
@@ -1786,13 +1792,13 @@ mod story_109 {
         // Insert a pending request at ts = u32::MAX - 5 (near wrap boundary)
         let near_max_ts = u32::MAX - 5;
         let frame = build_detection_frame_with_seq(0x05, 0x0003, 0x0001, 0);
-        analyzer.on_data(key.clone(), &frame, near_max_ts);
+        analyzer.on_data(key.clone(), &frame, near_max_ts, Direction::ClientToServer);
 
         // Advance to ts=5: wrapping_sub(5, u32::MAX - 5) = 5 + 6 = 11 > 10
         // This must trigger the block timeout without panicking.
         // (Plain subtraction 5 - (u32::MAX - 5) would overflow and panic under overflow-checks=true)
         let trigger = build_detection_frame(0x01, 0x0003, 0x0001);
-        analyzer.on_data(key.clone(), &trigger, 5);
+        analyzer.on_data(key.clone(), &trigger, 5, Direction::ClientToServer);
 
         // Must not have panicked; block_event_count should be 1 (timeout fired)
         let flow = analyzer
@@ -1827,11 +1833,11 @@ mod story_109 {
 
         // Deliver FC=0x06 (DIRECT_OPERATE_NR)
         let frame = build_detection_frame_with_seq(0x06, 0x0003, 0x0001, 0);
-        analyzer.on_data(key.clone(), &frame, 0);
+        analyzer.on_data(key.clone(), &frame, 0, Direction::ClientToServer);
 
         // Advance past timeout
         let trigger = build_detection_frame(0x01, 0x0003, 0x0001);
-        analyzer.on_data(key.clone(), &trigger, 11);
+        analyzer.on_data(key.clone(), &trigger, 11, Direction::ClientToServer);
 
         let flow = analyzer.flows.get(&key).expect("flow must exist");
         assert_eq!(
@@ -1872,7 +1878,7 @@ mod story_109 {
 
         // SELECT (FC=0x03) from master (src=0x0001) to outstation (dest=0x0003)
         let select_frame = build_detection_frame_with_seq(0x03, 0x0003, 0x0001, 5);
-        analyzer.on_data(key.clone(), &select_frame, 0);
+        analyzer.on_data(key.clone(), &select_frame, 0, Direction::ClientToServer);
 
         {
             let flow = analyzer.flows.get(&key).expect("flow must exist");
@@ -1886,12 +1892,12 @@ mod story_109 {
         // RESPONSE (FC=0x81) within 5s — matching (dest=0x0001, app_seq=5) from outstation
         // Response: outstation (src=0x0003) replies to master (dest=0x0001), same app_seq
         let response_frame = build_detection_frame_with_seq(0x81, 0x0001, 0x0003, 5);
-        analyzer.on_data(key.clone(), &response_frame, 5); // 5 < BLOCK_CMD_TIMEOUT_SECS=10
+        analyzer.on_data(key.clone(), &response_frame, 5, Direction::ClientToServer); // 5 < BLOCK_CMD_TIMEOUT_SECS=10
 
         // After receiving the response, the pending entry must be removed
         // (the block-timeout scan at next on_data should not find it)
         let trigger = build_detection_frame(0x01, 0x0003, 0x0001);
-        analyzer.on_data(key.clone(), &trigger, 15); // advance past 10s
+        analyzer.on_data(key.clone(), &trigger, 15, Direction::ClientToServer); // advance past 10s
 
         let flow = analyzer.flows.get(&key).expect("flow must exist");
         assert_eq!(
@@ -1920,7 +1926,7 @@ mod story_109 {
         // 3 COLD_RESTARTs → combined=3 → T0827 emitted after 3rd
         for i in 0u32..3 {
             let r = build_detection_frame(0x0D, 0x0003, 0x0001);
-            analyzer.on_data(key.clone(), &r, i * 10);
+            analyzer.on_data(key.clone(), &r, i * 10, Direction::ClientToServer);
         }
 
         {
@@ -1937,7 +1943,7 @@ mod story_109 {
 
         // 4th COLD_RESTART in same window (ts=30, well within 300s from ts=0)
         let r4 = build_detection_frame(0x0D, 0x0003, 0x0001);
-        analyzer.on_data(key.clone(), &r4, 30);
+        analyzer.on_data(key.clone(), &r4, 30, Direction::ClientToServer);
 
         let t0827_count_after = analyzer
             .all_findings
@@ -1971,7 +1977,7 @@ mod story_109 {
         let key = test_flow_key();
 
         let frame = build_detection_frame(0x01, 0xFFFF, 0x0001); // READ to broadcast
-        analyzer.on_data(key.clone(), &frame, 1000);
+        analyzer.on_data(key.clone(), &frame, 1000, Direction::ClientToServer);
 
         let t1692_count = analyzer
             .all_findings
@@ -2002,7 +2008,7 @@ mod story_109 {
 
         // ENABLE_UNSOLICITED first
         let enable = build_detection_frame(0x14, 0x0003, 0x0001);
-        analyzer.on_data(key.clone(), &enable, 100);
+        analyzer.on_data(key.clone(), &enable, 100, Direction::ClientToServer);
 
         let flow_after_enable = analyzer.flows.get(&key).expect("flow must exist");
         assert!(
@@ -2012,7 +2018,7 @@ mod story_109 {
 
         // Then UNSOLICITED_RESPONSE — anomaly must be suppressed
         let unsol = build_detection_frame(0x82, 0x0001, 0x0003);
-        analyzer.on_data(key.clone(), &unsol, 200);
+        analyzer.on_data(key.clone(), &unsol, 200, Direction::ClientToServer);
 
         let flow = analyzer.flows.get(&key).expect("flow must exist");
         assert!(
@@ -2052,7 +2058,7 @@ mod story_109 {
         // 3 malformed frames → T0814 emitted at 3rd
         for _ in 0..3u32 {
             let malformed = build_invalid_frame_length_too_short();
-            analyzer.on_data(key.clone(), &malformed, 0);
+            analyzer.on_data(key.clone(), &malformed, 0, Direction::ClientToServer);
         }
 
         let t0814_malformed_findings_before: Vec<_> = analyzer
@@ -2081,7 +2087,7 @@ mod story_109 {
 
         // 4th malformed frame — guard must prevent second T0814
         let malformed4 = build_invalid_frame_length_too_short();
-        analyzer.on_data(key.clone(), &malformed4, 0);
+        analyzer.on_data(key.clone(), &malformed4, 0, Direction::ClientToServer);
 
         let t0814_malformed_count_after = analyzer
             .all_findings
@@ -2124,7 +2130,7 @@ mod story_109 {
 
         // Single COLD_RESTART
         let frame = build_detection_frame(0x0D, 0x0003, 0x0001);
-        analyzer.on_data(key.clone(), &frame, 1000);
+        analyzer.on_data(key.clone(), &frame, 1000, Direction::ClientToServer);
 
         // T0814 must be emitted (COLD_RESTART is a per-occurrence detection)
         let t0814_count = analyzer
@@ -2256,19 +2262,19 @@ mod story_109 {
         // Replicate AC-004 Trace B setup:
         // Block event #1: ts=0 → timeout at ts=11
         let frame1 = build_detection_frame_with_seq(0x05, 0x0003, 0x0001, 0);
-        analyzer.on_data(key.clone(), &frame1, 0);
+        analyzer.on_data(key.clone(), &frame1, 0, Direction::ClientToServer);
         let t1 = build_detection_frame(0x01, 0x0003, 0x0001);
-        analyzer.on_data(key.clone(), &t1, 11);
+        analyzer.on_data(key.clone(), &t1, 11, Direction::ClientToServer);
 
         // Block event #2: ts=150 → timeout at ts=161
         let frame2 = build_detection_frame_with_seq(0x05, 0x0003, 0x0001, 1);
-        analyzer.on_data(key.clone(), &frame2, 150);
+        analyzer.on_data(key.clone(), &frame2, 150, Direction::ClientToServer);
         let t2 = build_detection_frame(0x01, 0x0003, 0x0001);
-        analyzer.on_data(key.clone(), &t2, 161);
+        analyzer.on_data(key.clone(), &t2, 161, Direction::ClientToServer);
 
         // COLD_RESTART at ts=200 → combined=3 → T0827
         let restart = build_detection_frame(0x0D, 0x0003, 0x0001);
-        analyzer.on_data(key.clone(), &restart, 200);
+        analyzer.on_data(key.clone(), &restart, 200, Direction::ClientToServer);
 
         let t0827_findings: Vec<_> = analyzer
             .all_findings
@@ -2322,7 +2328,7 @@ mod story_109 {
 
         // DIRECT_OPERATE (FC=0x05) to broadcast dest=0xFFFF from src=0x0001
         let frame = build_detection_frame(0x05, 0xFFFF, 0x0001);
-        analyzer.on_data(key.clone(), &frame, 1000);
+        analyzer.on_data(key.clone(), &frame, 1000, Direction::ClientToServer);
 
         let broadcast_findings: Vec<_> = analyzer
             .all_findings
@@ -2390,7 +2396,7 @@ mod story_109 {
         // FC=0x82 (UNSOLICITED_RESPONSE) — outstation (src=0x0003) to master (dest=0x0001)
         // app_ctrl byte = 0x00 (app_seq=0, no UNS bit set)
         let frame = build_detection_frame(0x82, 0x0001, 0x0003);
-        analyzer.on_data(key.clone(), &frame, 1000);
+        analyzer.on_data(key.clone(), &frame, 1000, Direction::ClientToServer);
 
         let t0814_findings: Vec<_> = analyzer
             .all_findings
@@ -2459,7 +2465,7 @@ mod story_109 {
 
         // FC=0x14 (ENABLE_UNSOLICITED) from src=0x0001 to dest=0x0003
         let frame = build_detection_frame(0x14, 0x0003, 0x0001);
-        analyzer.on_data(key.clone(), &frame, 500);
+        analyzer.on_data(key.clone(), &frame, 500, Direction::ClientToServer);
 
         let enable_findings: Vec<_> = analyzer
             .all_findings
@@ -2513,7 +2519,7 @@ mod story_109 {
         // 3 malformed (LENGTH=2) frames within 300s → T0814 emitted at 3rd
         for _ in 0..3u32 {
             let malformed = build_invalid_frame_length_too_short();
-            analyzer.on_data(key.clone(), &malformed, 0);
+            analyzer.on_data(key.clone(), &malformed, 0, Direction::ClientToServer);
         }
 
         let malformed_findings: Vec<_> = analyzer
@@ -2577,7 +2583,7 @@ mod story_109 {
         // Use 16+ bytes of non-DNP3 data (e.g. 0xFF-filled buffer) so the
         // 16-byte bail window is satisfied.
         let non_dnp3_bytes: Vec<u8> = vec![0xFF; 20];
-        analyzer.on_data(key.clone(), &non_dnp3_bytes, 0);
+        analyzer.on_data(key.clone(), &non_dnp3_bytes, 0, Direction::ClientToServer);
 
         // Verify bail was latched
         {
@@ -2604,7 +2610,7 @@ mod story_109 {
         // --- Step 2: deliver a well-formed DISABLE_UNSOLICITED (FC=0x15) to the bailed flow ---
         // This MUST be an immediate no-op per BC-2.15.009 PC5.
         let disable_frame = build_detection_frame(0x15, 0x0003, 0x0001);
-        analyzer.on_data(key.clone(), &disable_frame, 100);
+        analyzer.on_data(key.clone(), &disable_frame, 100, Direction::ClientToServer);
 
         let flow = analyzer.flows.get(&key).expect("flow must still exist");
 

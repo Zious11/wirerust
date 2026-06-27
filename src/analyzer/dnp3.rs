@@ -31,6 +31,7 @@ use std::net::IpAddr;
 use crate::analyzer::AnalysisSummary;
 use crate::findings::Finding;
 use crate::reassembly::flow::FlowKey;
+use crate::reassembly::handler::Direction;
 
 // ---------------------------------------------------------------------------
 // Data types
@@ -192,9 +193,14 @@ pub const MAX_FINDINGS: usize = 10_000;
 #[derive(Default)]
 #[allow(dead_code)]
 pub struct Dnp3FlowState {
-    /// Partial frame accumulation buffer.  Max 292 bytes (ADR-007 Decision 2).
-    /// Implemented in STORY-107 (frame-walk, AC-001..006, BC-2.15.016 PC1-4).
-    pub carry: Vec<u8>,
+    /// Partial frame accumulation buffer for master-to-outstation (ClientToServer) direction.
+    /// Replaces `carry: Vec<u8>` (STORY-140 / BC-2.15.016 v2.0 Precondition 2).
+    /// Max 292 bytes per direction (ADR-007 Decision 2).
+    pub carry_c2s: Vec<u8>,
+    /// Partial frame accumulation buffer for outstation-to-master (ServerToClient) direction.
+    /// Replaces `carry: Vec<u8>` (STORY-140 / BC-2.15.016 v2.0 Precondition 2).
+    /// Max 292 bytes per direction (ADR-007 Decision 2).
+    pub carry_s2c: Vec<u8>,
 
     /// Set to `true` on desync (no valid DNP3 sync word in first 16 bytes).
     /// All subsequent `on_data` calls for this flow are no-ops once set.
@@ -304,13 +310,13 @@ impl Dnp3Analyzer {
     ///    `MAX_DNP3_FRAME_LEN` are discarded and `parse_errors` is incremented once per
     ///    overflowing `on_data` call.
     /// 3. **Frame-walk** (`while` loop, EC-002): consume every complete frame from the head
-    ///    of `flow.carry`.  Each frame is gate-validated **before** it is counted
+    ///    of `flow.carry_c2s`.  Each frame is gate-validated **before** it is counted
     ///    (SEC-106-001 / adv-B1 gate-before-count; BC-2.15.004).
     ///
     /// FIR=1 + user-data gate (BC-2.15.008): the application FC is extracted only from
     /// first-fragment transport segments (`transport_octet & 0x40 != 0`) whose link
     /// CONTROL nibble is a user-data FC (`has_user_data`).
-    pub fn on_data(&mut self, flow_key: FlowKey, data: &[u8], ts: u32) {
+    pub fn on_data(&mut self, flow_key: FlowKey, data: &[u8], ts: u32, direction: Direction) {
         // Look up (or create) the per-flow state entry.
         // Clone flow_key here so it remains available for source_ip resolution in
         // detection branches below (BC-2.15.010/011/012 PC3).
@@ -327,7 +333,13 @@ impl Dnp3Analyzer {
         // sync word [0x05, 0x64] at offset 0 (v1 checks offset 0 only).  We apply this
         // check on the FIRST delivery (carry still empty); once a flow has accepted any
         // bytes into carry it is an established DNP3 flow and we do not re-bail.
-        if flow.carry.is_empty() && data.len() >= 2 && (data[0] != 0x05 || data[1] != 0x64) {
+        // STORY-140 stub: active_carry always uses carry_c2s for both directions.
+        // The implementer selects carry by direction; leaving both directions mapped to
+        // carry_c2s is what makes AC-140-001 cross-direction tests RED (BC-2.15.016 v2.0).
+        // Self-Check BC-5.38.005: "If I include this real implementation, will the test pass
+        // trivially without any implementer work?" → YES for direction-select → todo!() stub.
+        let _ = direction; // direction parameter accepted; per-direction select is NOT implemented
+        if flow.carry_c2s.is_empty() && data.len() >= 2 && (data[0] != 0x05 || data[1] != 0x64) {
             // No valid DNP3 sync word at offset 0 — desync bail. Carry NOT touched.
             flow.is_non_dnp3 = true;
             return;
@@ -367,9 +379,10 @@ impl Dnp3Analyzer {
         // (F-F5-003 REVISION 2 Change 1). No flag is needed — structural path separation
         // is the sole mechanism (REV 2 §R2-SECTION 4 / IMP-3 forbids counted_this_iter flags).
 
-        let remaining_capacity = MAX_DNP3_FRAME_LEN - flow.carry.len();
+        let remaining_capacity = MAX_DNP3_FRAME_LEN - flow.carry_c2s.len();
         if data.len() > remaining_capacity {
-            flow.carry.extend_from_slice(&data[..remaining_capacity]);
+            flow.carry_c2s
+                .extend_from_slice(&data[..remaining_capacity]);
             // Excess bytes beyond 292 are discarded; record one overflow (BC-2.15.016 PC2).
             flow.parse_errors += 1;
             flow.malformed_in_window += 1;
@@ -378,17 +391,17 @@ impl Dnp3Analyzer {
             // Prevents the frame-walk sync-check arm from firing for this same overflow event.
             // If a valid [0x05,0x64,...] sync word exists in the carry, it is PRESERVED.
             let next_sync = flow
-                .carry
+                .carry_c2s
                 .windows(2)
                 .enumerate()
                 .find(|(_, w)| w[0] == 0x05 && w[1] == 0x64)
                 .map(|(i, _)| i);
             match next_sync {
                 Some(i) => {
-                    flow.carry.drain(..i);
+                    flow.carry_c2s.drain(..i);
                 }
                 None => {
-                    flow.carry.clear();
+                    flow.carry_c2s.clear();
                 }
             }
             Self::check_malformed_anomaly(flow, &mut self.all_findings, ts, &flow_key);
@@ -396,7 +409,7 @@ impl Dnp3Analyzer {
             // The frame-walk will find a valid head frame (if preserved) or
             // carry.len() < 3 → break immediately (empty carry). Both are correct.
         } else {
-            flow.carry.extend_from_slice(data);
+            flow.carry_c2s.extend_from_slice(data);
         }
 
         // --- Step 3: frame-walk — consume every complete frame from carry's head ----
@@ -404,7 +417,7 @@ impl Dnp3Analyzer {
         // multiple complete frames (EC-002).
         loop {
             // Guard: need at least 3 bytes to read the LENGTH byte at carry[2].
-            if flow.carry.len() < 3 {
+            if flow.carry_c2s.len() < 3 {
                 break;
             }
 
@@ -424,7 +437,7 @@ impl Dnp3Analyzer {
             // no double-count for Path A. carry.clear() is a fresh-start, not a desync
             // bail — is_non_dnp3 is NOT set. VP-023 invariants preserved: each
             // iteration drains ≥1 byte; carry ≤292 bound unchanged.
-            if flow.carry[0] != 0x05 || flow.carry[1] != 0x64 {
+            if flow.carry_c2s[0] != 0x05 || flow.carry_c2s[1] != 0x64 {
                 // Sync-loss event: count it unconditionally (F-F5-003 REVISION 2 Change 1).
                 // This arm is reached from:
                 //   Path B: after a clean frame consume leaves a non-sync head (distinct event).
@@ -443,7 +456,7 @@ impl Dnp3Analyzer {
                 // Byte-walk-forward resync (STORY-109; realizes STORY-107 deferral).
                 // Scan from offset 1 for the next [0x05,0x64]; drain preceding bytes, else clear.
                 let next_sync = flow
-                    .carry
+                    .carry_c2s
                     .windows(2)
                     .enumerate()
                     .skip(1)
@@ -451,10 +464,10 @@ impl Dnp3Analyzer {
                     .map(|(i, _)| i);
                 match next_sync {
                     Some(i) => {
-                        flow.carry.drain(..i);
+                        flow.carry_c2s.drain(..i);
                     } // realign to next sync
                     None => {
-                        flow.carry.clear();
+                        flow.carry_c2s.clear();
                     } // no sync found — start fresh
                 }
                 continue; // NOT break
@@ -466,7 +479,7 @@ impl Dnp3Analyzer {
             // malformed_in_window (STORY-109 BC-2.15.024 two-counter model), and
             // advance the carry by one byte to attempt re-sync (BC-2.15.004 PC4 /
             // BC-2.15.008 EC-006). VP-023 Sub-D bounds the returned frame_len to [10, 292].
-            let length_byte = flow.carry[2];
+            let length_byte = flow.carry_c2s[2];
             let frame_len = match compute_dnp3_frame_len(length_byte) {
                 Some(fl) => fl,
                 None => {
@@ -475,7 +488,7 @@ impl Dnp3Analyzer {
                     // malformed_in_window (windowed) — BC-2.15.024 two-counter model.
                     flow.parse_errors += 1;
                     flow.malformed_in_window += 1;
-                    flow.carry.drain(..1);
+                    flow.carry_c2s.drain(..1);
                     // F-F5-003 REVISION 2 Change 2: inline byte-walk-forward resync.
                     // After drain(..1), immediately reposition carry to the next
                     // [0x05,0x64] sync word (or clear if none found). This ensures the
@@ -483,17 +496,17 @@ impl Dnp3Analyzer {
                     // preventing the sync-check arm from firing for the SAME sync-loss
                     // event (no double-count across iterations — Path A).
                     let next_sync = flow
-                        .carry
+                        .carry_c2s
                         .windows(2)
                         .enumerate()
                         .find(|(_, w)| w[0] == 0x05 && w[1] == 0x64)
                         .map(|(i, _)| i);
                     match next_sync {
                         Some(i) => {
-                            flow.carry.drain(..i);
+                            flow.carry_c2s.drain(..i);
                         }
                         None => {
-                            flow.carry.clear();
+                            flow.carry_c2s.clear();
                         }
                     }
                     Self::check_malformed_anomaly(flow, &mut self.all_findings, ts, &flow_key);
@@ -502,21 +515,21 @@ impl Dnp3Analyzer {
             };
 
             // Not enough bytes for a complete frame yet — leave the partial in carry (EC-001).
-            if flow.carry.len() < frame_len {
+            if flow.carry_c2s.len() < frame_len {
                 break;
             }
 
             // Parse the gate-validated header. parse returns Some because
             // carry.len() >= frame_len >= 10; sync and LENGTH≥5 were just validated, so
             // is_valid_dnp3_frame_header holds — the failure arm is defensive only.
-            let header = match parse_dnp3_dl_header(&flow.carry[..frame_len]) {
+            let header = match parse_dnp3_dl_header(&flow.carry_c2s[..frame_len]) {
                 Some(h) if is_valid_dnp3_frame_header(&h) => h,
                 _ => {
                     // Frame-length mismatch: structural reject.
                     // STORY-109: increment BOTH parse_errors AND malformed_in_window.
                     flow.parse_errors += 1;
                     flow.malformed_in_window += 1;
-                    flow.carry.drain(..frame_len);
+                    flow.carry_c2s.drain(..frame_len);
                     Self::check_malformed_anomaly(flow, &mut self.all_findings, ts, &flow_key);
                     continue;
                 }
@@ -550,9 +563,9 @@ impl Dnp3Analyzer {
             // application control, byte 12 = application FC. Raw carry still holds the
             // header/data-block CRC octets (ADR-007 Decision 3 — CRC not stripped here).
             if frame_len >= 13 && has_user_data(header.control) {
-                let transport_octet = flow.carry[10];
+                let transport_octet = flow.carry_c2s[10];
                 if transport_is_fir(transport_octet) {
-                    let app_fc = flow.carry[12];
+                    let app_fc = flow.carry_c2s[12];
                     *flow.fc_counts.entry(app_fc).or_insert(0) += 1;
                     *self.fn_code_counts.entry(app_fc).or_insert(0) += 1;
 
@@ -622,7 +635,7 @@ impl Dnp3Analyzer {
                             // by design; BC-2.15.014 Invariant 1).
                             // STORY-109: 0x06 is excluded from pending_requests.
                             if app_fc != 0x06 {
-                                let app_seq = flow.carry[11] & 0x0F;
+                                let app_seq = flow.carry_c2s[11] & 0x0F;
                                 Self::insert_pending_request(flow, (dest, app_seq), ts);
                             }
 
@@ -674,7 +687,7 @@ impl Dnp3Analyzer {
                             // FC=0x82 triggers unsolicited anomaly check (one-shot).
                             // Pass app_ctrl (carry[11]) so detect_unsolicited_anomaly can extract
                             // the UNS bit (bit 0x10) for the BC-2.15.019 PC1 evidence field.
-                            let app_ctrl = flow.carry[11];
+                            let app_ctrl = flow.carry_c2s[11];
                             Self::detect_unsolicited_anomaly(
                                 flow,
                                 &mut self.all_findings,
@@ -688,7 +701,7 @@ impl Dnp3Analyzer {
                             // FC=0x81: remove matching pending_request entry (response received;
                             // no block timeout for this (dest, app_seq) pair).
                             if app_fc == 0x81 {
-                                let app_seq = flow.carry[11] & 0x0F;
+                                let app_seq = flow.carry_c2s[11] & 0x0F;
                                 // Response comes from outstation (src=outstation, dest=master).
                                 // The pending request was keyed by (outstation_addr, app_seq)
                                 // where the control request went TO the outstation (dest=outstation).
@@ -704,7 +717,7 @@ impl Dnp3Analyzer {
             // Drain the consumed frame from the head of carry (BC-2.15.016 PC3–4).
             // VP-023 Sub-D guarantees frame_len ∈ [10, 292] and we checked carry.len() >=
             // frame_len above, so this drain can never index out of bounds (AC-006).
-            flow.carry.drain(..frame_len);
+            flow.carry_c2s.drain(..frame_len);
         }
     }
 

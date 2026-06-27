@@ -21,6 +21,7 @@ mod story_108 {
     use wirerust::analyzer::dnp3::{Dnp3Analyzer, Dnp3FcClass, MAX_FINDINGS, classify_dnp3_fc};
     use wirerust::findings::{Confidence, ThreatCategory, Verdict};
     use wirerust::reassembly::flow::FlowKey;
+    use wirerust::reassembly::handler::Direction;
 
     // -----------------------------------------------------------------------
     // Helpers
@@ -107,7 +108,7 @@ mod story_108 {
 
         // FC=0x05 (DIRECT_OPERATE) — one frame at ts=1000
         let frame = build_detection_frame(0x05, 0x0003, 0x0001);
-        analyzer.on_data(key.clone(), &frame, 1000);
+        analyzer.on_data(key.clone(), &frame, 1000, Direction::ClientToServer);
 
         let flow = analyzer.flows.get(&key).expect("flow must exist");
         assert_eq!(
@@ -121,7 +122,7 @@ mod story_108 {
 
         // FC=0x03 (SELECT) — second frame at ts=1001
         let frame2 = build_detection_frame(0x03, 0x0003, 0x0001);
-        analyzer.on_data(key.clone(), &frame2, 1001);
+        analyzer.on_data(key.clone(), &frame2, 1001, Direction::ClientToServer);
 
         let flow = analyzer.flows.get(&key).expect("flow must still exist");
         assert_eq!(
@@ -152,7 +153,7 @@ mod story_108 {
         // Deliver 10 DIRECT_OPERATE FCs — no finding expected at count=10
         for i in 0..10u32 {
             let frame = build_detection_frame(0x05, 0x0003, 0x0001);
-            analyzer.on_data(key.clone(), &frame, i);
+            analyzer.on_data(key.clone(), &frame, i, Direction::ClientToServer);
         }
         assert_eq!(
             analyzer.all_findings.len(),
@@ -162,7 +163,7 @@ mod story_108 {
 
         // 11th FC — count=11 > threshold=10 → finding MUST be emitted
         let frame_11 = build_detection_frame(0x05, 0x0003, 0x0001);
-        analyzer.on_data(key.clone(), &frame_11, 10);
+        analyzer.on_data(key.clone(), &frame_11, 10, Direction::ClientToServer);
 
         assert_eq!(
             analyzer.all_findings.len(),
@@ -260,7 +261,7 @@ mod story_108 {
         // Deliver 16 DIRECT_OPERATE FCs all within the 60s window (ts 0..15)
         for i in 0..16u32 {
             let frame = build_detection_frame(0x05, 0x0003, 0x0001);
-            analyzer.on_data(key.clone(), &frame, i);
+            analyzer.on_data(key.clone(), &frame, i, Direction::ClientToServer);
         }
 
         let t1692_count = analyzer
@@ -301,7 +302,7 @@ mod story_108 {
         // Window 1: deliver 11 FCs within 60s → first finding emitted
         for i in 0..11u32 {
             let frame = build_detection_frame(0x05, 0x0003, 0x0001);
-            analyzer.on_data(key.clone(), &frame, i); // ts 0..10
+            analyzer.on_data(key.clone(), &frame, i, Direction::ClientToServer); // ts 0..10
         }
         assert_eq!(
             analyzer.all_findings.len(),
@@ -312,7 +313,7 @@ mod story_108 {
         // Advance time past 60s: window_start_ts=0, now_ts=61 → elapsed=61 > 60
         // Send a new Control FC — this should RESET the window (not fire another finding yet)
         let frame_reset = build_detection_frame(0x05, 0x0003, 0x0001);
-        analyzer.on_data(key.clone(), &frame_reset, 61);
+        analyzer.on_data(key.clone(), &frame_reset, 61, Direction::ClientToServer);
 
         {
             let flow = analyzer.flows.get(&key).expect("flow must exist");
@@ -333,7 +334,7 @@ mod story_108 {
         // Now send 10 more FCs in the new window (total in new window = 11) → second finding
         for i in 0..10u32 {
             let frame = build_detection_frame(0x05, 0x0003, 0x0001);
-            analyzer.on_data(key.clone(), &frame, 62 + i);
+            analyzer.on_data(key.clone(), &frame, 62 + i, Direction::ClientToServer);
         }
 
         let t1692_count = analyzer
@@ -365,7 +366,7 @@ mod story_108 {
 
         // FC=0x0D (COLD_RESTART)
         let frame = build_detection_frame(0x0D, 0x0003, 0x0001);
-        analyzer.on_data(key.clone(), &frame, 1000);
+        analyzer.on_data(key.clone(), &frame, 1000, Direction::ClientToServer);
 
         assert_eq!(
             analyzer.all_findings.len(),
@@ -445,7 +446,7 @@ mod story_108 {
 
         // FC=0x0E (WARM_RESTART)
         let frame = build_detection_frame(0x0E, 0x0003, 0x0001);
-        analyzer.on_data(key.clone(), &frame, 1000);
+        analyzer.on_data(key.clone(), &frame, 1000, Direction::ClientToServer);
 
         assert_eq!(
             analyzer.all_findings.len(),
@@ -492,7 +493,7 @@ mod story_108 {
 
         // FIRST: deliver a genuine COLD_RESTART (0x0D) — must emit T0814 and increment counter
         let cold_frame = build_detection_frame(0x0D, 0x0003, 0x0001);
-        analyzer.on_data(key.clone(), &cold_frame, 500);
+        analyzer.on_data(key.clone(), &cold_frame, 500, Direction::ClientToServer);
 
         assert_eq!(
             analyzer.all_findings.len(),
@@ -514,7 +515,7 @@ mod story_108 {
         // window start, the correlation-window expiry would legitimately reset
         // restart_event_count. ts=600 avoids crossing the window boundary.
         let init_frame = build_detection_frame(0x0F, 0x0003, 0x0001);
-        analyzer.on_data(key.clone(), &init_frame, 600);
+        analyzer.on_data(key.clone(), &init_frame, 600, Direction::ClientToServer);
 
         // Still exactly 1 finding (from the COLD_RESTART above, not INITIALIZE_DATA)
         let t0814_count = analyzer
@@ -550,7 +551,7 @@ mod story_108 {
 
         // FC=0x02 (WRITE)
         let frame = build_detection_frame(0x02, 0x0003, 0x0001);
-        analyzer.on_data(key.clone(), &frame, 1000);
+        analyzer.on_data(key.clone(), &frame, 1000, Direction::ClientToServer);
 
         assert_eq!(
             analyzer.all_findings.len(),
@@ -625,7 +626,7 @@ mod story_108 {
         // FC=0x02 (WRITE) — 20 writes (well above any hypothetical threshold)
         for i in 0..20u32 {
             let frame = build_detection_frame(0x02, 0x0003, 0x0001);
-            analyzer.on_data(key.clone(), &frame, i);
+            analyzer.on_data(key.clone(), &frame, i, Direction::ClientToServer);
         }
 
         let t1692_count = analyzer
@@ -677,11 +678,11 @@ mod story_108 {
 
         // COLD_RESTART first
         let cold = build_detection_frame(0x0D, 0x0003, 0x0001);
-        analyzer.on_data(key.clone(), &cold, 100);
+        analyzer.on_data(key.clone(), &cold, 100, Direction::ClientToServer);
 
         // WARM_RESTART second
         let warm = build_detection_frame(0x0E, 0x0003, 0x0001);
-        analyzer.on_data(key.clone(), &warm, 110);
+        analyzer.on_data(key.clone(), &warm, 110, Direction::ClientToServer);
 
         // Verify ordering: both findings are T0814 (direct), no T0827 yet (STORY-109)
         assert!(
@@ -758,11 +759,11 @@ mod story_108 {
 
         // Create a flow (deliver one non-detection frame to create flow entry)
         let init_frame = build_detection_frame(0x01, 0x0003, 0x0001); // READ — no detection
-        analyzer.on_data(key.clone(), &init_frame, 0);
+        analyzer.on_data(key.clone(), &init_frame, 0, Direction::ClientToServer);
 
         // Deliver COLD_RESTART — should push T0814 (one slot left)
         let cold1 = build_detection_frame(0x0D, 0x0003, 0x0001);
-        analyzer.on_data(key.clone(), &cold1, 100);
+        analyzer.on_data(key.clone(), &cold1, 100, Direction::ClientToServer);
 
         assert_eq!(
             analyzer.all_findings.len(),
@@ -778,7 +779,7 @@ mod story_108 {
 
         // Deliver second COLD_RESTART — cap hit, T0814 MUST NOT be pushed
         let cold2 = build_detection_frame(0x0D, 0x0003, 0x0001);
-        analyzer.on_data(key.clone(), &cold2, 110);
+        analyzer.on_data(key.clone(), &cold2, 110, Direction::ClientToServer);
 
         assert_eq!(
             analyzer.all_findings.len(),
@@ -832,7 +833,7 @@ mod story_108 {
 
         // Deliver a COLD_RESTART frame — no finding pushed, but restart_event_count += 1
         let cold = build_detection_frame(0x0D, 0x0003, 0x0001);
-        analyzer.on_data(key.clone(), &cold, 100);
+        analyzer.on_data(key.clone(), &cold, 100, Direction::ClientToServer);
 
         assert_eq!(
             analyzer.all_findings.len(),
@@ -880,13 +881,13 @@ mod story_108 {
         // 5 DIRECT_OPERATE (FC=0x05)
         for i in 0..5u32 {
             let frame = build_detection_frame(0x05, 0x0003, 0x0001);
-            analyzer.on_data(key.clone(), &frame, i);
+            analyzer.on_data(key.clone(), &frame, i, Direction::ClientToServer);
         }
 
         // 3 READ (FC=0x01)
         for i in 0..3u32 {
             let frame = build_detection_frame(0x01, 0x0003, 0x0001);
-            analyzer.on_data(key.clone(), &frame, 100 + i);
+            analyzer.on_data(key.clone(), &frame, 100 + i, Direction::ClientToServer);
         }
 
         let summary = analyzer.summarize();
@@ -1026,7 +1027,7 @@ mod story_108 {
         // Deliver exactly 10 DIRECT_OPERATE FCs (= threshold, not > threshold)
         for i in 0..10u32 {
             let frame = build_detection_frame(0x05, 0x0003, 0x0001);
-            analyzer.on_data(key.clone(), &frame, i);
+            analyzer.on_data(key.clone(), &frame, i, Direction::ClientToServer);
         }
 
         assert_eq!(
@@ -1069,7 +1070,7 @@ mod story_108 {
         // Deliver 11 DIRECT_OPERATE_NR (0x06) frames → must trigger T1692.001
         for i in 0..11u32 {
             let frame = build_detection_frame(0x06, 0x0003, 0x0001);
-            analyzer.on_data(key.clone(), &frame, i);
+            analyzer.on_data(key.clone(), &frame, i, Direction::ClientToServer);
         }
 
         let t1692_count = analyzer
@@ -1112,7 +1113,7 @@ mod story_108 {
         // Use SELECT (0x03) — same Control-class, different FC
         for i in 0..10u32 {
             let frame = build_detection_frame(0x03, 0x0003, 0x0001);
-            analyzer.on_data(key.clone(), &frame, i);
+            analyzer.on_data(key.clone(), &frame, i, Direction::ClientToServer);
         }
 
         // (a) No T1692.001 finding at count=10 (10 > 10 is false)
@@ -1149,10 +1150,10 @@ mod story_108 {
         let key = test_flow_key();
 
         let cold1 = build_detection_frame(0x0D, 0x0003, 0x0001);
-        analyzer.on_data(key.clone(), &cold1, 100);
+        analyzer.on_data(key.clone(), &cold1, 100, Direction::ClientToServer);
 
         let cold2 = build_detection_frame(0x0D, 0x0003, 0x0001);
-        analyzer.on_data(key.clone(), &cold2, 200);
+        analyzer.on_data(key.clone(), &cold2, 200, Direction::ClientToServer);
 
         let t0814_count = analyzer
             .all_findings
@@ -1202,7 +1203,7 @@ mod story_108 {
         }
 
         let cold = build_detection_frame(0x0D, 0x0003, 0x0001);
-        analyzer.on_data(key.clone(), &cold, 500);
+        analyzer.on_data(key.clone(), &cold, 500, Direction::ClientToServer);
 
         assert_eq!(
             analyzer.all_findings.len(),
@@ -1234,12 +1235,12 @@ mod story_108 {
         // Deliver 11 DIRECT_OPERATE to trigger T1692.001
         for i in 0..11u32 {
             let frame = build_detection_frame(0x05, 0x0003, 0x0001);
-            analyzer.on_data(key.clone(), &frame, i);
+            analyzer.on_data(key.clone(), &frame, i, Direction::ClientToServer);
         }
 
         // Deliver 1 WRITE → T0836
         let write_frame = build_detection_frame(0x02, 0x0003, 0x0001);
-        analyzer.on_data(key.clone(), &write_frame, 12);
+        analyzer.on_data(key.clone(), &write_frame, 12, Direction::ClientToServer);
 
         // Verify no finding has BOTH T1692.001 and T0836 in the same finding
         for f in &analyzer.all_findings {
@@ -1289,14 +1290,19 @@ mod story_108 {
         // Seed the window near u32::MAX
         let ts_start: u32 = 0xFFFFFFF0;
         let frame_seed = build_detection_frame(0x05, 0x0003, 0x0001);
-        analyzer.on_data(key.clone(), &frame_seed, ts_start);
+        analyzer.on_data(
+            key.clone(),
+            &frame_seed,
+            ts_start,
+            Direction::ClientToServer,
+        );
 
         // Deliver 10 more frames at ts that wraps around (0..=9)
         // wrapping_sub(0x9, 0xFFFFFFF0) = 0x19 = 25 < 60 → still in same window
         for i in 0..10u32 {
             let frame = build_detection_frame(0x05, 0x0003, 0x0001);
             // Must NOT panic (plain subtraction would panic due to overflow-checks=true)
-            analyzer.on_data(key.clone(), &frame, i);
+            analyzer.on_data(key.clone(), &frame, i, Direction::ClientToServer);
         }
 
         // If we got here without panic, wrapping_sub is working.
@@ -1332,7 +1338,7 @@ mod story_108 {
         // 5 DIRECT_OPERATE FCs on one flow (count=5, below threshold=10)
         for i in 0..5u32 {
             let frame = build_detection_frame(0x05, 0x0003, 0x0001);
-            analyzer.on_data(key.clone(), &frame, i);
+            analyzer.on_data(key.clone(), &frame, i, Direction::ClientToServer);
         }
 
         let summary = analyzer.summarize();
@@ -1369,7 +1375,7 @@ mod story_108 {
         bad_frame[1] = 0x64;
         bad_frame[2] = 4; // invalid LENGTH
         bad_frame[3] = 0xC4;
-        analyzer.on_data(key.clone(), &bad_frame, 0);
+        analyzer.on_data(key.clone(), &bad_frame, 0, Direction::ClientToServer);
 
         let summary = analyzer.summarize();
 
@@ -1395,7 +1401,7 @@ mod story_108 {
         // 5 DIRECT_OPERATE frames (below threshold — no findings during on_data)
         for i in 0..5u32 {
             let frame = build_detection_frame(0x05, 0x0003, 0x0001);
-            analyzer.on_data(key.clone(), &frame, i);
+            analyzer.on_data(key.clone(), &frame, i, Direction::ClientToServer);
         }
 
         let count_before = analyzer.all_findings.len();
@@ -1465,7 +1471,7 @@ mod story_108 {
         // Deliver 11 Control-class FCs (DIRECT_OPERATE=0x05) to trigger T1692.001
         for i in 0..11u32 {
             let frame = build_detection_frame(0x05, 0x0003, 0x0001);
-            analyzer.on_data(key.clone(), &frame, i);
+            analyzer.on_data(key.clone(), &frame, i, Direction::ClientToServer);
         }
 
         assert_eq!(
@@ -1544,7 +1550,7 @@ mod story_108 {
         // Deliver 11 Control-class FCs (DIRECT_OPERATE=0x05) to trigger T1692.001
         for i in 0..11u32 {
             let frame = build_detection_frame(0x05, 0x0003, 0x0001);
-            analyzer.on_data(key.clone(), &frame, i);
+            analyzer.on_data(key.clone(), &frame, i, Direction::ClientToServer);
         }
 
         assert_eq!(
@@ -1595,7 +1601,7 @@ mod story_108 {
         bad_frame[1] = 0x64;
         bad_frame[2] = 4; // invalid LENGTH — triggers parse error counter
         bad_frame[3] = 0xC4;
-        analyzer.on_data(key.clone(), &bad_frame, 0);
+        analyzer.on_data(key.clone(), &bad_frame, 0, Direction::ClientToServer);
 
         let summary = analyzer.summarize();
 

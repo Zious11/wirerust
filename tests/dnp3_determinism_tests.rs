@@ -36,6 +36,7 @@ mod dnp3_determinism {
 
     use wirerust::analyzer::dnp3::Dnp3Analyzer;
     use wirerust::reassembly::flow::FlowKey;
+    use wirerust::reassembly::handler::Direction;
 
     // -----------------------------------------------------------------------
     // Helpers
@@ -145,31 +146,31 @@ mod dnp3_determinism {
 
         // Analyzer 1: insert A first, then B, then C.
         let mut analyzer1 = Dnp3Analyzer::new(100);
-        analyzer1.on_data(flow_key_a(), &frame_a, 1);
-        analyzer1.on_data(flow_key_b(), &frame_b, 2);
-        analyzer1.on_data(flow_key_b(), &frame_b, 3);
-        analyzer1.on_data(flow_key_b(), &frame_b, 4);
-        analyzer1.on_data(flow_key_c(), &frame_c, 5);
-        analyzer1.on_data(flow_key_c(), &frame_c, 6);
-        analyzer1.on_data(flow_key_c(), &frame_c, 7);
-        analyzer1.on_data(flow_key_c(), &frame_c, 8);
-        analyzer1.on_data(flow_key_c(), &frame_c, 9);
-        analyzer1.on_data(flow_key_c(), &frame_c, 10);
-        analyzer1.on_data(flow_key_c(), &frame_c, 11);
+        analyzer1.on_data(flow_key_a(), &frame_a, 1, Direction::ClientToServer);
+        analyzer1.on_data(flow_key_b(), &frame_b, 2, Direction::ClientToServer);
+        analyzer1.on_data(flow_key_b(), &frame_b, 3, Direction::ClientToServer);
+        analyzer1.on_data(flow_key_b(), &frame_b, 4, Direction::ClientToServer);
+        analyzer1.on_data(flow_key_c(), &frame_c, 5, Direction::ClientToServer);
+        analyzer1.on_data(flow_key_c(), &frame_c, 6, Direction::ClientToServer);
+        analyzer1.on_data(flow_key_c(), &frame_c, 7, Direction::ClientToServer);
+        analyzer1.on_data(flow_key_c(), &frame_c, 8, Direction::ClientToServer);
+        analyzer1.on_data(flow_key_c(), &frame_c, 9, Direction::ClientToServer);
+        analyzer1.on_data(flow_key_c(), &frame_c, 10, Direction::ClientToServer);
+        analyzer1.on_data(flow_key_c(), &frame_c, 11, Direction::ClientToServer);
 
         // Analyzer 2: insert C first, then B, then A (reverse order).
         let mut analyzer2 = Dnp3Analyzer::new(100);
-        analyzer2.on_data(flow_key_c(), &frame_c, 1);
-        analyzer2.on_data(flow_key_c(), &frame_c, 2);
-        analyzer2.on_data(flow_key_c(), &frame_c, 3);
-        analyzer2.on_data(flow_key_c(), &frame_c, 4);
-        analyzer2.on_data(flow_key_c(), &frame_c, 5);
-        analyzer2.on_data(flow_key_c(), &frame_c, 6);
-        analyzer2.on_data(flow_key_c(), &frame_c, 7);
-        analyzer2.on_data(flow_key_b(), &frame_b, 8);
-        analyzer2.on_data(flow_key_b(), &frame_b, 9);
-        analyzer2.on_data(flow_key_b(), &frame_b, 10);
-        analyzer2.on_data(flow_key_a(), &frame_a, 11);
+        analyzer2.on_data(flow_key_c(), &frame_c, 1, Direction::ClientToServer);
+        analyzer2.on_data(flow_key_c(), &frame_c, 2, Direction::ClientToServer);
+        analyzer2.on_data(flow_key_c(), &frame_c, 3, Direction::ClientToServer);
+        analyzer2.on_data(flow_key_c(), &frame_c, 4, Direction::ClientToServer);
+        analyzer2.on_data(flow_key_c(), &frame_c, 5, Direction::ClientToServer);
+        analyzer2.on_data(flow_key_c(), &frame_c, 6, Direction::ClientToServer);
+        analyzer2.on_data(flow_key_c(), &frame_c, 7, Direction::ClientToServer);
+        analyzer2.on_data(flow_key_b(), &frame_b, 8, Direction::ClientToServer);
+        analyzer2.on_data(flow_key_b(), &frame_b, 9, Direction::ClientToServer);
+        analyzer2.on_data(flow_key_b(), &frame_b, 10, Direction::ClientToServer);
+        analyzer2.on_data(flow_key_a(), &frame_a, 11, Direction::ClientToServer);
 
         let summary1 = analyzer1.summarize();
         let summary2 = analyzer2.summarize();
@@ -218,17 +219,17 @@ mod dnp3_determinism {
 
         // Insert in reverse sort order to force non-trivial HashMap ordering.
         let mut analyzer = Dnp3Analyzer::new(100);
-        analyzer.on_data(flow_key_c(), &frame_c, 1);
-        analyzer.on_data(flow_key_c(), &frame_c, 2);
-        analyzer.on_data(flow_key_c(), &frame_c, 3);
-        analyzer.on_data(flow_key_c(), &frame_c, 4);
-        analyzer.on_data(flow_key_c(), &frame_c, 5);
-        analyzer.on_data(flow_key_c(), &frame_c, 6);
-        analyzer.on_data(flow_key_c(), &frame_c, 7);
-        analyzer.on_data(flow_key_b(), &frame_b, 8);
-        analyzer.on_data(flow_key_b(), &frame_b, 9);
-        analyzer.on_data(flow_key_b(), &frame_b, 10);
-        analyzer.on_data(flow_key_a(), &frame_a, 11);
+        analyzer.on_data(flow_key_c(), &frame_c, 1, Direction::ClientToServer);
+        analyzer.on_data(flow_key_c(), &frame_c, 2, Direction::ClientToServer);
+        analyzer.on_data(flow_key_c(), &frame_c, 3, Direction::ClientToServer);
+        analyzer.on_data(flow_key_c(), &frame_c, 4, Direction::ClientToServer);
+        analyzer.on_data(flow_key_c(), &frame_c, 5, Direction::ClientToServer);
+        analyzer.on_data(flow_key_c(), &frame_c, 6, Direction::ClientToServer);
+        analyzer.on_data(flow_key_c(), &frame_c, 7, Direction::ClientToServer);
+        analyzer.on_data(flow_key_b(), &frame_b, 8, Direction::ClientToServer);
+        analyzer.on_data(flow_key_b(), &frame_b, 9, Direction::ClientToServer);
+        analyzer.on_data(flow_key_b(), &frame_b, 10, Direction::ClientToServer);
+        analyzer.on_data(flow_key_a(), &frame_a, 11, Direction::ClientToServer);
 
         let summary = analyzer.summarize();
 
