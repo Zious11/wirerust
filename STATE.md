@@ -1,7 +1,7 @@
 ---
 pipeline: FEATURE-MODE
-phase: F6
-phase_status: "F6 FORMAL HARDENING PASS — STORY-139 @cee85c0 (worktree). Kani 36/37 (1 orthogonal non-delta harness solving), fuzz 14.99M/0 crashes, mutation 23/23 in-scope killable caught (3 proven-equivalent excluded per RULING-137-002). 2112 GREEN. Next: F7 delta-convergence + human gate."
+phase: F1
+phase_status: "STORY-139 (ENIP EC-X1/EC-X2) MERGED to develop (PR #334, 99a06f4). v0.11.0 HELD (D-260 + human Q4). DNP3 sibling fix now IN SCOPE for v0.11.0 (human Q2: fix atomically) — starting STORY-140 F1-F7 cycle."
 product: wirerust
 mode: feature-mode
 timestamp: 2026-06-28T00:00:00Z
@@ -15,15 +15,15 @@ release_url: https://github.com/Zious11/wirerust/releases/tag/v0.10.0
 prior_released_version: v0.9.4
 prior_released_at: "2026-06-23"
 
-# Ground-truth HEADs (verified D-270 — 2026-06-27)
-develop_head: fd0c7f3
+# Ground-truth HEADs (verified D-277 — 2026-06-27)
+develop_head: 99a06f4
 main_head: 0cbe922
 factory_artifacts_head: (run `git -C .factory log -1 --format='%h'`)
 
-# Active worktrees (verified D-270)
-worktree_fix: ".worktrees/enip-direction-clock @ cee85c0 [fix/enip-direction-and-clock] — ACTIVE — F6 PASS (2112/0)"
+# Active worktrees
 worktree_scratch: ".worktrees/enip-edgecase-verify @ fd0c7f3 [scratch/enip-edgecase-verify] — keep for reference"
 worktree_orphan: ".worktrees/enip-f6-hardening @ 447da07 [test/enip-f6-fuzz-harnesses] — orphan, safe to remove"
+worktree_dnp3: "TBD — new worktree to be created for STORY-140 DNP3 sibling fix"
 
 # Pipeline completion
 bootstrapped: 2026-05-19T16:56:48Z
@@ -31,9 +31,9 @@ phase_7_to_release_gate: "PASSED (human-approved 2026-06-09 — D-045)"
 adversary_gate: SATISFIED
 
 # Story tracking
-stories_delivered: 87
+stories_delivered: 88
 current_cycle: feature-enip-v0.11.0 (D-228, 2026-06-24)
-current_wave: "Wave 62 OPEN — STORY-139 F6 PASS @cee85c0. Next: F7 delta-convergence + human gate (confirm DNP3 deferral)."
+current_wave: "Wave 62 — STORY-139 ENIP fix MERGED (99a06f4). Wave 63 (NEW) — STORY-140 DNP3 sibling fix (DRIFT-DNP3-DIRECTION-001 + DRIFT-DNP3-CLOCK-001) starting F1 delta-analysis."
 
 # DTU
 dtu_required: false
@@ -56,11 +56,11 @@ convergence_trajectory: "Detail: cycles/v0.1.0-greenfield-spec/convergence-traje
 
 ## Status
 
-**PIPELINE FEATURE-MODE. Cycle `feature-enip-v0.11.0` OPEN. v0.11.0 EtherNet/IP converged + human-approved (D-267). HELD AT RELEASE (D-260). EC-X1/EC-X2 fix-delta STORY-139 F6 PASS @cee85c0 (Wave 62). Next: F7 delta-convergence + human gate.**
+**PIPELINE FEATURE-MODE. Cycle `feature-enip-v0.11.0` OPEN. STORY-139 MERGED (D-277, develop `99a06f4`, PR #334). STORY-140 DNP3 sibling fix starting (Wave 63, F1 delta-analysis). v0.11.0 HELD (D-260/D-278) — ships ENIP+DNP3 together on explicit human go-ahead.**
 
-**HUMAN DIRECTIVE (D-260): HALT — do NOT run the release pipeline / tag / publish without explicit human go-ahead.**
+**HUMAN DIRECTIVE (D-260/D-278): HALT — do NOT run the release pipeline / tag / publish without explicit human go-ahead. v0.11.0 ships ENIP+DNP3 together once both land on develop and human approves release.**
 
-Latest release: v0.10.0 (main `0cbe922`). develop=`fd0c7f3`. stories_delivered=87. Target: v0.11.0 (SS-17 EtherNet/IP + CIP TCP/44818). GitHub issue #316. v0.11.0 STAYS HELD until STORY-139 (EC-X1/EC-X2) merges.
+Latest release: v0.10.0 (main `0cbe922`). develop=`99a06f4`. stories_delivered=88. Target: v0.11.0 (SS-17 EtherNet/IP + CIP TCP/44818 + DNP3 sibling EC-X1/EC-X2 fix). GitHub issue #316. v0.11.0 HELD until STORY-139 + STORY-140 both merged + human release go-ahead.
 
 Spec versions: BC-INDEX v1.85 (332 on disk / 331 active; SS-17=26 BCs + EC-010 amendments). ARCH-INDEX v1.8. VP-INDEX v2.12 (34 VPs: VP-033/034 added). PRD v1.36. STORY-INDEX v2.9 (92 stories / 62 waves). epics.md v1.8 (E-20, Wave 62).
 
@@ -68,42 +68,41 @@ Spec versions: BC-INDEX v1.85 (332 on disk / 331 active; SS-17=26 BCs + EC-010 a
 
 - Do NOT re-run fix cycle fix-pc-013-014-015 — CLOSED (D-226). v0.10.0 released.
 - Do NOT re-cut v0.10.0 — RELEASED (main `0cbe922`, tag `v0.10.0`, run 28109367603).
-- Do NOT re-deliver STORY-130..138 — all MERGED (D-234..D-259). stories_delivered=87.
-- Do NOT re-merge ENIP E2E real-pcap PR #333 — MERGED (D-269) fd0c7f3. develop=`fd0c7f3`.
+- Do NOT re-deliver STORY-130..138 — all MERGED (D-234..D-259). stories_delivered=87 (pre-STORY-139).
+- Do NOT re-merge ENIP E2E real-pcap PR #333 — MERGED (D-269) fd0c7f3.
 - Do NOT re-run F5/F6/F7 for Wave 61 — F5 CONVERGED (D-263), F6 PASSED (D-265), F7 HUMAN-APPROVED (D-267).
 - Do NOT re-create RULING-EDGECASE-001 — exists at `.factory/cycles/feature-enip-v0.11.0/RULING-EDGECASE-001-direction-and-clock.md`.
-- Do NOT re-run F2 spec evolution for STORY-139 — DONE + RE-VALIDATED CLEAN (factory-artifacts commits 936361e/654db0e/b15ab17/38fa910/1e48035/6e876c8/a2db4f3).
-- Do NOT re-run F3 for STORY-139 — authored + registered (input-hash 759464a MATCH; STORY-INDEX v2.9 wave 62).
-- Do NOT redo F4 red-gate setup — DONE on `.worktrees/enip-direction-clock` @63c119a: crate compiles, clippy clean, 9 STORY-139 tests RED, 170 existing GREEN.
-- Do NOT redo F4 implementation — DONE @3c688ff: all 3 stub points filled, 179 GREEN / 0 RED, clippy clean, fmt clean (D-271).
-- Do NOT re-run F5 for STORY-139 — CONVERGED @0607b82 (D-273). Do NOT re-litigate the proptest_-named deterministic VP-034 guards (OBS-1 adjudicated accepted). Do NOT re-add the malformed-window carry-clear (F-139-02 adjudicated REMOVE).
-- Do NOT re-run F6 for STORY-139 — PASS @cee85c0 (D-274). Do NOT attempt to kill enip.rs:953/967 mutants — PROVEN EQUIVALENT (D-275, RULING-137-002). Do NOT re-baseline input-hashes — done @4f4dc76 (D-276, MATCH=89/STALE=0).
+- Do NOT re-run F2/F3/F4/F5/F6/F7 for STORY-139 — all COMPLETE + MERGED (D-271..D-277).
+- Do NOT re-baseline input-hashes for STORY-130..139 — done @4f4dc76 (D-276, MATCH=89/STALE=0); re-baselined again @c99d7b6 after ADR-010 amendment.
+- Do NOT re-deliver STORY-139 — MERGED (D-277, develop 99a06f4). PR #334. CI 11/11 green.
+- Do NOT cut v0.11.0 — HELD (D-260/D-278); ENIP+DNP3 ship together on explicit human go-ahead.
 
-### EXACT RESUME POINT — F7 DELTA-CONVERGENCE on enip-direction-clock @cee85c0
+### EXACT RESUME POINT — STORY-140 DNP3 sibling fix — F1 delta-analysis
 
-**F6 PASS (D-274, 2026-06-27). Next: F7 delta-convergence on `.worktrees/enip-direction-clock` @cee85c0.**
+**STORY-139 MERGED (D-277, develop `99a06f4`, PR #334, CI 11/11 green). Next: STORY-140 DNP3 sibling fix (DRIFT-DNP3-DIRECTION-001 + DRIFT-DNP3-CLOCK-001) — full F1-F7 cycle.**
 
-Worktree: `.worktrees/enip-direction-clock` branch `fix/enip-direction-and-clock` tip commit `cee85c0`.
-Green gate: `cargo test --all-targets` 2112 GREEN / 0 RED.
-F6 results: Kani 36/37 PROVED (all 5 ENIP harnesses PROVED + non-vacuous; 1 outstanding harness vp025_timestamp_totality_base10 is reader.rs non-delta still-solving, NOT a regression). cargo-fuzz fuzz_enip_cip_parse: 14.99M execs / 0 crashes. cargo-mutants delta: 23/23 in-scope killable (3 proven-equivalent permanent survivors per RULING-137-002; 2 pre-existing out-of-scope). Input-hash re-baseline: 4f4dc76 factory-artifacts (MATCH=89/STALE=0).
+**v0.11.0 HELD (D-260/D-278) — ENIP+DNP3 ship together once both land on develop + human release go-ahead.**
 
-**F7 tasks (sequential):**
-1. 5-dimension convergence: delta specs + full regression + fresh consistency audit.
-2. HUMAN GATE: confirm DNP3 sibling deferral DRIFT-DNP3-DIRECTION-001 → v0.12.0 before v0.11.0 release notes finalized.
-3. Merge fix PR into develop → re-assess v0.11.0 release posture. v0.11.0 stays held until STORY-139 merges (D-260).
+STORY-140 pipeline (sequential):
+1. F1 delta-analysis (architect) — identify DNP3 code regions affected by carry-direction-split and saturating_sub window patterns (dnp3.rs / SS-15), mirroring RULING-EDGECASE-001 applied to DNP3.
+2. F2 spec evolution — amend SS-15 BCs for DNP3 carry-split + saturating_sub clock reset (per-direction carry fields, window reset correction).
+3. F3 — author STORY-140 (story-writer).
+4. F4-F7 — TDD implementation, adversarial review, formal hardening, convergence + merge to develop.
+5. After STORY-140 merges: await explicit human release go-ahead → cut v0.11.0.
 
 ### RESUME PROCEDURE (execute in order — BLOCKING)
 
 1. Run `vsdd-factory:factory-worktree-health` — PASS required before proceeding.
-2. Read `.factory/STATE.md` (this file) + `.factory/cycles/feature-enip-v0.11.0/RULING-EDGECASE-001-direction-and-clock.md` + `.factory/stories/STORY-139.md`.
-3. Verify: `git rev-parse --short develop` == `fd0c7f3`; worktree `.worktrees/enip-direction-clock` on `fix/enip-direction-and-clock` @`cee85c0`; `cargo test --all-targets` = 2112 GREEN / 0 RED.
-4. Dispatch F7 CONVERGENCE-CHECKER to `.worktrees/enip-direction-clock` per F7 tasks above.
+2. Read `.factory/STATE.md` (this file) + `.factory/cycles/feature-enip-v0.11.0/RULING-EDGECASE-001-direction-and-clock.md`.
+3. Verify: `git rev-parse --short develop` == `99a06f4`; develop is clean and CI green.
+4. Create new worktree for STORY-140 (branch `fix/dnp3-direction-and-clock` from develop `99a06f4`).
+5. Dispatch F1 delta-analysis (architect) targeting dnp3.rs / SS-15 BC set.
 
 ### Locked design facts (do not re-derive on resume)
 
 ENIP header LITTLE-endian (`from_le_bytes`). `EnipCommandClass` 10 variants. `CipServiceClass` 15. `CipHeader={service,request_path}`. `CpfItem={type_id,data}`. `general_status`=byte-2 on 0x00B2 responses. 0x00B2-only CIP (0x00B1 deferred v0.12.0). Write-burst 50/error-burst 5 strict `>`. T0814 windowed >=3/300s. MAX_ENIP_CARRY_BYTES=600. MAX_FINDINGS=10000. MITRE pin ics-attack-19.1. Counters u64, window timestamps u32 seconds. `EnipFlowState` now has: `carry_c2s`, `carry_s2c` (replacing `carry`), `malformed_window_start_ts` (replacing `window_start_ts`). `on_data` signature: `(flow_key, data, timestamp, direction: Direction)`. 74 call-sites updated to `Direction::ClientToServer` at red-gate.
 
-EC-X1: cross-direction carry splice — confirmed HIGH release-blocker. EC-X2: clock-backwards `wrapping_sub` → window reset — confirmed HIGH release-blocker. Both adjudicated RULING-EDGECASE-001. Repro tests: `.worktrees/enip-edgecase-verify/tests/scratch_ecx1_ecx2_repro.rs`. DNP3 shares both patterns → DRIFT-DNP3-DIRECTION-001 (v0.12.0 sibling; human-confirm at F7).
+EC-X1: cross-direction carry splice — confirmed HIGH release-blocker. EC-X2: clock-backwards `wrapping_sub` → window reset — confirmed HIGH release-blocker. Both adjudicated RULING-EDGECASE-001. Repro tests: `.worktrees/enip-edgecase-verify/tests/scratch_ecx1_ecx2_repro.rs`. DNP3 shares both patterns → DRIFT-DNP3-DIRECTION-001 + DRIFT-DNP3-CLOCK-001 — now IN SCOPE v0.11.0 as STORY-140 (human D-278; atomic fix with ENIP).
 
 Story input-hashes: STORY-130 63fac3a, STORY-131 ce92886, STORY-132 c33dff8, STORY-133 661f504, STORY-134 16d03a6, STORY-135 ae2d871, STORY-136 0846e0e, STORY-137 f4c8390, STORY-138 0f60353 (all MATCH). STORY-139 input-hash: 581b0fd (re-baselined 4f4dc76 after BC-2.17.016 additive NOTE; D-276).
 
@@ -111,8 +110,10 @@ Story input-hashes: STORY-130 63fac3a, STORY-131 ce92886, STORY-132 c33dff8, STO
 
 | ID | Summary | Status |
 |----|---------|--------|
-| STORY-139 | EC-X1/EC-X2 fix-delta: per-direction carry + saturating window. **RELEASE-BLOCKER.** | F6 PASS @cee85c0 (2112/0) — F7 next |
-| DRIFT-DNP3-DIRECTION-001 | DNP3 shares EC-X1 + EC-X2 patterns; fix in v0.12.0 sibling follow-up. Human-confirm at F7. | DEFERRED — v0.12.0 |
+| STORY-139 | EC-X1/EC-X2 fix-delta: per-direction carry + saturating window. | MERGED — develop `99a06f4` (D-277, PR #334) |
+| STORY-140 | DNP3 sibling EC-X1/EC-X2 fix (carry-split + saturating_sub). **RELEASE-BLOCKER.** | IN SCOPE v0.11.0 — F1 starting (D-278) |
+| DRIFT-DNP3-DIRECTION-001 | DNP3 EC-X1 pattern (carry-direction-split) — sibling of ENIP fix. | IN SCOPE v0.11.0 — STORY-140 (human D-278) |
+| DRIFT-DNP3-CLOCK-001 | DNP3 EC-X2 pattern (wrapping_sub clock reset) — sibling of ENIP fix. | IN SCOPE v0.11.0 — STORY-140 (human D-278) |
 | F-W60-002 | `bytes_received` BC-2.17.016 v1.1→v1.2 clarification (PC-5 exemption + Invariant 7). | DEFERRED — cycle close |
 | BC-PROSE-LOW-RESIDUALS | BC-2.17.001 Inv-4 + prd.md singular `carry`; BC-2.17.018 PC-1 singular `carry`; VP-034 title-label drift. | OPEN — cycle close |
 | ENGINE-PROPAGATION-GREP-GATE-001 | Mechanical changed-value sibling-grep gate. Human decision before cycle CLOSE. | OPEN — human review |
@@ -162,9 +163,11 @@ All GitHub-issue creation DF-VALIDATION-001-gated.
 | Feature EtherNet/IP — F4..F7 (Wave 61) | F7 HUMAN-APPROVED + HOLDOUT EVAL PASS + ENIP E2E MERGED (D-267..D-269). HOLD AT RELEASE. | 2093/0/81 GREEN @fd0c7f3. |
 | Feature EtherNet/IP — EC-X1/EC-X2 fix-delta (Wave 62) — F2 | DONE + RE-VALIDATED CLEAN | BC-2.17.016 v2.0/008 v1.3/012 v1.2/018 v1.1; VP-033/034; BC-INDEX v1.85; VP-INDEX v2.12 (34). |
 | Feature EtherNet/IP — EC-X1/EC-X2 fix-delta (Wave 62) — F3 | DONE | STORY-139 authored @a2db4f3; input-hash 759464a MATCH. |
-| Feature EtherNet/IP — EC-X1/EC-X2 fix-delta (Wave 62) — F4 | GREEN — IMPLEMENTATION DONE @3c688ff (179 GREEN / 0 RED) | `.worktrees/enip-direction-clock` @3c688ff. |
-| Feature EtherNet/IP — EC-X1/EC-X2 fix-delta (Wave 62) — F5 | **CONVERGED @0607b82 (2107/0)** | F4 GREEN + F5 CONVERGED @0607b82; 6 adversary passes; findings 4→3→2→0; consistency audit CONSISTENT. Not yet pushed/PR'd/merged. |
-| Feature EtherNet/IP — EC-X1/EC-X2 fix-delta (Wave 62) — F6 | **F6 PASS @cee85c0 (Kani 36/37, fuzz 0-crash, mutation 23/23 in-scope, 3 equivalent; 2112/0)** | Kani: 36/37 PROVED (all 5 ENIP harnesses + non-vacuous; 1 non-delta reader.rs harness still-solving, not a regression). fuzz_enip_cip_parse: 14.99M/0 crashes. cargo-mutants: 23/23 in-scope killable (3 proven-equivalent per RULING-137-002 excluded). Input-hash re-baseline 4f4dc76 (MATCH=89/STALE=0). |
+| Feature EtherNet/IP — EC-X1/EC-X2 fix-delta (Wave 62) — F4 | DONE @3c688ff (179 GREEN / 0 RED) | `.worktrees/enip-direction-clock` @3c688ff. |
+| Feature EtherNet/IP — EC-X1/EC-X2 fix-delta (Wave 62) — F5 | CONVERGED @0607b82 (2107/0) | 6 adversary passes; findings 4→3→2→0; consistency audit CONSISTENT. |
+| Feature EtherNet/IP — EC-X1/EC-X2 fix-delta (Wave 62) — F6 | PASS @cee85c0 (Kani 36/37, fuzz 0-crash, mutation 23/23 in-scope, 3 equivalent; 2112/0) | Input-hash re-baseline 4f4dc76 (MATCH=89/STALE=0). |
+| Feature EtherNet/IP — EC-X1/EC-X2 fix-delta (Wave 62) — F7 + MERGE | **MERGED to develop — PR #334 (D-277, 99a06f4). stories_delivered=88. CI 11/11 green.** | pr-reviewer 0 findings; security-reviewer 0 CRITICAL/0 HIGH. ADR-010 D4 amended; input-hash re-baselined c99d7b6. |
+| Feature DNP3 sibling EC-X1/EC-X2 (Wave 63) — STORY-140 | **F1 STARTING** | DRIFT-DNP3-DIRECTION-001 + DRIFT-DNP3-CLOCK-001 in scope for v0.11.0 (D-278). F1 delta-analysis next. |
 
 ## Decisions Log
 
@@ -185,6 +188,8 @@ D-228..D-269: `cycles/feature-enip-v0.11.0/decisions-archive.md`
 | D-274 | STORY-139 F6 targeted hardening PASS. Worktree commits since F5: 25f8b4a (5 boundary-hardening tests killing carry-direction-select 948 + error/write-window boundary mutants 1152/1336), cee85c0 (cap-check doc-comment corrected). Kani: 36/37 proved (all 5 ENIP harnesses PROVED + non-vacuous; struct/signature change broke nothing; the 1 outstanding harness vp025_timestamp_totality_base10 is in reader.rs — non-delta, still-solving CBMC SAT, NOT a regression). cargo-fuzz fuzz_enip_cip_parse: 14.99M execs / 0 crashes. cargo-mutants delta: 23/28 caught; of 5 survivors, 3 (enip.rs:953 ×2 + 967, the carry-overflow cap+clear) are PROVEN-EQUIVALENT permanent survivors and 2 (465 STORY-138, 1335 STORY-135) are pre-existing out-of-scope. In-scope killable kill-rate = 23/23 = 100%. Regression 2112/0; VP-033 2/2, VP-034 6/6. | 2026-06-27 |
 | D-275 | ARCHITECT RULING (RULING-EDGECASE-001 addendum, 3rd adjudication): the ENIP carry-overflow cap (enip.rs:953/967, BC-2.17.016 PC-4, MAX_ENIP_CARRY_BYTES=600) is STRUCTURALLY UNREACHABLE — RULING-137-002 §1 proves max carry after any on_data call is 599 bytes (all 3 frame-walk paths exhausted). The 3 cargo-mutants survivors are CONFIRMED EQUIVALENT (excluded from kill denominator). RULING-EDGECASE-001 §3's Path-A reachability claim is RETRACTED (was a self-correction that was itself wrong; RULING-137-002 §1 governs). Resolution (b1): keep cap-check as belt-and-suspenders dead code with corrected comment (impl commit cee85c0); BC-2.17.016 PC-4 additive errata NOTE + EC-004/canonical-test-vector annotated superseded (PO commit a748971, no version bump); orchestrator escalated rather than accept test-writer's unverified equivalent-mutant claim — proof confirmed it AND surfaced the ruling contradiction. | 2026-06-27 |
 | D-276 | Input-hash mechanical re-baseline after BC-2.17.016 additive NOTE (story-writer commit 4f4dc76, factory-artifacts). STORY-139: 759464a→581b0fd. `bin/compute-input-hash --write --scan` rewrote 24 stale stories total → MATCH=89 STALE=0. NOTE: only STORY-130..139 relate to the BC-2.17.016 edit; the other 14 (STORY-002/003/004/005/071/076-080/100/101/120/129) were PRE-EXISTING stale from prior released-cycle BC doc-edits, swept clean in the same re-baseline (benign — all released/closed v0.1-v0.10). 3 pre-existing structural ERRORs (STORY-001 retired-BC-ref, STORY-091, STORY-121 missing inputs blocks) unrelated → backlog. No story versions bumped; only input-hash fields touched. | 2026-06-27 |
+| D-277 | STORY-139 (ENIP EC-X1/EC-X2 detection-correctness fix) MERGED to develop via PR #334 (merge commit 99a06f4; develop HEAD 99a06f4). Both reviewers APPROVE (pr-reviewer 0 findings; security-reviewer 0 CRITICAL/0 HIGH, 1 MEDIUM = documented-unreachable carry-cap per RULING-137-002 non-blocking, 2 LOW pre-existing). CI 11/11 green (run 28302628291). Pre-merge: ADR-010 Decision 4 amended (worktree 5d5181f in PR + .factory da8adf5); input-hash re-baseline c99d7b6 (STORY-130..139; STORY-139=16e5c27). Worktree enip-direction-clock + branch fix/enip-direction-and-clock removed. F7 human-approved. stories_delivered=88. | 2026-06-27 |
+| D-278 | HUMAN DIRECTIVE (F7 gate, Q2): fix DNP3 ATOMICALLY with ENIP for v0.11.0 — DRIFT-DNP3-DIRECTION-001 (carry splice) + DRIFT-DNP3-CLOCK-001 (wrapping_sub clock reset) are NO LONGER deferred to v0.12.0; they are now IN SCOPE for v0.11.0 as a sibling fix (new STORY-140, full F1-F7 cycle, mirroring RULING-EDGECASE-001 applied to dnp3.rs / SS-15). HUMAN DIRECTIVE (Q4): v0.11.0 STAYS HELD after the ENIP merge — separate explicit release go-ahead required (extends D-260). v0.11.0 ships ENIP + DNP3 together once both land on develop and human approves release. | 2026-06-27 |
 
 ## Governance Policy
 
@@ -194,5 +199,5 @@ Full policy text: `.factory/policies.yaml`. Active policies (17): DF-VALIDATION-
 
 - `.factory/` is a `factory-artifacts` orphan-branch worktree, gitignored from `develop`.
 - Active cycle: `cycles/feature-enip-v0.11.0/` (cycle-manifest.md, decisions-archive.md D-228+). Issue #316.
-- STORY-INDEX.md authoritative (92 stories / 62 waves — v2.9). STORY-130..138 completed. STORY-139 authored (Wave 62). stories_delivered=87 (STORY-139 not yet merged).
+- STORY-INDEX.md authoritative (92 stories / 62 waves — v2.9). STORY-130..139 completed + merged. stories_delivered=88. STORY-140 (DNP3 sibling fix, Wave 63) starting F1.
 - F6 fuzz harness (F-P9-002) MERGED — PR #332 @f17d270 on develop (D-265).
