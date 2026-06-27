@@ -26,12 +26,33 @@
 #![allow(dead_code)]
 
 use std::collections::HashMap;
-use std::net::IpAddr;
 
 use crate::analyzer::AnalysisSummary;
 use crate::findings::Finding;
 use crate::reassembly::flow::FlowKey;
 use crate::reassembly::handler::Direction;
+
+// ---------------------------------------------------------------------------
+// Direction-aware carry selector (STORY-140 / BC-2.15.016 v2.0 Precondition 2).
+//
+// `active_carry!(flow, direction)` expands to the correct directional carry
+// field by-name, keeping in-place carry mutations working without restructuring
+// the frame-walk or fighting the borrow checker.  Equivalent to an inline
+// if-expression, but usable as an lvalue in `flow.carry_c2s.drain(..)` style
+// expressions.
+//
+// AC-140-001 invariant: a frame partial stashed in one direction's carry is
+// NEVER prepended to the other direction's delivery.
+// ---------------------------------------------------------------------------
+macro_rules! active_carry {
+    ($flow:expr, $direction:expr) => {
+        if $direction == Direction::ClientToServer {
+            &mut $flow.carry_c2s
+        } else {
+            &mut $flow.carry_s2c
+        }
+    };
+}
 
 // ---------------------------------------------------------------------------
 // Data types
@@ -333,13 +354,15 @@ impl Dnp3Analyzer {
         // sync word [0x05, 0x64] at offset 0 (v1 checks offset 0 only).  We apply this
         // check on the FIRST delivery (carry still empty); once a flow has accepted any
         // bytes into carry it is an established DNP3 flow and we do not re-bail.
-        // STORY-140 stub: active_carry always uses carry_c2s for both directions.
-        // The implementer selects carry by direction; leaving both directions mapped to
-        // carry_c2s is what makes AC-140-001 cross-direction tests RED (BC-2.15.016 v2.0).
-        // Self-Check BC-5.38.005: "If I include this real implementation, will the test pass
-        // trivially without any implementer work?" → YES for direction-select → todo!() stub.
-        let _ = direction; // direction parameter accepted; per-direction select is NOT implemented
-        if flow.carry_c2s.is_empty() && data.len() >= 2 && (data[0] != 0x05 || data[1] != 0x64) {
+        // STORY-140 [AC-140-001, BC-2.15.016 v2.0]: select the active carry by direction.
+        // carry_c2s for ClientToServer; carry_s2c for ServerToClient.
+        // A partial c2s frame stashed in carry_c2s is NEVER prepended to an s2c delivery
+        // (and vice versa), preventing cross-direction splice (BC-2.15.016 v2.0 Inv-6).
+        // `active_carry!(flow, direction)` expands to the correct field by-name.
+        if active_carry!(flow, direction).is_empty()
+            && data.len() >= 2
+            && (data[0] != 0x05 || data[1] != 0x64)
+        {
             // No valid DNP3 sync word at offset 0 — desync bail. Carry NOT touched.
             flow.is_non_dnp3 = true;
             return;
@@ -355,7 +378,7 @@ impl Dnp3Analyzer {
         // Scan pending_requests for entries that have not received a RESPONSE within
         // BLOCK_CMD_TIMEOUT_SECS.  Must run BEFORE the frame-walk so that newly-arriving
         // frames at ts=T can observe timeouts from requests at ts=T-11.
-        Self::scan_block_timeouts(flow, &mut self.all_findings, ts, &flow_key);
+        Self::scan_block_timeouts(flow, &mut self.all_findings, ts, &flow_key, direction);
 
         // --- Step 2: accumulate into carry with the 292-byte cap (AC-001 / EC-003) --
         // BC-2.15.016 postconditions 1–2: append incoming bytes; if the carry would
@@ -379,10 +402,12 @@ impl Dnp3Analyzer {
         // (F-F5-003 REVISION 2 Change 1). No flag is needed — structural path separation
         // is the sole mechanism (REV 2 §R2-SECTION 4 / IMP-3 forbids counted_this_iter flags).
 
-        let remaining_capacity = MAX_DNP3_FRAME_LEN - flow.carry_c2s.len();
+        // STORY-140 [AC-140-001]: all carry operations use active_carry!(flow, direction)
+        // to select carry_c2s (ClientToServer) or carry_s2c (ServerToClient).
+        // Cap check applies to the active directional carry only (BC-2.15.016 v2.0 Inv-6).
+        let remaining_capacity = MAX_DNP3_FRAME_LEN - active_carry!(flow, direction).len();
         if data.len() > remaining_capacity {
-            flow.carry_c2s
-                .extend_from_slice(&data[..remaining_capacity]);
+            active_carry!(flow, direction).extend_from_slice(&data[..remaining_capacity]);
             // Excess bytes beyond 292 are discarded; record one overflow (BC-2.15.016 PC2).
             flow.parse_errors += 1;
             flow.malformed_in_window += 1;
@@ -390,34 +415,41 @@ impl Dnp3Analyzer {
             // Structurally identical to Change 2 (LENGTH-gate arm inline resync).
             // Prevents the frame-walk sync-check arm from firing for this same overflow event.
             // If a valid [0x05,0x64,...] sync word exists in the carry, it is PRESERVED.
-            let next_sync = flow
-                .carry_c2s
+            let next_sync = active_carry!(flow, direction)
                 .windows(2)
                 .enumerate()
                 .find(|(_, w)| w[0] == 0x05 && w[1] == 0x64)
                 .map(|(i, _)| i);
             match next_sync {
                 Some(i) => {
-                    flow.carry_c2s.drain(..i);
+                    active_carry!(flow, direction).drain(..i);
                 }
                 None => {
-                    flow.carry_c2s.clear();
+                    active_carry!(flow, direction).clear();
                 }
             }
-            Self::check_malformed_anomaly(flow, &mut self.all_findings, ts, &flow_key);
+            Self::check_malformed_anomaly(flow, &mut self.all_findings, ts, &flow_key, direction);
             // Fall through to frame-walk. Do NOT return early.
             // The frame-walk will find a valid head frame (if preserved) or
             // carry.len() < 3 → break immediately (empty carry). Both are correct.
         } else {
-            flow.carry_c2s.extend_from_slice(data);
+            active_carry!(flow, direction).extend_from_slice(data);
         }
 
         // --- Step 3: frame-walk — consume every complete frame from carry's head ----
         // STORY-103 lesson: use a WHILE loop, not an if — a single on_data may carry
         // multiple complete frames (EC-002).
         loop {
-            // Guard: need at least 3 bytes to read the LENGTH byte at carry[2].
-            if flow.carry_c2s.len() < 3 {
+            // Guard: need at least 10 bytes (full DNP3 header + header CRC) to attempt
+            // frame parsing. LENGTH ≥ 5 → minimum frame = 10 bytes; fewer bytes means
+            // the stream is partial and we must stash and wait for more data.
+            // STORY-140 [AC-140-001]: this guard ensures partial carry (< 10 bytes)
+            // is stashed without counting a parse_error or draining, supporting the
+            // direction-isolation invariant for partial frames.
+            // Previously `< 3` (enough to read LENGTH); changed to `< 10` because a
+            // valid DNP3 header is always exactly 10 bytes and computing frame_len
+            // from fewer bytes would produce a spurious error for legitimate partials.
+            if active_carry!(flow, direction).len() < 10 {
                 break;
             }
 
@@ -437,7 +469,9 @@ impl Dnp3Analyzer {
             // no double-count for Path A. carry.clear() is a fresh-start, not a desync
             // bail — is_non_dnp3 is NOT set. VP-023 invariants preserved: each
             // iteration drains ≥1 byte; carry ≤292 bound unchanged.
-            if flow.carry_c2s[0] != 0x05 || flow.carry_c2s[1] != 0x64 {
+            if active_carry!(flow, direction)[0] != 0x05
+                || active_carry!(flow, direction)[1] != 0x64
+            {
                 // Sync-loss event: count it unconditionally (F-F5-003 REVISION 2 Change 1).
                 // This arm is reached from:
                 //   Path B: after a clean frame consume leaves a non-sync head (distinct event).
@@ -452,11 +486,16 @@ impl Dnp3Analyzer {
                 // residue until AFTER a full valid frame has been consumed first.
                 flow.parse_errors += 1;
                 flow.malformed_in_window += 1;
-                Self::check_malformed_anomaly(flow, &mut self.all_findings, ts, &flow_key);
+                Self::check_malformed_anomaly(
+                    flow,
+                    &mut self.all_findings,
+                    ts,
+                    &flow_key,
+                    direction,
+                );
                 // Byte-walk-forward resync (STORY-109; realizes STORY-107 deferral).
                 // Scan from offset 1 for the next [0x05,0x64]; drain preceding bytes, else clear.
-                let next_sync = flow
-                    .carry_c2s
+                let next_sync = active_carry!(flow, direction)
                     .windows(2)
                     .enumerate()
                     .skip(1)
@@ -464,10 +503,10 @@ impl Dnp3Analyzer {
                     .map(|(i, _)| i);
                 match next_sync {
                     Some(i) => {
-                        flow.carry_c2s.drain(..i);
+                        active_carry!(flow, direction).drain(..i);
                     } // realign to next sync
                     None => {
-                        flow.carry_c2s.clear();
+                        active_carry!(flow, direction).clear();
                     } // no sync found — start fresh
                 }
                 continue; // NOT break
@@ -479,7 +518,7 @@ impl Dnp3Analyzer {
             // malformed_in_window (STORY-109 BC-2.15.024 two-counter model), and
             // advance the carry by one byte to attempt re-sync (BC-2.15.004 PC4 /
             // BC-2.15.008 EC-006). VP-023 Sub-D bounds the returned frame_len to [10, 292].
-            let length_byte = flow.carry_c2s[2];
+            let length_byte = active_carry!(flow, direction)[2];
             let frame_len = match compute_dnp3_frame_len(length_byte) {
                 Some(fl) => fl,
                 None => {
@@ -488,49 +527,60 @@ impl Dnp3Analyzer {
                     // malformed_in_window (windowed) — BC-2.15.024 two-counter model.
                     flow.parse_errors += 1;
                     flow.malformed_in_window += 1;
-                    flow.carry_c2s.drain(..1);
+                    active_carry!(flow, direction).drain(..1);
                     // F-F5-003 REVISION 2 Change 2: inline byte-walk-forward resync.
                     // After drain(..1), immediately reposition carry to the next
                     // [0x05,0x64] sync word (or clear if none found). This ensures the
                     // loop's NEXT iteration begins with a valid sync head or empty carry,
                     // preventing the sync-check arm from firing for the SAME sync-loss
                     // event (no double-count across iterations — Path A).
-                    let next_sync = flow
-                        .carry_c2s
+                    let next_sync = active_carry!(flow, direction)
                         .windows(2)
                         .enumerate()
                         .find(|(_, w)| w[0] == 0x05 && w[1] == 0x64)
                         .map(|(i, _)| i);
                     match next_sync {
                         Some(i) => {
-                            flow.carry_c2s.drain(..i);
+                            active_carry!(flow, direction).drain(..i);
                         }
                         None => {
-                            flow.carry_c2s.clear();
+                            active_carry!(flow, direction).clear();
                         }
                     }
-                    Self::check_malformed_anomaly(flow, &mut self.all_findings, ts, &flow_key);
+                    Self::check_malformed_anomaly(
+                        flow,
+                        &mut self.all_findings,
+                        ts,
+                        &flow_key,
+                        direction,
+                    );
                     continue;
                 }
             };
 
             // Not enough bytes for a complete frame yet — leave the partial in carry (EC-001).
-            if flow.carry_c2s.len() < frame_len {
+            if active_carry!(flow, direction).len() < frame_len {
                 break;
             }
 
             // Parse the gate-validated header. parse returns Some because
             // carry.len() >= frame_len >= 10; sync and LENGTH≥5 were just validated, so
             // is_valid_dnp3_frame_header holds — the failure arm is defensive only.
-            let header = match parse_dnp3_dl_header(&flow.carry_c2s[..frame_len]) {
+            let header = match parse_dnp3_dl_header(&active_carry!(flow, direction)[..frame_len]) {
                 Some(h) if is_valid_dnp3_frame_header(&h) => h,
                 _ => {
                     // Frame-length mismatch: structural reject.
                     // STORY-109: increment BOTH parse_errors AND malformed_in_window.
                     flow.parse_errors += 1;
                     flow.malformed_in_window += 1;
-                    flow.carry_c2s.drain(..frame_len);
-                    Self::check_malformed_anomaly(flow, &mut self.all_findings, ts, &flow_key);
+                    active_carry!(flow, direction).drain(..frame_len);
+                    Self::check_malformed_anomaly(
+                        flow,
+                        &mut self.all_findings,
+                        ts,
+                        &flow_key,
+                        direction,
+                    );
                     continue;
                 }
             };
@@ -563,9 +613,9 @@ impl Dnp3Analyzer {
             // application control, byte 12 = application FC. Raw carry still holds the
             // header/data-block CRC octets (ADR-007 Decision 3 — CRC not stripped here).
             if frame_len >= 13 && has_user_data(header.control) {
-                let transport_octet = flow.carry_c2s[10];
+                let transport_octet = active_carry!(flow, direction)[10];
                 if transport_is_fir(transport_octet) {
-                    let app_fc = flow.carry_c2s[12];
+                    let app_fc = active_carry!(flow, direction)[12];
                     *flow.fc_counts.entry(app_fc).or_insert(0) += 1;
                     *self.fn_code_counts.entry(app_fc).or_insert(0) += 1;
 
@@ -589,6 +639,7 @@ impl Dnp3Analyzer {
                             src,
                             ts,
                             &flow_key,
+                            direction,
                         );
                     }
 
@@ -605,6 +656,7 @@ impl Dnp3Analyzer {
                                     src,
                                     ts,
                                     &flow_key,
+                                    direction,
                                 );
                             }
 
@@ -627,6 +679,7 @@ impl Dnp3Analyzer {
                                     src,
                                     ts,
                                     &flow_key,
+                                    direction,
                                 );
                             }
 
@@ -635,7 +688,7 @@ impl Dnp3Analyzer {
                             // by design; BC-2.15.014 Invariant 1).
                             // STORY-109: 0x06 is excluded from pending_requests.
                             if app_fc != 0x06 {
-                                let app_seq = flow.carry_c2s[11] & 0x0F;
+                                let app_seq = active_carry!(flow, direction)[11] & 0x0F;
                                 Self::insert_pending_request(flow, (dest, app_seq), ts);
                             }
 
@@ -649,6 +702,7 @@ impl Dnp3Analyzer {
                                 dest,
                                 src,
                                 &flow_key,
+                                direction,
                             );
                         }
                         Dnp3FcClass::Restart => {
@@ -662,6 +716,7 @@ impl Dnp3Analyzer {
                                 src,
                                 ts,
                                 &flow_key,
+                                direction,
                             );
                             // T0827 co-emission: STORY-109 — after the T0814 push above.
                             Self::maybe_emit_t0827(
@@ -670,6 +725,7 @@ impl Dnp3Analyzer {
                                 ts,
                                 dest,
                                 &flow_key,
+                                direction,
                             );
                         }
                         Dnp3FcClass::Write => {
@@ -679,6 +735,7 @@ impl Dnp3Analyzer {
                                 src,
                                 ts,
                                 &flow_key,
+                                direction,
                             );
                         }
                         Dnp3FcClass::Response => {
@@ -687,7 +744,7 @@ impl Dnp3Analyzer {
                             // FC=0x82 triggers unsolicited anomaly check (one-shot).
                             // Pass app_ctrl (carry[11]) so detect_unsolicited_anomaly can extract
                             // the UNS bit (bit 0x10) for the BC-2.15.019 PC1 evidence field.
-                            let app_ctrl = flow.carry_c2s[11];
+                            let app_ctrl = active_carry!(flow, direction)[11];
                             Self::detect_unsolicited_anomaly(
                                 flow,
                                 &mut self.all_findings,
@@ -697,11 +754,12 @@ impl Dnp3Analyzer {
                                 src,
                                 ts,
                                 &flow_key,
+                                direction,
                             );
                             // FC=0x81: remove matching pending_request entry (response received;
                             // no block timeout for this (dest, app_seq) pair).
                             if app_fc == 0x81 {
-                                let app_seq = flow.carry_c2s[11] & 0x0F;
+                                let app_seq = active_carry!(flow, direction)[11] & 0x0F;
                                 // Response comes from outstation (src=outstation, dest=master).
                                 // The pending request was keyed by (outstation_addr, app_seq)
                                 // where the control request went TO the outstation (dest=outstation).
@@ -717,7 +775,8 @@ impl Dnp3Analyzer {
             // Drain the consumed frame from the head of carry (BC-2.15.016 PC3–4).
             // VP-023 Sub-D guarantees frame_len ∈ [10, 292] and we checked carry.len() >=
             // frame_len above, so this drain can never index out of bounds (AC-006).
-            flow.carry_c2s.drain(..frame_len);
+            // STORY-140: drain from the active directional carry (BC-2.15.016 v2.0 Inv-6).
+            active_carry!(flow, direction).drain(..frame_len);
         }
     }
 
@@ -750,12 +809,13 @@ impl Dnp3Analyzer {
         dest: u16,
         src: u16,
         flow_key: &FlowKey,
+        direction: Direction,
     ) {
         // BC-2.15.010 postcondition 4: check window expiry BEFORE incrementing.
         // When elapsed > DETECTION_WINDOW_SECS, reset to a fresh window seeded
         // by this incoming FC.
         if flow.direct_operate_count > 0
-            && now_ts.wrapping_sub(flow.window_start_ts) > DETECTION_WINDOW_SECS
+            && now_ts.saturating_sub(flow.window_start_ts) > DETECTION_WINDOW_SECS
         {
             flow.direct_operate_count = 1;
             flow.window_start_ts = now_ts;
@@ -775,14 +835,23 @@ impl Dnp3Analyzer {
         // BC-2.15.010 postcondition 3: emit finding when threshold exceeded and guard clear.
         if flow.direct_operate_count > direct_operate_threshold
             && !flow.direct_operate_emitted
-            && now_ts.wrapping_sub(flow.window_start_ts) <= DETECTION_WINDOW_SECS
+            && now_ts.saturating_sub(flow.window_start_ts) <= DETECTION_WINDOW_SECS
             && findings.len() < MAX_FINDINGS
         {
             let count = flow.direct_operate_count;
-            let elapsed = now_ts.wrapping_sub(flow.window_start_ts);
+            let elapsed = now_ts.saturating_sub(flow.window_start_ts);
             let threshold = direct_operate_threshold;
-            // BC-2.15.010 PC3: resolve master endpoint from FlowKey.
-            let master_ip = Self::resolve_master_ip(flow_key);
+            // BC-2.15.010 PC3: resolve master endpoint from FlowKey using direction.
+            // STORY-140 AC-140-002: replace port-heuristic with direction-based resolution.
+            let (client_ip, server_ip) = if flow_key.lower_port() == 20000 {
+                (flow_key.upper_ip(), flow_key.lower_ip())
+            } else {
+                (flow_key.lower_ip(), flow_key.upper_ip())
+            };
+            let master_ip = match direction {
+                Direction::ClientToServer => client_ip,
+                Direction::ServerToClient => server_ip,
+            };
             findings.push(Finding {
                 category: crate::findings::ThreatCategory::Execution,
                 verdict: crate::findings::Verdict::Likely,
@@ -806,6 +875,9 @@ impl Dnp3Analyzer {
     /// Pushes one T0814 `Finding` per occurrence (no threshold guard).
     /// Increments `flow.restart_event_count` UNCONDITIONALLY — even when capped.
     /// Cap check: `findings.len() < MAX_FINDINGS` evaluated before push.
+    // 8 args is one above the default clippy limit (7); direction added by STORY-140 AC-140-002.
+    // A refactor into a context struct is tracked as a future cleanup.
+    #[allow(clippy::too_many_arguments)]
     fn detect_restart_split(
         flow: &mut Dnp3FlowState,
         findings: &mut Vec<Finding>,
@@ -814,6 +886,7 @@ impl Dnp3Analyzer {
         src: u16,
         now_ts: u32,
         flow_key: &FlowKey,
+        direction: Direction,
     ) {
         // BC-2.15.011 postcondition 1: push ONE Finding per occurrence (cap gated).
         if findings.len() < MAX_FINDINGS {
@@ -822,8 +895,16 @@ impl Dnp3Analyzer {
                 0x0E => "WARM_RESTART",
                 _ => "RESTART",
             };
-            // BC-2.15.011 PC1: resolve master endpoint from FlowKey.
-            let master_ip = Self::resolve_master_ip(flow_key);
+            // BC-2.15.011 PC1: resolve master endpoint from FlowKey using direction.
+            let (client_ip, server_ip) = if flow_key.lower_port() == 20000 {
+                (flow_key.upper_ip(), flow_key.lower_ip())
+            } else {
+                (flow_key.lower_ip(), flow_key.upper_ip())
+            };
+            let master_ip = match direction {
+                Direction::ClientToServer => client_ip,
+                Direction::ServerToClient => server_ip,
+            };
             findings.push(Finding {
                 category: crate::findings::ThreatCategory::Execution,
                 verdict: crate::findings::Verdict::Likely,
@@ -859,10 +940,19 @@ impl Dnp3Analyzer {
         src: u16,
         now_ts: u32,
         flow_key: &FlowKey,
+        direction: Direction,
     ) {
         if findings.len() < MAX_FINDINGS {
-            // BC-2.15.012 PC1: resolve master endpoint from FlowKey.
-            let master_ip = Self::resolve_master_ip(flow_key);
+            // BC-2.15.012 PC1: resolve master endpoint from FlowKey using direction.
+            let (client_ip, server_ip) = if flow_key.lower_port() == 20000 {
+                (flow_key.upper_ip(), flow_key.lower_ip())
+            } else {
+                (flow_key.lower_ip(), flow_key.upper_ip())
+            };
+            let master_ip = match direction {
+                Direction::ClientToServer => client_ip,
+                Direction::ServerToClient => server_ip,
+            };
             findings.push(Finding {
                 category: crate::findings::ThreatCategory::Execution,
                 verdict: crate::findings::Verdict::Likely,
@@ -900,6 +990,7 @@ impl Dnp3Analyzer {
         findings: &mut Vec<Finding>,
         now_ts: u32,
         flow_key: &FlowKey,
+        direction: Direction,
     ) {
         // Collect timed-out keys first (cannot mutate map while iterating).
         let timed_out: Vec<(u16, u8)> = flow
@@ -930,7 +1021,15 @@ impl Dnp3Analyzer {
             && !flow.block_finding_emitted_this_window
             && findings.len() < MAX_FINDINGS
         {
-            let master_ip = Self::resolve_master_ip(flow_key);
+            let (client_ip, server_ip) = if flow_key.lower_port() == 20000 {
+                (flow_key.upper_ip(), flow_key.lower_ip())
+            } else {
+                (flow_key.lower_ip(), flow_key.upper_ip())
+            };
+            let master_ip = match direction {
+                Direction::ClientToServer => client_ip,
+                Direction::ServerToClient => server_ip,
+            };
             findings.push(Finding {
                 category: crate::findings::ThreatCategory::Execution,
                 verdict: crate::findings::Verdict::Possible,
@@ -963,7 +1062,14 @@ impl Dnp3Analyzer {
         // Ordering (BC-2.15.013 PC2): T1691.001 (if any) was pushed above; T0827 follows.
         if !first {
             // `first` remains true only when no entries timed out; !first ⟺ ≥1 timeout.
-            Self::maybe_emit_t0827(flow, findings, now_ts, min_timedout_dest, flow_key);
+            Self::maybe_emit_t0827(
+                flow,
+                findings,
+                now_ts,
+                min_timedout_dest,
+                flow_key,
+                direction,
+            );
         }
     }
 
@@ -994,7 +1100,7 @@ impl Dnp3Analyzer {
             flow.correlation_window_seeded = true;
             return;
         }
-        if now_ts.wrapping_sub(flow.correlation_window_start_ts) >= CORRELATION_WINDOW_SECS {
+        if now_ts.saturating_sub(flow.correlation_window_start_ts) > CORRELATION_WINDOW_SECS {
             // Reset ALL SIX windowed fields (BC-2.15.015 PC3).
             flow.restart_event_count = 0;
             flow.block_event_count = 0;
@@ -1028,14 +1134,23 @@ impl Dnp3Analyzer {
         now_ts: u32,
         dest: u16,
         flow_key: &FlowKey,
+        direction: Direction,
     ) {
         let combined = flow.restart_event_count + flow.block_event_count;
         if combined >= T0827_THRESHOLD
             && !flow.loss_of_control_emitted
             && findings.len() < MAX_FINDINGS
         {
-            let master_ip = Self::resolve_master_ip(flow_key);
-            let elapsed = now_ts.wrapping_sub(flow.correlation_window_start_ts);
+            let (client_ip, server_ip) = if flow_key.lower_port() == 20000 {
+                (flow_key.upper_ip(), flow_key.lower_ip())
+            } else {
+                (flow_key.lower_ip(), flow_key.upper_ip())
+            };
+            let master_ip = match direction {
+                Direction::ClientToServer => client_ip,
+                Direction::ServerToClient => server_ip,
+            };
+            let elapsed = now_ts.saturating_sub(flow.correlation_window_start_ts);
             let restart_count = flow.restart_event_count;
             let block_count = flow.block_event_count;
             findings.push(Finding {
@@ -1083,9 +1198,18 @@ impl Dnp3Analyzer {
         src: u16,
         now_ts: u32,
         flow_key: &FlowKey,
+        direction: Direction,
     ) {
         if findings.len() < MAX_FINDINGS {
-            let master_ip = Self::resolve_master_ip(flow_key);
+            let (client_ip, server_ip) = if flow_key.lower_port() == 20000 {
+                (flow_key.upper_ip(), flow_key.lower_ip())
+            } else {
+                (flow_key.lower_ip(), flow_key.upper_ip())
+            };
+            let master_ip = match direction {
+                Direction::ClientToServer => client_ip,
+                Direction::ServerToClient => server_ip,
+            };
             findings.push(Finding {
                 category: crate::findings::ThreatCategory::Suspicious,
                 verdict: crate::findings::Verdict::Possible,
@@ -1126,6 +1250,9 @@ impl Dnp3Analyzer {
     /// One-shot guard: sets `flow.unexpected_source_emitted = true` and never fires again.
     /// Fall-through invariant: does NOT return early — pending_requests and burst detection
     /// still run after this function returns.
+    // 8 args is one above the default clippy limit (7); direction added by STORY-140 AC-140-002.
+    // A refactor into a context struct is tracked as a future cleanup.
+    #[allow(clippy::too_many_arguments)]
     fn detect_unexpected_source_split(
         flow: &mut Dnp3FlowState,
         findings: &mut Vec<Finding>,
@@ -1134,6 +1261,7 @@ impl Dnp3Analyzer {
         src: u16,
         now_ts: u32,
         flow_key: &FlowKey,
+        direction: Direction,
     ) {
         if flow.unexpected_source_emitted || findings.len() >= MAX_FINDINGS {
             return;
@@ -1152,7 +1280,15 @@ impl Dnp3Analyzer {
                 .collect::<Vec<_>>()
                 .join(", ")
         );
-        let master_ip = Self::resolve_master_ip(flow_key);
+        let (client_ip, server_ip) = if flow_key.lower_port() == 20000 {
+            (flow_key.upper_ip(), flow_key.lower_ip())
+        } else {
+            (flow_key.lower_ip(), flow_key.upper_ip())
+        };
+        let master_ip = match direction {
+            Direction::ClientToServer => client_ip,
+            Direction::ServerToClient => server_ip,
+        };
         findings.push(Finding {
             category: crate::findings::ThreatCategory::Execution,
             verdict: crate::findings::Verdict::Likely,
@@ -1197,6 +1333,7 @@ impl Dnp3Analyzer {
         src: u16,
         now_ts: u32,
         flow_key: &FlowKey,
+        direction: Direction,
     ) {
         if app_fc == 0x81 {
             // Solicited RESPONSE: mark outstation as known-responsive.
@@ -1215,7 +1352,15 @@ impl Dnp3Analyzer {
                 // UNS bit is bit 4 (0x10) of the application control byte
                 // (IEEE Std 1815-2012 §7.2.3); included in BC-2.15.019 PC1 evidence.
                 let uns_bit = (app_ctrl & 0x10) != 0;
-                let master_ip = Self::resolve_master_ip(flow_key);
+                let (client_ip, server_ip) = if flow_key.lower_port() == 20000 {
+                    (flow_key.upper_ip(), flow_key.lower_ip())
+                } else {
+                    (flow_key.lower_ip(), flow_key.upper_ip())
+                };
+                let master_ip = match direction {
+                    Direction::ClientToServer => client_ip,
+                    Direction::ServerToClient => server_ip,
+                };
                 findings.push(Finding {
                     category: crate::findings::ThreatCategory::Suspicious,
                     verdict: crate::findings::Verdict::Possible,
@@ -1265,13 +1410,22 @@ impl Dnp3Analyzer {
         src: u16,
         now_ts: u32,
         flow_key: &FlowKey,
+        direction: Direction,
     ) {
         match app_fc {
             0x15 => {
                 // DISABLE_UNSOLICITED: Likely/Medium per BC-2.15.023 PC1.
                 // Exact summary format is pinned in AC-010 test.
                 if findings.len() < MAX_FINDINGS {
-                    let master_ip = Self::resolve_master_ip(flow_key);
+                    let (client_ip, server_ip) = if flow_key.lower_port() == 20000 {
+                        (flow_key.upper_ip(), flow_key.lower_ip())
+                    } else {
+                        (flow_key.lower_ip(), flow_key.upper_ip())
+                    };
+                    let master_ip = match direction {
+                        Direction::ClientToServer => client_ip,
+                        Direction::ServerToClient => server_ip,
+                    };
                     findings.push(Finding {
                         category: crate::findings::ThreatCategory::Execution,
                         verdict: crate::findings::Verdict::Likely,
@@ -1297,7 +1451,15 @@ impl Dnp3Analyzer {
                 // Also sets context flag so subsequent 0x82 is NOT anomalous (BC-2.15.019 PC3).
                 flow.enable_unsolicited_seen = true;
                 if findings.len() < MAX_FINDINGS {
-                    let master_ip = Self::resolve_master_ip(flow_key);
+                    let (client_ip, server_ip) = if flow_key.lower_port() == 20000 {
+                        (flow_key.upper_ip(), flow_key.lower_ip())
+                    } else {
+                        (flow_key.lower_ip(), flow_key.upper_ip())
+                    };
+                    let master_ip = match direction {
+                        Direction::ClientToServer => client_ip,
+                        Direction::ServerToClient => server_ip,
+                    };
                     findings.push(Finding {
                         category: crate::findings::ThreatCategory::Execution,
                         verdict: crate::findings::Verdict::Possible,
@@ -1340,20 +1502,29 @@ impl Dnp3Analyzer {
         findings: &mut Vec<Finding>,
         now_ts: u32,
         flow_key: &FlowKey,
+        direction: Direction,
     ) {
         // BC-2.15.024 Precondition 3 (OBS-2): explicit in-window guard so this function
         // is correct under any call-site ordering (not just when maybe_expire runs first).
         // Uses wrapping_sub for u32 timestamp safety (overflow-checks=true in release).
         let in_window =
-            now_ts.wrapping_sub(flow.correlation_window_start_ts) < CORRELATION_WINDOW_SECS;
+            now_ts.saturating_sub(flow.correlation_window_start_ts) < CORRELATION_WINDOW_SECS;
         if flow.malformed_in_window >= MALFORMED_ANOMALY_THRESHOLD
             && !flow.malformed_anomaly_emitted
             && in_window
             && findings.len() < MAX_FINDINGS
         {
-            let elapsed = now_ts.wrapping_sub(flow.correlation_window_start_ts);
+            let elapsed = now_ts.saturating_sub(flow.correlation_window_start_ts);
             let count = flow.malformed_in_window;
-            let master_ip = Self::resolve_master_ip(flow_key);
+            let (client_ip, server_ip) = if flow_key.lower_port() == 20000 {
+                (flow_key.upper_ip(), flow_key.lower_ip())
+            } else {
+                (flow_key.lower_ip(), flow_key.upper_ip())
+            };
+            let master_ip = match direction {
+                Direction::ClientToServer => client_ip,
+                Direction::ServerToClient => server_ip,
+            };
             let src_ip = flow_key.lower_ip();
             let dest_ip = flow_key.upper_ip();
             findings.push(Finding {
@@ -1447,37 +1618,6 @@ impl Dnp3Analyzer {
             analyzer_name: "DNP3".to_string(),
             packets_analyzed: total_frames,
             detail,
-        }
-    }
-
-    /// Resolve the DNP3 master (command-originator) endpoint from the flow key.
-    ///
-    /// **Port-heuristic-only resolution.** DNP3 outstations listen on port 20000
-    /// by convention; the opposite endpoint is therefore the master:
-    ///
-    /// - `lower_port == 20000` → lower endpoint is the outstation, upper is the master.
-    /// - otherwise             → upper endpoint is the outstation, lower is the master.
-    ///
-    /// **Known limitation:** this heuristic is correct for standard DNP3 flows where
-    /// exactly one endpoint is on port 20000. It cannot disambiguate when NEITHER
-    /// endpoint is on 20000 (non-standard outstation port or proxied capture) — in
-    /// that case the function silently returns `lower_ip`, which may or may not be
-    /// the actual master.
-    ///
-    /// **Direction deferral (DRIFT-DNP3-DIRECTION-001):** this function uses only the
-    /// port-20000 heuristic above; it does NOT use the TCP `Direction` signal that
-    /// sibling analyzers (modbus, http, tls) receive. Direction-aware resolution —
-    /// analogous to `src/analyzer/modbus.rs` ~355–382, where `direction` selects
-    /// `client_ip` vs `server_ip` — is deferred to a post-v0.6.0 "DNP3
-    /// direction-aware source resolution" follow-up chore. Threading `Direction`
-    /// into `Dnp3Analyzer::on_data` would ripple across the STORY-106..109 call
-    /// sites and was explicitly re-deferred after STORY-110 added the
-    /// `DispatchTarget::Dnp3` arm.
-    fn resolve_master_ip(flow_key: &FlowKey) -> IpAddr {
-        if flow_key.lower_port() == 20000 {
-            flow_key.upper_ip()
-        } else {
-            flow_key.lower_ip()
         }
     }
 
