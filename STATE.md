@@ -1,10 +1,10 @@
 ---
 pipeline: FEATURE-MODE
 phase: F7
-phase_status: "F7 HUMAN-APPROVED — HOLD AT RELEASE (D-267)"
+phase_status: "F7 HUMAN-APPROVED — HOLDOUT EVAL PASS (D-268) — HOLD AT RELEASE (D-260)"
 product: wirerust
 mode: feature-mode
-timestamp: 2026-06-27T12:00:00Z
+timestamp: 2026-06-27T20:00:00Z
 
 # Release chain (latest)
 released_version: v0.10.0
@@ -29,7 +29,7 @@ adversary_gate: SATISFIED
 # Story tracking
 stories_delivered: 87
 current_cycle: feature-enip-v0.11.0 (D-228, 2026-06-24)
-current_wave: "Wave 61 CLOSED — HUMAN-APPROVED. F4 COMPLETE. F5 CONVERGED (D-263). F6 PASSED (D-265). F7 HUMAN-APPROVED (D-267) — HOLD AT RELEASE. Holdout eval (real pcaps) is pre-release-go-ahead blocker."
+current_wave: "Wave 61 CLOSED — HUMAN-APPROVED. F4 COMPLETE. F5 CONVERGED (D-263). F6 PASSED (D-265). F7 HUMAN-APPROVED (D-267). HOLDOUT EVAL PASS (D-268) — 22/22 real ENIP/CIP pcaps, 0 panics, 0 false positives. HOLD AT RELEASE (D-260)."
 
 # DTU
 dtu_required: false
@@ -52,7 +52,7 @@ convergence_trajectory: "Detail: cycles/v0.1.0-greenfield-spec/convergence-traje
 
 ## Status
 
-**PIPELINE FEATURE-MODE. Cycle `feature-enip-v0.11.0` OPEN. F7 HUMAN-APPROVED (D-267) — HOLD AT RELEASE. Pre-release-go-ahead blocker: holdout eval via real pcaps.**
+**PIPELINE FEATURE-MODE. Cycle `feature-enip-v0.11.0` OPEN. F7 HUMAN-APPROVED (D-267). HOLDOUT EVAL PASS — 22/22 real ENIP/CIP pcaps (D-268). HOLD AT RELEASE (D-260).**
 
 **HUMAN DIRECTIVE (D-260): HALT — do NOT run the release pipeline / tag / publish without explicit human go-ahead.**
 
@@ -71,16 +71,11 @@ Spec versions: BC-INDEX v1.84 (331 on disk / 330 active; SS-17=26 BCs). ARCH-IND
 - Do NOT re-run F5/F6/F7 — F5 CONVERGED (D-263), F6 PASSED (D-265), F7 CONVERGED (D-266).
 - Do NOT refresh input-hashes for STORY-130..133 — refreshed at c65602a (D-266): 130=63fac3a, 131=ce92886, 132=c33dff8, 133=661f504. STORY-134..138 hashes unchanged.
 
-### EXACT RESUME POINT — v0.11.0 CONVERGED + F7 HUMAN-APPROVED; HELD AT RELEASE
+### EXACT RESUME POINT — v0.11.0 CONVERGED + F7 HUMAN-APPROVED + HOLDOUT EVAL PASS; HELD AT RELEASE
 
-**v0.11.0 CONVERGED. F7 human-approved 2026-06-27 (D-267). develop=`f17d270`. stories_delivered=87. HELD AT RELEASE (D-260).**
+**v0.11.0 CONVERGED. F7 human-approved 2026-06-27 (D-267). HOLDOUT EVAL PASS 2026-06-27 (D-268) — 22/22 real ENIP/CIP pcaps, 0 panics, 0 parse_errors, 0 false positives; HS-110..122 all satisfied/corroborated/verified. develop=`f17d270`. stories_delivered=87. HELD AT RELEASE (D-260).**
 
-Active pre-release-go-ahead work: HOLDOUT EVALUATION via real pcaps (D-267). Steps:
-1. research-agent finds public ENIP/CIP pcaps (HS-110..122) → `.factory/research/enip-holdout-pcap-sources.md` (IN PROGRESS).
-2. Download usable + licensed captures.
-3. Run through `wirerust analyze`.
-4. holdout-evaluator assesses satisfaction (must-pass HS-110..122).
-After holdout eval + F6-MUTANTS-FULL-RUN 0-missed confirmation → present release go-ahead decision to human. Do NOT cut the release without explicit go-ahead.
+Pre-release-go-ahead remaining (optional/non-blocking): (1) confirm F6-MUTANTS-FULL-RUN 0-missed; (2) cycle-close BC prose edits + SS-17 BC input-hash backfill (can be post-release); (3) Dependabot #311/#325 triage. The release pipeline (release/0.11.0 → version bump + CHANGELOG → PR to main → tag v0.11.0) awaits EXPLICIT human go-ahead — do NOT run it.
 
 ### RESUME PROCEDURE (execute in order — BLOCKING)
 
@@ -111,6 +106,7 @@ Story input-hashes: STORY-130 63fac3a, STORY-131 ce92886, STORY-132 c33dff8, STO
 | DEPENDABOT-325 | Dependabot PR #325 unreviewed. | OPEN — human triage |
 | SPEC-DEFECT-IS-NON-ENIP-DEAD-LATCH | is_non_enip carry-overflow latch unreachable (RULING-137-002). PO decision required. Target v0.12.0. | DEFERRED — v0.12.0 |
 | STORY-137-UNSAFE-SPLIT-BORROW | [LOW] unsafe split-borrow in process_pdu. Sound; consider safe refactor. | OPEN — v0.12.0 |
+| ENIP-UNCONNECTED-SEND-UNWRAP-001 | [v0.12.0, MEDIUM detection-efficacy] Metasploit multi_cip_command carries Stop/Reset via Unconnected_Send (0x52) wrappers; v0.11.0 offset-0/0x00B2 model does not unwrap → no detection of real-world Metasploit attack. v0.12.0 should unwrap 0x52 / Multiple Service Packet (0x0A). Empirically validated vs enip_metasploit.pcapng (D-268). Groups with existing SS-17 0x00B1 deferral. NOT a bug in v0.11.0 (well-formed 0x00B2 resets fire T0816 correctly). DF-VALIDATION-001-gated before GitHub issue. | OPEN — v0.12.0 |
 | SEC-008 / PERF-REASM-NFR-001 | Residual latent items — DF-VALIDATION-001-gated. | DEFERRED |
 | ENGINE-IMPROVEMENT-BACKLOG | ~18 engine proposals; lessons.md Lessons 1 & 2. | BACKLOG — human review |
 
@@ -144,7 +140,7 @@ All GitHub-issue creation DF-VALIDATION-001-gated.
 | Feature EtherNet/IP + CIP — F4 | **COMPLETE — Wave-61 HUMAN-APPROVED + CLOSED (D-262).** | All STORY-130..138 MERGED + fix-PRs #328/330/331. stories_delivered=87. |
 | Feature EtherNet/IP + CIP — F5 | **CONVERGED (D-263)** | 3-pass, 0 HIGH/0 CRITICAL, zero novelty. 26/26 BC sweep. RTM complete. |
 | Feature EtherNet/IP + CIP — F6 | **PASSED (D-265)** | Kani 11/11 PASS. cargo-fuzz 8.3M/0 crashes. audit/deny/clippy/fmt clean. Mutants 0-missed-so-far (F6-MUTANTS-FULL-RUN confirm at human gate). |
-| Feature EtherNet/IP + CIP — F7 | **PASSED — HUMAN-APPROVED 2026-06-27 (D-267); HOLD AT RELEASE** | 5-dimensional CONVERGED; regression GREEN (80 suites). Input-hash drift resolved (c65602a). Holdout eval (real pcaps) + F6-MUTANTS-FULL-RUN confirm = pre-release-go-ahead gate. |
+| Feature EtherNet/IP + CIP — F7 | **PASSED — HUMAN-APPROVED (D-267); HOLDOUT EVAL PASS (D-268); HOLD AT RELEASE** | 5-dimensional CONVERGED; regression GREEN (80 suites). Input-hash drift resolved (c65602a). Holdout eval PASS: 22/22 real pcaps, 0 panics, HS-110..122 all satisfied/verified. |
 
 ## Decisions Log
 
@@ -160,6 +156,7 @@ D-228..D-265: `cycles/feature-enip-v0.11.0/decisions-archive.md`
 |----|----------|------|
 | D-266 | F7 delta-convergence CONVERGED @f17d270. 5-dimensional assessment all CONVERGED; regression GREEN (0 failures, 80 suites). Input-hash drift resolved: STORY-130..133 STALE→MATCH (c65602a; hashes 63fac3a/ce92886/c33dff8/661f504). Holdouts HS-110..122 NON-BLOCKING (architect accept-for-v0.11.0). F6-MUTANTS-FULL-RUN 0-missed-so-far (confirm at human gate). phase_status: F7 CONVERGED — PENDING HUMAN GATE. HALT (D-260): do NOT release without explicit go-ahead. | 2026-06-27 |
 | D-267 | F7 human-approved 2026-06-27 ("Approve F7 — hold at release"). v0.11.0 EtherNet/IP feature declared CONVERGED + release-ready. develop stays at f17d270. HALT before release cut (D-260) — release pipeline NOT run without explicit future go-ahead. Holdout decision: RUN holdout pcaps via FOUND real-world captures (NOT synthetic fixtures). research-agent locating public ENIP/CIP pcaps mapped to HS-110..122 → output at .factory/research/enip-holdout-pcap-sources.md. Holdout eval is now a PRE-RELEASE-GO-AHEAD validation activity. | 2026-06-27 |
+| D-268 | Holdout eval via real pcaps COMPLETE — GATE PASS. 22 real ENIP/CIP pcaps (MIT scy-phy/bro-cip-enip SWaT/ControlLogix + CC-BY ITI) run through wirerust @f17d270: 22/22 exit-0, 0 parse_errors, 0 panics, 0 false positives on known-good traffic. Real detections fired: T0846 (ListIdentity), T0888 ×202 (identity-enum error responses), ForwardOpen anomalies (HS-116). HS-110..122: 5 SATISFIED by real captures (HS-110/114/115/116/120), 2 corroborated-negatives (HS-119/111-112), 4 synthetic-by-design (HS-113/117/118/121), HS-122 corpus SATISFIED. enip_metasploit.pcapng investigation: Stop/Reset NOT on spec-compliant 0x00B2 path (raw CIP or Unconnected_Send 0x52 wrapping); v0.11.0 detector PROVEN CORRECT. v0.12.0 finding logged: ENIP-UNCONNECTED-SEND-UNWRAP-001 (Unconnected_Send/Multiple-Service-Packet unwrap for Metasploit-style attacks). Report: .factory/holdout-scenarios/eval-runs/holdout-evaluation-report.md. | 2026-06-27 |
 
 ## Governance Policy
 
