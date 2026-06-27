@@ -125,8 +125,8 @@ modified:
 | VP-030 | pcapng multi-IDB linktype agreement totality (RESTATED rev 7 / H-3): WHITELISTED DataLink domain only; all-equal → Ok, first-differing whitelisted DataLink → Err(E-INP-011); non-whitelisted → E-INP-001 (out of scope); comparison unit DataLink not raw u16 | reader.rs | proptest | P1 | verified |
 | VP-031 | pcapng SPB captured-len arithmetic correctness (spb_data_available formula): captured_len == min(original_len, body.len() as u32 - 4) = min(original_len, spb_data_available); slice length == captured_len; no OOB for all (u32, &[u8] with len>=4) inputs; formula CORRECTED from rev 8 (body.len() → body.len()-4 per Decision 22 / F-H2 / F-H3); snaplen DROPPED (rev 8 / Decision 9) | reader.rs (pcapng_pure_core fns) [b] | proptest | P1 | verified |
 | VP-032 | EtherNet/IP + CIP frame parse safety and command/service classification: (Sub-A) parse_enip_header no-panic, None<24b, Some with correct LE fields; (Sub-B) classify_enip_command total over all 65,536 u16 inputs, Unknown reachable; (Sub-C) is_valid_enip_frame biconditional iff command in known-set; (Sub-D) classify_cip_service total over all 256 u8 inputs, response-bit mask (0x80→Response) proven; 4 sub-properties (Sub-A..Sub-D); 5 Kani harnesses (Sub-D = totality + request-partition) | analyzer/enip.rs | Kani | P1 | draft |
-| VP-033 | EtherNet/IP carry-buffer direction isolation (EC-X1): 2 proptest harnesses confirm client→server and server→client carry buffers are disjoint; regression fixture catches pre-EC-X1 single-buffer path; traces BC-2.17.016 v2.0 Inv-7 | analyzer/enip.rs | proptest | P1 | draft |
-| VP-034 | EtherNet/IP window monotonic advance and no-spurious-reset (EC-X2): Sub-A error_window monotonic; Sub-B no-spurious-reset on duplicate ts; Sub-C write_window + EC-X4 operator-pin; Sub-D malformed_window rollover + ts=0 seed; traces BC-2.17.008 v1.3 / BC-2.17.012 v1.2 / BC-2.17.018 v1.1 | analyzer/enip.rs | proptest | P1 | draft |
+| VP-033 | EtherNet/IP carry-buffer direction isolation (EC-X1): Harness-A direction-isolation pdu_count — interleaved c2s/s2c deliveries produce pdu_count==2 with carry buffers never mixed; Harness-B independent-run equivalence — interleaved pdu_count equals sum of independent same-direction runs; traces BC-2.17.016 v2.0 Inv-7 | analyzer/enip.rs | proptest | P1 | draft |
+| VP-034 | EtherNet/IP window backwards-timestamp no-spurious-reset (EC-X2): Sub-A T0836 write-burst backwards-ts no-reset (BC-2.17.012 v1.2 EC-009); Sub-B T0888 error-rate backwards-ts no-reset (BC-2.17.008 v1.3 EC-009); Sub-C T0814 malformed backwards-ts no-reset + EC-X4 operator pin (elapsed==300 NOT > 300; BC-2.17.018 v1.1 EC-008); Sub-D genuine u32 rollover deterministic unit test; traces BC-2.17.008 v1.3 / BC-2.17.012 v1.2 / BC-2.17.018 v1.1 | analyzer/enip.rs | proptest | P1 | draft |
 
 
 ## Per-Module Coverage Totals
@@ -268,14 +268,18 @@ modified:
 
 - VP-033 and VP-034 (analyzer/enip.rs / proptest): draft; lock gate at F6. These two VPs
   were authored as part of RULING-EDGECASE-001 (EC-X1/EC-X2) spec adjudication. VP-033
-  guards BC-2.17.016 v2.0 Inv-7 (carry-buffer direction isolation): a proptest regression
-  harness confirms the per-direction carry-buffer design cannot leak bytes across directions.
-  The regression fixture also documents that the pre-EC-X1 single-buffer implementation
-  would have failed this property. VP-034 guards the trio of window monotonicity invariants
-  (BC-2.17.008 v1.3 / BC-2.17.012 v1.2 / BC-2.17.018 v1.1) introduced by EC-X2: Sub-A
-  (error_window monotonic), Sub-B (no-spurious-reset on duplicate ts), Sub-C (write_window +
-  EC-X4 operator-configurable pin), Sub-D (malformed_window rollover + ts=0 seed). These
-  are proptest (not Kani) because the window state machines operate over the stateful
+  guards BC-2.17.016 v2.0 Inv-7 (carry-buffer direction isolation): Harness-A
+  (proptest_vp033_direction_isolation_pdu_count) confirms interleaved c2s/s2c deliveries
+  produce pdu_count==2 with carry_c2s and carry_s2c never mixed; Harness-B
+  (proptest_vp033_independent_run_equivalence) confirms the interleaved pdu_count equals the
+  sum of independent same-direction runs. VP-034 guards the backwards-timestamp no-spurious-
+  reset property across all three windowed detections (BC-2.17.008 v1.3 / BC-2.17.012 v1.2 /
+  BC-2.17.018 v1.1) introduced by EC-X2: Sub-A (T0836 write-burst window backwards-ts no-reset;
+  BC-2.17.012 v1.2 EC-009), Sub-B (T0888 error-rate window backwards-ts no-reset; BC-2.17.008
+  v1.3 EC-009), Sub-C (T0814 malformed-frame window backwards-ts no-reset + EC-X4 operator pin:
+  elapsed==300 NOT > 300; BC-2.17.018 v1.1 EC-008), Sub-D (genuine u32 rollover deterministic
+  unit test — window_start near u32::MAX, post-rollover now_ts near 0; saturating_sub returns 0).
+  These are proptest (not Kani) because the window state machines operate over the stateful
   EnipFlowState — suitable for property-based testing but not for bounded Kani model-checking
   at the whole-flow-state level. The analyzer/enip.rs row now carries 1 Kani + 2 proptest = 3
   total VPs. Grand Totals: Kani(15) + proptest(12) + fuzz(2) + integration/unit(5) = 34.

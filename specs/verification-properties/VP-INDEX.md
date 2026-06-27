@@ -48,10 +48,13 @@ integration_unit_count: 5
 > Sub-A..Sub-D; 5 Kani harnesses — Sub-D = totality + request-partition): Sub-A header
 > parse safety, Sub-B command totality, Sub-C validity gate biconditional, Sub-D CIP
 > service totality (primary) + Sub-D request-partition. VP-033 uses proptest only (2
-> harnesses; EC-X1 carry-buffer direction isolation regression guard; traces BC-2.17.016
-> v2.0 Inv-7). VP-034 uses proptest only (4 sub-harnesses Sub-A/B/C/D; traces BC-2.17.008
-> v1.3 / BC-2.17.012 v1.2 / BC-2.17.018 v1.1; Sub-C validates EC-X4 operator pin;
-> Sub-D rollover path). Each VP is counted exactly once.
+> harnesses: Harness-A direction-isolation pdu_count; Harness-B independent-run equivalence;
+> EC-X1 carry-buffer direction isolation regression guard; traces BC-2.17.016 v2.0 Inv-7).
+> VP-034 uses proptest only (4 sub-harnesses Sub-A/B/C/D; Sub-A T0836 write-burst backwards-ts
+> no-reset; Sub-B T0888 error-rate backwards-ts no-reset; Sub-C T0814 malformed backwards-ts
+> no-reset + EC-X4 operator pin (elapsed==300 NOT > 300); Sub-D genuine u32 rollover
+> deterministic unit test; traces BC-2.17.008 v1.3 / BC-2.17.012 v1.2 / BC-2.17.018 v1.1).
+> Each VP is counted exactly once.
 > Totals: 15+12+2+5 = 34.
 
 ## Complete VP Catalog
@@ -90,8 +93,8 @@ integration_unit_count: 5
 | VP-030 | pcapng Multi-IDB Linktype Agreement Totality (WHITELISTED domain) | reader.rs | proptest | P1 | verified | BC-2.01.018 |
 | VP-031 | pcapng SPB Captured-Len Computation Correctness (body.len()-4 formula) | reader.rs (pcapng_pure_core fns) [b] | proptest | P1 | verified | BC-2.01.013 |
 | VP-032 | EtherNet/IP + CIP Frame Parse Safety and Command/Service Classification | analyzer/enip.rs | Kani | P1 | draft | BC-2.17.001, BC-2.17.002, BC-2.17.003, BC-2.17.004, BC-2.17.007 |
-| VP-033 | EtherNet/IP Carry-Buffer Direction Isolation | analyzer/enip.rs | proptest | P1 | draft | BC-2.17.016 |
-| VP-034 | EtherNet/IP Window Monotonic / No-Spurious-Reset | analyzer/enip.rs | proptest | P1 | draft | BC-2.17.008, BC-2.17.012, BC-2.17.018 |
+| VP-033 | EtherNet/IP Carry-Buffer Direction Isolation | analyzer/enip.rs | proptest | P1 | draft | BC-2.17.016 v2.0 |
+| VP-034 | EtherNet/IP Window Backwards-Timestamp No-Spurious-Reset | analyzer/enip.rs | proptest | P1 | draft | BC-2.17.008 v1.3, BC-2.17.012 v1.2, BC-2.17.018 v1.1 |
 
 ## P0 Properties (required before Phase 5 gate)
 
@@ -124,8 +127,8 @@ integration_unit_count: 5
 - VP-030: pcapng multi-IDB linktype agreement totality — RESTATED (ADR-009 rev 7 / H-3): domain = WHITELISTED DataLink values only; non-whitelisted → E-INP-001 (out of VP-030 scope); comparison unit = DataLink not raw u16 [NEW — SS-01 pcapng, ADR-009 rev 4; restated rev 7]. **LOCKED @ develop 1ca30a3 (PRs #293 + #294):** proptest `proptest_VP_030_all_equal_whitelisted_idbs_ok` + `proptest_VP_030_first_differing_whitelisted_idb_errs_e_inp_011` + `proptest_VP_030_comparison_unit_is_datalink`. verification_lock: true.
 - VP-031: pcapng SPB captured-len computation correctness — proptest arithmetic invariant for min(original_len, body.len() as u32 - 4) = min(original_len, spb_data_available); formula CORRECTED from rev 8 (body.len() → body.len()-4 per Decision 22; rev 8 formula failed to subtract the 4-byte original_len header); snaplen DROPPED (Decision 9 rev 8); fills SPB framing VP gap per DF-CANONICAL-FRAME-HOLDOUT-001 [NEW — SS-01 pcapng, ADR-009 rev 6; amended rev 8 / Decision 9; formula corrected rev 9 / Decision 22 / F-H2 / F-H3]. **LOCKED @ develop 1ca30a3 (PRs #293 + #294):** existing proptest confirmed correct against the body.len()-4 formula. verification_lock: true.
 - VP-032: EtherNet/IP + CIP frame parse safety and command/service classification — Kani, 4 sub-properties (Sub-A..Sub-D); 5 Kani harnesses (Sub-D = totality + request-partition): (Sub-A) `parse_enip_header` never panics, None for <24 bytes, Some with correct little-endian field layout for all bounded inputs; (Sub-B) `classify_enip_command` total over all 65,536 u16 values, Unknown arm reachable and non-vacuous; (Sub-C) `is_valid_enip_frame` biconditional iff h.command in known-command set {0x0004, 0x0063, 0x0064, 0x0065, 0x0066, 0x006F, 0x0070, 0x0072, 0x0075} for all u16 values; (Sub-D) `classify_cip_service` total over all 256 u8 values, response-bit mask (0x80 set → Response) proven correct, Unknown arm reachable [NEW — SS-17, ADR-010 Decision 2+7, feature-enip-v0.11.0 issue #316; draft; lock gate at F6]
-- VP-033: EtherNet/IP carry-buffer direction isolation (proptest; 2 harnesses; EC-X1 regression guard; draft): (Harness-A) proptest over arbitrary byte sequences confirms bytes written to client→server carry buffer are NEVER readable from the server→client carry buffer and vice versa; (Harness-B) regression fixture confirms the pre-EC-X1 single-buffer path would have failed this property; traces BC-2.17.016 v2.0 Inv-7 [NEW — RULING-EDGECASE-001 EC-X1; lock gate at F6]
-- VP-034: EtherNet/IP window monotonic advance and no-spurious-reset (proptest; 4 sub-harnesses Sub-A/B/C/D; draft): (Sub-A) error_window_start_ts never advances backward once active — monotonic over arbitrary error sequences (BC-2.17.008 v1.3 Inv-5); (Sub-B) duplicate error at same timestamp does not reset window_start_ts — EC-X2 no-spurious-reset (BC-2.17.008 v1.3 EC-009); (Sub-C) write_window_start_ts monotonic invariant under arbitrary write-service sequences with operator-configurable threshold pin — validates EC-X4 (BC-2.17.012 v1.2 EC-009); (Sub-D) malformed_window_start_ts monotonic over rollover sequences; first malformed frame at ts=0 correctly seeds window (BC-2.17.018 v1.1 Inv-3 + EC-005) [NEW — RULING-EDGECASE-001 EC-X2; lock gate at F6]
+- VP-033: EtherNet/IP carry-buffer direction isolation (proptest; 2 harnesses; EC-X1 regression guard; draft): (Harness-A) `proptest_vp033_direction_isolation_pdu_count` — proptest over (split_offset, s2c_cmd) confirms interleaved c2s/s2c deliveries produce pdu_count==2 with carry_c2s and carry_s2c never mixed; (Harness-B) `proptest_vp033_independent_run_equivalence` — interleaved c2s/s2c run produces the same pdu_count and parse_errors as the sum of independent same-direction runs; traces BC-2.17.016 v2.0 Inv-7 [NEW — RULING-EDGECASE-001 EC-X1; lock gate at F6]
+- VP-034: EtherNet/IP window backwards-ts no-spurious-reset (proptest; 4 sub-harnesses Sub-A/B/C/D; draft): (Sub-A) T0836 write-burst window — backwards/out-of-order timestamp (now_ts <= write_window_start_ts) does NOT reset the 1-second window; saturating_sub yields 0 (not > 1); write_count_in_window preserved; T0836 fires when threshold crossed (BC-2.17.012 v1.2 EC-009 / Postcondition 4); (Sub-B) T0888 error-rate window — backwards/out-of-order timestamp (now_ts <= error_window_start_ts) does NOT reset the 10-second window; saturating_sub yields 0 (not > 10); error burst preserved (BC-2.17.008 v1.3 EC-009 / Postcondition 4); (Sub-C) T0814 malformed-frame window — backwards/out-of-order timestamp (now_ts <= malformed_window_start_ts) does NOT reset the 300-second window AND operator pin: elapsed==300 is NOT > 300 → no reset; elapsed==301 IS > 300 → reset (BC-2.17.018 v1.1 EC-008 + EC-X4 operator pin / Postcondition 5); (Sub-D) genuine u32 rollover — deterministic unit test: window_start near u32::MAX, post-rollover now_ts near 0; saturating_sub returns 0 (not ~10 as wrapping_sub would); no spurious reset on genuine rollover (all three windows); traces BC-2.17.008 v1.3 / BC-2.17.012 v1.2 / BC-2.17.018 v1.1 [NEW — RULING-EDGECASE-001 EC-X2; lock gate at F6]
 
 ## Test-Sufficient Properties (VP-016..VP-021)
 
