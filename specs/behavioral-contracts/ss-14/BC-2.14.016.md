@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "2.2"
+version: "2.3"
 status: draft
 producer: product-owner
 timestamp: 2026-06-09T00:00:00Z
@@ -23,6 +23,9 @@ modified:
   - version: "2.2"
     date: 2026-06-10
     change: "v19 remap: T0855 → T1692.001 per MITRE ATT&CK for ICS v19.0 revocation. All T0855 technique ID references in Technique Union-Tagging Rule Table, Postconditions, Invariants, Edge Cases, and Canonical Test Vectors updated to T1692.001. Tactic unchanged: IcsImpairProcessControl. Issue #222; audit: mitre-ics-v19-catalog-audit.md."
+  - version: "2.3"
+    date: 2026-06-28
+    change: "RULING-MODBUS-SIBLING-001 (2026-06-28, §4.2): DRIFT-MODBUS-CLOCK-001 fix — T0831 window-expiry arithmetic changed from wrapping_sub to saturating_sub (modbus.rs pre-fix line 534). Invariant 2 pseudocode updated: `elapsed_secs = now_ts.saturating_sub(t0831_window_start_ts)`. Invariant 4 rationale note updated from wrapping_sub to saturating_sub with backwards-clock evasion resistance justification. EC-010 expected behavior updated: saturating_sub(50,100)=0; window NOT reset; accumulation preserved; adversarially injected stale-timestamp packets cannot abort coordinated-write detection. New EC-011 added: concrete backwards-ts no-reset vector (ts=100 window seeded, ts=50 backwards → window NOT reset → count increments to 2 → T0831 co-tags)."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -125,9 +128,11 @@ in implementation comments, tests, or downstream documents.
    // STEP 1: Window-update runs FIRST on every qualifying write, unconditionally.
    // Qualifying FCs: {0x06, 0x10, 0x16, 0x17}
    // NOTE: now_ts is timestamp_secs (seconds, per BC-2.09.007 / pipeline delivery).
-   //   wrapping_sub is used for u32 second timestamps; at ~136 years of capture time
-   //   these will never overflow in practice, but the policy is kept for correctness.
-   elapsed_secs = now_ts.wrapping_sub(t0831_window_start_ts)
+   //   saturating_sub is used for u32 second timestamps (RULING-MODBUS-SIBLING-001 §2.2).
+   //   Under saturating_sub, backwards-clock packets (out-of-order pcap or adversarial
+   //   injection) produce elapsed=0, preserving burst accumulation rather than triggering
+   //   a spurious window reset. Genuine u32 rollover also produces elapsed=0 (no reset).
+   elapsed_secs = now_ts.saturating_sub(t0831_window_start_ts)
    if elapsed_secs > T0831_WINDOW_SECS:
        // Window expired: reset (this write starts a new window)
        t0831_window_start_ts = now_ts
@@ -154,7 +159,7 @@ in implementation comments, tests, or downstream documents.
    writes within the same window do not re-include the T0831 tag.
 4. **`T0831_WINDOW_SECS = 5`** constant is fixed in v1 (not CLI-configurable).
    Window expiry check: `elapsed_secs > T0831_WINDOW_SECS` where
-   `elapsed_secs = now_ts.wrapping_sub(t0831_window_start_ts)` and `now_ts` is in SECONDS
+   `elapsed_secs = now_ts.saturating_sub(t0831_window_start_ts)` and `now_ts` is in SECONDS
    (the pipeline delivers `timestamp_secs` per BC-2.09.007 — NOT microseconds).
    Sub-second rate precision is a future enhancement; it would require threading
    `timestamp_usecs` through `on_data`, which is not in v1 scope.
@@ -184,7 +189,8 @@ in implementation comments, tests, or downstream documents.
 | EC-007 | `all_findings.len() == MAX_FINDINGS - 1` when T0831 would co-tag | The one finding with `["T1692.001","T0836","T0831"]` fills the last slot. `t0831_burst_emitted` still set to true. |
 | EC-008 | Two flows with overlapping timestamps; second flow gets two writes within 5 seconds | T0831 co-tags for the second flow's 2nd write; first flow is unaffected (per-flow state isolation). |
 | EC-009 | First holding-register write on a fresh flow (t0831_window_write_count is 0) | Window-update runs: count becomes 1, window_start_ts = now_ts, burst_emitted = false. Tag determination: count = 1 < 2 → NO T0831 co-tag. ONE finding with `["T1692.001","T0836"]`. |
-| EC-010 | now_ts < t0831_window_start_ts (timestamp wrap-around or out-of-order packet; timestamps in seconds) | `now_ts.wrapping_sub(t0831_window_start_ts)` yields a very large u32 value (≫ 5 seconds). Window-expiry check fires (resets window). This write starts a new window (count=1). No T0831 co-tag on this write. Evasion-resistant: attacker forcing a window reset at most delays T0831 by one write. |
+| EC-010 | now_ts < t0831_window_start_ts (timestamp wrap-around or out-of-order packet; timestamps in seconds) | `now_ts.saturating_sub(t0831_window_start_ts)` = 0. Elapsed=0, NOT > T0831_WINDOW_SECS(5). Window NOT reset. T0831 accumulation preserved. Adversarially injected stale-timestamp packets cannot abort coordinated-write detection. (RULING-MODBUS-SIBLING-001 §2.2) |
+| EC-011 | First holding-register write at ts=100 (window seeded, `t0831_window_start_ts=100`, `t0831_window_write_count=1`); second holding-register write at ts=50 (backwards) | `saturating_sub(50, 100) = 0`; 0 NOT > T0831_WINDOW_SECS(5) → window NOT reset; `t0831_window_write_count` incremented to 2; T0831 co-tag fires on the second write (`count=2 >= 2`): ONE finding `["T1692.001","T0836","T0831"]`. (RULING-MODBUS-SIBLING-001 §4.2.4) |
 
 ## Canonical Test Vectors
 

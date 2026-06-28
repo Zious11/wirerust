@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "2.6"
+version: "2.7"
 status: draft
 producer: product-owner
 timestamp: 2026-06-09T00:00:00Z
@@ -35,6 +35,9 @@ modified:
   - version: "2.6"
     date: 2026-06-17
     change: "Issue #220 / D-043 elapsed_ms→seconds lineage: BURST detector Postcondition 1 summary string changed from '{count} writes in {elapsed_secs}s window' to '{count} writes within {window_secs}s window', where {window_secs} is the constant WRITE_BURST_WINDOW_SECS (= 1). Motivation: when ≥(threshold+1) writes share the same integer-second pcap timestamp, elapsed_secs = now_ts.wrapping_sub(window_start_ts) = 0, producing the misleading display '21 writes in 0s window'. The configured window WIDTH is always 1s regardless of the elapsed span from first-write to triggering-write; reporting the constant is correct and non-misleading. Detection math unchanged — this is a display-string fix only. EC-011 added to document the same-second / elapsed==0 case explicitly. SUSTAINED detector postcondition ('{count} writes over {elapsed_s}s window') is unchanged — it legitimately reports elapsed span and is not affected by this issue."
+  - version: "2.7"
+    date: 2026-06-28
+    change: "RULING-MODBUS-SIBLING-001 (2026-06-28, §4.3): DRIFT-MODBUS-CLOCK-001 fix — burst window (modbus.rs pre-fix line 595) and sustained window (modbus.rs pre-fix line 670) arithmetic changed from wrapping_sub to saturating_sub. IMPORTANT: the sustained-window `>=` operator at pre-fix line 670 is preserved unchanged — it is the intentional minimum-duration gate (`elapsed_secs >= WRITE_SUSTAINED_WINDOW_SECS`), not an expiry-reset operator. Only the wrapping→saturating arithmetic changes. Invariant 1 burst pseudocode updated. Invariant 2 sustained pseudocode updated. Invariant 2 detection math block updated. Invariant rationale note updated from wrapping_sub to saturating_sub. Sustained PC-4 updated. EC-010 expected behavior updated: saturating_sub produces 0; both detectors preserve burst accumulation rather than resetting. New EC-012 added: concrete burst backwards-ts no-reset vector (20 writes at ts=100, 1 at ts=50 → window NOT reset → count=21 → burst fires). Line numbers are PRE-fix; STORY-141 implementer re-anchors."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -103,9 +106,11 @@ Targets v0.3.0.
 ### Sustained detector preconditions
 
 1–3 as above.
-4. `elapsed_secs = now_ts.wrapping_sub(sustained_window_start_ts) >= WRITE_SUSTAINED_WINDOW_SECS` (2)
+4. `elapsed_secs = now_ts.saturating_sub(sustained_window_start_ts) >= WRITE_SUSTAINED_WINDOW_SECS` (2)
    AND `sustained_window_write_count > write_sustained_threshold * elapsed_secs`
    where `now_ts` is in SECONDS per BC-2.09.007 (see Invariant 2 for full rationale).
+   The `>=` operator is the intentional minimum-duration gate — it is NOT an expiry-reset
+   operator and must NOT be changed to `>`. (RULING-MODBUS-SIBLING-001 §2.3)
 5. `flow.sustained_burst_emitted == false`.
 6. `self.all_findings.len() < MAX_FINDINGS`.
 
@@ -167,8 +172,9 @@ Targets v0.3.0.
 On every write-class FC in ClientToServer direction:
 
 // now_ts is in SECONDS (timestamp_secs per BC-2.09.007; the pipeline delivers seconds).
-// wrapping_sub used for u32 seconds; wrap at ~136 years — effectively never, policy kept.
-elapsed_secs = now_ts.wrapping_sub(window_start_ts)
+// saturating_sub used for u32 seconds (RULING-MODBUS-SIBLING-001 §2.2): backwards-clock
+// packets yield elapsed=0, preserving burst accumulation; genuine u32 rollover also yields 0.
+elapsed_secs = now_ts.saturating_sub(window_start_ts)
 
 if elapsed_secs > WRITE_BURST_WINDOW_SECS:
     // Window expired: reset
@@ -193,7 +199,11 @@ if window_write_count > write_burst_threshold AND NOT window_burst_emitted:
 On every write-class FC in ClientToServer direction (AFTER burst update):
 
 // now_ts is in SECONDS (timestamp_secs per BC-2.09.007; the pipeline delivers seconds).
-// wrapping_sub used for u32 seconds; wrap at ~136 years — effectively never, policy kept.
+// saturating_sub used for u32 seconds (RULING-MODBUS-SIBLING-001 §2.2): backwards-clock
+// packets yield elapsed=0; minimum-duration gate (>= WRITE_SUSTAINED_WINDOW_SECS) is NOT met,
+// so no spurious reset occurs and sustained accumulation is preserved. Genuine u32 rollover
+// also yields elapsed=0 (acceptable trade-off). The `>=` operator is the intentional
+// minimum-duration gate and is NOT changed (RULING-MODBUS-SIBLING-001 §2.3).
 
 if sustained_window_start_ts == 0:
     // Initial state: start the window
@@ -201,7 +211,7 @@ if sustained_window_start_ts == 0:
     sustained_window_write_count = 1
 else:
     sustained_window_write_count += 1
-    elapsed_secs = now_ts.wrapping_sub(sustained_window_start_ts)
+    elapsed_secs = now_ts.saturating_sub(sustained_window_start_ts)
 
     if elapsed_secs >= WRITE_SUSTAINED_WINDOW_SECS:
         // Detection trigger — seconds-scale integer math:
@@ -222,7 +232,7 @@ else:
 
 **Detection math (seconds-scale, integer-only):**
 ```
-elapsed_secs := now_ts.wrapping_sub(sustained_window_start_ts)   // u32 wrapping sub (seconds)
+elapsed_secs := now_ts.saturating_sub(sustained_window_start_ts)   // u32 saturating sub (seconds; RULING-MODBUS-SIBLING-001 §2.2)
 
 trigger := elapsed_secs >= WRITE_SUSTAINED_WINDOW_SECS
          AND sustained_window_write_count > write_sustained_threshold * elapsed_secs
@@ -231,8 +241,12 @@ trigger := elapsed_secs >= WRITE_SUSTAINED_WINDOW_SECS
 Note: The v2.1 microsecond-scale formula (`count * 1_000_000 > threshold * elapsed_us`) is
 SUPERSEDED by this seconds form (F5 correction). The pipeline's `on_data` delivers
 `timestamp_secs` (seconds, per BC-2.09.007); the microsecond assumption was wrong.
-`wrapping_sub` handles u32 second-timestamp rollover (rolls over at ~136 years of capture time;
-effectively never in practice, but the policy is retained for correctness).
+`saturating_sub` handles both backwards-clock (out-of-order or adversarial) packets and genuine
+u32 rollover by returning 0 — preserving burst accumulation in both cases. A backwards-ts
+packet yields elapsed=0, which does NOT meet the `>= WRITE_SUSTAINED_WINDOW_SECS(2)` minimum-
+duration gate, so no spurious reset occurs and the sustained accumulation is preserved.
+(RULING-MODBUS-SIBLING-001 §2.2.) The `>=` operator is intentional (minimum-duration gate)
+and MUST be preserved — it is NOT changed to `>`.
 At defaults: fires when count > 10 writes/s average over the elapsed window.
 At exactly 2s: fires if count > 10*2 = 20 writes (i.e., ≥ 21 writes in 2 seconds).
 At 30s: fires if count > 10*30 = 300 writes.
@@ -302,8 +316,9 @@ and `write_sustained_threshold >= 1` holds at the analyzer struct level.
 | EC-007 | Both burst and sustained fire on the same PDU | Per-PDU finding + burst Finding + sustained Finding (3 findings total). Each fires at most once per their respective window overlap. |
 | EC-008 | `all_findings.len() == MAX_FINDINGS - 1` when burst fires | Per-PDU finding fills last slot (pushed first). Burst finding NOT pushed. `window_burst_emitted` still set to true. |
 | EC-009 | Read FC (0x03) in high volume | Read FCs do NOT increment `window_write_count` or `sustained_window_write_count`. No T0806. Rate gates are write-class-only. |
-| EC-010 | now_ts < window_start_ts (u32 second-timestamp out-of-order or wrap) | `now_ts.wrapping_sub(window_start_ts)` gives a large u32 value (≫ any window threshold). Both burst and sustained detectors treat this as window-expired: reset. Rollover at ~136 years — effectively never in practice. Correct and evasion-resistant. |
-| EC-011 | ≥(threshold+1) write ADUs share the same integer-second pcap timestamp (e.g., 21 writes all at ts=1000s in a single pcap flush) | `elapsed_secs = now_ts.wrapping_sub(window_start_ts) = 0`. Burst detection FIRES correctly (count > threshold). Summary string reports `WRITE_BURST_WINDOW_SECS` (= 1) as `{window_secs}`, producing "21 writes within 1s window …" — NOT "21 writes in 0s window". Reporting the configured window WIDTH rather than the elapsed span prevents the misleading zero display. Detection math is unchanged; only the display string changed in v2.6. Root cause of same-timestamp ADUs: sub-second pcap-timestamp precision is a deferred enhancement (same-flush ADUs carry one shared second-granularity timestamp). |
+| EC-010 | now_ts < window_start_ts (u32 second-timestamp out-of-order or wrap) | `now_ts.saturating_sub(window_start_ts) = 0`. Burst: 0 NOT > WRITE_BURST_WINDOW_SECS(1) → window NOT reset; `window_write_count` incremented. Sustained: 0 NOT >= WRITE_SUSTAINED_WINDOW_SECS(2) → minimum-duration gate not met on this backwards-ts call (correct; no detection, no reset). Burst and sustained accumulation preserved. Adversarially injected stale-timestamp write FCs cannot abort detection. (RULING-MODBUS-SIBLING-001 §2.2) |
+| EC-011 | ≥(threshold+1) write ADUs share the same integer-second pcap timestamp (e.g., 21 writes all at ts=1000s in a single pcap flush) | `elapsed_secs = now_ts.saturating_sub(window_start_ts) = 0`. Burst detection FIRES correctly (count > threshold). Summary string reports `WRITE_BURST_WINDOW_SECS` (= 1) as `{window_secs}`, producing "21 writes within 1s window …" — NOT "21 writes in 0s window". Reporting the configured window WIDTH rather than the elapsed span prevents the misleading zero display. Detection math is unchanged; only the display string changed in v2.6. Root cause of same-timestamp ADUs: sub-second pcap-timestamp precision is a deferred enhancement (same-flush ADUs carry one shared second-granularity timestamp). |
+| EC-012 | 20 write FCs delivered at ts=100 (`window_write_count=20`, `window_start_ts=100`, `write_burst_threshold=20`); then 1 write FC at ts=50 (backwards); then 1 write FC at ts=101 (forward) | ts=50 call: `saturating_sub(50, 100)=0`; NOT > WRITE_BURST_WINDOW_SECS(1) → window NOT reset; `window_write_count=21`. Burst fires on the ts=50 call (21 > 20). The backwards-ts write does NOT suppress burst detection. (RULING-MODBUS-SIBLING-001 §4.3.5; derived from `scratch_EC_X2_explicit_window_state_via_process_pdu`) |
 
 ## Canonical Test Vectors
 

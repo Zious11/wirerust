@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.4"
+version: "1.5"
 status: draft
 producer: product-owner
 timestamp: 2026-06-09T00:00:00Z
@@ -26,6 +26,9 @@ modified:
   - version: "1.4"
     date: 2026-06-10
     change: "v19 remap: T0855 → T1692.001 per MITRE ATT&CK for ICS v19.0 revocation. T0855 reference in Source Evidence path updated to T1692.001. Tactic unchanged: IcsImpairProcessControl. Issue #222; audit: mitre-ics-v19-catalog-audit.md."
+  - version: "1.5"
+    date: 2026-06-28
+    change: "RULING-MODBUS-SIBLING-001 (2026-06-28, §4.4): DRIFT-MODBUS-CLOCK-001 fix — exception-burst window (modbus.rs pre-fix line 820) arithmetic changed from wrapping_sub to saturating_sub. Invariant 1 pseudocode updated: `elapsed_secs = now_ts.saturating_sub(exception_window_start_ts[ec])`. Invariant 1 rationale note updated to saturating_sub with backwards-clock safety justification. EC-009 expected behavior updated: saturating_sub(now, start)=0; window NOT reset; exception count incremented; adversarially injected stale-timestamp exception responses cannot abort detection. New EC-010 added: concrete backwards-ts no-reset vector (5 exceptions at ts=100, 6th at ts=50 → window NOT reset → count=6 → anomaly fires). Line numbers are PRE-fix; STORY-141 implementer re-anchors."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -139,8 +142,10 @@ Exception for FC >= 0x80).
    On each exception response:
    ```
    // now_ts is in SECONDS (timestamp_secs per BC-2.09.007; the pipeline delivers seconds).
-   // wrapping_sub used for u32 second timestamps; wrap at ~136 years — policy kept.
-   elapsed_secs = now_ts.wrapping_sub(exception_window_start_ts[ec])
+   // saturating_sub used for u32 second timestamps (RULING-MODBUS-SIBLING-001 §2.2):
+   // backwards-clock packets yield elapsed=0, window NOT reset, exception accumulation
+   // preserved. Genuine u32 rollover also yields elapsed=0 (acceptable trade-off).
+   elapsed_secs = now_ts.saturating_sub(exception_window_start_ts[ec])
    if elapsed_secs > EXCEPTION_WINDOW_SECS:  // 10-second window
        exception_window_counts[ec] = 1
        exception_window_start_ts[ec] = now_ts
@@ -189,7 +194,8 @@ Exception for FC >= 0x80).
 | EC-006 | FC 0x08 sub-func 0x000A (Clear Counters) | Anomaly finding (anti-forensic indicator). No T0814 — that requires sub-func 0x0001/0x0004. |
 | EC-007 | FC >= 0x80 but ADU is only 8 bytes (missing exception code byte) | No finding; malformed exception response; `parse_errors++`. |
 | EC-008 | All 6 exception-burst finding slots taken (`all_findings.len() == MAX_FINDINGS`) | No finding pushed; `exception_count` still incremented. |
-| EC-009 | now_ts < exception_window_start_ts[ec] (second-timestamp out-of-order or wrap) | `now_ts.wrapping_sub(exception_window_start_ts[ec])` yields a very large u32 value (≫ 10 seconds). Window-expiry fires: resets count=1, window_start_ts=now_ts, burst_emitted=false. Evasion-resistant: attacker cannot permanently suppress detection by injecting low-timestamp exception responses — at worst they force a window reset, requiring 6 more exceptions to retrigger. |
+| EC-009 | now_ts < exception_window_start_ts[ec] (second-timestamp out-of-order or wrap) | `now_ts.saturating_sub(exception_window_start_ts[ec]) = 0`. Elapsed=0, NOT > EXCEPTION_WINDOW_SECS(10) → window NOT reset. Exception count incremented. Burst accumulation preserved. Adversarially injected stale-timestamp exception responses cannot abort detection. (RULING-MODBUS-SIBLING-001 §2.2) |
+| EC-010 | 5 exception_code=0x01 responses at ts=100 (`exception_window_counts[0x01]=5`, `exception_window_start_ts[0x01]=100`); 6th exception_code=0x01 response at ts=50 (backwards) | `saturating_sub(50, 100)=0`; NOT > EXCEPTION_WINDOW_SECS(10) → window NOT reset; `exception_window_counts[0x01]` incremented to 6; `6 > EXCEPTION_RATE_THRESHOLD(5)` → Anomaly finding emitted (FC scanning). Backwards-ts exception response does NOT suppress detection. (RULING-MODBUS-SIBLING-001 §4.4.4) |
 
 ## Canonical Test Vectors
 
