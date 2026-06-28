@@ -1101,6 +1101,12 @@ impl StreamHandler for ModbusAnalyzer {
                         Direction::ClientToServer => &mut flow.carry_c2s,
                         Direction::ServerToClient => &mut flow.carry_s2c,
                     };
+                    // UNREACHABLE in the current clear-then-stash structure (RULING-MODBUS-SIBLING-001
+                    // addendum, mirrors ENIP RULING-137-002): active_carry was cleared at the top of
+                    // on_data, so dir_carry.len()==0 here; max operand is 7 (remaining < 8), never
+                    // > 260 = MAX_ADU_CARRY_BYTES. Retained as defensive future-proofing against a
+                    // refactor that adds an earlier stash point in the same on_data call.
+                    // cargo-mutants survivors here are EQUIVALENT.
                     if dir_carry.len() + remaining.len() > MAX_ADU_CARRY_BYTES {
                         flow.is_non_modbus = true;
                         self.parse_errors += 1;
@@ -1147,6 +1153,12 @@ impl StreamHandler for ModbusAnalyzer {
                     Direction::ClientToServer => &mut flow.carry_c2s,
                     Direction::ServerToClient => &mut flow.carry_s2c,
                 };
+                // UNREACHABLE in the current clear-then-stash structure (RULING-MODBUS-SIBLING-001
+                // addendum, mirrors ENIP RULING-137-002): active_carry was cleared at the top of
+                // on_data, so dir_carry.len()==0 here; max operand is 259 (remaining < adu_len <=
+                // 260), never > 260 = MAX_ADU_CARRY_BYTES. Retained as defensive future-proofing
+                // against a refactor that adds an earlier stash point in the same on_data call.
+                // cargo-mutants survivors here are EQUIVALENT.
                 if dir_carry.len() + remaining.len() > MAX_ADU_CARRY_BYTES {
                     flow.is_non_modbus = true;
                     self.parse_errors += 1;
