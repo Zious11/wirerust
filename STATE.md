@@ -1,10 +1,10 @@
 ---
 pipeline: FEATURE-MODE
-phase: F1
-phase_status: "STORY-139 (ENIP EC-X1/EC-X2) MERGED to develop (PR #334, 99a06f4). v0.11.0 HELD (D-260 + human Q4). DNP3 sibling fix now IN SCOPE for v0.11.0 (human Q2: fix atomically) — starting STORY-140 F1-F7 cycle."
+phase: F4
+phase_status: "STORY-140 (DNP3 EC-X1/EC-X2) F4 GREEN @1dda26b — 2128 GREEN / 0 RED. F1/F2/F3 done; F4 TDD complete incl. parse_errors-resync regression caught+fixed. Next: F5 scoped adversarial."
 product: wirerust
 mode: feature-mode
-timestamp: 2026-06-28T00:00:00Z
+timestamp: 2026-06-28T06:00:00Z
 
 # Release chain (latest)
 released_version: v0.10.0
@@ -23,7 +23,7 @@ factory_artifacts_head: (run `git -C .factory log -1 --format='%h'`)
 # Active worktrees
 worktree_scratch: ".worktrees/enip-edgecase-verify @ fd0c7f3 [scratch/enip-edgecase-verify] — keep for reference"
 worktree_orphan: ".worktrees/enip-f6-hardening @ 447da07 [test/enip-f6-fuzz-harnesses] — orphan, safe to remove"
-worktree_dnp3: "TBD — new worktree to be created for STORY-140 DNP3 sibling fix"
+worktree_dnp3: ".worktrees/dnp3-direction-clock @1dda26b [fix/dnp3-direction-and-clock] — F4 GREEN (2128/0)"
 
 # Pipeline completion
 bootstrapped: 2026-05-19T16:56:48Z
@@ -33,7 +33,7 @@ adversary_gate: SATISFIED
 # Story tracking
 stories_delivered: 88
 current_cycle: feature-enip-v0.11.0 (D-228, 2026-06-24)
-current_wave: "Wave 62 — STORY-139 ENIP fix MERGED (99a06f4). Wave 63 (NEW) — STORY-140 DNP3 sibling fix (DRIFT-DNP3-DIRECTION-001 + DRIFT-DNP3-CLOCK-001) starting F1 delta-analysis."
+current_wave: "Wave 63 — STORY-140 DNP3 fix F4 GREEN @1dda26b (2128/0). Next: F5 scoped adversarial."
 
 # DTU
 dtu_required: false
@@ -56,13 +56,13 @@ convergence_trajectory: "Detail: cycles/v0.1.0-greenfield-spec/convergence-traje
 
 ## Status
 
-**PIPELINE FEATURE-MODE. Cycle `feature-enip-v0.11.0` OPEN. STORY-139 MERGED (D-277, develop `99a06f4`, PR #334). STORY-140 DNP3 sibling fix starting (Wave 63, F1 delta-analysis). v0.11.0 HELD (D-260/D-278) — ships ENIP+DNP3 together on explicit human go-ahead.**
+**PIPELINE FEATURE-MODE. Cycle `feature-enip-v0.11.0` OPEN. STORY-139 MERGED (D-277, develop `99a06f4`, PR #334). STORY-140 DNP3 sibling fix F4 GREEN @1dda26b (2128/0, D-279). v0.11.0 HELD (D-260/D-278) — ships ENIP+DNP3 together on explicit human go-ahead.**
 
 **HUMAN DIRECTIVE (D-260/D-278): HALT — do NOT run the release pipeline / tag / publish without explicit human go-ahead. v0.11.0 ships ENIP+DNP3 together once both land on develop and human approves release.**
 
 Latest release: v0.10.0 (main `0cbe922`). develop=`99a06f4`. stories_delivered=88. Target: v0.11.0 (SS-17 EtherNet/IP + CIP TCP/44818 + DNP3 sibling EC-X1/EC-X2 fix). GitHub issue #316. v0.11.0 HELD until STORY-139 + STORY-140 both merged + human release go-ahead.
 
-Spec versions: BC-INDEX v1.85 (332 on disk / 331 active; SS-17=26 BCs + EC-010 amendments). ARCH-INDEX v1.8. VP-INDEX v2.12 (34 VPs: VP-033/034 added). PRD v1.36. STORY-INDEX v2.9 (92 stories / 62 waves). epics.md v1.8 (E-20, Wave 62).
+Spec versions: BC-INDEX v1.85 (332 on disk / 331 active; SS-17=26 BCs + EC-010 amendments). ARCH-INDEX v1.8. VP-INDEX v2.13 (36 VPs: VP-033..036 added). PRD v1.36. STORY-INDEX v2.9 (92 stories / 62 waves). epics.md v1.8 (E-20, Wave 62).
 
 ### WARNING — DO NOT REDO (on resume)
 
@@ -76,27 +76,28 @@ Spec versions: BC-INDEX v1.85 (332 on disk / 331 active; SS-17=26 BCs + EC-010 a
 - Do NOT re-baseline input-hashes for STORY-130..139 — done @4f4dc76 (D-276, MATCH=89/STALE=0); re-baselined again @c99d7b6 after ADR-010 amendment.
 - Do NOT re-deliver STORY-139 — MERGED (D-277, develop 99a06f4). PR #334. CI 11/11 green.
 - Do NOT cut v0.11.0 — HELD (D-260/D-278); ENIP+DNP3 ship together on explicit human go-ahead.
+- Do NOT re-run STORY-140 F4 — GREEN @1dda26b (D-279).
+- Do NOT re-introduce the `< 3` frame-walk guard or drop parse_errors counting (D-281 regression).
+- Do NOT restore wrapping_sub at block-timeout (D-280).
 
-### EXACT RESUME POINT — STORY-140 DNP3 sibling fix — F1 delta-analysis
+### EXACT RESUME POINT — STORY-140 DNP3 sibling fix — F4 GREEN, next F5 scoped adversarial
 
-**STORY-139 MERGED (D-277, develop `99a06f4`, PR #334, CI 11/11 green). Next: STORY-140 DNP3 sibling fix (DRIFT-DNP3-DIRECTION-001 + DRIFT-DNP3-CLOCK-001) — full F1-F7 cycle.**
+**STORY-140 F4 GREEN @1dda26b (2128 GREEN / 0 RED, D-279). Worktree `.worktrees/dnp3-direction-clock` [fix/dnp3-direction-and-clock]. F1/F2/F3 complete (D-279 detail). parse_errors-resync regression caught + fixed (D-281). docs/adr/0007 still to be amended on this worktree before merge.**
 
 **v0.11.0 HELD (D-260/D-278) — ENIP+DNP3 ship together once both land on develop + human release go-ahead.**
 
-STORY-140 pipeline (sequential):
-1. F1 delta-analysis (architect) — identify DNP3 code regions affected by carry-direction-split and saturating_sub window patterns (dnp3.rs / SS-15), mirroring RULING-EDGECASE-001 applied to DNP3.
-2. F2 spec evolution — amend SS-15 BCs for DNP3 carry-split + saturating_sub clock reset (per-direction carry fields, window reset correction).
-3. F3 — author STORY-140 (story-writer).
-4. F4-F7 — TDD implementation, adversarial review, formal hardening, convergence + merge to develop.
-5. After STORY-140 merges: await explicit human release go-ahead → cut v0.11.0.
+STORY-140 remaining pipeline (sequential):
+1. F5 scoped adversarial — 3 clean passes required (targeting dnp3.rs carry-split, saturating_sub window, parse_errors accounting).
+2. F6 formal hardening — DNP3 has reachable carry-cap unlike ENIP; mutation should cover it. Re-run Kani regression. Fuzz dnp3.
+3. F7 convergence + human gate.
+4. After STORY-140 merges to develop: await explicit human release go-ahead → cut v0.11.0.
 
 ### RESUME PROCEDURE (execute in order — BLOCKING)
 
 1. Run `vsdd-factory:factory-worktree-health` — PASS required before proceeding.
 2. Read `.factory/STATE.md` (this file) + `.factory/cycles/feature-enip-v0.11.0/RULING-EDGECASE-001-direction-and-clock.md`.
-3. Verify: `git rev-parse --short develop` == `99a06f4`; develop is clean and CI green.
-4. Create new worktree for STORY-140 (branch `fix/dnp3-direction-and-clock` from develop `99a06f4`).
-5. Dispatch F1 delta-analysis (architect) targeting dnp3.rs / SS-15 BC set.
+3. Verify: worktree `.worktrees/dnp3-direction-clock` branch `fix/dnp3-direction-and-clock` HEAD is `1dda26b`; 2128 GREEN / 0 RED; clippy/fmt clean.
+4. Dispatch F5 scoped-adversarial (adversary agent, fresh context, 3 passes to convergence).
 
 ### Locked design facts (do not re-derive on resume)
 
@@ -111,9 +112,9 @@ Story input-hashes: STORY-130 63fac3a, STORY-131 ce92886, STORY-132 c33dff8, STO
 | ID | Summary | Status |
 |----|---------|--------|
 | STORY-139 | EC-X1/EC-X2 fix-delta: per-direction carry + saturating window. | MERGED — develop `99a06f4` (D-277, PR #334) |
-| STORY-140 | DNP3 sibling EC-X1/EC-X2 fix (carry-split + saturating_sub). **RELEASE-BLOCKER.** | IN SCOPE v0.11.0 — F1 starting (D-278) |
-| DRIFT-DNP3-DIRECTION-001 | DNP3 EC-X1 pattern (carry-direction-split) — sibling of ENIP fix. | IN SCOPE v0.11.0 — STORY-140 (human D-278) |
-| DRIFT-DNP3-CLOCK-001 | DNP3 EC-X2 pattern (wrapping_sub clock reset) — sibling of ENIP fix. | IN SCOPE v0.11.0 — STORY-140 (human D-278) |
+| STORY-140 | DNP3 sibling EC-X1/EC-X2 fix (carry-split + saturating_sub). **RELEASE-BLOCKER.** | F4 GREEN @1dda26b (2128/0, D-279). Next: F5 scoped adversarial. |
+| DRIFT-DNP3-DIRECTION-001 | DNP3 EC-X1 pattern (carry-direction-split) — sibling of ENIP fix. | IN SCOPE v0.11.0 — STORY-140 F4 GREEN (D-279) |
+| DRIFT-DNP3-CLOCK-001 | DNP3 EC-X2 pattern (wrapping_sub clock reset) — sibling of ENIP fix. | IN SCOPE v0.11.0 — STORY-140 F4 GREEN (D-279) |
 | F-W60-002 | `bytes_received` BC-2.17.016 v1.1→v1.2 clarification (PC-5 exemption + Invariant 7). | DEFERRED — cycle close |
 | BC-PROSE-LOW-RESIDUALS | BC-2.17.001 Inv-4 + prd.md singular `carry`; BC-2.17.018 PC-1 singular `carry`; VP-034 title-label drift. | OPEN — cycle close |
 | ENGINE-PROPAGATION-GREP-GATE-001 | Mechanical changed-value sibling-grep gate. Human decision before cycle CLOSE. | OPEN — human review |
@@ -167,7 +168,10 @@ All GitHub-issue creation DF-VALIDATION-001-gated.
 | Feature EtherNet/IP — EC-X1/EC-X2 fix-delta (Wave 62) — F5 | CONVERGED @0607b82 (2107/0) | 6 adversary passes; findings 4→3→2→0; consistency audit CONSISTENT. |
 | Feature EtherNet/IP — EC-X1/EC-X2 fix-delta (Wave 62) — F6 | PASS @cee85c0 (Kani 36/37, fuzz 0-crash, mutation 23/23 in-scope, 3 equivalent; 2112/0) | Input-hash re-baseline 4f4dc76 (MATCH=89/STALE=0). |
 | Feature EtherNet/IP — EC-X1/EC-X2 fix-delta (Wave 62) — F7 + MERGE | **MERGED to develop — PR #334 (D-277, 99a06f4). stories_delivered=88. CI 11/11 green.** | pr-reviewer 0 findings; security-reviewer 0 CRITICAL/0 HIGH. ADR-010 D4 amended; input-hash re-baselined c99d7b6. |
-| Feature DNP3 sibling EC-X1/EC-X2 (Wave 63) — STORY-140 | **F1 STARTING** | DRIFT-DNP3-DIRECTION-001 + DRIFT-DNP3-CLOCK-001 in scope for v0.11.0 (D-278). F1 delta-analysis next. |
+| Feature DNP3 sibling EC-X1/EC-X2 (Wave 63) — STORY-140 F1 | DONE | RULING-DNP3-SIBLING-001 (88d41fd). Identified DNP3 carry-split + saturating_sub regions in dnp3.rs / SS-15. |
+| Feature DNP3 sibling EC-X1/EC-X2 (Wave 63) — STORY-140 F2 | DONE | 4 SS-15 BCs amended (e04809d: BC-2.15.016 v2.0/010 v1.8/014 v2.1/015 v2.0); ADR-007 amended (1e39373); VP-035/VP-036 + indexes (ab3c270, VP-INDEX v2.13/36 VPs). |
+| Feature DNP3 sibling EC-X1/EC-X2 (Wave 63) — STORY-140 F3 | DONE | STORY-140 authored (6d6e3a3, E-15 Wave 63, input-hash d498e66). |
+| Feature DNP3 sibling EC-X1/EC-X2 (Wave 63) — STORY-140 F4 | **F4 GREEN @1dda26b (2128/0)** | Worktree from develop 99a06f4. 208 call-sites threaded. parse_errors-resync regression caught+fixed (D-281). clippy/fmt clean; 0 wrapping_sub; singular carry gone; resolve_master_ip gone. Next: F5 scoped adversarial. |
 
 ## Decisions Log
 
@@ -190,6 +194,9 @@ D-228..D-269: `cycles/feature-enip-v0.11.0/decisions-archive.md`
 | D-276 | Input-hash mechanical re-baseline after BC-2.17.016 additive NOTE (story-writer commit 4f4dc76, factory-artifacts). STORY-139: 759464a→581b0fd. `bin/compute-input-hash --write --scan` rewrote 24 stale stories total → MATCH=89 STALE=0. NOTE: only STORY-130..139 relate to the BC-2.17.016 edit; the other 14 (STORY-002/003/004/005/071/076-080/100/101/120/129) were PRE-EXISTING stale from prior released-cycle BC doc-edits, swept clean in the same re-baseline (benign — all released/closed v0.1-v0.10). 3 pre-existing structural ERRORs (STORY-001 retired-BC-ref, STORY-091, STORY-121 missing inputs blocks) unrelated → backlog. No story versions bumped; only input-hash fields touched. | 2026-06-27 |
 | D-277 | STORY-139 (ENIP EC-X1/EC-X2 detection-correctness fix) MERGED to develop via PR #334 (merge commit 99a06f4; develop HEAD 99a06f4). Both reviewers APPROVE (pr-reviewer 0 findings; security-reviewer 0 CRITICAL/0 HIGH, 1 MEDIUM = documented-unreachable carry-cap per RULING-137-002 non-blocking, 2 LOW pre-existing). CI 11/11 green (run 28302628291). Pre-merge: ADR-010 Decision 4 amended (worktree 5d5181f in PR + .factory da8adf5); input-hash re-baseline c99d7b6 (STORY-130..139; STORY-139=16e5c27). Worktree enip-direction-clock + branch fix/enip-direction-and-clock removed. F7 human-approved. stories_delivered=88. | 2026-06-27 |
 | D-278 | HUMAN DIRECTIVE (F7 gate, Q2): fix DNP3 ATOMICALLY with ENIP for v0.11.0 — DRIFT-DNP3-DIRECTION-001 (carry splice) + DRIFT-DNP3-CLOCK-001 (wrapping_sub clock reset) are NO LONGER deferred to v0.12.0; they are now IN SCOPE for v0.11.0 as a sibling fix (new STORY-140, full F1-F7 cycle, mirroring RULING-EDGECASE-001 applied to dnp3.rs / SS-15). HUMAN DIRECTIVE (Q4): v0.11.0 STAYS HELD after the ENIP merge — separate explicit release go-ahead required (extends D-260). v0.11.0 ships ENIP + DNP3 together once both land on develop and human approves release. | 2026-06-27 |
+| D-279 | STORY-140 DNP3 F1-F4 complete. F1 RULING-DNP3-SIBLING-001 (88d41fd). F2: 4 SS-15 BCs amended (e04809d: BC-2.15.016 v2.0/010 v1.8/014 v2.1/015 v2.0), ADR-007 amended (.factory 1e39373), VP-035/VP-036 registered + indexes (ab3c270, VP-INDEX v2.13/36 VPs). F3 STORY-140 authored (6d6e3a3, E-15 Wave 63, input-hash d498e66). F4 worktree .worktrees/dnp3-direction-clock from develop 99a06f4: red-gate scaffolding 7a225aa (208 test call-sites threaded) + RED tests b761033, impl af66b9d, block-timeout saturating_sub a5ca673, test fixes 28b5673, regression-fix 1dda26b. 2128 GREEN/0 RED. clippy/fmt clean; 0 live wrapping_sub; singular carry gone; resolve_master_ip gone. | 2026-06-27 |
+| D-280 | ARCHITECT adjudications during STORY-140 F4 (RULING-DNP3-SIBLING-001 author): (1) AC-140-002 test was DEFECTIVE (master placed on outstation port 20000) → rebuilt to standard topology (outstation:20000, master:54321 ephemeral), C2S→source=master=upper_ip; port-heuristic+direction formula correct (mirrors ENIP). (2) block-timeout (BC-2.15.014/T1691.001) → saturating_sub (consistent with RULING-EDGECASE-001 §2.2 ENIP precedent); old STORY-109 AC-014 test_pending_request_timeout_wrapping_sub SUPERSEDED → renamed test_pending_request_timeout_no_spurious_fire_on_rollover_or_backwards_ts (asserts no-spurious-fire + forward-clock companion); BC-2.15.014 v2.1 EC-009 stands; STORY-109.md:133 citation updated (59e7688). | 2026-06-27 |
+| D-281 | REGRESSION caught during STORY-140 F4 (orchestrator refused to accept test-writer's 'pre-existing' dismissal; devops bisect confirmed develop@99a06f4 GREEN vs worktree RED). Carry-split refactor changed the dnp3 frame-walk loop guard `< 3` → `< 10`, silently dropping parse_errors increments in the junk-at-clean-boundary / LENGTH-gate resync path (3 f5_resync_accounting tests under-counted parse_errors by 1). Fixed (1dda26b) via did_process_in_this_call context tracking (dnp3.rs:442/455/495/535) — restores one parse_error per structural event without breaking AC-140-001 partial-stash. No tests dropped (2128 = develop 2112 + 16 new). | 2026-06-27 |
 
 ## Governance Policy
 
@@ -199,5 +206,5 @@ Full policy text: `.factory/policies.yaml`. Active policies (17): DF-VALIDATION-
 
 - `.factory/` is a `factory-artifacts` orphan-branch worktree, gitignored from `develop`.
 - Active cycle: `cycles/feature-enip-v0.11.0/` (cycle-manifest.md, decisions-archive.md D-228+). Issue #316.
-- STORY-INDEX.md authoritative (92 stories / 62 waves — v2.9). STORY-130..139 completed + merged. stories_delivered=88. STORY-140 (DNP3 sibling fix, Wave 63) starting F1.
+- STORY-INDEX.md authoritative (92 stories / 63 waves — v2.9). STORY-130..139 completed + merged. stories_delivered=88. STORY-140 (DNP3 sibling fix, Wave 63) F4 GREEN @1dda26b (D-279).
 - F6 fuzz harness (F-P9-002) MERGED — PR #332 @f17d270 on develop (D-265).
