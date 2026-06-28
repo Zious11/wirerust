@@ -391,7 +391,7 @@ dependency.
 | EC-007 | Correlation window elapsed == 300 exactly (strict operator pin) | Window NOT expired under `> 300` (EC-X analog for DNP3 DRIFT-DNP3-OP-001) |
 | EC-008 | Correlation window elapsed == 301 | Window IS expired; all six fields reset (restart_event_count, block_event_count, block_finding_emitted_this_window, loss_of_control_emitted, malformed_in_window, malformed_anomaly_emitted); new window seeded (BC-2.15.015 v2.0 Postcondition 3) |
 | EC-009 | Control request at ts=100 in pending_requests; backwards on_data at ts=50 | `saturating_sub(50, 100) = 0`; NOT > 10 → timeout NOT fired; request remains pending; no spurious `block_event_count` increment (BC-2.15.014 v2.1 EC-009) |
-| EC-010 | Genuine u32 rollover: `window_start = u32::MAX - 5`, `now_ts = 4` | `saturating_sub(4, u32::MAX-5) = 0`; no spurious reset on any of the three windows (vs. `wrapping_sub` which gave 10 — would have triggered the 10s block-timeout spuriously) |
+| EC-010 | Genuine u32 rollover: `window_start = u32::MAX - 5` (0xFFFFFFFA), `now_ts = 500` | `saturating_sub(500, u32::MAX-5) = 0`; no spurious reset on any of the three windows (vs. `wrapping_sub` which gives 506 — spuriously fires all three: 506 > 300 T0827/T0814, 506 > 60 T1692.001, 506 > 10 T1691.001) |
 | EC-011 | Existing DNP3 tests with the old 3-argument `on_data` signature | All existing call sites updated to 4-argument form; no compilation errors; no behavioral regressions |
 
 ## Tasks

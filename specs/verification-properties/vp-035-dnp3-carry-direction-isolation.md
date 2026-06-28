@@ -136,6 +136,9 @@ mod vp035_dnp3_carry_direction_isolation {
             // s2c direction flag (always ServerToClient for the interleaved delivery)
             // s2c frame uses CTRL=0x44 (outstation response direction bit = bit7 clear for
             // standard response; actual direction bit is bit7 of CTRL per IEEE 1815)
+            // _s2c_ctrl is declared but unused: s2c CTRL is hardcoded to 0x44 below because
+            // ServerToClient frames always use the outstation-response value; varying it
+            // would produce invalid frames outside this VP's scope.
             _s2c_ctrl in 0x00u8..=0xFFu8,
         ) {
             let mut state = Dnp3FlowState::default();

@@ -274,14 +274,16 @@ mod vp036_dnp3_window_monotonic_no_spurious_reset {
     /// window reset for any of the three DNP3 windows.
     #[test]
     fn test_vp036_sub_d_genuine_rollover_no_spurious_reset() {
-        // Simulate genuine rollover: window_start near u32::MAX, now_ts near 0
-        let window_start: u32 = u32::MAX - 5;
-        let now_ts_post_rollover: u32 = 4; // post-rollover small value
+        // Simulate genuine rollover: window_start near u32::MAX, now_ts post-rollover.
+        // Canonical scenario: window_start = u32::MAX - 5 (0xFFFFFFFA), now_ts = 500.
+        let window_start: u32 = u32::MAX - 5; // 0xFFFFFFFA = 4294967290
+        let now_ts_post_rollover: u32 = 500;  // post-rollover value
 
-        // wrapping_sub would give: 4u32.wrapping_sub(u32::MAX - 5) = 4 + 6 = 10
-        // which is > any 1s or 10s threshold → SPURIOUS RESET (the old bug)
+        // wrapping_sub would give: 500u32.wrapping_sub(0xFFFFFFFA) = 500 + 6 = 506
+        // 506 > 300 (T0827/T0814), 506 > 60 (T1692.001), 506 > 10 (T1691.001) →
+        // ALL THREE DNP3 windows would spuriously expire → SPURIOUS RESET (the old bug)
         let wrapping_elapsed = now_ts_post_rollover.wrapping_sub(window_start);
-        assert_eq!(wrapping_elapsed, 10, "wrapping_sub gives 10 for this rollover scenario");
+        assert_eq!(wrapping_elapsed, 506, "wrapping_sub gives 506 for this rollover scenario");
 
         // saturating_sub gives 0 → no spurious reset
         let saturating_elapsed = now_ts_post_rollover.saturating_sub(window_start);
