@@ -1,10 +1,10 @@
 ---
 pipeline: FEATURE-MODE
 phase: F7
-phase_status: "Wave 64 F7 CONVERGED + human-APPROVED. DIM1-01 (if-guard line anchors 1110/1162) + DIM3-01 (VP-037 range 0..6) fixed pre-merge. Code PR squash-merge to develop IN PROGRESS (pr-manager dispatching). v0.11.0 HELD pending separate explicit human release go-ahead."
+phase_status: "Wave 64 MERGED (PR #336, develop a13b5c5, 2026-06-28). STORY-141 (Modbus EC-X1/EC-X2) + STORY-142 (DNP3 desync-latch) DONE. All four v0.11.0 EC fixes on develop. v0.11.0 HELD pending explicit human release go-ahead (D-260/D-278/D-299). Sub-cycle feature-enip-v0.11.0 Wave-64 portion CLOSED."
 product: wirerust
 mode: feature-mode
-timestamp: 2026-06-28T23:59:30Z
+timestamp: 2026-06-28T21:30:00Z
 
 # Release chain (latest)
 released_version: v0.10.0
@@ -15,16 +15,16 @@ release_url: https://github.com/Zious11/wirerust/releases/tag/v0.10.0
 prior_released_version: v0.9.4
 prior_released_at: "2026-06-23"
 
-# Ground-truth HEADs (verified D-288 — 2026-06-28)
-develop_head: b6d7a01
+# Ground-truth HEADs (updated D-299 — 2026-06-28)
+develop_head: a13b5c5
 main_head: 0cbe922
 factory_artifacts_head: (run `git -C .factory log -1 --format='%h'`)
 
-# Active worktrees
+# Active worktrees (Wave 64 worktrees REMOVED — D-299)
 worktree_scratch: ".worktrees/enip-edgecase-verify @ fd0c7f3 [scratch/enip-edgecase-verify] — keep for reference"
 worktree_orphan: ".worktrees/enip-f6-hardening @ 447da07 [test/enip-f6-fuzz-harnesses] — orphan, safe to remove"
-worktree_modbus_ecx: ".worktrees/modbus-ecx-verify @ 74f2913 [scratch/modbus-ecx-verify] — can remove after STORY-141 merges (its repro is now permanent regression tests)"
-worktree_wave64: ".worktrees/wave64-ec-fixes @235a4a1 [fix/wave64-modbus-dnp3-ec] — F6 PASS (2192/0)"
+# worktree_modbus_ecx: REMOVED after STORY-141 merge (D-299); repro is now permanent regression tests
+# worktree_wave64: REMOVED after PR #336 merge (D-299)
 
 # Pipeline completion
 bootstrapped: 2026-05-19T16:56:48Z
@@ -32,9 +32,9 @@ phase_7_to_release_gate: "PASSED (human-approved 2026-06-09 — D-045)"
 adversary_gate: SATISFIED
 
 # Story tracking
-stories_delivered: 89
+stories_delivered: 91
 current_cycle: feature-enip-v0.11.0 (D-228, 2026-06-24)
-current_wave: "Wave 64 — STORY-141+142 F7 CONVERGED + human-APPROVED. DIM1-01+DIM3-01 fixed pre-merge. Code PR squash-merge IN PROGRESS. v0.11.0 HELD."
+current_wave: "Wave 64 MERGED — PR #336, develop a13b5c5 (D-299, 2026-06-28). STORY-141 + STORY-142 DONE. v0.11.0 HELD pending explicit human release go-ahead."
 
 # DTU
 dtu_required: false
@@ -57,11 +57,11 @@ convergence_trajectory: "Detail: cycles/v0.1.0-greenfield-spec/convergence-traje
 
 ## Status
 
-**PIPELINE FEATURE-MODE. Cycle `feature-enip-v0.11.0` OPEN. Wave 64 F7 CONVERGED + human-APPROVED. STORY-141 (Modbus EC-X1/EC-X2) + STORY-142 (DNP3 desync-latch) F7 PASS. DIM1-01 (RULING + BC-2.14.002 if-guard anchors → 1110/1162) + DIM3-01 (VP-037 range 0..6) fixed pre-merge (D-298). Code PR squash-merge to develop IN PROGRESS. v0.11.0 HELD pending human release go-ahead.**
+**PIPELINE FEATURE-MODE. Cycle `feature-enip-v0.11.0` OPEN. Wave 64 MERGED — PR #336, develop `a13b5c5` (D-299, 2026-06-28). STORY-141 (Modbus EC-X1/EC-X2) + STORY-142 (DNP3 desync-latch) DONE. All four v0.11.0 EC fixes on develop. Wave-64 worktrees removed. v0.11.0 HELD pending explicit human release go-ahead (D-260/D-278/D-299).**
 
 **HUMAN DIRECTIVE: v0.11.0 HELD — ships ENIP+DNP3+Modbus+DNP3-desync TOGETHER on explicit human release go-ahead.**
 
-Latest release: v0.10.0 (main `0cbe922`). develop=`b6d7a01`. stories_delivered=89. Target: v0.11.0 (ENIP+DNP3+Modbus+DNP3-desync bundle). GitHub issue #316. v0.11.0 HELD pending human release go-ahead.
+Latest release: v0.10.0 (main `0cbe922`). develop=`a13b5c5`. stories_delivered=91. Target: v0.11.0 (ENIP+DNP3+Modbus+DNP3-desync bundle). GitHub issue #316. v0.11.0 HELD pending human release go-ahead.
 
 Spec versions: BC-INDEX v1.88 (BC-2.14.002 v2.1 errata anchor reconciliation DIM1-01 pre-merge). VP-INDEX v2.14 (38 VPs: VP-037 range corrected to 0..6 DIM3-01). ARCH-INDEX v1.8. PRD v1.36. STORY-INDEX v3.1 (95 stories / 64 waves). epics.md v1.8 (E-20 + E-14/E-15).
 
@@ -94,10 +94,11 @@ Spec versions: BC-INDEX v1.88 (BC-2.14.002 v2.1 errata anchor reconciliation DIM
 - Wave-64 F5 CONVERGED @ab37fb5 — do NOT re-run F5. DNP3 desync fix REQUIRES frame_count==0 guard (both-carries-empty-only is INCOMPLETE — sub-case ii). Modbus sustained `>=` gate is intentional — do NOT flip to `>`.
 - Wave-64 F6 PASS @235a4a1 — do NOT re-run F6. Do NOT attempt to kill the 6 Modbus carry-cap mutants — PROVEN EQUIVALENT (D-297, ADDENDUM-002).
 - Wave-64 F7 CONVERGED + human-APPROVED — do NOT re-run F7 or re-request human gate. DIM1-01 + DIM3-01 non-blocking corrections applied pre-merge (D-298): RULING ADDENDUM-002 + BC-2.14.002 anchors → 1110/1162; VP-037 range → 0..6; BC-INDEX v1.88; VP-INDEX v2.14 changelog. Code PR squash-merge IN PROGRESS — do NOT re-open or re-author the bundled PR.
+- Do NOT re-merge Wave-64 PR — #336 MERGED (D-299, develop a13b5c5, 2026-06-28). STORY-141 + STORY-142 DONE (stories_delivered=91). Worktrees .worktrees/wave64-ec-fixes + .worktrees/modbus-ecx-verify REMOVED.
 
-### EXACT RESUME POINT — Wave 64 F7 CONVERGED + human-APPROVED; code PR squash-merge IN PROGRESS
+### EXACT RESUME POINT — Wave 64 MERGED; v0.11.0 HELD awaiting explicit human release go-ahead
 
-**Wave 64 F7 CONVERGED + human-APPROVED. DIM1-01 + DIM3-01 pre-merge corrections committed to factory-artifacts (D-298). pr-manager dispatching squash-merge of bundled code PR to develop. After merge: update STATE.md with develop HEAD, stories_delivered=91, close worktree wave64-ec-fixes. v0.11.0 release STILL HELD — await separate explicit human go-ahead before cutting release.**
+**Wave 64 MERGED (PR #336, develop `a13b5c5`, 2026-06-28, D-299). STORY-141 (Modbus EC-X1/EC-X2) + STORY-142 (DNP3 desync-latch) DONE. stories_delivered=91. All four v0.11.0 EC fixes on develop: STORY-139 (#334), STORY-140 (#335), STORY-141+142 (#336). Wave-64 worktrees removed. v0.11.0 release HELD — separate explicit human go-ahead required before cutting release/tag/main PR.**
 
 Key design facts locked (do not re-derive):
 - Modbus needs NO `on_data` signature change (direction already threaded via existing arg).
@@ -114,8 +115,8 @@ Do NOT release v0.11.0 without explicit human instruction.
 
 1. Run `vsdd-factory:factory-worktree-health` — PASS required before proceeding.
 2. Read `.factory/STATE.md` (this file).
-3. Verify: develop HEAD is `b6d7a01`; worktree `.worktrees/wave64-ec-fixes` @235a4a1 exists on `fix/wave64-modbus-dnp3-ec`.
-4. Proceed with pr-manager squash-merge of bundled Wave-64 code PR → develop.
+3. Verify: develop HEAD is `a13b5c5`; Wave-64 worktrees removed.
+4. Await explicit human release go-ahead to proceed with v0.11.0 release (release/0.11.0 branch → main PR).
 
 ### Locked design facts (do not re-derive on resume)
 
@@ -153,9 +154,9 @@ Story input-hashes: STORY-130 63fac3a, STORY-131 ce92886, STORY-132 c33dff8, STO
 | ENIP-CARRY-CAP-V0.12.0-REDESIGN | BC-2.17.016 PC-4 carry-overflow cap is unreachable dead code (RULING-137-002); v0.12.0 quarantine-mechanism redesign should make it reachable or remove it. | DEFERRED — v0.12.0 |
 | EDGE-CASE-HUNT-COVERAGE-IDEAS | SendUnitData path, multi-0x00B2, ForwardOpen response suppression tests (from EC hunt). | BACKLOG — optional |
 | EDGE-CASE-HUNT-REGISTER-2026-06-28 | ~30 candidates across all analyzers (6 hunters). DF-VALIDATION-001-gated before any issue filing. Register: cycles/feature-enip-v0.11.0/EDGE-CASE-HUNT-REGISTER-2026-06-28.md | CANDIDATES — validation-gated |
-| MODBUS-EC-X1 | Cross-direction carry splice (modbus.rs:170/290). CONFIRMED via repro @74f2913. RULING-MODBUS-SIBLING-001. STORY-141 F7 CONVERGED + human-APPROVED. Code PR squash-merge IN PROGRESS. | F7 APPROVED / merge-pending |
-| MODBUS-EC-X2 | wrapping_sub clock-backwards (modbus.rs:534/595/670/820). CONFIRMED. STORY-141 F7 CONVERGED + human-APPROVED. STORY-104 AC-006 superseded by saturating_sub precedent. | F7 APPROVED / merge-pending |
-| DNP3-DESYNC-LATCH-001 | is_non_dnp3 per-flow latch silences established opposite direction. frame_count==0 guard required (both-carries-empty-only INCOMPLETE). RULING-DNP3-DESYNC-001. STORY-142 F7 CONVERGED + human-APPROVED. Code PR squash-merge IN PROGRESS. | F7 APPROVED / merge-pending |
+| MODBUS-EC-X1 | Cross-direction carry splice (modbus.rs:170/290). CONFIRMED + FIXED. STORY-141 MERGED PR #336 develop `a13b5c5` (D-299, 2026-06-28). | RESOLVED + MERGED |
+| MODBUS-EC-X2 | wrapping_sub clock-backwards (modbus.rs:534/595/670/820). CONFIRMED + FIXED. STORY-141 MERGED PR #336 (D-299). STORY-104 AC-006 superseded. | RESOLVED + MERGED |
+| DNP3-DESYNC-LATCH-001 | is_non_dnp3 per-flow latch desync fix (frame_count==0 guard). STORY-142 MERGED PR #336 develop `a13b5c5` (D-299, 2026-06-28). | RESOLVED + MERGED |
 | MODBUS-CARRY-CAP-UNREACHABLE | proven dead defensive code (RULING-MODBUS-SIBLING-001 ADDENDUM-002); v0.12.0 redesign could make reachable or remove. Mirrors ENIP-CARRY-CAP-V0.12.0. | BACKLOG (mirrors ENIP-CARRY-CAP-V0.12.0) |
 | BC-2.15.024-STALE-WRAPPING-SUB-TEXT | BC-2.15.024 spec text references wrapping_sub for the 300s correlation window but dnp3.rs has 0 live wrapping_sub (F6-verified) — stale spec text, code already saturating_sub. Doc-drift only, not a live bug. | BACKLOG (doc fix) |
 | TLS-CLIENTHELLO-FRAG-001 | ClientHello fragmented across TLS records → SNI/JA3 evasion (tls.rs:763-792). No record reassembly. | CRIT CANDIDATE — DF-VALIDATION-001-gated |
@@ -163,7 +164,9 @@ Story input-hashes: STORY-130 63fac3a, STORY-131 ce92886, STORY-132 c33dff8, STO
 | D4-001 | BC-2.17.018 Architecture Anchors missing explicit malformed_window_start_ts row (doc-completeness). | BACKLOG — next BC sweep |
 | D6-001 | consistency-validator reported VP-025..031 body files apparently absent from disk (7 files); pre-existing, NOT introduced by this burst; likely validator directory-path artifact since v0.9.3 owns those VPs and is released+closed. | BACKLOG — verify (DF-VALIDATION-001-gated) |
 | RULING-EDGECASE-001-STALE-ANCHORS | ruling §2.4 cites pre-fix enip.rs line numbers (1312/1129/821) + §1.3/§2.4 use old field name malformed_window_start; immutable-ruling forensic refs, no action. | OBSERVATION — no action |
-| WORKTREE-MODBUS-ECX-VERIFY | .worktrees/modbus-ecx-verify (scratch repro 74f2913) — can remove after STORY-141 merges (its repro is now permanent regression tests). | OPEN — remove after STORY-141 merge |
+| WORKTREE-MODBUS-ECX-VERIFY | .worktrees/modbus-ecx-verify (scratch repro 74f2913) — removed after STORY-141 merge. | RESOLVED (D-299) |
+| DNP3-DOC-COMMENT-STALE-ACTIVE-CARRY | [NIT] stale doc comment in src/analyzer/dnp3.rs referencing old `active_carry!` pattern above new desync predicate. Doc-only, no behavior impact. DF-VALIDATION-001-gated before issue-filing. | BACKLOG — v0.12.0 |
+| MODBUS-DEBUG-ASSERT-CARRY-CLEAR | [SEC-002 LOW] add `debug_assert!(dir_carry.is_empty())` after carry clear in src/analyzer/modbus.rs. Defensive correctness assertion; no current bug. DF-VALIDATION-001-gated before issue-filing. | BACKLOG — v0.12.0 |
 
 All GitHub-issue creation DF-VALIDATION-001-gated.
 
@@ -210,7 +213,7 @@ All GitHub-issue creation DF-VALIDATION-001-gated.
 | Wave 64 — STORY-142 (DNP3 desync-latch) F1-F3 | **DONE (D-294)** | F1: RULING-DNP3-DESYNC-001 (bundled with RULING-MODBUS-SIBLING-001). F2: BC-2.15.009 v2.0 amended (5e9f7e9). F3: STORY-142 authored (E-15, 3 ACs, input-hash 16f87c4). Input-hash rebaseline STORY-102/104/106 STALE=0 (8fc5272). |
 | Wave 64 — STORY-141+142 F4 + F5 CONVERGED | **F5 CONVERGED @ab37fb5 (D-295)** | F4: bundled worktree .worktrees/wave64-ec-fixes, branch fix/wave64-modbus-dnp3-ec from develop b6d7a01. Commit chain: d3e5d6e→1851f3d→4dc9b9a→315992d→25b20e9→de6d124→f23b7cf→ab37fb5. F5: 7 passes, ALL zero-HIGH/CRITICAL; 18/18 BCs; architect VERIFIED DNP3 fix incomplete (frame_count==0 guard required). BC-INDEX EC-013 comment corrected (O-W64-A). |
 | Wave 64 — STORY-141+142 F6 PASS | **F6 PASS @235a4a1 (D-296/D-297)** | Kani 36/37 (1 orthogonal reader harness still-solving; 0 failed; no break from carry-split). fuzz_modbus_parse 4.29M + fuzz_dnp3_parse 3.11M, 0 crashes. Mutation: DNP3 fix-logic mutants ALL caught; Modbus non-cap mutants caught; 6 Modbus carry-cap mutants PROVEN-EQUIVALENT (ADDENDUM-002 / D-297). VP-037 2/2, VP-038 5/5. Regression 2192/0. BC-2.14.002 errata e773d55. Input-hash rebaseline: STORY-141 b0c7a8d→32293cd; STORY-102 cfe3fbe→da2babc (MATCH=92/STALE=0). |
-| Wave 64 — STORY-141+142 F7 + pre-merge corrections | **F7 CONVERGED + human-APPROVED. DIM1-01+DIM3-01 fixed pre-merge (D-298). Code PR squash-merge IN PROGRESS.** | F7 consistency audit PASS; 2 non-blocking audit items DIM1-01 (RULING+BC-2.14.002 if-guard anchor lines 1110/1162) + DIM3-01 (VP-037 range 0..6) corrected. BC-INDEX v1.88; VP-INDEX v2.14 changelog entry. No behavioral change. |
+| Wave 64 — STORY-141+142 F7 + MERGE | **MERGED to develop — PR #336 squash (D-299, a13b5c5). stories_delivered=91. CI 10/10 green (run 28335634278).** | DIM1-01+DIM3-01 fixed pre-merge (D-298). BC-INDEX v1.88; VP-INDEX v2.14. Worktrees wave64-ec-fixes + modbus-ecx-verify removed. v0.11.0 HELD. |
 
 ## Decisions Log
 
@@ -253,6 +256,7 @@ D-228..D-269: `cycles/feature-enip-v0.11.0/decisions-archive.md`
 | D-296 | Wave-64 F6 hardening PASS @235a4a1. Worktree since F5: e1a64bd (carry-cap boundary coverage tests — added during the kill attempt) → 235a4a1 (unreachable cap-guard comments). Kani 36/37 (1 orthogonal reader harness still-solving, 0 failed; no break from carry-split). cargo-fuzz fuzz_modbus_parse 4.29M + fuzz_dnp3_parse 3.11M, 0 crashes. cargo-mutants delta: DNP3 desync fix-logic mutants ALL caught (frame_count==0 guard + carry conjuncts); Modbus non-cap mutants caught; the 4 saturating_sub + sustained `>=` covered by VP-038. Regression 2192/0; VP-037 2/2, VP-038 5/5. | 2026-06-28 |
 | D-297 | ARCHITECT ADJUDICATION (RULING-MODBUS-SIBLING-001 ADDENDUM-002): Modbus carry-cap guards at modbus.rs:1104/1150 are STRUCTURALLY UNREACHABLE — active_carry.clear() at L1075 drains dir_carry to 0 before the walk loop; max operand 7 (site 1104) / 259 (site 1150) < 260=MAX_ADU_CARRY_BYTES. Exact carry-max 259 (mirrors ENIP 599<600 RULING-137-002). The 6 cargo-mutants survivors (>→==, >→>=, +→* ×2 sites) are EQUIVALENT — excluded from kill denominator. F1 'reachable' claim RETRACTED. PROCESS: orchestrator escalated the F6-verifier(reachable) vs test-writer(equivalent) contradiction to the architect rather than accept either — definitive trace settled it. Follow-ups applied: ADDENDUM-002 + BC-2.14.002 errata (e773d55), unreachable code comments (235a4a1). | 2026-06-28 |
 | D-298 | Wave-64 F7 CONVERGED + human-APPROVED. Consistency audit PASS. 2 non-blocking F7 audit items fixed pre-merge per human direction: DIM1-01 — RULING-MODBUS-SIBLING-001 ADDENDUM-002 + BC-2.14.002 v2.1 if-guard line anchors reconciled from 1104/1150 → 1110/1162 (post-errata, post-unreachable-comment lines); BC-INDEX bumped v1.87→v1.88. DIM3-01 — VP-037 proptest range corrected 1usize..7 → 0usize..6 (covers the 0-byte empty-carry base case; no new behavior); VP-INDEX v2.14 changelog entry added. All changes non-behavioral; no story/AC/ruling logic altered. factory-artifacts committed (this commit). Code PR squash-merge to develop dispatched to pr-manager. v0.11.0 release STILL HELD — separate explicit human go-ahead required. | 2026-06-28 |
+| D-299 | Wave 64 (STORY-141 Modbus EC-X1/EC-X2 + STORY-142 DNP3 desync-latch) MERGED to develop via PR #336 — squash merge commit `a13b5c5` (merged 2026-06-28T20:52:37Z). CI 10/10 applicable checks green (run 28335634278). stories_delivered 89→91. All four v0.11.0 EC-X1/EC-X2 fixes now on develop: STORY-139 (ENIP, PR #334), STORY-140 (DNP3 sibling, PR #335), STORY-141 (Modbus, PR #336), STORY-142 (DNP3 desync-latch, PR #336). Worktrees .worktrees/wave64-ec-fixes + .worktrees/modbus-ecx-verify removed; remote+local feature branches deleted. v0.11.0 release STILL HELD (D-260/D-278) — explicit human go-ahead required before release/0.11.0 branch cut. Wave-64 sub-cycle closed; factory-artifacts checkpoint committed. Two v0.12.0 non-blocking backlog items registered: DNP3-DOC-COMMENT-STALE-ACTIVE-CARRY (NIT) + MODBUS-DEBUG-ASSERT-CARRY-CLEAR (SEC-002 LOW), both DF-VALIDATION-001-gated. | 2026-06-28 |
 
 ## Governance Policy
 
@@ -262,7 +266,7 @@ Full policy text: `.factory/policies.yaml`. Active policies (17): DF-VALIDATION-
 
 - `.factory/` is a `factory-artifacts` orphan-branch worktree, gitignored from `develop`.
 - Active cycle: `cycles/feature-enip-v0.11.0/` (cycle-manifest.md, decisions-archive.md D-228+). Issue #316.
-- STORY-INDEX.md authoritative (95 stories / 64 waves — v3.1). STORY-130..142 (141/142 F7 CONVERGED + human-APPROVED, D-298). stories_delivered=89 (will be 91 after Wave-64 code PR merges). v0.11.0 HELD pending human go-ahead (ships ENIP+DNP3+Modbus+DNP3-desync bundle).
-- Repo squash-only policy set (D-289). Wave 64 worktree .worktrees/wave64-ec-fixes @235a4a1 [fix/wave64-modbus-dnp3-ec] — F7 APPROVED, code PR merge IN PROGRESS.
+- STORY-INDEX.md authoritative (95 stories / 64 waves — v3.1). STORY-130..142 all MERGED. stories_delivered=91 (D-299). v0.11.0 HELD pending human go-ahead (ships ENIP+DNP3+Modbus+DNP3-desync bundle).
+- Repo squash-only policy set (D-289). Wave 64 worktrees removed (D-299).
 - F6 fuzz harness (F-P9-002) MERGED — PR #332 @f17d270 on develop (D-265).
 - BC-INDEX v1.88 (BC-2.14.002 v2.1 errata anchor reconciliation, DIM1-01 pre-merge fix, D-298). VP-037 range corrected 0..6 (DIM3-01, D-298).

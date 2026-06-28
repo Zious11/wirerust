@@ -443,3 +443,86 @@ before committing. Do NOT leave surviving instances for the next adversarial pas
 explicitly name `tests/*.rs` doc-comments and story Architecture Mapping tables as mandatory
 sweep targets alongside BC/ADR/INDEX files. This would codify the lesson mechanically rather
 than relying on dispatch-instruction discipline.
+
+---
+
+## [codified] [process-gap] VERIFY-DONT-TRUST-REGRESSION-001 — Wave 64: orchestrator refusal of unverified regression dismissal caught real regression (D-281, 2026-06-28)
+
+**Status:** CODIFIED — reinforces existing policy DF-ADVERSARY-TOOLCHAIN-PAIRING-001 (MEDIUM). No separate follow-up story required: policy already covers this class. Second confirmed instance (first was STORY-140 F4; both in this cycle). Deferral justified: the policy is in place; the failure mode is agent-behavior, not a missing gate.
+**Found at:** Wave-64 F4 (STORY-141+142 bundled worktree, D-281).
+**Decision:** D-281.
+
+**Observation:**
+
+During Wave-64 F4 implementation, the test-writer reported 3 failing `f5_resync_accounting`
+tests as "pre-existing" (i.e., already failing on develop before the carry-split refactor).
+The orchestrator refused to accept this dismissal and routed the claim to a devops bisect
+(git bisect against develop HEAD `b6d7a01` vs worktree). The bisect confirmed:
+
+- develop@b6d7a01: all 3 `f5_resync_accounting` tests GREEN.
+- worktree after carry-split: all 3 RED.
+
+The carry-split refactor had changed the dnp3 frame-walk loop guard `< 3` → `< 10`,
+silently dropping `parse_errors` increments in the junk-at-clean-boundary / LENGTH-gate
+resync path. The regression was REAL, not pre-existing. Fix committed at 1dda26b via
+`did_process_in_this_call` context tracking (dnp3.rs:442/455/495/535).
+
+**Root cause:** Test-writer and implementer agents may claim a failing test is "pre-existing"
+when context is insufficient to verify it. The agent cannot run bisect; the claim is
+plausible but unverified. Accepting it without verification would have shipped a regression
+into develop masked as "green."
+
+**Process improvement (reinforces DF-ADVERSARY-TOOLCHAIN-PAIRING-001):**
+
+ANY claim that a test failure is "pre-existing" or "unrelated to this change" MUST be
+verified by a devops bisect (`git bisect run cargo test <test_name>`) before the claim
+is accepted. The orchestrator must route such claims to a toolchain runner. Do NOT accept
+unverified dismissals of failing tests regardless of agent confidence level.
+
+This is the second occurrence in this cycle (STORY-140 F4 had the same pattern — also caught
+and routed to bisect). Recurrence count: 2. Policy DF-ADVERSARY-TOOLCHAIN-PAIRING-001 already
+mandates this behavior; the lesson here is that the policy must be applied at the regression-
+dismissal axis as well as the mutation-survivor axis.
+
+---
+
+## [codified] [process-gap] VERIFY-DONT-TRUST-MUTATION-CLAIM-001 — Wave 64: orchestrator refusal of unverified "structurally killed" mutation claim caught 11 survivors (D-283/D-284, 2026-06-28)
+
+**Status:** CODIFIED — reinforces existing policy DF-ADVERSARY-TOOLCHAIN-PAIRING-001 (MEDIUM). No separate follow-up story required. Same class as VERIFY-DONT-TRUST-REGRESSION-001 above. Deferral justified: policy in place, failure mode is agent-behavior at the mutation-survivor verification axis.
+**Found at:** Wave-64 F6 (STORY-141+142 bundled, first remediation burst 7bcbbaa, D-283/D-284).
+**Decision:** D-283, D-284.
+
+**Observation:**
+
+During Wave-64 F6 targeted hardening, the test-writer's first remediation burst (7bcbbaa,
+28 new tests) claimed that all cargo-mutants Group-A survivors were "structurally killed."
+The orchestrator refused to accept this claim and routed it back to the formal-verifier for
+an actual `cargo-mutants` re-run. The re-run found 11 Group-A survivors still alive:
+
+- carry-cap arithmetic mutants at modbus.rs:409/410
+- resync byte-walk sync-match mutants at dnp3.rs:467/479/511/555
+
+A second remediation burst (499c778, 11 targeted tests in dnp3_f6_story140_group_a_survivors.rs)
+was required to kill all 11. The verifier ran cargo-mutants again to confirm kill, and all 11
+were CAUGHT.
+
+**Pattern recurrence:** This is the same event class as STORY-140 F6 (D-283 first instance was
+also in Wave-63 F6, where the test-writer claimed structural-kill and verifier re-run found 11
+Group-A survivors). Two consecutive waves (Wave 63, Wave 64) required this exact intervention.
+
+**Root cause:** The test-writer agent cannot run `cargo-mutants` and must estimate kill rates
+from code inspection. Structural-kill claims ("this mutant cannot survive because...") are
+hypotheses, not verified results. The mutation testing toolchain must be run to confirm.
+
+**Process improvement (reinforces DF-ADVERSARY-TOOLCHAIN-PAIRING-001):**
+
+ANY claim that a mutant is "structurally killed," "equivalent," or "already caught" MUST be
+verified by an actual `cargo-mutants` run scoped to the mutant's source line. The formal-verifier
+must re-run cargo-mutants after each test addition to confirm kills before the orchestrator
+accepts the remediation as complete. Do NOT accept unverified mutation-kill claims.
+
+**Disposition (S-7.02):** Both VERIFY-DONT-TRUST-REGRESSION-001 and VERIFY-DONT-TRUST-MUTATION-CLAIM-001
+are codified here as named lessons. DF-ADVERSARY-TOOLCHAIN-PAIRING-001 covers both; no new story
+is needed. The recurring pattern across Waves 63 and 64 is noted for engine-improvement triage —
+if a third occurrence happens in Wave 65+, escalate to a named rule update in the policy or
+a new orchestrator prompt addition.

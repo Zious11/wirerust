@@ -169,10 +169,10 @@ traces_to:
 | STORY-136 | ENIP Connection Lifecycle: ForwardOpen/ForwardClose Detection | E-20 | 60 | 5 | completed | STORY-132, STORY-133 |
 | STORY-137 | ENIP Frame Walk Robustness: Carry Buffer, Non-ENIP Detection, and T0814 DoS Burst | E-20 | 60 | 8 | completed | STORY-132, STORY-133 |
 | STORY-138 | ENIP Session Lifecycle, Statistics, DoS Guard, and Analyzer Summary | E-20 | 61 | 8 | completed | STORY-134, STORY-135, STORY-136, STORY-137 |
-| STORY-139 | ENIP Per-Direction Carry Buffer + Saturating Window Monotonicity (EC-X1/EC-X2 Detection-Correctness Fixes) | E-20 | 62 | 8 | ready | STORY-138 |
-| STORY-140 | DNP3 Per-Direction Carry Buffer + Saturating Window Monotonicity + Operator Pin (DRIFT-DNP3-DIRECTION-001 / DRIFT-DNP3-CLOCK-001 / DRIFT-DNP3-OP-001) | E-15 | 63 | 8 | ready | STORY-139 |
-| STORY-141 | Modbus Per-Direction Carry Buffer + Saturating Window Monotonicity (DRIFT-MODBUS-DIRECTION-001 / DRIFT-MODBUS-CLOCK-001) | E-14 | 64 | 8 | ready | — |
-| STORY-142 | Fix DNP3 is_non_dnp3 Desync-Latch Direction-Contamination (RULING-DNP3-DESYNC-001) | E-15 | 64 | 3 | ready | STORY-140 |
+| STORY-139 | ENIP Per-Direction Carry Buffer + Saturating Window Monotonicity (EC-X1/EC-X2 Detection-Correctness Fixes) | E-20 | 62 | 8 | merged | STORY-138 |
+| STORY-140 | DNP3 Per-Direction Carry Buffer + Saturating Window Monotonicity + Operator Pin (DRIFT-DNP3-DIRECTION-001 / DRIFT-DNP3-CLOCK-001 / DRIFT-DNP3-OP-001) | E-15 | 63 | 8 | merged | STORY-139 |
+| STORY-141 | Modbus Per-Direction Carry Buffer + Saturating Window Monotonicity (DRIFT-MODBUS-DIRECTION-001 / DRIFT-MODBUS-CLOCK-001) | E-14 | 64 | 8 | merged | — |
+| STORY-142 | Fix DNP3 is_non_dnp3 Desync-Latch Direction-Contamination (RULING-DNP3-DESYNC-001) | E-15 | 64 | 3 | merged | STORY-140 |
 
 ---
 
@@ -341,9 +341,9 @@ traces_to:
 | 59 | STORY-132, STORY-133 | **DELIVERED & CLOSED** | #319, #320 | 16d3ce7, 7f040de | 2026-06-25 |
 | 60 | STORY-134, STORY-135, STORY-136, STORY-137 | **DELIVERED & CLOSED** | #323, #324, #326, #327 | e330ccc, 84be2fb, a2cb795, 72a9106 | 2026-06-26 |
 | 61 | STORY-138 | **DELIVERED & CLOSED** | #329, #330 | b4624ef, 7ceb670 | 2026-06-26 |
-| 62 | STORY-139 | ready | — | — | — |
-| 63 | STORY-140 | ready | — | — | — |
-| 64 | STORY-141, STORY-142 | ready | — | — | — |
+| 62 | STORY-139 | **DELIVERED & CLOSED** | #334 | 99a06f4 | 2026-06-27 |
+| 63 | STORY-140 | **DELIVERED & CLOSED** | #335 | b6d7a01 | 2026-06-28 |
+| 64 | STORY-141, STORY-142 | **DELIVERED & CLOSED** | #336 | a13b5c5 | 2026-06-28 |
 
 ## Coverage Verification
 
