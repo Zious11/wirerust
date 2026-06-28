@@ -130,7 +130,7 @@ On each structural-reject path fire (LENGTH<5, frame-length mismatch, carry over
 
 ### AC-014 (traces to BC-2.15.014 invariant 8 — pending_requests timeout-check uses wrapping_sub)
 `now_ts.wrapping_sub(request_ts) > BLOCK_CMD_TIMEOUT_SECS = 10` is the timeout check (not `now_ts - request_ts`). This prevents panic under overflow-checks=true when timestamps go backward (out-of-order pcap replay).
-- **Test:** `test_pending_request_timeout_wrapping_sub()`
+- **Test:** `test_pending_request_timeout_no_spurious_fire_on_rollover_or_backwards_ts()` (AC-014's original `wrapping_sub` rollover-fires semantics superseded by BC-2.15.014 v2.1 EC-009 / RULING-DNP3-SIBLING-001 §2.2 / STORY-140; test renamed to `test_pending_request_timeout_no_spurious_fire_on_rollover_or_backwards_ts` — now asserts no-spurious-fire on rollover/backwards-ts, plus a forward-clock companion that DOES fire)
 
 ## Architecture Mapping
 
