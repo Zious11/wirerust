@@ -3400,4 +3400,153 @@ mod desync_latch {
             "Step 2: frame_count must be 0 (flow was permanently silenced on first junk delivery)"
         );
     }
+
+    // -----------------------------------------------------------------------
+    // AC-142-004: RED regression — complete-frame c2s → junk s2c silences stream
+    //             (architect-confirmed sub-case ii of RULING-DNP3-DESYNC-001)
+    //
+    // Sub-case (i) (partial c2s → junk s2c) is covered by test_ac142_002.
+    // Sub-case (ii) (COMPLETE c2s → carry drained → junk s2c → both carries empty
+    //   → latch fires despite frame_count >= 1) is the INCOMPLETE fix in 315992d.
+    //
+    // Root cause: the both-carries-empty predicate does not distinguish between
+    //   "unestablished flow" (frame_count == 0, never seen valid DNP3)  and
+    //   "established flow where the last complete frame drained carry_c2s"
+    //   (frame_count >= 1).  After a complete frame, carry_c2s is drained back
+    //   to empty, so the both-carries-empty condition is indistinguishable from
+    //   a brand-new flow — and junk s2c incorrectly latches is_non_dnp3.
+    //
+    // Required fix (implementer adds next): guard the latch with `frame_count == 0`.
+    //   New predicate: carry_c2s.is_empty() && carry_s2c.is_empty()
+    //                  && frame_count == 0
+    //                  && data.len() >= 2 && (data[0] != 0x05 || data[1] != 0x64)
+    //
+    // Steps:
+    //   1. Deliver one COMPLETE valid c2s DNP3 frame (all frame_len bytes in one
+    //      on_data call). Assert: frame_count == 1, carry_c2s.is_empty() == true,
+    //      is_non_dnp3 == false.
+    //   2. Deliver non-DNP3 junk bytes (>=2, first two != 0x05/0x64) in ServerToClient
+    //      direction. Both carries are empty (carry_c2s drained in step 1, carry_s2c
+    //      never used). Assert: is_non_dnp3 == FALSE.
+    //      *** THIS is the RED assertion against 315992d. ***
+    //      Current code: both-carries-empty && junk → is_non_dnp3 = true.
+    //      After fix:    both-carries-empty && frame_count == 0 → frame_count=1 → guard fails.
+    //   3. Deliver a second complete valid c2s frame. Assert: frame_count == 2
+    //      (the established c2s stream was NOT silenced).
+    //
+    // Traces to: BC-2.15.009 v2.0 Precondition 3; RULING-DNP3-DESYNC-001 sub-case (ii);
+    //            STORY-142 AC-142-004.
+    // -----------------------------------------------------------------------
+
+    /// RED regression guard for STORY-142 architect-confirmed sub-case (ii).
+    ///
+    /// After a complete c2s frame drains carry_c2s (frame_count becomes 1, carry_c2s
+    /// becomes empty), a subsequent junk s2c delivery finds both carries empty and
+    /// incorrectly latches is_non_dnp3 under the 315992d code — permanently silencing
+    /// the established c2s stream.
+    ///
+    /// RED against 315992d: step-2 assertion `!flow.is_non_dnp3` fails because
+    ///   both-carries-empty fires without the `frame_count == 0` guard.
+    /// GREEN after fix: `frame_count == 0` guard prevents the latch (frame_count == 1
+    ///   after step 1 → guard condition false → is_non_dnp3 remains false).
+    ///
+    /// Cites: RULING-DNP3-DESYNC-001 sub-case (ii); BC-2.15.009 v2.0 Precondition 3.
+    #[test]
+    fn test_ac142_004_established_c2s_preserved_on_junk_s2c_after_complete_frame() {
+        let key = make_key();
+        let mut az = make_analyzer();
+
+        // Build a minimal complete DNP3 c2s frame.
+        // LENGTH=5 → frame_len = 5 + 5 + 2*ceil(0/16) = 10 bytes (no user data blocks).
+        // This is the smallest possible complete DNP3 link frame.
+        // Deliver ALL 10 bytes in a single on_data call → carry_c2s is drained after
+        // the frame is processed (complete frame → frame_count increments → carry cleared).
+        let length_byte: u8 = 5;
+        let u = (length_byte as usize) - 5; // 0 user bytes
+        let blocks = if u == 0 { 0 } else { u.div_ceil(16) };
+        let frame_len = 5 + (length_byte as usize) + 2 * blocks; // 10
+        assert_eq!(frame_len, 10, "test setup: LENGTH=5 must give frame_len=10");
+
+        let mut complete_c2s = vec![0u8; frame_len];
+        complete_c2s[0] = 0x05; // sync byte 1
+        complete_c2s[1] = 0x64; // sync byte 2
+        complete_c2s[2] = length_byte;
+        complete_c2s[3] = 0xC4; // CTRL: DIR=1, PRM=1, UNCONFIRMED_USER_DATA
+        complete_c2s[4] = 0x01; // DEST lo
+        complete_c2s[5] = 0x00; // DEST hi  → dest = 0x0001
+        complete_c2s[6] = 0x03; // SRC lo
+        complete_c2s[7] = 0x00; // SRC hi   → src  = 0x0003
+        // bytes 8–9: CRC placeholder (0x00 0x00)
+
+        // Step 1: deliver the complete frame.
+        az.on_data(key.clone(), &complete_c2s, 100, Direction::ClientToServer);
+
+        {
+            let flow = az
+                .flows
+                .get(&key)
+                .expect("flow must exist after complete c2s delivery");
+            assert_eq!(
+                flow.frame_count, 1,
+                "Step 1: frame_count must be 1 after one complete c2s frame"
+            );
+            assert!(
+                flow.carry_c2s.is_empty(),
+                "Step 1: carry_c2s must be empty after complete frame was fully consumed"
+            );
+            assert!(
+                !flow.is_non_dnp3,
+                "Step 1: is_non_dnp3 must be false after a valid c2s frame"
+            );
+        }
+
+        // Step 2: deliver non-DNP3 junk in s2c direction.
+        // carry_c2s: empty (drained in step 1).  carry_s2c: empty (never used).
+        // 315992d both-carries-empty predicate: TRUE → latch fires → is_non_dnp3 = true.
+        // Fixed predicate (with frame_count == 0 guard): frame_count=1 → guard false → no latch.
+        //
+        // Junk bytes: first two bytes must NOT be [0x05, 0x64] to trigger the desync path.
+        let junk_s2c: [u8; 3] = [0xAB, 0xCD, 0xEF];
+        az.on_data(key.clone(), &junk_s2c, 101, Direction::ServerToClient);
+
+        {
+            let flow = az
+                .flows
+                .get(&key)
+                .expect("flow must exist after junk s2c delivery");
+            // *** RED assertion against 315992d ***
+            // Current code: both-carries-empty fires → is_non_dnp3 = true → assertion fails.
+            // After fix:    frame_count=1 blocks latch  → is_non_dnp3 = false → assertion passes.
+            assert!(
+                !flow.is_non_dnp3,
+                "Step 2 (RED): is_non_dnp3 must remain FALSE after junk s2c delivery when \
+                 carry_c2s was drained by a complete prior frame (frame_count=1, both carries \
+                 empty, but flow IS established); 315992d lacks frame_count==0 guard — \
+                 both-carries-empty fires incorrectly, setting is_non_dnp3=true; \
+                 RULING-DNP3-DESYNC-001 sub-case (ii)"
+            );
+        }
+
+        // Step 3: deliver a second complete c2s frame.
+        // If is_non_dnp3 was incorrectly latched in step 2, on_data returns immediately
+        // without processing the frame → frame_count stays 1.
+        // After the fix, is_non_dnp3 is false → frame processed → frame_count = 2.
+        az.on_data(key.clone(), &complete_c2s, 102, Direction::ClientToServer);
+
+        let flow_final = az
+            .flows
+            .get(&key)
+            .expect("flow must exist after second c2s frame");
+        assert_eq!(
+            flow_final.frame_count, 2,
+            "Step 3: frame_count must be 2 after second complete c2s frame \
+             (established c2s stream was NOT silenced by junk s2c in step 2); \
+             RED against 315992d: is_non_dnp3 latched in step 2 → on_data bails \
+             → frame_count stays 1 → assertion fails; BC-2.15.009 v2.0 Precondition 3"
+        );
+        assert!(
+            !flow_final.is_non_dnp3,
+            "Step 3: is_non_dnp3 must remain FALSE (established c2s flow preserved)"
+        );
+    }
 } // mod desync_latch
