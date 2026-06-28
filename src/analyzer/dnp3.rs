@@ -161,8 +161,9 @@ pub const CORRELATION_WINDOW_SECS: u32 = 300;
 /// Per-request timeout for block-command inference (BC-2.15.014).
 /// A Control-class request that receives no matching RESPONSE (FC=0x81) within
 /// this many seconds contributes one increment to `block_event_count`.
-/// `wrapping_sub` used for all comparisons (BC-2.15.014 Inv 2 / BC-2.15.016
-/// Inv 8 — prevents panic under overflow-checks=true on out-of-order pcap replay).
+/// `saturating_sub` used for all comparisons (BC-2.15.014 Inv 2 / BC-2.15.016
+/// Inv 8 / RULING-DNP3-SIBLING-001 §2.2 — prevents panic under
+/// overflow-checks=true on out-of-order pcap replay).
 #[allow(unused)]
 pub const BLOCK_CMD_TIMEOUT_SECS: u32 = 10;
 
@@ -875,8 +876,9 @@ impl Dnp3Analyzer {
     /// the first FC in a window, resets on window expiry, and pushes exactly one
     /// T1692.001 `Finding` when `count > threshold` and the one-shot guard is clear.
     ///
-    /// All timestamp arithmetic uses `wrapping_sub` (overflow-checks=true in release;
-    /// EC-008 out-of-order pcap safety). Cap check: `findings.len() < MAX_FINDINGS`.
+    /// All timestamp arithmetic uses `saturating_sub` (overflow-checks=true in release;
+    /// EC-008 out-of-order pcap safety / RULING-DNP3-SIBLING-001 §2.2). Cap check:
+    /// `findings.len() < MAX_FINDINGS`.
     // 8 args is one above the default clippy limit (7); adding flow_key for BC-2.15.010 PC3
     // source_ip resolution is the minimal change. A refactor into a context struct is tracked
     // as a future cleanup but is out of scope for this adversarial fix (F-108-P1-001).
@@ -1158,8 +1160,9 @@ impl Dnp3Analyzer {
     /// 300s correlation-window expiry handler (Task 5, BC-2.15.015 single
     /// reset owner).
     ///
-    /// When `now_ts.wrapping_sub(flow.correlation_window_start_ts) >=
-    /// CORRELATION_WINDOW_SECS`, resets ALL SIX windowed fields and updates
+    /// When `now_ts.saturating_sub(flow.correlation_window_start_ts) >
+    /// CORRELATION_WINDOW_SECS` (DRIFT-DNP3-OP-001 operator pin; strict `>` not
+    /// `>=`), resets ALL SIX windowed fields and updates
     /// `correlation_window_start_ts = now_ts`.  Must be called BEFORE any
     /// emission check in `on_data`.
     ///
@@ -1173,7 +1176,7 @@ impl Dnp3Analyzer {
         // to now_ts so that the first 300-second window starts at the first observed
         // packet timestamp, not at the UNIX epoch.  Without this seed, the very
         // first delivery at any ts >= CORRELATION_WINDOW_SECS would spuriously fire
-        // a window expiry (wrapping_sub(ts, 0) >= 300) and reset windowed fields
+        // a window expiry (saturating_sub(ts, 0) > 300) and reset windowed fields
         // that were just populated in the same on_data call.
         // NOTE: when now_ts == 0 this is a no-op (seed to 0 == already 0) and
         // the next delivery at ts=301 will correctly trigger a real expiry.
@@ -1588,7 +1591,8 @@ impl Dnp3Analyzer {
     ) {
         // BC-2.15.024 Precondition 3 (OBS-2): explicit in-window guard so this function
         // is correct under any call-site ordering (not just when maybe_expire runs first).
-        // Uses wrapping_sub for u32 timestamp safety (overflow-checks=true in release).
+        // Uses saturating_sub for u32 timestamp safety (overflow-checks=true in release;
+        // RULING-DNP3-SIBLING-001 §2.2 backwards-clock protection).
         let in_window =
             now_ts.saturating_sub(flow.correlation_window_start_ts) < CORRELATION_WINDOW_SECS;
         if flow.malformed_in_window >= MALFORMED_ANOMALY_THRESHOLD

@@ -194,7 +194,7 @@ mod story_108 {
         // Format: "DNP3 unauthorized control command burst: {count} control FCs in {elapsed}s
         // window (threshold {threshold})"
         // count=11, elapsed=10 (ts of 11th frame=10, window_start_ts=0), threshold=10.
-        // Elapsed is derived from wrapping_sub(10, 0)=10 — deterministic for fixed timestamps.
+        // Elapsed is derived from saturating_sub(10, 0)=10 — deterministic for fixed timestamps.
         // Use starts_with to pin everything except the timing-sensitive elapsed suffix.
         assert!(
             f.summary.starts_with(
@@ -290,8 +290,8 @@ mod story_108 {
     /// AC-004: Emit a finding in window 1; advance time past 60s; verify window resets
     /// and a second finding can be emitted in the new window.
     ///
-    /// Uses `wrapping_sub` semantics: the implementation must check
-    /// `now_ts.wrapping_sub(window_start_ts) > DETECTION_WINDOW_SECS`.
+    /// Uses `saturating_sub` semantics (RULING-DNP3-SIBLING-001 §2.2): the implementation
+    /// must check `now_ts.saturating_sub(window_start_ts) > DETECTION_WINDOW_SECS`.
     ///
     /// Traces to: BC-2.15.010 postcondition 4; STORY-108 AC-004.
     #[test]
@@ -1274,14 +1274,15 @@ mod story_108 {
     // EC-008: wrapping_sub — out-of-order timestamp safe (no panic)
     // -----------------------------------------------------------------------
 
-    /// EC-008: `now_ts.wrapping_sub(window_start_ts)` must not panic with out-of-order
+    /// EC-008: `now_ts.saturating_sub(window_start_ts)` must not panic with out-of-order
     /// timestamps (e.g. pcap replay where timestamps go backward).
     ///
     /// Scenario: seed window at ts=0xFFFFFFF0; new FC at ts=0x00000005.
-    /// wrapping_sub(0x5, 0xFFFFFFF0) = 0x00000015 = 21 seconds (within 60s window).
+    /// saturating_sub(0x5, 0xFFFFFFF0) = 0 (saturates at 0; backwards-clock stays in window).
     /// Plain subtraction (0x5 - 0xFFFFFFF0) would overflow with overflow-checks=true.
     ///
-    /// Traces to: BC-2.15.010 invariant (wrapping_sub required); STORY-108 EC-008.
+    /// Traces to: BC-2.15.010 invariant (saturating_sub required; RULING-DNP3-SIBLING-001
+    /// §2.2); STORY-108 EC-008.
     #[test]
     fn test_EC_008_wrapping_sub_out_of_order_timestamp_no_panic() {
         let mut analyzer = Dnp3Analyzer::new(10);
@@ -1298,17 +1299,17 @@ mod story_108 {
         );
 
         // Deliver 10 more frames at ts that wraps around (0..=9)
-        // wrapping_sub(0x9, 0xFFFFFFF0) = 0x19 = 25 < 60 → still in same window
+        // saturating_sub(0x9, 0xFFFFFFF0) = 0 < 60 → still in same window (saturates at 0)
         for i in 0..10u32 {
             let frame = build_detection_frame(0x05, 0x0003, 0x0001);
             // Must NOT panic (plain subtraction would panic due to overflow-checks=true)
             analyzer.on_data(key.clone(), &frame, i, Direction::ClientToServer);
         }
 
-        // If we got here without panic, wrapping_sub is working.
-        // Count must be >= 11 in the window (or reset depending on wrapping delta):
-        // wrapping_sub(0, 0xFFFFFFF0) = 0x10 = 16 < 60 → same window
-        // wrapping_sub(9, 0xFFFFFFF0) = 0x19 = 25 < 60 → same window
+        // If we got here without panic, saturating_sub is working.
+        // Count must be >= 11 in the window (backwards-ts saturates to 0, stays in window):
+        // saturating_sub(0, 0xFFFFFFF0) = 0 < 60 → same window
+        // saturating_sub(9, 0xFFFFFFF0) = 0 < 60 → same window
         // So all 11 FCs should be in the same window (threshold=10 → finding emitted)
         let t1692 = analyzer
             .all_findings

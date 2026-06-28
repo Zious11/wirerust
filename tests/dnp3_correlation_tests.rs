@@ -195,7 +195,7 @@ mod story_109 {
             let frame = build_detection_frame_with_seq(0x05, 0x0003, 0x0001, i as u8);
             analyzer.on_data(key.clone(), &frame, base_ts, Direction::ClientToServer);
             // Advance 11 seconds: triggers block-timeout scan for all pending_requests
-            // with wrapping_sub(base_ts + 11, base_ts) = 11 > BLOCK_CMD_TIMEOUT_SECS (10)
+            // with saturating_sub(base_ts + 11, base_ts) = 11 > BLOCK_CMD_TIMEOUT_SECS (10)
             let trigger = build_detection_frame(0x01, 0x0003, 0x0001);
             analyzer.on_data(
                 key.clone(),
@@ -485,7 +485,7 @@ mod story_109 {
     ///   ts=10:  COLD_RESTART #2 → restart_event_count=2, T0814 emitted; combined=2 < 3
     ///   ts=20:  SELECT (FC=0x03, app_seq=7, dest=0x0003) delivered — pending_requests entry
     ///   ts=31:  READ frame (no RESPONSE for seq=7) — block-timeout scan fires;
-    ///           wrapping_sub(31, 20) = 11 > BLOCK_CMD_TIMEOUT_SECS=10;
+    ///           saturating_sub(31, 20) = 11 > BLOCK_CMD_TIMEOUT_SECS=10;
     ///           block_event_count becomes 1; combined = 2+1 = 3 >= T0827_THRESHOLD=3.
     ///           T1691.001 is NOT emitted (block_event_count=1 < BLOCK_CMD_THRESHOLD=3).
     ///           T0827 MUST be emitted (combined >= 3, !loss_of_control_emitted).
@@ -559,7 +559,7 @@ mod story_109 {
         }
 
         // --- Step 3: advance to ts=31 with no RESPONSE for seq=7 ---
-        // wrapping_sub(31, 20) = 11 > BLOCK_CMD_TIMEOUT_SECS=10 → block timeout fires.
+        // saturating_sub(31, 20) = 11 > BLOCK_CMD_TIMEOUT_SECS=10 → block timeout fires.
         // block_event_count → 1; combined = 2+1 = 3.
         // T1691.001 must NOT fire (block_event_count=1 < BLOCK_CMD_THRESHOLD=3).
         // T0827 MUST fire (combined=3 >= T0827_THRESHOLD=3).
@@ -714,7 +714,7 @@ mod story_109 {
         analyzer.on_data(key.clone(), &select1, 10, Direction::ClientToServer);
 
         // --- Step 3: advance to ts=21 with no RESPONSE for seq=1 ---
-        // wrapping_sub(21, 10) = 11 > 10 → block timeout fires; block_event_count=1.
+        // saturating_sub(21, 10) = 11 > 10 → block timeout fires; block_event_count=1.
         // combined = 1+1 = 2 < 3 → no T0827 yet.
         let trigger1 = build_detection_frame(0x01, 0x0003, 0x0001);
         analyzer.on_data(key.clone(), &trigger1, 21, Direction::ClientToServer);
@@ -744,7 +744,7 @@ mod story_109 {
         analyzer.on_data(key.clone(), &select2, 30, Direction::ClientToServer);
 
         // --- Step 5: advance to ts=41 with no RESPONSE for seq=2 ---
-        // wrapping_sub(41, 30) = 11 > 10 → block timeout fires; block_event_count=2.
+        // saturating_sub(41, 30) = 11 > 10 → block timeout fires; block_event_count=2.
         // combined = 1+2 = 3 >= T0827_THRESHOLD=3.
         // T1691.001 must NOT fire (block_event_count=2 < BLOCK_CMD_THRESHOLD=3).
         // T0827 MUST fire (combined=3 >= 3, !loss_of_control_emitted).
@@ -906,7 +906,7 @@ mod story_109 {
 
         // Now advance past the 300s correlation window.
         // correlation_window_start_ts was seeded at ts=0; now send a frame at ts=301
-        // (wrapping_sub(301, 0) = 301 >= CORRELATION_WINDOW_SECS=300 → window expires).
+        // (saturating_sub(301, 0) = 301 > CORRELATION_WINDOW_SECS=300 → window expires).
         let trigger = build_detection_frame(0x01, 0x0003, 0x0001);
         analyzer.on_data(key.clone(), &trigger, 301, Direction::ClientToServer);
 
@@ -1039,7 +1039,7 @@ mod story_109 {
 
             // Assertion 5 (secondary mutant kill): deliver a third frame still at ts=1000.
             // Under the correct code: seeded=true, so the expiry check runs but
-            // wrapping_sub(1000, 1000) = 0 < 300 → no expiry → counters intact.
+            // saturating_sub(1000, 1000) = 0 < 300 → no expiry → counters intact.
             // Under the mutant: seeded is still false → seed branch fires again → return
             // immediately WITHOUT running the expiry check.  Either way restart_event_count
             // must still be 1 here (no expiry occurred), but `correlation_window_seeded`
@@ -2329,7 +2329,7 @@ mod story_109 {
 
         // BC-2.15.015 PC1 exact summary format:
         //   restart_count=1, block_count=2, elapsed=200s, dest=0x0003
-        // wrapping_sub(200, 0) = 200; {0x0003:#06X} = "0x0003"
+        // saturating_sub(200, 0) = 200; {0x0003:#06X} = "0x0003"
         let expected_summary = "DNP3 sustained loss-of-control pattern: \
             1 restart events + 2 blocked commands within 200s on flow (dest=0x0003)";
         assert_eq!(
