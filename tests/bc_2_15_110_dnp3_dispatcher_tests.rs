@@ -996,7 +996,12 @@ mod story_110 {
         // Deliver threshold+1 = 4 frames to trigger the burst.
         // All at the same timestamp to stay within DETECTION_WINDOW_SECS.
         for _ in 0..=(threshold as usize) {
-            analyzer.on_data(key.clone(), &frame, 1_700_000_000);
+            analyzer.on_data(
+                key.clone(),
+                &frame,
+                1_700_000_000,
+                Direction::ClientToServer,
+            );
         }
 
         let has_t1692 = analyzer
@@ -1027,7 +1032,12 @@ mod story_110 {
 
         let (frame, _) = dnp3_direct_operate_frame(1_700_000_000);
         // ONE frame → count=1 > threshold=0 → should fire immediately.
-        analyzer.on_data(key.clone(), &frame, 1_700_000_000);
+        analyzer.on_data(
+            key.clone(),
+            &frame,
+            1_700_000_000,
+            Direction::ClientToServer,
+        );
 
         let has_t1692 = analyzer
             .all_findings
@@ -1058,7 +1068,12 @@ mod story_110 {
         let (frame, _) = dnp3_direct_operate_frame(1_700_000_000);
         // Deliver threshold+1 frames.
         for _ in 0..=(threshold as usize) {
-            analyzer.on_data(key.clone(), &frame, 1_700_000_000);
+            analyzer.on_data(
+                key.clone(),
+                &frame,
+                1_700_000_000,
+                Direction::ClientToServer,
+            );
         }
 
         let t1692_findings: Vec<_> = analyzer
@@ -1102,14 +1117,19 @@ mod story_110 {
         let (frame, _) = dnp3_direct_operate_frame(1_700_000_000);
 
         // First frame at ts=1_700_000_000 → seeds window_start_ts.
-        analyzer.on_data(key.clone(), &frame, 1_700_000_000);
+        analyzer.on_data(
+            key.clone(),
+            &frame,
+            1_700_000_000,
+            Direction::ClientToServer,
+        );
 
         // Second frame at ts=1_700_000_000 + DETECTION_WINDOW_SECS + 1 → window expired.
         // Counter resets to 1 (new window). Finding does NOT fire (count=1 <= threshold=2).
         let late_ts = 1_700_000_000u32
             .wrapping_add(DETECTION_WINDOW_SECS)
             .wrapping_add(1);
-        analyzer.on_data(key.clone(), &frame, late_ts);
+        analyzer.on_data(key.clone(), &frame, late_ts, Direction::ClientToServer);
 
         // No T1692.001 finding: the counter reset to 1 after window expiry.
         let has_t1692 = analyzer

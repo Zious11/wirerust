@@ -44,6 +44,7 @@ use libfuzzer_sys::fuzz_target;
 use std::net::{IpAddr, Ipv4Addr};
 use wirerust::analyzer::dnp3::{parse_dnp3_dl_header, Dnp3Analyzer};
 use wirerust::reassembly::flow::FlowKey;
+use wirerust::reassembly::handler::Direction;
 
 fuzz_target!(|data: &[u8]| {
     // --- Surface 1: direct pure-core DL-header parse over UNBOUNDED attacker bytes ---
@@ -63,14 +64,17 @@ fuzz_target!(|data: &[u8]| {
     let split = data.len() / 2;
     let (first, second) = data.split_at(split);
 
-    // First segment establishes the flow (sync-word check / desync latch).
-    analyzer.on_data(key.clone(), first, 1_700_000_000);
-    // Second segment with a later timestamp exercises the carry cross-boundary
-    // walk and the time-windowed correlation-window / block-timeout scans.
-    analyzer.on_data(key.clone(), second, 1_700_000_005);
-    // Feed the whole buffer once more, far in the future, to drive the 300s
-    // correlation-window expiry (BC-2.15.015) and overflow-discard accounting.
-    analyzer.on_data(key.clone(), data, 1_700_000_400);
+    // First segment (master request, ClientToServer) establishes the flow
+    // (sync-word check / desync latch) and stashes any partial frame in carry_c2s.
+    analyzer.on_data(key.clone(), first, 1_700_000_000, Direction::ClientToServer);
+    // Second segment in the OPPOSITE direction (outstation response, ServerToClient):
+    // STORY-140 per-direction carry isolation means this must NOT prepend the
+    // c2s partial frame — it walks carry_s2c independently. Exercises the
+    // carry_c2s / carry_s2c split directly.
+    analyzer.on_data(key.clone(), second, 1_700_000_005, Direction::ServerToClient);
+    // Feed the whole buffer once more, far in the future, ClientToServer, to drive
+    // the 300s correlation-window expiry (BC-2.15.015) and overflow-discard accounting.
+    analyzer.on_data(key.clone(), data, 1_700_000_400, Direction::ClientToServer);
 
     // A second flow on a non-standard port pair (NEITHER endpoint on 20000)
     // exercises the resolve_master_ip ambiguous arm.
@@ -78,6 +82,6 @@ fuzz_target!(|data: &[u8]| {
     let ip_d = IpAddr::V4(Ipv4Addr::new(192, 168, 1, 2));
     let key2 = FlowKey::new(ip_c, 40000, ip_d, 41000);
     let mut analyzer2 = Dnp3Analyzer::new(1);
-    analyzer2.on_data(key2.clone(), data, 1_700_000_000);
-    analyzer2.on_data(key2, second, 1_700_000_010);
+    analyzer2.on_data(key2.clone(), data, 1_700_000_000, Direction::ClientToServer);
+    analyzer2.on_data(key2, second, 1_700_000_010, Direction::ServerToClient);
 });

@@ -358,11 +358,11 @@ impl StreamHandler for StreamDispatcher {
             }
             DispatchTarget::Dnp3 => {
                 // BC-2.15.021 §P3: route a port-20000-classified flow's data to
-                // Dnp3Analyzer; no-op if disabled. Direction and byte-offset are
-                // not threaded through — Dnp3Analyzer::on_data does its own
-                // frame-walk from the raw payload.
+                // Dnp3Analyzer; no-op if disabled.
+                // STORY-140 (BC-2.15.016 v2.0 Precondition 2): pass direction to
+                // on_data (Modbus/ENIP pattern; AC-140-003).
                 if let Some(ref mut dnp3) = self.dnp3 {
-                    dnp3.on_data(flow_key.clone(), data, timestamp);
+                    dnp3.on_data(flow_key.clone(), data, timestamp, direction);
                 }
             }
             DispatchTarget::Enip => {
