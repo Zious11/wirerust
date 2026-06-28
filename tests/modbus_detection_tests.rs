@@ -414,7 +414,7 @@ mod story_104 {
         drive(&mut az, &mut flow, &fk, Direction::ClientToServer, &adu1, 0);
         drive(&mut az, &mut flow, &fk, Direction::ClientToServer, &adu2, 1);
 
-        // Third write at 6s (window expired — wrapping_sub(6, 0) = 6 > T0831_WINDOW_SECS=5).
+        // Third write at 6s (window expired — saturating_sub(6, 0) = 6 > T0831_WINDOW_SECS=5).
         let adu3 = build_adu(0x0003, 0x01, 0x06, &[0x00, 0x12, 0x01, 0xF4]);
         let f3 = drive(&mut az, &mut flow, &fk, Direction::ClientToServer, &adu3, 6);
 
@@ -468,16 +468,16 @@ mod story_104 {
         );
     }
 
-    /// test_BC_2_14_016_t0831_wrapping_sub_wrap
+    /// test_BC_2_14_016_t0831_saturating_sub_wrap
     ///
     /// Timestamp wrap: write1 at ts=0xFFFFFFFE, write2 at ts=0x00000001.
-    /// wrapping_sub(0x00000001, 0xFFFFFFFE) = 3 seconds < T0831_WINDOW_SECS=5 → same window.
+    /// saturating_sub(0x00000001, 0xFFFFFFFE) = 0 seconds < T0831_WINDOW_SECS=5 → same window.
     /// Both writes within the same T0831 window → second write carries T0831.
-    /// F-DELTA-001: timestamps are seconds; 3s elapsed is within the 5s T0831 window.
-    /// Traces to: BC-2.14.016 + f2-fix-directives §11.5b (wrapping_sub policy).
-    /// Also traces to: STORY-104 AC-006 (wrapping_sub for all window elapsed computations).
+    /// F-DELTA-001: timestamps are seconds; 0s elapsed (saturating) is within the 5s T0831 window.
+    /// Traces to: BC-2.14.016 + f2-fix-directives §11.5b (saturating_sub policy).
+    /// Also traces to: STORY-104 AC-006 (saturating_sub for all window elapsed computations).
     #[test]
-    fn test_BC_2_14_016_t0831_wrapping_sub_wrap() {
+    fn test_BC_2_14_016_t0831_saturating_sub_wrap() {
         let mut az = default_analyzer();
         let mut flow = ModbusFlowState::default();
         let fk = test_flow_key();
@@ -486,7 +486,7 @@ mod story_104 {
         let adu2 = build_adu(0x0002, 0x01, 0x06, &[0x00, 0x10, 0x02, 0x00]);
 
         // write1 near u32::MAX boundary, write2 slightly past zero (wrap-around).
-        // wrapping_sub(0x00000001, 0xFFFFFFFE) = 3 seconds → within 5s T0831 window.
+        // saturating_sub(0x00000001, 0xFFFFFFFE) = 0 seconds → within 5s T0831 window.
         drive(
             &mut az,
             &mut flow,
@@ -504,10 +504,10 @@ mod story_104 {
             0x00000001_u32,
         );
 
-        // wrapping_sub(0x1, 0xFFFFFFFE) = 3 → within 5s window → T0831 fires (no panic from overflow-checks)
+        // saturating_sub(0x1, 0xFFFFFFFE) = 0 → within 5s window → T0831 fires (no panic from overflow-checks)
         assert!(
             f2[0].mitre_techniques.contains(&"T0831".to_string()),
-            "wrapping_sub ensures T0831 fires across u32 boundary"
+            "saturating_sub ensures T0831 fires across u32 boundary"
         );
     }
 
@@ -780,18 +780,19 @@ mod story_104 {
     }
 
     // ---------------------------------------------------------------------------
-    // BC-2.14.017 / AC-006 — wrapping_sub for all window elapsed computations
+    // BC-2.14.017 / AC-006 — saturating_sub for all window elapsed computations
     // ---------------------------------------------------------------------------
 
-    /// test_BC_2_14_017_window_elapsed_uses_wrapping_sub_no_panic
+    /// test_BC_2_14_017_window_elapsed_uses_saturating_sub_no_panic
     ///
     /// Deliver a write at ts=0xFFFFFF00 (near u32::MAX), then a write at ts=0x00000100.
     /// Plain subtraction: 0x100 - 0xFFFFFF00 = underflow → panic in debug mode.
-    /// wrapping_sub: 0x100u32.wrapping_sub(0xFFFFFF00) = 0x00000200 = 512 seconds → no panic.
-    /// Expected: no panic; 512 seconds elapsed < 1s burst window boundary check → still in window.
+    /// saturating_sub: 0x100u32.saturating_sub(0xFFFFFF00) = 0 seconds → no panic, window preserved.
+    /// Expected: no panic; elapsed=0 does NOT exceed 1s burst window → window is NOT reset →
+    ///   window_write_count accumulates to 2 (discriminating: proves window was preserved, not reset).
     /// Traces to: BC-2.14.017 + f2-fix-directives §11.5b, STORY-104 AC-006.
     #[test]
-    fn test_BC_2_14_017_window_elapsed_uses_wrapping_sub_no_panic() {
+    fn test_BC_2_14_017_window_elapsed_uses_saturating_sub_no_panic() {
         let mut az = default_analyzer();
         let mut flow = ModbusFlowState::default();
         let fk = test_flow_key();
@@ -808,7 +809,7 @@ mod story_104 {
             &adu1,
             0xFFFFFF00_u32,
         );
-        let f2 = drive(
+        drive(
             &mut az,
             &mut flow,
             &fk,
@@ -817,16 +818,12 @@ mod story_104 {
             0x00000100_u32,
         );
 
-        // wrapping_sub = 0x200 = 512 seconds elapsed > 1s burst window → window resets
-        // (No burst yet since threshold = 20; just verifying no panic and correct window state.)
-        assert!(
-            !f2.is_empty(),
-            "second write must return a finding without panic"
-        );
-        assert!(
-            !f2.iter()
-                .any(|f| f.mitre_techniques.contains(&"T0806".to_string())),
-            "512 seconds elapsed with 2 writes: no burst (threshold=20, window reset)"
+        // saturating_sub(0x100, 0xFFFFFF00) = 0 → NOT > 1s burst window → window NOT reset →
+        // window_write_count must be 2 (discriminating: wrapping_sub would reset → count=1).
+        assert_eq!(
+            flow.window_write_count, 2,
+            "saturating_sub(0x100, 0xFFFFFF00)=0: burst window must NOT reset → count=2 \
+             (wrapping_sub would give 0x200=512 > 1s → reset → count=1)"
         );
     }
 
