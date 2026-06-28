@@ -31,7 +31,7 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-15/BC-2.15.021.md
   - .factory/specs/architecture/decisions/ADR-007-binary-ics-protocol-integration-dnp3-tcp.md
   - .factory/specs/verification-properties/vp-023-dnp3-parse-safety.md
-input-hash: "e7662b4"
+input-hash: "1db98bc"
 ---
 
 # STORY-110: DNP3 Dispatcher Integration + CLI Flag — VP-004 Oracle + VP-007 Atomic-Update

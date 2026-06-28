@@ -32,7 +32,7 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-15/BC-2.15.015.md
   - .factory/specs/architecture/decisions/ADR-007-binary-ics-protocol-integration-dnp3-tcp.md
   - .factory/cycles/feature-enip-v0.11.0/RULING-DNP3-SIBLING-001-direction-and-clock.md
-input-hash: "d498e66"
+input-hash: "b3a4fd0"
 ---
 
 # STORY-140: DNP3 Per-Direction Carry Buffer + Saturating Window Monotonicity + Operator Pin (DRIFT-DNP3-DIRECTION-001 / DRIFT-DNP3-CLOCK-001 / DRIFT-DNP3-OP-001)
