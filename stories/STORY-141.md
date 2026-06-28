@@ -32,7 +32,7 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-14/BC-2.14.019.md
   - .factory/specs/architecture/decisions/ADR-005-binary-ics-protocol-integration-modbus-tcp.md
   - .factory/cycles/feature-enip-v0.11.0/RULING-MODBUS-SIBLING-001-carry-and-clock.md
-input-hash: "b0c7a8d"
+input-hash: "32293cd"
 ---
 
 # STORY-141: Modbus Per-Direction Carry Buffer + Saturating Window Monotonicity (DRIFT-MODBUS-DIRECTION-001 / DRIFT-MODBUS-CLOCK-001)
