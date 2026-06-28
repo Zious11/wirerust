@@ -439,19 +439,100 @@ impl Dnp3Analyzer {
         // --- Step 3: frame-walk — consume every complete frame from carry's head ----
         // STORY-103 lesson: use a WHILE loop, not an if — a single on_data may carry
         // multiple complete frames (EC-002).
+        // `did_process_in_this_call` tracks whether the frame-walk loop has already
+        // entered a processing iteration (carry.len() >= 10) during this on_data call.
+        // Used to distinguish "mid-delivery residue" from "first-call partial stash":
+        //
+        // - First-call partial (e.g. 5 bytes [0x05,0x64,...] — genuine protocol partial):
+        //   did_process=false → stash, no parse_error (AC-140-001 / BC-2.15.016 v2.0 PC2).
+        //
+        // - Mid-delivery residue (e.g. 5 bytes remaining after N LENGTH-gate iterations
+        //   in the same on_data call): did_process=true → count parse_error (F-F5-003
+        //   REVISION 2 Change 1; BC-2.15.024 Principle 1).
+        //
+        // Non-sync bytes (carry[0..2] != [0x05,0x64]) are ALWAYS counted as parse_error
+        // regardless of did_process, because they are unambiguously junk (not partial).
+        let mut did_process_in_this_call = false;
         loop {
-            // Guard: need at least 10 bytes (full DNP3 header + header CRC) to attempt
-            // frame parsing. LENGTH ≥ 5 → minimum frame = 10 bytes; fewer bytes means
-            // the stream is partial and we must stash and wait for more data.
-            // STORY-140 [AC-140-001]: this guard ensures partial carry (< 10 bytes)
-            // is stashed without counting a parse_error or draining, supporting the
-            // direction-isolation invariant for partial frames.
-            // Previously `< 3` (enough to read LENGTH); changed to `< 10` because a
-            // valid DNP3 header is always exactly 10 bytes and computing frame_len
-            // from fewer bytes would produce a spurious error for legitimate partials.
-            if active_carry!(flow, direction).len() < 10 {
+            let carry_len = active_carry!(flow, direction).len();
+            // Guard: below 10 bytes we cannot have a complete DNP3 frame (minimum is 10).
+            // For valid-sync carries this means "awaiting more data" (legitimate partial
+            // stash). For non-sync carries we know they are junk and count parse_errors.
+            // STORY-140 [AC-140-001, BC-2.15.016 v2.0 Inv-6]: guard uses active_carry.
+            if carry_len < 10 {
+                // Sub-10-byte carry: distinguish non-sync junk from legit partial.
+                if carry_len >= 2 {
+                    let is_sync = active_carry!(flow, direction)[0] == 0x05
+                        && active_carry!(flow, direction)[1] == 0x64;
+                    if !is_sync {
+                        // Non-sync bytes at carry head: unambiguously junk.
+                        // Count parse_error regardless of did_process (BC-2.15.024
+                        // Principle 1 / F-F5-003 REVISION 2 Change 1 Path B).
+                        flow.parse_errors += 1;
+                        flow.malformed_in_window += 1;
+                        // Byte-walk resync: find next [0x05,0x64] or clear.
+                        let next_sync = active_carry!(flow, direction)
+                            .windows(2)
+                            .enumerate()
+                            .skip(1)
+                            .find(|(_, w)| w[0] == 0x05 && w[1] == 0x64)
+                            .map(|(i, _)| i);
+                        match next_sync {
+                            Some(i) => {
+                                active_carry!(flow, direction).drain(..i);
+                            }
+                            None => {
+                                active_carry!(flow, direction).clear();
+                            }
+                        }
+                        Self::check_malformed_anomaly(
+                            flow,
+                            &mut self.all_findings,
+                            ts,
+                            &flow_key,
+                            direction,
+                        );
+                    } else if did_process_in_this_call && carry_len >= 3 {
+                        // Valid-sync head but fewer than 10 bytes AND we already processed
+                        // something in this on_data call — this is a mid-delivery residue
+                        // from repeated LENGTH-gate resync, not a genuine first-call partial.
+                        // If the LENGTH byte is also invalid (< 5), count a parse_error.
+                        // (BC-2.15.024 Principle 1: one error per structural event.)
+                        let length_byte = active_carry!(flow, direction)[2];
+                        if compute_dnp3_frame_len(length_byte).is_none() {
+                            flow.parse_errors += 1;
+                            flow.malformed_in_window += 1;
+                            // Byte-walk resync: drain past head byte, find next sync or clear.
+                            active_carry!(flow, direction).drain(..1);
+                            let next_sync = active_carry!(flow, direction)
+                                .windows(2)
+                                .enumerate()
+                                .find(|(_, w)| w[0] == 0x05 && w[1] == 0x64)
+                                .map(|(i, _)| i);
+                            match next_sync {
+                                Some(i) => {
+                                    active_carry!(flow, direction).drain(..i);
+                                }
+                                None => {
+                                    active_carry!(flow, direction).clear();
+                                }
+                            }
+                            Self::check_malformed_anomaly(
+                                flow,
+                                &mut self.all_findings,
+                                ts,
+                                &flow_key,
+                                direction,
+                            );
+                        }
+                    }
+                    // else: valid-sync + < 3 bytes, or valid-sync + first-call + invalid-LENGTH
+                    //   → genuine partial stash, no parse_error.
+                }
                 break;
             }
+            // We have >= 10 bytes: mark that we've entered a full processing iteration.
+            did_process_in_this_call = true;
 
             // SYNC GATE FIRST: the head of an established DNP3 carry must begin with the
             // sync word [0x05, 0x64]. If it does not, the carry is mis-aligned; perform
