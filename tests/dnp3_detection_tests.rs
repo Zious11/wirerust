@@ -1271,7 +1271,7 @@ mod story_108 {
     }
 
     // -----------------------------------------------------------------------
-    // EC-008: wrapping_sub — out-of-order timestamp safe (no panic)
+    // EC-008: saturating_sub — out-of-order timestamp safe (no panic)
     // -----------------------------------------------------------------------
 
     /// EC-008: `now_ts.saturating_sub(window_start_ts)` must not panic with out-of-order
@@ -3013,12 +3013,22 @@ mod vp036_dnp3_window_monotonic_no_spurious_reset {
         //
         // Traces: BC-2.15.015 v2.0 PC3, Invariant 6; DRIFT-DNP3-OP-001; AC-140-011.
 
-        /// Guards DRIFT-DNP3-OP-001 operator pin via proptest over window_start.
+        /// SUPPLEMENTARY arithmetic-domain boundary check for DRIFT-DNP3-OP-001.
         ///
-        /// For any window_start, elapsed==300 must NOT expire (300 > 300 is false).
-        /// elapsed==301 MUST expire (301 > 300 is true).
+        /// Verifies that `saturating_sub` computes the correct elapsed values at the
+        /// exact boundary (elapsed==300) and one step past it (elapsed==301) for any
+        /// generated `window_start` in the safe arithmetic range.
         ///
-        /// FAILS with stub (>= operator): 300 >= 300 is true → window expires at elapsed=300.
+        /// This proptest operates on computed elapsed values only — it does NOT call
+        /// `on_data` and therefore does NOT exercise the production `>` vs `>=` operator
+        /// comparison directly.  The behavioral operator-pin discrimination (the actual
+        /// mutant-killer for DRIFT-DNP3-OP-001) is covered by:
+        ///   `test_ac140_005_correlation_window_operator_pin_boundary`
+        /// which drives `on_data` at ts=300 and ts=301 and fails under the `>=` stub.
+        ///
+        /// This test's role is to confirm that `saturating_sub` arithmetic yields the
+        /// expected elapsed values across the full domain of window_start inputs — a
+        /// necessary (but not sufficient) condition for the operator pin to hold.
         #[test]
         fn proptest_vp036_sub_c_operator_pin_elapsed_300_not_expired(
             window_start in 0u32..(u32::MAX - 400),
@@ -3032,12 +3042,13 @@ mod vp036_dnp3_window_monotonic_no_spurious_reset {
             prop_assert_eq!(elapsed_exact, 300, "elapsed at ts_at_exact must be 300");
             prop_assert_eq!(elapsed_over, 301, "elapsed at ts_over must be 301");
 
-            // Strict > 300: elapsed==300 is NOT > 300 → window NOT expired (DRIFT-DNP3-OP-001).
-            // FAILS with stub (>= operator): 300 >= 300 → window expires at elapsed=300.
+            // Arithmetic domain: saturating_sub at exact boundary must equal 300.
+            // See test_ac140_005_correlation_window_operator_pin_boundary for the
+            // behavioral guard that drives on_data and kills the >= operator mutant.
             prop_assert!(
                 elapsed_exact <= 300,
-                "elapsed=300 must NOT expire under strict > 300 (DRIFT-DNP3-OP-001 pin); \
-                 FAILS with stub (>= would expire at elapsed=300)"
+                "elapsed=300 must equal 300 (arithmetic boundary; behavioral operator-pin \
+                 guard is test_ac140_005_correlation_window_operator_pin_boundary)"
             );
             // elapsed==301 IS > 300 → window expires.
             prop_assert!(
