@@ -299,29 +299,45 @@ amendment.
 **Precondition:** STORY-140 must be merged (the `active_carry!` macro and `carry_c2s`/
 `carry_s2c` fields must exist). STORY-142 is a follow-on to STORY-140.
 
+**Test Numbering Convention (implemented — authoritative):**
+
+The implemented test names and their roles are (also in §6 summary below):
+
+| Test | Name | Role |
+|------|------|------|
+| `test_ac142_001` | `test_ac142_001_one_line_condition_change` | Structural/compilation assertion — `active_carry!` absent; complete predicate present |
+| `test_ac142_002` | `test_ac142_002_regression_established_c2s_preserved_on_junk_s2c` | Sub-case i behavioral — partial c2s carry in flight → junk s2c → latch does NOT fire |
+| `test_ac142_003` | `test_ac142_003_true_non_dnp3_still_latches` | Regression guard — genuine non-DNP3 flow still latches immediately |
+| `test_ac142_004` | `test_ac142_004_established_c2s_preserved_on_junk_s2c_after_complete_frame` | Sub-case ii behavioral — complete c2s frame consumed (carry drained) → junk s2c → latch does NOT fire |
+
+Note: the AC item numbers below (1–6) describe requirements; the test names above are the
+authoritative mapping. The ACs are numbered in implementation order, not one-to-one with
+test names. See §6 for the per-test behavioral specification.
+
 **Acceptance Criteria (amended 2026-06-28 — `frame_count==0` guard + `test_ac142_004`):**
 
-1. `dnp3.rs:363` desync-latch condition is changed to the COMPLETE predicate:
+1. `dnp3.rs:372` desync-latch condition is changed to the COMPLETE predicate:
    `flow.frame_count == 0 && flow.carry_c2s.is_empty() && flow.carry_s2c.is_empty() && data.len() >= 2 && (data[0] != 0x05 || data[1] != 0x64)`.
    The `frame_count == 0` guard is added alongside the both-carries-empty check; the rest
    of the condition (`data.len() >= 2 && (data[0] != 0x05 || data[1] != 0x64)`) is unchanged.
 
-2. **`test_ac142_001` — partial-c2s-carry preserves direction on junk-s2c (sub-case i):**
+2. **Sub-case i — partial-c2s-carry preserves direction on junk-s2c** (`test_ac142_002`):
    - Step 1: Deliver partial c2s DNP3 frame (valid sync bytes `[0x05, 0x64, ...]` but incomplete). `carry_c2s` is non-empty, `frame_count=0`. `is_non_dnp3` remains false.
    - Step 2: Deliver non-DNP3 junk bytes in `direction=ServerToClient` (e.g., `[0xFF, 0xFE, 0x00]`). Assert: `flow.is_non_dnp3 == false` (latch did NOT fire because `carry_c2s` is non-empty).
    - Step 3: Complete the c2s partial frame in `direction=ClientToServer`. Assert: `frame_count == 1`, `parse_errors == 0`.
    This test is RED against the buggy post-STORY-140 code and GREEN after the fix.
 
-3. **`test_ac142_002` — true non-DNP3 flow latches immediately:**
+3. **True non-DNP3 flow latches immediately** (`test_ac142_003`):
    First delivery in c2s direction with non-DNP3 junk (`frame_count=0`, both carries empty):
    latch fires, `is_non_dnp3 = true`. No regression from the fix.
 
-4. **`test_ac142_003` — established c2s flow with established non-DNP3 s2c:**
-   Not a new regression: existing tests covering `frame_count >= 1` behavior continue to
-   pass (the `frame_count == 0` guard changes nothing for flows that have already parsed
-   at least one frame).
+4. **Structural/compilation assertion** (`test_ac142_001`):
+   `active_carry!(flow, direction)` does NOT appear in the desync-latch condition path after the fix;
+   the complete predicate (`frame_count == 0 && carry_c2s.is_empty() && carry_s2c.is_empty()`) does.
+   Existing established-flow tests continue to pass (the `frame_count == 0` guard changes nothing for
+   flows that have already parsed at least one frame).
 
-5. **`test_ac142_004` — complete-frame then junk-s2c, sub-case ii (NEW — requires `frame_count==0` guard):**
+5. **Sub-case ii — complete-frame then junk-s2c** (`test_ac142_004`, NEW — requires `frame_count==0` guard):
    - Step 1: Deliver a complete c2s DNP3 frame (valid sync bytes, full frame). `carry_c2s`
      is drained to empty after parse. `frame_count == 1`.
    - Step 2: Deliver non-DNP3 junk bytes in `direction=ServerToClient` (e.g., `[0xFF, 0xFE, 0x00]`).
@@ -334,7 +350,7 @@ amendment.
 6. BC-2.15.009 is amended per §3 above (version bump 1.6 → 2.0, precondition 3 updated to
    include `frame_count == 0` guard, EC-010/EC-011/EC-012 added).
 
-5. All existing DNP3 tests pass.
+7. All existing DNP3 tests pass.
 
 ---
 
