@@ -1284,7 +1284,7 @@ mod story_108 {
     /// Traces to: BC-2.15.010 invariant (saturating_sub required; RULING-DNP3-SIBLING-001
     /// §2.2); STORY-108 EC-008.
     #[test]
-    fn test_EC_008_wrapping_sub_out_of_order_timestamp_no_panic() {
+    fn test_EC_008_saturating_sub_out_of_order_timestamp_no_panic() {
         let mut analyzer = Dnp3Analyzer::new(10);
         let key = test_flow_key();
 
@@ -1298,8 +1298,9 @@ mod story_108 {
             Direction::ClientToServer,
         );
 
-        // Deliver 10 more frames at ts that wraps around (0..=9)
-        // saturating_sub(0x9, 0xFFFFFFF0) = 0 < 60 → still in same window (saturates at 0)
+        // Deliver 10 more frames at ts that wraps around (0..=9).
+        // saturating_sub(0x9, 0xFFFFFFF0) = 0 (saturates at 0) < 60 → same window.
+        // Under saturating_sub, backwards deliveries produce elapsed=0, staying in window.
         for i in 0..10u32 {
             let frame = build_detection_frame(0x05, 0x0003, 0x0001);
             // Must NOT panic (plain subtraction would panic due to overflow-checks=true)
@@ -1317,8 +1318,8 @@ mod story_108 {
             .any(|f| f.mitre_techniques.contains(&"T1692.001".to_string()));
         assert!(
             t1692,
-            "EC-008: T1692.001 must fire without panic using wrapping_sub \
-             (11 FCs within ~25-second wrapped window)"
+            "EC-008: T1692.001 must fire without panic using saturating_sub \
+             (11 FCs in window; backwards timestamps saturate to elapsed=0, stay in window)"
         );
     }
 
@@ -1983,6 +1984,104 @@ mod direction_and_clock {
             Some(master_ip),
             "AC-140-002: source_ip must be Some(10.0.0.2) = master (upper_ip, C2S initiator); \
              lower_port==20000 (IF branch) → master=upper_ip; C2S → source=master=upper_ip; \
+             got {:?}",
+            f.source_ip
+        );
+    }
+
+    // -----------------------------------------------------------------------
+    // AC-140-002b: direction-based source IP — ServerToClient case
+    //
+    // Discriminating case that exposes port-heuristic vs. direction-based divergence.
+    //
+    // Same topology: outstation=10.0.0.1:20000 (lower), master=10.0.0.2:54321 (upper).
+    // Direction::ServerToClient (outstation→master) → direction code resolves
+    //   master_ip = server_ip = lower_ip = 10.0.0.1 (the outstation/server side).
+    //
+    // Port-heuristic alone: lower_port==20000 → master_ip = upper_ip = 10.0.0.2.
+    //
+    // These DIVERGE: direction gives 10.0.0.1; port-heuristic gives 10.0.0.2.
+    // A pure port-heuristic implementation FAILS this assertion (returns 10.0.0.2).
+    // A direction-based implementation PASSES (returns 10.0.0.1).
+    //
+    // Constraint: saturating_sub keeps backwards timestamps in-window (elapsed=0),
+    // so Control FCs delivered at ts=0..10 all count in the same window.
+    // -----------------------------------------------------------------------
+
+    /// Discriminating case: ServerToClient direction diverges from port-heuristic.
+    ///
+    /// Same topology as `test_ac140_002_direction_based_source_ip`:
+    ///   outstation=10.0.0.1:20000 (lower), master=10.0.0.2:54321 (upper).
+    ///
+    /// Direction::ServerToClient → direction code: master_ip = server_ip = lower_ip = 10.0.0.1.
+    /// Port-heuristic: lower_port==20000 → master_ip = upper_ip = 10.0.0.2.
+    ///
+    /// These DIVERGE. A pure port-heuristic implementation would return 10.0.0.2
+    /// and FAIL the assertion below. The direction-based implementation returns 10.0.0.1.
+    ///
+    /// Limitation note: a DNP3 outstation sending Control FCs to a master is semantically
+    /// unusual (normal traffic is master→outstation). This test exercises the direction
+    /// resolution mechanism, not DNP3 protocol semantics.
+    ///
+    /// Traces to: STORY-140 AC-140-002; RULING-DNP3-SIBLING-001 §1.4; BC-2.15.016 v2.0 PC3.
+    #[test]
+    fn test_ac140_002b_direction_s2c_diverges_from_port_heuristic() {
+        let outstation_ip = ip(1); // 10.0.0.1 — outstation, well-known port 20000
+        let master_ip = ip(2); // 10.0.0.2 — master, ephemeral port 54321
+
+        // Same topology as test_ac140_002: lower=outstation:20000, upper=master:54321.
+        let key = FlowKey::new(outstation_ip, 20000, master_ip, 54321);
+
+        // Verify canonicalization: lower_port==20000 → IF branch fires in port-heuristic.
+        assert_eq!(
+            key.lower_port(),
+            20000,
+            "test setup: lower_port must be 20000"
+        );
+        assert_eq!(
+            key.lower_ip(),
+            outstation_ip,
+            "test setup: lower_ip must be 10.0.0.1 (the outstation)"
+        );
+        assert_eq!(
+            key.upper_ip(),
+            master_ip,
+            "test setup: upper_ip must be 10.0.0.2 (the master)"
+        );
+
+        let mut analyzer = Dnp3Analyzer::new(10);
+
+        // Deliver 11 Control-class FCs as ServerToClient.
+        // Direction::ServerToClient → direction code: master_ip = server_ip = lower_ip = 10.0.0.1.
+        // Port-heuristic would give: upper_ip = 10.0.0.2 — the OPPOSITE answer.
+        // ts=0..10: saturating_sub keeps all 11 frames in the same window.
+        for i in 0..11u32 {
+            let frame = detection_frame(0x05);
+            analyzer.on_data(key.clone(), &frame, i, Direction::ServerToClient);
+        }
+
+        assert_eq!(
+            analyzer.all_findings.len(),
+            1,
+            "AC-140-002b: 11 Control FCs S2C must emit exactly ONE T1692.001 finding"
+        );
+        let f = &analyzer.all_findings[0];
+        assert_eq!(
+            f.mitre_techniques,
+            vec!["T1692.001"],
+            "AC-140-002b: finding must carry T1692.001"
+        );
+
+        // The discriminating assertion: source_ip must be 10.0.0.1 (outstation = lower_ip =
+        // server_ip under ServerToClient direction).
+        // Port-heuristic (IF branch): lower_port==20000 → master=upper_ip=10.0.0.2 (WRONG here).
+        // Direction S2C: master_ip = server_ip = lower_ip = 10.0.0.1 (CORRECT).
+        // These diverge — a pure port-heuristic fails; direction-based logic passes.
+        assert_eq!(
+            f.source_ip,
+            Some(outstation_ip),
+            "AC-140-002b: source_ip must be Some(10.0.0.1) = server/lower_ip under S2C direction; \
+             port-heuristic would give 10.0.0.2 (upper_ip) — this case discriminates between them; \
              got {:?}",
             f.source_ip
         );
@@ -2951,12 +3050,18 @@ mod vp036_dnp3_window_monotonic_no_spurious_reset {
     // -----------------------------------------------------------------------
     // VP-036 Sub-D: genuine u32 rollover deterministic test
     //
-    // window_start = u32::MAX - 5, now_ts = 4 (post-rollover).
-    // wrapping_sub(4, u32::MAX-5) = 10 → OLD BUG: triggers 10s timeout (10 > 10? No.
-    //   Actually 10 > 10 is false but would trigger the 1s ENIP window; for DNP3 the
-    //   issue was wrapping_sub giving ~10, which is small enough to still be
-    //   "in window" for the 60s/300s windows but triggers the 10s block-timeout).
-    // saturating_sub(4, u32::MAX-5) = 0 → CORRECT: no spurious reset for any window.
+    // window_start = u32::MAX - 5 (0xFFFFFFFA), now_ts = 500 (post-rollover).
+    //
+    // OLD BUG (wrapping_sub):
+    //   wrapping_sub(500, 0xFFFFFFFA) = 506
+    //   506 > 300 → spuriously expires T0827/T0814 300s correlation window
+    //   506 > 60  → spuriously resets T1692.001 60s detection window
+    //   506 > 10  → spuriously fires T1691.001 10s block-timeout
+    //   All three DNP3 windows fire incorrectly on a genuine clock rollover.
+    //
+    // FIX (saturating_sub):
+    //   saturating_sub(500, 0xFFFFFFFA) = 0
+    //   0 is NOT > 300, NOT > 60, NOT > 10 → no spurious reset/fire on any window.
     //
     // This is a deterministic unit test (not a proptest) because the rollover
     // scenario requires specific arithmetic values near u32::MAX.
@@ -2964,46 +3069,52 @@ mod vp036_dnp3_window_monotonic_no_spurious_reset {
 
     /// Guards genuine u32 rollover: saturating_sub returns 0 (no spurious reset).
     ///
-    /// window_start = u32::MAX - 5, now_ts = 4 (post-rollover small value).
-    /// wrapping_sub(4, u32::MAX-5) = 10 → OLD BUG: would trigger the 10s block-timeout
-    /// (10 > 10 is false BUT the edge is at the exact boundary; also documents the
-    /// general rollover scenario where wrapping_sub gives a small nonzero value).
-    /// saturating_sub(4, u32::MAX-5) = 0 → CORRECT: no spurious reset for any window.
+    /// window_start = u32::MAX - 5 (0xFFFFFFFA), now_ts = 500 (post-rollover).
+    ///
+    /// OLD BUG: wrapping_sub(500, 0xFFFFFFFA) = 506.
+    ///   506 > 300 → spurious T0827/T0814 300s correlation window expiry.
+    ///   506 > 60  → spurious T1692.001 60s detection window reset.
+    ///   506 > 10  → spurious T1691.001 10s block-timeout fire.
+    ///   All three DNP3 windows are spuriously triggered by a legitimate clock rollover.
+    ///
+    /// FIX: saturating_sub(500, 0xFFFFFFFA) = 0.
+    ///   0 is NOT > 10, NOT > 60, NOT > 300 → no spurious reset/fire for any window.
     ///
     /// Regression guard: if saturating_sub is replaced with wrapping_sub, wrapping_elapsed
-    /// would be 10 — which would NOT trigger the 60s or 300s windows, but WOULD approach
-    /// the 10s block-timeout boundary. This documents the exact arithmetic divergence.
+    /// would be 506, which exceeds ALL three DNP3 window thresholds (10, 60, 300),
+    /// causing every window to fire spuriously on any genuine u32 timestamp rollover.
     #[test]
     fn test_vp036_sub_d_genuine_rollover_no_spurious_reset() {
-        let window_start: u32 = u32::MAX - 5;
-        let now_ts_post_rollover: u32 = 4;
+        let window_start: u32 = u32::MAX - 5; // 0xFFFFFFFA
+        let now_ts_post_rollover: u32 = 500;
 
-        // Document old (broken) behavior: wrapping_sub gives 10.
+        // Document old (broken) behavior: wrapping_sub gives 506.
         let wrapping_elapsed = now_ts_post_rollover.wrapping_sub(window_start);
         assert_eq!(
-            wrapping_elapsed, 10,
-            "wrapping_sub(4, u32::MAX-5) must equal 10 (the old spurious value)"
+            wrapping_elapsed, 506,
+            "wrapping_sub(500, u32::MAX-5) must equal 506 (the old spurious value that \
+             exceeds all DNP3 window thresholds: > 300, > 60, > 10)"
         );
 
         // Assert new (correct) behavior: saturating_sub gives 0.
         let saturating_elapsed = now_ts_post_rollover.saturating_sub(window_start);
         assert_eq!(
             saturating_elapsed, 0,
-            "saturating_sub(4, u32::MAX-5) must equal 0 (no spurious reset)"
+            "saturating_sub(500, u32::MAX-5) must equal 0 (no spurious reset for any window)"
         );
 
         // Guards all three DNP3 windows: saturating_elapsed=0 must NOT trigger any reset.
         assert!(
             saturating_elapsed <= 60,
-            "saturating_sub=0 must NOT trigger T1692.001 60s window reset (rollover)"
+            "saturating_sub=0 must NOT trigger T1692.001 60s window reset (rollover guard)"
         );
         assert!(
             saturating_elapsed <= 10,
-            "saturating_sub=0 must NOT trigger T1691.001 10s block-timeout (rollover)"
+            "saturating_sub=0 must NOT trigger T1691.001 10s block-timeout (rollover guard)"
         );
         assert!(
             saturating_elapsed <= 300,
-            "saturating_sub=0 must NOT trigger T0827/T0814 300s window reset (rollover)"
+            "saturating_sub=0 must NOT trigger T0827/T0814 300s window reset (rollover guard)"
         );
     }
 } // mod vp036_dnp3_window_monotonic_no_spurious_reset

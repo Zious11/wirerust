@@ -961,7 +961,7 @@ mod story_109 {
     ///
     /// If the `!` in `if !flow.correlation_window_seeded` is deleted (mutation survivor #6),
     /// the seed branch is SKIPPED for unseeded flows.  The expiry branch then evaluates
-    /// `wrapping_sub(1000, 0) = 1000 >= 300` → spurious expiry fires, AND
+    /// `saturating_sub(1000, 0) = 1000 > 300` → spurious expiry fires, AND
     /// `correlation_window_seeded` remains `false` forever, so the window is re-seeded on
     /// EVERY subsequent call instead of only once.  Both observable effects kill the mutant:
     ///   - Under the mutant, `correlation_window_seeded` stays `false` after the first call.
@@ -978,7 +978,7 @@ mod story_109 {
         // Fresh flow: before any on_data call, no flow state exists yet.
         // Deliver the FIRST frame at ts=1000.  This is far above
         // CORRELATION_WINDOW_SECS (300), so without the seed guard it would
-        // trigger a spurious window expiry (wrapping_sub(1000, 0) >= 300).
+        // trigger a spurious window expiry (saturating_sub(1000, 0) = 1000 > 300).
         let first_frame = build_detection_frame(0x01, 0x0003, 0x0001);
         analyzer.on_data(key.clone(), &first_frame, 1000, Direction::ClientToServer);
 
