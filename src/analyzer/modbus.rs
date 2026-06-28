@@ -153,21 +153,22 @@ pub struct ModbusFlowState {
     /// All subsequent `on_data` calls bail immediately without parsing.
     pub is_non_modbus: bool,
 
-    // --- TCP reassembly carry buffer (F-105-001 partial-ADU buffering fix) ---
-    /// Bytes left over from a prior `on_data` call that form an incomplete ADU.
+    // --- TCP reassembly carry buffers (STORY-141 per-direction split, AC-141-001) ---
+    /// Bytes left over from a prior `on_data` call (ClientToServer direction) that form
+    /// an incomplete ADU.
     ///
-    /// The reassembler delivers each contiguous TCP segment as a separate `on_data`
-    /// call; a Modbus ADU (6-byte MBAP prefix + variable PDU) can span two segments.
-    /// On every call we prepend `carry` to the incoming data before the walk loop.
-    /// When the walk loop cannot find a full ADU in `remaining`, the tail is stashed
-    /// here for the next call.
+    /// Split from the former single `carry` field (DRIFT-MODBUS-DIRECTION-001 fix).
+    /// `carry_c2s` holds only partial ADUs from the TCP client (master → device).
+    /// Each directional carry is independently bounded at `MAX_ADU_CARRY_BYTES` (260 bytes).
+    /// `is_non_modbus` is latched if EITHER directional carry cap overflows.
+    pub carry_c2s: Vec<u8>,
+    /// Bytes left over from a prior `on_data` call (ServerToClient direction) that form
+    /// an incomplete ADU.
     ///
-    /// Bounded by `MAX_ADU_CARRY_BYTES` (260 bytes, one max ADU): the guard checks the
-    /// cumulative total (`carry.len() + remaining.len()`) before each stash, so the cap
-    /// holds regardless of how many partial stash points exist in the parse loop. When
-    /// the guard trips we set `is_non_modbus = true` and bail, preventing unbounded
-    /// memory growth on a malicious never-completing stream (DoS guard).
-    pub carry: Vec<u8>,
+    /// `carry_s2c` holds only partial ADUs from the TCP server (device → master).
+    /// Each directional carry is independently bounded at `MAX_ADU_CARRY_BYTES` (260 bytes).
+    /// `is_non_modbus` is latched if EITHER directional carry cap overflows.
+    pub carry_s2c: Vec<u8>,
 }
 
 impl ModbusFlowState {
@@ -1035,16 +1036,26 @@ impl StreamHandler for ModbusAnalyzer {
             return;
         }
 
+        // STORY-141 stub: directional carry selection.
+        // RED-GATE: active_carry is NOT yet routed by direction — both directions use
+        // carry_c2s, intentionally preserving DRIFT-MODBUS-DIRECTION-001 (EC-X1 splice
+        // bug) so that AC-141-001/002 carry-isolation tests remain RED.
+        // The implementer will replace this with:
+        //   let active_carry = match direction {
+        //       Direction::ClientToServer => &mut flow.carry_c2s,
+        //       Direction::ServerToClient => &mut flow.carry_s2c,
+        //   };
+        // Stub point: carry_c2s used for BOTH directions (EC-X1 NOT fixed here).
         // F-105-001: Prepend carry buffer to incoming data so partial ADUs that
         // spanned two TCP segments are completed before the walk loop runs.
         // We build a combined buffer only when carry is non-empty to avoid an
         // allocation on the common (carry-empty) fast path.
         let combined: Vec<u8>;
-        let buf: &[u8] = if flow.carry.is_empty() {
+        let buf: &[u8] = if flow.carry_c2s.is_empty() {
             data
         } else {
             combined = flow
-                .carry
+                .carry_c2s
                 .iter()
                 .copied()
                 .chain(data.iter().copied())
@@ -1053,7 +1064,7 @@ impl StreamHandler for ModbusAnalyzer {
         };
         // Clear the carry — it is now folded into `buf`. Any unconsumed tail will
         // be re-stashed at the end of the loop.
-        flow.carry.clear();
+        flow.carry_c2s.clear();
 
         // Walk the buffer: parse and dispatch each ADU in the chunk.
         // Modbus TCP ADU layout: 6-byte MBAP prefix + PDU (length-1 bytes of FC+data).
@@ -1077,11 +1088,12 @@ impl StreamHandler for ModbusAnalyzer {
                     // point in the same loop body, the cap still holds. When the guard
                     // trips, mark the flow non-Modbus and bail so the carry never grows
                     // unboundedly on a malicious never-completing stream.
-                    if flow.carry.len() + remaining.len() > MAX_ADU_CARRY_BYTES {
+                    // Stub: uses carry_c2s for both directions (EC-X1 NOT fixed).
+                    if flow.carry_c2s.len() + remaining.len() > MAX_ADU_CARRY_BYTES {
                         flow.is_non_modbus = true;
                         self.parse_errors += 1;
                     } else {
-                        flow.carry.extend_from_slice(remaining);
+                        flow.carry_c2s.extend_from_slice(remaining);
                     }
                     break;
                 }
@@ -1097,9 +1109,10 @@ impl StreamHandler for ModbusAnalyzer {
                 //      a real Modbus device would never emit such a frame. Latching
                 //      is_non_modbus prevents per-chunk re-scan (matching behavior of the
                 //      protocol_id case) and stops parse_errors inflation on subsequent
-                //      calls. Also clears carry so no partial state lingers.
+                //      calls. Also clears both directional carries so no partial state lingers.
                 flow.is_non_modbus = true;
-                flow.carry.clear();
+                flow.carry_c2s.clear();
+                flow.carry_s2c.clear();
                 self.parse_errors += 1;
                 break; // Cannot safely advance: length field is invalid.
             }
@@ -1117,11 +1130,12 @@ impl StreamHandler for ModbusAnalyzer {
                 // cumulative form is future-proof against refactors that might add
                 // earlier stash points, and makes the documented contract enforceable:
                 // total bytes in carry never exceeds one max ADU (260 bytes).
-                if flow.carry.len() + remaining.len() > MAX_ADU_CARRY_BYTES {
+                // Stub: uses carry_c2s for both directions (EC-X1 NOT fixed).
+                if flow.carry_c2s.len() + remaining.len() > MAX_ADU_CARRY_BYTES {
                     flow.is_non_modbus = true;
                     self.parse_errors += 1;
                 } else {
-                    flow.carry.extend_from_slice(remaining);
+                    flow.carry_c2s.extend_from_slice(remaining);
                 }
                 break;
             }
@@ -1141,7 +1155,7 @@ impl StreamHandler for ModbusAnalyzer {
             pos += adu_len;
         }
 
-        // Re-insert the (possibly mutated) flow state (with updated carry).
+        // Re-insert the (possibly mutated) flow state (with updated carry_c2s/carry_s2c).
         self.flows.insert(flow_key.clone(), flow);
     }
 
