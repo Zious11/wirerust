@@ -3277,7 +3277,8 @@ mod desync_latch {
         // Step 1: Deliver partial c2s DNP3 frame — 6 sync bytes (header needs 10).
         // Sync word [0x05, 0x64] at offset 0 → desync bail does NOT fire.
         // 6 bytes is fewer than the 10-byte DNP3 link header → stashed in carry_c2s.
-        let partial_c2s: [u8; 6] = [0x05, 0x64, 0x0A, 0xC4, 0x01, 0x00];
+        // LENGTH=0x05=5 → frame_len = 5+5+0 = 10 (minimal DNP3 frame, no user data).
+        let partial_c2s: [u8; 6] = [0x05, 0x64, 0x05, 0xC4, 0x01, 0x00];
         az.on_data(key.clone(), &partial_c2s, 100, Direction::ClientToServer);
 
         {
