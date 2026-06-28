@@ -19,6 +19,8 @@ vps_recommended:
   - VP-NEW-B: window-monotonic-no-spurious-reset (EC-X2)
 release_blocker: true
 release_held: v0.11.0
+addenda:
+  - RULING-EDGECASE-001-ADDENDUM-001 (Wave-64, §1.6/§2.5 correction): appended below
 ---
 
 # RULING-EDGECASE-001: Direction Carry Splice (EC-X1) and Clock-Backwards Window Reset (EC-X2)
@@ -661,3 +663,76 @@ saturating_sub window expiry"`.
 - Write VP-NEW-B proptest: generate random (window_start, burst_count, backwards_ts, threshold)
   tuples satisfying `burst_count == threshold`; assert detection fires after the backwards-ts
   packet + one more forward-ts packet.
+
+---
+
+## ADDENDUM-001 — §1.6 and §2.5 Correction (Wave-64, 2026-06-28)
+
+**Addendum ID:** RULING-EDGECASE-001-ADDENDUM-001
+**Sibling sweep tag:** DF-SIBLING-SWEEP-001
+**Issued by:** RULING-MODBUS-SIBLING-001 (Wave-64)
+
+### Retraction of §1.6 Claim
+
+Section 1.6 stated:
+
+> "Modbus already has direction threading and is NOT affected."
+
+**This claim is RETRACTED.** It was based on a category error: the presence of
+`direction: Direction` in `ModbusAnalyzer::on_data`'s signature (lines 1018-1025) was
+interpreted as evidence that Modbus had per-direction carry handling. This interpretation
+is incorrect. Direction threading in the `on_data` SIGNATURE means detection dispatch
+is direction-aware. It does NOT mean the CARRY BUFFER is per-direction.
+
+Modbus `on_data` used `direction` for detection dispatch only (the `match direction` blocks
+in `process_pdu`) while `flow.carry` (line 170) remained a single shared buffer. The carry
+accumulation at line 1043-1056 and the stash paths at lines 1080-1085 and 1120-1125
+referenced `flow.carry` unconditionally, regardless of direction. This is exactly the
+EC-X1 pattern.
+
+**Empirical confirmation:** `.worktrees/modbus-ecx-verify/tests/scratch_modbus_ecx_repro.rs`
+(commit 74f2913) contains `scratch_EC_X1_splice_confirmed_garbled_write_fires_on_s2c_direction`,
+which asserts `assert_ne!(treatment_fc03, control_fc03)` — confirming that the treatment
+(partial c2s then s2c on same flow) diverges from the control (separate flows) in observed
+FC parsing. The test passes, proving the splice occurs.
+
+### Retraction of §2.5 Claim
+
+Section 2.5 stated:
+
+> "Same scope ruling as EC-X1: fix ENIP now, DNP3 in v0.12.0."
+
+And by implication, the §2.5 sibling sweep characterized Modbus as not needing an
+EC-X2 fix (or omitted Modbus from the sweep entirely).
+
+**Correction:** Modbus has EC-X2 (wrapping_sub on all four window arithmetic sites at lines
+534, 595, 670, 820). Empirically confirmed by
+`scratch_EC_X2_explicit_window_state_via_process_pdu` (commit 74f2913), which asserts
+`flow.window_write_count == 1` after a backwards-ts delivery (proving the wrapping_sub
+window-expired branch fired and reset the count).
+
+### DF-SIBLING-SWEEP-001 Lesson
+
+This correction is the canonical DF-SIBLING-SWEEP-001 lesson:
+
+**A sibling sweep for "EC-X1: single carry buffer" MUST inspect the carry ACCUMULATION
+and PREPEND paths — NOT just whether `direction` appears in the `on_data` signature.**
+
+The audit question is: does the carry buffer selection in PREPEND/STASH paths depend on
+`direction`? Not: does `on_data` receive a `direction` parameter?
+
+Positive signal of EC-X1 presence (regardless of direction threading):
+- `flow.carry.is_empty()` check with no direction qualifier
+- `flow.carry.extend_from_slice(...)` with no direction qualifier
+- `combined = flow.carry.iter().copied().chain(data.iter().copied()).collect()` with no
+  direction selector before `flow.carry`
+
+These patterns were present in Modbus `on_data` at the time of the §1.6 sweep.
+
+### Impact on v0.11.0 Scope
+
+The §1.6 scope decision "fix DNP3 in v0.12.0" was already overridden by RULING-DNP3-SIBLING-001
+(Wave 61), which made DNP3 a v0.11.0 release blocker. The §1.6 Modbus characterization is
+now also overridden: RULING-MODBUS-SIBLING-001 (Wave 64) makes Modbus EC-X1 and EC-X2
+v0.11.0 release blockers. v0.11.0 will not ship until STORY-141 (Modbus) and STORY-142
+(DNP3 desync-latch) are delivered and merged.
