@@ -17,6 +17,9 @@ modified:
   - version: "2.0"
     date: 2026-06-28
     change: "RULING-MODBUS-SIBLING-001 (2026-06-28, §4.1): Breaking — replace single `carry: Vec<u8>` with `carry_c2s: Vec<u8>` (client-to-server) and `carry_s2c: Vec<u8>` (server-to-client). Precondition 3 updated: buf prepend selects directional carry by existing `direction` param (no on_data signature change). Postcondition 1 updated: stash targets directional carry. Invariant 1 updated: per-direction 260-byte cap (MAX_ADU_CARRY_BYTES). New Invariant 4 added: direction-isolation guarantee (carry_c2s and carry_s2c never mixed). New EC-007 added: partial c2s stashed in carry_c2s; next s2c call uses carry_s2c (empty) — clean s2c parse, carry_c2s retains c2s partial. Architecture Anchors updated to split fields. DRIFT-MODBUS-DIRECTION-001 fix."
+  - version: "2.0"
+    date: 2026-06-28
+    change: "ADDENDUM-002 errata (RULING-MODBUS-SIBLING-001 ADDENDUM-002, 2026-06-28): Carry-cap guards at stash sites are structurally UNREACHABLE (clear-then-stash; effective cap = 259 bytes). Guards are defensive future-proofing only. Additive errata note added to Invariants section. No behavioral change to cap logic or postconditions."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -91,6 +94,37 @@ provable via Kani over all inputs of length 0..7.
    (RULING-MODBUS-SIBLING-001 §1.1). The carry-cap overflow path sets the shared `is_non_modbus`
    flag regardless of direction — a per-flow latch is correct here (if either direction's carry
    is being DoS'd, the entire flow is suspect). (RULING-MODBUS-SIBLING-001 §1.4)
+
+> **ERRATA NOTE (ADDENDUM-002, 2026-06-28 — RULING-MODBUS-SIBLING-001 ADDENDUM-002)**
+>
+> The DoS carry-cap guards at the two stash sites (site 1104: partial MBAP header stash;
+> site 1150: partial ADU body stash) are structurally **UNREACHABLE** under the
+> clear-then-stash execution model of `on_data`.
+>
+> Reason: `active_carry.clear()` (line 1075, post-split) drains the selected directional
+> carry to length 0 before the frame-walk loop begins. No path re-populates `active_carry`
+> between the `clear()` and either stash site within the same `on_data` call. Therefore
+> `active_carry.len() == 0` at each stash check, making the cap condition reduce to
+> `0 + remaining.len() > 260`.
+>
+> - Site 1104 max operand: `remaining.len() <= 7` (partial MBAP header guard requires
+>   `remaining.len() < 8`). `7 > 260` is false — UNREACHABLE.
+> - Site 1150 max operand: `remaining.len() <= adu_len - 1 <= 259` (via
+>   `is_valid_modbus_adu` bounding `adu_len <= 260`). `259 > 260` is false — UNREACHABLE.
+>
+> **Effective cap = 259 bytes** (one below `MAX_ADU_CARRY_BYTES = 260`). The guards are
+> defensive future-proofing only — they would activate if the clear-then-stash structure
+> were ever refactored to accumulate carry within a call. They provide no active runtime DoS
+> protection under the current implementation. This is analogous to the ENIP 599 < 600
+> finding in RULING-137-002.
+>
+> The 6 cargo-mutants survivors at these two sites (`>` → `==`, `>` → `>=`, `+` → `*` at
+> each site) are EQUIVALENT MUTANTS and are acceptable permanent survivors excluded from the
+> kill denominator.
+>
+> **This is an additive errata note only. The cap invariant text above (Invariant 3), the
+> postconditions, and the cap logic in the implementation are NOT changed.** Per
+> RULING-MODBUS-SIBLING-001 ADDENDUM-002.
 
 ## Edge Cases
 

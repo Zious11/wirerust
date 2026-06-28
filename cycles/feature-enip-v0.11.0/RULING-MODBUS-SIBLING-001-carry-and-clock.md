@@ -602,3 +602,94 @@ on_data signature but shared a single carry — exactly the category error that 
 - Replace AC-006 test per §4.5.
 - VP-NEW-E proptest: random (direction, partial_bytes) sequences; assert carry isolation via fn_code_counts.
 - VP-NEW-F proptest: random (window_start, burst_count, backwards_ts, threshold); assert no spurious reset.
+
+---
+
+## ADDENDUM-002 (Wave-64, 2026-06-28): §1.5 Carry-Cap Reachability — Verdict Corrected to UNREACHABLE
+
+**This addendum supersedes §1.5 in its entirety. The "REACHABLE" verdict stated in §1.5 is
+RETRACTED.**
+
+### A2-1. Corrected Verdict
+
+**UNREACHABLE.** The carry-cap overflow guards at the two stash sites (lines 1104 and 1150,
+post-split) are structurally unreachable within a single `on_data` call under the clear-then-stash
+structure. This is analogous to the ENIP carry-cap finding in RULING-137-002
+(ENIP 599 < 600 → UNREACHABLE).
+
+### A2-2. Reachability Proof
+
+The `on_data` entry path in `modbus.rs` is:
+
+```
+on_data(direction, data, ...)
+  1. active_carry = select carry_c2s or carry_s2c by direction
+  2. active_carry.clear()                          ← line 1075 (post-split equivalent)
+  3. if !carry.is_empty(): prepend carry to buf
+  4. frame-walk loop:
+       stash site 1104: if active_carry.len() + remaining.len() > MAX_ADU_CARRY_BYTES → is_non_modbus = true
+       stash site 1150: if active_carry.len() + remaining.len() > MAX_ADU_CARRY_BYTES → is_non_modbus = true
+```
+
+Step 2 (`active_carry.clear()`) drains the selected directional carry to length 0 before the
+frame-walk loop begins. No path re-populates `active_carry` (i.e., appends bytes to it)
+between the `clear()` call and either stash site within the same `on_data` invocation.
+Therefore, at each stash site, `active_carry.len() == 0`.
+
+The cap guard condition reduces to:
+
+- **Site 1104** (partial MBAP header stash, `remaining.len() < 8`):
+  `0 + remaining.len() > MAX_ADU_CARRY_BYTES(260)`.
+  Maximum value of `remaining.len()` at this site: 7 (the guard fires only when fewer than
+  8 bytes remain — i.e., `remaining.len() <= 7`).
+  `7 > 260` is **false**. Guard is UNREACHABLE.
+
+- **Site 1150** (partial ADU body stash, `remaining.len() < adu_len`):
+  `0 + remaining.len() > MAX_ADU_CARRY_BYTES(260)`.
+  Maximum value of `remaining.len()` at this site: `adu_len - 1`.
+  `adu_len` is bounded by `is_valid_modbus_adu` to `length` field ∈ [2, 254] → total ADU
+  length ∈ [2+6, 254+6] = [8, 260] bytes. Therefore `adu_len <= 260` and
+  `remaining.len() <= adu_len - 1 <= 259`.
+  `259 > 260` is **false**. Guard is UNREACHABLE.
+
+**Exact carry-max bound: 259 bytes** (analogous to ENIP 599 < 600 in RULING-137-002).
+
+### A2-3. cargo-mutants Survivors — Equivalent Mutants (Permanent)
+
+The F1 adversarial review identified 6 cargo-mutants survivors at the two stash sites:
+- `>` → `==` at site 1104
+- `>` → `>=` at site 1104
+- `+` → `*` at site 1104
+- `>` → `==` at site 1150
+- `>` → `>=` at site 1150
+- `+` → `*` at site 1150
+
+All 6 are **EQUIVALENT MUTANTS**. Because both guards are structurally unreachable (the
+cap condition can never be true given the operand bounds above), no test in the suite can
+distinguish the original guard from any mutation of it. These survivors are acceptable
+permanent survivors and must be excluded from the kill denominator in all mutation-testing
+reports for `modbus.rs`.
+
+### A2-4. Retraction of F1 "Reachable" Claim
+
+The original §1.5 text stated: "Verdict: the carry-cap overflow path IS reachable via
+repeated partial-MBAP-header deliveries (< 8 bytes each), accumulating until
+`carry.len() + new_chunk.len() > 260`."
+
+This reasoning was INCORRECT. It assumed that prior-call carry bytes persist into the
+current call's stash-site check. In fact, `active_carry.clear()` at the top of `on_data`
+(line 1075, post-split) ensures the directional carry is empty at the start of every call.
+Bytes accumulated across multiple prior calls are cleared before the frame-walk loop begins.
+The cross-call accumulation scenario described in §1.5 cannot occur within a single
+`on_data` invocation, which is where the stash-site guards execute.
+
+The F1 "reachable" claim is **RETRACTED**. Correct verdict: UNREACHABLE.
+
+### A2-5. Spec Impact
+
+- **BC-2.14.002**: Errata note added (see BC-2.14.002 addendum, 2026-06-28). The carry-cap
+  guards are documented as defensive future-proofing, not active runtime protection. Effective
+  cap = 259 bytes. No behavioral change to the BC postconditions or cap logic.
+- **STORY-141 input-hash**: BC-2.14.002 is in STORY-141's `inputs:` list. The errata note
+  changes BC-2.14.002's byte content → STORY-141 input-hash (b0c7a8d) goes STALE.
+  Story-writer/state-manager must rebaseline STORY-141 before Phase-4 entry.
