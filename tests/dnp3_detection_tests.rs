@@ -3129,3 +3129,274 @@ mod vp036_dnp3_window_monotonic_no_spurious_reset {
         );
     }
 } // mod vp036_dnp3_window_monotonic_no_spurious_reset
+
+// ---------------------------------------------------------------------------
+// STORY-142 — desync_latch: DNP3 is_non_dnp3 direction-contamination fix
+//
+// Tests trace to:
+//   BC-2.15.009 v2.0  — is_non_dnp3 desync-latch condition
+//   RULING-DNP3-DESYNC-001 §2.1–§4
+//
+// RED condition (vs. current dnp3.rs):
+//   test_ac142_002_regression_established_c2s_preserved_on_junk_s2c:
+//     The current dnp3.rs uses `active_carry!(flow, direction).is_empty()` at
+//     line 363. When direction=ServerToClient, this expands to carry_s2c.is_empty().
+//     After a partial c2s delivery (carry_c2s non-empty), carry_s2c IS empty →
+//     condition fires → is_non_dnp3 = true → c2s stream silenced.
+//     FIX: change to `flow.carry_c2s.is_empty() && flow.carry_s2c.is_empty()`.
+//
+// GREEN controls:
+//   test_ac142_001_one_line_condition_change — behavioral compilation test.
+//   test_ac142_003_true_non_dnp3_still_latches — control: junk first delivery
+//     with both carries empty still correctly latches is_non_dnp3.
+//
+// Namespace: DF-TEST-NAMESPACE-001.
+// ---------------------------------------------------------------------------
+
+mod desync_latch {
+    use std::net::{IpAddr, Ipv4Addr};
+
+    use wirerust::analyzer::dnp3::Dnp3Analyzer;
+    use wirerust::reassembly::flow::FlowKey;
+    use wirerust::reassembly::handler::Direction;
+
+    fn ip(a: u8) -> IpAddr {
+        IpAddr::V4(Ipv4Addr::new(10, 0, 0, a))
+    }
+
+    fn make_key() -> FlowKey {
+        // master on ephemeral port; outstation on port 20000.
+        FlowKey::new(ip(1), 54321, ip(2), 20000)
+    }
+
+    fn make_analyzer() -> Dnp3Analyzer {
+        Dnp3Analyzer::new(10)
+    }
+
+    // -----------------------------------------------------------------------
+    // AC-142-001: one-line condition change — behavioral compilation assertion
+    //
+    // Delivers a valid partial c2s DNP3 sync sequence and then a non-junk
+    // s2c delivery that the FIXED condition tolerates (because carry_c2s != empty).
+    // This test is a compilation/behavioral sanity guard — it confirms the fixed
+    // code path compiles and that the both-carries-empty predicate works correctly
+    // for the established-c2s case.
+    //
+    // Should be GREEN both before and after fix (compilation always succeeds).
+    // The deeper behavioral regression is test_ac142_002.
+    //
+    // Traces to: BC-2.15.009 v2.0 Precondition 3.
+    // -----------------------------------------------------------------------
+
+    /// Behavioral compilation guard: verifies that the desync-latch condition
+    /// accepts the both-carries-empty predicate and behaves correctly for a
+    /// flow with carry_c2s non-empty at the time of s2c delivery.
+    ///
+    /// This test is GREEN both before and after the fix because it exercises
+    /// the behavioral surface that test_ac142_002 covers more precisely.
+    /// Its role is to verify that the condition structure compiles and that
+    /// the semantics hold for the common path.
+    #[test]
+    fn test_ac142_001_one_line_condition_change() {
+        let key = make_key();
+        let mut az = make_analyzer();
+
+        // Deliver a valid c2s DNP3 sync start (6 bytes, incomplete header — 10 bytes needed).
+        // This should stash into carry_c2s (sync word matches → no desync bail).
+        let partial_c2s: [u8; 6] = [0x05, 0x64, 0x0A, 0xC4, 0x01, 0x00];
+        az.on_data(key.clone(), &partial_c2s, 100, Direction::ClientToServer);
+
+        // After partial c2s delivery: is_non_dnp3 must still be false (sync matched).
+        let flow_after_c2s = az
+            .flows
+            .get(&key)
+            .expect("flow must exist after c2s partial delivery");
+        assert!(
+            !flow_after_c2s.is_non_dnp3,
+            "AC-142-001: is_non_dnp3 must be false after valid c2s sync partial delivery"
+        );
+        assert!(
+            !flow_after_c2s.carry_c2s.is_empty(),
+            "AC-142-001: carry_c2s must be non-empty after partial c2s delivery (partial stashed)"
+        );
+
+        // Deliver a s2c frame with valid sync bytes (not junk — so desync won't fire even
+        // under the buggy condition). This confirms the condition-path compiles correctly.
+        // The junk-s2c scenario (which IS RED against the bug) is test_ac142_002.
+        let s2c_sync: [u8; 6] = [0x05, 0x64, 0x05, 0x44, 0x03, 0x00];
+        az.on_data(key.clone(), &s2c_sync, 101, Direction::ServerToClient);
+
+        let flow_after = az
+            .flows
+            .get(&key)
+            .expect("flow must exist after s2c delivery");
+        assert!(
+            !flow_after.is_non_dnp3,
+            "AC-142-001: is_non_dnp3 must remain false after valid s2c sync delivery \
+             (carry_c2s was non-empty, both-carries-empty condition does not fire)"
+        );
+    }
+
+    // -----------------------------------------------------------------------
+    // AC-142-002: KEY REGRESSION TEST — established c2s preserved on junk s2c
+    //
+    // This test is RED against the current dnp3.rs (post-STORY-140 code) and
+    // GREEN after the one-line fix.
+    //
+    // Bug: `active_carry!(flow, direction).is_empty()` at dnp3.rs:363.
+    //   When direction=ServerToClient, this expands to `carry_s2c.is_empty()`.
+    //   After a partial c2s delivery (carry_c2s non-empty), carry_s2c IS empty.
+    //   → condition `carry_s2c.is_empty() && junk data` fires
+    //   → is_non_dnp3 = true → c2s stream permanently silenced.
+    //
+    // Fix: `flow.carry_c2s.is_empty() && flow.carry_s2c.is_empty()`.
+    //   carry_c2s is non-empty (from the partial c2s delivery)
+    //   → BOTH check fails → condition does NOT fire → is_non_dnp3 stays false.
+    //
+    // Steps:
+    //   1. Deliver partial c2s DNP3 (6-byte sync start). Assert: carry_c2s non-empty.
+    //   2. Deliver non-DNP3 junk in s2c direction. Assert: is_non_dnp3 == FALSE.
+    //   3. Complete c2s frame. Assert: frame_count >= 1 (c2s stream NOT silenced).
+    //
+    // Traces to: BC-2.15.009 v2.0 Precondition 3, EC-010; RULING-DNP3-DESYNC-001 §4 AC-2.
+    // -----------------------------------------------------------------------
+
+    /// THE key regression test for STORY-142.
+    ///
+    /// RED against current dnp3.rs: `active_carry!(flow, direction).is_empty()`
+    /// expands to `carry_s2c.is_empty()` → fires on junk s2c when carry_c2s non-empty
+    /// → is_non_dnp3 latched → c2s stream silenced.
+    ///
+    /// GREEN after fix: `flow.carry_c2s.is_empty() && flow.carry_s2c.is_empty()` →
+    /// carry_c2s non-empty → condition does NOT fire → c2s stream preserved.
+    #[test]
+    fn test_ac142_002_regression_established_c2s_preserved_on_junk_s2c() {
+        let key = make_key();
+        let mut az = make_analyzer();
+
+        // Step 1: Deliver partial c2s DNP3 frame — 6 sync bytes (header needs 10).
+        // Sync word [0x05, 0x64] at offset 0 → desync bail does NOT fire.
+        // 6 bytes is fewer than the 10-byte DNP3 link header → stashed in carry_c2s.
+        let partial_c2s: [u8; 6] = [0x05, 0x64, 0x0A, 0xC4, 0x01, 0x00];
+        az.on_data(key.clone(), &partial_c2s, 100, Direction::ClientToServer);
+
+        {
+            let flow = az
+                .flows
+                .get(&key)
+                .expect("flow must exist after c2s partial delivery");
+            assert!(
+                !flow.carry_c2s.is_empty(),
+                "Step 1: carry_c2s must be non-empty after partial c2s delivery"
+            );
+            assert!(
+                !flow.is_non_dnp3,
+                "Step 1: is_non_dnp3 must be false (sync word matched on c2s partial)"
+            );
+        }
+
+        // Step 2: Deliver non-DNP3 junk bytes in s2c direction.
+        // carry_s2c is empty (no s2c delivery yet).
+        // BUG: active_carry!(flow, ServerToClient).is_empty() == carry_s2c.is_empty() == TRUE
+        //   → condition fires → is_non_dnp3 = true.  (RED against current code)
+        // FIX: flow.carry_c2s.is_empty() && flow.carry_s2c.is_empty()
+        //   carry_c2s is NON-EMPTY → BOTH check fails → condition does NOT fire.
+        let junk_s2c: [u8; 3] = [0xFF, 0xFE, 0x00];
+        az.on_data(key.clone(), &junk_s2c, 101, Direction::ServerToClient);
+
+        {
+            let flow = az
+                .flows
+                .get(&key)
+                .expect("flow must exist after junk s2c delivery");
+            assert!(
+                !flow.is_non_dnp3,
+                "Step 2: is_non_dnp3 must remain FALSE after junk s2c delivery when \
+                 carry_c2s is non-empty (established c2s stream must be preserved); \
+                 RED against current code: active_carry!(flow, ServerToClient) = carry_s2c \
+                 is empty → condition fires → is_non_dnp3 incorrectly set to true"
+            );
+        }
+
+        // Step 3: Complete the c2s partial frame — deliver remaining 4 bytes of link header.
+        // DNP3 link header is 10 bytes; we delivered 6, need 4 more.
+        // Remaining bytes: SRC hi + CRC (placeholder). With carry_c2s prepended, the
+        // combined 10 bytes form a minimal link frame (LENGTH=5 → frame_len=10).
+        let completing_c2s: [u8; 4] = [0x00, 0x03, 0x00, 0x00]; // SRC hi=0x00, SRC lo=0x03, CRC placeholder
+        az.on_data(key.clone(), &completing_c2s, 102, Direction::ClientToServer);
+
+        let flow_final = az
+            .flows
+            .get(&key)
+            .expect("flow must exist after c2s completion");
+        assert!(
+            !flow_final.is_non_dnp3,
+            "Step 3: is_non_dnp3 must remain FALSE — c2s stream preserved (not silenced); \
+             RED against current code: if is_non_dnp3 was latched in Step 2, this assertion fails"
+        );
+        assert!(
+            flow_final.frame_count >= 1,
+            "Step 3: frame_count must be >= 1 after c2s frame completes (stream NOT silenced); \
+             RED against current code: is_non_dnp3 latched → on_data returns immediately → \
+             frame_count stays 0 → this assertion fails"
+        );
+    }
+
+    // -----------------------------------------------------------------------
+    // AC-142-003: true non-DNP3 latch still fires (regression guard)
+    //
+    // Both carries empty + first delivery is junk → is_non_dnp3 must still latch.
+    // This verifies the fix does NOT break the genuine desync detection case.
+    //
+    // Should be GREEN both before and after fix.
+    //
+    // Traces to: BC-2.15.009 v2.0 Precondition 3, EC-011; RULING-DNP3-DESYNC-001 §4 AC-3.
+    // -----------------------------------------------------------------------
+
+    /// Regression guard: genuine non-DNP3 flow still correctly latches is_non_dnp3.
+    ///
+    /// Both carries empty + junk first delivery → is_non_dnp3 = true.
+    /// The fix (both-carries-empty check) must preserve this correct behavior.
+    /// GREEN both before and after the fix.
+    #[test]
+    fn test_ac142_003_true_non_dnp3_still_latches() {
+        let key = make_key();
+        let mut az = make_analyzer();
+
+        // Step 1: First delivery is non-DNP3 junk in c2s direction.
+        // Both carry_c2s and carry_s2c are empty → both-carries-empty condition fires.
+        // Junk bytes [0xDE, 0xAD, 0xBE, 0xEF] do NOT start with [0x05, 0x64] → latch fires.
+        let junk_c2s: [u8; 4] = [0xDE, 0xAD, 0xBE, 0xEF];
+        az.on_data(key.clone(), &junk_c2s, 100, Direction::ClientToServer);
+
+        {
+            let flow = az
+                .flows
+                .get(&key)
+                .expect("flow must exist after junk c2s delivery");
+            assert!(
+                flow.is_non_dnp3,
+                "Step 1: is_non_dnp3 must be TRUE after junk first delivery with both carries empty; \
+                 both-carries-empty AND no sync word → latch fires (correct behavior preserved)"
+            );
+        }
+
+        // Step 2: Subsequent delivery with valid DNP3 sync bytes must be silenced.
+        // The is_non_dnp3 bail at the top of on_data returns immediately.
+        let valid_sync: [u8; 6] = [0x05, 0x64, 0x05, 0xC4, 0x01, 0x00];
+        az.on_data(key.clone(), &valid_sync, 101, Direction::ClientToServer);
+
+        let flow = az
+            .flows
+            .get(&key)
+            .expect("flow must exist after silenced valid sync");
+        assert!(
+            flow.is_non_dnp3,
+            "Step 2: is_non_dnp3 must remain true (flow permanently silenced)"
+        );
+        assert_eq!(
+            flow.frame_count, 0,
+            "Step 2: frame_count must be 0 (flow was permanently silenced on first junk delivery)"
+        );
+    }
+} // mod desync_latch
