@@ -1,10 +1,10 @@
 ---
 pipeline: FEATURE-MODE
-phase: F5
-phase_status: "STORY-140 DNP3 F5 scoped-adversarial CONVERGED @e16ee56 — 2129 GREEN/0 RED. Next: F6 formal hardening."
+phase: F6
+phase_status: "STORY-140 DNP3 F6 PASS @499c778 — Kani 36/37 (4 DNP3 proved), fuzz 5.18M/0, mutation gate CLOSED (Group A/B/C caught; 3 Group-D MAX_FINDINGS DoS-cap accepted-impractical). 2168 GREEN. Next: docs/adr/0007 worktree amend → F7 + human gate."
 product: wirerust
 mode: feature-mode
-timestamp: 2026-06-28T06:00:00Z
+timestamp: 2026-06-28T08:00:00Z
 
 # Release chain (latest)
 released_version: v0.10.0
@@ -23,7 +23,7 @@ factory_artifacts_head: (run `git -C .factory log -1 --format='%h'`)
 # Active worktrees
 worktree_scratch: ".worktrees/enip-edgecase-verify @ fd0c7f3 [scratch/enip-edgecase-verify] — keep for reference"
 worktree_orphan: ".worktrees/enip-f6-hardening @ 447da07 [test/enip-f6-fuzz-harnesses] — orphan, safe to remove"
-worktree_dnp3: ".worktrees/dnp3-direction-clock @e16ee56 [fix/dnp3-direction-and-clock] — F5 CONVERGED (2129/0)"
+worktree_dnp3: ".worktrees/dnp3-direction-clock @499c778 [fix/dnp3-direction-and-clock] — F6 PASS (2168/0)"
 
 # Pipeline completion
 bootstrapped: 2026-05-19T16:56:48Z
@@ -33,7 +33,7 @@ adversary_gate: SATISFIED
 # Story tracking
 stories_delivered: 88
 current_cycle: feature-enip-v0.11.0 (D-228, 2026-06-24)
-current_wave: "Wave 63 — STORY-140 DNP3 F5 CONVERGED @e16ee56. Next: F6 formal hardening (Kani regression, fuzz, mutation — DNP3 carry-cap is reachable)."
+current_wave: "Wave 63 — STORY-140 DNP3 F6 PASS @499c778. Next: docs/adr/0007 amend on worktree → F7 delta-convergence + human gate."
 
 # DTU
 dtu_required: false
@@ -56,7 +56,7 @@ convergence_trajectory: "Detail: cycles/v0.1.0-greenfield-spec/convergence-traje
 
 ## Status
 
-**PIPELINE FEATURE-MODE. Cycle `feature-enip-v0.11.0` OPEN. STORY-139 MERGED (D-277, develop `99a06f4`, PR #334). STORY-140 DNP3 sibling fix F5 CONVERGED @e16ee56 (2129/0, D-282). v0.11.0 HELD (D-260/D-278) — ships ENIP+DNP3 together on explicit human go-ahead.**
+**PIPELINE FEATURE-MODE. Cycle `feature-enip-v0.11.0` OPEN. STORY-139 MERGED (D-277, develop `99a06f4`, PR #334). STORY-140 DNP3 sibling fix F6 PASS @499c778 (2168/0, D-283). v0.11.0 HELD (D-260/D-278) — ships ENIP+DNP3 together on explicit human go-ahead.**
 
 **HUMAN DIRECTIVE (D-260/D-278): HALT — do NOT run the release pipeline / tag / publish without explicit human go-ahead. v0.11.0 ships ENIP+DNP3 together once both land on develop and human approves release.**
 
@@ -80,24 +80,27 @@ Spec versions: BC-INDEX v1.85 (332 on disk / 331 active; SS-17=26 BCs + EC-010 a
 - Do NOT re-introduce the `< 3` frame-walk guard or drop parse_errors counting (D-281 regression).
 - Do NOT restore wrapping_sub at block-timeout (D-280).
 - Do NOT re-run STORY-140 F5 — CONVERGED @e16ee56 (D-282).
+- Do NOT re-run STORY-140 F6 — PASS @499c778 (D-283). Do NOT re-chase the 3 Group-D MAX_FINDINGS DoS-cap mutants (accepted impractical). fuzz_dnp3_parse 4-arg fix committed b40d1d9.
 
-### EXACT RESUME POINT — STORY-140 DNP3 sibling fix — F5 CONVERGED, next F6 formal hardening
+### EXACT RESUME POINT — STORY-140 DNP3 sibling fix — F6 PASS, next docs/adr/0007 amend → F7 + human gate
 
-**STORY-140 F5 CONVERGED @e16ee56 (2129 GREEN / 0 RED, D-282). Worktree `.worktrees/dnp3-direction-clock` [fix/dnp3-direction-and-clock]. 24/24 BC clauses covered; VP-035/036 genuine non-vacuous proptests; did_process_in_this_call regression-fix confirmed sound; AC-140-002b genuinely discriminates direction from port-heuristic.**
+**STORY-140 F6 PASS @499c778 (2168 GREEN / 0 RED, D-283). Worktree `.worktrees/dnp3-direction-clock` [fix/dnp3-direction-and-clock]. Kani 36/37 (all 4 DNP3 framing harnesses PROVED + non-vacuous). cargo-fuzz fuzz_dnp3_parse: 5.18M execs / 0 crashes (4-arg signature gap found+fixed+committed b40d1d9). Mutation: Group A (carry-cap arithmetic + resync byte-walk) CAUGHT, Group B (src_ip attribution) CAUGHT, Group C (window boundary) CAUGHT; 3 Group-D MAX_FINDINGS DoS-cap accepted impractical. VP-035 2/2, VP-036 6/6.**
 
 **v0.11.0 HELD (D-260/D-278) — ENIP+DNP3 ship together once both land on develop + human release go-ahead.**
 
 STORY-140 remaining pipeline (sequential):
-1. F6 formal hardening — Kani regression (37 harnesses incl. DNP3 framing VPs); cargo-fuzz dnp3 target; cargo-mutants delta on changed dnp3.rs — DNP3 carry-cap REACHABLE so its mutants should be killable, NOT equivalent like ENIP.
-2. Then: amend docs/adr/0007 develop-tree copy on the worktree (the .factory ADR-007 was amended at 1e39373; the published docs/adr/0007 still pending for the PR).
-3. F7 convergence + human gate → merge → v0.11.0 release (ENIP+DNP3 together) on human go-ahead.
+1. Amend docs/adr/0007 develop-tree copy on the worktree (mirror .factory ADR-007 1e39373 so it merges in the PR).
+2. F7 delta-convergence + fresh consistency audit.
+3. HUMAN GATE.
+4. Merge STORY-140 → develop.
+5. v0.11.0 release (ENIP+DNP3 together) on explicit human go-ahead (HELD per D-260/D-278).
 
 ### RESUME PROCEDURE (execute in order — BLOCKING)
 
 1. Run `vsdd-factory:factory-worktree-health` — PASS required before proceeding.
 2. Read `.factory/STATE.md` (this file) + `.factory/cycles/feature-enip-v0.11.0/RULING-EDGECASE-001-direction-and-clock.md`.
-3. Verify: worktree `.worktrees/dnp3-direction-clock` branch `fix/dnp3-direction-and-clock` HEAD is `e16ee56`; 2129 GREEN / 0 RED; clippy/fmt clean.
-4. Dispatch F6 formal hardening: Kani regression (37 harnesses incl. DNP3 framing VPs), cargo-fuzz dnp3 target, cargo-mutants delta on changed dnp3.rs. DNP3 carry-cap is REACHABLE — mutants should be killable, not equivalent.
+3. Verify: worktree `.worktrees/dnp3-direction-clock` branch `fix/dnp3-direction-and-clock` HEAD is `499c778`; 2168 GREEN / 0 RED; clippy/fmt clean.
+4. Amend docs/adr/0007 on the worktree to mirror .factory 1e39373, then dispatch F7 delta-convergence.
 
 ### Locked design facts (do not re-derive on resume)
 
@@ -112,9 +115,9 @@ Story input-hashes: STORY-130 63fac3a, STORY-131 ce92886, STORY-132 c33dff8, STO
 | ID | Summary | Status |
 |----|---------|--------|
 | STORY-139 | EC-X1/EC-X2 fix-delta: per-direction carry + saturating window. | MERGED — develop `99a06f4` (D-277, PR #334) |
-| STORY-140 | DNP3 sibling EC-X1/EC-X2 fix (carry-split + saturating_sub). **RELEASE-BLOCKER.** | F5 CONVERGED @e16ee56 (2129/0, D-282). Next: F6 formal hardening. |
-| DRIFT-DNP3-DIRECTION-001 | DNP3 EC-X1 pattern (carry-direction-split) — sibling of ENIP fix. | IN SCOPE v0.11.0 — STORY-140 F5 CONVERGED (D-282) |
-| DRIFT-DNP3-CLOCK-001 | DNP3 EC-X2 pattern (wrapping_sub clock reset) — sibling of ENIP fix. | IN SCOPE v0.11.0 — STORY-140 F5 CONVERGED (D-282) |
+| STORY-140 | DNP3 sibling EC-X1/EC-X2 fix (carry-split + saturating_sub). **RELEASE-BLOCKER.** | F6 PASS @499c778 (2168/0, D-283). Next: docs/adr/0007 amend → F7 + human gate. |
+| DRIFT-DNP3-DIRECTION-001 | DNP3 EC-X1 pattern (carry-direction-split) — sibling of ENIP fix. | IN SCOPE v0.11.0 — STORY-140 F6 PASS (D-283) |
+| DRIFT-DNP3-CLOCK-001 | DNP3 EC-X2 pattern (wrapping_sub clock reset) — sibling of ENIP fix. | IN SCOPE v0.11.0 — STORY-140 F6 PASS (D-283) |
 | F-W60-002 | `bytes_received` BC-2.17.016 v1.1→v1.2 clarification (PC-5 exemption + Invariant 7). | DEFERRED — cycle close |
 | BC-PROSE-LOW-RESIDUALS | BC-2.17.001 Inv-4 + prd.md singular `carry`; BC-2.17.018 PC-1 singular `carry`; VP-034 title-label drift. | OPEN — cycle close |
 | ENGINE-PROPAGATION-GREP-GATE-001 | Mechanical changed-value sibling-grep gate. Human decision before cycle CLOSE. | OPEN — human review |
@@ -172,7 +175,8 @@ All GitHub-issue creation DF-VALIDATION-001-gated.
 | Feature DNP3 sibling EC-X1/EC-X2 (Wave 63) — STORY-140 F2 | DONE | 4 SS-15 BCs amended (e04809d: BC-2.15.016 v2.0/010 v1.8/014 v2.1/015 v2.0); ADR-007 amended (1e39373); VP-035/VP-036 + indexes (ab3c270, VP-INDEX v2.13/36 VPs). |
 | Feature DNP3 sibling EC-X1/EC-X2 (Wave 63) — STORY-140 F3 | DONE | STORY-140 authored (6d6e3a3, E-15 Wave 63, input-hash d498e66). |
 | Feature DNP3 sibling EC-X1/EC-X2 (Wave 63) — STORY-140 F4 | **F4 GREEN @1dda26b (2128/0)** | Worktree from develop 99a06f4. 208 call-sites threaded. parse_errors-resync regression caught+fixed (D-281). clippy/fmt clean; 0 wrapping_sub; singular carry gone; resolve_master_ip gone. |
-| Feature DNP3 sibling EC-X1/EC-X2 (Wave 63) — STORY-140 F5 | **F5 CONVERGED @e16ee56 (2129/0)** | 6 fresh-context adversary passes (findings 2 MED→3 MED+1 LOW→0→1 LOW→2 LOW→0): passes 3/4/5 + confirming pass all zero-HIGH/CRITICAL/mis-anchor. Commit chain: 1dda26b→ac8f2b3→5bc6caa→9972037→e16ee56. 24/24 BC clauses; VP-035/036 genuine non-vacuous proptests; AC-140-002b discriminating. Next: F6 formal hardening. |
+| Feature DNP3 sibling EC-X1/EC-X2 (Wave 63) — STORY-140 F5 | **F5 CONVERGED @e16ee56 (2129/0)** | 6 fresh-context adversary passes (findings 2 MED→3 MED+1 LOW→0→1 LOW→2 LOW→0): passes 3/4/5 + confirming pass all zero-HIGH/CRITICAL/mis-anchor. Commit chain: 1dda26b→ac8f2b3→5bc6caa→9972037→e16ee56. 24/24 BC clauses; VP-035/036 genuine non-vacuous proptests; AC-140-002b discriminating. |
+| Feature DNP3 sibling EC-X1/EC-X2 (Wave 63) — STORY-140 F6 | **F6 PASS @499c778 (2168/0)** | Kani 36/37 (all 4 DNP3 framing harnesses PROVED + non-vacuous; 1 orthogonal reader harness still-solving). cargo-fuzz fuzz_dnp3_parse 5.18M execs/0 crashes (4-arg fix b40d1d9). Mutation: Group A/B/C CAUGHT (two remediation bursts: 7bcbbaa 28 tests → verifier re-run found 11 Group-A survivors → 499c778 11 targeted tests VERIFIED via cargo-mutants); 3 Group-D MAX_FINDINGS DoS-cap accepted impractical. VP-035 2/2, VP-036 6/6. Next: docs/adr/0007 amend → F7 + human gate. |
 
 ## Decisions Log
 
@@ -199,6 +203,8 @@ D-228..D-269: `cycles/feature-enip-v0.11.0/decisions-archive.md`
 | D-280 | ARCHITECT adjudications during STORY-140 F4 (RULING-DNP3-SIBLING-001 author): (1) AC-140-002 test was DEFECTIVE (master placed on outstation port 20000) → rebuilt to standard topology (outstation:20000, master:54321 ephemeral), C2S→source=master=upper_ip; port-heuristic+direction formula correct (mirrors ENIP). (2) block-timeout (BC-2.15.014/T1691.001) → saturating_sub (consistent with RULING-EDGECASE-001 §2.2 ENIP precedent); old STORY-109 AC-014 test_pending_request_timeout_wrapping_sub SUPERSEDED → renamed test_pending_request_timeout_no_spurious_fire_on_rollover_or_backwards_ts (asserts no-spurious-fire + forward-clock companion); BC-2.15.014 v2.1 EC-009 stands; STORY-109.md:133 citation updated (59e7688). | 2026-06-27 |
 | D-281 | REGRESSION caught during STORY-140 F4 (orchestrator refused to accept test-writer's 'pre-existing' dismissal; devops bisect confirmed develop@99a06f4 GREEN vs worktree RED). Carry-split refactor changed the dnp3 frame-walk loop guard `< 3` → `< 10`, silently dropping parse_errors increments in the junk-at-clean-boundary / LENGTH-gate resync path (3 f5_resync_accounting tests under-counted parse_errors by 1). Fixed (1dda26b) via did_process_in_this_call context tracking (dnp3.rs:442/455/495/535) — restores one parse_error per structural event without breaking AC-140-001 partial-stash. No tests dropped (2128 = develop 2112 + 16 new). | 2026-06-27 |
 | D-282 | STORY-140 DNP3 F5 scoped-adversarial CONVERGED. Worktree commit chain after F4-green: 1dda26b → ac8f2b3 (5 stale wrapping_sub doc-comments) → 5bc6caa (VP-036 Sub-B/C made genuine on_data-driven proptests, F-140-002) → 9972037 (Sub-D rollover values/rationale corrected now_ts=500→wrapping=506, EC-008 test renamed saturating_sub, correlation prose, AC-140-002b discriminating ServerToClient src-ip case) → e16ee56 (EC-008 header + Sub-C operator-pin proptest doc honesty). 6 fresh-context adversary passes (findings 2 MED → 3 MED+1 LOW → 0 → 1 LOW → 2 LOW → 0): passes 3/4/5 + confirming pass all zero-HIGH/CRITICAL/mis-anchor; all MED/LOW resolved. Spec-prose fixes on factory-artifacts: VP-036/STORY-140 Sub-D rationale (7722617), STORY-109 AC-014 citation supersession (59e7688). 24/24 BC clauses covered; VP-035/036 genuine non-vacuous proptests; did_process_in_this_call regression-fix confirmed sound; AC-140-002b genuinely discriminates direction from port-heuristic. | 2026-06-27 |
+| D-283 | STORY-140 DNP3 F6 targeted hardening PASS @499c778. Kani: 36/37 proved (all 4 DNP3 framing harnesses PROVED + non-vacuous; struct/signature change broke nothing; 1 orthogonal still-solving reader harness). cargo-fuzz fuzz_dnp3_parse: 5.18M execs/0 crashes (+ pre-existing fuzz-harness on_data 4-arg signature gap found+fixed+committed b40d1d9 — DF-SIBLING-SWEEP miss in STORY-140's call-site sweep; now drives both directions). Mutation delta: first remediation (7bcbbaa, 28 tests) claimed structural-kill but VERIFIER re-run found 11 Group-A survivors still missed; orchestrator routed back; second remediation (499c778, 11 targeted tests in dnp3_f6_story140_group_a_survivors.rs) VERIFIED via actual cargo-mutants re-run — all 11 Group-A (carry-cap arithmetic 409/410, resync byte-walk sync-match 467/479/511/555) CAUGHT, plus Group B (8 src_ip attribution) + Group C (1 window boundary) caught. Only 3 Group-D MAX_FINDINGS DoS-cap off-by-one (1504/1538/1597) remain — accepted impractical (needs 10k findings; pre-existing, mirrors modbus.rs). Regression 2168/0; VP-035 2/2, VP-036 6/6. | 2026-06-27 |
+| D-284 | PROCESS NOTE: STORY-140 F6 mutation gate required TWO orchestrator verification interventions — (1) refused 'pre-existing' dismissal of 3 f5_resync_accounting RED tests → devops bisect proved STORY-140 regression (D-281); (2) refused test-writer 'structurally killed' claim → formal-verifier cargo-mutants re-run found 11 Group-A survivors. Both caught real gaps. Reinforces DF-ADVERSARY-TOOLCHAIN-PAIRING-001 / verify-don't-trust on mutation + regression claims. | 2026-06-27 |
 
 ## Governance Policy
 
@@ -208,5 +214,5 @@ Full policy text: `.factory/policies.yaml`. Active policies (17): DF-VALIDATION-
 
 - `.factory/` is a `factory-artifacts` orphan-branch worktree, gitignored from `develop`.
 - Active cycle: `cycles/feature-enip-v0.11.0/` (cycle-manifest.md, decisions-archive.md D-228+). Issue #316.
-- STORY-INDEX.md authoritative (92 stories / 63 waves — v2.9). STORY-130..139 completed + merged. stories_delivered=88. STORY-140 (DNP3 sibling fix, Wave 63) F5 CONVERGED @e16ee56 (D-282).
+- STORY-INDEX.md authoritative (92 stories / 63 waves — v2.9). STORY-130..139 completed + merged. stories_delivered=88. STORY-140 (DNP3 sibling fix, Wave 63) F6 PASS @499c778 (D-283).
 - F6 fuzz harness (F-P9-002) MERGED — PR #332 @f17d270 on develop (D-265).
