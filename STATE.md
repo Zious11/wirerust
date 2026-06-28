@@ -1,10 +1,10 @@
 ---
 pipeline: FEATURE-MODE
 phase: F7
-phase_status: "STORY-140 DNP3 PR #335 OPEN + READY TO MERGE (CI 11/11 green, pr-reviewer + security-reviewer APPROVE) @7169963. MERGE HELD per human (D-285) — awaiting explicit go-ahead. v0.11.0 HELD."
+phase_status: "STORY-140 DNP3 (EC-X1/EC-X2) MERGED to develop (PR #335 squash, b6d7a01). Both EC-X1/EC-X2 fixes now on develop (ENIP #334 + DNP3 #335). v0.11.0 READY TO RELEASE — HELD pending human go-ahead."
 product: wirerust
 mode: feature-mode
-timestamp: 2026-06-28T16:00:00Z
+timestamp: 2026-06-28T18:00:00Z
 
 # Release chain (latest)
 released_version: v0.10.0
@@ -15,15 +15,14 @@ release_url: https://github.com/Zious11/wirerust/releases/tag/v0.10.0
 prior_released_version: v0.9.4
 prior_released_at: "2026-06-23"
 
-# Ground-truth HEADs (verified D-277 — 2026-06-27)
-develop_head: 99a06f4
+# Ground-truth HEADs (verified D-288 — 2026-06-28)
+develop_head: b6d7a01
 main_head: 0cbe922
 factory_artifacts_head: (run `git -C .factory log -1 --format='%h'`)
 
 # Active worktrees
 worktree_scratch: ".worktrees/enip-edgecase-verify @ fd0c7f3 [scratch/enip-edgecase-verify] — keep for reference"
 worktree_orphan: ".worktrees/enip-f6-hardening @ 447da07 [test/enip-f6-fuzz-harnesses] — orphan, safe to remove"
-worktree_dnp3: ".worktrees/dnp3-direction-clock @7169963 [fix/dnp3-direction-and-clock] — PR #335 OPEN, READY TO MERGE, merge HELD"
 
 # Pipeline completion
 bootstrapped: 2026-05-19T16:56:48Z
@@ -31,9 +30,9 @@ phase_7_to_release_gate: "PASSED (human-approved 2026-06-09 — D-045)"
 adversary_gate: SATISFIED
 
 # Story tracking
-stories_delivered: 88
+stories_delivered: 89
 current_cycle: feature-enip-v0.11.0 (D-228, 2026-06-24)
-current_wave: "Wave 63 — STORY-140 PR #335 OPEN + green + approved, merge HELD pending human go-ahead. v0.11.0 HELD."
+current_wave: "Wave 63 — STORY-140 DNP3 MERGED (b6d7a01). v0.11.0 READY TO RELEASE (ENIP+DNP3 both on develop), HELD pending human go-ahead."
 
 # DTU
 dtu_required: false
@@ -56,11 +55,11 @@ convergence_trajectory: "Detail: cycles/v0.1.0-greenfield-spec/convergence-traje
 
 ## Status
 
-**PIPELINE FEATURE-MODE. Cycle `feature-enip-v0.11.0` OPEN. STORY-139 MERGED (D-277, develop `99a06f4`, PR #334). STORY-140 DNP3 sibling fix PR #335 OPEN + READY TO MERGE @7169963 (CI 11/11 green, pr-reviewer + security-reviewer APPROVE, D-287). MERGE HELD per human (D-285) — awaiting explicit go-ahead. v0.11.0 STAYS HELD (D-260/D-278/D-285) — ships ENIP+DNP3 together on explicit human go-ahead.**
+**PIPELINE FEATURE-MODE. Cycle `feature-enip-v0.11.0` OPEN. STORY-139 MERGED (D-277, develop `99a06f4`, PR #334). STORY-140 DNP3 sibling fix MERGED to develop via PR #335 squash (b6d7a01, D-288). BOTH EC-X1/EC-X2 release-blockers resolved on develop. v0.11.0 READY TO RELEASE — HELD pending explicit human go-ahead (D-260/D-278).**
 
-**HUMAN DIRECTIVE (D-260/D-278): HALT — do NOT run the release pipeline / tag / publish without explicit human go-ahead. v0.11.0 ships ENIP+DNP3 together once both land on develop and human approves release.**
+**HUMAN DIRECTIVE (D-260/D-278): HALT — do NOT run the release pipeline / tag / publish without explicit human go-ahead. v0.11.0 ships ENIP+DNP3 together; both now on develop. Release requires explicit human instruction.**
 
-Latest release: v0.10.0 (main `0cbe922`). develop=`99a06f4`. stories_delivered=88. Target: v0.11.0 (SS-17 EtherNet/IP + CIP TCP/44818 + DNP3 sibling EC-X1/EC-X2 fix). GitHub issue #316. v0.11.0 HELD until STORY-139 + STORY-140 both merged + human release go-ahead.
+Latest release: v0.10.0 (main `0cbe922`). develop=`b6d7a01`. stories_delivered=89. Target: v0.11.0 (SS-17 EtherNet/IP + CIP TCP/44818 + DNP3 sibling EC-X1/EC-X2 fix). GitHub issue #316. v0.11.0 HELD pending human release go-ahead.
 
 Spec versions: BC-INDEX v1.85 (332 on disk / 331 active; SS-17=26 BCs + EC-010 amendments). ARCH-INDEX v1.8. VP-INDEX v2.13 (36 VPs: VP-033..036 added). PRD v1.36. STORY-INDEX v2.9 (92 stories / 62 waves). epics.md v1.8 (E-20, Wave 62).
 
@@ -83,28 +82,25 @@ Spec versions: BC-INDEX v1.85 (332 on disk / 331 active; SS-17=26 BCs + EC-010 a
 - Do NOT re-run STORY-140 F6 — PASS @499c778 (D-283). Do NOT re-chase the 3 Group-D MAX_FINDINGS DoS-cap mutants (accepted impractical). fuzz_dnp3_parse 4-arg fix committed b40d1d9.
 - Do NOT re-run STORY-140 F4-F7 — F7 CONVERGED + human-approved @560efd3 (D-285). Do NOT re-run F7 delta-convergence or human gate.
 - Do NOT merge STORY-140 or release v0.11.0 without explicit human go-ahead (D-285). STORY-140 PR #335 OPEN + READY TO MERGE @7169963 — awaiting merge go-ahead only (D-287).
-- Do NOT re-open/re-create STORY-140 PR — #335 exists, green, approved (D-287). Do NOT merge #335 or release v0.11.0 without explicit human go-ahead.
+- Do NOT re-open/re-create STORY-140 PR — #335 MERGED b6d7a01 (D-288). Do NOT re-merge STORY-140.
+- Do NOT release v0.11.0 without explicit human go-ahead. Repo is squash-only (D-289) — do NOT re-enable merge-commit without human instruction.
 
-### EXACT RESUME POINT — STORY-140 PR #335 OPEN + READY TO MERGE, MERGE HELD
+### EXACT RESUME POINT — STORY-140 MERGED, v0.11.0 RELEASE HELD
 
-**STORY-140 PR #335 OPEN + READY TO MERGE @7169963 (D-287). Branch fix/dnp3-direction-and-clock. CI 11/11 green. pr-reviewer APPROVE (0 findings). security-reviewer APPROVE (0 CRITICAL/HIGH/MEDIUM, 4 LOW non-blocking, CWE-191 wrapping_sub-underflow confirmed resolved at all 8 sites). Dependency STORY-139 #334 MERGED. MERGE HELD per human (D-285).**
+**STORY-140 MERGED to develop @b6d7a01 (D-288). PR #335 squash-merged. 24 files. Worktree .worktrees/dnp3-direction-clock + branch fix/dnp3-direction-and-clock removed (local+remote); 17 stale refs pruned. stories_delivered=88→89. Both EC-X1/EC-X2 release-blockers resolved on develop (ENIP STORY-139 #334 @99a06f4, DNP3 STORY-140 #335 @b6d7a01).**
 
-**Merge command (requires explicit human go-ahead): `gh pr merge 335 --squash --delete-branch`**
+**ONLY remaining action: v0.11.0 RELEASE — HELD pending explicit human go-ahead.**
 
-**v0.11.0 STAYS HELD (D-260/D-278/D-285) — ENIP+DNP3 ship together on explicit human go-ahead.**
+Release pipeline (requires explicit human go-ahead): cut release/0.11.0 from develop b6d7a01 → version bump + CHANGELOG → PR to main → tag v0.11.0 → GitHub release. NOTE: repo is squash-only (D-289) — the release PR to main will squash; confirm main handling with human if gitflow merge-commit preferred.
 
-STORY-140 next actions (BOTH require explicit human go-ahead before execution):
-1. Merge PR #335 (`gh pr merge 335 --squash --delete-branch`) + post-merge cleanup (worktree remove, develop ff-pull) — dispatch pr-manager steps 8-9 on go-ahead.
-2. AFTER merge: run v0.11.0 release pipeline (release/0.11.0 → PR to main → tag v0.11.0 → GitHub release) shipping ENIP+DNP3 EC-X1/EC-X2 fixes together.
-
-Do NOT merge or release without the human's explicit instruction.
+Do NOT release v0.11.0 without explicit human instruction.
 
 ### RESUME PROCEDURE (execute in order — BLOCKING)
 
 1. Run `vsdd-factory:factory-worktree-health` — PASS required before proceeding.
-2. Read `.factory/STATE.md` (this file) + `.factory/cycles/feature-enip-v0.11.0/RULING-EDGECASE-001-direction-and-clock.md`.
-3. Verify: worktree `.worktrees/dnp3-direction-clock` branch `fix/dnp3-direction-and-clock` HEAD is `7169963`; PR #335 OPEN; CI 11/11 green; both reviews APPROVE.
-4. Wait for explicit human go-ahead before dispatching pr-manager or release pipeline.
+2. Read `.factory/STATE.md` (this file).
+3. Verify: develop HEAD is `b6d7a01`; PR #335 MERGED; worktree dnp3-direction-clock GONE.
+4. Wait for explicit human go-ahead before running release pipeline.
 
 ### Locked design facts (do not re-derive on resume)
 
@@ -119,9 +115,10 @@ Story input-hashes: STORY-130 63fac3a, STORY-131 ce92886, STORY-132 c33dff8, STO
 | ID | Summary | Status |
 |----|---------|--------|
 | STORY-139 | EC-X1/EC-X2 fix-delta: per-direction carry + saturating window. | MERGED — develop `99a06f4` (D-277, PR #334) |
-| STORY-140 | DNP3 sibling EC-X1/EC-X2 fix (carry-split + saturating_sub). **RELEASE-BLOCKER.** | PR #335 OPEN + READY TO MERGE @7169963 (CI green, both reviews APPROVE, D-287). MERGE HELD (D-285/D-287). |
-| DRIFT-DNP3-DIRECTION-001 | DNP3 EC-X1 pattern (carry-direction-split) — sibling of ENIP fix. | RESOLVED in STORY-140 (converged, merge-held, D-285) |
-| DRIFT-DNP3-CLOCK-001 | DNP3 EC-X2 pattern (wrapping_sub clock reset) — sibling of ENIP fix. | RESOLVED in STORY-140 (converged, merge-held, D-285) |
+| STORY-140 | DNP3 sibling EC-X1/EC-X2 fix (carry-split + saturating_sub). | MERGED — develop `b6d7a01` (D-288, PR #335 squash) |
+| DRIFT-DNP3-DIRECTION-001 | DNP3 EC-X1 pattern (carry-direction-split) — sibling of ENIP fix. | RESOLVED + MERGED (D-288, STORY-140 b6d7a01) |
+| DRIFT-DNP3-CLOCK-001 | DNP3 EC-X2 pattern (wrapping_sub clock reset) — sibling of ENIP fix. | RESOLVED + MERGED (D-288, STORY-140 b6d7a01) |
+| DEVELOP-BRANCH-PROTECTION | develop has no GitHub branch-protection (404); squash-required enforced via allowed-merge-methods only; consider adding required-status-checks protection. | BACKLOG (D-289) |
 | BC-2.15.014-LINE-CITATION | EC-006 + v2.0 changelog stale source-line citation 984-991 → verified post-STORY-140 line 1173-1200. | RESOLVED (D-286, commit eb406d1, no version bump) |
 | INPUT-HASH-DRIFT-STORY-140 | Input-hash mechanical re-baseline after SS-15 BC v2.x amendments + BC-2.15.014 fix. | RESOLVED (D-286, commit a915faa): STORY-140 d498e66→b3a4fd0; MATCH=90/STALE=0. |
 | F-W60-002 | `bytes_received` BC-2.17.016 v1.1→v1.2 clarification (PC-5 exemption + Invariant 7). | DEFERRED — cycle close |
@@ -183,7 +180,7 @@ All GitHub-issue creation DF-VALIDATION-001-gated.
 | Feature DNP3 sibling EC-X1/EC-X2 (Wave 63) — STORY-140 F4 | **F4 GREEN @1dda26b (2128/0)** | Worktree from develop 99a06f4. 208 call-sites threaded. parse_errors-resync regression caught+fixed (D-281). clippy/fmt clean; 0 wrapping_sub; singular carry gone; resolve_master_ip gone. |
 | Feature DNP3 sibling EC-X1/EC-X2 (Wave 63) — STORY-140 F5 | **F5 CONVERGED @e16ee56 (2129/0)** | 6 fresh-context adversary passes (findings 2 MED→3 MED+1 LOW→0→1 LOW→2 LOW→0): passes 3/4/5 + confirming pass all zero-HIGH/CRITICAL/mis-anchor. Commit chain: 1dda26b→ac8f2b3→5bc6caa→9972037→e16ee56. 24/24 BC clauses; VP-035/036 genuine non-vacuous proptests; AC-140-002b discriminating. |
 | Feature DNP3 sibling EC-X1/EC-X2 (Wave 63) — STORY-140 F6 | **F6 PASS @499c778 (2168/0)** | Kani 36/37 (all 4 DNP3 framing harnesses PROVED + non-vacuous; 1 orthogonal reader harness still-solving). cargo-fuzz fuzz_dnp3_parse 5.18M execs/0 crashes (4-arg fix b40d1d9). Mutation: Group A/B/C CAUGHT (two remediation bursts: 7bcbbaa 28 tests → verifier re-run found 11 Group-A survivors → 499c778 11 targeted tests VERIFIED via cargo-mutants); 3 Group-D MAX_FINDINGS DoS-cap accepted impractical. VP-035 2/2, VP-036 6/6. |
-| Feature DNP3 sibling EC-X1/EC-X2 (Wave 63) — STORY-140 F7 + PR | **PR #335 OPEN + READY TO MERGE (CI green, both reviews APPROVE), merge HELD @7169963 (D-287).** | pr-reviewer APPROVE (0 findings); security-reviewer APPROVE (0 CRITICAL/HIGH/MEDIUM, 4 LOW non-blocking, CWE-191 resolved at all 8 sites). Dependency STORY-139 #334 MERGED. Merge command held: `gh pr merge 335 --squash --delete-branch`. Branch + worktree intact. STORY-140 input-hash b3a4fd0. stories_delivered=88 (unchanged until merge). |
+| Feature DNP3 sibling EC-X1/EC-X2 (Wave 63) — STORY-140 F7 + MERGE | **MERGED to develop — PR #335 squash (D-288, b6d7a01). stories_delivered=89.** | pr-reviewer APPROVE (0 findings); security-reviewer APPROVE (0 CRITICAL/HIGH/MEDIUM, 4 LOW non-blocking). Worktree .worktrees/dnp3-direction-clock + branch fix/dnp3-direction-and-clock removed. STORY-140 input-hash b3a4fd0. v0.11.0 READY TO RELEASE — HELD pending human go-ahead. Repo squash-only policy set (D-289). |
 
 ## Decisions Log
 
@@ -215,6 +212,8 @@ D-228..D-269: `cycles/feature-enip-v0.11.0/decisions-archive.md`
 | D-285 | STORY-140 DNP3 F7 delta-convergence CONVERGED (consistency-validator: 5/5 convergence dims + 6/6 consistency, 1 minor non-blocking BC-2.15.014 line-citation finding). docs/adr/0007 develop-tree copy amended on worktree (560efd3) — both ADR-007 copies now consistent with code. HUMAN GATE outcome: (Q1) APPROVE STORY-140 convergence but HOLD MERGE — separate explicit go-ahead required before merging fix/dnp3-direction-and-clock → develop; (Q2) v0.11.0 STAYS HELD; (Q3) fix both backlog items now. STORY-140 worktree @560efd3, 2168/0 green, ready to merge on go-ahead. | 2026-06-28 |
 | D-286 | BACKLOG FIXES (human-approved, both done): (1) BC-2.15.014 EC-006 + v2.0 changelog stale source-line citation 984-991 → verified post-STORY-140 line 1173-1200 (commit eb406d1, no version bump, no logic change). (2) Input-hash mechanical re-baseline after SS-15 BC v2.x amendments + the BC-2.15.014 fix (commit a915faa): STORY-140 d498e66→b3a4fd0, STORY-106..110 rebaselined; full scan MATCH=90 STALE=0 (3 pre-existing ERROR rows STORY-001/091/121 unrelated). STORY-140 authoritative input-hash is now b3a4fd0. | 2026-06-28 |
 | D-287 | STORY-140 PR #335 (https://github.com/Zious11/wirerust/pull/335) OPENED targeting develop; branch fix/dnp3-direction-and-clock pushed (HEAD 7169963 — 560efd3 + per-AC demo-evidence commit). Human chose 'Push + open PR, hold merge': pr-manager ran lifecycle steps 1-7 and STOPPED before the squash-merge (DF-PR-MANAGER-COMPLETE-001 overridden by explicit human hold D-285). Gates: cargo test 2168/0, clippy/fmt clean; CI 11/11 green; pr-reviewer APPROVE (0 findings); security-reviewer APPROVE (0 CRITICAL/HIGH/MEDIUM, 4 LOW non-blocking, CWE-191 wrapping_sub-underflow confirmed resolved at all 8 sites); dependency STORY-139 #334 MERGED. READY TO MERGE — merge command held: `gh pr merge 335 --squash --delete-branch`. Branch + worktree intact. | 2026-06-28 |
+| D-288 | STORY-140 (DNP3 EC-X1/EC-X2 sibling fix) MERGED to develop via PR #335 — SQUASH merge commit b6d7a01 (develop ff-pulled 99a06f4→b6d7a01, 24 files). Human gave merge go-ahead lifting D-285 hold. Worktree .worktrees/dnp3-direction-clock + branch fix/dnp3-direction-and-clock removed (local+remote); 17 stale refs pruned. stories_delivered 88→89. Both EC-X1/EC-X2 release-blockers now resolved on develop (ENIP STORY-139 #334 @99a06f4, DNP3 STORY-140 #335 @b6d7a01). | 2026-06-28 |
+| D-289 | REPO MERGE POLICY: per human directive, repo Zious11/wirerust set to SQUASH-ONLY (allow_squash_merge=true, allow_merge_commit=false, allow_rebase_merge=false, delete_branch_on_merge=true) — squash-and-merge now REQUIRED for develop (and repo-wide). Supersedes the prior merge-commit-only policy (STORY-139 #334 used a merge commit under the old policy). FLAG: this is repo-wide, so the upcoming release/0.11.0 → main PR will also squash (diverges from CLAUDE.md gitflow merge-commit release flow — develop↔main sync should compare by tag/cherry, not commit ancestry). Note: develop currently has NO GitHub branch-protection rules (404 Branch not protected) — squash-required is enforced via allowed-merge-methods only; CI is workflow-side. Consider adding develop branch protection (required status checks) as a future hardening item. | 2026-06-28 |
 
 ## Governance Policy
 
@@ -224,5 +223,6 @@ Full policy text: `.factory/policies.yaml`. Active policies (17): DF-VALIDATION-
 
 - `.factory/` is a `factory-artifacts` orphan-branch worktree, gitignored from `develop`.
 - Active cycle: `cycles/feature-enip-v0.11.0/` (cycle-manifest.md, decisions-archive.md D-228+). Issue #316.
-- STORY-INDEX.md authoritative (92 stories / 63 waves — v2.9). STORY-130..139 completed + merged. stories_delivered=88 (STORY-140 converged but NOT yet merged — still 88 until merge). STORY-140 (DNP3 sibling fix, Wave 63) F7 CONVERGED + human-approved @560efd3 (D-285). MERGE HELD.
+- STORY-INDEX.md authoritative (92 stories / 63 waves — v2.9). STORY-130..140 completed + merged. stories_delivered=89. STORY-140 (DNP3 sibling fix, Wave 63) MERGED @b6d7a01 (D-288). v0.11.0 READY TO RELEASE — HELD pending human go-ahead.
+- Repo squash-only policy set (D-289). Worktree .worktrees/dnp3-direction-clock + branch fix/dnp3-direction-and-clock removed.
 - F6 fuzz harness (F-P9-002) MERGED — PR #332 @f17d270 on develop (D-265).
