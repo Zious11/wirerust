@@ -23,7 +23,7 @@ ruling: RULING-DNP3-DESYNC-001
 inputs:
   - .factory/specs/behavioral-contracts/ss-15/BC-2.15.009.md
   - .factory/cycles/feature-enip-v0.11.0/RULING-DNP3-DESYNC-001-direction-latch.md
-input-hash: "16f87c4"
+input-hash: "99e4a9b"
 ---
 
 # STORY-142: Fix DNP3 is_non_dnp3 Desync-Latch Direction-Contamination (RULING-DNP3-DESYNC-001)
