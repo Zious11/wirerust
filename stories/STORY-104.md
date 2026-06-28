@@ -47,7 +47,7 @@ tdd_mode: strict
 feature_id: issue-007-modbus-analyzer
 github_issue: 7
 # BC status: all 10 BCs authored at v2.0 (multi-tag) as of 2026-06-09
-input-hash: "5de84b8"
+input-hash: "9e18aba"
 ---
 
 # STORY-104: Modbus Detection Emissions + Summary

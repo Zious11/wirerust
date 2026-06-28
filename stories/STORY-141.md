@@ -32,7 +32,7 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-14/BC-2.14.019.md
   - .factory/specs/architecture/decisions/ADR-005-binary-ics-protocol-integration-modbus-tcp.md
   - .factory/cycles/feature-enip-v0.11.0/RULING-MODBUS-SIBLING-001-carry-and-clock.md
-input-hash: "41b8662"
+input-hash: "b0c7a8d"
 ---
 
 # STORY-141: Modbus Per-Direction Carry Buffer + Saturating Window Monotonicity (DRIFT-MODBUS-DIRECTION-001 / DRIFT-MODBUS-CLOCK-001)
@@ -51,7 +51,7 @@ abort in-progress burst windows (DRIFT-MODBUS-CLOCK-001) — unblocking the v0.1
 | BC ID | Version | Title | Story Role |
 |-------|---------|-------|-----------|
 | BC-2.14.002 | v2.0 | MBAP Header Rejected for ADU Shorter than 8 Bytes | Per-direction carry split (`carry_c2s`/`carry_s2c`); direction isolation invariant; EC-007 direction non-contamination |
-| BC-2.14.016 | v2.3 | Coordinated Write Sequence (T0831, 5-second window) | `saturating_sub` window-expiry; EC-011 backwards-clock T0831 no-reset |
+| BC-2.14.016 | v2.3 | Coordinated Write Sequence (T0831, 5-second window) | `saturating_sub` window-expiry; EC-013 backwards-clock T0831 no-reset |
 | BC-2.14.017 | v2.7 | Write-Rate Exceeding Either Burst or Sustained Threshold (T0806) | `saturating_sub` burst/sustained windows; `>=` KEPT at sustained gate; EC-012 backwards-clock burst no-reset |
 | BC-2.14.019 | v1.5 | Exception Response Anomaly (T0888, 10-second window) | `saturating_sub` exception-burst window; EC-009 backwards-clock no-reset |
 
@@ -145,7 +145,7 @@ Semantic: when `now_ts < t0831_window_start_ts` (backwards clock), `saturating_s
 **Test:** `tests/modbus_detection_tests.rs::direction_and_clock::test_ac141_005_t0831_backwards_clock_no_reset`
 — Deliver holding-register write at ts=100 (`t0831_window_start_ts=100`, `t0831_window_write_count=1`), then
 deliver holding-register write at ts=50 (backwards). Assert: `saturating_sub(50, 100) = 0`; NOT > 5 → window
-NOT reset; `t0831_window_write_count >= 2`; T0831 co-tag fires. Based on BC-2.14.016 EC-011. (traces to BC-2.14.016 v2.3 Postcondition window-expiry, EC-011)
+NOT reset; `t0831_window_write_count >= 2`; T0831 co-tag fires. Based on BC-2.14.016 EC-013. (traces to BC-2.14.016 v2.3 Postcondition window-expiry, EC-013)
 
 ### AC-141-006: Line 595 `wrapping_sub` → `saturating_sub` (T0806 1s burst window expiry)
 **Traces to:** BC-2.14.017 v2.7 Postcondition burst window pseudocode; RULING-MODBUS-SIBLING-001 §2.2 table row 595
@@ -247,7 +247,7 @@ via the seed.
 (traces to VP-037; BC-2.14.002 v2.0 direction-isolation Invariant)
 
 ### AC-141-012: VP-038 proptest — window monotonic no-spurious-reset (GENUINE proptest)
-**Traces to:** VP-038; BC-2.14.016 v2.3 EC-011; BC-2.14.017 v2.7 EC-012; BC-2.14.019 v1.5 EC-009; RULING-MODBUS-SIBLING-001 §5
+**Traces to:** VP-038; BC-2.14.016 v2.3 EC-013; BC-2.14.017 v2.7 EC-012; BC-2.14.019 v1.5 EC-009; RULING-MODBUS-SIBLING-001 §5
 
 VP-038 proptest harness is implemented as passing proptest suites covering all four windowed detections.
 
@@ -281,7 +281,7 @@ technique for constraining the strategy domain — NOT replacing with a determin
 **Test:** `tests/modbus_detection_tests.rs::vp038_modbus_window_monotonic_no_spurious_reset::proptest_vp038_sub_c_sustained_backwards_ts_no_spurious_fire`
 **Test:** `tests/modbus_detection_tests.rs::vp038_modbus_window_monotonic_no_spurious_reset::proptest_vp038_sub_d_exception_backwards_ts_no_reset`
 **Test:** `tests/modbus_detection_tests.rs::vp038_modbus_window_monotonic_no_spurious_reset::test_vp038_sub_e_genuine_rollover_no_spurious_reset`
-(traces to VP-038; BC-2.14.016 v2.3 EC-011, BC-2.14.017 v2.7 EC-012, BC-2.14.019 v1.5 EC-009)
+(traces to VP-038; BC-2.14.016 v2.3 EC-013, BC-2.14.017 v2.7 EC-012, BC-2.14.019 v1.5 EC-009)
 
 ### AC-141-013: `cargo clippy`, `cargo fmt`, `cargo test --all-targets` all green
 **Traces to:** BC-2.14.002 v2.0 (no `carry` singular field); BC-2.14.016/017/019 (no `wrapping_sub` in window paths)
@@ -334,7 +334,7 @@ the established pattern but stands alone.
 | EC-002 | Both directions have partial ADUs stashed simultaneously | `carry_c2s.len() > 0` AND `carry_s2c.len() > 0` concurrently; each direction's next delivery completes its own ADU independently |
 | EC-003 | c2s carry-cap overflow (> 260 bytes accumulated via repeated sub-8-byte deliveries) | `active_carry.len() + remaining.len() > 260` → `is_non_modbus = true`; `carry_s2c` unaffected (RULING-MODBUS-SIBLING-001 §1.5) |
 | EC-004 | 20 writes at ts=100, 1 write at ts=50 (backwards), 1 write at ts=100 | `saturating_sub(50, 100) = 0`; NOT > 1 → window NOT reset; `window_write_count=21`; burst fires at 21 > 20 (BC-2.14.017 v2.7 EC-012) |
-| EC-005 | Holding-register write at ts=100, holding-register write at ts=50 (backwards) | `saturating_sub(50, 100) = 0`; NOT > 5 → T0831 window NOT reset; `t0831_window_write_count` incremented; co-tag fires (BC-2.14.016 v2.3 EC-011) |
+| EC-005 | Holding-register write at ts=100, holding-register write at ts=50 (backwards) | `saturating_sub(50, 100) = 0`; NOT > 5 → T0831 window NOT reset; `t0831_window_write_count` incremented; co-tag fires (BC-2.14.016 v2.3 EC-013) |
 | EC-006 | Exception responses at ts=100, exception at ts=50 (backwards) | `saturating_sub(50, 100) = 0`; NOT > 10 → T0888 exception window NOT reset; accumulation preserved (BC-2.14.019 v1.5 EC-009 amended) |
 | EC-007 | Genuine u32 rollover: `window_start = u32::MAX - 5`, `now_ts = 4` | `saturating_sub(4, u32::MAX-5) = 0`; no spurious reset on any window (vs. `wrapping_sub` which gives 10) |
 
