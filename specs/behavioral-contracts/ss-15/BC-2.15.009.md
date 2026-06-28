@@ -19,6 +19,7 @@ modified:
   - "v1.5: F3 story-anchor back-fill. — 2026-06-14"
   - "v1.6: Pass-28 F3-convergence Slice-B FIX 1: corrected wrong cross-ref in Related BCs — BC-2.15.020 (stats BC) → BC-2.15.016 (carry buffer management BC); descriptor text was already correct; BC-2.15.016 reciprocally lists this BC. — 2026-06-14"
   - "v2.0: RULING-DNP3-DESYNC-001 (2026-06-28, §3): Breaking — Precondition 3 amended: desync bail latch fires ONLY when BOTH directional carries are empty (`flow.carry_c2s.is_empty() && flow.carry_s2c.is_empty()`), NOT just the active direction's carry. After STORY-140 carry split, checking only the active direction's carry allows a junk s2c delivery to latch `is_non_dnp3=true` on a flow where `carry_c2s` has an established partial c2s frame (DRIFT-DNP3-DESYNC-001 / DESIGN-CROSS-DIRECTION-STATE §2.1). Description paragraph 2 updated to explain both-carries-empty semantics. Architecture Anchors updated: `flow.carry` → `flow.carry_c2s` / `flow.carry_s2c`. EC-010 added: partial c2s frame in carry_c2s + junk s2c delivery → bail does NOT fire → c2s stream continues. EC-011 added: complete c2s frames consumed (carry_c2s drained), then junk s2c delivery → both empty → bail fires (same as pre-STORY-140 behavior). — 2026-06-28"
+  - "v2.0 modified (ADDENDUM-2026-06-28-frame-count-guard): RULING-DNP3-DESYNC-001 ADDENDUM-2026-06-28 — sub-case ii correction: the both-carries-empty-only predicate was INCOMPLETE. Carries are transiently drained after a complete frame parse; an established flow (frame_count>=1) with both carries empty would still latch under the prior condition (sub-case ii: c2s request fully parsed → carry_c2s drained → junk s2c arrives → both carries empty → latch fires incorrectly). Complete canonical predicate now requires `flow.frame_count == 0` as an additional gate: latch fires ONLY when frame_count==0 AND both carries empty AND data.len()>=2 AND no sync. Description updated with sub-case ii explanation. Precondition 3 updated to full predicate. EC-011 corrected: bail does NOT fire when frame_count>=1 (sub-case ii). EC-012 added: complete c2s frame then junk s2c with both carries drained — latch does NOT fire because frame_count==1. Architecture Anchors updated to full predicate. — 2026-06-28"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -39,36 +40,52 @@ input-hash: TBD
 When a TCP flow is classified as DNP3 (port 20000, ADR-007 Rule 6) and the very first
 `on_data` delivery finds no valid DNP3 start word `[0x05, 0x64]` at offset 0, the analyzer
 sets `flow.is_non_dnp3 = true` and treats all subsequent `on_data` calls for that flow as
-no-ops. This is a one-shot, initial-delivery-only mechanism: after the STORY-140 carry split, the bail
-fires only when `flow.carry_c2s.is_empty() && flow.carry_s2c.is_empty() && data.len() >= 2 &&
-data[0..2] != [0x05, 0x64]`. Checking BOTH directional carries ensures that a junk delivery in
-one direction cannot latch `is_non_dnp3` while the other direction has an established partial
-frame buffered. Once any bytes have been accepted into either `carry_c2s` OR `carry_s2c`, the
-flow is established as DNP3 and `is_non_dnp3` cannot be set from this path. (RULING-DNP3-DESYNC-001) Mid-carry sync-loss on an established flow is handled by byte-walk-forward
-resync (BC-2.15.016 EC-007), not by a second bail. This desync-safe bail prevents cascading
-parse errors and false findings from non-DNP3 binary protocols that happen to use port 20000.
-The per-flow `is_non_dnp3` flag, once set, is never cleared (flows are immutable in their
-desync state).
+no-ops. This is a one-shot, initial-delivery-only mechanism: after the STORY-140 carry split
+and the sub-case ii correction (ADDENDUM-2026-06-28-frame-count-guard), the bail fires only
+when ALL of the following are true: `flow.frame_count == 0` (no frame has ever been
+successfully parsed in any direction), `flow.carry_c2s.is_empty() && flow.carry_s2c.is_empty()`
+(no in-flight carry bytes in either direction), `data.len() >= 2`, and the data does not begin
+with the DNP3 sync word. Checking BOTH directional carries AND `frame_count == 0` ensures that
+a junk delivery in one direction cannot latch `is_non_dnp3` while the other direction either has
+an established partial frame buffered OR has already successfully parsed at least one complete
+frame. The `frame_count == 0` guard is load-bearing: carries are transiently drained to empty
+after each complete frame is consumed, so the both-carries-empty condition alone is insufficient
+for established flows — once `frame_count >= 1` the flow is unconditionally established and the
+latch never fires regardless of carry state. (Sub-case ii: a normal c2s request→s2c response
+lifecycle always reaches frame_count=1 before any s2c delivery, so an anomalous s2c packet on
+an established flow cannot silence the c2s direction.) Once either `frame_count >= 1` OR any
+bytes have been accepted into `carry_c2s` or `carry_s2c`, the flow is established as DNP3 and
+`is_non_dnp3` cannot be set from this path. (RULING-DNP3-DESYNC-001) Mid-carry sync-loss on an
+established flow is handled by byte-walk-forward resync (BC-2.15.016 EC-007), not by a second
+bail. This desync-safe bail prevents cascading parse errors and false findings from non-DNP3
+binary protocols that happen to use port 20000. The per-flow `is_non_dnp3` flag, once set, is
+never cleared (flows are immutable in their desync state).
 
 ## Preconditions
 
 1. A new flow has been created with `is_non_dnp3 = false`.
 2. `on_data` is called with `data` for this flow.
-3. `flow.carry_c2s.is_empty() && flow.carry_s2c.is_empty()` (no bytes have yet been accepted
+3. `flow.frame_count == 0` (no frame has ever been successfully parsed in any direction) AND
+   `flow.carry_c2s.is_empty() && flow.carry_s2c.is_empty()` (no bytes have yet been accepted
    into either directional carry — the flow is unestablished in BOTH directions) AND
    `data.len() >= 2` AND `(data[0] != 0x05 || data[1] != 0x64)` (no valid DNP3 sync word at
-   offset 0 of the first delivery). The bail fires ONLY when BOTH carries are empty; if
-   `carry_c2s` is non-empty (partial c2s frame in flight), a junk s2c delivery does NOT latch
-   `is_non_dnp3` — the c2s stream has established the flow. (RULING-DNP3-DESYNC-001 §2.1)
+   offset 0 of the first delivery). The bail fires ONLY when ALL four conditions are met:
+   `frame_count == 0`, both carries empty, `data.len() >= 2`, and no sync. The `frame_count == 0`
+   guard is the primary establishment check: once any frame has been successfully parsed in
+   either direction the flow is unconditionally established and the latch never fires regardless
+   of carry state. If `carry_c2s` is non-empty (partial c2s frame in flight), a junk s2c
+   delivery does NOT latch `is_non_dnp3` — the c2s stream has established the flow.
+   (RULING-DNP3-DESYNC-001 §2.1; ADDENDUM-2026-06-28-frame-count-guard)
    If `data.len() < 2` on the first call (both carries still empty), the bail does NOT fire —
    the byte is accumulated into the appropriate directional carry and the check defers to the
-   next delivery that arrives while both carries are still empty and `data.len() >= 2`. Once
-   either carry is non-empty (any bytes accepted), this precondition can never be satisfied
-   again; the bail path is closed permanently.
+   next delivery that arrives while both carries are still empty, `frame_count == 0`, and
+   `data.len() >= 2`. Once `frame_count >= 1` OR either carry is non-empty (any bytes
+   accepted), this precondition can never be satisfied again; the bail path is closed
+   permanently.
 
 ## Postconditions
 
-**On bail trigger** (first delivery while carry empty: `data.len() >= 2` and no valid DNP3 sync at offset 0):
+**On bail trigger** (`frame_count == 0`, both carries empty, `data.len() >= 2`, no valid DNP3 sync at offset 0 — complete predicate per ADDENDUM-2026-06-28-frame-count-guard):
 1. `flow.is_non_dnp3` is set to `true`.
 2. The current `on_data` call returns immediately without emitting findings.
 3. `flow.frame_count` and `flow.parse_errors` are NOT incremented for the triggering segment.
@@ -83,22 +100,27 @@ desync state).
 
 ## Invariants
 
-1. **Initial-delivery-only check**: the desync bail is a one-shot mechanism guarded by
-   `flow.carry_c2s.is_empty() && flow.carry_s2c.is_empty() && data.len() >= 2`. It fires on
-   the first delivery that arrives while BOTH directional carries are empty and delivers at
-   least 2 bytes without `[0x05, 0x64]` at offset 0. After the STORY-140 carry split,
-   "accepted into carry" means bytes accepted into EITHER `carry_c2s` OR `carry_s2c`. A
-   junk delivery in one direction cannot latch `is_non_dnp3` if the other direction has a
+1. **Initial-delivery-only check**: the desync bail is a one-shot mechanism guarded by the
+   complete predicate: `flow.frame_count == 0 && flow.carry_c2s.is_empty() &&
+   flow.carry_s2c.is_empty() && data.len() >= 2`. It fires only when ALL conditions are met.
+   After the STORY-140 carry split and the ADDENDUM-2026-06-28-frame-count-guard sub-case ii
+   correction, "unestablished flow" requires BOTH that no frame has been parsed (`frame_count == 0`)
+   AND that both carries are empty. The `frame_count == 0` guard is load-bearing: carries are
+   transiently drained to empty after each complete frame parse, so the both-carries-empty
+   condition alone cannot distinguish a genuinely unestablished flow from an established flow
+   between frames. Once `frame_count >= 1` the latch never fires regardless of carry state.
+   A junk delivery in one direction cannot latch `is_non_dnp3` if the other direction has a
    partial frame buffered — `carry_c2s.is_non_empty()` makes the both-empty guard false.
    A single-byte first delivery (< 2 bytes) defers the check: the byte is accumulated into
-   the active directional carry and the next delivery while both carries are still empty
-   re-evaluates. Once either carry is non-empty, this bail path is permanently closed. There
-   is NO cross-segment 16-byte accumulation bail; such a mechanism was architecturally
-   rejected (latching an established flow as non-DNP3 based on transient carry misalignment
-   is a self-DoS risk — ADJ-001 Addendum Q1). Mid-carry sync-loss is handled by
-   byte-walk-forward resync (BC-2.15.016 EC-007), which clears and repositions the carry
-   without setting `is_non_dnp3`. [ADR-007 Decision 2; ADJ-001 Decision 1 BC-2.15.009
-   Interaction; ADJ-001 Addendum Q1; RULING-DNP3-DESYNC-001 §2.1]
+   the active directional carry and the next delivery while `frame_count == 0`, both carries
+   still empty, re-evaluates. Once `frame_count >= 1` OR either carry is non-empty, this
+   bail path is permanently closed. There is NO cross-segment 16-byte accumulation bail;
+   such a mechanism was architecturally rejected (latching an established flow as non-DNP3
+   based on transient carry misalignment is a self-DoS risk — ADJ-001 Addendum Q1). Mid-carry
+   sync-loss is handled by byte-walk-forward resync (BC-2.15.016 EC-007), which clears and
+   repositions the carry without setting `is_non_dnp3`. [ADR-007 Decision 2; ADJ-001 Decision 1
+   BC-2.15.009 Interaction; ADJ-001 Addendum Q1; RULING-DNP3-DESYNC-001 §2.1;
+   ADDENDUM-2026-06-28-frame-count-guard]
 2. **One-way latch**: `is_non_dnp3` is a one-way latch — once set to `true`, it never reverts.
    There is no re-sync mechanism in v1 (deferred to a future cycle).
 3. **No side effects on bailed flow**: a bailed flow is a permanent no-op. It does not increment
@@ -120,7 +142,8 @@ desync state).
 | EC-005 | Flow correctly starts with `0x05 0x64` | No bail — `is_non_dnp3` stays `false`, normal processing |
 | EC-006 | Subsequent `on_data` call on a bailed flow | Immediate no-op; no parse; no metrics change |
 | EC-010 | First delivery: `direction=ClientToServer`, valid DNP3 sync `[0x05, 0x64, ...]` but incomplete frame — `carry_c2s` accumulates 6 bytes. Second delivery: `direction=ServerToClient`, non-DNP3 junk `[0xFF, 0xFE, 0x00]`. | `flow.carry_c2s.is_empty() = false` → both-carries-empty guard is false → bail condition does NOT fire → `is_non_dnp3` remains false → c2s stream continues processing on subsequent deliveries. (RULING-DNP3-DESYNC-001 §2.3 Case 2; §3 EC-010) |
-| EC-011 | First delivery: `direction=ClientToServer`, valid DNP3 sync, complete frame consumed → `carry_c2s` drained to empty. Second delivery: `direction=ServerToClient`, non-DNP3 junk. | `flow.carry_c2s.is_empty() = true`, `flow.carry_s2c.is_empty() = true` → both empty → bail condition fires → `is_non_dnp3 = true`. Same behavior as the pre-STORY-140 single-carry model (carry was empty after complete c2s frame in both cases). (RULING-DNP3-DESYNC-001 §2.3 residual; §3 EC-011) |
+| EC-011 | First delivery: `direction=ClientToServer`, non-DNP3 junk. `frame_count=0`, `carry_c2s.is_empty()=true`, `carry_s2c.is_empty()=true`. | All four conditions true: `frame_count==0`, both carries empty, `data.len()>=2`, no sync → bail fires → `is_non_dnp3=true`. Correct: genuinely unestablished flow with junk first delivery. (RULING-DNP3-DESYNC-001 §2.3 Case 1; §3 EC-011; ADDENDUM-2026-06-28-frame-count-guard) |
+| EC-012 | First delivery: `direction=ClientToServer`, valid DNP3 sync `[0x05, 0x64, ...]`, complete frame fully parsed, `carry_c2s` drained to empty, `frame_count=1`. Second delivery: `direction=ServerToClient`, non-DNP3 junk `[0xFF, 0xFE, 0x00]`. State at latch check: `frame_count=1`, `carry_c2s.is_empty()=true`, `carry_s2c.is_empty()=true`. | `frame_count==0` is FALSE (frame_count=1 ≥ 1) → complete predicate fails → bail does NOT fire → `is_non_dnp3` remains false → c2s stream continues on subsequent deliveries. **Sub-case ii — the common request→response lifecycle: a completed c2s frame drains carry_c2s to empty; the both-carries-empty-only condition would have incorrectly latched is_non_dnp3 here. The `frame_count==0` guard is the load-bearing fix.** (RULING-DNP3-DESYNC-001 ADDENDUM-2026-06-28-frame-count-guard; §2.3 Case 2 sub-case ii; §3 EC-012) |
 
 ## Canonical Test Vectors
 
@@ -159,7 +182,7 @@ desync state).
 - `src/analyzer/dnp3.rs` — `Dnp3FlowState.is_non_dnp3: bool` — false on creation; set true on bail
 - `src/analyzer/dnp3.rs` — `Dnp3FlowState.carry_c2s: Vec<u8>` and `carry_c2s: Vec<u8>` (STORY-140 / RULING-DNP3-SIBLING-001 carry split)
 - `src/analyzer/dnp3.rs` — `Dnp3Analyzer::on_data` — early return if `flow.is_non_dnp3`
-- `src/analyzer/dnp3.rs` — desync-latch block (pre-fix line 363): `flow.carry_c2s.is_empty() && flow.carry_s2c.is_empty() && data.len() >= 2 && (data[0] != 0x05 || data[1] != 0x64)` (RULING-DNP3-DESYNC-001 §2.1)
+- `src/analyzer/dnp3.rs` — desync-latch block (pre-fix line 363): complete predicate (post-ADDENDUM-2026-06-28-frame-count-guard): `flow.frame_count == 0 && flow.carry_c2s.is_empty() && flow.carry_s2c.is_empty() && data.len() >= 2 && (data[0] != 0x05 || data[1] != 0x64)` (RULING-DNP3-DESYNC-001 §2.1; ADDENDUM-2026-06-28-frame-count-guard)
 - `.factory/phase-f2-spec-evolution/dnp3-architecture-delta.md §2.3` — `is_non_dnp3: bool` field description
 - `.factory/specs/architecture/decisions/ADR-007-binary-ics-protocol-integration-dnp3-tcp.md §Decision 2` — "is_non_dnp3 desync-safe bail"
 - Note: line numbers are PRE-fix (STORY-142 implementer re-anchors to post-fix lines)
