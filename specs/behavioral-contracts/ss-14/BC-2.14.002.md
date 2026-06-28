@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "2.0"
+version: "2.1"
 status: draft
 producer: product-owner
 timestamp: 2026-06-09T00:00:00Z
@@ -20,6 +20,9 @@ modified:
   - version: "2.0"
     date: 2026-06-28
     change: "ADDENDUM-002 errata (RULING-MODBUS-SIBLING-001 ADDENDUM-002, 2026-06-28): Carry-cap guards at stash sites are structurally UNREACHABLE (clear-then-stash; effective cap = 259 bytes). Guards are defensive future-proofing only. Additive errata note added to Invariants section. No behavioral change to cap logic or postconditions."
+  - version: "2.1"
+    date: 2026-06-28
+    change: "F7 errata anchor reconciliation (DIM1-01, non-blocking): Re-anchored both stash site labels in ADDENDUM-002 errata note to the `if dir_carry.len() + remaining.len() > MAX_ADU_CARRY_BYTES` guard statement lines, matching the architect ruling document convention. Site 1: 1104 (// UNREACHABLE comment) → 1110 (if-guard statement). Site 2: 1150 (stale) → 1162 (if-guard statement). active_carry.clear() anchor (1075) unchanged. No substantive behavioral change."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -97,8 +100,8 @@ provable via Kani over all inputs of length 0..7.
 
 > **ERRATA NOTE (ADDENDUM-002, 2026-06-28 — RULING-MODBUS-SIBLING-001 ADDENDUM-002)**
 >
-> The DoS carry-cap guards at the two stash sites (site 1104: partial MBAP header stash;
-> site 1150: partial ADU body stash) are structurally **UNREACHABLE** under the
+> The DoS carry-cap guards at the two stash sites (site 1110: partial MBAP header stash;
+> site 1162: partial ADU body stash) are structurally **UNREACHABLE** under the
 > clear-then-stash execution model of `on_data`.
 >
 > Reason: `active_carry.clear()` (line 1075, post-split) drains the selected directional
@@ -107,9 +110,9 @@ provable via Kani over all inputs of length 0..7.
 > `active_carry.len() == 0` at each stash check, making the cap condition reduce to
 > `0 + remaining.len() > 260`.
 >
-> - Site 1104 max operand: `remaining.len() <= 7` (partial MBAP header guard requires
+> - Site 1110 max operand: `remaining.len() <= 7` (partial MBAP header guard requires
 >   `remaining.len() < 8`). `7 > 260` is false — UNREACHABLE.
-> - Site 1150 max operand: `remaining.len() <= adu_len - 1 <= 259` (via
+> - Site 1162 max operand: `remaining.len() <= adu_len - 1 <= 259` (via
 >   `is_valid_modbus_adu` bounding `adu_len <= 260`). `259 > 260` is false — UNREACHABLE.
 >
 > **Effective cap = 259 bytes** (one below `MAX_ADU_CARRY_BYTES = 260`). The guards are

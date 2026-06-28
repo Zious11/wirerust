@@ -612,10 +612,12 @@ RETRACTED.**
 
 ### A2-1. Corrected Verdict
 
-**UNREACHABLE.** The carry-cap overflow guards at the two stash sites (lines 1104 and 1150,
+**UNREACHABLE.** The carry-cap overflow guards at the two stash sites (lines 1110 and 1162,
 post-split) are structurally unreachable within a single `on_data` call under the clear-then-stash
 structure. This is analogous to the ENIP carry-cap finding in RULING-137-002
 (ENIP 599 < 600 → UNREACHABLE).
+
+*(Line anchors reconciled to post-`// UNREACHABLE`-comment line numbers at F7, finding DIM1-01.)*
 
 ### A2-2. Reachability Proof
 
@@ -627,8 +629,8 @@ on_data(direction, data, ...)
   2. active_carry.clear()                          ← line 1075 (post-split equivalent)
   3. if !carry.is_empty(): prepend carry to buf
   4. frame-walk loop:
-       stash site 1104: if active_carry.len() + remaining.len() > MAX_ADU_CARRY_BYTES → is_non_modbus = true
-       stash site 1150: if active_carry.len() + remaining.len() > MAX_ADU_CARRY_BYTES → is_non_modbus = true
+       stash site 1110: if active_carry.len() + remaining.len() > MAX_ADU_CARRY_BYTES → is_non_modbus = true
+       stash site 1162: if active_carry.len() + remaining.len() > MAX_ADU_CARRY_BYTES → is_non_modbus = true
 ```
 
 Step 2 (`active_carry.clear()`) drains the selected directional carry to length 0 before the
@@ -638,13 +640,13 @@ Therefore, at each stash site, `active_carry.len() == 0`.
 
 The cap guard condition reduces to:
 
-- **Site 1104** (partial MBAP header stash, `remaining.len() < 8`):
+- **Site 1110** (partial MBAP header stash, `remaining.len() < 8`):
   `0 + remaining.len() > MAX_ADU_CARRY_BYTES(260)`.
   Maximum value of `remaining.len()` at this site: 7 (the guard fires only when fewer than
   8 bytes remain — i.e., `remaining.len() <= 7`).
   `7 > 260` is **false**. Guard is UNREACHABLE.
 
-- **Site 1150** (partial ADU body stash, `remaining.len() < adu_len`):
+- **Site 1162** (partial ADU body stash, `remaining.len() < adu_len`):
   `0 + remaining.len() > MAX_ADU_CARRY_BYTES(260)`.
   Maximum value of `remaining.len()` at this site: `adu_len - 1`.
   `adu_len` is bounded by `is_valid_modbus_adu` to `length` field ∈ [2, 254] → total ADU
@@ -657,12 +659,12 @@ The cap guard condition reduces to:
 ### A2-3. cargo-mutants Survivors — Equivalent Mutants (Permanent)
 
 The F1 adversarial review identified 6 cargo-mutants survivors at the two stash sites:
-- `>` → `==` at site 1104
-- `>` → `>=` at site 1104
-- `+` → `*` at site 1104
-- `>` → `==` at site 1150
-- `>` → `>=` at site 1150
-- `+` → `*` at site 1150
+- `>` → `==` at site 1110
+- `>` → `>=` at site 1110
+- `+` → `*` at site 1110
+- `>` → `==` at site 1162
+- `>` → `>=` at site 1162
+- `+` → `*` at site 1162
 
 All 6 are **EQUIVALENT MUTANTS**. Because both guards are structurally unreachable (the
 cap condition can never be true given the operand bounds above), no test in the suite can
