@@ -2,7 +2,7 @@
 artifact: architecture-section
 section: verification-coverage-matrix
 traces_to: ARCH-INDEX.md
-version: "1.22"
+version: "1.23"
 status: verified
 producer: spec-steward
 timestamp: 2026-05-20T00:00:00Z
@@ -88,6 +88,9 @@ modified:
   - date: 2026-06-27
     actor: spec-steward
     reason: "RULING-DNP3-SIBLING-001 (DNP3 carry-split + saturating_sub governance): VP-035 and VP-036 added to VP-to-Module table (proptest; P1; draft; analyzer/dnp3.rs). analyzer/dnp3.rs Per-Module row proptest count 0→2; Total VPs 1→3. Totals row proptest 12→14, overall 34→36. Coverage note added for VP-035/VP-036. Version bump 1.21→1.22."
+  - date: 2026-06-28
+    actor: spec-steward
+    reason: "RULING-MODBUS-SIBLING-001 (Modbus carry-direction splice + clock-backwards window reset): VP-037 and VP-038 added to VP-to-Module table (proptest; P1; draft; analyzer/modbus.rs). analyzer/modbus.rs Per-Module row proptest count 0→2; Total VPs 1→3. Totals row proptest 14→16, overall 36→38. Coverage note added for VP-037/VP-038. Version bump 1.22→1.23."
 ---
 
 # Verification Coverage Matrix
@@ -132,6 +135,8 @@ modified:
 | VP-034 | EtherNet/IP window backwards-timestamp no-spurious-reset (EC-X2): Sub-A T0836 write-burst backwards-ts no-reset (BC-2.17.012 v1.2 EC-009); Sub-B T0888 error-rate backwards-ts no-reset (BC-2.17.008 v1.3 EC-009); Sub-C T0814 malformed backwards-ts no-reset + EC-X4 operator pin (elapsed==300 NOT > 300; BC-2.17.018 v1.1 EC-008); Sub-D genuine u32 rollover deterministic unit test; traces BC-2.17.008 v1.3 / BC-2.17.012 v1.2 / BC-2.17.018 v1.1 | analyzer/enip.rs | proptest | P1 | draft |
 | VP-035 | DNP3 carry-buffer direction isolation (DRIFT-DNP3-DIRECTION-001): proptest_vp035_direction_isolation_frame_count — interleaved c2s/s2c deliveries produce correct frame_count with carry_c2s/carry_s2c never mixed; proptest_vp035_independent_run_equivalence — interleaved frame_count equals sum of independent runs; traces BC-2.15.016 v2.0 Inv-6 | analyzer/dnp3.rs | proptest | P1 | draft |
 | VP-036 | DNP3 window backwards-timestamp no-spurious-reset (DRIFT-DNP3-CLOCK-001): Sub-A T1692.001 60s backwards-ts no-reset (BC-2.15.010 v1.8 EC-012); Sub-B T1691.001 10s block-timeout backwards-ts no-spurious-fire (BC-2.15.014 v2.1 EC-009); Sub-C T0827/T0814 300s correlation-window backwards-ts no-reset + DRIFT-DNP3-OP-001 operator pin (elapsed==300 NOT > 300; BC-2.15.015 v2.0 EC-010); Sub-D genuine u32 rollover deterministic unit test (all three windows); traces BC-2.15.010 v1.8 / BC-2.15.014 v2.1 / BC-2.15.015 v2.0 | analyzer/dnp3.rs | proptest | P1 | draft |
+| VP-037 | Modbus carry-buffer direction isolation (DRIFT-MODBUS-DIRECTION-001): proptest_vp037_direction_isolation_fn_code_counts — interleaved c2s/s2c deliveries produce correct fn_code_counts with carry_c2s/carry_s2c never mixed; parse_errors==0; proptest_vp037_independent_run_equivalence — interleaved fn_code_counts equal those of independent same-direction runs; traces BC-2.14.002 v2.0 Inv-4 + EC-007 | analyzer/modbus.rs | proptest | P1 | draft |
+| VP-038 | Modbus window backwards-timestamp no-spurious-reset (DRIFT-MODBUS-CLOCK-001): Sub-A T0831 5s backwards-ts no-reset (BC-2.14.016 v2.3 EC-010/EC-011); Sub-B T0806 burst 1s backwards-ts no-reset (BC-2.14.017 v2.7 EC-010/EC-012); Sub-C T0806 sustained >=2s minimum-duration gate — >= INTENTIONALLY PRESERVED (RULING-MODBUS-SIBLING-001 §2.3 — fires AT 2s mark; not a pin); Sub-D T0888 exception 10s backwards-ts no-reset (BC-2.14.019 v1.5 EC-009); Sub-E genuine u32 rollover deterministic unit test (all four Modbus windows); traces BC-2.14.016 v2.3 / BC-2.14.017 v2.7 / BC-2.14.019 v1.5 | analyzer/modbus.rs | proptest | P1 | draft |
 
 
 ## Per-Module Coverage Totals
@@ -151,12 +156,12 @@ modified:
 | cli.rs | 0 | 0 | 0 | 1 (VP-018) | 1 |
 | analyzer/dns.rs | 0 | 0 | 0 | 1 (VP-019) | 1 |
 | reporter/csv.rs | 0 | 0 | 0 | 1 (VP-020) | 1 |
-| analyzer/modbus.rs | 1 (VP-022) | 0 | 0 | 0 | 1 |
+| analyzer/modbus.rs | 1 (VP-022) | 2 (VP-037, VP-038) | 0 | 0 | 3 |
 | analyzer/dnp3.rs | 1 (VP-023) | 2 (VP-035, VP-036) | 0 | 0 | 3 |
 | analyzer/arp.rs | 1 (VP-024) [a] | 0 | 0 | 0 | 1 |
 | analyzer/enip.rs | 1 (VP-032) | 2 (VP-033, VP-034) | 0 | 0 | 3 |
 | reader.rs | 3 (VP-025, VP-026, VP-027) [b] | 3 (VP-029, VP-030, VP-031) [b] | 1 (VP-028) | 0 | 7 |
-| **Totals** | **15** | **14** | **2** | **5** | **36** |
+| **Totals** | **15** | **16** | **2** | **5** | **38** |
 
 
 ## Coverage Notes
@@ -310,3 +315,28 @@ modified:
   Dnp3FlowState. The analyzer/dnp3.rs row now carries 1 Kani (VP-023) + 2 proptest
   (VP-035, VP-036) = 3 total VPs. Grand Totals: Kani(15) + proptest(14) + fuzz(2) +
   integration/unit(5) = 36.
+
+- VP-037 and VP-038 (analyzer/modbus.rs / proptest): draft; lock gate at F6. These two VPs
+  were authored as part of RULING-MODBUS-SIBLING-001 (DRIFT-MODBUS-DIRECTION-001 and
+  DRIFT-MODBUS-CLOCK-001) spec adjudication; they are the Modbus siblings of VP-033/VP-034
+  (ENIP) and VP-035/VP-036 (DNP3). VP-037 guards BC-2.14.002 v2.0 Invariant 4 (carry-buffer
+  direction isolation, Modbus): harness `proptest_vp037_direction_isolation_fn_code_counts`
+  confirms interleaved c2s/s2c deliveries produce correct fn_code_counts with carry_c2s and
+  carry_s2c never mixed; harness `proptest_vp037_independent_run_equivalence` confirms the
+  interleaved count equals the sum of independent same-direction runs. Modbus ADUs use a
+  minimal 13-byte frame (8-byte MBAP header + 5-byte PDU); split_offset 1..7 (partial MBAP
+  header below the 8-byte minimum). EC-007 (direction non-contamination) is jointly guarded.
+  VP-038 guards the backwards-timestamp no-spurious-reset property across all four Modbus
+  windowed detections (BC-2.14.016 v2.3 / BC-2.14.017 v2.7 / BC-2.14.019 v1.5) introduced
+  by DRIFT-MODBUS-CLOCK-001: Sub-A (T0831 5s inactivity window backwards-ts no-reset;
+  BC-2.14.016 v2.3 EC-010), Sub-B (T0806 burst 1s window backwards-ts no-reset; BC-2.14.017
+  v2.7 EC-010), Sub-C (T0806 sustained >=2s window — the >= is INTENTIONAL minimum-duration
+  gate per RULING-MODBUS-SIBLING-001 §2.3; this sub-harness validates the operator is correct,
+  not a defect; BC-2.14.017 v2.7 EC-012), Sub-D (T0888 exception 10s window backwards-ts
+  no-reset; BC-2.14.019 v1.5 EC-009), Sub-E (genuine u32 rollover deterministic unit test —
+  all four Modbus windows; saturating_sub returns 0, no spurious reset). These are proptest
+  (not Kani) for the same reason as VP-034 and VP-036: Modbus window state machines operate
+  over stateful ModbusFlowState. STORY-141 implements the harnesses; STORY-142 (DNP3 desync-
+  latch) does not add a new VP per RULING-DNP3-DESYNC-001 (regression test only). The
+  analyzer/modbus.rs row now carries 1 Kani (VP-022) + 2 proptest (VP-037, VP-038) = 3 total
+  VPs. Grand Totals: Kani(15) + proptest(16) + fuzz(2) + integration/unit(5) = 38.
