@@ -1,10 +1,10 @@
 ---
 pipeline: FEATURE-MODE
 phase: F7
-phase_status: "STORY-140 DNP3 (EC-X1/EC-X2) MERGED to develop (PR #335 squash, b6d7a01). Both EC-X1/EC-X2 fixes now on develop (ENIP #334 + DNP3 #335). v0.11.0 READY TO RELEASE — HELD pending human go-ahead."
+phase_status: "STORY-140 DNP3 (EC-X1/EC-X2) MERGED to develop (PR #335 squash, b6d7a01). Both EC-X1/EC-X2 fixes now on develop (ENIP #334 + DNP3 #335). v0.11.0 READY TO RELEASE — HELD pending human go-ahead. develop+main branch-protected (D-290): squash-only via green PR, 11 required status checks."
 product: wirerust
 mode: feature-mode
-timestamp: 2026-06-28T18:00:00Z
+timestamp: 2026-06-28T20:00:00Z
 
 # Release chain (latest)
 released_version: v0.10.0
@@ -84,6 +84,7 @@ Spec versions: BC-INDEX v1.85 (332 on disk / 331 active; SS-17=26 BCs + EC-010 a
 - Do NOT merge STORY-140 or release v0.11.0 without explicit human go-ahead (D-285). STORY-140 PR #335 OPEN + READY TO MERGE @7169963 — awaiting merge go-ahead only (D-287).
 - Do NOT re-open/re-create STORY-140 PR — #335 MERGED b6d7a01 (D-288). Do NOT re-merge STORY-140.
 - Do NOT release v0.11.0 without explicit human go-ahead. Repo is squash-only (D-289) — do NOT re-enable merge-commit without human instruction.
+- Do NOT remove develop/main branch protection or re-enable non-squash merge methods without explicit human instruction (D-289/D-290).
 
 ### EXACT RESUME POINT — STORY-140 MERGED, v0.11.0 RELEASE HELD
 
@@ -118,7 +119,7 @@ Story input-hashes: STORY-130 63fac3a, STORY-131 ce92886, STORY-132 c33dff8, STO
 | STORY-140 | DNP3 sibling EC-X1/EC-X2 fix (carry-split + saturating_sub). | MERGED — develop `b6d7a01` (D-288, PR #335 squash) |
 | DRIFT-DNP3-DIRECTION-001 | DNP3 EC-X1 pattern (carry-direction-split) — sibling of ENIP fix. | RESOLVED + MERGED (D-288, STORY-140 b6d7a01) |
 | DRIFT-DNP3-CLOCK-001 | DNP3 EC-X2 pattern (wrapping_sub clock reset) — sibling of ENIP fix. | RESOLVED + MERGED (D-288, STORY-140 b6d7a01) |
-| DEVELOP-BRANCH-PROTECTION | develop has no GitHub branch-protection (404); squash-required enforced via allowed-merge-methods only; consider adding required-status-checks protection. | BACKLOG (D-289) |
+| DEVELOP-BRANCH-PROTECTION | develop has no GitHub branch-protection (404); squash-required enforced via allowed-merge-methods only; consider adding required-status-checks protection. | RESOLVED (D-290) |
 | BC-2.15.014-LINE-CITATION | EC-006 + v2.0 changelog stale source-line citation 984-991 → verified post-STORY-140 line 1173-1200. | RESOLVED (D-286, commit eb406d1, no version bump) |
 | INPUT-HASH-DRIFT-STORY-140 | Input-hash mechanical re-baseline after SS-15 BC v2.x amendments + BC-2.15.014 fix. | RESOLVED (D-286, commit a915faa): STORY-140 d498e66→b3a4fd0; MATCH=90/STALE=0. |
 | F-W60-002 | `bytes_received` BC-2.17.016 v1.1→v1.2 clarification (PC-5 exemption + Invariant 7). | DEFERRED — cycle close |
@@ -214,6 +215,7 @@ D-228..D-269: `cycles/feature-enip-v0.11.0/decisions-archive.md`
 | D-287 | STORY-140 PR #335 (https://github.com/Zious11/wirerust/pull/335) OPENED targeting develop; branch fix/dnp3-direction-and-clock pushed (HEAD 7169963 — 560efd3 + per-AC demo-evidence commit). Human chose 'Push + open PR, hold merge': pr-manager ran lifecycle steps 1-7 and STOPPED before the squash-merge (DF-PR-MANAGER-COMPLETE-001 overridden by explicit human hold D-285). Gates: cargo test 2168/0, clippy/fmt clean; CI 11/11 green; pr-reviewer APPROVE (0 findings); security-reviewer APPROVE (0 CRITICAL/HIGH/MEDIUM, 4 LOW non-blocking, CWE-191 wrapping_sub-underflow confirmed resolved at all 8 sites); dependency STORY-139 #334 MERGED. READY TO MERGE — merge command held: `gh pr merge 335 --squash --delete-branch`. Branch + worktree intact. | 2026-06-28 |
 | D-288 | STORY-140 (DNP3 EC-X1/EC-X2 sibling fix) MERGED to develop via PR #335 — SQUASH merge commit b6d7a01 (develop ff-pulled 99a06f4→b6d7a01, 24 files). Human gave merge go-ahead lifting D-285 hold. Worktree .worktrees/dnp3-direction-clock + branch fix/dnp3-direction-and-clock removed (local+remote); 17 stale refs pruned. stories_delivered 88→89. Both EC-X1/EC-X2 release-blockers now resolved on develop (ENIP STORY-139 #334 @99a06f4, DNP3 STORY-140 #335 @b6d7a01). | 2026-06-28 |
 | D-289 | REPO MERGE POLICY: per human directive, repo Zious11/wirerust set to SQUASH-ONLY (allow_squash_merge=true, allow_merge_commit=false, allow_rebase_merge=false, delete_branch_on_merge=true) — squash-and-merge now REQUIRED for develop (and repo-wide). Supersedes the prior merge-commit-only policy (STORY-139 #334 used a merge commit under the old policy). FLAG: this is repo-wide, so the upcoming release/0.11.0 → main PR will also squash (diverges from CLAUDE.md gitflow merge-commit release flow — develop↔main sync should compare by tag/cherry, not commit ancestry). Note: develop currently has NO GitHub branch-protection rules (404 Branch not protected) — squash-required is enforced via allowed-merge-methods only; CI is workflow-side. Consider adding develop branch protection (required status checks) as a future hardening item. | 2026-06-28 |
+| D-290 | GitHub branch protection configured on BOTH develop + main (human-authorized "fix the branch protections"; both were previously unprotected — 404). Settings: require PR before merge (required_approving_review_count=0 — AI-agent review + solo-maintainer model, GitHub self-approval block avoided); required_status_checks strict=true with 11 exact contexts (Test, Clippy, Format, Fuzz build, Audit, Deny, Trust-boundary (test-seam gate), Help-provenance gate, Action pin gate, Green-doc-tense gate, Semantic PR); required_linear_history=true (aligns squash-only D-289); required_conversation_resolution=true; allow_force_pushes=false; allow_deletions=false. enforce_admins: develop=false (pr-manager --admin headroom), main=true (per CLAUDE.md: main never updated by admin bypass). Contexts derived from actual check-run names on a recent develop commit, not guessed. NOTE: "Semantic PR" only runs on PRs (correct — PRs now required); "Audit" is continue-on-error (always reports green — informational). Resolves the DEVELOP-BRANCH-PROTECTION backlog item. | 2026-06-28 |
 
 ## Governance Policy
 
