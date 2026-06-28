@@ -2764,59 +2764,91 @@ mod vp036_dnp3_window_monotonic_no_spurious_reset {
         // VP-036 Sub-B proptest: T1691.001 10s block-command timeout — backwards ts
         // does NOT fire spurious timeout.
         //
-        // Strategy: (request_ts, backwards_ts) with prop_assume!(backwards_ts <= request_ts).
-        // saturating_sub(backwards_ts, request_ts) == 0 → NOT > 10 → timeout NOT fired.
+        // Strategy: (window_start, backwards_ts) with prop_assume!(backwards_ts <= window_start).
+        // Arm a pending block-command request at window_start (DIRECT_OPERATE FC=0x05 via
+        // on_data). Deliver a READ frame at backwards_ts to trigger scan_block_timeouts.
+        // saturating_sub(backwards_ts, window_start) == 0 → NOT > 10 → block_event_count
+        // stays at 0 (no spurious timeout). Behavioral outcome from on_data state machine.
         //
-        // This test verifies the arithmetic invariant directly (no pending_requests
-        // injection needed — the arithmetic property is sufficient for Sub-B).
+        // FAILS with stub (wrapping_sub): wrapping_sub(backwards_ts, window_start) wraps to
+        // a large value > 10 → spurious timeout fires → block_event_count == 1 → test FAILS.
         //
         // Traces: VP-036 Sub-B (BC-2.15.014 v2.1 PC3, EC-009); AC-140-011.
 
         /// Guards VP-036 Sub-B: backwards-ts event must NOT fire spurious T1691.001 timeout.
         ///
-        /// FAILS with stub (wrapping_sub): large wrapped value > 10 → spurious timeout
-        /// would fire for any pending request with request_ts > backwards_ts.
+        /// Arms a pending DIRECT_OPERATE request at window_start via on_data, then delivers
+        /// a backwards-ts READ frame. Asserts block_event_count == 0 (timeout did NOT fire).
+        ///
+        /// FAILS with stub (wrapping_sub): large wrapped value > 10 → spurious timeout fires
+        /// → block_event_count incremented → behavioral assertion fails.
         #[test]
         fn proptest_vp036_sub_b_block_timeout_backwards_ts_no_fire(
-            request_ts in 1u32..u32::MAX,
+            window_start in 1u32..u32::MAX,
             backwards_ts in 0u32..=u32::MAX,
         ) {
-            prop_assume!(backwards_ts <= request_ts);
+            prop_assume!(backwards_ts <= window_start);
 
-            // Arithmetic invariant: saturating_sub returns 0 for backwards ts.
-            let elapsed = backwards_ts.saturating_sub(request_ts);
-            prop_assert_eq!(
-                elapsed, 0,
-                "saturating_sub must return 0 for backwards ts (T1691.001 10s timeout)"
-            );
-            prop_assert!(
-                elapsed <= 10,
-                "elapsed=0 must NOT trigger the > 10 second block-timeout; \
-                 FAILS with stub (wrapping_sub gives large value > 10 → spurious timeout)"
-            );
+            let key = make_key();
+            // Threshold=10 so T1692.001 burst does not fire on the single DIRECT_OPERATE.
+            let mut analyzer = Dnp3Analyzer::new(10);
+            let do_frame = detection_frame(0x05); // DIRECT_OPERATE → inserts into pending_requests
+            let read_frame = detection_frame(0x01); // READ → triggers scan, no pending insert
 
-            // Confirm wrapping_sub would give a different (large) value when backwards_ts < request_ts.
-            // This makes the test non-vacuous: it exercises the exact scenario that caused EC-X2.
-            if backwards_ts < request_ts {
-                let wrapping_elapsed = backwards_ts.wrapping_sub(request_ts);
-                prop_assert!(
-                    wrapping_elapsed > 0,
-                    "wrapping_sub must give nonzero for backwards ts (confirming the old bug)"
+            // Arm: deliver DIRECT_OPERATE at window_start.
+            // scan_block_timeouts runs first (no prior pending_requests → no timeout yet).
+            // Then the frame is consumed, inserting pending_request (dest=0x0003, app_seq=0)
+            // keyed at window_start.
+            analyzer.on_data(key.clone(), &do_frame, window_start, Direction::ClientToServer);
+
+            {
+                let flow = analyzer.flows.get(&key).expect("VP-036 Sub-B: flow must exist after arm");
+                prop_assert_eq!(
+                    flow.block_event_count, 0,
+                    "VP-036 Sub-B: block_event_count must be 0 after arm (no timeout yet)"
                 );
             }
+
+            // Backwards-ts trigger: deliver READ at backwards_ts (backwards_ts <= window_start).
+            // scan_block_timeouts checks: saturating_sub(backwards_ts, window_start) = 0 NOT > 10
+            // → pending request does NOT time out → block_event_count stays at 0.
+            // FAILS with stub: wrapping_sub(backwards_ts, window_start) >> 10 → timeout fires.
+            analyzer.on_data(key.clone(), &read_frame, backwards_ts, Direction::ClientToServer);
+
+            let flow = analyzer.flows.get(&key).expect("VP-036 Sub-B: flow must exist after trigger");
+            prop_assert_eq!(
+                flow.block_event_count, 0,
+                "VP-036 Sub-B: backwards-ts event must NOT fire spurious T1691.001 timeout; \
+                 block_event_count must remain 0. \
+                 FAILS with stub (wrapping_sub gives large value > 10 → spurious timeout fires)"
+            );
         }
 
         // VP-036 Sub-C proptest: T0827/T0814 300s correlation window — backwards ts
         // does NOT reset window; operator is strict `>` (NOT `>=`).
         //
         // Strategy: (window_start, backwards_ts) with prop_assume!(backwards_ts <= window_start).
-        // saturating_sub(backwards_ts, window_start) == 0 → NOT > 300 → no reset.
+        // Accumulate restart/six-field state at window_start via two COLD_RESTART on_data calls
+        // (restart_event_count=2, correlation_window_start_ts=window_start). Then deliver a
+        // COLD_RESTART at backwards_ts. saturating_sub(backwards_ts, window_start) == 0 →
+        // NOT > 300 → window NOT reset → restart_event_count reaches 3 → T0827 fires.
+        // Behavioral outcome: T0827 is emitted iff the window was preserved.
+        //
+        // FAILS with stub (wrapping_sub >=): large wrapped value >= 300 → window resets →
+        // restart_event_count cleared to 0 → incremented to 1 → T0827 does NOT fire.
+        //
+        // Mirrors test_ac140_009_regression_backwards_ts_t0827_no_reset (EC-010 regression
+        // repro) but over a proptest-generated (window_start, backwards_ts) domain.
         //
         // Traces: VP-036 Sub-C (BC-2.15.015 v2.0 PC3, EC-010); AC-140-011.
 
         /// Guards VP-036 Sub-C: backwards-ts event must NOT reset the 300s correlation window.
         ///
-        /// FAILS with stub (wrapping_sub >=): large wrapped value >= 300 → window resets.
+        /// Accumulates 2 COLD_RESTARTs at window_start, delivers a COLD_RESTART at
+        /// backwards_ts. Asserts T0827 fires (restart_event_count reached 3 without reset).
+        ///
+        /// FAILS with stub (wrapping_sub >=): window resets on backwards-ts delivery →
+        /// restart_event_count cleared → T0827 suppressed → behavioral assertion fails.
         #[test]
         fn proptest_vp036_sub_c_300s_window_backwards_ts_no_reset(
             window_start in 1u32..u32::MAX,
@@ -2824,26 +2856,51 @@ mod vp036_dnp3_window_monotonic_no_spurious_reset {
         ) {
             prop_assume!(backwards_ts <= window_start);
 
-            // Arithmetic invariant.
-            let elapsed = backwards_ts.saturating_sub(window_start);
-            prop_assert_eq!(
-                elapsed, 0,
-                "saturating_sub must return 0 for backwards ts (T0827/T0814 300s window)"
-            );
-            prop_assert!(
-                elapsed <= 300,
-                "elapsed=0 must NOT trigger the 300s correlation-window reset; \
-                 FAILS with stub (wrapping_sub >= gives large value >= 300 → spurious reset)"
-            );
+            let key = make_key();
+            // Threshold=10 so T1692.001 burst does not fire on COLD_RESTART frames
+            // (Restart class is not tracked in the burst window).
+            let mut analyzer = Dnp3Analyzer::new(10);
+            let cold_restart = detection_frame(0x0D); // FC=0x0D COLD_RESTART
 
-            // Confirm wrapping_sub gives a nonzero (large) result when backwards_ts < window_start.
-            if backwards_ts < window_start {
-                let wrapping_elapsed = backwards_ts.wrapping_sub(window_start);
-                prop_assert!(
-                    wrapping_elapsed > 0,
-                    "wrapping_sub must give nonzero for backwards ts (confirming the old bug)"
+            // Arm: deliver 2 COLD_RESTARTs at window_start to seed the correlation window.
+            // First call seeds correlation_window_start_ts = window_start, restart_event_count=1.
+            // Second call: saturating_sub(window_start, window_start) = 0 NOT > 300 → no reset;
+            // restart_event_count=2.
+            analyzer.on_data(key.clone(), &cold_restart, window_start, Direction::ClientToServer);
+            analyzer.on_data(key.clone(), &cold_restart, window_start, Direction::ClientToServer);
+
+            {
+                let flow = analyzer.flows.get(&key)
+                    .expect("VP-036 Sub-C: flow must exist after arm");
+                prop_assert_eq!(
+                    flow.restart_event_count, 2,
+                    "VP-036 Sub-C: restart_event_count must be 2 after two COLD_RESTARTs at window_start"
+                );
+                prop_assert_eq!(
+                    flow.correlation_window_start_ts, window_start,
+                    "VP-036 Sub-C: correlation_window_start_ts must equal window_start after arm"
                 );
             }
+
+            // Backwards-ts trigger: deliver COLD_RESTART at backwards_ts.
+            // maybe_expire_correlation_window: saturating_sub(backwards_ts, window_start) = 0
+            // NOT > 300 → window NOT reset → restart_event_count increments to 3 → T0827 fires.
+            // FAILS with stub: wrapping_sub(backwards_ts, window_start) >= 300 → reset →
+            // restart_event_count = 0+1 = 1 → T0827 does NOT fire.
+            analyzer.on_data(key.clone(), &cold_restart, backwards_ts, Direction::ClientToServer);
+
+            // Behavioral assertion: T0827 must fire (restart_event_count=3 reached threshold=3).
+            // This is only possible if the 300s window was NOT reset by the backwards-ts event.
+            let t0827_count = analyzer
+                .all_findings
+                .iter()
+                .filter(|f| f.mitre_techniques.contains(&"T0827".to_string()))
+                .count();
+            prop_assert_eq!(
+                t0827_count, 1,
+                "VP-036 Sub-C: T0827 must fire (restart_event_count reached 3 without reset); \
+                 FAILS with stub (wrapping_sub >= resets window → count never reaches threshold)"
+            );
         }
 
         // VP-036 Sub-C operator pin: elapsed==300 does NOT expire under strict `> 300`.
