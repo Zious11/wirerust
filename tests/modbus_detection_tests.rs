@@ -3107,6 +3107,265 @@ mod direction_and_clock {
             WRITE_BURST_WINDOW_SECS
         );
     }
+    // -----------------------------------------------------------------------
+    // AC-141-011 through AC-141-014: carry-cap boundary tests (F6 mutant closure)
+    //
+    // Target mutants (modbus.rs):
+    //   Line 1104:58  `> → ==`   (None/sub-8-byte path)
+    //   Line 1104:58  `> → >=`   (None/sub-8-byte path)
+    //   Line 1104:40  `+ → *`    (None/sub-8-byte path)
+    //   Line 1150:54  `> → ==`   (partial-ADU stash path)
+    //   Line 1150:54  `> → >=`   (partial-ADU stash path)
+    //   Line 1150:36  `+ → *`    (partial-ADU stash path)
+    //
+    // Reachability analysis — both guard sites are structurally dead code:
+    //
+    //   Site 1104 (None path): `parse_mbap_header` returns `None` iff `remaining.len() < 8`.
+    //   The cap check is `dir_carry.len() + remaining.len() > MAX_ADU_CARRY_BYTES` (260).
+    //   Because `active_carry` is cleared at line 1075 before the loop body,
+    //   `dir_carry.len() == 0` at every stash site.  Therefore the check reduces to
+    //   `remaining.len() > 260`.  But the None arm is entered only when `remaining.len() < 8`,
+    //   so `remaining.len() ≤ 7 < 260`.  The guard is always false.
+    //
+    //   Site 1150 (partial-ADU stash path): reached when `parse_mbap_header` returns
+    //   `Some(h)` (requires `remaining.len() ≥ 8`) and `is_valid_modbus_adu(h)` passes
+    //   (requires `h.length ≤ 254`, so `adu_len = 6 + h.length ≤ 260`) and
+    //   `remaining.len() < adu_len` (so `remaining.len() ≤ adu_len − 1 ≤ 259`).
+    //   The check reduces to `remaining.len() > 260`; since `remaining.len() ≤ 259 < 260`,
+    //   the guard is always false.
+    //
+    //   The `+ → *` variants mutate `0 + remaining.len()` to `0 * remaining.len() = 0`,
+    //   which is also never > 260 — identical outcome to the correct expression.
+    //
+    //   Verdict: all six mutants are structurally equivalent (dead code guards).  They exist
+    //   as future-proof DoS guards against refactors that might introduce an earlier stash
+    //   point within the same loop body — the comment at each site makes this explicit.
+    //   No test can kill them without altering the invariant that `adu_len ≤ MAX_ADU_CARRY_BYTES`.
+    //
+    // Despite being dead code the tests below stress every reachable approach:
+    //   AC-141-011: valid partial ADU at the maximum carry size (259 B) — no latch,
+    //               exercises site 1150 at the closest-reachable value to 260.
+    //   AC-141-012: carry-prepend completes a max-partial ADU cleanly — cap path silent.
+    //   AC-141-013: s2c direction cap overflow fires independently of c2s carry.
+    //   AC-141-014: None-path accumulation up to boundary (257 bytes via sub-8 chunks)
+    //               then final delivery triggers validity-gate latch — confirms the
+    //               overflow mechanism fires via the validity gate (not the dead cap guard).
+    //
+    // Traces to: BC-2.14.002 v2.0 Invariant 1 (carry bounded), RULING-MODBUS-SIBLING-001 §1.5.
+    // -----------------------------------------------------------------------
+
+    /// AC-141-011: delivering a valid partial ADU of exactly 259 bytes (one byte shy of
+    /// adu_len=260) stashes successfully without triggering is_non_modbus.
+    ///
+    /// This exercises site 1150 with `remaining.len() = 259`, the closest reachable value
+    /// to the `> 260` cap threshold (which is dead code at 259 ≤ 260).
+    ///
+    /// Observable via: no parse_errors after delivery, AND subsequent completion of the ADU
+    /// (delivering the final 1 byte) causes fn_code_counts[0x03] to increment — which only
+    /// happens when is_non_modbus is false during the first delivery.
+    ///
+    /// Boundary relationship:
+    ///   `> → >=` at 1150: would latch at 259 ≥ 260? No (259 < 260). Does NOT distinguish.
+    ///   `> → ==` at 1150: would latch at 259 == 260? No (259 ≠ 260). Does NOT distinguish.
+    ///   (These are structurally equivalent mutants — dead code per reachability proof above.)
+    #[test]
+    fn test_ac141_011_carry_cap_stash_path_259b_partial_no_latch() {
+        let mut az = default_analyzer();
+        let fk = test_flow_key();
+
+        // Build a valid MBAP prefix: txn=1, protocol=0, length=254 (max valid → adu_len=260).
+        // Deliver 259 bytes: full 8-byte header + 251 bytes of PDU filler.
+        // adu_len = 6 + 254 = 260; remaining.len() = 259 < 260 → partial-ADU stash path.
+        // Cap check: dir_carry(0) + remaining(259) = 259 ≤ 260 → no latch (guard dead at 259).
+        let mut partial: Vec<u8> = Vec::with_capacity(259);
+        // 6-byte MBAP prefix: txn=0x0001, protocol=0x0000, length=0x00FE (254)
+        partial.extend_from_slice(&[0x00, 0x01, 0x00, 0x00, 0x00, 0xFE]);
+        // unit_id + fc (bytes 6 and 7 of the ADU)
+        partial.push(0x01); // unit_id
+        partial.push(0x03); // fc = Read Holding Registers
+        // 251 bytes of payload filler (PDU body)
+        partial.extend(std::iter::repeat_n(0xAA, 251));
+        assert_eq!(partial.len(), 259, "partial ADU must be exactly 259 bytes");
+
+        drive_on_data(&mut az, &fk, Direction::ClientToServer, &partial, 100);
+
+        assert_eq!(
+            az.parse_errors, 0,
+            "parse_errors must be 0 after clean 259-byte partial stash; \
+             no validity gate (valid MBAP), no cap trigger at 259 ≤ MAX_ADU_CARRY_BYTES(260)"
+        );
+        assert_eq!(
+            az.fn_code_counts.get(&0x03).copied().unwrap_or(0),
+            0,
+            "FC=0x03 must not be counted yet — ADU still partial after 259 bytes"
+        );
+
+        // Deliver the final 1 byte to complete the ADU.  If is_non_modbus had latched
+        // in the previous call this would be silenced; FC=0x03 would stay at 0.
+        drive_on_data(&mut az, &fk, Direction::ClientToServer, &[0xCC], 101);
+        assert_eq!(
+            az.parse_errors, 0,
+            "parse_errors must still be 0 after completing the 260-byte ADU"
+        );
+        assert_eq!(
+            az.fn_code_counts.get(&0x03).copied().unwrap_or(0),
+            1,
+            "FC=0x03 must be counted exactly once after completing the 260-byte max ADU; \
+             proves is_non_modbus was NOT latched during the 259-byte partial delivery"
+        );
+    }
+
+    /// AC-141-012: carry-prepend completes a max partial ADU; cap path stays silent throughout.
+    ///
+    /// Two-call sequence:
+    ///   Call 1: deliver 255-byte valid partial (8-byte MBAP + 247 filler, length=254, adu_len=260).
+    ///   Call 2: deliver the remaining 5 bytes.  Combined buf = 255+5 = 260 bytes = adu_len.
+    ///           ADU completes; no stash; cap path never fires.
+    ///
+    /// Confirms that the carry-prepend path reaching exactly adu_len=260 does NOT trip the cap.
+    #[test]
+    fn test_ac141_012_carry_prepend_completes_max_adu_no_cap_latch() {
+        let mut az = default_analyzer();
+        let fk = test_flow_key();
+
+        // Build the full 260-byte ADU: txn=0x0002, protocol=0, length=254, unit=0x01, fc=0x03,
+        // 252 bytes of PDU body (1 unit_id + 1 fc already in header → 252 data bytes = length 254).
+        // adu_len = 6 + 254 = 260 bytes total.
+        let mut full_adu: Vec<u8> = Vec::with_capacity(260);
+        full_adu.extend_from_slice(&[0x00, 0x02, 0x00, 0x00, 0x00, 0xFE]);
+        full_adu.push(0x01); // unit_id
+        full_adu.push(0x03); // fc
+        full_adu.extend(std::iter::repeat_n(0xBB, 252)); // 252 payload bytes
+        assert_eq!(full_adu.len(), 260, "full ADU must be exactly 260 bytes");
+
+        // Call 1: deliver first 255 bytes (partial — 255 < 260 = adu_len).
+        drive_on_data(
+            &mut az,
+            &fk,
+            Direction::ClientToServer,
+            &full_adu[..255],
+            100,
+        );
+        assert_eq!(
+            az.parse_errors, 0,
+            "no parse errors after 255-byte partial delivery"
+        );
+        assert_eq!(
+            az.fn_code_counts.get(&0x03).copied().unwrap_or(0),
+            0,
+            "FC=0x03 must not be counted yet — ADU not yet complete after 255 bytes"
+        );
+
+        // Call 2: deliver remaining 5 bytes.  buf = 255+5 = 260 = adu_len → ADU completes.
+        drive_on_data(
+            &mut az,
+            &fk,
+            Direction::ClientToServer,
+            &full_adu[255..],
+            101,
+        );
+        assert_eq!(
+            az.parse_errors, 0,
+            "no parse errors after carry-prepend completion"
+        );
+        assert_eq!(
+            az.fn_code_counts.get(&0x03).copied().unwrap_or(0),
+            1,
+            "FC=0x03 must be counted exactly once after carry-prepend ADU completion; \
+             proves cap path silent and ADU processing correct for max-size (260-byte) ADU"
+        );
+    }
+
+    /// AC-141-013: s2c cap overflow fires independently from c2s carry.
+    ///
+    /// Mirrors test_ac141_003_cap_overflow_sets_is_non_modbus but exercises the
+    /// ServerToClient direction.  Confirms that the per-direction carry isolation
+    /// means a s2c overflow latches is_non_modbus without any c2s carry being involved.
+    ///
+    /// After s2c latch, a fresh c2s ADU must not increment fn_code_counts (stream bailed).
+    #[test]
+    fn test_ac141_013_s2c_cap_overflow_sets_is_non_modbus() {
+        let mut az = default_analyzer();
+        let fk = test_flow_key();
+
+        // Deliver 4-byte sub-MBAP chunks in s2c direction to accumulate > 260 bytes.
+        // (260/4) + 5 = 70 iterations guarantees the combined buffer exceeds 260 and the
+        // validity gate or cap guard fires.
+        let chunk: [u8; 4] = [0x00, 0x01, 0x00, 0x00];
+        let needed_iters = (MAX_ADU_CARRY_BYTES / 4) + 5;
+        for _ in 0..needed_iters {
+            drive_on_data(&mut az, &fk, Direction::ServerToClient, &chunk, 200);
+        }
+
+        assert!(
+            az.parse_errors > 0,
+            "parse_errors must be > 0 after s2c carry overflow (> {} bytes); \
+             overflow path increments parse_errors and latches is_non_modbus",
+            MAX_ADU_CARRY_BYTES
+        );
+
+        // After latch (confirmed by parse_errors > 0 + bail behavior below),
+        // a c2s ADU must produce no new fn_code_counts.
+        let fc06_before = az.fn_code_counts.get(&0x06).copied().unwrap_or(0);
+        let c2s_adu = build_adu(0x0001, 0x01, 0x06, &[0x00, 0x10, 0x01, 0xF4]);
+        drive_on_data(&mut az, &fk, Direction::ClientToServer, &c2s_adu, 201);
+        let fc06_after = az.fn_code_counts.get(&0x06).copied().unwrap_or(0);
+        assert_eq!(
+            fc06_after, fc06_before,
+            "after s2c overflow latch, c2s delivery must not add fn_code_counts; \
+             confirms s2c overflow silences the ENTIRE stream (is_non_modbus global bail)"
+        );
+    }
+
+    /// AC-141-014: None-path accumulation confirms validity-gate latch, not carry-cap guard.
+    ///
+    /// Delivers 4-byte sub-8 chunks until combined buffer first reaches ≥ 8 bytes.  At that
+    /// point the validity gate fires (length=1, out of range [2,254]).  This confirms:
+    ///   (a) The None path (site 1104) accumulates correctly via carry-prepend.
+    ///   (b) The overflow mechanism is the VALIDITY GATE, not the carry-cap guard.
+    ///   (c) The carry-cap guard at 1104 is dead code (remaining.len() < 8 when None path
+    ///       is entered → remaining.len() ≤ 7 < 260 = MAX_ADU_CARRY_BYTES always false).
+    ///
+    /// Acts as a documentation fixture recording the exact call where latch fires, providing
+    /// evidence for the equivalent-mutant determination of the 1104 site operators.
+    #[test]
+    fn test_ac141_014_none_path_accumulation_fires_validity_gate_not_cap() {
+        let mut az = default_analyzer();
+        let fk = test_flow_key();
+
+        // The chunk bytes [0x00, 0x01, 0x00, 0x00] repeated:
+        //   bytes[4..6] = 0x00, 0x01 → length=1 → is_valid_modbus_adu fails (length < 2).
+        // After 1 stash (carry=4) + 1 more delivery (buf=8 bytes), validity gate fires.
+        let chunk: [u8; 4] = [0x00, 0x01, 0x00, 0x00];
+
+        // First call: 4 bytes, None path (4 < 8), stash succeeds (0+4 ≤ 260).
+        // is_non_modbus not latched — observable as parse_errors == 0.
+        drive_on_data(&mut az, &fk, Direction::ClientToServer, &chunk, 300);
+        assert_eq!(
+            az.parse_errors, 0,
+            "no parse errors after first 4-byte delivery"
+        );
+
+        // Second call: buf = 4+4 = 8 bytes.  Header parses: length = bytes[4..6] = 0x00,0x01 = 1.
+        // is_valid_modbus_adu(length=1) fails → validity gate latch.
+        drive_on_data(&mut az, &fk, Direction::ClientToServer, &chunk, 301);
+        assert_eq!(
+            az.parse_errors, 1,
+            "parse_errors must be exactly 1 after call 2: validity gate fires (length=1 < 2); \
+             NOT the carry-cap guard (dead code — remaining.len()<8 when None path reached)"
+        );
+
+        // Confirm subsequent deliveries are silenced (is_non_modbus bails immediately,
+        // parse_errors does not grow).
+        let errors_before = az.parse_errors;
+        for _ in 0..5 {
+            drive_on_data(&mut az, &fk, Direction::ClientToServer, &chunk, 302);
+        }
+        assert_eq!(
+            az.parse_errors, errors_before,
+            "parse_errors must not grow after latch; subsequent deliveries bail early"
+        );
+    }
 } // mod direction_and_clock
 
 // ---------------------------------------------------------------------------
