@@ -47,7 +47,7 @@ tdd_mode: strict
 feature_id: issue-007-modbus-analyzer
 github_issue: 7
 # BC status: all 10 BCs authored at v2.0 (multi-tag) as of 2026-06-09
-input-hash: "7833b91"
+input-hash: "5de84b8"
 ---
 
 # STORY-104: Modbus Detection Emissions + Summary
@@ -96,9 +96,17 @@ When `(sustained_window_write_count as u64) * 1_000_000 > (write_sustained_thres
 - **Test:** `test_sustained_detector_uses_truncation_free_math()` — 25 writes over 2.9s (elapsed_us=2_900_000; rate=8.6/s). With naive integer division: 25 > 10*2=20 → FALSE POSITIVE. With correct formula: 25*1_000_000=25_000_000 > 10*2_900_000=29_000_000 → FALSE → no burst. Assert no sustained finding emitted.
 - **Test:** `test_sustained_detector_fires_when_rate_exceeded()` — 25 writes over 2.0s (elapsed_us=2_000_000; rate=12.5/s). 25*1_000_000=25_000_000 > 10*2_000_000=20_000_000 → TRUE → burst fires. Assert one sustained finding with `["T0806","T1692.001"]`.
 
-### AC-006 (traces to BC-2.14.017 — wrapping_sub for all window elapsed computations)
-All four window-duration computations use `now_ts.wrapping_sub(window_start_ts)` (not plain subtraction). Plain subtraction panics in Rust debug mode (overflow-checks = true) when timestamps are near `u32` boundaries. `cargo test` must pass with `overflow-checks = true` (Cargo.toml release profile already has this; debug profile also has it by default).
-- **Test:** `test_window_elapsed_uses_wrapping_sub()` — deliver a write at `ts=0xFFFFFF00` (near u32::MAX) followed by a write at `ts=0x00000100` (wrapped); assert `wrapping_sub(0x00000100, 0xFFFFFF00) = 0x00000200` (512 µs); assert no panic.
+### AC-006 (traces to BC-2.14.017 v2.7 — saturating_sub for all window elapsed computations) [SUPERSEDED by RULING-MODBUS-SIBLING-001 / STORY-141 — see note below]
+> **SUPERSEDED (2026-06-28):** This AC originally mandated `wrapping_sub` (as per f2-fix-directives §11.5b).
+> RULING-MODBUS-SIBLING-001 §4.5 retracted the `wrapping_sub` mandate: `wrapping_sub` triggers spurious
+> window resets on out-of-order/adversarial backwards-clock packets (DRIFT-MODBUS-CLOCK-001).
+> BC-2.14.016 v2.2→2.3, BC-2.14.017 v2.6→2.7, BC-2.14.019 v1.4→1.5 were amended to prescribe
+> `saturating_sub`. The test `test_window_elapsed_uses_wrapping_sub` has been replaced by
+> `test_ac141_010_window_elapsed_uses_saturating_sub` in STORY-141 `mod direction_and_clock`.
+
+All four window-duration computations use `now_ts.saturating_sub(window_start_ts)` (not `wrapping_sub`, not plain subtraction). `saturating_sub` preserves burst accumulation under backwards-clock packets (returns 0 when `now_ts < window_start_ts`), preventing adversarial evasion of burst detection. `cargo test` must pass with `overflow-checks = true`.
+- **Test (superseded):** ~~`test_window_elapsed_uses_wrapping_sub()`~~ — REMOVED by STORY-141. The old test asserted `wrapping_sub(0x00000100, 0xFFFFFF00) = 0x00000200` (512 µs); this is incorrect behavior — wrapping_sub on a genuine rollover returns a small positive value and does NOT trigger a spurious reset, but wrapping_sub on a backwards-clock packet returns a large value (~4.29e9) that spuriously resets all windows (DRIFT-MODBUS-CLOCK-001).
+- **Test (replacement):** `tests/modbus_detection_tests.rs::direction_and_clock::test_ac141_010_window_elapsed_uses_saturating_sub` (STORY-141) — deliver a write at `ts=0xFFFFFF00` (near u32::MAX), seed `window_start=0xFFFFFF00`. Deliver write at `ts=0x00000100` (numerically smaller — backwards). Assert: `saturating_sub(0x00000100, 0xFFFFFF00) = 0`; NOT > threshold → window NOT reset; `window_write_count` incremented to 2. No panic.
 
 ### AC-007 (traces to BC-2.14.018 — diagnostics FC 0x08 sub-function 0x0004 or 0x0001)
 When a validated ADU has FC=0x08 and the PDU payload's sub-function is `0x0004` (Force Listen Only Mode) OR `0x0001` (Restart Communications Option), a `Finding` is emitted with `mitre_techniques: vec!["T0814"]`, `category: ThreatCategory::IcsInhibitResponseFunction`.
@@ -206,7 +214,7 @@ The T0806+T1692.001 burst finding (from the burst detector) is a SEPARATE `Findi
 |------|--------|-------------|
 | Canonical `mitre_techniques` vec order: T0806 > T1692.001 > T0836 > T0835 > T0831 > T0814 > T0888 | ADR-006 Decision 13 §13.7 sub-decision 3 | Code review: all `vec![...]` literals at emission sites |
 | Sustained detector uses cross-multiplication NOT integer division | f2-fix-directives.md §11.5a (Defect Eliminated) | AC-005 test; code review |
-| All window elapsed computations use `now_ts.wrapping_sub(window_start_ts)` | f2-fix-directives.md §11.5b (Timestamp Wrap Policy) | AC-006 test; code review |
+| All window elapsed computations use `now_ts.saturating_sub(window_start_ts)` [SUPERSEDED: was `wrapping_sub` per f2-fix-directives §11.5b; changed to `saturating_sub` by RULING-MODBUS-SIBLING-001 / STORY-141 / BC-2.14.016 v2.3 + BC-2.14.017 v2.7 + BC-2.14.019 v1.5] | BC-2.14.016 v2.3 / BC-2.14.017 v2.7 / BC-2.14.019 v1.5; RULING-MODBUS-SIBLING-001 §4.5 | AC-006 superseded by STORY-141 AC-141-010 test `test_ac141_010_window_elapsed_uses_saturating_sub` |
 | T0831 is co-tagged inline on the per-PDU write finding, NOT a separate Finding | BC-2.14.016 v2.0; f2-fix-directives.md §13.5 | AC-003 test; code review |
 | Burst finding is SEPARATE from per-PDU finding; burst supplements, not replaces | BC-2.14.013 invariant 5 | AC-012 test |
 | `all_findings.len() >= MAX_FINDINGS` → skip push, increment `dropped_findings` | BC-2.14.022 | AC-011 test |

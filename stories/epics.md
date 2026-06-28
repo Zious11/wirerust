@@ -1,6 +1,6 @@
 ---
 document_type: epics
-version: "1.9"
+version: "2.0"
 status: draft
 producer: story-writer
 phase: 2
@@ -14,6 +14,7 @@ modified:
   - "2026-06-20 v1.7: FE-001 INTEGRATE sub-burst — E-19 pcapng Capture-Format Reader Support added (STORY-123..128, 6 stories, 37 points, Waves 51–56). No new BCs — BC-2.01.009..018 and BC-2.12.011 are pre-existing (counted in E-1 and E-9 respectively since v1.5). Estimated Story Count Summary updated: E-19 row added (6), Total 72→78. total_bcs unchanged at 302."
   - "2026-06-24 v1.8: E-20 EtherNet/IP ENIP/CIP Analyzer INTEGRATE sub-burst (issue #316, feature-enip-v0.11.0) — E-20 epic added (STORY-130..138, 9 stories, 66 points, Waves 58–61). 26 new BCs: BC-2.17.001..026 (SS-17 EtherNet/IP analyzer). total_bcs 302→328. Estimated Story Count Summary updated: E-20 row added (9), Total 78→87. Coverage Check Per-Epic BC table updated with E-20 row. Arithmetic Verification and Coverage Confirmed updated."
   - "2026-06-27 v1.9: RULING-DNP3-SIBLING-001 fix story — STORY-140 added to E-15 (wave 63, 8 pts, dep=STORY-139). No new BCs (BC-2.15.016/010/014/015 are pre-existing, amended by ruling). E-15 story count 5→6. E-15 points 47→55. Estimated Story Count Summary E-15 row 5→6, Total 88→89. total_bcs unchanged at 328."
+  - "2026-06-28 v2.0: Wave 64 RULING-MODBUS-SIBLING-001 + RULING-DNP3-DESYNC-001 fix stories — STORY-141 added to E-14 (wave 64, 8 pts, dep=[]). STORY-142 added to E-15 (wave 64, 3 pts, dep=STORY-140). No new BCs (BC-2.14.002/016/017/019 and BC-2.15.009 are pre-existing, amended by rulings). E-14 story count 4→5. E-14 points 37→45. E-15 story count 6→7. E-15 points 55→58. Estimated Story Count Summary E-14 row 4→5, E-15 row 6→7, Total 89→91. total_bcs unchanged at 328."
 total_bcs: 328
 traces_to:
   - .factory/specs/prd.md
@@ -414,9 +415,10 @@ group here.
   BC-2.15.013, BC-2.15.014, BC-2.15.015, BC-2.15.016, BC-2.15.017, BC-2.15.018,
   BC-2.15.019, BC-2.15.020, BC-2.15.021, BC-2.15.022, BC-2.15.023, BC-2.15.024
 - **Subsystems touched:** SS-15 (new DNP3 analyzer), SS-05 (dispatcher Rule 6), SS-12 (CLI threshold flag)
-- **Estimated stories:** 6 (STORY-106..110, STORY-140)
+- **Estimated stories:** 7 (STORY-106..110, STORY-140, STORY-142)
 - **Feature issue:** #8
 - **STORY-140 (wave 63):** RULING-DNP3-SIBLING-001 detection-correctness fixes — per-direction carry split (`carry_c2s`/`carry_s2c`), `on_data` direction threading, `saturating_sub` window expiry (8 sites: 60s/10s/300s), 300s operator pin (`>= CORRELATION_WINDOW_SECS` → `> CORRELATION_WINDOW_SECS`), `resolve_master_ip` direction fix-along. BCs: BC-2.15.016 v2.0 + BC-2.15.010 v1.8 + BC-2.15.014 v2.1 + BC-2.15.015 v2.0. VPs: VP-035 + VP-036. Release blocker per RULING-DNP3-SIBLING-001 (2026-06-27).
+- **STORY-142 (wave 64):** RULING-DNP3-DESYNC-001 desync-latch direction-contamination fix — one-line predicate change at `dnp3.rs:363`: `active_carry!(flow, direction).is_empty()` → `flow.carry_c2s.is_empty() && flow.carry_s2c.is_empty()`. Prevents junk s2c packet from permanently silencing an established c2s DNP3 stream. BC: BC-2.15.009 v2.0. No new VPs (targeted regression test). Dep=STORY-140. Release blocker per RULING-DNP3-DESYNC-001 (2026-06-28).
 
 **Rationale:** DNP3 analysis (24 BCs, IEEE 1815-2012 binary protocol) decomposes into
 five natural layers matching the ADR-007 design decisions: (1) pure-core parse + FC
@@ -578,11 +580,11 @@ vs. a linear chain by 3 waves.
 | E-11 | 1           |
 | E-12 | 3           |
 | E-13 | 2           |
-| E-14 | 4           |
-| E-15 | 6           |
+| E-14 | 5           |
+| E-15 | 7           |
 | E-16 | 5           |
 | E-17 | 2           |
 | E-18 | 2           |
 | E-19 | 6           |
 | E-20 | 10          |
-| **Total** | **89** |
+| **Total** | **91** |

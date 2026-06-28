@@ -1,14 +1,15 @@
 ---
 document_type: story-index
-version: "2.9"
+version: "3.1"
 status: draft
 producer: story-writer
-timestamp: 2026-06-24T00:00:00Z
+timestamp: 2026-06-28T00:00:00Z
 phase: f3
-total_stories: 93
-total_waves: 63
-total_points: 608  # = 600 pre-STORY-140 + 8 (STORY-140 DNP3 carry-split + saturating_sub fix); wave-table scheduled: 595+8=603; epic-table grand total: 603+8=611; stories: 92+1=93; waves: 62+1=63; STORY-091+STORY-121 remain wave-TBD (excluded from wave-table total)
-# ARITHMETIC: STORY-140=8 pts (DNP3 carry-direction + saturating-window + operator-pin fix); total_points: 600+8=608; wave-table scheduled: 595+8=603; epic-table: 603+8=611; total_stories: 92+1=93; total_waves: 62+1=63 (wave 63 added).
+total_stories: 95
+total_waves: 64
+total_points: 619  # = 608 pre-Wave-64 + 8 (STORY-141 Modbus carry-split + saturating_sub) + 3 (STORY-142 DNP3 desync-latch fix); wave-table scheduled: 603+8+3=614; epic-table grand total: 611+8+3=622; stories: 93+2=95; waves: 63+1=64; STORY-091+STORY-121 remain wave-TBD (excluded from wave-table total)
+# ARITHMETIC: STORY-141=8 pts (Modbus carry-direction split + saturating-window fix); STORY-142=3 pts (DNP3 desync-latch one-line fix); total_points: 608+8+3=619; wave-table scheduled: 603+8+3=614; epic-table: 611+8+3=622; total_stories: 93+2=95; total_waves: 63+1=64 (wave 64 added).
+# v3.1 (2026-06-28): F3 Wave 64 — STORY-141 (E-14, wave 64, 8 pts, DRIFT-MODBUS-DIRECTION-001 carry-split + DRIFT-MODBUS-CLOCK-001 saturating_sub fix, RULING-MODBUS-SIBLING-001) + STORY-142 (E-15, wave 64, 3 pts, DNP3 is_non_dnp3 desync-latch direction-contamination fix, RULING-DNP3-DESYNC-001). BCs: BC-2.14.002 v2.0 + BC-2.14.016 v2.3 + BC-2.14.017 v2.7 + BC-2.14.019 v1.5 (STORY-141); BC-2.15.009 v2.0 (STORY-142). VPs: VP-037 + VP-038 (STORY-141); none (STORY-142). Wave 64 added (STORY-141 dep=[], STORY-142 dep=STORY-140). total_stories 93→95. total_waves 63→64. Wave-table scheduled points 603→614. Epic-table total 611→622. STORY-104 AC-006 superseded (wrapping_sub→saturating_sub correction per RULING-MODBUS-SIBLING-001 §4.5).
 # v2.9 (2026-06-27): F3 RULING-DNP3-SIBLING-001 fix story — STORY-140 added (E-15, wave 63, 8 pts). DRIFT-DNP3-DIRECTION-001 carry-split fix + DRIFT-DNP3-CLOCK-001 clock-backwards window reset fix + DRIFT-DNP3-OP-001 operator pin (>= → >) + DRIFT-DNP3-DIRECTION-001 resolve_master_ip fix-along. BCs: BC-2.15.016 v2.0 + BC-2.15.010 v1.8 + BC-2.15.014 v2.1 + BC-2.15.015 v2.0. VPs: VP-035 + VP-036. Wave 63 added (dep=STORY-139). total_stories 92→93. total_waves 62→63. Wave-table scheduled points 595→603. Epic-table total 603→611.
 # v2.8 (2026-06-27): F3 RULING-EDGECASE-001 fix story — STORY-139 added (E-20, wave 62, 8 pts). EC-X1 cross-direction carry splice fix + EC-X2 clock-backwards window reset fix + EC-X4 operator pin + DRIFT-ENIP-DIRECTION-001 fix-along. BCs: BC-2.17.016 v2.0 + BC-2.17.008 v1.3 + BC-2.17.012 v1.2 + BC-2.17.018 v1.1. VPs: VP-033 + VP-034. Wave 62 added (dep=STORY-138). total_stories 91→92. total_waves 61→62. Wave-table scheduled points 587→595. Epic-table total 595→603.
 # v2.8 (2026-06-24): F3 ENIP EtherNet/IP analyzer INTEGRATE sub-burst (issue #316, feature-enip-v0.11.0) — STORY-130..138 added (E-20, waves 58-61, 66 pts). total_stories 82→91. total_waves 57→61. Wave-table scheduled points 521→587. Epic-table total 529→595. Coverage: all 26 BC-2.17.001..026 assigned. Acyclicity verified: STORY-130/131 (no deps, wave 58) → STORY-132 (dep=130, wave 59) + STORY-133 (dep=131, wave 59) → STORY-134/135/136/137 (dep=132+133, wave 60) → STORY-138 (dep=134+135+136+137, wave 61).
@@ -170,6 +171,8 @@ traces_to:
 | STORY-138 | ENIP Session Lifecycle, Statistics, DoS Guard, and Analyzer Summary | E-20 | 61 | 8 | completed | STORY-134, STORY-135, STORY-136, STORY-137 |
 | STORY-139 | ENIP Per-Direction Carry Buffer + Saturating Window Monotonicity (EC-X1/EC-X2 Detection-Correctness Fixes) | E-20 | 62 | 8 | ready | STORY-138 |
 | STORY-140 | DNP3 Per-Direction Carry Buffer + Saturating Window Monotonicity + Operator Pin (DRIFT-DNP3-DIRECTION-001 / DRIFT-DNP3-CLOCK-001 / DRIFT-DNP3-OP-001) | E-15 | 63 | 8 | ready | STORY-139 |
+| STORY-141 | Modbus Per-Direction Carry Buffer + Saturating Window Monotonicity (DRIFT-MODBUS-DIRECTION-001 / DRIFT-MODBUS-CLOCK-001) | E-14 | 64 | 8 | ready | — |
+| STORY-142 | Fix DNP3 is_non_dnp3 Desync-Latch Direction-Contamination (RULING-DNP3-DESYNC-001) | E-15 | 64 | 3 | ready | STORY-140 |
 
 ---
 
@@ -240,7 +243,8 @@ traces_to:
 | 61 | STORY-138 | 1 | 8 |
 | 62 | STORY-139 | 1 | 8 |
 | 63 | STORY-140 | 1 | 8 |
-| **TOTAL (excl. STORY-091 wave-TBD, STORY-121 wave-TBD)** | | **91** | **603** |
+| 64 | STORY-141, STORY-142 | 2 | 11 |
+| **TOTAL (excl. STORY-091 wave-TBD, STORY-121 wave-TBD)** | | **93** | **614** |
 
 ---
 
@@ -261,14 +265,14 @@ traces_to:
 | E-11: Tooling and Self-Improvement | STORY-091, STORY-121 | 2 | 8 |
 | E-12: Pcap Timestamp Provenance (issue #100) | STORY-097, STORY-098, STORY-099 | 3 | 18 |
 | E-13: Multi-Tag Finding Schema Migration (v0.3.0 / issue #7) | STORY-100, STORY-101 | 2 | 21 |
-| E-14: Modbus TCP Analyzer (v0.4.0 / issue #7) | STORY-102, STORY-103, STORY-104, STORY-105 | 4 | 37 |
-| E-15: DNP3/ICS Analyzer (issue #8) — **STORY-140 DNP3 carry-split + saturating_sub fix (RULING-DNP3-SIBLING-001, wave 63)** | STORY-106, STORY-107, STORY-108, STORY-109, STORY-110, STORY-140 | 6 | 55 |
+| E-14: Modbus TCP Analyzer (v0.4.0 / issue #7) — **STORY-141 Modbus carry-split + saturating_sub fix (RULING-MODBUS-SIBLING-001, wave 64)** | STORY-102, STORY-103, STORY-104, STORY-105, STORY-141 | 5 | 45 |
+| E-15: DNP3/ICS Analyzer (issue #8) — **STORY-140 DNP3 carry-split + saturating_sub fix (RULING-DNP3-SIBLING-001, wave 63); STORY-142 DNP3 desync-latch fix (RULING-DNP3-DESYNC-001, wave 64)** | STORY-106, STORY-107, STORY-108, STORY-109, STORY-110, STORY-140, STORY-142 | 7 | 58 |
 | E-16: ARP Security Analyzer (issue #9) | STORY-111, STORY-112, STORY-113, STORY-114, STORY-115 | 5 | 47 |
 | E-17: ARP QinQ/MACsec Offset Hardening (issue #253) | STORY-116, STORY-117 | 2 | 8 |
 | E-18: Terminal Finding-Collapse (issue #259, v0.8.0) | STORY-118, STORY-122, STORY-119 | 3 | 16 |
 | E-19: pcapng Capture-Format Reader Support (FE-001) — **COMPLETE (6/6 MERGED, D-184)** | STORY-123, STORY-124, STORY-125, STORY-126, STORY-127, STORY-128 | 6 | 37 |
 | E-20: EtherNet/IP (ENIP/CIP) Analyzer (issue #316, feature-enip-v0.11.0) — **Wave-60 ALL MERGED (D-254); STORY-139 EC-X1/EC-X2 fix (RULING-EDGECASE-001, wave 62)** | STORY-130, STORY-131, STORY-132, STORY-133, STORY-134, STORY-135, STORY-136, STORY-137, STORY-138, STORY-139 | 10 | 74 |
-| **TOTAL** | | **93** | **611** |
+| **TOTAL** | | **95** | **622** |
 
 ---
 
@@ -339,14 +343,15 @@ traces_to:
 | 61 | STORY-138 | **DELIVERED & CLOSED** | #329, #330 | b4624ef, 7ceb670 | 2026-06-26 |
 | 62 | STORY-139 | ready | — | — | — |
 | 63 | STORY-140 | ready | — | — | — |
+| 64 | STORY-141, STORY-142 | ready | — | — | — |
 
 ## Coverage Verification
 
-- Total stories: **93** (48 greenfield product + 1 tooling STORY-091 + 3 F3 feature STORY-097/098/099 + 6 Feature-#7 STORY-100..105 + 5 Feature-#8 STORY-106..110 + 5 Feature-#9 STORY-111..115 + 2 E-17 F3 STORY-116..117 + 3 E-18 F3 STORY-118/STORY-119/STORY-122 + 1 Issue-#62 F3 STORY-120 + 1 D-103 process-gap STORY-121 + 6 E-19 FE-001 pcapng STORY-123..128 + 1 Issue-#64 F3 mitre_attack STORY-129 + 10 E-20 ENIP/CIP STORY-130..139 + 1 RULING-DNP3-SIBLING-001 fix STORY-140)
-- Total waves: **63** (Waves 40–44 added for Feature #9 ARP; Waves 45–46 added for E-17 QinQ/MACsec hardening; Wave 47 added for E-18 finding-collapse STORY-118; Wave 48 added for Issue-#62 STORY-120; Wave 49 added for STORY-122 (D-120 split A: enum→struct reshape); Wave 50 added for STORY-119/B (D-120 split B: render path + CLI flip, 2026-06-18); Waves 51–56 added for E-19 FE-001 pcapng reader support (STORY-123..128, 2026-06-20); Wave 57 added for Issue-#64 STORY-129 (mitre_attack JSON enrichment, 2026-06-22); Waves 58–61 added for E-20 ENIP/CIP analyzer (STORY-130..138, 2026-06-24); Wave 62 added for STORY-139 EC-X1/EC-X2 fix (RULING-EDGECASE-001, 2026-06-27); Wave 63 added for STORY-140 DNP3 carry-split + saturating_sub fix (RULING-DNP3-SIBLING-001, 2026-06-27); STORY-091 wave TBD; STORY-121 wave TBD)
-- Total points: **608** (600 pre-STORY-140 + 8 STORY-140; wave-table scheduled row shows 603 — excl. STORY-091+STORY-121 wave-TBD; epic table shows 611)
+- Total stories: **95** (48 greenfield product + 1 tooling STORY-091 + 3 F3 feature STORY-097/098/099 + 6 Feature-#7 STORY-100..105 + 5 Feature-#8 STORY-106..110 + 5 Feature-#9 STORY-111..115 + 2 E-17 F3 STORY-116..117 + 3 E-18 F3 STORY-118/STORY-119/STORY-122 + 1 Issue-#62 F3 STORY-120 + 1 D-103 process-gap STORY-121 + 6 E-19 FE-001 pcapng STORY-123..128 + 1 Issue-#64 F3 mitre_attack STORY-129 + 10 E-20 ENIP/CIP STORY-130..139 + 1 RULING-DNP3-SIBLING-001 fix STORY-140 + 1 RULING-MODBUS-SIBLING-001 fix STORY-141 + 1 RULING-DNP3-DESYNC-001 fix STORY-142)
+- Total waves: **64** (Waves 40–44 added for Feature #9 ARP; Waves 45–46 added for E-17 QinQ/MACsec hardening; Wave 47 added for E-18 finding-collapse STORY-118; Wave 48 added for Issue-#62 STORY-120; Wave 49 added for STORY-122 (D-120 split A: enum→struct reshape); Wave 50 added for STORY-119/B (D-120 split B: render path + CLI flip, 2026-06-18); Waves 51–56 added for E-19 FE-001 pcapng reader support (STORY-123..128, 2026-06-20); Wave 57 added for Issue-#64 STORY-129 (mitre_attack JSON enrichment, 2026-06-22); Waves 58–61 added for E-20 ENIP/CIP analyzer (STORY-130..138, 2026-06-24); Wave 62 added for STORY-139 EC-X1/EC-X2 fix (RULING-EDGECASE-001, 2026-06-27); Wave 63 added for STORY-140 DNP3 carry-split + saturating_sub fix (RULING-DNP3-SIBLING-001, 2026-06-27); Wave 64 added for STORY-141 Modbus carry-split + saturating_sub fix (RULING-MODBUS-SIBLING-001, 2026-06-28) + STORY-142 DNP3 desync-latch fix (RULING-DNP3-DESYNC-001, 2026-06-28); STORY-091 wave TBD; STORY-121 wave TBD)
+- Total points: **619** (608 pre-Wave-64 + 8 STORY-141 + 3 STORY-142; wave-table scheduled row shows 614 — excl. STORY-091+STORY-121 wave-TBD; epic table shows 622)
   > **Point-scope key (three counts, none wrong):** (1) `total_points: 592` in frontmatter = all 89 scheduled product stories + STORY-091 tooling (5 pts); excludes STORY-121 (wave-TBD, 3 pts). (2) Wave-table "TOTAL" row = **587** = the 89 scheduled product stories only; excludes both STORY-091 and STORY-121 (both wave-TBD). (3) Epic-table "TOTAL" row = **595** = all 91 stories including both STORY-091 (5 pts) and STORY-121 (3 pts). The three counts differ solely by which wave-TBD tooling stories are included.
-- Graph is acyclic: **Yes** (Kahn topological sort verified; Feature-#7 dependency chain: STORY-100 → {STORY-101 ∥ STORY-102} → STORY-103 → STORY-104 → STORY-105; Feature-#8 DNP3 chain: STORY-100 → STORY-106 → STORY-107 → STORY-108 → STORY-109 → STORY-110; Feature-#9 ARP chain: STORY-110 → STORY-111 → STORY-112 → STORY-113 → STORY-114 → STORY-115; E-17 hardening chain: STORY-115 → STORY-116 → STORY-117; E-18/E-8 collapse chain: STORY-118 (no predecessor) → STORY-120 (no predecessor) → STORY-122 (wave 49) → STORY-119/B (wave 50); E-19 pcapng chain: STORY-123 (no predecessor) → STORY-124 → {STORY-125 ∥ STORY-126} → STORY-127 → STORY-128; STORY-129 (depends_on=[], wave 57, isolated vertex); E-20 ENIP chain: {STORY-130 ∥ STORY-131} (wave 58, no deps) → {STORY-132 (dep=130) ∥ STORY-133 (dep=131)} (wave 59) → {STORY-134 ∥ STORY-135 ∥ STORY-136 ∥ STORY-137} (dep=132+133, wave 60) → STORY-138 (dep=134+135+136+137, wave 61) → STORY-139 (dep=STORY-138, wave 62) → STORY-140 (dep=STORY-139, wave 63); no back-edges into existing graph; 92 = 90 product stories + STORY-091 tooling + STORY-121 tooling)
+- Graph is acyclic: **Yes** (Kahn topological sort verified; Feature-#7 dependency chain: STORY-100 → {STORY-101 ∥ STORY-102} → STORY-103 → STORY-104 → STORY-105; Feature-#8 DNP3 chain: STORY-100 → STORY-106 → STORY-107 → STORY-108 → STORY-109 → STORY-110; Feature-#9 ARP chain: STORY-110 → STORY-111 → STORY-112 → STORY-113 → STORY-114 → STORY-115; E-17 hardening chain: STORY-115 → STORY-116 → STORY-117; E-18/E-8 collapse chain: STORY-118 (no predecessor) → STORY-120 (no predecessor) → STORY-122 (wave 49) → STORY-119/B (wave 50); E-19 pcapng chain: STORY-123 (no predecessor) → STORY-124 → {STORY-125 ∥ STORY-126} → STORY-127 → STORY-128; STORY-129 (depends_on=[], wave 57, isolated vertex); E-20 ENIP chain: {STORY-130 ∥ STORY-131} (wave 58, no deps) → {STORY-132 (dep=130) ∥ STORY-133 (dep=131)} (wave 59) → {STORY-134 ∥ STORY-135 ∥ STORY-136 ∥ STORY-137} (dep=132+133, wave 60) → STORY-138 (dep=134+135+136+137, wave 61) → STORY-139 (dep=STORY-138, wave 62) → STORY-140 (dep=STORY-139, wave 63) → STORY-142 (dep=STORY-140, wave 64); STORY-141 (dep=[], wave 64, isolated vertex — Modbus on develop, no predecessor needed); no back-edges into existing graph; 94 = 92 product stories + STORY-091 tooling + STORY-121 tooling)
 - All 10 product epics + E-11 (Tooling, 2 stories: STORY-091 + STORY-121) + E-12 (Pcap Timestamps) + E-13 (Multi-Tag Migration) + E-14 (Modbus) + E-15 (DNP3) + E-16 (ARP) + E-17 (ARP QinQ/MACsec Hardening) + E-18 (Terminal Finding-Collapse) + E-19 (pcapng Capture-Format Reader Support) + E-20 (EtherNet/IP ENIP/CIP Analyzer) covered: **Yes**
 - All 219 greenfield BCs assigned + F2 additions + BC-2.09.001/006 (shared, extended in STORY-100) + BC-2.10.005/007/008 (extended in STORY-100) + BC-2.11.001/013/015/017/020/024 (extended in STORY-101) + BC-2.14.001..025 (new Modbus BCs in STORY-102..105) + BC-2.15.001..024 (new DNP3 BCs in STORY-106..110) + BC-2.02.009 (revised in STORY-111) + BC-2.16.001..015 (new ARP BCs in STORY-111..115) + BC-2.16.009 v1.10 EC-009 / BC-2.16.015 v1.9 EC-009 (E-17 MACsec documented-limitation extensions in STORY-116/117) + BC-2.11.025/026/027/028/029 (new E-18 collapse BCs in STORY-118; BC-2.11.010/013/017/019 extended/versioned — not new BCs) + BC-2.11.030/031/032/033/034 (5 new grouped-mode-collapse BCs in STORY-119/B) + BC-2.11.035 (new issue-#64 mitre_attack enrichment BC in STORY-129) + BC-2.17.001..026 (26 new ENIP/CIP BCs in STORY-130..138, excl. STORY-133 VP-007 obligation): **Yes** (total 320 BCs; explicit tally: 219 greenfield + 25 Modbus + 24 DNP3 + 15 ARP + 5 E-18 flat-collapse + 5 E-18 grouped-collapse + 1 issue-#64 mitre_attack + 26 ENIP = 320; E-17 + all extensions = versioning of existing BCs, +0; D-120 split adds no new BCs)
 - PROCESS-GAP-P5-001 dispositioned: **Yes** — STORY-091 created as the S-7.02 cycle-close disposition
