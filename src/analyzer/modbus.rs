@@ -1004,12 +1004,15 @@ impl StreamHandler for ModbusAnalyzer {
     ///   - The second segment's bytes to be misparsed as a fresh ADU
     ///   - Silent corruption / parse_errors / premature `is_non_modbus` disable
     ///
-    /// The fix: prepend `flow.carry` to `data` before the walk loop. When the walk
-    /// loop encounters incomplete data (< 8 bytes for MBAP header, or < `adu_len` bytes
-    /// for a full ADU), stash the remainder into `flow.carry` and break. On the next
-    /// call the carry is prepended again, completing the ADU.
+    /// The fix: select `active_carry` by `direction` (`carry_c2s` for C→S,
+    /// `carry_s2c` for S→C) and prepend it to `data` before the walk loop
+    /// (RULING-MODBUS-SIBLING-001 §1.2 — per-direction carry, STORY-141 EC-X1).
+    /// When the walk loop encounters incomplete data (< 8 bytes for MBAP header,
+    /// or < `adu_len` bytes for a full ADU), stash the remainder into the same
+    /// directional carry and break. On the next call the directional carry is
+    /// prepended again, completing the ADU.
     ///
-    /// DoS guard: the cumulative carry total (`flow.carry.len() + remaining.len()`) is
+    /// DoS guard: the cumulative carry total (`active_carry.len() + remaining.len()`) is
     /// checked against `MAX_ADU_CARRY_BYTES` (260 bytes, one maximum Modbus ADU) before
     /// any stash. Using the cumulative form means the cap is enforceable regardless of
     /// how many partial stash points exist in the loop body. When the guard trips the
