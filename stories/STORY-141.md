@@ -50,7 +50,7 @@ abort in-progress burst windows (DRIFT-MODBUS-CLOCK-001) — unblocking the v0.1
 
 | BC ID | Version | Title | Story Role |
 |-------|---------|-------|-----------|
-| BC-2.14.002 | v2.0 | MBAP Header Rejected for ADU Shorter than 8 Bytes | Per-direction carry split (`carry_c2s`/`carry_s2c`); direction isolation invariant; EC-XXX direction non-contamination |
+| BC-2.14.002 | v2.0 | MBAP Header Rejected for ADU Shorter than 8 Bytes | Per-direction carry split (`carry_c2s`/`carry_s2c`); direction isolation invariant; EC-007 direction non-contamination |
 | BC-2.14.016 | v2.3 | Coordinated Write Sequence (T0831, 5-second window) | `saturating_sub` window-expiry; EC-011 backwards-clock T0831 no-reset |
 | BC-2.14.017 | v2.7 | Write-Rate Exceeding Either Burst or Sustained Threshold (T0806) | `saturating_sub` burst/sustained windows; `>=` KEPT at sustained gate; EC-012 backwards-clock burst no-reset |
 | BC-2.14.019 | v1.5 | Exception Response Anomaly (T0888, 10-second window) | `saturating_sub` exception-burst window; EC-009 backwards-clock no-reset |
@@ -58,7 +58,7 @@ abort in-progress burst windows (DRIFT-MODBUS-CLOCK-001) — unblocking the v0.1
 ## Acceptance Criteria
 
 ### AC-141-001: `ModbusFlowState` has `carry_c2s` and `carry_s2c`; `carry` field removed
-**Traces to:** BC-2.14.002 v2.0 Precondition 3, Postcondition 1, Invariant 1, new direction-isolation Invariant, EC-XXX
+**Traces to:** BC-2.14.002 v2.0 Precondition 3, Postcondition 1, Invariant 1, Invariant 4, EC-007
 
 The single `carry: Vec<u8>` field is removed from `ModbusFlowState`. Two separate fields are added:
 - `carry_c2s: Vec<u8>` — partial ADUs from the TCP client (master → device, ClientToServer direction)
@@ -87,7 +87,7 @@ Per-direction cap: each directional carry is independently bounded at 260 bytes 
 — Deliver 6-byte partial c2s MBAP prefix (stashed into `carry_c2s`), then deliver complete s2c ADU
 (TxnID=0x0006, FC=0x03, 13 bytes) on same FlowKey. Assert: `fn_code_counts[0x03] == 1` (s2c read parsed
 correctly), `fn_code_counts[0x06] == 0` (no garbled write), `parse_errors == 0`. This is the EC-X1
-direction-isolation regression test (RULING-MODBUS-SIBLING-001 §1.1 repro scenario). (traces to BC-2.14.002 v2.0 new direction-isolation Invariant, EC-XXX)
+direction-isolation regression test (RULING-MODBUS-SIBLING-001 §1.1 repro scenario). (traces to BC-2.14.002 v2.0 Invariant 4, EC-007)
 
 ### AC-141-002: `on_data` selects directional carry; no signature change; `dispatcher.rs` untouched
 **Traces to:** BC-2.14.002 v2.0 Precondition 3; RULING-MODBUS-SIBLING-001 §1.2
@@ -330,7 +330,7 @@ the established pattern but stands alone.
 
 | ID | Description | Expected Behavior |
 |----|-------------|-------------------|
-| EC-001 | Partial c2s MBAP (< 8 bytes) stashed in `carry_c2s`; next call is s2c direction | `carry_s2c` (empty) prepended to s2c data → clean s2c parse; `carry_c2s` retains c2s partial unchanged — no splice (BC-2.14.002 v2.0 EC-XXX) |
+| EC-001 | Partial c2s MBAP (< 8 bytes) stashed in `carry_c2s`; next call is s2c direction | `carry_s2c` (empty) prepended to s2c data → clean s2c parse; `carry_c2s` retains c2s partial unchanged — no splice (BC-2.14.002 v2.0 EC-007) |
 | EC-002 | Both directions have partial ADUs stashed simultaneously | `carry_c2s.len() > 0` AND `carry_s2c.len() > 0` concurrently; each direction's next delivery completes its own ADU independently |
 | EC-003 | c2s carry-cap overflow (> 260 bytes accumulated via repeated sub-8-byte deliveries) | `active_carry.len() + remaining.len() > 260` → `is_non_modbus = true`; `carry_s2c` unaffected (RULING-MODBUS-SIBLING-001 §1.5) |
 | EC-004 | 20 writes at ts=100, 1 write at ts=50 (backwards), 1 write at ts=100 | `saturating_sub(50, 100) = 0`; NOT > 1 → window NOT reset; `window_write_count=21`; burst fires at 21 > 20 (BC-2.14.017 v2.7 EC-012) |

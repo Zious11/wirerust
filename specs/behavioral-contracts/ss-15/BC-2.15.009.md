@@ -180,7 +180,7 @@ never cleared (flows are immutable in their desync state).
 ## Architecture Anchors
 
 - `src/analyzer/dnp3.rs` — `Dnp3FlowState.is_non_dnp3: bool` — false on creation; set true on bail
-- `src/analyzer/dnp3.rs` — `Dnp3FlowState.carry_c2s: Vec<u8>` and `carry_c2s: Vec<u8>` (STORY-140 / RULING-DNP3-SIBLING-001 carry split)
+- `src/analyzer/dnp3.rs` — `Dnp3FlowState.carry_c2s: Vec<u8>` and `carry_s2c: Vec<u8>` (STORY-140 / RULING-DNP3-SIBLING-001 carry split)
 - `src/analyzer/dnp3.rs` — `Dnp3Analyzer::on_data` — early return if `flow.is_non_dnp3`
 - `src/analyzer/dnp3.rs` — desync-latch block (pre-fix line 363): complete predicate (post-ADDENDUM-2026-06-28-frame-count-guard): `flow.frame_count == 0 && flow.carry_c2s.is_empty() && flow.carry_s2c.is_empty() && data.len() >= 2 && (data[0] != 0x05 || data[1] != 0x64)` (RULING-DNP3-DESYNC-001 §2.1; ADDENDUM-2026-06-28-frame-count-guard)
 - `.factory/phase-f2-spec-evolution/dnp3-architecture-delta.md §2.3` — `is_non_dnp3: bool` field description
