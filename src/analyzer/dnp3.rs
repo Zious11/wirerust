@@ -360,12 +360,17 @@ impl Dnp3Analyzer {
         // A partial c2s frame stashed in carry_c2s is NEVER prepended to an s2c delivery
         // (and vice versa), preventing cross-direction splice (BC-2.15.016 v2.0 Inv-6).
         // `active_carry!(flow, direction)` expands to the correct field by-name.
-        // STORY-142 [RULING-DNP3-DESYNC-001 §2.1]: latch only when BOTH directional
-        // carries are empty — i.e., this is the genuinely first-ever delivery to an
-        // unestablished flow in any direction. Checking only the active carry would
-        // latch the flow on a junk s2c delivery even while carry_c2s has a partial
-        // c2s frame in flight, permanently silencing the established c2s stream.
-        if flow.carry_c2s.is_empty()
+        // STORY-142 [RULING-DNP3-DESYNC-001 §2.1]: complete desync-latch predicate:
+        //   sub-case (i)  — both carries empty (no bytes ever buffered in either direction)
+        //   sub-case (ii) — frame_count == 0 (no frame has ever successfully parsed)
+        // Together these guard against latching an established flow: once any frame has
+        // been successfully parsed (frame_count >= 1) the flow is considered established
+        // and the latch is permanently suppressed, even if a subsequent delivery in the
+        // other direction arrives with a non-sync first byte (e.g. junk s2c after valid
+        // c2s frames).  Checking only the carries was insufficient because carry_s2c can
+        // be empty when junk arrives on s2c while carry_c2s holds a partial c2s frame.
+        if flow.frame_count == 0
+            && flow.carry_c2s.is_empty()
             && flow.carry_s2c.is_empty()
             && data.len() >= 2
             && (data[0] != 0x05 || data[1] != 0x64)
