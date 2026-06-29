@@ -2,8 +2,8 @@
 document_type: decisions-archive
 cycle_id: feature-enip-v0.11.0
 archived_from: STATE.md Decisions Log
-archived_at: 2026-06-27
-archived_decisions: D-228..D-266
+archived_at: 2026-06-29
+archived_decisions: D-228..D-301
 ---
 
 # Decisions Archive — feature-enip-v0.11.0 (D-228+)
@@ -471,3 +471,215 @@ F6 gate PASSED. Fuzz-harness PR #332 (`test(fuzz): F-P9-002 cargo-fuzz harness f
 **F6-MUTANTS-FULL-RUN:** cargo-mutants enip.rs full 241-mutant run was still executing in F6 worktree at F7 gate entry; 21 caught/0 missed at last poll. Full run completion and 0-missed confirmation is a human gate item.
 
 **Phase status:** F7 CONVERGED — PENDING HUMAN GATE. Items the human is weighing: (1) F6-MUTANTS-FULL-RUN 0-missed confirmation; (2) holdout formal-eval defer-decision; (3) is_non_enip dead-latch release-notes narrative; (4) cycle-close BC prose edits (BC-2.17.021 Inv-2, BC-2.17.016 PC-5/PC-0, F-W60-002) post-release; (5) Dependabot #311/#325 triage. HALT (D-260) — do NOT run the release pipeline without explicit human go-ahead.
+
+---
+
+## D-267 — F7 Human Gate PASSED; E2E pcap tests approved; Holdout eval deferred (2026-06-27)
+
+Human F7 gate (F7-Q1..Q5): (Q1) ENIP F7 APPROVED — STORY-130..138 convergence accepted. (Q2) Holdout formal eval deferred to post-release validation story (HS-110..122 not formally evaluated; covered by exact-byte unit tests). (Q3) F6-MUTANTS-FULL-RUN deferred — 0-missed at last count, confirm post-release. (Q4) BC prose edits (F-W60-002, BC-2.17.016 PC-0/PC-5, BC-2.17.021 Inv-2) deferred to cycle-close. (Q5) Dependabot #311/#325 deferred. STORY-130..138 APPROVED to merge. E2E real-pcap PR #333 plan approved (no new BCs needed). F7 HUMAN-APPROVED (D-045 gate met).
+
+---
+
+## D-268 — STORY-130..138 batch PR #317..331 MERGED; stories_delivered=87 (2026-06-27)
+
+All 9 ENIP STORY-130..138 PRs merged to develop: PR #317 (STORY-130), PR #318 (STORY-131), PR #319 (STORY-132), PR #320 (STORY-133), PR #321 (STORY-134), PR #322 (STORY-135), PR #323 (STORY-136), PR #324 (STORY-137), PR #331 (STORY-138). stories_delivered 78→87. CI green on all. No new worktrees; all feature branches deleted. ENIP analyzer epic (E-10 waves 58-61) COMPLETE + MERGED.
+
+---
+
+## D-269 — ENIP E2E Real-pcap PR #333 MERGED; develop HEAD = fd0c7f3 (2026-06-27)
+
+E2E real-pcap test PR #333 (`test(enip): full-pipeline E2E tests against real ENIP/CIP pcaps [WAVE59-E2E-001]`) squash-merged into develop; new develop HEAD = fd0c7f3 (was ff3dceb). Test-infra PR — stories_delivered stays 87. All ENIP F7 obligations fully discharged. v0.11.0 HELD (D-260) pending EC-X1/EC-X2 fix + explicit human release go-ahead.
+
+---
+
+## D-270 — SESSION PAUSE at STORY-139 F4 (EC-X1/EC-X2 fix-delta) (2026-06-27)
+
+SESSION PAUSE at F4 implementation of EC-X1/EC-X2 fix-delta (STORY-139, Wave 62). Worktree `.worktrees/enip-direction-clock` @63c119a (`fix/enip-direction-and-clock`, base `fd0c7f3`): red-gate complete — crate compiles, clippy clean, 9 STORY-139 tests RED, 170 existing GREEN. 3 stub points pending: (1) per-direction carry select (EC-X1/BC-2.17.016 v2.0); (2) direction-based src_ip/dest_ip (AC-139-002); (3) saturating_sub + strict `> 300` window (EC-X2/BC-2.17.008/012/018). Durable resume checkpoint written.
+
+---
+
+## D-271 — STORY-139 F4 COMPLETE (2026-06-27)
+
+F4 implementation of STORY-139 (EC-X1/EC-X2 fix-delta) COMPLETE on `.worktrees/enip-direction-clock` branch `fix/enip-direction-and-clock`, impl commit `3c688ff` (base red-gate `63c119a`). All 3 stub points filled: (1) per-direction carry select/stash carry_c2s/carry_s2c [EC-X1/BC-2.17.016 v2.0 Inv-7]; (2) direction-based src_ip inline, resolve_enip_client_ip removed [AC-139-002/DRIFT-ENIP-DIRECTION-001]; (3) saturating_sub + strict >300 window [EC-X2/EC-X4/BC-2.17.008/012/018]. Green gate: cargo test --all-targets 179 GREEN / 0 RED; clippy -D warnings clean; fmt clean.
+
+---
+
+## D-272 — STORY-139 F4→F5 fix-burst chain; F-139-02 adjudicated (2026-06-27)
+
+STORY-139 F4→F5 fix-burst chain on worktree enip-direction-clock: impl 3c688ff → F-139-01 doc + green-doc-tense 69cbf18 → carry-clear removal 046cc41 → operator-pin test rewrite 573a977 → VP-033/034 real proptests + resolve_enip_client_ip prose sweep d0b7b78 → EC-X1 false-positive guard assertion + STORY-137 break/continue doc-tense fc29f2f → summarize_drainage doc-tense 0607b82. F-139-02 (malformed-window carry-clear) ADJUDICATED by architect (RULING-EDGECASE-001 addendum): REMOVE carry-clear (restore BC-2.17.018 PC-5 3-reset minimal-fix) + rewrite test_malformed_window_operator_pin_boundary to oversized-declared-frame path; no BC/AC amendment. O-3 (AC-139-002 direction:Some) ADJUDICATED out-of-scope (per-flow aggregates; deferred v0.12.0). F-139-03 dispatcher path fixed in STORY-139 + ruling.
+
+---
+
+## D-273 — STORY-139 F5 CONVERGED (2026-06-27)
+
+STORY-139 F5 scoped-adversarial CONVERGED. 6 fresh-context adversary passes (findings decayed 4→3→2→0): passes 4/5/6 + final confirming pass all CLEAN (zero HIGH/CRITICAL, zero mis-anchors). Post-fixburst consistency audit (consistency-validator, 6 dimensions) verdict CONSISTENT — malformed-window code matches BC-2.17.018 PC-5 exactly (3 resets, no carry-clear), 2 remaining carry-clears are cap-overflow only (BC-2.17.016 PC-4), input-hash 759464a MATCH. OBS-1 (proptest_ prefix on 2 deterministic VP-034 guards) ADJUDICATED ACCEPTED: names spec-cited by AC-139-005 + VP-034 spec.
+
+---
+
+## D-274 — STORY-139 F6 PASS (2026-06-27)
+
+STORY-139 F6 targeted hardening PASS. Worktree commits since F5: 25f8b4a (5 boundary-hardening tests killing carry-direction-select 948 + error/write-window boundary mutants 1152/1336), cee85c0 (cap-check doc-comment corrected). Kani: 36/37 proved (all 5 ENIP harnesses PROVED + non-vacuous; 1 outstanding harness vp025_timestamp_totality_base10 in reader.rs — non-delta, still-solving CBMC SAT, NOT a regression). cargo-fuzz fuzz_enip_cip_parse: 14.99M execs / 0 crashes. cargo-mutants delta: 23/28 caught; of 5 survivors, 3 (carry-overflow cap+clear) are PROVEN-EQUIVALENT permanent survivors and 2 (pre-existing out-of-scope). In-scope killable kill-rate = 23/23 = 100%. Regression 2112/0; VP-033 2/2, VP-034 6/6.
+
+---
+
+## D-275 — ARCHITECT RULING on carry-cap unreachability (RULING-137-002) (2026-06-27)
+
+ARCHITECT RULING (RULING-EDGECASE-001 addendum, 3rd adjudication): ENIP carry-overflow cap (enip.rs:953/967, BC-2.17.016 PC-4, MAX_ENIP_CARRY_BYTES=600) is STRUCTURALLY UNREACHABLE — RULING-137-002 §1 proves max carry after any on_data call is 599 bytes. The 3 cargo-mutants survivors are CONFIRMED EQUIVALENT (excluded from kill denominator). RULING-EDGECASE-001 §3's Path-A reachability claim RETRACTED. Resolution: keep cap-check as belt-and-suspenders dead code with corrected comment; BC-2.17.016 PC-4 additive errata NOTE.
+
+---
+
+## D-276 — Input-hash re-baseline after BC-2.17.016 additive NOTE (2026-06-27)
+
+Input-hash mechanical re-baseline after BC-2.17.016 additive NOTE (story-writer commit 4f4dc76, factory-artifacts). STORY-139: 759464a→581b0fd. `bin/compute-input-hash --write --scan` rewrote 24 stale stories total → MATCH=89 STALE=0. 14 non-ENIP stories (STORY-002/003/004/005/071/076-080/100/101/120/129) were PRE-EXISTING stale from prior released-cycle BC doc-edits; swept clean. 3 pre-existing structural ERRORs (STORY-001 retired-BC-ref, STORY-091, STORY-121 missing inputs blocks) → backlog.
+
+---
+
+## D-277 — STORY-139 MERGED to develop (PR #334, 99a06f4); stories_delivered=88 (2026-06-27)
+
+STORY-139 (ENIP EC-X1/EC-X2 detection-correctness fix) MERGED to develop via PR #334 (merge commit 99a06f4; develop HEAD 99a06f4). Both reviewers APPROVE (pr-reviewer 0 findings; security-reviewer 0 CRITICAL/0 HIGH, 1 MEDIUM = documented-unreachable carry-cap per RULING-137-002 non-blocking, 2 LOW pre-existing). CI 11/11 green (run 28302628291). Pre-merge: ADR-010 Decision 4 amended; input-hash re-baseline c99d7b6 (STORY-130..139; STORY-139=16e5c27). Worktree enip-direction-clock + branch fix/enip-direction-and-clock removed. stories_delivered=88.
+
+---
+
+## D-278 — HUMAN DIRECTIVE: fix DNP3 atomically with ENIP for v0.11.0 (2026-06-27)
+
+HUMAN DIRECTIVE (F7 gate, Q2): fix DNP3 ATOMICALLY with ENIP for v0.11.0 — DRIFT-DNP3-DIRECTION-001 (carry splice) + DRIFT-DNP3-CLOCK-001 (wrapping_sub clock reset) are NO LONGER deferred to v0.12.0; they are now IN SCOPE for v0.11.0 as a sibling fix (new STORY-140, full F1-F7 cycle, mirroring RULING-EDGECASE-001 applied to dnp3.rs / SS-15). HUMAN DIRECTIVE (Q4): v0.11.0 STAYS HELD after the ENIP merge — separate explicit release go-ahead required (extends D-260). v0.11.0 ships ENIP + DNP3 together once both land on develop and human approves release.
+
+---
+
+## D-279 — STORY-140 DNP3 F1-F4 COMPLETE (2026-06-27)
+
+STORY-140 DNP3 F1-F4 complete. F1 RULING-DNP3-SIBLING-001 (88d41fd). F2: 4 SS-15 BCs amended (e04809d: BC-2.15.016 v2.0/010 v1.8/014 v2.1/015 v2.0), ADR-007 amended (.factory 1e39373), VP-035/VP-036 registered + indexes (ab3c270, VP-INDEX v2.13/36 VPs). F3 STORY-140 authored (6d6e3a3, E-15 Wave 63, input-hash d498e66). F4 worktree .worktrees/dnp3-direction-clock from develop 99a06f4: red-gate scaffolding 7a225aa (208 call-sites threaded) + RED tests b761033, impl af66b9d, block-timeout saturating_sub a5ca673, test fixes 28b5673, regression-fix 1dda26b. 2128 GREEN/0 RED. clippy/fmt clean; 0 live wrapping_sub; singular carry gone; resolve_master_ip gone.
+
+---
+
+## D-280 — ARCHITECT adjudications during STORY-140 F4 (2026-06-27)
+
+ARCHITECT adjudications during STORY-140 F4 (RULING-DNP3-SIBLING-001 author): (1) AC-140-002 test rebuilt to standard topology (outstation:20000, master:54321 ephemeral); port-heuristic+direction formula correct (mirrors ENIP). (2) block-timeout (BC-2.15.014/T1691.001) → saturating_sub; old STORY-109 AC-014 test_pending_request_timeout_wrapping_sub SUPERSEDED → renamed test_pending_request_timeout_no_spurious_fire_on_rollover_or_backwards_ts.
+
+---
+
+## D-281 — REGRESSION caught during STORY-140 F4; fixed (2026-06-27)
+
+REGRESSION caught during STORY-140 F4 (orchestrator refused to accept test-writer's 'pre-existing' dismissal; devops bisect confirmed develop@99a06f4 GREEN vs worktree RED). Carry-split refactor changed dnp3 frame-walk loop guard `< 3` → `< 10`, silently dropping parse_errors increments. Fixed (1dda26b) via did_process_in_this_call context tracking (dnp3.rs:442/455/495/535). No tests dropped (2128 = develop 2112 + 16 new).
+
+---
+
+## D-282 — STORY-140 F5 CONVERGED (2026-06-27)
+
+STORY-140 DNP3 F5 scoped-adversarial CONVERGED. 6 fresh-context adversary passes (findings 2 MED → 3 MED+1 LOW → 0 → 1 LOW → 2 LOW → 0): passes 3/4/5 + confirming pass all zero-HIGH/CRITICAL/mis-anchor. Worktree commit chain: 1dda26b → ac8f2b3 → 5bc6caa → 9972037 → e16ee56. 24/24 BC clauses; VP-035/036 genuine non-vacuous proptests; AC-140-002b genuinely discriminates direction.
+
+---
+
+## D-283 — STORY-140 F6 PASS (2026-06-27)
+
+STORY-140 DNP3 F6 targeted hardening PASS @499c778. Kani: 36/37 proved; cargo-fuzz fuzz_dnp3_parse: 5.18M execs/0 crashes (+ pre-existing harness 4-arg signature gap found+fixed+committed b40d1d9). Mutation delta: first remediation (7bcbbaa, 28 tests) had 11 Group-A survivors; second remediation (499c778, 11 targeted tests) VERIFIED via actual cargo-mutants re-run — all 11 Group-A caught. Only 3 Group-D MAX_FINDINGS DoS-cap off-by-one remain — accepted impractical (pre-existing, mirrors modbus.rs). Regression 2168/0; VP-035 2/2, VP-036 6/6.
+
+---
+
+## D-284 — PROCESS NOTE: F6 mutation gate required two orchestrator verification interventions (2026-06-27)
+
+STORY-140 F6 mutation gate required TWO orchestrator verification interventions — (1) refused 'pre-existing' dismissal of 3 f5_resync_accounting RED tests → devops bisect proved STORY-140 regression; (2) refused test-writer 'structurally killed' claim → formal-verifier cargo-mutants re-run found 11 Group-A survivors. Both caught real gaps. Reinforces DF-ADVERSARY-TOOLCHAIN-PAIRING-001 / verify-don't-trust on mutation + regression claims.
+
+---
+
+## D-285 — STORY-140 F7 CONVERGED; Human gate: HOLD MERGE (2026-06-28)
+
+STORY-140 DNP3 F7 delta-convergence CONVERGED (consistency-validator: 5/5 convergence dims + 6/6 consistency, 1 minor non-blocking BC-2.15.014 line-citation finding). docs/adr/0007 develop-tree copy amended on worktree (560efd3). HUMAN GATE outcome: (Q1) APPROVE STORY-140 convergence but HOLD MERGE — separate explicit go-ahead required before merging; (Q2) v0.11.0 STAYS HELD; (Q3) fix both backlog items now. STORY-140 worktree @560efd3, 2168/0 green, ready to merge on go-ahead.
+
+---
+
+## D-286 — Backlog fixes: BC line-citation + input-hash re-baseline (2026-06-28)
+
+BACKLOG FIXES (human-approved): (1) BC-2.15.014 EC-006 + v2.0 changelog stale source-line citation 984-991 → verified post-STORY-140 line 1173-1200 (commit eb406d1). (2) Input-hash mechanical re-baseline after SS-15 BC v2.x amendments + BC-2.15.014 fix (commit a915faa): STORY-140 d498e66→b3a4fd0; full scan MATCH=90 STALE=0.
+
+---
+
+## D-287 — STORY-140 PR #335 OPENED; ready to merge (2026-06-28)
+
+STORY-140 PR #335 (https://github.com/Zious11/wirerust/pull/335) OPENED targeting develop; branch fix/dnp3-direction-and-clock pushed (HEAD 7169963). Human chose 'Push + open PR, hold merge'. Gates: cargo test 2168/0, clippy/fmt clean; CI 11/11 green; pr-reviewer APPROVE (0 findings); security-reviewer APPROVE (0 CRITICAL/HIGH/MEDIUM, 4 LOW non-blocking). READY TO MERGE — merge command held.
+
+---
+
+## D-288 — STORY-140 MERGED to develop (PR #335 squash, b6d7a01); stories_delivered=89 (2026-06-28)
+
+STORY-140 (DNP3 EC-X1/EC-X2 sibling fix) MERGED to develop via PR #335 — SQUASH merge commit b6d7a01 (develop ff-pulled 99a06f4→b6d7a01, 24 files). Human gave merge go-ahead lifting D-285 hold. Worktree .worktrees/dnp3-direction-clock + branch fix/dnp3-direction-and-clock removed; 17 stale refs pruned. stories_delivered 88→89. Both EC-X1/EC-X2 release-blockers now resolved on develop.
+
+---
+
+## D-289 — REPO MERGE POLICY: squash-only set (2026-06-28)
+
+Repo Zious11/wirerust set to SQUASH-ONLY (allow_squash_merge=true, allow_merge_commit=false, allow_rebase_merge=false, delete_branch_on_merge=true). Supersedes prior merge-commit-only policy. FLAG: squash-only is repo-wide, so develop↔main sync should compare by tag/cherry, not commit ancestry. Consider adding develop branch protection (required status checks) as a future hardening item.
+
+---
+
+## D-290 — GitHub branch protection configured on develop + main (2026-06-28)
+
+GitHub branch protection configured on BOTH develop + main (both were previously unprotected). Settings: require PR before merge (required_approving_review_count=0); required_status_checks strict=true with 11 exact contexts (Test, Clippy, Format, Fuzz build, Audit, Deny, Trust-boundary, Help-provenance gate, Action pin gate, Green-doc-tense gate, Semantic PR); required_linear_history=true; required_conversation_resolution=true; allow_force_pushes=false; allow_deletions=false. enforce_admins: develop=false, main=true. Resolves DEVELOP-BRANCH-PROTECTION backlog item.
+
+---
+
+## D-291 — EDGE-CASE HUNT (2026-06-28)
+
+EDGE-CASE HUNT (2026-06-28, post-v0.11.0-merge): 6 parallel adversary hunters across all analyzers + shared infra. Register: cycles/feature-enip-v0.11.0/EDGE-CASE-HUNT-REGISTER-2026-06-28.md. ~30 candidates total (4 CRIT, ~9 HIGH, MED/LOW). Human directive: record register only (no fixes yet) + verify Modbus + scope 2 systemic design passes. Confirmed-clean: reassembly engine, pcapng reader, MAX_FINDINGS cap, TLS SNI 4-way classification. All candidates DF-VALIDATION-001-gated. 2 cross-cutting design notes written (afd7dbb): DESIGN-TIMESTAMP-MONOTONICITY.md + DESIGN-CROSS-DIRECTION-STATE.md.
+
+---
+
+## D-292 — MODBUS EC-X1 + EC-X2 EMPIRICALLY CONFIRMED (2026-06-28)
+
+MODBUS EC-X1 + EC-X2 EMPIRICALLY CONFIRMED via test-vs-control repro (scratch worktree .worktrees/modbus-ecx-verify @ 74f2913). EC-X1: partial C2S ADU carry spliced into S2C response buffer. EC-X2: one backwards-ts write resets burst window. RULING-EDGECASE-001 §1.6 "Modbus already has direction threading and is NOT affected" DISPROVEN. STORY-104 AC-006 mandates the buggy wrapping_sub — spec must change in the same fix story. Material to held v0.11.0 release.
+
+---
+
+## D-293 — 2 cross-cutting design-scope notes written (2026-06-28)
+
+2 cross-cutting design-scope notes (factory-artifacts afd7dbb): (1) DESIGN-TIMESTAMP-MONOTONICITY.md — Modbus has 4 un-swept wrapping_sub sites; recommend saturating_sub consistent with ENIP/DNP3 precedent; ARP uses saturating_sub but denominator-policy is a separate BC decision; WindowClock abstraction deferred. (2) DESIGN-CROSS-DIRECTION-STATE.md — DNP3 is_non_dnp3 desync-latch is one-line fix; Modbus carry is the sole structural gap; full (FlowKey,Direction) keying NOT recommended for counters.
+
+---
+
+## D-294 — WAVE 64 opened; STORY-141 (Modbus) + STORY-142 (DNP3-desync) F1-F3 DONE (2026-06-28)
+
+WAVE 64 opened (human-directed): fix Modbus EC-X1/EC-X2 (STORY-141) + DNP3 desync-latch (STORY-142) before v0.11.0 release; bundle both. F1: RULING-MODBUS-SIBLING-001 + RULING-DNP3-DESYNC-001 + RULING-EDGECASE-001 §1.6 correction (1f1c648). F2: BCs amended — BC-2.14.002 v2.0/016 v2.3/017 v2.7/019 v1.5, BC-2.15.009 v2.0; BC-INDEX v1.87; VP-037/038 registered; VP-INDEX v2.14/38 VPs. F3: STORY-141 (E-14, 13 ACs, hash 41b8662) + STORY-142 (E-15, 3 ACs, hash 16f87c4) authored; STORY-104 AC-006 corrected (wrapping→saturating superseded); STORY-INDEX v3.1 (95 stories/64 waves); input-hash rebaseline STORY-102/104/106 STALE=0.
+
+---
+
+## D-295 — Wave-64 F5 CONVERGED @ab37fb5 (2026-06-28)
+
+Wave-64 F5 scoped-adversarial CONVERGED @ab37fb5 (bundled STORY-141 Modbus + STORY-142 DNP3-desync). 7 fresh-context passes, ALL zero-HIGH/CRITICAL. 18/18 BC clauses covered. Architect VERIFIED the DNP3 fix was INCOMPLETE (both-carries-empty-only missed sub-case ii) → corrected to frame_count==0 guard. Worktree commit chain: d3e5d6e→1851f3d→4dc9b9a→315992d→25b20e9→de6d124→f23b7cf→ab37fb5.
+
+---
+
+## D-296 — Wave-64 F6 PASS @235a4a1 (2026-06-28)
+
+Wave-64 F6 hardening PASS @235a4a1. Kani 36/37 (1 orthogonal reader harness still-solving, 0 failed). cargo-fuzz fuzz_modbus_parse 4.29M + fuzz_dnp3_parse 3.11M, 0 crashes. cargo-mutants delta: DNP3 desync fix-logic mutants ALL caught; Modbus non-cap mutants caught; 4 saturating_sub + sustained `>=` covered by VP-038. Regression 2192/0; VP-037 2/2, VP-038 5/5.
+
+---
+
+## D-297 — ARCHITECT RULING: Modbus carry-cap STRUCTURALLY UNREACHABLE (ADDENDUM-002) (2026-06-28)
+
+ARCHITECT ADJUDICATION (RULING-MODBUS-SIBLING-001 ADDENDUM-002): Modbus carry-cap guards at modbus.rs:1104/1150 are STRUCTURALLY UNREACHABLE — active_carry.clear() at L1075 drains dir_carry to 0 before the walk loop; max operand 259 < 260=MAX_ADU_CARRY_BYTES. The 6 cargo-mutants survivors are EQUIVALENT. F1 'reachable' claim RETRACTED. Follow-ups: ADDENDUM-002 + BC-2.14.002 errata (e773d55), unreachable code comments (235a4a1).
+
+---
+
+## D-298 — Wave-64 F7 CONVERGED + human-APPROVED; DIM1-01/DIM3-01 pre-merge fixes (2026-06-28)
+
+Wave-64 F7 CONVERGED + human-APPROVED. Consistency audit PASS. 2 non-blocking F7 audit items fixed pre-merge: DIM1-01 — RULING-MODBUS-SIBLING-001 ADDENDUM-002 + BC-2.14.002 v2.1 if-guard line anchors reconciled 1104/1150→1110/1162; BC-INDEX bumped v1.87→v1.88. DIM3-01 — VP-037 proptest range corrected 1usize..7→0usize..6; VP-INDEX v2.14 changelog entry added. All non-behavioral. Code PR squash-merge dispatched. v0.11.0 release STILL HELD — separate explicit human go-ahead required.
+
+---
+
+## D-299 — Wave 64 MERGED (PR #336, a13b5c5); stories_delivered=91; worktrees removed (2026-06-28)
+
+Wave 64 (STORY-141 Modbus EC-X1/EC-X2 + STORY-142 DNP3 desync-latch) MERGED to develop via PR #336 — squash merge commit `a13b5c5` (merged 2026-06-28T20:52:37Z). CI 10/10 applicable checks green (run 28335634278). stories_delivered 89→91. All four v0.11.0 EC-X1/EC-X2 fixes on develop: STORY-139 (ENIP, PR #334), STORY-140 (DNP3 sibling, PR #335), STORY-141 (Modbus, PR #336), STORY-142 (DNP3 desync-latch, PR #336). Worktrees .worktrees/wave64-ec-fixes + .worktrees/modbus-ecx-verify removed; remote+local feature branches deleted. Wave-64 sub-cycle closed.
+
+---
+
+## D-300 — v0.11.0 RELEASED (2026-06-29)
+
+v0.11.0 RELEASED. Explicit human release go-ahead received — releases holds D-260/D-278/D-299. Release PR #337 (`chore: release v0.11.0`) squash-merged → main (HEAD 3072e828). Annotated tag `v0.11.0` created on main and pushed. GitHub release published at https://github.com/Zious11/wirerust/releases/tag/v0.11.0 (marked latest). develop synced via PR #338 squash-merged (develop HEAD ecbcd268; Cargo.toml version 0.11.0 + CHANGELOG entry). main + develop in sync. All 11 CI checks green on both merge commits. crates.io publish declined by human — no publish. Contents: four EC-X1/EC-X2 fixes — ENIP (STORY-139, PR #334), DNP3 EC-X1/X2 (STORY-140, PR #335), Modbus EC-X1/X2 (STORY-141, PR #336), DNP3 desync-latch (STORY-142, PR #336). Version: 0.10.0→0.11.0. Cycle feature-enip-v0.11.0 CLOSED. SEC-001 (unsafe split-borrow enip.rs `on_data`, MEDIUM) registered as v0.12.0 candidate.
+
+---
+
+## D-301 — POST-RELEASE: v0.11.0 CHANGELOG correction + STORY-143 (2026-06-29)
+
+POST-RELEASE CORRECTION (docs-only, develop only). v0.11.0 CHANGELOG entry and GitHub release notes initially omitted the entire ENIP analyzer epic (STORY-130..138, PRs #317–#334). Corrections: PR #339 (develop 0b0af26) fixed CHANGELOG footer comparison links. PR #340 (develop ab0b388) authored the complete [0.11.0] CHANGELOG entry (PR span #317–#338 verified; green-doc-tense gate passed). GitHub v0.11.0 release notes edited to mirror the complete entry (40 ENIP/MITRE markers confirmed, still Latest). Release tag/commit unchanged. main CHANGELOG will catch up on next gitflow back-merge. Lesson codified: RELEASE-CHANGELOG-FULL-RANGE-001 in cycles/feature-enip-v0.11.0/lessons.md. STORY-143 (E-11, draft, 3 pts) created to harden the release-changelog step. STORY-INDEX v3.2 (96 stories). develop HEAD = ab0b388.
+
+OPEN QUESTION (awaiting human answer): should the corrected CHANGELOG.md be fast-tracked onto main now (via a docs-only PR), or left to ride to the next gitflow back-merge at v0.12.0 release time? The complete entry exists on develop (ab0b388). main currently has the original short v0.11.0 entry. No functional impact either way.
