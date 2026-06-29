@@ -1,10 +1,10 @@
 ---
 document_type: prd
 level: L3
-version: "1.43"
+version: "1.45"
 status: draft
 producer: product-owner
-timestamp: 2026-06-29T00:00:00Z
+timestamp: 2026-06-29T15:00:00Z
 phase: 1a
 origin: brownfield
 inputs:
@@ -424,6 +424,23 @@ supplements:
 > default (50/1s) — changed from 20, MEDIUM-confidence, human confirmation at F2 gate. See `.factory/phase-f2-spec-evolution/enip-prd-delta.md`
 > for full delta record. Added SS-17 rows to Section 7 RTM. Total BCs: 304 on disk → 329;
 > active: 304 → 328. BC-INDEX v1.73→v1.74.
+>
+> **Version 1.45 delta (2026-06-29 — fix-tls-clienthello-frag adversary burst — BC-2.07.043 v1.1, BC-2.07.005 v1.7):**
+> Adversary findings C-1/C-2/C-3/I-2/I-3/I-4/OBS-1/F-1 resolved against BC-2.07.043 v1.0 and BC-2.07.005 v1.6. No BC count change. SS-07 stays 43. BC-INDEX v1.99→v2.0.
+> **C-3 HIGH:** BC-2.07.043 PC-3 — canonical increment condition is `data.len() > remaining` only. Removed "(equivalently, `to_copy < data.len()`)" qualifier. `to_copy` is computed only inside `if remaining > 0` arm; using it as the condition would miss the full-drop case (`remaining==0`).
+> **C-1 HIGH:** BC-2.07.043 Inv-4 + Architecture Anchors — post-block increment placement specified. `self.buffer_saturation_drops += 1` MUST appear after the `&mut state` (`&mut TlsFlowState`) buffer-append block closes. Reason: `state: &mut TlsFlowState` borrows `self.flows` mutably; while live, `self` cannot be mutated. Pattern: detect drop condition (`let did_drop = data.len() > remaining;`) inside the match arm, then after borrow releases call `self.buffer_saturation_drops += 1` before `try_parse_records`.
+> **C-2 HIGH:** BC-2.07.043 EC-002 (full-drop: remaining==0) — test seam `fill_buf_for_testing` named in Architecture Anchors. The full-drop state cannot be reached via public `on_data` API alone. Seam signature: `#[doc(hidden)] pub fn fill_buf_for_testing(&mut self, flow_key: FlowKey, direction: Direction, n: usize)`. Architect uses this seam for the EC-002 unit test.
+> **I-2 MED:** BC-2.07.043 PC-4 — strengthened to value-equality: `detail["buffer_saturation_drops"] == self.buffer_saturation_drops`. Key-presence only would pass a broken impl inserting 0.
+> **I-3 MED:** BC-2.07.043 VP table — 5 rows with VP-040 Sub-A..Sub-E. Summarize test renamed `test_BC_2_07_043_summarize_value_equals_drop_count`. VP Anchors populated. See final 5 canonical test names in BC-2.07.043 v1.1.
+> **I-4 MED:** BC-2.07.043 — tls.rs:887-889 corrected to tls.rs:887-890 in Postcondition 4, Architecture Anchors, and Traceability.
+> **OBS-1 LOW:** BC-2.07.043 — "VP-039 (or new VP)" / "likely VP-040" hedges replaced with definitive "VP-040" throughout.
+> **F-1 HIGH:** BC-2.07.005 v1.6→v1.7 (PC-4 drop condition `data.len() > remaining` cited canonically; post-block placement cross-ref to BC-2.07.043 Inv-4). BC-INDEX BC-2.07.005 title synced to H1 "(Tail-Drop Counted by BC-2.07.043)". See `spec-changelog.md` §[tls-frag-fev001-adversary-burst-2026-06-29].
+>
+> **Version 1.44 delta (2026-06-29 — fix-tls-clienthello-frag F2 scope addition — F-EV-001 defense-in-depth: BC-2.07.043 new, BC-2.07.005 v1.6, SS-07 42→43):**
+> Human-approved scope addition: defense-in-depth telemetry counter for the TLS per-direction buffer saturation tail-drop (`src/analyzer/tls.rs:820-835`).
+> **NEW BC-2.07.043 v1.0** ("Per-Direction Buffer Saturation Tail-Drop Is Observable via buffer_saturation_drops Counter", P1, SS-07, CAP-07): Defines `buffer_saturation_drops: u64` on `TlsAnalyzer` (NOT on `TlsFlowState`); incremented by 1 each time an `on_data` call discards any bytes due to the `MAX_BUF` cap (`data.len() > remaining`, covering both partial-copy and full-drop via `if remaining > 0` guard); applies to both `Direction::ClientToServer` (client_buf) and `Direction::ServerToClient` (server_buf); surfaced in `summarize()` as `"buffer_saturation_drops"` in the detail map; NOT reset at flow close; mirrors `truncated_records: u64` and `handshake_reassembly_overflows: u64` counter patterns. Does NOT increment `parse_errors` or `truncated_records`. Does NOT emit a Finding. The byte-drop semantics of BC-2.07.005 are unchanged. Red-Gate test: `test_BC_2_07_043_buffer_saturation_observable`. Defensively pre-empts F-EV-001 preconditions P1 (segment-coalescing refactor) and P2 (IPv6 jumbogram) per `.factory/research/F-EV-001-clientbuf-saturation-validation.md` §6.
+> **BC-2.07.005 v1.5→v1.6:** Inv-3 amended — "Buffer overflow is silent. No counter" superseded; tail-drop is now counted by BC-2.07.043. Postcondition 4 updated. H1 title updated to cross-reference BC-2.07.043. Related BCs +BC-2.07.043. Existing test `test_buffer_overflow_silent_no_counters` scope note added (its scope is `parse_errors==0` AND `truncated_records==0` — still valid; the new counter is covered by `test_BC_2_07_043_buffer_saturation_observable`).
+> BC count: 336→337 on disk; 335→336 active. SS-07: 42→43. BC-INDEX v1.98→v1.99. See `spec-changelog.md` §[tls-frag-fev001-defense-in-depth-2026-06-29].
 >
 > **Version 1.43 delta (2026-06-29 — fix-tls-clienthello-frag Fix Burst 9 — F-IMPL-001/F-IMPL-002/F-EV-002 BC reconciliation):**
 > **Drain-loop exit list exhaustive (F-IMPL-001 MEDIUM):** BC-2.07.042 Inv-1 updated — the two permitted partial-drain exits previously enumerated (a) `carry_buf.len() < 4` and (b) next body incomplete were not exhaustive. A third exit (c) body_len-spoof guard (declared `body_len > MAX_BUF`, per BC-2.07.038 Inv-5) clears the entire carry and breaks the drain loop. The body_len-spoof break is a total-clear followed by break, semantically equivalent to continue since the carry is empty. Two new edge cases added to BC-2.07.042: EC-006 (complete valid message coalesced with trailing body_len-spoof header — valid dispatched first, spoof-only carry cleared, no valid data lost) and EC-007 (spoof header precedes valid bytes — entire carry cleared; accepted adversarial input; recovery on next well-formed record). BC-2.07.042 v1.3→v1.4. Also EC-010 added to BC-2.07.038: same coalesced-valid-then-spoof scenario described from the reassembly-BC perspective.
@@ -898,8 +915,9 @@ Rust source files, 3,868 source LOC, 282 tests, single crate, Rust 2024 edition,
 | BC-2.07.040 | Truncated handshake at flow close yields no finding and no parse_errors increment (truncation-safety) | P1 | fix-tls-clienthello-frag |
 | BC-2.07.041 | Handshake carry buffers are per-flow and per-direction isolated (VP-014 TLS analog) | P1 | fix-tls-clienthello-frag |
 | BC-2.07.042 | Coalesced handshake messages in one record are each dispatched independently (RFC 5246 §6.2.1 coalescing) | P1 | fix-tls-clienthello-frag |
+| BC-2.07.043 | Per-direction buffer saturation tail-drop is observable via buffer_saturation_drops counter (F-EV-001 defense-in-depth) | P1 | fix-tls-clienthello-frag-F2-scope-addition |
 
-> Full contracts: `behavioral-contracts/ss-07/BC-2.07.001.md` through `BC-2.07.042.md`
+> Full contracts: `behavioral-contracts/ss-07/BC-2.07.001.md` through `BC-2.07.043.md`
 
 #### 2.7.1 Handshake-Message Reassembly (fix-tls-clienthello-frag, v1.42)
 
@@ -976,6 +994,15 @@ NO abandoned-flag fields.
 
 New VP proposed: VP-039 (proptest; P1; six sub-properties covering Sub-A..Sub-F;
 architect registers in VP-INDEX).
+
+**F-EV-001 defense-in-depth (v1.44 scope addition):** BC-2.07.043 additionally requires
+`TlsAnalyzer` to add `buffer_saturation_drops: u64` (aggregate counter, NOT per-flow,
+NOT reset at flow close; mirrors `truncated_records` and `handshake_reassembly_overflows`).
+This counter is incremented by 1 each time `on_data` discards any bytes due to the
+`MAX_BUF` stream-buffer cap (the tail-drop branch at tls.rs:820-835: `data.len() >
+remaining`, covering both partial-copy and full-drop). It is surfaced in `summarize()` as
+`"buffer_saturation_drops"`. See BC-2.07.043 v1.0 and
+`.factory/research/F-EV-001-clientbuf-saturation-validation.md` §7.
 
 ### 2.8 DNS Traffic Analysis (CAP-08)
 
@@ -1932,6 +1959,7 @@ See `prd-supplements/error-taxonomy.md` for the complete E-xxx-NNN catalog.
 | BC-2.07.040 | CAP-07 | SS-07 (analyzer/tls.rs) | P1 | unit |
 | BC-2.07.041 | CAP-07 | SS-07 (analyzer/tls.rs) | P1 | proptest |
 | BC-2.07.042 | CAP-07 | SS-07 (analyzer/tls.rs) | P1 | unit+proptest |
+| BC-2.07.043 | CAP-07 | SS-07 (analyzer/tls.rs) | P1 | unit |
 | BC-2.08.001 | CAP-08 | SS-08 (analyzer/dns.rs) | P0 | unit |
 | BC-2.08.002 | CAP-08 | SS-08 (analyzer/dns.rs) | P0 | unit |
 | BC-2.08.003 | CAP-08 | SS-08 (analyzer/dns.rs) | P1 | unit |

@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.5"
+version: "1.7"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -18,6 +18,8 @@ modified:
   - "v1.3: add buffer-cap observability note + residue-test back-refs; cap now literally verified (F-S058-P1-001) — 2026-05-29"
   - "v1.4: fix Architecture-Anchor off-by-one: tls.rs:726-748 → 726-747 (line 748 is blank; block closes at 747) — F-S058-P12-O1 — 2026-05-31"
   - "v1.5: PG-ARP-F2-007 ss-07 full re-anchor — buffer-append logic 726-747→820-835; MAX_BUF const :29→:30 — 2026-06-13"
+  - "v1.6: fix-tls-clienthello-frag F2 scope addition (F-EV-001 defense-in-depth) — Inv-3 amended: tail-drop is no longer fully silent; a new TlsAnalyzer-aggregate counter buffer_saturation_drops is incremented on each tail-drop event (see BC-2.07.043); Postcondition 4 updated to match; test_buffer_overflow_silent_no_counters scope note added; BC-2.07.043 added to Related BCs — 2026-06-29"
+  - "v1.7: fix-tls-clienthello-frag adversary burst — PC-4 prose tightened: explicit drop condition data.len() > remaining cited (C-3 canonical form); BC-2.07.043 post-block placement constraint referenced — 2026-06-29"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -26,7 +28,7 @@ removed: null
 removal_reason: null
 ---
 
-# BC-2.07.005: Per-Direction Buffer Capped at MAX_BUF = 65536 Bytes
+# BC-2.07.005: Per-Direction Buffer Capped at MAX_BUF = 65536 Bytes (Tail-Drop Counted by BC-2.07.043)
 
 ## Description
 
@@ -61,7 +63,7 @@ with `payload_len > 18,432` trips the oversized-record guard (BC-2.07.004), whic
 | `test_buffer_full_append_noop_literal` | Proves the no-op append path: when the buffer is pre-filled to MAX_BUF, a subsequent `on_data` call does not increase `client_buf.len()`. |
 | `test_buffer_cap_appends_at_most_max_buf` | Broader property-style coverage of the cap (silence variant). |
 | `test_buffer_full_append_noop` | Silence-path coverage of the no-op append. |
-| `test_buffer_overflow_silent_no_counters` | Confirms `parse_errors` and `truncated_records` remain 0 when bytes are dropped by the cap (silent overflow). |
+| `test_buffer_overflow_silent_no_counters` | Confirms `parse_errors` and `truncated_records` remain 0 when bytes are dropped by the cap. **Note (v1.6):** this test name predates BC-2.07.043. Its scope is specifically `parse_errors==0` AND `truncated_records==0`. A separate test (`test_BC_2_07_043_buffer_saturation_observable`) covers the NEW `buffer_saturation_drops` counter. The existing test remains valid for its original scope. |
 
 ## Preconditions
 
@@ -73,16 +75,27 @@ with `payload_len > 18,432` trips the oversized-record guard (BC-2.07.004), whic
 1. At most `MAX_BUF - current_buf_len` bytes from `data` are appended to the buffer.
 2. If `current_buf_len >= MAX_BUF`, no bytes are appended.
 3. After appending, `try_parse_records` is called with whatever is now in the buffer.
-4. No error is returned; the truncation is silent (no counter increment).
+4. No error is returned. When a tail-drop occurs (`data.len() > remaining`; any bytes are
+   discarded), the `buffer_saturation_drops` counter on `TlsAnalyzer` is incremented by 1
+   (see BC-2.07.043 for the full counter specification, including the post-block placement
+   constraint). The dropped bytes themselves are STILL discarded — no behavioral change to
+   the drop policy; only telemetry is added.
 5. `parse_errors` and `truncated_records` are NOT incremented for buffer overflow.
+6. No `Finding` is emitted for buffer overflow.
 
 ## Invariants
 
 1. `client_buf.len()` and `server_buf.len()` are always `<= MAX_BUF`.
 2. The cap is computed as `remaining = MAX_BUF.saturating_sub(state.buf.len())`.
    `to_copy = data.len().min(remaining)`. This is a safe, non-panicking calculation.
-3. Buffer overflow is silent. There is no finding, no log line, and no counter
-   tracking how many bytes were dropped beyond the cap.
+3. When a tail-drop occurs, `buffer_saturation_drops` on `TlsAnalyzer` is incremented
+   by 1 (see BC-2.07.043 for the full counter specification). The dropped bytes are still
+   discarded — the cap semantics are UNCHANGED. There is no finding and no log line.
+   `parse_errors` and `truncated_records` are NOT incremented.
+   **Prior wording of Inv-3 (v1.5 and earlier) stated "Buffer overflow is silent — no counter."
+   That invariant is superseded as of v1.6 by the addition of BC-2.07.043
+   (F-EV-001 defense-in-depth, fix-tls-clienthello-frag cycle). The drop is no longer
+   fully silent: it is counted.**
 
 ## Edge Cases
 
@@ -125,6 +138,8 @@ with `payload_len > 18,432` trips the oversized-record guard (BC-2.07.004), whic
 
 - BC-2.07.004 -- related to (MAX_RECORD_PAYLOAD is a separate, record-level cap)
 - BC-2.07.003 -- related to (after done, buffering is bypassed entirely before the cap check)
+- BC-2.07.043 -- composes with (BC-2.07.043 adds observability to the tail-drop path
+  specified here; see Inv-3 v1.6 amendment)
 
 ## Architecture Anchors
 

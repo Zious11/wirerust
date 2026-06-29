@@ -14,6 +14,153 @@ changes, invariant rewrites).
 
 ---
 
+## [tls-frag-vp040-6test-reconciliation-2026-06-29] — 2026-06-29
+
+### fix-tls-clienthello-frag VP-040 6-Test Reconciliation — BC-2.07.043 v1.2 (product-owner)
+
+**Trigger:** Architect added a 6th canonical test to VP-040 covering the full-drop path
+(`remaining==0`; uses `fill_buf_for_testing` seam); BC-2.07.043 VP table must align to the
+final canonical 6-test set.
+
+**Changes:**
+
+- **BC-2.07.043 v1.1→v1.2:** VP table: added second Sub-A row for
+  `test_BC_2_07_043_buffer_saturation_full_drop` (full-drop: remaining==0, uses
+  `fill_buf_for_testing` seam); differentiated the existing Sub-A row description to
+  clarify it covers the partial-drop path (single ≥65,537-byte on_data slice, no seam).
+  VP Anchors: added `test_BC_2_07_043_buffer_saturation_full_drop` as a second Sub-A anchor.
+  Architecture Anchors: split the single test reference into two entries distinguishing
+  partial-drop (`_observable`) and full-drop (`_buffer_saturation_full_drop`); corrected
+  the EC-002 seam-test name from the old `_observable full-drop variant` phrasing to the
+  canonical `_buffer_saturation_full_drop` name.
+
+**BC count:** 337 on disk / 336 active (unchanged). SS-07: 43 (unchanged).
+**BC-INDEX:** v2.0→v2.1.
+
+---
+
+## [tls-frag-fev001-adversary-burst-2026-06-29] — 2026-06-29
+
+### fix-tls-clienthello-frag Adversary Burst — BC-2.07.043 v1.1 / BC-2.07.005 v1.7 (product-owner)
+
+**Trigger:** Adversary findings C-1/C-2/C-3 (HIGH), I-2/I-3/I-4 (MED), OBS-1 (LOW), F-1 (HIGH)
+against BC-2.07.043 v1.0 and BC-2.07.005 v1.6. No new BCs. No BC count change.
+
+**Findings resolved:**
+
+- **C-3 (HIGH) — BC-2.07.043 PC-3 increment condition:**
+  Removed "(equivalently, `to_copy < data.len()`)" qualifier. `to_copy` is only computed
+  inside the `if remaining > 0` arm; using it as the increment condition would silently
+  miss the full-drop case where `remaining == 0` and the guard skips the append entirely.
+  The canonical and ONLY stated condition is `data.len() > remaining`.
+
+- **C-1 (HIGH) — BC-2.07.043 Inv-4 + Architecture Anchors, post-block increment placement:**
+  Specified that `self.buffer_saturation_drops += 1` MUST be placed AFTER the `&mut state`
+  (`&mut TlsFlowState`) buffer-append block closes, not inside it. Reason: while `state:
+  &mut TlsFlowState` (obtained by borrowing `self.flows` mutably) is live, `self` cannot
+  be mutated — Rust borrow rules. Implementation pattern: detect drop condition inside the
+  match arm (`let did_drop = data.len() > remaining;`), then after the borrow is released
+  perform `self.buffer_saturation_drops += 1` before `try_parse_records`. Architecture
+  Anchor updated to clarify the increment site is AFTER the block, not inside tls.rs:820-835.
+
+- **C-2 (HIGH) — BC-2.07.043 EC-002 (full-drop: remaining==0) testability:**
+  The full-drop state (buffer parked at exactly MAX_BUF before an `on_data` call) is not
+  reachable via the public `on_data` API alone — the drain-complete-records-first loop
+  prevents durable MAX_BUF residue. Named a test seam in Architecture Anchors:
+  `#[doc(hidden)] pub fn fill_buf_for_testing(&mut self, flow_key: FlowKey, direction:
+  Direction, n: usize)` fills the per-direction buffer to `n` bytes directly. The architect
+  MUST use this seam when authoring the EC-002 full-drop unit test. EC-002 testability note
+  added in the Edge Cases table.
+
+- **I-2 (MED) — BC-2.07.043 PC-4 value-equality:**
+  Strengthened from "key present in detail map" to value-equality: the value in
+  `detail["buffer_saturation_drops"]` MUST equal `self.buffer_saturation_drops` exactly.
+  A presence-only assertion would pass an implementation that always inserts `0`.
+
+- **I-3 (MED) — BC-2.07.043 VP table 5 canonical names mapped to VP-040 Sub-A..Sub-E:**
+  VP table expanded from 4 rows (some with "—" VP-NNN) to 5 rows each citing VP-040 and
+  a Sub-letter. All 5 canonical test function names:
+  - VP-040 Sub-A: `test_BC_2_07_043_buffer_saturation_observable` (partial-drop increment)
+  - VP-040 Sub-B: `test_BC_2_07_043_no_drop_no_counter` (exact-fit, no drop)
+  - VP-040 Sub-C: `test_BC_2_07_043_counter_persists_across_flows` (counter persistence)
+  - VP-040 Sub-D: `test_BC_2_07_043_summarize_value_equals_drop_count` (value-equality; was `test_BC_2_07_043_summarize_exposes_buffer_saturation_drops_key`)
+  - VP-040 Sub-E: `test_BC_2_07_043_both_directions_increment_same_counter` (cross-direction)
+  VP Anchors section populated with VP-040 Sub-A..Sub-E.
+
+- **I-4 (MED) — tls.rs:887-889 → tls.rs:887-890:**
+  The `truncated_records` insert statement in `summarize()` spans lines 887-890, not
+  887-889. Corrected in BC-2.07.043 Postcondition 4, Architecture Anchors, and Traceability.
+
+- **OBS-1 (LOW) — VP-039 hedge replaced with definitive VP-040:**
+  "VP-039 (or new VP)" and "likely VP-040" hedges replaced with "VP-040" throughout
+  BC-2.07.043 Verification Properties table, VP Anchors, and Architecture Anchors.
+
+- **F-1 (HIGH) — BC-INDEX BC-2.07.005 row title sync:**
+  BC-INDEX master table row for BC-2.07.005 updated: title changed from
+  "Per-Direction Buffer Capped at MAX_BUF = 65536 Bytes" to
+  "Per-Direction Buffer Capped at MAX_BUF = 65536 Bytes (Tail-Drop Counted by BC-2.07.043)"
+  to match the H1 heading (H1 is source of truth per bc_h1_is_title_source_of_truth policy).
+  Inline comment `<!-- v1.7: ... -->` added.
+
+**BC versions:** BC-2.07.043 v1.0→v1.1; BC-2.07.005 v1.6→v1.7.
+**BC counts:** 337 on disk; 336 active (unchanged). SS-07: 43 (unchanged).
+**PRD:** v1.44→v1.45 (version history +v1.45 delta block).
+**BC-INDEX:** v1.99→v2.0.
+
+**VP citations changed in:** BC-2.07.043 (VP-040 Sub-A..Sub-E fully named). Architect must
+propagate to VP-INDEX (register VP-040 with Sub-A..Sub-E), verification-architecture.md,
+and verification-coverage-matrix.md under `vp_index_is_vp_catalog_source_of_truth` policy.
+
+---
+
+## [tls-frag-fev001-defense-in-depth-2026-06-29] — 2026-06-29
+
+### fix-tls-clienthello-frag F2 Scope Addition — F-EV-001 Defense-in-Depth: buffer_saturation_drops Counter (product-owner)
+
+**Trigger:** Human-approved scope addition in the fix-tls-clienthello-frag cycle. The
+F-EV-001 validation found the TLS per-direction buffer saturation tail-drop
+(`src/analyzer/tls.rs:820-835`) is NOT-EXPLOITABLE for ClientHello blinding under
+current code. However, the human approved adding a defense-in-depth telemetry counter so
+the tail-drop primitive is never silent, regardless of future code changes.
+
+**What changed:**
+
+- **NEW: BC-2.07.043 v1.0** ("Per-Direction Buffer Saturation Tail-Drop Is Observable via
+  buffer_saturation_drops Counter", SS-07, CAP-07, P1, greenfield):
+  - Defines `buffer_saturation_drops: u64` on `TlsAnalyzer` (NOT on `TlsFlowState`).
+  - Increment condition: `data.len() > remaining` (i.e., `to_copy < data.len()`). Covers
+    both the partial-copy case (`remaining > 0` but `remaining < data.len()`) and the
+    full-drop case (`remaining == 0`, where the `if remaining > 0` guard skips the append).
+  - One increment per `on_data` call with any discard — counts DROP EVENTS, not bytes.
+  - Applies to both `Direction::ClientToServer` (client_buf) and
+    `Direction::ServerToClient` (server_buf) — one shared aggregate counter.
+  - Surfaced in `summarize()` as key `"buffer_saturation_drops"` in the `detail` map,
+    mirroring `"truncated_records"` at tls.rs:887-889.
+  - NOT reset at flow close (`on_flow_close` drops TlsFlowState only).
+  - Does NOT increment `parse_errors` or `truncated_records`. Does NOT emit a Finding.
+  - Red-Gate test name: `test_BC_2_07_043_buffer_saturation_observable` (architect authors
+    in VP-039 or new VP-040; product-owner specifies the test seam here).
+  - Defensively pre-empts F-EV-001 preconditions P1 (segment-coalescing refactor adds
+    coalesced flush > 64 KB) and P2 (IPv6 jumbogram support adds >65535-byte payloads).
+
+- **AMENDED: BC-2.07.005 v1.5→v1.6** ("Per-Direction Buffer Capped at MAX_BUF = 65536
+  Bytes (Tail-Drop Counted by BC-2.07.043)"):
+  - H1 title updated to cross-reference BC-2.07.043 (H1 authority rule).
+  - Invariant 3 amended: prior wording "Buffer overflow is silent. No counter." superseded
+    by the addition of BC-2.07.043. The tail-drop is now COUNTED. The bytes are still
+    dropped. No finding, no `parse_errors`, no `truncated_records`.
+  - Postcondition 4 updated to reflect counter increment.
+  - `test_buffer_overflow_silent_no_counters` scope note added: that test's scope is
+    specifically `parse_errors==0` AND `truncated_records==0`; still valid for that scope;
+    the new `buffer_saturation_drops` counter is covered by the new Red-Gate test.
+  - Related BCs: +BC-2.07.043.
+
+**BC counts:** 336→337 on disk; 335→336 active. SS-07: 42→43.
+**PRD:** v1.43→v1.44 (§2.7 table +BC-2.07.043; §2.7.1 +F-EV-001 defense-in-depth block; §7 RTM +BC-2.07.043).
+**BC-INDEX:** v1.98→v1.99.
+
+---
+
 ## [tls-frag-fix-burst-11-bc-2026-06-29] — 2026-06-29
 
 ### fix-tls-clienthello-frag Fix Burst 11 — F-COMP-001/F-COMP-002/F-COMP-003 VP Citation Fixes (product-owner)

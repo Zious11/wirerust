@@ -20,6 +20,15 @@ modified:
   - date: 2026-06-29
     actor: architect
     reason: "Fix-burst-9 (F-IMPL-001 clarification): Decision 4 body_len-spoof guard expanded with explicit TOTAL-CLEAR SEMANTICS note (carry_buf.clear() removes ALL bytes in the direction carry, not just the bad header), WHY-break-IS-SAFE note (break ≡ continue because carry is now empty — len()==0 — so next iteration would immediately break on the <4 guard anyway), DISTINCTION FROM DECISION 5 note (Decision 5 uses continue because it fires pre-append in the outer record loop; Decision 4 guard fires inside the drain loop post-clear; same outcome, different loop positions), and ORDERING note (valid message preceding spoof header is dispatched and exact-consumed before the spoof is hit, so no valid data is lost; spoof header preceding valid bytes discards trailing bytes — accepted adversarial-input tradeoff, recovery on next record)."
+  - date: 2026-06-29
+    actor: architect
+    reason: "F2 scope-addition (BC-2.07.043 / F-EV-001): Decision 1 amended — buffer_saturation_drops: u64 aggregate counter added to TlsAnalyzer (alongside handshake_reassembly_overflows). Counter increments by 1 each time on_data's buffer-append discards bytes due to client_buf/server_buf MAX_BUF cap (increment condition: data.len() > remaining; covers both partial-drop where remaining>0 and full-drop where remaining==0; tls.rs:822-825). The pre-existing tail-drop was SILENT before this amendment — no counter, no finding, no parse_error increment. The counter makes it non-silent (F-EV-001 defense-in-depth); operators can distinguish 'no TLS data' from 'TCP-segment buffer saturated'. Counter is surfaced in summarize() detail map under key 'buffer_saturation_drops'. VP-040 registered as the verification property for this counter. Note: this is a DISTINCT counter from handshake_reassembly_overflows — different buffer layer (client_buf/server_buf TCP-segment layer vs. client_hs_carry/server_hs_carry handshake-carry layer), different overflow semantics."
+  - date: 2026-06-29
+    actor: architect
+    reason: "Adversary fix burst (F-4/C-1/C-2/F-2/F-3 resolutions): Consequences 'Minimal code surface' section corrected — 1 new counter → 2 new counters (handshake_reassembly_overflows + buffer_saturation_drops); resolves internal contradiction with Decision 1 which already specified 2 counters. Added: buffer_saturation_drops field description, TlsAnalyzer::new() 2 init lines, buffer_saturation_drop_count() accessor, summarize() detail insertion, on_data did_drop pattern with borrow-constraint rationale (C-1: increment after &mut state block closes). Increment condition corrected from 'to_copy < data.len()' to 'data.len() > remaining' (pinned resolution — covers full-drop where remaining==0 and to_copy is never computed). VP-040 BC-Traceability PC citations corrected: Sub-B→PC-1 negative, Sub-C→PC-5, Sub-D→PC-4, Sub-E→PC-3, BC-2.07.005→PC-6 (F-2/F-3). Sub-D assertion comment corrected from PC-2 to PC-4. Full-drop test (remaining==0) documented using fill_buf_for_testing seam (C-2)."
+  - date: 2026-06-29
+    actor: architect
+    reason: "F2 adversary implementability fix burst (C-3 propagation): Decision 1 struct comment corrected — 'to_copy < data.len() OR remaining == 0' → 'data.len() > remaining' (canonical increment condition; to_copy is undefined when remaining==0; this single condition covers both partial-drop and full-drop; matches VP-040 Property Statement and the already-correct Consequences section). Changelog entry for F2 scope-addition (line ~25) corrected in the same way — replaces the contradicting 'to_copy < data.len() OR remaining == 0' phrase with 'data.len() > remaining'. Resolves self-contradiction with the Adversary fix burst entry at line ~28 which already stated the corrected condition."
 subsystems_affected:
   - SS-07
 supersedes: null
@@ -125,7 +134,7 @@ new dependencies; (3) pure-core logic (deterministic, no I/O); (4) satisfies RFC
 
 ## Decision
 
-### Decision 1 — New Fields: TlsFlowState (2 carry bufs) and TlsAnalyzer (1 aggregate counter)
+### Decision 1 — New Fields: TlsFlowState (2 carry bufs) and TlsAnalyzer (2 aggregate counters)
 
 Add two new fields to `TlsFlowState`:
 
@@ -143,12 +152,19 @@ Both carry fields are automatically dropped when `on_flow_close` removes the
 `TlsFlowState` from the `flows: HashMap<FlowKey, TlsFlowState>` map (no explicit
 clear needed).
 
-Add one new aggregate counter to `TlsAnalyzer` (alongside the existing `truncated_records` counter):
+Add two new aggregate counters to `TlsAnalyzer` (alongside the existing `truncated_records` counter):
 
 ```rust
 pub struct TlsAnalyzer {
     // ... existing fields ...
     handshake_reassembly_overflows: u64,  // aggregate across ALL flows; mirrors truncated_records
+    buffer_saturation_drops: u64,         // F2 scope-addition: F-EV-001 defense-in-depth
+                                          // increments by 1 each time on_data tail-drops bytes
+                                          // because client_buf/server_buf is at MAX_BUF capacity
+                                          // increment condition: data.len() > remaining
+                                          // (covers partial-drop AND full-drop; remaining==0)
+                                          // NOT per-flow; NOT reset at on_flow_close
+                                          // surfaced in summarize() detail["buffer_saturation_drops"]
 }
 ```
 
@@ -157,12 +173,24 @@ It is an AGGREGATE counter: it accumulates across all flows and is NOT dropped w
 a flow is closed. This mirrors the existing `truncated_records` field which is also
 a `TlsAnalyzer`-level aggregate, NOT a per-flow `TlsFlowState` field.
 
-A public accessor is added following the existing `truncated_record_count()` /
+`buffer_saturation_drops` is initialized to `0` in `TlsAnalyzer::new()`. It is also
+an AGGREGATE counter that accumulates across all flows and is NOT reset on flow close.
+It covers the TCP-segment buffer layer (`client_buf`/`server_buf`) tail-drop — a
+DISTINCT layer from the handshake-carry layer (`client_hs_carry`/`server_hs_carry`)
+tracked by `handshake_reassembly_overflows`. The tail-drop at `tls.rs:822-825` was
+previously silent (no observable effect when MAX_BUF was saturated). This counter makes
+it non-silent — the F-EV-001 defense-in-depth realization for BC-2.07.043.
+
+Public accessors are added following the existing `truncated_record_count()` /
 `parse_error_count()` pattern:
 
 ```rust
 pub fn handshake_reassembly_overflow_count(&self) -> u64 {
     self.handshake_reassembly_overflows
+}
+
+pub fn buffer_saturation_drop_count(&self) -> u64 {
+    self.buffer_saturation_drops
 }
 ```
 
@@ -581,13 +609,29 @@ network endpoints, APIs, or external service calls are introduced.
 - **Minimal code surface.** The change is confined to `src/analyzer/tls.rs`:
   - `TlsFlowState` struct: 2 new fields (`client_hs_carry`, `server_hs_carry`)
   - `TlsFlowState::new()`: 2 initialization lines
-  - `TlsAnalyzer` struct: 1 new aggregate counter field (`handshake_reassembly_overflows`)
-  - `TlsAnalyzer::new()`: 1 initialization line; 1 new accessor `handshake_reassembly_overflow_count()`
+  - `TlsAnalyzer` struct: 2 new aggregate counter fields:
+    - `handshake_reassembly_overflows: u64` (Decision 1, F1 scope) — incremented when
+      a 0x16 record would overflow the handshake-carry buffer (`client_hs_carry` /
+      `server_hs_carry`); Decision 4 body_len guard and Decision 5 buffer-fill guard
+    - `buffer_saturation_drops: u64` (Decision 1, F2 scope-addition; F-EV-001 defense-
+      in-depth) — incremented by 1 each time `on_data`'s buffer-append discards bytes
+      because `client_buf` or `server_buf` is at MAX_BUF capacity (`data.len() >
+      remaining`; covers both partial-drop and full-drop); increment is AFTER the
+      `&mut state` block closes (borrow constraint — see VP-040 Feasibility Assessment)
+  - `TlsAnalyzer::new()`: 2 initialization lines (one per new counter field)
+  - 2 new accessors on `TlsAnalyzer`:
+    - `handshake_reassembly_overflow_count(&self) -> u64`
+    - `buffer_saturation_drop_count(&self) -> u64`
+  - `summarize()`: 1 new `detail.insert("buffer_saturation_drops", ...)` line
+    (mirrors the `"handshake_reassembly_overflows"` and `"truncated_records"` insertions
+    at `tls.rs:888-889`)
+  - `on_data`: 1 local `did_drop: bool` flag + 1 `if did_drop { ... }` increment
+    after the `&mut state` block (borrow-constrained placement; VP-040 C-1)
   - `try_parse_records`: 1 new code block (~30 lines) replacing the existing
     single-record 0x16 dispatch branch
   - `on_flow_close`: no change (HashMap remove already drops the TlsFlowState carry fields;
-    the analyzer-level aggregate counter is NOT touched at on_flow_close)
-  - 2 new test seams on TlsFlowState (carry length accessors)
+    neither analyzer-level aggregate counter is touched at on_flow_close)
+  - 2 new test seams on TlsFlowState (carry length accessors; ADR-011 Decision 8)
 
 ### Negative / Risks
 

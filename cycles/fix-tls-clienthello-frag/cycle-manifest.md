@@ -54,8 +54,8 @@ Maintenance sweeps PAUSED for duration of this cycle.
 | Phase | Status | Notes |
 |-------|--------|-------|
 | F1 — Delta Analysis | DONE | delta-analysis.md committed; architect completed |
-| F2 — Spec Evolution | **CONVERGED 2026-06-29 — AWAITING HUMAN GATE** | 5 new BCs (BC-2.07.038-042) + 2 amended + VP-039 (17 harnesses) + ADR-011; 12 fix bursts; 3+ clean adversary passes (consistency + implementer + completeness + holistic/attacker lenses). BC-INDEX v1.98, VP-INDEX v2.21, ARCH-INDEX v2.3, PRD v1.43. |
-| F3 — Incremental Stories | PENDING | Awaiting human F2 approval |
+| F2 — Spec Evolution | **CONVERGED + HUMAN-APPROVED 2026-06-29 (D-305, incl scope addition)** | 6 new BCs (BC-2.07.038-043) + 3 amended (BC-2.07.001 v1.9, BC-2.07.002 v1.6, BC-2.07.005 v1.7) + VP-039 (17 harnesses) + VP-040 (6 harnesses) + ADR-011. F-EV-001 defense-in-depth scope addition: BC-2.07.043 buffer_saturation_drops + BC-2.07.005 v1.7 reconciliation. BC-INDEX v2.1, VP-INDEX v2.25 (40 VPs), ARCH-INDEX v2.4, PRD v1.45. SS-07 43 BCs. |
+| F3 — Incremental Stories | **ACTIVE** | Story decomposition in progress |
 | F4 — TDD Delta Implementation | PENDING | |
 | F5 — Scoped Adversarial Review | PENDING | |
 | F6 — Targeted Hardening | PENDING | |
@@ -76,7 +76,7 @@ Maintenance sweeps PAUSED for duration of this cycle.
 
 ## Spec Changes
 
-*F2 delta (2026-06-29 — converged, awaiting human gate):*
+*F2 delta (2026-06-29 — converged, human-approved D-305, including scope addition):*
 
 | Artifact | Change | Version |
 |----------|--------|---------|
@@ -85,14 +85,17 @@ Maintenance sweeps PAUSED for duration of this cycle.
 | BC-2.07.040 | NEW — truncation-safety | v1.3 |
 | BC-2.07.041 | NEW — per-flow+per-direction isolation | v1.2 |
 | BC-2.07.042 | NEW — coalesced dispatch | v1.4 |
+| BC-2.07.043 | NEW (scope addition D-305) — buffer_saturation_drops aggregate counter; TlsAnalyzer u64; incremented on on_data tail-drop; hoisted after &mut state block (borrow constraint); surfaced in summarize(); no finding/no parse_errors; test seam fill_buf_for_testing | — |
 | BC-2.07.001 | AMENDED — scope expansion to fragmented-then-assembled | v1.9 |
 | BC-2.07.002 | AMENDED — scope expansion to fragmented-then-assembled | v1.6 |
+| BC-2.07.005 | AMENDED (scope addition D-305) — silent-truncation Inv-3 superseded; reconciled with BC-2.07.043 three-counter telemetry model | v1.7 |
 | VP-039 | NEW — proptest+unit; 17 harnesses (4 proptest + 13 unit) | — |
+| VP-040 | NEW (scope addition D-305) — buffer saturation observability; 6 harnesses | — |
 | ADR-011 | NEW — TLS handshake reassembly design decisions | — |
-| BC-INDEX | UPDATED | v1.98 |
-| VP-INDEX | UPDATED (39 VPs total) | v2.21 |
-| ARCH-INDEX | UPDATED | v2.3 |
-| PRD | UPDATED | v1.43 |
+| BC-INDEX | UPDATED (scope addition D-305; 337 on disk / 336 active) | v2.1 |
+| VP-INDEX | UPDATED (40 VPs total) | v2.25 |
+| ARCH-INDEX | UPDATED | v2.4 |
+| PRD | UPDATED | v1.45 |
 
 ## Tech Debt Created
 
