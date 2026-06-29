@@ -22,7 +22,7 @@ prior_released_at: "2026-06-24"
 # Ground-truth HEADs (verified 2026-06-29 via git rev-parse)
 main_head: 3072e8287b9f7e6621740b6e31f04ae57914d0b9
 develop_head: a2d8c13ff9e23f49d5ab93ab6453da4442658bcc
-factory_artifacts_head: d67eb274d9d5900b68a26180399d7b8aaccb6ce5
+factory_artifacts_head: c25f7e45e67044ab646146c24e1c495b05ab1160
 
 # Cargo.toml version on main and develop
 cargo_version_main: "0.11.0"
@@ -111,7 +111,7 @@ Should the corrected complete `[0.11.0]` CHANGELOG entry be fast-tracked onto `m
 | Develop HEAD | `a2d8c13` (full: `a2d8c13ff9e23f49d5ab93ab6453da4442658bcc`) |
 | Tag v0.11.0 | commit `3072e828`; tag object `c50d89e8` |
 | GitHub release | https://github.com/Zious11/wirerust/releases/tag/v0.11.0 (Latest, not draft) |
-| Factory artifacts HEAD | `d67eb274` |
+| Factory artifacts HEAD | `c25f7e4` |
 | Spec versions | BC-INDEX v1.88 / VP-INDEX v2.14 (38 VPs) / ARCH-INDEX v1.8 / PRD v1.36 |
 | Stories | 91 delivered / 96 total (STORY-INDEX v3.2) |
 
