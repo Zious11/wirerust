@@ -3,11 +3,11 @@ document_type: pipeline-state
 project: wirerust
 mode: feature
 phase: 7
-status: complete
-current_step: "IDLE — v0.11.0 released; awaiting human direction on v0.12.0 scope"
-pipeline: FEATURE-MODE
-current_cycle: feature-enip-v0.11.0
-timestamp: 2026-06-29T14:20:00Z
+status: in-progress
+current_step: "Feature cycle fix-tls-clienthello-frag — Phase F1 delta analysis"
+pipeline: FEATURE-CYCLE
+current_cycle: fix-tls-clienthello-frag
+timestamp: 2026-06-29T15:00:00Z
 
 # Release chain (latest)
 released_version: v0.11.0
@@ -68,26 +68,24 @@ maintenance_completed_at: "2026-06-23"
 
 ## EXACT RESUME POINT
 
-**PIPELINE IDLE — v0.11.0 RELEASED (D-300, 2026-06-29). Nothing in flight.**
+**ACTIVE FEATURE CYCLE: fix-tls-clienthello-frag — Phase F1 PENDING (D-303, 2026-06-29)**
 
-- v0.11.0 released: release PR #337 squash-merged → main `3072e828`. Annotated tag `v0.11.0` pushed. GitHub release published (marked Latest). develop synced via PR #338 → `ecbcd268`; then PRs #339+#340 (CHANGELOG corrections) landed → `ab0b388`.
-- Dependabot triage DONE (D-302, 2026-06-29): PR #325 (softprops/action-gh-release 3.0.1) squash-merged `a715437`; PR #311 (actions/checkout v7.0.0, major) squash-merged `a2d8c13`. develop now at `a2d8c13`. main unchanged at `3072e828`.
-- main + develop both carry Cargo.toml version `0.11.0`. All CI checks green.
-- crates.io publish: declined by human — not published.
-- Cycle `feature-enip-v0.11.0` CLOSED (D-300). All four EC-X1/EC-X2 fixes shipped: ENIP (STORY-139, PR #334), DNP3 EC-X1/X2 (STORY-140, PR #335), Modbus EC-X1/X2 (STORY-141, PR #336), DNP3 desync-latch (STORY-142, PR #336).
-- stories_delivered = 91. STORY-INDEX v3.2 (96 stories total; STORY-143 draft added for v0.12.0).
-- No open PRs requiring action. Two stale scratch worktrees on disk (`.worktrees/enip-edgecase-verify`, `.worktrees/enip-f6-hardening`) — safe to remove; no active work.
+- Active feature cycle `fix-tls-clienthello-frag` started; finding TLS-CLIENTHELLO-FRAG-001 validated (CONFIRMED, HIGH); version deferred to F7; full F1-F7 VSDD process selected by human; maintenance sweeps paused.
+- v0.11.0 released (D-300, 2026-06-29). main=`3072e828`, develop=`a2d8c13` (post-Dependabot triage D-302). crates.io not published.
+- Cycle `feature-enip-v0.11.0` CLOSED (D-300). stories_delivered=91. STORY-INDEX v3.2 (96 stories total; STORY-143 draft).
+- Two stale scratch worktrees on disk (`.worktrees/enip-edgecase-verify`, `.worktrees/enip-f6-hardening`) — safe to remove when convenient.
 
-**ONE OPEN HUMAN QUESTION (D-301):**
-Should the corrected complete `[0.11.0]` CHANGELOG entry be fast-tracked onto `main` now (via a docs-only PR), or left to ride to the next gitflow back-merge at v0.12.0 release time? The complete entry is on develop (`ab0b388`). main currently has the original short v0.11.0 entry. No functional impact either way. **Awaiting human answer — not yet received.**
+**OPEN HUMAN QUESTION (D-301, non-blocking):** Should the corrected `[0.11.0]` CHANGELOG entry be fast-tracked onto `main` now, or wait for the next gitflow back-merge? No functional impact either way. Awaiting answer.
 
 ## RESUME PROCEDURE (execute in order — BLOCKING)
 
 1. Run `vsdd-factory:factory-worktree-health` — PASS required before proceeding.
 2. Read `.factory/STATE.md` (this file).
 3. Verify: `git rev-parse origin/main` = `3072e8287b9f7e6621740b6e31f04ae57914d0b9`; `git rev-parse origin/develop` = `a2d8c13ff9e23f49d5ab93ab6453da4442658bcc`; `git tag -l v0.11.0` exists.
-4. Pipeline is IDLE. Re-surface the open human question (main CHANGELOG fast-track y/n) if unanswered.
-5. Next work: v0.12.0 planning — start with research-agent validation of TLS ClientHello fragmentation finding (CRIT candidate, see backlog below).
+4. Active cycle: `fix-tls-clienthello-frag`. Read `.factory/cycles/fix-tls-clienthello-frag/cycle-manifest.md` for scope + phase status.
+5. Maintenance sweeps PAUSED. Do not initiate maintenance work during this cycle.
+6. Next action: dispatch `vsdd-factory:phase-f1-delta-analysis` for finding TLS-CLIENTHELLO-FRAG-001.
+7. Non-blocking open question: main CHANGELOG fast-track (D-301) — re-surface if human asks.
 
 ## Locked design facts (do not re-derive on resume)
 
@@ -147,12 +145,11 @@ Should the corrected complete `[0.11.0]` CHANGELOG entry be fast-tracked onto `m
 
 | Step | Status | Notes |
 |------|--------|-------|
-| Wave-64 F7 converged | DONE (D-298) | BC-INDEX v1.88; VP-INDEX v2.14 |
-| Wave-64 PR #336 merged | DONE (D-299, 2026-06-28) | develop `a13b5c5`; stories_delivered=91 |
 | v0.11.0 release | DONE (D-300, 2026-06-29) | main `3072e828`; tag pushed; GitHub release Latest |
-| Post-release CHANGELOG corrections | DONE (D-301, 2026-06-29) | PR #339 + #340; develop `ab0b388` |
 | Dependabot triage #325 + #311 | DONE (D-302, 2026-06-29) | PR #325 `a715437`, PR #311 `a2d8c13`; develop `a2d8c13` |
-| Pipeline IDLE | **CURRENT** | Awaiting human direction on v0.12.0 scope |
+| TLS-CLIENTHELLO-FRAG-001 research validation | DONE (D-303, 2026-06-29) | CONFIRMED HIGH; DF-VALIDATION-001 SATISFIED |
+| Cycle fix-tls-clienthello-frag initialized | DONE (D-303, 2026-06-29) | cycle-manifest created; F1-F7 process; maintenance paused |
+| Phase F1 — Delta Analysis | **PENDING** | Next action |
 
 ---
 
@@ -171,6 +168,7 @@ D-228..D-301: `cycles/feature-enip-v0.11.0/decisions-archive.md`
 | D-300 | v0.11.0 RELEASED. PR #337 squash→main `3072e828`. Tag v0.11.0 pushed. GitHub release published (Latest). develop synced PR #338 `ecbcd268`. crates.io: not published (human declined). Cycle CLOSED. | 2026-06-29 |
 | D-301 | POST-RELEASE: v0.11.0 CHANGELOG corrected (PRs #339+#340; develop `ab0b388`). GitHub release notes updated (40 ENIP/MITRE markers confirmed). STORY-143 (draft, E-11) created. STORY-INDEX v3.2 (96 stories). main CHANGELOG will catch up on next gitflow back-merge. Open question: fast-track main CHANGELOG now vs wait — not yet answered. | 2026-06-29 |
 | D-302 | Dependabot triage: PRs #325 (softprops/action-gh-release 3.0.0→3.0.1, squash-merged 14:10:55Z, merge commit `a715437`) and #311 (actions/checkout 6.0.3→7.0.0 major, squash-merged 14:14:34Z, merge commit `a2d8c13`) merged to develop after 7-day soak verification per .github/dependabot.yml cooldown policy (#311: 11-day soak). CI 22/22 green on both. SHA-pinning preserved. No breaking impact (plain checkout usage, not fork pull_request_target pattern). develop now `a2d8c13`. Human-approved merge. | 2026-06-29 |
+| D-303 | Started Feature-Mode cycle `fix-tls-clienthello-frag` for TLS-CLIENTHELLO-FRAG-001 (validated CONFIRMED, severity HIGH). Human chose full F1-F7 VSDD process; release version deferred to F7 convergence (not v0.12.0 or v0.11.1 yet). Maintenance sweeps paused for cycle duration. develop at `a2d8c13`. | 2026-06-29 |
 
 ---
 
@@ -192,9 +190,11 @@ D-228..D-301: `cycles/feature-enip-v0.11.0/decisions-archive.md`
 
 ## Open Items / Backlog (v0.12.0 candidates — all DF-VALIDATION-001-gated)
 
+> **MAINTENANCE SWEEPS PAUSED** — cycle `fix-tls-clienthello-frag` in progress (D-303). Do not initiate new maintenance sweep runs until F7 gate.
+
 | ID | Summary | Priority | Status |
 |----|---------|----------|--------|
-| TLS-CLIENTHELLO-FRAG-001 | ClientHello fragmented across TLS records → SNI/JA3 evasion (tls.rs:763-792). No record reassembly. RECOMMENDED FIRST — validate via research-agent. | CRIT CANDIDATE | DF-VALIDATION-001-gated |
+| TLS-CLIENTHELLO-FRAG-001 | ClientHello fragmented across TLS records → SNI/JA3 evasion (tls.rs:763-792). No record reassembly. Severity revised CRIT-candidate → HIGH (validated). | HIGH | IN PROGRESS (cycle fix-tls-clienthello-frag) |
 | SEC-001 | Unsafe split-borrow in src/analyzer/enip.rs `on_data` — sound under invariant, but should refactor to modbus.rs owned-borrow pattern. Pre-existing PR #334. | MEDIUM | v0.12.0 candidate |
 | STORY-143 | Draft story (E-11, 3 pts): harden release-changelog to enumerate full `<prev-tag>..HEAD` PR range (policy DF-RELEASE-CHANGELOG-RANGE-001 candidate). | LOW | Draft — not yet scheduled |
 | EDGE-CASE-HUNT-2026-06-28 | ~30 candidates across all analyzers. Register: cycles/feature-enip-v0.11.0/EDGE-CASE-HUNT-REGISTER-2026-06-28.md. 4 CRIT, ~9 HIGH, MED/LOW. All DF-VALIDATION-001-gated. | MIXED | Candidates — validation-gated |
@@ -216,24 +216,20 @@ All GitHub-issue creation DF-VALIDATION-001-gated (policies.yaml).
 ## Session Resume Checkpoint
 
 **Date:** 2026-06-29
-**State:** IDLE post-v0.11.0 + Dependabot triage complete
+**State:** Feature cycle `fix-tls-clienthello-frag` initialized — Phase F1 pending
 
 ### What was done this session
-- v0.11.0 RELEASED (D-300): four EC-X1/EC-X2 fixes (ENIP/DNP3/Modbus/DNP3-desync) + ENIP analyzer epic.
-- Post-release CHANGELOG corrections (D-301): PRs #339+#340 applied complete [0.11.0] entry to develop.
-- GitHub release notes edited (40 ENIP/MITRE markers confirmed, still Latest).
-- STORY-143 (draft, E-11) created for release-changelog hardening.
-- decisions-archive.md extended D-228..D-301 (was D-228..D-266).
-- STATE.md compacted: historical "Do NOT re-X" block and verbose inline decisions (D-270..D-299) archived to cycles/feature-enip-v0.11.0/decisions-archive.md.
-- Dependabot triage (D-302): PRs #325 + #311 squash-merged; develop advanced to `a2d8c13`. main unchanged at `3072e828`.
+- v0.11.0 RELEASED (D-300) + post-release corrections (D-301) + Dependabot triage (D-302).
+- TLS-CLIENTHELLO-FRAG-001 research-validated CONFIRMED HIGH; DF-VALIDATION-001 SATISFIED.
+- Feature cycle `fix-tls-clienthello-frag` initialized (D-303): cycle-manifest created, STATE.md updated, factory-artifacts committed.
+- Human chose full F1-F7 VSDD process; version decision deferred to F7.
+- Maintenance sweeps PAUSED.
 
-### Open question requiring human response
-Should the corrected `[0.11.0]` CHANGELOG entry be fast-tracked onto `main` now via a docs-only PR, or left to ride to the next gitflow back-merge at v0.12.0 release time? (no functional impact either way)
+### Open question (non-blocking)
+Should the corrected `[0.11.0]` CHANGELOG entry be fast-tracked onto `main` now via a docs-only PR, or left to ride to the next gitflow back-merge? No functional impact either way.
 
-### Next candidate work
-1. Answer the open question above.
-2. Research-agent validation of TLS-CLIENTHELLO-FRAG-001 (CRIT candidate — recommended first for v0.12.0 scoping).
-3. v0.12.0 planning based on backlog + research-agent findings.
+### Next action
+Dispatch `vsdd-factory:phase-f1-delta-analysis` for finding TLS-CLIENTHELLO-FRAG-001.
 
 ---
 
