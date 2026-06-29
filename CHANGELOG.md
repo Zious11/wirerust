@@ -12,7 +12,7 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
 ### Added
 
 - **EtherNet/IP (ENIP) + CIP protocol analyzer** — the headline feature of this release
-  (Feature #316, STORY-130..139, PRs #316–#334, ADR-010). wirerust now analyzes TCP/44818
+  (Feature #316, STORY-130..139, PRs #317–#334, ADR-010). wirerust now analyzes TCP/44818
   flows using the ODVA EtherNet/IP + Common Industrial Protocol (CIP) stack. The analyzer
   is enabled with `--enip` (also covered by `--all`) and requires stream reassembly.
 
@@ -33,7 +33,7 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
     [STORY-132, PR #319, BC-2.17.005/006/007/009]
   - Dispatched as Rule 7 in the `StreamDispatcher` — port-44818 fallback after the
     existing TLS, HTTP, Modbus (port 502), and DNP3 (port 20000) rules. Content-signature
-    rules (TLS record, HTTP prefix) take priority. [STORY-131, PR #316, ADR-010 Decision 1]
+    rules (TLS record, HTTP prefix) take priority. [STORY-131, PR #318, ADR-010 Decision 1]
   - Per-flow state (`EnipFlowState`) with a 600-byte per-direction carry buffer
     (`carry_c2s` / `carry_s2c`), frame-walk loop, and session summary folded at
     capture end. [STORY-136/137/138, PRs #326–#329, BC-2.17.016/017/021]
@@ -55,16 +55,16 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
   - **T0888 Remote System Information Discovery** — two detection patterns:
     Pattern A: CIP GetAttribute{All,List,Single} request targeting Identity Object
     (Class 0x01) in the request path; Pattern B: CIP error-response burst exceeding
-    `--enip-error-burst-threshold` within a 10-second window. [STORY-134/135, PRs #323/#325,
+    `--enip-error-burst-threshold` within a 10-second window. [STORY-134/135, PRs #323/#324,
     BC-2.17.014]
   - **T0858 Change Operating Mode** — emitted per CIP Stop service (service code 0x07)
-    request, indicating a controller run-to-stop transition command. [STORY-135, PR #325,
+    request, indicating a controller run-to-stop transition command. [STORY-135, PR #324,
     BC-2.17.011]
   - **T0816 Device Restart/Shutdown** — emitted per CIP Reset service (service code 0x05)
-    request. [STORY-135, PR #325, BC-2.17.013]
+    request. [STORY-135, PR #324, BC-2.17.013]
   - **T0836 Modify Parameter** — emitted when CIP write-class services (SetAttributesAll
     0x02, SetAttributeList 0x04, SetAttributeSingle 0x10) exceed
-    `--enip-write-burst-threshold` within a 1-second window per flow. [STORY-135, PR #325,
+    `--enip-write-burst-threshold` within a 1-second window per flow. [STORY-135, PR #324,
     BC-2.17.012]
   - **T0814 Denial of Service** — malformed-frame anomaly; fires when 3 or more
     structurally invalid ENIP frames accumulate in a 300-second window per flow. Shared
@@ -105,7 +105,7 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
   doc-comment or changelog entry uses aspirational tense markers ("will", "planned",
   "future") in contexts that assert current behavior. The gate includes a self-test
   (`bin/test_check_green_doc_tense.py`) that verifies 10 known-bad and 14 known-good
-  patterns. [b9b2e93]
+  patterns. [PR #321, b9b2e93]
 
 ### Fixed
 
