@@ -98,6 +98,26 @@ const EXPECTED: &[(&str, Expected)] = &[
     ("pcapng-dhcp-little-endian.pcapng", Expected::OkCount(4)),
     ("ppa-arp.pcap", Expected::OkCount(2)),
     ("rsasnakeoil2.pcap", Expected::OkCount(58)),
+    // ── EtherNet/IP captures (WAVE59-E2E-001) ─────────────────────────────
+    // Packet counts are reader-level (PcapSource::from_file) — more than the
+    // ENIP PDU counts in enip_summary because every TCP handshake/ACK/etc. is
+    // included. Ground-truth from first verified run; regression guards.
+    //
+    // enip_test.pcap (ITI CC-BY-4.0): 2 ENIP PDUs, 11 TCP packets total.
+    ("enip_test.pcap", Expected::OkCount(11)),
+    // enip_enum_attr_PLC.pcapng (scy-phy MIT): 406 ENIP PDUs; 624 total packets.
+    ("enip_enum_attr_PLC.pcapng", Expected::OkCount(624)),
+    // enip_connect_to_plc1_and_upload.pcapng (scy-phy MIT): 4094 PDUs; 23795 total.
+    (
+        "enip_connect_to_plc1_and_upload.pcapng",
+        Expected::OkCount(23795),
+    ),
+    // enip_read_tags.pcapng (scy-phy MIT): 8 ENIP PDUs; 26 total packets.
+    ("enip_read_tags.pcapng", Expected::OkCount(26)),
+    // enip_metasploit.pcapng (scy-phy MIT): 13 ENIP PDUs; 1784 total packets.
+    ("enip_metasploit.pcapng", Expected::OkCount(1784)),
+    // EthernetIP-CIP.pcap (ITI CC-BY-4.0): 8799 ENIP PDUs; 10880 total packets.
+    ("EthernetIP-CIP.pcap", Expected::OkCount(10880)),
     // ── Err captures (stable error substring) ─────────────────────────────
     // E-INP-011: multi-IDB link-type conflict (message ends with "(E-INP-011)")
     ("pcapng-example.pcapng", Expected::ErrContains("E-INP-011")),

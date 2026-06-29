@@ -1,8 +1,8 @@
-//! Failing tests for STORY-106: DNP3 DL/Transport Parse + FC Classify — Pure Core.
+//! Tests for STORY-106: DNP3 DL/Transport Parse + FC Classify — Pure Core.
 //!
 //! Covers BC-2.15.001 through BC-2.15.009 and edge cases EC-001..EC-010.
-//! All tests MUST FAIL (todo!() panic) before implementation — Red Gate per the
-//! strict-TDD contract (STORY-106, tdd_mode: strict).
+//! Originated as Red Gate stubs (todo!() panics) per the strict-TDD contract
+//! (STORY-106, tdd_mode: strict). All tests now GREEN.
 //!
 //! ## Test naming convention
 //! Tests follow `test_BC_S_SS_NNN_xxx()` for BC-traceable tests and
@@ -27,6 +27,7 @@ mod story_106 {
         transport_is_fir,
     };
     use wirerust::reassembly::flow::FlowKey;
+    use wirerust::reassembly::handler::Direction;
 
     // ---------------------------------------------------------------------------
     // Helper: build a minimal valid 10-byte DNP3 DL header slice.
@@ -881,7 +882,7 @@ mod story_106 {
 
         let mut analyzer = Dnp3Analyzer::new(10);
         let key = test_flow_key();
-        analyzer.on_data(key.clone(), &frame_fir1, 0);
+        analyzer.on_data(key.clone(), &frame_fir1, 0, Direction::ClientToServer);
 
         let flow = analyzer
             .flows
@@ -918,7 +919,7 @@ mod story_106 {
 
         let mut analyzer2 = Dnp3Analyzer::new(10);
         let key2 = test_flow_key();
-        analyzer2.on_data(key2.clone(), &frame_fir0, 0);
+        analyzer2.on_data(key2.clone(), &frame_fir0, 0, Direction::ClientToServer);
 
         let flow2 = analyzer2
             .flows
@@ -961,7 +962,7 @@ mod story_106 {
             0xFF, 0xFE, 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B,
             0x0C, 0x0D,
         ];
-        analyzer.on_data(key.clone(), &non_dnp3, 0);
+        analyzer.on_data(key.clone(), &non_dnp3, 0, Direction::ClientToServer);
 
         // After delivering non-DNP3 data, is_non_dnp3 must be set to true.
         let flow = analyzer
@@ -974,11 +975,11 @@ mod story_106 {
         );
 
         // Step 2: deliver a second segment — this must be a no-op.
-        let carry_before = flow.carry.len();
+        let carry_before = flow.carry_c2s.len();
         let _carry_before = carry_before; // Suppress unused warning; we recheck after.
 
         let second_segment: [u8; 10] = [0x05, 0x64, 0x0E, 0xC4, 0x03, 0x00, 0x01, 0x00, 0x88, 0xC5];
-        analyzer.on_data(key.clone(), &second_segment, 1);
+        analyzer.on_data(key.clone(), &second_segment, 1, Direction::ClientToServer);
 
         // After second on_data on a bailed flow:
         // - is_non_dnp3 must still be true (one-way latch).
@@ -993,7 +994,7 @@ mod story_106 {
         );
         // The carry buffer must not grow on bailed flows.
         assert_eq!(
-            flow_after.carry.len(),
+            flow_after.carry_c2s.len(),
             0,
             "carry buffer must not grow on bailed flow (no-op path)"
         );
@@ -1011,7 +1012,7 @@ mod story_106 {
 
         // Valid DNP3 sync at offset 0.
         let valid_frame: [u8; 10] = [0x05, 0x64, 0x0E, 0xC4, 0x03, 0x00, 0x01, 0x00, 0x88, 0xC5];
-        analyzer.on_data(key.clone(), &valid_frame, 0);
+        analyzer.on_data(key.clone(), &valid_frame, 0, Direction::ClientToServer);
 
         // is_non_dnp3 must stay false for a valid DNP3 flow.
         let flow = analyzer
@@ -1039,7 +1040,7 @@ mod story_106 {
             0xAB, 0xCD, 0x05, 0x64, 0x0E, 0xC4, 0x03, 0x00, 0x01, 0x00, 0x88, 0xC5, 0x00, 0x00,
             0x00, 0x00,
         ];
-        analyzer.on_data(key.clone(), &misaligned, 0);
+        analyzer.on_data(key.clone(), &misaligned, 0, Direction::ClientToServer);
 
         // Valid sync at offset 2 must still trigger bail (v1 only checks offset 0).
         let flow = analyzer
@@ -1068,7 +1069,7 @@ mod story_106 {
             "Dnp3FlowState must default to is_non_dnp3=false"
         );
         assert!(
-            state.carry.is_empty(),
+            state.carry_c2s.is_empty(),
             "carry buffer must be empty on default"
         );
     }
@@ -1179,7 +1180,7 @@ mod story_106 {
 
         let mut analyzer = Dnp3Analyzer::new(10);
         let key = test_flow_key();
-        analyzer.on_data(key.clone(), &frame, 0);
+        analyzer.on_data(key.clone(), &frame, 0, Direction::ClientToServer);
 
         let flow = analyzer
             .flows

@@ -1906,7 +1906,7 @@ fn test_BC_2_04_053_ec010_direction_none_initiator_returns_server_to_client() {
 // EC-004 (STORY-019)             — FIN on New flow state path
 // EC-005 (STORY-019)             — FIN + data ordering at flow level
 //
-// PART A: stub-only bodies — panic!("STORY-019 stub — Red Gate").
+// Originally written as Red Gate stubs (STORY-019); all assertions now GREEN.
 // ---------------------------------------------------------------------------
 
 /// AC-005 flow-level (BC-2.04.011 invariant 1)

@@ -79,6 +79,10 @@ pub enum MitreTactic {
     /// Distinct from Enterprise CommandAndControl (TA0011). Added in F5 to emit
     /// the authoritative ICS-matrix TA-id.
     IcsCommandAndControl,
+    /// ICS Execution tactic (TA0104) — T0858 "Change Operating Mode" and similar
+    /// execution-category findings. Distinct from Enterprise Execution (TA0002).
+    /// Added atomically with T0858 seeding (STORY-133, VP-007 obligation).
+    IcsExecution,
 }
 
 impl fmt::Display for MitreTactic {
@@ -104,8 +108,39 @@ impl fmt::Display for MitreTactic {
             MitreTactic::IcsDiscovery => "Discovery (ICS)",
             MitreTactic::IcsCollection => "Collection (ICS)",
             MitreTactic::IcsCommandAndControl => "Command and Control (ICS)",
+            MitreTactic::IcsExecution => "Execution (ICS)",
         };
         f.write_str(name)
+    }
+}
+
+impl MitreTactic {
+    /// Returns the canonical MITRE ATT&CK tactic TA-prefix ID string for this tactic
+    /// (e.g., `IcsExecution` → `"TA0104"`). Used in tests via AC-133-004 / VP-007 Step 5.
+    pub fn tactic_id(&self) -> &'static str {
+        match self {
+            MitreTactic::Reconnaissance => "TA0043",
+            MitreTactic::ResourceDevelopment => "TA0042",
+            MitreTactic::InitialAccess => "TA0001",
+            MitreTactic::Execution => "TA0002",
+            MitreTactic::Persistence => "TA0003",
+            MitreTactic::PrivilegeEscalation => "TA0004",
+            MitreTactic::DefenseEvasion => "TA0005",
+            MitreTactic::CredentialAccess => "TA0006",
+            MitreTactic::Discovery => "TA0007",
+            MitreTactic::LateralMovement => "TA0008",
+            MitreTactic::Collection => "TA0009",
+            MitreTactic::CommandAndControl => "TA0011",
+            MitreTactic::Exfiltration => "TA0010",
+            MitreTactic::Impact => "TA0040",
+            MitreTactic::IcsInhibitResponseFunction => "TA0107",
+            MitreTactic::IcsImpairProcessControl => "TA0106",
+            MitreTactic::IcsImpact => "TA0105",
+            MitreTactic::IcsDiscovery => "TA0102",
+            MitreTactic::IcsCollection => "TA0100",
+            MitreTactic::IcsCommandAndControl => "TA0101",
+            MitreTactic::IcsExecution => "TA0104",
+        }
     }
 }
 
@@ -134,6 +169,7 @@ pub fn all_tactics_in_report_order() -> &'static [MitreTactic] {
         MitreTactic::IcsDiscovery,
         MitreTactic::IcsCollection,
         MitreTactic::IcsCommandAndControl,
+        MitreTactic::IcsExecution,
     ]
 }
 
@@ -199,6 +235,17 @@ pub fn technique_info(id: &str) -> Option<(&'static str, MitreTactic)> {
             "Adversary-in-the-Middle: ARP Cache Poisoning",
             MitreTactic::CredentialAccess,
         ),
+        // STORY-133 / VP-007 atomic obligation — seeded together with T0858, T0816, T1693.001
+        // EMITTED entries (T0858/T0816/T0846) and SEEDED array additions (Steps 2–4).
+        "T0858" => ("Change Operating Mode", MitreTactic::IcsExecution),
+        "T0816" => (
+            "Device Restart/Shutdown",
+            MitreTactic::IcsInhibitResponseFunction,
+        ),
+        "T1693.001" => (
+            "Modify Firmware: System Firmware",
+            MitreTactic::IcsInhibitResponseFunction,
+        ),
         _ => return None,
     };
     Some(info)
@@ -253,6 +300,7 @@ pub fn technique_tactic_id(id: &str) -> Option<&'static str> {
         MitreTactic::IcsDiscovery => "TA0102",
         MitreTactic::IcsCollection => "TA0100",
         MitreTactic::IcsCommandAndControl => "TA0101",
+        MitreTactic::IcsExecution => "TA0104",
     };
     Some(ta_id)
 }
@@ -265,7 +313,7 @@ pub fn technique_tactic_id(id: &str) -> Option<&'static str> {
 // resolves in `technique_info` (both name and tactic Some).
 // Corollary (BC-2.10.006): unknown IDs return None without panicking.
 //
-// The catalogue is a closed-world static match; the seeded set is finite (25)
+// The catalogue is a closed-world static match; the seeded set is finite (28)
 // so the harness enumerates it exhaustively — fully sound, no abstraction.
 //
 // To audit the emitted IDs: `grep -rn 'mitre_techniques: vec!' src/`
@@ -273,14 +321,15 @@ pub fn technique_tactic_id(id: &str) -> Option<&'static str> {
 mod kani_proofs {
     use super::*;
 
-    /// All 25 seeded IDs (mirrors `technique_info`, this file). If `technique_info`
+    /// All 28 seeded IDs (mirrors `technique_info`, this file). If `technique_info`
     /// gains/loses an entry, the completeness proof here will diverge from the
     /// table and must be updated in lockstep with the VP.
     const SEEDED_IDS: &[&str] = super::SEEDED_TECHNIQUE_IDS;
 
     /// IDs actually emitted by analyzers today (`grep -rn 'mitre_techniques: vec!' src/`).
-    /// 6 Enterprise + 7 ICS + 2 STORY-109 + 2 ARP (STORY-114) = 17 emitted IDs (BC-2.10.008 postcondition 1).
-    /// T0846 is seeded but NOT emitted; T0888 IS emitted (Modbus recon).
+    /// 6 Enterprise + 7 ICS + 2 STORY-109 + 2 ARP (STORY-114) + 3 ENIP (STORY-133) = 20 emitted IDs
+    /// (BC-2.10.008 postcondition 1). T0846 promoted from seeded-only to emitted (STORY-133, Step 4).
+    /// T0888 IS emitted (Modbus recon). T1693.001 is seeded-only (staged for v0.12.0).
     /// Sub-property B's emitter half: each must resolve in the catalogue.
     const EMITTED_IDS: &[&str] = &[
         // Enterprise (6)
@@ -304,11 +353,15 @@ mod kani_proofs {
         // STORY-114 (2) — VP-007 atomic obligation; ARP D1/D12/GARP-conflict spoof detection.
         "T0830",     // Adversary-in-the-Middle (BC-2.16.004; IcsCollection/TA0100)
         "T1557.002", // ARP Cache Poisoning (BC-2.16.004; CredentialAccess)
+        // STORY-133 (3) — VP-007 ENIP atomic obligation; T1693.001 NOT here (staged-only).
+        "T0858", // Change Operating Mode (BC-2.17.011; IcsExecution/TA0104)
+        "T0816", // Device Restart/Shutdown (BC-2.17.013; IcsInhibitResponseFunction/TA0107)
+        "T0846", // Remote System Discovery (BC-2.17.010; IcsDiscovery/TA0102; promoted from seeded-only)
     ];
 
     /// Sub-property A: format invariant `T[0-9]{4}` or `T[0-9]{4}.[0-9]{3}`.
     ///
-    /// BOUND/SOUNDNESS: the seeded set is a finite closed enumeration (25 IDs);
+    /// BOUND/SOUNDNESS: the seeded set is a finite closed enumeration (28 IDs);
     /// the harness checks every one against the regex-equivalent byte predicate.
     /// No symbolic input is needed — the property is universal over a fixed set,
     /// so enumeration is exhaustive and sound.
@@ -343,7 +396,7 @@ mod kani_proofs {
     /// projections and never panics.
     ///
     /// BOUND/SOUNDNESS: `technique_info` is a closed match whose only catch-all
-    /// arm is `_ => None`; any string outside the 25 seeded literals takes it.
+    /// arm is `_ => None`; any string outside the 28 seeded literals takes it.
     /// A single representative unknown ID ("T9999") exercises that arm. "T9999"
     /// is deliberately a VALIDLY-FORMATTED (`T[0-9]{4}`) but UNREGISTERED ID, so
     /// this proves the "unknown" branch — not merely a malformed-string reject.
@@ -370,6 +423,8 @@ mod kani_proofs {
 /// STORY-109 (VP-007 atomic obligation) +2 ICS (T1691.001, T0827) = 23 total.
 /// STORY-114 (VP-007 ARP obligation) +2 ARP (T0830 ICS IcsCollection/TA0100, T1557.002 Enterprise CredentialAccess)
 ///   = 25 total (12 Enterprise + 13 ICS; normative split per VP-007 §CC-003).
+/// STORY-133 (VP-007 ENIP obligation) +3 ENIP (T0858 IcsExecution/TA0104, T0816 IcsInhibitResponseFunction/TA0107,
+///   T1693.001 staged IcsInhibitResponseFunction/TA0107) = 28 total.
 /// ICS v19 remap (issue #222): T0855→T1692.001, T0856→T1692.002.
 #[cfg(any(kani, test))]
 const SEEDED_TECHNIQUE_IDS: &[&str] = &[
@@ -403,15 +458,20 @@ const SEEDED_TECHNIQUE_IDS: &[&str] = &[
     // ARP STORY-114 (2) — VP-007 atomic obligation
     "T0830",
     "T1557.002",
+    // ENIP STORY-133 (3) — VP-007 atomic obligation
+    "T0858",
+    "T0816",
+    "T1693.001",
 ];
 
 /// Expected number of Some-returning arms in [`technique_info`]. Declared
 /// separately from `SEEDED_TECHNIQUE_IDS.len()` so the drift guard catches BOTH
 /// directions of accidental edit: bumping this without adding an ID (or vice
 /// versa) fails the test. Must equal the count of `=> (...)` arms in
-/// `technique_info` (currently 25: 21 post-F2/STORY-100 + 2 STORY-109 + 2 ARP/STORY-114 additions).
+/// `technique_info` (currently 28: 21 post-F2/STORY-100 + 2 STORY-109 + 2 ARP/STORY-114
+/// + 3 ENIP/STORY-133 additions).
 #[cfg(any(kani, test))]
-const SEEDED_TECHNIQUE_ID_COUNT: usize = 25;
+const SEEDED_TECHNIQUE_ID_COUNT: usize = 28;
 
 /// Validates MITRE technique-ID format: `T[0-9]{4}` (parent) or
 /// `T[0-9]{4}.[0-9]{3}` (sub-technique). Used by the VP-007 format proof; gated
@@ -472,7 +532,7 @@ mod vp007_format_tests {
     /// `SEEDED_TECHNIQUE_IDS` now makes the derived resolved-count exceed
     /// `SEEDED_TECHNIQUE_IDS.len()`, failing this test. Removing/renaming an arm
     /// makes it fall short. The test thus enforces FORWARD completeness, not just
-    /// that the 15 known IDs still resolve.
+    /// that the known seeded IDs still resolve.
     ///
     /// Retains the shrinkage / duplicate / malformed / resolve checks on the
     /// seeded list, plus the documented-count cross-check and the `T9999` canary.

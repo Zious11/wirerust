@@ -30,6 +30,7 @@ mod story_107 {
 
     use wirerust::analyzer::dnp3::{Dnp3Analyzer, MAX_MASTER_ADDRS, MAX_PENDING_REQUESTS};
     use wirerust::reassembly::flow::FlowKey;
+    use wirerust::reassembly::handler::Direction;
 
     // ---------------------------------------------------------------------------
     // Helpers
@@ -104,7 +105,7 @@ mod story_107 {
     /// AC-001: Deliver 290-byte carry + 5-byte segment → parse_errors=1 (overflow fired);
     /// carry cleared to 0 by byte-walk-forward resync (no sync word in junk carry).
     ///
-    /// Pre-state: flow.carry has 290 bytes of 0xAA filler (no valid sync word).
+    /// Pre-state: flow.carry_c2s has 290 bytes of 0xAA filler (no valid sync word).
     /// Action: on_data delivers 5 more bytes (only 2 fit before 292-cap; 3 discarded).
     /// Expected: parse_errors == 1 (overflow arm fires exactly once, proving the 292-cap);
     ///           carry.len() == 0 (byte-walk-forward resync found no [0x05,0x64] in junk
@@ -123,18 +124,22 @@ mod story_107 {
         // then directly mutate carry to set the pre-condition (290 bytes).
         //
         // Deliver a valid-sync 2-byte segment to create the flow state.
-        analyzer.on_data(key.clone(), &[0x05, 0x64], 0);
+        analyzer.on_data(key.clone(), &[0x05, 0x64], 0, Direction::ClientToServer);
         {
             let flow = analyzer.flows.get_mut(&key).expect("flow must exist");
             // Reset carry and fill with 290 bytes of filler.
-            flow.carry.clear();
-            flow.carry.extend(std::iter::repeat_n(0xAA, 290));
-            assert_eq!(flow.carry.len(), 290, "pre-condition: carry must be 290");
+            flow.carry_c2s.clear();
+            flow.carry_c2s.extend(std::iter::repeat_n(0xAA, 290));
+            assert_eq!(
+                flow.carry_c2s.len(),
+                290,
+                "pre-condition: carry must be 290"
+            );
         }
 
         // Deliver 5 new bytes.  Carry is 290, capacity is 292 → 2 fit, 3 discarded.
         let segment = [0xBBu8; 5];
-        analyzer.on_data(key.clone(), &segment, 1);
+        analyzer.on_data(key.clone(), &segment, 1, Direction::ClientToServer);
 
         let flow = analyzer
             .flows
@@ -158,7 +163,7 @@ mod story_107 {
         // STORY-109 behavior: byte-walk resync clears unrecoverable junk carry;
         // the 292-cap is proven by parse_errors==1 (overflow arm only fires when carry+new > 292).
         assert_eq!(
-            flow.carry.len(),
+            flow.carry_c2s.len(),
             0,
             "carry must be 0 after byte-walk-forward resync found no sync in junk carry \
              (STORY-109 behavior; overflow was already counted via parse_errors)"
@@ -203,7 +208,7 @@ mod story_107 {
         );
 
         // Deliver all 21 bytes in a single on_data call.
-        analyzer.on_data(key.clone(), &twenty_one_bytes, 0);
+        analyzer.on_data(key.clone(), &twenty_one_bytes, 0, Direction::ClientToServer);
 
         let flow = analyzer
             .flows
@@ -211,7 +216,7 @@ mod story_107 {
             .expect("flow must exist after on_data");
 
         assert_eq!(
-            flow.carry.len(),
+            flow.carry_c2s.len(),
             11,
             "carry must have 11 bytes remaining after consuming the 10-byte first frame"
         );
@@ -240,7 +245,7 @@ mod story_107 {
         // Deliver 64 master frames each with a unique source address 1..=64.
         for src_addr in 1u16..=(MAX_MASTER_ADDRS as u16) {
             let frame = build_master_frame(0x0003, src_addr);
-            analyzer.on_data(base_key.clone(), &frame, 0);
+            analyzer.on_data(base_key.clone(), &frame, 0, Direction::ClientToServer);
         }
 
         {
@@ -254,7 +259,7 @@ mod story_107 {
 
         // Deliver a 65th master frame with a new unique source address (65).
         let frame_65 = build_master_frame(0x0003, 65u16);
-        analyzer.on_data(base_key.clone(), &frame_65, 0);
+        analyzer.on_data(base_key.clone(), &frame_65, 0, Direction::ClientToServer);
 
         let flow = analyzer
             .flows
@@ -293,7 +298,7 @@ mod story_107 {
         assert_eq!(thirty_bytes.len(), 30, "3 × 10-byte frames = 30 bytes");
 
         // Deliver all 30 bytes in one call.
-        analyzer.on_data(key.clone(), &thirty_bytes, 0);
+        analyzer.on_data(key.clone(), &thirty_bytes, 0, Direction::ClientToServer);
 
         let flow = analyzer
             .flows
@@ -335,7 +340,7 @@ mod story_107 {
 
         // Create the flow entry.
         let seed_frame = build_frame(5, 0x0003, 0x0001, 0xC4);
-        analyzer.on_data(key.clone(), &seed_frame, 0);
+        analyzer.on_data(key.clone(), &seed_frame, 0, Direction::ClientToServer);
 
         // Pre-populate pending_requests with 256 entries.
         // Entry (0u16, 0u8) → ts=290 is the oldest and must be evicted by the 256-cap.
@@ -391,7 +396,7 @@ mod story_107 {
         ctrl_frame[11] = 0xC0; // app_ctrl: app_seq = 0xC0 & 0x0F = 0
         ctrl_frame[12] = 0x03; // app FC = SELECT (Control-class)
         // bytes 13-14: data-block CRC placeholder (0x00)
-        analyzer.on_data(key.clone(), &ctrl_frame, 300);
+        analyzer.on_data(key.clone(), &ctrl_frame, 300, Direction::ClientToServer);
 
         let flow = analyzer
             .flows
@@ -453,7 +458,7 @@ mod story_107 {
         let key = test_flow_key();
 
         // Create the flow entry.
-        analyzer.on_data(key.clone(), &[0x05, 0x64], 0);
+        analyzer.on_data(key.clone(), &[0x05, 0x64], 0, Direction::ClientToServer);
 
         // Pre-load carry with exactly one 10-byte minimum frame (LENGTH=5).
         let min_frame = build_frame(5, 0x0003, 0x0001, 0xC4);
@@ -464,10 +469,10 @@ mod story_107 {
         );
         {
             let flow = analyzer.flows.get_mut(&key).expect("flow must exist");
-            flow.carry.clear();
-            flow.carry.extend_from_slice(&min_frame);
+            flow.carry_c2s.clear();
+            flow.carry_c2s.extend_from_slice(&min_frame);
             assert_eq!(
-                flow.carry.len(),
+                flow.carry_c2s.len(),
                 10,
                 "pre-condition: carry must be 10 bytes"
             );
@@ -481,7 +486,7 @@ mod story_107 {
         //
         // The extra byte is a valid sync start byte (0x05) — it will stay in carry
         // as the beginning of the next (as-yet-incomplete) frame.
-        analyzer.on_data(key.clone(), &[0x05], 1);
+        analyzer.on_data(key.clone(), &[0x05], 1, Direction::ClientToServer);
 
         let flow = analyzer
             .flows
@@ -489,7 +494,7 @@ mod story_107 {
             .expect("flow must exist after on_data");
 
         assert_eq!(
-            flow.carry.len(),
+            flow.carry_c2s.len(),
             1,
             "carry must have 1 byte remaining after draining the 10-byte minimum frame"
         );
@@ -518,14 +523,14 @@ mod story_107 {
         let min_frame = build_frame(5, 0x0003, 0x0001, 0xC4);
         let partial = &min_frame[..7];
 
-        analyzer.on_data(key.clone(), partial, 0);
+        analyzer.on_data(key.clone(), partial, 0, Direction::ClientToServer);
 
         let flow = analyzer
             .flows
             .get(&key)
             .expect("flow must exist after on_data");
         assert_eq!(
-            flow.carry.len(),
+            flow.carry_c2s.len(),
             7,
             "carry must hold the 7 partial bytes with no frame consumed yet"
         );
@@ -561,14 +566,14 @@ mod story_107 {
             "two 10-byte frames = 20 bytes total"
         );
 
-        analyzer.on_data(key.clone(), &twenty_bytes, 0);
+        analyzer.on_data(key.clone(), &twenty_bytes, 0, Direction::ClientToServer);
 
         let flow = analyzer
             .flows
             .get(&key)
             .expect("flow must exist after on_data");
         assert_eq!(
-            flow.carry.len(),
+            flow.carry_c2s.len(),
             0,
             "carry must be empty after both complete frames are consumed"
         );
@@ -594,16 +599,20 @@ mod story_107 {
         let key = test_flow_key();
 
         // Create flow entry then pre-load carry to 291 bytes.
-        analyzer.on_data(key.clone(), &[0x05, 0x64], 0);
+        analyzer.on_data(key.clone(), &[0x05, 0x64], 0, Direction::ClientToServer);
         {
             let flow = analyzer.flows.get_mut(&key).expect("flow must exist");
-            flow.carry.clear();
-            flow.carry.extend(std::iter::repeat_n(0xAA, 291));
-            assert_eq!(flow.carry.len(), 291, "pre-condition: carry must be 291");
+            flow.carry_c2s.clear();
+            flow.carry_c2s.extend(std::iter::repeat_n(0xAA, 291));
+            assert_eq!(
+                flow.carry_c2s.len(),
+                291,
+                "pre-condition: carry must be 291"
+            );
         }
 
         // Deliver 2 bytes.  Only 1 fits (292 - 291 = 1); the second is discarded.
-        analyzer.on_data(key.clone(), &[0xBB, 0xCC], 1);
+        analyzer.on_data(key.clone(), &[0xBB, 0xCC], 1, Direction::ClientToServer);
 
         let flow = analyzer
             .flows
@@ -622,7 +631,7 @@ mod story_107 {
         // After overflow, frame-walk ran: no [0x05,0x64] sync found in 292 bytes of 0xAA
         // → carry cleared by byte-walk-forward resync (STORY-109 behavior).
         assert_eq!(
-            flow.carry.len(),
+            flow.carry_c2s.len(),
             0,
             "carry must be 0: byte-walk-forward resync found no sync in junk carry after overflow"
         );
@@ -649,7 +658,7 @@ mod story_107 {
             0xFF, 0xFE, 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B,
             0x0C, 0x0D,
         ];
-        analyzer.on_data(key.clone(), &non_dnp3, 0);
+        analyzer.on_data(key.clone(), &non_dnp3, 0, Direction::ClientToServer);
 
         {
             let flow = analyzer
@@ -661,7 +670,7 @@ mod story_107 {
 
         // Now deliver valid-looking DNP3 bytes to a bailed flow — must be no-op.
         let valid_frame = build_frame(5, 0x0003, 0x0001, 0xC4);
-        analyzer.on_data(key.clone(), &valid_frame, 1);
+        analyzer.on_data(key.clone(), &valid_frame, 1, Direction::ClientToServer);
 
         let flow = analyzer.flows.get(&key).expect("flow must still exist");
         assert!(
@@ -669,7 +678,7 @@ mod story_107 {
             "is_non_dnp3 must remain true — one-way latch"
         );
         assert_eq!(
-            flow.carry.len(),
+            flow.carry_c2s.len(),
             0,
             "carry must NOT grow on bailed flow — on_data is immediate no-op"
         );
@@ -701,7 +710,7 @@ mod story_107 {
 
         // Create the flow entry.
         let seed_frame = build_frame(5, 0x0003, 0x0001, 0xC4);
-        analyzer.on_data(key.clone(), &seed_frame, 0);
+        analyzer.on_data(key.clone(), &seed_frame, 0, Direction::ClientToServer);
 
         // Pre-populate with 256 entries: two entries share ts=490 (tied oldest).
         // All timestamps are within BLOCK_CMD_TIMEOUT_SECS (10s) of the delivery ts=500
@@ -743,7 +752,7 @@ mod story_107 {
         ctrl_frame[11] = 0xC0;
         ctrl_frame[12] = 0x03; // FC=SELECT (Control-class)
         // bytes 13-14: data-block CRC placeholder
-        analyzer.on_data(key.clone(), &ctrl_frame, 500);
+        analyzer.on_data(key.clone(), &ctrl_frame, 500, Direction::ClientToServer);
 
         let flow = analyzer
             .flows
@@ -788,7 +797,7 @@ mod story_107 {
         bad_frame[2] = 4; // Overwrite LENGTH with invalid value.
 
         // Deliver the malformed frame.
-        analyzer.on_data(key.clone(), &bad_frame, 0);
+        analyzer.on_data(key.clone(), &bad_frame, 0, Direction::ClientToServer);
 
         let flow = analyzer
             .flows
@@ -821,12 +830,12 @@ mod story_107 {
         //   Final carry length = 0 (inline resync inside LENGTH-gate arm cleared the carry;
         //   the separate sync-check arm is NOT entered — no double-count).
         assert!(
-            flow.carry.len() < 10,
+            flow.carry_c2s.len() < 10,
             "carry must have advanced: resync must reduce carry below the 10 \
              originally delivered bytes (stuck carry == no-op, which is a liveness bug)"
         );
         assert_eq!(
-            flow.carry.len(),
+            flow.carry_c2s.len(),
             0,
             "carry must be 0 bytes: byte-walk-forward resync found no [0x05,0x64] in the \
              remaining bytes and cleared the carry (STORY-109 realization of STORY-107 \
@@ -1010,7 +1019,7 @@ mod story_107 {
             "delivery vector must be exactly 20 bytes"
         );
 
-        analyzer.on_data(key.clone(), delivery, 0);
+        analyzer.on_data(key.clone(), delivery, 0, Direction::ClientToServer);
 
         let flow = analyzer
             .flows
@@ -1051,7 +1060,7 @@ mod story_107 {
         // (c) carry empty: both the malformed frame's junk bytes and the valid frame's 15
         //     bytes have been consumed; nothing remains in carry.
         assert_eq!(
-            flow.carry.len(),
+            flow.carry_c2s.len(),
             0,
             "OBS-P11-1 (c): carry must be empty — the malformed prefix was drained by the \
              validity-gate (drain-1) + resync (drain-4), and the valid 15-byte frame was \

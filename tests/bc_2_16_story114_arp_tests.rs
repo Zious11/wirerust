@@ -41,7 +41,7 @@ mod story_114_mitre {
             t0830_name.is_some(),
             "AC-011 / BC-2.16.004 Invariant 4: technique_name(\"T0830\") must return Some \
              after the VP-007 5-part atomic update (STORY-114 co-commit). \
-             Currently returns None — RED until src/mitre.rs seeding. Got: {:?}",
+             Was None before src/mitre.rs seeding; now resolves. Got: {:?}",
             t0830_name
         );
         assert_eq!(
@@ -56,7 +56,7 @@ mod story_114_mitre {
         assert!(
             t0830_tactic.is_some(),
             "AC-011 / BC-2.16.004 Invariant 4: technique_tactic(\"T0830\") must return Some. \
-             Currently returns None. RED.",
+             Was None before STORY-114 seeding; now resolves.",
         );
         assert_eq!(
             t0830_tactic,
@@ -73,7 +73,7 @@ mod story_114_mitre {
         assert!(
             t1557_name.is_some(),
             "AC-011 / BC-2.16.004 Invariant 4: technique_name(\"T1557.002\") must return Some \
-             after the VP-007 5-part atomic update. Currently returns None — RED. Got: {:?}",
+             after the VP-007 5-part atomic update. Was None before seeding; now resolves. Got: {:?}",
             t1557_name
         );
         assert_eq!(
@@ -89,7 +89,7 @@ mod story_114_mitre {
         assert!(
             t1557_tactic.is_some(),
             "AC-011 / BC-2.16.004 Invariant 4: technique_tactic(\"T1557.002\") must return Some. \
-             Currently returns None. RED.",
+             Was None before STORY-114 seeding; now resolves.",
         );
         assert_eq!(
             t1557_tactic,
@@ -101,22 +101,27 @@ mod story_114_mitre {
     }
 
     // -----------------------------------------------------------------------
-    // AC-012 — VP-007: SEEDED=25, EMITTED=17 (replaces old 23/15 count test)
+    // AC-012 — VP-007: STORY-114-era subset resolution (SEEDED=25, EMITTED=17
+    // at that time; current catalogue is 28-seeded / 20-emitted per BC-2.10.008 v1.14)
     // -----------------------------------------------------------------------
 
-    /// AC-012 (VP-007 / STORY-114): the catalog has SEEDED=25 and EMITTED=17 entries.
+    /// AC-012 (VP-007 / STORY-114): verifies the STORY-114-era subset of the current
+    /// 28-seeded / 20-emitted catalogue (BC-2.10.008 v1.14).
     /// Specifically:
-    ///   - All 25 seeded IDs resolve via technique_name (non-None, non-empty).
+    ///   - All 25 STORY-114-era seeded IDs resolve via technique_name (non-None, non-empty).
     ///   - technique_name never returns "" (the sentinel "Unknown" pattern from old code).
     ///   - vp007_catalog_drift_guard passes (that in-crate unit test is the mechanical gate;
     ///     this integration test provides the public-API view).
     ///
-    /// Verifies the full post-STORY-114 catalog state: SEEDED=25, EMITTED=17.
     /// This test supersedes the old test_technique_name_resolves_all_21_seeded_ids
     /// (which covered the 21-entry pre-STORY-109 era).
+    /// The authoritative total-count enforcement is test_seeded_count_is_28 /
+    /// test_emitted_count_is_20 (enip_analyzer_tests.rs) and vp007_catalog_drift_guard
+    /// (src/mitre.rs).
     #[test]
-    fn test_vp007_seeded_25_emitted_17() {
-        // All 25 seeded IDs post-STORY-114 atomic update (11 Enterprise + 10 ICS + 2 ARP):
+    fn test_vp007_story114_seeded_and_emitted_subset_resolves() {
+        // STORY-114-era seeded subset: 25 IDs (11 Enterprise + 10 ICS + 2 ARP).
+        // This is a subset of the current 28-seeded / 20-emitted catalogue.
         // Enterprise (11)
         let seeded_25: &[(&str, &str, MitreTactic)] = &[
             (
@@ -215,11 +220,12 @@ mod story_114_mitre {
             ),
         ];
 
-        // Verify count is exactly 25
+        // Verify the STORY-114-era subset vector has 25 entries (self-check on this test's literal)
         assert_eq!(
             seeded_25.len(),
             25,
-            "test_vp007_seeded_25_emitted_17: internal test vector count must be 25; got {}",
+            "test_vp007_story114_seeded_and_emitted_subset_resolves: \
+             STORY-114-era seeded-subset vector must have 25 entries; got {}",
             seeded_25.len()
         );
 
@@ -228,9 +234,9 @@ mod story_114_mitre {
             let name = technique_name(id);
             assert!(
                 name.is_some(),
-                "AC-012 / VP-007: technique_name({id:?}) must return Some (non-None) after \
-                 the 25-entry VP-007 atomic update. Currently returns None. \
-                 RED until src/mitre.rs seeding. Got: {:?}",
+                "AC-012 / VP-007: technique_name({id:?}) must return Some (non-None); \
+                 was None in the RED stub phase — now seeded and resolves after the \
+                 STORY-114-era VP-007 atomic update. Got: {:?}",
                 name
             );
             let name_str = name.unwrap();
@@ -267,18 +273,21 @@ mod story_114_mitre {
     }
 
     // -----------------------------------------------------------------------
-    // Emitted-ID count verification (17 after STORY-114)
+    // Emitted-ID subset verification (STORY-114-era 17-entry subset of the
+    // current 20-emitted catalogue per BC-2.10.008 v1.14)
     // -----------------------------------------------------------------------
 
-    /// AC-012 companion: verify that all 17 analyzer-emitted IDs (post-STORY-114)
-    /// resolve in the catalog. This is the public-API counterpart to the
+    /// AC-012 companion: verify that the STORY-114-era 17-entry emitted-ID subset
+    /// (a subset of the current 20-ID emitted set per BC-2.10.008 v1.14) resolves
+    /// in the catalog. This is the public-API counterpart to the
     /// kani_proofs::EMITTED_IDS check inside src/mitre.rs.
     ///
-    /// Verifies all 17 emitted IDs (including T0830 and T1557.002 added by STORY-114)
-    /// resolve via technique_name after the VP-007 atomic catalog update.
+    /// Verifies that all 17 STORY-114-era emitted IDs (including T0830 and T1557.002
+    /// added by STORY-114) resolve via technique_name; the VP-007 atomic catalog update
+    /// was applied in the GREEN phase.
     #[test]
-    fn test_vp007_all_17_emitted_ids_resolve() {
-        // IDs actually emitted by analyzers (grep -rn 'mitre_techniques: vec!' src/):
+    fn test_vp007_story114_emitted_subset_resolves() {
+        // IDs emitted by analyzers at STORY-114 era (subset of current 20-emitted set):
         // 6 Enterprise + 7 ICS + 2 STORY-109 + 2 ARP (STORY-114) = 17 emitted IDs
         let emitted_17: &[&str] = &[
             // Enterprise (6)
@@ -299,7 +308,7 @@ mod story_114_mitre {
             // STORY-109 (2)
             "T1691.001", // Block OT Message: Command Message
             "T0827",     // Loss of Control
-            // STORY-114 ARP (2) — RED until catalog seeded
+            // STORY-114 ARP (2) — seeded and resolving (GREEN since STORY-114)
             "T0830",     // ARP Adversary-in-the-Middle (D1/D12/GARP-conflict)
             "T1557.002", // ARP Cache Poisoning (D1/D12/GARP-conflict)
         ];
@@ -307,8 +316,9 @@ mod story_114_mitre {
         assert_eq!(
             emitted_17.len(),
             17,
-            "test_vp007_all_17_emitted_ids_resolve: internal vector must have exactly 17 \
-             emitted IDs post-STORY-114. Got {}.",
+            "test_vp007_story114_emitted_subset_resolves: STORY-114-era emitted-subset vector \
+             must have 17 entries (subset of the current 20-ID emitted set per \
+             BC-2.10.008 v1.14). Got {}.",
             emitted_17.len()
         );
 
@@ -316,12 +326,14 @@ mod story_114_mitre {
             assert!(
                 technique_name(id).is_some(),
                 "AC-012 / VP-007 emitter half: analyzer emits {id} but technique_name({id}) \
-                 returned None — not in catalog. RED until VP-007 atomic update applied.",
+                 returned None — was absent in the RED stub phase; now seeded and resolves \
+                 after the STORY-114-era VP-007 atomic update.",
             );
             assert!(
                 technique_tactic(id).is_some(),
                 "AC-012 / VP-007 emitter half: analyzer emits {id} but technique_tactic({id}) \
-                 returned None. RED until VP-007 atomic update applied.",
+                 returned None — was absent in the RED stub phase; now resolves after the \
+                 STORY-114-era VP-007 atomic update.",
             );
         }
     }

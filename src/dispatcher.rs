@@ -2,11 +2,13 @@
 //!
 //! Sits between [`crate::reassembly::TcpReassembler`] (which produces
 //! contiguous TCP-stream byte ranges) and the per-protocol analyzers
-//! ([`HttpAnalyzer`], [`TlsAnalyzer`], [`ModbusAnalyzer`], [`Dnp3Analyzer`]).
+//! ([`HttpAnalyzer`], [`TlsAnalyzer`], [`ModbusAnalyzer`], [`Dnp3Analyzer`],
+//! [`EnipAnalyzer`]).
 //! On the first chunk of each flow, peeks at the leading bytes to decide
 //! whether the stream is TLS (`0x16 0x03` record-type-and-version prefix),
 //! HTTP (one of the known method tokens), Modbus (port-502 fallback per
-//! ADR-005), or DNP3 (port-20000 fallback per ADR-007) and routes all
+//! ADR-005), DNP3 (port-20000 fallback per ADR-007), or EtherNet/IP traffic
+//! on TCP port 44818 → EnipAnalyzer (Rule 7, ADR-010) and routes all
 //! subsequent data on that flow to the matching analyzer. Streams whose
 //! content doesn't match any prefix and whose ports don't match any known
 //! port are tracked under "unclassified" for the JSON summary.
@@ -15,7 +17,7 @@
 //! its analyzer for the rest of its lifetime to avoid mid-stream
 //! protocol confusion attacks.
 //!
-//! ## Classification Rule Order (BC-2.14.025 / BC-2.15.021, INV-2 content-first)
+//! ## Classification Rule Order (BC-2.14.025 / BC-2.15.021 / BC-2.17.019, INV-2 content-first)
 //!
 //! 1. TLS content signature (`0x16 0x03 ...`, len >= 5) → `DispatchTarget::Tls`
 //! 2. HTTP method token (`GET `, `POST `, etc.) → `DispatchTarget::Http`
@@ -23,11 +25,13 @@
 //! 4. Port 80/8080 → `DispatchTarget::Http`
 //! 5. Port 502 → `DispatchTarget::Modbus`  ← Rule 5 (STORY-105, ADR-005)
 //! 6. Port 20000 → `DispatchTarget::Dnp3`  ← Rule 6 (STORY-110, ADR-007)
-//! 7. No match → `DispatchTarget::None`
+//! 7. Port 44818 → `DispatchTarget::Enip`  ← Rule 7 (STORY-131, ADR-010)
+//! 8. No match → `DispatchTarget::None`
 
 use std::collections::HashMap;
 
 use crate::analyzer::dnp3::Dnp3Analyzer;
+use crate::analyzer::enip::EnipAnalyzer;
 use crate::analyzer::http::HttpAnalyzer;
 use crate::analyzer::modbus::ModbusAnalyzer;
 use crate::analyzer::tls::TlsAnalyzer;
@@ -42,6 +46,8 @@ enum DispatchTarget {
     Modbus,
     /// Port-20000 DNP3 TCP flows (Rule 6, BC-2.15.021). Added in STORY-110.
     Dnp3,
+    /// Port-44818 EtherNet/IP TCP flows (Rule 7, BC-2.17.019). Added in STORY-131.
+    Enip,
     None,
 }
 
@@ -74,21 +80,27 @@ pub struct StreamDispatcher {
     /// DNP3 TCP analyzer (STORY-110, BC-2.15.021). Receives data for all
     /// port-20000 flows that do not match content rules 1–2 or port rules 3–5.
     dnp3: Option<Dnp3Analyzer>,
+    /// EtherNet/IP TCP analyzer (STORY-131, BC-2.17.019). Receives data for all
+    /// port-44818 flows that do not match content rules 1–2 or port rules 3–6.
+    enip: Option<EnipAnalyzer>,
     unclassified_flows: u64,
 }
 
 impl StreamDispatcher {
-    /// Construct a dispatcher with optional HTTP, TLS, Modbus, and DNP3 analyzers.
+    /// Construct a dispatcher with optional HTTP, TLS, Modbus, DNP3, and ENIP analyzers.
     ///
     /// Pass `modbus: Some(analyzer)` to enable port-502 flow routing (STORY-105).
     /// Pass `modbus: None` to leave Modbus disabled (default-off per BC-2.14.023).
     /// Pass `dnp3: Some(analyzer)` to enable port-20000 flow routing (STORY-110).
     /// Pass `dnp3: None` to leave DNP3 disabled (default-off per BC-2.15.021).
+    /// Pass `enip: Some(analyzer)` to enable port-44818 flow routing (STORY-131).
+    /// Pass `enip: None` to leave ENIP disabled (default-off per BC-2.17.020).
     pub fn new(
         http: Option<HttpAnalyzer>,
         tls: Option<TlsAnalyzer>,
         modbus: Option<ModbusAnalyzer>,
         dnp3: Option<Dnp3Analyzer>,
+        enip: Option<EnipAnalyzer>,
     ) -> Self {
         StreamDispatcher {
             routes: HashMap::new(),
@@ -98,6 +110,7 @@ impl StreamDispatcher {
             tls,
             modbus,
             dnp3,
+            enip,
             unclassified_flows: 0,
         }
     }
@@ -179,6 +192,31 @@ impl StreamDispatcher {
     pub fn take_dnp3_analyzer(&mut self) -> Option<Dnp3Analyzer> {
         self.dnp3.take()
     }
+
+    /// Returns a reference to the ENIP analyzer, if one was configured.
+    ///
+    /// BC-2.17.019: mirrors `dnp3_analyzer()` shape.
+    pub fn enip_analyzer(&self) -> Option<&EnipAnalyzer> {
+        self.enip.as_ref()
+    }
+
+    /// Moves the ENIP analyzer out of the dispatcher, consuming the slot.
+    ///
+    /// BC-2.17.019 Invariant / BC-2.17.020 §P4: mirrors `take_dnp3_analyzer()` —
+    /// uses `Option::take()`, leaving `self.enip = None` permanently. After this
+    /// call, all ENIP dispatch arms are no-ops. Call ONCE,
+    /// post-`reassembler.finalize()`.
+    pub fn take_enip_analyzer(&mut self) -> Option<EnipAnalyzer> {
+        self.enip.take()
+    }
+
+    /// Wires an `EnipAnalyzer` into the dispatcher after construction.
+    ///
+    /// Called from `main.rs` after the analyzer is constructed.
+    /// WIRING-EXEMPT: single field assignment with no branching.
+    pub fn set_enip_analyzer(&mut self, analyzer: EnipAnalyzer) {
+        self.enip = Some(analyzer);
+    }
 }
 
 fn classify(data: &[u8], flow_key: &FlowKey) -> DispatchTarget {
@@ -237,7 +275,15 @@ fn classify(data: &[u8], flow_key: &FlowKey) -> DispatchTarget {
     if ports.contains(&20000) {
         return DispatchTarget::Dnp3;
     }
-    // Rule 7: no match.
+    // Rule 7: ENIP port (44818 — IANA-assigned, ADR-010 Decision 1). Fires AFTER Rule 6
+    // (DNP3). TLS ClientHello or HTTP GET on port 44818 will have already matched Rules 1
+    // or 2 above (BC-2.17.019 Invariant 1). VP-004 oracle obligation: classify_oracle
+    // gains the port-44818 → Enip arm immediately after the port-20000 → Dnp3 arm
+    // (BC-2.17.019 Invariant 3, STORY-131 VP-004 obligation).
+    if ports.contains(&44818) {
+        return DispatchTarget::Enip;
+    }
+    // Rule 8: no match.
     DispatchTarget::None
 }
 
@@ -250,10 +296,14 @@ impl StreamHandler for StreamDispatcher {
         offset: u64,
         timestamp: u32,
     ) {
-        // BC-2.14.025 §P2 / BC-2.15.021 Inv 4 early-exit guard: extended to include dnp3.
-        // Without `self.dnp3.is_none()`, on_data silently drops data when only a DNP3
-        // analyzer is active (AC-003 of STORY-110).
-        if self.http.is_none() && self.tls.is_none() && self.modbus.is_none() && self.dnp3.is_none()
+        // BC-2.14.025 §P2 / BC-2.15.021 Inv 4 / BC-2.17.019 Inv 4 early-exit guard:
+        // extended to include enip (STORY-131). Without `self.enip.is_none()`, on_data
+        // silently drops data when only an ENIP analyzer is active.
+        if self.http.is_none()
+            && self.tls.is_none()
+            && self.modbus.is_none()
+            && self.dnp3.is_none()
+            && self.enip.is_none()
         {
             return;
         }
@@ -308,11 +358,21 @@ impl StreamHandler for StreamDispatcher {
             }
             DispatchTarget::Dnp3 => {
                 // BC-2.15.021 §P3: route a port-20000-classified flow's data to
-                // Dnp3Analyzer; no-op if disabled. Direction and byte-offset are
-                // not threaded through — Dnp3Analyzer::on_data does its own
-                // frame-walk from the raw payload.
+                // Dnp3Analyzer; no-op if disabled.
+                // STORY-140 (BC-2.15.016 v2.0 Precondition 2): pass direction to
+                // on_data (Modbus/ENIP pattern; AC-140-003).
                 if let Some(ref mut dnp3) = self.dnp3 {
-                    dnp3.on_data(flow_key.clone(), data, timestamp);
+                    dnp3.on_data(flow_key.clone(), data, timestamp, direction);
+                }
+            }
+            DispatchTarget::Enip => {
+                // BC-2.17.019 §P2: route a port-44818-classified flow's data to
+                // EnipAnalyzer; no-op if disabled. Detection logic (frame-walk, CIP
+                // parse) is added by STORY-132+. This arm increments bytes_received
+                // to evidence PC-2 routing correctness (STORY-131 boundary decision).
+                if let Some(ref mut enip) = self.enip {
+                    // STORY-139: pass direction to on_data (Modbus pattern; BC-2.17.016 v2.0 Precondition 1)
+                    enip.on_data(flow_key.clone(), data, timestamp, direction);
                 }
             }
             DispatchTarget::None => {}
@@ -347,12 +407,18 @@ impl StreamHandler for StreamDispatcher {
                 // Dnp3Analyzer does not implement StreamHandler; no forwarding needed.
                 let _ = reason;
             }
+            Some(DispatchTarget::Enip) => {
+                // BC-2.17.019: route on_flow_close to EnipAnalyzer (no-op if disabled).
+                // EnipAnalyzer does not implement StreamHandler; no forwarding needed.
+                let _ = reason;
+            }
             Some(DispatchTarget::None) | None => {
-                // BC-2.14.025 §P3: unclassified_flows guard extended with modbus + dnp3.
+                // BC-2.14.025 §P3: unclassified_flows guard extended with modbus + dnp3 + enip.
                 if self.http.is_some()
                     || self.tls.is_some()
                     || self.modbus.is_some()
                     || self.dnp3.is_some()
+                    || self.enip.is_some()
                 {
                     self.unclassified_flows += 1;
                 }
@@ -458,7 +524,14 @@ mod kani_proofs {
         if ports.contains(&20000) {
             return DispatchTarget::Dnp3;
         }
-        // Rule 7: nothing matched.
+        // Rule 7: ENIP port fallback (ADR-010 Decision 1 — MUST mirror production exactly).
+        // VP-004 oracle obligation: this arm is mandatory per BC-2.17.019 Invariant 3 /
+        // STORY-131 VP-004 oracle obligation. Placed AFTER Rule 6 (DNP3) and BEFORE
+        // Rule 8 (None).
+        if ports.contains(&44818) {
+            return DispatchTarget::Enip;
+        }
+        // Rule 8: nothing matched.
         DispatchTarget::None
     }
 

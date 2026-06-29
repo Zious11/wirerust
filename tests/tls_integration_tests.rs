@@ -10,7 +10,7 @@ fn analyze_pcap(path: &str) -> TlsAnalyzer {
     let source = PcapSource::from_file(std::path::Path::new(path)).unwrap();
     let config = ReassemblyConfig::default();
     let mut reasm = TcpReassembler::new(config);
-    let mut dispatcher = StreamDispatcher::new(None, Some(TlsAnalyzer::new()), None, None);
+    let mut dispatcher = StreamDispatcher::new(None, Some(TlsAnalyzer::new()), None, None, None);
 
     for raw in &source.packets {
         if let Ok(DecodedFrame::Ip(parsed)) = decode_packet(&raw.data, source.datalink) {

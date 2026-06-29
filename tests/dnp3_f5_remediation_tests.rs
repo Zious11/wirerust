@@ -190,6 +190,7 @@ mod f5_dir_bit_fix {
     use std::net::{IpAddr, Ipv4Addr};
     use wirerust::analyzer::dnp3::Dnp3Analyzer;
     use wirerust::reassembly::flow::FlowKey;
+    use wirerust::reassembly::handler::Direction;
 
     fn test_flow_key() -> FlowKey {
         FlowKey::new(
@@ -230,7 +231,7 @@ mod f5_dir_bit_fix {
         frame[12] = 0x01; // FC=0x01 (READ — not Control-class)
         // bytes 13-14: data-block CRC placeholder
 
-        analyzer.on_data(key.clone(), &frame, 0);
+        analyzer.on_data(key.clone(), &frame, 0, Direction::ClientToServer);
 
         let flow = analyzer.flows.get(&key).expect("flow must exist");
 
@@ -252,6 +253,7 @@ mod f5_unexpected_source {
     use wirerust::analyzer::dnp3::Dnp3Analyzer;
     use wirerust::findings::{Confidence, ThreatCategory, Verdict};
     use wirerust::reassembly::flow::FlowKey;
+    use wirerust::reassembly::handler::Direction;
 
     fn test_flow_key() -> FlowKey {
         FlowKey::new(
@@ -410,7 +412,7 @@ mod f5_unexpected_source {
         // master_addrs_seen empty BEFORE this frame; expected_set_established=false;
         // no unexpected-source check fires. After frame 1: master_addrs_seen=[0x0001].
         let frame1 = build_canonical_master_control_frame(0x05, 0x0003, 0x0001);
-        analyzer.on_data(key.clone(), &frame1, 0);
+        analyzer.on_data(key.clone(), &frame1, 0, Direction::ClientToServer);
 
         assert_eq!(
             analyzer.all_findings.len(),
@@ -421,7 +423,7 @@ mod f5_unexpected_source {
         // Frame 2: src=0x0099 NOT in master_addrs_seen=[0x0001] → unexpected source.
         // direct_operate_count=2 after this frame; 2>10=false → burst guard NOT set.
         let frame2 = build_canonical_master_control_frame(0x05, 0x0003, 0x0099);
-        analyzer.on_data(key.clone(), &frame2, 1);
+        analyzer.on_data(key.clone(), &frame2, 1, Direction::ClientToServer);
 
         assert_eq!(
             analyzer.all_findings.len(),
@@ -529,7 +531,7 @@ mod f5_unexpected_source {
         // 9 Control FCs from src=0x0001 — establishes set, count=9, no burst yet.
         for ts in 0u32..9 {
             let frame = build_canonical_master_control_frame(0x05, 0x0003, 0x0001);
-            analyzer.on_data(key.clone(), &frame, ts);
+            analyzer.on_data(key.clone(), &frame, ts, Direction::ClientToServer);
         }
         assert_eq!(
             analyzer.all_findings.len(),
@@ -540,7 +542,7 @@ mod f5_unexpected_source {
         // 1 Control FC from src=0x0099 (unexpected); count becomes 10.
         // 10 > 10 = false → burst guard does NOT fire.
         let frame_unexpected = build_canonical_master_control_frame(0x05, 0x0003, 0x0099);
-        analyzer.on_data(key.clone(), &frame_unexpected, 9);
+        analyzer.on_data(key.clone(), &frame_unexpected, 9, Direction::ClientToServer);
 
         assert_eq!(
             analyzer.all_findings.len(),
@@ -596,12 +598,12 @@ mod f5_unexpected_source {
 
         // Establish expected set: src=0x0001.
         let frame_expected = build_canonical_master_control_frame(0x05, 0x0003, 0x0001);
-        analyzer.on_data(key.clone(), &frame_expected, 0);
+        analyzer.on_data(key.clone(), &frame_expected, 0, Direction::ClientToServer);
 
         // 3 Control FCs from src=0x0099 — all unexpected.
         for ts in 1u32..4 {
             let frame = build_canonical_master_control_frame(0x05, 0x0003, 0x0099);
-            analyzer.on_data(key.clone(), &frame, ts);
+            analyzer.on_data(key.clone(), &frame, ts, Direction::ClientToServer);
         }
 
         let unexpected_count = analyzer
@@ -649,7 +651,7 @@ mod f5_unexpected_source {
 
         // First-ever Control FC on a fresh flow.
         let frame = build_canonical_master_control_frame(0x05, 0x0003, 0x0001);
-        analyzer.on_data(key.clone(), &frame, 0);
+        analyzer.on_data(key.clone(), &frame, 0, Direction::ClientToServer);
 
         // No finding — first master is always expected.
         assert_eq!(
@@ -713,12 +715,12 @@ mod f5_unexpected_source {
 
         // Frame 1: src=0x0001 establishes expected set; count=1.
         let frame1 = build_canonical_master_control_frame(0x05, 0x0003, 0x0001);
-        analyzer.on_data(key.clone(), &frame1, 0);
+        analyzer.on_data(key.clone(), &frame1, 0, Direction::ClientToServer);
 
         // Frames 2-5: src=0x0099 (unexpected), count goes 2→5.
         for ts in 1u32..5 {
             let frame = build_canonical_master_control_frame(0x05, 0x0003, 0x0099);
-            analyzer.on_data(key.clone(), &frame, ts);
+            analyzer.on_data(key.clone(), &frame, ts, Direction::ClientToServer);
         }
 
         assert_eq!(
@@ -809,7 +811,7 @@ mod f5_unexpected_source {
             frame[10] = 0xC0; // FIR=1, FIN=1
             frame[11] = 0x00;
             frame[12] = 0x01; // FC=READ — non-Control
-            analyzer.on_data(key.clone(), &frame, src as u32);
+            analyzer.on_data(key.clone(), &frame, src as u32, Direction::ClientToServer);
         }
 
         // Verify master_addrs_seen is at capacity.
@@ -829,7 +831,12 @@ mod f5_unexpected_source {
         // Since master_addrs_seen is full, 0x0099 cannot be added.
         // But the unexpected-source check must still fire.
         let frame_unexpected = build_canonical_master_control_frame(0x05, 0x0003, 0x0099);
-        analyzer.on_data(key.clone(), &frame_unexpected, 65);
+        analyzer.on_data(
+            key.clone(),
+            &frame_unexpected,
+            65,
+            Direction::ClientToServer,
+        );
 
         // Filter: unexpected-source findings only.
         let unexpected_count = analyzer
@@ -878,15 +885,15 @@ mod f5_unexpected_source {
 
         // Frame 1: establish expected set with src=0x0001.
         let frame1 = build_canonical_master_control_frame(0x05, 0x0003, 0x0001);
-        analyzer.on_data(key.clone(), &frame1, 0);
+        analyzer.on_data(key.clone(), &frame1, 0, Direction::ClientToServer);
 
         // Frame 2: unexpected src=0x0099 → guard fires.
         let frame2 = build_canonical_master_control_frame(0x05, 0x0003, 0x0099);
-        analyzer.on_data(key.clone(), &frame2, 1);
+        analyzer.on_data(key.clone(), &frame2, 1, Direction::ClientToServer);
 
         // Frame 3: SECOND unexpected src=0x00AA → suppressed by one-shot guard.
         let frame3 = build_canonical_master_control_frame(0x05, 0x0003, 0x00AA);
-        analyzer.on_data(key.clone(), &frame3, 2);
+        analyzer.on_data(key.clone(), &frame3, 2, Direction::ClientToServer);
 
         let unexpected_count = analyzer
             .all_findings
@@ -948,7 +955,7 @@ mod f5_unexpected_source {
             0xFF, 0xFE, 0x00, 0x01, 0x02, 0x03, 0x04, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C,
             0x0D, 0x0E,
         ];
-        analyzer.on_data(key.clone(), &non_dnp3, 0);
+        analyzer.on_data(key.clone(), &non_dnp3, 0, Direction::ClientToServer);
 
         // Verify bail was triggered.
         {
@@ -964,7 +971,7 @@ mod f5_unexpected_source {
 
         // Now deliver a Control FC from src=0x0099 — must be a no-op.
         let frame = build_canonical_master_control_frame(0x05, 0x0003, 0x0099);
-        analyzer.on_data(key.clone(), &frame, 1);
+        analyzer.on_data(key.clone(), &frame, 1, Direction::ClientToServer);
 
         assert_eq!(
             analyzer.all_findings.len(),
@@ -1135,6 +1142,7 @@ mod f5_resync_accounting {
 
     use wirerust::analyzer::dnp3::Dnp3Analyzer;
     use wirerust::reassembly::flow::FlowKey;
+    use wirerust::reassembly::handler::Direction;
 
     fn test_flow_key() -> FlowKey {
         FlowKey::new(
@@ -1185,7 +1193,7 @@ mod f5_resync_accounting {
     //   flow.parse_errors == 1     (one structural event from the junk)
     //   flow.malformed_in_window == 1
     //   flow.frame_count == 1      (the valid frame was consumed)
-    //   flow.carry.len() == 0      (resync arm cleared the junk carry)
+    //   flow.carry_c2s.len() == 0      (resync arm cleared the junk carry)
     //
     // Traces to: F-F5-003 REVISION 2 §R2-SECTION 1 Change 1 (resync arm unconditional
     //            increment); BC-2.15.016 EC-009 (new).
@@ -1207,7 +1215,7 @@ mod f5_resync_accounting {
         let mut data = valid_frame;
         data.extend_from_slice(&[0xAA, 0xBB, 0xCC]); // 3 bytes of non-sync junk
 
-        analyzer.on_data(key.clone(), &data, 0);
+        analyzer.on_data(key.clone(), &data, 0, Direction::ClientToServer);
 
         let flow = analyzer.flows.get(&key).expect("flow must exist");
 
@@ -1230,7 +1238,7 @@ mod f5_resync_accounting {
 
         // Resync arm cleared the junk (no [0x05, 0x64] in [0xAA, 0xBB, 0xCC]).
         assert_eq!(
-            flow.carry.len(),
+            flow.carry_c2s.len(),
             0,
             "carry must be empty: resync arm cleared the non-sync junk carry"
         );
@@ -1249,7 +1257,7 @@ mod f5_resync_accounting {
     // Expected:
     //   flow.parse_errors == 1     (exactly one increment — no double-count)
     //   flow.malformed_in_window == 1
-    //   flow.carry.len() == 0
+    //   flow.carry_c2s.len() == 0
     //
     // Change 2: LENGTH-gate arm performs inline resync → loop enters with
     //   empty or valid carry → resync arm NOT entered → parse_errors stays at 1.
@@ -1273,7 +1281,7 @@ mod f5_resync_accounting {
         bad_frame[1] = 0x64;
         bad_frame[2] = 2; // LENGTH=2 < 5 → compute_dnp3_frame_len returns None
 
-        analyzer.on_data(key.clone(), &bad_frame, 0);
+        analyzer.on_data(key.clone(), &bad_frame, 0, Direction::ClientToServer);
 
         let flow = analyzer.flows.get(&key).expect("flow must exist");
 
@@ -1290,7 +1298,7 @@ mod f5_resync_accounting {
         );
 
         assert_eq!(
-            flow.carry.len(),
+            flow.carry_c2s.len(),
             0,
             "carry must be empty: inline resync found no sync in remaining bytes"
         );
@@ -1333,7 +1341,7 @@ mod f5_resync_accounting {
             let valid_frame = build_minimal_valid_frame(0x0003, 0x0001);
             let mut data = valid_frame;
             data.extend_from_slice(&[0xAA, 0xBB, 0xCC]);
-            analyzer.on_data(key.clone(), &data, 0);
+            analyzer.on_data(key.clone(), &data, 0, Direction::ClientToServer);
         }
 
         let flow = analyzer.flows.get(&key).expect("flow must exist");
@@ -1424,7 +1432,7 @@ mod f5_resync_accounting {
         let key = test_flow_key();
 
         // Create flow entry.
-        analyzer.on_data(key.clone(), &[0x05, 0x64], 0);
+        analyzer.on_data(key.clone(), &[0x05, 0x64], 0, Direction::ClientToServer);
 
         // Pre-fill carry to 291 bytes:
         //   2 bytes 0xAA (pre-junk) + valid 10-byte frame + 279 bytes 0xAA (post-junk).
@@ -1437,16 +1445,16 @@ mod f5_resync_accounting {
 
         {
             let flow = analyzer.flows.get_mut(&key).expect("flow must exist");
-            flow.carry.clear();
+            flow.carry_c2s.clear();
             // 2 pre-junk bytes (no sync pair before the valid frame)
-            flow.carry.extend_from_slice(&[0xAA, 0xAA]);
+            flow.carry_c2s.extend_from_slice(&[0xAA, 0xAA]);
             // valid frame at offset 2
-            flow.carry.extend_from_slice(&valid_frame_bytes);
+            flow.carry_c2s.extend_from_slice(&valid_frame_bytes);
             // fill remainder to 291 with 0xAA
             let remaining = 291 - 2 - 10;
-            flow.carry.extend(std::iter::repeat_n(0xAA, remaining));
+            flow.carry_c2s.extend(std::iter::repeat_n(0xAA, remaining));
             assert_eq!(
-                flow.carry.len(),
+                flow.carry_c2s.len(),
                 291,
                 "pre-condition: carry must be 291 bytes"
             );
@@ -1461,7 +1469,7 @@ mod f5_resync_accounting {
         // Inline resync: [0x05,0x64] found at offset 2 in the 292-byte carry
         //   → drain 2 bytes → carry starts at [0x05,0x64,0x05,...].
         // Frame-walk: valid 10-byte frame → frame_count=1.
-        analyzer.on_data(key.clone(), &[0xBB, 0xCC], 1);
+        analyzer.on_data(key.clone(), &[0xBB, 0xCC], 1, Direction::ClientToServer);
 
         let flow = analyzer.flows.get(&key).expect("flow must exist");
 
@@ -1544,7 +1552,7 @@ mod f5_resync_accounting {
             0x05, 0x64, 0x02, 0xAA, 0xAA, // triplet 3 + padding
         ];
 
-        analyzer.on_data(key.clone(), &data, 0);
+        analyzer.on_data(key.clone(), &data, 0, Direction::ClientToServer);
 
         let flow = analyzer.flows.get(&key).expect("flow must exist");
 

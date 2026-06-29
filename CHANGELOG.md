@@ -7,6 +7,45 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.11.0] - 2026-06-29
+
+### Fixed
+
+- **Modbus EC-X1: per-direction carry buffer split (`carry_c2s` / `carry_s2c`).**
+  The Modbus analyzer previously used a single shared carry buffer for both directions, allowing
+  a response packet's trailing bytes to be spliced into the next request's reassembly window
+  (cross-direction carry-buffer contamination). The carry buffer is now split into two
+  independent fields keyed by direction, eliminating the splice. [STORY-141, PR #336,
+  BC-2.14.EC-X1]
+
+- **Modbus EC-X2: `saturating_sub` for clock-backwards window reset.**
+  A non-monotonic timestamp (e.g. packet re-ordering or NTP step) caused the time-delta
+  computation in the Modbus window-reset path to underflow (wrapping subtraction on an unsigned
+  value). The subtraction now uses `saturating_sub`, preventing the underflow and keeping the
+  window-reset logic correct when clocks move backwards. [STORY-141, PR #336, BC-2.14.EC-X2]
+
+- **DNP3 EC-X1: per-direction carry buffer split (`carry_c2s` / `carry_s2c`).**
+  Same cross-direction carry-buffer splice fix applied to the DNP3 analyzer. [STORY-140,
+  PR #335, BC-2.15.EC-X1]
+
+- **DNP3 EC-X2: `saturating_sub` for clock-backwards window reset.**
+  Same saturating subtraction fix applied to the DNP3 window-reset path. [STORY-140, PR #335,
+  BC-2.15.EC-X2]
+
+- **DNP3 desync-latch: complete-predicate gated on `frame_count == 0`.**
+  The DNP3 desync-latch complete-predicate fired unconditionally, which could produce a spurious
+  desync event on the very first frame of a session before any real desync had occurred. The
+  predicate is now gated on `frame_count == 0` so it only triggers after at least one valid
+  frame has been observed. [STORY-142, PR #336, BC-2.15.DESYNC]
+
+- **ENIP EC-X1: per-direction carry buffer split (`carry_c2s` / `carry_s2c`).**
+  Same cross-direction carry-buffer splice fix applied to the EtherNet/IP analyzer. [STORY-139,
+  PR #334, BC-2.17.EC-X1]
+
+- **ENIP EC-X2: `saturating_sub` for clock-backwards window reset.**
+  Same saturating subtraction fix applied to the ENIP window-reset path. [STORY-139, PR #334,
+  BC-2.17.EC-X2]
+
 ## [0.10.0] - 2026-06-24
 
 ### Breaking Changes

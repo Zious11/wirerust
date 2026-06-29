@@ -25,6 +25,7 @@ use wirerust::analyzer::ProtocolAnalyzer;
 use wirerust::analyzer::arp::ArpAnalyzer;
 use wirerust::analyzer::dnp3::Dnp3Analyzer;
 use wirerust::analyzer::dns::DnsAnalyzer;
+use wirerust::analyzer::enip::EnipAnalyzer;
 use wirerust::analyzer::http::HttpAnalyzer;
 use wirerust::analyzer::modbus::ModbusAnalyzer;
 use wirerust::analyzer::tls::TlsAnalyzer;
@@ -110,6 +111,9 @@ fn main() -> Result<()> {
             arp,
             arp_spoof_threshold,
             arp_storm_rate,
+            enip,
+            enip_write_burst_threshold,
+            enip_error_burst_threshold,
         } => {
             run_analyze(
                 targets,
@@ -124,6 +128,9 @@ fn main() -> Result<()> {
                 *arp || *all,
                 *arp_spoof_threshold,
                 *arp_storm_rate,
+                *enip || *all,
+                *enip_write_burst_threshold,
+                *enip_error_burst_threshold,
                 *mitre,
                 collapse_findings_from_flag(*no_collapse),
                 use_color,
@@ -152,6 +159,9 @@ fn run_analyze(
     enable_arp: bool,
     arp_spoof_threshold: u32,
     arp_storm_rate: u32,
+    enable_enip: bool,
+    enip_write_burst_threshold: u32,
+    enip_error_burst_threshold: u32,
     show_mitre_grouping: bool,
     collapse_findings: bool,
     use_color: bool,
@@ -188,10 +198,11 @@ fn run_analyze(
 
     let skip_reassembly = cli.no_reassemble;
 
-    // BC-2.14.023 §P4: needs_reassembly includes enable_modbus / enable_dnp3 so that
-    // --modbus or --dnp3 alone (without --http or --tls) activates the reassembly engine.
+    // BC-2.14.023 §P4 / BC-2.17.020 §P1: needs_reassembly includes enable_modbus,
+    // enable_dnp3, and enable_enip so that any ICS analyzer alone activates the
+    // reassembly engine.
     let needs_reassembly =
-        cli.reassemble || enable_http || enable_tls || enable_modbus || enable_dnp3;
+        cli.reassemble || enable_http || enable_tls || enable_modbus || enable_dnp3 || enable_enip;
 
     if (enable_http || enable_tls) && skip_reassembly {
         eprintln!(
@@ -211,6 +222,10 @@ fn run_analyze(
             "WARNING: --dnp3 requires stream reassembly; ignoring --dnp3 \
              (pass --reassemble or omit --no-reassemble)"
         );
+    }
+    // BC-2.17.020 §P2: warn and omit ENIP when reassembly disabled.
+    if enable_enip && skip_reassembly {
+        eprintln!("--enip requires TCP reassembly; ENIP analysis disabled");
     }
 
     let mut reassembler = if needs_reassembly && !skip_reassembly {
@@ -275,8 +290,26 @@ fn run_analyze(
         None
     };
 
-    let mut dispatcher =
-        StreamDispatcher::new(http_analyzer, tls_analyzer, modbus_analyzer, dnp3_analyzer);
+    // BC-2.17.020 §P1 / BC-2.17.023 / BC-2.17.026: construct EnipAnalyzer only when
+    // enabled AND reassembly is on. Forward CLI-parsed threshold values.
+    // Defaults: enip_write_burst_threshold=50 (OA-001 RESOLVED=50, BC-2.17.023 Inv 1),
+    //           enip_error_burst_threshold=5 (BC-2.17.026 Inv 1).
+    let enip_analyzer: Option<EnipAnalyzer> = if enable_enip && !skip_reassembly {
+        Some(EnipAnalyzer::new(
+            enip_write_burst_threshold,
+            enip_error_burst_threshold,
+        ))
+    } else {
+        None
+    };
+
+    let mut dispatcher = StreamDispatcher::new(
+        http_analyzer,
+        tls_analyzer,
+        modbus_analyzer,
+        dnp3_analyzer,
+        enip_analyzer,
+    );
 
     // STORY-128 (BC-2.01.018 AC-002 / ADR-009 Decision 12): per-file error isolation.
     //
@@ -415,6 +448,13 @@ fn run_analyze(
     if let Some(dnp3) = dispatcher.take_dnp3_analyzer() {
         all_findings.extend(dnp3.all_findings.iter().cloned());
         analyzer_summaries.push(dnp3.summarize());
+    }
+
+    // BC-2.17.020 §P4 / BC-2.17.019 §P4: post-finalize — collect ENIP findings and summary.
+    // Mirrors take_dnp3_analyzer() pattern (ADR-010 Decision 9).
+    if let Some(enip) = dispatcher.take_enip_analyzer() {
+        all_findings.extend(enip.all_findings.iter().cloned());
+        analyzer_summaries.push(enip.summarize());
     }
 
     // STORY-113: ARP post-capture summary (BC-2.16.011 PC7/8; AC-016).

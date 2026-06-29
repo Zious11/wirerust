@@ -121,6 +121,32 @@ REAL_CAPTURES=(
   # Validates graceful handling of fragment overlap without panic.
   # Credit: Wireshark SampleCaptures (wiki.wireshark.org); public sample.
   "ip-frag-teardrop.cap|e8e4193ae426dabf549cc103c9e93e7d93c6ae049ee9259f1ce2ebdb7315a683|https://wiki.wireshark.org/uploads/__moin_import__/attachments/SampleCaptures/teardrop.cap"
+  # --- EtherNet/IP + CIP captures (WAVE59-E2E-001 / tests/enip_e2e_real_pcaps_tests.rs) ---
+  # scy-phy/bro-cip-enip (MIT) — SWaT testbed ENIP/CIP captures.
+  # All 4 MIT captures are from github.com/scy-phy/bro-cip-enip testing/btest/Traces/enip/.
+  # License: MIT (redistributable with notice). Credit: SUTD SCy-Phy lab.
+  #
+  # HS-114: ListIdentity broadcast → 1x T0846 (Likely/High), 2 PDUs.
+  # Tests: test_e2e_BC_2_17_enip_test_pcap_T0846_listidentity (ITI CC-BY-4.0).
+  "enip_test.pcap|0ba6c01fde28912e9f890d839b991cff71cca8e8259e1d93e9c3a312c43bc255|https://raw.githubusercontent.com/ITI/ICS-Security-Tools/master/pcaps/EthernetIP/enip_test.pcap"
+  # HS-115: Identity class attribute reads → 202x T0888 (201 Likely/High + 1 Possible/Medium).
+  # Tests: test_e2e_BC_2_17_enip_enum_attr_T0888_identity_reads (MIT).
+  "enip_enum_attr_PLC.pcapng|26b282d14a6399b752bccde3201a84c16df9c86792d55be600675d368dbca047|https://raw.githubusercontent.com/scy-phy/bro-cip-enip/master/testing/btest/Traces/enip/enip_enum_attr_PLC.pcapng"
+  # HS-116: ForwardOpen lifecycle anomalies → 17x Anomaly/Possible/Low, empty mitre_techniques.
+  # Tests: test_e2e_BC_2_17_enip_connect_upload_forwardopen_anomaly_empty_mitre (MIT).
+  "enip_connect_to_plc1_and_upload.pcapng|4d05d9433a477d95c4eb8a4f9ce6aed13bed84e9c429400ef87c2919f5b2d7fc|https://raw.githubusercontent.com/scy-phy/bro-cip-enip/master/testing/btest/Traces/enip/enip_connect_to_plc1_and_upload.pcapng"
+  # HS-122 Case A: known-good CIP tag reads → 0 findings, 0 parse_errors (no false positives).
+  # Tests: test_e2e_BC_2_17_enip_read_tags_zero_findings_no_false_positives (MIT).
+  "enip_read_tags.pcapng|154870500484c72f64dddf16b94810ddb218d721bf049ca4ba314a9377c09f9d|https://raw.githubusercontent.com/scy-phy/bro-cip-enip/master/testing/btest/Traces/enip/enip_read_tags.pcapng"
+  # HS-119 + HS-111/112 determination: Metasploit multi_cip_command → 0 T0858/T0816 (correct).
+  # Correct non-detection: non-standard Unconnected_Send/raw-CIP framing, not spec-compliant 0x00B2.
+  # Tests: test_e2e_BC_2_17_enip_metasploit_zero_T0858_T0816_correct_scope (MIT).
+  "enip_metasploit.pcapng|da409883fbbf9c32a316071029c9984f73dece19f02cf0b6c792771fae8ef5ba|https://raw.githubusercontent.com/scy-phy/bro-cip-enip/master/testing/btest/Traces/enip/enip_metasploit.pcapng"
+  # HS-110 + HS-120 + HS-122: large clean ENIP+CIP dispatch run → 8799 PDUs, 0 findings.
+  # ITI/ICS-Security-Tools CC-BY-4.0. Attribution: ICS Security Tools, Illinois Institute of
+  # Technology (ITI). CloudShark provenance noted in ITI README.
+  # Tests: test_e2e_BC_2_17_ethernet_ip_cip_large_clean_no_panic (CC-BY-4.0).
+  "EthernetIP-CIP.pcap|c50b510b3242f94c8aed9a4b6723962f182d04feca8a8dac09a96a135649461d|https://raw.githubusercontent.com/ITI/ICS-Security-Tools/master/pcaps/EthernetIP/EthernetIP-CIP.pcap"
 )
 
 # Link-only captures — NOT auto-fetched. They require manual browser download or are too

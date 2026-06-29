@@ -22,7 +22,7 @@
 //! - `test_take_dnp3_analyzer_moves_out` (AC-004) — Option::take already wired
 //! - `test_port_502_and_20000_routes_to_modbus` (AC-009) — Rule 5 (Modbus) already works
 //! - `test_none_is_rule_7_no_match` (AC-009) — DispatchTarget::None already works
-//! - `test_vp007_seeded_23_emitted_15` (AC-010) — catalog state from STORY-109 holds
+//! - `test_vp007_story110_seeded_and_emitted_subset_resolves` (AC-010) — catalog state from STORY-109 holds
 //! - `test_ec005_unknown_port_routes_to_none` (EC-005) — port fallback None
 //! - `test_ec006_ports_502_and_20000_modbus_wins` (EC-006) — Rule 5 before Rule 6
 //! - `test_ec008_threshold_omitted_defaults_to_10` (EC-008) — default constant
@@ -135,7 +135,7 @@ mod story_110 {
     #[test]
     fn test_port_20000_dispatches_to_dnp3() {
         let dnp3 = Dnp3Analyzer::new(DNPXX_DIRECT_OPERATE_THRESHOLD_DEFAULT);
-        let mut dispatcher = StreamDispatcher::new(None, None, None, Some(dnp3));
+        let mut dispatcher = StreamDispatcher::new(None, None, None, Some(dnp3), None);
         let key = flow_key(12345, 20000);
         let frame = minimal_dnp3_frame();
         // Rule 6 routes port-20000 data to Dnp3Analyzer.
@@ -165,7 +165,7 @@ mod story_110 {
     fn test_tls_on_port_20000_routes_to_tls() {
         let dnp3 = Dnp3Analyzer::new(DNPXX_DIRECT_OPERATE_THRESHOLD_DEFAULT);
         let mut dispatcher =
-            StreamDispatcher::new(None, Some(TlsAnalyzer::new()), None, Some(dnp3));
+            StreamDispatcher::new(None, Some(TlsAnalyzer::new()), None, Some(dnp3), None);
         let key = flow_key(12345, 20000);
         // TLS ClientHello signature: Rule 1 must fire, not Rule 6.
         let tls_data = [0x16u8, 0x03, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00];
@@ -190,7 +190,7 @@ mod story_110 {
         use wirerust::analyzer::http::HttpAnalyzer;
         let dnp3 = Dnp3Analyzer::new(DNPXX_DIRECT_OPERATE_THRESHOLD_DEFAULT);
         let mut dispatcher =
-            StreamDispatcher::new(Some(HttpAnalyzer::new()), None, None, Some(dnp3));
+            StreamDispatcher::new(Some(HttpAnalyzer::new()), None, None, Some(dnp3), None);
         let key = flow_key(12345, 20000);
         let http_data = b"GET / HTTP/1.1\r\nHost: example.com\r\n\r\n";
         // Rule 2 fires (HTTP content) before Rule 6 (port 20000).
@@ -221,7 +221,7 @@ mod story_110 {
     #[test]
     fn test_early_exit_guard_includes_dnp3() {
         // All analyzers absent → early exit, no crash.
-        let mut dispatcher = StreamDispatcher::new(None, None, None, None);
+        let mut dispatcher = StreamDispatcher::new(None, None, None, None, None);
         let key = flow_key(12345, 20000);
         let data = minimal_dnp3_frame();
         // With all analyzers absent, on_data is a no-op. Must NOT panic.
@@ -242,7 +242,7 @@ mod story_110 {
     #[test]
     fn test_AC_003_early_exit_guard_does_not_fire_when_dnp3_is_some() {
         let dnp3 = Dnp3Analyzer::new(DNPXX_DIRECT_OPERATE_THRESHOLD_DEFAULT);
-        let mut dispatcher = StreamDispatcher::new(None, None, None, Some(dnp3));
+        let mut dispatcher = StreamDispatcher::new(None, None, None, Some(dnp3), None);
         // Port 9999 — no match, not port 20000 — but dnp3.is_some() so guard does NOT fire.
         let key = flow_key(12345, 9999);
         let data = [0xDE, 0xAD, 0xBE, 0xEF, 0x00, 0x00, 0x00, 0x00];
@@ -269,7 +269,7 @@ mod story_110 {
     #[test]
     fn test_take_dnp3_analyzer_moves_out() {
         let dnp3 = Dnp3Analyzer::new(DNPXX_DIRECT_OPERATE_THRESHOLD_DEFAULT);
-        let mut dispatcher = StreamDispatcher::new(None, None, None, Some(dnp3));
+        let mut dispatcher = StreamDispatcher::new(None, None, None, Some(dnp3), None);
 
         // Before take: accessor returns Some.
         assert!(
@@ -389,7 +389,7 @@ mod story_110 {
     #[test]
     fn test_threshold_0_fires_immediately() {
         let dnp3 = Dnp3Analyzer::new(0); // threshold=0 → any Control FC fires immediately
-        let mut dispatcher = StreamDispatcher::new(None, None, None, Some(dnp3));
+        let mut dispatcher = StreamDispatcher::new(None, None, None, Some(dnp3), None);
         let key = flow_key(54321, 20000);
 
         let (frame, ts) = dnp3_direct_operate_frame(1_700_000_000);
@@ -422,7 +422,7 @@ mod story_110 {
     #[test]
     fn test_threshold_max_never_fires() {
         let dnp3 = Dnp3Analyzer::new(u32::MAX); // threshold=u32::MAX → never fires
-        let mut dispatcher = StreamDispatcher::new(None, None, None, Some(dnp3));
+        let mut dispatcher = StreamDispatcher::new(None, None, None, Some(dnp3), None);
         let key = flow_key(54321, 20000);
 
         // Deliver 5 Control FC frames — even 5 < u32::MAX so no finding expected.
@@ -464,7 +464,7 @@ mod story_110 {
     fn test_threshold_echoed_in_t1692_summary() {
         let threshold = 3u32;
         let dnp3 = Dnp3Analyzer::new(threshold);
-        let mut dispatcher = StreamDispatcher::new(None, None, None, Some(dnp3));
+        let mut dispatcher = StreamDispatcher::new(None, None, None, Some(dnp3), None);
         let key = flow_key(54321, 20000);
 
         // Deliver threshold+1 = 4 Control FC frames to trigger the burst finding.
@@ -517,7 +517,7 @@ mod story_110 {
     fn test_threshold_default_10_echoed_in_t1692_summary() {
         let threshold = DNPXX_DIRECT_OPERATE_THRESHOLD_DEFAULT; // = 10
         let dnp3 = Dnp3Analyzer::new(threshold);
-        let mut dispatcher = StreamDispatcher::new(None, None, None, Some(dnp3));
+        let mut dispatcher = StreamDispatcher::new(None, None, None, Some(dnp3), None);
         let key = flow_key(54321, 20000);
 
         // Deliver threshold+1 = 11 Control FC frames within the detection window.
@@ -573,7 +573,7 @@ mod story_110 {
         // A port-502 flow must go to Modbus, not DNP3.
         let modbus = ModbusAnalyzer::new(20, 10);
         let dnp3 = Dnp3Analyzer::new(DNPXX_DIRECT_OPERATE_THRESHOLD_DEFAULT);
-        let mut dispatcher = StreamDispatcher::new(None, None, Some(modbus), Some(dnp3));
+        let mut dispatcher = StreamDispatcher::new(None, None, Some(modbus), Some(dnp3), None);
         let key = flow_key(12345, 502);
 
         // Valid Modbus ADU on port 502.
@@ -620,8 +620,8 @@ mod story_110 {
     #[test]
     fn test_none_is_rule_7_no_match() {
         let dnp3 = Dnp3Analyzer::new(DNPXX_DIRECT_OPERATE_THRESHOLD_DEFAULT);
-        let mut dispatcher =
-            StreamDispatcher::new(None, None, None, Some(dnp3)).with_max_classification_attempts(1);
+        let mut dispatcher = StreamDispatcher::new(None, None, None, Some(dnp3), None)
+            .with_max_classification_attempts(1);
         let key = flow_key(12345, 9999); // unknown port — no content match
         let data = [0xDE, 0xAD, 0xBE, 0xEF, 0x00, 0x00, 0x00, 0x00];
         dispatcher.on_data(&key, Direction::ClientToServer, &data, 0, 1_700_000_000);
@@ -635,20 +635,23 @@ mod story_110 {
     }
 
     // ---------------------------------------------------------------------------
-    // AC-010: VP-007 catalog state (seeded=23, emitted=15) — guard/state assertion
+    // AC-010: VP-007 — STORY-109/110-era subset resolution (seeded=23, emitted=15
+    // at that time; current catalogue is 28-seeded / 20-emitted per BC-2.10.008 v1.14)
     // ---------------------------------------------------------------------------
 
-    /// AC-010: VP-007 catalog state — all 23 seeded technique IDs resolve via public API
+    /// AC-010: VP-007 catalog — STORY-109/110-era subset of 23 seeded technique IDs
+    /// resolve via public API.
     ///
     /// This asserts the catalog state established by STORY-109. The test verifies
-    /// the constants are correct in the current codebase. It is expected to PASS
-    /// immediately (catalog state from prior story).
+    /// that the STORY-109/110-era seeded subset (a subset of the current 28-seeded /
+    /// 20-emitted catalogue per BC-2.10.008 v1.14) still resolves.
     ///
-    /// SEEDED: 23 (11 Enterprise + 12 ICS including T1691.001 + T0827 from STORY-109)
-    /// EMITTED: 15 (6 Enterprise + 9 ICS including T1692.001, T1691.001, T0827)
-    /// Difference: 23 - 15 = 8 seeded but not yet emitted.
-    /// T1691.001 present in SEEDED_TECHNIQUE_IDS (index 21).
-    /// T0827 present in SEEDED_TECHNIQUE_IDS (index 22).
+    /// STORY-109/110-era counts (historical reference only):
+    ///   SEEDED: 23 (11 Enterprise + 12 ICS including T1691.001 + T0827 from STORY-109)
+    ///   EMITTED: 15 (6 Enterprise + 9 ICS including T1692.001, T1691.001, T0827)
+    /// Current authoritative counts: SEEDED=28, EMITTED=20 (BC-2.10.008 v1.14).
+    /// T1691.001 present in SEEDED_TECHNIQUE_IDS (index 21 in the STORY-109 era).
+    /// T0827 present in SEEDED_TECHNIQUE_IDS (index 22 in the STORY-109 era).
     ///
     /// REACHABILITY NOTE (O-1 adversarial pass-1):
     ///   - `SEEDED_TECHNIQUE_IDS` is `#[cfg(any(kani, test))]` AND `const` (not `pub const`).
@@ -656,26 +659,23 @@ mod story_110 {
     ///   - `SEEDED_TECHNIQUE_ID_COUNT` has identical gating — also not reachable here.
     ///   - `EMITTED_IDS` is `#[cfg(kani)]`-only inside `kani_proofs` — not reachable from
     ///     any normal test binary.
-    ///     Therefore the literal count assertions `assert_eq!(SEEDED_TECHNIQUE_ID_COUNT, 23)`
-    ///     and `assert_eq!(EMITTED_IDS.len(), 15)` are NOT expressible in this integration
+    ///     Therefore the literal count assertions `assert_eq!(SEEDED_TECHNIQUE_ID_COUNT, 28)`
+    ///     and `assert_eq!(EMITTED_IDS.len(), 20)` are NOT expressible in this integration
     ///     test without modifying production code visibility.
     ///
-    ///   COUNT DELEGATION: The count invariants are enforced by the in-crate drift-guard
-    ///   tests in src/mitre.rs:
-    ///     - `vp007_catalog_drift_guard` asserts
-    ///       SEEDED_TECHNIQUE_IDS.len() == SEEDED_TECHNIQUE_ID_COUNT == 23.
-    ///     - The Kani proof `kani_proofs::verify_all_emitted_ids_resolve` asserts
-    ///       EMITTED_IDS.len() == 15 (reachable only under the kani harness).
+    ///   COUNT DELEGATION: The current count invariants are enforced by the in-crate
+    ///   drift-guard tests in src/mitre.rs (vp007_catalog_drift_guard) and
+    ///   enip_analyzer_tests.rs (test_seeded_count_is_28 / test_emitted_count_is_20).
     ///
     ///   STRENGTHENING (O-1 fix): Instead of checking a 5-ID representative sample,
-    ///   this test now exhaustively verifies ALL 23 seeded IDs resolve via the public
-    ///   API (`technique_name`, `technique_tactic`), and asserts the resolved count == 23.
-    ///   This is the maximum strength achievable from an integration-test crate given
-    ///   current visibility.
+    ///   this test exhaustively verifies all 23 STORY-109/110-era seeded IDs resolve
+    ///   via the public API (`technique_name`, `technique_tactic`), and asserts the
+    ///   resolved count == 23. This is the maximum strength achievable from an
+    ///   integration-test crate given current visibility.
     #[test]
-    fn test_vp007_seeded_23_emitted_15() {
-        // The full seeded list from src/mitre.rs (mirrored literally here so that any
-        // production-code deletion of an entry causes this test to fail immediately).
+    fn test_vp007_story110_seeded_and_emitted_subset_resolves() {
+        // STORY-109/110-era seeded subset mirrored here (23 IDs) — any production-code
+        // deletion of an entry causes this test to fail immediately.
         // Format: 11 Enterprise + 4 ICS pre-F2 + 6 ICS F2 (STORY-100) + 2 ICS STORY-109.
         let all_seeded_ids: &[&str] = &[
             // Enterprise (11)
@@ -707,12 +707,13 @@ mod story_110 {
             "T0827",
         ];
 
-        // Assert the mirror list itself has the expected count (catches copy-paste errors
-        // in this test's literal above, independent of any production constant).
+        // Assert the STORY-109/110-era subset mirror list has 23 entries (self-check on this
+        // test's literal, independent of any production constant).
         assert_eq!(
             all_seeded_ids.len(),
             23,
-            "AC-010 test internal: seeded-ID mirror list must have exactly 23 entries"
+            "AC-010 test internal: STORY-109/110-era seeded-subset mirror list must have \
+             23 entries (subset of the current 28-seeded catalogue per BC-2.10.008 v1.14)"
         );
 
         // Exhaustively verify every seeded ID resolves via the public API.
@@ -723,8 +724,8 @@ mod story_110 {
             assert!(
                 wirerust::mitre::technique_name(id).is_some(),
                 "AC-010: VP-007 seeded ID '{id}' must resolve via technique_name (got None); \
-                 SEEDED_TECHNIQUE_IDS count == 23 enforced by vp007_catalog_drift_guard in \
-                 src/mitre.rs"
+                 STORY-109/110-era subset of the 28-seeded catalogue per BC-2.10.008 v1.14; \
+                 current total enforced by vp007_catalog_drift_guard in src/mitre.rs"
             );
             assert!(
                 wirerust::mitre::technique_tactic(id).is_some(),
@@ -733,11 +734,13 @@ mod story_110 {
             resolved += 1;
         }
 
-        // Count assertion: all 23 seeded IDs must resolve (no silent loop-exit early).
+        // Count assertion: all 23 STORY-109/110-era subset IDs must resolve (no silent
+        // loop-exit early). This is a subset count, not the current catalogue total.
         assert_eq!(
             resolved, 23,
-            "AC-010: exactly 23 seeded IDs must resolve via technique_name/technique_tactic; \
-             got {resolved}"
+            "AC-010: all 23 STORY-109/110-era seeded-subset IDs must resolve via \
+             technique_name/technique_tactic (subset of the 28-seeded catalogue per \
+             BC-2.10.008 v1.14); got {resolved}"
         );
 
         // Spot-check: T1691.001 and T0827 are the STORY-109 VP-007 atomic obligation IDs.
@@ -765,8 +768,8 @@ mod story_110 {
     #[test]
     fn test_ec005_unknown_port_routes_to_none() {
         let dnp3 = Dnp3Analyzer::new(DNPXX_DIRECT_OPERATE_THRESHOLD_DEFAULT);
-        let mut dispatcher =
-            StreamDispatcher::new(None, None, None, Some(dnp3)).with_max_classification_attempts(1);
+        let mut dispatcher = StreamDispatcher::new(None, None, None, Some(dnp3), None)
+            .with_max_classification_attempts(1);
         let key = flow_key(12345, 12345); // unknown port, no content match
         let data = [0xAB, 0xCD, 0xEF, 0x01, 0x23, 0x45, 0x67, 0x89];
         dispatcher.on_data(&key, Direction::ClientToServer, &data, 0, 1_700_000_000);
@@ -792,7 +795,7 @@ mod story_110 {
         use wirerust::analyzer::modbus::ModbusAnalyzer;
         let modbus = ModbusAnalyzer::new(20, 10);
         let dnp3 = Dnp3Analyzer::new(DNPXX_DIRECT_OPERATE_THRESHOLD_DEFAULT);
-        let mut dispatcher = StreamDispatcher::new(None, None, Some(modbus), Some(dnp3));
+        let mut dispatcher = StreamDispatcher::new(None, None, Some(modbus), Some(dnp3), None);
         // src=502, dst=20000 — both ports present in the flow key
         let key = flow_key(502, 20000);
 
@@ -821,7 +824,7 @@ mod story_110 {
     #[test]
     fn test_ec007_dnp3_disabled_port_20000_flow_is_noop() {
         // No DNP3 analyzer — dnp3=None
-        let mut dispatcher = StreamDispatcher::new(None, None, None, None);
+        let mut dispatcher = StreamDispatcher::new(None, None, None, None, None);
         let key = flow_key(12345, 20000);
         let frame = minimal_dnp3_frame();
         // classify() reaches Rule 6 → returns Dnp3; on_data arm is no-op (None check).
@@ -863,7 +866,7 @@ mod story_110 {
     #[test]
     fn test_ec001_non_dnp3_content_on_port_20000_desync_bail() {
         let dnp3 = Dnp3Analyzer::new(DNPXX_DIRECT_OPERATE_THRESHOLD_DEFAULT);
-        let mut dispatcher = StreamDispatcher::new(None, None, None, Some(dnp3));
+        let mut dispatcher = StreamDispatcher::new(None, None, None, Some(dnp3), None);
         let key = flow_key(12345, 20000);
         // Data that starts with 0xAB 0xCD — NOT the DNP3 sync word [0x05, 0x64].
         let non_dnp3_data = [0xABu8, 0xCD, 0xEF, 0x01, 0x23, 0x45, 0x67, 0x89];
@@ -901,7 +904,7 @@ mod story_110 {
     #[test]
     fn test_ec002_multiple_frames_in_one_on_data_call() {
         let dnp3 = Dnp3Analyzer::new(DNPXX_DIRECT_OPERATE_THRESHOLD_DEFAULT);
-        let mut dispatcher = StreamDispatcher::new(None, None, None, Some(dnp3));
+        let mut dispatcher = StreamDispatcher::new(None, None, None, Some(dnp3), None);
         let key = flow_key(54321, 20000);
 
         // Two DIRECT_OPERATE frames concatenated in one on_data call.
@@ -930,7 +933,7 @@ mod story_110 {
     #[test]
     fn test_ec003_partial_frame_split_across_two_on_data_calls() {
         let dnp3 = Dnp3Analyzer::new(DNPXX_DIRECT_OPERATE_THRESHOLD_DEFAULT);
-        let mut dispatcher = StreamDispatcher::new(None, None, None, Some(dnp3));
+        let mut dispatcher = StreamDispatcher::new(None, None, None, Some(dnp3), None);
         let key = flow_key(54321, 20000);
 
         let (full_frame, _) = dnp3_direct_operate_frame(1_700_000_000);
@@ -993,7 +996,12 @@ mod story_110 {
         // Deliver threshold+1 = 4 frames to trigger the burst.
         // All at the same timestamp to stay within DETECTION_WINDOW_SECS.
         for _ in 0..=(threshold as usize) {
-            analyzer.on_data(key.clone(), &frame, 1_700_000_000);
+            analyzer.on_data(
+                key.clone(),
+                &frame,
+                1_700_000_000,
+                Direction::ClientToServer,
+            );
         }
 
         let has_t1692 = analyzer
@@ -1024,7 +1032,12 @@ mod story_110 {
 
         let (frame, _) = dnp3_direct_operate_frame(1_700_000_000);
         // ONE frame → count=1 > threshold=0 → should fire immediately.
-        analyzer.on_data(key.clone(), &frame, 1_700_000_000);
+        analyzer.on_data(
+            key.clone(),
+            &frame,
+            1_700_000_000,
+            Direction::ClientToServer,
+        );
 
         let has_t1692 = analyzer
             .all_findings
@@ -1055,7 +1068,12 @@ mod story_110 {
         let (frame, _) = dnp3_direct_operate_frame(1_700_000_000);
         // Deliver threshold+1 frames.
         for _ in 0..=(threshold as usize) {
-            analyzer.on_data(key.clone(), &frame, 1_700_000_000);
+            analyzer.on_data(
+                key.clone(),
+                &frame,
+                1_700_000_000,
+                Direction::ClientToServer,
+            );
         }
 
         let t1692_findings: Vec<_> = analyzer
@@ -1099,14 +1117,19 @@ mod story_110 {
         let (frame, _) = dnp3_direct_operate_frame(1_700_000_000);
 
         // First frame at ts=1_700_000_000 → seeds window_start_ts.
-        analyzer.on_data(key.clone(), &frame, 1_700_000_000);
+        analyzer.on_data(
+            key.clone(),
+            &frame,
+            1_700_000_000,
+            Direction::ClientToServer,
+        );
 
         // Second frame at ts=1_700_000_000 + DETECTION_WINDOW_SECS + 1 → window expired.
         // Counter resets to 1 (new window). Finding does NOT fire (count=1 <= threshold=2).
         let late_ts = 1_700_000_000u32
             .wrapping_add(DETECTION_WINDOW_SECS)
             .wrapping_add(1);
-        analyzer.on_data(key.clone(), &frame, late_ts);
+        analyzer.on_data(key.clone(), &frame, late_ts, Direction::ClientToServer);
 
         // No T1692.001 finding: the counter reset to 1 after window expiry.
         let has_t1692 = analyzer

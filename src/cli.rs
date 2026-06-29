@@ -226,6 +226,27 @@ pub enum Commands {
         // BC-2.16.013 / STORY-115
         #[arg(long, default_value_t = 50)]
         arp_storm_rate: u32,
+
+        /// Analyze EtherNet/IP TCP traffic (port 44818, requires stream reassembly).
+        /// Default-off; included by --all.
+        // BC-2.17.020
+        #[arg(long)]
+        enip: bool,
+
+        /// Per-flow write-burst threshold: fires T0836 when more than N write-class
+        /// requests are observed within any 1-second window. Default: 50.
+        /// 0 triggers detection on the very first write (1 > 0).
+        // BC-2.17.023 Invariant 1 (OA-001 RESOLVED=50)
+        #[arg(long, default_value_t = 50)]
+        enip_write_burst_threshold: u32,
+
+        /// Per-flow error-burst threshold: fires T0888 Pattern B when more than M
+        /// CIP error responses are observed in the detection window. Default: 5.
+        /// Strict >: with default 5, the 6th error fires T0888 Pattern B.
+        /// 0 triggers detection on the very first error (1 > 0).
+        // BC-2.17.026 Invariant 1 (default=5)
+        #[arg(long, default_value_t = 5)]
+        enip_error_burst_threshold: u32,
     },
 
     /// Generate a triage summary of PCAP files

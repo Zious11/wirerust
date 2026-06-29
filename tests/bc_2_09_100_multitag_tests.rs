@@ -267,14 +267,14 @@ fn test_BC_2_09_006_no_scalar_mitre_technique_key_in_json() {
 /// BC-2.10.005 postcondition 3, AC-005 (STORY-100):
 /// All 21 STORY-100-era seeded IDs return Some from technique_name. This test
 /// verifies the original 21-ID subset established at STORY-100 (11 Enterprise +
-/// 10 ICS); the current catalog contains 25 seeded IDs (STORY-109 added 2 ICS,
-/// STORY-114 added T0830 ICS + T1557.002 Enterprise). All 21 IDs in this test
-/// resolve in the current green catalog — the former 15-entry catalog limitation
-/// no longer applies.
+/// 10 ICS); the current catalog contains 28 seeded IDs (STORY-109 added 2 ICS,
+/// STORY-114 added T0830 ICS + T1557.002 Enterprise, STORY-133 added T0858/T0816/T1693.001).
+/// All 21 IDs in this test resolve in the current green catalog — the former
+/// 15-entry catalog limitation no longer applies.
 #[test]
 fn test_BC_2_10_005_technique_name_resolves_all_21_seeded_ids() {
     // BC-2.10.005 postcondition 3: the 21 STORY-100-era seeded IDs (11 Enterprise + 10 ICS),
-    // a stable subset of the current 25-entry catalog. All resolve to Some.
+    // a stable subset of the current 28-entry catalog. All resolve to Some.
     let all_21_seeded: &[&str] = &[
         // Enterprise (11) — STORY-100 era
         "T1027",
@@ -342,23 +342,25 @@ fn test_BC_2_10_005_technique_name_resolves_t0836_modify_parameter() {
 /// STORY-109 adds T1691.001 and T0827 (VP-007 atomic obligation), bringing the
 /// total from 21 (post-F2 / STORY-100) to 23.
 /// STORY-114 adds T0830 and T1557.002 (VP-007 ARP atomic obligation), bringing the
-/// total to 25.  The SEEDED_TECHNIQUE_ID_COUNT constant in src/mitre.rs must reflect
+/// total to 25.
+/// STORY-133 adds T0858, T0816, T1693.001 (VP-007 ENIP atomic obligation), bringing the
+/// total to 28. The SEEDED_TECHNIQUE_ID_COUNT constant in src/mitre.rs must reflect
 /// the current count.
 /// Verified via the vp007_catalog_drift_guard sweeping test, but this
 /// test directly reads the source constant so drift is caught immediately.
 ///
-/// Strict guard: asserts EXACTLY 25 — fails for 21, 23, 24, 26, or any other value.
-/// (Renamed from _is_21 which was a non-guard accepting 21/23/25 permissively.)
+/// Strict guard: asserts EXACTLY 28 — fails for 25, 26, 27, 29, or any other value.
+/// (Previously _is_25; updated in STORY-133 VP-007 ENIP atomic burst.)
 #[test]
-fn test_BC_2_10_005_seeded_technique_id_count_is_25() {
+fn test_BC_2_10_005_seeded_technique_id_count_is_28() {
     let src = std::fs::read_to_string("src/mitre.rs")
         .expect("src/mitre.rs must be readable from the worktree root");
     // Locate the exact const declaration line. The canonical form is:
-    //   const SEEDED_TECHNIQUE_ID_COUNT: usize = 25;
+    //   const SEEDED_TECHNIQUE_ID_COUNT: usize = 28;
     // We match only lines that start (after optional whitespace) with `const` and also
     // contain `SEEDED_TECHNIQUE_ID_COUNT`, so doc-comment lines are excluded.
-    // We assert the line contains `: usize = 25` (not a bare "25" substring)
-    // so the test fails if the value is anything other than 25.
+    // We assert the line contains `: usize = 28` (not a bare "28" substring)
+    // so the test fails if the value is anything other than 28.
     let decl_line = src.lines().find(|line| {
         let trimmed = line.trim_start();
         trimmed.starts_with("const ") && trimmed.contains("SEEDED_TECHNIQUE_ID_COUNT")
@@ -370,17 +372,17 @@ fn test_BC_2_10_005_seeded_technique_id_count_is_25() {
         )
     });
     assert!(
-        decl_line.contains(": usize = 25"),
-        "BC-2.10.005 invariant 3: SEEDED_TECHNIQUE_ID_COUNT must be exactly 25 in \
-         src/mitre.rs (21 post-F2/STORY-100 + 2 STORY-109 + 2 STORY-114 ARP additions: \
-         T0830, T1557.002). Found declaration: {decl_line:?}"
+        decl_line.contains(": usize = 28"),
+        "BC-2.10.005 invariant 3: SEEDED_TECHNIQUE_ID_COUNT must be exactly 28 in \
+         src/mitre.rs (21 post-F2/STORY-100 + 2 STORY-109 + 2 STORY-114 ARP + 3 STORY-133 ENIP \
+         additions: T0858, T0816, T1693.001). Found declaration: {decl_line:?}"
     );
-    // Negative guard: ensure no stale value (21, 23, 24, 26) appears on the same line.
-    for stale in ["= 21", "= 22", "= 23", "= 24", "= 26"] {
+    // Negative guard: ensure no stale value (21, 23, 24, 25, 26) appears on the same line.
+    for stale in ["= 21", "= 22", "= 23", "= 24", "= 25", "= 26", "= 27"] {
         assert!(
             !decl_line.contains(stale),
             "BC-2.10.005 invariant 3: SEEDED_TECHNIQUE_ID_COUNT declaration contains \
-             stale/wrong value ({stale}) — expected exactly 25. \
+             stale/wrong value ({stale}) — expected exactly 28. \
              Declaration: {decl_line:?}"
         );
     }
@@ -392,7 +394,7 @@ fn test_BC_2_10_005_seeded_technique_id_count_is_25() {
 
 /// BC-2.10.007 postcondition 2, AC-006 (STORY-100):
 /// All 21 STORY-100-era seeded IDs return the correct MitreTactic. This test
-/// covers the original 21-ID subset; the current catalog contains 25 seeded IDs.
+/// covers the original 21-ID subset; the current catalog contains 28 seeded IDs.
 /// F5 correctness fix applied: ICS techniques use correct ICS-matrix variants.
 #[test]
 fn test_BC_2_10_007_technique_tactic_correct_for_all_21_seeded_ids() {
@@ -479,17 +481,20 @@ fn test_BC_2_10_007_t0814_maps_to_ics_inhibit_response_function() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// BC-2.10.008: all 13 emitted IDs resolve in lookup (VP-007)
+// BC-2.10.008: STORY-100-era 13-ID subset resolves in lookup (VP-007)
+// (Historical subset test — current catalogue is 28-seeded / 20-emitted per
+// BC-2.10.008 v1.14; the 13 IDs here are the STORY-100-era emitted subset.)
 // ─────────────────────────────────────────────────────────────────────────────
 
 /// BC-2.10.008 postcondition 1, AC-007 (STORY-100):
-/// All 13 currently-emitted distinct IDs resolve to Some from both lookup functions.
-/// Fails today for the 7 new ICS emitted IDs.
+/// The 13 STORY-100-era emitted IDs (a subset of the current 20-ID emitted set
+/// per BC-2.10.008 v1.14) resolve to Some from both lookup functions.
 ///
 /// Exercises VP-007 (catalog completeness for emitted IDs).
 #[test]
 fn test_BC_2_10_008_all_emitted_ids_resolve_in_lookup() {
-    // BC-2.10.008 postcondition 1: 6 Enterprise + 7 ICS = 13 emitted IDs.
+    // BC-2.10.008 postcondition 1: 6 Enterprise + 7 ICS = 13 STORY-100-era emitted IDs
+    // (subset of the current 20-ID emitted set per BC-2.10.008 v1.14).
     // Sources: grep -rn 'mitre_techniques: vec!' src/ (post-migration)
     //   src/analyzer/tls.rs          — T1027
     //   src/analyzer/http.rs         — T1083, T1505.003, T1046, T1499.002
@@ -516,7 +521,8 @@ fn test_BC_2_10_008_all_emitted_ids_resolve_in_lookup() {
     assert_eq!(
         emitted_ids.len(),
         13,
-        "BC-2.10.008 inv1: there must be exactly 13 currently-emitted distinct IDs post-F2"
+        "BC-2.10.008 inv1: this STORY-100-era subset vector must have exactly 13 entries \
+         (a subset of the current 20-ID emitted set per BC-2.10.008 v1.14)"
     );
     for id in emitted_ids {
         assert!(
@@ -532,35 +538,72 @@ fn test_BC_2_10_008_all_emitted_ids_resolve_in_lookup() {
     }
 }
 
-/// BC-2.10.008 invariant 4 (T0846 seeded but NOT emitted):
-/// T0846 resolves from lookup (it is seeded) but does NOT appear in EMITTED_IDS.
-/// This test verifies the seeded-but-not-emitted distinction is maintained.
+/// BC-2.10.008 invariant 4 (T0846 promoted to EMITTED; T1693.001 seeded-only):
+/// STORY-133 (ADR-010 Decision 7 Step 4) promoted T0846 from seeded-only into
+/// EMITTED_IDS (20 IDs total). T1693.001 IS seeded (resolves) but is NOT in
+/// EMITTED_IDS — it is staged-only for v0.12.0.
+///
+/// The EMITTED_IDS array is read from src/mitre.rs by locating `const EMITTED_IDS`
+/// and slicing to the matching `];` that closes the array (not the first `;`,
+/// which can fall inside an inline comment and produce a vacuous slice).
+/// All ID checks use the quoted literal form (`"T0846"`, not bare `T0846`) so a
+/// mention of an ID in a comment (e.g. "T1693.001 NOT here") cannot produce a
+/// false positive.
 #[test]
-fn test_BC_2_10_008_t0846_seeded_but_not_in_emitted_set() {
-    // T0846 must still resolve (seeded).
+fn test_BC_2_10_008_t0846_promoted_to_emitted_t1693_001_seeded_only() {
+    // Part 1 — T0846 must still resolve (it was seeded before and remains seeded).
     assert_eq!(
         technique_name("T0846"),
         Some("Remote System Discovery"),
-        "T0846 must remain seeded in technique_info (catalogued for future use)"
+        "BC-2.10.008 inv4: T0846 must remain seeded in technique_info (STORY-133 promotion)"
     );
-    // T0846 must NOT be in the Kani EMITTED_IDS constant.
-    // Verified by reading the source (the Kani module lists them as a const).
-    let src = std::fs::read_to_string("src/mitre.rs")
-        .expect("src/mitre.rs must be readable from the worktree root");
-    // Find the EMITTED_IDS block. It should contain T0888 but NOT T0846.
-    // Locate the EMITTED_IDS const in the kani_proofs module.
-    let emitted_block_start = src.find("EMITTED_IDS").unwrap_or(0);
+
+    // Part 2 — T1693.001 must resolve (seeded in STORY-133 VP-007 Step 1).
+    assert!(
+        technique_name("T1693.001").is_some(),
+        "BC-2.10.008 inv4: T1693.001 must be seeded in technique_info (VP-007 Step 1, staged catalog entry)"
+    );
+
+    // Part 3 — Source-level guard on EMITTED_IDS content.
+    // Slice from `const EMITTED_IDS` to the matching `];` that closes the array.
+    // Using `];` (not bare `;`) avoids stopping inside inline comments such as
+    // "// STORY-109 (2) — VP-007 atomic obligation; implemented in STORY-109."
+    //
+    // Path anchored to CARGO_MANIFEST_DIR (SEC-004) so the test is cwd-independent.
+    let manifest_dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    let src = std::fs::read_to_string(manifest_dir.join("src/mitre.rs"))
+        .expect("src/mitre.rs must be readable (anchored to CARGO_MANIFEST_DIR)");
+    let emitted_block_start = src
+        .find("const EMITTED_IDS")
+        .expect("src/mitre.rs must contain `const EMITTED_IDS` (kani_proofs module)");
     let emitted_block = &src[emitted_block_start..];
-    // Find the closing semicolon of the array.
-    let end = emitted_block.find(';').unwrap_or(emitted_block.len());
-    let emitted_block = &emitted_block[..end];
+    let end = emitted_block
+        .find("];")
+        .expect("EMITTED_IDS array must be closed by `];`");
+    let emitted_block = &emitted_block[..end + 2]; // include the `];`
+
+    // All positive/negative checks use the quoted form ("T0888", "T0846") to match
+    // string literals in the array, not bare substrings that could appear in comments.
+    // T0888: Modbus recon emitter — must be present (pre-STORY-133 baseline).
     assert!(
-        emitted_block.contains("T0888"),
-        "BC-2.10.008 EC-013 / Decision 12: T0888 must appear in EMITTED_IDS (Modbus recon emitter)"
+        emitted_block.contains("\"T0888\""),
+        "BC-2.10.008 EC-013 / Decision 12: T0888 must appear in EMITTED_IDS as a literal \
+         entry (Modbus recon emitter)"
     );
+    // T0846: promoted from seeded-only to emitted in STORY-133 (ADR-010 Decision 7 Step 4).
     assert!(
-        !emitted_block.contains("T0846"),
-        "BC-2.10.008 invariant 4: T0846 must NOT appear in EMITTED_IDS (seeded only, not emitted)"
+        emitted_block.contains("\"T0846\""),
+        "BC-2.10.008 inv4: T0846 must appear in EMITTED_IDS as a literal entry — promoted \
+         from seeded-only in STORY-133 (ADR-010 Decision 7 Step 4; BC-2.17.010)"
+    );
+    // T1693.001: staged-only for v0.11.0 — must NOT be in EMITTED_IDS as a literal.
+    // The array block does contain T1693.001 in a comment ("T1693.001 NOT here"),
+    // so we check for the quoted string literal `"T1693.001"` (i.e., as an array entry),
+    // not a bare substring, to avoid a false positive from the comment text.
+    assert!(
+        !emitted_block.contains("\"T1693.001\""),
+        "BC-2.10.008 inv4: T1693.001 must NOT appear in EMITTED_IDS as a literal entry — \
+         staged-only for v0.12.0 (ADR-010 Decision 7; VP-007 Step 4)"
     );
 }
 

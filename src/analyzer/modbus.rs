@@ -109,9 +109,11 @@ pub const EXCEPTION_WINDOW_SECS: u32 = 10;
 
 /// Per-flow Modbus analyzer state — authoritative field list (STORY-103, f2-fix-directives §11.4).
 ///
-/// All window-duration arithmetic MUST use `wrapping_sub` on the u32 timestamps
-/// (f2-fix-directives §11.5b) — even though no window timers fire in STORY-103, the
-/// fields are initialized here so STORY-104 detection logic can write to them.
+/// All window-duration arithmetic uses `saturating_sub` on the u32 timestamps
+/// (RULING-MODBUS-SIBLING-001 §2.3 — replaces wrapping_sub per f2-fix-directives §11.5b).
+/// Under saturating_sub, backwards-clock packets (out-of-order pcap delivery or
+/// adversarial injection) produce elapsed=0, preserving burst accumulation rather than
+/// triggering a spurious window reset. See RULING-MODBUS-SIBLING-001 §2.2.
 ///
 /// `duplicate_inflight_txn` is intentionally on `ModbusAnalyzer` (NOT here) per
 /// BC-2.14.009 invariant 6 — it is an analyzer-level diagnostic counter.
@@ -153,21 +155,22 @@ pub struct ModbusFlowState {
     /// All subsequent `on_data` calls bail immediately without parsing.
     pub is_non_modbus: bool,
 
-    // --- TCP reassembly carry buffer (F-105-001 partial-ADU buffering fix) ---
-    /// Bytes left over from a prior `on_data` call that form an incomplete ADU.
+    // --- TCP reassembly carry buffers (STORY-141 per-direction split, AC-141-001) ---
+    /// Bytes left over from a prior `on_data` call (ClientToServer direction) that form
+    /// an incomplete ADU.
     ///
-    /// The reassembler delivers each contiguous TCP segment as a separate `on_data`
-    /// call; a Modbus ADU (6-byte MBAP prefix + variable PDU) can span two segments.
-    /// On every call we prepend `carry` to the incoming data before the walk loop.
-    /// When the walk loop cannot find a full ADU in `remaining`, the tail is stashed
-    /// here for the next call.
+    /// Split from the former single `carry` field (DRIFT-MODBUS-DIRECTION-001 fix).
+    /// `carry_c2s` holds only partial ADUs from the TCP client (master → device).
+    /// Each directional carry is independently bounded at `MAX_ADU_CARRY_BYTES` (260 bytes).
+    /// `is_non_modbus` is latched if EITHER directional carry cap overflows.
+    pub carry_c2s: Vec<u8>,
+    /// Bytes left over from a prior `on_data` call (ServerToClient direction) that form
+    /// an incomplete ADU.
     ///
-    /// Bounded by `MAX_ADU_CARRY_BYTES` (260 bytes, one max ADU): the guard checks the
-    /// cumulative total (`carry.len() + remaining.len()`) before each stash, so the cap
-    /// holds regardless of how many partial stash points exist in the parse loop. When
-    /// the guard trips we set `is_non_modbus = true` and bail, preventing unbounded
-    /// memory growth on a malicious never-completing stream (DoS guard).
-    pub carry: Vec<u8>,
+    /// `carry_s2c` holds only partial ADUs from the TCP server (device → master).
+    /// Each directional carry is independently bounded at `MAX_ADU_CARRY_BYTES` (260 bytes).
+    /// `is_non_modbus` is latched if EITHER directional carry cap overflows.
+    pub carry_s2c: Vec<u8>,
 }
 
 impl ModbusFlowState {
@@ -330,8 +333,8 @@ impl ModbusAnalyzer {
     /// through `StreamHandler::on_data` (threading sub-second precision is a future
     /// enhancement, out of scope for v0.4.0). All detectors operate at 1-second resolution.
     ///
-    /// All window elapsed computations use `now_ts.wrapping_sub(window_start_ts)` per
-    /// f2-fix-directives §11.5b.
+    /// All window elapsed computations use `now_ts.saturating_sub(window_start_ts)` per
+    /// RULING-MODBUS-SIBLING-001 §2.2 (replaces wrapping_sub per f2-fix-directives §11.5b).
     #[allow(clippy::too_many_arguments)] // 8 params: interface dictated by STORY-105 wiring (FlowKey, flow state, direction, header, fc, raw data, timestamp)
     pub fn process_pdu(
         &mut self,
@@ -528,10 +531,12 @@ impl ModbusAnalyzer {
                         // -------------------------------------------------------
                         let mut emit_t0831 = false;
                         if is_register_write {
-                            // Check if window has expired (wrapping_sub).
+                            // Check if window has expired (saturating_sub).
                             // F-DELTA-001: timestamp is in SECONDS; compare directly against
                             // T0831_WINDOW_SECS (5 seconds). No * 1_000_000 scaling.
-                            let t0831_elapsed = timestamp.wrapping_sub(flow.t0831_window_start_ts);
+                            // saturating_sub: backwards-clock → elapsed=0 → no spurious reset.
+                            let t0831_elapsed =
+                                timestamp.saturating_sub(flow.t0831_window_start_ts);
                             if t0831_elapsed > T0831_WINDOW_SECS {
                                 // Window expired → reset.
                                 flow.t0831_window_start_ts = timestamp;
@@ -587,12 +592,13 @@ impl ModbusAnalyzer {
 
                         // -------------------------------------------------------
                         // Burst detector: 1-second window (BC-2.14.017 Invariant 1)
-                        // Update window FIRST, then check threshold (wrapping_sub).
+                        // Update window FIRST, then check threshold (saturating_sub).
                         // -------------------------------------------------------
                         {
                             // F-DELTA-001: timestamp is in SECONDS; compare directly against
                             // WRITE_BURST_WINDOW_SECS (1 second). No * 1_000_000 scaling.
-                            let burst_elapsed = timestamp.wrapping_sub(flow.window_start_ts);
+                            // saturating_sub: backwards-clock → elapsed=0 → no spurious reset.
+                            let burst_elapsed = timestamp.saturating_sub(flow.window_start_ts);
                             if burst_elapsed > WRITE_BURST_WINDOW_SECS {
                                 // Window expired → slide forward.
                                 flow.window_start_ts = timestamp;
@@ -666,8 +672,11 @@ impl ModbusAnalyzer {
                             } else {
                                 // Accumulate first (update-before-check).
                                 flow.sustained_window_write_count += 1;
+                                // saturating_sub: backwards-clock → elapsed=0 → no spurious reset.
+                                // `>=` operator is INTENTIONAL (RULING-MODBUS-SIBLING-001 §2.3):
+                                // sustained window fires ON the 2-second mark (minimum-duration gate).
                                 let elapsed_secs =
-                                    timestamp.wrapping_sub(flow.sustained_window_start_ts);
+                                    timestamp.saturating_sub(flow.sustained_window_start_ts);
 
                                 // Check trigger: elapsed >= 2s AND rate exceeded AND not emitted.
                                 // Truncation-free (seconds form): count > threshold * elapsed_secs
@@ -814,10 +823,11 @@ impl ModbusAnalyzer {
                     let exc_code = if data.len() >= 9 { data[8] } else { 0xFF };
 
                     // Per-exception-code burst window (BC-2.14.019).
-                    // wrapping_sub for all elapsed computations (f2-fix-directives §11.5b).
+                    // saturating_sub: backwards-clock → elapsed=0 → no spurious reset.
+                    // RULING-MODBUS-SIBLING-001 §2.2 (replaces wrapping_sub).
                     // CRITICAL: use unwrap_or(timestamp) so new codes get 0 elapsed on first
                     // occurrence, NOT an anchor — the anchor must be inserted in the else branch.
-                    let exc_elapsed = timestamp.wrapping_sub(
+                    let exc_elapsed = timestamp.saturating_sub(
                         *flow
                             .exception_window_start_ts
                             .get(&exc_code)
@@ -994,12 +1004,15 @@ impl StreamHandler for ModbusAnalyzer {
     ///   - The second segment's bytes to be misparsed as a fresh ADU
     ///   - Silent corruption / parse_errors / premature `is_non_modbus` disable
     ///
-    /// The fix: prepend `flow.carry` to `data` before the walk loop. When the walk
-    /// loop encounters incomplete data (< 8 bytes for MBAP header, or < `adu_len` bytes
-    /// for a full ADU), stash the remainder into `flow.carry` and break. On the next
-    /// call the carry is prepended again, completing the ADU.
+    /// The fix: select `active_carry` by `direction` (`carry_c2s` for C→S,
+    /// `carry_s2c` for S→C) and prepend it to `data` before the walk loop
+    /// (RULING-MODBUS-SIBLING-001 §1.2 — per-direction carry, STORY-141 EC-X1).
+    /// When the walk loop encounters incomplete data (< 8 bytes for MBAP header,
+    /// or < `adu_len` bytes for a full ADU), stash the remainder into the same
+    /// directional carry and break. On the next call the directional carry is
+    /// prepended again, completing the ADU.
     ///
-    /// DoS guard: the cumulative carry total (`flow.carry.len() + remaining.len()`) is
+    /// DoS guard: the cumulative carry total (`active_carry.len() + remaining.len()`) is
     /// checked against `MAX_ADU_CARRY_BYTES` (260 bytes, one maximum Modbus ADU) before
     /// any stash. Using the cumulative form means the cap is enforceable regardless of
     /// how many partial stash points exist in the loop body. When the guard trips the
@@ -1035,25 +1048,31 @@ impl StreamHandler for ModbusAnalyzer {
             return;
         }
 
+        // STORY-141 [EC-X1]: per-direction carry routing (RULING-MODBUS-SIBLING-001 §1.2).
+        // Select the active carry buffer by direction — c2s and s2c partial ADUs are
+        // accumulated independently and never spliced across directions.
         // F-105-001: Prepend carry buffer to incoming data so partial ADUs that
         // spanned two TCP segments are completed before the walk loop runs.
         // We build a combined buffer only when carry is non-empty to avoid an
         // allocation on the common (carry-empty) fast path.
+        let active_carry = match direction {
+            Direction::ClientToServer => &mut flow.carry_c2s,
+            Direction::ServerToClient => &mut flow.carry_s2c,
+        };
         let combined: Vec<u8>;
-        let buf: &[u8] = if flow.carry.is_empty() {
+        let buf: &[u8] = if active_carry.is_empty() {
             data
         } else {
-            combined = flow
-                .carry
+            combined = active_carry
                 .iter()
                 .copied()
                 .chain(data.iter().copied())
                 .collect();
             &combined
         };
-        // Clear the carry — it is now folded into `buf`. Any unconsumed tail will
-        // be re-stashed at the end of the loop.
-        flow.carry.clear();
+        // Clear the active directional carry — it is now folded into `buf`. Any
+        // unconsumed tail will be re-stashed at the end of the loop.
+        active_carry.clear();
 
         // Walk the buffer: parse and dispatch each ADU in the chunk.
         // Modbus TCP ADU layout: 6-byte MBAP prefix + PDU (length-1 bytes of FC+data).
@@ -1077,11 +1096,22 @@ impl StreamHandler for ModbusAnalyzer {
                     // point in the same loop body, the cap still holds. When the guard
                     // trips, mark the flow non-Modbus and bail so the carry never grows
                     // unboundedly on a malicious never-completing stream.
-                    if flow.carry.len() + remaining.len() > MAX_ADU_CARRY_BYTES {
+                    // STORY-141 [EC-X1]: route stash to the active directional carry.
+                    let dir_carry = match direction {
+                        Direction::ClientToServer => &mut flow.carry_c2s,
+                        Direction::ServerToClient => &mut flow.carry_s2c,
+                    };
+                    // UNREACHABLE in the current clear-then-stash structure (RULING-MODBUS-SIBLING-001
+                    // addendum, mirrors ENIP RULING-137-002): active_carry was cleared at the top of
+                    // on_data, so dir_carry.len()==0 here; max operand is 7 (remaining < 8), never
+                    // > 260 = MAX_ADU_CARRY_BYTES. Retained as defensive future-proofing against a
+                    // refactor that adds an earlier stash point in the same on_data call.
+                    // cargo-mutants survivors here are EQUIVALENT.
+                    if dir_carry.len() + remaining.len() > MAX_ADU_CARRY_BYTES {
                         flow.is_non_modbus = true;
                         self.parse_errors += 1;
                     } else {
-                        flow.carry.extend_from_slice(remaining);
+                        dir_carry.extend_from_slice(remaining);
                     }
                     break;
                 }
@@ -1097,9 +1127,10 @@ impl StreamHandler for ModbusAnalyzer {
                 //      a real Modbus device would never emit such a frame. Latching
                 //      is_non_modbus prevents per-chunk re-scan (matching behavior of the
                 //      protocol_id case) and stops parse_errors inflation on subsequent
-                //      calls. Also clears carry so no partial state lingers.
+                //      calls. Also clears both directional carries so no partial state lingers.
                 flow.is_non_modbus = true;
-                flow.carry.clear();
+                flow.carry_c2s.clear();
+                flow.carry_s2c.clear();
                 self.parse_errors += 1;
                 break; // Cannot safely advance: length field is invalid.
             }
@@ -1117,11 +1148,22 @@ impl StreamHandler for ModbusAnalyzer {
                 // cumulative form is future-proof against refactors that might add
                 // earlier stash points, and makes the documented contract enforceable:
                 // total bytes in carry never exceeds one max ADU (260 bytes).
-                if flow.carry.len() + remaining.len() > MAX_ADU_CARRY_BYTES {
+                // STORY-141 [EC-X1]: route stash to the active directional carry.
+                let dir_carry = match direction {
+                    Direction::ClientToServer => &mut flow.carry_c2s,
+                    Direction::ServerToClient => &mut flow.carry_s2c,
+                };
+                // UNREACHABLE in the current clear-then-stash structure (RULING-MODBUS-SIBLING-001
+                // addendum, mirrors ENIP RULING-137-002): active_carry was cleared at the top of
+                // on_data, so dir_carry.len()==0 here; max operand is 259 (remaining < adu_len <=
+                // 260), never > 260 = MAX_ADU_CARRY_BYTES. Retained as defensive future-proofing
+                // against a refactor that adds an earlier stash point in the same on_data call.
+                // cargo-mutants survivors here are EQUIVALENT.
+                if dir_carry.len() + remaining.len() > MAX_ADU_CARRY_BYTES {
                     flow.is_non_modbus = true;
                     self.parse_errors += 1;
                 } else {
-                    flow.carry.extend_from_slice(remaining);
+                    dir_carry.extend_from_slice(remaining);
                 }
                 break;
             }
@@ -1141,7 +1183,7 @@ impl StreamHandler for ModbusAnalyzer {
             pos += adu_len;
         }
 
-        // Re-insert the (possibly mutated) flow state (with updated carry).
+        // Re-insert the (possibly mutated) flow state (with updated carry_c2s/carry_s2c).
         self.flows.insert(flow_key.clone(), flow);
     }
 
