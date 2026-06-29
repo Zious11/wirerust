@@ -7,7 +7,7 @@ status: complete
 current_step: "IDLE — v0.11.0 released; awaiting human direction on v0.12.0 scope"
 pipeline: FEATURE-MODE
 current_cycle: feature-enip-v0.11.0
-timestamp: 2026-06-29T13:00:00Z
+timestamp: 2026-06-29T14:20:00Z
 
 # Release chain (latest)
 released_version: v0.11.0
@@ -21,7 +21,7 @@ prior_released_at: "2026-06-24"
 
 # Ground-truth HEADs (verified 2026-06-29 via git rev-parse)
 main_head: 3072e8287b9f7e6621740b6e31f04ae57914d0b9
-develop_head: ab0b3883b8bc942d7d11bacb0e8b2387ecb2b4c0
+develop_head: a2d8c13ff9e23f49d5ab93ab6453da4442658bcc
 factory_artifacts_head: d67eb274d9d5900b68a26180399d7b8aaccb6ce5
 
 # Cargo.toml version on main and develop
@@ -70,13 +70,13 @@ maintenance_completed_at: "2026-06-23"
 
 **PIPELINE IDLE — v0.11.0 RELEASED (D-300, 2026-06-29). Nothing in flight.**
 
-- v0.11.0 released: release PR #337 squash-merged → main `3072e828`. Annotated tag `v0.11.0` pushed. GitHub release published (marked Latest). develop synced via PR #338 → `ecbcd268`; then PRs #339+#340 (CHANGELOG corrections) landed → develop now at `ab0b388`.
-- main + develop both carry Cargo.toml version `0.11.0`. All 11 CI checks green.
+- v0.11.0 released: release PR #337 squash-merged → main `3072e828`. Annotated tag `v0.11.0` pushed. GitHub release published (marked Latest). develop synced via PR #338 → `ecbcd268`; then PRs #339+#340 (CHANGELOG corrections) landed → `ab0b388`.
+- Dependabot triage DONE (D-302, 2026-06-29): PR #325 (softprops/action-gh-release 3.0.1) squash-merged `a715437`; PR #311 (actions/checkout v7.0.0, major) squash-merged `a2d8c13`. develop now at `a2d8c13`. main unchanged at `3072e828`.
+- main + develop both carry Cargo.toml version `0.11.0`. All CI checks green.
 - crates.io publish: declined by human — not published.
 - Cycle `feature-enip-v0.11.0` CLOSED (D-300). All four EC-X1/EC-X2 fixes shipped: ENIP (STORY-139, PR #334), DNP3 EC-X1/X2 (STORY-140, PR #335), Modbus EC-X1/X2 (STORY-141, PR #336), DNP3 desync-latch (STORY-142, PR #336).
 - stories_delivered = 91. STORY-INDEX v3.2 (96 stories total; STORY-143 draft added for v0.12.0).
-- No open PRs requiring action (only Dependabot #311 and #325 pending human triage).
-- Two stale scratch worktrees on disk (`.worktrees/enip-edgecase-verify`, `.worktrees/enip-f6-hardening`) — safe to remove; no active work.
+- No open PRs requiring action. Two stale scratch worktrees on disk (`.worktrees/enip-edgecase-verify`, `.worktrees/enip-f6-hardening`) — safe to remove; no active work.
 
 **ONE OPEN HUMAN QUESTION (D-301):**
 Should the corrected complete `[0.11.0]` CHANGELOG entry be fast-tracked onto `main` now (via a docs-only PR), or left to ride to the next gitflow back-merge at v0.12.0 release time? The complete entry is on develop (`ab0b388`). main currently has the original short v0.11.0 entry. No functional impact either way. **Awaiting human answer — not yet received.**
@@ -85,7 +85,7 @@ Should the corrected complete `[0.11.0]` CHANGELOG entry be fast-tracked onto `m
 
 1. Run `vsdd-factory:factory-worktree-health` — PASS required before proceeding.
 2. Read `.factory/STATE.md` (this file).
-3. Verify: `git rev-parse origin/main` = `3072e8287b9f7e6621740b6e31f04ae57914d0b9`; `git rev-parse origin/develop` = `ab0b3883b8bc942d7d11bacb0e8b2387ecb2b4c0`; `git tag -l v0.11.0` exists.
+3. Verify: `git rev-parse origin/main` = `3072e8287b9f7e6621740b6e31f04ae57914d0b9`; `git rev-parse origin/develop` = `a2d8c13ff9e23f49d5ab93ab6453da4442658bcc`; `git tag -l v0.11.0` exists.
 4. Pipeline is IDLE. Re-surface the open human question (main CHANGELOG fast-track y/n) if unanswered.
 5. Next work: v0.12.0 planning — start with research-agent validation of TLS ClientHello fragmentation finding (CRIT candidate, see backlog below).
 
@@ -108,7 +108,7 @@ Should the corrected complete `[0.11.0]` CHANGELOG entry be fast-tracked onto `m
 | Mode | feature (post-greenfield) |
 | Version | 0.11.0 (released) |
 | Main HEAD | `3072e828` (full: `3072e8287b9f7e6621740b6e31f04ae57914d0b9`) |
-| Develop HEAD | `ab0b388` (full: `ab0b3883b8bc942d7d11bacb0e8b2387ecb2b4c0`) |
+| Develop HEAD | `a2d8c13` (full: `a2d8c13ff9e23f49d5ab93ab6453da4442658bcc`) |
 | Tag v0.11.0 | commit `3072e828`; tag object `c50d89e8` |
 | GitHub release | https://github.com/Zious11/wirerust/releases/tag/v0.11.0 (Latest, not draft) |
 | Factory artifacts HEAD | `d67eb274` |
@@ -151,6 +151,7 @@ Should the corrected complete `[0.11.0]` CHANGELOG entry be fast-tracked onto `m
 | Wave-64 PR #336 merged | DONE (D-299, 2026-06-28) | develop `a13b5c5`; stories_delivered=91 |
 | v0.11.0 release | DONE (D-300, 2026-06-29) | main `3072e828`; tag pushed; GitHub release Latest |
 | Post-release CHANGELOG corrections | DONE (D-301, 2026-06-29) | PR #339 + #340; develop `ab0b388` |
+| Dependabot triage #325 + #311 | DONE (D-302, 2026-06-29) | PR #325 `a715437`, PR #311 `a2d8c13`; develop `a2d8c13` |
 | Pipeline IDLE | **CURRENT** | Awaiting human direction on v0.12.0 scope |
 
 ---
@@ -169,6 +170,7 @@ D-228..D-301: `cycles/feature-enip-v0.11.0/decisions-archive.md`
 |----|----------|------|
 | D-300 | v0.11.0 RELEASED. PR #337 squash→main `3072e828`. Tag v0.11.0 pushed. GitHub release published (Latest). develop synced PR #338 `ecbcd268`. crates.io: not published (human declined). Cycle CLOSED. | 2026-06-29 |
 | D-301 | POST-RELEASE: v0.11.0 CHANGELOG corrected (PRs #339+#340; develop `ab0b388`). GitHub release notes updated (40 ENIP/MITRE markers confirmed). STORY-143 (draft, E-11) created. STORY-INDEX v3.2 (96 stories). main CHANGELOG will catch up on next gitflow back-merge. Open question: fast-track main CHANGELOG now vs wait — not yet answered. | 2026-06-29 |
+| D-302 | Dependabot triage: PRs #325 (softprops/action-gh-release 3.0.0→3.0.1, squash-merged 14:10:55Z, merge commit `a715437`) and #311 (actions/checkout 6.0.3→7.0.0 major, squash-merged 14:14:34Z, merge commit `a2d8c13`) merged to develop after 7-day soak verification per .github/dependabot.yml cooldown policy (#311: 11-day soak). CI 22/22 green on both. SHA-pinning preserved. No breaking impact (plain checkout usage, not fork pull_request_target pattern). develop now `a2d8c13`. Human-approved merge. | 2026-06-29 |
 
 ---
 
@@ -201,8 +203,8 @@ D-228..D-301: `cycles/feature-enip-v0.11.0/decisions-archive.md`
 | DNP3-DOC-COMMENT-STALE-ACTIVE-CARRY | [NIT] Stale doc comment in src/analyzer/dnp3.rs referencing old `active_carry!` pattern. Doc-only. DF-VALIDATION-001-gated. | NIT | v0.12.0 |
 | MODBUS-DEBUG-ASSERT-CARRY-CLEAR | [SEC-002 LOW] Add `debug_assert!(dir_carry.is_empty())` after carry clear in modbus.rs. Defensive correctness. DF-VALIDATION-001-gated. | LOW | v0.12.0 |
 | PROCESS-WATCH: false-structurally-killed claim | "False structurally-killed mutation claim" gap hit 2 consecutive waves (63+64). A 3rd triggers DF-ADVERSARY-TOOLCHAIN-PAIRING-001 policy-text update. | PROCESS | Watch |
-| DEPENDABOT-311 | PR #311 (actions/checkout 6.0.3→7.0.0) unreviewed. | LOW | Awaiting human triage |
-| DEPENDABOT-325 | PR #325 (softprops/action-gh-release 3.0.0→3.0.1) unreviewed. | LOW | Awaiting human triage |
+| DEPENDABOT-311 | PR #311 (actions/checkout 6.0.3→7.0.0 major). | LOW | MERGED 2026-06-29 (D-302, merge commit `a2d8c13`) |
+| DEPENDABOT-325 | PR #325 (softprops/action-gh-release 3.0.0→3.0.1). | LOW | MERGED 2026-06-29 (D-302, merge commit `a715437`) |
 | ENIP-CARRY-CAP-V0.12.0-REDESIGN | BC-2.17.016 PC-4 carry-overflow cap is unreachable dead code (RULING-137-002). v0.12.0 redesign should make reachable or remove. Mirrors MODBUS-CARRY-CAP. | BACKLOG | v0.12.0 |
 | F6-MUTANTS-FULL-RUN | Confirm 0-missed on full 241-mutant run for ENIP (21 caught/0 missed at F6 gate — confirm at F7). | BACKLOG | Human confirm |
 | BC-PROSE-LOW-RESIDUALS | BC-2.17.001 Inv-4 + prd.md singular `carry`; BC-2.17.018 PC-1 singular `carry`; VP-034 title-label drift. | LOW | Cycle close / v0.12.0 |
@@ -214,7 +216,7 @@ All GitHub-issue creation DF-VALIDATION-001-gated (policies.yaml).
 ## Session Resume Checkpoint
 
 **Date:** 2026-06-29
-**State:** IDLE post-v0.11.0
+**State:** IDLE post-v0.11.0 + Dependabot triage complete
 
 ### What was done this session
 - v0.11.0 RELEASED (D-300): four EC-X1/EC-X2 fixes (ENIP/DNP3/Modbus/DNP3-desync) + ENIP analyzer epic.
@@ -223,6 +225,7 @@ All GitHub-issue creation DF-VALIDATION-001-gated (policies.yaml).
 - STORY-143 (draft, E-11) created for release-changelog hardening.
 - decisions-archive.md extended D-228..D-301 (was D-228..D-266).
 - STATE.md compacted: historical "Do NOT re-X" block and verbose inline decisions (D-270..D-299) archived to cycles/feature-enip-v0.11.0/decisions-archive.md.
+- Dependabot triage (D-302): PRs #325 + #311 squash-merged; develop advanced to `a2d8c13`. main unchanged at `3072e828`.
 
 ### Open question requiring human response
 Should the corrected `[0.11.0]` CHANGELOG entry be fast-tracked onto `main` now via a docs-only PR, or left to ride to the next gitflow back-merge at v0.12.0 release time? (no functional impact either way)
@@ -230,8 +233,7 @@ Should the corrected `[0.11.0]` CHANGELOG entry be fast-tracked onto `main` now 
 ### Next candidate work
 1. Answer the open question above.
 2. Research-agent validation of TLS-CLIENTHELLO-FRAG-001 (CRIT candidate — recommended first for v0.12.0 scoping).
-3. Human triage of Dependabot PRs #311, #325.
-4. v0.12.0 planning based on backlog + research-agent findings.
+3. v0.12.0 planning based on backlog + research-agent findings.
 
 ---
 
@@ -246,7 +248,7 @@ Full policy text: `.factory/policies.yaml`. Active policies (17): DF-VALIDATION-
 - `.factory/` is a `factory-artifacts` orphan-branch worktree, gitignored from `develop`.
 - Closed cycle: `cycles/feature-enip-v0.11.0/` (decisions-archive.md D-228..D-301, CLOSED D-300).
 - STORY-INDEX.md authoritative (96 stories / 64 waves — v3.2). STORY-130..142 all MERGED. stories_delivered=91. STORY-143 added draft (E-11, D-301).
-- v0.11.0 RELEASED (D-300, 2026-06-29). main=`3072e828`, develop=`ab0b388`, tag v0.11.0. crates.io not published.
+- v0.11.0 RELEASED (D-300, 2026-06-29). main=`3072e828`, develop=`a2d8c13` (post-Dependabot triage D-302), tag v0.11.0. crates.io not published.
 - Repo squash-only policy set (D-289). Branch protection on develop + main (D-290).
 - SEC-001 (unsafe split-borrow enip.rs `on_data`, MEDIUM, pre-existing PR #334) in backlog as v0.12.0 candidate (D-300).
 - BC-INDEX v1.88 (BC-2.14.002 v2.1 errata anchor reconciliation, D-298). VP-INDEX v2.14 (38 VPs; VP-037 range 0..6, D-298).
